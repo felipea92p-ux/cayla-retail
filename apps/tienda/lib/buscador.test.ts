@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buscarEn, leerRespuestaDelBuscador, normalizar, resaltar, type ItemBusqueda } from "./buscador";
+import { buscarEn, leerRespuestaDelBuscador, normalizar, recienLlegadas, resaltar, type ItemBusqueda } from "./buscador";
 
 const item = (nombre: string, categoria: string | null, colores: string[] = []): ItemBusqueda => ({
   id: nombre,
@@ -13,6 +13,8 @@ const item = (nombre: string, categoria: string | null, colores: string[] = []):
   optimizar: false,
   forma: "percha",
   color: null,
+  nota: null,
+  diasNuevo: null,
 });
 
 const INDICE = [
@@ -72,5 +74,15 @@ describe("la respuesta de GET /api/buscador (la lista llega aparte de la página
     expect(leerRespuestaDelBuscador({ estado: "ok", indice: "x" })).toEqual({ estado: "sin_respuesta" });
     expect(leerRespuestaDelBuscador(null)).toEqual({ estado: "sin_respuesta" });
     expect(leerRespuestaDelBuscador("<html>")).toEqual({ estado: "sin_respuesta" });
+  });
+});
+
+describe("sin escribir, lo recién llegado (rediseño Premium)", () => {
+  it("las que llegaron hace menos primero, solo las de Lo nuevo y hasta tres", () => {
+    const con = (nombre: string, dias: number | null) => ({ ...item(nombre, null), diasNuevo: dias });
+    const lista = [con("Vieja", null), con("Hace 9", 9), con("Hoy", 0), con("Fijada", 31), con("Hace 2", 2)];
+    expect(recienLlegadas(lista).map((i) => i.nombre)).toEqual(["Hoy", "Hace 2", "Hace 9"]);
+    expect(recienLlegadas(lista, 5).map((i) => i.nombre)).toEqual(["Hoy", "Hace 2", "Hace 9", "Fijada"]);
+    expect(recienLlegadas([con("Vieja", null)])).toEqual([]);
   });
 });

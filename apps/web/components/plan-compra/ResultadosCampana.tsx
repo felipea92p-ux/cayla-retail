@@ -42,6 +42,7 @@ import { VeredictoDeLaCampana } from "@/components/plan-compra/VeredictoDeLaCamp
 import type { HistoriaDelPlan } from "@/lib/plan-compra-veredicto";
 import { TituloSeccion } from "@/components/ui/TituloSeccion";
 import { DesplegablePildora } from "@/components/ui/FiltrosPildora";
+import { prefiereQuieto } from "@/lib/movimiento-cliente";
 
 // Plan de campaña ▸ Resultados (ADR-0372, C6 · Felipe 2026-10-12): lo que se vendió de verdad en una campaña, por tienda, familia, categoría,
 // prenda y color; el multiplicador real de cada tienda; qué se agotó; y a qué % se vendió lo que sobró. Solo lee. Las píldoras de tienda
@@ -194,7 +195,7 @@ export function ResultadosCampana({
   const plantilla = enCurso ? PLANTILLA_EN_CURSO : PLANTILLA;
   const verLasQuePiden = () => {
     setSoloAtencion(true);
-    tablaRef.current?.scrollIntoView({ block: "start", behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
+    tablaRef.current?.scrollIntoView({ block: "start", behavior: prefiereQuieto() ? "auto" : "smooth" });
   };
 
   return (

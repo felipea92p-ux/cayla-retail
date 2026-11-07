@@ -2,6 +2,7 @@
 // decide qué tema es cada cosa vive en `tema-reglas.ts` (pura y con pruebas). Solo se importa desde componentes cliente.
 
 import { ATRIBUTO_TEMA, CLAVE_TEMA, resolverTema, type Tema } from "./tema-reglas";
+import { prefiereQuieto } from "./movimiento-cliente";
 
 /** El tema que está puesto AHORA: lo dice el atributo de <html>, que el script del `<head>` fijó antes de pintar. */
 export function temaDelDocumento(): Tema {
@@ -30,7 +31,7 @@ export function cambiarTema(tema: Tema): void {
     ponerAtributo(tema);
     guardarTema(tema);
   };
-  const sinMovimiento = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false;
+  const sinMovimiento = prefiereQuieto();
   type Transicion = { ready?: Promise<unknown>; finished?: Promise<unknown>; updateCallbackDone?: Promise<unknown> };
   const conTransicion = document as Document & { startViewTransition?: (cuando: () => void) => Transicion };
   if (sinMovimiento || typeof conTransicion.startViewTransition !== "function") {

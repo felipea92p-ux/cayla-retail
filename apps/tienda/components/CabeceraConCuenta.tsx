@@ -4,7 +4,7 @@ import { Suspense, useEffect, useId, useRef, useState, useSyncExternalStore, use
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { salir } from "@/app/acciones/cuenta";
-import { buscarEn, leerRespuestaDelBuscador, resaltar, type RespuestaBuscador } from "@/lib/buscador";
+import { buscarEn, leerRespuestaDelBuscador, recienLlegadas, resaltar, type ItemBusqueda, type RespuestaBuscador } from "@/lib/buscador";
 import { hrefConVolver } from "@/lib/entrada";
 import { seccionDeLaRuta, type SeccionActual } from "@/lib/esqueleto";
 import type { DatosCabecera, FotoChica, MenuCabecera } from "@/lib/inicio";
@@ -238,7 +238,7 @@ export function CabeceraConCuenta({
           {/* El buscador a la vista, en la cabecera (ADR-0615). Abre el mismo buscador de siempre. */}
           <button type="button" className="dn-buscar-cab" aria-label="Buscar" onClick={(e) => abrir("buscar", e.currentTarget)}>
             <Icono nombre="lupa" />
-            <span>¿Qué estás buscando?</span>
+            <span>Busca blusas, jeans…</span>
           </button>
           <span className="t-esp" />
           {tiendas && <SelectorTienda opciones={tiendas} prendasEnBolsa={prendasEnBolsa} />}
@@ -760,7 +760,10 @@ function HojaBuscar({
   const [q, setQ] = useState("");
   const lista = indice?.estado === "ok" ? indice.indice : null;
   const encontradas = lista ? buscarEn(lista, q) : [];
+  // La hoja muestra hasta 8: el conteo dice de cuántas, para no hacer creer que solo hay esas.
+  const total = lista ? buscarEn(lista, q, Number.POSITIVE_INFINITY).length : 0;
   const corto = q.trim().length < 2;
+  const nuevas = lista ? recienLlegadas(lista) : [];
   const router = useRouter();
   return (
     <div className="t-buscador" role="dialog" aria-modal="true" aria-label="Buscar en la tienda">
@@ -772,7 +775,7 @@ function HojaBuscar({
             type="search"
             value={q}
             onChange={(e) => setQ(e.target.value)}
-            placeholder="Prenda o color"
+            placeholder="Busca blusas, jeans…"
             autoComplete="off"
             enterKeyHint="search"
             autoFocus
@@ -802,6 +805,19 @@ function HojaBuscar({
                   </button>
                 ))}
               </div>
+              {/* Sin escribir, también lo recién llegado a la tienda elegida (rediseño Premium): la hoja no abre vacía. */}
+              {nuevas.length > 0 && (
+                <>
+                  <span className="t-ceja t-resultados-cuenta">Recién llegado</span>
+                  <ul className="t-resultados">
+                    {nuevas.map((i) => (
+                      <li key={i.id}>
+                        <ResultadoBuscador item={i} partes={null} cerrar={cerrar} />
+                      </li>
+                    ))}
+                  </ul>
+                </>
+              )}
             </>
           )
         ) : indice === null ? (
@@ -849,52 +865,49 @@ function HojaBuscar({
         ) : (
           <>
             <span className="t-ceja t-resultados-cuenta">
-              {encontradas.length} {encontradas.length === 1 ? "prenda" : "prendas"}
+              {encontradas.length < total ? `${encontradas.length} de ${total}` : encontradas.length} {total === 1 ? "prenda" : "prendas"}
             </span>
             <ul className="t-resultados">
-              {encontradas.map((i) => {
-                const partes = resaltar(i.nombre, q);
-                return (
-                  <li key={i.id}>
-                    <Link className="t-resultado" href={i.href} onClick={cerrar}>
-                      <FotoTarjeta
-                        foto={i.foto}
-                        segunda={null}
-                        optimizar={[i.optimizar, false]}
-                        nombre=""
-                        forma={i.forma}
-                        color={i.color}
-                        tamanos="52px"
-                      />
-                      <span>
-                        {/* El nombre en su propia caja: suelto, cada trozo sería una línea de la columna. */}
-                        <span className="t-resultado-nom">
-                          {partes ? (
-                            <>
-                              {partes[0]}
-                              <mark>{partes[1]}</mark>
-                              {partes[2]}
-                            </>
-                          ) : (
-                            i.nombre
-                          )}
-                        </span>
-                        <small>
-                          {i.categoria ?? "CAYLA"}
-                          {i.oferta ? ` · ${i.oferta}` : ""}
-                        </small>
-                      </span>
-                      <b className="num" data-oferta={i.oferta ? "" : undefined}>
-                        {i.precio}
-                      </b>
-                    </Link>
-                  </li>
-                );
-              })}
+              {encontradas.map((i) => (
+                <li key={i.id}>
+                  <ResultadoBuscador item={i} partes={resaltar(i.nombre, q)} cerrar={cerrar} />
+                </li>
+              ))}
             </ul>
           </>
         )}
       </div>
     </div>
+  );
+}
+
+/** Una prenda encontrada (o recién llegada): foto, nombre con lo escrito subrayado, categoría, cuánto hay y precio. */
+function ResultadoBuscador({ item: i, partes, cerrar }: { item: ItemBusqueda; partes: [string, string, string] | null; cerrar: () => void }) {
+  return (
+    <Link className="t-resultado" href={i.href} onClick={cerrar}>
+      <FotoTarjeta foto={i.foto} segunda={null} optimizar={[i.optimizar, false]} nombre="" forma={i.forma} color={i.color} tamanos="52px" />
+      <span>
+        {/* El nombre en su propia caja: suelto, cada trozo sería una línea de la columna. */}
+        <span className="t-resultado-nom">
+          {partes ? (
+            <>
+              {partes[0]}
+              <mark>{partes[1]}</mark>
+              {partes[2]}
+            </>
+          ) : (
+            i.nombre
+          )}
+        </span>
+        <small>
+          {i.categoria ?? "CAYLA"}
+          {i.oferta ? ` · ${i.oferta}` : ""}
+        </small>
+        {i.nota && <span className={`t-card-nota ${i.nota.tono}`}>{i.nota.texto}</span>}
+      </span>
+      <b className="num" data-oferta={i.oferta ? "" : undefined}>
+        {i.precio}
+      </b>
+    </Link>
   );
 }

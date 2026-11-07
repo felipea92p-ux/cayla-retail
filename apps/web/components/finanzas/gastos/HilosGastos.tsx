@@ -10,6 +10,7 @@ import { BotonVerMas, FilasDeMas } from "@/components/ui/VerMas";
 import { desgloseDe, etiquetaCambio, parteDeLoGastado, resumenDelDesglose, type FilaHilo, type GastoDelDesglose } from "@/lib/gastos-hilos-reglas";
 import { fechaCorta, solesRedondo, type GastoFila } from "@/lib/gastos-reglas";
 import type { ClaveSede, ColorSede } from "@/lib/finanzas-telar-reglas";
+import { prefiereQuieto } from "@/lib/movimiento-cliente";
 
 // El color de cada hilo de sede, el mismo del orillo del telar. La empresa va rayada: no es una tienda, es lo que no es de ninguna.
 export const COLOR: Record<ColorSede, string> = {
@@ -26,7 +27,7 @@ const A_LA_VISTA = 6;
 /** Cuántas categorías se ven de entrada; con una o dos más se ven todas (un «Ver 1 más» no ahorra nada). Así «Cuándo» sube (/formidable 2026-10-30). */
 const CATEGORIAS_A_LA_VISTA = 6;
 
-const quieta = () => window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+const quieta = () => prefiereQuieto();
 const EASE = "cubic-bezier(0.22, 1, 0.36, 1)";
 
 /**

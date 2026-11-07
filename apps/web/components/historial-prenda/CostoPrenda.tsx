@@ -32,6 +32,7 @@ import {
   type Movida,
 } from "@/lib/costo-prenda-reglas";
 import { soles } from "@/lib/historial-prenda-reglas";
+import { prefiereQuieto } from "@/lib/movimiento-cliente";
 
 /**
  * La pestaña «Costo» del Historial de la prenda (maqueta elegida por Felipe el 2026-10-24:
@@ -91,8 +92,7 @@ export function CostoPrenda({
       if (rect.top < 0 || rect.bottom > window.innerHeight)
         f.scrollIntoView({
           block: "nearest",
-          behavior: window.matchMedia("(prefers-reduced-motion: reduce)")
-            .matches
+          behavior: prefiereQuieto()
             ? "auto"
             : "smooth",
         });
@@ -105,7 +105,7 @@ export function CostoPrenda({
     const f = lista.current?.querySelector<HTMLElement>(`[data-error="${id}"]`);
     f?.scrollIntoView({
       block: "nearest",
-      behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches
+      behavior: prefiereQuieto()
         ? "auto"
         : "smooth",
     });

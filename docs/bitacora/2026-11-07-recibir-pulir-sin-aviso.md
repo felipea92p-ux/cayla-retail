@@ -2,6 +2,7 @@
 
 - **Hecho:** varios proveedores por envío sin aviso (cada marca con el suyo, «De quién llegó» al cerrar); «Ya la tenemos» al agregar un modelo; el costo sale con el de catálogo y quien recibe lo pone, también una terminal; quitar la talla o el color agregado por error; lo que entró al stock por talla y color con etiquetas a elección; maquetas de «Revisa y cierra» (ADR-0393, act. 2026-11-07 b).
 - **Verificado:** `pruebas:envio-sin-aviso` 43/43 y las suites de Recibir; tipos, lint y vitest de Recibir, guías, foco, unificar y sugerir; cada punto recorrido en el navegador en local salvo el costo con cuenta de terminal.
-- **En producción:** las 4 migraciones, con el OK de Felipe (mismo md5 que en local).
+- **En producción:** las 5 migraciones, con el OK de Felipe (las 4 primeras con el mismo md5 que en local; `20261107201000`, comprobada en `pg_constraint`).
 - **Falta:** que Felipe elija una maqueta de «Revisa y cierra» y probar el costo con una cuenta de terminal.
+- **Arreglo del CI:** `pruebas:eliminar-producto` no conocía `variantes_nacidas_al_recibir`. Es «suya» de la ficha, como `producto_origen`: `20261107201000` pone su llave en cascada y la prueba suma un caso (prenda nacida al recibir, sin movimientos, se elimina). En local la prueba pasa salvo el caso de Blusa Emma, porque la base compartida tiene ventas de otras sesiones.
 - **«Revisa y cierra» B (rama `claude/recibir-revisa-y-cierra-b`):** tarjetas por categoría y marca con su proveedor y su costo, «Ver detalle» de cada modelo y el resumen «Al cerrar» con lo que falta (ADR-0393 act. 2026-11-07 c). Verificado en el navegador en local, escritorio y 375 px.

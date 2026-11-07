@@ -8,6 +8,7 @@ import { DETALLE_TARDA, MENSAJE_ESPERA, clasificarPeticion, claveNavegacion, typ
 import { marcarFichas, marcarLoaderALaVista } from "@/lib/espera-estado";
 import { entradaActiva, suscribirEntrada } from "@/lib/entrada-estado";
 import { anotarEscrituraSinRespuesta } from "@/lib/refresco-tras-corte";
+import { prefiereQuieto } from "@/lib/movimiento-cliente";
 
 /* ====================================================================
    El loader general (ADR-0149) — UNO solo, a pantalla completa.
@@ -264,7 +265,7 @@ export function EsperaGlobal() {
     window.clearTimeout(r.mostrar);
     r.mostrar = undefined;
     if (!visibleRef.current) return;
-    const sinMovimiento = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+    const sinMovimiento = prefiereQuieto();
     const espera = Math.max(MS_GRACIA, MS_MINIMO - (Date.now() - desde.current));
     r.salir = window.setTimeout(() => {
       setSaliendo(true);
@@ -346,6 +347,7 @@ export function EsperaGlobal() {
               r="29"
               strokeDasharray="46 137"
               strokeLinecap="round"
+              data-senal
               className="origin-center stroke-rojo animate-spin [animation-duration:1.1s] motion-reduce:animate-none"
             />
           </svg>
@@ -357,7 +359,7 @@ export function EsperaGlobal() {
         </p>
         {linea ? <p className="mt-2 text-[13px] text-tinta/80">{linea}</p> : null}
         <span aria-hidden className="espera-hilo">
-          <span className="block h-full w-1/3 bg-rojo [animation:cayla-hilo-barrido_1.1s_linear_infinite] motion-reduce:animate-none" />
+          <span data-senal className="block h-full w-1/3 bg-rojo [animation:cayla-hilo-barrido_1.1s_linear_infinite] motion-reduce:animate-none" />
         </span>
       </div>
     </div>,

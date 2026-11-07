@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, type RefObject } from "react";
+import { prefiereQuieto } from "@/lib/movimiento-cliente";
 
 /**
  * La luz de las placas de Rendimiento (ADR-0610): el brillo y el filo de «Mi perfil» siguen al mouse en la placa `.liquido` que tiene debajo.
@@ -10,7 +11,7 @@ export function useLuzLiquida(raiz: RefObject<HTMLElement | null>) {
   useEffect(() => {
     const el = raiz.current;
     if (!el) return;
-    if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches || !window.matchMedia?.("(hover: hover)").matches) return;
+    if (prefiereQuieto() || !window.matchMedia?.("(hover: hover)").matches) return;
     let cuadro = 0;
     let ultimo: PointerEvent | null = null;
     const pintar = () => {

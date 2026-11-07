@@ -26,10 +26,10 @@ const esId = (id: string) => z.string().uuid().safeParse(id).success;
 
 export async function generateMetadata({ params, searchParams }: Props): Promise<Metadata> {
   const [{ id }, sp] = await Promise.all([params, searchParams]);
-  if (!esId(id)) return { title: "Arma tu outfit · CAYLA" };
+  if (!esId(id)) return { title: "Outfits listos · CAYLA" };
   const sedes = sedesEnOrden(await leerSedes());
   const lectura = await leerLook(id, sedeDeLaUrl(sp.sede, sedes)?.id ?? null);
-  return { title: lectura?.look ? `${lectura.look.nombre} · Arma tu outfit · CAYLA` : "Arma tu outfit · CAYLA" };
+  return { title: lectura?.look ? `${lectura.look.nombre} · Outfits listos · CAYLA` : "Outfits listos · CAYLA" };
 }
 
 // Un look abierto (maqueta v4, `vLook` y `lookInfo`): la lámina, «Look N de M», su nombre y su frase, cada prenda con su color y lo que cuesta
@@ -73,7 +73,7 @@ export default async function LookAbierto({ params, searchParams }: Props) {
         <nav className="t-ruta" aria-label="Estás en">
           <Link href={hrefDelInicio(sede)}>Inicio</Link>
           <span aria-hidden="true">/</span>
-          <Link href={hrefLooks(sede)}>Arma tu outfit</Link>
+          <Link href={hrefLooks(sede)}>Outfits listos</Link>
           {look && (
             <>
               <span aria-hidden="true">/</span>
@@ -97,7 +97,7 @@ export default async function LookAbierto({ params, searchParams }: Props) {
             <h3>Este outfit ya no está</h3>
             <p>Puede que alguna de sus prendas se haya agotado o que lo hayamos cambiado. Mira los otros outfits.</p>
             <Link className="t-btn" href={hrefLooks(sede)}>
-              Ver los outfits
+              Ver outfits listos
             </Link>
           </div>
         ) : (

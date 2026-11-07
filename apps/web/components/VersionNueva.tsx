@@ -11,6 +11,7 @@ import {
   leerVersion,
   tocaPreguntar,
 } from "@/lib/version-nueva-reglas";
+import { prefiereQuieto } from "@/lib/movimiento-cliente";
 
 /** Con qué versión se armó ESTA pestaña (`next.config.ts`). Vacío o «desarrollo»: no hay nada que comparar. */
 const VERSION_PROPIA = process.env.NEXT_PUBLIC_BUILD_ID ?? "";
@@ -166,7 +167,7 @@ export function VersionNueva() {
 
   const alPulsarMasTarde = useCallback(() => {
     // Con «reducir movimiento» no hay gota: se va ya.
-    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) setCallada(true);
+    if (prefiereQuieto()) setCallada(true);
     else setSaliendo(true);
   }, []);
 

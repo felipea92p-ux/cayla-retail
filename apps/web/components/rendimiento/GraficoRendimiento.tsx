@@ -18,6 +18,7 @@ import {
   type MedidaPersona,
   type Tramo,
 } from "@/lib/rendimiento-vista-reglas";
+import { prefiereQuieto } from "@/lib/movimiento-cliente";
 
 /* ====================================================================
    El gráfico de Rendimiento (ADR-0610): el mismo dibujo que se transforma. Cada barra es la pila de lo que vendió cada persona ese día: en «Cada día» se ven
@@ -167,7 +168,7 @@ export function GraficoRendimiento({ dias, hoy, filas, medidas, colores, esLaTie
   const modoAntes = useRef(modo);
   useEffect(() => {
     const l = lineaEntra.current;
-    if (modo === "suma" && modoAntes.current !== "suma" && l && !window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+    if (modo === "suma" && modoAntes.current !== "suma" && l && !prefiereQuieto()) {
       const largo = l.getTotalLength();
       l.animate([{ strokeDasharray: `${largo}`, strokeDashoffset: largo }, { strokeDasharray: `${largo}`, strokeDashoffset: 0 }], { duration: 1100, delay: 200, easing: "cubic-bezier(.32,.72,.24,1)", fill: "backwards" });
     }

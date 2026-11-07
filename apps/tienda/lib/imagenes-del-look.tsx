@@ -81,7 +81,7 @@ function Llamado({ tamano }: { tamano: number }) {
         <path d="M10 3.5l1.6 4.4 4.4 1.6-4.4 1.6-1.6 4.4-1.6-4.4L4 9.5l4.4-1.6Z" />
         <path d="M18 13.5l.8 2.2 2.2.8-2.2.8-.8 2.2-.8-2.2-2.2-.8 2.2-.8Z" />
       </svg>
-      <span style={{ fontFamily: SANS, fontSize: tamano, fontWeight: 700 }}>{`Arma el tuyo en ${DOMINIO_A_LA_VISTA}`}</span>
+      <span style={{ fontFamily: SANS, fontSize: tamano, fontWeight: 700 }}>{`Arma tu outfit en ${DOMINIO_A_LA_VISTA}`}</span>
     </div>
   );
 }

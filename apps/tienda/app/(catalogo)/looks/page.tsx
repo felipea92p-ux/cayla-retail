@@ -15,7 +15,8 @@ import { hayEnTienda } from "@/lib/stock";
 import { leerSedes } from "@/lib/tiendas-servidor";
 import "../../estilos/looks.css";
 
-export const metadata: Metadata = { title: "Arma tu outfit · CAYLA" };
+// Un nombre por destino (rediseño Premium, 2026-11-07): «Outfits listos» son los que arma CAYLA; «Arma tu outfit», la herramienta.
+export const metadata: Metadata = { title: "Outfits listos · CAYLA" };
 
 // «Arma tu look» (maqueta v4, `vLooks`): las combinaciones que el ERP arma en Vitrina web ▸ Looks, en su orden, cada una con su lámina, su
 // frase y lo que cuesta completa en la tienda elegida («Ver lo que hay en»; con «Todas», al mayor entre las tiendas de la web). Se lee en
@@ -51,11 +52,11 @@ export default async function Looks({ searchParams }: { searchParams: Promise<Re
     >
       <div className="t-ancho">
         <header className="t-lista-cab t-looks-cab">
-          <TituloConLetras primera="Arma tu" cursiva="outfit" />
+          <TituloConLetras primera="Outfits" cursiva="listos" />
           {/* Los looks de CAYLA están abajo; este es el camino para armar el propio (el probador). Siempre a la vista: si todavía no hay
               prendas que probar en esa tienda, el probador lo dice y lleva de vuelta a los outfits. */}
           <Link className="t-btn t-btn-sec" href={hrefDelProbador(sede)}>
-            Arma el tuyo <Icono nombre="flecha" />
+            Arma tu outfit <Icono nombre="flecha" />
           </Link>
         </header>
 
@@ -75,7 +76,7 @@ export default async function Looks({ searchParams }: { searchParams: Promise<Re
             <p>A estos outfits les faltan prendas que hoy están en otras tiendas. Mira los que sí están completos o arma el tuyo con lo que hay aquí.</p>
             {otrasConLooks.map((s) => (
               <Link key={s.id} className="t-btn" href={hrefLooks(claveDeSede(s.nombre))}>
-                {`Ver los outfits de ${s.nombre}`}
+                {`Ver outfits listos de ${s.nombre}`}
               </Link>
             ))}
           </div>
