@@ -231,7 +231,7 @@ insert into retail.movimientos (variante_id, ubicacion_id, tipo, cantidad, motiv
   (:'va', :'tru', 'salida',  1, 'cuarentena_donada',             '2030-09-09 12:00-05'),  -- 50
   (:'va', :'tru', 'salida',  1, 'cuarentena_devuelta_proveedor', '2030-09-09 13:00-05'),  -- NO es merma
   (:'va', :'tru', 'ajuste', -1, 'conteo',                        '2030-09-20 12:00-05'),  -- faltante de conteo: 50
-  (:'va', :'tru', 'ajuste',  3, 'conteo',                        '2030-09-20 12:05-05'),  -- sobrante: desde el corte entra a la 6959 (S/ 150), en los gastos
+  (:'va', :'tru', 'ajuste',  3, 'conteo',                        '2030-09-22 12:05-05'),  -- sobrante: desde el corte entra a la 6959 (S/ 150), en los gastos. Otro día que el faltante: el mismo día sería una prenda cruzada (ADR-0617, pruebas:conteo-explicado)
   (:'va', :'tru', 'ajuste', -1, 'conteo_fisico',                 '2030-09-21 12:00-05'),  -- faltante del modal de ajuste: 50
   (:'vb', :'tru', 'ajuste', -2, 'merma',                         '2030-09-21 12:00-05'),  -- sin costo: 0 y se AVISA (2 u.)
   (:'va', :'tru', 'ajuste', -1, 'reposicion',                    '2030-09-21 13:00-05');  -- resta a mano: SÍ es merma desde ADR-0328 act. 14 (50)
