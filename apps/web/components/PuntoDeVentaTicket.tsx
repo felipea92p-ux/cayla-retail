@@ -22,6 +22,7 @@ import { TEXTO_PIE_CUPON } from "@/lib/club-puntos-reglas";
 import { Volver } from "@/components/ui/Volver";
 import { TituloSeccion } from "@/components/ui/TituloSeccion";
 import { Vacio } from "@/components/ui/Vacio";
+import { prefiereQuieto } from "@/lib/movimiento-cliente";
 
 /** 18% — IGV de Perú. Solo para el desglose que se ve en pantalla: el que de
  *  verdad cuenta lo calcula `registrar_venta` en el servidor. */
@@ -301,7 +302,7 @@ export function PuntoDeVentaTicket({
     momentoPrevio.current = momentoMostrado;
     if (!window.matchMedia("(max-width: 1023.98px)").matches) return;
     soltarPaginaEstable();
-    const reducido = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const reducido = prefiereQuieto();
     asideRef.current?.scrollIntoView({ block: "start", behavior: reducido ? "auto" : "smooth" });
   }, [momentoMostrado]);
 

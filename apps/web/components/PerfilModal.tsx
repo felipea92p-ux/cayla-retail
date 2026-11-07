@@ -19,6 +19,7 @@ import { Boton, CampoTexto } from "@/components/ui/campos";
 import { CampoGuiado, PieGuia } from "@/components/guia-de-foco/CampoGuiado";
 import { useGuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
 import { useCerrarSesion } from "@/components/LogoutButton";
+import { prefiereQuieto } from "@/lib/movimiento-cliente";
 
 // "Mi perfil" (0014_perfil.sql, 2026-09-14): casi todo acá es de solo lectura
 // a propósito — nombres/apellidos/correo/rol/estado/ubicación son de Dynamic
@@ -67,7 +68,7 @@ function formatoAcceso(iso: string) {
   return `${new Intl.DateTimeFormat("es-PE", { timeZone: ZONA, day: "2-digit", month: "2-digit", year: "numeric" }).format(fecha)}, ${hora}`;
 }
 
-const sinMovimiento = () => typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches === true;
+const sinMovimiento = () => typeof window !== "undefined" && prefiereQuieto() === true;
 
 function Fila({ Icono, etiqueta, valor, copiar }: { Icono: LucideIcon; etiqueta: string; valor: string; copiar?: string }) {
   return (

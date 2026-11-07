@@ -96,6 +96,7 @@ import { avisoDeEgreso, guardadoDeEgreso, vaAlBanco, type QueFue } from "@/lib/c
 import { useIntento } from "@/lib/useIntento";
 import { huellaDe } from "@/lib/intento-reglas";
 import { AvisoIntentoIncierto, avisarCongelado } from "@/components/ui/AvisoIntentoIncierto";
+import { prefiereQuieto } from "@/lib/movimiento-cliente";
 
 // Finanzas ▸ Gastos (ADR-0195 F2), dibujada como el spike aprobado (docs/maquetas/finanzas-2026-09/, vista «Gastos»):
 // cabecera con «Ver» y la acción principal → cuatro cifras → pestañas → la tarjeta de la tabla con sus filtros → nota.
@@ -253,7 +254,7 @@ export function GastosPanel({
   const irALasPestanas = (p: PestanaGastos) => {
     setPestana(p);
     requestAnimationFrame(() => {
-      const reducido = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      const reducido = prefiereQuieto();
       document.getElementById("fin-gastos-secciones")?.scrollIntoView({ block: "start", behavior: reducido ? "auto" : "smooth" });
     });
   };

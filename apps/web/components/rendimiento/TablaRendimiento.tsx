@@ -11,6 +11,7 @@ import { UMBRAL_MUESTRA_VENTAS } from "@/lib/rendimiento-reglas";
 import { turnoDeHoy, type LecturaRitmo, type PersonaMeta } from "@/lib/rendimiento-meta-reglas";
 import { filasPorPersona, type FilaPersonaDia, type MedidaPersona, type Tramo } from "@/lib/rendimiento-vista-reglas";
 import type { Sustantivo } from "@/lib/tabla-viva-reglas";
+import { prefiereQuieto } from "@/lib/movimiento-cliente";
 
 const SOLES = new Intl.NumberFormat("es-PE", { style: "currency", currency: "PEN", maximumFractionDigits: 0 });
 const NUMERO = new Intl.NumberFormat("es-PE", { maximumFractionDigits: 0 });
@@ -33,7 +34,7 @@ function useFilasQueViajan(firma: string) {
     const filas = [...raiz.querySelectorAll<HTMLElement>(".tv-fila[data-fila]")];
     const ahora = new Map(filas.map((f) => [f.dataset.fila ?? "", f.getBoundingClientRect().top - base]));
     const previo = antes.current;
-    if (previo && !window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+    if (previo && !prefiereQuieto()) {
       const curva = getComputedStyle(raiz).getPropertyValue("--ease-cayla") || "ease-out";
       for (const f of filas) {
         const id = f.dataset.fila ?? "";

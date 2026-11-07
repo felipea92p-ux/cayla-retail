@@ -6,6 +6,7 @@ import { Chip } from "@/components/ui/Chip";
 import { MiniaturaPrenda } from "@/components/ui/PrendaCelda";
 import { categoriaDe } from "@/lib/categoria-de-prenda";
 import type { FilaDeLista } from "@/lib/ordenes-lista-reglas";
+import { prefiereQuieto } from "@/lib/movimiento-cliente";
 
 // Una orden en la lista (ADR-0400, actividad 5; vista A de la lámina): la prenda, de qué es y cuántas; dónde está y QUIÉN la tiene; cuánto lleva ahí y para cuándo; y, si pide algo, por qué.
 // Toda la fila es un enlace a la página de la orden (un enlace que la cubre; adentro solo hay un botón, «¿Por qué?», que abre la explicación en una línea y no navega). Las columnas se
@@ -26,7 +27,7 @@ export function FilaDeOrden({ f, primera = false, guiaPorque = false, recien = f
   const idPorque = useId();
   const raiz = useRef<HTMLDivElement>(null);
   useEffect(() => {
-    if (recien) raiz.current?.scrollIntoView({ block: "nearest", behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
+    if (recien) raiz.current?.scrollIntoView({ block: "nearest", behavior: prefiereQuieto() ? "auto" : "smooth" });
   }, [recien]);
   const prenda = categoriaDe({ categoria: f.categoria?.nombre, categoriaPrefijo: f.categoria?.prefijo, categoriaFamilia: f.categoria?.familia });
   const enProceso = f.estado === "en_proceso";

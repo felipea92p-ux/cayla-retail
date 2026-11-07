@@ -70,6 +70,7 @@ import { createClient } from "@/lib/supabase/client";
 import type { Sububicacion } from "@/lib/sububicaciones";
 import { BotonDescargar } from "@/components/ui/BotonDescargar";
 import { BarraDeAbajo } from "@/components/ui/BarraDeAbajo";
+import { prefiereQuieto } from "@/lib/movimiento-cliente";
 
 const TODAS = "__todas__";
 
@@ -518,7 +519,7 @@ export function InventarioPanel({
   // ya tiene su alto filtrado; suave para que se vea de dónde a dónde se fue, y de una vez con `prefers-reduced-motion`.
   function mostrarTablaFiltrada() {
     requestAnimationFrame(() => {
-      const reducido = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+      const reducido = prefiereQuieto();
       tarjetaTablaRef.current?.scrollIntoView({ block: "start", behavior: reducido ? "auto" : "smooth" });
     });
   }

@@ -22,6 +22,7 @@ import {
   type ResultadoEscaneo,
 } from "@/lib/escaner-reglas";
 import { avisarLectura } from "@/lib/sonido-conteo";
+import { prefiereQuieto } from "@/lib/movimiento-cliente";
 
 /* ====================================================================
    EscanerCamara · leer el QR de la etiqueta con la cámara del teléfono (2026-09-25)
@@ -111,7 +112,7 @@ export async function crearLector(): Promise<Lector> {
   };
 }
 
-const moverse = () => !window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+const moverse = () => !prefiereQuieto();
 const soles = (n: number) => `S/${n.toFixed(2)}`;
 const iniciales = (referencia: string) =>
   referencia

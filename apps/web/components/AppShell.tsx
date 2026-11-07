@@ -8,6 +8,7 @@ import { Insignia } from "@/components/ui/Insignia";
 import { UbicacionSwitcher } from "@/components/UbicacionSwitcher";
 import { BotonActividad } from "@/components/actividad/BotonActividad";
 import { BotonTema } from "@/components/ui/BotonTema";
+import { BotonMovimiento } from "@/components/ui/BotonMovimiento";
 import { veActividad } from "@/lib/actividad-reglas";
 // El árbol del menú —qué fila ve cada perfil, en qué orden, con qué ícono— vive en `lib/menu.ts` como datos. Acá solo se pinta.
 import { esGrupoMenu as esGrupo, hermanosDe, hojasDe, menuPara, nombreCorto, permisosDe, rutaActiva, type ClaveIcono, type FilaMenu, type GrupoMenu as ItemGrupo, type ItemMenu as Item, type Permiso } from "@/lib/menu";
@@ -1190,6 +1191,8 @@ export function AppShell({ persona, ubicaciones, trasladosPorAtender, pedidosWeb
             {/* Modo oscuro (ADR-0336): entre «Actividad» y la sede. Lo ve toda cuenta, también una terminal: es una preferencia
                 del aparato, no un módulo ni una pantalla. */}
             <BotonTema />
+            {/* Animaciones (ADR-0625): junto al modo oscuro y por la misma razón, del aparato. El ERP arranca quieto. */}
+            <BotonMovimiento />
             {/* La sede va en su propia caja: los botones de la isla se redondean (marco.css) y el combo conserva su aspecto. */}
             <div data-marco-sede className="flex items-center">
               {persona.puedeCambiarUbicacion || persona.puedeVerGlobal ? (

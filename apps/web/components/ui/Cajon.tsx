@@ -10,6 +10,7 @@ import { useHojaArrastre } from "@/components/ui/useHojaArrastre";
 import { useAtrasCierraLaHoja } from "@/components/ui/useAtrasCierraLaHoja";
 import { CELULAR, useEnCelular } from "@/components/ui/useEnCelular";
 import { decidirLado, goma, pasoDeLado, velocidad, type Muestra } from "@/lib/hoja-gesto";
+import { prefiereQuieto } from "@/lib/movimiento-cliente";
 
 /** Debe coincidir con `.anim-cajon-salida` en globals.css. */
 const MS_SALIDA = 240;
@@ -218,7 +219,7 @@ export function Cajon({
   const cerrar = useCallback(() => setCerrando(true), []);
   useEffect(() => {
     if (!cerrando) return;
-    const reducido = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+    const reducido = prefiereQuieto();
     const ms = msSalidaPropia.current ?? (window.matchMedia?.(CELULAR).matches ? MS_SALIDA_CELULAR : MS_SALIDA);
     devolverFondo(fondo.current, reducido ? 0 : ms);
     const t = setTimeout(onCerrar, reducido ? 0 : ms);
@@ -233,7 +234,7 @@ export function Cajon({
 
   // Lo de atrás se aleja mientras el cajón está abierto en el celular (como con `Modal`).
   useEffect(() => {
-    if (!window.matchMedia?.(CELULAR).matches || window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return;
+    if (!window.matchMedia?.(CELULAR).matches || prefiereQuieto()) return;
     const llave = alejarFondo(MS_ENTRADA_CELULAR);
     fondo.current = llave;
     return () => {

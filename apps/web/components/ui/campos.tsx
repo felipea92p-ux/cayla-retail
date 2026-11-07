@@ -1046,7 +1046,8 @@ export function PalabraEnEspera({ cargando, texto = "Guardando…", children }: 
 export function HiloEnEspera({ claro = false }: { claro?: boolean }) {
   return (
     <span aria-hidden className="absolute inset-x-0 bottom-0 h-[2px] overflow-hidden rounded-full">
-      <span className={`block h-full w-1/3 rounded-full [animation:cayla-hilo-barrido_1.1s_linear_infinite] ${claro ? "bg-crema" : "bg-rojo"}`} />
+      {/* `data-senal`: sigue barriendo con las animaciones apagadas (ADR-0625); sin él, un guardado lento parece colgado. */}
+      <span data-senal className={`block h-full w-1/3 rounded-full [animation:cayla-hilo-barrido_1.1s_linear_infinite] ${claro ? "bg-crema" : "bg-rojo"}`} />
     </span>
   );
 }
