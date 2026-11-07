@@ -15,7 +15,9 @@ export type GrupoBalance = { clave: string; nombre: string; lado: "tiene" | "deb
 /** Los grupos de cada lado, en el orden en que se leen. `de` dice qué líneas son suyas (por su cuenta), y lo que no cae en ninguno va a «Otros». */
 const GRUPOS: readonly { clave: string; nombre: string; lado: GrupoBalance["lado"]; clase: string; de: (cuenta: string) => boolean }[] = [
   { clave: "plata", nombre: "Plata en cajas y bancos", lado: "tiene", clase: "bg-verde", de: (c) => c.startsWith("10") && c !== "105" },
-  { clave: "cobros", nombre: "Lo que te deben o está por llegar", lado: "tiene", clase: "bg-verde/40", de: (c) => c === "105" || c.startsWith("12") || c.startsWith("14") || c.startsWith("16") || c === "4011" },
+  { clave: "cobros", nombre: "Lo que te deben o está por llegar", lado: "tiene", clase: "bg-verde/40", de: (c) => c === "105" || c.startsWith("12") || c.startsWith("14") || c.startsWith("16") },
+  // Va aparte: SUNAT lo descuenta del IGV que viene, no lo paga en plata, así que no entra a «si te cobraran todo hoy» (ADR-0620).
+  { clave: "credito", nombre: "Saldo a favor de IGV", lado: "tiene", clase: "bg-verde/25", de: (c) => c === "4011" },
   { clave: "mercaderia", nombre: "Mercadería", lado: "tiene", clase: "bg-tinta/55", de: (c) => c.startsWith("20") || c.startsWith("21") || c.startsWith("28") },
   { clave: "equipos", nombre: "Muebles y equipos", lado: "tiene", clase: "bg-tinta/25", de: (c) => c.startsWith("33") || c.startsWith("39") },
   { clave: "proveedores", nombre: "Proveedores", lado: "debe", clase: "bg-ambar", de: (c) => c.startsWith("42") },
@@ -49,7 +51,7 @@ const suma = (xs: readonly LineaBalance[]) => Math.round(xs.reduce((a, l) => a +
 const linea = (l: LineaBalance) => ({ nombre: nombreLinea(l), monto: l.monto });
 
 export type Medidores = {
-  /** (plata + lo que te deben) ÷ lo que debes. `null` si no debes nada. */
+  /** (plata + lo que te deben) ÷ lo que debes, sin el saldo a favor de IGV, que no se cobra. `null` si no debes nada. */
   cobertura: number | null;
   plataYCobros: number;
   deudas: number;

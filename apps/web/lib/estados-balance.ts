@@ -21,6 +21,7 @@ const rojo = (p: number) => `color-mix(in srgb, var(--color-rojo) ${p}%, var(--c
 const DE_CADA_GRUPO: Record<string, { color: string; que: string; contable: string }> = {
   plata: { color: "var(--color-verde)", que: "Lo que tienes disponible, en cajas y bancos.", contable: "Efectivo y equivalentes" },
   cobros: { color: "var(--estados-parte-3)", que: "Ventas con tarjeta que el banco aún no deposita y lo que te deben.", contable: "Cuentas por cobrar" },
+  credito: { color: "var(--color-taupe)", que: "IGV que SUNAT te reconoce: se descuenta del que tocaría pagar en los próximos meses. No se cobra en plata.", contable: "Crédito fiscal" },
   mercaderia: { color: "var(--estados-parte-1)", que: "Las prendas que aún no vendes, a lo que te costaron.", contable: "Mercadería" },
   equipos: { color: "var(--estados-parte-2)", que: "Lo que valen hoy, ya restado el desgaste.", contable: "Muebles y equipos" },
   "otros-tiene": { color: "var(--estados-parte-4)", que: "Lo demás que CAYLA tiene.", contable: "Otros activos" },

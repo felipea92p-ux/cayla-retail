@@ -122,11 +122,11 @@ describe("mirando una sede", () => {
 describe("el IGV a favor", () => {
   const lineaIgv = (seccion: LineaBalance["seccion"], monto: number): LineaBalance => ({ seccion, cuenta: "4011", nombre: "IGV — cuenta corriente", monto, orden: 8, detalle: {} });
 
-  it("a favor va en lo que te deben, con su nombre, y no entra a Impuestos", () => {
+  it("a favor va aparte, con su nombre, y no entra a Impuestos", () => {
     const linea = lineaIgv("activo", 41878);
     expect(nombreLinea(linea)).toBe("Crédito fiscal de IGV (SUNAT le debe a CAYLA)");
     const grupos = gruposDelBalance([linea]);
-    expect(grupos.map((x) => [x.clave, x.monto])).toEqual([["cobros", 41878]]);
+    expect(grupos.map((x) => [x.clave, x.monto])).toEqual([["credito", 41878]]);
   });
   it("por pagar va en Impuestos, y Impuestos no promete un pago al mes siguiente", () => {
     const linea = lineaIgv("pasivo", 1200);
