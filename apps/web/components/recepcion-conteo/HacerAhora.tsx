@@ -47,7 +47,7 @@ import {
   type MarcaDeLinea,
   type ResultadoDeLigar,
 } from "@/lib/recepcion-conteo-reglas";
-import { cambiarLineaDePendiente, cambiarPrecioEnRecepcion, ligarPrendaAPendiente, resolverPendiente } from "@/lib/recepcion-conteo-acciones";
+import { cambiarLineaDePendiente, cambiarPrecioEnRecepcion, leerCombinacionesQuitables, ligarPrendaAPendiente, quitarCombinaciones, resolverPendiente } from "@/lib/recepcion-conteo-acciones";
 import type { Firma } from "@/lib/responsable-reglas";
 import { ConfirmarPrecios } from "./ConfirmarPrecios";
 import { HojaTallas } from "./HojaTallas";
@@ -168,6 +168,28 @@ export function HacerAhora({
   // La de la línea, o «Sin marca» (ADR-0393, 2026-10-14): una línea sin marca también se termina.
   const marca = linea ? marcaDeLinea(linea) : null;
   const pendienteId = item.tipo === "separar" ? null : item.pendiente.id;
+
+  // Las tallas y colores que nacieron en este envío y se pueden quitar (Felipe 2026-11-07): se leen al abrir «Tallas y colores» y cada vez que la prenda
+  // cambia (al volver de «+ talla o color»). Sin respuesta, ninguna: la × no se ofrece y nada se rompe.
+  const [quitables, setQuitables] = useState<ReadonlySet<string>>(() => new Set());
+  const prendaDeTallas = vista.tipo === "tallas" ? `${vista.prenda.productoId}:${vista.prenda.variantes.length}` : null;
+  useEffect(() => {
+    if (!prendaDeTallas) return;
+    let vigente = true;
+    void leerCombinacionesQuitables(detalle.id).then((ids) => vigente && setQuitables(ids));
+    return () => {
+      vigente = false;
+    };
+  }, [prendaDeTallas, detalle.id]);
+  async function quitarDelEnvio(ids: string[]): Promise<string | null> {
+    const { error: e } = await quitarCombinaciones({ p_despacho_id: detalle.id, p_variante_ids: ids }, responsable.firma());
+    responsable.despues(e);
+    if (e) return mensajeAlGuardar(e, "quitar esa talla o color");
+    setQuitables((q) => new Set([...q].filter((id) => !ids.includes(id))));
+    // La prenda que se ve en el resto de la pantalla también pierde esa combinación.
+    if (vista.tipo === "tallas") onPrendaVista({ ...vista.prenda, variantes: vista.prenda.variantes.filter((v) => !ids.includes(v.id)) });
+    return null;
+  }
 
   // Un «detalle»: la prenda del pendiente con sus tallas y colores (de lo ya buscado, o se busca por su nombre).
   const cargando = vista.tipo === "cargando";
@@ -522,6 +544,7 @@ export function HacerAhora({
           onListo={tallasListas}
           onAbrirHoja={(modo, prenda, escritas) => setVista(modo === "agregar" && prenda ? { tipo: "agregar", prenda, original: vista.original, escritas } : { tipo: "prenda" })}
           precioDe={item.tipo === "separar" ? undefined : (prenda) => <PreciosDeVenta prendas={[prenda]} sede={sede} soloSede={soloSede} sedeId={sedeId} precios={precios} costoDe={costoDe} onCosto={cambiarCosto} sinNombre />}
+          quitar={{ ids: quitables, onQuitar: quitarDelEnvio }}
           onCerrar={item.tipo === "separar" ? () => setVista({ tipo: "separar" }) : cerrar}
         />
       );

@@ -10,6 +10,9 @@ import {
   leerResuelto,
   leerValidacionDePrecio,
   RPC_CERRAR_CONTEO,
+  RPC_COMBINACIONES_QUITABLES,
+  RPC_QUITAR_COMBINACIONES,
+  leerQuitables,
   RPC_CONTEOS_ENVIO,
   RPC_CORREGIR_GUIA,
   RPC_FOTO_PAPEL,
@@ -203,6 +206,18 @@ export async function cambiarLineaDePendiente(
   firma: Firma | null,
 ): Promise<{ error: ErrorDeBase }> {
   const { error } = (await firmar(createClient().rpc(RPC_CAMBIAR_LINEA as never, args as never), firma)) as Respuesta;
+  return { error: error ?? null };
+}
+
+/** Las tallas y colores que nacieron en este envío y se pueden quitar. Es lectura: sin respuesta, ninguno (no se ofrece la ×). */
+export async function leerCombinacionesQuitables(despachoId: string): Promise<Set<string>> {
+  const { data, error } = (await createClient().rpc(RPC_COMBINACIONES_QUITABLES as never, { p_despacho_id: despachoId } as never)) as Respuesta;
+  return error ? new Set() : leerQuitables(data);
+}
+
+/** Quita (archiva) las tallas o colores agregados por error en este envío. Todo o nada. */
+export async function quitarCombinaciones(args: { p_despacho_id: string; p_variante_ids: string[] }, firma: Firma | null): Promise<{ error: ErrorDeBase }> {
+  const { error } = (await firmar(createClient().rpc(RPC_QUITAR_COMBINACIONES as never, args as never), firma)) as Respuesta;
   return { error: error ?? null };
 }
 

@@ -2042,7 +2042,7 @@ export const GUIA_RECIBIR_ENVIO: Guia = {
       ancla: "recepcion.matriz",
       opcional: true,
       titulo: "¿Cuántas llegaron?",
-      texto: "Una casilla por talla y color: escribe cuántas llegaron de cada una, buenas y dañadas juntas. Lo que no llegó, déjalo vacío; «—» es una combinación que la prenda no tiene.",
+      texto: "Una casilla por talla y color: escribe cuántas llegaron de cada una, buenas y dañadas juntas. Lo que no llegó, déjalo vacío; «—» es una combinación que la prenda no tiene. Un color o una talla que agregaste por error en este envío lleva su ×.",
     },
     {
       id: "danadas",

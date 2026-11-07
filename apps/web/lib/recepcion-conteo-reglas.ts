@@ -56,6 +56,40 @@ export const RPC_RESOLVER_PENDIENTE = "resolver_pendiente_envio";
 export const RPC_LIGAR_PRENDA = "ligar_prenda_a_pendiente";
 /** Felipe 2026-11-06 y 2026-11-07: lo contado como nuevo en una categoría o una marca que no era pasa a la suya, con el envío cerrado. */
 export const RPC_CAMBIAR_LINEA = "cambiar_linea_de_pendiente";
+/** Las tallas y colores que nacieron al recibir este envío y todavía se pueden quitar (Felipe 2026-11-07). Solo lectura. */
+export const RPC_COMBINACIONES_QUITABLES = "fn_combinaciones_quitables";
+/** Archiva lo agregado por error al recibir: solo lo que nació en este envío y nadie usó (`quitar_combinaciones_al_recibir`). */
+export const RPC_QUITAR_COMBINACIONES = "quitar_combinaciones_al_recibir";
+
+/** Los ids de las combinaciones que se pueden quitar (`fn_combinaciones_quitables`). Sin respuesta, ninguna: la pantalla simplemente no ofrece la ×. */
+export function leerQuitables(data: unknown): Set<string> {
+  const ids = new Set<string>();
+  for (const f of Array.isArray(data) ? data : []) {
+    const id = f && typeof f === "object" ? (f as Record<string, unknown>).variante_id : null;
+    if (typeof id === "string") ids.add(id);
+  }
+  return ids;
+}
+
+/**
+ * Qué color (fila) y qué talla (columna) de una prenda se puede quitar entero: todas sus combinaciones nacieron en este envío y se pueden quitar, y a la
+ * prenda le queda al menos otra combinación. La clave es la de la matriz: el código del color o el id de la talla («» = sin color / talla única).
+ * Lo que la prenda ya tenía no lleva la × (Felipe 2026-11-07: «solo los colores que agregué se deberían quitar, al igual que las tallas»).
+ */
+export function ejesQuitables(
+  prenda: Pick<PrendaRecepcion, "variantes">,
+  quitables: ReadonlySet<string>,
+): { colores: Map<string, string[]>; tallas: Map<string, string[]> } {
+  const porColor = new Map<string, string[]>();
+  const porTalla = new Map<string, string[]>();
+  for (const v of prenda.variantes) {
+    porColor.set(v.colorCodigo ?? "", [...(porColor.get(v.colorCodigo ?? "") ?? []), v.id]);
+    porTalla.set(v.tallaId ?? "", [...(porTalla.get(v.tallaId ?? "") ?? []), v.id]);
+  }
+  const total = prenda.variantes.length;
+  const filtrar = (m: Map<string, string[]>) => new Map([...m].filter(([, ids]) => ids.length < total && ids.every((id) => quitables.has(id))));
+  return { colores: filtrar(porColor), tallas: filtrar(porTalla) };
+}
 export const RPC_REABRIR_ENVIO = "reabrir_envio";
 /** ADR-0605: cancelar la recepción de un envío sin aviso (abierto → anulado, con su motivo). */
 export const RPC_CANCELAR_RECEPCION = "cancelar_recepcion_envio";

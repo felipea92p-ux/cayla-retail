@@ -79,6 +79,10 @@ const MIGRACIONES = SIN_MIGRACION
       "20261106230000_cambiar_categoria_de_lo_contado.sql",
       // Y a su marca de verdad (caso S3h).
       "20261107142000_cambiar_marca_de_lo_contado.sql",
+      // Sin nada escrito, la galería de la categoría entera (caso S3e).
+      "20261107183000_galeria_de_la_categoria_al_recibir.sql",
+      // La talla o el color agregado por error se quita; lo que la prenda ya tenía, no (caso S3i).
+      "20261107191000_quitar_combinacion_nacida_al_recibir.sql",
     ]
       .map((f) =>
         readFileSync(join(RAIZ, "supabase", "migrations", f), "utf8")
@@ -165,6 +169,8 @@ ${atrapa("parecidas", "p_cat uuid, p_q text", "retail.fn_parecidas_para_recibir(
 ${atrapa("corrige", "p_d uuid, p_prov uuid, p_motivo text", "retail.corregir_proveedor_envio(p_d, p_prov, p_motivo)")}
 ${atrapa("cambia_cat", "p_d uuid, p_pend uuid, p_cat uuid", "retail.cambiar_categoria_de_pendiente(p_d, p_pend, p_cat)")}
 ${atrapa("cambia_linea", "p_d uuid, p_pend uuid, p_cat uuid, p_marca uuid", "retail.cambiar_linea_de_pendiente(p_d, p_pend, p_cat, p_marca)")}
+${atrapa("quitables", "p_d uuid", "retail.fn_combinaciones_quitables(p_d)")}
+${atrapa("quita", "p_d uuid, p_vars uuid[]", "retail.quitar_combinaciones_al_recibir(p_d, p_vars)")}
 ${atrapa(
   "prepara",
   "p_d uuid, p_item uuid, p_cat uuid, p_marca uuid, p_prod uuid, p_ref text, p_vars jsonb, p_precio numeric, p_desc text, p_tej uuid, p_pat uuid, p_conf boolean, p_token uuid, p_prov uuid",
@@ -622,15 +628,45 @@ caso(
   "recepcion_marca / OK / OK / OK / 1:t:false:0,2:t:true:0,3:t:sin:2,4:f:true:3 / 5 / t",
 );
 caso(
-  "S3e lo que se parece sale con cualquier marca y dice cuál; sin Recibir no se lee; sin nada escrito, nada",
+  "S3e lo que se parece sale con cualquier marca y dice cuál; sin Recibir no se lee; sin nada escrito, toda la categoría y nada «coincide»",
   `${MICAELA_RECIBE}
    select retail.fn_parecidas_para_recibir(:'cat2', (select referencia from retail.productos where id = :'prod_g')) as r \\gset
-   select jsonb_array_length(retail.fn_parecidas_para_recibir(:'cat2', '  ')) as vacio \\gset
+   select (jsonb_array_length(retail.fn_parecidas_para_recibir(:'cat2', '  ')) > 0
+           and not exists (select 1 from jsonb_array_elements(retail.fn_parecidas_para_recibir(:'cat2', '  ')) x where (x ->> 'coincide')::boolean)) as vacio \\gset
    ${rolDeMicaela("existencias")}${como(MICAELA)}${EN_TIENDA}
    select pg_temp.h(pg_temp.parecidas(:'cat2', 'x')) as sin_modulo \\gset
    reset role;
    select concat_ws(' / ', :'r'::jsonb -> 0 ->> 'coincide', (:'r'::jsonb -> 0 -> 'marca' ->> 'id') = :'marca', :'vacio', :'sin_modulo');`,
-  "true / t / 0 / recibir_sin_modulo",
+  "true / t / t / recibir_sin_modulo",
+);
+caso(
+  "S3i lo agregado en el envío se quita (también lo reactivado); lo que la prenda ya tenía, lo repartido y la última no; todo o nada, y dos veces no es error",
+  `${BASE_D1}
+   reset role;
+   select codigo as c2 from retail.colores where activo and codigo <> :'c1' order by orden, codigo limit 1 \\gset
+   select id as t_l from retail.tallas where valor = 'L' \\gset
+   ${como(MICAELA)}${EN_TIENDA}
+   -- A una prenda que ya existía se le suma un color (nace aquí) y la talla L que estaba desactivada (se reactiva aquí).
+   select pg_temp.prepara(:'d1', :'di_l1', null, null, :'prod_p', null, ${MATRIZ(["t_s", "c2"], ["t_l", "c1"])}, null, null, null, null, false, gen_random_uuid(), null) as mas \\gset
+   reset role;
+   select id as p_c2 from retail.variantes where producto_id = :'prod_p' and color_codigo = :'c2' \\gset
+   select id as p_l from retail.variantes where producto_id = :'prod_p' and talla_id = :'t_l' \\gset
+   select id as p_s from retail.variantes where producto_id = :'prod_p' and talla_id = :'t_s' and color_codigo = :'c1' \\gset
+   ${como(MICAELA)}${EN_TIENDA}
+   select jsonb_array_length(pg_temp.quitables(:'d1')) as antes \\gset
+   select pg_temp.h(pg_temp.quita(:'d1', array[:'p_s'::uuid])) as ya_era \\gset
+   -- La nueva tiene dos tallas: la segunda sería la última, y nada se quita.
+   select pg_temp.h(pg_temp.quita(:'d1', array[:'v_s'::uuid, :'v_m'::uuid])) as ultima \\gset
+   select pg_temp.e(pg_temp.quita(:'d1', array[:'p_c2'::uuid, :'p_l'::uuid])) as bien \\gset
+   select (pg_temp.quita(:'d1', array[:'p_c2'::uuid])) ->> 'quitadas' as otra_vez \\gset
+   select ${GUARDA("d1", "di_l1", 3, SEP([["prod_n", 3, [V("v_s", 3)]]]))} \\g /dev/null
+   select pg_temp.h(pg_temp.quita(:'d1', array[:'v_s'::uuid])) as repartida \\gset
+   reset role;
+   select concat_ws(' / ', :'antes', :'ya_era', :'ultima', :'bien', :'otra_vez', :'repartida',
+     (select string_agg(v.activo::text, ',' order by v.id = :'p_c2'::uuid desc) from retail.variantes v where v.id in (:'p_c2', :'p_l')),
+     (select count(*) from retail.variantes v where v.id in (:'v_s', :'v_m') and v.activo),
+     (select count(*) from retail.actividad a where a.accion = 'despacho_combinacion_quitada' and a.registro_id = :'d1'));`,
+  "4 / combinacion_no_nacio_aqui / combinacion_ultima / OK / 0 / combinacion_repartida / false,false / 2 / 1",
 );
 caso(
   "S4 lo pendiente se termina igual: la prenda nueva se crea con el proveedor del envío y entra sin costo",

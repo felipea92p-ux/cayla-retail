@@ -2,7 +2,7 @@
   "guia": "recibir.envio.id",
   "ruta": "/recibir/envio/[id]",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 237,
+  "total": 240,
   "controles": {
     "app/(app)/recibir/envio/[id]/page.tsx": [
       "Volver «/recibir»",
@@ -159,7 +159,9 @@
     ],
     "components/recepcion-conteo/HojaTallas.tsx": [
       "Boton «Dejar para después»",
-      "Boton «{textoListo}»"
+      "Boton «{textoListo}»",
+      "Boton «Cancelar»",
+      "Boton «→() => void confirmarQuitar()»"
     ],
     "components/recepcion-conteo/LlevarAlStock.tsx": [
       "Boton «{esperandoGuardar ? \"Guardando lo último que contaste…\" : undefined}»",
@@ -331,6 +333,9 @@
       "Boton «Cancelar»",
       "Boton «{guia.frase ?? undefined}»",
       "Boton «{guia.frase ?? undefined}» #2"
+    ],
+    "components/recepcion-envio/MatrizRecepcion.tsx": [
+      "button «{tipo === \"talla\" ? `Quitar la talla ${nombre}»"
     ],
     "components/recepcion-envio/PiezasEnvio.tsx": [
       "Volver «/recibir»"

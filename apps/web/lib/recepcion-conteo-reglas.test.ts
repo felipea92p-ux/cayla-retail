@@ -76,6 +76,8 @@ import {
   necesitaCatalogoAlCerrar,
   resumenDelCierre,
   loQueEntroPorPrenda,
+  ejesQuitables,
+  leerQuitables,
   urlEtiquetasDeLoQueEntro,
   detalleParaDespues,
   describirNuevas,
@@ -1373,5 +1375,28 @@ describe("el costo que la prenda ya tiene (Felipe 2026-11-07: el costo y el prec
     const inicial = (id: string) => (id === "b" ? "25.00" : "");
     const catalogo = (id: string) => (id === "d" ? null : 30);
     expect(costosConCatalogo(prendas, { c: "40" }, inicial, catalogo)).toEqual({ a: "30.00", c: "40" });
+  });
+});
+
+describe("qué talla o color se puede quitar (Felipe 2026-11-07: solo lo que se agregó)", () => {
+  const v = (id: string, tallaId: string, colorCodigo: string) => ({ id, tallaId, talla: tallaId, colorCodigo, color: colorCodigo, codigo: null, costo: null, precio: null });
+  const prenda = { variantes: [v("sN", "S", "NEG"), v("mN", "M", "NEG"), v("sR", "S", "ROJ"), v("mR", "M", "ROJ")] };
+  it("un color entero agregado en el envío, sí; uno que la prenda ya tenía, no", () => {
+    const q = ejesQuitables(prenda, new Set(["sR", "mR"]));
+    expect([...q.colores.keys()]).toEqual(["ROJ"]);
+    expect(q.colores.get("ROJ")).toEqual(["sR", "mR"]);
+    expect([...q.tallas.keys()]).toEqual([]);
+  });
+  it("una talla solo si todas sus combinaciones nacieron aquí", () => {
+    expect([...ejesQuitables(prenda, new Set(["mN", "mR"])).tallas.keys()]).toEqual(["M"]);
+    expect([...ejesQuitables(prenda, new Set(["mR"])).tallas.keys()]).toEqual([]);
+  });
+  it("nunca deja a la prenda sin combinaciones", () => {
+    const q = ejesQuitables({ variantes: [v("a", "S", "NEG")] }, new Set(["a"]));
+    expect(q.colores.size + q.tallas.size).toBe(0);
+  });
+  it("lee las que se pueden quitar, y sin respuesta ninguna", () => {
+    expect([...leerQuitables([{ variante_id: "x" }, { otra: 1 }])]).toEqual(["x"]);
+    expect(leerQuitables(null).size).toBe(0);
   });
 });
