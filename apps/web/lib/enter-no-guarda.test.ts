@@ -46,7 +46,7 @@ describe("qué Enter se frena", () => {
 
 const FUERA: Record<string, string> = {
   "components/BuscadorVentas.tsx": "es un buscador: Enter ES buscar",
-  "components/asistente/Asistente.tsx": "se le habla escribiendo; Enter manda la frase",
+  "components/asistente/CajonAsistente.tsx": "se le habla escribiendo; Enter manda la frase",
   "app/(app)/buscar/page.tsx": "formulario de búsqueda nativo (method=get)",
   "app/login/page.tsx": "entrar con Enter es lo que espera cualquiera",
 };
