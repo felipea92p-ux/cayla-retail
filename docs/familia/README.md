@@ -61,6 +61,7 @@ falta (P7), y **una sola esquina de tarjeta, 22 px, en los dos sistemas (P10)**:
 | Que `recetas.css` pueda viajar: solo variables, en sus tres formas, sin `--color-*` ni `--radius-*` propios | `apps/web/lib/familia.test.ts` | En cada PR |
 | Que los dos repositorios guarden **el mismo contrato** | `pnpm familia:comparar contrato <ruta al contrato de Dynamic>` | A mano, cuando se toca la marca (ningún CI de un solo repo ve el otro) |
 | Que el `tokens.json` de un artifact «Design System» cumpla el contrato | `pnpm familia:comparar tokens <tokens.json> --como retail\|dynamic` | A mano, tras publicar o sincronizar un artifact. Lo que `aplicacion_pendiente` declara se avisa, no falla |
+| Que Dynamic se entere de lo que cambió aquí | el vigilante de Dynamic (`scripts/familia/vigilante.mjs` allá) | Cada hora, en el minuto 17. Comparado el 2026-11-07: los dos contratos son idénticos (sha256 `34b7a7c4…`) |
 
 ## Lo que `recetas.css` puede tener
 
@@ -71,6 +72,25 @@ Solo variables, en estas tres formas, porque es lo que Dynamic sabe colgar de su
 - `@media (prefers-reduced-transparency: reduce) { :root, :root[data-tema="oscuro"] { … } }`
 
 Una regla de clase apunta al HTML de Retail, y un `@keyframes` o un `@layer` pisaría los de Dynamic: van en otro archivo de `vidrio/`. Así vive `vidrio/aguanta.css`, la versión maciza para quien pidió más contraste. Un `--color-*` nuevo que una receta consuma entra antes al contrato; renombrar o quitar una variable de una receta abre una tarea en Dynamic. `--vidrio-hoja-radio` vive en las recetas y no lee `--radius-hoja`, porque Dynamic todavía no tiene ese token: una prueba exige que valga lo mismo.
+
+## Qué llega solo a Dynamic, qué queda como tarea, y quién avisa
+
+Felipe lo decidió el 2026-11-05: «Que se publique solo pero que hay que se cuidadosos y hacerle saber al usuario que es necesario actualizar el diseño en dynamic».
+La lista vive en Dynamic (`docs/familia/compartidos.json`, con la huella de lo último que tomó) y la usa su vigilante (`scripts/familia/vigilante.mjs`), que mira este repositorio
+cada hora, en el minuto 17:
+
+| De aquí | Qué pasa allá |
+|---|---|
+| `apps/web/app/estilos/vidrio/recetas.css` y `docs/familia/contrato.json` (**viajan**) | Prepara el cambio, corre sus pruebas y lo cuenta en su aviso (un solo issue). Lo publica solo si todo se cumple: `FAMILIA_PUBLICAR = si`, tocó únicamente esos archivos, las pruebas dieron verde, no hay freno y es entre las 22:00 y las 05:00 de Perú. Las recetas no se copian tal cual: `envolver-recetas.mjs` las cuelga de `data-vidrio` y se niega si encuentra algo que no sea variables. |
+| El resto de `apps/web/app/estilos/vidrio/` y `apps/web/components/ui/` (**se miran**) | No se copia. El aviso abre una tarea con los archivos que cambiaron, y alguien la hace a mano. |
+| `globals.css`, `tema.css` y lo demás | Fuera de la lista: un valor de marca llega por el contrato. |
+
+**El freno de mano es de Dynamic:** si `FAMILIA_PUBLICAR` no vale `si`, no publica; con `FAMILIA_VIGILANTE = apagado` ni siquiera mira. El 2026-11-07 la publicación está apagada.
+El README de la familia en Dynamic dice qué falta decidir antes de encenderla, y esa decisión es de Felipe, allá.
+
+**Lo que hace una sesión de aquí:** si toca uno de esos archivos, se lo dice a Felipe en el cierre y lo escribe en el PR («Esto cambia el diseño de Dynamic: llega solo» o «queda como
+tarea allá», con las piezas). Si cambia cómo funciona una pieza, también dice qué tendrá que hacerse a mano. Lo pide `CLAUDE.md` («Los dos sistemas») y una casilla de la plantilla del PR.
+Nunca escribe en el repositorio de Dynamic.
 
 ## Lo que falta aplicar en Dynamic (P1 = C)
 
