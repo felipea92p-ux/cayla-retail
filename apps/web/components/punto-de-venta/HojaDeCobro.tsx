@@ -11,6 +11,7 @@ import { iconoMetodo } from "@/components/PuntoDeVentaTicket";
 import { money } from "@/components/PuntoDeVenta";
 import { CerrarHoja } from "@/components/punto-de-venta/CerrarHoja";
 import { montoIlegible, numeroDeMonto } from "@/lib/monto-plata-reglas";
+import { prefiereQuieto } from "@/lib/movimiento-cliente";
 
 type TipoVenta = Extract<TipoComprobante, "boleta" | "factura" | "nota_venta">;
 
@@ -133,7 +134,7 @@ export function HojaDeCobro({
   useEffect(() => {
     if (!tipoComprobante) return;
     const fotograma = requestAnimationFrame(() => {
-      const reducido = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      const reducido = prefiereQuieto();
       const raiz = compacta ? document : cuerpoRef.current;
       raiz?.querySelector("[data-documento-cobro]")?.scrollIntoView({ block: compacta ? "center" : "nearest", behavior: reducido ? "auto" : "smooth" });
     });
@@ -172,7 +173,7 @@ export function HojaDeCobro({
     const fotograma = requestAnimationFrame(() => {
       const activo = document.activeElement;
       if (activo instanceof HTMLInputElement || activo instanceof HTMLTextAreaElement) return;
-      const reducido = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      const reducido = prefiereQuieto();
       const ir = (el: Element | null | undefined) => el?.scrollIntoView({ block: "center", behavior: reducido ? "auto" : "smooth" });
       const extra = cuerpoRef.current?.querySelector(".hoja-cobro-extra");
       if (cambioElMedio && clave && extra && (extra.textContent ?? "").trim() !== "") return ir(extra);

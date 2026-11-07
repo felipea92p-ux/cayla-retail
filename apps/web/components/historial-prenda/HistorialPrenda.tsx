@@ -40,6 +40,7 @@ import { CostoPrenda } from "@/components/historial-prenda/CostoPrenda";
 import { erroresDelCosto } from "@/lib/costo-prenda-reglas";
 import { horaLima, hoyLima } from "@/lib/fechas-lima";
 import type { LecturaHistorial } from "@/lib/historial-prenda-reglas";
+import { prefiereQuieto } from "@/lib/movimiento-cliente";
 
 /**
  * El historial de una prenda (ADR-0354): maqueta A «Hilo del tiempo», elegida por Felipe el 2026-10-06
@@ -427,7 +428,7 @@ function Precio({ antes, despues }: { antes: number | null; despues: number | nu
     const el = ref.current;
     const tarjeta = el?.closest(".hp-ev");
     if (!el || !tarjeta || antes === null || despues === null) return;
-    if (matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    if (prefiereQuieto()) return;
     let marco = 0;
     const arrancar = () => {
       const espera = Number.parseInt(getComputedStyle(tarjeta).getPropertyValue("--hp-d")) || 0;

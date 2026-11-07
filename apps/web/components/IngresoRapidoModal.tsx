@@ -33,6 +33,7 @@ import {
   type EstadoIngresoRapido,
   type SedeIngreso,
 } from "@/lib/ingreso-rapido-reglas";
+import { prefiereQuieto } from "@/lib/movimiento-cliente";
 
 // Caja ▸ Registrar ingreso (Felipe 2026-10-10): la hermana del gasto rápido, con su misma hoja, su mosaico y su sello. Reemplaza a
 // «Depósito o retiro» en la cabecera de Caja: aquí solo ENTRA plata al cajón abierto, en efectivo y hoy. Cada concepto ya trae su
@@ -176,7 +177,7 @@ export function IngresoRapidoModal({
   if (listo && pantallaLibre && !selloAlaVista) setSelloAlaVista(true);
   useEffect(() => {
     if (!listo || !selloAlaVista) return;
-    const corto = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const corto = prefiereQuieto();
     const t = window.setTimeout(
       () => {
         avisar.exito("Ingreso registrado", {

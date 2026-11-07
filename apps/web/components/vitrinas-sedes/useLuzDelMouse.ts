@@ -1,11 +1,12 @@
 "use client";
 
 import { useEffect, type RefObject } from "react";
+import { prefiereQuieto } from "@/lib/movimiento-cliente";
 
 /** El filo de luz, el brillo y una inclinación de menos de 1,5° siguen al mouse sin moverse solos (ADR-0136). Sin mouse, o con «reducir movimiento», el vidrio se queda quieto. Solo se inclina `.vs-vitrina`. */
 export function useLuzDelMouse(raiz: RefObject<HTMLElement | null>) {
   useEffect(() => {
-    if (!window.matchMedia("(hover: hover)").matches || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    if (!window.matchMedia("(hover: hover)").matches || prefiereQuieto()) return;
     let pendiente = 0;
     const alMover = (ev: PointerEvent) => {
       if (ev.pointerType !== "mouse" || pendiente) return;

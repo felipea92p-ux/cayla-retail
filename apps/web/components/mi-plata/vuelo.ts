@@ -1,4 +1,5 @@
 import { topeDelVuelo, trayectoDelVuelo, unaSolaVez, type Caja } from "@/lib/vuelo-reglas";
+import { prefiereQuieto } from "@/lib/movimiento-cliente";
 
 // El vuelo de la prenda a «Tu compra» (Felipe 2026-10-28): lo que hace el navegador. La cuenta (a dónde, cuánto tarda) está en
 // `lib/vuelo-reglas.ts`, con su prueba; la forma, en `app/estilos/compra-celular.css`. Una vez, sin rebote ni bucle. Con
@@ -36,7 +37,7 @@ export function destinoDelVuelo(clave: string): Caja | null {
 }
 
 export function volarATuCompra({ salida, cantidad, destino, alLlegar }: { salida: SalidaDelVuelo | null; cantidad: number; destino: Caja | null; alLlegar: () => void }) {
-  const sinMovimiento = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const sinMovimiento = prefiereQuieto();
   if (!salida || !destino || sinMovimiento || typeof Element.prototype.animate !== "function") {
     alLlegar();
     return;

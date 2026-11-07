@@ -36,6 +36,7 @@ import {
   type FilaExtracto,
   type MarcaGasto,
 } from "@/lib/gastos-extracto-reglas";
+import { prefiereQuieto } from "@/lib/movimiento-cliente";
 
 /**
  * El separador del día se pega bajo la mesa de mando del telar, que también va pegada (bajo la cabecera del ERP) y cambia de alto al
@@ -226,7 +227,7 @@ export function ExtractoGastos({
     if (!mostrar) return;
     const cuadro = requestAnimationFrame(() => {
       const el = ref.current?.querySelector<HTMLElement>(`.extracto-fila[data-id="${mostrar}"]`);
-      const quieta = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      const quieta = prefiereQuieto();
       el?.scrollIntoView({ block: recien ? "center" : "nearest", behavior: quieta ? "auto" : "smooth" });
       // Se venía pasando de gasto con el teclado desde la lista: el foco sigue a la fila del abierto.
       if (!recien && ref.current?.contains(document.activeElement)) el?.focus({ preventScroll: true });
