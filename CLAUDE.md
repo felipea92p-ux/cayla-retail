@@ -240,6 +240,11 @@ Nada sólido sobre el vidrio. Dos cosas que no se tocan sin leer el ADR: **la ho
 contenedor de las listas `fixed` de sus combos y las recortaría; el desenfoque lo pone el velo), y **una pieza nueva no inventa su vidrio**:
 usa una receta o agrega una a `recetas.css`. Lo que ya se eligió vive en el tablero `docs/vidrio/README.md`.
 
+**Lo que se desplaza no se desenfoca (ADR-0623, Felipe 2026-11-07):** la Aurora está fija detrás de todo, así que un `backdrop-filter` en algo que corre con el
+scroll (una tabla, una cifra, una tarjeta, un botón de fila) obliga a desenfocar de nuevo en cada cuadro: en un equipo sin buena tarjeta gráfica era 32 cuadros/s
+y 18 tirones contra 53 y 0 sin él. Eso va en el **vidrio claro** (`--vidrio-claro-*`), sin desenfoque; el desenfoque es solo de lo que flota quieto (cabecera, menú,
+una cabecera pegada, las hojas y sus velos). Ya lo hacen `.tabla-cayla`, `.tarjeta-cifra`, `.resumen-sede`, `TablaViva` y los bloques de `.pantalla-en-vidrio`.
+
 **El vidrio aguanta (ADR-0611, mejora 7):** quien en su aparato pidió menos transparencia o más contraste ve las mismas piezas macizas y sin desenfoque. Una receta nueva con fondo translúcido
 agrega su versión maciza a `vidrio/aguanta.css`: `lib/vidrio-que-aguanta.test.ts` falla si no.
 
@@ -358,7 +363,9 @@ se parecen, no está terminada. Lo que se aparta del spike a propósito queda es
 
 **El ERP tiene UN solo loader a pantalla completa (`apps/web/components/ui/Espera.tsx`, `<EsperaGlobal />` montado una vez en
 `app/layout.tsx`): cubre incluso el lateral y la cabecera, hereda el movimiento de modales y dura solo lo que tarda la
-respuesta.** Se usa SIEMPRE al cargar una pantalla, al presionar un botón que guarda y al cambiar de sede — y se activa solo:
+respuesta.** Se usa al presionar un botón que guarda y al cambiar de sede — y se activa solo. **Cambiar de pantalla ya no lo muestra
+(ADR-0623, Felipe 2026-11-07):** cada `loading.tsx` dibuja el esqueleto (`<EsperaPantalla />` → `EsqueletoPantalla`) bajo el menú y la cabecera,
+que siguen vivos; una ficha de carga solo sostiene el velo que un guardado ya puso a la vista (el refresco encadenado). Para detectar qué es qué,
 parchea `window.fetch` y `lib/espera-reglas.ts` (`clasificarPeticion`, lógica pura y testeada) decide qué es `'carga'` o
 `'guardado'`. **No construyas otro overlay de carga a pantalla completa ni dejes un «Cargando…» suelto**; un botón o una
 pantalla nueva no tiene que hacer nada para tenerlo. Los botones conservan su «Guardando…» con el hilo (`<Boton cargando>`, ronda 12 de `/unificar`; el loader se suma), y un
