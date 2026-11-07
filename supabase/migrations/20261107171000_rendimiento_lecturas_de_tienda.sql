@@ -19,7 +19,7 @@
 -- índice sobre `movimientos`, que toma un candado de escritura mientras se arma: pegarla aparte y en hora tranquila.
 -- Se puede pegar dos veces.
 
--- ============================== CANDADO (corre primero, en la PARTE 1) ==============================
+-- ============================== CANDADO (corre primero) ==============================
 -- Cada función de abajo se reescribe ENTERA desde su cuerpo de main (medido en la copia `cayla_carga`). Si en la base el cuerpo
 -- vivo es otro (alguien la parchó en vivo o una migración de otra rama la tocó después), pegar esto pisaría ese cambio: el
 -- candado aborta todo (el SQL Editor corre todo en una transacción) y dice cuál. Acepta el cuerpo de main y el de este archivo,
