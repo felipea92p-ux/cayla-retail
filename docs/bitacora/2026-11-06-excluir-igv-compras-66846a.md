@@ -15,3 +15,5 @@ Qué hice: el crédito de IGV salió de «plata y cobros» a su propio grupo del
 Por qué así: `fn_igv_de_gestion` ya sabe qué mes está en curso y quién recibe el monto, así que lo dice ella y la web no adivina con la sesión. Prorratear el mes en curso cambiaría cuánto se resta, y eso lo decide Felipe.
 Qué se rompería sin esto: el resultado se vería miles de soles peor que el mes pasado sin motivo, el medidor contaría como plata lo que SUNAT no paga, y una terminal leería algo falso.
 Estado: en la rama, sin PR y sin producción. `pruebas:igv-gestion` 68/68 y `pruebas:arranque-igv` 32/32 en la pila aparte. Falta verlo en el navegador.
+
+Revisión final: cinco detalles chicos resueltos: un tramo ya no resta más que lo dicho del mes, «Decir IGV» sale también en un mes sin comprobantes, el Flujo avisa cuando el IGV es estimado, «Ir a Impuestos» conserva la sede y la guía nombra «Ventas con IGV» y «Utilidad bruta de gestión».

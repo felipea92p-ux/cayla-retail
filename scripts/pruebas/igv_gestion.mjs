@@ -218,6 +218,13 @@ select retail.decir_igv_del_mes(retail.fn_hoy_lima(), 10) as d4 \\gset
 select 'C7 el mes en curso se puede decir', (:'d4'::jsonb ->> 'mes') = to_char(date_trunc('month', retail.fn_hoy_lima()), 'YYYY-MM-DD');
 select 'C8 el mes en curso va marcado y su monto va entero', (select bool_and(mes_en_curso) and sum(igv_parte) = 10 from retail.fn_igv_de_gestion(retail.fn_hoy_lima(), retail.fn_hoy_lima()));
 select 'C9 un mes pasado no va marcado', (select not bool_or(mes_en_curso) from retail.fn_igv_de_gestion('2025-08-01', '2025-08-31'));
+
+-- Noviembre: +18 el día 3 y −9 el día 20 (venta de septiembre anulada). El mes deja 9 y el tramo del 1 al 10, 18: 6 dichos no pueden restar 12.
+select pg_temp.vender('V13', :'tru', '2025-11-03 12:00-05', :'va', 1, 118, '[{"m":"efectivo","v":118}]');
+select pg_temp.vender('V14', :'lim', '2025-09-25 12:00-05', :'va', 1, 59, '[{"m":"efectivo","v":59}]', '2025-11-20 12:00-05');
+select retail.decir_igv_del_mes('2025-11-01', 6);
+select 'C10 un tramo nunca resta más que lo dicho del mes', pg_temp.partes('2025-11-01', '2025-11-10') = 6;
+select 'C11 el mes entero suma lo dicho', pg_temp.partes('2025-11-01', '2025-11-30') = 6;
 `;
 
 const LIBRO = `

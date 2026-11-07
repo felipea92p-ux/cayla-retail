@@ -288,7 +288,7 @@ export function informeDeGanancias({
       : { clave: "ventas", nombre: "Lo que vendiste", contable: "Ventas netas", tipo: "linea", valores: valores((x) => x.ventas), peso: m.ventas > 0 ? "100 %" : null, que: NOTA_VENTAS_SIN_IGV },
     gasto("igv", "IGV del mes", "IGV del mes"),
     gasto("mercaderia", "Mercadería", "Costo de ventas"),
-    { clave: "bruta", nombre: "Te queda de las prendas", contable: "Utilidad bruta", tipo: "subtotal", valores: valores((x) => x.ventas - x.igv - x.mercaderia), peso: pesoContra(m.ventas - m.igv - m.mercaderia, m.ventas) },
+    { clave: "bruta", nombre: "Te queda de las prendas", contable: conIgv ? "Utilidad bruta de gestión" : "Utilidad bruta", tipo: "subtotal", valores: valores((x) => x.ventas - x.igv - x.mercaderia), peso: pesoContra(m.ventas - m.igv - m.mercaderia, m.ventas) },
     gasto("sueldos", "Sueldos", "Gastos de personal"),
     gasto("local", "Local y servicios", "Local y servicios"),
     gasto("otros", "Otros gastos", "Otros gastos"),

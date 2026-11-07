@@ -158,7 +158,7 @@ export default async function ReportesPage({ searchParams }: { searchParams: Pro
                   guia="fin-ganamos.igv"
                   accion={
                     mesSinDecir && veModulo(persona, "impuestos") ? (
-                      <BotonVer href={`/finanzas/impuestos?mes=${mesSinDecir}`} chico>
+                      <BotonVer href={hrefTelar("/finanzas/impuestos", params, { mes: mesSinDecir }, { mismaPantalla: false, mesDeHoy })} chico>
                         Ir a Impuestos
                       </BotonVer>
                     ) : undefined

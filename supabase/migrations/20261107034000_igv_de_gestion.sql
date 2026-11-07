@@ -240,10 +240,11 @@ begin
     select f.m, f.u, f.tramo, coalesce(t.del_mes, 0) as del_mes_total, d.monto,
            case when d.monto is null then null
                 when coalesce(t.del_mes, 0) <= 0 then case when f.u is null then d.monto else 0 end
-                else round(d.monto * f.tramo / t.del_mes, 2) end as crudo,
+                -- Unas devoluciones pueden dejar el mes por debajo del tramo: un tramo nunca resta más que lo dicho del mes.
+                else round(d.monto * f.tramo / t.del_mes * case when t.tramo > t.del_mes then t.del_mes / t.tramo else 1 end, 2) end as crudo,
            case when d.monto is null then null
                 when coalesce(t.del_mes, 0) <= 0 then d.monto
-                else round(d.monto * t.tramo / t.del_mes, 2) end as debe_sumar,
+                else round(d.monto * least(t.tramo / t.del_mes, 1), 2) end as debe_sumar,
            row_number() over (partition by f.m order by f.tramo desc, f.u nulls last) as lugar
       from filas f
       left join total t on t.m = f.m

@@ -8,6 +8,7 @@ import { textoDeVerMas } from "@/lib/estados-partes";
 import { getFlujoReal, getProyeccion } from "@/lib/flujo-caja";
 import { getEstadoResultados } from "@/lib/resultados";
 import { getResultadosDeGestion } from "@/lib/igv-gestion";
+import { avisoDelIgv } from "@/lib/igv-gestion-reglas";
 import { getParametrosFinanzas } from "@/lib/configuracion";
 import { mesAnterior } from "@/lib/resultados-reglas";
 import { hrefTelar, mesDelDia, sedeDeLaUrl } from "@/lib/finanzas-telar-reglas";
@@ -52,7 +53,9 @@ export default async function FlujoPage({ searchParams }: { searchParams: Promis
   // La plata es de CAYLA entera: la ganancia con que se compara es la de CAYLA (el consolidado), mire la sede que mire la barra. Es la misma cifra de Ganancias y pérdidas, con el IGV del mes (ADR-0620).
   const gestion = await getResultadosDeGestion([{ desde, hasta, lectura: er }]);
   const enGestion = gestion.lecturas[0]!;
-  const ganancia = enGestion.falla ? null : (filaDeLaSede(enGestion.datos, "todas")?.resultado ?? null);
+  const filaGanancia = enGestion.falla ? null : filaDeLaSede(enGestion.datos, "todas");
+  const ganancia = filaGanancia?.resultado ?? null;
+  const avisoIgv = avisoDelIgv(filaGanancia?.igvGestion);
   const recomendaciones = recomendacionesPlata({
     real: real.datos,
     proyeccion: proyeccion.datos,
@@ -85,6 +88,11 @@ export default async function FlujoPage({ searchParams }: { searchParams: Promis
               {gestion.falla && (
                 <Aviso tono="atencion" chico>
                   {gestion.falla}
+                </Aviso>
+              )}
+              {avisoIgv && (
+                <Aviso tono="info" chico>
+                  {avisoIgv}
                 </Aviso>
               )}
               <NoCuadra real={real.datos} />

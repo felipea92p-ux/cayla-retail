@@ -23,7 +23,8 @@ const mas = (n: number) => solesRedondo(n);
 export function PagasImpuestos({ cuenta, guia, mes, igvDelMes, onDecirIgv }: { cuenta: CuentaImpuestos; guia?: string; mes: string; /** Solo el líder lo recibe (ADR-0620). */ igvDelMes: IgvDelMesDicho | null; onDecirIgv: () => void }) {
   const hay = cuenta.estado !== "sin_mes";
   const hayPago = hay && !cuenta.pagadoTodo;
-  const decir = hay && igvDelMes !== null;
+  // Lo dicho sale del diario y `hay`, de los comprobantes: un mes sin comprobantes igual se puede decir, o Ganancias lo mandaría a un callejón.
+  const decir = igvDelMes !== null;
   return (
     <section className="fin-pagas anim-sube" style={{ ["--i" as string]: 1 }} data-guia={guia} aria-label={cuenta.etiqueta}>
       <p className="fin-pagas-nombre">{cuenta.etiqueta}</p>

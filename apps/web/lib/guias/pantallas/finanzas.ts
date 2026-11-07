@@ -1112,7 +1112,7 @@ export const GUIA_FIN_RESULTADOS: Guia = {
       ancla: "fin-ganamos.libro",
       opcional: true,
       titulo: "Los nombres del contador",
-      texto: "Cambia las palabras de cada fila a las de siempre del contador: Ventas netas, Costo de ventas, Utilidad bruta. Las cifras no cambian.",
+      texto: "Cambia las palabras de cada fila a las del contador: Ventas con IGV, Costo de ventas, Utilidad bruta de gestión. Las cifras no cambian: lo que pide el libro está en la última fila.",
     },
     {
       id: "recos",
