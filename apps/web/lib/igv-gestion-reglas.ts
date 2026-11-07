@@ -89,6 +89,26 @@ export function filasDeGestion(filas: readonly FilaER[], igv: readonly FilaIgvGe
   });
 }
 
+type Lectura<T> = { datos: T; falla: string | null };
+
+/** Lo que se dice si no se pudo leer el IGV. Esa pantalla cae entera al libro. */
+export const AVISO_SIN_IGV = "No se pudo leer el IGV del mes: estas cifras van sin IGV, como en el libro.";
+
+/**
+ * Todas las columnas de una pantalla pasan a gestión juntas, o ninguna: comparar ventas con IGV contra ventas sin IGV daría un «las ventas subieron 18 %» que nunca pasó.
+ * Una lectura que ya falló sigue como está (no tiene filas). `igv` va en el mismo orden que `lecturas`; `null` donde no hizo falta leerlo.
+ */
+export function pasarAGestion(lecturas: readonly Lectura<FilaER[]>[], igv: readonly (Lectura<FilaIgvGestion[]> | null)[]): { lecturas: Lectura<FilaER[]>[]; falla: string | null } {
+  if (igv.some((x) => x?.falla)) return { lecturas: [...lecturas], falla: AVISO_SIN_IGV };
+  return {
+    lecturas: lecturas.map((l, i) => {
+      const suyo = igv[i];
+      return l.falla || !suyo ? l : { datos: filasDeGestion(l.datos, suyo.datos), falla: null };
+    }),
+    falla: null,
+  };
+}
+
 /** «noviembre», «octubre y noviembre», «septiembre, octubre y noviembre». */
 function nombresDeMeses(meses: readonly string[]): string {
   const n = meses.map(mesNombre);

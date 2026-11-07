@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { avisoDelIgv, esEstimado, filasDeGestion, leerFilasIgv, mismaBaseDeIgv, textoDelIgv, type FilaIgvGestion } from "./igv-gestion-reglas";
+import { AVISO_SIN_IGV, avisoDelIgv, esEstimado, filasDeGestion, leerFilasIgv, mismaBaseDeIgv, pasarAGestion, textoDelIgv, type FilaIgvGestion } from "./igv-gestion-reglas";
 import type { FilaER } from "./resultados-reglas";
 
 const r = (n: number) => Math.round(n * 100) / 100;
@@ -151,5 +151,26 @@ describe("mismaBaseDeIgv", () => {
     expect(mismaBaseDeIgv(de("dicho"), de("estimado"))).toBe(false);
     expect(mismaBaseDeIgv(de("dicho"), null)).toBe(false);
     expect(mismaBaseDeIgv({}, {})).toBe(true);
+  });
+});
+
+describe("pasarAGestion: todas las columnas o ninguna", () => {
+  const lectura = (ventas: number) => ({ datos: [fila({ ventas })], falla: null });
+  const leido = { datos: [igv({ igvTramo: 18, igvMes: 18 })], falla: null };
+
+  it("con todo leído, todas pasan", () => {
+    const r = pasarAGestion([lectura(100), lectura(200)], [leido, leido]);
+    expect(r.falla).toBeNull();
+    expect(r.lecturas.map((l) => l.datos[0]!.ventas)).toEqual([118, 218]);
+  });
+  it("si falla una, ninguna pasa y se dice", () => {
+    const r = pasarAGestion([lectura(100), lectura(200)], [leido, { datos: [], falla: "se cayó" }]);
+    expect(r.falla).toBe(AVISO_SIN_IGV);
+    expect(r.lecturas.map((l) => l.datos[0]!.ventas)).toEqual([100, 200]);
+    expect(r.lecturas[0]!.datos[0]!.igvGestion).toBeUndefined();
+  });
+  it("una lectura que ya había fallado se queda como está", () => {
+    const rota = { datos: [], falla: "sin leer" };
+    expect(pasarAGestion([rota], [null]).lecturas[0]).toBe(rota);
   });
 });
