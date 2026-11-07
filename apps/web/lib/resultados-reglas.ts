@@ -5,6 +5,8 @@
 // la base (20260925130000), no aquí. La excepción es la cuenta de «cuánto más hay que vender» de una campaña que viene:
 // es un despeje sobre dos datos de la base (su margen normal y su descuento), y vive aquí con sus pruebas.
 
+import type { IgvGestion } from "./igv-gestion-reglas";
+
 export type UnidadER = "tienda" | "taller" | "empresa" | "consolidado";
 export type DetalleGastoER = { cuenta: string; nombre: string; monto: number };
 export type DetalleMermaER = { regla: string; monto: number };
@@ -47,6 +49,13 @@ export type FilaER = {
    * Oficina Trujillo (OTRU): sin esto, quien no ve a OTRU en ninguna columna supone que está dentro de la tienda de Trujillo. Vacío si no hay estimación.
    */
   planillaPorSede: PlanillaDeSede[];
+  /**
+   * El IGV de gestión (ADR-0620): solo en las filas que pasaron por `filasDeGestion`, donde `ventas`, `margen` y `resultado` ya van con IGV. Sin esto la fila es la del libro. Fuera del libro,
+   * como los sueldos estimados.
+   */
+  igvGestion?: IgvGestion;
+  /** Lo que dice el libro de esta columna: sin IGV y sin sueldos estimados. Solo con `igvGestion`. */
+  resultadoLibro?: number;
 };
 
 /** Lo que una sede de Dynamic aporta a la planilla provisionada de una columna. Nunca una persona: solo cuántas y cuánto. */
