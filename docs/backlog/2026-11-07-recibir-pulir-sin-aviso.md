@@ -1,10 +1,7 @@
 # Recibir: pulir lo que llega sin aviso (rama `claude/recibir-pulir-sin-aviso`)
 
-## No está en producción
-- [ ] `20261107183000_galeria_de_la_categoria_al_recibir.sql` (solo lectura).
-- [ ] `20261107191000_quitar_combinacion_nacida_al_recibir.sql` (tabla nueva + parche a `preparar_prenda_al_recibir`).
-- [ ] `20261107192000_proveedor_por_linea_sin_aviso.sql` (guardar, cerrar, preparar, corregir, conteos; función nueva `poner_proveedor_de_marca`).
-- [ ] `20261107194000_costo_al_recibir_para_quien_recibe.sql` — **permiso sobre dinero: espera el OK explícito de Felipe.** Después de pegar, comprobar que ninguna de las cinco funciones siga con `not retail.fn_puede_ver_dinero_de_compras()` en el candado del costo.
+## En producción (2026-11-07, con el OK de Felipe)
+- [x] `20261107183000`, `20261107191000`, `20261107192000` y `20261107194000`, pegadas por `supabase db query --linked -f` (cada una en `begin … commit`). Las funciones tienen el mismo md5 que en local, y ninguna de las cinco del costo conserva `not retail.fn_puede_ver_dinero_de_compras()`.
 
 ## Pendiente
 - [ ] Felipe elige una de las tres maquetas de «Revisa y cierra» (`docs/maquetas/recibir-revisa-y-cierra-2026-11/`); recién ahí se rediseña la pantalla.
