@@ -51,6 +51,7 @@
 import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { sqlDeshacer } from "./_deshacer_claure.mjs";
+import { DESHACER_0622 } from "./_deshacer_0622.mjs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { unionDeAntes } from "./union-de-fichas-de-antes.mjs";
@@ -66,7 +67,9 @@ const MIGRACION = readFileSync(join(RAIZ, "supabase", "migrations", "20260930210
 // Hoy: 20261029035000 (ADR-0560, 6c) parcha `fn_club_compras_netas` para que una compra solo de CLAURE no cuente. Los casos que miran el cuerpo VIVO de esa función
 // (o que vuelven a pegar este archivo) la devuelven antes, dentro de su transacción, a lo que escribió este archivo: se lee el reemplazo anclado de esa migración y
 // se aplica al revés. Sin esa migración (una base que no la tiene), no hay nada que deshacer.
-const DESHACER_POSTERIORES = sqlDeshacer("20261029035000_claure_fuera_del_club_y_las_clientes.sql", ["retail.fn_club_compras_netas(uuid)"]);
+// Y 20261107171000 (ADR-0622) la reescribe entera, más rápida y con la misma respuesta: primero se devuelve al cuerpo de main (con el parche de
+// CLAURE), y recién ahí se deshace ese parche.
+const DESHACER_POSTERIORES = DESHACER_0622 + sqlDeshacer("20261029035000_claure_fuera_del_club_y_las_clientes.sql", ["retail.fn_club_compras_netas(uuid)"]);
 
 // La tabla del candado de versión de la sección 0: firma → md5 normalizado «antes» (null: no existía) y «después».
 const VERSIONES = [
