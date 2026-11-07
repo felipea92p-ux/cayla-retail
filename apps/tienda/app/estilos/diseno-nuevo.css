@@ -204,6 +204,8 @@
   /* La tarjeta de entrar y crear cuenta: una superficie más, sin el filo negro de la identidad anterior */
   & .en-lado > .en-form { border-radius: var(--dn-r-l); background: var(--papel); }
   & .en-lado > .en-form::before { display: none; }
+  /* El panel del Club de Entrar y recuperar: un bloque vino con sus esquinas (en el celular, bajo el formulario), no texto suelto sobre el rojo */
+  & .en-partida[data-alto="corto"] .en-panel { background: var(--dn-vino); margin: 0 16px 36px; border-radius: var(--dn-r-l); }
   /* El rojo es del logo: los íconos de ayuda van en el acento */
   & :is(.ay-pie-tema-ic, .ay-punto-ic) { color: var(--dn-acento); border-radius: var(--dn-r-s); }
 
@@ -264,6 +266,13 @@
     & .dn-buscar-cab .ic { color: var(--tinta); }
     & .dn-buscar-cab span { display: inline; }
     & .t-top, & .t-grilla { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+    /* Entrar y recuperar la contraseña (rediseño Premium, 2026-11-07): una sola tarjeta en dos columnas, centrada sobre el rojo; el
+       formulario manda a la izquierda y el Club, en vino, la completa a la derecha. Crear la cuenta («largo») sigue con su panel fijo. */
+    & .en-partida[data-alto="corto"] { grid-template-columns: minmax(0, 460px) minmax(0, 440px); justify-content: center; align-content: center; padding: 48px var(--dn-lado) 56px; }
+    & .en-partida[data-alto="corto"] .en-lado { padding: 0; align-items: stretch; }
+    & .en-partida[data-alto="corto"] .en-lado > .en-form { max-width: none; width: 100%; border-radius: var(--dn-r-l) 0 0 var(--dn-r-l); }
+    & .en-partida[data-alto="corto"] .en-panel { margin: 0; border-radius: 0 var(--dn-r-l) var(--dn-r-l) 0; }
+    & .en-partida[data-alto="corto"] .en-panel-in { position: static; min-height: 0; height: 100%; max-width: none; margin: 0; padding: 44px 40px; }
   }
 }
 
