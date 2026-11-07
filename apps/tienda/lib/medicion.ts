@@ -38,6 +38,7 @@ export const RUTAS_MEDIDAS = [
   "/cambios-y-devoluciones",
   "/catalogo",
   "/catalogo/[id]",
+  "/club",
   "/como-separar",
   "/crear-cuenta",
   "/cuenta",

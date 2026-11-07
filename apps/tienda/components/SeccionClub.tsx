@@ -65,19 +65,25 @@ export function SeccionClub({
               </li>
             ))}
           </ul>
-          {esDelClub ? (
-            <Link className="t-btn" href="/cuenta">
-              Ver mi perfil
+          <div className="t-club-acciones">
+            {esDelClub ? (
+              <Link className="t-btn" href="/cuenta">
+                Ver mi perfil
+              </Link>
+            ) : conCuenta ? (
+              <Link className="t-btn" href="/cuenta/club">
+                Entrar al Club
+              </Link>
+            ) : (
+              <Link className="t-btn" href="/crear-cuenta">
+                Crear mi cuenta
+              </Link>
+            )}
+            {/* Las reglas de los puntos, para todos (rediseño Premium): /club. */}
+            <Link className="t-btn t-btn-sec" href="/club">
+              Cómo funciona
             </Link>
-          ) : conCuenta ? (
-            <Link className="t-btn" href="/cuenta/club">
-              Entrar al Club
-            </Link>
-          ) : (
-            <Link className="t-btn" href="/crear-cuenta">
-              Crear mi cuenta
-            </Link>
-          )}
+          </div>
         </div>
         <div className="t-club-tarjeta">
           <InvitacionClub nombre={nombre} desde={desde} />

@@ -37,6 +37,7 @@ const columnas = (conCuenta: boolean, sede: string | null): Columna[] => [
   {
     titulo: "Club CAYLA",
     enlaces: [
+      ["Cómo funciona el Club", "/club"],
       ...(conCuenta
         ? [["Mi perfil", "/cuenta"] as [string, string]]
         : [["Crear mi cuenta", "/crear-cuenta"] as [string, string], ["Entrar", "/entrar"] as [string, string]]),

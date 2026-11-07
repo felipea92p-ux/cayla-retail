@@ -119,6 +119,8 @@
   & .t-club { --t-hero: var(--dn-vino); --t-hero-2: #6c1812; --t-hero-filo: rgba(251, 243, 238, .2); margin-top: var(--dn-seccion); padding-block: 0; background: none; }
   & .t-club-in { background: var(--t-hero); color: var(--t-hero-tinta); border-radius: var(--dn-r-l); padding: clamp(32px, 5cqi, 72px); gap: clamp(32px, 4cqi, 64px); }
   & .t-club h2 { color: #fff; }
+  & .t-club-acciones { display: flex; flex-wrap: wrap; gap: var(--e-3); }
+  & .t-club .t-btn.t-btn-sec { --dn-btn-fondo: transparent; --dn-btn-borde: rgba(251, 243, 238, .6); --dn-btn-tinta: #fbf3ee; --dn-btn-hover: #fbf3ee; --dn-btn-hover-tinta: var(--dn-vino); }
   /* El pie va en marfil: sobre el rojo, el logo no se leería */
   & .t-pie { margin-top: var(--dn-seccion); background: var(--dn-arena-2); border-top: 1px solid var(--sand); }
   /* El pie en cuatro columnas (maqueta Premium): la marca con su lema, comprar, ayuda y el Club */
