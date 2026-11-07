@@ -19,7 +19,7 @@ import { leerSesion } from "@/lib/sesion-servidor";
 import { leerSedes } from "@/lib/tiendas-servidor";
 import "../../../estilos/probador.css";
 
-export const metadata: Metadata = { title: "Arma el tuyo · CAYLA" };
+export const metadata: Metadata = { title: "Arma tu outfit · CAYLA" };
 
 // «Arma el tuyo» (ADR-0434, actividad 4; lienzo v3, `V3Probador`): el probador de looks. Junta el catálogo de la tienda elegida (qué se
 // ve, su nombre y sus colores; con «Ver lo que hay en», solo lo que hay ahí) con lo del probador (el largo, los recortes y el precio y el
@@ -80,7 +80,7 @@ export default async function ArmaElTuyo({ searchParams }: { searchParams: Promi
             <h3>Pronto podrás armar tu outfit aquí</h3>
             <p>{elegida ? `Todavía no hay prendas listas para el probador en ${elegida.nombre}.` : "Estamos preparando las prendas para el probador."} Mientras tanto, mira los outfits que armamos para ti.</p>
             <Link className="t-btn" href={hrefLooks(sede)}>
-              Ver los outfits
+              Ver outfits listos
             </Link>
             <Link className="t-enlace" href={hrefLista({ sede, categoria: null, orden: "destacado" })}>
               Ver toda la tienda

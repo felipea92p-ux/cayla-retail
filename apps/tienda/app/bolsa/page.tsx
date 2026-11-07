@@ -108,7 +108,7 @@ export default async function Bolsa({ searchParams }: { searchParams: Promise<Re
                 Ver toda la tienda
               </Link>
               <Link className="t-btn t-btn-sec" href="/looks">
-                Ver los outfits
+                Ver outfits listos
               </Link>
             </div>
           </div>
