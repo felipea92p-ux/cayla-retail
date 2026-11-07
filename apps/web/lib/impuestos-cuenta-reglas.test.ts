@@ -95,6 +95,21 @@ describe("cuentaImpuestos", () => {
     expect(c.chip).toBe(`IGV a favor ${solesRedondo(9700)} → octubre`);
   });
 
+  // ADR-0624: el IGV de las ventas es de SUNAT; con saldo a favor no sale de la caja, se descuenta de ese saldo. La frase dice cuánto se usó y cuánto queda.
+  it("con saldo a favor que se usa: dice cuánto bajó el saldo a favor y cuánto te queda", () => {
+    // Octubre: traías 62,035, el IGV de tus ventas fue 20,501 y el de tus compras 344: el saldo bajó 20,157 y te quedan 41,878.
+    const foco = mes({ aPagar: 0, saldoAnterior: 62035, debito: 20501, credito: 344, saldoAFavor: 41878 });
+    const sinRenta = cuentaImpuestos({ ...PANEL, foco, renta: { base: 113421, tasa: null, monto: null } }, { enCurso: false, pendientes: 0 });
+    expect(sinRenta.frase).toBe(`No pagas IGV: tu saldo a favor bajó ${solesRedondo(20157)} y te quedan ${solesRedondo(41878)}.`);
+    const conRenta = cuentaImpuestos({ ...PANEL, foco }, { enCurso: false, pendientes: 0 });
+    expect(conRenta.frase).toBe(`Solo pagas la renta: del IGV, tu saldo a favor bajó ${solesRedondo(20157)} y te quedan ${solesRedondo(41878)}.`);
+  });
+
+  it("si el saldo a favor no bajó, no dice que bajó", () => {
+    const c = cuentaImpuestos({ ...PANEL, foco: mes({ aPagar: 0, saldoAnterior: 1500, debito: 9400, credito: 20600, saldoAFavor: 12700 }), renta: { base: 0, tasa: null, monto: null } }, { enCurso: false, pendientes: 0 });
+    expect(c.frase).toBe("No pagas IGV. El saldo a favor pasa a octubre.");
+  });
+
   it("un mes sin ventas ni compras no dice «a favor S/ 0»", () => {
     const c = cuentaImpuestos({ ...PANEL, foco: mes({ comprobantes: 0, baseVentas: 0, igvVentas: 0, debito: 0, creditoMercaderia: 0, creditoGastos: 0, creditoActivos: 0, creditoTaller: 0, creditoNotas: 0, credito: 0, aPagar: 0, saldoAFavor: 0 }) }, { enCurso: false, pendientes: 0 });
     expect(c).toEqual({ estado: "sin_mes", etiqueta: "Sin movimiento", frase: "Nada que declarar: sin ventas ni compras con factura." });
