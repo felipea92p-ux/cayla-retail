@@ -90,8 +90,7 @@
   background: var(--ahumado-fondo);
   border-color: var(--ahumado-borde);
   box-shadow: var(--ahumado-luz);
-  -webkit-backdrop-filter: blur(10px) saturate(1.4);
-  backdrop-filter: blur(10px) saturate(1.4);
+  /* Sin desenfoque (ADR-0623): el botón negro casi no deja ver lo de atrás, y en cada fila de una tabla larga costaba un desenfoque por cuadro. */
 }
 .btn-secundario {
   background: var(--gota-fondo);

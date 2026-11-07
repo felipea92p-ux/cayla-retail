@@ -30,13 +30,15 @@
 }
 
 /* ---------- Las cifras de la sede (ResumenSede): la placa Serena ---------- */
+/* Lo que se desplaza no se desenfoca (ADR-0623, Felipe 2026-11-07): las cifras, las tarjetas y las tablas corren con el scroll sobre la Aurora fija,
+   y un `backdrop-filter` en ellas obligaba a desenfocar de nuevo cada cuadro (32 → 53 cuadros/s sin él en un equipo modesto). Son el vidrio
+   claro, sin desenfoque: un poco más lleno que la placa Serena para que se lea igual. El desenfoque queda para lo que flota quieto
+   (cabecera, menú, hojas). */
 .resumen-sede {
   border-radius: var(--radius-tarjeta);
-  border: 1px solid var(--serena-borde);
-  background: var(--serena-fondo);
-  -webkit-backdrop-filter: var(--serena-filtro);
-  backdrop-filter: var(--serena-filtro);
-  box-shadow: var(--serena-sombra);
+  border: 1px solid var(--vidrio-claro-borde);
+  background: var(--vidrio-claro-fondo);
+  box-shadow: var(--vidrio-claro-sombra);
 }
 
 /* El número mide lo que cabe en su parte del recuadro, hasta su tope. La cuenta es del espacio real: la ventana, menos el lateral, menos los
@@ -58,11 +60,9 @@
 /* ---------- La tarjeta de cifra: la misma placa ---------- */
 .tarjeta-cifra:not([data-sin-dato]) {
   border-radius: var(--radius-tarjeta);
-  border-color: var(--serena-borde);
-  background: var(--serena-fondo);
-  -webkit-backdrop-filter: var(--serena-filtro);
-  backdrop-filter: var(--serena-filtro);
-  box-shadow: var(--serena-sombra);
+  border-color: var(--vidrio-claro-borde);
+  background: var(--vidrio-claro-fondo);
+  box-shadow: var(--vidrio-claro-sombra);
   transition: transform 250ms var(--ease-cayla), background 200ms var(--ease-cayla), box-shadow 250ms var(--ease-cayla), border-color 200ms;
 }
 /* Sin dato: el borde punteado de siempre, sin vidrio (no hay nada que mirar a través). */
@@ -74,7 +74,6 @@
 @media (hover: hover) {
   .tarjeta-cifra:is([data-conducta="lleva"], [data-conducta="filtra"]):not([data-puesta], [data-sin-dato]):hover {
     transform: translateY(-2px);
-    background: var(--serena-fondo-encima);
     box-shadow: var(--serena-sombra-encima);
   }
   .tarjeta-cifra[data-conducta="lleva"]:hover .lucide-arrow-right {
@@ -89,8 +88,6 @@
   transform: none;
   border-color: var(--hundido-borde);
   background: var(--hundido-fondo);
-  -webkit-backdrop-filter: none;
-  backdrop-filter: none;
   box-shadow: var(--hundido-sombra);
 }
 .tarjeta-cifra[data-puesta] .label-cayla {
@@ -156,11 +153,9 @@
 /* ---------- Las tablas: la placa Serena, sin rayado, un hilo entre filas ---------- */
 .tabla-cayla {
   border-radius: var(--radius-tarjeta);
-  border-color: var(--serena-borde);
-  background: var(--serena-fondo);
-  -webkit-backdrop-filter: var(--serena-filtro);
-  backdrop-filter: var(--serena-filtro);
-  box-shadow: var(--serena-sombra);
+  border-color: var(--vidrio-claro-borde);
+  background: var(--vidrio-claro-fondo);
+  box-shadow: var(--vidrio-claro-sombra);
 }
 /* El hilo entre filas (y bajo el encabezado): el `divide-y` de siempre, en apenas tinta. */
 .tabla-cayla > * + * {

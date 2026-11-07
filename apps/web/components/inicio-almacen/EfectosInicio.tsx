@@ -19,28 +19,39 @@ export function EfectosInicio({ atajoNuevo }: { atajoNuevo: string | null }) {
     const fino = window.matchMedia("(hover: hover) and (pointer: fine)");
     const reducido = window.matchMedia("(prefers-reduced-motion: reduce)");
 
-    const mover = (e: PointerEvent) => {
-      if (!fino.matches || reducido.matches) return;
+    // Una vez por cuadro, y midiendo todo antes de escribir (ADR-0623): el mouse manda 60 a 120 movimientos por segundo, y medir y
+    // escribir intercalados en cada uno obligaba a recalcular la página entre medida y medida.
+    let ultimo: PointerEvent | null = null;
+    let cuadro = 0;
+    const aplicar = () => {
+      cuadro = 0;
+      const e = ultimo;
+      if (!e) return;
       const objetivo = e.target instanceof Element ? e.target : null;
       if (!objetivo) return;
       const foco = objetivo.closest<HTMLElement>(".ia-spot");
-      if (foco) {
-        const r = foco.getBoundingClientRect();
-        foco.style.setProperty("--mx", `${e.clientX - r.left}px`);
-        foco.style.setProperty("--my", `${e.clientY - r.top}px`);
-      }
       const tarjeta = objetivo.closest<HTMLElement>(".ia-tilt");
-      if (tarjeta) {
-        const r = tarjeta.getBoundingClientRect();
-        const x = (e.clientX - r.left) / r.width - 0.5;
-        const y = (e.clientY - r.top) / r.height - 0.5;
+      const iman = objetivo.closest<HTMLElement>(".ia-mag");
+      const rFoco = foco?.getBoundingClientRect();
+      const rTarjeta = tarjeta?.getBoundingClientRect();
+      const rIman = iman?.getBoundingClientRect();
+      if (foco && rFoco) {
+        foco.style.setProperty("--mx", `${e.clientX - rFoco.left}px`);
+        foco.style.setProperty("--my", `${e.clientY - rFoco.top}px`);
+      }
+      if (tarjeta && rTarjeta) {
+        const x = (e.clientX - rTarjeta.left) / rTarjeta.width - 0.5;
+        const y = (e.clientY - rTarjeta.top) / rTarjeta.height - 0.5;
         tarjeta.style.transform = `perspective(900px) rotateX(${(-y * 5).toFixed(2)}deg) rotateY(${(x * 6).toFixed(2)}deg) translateY(-4px)`;
       }
-      const iman = objetivo.closest<HTMLElement>(".ia-mag");
-      if (iman) {
-        const r = iman.getBoundingClientRect();
-        iman.style.transform = `translate(${((e.clientX - r.left) / r.width - 0.5) * 10}px, ${((e.clientY - r.top) / r.height - 0.5) * 8}px)`;
+      if (iman && rIman) {
+        iman.style.transform = `translate(${((e.clientX - rIman.left) / rIman.width - 0.5) * 10}px, ${((e.clientY - rIman.top) / rIman.height - 0.5) * 8}px)`;
       }
+    };
+    const mover = (e: PointerEvent) => {
+      if (!fino.matches || reducido.matches) return;
+      ultimo = e;
+      if (!cuadro) cuadro = requestAnimationFrame(aplicar);
     };
 
     const soltar = (e: PointerEvent) => {
@@ -65,6 +76,7 @@ export function EfectosInicio({ atajoNuevo }: { atajoNuevo: string | null }) {
     document.addEventListener("pointerout", soltar);
     document.addEventListener("keydown", tecla);
     return () => {
+      cancelAnimationFrame(cuadro);
       document.removeEventListener("pointermove", mover);
       document.removeEventListener("pointerout", soltar);
       document.removeEventListener("keydown", tecla);
