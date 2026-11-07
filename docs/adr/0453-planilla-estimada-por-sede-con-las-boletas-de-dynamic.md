@@ -142,3 +142,25 @@ Web: `lib/planilla-provision-reglas.test.ts` (+7), `lib/finanzas-confianza.test.
 
 **Lo que no se pudo probar en local ni de noche.** La pausa de almuerzo y las horas transcurridas contra jornadas ABIERTAS reales: de madrugada en Lima no hay ninguna.
 Se valida en solo lectura en horario de trabajo (comparar el estimado de las 18:00 con lo que Dynamic suma al cerrar el día).
+
+## Actualización 2026-11-06 — Toda sede cuenta, aunque tenga 1 o 2 personas (Felipe)
+
+**El problema primero.** El piso de 3 personas (D-33) no movía los sueldos de una sede chica a otra fila: los sacaba del TOTAL. En noviembre de 2026 Tienda AQP bajó a 2
+personas en Dynamic y sus sueldos desaparecieron de la planilla provisionada. AQP se veía ganando y CAYLA entera, más rentable de lo que era. Al pagarse el período (28-nov),
+la vista de lo pagado (`planilla_por_sede`) la habría borrado igual, y esta vez en el libro. Entre agosto y octubre AQP tuvo 3 o más personas, así que esos meses están bien.
+
+**La decisión (Felipe, 2026-11-06, «Contarla siempre»).** Se quita el piso en las dos lecturas de Finanzas: `fn_planilla_provision_calc` (reemplazo anclado) y la vista
+`planilla_por_sede`. Migración `20261106235000_planilla_cuenta_toda_sede.sql`. El piso no protegía a nadie: estas cifras solo las ve quien en Dynamic es admin o líder
+(`fn_planilla_visible`), y esa persona ya ve cada boleta allá. Se queda igual: nunca sale una persona ni su nombre (solo importes por sede) y el grupo `prueba` no cuenta.
+
+**Se descartó.** Juntar las sedes chicas en «Otras»: el total quedaba bien, pero AQP seguía viéndose ganando de más.
+
+**SE ROMPE SI.** Alguien con «Reportes financieros» de una sede de 1 persona (sin ser admin o líder en Dynamic) llegara a ver la planilla. Hoy no puede: `fn_planilla_visible`
+devuelve vacío. Si esa puerta se abre algún día, este piso vuelve a hacer falta para esa cuenta.
+
+**Cómo se probó.** `pnpm pruebas:planilla-provision`, escenas «Toda sede cuenta» (S1–S6, SV1–SV3): una sede de 2 personas devenga y aparece pagada, las demás no cambian,
+pegarla dos veces no cambia la función. La base local estaba en el 15-oct y no corre la escena base (anclas de `fn_diario`): la prueba la corre el CI sobre una base limpia.
+En producción se verificó en solo lectura que el ancla aparecía exactamente 1 vez; Felipe la pegó el 2026-11-06 y AQP ya aparece en la provisión.
+
+**Lo que no es de este cambio (2026-11-06).** Una colaboradora con sede base Central trabaja para AQP: Felipe decidió moverle la sede base a AQP
+**en Dynamic** (dato de Dynamic, no código de retail). Tienda LIM no tiene personas en Dynamic.
