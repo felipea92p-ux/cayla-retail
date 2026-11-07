@@ -44,6 +44,7 @@ export function AlcanzaDinero({
             {alcanza.provisional && <FaltanProyeccion provisional faltan={alcanza.faltan} />}
             {alcanza.guardadoYaCuenta && <p className="nota-cayla">{alcanza.guardadoYaCuenta.frase}</p>}
             {alcanza.deClaudia && <p className="nota-cayla">{alcanza.deClaudia.frase}</p>}
+            {alcanza.porVolver && <p className="nota-cayla">{alcanza.porVolver.frase}</p>}
             <p>
               <Link href="/finanzas/reportes/flujo" className="btn-cayla btn-enlace">
                 Ver el flujo semana a semana

@@ -7,7 +7,7 @@ import { Linea, topeRedondo } from "@/components/ui/Linea";
 import { BarraApilada, MuestraTramo } from "@/components/ui/BarraApilada";
 import { TarjetaCifra } from "@/components/ui/TarjetaCifra";
 import { CabeceraBloque, Superficie } from "@/components/finanzas/kit";
-import { diasEntre, estadoDeCaja, fechaEnPalabras, ventanaEnPalabras, type CajaCayla, type CajaProxima, type CajaSede, type SalidaGrande } from "@/lib/caja-proxima-reglas";
+import { detalleDeHoy, diasEntre, estadoDeCaja, fechaEnPalabras, ventanaEnPalabras, type CajaCayla, type CajaProxima, type CajaSede, type SalidaGrande } from "@/lib/caja-proxima-reglas";
 import { soles } from "@/lib/flujo-caja-reglas";
 
 // Finanzas ▸ Resumen, «Tu caja en las próximas dos semanas» (Felipe 2026-10-24, spike 1). Solo DIBUJA lo que arma `cajaProxima`: la línea del
@@ -87,7 +87,7 @@ function CajaDeCayla({ caja: c, hrefFlujo, className, incluye }: { caja: CajaCay
   const marcas = [...[...Array(Math.floor(ultimo.dia / paso) + 1)].map((_, k) => k * paso), ultimo.dia]
     .filter((x, k, a) => x <= ultimo.dia && a.indexOf(x) === k)
     .map((x) => ({ x, texto: x === 0 ? "hoy" : diaYMes(c.puntos.find((p) => p.dia === x)?.fecha ?? c.hoy), fuerte: x === 0 }));
-  const etiqueta = `${titulo}. ${c.titular} Hoy tienes ${soles(c.saldoHoy)}; hasta el ${fechaEnPalabras(c.hasta)} sale ${soles(c.sale)} y te quedan ${soles(c.queda)}.`;
+  const etiqueta = `${titulo}. ${c.titular} Hoy tienes ${soles(c.saldoHoy)} (${detalleDeHoy(c).replace(/\.$/, "").toLowerCase()}); hasta el ${fechaEnPalabras(c.hasta)} sale ${soles(c.sale)} y te quedan ${soles(c.queda)}.`;
 
   return (
     <Superficie pad guia="fin-resumen.caja" className={className}>
@@ -131,13 +131,15 @@ function CajaDeCayla({ caja: c, hrefFlujo, className, incluye }: { caja: CajaCay
           vacio="Todavía no hay una proyección de caja."
           alto={200}
         />
+        {/* Lo que «Hoy tienes» deja fuera (lo de Claudia, lo por volver de compras): sin esto no cuadra con «¿Cuánto tienes?». */}
+        {(c.deClaudia > 0 || c.porVolver > 0) && <p className="mt-2 text-sm text-taupe">Hoy tienes {soles(c.saldoHoy)}. {detalleDeHoy(c)}</p>}
       </div>
 
       {/* Celular: tres cifras y una barra. */}
       <div className="sm:hidden">
         <div className="grid gap-3">
           <TarjetaCifra etiqueta="Hoy tienes" valor={soles(c.saldoHoy)} {...entra(1)}>
-            Cajones, cajas fuertes y bancos{c.deClaudia > 0 ? `, sin los ${soles(c.deClaudia)} que son de Claudia` : ""}.
+            {detalleDeHoy(c)}
           </TarjetaCifra>
           <TarjetaCifra etiqueta={`Hasta el ${fechaEnPalabras(c.hasta)} sale`} valor={soles(c.sale)} {...entra(2)}>
             {c.entra > 0 ? `Y esperas cobrar ${soles(c.entra)}.` : "No se espera cobrar nada."}
