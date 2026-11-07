@@ -40,6 +40,18 @@ describe("gruposDelBalance (ADR-0585)", () => {
   it("las líneas van por su nombre, nunca por su cuenta", () => {
     expect(g.find((x) => x.clave === "plata")!.lineas.map((l) => l.nombre)).toEqual(["Caja (cajones, cajas fuertes y lo entregado al líder)", "Bancos y billeteras"]);
   });
+  it("las telas y la ropa en proceso del Taller son existencias, no «Otros»", () => {
+    expect(gruposDelBalance([L("activo", "201", 10), L("activo", "231", 5), L("activo", "241", 2)]).map((x) => [x.clave, x.monto])).toEqual([["mercaderia", 17]]);
+  });
+  it("los meses de mercadería cuentan lo que está para vender: las telas y la ropa en proceso no", () => {
+    const m = medidores(gruposDelBalance([L("activo", "201", 90000), L("activo", "231", 5000), L("activo", "241", 25000)]), 25000);
+    expect(m.mercaderia).toBe(90000);
+    expect(m.mesesDeMercaderia).toBeCloseTo(3.6);
+  });
+  it("con una cuenta que difiere y nada más que decir, no dice que cuadra ni deja la placa vacía", () => {
+    const r = recomendacionesVale({ cuadra: true, conDiferencias: true, medidas: null, unidades: [], sede: null, href: (x) => x });
+    expect(r.map((x) => x.clave)).toEqual(["solo-la-diferencia"]);
+  });
   it("lo que no cae en un grupo va a «Otros» de su lado", () => {
     expect(gruposDelBalance([L("activo", "999", 10), L("pasivo", "4699", 5)]).map((x) => x.clave)).toEqual(["otros-tiene", "otros-debe"]);
   });

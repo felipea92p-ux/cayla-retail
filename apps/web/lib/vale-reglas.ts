@@ -3,20 +3,20 @@
 // PROMETE: el Balance como una balanza que se lee de un vistazo: lo que tiene, contra lo que debe y lo que es tuyo, cada lado en pocos
 // grupos que una tienda reconoce (no cuentas), cada grupo con sus líneas por su nombre; dos medidores que traducen el Balance a una
 // decisión (si te cobraran todo hoy, cuánto cubres; para cuántos meses de venta tienes mercadería) y las recomendaciones.
-// ASUME: toda cifra viene de la base (`fn_balance_general`, `fn_balance_por_tienda`, `fn_estado_resultados`). El Balance se dibuja solo si
-// la comprobación no bloquea (ADR-0198): esto no lo decide aquí, lo recibe ya cuadrado.
+// ASUME: toda cifra viene de la base (`fn_balance_general`, `fn_balance_por_tienda`, `fn_estado_resultados`). Si hay Balance que dibujar lo
+// decide `situacion` (ADR-0619): aquí se recibe ya decidido.
 
 import { nombreLinea, type LineaBalance, type UnidadBalance } from "./balance-reglas";
 import { soles } from "./flujo-caja-reglas";
 import type { Recomendacion } from "./ganamos-reglas";
 
-export type GrupoBalance = { clave: string; nombre: string; lado: "tiene" | "debe" | "tuyo"; clase: string; monto: number; lineas: { nombre: string; monto: number }[] };
+export type GrupoBalance = { clave: string; nombre: string; lado: "tiene" | "debe" | "tuyo"; clase: string; monto: number; lineas: { nombre: string; monto: number; cuenta: string }[] };
 
 /** Los grupos de cada lado, en el orden en que se leen. `de` dice qué líneas son suyas (por su cuenta), y lo que no cae en ninguno va a «Otros». */
 const GRUPOS: readonly { clave: string; nombre: string; lado: GrupoBalance["lado"]; clase: string; de: (cuenta: string) => boolean }[] = [
   { clave: "plata", nombre: "Plata en cajas y bancos", lado: "tiene", clase: "bg-verde", de: (c) => c.startsWith("10") && c !== "105" },
   { clave: "cobros", nombre: "Lo que te deben o está por llegar", lado: "tiene", clase: "bg-verde/40", de: (c) => c === "105" || c.startsWith("12") || c.startsWith("14") || c.startsWith("16") || c === "4011" },
-  { clave: "mercaderia", nombre: "Mercadería", lado: "tiene", clase: "bg-tinta/55", de: (c) => c.startsWith("20") || c.startsWith("21") || c.startsWith("28") },
+  { clave: "mercaderia", nombre: "Mercadería y telas", lado: "tiene", clase: "bg-tinta/55", de: (c) => c.startsWith("20") || c.startsWith("21") || c.startsWith("23") || c.startsWith("24") || c.startsWith("28") },
   { clave: "equipos", nombre: "Muebles y equipos", lado: "tiene", clase: "bg-tinta/25", de: (c) => c.startsWith("33") || c.startsWith("39") },
   { clave: "proveedores", nombre: "Proveedores", lado: "debe", clase: "bg-ambar", de: (c) => c.startsWith("42") },
   { clave: "impuestos", nombre: "Impuestos", lado: "debe", clase: "bg-taupe", de: (c) => c.startsWith("40") },
@@ -24,7 +24,7 @@ const GRUPOS: readonly { clave: string; nombre: string; lado: GrupoBalance["lado
   { clave: "prestamos", nombre: "Tarjeta y préstamos", lado: "debe", clase: "bg-tinta/45", de: (c) => c.startsWith("45") || c === "47" },
 ];
 
-/** El Balance (ya cuadrado) en grupos: lo que tiene, lo que debe y lo tuyo. Sin los grupos vacíos. Un monto negativo resta de su lado. */
+/** El Balance en grupos: Activo, Pasivo y Patrimonio. Sin los grupos vacíos. Un monto negativo resta de su lado. */
 export function gruposDelBalance(lineas: readonly LineaBalance[]): GrupoBalance[] {
   const lado = (l: LineaBalance): GrupoBalance["lado"] => (l.seccion === "activo" ? "tiene" : l.seccion === "pasivo" ? "debe" : "tuyo");
   const out: GrupoBalance[] = [];
@@ -42,11 +42,12 @@ export function gruposDelBalance(lineas: readonly LineaBalance[]): GrupoBalance[
     if (resto.length) out.push({ clave: `otros-${l}`, nombre, lado: l, clase, monto: suma(resto), lineas: resto.map(linea) });
   }
   const tuyo = lineas.filter((l) => lado(l) === "tuyo");
-  if (tuyo.length) out.push({ clave: "tuyo", nombre: "Lo tuyo", lado: "tuyo", clase: "bg-tinta", monto: suma(tuyo), lineas: tuyo.map(linea) });
+  if (tuyo.length) out.push({ clave: "tuyo", nombre: "Patrimonio", lado: "tuyo", clase: "bg-tinta", monto: suma(tuyo), lineas: tuyo.map(linea) });
   return out;
 }
 const suma = (xs: readonly LineaBalance[]) => Math.round(xs.reduce((a, l) => a + l.monto, 0) * 100) / 100;
-const linea = (l: LineaBalance) => ({ nombre: nombreLinea(l), monto: l.monto });
+const sumaMontos = (xs: readonly { monto: number }[]) => Math.round(xs.reduce((a, l) => a + l.monto, 0) * 100) / 100;
+const linea = (l: LineaBalance) => ({ nombre: nombreLinea(l), monto: l.monto, cuenta: l.cuenta });
 
 export type Medidores = {
   /** (plata + lo que te deben) ÷ lo que debes. `null` si no debes nada. */
@@ -62,7 +63,8 @@ export function medidores(grupos: readonly GrupoBalance[], costoDelMes: number |
   const de = (clave: string) => grupos.find((g) => g.clave === clave)?.monto ?? 0;
   const plataYCobros = de("plata") + de("cobros");
   const deudas = grupos.filter((g) => g.lado === "debe").reduce((a, g) => a + g.monto, 0);
-  const mercaderia = de("mercaderia");
+  // Lo que se mide contra lo vendido es lo que está para vender: las telas y la ropa en proceso del Taller van en el grupo, pero no se venden al costo del mes.
+  const mercaderia = sumaMontos(grupos.find((g) => g.clave === "mercaderia")?.lineas.filter((l) => !/^2[34]/.test(l.cuenta)) ?? []);
   return {
     cobertura: deudas > 0 ? plataYCobros / deudas : null,
     plataYCobros,
@@ -81,6 +83,7 @@ export const MESES_DE_MERCADERIA_ALTOS = 4;
  */
 export function recomendacionesVale({
   cuadra,
+  conDiferencias = false,
   medidas,
   unidades,
   sede,
@@ -88,6 +91,8 @@ export function recomendacionesVale({
 }: {
   /** `null`: mirando una sede (allí no hay Balance entero que cuadre). */
   cuadra: boolean | null;
+  /** Se dibuja, pero una cuenta no coincide (ADR-0619): el aviso de arriba ya lo dice, y aquí no se puede decir «cuadra». */
+  conDiferencias?: boolean;
   medidas: Medidores | null;
   unidades: readonly UnidadBalance[];
   /** La sede que se mira, o `null` en CAYLA entera. */
@@ -131,6 +136,9 @@ export function recomendacionesVale({
       texto: `Rinde ${pct(peor.rinde!)} al mes sobre ${soles(peor.invertido)}${mejor && mejor !== peor ? `; ${mejor.nombre} rinde ${pct(mejor.rinde!)}` : ""}.`,
       ...(sede ? {} : { accion: { texto: `Ver ${peor.nombre}`, href: href("/finanzas/reportes/balance", peor.ubicacionId) } }),
     });
+  }
+  if (!out.length && conDiferencias) {
+    out.push({ clave: "solo-la-diferencia", tono: "info", prioridad: 9, titulo: "Lo único por resolver es la diferencia de arriba", texto: "Lo que debes está cubierto y la mercadería no está quieta de más." });
   }
   if (!out.length) {
     out.push({ clave: "tranquilo", tono: "exito", prioridad: 9, titulo: sede ? "Nada fuera de lo normal" : "El Balance cuadra", texto: sede ? "Lo invertido rinde y no hay alertas." : "Lo que debes está cubierto y la mercadería no está quieta de más." });
