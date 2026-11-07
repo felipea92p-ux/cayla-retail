@@ -1,7 +1,6 @@
 # ADR-0622 · Rendimiento de la base: medido con un año de datos, arreglado sin cambiar ninguna respuesta
 
-- **Fecha:** 2026-11-07 · **Estado:** construido en la rama `claude/retail-system-audit-optimization-f2a453`. Cuatro migraciones **sin pegar en
-  producción**: `20261107164000`, `20261107171000`, `20261107172000` y `20261107202000`. Más cambios de la web en el marco, Inicio, Vender, Caja y
+- **Fecha:** 2026-11-07 · **Estado:** construido en la rama `claude/retail-system-audit-optimization-f2a453`. Cuatro migraciones, **pegadas en producción el 2026-11-07** y verificadas por md5: `20261107164000`, `20261107171000`, `20261107172000` y `20261107202000`. Más cambios de la web en el marco, Inicio, Vender, Caja y
   Comercial.
 - **Pidió:** Felipe: «que sea rápido en sus respuestas de la base de datos… lo más rápido y escalable; una auditoría primero».
 - **Sigue a:** ADR-0194 (la prueba de carga con un año sintético), ADR-0188 (concurrencia) y `20261101004000` (funciones de apoyo sin ajustes).
