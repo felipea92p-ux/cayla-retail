@@ -8,9 +8,10 @@
  *     de las netas y su IGV no se cuenta dos veces.
  *   · Las partes de un mes completo suman exacto lo dicho, con el resto de céntimos en la unidad mayor. 0 dicho es distinto de sin dato.
  *   · Mes parcial: monto × IGV del tramo ÷ IGV del mes. IGV del mes en 0 o menos: el monto va a «De la empresa».
+ *   · El mes en curso se marca: su monto va entero y la web no lo compara contra un mes pasado que lleva solo su parte.
  *   · Decir el monto no agrega líneas al diario y el Balance y el Estado de resultados quedan iguales.
  *   · Rechaza con la empresa cerrada o con CUALQUIER tienda cerrada, también al repetir el monto y al insertar directo.
- *   · Solo el líder dice; lo lee quien ve toda CAYLA; una terminal con el módulo no recibe el monto.
+ *   · Solo el líder dice; lo lee quien ve toda CAYLA; una terminal con el módulo no recibe el monto, y la lectura le dice que es por eso.
  *   · Una regla nueva de `fn_asientos*` que mueva la 4011 o la 7011 hace fallar esta suite: la lista de `fn_igv_de_gestion` hay que revisarla.
  *
  * LOS NÚMEROS ESPERADOS ESTÁN CALCULADOS A MANO (comentarios de la escena), no salen de las funciones.
@@ -181,7 +182,7 @@ select retail.decir_igv_del_mes('2025-08-15', 100, '  con saldo a favor  ') as d
 select 'B1 un día del mes vale por el mes y la nota va sin espacios', (select count(*) = 1 and bool_and(mes = '2025-08-01' and monto = 100 and nota = 'con saldo a favor' and creado_por = :'felipe') from retail.igv_del_mes where mes = '2025-08-01');
 select 'B2 dice qué guardó', (:'d1'::jsonb ->> 'nuevo') = 'true' and (:'d1'::jsonb ->> 'mes') = '2025-08-01';
 select 'B3 las partes de 100 suman 100 y siguen al IGV (34.48 · 31.03 · 34.49)', pg_temp.partes('2025-08-01', '2025-08-31') = 100 and pg_temp.parte('2025-08-01', :'lim') = 31.03;
-select 'B4 el monto llega en cada fila', (select bool_and(monto_dicho = 100 and igv_mes = 261) from retail.fn_igv_de_gestion('2025-08-01', '2025-08-31'));
+select 'B4 el monto llega en cada fila, con la marca de quien lo puede ver', (select bool_and(monto_dicho = 100 and igv_mes = 261 and ve_dicho) from retail.fn_igv_de_gestion('2025-08-01', '2025-08-31'));
 select retail.decir_igv_del_mes('2025-08-01', 1.01) as d2 \\gset
 select 'B5 lo más reciente gana y la fila vieja se queda', pg_temp.partes('2025-08-01', '2025-08-31') = 1.01 and (select count(*) from retail.igv_del_mes where mes = '2025-08-01') = 2;
 select 'B6 el resto de céntimos va a una unidad mayor (0.35 · 0.31 · 0.35)', pg_temp.parte('2025-08-01', :'lim') = 0.31 and pg_temp.parte('2025-08-01', :'tru') + pg_temp.parte('2025-08-01', :'tal') = 0.70;
@@ -215,6 +216,8 @@ select 'C6 una sede con IGV negativo reparte igual y suma lo dicho', pg_temp.par
 
 select retail.decir_igv_del_mes(retail.fn_hoy_lima(), 10) as d4 \\gset
 select 'C7 el mes en curso se puede decir', (:'d4'::jsonb ->> 'mes') = to_char(date_trunc('month', retail.fn_hoy_lima()), 'YYYY-MM-DD');
+select 'C8 el mes en curso va marcado y su monto va entero', (select bool_and(mes_en_curso) and sum(igv_parte) = 10 from retail.fn_igv_de_gestion(retail.fn_hoy_lima(), retail.fn_hoy_lima()));
+select 'C9 un mes pasado no va marcado', (select not bool_or(mes_en_curso) from retail.fn_igv_de_gestion('2025-08-01', '2025-08-31'));
 `;
 
 const LIBRO = `
@@ -300,6 +303,7 @@ ${conModulo("reportes_financieros")}
 ${cambiaA(TERMINAL)}
 select 'T1 la terminal con el módulo ve solo su tienda', (select count(*) = 1 and bool_and(ubicacion_id = :'tru' and igv_tramo = 90) from retail.fn_igv_de_gestion('2025-08-01', '2025-08-31'));
 select 'T2 la terminal no recibe el monto ni su parte', (select bool_and(monto_dicho is null and igv_parte is null) from retail.fn_igv_de_gestion('2025-08-01', '2025-08-31'));
+select 'T3 la lectura le dice a la terminal que no ve lo dicho: un nulo no es «nadie lo dijo»', (select not bool_or(ve_dicho) from retail.fn_igv_de_gestion('2025-08-01', '2025-08-31'));
 `;
 
 const ACCESO_DIRECTO = `

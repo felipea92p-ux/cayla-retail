@@ -17,7 +17,9 @@
 --     anulación son el adelanto aplicado o devuelto, y `anticipo` / `anticipo_devuelto` son su boleta.
 --   Ventas con IGV = ventas_netas + IGV incluido.
 --   IGV del mes    = lo dicho, repartido por IGV incluido. Sin monto dicho: todo el IGV incluido.
---   Mes parcial    = monto × IGV del tramo ÷ IGV del mes: 0 sigue siendo 0 y «a esta fecha» compara en la misma base.
+--   Mes parcial    = monto × IGV del tramo ÷ IGV del mes: 0 sigue siendo 0.
+--   Mes en curso   = el monto se resta entero: su IGV del mes solo llega hasta hoy, así que no hay con qué prorratearlo. `mes_en_curso`
+--                    lo marca, y la web no compara ese mes «a esta fecha» contra un mes pasado que lleva solo su parte (ADR-0620).
 --   Resto de céntimos: a la unidad con más IGV en el tramo. IGV incluido del mes en 0 o menos: el monto va a «De la empresa».
 --   Mes con el IGV en 0 o menos y un tramo parcial: va el monto entero (no hay con qué prorratear).
 --
@@ -26,7 +28,7 @@
 --            suma exacto lo dicho; (3) 0 dicho y sin dato son distintos: `monto_dicho` 0 frente a nulo; (4) con cualquier unidad
 --            cerrada el mes rechaza decir el monto, porque cambiaría la columna de esa unidad; (5) lo dicho no se edita ni se borra:
 --            se dice otra vez y gana lo más reciente; (6) repetir el mismo monto no agrega fila; (7) quien no ve toda CAYLA no
---            recibe el monto ni su parte.
+--            recibe el monto ni su parte, y `ve_dicho` falso se lo dice a la web: un nulo no significa que nadie lo dijo.
 --   ASUME:   que `fn_asientos` sigue escribiendo la 4011 de lo vendido solo en las reglas de arriba. Una regla nueva que mueva la
 --            7011 y la 4011 sin entrar a la lista deja las ventas cortas sin error: lo vigila `scripts/pruebas/igv_gestion.mjs`.
 --   NO HACE: no toca 591, 50 ni 4011, y no conecta la renta ni Impuestos a esta capa.
@@ -164,9 +166,11 @@ grant execute on function retail.decir_igv_del_mes(date, numeric, text) to authe
 -- ---------- 4. Leerlo: el IGV incluido por mes y unidad, y la parte de lo dicho ----------
 -- Una fila por mes y unidad con IGV incluido en el mes. `igv_tramo` y `igv_parte` son de lo que cae dentro del rango; `igv_mes` y
 -- `monto_dicho`, del mes entero. Sin dato, o para quien no ve toda CAYLA, `monto_dicho` e `igv_parte` son nulos: esa fila se lee
--- con todo su `igv_tramo`. Lee `fn_diario`: un mes cerrado sale de su foto.
+-- con todo su `igv_tramo`. `mes_en_curso`: ese mes no ha terminado y `igv_mes` llega solo hasta hoy. `ve_dicho`: esta cuenta recibe lo
+-- dicho, así la web no confunde «no te lo muestro» con «nadie lo dijo». Lee `fn_diario`: un mes cerrado sale de su foto.
+drop function if exists retail.fn_igv_de_gestion(date, date);
 create or replace function retail.fn_igv_de_gestion(p_desde date, p_hasta date)
-returns table (mes date, ubicacion_id uuid, igv_tramo numeric, igv_mes numeric, monto_dicho numeric, igv_parte numeric)
+returns table (mes date, ubicacion_id uuid, igv_tramo numeric, igv_mes numeric, monto_dicho numeric, igv_parte numeric, mes_en_curso boolean, ve_dicho boolean)
 language plpgsql
 stable
 security definer
@@ -177,6 +181,7 @@ declare
   v_todo boolean := retail.fn_ve_diario_de_todo();
   v_ubics uuid[] := retail.fn_diario_ubicaciones();
   v_inicio date := retail.fn_finanzas_desde();
+  v_mes_de_hoy date := date_trunc('month', retail.fn_hoy_lima())::date;
   v_ini date;
   v_fin date;
 begin
@@ -248,12 +253,14 @@ begin
     select r.*, r.debe_sumar - sum(r.crudo) over (partition by r.m) as resto from repartido r
   )
   select c.m, c.u, c.tramo, c.del_mes_total, c.monto,
-         c.crudo + case when c.lugar = 1 then c.resto else 0 end
+         c.crudo + case when c.lugar = 1 then c.resto else 0 end,
+         c.m = v_mes_de_hoy,
+         v_todo
     from con_resto c
    order by c.m, c.u nulls last;
 end $$;
 comment on function retail.fn_igv_de_gestion(date, date) is
-  'ADR-0620: por mes y unidad, el IGV incluido en las ventas del rango (igv_tramo), el del mes entero (igv_mes), lo dicho por el líder (monto_dicho) y la parte de esta unidad en el rango (igv_parte). Sin monto o sin ver toda CAYLA, los dos últimos son nulos. Solo lectura.';
+  'ADR-0620: por mes y unidad, el IGV incluido en las ventas del rango (igv_tramo), el del mes entero (igv_mes), lo dicho por el líder (monto_dicho) y la parte de esta unidad en el rango (igv_parte). Sin monto o sin ver toda CAYLA, esos dos son nulos, y ve_dicho distingue un caso del otro. mes_en_curso: el mes no ha terminado, su monto se resta entero. Solo lectura.';
 revoke all on function retail.fn_igv_de_gestion(date, date) from public, anon;
 grant execute on function retail.fn_igv_de_gestion(date, date) to authenticated;
 

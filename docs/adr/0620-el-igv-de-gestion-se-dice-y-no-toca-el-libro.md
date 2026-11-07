@@ -32,7 +32,8 @@ Además, el Balance y Impuestos se contradecían: el primero decía S/ 20,157 po
    `monto × IGV del tramo ÷ IGV del mes`, y varios meses se suman mes a mes. El resto de céntimos va a la unidad con más IGV.
 2. **Mes sin monto dicho (Felipe, decisión 1):** se resta todo el IGV incluido, con aviso, y no frena el cierre. Sin monto, la cifra es el libro: olvidarlo no daña nada.
 3. **Balance (Felipe, decisión 2):** el arranque resta el saldo a favor contra lo que se debía. Octubre no paga IGV.
-   - 4011: 20,157.00 por pagar − 62,035.00 de crédito = **41,878.00 a favor** (debe). El Balance la muestra como activo.
+   - 4011: 20,157.00 por pagar − 62,035.00 de crédito = **41,878.00 a favor** (debe). El Balance la muestra como activo, en su propio grupo «Saldo a favor de IGV»:
+     SUNAT lo descuenta y no lo paga en plata, así que no entra a «Si te cobraran todo hoy, cubres X %» (`medidores`). Con esos saldos el medidor da 129 % (13,687.68 contra 10,582.85), no 525 %.
    - 50 Capital: 139,723.78 + 62,035.00 = **201,758.78**: ese crédito ya era de CAYLA antes de empezar, no es ganancia de octubre.
    - 591 no cambia, ni el Estado de resultados.
    - Patrimonio: 110,423.63 → **172,458.63**. El plan decía unos 130,600, pero esa cifra solo borraba la deuda y no reconocía el crédito que sobra.
@@ -43,7 +44,8 @@ Además, el Balance y Impuestos se contradecían: el primero decía S/ 20,157 po
 6. **`retail.igv_del_mes` solo agrega filas**, gana el `id` mayor, con RLS sin políticas. Un mes con cualquier unidad cerrada rechaza decir el monto
    (`fn_exigir_igv_mes_abierto`, en la RPC y en el disparador): con ubicación nula, `fn_exigir_mes_abierto` solo mira el alcance empresa y una tienda cerrada cambiaría su columna.
 7. **Ganancias, la línea de meses y «Ganaste» del Flujo pasan a gestión juntos.** Si falla una lectura del IGV, todas las columnas caen a netas con aviso,
-   para no comparar netas contra brutas. Un mes estimado se dibuja con punto hueco.
+   para no comparar netas contra brutas. La cabecera de Ganancias espera la lectura de la línea (`getIgvDelHilo`, con `cache`: es una sola por pantalla), y la línea sigue a la cabecera (`enLibro`):
+   caen juntas y un solo aviso lo dice por las dos. Las barritas del calendario no llevan aviso, así que sin IGV no se dibujan. Un mes estimado se dibuja con punto hueco.
 8. **Sigue en el libro, rotulado:** cuadro por sede, cuadre de ventas, Resumen, Balance, Patrimonio y CSV. Sin rótulo nuevo: renta, Impuestos, Flujo proyectado, «¿Me alcanza?», campañas, presupuesto.
    «¿Y si…?» sigue neto, con la columna «Utilidad al mes · parte del libro». `igv-gestion-uso.test.ts` falla si la renta, el contador, el Balance o Patrimonio leen esta capa.
 
@@ -55,6 +57,10 @@ Además, el Balance y Impuestos se contradecían: el primero decía S/ 20,157 po
 - Los S/ 85.12 de IGV de boletas de CLAURE quedan en las ventas con IGV de octubre: ese IGV sí está en la 4011 de CAYLA, y excluirlo obligaría a leer `fn_claure_ventas`, que no se congela al cerrar.
 - «Lo que dejó cada sede» y sus recomendaciones usan gestión: con 0 dicho, una tienda que perdía puede dejar de salir como «pierde».
 - El Taller, que no vende, no lleva fila de IGV aunque el mes tenga monto dicho (origen `sin_igv`).
+- **El mes en curso con monto dicho se resta entero, y no se compara.** Su IGV del mes llega solo hasta hoy, así que `monto × tramo ÷ mes` no prorratea: da el monto completo, mientras su mes pasado
+  «a esta fecha» lleva solo su parte. `fn_igv_de_gestion` lo marca (`mes_en_curso`) y `mismaBaseDeIgv` apaga el chip; abrir la fila lo explica. Con 0 dicho, o sin decir, se sigue comparando: ahí
+  las dos columnas sí están en la misma base. **Prorratear el mes en curso por días es decisión de Felipe:** cambiaría cuánto se resta, y él dijo «el monto del mes».
+- Quien no ve toda CAYLA recibe `ve_dicho` falso. Su texto no afirma que el líder lo dijo ni que falta: no lo sabe.
 
 ## DESCARTÉ
 
@@ -83,9 +89,8 @@ Además, el Balance y Impuestos se contradecían: el primero decía S/ 20,157 po
 - **Se puede sobrestimar la ganancia.** Con IGV 0, el crédito de cada factura nueva queda como ganancia. La carga inicial trae IGV en el costo y las facturas nuevas no, así que el margen mezcla bases.
 - **Dos cifras de IGV.** Impuestos y el Flujo proyectado siguen con `a_pagar` por comprobantes aunque se diga otro monto. El IGV del diario y el de comprobantes ya difieren en S/ 285.50 en octubre.
 - **Fechas viejas.** Lo registrado con fecha de octubre después de decir el monto cambia el libro, y la 591, que es un literal, no se entera.
-- **El medidor «Si te cobraran todo hoy, cubres X %»:** `plataYCobros` en `apps/web/lib/vale-reglas.ts:63` suma el crédito de IGV, que SUNAT no paga en plata, y la deuda baja 20,157. El porcentaje
-  subirá y su aviso podría callarse sin que entre un sol. Recomiendo excluir la 4011 del medidor; queda en el backlog porque decide qué se muestra sobre dinero.
-- **Una lectura de IGV que falla solo en la línea o solo en la cabecera** mezcla bases hasta recargar. Son dos lecturas con rangos distintos; es poco probable y no se resolvió.
+- **El medidor «Si te cobraran todo hoy» se calla igual, y esta vez con razón:** la deuda sí bajó 20,157 por la decisión 2. Pasa de 45 % a 129 % aunque no entró un sol; lo que cambió es que ya no se cuenta como deuda.
+- **El noviembre de gestión con un monto dicho sale más bajo los primeros días,** porque resta el mes entero contra pocos días de ventas. La fila lo dice y el chip se apaga, pero la cifra es esa hasta que Felipe decida si se prorratea.
 - **Patrimonio de octubre podría mostrar 172,458.63 «sin explicar»,** porque el arranque es del 1-nov. Sin medir en vivo.
 - **Sin verificar con datos reales:** lo probado corre sobre una pila aparte. Las cifras 133,922.31, −5,986.79 y 41,878.00 faltan confirmarse en producción con la sesión de Felipe.
 

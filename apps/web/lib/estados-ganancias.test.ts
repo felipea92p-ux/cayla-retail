@@ -290,8 +290,8 @@ describe("la línea", () => {
 });
 
 describe("con el IGV de gestión (ADR-0620)", () => {
-  const dicho = (monto: number, igv = 1800): FilaIgvGestion => ({ mes: "2026-10", ubicacionId: "u", igvTramo: igv, igvMes: igv, montoDicho: monto, igvParte: monto });
-  const sinDecir: FilaIgvGestion = { mes: "2026-10", ubicacionId: "u", igvTramo: 1800, igvMes: 1800, montoDicho: null, igvParte: null };
+  const dicho = (monto: number, igv = 1800): FilaIgvGestion => ({ mes: "2026-10", ubicacionId: "u", igvTramo: igv, igvMes: igv, montoDicho: monto, igvParte: monto, mesEnCurso: false, veDicho: true });
+  const sinDecir: FilaIgvGestion = { mes: "2026-10", ubicacionId: "u", igvTramo: 1800, igvMes: 1800, montoDicho: null, igvParte: null, mesEnCurso: false, veDicho: true };
   const enGestion = (f: FilaER, x: FilaIgvGestion) => filasDeGestion([f], [x])[0]!;
   const base = fila();
   const cero = enGestion(base, dicho(0));
@@ -355,6 +355,17 @@ describe("con el IGV de gestión (ADR-0620)", () => {
     expect(partesDeGanancias(params(cero, [{ etiqueta: "Sep", fila: antes }])).find((p) => p.clave === "igv")!.chip).toBeNull();
     const otroDicho = enGestion(fila({ resultado: 1000 }), dicho(0));
     expect(lecturaDeGanancias(cero, otroDicho, OCT).chip).not.toBeNull();
+  });
+
+  it("el mes en curso con su monto no se compara «a esta fecha»: resta entero y el mes pasado solo su parte", () => {
+    const hoy = periodoDe("2026-11-01", HOY, HOY);
+    const noviembre = filasDeGestion([fila({ resultado: -3000 })], [{ ...dicho(5000), mes: "2026-11", mesEnCurso: true }])[0]!;
+    const octubreAEstaFecha = filasDeGestion([fila({ resultado: 1000 })], [{ ...dicho(1000), montoDicho: 5000, igvMes: 9000 }])[0]!;
+    expect(lecturaDeGanancias(noviembre, octubreAEstaFecha, hoy).chip).toBeNull();
+    const partes = partesDeGanancias({ ...params(noviembre, [{ etiqueta: "Oct", fila: octubreAEstaFecha }]), periodo: hoy });
+    expect(partes.find((p) => p.clave === "resultado")!.chip).toBeNull();
+    expect(partes.find((p) => p.clave === "igv")!.chip).toBeNull();
+    expect(partes.find((p) => p.clave === "igv")!.aviso).toContain("el mes no ha terminado");
   });
 
   it("la cuenta de cuánto hacía falta vender descuenta el IGV", () => {

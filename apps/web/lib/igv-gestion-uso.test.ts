@@ -24,3 +24,15 @@ describe("el IGV de gestión no entra a lo que es del libro", () => {
     expect(readFileSync(join(process.cwd(), "lib/igv-gestion-reglas.ts"), "utf8")).toMatch(CAPA);
   });
 });
+
+describe("la cabecera y la línea de Ganancias caen juntas", () => {
+  const leer = (ruta: string) => readFileSync(join(process.cwd(), ruta), "utf8");
+  it("la cabecera espera la lectura de la línea y la línea sigue a la cabecera", () => {
+    const pantalla = leer("app/(app)/finanzas/reportes/page.tsx");
+    expect(pantalla).toContain("await getIgvDelHilo(mesesDelHilo(hoy, inicio))");
+    expect(pantalla).toContain("enLibro={!!gestion.falla}");
+  });
+  it("el calendario no dibuja barritas del libro sin decirlo", () => {
+    expect(leer("app/(app)/finanzas/reportes/periodo/route.ts")).toContain("mesesDelCalendario(serie.meses, serie.falla)");
+  });
+});

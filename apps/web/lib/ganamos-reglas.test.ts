@@ -38,7 +38,7 @@ const ppto = (p: Partial<FilaPpto>): FilaPpto =>
   ({ ubicacionId: null, unidad: "consolidado", nombre: "CAYLA", tipo: "tope", presupuesto: null, aLaFecha: 0, proyeccion: null, momento: "cerrado", linea: "", ...p }) as FilaPpto;
 
 describe("cascadaGanamos con el IGV de gestión (ADR-0620)", () => {
-  const con = (monto: number | null, igvTramo = 1800) => filasDeGestion([fila({})], [{ mes: "2026-10", ubicacionId: "u", igvTramo, igvMes: igvTramo, montoDicho: monto, igvParte: monto }])[0]!;
+  const con = (monto: number | null, igvTramo = 1800) => filasDeGestion([fila({})], [{ mes: "2026-10", ubicacionId: "u", igvTramo, igvMes: igvTramo, montoDicho: monto, igvParte: monto, mesEnCurso: false, veDicho: true }])[0]!;
   const suma = (f: FilaER) => cascadaGanamos(f, []).filter((x) => x.tipo !== "queda").reduce((a, x) => a + (x.tipo === "entra" ? x.monto : -x.monto), 0);
 
   it("el IGV va justo tras las ventas, aunque sea 0", () => {

@@ -9,3 +9,9 @@ Qué hice: agregué una capa de lectura sobre el Estado de resultados: el líder
 Por qué así: copia el molde de los sueldos estimados y no reemplaza ninguna función viva; el libro, la renta, Impuestos y el archivo del contador no cambian. Sin monto dicho se resta todo el IGV incluido, con aviso, y no frena el cierre. Lo decidió Felipe. Yo recomendé no tocar el Balance hasta hablar con el contador, y él prefirió que dejara de decir una deuda que no existe.
 Qué se rompería sin esto: octubre seguiría leyéndose como si todo su IGV hubiera salido de la caja, y el Balance seguiría contradiciendo a Impuestos.
 Estado: construido en la rama, **sin aplicar en producción y sin PR**. Las dos migraciones se probaron en una pila aparte, porque el Postgres local compartido está atrasado (`pruebas:igv-gestion` 65/65, `pruebas:arranque-igv` 32/32). Las cifras reales de octubre (133,922.31 y −5,986.79) faltan confirmarse con la sesión de Felipe.
+
+## 2026-11-06 (IGV de gestión: cuatro hallazgos de la revisión, ADR-0620)
+Qué hice: el crédito de IGV salió de «plata y cobros» a su propio grupo del Balance; el chip contra «a esta fecha» se apaga si el mes en curso resta su monto entero; una cuenta sin vista de toda CAYLA ya no lee que el líder no dijo el IGV (la lectura trae `ve_dicho`); la cabecera y la línea de Ganancias caen juntas al libro, y las barritas del calendario no se dibujan sin IGV.
+Por qué así: `fn_igv_de_gestion` ya sabe qué mes está en curso y quién recibe el monto, así que lo dice ella y la web no adivina con la sesión. Prorratear el mes en curso cambiaría cuánto se resta, y eso lo decide Felipe.
+Qué se rompería sin esto: el resultado se vería miles de soles peor que el mes pasado sin motivo, el medidor contaría como plata lo que SUNAT no paga, y una terminal leería algo falso.
+Estado: en la rama, sin PR y sin producción. `pruebas:igv-gestion` 68/68 y `pruebas:arranque-igv` 32/32 en la pila aparte. Falta verlo en el navegador.

@@ -18,15 +18,21 @@ export const getIgvDeGestion = cache(async function getIgvDeGestion(desde: strin
   return { datos: leerFilasIgv(data), falla: null };
 });
 
+/** El IGV de todo el hilo de meses: una sola lectura para los trece (ADR-0450). `getIgvDeGestion` va con `cache`: la cabecera y la línea de una misma pantalla comparten la respuesta y su suerte. */
+export async function getIgvDelHilo(meses: readonly { desde: string; hasta: string }[]): Promise<Lectura<FilaIgvGestion[]>> {
+  return meses.length ? getIgvDeGestion(meses[0]!.desde, meses.at(-1)!.hasta) : { datos: [], falla: null };
+}
+
 /**
  * Las lecturas de una pantalla, en gestión. Van juntas, cada una con sus fechas: si el IGV de una no se puede leer, todas siguen en el libro y `falla` lo dice, para no comparar ventas con
- * IGV contra ventas sin IGV (`pasarAGestion`).
+ * IGV contra ventas sin IGV (`pasarAGestion`). `hilo`: la lectura de la línea de los meses, si la pantalla la dibuja.
  */
-export async function getResultadosDeGestion(tramos: readonly { desde: string; hasta: string; lectura: Lectura<FilaER[]> }[]): Promise<{ lecturas: Lectura<FilaER[]>[]; falla: string | null }> {
+export async function getResultadosDeGestion(tramos: readonly { desde: string; hasta: string; lectura: Lectura<FilaER[]> }[], hilo: Lectura<FilaIgvGestion[]> | null = null): Promise<{ lecturas: Lectura<FilaER[]>[]; falla: string | null }> {
   const igv = await Promise.all(tramos.map((t) => (t.lectura.falla ? Promise.resolve(null) : getIgvDeGestion(t.desde, t.hasta))));
   return pasarAGestion(
     tramos.map((t) => t.lectura),
     igv,
+    hilo,
   );
 }
 

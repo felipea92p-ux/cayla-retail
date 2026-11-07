@@ -10,14 +10,14 @@ import { getVentasClaure } from "@/lib/cuenta-claure";
 import { getCuadreVentas } from "@/lib/cuadre-ventas";
 import { cuadroVentas } from "@/lib/cuadre-ventas-reglas";
 import { avisoAntesDelCorte, mesAntesDelCorte } from "@/lib/finanzas-arranque-reglas";
-import { etiquetaDelPeriodo, leerPeriodo, periodoAnterior, periodosAnteriores } from "@/lib/estados-periodo";
+import { etiquetaDelPeriodo, leerPeriodo, mesesDelHilo, periodoAnterior, periodosAnteriores } from "@/lib/estados-periodo";
 import { informeDeGanancias, lecturaDeGanancias, partesDeGanancias } from "@/lib/estados-ganancias";
 import { textoDeVerMas } from "@/lib/estados-partes";
 import { verDeLaVista } from "@/lib/vista-global";
 import { hrefTelar, mesDelDia, sedeDeLaUrl, SEDE_TODAS, type ClaveSede } from "@/lib/finanzas-telar-reglas";
 import { filaDeLaSede, paramsDe } from "@/lib/estados-financieros-reglas";
 import { campanasDelMes, cascadaGanamos, filasDeSedes, metaDeVentas, porSede, pptoDeLaSede, recomendacionesGanamos } from "@/lib/ganamos-reglas";
-import { getResultadosDeGestion } from "@/lib/igv-gestion";
+import { getIgvDelHilo, getResultadosDeGestion } from "@/lib/igv-gestion";
 import { avisoDelIgv } from "@/lib/igv-gestion-reglas";
 import { getCostoEstimado } from "@/lib/costo-estimado";
 import { notaCostoEstimado } from "@/lib/costo-estimado-reglas";
@@ -85,7 +85,11 @@ export default async function ReportesPage({ searchParams }: { searchParams: Pro
   const href = (ruta: string, otra?: ClaveSede) => hrefTelar(ruta, params, otra ? { sede: otra } : {}, { mismaPantalla: false, mesDeHoy });
 
   // La respuesta de arriba va con las ventas con IGV y el IGV del mes (ADR-0620), y sus columnas de antes también: pasan juntas o no pasa ninguna. El cuadro por sede sigue con el libro.
-  const gestion = await getResultadosDeGestion([{ desde, hasta, lectura: actual }, ...comparadas.map((c, i) => ({ desde: anteriores[i]!.desde, hasta: anteriores[i]!.hasta, lectura: c.lectura }))]);
+  // La línea de los meses entra en la misma suerte: se espera aquí su lectura de IGV (`cache`, es la misma que hace la línea), y si la cabecera cae, `enLibro` hace caer a la línea.
+  const gestion = await getResultadosDeGestion(
+    [{ desde, hasta, lectura: actual }, ...comparadas.map((c, i) => ({ desde: anteriores[i]!.desde, hasta: anteriores[i]!.hasta, lectura: c.lectura }))],
+    await getIgvDelHilo(mesesDelHilo(hoy, inicio)),
+  );
   const [enGestion, ...antesEnGestion] = gestion.lecturas;
   const columnas = enGestion!.datos;
 
@@ -110,9 +114,9 @@ export default async function ReportesPage({ searchParams }: { searchParams: Pro
     "el cuadro por sede",
   ])!;
   const leidas = comparadas.map((c, i) => ({ etiqueta: c.etiqueta, fila: antesEnGestion[i]!.falla ? null : filaDeLaSede(antesEnGestion[i]!.datos, sede) }));
-  const avisoIgv = avisoDelIgv(fila?.igvGestion, veTodo);
-  // Solo a quien ve toda CAYLA: los demás no reciben lo dicho, y su aviso no es de un mes sin decir.
-  const mesSinDecir = veTodo ? fila?.igvGestion?.mesesSinDecir.at(-1) : undefined;
+  const avisoIgv = avisoDelIgv(fila?.igvGestion);
+  // Quien no ve toda CAYLA no recibe lo dicho: su lista sale vacía y no se le ofrece decirlo.
+  const mesSinDecir = fila?.igvGestion?.mesesSinDecir.at(-1);
   const notaCosto = notaCostoEstimado(costoEst.datos);
 
   return (
@@ -128,7 +132,7 @@ export default async function ReportesPage({ searchParams }: { searchParams: Pro
           lectura={lecturaDeGanancias(fila, leidas.at(-1)?.fila ?? null, periodo)}
           grafico={
             <Suspense fallback={<LineaEsperando />}>
-              <LineaDeGanancias hoy={hoy} minimo={inicio} sede={sede} periodo={periodo} resultado={fila?.resultado ?? 0} />
+              <LineaDeGanancias hoy={hoy} minimo={inicio} sede={sede} periodo={periodo} resultado={fila?.resultado ?? 0} enLibro={!!gestion.falla} />
             </Suspense>
           }
           guiaRespuesta="fin-ganamos.respuesta"

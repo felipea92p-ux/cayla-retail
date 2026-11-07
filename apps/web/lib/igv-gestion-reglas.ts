@@ -20,10 +20,14 @@ export type IgvGestion = {
   mesesSinDecir: string[];
   /** Alguno de los meses dichos no está entero en estas fechas: se resta su parte. */
   parcial: boolean;
+  /** Un monto dicho de un mes que no ha terminado: va entero contra los días que van, sin nada con qué prorratearlo. */
+  sinTerminar: boolean;
+  /** Esta cuenta recibe lo que dijo el líder. Falso: un monto nulo no quiere decir que nadie lo dijo. */
+  veDicho: boolean;
 };
 
-/** Una fila de `fn_igv_de_gestion`. `montoDicho` e `igvParte` nulos: nadie lo dijo, o esta cuenta no ve toda CAYLA. */
-export type FilaIgvGestion = { mes: string; ubicacionId: string | null; igvTramo: number; igvMes: number; montoDicho: number | null; igvParte: number | null };
+/** Una fila de `fn_igv_de_gestion`. `montoDicho` e `igvParte` nulos: nadie lo dijo, o esta cuenta no ve toda CAYLA (`veDicho` los distingue). */
+export type FilaIgvGestion = { mes: string; ubicacionId: string | null; igvTramo: number; igvMes: number; montoDicho: number | null; igvParte: number | null; mesEnCurso: boolean; veDicho: boolean };
 
 const r2 = (n: number) => Math.round(n * 100) / 100;
 const num = (v: unknown): number => (v == null ? 0 : Number(v));
@@ -39,6 +43,8 @@ export function leerFilasIgv(data: unknown): FilaIgvGestion[] {
     igvMes: num(r.igv_mes),
     montoDicho: numONulo(r.monto_dicho),
     igvParte: numONulo(r.igv_parte),
+    mesEnCurso: r.mes_en_curso === true,
+    veDicho: r.ve_dicho === true,
   }));
 }
 
@@ -47,11 +53,11 @@ export function montoDichoDelMes(igv: readonly FilaIgvGestion[], mes: string): n
   return igv.find((x) => x.mes === mes && x.montoDicho !== null)?.montoDicho ?? null;
 }
 
-/** Los meses con lo dicho que no caben enteros en estas fechas. La cuenta va por mes y con todas las unidades: una sede sola no sabe si su mes está entero. */
+/** Los meses con lo dicho que no caben enteros en estas fechas. La cuenta va por mes y con todas las unidades: una sede sola no sabe si su mes está entero. 0 dicho no tiene partes: entero o a medias, se resta 0. */
 function mesesParciales(igv: readonly FilaIgvGestion[]): Set<string> {
   const porMes = new Map<string, { tramo: number; mes: number }>();
   for (const x of igv) {
-    if (x.montoDicho === null) continue;
+    if (!x.montoDicho) continue;
     const a = porMes.get(x.mes);
     porMes.set(x.mes, { tramo: (a?.tramo ?? 0) + x.igvTramo, mes: x.igvMes });
   }
@@ -63,12 +69,16 @@ function igvDeLasFilas(suyas: readonly FilaIgvGestion[], parciales: ReadonlySet<
   // Un mes sin decir y sin IGV en estas fechas no falta: no hay nada que restar.
   const sinDecir = suyas.filter((x) => x.montoDicho === null && x.igvTramo !== 0);
   const origen: OrigenIgv = dichas.length ? (sinDecir.length ? "mixto" : "dicho") : sinDecir.length ? "estimado" : "sin_igv";
+  const veDicho = suyas.every((x) => x.veDicho);
   return {
     incluido: r2(suyas.reduce((a, x) => a + x.igvTramo, 0)),
     monto: r2(dichas.reduce((a, x) => a + (x.igvParte ?? 0), 0) + sinDecir.reduce((a, x) => a + x.igvTramo, 0)),
     origen,
-    mesesSinDecir: [...new Set(sinDecir.map((x) => x.mes))].sort(),
+    // Sin ver lo dicho no se sabe qué meses faltan: decir uno sería afirmar algo que puede ser falso.
+    mesesSinDecir: veDicho ? [...new Set(sinDecir.map((x) => x.mes))].sort() : [],
     parcial: dichas.some((x) => parciales.has(x.mes)),
+    sinTerminar: dichas.some((x) => x.mesEnCurso && !!x.montoDicho),
+    veDicho,
   };
 }
 
@@ -101,10 +111,11 @@ export const AVISO_SIN_IGV = "No se pudo leer el IGV del mes: estas cifras van s
 
 /**
  * Todas las columnas de una pantalla pasan a gestión juntas, o ninguna: comparar ventas con IGV contra ventas sin IGV daría un «las ventas subieron 18 %» que nunca pasó.
- * Una lectura que ya falló sigue como está (no tiene filas). `igv` va en el mismo orden que `lecturas`; `null` donde no hizo falta leerlo.
+ * Una lectura que ya falló sigue como está (no tiene filas). `igv` va en el mismo orden que `lecturas`; `null` donde no hizo falta leerlo. `hilo`: la lectura de la línea de los meses, si la
+ * pantalla la dibuja: si esa falló, la cabecera también se queda en el libro.
  */
-export function pasarAGestion(lecturas: readonly Lectura<FilaER[]>[], igv: readonly (Lectura<FilaIgvGestion[]> | null)[]): { lecturas: Lectura<FilaER[]>[]; falla: string | null } {
-  if (igv.some((x) => x?.falla)) return { lecturas: [...lecturas], falla: AVISO_SIN_IGV };
+export function pasarAGestion(lecturas: readonly Lectura<FilaER[]>[], igv: readonly (Lectura<FilaIgvGestion[]> | null)[], hilo: Lectura<FilaIgvGestion[]> | null = null): { lecturas: Lectura<FilaER[]>[]; falla: string | null } {
+  if (hilo?.falla || igv.some((x) => x?.falla)) return { lecturas: [...lecturas], falla: AVISO_SIN_IGV };
   return {
     lecturas: lecturas.map((l, i) => {
       const suyo = igv[i];
@@ -127,29 +138,45 @@ export function columnasDelMes(datos: readonly FilaER[], igv: Lectura<FilaIgvGes
       );
 }
 
+/** Las barritas del calendario no llevan aviso: sin el IGV no se dibujan (`null`), en vez de mezclar con la cabecera una cifra del libro que nadie dice que lo es. */
+export function mesesDelCalendario<T extends { resultado: number | null }>(meses: readonly T[], falla: string | null): T[] {
+  return falla ? meses.map((m) => ({ ...m, resultado: null })) : [...meses];
+}
+
 /** «noviembre», «octubre y noviembre», «septiembre, octubre y noviembre». */
 function nombresDeMeses(meses: readonly string[]): string {
   const n = meses.map(mesNombre);
   return n.length < 2 ? (n[0] ?? "") : `${n.slice(0, -1).join(", ")} y ${n.at(-1)}`;
 }
 
+/** Lo que se le dice a quien no ve toda CAYLA. No afirma que el líder haya dicho el monto ni que falte: esa cuenta no lo sabe, y cualquiera de las dos cosas podría ser falsa. */
+const SIN_VER_LO_DICHO = "Esta cifra resta todo el IGV incluido en las ventas. Lo que se paga cada mes se ve mirando toda CAYLA.";
+
 /** De dónde vino el IGV de esta cifra, en una línea, para abrir su fila. `null` si no hay IGV del que hablar. */
 export function textoDelIgv(g: IgvGestion): string | null {
   if (g.origen === "sin_igv") return null;
-  if (g.origen === "dicho") return g.parcial ? "Lo dijo el líder. Estas fechas llevan su parte del mes." : "Lo dijo el líder.";
+  if (!g.veDicho) return SIN_VER_LO_DICHO;
+  if (g.origen === "dicho") return g.sinTerminar ? "Lo dijo el líder para el mes entero, y el mes no ha terminado: se resta completo contra las ventas de los días que van." : g.parcial ? "Lo dijo el líder. Estas fechas llevan su parte del mes." : "Lo dijo el líder.";
   const falta = `el líder todavía no dijo el IGV de ${nombresDeMeses(g.mesesSinDecir)}, así que se resta todo el de ese ${g.mesesSinDecir.length === 1 ? "mes" : "período"}`;
   return g.origen === "mixto" ? `En parte estimado: ${falta}.` : `Estimado: ${falta}.`;
 }
 
-/** El aviso junto a la cifra: lo que no dijo nadie se dice a la vista. `veTodo` falso: esa cuenta no recibe el monto, y decirle que falta sería falso. */
-export function avisoDelIgv(g: IgvGestion | undefined, veTodo: boolean): string | null {
+/** El aviso junto a la cifra: lo que no dijo nadie se dice a la vista. */
+export function avisoDelIgv(g: IgvGestion | undefined): string | null {
   if (!esEstimado(g)) return null;
-  if (!veTodo) return "Esta cifra resta todo el IGV incluido: lo que dijo el líder se ve solo mirando toda CAYLA.";
+  if (!g!.veDicho) return SIN_VER_LO_DICHO;
   return `El líder todavía no dijo el IGV de ${nombresDeMeses(g!.mesesSinDecir)}: se resta todo el incluido en las ventas.`;
 }
 
-/** La cifra se comparó con otra que restó su IGV de otra forma: decir «más» o «menos» mezclaría dos bases. */
-export const mismaBaseDeIgv = (a: Pick<FilaER, "igvGestion">, b: Pick<FilaER, "igvGestion"> | null): boolean => !!b && a.igvGestion?.origen === b.igvGestion?.origen;
+/**
+ * La cifra se comparó con otra que restó su IGV de otra forma: decir «más» o «menos» mezclaría dos bases. No basta el origen: dicho el mes en curso va entero y su mes pasado «a esta fecha»
+ * lleva solo su parte, y los dos dicen «dicho». Sin mirar `parcial` y `sinTerminar`, el resultado saldría peor por miles sin que haya pasado nada.
+ */
+export const mismaBaseDeIgv = (a: Pick<FilaER, "igvGestion">, b: Pick<FilaER, "igvGestion"> | null): boolean => {
+  if (!b) return false;
+  const [x, y] = [a.igvGestion, b.igvGestion];
+  return x?.origen === y?.origen && x?.parcial === y?.parcial && x?.sinTerminar === y?.sinTerminar;
+};
 
 /** Un mes sin monto dicho, o con una parte sin decir: la línea de los meses lo dibuja hueco. */
 export function esEstimado(g: IgvGestion | undefined): boolean {
