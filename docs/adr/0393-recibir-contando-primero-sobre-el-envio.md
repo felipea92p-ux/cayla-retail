@@ -830,3 +830,12 @@ Se anotó «Polo 3» en Polos y era un top. Con el envío cerrado no había cóm
 - **Pruebas:** `pruebas:envio-sin-aviso` S3f y S3g. Probado en el navegador en local: asociar, entrar al stock y crear como nueva, también a 375 px y en oscuro.
 - **En producción desde el 2026-11-06,** con el OK de Felipe, por `supabase db query --linked -f` (no queda fila en `schema_migrations`, igual que un pegado en el SQL Editor). La función tiene el mismo md5 que en local.
 
+## Actualización 2026-11-07: la marca de lo contado también se corrige (Felipe)
+
+Se anotó «Conjunto 3» sin marca y sí tenía. Con el envío cerrado, «Crear o asociar» solo sugería conjuntos sin marca y la marca no se podía cambiar.
+
+- **Marca:** junto al combo de categoría va el de marca, con «Sin marca». Igual que la categoría, cambiarlo solo busca, y al confirmar el modelo pasa a la línea de esa categoría y esa marca con `cambiar_linea_de_pendiente` (`20261107142000`).
+- **La de ayer sigue:** `cambiar_categoria_de_pendiente` conserva su firma, porque la web publicada la llama, y ahora llama a la nueva con la marca que ya tenía la línea. Se quita cuando ninguna web la use.
+- **Lo que no cambia:** toda prenda sigue siendo de la categoría y la marca de su línea, así que ligar, resolver, entrar al stock y reabrir no se tocan.
+- **Pruebas:** `pruebas:envio-sin-aviso` S3h (otra marca, sin marca, marca inactiva y la función de ayer). Sin prueba en el navegador: Felipe pidió saltar las que no fueran necesarias.
+
