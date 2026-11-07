@@ -275,6 +275,7 @@ export default async function Catalogo({ searchParams }: Props) {
       sede={sede}
       origenFotos={origenFotos}
       nota={(p) => notaDeStock(p.stock, elegida, sedes)}
+      sinNuevo={seguir.lista === "nuevo"}
     />
   );
 

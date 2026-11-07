@@ -162,3 +162,17 @@ export function seccionQueSeLee(bordes: readonly { id: string; arriba: number }[
   for (const b of bordes) if (b.arriba <= linea) actual = b.id;
   return actual;
 }
+
+/**
+ * Lo que sigue después de «Separar», en orden y con los plazos de Configuración ▸ Tienda web (rediseño Premium, 2026-11-07): va en el
+ * resumen de la bolsa, junto al botón, para que nadie separe sin saber cuándo paga ni cuándo recoge. Un plazo sin dato no se dice.
+ */
+export function pasosDelPedido(p: Plazos): string[] {
+  return [
+    "Hoy separas, sin pagar",
+    p.horasParaConfirmar !== null ? `La tienda te confirma por WhatsApp en ${enHoras(p.horasParaConfirmar)}` : null,
+    p.horasParaPagar !== null ? `Desde que confirma, tienes ${enHoras(p.horasParaPagar)} para pagar` : null,
+    p.diasParaRecoger !== null ? `Recoges hasta ${enDias(p.diasParaRecoger)} después de pagar` : null,
+    p.diasParaCambiar !== null ? `Cambias en cualquier tienda CAYLA, en ${enDias(p.diasParaCambiar)}` : "Cambias en cualquier tienda CAYLA",
+  ].filter((t): t is string => t !== null);
+}

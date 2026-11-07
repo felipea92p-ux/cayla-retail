@@ -208,8 +208,12 @@
 .cp-promesas .ic { width: 18px; height: 18px; color: var(--taupe); margin-top: 1px; }
 .cp-promesas p { margin: 0; font-size: 13px; line-height: 1.45; color: var(--tinta-60); text-wrap: pretty; }
 .cp-promesas b { font-weight: 600; color: var(--tinta); }
-.cp-promesas-compacta { gap: 8px; }
-.cp-promesas-compacta p { font-size: 12.5px; }
+/* Lo que sigue después de «Separar» (rediseño Premium): «Pagas hoy» y los plazos en orden, numerados, junto al botón. */
+.t-pagas-hoy { display: flex; justify-content: space-between; gap: 12px; padding-top: 8px; font-size: 14px; color: var(--tinta); }
+.t-pagas-hoy .num { font-weight: 600; color: var(--verde); }
+.t-bolsa-pasos { list-style: none; counter-reset: paso; margin: 14px 0 0; padding: 0; display: grid; gap: 8px; }
+.t-bolsa-pasos li { counter-increment: paso; display: grid; grid-template-columns: 20px minmax(0, 1fr); gap: 8px; align-items: baseline; font-size: 13px; line-height: 1.45; color: var(--taupe); }
+.t-bolsa-pasos li::before { content: counter(paso); display: inline-grid; place-items: center; width: 20px; height: 20px; border-radius: 50%; border: 1px solid var(--sand); font-size: 11px; font-weight: 600; color: var(--tinta); }
 /* En el resumen de la bolsa, bajo el total y con su línea, como una fila más del resumen. */
 .t-resumen .cp-promesas { padding-top: 12px; border-top: 1px solid var(--sand); }
 

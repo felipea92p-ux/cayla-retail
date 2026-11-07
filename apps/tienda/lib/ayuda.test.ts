@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   avisosParaSeparar,
   interpretarAyuda,
+  pasosDelPedido,
   PLAZOS_SIN_DATOS,
   partirTituloLegal,
   pasosParaSeparar,
@@ -164,5 +165,23 @@ describe("las lecturas largas (Privacidad y Términos del Club)", () => {
     expect(seccionQueSeLee(BORDES, 280, true)).toBe("d");
     expect(seccionQueSeLee([], 280)).toBeNull();
     expect(seccionQueSeLee([], 280, true)).toBeNull();
+  });
+});
+
+describe("lo que sigue después de «Separar», en el resumen de la bolsa (rediseño Premium)", () => {
+  it("dice cada plazo de la configuración en orden y calla el que no tiene dato", () => {
+    expect(pasosDelPedido({ horasParaConfirmar: 24, horasParaPagar: 48, diasParaRecoger: 7, diasParaCambiar: 15 })).toEqual([
+      "Hoy separas, sin pagar",
+      "La tienda te confirma por WhatsApp en 24 horas",
+      "Desde que confirma, tienes 48 horas para pagar",
+      "Recoges hasta 7 días después de pagar",
+      "Cambias en cualquier tienda CAYLA, en 15 días",
+    ]);
+    expect(pasosDelPedido({ horasParaConfirmar: 1, horasParaPagar: null, diasParaRecoger: 1, diasParaCambiar: null })).toEqual([
+      "Hoy separas, sin pagar",
+      "La tienda te confirma por WhatsApp en 1 hora",
+      "Recoges hasta 1 día después de pagar",
+      "Cambias en cualquier tienda CAYLA",
+    ]);
   });
 });
