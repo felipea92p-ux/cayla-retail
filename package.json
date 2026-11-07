@@ -212,6 +212,7 @@
     "pruebas:ventas-sin-registrar": "node scripts/pruebas/ventas_sin_registrar.mjs",
     "pruebas:cola-arranque": "node scripts/pruebas/cola_arranque.mjs",
     "pruebas:corregir-prenda-sin-registrar": "node scripts/pruebas/corregir_prenda_sin_registrar.mjs",
+    "pruebas:prenda-sin-registrar-motivo": "node scripts/pruebas/prenda_sin_registrar_motivo.mjs",
     "pruebas:familias-motores": "node scripts/pruebas/familias_motores.mjs",
     "pruebas:motores-familias-apagadas": "node scripts/pruebas/motores_familias_apagadas.mjs",
     "pruebas:reclasificar-bolsas": "node scripts/pruebas/reclasificar_bolsas.mjs",
