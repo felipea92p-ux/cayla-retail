@@ -68,6 +68,14 @@
   & .t-lista-cab h1, & .t-titulo-letras { text-transform: none; font-size: var(--dn-pagina); line-height: 1.08; letter-spacing: 0; margin: 0; }
   & .t-filtros, & .t-filtros * { text-transform: none; letter-spacing: 0; }
   & .t-filtros { font-size: 14px; }
+  /* Los filtros de la lista (grupos, categorías, Color y Talla) son fichas que se tocan, no una línea de texto con barras (rediseño Premium,
+     2026-11-07): borde de control, 40 px de alto; la elegida, llena de tinta. Las subcategorías siguen como texto subrayado: son el nivel de abajo. */
+  & .t-filtros .t-pildoras { gap: var(--e-2); }
+  & .t-vacio-acciones { display: flex; flex-wrap: wrap; justify-content: center; gap: var(--e-3); }
+  & .t-filtros .t-pildora { min-height: var(--dn-alto-chico); padding: 0 var(--e-4); border: 1px solid var(--dn-borde-control); border-radius: var(--dn-r-p); background: var(--papel); color: var(--tinta); font-size: 14px; font-weight: 500; }
+  & .t-filtros .t-pildora small { font-size: 12.5px; letter-spacing: 0; opacity: 1; color: var(--taupe); font-variant-numeric: tabular-nums; }
+  & .t-filtros .t-pildora:is([aria-current="true"], :has(> .t-pendiente[data-pendiente])) { background: var(--tinta); border-color: var(--tinta); color: var(--crema); }
+  & .t-filtros .t-pildora:is([aria-current="true"], :has(> .t-pendiente[data-pendiente])) small { color: inherit; opacity: .78; }
   & .t-conteo { text-transform: none; letter-spacing: 0; font-size: 13px; }
   & .t-cab-centro h2 { font-size: var(--dn-tit-seccion); }
   /* Una sola rejilla: dos por fila en el celular, cuatro en la computadora */
@@ -113,6 +121,7 @@
 }
 @media (hover: hover) {
   :root[data-diseno="nuevo"] {
+    & .t-filtros .t-pildora:not([aria-current="true"]):hover { border-color: var(--tinta); }
     & .pl-cat:hover span img { transform: translateY(-4px); }
     & .pl-cat:hover::before { opacity: 1; }
     & .t-btn:hover:not(:disabled) { color: var(--dn-btn-hover-tinta); }
