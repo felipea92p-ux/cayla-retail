@@ -838,4 +838,5 @@ Se anotó «Conjunto 3» sin marca y sí tenía. Con el envío cerrado, «Crear 
 - **La de ayer sigue:** `cambiar_categoria_de_pendiente` conserva su firma, porque la web publicada la llama, y ahora llama a la nueva con la marca que ya tenía la línea. Se quita cuando ninguna web la use.
 - **Lo que no cambia:** toda prenda sigue siendo de la categoría y la marca de su línea, así que ligar, resolver, entrar al stock y reabrir no se tocan.
 - **Pruebas:** `pruebas:envio-sin-aviso` S3h (otra marca, sin marca, marca inactiva y la función de ayer). Sin prueba en el navegador: Felipe pidió saltar las que no fueran necesarias.
+- **En producción desde el 2026-11-07,** con el OK de Felipe, por `supabase db query --linked -f`; la función tiene el mismo md5 que en local.
 
