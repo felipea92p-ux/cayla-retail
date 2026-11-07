@@ -16,6 +16,8 @@
      el del logo no llega a 4,5. Marfil y arena: las superficies. Marrón (--tinta): títulos y texto. Rosa empolvado (--hueso): acentos suaves. */
   /* Medidas de todo control: una sola escala */
   --dn-r-s: 8px; --dn-r-m: 14px; --dn-r-l: 20px; --dn-r-p: 999px;
+  /* El filo de lo que se toca (campo, talla, cantidad): 3,7:1 sobre papel, WCAG 1.4.11 (rediseño Premium, 2026-11-07). La línea decorativa sigue siendo --sand */
+  --dn-borde-control: #958079;
   --dn-alto: 48px; --dn-alto-chico: 40px; --dn-alto-icono: 44px; --dn-ic: 20px; --dn-ic-boton: 18px; --dn-ic-linea: 16px; --dn-trazo: 1.7;
   --dn-lado: clamp(16px, 4cqi, 64px);
   /* Una sola escala de letra y de espacios */
@@ -118,14 +120,15 @@
   & .t-logo .t-marca-logo { height: 30px; }
 
   /* Botón principal: rojo. Secundario: claro, con borde discreto. Terciario: solo texto. Las variables dejan que una superficie oscura lo aclare sin otro botón */
-  & .t-btn { --dn-btn-fondo: var(--dn-rojo); --dn-btn-borde: var(--dn-rojo); --dn-btn-tinta: #fff; --dn-btn-hover: var(--dn-rojo-hondo); --dn-btn-hover-tinta: #fff; height: auto; min-height: var(--dn-alto); padding: 0 var(--e-5); gap: var(--e-3); background: var(--dn-btn-fondo); border: 1px solid var(--dn-btn-borde); border-radius: var(--dn-r-p); color: var(--dn-btn-tinta); font-size: 15px; font-weight: 500; letter-spacing: 0; text-transform: none; box-shadow: none; }
+  & .t-btn { --dn-btn-fondo: var(--dn-rojo); --dn-btn-borde: var(--dn-rojo); --dn-btn-tinta: #fff; --dn-btn-hover: var(--dn-rojo-hondo); --dn-btn-hover-tinta: #fff; height: auto; min-height: var(--dn-alto); padding: 0 var(--e-5); gap: var(--e-3); background: var(--dn-btn-fondo); border: 1px solid var(--dn-btn-borde); border-radius: var(--dn-r-p); color: var(--dn-btn-tinta); font-size: 14.5px; font-weight: 600; letter-spacing: 0; text-transform: none; box-shadow: none; }
   & .t-btn::before { background: var(--dn-btn-hover); }
-  & .t-btn-sec { --dn-btn-fondo: var(--papel); --dn-btn-borde: var(--sand); --dn-btn-tinta: var(--tinta); --dn-btn-hover: var(--hueso); --dn-btn-hover-tinta: var(--tinta); }
+  /* Secundario (Premium): sin fondo y con el filo de la tinta; al pasar el mouse se llena de tinta. Antes era papel con filo arena (1,3:1, no se veía el borde) */
+  & .t-btn-sec { --dn-btn-fondo: transparent; --dn-btn-borde: var(--tinta); --dn-btn-tinta: var(--tinta); --dn-btn-hover: var(--tinta); --dn-btn-hover-tinta: var(--crema); }
   & .t-btn.t-btn-chico { min-height: var(--dn-alto-chico); height: auto; margin-left: 0; padding: 0 var(--e-4); font-size: 14px; letter-spacing: 0; }
   & .t-btn .ic { width: var(--dn-ic-boton); height: var(--dn-ic-boton); }
   & .t-btn:active:not(:disabled) { opacity: 1; transform: scale(.98); }
   & .t-btn:disabled { background: var(--hueso); border-color: var(--sand); color: var(--tinta-60); }
-  & .t-btn-sec:disabled { background: var(--papel); }
+  & .t-btn-sec:disabled { background: transparent; border-color: var(--sand); }
   & .t-btn[aria-busy="true"]:disabled { background: var(--dn-btn-fondo); border-color: var(--dn-btn-borde); color: var(--dn-btn-tinta); }
   & .pb-agregar, & .pb-sorpresa, & .pb-bus-probar, & .fp-ver { border-radius: var(--dn-r-p); text-transform: none; letter-spacing: 0; }
   & :is(.t-enlace, .t-ver, .w-ver, .w-falta-ir, .w-enlace, .ay-enlace, .ay-tienda-ver, .en-olvide) { font-size: 14.5px; font-weight: 500; letter-spacing: 0; text-transform: none; }
@@ -156,12 +159,13 @@
   & :is(.t-pildora, .t-pildora-mini, .t-chip, .c-chip, .pb-chip, .pb-bus-zona, .fp-filtros-btn, .fp-etq, .w-estado-chip, .pb-etq, .t-orden a, .t-pag) { text-transform: none; letter-spacing: 0; }
 
   /* Campos */
-  & .w-caja { height: var(--dn-alto); padding-inline: var(--e-3); border: 1px solid var(--sand); border-radius: var(--dn-r-s); background: linear-gradient(var(--dn-rojo), var(--dn-rojo)) 50% 100% / 0 2px no-repeat, var(--papel); caret-color: var(--dn-acento); }
+  & .w-caja { height: var(--dn-alto); padding-inline: var(--e-3); border: 1px solid var(--dn-borde-control); border-radius: var(--dn-r-s); background: linear-gradient(var(--dn-rojo), var(--dn-rojo)) 50% 100% / 0 2px no-repeat, var(--papel); caret-color: var(--dn-acento); }
   & .w-caja:focus { border-color: var(--tinta); box-shadow: 0 0 0 3px color-mix(in srgb, var(--dn-rojo) 12%, transparent); }
   & .w-caja-pref span { height: var(--dn-alto); border-width: 1px; }
   & :is(.w-caja-pref, .en-form .w-caja-pref) .w-caja { border-radius: 0 var(--dn-r-s) var(--dn-r-s) 0; }
   & :is(.w-caja-pref, .en-form .w-caja-pref) span { border-radius: var(--dn-r-s) 0 0 var(--dn-r-s); }
   & .pb-bus-caja, & .t-buscador-caja { border-radius: var(--dn-r-p); }
+  & :is(.t-talla, .t-cantidad, .t-look-talla, .w-codigo-caja, .pb-bus-caja, .t-buscador-caja, .w-caja-pref span) { border-color: var(--dn-borde-control); }
 
   /* Esquinas: píldora lo que se elige, 8 px lo chico, 14 px lo que agrupa. Nunca a una pieza cuya única línea es un borde de un lado (una pestaña,
      una fila separada por una raya): el borde se curva en las puntas y se ve un arco (auditoría 2026-11-06). Lo vigila lib/css-de-la-tienda.test.ts */
@@ -203,7 +207,7 @@
 @media (prefers-color-scheme: dark) {
   :root[data-diseno="nuevo"]:not([data-theme="light"]) {
     --crema: #191312; --papel: #221a19; --hueso: #2c2120; --sand: #3f312e; --tinta: #f6ece6; --taupe: #c3b1aa; --rojo: #f0877f; --dn-arena: #3a2c29; --dn-arena-2: #261d1c; --t-banda: #261d1c; --chat: #261d1c; --lienzo: #2c2120; --estudio: #2c2120;
-    --dn-acento: #e9a9a2; --dn-titulo: #f6ece6; --dn-base-filtro: brightness(.62) saturate(.85);
+    --dn-acento: #e9a9a2; --dn-titulo: #f6ece6; --dn-base-filtro: brightness(.62) saturate(.85); --dn-borde-control: #8a756f;
     --dn-cat-fondo: var(--t-foto); --dn-cat-velo: none; --dn-cat-tinta: #35201e;
     --dn-heroe: #261c1b; --dn-heroe-luz: #2e2322; --dn-heroe-sombra: #1e1615; --dn-rayo: rgba(255, 240, 230, .03); --dn-rayo-sombra: rgba(0, 0, 0, .08); --dn-luz: rgba(255, 220, 200, .06); --dn-sombra-calida: rgba(0, 0, 0, .25);
     --dn-arco: #4a3934; --dn-arco-luz: #5e4a44; --dn-arco-sombra: #392b28; --dn-arco-hondo: #1c1412; --dn-arco-fondo: #443430; --dn-sombra-arco: rgba(0, 0, 0, .6); --dn-suelo-1: #231917; --dn-suelo-2: #2b211f; --dn-sombra-prenda: rgba(0, 0, 0, .5); --dn-sombra-lejos: rgba(0, 0, 0, .3); --dn-sombra-contacto: rgba(0, 0, 0, .55);
@@ -211,7 +215,7 @@
 }
 :root[data-diseno="nuevo"][data-theme="dark"] {
   --crema: #191312; --papel: #221a19; --hueso: #2c2120; --sand: #3f312e; --tinta: #f6ece6; --taupe: #c3b1aa; --rojo: #f0877f; --dn-arena: #3a2c29; --dn-arena-2: #261d1c; --t-banda: #261d1c; --chat: #261d1c; --lienzo: #2c2120; --estudio: #2c2120;
-  --dn-acento: #e9a9a2; --dn-titulo: #f6ece6; --dn-base-filtro: brightness(.62) saturate(.85);
+  --dn-acento: #e9a9a2; --dn-titulo: #f6ece6; --dn-base-filtro: brightness(.62) saturate(.85); --dn-borde-control: #8a756f;
     --dn-cat-fondo: var(--t-foto); --dn-cat-velo: none; --dn-cat-tinta: #35201e;
     --dn-heroe: #261c1b; --dn-heroe-luz: #2e2322; --dn-heroe-sombra: #1e1615; --dn-rayo: rgba(255, 240, 230, .03); --dn-rayo-sombra: rgba(0, 0, 0, .08); --dn-luz: rgba(255, 220, 200, .06); --dn-sombra-calida: rgba(0, 0, 0, .25);
   --dn-arco: #4a3934; --dn-arco-luz: #5e4a44; --dn-arco-sombra: #392b28; --dn-arco-hondo: #1c1412; --dn-arco-fondo: #443430; --dn-sombra-arco: rgba(0, 0, 0, .6); --dn-suelo-1: #231917; --dn-suelo-2: #2b211f; --dn-sombra-prenda: rgba(0, 0, 0, .5); --dn-sombra-lejos: rgba(0, 0, 0, .3); --dn-sombra-contacto: rgba(0, 0, 0, .55);
