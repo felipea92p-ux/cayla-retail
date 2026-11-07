@@ -76,6 +76,7 @@ import {
   necesitaCatalogoAlCerrar,
   resumenDelCierre,
   loQueEntroPorPrenda,
+  deQuienLlego,
   ejesQuitables,
   leerQuitables,
   urlEtiquetasDeLoQueEntro,
@@ -583,6 +584,11 @@ describe("«Hacer ahora», reabrir y el aviso de la sede", () => {
     expect(proveedorDelSinAviso(leerConteosDelEnvio({ despacho_id: "d", origen: "sin_aviso", proveedor_por_confirmar: true }))).toBe("proveedor por confirmar");
     expect(proveedorDelSinAviso(leerConteosDelEnvio({ despacho_id: "d", origen: "sin_aviso", proveedores: [PROV] }))).toBe(PROV.nombre);
     expect(proveedorDelSinAviso(null)).toBeNull();
+    const P2 = { id: "p2", nombre: "Textiles Andina" };
+    const P3 = { id: "p3", nombre: "Confecciones del Sur" };
+    expect(proveedorDelSinAviso(leerConteosDelEnvio({ despacho_id: "d", origen: "sin_aviso", proveedores: [PROV, P2] }))).toBe(`${PROV.nombre} y Textiles Andina`);
+    expect(proveedorDelSinAviso(leerConteosDelEnvio({ despacho_id: "d", origen: "sin_aviso", proveedores: [PROV, P2, P3, { id: "p4", nombre: "X" }] }))).toBe(`${PROV.nombre}, Textiles Andina y 2 más`);
+    expect(proveedorDelSinAviso(leerConteosDelEnvio({ despacho_id: "d", origen: "sin_aviso", proveedor_por_confirmar: true, proveedores: [P2] }))).toBe("Textiles Andina, y algo por confirmar");
   });
 
   it("con el envío cerrado, el catálogo se lee solo si queda algo pendiente", () => {
@@ -994,9 +1000,10 @@ describe("Felipe 2026-10-14: sin proveedor y sin marca", () => {
 
   it("al cerrar, «De quién llegó» se pide solo si se abrió sin saberlo, y la guía coincide con lo que frena la base", () => {
     const base = { lineas: [sinMarca], decisiones: {}, sinAviso: true, responsable: true };
-    expect(camposDelCierre(base).some((c) => c.id === "proveedor")).toBe(false);
-    expect(camposDelCierre({ ...base, proveedorPorConfirmar: true }).find((c) => c.id === "proveedor")).toMatchObject({ requerido: true, hecho: false });
-    expect(camposDelCierre({ ...base, proveedorPorConfirmar: true, proveedorElegido: true }).find((c) => c.id === "proveedor")).toMatchObject({ hecho: true });
+    expect(camposDelCierre(base).some((c) => c.id.startsWith("proveedor"))).toBe(false);
+    const fila = (proveedor: { id: string; nombre: string } | null) => ({ clave: "m1", marca: { id: "m1", nombre: "AELO" }, prendas: 3, proveedor, varios: false });
+    expect(camposDelCierre({ ...base, deQuien: [fila(null)] }).find((c) => c.id === "proveedor-m1")).toMatchObject({ requerido: true, hecho: false });
+    expect(camposDelCierre({ ...base, deQuien: [fila({ id: "p", nombre: "P" })] }).find((c) => c.id === "proveedor-m1")).toMatchObject({ hecho: true });
   });
 });
 
@@ -1398,5 +1405,34 @@ describe("qué talla o color se puede quitar (Felipe 2026-11-07: solo lo que se 
   it("lee las que se pueden quitar, y sin respuesta ninguna", () => {
     expect([...leerQuitables([{ variante_id: "x" }, { otra: 1 }])]).toEqual(["x"]);
     expect(leerQuitables(null).size).toBe(0);
+  });
+});
+
+describe("de quién llegó, marca por marca, en un envío sin aviso (Felipe 2026-11-07)", () => {
+  const P1 = { id: "p1", nombre: "Confecciones del Sur" };
+  const P2 = { id: "p2", nombre: "Textiles Andina" };
+  const linea = (pos: number, contadas: number, marca: { id: string; nombre: string } | null, proveedor: { id: string; nombre: string } | null): LineaParaContar => ({
+    clave: `extra:${pos}`,
+    linea: null,
+    conteo: { contadas } as LineaParaContar["conteo"],
+    categoria: null,
+    marca,
+    proveedor,
+    dijeron: null,
+  });
+  const AELO = { id: "aelo", nombre: "AELO" };
+  const MIR = { id: "mir", nombre: "Miramhe" };
+  it("una fila por marca, con lo que suma; la marca con más prendas primero; lo no contado no cuenta", () => {
+    const filas = deQuienLlego([linea(1, 10, AELO, P1), linea(2, 26, MIR, P2), linea(3, 5, null, null), linea(4, 0, MIR, null), linea(5, 4, AELO, P1)]);
+    expect(filas.map((f) => [f.marca?.nombre ?? "Sin marca", f.prendas, f.proveedor?.nombre ?? null])).toEqual([
+      ["Miramhe", 26, "Textiles Andina"],
+      ["AELO", 14, "Confecciones del Sur"],
+      ["Sin marca", 5, null],
+    ]);
+  });
+  it("basta una línea sin proveedor para que la marca lo pida; lo elegido aquí manda; dos proveedores en una marca se dicen", () => {
+    expect(deQuienLlego([linea(1, 3, AELO, P1), linea(2, 2, AELO, null)])[0].proveedor).toBeNull();
+    expect(deQuienLlego([linea(1, 2, null, null)], { "": P2 })[0].proveedor).toEqual(P2);
+    expect(deQuienLlego([linea(1, 3, AELO, P1), linea(2, 2, AELO, P2)])[0].varios).toBe(true);
   });
 });

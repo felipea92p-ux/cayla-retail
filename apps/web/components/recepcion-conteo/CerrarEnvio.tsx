@@ -34,9 +34,9 @@ import { useEmpresasDeSede } from "@/lib/useEmpresasDeSede";
 import { DuenoDeLoQueEntra } from "./DuenoDeLoQueEntra";
 import { agruparLineasDelCierre, camposDelCierrePorGrupo, nombreDelGrupoDelCierre, causasDelGrupo, filasDelCierre, lineaDeLaPrenda, lineaDelGrupo, textoDeLasPlegadas, type GrupoDeLineas } from "@/lib/recepcion-grupos-reglas";
 import { borrarBorradorDelCierre, conCostosDecididos, conLoDecidido, costosCambiados, costosDeCombinacionCambiados, decisionCambiada, type FotoDelCierre, guardarBorradorDelCierre, leerBorradorDelCierre } from "@/lib/recepcion-cierre-borrador";
-import { type PrendaConCosto, lineasSinModelosEnCero, modelosEnCeroDe, textoModelosEnCero, avisoDePrecioRechazado, type CambioDePrecio, cambioDePrecioDeCompra, camposDelCierre, conCostoDeHoy, contadasDe, costoComoTexto, costoDePrendaTexto, esRegaloFuera, costosDePrendaConProblema, type CostosDePrendas, type DecisionCierre, decisionInicial, detalladas, detalleParaDespues, diferenciaDe, HINT_CONTEO_CAMBIADO, idCampoCierre, leerCostoCierre, type ClaveLinea, type LineaParaContar, lineasParaCerrar, lineaVisible, marcaDeLinea, mensajeAlGuardar, nombreDeLinea, prendasConCosto, resumenDelCierre, textoBotonCerrar, textoResumenDelCierre, TOPES_CONTEO, unidadesSinIdentificar } from "@/lib/recepcion-conteo-reglas";
+import { type PrendaConCosto, lineasSinModelosEnCero, modelosEnCeroDe, textoModelosEnCero, avisoDePrecioRechazado, type CambioDePrecio, cambioDePrecioDeCompra, camposDelCierre, conCostoDeHoy, contadasDe, costoComoTexto, costoDePrendaTexto, esRegaloFuera, costosDePrendaConProblema, type CostosDePrendas, deQuienLlego, type FilaDeQuien, idCampoProveedor, type DecisionCierre, decisionInicial, detalladas, detalleParaDespues, diferenciaDe, HINT_CONTEO_CAMBIADO, idCampoCierre, leerCostoCierre, type ClaveLinea, type LineaParaContar, lineasParaCerrar, lineaVisible, marcaDeLinea, mensajeAlGuardar, nombreDeLinea, prendasConCosto, resumenDelCierre, textoBotonCerrar, textoResumenDelCierre, TOPES_CONTEO, unidadesSinIdentificar } from "@/lib/recepcion-conteo-reglas";
 import { VALOR_OTRO } from "@/lib/recepcion-envio-reglas";
-import { cambiarPreciosEnRecepcion, cerrarConteo, corregirGuiaEnvio, leerCostosDeHoy, leerPreciosDeCombinaciones, ponerProveedorEnvio, validarPreciosEnRecepcion } from "@/lib/recepcion-conteo-acciones";
+import { cambiarPreciosEnRecepcion, cerrarConteo, corregirGuiaEnvio, leerCostosDeHoy, leerPreciosDeCombinaciones, ponerProveedorDeMarca, validarPreciosEnRecepcion } from "@/lib/recepcion-conteo-acciones";
 import {
   type CambiosDeCosto,
   type CambiosDePrecio,
@@ -79,7 +79,6 @@ export function CerrarEnvio({
   responsable,
   veDinero,
   soloSede = false,
-  proveedorPorConfirmar = false,
   proveedores = [],
   esperandoGuardar,
   onVolver,
@@ -101,8 +100,6 @@ export function CerrarEnvio({
   veDinero: boolean;
   /** Una terminal (Felipe 2026-10-26): el precio de venta vale solo en su sede; la base no le deja cambiar el de todas. */
   soloSede?: boolean;
-  /** Llegó sin aviso y sin saber de quién (Felipe 2026-10-14): antes de cerrar se elige el proveedor (`poner_proveedor_envio`). */
-  proveedorPorConfirmar?: boolean;
   proveedores?: readonly { id: string; nombre: string }[];
   /** Algo de lo contado todavía se está guardando: se espera antes de cerrar. */
   esperandoGuardar: boolean;
@@ -198,9 +195,26 @@ export function CerrarEnvio({
   const [atipicos, setAtipicos] = useState<CostoAtipicoRecepcion[] | null>(null);
   // Alguien guardó un conteo mientras se cerraba: la franja del pie se pasaba por alto, así que además se dice en una hoja a la vista.
   const [choque, setChoque] = useState<string | null>(null);
-  const [proveedorId, setProveedorId] = useState(() => (proveedores.some((p) => p.id === borrador?.proveedorId) ? (borrador?.proveedorId ?? "") : ""));
-  // Ya quedó puesto en la base (poner_proveedor_envio no lo cambia): no se vuelve a pedir ni a elegir.
-  const [proveedorPuesto, setProveedorPuesto] = useState(false);
+  // «De quién llegó», marca por marca (Felipe 2026-11-07): lo que la persona eligió aquí y la base ya guardó (`poner_proveedor_de_marca`), y la marca que se está
+  // guardando. Se guarda al elegir, no al cerrar: así lo que falta se ve al instante y un error se dice junto a su marca.
+  const [puestos, setPuestos] = useState<Record<string, { id: string; nombre: string }>>({});
+  const [poniendo, setPoniendo] = useState<string | null>(null);
+  const [errorDeQuien, setErrorDeQuien] = useState<{ clave: string; texto: string } | null>(null);
+  const deQuien = sinAviso ? deQuienLlego(visibles, puestos) : [];
+  async function ponerDeQuien(fila: FilaDeQuien, proveedorId: string) {
+    const prov = proveedores.find((x) => x.id === proveedorId);
+    if (!prov || poniendo) return;
+    setPoniendo(fila.clave);
+    setErrorDeQuien(null);
+    const { error: e } = await ponerProveedorDeMarca({ p_despacho_id: detalle.id, p_marca_id: fila.marca?.id ?? null, p_proveedor_id: proveedorId }, responsable.firma());
+    responsable.despues(e);
+    setPoniendo(null);
+    if (e) {
+      setErrorDeQuien({ clave: fila.clave, texto: mensajeAlGuardar(e, "poner de quién llegó") });
+      return;
+    }
+    setPuestos((p) => ({ ...p, [fila.clave]: prov }));
+  }
   // La guía se escribe o corrige al cerrar (Felipe 2026-10-14): lo escrito, lo que ya quedó en la base y la versión nueva del envío.
   const [guiaEscrita, setGuiaEscrita] = useState(borrador?.guia ?? detalle.numeroGuia ?? "");
   const [guiaGuardada, setGuiaGuardada] = useState(detalle.numeroGuia ?? "");
@@ -217,18 +231,19 @@ export function CerrarEnvio({
     cambiosPrecio,
     nota,
     guia: guiaEscrita === (detalle.numeroGuia ?? "") ? null : guiaEscrita,
-    proveedorId,
+    // Ya no se elige un proveedor para todo el envío (Felipe 2026-11-07): cada marca se guarda al elegirla.
+    proveedorId: "",
     duenoId,
   });
   useEffect(() => {
     if (!yaCerrado.current) guardarBorradorDelCierre(detalle.id, generacion, fotoDelCierre());
     // Se guarda lo que decide la persona: lo contado se guarda aparte, en la base.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [decisiones, costosPrenda, cambiosCosto, cambiosPrecio, nota, guiaEscrita, proveedorId, duenoId]);
+  }, [decisiones, costosPrenda, cambiosCosto, cambiosPrecio, nota, guiaEscrita, duenoId]);
 
   /** «Empezar de cero»: todo como lo trae la base. El aviso ofrece deshacerlo: es trabajo de la persona. */
   function empezarDeCero() {
-    const antes = { decisiones, costosPrenda, cambiosCosto, cambiosPrecio, nota, guiaEscrita, proveedorId, duenoId };
+    const antes = { decisiones, costosPrenda, cambiosCosto, cambiosPrecio, nota, guiaEscrita, duenoId };
     const poner = (f: typeof antes) => {
       setAtipicos(null);
       setDecisiones(f.decisiones);
@@ -237,10 +252,9 @@ export function CerrarEnvio({
       setCambiosPrecio(f.cambiosPrecio);
       setNota(f.nota);
       setGuiaEscrita(f.guiaEscrita);
-      setProveedorId(f.proveedorId);
       setDuenoId(f.duenoId);
     };
-    poner({ decisiones: Object.fromEntries(visibles.map((l) => [l.clave, decisionInicial(l)])), costosPrenda: costoPrendaInicial, cambiosCosto: cambiosCostoInicial, cambiosPrecio: {}, nota: "", guiaEscrita: detalle.numeroGuia ?? "", proveedorId: "", duenoId: "" });
+    poner({ decisiones: Object.fromEntries(visibles.map((l) => [l.clave, decisionInicial(l)])), costosPrenda: costoPrendaInicial, cambiosCosto: cambiosCostoInicial, cambiosPrecio: {}, nota: "", guiaEscrita: detalle.numeroGuia ?? "", duenoId: "" });
     setVerRecuperado(false);
     avisar.exito("Empezaste de cero", { detalle: "Quitamos lo que habías decidido en este cierre.", accion: { texto: "Deshacer", onClick: () => poner(antes) } });
   }
@@ -262,8 +276,7 @@ export function CerrarEnvio({
         decisiones,
         sinAviso,
         responsable: responsable.listo,
-        proveedorPorConfirmar,
-        proveedorElegido: proveedorPuesto || proveedorId !== "",
+        deQuien,
         guia: guiaEscrita,
       }),
       grupos,
@@ -471,18 +484,6 @@ export function CerrarEnvio({
     if (hayCostoDePrendaMalo()) return;
     setGuardando(true);
     setError(null);
-    // Primero, de quién llegó (si se abrió sin saberlo): sin proveedor la base no cierra. Puesto una vez, queda puesto.
-    if (proveedorPorConfirmar && !proveedorPuesto) {
-      const { error: ep } = await ponerProveedorEnvio({ p_despacho_id: detalle.id, p_proveedor_id: proveedorId }, responsable.firma());
-      responsable.despues(ep);
-      if (ep) {
-        setGuardando(false);
-        setError({ texto: mensajeAlGuardar(ep, "poner el proveedor"), recargar: ep.hint === "envio_proveedor_puesto" });
-        requestAnimationFrame(() => avisoError.current?.focus());
-        return;
-      }
-      setProveedorPuesto(true);
-    }
     // La guía, si cambió (corregir_guia_envio sube la versión del envío: se cierra con la nueva). Vacía no borra la que había.
     // La versión sube y nunca baja: la más alta entre la que trajo la pantalla y la que devolvió la guía.
     let versionParaCerrar = Math.max(versionTrasGuia ?? 0, version);
@@ -956,23 +957,54 @@ export function CerrarEnvio({
         />
       </div>
 
-      {proveedorPorConfirmar && (
-        <div data-guia="recepcion.de-quien">
-          <CampoGuiado id="proveedor" guia={guia} className="card-cayla space-y-2 p-4 sm:p-5">
-            <CampoSelect
-              etiqueta={guia.etiqueta("proveedor", "¿De quién llegó?")}
-              valor={proveedorId}
-              onValor={setProveedorId}
-              opciones={proveedores.map((p) => ({ valor: p.id, texto: p.nombre }))}
-              marcador="Elige el proveedor"
-              deshabilitado={proveedorPuesto || guardando}
-            />
-            <p className="text-sm text-taupe">
-              Se abrió sin saber de quién era. Pregúntale a Compras: sin proveedor no entra al stock, porque el lote, el costo y la factura se
-              unen por él. Las prendas pueden quedar sin marca.
-            </p>
-          </CampoGuiado>
-        </div>
+      {/* De quién llegó, marca por marca (Felipe 2026-11-07): lo sin aviso casi nunca es de un solo proveedor. La marca ya lo dice casi siempre; lo que no
+          se puede saber (una marca con dos proveedores, o «Sin marca») se elige aquí y se guarda al elegirlo. */}
+      {deQuien.length > 0 && (
+        <section data-guia="recepcion.de-quien" className="card-cayla space-y-3 p-4 sm:p-5" aria-label="De quién llegó">
+          <TituloSeccion cuenta={deQuien.length > 1 ? deQuien.length : undefined}>De quién llegó</TituloSeccion>
+          <ul className="divide-y divide-sand">
+            {deQuien.map((f) => {
+              const id = idCampoProveedor(f.clave);
+              const fila = (
+                <div className="grid items-center gap-x-4 gap-y-2 py-2.5 sm:grid-cols-[minmax(0,1fr)_minmax(14rem,20rem)]">
+                  <p className="min-w-0">
+                    <b className="block truncate text-[15px] font-semibold text-tinta">{f.marca?.nombre ?? "Sin marca"}</b>
+                    <span className="block text-sm text-taupe">
+                      {f.prendas.toLocaleString("es-PE")} {f.prendas === 1 ? "prenda" : "prendas"}
+                      {f.proveedor && !puestos[f.clave] ? " · lo dice su marca" : ""}
+                      {f.varios ? " · trae más de un proveedor" : ""}
+                    </span>
+                  </p>
+                  <CampoSelect
+                    etiqueta={f.proveedor ? "Proveedor" : guia.etiqueta(id, "Proveedor")}
+                    valor={f.proveedor?.id ?? ""}
+                    onValor={(v) => void ponerDeQuien(f, v)}
+                    opciones={proveedores.map((p) => ({ valor: p.id, texto: p.nombre }))}
+                    marcador="Elige el proveedor"
+                    deshabilitado={poniendo !== null || guardando}
+                    tono={errorDeQuien?.clave === f.clave ? "error" : undefined}
+                    pie={errorDeQuien?.clave === f.clave ? errorDeQuien.texto : undefined}
+                    sinPie={errorDeQuien?.clave !== f.clave}
+                  />
+                </div>
+              );
+              return (
+                <li key={f.clave}>
+                  {f.proveedor ? (
+                    fila
+                  ) : (
+                    <CampoGuiado id={id} guia={guia}>
+                      {fila}
+                    </CampoGuiado>
+                  )}
+                </li>
+              );
+            })}
+          </ul>
+          {deQuien.some((f) => !f.proveedor) && (
+            <p className="text-sm text-taupe">Pregúntale a Compras lo que falta: sin proveedor no entra al stock, porque el lote, el costo y la factura se unen por él.</p>
+          )}
+        </section>
       )}
 
       {preguntaDueno && empresasDeLaSede && (

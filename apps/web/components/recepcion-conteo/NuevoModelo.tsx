@@ -56,7 +56,8 @@ export function NuevoModelo({
   onIrA: (p: ParadaDelConteo) => void;
   onCerrar: () => void;
 }) {
-  const eligeProveedor = proveedores.length >= 2;
+  // Sin aviso no se pregunta (Felipe 2026-11-07): cada modelo es del proveedor de su marca, y lo que no se puede saber se pone al cerrar.
+  const eligeProveedor = !sinAviso && proveedores.length >= 2;
   const [categoriaId, setCategoriaId] = useState(categoriaFija?.id ?? "");
   const enLista = categorias.find((c) => c.categoria?.id === categoriaId) ?? null;
   const categoria: CategoriaDeLinea | null = categoriaFija ?? enLista?.categoria ?? catalogo?.categorias.find((c) => c.id === categoriaId) ?? null;

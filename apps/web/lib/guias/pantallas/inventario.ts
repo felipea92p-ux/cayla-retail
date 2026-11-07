@@ -1564,7 +1564,7 @@ export const GUIA_RECIBIR: Guia = {
       ancla: "recibir.sin-aviso",
       opcional: true,
       titulo: "¿Llegó algo sin aviso?",
-      texto: "Lo que vino directo del proveedor: toca «Sin Aviso» para abrir el formulario, elige de quién es (o «+ Agregar proveedor», o «No sé de quién es»), la guía y quién recibe, y se cuenta por categoría. Con factura por recibir, te ofrece usarla. En la demo no lo abrimos.",
+      texto: "Lo que vino directo del proveedor: toca «Sin Aviso», pon la guía si la trae y quién recibe, y se cuenta por categoría y marca. Casi siempre llega de varios: cada marca dice de quién es. Si todo es de uno, enciende «Todo es de un solo proveedor» y, con factura por recibir, te ofrece usarla. En la demo no lo abrimos.",
     },
     {
       id: "proveedor",
@@ -1988,13 +1988,13 @@ export const GUIA_RECIBIR_ENVIO: Guia = {
       texto: "Cada prenda tiene su etiqueta: el precio que escribas ahí, o el costo, vale para todas sus tallas y colores, y debajo eliges si vale solo en tu tienda o en todas. «Distinto por talla o color» abre la matriz para cambiar una casilla, un color o una talla. En la demo no escribimos.",
     },
     {
-      // Felipe 2026-10-14: solo en un envío sin aviso que se abrió sin saber de quién es.
+      // Solo en un envío sin aviso: una fila por marca, con su proveedor (Felipe 2026-11-07).
       id: "de-quien",
       ancla: "recepcion.de-quien",
       opcional: true,
       requiere: ["recepcion.tabla-cierre"],
-      titulo: "¿De quién llegó?",
-      texto: "Este paquete se abrió sin saber de quién era. Antes de cerrar, pregúntale a Compras y elígelo: sin proveedor no entra al stock, porque el lote, el costo y la factura se unen por él. Las prendas sí pueden quedar sin marca.",
+      titulo: "De quién llegó",
+      texto: "Una fila por marca de lo que contaste, con su proveedor. La marca ya lo dice casi siempre; lo que no se sabe (una marca con dos proveedores, o «Sin marca») se elige aquí y se guarda al elegirlo. Sin proveedor no entra al stock: el lote, el costo y la factura se unen por él.",
     },
     {
       id: "cerrar-boton",

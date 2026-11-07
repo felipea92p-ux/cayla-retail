@@ -83,6 +83,8 @@ const MIGRACIONES = SIN_MIGRACION
       "20261107183000_galeria_de_la_categoria_al_recibir.sql",
       // La talla o el color agregado por error se quita; lo que la prenda ya tenía, no (caso S3i).
       "20261107191000_quitar_combinacion_nacida_al_recibir.sql",
+      // Cada línea es de su proveedor; el cierre lo pide por línea (casos P1, A8 y S5).
+      "20261107192000_proveedor_por_linea_sin_aviso.sql",
     ]
       .map((f) =>
         readFileSync(join(RAIZ, "supabase", "migrations", f), "utf8")
@@ -218,6 +220,7 @@ ${atrapa(
 )}
 ${atrapa("detalle", "p_d uuid", "retail.fn_envio_detalle(p_d)")}
 ${atrapa("pone", "p_d uuid, p_prov uuid", "retail.poner_proveedor_envio(p_d, p_prov)")}
+${atrapa("pone_marca", "p_d uuid, p_marca uuid, p_prov uuid", "retail.poner_proveedor_de_marca(p_d, p_marca, p_prov)")}
 ${atrapa("guia", "p_d uuid, p_g text", "retail.corregir_guia_envio(p_d, p_g)")}
 ${atrapa(
   "sinaviso",
@@ -558,6 +561,22 @@ caso(
      (select count(*) from retail.actividad a where a.registro_id = :'d'::text and a.accion = 'despacho_sin_aviso_proveedor_corregido'));`,
   "sin_dinero_de_compras / corregir_motivo / proveedor_igual / OK / t / t / t / t / 3 / 12.00 / 1",
 );
+caso(
+  "S3d2 abierto sin proveedor y cerrado con el de su marca: se corrige el de sus líneas (y queda como el del envío)",
+  `${MICAELA_RECIBE}
+   ${SIN_AVISO("d", { prov: "null::uuid" })}
+   select ${EXTRA("d", "cat2", 3, SEP([["prod_g", 3, [V("pg_s", 3)]]]))} \\g /dev/null
+   ${VERS("d", [], [1])}
+   select pg_temp.e(${CIERRA("d", [DEC(1)])}) as cierra \\gset
+   ${como(SANDRA)}${SIN_ENCABEZADOS}
+   select pg_temp.e(pg_temp.corrige(:'d', :'prov2', 'Compras dijo que era de otro')) as bien \\gset
+   reset role;
+   select concat_ws(' / ', :'cierra', :'bien',
+     (select s.proveedor_id = :'prov2'::uuid from retail.despachos_sin_aviso s where s.despacho_id = :'d'),
+     (select bool_and(k.proveedor_id = :'prov2'::uuid) from retail.despacho_conteos k where k.despacho_id = :'d'),
+     (select bool_and(l.proveedor_id = :'prov2'::uuid) from retail.lotes l where l.despacho_id = :'d'));`,
+  "OK / OK / t / t / t",
+);
 // Lo contado en una categoría que no era: el modelo pasa a una línea de la correcta y lo contado se mueve con él, sin descuadrar nada (Felipe 2026-11-06).
 const SIN_AVISO_CON_DOS_MODELOS = `${MICAELA_RECIBE}
    ${SIN_AVISO("d")}
@@ -712,18 +731,22 @@ caso(
 );
 // P. SIN PROVEEDOR -------------------------------------------------------------------------------------------------------
 caso(
-  "P1 sin proveedor: se abre y se cuenta; el cierre lo pide; se pone una sola vez (el mismo, otra vez, no hace nada) y entra con su lote",
+  "P1 sin proveedor: se abre y se cuenta; una línea puede traer el suyo; el cierre pide el que falta; se pone una sola vez (el mismo, otra vez, no hace nada) y entra con su lote",
   `${MICAELA_RECIBE}
    ${SIN_AVISO("d", { prov: "null::uuid" })}
+   reset role;
+   -- La marca de la prueba con DOS proveedores: así no se adivina de quién es lo contado (20261107192000).
+   insert into retail.marca_proveedores (marca_id, proveedor_id) values (:'marca', :'prov2') on conflict do nothing;
+   ${como(MICAELA)}${EN_TIENDA}
    select ${EXTRA("d", "cat2", 3, SEP([["prod_g", 3, [V("pg_s", 3)]]]))} \\g /dev/null
    select pg_temp.h(pg_temp.guarda(:'d', null, 1, ${VACIO}, null::int, null::int, :'prov', :'cat', :'marca')) as con_prov \\gset
    select pg_temp.conteos(:'d') as c \\gset
-   ${VERS("d", [], [1])}
-   select pg_temp.h(${CIERRA("d", [DEC(1)])}) as sin_prov \\gset
+   ${VERS("d", [], [1, 2])}
+   select pg_temp.h(${CIERRA("d", [DEC(1), DEC(2)])}) as sin_prov \\gset
    select pg_temp.e(pg_temp.pone(:'d', :'prov')) as pone \\gset
    select pg_temp.pone(:'d', :'prov') ->> 'repetido' as otra_vez \\gset
    select pg_temp.h(pg_temp.pone(:'d', :'prov2')) as otro \\gset
-   select pg_temp.e(${CIERRA("d", [DEC(1)])}) as cierra \\gset
+   select pg_temp.e(${CIERRA("d", [DEC(1), DEC(2)])}) as cierra \\gset
    reset role;
    select concat_ws(' / ',
      concat_ws(':', :'c'::jsonb ->> 'proveedor_por_confirmar', jsonb_array_length(:'c'::jsonb -> 'proveedores')),
@@ -732,8 +755,37 @@ caso(
      (select string_agg((k.proveedor_id = :'prov'::uuid)::text, ',') from retail.despacho_conteos k where k.despacho_id = :'d'),
      ${STOCK_TRU("pg_s")},
      (select ${limpio("a.descripcion")} from retail.actividad a where a.registro_id = :'d'::text and a.accion = 'despacho_sin_aviso'));`,
-  "true:0 / recepcion_extra_proveedor / envio_sin_proveedor / OK / true / envio_proveedor_puesto / OK / true / true / 3 / " +
-    "abrió ENV: llegó sin aviso (proveedor por confirmar)",
+  "true:1 / OK / envio_sin_proveedor / OK / true / envio_proveedor_puesto / OK / true / true,true / 3 / " +
+    "abrió ENV: llegó sin aviso (cada marca con su proveedor)",
+);
+caso(
+  "S5 un envío sin aviso de dos proveedores: la marca dice de quién es, otro se puede elegir, lo sin marca se pone antes de cerrar y cada uno entra con su lote",
+  `${MICAELA_RECIBE}
+   ${SIN_AVISO("d", { prov: "null::uuid" })}
+   -- Miramhe-like: la marca de la prueba tiene un solo proveedor (:prov), así que lo suyo es de él sin decirlo.
+   select pg_temp.e(pg_temp.guarda(:'d', null, 3, ${SEP([["prod_p", 3, [V("pv_s", 3)]]])}, null::int, null::int, null::uuid, :'cat', :'marca')) as por_marca \\gset
+   -- Otro modelo de la misma marca, que llegó de otro proveedor: se puede elegir.
+   select pg_temp.e(pg_temp.guarda(:'d', null, 1, ${VACIO}, null::int, null::int, :'prov2', :'cat2', :'marca')) as elegido \\gset
+   -- Lo sin marca no se puede saber.
+   select pg_temp.e(pg_temp.guarda(:'d', null, 2, ${VACIO}, null::int, null::int, null::uuid, :'cat2', null::uuid)) as sin_marca \\gset
+   select pg_temp.conteos(:'d') as c \\gset
+   ${VERS("d", [], [1, 2, 3])}
+   select pg_temp.e(${CIERRA("d", [DEC(1), DEC(2), DEC(3)])}) as falta \\gset
+   select pg_temp.h(pg_temp.pone_marca(:'d', null, gen_random_uuid())) as inactivo \\gset
+   select pg_temp.e(pg_temp.pone_marca(:'d', null, :'prov2')) as pone \\gset
+   ${VERS("d", [], [1, 2, 3])}
+   select pg_temp.e(${CIERRA("d", [DEC(1), DEC(2), DEC(3)])}) as cierra \\gset
+   select pg_temp.h(pg_temp.pone_marca(:'d', null, :'prov')) as cerrado \\gset
+   reset role;
+   select concat_ws(' / ', :'por_marca', :'elegido', :'sin_marca',
+     concat_ws(':', :'c'::jsonb ->> 'proveedor_por_confirmar', jsonb_array_length(:'c'::jsonb -> 'proveedores')),
+     regexp_replace(:'falta', '^.*Falta de quién llegó ([^:]*):.*$', '\\1'), :'inactivo', :'pone', :'cierra', :'cerrado',
+     (select string_agg(case k.proveedor_id when :'prov'::uuid then 'uno' when :'prov2'::uuid then 'dos' else 'nadie' end, ',' order by k.extra_posicion)
+        from retail.despacho_conteos k where k.despacho_id = :'d'),
+     (select count(*) from retail.lotes l where l.despacho_id = :'d' and l.proveedor_id = :'prov'),
+     (select s.proveedor_id is null from retail.despachos_sin_aviso s where s.despacho_id = :'d'),
+     (select count(*) from retail.actividad a where a.registro_id = :'d'::text and a.accion = 'despacho_sin_aviso_proveedor_de_marca'));`,
+  "OK / OK / OK / true:2 / lo sin marca / recepcion_proveedor / OK / OK / envio_no_abierto / uno,dos,dos / 1 / t / 1",
 );
 caso(
   "P2 poner el proveedor: no a un envío de Compras, sin responsable, uno inactivo ni sin Recibir; nada queda puesto",
@@ -1065,6 +1117,10 @@ caso(
   "A8 sin proveedor sale a nombre de «Por confirmar», no cierra hasta tenerlo y al ponerlo pasa al real",
   `${MICAELA_RECIBE}
    ${SIN_AVISO("d", { prov: "null::uuid" })}
+   reset role;
+   -- La marca de la prueba con DOS proveedores: así no se adivina de quién es lo contado (20261107192000).
+   insert into retail.marca_proveedores (marca_id, proveedor_id) values (:'marca', :'prov2') on conflict do nothing;
+   ${como(MICAELA)}${EN_TIENDA}
    select pg_temp.e(pg_temp.guarda(:'d', null, 5, ${SEP([["prod_p", 5]])}, null::int, null::int, null::uuid, :'cat', :'marca')) as g \\gset
    reset role;
    select k.version as ver, k.extra_posicion as extra from retail.despacho_conteos k where k.despacho_id = :'d' \\gset

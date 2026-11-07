@@ -24,6 +24,7 @@ import {
   RPC_CAMBIAR_LINEA,
   RPC_LIGAR_PRENDA,
   RPC_PONER_PROVEEDOR,
+  RPC_PONER_PROVEEDOR_DE_MARCA,
   RPC_CANCELAR_RECEPCION,
   RPC_COSTOS_DE_HOY,
   RPC_CORREGIR_PROVEEDOR,
@@ -249,6 +250,12 @@ export async function abrirEnvioSinAviso(
 ): Promise<{ abierto: ReturnType<typeof leerEnvioAbierto>; error: ErrorDeBase }> {
   const { data, error } = (await firmar(createClient().rpc(RPC_SIN_AVISO as never, args as never), firma)) as Respuesta;
   return { abierto: error ? null : leerEnvioAbierto(data), error: error ?? null };
+}
+
+/** El proveedor de todo lo de una marca en un envío sin aviso abierto (`p_marca_id` nulo = sin marca; Felipe 2026-11-07). Antes de cerrar. */
+export async function ponerProveedorDeMarca(args: { p_despacho_id: string; p_marca_id: string | null; p_proveedor_id: string }, firma: Firma | null): Promise<{ error: ErrorDeBase }> {
+  const { error } = (await firmar(createClient().rpc(RPC_PONER_PROVEEDOR_DE_MARCA as never, args as never), firma)) as Respuesta;
+  return { error: error ?? null };
 }
 
 /** Pone el proveedor de un envío sin aviso que se abrió sin saberlo (una sola vez; el mismo otra vez no hace nada). Antes de cerrar. */

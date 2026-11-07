@@ -104,7 +104,7 @@
       "BotonVerMas «recepcion.plegadas»",
       "CampoTexto «{guia.etiqueta(\"guia\", \"Número de guía\")}»",
       "CampoTexto «Nota (opcional)»",
-      "CampoSelect «{guia.etiqueta(\"proveedor\", \"¿De quién llegó?\")}»",
+      "CampoSelect «{f.proveedor ? \"Proveedor\" : guia.etiqueta(id, \"Proveedor\")}»",
       "ComboResponsable «{responsable}»",
       "button «Reintentar»",
       "Volver «→() => onVolver(undefined, decisiones)»",

@@ -547,11 +547,16 @@ export function esEnvioSinAviso(e: { lineas: number; ordenes: readonly string[] 
   return e.lineas === 0 && e.ordenes.length === 0;
 }
 
-/** De quién es un envío sin aviso, para la puerta: su proveedor, «proveedor por confirmar», o `null` si no se sabe. */
+/**
+ * De quién es un envío sin aviso, para la lista de Recibir: sus proveedores («A y B», «A, B y 2 más»), con «y uno por confirmar» si a lo contado le falta
+ * el suyo, o `null` si todavía no se sabe nada (Felipe 2026-11-07: casi nunca llega de uno solo).
+ */
 export function proveedorDelSinAviso(c: ConteosDelEnvio | null): string | null {
   if (!c) return null;
-  if (c.proveedorPorConfirmar) return "proveedor por confirmar";
-  return c.proveedores[0]?.nombre ?? null;
+  const nombres = c.proveedores.map((p) => p.nombre);
+  const lista = nombres.length <= 2 ? nombres.join(" y ") : `${nombres.slice(0, 2).join(", ")} y ${nombres.length - 2} más`;
+  if (c.proveedorPorConfirmar) return lista ? `${lista}, y algo por confirmar` : "proveedor por confirmar";
+  return lista || null;
 }
 
 export function necesitaCatalogoAlCerrar(conteos: ConteosDelEnvio | null): boolean {
@@ -1000,9 +1005,8 @@ export function faltaParaCerrar(p: {
 /** Los campos de la guía de foco del cierre (ADR-0284): los mismos que `faltaParaCerrar`, también los ya hechos (llevan su ✓). */
 export function camposDelCierre(
   p: Parameters<typeof faltaParaCerrar>[0] & {
-    /** Llegó sin aviso y sin saber de quién (Felipe 2026-10-14): `cerrar_conteo_envio` no cierra sin proveedor (`envio_sin_proveedor`). */
-    proveedorPorConfirmar?: boolean;
-    proveedorElegido?: boolean;
+    /** Sin aviso (Felipe 2026-11-07): las marcas cuyo proveedor falta; `cerrar_conteo_envio` no cierra sin él (`envio_sin_proveedor`). Ver `deQuienLlego`. */
+    deQuien?: readonly FilaDeQuien[];
     /** Lo escrito en «Número de guía» (Felipe 2026-10-14): opcional, se corrige si el papel dice otra cosa. */
     guia?: string;
   },
@@ -1037,12 +1041,52 @@ export function camposDelCierre(
   if (p.guia !== undefined) {
     campos.push({ id: "guia", nombre: "Número de guía", requerido: false, hecho: p.guia.trim() !== "", pendiente: "Si el papel de la guía dice otra cosa, corrígela." });
   }
-  if (p.proveedorPorConfirmar) {
-    campos.push({ id: "proveedor", nombre: "De quién llegó", requerido: true, hecho: p.proveedorElegido === true, pendiente: "Elige de quién llegó: pregúntale a Compras." });
+  for (const f of p.deQuien ?? []) {
+    campos.push({
+      id: idCampoProveedor(f.clave),
+      nombre: `De quién llegó · ${f.marca?.nombre ?? "Sin marca"}`,
+      requerido: true,
+      hecho: f.proveedor !== null,
+      pendiente: `Elige de quién llegó ${f.marca?.nombre ?? "lo sin marca"}: pregúntale a Compras.`,
+    });
   }
   campos.push({ id: "responsable", nombre: "Quién cierra", requerido: true, hecho: p.responsable, pendiente: "Elige quién cierra." });
   return campos;
 }
+
+/**
+ * «De quién llegó», en un envío sin aviso (Felipe 2026-11-07: «casi nunca llega de uno solo»): una fila por marca de lo contado, con su proveedor. La base
+ * ya lo puso solo cuando la marca tiene un único proveedor; si no se puede saber (dos proveedores, o «Sin marca»), la fila lo pide. `puestos` es lo que la
+ * persona eligió en esta pantalla y la base ya guardó (`poner_proveedor_de_marca`): manda sobre lo que trajo la lectura. Si las líneas de una marca tienen
+ * proveedores distintos, la fila muestra el primero y `varios` lo dice. De la marca con más prendas a la de menos.
+ */
+export type FilaDeQuien = { clave: string; marca: { id: string; nombre: string } | null; prendas: number; proveedor: { id: string; nombre: string } | null; varios: boolean };
+export function deQuienLlego(lineas: readonly LineaParaContar[], puestos: Readonly<Record<string, { id: string; nombre: string }>> = {}): FilaDeQuien[] {
+  const filas = new Map<string, { marca: FilaDeQuien["marca"]; prendas: number; proveedores: (FilaDeQuien["proveedor"])[] }>();
+  for (const l of lineas) {
+    if (l.linea || contadasDe(l) <= 0) continue;
+    const clave = l.marca?.id ?? "";
+    const f = filas.get(clave) ?? { marca: l.marca, prendas: 0, proveedores: [] };
+    f.prendas += contadasDe(l);
+    f.proveedores.push(l.proveedor);
+    filas.set(clave, f);
+  }
+  return [...filas.entries()]
+    .map(([clave, f]) => {
+      const puesto = puestos[clave];
+      const conocidos = f.proveedores.filter((x): x is { id: string; nombre: string } => x !== null);
+      // Basta una línea sin proveedor para que la marca lo pida: la base no cierra sin él.
+      const proveedor = puesto ?? (conocidos.length === f.proveedores.length ? (conocidos[0] ?? null) : null);
+      return { clave, marca: f.marca, prendas: f.prendas, proveedor, varios: !puesto && new Set(conocidos.map((x) => x.id)).size > 1 };
+    })
+    .sort((a, b) => b.prendas - a.prendas || (a.marca?.nombre ?? "~").localeCompare(b.marca?.nombre ?? "~", "es"));
+}
+
+/** El id del campo de proveedor de una marca en la guía y en el DOM. */
+export const idCampoProveedor = (claveMarca: string): string => `proveedor-${claveMarca || "sin-marca"}`;
+
+/** Pone el proveedor de todo lo de una marca en un envío sin aviso abierto (`null` = sin marca). */
+export const RPC_PONER_PROVEEDOR_DE_MARCA = "poner_proveedor_de_marca";
 
 /** El id de un campo del cierre en la guía y en el DOM (`data-campo`). */
 export const idCampoCierre = (tipo: "contar" | "causa" | "costo", clave: ClaveLinea): string => `${tipo}-${clave.replace(":", "-")}`;

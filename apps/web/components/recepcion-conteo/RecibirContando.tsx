@@ -312,7 +312,8 @@ export function RecibirContando({
   // Cancelar la recepción (ADR-0605): un envío sin aviso, abierto y sin nada en el stock (también reabierto: lo que frena es el stock). Uno de Compras o uno cerrado no lo ofrecen.
   const sePuedeCancelar = estado === "abierto" && sinAviso && lineas.every((l) => (l.conteo?.enStock ?? 0) === 0) && !otraSede && !noLoRecibe;
   // Corregir de quién llegó: sin aviso, ya con proveedor, y solo quien ve el dinero de Compras.
-  const proveedorActual = sinAviso ? (base?.proveedores[0] ?? null) : null;
+  // Corregir es para un envío de UN proveedor (Felipe 2026-11-07): con varios, cada marca ya tiene el suyo y no hay un «proveedor del envío» que cambiar.
+  const proveedorActual = sinAviso && base?.proveedores.length === 1 ? base.proveedores[0] : null;
   const sePuedeCorregirProveedor = !!proveedorActual && veDinero && (estado === "abierto" || estado === "cerrado") && !otraSede && !noLoRecibe;
   const accionesDelEnvio = [
     ...(sePuedeCorregirProveedor ? [{ clave: "proveedor", etiqueta: "Corregir el proveedor", onSelect: () => setCorrigiendo(true) }] : []),
@@ -473,7 +474,6 @@ export function RecibirContando({
           responsable={responsable}
           veDinero={veDinero}
           soloSede={soloSede}
-          proveedorPorConfirmar={base?.proveedorPorConfirmar ?? false}
           proveedores={proveedoresParaElegir}
           esperandoGuardar={pendientesDeGuardar}
           onVolver={(clave, decisiones) => {
