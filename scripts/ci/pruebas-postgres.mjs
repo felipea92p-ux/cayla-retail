@@ -122,6 +122,11 @@ export const PRUEBAS = [
   // lo anterior al arranque de una cuenta no suma, pero se dice. ROLLBACK.
   "pruebas:cuadre-ventas-finanzas",
 
+  // IGV de gestión (ADR-0620): ventas con IGV = netas + 4011 de venta, anulación, devolución y cambio, también con adelanto; las partes suman lo
+  // dicho y 0 dicho no es sin dato; decir el monto no toca el diario, el Estado de resultados ni el Balance; rechaza con cualquier unidad cerrada;
+  // solo el líder dice y una terminal no lo recibe; y una regla nueva que escriba la 4011 o la 7011 la pone en rojo. ROLLBACK.
+  "pruebas:igv-gestion",
+
   // Impuestos (ADR-0195 F8): débito y crédito del mes, las boletas no dan crédito, anulados fuera, el saldo a favor que
   // se arrastra, el límite del régimen, parámetros con vigencia, solo el líder y los registros para el contador. ROLLBACK.
   "pruebas:impuestos",

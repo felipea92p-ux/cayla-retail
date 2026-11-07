@@ -356,6 +356,7 @@
     "pruebas:compras-simple-dia": "node scripts/pruebas/compras_simple_dia.mjs",
     "pruebas:compras-simple-recibir": "node scripts/pruebas/compras_simple_recibir.mjs",
     "pruebas:costo-sin-igv": "node scripts/pruebas/costo_sin_igv.mjs",
+    "pruebas:igv-gestion": "node scripts/pruebas/igv_gestion.mjs",
     "pruebas:compras-simple-revisar": "node scripts/pruebas/compras_simple_revisar.mjs",
     "pruebas:compras-simple-marca": "node scripts/pruebas/compras_simple_marca_nueva.mjs",
     "pruebas:compras-simple-corregir": "node scripts/pruebas/compras_simple_corregir.mjs",
