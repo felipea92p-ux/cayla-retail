@@ -7,6 +7,7 @@
 
 import { chipContraAnterior, type ColumnaDeParte, type FilaDelLibro, type ParteEstado } from "./estados-partes";
 import { nombreDelAnterior, type Periodo } from "./estados-periodo";
+import type { FilaInforme, Informe } from "./estados-informe";
 import { solesCentimos, solesConSignoCentimos, type FlujoReal } from "./flujo-caja-reglas";
 import { loQueNoCubre, montoDe, partesDelFlujo, type Actividad } from "./plata-reglas";
 import { mesNombre } from "./resultados-reglas";
@@ -176,12 +177,43 @@ export function columnasDeCascada(partes: readonly ParteEstado[]): ColumnaCascad
   }));
 }
 
-/** El estado de flujos del contador, con sus nombres de siempre. Suma: inicio + cada actividad = final. */
-export function libroDelFlujo(real: FlujoReal): FilaDelLibro[] {
-  const partes = partesDelFlujo(real);
-  return [
-    { nombre: loQueNoCubre(real) ? "Saldo de partida" : "Saldo inicial", valor: real.saldoInicial, tipo: "normal" },
-    ...partes.map((p) => ({ nombre: p.formal.replace(/^Efectivo de actividades/, "Actividades"), valor: p.total, tipo: "normal" as const })),
-    { nombre: "Saldo final", valor: real.saldoFinal, tipo: "total" },
+
+/**
+ * El flujo de efectivo como informe (camino A, 2026-11-06): con cuánto se empezó, cada actividad que movió la plata (con su signo) y con cuánto se terminó, con los
+ * períodos de antes al lado. Las frases y el detalle de cada fila salen de las mismas partes (`partesDelEstadoFlujo`).
+ */
+export function informeDelFlujo({ real, partes, comparadas, etiquetaActual }: { real: FlujoReal; partes: readonly ParteEstado[]; comparadas: readonly ComparadaFlujo[]; etiquetaActual: string }): Informe {
+  const valores = (de: (r: FlujoReal) => number) => [...comparadas.map((c) => (c.real ? de(c.real) : null)), de(real)];
+  const formal = new Map(partesDelFlujo(real).map((p) => [p.clave, p.formal.replace(/^Efectivo de actividades/, "Actividades")]));
+  const deParte = (p: ParteEstado) => ({ que: p.que, detalle: p.filas, aviso: p.aviso ?? null });
+  const inicio = partes.find((p) => p.clave === "inicio");
+  const fin = partes.find((p) => p.clave === "fin");
+  const medio = partes.filter((p) => p.clave !== "inicio" && p.clave !== "fin");
+  const filas: FilaInforme[] = [
+    { clave: "inicio", nombre: inicio?.nombre ?? "Al empezar", contable: loQueNoCubre(real) ? "Saldo de partida" : "Saldo inicial", tipo: "subtotal", valores: valores((r) => r.saldoInicial), ...(inicio ? { que: inicio.que } : {}) },
+    ...medio.map((p) => ({
+      clave: p.clave,
+      nombre: p.nombre,
+      contable: formal.get(p.clave as Actividad) ?? p.nombre,
+      tipo: "linea" as const,
+      valores: valores((r) => totalDe(r, p.clave as Actividad)),
+      tono: p.cifra < 0 ? ("mal" as const) : null,
+      ...deParte(p),
+    })),
+    {
+      clave: "fin",
+      nombre: fin?.nombre ?? "Al terminar",
+      contable: "Saldo final",
+      tipo: "total",
+      valores: valores((r) => r.saldoFinal),
+      tono: real.saldoFinal < 0 ? "mal" : null,
+      ...(fin ? deParte(fin) : {}),
+    },
   ];
+  return {
+    titulo: "Flujo de efectivo",
+    columnas: [...comparadas.map((c) => ({ etiqueta: c.etiqueta, actual: false })), { etiqueta: etiquetaActual, actual: true }],
+    pesoDe: null,
+    filas,
+  };
 }

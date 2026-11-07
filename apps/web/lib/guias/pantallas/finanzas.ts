@@ -1285,7 +1285,7 @@ export const GUIA_FIN_FLUJO: Guia = {
       ancla: "fin-plata.respuesta",
       opcional: true,
       titulo: "Cuánta plata hay",
-      texto: "La plata con la que terminaste (hoy, si las fechas llegan hasta hoy) y si es más o menos que al empezar. Las columnas muestran por qué: de cuánto partiste, qué la movió y con cuánto terminaste. Toca una y su detalle se abre abajo.",
+      texto: "La plata con la que terminaste (hoy, si las fechas llegan hasta hoy) y si es más o menos que al empezar. Las columnas muestran por qué: de cuánto partiste, qué la movió y con cuánto terminaste.",
     },
     {
       id: "no-cubre",
@@ -1299,14 +1299,14 @@ export const GUIA_FIN_FLUJO: Guia = {
       ancla: "fin-plata.partes",
       opcional: true,
       titulo: "Por qué cambió tu plata",
-      texto: "Lo que dejó el día a día (vender, comprar mercadería, pagar gastos), lo que se fue en cosas que duran años y lo que pusiste, retiraste o pagaste de deudas. Al tocar una parte ves de qué está hecha y cómo venía.",
+      texto: "Lo que dejó el día a día (vender, comprar mercadería, pagar gastos), lo que se fue en cosas que duran años y lo que pusiste, retiraste o pagaste de deudas, fila por fila y con los meses de antes al lado. Toca una fila para ver de qué está hecha.",
     },
     {
       id: "libro",
       ancla: "fin-plata.libro",
       opcional: true,
-      titulo: "El formato formal",
-      texto: "El mismo estado con sus nombres de siempre, como lo lee un contador. Se abre aquí mismo.",
+      titulo: "Los nombres del contador",
+      texto: "Cambia las palabras de cada fila a las de siempre del contador: Saldo inicial, Actividades de operación, Saldo final. Las cifras no cambian.",
     },
     {
       id: "recos",

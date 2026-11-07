@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { columnasDeCascada, lecturaDelFlujo, libroDelFlujo, partesDelEstadoFlujo } from "./estados-flujo";
+import { columnasDeCascada, informeDelFlujo, lecturaDelFlujo, partesDelEstadoFlujo } from "./estados-flujo";
 import { periodoDe } from "./estados-periodo";
 import { solesCentimos, type FlujoReal } from "./flujo-caja-reglas";
 
@@ -138,8 +138,12 @@ describe("las columnas", () => {
   });
 });
 
-it("el libro suma: inicio + cada actividad = final", () => {
-  const l = libroDelFlujo(real());
-  expect(l.map((x) => x.nombre)).toEqual(["Saldo inicial", "Actividades de operación", "Actividades de inversión", "Actividades de financiamiento", "Saldo final"]);
-  expect(l.slice(0, -1).reduce((a, x) => a + x.valor, 0)).toBe(l.at(-1)!.valor);
+it("el informe suma: inicio + cada actividad = final, con los nombres del contador (camino A, 2026-11-06)", () => {
+  const r = real();
+  const inf = informeDelFlujo({ real: r, partes: partesDelEstadoFlujo({ real: r, comparadas: [], etiquetaActual: "Oct", periodo: OCT }), comparadas: [{ etiqueta: "Sep", real: null }], etiquetaActual: "Oct" });
+  expect(inf.filas.map((x) => x.contable)).toEqual(["Saldo inicial", "Actividades de operación", "Actividades de inversión", "Actividades de financiamiento", "Saldo final"]);
+  const ahora = inf.filas.map((x) => x.valores.at(-1)!);
+  expect(ahora.slice(0, -1).reduce((a, x) => a + x, 0)).toBe(ahora.at(-1));
+  // El mes que no se pudo leer es «—», nunca un cero.
+  expect(inf.filas[0]!.valores[0]).toBeNull();
 });

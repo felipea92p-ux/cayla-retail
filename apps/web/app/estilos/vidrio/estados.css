@@ -1801,6 +1801,8 @@
 .estados-informe {
   container-type: inline-size;
   overflow-x: auto;
+  /* Sin esto, las filas que entran subiendo 6 px abren una barra de desplazamiento vertical mientras dura la entrada. */
+  overflow-y: hidden;
 }
 .estados-informe-cabeza {
   display: flex;
@@ -1992,7 +1994,7 @@
 }
 .estados-respuesta-grafico {
   position: relative;
-  height: 180px;
+  height: 200px;
   margin: 4px -8px 0;
 }
 .estados-respuesta-grafico .estados-linea-cero {
