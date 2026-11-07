@@ -1,7 +1,7 @@
 // Lo que queda de la página PÚBLICA del Club CAYLA (ADR-0288 act. g, tanda 1g): la política y los términos del Club en pantalla
 // (`/club/privacidad` y `/club/terminos`), y las cifras y fechas que usan esas páginas y el cartel. Lógica pura, sin React ni red.
 // El formulario de registro del cartel (`/club/<tienda>`) se retiró el 2026-10-16: el Club empieza al crear la cuenta en la tienda
-// online y el cartel lleva a tienda.cayla.pe (Felipe; 20261016154000). Esas dos páginas se quedan: son lo que aceptó quien se unió
+// online y el cartel lleva a cayla.pe (Felipe; 20261016154000). Esas dos páginas se quedan: son lo que aceptó quien se unió
 // por el cartel.
 //
 // CONTRATO

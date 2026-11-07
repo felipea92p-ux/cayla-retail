@@ -10,7 +10,7 @@ import { claveResponsableConteo } from "@/lib/responsable-conteo";
 import { avisar } from "@/components/ui/Avisos";
 import { Modal } from "@/components/ui/Modal";
 import { ComboResponsable } from "@/components/ComboResponsable";
-import { Aviso } from "@/components/ui/Aviso";
+import { Aviso, AvisoNoSeDeshace } from "@/components/ui/Aviso";
 import { Boton } from "@/components/ui/campos";
 
 /* ====================================================================
@@ -77,12 +77,13 @@ export function CancelarConteoModal({
           {error && (
             <Aviso tono="error">{error}</Aviso>
           )}
+          <AvisoNoSeDeshace />
           {/* En el celular la salida segura («Seguir contando») queda arriba, la más a mano: cancelar tira lo contado y no debe ser el botón más fácil de tocar. */}
           <div className="flex flex-col gap-2.5 sm:flex-row sm:justify-end">
             <button type="button" onClick={cerrar} disabled={cancelando} className="btn-cayla btn-secundario h-11">
               Seguir contando
             </button>
-            <Boton peso="peligro" cargando={cancelando} textoCargando="Cancelando…"
+            <Boton peso="primario" cargando={cancelando} textoCargando="Cancelando…"
               type="button"
               onClick={() => void cancelar(cerrar)}
               disabled={cancelando || !responsable.listo}

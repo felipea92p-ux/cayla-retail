@@ -4,8 +4,11 @@ import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { Scissors } from "lucide-react";
 import { RotuloAnaquel } from "@/components/RotuloAnaquel";
 import { PasoCantidad } from "@/components/ui/PasoCantidad";
+import { Aviso } from "@/components/ui/Aviso";
+import type { CantidadEscrita } from "@/components/alta-producto/useCantidadEscrita";
+import { textoEnLaCaja } from "@/lib/cantidad-escrita-reglas";
 import { useContar } from "@/lib/useContar";
-import { copiasDeTexto, MAX_COPIAS, papelDeTiraCm, quienesSalen, tiraConSalientes, type Rotulo } from "@/lib/rotulos-reglas";
+import { copiasDeTexto, MAX_COPIAS, papelDeTiraCm, quienesSalen, tiraConSalientes, type MedirEm, type Rotulo } from "@/lib/rotulos-reglas";
 
 /** Lo que dura la salida de un rótulo de la tira (`rot-seg--sale` en `app/estilos/rotulos-brother.css`). */
 const SALIDA_MS = 360;
@@ -33,13 +36,19 @@ export function TiraBrother({
   rotulos,
   copias,
   onCopias,
+  escrita,
   recorriendo,
+  medir,
 }: {
   rotulos: Rotulo[];
   copias: Record<string, string>;
   onCopias: (clave: string, texto: string) => void;
+  /** El borrador de lo que se teclea en las copias: vive en la pantalla, que dice por qué no valió y frena «Imprimir». */
+  escrita: CantidadEscrita;
   /** Mientras dura el recorrido de antes de imprimir: `porRotulo` en ms (ver `recorridoDeImpresion`). */
   recorriendo: { porRotulo: number } | null;
+  /** La medida del nombre con la letra de esta computadora (`useMedirNombre`): la misma que usa la hoja que va a la Brother. */
+  medir: MedirEm;
 }) {
   // La entrada en cascada es solo la primera vez: un rótulo que se suma después sale solo, sin esperar turno.
   const [primeraVez, setPrimeraVez] = useState(true);
@@ -116,7 +125,7 @@ export function TiraBrother({
           {vacia && salientes.length === 0 && (
             <div className="rot-seg rot-seg--ejemplo" aria-label="Ejemplo de rótulo">
               <div className="rot-seg__papel papel-fijo">
-                <RotuloAnaquel rotulo={EJEMPLO} />
+                <RotuloAnaquel rotulo={EJEMPLO} medir={medir} />
               </div>
               <div className="rot-seg__copias">
                 <span aria-hidden className="rot-seg__guia" />
@@ -152,7 +161,7 @@ export function TiraBrother({
                 inert={sale}
               >
                 <div className="rot-seg__papel papel-fijo">
-                  <RotuloAnaquel rotulo={r} />
+                  <RotuloAnaquel rotulo={r} medir={medir} />
                   <span aria-hidden className="rot-seg__no-sale">
                     <span>No sale</span>
                   </span>
@@ -166,18 +175,24 @@ export function TiraBrother({
                     Copias
                   </label>
                   <PasoCantidad
-                    menos={{ onClick: () => onCopias(r.clave, String(n - 1)), deshabilitado: n <= 0, etiqueta: `Una copia menos de ${nombre}` }}
-                    mas={{ onClick: () => onCopias(r.clave, String(n + 1)), deshabilitado: n >= MAX_COPIAS, etiqueta: `Una copia más de ${nombre}` }}
-                    campo={{
-                      id: `copias-${r.clave}`,
-                      type: "number",
-                      inputMode: "numeric",
-                      min: 0,
-                      max: MAX_COPIAS,
-                      value: texto,
-                      onChange: (ev) => onCopias(r.clave, ev.target.value),
-                      onFocus: (ev) => ev.currentTarget.select(),
+                    tono={escrita.invalida(r.clave) ? "error" : undefined}
+                    menos={{
+                      onClick: () => {
+                        escrita.olvidar();
+                        onCopias(r.clave, String(n - 1));
+                      },
+                      deshabilitado: n <= 0,
+                      etiqueta: `Una copia menos de ${nombre}`,
                     }}
+                    mas={{
+                      onClick: () => {
+                        escrita.olvidar();
+                        onCopias(r.clave, String(n + 1));
+                      },
+                      deshabilitado: n >= MAX_COPIAS,
+                      etiqueta: `Una copia más de ${nombre}`,
+                    }}
+                    campo={{ id: `copias-${r.clave}`, ...escrita.campo(r.clave, texto, (v) => onCopias(r.clave, textoEnLaCaja(v, MAX_COPIAS)), MAX_COPIAS) }}
                   />
                 </div>
               </div>
@@ -198,6 +213,11 @@ export function TiraBrother({
               cm de papel
             </span>
           </p>
+        )}
+        {escrita.problema && (
+          <Aviso tono="error" chico className="mt-3">
+            {escrita.problema}
+          </Aviso>
         )}
       </div>
     </section>

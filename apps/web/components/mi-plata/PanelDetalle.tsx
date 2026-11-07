@@ -7,6 +7,7 @@ import type { ReactNode } from "react";
 export function PanelDetalle({
   sobre,
   titulo,
+  bajoTitulo,
   subtitulo,
   monto,
   estado,
@@ -16,6 +17,8 @@ export function PanelDetalle({
 }: {
   sobre: string;
   titulo: string;
+  /** Lo que completa al título, en su propia línea (la marca, bajo la razón social). */
+  bajoTitulo?: string;
   subtitulo?: string;
   /** El monto en grande, arriba a la derecha («S/ 300.00»). */
   monto?: string;
@@ -32,7 +35,8 @@ export function PanelDetalle({
           <div className="min-w-0">
             <span className="label-cayla block text-[11px] text-taupe">{sobre}</span>
             <h3 className="revisar-titulo mt-1">{titulo}</h3>
-            {subtitulo && <span className="mt-1 block text-[13px] text-taupe">{subtitulo}</span>}
+            {bajoTitulo && <span className="mt-1 block text-[15px] text-tinta">{bajoTitulo}</span>}
+            {subtitulo && <span className="mt-1 block text-sm text-taupe">{subtitulo}</span>}
           </div>
         </div>
         <div className="flex items-center gap-3">

@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import fixture from "./resumen-finanzas.fixture.json";
 import { leerResumen } from "./resumen-finanzas-reglas";
 import type { FilaER } from "./resultados-reglas";
-import { lineaVentasMeta, respuestaResumen, tramoAnteriorALaFecha, vendidoPorSede } from "./resumen-telar-reglas";
+import { comparacionMesPasado, lineaVentasMeta, mismasTiendas, respuestaResumen, tiendasAdivinadas, tramoAnteriorALaFecha, vendidoPorSede } from "./resumen-telar-reglas";
 
 // Lo que el Resumen le pasa a la barra común del telar (su respuesta y su orillo) y la línea de ventas contra la meta.
 
@@ -106,5 +106,61 @@ describe("lineaVentasMeta", () => {
     expect(lineaVentasMeta([], "2026-09", "2026-10-23", null).serie).toHaveLength(30);
     const futuro = lineaVentasMeta([], "2026-11", "2026-10-23", null);
     expect(futuro.serie).toHaveLength(0);
+  });
+});
+
+// Examen de Finanzas 2026-10-27, tarea #2: «¿Cuánto te deja?» no llevaba los sueldos del período en curso. La provisión (`fn_planilla_provision`) solo
+// devuelve el período que TERMINA dentro del rango pedido; el Resumen pedía «del 1 a hoy» y el período 28-sep → 28-oct, que termina mañana, no
+// entraba: el mes parecía +S/ 13 mil cuando con sus sueldos devengados estaba en unos −S/ 28 mil.
+describe("los sueldos del mes en el Resumen", () => {
+  it("sin sueldos en uno de los dos meses, compara los dos antes de sueldos y lo dice (tarea 25)", () => {
+    const base = filas(todas());
+    const con = (fs: FilaER[], planilla: number) =>
+      fs.map((f) => ({
+        ...f,
+        planilla,
+        gastos: f.gastos + planilla,
+        resultado: f.resultado - planilla,
+        detalleGastos: [...f.detalleGastos.filter((d) => d.cuenta !== "62"), { cuenta: "62", nombre: "Personal", monto: planilla }],
+      }));
+    // Noviembre ya lleva sus sueldos devengados; el mismo tramo de octubre todavía no.
+    const c = comparacionMesPasado(con(base, 41717.28), con(base, 0));
+    expect(c.antesDeSueldos).toBe(true);
+    expect(c.antes).not.toBeNull();
+    expect(c.ahora.every((f) => f.planilla === 0 && !f.detalleGastos.some((d) => d.cuenta === "62"))).toBe(true);
+    expect(c.ahora.map((f) => f.resultado)).toEqual(base.map((f) => f.resultado));
+    // Si los dos llevan lo mismo, se comparan tal cual.
+    const ambos = comparacionMesPasado(con(base, 41717.28), con(base, 30062.23));
+    expect(ambos.antesDeSueldos).toBe(false);
+    expect(ambos.antes).toEqual(con(base, 30062.23));
+    expect(comparacionMesPasado(con(base, 0), con(base, 0)).antesDeSueldos).toBe(false);
+  });
+  it("una lectura caída no se disfraza: `antes` es null y Lo que se movió dice que no se pudo leer", () => {
+    const base = filas(todas());
+    const c = comparacionMesPasado(base, null);
+    expect(c.antes).toBeNull();
+    expect(c.antesDeSueldos).toBe(false);
+  });
+});
+
+describe("tiendasAdivinadas y mismasTiendas (ADR-0583: la línea de ventas se pide sin esperar al resumen)", () => {
+  const activas = ["a", "b", "c"];
+  it("todas: las tiendas activas, en su orden", () => {
+    expect(tiendasAdivinadas({ clave: "todas", ubicacionId: null, soloEmpresa: false }, "b", activas)).toEqual(["a", "b", "c"]);
+  });
+  it("una tienda elegida: solo ella; una ubicación que no es tienda activa (el Taller): ninguna", () => {
+    expect(tiendasAdivinadas({ clave: "b", ubicacionId: "b", soloEmpresa: false }, null, activas)).toEqual(["b"]);
+    expect(tiendasAdivinadas({ clave: "t", ubicacionId: "t", soloEmpresa: false }, null, activas)).toEqual([]);
+  });
+  it("la empresa no vende; quien mira su sede, su sede si es tienda", () => {
+    expect(tiendasAdivinadas({ clave: "empresa", ubicacionId: null, soloEmpresa: true }, "a", activas)).toEqual([]);
+    expect(tiendasAdivinadas({ clave: "propia", ubicacionId: null, soloEmpresa: false }, "c", activas)).toEqual(["c"]);
+    expect(tiendasAdivinadas({ clave: "propia", ubicacionId: null, soloEmpresa: false }, null, activas)).toEqual([]);
+  });
+  it("la apuesta solo vale con las mismas tiendas en el mismo orden (si no, se vuelven a pedir)", () => {
+    expect(mismasTiendas(["a", "b"], ["a", "b"])).toBe(true);
+    expect(mismasTiendas(["b", "a"], ["a", "b"])).toBe(false);
+    expect(mismasTiendas(["a"], ["a", "b"])).toBe(false);
+    expect(mismasTiendas([], [])).toBe(true);
   });
 });

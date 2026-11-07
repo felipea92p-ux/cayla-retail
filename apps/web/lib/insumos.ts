@@ -1,5 +1,8 @@
 import { createClient } from "@/lib/supabase/server";
-import { exigir } from "@/lib/resultado";
+import { exigir, opcional } from "@/lib/resultado";
+import { getProveedoresProduccion } from "@/lib/proveedores-produccion";
+import { leerTelasCortadasSinAnotar, type TelaCortadaSinAnotar } from "@/lib/telas-cortadas-sin-anotar-reglas";
+import { RPC_INGRESOS_ELIMINADOS, motivoParaNoTocarIngreso } from "@/lib/ingreso-insumo-reglas";
 import {
   capitalEnLotes,
   consumoSemanal,
@@ -9,10 +12,12 @@ import {
   semanasDeCobertura,
   type EstadoInsumo,
   type LoteConSaldo,
+  type MaterialVista,
   type MovimientoInsumo,
   type TipoInsumo,
   type TipoMovInsumo,
   type UnidadInsumo,
+  type UnidadMedidaAvio,
 } from "@/lib/insumos-reglas";
 
 // Insumos del Taller (ADR-0133, F3): tela y avíos. Solo lecturas: toda escritura pasa por las RPC de ADR-0090
@@ -39,12 +44,28 @@ export type InsumoVista = {
   /** De qué tejido y de qué color es esta tela (el vocabulario de la prenda, ADR-0400); vacíos si no se dijo. */
   tejidoId: string | null;
   colorCodigo: string | null;
+  /** La tela de la que este insumo es un color (ADR-0554); `null` o ausente = insumo suelto. */
+  materialId?: string | null;
   saldo: number;
   estado: EstadoInsumo;
   lotes: LoteConSaldo[];
   /** Ritmo medido en las últimas 4 semanas; `null` si no hubo consumo. */
   consumoSemanal: number | null;
   semanas: number | null;
+};
+
+/** Un ingreso eliminado por error (ADR-0570, actividad 6a): cuánto era, quién lo eliminó y por qué. Solo lo ve el líder; los demás reciben la lista vacía. */
+export type IngresoEliminado = {
+  loteId: string;
+  insumoId: string;
+  cantidad: number;
+  costoUnitario: number | null;
+  ingreso: string;
+  documento: string | null;
+  codigo: string | null;
+  motivo: string;
+  quien: string;
+  eliminadoEn: string;
 };
 
 export type MovimientoDelLibro = {
@@ -83,6 +104,14 @@ export type InsumosDelTaller = {
   capital: number | null;
   /** La base entregó el costo de los lotes (quien mira ve Producción en este Taller, ADR-0400 actividad 6). Sin lotes no hay costo que ver y se da por visible; con lotes y cero filas, no se ve: nunca se dibuja «S/ 0.00». */
   veCostos: boolean;
+  /** La base ya sabe corregir y eliminar un ingreso (migración 20261030134000): sin ella la pantalla no ofrece el lápiz. */
+  ingresosEditables: boolean;
+  /** Los ingresos eliminados por error, del más reciente al más viejo (solo para el líder; vacío si la base todavía no sabe eliminar ingresos). */
+  eliminados: IngresoEliminado[];
+  /** Las telas (y avíos con tela) del Taller: lo que es cada una y cómo se compra. Vacío si la base todavía no las tiene. */
+  materiales: MaterialVista[];
+  /** La base ya tiene las telas con sus colores (ADR-0554): sin ellas la pantalla se queda como antes. */
+  hayTelas: boolean;
 };
 
 const LIMITE_LIBRO = 12;
@@ -98,22 +127,104 @@ type FilaInsumo = {
   nota: string | null;
   tejido_id: string | null;
   color_codigo: string | null;
+  material_id?: string | null;
 };
+
+type FilaMaterial = {
+  id: string;
+  codigo: string;
+  nombre: string;
+  tipo: string;
+  tejido_id: string | null;
+  composicion: string | null;
+  unidad_medida: string;
+  merma_pct: number | string;
+  unidad_compra: string;
+  ancho_cm: number | string | null;
+  gramaje_gm2: number | string | null;
+  metros_por_rollo: number | string | null;
+  clase_id?: string | null;
+  medida_valor?: number | string | null;
+  medida_unidad?: string | null;
+  updated_at: string;
+};
+
+type FilaLote = {
+  id: string;
+  insumo_id: string;
+  codigo_lote: string | null;
+  fecha_ingreso: string;
+  created_at: string;
+  cantidad_ingresada: number | string;
+  documento: string | null;
+  origen: string;
+  proveedor_id: string | null;
+  nota: string | null;
+  anulado_at?: string | null;
+};
+
+type FilaEliminado = {
+  lote_id: string;
+  insumo_id: string;
+  cantidad: number | string;
+  costo_unitario: number | string | null;
+  fecha_ingreso: string;
+  documento: string | null;
+  codigo_lote: string | null;
+  motivo: string;
+  hecho_por: string;
+  eliminado_at: string;
+};
+
+type Respuesta<T> = PromiseLike<{ data: T[] | null; error: { message: string; code?: string } | null }>;
+
+const COLUMNAS_INSUMO = "id, codigo, nombre, tipo, unidad_medida, merma_pct, stock_minimo, nota, tejido_id, color_codigo";
+
+// `tejido_id`, `color_codigo` y `material_id` son nuevas y los tipos generados todavía no las traen: la consulta se tipa a mano, como `lotes` en recepcion-envio.ts.
+function leerInsumos(supabase: Awaited<ReturnType<typeof createClient>>, columnas: string): Respuesta<FilaInsumo> {
+  return (supabase.from("insumos") as unknown as { select: (c: string) => { is: (col: string, v: null) => { order: (c: string) => Respuesta<FilaInsumo> } } }).select(columnas).is("archivado_at", null).order("nombre");
+}
+
+// `anulado_at` es nueva (ADR-0570, 20261030134000) y los tipos generados todavía no la traen: la consulta se tipa a mano.
+function leerLotes(supabase: Awaited<ReturnType<typeof createClient>>, tallerId: string, columnas: string): Respuesta<FilaLote> {
+  return (supabase.from("insumo_lotes") as unknown as { select: (c: string) => { eq: (col: string, v: string) => Respuesta<FilaLote> } }).select(columnas).eq("ubicacion_id", tallerId);
+}
+
+// La función es nueva (ADR-0570): sin ella la lista queda vacía y la pantalla no se cae.
+function leerEliminados(supabase: Awaited<ReturnType<typeof createClient>>, tallerId: string): Respuesta<FilaEliminado> {
+  return (supabase as unknown as { rpc: (f: string, a: { p_ubicacion_id: string }) => Respuesta<FilaEliminado> }).rpc(RPC_INGRESOS_ELIMINADOS, { p_ubicacion_id: tallerId });
+}
+
+const COLUMNAS_MATERIAL = "id, codigo, nombre, tipo, tejido_id, composicion, unidad_medida, merma_pct, unidad_compra, ancho_cm, gramaje_gm2, metros_por_rollo";
+/** Lo que agregó ADR-0580 (la clase y la medida de un avío). Se pide aparte porque la web puede publicarse antes de que su SQL esté pegado. */
+const COLUMNAS_MATERIAL_AVIO = "clase_id, medida_valor, medida_unidad";
+
+function leerMateriales(supabase: Awaited<ReturnType<typeof createClient>>, columnas: string): Respuesta<FilaMaterial> {
+  // La tabla es nueva (ADR-0554) y no está en los tipos generados: se tipa el cliente, no el resultado.
+  return (supabase as unknown as { from: (t: string) => { select: (c: string) => { is: (col: string, v: null) => { order: (c: string) => Respuesta<FilaMaterial> } } } })
+    .from("materiales")
+    .select(columnas)
+    .is("archivado_at", null)
+    .order("nombre");
+}
 
 export async function getInsumosDelTaller(tallerId: string, opciones: { conCostos: boolean; hoy: string }): Promise<InsumosDelTaller> {
   const supabase = await createClient();
-  const [insumos, lotes, movs, costos] = await Promise.all([
-    // `tejido_id` y `color_codigo` son nuevas (ADR-0400, migración 20261014154000) y los tipos generados aún no las traen: la consulta se tipa a mano, como `lotes` en recepcion-envio.ts.
-    (supabase.from("insumos") as unknown as {
-      select: (c: string) => { is: (col: string, v: null) => { order: (c: string) => PromiseLike<{ data: FilaInsumo[] | null; error: { message: string; code?: string } | null }> } };
-    })
-      .select("id, codigo, nombre, tipo, unidad_medida, merma_pct, stock_minimo, nota, tejido_id, color_codigo")
-      .is("archivado_at", null)
-      .order("nombre"),
-    supabase
-      .from("insumo_lotes")
-      .select("id, insumo_id, codigo_lote, fecha_ingreso, created_at, cantidad_ingresada, documento, origen")
-      .eq("ubicacion_id", tallerId),
+  // La web puede salir antes que la migración 20261028175000 (ADR-0554): sin `material_id` los insumos se leen como hasta hoy (sin telas) y la pantalla no se cae.
+  const primera = await leerInsumos(supabase, `${COLUMNAS_INSUMO}, material_id`);
+  const sinMaterialId = !!primera.error && (primera.error.code === "42703" || /material_id/.test(primera.error.message));
+  const insumos = sinMaterialId ? await leerInsumos(supabase, COLUMNAS_INSUMO) : primera;
+  const COLUMNAS_LOTE = "id, insumo_id, codigo_lote, fecha_ingreso, created_at, cantidad_ingresada, documento, origen, proveedor_id, nota";
+  // Si la base todavía no tiene la migración de corregir ingresos, la pantalla no ofrece el lápiz (tocarlo fallaría).
+  let baseSinIngresosEditables = false;
+  const [lotes, movs, costos, materialesRes, eliminadosRes] = await Promise.all([
+    // La web puede salir antes que la migración 20261030134000 (ADR-0570): sin `anulado_at` los lotes se leen como hasta hoy y nadie ha eliminado ninguno. Una columna sin permiso de lectura
+    // (`42501`, como las demás de `insumo_lotes` hasta que se les da) cae igual que una que no existe (`42703`).
+    leerLotes(supabase, tallerId, `${COLUMNAS_LOTE}, anulado_at`).then(async (r) => {
+      if (!(r.error && (r.error.code === "42703" || r.error.code === "42501" || /anulado_at/.test(r.error.message)))) return r;
+      baseSinIngresosEditables = true;
+      return await leerLotes(supabase, tallerId, COLUMNAS_LOTE);
+    }),
     supabase
       .from("movimientos_insumo")
       .select("id, insumo_id, insumo_lote_id, tipo, cantidad, produccion_id, motivo, created_at, produccion:producciones ( producto:productos ( referencia ) )")
@@ -121,9 +232,17 @@ export async function getInsumosDelTaller(tallerId: string, opciones: { conCosto
       .order("created_at", { ascending: false }),
     // Solo quien ve los costos del Taller recibe filas (`fn_ve_costos_del_taller`: el líder, o quien ve Producción parado en él); a los demás la base les responde vacío.
     opciones.conCostos ? supabase.rpc("fn_costos_insumos_taller", { p_ubicacion_id: tallerId }) : Promise.resolve({ data: [] as { lote_id: string; costo_unitario: number }[], error: null }),
+    leerMateriales(supabase, `${COLUMNAS_MATERIAL}, ${COLUMNAS_MATERIAL_AVIO}, updated_at`),
+    leerEliminados(supabase, tallerId),
   ]);
+  // La web puede salir antes que `20261030144000` (ADR-0580): sin la clase ni la medida, las telas se leen igual que hasta hoy y la lista no se queda vacía (que es lo que pasaría al tratar
+  // un 42703 como «no hay telas»).
+  const sinClase = !!materialesRes.error && (materialesRes.error.code === "42703" || /clase_id|medida_/.test(materialesRes.error.message));
+  const materialesLeidos = sinClase ? await leerMateriales(supabase, `${COLUMNAS_MATERIAL}, updated_at`) : materialesRes;
   const costoDeLote = new Map(exigir(costos, "los costos de los lotes").map((c) => [c.lote_id, Number(c.costo_unitario)]));
 
+  // A quién se le compró cada lote: solo lo lee quien ve los proveedores del Taller (el líder: `fn_proveedores_produccion` le responde vacío a los demás). Es un dato de apoyo: si no se lee, el lote dice «compra» y nada se cae.
+  const proveedorDe = new Map((opciones.conCostos ? ((await opcional(getProveedoresProduccion(), "los proveedores de los lotes")) ?? []) : []).map((p) => [p.id, p.nombre] as const));
   const filasInsumos = exigir(insumos, "los insumos");
   const filasLotes = exigir(lotes, "los lotes de insumos");
   const filasMovs = exigir(movs, "los movimientos de insumos");
@@ -140,7 +259,8 @@ export async function getInsumosDelTaller(tallerId: string, opciones: { conCosto
     creadoEn: m.created_at,
     costo: m.insumo_lote_id ? (costoDeLote.get(m.insumo_lote_id) ?? 0) : 0,
   }));
-  const lotesBase = filasLotes.map((l) => ({
+  // Un ingreso eliminado no es un lote del estante: no cuenta en «N lotes», ni en el PEPS ni en el capital. Se ve aparte, con su «Restaurar».
+  const lotesBase = filasLotes.filter((l) => !l.anulado_at).map((l) => ({
     id: l.id,
     insumoId: l.insumo_id,
     codigo: l.codigo_lote,
@@ -150,13 +270,54 @@ export async function getInsumosDelTaller(tallerId: string, opciones: { conCosto
     costoUnitario: veCostos ? (costoDeLote.get(l.id) ?? 0) : null,
     documento: l.documento,
     origen: l.origen as "compra" | "saldo_inicial",
+    proveedor: l.proveedor_id ? (proveedorDe.get(l.proveedor_id) ?? null) : null,
+    nota: l.nota?.trim() || null,
   }));
+
+  // Sin las telas (la base todavía no las tiene) la lista queda vacía y la pantalla se ve como antes; se avisa en el registro, no a la persona.
+  if (materialesLeidos.error) console.error(`telas de los insumos: ${materialesLeidos.error.message}`);
+  const materiales: MaterialVista[] = materialesLeidos.error
+    ? []
+    : (materialesLeidos.data ?? []).map((m) => ({
+        id: m.id,
+        codigo: m.codigo,
+        nombre: m.nombre,
+        tipo: m.tipo as TipoInsumo,
+        tejidoId: m.tejido_id,
+        composicion: m.composicion,
+        unidad: m.unidad_medida as UnidadInsumo,
+        merma: Number(m.merma_pct),
+        compra: m.unidad_compra as MaterialVista["compra"],
+        ancho: m.ancho_cm === null ? null : Number(m.ancho_cm),
+        gramaje: m.gramaje_gm2 === null ? null : Number(m.gramaje_gm2),
+        metrosPorRollo: m.metros_por_rollo === null ? null : Number(m.metros_por_rollo),
+        claseId: m.clase_id ?? null,
+        // Las dos van juntas o no van (`materiales_medida_completa`): una medida a medias se lee como «sin medida» en vez de dibujar «18 undefined».
+        medida: m.medida_valor === null || m.medida_valor === undefined || !m.medida_unidad ? null : { valor: Number(m.medida_valor), unidad: m.medida_unidad as UnidadMedidaAvio },
+        version: String(m.updated_at),
+      }));
+
+  // Sin la función (la base todavía no la tiene) o sin ser líder, no hay eliminados que mostrar: no es un error de la pantalla.
+  const eliminados: IngresoEliminado[] = eliminadosRes.error
+    ? []
+    : (eliminadosRes.data ?? []).map((e) => ({
+        loteId: e.lote_id,
+        insumoId: e.insumo_id,
+        cantidad: Number(e.cantidad),
+        costoUnitario: e.costo_unitario === null ? null : Number(e.costo_unitario),
+        ingreso: e.fecha_ingreso,
+        documento: e.documento,
+        codigo: e.codigo_lote,
+        motivo: e.motivo,
+        quien: e.hecho_por,
+        eliminadoEn: e.eliminado_at,
+      }));
 
   const vistas: InsumoVista[] = filasInsumos.map((i) => {
     const suyos = movimientos.filter((m) => m.insumoId === i.id);
     const suyosLotes: LoteConSaldo[] = lotesBase
       .filter((l) => l.insumoId === i.id)
-      .map((l) => ({ ...l, saldo: saldoDeLote(l, suyos) }));
+      .map((l) => ({ ...l, saldo: saldoDeLote(l, suyos), noSeToca: motivoParaNoTocarIngreso(suyos.filter((m) => m.loteId === l.id)) }));
     const saldo = saldoDeInsumo(suyos);
     const semanal = consumoSemanal(suyos, opciones.hoy);
     return {
@@ -170,6 +331,7 @@ export async function getInsumosDelTaller(tallerId: string, opciones: { conCosto
       nota: i.nota,
       tejidoId: i.tejido_id ?? null,
       colorCodigo: i.color_codigo ?? null,
+      materialId: i.material_id ?? null,
       saldo,
       estado: estadoInsumo(saldo, i.stock_minimo === null ? null : Number(i.stock_minimo)),
       lotes: suyosLotes,
@@ -221,5 +383,28 @@ export async function getInsumosDelTaller(tallerId: string, opciones: { conCosto
     consumosPorOrden,
     capital: veCostos ? capitalEnLotes(vistas.flatMap((v) => v.lotes)) : null,
     veCostos,
+    ingresosEditables: !baseSinIngresosEditables,
+    eliminados,
+    materiales,
+    hayTelas: !sinMaterialId && !materialesLeidos.error,
   };
+}
+
+/**
+ * Las telas de órdenes abiertas que ya cortaron y no tienen nada descontado del libro (`fn_telas_cortadas_sin_anotar`, ADR-0570 actividad 4). Es un dato de apoyo: la web puede salir
+ * antes que su migración (`20261031173000`), y si la función no existe o la base no responde la pantalla sigue sin el aviso (se avisa en el registro, no a la persona).
+ */
+export async function getTelasCortadasSinAnotar(tallerId: string): Promise<TelaCortadaSinAnotar[]> {
+  const supabase = await createClient();
+  // La función es nueva y no está en los tipos generados: se tipa el cliente, no el resultado.
+  const { data, error } = await (supabase as unknown as { rpc: (n: string, a: object) => Promise<{ data: unknown; error: { code?: string; message: string } | null }> }).rpc(
+    "fn_telas_cortadas_sin_anotar",
+    { p_ubicacion_id: tallerId }
+  );
+  if (error) {
+    // 42883 / PGRST202: la base todavía no tiene la función. Es lo esperado hasta que se pegue la migración.
+    if (error.code !== "42883" && error.code !== "PGRST202") console.error(`telas cortadas sin anotar: ${error.message}`);
+    return [];
+  }
+  return leerTelasCortadasSinAnotar(data);
 }

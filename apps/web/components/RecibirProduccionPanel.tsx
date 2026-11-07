@@ -12,7 +12,8 @@ import { useSedeActiva } from "@/components/SedeActiva";
 import { Aviso } from "@/components/ui/Aviso";
 import { TituloSeccion } from "@/components/ui/TituloSeccion";
 import { cantidadConUnidad } from "@/lib/ordenes-insumo-reglas";
-import { esMiOrden, llegoAlgo, type OrdenInsumoPorRecibir } from "@/lib/recepcion-orden-insumo-reglas";
+import { esMiOrden,
+  ordenBloqueadaPorSerMia, llegoAlgo, type OrdenInsumoPorRecibir } from "@/lib/recepcion-orden-insumo-reglas";
 import { etiquetaTipo } from "@/lib/comprobantes-produccion-reglas";
 import { cantidadTexto } from "@/lib/insumos-reglas";
 import { agruparPorComprobante, resumenRecepcion, type ComprobantePorRecibir, type LineaPorRecibir } from "@/lib/recibir-produccion-reglas";
@@ -35,6 +36,7 @@ export function RecibirProduccionPanel({
   ordenesInsumo = [],
   fallaOrdenes = null,
   tallerId,
+  esAdmin = false,
   sede,
 }: {
   lineas: LineaPorRecibir[];
@@ -43,6 +45,8 @@ export function RecibirProduccionPanel({
   /** Por qué no se pudieron leer las órdenes (la pantalla lo dice y sigue con los papeles). */
   fallaOrdenes?: string | null;
   tallerId: string;
+  /** La cuenta es de un Admin: recibe lo que él mismo pidió (P05 del análisis del Taller; la base lo vuelve a exigir). */
+  esAdmin?: boolean;
   /** La sede de la línea de arriba de la cabecera (el Taller). */
   sede: string;
 }) {
@@ -100,7 +104,9 @@ export function RecibirProduccionPanel({
           <TituloSeccion cuenta={ordenesInsumo.length}>Órdenes de insumos</TituloSeccion>
           <ul className="space-y-3">
             {ordenesInsumo.map((o, i) => {
-              const mia = esMiOrden(o, personaId);
+              const mia = ordenBloqueadaPorSerMia(o, personaId, esAdmin);
+              // Un Admin que hizo la orden sí la recibe: se lo dice, y queda a su nombre (el lote y su movimiento guardan quién los registró).
+              const suya = esAdmin && esMiOrden(o, personaId);
               // La entrega es una fecha; «pedida el» es un instante y se lee en Lima (de 7 p. m. a medianoche, en UTC ya es mañana).
               const cuando = o.fechaEntregaEstimada ? `llega el ${diaMes(o.fechaEntregaEstimada)}` : o.creadaEn ? `pedida el ${diaYHoraLima(o.creadaEn).dia}` : null;
               return (
@@ -108,7 +114,7 @@ export function RecibirProduccionPanel({
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div className="min-w-0">
                       <p className="truncate text-[15px] text-tinta">{o.proveedor}</p>
-                      <p className="text-xs text-tinta/65">
+                      <p className="text-sm text-tinta/65">
                         {o.documento}
                         {cuando ? ` · ${cuando}` : ""}
                       </p>
@@ -128,13 +134,14 @@ export function RecibirProduccionPanel({
                       </Boton>
                     </div>
                   </div>
-                  {mia && <p className="mt-2 text-xs text-taupe">La hiciste tú: la recibe otra persona del Taller.</p>}
+                  {mia && <p className="mt-2 text-sm text-taupe">La hiciste tú: la recibe otra persona del Taller.</p>}
+                  {suya && <p className="mt-2 text-sm text-taupe">La hiciste tú. Como Admin la puedes recibir; queda anotado a tu nombre.</p>}
                   <ul className="mt-3">
                     {o.lineas.map((l) => (
-                      <li key={l.itemId} className="flex items-baseline justify-between gap-3 border-t border-tinta/10 py-2 text-[13px]">
+                      <li key={l.itemId} className="flex items-baseline justify-between gap-3 border-t border-tinta/10 py-2 text-sm">
                         <span className="min-w-0 truncate text-tinta">
                           {l.insumo}
-                          {l.tipo === "papel" && <small className="ml-1.5 text-xs text-taupe">fuera de la orden</small>}
+                          {l.tipo === "papel" && <small className="ml-1.5 text-sm text-taupe">fuera de la orden</small>}
                         </span>
                         <span className="whitespace-nowrap tabular-nums text-tinta/80">
                           quedan <b className="font-semibold text-tinta">{cantidadConUnidad(l.queda, l.unidad)}</b>
@@ -153,8 +160,7 @@ export function RecibirProduccionPanel({
         ordenesInsumo.length === 0 && (
           <div className="card-cayla">
             <Vacio guia="prod-recibir.lista" icono={<PackageOpen />} titulo="No hay insumos por recibir">
-              Cuando una orden de insumos esté por llegar, o el líder registre la factura de un proveedor de tela o avíos, aparecerá aquí para que
-              anotes lo que llegó.
+              Cuando una orden de insumos o una factura de tela esté por llegar, sale aquí para anotar lo que llegó.
             </Vacio>
           </div>
         )
@@ -176,7 +182,7 @@ export function RecibirProduccionPanel({
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div className="min-w-0">
                   <p className="truncate text-[15px] text-tinta">{g.proveedor}</p>
-                  <p className="text-xs text-tinta/65">
+                  <p className="text-sm text-tinta/65">
                     {etiquetaTipo(g.tipo, true)} {g.documento} · emitido {diaMes(g.fechaEmision)}
                   </p>
                 </div>
@@ -189,11 +195,11 @@ export function RecibirProduccionPanel({
               </div>
               <ul className="mt-3">
                 {g.pendientes.map((l) => (
-                  <li key={l.itemId} className="flex items-baseline justify-between gap-3 border-t border-tinta/10 py-2 text-[13px]">
+                  <li key={l.itemId} className="flex items-baseline justify-between gap-3 border-t border-tinta/10 py-2 text-sm">
                     <span className="min-w-0 truncate text-tinta">{l.insumo}</span>
                     <span className="whitespace-nowrap tabular-nums text-tinta/80">
                       faltan <b className="font-semibold text-tinta">{cantidadTexto(l.pendiente, l.unidad)}</b>
-                      {(l.recibido > 0 || l.cerrado > 0) && <small className="ml-1.5 text-xs text-tinta/60">de {cantidadTexto(l.facturado, l.unidad)}</small>}
+                      {(l.recibido > 0 || l.cerrado > 0) && <small className="ml-1.5 text-sm text-tinta/60">de {cantidadTexto(l.facturado, l.unidad)}</small>}
                     </span>
                   </li>
                 ))}
@@ -209,9 +215,9 @@ export function RecibirProduccionPanel({
           <summary className="cursor-pointer text-sm text-tinta/80">Ya recibidos ({completos.length})</summary>
           <ul className="mt-2">
             {completos.map((g) => (
-              <li key={g.comprobanteId} className="flex items-baseline justify-between gap-3 border-t border-tinta/10 py-2 text-[13px]">
+              <li key={g.comprobanteId} className="flex items-baseline justify-between gap-3 border-t border-tinta/10 py-2 text-sm">
                 <span className="min-w-0 truncate text-tinta">{g.proveedor}</span>
-                <span className="whitespace-nowrap text-xs tabular-nums text-tinta/65">
+                <span className="whitespace-nowrap text-sm tabular-nums text-tinta/65">
                   {etiquetaTipo(g.tipo, true)} {g.documento} · {diaMes(g.fechaEmision)}
                 </span>
               </li>

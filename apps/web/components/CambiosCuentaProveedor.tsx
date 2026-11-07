@@ -12,8 +12,7 @@ export function CambiosCuentaProveedor({ cambios }: { cambios: CambioBancario[] 
     <section className="card-cayla p-5" data-guia="proveedor-ficha.cambios-cuenta">
       <TituloSeccion>Cambios de la cuenta</TituloSeccion>
       <p className="nota-cayla mt-2 max-w-prose text-sm">
-        Antes de pagar a una cuenta que cambió, confírmala con el proveedor por teléfono: cambiar la cuenta justo antes de un pago es
-        la forma más común de desviarlo.
+        Antes de pagar a una cuenta que cambió, confírmala por teléfono con el proveedor: es la forma más común de desviar un pago.
       </p>
       <ul className="mt-3 divide-y divide-sand">
         {cambios.map((c, i) => {
@@ -28,7 +27,7 @@ export function CambiosCuentaProveedor({ cambios }: { cambios: CambioBancario[] 
                 <span className="tabular-nums text-tinta">{l.despues}</span>
                 {l.cambioOculto && <span className="text-tinta/65"> (cambió en los dígitos que no se muestran)</span>}
               </span>
-              <span className="text-xs text-tinta/65">
+              <span className="text-sm text-tinta/65">
                 {dia} · {hora} · {c.cambiadoPor ?? "no se sabe quién"}
               </span>
             </li>

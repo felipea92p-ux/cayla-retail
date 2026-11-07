@@ -8,6 +8,8 @@ import { traducirError } from "@/lib/error-escritura";
 import { avisar } from "@/components/ui/Avisos";
 import { Modal } from "@/components/ui/Modal";
 import { CampoSelect, CampoTexto, Boton } from "@/components/ui/campos";
+import { limpiarCantidad } from "@/lib/alta-producto";
+import { enteroEscrito } from "@/lib/cantidad-escrita-reglas";
 import type { CompraResumen } from "@/lib/compras-reglas";
 import {
   errorDeReasignacion,
@@ -110,7 +112,8 @@ function ReasignarRepartoModal({
   const origenes = tiendasConPendiente(propias);
   const origen = propias.find((f) => f.ubicacionId === desdeId);
   const destino = propias.find((f) => f.ubicacionId === haciaId);
-  const n = Math.floor(Number(cantidad));
+  // Se lee por su forma: `Math.floor` hacía de «1.5» un 1, y «1e1» era 10.
+  const n = enteroEscrito(cantidad) ?? Number.NaN;
   const linea = reasignables.find((l) => l.id === lineaId);
   const error = errorDeReasignacion({
     desdeId,
@@ -187,7 +190,7 @@ function ReasignarRepartoModal({
             className="space-y-5"
           >
             <p className="text-sm leading-relaxed text-tinta/70">
-              Úsalo cuando la mercadería llegó a una tienda distinta de la que decía el comprobante, o se repartió mal al registrarlo. Solo se mueve lo que <b className="font-semibold">aún no se recibió</b>.
+              Para mercadería que llegó a otra tienda o se repartió mal. Solo se mueve lo que <b className="font-semibold">aún no se recibió</b>.
             </p>
 
             <div className="space-y-5" data-guia="reasignar-modal.tiendas">
@@ -232,19 +235,18 @@ function ReasignarRepartoModal({
                 <CampoTexto
                   etiqueta="¿Cuántas unidades se mueven?"
                   id="reasignar-cantidad"
-                  type="number"
-                  min={1}
-                  max={origen?.pendiente ?? 1}
+                  inputMode="numeric"
                   value={cantidad}
-                  onChange={(e) => setCantidad(e.target.value)}
+                  onChange={(e) => setCantidad(limpiarCantidad(e.target.value))}
                   onFocus={(e) => e.target.select()}
                   className="tabular-nums"
-                  pie={`de ${origen?.pendiente ?? 0} pendientes en ${nombreDe(desdeId)}`}
+                  tono={cantidad.trim() !== "" && !cantidadOk ? "error" : undefined}
+                  pie={cantidad.trim() !== "" && !cantidadOk ? `Un número entero, de 1 a ${origen?.pendiente ?? 0}: lo que aún le falta recibir a ${nombreDe(desdeId)}.` : `de ${origen?.pendiente ?? 0} pendientes en ${nombreDe(desdeId)}`}
                 />
               </div>
               {/* El efecto, antes de confirmar: cómo queda lo que le toca a cada tienda. */}
               {cantidadOk && haciaId && (
-                <p className="mt-2 text-xs tabular-nums text-tinta/70" aria-live="polite">
+                <p className="mt-2 text-sm tabular-nums text-tinta/70" aria-live="polite">
                   {nombreDe(desdeId)}: {origen?.asignado} → <b className="font-semibold text-tinta">{(origen?.asignado ?? 0) - n}</b> · {nombreDe(haciaId)}: {destino?.asignado ?? 0} →{" "}
                   <b className="font-semibold text-tinta">{(destino?.asignado ?? 0) + n}</b>
                 </p>
@@ -273,8 +275,8 @@ function ReasignarRepartoModal({
               />
             </div>
 
-            <p className="text-xs leading-relaxed text-tinta/60">
-              No se borra nada: queda un registro en el historial del comprobante con quién lo movió, cuánto y por qué. Lo que una tienda ya recibió no se toca.
+            <p className="text-sm leading-relaxed text-tinta/60">
+              Queda en el historial del comprobante: quién lo movió, cuánto y por qué.
             </p>
 
             <div className="space-y-5" data-guia="reasignar-modal.pie">

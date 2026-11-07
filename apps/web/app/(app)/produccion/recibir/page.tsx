@@ -1,4 +1,3 @@
-import { redirect } from "next/navigation";
 import { requirePersonaActualV2 } from "@/lib/persona-actual";
 import { puedeVerProduccion } from "@/lib/produccion-menu";
 import { ProduccionSoloEnTaller } from "@/components/ProduccionSoloEnTaller";
@@ -16,8 +15,7 @@ import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 export default async function RecibirProduccionPage() {
   const persona = await requirePersonaActualV2();
   if (!puedeVerProduccion(persona)) {
-    if (!persona.puedeCambiarUbicacion) redirect("/");
-    return <ProduccionSoloEnTaller ubicacionActual={persona.ubicacionEtiqueta} />;
+    return <ProduccionSoloEnTaller ubicacionActual={persona.ubicacionEtiqueta} puedeCambiarUbicacion={persona.puedeCambiarUbicacion} />;
   }
   const taller = await getTaller();
   if (!taller) {
@@ -26,7 +24,7 @@ export default async function RecibirProduccionPage() {
         <EncabezadoPagina sede={persona.ubicacionEtiqueta} titulo="Recibir" />
         <div className="card-cayla">
           <Vacio icono={<Factory />} titulo="No hay un Taller activo">
-            Recibir necesita una ubicación de tipo Taller para saber dónde entran los insumos. Pídele al líder que active el Taller.
+            Falta el Taller. Pídele al líder que lo active.
           </Vacio>
         </div>
       </div>
@@ -35,7 +33,7 @@ export default async function RecibirProduccionPage() {
   const [lineas, ordenes] = await Promise.all([getLineasPorRecibir(taller.id), getOrdenesInsumoPorRecibir(taller.id)]);
   return (
     <div className="space-y-6">
-      <RecibirProduccionPanel sede={persona.ubicacionEtiqueta} lineas={lineas} ordenesInsumo={ordenes.ordenes} fallaOrdenes={ordenes.falla} tallerId={taller.id} />
+      <RecibirProduccionPanel sede={persona.ubicacionEtiqueta} lineas={lineas} ordenesInsumo={ordenes.ordenes} fallaOrdenes={ordenes.falla} tallerId={taller.id} esAdmin={persona.esAdmin} />
     </div>
   );
 }

@@ -8,6 +8,7 @@ import { avisar } from "@/components/ui/Avisos";
 import { Modal, campoEtiqueta, botonCancelar, botonPrimario } from "@/components/ui/Modal";
 import { totalEfectivoEncolado, type VentaEncolada } from "@/lib/ventas-offline";
 import { CampoSelect, CampoTexto, Boton } from "@/components/ui/campos";
+import { useCantidadEscrita } from "@/components/alta-producto/useCantidadEscrita";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { useResponsable } from "@/lib/useResponsable";
 import { firmar } from "@/lib/responsable-reglas";
@@ -16,16 +17,20 @@ import { cuentaEfectiva } from "@/lib/cuenta-sellada-reglas";
 import {
   DESTINOS_TRASLADO,
   cuadra,
+  destinosDelCierre,
   etiquetaDestino,
   fondoTrasCierre,
   leerMonto,
   motivoTrasladoInvalido,
+  REGLA_BILLETES,
   type DestinoTraslado,
 } from "@/lib/caja-cierre-reglas";
 import { dejaMenosDelFondo, trasladoParaDejarFondo } from "@/lib/configuracion-reglas";
 import { useEnLinea } from "@/lib/useEnLinea";
 import { Volver } from "@/components/ui/Volver";
 import { Aviso } from "@/components/ui/Aviso";
+import { CuentasConClaudia, EfectivoDeClaure, useCierreClaure } from "@/components/CuentasConClaudia";
+import { vistaPreviaSeQueda } from "@/lib/cierre-claure-reglas";
 
 function money(n: number) {
   return (n < 0 ? "-S/\u00a0" : "S/\u00a0") + Math.abs(n).toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -75,10 +80,14 @@ export function CerrarCajaModalV2({
 }) {
   const router = useRouter();
   const [paso, setPaso] = useState<"contar" | "trasladar">("contar");
+  // CLAURE (ADR-0560, actividad 3): en Lima, lo del efectivo de cada empresa y lo que se le debe a Claudia. Solo informa: nunca cambia ni bloquea el cierre.
+  const cierreClaure = useCierreClaure(cajaId);
   const [esperado, setEsperado] = useState<Esperado | null>(null);
   const [falloEsperado, setFalloEsperado] = useState(false);
   const [contadoTexto, setContadoTexto] = useState("");
   const [billetes, setBilletes] = useState<Record<number, string>>({});
+  // Lo que se teclea en cada billete: a `billetes` solo le llega una cantidad, porque la suma lee con `parseInt` («2,5» sería 2, y «-5», -5).
+  const escrita = useCantidadEscrita(REGLA_BILLETES);
   const [trasladoTexto, setTrasladoTexto] = useState("");
   const [destino, setDestino] = useState<DestinoTraslado>("caja_fuerte");
   const [referencia, setReferencia] = useState("");
@@ -316,6 +325,7 @@ export function CerrarCajaModalV2({
                 el sistema todavía no las sumó. No es un error tuyo: suben solas apenas vuelva el internet.
               </p>
             )}
+            {cierreClaure && <CuentasConClaudia cierre={cierreClaure} />}
             <button type="button" autoFocus onClick={cerrar} className={`${botonPrimario} w-full`}>
               Listo
             </button>
@@ -343,12 +353,15 @@ export function CerrarCajaModalV2({
           <form key="contar"
             onSubmit={(e) => {
               e.preventDefault();
+              // Lo tecleado en un billete no valió: antes de seguir con este total, se lee por qué.
+              if (escrita.frenar()) return;
               if (contado === null) return;
               // El traslado viene propuesto para dejar justo el fondo de hoy; quien cierra lo puede cambiar.
               if (fondoPedido && trasladoTexto.trim() === "") {
                 const propuesto = trasladoParaDejarFondo(contado, fondoPedido.monto);
                 if (propuesto > 0) setTrasladoTexto(propuesto.toFixed(2));
               }
+              escrita.olvidar();
               setPaso("trasladar");
             }}
             className="space-y-4"
@@ -375,6 +388,7 @@ export function CerrarCajaModalV2({
                         <dd className="tabular-nums">{money(esperado.esperado)}</dd>
                       </div>
                     </dl>
+                    {cierreClaure && <EfectivoDeClaure cierre={cierreClaure} />}
                   </>
                 ) : falloEsperado ? (
                   <p className="mt-2 text-xs text-tinta/65">
@@ -408,16 +422,21 @@ export function CerrarCajaModalV2({
                   <div className="mt-2 space-y-1">
                     {DENOMINACIONES.map((d) => {
                       const cantidad = parseInt(billetes[d] ?? "", 10) || 0;
+                      const clave = String(d);
+                      const invalida = escrita.invalida(clave);
                       return (
                         <label key={d} className="grid grid-cols-[3.25rem_4rem_1fr] items-center gap-2 text-xs text-tinta/65">
                           <b className="font-semibold text-tinta">{d >= 1 ? `S/\u00a0${d}` : `${Math.round(d * 100)} cts`}</b>
                           <input
                             inputMode="numeric"
                             placeholder="0"
-                            value={billetes[d] ?? ""}
-                            onChange={(e) => cambiarBillete(d, e.target.value.replace(/\D/g, ""))}
+                            value={escrita.texto(clave) ?? billetes[d] ?? ""}
+                            aria-invalid={invalida || undefined}
+                            onFocus={() => escrita.empezar(clave, billetes[d] ?? "")}
+                            onChange={(e) => escrita.escribir(clave, e.target.value, billetes[d] ?? "", (v) => cambiarBillete(d, v))}
+                            onBlur={() => escrita.terminar(clave)}
                             aria-label={`Cantidad de ${d >= 1 ? `billetes o monedas de ${d} soles` : `monedas de ${Math.round(d * 100)} céntimos`}`}
-                            className="caja-campo-input min-h-8 px-2 text-right tabular-nums"
+                            className={`caja-campo-input min-h-8 px-2 text-right tabular-nums ${invalida ? "text-rojo-profundo" : ""}`}
                           />
                           <span className={`text-right tabular-nums ${cantidad > 0 ? "text-tinta" : "text-tinta/35"}`}>
                             {money(cantidad * d)}
@@ -427,6 +446,11 @@ export function CerrarCajaModalV2({
                     })}
                   </div>
                 </details>
+                {escrita.problema && (
+                  <Aviso tono="atencion" chico className="mt-2">
+                    {escrita.problema}
+                  </Aviso>
+                )}
               </section>
             </div>
             {diferencia !== null && (
@@ -500,7 +524,8 @@ export function CerrarCajaModalV2({
                   setDestino(v);
                   setReferencia("");
                 }}
-                opciones={DESTINOS_TRASLADO.map((d) => ({ valor: d.valor, texto: d.etiqueta }))}
+                opciones={destinosDelCierre(cierreClaure !== null).map((d) => ({ valor: d.valor, texto: d.etiqueta }))}
+                pie={destino === "claudia" ? (cierreClaure && vistaPreviaSeQueda(cierreClaure, trasladado)?.frase) || "Es efectivo de CAYLA que ella guarda: sale del cajón y baja lo que se le debe." : undefined}
               />
               {destino === "banco" && bancos.cuentas.some((c) => c.tipo === "banco") && (
                 <CampoSelect

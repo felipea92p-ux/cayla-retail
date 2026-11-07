@@ -95,15 +95,3 @@ export function balanzaIgv(f: MesIgv, renta: number | null, opciones: { porLugar
     cuadra: deSede || Math.abs(resta - igvBase) < 0.05,
   };
 }
-
-/** La altura de cada pesa en el dibujo: proporcional a su monto contra el plato más pesado de los dos, con un mínimo visible. */
-export function alturasPesas(b: Balanza, alto: number, minimo = 6): { cobrado: number[]; compras: number[] } {
-  const mayor = Math.max(b.cobrado.total, b.compras.total, 1);
-  const escala = (p: Plato) => {
-    const suma = p.pesas.reduce((a, x) => a + x.monto, 0) || 1;
-    // Si el plato resta algo que no es pesa, las pesas se achican para que la pila mida su total, no la suma bruta.
-    const factor = p.total / suma;
-    return p.pesas.map((x) => Math.max(minimo, Math.round(((x.monto * factor) / mayor) * alto)));
-  };
-  return { cobrado: escala(b.cobrado), compras: escala(b.compras) };
-}

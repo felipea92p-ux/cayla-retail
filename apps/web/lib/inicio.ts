@@ -4,12 +4,13 @@ import { getCajaAbierta, getVentasMismaHoraSemanaAnterior } from "@/lib/caja";
 import { getUbicaciones } from "@/lib/ubicaciones";
 import { getParametrosCaja } from "@/lib/configuracion";
 import { hoyLima } from "@/lib/fechas-lima";
-import { fuenteVentasDeHoy, nombreDiaLima } from "@/lib/inicio-reglas";
+import { fuenteVentasDeHoy, leerClaureDeHoy, nombreDiaLima, semanaSinClaure, sinClaure } from "@/lib/inicio-reglas";
 import { armarEquipo, resumirApartados, type FuentesAvisos, type MiembroEquipo } from "@/lib/inicio-avisos";
 import { armarMiMeta, rangoDeMiLectura, type MiMeta } from "@/lib/mi-meta-reglas";
 import { getApartadosAbiertos } from "@/lib/apartados";
 import { getDeudaPorVencimiento } from "@/lib/compras-indicadores";
 import { getAvisoPerdidas } from "@/lib/perdidas";
+import { DIAS_AVISO_DANADA } from "@/lib/danadas-arreglo";
 import type { ClaveModulo } from "@/lib/modulos";
 import { getPedidosPorAtender, leerParaEnviar, leerPedidosConCliente } from "@/lib/pedidos-entre-sedes";
 import { paraEnviarAtrasadas } from "@/lib/para-enviar-reglas";
@@ -17,6 +18,7 @@ import { ahoraSinRespuesta, leAvisaSinRespuesta, pedidosSinRespuesta, textoSinRe
 import { resumenParaElInicio } from "@/lib/pedidos-con-cliente-reglas";
 import { getCuentasBancariasCambiadas } from "@/lib/proveedores";
 import { getIgvEnEspera } from "@/lib/igv-en-espera";
+import { getPlanillaParaElInicio } from "@/lib/cuentas-dinero";
 
 // Lecturas del bloque «Hoy» del Inicio. La líder reutiliza las MISMAS fuentes que Caja (`fn_ventas_del_dia`,
 // `getVentasMismaHoraSemanaAnterior`, `fn_parametros_caja` — antes `ubicaciones.meta_venta_diaria`) para que las dos pantallas nunca
@@ -36,6 +38,8 @@ export type HoyDeLaSede = {
   /** Solo la líder ve el comparativo y la meta: son cifras de toda la sede. null = no aplica o falló. */
   semanaAnterior: number | null;
   metaVentaDiaria: number | null;
+  /** Cuánto de lo vendido hoy es de CLAURE y se dejó fuera de `totales` y de la comparación (solo la líder; 0 si la sede no tiene CLAURE). ADR-0560. */
+  deClaure: number;
   /** «viernes»: el día de hoy en Lima, para decir «vs. viernes pasado». Se calcula acá (no en el componente) porque
    *  `Date.now()` es impuro y un componente no debe llamarlo. */
   nombreDia: string;
@@ -52,7 +56,7 @@ export async function tolerarLectura<T>(que: string, leer: () => Promise<T>): Pr
 
 export async function getHoyDeLaSede(ubicacionId: string, esLider: boolean): Promise<HoyDeLaSede> {
   const supabase = await createClient();
-  const [caja, totales, semanaAnterior, ubicaciones, parametros] = await Promise.all([
+  const [caja, ventas, claure, semanaAnterior, ubicaciones, parametros] = await Promise.all([
     // `getCajaAbierta` devuelve null cuando NO hay caja abierta: no es un fallo. Un fallo real (lanza) se vuelve null
     // acá, y por eso se separan: abierta = true, cerrada = false, no se pudo leer = null.
     getCajaAbierta(ubicacionId).then(
@@ -69,18 +73,30 @@ export async function getHoyDeLaSede(ubicacionId: string, esLider: boolean): Pro
           ? await supabase.rpc("fn_ventas_del_dia", { p_ubicacion_id: ubicacionId })
           : await supabase.rpc("fn_mis_ventas_del_dia");
       if (res.error) throw new Error(res.error.message);
-      return (res.data ?? []).map((v) => Number(v.total));
+      return (res.data ?? []).map((v) => ({ id: v.venta_id, total: Number(v.total) }));
     }),
+    // Lo de CLAURE que Caja sí cuenta y el «Hoy» no (ADR-0560, 6a). Si no se puede leer, el «Hoy» sale como antes, con todo lo cobrado: es un dato de apoyo.
+    esLider
+      ? tolerarLectura("lo de CLAURE de hoy", async () => {
+          const res = await supabase.rpc("fn_claure_de_hoy" as never, { p_ubicacion_id: ubicacionId } as never);
+          if (res.error) throw new Error(res.error.message);
+          return leerClaureDeHoy(res.data);
+        })
+      : Promise.resolve(null),
     esLider ? tolerarLectura("las ventas de la semana pasada", () => getVentasMismaHoraSemanaAnterior(ubicacionId)) : Promise.resolve(null),
     esLider ? tolerarLectura("la meta de la sede", () => getUbicaciones()) : Promise.resolve(null),
     // La meta de hoy con las campañas (ADR-0195 F1): la misma regla que Caja. `null` = base sin fn_parametros_caja.
     esLider ? getParametrosCaja(ubicacionId, hoyLima()) : Promise.resolve(null),
   ]);
 
+  // Solo la líder lee el día de toda la sede (donde está lo de CLAURE): una integrante lee lo que ella atendió.
+  const deCasa = ventas === null ? null : esLider ? sinClaure(ventas, claure) : { totales: ventas.map((v) => v.total), excluido: 0 };
+
   return {
     cajaAbierta: caja,
-    totales,
-    semanaAnterior,
+    totales: deCasa === null ? null : deCasa.totales,
+    deClaure: deCasa === null ? 0 : deCasa.excluido,
+    semanaAnterior: esLider ? semanaSinClaure(semanaAnterior, claure) : semanaAnterior,
     metaVentaDiaria: parametros ? parametros.meta : (ubicaciones?.find((u) => u.id === ubicacionId)?.metaVentaDiaria ?? null),
     nombreDia: nombreDiaLima(Date.now()),
   };
@@ -124,11 +140,11 @@ export async function contar(que: string, consulta: PromiseLike<{ count: number 
 
 export async function getFuentesAvisos(
   cuenta: { ubicacionId: string; sedePropiaId: string | null; esLider: boolean; esTerminal: boolean; ve: (m: ClaveModulo) => boolean; pagaCompras: boolean },
-  base: Omit<FuentesAvisos, "apartados" | "devoluciones" | "pedidos" | "conteoAbierto" | "porPagar" | "perdidas" | "pedidosSinRespuesta" | "pedidosCliente" | "paraEnviar" | "recibidoPorTerminar" | "prendasSinLlegar">
+  base: Omit<FuentesAvisos, "apartados" | "devoluciones" | "pedidos" | "conteoAbierto" | "porPagar" | "perdidas" | "danadasViejas" | "pedidosSinRespuesta" | "pedidosCliente" | "paraEnviar" | "recibidoPorTerminar" | "prendasSinLlegar" | "planillaSalidas">
 ): Promise<FuentesAvisos> {
   const supabase: Supabase = await createClient();
   const { ubicacionId, ve } = cuenta;
-  const [apartados, devoluciones, pedidos, conteoAbierto, porPagar, perdidas, pedidosSinRespuestaLeidos, pedidosCliente, paraEnviar, cuentasBancarias, recibidoPorTerminar, igv] = await Promise.all([
+  const [apartados, devoluciones, pedidos, conteoAbierto, porPagar, perdidas, danadasViejas, pedidosSinRespuestaLeidos, pedidosCliente, paraEnviar, cuentasBancarias, recibidoPorTerminar, igv, planillaLeida] = await Promise.all([
     ve("apartados")
       ? tolerarLectura("los apartados", async () => resumirApartados(await getApartadosAbiertos(ubicacionId, { esTerminal: cuenta.esTerminal }), hoyLima()))
       : undefined,
@@ -151,6 +167,9 @@ export async function getFuentesAvisos(
       : undefined,
     // ADR-0328 act. 14: «se repite», solo del líder y con el módulo de la pestaña a la que lleva (Movimientos).
     cuenta.esLider && ve("movimientos") ? tolerarLectura("las pérdidas que se repiten", () => getAvisoPerdidas(ubicacionId)) : undefined,
+    // ADR-0564: las dañadas que llevan 7 días o más sin que nadie las saque a arreglar ni decida: solo del líder, en el Inicio de su sede, y con
+    // el módulo de la pantalla a la que lleva (Existencias).
+    cuenta.esLider && ve("existencias") ? tolerarLectura("las dañadas sin decidir", () => contarDanadasViejasDeSede(supabase, ubicacionId)) : undefined,
     // ADR-0328 act. 17: a las 48 h sin respuesta, aviso a los líderes de las DOS sedes (la que pidió y la que debe enviar),
     // cada uno en el Inicio de SU sede (decisión del 2026-10-04: «los que tienen esa sede»; un líder parado en otra no lo
     // recibe por ella). El Admin los ve todos en el Observatorio.
@@ -176,14 +195,33 @@ export async function getFuentesAvisos(
     // ADR-0362 fase 5b, actividad 4: el IGV de lo que no llegó. Una lectura para los dos avisos; la base manda nula la parte que no le
     // toca a quien mira. Sin la función (la base sin su migración), los avisos no existen.
     ve("proveedores") ? tolerarLectura("el IGV en espera", () => getIgvEnEspera()) : undefined,
+    // ADR-0567: la planilla que Dynamic pagó y no dice de qué banco salió, para el líder que ve Cuentas y dinero. Sin nada que registrar (o sin
+    // la función en la base), el aviso no existe.
+    cuenta.esLider && ve("cuentas_dinero") ? tolerarLectura("la planilla por registrar", () => getPlanillaParaElInicio()) : undefined,
   ]);
+  const planillaSalidas = planillaLeida === null ? null : (planillaLeida ?? undefined);
   const prendasSinLlegar =
     !ve("proveedores") || igv === undefined ? undefined
       : igv === null ? null
         : igv.faltantes
           ? { prendas: igv.faltantes.prendas, facturas: igv.faltantes.facturas, igv: igv.faltantes.igv, proveedores: igv.faltantes.proveedores, proveedorId: igv.faltantes.proveedorId }
           : undefined;
-  return { ...base, apartados, devoluciones, pedidos, conteoAbierto, porPagar, perdidas, pedidosSinRespuesta: pedidosSinRespuestaLeidos, pedidosCliente, paraEnviar, cuentasBancarias, recibidoPorTerminar, prendasSinLlegar };
+  return { ...base, apartados, devoluciones, pedidos, conteoAbierto, porPagar, perdidas, danadasViejas, pedidosSinRespuesta: pedidosSinRespuestaLeidos, pedidosCliente, paraEnviar, cuentasBancarias, recibidoPorTerminar, prendasSinLlegar, planillaSalidas };
+}
+
+/**
+ * Cuántas dañadas de la sede llevan `DIAS_AVISO_DANADA` días o más en la cuarentena SIN haber salido a arreglar (ADR-0564). Sin la columna de la
+ * salida (la web publicada antes que su migración) cuenta todas las de ese tiempo; lanza solo si la base de verdad no responde.
+ */
+async function contarDanadasViejasDeSede(supabase: Supabase, ubicacionId: string): Promise<number> {
+  const limite = new Date(Date.now() - DIAS_AVISO_DANADA * 86_400_000).toISOString();
+  const base = () => supabase.from("prendas_danadas").select("id", { count: "exact", head: true }).eq("ubicacion_id", ubicacionId).eq("estado", "en_cuarentena").lte("created_at", limite);
+  const con = await base().is("en_arreglo_desde", null);
+  if (!con.error) return con.count ?? 0;
+  if (con.error.code !== "42703") throw new Error(con.error.message);
+  const sin = await base();
+  if (sin.error) throw new Error(sin.error.message);
+  return sin.count ?? 0;
 }
 
 /** Lo que entrega `fn_actividad` por llamada (su tope duro) y cuántas llamadas como máximo se hacen para recorrer el día (2.000 filas). */

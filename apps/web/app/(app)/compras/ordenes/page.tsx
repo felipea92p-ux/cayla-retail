@@ -24,7 +24,7 @@ import {
   type ParamsLista,
 } from "@/lib/ordenes-compra-reglas";
 import { soles } from "@/lib/compras-reglas";
-import { diaMes } from "@/lib/fechas-lima";
+import { diaMes, hoyLima } from "@/lib/fechas-lima";
 import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 import { Tabla, Encabezado, fila, celda } from "@/components/ui/Tabla";
 import { TarjetaCifra } from "@/components/ui/TarjetaCifra";
@@ -39,6 +39,8 @@ import { getResumenMiFondo } from "@/lib/fondos";
 import { mostrarTuFondo } from "@/lib/fondos-reglas";
 import { PaginacionCursor } from "@/components/Paginacion";
 import { BuscadorOrdenes } from "@/components/ordenes-compra/BuscadorOrdenes";
+import { PendientesDeCampana } from "@/components/ordenes-compra/PendientesDeCampana";
+import { getPedidosDeCampana } from "@/lib/pedidos-campana";
 
 // Órdenes de compra (ADR-0362, fase 1): lo que CAYLA le pide a cada proveedor, antes de que llegue la factura. Cada orden lleva un
 // número que no se repite ni se libera (OC-000001), su proveedor, a qué tienda llega —o «por repartir», si llega a Lima y se
@@ -73,7 +75,7 @@ const PLANTILLA =
 // Una celda que solo es columna propia en la tabla ancha.
 const SOLO_ANCHA = "hidden @min-[64rem]:block";
 // Lo que en una tabla menos ancha va en la segunda línea de otra celda.
-const SEGUNDA_LINEA = "block @min-[64rem]:hidden text-xs text-taupe";
+const SEGUNDA_LINEA = "block @min-[64rem]:hidden text-sm text-taupe";
 // Las columnas que solo existen con la tabla en columnas (desde 40 rem); en celular su dato va junto al número.
 const CON_COLUMNAS = "hidden @min-[40rem]:block";
 // Una cifra: a la derecha cuando hay columnas; apilada, a la izquierda como el resto.
@@ -83,12 +85,14 @@ const plural = (n: number, uno: string, varios: string) => `${n.toLocaleString("
 
 export default async function OrdenesCompraPage({ searchParams }: { searchParams: Promise<ParamsLista> }) {
   const persona = await exigirModulo("ordenes_compra");
-  const [params, destinosLeidos, resumen, porEnviar, fondo] = await Promise.all([
+  const [params, destinosLeidos, resumen, porEnviar, fondo, deCampana] = await Promise.all([
     searchParams,
     getDestinosOrden(),
     getResumenOrdenes(),
     getOrdenesPorEnviar(),
     getResumenMiFondo(),
+    // Los pedidos que el Plan de campaña mandó a Compras (ADR-0530): se confirman aquí. Una ayuda: sin la función, la sección no sale.
+    getPedidosDeCampana(),
   ]);
   const tuFondo = mostrarTuFondo(fondo) ? fondo : null;
   const destinos = destinosLeidos ?? [];
@@ -135,6 +139,9 @@ export default async function OrdenesCompraPage({ searchParams }: { searchParams
         }
       />
 
+      {/* Lo que el Plan de campaña mandó a Compras y espera confirmación (ADR-0530): antes que las órdenes, porque es lo que pide una decisión. */}
+      <PendientesDeCampana pedidos={deCampana.pedidos} falla={deCampana.falla} hoy={hoyLima()} />
+
       {falla ? (
         <Aviso tono="error" titulo="No se pudieron leer las órdenes de compra">
           {falla}
@@ -149,7 +156,7 @@ export default async function OrdenesCompraPage({ searchParams }: { searchParams
           )}
           <div className="card-cayla">
             <Vacio icono={<ClipboardList />} titulo="Todavía no hay órdenes de compra" acciones={nuevaOrden}>
-              Crea la primera con lo que le vas a pedir a un proveedor: aquí vas a ver su número, a qué tienda llega y cuánto suma.
+              Crea la primera con lo que le vas a pedir a un proveedor.
             </Vacio>
           </div>
         </>
@@ -281,9 +288,9 @@ export default async function OrdenesCompraPage({ searchParams }: { searchParams
                             </span>
                           </span>
                           {esRecien ? (
-                            <span className="block text-xs font-medium text-verde">Recién guardada</span>
+                            <span className="block text-sm font-medium text-verde">Recién guardada</span>
                           ) : (
-                            <span className="block text-xs text-taupe">del {diaMes(f.fechaEmision)}</span>
+                            <span className="block text-sm text-taupe">del {diaMes(f.fechaEmision)}</span>
                           )}
                         </span>
                         <span className={celda("izq", "text-tinta")} data-guia="ordenes.proveedor">
@@ -297,7 +304,7 @@ export default async function OrdenesCompraPage({ searchParams }: { searchParams
                         <span className={celda("izq", `${SOLO_ANCHA} tabular-nums text-tinta/80`)}>{diaMes(f.fechaEntregaEstimada)}</span>
                         <span className={`${CIFRA} ${SOLO_ANCHA} text-tinta/80`}>
                           {f.unidades.toLocaleString("es-PE")}
-                          {porEnviarDe != null && <span className="block text-xs font-normal text-taupe">{porEnviarDe.toLocaleString("es-PE")} por enviar</span>}
+                          {porEnviarDe != null && <span className="block text-sm font-normal text-taupe">{porEnviarDe.toLocaleString("es-PE")} por enviar</span>}
                         </span>
                         {/* Una anulada no suma: su total va tachado. */}
                         <span className={`${CIFRA} cmp-total font-medium`}>

@@ -236,24 +236,31 @@ rollback;`);
 correr(
   "5. El parche está puesto y es re-pegable",
   `begin;
-${K("marca_validacion", "position('ADR-0346: validacion_tipos_visuales' in pg_get_functiondef('retail.fn_movimientos(uuid, date, date, text, text, text, uuid, uuid, timestamptz, uuid, integer, uuid)'::regprocedure)) > 0")}
-${K("marca_filtro", "position('ADR-0346: filtro_tipos_visuales' in pg_get_functiondef('retail.fn_movimientos(uuid, date, date, text, text, text, uuid, uuid, timestamptz, uuid, integer, uuid)'::regprocedure)) > 0")}
-${K("marca_grupos", "position('ADR-0346: grupos_tipos_visuales' in pg_get_functiondef('retail.fn_movimientos_resumen_procesos(uuid, date, date, text, text, uuid, uuid)'::regprocedure)) > 0")}
+${K("marca_validacion", "position('ADR-0346: validacion_tipos_visuales' in pg_get_functiondef('retail.fn_movimientos(uuid, date, date, text, text, text, uuid, uuid, timestamptz, uuid, integer, uuid, uuid)'::regprocedure)) > 0")}
+${K("marca_filtro", "position('ADR-0346: filtro_tipos_visuales' in pg_get_functiondef('retail.fn_movimientos(uuid, date, date, text, text, text, uuid, uuid, timestamptz, uuid, integer, uuid, uuid)'::regprocedure)) > 0")}
+${K("marca_grupos", "position('ADR-0346: grupos_tipos_visuales' in pg_get_functiondef('retail.fn_movimientos_resumen_procesos(uuid, date, date, text, text, uuid, uuid, uuid)'::regprocedure)) > 0")}
 ${K("n_lista", "(select count(*) from pg_proc p join pg_namespace n on n.oid = p.pronamespace where n.nspname = 'retail' and p.proname = 'fn_movimientos')")}
-${K("anon", "has_function_privilege('anon', 'retail.fn_movimientos(uuid, date, date, text, text, text, uuid, uuid, timestamptz, uuid, integer, uuid)'::regprocedure, 'EXECUTE')")}
-${K("auth", "has_function_privilege('authenticated', 'retail.fn_movimientos(uuid, date, date, text, text, text, uuid, uuid, timestamptz, uuid, integer, uuid)'::regprocedure, 'EXECUTE')")}
-${K("md5_antes", "md5(pg_get_functiondef('retail.fn_movimientos(uuid, date, date, text, text, text, uuid, uuid, timestamptz, uuid, integer, uuid)'::regprocedure) || pg_get_functiondef('retail.fn_movimientos_resumen_procesos(uuid, date, date, text, text, uuid, uuid)'::regprocedure))")}
+${K("anon", "has_function_privilege('anon', 'retail.fn_movimientos(uuid, date, date, text, text, text, uuid, uuid, timestamptz, uuid, integer, uuid, uuid)'::regprocedure, 'EXECUTE')")}
+${K("auth", "has_function_privilege('authenticated', 'retail.fn_movimientos(uuid, date, date, text, text, text, uuid, uuid, timestamptz, uuid, integer, uuid, uuid)'::regprocedure, 'EXECUTE')")}
+${K("md5_antes", "md5(pg_get_functiondef('retail.fn_movimientos(uuid, date, date, text, text, text, uuid, uuid, timestamptz, uuid, integer, uuid, uuid)'::regprocedure) || pg_get_functiondef('retail.fn_movimientos_resumen_procesos(uuid, date, date, text, text, uuid, uuid, uuid)'::regprocedure))")}
 rollback;`,
   (d) => {
     igual(d, "marca_validacion", "true", "la validación acepta los tipos nuevos (parche puesto)");
     igual(d, "marca_filtro", "true", "el filtro de la lista los separa (parche puesto)");
     igual(d, "marca_grupos", "true", "las cifras tienen sus grupos (parche puesto)");
-    igual(d, "n_lista", 1, "hay UNA sola fn_movimientos (la firma no cambió)");
+    igual(d, "n_lista", 1, "hay UNA sola fn_movimientos (ninguna firma vieja suelta)");
     igual(d, "anon", "false", "anon NO puede ejecutarla");
     igual(d, "auth", "true", "authenticated sí");
-    // Re-pegar la migración (sus trozos ya están puestos): no debe cambiar ni una letra de las dos funciones.
+    // Re-pegar la migración (sus trozos ya están puestos): no debe cambiar ni una letra de las dos funciones. Desde 20261026234000
+    // (ADR-0532) las dos funciones tienen un parámetro más (`p_empresa_id`) y esta migración, escrita para la firma anterior, ya no
+    // las encuentra: re-pegarla deja de tener sentido (la de ADR-0532 prueba su propia re-pegada en `pruebas:vendido-por-empresa`).
+    const firmaVieja = psql(`select to_regprocedure('retail.fn_movimientos(uuid, date, date, text, text, text, uuid, uuid, timestamptz, uuid, integer, uuid)') is not null;`).trim();
+    if (firmaVieja !== "t") {
+      afirmar("la migración se puede pegar otra vez (no aplica: 20261026234000 cambió la firma)", true, "");
+      return;
+    }
     const migracion = readFileSync(new URL("../../supabase/migrations/20261005160000_movimientos_colgada_y_guardada.sql", import.meta.url), "utf8");
-    const huella = `${K("md5", "md5(pg_get_functiondef('retail.fn_movimientos(uuid, date, date, text, text, text, uuid, uuid, timestamptz, uuid, integer, uuid)'::regprocedure) || pg_get_functiondef('retail.fn_movimientos_resumen_procesos(uuid, date, date, text, text, uuid, uuid)'::regprocedure))")}`;
+    const huella = `${K("md5", "md5(pg_get_functiondef('retail.fn_movimientos(uuid, date, date, text, text, text, uuid, uuid, timestamptz, uuid, integer, uuid, uuid)'::regprocedure) || pg_get_functiondef('retail.fn_movimientos_resumen_procesos(uuid, date, date, text, text, uuid, uuid, uuid)'::regprocedure))")}`;
     let despues;
     try {
       despues = parsear(psql(`begin;\n${migracion}\n${huella}\nrollback;`));

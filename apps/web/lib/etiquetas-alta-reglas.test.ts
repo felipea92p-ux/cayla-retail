@@ -140,7 +140,7 @@ describe("agruparEtiquetas", () => {
 
 describe("significadoDelTexto", () => {
   const reparto = repartirEtiquetas(TODAS, { categoriaId: "blusas" });
-  const ctx = { todas: TODAS, reparto, elegidas: ["e2"], propuestas: ["Verano Chic"] };
+  const ctx = { todas: TODAS, reparto, elegidas: ["e2"] };
 
   it("vacío o solo espacios no es nada", () => {
     expect(significadoDelTexto("   ", ctx)).toEqual({ tipo: "vacio" });
@@ -160,20 +160,20 @@ describe("significadoDelTexto", () => {
   it("una con descuento se elige como cualquier otra: responde «elegible», no ofrece crearla de nuevo (chocaría con el índice único)", () => {
     expect(significadoDelTexto("para liquidar", ctx)).toMatchObject({ tipo: "existe", motivo: "elegible", etiqueta: LIQUIDAR });
   });
-  it("una que ya se propuso en esta pantalla (y espera a un líder) no se vuelve a proponer", () => {
-    expect(significadoDelTexto("verano chic", ctx)).toEqual({ tipo: "existe", nombre: "verano chic", etiqueta: null, motivo: "propuesta" });
+  it("desde ADR-0534 no hay propuestas que esperen: un nombre que no está en el vocabulario es NUEVA", () => {
+    expect(significadoDelTexto("verano chic", ctx)).toEqual({ tipo: "nueva", nombre: "verano chic" });
   });
   it("un nombre guardado con espacios de más se reconoce como existente, no como nueva", () => {
     const raro = [et("d1", "Nueva   colección")];
     const r = repartirEtiquetas(raro, { categoriaId: "" });
-    expect(significadoDelTexto("nueva colección", { todas: raro, reparto: r, elegidas: [], propuestas: [] })).toMatchObject({ tipo: "existe", motivo: "elegible" });
+    expect(significadoDelTexto("nueva colección", { todas: raro, reparto: r, elegidas: [] })).toMatchObject({ tipo: "existe", motivo: "elegible" });
   });
   it("lo escrito con comas no se crea: pegar «a, b, c» dejaría UNA etiqueta con comas en el vocabulario", () => {
     expect(significadoDelTexto("Verano, Otoño", ctx)).toEqual({ tipo: "invalida", nombre: "Verano, Otoño" });
     expect(FRASE_ETIQUETA_INVALIDA).toContain("de a una");
   });
   it("cada motivo tiene su frase, y ninguna queda vacía", () => {
-    for (const m of ["elegible", "elegida", "campana", "propuesta"] as const) expect(fraseDeExistente(m).length).toBeGreaterThan(10);
+    for (const m of ["elegible", "elegida", "campana"] as const) expect(fraseDeExistente(m).length).toBeGreaterThan(10);
   });
 });
 

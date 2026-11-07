@@ -17,14 +17,25 @@ const ARCHIVO = readFileSync("supabase/migrations/20261014150000_apartados_entre
 const REEMPLAZOS = [...ARCHIVO.matchAll(/\$v\$([\s\S]*?)\$v\$,\s*\$v\$([\s\S]*?)\$v\$,\s*1\);/g)].map((m) => [m[1], m[2]]);
 if (REEMPLAZOS.length !== 1) throw new Error("entregar-antes-de-apartados-sin-anticipo: no encontré el reemplazo de entregar_separacion");
 
-/** Inverso de 20261014150000 (ADR-0399): quita el camino de la boleta por el total y la puerta del saldo vuelve a ser la de antes. */
+// ADR-0584 (20261030220000): la venta que nace al recoger lleva el motivo del descuento a mano. Es posterior a 20261014150000, así que se
+// deshace PRIMERO y se rehace DESPUÉS. De su migración solo se toma el reemplazo de `entregar_separacion` (las demás son de separar_prendas).
+const ARCHIVO_DESCUENTO = readFileSync("supabase/migrations/20261030220000_apartar_con_descuento_manual.sql", "utf8");
+const DESCUENTO = [
+  ...ARCHIVO_DESCUENTO.matchAll(/pg_temp\.firma\('entregar_separacion'\),\s*\$v\$([\s\S]*?)\$v\$,\s*\$v\$([\s\S]*?)\$v\$,\s*1\);/g),
+].map((m) => [m[1], m[2]]);
+if (DESCUENTO.length !== 1) throw new Error("entregar-antes-de-apartados-sin-anticipo: no encontré el reemplazo de entregar_separacion de ADR-0584");
+
+/** Inverso de 20261030220000 (ADR-0584) y de 20261014150000 (ADR-0399), del más nuevo al más viejo: la venta vuelve a marcar «campaña»
+ *  todo descuento, se quita el camino de la boleta por el total y la puerta del saldo vuelve a ser la de antes. */
 export const DESHACER_ENTREGA_POR_EL_TOTAL = `do $deshacer$
 declare
   v_firma text := ${FIRMA};
 begin
+  execute replace(pg_get_functiondef(v_firma::regprocedure), $q$${DESCUENTO[0][1]}$q$, $q$${DESCUENTO[0][0]}$q$);
   execute replace(pg_get_functiondef(v_firma::regprocedure), $q$${REEMPLAZOS[0][1]}$q$, $q$${REEMPLAZOS[0][0]}$q$);
 end $deshacer$;
 `;
 
-/** Rehacerlo es volver a pegar la migración entera: es re-ejecutable (`pg_temp.reemplazar` no hace nada si el texto nuevo ya está). */
-export const REHACER_ENTREGA_POR_EL_TOTAL = ARCHIVO;
+/** Rehacerlo es volver a pegar las migraciones enteras, de la más vieja a la más nueva: son re-ejecutables (`pg_temp.reemplazar` no hace
+ *  nada si el texto nuevo ya está). */
+export const REHACER_ENTREGA_POR_EL_TOTAL = `${ARCHIVO}\n${ARCHIVO_DESCUENTO}`;

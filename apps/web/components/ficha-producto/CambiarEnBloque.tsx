@@ -121,7 +121,7 @@ export function CambiarEnBloque({
         <span>a</span>
         {/* La caja que se enciende (ADR-0358, ronda 6), con su «S/» adentro. */}
         <span className="caja-cayla caja-campo w-28 gap-1 px-2.5">
-          <span aria-hidden className="text-xs text-taupe">
+          <span aria-hidden className="text-sm text-taupe">
             S/
           </span>
           <input
@@ -146,7 +146,7 @@ export function CambiarEnBloque({
           Aplicar
         </button>
       </div>
-      <p aria-live="polite" className={`mt-1.5 min-h-[1rem] text-[12px] ${resultado?.error ? "text-rojo-profundo" : "text-taupe"}`}>
+      <p aria-live="polite" className={`mt-1.5 min-h-[1rem] text-sm ${resultado?.error ? "text-rojo-profundo" : "text-taupe"}`}>
         {resultado?.texto ??
           (monto.trim() !== ""
             ? "Pulsa Aplicar para ponerlo en las variantes (o bórralo): si no, no se guarda."

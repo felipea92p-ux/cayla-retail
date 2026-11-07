@@ -1,0 +1,3 @@
+## 2026-11-02 · Comparar con SUNAT: primera corrida real (ADR-0601)
+- **Abierto:** el proceso automático (`/api/sire/propuesta`) responde 401 de SUNAT en el paso «pedir» con las credenciales reales (el token sale bien). Causa sin confirmar. Con este PR el log trae el mensaje de SUNAT: volver a correr el proceso y leerlo. Candidatas que quedan: el alcance «Web» de la credencial (probar una nueva con «Desktop») u otra restricción del SIRE que el mensaje aclare.
+- **Después:** subir o traer una propuesta real de octubre 2026 para confirmar los títulos de las columnas del lector (compras y ventas).

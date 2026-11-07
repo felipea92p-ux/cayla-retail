@@ -1,6 +1,5 @@
 import { lineasDeLaProforma, numeroDeProforma, type Proforma } from "./proformas-reglas";
 import { soles } from "./compras-reglas";
-import type { ResumenProformas } from "./facturacion-reglas";
 import { antiguedad, faltaPara } from "./facturacion-resumen-reglas";
 
 // Reglas de la vista Proformas (spec §6 y §9, ADR-0124): qué estado ve la persona, en qué orden
@@ -78,25 +77,6 @@ export function detalleDeLaProforma(p: Proforma, ahora: Date): { texto: string; 
 export function camposDeBusquedaDeLaProforma(p: Proforma): (string | null)[] {
   const prendas = (lineasDeLaProforma(p.items) ?? []).flatMap((l) => [l.descripcion, l.codigo]);
   return [numeroDeProforma(p.numero), p.cliente_nombre ?? "Cliente varios", p.cliente_num_doc, chipDeLaProforma(p).texto, Number(p.total).toFixed(2), ...prendas];
-}
-
-/** Lo que dice la franja de proformas del Resumen (spec §7): «1 vigente · S/ 88.50 · 0 por vencer». Sale de
- *  `resumenProformas`, la misma cuenta del contador de la pestaña y de las tarjetas de Proformas: «vigentes»
- *  y monto son solo las que aún valen, y `porVencer` es un subconjunto de ellas. Sin ninguna vigente no hay
- *  nada que sumar ni que vigilar: una sola línea, no tres ceros. `urgente` pide que «por vencer» se vea. */
-export type FranjaDeProformas =
-  | { hay: false; texto: string }
-  | { hay: true; vigentes: string; monto: string; porVencer: string; urgente: boolean };
-
-export function franjaDeProformas(r: ResumenProformas): FranjaDeProformas {
-  if (r.vigentes === 0) return { hay: false, texto: "Sin proformas vigentes" };
-  return {
-    hay: true,
-    vigentes: `${r.vigentes} ${r.vigentes === 1 ? "vigente" : "vigentes"}`,
-    monto: soles(r.monto),
-    porVencer: `${r.porVencer} por vencer`,
-    urgente: r.porVencer > 0,
-  };
 }
 
 /** Lo que se le dice a la persona antes de cobrar en el Punto de Venta una proforma VENCIDA: se cobraría con el

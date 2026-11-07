@@ -1,0 +1,4 @@
+## 2026-10-27 («Nueva orden» ya no presume que un modelo nuevo necesita muestra)
+Qué hice: la hoja deduce si el modelo ya tiene molde del historial de órdenes del Taller (muestra terminada o con «Escalado» hecho, o un lote abierto o cerrado) y lo dice junto al tipo de orden; con modelo nuevo, sin historia, con la muestra a medias o sin poder leer el historial, pregunta «¿Ya tienen el molde?». Regla pura en `lib/orden-modelo-reglas.ts` (`moldeDelModelo`, `frasesDelMolde`) y lectura liviana `getHistorialDeMoldes`.
+Por qué así: el sistema no guarda «molde listo» (`productos.patron_id` es el estampado, no el molde), así que se deduce y se pregunta, sin esquema nuevo y sin cambiar lo que se manda a la base (Felipe eligió «deducir y preguntar si hay duda», 2026-10-27).
+Felipe se lleva: sin migración, nada que pegar en producción. Pendiente: probar la pantalla real con una cuenta Líder (se verificó con datos inventados, sin base) y correr `/formidable` y `/chaos`.

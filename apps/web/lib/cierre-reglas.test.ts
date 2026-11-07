@@ -17,10 +17,11 @@ import {
   leerPanelCierre,
   primerNombre,
   puedeCerrar,
+  soloFaltaPlanilla,
+  promesaDeAvisos,
   resumenAvisos,
   textoBotonCerrar,
   textoChequeo,
-  textoOpcionMes,
   tituloPantalla,
   tituloUnidad,
   unidadInicial,
@@ -135,12 +136,6 @@ describe("palabras", () => {
       cierre: { ...unidad("Tienda Trujillo").cierre!, reabiertoEn: "2026-09-26T15:00:00Z", reabiertoPor: "Felipe Alvarez", motivoReapertura: "llegó una factura tarde" },
     };
     expect(bajadaUnidad(reabierta)).toBe("Reabierto el 26 sep por Felipe Alvarez: «llegó una factura tarde». Lo que el sistema revisa antes de dejarte cerrar.");
-  });
-  it("el selector de mes dice cuántas unidades cerraron o si CAYLA entera ya cerró", () => {
-    expect(textoOpcionMes({ mes: "2026-07", cerradas: 0, consolidado: false })).toBe("Julio 2026");
-    expect(textoOpcionMes({ mes: "2026-08", cerradas: 1, consolidado: false })).toBe("Agosto 2026 · 1 cerrada");
-    expect(textoOpcionMes({ mes: "2026-08", cerradas: 3, consolidado: false })).toBe("Agosto 2026 · 3 cerradas");
-    expect(textoOpcionMes({ mes: "2026-06", cerradas: 5, consolidado: true })).toBe("Junio 2026 · cerrado");
   });
 });
 
@@ -386,6 +381,10 @@ describe("estados", () => {
 });
 
 describe("la historia de una unidad", () => {
+  it("dice con qué avisos se cerró (tarea 7)", () => {
+    const historia = [{ ...panel.historia[0]!, avisos: [ch("papeles_por_completar", false, {}, false)] }];
+    expect(historiaDe({ historia }, { alcance: "ubicacion", ubicacionId: TRU })[0]).toContain("con un aviso: compras por completar");
+  });
   it("cierres y reaperturas en orden, con quién y por qué", () => {
     const historia = [
       { ...panel.historia[0]!, reabiertoEn: "2026-09-26T15:00:00Z", reabiertoPor: "Felipe Alvarez", motivoReapertura: "llegó una factura tarde" },
@@ -408,7 +407,8 @@ describe("el aviso del modal «Cerrar el mes»: dice lo que FALTA, no el estado 
   const CLAVES: Record<ClaveChequeo, true> = {
     cajas: true, egresos: true, regularizar: true, fijos: true, conciliacion: true, planilla: true, sin_costo: true,
     cerrada_sin_prenda: true, envios_con_diferencia: true, conteos_abiertos: true, sobrantes_traslado: true,
-    facturas_sin_recibir: true, diario: true, huella: true,
+    facturas_sin_recibir: true, envios_abiertos: true, comprobantes_sin_aceptar: true, papeles_por_completar: true, gastos_por_revisar: true, arranque: true,
+    diario: true, huella: true, sire: true,
   };
   it("octubre: cuatro pendientes avisan y el modal los nombra por lo que falta", () => {
     const avisos = ["envios_con_diferencia", "conteos_abiertos", "sobrantes_traslado", "facturas_sin_recibir"].map((c) => ch(c, false, {}, false));
@@ -416,6 +416,11 @@ describe("el aviso del modal «Cerrar el mes»: dice lo que FALTA, no el estado 
       cuenta: "4 avisos",
       lista: "envíos recibidos con faltantes por resolver · conteos de inventario sin cerrar · prendas de más de traslados sin revisar · mercadería facturada sin recibir",
     });
+  });
+  it("no promete guardar el aviso de SUNAT, que la web arma y no queda en el cierre (tarea 7)", () => {
+    expect(promesaDeAvisos([ch("fijos", false, {}, false)])).toBe("Quedan guardados en la historia del cierre.");
+    expect(promesaDeAvisos([ch("fijos", false, {}, false), ch("sire", false, {}, false)])).toContain("menos el de SUNAT");
+    expect(promesaDeAvisos([ch("sire", false, {}, false)])).toBe("Este aviso no queda guardado en la historia del cierre.");
   });
   it("uno solo es «un aviso», y la frase de siempre sigue igual", () => {
     expect(resumenAvisos([ch("fijos", false, {}, false)])).toEqual({ cuenta: "un aviso", lista: "gastos fijos del mes sin registrar" });
@@ -444,5 +449,26 @@ describe("el aviso del modal «Cerrar el mes»: dice lo que FALTA, no el estado 
     const fuente = readFileSync(join(__dirname, "..", "components", "finanzas", "CierreMes.tsx"), "utf8");
     expect(fuente).toContain("resumenAvisos(");
     expect(fuente).not.toMatch(/avisos\.map\(\(c\) => textoChequeo/);
+  });
+});
+
+describe("soloFaltaPlanilla (tarea 18: el atajo del Admin)", () => {
+  const base = unidad("Tienda Trujillo");
+  const con = (chequeos: Chequeo[], estado: "abierto" | "cerrado" | "reabierto" = "abierto"): typeof base => ({
+    ...base,
+    estado,
+    chequeos,
+    bloqueantes: chequeos.filter((c) => c.bloquea && !c.ok).length,
+  });
+  it("es verdad cuando lo único que frena es la planilla impaga que la cuenta sí ve", () => {
+    expect(soloFaltaPlanilla(con([ch("planilla", false, { visible: true }), ch("cajas", true, {})]))).toBe(true);
+  });
+  it("no hay atajo si además frena otra cosa", () => {
+    expect(soloFaltaPlanilla(con([ch("planilla", false, { visible: true }), ch("egresos", false, { n: 2 })]))).toBe(false);
+  });
+  it("no hay atajo si la cuenta ni ve la planilla (cerrar con otra cuenta), si nada frena o si ya está cerrado", () => {
+    expect(soloFaltaPlanilla(con([ch("planilla", false, { visible: false })]))).toBe(false);
+    expect(soloFaltaPlanilla(con([ch("planilla", true, { visible: true })]))).toBe(false);
+    expect(soloFaltaPlanilla(con([ch("planilla", false, { visible: true })], "cerrado"))).toBe(false);
   });
 });

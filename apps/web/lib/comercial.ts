@@ -73,7 +73,7 @@ export async function getPanelComercial(): Promise<PanelComercial> {
   const sedesCrudas = exigir(filasSedes, "las ventas por tienda");
   // La meta de cada día del mes, tienda por tienda. Es una lectura secundaria: si la base no responde (la función aún no existe,
   // un corte) esa tienda cae a su `meta_venta_diaria` en vez de tumbar el panel (principio 9). Ver `metasDeLaSede`.
-  const metasPorTienda = await Promise.all(sedesCrudas.map((s) => metasDelMes(s.ubicacion_id, fecha)));
+  const metasPorTienda = await metasDelMesDeLasTiendas(sedesCrudas.map((s) => s.ubicacion_id), fecha);
   const horasCrudas = exigir(filasHoras, "las ventas por hora");
   const colabCrudas = exigir(filasColab, "las ventas por colaboradora");
 
@@ -136,6 +136,31 @@ export async function getPanelComercial(): Promise<PanelComercial> {
  * Caja e Inicio. `null` si la base no pudo responder algún día: una mezcla (unos días con la meta nueva y otros con la vieja) sería
  * peor que ninguna, así que la tienda cae entera a su respaldo.
  */
+async function metasDelMesDeLasTiendas(ubicacionIds: string[], fecha: string): Promise<((number | null)[] | null)[]> {
+  if (ubicacionIds.length === 0) return [];
+  const [anio, mes] = fecha.split("-");
+  const desde = `${anio}-${mes}-01`;
+  const hasta = `${anio}-${mes}-${String(diasDelMes(fecha)).padStart(2, "0")}`;
+  // UNA sola ida a la base para todas las tiendas y todos los días (`fn_metas_de_los_dias`, la misma `fn_parametros_caja` de Caja e
+  // Inicio por dentro). Antes eran ~30 llamadas por tienda (≈120 por carga del panel) que se peleaban las conexiones de la base.
+  // Si la base todavía no tiene la función (falta pegar la migración) o no responde, se vuelve a preguntar día por día como antes.
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("fn_metas_de_los_dias" as never, { p_ubicacion_ids: ubicacionIds, p_desde: desde, p_hasta: hasta } as never);
+  if (error || !Array.isArray(data)) return Promise.all(ubicacionIds.map((id) => metasDelMes(id, fecha)));
+  const n = diasDelMes(fecha);
+  const porTienda = new Map<string, (number | null)[]>(ubicacionIds.map((id) => [id, Array.from({ length: n }, () => null)]));
+  const vistos = new Map<string, number>();
+  for (const f of data as { ubicacion_id: string; dia: string; meta: number | string | null }[]) {
+    const fila = porTienda.get(f.ubicacion_id);
+    const d = Number(String(f.dia).slice(8, 10)) - 1;
+    if (!fila || d < 0 || d >= n) continue;
+    fila[d] = f.meta === null ? null : Number(f.meta);
+    vistos.set(f.ubicacion_id, (vistos.get(f.ubicacion_id) ?? 0) + 1);
+  }
+  // Una tienda a la que le falta algún día cae entera a su respaldo, igual que `metasDelMes` (una mezcla sería peor que ninguna).
+  return ubicacionIds.map((id) => ((vistos.get(id) ?? 0) === n ? porTienda.get(id)! : null));
+}
+
 async function metasDelMes(ubicacionId: string, fecha: string): Promise<(number | null)[] | null> {
   const [anio, mes] = fecha.split("-");
   const dias = Array.from({ length: diasDelMes(fecha) }, (_, d) => `${anio}-${mes}-${String(d + 1).padStart(2, "0")}`);

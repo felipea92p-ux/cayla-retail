@@ -1,8 +1,7 @@
+import { enteroEscrito } from "./cantidad-escrita-reglas";
 import type { Comprobante, SerieComprobante, TipoComprobante } from "./comprobantes-reglas";
 import { ETIQUETA_TIPO } from "./comprobantes-reglas";
 import { anulacionEnTramite, chipDelComprobante, textoDelNumero } from "./facturacion-actividad";
-import { tiendasOperativas } from "./facturacion-reglas";
-import { nombreCorto } from "./resumen-formato";
 
 // Reglas de la vista Comprobantes (spec §6 y §9, ADR-0124): qué series le faltan a cada tienda,
 // cuánto se facturó de verdad este mes y por qué una fila dice lo que dice. Puras y sin servidor.
@@ -17,6 +16,13 @@ export const TIPOS_CON_SERIE: TipoComprobante[] = ["boleta", "factura", "nota_cr
  *  nota de crédito la del documento que corrige (B si corrige boletas, F si corrige facturas)—. `null` si
  *  está bien; si no, el texto que se le muestra a la persona. Se comprueba al REGISTRAR: una serie mal
  *  escrita queda guardada y todos sus comprobantes se rechazan, cada intento quemando un número. */
+/** El próximo número de una serie que ya venía emitiéndose afuera: un entero, 1 o mayor. Vacío: lo lleva el sistema. Mandarle a SUNAT otro número hace que el comprobante se rechace. */
+export function errorDeSiguienteNumero(texto: string): string | null {
+  if (texto.trim() === "") return null;
+  const n = enteroEscrito(texto);
+  return n !== null && n >= 1 ? null : "El próximo número es un entero, 1 o mayor. Déjalo vacío si esta serie empieza de cero.";
+}
+
 export function errorDeSerie(tipo: TipoComprobante, texto: string): string | null {
   const serie = texto.trim().toUpperCase();
   if (!/^[A-Z0-9]{4}$/.test(serie)) return "La serie tiene cuatro caracteres, solo letras y números (por ejemplo B001).";
@@ -26,37 +32,6 @@ export function errorDeSerie(tipo: TipoComprobante, texto: string): string | nul
     return `La serie de una ${ETIQUETA_TIPO[tipo].toLowerCase()} empieza con B si corrige boletas o con F si corrige facturas (por ejemplo BC01).`;
   }
   return null;
-}
-
-export type GrupoSeriesFaltantes = { tipo: TipoComprobante; tiendas: { id: string; nombre: string }[] };
-
-/** Las series que faltan, agrupadas por tipo (en el orden boleta, factura, nota de crédito) y con
- *  las tiendas a las que les falta. Solo las tiendas emiten: el Taller y los almacenes nunca
- *  necesitan una serie. Un tipo con todas sus tiendas al día no aparece. */
-export function seriesFaltantes(
-  series: Pick<SerieComprobante, "ubicacion_id" | "tipo">[],
-  ubicaciones: { id: string; nombre: string; tipo: "tienda" | "almacen" | "taller" }[]
-): GrupoSeriesFaltantes[] {
-  const tiendas = tiendasOperativas(ubicaciones);
-  const registradas = new Set(series.map((s) => `${s.ubicacion_id}|${s.tipo}`));
-  return TIPOS_CON_SERIE.map((tipo) => ({
-    tipo,
-    tiendas: tiendas.filter((t) => !registradas.has(`${t.id}|${tipo}`)).map(({ id, nombre }) => ({ id, nombre })),
-  })).filter((g) => g.tiendas.length > 0);
-}
-
-/** «Trujillo, Arequipa y Lima». */
-function listaConY(nombres: string[]): string {
-  if (nombres.length <= 1) return nombres.join("");
-  return `${nombres.slice(0, -1).join(", ")} y ${nombres[nombres.length - 1]}`;
-}
-
-/** «Faltan 3 series: nota de crédito en Trujillo, Arequipa y Lima.» (vacío si no falta ninguna). */
-export function textoDeSeriesFaltantes(grupos: GrupoSeriesFaltantes[]): string {
-  const cuantas = grupos.reduce((suma, g) => suma + g.tiendas.length, 0);
-  if (cuantas === 0) return "";
-  const detalle = grupos.map((g) => `${ETIQUETA_TIPO[g.tipo].toLowerCase()} en ${listaConY(g.tiendas.map((t) => nombreCorto(t.nombre)))}`).join("; ");
-  return `${cuantas === 1 ? "Falta 1 serie" : `Faltan ${cuantas} series`}: ${detalle}.`;
 }
 
 const aCentimos = (n: number) => Math.round(n * 100) / 100;

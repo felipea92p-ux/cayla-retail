@@ -10,6 +10,8 @@
 //            que va a volver rechazado.
 //   NO HACE: leer la base ni decidir permisos.
 
+import { normalizarBusqueda } from "./combo-reglas";
+
 /** Lo que la base acepta (`vitrina_looks`): de 2 a 4 prendas, el nombre hasta 60 letras y la frase hasta 200. */
 export const MIN_PRENDAS_LOOK = 2;
 export const MAX_PRENDAS_LOOK = 4;
@@ -159,6 +161,227 @@ export function leerLooks(v: unknown): LecturaLooks {
   };
 }
 
+/* ---------------- En qué tiendas sale cada look (`fn_vitrina_looks_por_tienda`, 20261027204000) ---------------- */
+
+// La web muestra un look solo si TODAS sus prendas, en su color, están a la venta y libres en la MISMA tienda (ADR-0468). Esto lee lo que la base
+// dice de cada look en cada tienda de la web, con la misma regla que la tienda, para que el ERP no diga «se ve» donde la web dice que no.
+
+/** Por qué una prenda no cuenta en una tienda: no está en su catálogo, no hay stock, o hay una talla libre pero no es de las que la web ofrece. */
+export type MotivoFalta = "no_se_ve" | "sin_stock" | "no_ofrecida";
+export type PiezaEnTienda = { productoId: string; color: string; hay: boolean; motivo: MotivoFalta | null };
+/** Un look en una tienda: `completo` si todas sus prendas cuentan ahí (y entonces sale en la tienda online de esa tienda). */
+export type LookEnTienda = { sede: string; tienda: string; completo: boolean; faltan: number; piezas: PiezaEnTienda[] };
+/** Los looks por tienda, por id de look. Un objeto plano (pasa del servidor a la pantalla). */
+export type LooksPorTienda = Record<string, LookEnTienda[]>;
+
+const MOTIVOS: readonly MotivoFalta[] = ["no_se_ve", "sin_stock", "no_ofrecida"];
+
+function piezaEnTiendaDeJson(v: unknown): PiezaEnTienda | null {
+  if (!esObjeto(v)) return null;
+  const productoId = texto(v.producto_id);
+  const color = texto(v.color);
+  if (!productoId || !color) return null;
+  const hay = v.hay === true;
+  const motivo = MOTIVOS.find((m) => m === v.motivo) ?? null;
+  // Sin motivo no hay falta, y una falta sin motivo conocido se dice como «sin stock» (lo más común), nunca como si hubiera.
+  return { productoId, color, hay, motivo: hay ? null : (motivo ?? "sin_stock") };
+}
+
+/** Lo que devuelve `fn_vitrina_looks_por_tienda()`. Un dato raro deja ese look (o todo) sin tiendas, nunca la pantalla caída. */
+export function leerPorTienda(v: unknown): LooksPorTienda {
+  const salida: LooksPorTienda = {};
+  if (!esObjeto(v)) return salida;
+  for (const l of lista(v.looks)) {
+    if (!esObjeto(l)) continue;
+    const id = texto(l.id);
+    if (!id) continue;
+    const tiendas = lista(l.por_tienda).flatMap((t) => {
+      if (!esObjeto(t)) return [];
+      const sede = texto(t.sede);
+      const tienda = texto(t.tienda);
+      if (!sede || !tienda) return [];
+      const piezas = lista(t.piezas).flatMap((p) => {
+        const leida = piezaEnTiendaDeJson(p);
+        return leida ? [leida] : [];
+      });
+      // Lo que cuenta es lo de las prendas: «completo» y «faltan» se vuelven a sacar de ellas, así nunca se contradicen.
+      const faltan = piezas.filter((p) => !p.hay).length;
+      return [{ sede, tienda, completo: piezas.length > 0 && faltan === 0, faltan, piezas }];
+    });
+    salida[id] = tiendas;
+  }
+  return salida;
+}
+
+/** «Tienda AQP» → «AQP», «Tienda Trujillo» → «Trujillo»: lo corto que cabe en un chip. */
+export const nombreCortoDeTienda = (nombre: string): string => nombre.replace(/^\s*tienda\s+/i, "").trim() || nombre;
+
+/** Lo que dice cada motivo, en palabras de tienda. */
+export const TEXTO_DEL_MOTIVO: Record<MotivoFalta, string> = {
+  no_se_ve: "no está en el catálogo de esa tienda",
+  sin_stock: "no hay stock",
+  no_ofrecida: "hay stock, pero de una talla que la web no ofrece",
+};
+
+export type ChipDeTienda = { sede: string; texto: string; tono: "verde" | "ambar"; completo: boolean; detalle: string };
+
+/**
+ * Los chips de un look, uno por tienda de la web: verde si el look sale completo ahí; ámbar con cuántas prendas faltan. `detalle` (el texto que
+ * sale al pasar el mouse) dice cuáles, por su nombre, y por qué.
+ */
+export function chipsDeLook(l: Pick<Look, "piezas">, tiendas: readonly LookEnTienda[]): ChipDeTienda[] {
+  const nombreDe = (p: PiezaEnTienda) => l.piezas.find((x) => x.productoId === p.productoId && x.color.codigo === p.color)?.nombre ?? "Una prenda";
+  return tiendas.map((t) => {
+    const corto = nombreCortoDeTienda(t.tienda);
+    if (t.completo) return { sede: t.sede, texto: corto, tono: "verde", completo: true, detalle: `El look sale en ${corto}: todas sus prendas están ahí.` };
+    const faltantes = t.piezas.filter((p) => !p.hay).map((p) => `${nombreDe(p)} (${TEXTO_DEL_MOTIVO[p.motivo ?? "sin_stock"]})`);
+    return {
+      sede: t.sede,
+      texto: `${corto} · falta ${t.faltan === 1 ? "1" : t.faltan}`,
+      tono: "ambar",
+      completo: false,
+      detalle: `No sale en ${corto}. Falta: ${listaDeNombres(faltantes)}.`,
+    };
+  });
+}
+
+/* ---------------- Qué hay en cada tienda, para armar un look (`fn_vitrina_prendas_por_tienda`, 20261027204000) ---------------- */
+
+// Al armar un look se ve en qué tiendas hay cada prenda: se puede filtrar «solo lo que hay en TRU» y, con lo elegido, avisar en vivo en qué tiendas saldría el look
+// (Felipe 2026-10-27). Es un aviso, no un candado: se puede guardar un look aunque hoy no salga en ninguna tienda (el stock llega mañana). La regla de «hay» es la de la
+// base, la misma que usa la tienda online: aquí solo se lee y se cruza.
+
+export type TiendaWeb = { id: string; nombre: string };
+/** En qué tiendas hay cada prenda en cada color. `en` va por la clave `producto|color`; una prenda que no está no hay en ninguna tienda. */
+export type PrendasPorTienda = { tiendas: TiendaWeb[]; en: Record<string, string[]> };
+
+export const clavePrenda = (productoId: string, color: string): string => `${productoId}|${color}`;
+export const SIN_PRENDAS_POR_TIENDA: PrendasPorTienda = { tiendas: [], en: {} };
+
+/** Lo que devuelve `fn_vitrina_prendas_por_tienda()`. Un dato raro deja todo vacío (el editor se ve igual, sin filtro ni aviso), nunca la hoja caída. */
+export function leerPrendasPorTienda(v: unknown): PrendasPorTienda {
+  if (!esObjeto(v)) return SIN_PRENDAS_POR_TIENDA;
+  const tiendas = lista(v.tiendas).flatMap((t) => {
+    if (!esObjeto(t)) return [];
+    const id = texto(t.id);
+    const nombre = texto(t.nombre);
+    return id && nombre ? [{ id, nombre }] : [];
+  });
+  const en: Record<string, string[]> = {};
+  for (const p of lista(v.prendas)) {
+    if (!esObjeto(p)) continue;
+    const productoId = texto(p.producto_id);
+    const color = texto(p.color);
+    if (!productoId || !color) continue;
+    en[clavePrenda(productoId, color)] = lista(p.en).flatMap((e) => (typeof e === "string" && e ? [e] : []));
+  }
+  return { tiendas, en };
+}
+
+/** ¿Hay esa prenda en ese color en esa tienda? */
+export const hayPrendaEnTienda = (d: PrendasPorTienda, productoId: string, color: string, sede: string): boolean => d.en[clavePrenda(productoId, color)]?.includes(sede) ?? false;
+
+/** ¿Hay el modelo (en algún color) en esa tienda? Para filtrar la grilla de prendas. */
+export const hayModeloEnTienda = (d: PrendasPorTienda, m: Pick<ModeloParaLook, "id" | "colores">, sede: string): boolean => m.colores.some((c) => hayPrendaEnTienda(d, m.id, c.codigo, sede));
+
+export type SalidaEnTienda = { sede: string; nombre: string; completo: boolean; faltan: PiezaElegida[] };
+
+/** Con las prendas elegidas, en qué tiendas saldría el look y qué le faltaría a cada una. Sin tiendas leídas, nada (no se sabe). */
+export function salidaDelLook(d: PrendasPorTienda, piezas: readonly PiezaElegida[]): SalidaEnTienda[] {
+  return d.tiendas.map((t) => {
+    const faltan = piezas.filter((p) => !hayPrendaEnTienda(d, p.productoId, p.color, t.id));
+    return { sede: t.id, nombre: nombreCortoDeTienda(t.nombre), completo: piezas.length > 0 && faltan.length === 0, faltan: [...faltan] };
+  });
+}
+
+export type AvisoDelLook = { tono: "exito" | "atencion"; titulo: string; detalle: string | null };
+
+/**
+ * Lo que se le dice a quien arma el look, con lo elegido: nada hasta tener 2 prendas (con una no hay look) ni sin saber qué hay en las tiendas; verde si sale en alguna tienda (y,
+ * si en otras no, cuál prenda les falta); ámbar si no saldría en ninguna (y qué le falta a cada una). Es un aviso: nunca impide guardar.
+ */
+export function avisoDelLook(salida: readonly SalidaEnTienda[], piezas: readonly PiezaElegida[], nombreDe: (p: PiezaElegida) => string): AvisoDelLook | null {
+  if (piezas.length < MIN_PRENDAS_LOOK || salida.length === 0) return null;
+  const falta = (s: SalidaEnTienda) => `${s.nombre}: falta ${listaDeNombres(s.faltan.map(nombreDe))}`;
+  const donde = salida.filter((s) => s.completo);
+  const sinSalir = salida.filter((s) => !s.completo);
+  if (donde.length > 0) {
+    return {
+      tono: "exito",
+      titulo: `Con estas prendas el look sale en ${listaDeNombres(donde.map((s) => s.nombre))}.`,
+      detalle: sinSalir.length > 0 ? `No sale en ${sinSalir.map(falta).join("; ")}.` : null,
+    };
+  }
+  return { tono: "atencion", titulo: "Con estas prendas el look no saldría en ninguna tienda.", detalle: `${salida.map(falta).join("; ")}.` };
+}
+
+/* ---------------- Qué se puede elegir: solo lo que coincide en alguna tienda (Felipe 2026-10-27) ---------------- */
+
+// «Si no hay, o un color ya no hay, no debería poder seleccionarse»: al armar un look no se ofrece una prenda ni un color que no hay en ninguna tienda, ni uno que no
+// está en NINGUNA de las tiendas donde ya están las prendas elegidas (con él, el look no saldría en ninguna). Es la regla de «hay» de la base (`PrendasPorTienda`);
+// aquí solo se cruza. Sin tiendas leídas (cargando, o la base no respondió) no se bloquea nada: se arma como antes y el aviso de arriba lo dice. Esto limita lo que se
+// ELIGE hoy, no lo que se guarda: un look ya guardado al que después se le acabó una prenda conserva sus prendas, y el aviso le dice qué le falta.
+
+/** Las tiendas (ids) donde hay esa prenda en ese color. */
+export const tiendasDePrenda = (d: PrendasPorTienda, productoId: string, color: string): string[] => d.en[clavePrenda(productoId, color)] ?? [];
+
+/**
+ * Las tiendas donde están TODAS las prendas dadas: las únicas donde el look saldría. Sin prendas, todas las tiendas de la web. `null` = no se sabe (no hay tiendas
+ * leídas), y entonces nada se bloquea.
+ */
+export function tiendasEnComun(d: PrendasPorTienda, piezas: readonly PiezaElegida[]): string[] | null {
+  if (d.tiendas.length === 0) return null;
+  return d.tiendas.map((t) => t.id).filter((id) => piezas.every((p) => hayPrendaEnTienda(d, p.productoId, p.color, id)));
+}
+
+/** ¿Se puede elegir esa prenda en ese color? Sí si hay en alguna de las tiendas `comun` (o si no se sabe cuáles). */
+export const colorElegible = (d: PrendasPorTienda, comun: readonly string[] | null, productoId: string, color: string): boolean =>
+  comun === null || tiendasDePrenda(d, productoId, color).some((id) => comun.includes(id));
+
+/** ¿Se puede elegir el modelo? Sí si alguno de sus colores se puede. */
+export const modeloElegible = (d: PrendasPorTienda, comun: readonly string[] | null, m: Pick<ModeloParaLook, "id" | "colores">): boolean =>
+  m.colores.some((c) => colorElegible(d, comun, m.id, c.codigo));
+
+/** Por qué no se puede elegir un color: no hay en ninguna tienda, o sí hay pero no donde están las demás prendas; `null` si se puede. */
+export function motivoDelColor(d: PrendasPorTienda, comun: readonly string[] | null, productoId: string, color: string): "sin_stock" | "no_coincide" | null {
+  if (colorElegible(d, comun, productoId, color)) return null;
+  return tiendasDePrenda(d, productoId, color).length === 0 ? "sin_stock" : "no_coincide";
+}
+
+/** El texto corto de un color que no se puede elegir, para su opción del desplegable. */
+export const TEXTO_DEL_COLOR_BLOQUEADO = { sin_stock: "sin stock", no_coincide: "no coincide en tienda" } as const;
+
+/** Lo que se dice de un modelo que no se puede elegir: `corto` en la propia prenda y `largo` al pasar el mouse o para el lector. `null` si se puede. */
+export function porQueNoSeElige(
+  d: PrendasPorTienda,
+  comun: readonly string[] | null,
+  m: Pick<ModeloParaLook, "id" | "colores">,
+): { corto: string; largo: string } | null {
+  if (modeloElegible(d, comun, m)) return null;
+  const nombreDe = (id: string) => nombreCortoDeTienda(d.tiendas.find((t) => t.id === id)?.nombre ?? id);
+  const suyas = [...new Set(m.colores.flatMap((c) => tiendasDePrenda(d, m.id, c.codigo)))];
+  if (suyas.length === 0) return { corto: "Sin stock", largo: "No hay stock de esta prenda en ninguna tienda." };
+  if (comun !== null && comun.length === 0) {
+    return { corto: "No coincide", largo: "Las prendas elegidas ya no coinciden en ninguna tienda: quita una para seguir." };
+  }
+  return {
+    corto: `Solo en ${listaDeNombres(suyas.map(nombreDe))}`,
+    largo: `Tus prendas están juntas en ${listaDeNombres((comun ?? []).map(nombreDe))}; esta solo hay en ${listaDeNombres(suyas.map(nombreDe))}.`,
+  };
+}
+
+/**
+ * El color con que entra un modelo al look: de los que se pueden elegir, uno que haya en la tienda por la que se filtra (si la hay), y entre ellos el primero con foto
+ * propia (se ve mejor en la lámina) o, si ninguno tiene, el primero. `null` si ninguno se puede elegir. Sin tiendas leídas es `colorInicial`.
+ */
+export function colorInicialElegible(m: ModeloParaLook, d: PrendasPorTienda, comun: readonly string[] | null, tiendaPreferida: string | null): string | null {
+  const posibles = m.colores.filter((c) => colorElegible(d, comun, m.id, c.codigo));
+  if (posibles.length === 0) return null;
+  const ahi = tiendaPreferida === null ? [] : posibles.filter((c) => hayPrendaEnTienda(d, m.id, c.codigo, tiendaPreferida));
+  const base = ahi.length > 0 ? ahi : posibles;
+  return (base.find((c) => c.foto) ?? base[0]).codigo;
+}
+
 /* ---------------- Lo que dice cada fila ---------------- */
 
 /** «S/ 304.70»: con un espacio que no se parte, para que «S/» no quede sola al final de un renglón (ADR-0413). */
@@ -196,6 +419,28 @@ export function porQueNoSeVe(l: Look): string | null {
   return loQueImpideMostrar(l) ?? "No se ve en la web: recarga la pantalla.";
 }
 
+/**
+ * Lo que dice la TIENDA ONLINE de cada look: encendido, con todas sus prendas a la vista Y completo en al menos una tienda. La base responde `seVe` con «cada prenda se ve en la
+ * web en alguna tienda»; la tienda es más exigente (todas en la MISMA tienda, ADR-0468), y por eso el ERP decía «se ve» donde la web no lo mostraba (Felipe 2026-10-27: 3 de 3
+ * en el ERP y 1 en la web). Con lo que dice la base por tienda se corrige aquí `seVe`; sin ese dato (la base no lo dio, o el look es nuevo) o sin tiendas en la web, queda como vino.
+ */
+export function conSalidaPorTienda(looks: readonly Look[], porTienda: LooksPorTienda | null): Look[] {
+  if (!porTienda) return [...looks];
+  return looks.map((l) => {
+    const tiendas = porTienda[l.id];
+    if (!tiendas || tiendas.length === 0 || !l.seVe) return l;
+    return tiendas.some((t) => t.completo) ? l : { ...l, seVe: false };
+  });
+}
+
+/** Por qué un look encendido, con todas sus prendas a la vista, no sale en ninguna tienda: qué le falta a cada una. `null` si sale en alguna (o no se sabe). */
+export function motivoPorTienda(l: Pick<Look, "piezas">, tiendas: readonly LookEnTienda[] | null | undefined): string | null {
+  if (!tiendas || tiendas.length === 0 || tiendas.some((t) => t.completo)) return null;
+  const nombreDe = (p: PiezaEnTienda) => l.piezas.find((x) => x.productoId === p.productoId && x.color.codigo === p.color)?.nombre ?? "una prenda";
+  const porTienda = tiendas.map((t) => `${nombreCortoDeTienda(t.tienda)}: falta ${listaDeNombres(t.piezas.filter((p) => !p.hay).map(nombreDe))}`);
+  return `No sale en ninguna tienda, porque en cada una le falta algo. ${porTienda.join("; ")}.`;
+}
+
 /** El estado de un look para su insignia: se ve, oculto o encendido pero sin verse (algo falta). */
 export type EstadoLook = "se_ve" | "oculto" | "no_se_ve";
 export const estadoDeLook = (l: Look): EstadoLook => (l.seVe ? "se_ve" : l.publicado ? "no_se_ve" : "oculto");
@@ -225,15 +470,34 @@ export function filtrarLooks(looks: readonly Look[], filtro: FiltroLooks): Look[
 /** Una prenda elegida en la hoja: el modelo y su color. */
 export type PiezaElegida = { productoId: string; color: string };
 
-/** El color con que entra un modelo al look: el primero con foto propia (se ve mejor en la lámina) o, si ninguno tiene, el primero. */
-export function colorInicial(m: ModeloParaLook): string {
-  return (m.colores.find((c) => c.foto) ?? m.colores[0]).codigo;
+/* ---------------- Elegir las prendas mirándolas (Felipe 2026-10-26) ---------------- */
+
+/** Cuántas prendas se dibujan por página en el selector de la hoja del look: con ~300 modelos, todas juntas serían 300 fotos. */
+export const PRENDAS_POR_PAGINA_LOOK = 24;
+/** Cómo se llama lo que no tiene categoría en el selector. */
+export const SIN_CATEGORIA_LOOK = "Sin categoría";
+
+export type CategoriaParaLook = { nombre: string; modelos: number };
+
+/** Las categorías de los modelos que se pueden elegir, con cuántos hay en cada una: por nombre, y «Sin categoría» al final. */
+export function categoriasParaLook(modelos: readonly ModeloParaLook[]): CategoriaParaLook[] {
+  const cuenta = new Map<string, number>();
+  for (const m of modelos) {
+    const c = m.categoria ?? SIN_CATEGORIA_LOOK;
+    cuenta.set(c, (cuenta.get(c) ?? 0) + 1);
+  }
+  return [...cuenta]
+    .map(([nombre, n]) => ({ nombre, modelos: n }))
+    .sort((a, b) => (a.nombre === SIN_CATEGORIA_LOOK ? 1 : b.nombre === SIN_CATEGORIA_LOOK ? -1 : a.nombre.localeCompare(b.nombre, "es")));
 }
 
-/** Los modelos que se pueden agregar: los que se ven en la web y todavía no están en el look. */
-export function modelosParaAgregar(modelos: readonly ModeloParaLook[], elegidas: readonly PiezaElegida[]): ModeloParaLook[] {
-  const ya = new Set(elegidas.map((p) => p.productoId));
-  return modelos.filter((m) => !ya.has(m.id));
+/** Los modelos del selector: los de la categoría elegida (`null`: todas) cuyo nombre o categoría lleva lo escrito (sin tildes ni mayúsculas). Conserva el orden. */
+export function modelosParaElegir(modelos: readonly ModeloParaLook[], filtro: { categoria: string | null; texto: string }): ModeloParaLook[] {
+  const buscado = normalizarBusqueda(filtro.texto);
+  return modelos.filter((m) => {
+    if (filtro.categoria !== null && (m.categoria ?? SIN_CATEGORIA_LOOK) !== filtro.categoria) return false;
+    return buscado === "" || normalizarBusqueda(`${m.nombre} ${m.categoria ?? ""}`).includes(buscado);
+  });
 }
 
 /** Las prendas de un look ya guardado, como se eligen en la hoja. */

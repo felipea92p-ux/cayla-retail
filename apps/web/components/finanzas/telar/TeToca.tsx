@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { usePathname, useSearchParams } from "next/navigation";
+import { useState } from "react";
+import { usePathname } from "next/navigation";
 import { Check, Inbox } from "lucide-react";
 import { Cajon } from "@/components/ui/Cajon";
 import { Globito } from "@/components/ui/Globito";
@@ -9,8 +9,8 @@ import { BotonVer } from "@/components/ui/BotonDescargar";
 import { Vacio } from "@/components/ui/Vacio";
 import { TituloGrupo } from "@/components/ui/TituloSeccion";
 import { rutaActiva } from "@/lib/menu";
-import { sedeDeLaUrl, SEDE_TODAS } from "@/lib/finanzas-telar-reglas";
-import { agruparPendientes, type PendienteTelar } from "@/lib/finanzas-te-toca-reglas";
+import { agruparPendientes } from "@/lib/finanzas-te-toca-reglas";
+import { usePendientesTelar } from "@/components/finanzas/telar/usePendientesTelar";
 
 /**
  * «Te toca» de la mesa de mando (El telar): un botón con cuántas cosas te tocan en Finanzas para la sede elegida, y el cajón que las
@@ -19,27 +19,8 @@ import { agruparPendientes, type PendienteTelar } from "@/lib/finanzas-te-toca-r
  */
 export function TeToca({ submodulos }: { submodulos: { clave: string; etiqueta: string; ruta: string }[] }) {
   const pathname = usePathname();
-  const sp = useSearchParams();
-  const sede = sedeDeLaUrl({ sede: sp.get("sede"), ver: sp.get("ver") });
-  const [lista, setLista] = useState<PendienteTelar[] | null>(null);
-  const [incompleto, setIncompleto] = useState(false);
+  const { lista, incompleto } = usePendientesTelar();
   const [abierto, setAbierto] = useState(false);
-
-  useEffect(() => {
-    let vivo = true;
-    const q = sede === SEDE_TODAS ? "" : `?sede=${encodeURIComponent(sede)}`;
-    fetch(`/api/finanzas/te-toca${q}`, { headers: { "x-espera": "no" }, cache: "no-store" })
-      .then((r) => (r.ok ? r.json() : null))
-      .then((d: { pendientes: PendienteTelar[]; incompleto: boolean } | null) => {
-        if (!vivo) return;
-        setLista(d?.pendientes ?? null);
-        setIncompleto(!d || d.incompleto);
-      })
-      .catch(() => vivo && setLista(null));
-    return () => {
-      vivo = false;
-    };
-  }, [sede, pathname]);
 
   const actual = submodulos.find((s) => rutaActiva(pathname, s.ruta))?.clave ?? "";
   const grupos = agruparPendientes(lista ?? [], submodulos, actual);
@@ -65,7 +46,7 @@ export function TeToca({ submodulos }: { submodulos: { clave: string; etiqueta: 
                         <li key={p.id} className="te-toca-item" data-estado={p.estado}>
                           <div className="min-w-0">
                             <p className="text-[14px] font-medium text-tinta">{p.titulo}</p>
-                            <p className="text-[13px] text-tinta/70">{p.detalle}</p>
+                            <p className="text-sm text-tinta/70">{p.detalle}</p>
                           </div>
                           <BotonVer href={p.href} alNavegar={cerrar} chico>
                             {p.verbo}
@@ -75,7 +56,7 @@ export function TeToca({ submodulos }: { submodulos: { clave: string; etiqueta: 
                     </ul>
                   </section>
                 ))}
-                {incompleto && <p className="nota-cayla text-[13px]">Una parte de Finanzas no respondió: puede que falte algo en la lista.</p>}
+                {incompleto && <p className="nota-cayla text-sm">Una parte de Finanzas no respondió: puede que falte algo en la lista.</p>}
               </div>
             ) : (
               <Vacio

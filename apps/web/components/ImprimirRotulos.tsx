@@ -10,6 +10,7 @@ import { SegmentoDeslizante } from "@/components/ui/SegmentoDeslizante";
 import { avisar } from "@/components/ui/Avisos";
 import { RotuloAnaquel } from "@/components/RotuloAnaquel";
 import { TiraBrother } from "@/components/rotulos/TiraBrother";
+import { useMedirNombre } from "@/components/rotulos/useMedirNombre";
 import { BotonGuiaImpresion } from "@/components/GuiaImpresion";
 import { AvisoAyudanteMac, useImpresionBrother } from "@/components/impresion/useImpresionBrother";
 import {
@@ -23,7 +24,11 @@ import {
 } from "@/lib/rotulos-reglas";
 import type { ModeloElegible } from "@/lib/rotulos";
 import { BotonImprimir } from "@/components/ui/BotonImprimir";
+import { useCantidadEscrita } from "@/components/alta-producto/useCantidadEscrita";
+import { reglaDeEntero } from "@/lib/cantidad-escrita-reglas";
+import { prefiereQuieto } from "@/lib/movimiento-cliente";
 
+const CUANTAS_COPIAS = reglaDeEntero();
 const plural = (n: number, uno: string, varios: string) => `${n} ${n === 1 ? uno : varios}`;
 /** Un doble clic en una × no se lleva también la ficha que se corre a ocupar su lugar. */
 const ENTRE_QUITAR_MS = 450;
@@ -56,9 +61,12 @@ export function ImprimirRotulos({
   const [juntar, setJuntar] = useState(false);
   // Las copias son de cada rótulo (su clave): sumar otra prenda no le borra las copias a las que ya estaban.
   const [copias, setCopias] = useState<Record<string, string>>({});
+  const escrita = useCantidadEscrita(CUANTAS_COPIAS);
   const puedeJuntar = modelos.length >= 2 && modelos.length <= MAX_JUNTOS;
   const rotulos = useMemo(() => armarRotulos(modelos, juntar && puedeJuntar), [modelos, juntar, puedeJuntar]);
   const numeros = useMemo(() => Object.fromEntries(rotulos.map((r) => [r.clave, copiasDeTexto(copias[r.clave] ?? "1")])), [rotulos, copias]);
+  // El nombre se mide con la letra que dibuja esta computadora: la tira y la hoja que va a la Brother usan la misma medida.
+  const medir = useMedirNombre();
   const hoja = rotulos.flatMap((r) => Array.from({ length: numeros[r.clave] ?? 0 }, () => r));
   const total = hoja.length;
 
@@ -134,9 +142,14 @@ export function ImprimirRotulos({
   );
   const mandar = () => {
     if (total === 0 || enviando || recorriendo) return;
+    // Lo escrito en unas copias no valió. El botón está arriba y la tira puede ser larga: el porqué sale también aquí.
+    if (escrita.frenar()) {
+      if (escrita.problema) avisar.aviso(escrita.problema);
+      return;
+    }
     const salen = rotulos.filter((r) => (numeros[r.clave] ?? 0) > 0).length;
     const { porRotulo, total: ms } = recorridoDeImpresion(salen);
-    if (ms === 0 || window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+    if (ms === 0 || prefiereQuieto()) {
       imprimir();
       return;
     }
@@ -274,7 +287,7 @@ export function ImprimirRotulos({
           )}
         </div>
 
-        <TiraBrother rotulos={rotulos} copias={copias} onCopias={(clave, texto) => setCopias((c) => ({ ...c, [clave]: texto }))} recorriendo={recorriendo} />
+<TiraBrother rotulos={rotulos} copias={copias} onCopias={(clave, texto) => setCopias((c) => ({ ...c, [clave]: texto }))} escrita={escrita} recorriendo={recorriendo} medir={medir} />
       </div>
 
       <p className="nota-cayla" data-guia="rotulos.nota">
@@ -290,7 +303,7 @@ export function ImprimirRotulos({
           <div id="rotulos-print" data-modo={modo} aria-hidden>
             {hoja.map((r, i) => (
               <div key={i} className="rot-hoja">
-                <RotuloAnaquel rotulo={r} />
+                <RotuloAnaquel rotulo={r} medir={medir} />
               </div>
             ))}
           </div>,

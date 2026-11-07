@@ -1,5 +1,7 @@
 # Rediseño de la tienda online: direcciones (2026-10-17)
 
+> **2026-10-27:** Felipe eligió **«G · Pasarela»** (`g-pasarela.html`), ya construida y publicada (ADR-0524, PR #1375 y #1381). Lo que le falta a la tienda frente a esta maqueta —animaciones, botones, decisiones abiertas, cómo correrla y sus herramientas de medición— está en [`PASARELA-PENDIENTES.md`](PASARELA-PENDIENTES.md).
+
 **Qué es:** tres maneras distintas de rediseñar por completo la tienda online (`apps/tienda`) para que se vea sofisticada y
 elegante. Cada una tiene sus cinco pantallas tocables (portada, catálogo, prenda, bolsa y entrar) en escritorio y en celular.
 Felipe elige mirando. **Una maqueta no cambia la tienda:** nada de esto existe todavía en `apps/tienda`.

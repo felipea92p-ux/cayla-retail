@@ -39,7 +39,7 @@ export function LoQueTrae({ detalle, conCosto = true }: { detalle: DetalleEnvio;
         <li key={l.id} className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 py-2.5 first:pt-0 last:pb-0">
           <div className="min-w-0">
             <p className="text-sm text-tinta">{nombreDeLinea(l)}</p>
-            <p className="text-xs text-taupe">
+            <p className="text-sm text-taupe">
               {[l.orden.numero, variosProveedores ? l.proveedor?.nombre : null, conCosto ? `${soles(l.costoUnitario)} c/u` : null].filter(Boolean).join(" · ")}
             </p>
           </div>

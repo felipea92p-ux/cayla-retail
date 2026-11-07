@@ -1,0 +1,20 @@
+# Backlog · Tienda web ▸ Tráfico: del Observatorio al ERP (rama web-store-traffic-dashboard-e8b9e2)
+
+Hecho: maqueta aprobada en lo grueso (`docs/maquetas/trafico-decisiones-2026-10/index.html`). Pendiente, en este orden:
+- Felipe confirma la maqueta (o pide más cambios) y decide qué filtros nuevos entran primero (Hoy y Este mes).
+- Plan por actividades (`/construir`): ampliar `resumen_trafico_web` (períodos, series, hora × día, quienes vuelven) y `fn_trafico_web_prendas`; el cruce de talla elegida con stock por talla es una lectura nueva.
+- Decisión abierta: colores de los caminos (la maqueta reutiliza los de método de pago). Construido sin ellos: barras en tinta y el chip de «separan» con su tono.
+- ~~Decisión abierta: el mapa de Perú~~ Felipe (2026-10-28): contorno real, cada departamento pintado más oscuro mientras más gente mira (sin círculos).
+- Revisar a 375 px la maqueta final y correr `/formidable` cuando se construya.
+
+## Estado de la construcción (actividades aprobadas el 2026-10-28)
+- [x] 1 · Períodos y comparación. **Pegar en producción `20261029015000_trafico_web_periodos.sql` (con OK de Felipe) ANTES de publicar la web:** la pantalla
+  nueva llama a `resumen_trafico_web` con 7 parámetros y la base de producción solo tiene la de 4.
+- [x] 2 · Cifras que eligen el gráfico (`20261029040000_trafico_web_serie.sql`, se pega DESPUÉS de `20261029015000`) · [x] 3 · 100 puntos · [x] 4 · Mapa de calor (`20261029042000_trafico_web_calor.sql`, se pega DESPUÉS de `20261029040000`) · [x] 5 · De dónde vienen (`20261029050000_trafico_web_regiones.sql`, se pega DESPUÉS de `20261029042000`) · [x] 6 · Prendas en tabla
+- [x] 7 · Tallas por categoría y Quién entra (`20261029120000_trafico_web_tallas_y_quienes.sql`, se pega DESPUÉS de `20261029050000`) · [x] 8 · Necesita tu atención (`20261029123000_trafico_web_atencion.sql`, se pega DESPUÉS de `20261029120000`) · [x] 9 · Calendario (`20261029132000_trafico_web_calendario.sql`, se pega DESPUÉS de `20261029123000`) · [x] 10 · Cierre (ADR-0568)
+- Decisión tomada al construir: el control de período usa `SegmentoEnlaces` (la pieza de «modo», pensada para 2–3 opciones) porque Felipe pidió que se vea
+  como la maqueta; ADR-0358 dice «período = `pildora-cayla`». Confirmarlo con Felipe en `/unificar` si molesta.
+- Para el ADR del cierre (actividad 10): la vitrina de baldosas se fue y con ella su movimiento (cascada, etiqueta, luz); ADR-0136 act. 2026-10-23 (d) y CLAUDE.md («Tienda web ▸ Tráfico la vitrina…») deben decir lo que queda: los 100 puntos que se encienden una vez y el punto verde.
+- **Pendiente tras el cierre:** ~~(1) pegar en producción las siete migraciones~~ (hecho el 2026-10-29 con el OK de Felipe, ver ADR-0568); (2) refrescar el volcado del diccionario (`docs/datos/generado/COMO-REFRESCAR.md`); (3) mirar la
+  pantalla con visitas reales, recorrer la guía (`guias:recorrer`, hoy «sin datos locales») y correr `/formidable`; (4) decidir los colores de los
+  caminos; (5) si `trafico_web` crece mucho, un índice por visitante para «Quién entra».

@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import type { PrendaSede } from "@/lib/analisis-tipos";
 import { fraseFallaSedes, leerAnalisisSede, RPC_ANALISIS_SEDE, type LecturaDeSede } from "@/lib/analisis-sede-lectura";
 import { getUbicaciones } from "@/lib/ubicaciones";
+import { unstable_rethrow } from "next/navigation";
 
 // Análisis v4 (ADR-0357): las prendas de cada tienda, leídas de la base (`retail.fn_analisis_sede`, migraciones 20261006214000 y
 // 20261007120000, 20261010120000).
@@ -47,7 +48,8 @@ async function nombresDe(ids: readonly string[]): Promise<string[]> {
   try {
     const ubicaciones = await getUbicaciones();
     return ids.map((id) => ubicaciones.find((u) => u.id === id)?.nombre ?? "una tienda");
-  } catch {
+  } catch (e) {
+    unstable_rethrow(e);
     return ids.map(() => "una tienda");
   }
 }

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { cambioLaFirma, escribiendoEn, firmaDePrecios } from "./precios-en-vivo-firma";
+import { cambioLaFirma, escribiendoEn, firmaConCampanasDeLaBase, firmaDePrecios } from "./precios-en-vivo-firma";
 import { hayPreciosPropios, registrarPreciosPropios } from "./precios-en-vivo-registro";
 
 const verano = { variante_id: "a", etiqueta_id: "e1", descuento_pct: "20.00" };
@@ -22,6 +22,28 @@ describe("firmaDePrecios (Felipe 2026-10-08: todo lo que muestra precios se pone
   });
   it("con una parte desconocida, la otra sigue avisando", () => {
     expect(cambioLaFirma(firmaDePrecios(10, null)!, firmaDePrecios(11, [verano])!)).toBe(true);
+  });
+});
+
+describe("firmaConCampanasDeLaBase (2026-10-30: la base firma las campañas y el sondeo ya no baja la lista)", () => {
+  const md5A = "0cc175b9c0f1b6a831c399e269772661";
+  const md5B = "92eb5ffee6ae2fec3ad71c777531578f";
+  it("otra firma de campañas de la base es un cambio; la misma, no", () => {
+    expect(cambioLaFirma(firmaConCampanasDeLaBase(10, md5A)!, firmaConCampanasDeLaBase(10, md5B)!)).toBe(true);
+    expect(cambioLaFirma(firmaConCampanasDeLaBase(10, md5A)!, firmaConCampanasDeLaBase(10, md5A)!)).toBe(false);
+  });
+  it("subir la versión del catálogo sigue avisando", () => {
+    expect(cambioLaFirma(firmaConCampanasDeLaBase(10, md5A)!, firmaConCampanasDeLaBase(11, md5A)!)).toBe(true);
+  });
+  it("pasar de la firma armada con la lista a la de la base (o al revés) no se toma por un cambio", () => {
+    expect(cambioLaFirma(firmaDePrecios(10, [verano])!, firmaConCampanasDeLaBase(10, md5A)!)).toBe(false);
+    expect(cambioLaFirma(firmaConCampanasDeLaBase(10, md5A)!, firmaDePrecios(10, [])!)).toBe(false);
+    // …pero la versión del catálogo se sigue comparando entre las dos formas.
+    expect(cambioLaFirma(firmaDePrecios(10, [verano])!, firmaConCampanasDeLaBase(11, md5A)!)).toBe(true);
+  });
+  it("una lectura que falló no se toma por un cambio", () => {
+    expect(cambioLaFirma(firmaConCampanasDeLaBase(10, md5A)!, firmaConCampanasDeLaBase(10, null)!)).toBe(false);
+    expect(firmaConCampanasDeLaBase(null, null)).toBeNull();
   });
 });
 

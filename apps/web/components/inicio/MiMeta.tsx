@@ -16,7 +16,7 @@ function AnilloDelDia({ pct, vendido, meta }: { pct: number; vendido: number; me
   return (
     <Anillo pct={pct} tamano="grande" etiqueta={`Llevas ${formatoSoles(vendido)} de ${formatoSoles(meta)}, ${pct} % de tu meta de hoy`}>
       <span className="font-display text-[30px] leading-none text-tinta tabular-nums">{formatoSoles(vendido)}</span>
-      <span className="mt-1 text-xs text-tinta/65">de {formatoSoles(meta)}</span>
+      <span className="mt-1 text-sm text-tinta/65">de {formatoSoles(meta)}</span>
     </Anillo>
   );
 }
@@ -50,10 +50,10 @@ export function SeccionMiMeta({ miMeta, cajaAbierta, titulo }: { miMeta: MiMeta;
           <p className="font-display text-[22px] leading-tight text-tinta">{frase}</p>
           <div className="mt-2.5 flex flex-wrap items-center justify-center gap-2 sm:justify-start">
             {lograda && <Chip tono="verde">Meta lograda</Chip>}
-            {r.hoy.ventas > 0 && <span className="text-xs text-tinta/65">{ventasTxt(r.hoy.ventas)}</span>}
+            {r.hoy.ventas > 0 && <span className="text-sm text-tinta/65">{ventasTxt(r.hoy.ventas)}</span>}
           </div>
-          {cajaAbierta === false && <p className="mt-2 text-xs text-tinta/65">La caja está cerrada: ábrela en Caja para vender.</p>}
-          {cajaAbierta === null && <p className="mt-2 text-xs text-tinta/65">No se pudo leer la caja.</p>}
+          {cajaAbierta === false && <p className="mt-2 text-sm text-tinta/65">La caja está cerrada: ábrela en Caja para vender.</p>}
+          {cajaAbierta === null && <p className="mt-2 text-sm text-tinta/65">No se pudo leer la caja.</p>}
         </div>
       </div>
     </section>
@@ -100,7 +100,7 @@ export function SeccionLoQueVaBien({ miMeta }: { miMeta: MiMeta }) {
             </span>
             <div className="min-w-0">
               <p className="text-sm font-semibold text-tinta">{f.titulo}</p>
-              <p className="mt-0.5 text-xs text-tinta/65">{f.detalle}</p>
+              <p className="mt-0.5 text-sm text-tinta/65">{f.detalle}</p>
             </div>
           </div>
         ))}
@@ -120,12 +120,12 @@ export function SeccionTuMes({ miMeta }: { miMeta: MiMeta }) {
       <div className="card-cayla p-5">
         <div className="flex flex-wrap items-baseline justify-between gap-2">
           <p className="font-display text-3xl text-tinta tabular-nums">{formatoSoles(m.vendido)}</p>
-          <p className="text-[13px] text-tinta/65">
+          <p className="text-sm text-tinta/65">
             de {formatoSoles(m.meta)} · <b className="font-semibold text-tinta">{m.pct ?? 0} %</b>
           </p>
         </div>
         <BarraAvance pct={m.pct ?? 0} marca={m.tocabaPct} etiqueta="Tu mes contra tu meta" className="mt-3" />
-        <p className="mt-3 text-[13px] text-tinta/80">
+        <p className="mt-3 text-sm text-tinta/80">
           {hito.falta > 0 ? (
             <>
               Te faltan <b className="font-semibold">{formatoSoles(hito.falta)}</b>
@@ -140,7 +140,7 @@ export function SeccionTuMes({ miMeta }: { miMeta: MiMeta }) {
             "Ya llegaste a tu meta del mes."
           )}
         </p>
-        {hito.proyeccion !== null && <p className="mt-1 text-xs text-tinta/65">A este ritmo cierras el mes cerca de {formatoSoles(hito.proyeccion)}.</p>}
+        {hito.proyeccion !== null && <p className="mt-1 text-sm text-tinta/65">A este ritmo cierras el mes cerca de {formatoSoles(hito.proyeccion)}.</p>}
         <p className="nota-cayla mt-4">
           La meta es para <b>acompañarte</b>: no se usa para pagar ni para evaluar. Solo ves lo tuyo; si algo no te cuadra, díselo a tu líder de sede.
         </p>

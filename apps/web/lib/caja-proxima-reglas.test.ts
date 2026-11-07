@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { CuentaDinero } from "./cuentas-dinero-reglas";
 import type { CobroEsperado, Proyeccion, SalidaProy } from "./flujo-caja-reglas";
-import { alinearAvisoDeCaja, cajaProxima, DIAS_CAJA_PROXIMA, diasEntre, fechaEnPalabras, salidasGrandes, sumarDias } from "./caja-proxima-reglas";
+import { alinearAvisoDeCaja, cajaProxima, detalleDeHoy, DIAS_CAJA_PROXIMA, diasEntre, fechaEnPalabras, loQueHayEnCuentas, salidasGrandes, sumarDias } from "./caja-proxima-reglas";
 import fixture from "./resumen-finanzas.fixture.json";
 import { avisosParaDecidir, leerResumen, type VerResumen } from "./resumen-finanzas-reglas";
 
@@ -92,6 +92,7 @@ describe("el saldo día por día", () => {
     expect(c.entra).toBe(p.semanas[0]!.entra + p.semanas[1]!.entra);
     expect(c.sale).toBe(p.semanas[0]!.sale + p.semanas[1]!.sale);
     expect(c.saldoHoy + c.entra - c.sale).toBe(c.queda);
+    expect(c.deClaudia).toBe(0);
   });
 
   it("cada día dice qué pasó ese día y cuál fue la salida que más pesó", () => {
@@ -127,12 +128,12 @@ describe("lo que dice el titular", () => {
     expect(c.tono).toBe("ambar");
     expect(c.bajaDelMinimo).toEqual({ fecha: "2026-10-28", saldo: 12_000 });
     expect(c.masBajo).toEqual({ fecha: "2026-10-28", saldo: 12_000 });
-    expect(texto(c.titular)).toBe("Tu caja baja de tu mínimo: el 28 de octubre llegas a S/ 12,000 y tu mínimo es S/ 15,000.");
+    expect(texto(c.titular)).toBe("Tu caja baja a S/ 12,000 el 28 de octubre: S/ 3,000 bajo tu mínimo.");
   });
 
   it("si se queda sin plata lo dice así, no como «bajo el mínimo»", () => {
     const c = cayla(proyeccion({ saldoHoy: 5_000, salidas: [salida("2026-10-20", "Factura", 8_000)] }));
-    expect(texto(c.titular)).toBe("Tu caja se queda sin plata: el 20 de octubre llegas a −S/ 3,000.");
+    expect(texto(c.titular)).toBe("Te quedas sin plata el 20 de octubre: llegas a −S/ 3,000.");
   });
 
   it("si hoy la caja ya está bajo el mínimo, lo dice así y no inventa un día de «baja»", () => {
@@ -140,7 +141,7 @@ describe("lo que dice el titular", () => {
     expect(c.tono).toBe("ambar");
     expect(c.sinPlata).toBeNull();
     // Hoy tiene 9,000 (ya bajo el mínimo) y el 20 baja a 8,000: dice las dos cosas, con el mismo punto más bajo que el aviso.
-    expect(texto(c.titular)).toBe("Hoy tu caja ya está bajo tu mínimo (tienes S/ 9,000): el 20 de octubre llegas a S/ 8,000 y tu mínimo es S/ 15,000.");
+    expect(texto(c.titular)).toBe("Hoy ya estás bajo tu mínimo y el 20 de octubre llegas a S/ 8,000: te faltan S/ 7,000.");
   });
 
   it("no baja ahora pero sí después: ámbar, con la semana que baja", () => {
@@ -171,7 +172,7 @@ describe("el punto más bajo es UN solo número", () => {
     const c = cayla(proyeccion({ salidas: [salida("2026-10-18", "Factura", 14_000), salida("2026-10-28", "Planilla", 8_000, { tipo: "planilla" })] }));
     expect(c.bajaDelMinimo).toEqual({ fecha: "2026-10-18", saldo: 14_000 });
     expect(c.masBajo).toEqual({ fecha: "2026-10-28", saldo: 6_000 });
-    expect(texto(c.titular)).toContain("el 28 de octubre llegas a S/ 6,000");
+    expect(texto(c.titular)).toContain("Tu caja baja a S/ 6,000 el 28 de octubre");
   });
 
   it("si no baja del mínimo, no hay punto más bajo que contar", () => {
@@ -180,7 +181,7 @@ describe("el punto más bajo es UN solo número", () => {
 });
 
 describe("el aviso de «Hoy te toca» dice lo mismo que la tarjeta", () => {
-  const ESC = "/finanzas/reportes/escenarios";
+  const ESC = "/finanzas/reportes/flujo#y-si";
   /** El Resumen real (fixture) con la proyección puesta: así el aviso sale de `avisosParaDecidir`, como en la pantalla. */
   function avisoYTarjeta(p: Proyeccion, href: string | null = ESC) {
     const r = leerResumen(fixture.todas);
@@ -276,7 +277,7 @@ describe("lo que no se ve o no se pudo leer", () => {
   it("con la proyección provisional el veredicto de alarma lleva la cautela del ADR-0417, y el verde no la necesita", () => {
     const p = { diasDeCajaConfiable: false, saldoInicialDeclarado: false };
     const alarma = cayla(proyeccion({ ...p, salidas: [salida("2026-10-28", "Planilla", 16_000, { tipo: "planilla" })] }));
-    expect(texto(alarma.titular)).toBe("Con lo que hay registrado, tu caja baja de tu mínimo: el 28 de octubre llegas a S/ 12,000 y tu mínimo es S/ 15,000.");
+    expect(texto(alarma.titular)).toBe("Con lo que hay registrado, tu caja baja a S/ 12,000 el 28 de octubre: S/ 3,000 bajo tu mínimo.");
     const bien = cayla(proyeccion({ ...p, salidas: [salida("2026-10-20", "Factura", 1_000)] }));
     expect(bien.titular.startsWith("Tu caja aguanta")).toBe(true);
   });
@@ -377,3 +378,20 @@ describe("la inversión en mercadería como capa aparte", () => {
 function cajaOk() {
   return proyeccion({ saldoHoy: 30_000, salidas: [salida("2026-10-20", "Factura de telas", 2_000)] });
 }
+
+// ADR-0621: «Hoy tienes» ya viene sin lo por volver de compras; para cuadrar con las cuentas se le devuelve.
+describe("lo por volver de compras", () => {
+  it("la caja lo guarda aparte y lo que hay en las cuentas lo devuelve", () => {
+    const c = cayla(proyeccion({ saldoHoy: 20_000, deClaudia: 300, porVolverCompras: 285 }));
+    expect(c.porVolver).toBe(285);
+    expect(loQueHayEnCuentas(c)).toBe(20_585);
+  });
+  it("la línea bajo «Hoy tienes» nombra lo que ya no cuenta", () => {
+    expect(texto(detalleDeHoy({ deClaudia: 0, porVolver: 0 }))).toBe("Cajones, cajas fuertes y bancos.");
+    expect(texto(detalleDeHoy({ deClaudia: 0, porVolver: 285 }))).toBe("Cajones, cajas fuertes y bancos, sin los S/ 285 por volver de compras.");
+    expect(texto(detalleDeHoy({ deClaudia: 300, porVolver: 285 }))).toBe("Cajones, cajas fuertes y bancos, sin los S/ 300 que son de Claudia ni los S/ 285 por volver de compras.");
+  });
+  it("una base más vieja que no lo manda deja 0", () => {
+    expect(cayla(proyeccion({ saldoHoy: 20_000 })).porVolver).toBe(0);
+  });
+});

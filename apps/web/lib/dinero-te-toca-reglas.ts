@@ -3,6 +3,7 @@
 // que su cara ya muestra (lo que vence, la caja fuerte sin depositar, las líneas sin revisar).
 
 import { soles } from "./flujo-caja-reglas";
+import { textoMes } from "./gastos-reglas";
 import { diasHasta, type FilaPorPagar } from "./por-pagar-consolidado-reglas";
 import { avisoCajaFuerte, ultimoDepositoDe } from "./dinero-telar-reglas";
 import { diasEntreFechas } from "./fechas-lima";
@@ -39,6 +40,10 @@ export function pendientesDeDinero(
     cajasSinDepositar: readonly { nombre: string; saldo: number; dias: number }[];
     lineasSinRevisar: number;
     esLider: boolean;
+    /** Lo que Dynamic marcó pagado y aquí no dice de qué banco salió. */
+    planilla?: { salidas: number; total: number } | null;
+    /** Lo que Dynamic liquidó y aquí no dice de qué banco salió (tarea 12). */
+    liquidaciones?: { mes: string; falta: number }[] | null;
   },
   hoy: string,
   consulta: string,
@@ -48,6 +53,30 @@ export function pendientesDeDinero(
     return q ? `${ruta}?${q}` : ruta;
   };
   const lista: Pendiente[] = [];
+
+  if (datos.planilla && datos.planilla.salidas > 0) {
+    lista.push({
+      submodulo: "finanzas.dinero",
+      id: "dinero.planilla",
+      estado: "avisa",
+      titulo: `${soles(datos.planilla.total)} de planilla ya salieron del banco`,
+      detalle: "Dynamic la marcó pagada y aquí falta decir de qué banco: hasta entonces sigue sumando en «¿Cuánto tienes?»",
+      verbo: "Registrar",
+      href: "/finanzas/dinero",
+    });
+  }
+
+  for (const l of datos.liquidaciones ?? []) {
+    lista.push({
+      submodulo: "finanzas.dinero",
+      id: `dinero.liquidacion.${l.mes}`,
+      estado: "avisa",
+      titulo: `${soles(l.falta)} de liquidaciones de ${textoMes(l.mes)} ya salieron del banco`,
+      detalle: "Dynamic las marcó pagadas y aquí falta decir de qué banco: hasta entonces siguen sumando en «¿Cuánto tienes?»",
+      verbo: "Registrar",
+      href: `/finanzas/dinero?registrar=liquidacion&mes=${l.mes}&monto=${l.falta}`,
+    });
+  }
 
   const vencidas = datos.porPagar.filter((f) => diasHasta(f.vence, hoy) < 0);
   const semana = datos.porPagar.filter((f) => {

@@ -6,10 +6,11 @@
 //   NO HACE: no pinta ni toca la base. El mínimo y el fijo son opcionales: solo bloquean si se escribió algo que la base rechazaría.
 
 import type { CampoDeGuia } from "./guia-campos";
+import type { FaseDelCatalogo } from "./orden-fases-reglas";
 import { problemasDeTarifa, type EntradaDeTarifa } from "./tarifas-servicios-reglas";
 
-export function camposDeTarifa(e: EntradaDeTarifa, responsableListo: boolean): CampoDeGuia[] {
-  const problema = (campo: string) => problemasDeTarifa(e).find((p) => p.campo === campo)?.texto ?? null;
+export function camposDeTarifa(e: EntradaDeTarifa, responsableListo: boolean, catalogo?: ReadonlyArray<FaseDelCatalogo>): CampoDeGuia[] {
+  const problema = (campo: string) => problemasDeTarifa(e, catalogo).find((p) => p.campo === campo)?.texto ?? null;
   const minimoEscrito = e.minimo.trim() !== "";
   const fijoEscrito = e.fijo.trim() !== "";
   return [

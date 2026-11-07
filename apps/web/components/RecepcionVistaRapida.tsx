@@ -67,7 +67,7 @@ export function RecepcionVistaRapida({
               Ver comprobante completo
             </EnlaceVer>
           ) : (
-            <span className="text-xs text-tinta/55">El detalle del comprobante es de Compras.</span>
+            <span className="text-sm text-tinta/55">El detalle del comprobante es de Compras.</span>
           )}
         </>
       )}
@@ -87,7 +87,7 @@ export function RecepcionVistaRapida({
           <dt className="label-cayla text-[10px] text-tinta/65">Demora</dt>
           <dd className="font-display mt-0.5 text-[21px] leading-tight tabular-nums text-tinta">
             <CifraQueCuenta valor={r.diasDemora} alMontar />
-            <small className="ml-1 font-sans text-[13px] text-tinta/65">{r.diasDemora === 1 ? "día" : "días"}</small>
+            <small className="ml-1 font-sans text-sm text-tinta/65">{r.diasDemora === 1 ? "día" : "días"}</small>
           </dd>
         </div>
       </dl>
@@ -105,11 +105,11 @@ export function RecepcionVistaRapida({
       {detalle.length > 0 ? (
         <ul className="divide-y divide-tinta/10">
           {detalle.map((l, i) => (
-            <li key={i} style={{ "--i": i + 2 } as CSSProperties} className="anim-entra flex items-baseline justify-between gap-3 py-2.5 text-[13.5px]">
+            <li key={i} style={{ "--i": i + 2 } as CSSProperties} className="anim-entra flex items-baseline justify-between gap-3 py-2.5 text-[15px]">
               <span className="min-w-0 text-tinta">
                 {l.referencia}
                 {l.sku ? ` · ${l.sku}` : ""}
-                <span className="block truncate text-xs text-tinta/55">{[l.talla, l.color].filter(Boolean).join(" / ") || "—"}</span>
+                <span className="block truncate text-sm text-tinta/55">{[l.talla, l.color].filter(Boolean).join(" / ") || "—"}</span>
               </span>
               <b className="font-display text-[19px] font-normal tabular-nums text-tinta">{l.cantidad}</b>
             </li>

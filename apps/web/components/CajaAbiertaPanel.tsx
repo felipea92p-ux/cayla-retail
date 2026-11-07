@@ -50,6 +50,8 @@ import { Boton } from "@/components/ui/campos";
 import { Vacio } from "@/components/ui/Vacio";
 import { TituloSeccion } from "@/components/ui/TituloSeccion";
 import { EnlaceVer } from "@/components/ui/EnlaceVer";
+import { RepartoEmpresas } from "@/components/RepartoEmpresas";
+import type { RepartoEmpresas as RepartoDeEmpresas } from "@/lib/vendido-por-empresa-reglas";
 
 function money(n: number) {
   return "S/" + n.toFixed(2);
@@ -110,6 +112,7 @@ export function CajaAbiertaPanel({
   sedesIngreso = [],
   abrirCierre = false,
   comparativa = null,
+  repartoEmpresas = null,
 }: {
   ubicacionNombre: string;
   personaNombre: string;
@@ -148,6 +151,8 @@ export function CajaAbiertaPanel({
   sedesIngreso?: { id: string; nombre: string }[];
   /** Los pagos de hoy y de ayer (ADR-0319). `null` = la base aún no tiene `fn_comparativa_caja`: Caja se ve como antes. */
   comparativa?: { hoy: PagoDelDia[]; ayer: PagoDelDia[] } | null;
+  /** De quién es lo vendido del turno (ADR-0532): CAYLA y CLAURE en Lima. `null` donde hay una sola empresa o si la base no respondió. */
+  repartoEmpresas?: RepartoDeEmpresas | null;
   /** Se llegó desde «Cerrar caja» del recordatorio de cierre (`/caja?cerrar=1`, ADR-0305): el cierre ya sale abierto. */
   abrirCierre?: boolean;
 }) {
@@ -182,7 +187,7 @@ export function CajaAbiertaPanel({
 
   // En vivo: sondea la caja cada pocos segundos y, si entró algo, Next vuelve a leer la pantalla y llegan props
   // nuevas. Lo que sigue solo detecta QUÉ es nuevo para que cada pieza lo muestre; nada de esto pide datos.
-  useCajaEnVivo(caja.id);
+  useCajaEnVivo(caja.id, caja.ubicacionId);
   // El botón «Cerrar caja» cambia de nivel con la hora de cierre de la tienda (ADR-0318); se mira cada minuto.
   const ahoraCierre = useAhora(60_000);
   const estadoCierre = ahoraCierre ? estadoBotonCierre({ ahora: ahoraCierre, abiertaEn: caja.abiertaEn, horaCierre, puedeCerrar }) : null;
@@ -303,13 +308,22 @@ export function CajaAbiertaPanel({
     </div>
   );
 
+  // De quién es lo vendido (ADR-0532): solo en Lima, donde CAYLA y CLAURE comparten la caja. Va bajo el titular de «hoy contra ayer».
+  const tarjetaReparto = repartoEmpresas ? (
+    <RepartoEmpresas
+      reparto={repartoEmpresas}
+      guia="caja.reparto-empresas"
+      indice={1}
+      frase="Desde que abriste la caja, sin anuladas."
+    />
+  ) : null;
+
   // «Movimientos del turno»: va junto a «Dónde ganas y dónde pierdes» en el diseño nuevo y en su lugar de siempre en el anterior.
   const tarjetaMovimientos = (
           <div data-guia="caja.movimientos" className="card-cayla anim-sube flex flex-col p-5" style={{ "--i": 7 } as CSSProperties}>
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
-                <p className="text-sm font-bold text-tinta">Movimientos del turno</p>
-                <p className="text-xs text-tinta/50">Toca cualquier fila para ver el detalle</p>
+                <TituloSeccion nivel={3}>Movimientos del turno</TituloSeccion>
               </div>
               {/* Filtro de un valor (deja menos movimientos): la píldora del sistema, no la pista hueso del spike (ADR-0358). */}
               <div role="group" aria-label="Filtrar movimientos" data-guia="caja.movimientos-filtro" className="flex flex-wrap items-center gap-2">
@@ -334,7 +348,7 @@ export function CajaAbiertaPanel({
             </div>
             {metodosUsados.length > 0 && (
               <div role="group" aria-label="Filtrar ventas por medio de pago" className="mt-3 flex flex-wrap items-center gap-1.5">
-                <span className="mr-1 text-[11.5px] text-tinta/50">Medio de pago</span>
+                <span className="texto-detalle mr-1">Medio de pago</span>
                 {metodosUsados.map(({ clave, ventas }) => (
                   <button
                     key={clave}
@@ -350,7 +364,7 @@ export function CajaAbiertaPanel({
                 ))}
               </div>
             )}
-            {hayMixtas && <p className="mt-1.5 text-[11.5px] text-tinta/50">Las ventas pagadas con dos medios salen en cada uno.</p>}
+            {hayMixtas && <p className="texto-detalle mt-1.5">Una venta con dos medios sale en cada uno.</p>}
             {eventos.length === 0 ? (
               todosLosEventos.length === 0 ? (
                 <Vacio tamano="chico" icono={<Receipt />}>
@@ -421,6 +435,7 @@ export function CajaAbiertaPanel({
               horaCierreMin={minutosLima(horaCierre)}
               cajon={<TarjetaCajon esperado={esperadoCajon} piezas={piezasDelCajon(caja.montoApertura, resumen)} indice={3} />}
               movimientos={tarjetaMovimientos}
+              reparto={tarjetaReparto}
             />
           </>
         ) : (
@@ -430,11 +445,13 @@ export function CajaAbiertaPanel({
           <TarjetaCajon esperado={esperadoCajon} piezas={piezasDelCajon(caja.montoApertura, resumen)} indice={1} />
           <TarjetaCobrado porMetodo={series.porMetodo} redondeo={resumen.redondeo} indice={2} />
           <div className="card-cayla anim-sube hidden flex-col p-5 sm:flex @[900px]:col-span-2 @[1200px]:col-span-1" style={{ "--i": 3 } as CSSProperties}>
-            <p className="text-sm font-bold text-tinta">Ritmo del turno</p>
-            <p className="mb-3.5 text-xs text-tinta/50">Cada punto es una venta, desde que abrió la caja</p>
+            <TituloSeccion nivel={3}>Ritmo del turno</TituloSeccion>
+            <p className="texto-bajada mb-3.5">Cada punto, una venta del turno</p>
             <RitmoDelDia ventas={ventasHoy} abiertaEn={caja.abiertaEn} idsNuevos={idsNuevos} />
           </div>
         </div>
+
+        {tarjetaReparto}
 
         {/* ---------- Meta de hoy y lo que pedirá el cierre (ADR-0195 F1) ---------- */}
         {metaVentaDiaria !== null && metaPct !== null && (
@@ -480,7 +497,7 @@ export function CajaAbiertaPanel({
                   </div>
                 </dl>
                 <p className="mt-1 text-[12.5px] text-taupe">
-                  {fondoCierre.motivo}. El fondo normal lo pone el líder en Configuración ▸ Tiendas y caja; cada campaña puede subirlo.
+                  {fondoCierre.motivo}. El fondo normal lo pone el líder en Configuración ▸ Empresa y tiendas; cada campaña puede subirlo.
                 </p>
               </div>
             )}
@@ -509,12 +526,11 @@ export function CajaAbiertaPanel({
 
       <BarraCajaMovil vender={accesos.vender} onGasto={abrirGasto} onIngreso={() => setModal("ingreso")} onCerrar={puedeCerrar ? () => setModal("cerrar") : null} />
 
-      {modal === "movimiento" && <MovimientoCajaModal cajaId={caja.id} esLider={personaRol === "lider"} soloSalida onClose={() => setModal(null)} />}
+      {modal === "movimiento" && <MovimientoCajaModal cajaId={caja.id} soloSalida onClose={() => setModal(null)} />}
       {modal === "ingreso" && (
         <IngresoRapidoModal
           caja={{ id: caja.id, ubicacionId: caja.ubicacionId }}
           ubicacionNombre={ubicacionNombre}
-          esLider={personaRol === "lider"}
           sedes={sedesIngreso}
           accesos={{ vender: accesos.vender, apartados: accesos.apartados }}
           onCerrar={() => setModal(null)}
@@ -598,8 +614,8 @@ function AvisoTurnoLargo({ abiertaEn, esLider }: { abiertaEn: string; esLider: b
   if (!turnoLargo(minutos)) return null;
   return (
     <div role="status" className="card-cayla border-l-2 border-l-rojo px-5 py-3 text-sm text-tinta">
-      Esta caja lleva <b className="font-medium">{formatoDuracion(minutos)}</b> abierta.{" "}
-      {esLider ? "Ciérrala para que el arqueo quede día por día." : "Avisa a un líder de equipo para que la cierre."}
+      Caja abierta hace <b className="font-medium">{formatoDuracion(minutos)}</b>:{" "}
+      {esLider ? "ciérrala para cuadrar día por día." : "avisa a un líder de equipo para que la cierre."}
     </div>
   );
 }

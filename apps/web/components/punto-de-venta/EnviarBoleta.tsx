@@ -101,13 +101,13 @@ export function EnviarBoleta({
         </a>
       )}
       {envio.fase === "esperando" && (
-        <p role="status" className="text-[12px] leading-snug text-tinta/65">
+        <p role="status" className="text-sm leading-snug text-tinta/65">
           Preparando el PDF de la {comprobante.tipo === "factura" ? "factura" : "boleta"}… En unos segundos aparece el botón.
         </p>
       )}
-      {envio.fase === "sin_pdf" && <p className="text-[12px] leading-snug text-tinta/65">{envio.motivo}</p>}
+      {envio.fase === "sin_pdf" && <p className="text-sm leading-snug text-tinta/65">{envio.motivo}</p>}
       {/* Lo que pasó con la ficha, aparte del envío: el celular se guarda igual aunque el PDF todavía no llegue. */}
-      {textoCelularEnFicha(enFicha) && <p className="border-t border-sand pt-2 text-[11.5px] leading-snug text-tinta/60">{textoCelularEnFicha(enFicha)}</p>}
+      {textoCelularEnFicha(enFicha) && <p className="border-t border-sand pt-2 text-sm leading-snug text-tinta/60">{textoCelularEnFicha(enFicha)}</p>}
     </div>
   );
 }

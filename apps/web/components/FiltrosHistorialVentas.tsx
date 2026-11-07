@@ -150,9 +150,10 @@ export function FiltrosHistorialVentas({
     <div className="space-y-2.5">
       <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
         {/* En el celular la fila se desliza y sale desde el borde izquierdo de la pantalla (`-ml-4 pl-4`); por la derecha termina
-            antes de «Filtros» (con `-mx-4` se metía 16 px debajo de la píldora). */}
-        <div className="-my-1 -ml-4 flex min-w-0 flex-1 items-center gap-1.5 overflow-x-auto py-1 pl-4 [scrollbar-width:none] sm:ml-0 sm:flex-wrap sm:overflow-visible sm:pl-0 [&::-webkit-scrollbar]:hidden">
-        <div role="group" aria-label="Período" data-guia="historial.periodos" className="flex shrink-0 items-center gap-1.5">
+            antes de «Filtros» (con `-mx-4` se metía 16 px debajo de la píldora). Con el lateral a la vista quedan apenas 308 px a 640: la fila pide
+            18 rem, «Filtros» baja si no alcanza y las píldoras de cada grupo bajan de línea. */}
+        <div className="-my-1 -ml-4 flex min-w-0 flex-1 items-center gap-1.5 overflow-x-auto py-1 pl-4 [scrollbar-width:none] sm:ml-0 sm:flex-[1_1_18rem] sm:flex-wrap sm:overflow-visible sm:pl-0 [&::-webkit-scrollbar]:hidden">
+        <div role="group" aria-label="Período" data-guia="historial.periodos" className="flex shrink-0 items-center gap-1.5 sm:min-w-0 sm:shrink sm:flex-wrap">
           <Pastilla
             activa={!mostrarFechas && periodo === "hoy"}
             onClick={() => {
@@ -179,8 +180,9 @@ export function FiltrosHistorialVentas({
             Personalizado
           </Pastilla>
         </div>
-        <span aria-hidden className="mx-1 h-5 w-px shrink-0 bg-tinta/15" />
-        <div role="group" aria-label="Atajos" data-guia="historial.atajos" className="flex shrink-0 items-center gap-1.5">
+        {/* Entre el celular (la fila se desliza) y las pantallas muy anchas los grupos bajan de línea, y la raya quedaría sola en un renglón. */}
+        <span aria-hidden className="mx-1 h-5 w-px shrink-0 bg-tinta/15 sm:hidden 2xl:block" />
+        <div role="group" aria-label="Atajos" data-guia="historial.atajos" className="flex shrink-0 items-center gap-1.5 sm:min-w-0 sm:shrink sm:flex-wrap">
           {visibles.map((a) => {
             const activo = atajoActivo(a, actual);
             return (

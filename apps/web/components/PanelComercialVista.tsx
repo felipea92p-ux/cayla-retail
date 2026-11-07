@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { Receipt, ChartColumn } from "lucide-react";
 import { Ayuda } from "@/components/Ayuda";
 import { Encabezado, Tabla, celda, fila } from "@/components/ui/Tabla";
@@ -66,8 +67,9 @@ export function PanelComercialVista({ panel }: { panel: PanelComercial }) {
             etiqueta="Ventas de hoy"
             ayuda={
               <Ayuda titulo="Qué cuenta como venta">
-                Lo que cobró el mostrador, con IGV incluido, igual que el cierre de caja. No cuenta lo anulado. Las
-                devoluciones aprobadas se muestran aparte, con la fecha en que se aprobaron, y no se restan solas.
+                Lo que cobró el mostrador de CAYLA, con IGV incluido. No cuenta lo anulado ni lo que se vendió de CLAURE (de Claudia, en Tienda
+                Lima): el cierre de caja sí lo cuenta, porque es lo que hay en el cajón. Las devoluciones aprobadas se muestran aparte, con la
+                fecha en que se aprobaron, y no se restan solas.
               </Ayuda>
             }
             valor={soles(total.ventasHoy)}
@@ -198,8 +200,8 @@ export function PanelComercialVista({ panel }: { panel: PanelComercial }) {
         <summary className="cursor-pointer font-semibold text-tinta" data-guia="comercial.como-abrir">Cómo se calcula todo esto</summary>
         <ul className="mt-3 list-disc space-y-1.5 pl-5 leading-relaxed">
           <li>
-            <strong>Venta:</strong> lo cobrado en el mostrador con IGV incluido, sin las ventas anuladas. La diferencia de un
-            cambio no cuenta como venta nueva.
+            <strong>Venta:</strong> lo cobrado en el mostrador de CAYLA con IGV incluido, sin las ventas anuladas ni lo vendido de CLAURE
+            (Caja y el Historial sí lo muestran). La diferencia de un cambio no cuenta como venta nueva.
           </li>
           <li>
             <strong>Devuelto:</strong> devoluciones aprobadas, con la fecha en que se aprobaron (igual que la caja: la plata sale
@@ -268,7 +270,18 @@ function Fila({ k, v }: { k: string; v: string }) {
   );
 }
 
-const PLANTILLA_COLABORADORAS = "grid-cols-[minmax(8rem,1.6fr)_5.5rem_6rem_4rem_6rem_5.5rem]";
+// Bajo 640 px de tabla (un celular, o una tablet con el menú abierto) cada persona es una tarjeta: su nombre arriba y sus cifras de a tres, cada una con su título.
+const PLANTILLA_COLABORADORAS = "grid-cols-[minmax(8rem,1.6fr)_5.5rem_6rem_4rem_6rem_5.5rem] @max-[640px]:grid-cols-3";
+const CIFRA_COLABORADORA = "text-right @max-[640px]:text-left";
+
+function CifraColaboradora({ titulo, fuerte = false, children }: { titulo: string; fuerte?: boolean; children: ReactNode }) {
+  return (
+    <span role="cell" className={celda("der", `${CIFRA_COLABORADORA} ${fuerte ? "text-tinta" : "text-tinta/85"}`)}>
+      <span className="hidden text-taupe @max-[640px]:block">{titulo}</span>
+      {children}
+    </span>
+  );
+}
 
 function TablaColaboradoras({ sede, filas }: { sede: SedeComercial; filas: ColaboradoraComercial[] }) {
   return (
@@ -280,10 +293,10 @@ function TablaColaboradoras({ sede, filas }: { sede: SedeComercial; filas: Colab
           Sin ventas este mes.
         </Vacio>
       ) : (
-        <div role="table" aria-label={`Ventas por colaboradora en ${sede.nombre}, este mes`} className="min-w-[26rem] divide-y divide-sand text-xs tabular-nums">
+        <div role="table" aria-label={`Ventas por colaboradora en ${sede.nombre}, este mes`} className="divide-y divide-sand text-xs tabular-nums">
           <Encabezado
             siempre
-            plantilla={PLANTILLA_COLABORADORAS}
+            plantilla={`${PLANTILLA_COLABORADORAS} @max-[640px]:hidden!`}
             columnas={[
               { titulo: "Colaboradora" },
               { titulo: "Hoy", alinear: "der" },
@@ -298,14 +311,14 @@ function TablaColaboradoras({ sede, filas }: { sede: SedeComercial; filas: Colab
             const d = descuentoPct(c.brutoMes, c.descuentoMes);
             return (
               <div key={c.personaId ?? "sin-colaboradora"} role="row" className={fila(PLANTILLA_COLABORADORAS)}>
-                <span role="rowheader" className={celda("izq", c.personaId === null ? "italic text-tinta/60" : "text-tinta")}>
+                <span role="rowheader" className={celda("izq", `@max-[640px]:col-span-3 ${c.personaId === null ? "italic text-tinta/60" : "text-tinta"}`)}>
                   {c.nombre}
                 </span>
-                <span role="cell" className={celda("der", "text-right text-tinta/85")}>{c.ventasHoy > 0 ? soles(c.ventasHoy) : "—"}</span>
-                <span role="cell" className={celda("der", "text-right text-tinta")}>{soles(c.ventasMes)}</span>
-                <span role="cell" className={celda("der", "text-right text-tinta/85")}>{c.ticketsMes}</span>
-                <span role="cell" className={celda("der", "text-right text-tinta/85")}>{tk === null ? "—" : soles(tk)}</span>
-                <span role="cell" className={celda("der", "text-right text-tinta/85")}>{d === null ? "—" : pct(d)}</span>
+                <CifraColaboradora titulo="Hoy">{c.ventasHoy > 0 ? soles(c.ventasHoy) : "—"}</CifraColaboradora>
+                <CifraColaboradora titulo="Mes" fuerte>{soles(c.ventasMes)}</CifraColaboradora>
+                <CifraColaboradora titulo="Tickets">{c.ticketsMes}</CifraColaboradora>
+                <CifraColaboradora titulo="Ticket prom.">{tk === null ? "—" : soles(tk)}</CifraColaboradora>
+                <CifraColaboradora titulo="Descuento">{d === null ? "—" : pct(d)}</CifraColaboradora>
               </div>
             );
           })}

@@ -1,12 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { aplicarProvision, delMes, leerProvision, notaProvisionado, resumenDeProvision, type FilaProvision } from "./planilla-provision-reglas";
+import { aplicarProvision, delMes, hastaDeLaProvision, leerProvision, nombreSedeDynamic, notaProvisionado, resumenDeProvision, sueldosAEstaFecha, type FilaProvision } from "./planilla-provision-reglas";
 import type { FilaER } from "./resultados-reglas";
 
 const fila = (p: Partial<FilaER>): FilaER => ({
   ubicacionId: null, unidad: "tienda", nombre: "Tienda", orden: 1,
   ventas: 0, costo: 0, fletes: 0, mermas: 0, margen: 0, planilla: 0, depreciacion: 0, gastos: 0, resultado: 0, igvVentas: 0,
   detalleGastos: [], detalleMermas: [], sinCosto: 0, mermasSinCosto: 0, descuadres: 0, planillaVisible: true, planillaNota: null,
-  planillaEstimada: 0, planillaAlCierre: 0, planillaPersonas: 0,
+  planillaEstimada: 0, planillaAlCierre: 0, planillaPersonas: 0, planillaPorSede: [],
   ...p,
 });
 const prov = (p: Partial<FilaProvision>): FilaProvision => ({
@@ -76,6 +76,33 @@ describe("aplicarProvision", () => {
     ]);
     expect(emp).toMatchObject({ planilla: 400, planillaEstimada: 400, planillaAlCierre: 600, planillaPersonas: 9, gastos: 450, resultado: -450 });
     expect(tal).toMatchObject({ planilla: 80, planillaEstimada: 80, planillaAlCierre: 120, planillaPersonas: 3, resultado: -110 });
+  });
+
+  it("«De la empresa» dice cuánto aporta cada sede de Dynamic: la central y la Oficina Trujillo no se confunden con la tienda de Trujillo (octubre 2026, medido en producción)", () => {
+    const out = aplicarProvision(todas, [
+      prov({ ubicacionId: "u-tru", sedeCodigo: "TRU", devengado: 20538.88, personas: 12 }),
+      prov({ ubicacionId: null, unidad: "empresa", sedeCodigo: "CCO", devengado: 8138.25, personas: 5 }),
+      prov({ ubicacionId: null, unidad: "empresa", sedeCodigo: "OTRU", devengado: 5584.48, personas: 5 }),
+    ]);
+    const emp = out.find((f) => f.unidad === "empresa")!;
+    expect(emp.planillaPorSede).toEqual([
+      { sedeCodigo: "CCO", nombre: "Central", personas: 5, devengado: 8138.25 },
+      { sedeCodigo: "OTRU", nombre: "Oficina Trujillo", personas: 5, devengado: 5584.48 },
+    ]);
+    // El desglose suma exactamente la cifra de la columna, y la tienda de Trujillo no lleva nada de la oficina.
+    expect(emp.planillaPorSede.reduce((s, x) => s + x.devengado, 0)).toBeCloseTo(emp.planillaEstimada, 2);
+    expect(out.find((f) => f.ubicacionId === "u-tru")!.planillaPorSede).toEqual([]);
+    expect(out.find((f) => f.unidad === "consolidado")!.planillaPorSede).toEqual([]);
+  });
+
+  it("un código de Dynamic que no conocemos se muestra tal cual, y dos períodos de la misma sede se suman", () => {
+    expect(nombreSedeDynamic("OTRU")).toBe("Oficina Trujillo");
+    expect(nombreSedeDynamic("ZZ9")).toBe("ZZ9");
+    const [, , , emp] = aplicarProvision(todas, [
+      prov({ ubicacionId: null, unidad: "empresa", sedeCodigo: "OTRU", periodoId: "p1", devengado: 100, personas: 4 }),
+      prov({ ubicacionId: null, unidad: "empresa", sedeCodigo: "OTRU", periodoId: "p2", devengado: 50, personas: 5 }),
+    ]);
+    expect(emp!.planillaPorSede).toEqual([{ sedeCodigo: "OTRU", nombre: "Oficina Trujillo", personas: 5, devengado: 150 }]);
   });
 
   it("el consolidado lleva la suma exacta de todas las estimaciones, y sigue siendo la suma de las filas", () => {
@@ -184,5 +211,51 @@ describe("lo de hoy (act. 2026-10-22)", () => {
   it("el resumen de la confianza suma lo de hoy de todas las sedes", () => {
     const r = resumenDeProvision([prov({ devengado: 1000, deHoy: 100 }), prov({ devengado: 500, deHoy: 40.5 })]);
     expect(r).toMatchObject({ devengado: 1500, deHoy: 140.5 });
+  });
+});
+
+describe("hasta dónde se piden los sueldos (tarea 23)", () => {
+  it("el mes en curso se pide entero: el período que termina el 28 entra desde el día 1, y todas las pantallas dicen la misma ganancia", () => {
+    expect(hastaDeLaProvision("2026-10-01", "2026-10-27", "2026-10-27")).toBe("2026-10-31");
+    expect(hastaDeLaProvision("2026-10-01", "2026-10-05", "2026-10-05")).toBe("2026-10-31");
+    expect(hastaDeLaProvision("2028-02-01", "2028-02-10", "2028-02-10")).toBe("2028-02-29");
+  });
+  it("un mes que ya pasó se pide tal cual", () => {
+    expect(hastaDeLaProvision("2026-09-01", "2026-09-30", "2026-10-27")).toBe("2026-09-30");
+  });
+  it("«del 1 a esta fecha» del mes pasado y las fechas sueltas no piden más que lo que miran", () => {
+    expect(hastaDeLaProvision("2026-09-01", "2026-09-27", "2026-10-27")).toBe("2026-09-27");
+    expect(hastaDeLaProvision("2026-10-10", "2026-10-27", "2026-10-27")).toBe("2026-10-27");
+  });
+});
+
+describe("sueldosAEstaFecha («octubre a esta fecha» con sueldos, 2026-11-06)", () => {
+  // Período de octubre: del 29 de septiembre al 28 de octubre, 30 días. Del 1 al 6 de octubre corren 8 (29 y 30 de setiembre + 6).
+  const entero = [fila({ ubicacionId: "u-tru", planilla: 3000 }), fila({ unidad: "consolidado", nombre: "CAYLA", planilla: 6000 })];
+  const parcial = [fila({ ubicacionId: "u-tru", gastos: 100, resultado: 500 }), fila({ unidad: "consolidado", nombre: "CAYLA", gastos: 200, resultado: 900 })];
+
+  it("pone la parte de los días corridos de la planilla del mes entero, y la resta del resultado", () => {
+    const [tru, cons] = sueldosAEstaFecha(parcial, entero, "2026-10-06");
+    expect(tru!.planilla).toBe(800);
+    expect(tru!.gastos).toBe(900);
+    expect(tru!.resultado).toBe(-300);
+    expect(tru!.detalleGastos).toContainEqual({ cuenta: "62", nombre: "Gastos de personal", monto: 800 });
+    expect(cons!.planilla).toBe(1600);
+    expect(cons!.resultado).toBe(-700);
+  });
+
+  it("si las fechas llegan al 28 el período ya entró entero: no toca nada", () => {
+    expect(sueldosAEstaFecha(parcial, entero, "2026-10-28")).toEqual(parcial);
+  });
+
+  it("una fila que ya trae planilla, o sin su par en el mes entero, queda tal cual", () => {
+    const conPlanilla = [fila({ ubicacionId: "u-tru", planilla: 50, resultado: 10 }), fila({ ubicacionId: "u-otra", resultado: 5 })];
+    expect(sueldosAEstaFecha(conPlanilla, entero, "2026-10-06")).toEqual(conPlanilla);
+  });
+
+  it("en enero, el período empieza el 29 de diciembre del año anterior", () => {
+    const [tru] = sueldosAEstaFecha([fila({ ubicacionId: "u-tru" })], [fila({ ubicacionId: "u-tru", planilla: 3100 })], "2027-01-03");
+    // Del 29-dic-2026 al 28-ene-2027 son 31 días; al 3 de enero corren 6.
+    expect(tru!.planilla).toBe(600);
   });
 });

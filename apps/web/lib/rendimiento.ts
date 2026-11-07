@@ -10,6 +10,7 @@ import {
 } from "@/lib/rendimiento-reglas";
 import { dejarCausa, leerLecturasDeSede, type ResultadoRpc } from "@/lib/rendimiento-lectura";
 import { rangoDeLectura, type CambioMeta, type DiaSerie, type FilaDetalle, type PersonaMeta } from "@/lib/rendimiento-meta-reglas";
+import { rangoDeLecturaPersonas, type FilaPersonaDia } from "@/lib/rendimiento-vista-reglas";
 
 // La parte que LEE de Postgres para Rendimiento (ADR-0219, ADR-0325). Dos cosas distintas:
 //   · los RANKINGS del mes (`fn_rendimiento_equipo`, 20260929160000): solo quien vendió, con las reglas
@@ -150,6 +151,7 @@ type FilaHistorialCruda = {
   creado_en: string;
 };
 type FilaDetalleCruda = { fecha: string; hora: number | string; ventas: number | string; total: number | string; prendas: number | string };
+type FilaPersonaDiaCruda = { persona_id: string | null; nombre: string | null; fecha: string; meta_dia: number | string | null; ventas: number | string; total: number | string; prendas: number | string };
 
 export type SedeDeRendimiento = {
   ubicacionId: string;
@@ -162,6 +164,8 @@ export type SedeDeRendimiento = {
   /** Ventas por día y hora de la tienda (`fn_rendimiento_detalle`); `null` si la base todavía no la tiene o falló: el panel no dibuja
    *  «ventas por hora» ni «prendas por venta» (nunca como 0) y sigue con lo demás. */
   detalle: FilaDetalle[] | null;
+  /** Lo de cada persona, día por día, de este mes y del pasado (`fn_rendimiento_persona_dias`, ADR-0610); `null` si la base todavía no la tiene o falló. */
+  personaDias: FilaPersonaDia[] | null;
   /** `false`: la base no entregó el panel de metas (todavía no existe o falló); la pantalla muestra solo los rankings. */
   panelDisponible: boolean;
 };
@@ -203,6 +207,7 @@ export async function leerPantallaRendimiento(): Promise<PantallaRendimiento> {
   }
   const ids = [...new Set([...nombres.keys(), ...idsMetas])];
   const { desde, hasta } = rangoDeLectura(hoy);
+  const rangoPersonas = rangoDeLecturaPersonas(hoy);
 
   const sedes = await Promise.all(
     ids.map(async (ubicacionId): Promise<SedeDeRendimiento> => {
@@ -212,16 +217,17 @@ export async function leerPantallaRendimiento(): Promise<PantallaRendimiento> {
         nombre: nombres.get(ubicacionId) ?? "Tienda",
         ranking: rankings.find((r) => r.ubicacionId === ubicacionId) ?? null,
       };
-      if (metas.fallo !== null) return { ...base, personas: [], serie: [], historial: [], detalle: null, panelDisponible: false };
+      if (metas.fallo !== null) return { ...base, personas: [], serie: [], historial: [], detalle: null, personaDias: null, panelDisponible: false };
 
-      const { serie, historial, detalle } = await leerLecturasDeSede(
+      const { serie, historial, detalle, personaDias } = await leerLecturasDeSede(
         (nombre, args) => supabase.rpc(nombre as never, args as never) as unknown as PromiseLike<ResultadoRpc>,
         ubicacionId,
         desde,
         hasta,
+        rangoPersonas,
       );
       // La serie es la base del gráfico y de las cifras: sin ella el panel no se dibuja a medias, se deja para otro día.
-      if (serie.error) return { ...base, personas: [], serie: [], historial: [], detalle: null, panelDisponible: false };
+      if (serie.error) return { ...base, personas: [], serie: [], historial: [], detalle: null, personaDias: null, panelDisponible: false };
 
       return {
         ...base,
@@ -251,6 +257,17 @@ export async function leerPantallaRendimiento(): Promise<PantallaRendimiento> {
           : ((detalle.data ?? []) as FilaDetalleCruda[]).map((d) => ({
               fecha: String(d.fecha).slice(0, 10),
               hora: Number(d.hora),
+              ventas: Number(d.ventas),
+              total: Number(d.total),
+              prendas: Number(d.prendas),
+            })),
+        personaDias: personaDias.error
+          ? null
+          : ((personaDias.data ?? []) as FilaPersonaDiaCruda[]).map((d) => ({
+              personaId: d.persona_id,
+              nombre: d.nombre,
+              fecha: String(d.fecha).slice(0, 10),
+              metaDia: num(d.meta_dia),
               ventas: Number(d.ventas),
               total: Number(d.total),
               prendas: Number(d.prendas),

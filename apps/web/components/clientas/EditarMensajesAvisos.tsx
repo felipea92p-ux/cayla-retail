@@ -7,6 +7,7 @@ import { Modal } from "@/components/ui/Modal";
 import { Boton, Campo } from "@/components/ui/campos";
 import { PieAcciones } from "@/components/ui/PieAcciones";
 import { BotonDeshacer } from "@/components/ui/BotonDeshacer";
+import { FilaEmojis } from "@/components/ui/FilaEmojis";
 import { avisar } from "@/components/ui/Avisos";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { CampoGuiado, PieGuia } from "@/components/guia-de-foco/CampoGuiado";
@@ -40,6 +41,8 @@ import { BurbujaAviso } from "./BurbujaAviso";
 
 const recortar = (s: string) => s.trim();
 
+type CajaDeTexto = "mensaje" | "cierre";
+
 export function EditarMensajesAvisos({
   textos,
   sede,
@@ -57,6 +60,10 @@ export function EditarMensajesAvisos({
   const [cierre, setCierre] = useState(textos.cierre);
   const [guardando, setGuardando] = useState(false);
   const area = useRef<HTMLTextAreaElement>(null);
+  const areaCierre = useRef<HTMLTextAreaElement>(null);
+  /** Qué caja tocó la persona y dónde estaba el cursor. Sin toque todavía (null), lo insertado cae al final del mensaje: una caja
+   *  que nadie tocó dice que su cursor está al principio, y el emoji saldría antes del saludo. */
+  const cursor = useRef<{ caja: CajaDeTexto; a: number; b: number } | null>(null);
 
   const problemas = Object.fromEntries(TIPOS_AVISO.map((t) => [t, problemaDelMensaje(t, cuerpos[t])])) as Record<TipoAviso, string | null>;
   const problemaCierre = problemaDelCierre(cierre);
@@ -80,17 +87,30 @@ export function EditarMensajesAvisos({
     setCuerpos((c) => ({ ...c, [t]: valor }));
   }
 
-  /** «+ Nombre»: pone el dato donde está el cursor (o al final) y deja el cursor justo después. */
-  function poner(dato: string) {
-    const caja = area.current;
-    const texto = cuerpos[tipo];
-    const desde = caja?.selectionStart ?? texto.length;
-    const hasta = caja?.selectionEnd ?? desde;
-    const marca = `{${dato}}`;
-    cambiarCuerpo(tipo, texto.slice(0, desde) + marca + texto.slice(hasta));
+  function recordarCursor(caja: CajaDeTexto, el: HTMLTextAreaElement) {
+    cursor.current = { caja, a: el.selectionStart, b: el.selectionEnd };
+  }
+
+  /** Cada aviso es otro texto: el cursor que se recordaba de otro aviso ya no dice nada. */
+  function elegirTipo(t: TipoAviso) {
+    if (cursor.current?.caja === "mensaje") cursor.current = null;
+    setTipo(t);
+  }
+
+  /** Pone algo donde estaba el cursor de esa caja (o al final, si no la han tocado) y deja el cursor justo después. */
+  function insertar(caja: CajaDeTexto, que: string) {
+    const texto = caja === "cierre" ? cierre : cuerpos[tipo];
+    const previo = cursor.current?.caja === caja ? cursor.current : null;
+    const a = Math.min(previo?.a ?? texto.length, texto.length);
+    const b = Math.min(previo?.b ?? texto.length, texto.length);
+    const nuevo = texto.slice(0, a) + que + texto.slice(b);
+    if (caja === "cierre") setCierre(nuevo);
+    else cambiarCuerpo(tipo, nuevo);
+    cursor.current = { caja, a: a + que.length, b: a + que.length };
     requestAnimationFrame(() => {
-      caja?.focus();
-      caja?.setSelectionRange(desde + marca.length, desde + marca.length);
+      const el = caja === "cierre" ? areaCierre.current : area.current;
+      el?.focus();
+      el?.setSelectionRange(a + que.length, a + que.length);
     });
   }
 
@@ -132,12 +152,12 @@ export function EditarMensajesAvisos({
         <nav className="flex flex-wrap gap-2" aria-label="Qué mensaje editas" data-guia="avisos.editar-tipos">
           {TIPOS_AVISO.map((t) => (
             <CampoGuiado key={t} id={`mensaje-${t}`} guia={guia} className="rounded-full">
-              <button type="button" className="pildora-cayla" aria-pressed={tipo === t} onClick={() => setTipo(t)}>
+              <button type="button" className="pildora-cayla" aria-pressed={tipo === t} onClick={() => elegirTipo(t)}>
                 {INFO_TIPO_AVISO[t].titulo}
                 {problemas[t] ? (
-                  <span className="text-[11px] font-semibold">· Revisar</span>
+                  <span className="text-sm font-semibold">· Revisar</span>
                 ) : cambiados.includes(t) ? (
-                  <span className="text-[11px]">· Cambiado</span>
+                  <span className="text-sm">· Cambiado</span>
                 ) : null}
               </button>
             </CampoGuiado>
@@ -158,21 +178,30 @@ export function EditarMensajesAvisos({
                   id="mensaje-aviso"
                   className="caja-campo-input min-h-40 resize-y"
                   value={cuerpo}
-                  onChange={(e) => cambiarCuerpo(tipo, e.target.value)}
+                  onChange={(e) => {
+                    cambiarCuerpo(tipo, e.target.value);
+                    recordarCursor("mensaje", e.target);
+                  }}
+                  onSelect={(e) => recordarCursor("mensaje", e.currentTarget)}
+                  onBlur={(e) => recordarCursor("mensaje", e.currentTarget)}
                   rows={7}
                   maxLength={MAX_MENSAJE + 200}
                 />
               </Campo>
               <div className="mt-2 flex flex-wrap items-center gap-2">
-                <span className="text-xs text-taupe">Pon un dato del miembro:</span>
+                <span className="text-sm text-taupe">Pon un dato del miembro:</span>
                 {DATOS_POR_TIPO[tipo].map((d) => (
-                  <button key={d} type="button" className="btn-cayla btn-sutil btn-chico" onClick={() => poner(d)}>
+                  <button key={d} type="button" className="btn-cayla btn-sutil btn-chico" onClick={() => insertar("mensaje", `{${d}}`)}>
                     + {NOMBRE_DEL_DATO[d]}
                   </button>
                 ))}
                 {cambiados.includes(tipo) && (
                   <BotonDeshacer onClick={() => cambiarCuerpo(tipo, textos.cuerpos[tipo])}>Volver al guardado</BotonDeshacer>
                 )}
+              </div>
+              {/* El emoji va a la caja donde está el cursor: el mensaje o el cierre. */}
+              <div className="mt-2">
+                <FilaEmojis disabled={guardando} onElegir={(e) => insertar(cursor.current?.caja ?? "mensaje", e)} />
               </div>
             </div>
 
@@ -185,10 +214,16 @@ export function EditarMensajesAvisos({
                   pie={problemaCierre ?? `Va igual al final de los cuatro avisos. ${[...cierre.trim()].length} de ${MAX_CIERRE} letras.`}
                 >
                   <textarea
+                    ref={areaCierre}
                     id="cierre-avisos"
                     className="caja-campo-input resize-y"
                     value={cierre}
-                    onChange={(e) => setCierre(e.target.value)}
+                    onChange={(e) => {
+                      setCierre(e.target.value);
+                      recordarCursor("cierre", e.target);
+                    }}
+                    onSelect={(e) => recordarCursor("cierre", e.currentTarget)}
+                    onBlur={(e) => recordarCursor("cierre", e.currentTarget)}
                     rows={2}
                     maxLength={MAX_CIERRE + 100}
                   />
@@ -207,7 +242,7 @@ export function EditarMensajesAvisos({
           <aside className="self-start rounded-xl border border-sand bg-crema p-4 md:sticky md:top-0" aria-label="Así le llega" data-guia="avisos.editar-previa">
             <p className="label-cayla mb-2.5 text-[11px] text-taupe">Así le llega a {nombreDeEjemplo(tipo)}</p>
             <BurbujaAviso texto={mensajeDeEjemplo(tipo, cuerpo, cierre, sede.nombre)} cierre={cierre} hora="10:24" />
-            <p className="mt-2.5 text-xs text-taupe">Con los datos de un miembro de ejemplo. A cada miembro le llegan los suyos.</p>
+            <p className="mt-2.5 text-sm text-taupe">Con los datos de un miembro de ejemplo. A cada miembro le llegan los suyos.</p>
           </aside>
         </div>
 
@@ -225,7 +260,7 @@ export function EditarMensajesAvisos({
             peso="primario"
             onClick={() => void guardar()}
             cargando={guardando}
-            disabled={!guia.puedeConfirmar || sinCambios}
+            disabled={sinCambios} confirma={guia}
             title={responsable.motivo ?? guia.frase ?? (sinCambios ? "No cambiaste ningún mensaje." : undefined)}
             className={sinCambios ? "" : guia.claseConfirmar}
           >

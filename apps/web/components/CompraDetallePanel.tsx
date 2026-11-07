@@ -20,6 +20,7 @@ import type { AccionesDeCompra } from "@/lib/modulos";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { useResponsable } from "@/lib/useResponsable";
 import { firmar } from "@/lib/responsable-reglas";
+import { AvisoNoSeDeshace } from "@/components/ui/Aviso";
 
 // Acciones sobre una factura ya registrada (ADR-0035): registrar un pago
 // contra el saldo, o anularla. La página (server) dibuja el detalle; este
@@ -421,7 +422,7 @@ export function RegistrarPagoModal({
               )}
             </section>
 
-            <MediosDePago lineas={lineas} onLineas={setLineas} objetivo={compra.saldo} totalComprobante={compra.total} saldoFavor={saldoFavor} fecha={fecha} onFecha={setFecha} datos={datos} cuentas={{ lista: cuentas.cuentas, listo: cuentas.listo }} />
+            <MediosDePago lineas={lineas} onLineas={setLineas} objetivo={compra.saldo} totalComprobante={compra.total} saldoFavor={saldoFavor} fecha={fecha} onFecha={setFecha} datos={datos} cuentas={{ lista: cuentas.cuentas, listo: cuentas.listo, falla: cuentas.falla, reintentar: cuentas.reintentar }} />
 
             <div className="border-t border-tinta/10 pt-4">
               <p className="text-sm text-tinta">
@@ -472,7 +473,7 @@ export function RegistrarPagoModal({
                     type="submit"
                     peso="primario"
                     cargando={loading}
-                    disabled={loading || excede || favorExcedido || suma <= 0}
+                    disabled={loading || excede || favorExcedido || suma <= 0 || cuentas.falla}
                     className="pie-acciones-ancho"
                   >
                     {`Registrar pago de ${soles(suma)}`}
@@ -524,6 +525,7 @@ function AnularCompraModal({ compra, onClose }: { compra: CompraResumen; onClose
           </p>
           <CampoTexto etiqueta="Motivo" id="anular-motivo" value={motivo} onChange={(e) => setMotivo(e.target.value)} placeholder="Se registró por error, el proveedor la reemplazó…" autoFocus />
           <ComboResponsable control={responsable} deshabilitado={loading} />
+          <AvisoNoSeDeshace />
           <div className="pie-acciones pt-1">
             <button type="button" onClick={cerrar} className="btn-cayla btn-secundario" disabled={loading}>
               Volver

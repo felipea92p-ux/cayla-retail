@@ -147,9 +147,8 @@ function HojaReposicion({
           <p className="text-sm text-tinta/80">
             Te debe <b className="font-semibold text-tinta">{queDebe(deuda)}</b> ({soles(deuda.montoPendiente)}): {porQueDebeEnFrase(deuda, hoy)}.
           </p>
-          <p className="nota-cayla text-[13px]">
-            Esto solo anota que el proveedor cumplió: no suma prendas al stock. Si llegaron en un envío que todavía no recibiste, márcalas al
-            recibirlo («Es la reposición de lo que faltó») y se anotan solas.
+          <p className="nota-cayla text-sm">
+            Solo anota que cumplió: no suma prendas al stock. Si vienen en un envío por recibir, márcalas ahí («Es la reposición de lo que faltó»).
           </p>
 
           {deuda.pendiente > 1 ? (
@@ -185,7 +184,7 @@ function HojaReposicion({
               value={borrador.nota}
               onChange={(e) => setBorrador((b) => ({ ...b, nota: e.target.value }))}
             />
-            <p className="mt-1.5 text-xs text-taupe">Queda en el historial de esta deuda.</p>
+            <p className="mt-1.5 text-sm text-taupe">Queda en el historial de esta deuda.</p>
           </CampoGuiado>
 
           <CampoGuiado id="responsable" guia={guia} titulo="Quién lo anota">

@@ -23,6 +23,10 @@
     letter-spacing: -0.005em;
     color: var(--color-tinta);
   }
+  /* Ronda 19 (Felipe 2026-10-30, en prueba en Caja): el texto de una pantalla es corto y por eso se lee más grande. La línea bajo el
+     título de una sección (una sola, 12 palabras como máximo; lo que explica va al «?» del título) y el detalle bajo una cifra. */
+  .texto-bajada { margin: 0.125rem 0 0; font-size: 15px; line-height: 1.4; color: var(--color-taupe); }
+  .texto-detalle { font-size: 14px; line-height: 1.4; color: color-mix(in srgb, var(--color-tinta) 70%, transparent); }
   .titulo-seccion-lado { display: inline-flex; flex-wrap: wrap; align-items: baseline; gap: 0.5rem 1rem; }
   .titulo-seccion-dato { font-size: 13px; color: var(--color-taupe); font-variant-numeric: tabular-nums; }
   .titulo-seccion-dato :is(b, strong) { color: var(--color-tinta); font-weight: 600; }

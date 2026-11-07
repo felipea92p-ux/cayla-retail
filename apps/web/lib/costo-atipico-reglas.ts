@@ -6,6 +6,20 @@ import { soles } from "./compras-reglas";
 // motivo, costo_unitario, costo_vigente, precio, sku). Acá solo se LEE esa respuesta y se pone en palabras de CAYLA,
 // una sola vez para todas las pantallas que piden confirmar un costo. Puro: sin Supabase ni `next/headers`.
 
+/** El motivo con el que un líder confirma un costo atípico al pasar una orden al stock (P19, Felipe 2026-11-02): de 5 a 300 letras. Es el mismo rango que
+ *  `retail.fn_costo_atipico_motivo()`; la base lo vuelve a exigir. */
+export const MOTIVO_COSTO_MIN = 5;
+export const MOTIVO_COSTO_MAX = 300;
+
+/** Lo que falta para que el motivo sirva, en palabras de CAYLA, o `null` si ya sirve. */
+export function problemaDelMotivoDeCosto(texto: string): string | null {
+  const limpio = texto.trim();
+  if (limpio.length === 0) return "Escribe el motivo: por qué este costo es correcto.";
+  if (limpio.length < MOTIVO_COSTO_MIN) return `Cuéntalo con al menos ${MOTIVO_COSTO_MIN} letras.`;
+  if (limpio.length > MOTIVO_COSTO_MAX) return `El motivo va hasta ${MOTIVO_COSTO_MAX} letras.`;
+  return null;
+}
+
 export const MOTIVOS_COSTO_ATIPICO = ["sin_costo", "mayor_que_precio", "sube", "baja"] as const;
 export type MotivoCostoAtipico = (typeof MOTIVOS_COSTO_ATIPICO)[number];
 

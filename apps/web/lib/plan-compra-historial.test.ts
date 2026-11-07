@@ -3,6 +3,7 @@ import {
   aniosConHistoria,
   aniosQueCaben,
   decadaDe,
+  esDeFechaMovil,
   ventanaDeAnios,
   campanasDelAnio,
   crecimiento,
@@ -83,6 +84,13 @@ describe("las fechas de cada año", () => {
   });
   it("el 29 de febrero cae al 28 en un año que no es bisiesto", () => {
     expect(mismaFechaEn("2024-02-29", 2025)).toBe("2025-02-28");
+  });
+  it("solo Día de la Madre es de fecha móvil: las demás caen el mismo día y mes", () => {
+    expect(esDeFechaMovil({ hasta: "2026-05-10" })).toBe(true);
+    expect(esDeFechaMovil({ hasta: "2025-05-11" })).toBe(true);
+    expect(esDeFechaMovil({ hasta: "2026-05-11" })).toBe(false);
+    expect(esDeFechaMovil({ hasta: "2026-12-25" })).toBe(false);
+    expect(esDeFechaMovil({ hasta: "2026-02-14" })).toBe(false);
   });
   it("cada año trae sus campañas por fecha, y «Diciembre» siempre", () => {
     const c = campanasDelAnio(

@@ -20,14 +20,19 @@ import {
   pistaOtraTienda,
   precioDeLaFicha,
   tallaDelPrecio,
+  tallaInicial,
   tallasDelColor,
   type ChipFicha,
   type Ficha,
+  type Promesa,
 } from "@/lib/ficha";
 import { hrefDelProbador } from "@/lib/probador";
 import { esLaMismaFoto } from "@/lib/prenda-tocada";
-import { textoNivel, tonoNivel } from "@/lib/stock";
+import { fraseDeNivel, textoNivel, tonoNivel } from "@/lib/stock";
+import { anotarPaso } from "@/lib/visita-cola";
 import { AgregarALaBolsa } from "./bolsa/AgregarALaBolsa";
+import { Promesas } from "./bolsa/Promesas";
+import { volarALaBolsa } from "./bolsa/volarALaBolsa";
 import { BotonAvisame } from "./club/BotonAvisame";
 import { BotonFavorito } from "./club/BotonFavorito";
 import { IconoInsignia } from "./IconoInsignia";
@@ -56,6 +61,7 @@ export function FichaPrenda({
   ficha,
   sedeElegida,
   colorPedido,
+  tallaPedida = null,
   origenFotos,
   chips = [],
   esperas = [],
@@ -63,6 +69,7 @@ export function FichaPrenda({
   enLaBolsa = 0,
   separadas = [],
   probador = null,
+  promesas = [],
   children,
 }: {
   ficha: Ficha;
@@ -70,6 +77,8 @@ export function FichaPrenda({
   sedeElegida: string | null;
   /** `?color=` de la dirección: con qué color abre. */
   colorPedido: string | null;
+  /** `?talla=` de la dirección (la que eligieron en los filtros de la lista, ADR-0512): con qué talla abre, si ese color la tiene. */
+  tallaPedida?: string | null;
   origenFotos: string | undefined;
   /** Los chips de arriba del nombre: «Nuevo…» y «N.º 3 en más vendidos» (del catálogo) y las insignias de la prenda (de su ficha, ADR-0489). */
   chips?: ChipFicha[];
@@ -86,12 +95,23 @@ export function FichaPrenda({
   /** Si la prenda está en el probador de esta tienda («Arma el tuyo», ADR-0434, actividad 10): su código y la tienda elegida, para
    *  «Arma un look con esta prenda», que lo abre con ella en el color elegido. null si no se puede probar (sin recorte o sin largo). */
   probador?: { codigo: string; sede: string | null } | null;
+  /** Lo que la tienda cumple al comprar (`promesasDeCompra`), con los plazos de la ayuda: lo mismo que dice el outfit abierto. */
+  promesas?: readonly Promesa[];
   /** Lo que va debajo de la ficha: la barra del celular queda pegada abajo mientras se ve. */
   children?: React.ReactNode;
 }) {
+  // Tráfico (ADR-0495): «vio una prenda», al abrir su ficha (una vez por pestaña; sale con el próximo envío).
+  useEffect(() => anotarPaso({ paso: 1, producto: ficha.id }), [ficha.id]);
+  // La llegada de la ficha (foto que se descubre, panel que sube) corre solo al cargar la página: pasado el rato se apaga la marca, y cambiar
+  // de color (que vuelve a montar la galería) o de talla ya no la repite.
+  const [llegando, setLlegando] = useState(true);
+  useEffect(() => {
+    const t = setTimeout(() => setLlegando(false), 2400);
+    return () => clearTimeout(t);
+  }, []);
   const [color, setColor] = useState(() => colorInicial(ficha, colorPedido, sedeElegida));
   const tallas = tallasDelColor(ficha, color);
-  const [tallaId, setTallaId] = useState<string | null>(() => (tallas.length === 1 ? tallas[0].talla.id : null));
+  const [tallaId, setTallaId] = useState<string | null>(() => tallaInicial(ficha, tallaPedida, color) ?? (tallas.length === 1 ? tallas[0].talla.id : null));
   const elegida = tallas.find((t) => t.talla.id === tallaId)?.variante ?? null;
   const colorElegido = ficha.colores.find((c) => c.codigo === color) ?? ficha.colores[0];
   // El precio y la campaña que se ven: los de la talla elegida o, si todas las del color cuestan lo mismo, los de ese color.
@@ -113,6 +133,8 @@ export function FichaPrenda({
   const seleccion = `${color}|${tallaId ?? ""}`;
   const [resultado, setResultado] = useState<{ seleccion: string; bien: boolean; texto: string } | null>(null);
   const alAgregar = resultado?.seleccion === seleccion ? resultado : null;
+  // Cada vez que una prenda entra a la bolsa, el visor encuadra la foto y estalla el flash (`Galeria`); un rato después, la foto vuela a la bolsa.
+  const [disparo, setDisparo] = useState(0);
 
   // «Elige tu talla» lleva a las tallas (en el celular quedan lejos, arriba de la barra) y las resalta hasta que elija una.
   const bloqueTallas = useRef<HTMLDivElement>(null);
@@ -171,7 +193,13 @@ export function FichaPrenda({
             varianteId={boton.tipo === "agregar" ? boton.varianteId : null}
             sedeId={sedeElegida}
             alElegirTalla={pedirTalla}
-            alResponder={(r) => setResultado({ seleccion, bien: r.bien, texto: lineaAlAgregar(r, tallaElegida, tallas.length > 1) })}
+            alResponder={(r) => {
+              setResultado({ seleccion, bien: r.bien, texto: lineaAlAgregar(r, tallaElegida, tallas.length > 1) });
+              if (r.bien) {
+                setDisparo((n) => n + 1);
+                window.setTimeout(volarALaBolsa, 650);
+              }
+            }}
           />
         )}
         <BotonFavorito productoId={ficha.id} nombre={ficha.nombre} forma="ficha" />
@@ -205,9 +233,9 @@ export function FichaPrenda({
 
   return (
     <>
-      <div className="t-pdp">
+      <div className="t-pdp" data-entra={llegando ? "" : undefined}>
         {/* Otra clave por color: al cambiarlo, la tira vuelve a su primera foto (la del color nuevo). */}
-        <Galeria key={color} ficha={ficha} color={color} hex={colorElegido.hex} origenFotos={origenFotos} />
+        <Galeria key={color} ficha={ficha} color={color} hex={colorElegido.hex} origenFotos={origenFotos} disparo={disparo} />
 
         <div className="t-pdp-info">
           {/* En el celular esta caja se deshace (`display: contents`): el nombre y el precio suben y los chips van bajo el precio. */}
@@ -292,6 +320,8 @@ export function FichaPrenda({
                     onClick={() => {
                       setPideTalla(false);
                       setTallaId(talla.id === tallaId && tallas.length > 1 ? null : talla.id);
+                      // Tráfico (ADR-0495): «eligió talla», solo al elegirla (no al soltarla).
+                      if (talla.id !== tallaId) anotarPaso({ paso: 2, producto: ficha.id, variante: variante.id });
                     }}
                   >
                     {talla.nombre}
@@ -326,12 +356,14 @@ export function FichaPrenda({
             <div className="t-pdp-probador">
               <Link className="t-btn t-btn-sec" href={hrefDelProbador(probador.sede, `${probador.codigo}.${color}`)}>
                 <Icono nombre="chispas" />
-                Arma un look con esta prenda
+                Arma un outfit con esta prenda
               </Link>
             </div>
           )}
 
-          {/* Solo el detalle de la prenda (A · Muro, menos texto): cómo se separa y los cambios viven en su página de ayuda. */}
+          {promesas.length > 0 && <Promesas promesas={promesas} />}
+
+          {/* El detalle de la prenda. */}
           <div className="t-acordeon">
             {ficha.descripcion && (
               <details open>
@@ -356,7 +388,7 @@ export function FichaPrenda({
 }
 
 /** Las fotos del color elegido primero. En el celular se deslizan de lado y los puntos (sobre la foto) dicen cuál se ve. */
-function Galeria({ ficha, color, hex, origenFotos }: { ficha: Ficha; color: string; hex: string | null; origenFotos: string | undefined }) {
+function Galeria({ ficha, color, hex, origenFotos, disparo }: { ficha: Ficha; color: string; hex: string | null; origenFotos: string | undefined; disparo: number }) {
   const { fotos, enOtroColor } = fotosDelColor(ficha, color);
   const [vista, setVista] = useState(0);
   const forma = formaDe(ficha.categoria?.prefijo);
@@ -392,6 +424,7 @@ function Galeria({ ficha, color, hex, origenFotos }: { ficha: Ficha; color: stri
               previa={i === 0 && tocada && esLaMismaFoto(tocada, url) ? tocada.foto : null}
               // La primera es a donde vuela la foto de la tarjeta tocada (`fotoQueViaja`).
               viaja={i === 0 ? ficha.id : null}
+              disparo={disparo}
             />
           ))
         )}
@@ -422,6 +455,7 @@ function FotoGaleria({
   rotulo,
   previa,
   viaja,
+  disparo,
 }: {
   url: string;
   alt: string;
@@ -434,6 +468,8 @@ function FotoGaleria({
   previa: string | null;
   /** La prenda cuya foto vuela hasta aquí desde la tarjeta tocada (solo la primera). */
   viaja: string | null;
+  /** Cuántas veces se agregó la prenda a la bolsa desde esta ficha: cada una dispara el visor y el flash (0: todavía ninguna). */
+  disparo: number;
 }) {
   // Una foto que no carga deja la silueta, nunca una imagen rota.
   const [rota, setRota] = useState(false);
@@ -499,6 +535,17 @@ function FotoGaleria({
         <Image src={url} alt="" aria-hidden fill sizes="1080px" unoptimized={!optimizar} className="cp-lupa" onLoad={() => setLupa("lista")} />
       )}
       {rotulo && <figcaption>{rotulo}</figcaption>}
+      {/* El visor de la Pasarela: al agregar, cuatro esquinas encuadran la foto y estalla un flash, como un fotógrafo. Con `key`, cada agregado lo
+          vuelve a montar y por eso vuelve a correr; sin movimiento no se dibuja nada (la línea «✓ ya está en tu bolsa» ya lo dijo). */}
+      {disparo > 0 && (
+        <span key={disparo} className="t-visor" aria-hidden="true">
+          <i />
+          <i />
+          <i />
+          <i />
+          <b className="t-visor-flash" />
+        </span>
+      )}
     </figure>
   );
 }
@@ -522,11 +569,36 @@ function TablaStock({
   // Cada tienda maneja lo suyo (2026-10-19): con una tienda elegida, la tabla muestra solo esa; sin ella, todas.
   const tiendas = ficha.sedes.filter((s) => !sedeElegida || s.id === sedeElegida);
   const soloUna = tiendas.length === 1 ? tiendas[0] : null;
+  // Con una sola tienda no hace falta una tabla de una fila: una línea dice lo mismo, y con la talla elegida, solo la de esa talla.
+  if (soloUna) {
+    const unaTalla = tallas.length === 1 ? tallas[0] : tallas.find((t) => t.talla.id === tallaId);
+    if (unaTalla) {
+      const nivel = unaTalla.variante.stock[soloUna.id] ?? 0;
+      return (
+        <p className={`t-stock-linea ${tonoNivel(nivel)}`}>
+          <b>{fraseDeNivel(nivel)}</b> en {soloUna.nombre}
+        </p>
+      );
+    }
+    return (
+      <p className="t-stock-linea">
+        <span>En {soloUna.nombre}:</span>
+        {tallas.map(({ talla, variante }) => {
+          const nivel = variante.stock[soloUna.id] ?? 0;
+          return (
+            <span key={variante.id} className={tonoNivel(nivel)}>
+              {talla.nombre} <b>{textoNivel(nivel)}</b>
+            </span>
+          );
+        })}
+      </p>
+    );
+  }
   return (
     <div className="t-bloque t-stock-bloque">
       <span className="t-etq">
         <span>
-          {soloUna ? `Cuánto hay en ${soloUna.nombre}` : "Cuánto hay por tienda"} <b>{colorNombre}</b>
+          Cuánto hay por tienda <b>{colorNombre}</b>
         </span>
       </span>
       {ficha.sedes.length === 0 ? (
@@ -536,7 +608,7 @@ function TablaStock({
           <div className="t-stock-envol">
             <table className="t-stock">
               <caption className="t-sr">
-                Cuánto hay de {ficha.nombre} en {colorNombre}, {soloUna ? `en ${soloUna.nombre}` : "por tienda"} y por talla
+                Cuánto hay de {ficha.nombre} en {colorNombre}, por tienda y por talla
               </caption>
               <thead>
                 <tr>
@@ -552,7 +624,7 @@ function TablaStock({
               </thead>
               <tbody>
                 {tiendas.map((s) => (
-                  <tr key={s.id} className={s.id === sedeElegida && !soloUna ? "elegida" : undefined}>
+                  <tr key={s.id} className={s.id === sedeElegida ? "elegida" : undefined}>
                     <th scope="row">{s.nombre}</th>
                     {tallas.map(({ talla, variante }) => {
                       const nivel = variante.stock[s.id] ?? 0;

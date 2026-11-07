@@ -535,3 +535,49 @@ Felipe eligió «El telar de Finanzas» (docs/maquetas/finanzas-telar-2026-10/) 
   maqueta, y la comparación de capturas se hace contra esa maqueta, no contra el spike de 2026-09.
 - **El kit** (`components/finanzas/kit.tsx`, `finanzas.css`) sigue vivo en lo que todavía no se rediseñó y se retira pantalla por pantalla.
   No se reemplaza de golpe.
+
+## Actualización 2026-10-31 — la letra del kit sube a 14 px (ronda 19 de `/unificar`, ADR-0358)
+
+Las colaboradoras decían que el texto del ERP era chico y nadie lo leía. En la ronda 19 Felipe pidió, mirando las fotos, que lo que se lee no
+baje de 14 px en todo el ERP, Finanzas incluida. En `app/estilos/finanzas.css` (el kit), `finanzas-dinero.css`, `finanzas-recorrido.css` y
+`telar.css`, el texto de lectura de 11,5–13 px pasó a 14 y el de 13,5 a 15 (unos 100 tamaños); las versalitas, las pestañas, los chips, los
+controles, los gráficos, el calendario, las teclas del dock y los rótulos de la agenda quedaron igual. **Por eso Finanzas ya no mide lo mismo
+que el spike de `docs/maquetas/finanzas-2026-09/`:** al comparar una pantalla con el spike, la letra de lectura se compara contra 14 px, no
+contra la del spike. Configuración, que usa el mismo kit, sube con ella. Registro: `docs/unificar/texto.md`.
+
+## Actualización 2026-11-04: «Tiendas y caja» se parte en dos (Felipe)
+
+La pestaña juntaba 7 temas en 4,3 pantallas y 160 controles a 1440 × 900. Desde hoy son dos: **«Metas»** (`?tab=metas`, la de fábrica: lo normal de cada
+tienda, mes por mes, fechas especiales y campañas) y **«Empresa y tiendas»** (`?tab=empresa`: los datos fiscales que solo se leen, el WhatsApp, «Pregúntale a CAYLA»
+por sede y la carga inicial). Siguen siendo 8 pestañas porque «Empresa» se juntó. Solo cambia cómo se presenta: ni reglas, ni funciones, ni migración.
+
+- **Mes por mes va de a una tienda** (`pildora-cayla`): nadie carga dos tiendas a la vez, y eran 84 casillas.
+- **Las campañas que ya pasaron quedan plegadas** en `<BotonVerMas>`. Abiertas siguen editables como antes. Van en el mismo `<tbody>` y no en `<FilasDeMas>`, porque
+  una tabla partida en dos desalinea sus columnas.
+- **Lo que solo se lee ya no se dibuja en un campo:** los datos de la empresa pasan a `ListaDatos`. En el vidrio, «lo hundido espera tu dato» (ADR-0596).
+- **La dirección vieja `?tab=tiendas` cae en Metas** (es la pestaña de fábrica); los enlaces de otras pantallas ya apuntan a la pestaña correcta.
+
+Medido a 1440 × 900 con los datos locales: Metas 2,3 pantallas y 72 controles; Empresa y tiendas, 1,8 y 2 (más los de sus filas). Maquetas de lo que sigue:
+`docs/maquetas/configuracion-vistas-2026-11/`.
+
+## Actualización 2026-11-04 (b): «Empresa y tiendas» son Las vitrinas
+
+Felipe eligió la dirección A de `docs/maquetas/empresa-tiendas-2026-11/` y la pidió en vidrio líquido, con el color ordenado (`docs/maquetas/empresa-tiendas-vitrinas-2026-11/`). El carnet
+de la empresa y una tarjeta por sede reemplazan a las cuatro tablas (`components/vitrinas-sedes/`, reglas en `lib/vitrinas-sedes-reglas.ts`, vidrio en `app/estilos/vidrio/vitrinas-sedes.css`).
+
+- **Fondo de caja y hora de cierre pasan de Metas a la tarjeta de la sede.** `guardar_metas_tienda` y `guardar_metas_mes` reemplazan la semana entera, así que antes de guardar se lee lo último de la base y se cambia solo el dato tocado (`lib/metas-frescas.ts`); si no se puede leer, no se guarda. Queda un margen de milisegundos entre leer y guardar.
+- **«Falta» lo decidió Felipe:** en una tienda, WhatsApp, hora de cierre, fondo y fecha de carga; en otra sede, solo la fecha. Preguntar apagado es una elección. Que falte no bloquea nada.
+- **La carga inicial conserva su hoja y sus permisos**, porque cerrar una sede no debe pasar por un Tab de más. Preguntar usa `<Interruptor>` y el tope de Preguntar, `<BarraAvance>`.
+- **Sin el vidrio que doblaba el fondo:** Felipe quitó las luces de color de detrás, y sin ellas el efecto casi no se notaba. Queda un desenfoque normal en pocos bloques.
+- **Son 5 vitrinas o menos a propósito.** Como ADR-0596 pide no desenfocar «muchas tarjetas iguales», si CAYLA crece mucho en sedes hay que volver a mirarlo.
+
+Siguen siendo 8 pestañas hasta construir Dinero y Gastos. Sin funciones nuevas ni migración.
+
+## Actualización 2026-11-05: Configuración queda en 5 pestañas (Felipe)
+
+De 8 pestañas quedan 5: Empresa y tiendas, Metas, Dinero (junta Cuentas y cobros con Caja y avisos), Gastos (junta Gastos fijos, Presupuesto y Reparto CLAURE) e Impuestos. Felipe vio la maqueta y aprobó
+(`docs/maquetas/configuracion-cuatro-vistas-2026-11/`). Las direcciones viejas (`?tab=cuentas`, `caja`, `fijos`, `presupuesto`, `claure`) siguen llegando a su pestaña nueva. **Sin migraciones ni funciones nuevas:**
+cada casilla guarda con la misma función de antes y las reglas de validación no cambiaron. Lo que cambió es el orden y la cara: lo que espera una acción va primero (Impuestos empieza por lo que falta confirmar con el
+contador), lo que casi nadie toca se pliega (los efectos de campaña, las cuentas archivadas, el reparto en 0 %, lo de arranque), y estas cuatro pantallas ya no se dibujan con el kit de tablas de Finanzas sino con el
+vidrio de Las vitrinas. **Lo que queda del kit:** las hojas (`NuevaVigenciaModal`, `GastoFijoModal`, la hoja de la propuesta de topes) siguen con sus campos, tal cual. «Vendido este año» en Impuestos lee `getPanelImpuestos`:
+si esa lectura falla o la cuenta no la ve, el bloque se dibuja sin la barra.

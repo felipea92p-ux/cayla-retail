@@ -1,4 +1,5 @@
 import { CodigoQR } from "@/components/CodigoQR";
+import { LogoCayla } from "@/components/ui/LogoCayla";
 import { soles } from "@/lib/liquidacion-reglas";
 import { WEB_DE_LA_ETIQUETA } from "@/lib/etiqueta-precio-reglas";
 
@@ -28,14 +29,9 @@ export function EtiquetaLiquidacion({
   return (
     <article data-papel className="etiqueta-precio" aria-label={`Etiqueta de liquidación ${codigo}`}>
       <header className="etq-cab">
-        {/* El colibrí en vector, igual que la etiqueta de precio (EtiquetaPrecio.tsx). */}
-        <svg viewBox="0 0 223 150" aria-hidden fill="none" stroke="#000" strokeWidth={9} strokeLinejoin="round">
-          <path d="M3,6 C45,14 95,28 118,50 C134,64 136,96 124,112 C110,130 80,138 47,146 L68,102" />
-          <path d="M3,6 C10,40 40,70 70,80 C85,85 100,87 112,87" />
-          <path d="M104,40 C102,22 118,6 140,5 C155,4 165,10 172,16 L220,12" />
-          <path d="M172,16 C156,22 144,38 134,62" />
-        </svg>
-        <b>CAYLA</b>
+        {/* El logo oficial en negro, igual que la etiqueta de precio (EtiquetaPrecio.tsx). */}
+        <LogoCayla tinta="negro" className="etq-logo" />
+        <span className="sr-only">CAYLA</span>
       </header>
       <p className="etq-liq-banda">LIQUIDACIÓN</p>
       <p className="etq-liq-categoria">{categoria}</p>

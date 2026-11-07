@@ -1,4 +1,5 @@
 import "server-only";
+import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
 import { baseTraeElCorte, leerInicioFinanzas } from "@/lib/finanzas-arranque-reglas";
 import {
@@ -16,7 +17,7 @@ import { leerConfiguracionTiendaWeb, type ConfiguracionTiendaWeb } from "@/lib/t
 
 export type { ConfiguracionTiendas } from "@/lib/configuracion-reglas";
 
-// Configuración ▸ Tiendas y caja (ADR-0195 F1, 20260924210000). Todo sale de `fn_configuracion_tiendas` (solo líder)
+// Configuración ▸ Metas (ADR-0195 F1, 20260924210000). Todo sale de `fn_configuracion_tiendas` (solo líder)
 // y de `fn_parametros_caja` (la única regla de qué meta y qué fondo rigen un día; la lee también Caja).
 
 export async function getConfiguracionTiendas(): Promise<ConfiguracionTiendas> {
@@ -33,7 +34,7 @@ export async function getConfiguracionTiendas(): Promise<ConfiguracionTiendas> {
   return { ...config, tiendas: config.tiendas.map((t) => ({ ...t, whatsappNumero: numeros.get(t.id) ?? null })) };
 }
 
-/** Configuración ▸ Tiendas y caja ▸ metas por mes y por fecha (ADR-0435, 20261017020000): los próximos 6 meses de cada tienda y sus
+/** Configuración ▸ Metas ▸ metas por mes y por fecha (ADR-0435, 20261017020000): los próximos 6 meses de cada tienda y sus
  *  fechas especiales. `null` si la base todavía no tiene la función (web publicada antes de pegar la migración): la pantalla
  *  sigue con la semana tipo, sin las dos tarjetas nuevas. */
 export async function getConfiguracionMetas(): Promise<ConfiguracionMetas | null> {
@@ -53,16 +54,16 @@ export async function getParametrosCaja(ubicacionId: string, fecha: string): Pro
   return leerParametrosCaja(fila);
 }
 
-/** Configuración ▸ Caja y avisos (20260925103000): el mínimo de caja y los umbrales de aviso. `null` si la base aún no los
+/** Configuración ▸ Dinero (20260925103000): el mínimo de caja y los umbrales de aviso. `null` si la base aún no los
  *  tiene o la cuenta no ve Finanzas. */
-export async function getParametrosFinanzas(): Promise<ParametrosFinanzasConCorte | null> {
+export const getParametrosFinanzas = cache(async function getParametrosFinanzas(): Promise<ParametrosFinanzasConCorte | null> {
   const supabase = await createClient();
   const { data, error } = await supabase.rpc("fn_parametros_finanzas" as never);
   if (error) return null;
   const p = leerParametrosFinanzas(data);
   // `inicioFinanzas` nace con ADR-0332: una base que aún no tiene esa migración no manda la clave y sale «sin corte».
   return p ? { ...p, inicioFinanzas: leerInicioFinanzas(data), corteDisponible: baseTraeElCorte(data) } : null;
-}
+});
 
 /** Tienda web ▸ Ajustes (ADR-0408, act. 6, 20261014231000): cada tienda abierta con lo que la web le muestra al cliente
  *  (su WhatsApp es el del QR del club) y los plazos de los pedidos web. `null` si la base todavía no tiene la migración: la

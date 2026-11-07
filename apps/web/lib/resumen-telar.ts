@@ -34,6 +34,13 @@ export async function getVentasPorDia(tiendas: readonly string[], desde: string,
   return { series, incompleta };
 }
 
+/** Las tiendas activas que la cuenta lee, en orden de nombre (como las `unidades` del resumen): para adivinar la línea de ventas (ADR-0583). */
+export async function getTiendasActivas(): Promise<string[]> {
+  const supabase = await createClient();
+  const { data } = await supabase.from("ubicaciones").select("id").eq("activo", true).eq("tipo", "tienda").order("nombre");
+  return ((data ?? []) as { id: string }[]).map((u) => u.id);
+}
+
 /**
  * La proyección de caja con sus cobros y salidas por día (`fn_flujo_caja_proyeccion`, 6 bloques de 7 días), para «Tu caja en las próximas
  * dos semanas». Es la MISMA que lee Dinero ▸ Flujo, así que el saldo de un bloque es el mismo en las dos pantallas. `fn_resumen_finanzas`

@@ -180,7 +180,7 @@ export function CorregirPagoModal({
                   </p>
                 )}
                 {calculo.efectivo && calculo.efectivo.redondeo > 0 && (
-                  <p className="text-xs text-tinta/65">
+                  <p className="text-sm text-tinta/65">
                     En efectivo se entregan {s(calculo.efectivo.aCobrar)} ·{" "}
                     {TEXTO_REDONDEO} {s(calculo.efectivo.redondeo)}
                   </p>
@@ -227,7 +227,7 @@ export function CorregirPagoModal({
                 type="submit"
                 peso="primario"
                 cargando={guardando}
-                disabled={!guia.puedeConfirmar}
+                confirma={guia}
                 title={guia.frase ?? undefined}
                 className={guia.claseConfirmar}
               >

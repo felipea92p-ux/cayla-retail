@@ -5,6 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { cambiarUbicacionActiva } from "@/app/actions/ubicacion";
 import { AvisoCambioDeSede } from "@/components/AvisoCambioDeSede";
 import { Desplegable } from "@/components/ui/campos";
+import { antesDeRehacerLaPantalla } from "@/lib/salida-sin-guardar";
 import { NOMBRE_VISTA_GLOBAL, rutaDeLaVistaGlobal, VALOR_VISTA_GLOBAL } from "@/lib/vista-global";
 
 // Selector de ubicación del líder (Fase 2 — pendiente desde
@@ -50,6 +51,20 @@ export function UbicacionSwitcher({
       ]
     : ubicaciones.map((u) => ({ valor: u.id, texto: u.nombre }));
 
+  function cambiar(elegido: string) {
+    setValor(elegido);
+    startTransition(async () => {
+      await cambiarUbicacionActiva(elegido);
+      // Una pantalla que también funciona en CAYLA Global se queda donde está y se repinta para toda la empresa (Frescura
+      // del piso: «la tienda» pasa a «las tiendas», ADR-0208 act. 2026-10-10 (b)); el Inicio también: el del Admin (el
+      // Observatorio, ADR-0322) vuelve al país entero y a quien no es Admin la página lo manda al tablero. Las demás, al tablero.
+      if (elegido === VALOR_VISTA_GLOBAL && !rutaDeLaVistaGlobal(pathname)) router.push("/global");
+      else if (elegido === VALOR_VISTA_GLOBAL) router.refresh();
+      else if (pathname === "/global" || pathname.startsWith("/global/")) router.push("/");
+      else router.refresh();
+    });
+  }
+
   return (
     <>
       <Desplegable
@@ -60,17 +75,8 @@ export function UbicacionSwitcher({
         opciones={opciones}
         trabajando={pendiente}
         onValor={(elegido) => {
-          setValor(elegido);
-          startTransition(async () => {
-            await cambiarUbicacionActiva(elegido);
-            // Una pantalla que también funciona en CAYLA Global se queda donde está y se repinta para toda la empresa (Frescura
-            // del piso: «la tienda» pasa a «las tiendas», ADR-0208 act. 2026-10-10 (b)); el Inicio también: el del Admin (el
-            // Observatorio, ADR-0322) vuelve al país entero y a quien no es Admin la página lo manda al tablero. Las demás, al tablero.
-            if (elegido === VALOR_VISTA_GLOBAL && !rutaDeLaVistaGlobal(pathname)) router.push("/global");
-            else if (elegido === VALOR_VISTA_GLOBAL) router.refresh();
-            else if (pathname === "/global" || pathname.startsWith("/global/")) router.push("/");
-            else router.refresh();
-          });
+          // Cambiar de sede rehace la pantalla: si hay algo a medias (un alta, una ficha), primero «¿Salir sin guardar?» (/chaos 2026-10-28).
+          antesDeRehacerLaPantalla(() => cambiar(elegido));
         }}
       />
       {/* Cambiar de ubicación aquí repinta TODA la app: el aviso dura lo que tarda esa recarga. */}

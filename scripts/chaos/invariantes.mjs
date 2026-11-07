@@ -548,6 +548,110 @@ having c.diferencia <> round(sum(s.precio_unitario * s.cantidad) - (vi.precio_un
     corrompe: `update retail.cambios set diferencia = diferencia + 5
  where ctid = (select c.ctid from retail.cambios c where exists (select 1 from retail.cambio_salidas s where s.cambio_id = c.id) limit 1);`,
   },
+  {
+    id: "INV-23",
+    nombre: "stock_por_dueno_cuadra",
+    gravedad: 1,
+    nivel: "cruzada",
+    dice: "En una sede donde operan dos empresas (Lima), lo de CLAURE (`stock_dueno`) nunca pasa del stock de su fila, ni lo apartado de lo apartado, y no hay reparto por dueño donde operan una sola empresa (ADR-0542: CAYLA es el resto, así que este es el único descuadre posible).",
+    sql: `select variante_id, ubicacion_id, sububicacion_id, motivo from retail.fn_stock_dueno_descuadres()`,
+    corrompe: `insert into retail.stock_dueno (variante_id, ubicacion_id, sububicacion_id, empresa_id, cantidad)
+select variante_id, ubicacion_id, sububicacion_id, 'c1a07e00-0000-4000-8000-000000000002', cantidad + 5 from retail.stock where cantidad > 0 limit 1;`,
+  },
+  {
+    id: "INV-24",
+    nombre: "copias_del_color_iguales_a_su_tela",
+    gravedad: 2,
+    nivel: "cruzada",
+    dice: "Cada color de una tela (un insumo con `material_id`, ADR-0554) es el reflejo de su tela: mismo tipo y unidad (una tela siempre en metros), mismo tejido, misma merma, el código «código de la tela-código del color» y un nombre que empieza por el de la ficha MÁS SU MEDIDA si la tiene (ADR-0580: el disparador compone «Botón nácar 18 L · Negro», y sin contar la medida esta invariante gritaba en cada avío y se volvía ciega para un descuadre de verdad). Si no, la orden pide una merma que la tela ya no tiene, el plan sugiere el tejido equivocado o dos colores de una misma tela se llaman distinto. Un disparador las copia en cada guardado; esto vigila lo que se cuele por un camino que lo salte (un arreglo a mano con los disparadores apagados, o una migración). El nombre se compara solo hasta el de la tela: el color puede haberse renombrado en Catálogo y el insumo no se entera hasta que se guarda su tela (se corrige guardándola desde «Editar tela»).",
+    sql: `
+select i.id as insumo_id, i.codigo, i.nombre, m.codigo as tela_codigo, m.nombre as tela,
+       i.tipo as tipo_del_color, m.tipo as tipo_de_la_tela, i.unidad_medida as unidad_del_color, m.unidad_medida as unidad_de_la_tela,
+       i.tejido_id as tejido_del_color, m.tejido_id as tejido_de_la_tela, i.merma_pct as merma_del_color, m.merma_pct as merma_de_la_tela
+  from retail.insumos i
+  join retail.materiales m on m.id = i.material_id
+ where i.tipo is distinct from m.tipo
+    or i.unidad_medida is distinct from m.unidad_medida
+    or i.tejido_id is distinct from m.tejido_id
+    or i.merma_pct is distinct from m.merma_pct
+    or i.codigo is distinct from m.codigo || coalesce('-' || i.color_codigo, '')
+    or not (i.nombre = m.nombre
+         or i.nombre = m.nombre || coalesce(' ' || retail.fn_medida_texto(m.medida_valor, m.medida_unidad), '')
+         or starts_with(i.nombre, m.nombre || coalesce(' ' || retail.fn_medida_texto(m.medida_valor, m.medida_unidad), '') || ' · '))`,
+    // El disparador `insumos_copias_de_la_tela` (BEFORE) las volvería a copiar: dentro de la transacción revertida se apagan los disparadores de usuario, y sin eso no se podría probar que el detector lo ve.
+    corrompe: `set local session_replication_role = replica;
+update retail.insumos set merma_pct = case when merma_pct < 0.4 then merma_pct + 0.05 else merma_pct - 0.05 end
+ where ctid = (select ctid from retail.insumos where material_id is not null limit 1);`,
+  },
+  {
+    id: "INV-25",
+    nombre: "color_retirado_sin_tela_guardada",
+    gravedad: 1,
+    nivel: "cruzada",
+    dice: "Un color de tela retirado (`archivado_at`, «Retirar color», ADR-0554) no guarda tela: ni saldo distinto de cero en ninguna sede, ni un lote que haya entrado DESPUÉS de retirarlo. Si lo tuviera, serían metros que el libro de movimientos sigue contando (y suman al capital en insumos) pero que ninguna lista muestra: stock fantasma. `retirar_color_de_material` se niega con saldo y un disparador en `insumo_lotes` rechaza el ingreso a un retirado; esto vigila lo que se cuele por un camino que los salte (un arreglo a mano, una migración, una función nueva que escriba el libro sin pasar por el lote).",
+    sql: `
+select i.id as insumo_id, i.codigo, i.archivado_at, s.ubicacion_id, s.fisico as cantidad, 'saldo' as motivo
+  from retail.insumos i
+  join retail.v_insumo_saldos s on s.insumo_id = i.id
+ where i.material_id is not null and i.archivado_at is not null and s.fisico <> 0
+union all
+select i.id, i.codigo, i.archivado_at, l.ubicacion_id, l.cantidad_ingresada, 'lote_posterior'
+  from retail.insumos i
+  join retail.insumo_lotes l on l.insumo_id = i.id
+ where i.material_id is not null and i.archivado_at is not null and l.created_at > i.archivado_at`,
+    // Retirar un color que SÍ tiene saldo: lo que la función y el disparador impiden, hecho por la puerta de atrás (un UPDATE directo, que la política de líder permite).
+    corrompe: `update retail.insumos set archivado_at = now()
+ where ctid = (select i.ctid from retail.insumos i join retail.v_insumo_saldos s on s.insumo_id = i.id where i.material_id is not null and i.archivado_at is null and s.fisico <> 0 limit 1);`,
+  },
+  {
+    id: "INV-26",
+    nombre: "lote_de_insumo_cuadra_con_su_libro",
+    gravedad: 1,
+    nivel: "cruzada",
+    dice: "La cantidad de cada lote de insumo es lo que su `compra` y sus `ajuste` suman en el libro de movimientos (ADR-0570: corregir o eliminar un ingreso cambia el lote Y deja el par «deshago + anoto» en el libro). Si no coinciden, el saldo del color que muestra la orden (la suma del libro) y el que descuenta el PEPS (la cantidad del lote) dicen cosas distintas: tela que se ve y no se puede cortar, o tela que se corta y no se ve.",
+    sql: `
+select l.id as lote_id, l.insumo_id, l.ubicacion_id, l.cantidad_ingresada as cantidad_del_lote, coalesce(m.suma, 0) as suma_del_libro
+  from retail.insumo_lotes l
+  left join lateral (
+    select sum(x.cantidad) as suma from retail.movimientos_insumo x where x.insumo_lote_id = l.id and x.tipo in ('compra', 'ajuste')
+  ) m on true
+ where l.cantidad_ingresada <> coalesce(m.suma, 0)`,
+    // Un lote cuya cantidad se toca por la puerta de atrás (un UPDATE directo, sin el par en el libro): lo que `corregir_ingreso_insumo` nunca hace.
+    corrompe: `update retail.insumo_lotes set cantidad_ingresada = cantidad_ingresada + 1
+ where ctid = (select ctid from retail.insumo_lotes where anulado_at is null limit 1);`,
+  },
+  {
+    id: "INV-27",
+    nombre: "compra_anulada_sin_pagos",
+    gravedad: 1,
+    nivel: "cruzada",
+    dice: "Una factura de proveedor anulada no tiene pagos: `anular_compra` lo prohíbe, porque la plata saldría del banco sin una deuda que la respalde (tarea 36 de «Las 36»).",
+    sql: `
+select c.id as compra_id, c.serie || '-' || c.numero as factura, sum(p.monto) as pagado
+  from retail.compras c
+  join retail.compra_pagos p on p.compra_id = c.id
+ where c.estado = 'anulada'
+ group by c.id, c.serie, c.numero`,
+    corrompe: `update retail.compras set estado = 'anulada', motivo_anulacion = 'autoprueba chaos', anulada_at = now()
+ where ctid = (select c.ctid from retail.compras c where c.estado = 'vigente'
+                and exists (select 1 from retail.compra_pagos p where p.compra_id = c.id) limit 1);`,
+  },
+  {
+    id: "INV-28",
+    nombre: "compra_pagado_igual_a_sus_pagos",
+    gravedad: 1,
+    nivel: "cruzada",
+    dice: "Lo que una factura vigente dice que tiene pagado es la suma de sus pagos. Si no, Por pagar y el banco cuentan dos historias de la misma deuda (tarea 36 de «Las 36»).",
+    sql: `
+select c.id as compra_id, c.serie || '-' || c.numero as factura, c.pagado, coalesce(sum(p.monto), 0) as suma_pagos
+  from retail.compras c
+  left join retail.compra_pagos p on p.compra_id = c.id
+ where c.estado = 'vigente'
+ group by c.id, c.serie, c.numero, c.pagado
+having c.pagado <> coalesce(sum(p.monto), 0)`,
+    corrompe: `update retail.compra_pagos set monto = monto + 1
+ where ctid = (select p.ctid from retail.compra_pagos p join retail.compras c on c.id = p.compra_id where c.estado = 'vigente' limit 1);`,
+  },
 ];
 
 // ── Instrumento (Docker + psql) ─────────────────────────────────────────────────────────────────────────────────────────────

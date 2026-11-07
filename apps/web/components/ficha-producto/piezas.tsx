@@ -48,6 +48,10 @@ export type ContextoFicha = {
   puedeCorregir: boolean;
   /** Ajustar el stock desde la ficha. `null` o ausente = la cuenta no puede ajustar stock: no se ofrece. */
   ajusteStock?: AjusteStockFicha | null;
+  /** Una terminal (Felipe 2026-10-26): el precio de la prenda vale en todas las tiendas y la base no se lo deja cambiar
+   *  (`variantes_terminal_no_cambia_precio`). Trae el nombre de su tienda, donde sí pone el suyo («Precio en …»); `""` si la
+   *  terminal no está en una tienda. Ausente = la cuenta cambia el precio de la prenda como siempre. Una talla NUEVA sí lleva su precio. */
+  precioFijoEn?: string | null;
 };
 
 /** Valor del combo para «Sin color»: los códigos de color son 3 mayúsculas, este no choca con ninguno. */
@@ -98,10 +102,10 @@ export function VistaPreviaCodigos({ filas }: { filas: { clave: string; antes: s
   const cambian = filas.some((f) => f.despues && f.despues !== f.antes);
   return (
     <div className="rounded-lg border border-sand bg-papel px-3 py-2.5">
-      <p className="text-[11.5px] text-taupe">Así quedan</p>
+      <p className="text-sm text-taupe">Así quedan</p>
       <ul className="mt-1 space-y-1">
         {filas.map((f) => (
-          <li key={f.clave} className="flex flex-wrap items-baseline gap-x-2 text-[13px]">
+          <li key={f.clave} className="flex flex-wrap items-baseline gap-x-2 text-sm">
             <span className="font-mono text-xs text-tinta/60">{f.antes}</span>
             <span aria-hidden className="text-tinta/40">
               →
@@ -111,7 +115,7 @@ export function VistaPreviaCodigos({ filas }: { filas: { clave: string; antes: s
           </li>
         ))}
       </ul>
-      {cambian && <p className="mt-1.5 text-[11.5px] text-taupe">Las etiquetas ya pegadas siguen sonando en la caja: el código anterior queda como otro código de la misma prenda.</p>}
+      {cambian && <p className="mt-1.5 text-sm text-taupe">Las etiquetas ya pegadas siguen sonando en la caja: el código anterior queda como otro código de la misma prenda.</p>}
     </div>
   );
 }
@@ -136,12 +140,12 @@ export function MontosNuevas({
   return (
     <div className="grid grid-cols-2 gap-3">
       <label className="block">
-        <span className="text-[12.5px] font-semibold text-tinta">Precio de venta</span>
+        <span className="text-sm font-semibold text-tinta">Precio de venta</span>
         <input {...atributosMontoTexto(precio)} placeholder="0.00" value={precio} onChange={(e) => onPrecio(e.target.value)} className={`mt-1 ${CLASE_MONTO_ILEGIBLE} ${CAMPO_MONTO}`} />
       </label>
       {veCosto && (
         <label className="block">
-          <span className="text-[12.5px] font-semibold text-tinta">Costo (opcional)</span>
+          <span className="text-sm font-semibold text-tinta">Costo (opcional)</span>
           <input {...atributosMontoTexto(costo)} placeholder="0.00" value={costo} onChange={(e) => onCosto(e.target.value)} className={`mt-1 ${CLASE_MONTO_ILEGIBLE} ${CAMPO_MONTO}`} />
         </label>
       )}
@@ -209,14 +213,14 @@ export function MatrizNuevas({
   }
   return (
     <div className="overflow-x-auto rounded-xl border border-sand">
-      <table className="w-full border-collapse text-[13px]">
+      <table className="w-full border-collapse text-sm">
         <thead>
           <tr className="bg-hueso">
-            <th scope="col" className="px-3 py-2 text-left text-xs font-semibold text-tinta">
+            <th scope="col" className="px-3 py-2 text-left text-sm font-semibold text-tinta">
               Color
             </th>
             {columnas.map((t) => (
-              <th key={t ?? "sin-talla"} scope="col" className="px-2 py-2 text-xs font-semibold tabular-nums text-tinta">
+              <th key={t ?? "sin-talla"} scope="col" className="px-2 py-2 text-sm font-semibold tabular-nums text-tinta">
                 {textoTalla(t)}
               </th>
             ))}

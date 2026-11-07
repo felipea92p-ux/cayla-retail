@@ -1,4 +1,4 @@
-// «Pregúntale a CAYLA» (ADR-0529, actividad 3): el RECORRIDO. Sin React ni DOM: se prueba en `recorrido.test.ts`.
+// «Pregúntale a CAYLA» (ADR-0536, actividad 3): el RECORRIDO. Sin React ni DOM: se prueba en `recorrido.test.ts`.
 //
 // La IA responde con 1 a 3 TRAMOS, cada uno una pantalla y el paso de su guía que responde. El motor de guías (`MotorGuias`) corre un
 // tramo como una guía corta que arranca en ESE paso (no desde la bienvenida) y, al terminarlo, lleva a la pantalla del siguiente. Es la

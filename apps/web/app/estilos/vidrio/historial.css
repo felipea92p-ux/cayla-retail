@@ -1,0 +1,78 @@
+/* =====================================================================
+   VENTAS ▸ HISTORIAL CON VIDRIO (ADR-0596; Felipe lo eligió mirando el 2026-11-02, docs/maquetas/historial-ventas-vidrio-2026-11/,
+   «Lo que decidió Felipe»). Lo propio de la lista de Historial (`HistorialVentasLista`):
+     · La línea del tiempo, «B · Solo los días en gota»: ya no hay hilo a la izquierda ni un punto por día; la lista va a todo el ancho.
+       El día y su total son el separador de día ya elegido (`<SeparadorDia>`, «B · Gotas que flotan», vidrio/pantalla.css): dos gotas
+       que se quedan arriba al bajar, bajo la cabecera de la app (y, en el celular, bajo el buscador fijo); la de hoy, con su punto rojo.
+       La tarjeta de cada día es la placa Serena.
+     · La pila de prendas, «A · Lentes apiladas»: cada prenda, una lente redonda con su luz arriba y un aro de vidrio; el «×2», el globito
+       de la esquina ya elegido (la gota ahumada); el «+3», una gota clara. El color o la foto de la prenda es dato: no cambia con el tema.
+   Sin capa, como las demás piezas de vidrio. Las recetas viven en vidrio/recetas.css (`--serena-*`, `--gota-*`, `--lente-prenda-*`).
+   Movimiento: el de hoy (los días entran en cascada, la pila crece un poco al pasar el mouse); aquí no se agrega ninguno.
+   ===================================================================== */
+
+/* ---------- 1 · Los días: las gotas que flotan, bajo la cabecera ----------
+   La cabecera son dos islas fijas (vidrio/marco.css): 52 px de alto a 8 px del borde en el celular y a 12 px desde 640 px. La gota
+   (con los 10 px de aire de arriba del separador) queda 6 px bajo la isla. En el celular, además, el buscador va fijo bajo la cabecera
+   (`top-[61px]`, 60 px de alto con su aire): las gotas se pegan debajo de él. */
+.historial-dias { --separador-tope: 113px; }
+@media (min-width: 640px) {
+  .historial-dias { --separador-tope: calc(env(safe-area-inset-top, 0px) + 60px); }
+}
+/* Las dos gotas van juntas a la izquierda, a ras de la placa (como en la maqueta); si no caben en una línea, el total baja a la siguiente. */
+.historial-dias .separador-dia {
+  flex-wrap: wrap;
+  justify-content: flex-start;
+  align-items: center; /* las dos gotas a la misma altura (por la línea base, la del total, con su cifra en serif, bajaba 2 px) */
+  gap: 6px 8px;
+  padding-left: 0;
+  padding-right: 0;
+}
+/* La gota del total trae tres piezas («S/ 149.90», «·», «3 ventas»): en su caja flexible los espacios del texto se pierden, así que
+   el aire entre ellas lo pone el `gap`. */
+.historial-dias .separador-dia-total { gap: 0.35em; }
+
+/* ---------- 2 · La tarjeta de cada día: la placa Serena ---------- */
+.historial-placa {
+  border: 1px solid var(--serena-borde);
+  background: var(--serena-fondo);
+  -webkit-backdrop-filter: var(--serena-filtro);
+  backdrop-filter: var(--serena-filtro);
+  box-shadow: var(--serena-sombra);
+}
+
+/* ---------- 3 · La pila de prendas: lentes apiladas ---------- */
+/* La lente: redonda, recorta la foto o el color; su luz va en un `::after` porque una sombra interior no se pinta sobre una foto. */
+.historial-lente {
+  position: relative;
+  display: block;
+  width: 40px;
+  height: 40px;
+  overflow: hidden;
+  border-radius: 9999px;
+  background: var(--gota-marca);
+  box-shadow: var(--lente-prenda-aro);
+}
+.historial-lente::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  box-shadow: var(--lente-prenda-luz);
+}
+/* «×2»: el globito de la esquina (la gota ahumada) con su signo de veces delante del número. */
+.historial-pila .globito > span:first-child::before { content: "×"; }
+/* «+3»: una gota clara. */
+.historial-resto {
+  display: flex;
+  width: 40px;
+  height: 40px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9999px;
+  border: 1px solid color-mix(in srgb, var(--color-borde-control) 55%, transparent);
+  background: var(--gota-marca);
+  box-shadow: var(--gota-luz);
+  color: var(--color-tinta);
+}

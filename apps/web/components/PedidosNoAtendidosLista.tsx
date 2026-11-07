@@ -85,7 +85,7 @@ function FilaPedido({
           {que}
           {pedido.talla && <span className="text-tinta/60"> · talla {pedido.talla}</span>}
         </p>
-        <p className="text-xs text-tinta/55">
+        <p className="text-sm text-tinta/55">
           {dia} {hora}
           {!pedido.productoReferencia && pedido.descripcionLibre && " · fuera de catálogo"}
           {/* ADR-0288 D-6: la misma lista trae «buscó y no había» y «se la probó y no la llevó» (con su razón). */}

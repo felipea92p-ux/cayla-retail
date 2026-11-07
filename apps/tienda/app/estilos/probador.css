@@ -20,7 +20,7 @@
 .pb-corazon[aria-busy="true"] { cursor: progress; }
 .pb-corazon:active { transform: scale(.94); }
 .pb-corazon:focus-visible { outline: 2px solid var(--rojo); outline-offset: 2px; }
-.pb-cab h1 { margin: 0; font-family: var(--sans); font-variation-settings: var(--ancho); text-transform: uppercase; letter-spacing: .06em; font-weight: 250; font-size: 21.1px; line-height: 1.12;  }
+.pb-cab h1 { margin: 0; font-family: var(--display); text-transform: none; letter-spacing: -.01em; font-weight: 400; font-size: 27px; line-height: 1.12;  }
 .pb-cab h1 em { font-style: italic; color: var(--rojo); }
 .pb-cab-ayuda { display: none; margin: 0; font-size: 14px; color: var(--tinta-60); }
 
@@ -183,7 +183,7 @@
 /* ---- «Tu look» ---- */
 .pb-look { padding: 22px 16px 28px; }
 .pb-look-cab { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; padding-bottom: 10px; border-bottom: 1px solid var(--sand); }
-.pb-look-cab h2 { margin: 0; font-family: var(--sans); font-variation-settings: var(--ancho); text-transform: uppercase; letter-spacing: .06em; font-weight: 250; font-size: 18px; line-height: 1.12; }
+.pb-look-cab h2 { margin: 0; font-family: var(--display); text-transform: none; letter-spacing: -.01em; font-weight: 400; font-size: 23px; line-height: 1.12; }
 .pb-look-cab span { font-size: 12.5px; color: var(--tinta-60); }
 .pb-filas { list-style: none; margin: 0; padding: 0; }
 .pb-fila { display: grid; grid-template-columns: 64px minmax(0, 1fr) auto auto; align-items: center; gap: 12px; padding: 12px 8px; margin: 0 -8px; min-height: 104px; border-bottom: 1px solid var(--sand); border-radius: 0; transition: background-color .25s, opacity .25s; }
@@ -264,7 +264,7 @@
 .pb-bus-conteo { margin: 14px 16px 0; min-height: 44px; display: flex; align-items: center; border-bottom: 1px solid var(--sand); font-size: 13px; color: var(--tinta-60); }
 .pb-bus-cuerpo { padding: 18px 16px 0; display: flex; flex-direction: column; gap: 26px; }
 .pb-bus-portada { display: flex; flex-direction: column; gap: 10px; }
-.pb-bus-portada h1, .pb-bus-vacio h1 { margin: 0; font-family: var(--sans); font-variation-settings: var(--ancho); text-transform: uppercase; letter-spacing: .06em; font-weight: 250; font-size: 19.8px; line-height: 1.12; }
+.pb-bus-portada h1, .pb-bus-vacio h1 { margin: 0; font-family: var(--display); text-transform: none; letter-spacing: -.01em; font-weight: 400; font-size: 26px; line-height: 1.12; }
 .pb-bus-portada p, .pb-bus-vacio p { margin: 0; font-size: 14px; line-height: 1.5; color: var(--tinta-60); }
 .pb-bus-sugeridas { display: flex; flex-wrap: wrap; gap: 8px; }
 .pb-bus-sugerida { height: 40px; padding: 0 16px; border: 0; border-radius: 0; background: var(--papel); box-shadow: inset 0 0 0 1px var(--sand); font: inherit; font-size: 14px; font-weight: 500; color: var(--tinta); cursor: pointer; }
@@ -379,7 +379,7 @@
 /* ---- Tus looks en Favoritos ---- */
 .lg-lista { padding-block: 4px 26px; }
 .lg-lista-cab { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
-.lg-lista-cab h2 { margin: 0; font-family: var(--sans); font-variation-settings: var(--ancho); text-transform: uppercase; letter-spacing: .06em; font-size: 18px; font-weight: 250; line-height: 1.12; }
+.lg-lista-cab h2 { margin: 0; font-family: var(--display); text-transform: none; letter-spacing: -.01em; font-size: 23px; font-weight: 400; line-height: 1.12; }
 .lg-lista-cab .t-enlace { flex: none; }
 .lg-carril { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(150px, 46%); gap: 12px; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; margin-inline: -16px; padding: 2px 16px 8px; scroll-padding-inline: 16px; }
 .lg-carril::-webkit-scrollbar { display: none; }
@@ -450,7 +450,7 @@
 
 /* ---- El look que alguien compartió (`/tu-look`, actividad 9): como el look guardado, sin precios ---- */
 .tl { padding-top: 22px; }
-.tl-titulo { margin: 0; font-family: var(--sans); font-variation-settings: var(--ancho); text-transform: uppercase; letter-spacing: .06em; font-weight: 250; font-size: 24.8px; line-height: 1.12;  }
+.tl-titulo { margin: 0; font-family: var(--display); text-transform: none; letter-spacing: -.01em; font-weight: 400; font-size: 32px; line-height: 1.12;  }
 .tl-titulo em { color: var(--rojo); }
 .tl-nombre { font-weight: 600; }
 .tl-llamado { display: flex; flex-direction: column; align-items: stretch; gap: 4px; margin-top: 6px; }
@@ -465,7 +465,7 @@
 .ae { display: grid; grid-template-columns: minmax(0, 1fr) 40%; grid-template-areas: "txt fig" "btn btn"; align-items: center; gap: 14px 12px; margin: 4px 0 26px; padding: 20px; border-radius: 0; overflow: hidden; background: radial-gradient(120% 90% at 0% 0%, color-mix(in srgb, var(--t-hero) 82%, var(--t-oscuro)), var(--t-oscuro) 82%); color: var(--t-hero-tinta); text-decoration: none; }
 .ae-txt { grid-area: txt; display: flex; flex-direction: column; align-items: flex-start; gap: 8px; min-width: 0; }
 .ae .t-ceja { color: var(--t-hero-acento); }
-.ae-titulo { font-family: var(--sans); font-variation-settings: var(--ancho); text-transform: uppercase; letter-spacing: .06em; font-weight: 250; font-size: 22.3px; line-height: 1.12;  }
+.ae-titulo { font-family: var(--display); text-transform: none; letter-spacing: -.01em; font-weight: 400; font-size: 29px; line-height: 1.12;  }
 .ae-titulo em { color: var(--t-hero-acento); }
 .ae-bajada { font-size: 13px; line-height: 1.45; color: color-mix(in srgb, var(--t-hero-tinta) 80%, transparent); }
 .ae-btn { grid-area: btn; min-height: 48px; padding-inline: 18px; background: var(--t-hero-tinta); color: var(--t-tinta-fija); }

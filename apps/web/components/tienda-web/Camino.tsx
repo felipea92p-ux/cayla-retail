@@ -49,7 +49,7 @@ export function Camino({
         <div id={idReglas} className="tw-camino tw-camino-reglas">
           {reglas.map((r, i) => (
             <Fragment key={r.titulo}>
-              <div className="nota-cayla sin-i anim-entra text-[13px]" style={{ ["--i" as string]: i } as CSSProperties}>
+              <div className="nota-cayla sin-i anim-entra text-sm" style={{ ["--i" as string]: i } as CSSProperties}>
                 {/* En la fila del camino cada regla cae bajo su estación y el nombre sobra; de a dos, hace falta. */}
                 <p className="label-cayla mb-1 text-taupe xl:hidden">{r.titulo}</p>
                 <p>{r.texto}</p>

@@ -92,16 +92,16 @@ export function textoDeDescuento(et: Pick<EtiquetaAlta, "descuentoPct">): string
  * Qué significa lo que la persona escribió, para decírselo con palabras en vez de dejar un «Crear» que la base rechazaría:
  *   - `vacio`: nada escrito.
  *   - `invalida`: trae una coma (pegar «a, b, c» crearía UNA etiqueta con comas, permanente en el vocabulario): se dice que van de a una.
- *   - `nueva`: no existe ninguna con ese nombre (ni elegible, ni cubierta, ni propuesta antes): se puede crear.
+ *   - `nueva`: no existe ninguna con ese nombre (ni elegible, ni cubierta): se puede crear.
  *   - `existe`: ya hay una así, y `motivo` dice por qué no se agrega como «nueva»:
- *        elegible → está en la lista (Enter la agrega); elegida → ya está puesta; campana → ya aplica sola;
- *        propuesta → ya la propusiste y espera a un líder.
+ *        elegible → está en la lista (Enter la agrega); elegida → ya está puesta; campana → ya aplica sola.
+ *   Desde ADR-0534 lo que se crea nace aprobado y entra a `todas`: ya no hay «propuestas» que esperen a nadie.
  */
 export type SignificadoTexto =
   | { tipo: "vacio" }
   | { tipo: "nueva"; nombre: string }
   | { tipo: "invalida"; nombre: string }
-  | { tipo: "existe"; nombre: string; etiqueta: EtiquetaAlta | null; motivo: "elegible" | "elegida" | "campana" | "propuesta" };
+  | { tipo: "existe"; nombre: string; etiqueta: EtiquetaAlta | null; motivo: "elegible" | "elegida" | "campana" };
 
 export function significadoDelTexto(
   texto: string,
@@ -109,8 +109,7 @@ export function significadoDelTexto(
     todas,
     reparto,
     elegidas,
-    propuestas,
-  }: { todas: readonly EtiquetaAlta[]; reparto: ReparteEtiquetas; elegidas: readonly string[]; propuestas: readonly string[] }
+  }: { todas: readonly EtiquetaAlta[]; reparto: ReparteEtiquetas; elegidas: readonly string[] }
 ): SignificadoTexto {
   const nombre = nombreDeEtiqueta(texto);
   const k = claveEtiqueta(nombre);
@@ -123,7 +122,6 @@ export function significadoDelTexto(
     if (reparto.cubiertas.some((c) => c.id === igual.id)) return { tipo: "existe", nombre: igual.nombre, etiqueta: igual, motivo: "campana" };
     return { tipo: "existe", nombre: igual.nombre, etiqueta: igual, motivo: "elegible" };
   }
-  if (propuestas.some((p) => claveEtiqueta(p) === k)) return { tipo: "existe", nombre, etiqueta: null, motivo: "propuesta" };
   return { tipo: "nueva", nombre };
 }
 
@@ -139,8 +137,6 @@ export function fraseDeExistente(motivo: Extract<SignificadoTexto, { tipo: "exis
       return "Ya la agregaste a esta prenda.";
     case "campana":
       return "Esa campaña ya aplica sola a esta categoría: no hace falta agregarla.";
-    case "propuesta":
-      return "Ya la propusiste: falta que un líder la apruebe en Catálogo ▸ Insignias.";
   }
 }
 

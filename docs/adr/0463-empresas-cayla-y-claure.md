@@ -1,5 +1,7 @@
 # ADR-0463 — Empresas: CAYLA y CLAURE, y a cuál pertenece cada producto
 
+> **Actualización 2026-10-27 ([ADR-0542](0542-stock-de-lima-por-dueno.md)):** la empresa ya no es solo un dato de la prenda: en Lima el stock se parte por dueño y lo marca la persona que opera. Nuevo producto vuelve a preguntar la tienda (que es la ficha y el dueño del stock inicial).
+
 **Estado:** aceptada · migración EN PRODUCCIÓN desde 2026-10-20 (pegada por Felipe; la web sigue en el PR #1222) · **Fecha:** 2026-10-20 · **Decidió:** Felipe
 
 ## Contexto

@@ -166,7 +166,13 @@ $f$;
 // ============================================================================================================================
 const ESCENA = `
 begin;
+-- La tarea 14 sembró la tarifa de Vendemás y devenga su comisión (se prueba en pruebas:comision-estimada): estas cifras se calculan sin ella.
+set local session_replication_role = replica;
+delete from retail.pos_tarifas where maquina_id in (select id from retail.pos_maquinas where nombre ilike 'vendem%');
+set local session_replication_role = origin;
 ${AYUDANTES}
+-- El mundo de esta prueba es de 2024: las mermas asientan desde antes (en producción el corte es el 1-nov-2026, 20261106153000).
+update retail.parametros_finanzas set mermas_asientan_desde = '2000-01-01' where id;
 ${cambiaA(FELIPE)}
 select id as tru from retail.ubicaciones where nombre = 'Tienda Trujillo' \\gset
 select id as lim from retail.ubicaciones where nombre = 'Tienda Lima' \\gset
@@ -270,14 +276,14 @@ select 'B2 Bancos 104 = 4,515', (select monto = 4515 from bal where cuenta = '10
 select 'B3 Tarjeta por abonar 105 = 0 (el abono y la comisión la vaciaron)', (select coalesce(sum(monto), 0) = 0 from bal where cuenta = '105');
 select 'B4 Mercaderías 201 = lo del arranque + 800', (select monto = :m201_0 + 800 from bal where cuenta = '201');
 select 'B5 la 201 dice cuánto está facturado por recibir (400)', (select (detalle ->> 'por_recibir')::numeric = 400 from bal where cuenta = '201');
-select 'B6 Muebles 335 = 1,200 y sin depreciación en marzo', (select monto = 1200 from bal where cuenta = '335') and not exists (select 1 from bal where cuenta = '391' and monto <> 0);
+select 'B6 Muebles 335 = 1,200 y su primera cuota en marzo, su mes de uso', (select monto = 1200 from bal where cuenta = '335') and (select monto = -20 from bal where cuenta = '391');
 select 'B7 IGV por pagar 4011 = 199.01', (select monto = 199.01 and seccion = 'pasivo' from bal where cuenta = '4011');
 select 'B8 Facturas por pagar 421 = 680', (select monto = 680 from bal where cuenta = '421');
 select 'B9 Adelantos de clientas 122 = 100', (select monto = 100 from bal where cuenta = '122');
 select 'B10 Préstamo del dueño 47 = 2,300 (lo de antes + 500 − 200)', (select monto = 2300 from bal where cuenta = '47');
 select 'B11 Aportes 52 = 1,000', (select monto = 1000 from bal where cuenta = '52');
 select 'B12 Utilidades acumuladas 591 = 700 (1,000 − el retiro)', (select monto = 700 from bal where cuenta = '591');
-select 'B13 Resultado de marzo = −189.01 (TRU 113.99, la empresa −303)', (select monto = -189.01 from bal where cuenta = 'resultado_mes');
+select 'B13 Resultado de marzo = −209.01 (TRU 93.99, la empresa −303)', (select monto = -209.01 from bal where cuenta = 'resultado_mes');
 select 'B14 lo que tiene = lo que debe + lo tuyo',
   (select sum(monto) filter (where seccion = 'activo') = sum(monto) filter (where seccion in ('pasivo', 'patrimonio')) from bal);
 select 'C1 la comprobación: el diario cuadra, la ecuación y la caja, sin bloquear', (select bool_and(estado = 'ok') from con where clave in ('diario', 'ecuacion', '101'));
@@ -294,7 +300,7 @@ select 'D3 abono del POS: 104 = 97 contra 105; la comisión (639) sale de la 105
   and (select sum(haber) filter (where cuenta = '105') = 3 and sum(debe) filter (where cuenta = '639') = 3 from dia where regla = 'gasto' and cuenta in ('105', '639'));
 select 'D4 el traslado del cierre al banco: 104 contra 101', (select sum(debe) filter (where cuenta = '104') = 200 and sum(haber) filter (where cuenta = '101') = 200 from dia where regla = 'traslado_banco');
 select 'D5 el faltante de 5 al cerrar: 6599 contra 101, en TRU', (select sum(debe) filter (where cuenta = '6599') = 5 and sum(haber) filter (where cuenta = '101') = 5 and bool_and(ubicacion_id = :'tru') from dia where regla = 'diferencia_caja');
-select 'D6 el Estado de resultados de TRU suma el faltante (gastos 25 = mototaxi 20 + faltante 5) y da 113.99', (select gastos_operacion = 25 and resultado = 113.99 from retail.fn_estado_resultados('2024-03-01', '2024-03-31') where ubicacion_id = :'tru');
+select 'D6 el Estado de resultados de TRU suma el faltante (gastos 45 = mototaxi 20 + faltante 5 + cuota 20) y da 93.99', (select gastos_operacion = 45 and resultado = 93.99 from retail.fn_estado_resultados('2024-03-01', '2024-03-31') where ubicacion_id = :'tru');
 select 'D7 cada asiento nuevo cuadra', (select count(*) = 0 from retail.fn_asientos_descuadrados('2024-03-01', '2024-03-31'));
 `;
 
@@ -302,10 +308,10 @@ select 'D7 cada asiento nuevo cuadra', (select count(*) = 0 from retail.fn_asien
 const CASOS_ABRIL = `
 create temp table bal as select * from retail.fn_balance_general('2024-04-30');
 create temp table con as select * from retail.fn_conciliacion_contable('2024-04-30');
-select 'E1 abril: depreciación acumulada 391 = −20 dentro de lo que tiene', (select monto = -20 and seccion = 'activo' from bal where cuenta = '391');
+select 'E1 abril: depreciación acumulada 391 = −40 dentro de lo que tiene', (select monto = -40 and seccion = 'activo' from bal where cuenta = '391');
 select 'E2 abril: el resultado del mes es la depreciación (−20)', (select monto = -20 from bal where cuenta = 'resultado_mes');
-select 'E3 abril: marzo pasó a utilidades acumuladas (700 − 189.01 = 510.99)', (select monto = 510.99 from bal where cuenta = '591');
-select 'E4 abril: todo cuadra y los activos dan lo mismo por los dos caminos', (select count(*) = 0 from con where bloquea and estado in ('no_cuadra', 'falta')) and (select diario = 1180 and estado = 'ok' from con where clave = '33');
+select 'E3 abril: marzo pasó a utilidades acumuladas (700 − 209.01 = 490.99)', (select monto = 490.99 from bal where cuenta = '591');
+select 'E4 abril: todo cuadra y los activos dan lo mismo por los dos caminos', (select count(*) = 0 from con where bloquea and estado in ('no_cuadra', 'falta')) and (select diario = 1160 and estado = 'ok' from con where clave = '33');
 select 'E5 abril: lo que tiene = lo que debe + lo tuyo', (select sum(monto) filter (where seccion = 'activo') = sum(monto) filter (where seccion in ('pasivo', 'patrimonio')) from bal);
 select 'E6 el último día antes del arranque: el Balance son los saldos de arranque, sin diario', (select count(*) > 0 from retail.fn_balance_general('2024-02-29'))
   and (select bool_and(estado <> 'no_cuadra') from retail.fn_conciliacion_contable('2024-02-29'));
@@ -321,9 +327,9 @@ create temp table t0 as select * from retail.fn_balance_por_tienda('2024-02-29')
 create temp table t1 as select * from retail.fn_balance_por_tienda('2024-03-31');
 select 'T1 TRU: cajón y caja fuerte 150 → 125', (select caja = 150 from t0 where ubicacion_id = :'tru') and (select caja = 125 and caja_visible from t1 where ubicacion_id = :'tru');
 select 'T2 TRU: su mercadería sube 400 (vendió 5 de P1 y le llegaron 6 de P2)', (select t1.mercaderia - t0.mercaderia = 400 from t0, t1 where t0.ubicacion_id = :'tru' and t1.ubicacion_id = :'tru');
-select 'T3 TRU: sus muebles 1,200 y su parte de la factura 680', (select activos_fijos = 1200 and facturas_por_pagar = 680 from t1 where ubicacion_id = :'tru');
-select 'T4 TRU: lo invertido sube 895', (select t1.invertido - t0.invertido = 895 from t0, t1 where t0.ubicacion_id = :'tru' and t1.ubicacion_id = :'tru');
-select 'T5 TRU: utilidad de marzo 113.99 sobre ventas de 338.99, y rinde = utilidad ÷ invertido', (select utilidad_mes = 113.99 and ventas_mes = 338.99 and rinde = round(113.99 / invertido, 4) from t1 where ubicacion_id = :'tru');
+select 'T3 TRU: sus muebles 1,180 (1,200 − la cuota de marzo) y su parte de la factura 680', (select activos_fijos = 1180 and facturas_por_pagar = 680 from t1 where ubicacion_id = :'tru');
+select 'T4 TRU: lo invertido sube 875', (select t1.invertido - t0.invertido = 875 from t0, t1 where t0.ubicacion_id = :'tru' and t1.ubicacion_id = :'tru');
+select 'T5 TRU: utilidad de marzo 93.99 sobre ventas de 338.99, y rinde = utilidad ÷ invertido', (select utilidad_mes = 93.99 and ventas_mes = 338.99 and rinde = round(93.99 / invertido, 4) from t1 where ubicacion_id = :'tru');
 select 'T6 el banco, el capital y el IGV no se reparten: LIM no tiene el Yape de su adelanto ni la deuda de TRU', (select caja = 0 and facturas_por_pagar = 0 from t1 where ubicacion_id = :'lim');
 select 'T7 el Taller aparece como unidad, sin «rinde» (no vende)', (select rinde is null from t1 where tipo = 'taller');
 select 'T8 fn_balance_general(corte, TRU) dice lo mismo en líneas', (select sum(monto) filter (where seccion = 'activo') - sum(monto) filter (where seccion = 'pasivo') from retail.fn_balance_general('2024-03-31', :'tru'))
@@ -362,13 +368,110 @@ select 'N2 un saldo de arranque no se edita ni se borra', (select pg_temp.intent
 const CASOS_DESCUADRE = `
 update retail.venta_pagos set monto = 190 where venta_id = pg_temp.k('V1');
 select pg_temp.entrada_con_costo('PR1', :'p1', :'tru', 3, 40, 'produccion', '2024-03-22 12:00-05');
+-- 20261106234000: la maquila de esas 3 prendas se paga como gasto «Maquila del Taller», que va a la 231 (no al resultado).
+insert into retail.gastos (id, ubicacion_id, categoria, descripcion, fecha, monto_total, igv, medio_pago)
+values (pg_temp.k('GM1'), :'tru', 'maquila', 'Costura de la orden F7', '2024-03-22', 120, 0, 'transferencia');
 create temp table con as select * from retail.fn_conciliacion_contable('2024-03-31');
 select 'N3 un asiento descuadrado: «el diario cuadra» NO, con el asiento y la diferencia (−10)', (select estado = 'no_cuadra' and bloquea and diferencia = -10 and jsonb_array_length(causas) = 1 from con where clave = 'diario');
-select 'N5 prendas de Producción: la mercadería NO cuadra y lo explica (−120: 3 × 40)', (select estado = 'no_cuadra' and diferencia = -120 from con where clave = '201')
-  and (select (causas -> 0 ->> 'clave') = 'produccion' and (causas -> 0 ->> 'monto')::numeric = -120 from con where clave = '201');
+-- 20261106171000: la Producción ya entra al diario (201 contra 231, al costo de la prenda) y deja de ser una causa.
+select 'N5 prendas de Producción: el diario las asienta (201 contra 231, 3 × 40) y la mercadería cuadra', (select estado = 'ok' from con where clave = '201')
+  and (select sum(debe) filter (where cuenta = '201') = 120 and sum(haber) filter (where cuenta = '231') = 120
+         from retail.fn_asientos('2024-03-01', '2024-03-31') where regla = 'produccion');
+select 'N6 la maquila pagada entra a «Productos en proceso» (231) y no al Estado de resultados (gastos de TRU siguen en 45)',
+  (select sum(debe) filter (where cuenta = '231') = 120 from retail.fn_asientos('2024-03-01', '2024-03-31') where regla = 'gasto' and origen_id = pg_temp.k('GM1'))
+  and (select gastos_operacion = 45 from retail.fn_estado_resultados('2024-03-01', '2024-03-31') where ubicacion_id = :'tru');
 `;
 
 // El arranque tiene que cuadrar, y se registra una sola vez (en una base sin arranque: la escena se arma sin registrarlo).
+// Un banco que empieza con su saldo DESPUÉS del arranque (tarea 4 de «Las 36»): la diferencia se explica sola, con su signo y su monto, sin «sin explicar».
+const CASOS_CUENTA_NUEVA = `
+select retail.crear_cuenta_dinero('Banco tardío prueba', 'banco', 1000, '2024-03-15') as tardio \\gset
+create temp table con as select * from retail.fn_conciliacion_contable('2024-03-31');
+select 'N1 la diferencia del banco suma 1,000 menos: lo que el libro de bancos tiene y el diario no', (select diferencia = -1300 and otro = 5815 and diario = 4515 from con where clave = '104');
+select 'N2 la causa cuenta_nueva explica esos 1,000, con el mismo signo que la diferencia', (select (c ->> 'monto')::numeric = -1000 from con, jsonb_array_elements(causas) c where clave = '104' and c ->> 'clave' = 'cuenta_nueva');
+select 'N3 no queda nada sin explicar', (select count(*) = 0 from con, jsonb_array_elements(causas) c where clave = '104' and c ->> 'clave' = 'sin_explicar');
+`;
+// Una venta sin prenda saca su costo de la 201 sin mover stock (tarea 5 de «Las 36»): se explica sola y da nota, y lo que la deshace vuelve.
+const CASOS_VENTA_SIN_PRENDA = `
+insert into retail.ventas (id, ubicacion_id, caja_id, estado, created_at) values (pg_temp.k('VSP'), :'tru', (select id from retail.cajas where ubicacion_id = :'tru' limit 1), 'completada', '2024-03-25 12:00-05');
+insert into retail.venta_items (id, venta_id, variante_id, cantidad, precio_unitario, descuento_unitario, costo_unitario)
+values (pg_temp.k('VSPi'), pg_temp.k('VSP'), '22222222-2222-4222-8222-222222222222', 2, 100, 0, 25);
+insert into retail.venta_pagos (venta_id, metodo, monto) values (pg_temp.k('VSP'), 'efectivo', 200);
+create temp table con as select * from retail.fn_conciliacion_contable('2024-03-31');
+select 'V1 la causa venta_sin_prenda explica los S/ 50 que salieron de la 201', (select (c ->> 'monto')::numeric = -50 and (c ->> 'acepta')::boolean from con, jsonb_array_elements(causas) c where clave = '201' and c ->> 'clave' = 'venta_sin_prenda');
+select 'V2 la 201 queda en nota, no en «no cuadra», y no se dibuja «sin explicar»', (select estado = 'nota' from con where clave = '201') and (select count(*) = 0 from con, jsonb_array_elements(causas) c where clave = '201' and c ->> 'clave' = 'sin_explicar');
+select 'V3 el Balance se dibuja', (select count(*) > 0 from retail.fn_balance_general('2024-03-31'));
+update retail.ventas set estado = 'anulada', anulado_en = '2024-03-26 12:00-05', motivo_anulacion = 'prueba' where id = pg_temp.k('VSP');
+create temp table con2 as select * from retail.fn_conciliacion_contable('2024-03-31');
+select 'V4 anulada, ya no hay nada que explicar', (select count(*) = 0 from con2, jsonb_array_elements(causas) c where clave = '201' and c ->> 'clave' = 'venta_sin_prenda');
+`;
+// ADR-0619: un pago del Taller entra al diario (a la 231, o a la 241 si compra insumos) y deja de ser una diferencia de su cuenta.
+const CASOS_PAGO_TALLER = `
+create temp table con0 as select * from retail.fn_conciliacion_contable('2024-03-31');
+create temp table er0 as select * from retail.fn_estado_resultados('2024-03-01', '2024-03-31');
+insert into retail.proveedores_produccion (id, nombre, rubro) values (pg_temp.k('PPT'), 'Ploteos prueba', 'maquila');
+insert into retail.comprobantes_produccion (id, proveedor_id, tipo, serie, numero, fecha_emision, condicion, subtotal, igv, total)
+values (pg_temp.k('CPT'), pg_temp.k('PPT'), 'nota_venta', 'S/P', 'OP-PRUEBA-1', '2024-03-20', 'contado', 88, 0, 88);
+insert into retail.comprobantes_produccion_pagos (id, comprobante_id, fecha, monto, metodo, cuenta_dinero_id)
+values (pg_temp.k('PGT'), pg_temp.k('CPT'), '2024-03-20', 88, 'transferencia', (select id from retail.cuentas_dinero where tipo = 'banco' order by created_at limit 1));
+create temp table con as select * from retail.fn_conciliacion_contable('2024-03-31');
+select 'T1 el pago entra a la 231 y sale de la 104, por el mismo monto', (select sum(debe) filter (where cuenta = '231') = 88 and sum(haber) filter (where cuenta = '104') = 88 and count(*) = 2
+  from retail.fn_asientos('2024-03-01', '2024-03-31') where regla = 'pago_taller');
+select 'T2 la 104 no cambia su diferencia: el diario y Cuentas y dinero bajaron lo mismo', (select c.diferencia = a.diferencia and c.diario = a.diario - 88 from con c join con0 a using (clave) where clave = '104');
+select 'T3 ya no se explica como causa', (select count(*) = 0 from con, jsonb_array_elements(causas) c where c ->> 'clave' in ('pagos_taller', 'taller_cajon'));
+select 'T4 el asiento cuadra solo', (select count(*) = 0 from retail.fn_asientos_descuadrados('2024-03-01', '2024-03-31', null));
+select 'T5 el Estado de resultados no cambia: la ropa pasa a costo al venderse', (select bool_and(e.resultado is not distinct from a.resultado) from retail.fn_estado_resultados('2024-03-01', '2024-03-31') e join er0 a using (unidad, ubicacion_id));
+select 'T6 el Balance sigue cumpliendo la ecuación', (select estado = 'ok' from con where clave = 'ecuacion');
+-- Una compra de tela: su línea es un insumo del catálogo, aunque no venga de una orden de insumos. Va a la 241, de donde sale al cortarla.
+insert into retail.insumos (id, codigo, nombre, tipo, unidad_medida) values (pg_temp.k('INT'), 'T-PAGO-TALLER', 'Tela prueba pago', 'tela', 'metro');
+insert into retail.comprobantes_produccion (id, proveedor_id, tipo, serie, numero, fecha_emision, condicion, subtotal, igv, total)
+values (pg_temp.k('CPI'), pg_temp.k('PPT'), 'nota_venta', 'S/P', 'TELA-1', '2024-03-21', 'contado', 500, 0, 500);
+insert into retail.comprobantes_produccion_items (comprobante_id, insumo_id, cantidad, costo_unitario) values (pg_temp.k('CPI'), pg_temp.k('INT'), 10, 50);
+insert into retail.comprobantes_produccion_pagos (id, comprobante_id, fecha, monto, metodo, cuenta_dinero_id)
+values (pg_temp.k('PGI'), pg_temp.k('CPI'), '2024-03-21', 500, 'transferencia', (select id from retail.cuentas_dinero where tipo = 'banco' order by created_at limit 1));
+select 'T7 la compra de tela va a la 241, no a la 231', (select sum(debe) filter (where cuenta = '241') = 500 and coalesce(sum(debe) filter (where cuenta = '231'), 0) = 0
+  from retail.fn_asientos('2024-03-01', '2024-03-31') where regla = 'pago_taller' and origen_id = pg_temp.k('PGI'));
+-- Un pago sin cuenta: el diario lo ubica por su medio y la diferencia se explica sola, como todo lo que aún no dice a qué cuenta fue.
+insert into retail.comprobantes_produccion (id, proveedor_id, tipo, serie, numero, fecha_emision, condicion, subtotal, igv, total)
+values (pg_temp.k('CPS'), pg_temp.k('PPT'), 'nota_venta', 'S/P', 'OP-PRUEBA-2', '2024-03-22', 'contado', 30, 0, 30);
+insert into retail.comprobantes_produccion_pagos (id, comprobante_id, fecha, monto, metodo) values (pg_temp.k('PGS'), pg_temp.k('CPS'), '2024-03-22', 30, 'transferencia');
+create temp table con3 as select * from retail.fn_conciliacion_contable('2024-03-31');
+select 'T8 un pago sin cuenta sale de la 104 por su medio y queda como causa sin_cuenta', (select count(*) = 1 from retail.fn_asientos('2024-03-01', '2024-03-31') where regla = 'pago_taller' and origen_id = pg_temp.k('PGS') and cuenta = '104' and haber = 30)
+  and (select count(*) = 1 from con3, jsonb_array_elements(causas) c where clave = '104' and c ->> 'clave' = 'sin_cuenta');
+-- Un pago desde un cajón: sale de la 101 y su egreso ya no es una causa.
+insert into retail.comprobantes_produccion (id, proveedor_id, tipo, serie, numero, fecha_emision, condicion, subtotal, igv, total)
+values (pg_temp.k('CPC'), pg_temp.k('PPT'), 'nota_venta', 'S/P', 'OP-PRUEBA-3', '2024-03-23', 'contado', 20, 0, 20);
+insert into retail.caja_movimientos (id, caja_id, tipo, monto, motivo, created_at)
+values (pg_temp.k('CMT'), (select id from retail.cajas where ubicacion_id = :'tru' order by abierta_en desc limit 1), 'egreso', 20, 'Pago a proveedor', '2024-03-23 12:00-05');
+insert into retail.comprobantes_produccion_pagos (id, comprobante_id, fecha, monto, metodo, cuenta_dinero_id, caja_movimiento_id) values (pg_temp.k('PGC'), pg_temp.k('CPC'), '2024-03-23', 20, 'efectivo', (select id from retail.cuentas_dinero where tipo = 'cajon' and ubicacion_id = :'tru' limit 1), pg_temp.k('CMT'));
+create temp table con4 as select * from retail.fn_conciliacion_contable('2024-03-31');
+select 'T9 un pago desde un cajón sale de la 101 y su egreso no queda sin explicar', (select count(*) = 1 from retail.fn_asientos('2024-03-01', '2024-03-31') where regla = 'pago_taller' and origen_id = pg_temp.k('PGC') and cuenta = '101' and haber = 20)
+  and (select count(*) = 0 from con4, jsonb_array_elements(causas) c where clave = '101' and c ->> 'clave' in ('sin_clasificar', 'taller_cajon'));
+`;
+// Lo recibido antes de tener su papel cuenta como recibido (tarea 5): si no, cada papel completado contaría otra vez como «por recibir».
+const CASOS_RECIBIDO_ANTES = `
+select (select (detalle ->> 'por_recibir')::numeric from retail.fn_balance_general('2024-03-31') where cuenta = '201') as antes \\gset
+select pg_temp.entrada_con_costo('RA', :'p2', :'tru', 4, 100, 'recepcion', '2024-03-28 11:00-05') as _r \\gset
+select p.id as persona from public.personas p where p.auth_user_id = '${FELIPE}' \\gset
+-- Solo importa el enlace del papel con el movimiento: sin llaves foráneas, para no armar un envío entero.
+set local session_replication_role = replica;
+insert into retail.despacho_recibidos (id, despacho_id, despacho_item_id, proveedor_id, categoria_id, marca_id, variante_id, cantidad, costo_unitario, movimiento_id, creado_por)
+  values (pg_temp.k('RRA'), gen_random_uuid(), gen_random_uuid(), :'prov', gen_random_uuid(), gen_random_uuid(), :'p2', 4, 100, pg_temp.k('RA'), :'persona');
+insert into retail.compra_item_recibido_antes (compra_item_id, despacho_recibido_id, cantidad, creado_por) values (pg_temp.k('CM1i'), pg_temp.k('RRA'), 4, :'persona');
+set local session_replication_role = origin;
+select 'P1 completar el papel baja lo facturado por recibir: de 400 a 0', :'antes'::numeric = 400 and (select (detalle ->> 'por_recibir')::numeric = 0 from retail.fn_balance_general('2024-03-31') where cuenta = '201');
+select 'P2 la 201 no queda sin explicar', (select count(*) = 0 from retail.fn_conciliacion_contable('2024-03-31'), jsonb_array_elements(causas) c where clave = '201' and c ->> 'clave' = 'sin_explicar');
+`;
+// Lo que apareció antes del corte de los sobrantes (tarea 6): no pega al resultado, da nota en la 201 y no bloquea.
+const CASOS_SOBRANTES = `
+select (select monto from retail.fn_balance_general('2024-03-31') where cuenta = 'resultado_mes') as res0 \\gset
+select pg_temp.mov('SB1', :'p2', :'tru', 'ajuste', 2, 'conteo', '2024-03-29 12:00-05') as _m \\gset
+create temp table con as select * from retail.fn_conciliacion_contable('2024-03-31');
+select 'S1 antes del corte no asienta: el resultado no cambia', (select monto = :'res0'::numeric from retail.fn_balance_general('2024-03-31') where cuenta = 'resultado_mes') and (select count(*) = 0 from retail.fn_asientos('2024-03-01', '2024-03-31') where regla = 'sobrante');
+select 'S2 da nota en la 201 con su propia causa, no «otras entradas»', (select estado = 'nota' from con where clave = '201')
+  and (select (c ->> 'acepta')::boolean from con, jsonb_array_elements(causas) c where clave = '201' and c ->> 'clave' = 'sobrantes_sin_asiento')
+  and (select count(*) = 0 from con, jsonb_array_elements(causas) c where clave = '201' and c ->> 'clave' in ('otras_entradas', 'sin_explicar'));
+`;
 const CASOS_ARRANQUE = `
 select 'N4 sin arranque la comprobación dice que falta y el Balance no se dibuja', (select count(*) = 1 and bool_and(clave = 'arranque' and estado = 'falta') from retail.fn_conciliacion_contable('2024-03-31'))
   and (select count(*) = 0 from retail.fn_balance_general('2024-03-31'));
@@ -385,15 +488,18 @@ const CASOS_PERMISOS = `
 ${cambiaA(MICAELA)}
 select 'P1 sin «Reportes financieros» no ve ni lo de su tienda', (select pg_temp.intento($$select * from retail.fn_balance_por_tienda('2024-03-31')$$) like '%Reportes financieros%');
 ${conModulo("reportes_financieros")}
-select 'P2 con el módulo ve SU tienda y nada más', (select count(*) = 1 and bool_and(ubicacion_id = :'tru') from retail.fn_balance_por_tienda('2024-03-31'));
+-- ADR-0585 (Felipe 2026-10-30): con el módulo se ve CAYLA entera, como el líder (antes: solo su tienda). Registrar los saldos de
+-- arranque sigue siendo del líder.
+select 'P2 con el módulo ve todas las tiendas, como el líder', (select count(*) > 1 and bool_or(ubicacion_id = :'lim') from retail.fn_balance_por_tienda('2024-03-31'));
 select 'P3 con el módulo ve lo que es de su tienda en líneas', (select count(*) = 4 from retail.fn_balance_general('2024-03-31', :'tru'));
-select 'P4 no ve lo de otra tienda', (select pg_temp.intento(format($$select * from retail.fn_balance_general('2024-03-31', %L)$$, :'lim')) like '%esa tienda%');
-select 'P5 el Balance de CAYLA entera, la comprobación y los saldos de arranque son del líder',
-  (select pg_temp.intento($$select * from retail.fn_balance_general('2024-03-31')$$) like '%líder%')
-  and (select pg_temp.intento($$select * from retail.fn_conciliacion_contable('2024-03-31')$$) like '%líder%')
-  and (select pg_temp.intento($$select * from retail.fn_saldos_iniciales()$$) like '%líder%')
-  and (select pg_temp.intento($$select * from retail.fn_saldos_iniciales_propuesta('2024-03-01')$$) like '%líder%')
-  and (select pg_temp.intento($$select retail.registrar_saldo_inicial('2024-03-01', '[{"cuenta":"50","monto":1}]'::jsonb, 'Intento de prueba')$$) like '%líder%');
+select 'P4 y lo de otra tienda', (select pg_temp.intento(format($$select * from retail.fn_balance_general('2024-03-31', %L)$$, :'lim')) = 'SIN_ERROR');
+select 'P5 el Balance de CAYLA entera, la comprobación y la lectura de los saldos de arranque se abren con el módulo',
+  (select pg_temp.intento($$select * from retail.fn_balance_general('2024-03-31')$$) = 'SIN_ERROR')
+  and (select pg_temp.intento($$select * from retail.fn_conciliacion_contable('2024-03-31')$$) = 'SIN_ERROR')
+  and (select pg_temp.intento($$select * from retail.fn_saldos_iniciales()$$) = 'SIN_ERROR')
+  and (select pg_temp.intento($$select * from retail.fn_saldos_iniciales_propuesta('2024-03-01')$$) = 'SIN_ERROR');
+select 'P5 pero registrar los saldos de arranque sigue siendo del líder',
+  (select pg_temp.intento($$select retail.registrar_saldo_inicial('2024-03-01', '[{"cuenta":"50","monto":1}]'::jsonb, 'Intento de prueba')$$) like '%líder%');
 reset role;
 select 'P6 nadie lee la tabla directo ni llama a las piezas internas; anon no llama a nada',
   not has_table_privilege('authenticated', 'retail.saldos_iniciales', 'select')
@@ -412,17 +518,34 @@ insert into retail.devolucion_items (devolucion_id, venta_item_id, cantidad, con
 select 'F1 la devolución con tarjeta sale de la 105 (el POS), no de la 451', (select sum(haber) filter (where cuenta = '105') = 100 and coalesce(sum(haber) filter (where cuenta = '451'), 0) = 0 from retail.fn_asientos('2024-03-01', '2024-03-31') where origen_id = pg_temp.k('D1'));
 `;
 
+// Tarea 10: pagar el IGV baja el diario y Impuestos por igual, así que no abre una diferencia nueva en la 4011.
+const CASOS_PAGO_SUNAT = `
+create temp table antes as select * from retail.fn_conciliacion_contable('2024-03-31');
+insert into retail.cuentas_dinero (nombre, tipo, cuenta_contable, saldo_desde) values ('Banco T10', 'banco', '104', '2024-03-01') returning id as bt10 \\gset
+select retail.registrar_pago_sunat(:'bt10', '2024-03-15', '[{"mes":"2024-02-01","concepto":"igv","monto":99},{"mes":"2024-02-01","concepto":"renta","monto":40}]'::jsonb) as p10 \\gset
+create temp table con as select * from retail.fn_conciliacion_contable('2024-03-31');
+select 'T10 pagar IGV no abre una diferencia en la 4011: sigue en lo mismo que antes del pago', (select c.diferencia = a.diferencia and c.diario = a.diario - 99 from con c join antes a using (clave) where clave = '4011');
+select 'T10 la renta pagada no es gasto: la 4017 queda como pago adelantado', (select coalesce(sum(debe - haber), 0) = 40 from retail.fn_asientos('2024-03-01', '2024-03-31', null) where cuenta = '4017');
+select 'T10 el diario y la ecuación siguen cuadrando', (select bool_and(estado = 'ok') from con where clave in ('diario', 'ecuacion'));
+`;
+
 function main() {
   console.log("F7 · El Balance (saldos de arranque, comprobación y lo que es de cada tienda)\n");
   const base = `${ESCENA}\n`;
   verificar("Marzo", correr(base + CASOS_MARZO), casosDe(CASOS_MARZO));
   verificar("Abril", correr(base + CASOS_ABRIL), casosDe(CASOS_ABRIL));
+  verificar("Cuenta nueva", correr(base + CASOS_CUENTA_NUEVA), casosDe(CASOS_CUENTA_NUEVA));
+  verificar("Venta sin prenda", correr(base + CASOS_VENTA_SIN_PRENDA), casosDe(CASOS_VENTA_SIN_PRENDA));
+  verificar("Pagos del Taller", correr(base + CASOS_PAGO_TALLER), casosDe(CASOS_PAGO_TALLER));
+  verificar("Recibido antes", correr(base + CASOS_RECIBIDO_ANTES), casosDe(CASOS_RECIBIDO_ANTES));
+  verificar("Sobrantes antes del corte", correr(base + CASOS_SOBRANTES), casosDe(CASOS_SOBRANTES));
   verificar("Tienda", correr(base + CASOS_TIENDA), casosDe(CASOS_TIENDA));
   verificar("Sin clasificar", correr(base + CASOS_SIN_CLASIFICAR), casosDe(CASOS_SIN_CLASIFICAR));
   verificar("Antes del arranque", correr(base + CASOS_ANTES), casosDe(CASOS_ANTES));
   verificar("Descuadre y Producción", correr(base + CASOS_DESCUADRE), casosDe(CASOS_DESCUADRE));
   verificar("Permisos", correr(base + CASOS_PERMISOS), casosDe(CASOS_PERMISOS));
   verificar("Tarjeta", correr(base + CASOS_TARJETA), casosDe(CASOS_TARJETA));
+  verificar("Pago a SUNAT", correr(base + CASOS_PAGO_SUNAT), casosDe(CASOS_PAGO_SUNAT));
   // Sin arranque: la escena sin la parte que lo registra.
   const sinArranque = ESCENA.replace(/-- EL ARRANQUE:[\s\S]*?-- Marzo\./, "-- Marzo.");
   verificar("Arranque", correr(sinArranque + CASOS_ARRANQUE), casosDe(CASOS_ARRANQUE));

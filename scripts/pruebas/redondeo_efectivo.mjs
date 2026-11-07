@@ -55,11 +55,19 @@ const FELIPE = "22222222-2222-4222-8222-000000000001"; // líder — opera cualq
 // Uno o varios archivos separados por coma (las partes de una migración se aplican en orden).
 const APLICAR_ANTES = process.env.APLICAR_ANTES ? process.env.APLICAR_ANTES.split(",").map((f) => readFileSync(f.trim(), "utf8")).join("\n") : "";
 
+// `--con-migracion <archivo>`: una migración POSTERIOR que la base de prueba todavía no tiene (p. ej. 20261028065000, ADR-0553). Se aplica
+// dentro de cada transacción, justo tras su primer `begin;`, y se deshace con su rollback. Las pruebas que pegan partes viejas parten de
+// una base con esa migración ya aplicada (o no): este modo comprueba que no cambia lo que el redondeo promete (las huellas de
+// `fn_cuenta_sellada`, los lectores, el diario).
+const ARG_MIGRACION = process.argv.indexOf("--con-migracion");
+const MIGRACION_POSTERIOR = ARG_MIGRACION > 0 ? readFileSync(process.argv[ARG_MIGRACION + 1], "utf8") : "";
+
 function psql(sql) {
+  const texto = MIGRACION_POSTERIOR ? sql.replace(/^begin;/m, () => `begin;\n${MIGRACION_POSTERIOR}\n`) : sql;
   return execFileSync(
     "docker",
     ["exec", "-i", CONTENEDOR_LOCAL, "psql", "-q", "-U", "postgres", "-d", "postgres", "-v", "ON_ERROR_STOP=1", "-t", "-A", "-F", "|", "-f", "-"],
-    { input: sql, encoding: "utf8", maxBuffer: 64 * 1024 * 1024 },
+    { input: texto, encoding: "utf8", maxBuffer: 64 * 1024 * 1024 },
   );
 }
 
@@ -658,6 +666,8 @@ rollback;`);
   // Una función nueva que lea los pagos aparece aquí y la prueba falla hasta que alguien decida qué hace con la fila 'redondeo'
   // (y la anote). Es el candado que reemplaza a «acordarse»: sin él, cada lector olvidado deja una cifra de dinero mal.
   const REVISADAS = {
+    fn_pos_comision_lote: "Tarea 14 (20261106012000): suma solo las filas con el medio de la máquina (tarjeta o QR); la fila de redondeo no pasa por ninguna máquina.",
+    fn_asientos_dinero_y_caja: "Tarea 14 (20261106012000): de venta_pagos solo saca qué lotes hubo con cuenta de una máquina; la fila de redondeo no lleva esa cuenta.",
     abonar_separacion: "Apartados: los abonos no se redondean (ADR-0311 §7); solo lee separacion_pagos.",
     buscar_separaciones: "Apartados: lectura de separacion_pagos.",
     corregir_pagos_venta:
@@ -676,6 +686,12 @@ rollback;`);
       "El historial de un apartado (ADR-0414): lista cada fila de separacion_pagos (adelanto y abonos, que no se redondean, ADR-0311 §7) con su fecha y quién cobró. Solo lee, no suma pagos ni toca venta_pagos.",
     fn_finanzas_confianza:
       "El medidor de confianza (ADR-0417, 20261015235000): suma solo los pagos con tarjeta y qr del mes para saber cuánto pasa por la máquina; filtra por medio, así que la fila de redondeo (que va con el efectivo) queda fuera y no suma dinero.",
+    fn_claure_cambios:
+      "La plata que cambia de dueño en un cambio con prendas de CLAURE (ADR-0560, 20261029162000): de venta_pagos solo toma qué PARTE de lo pagado en la venta original fue en cuentas de CAYLA (yape, plin, tarjeta, transferencia, qr, sobre el total de filas, que incluye el redondeo porque la suma de filas es el total); la fila de redondeo va con el efectivo, no suma dinero y no genera deuda.",
+    fn_claure_cierre:
+      "El aviso del cierre de caja de Lima (ADR-0560): el efectivo de las ventas de la caja sale de las filas con metodo = 'efectivo' (lo físico, igual que fn_calcular_esperado_caja), así que la fila de redondeo no entra; lo cobrado en cuentas lo trae fn_claure_filas.",
+    fn_claure_filas:
+      "Lo cobrado por CLAURE en cuentas de CAYLA (ADR-0560): filtra venta_pagos por medios explícitos (yape, plin, tarjeta, transferencia, qr); el efectivo no genera deuda (lo tiene Claudia) y la fila de redondeo va con el efectivo: queda fuera y no suma dinero.",
     fn_dinero_libro: "Filtra por medios explícitos (yape, plin, tarjeta, transferencia, qr): el redondeo queda fuera.",
     fn_flujo_caja_proyeccion: "Filtra por medios explícitos: el redondeo queda fuera.",
     fn_igv_de_la_separacion:
@@ -686,8 +702,11 @@ rollback;`);
     fn_pedido_web_verificar:
       "Candado diferido del pedido web (20261015051000): exige que su venta tenga exactamente UNA fila de venta_pagos, «anticipo» por lo pagado; una fila de redondeo ahí sería un estado imposible (esa venta no cobra efectivo).",
     fn_sello_caja: "Solo cuenta filas de venta_pagos_correcciones (ADR-0365) para el tablero en vivo: no suma pagos.",
+    fn_reporte_ventas_series:
+      "Ventas ▸ Reportes ▸ Ventas del mes (ADR-0606, 20261103232000): el bloque «Cómo se pagó» suma venta_pagos por medio y deja la fila de redondeo como un medio más, a propósito, igual que fn_totales_historial_ventas y fn_comparativa_caja: así lo cobrado suma el total vendido. La web la nombra «Redondeo de efectivo» y no dibuja lo que pesa menos de una milésima del total. No se parchó.",
     fn_resumen_caja: "PARCHADA (20261003111000): el redondeo sale de por_metodo, de otros y de ventas_otros, y viaja aparte.",
     fn_totales_historial_ventas: "Deja el redondeo como una fila más de «cómo se pagó» a propósito: la lista sigue sumando el total vendido.",
+    fn_vendido_por_empresa: "De quién es lo vendido (ADR-0532): suma las LÍNEAS de la venta (venta_items), nunca los pagos; venta_pagos solo se lee para el filtro «pagadas con X» del Historial, igual que fn_totales_historial_ventas. El redondeo no cambia nada.",
     fn_ventas_del_dia: "PARCHADA (20261003111000): la lista de medios de la venta no incluye el redondeo.",
     fn_verificar_separaciones: "Suma TODAS las filas de la venta contra el total del apartado: el redondeo cuenta (la suma de filas sigue igualando el total).",
     liquidar_prenda_danada: "Valida su propio medio (efectivo, tarjeta, yape, plin, transferencia): no acepta redondeo.",

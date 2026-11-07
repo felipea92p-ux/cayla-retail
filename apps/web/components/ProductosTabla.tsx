@@ -230,7 +230,7 @@ export function ProductosTabla({
       <div data-guia="productos.tabla" className="card-cayla overflow-hidden">
         {/* Marcar la página y la regla del margen: arriba de las dos formas (filas o tarjetas). */}
         <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 border-b border-sand px-4 py-3 @3xl:px-5">
-          <label data-guia="productos.tabla-marcar" className="flex cursor-pointer items-center gap-2.5 text-[13px] text-tinta/75">
+          <label data-guia="productos.tabla-marcar" className="flex cursor-pointer items-center gap-2.5 text-sm text-tinta/75">
             <CasillaMarca marcada={todos} parcial={algunos} onCambiar={marcarTodos} etiqueta="Marcar todas las de esta página" />
             {marcados.size > 0 ? (
               <span>
@@ -241,7 +241,7 @@ export function ProductosTabla({
             )}
           </label>
           {conMargen && (
-            <p className="flex items-center gap-4 text-[11.5px] text-tinta/60">
+            <p className="flex items-center gap-4 text-sm text-tinta/60">
               <span className="inline-flex items-center gap-1.5">
                 <span aria-hidden className="h-2 w-2 rounded-full bg-verde" />
                 margen sano
@@ -383,10 +383,10 @@ function Stock({ fila, alinear = "right" }: { fila: Fila; alinear?: "right" | "l
     <span className={`block ${alinear === "right" ? "text-right" : ""}`} title={resto || EXPLICACION_STOCK_TOTAL}>
       <span className={`block text-[14px] tabular-nums ${tono}`}>
         {lineas ? lineas.principal : p.stockTotal.toLocaleString("es-PE")}
-        {alerta === "bajo" && <span className="ml-1 text-[11px]">· bajo</span>}
+        {alerta === "bajo" && <span className="ml-1 text-sm">· bajo</span>}
       </span>
-      {resto && <span className="block max-w-[14rem] truncate text-[11px] text-tinta/55">{resto}</span>}
-      <span className="block whitespace-nowrap text-[11px] text-tinta/55" title="Ritmo de venta de los últimos 30 días, en todas las sedes">
+      {resto && <span className="block max-w-[14rem] truncate text-sm text-tinta/55">{resto}</span>}
+      <span className="block whitespace-nowrap text-sm text-tinta/55" title="Ritmo de venta de los últimos 30 días, en todas las sedes">
         {rotacion ?? "sin ventas"}
       </span>
     </span>
@@ -478,11 +478,11 @@ function FilaAncha({
                 </p>
                 <InsigniaEmpresa nombre={p.empresa} className="shrink-0" />
               </div>
-              <p className="mt-0.5 truncate text-[11px] text-tinta/55">
+              <p className="mt-0.5 truncate text-sm text-tinta/55">
                 <span className="font-mono tracking-wide">{p.codigo ?? "sin código"}</span> · {p.categoria ?? "sin categoría"}
               </p>
               {/* Sin columnas de marca ni tallas (tabla < @6xl), bajan aquí. */}
-              <p className="truncate text-[11px] text-tinta/55 @6xl:hidden">
+              <p className="truncate text-sm text-tinta/55 @6xl:hidden">
                 {p.marca ?? "sin marca"}
                 {tallas.length > 0 && <span className="text-tinta/45"> · {tallas.join(" ")}</span>}
               </p>
@@ -491,8 +491,8 @@ function FilaAncha({
         </td>
         <td className="hidden px-3 py-3 align-middle @6xl:table-cell">
           {/* Lo que falta sale como chip ámbar (ADR-0283): un producto puede crearse sin marca y/o sin proveedor. */}
-          <span className="block max-w-[11rem] truncate text-[12.5px] text-tinta/80">{p.marca ?? <Chip tono="ambar" versalitas={false}>Sin marca</Chip>}</span>
-          <span className="block max-w-[11rem] truncate text-[11px] text-tinta/55">{p.proveedor ?? <Chip tono="ambar" versalitas={false}>Sin proveedor</Chip>}</span>
+          <span className="block max-w-[11rem] truncate text-sm text-tinta/80">{p.marca ?? <Chip tono="ambar" versalitas={false}>Sin marca</Chip>}</span>
+          <span className="block max-w-[11rem] truncate text-sm text-tinta/55">{p.proveedor ?? <Chip tono="ambar" versalitas={false}>Sin proveedor</Chip>}</span>
         </td>
         <td className="hidden px-3 py-3 align-middle @4xl:table-cell">
           <SwatchesColor colores={colores} activo={activo.nombre} onHover={activo.setHover} onFijar={activo.setFijo} tamano="h-3.5 w-3.5" max={4} />
@@ -506,7 +506,7 @@ function FilaAncha({
         </td>
         {conMargen && (
           <td className="hidden whitespace-nowrap px-3 py-3 text-right align-middle tabular-nums text-tinta/65 @4xl:table-cell">
-            {fila.costo ?? <span className="text-[12px] text-tinta/45">sin costo</span>}
+            {fila.costo ?? <span className="text-sm text-tinta/45">sin costo</span>}
           </td>
         )}
         {conMargen && (
@@ -543,7 +543,7 @@ function Tallas({ tallas }: { tallas: string[] }) {
           {t}
         </span>
       ))}
-      {tallas.length > visibles.length && <span className="text-[11px] text-tinta/55">+{tallas.length - visibles.length}</span>}
+      {tallas.length > visibles.length && <span className="text-sm text-tinta/55">+{tallas.length - visibles.length}</span>}
     </span>
   );
 }
@@ -648,14 +648,14 @@ function TarjetaFila({
               <InsigniaPrecios lista={fila.otrosPrecios} className="ml-1.5 align-middle" />
             </p>
           </div>
-          <p className="mt-0.5 truncate text-[11px] text-tinta/55">
+          <p className="mt-0.5 truncate text-sm text-tinta/55">
             <span className="font-mono tracking-wide">{p.codigo ?? "sin código"}</span> · {p.categoria ?? "sin categoría"} · {p.marca ?? "sin marca"}
           </p>
           <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1.5">
             <SwatchesColor colores={colores} activo={activo.nombre} onHover={activo.setHover} onFijar={activo.setFijo} tamano="h-4 w-4" max={5} />
-            {tallas.length > 0 && <span className="text-[11.5px] text-tinta/65">{tallas.join(" · ")}</span>}
+            {tallas.length > 0 && <span className="text-sm text-tinta/65">{tallas.join(" · ")}</span>}
           </div>
-          <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1.5 text-[12px]">
+          <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1.5 text-sm">
             <EstadoChip fila={fila} />
             <span className={`tabular-nums ${fila.alerta === "bajo" ? "text-ambar" : "text-tinta/70"}`} title={EXPLICACION_STOCK_TOTAL}>
               {fila.lineas ? fila.lineas.principal : `Stock ${p.stockTotal.toLocaleString("es-PE")}`}
@@ -712,7 +712,7 @@ function FichaVariantes({
           {fila.colores.length > 0 && ` · ${fila.colores.length} ${fila.colores.length === 1 ? "color" : "colores"}`}
           {fila.tallas.length > 0 && ` · ${fila.tallas.length} ${fila.tallas.length === 1 ? "talla" : "tallas"}`}
         </p>
-        <p className="text-[12px] text-tinta/60">
+        <p className="text-sm text-tinta/60">
           <span className="@6xl:hidden">
             {p.marca ?? "sin marca"} · {p.proveedor ?? "sin proveedor"} ·{" "}
           </span>
@@ -731,18 +731,18 @@ function FichaVariantes({
               className={`group/variante relative grid grid-cols-[auto_minmax(0,1fr)_auto_auto] items-center gap-x-3 gap-y-0.5 rounded-xl border border-sand bg-papel py-2.5 pl-3 pr-2 ${v.activo ? "" : "opacity-50"}`}
             >
               <span aria-hidden className="row-span-2 h-6 w-6 rounded-md ring-1 ring-inset ring-tinta/10" style={{ background: v.colorHex ?? "var(--color-sand)" }} />
-              <span className="min-w-0 truncate text-[13px] text-tinta">
+              <span className="min-w-0 truncate text-sm text-tinta">
                 <span className="mr-1.5 font-mono font-medium">{v.talla ?? "—"}</span>
                 {v.color ?? "Sin color"}
-                {!v.activo && <span className="ml-1.5 text-[11px] text-tinta/55">(inactiva)</span>}
+                {!v.activo && <span className="ml-1.5 text-sm text-tinta/55">(inactiva)</span>}
               </span>
-              <span className="text-right text-[13px] tabular-nums text-tinta">S/{v.precio.toFixed(2)}</span>
+              <span className="text-right text-sm tabular-nums text-tinta">S/{v.precio.toFixed(2)}</span>
               <StockDeVariante stock={stock} varianteId={v.varianteId} />
               <span className="min-w-0 truncate font-mono text-[10.5px] text-tinta/55" title={v.codigosBarras.join(", ")}>
                 {v.codigo ?? v.sku ?? "—"}
                 {v.codigosBarras.length > 0 && ` · ${v.codigosBarras.join(", ")}`}
               </span>
-              <span className="whitespace-nowrap text-right text-[11px] tabular-nums text-tinta/55">
+              <span className="whitespace-nowrap text-right text-sm tabular-nums text-tinta/55">
                 {!costoPorVariante ? null : tieneCosto(v.costo) ? (
                   <>
                     costo S/{v.costo.toFixed(2)}
@@ -765,7 +765,7 @@ function FichaVariantes({
       {/* Todas las acciones de la prenda: en una pantalla táctil (sin hover) este es el único lugar donde están. */}
       <div className="mt-4 flex flex-wrap gap-2">
         {acciones.editar && (
-          <BotonEditar href={acciones.editar} className="min-h-10 text-[12.5px]" />
+          <BotonEditar href={acciones.editar} className="min-h-10 text-sm" />
         )}
         {acciones.existencias && (
           <Link href={acciones.existencias} className={boton}>
@@ -810,7 +810,7 @@ function StockDeVariante({ stock, varianteId }: { stock: StockDeModelo; variante
       <span className={`font-display text-[24px] leading-none tabular-nums ${n === null ? "text-tinta/25" : n === 0 ? "text-tinta/35" : "text-tinta"}`}>
         {n === null ? "—" : n.toLocaleString("es-PE")}
       </span>
-      <span className="mt-1 text-[10.5px] leading-none text-tinta/55">
+      <span className="mt-1 text-sm leading-none text-tinta/55">
         {n === null ? (stock === "error" ? "sin dato" : "stock") : n === 0 ? "sin stock" : n === 1 ? "unidad" : "unidades"}
       </span>
     </span>
@@ -848,7 +848,7 @@ function BarraMarcadas({
   const hayDescontinuadas = seleccion.some((p) => p.estado !== "activo");
   const hrefRotulos = n > 0 ? urlRotulos(seleccion.map((p) => p.productoId), { productos: pantalla }) : null;
   const forma =
-    "flex min-h-11 flex-1 flex-col items-center justify-center gap-0.5 rounded-lg px-1 text-[11.5px] text-crema transition-colors disabled:opacity-40 sm:flex-none sm:flex-row sm:gap-2 sm:px-3 sm:text-[13px]";
+    "flex min-h-11 flex-1 flex-col items-center justify-center gap-0.5 rounded-lg px-1 text-sm text-crema transition-colors disabled:opacity-40 sm:flex-none sm:flex-row sm:gap-2 sm:px-3 sm:text-sm";
   const boton = `${forma} hover:bg-crema/10`;
   return (
     <div
@@ -863,7 +863,7 @@ function BarraMarcadas({
     >
       <span className="flex shrink-0 items-baseline gap-1.5 px-1 sm:mr-2 sm:px-0">
         <span className="font-display text-xl tabular-nums">{n}</span>
-        <span className="hidden text-[12px] text-crema/70 sm:inline">{n === 1 ? "marcada" : "marcadas"}</span>
+        <span className="hidden text-sm text-crema/70 sm:inline">{n === 1 ? "marcada" : "marcadas"}</span>
       </span>
       {puedeEditar && (
         <>

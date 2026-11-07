@@ -1,8 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { agruparPendientes, pendientesDeGastos, pendientesDeImpuestos, type PendienteTelar } from "./finanzas-te-toca-reglas";
+import { agruparPendientes, listaDeHoy, pendientesDeCierre, pendientesDeFijos, pendientesDeGastos, pendientesDeImpuestos, type PendienteTelar } from "./finanzas-te-toca-reglas";
+import type { Aviso } from "./resumen-finanzas-reglas";
 import type { PendienteImpuesto } from "./impuestos-antes-reglas";
 
-const vacio = { egresosSinClasificar: 0, egresosSinClasificarMonto: 0, sinComprobante: 0, nPorPagar: 0, porPagar: 0 };
+const vacio = { egresosSinClasificar: 0, egresosSinClasificarMonto: 0, sinComprobante: 0, igvSinComprobante: 0, nPorPagar: 0, porPagar: 0 };
 
 describe("los pendientes de Gastos", () => {
   it("sin nada pendiente, nada", () => {
@@ -10,11 +11,13 @@ describe("los pendientes de Gastos", () => {
   });
 
   it("cada cifra que pide algo es un pendiente que lleva a su lugar, con la sede elegida", () => {
-    const p = pendientesDeGastos({ egresosSinClasificar: 2, egresosSinClasificarMonto: 120, sinComprobante: 1, nPorPagar: 0, porPagar: 0 }, "sede=l");
+    const p = pendientesDeGastos({ egresosSinClasificar: 2, egresosSinClasificarMonto: 120, sinComprobante: 1, igvSinComprobante: 68.64, nPorPagar: 0, porPagar: 0 }, "sede=l");
     expect(p.map((x) => [x.titulo, x.href])).toEqual([
       ["2 salidas de caja sin clasificar", "/finanzas/gastos?sede=l&tab=egresos"],
-      ["1 gasto sin boleta ni factura", "/finanzas/gastos?sede=l"],
+      ["1 gasto de S/\u00a0300 o más sin boleta ni factura", "/finanzas/gastos?sede=l"],
     ]);
+    // Lo mismo que dice la bandeja de Gastos: el IGV que se recuperaría con factura (en soles redondos, como el resto del cajón).
+    expect(p[1]!.detalle).toBe("Con factura recuperarías S/\u00a069 de IGV");
   });
 
   it("sin sede elegida la dirección queda limpia", () => {
@@ -55,5 +58,45 @@ describe("pendientesDeImpuestos", () => {
 
   it("sin consulta, lleva a Impuestos a secas", () => {
     expect(pendientesDeImpuestos([lista[1]!], "")[0]!.href).toBe("/finanzas/impuestos");
+  });
+});
+
+describe("pendientes nuevos del cajón (tarea 1)", () => {
+  it("los fijos que faltan se juntan en uno, con su monto y su pestaña", () => {
+    expect(pendientesDeFijos([], "")).toEqual([]);
+    const [p] = pendientesDeFijos([{ monto: 100 }, { monto: 50 }], "sede=a");
+    expect(p!.titulo).toContain("2 gastos fijos");
+    expect(p!.href).toBe("/finanzas/gastos?sede=a&tab=fijos");
+  });
+  it("el mes anterior abierto se dice con su nombre; cerrado, nada", () => {
+    expect(pendientesDeCierre({ mes: "2026-10", mesNombre: "octubre", cerrado: true })).toEqual([]);
+    const [p] = pendientesDeCierre({ mes: "2026-10", mesNombre: "octubre", cerrado: false });
+    expect(p!.titulo).toBe("Octubre sigue abierto");
+    expect(p!.submodulo).toBe("finanzas.cierreDeMes");
+  });
+});
+
+describe("listaDeHoy: una sola lista con el cajón (tarea 1)", () => {
+  const aviso = (clave: string, tono: Aviso["tono"] = "ambar"): Aviso => ({ clave, tono, titulo: clave, detalle: "", impacto: null, href: null, boton: "", origen: "", orden: 5, peso: 0 });
+  const pend = (id: string, estado: PendienteTelar["estado"] = "avisa"): PendienteTelar => ({ submodulo: "s", id, estado, titulo: id, detalle: "", verbo: "Ver", href: "/x" });
+  const claves = (as: readonly Aviso[]) => as.map((a) => a.clave);
+  it("lo que el cajón ya dice no se repite; la lectura del Resumen se queda", () => {
+    const lista = listaDeHoy([pend("dinero.vencidas", "frena"), pend("dinero.planilla")], false, [aviso("vencida:1", "rojo"), aviso("minimo", "rojo"), aviso("egresos"), aviso("cierre"), aviso("pierde:a")]);
+    expect(claves(lista)).toEqual(expect.arrayContaining(["dinero.vencidas", "dinero.planilla", "minimo", "pierde:a"]));
+    expect(claves(lista)).not.toContain("vencida:1");
+    expect(claves(lista)).not.toContain("egresos");
+    expect(claves(lista)).not.toContain("cierre");
+  });
+  it("lo que frena va en rojo, antes que lo que avisa", () => {
+    const lista = listaDeHoy([pend("dinero.planilla"), pend("dinero.vencidas", "frena")], false, []);
+    expect(lista[0]!.clave).toBe("dinero.vencidas");
+    expect(lista[0]!.tono).toBe("rojo");
+  });
+  it("si el cajón no respondió, los avisos del Resumen siguen: nunca se calla lo vencido", () => {
+    expect(claves(listaDeHoy(null, true, [aviso("vencida:1", "rojo")]))).toEqual(["vencida:1"]);
+  });
+  it("si respondió a medias, se suman sin repetir lo que el Resumen ya dice", () => {
+    const lista = listaDeHoy([pend("dinero.vencidas", "frena"), pend("dinero.planilla")], true, [aviso("vencida:1", "rojo")]);
+    expect(claves(lista).sort()).toEqual(["dinero.planilla", "vencida:1"]);
   });
 });

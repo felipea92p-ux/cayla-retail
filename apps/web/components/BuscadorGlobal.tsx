@@ -11,12 +11,15 @@ import { armarEquipo, textoEstado, type MiembroEquipo } from "@/lib/inicio-aviso
 import type { ItemMenu } from "@/lib/menu";
 import { SearchX } from "lucide-react";
 import { Vacio } from "@/components/ui/Vacio";
+import { alEntrarDesdeElMenu } from "@/lib/navegacion-al-instante";
 
 type Props = {
   /** Toda pantalla que este perfil puede abrir, ya resuelta por rol (`menu.riel.flatMap(hojasDe)` en
    *  AppShell.tsx — el mismo filtro del lateral, así el buscador nunca ofrece algo que la persona no
    *  puede abrir). */
   pantallas: ItemMenu[];
+  /** El módulo de cada pantalla por su `href` (`modulosDeLasHojas`): se busca también por él y se muestra en la fila. */
+  modulos?: Record<string, string>;
   ubicacionId: string;
   ubicacionEtiqueta: string;
   /** Solo una tienda con persona real tiene «de turno» que buscar — misma condición que «Equipo de
@@ -26,6 +29,14 @@ type Props = {
 
 type Fila = { tipo: "pantalla"; item: ItemMenu } | { tipo: "persona"; item: MiembroEquipo };
 
+/** El evento con el que la lupa del celular (la otra isla de la cabecera, AppShell.tsx) abre este buscador. */
+const ABRIR_BUSCADOR_GLOBAL = "cayla:abrir-buscador-global";
+
+/** Abre el buscador de pantallas desde fuera (la lupa del celular). */
+export function abrirBuscadorGlobal() {
+  window.dispatchEvent(new Event(ABRIR_BUSCADOR_GLOBAL));
+}
+
 /**
  * Buscador global de la cabecera (spike `docs/maquetas/dynamic-visual-spike-2026-09/`, aprobado por
  * Felipe 2026-09-28): busca pantallas del menú y quién está de turno en la sede, sin salir de donde se
@@ -34,7 +45,7 @@ type Fila = { tipo: "pantalla"; item: ItemMenu } | { tipo: "persona"; item: Miem
  * confunde más de lo que ahorra. Y adrede una fila de «Equipo» no lleva a ningún lado: es para
  * encontrar a alguien, no para actuar sobre esa persona (eso ya vive en Colaboradores).
  */
-export function BuscadorGlobal({ pantallas, ubicacionId, ubicacionEtiqueta, mostrarEquipo }: Props) {
+export function BuscadorGlobal({ pantallas, modulos = {}, ubicacionId, ubicacionEtiqueta, mostrarEquipo }: Props) {
   const router = useRouter();
   const [abierto, setAbierto] = useState(false);
   const [query, setQuery] = useState("");
@@ -65,7 +76,13 @@ export function BuscadorGlobal({ pantallas, ubicacionId, ubicacionEtiqueta, most
       });
     }
     document.addEventListener("keydown", alTeclado);
-    return () => document.removeEventListener("keydown", alTeclado);
+    // En el celular el botón de arriba no se ve: la lupa de la otra isla lo abre con este evento.
+    const alPedirlo = () => setAbierto(true);
+    window.addEventListener(ABRIR_BUSCADOR_GLOBAL, alPedirlo);
+    return () => {
+      document.removeEventListener("keydown", alTeclado);
+      window.removeEventListener(ABRIR_BUSCADOR_GLOBAL, alPedirlo);
+    };
   }, []);
 
   // El equipo se pide recién al abrir (no en cada carga de página) y una sola vez por sesión de la
@@ -102,7 +119,8 @@ export function BuscadorGlobal({ pantallas, ubicacionId, ubicacionEtiqueta, most
   }, [abierto]);
 
   const k = clave(query);
-  const pantallasFiltradas = k ? pantallas.filter((p) => clave(p.etiqueta).includes(k)) : pantallas;
+  // Se encuentra una pantalla por su nombre o por el de su módulo: «inven» trae Existencias, Traslados y el resto de Inventario.
+  const pantallasFiltradas = k ? pantallas.filter((p) => clave(p.etiqueta).includes(k) || clave(modulos[p.href] ?? "").includes(k)) : pantallas;
   const equipoFiltrado = (equipo ?? []).filter((m) => !k || clave(m.nombre).includes(k));
 
   const filas: Fila[] = useMemo(
@@ -136,6 +154,8 @@ export function BuscadorGlobal({ pantallas, ubicacionId, ubicacionEtiqueta, most
         e.preventDefault();
         const href = fila.item.href;
         cerrar();
+        // ADR-0628: se entra a la pantalla en el instante (la misma señal que un clic en el menú).
+        alEntrarDesdeElMenu(href, { button: 0, metaKey: false, ctrlKey: false, shiftKey: false, altKey: false, defaultPrevented: false });
         router.push(href);
       }
     }
@@ -148,15 +168,16 @@ export function BuscadorGlobal({ pantallas, ubicacionId, ubicacionEtiqueta, most
         onClick={abrir}
         aria-label="Buscar una pantalla o a alguien del equipo"
         title="Buscar  ( Ctrl K )"
-        className="hidden min-w-0 items-center gap-2.5 rounded-full border border-sand bg-hueso px-3.5 py-2 text-[13px] text-tinta/70 transition-colors hover:border-taupe/40 hover:bg-sand sm:flex"
+        // El pozo de la isla izquierda de la cabecera (ADR-0596): su fondo, su sombra y cómo se encoge viven en vidrio/marco.css.
+        className="marco-buscador hidden items-center gap-2.5 rounded-full border px-3.5 text-[13px] text-tinta/70 sm:flex"
       >
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4 shrink-0">
           <circle cx="10.5" cy="10.5" r="7.5" />
           <path d="M21 21l-4.8-4.8" />
         </svg>
-        <span className="truncate">Buscar…</span>
+        <span className="marco-buscador-texto truncate">Buscar…</span>
         {/* El atajo es de teclado: con el dedo no hay Ctrl. Con el iPhone de lado (ADR-0479) además dejaba la sede bajo la muesca. */}
-        <span className="ml-1 flex items-center gap-0.5 pointer-coarse:hidden">
+        <span className="marco-buscador-tecla ml-auto flex items-center gap-0.5 pointer-coarse:hidden">
           <span className="rounded border border-sand bg-papel px-1.5 py-px text-[10px] font-semibold text-tinta/70">Ctrl</span>
           <span className="rounded border border-sand bg-papel px-1.5 py-px text-[10px] font-semibold text-tinta/70">K</span>
         </span>
@@ -203,13 +224,17 @@ export function BuscadorGlobal({ pantallas, ubicacionId, ubicacionEtiqueta, most
                     <Link
                       key={p.href}
                       href={p.href}
-                      onClick={cerrar}
+                      onClick={(e) => {
+                        alEntrarDesdeElMenu(p.href, e);
+                        cerrar();
+                      }}
                       className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors ${
                         idx === marcada ? "bg-hueso text-tinta" : "text-tinta/80 hover:bg-sand/40"
                       }`}
                     >
-                      <span className="flex-1">{p.etiqueta}</span>
-                      <span className="font-mono text-[11px] text-tinta/40 dark:text-tinta/55">{p.href}</span>
+                      <span className="min-w-0 flex-1">{p.etiqueta}</span>
+                      {/* El módulo en palabras de tienda, no la dirección de la página (que en el celular no cabía y no le dice nada a nadie). */}
+                      {modulos[p.href] && <span className="shrink-0 truncate text-[12px] text-tinta/60">{modulos[p.href]}</span>}
                     </Link>
                   ))}
                 </div>

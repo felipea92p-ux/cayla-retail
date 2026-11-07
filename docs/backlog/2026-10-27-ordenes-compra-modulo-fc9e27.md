@@ -1,0 +1,7 @@
+# Backlog · 2026-10-27 · Retiro de código y funciones sin uso (ADR-0545) — rama `claude/ordenes-compra-modulo-fc9e27`
+
+- [x] **PEGADA en producción (2026-10-28, Felipe, a mano en el SQL Editor) · `20261028003000_retirar_funciones_sin_llamador.sql`.** Comprobado por Felipe: `to_regprocedure('retail.fn_costo_historial(uuid)') is null` y `to_regprocedure('retail.ajustar_insumo_por_conteo(uuid,uuid,numeric,text)') is null` dan `true` las dos. Ya no está por pegar. Falta solo `pnpm datos:generar:produccion` (diccionario; ver `docs/datos/generado/COMO-REFRESCAR.md`).
+- [ ] **Decidir qué pasa con las pantallas de Órdenes de compra** (`/compras/ordenes`, ~5.600 líneas, sin menú): el ADR-0530 puso ahí «Pendientes de campaña». O vuelven al menú con ese nombre, o la bandeja se mueve al Plan y las pantallas viejas se retiran (quedan `RegistrarProveedorOrden` y `HojaOrdenCompra`, que usan Mis compras y Órdenes de insumos).
+- [ ] **Decidir la hoja de prueba de etiquetas** (`scripts/etiquetas/hoja-de-prueba.mjs`): si ya no se usa, se van con ella `lib/codigo128.ts` y `puntosPorModuloQR`.
+- [ ] **Conectar o borrar `textoDeRepartoParaLector`** (texto para lector de pantalla del reparto de colores del plan del piso).
+- [ ] **Diez carpetas de `docs/maquetas/` que ningún documento nombra** (~10 MB): `cobro-en-grilla-*`, `compras-referentes-stitch-2026-09`, `existencias-ux-2026-10`, `historial-ventas-2026-09`, `mis-compras-simple-2026-10`, `plan-campana-referentes-2026-10`, `produccion-spike-2026-09`, `tienda-vitrina-resumen-2026-10`. Felipe las mira antes de borrar.

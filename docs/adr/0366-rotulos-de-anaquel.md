@@ -125,6 +125,29 @@ sobre una página de andamio con un catálogo inventado (la base local no trae p
 sin desborde y movimiento reducido; `tema:auditar` sobre `/rotulos`: 0 hallazgos solo en oscuro. **Falta:** `/formidable` sobre la
 pantalla nueva y la prueba en papel en la Brother del almacén.
 
+## Actualización 2026-11-07 — el nombre siempre entra entero
+
+**Qué pasó.** En la tienda de Trujillo, «VESTIDO CAMPANITA» salió partido en «CAMPANIT / A», y esa tercera línea se montó sobre
+«Marca: SOHANNA» (foto de Felipe, en pantalla y en papel). **Causa raíz:** `medidaNombre` probaba anchos de línea más angostos
+que la palabra más larga y los daba por buenos: con el ancho de «VESTIDO» contaba dos líneas y elegía 11 mm, pero a 11 mm
+CAMPANITA mide unos 65 mm y el papel deja 57. El navegador la partía (`overflow-wrap: anywhere`) y el nombre crecía hacia la
+marca. Le pasaba a todo nombre de dos palabras con una larga («Vestido Antonella», «Blusa Valentina»).
+
+**Decisión.** (1) Un ancho de línea en el que una palabra sola no entra queda descartado (`lineasConAncho` devuelve `Infinity`):
+la palabra más larga manda el tamaño y siempre entra entera. (2) El nombre se mide con la letra que de verdad dibuja cada
+computadora (`useMedirNombre`, `components/rotulos/useMedirNombre.ts`: una regla fuera de la vista, `.rot-regla`, con la misma
+letra que `.rot-nombre`), no solo con la tabla de anchos de DM Sans: si la letra cambia o no llega a cargar, el rótulo se achica
+solo en vez de partirse. La tabla queda como medida de fábrica (servidor, primer dibujo y pruebas). La tira de la pantalla y la
+hoja que va a la Brother usan la misma medida.
+
+**Descarté** encoger la letra después de dibujar mirando si desborda: la hoja de impresión no se dibuja en pantalla
+(`display: none`) y no se podría medir; y un `overflow: hidden` sobre el nombre, que ocultaría letras en vez de achicarlas.
+
+**Verificación:** `lib/rotulos-reglas.test.ts` (76; con el cálculo anterior fallan 11), con letras 8 % y 15 % más anchas y 10 %
+más angosta; en local, `/rotulos` con «Vestido Antonella», «Blusa Valentina» y «Pantalón Palazzo Brisa (prueba)»: cada nombre
+entra entero, sin tocar la marca, en la tira y en la hoja de impresión, uno por prenda y todas en uno. **Falta:** imprimir
+«Vestido Campanita» en la Brother de Trujillo.
+
 ## Verificación
 
 - `lib/rotulos-reglas.test.ts` (13), `lib/mac-etiquetas.test.ts` (versión y medida), `scripts/mac-etiquetas/servidor.prueba.mjs`

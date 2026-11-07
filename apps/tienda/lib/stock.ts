@@ -16,6 +16,13 @@ export type StockModelo = z.infer<typeof esquemaStockModelo>;
 export const hayAlgo = (n: Nivel | undefined): boolean => n === "hay" || (typeof n === "number" && n > 0);
 
 /** Lo que dice la celda: «Hay», «3», «2», «Última» o «—». */
+/** Lo que hay, dicho como frase para una sola tienda («Última en Arequipa»). */
+export function fraseDeNivel(n: Nivel): string {
+  if (n === "hay") return "Hay";
+  if (n === 0) return "Agotada";
+  return n === 1 ? "Última" : `Quedan ${n}`;
+}
+
 export function textoNivel(n: Nivel): string {
   if (n === "hay") return "Hay";
   if (n <= 0) return "—";
@@ -28,23 +35,34 @@ export const tonoNivel = (n: Nivel): "hay" | "poco" | "cero" => (n === "hay" ? "
 export type Tienda = { id: string; nombre: string };
 export type NotaStock = { texto: string; tono: "ok" | "poco" | "no" };
 
+/** «Lima», «Lima y Trujillo», «Arequipa, Lima y Trujillo». */
+const listaDeTiendas = (tiendas: readonly Tienda[]): string => {
+  const nombres = tiendas.map((t) => t.nombre);
+  return nombres.length < 2 ? (nombres[0] ?? "") : `${nombres.slice(0, -1).join(", ")} y ${nombres[nombres.length - 1]}`;
+};
+
 /**
- * La nota de la tarjeta (maqueta, `notaStock`). Con una tienda elegida: «Hay en Lima», «Quedan 2 en Lima», «Última en Lima» o «No
- * hay en Lima». Con «Todas»: «Solo en Trujillo» si una sola tienda tiene, «Quedan pocas» si entre todas no pasan del umbral, «No hay
- * por ahora» si ninguna tiene; si hay de sobra, nada. Sin tiendas en la web (o sin dato), nada: no se afirma lo que no se sabe.
+ * La nota de la tarjeta: siempre dice si hay, y no repite la tienda que el cliente ya eligió (Felipe 2026-11-05, ADR-0612).
+ * Con una tienda elegida: «Disponible», «Quedan 2» o «Última»; si ahí no hay, dónde sí («Hay en Trujillo»), o «No hay por ahora».
+ * Con «Todas»: «Solo en Trujillo» si una sola tienda tiene, «Quedan pocas» si entre todas no pasan del umbral, «No hay por ahora» si
+ * ninguna tiene; si hay de sobra, en cuáles («Hay en Lima y Trujillo», «En todas las tiendas»). Sin tiendas en la web (o sin dato),
+ * nada: no se afirma lo que no se sabe.
  */
 export function notaDeStock(stock: StockModelo | null, elegida: Tienda | null, tiendas: readonly Tienda[]): NotaStock | null {
   if (!stock || tiendas.length === 0) return null;
   if (elegida) {
     const n = stock.sedes[elegida.id] ?? 0;
-    if (n === "hay") return { texto: `Hay en ${elegida.nombre}`, tono: "ok" };
-    if (n <= 0) return { texto: `No hay en ${elegida.nombre}`, tono: "no" };
-    return { texto: n === 1 ? `Última en ${elegida.nombre}` : `Quedan ${n} en ${elegida.nombre}`, tono: "poco" };
+    if (n === "hay") return { texto: "Disponible", tono: "ok" };
+    if (n > 0) return { texto: n === 1 ? "Última" : `Quedan ${n}`, tono: "poco" };
+    const otras = tiendas.filter((t) => t.id !== elegida.id && hayAlgo(stock.sedes[t.id]));
+    return { texto: otras.length ? `Hay en ${listaDeTiendas(otras)}` : "No hay por ahora", tono: "no" };
   }
   const con = tiendas.filter((t) => hayAlgo(stock.sedes[t.id]));
   if (con.length === 0) return { texto: "No hay por ahora", tono: "no" };
   if (con.length === 1 && tiendas.length > 1) return { texto: `Solo en ${con[0].nombre}`, tono: "poco" };
-  return stock.total !== "hay" ? { texto: "Quedan pocas", tono: "poco" } : null;
+  if (stock.total !== "hay") return { texto: "Quedan pocas", tono: "poco" };
+  if (tiendas.length === 1) return { texto: "Disponible", tono: "ok" };
+  return { texto: con.length === tiendas.length ? "En todas las tiendas" : `Hay en ${listaDeTiendas(con)}`, tono: "ok" };
 }
 
 /** ¿El modelo tiene algo en la tienda elegida? Con «Todas», o sin dato del stock, sí: no se esconde lo que no se sabe. */

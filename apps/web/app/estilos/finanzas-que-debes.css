@@ -1,0 +1,433 @@
+/* Finanzas ▸ Cuentas y dinero ▸ Qué debes, «Panorama ajustado» (Felipe 2026-10-31, docs/maquetas/finanzas-que-debes-rediseno-2026-10/).
+   Solo tokens (ADR-0169 / ADR-0336). Las tarjetas fluyen en dos columnas y miden lo que necesitan: ninguna se estira para igualar a otra.
+   Movimiento de ADR-0136: los puntos de los carriles entran una vez, sin rebote ni bucle; se apaga con prefers-reduced-motion. */
+
+@layer components {
+  /* ---- La franja: el total y las cuatro cifras de cada tramo (TarjetaCifra compacta) y, debajo, la barra con la frase ---- */
+  .qd-franja {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    background: var(--color-papel);
+    border: 1px solid var(--color-sand);
+    border-radius: 16px;
+  }
+  /* Celdas unidas en una sola tarjeta: sin filo propio, divisor entre ellas y una línea de color abajo (la de su tramo). */
+  .qd-franja .qd-cifras {
+    display: grid;
+    gap: 0;
+    grid-template-columns: minmax(0, 1.5fr) repeat(4, minmax(0, 1fr));
+  }
+  .qd-franja .qd-cifras > .qd-total {
+    justify-content: center;
+  }
+  .qd-franja .qd-cifras > * {
+    border: 0;
+    border-radius: 0;
+    border-bottom: 3px solid var(--c, transparent);
+    padding: 8px 16px 8px;
+  }
+  .qd-franja .qd-cifras > * + * {
+    border-left: 1px solid var(--color-sand);
+  }
+  .qd-franja-pie {
+    display: flex;
+    align-items: center;
+    gap: 6px 18px;
+    padding: 8px 16px 10px;
+  }
+  .btn-cayla.qd-enlace-rojo {
+    color: var(--color-rojo-profundo);
+  }
+  .qd-fac-saldo .btn-cayla {
+    font-family: var(--font-sans);
+  }
+  .qd-franja-pie .qd-partido {
+    flex: 0 0 min(46%, 520px);
+  }
+  .qd-leyenda {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px 16px;
+    margin: 5px 0 0;
+    padding: 0;
+    list-style: none;
+    font-size: 12px;
+    color: var(--color-taupe);
+  }
+  .qd-leyenda li {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .qd-leyenda b {
+    font-weight: 600;
+    color: var(--color-tinta);
+  }
+  .qd-franja-pie p {
+    margin: 0;
+    font-size: 13px;
+    color: var(--color-tinta);
+  }
+
+  /* El título de cada tarjeta, con su aire. */
+  .qd-cab {
+    padding: 16px 20px 12px;
+  }
+
+  /* La lista corta: una factura por fila. Con la tarjeta ancha, todo en una línea; angosta (media pantalla con el lateral), el tipo y la sede bajan bajo el nombre. */
+  .qd-lista {
+    container-type: inline-size;
+  }
+  .qd-facs {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+  .qd-fac {
+    display: grid;
+    grid-template-columns: 4.6rem minmax(0, 1fr) auto auto;
+    gap: 2px 12px;
+    align-items: center;
+    padding: 10px 18px;
+    border-top: 1px solid var(--color-sand);
+  }
+  .qd-fac b {
+    display: block;
+    font-weight: 600;
+    font-size: 14px;
+  }
+  .qd-fac small {
+    display: block;
+    font-size: 12px;
+    color: var(--color-taupe);
+  }
+  .qd-fac-vence b {
+    font-size: 13px;
+  }
+  .qd-fac-prov > * {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .qd-fac-chips {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .qd-fac-saldo {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 12px;
+    font-family: var(--font-serif);
+    font-size: 19px;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+  .qd-fac-saldo > span {
+    min-width: 5.2rem;
+    text-align: right;
+  }
+  @container (max-width: 600px) {
+    .qd-fac {
+      grid-template-columns: 4.6rem minmax(0, 1fr) auto;
+    }
+    .qd-fac-chips {
+      grid-column: 2;
+      grid-row: 2;
+      flex-wrap: wrap;
+    }
+    .qd-fac-saldo {
+      grid-column: 3;
+      grid-row: 1 / 3;
+    }
+  }
+  /* El pie de una tarjeta: lo que aclara a la izquierda, su enlace a la derecha. */
+  .qd-pie {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 6px 12px;
+    padding: 12px 20px;
+    border-top: 1px solid var(--color-sand);
+    font-size: 12.5px;
+    color: var(--color-taupe);
+  }
+  .qd-partido {
+    min-width: 160px;
+  }
+
+  /* ---- Dos columnas que fluyen: una tarjeta que se achica deja subir a la siguiente ---- */
+  .qd-mas {
+    column-count: 2;
+    column-gap: 20px;
+  }
+  .qd-mas > * {
+    break-inside: avoid;
+    margin-bottom: 20px;
+  }
+
+  /* ---- Pide tu atención ---- */
+  .qd-aten {
+    list-style: none;
+    margin: 0;
+    padding: 0 8px 8px;
+  }
+  .qd-aten li {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    gap: 12px;
+    align-items: center;
+    padding: 10px 12px;
+    border-radius: 10px;
+  }
+  .qd-aten li + li {
+    border-top: 1px solid var(--color-sand);
+  }
+  .qd-aten-ic {
+    display: grid;
+    place-items: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--c) 15%, transparent);
+    color: var(--c);
+  }
+  .qd-aten .qd-aten-ic b {
+    display: inline;
+    font-size: 15px;
+    font-weight: 700;
+    line-height: 1;
+    color: inherit;
+  }
+  .qd-aten li[data-tono="rojo"] {
+    --c: var(--color-rojo-profundo);
+  }
+  .qd-aten li[data-tono="ambar"] {
+    --c: var(--color-ambar);
+  }
+  .qd-aten b {
+    display: block;
+    font-weight: 600;
+    font-size: 14px;
+    color: var(--color-tinta);
+  }
+  .qd-aten span:not(.qd-aten-ic) {
+    font-size: 12.5px;
+    color: var(--color-taupe);
+  }
+
+  /* ---- A quién le debes más ---- */
+  .qd-prov {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+  .qd-prov li + li {
+    border-top: 1px solid var(--color-sand);
+  }
+  .qd-prov button {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 4px 14px;
+    width: 100%;
+    padding: 12px 20px;
+    text-align: left;
+    background: none;
+    border: 0;
+    cursor: pointer;
+    font: inherit;
+    color: inherit;
+  }
+  .qd-prov b {
+    font-weight: 600;
+    font-size: 14px;
+  }
+  .qd-prov-saldo {
+    font-family: var(--font-serif);
+    font-size: 20px;
+    font-variant-numeric: tabular-nums;
+  }
+  .qd-prov small {
+    font-size: 12.5px;
+    color: var(--color-taupe);
+  }
+  .qd-prov-barra {
+    grid-column: 1 / -1;
+  }
+  @media (hover: hover) {
+    .qd-prov button:hover {
+      background: color-mix(in srgb, var(--color-hueso) 55%, transparent);
+    }
+  }
+
+  /* ---- Carriles por sede ---- */
+  .qd-carriles {
+    padding: 4px 16px 14px;
+  }
+  .qd-carriles svg {
+    display: block;
+    width: 100%;
+    height: auto;
+  }
+  .qd-semana {
+    fill: color-mix(in srgb, var(--color-ambar) 9%, transparent);
+  }
+  .qd-linea {
+    stroke: var(--color-sand);
+  }
+  .qd-sede-punto {
+    fill: var(--c);
+  }
+  .qd-sede-nombre {
+    fill: var(--color-tinta);
+    font-size: 12px;
+    font-weight: 600;
+  }
+  .qd-sede-total,
+  .qd-eje {
+    fill: var(--color-taupe);
+    font-size: 11px;
+  }
+  .qd-punto circle {
+    fill: color-mix(in srgb, var(--c) 75%, transparent);
+    stroke: var(--c);
+    stroke-width: 1.5;
+    transition: transform 0.25s var(--ease-cayla);
+    transform-box: fill-box;
+    transform-origin: center;
+  }
+  .qd-punto[data-vencida] circle {
+    stroke: var(--color-rojo-profundo);
+    stroke-width: 2.5;
+  }
+  .qd-punto[role="link"] {
+    cursor: pointer;
+  }
+  .qd-punto[role="link"]:focus-visible {
+    outline: none;
+  }
+  .qd-punto[role="link"]:focus-visible circle {
+    stroke: var(--color-tinta);
+    stroke-width: 3;
+  }
+  @media (hover: hover) {
+    .qd-punto[role="link"]:hover circle {
+      transform: scale(1.18);
+    }
+  }
+  .qd-punto {
+    animation: qd-entra 0.5s var(--ease-cayla) backwards;
+    animation-delay: calc(var(--i, 0) * 45ms + 200ms);
+  }
+  @keyframes qd-entra {
+    from {
+      opacity: 0;
+    }
+  }
+
+  /* ---- «En qué se va»: la franja al pie de «Lo que vence en 30 días» ---- */
+  .qd-tipo {
+    border-top: 1px solid var(--color-sand);
+    padding: 12px 20px 6px;
+  }
+  .qd-tipo-cab {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    margin-bottom: 8px;
+  }
+  .qd-tipo-cab b {
+    font-size: 13.5px;
+    font-weight: 600;
+  }
+  .qd-tipo-cab small {
+    font-size: 12px;
+    color: var(--color-taupe);
+  }
+  .qd-tipo-ley {
+    list-style: none;
+    margin: 0;
+    padding: 6px 0 8px;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 2px;
+  }
+  .qd-tipo-ley button {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    grid-template-rows: auto auto;
+    gap: 0 8px;
+    width: 100%;
+    align-items: baseline;
+    padding: 7px 10px;
+    border: 0;
+    border-radius: 10px;
+    background: none;
+    text-align: left;
+    font: inherit;
+    color: inherit;
+    cursor: pointer;
+  }
+  .qd-tipo-ley button > :first-child {
+    grid-row: 1 / 3;
+    align-self: center;
+  }
+  .qd-tipo-ley b {
+    font-weight: 600;
+    font-size: 13px;
+  }
+  .qd-tipo-monto {
+    font-family: var(--font-serif);
+    font-size: 16px;
+    font-variant-numeric: tabular-nums;
+  }
+  .qd-tipo-ley small {
+    grid-column: 2 / 4;
+    font-size: 12px;
+    color: var(--color-taupe);
+  }
+  .qd-tipo-ley button[aria-pressed="true"] {
+    background: var(--color-hueso);
+  }
+  @media (hover: hover) {
+    .qd-tipo-ley button:hover {
+      background: color-mix(in srgb, var(--color-hueso) 60%, transparent);
+    }
+  }
+
+  @media (max-width: 800px) {
+    .qd-franja .qd-cifras {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+    .qd-franja .qd-cifras > :nth-child(odd) {
+      border-left: 0;
+    }
+    .qd-franja .qd-cifras > :nth-child(n + 3) {
+      border-top: 1px solid var(--color-sand);
+    }
+  }
+  @media (max-width: 1100px) {
+    .qd-franja-pie {
+      flex-direction: column;
+      align-items: stretch;
+      gap: 8px;
+    }
+    .qd-franja-pie .qd-partido {
+      flex: none;
+    }
+    .qd-mas {
+      column-count: 1;
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .qd-punto {
+      animation: none;
+    }
+    .qd-punto circle {
+      transition: none;
+    }
+  }
+}

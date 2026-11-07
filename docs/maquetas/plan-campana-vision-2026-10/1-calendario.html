@@ -1,0 +1,240 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>① Calendario · Plan de campaña (spike)</title>
+<link rel="stylesheet" href="base.css?v=13">
+<style>
+.ctl{display:flex;gap:22px;flex-wrap:wrap;margin-bottom:18px;border:1px dashed var(--taupe);border-radius:14px;padding:12px 18px;background:var(--papel);align-items:center}
+.ctl h4{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--t60);margin-bottom:6px}
+.res{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:12px}
+.res .t{font:600 24px var(--serif)} .res .s{color:var(--t60)}
+.grupo{margin-top:18px}
+.grupo>h3{font:600 19px var(--serif);margin-bottom:8px;display:flex;gap:10px;align-items:baseline}
+.grupo>h3 small{font:400 13px var(--sans);color:var(--t60)}
+.fcal{display:grid;grid-template-columns:auto minmax(190px,1.2fr) minmax(130px,.8fr) minmax(200px,1.3fr) auto;gap:14px;align-items:center;padding:12px 16px;border-top:1px solid var(--sand)}
+.fcal:first-child{border-top:0}
+.fcal.cabcal{padding-top:9px;padding-bottom:9px;font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--t60);background:var(--hueso);border-radius:14px 14px 0 0}
+@media(max-width:1000px){.fcal.cabcal{display:none}}
+@media(max-width:1000px){.fcal{grid-template-columns:auto 1fr auto}.fcal .col-d,.fcal .col-e{grid-column:2/4}}
+.fcal .nom{font-weight:650} .fcal .nom small{display:block;font-weight:400;color:var(--t60)}
+.fcal.pausada{background:repeating-linear-gradient(135deg,transparent 0 10px,color-mix(in srgb,var(--taupe) 7%,transparent) 10px 20px)}
+.fcal.no .nom{color:var(--t60)}
+.rng{position:relative;height:30px;min-width:150px}
+.rng .pista{position:absolute;left:0;right:0;top:13px;height:4px;border-radius:99px;background:var(--sand)}
+.rng .uno{position:absolute;top:13px;height:4px;width:1px;background:var(--taupe);opacity:.5}
+.rng .rango{position:absolute;top:11px;height:8px;border-radius:99px;background:color-mix(in srgb,var(--c) 28%,transparent)}
+.rng .med{position:absolute;top:7px;width:4px;height:16px;border-radius:2px;background:var(--c);transform:translateX(-2px)}
+.rng .lbl{position:absolute;right:0;top:-6px;font-size:12px;color:var(--t60);font-variant-numeric:tabular-nums}
+.rng .lbl b{color:var(--tinta);font-weight:650}
+.linea{padding:14px 16px 6px;overflow-x:auto}
+.mes-reg{position:relative;display:grid;grid-template-columns:200px repeat(12,minmax(48px,1fr));font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--t60);min-width:900px}
+.lrow{position:relative;display:grid;grid-template-columns:200px 1fr;align-items:center;min-height:36px;border-top:1px solid var(--sand);min-width:900px;cursor:pointer}
+@media (hover:hover){.lrow:hover{background:var(--hueso)}}
+.lrow .lt{padding-right:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:13px}
+.lrow .lt.off{color:var(--t60)}
+.lpista{position:relative;height:36px;background:repeating-linear-gradient(90deg,transparent 0 calc(100%/12 - 1px),var(--sand) calc(100%/12 - 1px) calc(100%/12))}
+.bar{position:absolute;top:10px;height:16px;border-radius:99px;min-width:8px}
+.bar.activa{background:var(--tinta)} .bar.no{border:1px dashed var(--t35);background:transparent}
+.bar.pausada{background:repeating-linear-gradient(135deg,var(--taupe) 0 4px,transparent 4px 8px);opacity:.75}
+.bar.ancla{background:var(--rojo)}
+.hoy{position:absolute;top:0;bottom:0;width:2px;background:var(--rojo);opacity:.8}
+.hoy:after{content:"hoy";position:absolute;top:-14px;left:-10px;font-size:10px;color:var(--rojo);letter-spacing:.1em;text-transform:uppercase}
+.leyenda{display:flex;gap:16px;flex-wrap:wrap;font-size:12px;color:var(--t60);padding:10px 16px;border-top:1px solid var(--sand)}
+.leyenda i{display:inline-block;width:22px;height:10px;border-radius:99px;vertical-align:middle;margin-right:6px}
+.toast{position:fixed;left:50%;bottom:22px;transform:translateX(-50%);background:var(--tinta);color:var(--crema);padding:10px 18px;border-radius:99px;font-size:13px;z-index:60;animation:entra .3s var(--ease);max-width:90vw}
+.chips{display:flex;gap:6px;flex-wrap:wrap}
+.opciones{display:grid;gap:8px}
+.op{display:flex;gap:10px;align-items:flex-start;border:1px solid var(--sand);border-radius:12px;padding:10px 12px;background:var(--crema);text-align:left;width:100%}
+.op.on{border-color:var(--tinta);background:var(--papel);box-shadow:0 0 0 1px var(--tinta)}
+.op b{display:block;font-weight:650} .op span{color:var(--t60);font-size:12.5px}
+.ev{border:1px solid var(--sand);border-radius:12px;padding:12px 14px;background:var(--crema)}
+.ev .g{font:600 30px var(--serif)}
+.mock{opacity:.9}
+</style>
+</head>
+<body>
+<div id="chrome"></div>
+
+<div class="ctl">
+  <div><h4>Dónde vive</h4><div class="seg" id="donde"></div></div>
+  <div><h4>Cómo se ve</h4><div class="seg" id="vista"></div></div>
+  <div><h4>Año</h4><div class="seg" id="anio"></div></div>
+  <div style="flex:1;min-width:240px;color:var(--t60);font-size:12.5px" id="nota-ctl"></div>
+</div>
+
+<div id="main"></div>
+<div class="velo" id="velo"><div class="hoja ancha" id="hoja" role="dialog" aria-modal="true"></div></div>
+<div class="velo lado" id="veloL"><div class="cajon" id="cajon" role="dialog" aria-modal="true"></div></div>
+
+<script src="app.js?v=13"></script>
+<script>
+const { $, $$, nES, sES, MES, MESL, fCorta, leer, guardar, CAL0, veredicto, cfg } = PC;
+let anio = leer("pc.anio", 2026);
+let vista = leer("pc.vista", "lista");
+let cal = leer("pc.cal.estado", null) || CAL0.map((c) => ({ ...c, repite: c.repite || "anual", pausaHasta: c.pausaHasta || null, quitada: false }));
+const salvar = () => guardar("pc.cal.estado", cal);
+const dia = (md) => { const [m, d] = md.split("-").map(Number); return (Date.UTC(2026, m - 1, d) - Date.UTC(2026, 0, 1)) / 86400000; };
+const pct = (md) => (dia(md) / 365) * 100;
+const hoyMd = "10-26";
+const rotulo = (c) => (c.d ? fCorta(c.d[0]) + " – " + fCorta(c.d[1]) : "sin fechas");
+const esPausada = (c) => c.uso === "pausada" && (!c.pausaHasta || c.pausaHasta > anio + "-" + hoyMd);
+const estadoDe = (c) => (c.quitada ? "quitada" : c.uso === "activa" ? "activa" : c.uso === "pausada" ? "pausada" : "no");
+const visibleEn = (c) => c.repite === "anual" || (c.repite === "unica" && (c.anioUnico || 2026) === anio);
+const hastaTxt = (iso) => { if (!iso) return "hasta que la reactives"; const [y, m, d] = iso.split("-").map(Number); return d + " " + MES[m - 1] + " " + y; };
+
+function toast(t) { const e = document.createElement("div"); e.className = "toast"; e.textContent = t; document.body.appendChild(e); setTimeout(() => e.remove(), 2600); }
+
+function rango(c) {
+  if (!c.ev) return `<div class="rng" style="--c:var(--taupe)"><span class="lbl">sin historia propia</span></div>`;
+  const [med, mn, mx, n] = c.ev; const a = (v) => Math.min(100, Math.max(0, ((v - 0.5) / 2.5) * 100));
+  const v = veredicto(c.ev);
+  return `<div class="rng" style="--c:var(--${v.c === "ambar" ? "ambar" : v.c})" title="Mediana ×${med.toFixed(1)}; entre ×${mn.toFixed(1)} y ×${mx.toFixed(1)} en ${n} años">
+    <div class="pista"></div><div class="uno" style="left:${a(1)}%"></div>
+    <div class="rango" style="left:${a(mn)}%;width:${Math.max(2, a(mx) - a(mn))}%"></div><div class="med" style="left:${a(med)}%"></div>
+    <span class="lbl"><b>×${med.toFixed(1).replace(".", ",")}</b> · ${n} años</span></div>`;
+}
+function fila(c) {
+  const e = estadoDe(c); const v = veredicto(c.ev);
+  const chips = [
+    c.repite === "anual" ? `<span class="chip sp taupe">Cada año</span>` : `<span class="chip sp taupe">Solo ${c.anioUnico || 2026}</span>`,
+    c.movil ? `<span class="chip sp taupe">Fecha móvil</span>` : "",
+    c.plan ? `<span class="chip verde">Con plan ${anio}</span>` : "",
+    c.marketing ? `<span class="chip sp ambar">Solo marketing</span>` : "",
+    e === "pausada" ? `<span class="chip ambar">Pausada hasta ${hastaTxt(c.pausaHasta)}</span>` : "",
+  ].join("");
+  return `<div class="fcal ${e}" data-id="${c.id}">
+    <button class="sw" role="switch" aria-checked="${e === "activa"}" aria-label="${c.n}: entra a mi plan" data-sw="${c.id}" ${e === "pausada" ? 'title="Está pausada: reactívala en su hoja"' : ""}></button>
+    <div class="nom">${c.n}<small>${rotulo(c)}</small></div>
+    <div class="col-d"><span class="chip ${v.c}">${v.t}</span></div>
+    <div class="col-e">${rango(c)}</div>
+    <div class="chips" style="justify-content:flex-end">${chips}<button class="btn ch" data-ed="${c.id}">Editar</button></div></div>`;
+}
+function grupo(titulo, nota, lista, vacio) {
+  const cab = `<div class="fcal cabcal" aria-hidden="true"><span style="width:40px"></span><span>Campaña</span><span class="col-d">Qué dice tu historia</span><span class="col-e">Cuánto sube la venta de Trujillo (×1 = un día normal)</span><span></span></div>`;
+  return `<section class="grupo"><h3>${titulo} <small>${nota}</small></h3><div class="card">${lista.length ? cab + lista.map(fila).join("") : `<div class="nota-vacia">${vacio}</div>`}</div></section>`;
+}
+function vistaLista() {
+  const L = cal.filter((c) => !c.quitada && visibleEn(c));
+  const act = L.filter((c) => estadoDe(c) === "activa").sort((a, b) => (a.d ? dia(a.d[0]) : 999) - (b.d ? dia(b.d[0]) : 999));
+  const pau = L.filter((c) => estadoDe(c) === "pausada");
+  const no = L.filter((c) => estadoDe(c) === "no").sort((a, b) => (b.ev ? 1 : 0) - (a.ev ? 1 : 0) || a.n.localeCompare(b.n, "es"));
+  const q = cal.filter((c) => c.quitada);
+  return grupo("En mi plan", `${act.length} campañas: aquí te ofrece armar el plan cuando faltan 90 días`, act, "Todavía no elegiste ninguna: prende el interruptor de las que sí compras.") +
+    (pau.length ? grupo("Pausadas", "no se ofrecen hasta su fecha de regreso", pau, "") : "") +
+    grupo("Otras fechas del sistema — no las compro", "vienen de Catálogo ▸ Insignias; prende una para sumarla", no, "Todas entran a tu plan.") +
+    (q.length ? `<section class="grupo"><h3>Quitadas <small>se pueden restaurar</small></h3><div class="card">${q.map((c) => `<div class="fcal no" style="grid-template-columns:1fr auto"><div class="nom">${c.n}<small>${rotulo(c)} · quitada</small></div><button class="btn ch" data-rest="${c.id}">Restaurar</button></div>`).join("")}</div></section>` : "");
+}
+function vistaLinea() {
+  const L = cal.filter((c) => !c.quitada && c.d && visibleEn(c)).sort((a, b) => dia(a.d[0]) - dia(b.d[0]));
+  const meses = MES.map((m) => `<span>${m}</span>`).join("");
+  const filas = L.map((c) => {
+    const e = estadoDe(c); const a = pct(c.d[0]), b = pct(c.d[1]) + 0.3;
+    return `<div class="lrow" data-ed="${c.id}"><div class="lt ${e === "no" ? "off" : ""}">${c.n}${e === "pausada" ? " · pausada" : ""}</div><div class="lpista"><div class="bar ${e}${c.ancla && e === "activa" ? " ancla" : ""}" style="left:${a}%;width:${Math.max(0.9, b - a)}%" title="${c.n}: ${rotulo(c)}"></div></div></div>`;
+  }).join("");
+  const hoy = anio === 2026 ? `<div style="position:absolute;left:200px;right:0;top:0;bottom:0;pointer-events:none"><div class="hoy" style="left:${pct(hoyMd)}%"></div></div>` : "";
+  return `<div class="card"><div class="linea" style="position:relative"><div class="mes-reg"><span></span>${meses}</div><div style="position:relative">${filas}${hoy}</div></div>
+    <div class="leyenda"><span><i style="background:var(--rojo)"></i>La que más pesa</span><span><i style="background:var(--tinta)"></i>En mi plan</span><span><i style="background:repeating-linear-gradient(135deg,var(--taupe) 0 4px,transparent 4px 8px)"></i>Pausada</span><span><i style="border:1px dashed var(--t35)"></i>No la compro</span><span>Toca una barra para editarla</span></div></div>`;
+}
+function resumen() {
+  const L = cal.filter((c) => !c.quitada && visibleEn(c));
+  const a = L.filter((c) => estadoDe(c) === "activa").length, p = L.filter((c) => estadoDe(c) === "pausada").length, n = L.filter((c) => estadoDe(c) === "no").length;
+  return `<div class="res"><div class="t">Tu calendario ${anio}: ${a} campañas</div><div class="s">${p ? p + " pausada · " : ""}${n} fechas del sistema que no compras</div><span style="flex:1"></span><button class="btn pri" id="nueva">+ Campaña nueva</button></div>`;
+}
+function contenido() { return resumen() + (vista === "lista" ? vistaLista() : vistaLinea()); }
+
+function pintar() {
+  const c = cfg();
+  PC.chrome({ activa: c.cal === "tab" ? "calendario" : "plan", frase: c.cal === "tab" ? "Elige con cuáles campañas te quedas el año, cuáles se repiten y cuáles descansan." : "Navidad 2026: cuánto comprar de cada categoría, de qué colores y cuánto cuesta." });
+  const sel = (id, op, actual, fn) => { $(id).innerHTML = op.map(([k, t]) => `<button type="button" class="${String(k) === String(actual) ? "on" : ""}" data-k="${k}">${t}</button>`).join(""); $$(id + " button").forEach((b) => (b.onclick = () => fn(b.dataset.k))); };
+  sel("#donde", [["tab", "A · Pestaña «Calendario»"], ["hoja", "B · «Mis campañas» desde el selector"]], c.cal, (k) => { guardar("pc.cal", k); pintar(); });
+  sel("#vista", [["lista", "Lista"], ["linea", "Línea del año"]], vista, (k) => { vista = k; guardar("pc.vista", k); pintar(); });
+  sel("#anio", [[2026, "2026"], [2027, "2027"]], anio, (k) => { anio = Number(k); guardar("pc.anio", anio); pintar(); });
+  $("#nota-ctl").innerHTML = c.cal === "tab" ? "<b>A.</b> Una pestaña propia: se ve el año entero, ideal para decidir una vez al año." : "<b>B.</b> Sin pestaña nueva: toca «NAVIDAD 2026 ⌄» arriba a la derecha y se abre el cajón con el mismo calendario.";
+  if (c.cal === "tab") { $("#main").innerHTML = contenido(); ligar($("#main")); }
+  else {
+    const p = PC.plan(0);
+    $("#main").innerHTML = `<div class="mock"><div class="cifras"><div class="cifra"><div class="t">Prendas a comprar</div><div class="v">${nES(p.prendas)}</div><div class="d">Lo que conviene tener menos lo que hay</div></div><div class="cifra"><div class="t">Inversión al costo</div><div class="v">${sES(p.total)}</div></div></div><div class="nota">Aquí va la tabla del Plan, como hoy. Toca <b>NAVIDAD 2026 ⌄</b> (arriba a la derecha) para abrir «Mis campañas».</div></div>`;
+    PC.alElegirCampana = () => { $("#cajon").innerHTML = `<button class="x" id="cerrarC" aria-label="Cerrar">×</button><h2>Mis campañas</h2><p class="sub">Elige con cuáles te quedas el año.</p>${contenido()}`; $("#veloL").classList.add("on"); ligar($("#cajon")); $("#cerrarC").onclick = () => $("#veloL").classList.remove("on"); };
+  }
+  if (c.cal === "tab") PC.alElegirCampana = () => toast("En la opción A el selector solo cambia de campaña");
+}
+
+function ligar(raiz) {
+  $$("[data-sw]", raiz).forEach((b) => (b.onclick = (e) => {
+    e.stopPropagation(); const c = cal.find((x) => x.id === b.dataset.sw);
+    if (estadoDe(c) === "pausada" || !c.d) return abrirHoja(c.id);
+    c.uso = c.uso === "activa" ? "no" : "activa"; if (c.uso === "activa" && !c.repite) c.repite = "anual";
+    salvar(); toast(c.uso === "activa" ? `«${c.n}» entra a tu plan: te ofrece armarlo cuando falten 90 días` : `«${c.n}» sale de tu plan: no se ofrece, y lo ya armado se conserva`); refrescar(raiz);
+  }));
+  $$("[data-ed]", raiz).forEach((b) => (b.onclick = () => abrirHoja(b.dataset.ed)));
+  $$("[data-rest]", raiz).forEach((b) => (b.onclick = () => { cal.find((x) => x.id === b.dataset.rest).quitada = false; salvar(); toast("Restaurada"); refrescar(raiz); }));
+  const n = $("#nueva", raiz); if (n) n.onclick = () => abrirHoja(null);
+}
+function refrescar(raiz) { PC.chrome({ activa: cfg().cal === "tab" ? "calendario" : "plan", frase: $(".frase").textContent }); if (raiz.id === "cajon") { $("#cajon").innerHTML = `<button class="x" id="cerrarC" aria-label="Cerrar">×</button><h2>Mis campañas</h2><p class="sub">Elige con cuáles te quedas el año.</p>${contenido()}`; ligar($("#cajon")); $("#cerrarC").onclick = () => $("#veloL").classList.remove("on"); } else { $("#main").innerHTML = contenido(); ligar($("#main")); } }
+
+// ---------- la hoja «Configurar campaña» ----------
+function abrirHoja(id) {
+  const nueva = id === null;
+  const c = nueva ? { id: "n" + Date.now(), n: "", d: ["06-07", "06-21"], ev: null, uso: "activa", repite: "anual", propia: true, nuevaPropia: true, pausaHasta: null, anioUnico: anio } : { ...cal.find((x) => x.id === id) };
+  let b = { ...c, d: c.d ? [...c.d] : ["", ""], pausar: c.uso === "pausada" };
+  const iso = (md, y) => (y || anio) + "-" + md;
+  const hoy = "2026-10-26";
+  const sumaMeses = (m) => { const d = new Date(Date.UTC(2026, 9, 26)); d.setUTCMonth(d.getUTCMonth() + m); return d.toISOString().slice(0, 10); };
+  function dibuja() {
+    const v = veredicto(b.ev);
+    const evid = b.ev ? `<div class="ev"><div class="titulo-sec" style="margin:0 0 6px;font-size:16px">Qué dice tu historia <small>Trujillo · ${b.ev[3]} años</small></div>
+      <div class="g">×${b.ev[0].toFixed(1).replace(".", ",")} <span class="chip ${v.c}" style="vertical-align:middle">${v.t}</span></div>
+      ${rango(b)}
+      <p class="ant" style="font-size:12.5px;color:var(--t60);margin-top:6px">Un día de esta campaña vendió ×${b.ev[0].toFixed(1).replace(".", ",")} lo de un día normal del año (entre ×${b.ev[1].toFixed(1).replace(".", ",")} y ×${b.ev[2].toFixed(1).replace(".", ",")}). ${b.nota || ""} Mide los soles de toda la tienda, no una categoría: si vendes con descuento, vendes más prendas por menos soles.</p></div>`
+      : `<div class="ev"><b>Sin historia propia</b><p style="color:var(--t60);font-size:12.5px;margin-top:4px">${nueva ? "Cuando la guardes, el Historial empieza a medirla con sus fechas." : "El sistema no tiene ventas de esas fechas. Se compra con lo que tú supongas, y al terminar quedará la primera medida."}</p></div>`;
+    const pres = [["1 mes", sumaMeses(1)], ["3 meses", sumaMeses(3)], ["Hasta fin de año", "2026-12-31"], ["1 año", sumaMeses(12)], ["Hasta que la reactive", null]];
+    $("#hoja").innerHTML = `<button class="x" id="cerrarH" aria-label="Cerrar">×</button><h2>${nueva ? "Campaña nueva" : "Configurar «" + c.n + "»"}</h2><p class="sub">${nueva ? "Una fecha que no está en el calendario del sistema." : "De Catálogo ▸ Insignias. Lo que cambies aquí es de tu plan de compra: no toca la insignia, la tienda web ni la meta de caja."}</p>
+    <div class="grid-2"><div style="display:grid;gap:14px">
+      <label class="campo">Nombre<input id="fNom" value="${b.n}" ${b.nuevaPropia ? "" : ""} placeholder="Ej. Día del Padre"></label>
+      <div class="dos"><label class="campo">Desde (${anio})<input type="date" id="fD" value="${b.d[0] ? iso(b.d[0]) : ""}"></label><label class="campo">Hasta (${anio})<input type="date" id="fH" value="${b.d[1] ? iso(b.d[1]) : ""}"></label></div>
+      ${!nueva && !c.d ? `<div class="nota"><b>«${c.n}» no tiene fechas en Insignias.</b> Ponlas aquí para tu plan de compra: no cambian la insignia, la tienda web ni la meta de caja. Tú decides si participas.</div>` : ""}
+      ${!nueva && c.d && (b.d[0] !== c.d[0] || b.d[1] !== c.d[1]) ? `<div class="nota">Las fechas del plan pueden ser más anchas que las de la venta: una ventana de compra empieza antes.</div>` : ""}
+      <div><div class="campo" style="margin-bottom:6px">¿Se repite?</div><div class="opciones">
+        <button type="button" class="op ${b.repite === "anual" ? "on" : ""}" data-rep="anual"><div><b>Cada año</b><span>Vuelve sola al calendario: te ofrece armar su plan cuando faltan 90 días.</span></div></button>
+        <button type="button" class="op ${b.repite === "unica" ? "on" : ""}" data-rep="unica"><div><b>Solo ${anio}</b><span>Se arma este año y después desaparece del calendario. Lo vendido queda en el Historial.</span></div></button></div></div>
+      <div><div class="campo" style="margin-bottom:6px">Estado</div><div class="seg"><button type="button" class="${!b.pausar ? "on" : ""}" data-pau="0">Activa</button><button type="button" class="${b.pausar ? "on" : ""}" data-pau="1">Pausada</button></div>
+        ${b.pausar ? `<div style="margin-top:10px" class="chips">${pres.map(([t, f]) => `<button type="button" class="pil ${(b.pausaHasta || null) === f ? "on" : ""}" data-pf="${f || ""}">${t}</button>`).join("")}</div>
+        <label class="campo" style="margin-top:10px">Reactivar el<input type="date" id="fPau" value="${b.pausaHasta || ""}" min="${hoy}"></label>
+        <p class="ant" style="font-size:12.5px;color:var(--t60);margin-top:6px">${b.pausaHasta ? "No se ofrece armar su plan hasta el " + hastaTxt(b.pausaHasta) + "; ese día vuelve sola." : "Queda pausada hasta que tú la reactives."} Lo que ya armaste se conserva.</p>` : ""}</div>
+    </div><div style="display:grid;gap:12px;align-content:start">${evid}${b.marketing ? `<div class="nota">Es una fecha de marketing de la tienda (Insignias). Sirve para publicar, pocas veces para comprar.</div>` : ""}${nueva ? `<label class="op" style="cursor:pointer"><input type="checkbox" id="fIns" style="margin-top:3px"><div><b>También crear la insignia</b><span>Si la marcas, aparece en Catálogo ▸ Insignias y en la tienda web. Por defecto, la campaña vive solo en tu plan de compra.</span></div></label>` : ""}</div></div>
+    <div class="pie">${nueva ? "" : `<button class="btn pel izq" id="quitar">Quitar del calendario</button>`}<button class="btn" id="cancelar">Cancelar</button><button class="btn pri" id="guardar">${nueva ? "Crear campaña" : "Guardar"}</button></div>
+    <div id="confQuitar"></div>`;
+    $("#cerrarH").onclick = $("#cancelar").onclick = cerrar;
+    $$("[data-rep]").forEach((x) => (x.onclick = () => { b.repite = x.dataset.rep; leerCampos(); dibuja(); }));
+    $$("[data-pau]").forEach((x) => (x.onclick = () => { b.pausar = x.dataset.pau === "1"; if (b.pausar && !b.pausaHasta) b.pausaHasta = sumaMeses(3); leerCampos(); dibuja(); }));
+    $$("[data-pf]").forEach((x) => (x.onclick = () => { b.pausaHasta = x.dataset.pf || null; leerCampos(); dibuja(); }));
+    if ($("#fPau")) $("#fPau").onchange = (e) => { b.pausaHasta = e.target.value || null; leerCampos(); dibuja(); };
+    $("#guardar").onclick = guardarHoja;
+    if ($("#quitar")) $("#quitar").onclick = () => {
+      const conPlan = !!c.plan;
+      $("#confQuitar").innerHTML = `<div class="aviso ${conPlan ? "pendiente" : "info"}" style="margin-top:14px"><span class="ic">${PC.I.alerta}</span><div><b>${conPlan ? "Tiene un plan armado: se archiva" : "No tiene plan armado: se borra"}</b><span class="d">${conPlan ? "Deja de salir en el calendario y se puede restaurar cuando quieras. El plan y sus ventas se conservan." : "Como nunca se usó, no queda nada que guardar. No se puede deshacer."}</span></div><div class="acc"><button class="btn ch pel" id="siQuitar">${conPlan ? "Archivar" : "Borrar"}</button></div></div>`;
+      $("#siQuitar").onclick = () => { const x = cal.find((k) => k.id === c.id); if (conPlan) x.quitada = true; else cal = cal.filter((k) => k.id !== c.id); salvar(); cerrar(); toast(conPlan ? "Archivada: la encuentras en «Quitadas»" : "Borrada"); refrescarTodo(); };
+    };
+  }
+  function leerCampos() { b.n = $("#fNom").value; b.d = [$("#fD").value.slice(5), $("#fH").value.slice(5)]; }
+  function guardarHoja() {
+    leerCampos(); if (!b.n.trim()) { $("#fNom").focus(); $("#fNom").style.borderColor = "var(--rojo)"; return; }
+    if (!b.d[0] || !b.d[1]) { ["#fD", "#fH"].forEach((k) => { if (!$(k).value) $(k).style.borderColor = "var(--rojo)"; }); toast("Ponle las dos fechas: sin ellas no se sabe cuándo se compra"); return; }
+    const x = { ...b, n: b.n.trim(), uso: b.pausar ? "pausada" : "activa", anioUnico: b.repite === "unica" ? anio : null };
+    delete x.pausar;
+    if (nueva) { cal.push({ ...x, quitada: false }); toast(`«${x.n}» creada ${b.repite === "unica" ? "solo para " + anio : "y se repite cada año"}`); }
+    else { cal = cal.map((k) => (k.id === c.id ? { ...k, ...x } : k)); toast("Guardado"); }
+    salvar(); cerrar(); refrescarTodo();
+  }
+  const cerrar = () => $("#velo").classList.remove("on");
+  dibuja(); $("#velo").classList.add("on");
+}
+function refrescarTodo() { PC.chrome({ activa: cfg().cal === "tab" ? "calendario" : "plan", frase: $(".frase").textContent }); if ($("#veloL").classList.contains("on")) { $("#cajon").innerHTML = `<button class="x" id="cerrarC" aria-label="Cerrar">×</button><h2>Mis campañas</h2><p class="sub">Elige con cuáles te quedas el año.</p>${contenido()}`; ligar($("#cajon")); $("#cerrarC").onclick = () => $("#veloL").classList.remove("on"); } else if (cfg().cal === "tab") { $("#main").innerHTML = contenido(); ligar($("#main")); } }
+document.addEventListener("keydown", (e) => { if (e.key === "Escape") { $("#velo").classList.remove("on"); $("#veloL").classList.remove("on"); } });
+$("#veloL").addEventListener("click", (e) => { if (e.target.id === "veloL") $("#veloL").classList.remove("on"); });
+pintar();
+</script>
+</body>
+</html>

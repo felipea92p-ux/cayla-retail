@@ -5,6 +5,7 @@ import {
   textoPagosDeFila,
   AVISO_EFECTIVO_SIN_MONEDA,
   apartadoDeFila,
+  descuentoDePrenda,
   avanceDelPlazo,
   cobroDelSaldo,
   coincide,
@@ -32,7 +33,7 @@ import {
   pedidoDeFila,
   paraQuienPedido,
 } from "./separaciones-reglas";
-import { totalDeLineas } from "./vender-reglas";
+import { RAZONES_DESCUENTO, totalDeLineas } from "./vender-reglas";
 import { diaLima } from "./fechas-lima";
 
 const formulario = (extra: Partial<FormularioApartado> = {}): FormularioApartado => ({
@@ -57,7 +58,7 @@ const apartado = (extra: Partial<Apartado> = {}): Apartado => ({
   id: "s1", codigo: "APT-TRU-0007", estado: "abierta", nombres: "Ana", apellidos: "Lozano Vera", celular: "987111222", dni: "70124598",
   asesora: null, total: 179, adelanto: 90, saldo: 89, venceEl: "2026-09-29", extensiones: 0, creadaEn: "2026-09-22T15:00:00Z",
   devolucionMedio: "yape", devolucionNumero: "987111222", devolucionCciFinal: null, liberadaSola: false,
-  comprobanteAnticipo: "B004-000024", comprobanteFinal: null, notaCredito: null, prendas: [], pagos: [], estante: null, ...extra,
+  comprobanteAnticipo: "B004-000024", comprobanteFinal: null, notaCredito: null, prendas: [], pagos: [], estante: null, canal: "tienda", modoEntrega: "recojo", direccionEnvio: null, enviadoEn: null, guiaEnvio: null, ...extra,
 });
 
 describe("estadoVisible (D3: 7 días, aviso a 2, 2 de gracia)", () => {
@@ -172,6 +173,22 @@ describe("erroresDelApartado", () => {
   });
 });
 
+describe("erroresDelApartado: entrega de un canal online (ADR-0607)", () => {
+  it("un recojo no pide dirección", () => {
+    expect(erroresDelApartado(formulario({ modoEntrega: "recojo", direccionEnvio: "" }), 179).direccionEnvio).toBeUndefined();
+  });
+  it("un envío sin dirección, o con una a medias, no se puede confirmar", () => {
+    expect(erroresDelApartado(formulario({ modoEntrega: "envio", direccionEnvio: "" }), 179).direccionEnvio).toMatch(/a dónde va/);
+    expect(erroresDelApartado(formulario({ modoEntrega: "envio", direccionEnvio: "Av. " }), 179).direccionEnvio).toMatch(/a dónde va/);
+  });
+  it("un envío con su dirección queda listo", () => {
+    expect(erroresDelApartado(formulario({ modoEntrega: "envio", direccionEnvio: "Jr. Pizarro 123, Olva" }), 179).direccionEnvio).toBeUndefined();
+  });
+  it("lo que falta de la dirección se atiende en el primer paso (los datos del cliente)", () => {
+    expect(pasoDelApartado({ direccionEnvio: "x" })).toBe(0);
+  });
+});
+
 describe("dinero", () => {
   it("adelanto y vuelto: solo el efectivo da vuelto", () => {
     const pagos = [{ metodo: "yape" as const, monto: 30 }, { metodo: "efectivo" as const, monto: 20, recibido: 50 }];
@@ -242,7 +259,9 @@ describe("redondeo del efectivo al entregar el saldo (ADR-0311)", () => {
       expect(ef === undefined || Math.round(ef.monto * 100) % 10 === 0).toBe(true);
       expect(red === undefined || (red.monto > 0 && red.monto < 0.1)).toBe(true);
     }
-  });
+    // 29.999 saldos, uno por uno: menos de 1 s con la máquina libre, pero más de 5 s (el límite de vitest) con ~665 archivos de prueba a la vez
+    // en el gancho de commits o en el CI, o con la máquina cargada: rechazó un commit el 2026-10-28 sin que nada estuviera mal.
+  }, 30_000);
 });
 
 describe("búsqueda y textos", () => {
@@ -432,5 +451,60 @@ describe("lo que se lee de los pagos no miente (chaos y prueba ciega 2026-10-15)
     expect(avisoDeAbono(nuevo, { saldo: 24.9, venceEl: null })).toBe("Ana: falta S/24.90.");
     expect(avisoDeAbono(nuevo, { saldo: 0, venceEl: "2026-10-25" })).toBe("Ana: ya pagó todo · recoge hasta el 25/10.");
     expect(avisoDeAbono(apartado(), { saldo: 24.9, venceEl: null })).toBe("Ana: falta S/24.90. Sale su boleta de anticipo.");
+  });
+});
+
+describe("descuentoDePrenda — el apartado ya hecho dice su descuento (ADR-0584)", () => {
+  const prenda = (i: Record<string, unknown>) =>
+    apartadoDeFila({ id: "x", codigo: "APT", estado: "abierta", items: [{ variante_id: "v", cantidad: 1, precio_unitario: "79.90", ...i }], pagos: [] }).prendas[0];
+
+  it("apartadoDeFila lee el motivo, su detalle y el argumento; vacíos quedan en null", () => {
+    const p = prenda({ descuento_unitario: "20.00", motivo_descuento: "otro", motivo_descuento_detalle: " Botón flojo ", argumento_descuento: "Se cose en tienda" });
+    expect([p.motivoDescuento, p.motivoDescuentoDetalle, p.argumentoDescuento]).toEqual(["otro", "Botón flojo", "Se cose en tienda"]);
+    const sin = prenda({ descuento_unitario: "0", motivo_descuento: null, argumento_descuento: "  " });
+    expect([sin.motivoDescuento, sin.motivoDescuentoDetalle, sin.argumentoDescuento]).toEqual([null, null, null]);
+  });
+
+  it("una base anterior a 20261030234000 no trae los campos: todo descuento se ve como campaña, como antes", () => {
+    const p = prenda({ descuento_unitario: "8.00" });
+    expect(p.motivoDescuento).toBeNull();
+    expect(descuentoDePrenda(p)).toMatchObject({ campana: true, motivo: "Campaña" });
+  });
+
+  it("sin descuento no dice nada", () => {
+    expect(descuentoDePrenda(prenda({ descuento_unitario: "0" }))).toBeNull();
+  });
+
+  it("a mano: el nombre del motivo de la venta, el % y el precio acordado", () => {
+    expect(descuentoDePrenda(prenda({ descuento_unitario: "8.00", motivo_descuento: "cerrar_venta" }))).toEqual({
+      campana: false,
+      motivo: "Cerrar la venta",
+      pct: 10,
+      argumento: null,
+      precioAcordado: 71.9,
+    });
+  });
+
+  it("«Otro» dice su detalle, y el argumento viaja solo en un descuento a mano", () => {
+    const d = descuentoDePrenda(prenda({ descuento_unitario: "20.00", motivo_descuento: "otro", motivo_descuento_detalle: "Botón flojo", argumento_descuento: "Se cose" }));
+    expect(d).toMatchObject({ campana: false, motivo: "Botón flojo", argumento: "Se cose", precioAcordado: 59.9 });
+  });
+
+  it("cada motivo de la lista de la venta tiene su nombre (ninguno cae a «Descuento»)", () => {
+    for (const r of RAZONES_DESCUENTO.filter((x) => x.valor !== "otro")) {
+      expect(descuentoDePrenda(prenda({ descuento_unitario: "5", motivo_descuento: r.valor }))?.motivo).toBe(r.etiqueta);
+    }
+  });
+});
+
+describe("apartadoDeFila: canal y entrega (ADR-0607)", () => {
+  const fila = { id: "s1", codigo: "APT-TRU-0001", estado: "abierta", vence_el: "2026-11-10", creada_en: "2026-11-03T15:00:00Z", items: [], pagos: [] };
+  it("una fila de una base sin la migración es de la tienda y se recoge", () => {
+    const a = apartadoDeFila(fila);
+    expect([a.canal, a.modoEntrega, a.direccionEnvio, a.enviadoEn]).toEqual(["tienda", "recojo", null, null]);
+  });
+  it("una venta online trae su canal, su envío y cuándo se despachó", () => {
+    const a = apartadoDeFila({ ...fila, canal: "tiktok", modo_entrega: "envio", direccion_envio: "Jr. Pizarro 123 · Olva", enviado_en: "2026-11-04T10:00:00Z" });
+    expect([a.canal, a.modoEntrega, a.direccionEnvio, a.enviadoEn]).toEqual(["tiktok", "envio", "Jr. Pizarro 123 · Olva", "2026-11-04T10:00:00Z"]);
   });
 });

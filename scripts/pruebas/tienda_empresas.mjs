@@ -191,7 +191,14 @@ esperarValor(
 console.log("F. Las migraciones se pueden pegar dos veces");
 {
   const sql = MIGRACIONES.map((f) => readFileSync(f, "utf8")).join("\n");
-  const dos = correr(`begin;\n${sql}\n${sql}\nrollback;`);
+  // 20261031161000 cambió la pregunta por prenda del catálogo (la de 20261021000000) por la lista de empresas leída una vez: se deshace
+  // dentro de la transacción, con las anclas de esa misma migración, para pegar estas sobre el catálogo que ellas conocieron.
+  const [, antes, nuevo] = [...readFileSync("supabase/migrations/20261031161000_tienda_precio_por_lotes.sql", "utf8").matchAll(
+    /\$v\$([\s\S]*?)\$v\$,\s*\$n\$([\s\S]*?)\$n\$/g,
+  )][1];
+  const deshacerPorLotes = `do $d$ declare d text := pg_get_functiondef('retail.tienda_catalogo(uuid)'::regprocedure);
+begin if position($n$${nuevo}$n$ in d) > 0 then execute replace(d, $n$${nuevo}$n$, $a$${antes}$a$); end if; end $d$;`;
+  const dos = correr(`begin;\n${deshacerPorLotes}\n${sql}\n${sql}\nrollback;`);
   esperar("pegadas dos veces no fallan", dos.ok, dos.mensaje);
 }
 

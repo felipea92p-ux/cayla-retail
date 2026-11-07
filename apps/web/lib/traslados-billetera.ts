@@ -21,6 +21,7 @@ import {
   type VistaPase,
 } from "@/lib/traslados-pases-reglas";
 import type { ContextoTraslados, TrasladoBuscable } from "@/lib/traslados-reglas";
+import { unstable_rethrow } from "next/navigation";
 
 // La billetera de Traslados (ADR-0355): todo lo que la columna izquierda necesita, armado en el servidor con un solo «ahora».
 // `cache()`: el layout (la billetera) y la página (el pase grande) la piden en el mismo request y se lee una sola vez.
@@ -50,6 +51,7 @@ export async function getCodigosDeSede(): Promise<CodigosDeSede> {
   try {
     sedes = new Map((await getUbicaciones()).map((u) => [u.id, { nombre: u.nombre, tipo: u.tipo }] as const));
   } catch (e) {
+    unstable_rethrow(e);
     console.error("Traslados: tipos de sede:", e);
   }
   const codigo = (u: { id: string; nombre: string }) => codigoDeSede({ nombre: u.nombre, tipo: sedes.get(u.id)?.tipo ?? null });

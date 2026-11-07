@@ -23,9 +23,17 @@
  * USO
  *   pnpm pruebas:pos-maquinas                                    → contra el local compartido
  *   pnpm pruebas:pos-maquinas -- --contenedor supabase_db_<pila> → contra una pila propia
+ *   pnpm pruebas:pos-maquinas -- --con-migracion supabase/migrations/<archivo>.sql
+ *                                  → prueba una migración que el local aún no tiene, dentro de cada transacción (se deshace)
  */
 
 import { execFileSync } from "node:child_process";
+import { readFileSync } from "node:fs";
+
+// `--con-migracion <archivo>`: se aplica DENTRO de la transacción de cada escenario y se deshace con su ROLLBACK (como en
+// `cuentas_dinero.mjs`, ADR-0548). Sirve para comprobar que una migración posterior no rompe lo que prometen las máquinas.
+const ARG_MIGRACION = process.argv.indexOf("--con-migracion");
+const MIGRACION_EN_LA_TRANSACCION = ARG_MIGRACION > 0 ? readFileSync(process.argv[ARG_MIGRACION + 1], "utf8") : "";
 
 const ARG_CONTENEDOR = process.argv.indexOf("--contenedor");
 const CONTENEDOR_LOCAL = ARG_CONTENEDOR > 0 ? process.argv[ARG_CONTENEDOR + 1] : "supabase_db_cayla-retail";
@@ -73,6 +81,7 @@ $f$;
  *  de sobra y una variante `:v` a S/ 100. */
 const ESCENA = `
 begin;
+${MIGRACION_EN_LA_TRANSACCION}
 ${INTENTO}
 ${AYUDAS}
 ${cambiaA(FELIPE)}
@@ -85,6 +94,10 @@ select id as izipay_cta from retail.cuentas_dinero where nombre = 'Por depositar
 select id as vendemas_cta from retail.cuentas_dinero where nombre = 'Por depositar Vendemás' and archivada_en is null \\gset
 select id as izipay from retail.pos_maquinas where nombre = 'Izipay' and archivada_en is null \\gset
 select id as vendemas from retail.pos_maquinas where nombre = 'Vendemás' and archivada_en is null \\gset
+-- La tarea 14 sembró la tarifa de Vendemás (20261106012000): aquí se prueba una máquina que todavía no tiene ninguna.
+set local session_replication_role = replica;
+delete from retail.pos_tarifas where maquina_id = :'vendemas';
+set local session_replication_role = origin;
 insert into retail.sububicaciones (ubicacion_id, nombre, tipo)
   select u, 'Piso de venta', 'piso_venta' from unnest(array[:'tru', :'lim']::uuid[]) u
    where not exists (select 1 from retail.sububicaciones s where s.ubicacion_id = u and s.tipo = 'piso_venta');
@@ -430,6 +443,30 @@ select count(*) from retail.fn_pos_pendientes(:'izipay_cta') where fecha = retai
   esperar("la segunda vez no mueve nada (idempotente)", r.ok && otraVez === "0", r);
   esperar("el rastro no se borra, y el sello sigue cerrado después de la corrección", r.ok && borrarRastro.includes("no se edita ni se borra") && aManoDespues.includes("se sella al cobrar"), r);
   esperar("el QR corregido aparece como día pendiente de depósito en Izipay", r.ok && Number(pendiente) >= 1, r);
+}
+
+// El banco de cada máquina (tarea 3 de «Las 36»): viene puesto en el depósito, solo a un banco vigente, y un banco archivado deja de proponerse.
+{
+  const r = correr(`${ESCENA}
+select id as visa_prueba from retail.cuentas_dinero where tipo = 'por_abonar' limit 1 \\gset
+select retail.crear_cuenta_dinero('Banco fijo prueba', 'banco', 0, retail.fn_hoy_lima()) as banco_fijo \\gset
+select m.id as maq from retail.pos_maquinas m where m.archivada_en is null order by m.nombre limit 1 \\gset
+select retail.guardar_banco_de_maquina(:'maq', :'banco_fijo') \\g /dev/null
+select banco_id = :'banco_fijo' from retail.fn_pos_bancos_de_maquinas() where maquina_id = :'maq';
+select pg_temp.intento(format('select retail.guardar_banco_de_maquina(%L, %L)', :'maq', :'visa_prueba'));
+update retail.cuentas_dinero set archivada_en = now() where id = :'banco_fijo';
+select banco_id is null from retail.fn_pos_bancos_de_maquinas() where maquina_id = :'maq';
+select retail.guardar_banco_de_maquina(:'maq', null) \\g /dev/null
+select (select banco_id from retail.pos_maquinas where id = :'maq') is null;
+${cambiaA(MICAELA)}
+select pg_temp.intento(format('select retail.guardar_banco_de_maquina(%L, null)', :'maq'));
+select pg_temp.intento('select * from retail.fn_pos_bancos_de_maquinas()');`);
+  const [puesto, noBanco, archivado, quitado, sinPermisoGuardar, sinPermisoLeer] = lineas(r);
+  esperar("el banco elegido viene de vuelta en la lectura", r.ok && puesto === "t", r);
+  esperar("una cuenta que no es banco se rechaza", r.ok && /banco vigente/.test(noBanco ?? ""), r);
+  esperar("un banco archivado deja de proponerse", r.ok && archivado === "t", r);
+  esperar("se puede quitar", r.ok && quitado === "t", r);
+  esperar("quien no configura no lo cambia ni lo lee", r.ok && /líder/.test(sinPermisoGuardar ?? "") && /líder/.test(sinPermisoLeer ?? ""), r);
 }
 
 console.log(fallos === 0 ? `\nTodo en orden (${casos} casos) · contenedor: ${CONTENEDOR_LOCAL}` : `\n${fallos} de ${casos} caso(s) fallaron · contenedor: ${CONTENEDOR_LOCAL}`);

@@ -11,6 +11,7 @@ import {
   velocidad,
   type Muestra,
 } from "@/lib/hoja-gesto";
+import { prefiereQuieto } from "@/lib/movimiento-cliente";
 
 /** Debe coincidir con la regla «HOJA DEL CELULAR» de globals.css: solo bajo 640 px la hoja va pegada abajo. */
 const CELULAR = "(max-width: 639.98px)";
@@ -80,7 +81,7 @@ export function useHojaArrastre(opciones: Opciones) {
     let yAhora = 0;
     let vSoltada = 0;
     let reloj: ReturnType<typeof setTimeout> | undefined;
-    const sinMovimiento = () => window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false;
+    const sinMovimiento = () => prefiereQuieto();
     const enCelular = () => window.matchMedia?.(CELULAR).matches ?? false;
 
     const pintar = (y: number, ms = 0) => {
@@ -155,8 +156,9 @@ export function useHojaArrastre(opciones: Opciones) {
       const objetivo = e.target instanceof Element ? e.target : null;
       if (!objetivo || objetivo.closest(NO_ARRASTRA)) return;
       // Lo que corre bajo el dedo, de adentro hacia la hoja: si algo no está arriba del todo, bajar el dedo es desplazarlo.
+      // Salvo el asa, que no está sobre contenido: se queda a la vista al correr y tirar de ella siempre mueve la hoja.
       const corredores: HTMLElement[] = [];
-      for (let el: Element | null = objetivo; el && hoja.contains(el); el = el.parentElement) {
+      for (let el: Element | null = objetivo.closest("[data-asa-hoja]") ? null : objetivo; el && hoja.contains(el); el = el.parentElement) {
         if (el instanceof HTMLElement && el.scrollHeight > el.clientHeight + 1 && /(auto|scroll)/.test(getComputedStyle(el).overflowY)) corredores.push(el);
       }
       const t = e.touches[0];

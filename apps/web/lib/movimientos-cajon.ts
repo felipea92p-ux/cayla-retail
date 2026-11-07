@@ -196,6 +196,8 @@ export function fraseDeMovimiento(m: Movimiento, n: number): string {
       return `${prenda} ${una ? "se cargó" : "se cargaron"} como stock inicial`;
     case "traslado_entrada":
       return `${prenda} ${una ? "llegó" : "llegaron"} desde ${origen}`;
+    case "correccion_recepcion":
+      return `${prenda} ${una ? "salió" : "salieron"} del almacén: se corrigió lo que entró`;
     case "traslado_salida":
       return `${prenda} ${una ? "salió" : "salieron"} hacia ${destino ?? "otra tienda"}`;
     case "traslado_anulado":

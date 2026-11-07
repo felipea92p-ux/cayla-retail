@@ -1,0 +1,188 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>La gota · aviso de versión nueva</title>
+<style>
+  /* Tokens reales (globals.css / tema.css). */
+  :root{ --crema:#f5f0e8; --papel:#fbf8f2; --hueso:#eae1d2; --sand:#e8e0d0; --tinta:#1a1a18; --taupe:#805c4c; --sombra:#1a1a18; --ease:cubic-bezier(.22,1,.36,1); --vel:1 }
+  :root[data-tema="oscuro"]{ --crema:#1c1a17; --papel:#26241f; --hueso:#33302a; --sand:#403b34; --tinta:#f5f0e8; --taupe:#c4a898; --sombra:#000 }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--crema);color:var(--tinta);font:14px/1.45 "DM Sans",system-ui,sans-serif;padding:24px}
+  h1{font:500 26px/1.2 "EB Garamond",Georgia,serif;margin:0 0 4px}
+  p.s{color:var(--taupe);margin:0 0 16px;max-width:78ch}
+  .barra{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px}
+  .barra button{font:500 13px/1 inherit;font-family:inherit;padding:9px 14px;border-radius:999px;border:1px solid var(--sand);background:var(--papel);color:var(--tinta);cursor:pointer}
+  .barra button.on{background:var(--tinta);color:var(--crema);border-color:var(--tinta)}
+  .marco{position:relative;height:320px;border:1px solid var(--sand);border-radius:14px;overflow:hidden;background:var(--crema)}
+  .cab{position:absolute;inset:0 0 auto 0;height:48px;border-bottom:1px solid var(--sand);display:flex;align-items:center;padding:0 18px;font:600 10px/1 inherit;font-family:inherit;letter-spacing:.12em;text-transform:uppercase;color:var(--taupe)}
+  .cont{position:absolute;inset:48px 0 0 0;padding:16px 18px}
+  .tit{font:500 28px/1.1 "EB Garamond",Georgia,serif;margin:4px 0 10px}
+  .fila{height:34px;border-radius:8px;background:var(--papel);border:1px solid var(--sand);margin-bottom:6px}
+
+  /* ---- La píldora. Alto fijo (42 px) para que la gota sea un círculo exacto al recortarla. ---- */
+  .version-nueva{position:absolute;z-index:40;left:50%;translate:-50% 0;top:8px;height:42px;display:flex;align-items:center;gap:10px;white-space:nowrap;
+    padding:0 5px 0 14px;border-radius:999px;background:var(--tinta);color:var(--crema);font-size:13px;
+    box-shadow:0 12px 24px -10px color-mix(in srgb,var(--sombra) 45%,transparent);transform-origin:50% 100%}
+  .version-nueva > *{flex:none}
+  .punto{width:8px;height:8px;border-radius:50%;background:var(--crema)}
+  .t{margin:0;font-weight:500}.t span{font-weight:400;color:color-mix(in srgb,var(--crema) 78%,transparent)}
+  .go{font:600 12px/1 inherit;font-family:inherit;letter-spacing:.06em;text-transform:uppercase;padding:0 14px;height:32px;border-radius:999px;border:0;background:var(--crema);color:var(--tinta);cursor:pointer;transition:background-color 200ms var(--ease)}
+  .go:hover{background:var(--hueso)}
+  .x{display:grid;place-items:center;width:32px;height:32px;border-radius:50%;border:0;background:none;color:color-mix(in srgb,var(--crema) 78%,transparent);cursor:pointer}
+  .x svg{width:16px;height:16px}
+
+  /* ================= LA GOTA (propuesta) — 2 200 ms en total =================
+       0 –  480 ms  cae suave desde arriba hasta lo MÁS BAJO de la sección del aviso (toca su borde de abajo)
+     480 –  540 ms  toca y se aplasta apenas
+     540 –  900 ms  rebota UNA sola vez: sube suave hasta el CENTRO de la sección del aviso y ahí se queda
+     950 – 1 600 ms la gota toca el fondo y se riega por el SUELO del recipiente, con la punta redonda, hasta las dos paredes
+   1 280 – 2 110 ms el NIVEL sube: la superficie sube ondulada (el centro primero, las orillas después) hasta llenar el aviso
+   1 650 – 2 030 ms el texto y los botones aparecen cuando el líquido los alcanza
+     Así se mueve el agua en una bandeja: primero corre baja y redonda por el piso, y recién después sube de nivel. Son círculos y columnas
+     de bordes redondos que un filtro de «goteo» (SVG: blur + contraste del alfa) funde en UNA sola masa blanda; las paredes de la píldora
+     (su `border-radius`) la contienen. */
+  .version-nueva.gota{
+    background:transparent;
+    box-shadow:none;
+    animation:
+      cae calc(1000ms * var(--vel)) linear both,
+      sombra calc(400ms * var(--vel)) var(--ease) calc(2050ms * var(--vel)) both;
+  }
+  .version-nueva.gota > :not(.agua){position:relative;animation:contenido calc(380ms * var(--vel)) var(--ease) calc(1650ms * var(--vel)) both;opacity:0}
+  @keyframes sombra{from{box-shadow:0 12px 24px -10px transparent} to{box-shadow:0 12px 24px -10px color-mix(in srgb,var(--sombra) 45%,transparent)}}
+  @keyframes cae{
+    0%   {transform:translate3d(0,-90px,0) scale(1,1);       animation-timing-function:cubic-bezier(.45,.05,.7,.55)}
+    48%  {transform:translate3d(0,12px,0)  scale(1,1);       animation-timing-function:cubic-bezier(.2,.6,.3,1)}
+    54%  {transform:translate3d(0,12px,0)  scale(1.16,.84);  animation-timing-function:cubic-bezier(.3,.1,.25,1)}
+    90%  {transform:translate3d(0,0,0)     scale(1,1)}
+    100% {transform:translate3d(0,0,0)     scale(1,1)}
+  }
+  @keyframes contenido{from{opacity:0;transform:translate3d(0,4px,0)} to{opacity:1;transform:none}}
+
+  /* El recipiente y el líquido. `.agua` recorta con la forma de la píldora; `.goo` lleva el filtro y se pasa 30 px por cada lado para que el
+     difuminado de los bordes quede fuera de la vista. Cada `.b` es una gota de 80 px que crece de `--s0` a `--s` (su escala), con su sitio
+     (`--x`, `--y`), su retraso (`--d`, ms después de que la gota cae) y su duración (`--t`). */
+  .agua{position:absolute;inset:0;border-radius:999px;overflow:hidden;pointer-events:none}
+  .goo{position:absolute;inset:-30px;filter:url(#liquido)}
+  /* Todo se mide desde el piso de la píldora: `.goo` se pasa 30 px por abajo, así que el piso está en `bottom: 30px`. Retrasos en ms DESPUÉS de que la
+     gota se asienta (950 ms); `--vel` es la cámara lenta. */
+  .agua i{position:absolute;display:block;background:var(--tinta)}
+  /* 1 · La gota (18 px) se deja caer al fondo y se aplasta contra el piso */
+  .version-nueva.gota .gt{left:50%;top:50%;width:18px;height:18px;margin:-9px 0 0 -9px;border-radius:50%;
+      animation:gt calc(260ms * var(--vel)) cubic-bezier(.4,0,.3,1) calc(950ms * var(--vel)) both}
+  @keyframes gt{from{translate:0 0;scale:1 1} to{translate:0 9px;scale:1.25 .8}}
+  /* 2 · El suelo: una franja baja de puntas redondas que se ensancha desde el centro hasta las paredes */
+  .version-nueva.gota .piso{left:50%;bottom:30px;height:20px;border-radius:999px;translate:-50% 0;
+        animation:piso calc(700ms * var(--vel)) cubic-bezier(.2,.7,.3,1) calc(1000ms * var(--vel)) both}
+  @keyframes piso{from{width:18px;opacity:0} 1%{opacity:1} to{width:600px;opacity:1}}
+  /* …con una cabeza más gruesa en cada punta, que va un poco adelante y deja el cuello que el filtro estira */
+  .version-nueva.gota .cab-l,.version-nueva.gota .cab-r{left:50%;bottom:30px;width:26px;height:26px;margin-left:-13px;border-radius:50%;
+        animation:cab calc(700ms * var(--vel)) cubic-bezier(.2,.7,.3,1) calc(1000ms * var(--vel)) both}
+  .version-nueva.gota .cab-l{--dx:-262px}.version-nueva.gota .cab-r{--dx:262px}
+  @keyframes cab{from{translate:0 0;scale:.7;opacity:0} 1%{opacity:1} to{translate:var(--dx) 0;scale:1;opacity:1}}
+  /* 3 · El nivel sube: cinco columnas de cima redonda; la superficie ondula porque cada una sube a su hora (el centro primero) */
+  .version-nueva.gota .col{bottom:30px;width:190px;margin-left:-95px;left:50%;border-radius:95px 95px 0 0;height:0;
+       translate:var(--x) 0;animation:nivel calc(700ms * var(--vel)) cubic-bezier(.3,.55,.3,1) calc((1280 + var(--d)) * 1ms * var(--vel)) both}
+  @keyframes nivel{from{height:0} to{height:64px}}
+  .col.c0{--x:0px;--d:0}
+  .col.c1{--x:-115px;--d:90}.col.c2{--x:115px;--d:90}
+  .col.c3{--x:-230px;--d:190}.col.c4{--x:230px;--d:190}
+  @media (prefers-reduced-motion:reduce){
+    .version-nueva.gota{animation:none!important;background:var(--tinta);box-shadow:0 12px 24px -10px color-mix(in srgb,var(--sombra) 45%,transparent)}
+    .version-nueva.gota > :not(.agua){animation:none!important;opacity:1}
+    .agua{display:none}
+  }
+
+  /* ================= LA SALIDA al pulsar la ✕ («Más tarde») — 1 450 ms =================
+     Es la entrada al revés, pero el aviso no se evapora: se RECOGE y se va como una gota.
+       0 –  200 ms  el texto y los botones se apagan
+       0 –  600 ms  el nivel baja: las orillas primero, el centro al final (la superficie ondulada se aplana)
+     200 –  800 ms  el líquido se recoge desde las paredes hacia el centro, hasta volver a ser una gota
+     800 –  950 ms  la gota se redondea y se levanta al centro de la sección
+     950 – 1 450 ms  se desprende: cae acelerando (como la gota de la entrada, pero hacia abajo) y se desvanece
+     Variante «seca»: la gota no cae; se encoge en su sitio hasta desaparecer (1 100 ms). */
+  .version-nueva.gota.sale{animation:sombra-off calc(200ms * var(--vel)) var(--ease) both,cae-sale calc(500ms * var(--vel)) cubic-bezier(.55,.05,.9,.5) calc(950ms * var(--vel)) both}
+  .version-nueva.gota.sale > :not(.agua){animation:apaga calc(200ms * var(--vel)) var(--ease) both;opacity:1;pointer-events:none}
+  .version-nueva.gota.sale .piso{animation:piso-sale calc(600ms * var(--vel)) cubic-bezier(.6,0,.3,1) calc(200ms * var(--vel)) both}
+  .version-nueva.gota.sale .cab-l,.version-nueva.gota.sale .cab-r{animation:cab-sale calc(600ms * var(--vel)) cubic-bezier(.6,0,.3,1) calc(200ms * var(--vel)) both}
+  .version-nueva.gota.sale .col{animation:nivel-sale calc(450ms * var(--vel)) cubic-bezier(.5,0,.5,1) calc(var(--ds) * 1ms * var(--vel)) both}
+  .version-nueva.gota.sale .col.c3,.version-nueva.gota.sale .col.c4{--ds:0}
+  .version-nueva.gota.sale .col.c1,.version-nueva.gota.sale .col.c2{--ds:70}
+  .version-nueva.gota.sale .col.c0{--ds:150}
+  .version-nueva.gota.sale .gt{animation:gt-sale calc(150ms * var(--vel)) var(--ease) calc(800ms * var(--vel)) both}
+  @keyframes sombra-off{from{box-shadow:0 12px 24px -10px color-mix(in srgb,var(--sombra) 45%,transparent)} to{box-shadow:0 12px 24px -10px transparent}}
+  @keyframes apaga{from{opacity:1} to{opacity:0}}
+  @keyframes piso-sale{from{width:600px;opacity:1} to{width:18px;opacity:1}}
+  @keyframes cab-sale{from{translate:var(--dx) 0;scale:1;opacity:1} to{translate:0 0;scale:.7;opacity:1}}
+  @keyframes nivel-sale{from{height:64px} to{height:0}}
+  @keyframes gt-sale{from{translate:0 9px;scale:1.25 .8} to{translate:0 0;scale:1 1}}
+  @keyframes cae-sale{
+    from{transform:translate3d(0,0,0);opacity:1}
+    to  {transform:translate3d(0,110px,0) scale(.85,1.15);opacity:0}
+  }
+  /* Variante «seca»: sin caída; la gota se encoge y se va */
+  .version-nueva.gota.sale.seca{animation:sombra-off calc(200ms * var(--vel)) var(--ease) both}
+  .version-nueva.gota.sale.seca .gt{animation:gt-seca calc(1100ms * var(--vel)) var(--ease) calc(800ms * var(--vel)) both}
+  @keyframes gt-seca{from{translate:0 9px;scale:1.25 .8;opacity:1} 15%{translate:0 0;scale:1 1;opacity:1} to{translate:0 0;scale:0 0;opacity:0}}
+  @media (prefers-reduced-motion:reduce){ .version-nueva.gota.sale{animation:none!important;opacity:0} }
+
+  /* ---- La entrada de hoy, para comparar ---- */
+  .version-nueva:not(.gota) .agua{display:none}
+  .version-nueva.hoy{animation:hoy calc(420ms * var(--vel)) var(--ease) both}
+  @keyframes hoy{from{opacity:0;transform:translate3d(0,-10px,0)}}
+
+  .linea{margin-top:14px;display:grid;gap:6px;max-width:80ch}
+  .linea div{display:flex;gap:10px;align-items:baseline}
+  .linea b{min-width:170px;font-weight:600}
+  .linea span{color:var(--taupe)}
+  .aviso{margin-top:14px;max-width:80ch;padding:10px 14px;border-left:3px solid var(--taupe);background:var(--hueso);border-radius:4px 10px 10px 4px;font-size:13px}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><filter id="liquido" x="-10%" y="-250%" width="120%" height="600%"><feGaussianBlur in="SourceGraphic" stdDeviation="5" result="b"/><feColorMatrix in="b" mode="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 20 -8"/></filter></svg>
+<h1>La gota: entrada y salida del aviso</h1>
+<p class="s">Toca <b>▶ Ver la gota</b> para la entrada, y <b>▶ Salida con ✕</b> (o la ✕ del aviso) para cuando se cierra. Con <b>Cámara lenta</b> se aprecia cada tramo. <b>Entrada de hoy</b> es la que está construida, para comparar.</p>
+
+<div class="barra">
+  <button onclick="correr('gota')">▶ Ver la gota</button>
+  <button onclick="correr('gota sale')">▶ Salida con ✕ (se va como gota)</button>
+  <button onclick="correr('gota sale seca')">▶ Salida alterna (se encoge)</button>
+  <button onclick="correr('hoy')">▶ Entrada de hoy</button>
+  <button id="lenta" onclick="lenta()">Cámara lenta</button>
+  <button onclick="document.documentElement.dataset.tema=document.documentElement.dataset.tema==='oscuro'?'':'oscuro'">Claro / Oscuro</button>
+</div>
+
+<div class="marco">
+  <div class="cab">Lima · 28 oct</div>
+  <div class="cont"><div class="tit">Impuestos</div><div class="fila"></div><div class="fila"></div><div class="fila"></div></div>
+  <div class="version-nueva gota" id="pil" role="status">
+    <div class="agua"><div class="goo"><i class="gt"></i><i class="piso"></i><i class="cab-l"></i><i class="cab-r"></i><i class="col c0"></i><i class="col c1"></i><i class="col c2"></i><i class="col c3"></i><i class="col c4"></i></div></div>
+    <span class="punto"></span>
+    <p class="t">Hay una versión nueva <span>· actualiza cuando termines</span></p>
+    <button class="go">Actualizar</button>
+    <button class="x" aria-label="Más tarde"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
+  </div>
+</div>
+
+<div class="linea">
+  <div><b>1 · Cae suave</b><span>una gota negra baja unos 90 px, acelerando poco a poco, hasta lo más bajo de la sección del aviso (480 ms)</span></div>
+  <div><b>2 · Un solo rebote</b><span>toca el borde de abajo, se aplasta apenas y sube suave</span></div>
+  <div><b>3 · Queda en el centro</b><span>se asienta en el centro de la sección del aviso, sin más rebotes</span></div>
+  <div><b>4 · Corre por el suelo</b><span>la gota se aplasta contra el fondo y se riega por el piso del aviso como el agua en una bandeja: una franja baja de punta redonda que llega a las dos paredes</span></div>
+  <div><b>5 · El nivel sube</b><span>después sube la superficie, ondulada (el centro primero, las orillas después), hasta llenar todo el aviso; el texto aparece cuando el líquido lo alcanza</span></div>
+  <div><b>Duración de la entrada</b><span>2,2 s, una sola vez. Con «reducir movimiento» aparece directo, sin gota</span></div>
+  <div><b>Salida con ✕ (propuesta)</b><span>el texto se apaga; el nivel baja y el líquido se recoge desde las paredes hasta volver a ser una gota; esa gota se desprende y cae, desvaneciéndose (1,45 s)</span></div>
+  <div><b>Salida alterna</b><span>igual, pero la gota no cae: se encoge en su sitio hasta desaparecer (1,1 s)</span></div>
+</div>
+<div class="aviso"><b>Ojo con la regla del ERP.</b> ADR-0136 dice «sin rebote, nunca decorativo». Esto sería una excepción por decisión tuya, como la de Aventurero o el colibrí del login. Que sea una sola vez, con un único rebote suave y dure poco más de 2 s es lo que la mantiene discreta con ~6 publicaciones por hora.</div>
+
+<script>
+  const p=document.getElementById('pil');
+  p.querySelector('.x').addEventListener('click',()=>{ if(p.classList.contains('gota')&&!p.classList.contains('sale')) correr('gota sale'); });
+  function correr(cual){p.className='version-nueva';void p.offsetWidth;p.className='version-nueva '+cual}
+  function lenta(){const r=document.documentElement,b=document.getElementById('lenta');const on=r.style.getPropertyValue('--vel')!=='4';r.style.setProperty('--vel',on?'4':'1');b.classList.toggle('on',on)}
+</script>
+</body>
+</html>

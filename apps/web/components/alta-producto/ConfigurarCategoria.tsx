@@ -98,7 +98,7 @@ export function ConfigurarCategoria({
         <p>
           <strong>{categoriaNombre}</strong> {t.faltante}.{motivoExtra ? ` ${motivoExtra}` : ""}
         </p>
-        <p className="mt-1 text-xs">{t.efecto} Esto se guarda en la categoría, no solo en este producto.</p>
+        <p className="mt-1 text-sm">{t.efecto} Esto se guarda en la categoría, no solo en este producto.</p>
       </Aviso>
 
       <p className="label-cayla text-[11px] text-tinta/60">{t.accion}</p>

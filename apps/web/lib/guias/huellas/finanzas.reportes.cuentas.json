@@ -1,0 +1,37 @@
+{
+  "guia": "finanzas.reportes.cuentas",
+  "ruta": "/finanzas/reportes/cuentas",
+  "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
+  "total": 19,
+  "controles": {
+    "components/finanzas/estados/CabeceraEstados.tsx": [
+      "Pestanas «(sin nombre)»"
+    ],
+    "components/finanzas/estados/DescargarContador.tsx": [
+      "BotonDescargar «Descargar Excel»"
+    ],
+    "components/finanzas/estados/SelectorPeriodo.tsx": [
+      "button «{`Ver el ${queSeMira}»",
+      "button «{una ? p.al : p.titulo}»",
+      "button «{`Ver el ${queSeMira}» #2",
+      "CampoTexto «Desde»",
+      "CampoTexto «{una ? \"Fecha\" : \"Hasta\"}»",
+      "Boton «Ver»",
+      "button «Cerrar»",
+      "button «{a.titulo}»",
+      "button «{dicho}»",
+      "button «Meses anteriores»",
+      "button «Meses siguientes»",
+      "button «{fechaLarga(d.iso)}»"
+    ],
+    "components/finanzas/telar/MesaDeMando.tsx": [
+      "button «Todas»",
+      "button «{marcada && <Check className=\"h-3 w-3\" />}»",
+      "BotonEnlace «telar.registrar»"
+    ],
+    "components/finanzas/telar/TeToca.tsx": [
+      "button «telar.te-toca»",
+      "BotonVer «{p.verbo}»"
+    ]
+  }
+}

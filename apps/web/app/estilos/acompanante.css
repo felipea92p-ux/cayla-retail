@@ -1,0 +1,170 @@
+/* EL ACOMPAÑANTE DE «PREGÚNTALE A CAYLA» (ADR-0536, «Acompañar una tarea», Felipe 2026-10-27)
+   Habla el mismo idioma que las guías interactivas (ADR-0389, `guias.css`): un velo con un recorte alrededor de la pieza, el halo
+   que respira y la onda que sale una vez al llegar. Dos diferencias, porque aquí la persona trabaja de verdad: el velo es más suave y
+   NO bloquea nada (todo se toca a través, `pointer-events: none`), y junto a la pieza va una etiqueta con el número del paso y qué
+   tocar. El velo es `--color-sombra`, nunca `tinta` (ADR-0336). Sin rebote; los únicos bucles son la señal de «mira aquí» (el halo y
+   el punto de la etiqueta). Todo se apaga con `prefers-reduced-motion`. Su lugar lo escribe cuadro a cuadro `Acompanante.tsx`. */
+
+.acompana-capa {
+  --acompana-velo: color-mix(in srgb, var(--color-sombra) 26%, transparent);
+  position: fixed;
+  inset: 0;
+  z-index: 94;
+  pointer-events: none;
+  transition: opacity 240ms var(--ease-cayla);
+}
+:root[data-tema="oscuro"] .acompana-capa {
+  --acompana-velo: color-mix(in srgb, var(--color-sombra) 48%, transparent);
+}
+/* Sin pieza a la vista (otra pantalla, una lista abierta encima), no hay velo: nada se oscurece sin motivo. */
+.acompana-capa[data-oculta] {
+  opacity: 0;
+}
+
+.acompana-velo {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  animation: acompana-entra 300ms var(--ease-cayla) backwards;
+}
+.acompana-velo path {
+  fill: var(--acompana-velo);
+}
+@keyframes acompana-entra {
+  from { opacity: 0; }
+}
+
+/* El recorte: el filo claro alrededor de la pieza, con el anillo rojo de «aquí» por dentro. */
+.acompana-recorte {
+  position: absolute;
+  top: 0;
+  left: 0;
+  border-radius: 14px;
+  box-shadow:
+    0 0 0 2px var(--color-rojo),
+    0 0 0 6px color-mix(in srgb, var(--color-papel) 70%, transparent);
+  will-change: transform;
+}
+/* El halo que respira: «esta es la pieza» mientras la persona no la toca. */
+.acompana-recorte::after {
+  content: "";
+  position: absolute;
+  inset: -9px;
+  border-radius: 20px;
+  border: 1.5px solid color-mix(in srgb, var(--color-rojo) 55%, transparent);
+  opacity: 0;
+  animation: acompana-halo 2.4s var(--ease-cayla) 0.6s infinite;
+}
+@keyframes acompana-halo {
+  0%, 100% { opacity: 0; transform: scale(1); }
+  45% { opacity: 0.85; transform: scale(1.015); }
+}
+/* La llegada: una onda roja que sale UNA vez cuando el paso empieza. */
+.acompana-recorte::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 14px;
+  animation: acompana-onda 900ms var(--ease-cayla) 120ms both;
+}
+@keyframes acompana-onda {
+  from { box-shadow: 0 0 0 0 color-mix(in srgb, var(--color-rojo) 45%, transparent); }
+  to { box-shadow: 0 0 0 28px color-mix(in srgb, var(--color-rojo) 0%, transparent); }
+}
+
+/* La etiqueta pegada a la pieza: el número del paso en rojo y la orden corta, con su pico hacia la pieza. */
+.acompana-etiqueta {
+  position: absolute;
+  top: 0;
+  left: 0;
+  display: flex;
+  max-width: min(320px, calc(100vw - 24px));
+  align-items: center;
+  gap: 10px;
+  border: 1px solid var(--color-sand);
+  border-radius: 999px;
+  background: var(--color-papel);
+  padding: 6px 14px 6px 6px;
+  color: var(--color-tinta);
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.25;
+  box-shadow: 0 14px 34px -16px color-mix(in srgb, var(--color-sombra) 55%, transparent);
+  will-change: transform;
+  animation: acompana-etiqueta-entra 360ms var(--ease-cayla) 80ms backwards;
+}
+.acompana-etiqueta[data-lado="arriba"] {
+  --acompana-desde: 6px;
+}
+.acompana-etiqueta[data-lado="abajo"] {
+  --acompana-desde: -6px;
+}
+@keyframes acompana-etiqueta-entra {
+  from { opacity: 0; translate: 0 var(--acompana-desde, 6px); }
+}
+.acompana-etiqueta-texto {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.acompana-numero {
+  position: relative;
+  display: grid;
+  height: 26px;
+  min-width: 26px;
+  flex: none;
+  place-items: center;
+  border-radius: 999px;
+  background: var(--color-rojo);
+  color: var(--color-crema-fija);
+  font-size: 13px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+/* El punto que late en el número: «te toca a ti». */
+.acompana-numero::after {
+  content: "";
+  position: absolute;
+  inset: -3px;
+  border-radius: 999px;
+  border: 2px solid color-mix(in srgb, var(--color-rojo) 40%, transparent);
+  animation: acompana-late 1.8s var(--ease-cayla) infinite;
+}
+@keyframes acompana-late {
+  0% { opacity: 0.9; transform: scale(0.9); }
+  70%, 100% { opacity: 0; transform: scale(1.35); }
+}
+/* El pico: un cuadrito girado que apunta a la pieza. */
+.acompana-etiqueta::after {
+  content: "";
+  position: absolute;
+  left: var(--acompana-pico, 24px);
+  width: 10px;
+  height: 10px;
+  background: var(--color-papel);
+  border: 1px solid var(--color-sand);
+  transform: translateX(-50%) rotate(45deg);
+}
+.acompana-etiqueta[data-lado="arriba"]::after {
+  bottom: -6px;
+  border-top: 0;
+  border-left: 0;
+}
+.acompana-etiqueta[data-lado="abajo"]::after {
+  top: -6px;
+  border-bottom: 0;
+  border-right: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .acompana-velo,
+  .acompana-etiqueta,
+  .acompana-recorte::before {
+    animation: none;
+  }
+  .acompana-recorte::after,
+  .acompana-numero::after {
+    display: none;
+  }
+}

@@ -1,6 +1,7 @@
 import type { CSSProperties } from "react";
 import type { LucideIcon } from "lucide-react";
 import { CifraAnimada } from "@/components/ui/CifraAnimada";
+import { soles } from "@/lib/compras-reglas";
 
 /* ====================================================================
    ResumenSede · las tres cifras de la sede (Atelier, 2026-09-19)
@@ -55,13 +56,22 @@ export type CifraResumen = {
 // Ancho: hasta `lg` el recuadro ocupa la fila y las cifras se reparten el ancho (`flex-1`); desde `lg` cada una pide su
 // mínimo. Antes el mínimo corría desde `sm` (640 px) y en una tablet con el menú lateral abierto cuatro cifras pedían
 // 480 px donde había ~450: la página se desbordaba en horizontal (visto en Productos y Devoluciones, 2026-09-28).
+// El tamaño del número sale del espacio que de verdad queda, no del ancho de la ventana (2026-11-05): a 768 px el lateral se lleva 272 y
+// «S/ 234.80» a 42 px no cabía en su cuarto. `--cifras` y `--largo` alimentan la cuenta de `.resumen-sede-cifra` (estilos/vidrio/pantalla.css).
+// Todas llevan el mismo tamaño: el que le deja caber a la cifra más larga.
+function largoDe({ valor, formato, unidad }: CifraResumen) {
+  if (valor === null) return 1;
+  return (formato === "soles" ? soles(valor) : String(Math.round(valor))).length + (unidad?.length ?? 0);
+}
+
 export function ResumenSede({ sede, cifras }: { sede: string; cifras: readonly CifraResumen[] }) {
+  const medidas = { "--i": 1, "--cifras": cifras.length, "--largo": Math.max(...cifras.map(largoDe), 1), "--tope-celular": cifras.length > 3 ? "17px" : "20px", "--relleno-ancho": cifras.length > 3 ? "40px" : "56px" } as CSSProperties;
   return (
     <section
       data-guia="resumen-sede.cifras"
       aria-label={`Resumen de ${sede}`}
-      className="anim-sube w-full rounded-[20px] bg-papel/70 shadow-[0_22px_44px_-30px_color-mix(in_srgb,var(--color-sombra)_50%,transparent)] ring-1 ring-tinta/[0.07] backdrop-blur-sm lg:w-auto"
-      style={{ "--i": 1 } as CSSProperties}
+      className="resumen-sede anim-sube w-full lg:w-auto"
+      style={medidas}
     >
       <ul className="flex">
         {cifras.map(({ valor, formato, unidad, nota, etiqueta, aparte, icono: Icono, href, alTocar, presionada, titulo, alerta }) => {
@@ -69,7 +79,7 @@ export function ResumenSede({ sede, cifras }: { sede: string; cifras: readonly C
             <>
               {/* Con cuatro cifras, en el celular el número baja un punto y no se parte ("S/" arriba, el monto abajo). */}
               <span
-                className={`font-display lining-nums whitespace-nowrap leading-none tabular-nums sm:text-[42px] ${cifras.length > 3 ? "text-[17px]" : "text-xl"} ${alerta ? "text-ambar-profundo" : "text-tinta"}`}
+                className={`resumen-sede-cifra font-display lining-nums whitespace-nowrap leading-none tabular-nums ${alerta ? "text-ambar-profundo" : "text-tinta"}`}
               >
                 {valor === null ? "—" : <CifraAnimada valor={valor} formato={formato} />}
                 {unidad && valor !== null && <small className="ml-px text-[0.55em]">{unidad}</small>}
@@ -97,7 +107,7 @@ export function ResumenSede({ sede, cifras }: { sede: string; cifras: readonly C
                   onClick={alTocar}
                   aria-pressed={!!presionada}
                   title={titulo}
-                  className="m-1 flex flex-1 flex-col items-center rounded-2xl px-1 py-3 text-center transition-colors duration-200 hover:bg-hueso/70 focus-visible:bg-hueso/70 aria-pressed:bg-hueso/70 sm:px-4"
+                  className="m-1 flex flex-1 flex-col items-center rounded-2xl px-1 py-3 text-center transition-colors duration-200 hover:bg-hueso/70 focus-visible:bg-hueso/70 aria-pressed:bg-hueso/70 lg:px-4"
                 >
                   {contenido}
                 </button>
@@ -105,12 +115,12 @@ export function ResumenSede({ sede, cifras }: { sede: string; cifras: readonly C
                 <a
                   href={href}
                   title={titulo}
-                  className="m-1 flex flex-1 flex-col items-center rounded-2xl px-1 py-3 text-center transition-colors duration-200 hover:bg-hueso/70 focus-visible:bg-hueso/70 sm:px-4"
+                  className="m-1 flex flex-1 flex-col items-center rounded-2xl px-1 py-3 text-center transition-colors duration-200 hover:bg-hueso/70 focus-visible:bg-hueso/70 lg:px-4"
                 >
                   {contenido}
                 </a>
               ) : (
-                <span title={titulo} className={`flex flex-1 flex-col items-center px-2 py-4 text-center ${cifras.length > 3 ? "sm:px-4" : "sm:px-7"}`}>
+                <span title={titulo} className={`flex flex-1 flex-col items-center px-2 py-4 text-center ${cifras.length > 3 ? "lg:px-4" : "lg:px-7"}`}>
                   {contenido}
                 </span>
               )}

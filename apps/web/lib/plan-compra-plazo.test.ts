@@ -5,6 +5,7 @@ import {
   detalleDelNuevoPlazo,
   diasConQueSeCuenta,
   fraseDeLosDias,
+  fraseDelConteoAntesDelPlazo,
   leerDiasParaLlegar,
   leerPlazoFijado,
   plazoDePedido,
@@ -118,5 +119,19 @@ describe("guardar el plazo", () => {
         expect(sePuedeConfirmar(camposDelPlazo(t, { listo, motivo: null }))).toBe(problemaDeLosDias(t) === null && listo);
       }
     }
+  });
+});
+
+describe("hasta cuándo contar el stock", () => {
+  it("con tiempo o justo, dice el último día para pedir", () => {
+    expect(fraseDelConteoAntesDelPlazo(plazoDePedido(DESDE, HASTA, "2026-10-24", 14))).toBe("Cuéntalo antes del 27/11: es el último día para pedir.");
+    expect(fraseDelConteoAntesDelPlazo(plazoDePedido(DESDE, HASTA, "2026-11-27", 14))).toBe("Cuéntalo antes del 27/11: es el último día para pedir.");
+  });
+  it("si ya es tarde o la campaña empezó, no inventa una fecha que ya pasó", () => {
+    expect(fraseDelConteoAntesDelPlazo(plazoDePedido(DESDE, HASTA, "2026-12-01", 14))).toBe("Cuéntalo antes de pedir.");
+    expect(fraseDelConteoAntesDelPlazo(plazoDePedido(DESDE, HASTA, DESDE, 14))).toBe("Cuéntalo antes de pedir.");
+  });
+  it("terminada la campaña no hay nada que contar para ella", () => {
+    expect(fraseDelConteoAntesDelPlazo(plazoDePedido(DESDE, HASTA, "2026-12-26", 14))).toBeNull();
   });
 });

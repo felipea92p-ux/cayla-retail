@@ -129,7 +129,7 @@ describe("leer una fila de la base", () => {
 
 describe("en qué punto está una oferta", () => {
   const v = (estado: ReglaCampana["estado"], desde: string, hasta: string) => vigenciaDeRegla({ estado, desde, hasta }, HOY);
-  it("un borrador espera a un líder, salvo que ya terminó", () => {
+  it("un borrador sigue siendo borrador, salvo que ya terminó", () => {
     expect(v("borrador", "2026-10-23", "2026-10-31")).toBe("borrador");
     expect(v("borrador", "2026-10-01", "2026-10-22")).toBe("terminada");
   });

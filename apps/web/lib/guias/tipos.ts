@@ -16,7 +16,7 @@ export type AccionGuia =
   | { tipo: "escribir"; ancla: string; texto: string | { palabraDe: string } }
   /** Vacía el campo anclado (para dejar la pantalla como estaba). */
   | { tipo: "vaciar"; ancla: string }
-  /** Solo «Pregúntale a CAYLA» (ADR-0529, actividad 6), nunca una guía escrita a mano: escribe en el campo anclado el dato que la
+  /** Solo «Pregúntale a CAYLA» (ADR-0536, actividad 6), nunca una guía escrita a mano: escribe en el campo anclado el dato que la
    *  persona dijo en su pregunta. El piloto se niega si el campo no está marcado `data-asistente="rellenable"`, y lo deja marcado
    *  «Lo escribió CAYLA» hasta que la persona lo toca. No guarda nada: el botón que guarda lo aprieta ella. */
   | { tipo: "rellenar"; ancla: string; texto: string }

@@ -28,12 +28,11 @@ const ERROR_COMBINA_CON = "«Combina con» son hasta 8 colores, cada uno con su 
 // PROMETE: el color queda disponible de inmediato para cualquier prenda
 //   nueva o existente — es la misma tabla que ya usa `getCatalogo()`
 //   (lib/catalogo-v2.ts) para la pantalla de Productos.
-// ASUME: sesión válida (cualquier persona activa, no solo Líder — decisión
-//   2026-09-16: "cualquiera propone, un Líder aprueba"). Quién propone no se
-//   valida acá: el estado real (`pendiente`/`aprobado`) lo decide un trigger
-//   en la base (`retail.fn_colores_estado_trigger`,
-//   `20260916220000_colores_proponer_aprobar.sql`) mirando si quien llama es
-//   Líder — nunca lo que mande este endpoint.
+// ASUME: sesión válida (cualquier persona activa — decisión 2026-09-16:
+//   "cualquiera propone"). Quién agrega no se valida acá: el estado lo pone un
+//   trigger en la base (`retail.fn_colores_estado_trigger`), que desde
+//   ADR-0534 (2026-10-27) lo deja `aprobado` lo cree quien lo cree — nunca lo
+//   que mande este endpoint.
 // NO HACE: no normaliza duplicados por su cuenta. Si "Azul marino" ya
 //   existe, `colores_clave_unica` lo rechaza y el mensaje se lo dice a la
 //   persona — no se le oculta silenciosamente ni se fusiona con el existente.
@@ -41,8 +40,8 @@ const ERROR_COMBINA_CON = "«Combina con» son hasta 8 colores, cada uno con su 
 //   imposible que dos colores equivalentes convivan como filas distintas.
 export async function POST(request: Request) {
   // Sin `requirePersonaActualV2()` guardando la puerta, esta ruta sería
-  // alcanzable sin sesión — sigue siendo la puerta de entrada, solo dejó de
-  // exigir Líder. El resultado (`estado`) no lo elige nadie de acá.
+  // alcanzable sin sesión — sigue siendo la puerta de entrada. El resultado
+  // (`estado`) no lo elige nadie de acá.
   await requirePersonaActualV2();
 
   const cuerpo = await request.json().catch(() => null);
@@ -108,7 +107,7 @@ export async function POST(request: Request) {
 export async function PATCH(request: Request) {
   const persona = await requirePersonaActualV2();
   if (!puede(persona, "editarCatalogo")) {
-    return Response.json({ error: "Solo un Líder puede editar el vocabulario de colores." }, { status: 403 });
+    return Response.json({ error: "Editar el vocabulario de colores necesita el módulo Productos o Atributos en tu rol." }, { status: 403 });
   }
 
   const cuerpo = await request.json().catch(() => null);

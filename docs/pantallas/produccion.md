@@ -1,302 +1,162 @@
 # Pantalla — Producción ▸ Resumen (`/produccion`)
 
-> Modo: completo · Fecha: 2026-10-13 · Tipo: **tablero de decisión, solo lectura** · Rol/sede: líder, sede **Taller** (el selector de la captura dice «TALLER» `[visto]`) · Dispositivo que se juzga: **escritorio en el Taller** (a 2000 px la captura; 1024/1280 px y celular, **por el código**, sin medir en navegador `[código]`) · Datos: **real y parcial**. Felipe corrió hoy en producción dos bloques de solo lectura (F0: la sesión de líder simulada; F8: limpieza del stock). Todo lo demás de la base sale del **volcado** guardado del 13-oct 16:21 UTC (`docs/datos/generado/`). **Sin SQL** para el resto (F1 volumen y descontinuados, F2 fotos, F3 muestra y ventas sin prenda, F4 quiebre parcial, F5 órdenes, F6 salud del cálculo, F7 familias, D3b funciones vivas): Felipe dijo «sin SQL» y se siguió; lo que depende de eso va marcado `[sin dato real]`.
-> SHA analizado: `1f8345e3a` = `origin/main` (2026-10-13). La rama de trabajo va unos commits detrás, pero solo de login y stock del mostrador: `git diff --stat HEAD origin/main` sobre los archivos de la pantalla no muestra cambios (solo una línea de `CLAUDE.md`). Si esos archivos cambian después, este análisis está vencido.
-> Archivos: `app/(app)/produccion/page.tsx` · `layout.tsx` · `components/ResumenProduccionPanel.tsx` · `lib/produccion-decisiones.ts` · `lib/decision-produccion.ts` · `lib/produccion-decision-reglas.ts` · `lib/produccion.ts` · `lib/resumen-reglas.ts` · `lib/resumen-inventario.ts` · `lib/motor-demanda.ts` · `components/NuevaOrdenProduccionForm.tsx` · RPC `fn_resumen_variantes_json`, `fn_costos_producciones`, `fn_comprobantes_produccion`, `abrir_produccion` · tablas `productos`, `variantes`, `producto_fotos`, `stock`, `movimientos`, `producciones`, `produccion_lineas`, `insumos`, `comprobantes_produccion`
-> Otra sesión tocándola: **sí, poco.** El PR #1042 (`claude/mystifying-jang-ef15d0`, unificar rondas 9–10, abierto) cambia `ResumenProduccionPanel.tsx` en 2 líneas (el contador de «Para decidir» pasa a `TituloSeccion cuenta=` y una marca `unificar-fijo` en el título de cada tarjeta) y toca también `NuevaOrdenProduccionForm.tsx`, `ComprobantesProduccionPanel.tsx`, `ComprobanteProduccionForm.tsx`, `InsumosPanel.tsx` y `ComprobantePagos.tsx`. El PR #1039 es docs del volcado y `scripts/datos/aviario.mjs`. Las filas de `docs/SESIONES-ACTIVAS.md` piden avisar si se toca `lib/produccion.ts` (ADR-0361) o el menú y los insumos del Taller (órdenes de compra, fase 7).
-> Método: mapa del código por 6 lectores de solo lectura en paralelo (cadena de datos, motor de demanda, piezas reutilizables de foto/talla/color, orden nueva, docs y finalidad, estándares del repo), 3 escépticos que intentaron refutarlo y un crítico de completitud. Después, **una revisión independiente de este documento** (citas contra el código, cumplimiento de la skill, juicio) corrigió el primer borrador; esas correcciones están aplicadas. Quedan sin medir los tiempos de carga. Etiquetas: `[visto]` captura · `[código archivo:línea]` · `[producción]` dato corrido hoy por Felipe (F0, F8) · `[volcado]` volcado guardado del 13-oct 16:21 UTC · `[doc]` documento del repo · `[inferido]` · `[no verificable]` · `[sin dato real]` falta el SQL.
-> Contexto de negocio de hoy: Felipe vio la pantalla en una captura, la encontró «bastante interesante» y pidió **poder ver la imagen del producto con estadísticas más completas de talla y color**.
+> Modo: completo, enfocado en el aviso «81 modelos por producir y ninguno tiene orden abierta» y en la tabla «¿Qué producir?» · Fecha: 2026-10-27 · Tipo: **tablero de decisión, solo lectura** · Rol/sede: líder, sede **Taller** `[visto]` · Dispositivo: escritorio en el Taller · Datos: **producción real, solo lectura** (7 consultas `select` el 2026-10-27, sin datos personales; anexo al final).
+> SHA analizado: `d56321836` = `origin/main` (2026-10-27). **Este documento reemplaza al del 2026-10-13**: la pantalla se rehízo desde entonces (hoja «Ver el modelo», fotos, reparto trasladar/producir; `git diff --stat 1f8345e3a origin/main` sobre sus archivos: 15 archivos, +1423 −110), así que aquel análisis quedó vencido. Sus tareas #1–#9 constan cerradas en su propio texto (commits `553c05c08` … `c86c560d3`); su historial sigue abajo. Si los archivos de abajo cambian, este análisis vence.
+> Archivos: `app/(app)/produccion/page.tsx` · `components/ResumenProduccionPanel.tsx` · `components/produccion-resumen/*` · `lib/produccion-decisiones.ts` · `lib/produccion-decision-reglas.ts` · `lib/decision-produccion.ts` · `lib/resumen-reglas.ts` · `lib/inventario-reglas.ts` · tablas `producciones`, `produccion_lineas`, `productos`, `variantes`, `stock`, `movimientos`
+> Otra sesión tocándola: **sí** — `docs/SESIONES-ACTIVAS.md` lista `claude/production-module-review-0ade12` (Órdenes, ADR-0509, PR abierto) y `claude/production-module-redesign-136cca` (rediseño de Producción, ADR-0400). Tocan Órdenes y el cajón, no `ResumenProduccionPanel`; el riesgo de choque es `lib/ordenes-lista-reglas.ts` y la guía `produccion`.
 
 ## 0 · Veredicto
-La pantalla acierta en el espíritu (calcula en el servidor, no inventa lo que no sabe) pero **decide por modelo con un ritmo sin base visible, dice más de lo que sabe («se agota en ~1 día» con 0 en tiendas) y no deja ver el producto: un nombre, sin foto, sin talla ni color**. Lo que pides **no necesita una consulta nueva para talla y color**: el dato ya se lee en cada carga y se tira; la foto sí suma una lectura (cacheada).
-**Cumple su finalidad:** 5,0/10 (promedio 5,2; tope de 5 por defectos que pueden orientar un gasto de tela y corrida; la pantalla no escribe) · **Relevancia:** 5,8/10 — **Comodidad**. Los dos son **provisionales**: el volcado del 13-oct no tiene ni una orden, insumo ni comprobante de producción registrados (el Taller no opera en el ERP todavía, o no lo registra ahí; `[volcado]`) y faltan F6, F4 y F3 (ver Anexo).
+La cuenta del aviso es **correcta, pero su titular suena a certeza que los datos todavía no tienen**: «81» mezcla unas pocas señales firmes con muchas de apenas 1–2 ventas, sobre solo 4 semanas de historia. Y «ninguno tiene orden abierta» es literal: las 4 órdenes del Taller se crearon **hoy** y ninguna es de esos 81.
+**Cumple su finalidad:** 5,0/10 (promedio 6,3; tope de 5 porque el titular puede llevar a cortar tela para modelos con 1–2 ventas) · **Relevancia:** 6,8/10 — **Soporte**.
 
 ## 1 · Finalidad declarada
-«Decirle al líder, parado en el Taller, **qué necesita su decisión hoy**, juntando órdenes, insumos, pagos e inventario». Fuente: `docs/PLAN-PRODUCCION.md:23-25,250-251`, ADR-0133 `:87-88`, `docs/datos/modulos/10-produccion-del-taller.md:43` `[doc]`. No se usó la captura.
-**¿Docs y pantalla coinciden?** Sí en lo construido (cifras, hasta 7 tarjetas, «¿Qué producir?» por modelo con cobertura 7/30/60, «¿Alcanza la tela?») `[código]`. Tres matices:
-- Lo que pides **amplía el alcance escrito**: los docs ponen el desglose por talla×color en «Nueva orden», no en el Resumen (`docs/PLAN-PRODUCCION.md:240-243,257`). Es decisión tuya, no un defecto.
-- El spike traía «Tallas más apretadas…» en «Producir ya» (`docs/maquetas/produccion-modulo-2026-09/src/vista-resumen.js:39-42`) y no consta en la tabla de desvíos del plan (`PLAN-PRODUCCION.md:92-111`); **parece una omisión**, aunque esa línea dependía de un plazo de corrida (`SEM_LEAD`) que el contrato quitó a propósito por no inventar plazos (`produccion-decisiones.ts:3-5`).
-- **Docs que engañan:** el encabezado de `10-produccion-del-taller.md:2,4-16` dice que solo manda «ESTADO ACTUAL» y usa nombres V1; `docs/ARQUITECTURA.md:902,917,1360-1362` dice a la vez que `/produccion` redirige a Órdenes y que es el Resumen, y lista RPC V1. Manda el código.
-
-**Una pregunta de alcance para ti** (el pedido admite tres tamaños, y cuestan muy distinto):
-1. **Reconocer el modelo:** foto en cada tarjeta y fila (tarea #5, M).
-2. **Entender por qué falta:** una hoja de lectura con la foto por color y, por talla y color, lo que se vendió y lo que ya no hay (tarea #8, L).
-3. **Decidir cuánto cortar:** lo anterior más la cantidad sugerida por talla y color en la tarjeta (tareas #8 + #9).
-
-**Decidido por Felipe el 2026-10-13: se empieza por el nivel 1 (reconocer el modelo, #5).** Los niveles 2 y 3 (#8, #9) esperan a la decisión de #7 y a #4 y #6.
+«Decirle al líder, parado en el Taller, qué necesita su decisión hoy, juntando órdenes, insumos, pagos e inventario». Fuente: `docs/PLAN-PRODUCCION.md:23-25`, ADR-0133, y el propio subtítulo `ResumenProduccionPanel.tsx` («¿Qué necesita tu decisión hoy?»). **Coinciden.** La prueba de la finalidad es lo que pasó: **Felipe vio «81 modelos por producir» y no supo qué hacer con eso** `[visto, su mensaje]`. Una pantalla de decisión que no deja decidir no cumple, aunque la cuenta esté bien.
 
 ## 2 · Objeción
-1. **El ritmo habla sin decir su base, y se equivoca para los dos lados.** (a) *Subestima*: excluye la «prenda sin registrar» (`supabase/migrations/20260919141804_resumen_inventario_v2.sql:266-267,438`) `[código]`; el 12-oct solo el **45 % de lo vendido en TRU y el 2 % en AQP** tenía su prenda (`docs/investigacion/2026-10-12-colores-que-bajar-al-piso.md:174,176`) `[doc, de hace un día; F3c lo renueva: sin dato real]`. Con menos ritmo, los días de stock suben y salen más «Alcanza» y «Sobrestock → no produzcas más» de los que corresponden. (b) *Sobreestima*: no hay muestra mínima; una sola venta neta con 3 días en piso ya da ritmo y puede ser «Producir ya» (`lib/resumen-reglas.ts:162-167`, `lib/inventario-reglas.ts:67`). ADR-0346 ya dijo que una sugerencia por talla sobre estos datos «sería ruido» (`docs/adr/0346-motor-de-demanda-cuando-puede-hablar.md:13-17`), y la puerta que lo impide —el motor de demanda— **se calcula en cada carga (6 RPC) y se descarta** (`lib/decision-produccion.ts:42-45,68`; `page.tsx:57-61`). Aun así la pantalla pinta siete tarjetas ámbar con la misma voz de certeza. *Trade-off que asumo:* arreglar la cara sin arreglar la captura de ventas deja una pantalla bonita con un ritmo ciego; por eso §10 lo nombra.
-2. **El título miente justo en la tarjeta más urgente.** Con 0 en tiendas dice «se agota en ~1 día» y su propio detalle dice «quedan 0» (`lib/produccion-decisiones.ts:242-243`, por `Math.max(1, …)`) `[visto en 5 de las 7 tarjetas]`.
-3. **Decide a nivel modelo lo que el Taller corta por talla y color.** Suma stock y ritmo de todas las variantes: una talla en 0 y otra con 100, ambas a 1/día, dan 50 días y «Alcanza» (`produccion-decisiones.ts:111-131`), y el stock de colores sin ventas medidas cubre a los que sí se agotan (`:111-125`). Lo contrario también pasa: un modelo que estuvo sin stock casi todo el mes no llega a los 3 días con stock que pide el ritmo, cae en «Sin ritmo medido», al final de la tabla y **sin tarjeta** (`resumen-reglas.ts:154-164`, `produccion-decisiones.ts:127,134,237`) `[código]`: el quiebre más largo es el más invisible.
-4. **«Abrir orden sugerida» y «SUGERENCIA» prometen más de lo que dicen.** El botón abre «Nueva orden» con el modelo elegido; la cantidad por talla y color **sí existe ahí** —cada casilla la trae como número de fondo a `text-tinta/30`, casi invisible, y un botón «Usar la sugerencia · N prendas» (`components/NuevaOrdenProduccionForm.tsx:517,522,580-587`)— pero la tarjeta no la dice ni la lleva, y la columna «SUGERENCIA» es solo un chip de estado (`ResumenProduccionPanel.tsx:150,186-188`). Además el **estado** no cuenta el stock del Taller ni lo que viene en camino (`produccion-decisiones.ts:125-131`), aunque el texto de la tarjeta sí los menciona («más N en el Taller por trasladar», `:243`; «+N en el Taller», `ResumenProduccionPanel.tsx:180`): la acción sigue siendo «abrir orden», no «trasladar». Y cualquier orden, de cualquier talla, apaga la tarjeta.
-5. **Corta en silencio y desempata por alfabeto.** `MAX_TARJETAS = 7` + `.slice` (`:152,269`) y, con stock 0, todos los modelos empatan en 0 días y los ordena el nombre (`:134-135`): la captura lo muestra `[visto]` —Blusa Encaje, Blusa Valeria, Body Amat, Bolso Boston, Crop Cuello Camisero, todos en 0, en orden alfabético—. Con más de siete agotados, el alfabeto decide cuáles tienen tarjeta, no lo que se pierde por día. Que hoy se haya cortado alguna es `[inferido: probable; F6 lo confirma]`. Con el Taller sin órdenes ni pagos `[volcado]`, hoy solo se cortaría «producir»; el desplazamiento de pagos por vencer y entregas es el riesgo de cuando el módulo opere.
+1. **El número de arriba (81) no dice cuánto pesa.** Es una cuenta de modelos, no de trabajo. No dice cuántas prendas faltan, ni cuáles tienen base de ventas, ni cuántas puede hacer el Taller. 81 de 483 modelos activos `[producción]` es el 17 % del catálogo «urgente»: cuando todo es urgente, nada lo es.
+2. **El ritmo («8,6 por semana») se lee como ventas, y no lo es.** Es ventas ÷ días con stock (`resumen-reglas.ts`, `calcularVelocidad`): un modelo que vendió 6 prendas en los pocos días que tuvo stock sale «8,6 por semana», aunque en 30 días solo sean 6 ventas `[visto]` `[código]`. Con una ventana fija de 28 días, los modelos que caen en «producir» son **54, no 81**, y solo **22 tienen 3 o más ventas** `[producción, aproximado]`. El criterio de días con stock es el correcto (no castiga al agotado), pero el titular no lo explica.
+3. **«Ninguna orden abierta» deja de ser verdad en cuanto el Taller registre lo que ya hace.** Hasta hoy el ERP no tenía ni una orden (`producciones` = 4 filas, todas del 27-oct `[producción]`). Quien lea «ninguno tiene orden» pensará «nadie está fabricando», cuando lo cierto es «nadie lo ha registrado». Y 2 de las 3 muestras son de 54 y 69 prendas: para una muestra es mucho, y `enProduccionPorVariante` **ignora las muestras** (`produccion-decision-reglas.ts`, línea de `esMuestra`), así que si eran lotes reales la pantalla seguirá diciendo «no hay orden» de esos modelos.
+
+*Trade-off que asumo:* separar «firmes» de «poca base» baja el número del titular y puede parecer que se resta urgencia; pero un titular que no discrimina entrena al líder a ignorarlo.
 
 ## 3 · Lo que está bien y no se toca
-- **Calcula todo en el servidor con reglas puras y probadas** (`lib/produccion-decisiones.ts`, 15 casos en `produccion-decisiones.test.ts`) y el panel es un Server Component sin estado (`ResumenProduccionPanel.tsx:14-16`) `[código]`: lo que se le pase no viaja al navegador.
-- **No inventa lo que no sabe**: «Donde no hay base honesta la tarjeta no se dibuja» y no hay plazos por etapa inventados (`produccion-decisiones.ts:3-5`) `[código]`. Hay que conservar ese principio al agregar talla y color.
-- **El candado del dinero está en la base, no en la web**: `fn_costos_producciones` y `fn_costos_insumos_taller` exigen `fn_es_lider()` (`supabase/migrations/20260921150000_candado_dinero_produccion_lectura_operativa.sql:28-47`), igual que `fn_comprobantes_produccion` (`20260921100000_comprobantes_produccion.sql:362-379`); `comprobantes_produccion` es solo líder por RLS (`retail_policies.json:364-370`) `[código/doc]`.
-- **Leer foto, talla y color no abre datos nuevos**: `productos`, `variantes`, `producto_fotos` y `colores` se leen con «sesión autenticada» (`retail_policies.json:256,823,841,1156`); costo y red de `fn_resumen_variantes` ya son solo del líder (`20260923140000_modulos_seis_decisiones.sql:345-347`) `[doc]`.
-- **Los umbrales de las reglas puras vienen de Inventario**: `filasPorModelo` usa los 7/30/60 días de `lib/inventario-reglas.ts:43-61`, los mismos de Existencias `[código]` (el panel todavía repite 60/7/30 a mano al dibujar la barra: #11).
-- **Paleta y piezas del sistema**: cero `#hex`, `rgb()`, `bg-white` ni `dark:` en el panel y la página; el rojo está dentro del tope (solo la cifra «Por pagar» vencida y un hover); usa `Pestanas`, `TarjetaCifra`, `CifraQueCuenta`, `TituloSeccion`, `Chip`, `BotonEnlace` y `Vacio` chico (`ResumenProduccionPanel.tsx:41,57,65,86,91,106,137,198`) `[código]`.
-- **La guía interactiva está aplicada** y sus 8 `data-guia` tienen paso (`lib/guias/registro.ts:324`, `lib/guias/pantallas/produccion.ts:15-83`) `[código]`.
-- **El stock que usa la pantalla está limpio** `[producción F8]`: 1.679 unidades en tiendas y almacenes, 1.678 utilizables, 1 en cuarentena, 1 apartada, 0 sin ubicar, 0 en tránsito.
-- **La idea de la tarjeta «sobrestock → no produzcas más»** (`produccion-decisiones.ts:246-255`) frena un gasto en vez de pedirlo y se conserva, pero **solo vale si el ritmo tiene base** (objeción 1a) y hoy nunca aparece con 7 urgentes (#3).
-- **La cantidad por variante ya existe y está probada** (`sugerirVariante`, `produccion-decision-reglas.ts:91-116`, `produccion-decision-reglas.test.ts:66-75`): no hay que inventar un cálculo.
+- Cada tarjeta y fila dice en qué se apoya («solo 1 venta en 30 días: poca base», chip «Poca base») `[visto]` `[código produccion-decisiones.ts:183]`: honesto y ya hecho.
+- La cuenta de «cuánto fabricar» descuenta lo que hay en tiendas, en camino, en órdenes y en el Taller antes de pedir (`repartirFalta`) `[código produccion-decision-reglas.ts]`, y es la misma cifra que precarga «Nueva orden».
+- No se opina sin ritmo medido (`sin_ritmo`) y la tarjeta nunca afirma «no hay orden» delante de una orden (`frasePorOrden`) `[código produccion-decisiones.ts:397]`.
+- Los agotados se ordenan por lo que más se vende, no por el abecedario `[código produccion-decisiones.ts:~285]`.
 
 ## 4 · Las seis dimensiones
 | Dimensión | Puntaje | Hallazgo principal | Evidencia |
 |---|---|---|---|
-| Estética | 5,5 | Paleta y piezas del sistema bien usadas; tabla, vacíos, aviso y enlace a mano; foco por teclado casi invisible; siete tarjetas que solo se distinguen por el borde | `[visto]`, `[código ResumenProduccionPanel.tsx:143-153,159,139-141]` |
-| Lógica de negocio | 4 | «~1 día» con 0 en tiendas; «producible» sin filtrar; el estado ignora Taller y lo que se fabrica; ritmo sin muestra mínima; quiebre parcial y agotados invisibles | `[código produccion-decisiones.ts:111-131,242]`, `[doc ADR-0270, ADR-0377, ADR-0346]`; el alcance exacto de #1 es `[sin dato real]` |
-| Arquitectura | 6 | Candados reales, reglas puras y servidor; pero un fallo de lectura tumba la pantalla o la hace mentir, y se calcula un motor que se tira (el costo de carga no está medido) | `[código page.tsx:29-35, decision-produccion.ts:39-54,72-74]` |
-| Funciones | 5 | Decisión, cobertura y telas funcionan; la cantidad existe pero no sale a la tarjeta; faltan ver el modelo, su talla y su color | `[código ResumenProduccionPanel.tsx:125-130,186-188]` |
-| Utilidad | 4,5 | La líder ve siete tarjetas iguales, no reconoce el modelo sin foto y la cantidad sugerida está casi invisible en el formulario | `[visto]`, §4.5 |
-| Conexión con el ERP | 6 | Bien montada sobre Inventario, Ventas y Compras; desconectada del motor de demanda y de la cola de ventas sin registrar | §6 |
+| Estética | 8 | Limpia y en tokens; la barra de cobertura con marcas en 7 y 30 días se lee. Falta una forma de ver «cuánto» (cantidad) | `[visto]` |
+| Lógica de negocio | 6 | Ritmo sobre pocos días y pocas ventas; muestras fuera de «en producción»; sin ventana mínima de historia | `[código]` `[producción]` |
+| Arquitectura | 7 | Reglas puras y probadas; lo secundario tolera fallar. El motor de demanda (ADR-0347) se calcula y no frena el titular | `[código decision-produccion.ts:42-68]` |
+| Funciones | 6 | Falta: total de prendas por fabricar, filtro/tramos en la tabla de 81, y un «por qué» en el titular | `[visto]` |
+| Utilidad | 5 | El propio dueño no supo interpretarla: es la prueba de la persona sin contexto | `[visto]` |
+| Conexión con el ERP | 7 | Aguas arriba: ventas y stock de 3 sedes. Aguas abajo: «Abrir orden sugerida» → Nueva orden | `[código]` |
 
-Promedio = (5,5+4+6+5+4,5+6)/6 = **5,2**. **Tope de 5 aplicado** (nota final 5,0): no hay escritura ni candado roto, pero hay defectos confirmados que pueden orientar un gasto de tela y corrida (título falso, «producible» sin filtro, estado ciego al Taller); el tope mide ese riesgo de decisión. Las notas de Lógica y Utilidad dependen en parte de `[sin dato real]`.
-
-### 4.1 Estética
-- **(a) Coherencia con CAYLA.** Cumple lo mecánico `[código]` (§3). Se aparta de las piezas únicas (ADR-0358) en: la tabla «¿Qué producir?» es `ul` + `grid` + `Link` a mano (`ResumenProduccionPanel.tsx:143-153`) y la prueba de unificar **no la ve** (su firma busca `<table>` y `role="columnheader"`, `unificar/familias.mjs:604-625`); los vacíos de modelos y telas son `<p class="card-cayla p-5 text-sm text-tinta/70">` (`:141,201`; la firma de `vacio` busca `/75`, por eso se escapa); el aviso `falloRed` es un `<p>` suelto (`:139`) y debería ser `<Aviso tono="atencion">`; «Cárgalas en Insumos» lleva `hover:text-rojo` a mano (`:203`) = un rojo más y no es `btn-enlace`; la nota de «Piden» es un `<p>` suelto (`:234-236`) en vez de `nota-cayla`. **No es una isla dentro de Producción**: Comprobantes y Proveedores dibujan la misma rejilla (`ComprobantesProduccionPanel.tsx:192,207`, `ProveedoresProduccionPanel.tsx:146,159`), así que migrar solo el Resumen a `<Tabla>` lo apartaría de sus hermanas: se hace por módulo y con tu OK. La cabecera es un `div data-voz="cabecera"` hecho a mano (`:41-63`): fuera de Ventas, Inventario y Productos la cabecera está **sin decidir** (`CLAUDE.md:204-210`), así que es una pregunta para ti, no una violación.
-- **(b) Marca y tono.** El lenguaje de tienda es bueno («Producir ya», «Alcanza», «Vigilar»). Se rompe en «~1 día» con 0 y en «1 días» (`:180` imprime `{Math.round(diasRed)} días`; el `aria-label` de `:174` igual) `[código]`.
-- **(c) Heurísticas.** `[visto]` Las siete tarjetas son idénticas en forma y mensaje: lo único que dice «urgente» es el borde ámbar, y con las siete en severidad 3 no distingue nada (`:22,117`). `[código]` El enlace de cada modelo lleva `outline-none` y su foco es `focus-visible:bg-sand/40`, igual que el hover (`:159`): pisa el anillo global de ADR-0351 (≈1,1:1 contra el papel, `[inferido]`: cálculo del CSS, no medido). «Sin ventas medidas» va en `text-tinta/55` y los «—» en `/45` (`:168,171,185,218`); `TarjetaCifra` documenta que sobre crema `/55` rinde 3,83:1 y `/45` 2,86:1, ambos bajo AA (`ui/TarjetaCifra.tsx:25-26,34`) `[inferido: son sus ratios sobre crema, no medidos en esta pantalla; el modo oscuro los sube solo]`. A 1024 px con el lateral abierto, «Modelo» queda en ≈13–24 px y entre 768 y ~1000 px «En prod.» y «Sugerencia» se recortan (la tarjeta es `overflow-hidden`, `:143-144,159`) `[inferido]`. El nombre accesible de cada fila sale de concatenar celdas sin títulos de columna (`:157-189`) `[inferido]`.
-
-### 4.2 Lógica de negocio
-Cada hallazgo cita la regla que viola o dice «ninguna decisión escrita cubre esto».
-- **«Producible» = tener una variante activa** (`lib/produccion.ts:160-171`). Un **descontinuado** puede salir «Producir ya»: ADR-0270 decide que «un descontinuado no se produce» (`docs/adr/0270-una-sola-cifra-de-stock-para-catalogo-e-inventario.md:59,63,124`) y el candado de base #6 sigue pendiente (`docs/BACKLOG.md:44`: «L, estructural», en ~12 escrituras; `abrir_produccion` no mira el estado). `FilaResumen.productoEstado` ya viaja por variante (`lib/resumen-reglas.ts:45-46`, `resumen-mapeo.ts:121`) y nadie lo lee. Tampoco se miran `es_prueba` (`fn_resumen_variantes` no lo filtra) ni la **familia fuera de los motores** (ADR-0377). **La regla escrita apunta a que no está exenta**: `CLAUDE.md` dice que todo motor de decisión que cuente ventas o stock por categoría debe preguntar `fn_categoria_entra_a_motores` (`20261010231000_familias_entran_a_motores.sql:38`), y la lista de motores que ya la preguntan no incluye a Producción ▸ Resumen; ADR-0377 aclara que «la plata no» la pregunta (`docs/adr/0377-bolsas-de-despacho-familia-fuera-de-los-motores.md:24-27`) y no dice si «¿Qué producir?» cuenta como plata o como decisión. La migración `20261010232000` parchó `fn_demanda_sede` (que usa el motor de Nueva orden) pero no `fn_resumen_variantes`, la fuente del Resumen. Ningún doc define «producible» (`10-produccion-del-taller.md:133,289-295`). Cuántos modelos se cuelan: `[sin dato real]` (F1 cortes 2–5, F7a). «Bolso Boston de Cuero» no aparece en ningún archivo del repo; que el Taller no lo fabrique es **suposición mía** (F7b lo dice).
-- **El estado de «Producir ya» ignora el Taller y lo que viene** (`produccion-decisiones.ts:125-131`): con stock en el Taller y 0 en tiendas el texto lo dice, pero la acción sigue siendo «abrir orden». Cuántos modelos están así: `[sin dato real]` (un corte de F4). Cualquier `enProduccion > 0` pasa a «Ya hay orden abierta», de cualquier talla y cantidad, sin compararla con lo que falta, que `sugerirVariante` sí calcula (`produccion-decision-reglas.ts:91-116,133-140`).
-- **Quiebre parcial y agotados invisibles** (§2.3) y **cobertura inflada** por stock de variantes sin ritmo (`:111-125`).
-- **El ritmo**: ventas netas ÷ días con stock en 30 días, sin muestra mínima (`resumen-reglas.ts:148-167`); «Se vende X por semana» es el promedio de 30 días × 7, no la semana reciente (la vara de 7 días existe y no se usa); solo mide ventas que dicen su prenda (§2.1). Un cambio de talla (M→L) mueve ventas entre variantes del mismo modelo y se anula al sumar el modelo, pero distorsionaría un ritmo por talla `[inferido: no se verificó cómo `fn_resumen_variantes` registra el cambio]`.
-- **Vara fija**: 7/30/60 iguales para todo modelo (`inventario-reglas.ts:43-61`), «el primer número razonable» sin ajustar (`inventario-reglas.ts:41-42`). Es **decisión vigente de Felipe**, no un descuido: R-20 fijó un umbral único por ahora y el de categoría «se fija cuando haya 8 semanas de ventas reales» (al 2026-09-25 había 4; `docs/datos/15-COMO-OPERA-CAYLA.md:285-293`, actualizaciones 2026-09-25 y 2026-10-06; ADR-0208 `:94-104` descartó los cortes fijos para Frescura). Ninguna decisión escrita dice si Producción adelanta ese destino: va en §9.
-- **Latentes sin urgencia**: «las apartadas no se restan» `[código resumen-reglas.ts:99-100]` y «en camino» `[código]`; hoy son 1 unidad de 1.679 y 0 en tránsito `[producción F8]`.
-
-### 4.3 Arquitectura
-- **Cadena:** `page.tsx` → `getTaller` + `Promise.all` de 5 loaders (órdenes, modelos, insumos, líneas por recibir, comprobantes; todos con `exigir()`) → `getDecisionProduccion` (una `fn_resumen_variantes_json` por sede + 2 RPC del motor por tienda) → reglas puras → panel `[código page.tsx:25-36, decision-produccion.ts:39-54]`. Unas **30 solicitudes por carga** con 3 tiendas + Taller `[inferido]`. De tiempos solo hay una medida: ~265 ms de CPU de la base por llamada a la función de resumen, medidos el 2026-09-23 (`lib/resumen-inventario.ts:18`); los 9,8 s «con un año de datos» son una cifra de comentario de migración, no medida aquí. **No se midió la carga de esta pantalla.**
-- **Estados imposibles:** es solo lectura, no puede dejar inventario inconsistente. El riesgo es de **mensaje**, no de datos: si falla una sede, `datos` queda `null` para todo (incluido `rendimientoPorModelo`, que es cálculo puro) y el catch no registra la causa (`decision-produccion.ts:72-74`); la pantalla dice «Todavía no hay modelos con variantes» y puede decir «Todo en orden», y la demanda de telas queda en 0 (`ResumenProduccionPanel.tsx:106-113,139-141`).
-- **Caída externa:** no toca SUNAT, Lucode, apis.net.pe, Culqi ni Shopify; depende de Supabase y de la fila de persona de Dynamic (`lib/persona-actual.ts:98-128`). *Se degrada así: si falla la red de sedes, el panel avisa y sigue sin perder datos; hoy además dice cosas falsas (#10).* Cualquier loader del `Promise.all` tumba toda la pantalla vía `(app)/error.tsx` (`app/(app)/produccion/` no tiene `error.tsx` ni `loading.tsx`, `app/(app)/error.tsx:15-45`).
-- **Concurrencia:** no aplica (solo lectura).
-- **Volumen** `[volcado 13-oct]`: 231 productos, 1.435 variantes, 332 fotos, 4 ubicaciones, 577 ventas y 1.004 líneas de venta en toda la historia. Mostrar talla×color para todos los modelos son ≈1.435 variantes: no pesa si se calcula en el servidor; sí pesaría si cruzara al navegador (~100 KB estimados `[inferido]`). `getModelosProducibles` alimenta también a Órdenes (componentes cliente): **no se engorda** (`produccion/ordenes/page.tsx:70-79`, `OrdenesTablero.tsx:1`).
-- **Lo que ya se lee y se tira** (clave para tu pedido): `getDecisionProduccion` trae por sede y variante talla, color, hex, foto, ventas de 30 días y stock piso/almacén (`decision-produccion.ts:46-48`, `resumen-reglas.ts:41-97`); `demandaDeLaRed` los colapsa a números (`produccion-decision-reglas.ts:40-67`); `filasPorModelo` los suma por modelo; `page.tsx` solo le pasa `variantesIds` (`:57-61`). «En producción» por variante también está calculado (`decision-produccion.ts:62`). `ModeloProducible` ya trae talla, color y hex, **no foto** (`lib/produccion.ts:132-151`). **La foto sí cuesta una lectura**: la foto estricta por variante sale de `getCatalogo()` (`lib/catalogo-v2.ts:68-76` es el wrapper con caché por `fn_catalogo_version`; `:121-170` es `leerCatalogo`, que con la caché fría pagina todas las variantes y las marcas) y `fotoDeVariante` (`producto-fotos-reglas.ts:23-31`: la de su color, o la general; nunca la de otro color). **No usar** `FilaResumen.fotoUrl`: `fn_resumen_variantes` cae a la principal de OTRO color (`20260919141804_resumen_inventario_v2.sql:250-257`).
-- **Permiso:** el módulo `produccion`, «solo parado en el Taller» y la redirección por rol son de la web (`page.tsx:19-23`, `layout.tsx:6`); el candado de dinero es RLS + `fn_es_lider()` (§3). Ver foto, talla y color no pide permiso nuevo (§3) ni un módulo nuevo (ADR-0306).
-- **Datos personales:** ninguno en esta pantalla.
-
-### 4.4 Funciones
-- **Existen y funcionan:** 4 cifras; 7 tipos de tarjeta (entrega, insumo, recibir, pago, producir, sobrestock, mínimo); «¿Qué producir?» con 6 estados; «¿Alcanza la tela?»; pestañas Hoy|Eficiencia.
-- **Promesa que no se ve:** «Abrir orden sugerida» (no dice ni lleva la cantidad; `produccion-decisiones.ts:244`) y la columna «SUGERENCIA» (un chip de estado, no una cantidad; `ResumenProduccionPanel.tsx:150,186-188`). La cantidad por variante existe en «Nueva orden», como número de fondo en cada casilla y con el botón «Usar la sugerencia» (`NuevaOrdenProduccionForm.tsx:517,580-587`); solo el *por qué* de cada variante va plegado en «Ver por qué, variante por variante» (`:593-625`).
-- **Faltan para cumplir la finalidad:** ver el modelo (foto); talla×color en el Resumen; la cantidad en la tarjeta; la «base» del ritmo (cuántas ventas, cuánto «sin prenda»); aviso de cuántas tarjetas se cortaron; separar «producir» de «trasladar».
-- **Sobran:** las tarjetas «producir» **duplican** las primeras filas de la tabla (la misma información dos veces, y empujan la tabla bajo el pliegue); el motor de demanda que se calcula y se descarta.
-
-### 4.5 Utilidad — escenario real
-*Lunes 8:30, la líder entra al Taller a decidir qué cortar esta semana.*
-1. Ve «Para decidir · 7 asuntos» y siete tarjetas iguales. No sabe cuál es más urgente y no ve cuántas hay en total (el código corta en 7 `[código]`; si hoy se cortó alguna, `[sin dato real]`).
-2. Lee ««Blusa Encaje» se agota en ~1 día… quedan 0 en tiendas»: ¿se va a agotar o ya se agotó? **Duda.**
-3. No reconoce «Blusa Encaje» (un nombre, sin foto): tiene que acordarse cómo es, en qué talla y color falta y cuánto cortar. El botón dice «sugerida» pero no trae un número.
-4. Toca la fila: se abre «Nueva orden» con el modelo elegido. La cantidad por talla y color está ahí como número de fondo casi invisible (30 % de opacidad) y un botón «Usar la sugerencia». Si no lo nota, **corta a ojo**.
-5. Si el modelo tiene stock en el Taller, la tarjeta lo dice en letra chica («más N en el Taller por trasladar»), pero el botón sigue siendo «Abrir orden».
-**Dónde se equivoca:** (a) abre una orden de algo que ya no se produce `[sin dato real: cuántos casos]`; (b) corta la talla o el color equivocado; (c) cree que hay poco tiempo (o que no hay problema) por un número sin base. El fallo es del diseño, no de capacitación.
-
-### 4.6 Conexión con el ERP
-En §6.
+**Utilidad, escenario real.** Una líder abre el Resumen un martes: lee «81 modelos por producir y ninguno tiene orden abierta» → duda qué es urgente → ve «Ver los 81 modelos» → baja a una tabla larga sin filtro, con 5 de las primeras filas en «agotado» y cifras como «8,6» sin saber si es mucho. No hay un paso siguiente claro. Fallo del diseño.
 
 ## 5 · Relevancia
-| Criterio | Peso | Puntaje | Por qué (una línea) |
+| Criterio | Peso | Puntaje | Por qué |
 |---|---|---|---|
-| Gestión (directo + indirecto) | ×2 | 8 | Es el tablero con que el líder decide qué cortar, qué pagar y qué comprar de tela; no captura datos de otras pantallas (solo lee). |
-| Dinero y stock que toca | ×1 | 6 | No escribe, pero orienta tela, corridas y pagos a proveedores (dinero real). |
-| Frecuencia y personas que la usan | ×1 | 4 | Solo líder, solo en el Taller; el volcado tiene 0 órdenes, insumos y comprobantes de producción `[volcado]`: uso real `[no verificable]`. |
-| Qué se detiene si falla | ×1 | 3 | Nada: el Taller opera desde Órdenes e Insumos; la decisión cae a la intuición. |
+| Gestión (directo + indirecto) | ×2 | 8 | Decide qué se fabrica y cuánta tela se compra |
+| Dinero y stock que toca | ×1 | 7 | Orienta corridas y compras de tela; no escribe |
+| Frecuencia y personas | ×1 | 6 | Líder, a diario, una sede |
+| Qué se detiene si falla | ×1 | 5 | Se decide a ojo, como hasta hoy |
 
-Relevancia = (2·8 + 6 + 4 + 3) / 5 = **5,8** → Comodidad. Sube a Soporte (≥6) con 1 punto más de frecuencia o dinero (p. ej. si F5a muestra que el Taller ya trabaja con órdenes).
+Relevancia = (16 + 7 + 6 + 5) / 5 = **6,8** → Soporte.
 
 ## 6 · Conexión con el ERP
-- **Aguas arriba:** Ventas y stock por sede vía `fn_resumen_variantes_json` (pájaros 07 Colibrí y 05 Halcón: `ventas`, `venta_items`, `stock`, `movimientos`); catálogo (02 Loro: `productos`, `variantes`, `tallas`, `colores`, `producto_fotos`); órdenes e insumos (10 Gallito: `producciones`, `produccion_lineas`, `insumos`, `insumo_lotes`, `comprobantes_produccion`); sedes (01 Ganso: `ubicaciones`) `[doc AVIARIO.md]`. Todo es lectura.
-- **Aguas abajo:** «Nueva orden» por `?nueva=<productoId>`, contrato **compartido** con Análisis (`lib/analisis-acciones.ts:31`) y con el retorno de Nuevo producto (`lib/modelo-nuevo-orden-reglas.ts:23-26,40-42`) → `abrir_produccion` (`producciones` + `produccion_lineas`; no toca stock hasta `cerrar_produccion`, `20260915130000_produccion_del_taller.sql:215-228,337-340`). Quien opera el Taller puede abrir la orden, no solo el líder (`:182-188`).
-- **Pájaro dueño y vecinos:** dueño 10 Gallito. Vecinos que lo alimentan: 05 Halcón (stock), 07 Colibrí (ventas y la cola `prendas_por_regularizar`, que esta pantalla **no lee**), 02 Loro (fotos, tallas, colores).
-- **Externos:** ninguno (§4.3).
-- **Costuras rotas:** el ritmo no sabe de las ventas sin prenda; el motor de demanda (que sí las cuenta por grupo) se calcula y se tira; y hay **cinco curvas de talla/color distintas** en cinco lugares —`sugerirCurva` (`lib/produccion-decision-reglas.ts:120-130`), `curvaDelMotor` (`lib/demanda-reglas.ts:306-322`), `curvaSugerida` (`lib/plan-compra-reglas.ts:290-296`), `curvaDeTallas` (`lib/analisis-pedir.ts:254-307`), `faltanDelModelo` (`lib/analisis-acaba.ts:146-156`)— y ninguna está en el Resumen `[código]`. Es el mismo defecto en 3+ pantallas, así que es **una tarea raíz** (una sola curva de talla y color) que no es de esta pantalla: va como línea aparte en §11.
+- **Aguas arriba:** `movimientos` (ventas = `salida` con `venta_item_id`), `stock` de tiendas y almacenes, `producciones`/`produccion_lineas`. **Hecho de producción:** el ERP tiene movimientos desde el **2026-09-29**, es decir **4 semanas** de historia, y TRU pasó de 53 a 358 prendas vendidas por semana, AQP arrancó la semana del 12-oct y LIM casi no vende `[producción]`.
+- **Aguas abajo:** «Abrir orden sugerida» → `/produccion/ordenes?nueva=<modelo>&sugerida=1`.
+- **Externos:** ninguno. Si la lectura de ventas falla, la pantalla lo dice y sigue (`falloRed`): se degrada sin perder datos.
 
 ## 7 · Las 12 tareas, por importancia
-**Orden:** primero lo barato que corrige y puede orientar dinero; después la base que habilita tu pedido; después lo que depende de una decisión tuya; al final el pulido. Las líneas citadas son de `origin/main` `1f8345e3a`; el PR #1042 no las mueve (cambia 2 líneas por 2).
-**Dependencias duras:** #5 → #6, #8; #4 → #8, #9; #6 → #9; **#7 (decisión tuya) → #8, #9 y la parte del motor de #10**; #8 → #11 (tabla). Blandas: #1 → #5.
-**Paquete mínimo recomendado:** #1, #2, #3 y #5: se ven en el Resumen en poco tiempo y solo #1 toca una regla.
 
-**Estado al 2026-10-13 (después de construir):** Felipe ordenó «haz de la #1 a la #5» y quedaron cerradas en la rama `claude/product-image-size-color-stats-29aabf`, un commit por tarea y sin migración:
-#1 `553c05c08` · #2 `a799d518c` · #3 `5f77703aa` · #4 `45c04fbca` · #5 `d6d06bb7e`. Lo que se construyó **difiere** de lo propuesto en cuatro puntos, todos a propósito:
-- **#4:** solo la parte (a) («N ventas en 30 días» y «poca base», con el umbral de **2 ventas o menos** que eligió Felipe). El «% sin prenda» (b) sigue pendiente: exige leer la cola de otro módulo. Además la base cuenta solo las ventas de las sedes con las que se midió el ritmo (`ventasBase`), no las de toda la red.
-- **#5:** NO guardó el detalle por variante en `FilaModelo` (nadie lo consumía hasta #6 y #8): lo guardó la tarea #6 (`VarianteDeFila`). Lo demás sí: foto o ícono en filas y tarjetas, anillo de foco, contraste y tabla legible a 1024 px (nombre a dos líneas; «En prod.» solo desde 1280 px). `FotoPrenda` se mudó a `components/ui` sin cambiar su lógica.
-- **#3:** hasta 3 modelos por producir tienen su tarjeta; con más, una sola los junta. Ninguna clase pasa de 3 tarjetas (el tope total sigue en 7) y lo que no cabe se cuenta en «y N más».
-- **#1:** además del filtro, el texto de «sin modelos» y el paso de la guía dicen qué no se ofrece. En producción hoy saldrían unos 3 de 235 modelos (1 descontinuado y hasta 2 de familias apagadas).
-**#6 a #9 se hicieron después** (ADR-0133, actualización (b); `57e54d52e` … `c86c560d3` y la corrección de la revisión independiente). Difieren de lo propuesto en tres puntos, a propósito: (a) de #6(d) solo se hizo el AVISO «se vendían y ya no hay en tiendas» —Felipe eligió «solo avisar», así que el estado del modelo no cambia— y NO se hizo la tarjeta «sin stock hace N semanas» (no estaba en la lista aprobada); (b) el estado «Ya hay orden abierta» pasó a significar «las órdenes CUBREN lo que falta», no «existe una orden»; (c) la fila de «¿Qué producir?» dejó de ser un enlace a «Nueva orden» y abre la hoja (#8): un clic más, y ya no se abre en una pestaña nueva.
-**Siguen abiertas, esperando a Felipe:** #10 a #12 (y el «% sin prenda» de #4). Decisión de #1 tomada: ADR-0377 **sí** aplica a Producción ▸ Resumen. Decisión de alcance tomada: se empezó por «reconocer el modelo».
-
-**Decisiones tuyas que destraban tareas**
-| Decisión | Libera |
-|---|---|
-| ¿ADR-0377 (familias fuera de los motores) aplica a Producción ▸ Resumen? La letra de `CLAUDE.md` dice que sí. **Decidido por Felipe, 2026-10-13: sí, se esconden** | #1 (destrabada) |
-| Qué umbral de ventas cuenta como «poca base» (no lo invento) y si se lee la cola de ventas sin registrar | #4 |
-| La regla de «Producir ya» contra lo que falta (dinero real) | #6 |
-| Unidad de decisión: modelo o hueco (§8) | #7 → #8, #9, #10 |
-| Alcance de «ver el producto»: reconocer · entender · decidir (§1). **Decidido por Felipe, 2026-10-13: empezar por «reconocer»** | #5 (destrabada); #8 y #9 esperan |
-| Cabecera de Producción y migrar a `<Tabla>` | #11 |
-| Candado #6 en la base (L, ~12 escrituras) | completa #1 |
-
-### #1 · ✅ cerrada (`553c05c08`) · [Corregir] «Producible» deja de ser «tiene una variante activa» (en la pantalla)
-- **Dónde:** `lib/produccion.ts:160-171` (select de `getModelosProducibles`); `lib/produccion-decision-reglas.ts:40-60` o `lib/produccion-decisiones.ts:108-136`; `FilaResumen.productoEstado` (`resumen-reglas.ts:45-46`) ya viaja; familia: `retail.fn_categoria_entra_a_motores` (`20261010231000_familias_entran_a_motores.sql:38`). **Raíz en la base:** `abrir_produccion` no mira el estado del producto (candado #6, `docs/BACKLOG.md:44`, L, tuyo).
-- **Por qué en este puesto:** es el más barato de los defectos que pueden mandar tela y corrida a un modelo equivocado: el dato ya viaja. Un descontinuado, una prenda de prueba, un pendiente de aprobación o una bolsa pueden salir «Producir ya». Cuántos se cuelan: `[sin dato real]` (F1 cortes 2–5; F7a). Sin el candado de base, el filtro de la pantalla es solo de lectura: quien abre una orden por otra vía no lo encuentra.
-- **Cómo lo verificas tú:** en «¿Qué producir?» no aparece ningún modelo descontinuado, de prueba, pendiente de aprobación ni de familia apagada (abre Catálogo y marca uno descontinuado: desaparece de la tabla); con el SQL, F1 cortes 2–5 dan 0 filas visibles. Prueba nueva en `produccion-decisiones.test.ts`.
-- **Esfuerzo / dependencias:** S la web · **ADR-0377 decidido: sí aplica** (Felipe, 2026-10-13), así que la familia apagada se filtra con `fn_categoria_entra_a_motores`; el candado #6 es una migración aparte (L, tuya) y no bloquea esto.
-
-### #2 · ✅ cerrada (`a799d518c`) · [Corregir] Decir «ya se agotó» con stock 0, escribir «1 día», y ordenar los agotados por lo que se pierde
-- **Dónde:** `lib/produccion-decisiones.ts:242-243` (título con `Math.max(1, Math.round(diasRed))`), `:134-135` (desempate por `referencia`); `ResumenProduccionPanel.tsx:174,180` (`aria-label` y «{Math.round(diasRed)} días»); prueba que hoy solo verifica el estado: `produccion-decisiones.test.ts:178-180`.
-- **Por qué en este puesto:** se ve en tu captura (5 de 7 tarjetas con «quedan 0»): la más urgente miente en el título y se contradice con su detalle; y con stock 0 el orden lo decide el alfabeto, no la urgencia. Precisión: el título solo falla con menos de 0,5 días de stock; de 0,5 a 1,49 «~1 día» es correcto.
-- **Cómo lo verificas tú:** un modelo con stock 0 y ritmo dice ««X» ya se agotó…»; con 3 en stock y 3 por día dice «~1 día»; la fila dice «agotado» en vez de «0 días»; con 8 modelos agotados, la tarjeta de más ventas por semana sale primero (no la de nombre más temprano).
+### #1 · [Mejorar] El titular se parte por confianza: «81 modelos: N con base, M con poca base»
+- **Dónde:** `tarjetaProducirAgrupada`, `lib/produccion-decisiones.ts:~420`; usa `baseDelRitmo(...).pocaBase` y `UMBRAL_POCA_BASE_VENTAS`, que ya existen.
+- **Por qué en este puesto:** es la causa del malentendido de Felipe y la que puede orientar un gasto equivocado. Sin tocar el negocio: solo agrupa.
+- **Cómo lo verificas tú:** en `/produccion` el aviso dice, por ejemplo, «81 modelos por producir: 22 con base, 59 con poca base», y «Ver los 81» baja a la tabla.
 - **Esfuerzo / dependencias:** S · ninguna.
 
-### #3 · ✅ cerrada (`5f77703aa`) · [Corregir] El tope de 7 avisa, y «producir» se agrupa para no comerse a lo demás
-- **Dónde:** `lib/produccion-decisiones.ts:152,269` (`MAX_TARJETAS = 7` + `.slice`), `:236-255`; `ResumenProduccionPanel.tsx:107`; prueba `produccion-decisiones.test.ts:141-146`.
-- **Por qué en este puesto:** la captura muestra exactamente 7 `[visto]`; con 7 o más «producir» (severidad 3), cuando el Taller tenga pagos, entregas e insumos, se perderán pagos por vencer (sev 2), entregas «pronto» y mínimos, y sobrestock (sev 1) nunca aparecerá. Hoy, con el Taller sin órdenes `[volcado]`, solo se corta la octava «producir» en adelante. Esas tarjetas además repiten las primeras filas de la tabla y la empujan bajo el pliegue. Propuesta: una sola tarjeta «N modelos por producir» con los 3 más urgentes y «ver todos» (`#produce`), tope por tipo y «y N más».
-- **Cómo lo verificas tú:** con 9 modelos «Producir ya» y un pago que vence en 5 días, la pantalla muestra el pago y dice cuántos más hay. F6 dice cuántas pasan de 7 hoy (`[sin dato real]`).
-- **Esfuerzo / dependencias:** S–M · coordinar con el PR #1042 (cambia la línea 107 a `cuenta=`); actualiza la guía (paso «asunto») y su huella.
+### #2 · [Mejorar] Decir cuánto falta: «faltan ~N prendas» en el titular y una columna «Falta fabricar» en la tabla
+- **Dónde:** suma de `FilaModelo.producir` (ya calculada, `produccion-decisiones.ts:204`); columna en `ResumenProduccionPanel.tsx` (tabla ~línea 281).
+- **Por qué:** convierte «81 modelos» en una cifra con la que se decide (y contra la capacidad del Taller). **Respeta la regla ya aprobada:** con poca base (≤ 2 ventas) no se muestra cantidad (`sugerenciaDeOrden`, ADR-0346), así que el total suma solo los modelos con base y la columna dice «sin cantidad · poca base» en los demás (maqueta `docs/maquetas/produccion-resumen-81-2026-10/`). Aproximación con ventana fija: ~250 prendas para 30 días en los 54, ~177 en los 22 firmes `[producción, aproximado]`; la cifra real la da `repartirFalta` por talla.
+- **Cómo lo verificas tú:** la columna aparece, cada fila trae un número y la suma coincide con la del titular.
+- **Esfuerzo / dependencias:** S · mejor junto a la #1.
 
-### #4 · ✅ cerrada (`45c04fbca`) · [Mejorar] Cada cifra dice su base («5,1 por semana · 14 ventas en 30 días») y avisa cuando hay poca
-- **Dónde:** `lib/resumen-reglas.ts:148-167` (ritmo, sin muestra mínima salvo 3 días con stock), `lib/inventario-reglas.ts:67`; `produccion-decision-reglas.ts:34,52` (las ventas netas por variante ya viajan); para el «% sin prenda», la cola `prendas_por_regularizar` (Colibrí), que la pantalla no lee, y la puerta del motor `lib/motor-demanda-reglas.ts:10-15,24-28`.
-- **Por qué en este puesto:** es la objeción 1. Se parte en dos: **(a)** «N ventas en 30 días» y «poca base» con lo que ya viaja (S, sin tocar reglas; ADR-0346, R-53: sugerir sin historial limpio da cifras inventadas); **(b)** «X % sin prenda», que **exige una lectura nueva** de otro módulo (M, tuya).
-- **Cómo lo verificas tú:** cada tarjeta y fila de «producir» lleva «base: N ventas» y las de 2 o menos lo dicen; F6 (`tarjetas_con_2_o_menos_ventas_netas_en_30d`) cuenta cuántas son hoy.
-- **Esfuerzo / dependencias:** (a) S, (b) M · tuya: el umbral de «poca base».
-
-### #5 · ✅ cerrada (`d6d06bb7e`) · [Reconstruir] La fila muestra el modelo (foto) y guarda el detalle por variante; de paso, foco y contraste
-- **Dónde:** `app/(app)/produccion/page.tsx:57-61` (hoy pasa solo `variantesIds`); `lib/produccion-decisiones.ts:84-96,108-136`; `lib/produccion-decision-reglas.ts:23-67`; `lib/produccion.ts:132-151` (ya trae talla, color, hex); `lib/catalogo-v2.ts:68-76,121-170` (`getCatalogo()`); `lib/producto-fotos-reglas.ts:23-31` (`fotoDeVariante`); piezas: `MiniaturaPrenda` (`components/ui/PrendaCelda.tsx:40`), `SinFoto` (`:26`), `MosaicoPrenda` (`components/MosaicoPrenda.tsx:22`); orden de tallas `lib/tallas.ts:35-41` y de colores `lib/colores-familias.ts:51` (`enLaCarta`). En la misma fila: `ResumenProduccionPanel.tsx:159` (`outline-none`) y `:168,171,185,218` (`/45` y `/55`).
-- **Por qué en este puesto:** es la base de lo que pides y arregla lo que más duele del escenario: la líder reconoce el modelo. Talla, color, stock, ritmo y «en producción» ya se leen: 0 consultas nuevas. **La foto sí suma una lectura**: `getCatalogo()` es un RPC de versión con caché y, con caché fría, el catálogo completo (~1.435 variantes); su caché ya la paga Catálogo ▸ Productos. Como la fila ya se reconstruye, se arregla el foco (el anillo global de ADR-0351) y el contraste, y se mira el recorte a 1024 px, que una columna de foto empeora.
-- **Cómo lo verificas tú:** cada fila muestra la foto del modelo (o el ícono de su categoría sobre su color, sin foto); Tab pasa de fila en fila con un anillo visible; a 1024 y 1280 px sin recorte; claro y oscuro (`tema:auditar --ruta /produccion`); el peso de `/produccion/ordenes` no cambia.
-- **Esfuerzo / dependencias:** M · blanda tras #1. Efecto: huella de la guía (`lib/guias/huellas/produccion.json`) y escenario de tema (hoy el Resumen no tiene, `tema/escenarios/registro.mjs:1053-1058`).
-- **DECIDÍ:** la fila guarda las variantes ya calculadas en el servidor y la foto sale de `getCatalogo()` por `varianteId`, con la regla estricta. **DESCARTÉ:** (a) sumar `producto_fotos` al select de `getModelosProducibles`: ese resultado viaja como prop a `OrdenesTablero` y `NuevaOrdenProduccionForm` (`"use client"`) y engorda Nueva orden; (b) usar `FilaResumen.fotoUrl`: `fn_resumen_variantes` cae a la foto principal de OTRO color; (c) un loader chico de fotos por ids: suma dos lecturas nuevas sin caché por carga (fotos y categorías para el ícono) en vez de reusar la copia que ya existe. **SE ROMPE SI:** la copia cacheada del catálogo sirve una foto vieja o un modelo recién creado no aparece: la fila queda con el ícono en vez de la foto (no se cae, pero no se ve lo nuevo); o si las variantes se serializan a una isla cliente y el payload de la página crece.
-
-### #6 · ✅ cerrada (a–c, y d como aviso: `57e54d52e`, `7323e3eb0`) · [Corregir] «Producir ya» compara lo que falta contra lo que hay y lo que se fabrica; distingue «trasladar» de «producir»; ve el quiebre parcial y al agotado de hace tiempo
-- **Dónde:** `lib/produccion-decisiones.ts:111-131` (estado por días de red de todo el modelo; ignora `stockTaller` y `enCamino`; cualquier `enProduccion>0` pasa a «Ya hay orden abierta»), `:127,134,237` («Sin ritmo medido» sin tarjeta); `lib/produccion-decision-reglas.ts:91-116,133-140` (`sugerirVariante` ya calcula `ceil(ritmoDia × días − (red + Taller + en camino + en producción))`); `lib/resumen-reglas.ts:154-164` (≥3 días con stock).
-- **Por qué en este puesto:** una orden de 1 prenda o de la talla S apaga la urgencia de la M; con stock en el Taller y 0 en tiendas la acción debería ser trasladar; una talla en 0 con otras holgadas sale «Alcanza»; y el modelo que estuvo agotado casi todo el mes desaparece. Es **regla de decisión con dinero real**: va con tu OK. El tamaño de cada caso: `[sin dato real]` (F4, F6).
-- **Cómo lo verificas tú:** cuatro casos en prueba: (a) 0 en tiendas y stock en el Taller → «Trasladar al piso»; (b) orden de 1 prenda con falta de 30 → sigue «Producir ya» (falta 29); (c) orden que cubre lo que falta → «Ya hay orden abierta»; (d) una talla en 0 con ritmo y otra con stock sobrado → no queda «Alcanza» (el estado mira la peor variante o marca «talla por producir»); y un modelo agotado 28 de 30 días aparece con tarjeta «sin stock hace N semanas».
-- **Esfuerzo / dependencias:** M · no antes de #5 (necesita el detalle por variante) · tuya: la regla.
-
-### #7 · ✅ decidida por Felipe el 2026-10-13: **el modelo** (ADR-0133, actualización (b)) · [Replantear] Decidir la unidad de decisión: ¿el modelo o el hueco (categoría × talla × familia de color)?
-- **Dónde:** §8; `docs/adr/0347-motor-de-demanda-una-sola-cifra.md:19` («los modelos no se repiten»); `components/motor-demanda/MotorEnProduccion.tsx:86`; `lib/demanda-reglas.ts:257`.
-- **Por qué en este puesto:** condiciona #8 (la hoja por modelo, L), #9 y la parte del motor de #10: si el Taller casi no repite modelos, reponer por modelo es la excepción y la hoja se construiría sobre una unidad que quizá no es la de decisión. No cambia #1 a #6.
-- **Cómo lo verificas tú:** respondes la decisión de §8 (con F6/F3 medimos cuántos modelos cambiarían de estado y cuánto del ritmo es ciego).
-- **Esfuerzo / dependencias:** M (decisión) · antes de #8, #9 y de la parte del motor de #10.
-- **DECIDÍ:** que esta tarea no decide, te pide decidir (§8). **DESCARTÉ:** construir #8 primero y decidir después, porque costaría L sobre una unidad sin confirmar. **SE ROMPE SI:** se construye la hoja por modelo y el Taller trabaja por «hueco»: la hoja queda bonita y sin uso, como el módulo de insumos con 0 filas hoy `[volcado]`.
-
-### #8 · ✅ cerrada (`e1664d147`) · [Reconstruir] «Ver el modelo»: hoja de lectura con la foto por color y, por talla y color, lo que se vendió y lo que ya no hay — **tu pedido (nivel 2)**
-- **Dónde:** `ResumenProduccionPanel.tsx:153-190` (cada fila es un único `<Link>` a `?nueva=`: no admite un botón adentro). Piezas que ya existen: `FotoPrenda` (`components/apartados/piezas.tsx:28-71`; hay que moverla a `components/ui` antes de importarla: usa el optimizador de Next, ~5 KB contra ~90 KB `[doc M3]`), `FotoAmpliada`, la lógica pura `tablaDelModelo` y `fraseDelModelo` de Análisis (`lib/analisis-ficha.ts:262,201`: celda «vendió y sin stock»), `compararTallas` (`lib/tallas.ts:35-41`), `enLaCarta` (`lib/colores-familias.ts:51`), `<Modal variante="hoja">`. Para la matriz: hay dos `armarMatriz` (`lib/matriz-ficha-reglas.ts:38`, `lib/vista-rapida-producto-reglas.ts:90`) y ninguna recibe ritmo ni ventas: se escribe una función pura nueva con el mismo orden.
-- **Por qué en este puesto:** es lo que pediste, pero **la matriz es de lo vendido y lo que falta, no de stock**: en tu captura los 7 modelos «Producir ya» tienen 0, 0, 0, 0, 0, 1 y 1 en tiendas `[visto]`, así que una matriz de stock sale vacía por construcción; y con ≈1,2 unidades por variante `[producción F8, inferido]` el stock casi no discrimina. Lo útil es qué se vendió por talla y color y qué se vendió y ya no hay, con **totales por talla y por color**, conteos y no rankings (63 % de las celdas sede×grupo×color de TRU tienen 2 ventas o menos: `docs/investigacion/2026-10-12-colores-que-bajar-al-piso.md:52`; para talla×color por modelo es probablemente peor `[inferido]`), «poca base» donde no alcanza (#4) y el stock como dato secundario. Foto 4:5 (1200×1500); sin foto, el mosaico; `data-color-dato` en los puntos de color. **No se reutiliza la vista rápida de Catálogo**: se abre por un estado local, depende de datos que carga la grilla de Catálogo (listado, existencias, fichas de color, piso, precios por sede) y de `useStockEnSede`, que lee el stock de la sede activa, que en Producción es el Taller (`ProductosGrilla.tsx:26,181`; `productos/page.tsx:109-156`; `useStockEnSede.ts:40-42`).
-- **Cómo lo verificas tú:** abre «Blusa Encaje»: foto por color y una matriz con lo vendido en 30 días y «se vendió y ya no hay» por talla y color, con totales y «poca base» donde corresponda; Tab/Enter abre, Esc cierra; a 1024 px sin recorte; claro y oscuro; `guias:recorrer` en escritorio. El clic en la foto de la fila abre la hoja, no «Nueva orden».
-- **Esfuerzo / dependencias:** L · no antes de #5 y #4, ni de tu decisión de #7. Efecto: la fila deja de ser un solo `Link` (huella de la guía, `data-guia`, escenario de tema) y se decide con #11.
-- **DECIDÍ:** una hoja `<Modal variante="hoja">` por modelo, abierta desde un botón propio de la fila, calculada en el servidor. **DESCARTÉ:** (a) reutilizar `VistaRapidaProducto` (depende de lo que carga la grilla de Catálogo y del stock de la sede activa); (b) montar `FichaPrenda` de Análisis: su tabla del modelo es de la tienda activa y depende del contexto `useAnalisis()` (`components/analisis/FichaPrenda.tsx:58,72,104`; `components/analisis/contexto.tsx:49`); (c) enriquecer la matriz de «Nueva orden» con foto y vendidas: el formulario es para fabricar, no para mirar, y la líder tendría que abrir una orden para ver el modelo. **SE ROMPE SI:** la hoja se serializa completa al cliente y el payload de la página crece; o se abre desde un `<Link>` anidado (HTML inválido: el clic sube al enlace y abre «Nueva orden» sin querer, y la líder crea una orden por mirar; es una regla de construcción).
-
-### #9 · ✅ cerrada (`c86c560d3`) · [Mejorar] «Abrir orden sugerida» dice la cantidad y la lleva — **tu pedido (nivel 3)**
-- **Dónde:** `ResumenProduccionPanel.tsx:125-130` + `produccion-decisiones.ts:244` (href sin cantidad); `NuevaOrdenProduccionForm.tsx:119,253-257,517,580-587` (el «sugerido» es hoy número de fondo + botón «Usar la sugerencia»); contrato `?nueva=` compartido con Análisis (`lib/analisis-acciones.ts:31`) y Nuevo producto (`lib/modelo-nuevo-orden-reglas.ts:23-26,40-42`).
-- **Por qué en este puesto:** la tarjeta promete «sugerida» y no dice cuánto. Mostrar «Sugerido: N prendas (S 4 · M 8 · L 8 · XL 4)» **solo si el modelo tiene base** (#4; ADR-0346 dijo que una sugerencia por talla sobre datos flacos «sería ruido») y precargar con un parámetro **opt-in** (`&sugerida=1`) para no cambiar los otros dos caminos. Sin base, «poca base» y nada precargado.
-- **Cómo lo verificas tú:** clic en «Abrir orden sugerida» de un modelo con base → «Nueva orden» con las casillas llenas; en uno con poca base → la tarjeta lo dice y las casillas quedan vacías; Análisis y Nuevo producto abren como antes.
-- **Esfuerzo / dependencias:** M · no antes de #4, #6 y de tu decisión de #7 · va con tu OK (dinero).
-
-### #10 · [Corregir] Lo secundario no tumba la pantalla ni la hace mentir
-- **Dónde:** `page.tsx:29-35` (5 loaders con `exigir()`); `lib/decision-produccion.ts:39-54,72-74` (un solo `try/catch`; no registra la causa); `ResumenProduccionPanel.tsx:106-113,139-141`; `decision-produccion.ts:42-45,68` (motor: 6 RPC por carga y se descarta).
-- **Por qué en este puesto:** con una sede caída la líder lee «Todo en orden» y «Todavía no hay modelos»: es falso. Patrón del repo: «lo secundario falla con aviso y la pantalla sigue» (Existencias, `app/(app)/inventario/page.tsx:78-88`). **La parte del motor depende de #7:** si eliges el camino intermedio de §8 el motor se conserva y se usa; si no, se quita (ahorra CPU de base; no siempre latencia, porque corre en paralelo con las lecturas). «No tumbar ni mentir» va siempre.
-- **Cómo lo verificas tú:** en local, fuerza el fallo de una sede: la pantalla muestra las cifras y las telas, «¿Qué producir?» dice «no pude leer la red» (sin «no hay modelos») y «Para decidir» no dice «Todo en orden».
-- **Esfuerzo / dependencias:** M · la parte del motor, después de #7.
-
-### #11 · [Eliminar/fusionar/conectar] Piezas del sistema en Producción, módulo por módulo — con tu OK
-- **Dónde:** `ResumenProduccionPanel.tsx:143-153` (tabla a mano → `<Tabla>`; Comprobantes y Proveedores dibujan la misma rejilla: migrar los tres juntos); `:141,201` (→ `<Vacio>`); `:139` (→ `<Aviso tono="atencion">`); `:203` (→ `btn-enlace`; hoy suma un rojo); `:234-236` (→ `nota-cayla`); `:35,174-178` (60/7/30 sueltos → `inventario-reglas.ts`); cabecera a mano `:41-63` (**tuya**). El foco y el contraste de la fila ya van en #5.
-- **Por qué en este puesto:** `lib/unificar.test.ts` no lo ve (las firmas no lo detectan: `unificar/familias.mjs:475,484-508,583-603,604-625`), así que la deuda se arrastra. Cambia cómo se ve, nunca qué hace. El PR #1042 ya toca Comprobantes, Insumos y el Resumen: coordinar para no pisarse.
-- **Cómo lo verificas tú:** `pnpm --filter web unificar:deuda <familia>` baja; capturas a 1024 y 1280 px en claro y oscuro; `tema:auditar --ruta /produccion`.
-- **Esfuerzo / dependencias:** M–L (son tres paneles) · no antes de #8 (la fila cambia de estructura) y con tu OK.
-
-### #12 · [Mejorar — bajo valor / opcional] Poner la casa en orden: registros, pruebas y latentes
-- **Dónde:** `lib/guia-de-foco-pantallas.ts:27,164` (`/produccion` figura `pendiente` aunque el Resumen no tiene campos → `no-aplica` con motivo, baja `PENDIENTES_HOY`); escenario de tema del Resumen (`tema/escenarios/registro.mjs:1053-1058`); prueba de la rama `falloRed` (no hay prueba de componente); `docs/ARQUITECTURA.md:902,917,1360-1362` y el encabezado de `10-produccion-del-taller.md`.
-- **Por qué al final:** nada se rompe hoy. Latentes que **no se hacen todavía** `[producción F8]`: apartadas (1 unidad) y «en camino» (0 traslados); y que se vigilan: `getInsumosDelTaller` sin `leerTodas` (tope de 1.000 filas, hoy 0; `insumos.ts:93-101`) y el tope de 60 órdenes sin filtrar por estado (`produccion.ts:69-70,83-97`; hoy 0 órdenes).
-- **Cómo lo verificas tú:** `pnpm focus` ya no lista `/produccion` como pendiente; `lib/guia-de-foco.test.ts` pasa con el contador nuevo.
+### #3 · [Mejorar] «¿Por qué?» en el titular, en palabras de tienda
+- **Dónde:** `Decision.porque` (existe, `hayPorQueAntes`, `ResumenProduccionPanel.tsx:37`) y `components/produccion-resumen/PorQue.tsx`; texto en `tarjetaProducirAgrupada`.
+- **Por qué:** explica «producir = a este ritmo se agota en ≤7 días y no alcanza para 30», y «8,6 por semana = lo vendido ÷ los días que hubo stock». Formidable, ley 6: lo difícil, a un toque.
+- **Cómo lo verificas tú:** un toque en «¿Por qué?» abre la explicación con un ejemplo real de la lista.
 - **Esfuerzo / dependencias:** S · ninguna.
+
+### #4 · [Mejorar] Filtro por tramos sobre la tabla de 81 («Con base · Poca base · Agotados · Con orden»)
+- **Dónde:** tabla `ResumenProduccionPanel.tsx:269-355`; pieza `FiltroPuesto`/`pildora-cayla` (ADR-0358).
+- **Por qué:** 81 filas sin filtro no se leen. Con la #1 es la misma cuenta dicha como botones.
+- **Cómo lo verificas tú:** al tocar «Con base» quedan 22 filas (hoy, a la fecha de este análisis).
+- **Esfuerzo / dependencias:** M · después de la #1.
+
+### #5 · [Corregir] Aviso de historia corta mientras el ERP tenga menos de ~8 semanas de ventas
+- **Dónde:** nueva regla en `lib/produccion-decisiones.ts` (la fecha del primer movimiento) y una `nota-cayla` en el Resumen.
+- **Por qué:** `[producción]`: 4 semanas, TRU creciendo cada semana, AQP recién empezó. Los ritmos de hoy subestiman o sobreestiman según la semana. Es una nota honesta, no un candado.
+- **Cómo lo verificas tú:** la nota aparece hoy y desaparece sola pasadas las 8 semanas; el número (8) es tuyo.
+- **Esfuerzo / dependencias:** S · ninguna.
+- **DECIDÍ:** una nota con la edad de los datos. **DESCARTÉ:** bajar la sensibilidad del motor, porque oculta modelos que sí se agotan. **SE ROMPE SI:** una tienda con 3 semanas de ventas pareja se lee como «poca historia» y se ignora un quiebre real.
+
+### #6 · [Corregir] «Muestra» grande: preguntar si es muestra o producción
+- **Dónde:** `NuevaOrdenProduccionForm.tsx` y `enProduccionPorVariante` (`produccion-decision-reglas.ts`).
+- **Por qué:** 2 muestras de 54 y 69 prendas `[producción]`; una muestra no cuenta como «en producción», y si era un lote real la pantalla dice «no hay orden».
+- **Cómo lo verificas tú:** al guardar una muestra mayor que un tope que tú pongas, pregunta «¿es una muestra o una corrida?».
+- **Esfuerzo / dependencias:** S · el tope lo decide Felipe.
+
+### #7 · [Replantear] Decidir si la lista «por producir» parte de la ventas firmes o de la cobertura
+- Ver «Estrategia alternativa». **DECIDÍ:** proponerlo, no cambiarlo. **DESCARTÉ:** cambiar la regla ya aprobada (ADR-0133: unidad = modelo) sin tu decisión. **SE ROMPE SI:** se oculta un modelo con 2 ventas que en verdad se agotó por un pedido grande.
+
+### #8 · [Mejorar] Orden de los agotados: por ventas firmes primero, no solo por ritmo
+- **Dónde:** `filasPorModelo`, `produccion-decisiones.ts:~285`.
+- **Por qué:** con cobertura 0 todos empatan; hoy decide el ritmo, que es la cifra más ruidosa. Poner primero los de más ventas reales es más estable.
+- **Cómo lo verificas tú:** los primeros agotados tienen más ventas que los siguientes.
+- **Esfuerzo / dependencias:** S · después de la #1.
+
+### #9 · [Corregir] «Ver los 81 modelos» → «Ver los 81 en la tabla»
+- **Dónde:** `tarjetaProducirAgrupada`, `accion.texto`.
+- **Por qué:** el botón no dice qué hace; el verbo es de tienda. Menor.
+- **Esfuerzo:** S.
+
+### #10 · [Mejorar — bajo valor] Mostrar el sello «agotado» en la fila con la cantidad de la talla más vendida
+- La hoja «Ver el modelo» ya lo tiene; llevar un resumen a la fila. Opcional.
+
+### #11 · [Eliminar/fusionar — opcional] Unificar «Producir ya» y «Trasladar al piso» en un solo botón con dos destinos
+- Hoy son dos cosas distintas con razón (llevar del Taller no gasta). Solo si se confunden en la práctica.
+
+### #12 · [futuro] Capacidad del Taller (prendas por semana) para decir «esto no cabe esta semana»
+- Hoy no existe el dato en la base (`producciones` no guarda capacidad). Es futuro: ver §9.
 
 ## 8 · Estrategia alternativa
-**Pantalla actual (con las 12):** la unidad es el **modelo**: una fila por modelo y, con #8, una hoja por modelo.
-**Alternativa:** la unidad es el **hueco** (categoría × talla × familia de color) para lo nuevo, y el modelo solo para lo que se repite. Es lo que el motor de demanda ya calcula y «Nueva orden» ya dice («Se vendió rápido y falta», `components/motor-demanda/MotorEnProduccion.tsx:86`).
-| | Ganas | Pagas |
-|---|---|---|
-| **Alternativa (hueco)** | Encaja con cómo opera CAYLA: «los modelos no se repiten; una prenda vende 1 o 2 en toda su vida en una tienda» (`docs/adr/0347-motor-de-demanda-una-sola-cifra.md:19`). La muestra por celda sube: con 12 días el color exacto es ruido y la familia de color no (`docs/investigacion/2026-10-12-colores-que-bajar-al-piso.md:52`). El motor ya cuenta lo anotado sin prenda y lo perdido (`demanda-reglas.ts:170-178`): resuelve la objeción 1 por diseño. | Hoy el motor callaría en las tiendas: ADR-0346 exige 14 días seguidos con ≥90 % de ventas con prenda y el piso cuadrado, y el 12-oct había TRU 45 %, AQP 2 % y 0 cuadres (`investigacion/…:174,176`) `[doc, de hace un día]`. La pantalla saldría vacía hasta arreglar la captura de ventas (§10). Cambia la unidad de la pantalla: más trabajo. Con 0 órdenes de producción no hay historia del Taller con qué calibrar. |
-| **Actual + hoja (las 12)** | Responde tu pedido sin cambiar la unidad; cada paso es un corte vertical verificable. | La hoja puede quedar sin uso si el Taller no repite modelos; sigue dependiendo de un ritmo ciego a las ventas sin prenda. |
-| **Camino intermedio** | Hacer #1–#6 sobre el modelo y **evaluar** sumar una tarjeta del motor en «Para decidir» **cuando hable** («Se vendió rápido y falta: blusas · S · rojos»). Hoy el motor ya está al lado de la curva en «Nueva orden» (ADR-0347, tu decisión del 2026-10-05, `decision-produccion.ts:27-28`); llevarlo al Resumen sería **un segundo uso que todavía no decidiste**. | La tarjeta no aparece hasta que una tienda cumpla ADR-0346; mientras tanto no cambia nada para la líder. ADR-0347 ya descartó «reemplazar ya la curva». |
-Decide Felipe (tarea #7).
+**Hoy:** una lista de modelos que piden fabricar, ordenados por días de stock.
+**Alternativa — «El plan de la semana»:** en vez de 81 filas, una propuesta de **una corrida**: «esta semana: 6 modelos firmes, ~180 prendas, 2 telas», agrupada por proveedor y por tela, con un botón que abre las órdenes.
+- **Ganas:** responde «¿qué hago el lunes?» y no «¿cuáles faltan?». Une Resumen con Nueva orden.
+- **Pagas:** necesita saber la capacidad del Taller y la tela disponible (hoy `insumos` está en 0); con 4 semanas de ventas, el plan sería demasiado frágil. Es una buena idea para dentro de ~2 meses.
+- **Decide Felipe.** No cambia las 12.
 
 ## 9 · Referentes de ERP y futuro
-Filtro «¿le sirve a 3 tiendas y 1 taller hoy?». Lo que lo pasó y es futuro. Lo que viene de memoria va marcado y **no está verificado**.
-- **Plazo real de la corrida en la urgencia.** «Producir ya» a 7 días ya es tarde si la corrida tarda más. El spike traía «Una corrida tarda ~N semanas»; el contrato lo omitió para no inventar plazos (`produccion-decisiones.ts:3-5`), y con razón. Futuro: medirlo cuando haya órdenes cerradas con fechas (hoy 0 `[volcado]`).
-- **Vara por categoría.** Hoy rige un umbral único por decisión tuya; el destino por categoría «se fija cuando haya 8 semanas de ventas reales» (R-20, actualizaciones 2026-09-25 y 2026-10-06). Cuando llegue, la cobertura de Producción es candidata; medir con F6 cuántos modelos cambiarían de estado.
-- **Reglas mínimo/máximo por variante y plan maestro de producción** de ERP de manufactura (Odoo MRP, de memoria) `[no verificado]`: exigen historia de corridas que no existe.
-- **Sell-through por talla y color** de POS de retail (Shopify, Lightspeed, de memoria) `[no verificado]`: ya lo cubre #8 con datos propios.
-- **Aviso al Taller por «poca novedad»** (ADR-0208:186-187,223) y **«probar y repetir» a 14 días** (`docs/backlog/2026-10-05-inventory-algorithm-business-ba82b4.md:13-14`): pendientes escritos que rozan este deseo y no lo duplican.
+*De memoria, sin verificar:* los ERP de producción textil suelen cerrar la brecha entre «demanda» y «órdenes» con un plan semanal por capacidad de planta. Pasa el filtro de «3 tiendas y 1 taller» solo cuando el Taller registre sus órdenes y sus insumos en el ERP. Por eso va a futuro.
 
 ## 10 · Fuera de esta pantalla
-**Las ventas que nadie registra con su prenda alimentan todo ritmo de Producción, Inventario y Análisis.** El 12-oct solo el 45 % de lo vendido en TRU y el 2 % en AQP tenía su variante, y había 0 cuadres de piso (`docs/investigacion/2026-10-12-colores-que-bajar-al-piso.md:174,176`); el 05-oct el 82 % de las unidades era «venta sin registrar» (`docs/adr/0346-motor-de-demanda-cuando-puede-hablar.md:16-18`) `[doc; la cola de arranque cierra el 15-oct, así que esas cifras envejecen en dos días: F3c las renueva]`. `fn_resumen_variantes` excluye la variante centinela, por lo que el «Se vende 5,1 por semana» de «Producir ya» y toda la cobertura miden solo la parte identificada. Preguntaste por foto, talla y color; lo que puede costarte dinero (tela y corrida del Taller) es **cortar o no cortar sobre un ritmo ciego a la mayor parte de lo vendido**. No es defecto de esta pantalla: es de la captura de ventas y del cuadre del piso, y lo heredan tres módulos. Ya está nombrado en otros análisis: `docs/pantallas/inventario.md:19` (78 ventas sin registrar en TRU) y `docs/pantallas/recibir.md:16,28` (217 ventas sin descontar del stock, 0 regularizadas), así que la tarea raíz vive allí y no se repite aquí.
+**El Taller recién empezó a registrar hoy** `[producción]`: las 4 órdenes son del 27-oct, el stock del Taller es **0** y los insumos están en 0. Mientras el Taller no registre lo que ya fabrica y lo que ya tiene, esta pantalla va a decir «no hay orden» por construcción, y «Producir ya» seguirá sobre-pidiendo. **El cuello de botella no es la pantalla, es la carga de datos del Taller** (qué hay en cola, qué telas tiene).
 
 ## 11 · Líneas propuestas para el backlog
-(Felipe aprueba antes de pasarlas a un archivo de `docs/backlog/`, ADR-0259.)
-- [x] `[pantalla:produccion]` #1 «Producible» filtra descontinuados, pruebas, pendientes y familias apagadas (+ candado #6 en la base, de Felipe) — S
-- [x] `[pantalla:produccion]` #2 Título «ya se agotó» con stock 0, plural correcto y agotados ordenados por lo que se pierde — S
-- [x] `[pantalla:produccion]` #3 El tope de 7 avisa y «producir» se agrupa — S/M
-- [x] `[pantalla:produccion]` #4 Cada cifra dice su base («N ventas», «poca base»); «% sin prenda» aparte — S + M
-- [x] `[pantalla:produccion]` #5 La fila muestra la foto del modelo y guarda el detalle por variante; foco y contraste — M
-- [x] `[pantalla:produccion]` #6 «Producir ya» compara lo que falta; «trasladar» vs «producir»; quiebre parcial y agotados — M (el quiebre parcial solo avisa; no se hizo «sin stock hace N semanas»)
-- [x] `[pantalla:produccion]` #7 Decidir la unidad (modelo o hueco) — M (decisión de Felipe)
-- [x] `[pantalla:produccion]` #8 «Ver el modelo»: hoja con foto por color y lo vendido y lo que falta por talla y color — L
-- [x] `[pantalla:produccion]` #9 «Abrir orden sugerida» dice y lleva la cantidad (parámetro opt-in) — M
-- [ ] `[pantalla:produccion]` #10 Lo secundario no tumba ni hace mentir; el motor se decide con #7 — M
-- [ ] `[pantalla:produccion]` #11 Piezas del sistema en Producción (tabla, vacíos, aviso, enlace, nota, constantes, cabecera) — M–L
-- [ ] `[pantalla:produccion]` #12 Registro de guía de foco, escenarios de tema y docs desfasados — S (bajo valor)
-- [ ] `[pantalla:produccion][raíz, fuera de las 12]` Una sola curva de talla y color: hoy hay cinco (§6) — M, estructural
+- [ ] `[pantalla:produccion]` #1 Titular partido por confianza — S
+- [ ] `[pantalla:produccion]` #2 «Faltan ~N prendas» y columna «Falta fabricar» — S
+- [ ] `[pantalla:produccion]` #3 «¿Por qué?» en el titular — S
+- [ ] `[pantalla:produccion]` #4 Filtro por tramos en la tabla — M
+- [ ] `[pantalla:produccion]` #5 Aviso de historia corta — S
+- [ ] `[pantalla:produccion]` #6 Preguntar muestra vs. producción cuando la muestra es grande — S
 
 ## Inventario de elementos
 | Zona | Elemento | Qué hace | Veredicto | Evidencia |
 |---|---|---|---|---|
-| Cabecera | Pestañas Hoy \| Eficiencia | Cambia de mirada del Taller | bien | `ResumenProduccionPanel.tsx:41-50` |
-| Cabecera | Título «¿Qué necesita mi decisión hoy?» + frase | Dice la pregunta de la pantalla | ajustar (a mano; el menú dice «Resumen»; cabecera por decidir) | `:51-56`, `CLAUDE.md:204-210` |
-| Cabecera | «Ver órdenes» / «+ Nueva orden» | Navegan a Órdenes | bien | `:57-62` |
-| Cifras | Capital en insumos · Valor en proceso · Por pagar · Entregas por atender | Cuatro cifras con su punto | bien (hoy con 0 datos `[volcado]`) | `:65-104`, `retail_filas.json:108,135-140` |
-| Para decidir | Tarjeta «producir» (siete iguales) | Dice «se agota en ~N días» y abre una orden | **sobra / fusionar** (duplica la tabla; título falso con 0) | `produccion-decisiones.ts:236-245` |
-| Para decidir | Tarjetas de entrega, insumo, recibir, pago, mínimo | Avisos con su evidencia | bien | `:158-267` |
-| Para decidir | Tarjeta «sobrestock» | Dice «no produzcas más» | ajustar (solo con base; nunca aparece con 7 urgentes) | `:246-255,269` |
-| Para decidir | Botón «Abrir orden sugerida» | Abre Nueva orden con el modelo | ajustar (no dice ni lleva la cantidad) | `:244`, `NuevaOrdenProduccionForm.tsx:119` |
-| Para decidir | Título «N asuntos» | Cuenta lo mostrado | ajustar (no dice cuántos se cortaron) | `:107`, `produccion-decisiones.ts:269` |
-| ¿Qué producir? | Fila por modelo | Un `Link` a Nueva orden | ajustar (sin foto; no admite botón adentro; foco casi invisible) | `:153-190` |
-| ¿Qué producir? | Columnas Stock · Ventas/sem. · En prod. | Cifras por modelo | ajustar (suma variantes; «—» en `/45`) | `:167-168,185` |
-| ¿Qué producir? | Barra de cobertura (marcas 7 y 30) | Días que dura el stock | ajustar (60/7/30 sueltos; «1 días») | `:35,170-183` |
-| ¿Qué producir? | Chip SUGERENCIA | Estado del modelo | ajustar (no es una sugerencia) | `:186-188` |
-| ¿Qué producir? | Aviso `falloRed` | Avisa si no se leyó la red | ajustar (suelto; dice «no hay modelos») | `:139-141` |
-| ¿Alcanza la tela? | Fila por tela | Saldo, por llegar, piden, estado | bien (hoy sin demanda: 0 órdenes e insumos `[volcado]`) | `:198-233` |
-| ¿Alcanza la tela? | Nota de «Piden» | Explica el cálculo | ajustar (`<p>` suelto, no `nota-cayla`) | `:234-236` |
-| (no se dibuja) | Motor de demanda | Se calcula en cada carga y se descarta | **sobra** (o se usa, #7/#10) | `decision-produccion.ts:42-45,68` |
-| **Falta** | Foto del modelo | — | **falta** | `FilaModelo` sin foto |
-| **Falta** | Talla×color por modelo | — | **falta** | `page.tsx:57-61` |
-| **Falta** | Cantidad sugerida en la tarjeta | — | **falta** | `:186-188` |
-| **Falta** | Base del ritmo («N ventas», «sin prenda») | — | **falta** | `resumen-reglas.ts:148-167` |
-| **Falta** | «Tallas más apretadas» del spike | — | **falta** (parece omisión) | `vista-resumen.js:39-42` |
+| Cabecera | «Ver órdenes» / «+ Nueva orden» | Navega | bien | `[visto]` |
+| Pestañas | Hoy · Eficiencia | Cambia de mirada | bien | `[visto]` |
+| Cifras | Capital, valor en proceso, por pagar, entregas | 4 tarjetas | bien (hoy en 0 por falta de carga) | `[visto]` |
+| Para decidir | Tarjeta «81 modelos…» | Resume los de «producir» | ajustar (#1–#3) | `[visto]` |
+| ¿Qué producir? | Tabla con cobertura | Lista por modelo | ajustar (#2, #4) | `[visto]` |
+| ¿Qué producir? | Chip de estado | Producir ya, Poca base… | bien | `[visto]` |
 
-## Anexo · Datos de producción recibidos y pendientes
-**Recibidos (hoy, producción, solo lectura):**
-- **F0:** `soy_lider = true`, `hay_uid = true`, 4 sedes activas, 186 filas de una tienda en `fn_resumen_variantes`. La simulación de sesión de líder funciona, así que F4 y F6 corren tal cual.
-- **F8 (limpieza del stock):** 1.679 unidades en tiendas y almacenes · 1.678 utilizables (lo que la pantalla llama stock de la red) · 1 en cuarentena · 0 sin ubicar · 1 unidad apartada (1 fila) · 0 en traslados `recibido_con_diferencia` · 0 en `en_transito`. **Está bien:** el stock es limpio; los huecos «no resta apartadas» y «en camino doble» son latentes (1 unidad de 1.679). **Implicancia `[inferido]`:** ≈1,2 unidades por variante (1.678 sobre unas 1.435 variantes del volcado, que incluyen inactivas): el stock casi no discrimina entre tallas y colores.
-
-**Pendientes.** El SQL (31 bloques de solo lectura) no se versiona: se entregó a Felipe en la sesión del 2026-10-13 y se regenera con `/pantalla`. Cada bloque, qué mide y qué cambia:
-| Bloque | Qué mide | Qué cambia en este análisis |
-|---|---|---|
-| F6 | Modelos por estado; tarjetas «Producir ya» (¿pasan de 7?); cuántas con 0 en tiendas; cuántas con ≤2 ventas netas | Confirma o baja las objeciones 2 y 5 y la nota de Lógica |
-| F4 | Por modelo, stock de la red por talla y por color; modelos con alguna talla o color en 0 | Mide cuánto vale #6 y #8 |
-| F3a / F3c | Ventas por talla×color, talla, color y modelo (30 y 90 días; ¿cuántas celdas con ≥3?); % de lo vendido con prenda por sede | Confirma §2.1 y §10; define si #8 muestra celdas o solo totales |
-| F1 | Volumen de modelos y ancho de la matriz; cortes: 1 todos · 2 descontinuado · 3 `estado_alta` ≠ aprobado · 4 `es_prueba` · 5 familia fuera de los motores | Cuánto pesa #1 |
-| F7a / F7b | Modelos por familia y categoría (¿de dónde entró su stock?); búsqueda de «Bolso Boston» | Cuánto pesa #1; si «Bolso Boston» se produce |
-| F2 | % de modelos y colores con foto propia, general u otras | Foto o mosaico en #5 y #8 |
-| F5a | Órdenes de producción por estado (el volcado dice 0) | Frecuencia y relevancia: si el Taller ya opera, la nota sube a Soporte |
-| D3b | Huella y reglas de las funciones vivas contra el repo | El cuerpo vivo de `fn_resumen_variantes` solo se verificó por firma `[no verificable]` |
+## Anexo · Datos de producción (solo lectura, 2026-10-27)
+Fuente: proyecto `cayla-dynamic`, schema `retail`. Todas las cifras con ventana fija de 28 días son **aproximadas** (la pantalla usa días con stock).
+- `producciones`: 4 filas, todas `en_proceso`, creadas el 27-oct: 1 producción (57 prendas, modelo con 66 en tiendas), 3 muestras (16, 54 y 69 prendas; los 3 modelos con 0 ventas históricas).
+- Catálogo: 486 productos (483 activos), 2.788 variantes, 3.159 unidades en tiendas y almacenes, **0 unidades en el Taller**.
+- Movimientos desde el 2026-09-29. Prendas vendidas por semana: TRU 53 → 222 → 276 → 358; AQP 1 → 5 → 63 → 145; LIM 8 y 6 en las dos últimas.
+- Modelos activos según ventas en 30 días: 202 con 0, 146 con 1–2 (poca base), 76 con 3–5, 32 con 6–10, 27 con más de 10.
+- Con ventana fija de 28 días y cobertura ≤ 7 días: 54 modelos (22 con 3+ ventas); ~250 prendas para cubrir 30 días (~177 en los 22).
 
 ## Historial
 | Fecha | Modo | Cumplimiento | Relevancia | Tareas cerradas de las 12 anteriores |
 |---|---|---|---|---|
 | 2026-10-13 | completo (sin SQL parcial: F0 y F8) | 5,0 | 5,8 | — (primer análisis) |
 | 2026-10-13 (tarde) | cierre tras construir | — | — | #1, #2, #3, #4 (parte a) y #5 cerradas; las notas no se recalculan hasta correr F6, F4 y F3 |
+| 2026-10-27 | completo, enfocado en el aviso de «81 modelos» (SQL de solo lectura) | 5,0 | 6,8 | #1–#9 del análisis anterior constan cerradas en su texto (commits `553c05c08` … `c86c560d3`); se reemplaza por 12 tareas nuevas |
+| 2026-10-27 (tarde) | cierre tras construir | — | — | Se construyeron, con otro formato, #1 (titular partido: «¿Qué fabrico primero?» con «Para vigilar» aparte), #2 en parte (la cantidad va en cada fila; **falta el total «faltan ~N prendas»**), #3 («¿Por qué?» en cada fila), #4 como dos grupos en vez de filtros y #5 (nota de historia corta); #6–#12 abiertas. Ver `docs/formidable/produccion-resumen.md` |

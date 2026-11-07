@@ -52,7 +52,7 @@ export type Pajaro = (typeof PAJAROS)[number];
  * Y los poderes que una cuenta recibe sin ser líder porque su ROL ve el módulo (ADR-0161 B2, `permisosDeModulos` en
  * `lib/modulos.ts`). Cada uno espeja una capacidad de la base (`fn_puede_*()` = «líder O su rol ve el módulo»), así que la
  * pantalla y el candado dicen lo mismo:
- *  - facturar:               Facturación (emitir y ver comprobantes). Las anulaciones siguen siendo del líder.
+ *  - facturar:               Facturación (emitir, ver y anular comprobantes; anular dejó de ser solo del líder, ADR-0534).
  *  - gestionarCaja:          cerrar caja y mover caja                          (fn_puede_gestionar_caja)
  *  - ajustarInventario:      cerrar conteo, cerrar traslado con diferencia       (fn_puede_ajustar_inventario). Hasta el
  *                            2026-09-27 también abría el botón «Ajustar»: ADR-0250 lo separó en `ajustarStock` porque
@@ -120,7 +120,7 @@ export type ClaveIcono =
   | "catalogo" | "categorias" | "marcas" | "atributos" | "proveedores" | "facturas" | "recibir" | "porPagar" | "gastos"
   | "finanzas" | "dinero" | "reportes" | "impuestos" | "cierre" | "analisis" | "panorama" | "clientas" | "club" | "avisos" | "frescura" | "pulso" | "liquidacion"
   | "gestion" | "planPiso" | "rendimiento" | "campana" | "recibirInsumos" | "ordenesInsumos" | "fondos" | "revisarCompras" | "vitrina" | "pedidosWeb"
-  | "recomendaciones" | "tiendaWeb" | "resumenWeb" | "ajustesWeb" | "puntos" | "paleta" | "calendarioCampana" | "insignias";
+  | "recomendaciones" | "tiendaWeb" | "resumenWeb" | "ajustesWeb" | "puntos" | "paleta" | "calendarioCampana" | "insignias" | "preguntas" | "trafico" | "reportesVentas";
 
 /** Números que una fila puede llevar de insignia («por atender»). Los calcula el servidor; el árbol solo dice cuál va dónde. */
 export type ClaveContador = "trasladosPorAtender" | "pedidosWebPorConfirmar";
@@ -167,6 +167,10 @@ type Comun = {
    *  le muestra solo las vistas que le tocan. Catálogo ▸ Insignias junta lo que eran dos filas, Sellos (`etiquetas`, hoy «Insignias»)
    *  y Campañas (`campanas`; Felipe 2026-10-22). Era `moduloAlterno` (uno solo) hasta que Compras necesitó dos. */
   modulosAlternos?: readonly ClaveModulo[];
+  /** El nombre que va bajo el ícono con el menú plegado (84 px, 10 px de letra: caben ~10 letras; ADR-0596, «Plegado A · Con
+   *  nombre»). Solo lo pide una fila que puede quedar en el primer nivel y cuyo nombre no cabe; sin esto, va su `etiqueta`. Es
+   *  un dato del nodo, no del AppShell: el día que una pantalla se renombre, su nombre corto se revisa en el mismo lugar. */
+  corto?: string;
 };
 
 /** Una pantalla. */
@@ -225,7 +229,7 @@ export const ARBOL: readonly Nodo[] = [
   { id: "inicio", modulo: "inicio", etiqueta: "Inicio", estado: "viva", ruta: "/", icono: "inicio", pajaro: "13 Águila" },
   // CAYLA Global (ADR-0275): el tablero de toda la empresa. Solo sale estando en esa vista —parado en una sede, la cuenta
   // no «tiene» este módulo (`modulosEnLaVista`)—, y ahí ocupa el lugar de Inicio, que es de una sede.
-  { id: "global", modulo: "cayla_global", soloConModulo: true, etiqueta: "Salud del negocio", estado: "viva", ruta: "/global", icono: "pulso", pajaro: "13 Águila" },
+  { id: "global", modulo: "cayla_global", soloConModulo: true, etiqueta: "Salud del negocio", corto: "Salud", estado: "viva", ruta: "/global", icono: "pulso", pajaro: "13 Águila" },
 
   // «Colaboradores» (a quién de Dynamic le doy entrada a retail) NO va en el menú lateral: se entra desde el perfil del
   // líder (`PerfilModal.tsx`), y adentro viven sus pestañas Terminales y Roles y accesos. Main lo había devuelto al
@@ -308,11 +312,13 @@ export const ARBOL: readonly Nodo[] = [
       // Quinta pantalla de Inventario desde ADR-0101; aquí desde ADR-0392. `exige` se queda: es el permiso que su módulo da.
       { id: "gestion.analisis", modulo: "analisis", etiqueta: "Análisis", estado: "viva", ruta: "/gestion/analisis", icono: "analisis", pajaro: "13 Águila", exige: "analizar", conservaNombre: true },
       // ADR-0208 (paso 4): sin `exige`, la visibilidad la da su módulo, que nació solo para el líder.
-      { id: "gestion.frescura", modulo: "frescura", etiqueta: "Frescura del piso", estado: "viva", ruta: "/gestion/frescura", icono: "frescura", pajaro: "13 Águila", conservaNombre: true },
+      { id: "gestion.frescura", modulo: "frescura", etiqueta: "Frescura del piso", corto: "Frescura", estado: "viva", ruta: "/gestion/frescura", icono: "frescura", pajaro: "13 Águila", conservaNombre: true },
       // ADR-0329 / ADR-0352: entrada propia, no una pestaña (una pestaña no es un módulo, ADR-0306).
-      { id: "gestion.plan_piso", modulo: "plan_piso", etiqueta: "Plan del piso", estado: "viva", ruta: "/gestion/plan-del-piso", icono: "planPiso", pajaro: "13 Águila", conservaNombre: true },
+      { id: "gestion.plan_piso", modulo: "plan_piso", etiqueta: "Plan del piso", corto: "Plan piso", estado: "viva", ruta: "/gestion/plan-del-piso", icono: "planPiso", pajaro: "13 Águila", conservaNombre: true },
       // ADR-0219 (respuesta 20): la pantalla del equipo; la ficha de cada persona cuelga de su ruta, no del menú.
       { id: "gestion.rendimiento", modulo: "rendimiento", etiqueta: "Rendimiento", estado: "viva", ruta: "/rendimiento", icono: "rendimiento", pajaro: "13 Águila", conservaNombre: true },
+      // ADR-0536 (actividad 9): lo que el equipo le pregunta a «Pregúntale a CAYLA» dice qué falta, qué está escondido y qué accesos piden.
+      { id: "gestion.preguntas", modulo: "preguntas_equipo", etiqueta: "Preguntas del equipo", corto: "Preguntas", estado: "viva", ruta: "/gestion/preguntas", icono: "preguntas", pajaro: "13 Águila", conservaNombre: true },
     ],
   },
 
@@ -323,7 +329,7 @@ export const ARBOL: readonly Nodo[] = [
   {
     id: "venta", etiqueta: "Ventas", estado: "viva", icono: "venta", raiz: "/vender", pajaro: "07 Colibrí", sueltoEnMostrador: true,
     hijos: [
-      { id: "venta.puntoDeVenta", modulo: "vender", etiqueta: "Punto de Venta", estado: "viva", ruta: "/vender", icono: "vender", pajaro: "07 Colibrí" },
+      { id: "venta.puntoDeVenta", modulo: "vender", etiqueta: "Punto de Venta", corto: "Vender", estado: "viva", ruta: "/vender", icono: "vender", pajaro: "07 Colibrí" },
       // Apartados (ADR-0166): la clienta aparta con un adelanto y recoge pagando el saldo. Junto al Punto de venta en el
       // menú, pero con módulo propio desde el ADR-0196: el líder decide aparte quién vende y quién maneja apartados.
       { id: "venta.apartados", modulo: "apartados", etiqueta: "Apartados", estado: "viva", ruta: "/vender/apartados", icono: "apartados", pajaro: "07 Colibrí" },
@@ -332,6 +338,9 @@ export const ARBOL: readonly Nodo[] = [
       { id: "venta.caja", modulo: "caja", etiqueta: "Caja", estado: "viva", ruta: "/caja", icono: "caja", pajaro: "07 Colibrí" },
       // Historial de ventas (ADR-0147): el libro de todas las ventas; se lee tras cobrar y cuadrar y de ahí se pasa a corregir.
       { id: "venta.historial", modulo: "historial", etiqueta: "Historial", estado: "viva", ruta: "/vender/historial", icono: "historial", pajaro: "07 Colibrí" },
+      // Reportes (Felipe 2026-11-03): el reporte de ventas del mes y el ranking de prendas, con su propio módulo (nace solo para el líder). Ventas
+      // pasa de 6 a 7 hijas a propósito: Felipe reabrió la excepción (ver `EXCEPCIONES_TOPE_HIJAS` en `menu.test.ts`).
+      { id: "venta.reportes", modulo: "reportes_ventas", soloConModulo: true, etiqueta: "Reportes", estado: "viva", ruta: "/vender/reportes", icono: "reportesVentas", pajaro: "07 Colibrí" },
       // Posventa (D-84, ADR-0166): al entrar Apartados, Ventas pasaba el tope de 6 hijas. Cambios y Devoluciones son lo que pasa
       // DESPUÉS de una venta y se usan mucho menos que el mostrador y la caja: se agrupan en vez de subir el tope (ADR-0144).
       // `raiz` reutiliza la de su primera hija, como Abastecimiento.
@@ -353,7 +362,7 @@ export const ARBOL: readonly Nodo[] = [
   // («Datos y plazos de la tienda web», `fn_puede_ajustes_tienda_web`). Sin `conservaNombre`: un rol que ve una sola hija ve la fila «Tienda web», y la pantalla dice cuál es
   // (su cabecera lleva «Tienda web» tras la fecha). Con este grupo el primer nivel pasa a 9 filas: `TOPE_FILAS` en menu.test.ts.
   {
-    id: "tiendaWeb", etiqueta: "Tienda web", estado: "viva", icono: "tiendaWeb", raiz: "/tienda-web", pajaro: "07 Colibrí",
+    id: "tiendaWeb", etiqueta: "Tienda web", corto: "Web", estado: "viva", icono: "tiendaWeb", raiz: "/tienda-web", pajaro: "07 Colibrí",
     hijos: [
       // «¿Qué te pide hoy la tienda web?»: la ventana de la vitrina, cómo está cada tienda, lo que pide acción y el camino de los
       // pedidos. Su módulo nace solo para el líder (20261016174000) y no trae funciones propias: lee con las de sus hermanas, cada una
@@ -369,6 +378,10 @@ export const ARBOL: readonly Nodo[] = [
       // Lo que los clientes le recomiendan a CAYLA desde la web, con su nombre (ADR-0408, 2026-10-15). Firma con el responsable de la
       // sede donde se está parado: en CAYLA Global no se abre (no es de la vista global).
       { id: "tiendaWeb.recomendaciones", modulo: "recomendaciones", etiqueta: "Recomendaciones", estado: "viva", ruta: "/tienda-web/recomendaciones", icono: "recomendaciones", pajaro: "07 Colibrí" },
+      // Cuánta gente entra a la tienda online, qué mira y dónde se va (ADR-0495, Felipe 2026-10-23): la séptima hija, con su excepción en
+      // `EXCEPCIONES_TOPE_HIJAS` (menu.test.ts). Pide su módulo; nace solo para el líder. `soloConModulo`: antes de los roles esta pantalla no
+      // existía, así que a un perfil sin módulos no le aparece.
+      { id: "tiendaWeb.trafico", modulo: "trafico", soloConModulo: true, etiqueta: "Tráfico", estado: "viva", ruta: "/tienda-web/trafico", icono: "trafico", pajaro: "07 Colibrí" },
       // Lo que la web muestra de cada tienda y los plazos de los pedidos (ADR-0408, actividad 6). Era la pestaña «Tienda web» de
       // Configuración y la abría su módulo; desde 20261016223000 tiene el suyo («Datos y plazos de la tienda web»). El rótulo («Conf. Tienda», Felipe
       // 2026-10-21; antes «Datos y plazos») dice qué hay dentro: «Ajustes» a secas era demasiado general. El dato sigue siendo del Ganso, como el resto de Configuración.
@@ -392,7 +405,7 @@ export const ARBOL: readonly Nodo[] = [
       // Recibir vive AQUÍ para todos (Felipe, 2026-10-14; ADR-0393 y ADR-0362, decisión 38): es donde entra el stock. Hasta ese día
       // vivía en Compras para quien ve el dinero de Compras y aquí solo para quien no (ADR-0113): dos lugares según quién mirara, y el
       // líder parado en el Taller no lo tenía en ningún menú. Lo que muestra (con o sin montos) lo sigue decidiendo la pantalla.
-      { id: "inventario.recibir", modulo: "recibir", etiqueta: "Recibir mercadería", estado: "viva", ruta: "/recibir", icono: "recibir", pajaro: "05 Halcón", conservaNombre: true },
+      { id: "inventario.recibir", modulo: "recibir", etiqueta: "Recibir mercadería", corto: "Recibir", estado: "viva", ruta: "/recibir", icono: "recibir", pajaro: "05 Halcón", conservaNombre: true },
     ],
   },
 
@@ -467,7 +480,7 @@ export const ARBOL: readonly Nodo[] = [
       { id: "finanzas.resumen", modulo: "reportes_financieros", etiqueta: "Resumen", estado: "viva", ruta: "/finanzas/resumen", icono: "panorama", pajaro: "12 Urraca", exige: "verReportesFinancieros" },
       { id: "finanzas.gastos", modulo: "gastos", etiqueta: "Gastos", estado: "viva", ruta: "/finanzas/gastos", icono: "gastos", pajaro: "11 Garza", exige: "registrarGastos" },
       { id: "finanzas.dinero", modulo: "cuentas_dinero", etiqueta: "Cuentas y dinero", estado: "viva", ruta: "/finanzas/dinero", icono: "dinero", pajaro: "12 Urraca", exige: "verCuentasDinero" },
-      { id: "finanzas.reportes", modulo: "reportes_financieros", etiqueta: "Reportes", estado: "viva", ruta: "/finanzas/reportes", icono: "reportes", pajaro: "12 Urraca", exige: "verReportesFinancieros" },
+      { id: "finanzas.reportes", modulo: "reportes_financieros", etiqueta: "Estados financieros", estado: "viva", ruta: "/finanzas/reportes", icono: "reportes", pajaro: "12 Urraca", exige: "verReportesFinancieros" },
       { id: "finanzas.impuestos", modulo: "impuestos", etiqueta: "Impuestos", estado: "viva", ruta: "/finanzas/impuestos", icono: "impuestos", pajaro: "12 Urraca", exige: "verImpuestos" },
       { id: "finanzas.cierreDeMes", modulo: "cierre_mes", etiqueta: "Cierre de mes", estado: "viva", ruta: "/finanzas/cierre", icono: "cierre", pajaro: "12 Urraca", exige: "cerrarMes" },
     ],
@@ -558,13 +571,28 @@ export const COLUMNAS_MOVIL: readonly string[] = ["inicio", "venta.puntoDeVenta"
    Lo que sale de `menuPara`
    ------------------------------------------------------------------ */
 
-export type ItemMenu = { id: string; etiqueta: string; href: string; icono: ClaveIcono; /** Cuántas cosas de esta fila piden acción a quien mira; ausente = sin insignia. */ contador?: number };
+export type ItemMenu = {
+  id: string;
+  etiqueta: string;
+  href: string;
+  icono: ClaveIcono;
+  /** Cuántas cosas de esta fila piden acción a quien mira; ausente = sin insignia. */
+  contador?: number;
+  /** El nombre bajo el ícono con el menú plegado (ADR-0596); ausente = su `etiqueta`. Lo lee `nombreCorto`. */
+  corto?: string;
+};
 /** Una hija puede volver a ser un `GrupoMenu` (subgrupo, D-84): el tipo es recursivo porque el árbol lo es. */
-export type GrupoMenu = { id: string; etiqueta: string; icono: ClaveIcono; hijos: FilaMenu[] };
+export type GrupoMenu = { id: string; etiqueta: string; icono: ClaveIcono; hijos: FilaMenu[]; corto?: string };
 export type FilaMenu = ItemMenu | GrupoMenu;
 
 export function esGrupoMenu(f: FilaMenu): f is GrupoMenu {
   return "hijos" in f;
+}
+
+/** Lo que dice una fila bajo su ícono con el menú plegado (ADR-0596, «Plegado A · Con nombre»): su nombre corto o, si no lo
+ *  declara, su nombre de siempre. */
+export function nombreCorto(f: FilaMenu): string {
+  return f.corto ?? f.etiqueta;
 }
 
 /** Ids de los grupos HERMANOS de `id` (mismo nivel, mismo padre; `id` no incluido). Abrir un grupo cierra a sus
@@ -585,6 +613,20 @@ export function hermanosDe(id: string, filas: readonly FilaMenu[]): string[] {
  *  invariante siga valiendo aunque una pantalla se mude un nivel más abajo, sin tener que saber a qué profundidad vive). */
 export function hojasDe(f: FilaMenu): ItemMenu[] {
   return esGrupoMenu(f) ? f.hijos.flatMap(hojasDe) : [f];
+}
+
+/**
+ * El módulo de cada pantalla del menú: los grupos que la contienen, de afuera hacia adentro («Inventario», «Catálogo · Atributos»).
+ * Lo usa el buscador de la cabecera para encontrar una pantalla por su módulo («inven» → Existencias, Traslados…) y para decir de qué
+ * módulo es cada fila. Una pantalla suelta en la raíz (Inicio) no tiene módulo.
+ */
+export function modulosDeLasHojas(filas: readonly FilaMenu[], camino: readonly string[] = []): Record<string, string> {
+  const salida: Record<string, string> = {};
+  for (const f of filas) {
+    if (esGrupoMenu(f)) Object.assign(salida, modulosDeLasHojas(f.hijos, [...camino, f.etiqueta]));
+    else if (camino.length > 0 && !(f.href in salida)) salida[f.href] = camino.join(" · ");
+  }
+  return salida;
 }
 
 export type PerfilDelMenu = {
@@ -673,7 +715,7 @@ export function menuPara(perfil: PerfilDelMenu, { arbol, columnas }: FuenteMenu 
   };
   const aItem = (h: Hoja): ItemMenu => {
     const contador = contadorDe(h.contador);
-    return { id: h.id, etiqueta: h.etiqueta, href: h.ruta, icono: h.icono, ...(contador !== undefined ? { contador } : {}) };
+    return { id: h.id, etiqueta: h.etiqueta, href: h.ruta, icono: h.icono, ...(contador !== undefined ? { contador } : {}), ...(h.corto ? { corto: h.corto } : {}) };
   };
 
   // Arma la fila de `n` para este perfil, o `undefined` si no le toca ninguna — MISMA función para un nodo de primer
@@ -694,9 +736,13 @@ export function menuPara(perfil: PerfilDelMenu, { arbol, columnas }: FuenteMenu 
       if (!esRaiz) return hijos[0];
       // `conservaNombre`: la hija que quedó sola sigue llamándose como ella misma, no como el grupo (solo «Recibir mercadería»).
       const propia = n.hijos.some((h) => h.id === hijos[0].id && "conservaNombre" in h && h.conservaNombre);
-      return propia ? { ...hijos[0], id: n.id } : { ...hijos[0], id: n.id, etiqueta: n.etiqueta };
+      if (propia) return { ...hijos[0], id: n.id };
+      // Toma el nombre del grupo, y con él su nombre corto: el de la hija ya no es el que se ve.
+      const hija: FilaMenu = { ...hijos[0], id: n.id, etiqueta: n.etiqueta };
+      delete hija.corto;
+      return n.corto ? { ...hija, corto: n.corto } : hija;
     }
-    return { id: n.id, etiqueta: n.etiqueta, icono: n.icono, hijos };
+    return { id: n.id, etiqueta: n.etiqueta, icono: n.icono, hijos, ...(n.corto ? { corto: n.corto } : {}) };
   };
 
   // ---- riel de escritorio ----

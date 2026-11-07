@@ -19,6 +19,7 @@ import {
   type DatosRecordatorioCierre,
   type NivelRecordatorio,
 } from "@/lib/recordatorio-cierre-reglas";
+import { prefiereQuieto } from "@/lib/movimiento-cliente";
 
 // El «Marcador»: el recordatorio de cierre de caja, en el centro de la cabecera (ADR-0359; maqueta 3 de
 // `docs/maquetas/recordatorio-cierre-barra-superior-2026-10/`; antes fue la «Isla» flotante de ADR-0305).
@@ -42,7 +43,7 @@ type Fase = "oculta" | "naciendo" | "viva" | "cerrada" | "saliendo";
 type Visto = { datos: DatosRecordatorioCierre; nivel: NivelRecordatorio; previo: boolean };
 
 const soles = (n: number) => "S/\u00a0" + n.toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-const reducido = () => typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+const reducido = () => typeof window !== "undefined" && prefiereQuieto();
 const espera = (ms: number) => (reducido() ? 0 : ms);
 
 /**

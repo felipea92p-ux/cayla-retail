@@ -2,8 +2,6 @@ import { describe, expect, it } from "vitest";
 import {
   CUMPLE_VACIO,
   OPCIONES_MES_CUMPLE,
-  ajustarAnio,
-  ajustarDia,
   cajaDelProblemaCumple,
   cumpleCompleto,
   cumpleVacio,
@@ -13,9 +11,9 @@ import {
 // UNA regla del cumpleaños para Cobrar y /clientas (antes eran dos y no coincidían: /clientas aceptaba el 31 de abril).
 
 describe("el cumpleaños: la misma regla en Cobrar y en /clientas", () => {
-  it("el día y el año solo aceptan cifras; el mes, abreviado como el spike para caber a 375 px", () => {
-    expect(ajustarDia("1a2b3")).toBe("12");
-    expect(ajustarAnio("19x905")).toBe("1990");
+  it("el día y el año no aceptan otra cosa que cifras (lo tecleado, en `cantidad-escrita-campos.test.ts`); el mes, abreviado como el spike para caber a 375 px", () => {
+    expect(problemaCumple({ dia: "1a2", mes: "3", anio: "" }, 2026)).toBe("El día es un número entero, del 1 al 31.");
+    expect(problemaCumple({ dia: "12", mes: "3", anio: "19x9" }, 2026)).toBe("El año va con sus 4 cifras (o déjalo vacío).");
     expect(OPCIONES_MES_CUMPLE).toHaveLength(12);
     expect(OPCIONES_MES_CUMPLE.map((m) => m.valor)).toEqual(["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12"]);
     expect(OPCIONES_MES_CUMPLE[8]).toEqual({ valor: "9", texto: "sep" });

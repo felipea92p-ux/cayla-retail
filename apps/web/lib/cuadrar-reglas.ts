@@ -5,6 +5,7 @@
 // base), solo en qué estado está cada par y qué banco mirar.
 
 import { cuadra, type Conciliacion, type ConciliacionCuenta, type LineaConciliacion } from "./cuentas-dinero-reglas";
+import { diaLima } from "./fechas-lima";
 import { soles } from "./compras-reglas";
 import { fechaCorta } from "./gastos-reglas";
 import { leerMontoPlata } from "./monto-plata-reglas";
@@ -30,11 +31,9 @@ export function textoLadoBanco(l: Pick<LineaConciliacion, "revisado" | "montoRev
   }
 }
 
-/** Las cuentas que se pueden cuadrar, para elegir arriba: los bancos primero, con lo que falta revisar de cada uno. */
-export function bancosParaCuadrar(cuentas: readonly ConciliacionCuenta[], elegidaId: string | null): { id: string; nombre: string; pendientes: number; elegida: boolean }[] {
-  return [...cuentas]
-    .sort((a, b) => Number(b.tipo === "banco") - Number(a.tipo === "banco") || a.nombre.localeCompare(b.nombre, "es"))
-    .map((c) => ({ id: c.id, nombre: c.nombre, pendientes: c.pendientes, elegida: c.id === elegidaId }));
+/** Las cuentas que se pueden cuadrar, en el orden de la lista: los bancos primero, y por nombre dentro de cada grupo. */
+export function bancosParaCuadrar(cuentas: readonly ConciliacionCuenta[]): ConciliacionCuenta[] {
+  return [...cuentas].sort((a, b) => Number(b.tipo === "banco") - Number(a.tipo === "banco") || a.nombre.localeCompare(b.nombre, "es"));
 }
 
 /** La respuesta de la cara: ¿cuadra esta cuenta con el banco? Con su tono, para el chip. */
@@ -86,4 +85,44 @@ export function hastaDeLaUrl(pedido: string | undefined, hoy: string, piso: stri
 export function textoPeriodo(desde: string, hasta: string, hoy: string): string {
   const conAnio = desde.slice(0, 4) !== hoy.slice(0, 4) || hasta.slice(0, 4) !== hoy.slice(0, 4);
   return `del ${fechaCorta(desde, conAnio)} al ${fechaCorta(hasta, conAnio)}`;
+}
+
+// ---- Lista de bancos y filtro de líneas (rediseño Felipe 2026-10-31, «B · Lista y detalle») ------------------------------------
+// A la izquierda, cada banco con su estado de un vistazo; a la derecha, el detalle del elegido. Solo presentación: lo que cuadra lo
+// sigue decidiendo la base; aquí se traduce lo que ya llega (`ConciliacionCuenta`) a una frase y un tono.
+
+export type EstadoBanco = { texto: string; tono: "verde" | "ambar" | "pizarra" };
+
+/** El estado de un banco en la lista: lo que falta revisar manda; si no, cómo cerró la última vez que se anotó su saldo. */
+export function estadoDeBanco(c: Pick<ConciliacionCuenta, "pendientes" | "ultimaFecha" | "ultimaDiferencia">): EstadoBanco {
+  if (c.pendientes > 0) return { texto: `${c.pendientes} por revisar`, tono: "ambar" };
+  if (c.ultimaFecha === null) return { texto: "Falta el saldo", tono: "pizarra" };
+  return cuadra(c.ultimaDiferencia) ? { texto: "Cuadra", tono: "verde" } : { texto: "No cuadra", tono: "ambar" };
+}
+
+/** «Última vez: 23 oct», o «Nunca se cuadró» si no se anotó nunca un saldo. */
+export function textoUltimaVez(ultimaFecha: string | null): string {
+  const dia = ultimaFecha ? diaLima(ultimaFecha) ?? ultimaFecha.slice(0, 10) : null;
+  return dia ? `Última vez: ${fechaCorta(dia)}` : "Nunca se cuadró";
+}
+
+/** Las dos letras del círculo de un banco: «BCP Soles» → «BS», «BBVA» → «BB». */
+export function inicialesDeBanco(nombre: string): string {
+  const palabras = nombre.trim().split(/\s+/).filter(Boolean);
+  const letras = palabras.length > 1 ? palabras.slice(0, 2).map((p) => p[0]).join("") : (palabras[0] ?? "").slice(0, 2);
+  return letras.toUpperCase();
+}
+
+export type FiltroLineas = "pendientes" | "revisadas" | "todas";
+
+/** Cuántas líneas están revisadas y cuántas faltan, para la barra de avance y las pestañas del filtro. */
+export function avanceDeLineas(lineas: readonly Pick<LineaConciliacion, "revisado" | "montoRevisado">[]): { total: number; revisadas: number; faltan: number; pct: number } {
+  const revisadas = lineas.filter((l) => estadoPar(l) === "revisada").length;
+  return { total: lineas.length, revisadas, faltan: lineas.length - revisadas, pct: lineas.length ? Math.round((revisadas / lineas.length) * 100) : 0 };
+}
+
+/** Las líneas que muestra el filtro: «por revisar» incluye las que cambiaron desde que se revisaron. */
+export function filtrarLineas<L extends Pick<LineaConciliacion, "revisado" | "montoRevisado">>(lineas: readonly L[], filtro: FiltroLineas): L[] {
+  if (filtro === "todas") return [...lineas];
+  return lineas.filter((l) => (estadoPar(l) === "revisada") === (filtro === "revisadas"));
 }

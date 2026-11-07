@@ -12,8 +12,9 @@ import { IndicadorDeslizante } from "@/components/ui/IndicadorDeslizante";
    lo que se toca solo deja menos filas de la misma lista, NO es esto: es la píldora de filtro (`pildora-cayla`); si muestra
    lo mismo de otra forma u orden, es el segmento de modo (`SegmentoEnlaces`, `SegmentoDeslizante forma="modo"`).
 
-   Cómo se ve: el vidrio de Comprobantes (ADR-0124) con la píldora oscura que se desliza bajo la elegida (`IndicadorDeslizante`
-   «pildora-tinta», 450 ms, ADR-0136), y la palabra en MAYÚSCULAS (versalitas de 12 px). El conteo va en su píldora chica; el
+   Cómo se ve: desde el 2026-10-31, «A · La gota de Mi perfil» (ADR-0596): la fila es un pozo hundido y la elegida, una gota de vidrio
+   claro que FLUYE de una a otra (`IndicadorDeslizante` «gota»: se estira 220 ms y se recoge 300 ms; CSS en vidrio/pantalla.css). Antes,
+   la píldora de tinta que se deslizaba (ADR-0358). La palabra en MAYÚSCULAS (versalitas de 12 px). El conteo va en su píldora chica; el
    que pide algo, en ámbar y con su texto para lector; el que avisa un rechazo, en rojo (`tono`). Foco hacia adentro. CSS:
    app/estilos/pestanas-y-segmentos.css. No hay pestaña «deshabilitada»: si la cuenta no ve esa vista, la pestaña no está.
 
@@ -39,8 +40,9 @@ export type Pestana = {
   /** El conteo pide algo (ámbar) y esto es lo que oye quien usa lector de pantalla tras el número: «esperan revisión». */
   pide?: string;
   /** El tono del conteo: sin él, si hay `pide`, va en ámbar (pide algo); «rojo» avisa un problema («SUNAT rechazó»); «neutro»
-   *  solo informa y usa `pide` como su texto para lector («vigentes»). */
-  tono?: "rojo" | "neutro";
+   *  solo informa y usa `pide` como su texto para lector («vigentes»); «nuevo» marca una vista recién llegada con la palabra
+   *  «nuevo» en pizarra (la maqueta del Presupuesto del Plan, Felipe 2026-10-26): quien la pone decide hasta cuándo. */
+  tono?: "rojo" | "neutro" | "nuevo";
   /** Una línea de ayuda al pasar el mouse (`title`): «Cuánto cuesta cada prenda». */
   ayuda?: string;
   /** El ancla de la guía interactiva de su pantalla (`data-guia`, ADR-0389): la guía enciende y toca esta pestaña. */
@@ -115,7 +117,7 @@ export function Pestanas({
   // React avisaba que el HTML no coincidía. Esas dos marcas no son de React: no hay nada que comparar.
   if (porEstado) {
     return (
-      <div ref={fila} role="tablist" aria-label={etiquetaAccesible} data-guia={guia} className={`vidrio-cayla pestanas-cayla ${className}`} style={style} suppressHydrationWarning>
+      <div ref={fila} role="tablist" aria-label={etiquetaAccesible} data-guia={guia} className={`pestanas-cayla ${className}`} style={style} suppressHydrationWarning>
         {items.map((p, i) => {
           const esActiva = p.clave === activa;
           return (
@@ -135,19 +137,19 @@ export function Pestanas({
             </button>
           );
         })}
-        <IndicadorDeslizante activa={activa} id={idIndicador} variante="pildora-tinta" selector='[aria-selected="true"]' />
+        <IndicadorDeslizante activa={activa} id={idIndicador} variante="gota" selector='[aria-selected="true"]' />
       </div>
     );
   }
 
   return (
-    <nav ref={filaNav} aria-label={etiquetaAccesible} data-guia={guia} className={`vidrio-cayla pestanas-cayla ${className}`} style={style} suppressHydrationWarning>
+    <nav ref={filaNav} aria-label={etiquetaAccesible} data-guia={guia} className={`pestanas-cayla ${className}`} style={style} suppressHydrationWarning>
       {items.map((p) => (
         <Link key={p.clave} href={p.href ?? "#"} aria-current={p.clave === activa ? "page" : undefined} title={p.ayuda} data-guia={p.guia} className="pestana-cayla">
           {contenido(p)}
         </Link>
       ))}
-      <IndicadorDeslizante activa={activa} id={idIndicador} variante="pildora-tinta" />
+      <IndicadorDeslizante activa={activa} id={idIndicador} variante="gota" />
     </nav>
   );
 }

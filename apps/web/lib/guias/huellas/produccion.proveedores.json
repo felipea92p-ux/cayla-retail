@@ -2,19 +2,22 @@
   "guia": "produccion.proveedores",
   "ruta": "/produccion/proveedores",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 38,
+  "total": 50,
   "controles": {
+    "components/ProduccionSoloEnTaller.tsx": [
+      "BotonVer «Volver al inicio»"
+    ],
     "components/ProduccionSoloLider.tsx": [
       "BotonVer «Ir a Órdenes»"
     ],
     "components/ProveedorProduccionModal.tsx": [
-      "CampoTexto «Nombre o razón social»",
+      "CampoTexto «{guia.etiqueta(\"nombre\", \"Nombre o razón social\")}»",
       "button «{r.ayuda}»",
-      "CampoTexto «RUC»",
-      "CampoTexto «Contacto»",
-      "CampoTexto «Teléfono»",
-      "CampoTexto «Plazo de crédito (días)»",
-      "CampoSelect «Forma de pago»",
+      "CampoTexto «{guia.etiqueta(\"ruc\", \"RUC\")}»",
+      "CampoTexto «{guia.etiqueta(\"contacto\", \"Contacto\")}»",
+      "CampoTexto «{guia.etiqueta(\"telefono\", \"Teléfono\")}»",
+      "CampoTexto «{guia.etiqueta(\"plazo\", \"Plazo de crédito (días)\")}»",
+      "CampoSelect «{guia.etiqueta(\"forma\", \"Forma de pago\")}»",
       "CampoTexto «Banco»",
       "CampoTexto «N.° de cuenta»",
       "CampoTexto «CCI (transferencia de otro banco)»",
@@ -23,7 +26,7 @@
       "CampoTexto «Titular de la cuenta»",
       "ComboResponsable «{responsable}»",
       "Boton «{responsable.motivo ?? undefined}»",
-      "Boton «{responsable.motivo ?? undefined}» #2"
+      "Boton «{guia.frase ?? responsable.motivo ?? undefined}»"
     ],
     "components/ProveedoresProduccionPanel.tsx": [
       "Boton «prod-proveedores.nueva-tarifa»",
@@ -35,6 +38,21 @@
       "Boton «Borrar la búsqueda»",
       "Boton «Limpiar filtros»",
       "button «{p.nombre}»"
+    ],
+    "components/proveedores-produccion/ProcesoModal.tsx": [
+      "CampoTexto «{guia.etiqueta(\"nombre\", \"Nombre del proceso\")}»",
+      "CampoSelect «{guia.etiqueta(\"despues\", \"Va después de\")}»",
+      "CampoSelect «{guia.etiqueta(\"quien-lo-hace\", \"Quién lo hace de costumbre\")}»",
+      "CampoTexto «{guia.etiqueta(\"ayuda\", \"Qué es\")}»",
+      "ComboResponsable «{responsable}»",
+      "Boton «Apagar el proceso»",
+      "Boton «Ofrecerlo otra vez»",
+      "Boton «Cancelar»",
+      "Boton «{guia.frase ?? responsable.motivo ?? undefined}»"
+    ],
+    "components/proveedores-produccion/ProcesosDelTaller.tsx": [
+      "Boton «prod-tarifas.nuevo-proceso»",
+      "LapizEditar «{p.nombre}»"
     ],
     "components/proveedores-produccion/ServiciosYTarifas.tsx": [
       "Boton «Agregar un servicio»",

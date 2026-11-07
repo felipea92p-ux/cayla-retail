@@ -1,0 +1,206 @@
+<!doctype html>
+<html lang="es" data-tema="claro">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>A · La ficha vive en el modelo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400..800&family=EB+Garamond:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="_base.css">
+<style>
+  /* Dirección A · Catálogo ▸ Editar producto ▸ «Ficha de consumo». Nueva orden solo la LEE. */
+  .sec-fila{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;align-items:center;margin:16px 0 10px}
+  .sec-fila h3{font:400 17px/1.2 var(--font-serif)}
+  .tallas{display:grid;grid-template-columns:minmax(140px,1fr) repeat(2,120px) minmax(120px,auto);gap:10px 14px;align-items:end;margin-top:6px}
+  .tallas .rot{align-self:center;font-weight:600}
+  .delta{margin-top:10px;font-size:13px;color:var(--color-tinta-60)}
+  .fuente{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:12px;font-size:12.5px;color:var(--color-tinta-60)}
+  .med{border:1px solid var(--color-sand);border-radius:14px;padding:16px 18px;background:var(--color-papel)}
+  .med.lista{border-color:color-mix(in srgb,var(--color-verde) 45%,var(--color-sand))}
+  .med .tabla td,.med .tabla th{padding:7px 8px}
+  .med-res{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:12px 0}
+  .med-res div{background:color-mix(in srgb,var(--color-hueso) 60%,transparent);border-radius:10px;padding:8px 12px}
+  .med-res b{display:block;font:400 22px/1.1 var(--font-serif);margin-top:2px}
+  .av-fila{display:grid;grid-template-columns:minmax(150px,1.2fr) 190px minmax(210px,auto) minmax(120px,auto) 32px;grid-template-areas:"nom cant para res x" "sub sub sub sub sub";gap:10px 14px;align-items:center;padding:11px 0;border-bottom:1px solid var(--color-sand)}
+  .av-fila .nom{grid-area:nom}.av-fila .cant{grid-area:cant}.av-fila .para{grid-area:para}.av-fila .res{grid-area:res;text-align:right}.av-fila .x{grid-area:x}.av-fila .sub{grid-area:sub}
+  .av-fila:last-of-type{border-bottom:0}
+  .av-fila .nom b{display:block;font-weight:600}
+  .av-fila .nom small{font-size:12px;color:var(--color-tinta-60)}
+  .av-fila .sub{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:12.5px;color:var(--color-tinta-60)}
+  .av-fila .sub .falta{color:var(--color-ambar-profundo);font-weight:600}
+  .av-fila .sub span{display:inline-flex;gap:6px;align-items:center}
+  .resumen-lado dt{font-size:12px;color:var(--color-tinta-60)} .resumen-lado dd{margin:0 0 10px;font:400 20px/1.1 var(--font-serif)}
+  .resumen-lado{margin:0}
+  .candado{display:flex;gap:10px;align-items:flex-start;font-size:13px}
+  .hoja-orden{border:1px solid var(--color-sand);border-radius:20px;background:var(--color-papel);padding:22px 24px}
+  .hoja-orden h2{font:400 24px/1.15 var(--font-serif)}
+  @media (max-width:1180px){
+    .tallas{grid-template-columns:1fr 1fr 1fr}
+    .av-fila{grid-template-columns:minmax(0,1fr) minmax(0,1fr) 150px 32px;grid-template-areas:"nom nom cant x" "para para res res" "sub sub sub sub"}
+    .av-fila .para{justify-self:start}
+    .med-res{grid-template-columns:1fr}
+  }
+</style>
+</head>
+<body>
+<script src="_comun.js" charset="utf-8"></script>
+<script>
+/* Dirección A — «En el modelo». DECISIÓN que propone: la ficha de consumo es un dato del CATÁLOGO (como el precio o el tejido) y se escribe una sola vez, en
+   Editar producto. Nueva orden la lee y la propone entera; si esta orden es distinta, se ajusta SOLO esta orden (no toca la ficha). */
+const A = { pest: 'tela', modo: 'talla', fuente: 'audaces', dirty: false, medidoAplicado: false, avios: FICHA_AUDACES.avios.map((a) => ({ ...a })), conCierre: false, extra: false };
+const ESTADOS = [
+  { id: 'ficha', txt: 'Editar producto · tela por talla' },
+  { id: 'una-cifra', txt: 'Solo se sabe un número' },
+  { id: 'avios', txt: 'Avíos' },
+  { id: 'medido', txt: 'Llegó lo medido (3 órdenes)' },
+  { id: 'orden', txt: 'Así la lee Nueva orden' },
+  { id: 'sin-permiso', txt: 'Sin permiso de Catálogo' },
+];
+let ULTIMO = null;
+
+function aplicarEstado(est) {
+  A.pest = est === 'avios' ? 'avios' : 'tela';
+  A.modo = est === 'una-cifra' ? 'una' : 'talla';
+  A.conCierre = est === 'medido';
+  A.fuente = 'audaces'; A.medidoAplicado = false; A.dirty = false;
+  A.S = FICHA_AUDACES.tela.S; A.M = FICHA_AUDACES.tela.M; A.una = '1.200';
+  A.avios = FICHA_AUDACES.avios.map((a) => ({ ...a }));
+  A.extra = false;
+}
+
+function fichaActual() {
+  return { tela: A.modo === 'una' ? { una: A.una } : { S: A.S, M: A.M }, avios: A.avios };
+}
+
+function dibujar(est, host) {
+  if (ULTIMO !== est) { aplicarEstado(est); ULTIMO = est; }
+  if (est === 'orden') return dibujarOrden(host);
+  const solo = est === 'sin-permiso';
+  host.innerHTML = cabecera({
+    eyebrow: 'Catálogo · Productos', titulo: 'Editar producto', frase: `${MODELO.cod} · ${MODELO.nombre} · 4 colores · tallas S y M · S/ ${MODELO.precio}`,
+    derecha: solo ? `<span class="chip pizarra">${ic('lock', 's')}Solo lectura</span>` : '',
+  }) + `<div class="fila-flex" style="margin-bottom:18px"><div class="pest">
+      <button type="button" aria-pressed="false">Datos</button><button type="button" aria-pressed="false">Precios</button><button type="button" aria-pressed="false">Fotos</button><button type="button" aria-pressed="false">Existencias</button><button type="button" aria-pressed="true" data-guia="ficha-consumo">Ficha de consumo</button></div>
+      <span class="chip verde">Nuevo en la ficha</span></div>
+    <div class="dos-col"><div class="stack" id="col-princ"></div><aside class="stack" id="col-lado"></aside></div><div id="barra"></div>`;
+  pintarSeccion(solo);
+}
+
+function pintarSeccion(solo) {
+  const cp = $('#col-princ'), cl = $('#col-lado');
+  const ro = solo;
+  const med = medidoDeCerradas({ S: FICHA_AUDACES.tela.S, M: FICHA_AUDACES.tela.M });
+  const sn = Number(A.S), mn = Number(A.M);
+  const consumos = A.modo === 'una' ? { S: Number(A.una), M: Number(A.una) } : { S: sn, M: mn };
+  const validos = Number.isFinite(consumos.S) && Number.isFinite(consumos.M) && consumos.S > 0 && consumos.M > 0;
+  const planTotal = validos ? COLORES.reduce((s, x) => s + aPedir(planTela(x.c, consumos), 'metro'), 0) : null;
+  const fuenteChip = A.fuente === 'medido' ? '<span class="chip verde">Medido · 3 órdenes cerradas</span>' : '<span class="chip pizarra">Audaces</span>';
+
+  let tela = '';
+  if (A.modo === 'talla') {
+    tela = `<div class="tallas">
+      <span class="etq" style="align-self:end">Metros por prenda</span>
+      ${TALLAS.map((t) => `<div class="campo"><label for="f-${t}">Talla ${t}</label><div class="caja mono ${ro ? 'lectura' : ''}"><input id="f-${t}" data-f="${t}" inputmode="decimal" value="${esc(A[t])}" ${ro ? 'readonly' : ''}><span class="suf">m</span></div></div>`).join('')}
+      <div>${fuenteChip}</div></div>
+      <p class="delta num">${validos ? `La M gasta ${pct(mn, sn)} que la S. Con ${prendasTalla('S')} S y ${prendasTalla('M')} M en la orden, eso es ${f1(planTotal)} m de tela.` : 'Escribe los metros de cada talla con punto, por ejemplo 1.150.'}</p>`;
+  } else {
+    tela = `<div class="tallas" style="grid-template-columns:minmax(140px,1fr) 180px auto">
+      <span class="etq" style="align-self:end">Metros por prenda</span>
+      <div class="campo"><label for="f-una">Todas las tallas</label><div class="caja mono ${ro ? 'lectura' : ''}"><input id="f-una" data-f="una" inputmode="decimal" value="${esc(A.una)}" ${ro ? 'readonly' : ''}><span class="suf">m</span></div></div>
+      <div class="fila-flex"><span class="chip ambar hueco sin">Aproximado</span></div></div>
+      <div class="aviso" style="margin-top:12px">${ic('alerta')}<div>Un solo número sirve para empezar: se usa igual para la S y la M. Con ${prendasTalla('S')} S y ${prendasTalla('M')} M la orden pediría <b class="num">≈ ${validos ? f1(planTotal) : '—'} m</b>. Cuando separes por talla, el pedido se afina solo.</div>
+        <button class="btn chico sec acc" type="button" id="separar" ${ro ? 'disabled' : ''}>Separar por talla</button></div>`;
+  }
+
+  const medido = est2() === 'medido' || A.medidoAplicado ? tarjetaMedido(med, ro) : `<div class="nota">${ic('info')}<span>Todavía no hay órdenes cerradas de este modelo, así que manda lo que calculó Audaces. Cuando haya 3, aquí te proponemos usar lo que se gastó de verdad.</span></div>`;
+
+  const cuerpoTela = `<div class="sec-fila"><div><h3>Tela principal</h3><p class="sutil">Cuánta tela lleva una prenda, como la calcula Audaces. Las órdenes nuevas la proponen sola.</p></div>
+      <div class="seg" role="group" aria-label="Cuántas cifras"><button type="button" data-modo="una" aria-pressed="${A.modo === 'una'}" ${ro ? 'disabled' : ''}>Una cifra</button><button type="button" data-modo="talla" aria-pressed="${A.modo === 'talla'}" ${ro ? 'disabled' : ''}>Por talla</button></div></div>${tela}`;
+
+  const cuerpoAvios = `<div class="sec-fila"><div><h3>Avíos</h3><p class="sutil">Lo que lleva cada prenda además de la tela. «Para» dice a cuántas prendas se aplica.</p></div>
+      <button class="btn chico sec" type="button" id="mas-avio" ${ro || A.extra ? 'disabled' : ''}>${ic('mas', 's')}Agregar avío</button></div>
+      ${A.avios.map((a) => {
+        const r = resolverAvio(a);
+        return `<div class="av-fila"><div class="nom"><b>${esc(a.nombre)}</b><small>${a.id === 'hilo' ? 'El insumo es el hilo del color de cada prenda' : a.id === 'ett' ? 'Una por talla: la etiqueta de la S no sirve en la M' : 'Un insumo para toda la orden'}</small></div>
+          <div class="campo cant"><div class="caja mono ${ro ? 'lectura' : ''}"><input data-fa="${a.id}" data-f="av-${a.id}" inputmode="decimal" value="${esc(a.cant)}" ${ro ? 'readonly' : ''} aria-label="${esc(a.nombre)} por prenda"><span class="suf">${UNIDADES[a.unidad].corta} / prenda</span></div></div>
+          <div class="seg para" role="group" aria-label="Para">${[['todas', 'Toda la orden'], ['color', 'Cada color'], ['talla', 'Cada talla']].map(([v, t]) => `<button type="button" data-para="${a.id}:${v}" aria-pressed="${a.para === v}" ${ro ? 'disabled' : ''}>${t}</button>`).join('')}</div>
+          <div class="num res"><b class="serif" style="font-size:17px;font-weight:400">${leer(a.cant) === null ? '—' : fq(r.pedir, a.unidad)}</b><div class="sutil">en la orden de ejemplo</div></div>
+          <button class="btn chico sut x" type="button" data-quita="${a.id}" aria-label="Quitar ${esc(a.nombre)}" ${ro ? 'disabled' : ''}>${ic('x', 's')}</button>
+          ${a.para === 'todas' ? '' : `<div class="sub">${r.lineas.map((l) => `<span class="${l.falta ? 'falta' : ''}">${l.hex ? `<span class="punto" style="--hex:${l.hex}"></span>` : ''}${l.etq}: ${l.falta ? 'no hay hilo de ese color en Insumos' : fq(l.pedir, a.unidad)}</span>`).join('')}</div>`}</div>`;
+      }).join('')}`;
+
+  cp.innerHTML = `<section class="tarjeta pad" aria-label="Ficha de consumo">
+      <div class="titulo-sec"><h2>Ficha de consumo</h2><span class="dato">La usan las órdenes de producción para calcular cuánto pedir</span></div>
+      <div class="pest" role="group" aria-label="Qué parte"><button type="button" data-p="tela" aria-pressed="${A.pest === 'tela'}">Tela</button><button type="button" data-p="avios" aria-pressed="${A.pest === 'avios'}">Avíos</button></div>
+      ${A.pest === 'tela' ? cuerpoTela : cuerpoAvios}</section>${A.pest === 'tela' ? medido : ''}`;
+
+  const planAv = A.avios.map((a) => `<dt>${esc(a.nombre)}</dt><dd class="num">${leer(a.cant) === null ? '—' : fq(resolverAvio(a).pedir, a.unidad)}</dd>`).join('');
+  cl.innerHTML = `<section class="tarjeta pad"><p class="eyebrow">Con esta ficha</p>
+      <p class="sutil" style="margin:4px 0 12px">Una orden de ${TOTAL} prendas (${prendasTalla('S')} S · ${prendasTalla('M')} M) pediría:</p>
+      <dl class="resumen-lado"><dt>Tela</dt><dd class="num">${planTotal === null ? '—' : (A.modo === 'una' ? '≈ ' : '') + f1(planTotal) + ' m'}</dd>${planAv}</dl>
+      <button class="btn chico sec" type="button" id="ver-orden">Ver cómo lo lee Nueva orden</button></section>
+    <section class="tarjeta pad candado"><div>${ic('lock')}</div><div><b>Quién la edita</b><p class="sutil" style="margin-top:2px">Quien edita el catálogo (líder, Productos o Atributos). El Taller la ve en cada orden y puede ajustar <b>solo esa orden</b>, sin tocar la ficha.</p></div></section>
+    ${ro ? `<div class="aviso info">${ic('info')}<span>Tu cuenta ve el catálogo pero no lo edita. Para cambiar la ficha, pídeselo a quien lo edita.</span></div>` : ''}`;
+
+  $('#barra').innerHTML = A.dirty && !ro ? `<div class="guardar" role="status"><span>Cambios sin guardar en la ficha de consumo</span><span style="flex:1"></span><button class="btn chico sec" type="button" id="descartar" style="border-color:var(--color-sand);color:var(--color-crema)">Descartar</button><button class="btn prim chico" type="button" id="guardar">Revisar y guardar</button></div>` : '';
+  enlazar(solo);
+}
+
+function est2() { return A.conCierre ? 'medido' : ''; }
+
+function tarjetaMedido(med, ro) {
+  const aplicado = A.medidoAplicado;
+  return `<section class="med ${aplicado ? '' : 'lista'}" aria-label="Lo que se gastó de verdad">
+    <div class="titulo-sec" style="margin-bottom:6px"><h2 style="font:400 19px/1.2 var(--font-serif)">Lo que se gastó de verdad</h2><span class="chip ${aplicado ? 'verde' : 'verde'}">${aplicado ? 'Aplicado' : '3 órdenes cerradas'}</span></div>
+    <table class="tabla num"><thead><tr><th>Orden</th><th>Cerrada</th><th class="r">Prendas buenas</th><th class="r">Tela gastada</th><th class="r">Por prenda</th></tr></thead><tbody>
+      ${CERRADAS.map((o) => `<tr><td>${o.op}</td><td>${o.cierre}</td><td class="r">${o.buenas}</td><td class="r">${f1(o.metros)} m</td><td class="r">${(o.metros / o.buenas).toFixed(3)} m</td></tr>`).join('')}</tbody></table>
+    <div class="med-res"><div><span class="sutil">Gastado en promedio</span><b class="num">${med.porPrenda.toFixed(3)} m</b></div><div><span class="sutil">Lo que dice Audaces</span><b class="num">${med.promDecl.toFixed(3)} m</b></div><div><span class="sutil">Se gastó de más</span><b class="num">${pct(med.porPrenda, med.promDecl)}</b></div></div>
+    ${aplicado
+      ? `<div class="aviso exito">${ic('check')}<span>La ficha ahora usa lo medido. Las órdenes nuevas lo proponen; las que ya están abiertas no cambian.</span><button class="btn chico sec acc" type="button" id="deshacer-med">${ic('deshacer', 's')}Volver a Audaces</button></div>`
+      : `<p class="sutil" style="margin-bottom:10px">La forma sigue siendo la de Audaces (la M gasta ${pct(Number(FICHA_AUDACES.tela.M), Number(FICHA_AUDACES.tela.S))} que la S), porque la tela se mide por orden, no por talla; solo sube el nivel.</p>
+         <div class="pie-acciones" style="margin-top:0;justify-content:flex-start"><button class="btn prim chico" type="button" id="usar-med" ${ro ? 'disabled' : ''}>Usar lo medido: S ${med.S} · M ${med.M}</button><button class="btn sec chico" type="button" id="no-med" ${ro ? 'disabled' : ''}>Seguir con Audaces</button></div>`}
+  </section>`;
+}
+
+function enlazar(solo) {
+  const marcar = () => { A.dirty = true; pintarSeccion(solo); };
+  $$('[data-modo]').forEach((b) => b.addEventListener('click', () => { if (A.modo === b.dataset.modo) return; if (b.dataset.modo === 'una') { A.una = A.una || A.M; } A.modo = b.dataset.modo; marcar(); }));
+  $$('[data-p]').forEach((b) => b.addEventListener('click', () => { A.pest = b.dataset.p; pintarSeccion(solo); }));
+  $$('input[data-f="S"],input[data-f="M"],input[data-f="una"]').forEach((i) => i.addEventListener('input', () => { A[i.dataset.f] = i.value.trim(); A.fuente = 'audaces'; marcar(); }));
+  $$('input[data-fa]').forEach((i) => i.addEventListener('input', () => { A.avios.find((a) => a.id === i.dataset.fa).cant = i.value.trim(); marcar(); }));
+  $$('[data-para]').forEach((b) => b.addEventListener('click', () => { const [id, v] = b.dataset.para.split(':'); A.avios.find((a) => a.id === id).para = v; marcar(); }));
+  $$('[data-quita]').forEach((b) => b.addEventListener('click', () => { A.avios = A.avios.filter((a) => a.id !== b.dataset.quita); marcar(); }));
+  const sep = $('#separar'); sep && sep.addEventListener('click', () => { A.S = A.una; A.M = A.una; A.modo = 'talla'; marcar(); });
+  const mas = $('#mas-avio'); mas && mas.addEventListener('click', () => { A.extra = true; A.avios.push({ id: 'cie', nombre: 'Cierre de 20 cm', unidad: 'unid', cant: '1', para: 'todas', merma: 0 }); marcar(); });
+  const usar = $('#usar-med'); usar && usar.addEventListener('click', () => { const m = medidoDeCerradas(FICHA_AUDACES.tela); A.S = m.S; A.M = m.M; A.fuente = 'medido'; A.medidoAplicado = true; A.dirty = true; pintarSeccion(solo); });
+  const no = $('#no-med'); no && no.addEventListener('click', () => { A.conCierre = false; toast('Seguimos con Audaces. Te lo volvemos a proponer con la próxima orden cerrada.'); pintarSeccion(solo); });
+  const des = $('#deshacer-med'); des && des.addEventListener('click', () => { A.S = FICHA_AUDACES.tela.S; A.M = FICHA_AUDACES.tela.M; A.fuente = 'audaces'; A.medidoAplicado = false; A.dirty = true; pintarSeccion(solo); });
+  const ver = $('#ver-orden'); ver && ver.addEventListener('click', () => { NAV.estado = 'orden'; ULTIMO = null; M.aplicar(); M.pintar(); });
+  const g = $('#guardar'); g && g.addEventListener('click', () => { A.dirty = false; toast('Guardado. (Maqueta: no se escribió nada.)'); pintarSeccion(solo); });
+  const d = $('#descartar'); d && d.addEventListener('click', () => { aplicarEstado(NAV.estado); pintarSeccion(solo); });
+}
+
+/* ── así lee la ficha Nueva orden ── */
+function dibujarOrden(host) {
+  host.innerHTML = cabecera({ eyebrow: 'Producción · Órdenes', titulo: 'Nueva orden', frase: `Chaleco de Prueba · ${TOTAL} prendas en 4 colores`, derecha: '' }) +
+    `<div class="hoja-orden"><div class="fila-flex" style="justify-content:space-between;margin-bottom:14px"><h2>Chaleco de Prueba</h2><span class="sutil num">${TOTAL} prendas · ${prendasTalla('S')} S · ${prendasTalla('M')} M</span></div><div id="bloque"></div>
+      <div class="pie-acciones"><button class="btn sec" type="button">Cancelar</button><button class="btn prim" type="button">Abrir orden</button></div></div>
+     <p class="sutil" style="margin-top:14px;max-width:70ch">Esto es lo único que cambia en Nueva orden: la tela y los avíos llegan escritos desde la ficha del modelo. Nadie los reescribe orden tras orden.</p>`;
+  BloqueOrden($('#bloque'), {
+    modo: 'lee', ficha: fichaActual(),
+    cabecera: (api) => `<span class="chip pizarra">De la ficha del modelo</span>${api.s.desbloqueado
+      ? `<span class="chip ambar sin">Solo esta orden</span><button class="enlace" type="button" id="vuelve">Volver a la ficha</button>`
+      : `<button class="enlace" type="button" id="ajusta">Ajustar solo esta orden</button>`}`,
+    aviso: (api) => `<div class="nota">${ic('lock')}<span>${api.s.desbloqueado ? 'Estás cambiando solo esta orden. La ficha del modelo no se toca.' : 'La ficha la edita Catálogo (Productos ▸ Chaleco de Prueba ▸ Ficha de consumo).'} <button class="enlace" type="button" id="ir-ficha">Ir a la ficha</button></span></div>`,
+    alMontar: (h, api) => {
+      const a = $('#ajusta', h); a && a.addEventListener('click', () => api.desbloquear(true));
+      const v = $('#vuelve', h); v && v.addEventListener('click', () => api.desbloquear(false));
+      const f = $('#ir-ficha', h); f && f.addEventListener('click', () => { NAV.estado = 'ficha'; ULTIMO = null; M.aplicar(); M.pintar(); });
+    },
+  });
+}
+
+const M = arrancarMaqueta({ clave: 'a', titulo: 'Consumo del modelo · A «En el modelo»', estados: ESTADOS, inicial: 'ficha', lateralActivo: 'catalogo', dibujar });
+</script>
+</body>
+</html>

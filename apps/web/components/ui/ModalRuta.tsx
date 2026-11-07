@@ -20,6 +20,9 @@ import { Modal, type TamanoHoja } from "@/components/ui/Modal";
 // `alCerrar`: adónde ir cuando "atrás" no es el lugar correcto. El caso real
 // es el formulario de nueva factura: al guardar navega al detalle y "atrás"
 // volvería al formulario recién enviado; ahí se cierra hacia la lista.
+//
+// `atrasCierra={false}` (ADR-0528): en el teléfono toda hoja cierra con «atrás» poniendo su propia entrada en el historial; esta ya
+// tiene la suya (la URL que la abrió), y «atrás» la cierra navegando. Una segunda entrada pediría dos «atrás».
 export function ModalRuta({
   titulo,
   subtitulo,
@@ -50,7 +53,7 @@ export function ModalRuta({
   const cerrar = useCallback(() => (alCerrar ? router.replace(alCerrar) : router.back()), [alCerrar, router]);
 
   return (
-    <Modal titulo={titulo} subtitulo={subtitulo} tamano={tamano} ancho={ancho} onClose={cerrar}>
+    <Modal titulo={titulo} subtitulo={subtitulo} tamano={tamano} ancho={ancho} onClose={cerrar} atrasCierra={false}>
       {(pedirCierre) => (
         <>
           {cierre === "equis" && (

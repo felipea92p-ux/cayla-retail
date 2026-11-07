@@ -47,7 +47,7 @@
     flex-wrap: wrap;
     align-items: center;
     gap: 6px 10px;
-    font-size: 13px;
+    font-size: 14px;
     color: var(--color-taupe);
   }
   .vr-meta .vr-dato {
@@ -62,7 +62,7 @@
   }
   .vr-meta .vr-cod {
     font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-    font-size: 12.5px;
+    font-size: 14px;
     color: var(--vr-t60, var(--color-tinta));
   }
   .vr-meta .vr-sep {
@@ -192,12 +192,12 @@
     font-weight: 600;
   }
   .vr-pie-foto .vr-est {
-    font-size: 11.5px;
+    font-size: 14px;
     color: var(--color-taupe);
   }
   .vr-pista {
     margin-top: 6px;
-    font-size: 12px;
+    font-size: 14px;
     line-height: 1.45;
     color: var(--vr-t60, var(--color-tinta));
   }
@@ -215,7 +215,7 @@
   /* La frase de prendas («Combina bien con un jean o una cartera»): una línea, misma altura siempre. */
   .vr-combina {
     margin-top: 6px;
-    font-size: 12.5px;
+    font-size: 14px;
     line-height: 20px;
     height: 20px;
     white-space: nowrap;
@@ -237,12 +237,12 @@
   }
   .vr-ficha .vr-rotulo {
     display: block;
-    font-size: 10.5px;
+    font-size: 12px;
     color: var(--vr-t60, var(--color-tinta));
   }
   .vr-ficha dd {
     margin-top: 2px;
-    font-size: 13px;
+    font-size: 14px;
     line-height: 1.4;
     color: var(--color-tinta);
     overflow-wrap: anywhere;
@@ -258,12 +258,12 @@
   }
   .vr-desc .vr-rotulo {
     display: block;
-    font-size: 10.5px;
+    font-size: 12px;
     color: var(--vr-t60, var(--color-tinta));
   }
   .vr-desc p {
     margin-top: 4px;
-    font-size: 13px;
+    font-size: 14px;
     line-height: 1.5;
     color: var(--color-tinta);
     overflow-wrap: anywhere;
@@ -302,13 +302,13 @@
   }
   .vr-mx-cab .vr-rotulo {
     display: block;
-    font-size: 10.5px;
+    font-size: 12px;
     color: var(--vr-t60, var(--color-tinta));
   }
   .vr-estado {
     display: block;
     min-height: 22px;
-    font-size: 13px;
+    font-size: 14px;
     line-height: 22px;
     color: var(--color-taupe);
   }
@@ -321,7 +321,7 @@
     background: var(--color-hueso);
     padding: 2px 8px;
     font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-    font-size: 12px;
+    font-size: 14px;
     color: var(--vr-t80, var(--color-tinta));
   }
   .vr-estado .vr-fl {
@@ -354,7 +354,7 @@
   .vr-gran .vr-gran-txt {
     display: flex;
     flex-direction: column;
-    font-size: 12px;
+    font-size: 14px;
     line-height: 1.25;
     text-align: left;
     color: var(--vr-t60);
@@ -364,7 +364,7 @@
     border-radius: var(--radius-lg);
     background: var(--color-hueso);
     padding: 8px 14px;
-    font-size: 13px;
+    font-size: 14px;
     color: var(--vr-t80);
   }
   .vr-aviso b {
@@ -381,7 +381,7 @@
   }
   /* Taupe y no `--vr-t60`: sobre el papel de la matriz, t60 rinde 4,45:1 (bajo el 4,5 de WCAG AA); taupe, 5,6:1 (medido 2026-10-12). */
   .vr-donde-nota {
-    font-size: 12px;
+    font-size: 14px;
     color: var(--color-taupe);
   }
   .vr-lugar {
@@ -476,7 +476,7 @@
   .vr-rcolor .vr-s {
     display: block;
     overflow: hidden;
-    font-size: 11px;
+    font-size: 13px;
     font-weight: 400;
     white-space: nowrap;
     text-overflow: ellipsis;
@@ -486,7 +486,7 @@
     border-radius: 8px;
     padding: 4px 0;
     text-align: center;
-    font-size: 10.5px;
+    font-size: 12px;
     font-weight: 700;
     letter-spacing: 0.1em;
     text-transform: uppercase;
@@ -507,7 +507,7 @@
   }
   .vr-ct small {
     display: block;
-    font-size: 10.5px;
+    font-size: 12px;
     font-weight: 500;
     letter-spacing: 0;
     line-height: 1.1;
@@ -663,14 +663,14 @@
   .vr-tot {
     display: grid;
     place-items: center;
-    font-size: 13px;
+    font-size: 14px;
     font-weight: 600;
     color: var(--color-taupe);
   }
   .vr-ayuda-sede {
     margin-top: 8px;
     padding: 0 4px;
-    font-size: 12px;
+    font-size: 14px;
     color: var(--vr-t60);
   }
 
@@ -685,7 +685,7 @@
     align-items: center;
     gap: 8px;
     margin-bottom: 8px;
-    font-size: 12.5px;
+    font-size: 14px;
     color: var(--vr-t60);
     animation: vr-dato-entra 260ms var(--ease-cayla) backwards;
   }
@@ -722,7 +722,7 @@
     border-radius: 999px;
     background: var(--color-tinta);
     padding: 0 6px;
-    font-size: 11px;
+    font-size: 13px;
     letter-spacing: 0;
     color: var(--color-crema);
     animation: vr-pop 220ms var(--ease-cayla) backwards;

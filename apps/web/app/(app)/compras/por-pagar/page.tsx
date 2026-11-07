@@ -140,45 +140,47 @@ export default async function PorPagarPage({ searchParams }: { searchParams: Pro
             apiladas a ancho completo la lista —lo que se vino a ver— quedaba a ~830 px de scroll.
             «Deuda total» ocupa las dos columnas por ser la cifra ancla. Las cifras cuentan desde 0 al llegar
             y, cuando algo las mueve (un pago), cuentan hasta su valor nuevo. */}
-        <div data-guia="por-pagar.cifras" className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-          <div className="col-span-2 sm:col-span-1 [&>*]:h-full">
-            <TarjetaCifra punto="neutro" etiqueta="Deuda total" valor={<CifraQueCuenta valor={resumen.deuda} formato="soles" alMontar />} {...entra(1)}>
-              {conDeuda ? cifra(resumen.conSaldo, "comprobante", "comprobantes") : "Todo pagado"}
+        <div className="@container">
+          <div data-guia="por-pagar.cifras" className="grid grid-cols-2 gap-3 @[36rem]:grid-cols-4">
+            <div className="col-span-2 @[36rem]:col-span-1 [&>*]:h-full">
+              <TarjetaCifra punto="neutro" etiqueta="Deuda total" valor={<CifraQueCuenta valor={resumen.deuda} formato="soles" alMontar />} {...entra(1)}>
+                {conDeuda ? cifra(resumen.conSaldo, "comprobante", "comprobantes") : "Todo pagado"}
+              </TarjetaCifra>
+            </div>
+            <TarjetaCifra
+              acentoTrazo={resumen.vencidas > 0}
+              punto="neutro"
+              tono={resumen.vencidas > 0 ? "text-rojo" : undefined}
+              etiqueta="Vencido"
+              valor={<CifraQueCuenta valor={resumen.vencido} formato="soles" alMontar />}
+              href={resumen.vencidas > 0 ? "/compras/por-pagar?vencidas=1" : undefined}
+              {...entra(2)}
+            >
+              {resumen.vencidas > 0 ? cifra(resumen.vencidas, "comprobante", "comprobantes") : "Nada vencido"}
             </TarjetaCifra>
+            <TarjetaCifra
+              punto={resumen.porVencer > 0 ? "ambar" : "neutro"}
+              puntoPulsa={resumen.porVencer > 0}
+              tono={resumen.porVencer > 0 ? "text-ambar-profundo" : undefined}
+              detalleTono={resumen.porVencer > 0 ? "text-ambar-profundo" : undefined}
+              etiqueta="Vence esta semana"
+              valor={<CifraQueCuenta valor={resumen.porVencerMonto} formato="soles" alMontar />}
+              href={resumen.porVencer > 0 ? "#tramo-semana" : undefined}
+              {...entra(3)}
+            >
+              {resumen.porVencer > 0 ? `${cifra(resumen.porVencer, "comprobante", "comprobantes")} · hasta el ${hastaSemana}` : "Nada por vencer"}
+            </TarjetaCifra>
+            {conDeuda && extra.topProveedorNombre ? (
+              <TarjetaCifra punto="neutro" etiqueta="Mayor deuda" valor={<CifraQueCuenta valor={extra.topProveedorPct} formato="porcentaje" alMontar />} {...entra(4)} className="anim-entra col-span-2 @[36rem]:col-span-1">
+                {extra.topProveedorNombre}
+                <BarraConcentracion segmentos={segmentos} proveedorActivo={filtros.proveedorId ?? null} />
+              </TarjetaCifra>
+            ) : (
+              <TarjetaCifra etiqueta="Mayor deuda" valor={null} {...entra(4)} className="anim-entra col-span-2 @[36rem]:col-span-1">
+                Sin deuda
+              </TarjetaCifra>
+            )}
           </div>
-          <TarjetaCifra
-            acentoTrazo={resumen.vencidas > 0}
-            punto="neutro"
-            tono={resumen.vencidas > 0 ? "text-rojo" : undefined}
-            etiqueta="Vencido"
-            valor={<CifraQueCuenta valor={resumen.vencido} formato="soles" alMontar />}
-            href={resumen.vencidas > 0 ? "/compras/por-pagar?vencidas=1" : undefined}
-            {...entra(2)}
-          >
-            {resumen.vencidas > 0 ? `${cifra(resumen.vencidas, "comprobante vencido", "comprobantes vencidos")} · pagar ya` : "Nada vencido"}
-          </TarjetaCifra>
-          <TarjetaCifra
-            punto={resumen.porVencer > 0 ? "ambar" : "neutro"}
-            puntoPulsa={resumen.porVencer > 0}
-            tono={resumen.porVencer > 0 ? "text-ambar-profundo" : undefined}
-            detalleTono={resumen.porVencer > 0 ? "text-ambar-profundo" : undefined}
-            etiqueta="Vence esta semana"
-            valor={<CifraQueCuenta valor={resumen.porVencerMonto} formato="soles" alMontar />}
-            href={resumen.porVencer > 0 ? "#tramo-semana" : undefined}
-            {...entra(3)}
-          >
-            {resumen.porVencer > 0 ? `${cifra(resumen.porVencer, "comprobante", "comprobantes")} · hasta el ${hastaSemana}` : "Ninguno en los próximos 7 días"}
-          </TarjetaCifra>
-          {conDeuda && extra.topProveedorNombre ? (
-            <TarjetaCifra punto="neutro" etiqueta="Concentración" valor={<CifraQueCuenta valor={extra.topProveedorPct} formato="porcentaje" alMontar />} {...entra(4)} className="anim-entra col-span-2 sm:col-span-1">
-              {extra.topProveedorNombre} concentra la deuda
-              <BarraConcentracion segmentos={segmentos} proveedorActivo={filtros.proveedorId ?? null} />
-            </TarjetaCifra>
-          ) : (
-            <TarjetaCifra etiqueta="Concentración" valor={null} {...entra(4)} className="anim-entra col-span-2 sm:col-span-1">
-              Aparece cuando haya deuda
-            </TarjetaCifra>
-          )}
         </div>
 
         <SaldosAFavor
@@ -202,7 +204,7 @@ export default async function PorPagarPage({ searchParams }: { searchParams: Pro
             visibles={["proveedor", "destino", "vencidas", "condicion"]}
             estiloSpike
             accionesAntes={
-              <div className="flex items-start gap-3" data-guia="por-pagar.controles">
+              <div className="flex flex-wrap items-start gap-3" data-guia="por-pagar.controles">
                 <BotonSoloVencidas cantidad={resumen.vencidas} />
                 <SelectorAgrupar />
               </div>
@@ -225,7 +227,7 @@ export default async function PorPagarPage({ searchParams }: { searchParams: Pro
                       </BotonEnlace>
                     }
                   >
-                    Se busca por el nombre del proveedor o por el número del documento (F001-…).
+                    Busca por proveedor o número.
                   </Vacio>
                 ) : (
                   <Vacio
@@ -237,7 +239,7 @@ export default async function PorPagarPage({ searchParams }: { searchParams: Pro
                       </BotonEnlace>
                     }
                   >
-                    Quita un filtro o límpialos todos para ver todo lo que se debe.
+                    Quita un filtro para ver más.
                   </Vacio>
                 )}
               </div>
@@ -271,7 +273,7 @@ function TodoPagado() {
   return (
     <div className="card-cayla">
       <Vacio icono={<CircleCheck />} titulo="Todo pagado">
-        No queda nada por pagar. Cuando registres una factura al crédito, aparecerá aquí con la fecha en que vence.
+        No queda nada por pagar.
       </Vacio>
     </div>
   );

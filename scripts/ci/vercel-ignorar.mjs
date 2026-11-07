@@ -40,12 +40,18 @@ export const traeMain = (asunto) => TRAE_MAIN.some((r) => r.test(asunto.trim()))
 
 /**
  * `entorno` = VERCEL_ENV (`production` | `preview` | `development`).
+ * `rama` = VERCEL_GIT_COMMIT_REF (la rama que se construye).
  * `asuntos` = los asuntos de los commits que la rama sumó desde su última versión construida (por primer padre, así que
  * no incluye lo que trajo cada merge), o `null` si no se pudo saber.
  */
-export function decidir({ entorno, asuntos }) {
+export function decidir({ entorno, asuntos, rama }) {
   if (entorno !== "preview") {
     return { construir: true, motivo: `entorno «${entorno || "sin dato"}»: solo se saltan vistas previas` };
+  }
+  // La cola de fusión (2026-11-07) sube una rama `gh-readonly-queue/main/pr-…` por PR en la fila: la prueba el CI de GitHub
+  // y, si pasa, queda tal cual en `main`, que se construye en producción. Una vista previa de esa rama nadie la abre.
+  if (rama?.startsWith("gh-readonly-queue/")) {
+    return { construir: false, motivo: `«${rama}» es la rama de la cola de fusión: la prueba el CI y producción construye main` };
   }
   if (!asuntos) {
     return { construir: true, motivo: "no se sabe qué se construyó antes en esta rama: ante la duda, se construye" };
@@ -81,6 +87,7 @@ function main() {
     const { construir, motivo } = decidir({
       entorno: process.env.VERCEL_ENV,
       asuntos: asuntosDesde(process.env.VERCEL_GIT_PREVIOUS_SHA),
+      rama: process.env.VERCEL_GIT_COMMIT_REF,
     });
     console.log(`${construir ? "Se construye" : "No se construye"}: ${motivo} (ADR-0383)`);
     process.exit(construir ? 1 : 0);

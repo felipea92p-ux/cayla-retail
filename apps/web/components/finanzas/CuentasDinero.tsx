@@ -1,7 +1,6 @@
 "use client";
 
 import { createContext, useContext, useEffect, useState, type ComponentProps, type CSSProperties, type ReactNode } from "react";
-import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { traducirError } from "@/lib/error-escritura";
@@ -9,6 +8,7 @@ import { avisar } from "@/components/ui/Avisos";
 import { Modal } from "@/components/ui/Modal";
 import { Chip } from "@/components/ui/Chip";
 import { ComboResponsable } from "@/components/ComboResponsable";
+import { CuadrarDepositosHoja, ReemplazarEstimado } from "@/components/finanzas/CuadrarDepositos";
 import { CabeceraDinero, type PestanaDinero } from "@/components/finanzas/CabeceraDinero";
 import type { SedeTelar } from "@/lib/finanzas-telar-reglas";
 import { PagosSinCuentaModal } from "@/components/finanzas/PagosSinCuenta";
@@ -16,58 +16,63 @@ import { CabeceraBloque, CampoFin, Herramientas, InputFin, ListaDatos, OpcionesF
 import { useResponsable } from "@/lib/useResponsable";
 import { firmar } from "@/lib/responsable-reglas";
 import { soles } from "@/lib/compras-reglas";
-import { fechaCorta, solesRedondo, type Ver } from "@/lib/gastos-reglas";
+import { fechaCorta, solesDos, type Ver } from "@/lib/gastos-reglas";
 import { leerMontoPlata, MONTO_ILEGIBLE } from "@/lib/monto-plata-reglas";
 import {
-  MEDIOS_COBRO,
   OPCIONES_QUE_PASO,
-  TEXTO_MEDIO_COBRO,
   TEXTO_MOVIMIENTO,
   TEXTO_SIN_CUENTA,
-  avisosDeMaquinas,
   cuadra,
   cuentasPara,
-  deudaConDueno,
   ejemploMontoDeposito,
   ejemploReferenciaDeposito,
   leerEgresoParaMovimiento,
   leerLotePendiente,
   lotesPorDefecto,
-  nombreCorto,
   nombreDeMaquinaDeLaPuente,
   saldoConCentimos,
   tituloDelMovimiento,
   opcionQuePaso,
+  netoEsperado,
   resumenAbono,
+  revisarComision,
   resumenConciliacion,
   textoLote,
   textoSalida,
   tipoDeMovimiento,
   validarAbonoPos,
   validarMovimiento,
-  type AlertaPos,
+  validarPagoSunat,
+  validarPagoPlanilla,
+  mesesDePlanilla,
+  OPCIONES_CONCEPTO_PLANILLA,
+  type ConceptoPlanilla,
+  mesesParaPagarSunat,
+  totalPagoSunat,
+  type BorradorPagoSunat,
   type BorradorMovimiento,
   type Conciliacion,
   type ConciliacionCuenta,
   type CuentaDinero,
   type EgresoParaMovimiento,
-  type FilaMedio,
   type LotePendiente,
   type MovimientoDinero,
-  type MovimientoDueno,
   type QuePaso,
   type SinCuenta,
 } from "@/lib/cuentas-dinero-reglas";
 import { Boton } from "@/components/ui/campos";
+import { UltimosMovimientos } from "@/components/finanzas/dinero/HistorialDinero";
 import { Casilla } from "@/components/ui/Casilla";
-import { Aviso } from "@/components/ui/Aviso";
+import { Aviso, AvisoNoSeDeshace } from "@/components/ui/Aviso";
 import { Vacio } from "@/components/ui/Vacio";
 import { ArrowLeftRight, Landmark } from "lucide-react";
-import { Globito } from "@/components/ui/Globito";
 import { Volver } from "@/components/ui/Volver";
 import { CampoGuiado, PieGuia } from "@/components/guia-de-foco/CampoGuiado";
 import { useGuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
-import { bancosParaCuadrar, camposDeAnotarSaldo, estadoPar, respuestaCuadre, textoLadoBanco, textoPeriodo } from "@/lib/cuadrar-reglas";
+import { avanceDeLineas, bancosParaCuadrar, camposDeAnotarSaldo, estadoDeBanco, estadoPar, filtrarLineas, inicialesDeBanco, respuestaCuadre, textoLadoBanco, textoPeriodo, textoUltimaVez, type FiltroLineas } from "@/lib/cuadrar-reglas";
+import { BarraAvance } from "@/components/ui/BarraAvance";
+import { SegmentoDeslizante } from "@/components/ui/SegmentoDeslizante";
+import { TituloSeccion } from "@/components/ui/TituloSeccion";
 import { MAX_REFERENCIA_MOVIMIENTO } from "@/lib/finanzas-topes";
 
 // Finanzas ▸ Cuentas y dinero (ADR-0195 F3), dibujada como el spike aprobado (docs/maquetas/finanzas-2026-09/,
@@ -81,8 +86,13 @@ type Consulta = PromiseLike<{ error: unknown }>;
 // ---- La pantalla: cabecera, «Ver» y el modal de registrar, compartidos por las tres pestañas ------------------------------
 
 /** `origenId`: la cuenta de la que sale la plata, si quien abre ya lo sabe (el aviso de una máquina atrasada abre SU depósito). */
-type AbrirMovimiento = (que?: QuePaso, origenId?: string) => void;
+type AbrirMovimiento = (que?: QuePaso, origenId?: string, monto?: string) => void;
 const ContextoMovimiento = createContext<AbrirMovimiento>(() => {});
+
+/** Abre «Registrar movimiento» desde una pieza de adentro de la pantalla (`monto`: lo que ya viene escrito, p. ej. el saldo con CLAURE). */
+export function useAbrirMovimiento(): AbrirMovimiento {
+  return useContext(ContextoMovimiento);
+}
 
 export function PantallaDinero({
   pestana,
@@ -97,6 +107,10 @@ export function PantallaDinero({
   deuda,
   hoy,
   fallas,
+  campana,
+  acciones,
+  panorama = false,
+  subtitulo,
   children,
 }: {
   pestana: PestanaDinero;
@@ -116,25 +130,41 @@ export function PantallaDinero({
   deuda: number;
   hoy: string;
   fallas: string[];
+  /** La campana «Estado de las cuentas», a la izquierda de «+ Registrar movimiento» (solo «Dónde está»). */
+  campana?: ReactNode;
+  /** La acción de la cabecera si no es «+ Registrar movimiento» (CLAURE: «Pagar a CLAURE»); `null` = ninguna (el dock sigue con «Registrar movimiento»). */
+  acciones?: ReactNode;
+  /** La cara dibuja su propio resumen (la tarjeta de total de «Dónde está»): la cabecera no repite la respuesta grande ni el orillo. */
+  panorama?: boolean;
+  /** La frase bajo el título, si la cara dice la suya. */
+  subtitulo?: string;
   children: ReactNode;
 }) {
   const params = useSearchParams();
   const ruta = usePathname();
-  const [modal, setModal] = useState<{ que: QuePaso; origenId?: string } | null>(null);
+  const [modal, setModal] = useState<{ que: QuePaso; origenId?: string; monto?: string; mesSunat?: string; concepto?: ConceptoPlanilla } | null>(null);
   // El dock de las otras caras lleva aquí con `?registrar=1`: la hoja abre sola, como si se hubiera tocado el botón, y el parámetro
   // sale de la dirección (recargar no la vuelve a abrir).
-  const pideRegistrar = params.get("registrar") === "1";
+  // Desde Impuestos llega con `?registrar=pago_sunat&mes=`: la hoja abre en Pagar a SUNAT, en ese mes. El cajón «Te toca», con `?registrar=liquidacion&mes=&monto=`.
+  const registrar = params.get("registrar");
+  const [cuadrando, setCuadrando] = useState(false);
+  const pideRegistrar = registrar === "1" || registrar === "pago_sunat" || registrar === "liquidacion";
+  const mesPedido = params.get("mes") ?? undefined;
+  const montoPedido = params.get("monto") ?? undefined;
   useEffect(() => {
     if (!pideRegistrar) return;
     const p = new URLSearchParams(window.location.search);
     p.delete("registrar");
+    p.delete("monto");
     window.history.replaceState(null, "", p.size ? `${ruta}?${p}` : ruta);
     // eslint-disable-next-line react-hooks/set-state-in-effect -- la hoja abierta desde el primer pintado no dejaba hidratar la página (medido 2026-10-23): se abre al montar, como el #fotos de ProductoForm
-    setModal({ que: "deposito" });
-  }, [pideRegistrar, ruta]);
+    if (registrar === "pago_sunat") setModal({ que: "pago_sunat", mesSunat: mesPedido });
+    else if (registrar === "liquidacion") setModal({ que: "pago_planilla", concepto: "liquidacion", mesSunat: mesPedido, monto: montoPedido });
+    else setModal({ que: "deposito" });
+  }, [pideRegistrar, registrar, mesPedido, montoPedido, ruta]);
 
   return (
-    <ContextoMovimiento.Provider value={(que, origenId) => setModal({ que: que ?? "deposito", origenId })}>
+    <ContextoMovimiento.Provider value={(que, origenId, monto) => setModal({ que: que ?? "deposito", origenId, monto })}>
       <div className="space-y-6">
         <CabeceraDinero
           pestana={pestana}
@@ -146,10 +176,24 @@ export function PantallaDinero({
           sedes={sedes}
           hoy={hoy}
           onRegistrar={() => setModal({ que: "deposito" })}
+          panorama={panorama}
+          subtitulo={subtitulo}
           acciones={
-            <Boton type="button" peso="primario" onClick={() => setModal({ que: "deposito" })} aria-haspopup="dialog" data-guia="fin-dinero.registrar">
-              + Registrar movimiento
-            </Boton>
+            acciones !== undefined ? (
+              acciones
+            ) : (
+              <>
+                {campana}
+                {esLider && (
+                  <Boton type="button" peso="fantasma" onClick={() => setCuadrando(true)} aria-haspopup="dialog" data-guia="fin-dinero.cuadrar">
+                    Cuadrar depósitos
+                  </Boton>
+                )}
+                <Boton type="button" peso="primario" onClick={() => setModal({ que: "deposito" })} aria-haspopup="dialog" data-guia="fin-dinero.registrar">
+                  + Registrar movimiento
+                </Boton>
+              </>
+            )
           }
         />
         {fallas.map((f) => (
@@ -159,10 +203,14 @@ export function PantallaDinero({
         ))}
         {children}
       </div>
+      {cuadrando && <CuadrarDepositosHoja onCerrar={() => setCuadrando(false)} />}
       {modal && (
         <RegistrarMovimientoModal
           inicial={modal.que}
           origenInicial={modal.origenId}
+          montoInicial={modal.monto}
+          mesSunatInicial={modal.mesSunat}
+          conceptoInicial={modal.concepto}
           cuentas={cuentas}
           esLider={esLider}
           ubicacionId={ver.ubicacionId}
@@ -177,147 +225,35 @@ export function PantallaDinero({
 
 // ---- Pestaña «Cuentas» ------------------------------------------------------------------------------------------------
 
+/** «Últimos movimientos» con su detalle (donde se anula con motivo): vive en la columna derecha de «Dónde está» (`PanoramaDinero`). */
+export function MovimientosEnPantalla({ movimientos, hoy }: { movimientos: MovimientoDinero[]; hoy: string }) {
+  const [detalle, setDetalle] = useState<MovimientoDinero | null>(null);
+  return (
+    <>
+      <UltimosMovimientos movimientos={movimientos} hoy={hoy} onElegir={setDetalle} />
+      {detalle && <MovimientoDetalleModal movimiento={detalle} onCerrar={() => setDetalle(null)} />}
+    </>
+  );
+}
+
 export function CuentasPanel({
-  cuentas,
-  movimientos,
-  medios,
-  plata,
   sinCuenta,
-  alertas,
   ver,
   esLider,
 }: {
-  cuentas: CuentaDinero[];
-  movimientos: MovimientoDinero[];
-  medios: FilaMedio[];
-  plata: MovimientoDueno[];
   sinCuenta: SinCuenta[];
-  /** Por máquina de cobro, cuánto espera depósito y cuánto ya está atrasado (ADR-0429, act. 4; solo el líder). */
-  alertas?: AlertaPos[];
   ver: Ver;
   esLider: boolean;
 }) {
-  const abrir = useContext(ContextoMovimiento);
-  const avisosMaquinas = avisosDeMaquinas(alertas ?? []);
-  const [detalle, setDetalle] = useState<MovimientoDinero | null>(null);
   // F3b: lo pasado que no dice su cuenta se completa una vez, desde el aviso.
   const [decirCuenta, setDecirCuenta] = useState(false);
+  // Sin una sede elegida (todas o la empresa) se ve lo que es de CAYLA: lo que no dice su cuenta. La plata del dueño y a qué cuenta entra cada
+  // cobro tienen sus propias tarjetas (PlataDelDueno, CobrosDinero).
   const verTodas = !ver.ubicacionId;
-  const dueno = deudaConDueno(plata);
   const totalSinCuenta = sinCuenta.reduce((a, s) => a + s.monto, 0);
 
   return (
     <>
-      {/* La máquina que no depositó a tiempo (ADR-0429, act. 4): se dice arriba de las cuentas, con el camino para registrarlo. */}
-      {avisosMaquinas.map((a) => (
-        <Aviso
-          key={a.maquina.maquinaId}
-          tono="atencion"
-          titulo={a.titulo}
-          guia="fin-dinero.aviso-maquina"
-          accion={
-            <button type="button" className="btn-cayla btn-enlace" onClick={() => abrir("abono_tarjeta", a.maquina.cuentaId)} aria-haspopup="dialog" data-guia="fin-dinero.aviso-registrar">
-              Registrar el depósito
-            </button>
-          }
-        >
-          {a.detalle}
-        </Aviso>
-      ))}
-
-      {esLider && verTodas && (
-        <Superficie pad className="anim-sube" guia="fin-dinero.dueno">
-          <CabeceraBloque
-            titulo="Plata del dueño"
-            bajada={
-              <>
-                Cuando pones plata en un mal momento, eliges si es un <b className="font-semibold text-tinta">aporte</b> (se queda en CAYLA) o un <b className="font-semibold text-tinta">préstamo</b> (CAYLA te lo devuelve).
-              </>
-            }
-          >
-            <div className="flex shrink-0 gap-2">
-              <button type="button" className="btn-cayla btn-secundario btn-chico" onClick={() => abrir("dueno_pone")} aria-haspopup="dialog" data-guia="fin-dinero.poner-plata">
-                Poner plata
-              </button>
-              <button type="button" className="btn-cayla btn-sutil btn-chico" onClick={() => abrir("dueno_saca")} aria-haspopup="dialog">
-                Sacar plata
-              </button>
-            </div>
-          </CabeceraBloque>
-          <div className="fin-dueno-cifras">
-            <div>
-              <span className="fin-etq block">CAYLA te debe</span>
-              <div className="fin-cuenta-saldo">{solesRedondo(dueno.deuda)}</div>
-            </div>
-            <ul className="fin-lista-mov min-w-0 flex-1 border-t border-sand">
-              {dueno.prestamos.length === 0 ? (
-                <li>
-                  <span className="text-taupe">Sin préstamos del dueño.</span>
-                  <span />
-                </li>
-              ) : (
-                dueno.prestamos.map((p) => (
-                  <li key={p.id}>
-                    <span>
-                      {fechaCorta(p.fecha)} · préstamo{p.referencia ? ` · ${p.referencia}` : ""}
-                    </span>
-                    <span>
-                      {solesRedondo(p.monto)} · devuelto {solesRedondo(p.devuelto)}
-                    </span>
-                  </li>
-                ))
-              )}
-            </ul>
-          </div>
-        </Superficie>
-      )}
-
-      {esLider && verTodas && medios.length > 0 && (
-        <Superficie className="anim-sube" guia="fin-dinero.medios">
-          <Herramientas className="justify-between">
-            <div className="fin-herramientas-titulo min-w-0">
-              <b>A qué cuenta entra cada cobro</b>
-              <p>Por eso Vender no cambia: el cobro guarda el medio y Finanzas sabe a qué cuenta llegó.</p>
-            </div>
-            <Link href="/configuracion?tab=cuentas" className="btn-cayla btn-sutil btn-chico">
-              Cambiar en Configuración
-            </Link>
-          </Herramientas>
-          <div className="fin-tabla-wrap">
-            <table className="fin-tabla fin-tabla-medios">
-              <thead>
-                <tr>
-                  <th>Tienda</th>
-                  <th>Efectivo</th>
-                  {MEDIOS_COBRO.map((m) => (
-                    <th key={m}>{TEXTO_MEDIO_COBRO[m]}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {filasMedios(medios).map((f) => (
-                  <tr key={f.ubicacionId}>
-                    <td data-l="Tienda">
-                      <b>{f.ubicacionNombre}</b>
-                    </td>
-                    <td data-l="Efectivo">
-                      <span className="fin-metodo" data-m="efectivo" />
-                      {(cuentas.find((c) => c.tipo === "cajon" && c.ubicacionId === f.ubicacionId)?.nombre ?? "Su cajón").replace("Cajón · ", "Cajón ")}
-                    </td>
-                    {MEDIOS_COBRO.map((m) => (
-                      <td key={m} data-l={TEXTO_MEDIO_COBRO[m]} className={f.porMedio[m] ? undefined : "fin-tenue"}>
-                        <span className="fin-metodo" data-m={m} />
-                        {f.porMedio[m] ? nombreCorto(f.porMedio[m]) : "Sin cuenta"}
-                      </td>
-                    ))}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </Superficie>
-      )}
-
       {esLider && verTodas && totalSinCuenta !== 0 && (
         <p className="nota-cayla anim-sube" data-guia="fin-dinero.sin-cuenta">
           Este mes, <b>{soles(Math.abs(totalSinCuenta))}</b> movieron plata sin decir de qué cuenta:{" "}
@@ -333,86 +269,8 @@ export function CuentasPanel({
         </p>
       )}
       {decirCuenta && <PagosSinCuentaModal onClose={() => setDecirCuenta(false)} />}
-
-      <Superficie className="anim-sube" guia="fin-dinero.movimientos">
-        <Herramientas>
-          <b className="text-sm font-semibold text-tinta">Movimientos entre cuentas</b>
-          <span className="text-[12.5px] text-taupe">Depósitos, abonos de tarjeta, transferencias y retiros. No son ventas ni gastos: la plata cambia de lugar.</span>
-        </Herramientas>
-        {movimientos.length === 0 ? (
-          <Vacio tamano="chico" icono={<ArrowLeftRight />}>
-            Sin movimientos todavía. Un depósito del cajón o el depósito de una máquina se registra con «+ Registrar movimiento».
-          </Vacio>
-        ) : (
-          <div className="fin-tabla-wrap">
-            <table className="fin-tabla">
-              <thead>
-                <tr>
-                  <th>Fecha</th>
-                  <th>Qué</th>
-                  <th>De</th>
-                  <th>A</th>
-                  <th className="fin-num">Monto</th>
-                  <th>Responsable</th>
-                </tr>
-              </thead>
-              <tbody>
-                {movimientos.map((m) => (
-                  <tr
-                    key={m.id}
-                    data-clic
-                    tabIndex={0}
-                    className={m.estado === "anulado" ? "fin-anulada" : undefined}
-                    data-guia="fin-dinero.movimiento"
-                    onClick={() => setDetalle(m)}
-                    onKeyDown={(ev) => {
-                      if (ev.key === "Enter" || ev.key === " ") {
-                        ev.preventDefault();
-                        setDetalle(m);
-                      }
-                    }}
-                  >
-                    <td data-l="Fecha" className="whitespace-nowrap">
-                      {fechaCorta(m.fecha)}
-                    </td>
-                    <td className="fin-ancha" data-l="Qué">
-                      <b>{TEXTO_MOVIMIENTO[m.tipo]}</b>
-                      <span className="fin-sub">
-                        {[m.referencia, m.comision > 0 ? `comisión ${soles(m.comision)} → gasto` : null, m.estado === "anulado" ? `anulado: ${m.motivoAnulacion}` : null].filter(Boolean).join(" · ") || " "}
-                      </span>
-                    </td>
-                    <td data-l="De">{m.origenNombre ? nombreCorto(m.origenNombre) : <span className="fin-tenue">El dueño</span>}</td>
-                    <td data-l="A">{m.destinoNombre ? nombreCorto(m.destinoNombre) : <span className="fin-tenue">Sale del negocio</span>}</td>
-                    <td className="fin-num" data-l="Monto">
-                      {soles(m.monto)}
-                    </td>
-                    <td data-l="Responsable" className="whitespace-nowrap">
-                      {m.registradoPor ?? "—"}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-        <PieTabla>
-          <span>Solo se agregan filas; un error se anula con motivo.</span>
-        </PieTabla>
-      </Superficie>
-
-      {detalle && <MovimientoDetalleModal movimiento={detalle} onCerrar={() => setDetalle(null)} />}
     </>
   );
-}
-
-function filasMedios(medios: readonly FilaMedio[]) {
-  const porTienda = new Map<string, { ubicacionId: string; ubicacionNombre: string; porMedio: Partial<Record<string, string>> }>();
-  for (const m of medios) {
-    const f = porTienda.get(m.ubicacionId) ?? { ubicacionId: m.ubicacionId, ubicacionNombre: m.ubicacionNombre, porMedio: {} };
-    if (m.cuentaNombre) f.porMedio[m.medio] = m.cuentaNombre;
-    porTienda.set(m.ubicacionId, f);
-  }
-  return [...porTienda.values()];
 }
 
 // ---- Pestaña «Conciliación» (solo el líder) ----------------------------------------------------------------------------
@@ -436,6 +294,7 @@ export function ConciliacionPanel({
   const [fecha, setFecha] = useState(actual?.hasta ?? hoy);
   const [guardando, setGuardando] = useState(false);
   const [anulando, setAnulando] = useState(false);
+  const [filtro, setFiltro] = useState<FiltroLineas>("pendientes");
   // La guía de foco de «¿Qué saldo dice el banco?» (ADR-0284): enciende lo que sigue; «falta» es lo mismo que bloquea `anotar()`.
   const guia = useGuiaCampos(camposDeAnotarSaldo({ responsableListo: responsable.listo, saldo, fecha, hoy }), { enModal: false });
 
@@ -443,14 +302,13 @@ export function ConciliacionPanel({
     return (
       <Superficie>
         <Vacio guia="fin-conciliacion.vacia" icono={<Landmark />} titulo="No hay bancos que conciliar">
-          Agrega los bancos, el POS y la tarjeta en Configuración ▸ Cuentas y cobros. Cada viernes se anota lo que dice el banco y el sistema dice si coincide.
+          Agrega los bancos, el POS y la tarjeta en Configuración ▸ Dinero.
         </Vacio>
       </Superficie>
     );
   }
   const r = resumenConciliacion(actual.lineas);
   const k = actual.conciliacion;
-  const bancos = bancosParaCuadrar(cuentas, actual.cuenta.id);
   const respuesta = respuestaCuadre(actual);
   const ir = (cuenta: string, hasta?: string) => router.push(`${ruta}?cuenta=${cuenta}${hasta ? `&hasta=${hasta}` : ""}`, { scroll: false });
 
@@ -496,164 +354,228 @@ export function ConciliacionPanel({
   }
 
   const periodo = textoPeriodo(actual.desde, actual.hasta, hoy);
+  const av = avanceDeLineas(actual.lineas);
+  const visibles = filtrarLineas(actual.lineas, filtro);
+  const totalPendientes = cuentas.reduce((a, c) => a + c.pendientes, 0);
 
   return (
-    <>
-      {/* Qué banco cuadrar: a la vista arriba, con lo que falta revisar de cada uno (antes, tarjetas sueltas al pie). */}
-      <div className="din-cuadrar-cab" data-guia="fin-conciliacion.otras">
-        <div className="din-cuadrar-bancos" role="group" aria-label="Qué cuenta cuadrar">
-          {bancos.map((b) => (
-            <button key={b.id} type="button" className="pildora-cayla" aria-pressed={b.elegida} onClick={() => ir(b.id)}>
-              {b.nombre}
-              {b.pendientes > 0 && <Globito n={b.pendientes} pide etiqueta={`${b.pendientes} por revisar`} />}
-            </button>
-          ))}
+    <div className="din-cuad">
+      {/* «B · Lista y detalle» (Felipe 2026-10-31): a la izquierda, los bancos con su estado de un vistazo; a la derecha, el del elegido. */}
+      <aside className="card-cayla din-cuad-lista anim-sube" data-guia="fin-conciliacion.otras" aria-label="Tus bancos">
+        <header className="din-cuad-lista-cab">
+          <TituloSeccion cuenta={totalPendientes}>Tus bancos</TituloSeccion>
+          <p className="din-cuad-tenue">{totalPendientes === 0 ? "Todo revisado." : `${totalPendientes} ${totalPendientes === 1 ? "línea" : "líneas"} por revisar.`}</p>
+        </header>
+        <div role="group" aria-label="Qué cuenta cuadrar">
+          {bancosParaCuadrar(cuentas).map((c) => {
+            const e = estadoDeBanco(c);
+            return (
+              <button key={c.id} type="button" className="din-cuad-it" aria-pressed={c.id === actual.cuenta.id} onClick={() => ir(c.id)}>
+                <span className="din-cuad-ini" aria-hidden="true">
+                  {inicialesDeBanco(c.nombre)}
+                </span>
+                <span className="min-w-0">
+                  <b className="block truncate text-sm font-semibold text-tinta">{c.nombre}</b>
+                  <small className="din-cuad-tenue block">{textoUltimaVez(c.ultimaFecha)}</small>
+                </span>
+                <span className="din-cuad-it-der">
+                  <b className="din-cuad-num">{soles(c.saldoHoy)}</b>
+                  <Chip tono={e.tono} versalitas={false}>
+                    {e.texto}
+                  </Chip>
+                </span>
+              </button>
+            );
+          })}
         </div>
+      </aside>
+
+      <div className="din-cuad-det">
         <div className="w-full max-w-xs" data-guia="fin-conciliacion.responsable">
           <CampoGuiado id="responsable" guia={guia}>
             <ComboResponsable control={responsable} deshabilitado={guardando} />
           </CampoGuiado>
         </div>
-      </div>
 
-      <Superficie className="anim-sube" guia="fin-conciliacion.lineas">
-        <Herramientas className="justify-between">
-          <div className="fin-herramientas-titulo min-w-0">
-            <b className="flex items-center gap-2">
-              {deUnaFecha && <Volver onClick={() => ir(actual.cuenta.id)} a="Volver a hoy" />}
-              {actual.cuenta.nombre} · movimientos {periodo}
-            </b>
-            <p>
-              A la izquierda, lo que anotó CAYLA; a la derecha, si está en el extracto del banco. El sistema dice{" "}
-              <b className="font-semibold text-tinta">{soles(actual.saldoSistema)}</b> al {fechaCorta(actual.hasta)}.
-            </p>
-            <div className="mt-2 flex flex-wrap items-center gap-2">
+        <section className="card-cayla din-cuad-hero anim-sube" aria-label={`Saldo de ${actual.cuenta.nombre}`}>
+          <div className="din-cuad-hero-lado">
+            <span className="label-cayla">{actual.cuenta.nombre} · el sistema dice</span>
+            <b className="din-cuad-cifra">{soles(actual.saldoSistema)}</b>
+            <span className="[&>*]:!whitespace-normal">
               <Chip tono={respuesta.tono}>{respuesta.texto}</Chip>
+            </span>
+          </div>
+          {k ? (
+            <div className="din-cuad-hero-lado">
+              <span className="label-cayla">El banco dijo</span>
+              <b className="din-cuad-cifra din-cuad-cifra-chica">{soles(k.saldoBanco)}</b>
+              <p className="din-cuad-tenue">
+                {cuadra(k.diferencia) ? "Coincide con el sistema." : `Diferencia de ${soles(Math.abs(k.diferencia))} con el sistema.`} Anotado al {fechaCorta(actual.hasta)}
+                {k.registradoPor ? ` por ${k.registradoPor}` : ""}.
+              </p>
+              <span>
+                <button type="button" className="btn-cayla btn-sutil btn-chico" onClick={() => setAnulando(true)}>
+                  Anular este saldo…
+                </button>
+              </span>
+            </div>
+          ) : (
+            <div className="din-cuad-hero-lado" data-guia="fin-conciliacion.anotar">
+              <span className="label-cayla">¿Qué saldo dice el banco?</span>
+              <p className="din-cuad-tenue">Lo que muestra la banca por internet al cierre del día; se compara con el del sistema.</p>
+              <div className="grid gap-3">
+                <CampoGuiado id="saldo" guia={guia}>
+                  <CampoFin etiqueta="Saldo del banco" htmlFor="conc-saldo" className="!mb-0">
+                    <InputFin id="conc-saldo" inputMode="decimal" value={saldo} onChange={(e) => setSaldo(e.target.value)} placeholder="38,420.00" />
+                  </CampoFin>
+                </CampoGuiado>
+                <div className="grid grid-cols-[1fr_auto] items-end gap-3">
+                  <CampoGuiado id="fecha" guia={guia}>
+                    <CampoFin etiqueta="Al" htmlFor="conc-fecha" className="!mb-0">
+                      <InputFin
+                        id="conc-fecha"
+                        type="date"
+                        value={fecha}
+                        min={actual.cuenta.saldoDesde?.slice(0, 10) ?? undefined}
+                        max={hoy}
+                        onChange={(e) => {
+                          setFecha(e.target.value);
+                          if (e.target.value) ir(actual.cuenta.id, e.target.value);
+                        }}
+                      />
+                    </CampoFin>
+                  </CampoGuiado>
+                  <Boton peso="primario" cargando={guardando} type="button" disabled={guardando || !responsable.listo} onClick={anotar} className={guia.claseConfirmar} title={guia.frase ?? undefined}>
+                    Anotar
+                  </Boton>
+                </div>
+              </div>
+              <PieGuia guia={guia} listo="Todo listo para anotar el saldo." />
+            </div>
+          )}
+        </section>
+
+        <Superficie className="anim-sube" guia="fin-conciliacion.lineas">
+          <Herramientas className="justify-between">
+            <div className="fin-herramientas-titulo min-w-0">
+              <b className="flex items-center gap-2">
+                {deUnaFecha && <Volver onClick={() => ir(actual.cuenta.id)} a="Volver a hoy" />}
+                {actual.cuenta.nombre} · movimientos {periodo}
+              </b>
+              <p>A la izquierda, lo que anotó CAYLA; a la derecha, si está en el extracto del banco.</p>
+            </div>
+            <SegmentoDeslizante
+              etiqueta="Qué líneas ver"
+              forma="modo"
+              valor={filtro}
+              onCambio={(v) => setFiltro(v as FiltroLineas)}
+              opciones={[
+                { clave: "pendientes", etiqueta: `Por revisar ${av.faltan}` },
+                { clave: "revisadas", etiqueta: `Revisadas ${av.revisadas}` },
+                { clave: "todas", etiqueta: "Todas" },
+              ]}
+            />
+          </Herramientas>
+          {av.total > 0 && (
+            <div className="din-cuad-avance">
+              <div className="din-cuad-avance-barra">
+                <BarraAvance pct={av.pct} alto="normal" decorativa />
+              </div>
+              <span className="din-cuad-tenue">
+                {av.revisadas} de {av.total} revisadas
+              </span>
               {r.porRevisar.length > 0 && (
                 <button type="button" className="btn-cayla btn-primario btn-chico" disabled={guardando} onClick={() => marcar(r.porRevisar.map((l) => ({ clave: l.clave, monto: l.monto })), true)}>
                   {r.porRevisar.length === 1 ? "Marcar la que falta como revisada" : `Marcar las ${r.porRevisar.length} como revisadas`}
                 </button>
               )}
             </div>
-          </div>
-        </Herramientas>
-        {actual.lineas.length === 0 ? (
-          <Vacio tamano="chico" icono={<ArrowLeftRight />}>
-            Nada entró ni salió de esta cuenta {periodo}.
-          </Vacio>
-        ) : (
-          <ul className="din-pares" aria-label={`Líneas de ${actual.cuenta.nombre}`}>
-            {actual.lineas.map((l, i) => {
-              const estado = estadoPar(l);
-              return (
-                <li key={l.clave} className="din-par anim-entra" data-estado={estado} style={{ ["--i" as string]: Math.min(i, 12) } as CSSProperties}>
-                  <div className="din-par-lado">
-                    <b className={`din-par-monto ${l.monto < 0 ? "fin-sale" : ""}`}>
-                      {l.monto < 0 ? "−" : "+"}
-                      {soles(Math.abs(l.monto))}
-                    </b>
-                    <span>
-                      {fechaCorta(l.fecha)} · {l.detalle}
-                    </span>
-                  </div>
-                  <svg className="din-par-hilo" viewBox="0 0 90 24" preserveAspectRatio="none" aria-hidden="true">
-                    <path d="M0 12 C30 2, 60 22, 90 12" pathLength={1} />
-                  </svg>
-                  <div className="din-par-lado">
-                    <span className="din-par-banco">{textoLadoBanco(l)}</span>
-                  </div>
-                  <div className="din-par-accion">
-                    {estado === "revisada" ? (
-                      <button type="button" className="btn-enlace text-[12.5px]" disabled={guardando} onClick={() => marcar([{ clave: l.clave, monto: l.monto }], false)} aria-label={`Desmarcar ${l.detalle}`}>
-                        <Chip tono="verde">revisada</Chip>
-                      </button>
-                    ) : (
-                      <button type="button" className="btn-cayla btn-secundario btn-chico" disabled={guardando} onClick={() => marcar([{ clave: l.clave, monto: l.monto }], true)}>
-                        Sí, está
-                      </button>
-                    )}
-                  </div>
-                </li>
-              );
-            })}
-          </ul>
-        )}
-        <PieTabla>
-          {k ? (
-            cuadra(k.diferencia) ? (
-              <span>
-                <b className="text-verde">{actual.cuenta.nombre} coincide con el banco</b> al {fechaCorta(actual.hasta)}: {soles(k.saldoBanco)}.
-              </span>
-            ) : (
-              <span>
-                El banco dijo <b className="text-tinta">{soles(k.saldoBanco)}</b> y el sistema <b className="text-tinta">{soles(k.saldoSistema)}</b>: la diferencia es{" "}
-                <b className="text-rojo-profundo">{soles(k.diferencia)}</b>. Busca en las líneas sin revisar lo que falta registrar.
-              </span>
-            )
+          )}
+          {actual.lineas.length === 0 ? (
+            <Vacio tamano="chico" icono={<ArrowLeftRight />}>
+              Nada entró ni salió de esta cuenta {periodo}.
+            </Vacio>
+          ) : visibles.length === 0 ? (
+            <Vacio tamano="chico" icono={<ArrowLeftRight />}>
+              {filtro === "pendientes" ? "No queda nada por revisar." : "Todavía no hay líneas revisadas."}
+            </Vacio>
           ) : (
-            <span>Cuando todas estén revisadas y anotes el saldo del banco, el sistema dice si coinciden.</span>
+            <ul className="din-pares" aria-label={`Líneas de ${actual.cuenta.nombre}`}>
+              {visibles.map((l, i) => {
+                const estado = estadoPar(l);
+                return (
+                  <li key={l.clave} className="din-par anim-entra" data-estado={estado} style={{ ["--i" as string]: Math.min(i, 12) } as CSSProperties}>
+                    <div className="din-par-lado">
+                      <b className={`din-par-monto ${l.monto < 0 ? "fin-sale" : ""}`}>
+                        {l.monto < 0 ? "−" : "+"}
+                        {soles(Math.abs(l.monto))}
+                      </b>
+                      <span>
+                        {fechaCorta(l.fecha)} · {l.detalle}
+                      </span>
+                    </div>
+                    <svg className="din-par-hilo" viewBox="0 0 90 24" preserveAspectRatio="none" aria-hidden="true">
+                      <path d="M0 12 C30 2, 60 22, 90 12" pathLength={1} />
+                    </svg>
+                    <div className="din-par-lado">
+                      <span className="din-par-banco">{textoLadoBanco(l)}</span>
+                    </div>
+                    <div className="din-par-accion">
+                      {estado === "revisada" ? (
+                        <button type="button" className="btn-enlace text-sm" disabled={guardando} onClick={() => marcar([{ clave: l.clave, monto: l.monto }], false)} aria-label={`Desmarcar ${l.detalle}`}>
+                          <Chip tono="verde">revisada</Chip>
+                        </button>
+                      ) : (
+                        <button type="button" className="btn-cayla btn-secundario btn-chico" disabled={guardando} onClick={() => marcar([{ clave: l.clave, monto: l.monto }], true)}>
+                          Sí, está
+                        </button>
+                      )}
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
           )}
-          {k && (
-            <button type="button" className="btn-cayla btn-sutil btn-chico" onClick={() => setAnulando(true)}>
-              Anular este saldo…
-            </button>
-          )}
-        </PieTabla>
-      </Superficie>
-
-      {!k && (
-        <Superficie pad className="anim-sube" guia="fin-conciliacion.anotar">
-          <CabeceraBloque titulo="¿Qué saldo dice el banco?" bajada={`Lo que muestra la banca por internet al cierre del día. Se compara con los ${soles(actual.saldoSistema)} que suma el sistema.`} />
-          <div className="grid gap-3 sm:grid-cols-[1fr_1fr_auto] sm:items-end">
-            <CampoGuiado id="saldo" guia={guia}>
-            <CampoFin etiqueta="Saldo del banco" htmlFor="conc-saldo" className="!mb-0">
-              <InputFin id="conc-saldo" inputMode="decimal" value={saldo} onChange={(e) => setSaldo(e.target.value)} placeholder="38,420.00" />
-            </CampoFin>
-            </CampoGuiado>
-            <CampoGuiado id="fecha" guia={guia}>
-            <CampoFin etiqueta="Al" htmlFor="conc-fecha" className="!mb-0">
-              <InputFin
-                id="conc-fecha"
-                type="date"
-                value={fecha}
-                min={actual.cuenta.saldoDesde?.slice(0, 10) ?? undefined}
-                max={hoy}
-                onChange={(e) => {
-                  setFecha(e.target.value);
-                  if (e.target.value) ir(actual.cuenta.id, e.target.value);
-                }}
-              />
-            </CampoFin>
-            </CampoGuiado>
-            <Boton peso="primario" cargando={guardando} type="button" disabled={guardando || !responsable.listo} onClick={anotar} className={guia.claseConfirmar} title={guia.frase ?? undefined}>
-              Anotar
-            </Boton>
-          </div>
-          <PieGuia guia={guia} listo="Todo listo para anotar el saldo." />
+          <PieTabla>
+            {k ? (
+              cuadra(k.diferencia) ? (
+                <span>
+                  <b className="text-verde">{actual.cuenta.nombre} coincide con el banco</b> al {fechaCorta(actual.hasta)}: {soles(k.saldoBanco)}.
+                </span>
+              ) : (
+                <span>
+                  El banco dijo <b className="text-tinta">{soles(k.saldoBanco)}</b> y el sistema <b className="text-tinta">{soles(k.saldoSistema)}</b>: la diferencia es{" "}
+                  <b className="text-rojo-profundo">{soles(k.diferencia)}</b>. Busca en las líneas sin revisar lo que falta registrar.
+                </span>
+              )
+            ) : (
+              <span>Cuando todas estén revisadas y anotes el saldo del banco, el sistema dice si coinciden.</span>
+            )}
+          </PieTabla>
         </Superficie>
-      )}
 
-      {actual.historial.length > 0 && (
-        <Superficie className="anim-sube" guia="fin-conciliacion.historial">
-          <Herramientas>
-            <b className="text-sm font-semibold text-tinta">Conciliaciones de {actual.cuenta.nombre}</b>
-          </Herramientas>
-          <ul className="fin-lista-mov px-[14px] pb-1.5">
-            {actual.historial.map((h) => (
-              <li key={h.id}>
-                <button type="button" className="btn-enlace text-left text-[13px]" onClick={() => ir(actual.cuenta.id, h.fecha)}>
-                  {fechaCorta(h.fecha, true)} · banco {soles(h.saldoBanco)} · sistema {soles(h.saldoSistema)}
-                </button>
-                <span>{cuadra(h.diferencia) ? "coincide" : `diferencia ${soles(h.diferencia)}`}</span>
-              </li>
-            ))}
-          </ul>
-        </Superficie>
-      )}
+        {actual.historial.length > 0 && (
+          <Superficie className="anim-sube" guia="fin-conciliacion.historial">
+            <Herramientas>
+              <b className="text-sm font-semibold text-tinta">Conciliaciones de {actual.cuenta.nombre}</b>
+            </Herramientas>
+            <ul className="fin-lista-mov px-[14px] pb-1.5">
+              {actual.historial.map((h) => (
+                <li key={h.id}>
+                  <button type="button" className="btn-enlace text-left text-sm" onClick={() => ir(actual.cuenta.id, h.fecha)}>
+                    {fechaCorta(h.fecha, true)} · banco {soles(h.saldoBanco)} · sistema {soles(h.saldoSistema)}
+                  </button>
+                  <span>{cuadra(h.diferencia) ? "coincide" : `diferencia ${soles(h.diferencia)}`}</span>
+                </li>
+              ))}
+            </ul>
+          </Superficie>
+        )}
 
-      <p className="nota-cayla anim-sube">
-        Si el banco no deja descargar el extracto, se escribe el saldo que muestra la banca por internet y el sistema dice si coincide. Lo ideal es hacerlo <b>cada viernes</b>. Subir el extracto (Excel o CSV) para que el sistema proponga cada pareja queda para después.
-      </p>
+        <p className="nota-cayla anim-sube">
+          Escribe el saldo que muestra la banca por internet y el sistema dice si coincide. Lo ideal: <b>cada viernes</b>.
+        </p>
+      </div>
 
       {anulando && k && (
         <AnularModal
@@ -666,7 +588,7 @@ export function ConciliacionPanel({
           que="anular la conciliación"
         />
       )}
-    </>
+    </div>
   );
 }
 
@@ -675,6 +597,9 @@ export function ConciliacionPanel({
 function RegistrarMovimientoModal({
   inicial,
   origenInicial,
+  montoInicial,
+  mesSunatInicial,
+  conceptoInicial,
   cuentas,
   esLider,
   ubicacionId,
@@ -683,8 +608,14 @@ function RegistrarMovimientoModal({
   onCerrar,
 }: {
   inicial: QuePaso;
+  /** El mes con que arranca Pagar a SUNAT, si se llega desde Impuestos. */
+  mesSunatInicial?: string;
+  /** La parte de la planilla con que arranca, si se llega desde un aviso. */
+  conceptoInicial?: ConceptoPlanilla;
   /** La cuenta de origen con que arranca, si una pantalla ya la sabe (solo vale si es una de las que este movimiento ofrece). */
   origenInicial?: string;
+  /** El monto con que arranca, si una pantalla ya lo sabe (el saldo con CLAURE); la persona lo puede cambiar. */
+  montoInicial?: string;
   cuentas: CuentaDinero[];
   esLider: boolean;
   ubicacionId: string | null;
@@ -698,8 +629,17 @@ function RegistrarMovimientoModal({
   const [token] = useState(() => crypto.randomUUID());
   const [guardando, setGuardando] = useState(false);
   const [egresos, setEgresos] = useState<EgresoParaMovimiento[]>([]);
+  const mesesSunat = mesesParaPagarSunat(hoy);
+  const [sunat, setSunat] = useState<BorradorPagoSunat>(() => ({
+    mes: mesesSunat.find((m) => m.valor === mesSunatInicial)?.valor ?? mesesSunat[0]!.valor,
+    igv: "",
+    renta: "",
+  }));
+  const mesesPlanilla = mesesDePlanilla(hoy);
+  const [concepto, setConcepto] = useState<ConceptoPlanilla>(conceptoInicial ?? "sueldos");
+  const [mesPlanilla, setMesPlanilla] = useState(() => mesesPlanilla.find((m) => m.valor === mesSunatInicial)?.valor ?? mesesPlanilla[1]!.valor);
   const [b, setB] = useState<BorradorMovimiento>(() => {
-    const base = inicialDe(inicial, cuentas, ubicacionId, deuda, hoy);
+    const base = { ...inicialDe(inicial, cuentas, ubicacionId, deuda, hoy), ...(montoInicial ? { monto: montoInicial } : {}) };
     const origenDelAviso = origenDeArranque(inicial, origenInicial, cuentas);
     return origenDelAviso ? { ...base, origen: origenDelAviso.id, fuente: fuenteInicial(origenDelAviso) } : base;
   });
@@ -712,6 +652,8 @@ function RegistrarMovimientoModal({
   const esCajon = origen?.tipo === "cajon";
   const tipo = tipoDeMovimiento(b);
   const cambiar = (c: Partial<BorradorMovimiento>) => setB((x) => ({ ...x, ...c }));
+  // Lo que la persona eligió a mano no se pisa con la propuesta del banco de la máquina.
+  const [bancoElegido, setBancoElegido] = useState(false);
 
   // Del cajón, los egresos que la tienda ya registró y que nada usa todavía (o marcados «no es gasto: depósito»).
   const ubicacionCajon = esCajon ? origen?.ubicacionId ?? null : null;
@@ -735,7 +677,11 @@ function RegistrarMovimientoModal({
   const maquinaId = esDepositoMaquina ? b.origen || null : null;
   // Lo leído va con la máquina de la que se leyó: si la persona cambia de máquina, la lista anterior deja de valer sola
   // (sin tocar el estado dentro del efecto) mientras llega la nueva.
-  const [leido, setLeido] = useState<{ maquinaId: string; lotes: LotePendiente[]; marcados: string[] } | null>(null);
+  const [leido, setLeido] = useState<{ maquinaId: string; lotes: LotePendiente[]; marcados: string[]; falla: boolean } | null>(null);
+  const [intentoLotes, setIntentoLotes] = useState(0);
+  const desdeDeLaMaquina = cuentas.find((c) => c.id === maquinaId)?.saldoDesde ?? null;
+  // La confirmación vale para una comisión: si cambia el monto o los días, se vuelve a preguntar.
+  const [comisionConfirmada, setComisionConfirmada] = useState<number | null>(null);
   useEffect(() => {
     if (!maquinaId) return;
     let vivo = true;
@@ -744,19 +690,31 @@ function RegistrarMovimientoModal({
       .then(({ data, error }) => {
         if (!vivo) return;
         const lista = error ? [] : ((data ?? []) as Record<string, unknown>[]).map(leerLotePendiente);
-        setLeido({ maquinaId, lotes: lista, marcados: lotesPorDefecto(lista, b.fecha) });
+        setLeido({ maquinaId, lotes: lista, marcados: lotesPorDefecto(lista, b.fecha, desdeDeLaMaquina), falla: !!error });
+      });
+    // El banco al que deposita esta máquina viene puesto; sin banco guardado, se elige (ya no se propone el primero de la lista).
+    void createClient()
+      .rpc("fn_pos_bancos_de_maquinas" as never)
+      .then(({ data }) => {
+        if (!vivo || bancoElegido) return;
+        const fila = ((data ?? []) as { cuenta_id: string; banco_id: string | null }[]).find((f) => f.cuenta_id === maquinaId);
+        setB((x) => ({ ...x, destino: fila?.banco_id ?? "" }));
       });
     return () => {
       vivo = false;
     };
     // La fecha no vuelve a cargar la lista: solo decide qué se marca de entrada al llegar.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [maquinaId]);
+  }, [maquinaId, intentoLotes]);
   const lotes = leido && leido.maquinaId === maquinaId ? leido.lotes : null;
+  const lotesFalla = !!leido && leido.maquinaId === maquinaId && leido.falla;
   const marcados = leido && leido.maquinaId === maquinaId ? leido.marcados : [];
   const marcar = (clave: string, si: boolean) =>
     setLeido((l) => (l && l.maquinaId === maquinaId ? { ...l, marcados: si ? [...l.marcados.filter((c) => c !== clave), clave] : l.marcados.filter((c) => c !== clave) } : l));
   const cuentaAbono = esDepositoMaquina ? resumenAbono(lotes ?? [], marcados, b.monto) : null;
+  const comisionRara = cuentaAbono ? revisarComision(cuentaAbono) : null;
+  const confirmada = !!cuentaAbono && cuentaAbono.comision !== null && comisionConfirmada === cuentaAbono.comision;
+  const netoPropuesto = cuentaAbono && b.monto.trim() === "" ? netoEsperado(cuentaAbono) : null;
 
   function elegirQue(que: QuePaso) {
     setB(inicialDe(que, cuentas, ubicacionId, deuda, hoy, b));
@@ -768,7 +726,7 @@ function RegistrarMovimientoModal({
       return;
     }
     if (esDepositoMaquina) {
-      const v = validarAbonoPos(b, lotes ?? [], marcados, { cuentas, hoy });
+      const v = validarAbonoPos(b, lotes ?? [], marcados, { cuentas, hoy, comisionConfirmada: confirmada });
       if (!v.ok) return avisar.error(v.error);
       setGuardando(true);
       const { error } = await firmar(createClient().rpc("registrar_abono_pos" as never, { ...v.valor, p_token: token } as never), responsable.firma());
@@ -779,6 +737,32 @@ function RegistrarMovimientoModal({
       avisar.exito("Depósito de la máquina registrado", {
         detalle: r.comision && r.comision > 0 ? `La comisión real, ${soles(r.comision)}, quedó como gasto bancario de la empresa.` : "Llegó completo: sin comisión.",
       });
+      onCerrar();
+      router.refresh();
+      return;
+    }
+    if (b.que === "pago_sunat") {
+      const p = validarPagoSunat(b, sunat, { cuentas, hoy });
+      if (!p.ok) return avisar.error(p.error);
+      setGuardando(true);
+      const { error } = await firmar(createClient().rpc("registrar_pago_sunat" as never, { ...p.valor, p_token: token } as never), responsable.firma());
+      setGuardando(false);
+      responsable.despues(error);
+      if (error) return avisar.error(traducirError(error, "registrar el pago a SUNAT"));
+      avisar.exito("Pago a SUNAT registrado", { detalle: p.valor.p_referencia });
+      onCerrar();
+      router.refresh();
+      return;
+    }
+    if (b.que === "pago_planilla" && concepto !== "sueldos") {
+      const p = validarPagoPlanilla(b, { concepto, mes: mesPlanilla }, { cuentas, hoy });
+      if (!p.ok) return avisar.error(p.error);
+      setGuardando(true);
+      const { error } = await firmar(createClient().rpc("registrar_pago_de_planilla" as never, { ...p.valor, p_token: token } as never), responsable.firma());
+      setGuardando(false);
+      responsable.despues(error);
+      if (error) return avisar.error(traducirError(error, "registrar el pago"));
+      avisar.exito("Pago registrado", { detalle: p.valor.p_referencia });
       onCerrar();
       router.refresh();
       return;
@@ -799,7 +783,7 @@ function RegistrarMovimientoModal({
 
   // En el combo, una máquina se nombra sin «Por depositar» (el campo ya lo dice y con los céntimos no cabría): «Vendemás · S/ 149.90».
   const nombreEnCombo = (c: CuentaDinero) => (saldoConCentimos(c.tipo) ? nombreDeMaquinaDeLaPuente(c.nombre) ?? c.nombre : c.nombre);
-  const conSaldo = (c: CuentaDinero) => (c.saldo === null ? nombreEnCombo(c) : `${nombreEnCombo(c)} · ${verSaldo(c, c.saldo)}`);
+  const conSaldo = (c: CuentaDinero) => (c.saldo === null ? nombreEnCombo(c) : `${nombreEnCombo(c)} · ${soles(c.saldo)}`);
 
   return (
     <Modal variante="hoja" titulo={titulo} subtitulo={`La plata cambia de lugar: no es venta ni gasto.${esLider ? "" : " Tu rol registra los depósitos de tu tienda al banco."}`} onClose={onCerrar} tamano="mediana">
@@ -809,7 +793,7 @@ function RegistrarMovimientoModal({
 
       {b.que === "dueno_pone" && (
         <div data-sin-cascada>
-          <span className="fin-etiqueta mb-1.5 block text-xs text-taupe">¿Cómo entra esta plata?</span>
+          <span className="fin-etiqueta mb-1.5 block text-sm text-taupe">¿Cómo entra esta plata?</span>
           <OpcionesFin
             guia="fin-dinero.mov-dueno"
             nombre="mov-dueno"
@@ -825,14 +809,14 @@ function RegistrarMovimientoModal({
       )}
       {b.que === "dueno_saca" && (
         <div data-sin-cascada>
-          <span className="fin-etiqueta mb-1.5 block text-xs text-taupe">¿Qué es esta salida?</span>
+          <span className="fin-etiqueta mb-1.5 block text-sm text-taupe">¿Qué es esta salida?</span>
           <OpcionesFin
             nombre="mov-saca"
             etiqueta="Qué es esta salida"
             valor={b.clase}
             onValor={(v) => cambiar({ clase: v })}
             opciones={[
-              ...(deuda > 0 ? [{ valor: "devolucion_prestamo" as const, titulo: "Devolución de préstamo", detalle: `CAYLA te debe ${solesRedondo(deuda)}. Baja esa deuda.` }] : []),
+              ...(deuda > 0 ? [{ valor: "devolucion_prestamo" as const, titulo: "Devolución de préstamo", detalle: `CAYLA te debe ${solesDos(deuda)}. Baja esa deuda.` }] : []),
               { valor: "retiro", titulo: "Retiro de utilidades", detalle: "Te llevas ganancia del negocio. No es un gasto: no baja la utilidad." },
             ]}
           />
@@ -857,7 +841,10 @@ function RegistrarMovimientoModal({
             <SelectFin
               id="mov-a"
               valor={b.destino}
-              onValor={(destino) => cambiar({ destino })}
+              onValor={(destino) => {
+                setBancoElegido(true);
+                cambiar({ destino });
+              }}
               opciones={destinos.map((c) => ({ valor: c.id, texto: c.nombre }))}
               marcador={destinos.length === 0 ? "No hay cuentas de ese tipo" : undefined}
               deshabilitado={destinos.length === 0}
@@ -906,6 +893,22 @@ function RegistrarMovimientoModal({
             ayuda={
               lotes === null
                 ? "Leyendo lo que la máquina todavía no depositó…"
+                : lotesFalla
+                  ? (
+                    <>
+                      No se pudo leer lo que esta máquina tiene por depositar.{" "}
+                      <button
+                        type="button"
+                        className="btn-enlace"
+                        onClick={() => {
+                          setLeido(null);
+                          setIntentoLotes((n) => n + 1);
+                        }}
+                      >
+                        Volver a intentar
+                      </button>
+                    </>
+                  )
                 : lotes.length === 0
                   ? "Esta máquina no tiene nada por depositar."
                   : "Lo cobrado con la máquina que ningún depósito cubre todavía. Vienen marcados los días hasta la fecha del depósito."
@@ -925,6 +928,12 @@ function RegistrarMovimientoModal({
                           <Chip tono="ambar">atrasado</Chip>
                         </>
                       )}
+                      {desdeDeLaMaquina && l.fecha < desdeDeLaMaquina && (
+                        <>
+                          {" "}
+                          <Chip tono="pizarra" title="Es anterior al saldo de arranque de esta máquina: márcalo solo si este depósito lo cubre de verdad">antes del arranque</Chip>
+                        </>
+                      )}
                     </span>
                     <span className="fin-lote-dias">
                       {l.dias === 0 ? "hoy" : l.dias === 1 ? "ayer" : `hace ${l.dias} días`}
@@ -939,9 +948,40 @@ function RegistrarMovimientoModal({
         </div>
       )}
 
+      {b.que === "pago_planilla" && (
+        <div className="fin-dos-campos" data-sin-cascada data-guia="fin-dinero.mov-planilla">
+          <CampoFin etiqueta="Qué parte pagas" htmlFor="mov-planilla-parte">
+            <SelectFin<ConceptoPlanilla> id="mov-planilla-parte" valor={concepto} onValor={setConcepto} opciones={OPCIONES_CONCEPTO_PLANILLA} />
+          </CampoFin>
+          {concepto !== "sueldos" && (
+            <CampoFin etiqueta="De qué mes es" htmlFor="mov-planilla-mes">
+              <SelectFin<string> id="mov-planilla-mes" valor={mesPlanilla} onValor={setMesPlanilla} opciones={mesesPlanilla} />
+            </CampoFin>
+          )}
+        </div>
+      )}
+
+      {b.que === "pago_sunat" && (
+        <div className="space-y-3" data-sin-cascada data-guia="fin-dinero.mov-sunat">
+          <CampoFin etiqueta="De qué mes es" htmlFor="mov-sunat-mes">
+            <SelectFin<string> id="mov-sunat-mes" valor={sunat.mes} onValor={(mes) => setSunat((s) => ({ ...s, mes }))} opciones={mesesSunat} />
+          </CampoFin>
+          <div className="fin-dos-campos">
+            <CampoFin etiqueta="IGV" htmlFor="mov-sunat-igv">
+              <InputFin id="mov-sunat-igv" inputMode="decimal" value={sunat.igv} onChange={(e) => setSunat((s) => ({ ...s, igv: e.target.value }))} />
+            </CampoFin>
+            <CampoFin etiqueta="Impuesto a la renta" htmlFor="mov-sunat-renta">
+              <InputFin id="mov-sunat-renta" inputMode="decimal" value={sunat.renta} onChange={(e) => setSunat((s) => ({ ...s, renta: e.target.value }))} />
+            </CampoFin>
+          </div>
+        </div>
+      )}
+
       <div className="fin-dos-campos" data-guia="fin-dinero.mov-monto">
-        <CampoFin etiqueta={tipo === "abono_tarjeta" ? "Monto que llegó al banco" : "Monto"} htmlFor="mov-monto">
-          {esCajon && b.fuente === "egreso" ? (
+        <CampoFin etiqueta={tipo === "abono_tarjeta" ? "Monto que llegó al banco" : b.que === "pago_sunat" ? "Total que salió del banco" : "Monto"} htmlFor="mov-monto">
+          {b.que === "pago_sunat" ? (
+            <InputFin id="mov-monto" readOnly value={soles(totalPagoSunat(sunat))} />
+          ) : esCajon && b.fuente === "egreso" ? (
             <InputFin id="mov-monto" readOnly value={egresos.find((e) => e.id === b.egresoId) ? soles(egresos.find((e) => e.id === b.egresoId)!.monto) : "—"} />
           ) : (
             <InputFin id="mov-monto" inputMode="decimal" value={b.monto} onChange={(e) => cambiar({ monto: e.target.value })} placeholder={esDepositoMaquina ? ejemploMontoDeposito(cuentaAbono?.bruto ?? 0, cuentaAbono?.esperado ?? null, cuentaAbono?.dias ?? 0) : "1,500.00" /* sugerir-fijo: el formato de un monto, no depende de nada elegido */} />
@@ -969,6 +1009,23 @@ function RegistrarMovimientoModal({
             </CampoFin>
           )}
         </div>
+      )}
+      {esDepositoMaquina && netoPropuesto !== null && (
+        <p className="nota-cayla sin-i">
+          Según la tarifa deberían llegar {soles(netoPropuesto)}.{" "}
+          <button type="button" className="btn-enlace" onClick={() => cambiar({ monto: netoPropuesto.toFixed(2) })}>
+            Usar ese monto
+          </button>
+        </p>
+      )}
+      {esDepositoMaquina && comisionRara && cuentaAbono?.comision !== null && cuentaAbono?.comision !== undefined && (
+        <Aviso tono="atencion" titulo="Esta comisión se ve rara" chico>
+          <p>{comisionRara} Revísala contra el extracto del banco.</p>
+          <span className="mt-2 flex items-center gap-2 text-sm">
+            <Casilla marcada={confirmada} onCambio={() => setComisionConfirmada(confirmada ? null : cuentaAbono.comision)} etiqueta="Sí, revisé el extracto: la comisión es esa" />
+            Sí, revisé el extracto: la comisión es esa
+          </span>
+        </Aviso>
       )}
       {esDepositoMaquina && cuentaAbono?.comision !== null && cuentaAbono?.comision !== undefined && cuentaAbono.comision < 0 && (
         <Aviso tono="atencion" titulo="Llegó más de lo cobrado en los días marcados" chico>
@@ -998,11 +1055,6 @@ function fuenteInicial(c: CuentaDinero | undefined): "caja" | "egreso" {
 function origenDeArranque(que: QuePaso, origenId: string | undefined, cuentas: CuentaDinero[]): CuentaDinero | null {
   if (!origenId) return null;
   return cuentasPara(cuentas, opcionQuePaso(que).origen, "origen").find((c) => c.id === origenId) ?? null;
-}
-
-/** El saldo de una cuenta como lo ve la persona: con céntimos en «Por depositar» (se cruza contra un depósito), redondeado en las demás. */
-function verSaldo(c: CuentaDinero, n: number): string {
-  return saldoConCentimos(c.tipo) ? soles(n) : solesRedondo(n);
 }
 
 function inicialDe(que: QuePaso, cuentas: CuentaDinero[], ubicacionId: string | null, deuda: number, hoy: string, antes?: BorradorMovimiento): BorradorMovimiento {
@@ -1059,11 +1111,12 @@ function MovimientoDetalleModal({ movimiento: m, onCerrar }: { movimiento: Movim
           { dato: "A", valor: m.destinoNombre ?? "Sale del negocio" },
           { dato: m.tipo === "abono_tarjeta" ? "Llegó al banco" : "Monto", valor: soles(m.monto) },
           ...(m.comision > 0 ? [{ dato: "Comisión de la máquina (queda como gasto)", valor: soles(m.comision) }] : []),
-          { dato: "Estado", valor: <Chip tono={m.estado === "anulado" ? "apagado" : "verde"}>{m.estado === "anulado" ? "Anulado" : "Vigente"}</Chip> },
+          { dato: "Estado", valor: m.estimado ? <Chip tono="ambar">Estimado</Chip> : <Chip tono={m.estado === "anulado" ? "apagado" : "verde"}>{m.estado === "anulado" ? "Anulado" : "Vigente"}</Chip> },
           ...(m.registradoPor ? [{ dato: "Lo registró", valor: m.registradoPor, tenue: true }] : []),
           ...(m.motivoAnulacion ? [{ dato: "Anulado", valor: `${m.motivoAnulacion}${m.anuladoPor ? ` · ${m.anuladoPor}` : ""}`, tenue: true }] : []),
         ]}
       />
+      {m.estimado && <ReemplazarEstimado movimientoId={m.id} onHecho={onCerrar} />}
       <div className="fin-botones">
         {m.puedeAnular && (
           <button type="button" className="btn-cayla btn-sutil" onClick={() => setAnulando(true)}>
@@ -1121,6 +1174,7 @@ function AnularModal({
         <InputFin id="anular-motivo" value={motivo} onChange={(ev) => setMotivo(ev.target.value)} placeholder="Ej. se registró dos veces" />
       </CampoFin>
       <ComboResponsable control={responsable} deshabilitado={guardando} />
+      <AvisoNoSeDeshace className="mt-4" />
       <div className="fin-botones mt-4">
         <button type="button" className="btn-cayla btn-secundario" onClick={onCerrar} disabled={guardando}>
           Volver

@@ -4,7 +4,6 @@ import { describe, expect, it } from "vitest";
 import {
   RPC_LISTA_DE_ORDENES,
   cifrasHoyEnElTaller,
-  conEtapasDeAntes,
   cuentasDeFiltros,
   cuentasDePestanas,
   cumpleBusqueda,
@@ -143,41 +142,6 @@ describe("filaDeLaLista — una orden en una fila, con las reglas de su página"
   });
 });
 
-describe("órdenes abiertas antes de las fases", () => {
-  const antes = (orden: Parameters<typeof fila>[0] = {}) => fila({ fases: [], ...orden });
-  it("una orden en proceso sin ninguna fase es de antes de las fases; una con fases, o una cerrada, no", () => {
-    expect(antes().legado).toBe(true);
-    expect(fila().legado).toBe(false);
-    expect(antes({ orden: { estado: "terminada", cantidad_buenas: 40 } }).legado).toBe(false);
-  });
-  it("se lee de sus etapas de siempre: «Por cortar», «En confección», «En acabado»; una tercerizada sigue en curso, afuera", () => {
-    expect(conEtapasDeAntes(antes(), { corte: "pendiente" })).toMatchObject({ grupo: "corte", chip: { texto: "Por cortar", tono: "pizarra" }, quien: "Orden de antes de las fases", lista: false });
-    expect(conEtapasDeAntes(antes(), { corte: "hecho", confeccion: "pendiente" })).toMatchObject({ grupo: "costura", chip: { texto: "En confección" } });
-    expect(conEtapasDeAntes(antes(), { corte: "hecho", confeccion: "tercerizado" })).toMatchObject({ grupo: "costura", chip: { texto: "En confección · afuera" }, quien: "Con un servicio · orden de antes de las fases" });
-    expect(conEtapasDeAntes(antes(), { corte: "hecho", confeccion: "hecho", acabado: "pendiente" })).toMatchObject({ grupo: "acabado", chip: { texto: "En acabado" } });
-  });
-  it("sin etapas anotadas está por cortar; con las tres hechas, lista para pasar al stock (cuenta en acabado, sin días)", () => {
-    expect(conEtapasDeAntes(antes(), undefined).chip.texto).toBe("Por cortar");
-    expect(conEtapasDeAntes(antes(), { corte: "hecho", confeccion: "hecho", acabado: "hecho" })).toMatchObject({ lista: true, grupo: "acabado", dias: null, chip: { texto: "Lista para pasar al stock", tono: "verde" } });
-  });
-  it("una muestra usa las etapas de las muestras y no cuenta en «Hoy en el Taller»", () => {
-    const muestra = antes({ orden: { es_muestra: true } });
-    expect(conEtapasDeAntes(muestra, { patronaje: "hecho" })).toMatchObject({ grupo: null, chip: { texto: "En muestra y aprobación" } });
-    expect(conEtapasDeAntes(muestra, {})).toMatchObject({ chip: { texto: "En patronaje" } });
-    const [corte] = cifrasHoyEnElTaller([conEtapasDeAntes(muestra, {})]);
-    expect(corte.lotes).toBe(0);
-  });
-  it("una fila con fases no se toca, aunque le pasen etapas", () => {
-    const f = fila();
-    expect(conEtapasDeAntes(f, { corte: "pendiente" })).toBe(f);
-  });
-  it("las causas y la entrega de una orden de antes salen igual que las de cualquiera", () => {
-    const f = conEtapasDeAntes(antes({ orden: { fecha_entrega: "2026-10-18" } }), { corte: "pendiente" });
-    expect(f.entrega).toMatchObject({ relativo: "ayer", atrasada: true });
-    expect(f.causas.map((c) => c.clave)).toContain("entrega_pasada");
-  });
-});
-
 describe("leerListaDeOrdenes — lee lo que manda fn_ordenes_produccion_lista", () => {
   const respuesta = (ordenes: unknown[], stock: unknown = { lotes: 1, prendas: 57 }) => ({ ordenes, al_stock_mes: stock });
   it("trae una fila por orden y lo que pasó al stock este mes", () => {
@@ -215,11 +179,22 @@ describe("Hoy en el Taller", () => {
     const conLavanderia = [...filas, fila({ orden: { id: "f", numero: 8, numero_texto: "OP-000008" }, fases: [hecha("corte", 10), hecha("costura", 30), fase("lavanderia", 50, { actual: true, entrada: 48 }), fase("acabado", 60)] })];
     expect(cifrasHoyEnElTaller(conLavanderia).find((c) => c.clave === "lavanderia")?.titulo).toBe("En lavandería");
   });
-  it("cuenta lotes y prendas de las abiertas (muestras incluidas, terminadas no) y dice lo que importa de cada fase", () => {
+  it("cuenta órdenes y prendas de las abiertas (muestras incluidas, terminadas no) y dice lo que importa de cada fase", () => {
     const [corte, costura, acabado] = cifrasHoyEnElTaller(filas);
-    expect(corte).toMatchObject({ lotes: 2, prendas: 90, contexto: "90 prendas · 1 sin tela", atencion: true });
-    expect(costura).toMatchObject({ lotes: 1, prendas: 48, contexto: "48 prendas · 48 afuera con Confecciones del Norte" });
-    expect(acabado).toMatchObject({ lotes: 1, prendas: 36, contexto: "36 prendas · 1 lista para el stock" });
+    expect(corte).toMatchObject({ ordenes: 2, unidad: "lotes", prendas: 90, contexto: "90 prendas · 1 sin tela", atencion: true });
+    expect(costura).toMatchObject({ ordenes: 1, unidad: "lote", prendas: 48, contexto: "48 prendas · 48 afuera con Confecciones del Norte" });
+    expect(acabado).toMatchObject({ ordenes: 1, unidad: "muestra", prendas: 36, contexto: "36 prendas · 1 lista para el stock" });
+  });
+  it("no llama «lotes» a una muestra: «lotes» si todas son lotes, «muestras» si todas lo son, «órdenes» con «N muestra» en el detalle si hay de las dos", () => {
+    const enCorte = (id: string, numero: number, esMuestra: boolean, cantidad = 10) =>
+      fila({ orden: { id, numero, numero_texto: `OP-0000${numero}`, cantidad_plan: cantidad, es_muestra: esMuestra }, fases: [fase("corte", 10, { actual: true, entrada: cantidad }), fase("costura", 30), fase("acabado", 60)] });
+    const corteDe = (...f: FilaDeLista[]) => cifrasHoyEnElTaller(f).find((c) => c.clave === "corte")!;
+    expect(corteDe(enCorte("a", 11, false), enCorte("b", 12, true, 8))).toMatchObject({ ordenes: 2, unidad: "órdenes", contexto: "18 prendas · 1 muestra" });
+    expect(corteDe(enCorte("a", 11, false), enCorte("b", 12, true), enCorte("c", 13, true))).toMatchObject({ ordenes: 3, unidad: "órdenes", contexto: "30 prendas · 2 muestras" });
+    expect(corteDe(enCorte("a", 11, true), enCorte("b", 12, true))).toMatchObject({ ordenes: 2, unidad: "muestras", contexto: "20 prendas" });
+    expect(corteDe(enCorte("a", 11, false), enCorte("b", 12, false))).toMatchObject({ ordenes: 2, unidad: "lotes", contexto: "20 prendas" });
+    expect(corteDe(enCorte("a", 11, true))).toMatchObject({ ordenes: 1, unidad: "muestra" });
+    expect(corteDe()).toMatchObject({ ordenes: 0, unidad: "lotes", contexto: "ninguna ahora" });
   });
   it("con la ruta nueva: «Por plotear» aparece cuando hay un lote ahí, en el orden de la ruta, y no hay tarjeta de Acabado si nadie está en Acabado", () => {
     const NUEVA = (extra: Crudo[]) => [...extra, fase("limpieza_revision", 55), fase("planchado", 65), fase("etiquetado_embolsado", 70)];
@@ -228,12 +203,12 @@ describe("Hoy en el Taller", () => {
     const cifras = cifrasHoyEnElTaller([enPloteo, enHabilitado]);
     expect(cifras.map((c) => c.clave)).toEqual(["ploteo", "corte", "habilitado", "costura"]);
     expect(cifras.map((c) => c.titulo)).toEqual(["Por plotear", "Por cortar", "En habilitado", "En costura"]);
-    expect(cifras[0]).toMatchObject({ lotes: 1, prendas: 50, contexto: "50 prendas" });
-    expect(cifras[2]).toMatchObject({ lotes: 1, prendas: 20 });
+    expect(cifras[0]).toMatchObject({ ordenes: 1, unidad: "lote", prendas: 50, contexto: "50 prendas" });
+    expect(cifras[2]).toMatchObject({ ordenes: 1, prendas: 20 });
   });
   it("una fase sin órdenes lo dice y no pide atención", () => {
     const [corte] = cifrasHoyEnElTaller([fila()]);
-    expect(corte).toMatchObject({ lotes: 0, prendas: 0, contexto: "ninguna ahora", atencion: false });
+    expect(corte).toMatchObject({ ordenes: 0, prendas: 0, contexto: "ninguna ahora", atencion: false });
   });
   it("el dato de la cabecera: cuántas abiertas y cuántas piden algo", () => {
     expect(datoHoyEnElTaller(filas)).toBe("4 órdenes abiertas · 1 pide algo");

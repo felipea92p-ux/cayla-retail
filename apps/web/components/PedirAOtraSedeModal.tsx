@@ -344,7 +344,7 @@ function PedirAOtraSedeHoja(props: PedirAOtraSedeModalProps) {
             </button>
             <Boton peso="primario" cargando={enviando} textoCargando="Pidiendo…"
               type="button"
-              disabled={enviando || !guia.puedeConfirmar || motivo !== null}
+              disabled={enviando || motivo !== null} confirma={guia}
               title={responsable.motivo ?? guia.frase ?? motivo ?? undefined}
               onClick={() => pedir(cerrar)}
               className={`flex-1 ${guia.claseConfirmar}`}

@@ -9,6 +9,7 @@ import {
   cantidadDePrendas,
   nombreDeDeuda,
   porQueDebe,
+  prendasDeLaDeuda,
   queDebe,
   textoDeDeuda,
   textoDeResolucion,
@@ -60,12 +61,12 @@ export function NosDebeProveedor({
           <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 px-5 pb-3 pt-4">
             <div>
               <p className="font-display text-lg text-tinta">Prendas por reponer</p>
-              <p className="text-xs text-tinta/65">Lo que faltó o llegó dañado en una recepción y el proveedor todavía no repone.</p>
+              <p className="text-sm text-tinta/65">Lo que faltó o llegó dañado en una recepción y el proveedor todavía no repone.</p>
             </div>
             {unidades > 0 && (
               <p className="text-right text-sm tabular-nums text-tinta">
                 <b className="font-semibold">{cantidadDePrendas(unidades, null)}</b> · {soles(nosDebe?.montoPendiente ?? 0)}
-                {nosDebe?.montoConIgv != null && <span className="block text-[11px] text-taupe">{soles(nosDebe.montoConIgv)} con el IGV de las facturas</span>}
+                {nosDebe?.montoConIgv != null && <span className="block text-sm text-taupe">{soles(nosDebe.montoConIgv)} con el IGV de las facturas</span>}
               </p>
             )}
           </div>
@@ -79,7 +80,7 @@ export function NosDebeProveedor({
           ) : abiertas.length === 0 ? (
             <div className="border-t border-tinta/10 px-5 py-4">
               <Vacio tamano="chico" alinear="izquierda" icono={<PackageCheck />}>
-                No te debe prendas. Aparece aquí lo que falte en una recepción («No vino») y lo que le devuelvas desde Dañadas por llegar dañado.
+                No te debe prendas. Aquí sale lo que no vino en una recepción o lo que le devuelvas dañado.
               </Vacio>
             </div>
           ) : (
@@ -94,7 +95,7 @@ export function NosDebeProveedor({
 
           {cerradas.length > 0 && (
             <details data-guia="proveedor-ficha.nos-debe-cerradas" className="group border-t border-tinta/10" open={cerradas.length <= CERRADAS_A_LA_VISTA}>
-              <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-5 py-3 text-[13px] text-tinta/75 hover:text-tinta [&::-webkit-details-marker]:hidden">
+              <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-5 py-3 text-sm text-tinta/75 hover:text-tinta [&::-webkit-details-marker]:hidden">
                 <span>
                   Ya saldadas en los últimos 90 días <span className="tabular-nums">({cerradas.length.toLocaleString("es-PE")})</span>
                 </span>
@@ -103,14 +104,14 @@ export function NosDebeProveedor({
               <ul className="divide-y divide-tinta/10 border-t border-tinta/10">
                 {cerradas.map((d) => (
                   <li key={d.diferenciaId} className="px-5 py-2.5">
-                    <p className="text-[13px] text-tinta">
-                      {cantidadDePrendas(d.cantidad, d.categoria)}
+                    <p className="text-sm text-tinta">
+                      {prendasDeLaDeuda(d.cantidad, d)}
                       {d.marca && <> · {d.marca}</>}
-                      {d.descripcion && <span className="text-tinta/65"> · {d.descripcion}</span>}
+                      {!d.prenda && d.descripcion && <span className="text-tinta/65"> · {d.descripcion}</span>}
                     </p>
-                    <p className="text-xs text-tinta/65">{porQueDebe(d, hoy)}</p>
+                    <p className="text-sm text-tinta/65">{porQueDebe(d, hoy)}</p>
                     {d.resoluciones.map((r, i) => (
-                      <p key={i} className="text-xs text-verde">
+                      <p key={i} className="text-sm text-verde">
                         {textoDeResolucion(r, hoy)}
                       </p>
                     ))}
@@ -144,14 +145,14 @@ function FilaDeuda({
         <p className="text-sm text-tinta">
           <b className="font-semibold">{queDebe(d)}</b>
           {d.marca && <> · {d.marca}</>}
-          {d.descripcion && <span className="text-tinta/65"> · {d.descripcion}</span>}
+          {!d.prenda && d.descripcion && <span className="text-tinta/65"> · {d.descripcion}</span>}
         </p>
-        <p className="mt-0.5 text-xs text-tinta/65" title={[nombreDeDeuda(d), d.orden].filter(Boolean).join(" · ")}>
+        <p className="mt-0.5 text-sm text-tinta/65" title={[nombreDeDeuda(d), d.orden].filter(Boolean).join(" · ")}>
           {porQueDebe(d, hoy)}
           {avance && <> · {avance}</>}
         </p>
         {d.nota && (
-          <p className="mt-0.5 truncate text-xs text-tinta/65">
+          <p className="mt-0.5 truncate text-sm text-tinta/65">
             Nota de la {d.causa === "devuelta" ? "devolución" : "recepción"}: «{d.nota}»
           </p>
         )}
@@ -159,7 +160,7 @@ function FilaDeuda({
       <div className="flex items-center justify-between gap-3 @min-[56rem]:justify-end">
         <p className="text-right">
           <span className="block text-sm tabular-nums text-tinta">{soles(d.montoPendiente)}</span>
-          {d.conIgv && <span className="block text-[11px] text-taupe">{d.montoConIgv != null ? `${soles(d.montoConIgv)} con IGV` : "sin IGV"}</span>}
+          {d.conIgv && <span className="block text-sm text-taupe">{d.montoConIgv != null ? `${soles(d.montoConIgv)} con IGV` : "sin IGV"}</span>}
         </p>
         <div className="flex flex-wrap items-center justify-end gap-2">
           {puedeSaldoAFavor && <BotonDeposito deuda={d} proveedorNombre={proveedorNombre} hoy={hoy} />}

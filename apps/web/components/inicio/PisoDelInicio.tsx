@@ -29,7 +29,7 @@ function PorDecidir({ linea }: { linea: LineaPorDecidir }) {
 }
 
 function Frase({ children }: { children: React.ReactNode }) {
-  return <span className="text-[13px] text-tinta">{children}</span>;
+  return <span className="text-sm text-tinta">{children}</span>;
 }
 
 export function CifraFrescura({ v }: { v: VistaFrescuraInicio }) {
@@ -60,7 +60,7 @@ export function CifraFrescura({ v }: { v: VistaFrescuraInicio }) {
         </span>
       )}
       <BarraApilada segmentos={v.segmentos} alto={8} unidad="unidades colgadas" />
-      <span className="mt-1.5 block text-[12.5px] leading-snug tabular-nums">{v.linea}</span>
+      <span className="mt-1.5 block text-sm leading-snug tabular-nums">{v.linea}</span>
     </TarjetaCifra>
   );
 }

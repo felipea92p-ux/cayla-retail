@@ -10,31 +10,43 @@ import { avisar } from "@/components/ui/Avisos";
 import { Boton, CampoTexto } from "@/components/ui/campos";
 import { Modal, campoEtiqueta } from "@/components/ui/Modal";
 import { useSalidaSinGuardar } from "@/components/ui/useSalidaSinGuardar";
-import { traducirError } from "@/lib/error-escritura";
-import { cantidadesQuePuedenSalir, lineasDeSalida, problemasDeSalida, quienDeFase, RPC_REGISTRAR_SALIDA, textoMandaste, type FasePagina, type OrdenPagina } from "@/lib/orden-pagina-reglas";
+import { cantidadConUnidad, cantidadesDeFabricaDeSalida, cantidadesQuePuedenSalir, esPrimeraFase, lineasDeSalida, problemasDeSalida, fraseDelEnvioConToken, leerEnvioConTela, quienDeFase, RPC_REGISTRAR_SALIDA_CON_TELA, textoMandaste, type FasePagina, type OrdenPagina } from "@/lib/orden-pagina-reglas";
+import { cantidadDeFabrica, lineasDeTelaQueSale, problemaDeTelaQueSale, telasDeLaOrden } from "@/lib/orden-tela-usada-reglas";
 import { camposDeSalida } from "@/lib/orden-pagina-guia";
 import { tablaDeModeloExistente } from "@/lib/orden-tabla-reglas";
+import { faseTrasError } from "@/lib/intento-reglas";
 import { firmar } from "@/lib/responsable-reglas";
 import { fotoFormulario } from "@/lib/salida-sin-guardar";
 import { createClient } from "@/lib/supabase/client";
 import { useResponsable } from "@/lib/useResponsable";
 
 // «Salida» (ADR-0400, decisión 4; vista D): lo que sale del Taller a un servicio de afuera, por talla y color, con la misma tabla de «Terminé» y de Nueva orden. Nace PRECARGADA con lo
-// que ya puede salir (`cantidadesQuePuedenSalir`: lo que entró a la fase menos lo que ya salió): un clic y se manda todo; lo que todavía no sale, se baja a mano. La base no deja mandar
+// que ya puede salir (`cantidadesDeFabricaDeSalida`: lo que entró a la fase menos lo que ya salió; en Corte, el plan y no su margen del 10 %): un clic y se manda todo; lo que todavía no sale, se baja a mano. La base no deja mandar
 // más de lo que entró (`registrar_salida`, candado por talla y color bajo el candado de la orden) y las prendas no entran ni salen del stock: solo se anota dónde están.
 //
 // Una salida no se edita ni se borra (solo se agrega, como todo lo anotado en una orden): si se anotó mal, se ANULA con su motivo desde la línea de tiempo (actividad 4b) y se anota de nuevo. El número de guía es solo un texto: el
 // Taller no emite comprobantes (ADR-0400, «Lo que NO cambia»). Un doble clic no anota dos salidas: una marca síncrona corta la segunda llamada.
+//
+// El corte de afuera (ADR-0570, actividad 4; Felipe: «si se corta afuera, sale al mandarla»): cuando la fase es la primera (Corte) y la hace un servicio, la hoja pregunta también cuánta tela
+// le mandas, que sale del estante y queda en la orden. La salida y su tela viajan JUNTAS (`registrar_salida_con_tela`, ADR-0587): o salen las dos o no sale nada, y la hoja lleva un token
+// para que un reintento tras un corte de red no mande dos veces. Lo que el cortador devuelve se anota con «Devolver lo que sobró».
 
 export function AnotarSalidaModal({ datos, fase, onClose }: { datos: OrdenPagina; fase: FasePagina; onClose: () => void }) {
   const router = useRouter();
   const responsable = useResponsable({ ubicacionId: datos.orden.ubicacionId, etiqueta: datos.orden.ubicacionNombre });
   const puedenSalir = useMemo(() => cantidadesQuePuedenSalir(fase), [fase]);
-  const [cantidades, setCantidades] = useState<Record<string, string>>(() => Object.fromEntries(Object.entries(puedenSalir).map(([id, n]) => [id, String(n)])));
+  const deFabrica = useMemo(() => cantidadesDeFabricaDeSalida(fase, datos.fases), [fase, datos.fases]);
+  const [cantidades, setCantidades] = useState<Record<string, string>>(() => Object.fromEntries(Object.entries(deFabrica).map(([id, n]) => [id, String(n)])));
   const [guiaDeRemision, setGuiaDeRemision] = useState("");
   const [nota, setNota] = useState("");
+  // La tela que se manda a cortar: solo en la primera fase, y solo las telas con algo en el estante. Viene con lo que falta usar según el plan.
+  const telas = useMemo(() => (esPrimeraFase(fase, datos.fases) ? telasDeLaOrden(datos.insumos).filter((t) => t.tipo === "tela" && t.saldo > 0) : []), [fase, datos.fases, datos.insumos]);
+  const [telaQueSale, setTelaQueSale] = useState<Record<string, string>>(() => Object.fromEntries(telas.map((t) => [t.insumoId, cantidadDeFabrica(t)])));
+  const problemaTela = problemaDeTelaQueSale(telas, telaQueSale);
   const [cargando, setCargando] = useState(false);
   const enVuelo = useRef(false);
+  const frenoCantidades = useRef<() => boolean>(null);
+  const token = useRef<string>(crypto.randomUUID());
 
   const servicio = quienDeFase(fase);
   const tabla = useMemo(() => tablaDeModeloExistente(datos.lineas.map((l) => ({ varianteId: l.varianteId, talla: l.talla, color: l.colorNombre, colorHex: l.colorHex }))), [datos.lineas]);
@@ -50,7 +62,7 @@ export function AnotarSalidaModal({ datos, fase, onClose }: { datos: OrdenPagina
   const guia = useGuiaCampos(camposDeSalida({ total, excesos: excesos.map((p) => p.texto), responsableListo: responsable.listo }));
 
   // «¿Salir sin guardar?» (ADR-0136): la hoja nace precargada, así que solo cuenta lo que la persona cambió.
-  const fotoActual = fotoFormulario({ cantidades, guiaDeRemision, nota });
+  const fotoActual = fotoFormulario({ cantidades, guiaDeRemision, nota, telaQueSale });
   const [fotoAlAbrir] = useState(fotoActual);
   const avisoSalida = useSalidaSinGuardar(fotoActual !== fotoAlAbrir, "Cambiaste lo que ibas a anotar y todavía no se guardó. Si cierras ahora, se pierde lo que cambiaste.");
   function cerrarTrasGuardar() {
@@ -62,38 +74,55 @@ export function AnotarSalidaModal({ datos, fase, onClose }: { datos: OrdenPagina
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (enVuelo.current) return;
+    // Lo escrito en la tabla no valió: antes de seguir con lo que quedó, se lee por qué (`useCantidadEscrita`).
+    if (frenoCantidades.current?.()) return;
     const faltas = problemasDeSalida(fase, cantidades, nombreDe);
     if (faltas.length > 0) {
       avisar.error(faltas[0].texto);
+      return;
+    }
+    if (problemaTela) {
+      avisar.error(problemaTela);
       return;
     }
     if (!responsable.listo) {
       if (responsable.motivo) avisar.error(responsable.motivo);
       return;
     }
+    const firma = responsable.firma();
     enVuelo.current = true;
     setCargando(true);
+    const sale = lineasDeTelaQueSale(telas, telaQueSale);
     let resultado;
     try {
       resultado = await firmar(
         createClient().rpc(
-          RPC_REGISTRAR_SALIDA as never,
-          { p_fase_id: fase.id, p_lineas: lineas, p_guia: guiaDeRemision.trim() === "" ? null : guiaDeRemision.trim(), p_nota: nota.trim() === "" ? null : nota.trim() } as never
+          RPC_REGISTRAR_SALIDA_CON_TELA as never,
+          {
+            p_fase_id: fase.id,
+            p_lineas: lineas,
+            p_guia: guiaDeRemision.trim() === "" ? null : guiaDeRemision.trim(),
+            p_nota: nota.trim() === "" ? null : nota.trim(),
+            p_tela: sale.length > 0 ? sale : null,
+            p_token: token.current,
+          } as never
         ),
-        responsable.firma()
+        firma
       );
     } finally {
       enVuelo.current = false;
     }
-    const { error } = resultado;
+    const { data, error } = resultado;
     responsable.despues(error);
     setCargando(false);
     if (error) {
-      // La base pudo guardar y la respuesta perderse: «No se guardó nada» sería mentira. Se dice que no se sabe y se pide mirar la línea de tiempo antes de repetir.
-      avisar.error(traducirError(error, `anotar lo que mandas a ${servicio}`, { confirmarAntesDeRepetir: true }));
+      // Con un «no» de la base, lo que se corrija es otro envío: token nuevo. Sin respuesta, el mismo: reintentar no manda dos veces.
+      if (faseTrasError(error) === "libre") token.current = crypto.randomUUID();
+      avisar.error(fraseDelEnvioConToken(error, `anotar lo que mandas a ${servicio}`, "Mandar"));
       return;
     }
-    avisar.exito(textoMandaste(total, servicio), { detalle: `${datos.orden.numeroTexto} · ${fase.nombre}` });
+    if (leerEnvioConTela(data).repetido) avisar.exito("Ya estaba anotado", { detalle: `${datos.orden.numeroTexto} · se había guardado antes de que se cortara la conexión; no se mandó dos veces` });
+    else avisar.exito(textoMandaste(total, servicio), { detalle: `${datos.orden.numeroTexto} · ${fase.nombre}${sale.length > 0 ? " · con su tela" : ""}` });
     cerrarTrasGuardar();
   }
 
@@ -111,6 +140,7 @@ export function AnotarSalidaModal({ datos, fase, onClose }: { datos: OrdenPagina
           <CampoGuiado id="cantidades" guia={guia} className="space-y-2">
             <span className={campoEtiqueta}>{guia.etiqueta("cantidades", "Cuántas mandas por talla y color")}</span>
             <MatrizCantidades
+              freno={frenoCantidades}
               soloCantidades
               teclado
               celdas={tabla.celdas}
@@ -121,17 +151,39 @@ export function AnotarSalidaModal({ datos, fase, onClose }: { datos: OrdenPagina
               // Funcional a propósito: «Llenar todas con» llama a esto una vez por celda en el mismo ciclo, y cada llamada tiene que partir de lo que dejó la anterior.
               onCantidad={(clave, valor) => setCantidades((c) => ({ ...c, [clave]: valor }))}
               preguntaCelda="Cuántas mandas de"
-              fantasma={(clave) => String(puedenSalir[clave] ?? 0)}
+              fantasma={(clave) => String(deFabrica[clave] ?? 0)}
               tituloDe={(clave) => {
                 const l = lineasPorId.get(clave);
                 const puede = puedenSalir[clave] ?? 0;
                 return [l?.codigo, puede > 0 ? `pueden salir ${puede}` : "no hay nada listo para mandar"].filter(Boolean).join(" · ");
               }}
             />
-            <p className="text-xs text-tinta/65">Una raya (—) es una combinación que este modelo no tiene. Una salida no se borra: si te equivocas, la anulas desde «Todo lo que pasó».</p>
+            <p className="text-sm text-tinta/65">Una raya (—) es una combinación que no existe. Si te equivocas, anúlala desde «Todo lo que pasó».</p>
           </CampoGuiado>
         </div>
 
+        {telas.length > 0 && (
+          <div data-guia="prod-orden-salida.tela" className="space-y-3 rounded-xl bg-hueso px-4 py-3">
+            <p className="text-sm text-tinta">
+              <b className="font-semibold">El corte se hace afuera.</b> ¿Cuánta tela le mandas? Sale del estante y queda en la orden; lo que te devuelvan lo anotas con «Devolver lo que sobró».
+            </p>
+            <div className="grid gap-3 sm:grid-cols-2">
+              {telas.map((t) => (
+                <CampoTexto
+                  key={t.insumoId}
+                  id={`salida-tela-${t.insumoId}`}
+                  etiqueta={`Mandas de ${t.nombre} (${t.unidad === "metro" ? "metros" : t.unidad})`}
+                  inputMode="decimal"
+                  pie={`El plan pide ${cantidadConUnidad(t.falta, t.unidad)} · en el estante hay ${cantidadConUnidad(t.saldo, t.unidad)}`}
+                  value={telaQueSale[t.insumoId] ?? ""}
+                  onChange={(e) => setTelaQueSale((u) => ({ ...u, [t.insumoId]: e.target.value }))}
+                  maxLength={12}
+                />
+              ))}
+            </div>
+            <p className="text-sm text-tinta/65">{problemaTela ?? "Opcional: déjalo vacío si prefieres anotarla después desde «Tela»."}</p>
+          </div>
+        )}
         <div className="grid gap-4 sm:grid-cols-2">
           <CampoTexto id="salida-guia" etiqueta="N.º de guía" pie="Opcional · el número del papel que viaja con las prendas" value={guiaDeRemision} onChange={(e) => setGuiaDeRemision(e.target.value)} maxLength={40} />
           <CampoTexto id="salida-nota" etiqueta="Nota" pie="Opcional" value={nota} onChange={(e) => setNota(e.target.value)} maxLength={300} />
@@ -149,7 +201,7 @@ export function AnotarSalidaModal({ datos, fase, onClose }: { datos: OrdenPagina
             <Boton type="button" onClick={() => avisoSalida.pedirAccion(onClose)}>
               Cancelar
             </Boton>
-            <Boton type="submit" peso="primario" cargando={cargando} textoCargando="Anotando…" disabled={!guia.puedeConfirmar} title={guia.frase ?? responsable.motivo ?? undefined} className={guia.claseConfirmar}>
+            <Boton type="submit" peso="primario" cargando={cargando} textoCargando="Anotando…" disabled={problemaTela !== null} confirma={guia} title={guia.frase ?? problemaTela ?? responsable.motivo ?? undefined} className={guia.claseConfirmar}>
               {total > 0 ? `Mandar ${total}` : "Mandar"}
             </Boton>
           </div>

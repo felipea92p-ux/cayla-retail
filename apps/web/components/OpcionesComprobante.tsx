@@ -19,14 +19,14 @@ import { DetalleVentaModal } from "@/components/DetalleVentaModal";
 // WhatsApp AL NÚMERO de la clienta, imprimirla de nuevo, y empezar un cambio o una devolución con la boleta ya
 // buscada en Posventa. En celular es la hoja que sube desde abajo (`<Modal variante="hoja">`, botones de 52 px);
 // XML y CDR van al final porque son del contador, no de la tienda (lo mismo hacen Alegra y Bsale).
-// Anular, liberar y reintentar siguen en la fila (son del estado ante SUNAT, y Anular es del líder).
+// Anular, liberar y reintentar siguen en la fila (son del estado ante SUNAT; Anular es de quien ve Facturación, ADR-0534).
 
 const BASE_OPCION =
   "flex min-h-[52px] items-center gap-3 rounded-[12px] border px-3 py-2.5 text-left text-[14px] outline-none transition-colors duration-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rojo/60";
 const OPCION = `${BASE_OPCION} border-sand bg-papel text-tinta hover:bg-hueso`;
 // La principal (reenviar a la clienta) en tinta: una sola por hoja.
 const PRIMARIA = `${BASE_OPCION} border-tinta bg-tinta text-crema hover:bg-tinta/90`; // unificar-fijo: la opción ya elegida de un selector, no un botón principal
-const BAJADA = "block text-[12px] leading-snug text-tinta/65";
+const BAJADA = "block text-sm leading-snug text-tinta/65";
 
 export function OpcionesComprobante({
   comprobante: c,
@@ -69,7 +69,7 @@ export function OpcionesComprobante({
       </div>
 
       {!aceptado && c.estado !== "anulado" && c.estado !== "no_emitido" && (
-        <p className="nota-cayla mt-3 text-[13px]">
+        <p className="nota-cayla mt-3 text-sm">
           Todavía no llegó a SUNAT: el PDF y el reenvío aparecen cuando SUNAT lo acepte. Se reintenta solo; si pasa de 1 hora, avisa a tu líder.
         </p>
       )}
@@ -80,7 +80,7 @@ export function OpcionesComprobante({
             <MessageCircle aria-hidden size={20} className="shrink-0" />
             <span>
               {tieneNumero && primerNombre ? `WhatsApp a ${primerNombre}` : "Enviar por WhatsApp"}
-              <span className="block text-[12px] leading-snug text-crema/70">{tieneNumero ? "Directo a su chat, con el PDF" : "Sin número guardado: eliges el chat"}</span>
+              <span className="block text-sm leading-snug text-crema/70">{tieneNumero ? "Directo a su chat, con el PDF" : "Sin número guardado: eliges el chat"}</span>
             </span>
           </a>
         )}
@@ -145,7 +145,7 @@ export function OpcionesComprobante({
       </div>
 
       {(c.xmlUrl || c.cdrUrl) && (
-        <p className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-1 border-t border-tinta/10 pt-3 text-[12.5px] text-tinta/65">
+        <p className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-1 border-t border-tinta/10 pt-3 text-sm text-tinta/65">
           <span>Para el contador:</span>
           {c.xmlUrl && (
             <a href={c.xmlUrl} target="_blank" rel="noreferrer" className="hover:text-tinta hover:underline">

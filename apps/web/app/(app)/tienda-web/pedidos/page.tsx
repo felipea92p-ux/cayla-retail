@@ -71,6 +71,8 @@ export default async function PedidosWebPage({ searchParams }: { searchParams: P
       detalleFallo={Boolean(idPedido && (!detalle || detalle.error))}
       // Si la base no responde o nunca editó el suyo, el de fábrica: el botón de WhatsApp sigue funcionando.
       mensajePredeterminado={!mensaje.error && typeof mensaje.data === "string" && mensaje.data.trim() ? mensaje.data : MENSAJE_PREDETERMINADO_WEB}
+      // Los avisos en el celular (ADR-0582): la clave PÚBLICA va del servidor a la pantalla; la privada nunca sale del servidor.
+      clavePublicaAvisos={process.env.ERP_VAPID_PUBLIC_KEY || null}
     />
   );
 }

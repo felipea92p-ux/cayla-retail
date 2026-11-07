@@ -19,7 +19,6 @@
     font-size: 0.78rem; color: var(--color-tinta);
   }
   .of-camp svg { width: 1rem; height: 1rem; color: var(--color-taupe); flex: none; }
-  .of-camp .of-camp-ir { margin-left: auto; }
 
   /* ── Las ya registradas ── */
   .of-rail { display: flex; flex-direction: column; gap: 0.5rem; min-width: 0; }
@@ -45,7 +44,6 @@
   .of-reg small { font-size: 0.72rem; line-height: 1.3; color: color-mix(in srgb, var(--color-tinta) 68%, transparent); }
   .of-reg small.of-hist { display: flex; align-items: center; gap: 0.25rem; color: var(--color-taupe); }
   .of-reg small svg { width: 0.75rem; height: 0.75rem; flex: none; }
-  .of-espera { padding-left: 0.25rem; font-size: 0.72rem; color: var(--color-ambar); }
   .of-hint { font-size: 0.75rem; line-height: 1.4; color: color-mix(in srgb, var(--color-tinta) 68%, transparent); }
 
   /* ── El asistente ── */
@@ -186,6 +184,5 @@
        algo no lleva esta clase y se queda. */
     .of-pie .of-falta { display: none; }
     .of-pie .of-siguiente { flex: 1; }
-    .of-camp .of-camp-ir { margin-left: 0; }
   }
 }

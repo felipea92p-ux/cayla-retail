@@ -14,15 +14,21 @@ import { useSalidaSinGuardar } from "@/components/ui/useSalidaSinGuardar";
 import { AvisoIntentoIncierto, avisarCongelado } from "@/components/ui/AvisoIntentoIncierto";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { ConsultaDocumento } from "@/components/ConsultaDocumento";
+import { EscanerBusqueda } from "@/components/EscanerBusqueda";
+import { LeerQrComprobante } from "@/components/finanzas/gastos/LeerQrComprobante";
+import { leerQrComprobante, serieNumeroDelQr, type QrComprobante } from "@/lib/qr-comprobante-reglas";
 import { AvisoNoDeducible } from "@/components/AvisoNoDeducible";
 import { FichaDePagoTarjeta } from "@/components/gasto-fijo/FichaDePagoTarjeta";
 import { diaLima } from "@/lib/fechas-lima";
+import { textoDondeQuedo } from "@/lib/gastos-extracto-reglas";
 import { PreguntaParecido } from "@/components/ui/PreguntaParecido";
 import { Aviso } from "@/components/ui/Aviso";
 import { choqueConElFijo, claveDeFijo, fijosQueSeParecen, mesDelFijo, textoFechaDeFijo } from "@/lib/fijos-del-mes-reglas";
 import { CampoCuentaFin, useCuentasParaElegir } from "@/components/finanzas/CampoCuenta";
 import { CampoGuiado, PieGuia } from "@/components/guia-de-foco/CampoGuiado";
 import { useGuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
+import { useValidarAlSalir } from "@/components/ui/useValidarAlSalir";
+import { leerMontoPlata } from "@/lib/monto-plata-reglas";
 import { useResponsable } from "@/lib/useResponsable";
 import { firmar } from "@/lib/responsable-reglas";
 import { useIntento } from "@/lib/useIntento";
@@ -32,7 +38,7 @@ import { medioDeCuenta, mediosDeBanco } from "@/lib/cuenta-sellada-reglas";
 import { UMBRAL_BANCARIZACION, avisoBancarizacion } from "@/lib/no-deducible-reglas";
 import { MAX_DESCRIPCION_GASTO } from "@/lib/finanzas-topes";
 import { soles } from "@/lib/compras-reglas";
-import { TEXTO_MEDIO, mediosPara, parsearMonto, solesRedondo, textoMes, textoCuandoVence, type CategoriaGasto, type EgresoPorClasificar, type GastoFijoMes, type MedioGasto, type ProveedorGasto, type TipoComprobante } from "@/lib/gastos-reglas";
+import { TEXTO_MEDIO, igvDeFactura, mediosPara, parsearMonto, solesRedondo, textoMes, textoCuandoVence, type CategoriaGasto, type EgresoPorClasificar, type GastoFijoMes, type MedioGasto, type ProveedorGasto, type TipoComprobante } from "@/lib/gastos-reglas";
 import type { SedeTelar } from "@/lib/finanzas-telar-reglas";
 import { sugerirQueFue, sugerirSerie } from "@/lib/sugerencias-hoja-gasto";
 import {
@@ -44,6 +50,7 @@ import {
   hojaDePlantilla,
   hojaSiguiente,
   hojaVacia,
+  igvDelQr,
   motivoDelMonto,
   proveedorDelRuc,
   salidaDeLaHoja,
@@ -83,6 +90,8 @@ export function HojaRegistrarGasto({
   egreso,
   fijo,
   hoy,
+  rucEmpresa = null,
+  onRegistrado,
   onCerrar,
 }: {
   categorias: CategoriaGasto[];
@@ -100,6 +109,10 @@ export function HojaRegistrarGasto({
   /** Registrar este gasto fijo del mes: llega lleno, con su sede y su categoría fijas, y lo cierra. */
   fijo?: GastoFijoMes;
   hoy: string;
+  /** El RUC de CAYLA, para avisar si el QR de una factura dice que está a nombre de otro (ADR-0588). */
+  rucEmpresa?: string | null;
+  /** Se registró (y la hoja se cierra): el id del gasto nuevo, para que la lista lo busque y respire (la 05 del benchmark visual). */
+  onRegistrado?: (id: string) => void;
   onCerrar: () => void;
 }) {
   const router = useRouter();
@@ -123,6 +136,25 @@ export function HojaRegistrarGasto({
     setH((x) => ({ ...x, [k]: v }));
     if (k === "categoria" || k === "sede" || k === "fecha") setGastoFijoId(undefined);
   };
+  // El QR del comprobante (ADR-0588): lo leído llena el tipo, el RUC, la serie y el número, la fecha y, si aún no hay, el monto. La cámara va EN
+  // LUGAR de la hoja (nunca una hoja sobre otra); lo escrito se queda, porque esta pieza sigue montada.
+  const [qr, setQr] = useState<QrComprobante | null>(null);
+  const [camara, setCamara] = useState(false);
+  function aplicarQr(leido: QrComprobante) {
+    setQr(leido);
+    // Como tocar «Factura» o «Boleta»: también deja el medio de pago en uno que sirva para ese papel.
+    elegirComprobante(leido.tipo);
+    setH((x) => ({
+      ...x,
+      igvPapel: igvDelQr(leido, x.monto.trim() ? (leerMontoPlata(x.monto) ?? 0) : leido.total),
+      comprobante: leido.tipo,
+      ruc: leido.rucEmisor,
+      serieNumero: serieNumeroDelQr(leido),
+      fecha: x.egresoId ? x.fecha : leido.fecha,
+      monto: x.monto.trim() ? x.monto : leido.total.toFixed(2),
+    }));
+    setGastoFijoId(undefined);
+  }
 
   // De dónde salió la plata: la cuenta (el cajón, la caja fuerte, un banco, la tarjeta) y, con un banco, por qué camino. Las mismas
   // reglas que la hoja de antes: un gasto de una tienda solo sale del cajón de ESA tienda; los de la empresa, de cualquiera.
@@ -146,7 +178,7 @@ export function HojaRegistrarGasto({
   const medioSalida: MedioGasto | "" = salida ? (medioDeCuenta(salida.tipo) ?? bancoConMedio ?? "transferencia") : "";
   const cajaDe = (ubicacionId: string | null | undefined) => cajasAbiertas.find((c) => c.ubicacionId === ubicacionId)?.id ?? "";
   const salidaHoja: SalidaDeLaHoja = conCuentas
-    ? { medio: medioSalida, cuentaId: cuentaSalida ?? undefined, cajaId: salida?.tipo === "cajon" ? cajaDe(salida.ubicacionId) : "", referencia }
+    ? { medio: medioSalida, cuentaId: cuentaSalida ?? undefined, cajaId: salida?.tipo === "cajon" ? cajaDe(salida.ubicacionId) : "", referencia, banco: salida?.tipo === "banco" }
     : { medio: medioSinCuentas, cajaId: medioSinCuentas === "efectivo" ? cajaDe(h.sede) : "", referencia };
   const salidaLista = !h.sede ? false : conCuentas ? Boolean(cuentaSalida) : Boolean(medioSinCuentas) && (medioSinCuentas !== "efectivo" || Boolean(cajaDe(h.sede)));
 
@@ -173,6 +205,9 @@ export function HojaRegistrarGasto({
   const fijoDelGasto = fijo ?? fijoElegido;
   const campos = camposDeLaHoja(h, { proveedorListo, proveedorSinRuc: fijoSinRuc, salidaLista, responsableListo: responsable.listo, responsableMotivo: responsable.motivo });
   const guia = useGuiaCampos(campos);
+  // Lo mal escrito se dice al salir del campo, no a la primera letra (ADR-0611, mejora 2).
+  const avisoMonto = useValidarAlSalir(motivoDelMonto(h.monto));
+  const avisoSerie = useValidarAlSalir(h.serieNumero && !serieNumeroLegible(h.serieNumero) ? "Escríbela como F001-2231 (la letra, tres números, un guion y el número)." : null);
   const ticket = ticketDeLaHoja(h, {
     categoriaNombre: categoria?.nombre ?? null,
     sedeNombre: sede?.nombre ?? null,
@@ -201,8 +236,10 @@ export function HojaRegistrarGasto({
   }
 
   async function guardar(otro: boolean) {
+    // Si falta algo, cada campo dice su error y se va al primero (ADR-0611, mejora 1): un aviso en la esquina no dice dónde está el problema.
+    if (!guia.revisar()) return;
     const v0 = validarHoja(h, existente?.id ?? "x", salidaHoja, hoy, proveedorListo);
-    if (!v0.ok) return avisar.error(v0.error);
+    if (!v0.ok) return v0.campo ? guia.marcarError(v0.campo, v0.error) : avisar.error(v0.error);
     const choque = fijoDelGasto ? choqueConElFijo(fijoDelGasto, { categoria: h.categoria, fecha: h.fecha }) : null;
     if (choque) return avisar.error(choque.mensaje);
     // Registrar sin contestar si es uno de los fijos que faltan es justo lo que duplica un gasto: no se registra.
@@ -235,7 +272,7 @@ export function HojaRegistrarGasto({
       if (fijoDelGasto && r.error?.code === "23505") router.refresh();
       return avisar.error(traducirError(r.error, "registrar el gasto"));
     }
-    registrado(otro);
+    registrado(otro, r.tipo === "ok" && typeof r.data === "string" ? r.data : undefined);
   }
 
   async function revisar() {
@@ -247,8 +284,10 @@ export function HojaRegistrarGasto({
     avisar.error("Todavía no hay respuesta", { detalle: "Revisa el internet y vuelve a tocar «Revisar si se guardó»." });
   }
 
-  function registrado(otro: boolean) {
-    avisar.exito(egreso ? "Egreso clasificado como gasto" : "Gasto registrado", { detalle: ticket.pasara.at(-1) });
+  /** `id`: el del gasto nuevo, si la base lo devolvió (no al confirmarlo con «Revisar si se guardó»). */
+  function registrado(otro: boolean, id?: string) {
+    // El aviso dice en qué día quedó: si no es hoy, cae en un día de más abajo en la lista (la 05 del benchmark visual).
+    avisar.exito(egreso ? "Egreso clasificado como gasto" : "Gasto registrado", { detalle: [textoDondeQuedo(h.fecha, hoy), ticket.pasara.at(-1)].filter(Boolean).join(" ") });
     if (otro) {
       // Lo de recién se limpia; la sede, la fecha y de dónde salió se quedan para el siguiente. La foto de «¿Salir sin guardar?» se vuelve
       // a tomar con la hoja limpia (el /chaos del 2026-10-23: cerrar la hoja recién limpiada preguntaba si se perdía lo que no había).
@@ -261,6 +300,7 @@ export function HojaRegistrarGasto({
       return;
     }
     const guardiaFuera = avisoSalida.retirarYa();
+    if (id) onRegistrado?.(id);
     onCerrar();
     void guardiaFuera.then(() => router.refresh());
   }
@@ -289,6 +329,23 @@ export function HojaRegistrarGasto({
   }
 
   const nombreSede = (s: SedeTelar) => s.nombre;
+
+  if (camara) {
+    return (
+      <EscanerBusqueda
+        titulo="Leer el QR del comprobante"
+        pista="Centra el QR de la factura o la boleta en el cuadro"
+        onCodigo={(codigo) => {
+          const leido = leerQrComprobante(codigo);
+          setCamara(false);
+          if (leido) aplicarQr(leido);
+          else avisar.error("Ese no es el QR de una factura o boleta electrónica.");
+        }}
+        onEscribir={() => setCamara(false)}
+        onClose={() => setCamara(false)}
+      />
+    );
+  }
 
   return (
     <Modal
@@ -324,7 +381,7 @@ export function HojaRegistrarGasto({
           )}
 
           <CampoGuiado id="monto" guia={guia} titulo="Cuánto">
-            <CampoMonto etiqueta="Monto" etiquetaOculta sinPie={!motivoDelMonto(h.monto)} pie={motivoDelMonto(h.monto) ?? undefined} tono={motivoDelMonto(h.monto) ? "aviso" : undefined} inputMode="decimal" value={h.monto} readOnly={Boolean(egreso)} onChange={(e) => poner("monto", e.target.value)} placeholder="0.00" /* sugerir-fijo: el formato de un monto no depende de lo elegido */ autoFocus={!egreso} />
+            <CampoMonto etiqueta="Monto" etiquetaOculta sinPie={!avisoMonto.motivo} pie={avisoMonto.motivo ?? undefined} tono={avisoMonto.motivo ? "error" : undefined} onBlur={avisoMonto.alSalir} leer={leerMontoPlata} inputMode="decimal" value={h.monto} readOnly={Boolean(egreso)} onChange={(e) => poner("monto", e.target.value)} placeholder="0.00" /* sugerir-fijo: el formato de un monto no depende de lo elegido */ autoFocus={!egreso} />
           </CampoGuiado>
 
           <CampoGuiado id="sede" guia={guia} titulo="Para qué sede">
@@ -367,6 +424,7 @@ export function HojaRegistrarGasto({
 
           {papel && (
             <div className="hoja-gasto-papel anim-entra" data-sin-cascada>
+              <LeerQrComprobante leido={qr} monto={monto.ok ? monto.valor : null} rucEmpresa={rucEmpresa} onLeido={aplicarQr} onCamara={() => setCamara(true)} />
               <CampoGuiado id="ruc" guia={guia}>
                 <ConsultaDocumento
                   tipo="ruc"
@@ -388,17 +446,35 @@ export function HojaRegistrarGasto({
                   onBlur={() => {
                     const legible = serieNumeroLegible(h.serieNumero);
                     if (legible) poner("serieNumero", legible);
+                    avisoSerie.alSalir();
                   }}
                   placeholder={sugerirSerie(h.comprobante)}
-                  pie={h.serieNumero && !serieNumeroLegible(h.serieNumero) ? "Escríbela como F001-2231 (la letra, tres números, un guion y el número)." : undefined}
-                  tono={h.serieNumero && !serieNumeroLegible(h.serieNumero) ? "aviso" : undefined}
+                  pie={avisoSerie.motivo ?? undefined}
+                  tono={avisoSerie.motivo ? "error" : undefined}
                 />
               </CampoGuiado>
             </div>
           )}
 
+          {h.comprobante === "factura" && (
+            <div>
+              <span className="campo-etiqueta" aria-hidden>
+                IGV del papel · opcional
+              </span>
+              <CampoTexto
+                etiqueta="IGV del papel, opcional"
+                inputMode="decimal"
+                caja
+                value={h.igvPapel}
+                onChange={(e) => poner("igvPapel", e.target.value)}
+                placeholder={monto.ok ? igvDeFactura(monto.valor).toFixed(2) : undefined} // sugerir-fijo: es el IGV de la tasa sobre el monto escrito, no un ejemplo.
+                pie="Déjalo vacío si es el 18 %. Una factura exonerada dice 0."
+              />
+            </div>
+          )}
+
           <div className="grid gap-x-3 sm:grid-cols-2">
-            <CampoFecha etiqueta={papel ? "Fecha del comprobante" : "Fecha"} valor={h.fecha} onValor={(v) => poner("fecha", v)} disabled={Boolean(egreso)} />
+            <CampoFecha etiqueta={papel ? "Fecha del comprobante" : "Fecha"} valor={h.fecha} onValor={(v) => poner("fecha", v)} disabled={Boolean(egreso)} max={hoy} motivoMax="La fecha no puede ser futura." estricto required />
             {papel && !egreso && (
               <div>
                 <span className="campo-etiqueta">¿Ya lo pagaste?</span>
@@ -420,7 +496,7 @@ export function HojaRegistrarGasto({
 
           {credito ? (
             <CampoGuiado id="vence" guia={guia}>
-              <CampoFecha etiqueta="Cuándo vence" valor={h.vence} onValor={(v) => poner("vence", v)} ayuda="Queda en Cuentas y dinero ▸ Por pagar hasta ese día." />
+              <CampoFecha etiqueta="Cuándo vence" valor={h.vence} onValor={(v) => poner("vence", v)} min={h.fecha} motivoMin="No puede vencer antes de la fecha del gasto." estricto required ayuda="Queda en Cuentas y dinero ▸ Por pagar hasta ese día." />
             </CampoGuiado>
           ) : !h.sede || egreso ? null : (
             // «Salió de» depende de la sede (un gasto de una tienda sale de SU cajón): aparece cuando ya se eligió.
@@ -430,6 +506,9 @@ export function HojaRegistrarGasto({
                   <CampoCuentaFin id="hoja-gasto-cuenta" etiqueta="Salió de" cuentas={cuentasGasto} listo={cuentasPago.listo} clase="pago" medio={medioSalida || "transferencia"} sinMedio valor={cuentaSalida} onValor={(v) => setCuentaId(v)} />
                   {bancoConMedio && (
                     <CampoSelect etiqueta="Cómo" caja valor={bancoConMedio} onValor={(m) => setMedioBanco(m)} opciones={mediosDeBanco(papel).map((m) => ({ valor: m, texto: TEXTO_MEDIO[m] }))} />
+                  )}
+                  {bancoConMedio && papel && !egreso && (
+                    <CampoFecha etiqueta="¿Cuándo salió del banco?" valor={h.fechaPago || h.fecha} onValor={(v) => poner("fechaPago", v)} min={h.fecha} max={hoy} />
                   )}
                 </div>
               ) : (
@@ -456,7 +535,7 @@ export function HojaRegistrarGasto({
                     ? `¿Es «${fijosPorPreguntar[0]!.descripcion}» de ${textoMes(mesDelFijo(fijosPorPreguntar[0]!))}?`
                     : `¿Es uno de tus gastos fijos de ${textoMes(mesDelFijo(fijosPorPreguntar[0]!))}?`
                 }
-                bajada="Si es ese, queda cerrado como fijo: ya no sigue pendiente en «Fijos del mes» y nadie lo paga dos veces. Si no, se registra como un gasto aparte."
+                bajada="Si es ese, el fijo queda pagado. Si no, se registra como un gasto aparte."
                 opciones={fijosPorPreguntar.map((f) => ({ id: f.id, nombre: f.descripcion, detalle: `${f.montoVariable ? "~" : ""}${solesRedondo(f.monto)} · ${textoFechaDeFijo(f, hoy)}` }))}
                 si={(o) => ({ texto: "Sí, es este", onClick: () => setGastoFijoId(o.id) })}
                 no={{ texto: "No, es otro gasto", onClick: () => setFijosDescartados((prev) => new Set([...prev, ...fijosPorPreguntar.map(claveDeFijo)])) }}
@@ -512,6 +591,7 @@ export function HojaRegistrarGasto({
 
       {intento.incierto && <AvisoIntentoIncierto onRevisar={revisar} revisando={revisando} className="mt-4" />}
 
+      <div className="pie-hoja-fijo pt-2">
       <PieGuia guia={guia} listo="Todo listo para registrar." />
       <PieAcciones className="mt-3" guia="fin-hoja.botones">
         <Boton type="button" peso="fantasma" onClick={() => avisoSalida.pedirAccion(onCerrar)} disabled={guardando || intento.incierto}>
@@ -522,10 +602,11 @@ export function HojaRegistrarGasto({
             Guardar y registrar otro
           </Boton>
         )}
-        <Boton type="button" peso="primario" cargando={guardando} onClick={() => void guardar(false)} disabled={guardando || revisando || !responsable.listo} title="Registrar (⌘↵)">
+        <Boton type="button" peso="primario" cargando={guardando} onClick={() => void guardar(false)} disabled={guardando || revisando} title="Registrar (⌘↵)">
           {intento.incierto ? "Volver a intentar" : egreso ? "Guardar como gasto" : "Registrar gasto"}
         </Boton>
       </PieAcciones>
+      </div>
       {avisoSalida.aviso}
     </Modal>
   );

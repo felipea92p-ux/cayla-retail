@@ -1,0 +1,370 @@
+/* =====================================================================
+   C · «La vitrina» (prefijo vt-): las prendas son la pantalla. Cada baldosa ocupa lo que la miraron y lleva sus colores de
+   verdad (dato: no cambian con el tema); la etiqueta colgada es papel (no se oscurece). Arriba, el recorrido en una tira fina;
+   al costado, de dónde vienen y a qué hora.
+   ===================================================================== */
+.vt-recorrido {
+  margin-top: 16px;
+  padding: 10px 18px 12px;
+}
+.vt-cab {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 2px 16px;
+}
+.vt-cab .tr-veredicto {
+  margin: 0;
+}
+.vt-pasos {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 0;
+  margin-top: 8px;
+}
+.vt-paso {
+  position: relative;
+  display: grid;
+  align-content: start;
+  gap: 3px;
+  min-width: 0;
+  padding: 0 14px 0 14px;
+  border-left: 1px solid var(--color-sand);
+}
+.vt-paso:first-child {
+  padding-left: 0;
+  border-left: 0;
+}
+.vt-paso__nombre {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.11em;
+  text-transform: uppercase;
+  line-height: 1.25;
+  color: var(--color-taupe-profundo);
+}
+.vt-paso__fila {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0 8px;
+}
+.vt-paso__fila b {
+  font-variant-numeric: proportional-nums;
+  font-family: var(--font-serif);
+  font-weight: 600;
+  font-size: 24px;
+  line-height: 1.05;
+}
+.vt-paso__fila span {
+  font-size: 12.5px;
+  color: color-mix(in srgb, var(--color-tinta) 70%, transparent);
+}
+.vt-paso__barra {
+  height: 4px;
+  margin-top: 4px;
+  border-radius: 999px;
+  background: var(--color-sand);
+  overflow: hidden;
+}
+.vt-paso__barra i {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--color-tinta);
+  transform-origin: left;
+}
+.vt-paso__atora {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.11em;
+  text-transform: uppercase;
+  color: var(--color-rojo);
+}
+
+.vt-cuerpo {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 440px;
+  gap: 14px;
+  margin-top: 14px;
+  align-items: start;
+}
+@container pantalla (min-width: 1400px) {
+  .vt-cuerpo {
+    grid-template-columns: minmax(0, 1fr) 480px;
+  }
+}
+@container pantalla (max-width: 980px) {
+  .vt-cuerpo {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+.vt-vitrina {
+  position: relative;
+  padding: 12px 18px 16px;
+  min-width: 0;
+}
+.vt-mosaico {
+  position: relative;
+  margin-top: 10px;
+  overflow: hidden;
+  border-radius: 12px;
+}
+/* Una baldosa: los colores de la prenda en franjas (cuánto se eligió cada uno) y su etiqueta colgada. */
+.vt-pieza {
+  position: absolute;
+  display: flex;
+  overflow: hidden;
+  padding: 0;
+  border-radius: 8px;
+  text-align: left;
+  transform-origin: 0 0;
+  transition: box-shadow 220ms var(--ease-cayla), translate 220ms var(--ease-cayla);
+}
+.vt-pieza:focus-visible {
+  outline-offset: -3px;
+  outline-color: var(--color-tinta-fija);
+  box-shadow: inset 0 0 0 5px var(--color-crema-fija);
+}
+@media (hover: hover) {
+  .vt-pieza:hover {
+    z-index: 2;
+    translate: 0 -2px;
+    box-shadow: var(--shadow-lg);
+  }
+}
+.vt-franja {
+  display: block;
+  height: 100%;
+  min-width: 3px;
+}
+.vt-pieza--filo {
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-tinta-fija) 12%, transparent);
+}
+.vt-icono {
+  position: absolute;
+  right: 8px;
+  bottom: 8px;
+  width: 26px;
+  height: 26px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  opacity: 0.9;
+}
+.vt-etiqueta {
+  position: absolute;
+  left: 8px;
+  top: 8px;
+  display: grid;
+  gap: 1px;
+  max-width: calc(100% - 16px);
+  padding: 6px 9px 6px 16px;
+  border-radius: 3px 8px 8px 3px;
+  background: var(--color-papel);
+  box-shadow: 0 2px 6px -2px color-mix(in srgb, var(--color-sombra) 30%, transparent);
+  color: var(--color-tinta);
+  transform-origin: 8px 8px;
+}
+.vt-etiqueta::before {
+  /* el ojal de la etiqueta */
+  content: "";
+  position: absolute;
+  left: 6px;
+  top: 50%;
+  width: 4px;
+  height: 4px;
+  margin-top: -2px;
+  border-radius: 50%;
+  background: var(--color-sand);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-tinta) 25%, transparent);
+}
+.vt-etiqueta__nombre {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+  font-size: 12.5px;
+  font-weight: 600;
+  line-height: 1.2;
+}
+.vt-etiqueta__n {
+  font-size: 11.5px;
+  line-height: 1.25;
+  color: var(--color-tinta-60);
+  white-space: nowrap;
+}
+.vt-etiqueta__mas {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--color-tinta);
+}
+.vt-pieza--1 .vt-etiqueta {
+  padding: 9px 12px 9px 18px;
+}
+.vt-pieza--1 .vt-etiqueta__nombre {
+  font-family: var(--font-serif);
+  font-size: 19px;
+}
+.vt-pieza--1 .vt-etiqueta__n {
+  font-size: 12.5px;
+}
+.vt-etiqueta--chica {
+  padding: 3px 7px 3px 13px;
+}
+.vt-etiqueta--chica .vt-etiqueta__n {
+  color: var(--color-tinta);
+  font-weight: 600;
+}
+.vt-barrido {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(105deg, transparent 38%, color-mix(in srgb, var(--color-crema-fija) 36%, transparent) 50%, transparent 62%);
+  transform: translateX(-110%);
+  opacity: 0;
+}
+.vt-leyenda {
+  margin-left: auto;
+  font-size: 12.5px;
+  color: color-mix(in srgb, var(--color-tinta) 70%, transparent);
+}
+.vt-sin {
+  margin: 8px 0 0;
+  font-size: 12.5px;
+  color: color-mix(in srgb, var(--color-tinta) 66%, transparent);
+}
+
+.vt-lado {
+  display: grid;
+  gap: 14px;
+  min-width: 0;
+}
+.vt-bloque {
+  padding: 12px 18px 14px;
+  min-width: 0;
+}
+.vt-dos {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px 18px;
+  margin-top: 8px;
+}
+.vt-dos h3 {
+  margin: 0;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.11em;
+  text-transform: uppercase;
+  color: var(--color-taupe-profundo);
+}
+.vt-lista {
+  display: grid;
+  gap: 0;
+  margin: 4px 0 0;
+  padding: 0;
+  list-style: none;
+}
+.vt-fila {
+  display: grid;
+  grid-template-columns: minmax(64px, 1.4fr) minmax(30px, 0.6fr) 36px;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  min-height: 24px;
+  padding: 0 6px;
+  border-radius: 8px;
+  font-size: 13px;
+  text-align: left;
+  transition: background-color 180ms var(--ease-cayla);
+}
+.vt-fila__nombre {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.vt-fila__nombre svg {
+  flex: none;
+  width: 12px;
+  height: 12px;
+}
+.vt-fila__pista {
+  height: 6px;
+  border-radius: 999px;
+  background: var(--color-sand);
+  overflow: hidden;
+}
+.vt-fila__pista i {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: color-mix(in srgb, var(--color-tinta) 72%, transparent);
+  transform-origin: left;
+}
+.vt-fila__n {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+@media (hover: hover) {
+  .vt-fila:hover:not(:disabled) {
+    background: color-mix(in oklab, var(--color-sand) 50%, transparent);
+  }
+}
+.vt-fila[aria-pressed="true"] {
+  background: var(--color-hueso);
+  font-weight: 600;
+}
+.vt-fila[aria-pressed="true"] .vt-fila__pista i {
+  background: var(--color-tinta);
+}
+.vt-fila:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.vt-horas {
+  display: grid;
+  grid-template-columns: repeat(24, minmax(0, 1fr));
+  align-items: end;
+  gap: 3px;
+  height: 52px;
+  margin-top: 8px;
+  border-bottom: 1px solid color-mix(in srgb, var(--color-tinta) 18%, transparent);
+}
+/* La columna entera es la zona del mouse; la barra tenue se queda en 2:1 contra el papel. */
+.vt-hora-col {
+  display: flex;
+  align-items: flex-end;
+  height: 100%;
+}
+.vt-hora {
+  width: 100%;
+  border-radius: 3px 3px 0 0;
+  background: color-mix(in srgb, var(--color-tinta) 34%, transparent);
+  transform-origin: bottom;
+}
+.vt-hora[data-pico] {
+  background: var(--color-tinta);
+}
+.vt-ejes {
+  position: relative;
+  height: 16px;
+  margin-top: 4px;
+  font-size: 11.5px;
+  color: color-mix(in srgb, var(--color-tinta) 66%, transparent);
+}
+.vt-ejes span {
+  position: absolute;
+  transform: translateX(-50%);
+  white-space: nowrap;
+}
+.vt-ejes span:first-child {
+  transform: none;
+}

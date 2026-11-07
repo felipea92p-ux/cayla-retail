@@ -592,12 +592,12 @@ export function ClientaFichaModal({
                         {c.publicidadDesde ? (
                           <>
                             <Chip tono="verde">Recibe novedades</Chip>
-                            <span className="text-xs text-tinta/60">desde {fecha(c.publicidadDesde)}</span>
+                            <span className="text-sm text-tinta/60">desde {fecha(c.publicidadDesde)}</span>
                           </>
                         ) : (
                           <>
                             <Chip tono="neutro">No recibe novedades</Chip>
-                            <span className="text-xs text-tinta/60">no las pidió: es miembro sin mensajes</span>
+                            <span className="text-sm text-tinta/60">no las pidió: es miembro sin mensajes</span>
                           </>
                         )}
                         {/* «Registrar su BAJA»: solo si tiene publicidad (y su celular, que es lo que se da de baja). */}
@@ -607,7 +607,7 @@ export function ClientaFichaModal({
                           </Boton>
                         )}
                       </div>
-                      <p className="mt-2.5 text-xs text-tinta/55">Solo el cliente las acepta, desde el cartel. Si te escribe BAJA, regístralo aquí: vale para las 3 tiendas.</p>
+                      <p className="mt-2.5 text-sm text-tinta/55">Solo el cliente las acepta, desde el cartel. Si te escribe BAJA, regístralo aquí.</p>
                     </div>
 
                     <PreferenciasClienta
@@ -717,7 +717,7 @@ export function ClientaFichaModal({
                       onValor={(v) => setEdicion((d) => d && { ...d, telefonoWhatsapp: v })}
                     />
                     {/* Recibe novedades en el celular de ahora: al cambiarlo las pierde (la base se las quita sola), y se dice antes. */}
-                    {avisoCelular && <p className="nota-cayla mt-2 text-[13px]">{avisoCelular}</p>}
+                    {avisoCelular && <p className="nota-cayla mt-2 text-sm">{avisoCelular}</p>}
                   </CampoGuiado>
                   {/* El correo de CONTACTO (Felipe 2026-10-15): opcional. Mal escrito, o de otra ficha (la base dice de cuál: quien edita ve
                       el módulo), va bajo la caja. El correo con que entra a la tienda online no cambia desde aquí, y se dice. */}
@@ -742,7 +742,7 @@ export function ClientaFichaModal({
                       pie={pieCorreo ?? "Solo para contactar al cliente si hace falta, nunca para publicidad."}
                       tono={pieCorreo ? "error" : "neutro"}
                     />
-                    {notaCorreo && <p className="nota-cayla mt-2 text-[13px]">{notaCorreo}</p>}
+                    {notaCorreo && <p className="nota-cayla mt-2 text-sm">{notaCorreo}</p>}
                   </CampoGuiado>
                 </div>
               </section>
@@ -766,7 +766,7 @@ export function ClientaFichaModal({
                 </CampoGuiado>
               </section>
 
-              <p className="text-xs text-tinta/65">El club y las novedades por WhatsApp no se cambian aquí: se ven y se registran en la ficha.</p>
+              <p className="text-sm text-tinta/65">El club y las novedades por WhatsApp no se cambian aquí: se ven y se registran en la ficha.</p>
               <div className="pie-hoja-fijo space-y-1 pt-2">
                 <PieGuia guia={guia} listo="Todo listo para guardar." />
                 <div className="pie-acciones">
@@ -846,11 +846,9 @@ export function ClientaFichaModal({
           {modo === "baja" && (
             <div className="space-y-5">
               <p className="text-sm text-tinta/75">
-                Escribió BAJA (o pidió que no le manden más novedades). Desde hoy no se le envían novedades, rebajas ni los avisos de sus
-                cupones por WhatsApp, en las 3 tiendas. <strong>Sigue siendo miembro</strong>: sus puntos, sus cupones y su regalo de cumpleaños
-                siguen igual.
+                Desde hoy no le llegan novedades, rebajas ni avisos de cupones por WhatsApp, en las 3 tiendas. <strong>Sigue siendo miembro</strong>: sus puntos, cupones y regalo de cumpleaños siguen igual.
               </p>
-              <p className="text-xs text-tinta/65">Vale para toda ficha con el celular {contacto.celular}.</p>
+              <p className="text-sm text-tinta/65">Vale para toda ficha con el celular {contacto.celular}.</p>
               <CampoGuiado id="responsable" guia={guia}>
                 <ComboResponsable control={responsable} deshabilitado={guardando} />
               </CampoGuiado>

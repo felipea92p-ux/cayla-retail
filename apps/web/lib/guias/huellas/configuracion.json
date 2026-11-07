@@ -2,61 +2,17 @@
   "guia": "configuracion",
   "ruta": "/configuracion",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 96,
+  "total": 114,
   "controles": {
-    "components/ConfiguracionCajaAvisos.tsx": [
-      "ComboResponsable «{responsable}»",
-      "Boton «Guardar»"
-    ],
     "components/ConfiguracionCargaInicial.tsx": [
-      "button «→() => setAbierta(s)»",
       "button «(sin nombre)»",
       "ComboResponsable «{responsable}»",
       "button «Cancelar»",
       "Boton «{responsable.motivo ?? guia.frase ?? undefined}»"
     ],
     "components/ConfiguracionCasilla.tsx": [
-      "input «{etiqueta}»"
-    ],
-    "components/ConfiguracionImpuestos.tsx": [
       "input «{etiqueta}»",
-      "button «ya lo confirmó»",
-      "ComboResponsable «{responsable}»",
-      "Casilla «{`Tasa de IGV desde el ${fechaCorta(t.vigenteDesde, true)}»",
-      "button «config.nueva-tasa»",
-      "Casilla «{`UIT de ${anio}»",
-      "button «+ UIT de un año nuevo»",
-      "Casilla «{`Tope de la planilla desde el ${fechaCorta(t.vigenteDesde, true)}»",
-      "button «config.nuevo-tope»",
-      "Casilla «{`Saldo a favor de IGV al empezar ${textoMes(t.vigenteDesde.slice(0, 7))}»",
-      "button «config.nuevo-saldo»",
-      "Casilla «{`Ajuste de ventas de ${anio}»",
-      "button «+ Año nuevo»",
-      "Casilla «{`Límite de ventas de ${anio}»",
-      "Casilla «{`Aviso anticipado de ${anio}»",
-      "Casilla «{`Pago a cuenta de renta de ${anio}»",
-      "ComboResponsable «{responsable}» #2",
-      "button «Cancelar»",
-      "Boton «Agregar»"
-    ],
-    "components/ConfiguracionMetasMes.tsx": [
-      "Casilla «{`Meta del ${DIAS_SEMANA[i]!.toLowerCase()}»",
-      "Casilla «{`Meta de ${que}»",
-      "Boton «Quitar»",
-      "input «Meta de la fecha especial»",
-      "Boton «+ Agregar»"
-    ],
-    "components/ConfiguracionTiendas.tsx": [
-      "input «{etiqueta}»",
-      "input «{etiqueta}» #2",
-      "Casilla «{`Meta del ${DIAS_SEMANA[i]!.toLowerCase()}»",
-      "Casilla «{`Fondo de caja de ${tienda.nombre}»",
-      "Casilla «{`Cuánto sube la meta en ${campana.nombre}»",
-      "Casilla «{`Fondo de caja en ${campana.nombre}»",
-      "ComboResponsable «{responsable}»",
-      "BotonVer «Ver el cartel del club»",
-      "BotonEnlace «+ Nueva campaña (en Catálogo ▸ Insignias)»",
-      "Link «Ver cómo se ve en Caja»"
+      "input «{etiqueta}» #2"
     ],
     "components/CuentasProveedor.tsx": [
       "button «{ver ? \"Ocultar\" : \"Ver completos\"}»",
@@ -74,8 +30,6 @@
       "ComboResponsable «{responsable}»",
       "button «Cancelar»",
       "Boton «No es fijo»",
-      "Boton «+ Agregar fijo»",
-      "LapizEditar «{f.descripcion}»",
       "ComboResponsable «{responsable}» #2",
       "button «Ya no se paga: archivar»",
       "button «Cancelar» #2",
@@ -89,25 +43,10 @@
     "components/ProveedorElegido.tsx": [
       "a «{tel.texto}»"
     ],
-    "components/finanzas/ConfiguracionCuentas.tsx": [
+    "components/finanzas/AgregarCuentaModal.tsx": [
       "ComboResponsable «{responsable}»",
-      "Boton «+ Agregar cuenta»",
-      "LapizEditar «{c.nombre}»",
-      "LapizEditar «{`la tarifa de ${m.nombre}»",
-      "ComboResponsable «{responsable}» #2",
       "button «Cancelar»",
       "Boton «Agregar»"
-    ],
-    "components/finanzas/ConfiguracionPresupuesto.tsx": [
-      "input «{etiqueta}»",
-      "ComboResponsable «{responsable}»",
-      "Link «Reportes ▸ Presupuesto»",
-      "Boton «{datos.anterior === 0 ? `${mesTitulo(mesAnterior(mes))}»",
-      "Boton «config.presupuesto-sugerir»",
-      "Link «Se cambia en Tiendas y caja»",
-      "ComboResponsable «{responsable}» #2",
-      "button «Cancelar»",
-      "Boton «{`Aplicar ${cambios.length}»"
     ],
     "components/finanzas/EditarCuentaModal.tsx": [
       "ComboResponsable «{responsable}»",
@@ -127,6 +66,89 @@
     "components/gasto-fijo/FichaDePagoCampos.tsx": [
       "Casilla «{TEXTO_BILLETERA[b]}»",
       "textarea «ficha-notas»"
+    ],
+    "components/vistas-config/NuevaVigenciaModal.tsx": [
+      "ComboResponsable «{responsable}»",
+      "button «Cancelar»",
+      "Boton «Agregar»"
+    ],
+    "components/vistas-config/TopesDeGasto.tsx": [
+      "Boton «config.presupuesto-sugerir»",
+      "Boton «{textoOrigen(\"mes_anterior\", mes)}»",
+      "button «{nombreColumna(u)}»",
+      "Desplegable «{mes}»",
+      "Boton «Escribirlos a mano»",
+      "Casilla «{`Tope de ${l.nombre}»",
+      "Link «Se cambia en Metas»",
+      "button «Cancelar»",
+      "Boton «{`Aplicar ${cambios.length}»"
+    ],
+    "components/vistas-config/VistaDinero.tsx": [
+      "Desplegable «{valor}»",
+      "button «{nombreCortoSede(s.nombre)}»",
+      "LapizEditar «{cuenta.nombre}»",
+      "Boton «+ Agregar cuenta»",
+      "BotonVerMas «{textoDeLoPlegado(deLasSedes.length, archivadas.length)}»",
+      "button «{`Poner la tarifa de ${maquina.nombre}»",
+      "LapizEditar «{`la tarifa de ${maquina.nombre}»",
+      "Casilla «Mínimo de caja, en soles»",
+      "Casilla «Cuánto puede subir un gasto sobre su promedio, en porcentaje»",
+      "Casilla «Con cuántos días se avisa un vencimiento»",
+      "Desplegable «{corte}»",
+      "Boton «Guardar»",
+      "ComboResponsable «{responsable}»"
+    ],
+    "components/vistas-config/VistaGastos.tsx": [
+      "Boton «+ Agregar fijo»",
+      "button «{u.nombre}»",
+      "LapizEditar «{f.descripcion}»",
+      "Casilla «{`Parte de CLAURE en ${f.nombre}»",
+      "BotonVerMas «{`Ver ${plegadas.length}»",
+      "ComboResponsable «{responsable}»",
+      "ComboResponsable «{responsable}» #2"
+    ],
+    "components/vistas-config/VistaImpuestos.tsx": [
+      "BotonCopiar «la lista para tu contador»",
+      "Boton «Está bien»",
+      "Desplegable «{borrador.regimen as Regimen}»",
+      "Boton «→() => void guardarAnio()»",
+      "BotonVerMas «config.impuestos-ajustes»",
+      "button «{a}»",
+      "button «+ Año nuevo»",
+      "Casilla «{`Tasa de IGV desde el ${fechaCorta(t.vigenteDesde, true)}»",
+      "button «config.nueva-tasa»",
+      "Casilla «{`UIT de ${anio}»",
+      "button «+ UIT de un año nuevo»",
+      "Casilla «{`Tope de la planilla desde el ${fechaCorta(t.vigenteDesde, true)}»",
+      "button «config.nuevo-tope»",
+      "Casilla «{`Saldo a favor de IGV al empezar ${textoMes(t.vigenteDesde.slice(0, 7))}»",
+      "button «config.nuevo-saldo»",
+      "Casilla «{`Ajuste de ventas de ${anio}»",
+      "Casilla «{`${r.nombreVisible}»",
+      "BotonVerMas «config.impuestos-arranque»",
+      "ComboResponsable «{responsable}»"
+    ],
+    "components/vistas-config/VistaMetas.tsx": [
+      "Casilla «{`Cuánto sube la meta en ${campana.nombre}»",
+      "Casilla «{`Fondo de caja en ${campana.nombre}»",
+      "BotonEnlace «Nueva campaña en Insignias»",
+      "BotonVerMas «{pasadas.length === 1 ? \"Ver la que ya pasó\" : `Ver las ${pasadas.length}»",
+      "BotonVerMas «→setAbierta»",
+      "Boton «{`Quitar ${que}»",
+      "Casilla «{`Meta de ${que}»",
+      "button «config.tiendas-agregar-dia»",
+      "Boton «Cancelar»",
+      "Boton «{falta.length ? `Falta ${falta.join(\" y \")}»",
+      "ComboResponsable «{responsable}»",
+      "button «{nombreCortoSede(t.nombre)}»",
+      "button «config.tiendas-normal»",
+      "Casilla «{`Meta del ${DIAS_SEMANA[i]!.toLowerCase()}»"
+    ],
+    "components/vitrinas-sedes/VistaEmpresaTiendas.tsx": [
+      "input «{`${NOMBRE_CAMPO[campo]}»",
+      "button «{guia}»",
+      "button «{guia}» #2",
+      "ComboResponsable «{responsable}»"
     ]
   }
 }

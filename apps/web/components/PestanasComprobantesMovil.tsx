@@ -34,7 +34,7 @@ export function PestanasComprobantesMovil({ conteos }: { conteos: ConteosPestana
               href={hrefPestana(p, mes)}
               aria-current={esActiva ? "page" : undefined}
               style={{ height: ALTO_PESTANAS_MOVIL }}
-              className={`relative flex flex-col items-center justify-center gap-1 text-[11px] transition-colors ${esActiva ? "font-semibold text-tinta" : "text-tinta/55"}`}
+              className={`relative flex flex-col items-center justify-center gap-1 text-sm transition-colors ${esActiva ? "font-semibold text-tinta" : "text-tinta/55"}`}
             >
               <Icono aria-hidden size={20} className={esActiva ? "text-rojo" : undefined} />
               {p.etiqueta}

@@ -8,7 +8,6 @@ import { fraseDeLaFalta, hojaDelModelo } from "./produccion-hoja-modelo";
 import {
   agotadasQueSeVendian,
   cifrasResumen,
-  decisionesDeProduccion,
   demandaDeInsumos,
   demandaDelTaller,
   filasDeTela,
@@ -83,6 +82,10 @@ describe("demandaDeInsumos", () => {
   });
 });
 
+// Lo que se dibuja de las decisiones: la lista de `resumenDeDecisiones(c)`. El envoltorio `decisionesDeProduccion` se borró
+// (solo lo usaba esta prueba); aquí queda como ayuda local para no perder la cobertura de las reglas.
+const decisionesDeProduccion = (c: ContextoDecisiones) => resumenDeDecisiones(c).decisiones;
+
 describe("decisionesDeProduccion", () => {
   it("entrega vencida y por vencer: solo hechos, con dónde está la orden", () => {
     const d = decisionesDeProduccion(contexto({ ordenes: [orden("a", { fechaEntrega: "2026-09-18", etapas: { corte: "hecho" } }), orden("b", { fechaEntrega: "2026-09-22" }), orden("c", { fechaEntrega: "2026-10-30" })] }));
@@ -100,7 +103,7 @@ describe("decisionesDeProduccion", () => {
     const con = decisionesDeProduccion(contexto({ ...base, llegadas: [{ insumoId: "lino", documento: "F001-100", proveedor: "Textiles Gamarra", pendiente: 100 }] }));
     expect(con).toHaveLength(1);
     expect(con[0].tipo).toBe("recibir");
-    expect(con[0].titulo).toContain("Faltan 80 m de Insumo lino");
+    expect(con[0].titulo).toContain("Faltan 80.00 m de Insumo lino");
     expect(con[0].detalle).toContain("F001-100");
     expect(con[0].accion.href).toBe("/produccion/recibir");
     // Recibida: el saldo sube y la llegada pendiente desaparece → ya no hay tarjeta.
@@ -116,7 +119,7 @@ describe("decisionesDeProduccion", () => {
       })
     );
     expect(d[0].tipo).toBe("insumo");
-    expect(d[0].titulo).toContain("Faltan 110 m");
+    expect(d[0].titulo).toContain("Faltan 110.00 m");
     // Lleva el insumo y los metros que faltan aun contando lo facturado (los mismos 110 m del título): la hoja de pedir los trae puestos.
     expect(d[0].accion).toEqual({ texto: "Pedir la tela", href: "/ordenes-insumos/nueva?insumo=lino&cantidad=110" });
   });
@@ -131,24 +134,24 @@ describe("decisionesDeProduccion", () => {
         contexto({ insumos: [insumo("lino", { saldo: 0 })], demanda: new Map([["lino", { insumoId: "lino", necesita: 146.5, ordenes: ["Pantalón"] }]]), enCamino: camino(155, [pedido({ numeroTexto: "OI-000002", cantidad: 35 }), pedido({ numeroTexto: "OI-000001", cantidad: 120 })]) })
       );
       expect(d).toMatchObject({ tipo: "insumo", severidad: 2, accion: { texto: "Ver los pedidos", href: "/ordenes-insumos" } });
-      expect(d.titulo).toBe("Faltan 146.5 m de Insumo lino hoy, pero ya vienen 155 m en camino");
+      expect(d.titulo).toBe("Faltan 146.50 m de Insumo lino hoy, pero ya vienen 155.00 m en camino");
       expect(d.detalle).toContain("Alcanza cuando llegue lo pedido");
       expect(d.detalle).toContain("Si ya llegó, anótalo en Recibir");
       expect(d.porque).toContain("OI-000002 · 35 m a Textiles Andinos");
-      expect(d.porque).toContain("necesitan 146.5 m");
+      expect(d.porque).toContain("necesitan 146.50 m");
     });
 
     it("si lo que viene no cubre, siguen faltando los metros que quedan, aun contando lo que viene, y lleva a PEDIR lo que falta", () => {
       const [d] = decisionesDeProduccion(contexto({ ...base, enCamino: camino(100, [pedido()]) }));
       expect(d).toMatchObject({ tipo: "insumo", severidad: 3, accion: { texto: "Pedir la tela", href: "/ordenes-insumos/nueva?insumo=lino&cantidad=50" } });
-      expect(d.titulo).toBe("Faltan 50 m de Insumo lino para lo que hay que cortar, aun contando lo que viene");
+      expect(d.titulo).toBe("Faltan 50.00 m de Insumo lino para lo que hay que cortar, aun contando lo que viene");
       expect(d.detalle).toContain("No alcanza ni con lo que viene");
       expect(d.porque).toContain("OI-000003 · 100 m a Textiles Andinos · llega el vie 23 oct");
     });
 
     it("un pedido ATRASADO no se cuenta, se nombra aparte, y la tarjeta lleva a verlo (para llamar al proveedor), no a pedir de nuevo", () => {
       const [d] = decisionesDeProduccion(contexto({ ...base, enCamino: camino(0, [pedido({ atrasado: true, fechaEntrega: "2026-10-10" })], 100) }));
-      expect(d.titulo).toBe("Faltan 150 m de Insumo lino para lo que hay que cortar");
+      expect(d.titulo).toBe("Faltan 150.00 m de Insumo lino para lo que hay que cortar");
       expect(d.detalle).toBe("No alcanza: lo pedido está atrasado y no lo cuento.");
       expect(d.porque).toContain("debía llegar el sáb 10 oct (atrasado, no lo cuento)");
       expect(d.accion).toEqual({ texto: "Ver los pedidos", href: "/ordenes-insumos" });
@@ -170,7 +173,7 @@ describe("decisionesDeProduccion", () => {
         contexto({ ...base, llegadas: [{ insumoId: "lino", documento: "F001-100", proveedor: "X", pendiente: 40 }], enCamino: camino(110, [pedido({ cantidad: 110 })]) })
       );
       // 200 − 50 = 150 de falta; 40 facturados + 110 en camino = 150: justo alcanza.
-      expect(d.titulo).toBe("Faltan 150 m de Insumo lino hoy, pero ya vienen 150 m en camino");
+      expect(d.titulo).toBe("Faltan 150.00 m de Insumo lino hoy, pero ya vienen 150.00 m en camino");
     });
 
     it("un insumo bajo el mínimo que tiene tela en camino no dice «no hay pedido en camino»; con el pedido atrasado, sí", () => {
@@ -274,10 +277,6 @@ describe("decisionesDeProduccion", () => {
     it("sin nada que no quepa no hay «ocultas»", () => {
       expect(resumenDeDecisiones(contexto({ ordenes: [orden("a", { fechaEntrega: "2026-09-10" })] })).ocultas).toEqual([]);
     });
-    it("`decisionesDeProduccion` es lo que se dibuja, igual que `resumenDeDecisiones(...).decisiones`", () => {
-      const c = contexto({ ordenes: Array.from({ length: 5 }, (_, i) => orden(`o${i}`, { fechaEntrega: "2026-09-10" })) });
-      expect(decisionesDeProduccion(c)).toEqual(resumenDeDecisiones(c).decisiones);
-    });
   });
 
   describe("muchos modelos por producir se juntan en UNA tarjeta (/pantalla produccion, tarea #3)", () => {
@@ -298,6 +297,12 @@ describe("decisionesDeProduccion", () => {
       expect(d[0]).toMatchObject({ id: "producir-grupo", tipo: "producir", severidad: 3, titulo: "9 modelos por producir y ninguno tiene orden abierta" });
       expect(d[0].detalle).toBe("Los más urgentes (ventas de los últimos 30 días): «Modelo 8» (ya se agotó, 63 por semana, 30 ventas), «Modelo 7» (ya se agotó, 56 por semana, 30 ventas), «Modelo 6» (ya se agotó, 49 por semana, 30 ventas); y 6 más.");
       expect(d[0].accion).toEqual({ texto: "Ver los 9 modelos", href: "#produce" });
+    });
+    it("con `producirAparte` (los modelos tienen su propia lista) no hay tarjeta de «por producir», pero lo demás sigue", () => {
+      const r = resumenDeDecisiones(contexto({ modelos: conAgotados(9), producirAparte: true, comprobantes: [comp("1", { fechaVencimiento: "2026-09-26" })] }));
+      expect(r.decisiones.map((x) => x.tipo)).toEqual(["pago"]);
+      expect(r.ocultas).toEqual([]);
+      expect(r.total).toBe(1);
     });
     it("9 modelos por producir y un pago por vencer en 5 días: el pago SÍ aparece, y no queda nada oculto", () => {
       const r = resumenDeDecisiones(contexto({ modelos: conAgotados(9), comprobantes: [comp("1", { fechaVencimiento: "2026-09-26" })] }));
@@ -781,9 +786,11 @@ describe("cada cifra dice su base (/pantalla produccion, tarea #4)", () => {
 });
 
 describe("la guía de Producción cuenta lo mismo que la pantalla", () => {
-  it("el umbral de «poca base» que dice el paso «Cómo se lee un modelo» es el de la constante: si alguien la cambia, esta prueba pide actualizar la guía", () => {
-    const paso = GUIA_PROD_RESUMEN.pasos.find((p) => p.id === "modelo");
-    expect(paso?.texto).toContain(`«Poca base»: ${UMBRAL_POCA_BASE_VENTAS} o menos`);
+  it("el umbral de «poca base» que dice el paso «¿Qué fabrico primero?» es el de la constante: si alguien la cambia, esta prueba pide actualizar la guía", () => {
+    const paso = GUIA_PROD_RESUMEN.pasos.find((p) => p.id === "que-producir");
+    // «ventas firmes» son las que pasan el umbral (3 o más) y «poca base», las que no (1 o 2).
+    expect(paso?.texto).toContain(`${UMBRAL_POCA_BASE_VENTAS + 1} o más ventas en el mes`);
+    expect(paso?.texto).toContain(`Los de 1 o ${UMBRAL_POCA_BASE_VENTAS} ventas`);
   });
 });
 
@@ -889,5 +896,18 @@ describe("filasDeTela con lo que viene en camino", () => {
 
   it("sin nada en camino la fila no trae pedidos ni cantidades", () => {
     expect(filasDeTela([insumo("lino")], new Map(), [])[0]).toMatchObject({ pedidos: [], enCamino: 0, atrasado: 0, facturado: 0 });
+  });
+});
+
+describe("la tarjeta de sobrestock no se contradice (segunda prueba ciega, Producción ▸ Resumen)", () => {
+  it("dice «no produzcas más» y su botón no dice «producir»: «Verlo abajo»", () => {
+    const f = filasPorModelo(
+      [{ varianteId: "v1", productoId: "p1", stockRed: 700, stockTaller: 0, enCamino: 0, ritmoDia: 10, sedesConRitmo: 1, ventasNetas: 4, ventasBase: 4, cobertura: { tipo: "medida", dias: 60 }, banda: "alta" }],
+      [{ productoId: "p1", referencia: "Blusa Satinada", variantesIds: ["v1"] }],
+      {}
+    );
+    const [d] = decisionesDeProduccion(contexto({ modelos: f }));
+    expect(d.titulo).toContain("no produzcas más");
+    expect(d.accion).toEqual({ texto: "Verlo abajo", href: "#produce" });
   });
 });

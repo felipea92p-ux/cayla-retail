@@ -94,6 +94,9 @@ const config: KnipConfig = {
     },
     // La tienda online (ADR-0408), una app aparte. Sus rutas y pruebas las encuentra Knip solo, como en la web.
     "apps/tienda": {
+      // `next.config.ts` importa `lib/redirecciones-shopify.ts` (ADR-0595), pero en producción Knip no sigue la configuración de Next:
+      // el archivo sí llega a la tienda publicada (las redirecciones) y solo en este modo parece que lo usan las pruebas.
+      ...(produccion ? { ignoreFiles: ["lib/redirecciones-shopify.ts"] } : {}),
       project: [
         // Lo que llega a la tienda publicada.
         "{app,components,lib}/**/*.{ts,tsx,css}!",

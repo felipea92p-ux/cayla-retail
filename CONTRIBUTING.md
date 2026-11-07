@@ -69,9 +69,12 @@ del otro antes de que aterrizara en `main`.
 4. **`main` exige los dos checks del CI antes de fusionar** (activo desde el 2026-09-25):
    `Tipos, lint y pruebas` y `Pruebas de RPC contra Postgres` (`.github/workflows/ci.yml`),
    en el ruleset `main-protegida` (Settings ▸ Rules). No tiene excepciones, ni para el
-   administrador. **No apagues «Require branches to be up to date» (`strict_required_status_checks_policy`):**
-   el CI del push a `main` no repite lo que el PR ya corrió porque, con eso activo, el PR corrió sobre el mismo árbol que
-   queda en `main` (ADR-0345). Si lo apagas, revierte primero el recorte del push en `scripts/ci/alcance.mjs`.
+   administrador. **`main` usa la cola de fusión (ADR-0627, 2026-11-07):** un PR en verde entra a la fila («Merge when
+   ready» o la fusión automática) y GitHub lo prueba junto con el `main` de ese momento antes de fusionarlo; ya no hay que
+   ponerse al día a mano. El CI responde al evento `merge_group` (`ci.yml` y `sql-pegado.yml`). El CI del push a `main` no
+   repite lo que ya se probó porque el árbol de `main` es el que probó la cola (ADR-0345). **Si alguien apaga la cola,
+   vuelve a encender «Require branches to be up to date»** (`strict_required_status_checks_policy`), o revierte primero el
+   recorte del push en `scripts/ci/alcance.mjs`.
    Si hay que cambiar el ruleset, lo hace quien tenga permiso de administrador en
    GitHub; este es el comando con el que se activó:
    ```bash
@@ -96,8 +99,8 @@ del otro antes de que aterrizara en `main`.
    }
    EOF
    ```
-   `strict` va en `true` (lo exige ADR-0345). Para que ponerse al día no cueste otra espera larga, las
-   pruebas de Postgres corren en 4 tandas a la vez (~4 min, ADR-0381).
+   Ese era el ruleset antes de la cola. Con la cola (ADR-0627) se le suma la regla «Require merge queue» y `strict` pasa a
+   `false`: la cola prueba contra el `main` de verdad. Las pruebas de Postgres corren en tandas a la vez (~4 min, ADR-0381).
 5. **Números reservados al empezar y PR abiertos con `/abrir-pr`** (ADR-0381). Antes de crear un ADR o una migración:
    `pnpm reservar adr` / `pnpm reservar migracion` (una etiqueta `reserva/…` en el remoto; dos personas nunca se llevan el
    mismo número). Antes de abrir el PR: `pnpm abrir-pr:choques`, que compara tu rama con `main` y con los PR abiertos

@@ -12,8 +12,9 @@
 
 /* ---- El saludo ---- */
 .pf-cab { display: flex; flex-direction: column; gap: 8px; }
-.pf-cab h1 { margin: 2px 0 0; font-family: var(--sans); font-variation-settings: var(--ancho); text-transform: uppercase; letter-spacing: .06em; font-weight: 250; font-size: clamp(21.1px, 4.96cqi, 33.5px); line-height: 1.12;  }
-.pf-cab h1 em { font-style: italic; color: var(--rojo); }
+.pf-cab h1 { margin: 2px 0 0; font-family: var(--display); text-transform: none; letter-spacing: -.01em; font-weight: 400; font-size: clamp(38px, 5.2cqi, 78px); line-height: 1.02; }
+/* G · Pasarela: sin el rojo; la cursiva sola, como en los títulos de las secciones. */
+.pf-cab h1 em { font-style: italic; color: inherit; }
 .pf-cab-linea { margin: 0; font-size: 14px; color: var(--tinta-60); }
 .pf-cab .w-nota { margin-top: 6px; }
 
@@ -41,7 +42,7 @@
 .pf-cuerpo { display: grid; grid-template-columns: minmax(0, 1fr); }
 .pf-sec { display: flex; flex-direction: column; gap: 12px; min-width: 0; padding-block: 22px; border-top: 1px solid var(--sand); scroll-margin-top: 12px; }
 .pf-sec-cab { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 44px; }
-.pf-sec-cab h2 { margin: 0; display: flex; align-items: center; gap: 10px; font-family: var(--sans); font-variation-settings: var(--ancho); text-transform: uppercase; letter-spacing: .06em; font-size: 18px; font-weight: 250; line-height: 1.12; }
+.pf-sec-cab h2 { margin: 0; display: flex; align-items: center; gap: 10px; font-family: var(--display); text-transform: none; letter-spacing: -.01em; font-size: 23px; font-weight: 400; line-height: 1.12; }
 /* Cuántos hay: el globito, pegado al título (como el de «Ver todos» del catálogo). */
 .pf-cuenta { min-width: 24px; height: 24px; padding: 0 7px; border-radius: 0; display: inline-grid; place-items: center; background: var(--sand); font-family: var(--sans); font-size: 12px; font-weight: 700; line-height: 1; color: var(--tinta); }
 .pf-sec-cab .t-ver { padding-block: 0; }

@@ -24,7 +24,13 @@ function quien(r: ResumenFinanzas): string {
  * que septiembre a esta fecha»; sin él, no se inventa. `provisional`
  * (la confianza del número es baja, ADR-0417): el chip lo dice, como en la respuesta del Pulso.
  */
-export function respuestaResumen(r: ResumenFinanzas, anterior: readonly FilaER[] | null, provisional: boolean, enCurso = true): RespuestaResumen {
+export function respuestaResumen(
+  r: ResumenFinanzas,
+  anterior: readonly FilaER[] | null,
+  provisional: boolean,
+  enCurso = true,
+  antesDeSueldos = false,
+): RespuestaResumen {
   const mes = mesNombre(r.mes);
   const vende = r.ver.todas || r.ver.tipo === "tienda";
   const pregunta = vende
@@ -48,8 +54,8 @@ export function respuestaResumen(r: ResumenFinanzas, anterior: readonly FilaER[]
   if (f.resultado < 0) chips.push({ texto: enCurso ? "Este mes vas perdiendo plata" : "Este mes perdió plata", tono: "ambar" });
   const antes = anterior ? filaDeVer(anterior, r.ver) : undefined;
   if (antes) {
-    const dif = Math.round(f.resultado - antes.resultado);
-    const contra = `${mesNombre(r.mesAnterior)}${enCurso ? " a esta fecha" : ""}`;
+    const dif = Math.round((antesDeSueldos ? sinSueldos(f) : f).resultado - antes.resultado);
+    const contra = `${mesNombre(r.mesAnterior)}${enCurso ? " a esta fecha" : ""}${antesDeSueldos ? ", antes de sueldos" : ""}`;
     if (Math.abs(dif) >= 1) chips.push({ texto: `${soles(Math.abs(dif))} ${dif > 0 ? "más" : "menos"} que ${contra}`, tono: dif > 0 ? "verde" : "ambar" });
     else chips.push({ texto: `Igual que ${contra}`, tono: "pizarra" });
   }
@@ -147,6 +153,31 @@ export function tramoDelMes(mes: string, hoy: string): { desde: string; hasta: s
   return { desde: `${mes}-01`, hasta: mes === hoy.slice(0, 7) ? hoy : ultimo };
 }
 
+/** La misma columna sin sueldos: los saca de la planilla, de los gastos, de su línea 62 y de lo que deja. */
+function sinSueldos(f: FilaER): FilaER {
+  if (!f.planilla) return f;
+  const r2 = (n: number) => Math.round(n * 100) / 100;
+  const detalleGastos = f.detalleGastos
+    .map((d) => (d.cuenta === "62" ? { ...d, monto: r2(d.monto - f.planilla) } : d))
+    .filter((d) => d.cuenta !== "62" || Math.abs(d.monto) >= 0.005);
+  return { ...f, planilla: 0, planillaEstimada: 0, gastos: r2(f.gastos - f.planilla), resultado: r2(f.resultado + f.planilla), detalleGastos };
+}
+
+/**
+ * Con qué se compara el mes, sobre una base común. Dynamic paga el día 28: del 1 al 27 este mes ya lleva sueldos devengados y el mismo tramo del
+ * mes pasado todavía no (ADR-0453). Comparar así mostraría una caída que es solo esa diferencia, y descartar la comparación se leía como un error
+ * que no ocurrió (tarea 25 de «Las 36»). Sin base común se comparan los dos ANTES de sueldos, y se dice. `null` en `antes` es una falla de lectura.
+ */
+export function comparacionMesPasado(
+  ahora: readonly FilaER[],
+  antes: readonly FilaER[] | null,
+): { ahora: readonly FilaER[]; antes: readonly FilaER[] | null; antesDeSueldos: boolean } {
+  if (!antes) return { ahora, antes: null, antesDeSueldos: false };
+  const llevaSueldos = (fs: readonly FilaER[]) => fs.some((f) => f.planilla > 0);
+  if (llevaSueldos(ahora) === llevaSueldos(antes)) return { ahora, antes, antesDeSueldos: false };
+  return { ahora: ahora.map(sinSueldos), antes: antes.map(sinSueldos), antesDeSueldos: true };
+}
+
 /** El mes anterior a «AAAA-MM». */
 export function mesAnteriorDe(mes: string): string {
   const [a, m] = mes.split("-").map(Number) as [number, number];
@@ -168,6 +199,21 @@ export function tiendasDeLaLinea(r: ResumenFinanzas): string[] {
   if (r.ver.todas) return r.unidades.filter((u) => u.tipo === "tienda").map((u) => u.id);
   return r.ver.tipo === "tienda" && r.ver.ubicacionId ? [r.ver.ubicacionId] : [];
 }
+
+/**
+ * Las tiendas de la línea ANTES de que responda la base (ADR-0583): lo que pide la URL sobre las tiendas activas que la cuenta lee (en orden de
+ * nombre, como `unidades`). Sirve para pedir las series de ventas a la vez que el resumen, sin esperarlo. Es una apuesta: la pantalla la compara
+ * con `tiendasDeLaLinea` y, si la base resolvió otra cosa (una cuenta que solo ve su sede, una sede que ya no está activa), las vuelve a pedir.
+ */
+export function tiendasAdivinadas(pedido: { clave: string; ubicacionId: string | null; soloEmpresa: boolean }, propia: string | null, tiendas: readonly string[]): string[] {
+  if (pedido.soloEmpresa) return [];
+  const una = pedido.clave === "propia" ? propia : pedido.ubicacionId;
+  if (pedido.clave === "propia" || una) return una && tiendas.includes(una) ? [una] : [];
+  return [...tiendas];
+}
+
+/** ¿La apuesta acertó? Mismas tiendas y en el mismo orden (las series se leen en ese orden). */
+export const mismasTiendas = (a: readonly string[], b: readonly string[]): boolean => a.length === b.length && a.every((id, i) => id === b[i]);
 
 /** La meta de ventas del mes del presupuesto, de lo que se mira (con IGV, como la meta de Caja). `null` si no hay. */
 export function metaVentasPresupuesto(r: ResumenFinanzas): number | null {

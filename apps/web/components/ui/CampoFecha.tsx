@@ -4,6 +4,7 @@ import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { Campo } from "@/components/ui/campos";
 import { useDestinoFlotante, usePosicionLista } from "@/components/ui/useAnclaje";
+import { alConfirmarConEnter, conBarras, leerFechaEscrita, mesAlAlcance, motivoFueraDeLimites } from "@/lib/campo-fecha-reglas";
 
 /* ====================================================================
    CampoFecha · elegir un día (2026-09-14)
@@ -38,6 +39,12 @@ import { useDestinoFlotante, usePosicionLista } from "@/components/ui/useAnclaje
    salir del campo —o cuando el llamador lo pide con `revelarError`, al
    intentar aplicar— y `onValor("")` le dice que ahora no hay fecha válida.
    Sin `estricto` todo sigue exactamente como arriba.
+
+   Límites (2026-11-05, ADR-0611, mejora 8) — opt-in, `min` y `max`: en el calendario los días de afuera se
+   ven apagados, dicen por qué y no se eligen. Lo tipeado fuera del límite NO se borra ni se corrige: sigue
+   llegando al llamador, cuya validación es la que manda, y el campo dice el porqué al salir. Y lo que se dice
+   de corrido se entiende al salir: «5/11» es este año, «5/11/26» es 2026. Enter y ⌘↵ guardan sin salir: lo
+   escrito cuenta antes, y lo que no se entiende frena el guardado y lo dice.
    ==================================================================== */
 
 const DIAS_SEMANA = ["L", "M", "M", "J", "V", "S", "D"];
@@ -93,14 +100,6 @@ function celdasDelMes(a: number, m: number): Dia[] {
   const inicio = { a, m, d: 1 - desde };
   return Array.from({ length: 42 }, (_, i) => sumarDias(inicio, i));
 }
-// Al tipear: solo dígitos, y las barras se ponen solas ("14092026" → "14/09/2026").
-function conBarras(crudo: string): string {
-  const n = crudo.replace(/\D/g, "").slice(0, 8);
-  if (n.length <= 2) return n;
-  if (n.length <= 4) return `${n.slice(0, 2)}/${n.slice(2)}`;
-  return `${n.slice(0, 2)}/${n.slice(2, 4)}/${n.slice(4)}`;
-}
-
 /** `w-[17rem]` del calendario, en px (con la letra raíz de 16 px), y el aire mínimo que se le deja al borde de la pantalla. */
 const ANCHO_CALENDARIO = 272;
 const MARGEN_PANTALLA = 8;
@@ -123,6 +122,10 @@ export function CampoFecha({
   descripcionMarcado = "con datos",
   caja = false,
   rango,
+  min,
+  max,
+  motivoMin,
+  motivoMax,
 }: {
   etiqueta: ReactNode;
   ayuda?: ReactNode;
@@ -149,10 +152,17 @@ export function CampoFecha({
    *  y `hasta` (ISO) y un anillo en el otro extremo, para elegir «Desde» viendo dónde termina y al revés. El día elegido sigue en rojo.
    *  Sin esta propiedad el calendario es el de siempre. */
   rango?: { desde: string | null; hasta: string | null };
+  /** Límites (ISO): los días de afuera no se eligen en el calendario y lo tipeado fuera de ellos dice por qué al salir. La validación de quien lo usa sigue mandando. */
+  min?: string;
+  max?: string;
+  /** Por qué no se puede antes de `min` o después de `max`, en palabras de la hoja («No puede ser futura.»). */
+  motivoMin?: string;
+  motivoMax?: string;
   /** Guía oficial para barras de filtros (como `CampoTexto caja`): caja hundida en hueso, sin hilo y con la etiqueta solo para
    *  lectores de pantalla — quien lo usa dice en pantalla qué es (Conteo: «Otra fecha» junto a las píldoras). */
   caja?: boolean;
 }) {
+  const limites = { min, max, motivoMin, motivoMax };
   const idGenerado = useId();
   const id = idPropio ?? idGenerado;
   const elegido = deIso(valor);
@@ -160,6 +170,8 @@ export function CampoFecha({
   const [abierto, setAbierto] = useState(false);
   const [enfocado, setEnfocado] = useState(false);
   const [tocado, setTocado] = useState(false);
+  // Enter con una fecha que no se entiende: no guardó y lo dice, hasta que se corrija.
+  const [frenado, setFrenado] = useState(false);
   // El calendario nace anclado al borde izquierdo del campo. Si el campo está cerca del borde derecho de la pantalla (los filtros de
   // Conteo van a la derecha de su tarjeta) no cabría: se mide AL ABRIR y, si hace falta y cabe, se ancla al borde derecho.
   const [haciaIzquierda, setHaciaIzquierda] = useState(false);
@@ -200,12 +212,15 @@ export function CampoFecha({
     if (disabled) return;
     const campo = raiz.current?.getBoundingClientRect();
     if (campo) setHaciaIzquierda(campo.left + ANCHO_CALENDARIO > window.innerWidth - MARGEN_PANTALLA && campo.right - ANCHO_CALENDARIO >= MARGEN_PANTALLA);
-    setCursor(elegido ?? hoy());
+    // Abre en un mes que se pueda elegir: si hoy está fuera de los límites, en el límite.
+    const inicio = elegido ?? hoy();
+    setCursor(mesAlAlcance(inicio.a, inicio.m, limites) ? inicio : (deIso(max && aIso(inicio) > max ? max : (min ?? "")) ?? inicio));
     setAbierto(true);
     requestAnimationFrame(() => grilla.current?.focus());
   }
 
   function elegir(dia: Dia) {
+    if (motivoFueraDeLimites(aIso(dia), limites)) return;
     setTexto(aTexto(dia));
     setCursor(dia);
     setAbierto(false);
@@ -214,6 +229,7 @@ export function CampoFecha({
 
   function alTipear(crudo: string) {
     const t = conBarras(crudo);
+    setFrenado(false);
     setTexto(t);
     if (t === "") {
       onValor("");
@@ -232,11 +248,23 @@ export function CampoFecha({
     }
   }
 
+  /** Lo escrito de corrido ya tiene fecha: se ordena en el campo y le llega a quien lo usa. */
+  function usarEscrita(iso: string) {
+    const dia = deIso(iso);
+    setTexto(aTexto(dia));
+    if (dia) setCursor(dia);
+    if (iso !== valor) onValor(iso);
+  }
+
   // Al salir del campo, lo tipeado a medias o imposible vuelve a la última
   // fecha válida: nunca queda un texto que no corresponde a ningún día.
   // (Con `estricto` se queda, para corregirlo: ver el comentario de arriba.)
   function alSalir() {
     setEnfocado(false);
+    // «5/11» o «5/11/26»: se entiende al salir, no mientras se escribe (a medias podría ser otra cosa).
+    setFrenado(false);
+    const corta = deTexto(texto) ? null : leerFechaEscrita(texto, hoy().a);
+    if (corta) return usarEscrita(corta);
     if (estricto) setTocado(true);
     else setTexto(aTexto(elegido));
   }
@@ -245,6 +273,17 @@ export function CampoFecha({
     if (e.key === "ArrowDown" && !abierto) {
       e.preventDefault();
       abrir();
+    }
+    // Enter (formulario) y ⌘↵ (Registrar gasto) guardan sin salir del campo: lo escrito tiene que contar antes (/chaos 2026-11-05).
+    if (e.key === "Enter" && !abierto) {
+      const r = alConfirmarConEnter(texto, hoy().a);
+      if (r.accion === "usar") usarEscrita(r.iso);
+      if (r.accion === "frenar") {
+        // `stopPropagation` también frena el atajo que escucha en `window`, y `preventDefault`, el envío del formulario.
+        e.preventDefault();
+        e.stopPropagation();
+        setFrenado(true);
+      }
     }
     if (e.key === "Escape" && abierto) {
       // Este Escape cerró el calendario: que no siga y cierre también el modal (useEscapeLibre.ts).
@@ -266,7 +305,11 @@ export function CampoFecha({
     };
     if (saltos[e.key]) {
       e.preventDefault();
-      setCursor(saltos[e.key]());
+      // El cursor no sale de lo que se puede elegir: se queda en el límite.
+      const destino = aIso(saltos[e.key]());
+      const tope = max && destino > max ? max : min && destino < min ? min : destino;
+      const dia = deIso(tope);
+      if (dia) setCursor(dia);
     } else if (e.key === "Enter" || e.key === " ") {
       e.preventDefault();
       elegir(cursor);
@@ -286,19 +329,22 @@ export function CampoFecha({
   // Solo `estricto`: sin fecha válida (vacío en un campo obligatorio, a medias o imposible) y ya sea
   // porque se salió del campo o porque el llamador lo pide. Mientras se escribe, sin avisos.
   const sinFecha = estricto && (texto === "" ? required : deTexto(texto) === null);
-  const conError = sinFecha && (revelarError || (tocado && !enfocado));
+  const conError = frenado || (sinFecha && (revelarError || (tocado && !enfocado)));
+  // Lo tipeado fuera de los límites: se dice al salir, sin pisar lo que el llamador ya esté diciendo.
+  const diaTipeado = deTexto(texto);
+  const fuera = !conError && !enfocado && !pie && diaTipeado ? motivoFueraDeLimites(aIso(diaTipeado), limites) : null;
 
   return (
     <Campo
       etiqueta={etiqueta}
       ayuda={ayuda}
-      pie={conError ? <span role="alert">{texto === "" ? "Falta la fecha." : "Fecha no válida. Usa dd/mm/aaaa."}</span> : pie}
-      tono={conError ? "error" : tono}
+      pie={conError ? <span role="alert">{texto === "" ? "Falta la fecha." : "Fecha no válida. Usa dd/mm/aaaa."}</span> : (fuera ?? pie)}
+      tono={conError || fuera ? "error" : tono}
       htmlFor={id}
       etiquetaOculta={caja}
     >
       {/* La caja que se enciende (ADR-0358, ronda 6): también con el calendario abierto (`aria-expanded` del botón). */}
-      <div ref={raiz} className="caja-cayla caja-campo" data-tono={conError ? "error" : undefined}>
+      <div ref={raiz} className="caja-cayla caja-campo" data-tono={conError || fuera ? "error" : undefined}>
         <input
           ref={entrada}
           id={id}
@@ -309,7 +355,8 @@ export function CampoFecha({
           value={texto}
           required={required}
           disabled={disabled}
-          aria-invalid={conError || undefined}
+          aria-invalid={conError || Boolean(fuera) || undefined}
+          aria-describedby={conError || fuera ? `${id}-pie` : undefined}
           onChange={(e) => alTipear(e.target.value)}
           onFocus={() => setEnfocado(true)}
           onBlur={alSalir}
@@ -325,7 +372,7 @@ export function CampoFecha({
           aria-expanded={abierto}
           onMouseDown={(e) => e.preventDefault()}
           onClick={() => (abierto ? setAbierto(false) : abrir())}
-          className={`-mr-1 shrink-0 rounded p-0.5 transition-colors ${abierto || enfocado ? "text-rojo" : "text-tinta/55 hover:text-tinta"} disabled:opacity-50`}
+          className={`area-dedo -mr-1 shrink-0 rounded p-0.5 transition-colors ${abierto || enfocado ? "text-rojo" : "text-tinta/55 hover:text-tinta"} disabled:opacity-50`}
         >
           <svg aria-hidden viewBox="0 0 16 16" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.4">
             <rect x="2" y="3.5" width="12" height="10.5" rx="1.5" />
@@ -352,14 +399,15 @@ export function CampoFecha({
               setAbierto(false);
               entrada.current?.focus();
             }}
-            className="anim-revelar fixed z-50 w-[17rem] rounded-lg border border-sand bg-papel p-3 shadow-md"
+            className="anim-revelar lista-flotante fixed z-50 w-[17rem] p-3"
           >
             <div className="mb-2 flex items-center justify-between">
               <button
                 type="button"
                 aria-label="Mes anterior"
+                disabled={!mesAlAlcance(sumarMeses(cursor, -1).a, sumarMeses(cursor, -1).m, limites)}
                 onClick={() => setCursor(sumarMeses(cursor, -1))}
-                className="rounded p-1 text-tinta/55 transition-colors hover:bg-rojo/10 hover:text-tinta"
+                className="area-dedo rounded p-1 text-tinta/55 transition-colors hover:bg-rojo/10 hover:text-tinta disabled:pointer-events-none disabled:text-tinta/25"
               >
                 <Flecha lado="izq" />
               </button>
@@ -369,8 +417,9 @@ export function CampoFecha({
               <button
                 type="button"
                 aria-label="Mes siguiente"
+                disabled={!mesAlAlcance(sumarMeses(cursor, 1).a, sumarMeses(cursor, 1).m, limites)}
                 onClick={() => setCursor(sumarMeses(cursor, 1))}
-                className="rounded p-1 text-tinta/55 transition-colors hover:bg-rojo/10 hover:text-tinta"
+                className="area-dedo rounded p-1 text-tinta/55 transition-colors hover:bg-rojo/10 hover:text-tinta disabled:pointer-events-none disabled:text-tinta/25"
               >
                 <Flecha lado="der" />
               </button>
@@ -399,6 +448,7 @@ export function CampoFecha({
                 const conCursor = mismoDia(dia, cursor);
                 const marcado = !!marcados?.has(aIso(dia));
                 const iso = aIso(dia);
+                const motivoFuera = motivoFueraDeLimites(iso, limites);
                 const enRango = !!(rango?.desde && rango.hasta && rango.desde < rango.hasta && iso >= rango.desde && iso <= rango.hasta);
                 const extremo = !!rango && (iso === rango.desde || iso === rango.hasta);
                 return (
@@ -408,13 +458,15 @@ export function CampoFecha({
                     type="button"
                     role="gridcell"
                     tabIndex={-1}
+                    disabled={Boolean(motivoFuera)}
+                    title={motivoFuera ?? undefined}
                     aria-selected={esElegido}
                     aria-label={`${dia.d} de ${MESES[dia.m].toLowerCase()} de ${dia.a}${marcado ? `, ${descripcionMarcado}` : ""}${enRango ? ", dentro del rango" : ""}`}
                     // El cursor también decide qué mes se dibuja: moverlo a un día gris del mes vecino
                     // cambiaba de mes solo al pasar el mouse. Fuera del mes, el hover queda en CSS.
-                    onMouseEnter={() => delMes && setCursor(dia)}
+                    onMouseEnter={() => delMes && !motivoFuera && setCursor(dia)}
                     onClick={() => elegir(dia)}
-                    className={`relative mx-auto flex h-8 w-8 items-center justify-center rounded-full text-sm tabular-nums transition-colors ${
+                    className={`area-dedo relative mx-auto flex h-8 w-8 items-center justify-center rounded-full text-sm tabular-nums transition-colors disabled:cursor-not-allowed disabled:text-tinta/25 disabled:hover:bg-transparent ${
                       extremo && !esElegido ? "ring-1 ring-inset ring-tinta/40 " : ""
                     }${
                       esElegido
@@ -442,7 +494,7 @@ export function CampoFecha({
             </div>
 
             <div className="mt-2 flex items-center justify-between border-t border-sand pt-2">
-              <button type="button" onClick={() => elegir(elHoy)} className="btn-cayla btn-enlace text-[13px]">
+              <button type="button" disabled={Boolean(motivoFueraDeLimites(aIso(elHoy), limites))} onClick={() => elegir(elHoy)} className="btn-cayla btn-enlace text-[13px] disabled:invisible">
                 Hoy
               </button>
               {marcados && (

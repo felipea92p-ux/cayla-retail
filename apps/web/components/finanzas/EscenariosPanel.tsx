@@ -97,9 +97,8 @@ export function EscenariosPanel({
   return (
     <div className="space-y-6">
       <CabeceraReportes
-        pestana="escenarios"
         titulo="¿Qué pasa si…?"
-        bajada="Mueve los valores y mira qué pasa con la utilidad de cada tienda y con tu caja. No se guarda nada: es para pensar antes de decidir."
+        bajada="Mueve los valores y mira qué pasa con la utilidad y con tu caja. No se guarda nada."
         acciones={
           <>
             <Chip versalitas={false}>CAYLA entera</Chip>

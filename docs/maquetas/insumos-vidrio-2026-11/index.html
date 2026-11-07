@@ -1,0 +1,260 @@
+<!doctype html>
+<html lang="es" data-tema="claro" data-fi="placa" data-li="filas">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Insumos con vidrio</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../vidrio-base-2026-10/marco.css">
+<style>
+/* ====================================================================
+   MAQUETA · Producción ▸ Insumos (telas y avíos) con el vidrio (ADR-0596, tablero docs/vidrio/README.md, sección 3)
+   La pantalla real (app/(app)/produccion/insumos → components/InsumosPanel.tsx, ADR-0133): la cabecera con «+ Nueva tela», «+ Nuevo avío» e
+   «Ingresar insumo»; las cifras (bajo el mínimo, insumos); «Ver el capital en insumos» (solo el líder); y la lista: cada tela con su título de
+   grupo (código, tejido, composición, cómo se compra, «+ Agregar colores» y su lápiz) y debajo una FilaInsumo por color —una tarjeta que se
+   abre: el nombre, la ficha con su punto de color, la barra del saldo con la marca del mínimo, el estado y el saldo grande; adentro, sus lotes
+   (el primero que se descuenta, «1º»)—; los avíos igual. A la derecha, el libro de movimientos (solo se agrega).
+   «Nueva tela» (NuevaTelaModal): al crear un tejido desde su combo, «Existe también» pregunta ANTES de crearlo (ADR-0576, useTejidosDeLaTela)
+   y la hoja no se guarda mientras siga sin contestar.
+   Armada SOLO con lo ya elegido: cabecera A con sus gotas, tarjetas de cifra A · Placa, títulos de sección y de grupo, barra de avance A ·
+   Tubo (con la marca del mínimo), insignia A, lápiz en gota, enlaces, la hoja Serena con campos hundidos, el combo y el aviso B · Lente (la
+   cara de «Existe también»), y botones gota.
+   Lo PROPIO, con sus caras:
+     1. La fila de un insumo (cada color, que se abre con sus lotes).
+     2. El libro de movimientos.
+   Solo tokens (el color de una tela es dato). Sin movimiento nuevo (el acordeón ya se abría así); todo se apaga con prefers-reduced-motion.
+   Datos inventados.
+   ==================================================================== */
+
+/* ---------- lo ya elegido ---------- */
+.placa{position:relative;border-radius:22px;border:1px solid color-mix(in srgb,var(--vidrio) 60%,transparent);
+  background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 64%,transparent),color-mix(in srgb,var(--vidrio) 44%,transparent));-webkit-backdrop-filter:blur(24px) saturate(1.6);backdrop-filter:blur(24px) saturate(1.6);
+  box-shadow:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 90%,transparent),0 24px 50px -30px color-mix(in srgb,var(--sombra) 40%,transparent)}
+[data-tema="oscuro"] .placa{background:color-mix(in srgb,var(--vidrio) 70%,transparent);border-color:color-mix(in srgb,var(--tinta) 10%,transparent)}
+.chip{--c:var(--verde);display:inline-flex;align-items:center;gap:6px;height:24px;padding:0 11px;border-radius:999px;font-size:12px;white-space:nowrap;color:var(--c);
+  background:linear-gradient(180deg,color-mix(in srgb,var(--c) 10%,color-mix(in srgb,var(--vidrio) 75%,transparent)),color-mix(in srgb,var(--c) 18%,transparent));
+  box-shadow:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 85%,transparent),inset 0 0 0 1px color-mix(in srgb,var(--c) 26%,transparent)}
+.chip::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor}
+.chip.ambar{--c:var(--ambar)}.chip.pizarra{--c:var(--pizarra)}.chip.tinta{--c:var(--tinta)}
+[data-tema="oscuro"] .chip{background:linear-gradient(180deg,color-mix(in srgb,var(--c) 22%,transparent),color-mix(in srgb,var(--c) 12%,transparent));box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--c) 34%,transparent)}
+.pest{display:inline-flex;max-width:100%;overflow-x:auto;scrollbar-width:none;padding:4px;border-radius:999px;background:color-mix(in srgb,var(--tinta) 5%,transparent);box-shadow:inset 0 1.5px 3px color-mix(in srgb,var(--sombra) 14%,transparent)}
+[data-tema="oscuro"] .pest{background:color-mix(in srgb,var(--sombra) 30%,transparent)}
+.pest a{flex:none;display:flex;align-items:center;height:38px;padding:0 16px;border-radius:999px;font-size:11.5px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--t65);text-decoration:none}
+.pest a[aria-current]{color:var(--tinta);background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 96%,transparent),color-mix(in srgb,var(--vidrio) 70%,transparent));box-shadow:inset 0 1px 0 var(--vidrio),0 6px 14px -8px color-mix(in srgb,var(--sombra) 40%,transparent)}
+[data-tema="oscuro"] .pest a[aria-current]{background:color-mix(in srgb,var(--tinta) 18%,transparent)}
+.pozo-b{flex:1;min-width:180px;max-width:24rem;display:flex;align-items:center;gap:10px;height:42px;padding:0 16px;border-radius:999px;font-size:14px;color:var(--t65);border:1px solid color-mix(in srgb,var(--borde) 80%,transparent);
+  background:color-mix(in srgb,var(--tinta) 5%,transparent);box-shadow:inset 0 1.5px 3px color-mix(in srgb,var(--sombra) 14%,transparent)}
+[data-tema="oscuro"] .pozo-b{background:color-mix(in srgb,var(--sombra) 30%,transparent)}
+.pozo-b svg{width:16px;height:16px}.pozo-b span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fp{flex:none;display:inline-flex;align-items:center;gap:6px;height:34px;padding:0 14px;border-radius:999px;font-size:13px;font-weight:600;white-space:nowrap;border:1px solid var(--borde);color:var(--t80);
+  background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 75%,transparent),color-mix(in srgb,var(--vidrio) 40%,transparent));box-shadow:inset 0 1px 0 var(--vidrio)}
+[data-tema="oscuro"] .fp{border-color:color-mix(in srgb,var(--tinta) 30%,transparent);background:color-mix(in srgb,var(--tinta) 9%,transparent);box-shadow:none}
+.fp[aria-pressed="true"]{color:var(--crema);border-color:color-mix(in srgb,var(--tinta) 70%,transparent);background:linear-gradient(180deg,color-mix(in srgb,var(--tinta) 84%,transparent),color-mix(in srgb,var(--tinta) 97%,transparent))}
+.fp svg{width:14px;height:14px}
+.modo{display:inline-flex;padding:3px;border-radius:12px;background:color-mix(in srgb,var(--tinta) 5%,transparent);box-shadow:inset 0 1px 2px color-mix(in srgb,var(--sombra) 12%,transparent)}
+.modo button{height:32px;padding:0 12px;border-radius:9px;font-size:11px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--t65)}
+.modo button[aria-pressed="true"]{color:var(--tinta);background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 96%,transparent),color-mix(in srgb,var(--vidrio) 70%,transparent));box-shadow:inset 0 1px 0 var(--vidrio)}
+[data-tema="oscuro"] .modo button[aria-pressed="true"]{background:color-mix(in srgb,var(--tinta) 18%,transparent)}
+.gota-i{width:40px;height:40px;padding:0;border-radius:50%}
+.tc-cifras{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-top:18px}
+.cif{padding:16px 18px}.cif .vs{font-size:10.5px}.cif b{display:block;font-family:'EB Garamond',serif;font-weight:500;font-size:34px;line-height:1.1;margin-top:4px;font-variant-numeric:tabular-nums}
+.cif small{font-size:12.5px;color:var(--t65)}
+.cif.filtra{cursor:pointer}.cif.puesta{box-shadow:inset 0 1.5px 4px color-mix(in srgb,var(--sombra) 16%,transparent);background:color-mix(in srgb,var(--tinta) 5%,transparent)}
+.mini-ap{display:flex;gap:2px;height:6px;margin-top:10px;border-radius:999px;overflow:hidden;background:color-mix(in srgb,var(--tinta) 7%,transparent)}
+.mini-ap i{display:block;height:100%}
+
+/* ---------- la hoja «Nueva categoría» con «Existe también» ---------- */
+.hoja .hoja-cuerpo{display:grid;grid-template-columns:minmax(0,1fr)}
+.hoja .caja.esc{border-color:color-mix(in srgb,var(--tinta) 40%,transparent);background:var(--papel)}
+.hoja .caja .cur{display:inline-block;width:1px;height:18px;margin-left:1px;background:var(--tinta)}
+.hoja .dos{display:grid;grid-template-columns:minmax(0,1fr) 7rem;gap:12px}
+.lente-at{--c:var(--ambar);margin:2px 0 16px;padding:14px 16px;border-radius:18px;border:1px solid color-mix(in srgb,var(--c) 30%,transparent);
+  background:linear-gradient(180deg,color-mix(in srgb,var(--c) 6%,color-mix(in srgb,var(--vidrio) 80%,transparent)),color-mix(in srgb,var(--c) 13%,color-mix(in srgb,var(--vidrio) 60%,transparent)));box-shadow:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 90%,transparent)}
+[data-tema="oscuro"] .lente-at{background:linear-gradient(180deg,color-mix(in srgb,var(--c) 14%,transparent),color-mix(in srgb,var(--c) 8%,transparent))}
+.lente-at .t{display:flex;gap:8px;align-items:center;font-size:14px;font-weight:600}.lente-at .t svg{width:18px;height:18px;color:var(--c)}
+.lente-at p{font-size:13px;color:var(--t65);margin-top:4px}
+.lente-at .op{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px;margin-top:10px;font-size:14px}.lente-at .op span i{font-style:normal;color:var(--t65)}
+.lente-at .op .b{height:34px;padding:0 14px;font-size:12.5px}
+.lente-at .no{margin-top:8px;font-size:12.5px;color:var(--tinta);text-decoration:underline;text-decoration-color:color-mix(in srgb,var(--tinta) 30%,transparent);text-underline-offset:3px}
+.hoja .b.pri[disabled]{opacity:.45}
+.hoja .falta{font-size:12px;color:var(--t65);text-align:right;margin:-2px 0 8px}
+
+.in-cif{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:18px}
+.cif{padding:16px 18px}.cif .vs{display:flex;align-items:center;gap:6px;font-size:10.5px}.cif .vs i{width:7px;height:7px;border-radius:50%;background:var(--c,var(--verde))}
+.cif b{display:block;font-family:'EB Garamond',serif;font-weight:500;font-size:34px;line-height:1.1;margin-top:4px}.cif small{font-size:12.5px;color:var(--t65)}.cif small.amb{color:var(--ambar)}
+.capital{margin-top:12px;font-size:13.5px;color:var(--t80)}.capital a{color:var(--tinta);text-decoration:underline;text-decoration-color:color-mix(in srgb,var(--tinta) 30%,transparent);text-underline-offset:3px}
+.in-cuerpo{display:grid;grid-template-columns:minmax(0,1fr) 21rem;gap:20px;align-items:start;margin-top:22px}
+.in-lista{display:grid;grid-template-columns:minmax(0,1fr);gap:22px}
+.ts{display:flex;align-items:baseline;justify-content:space-between;gap:12px;font-family:'EB Garamond',serif;font-size:21px}.ts small{font-family:'DM Sans',sans-serif;font-size:12.5px;color:var(--t65)}
+.tg{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:4px 14px;padding-top:6px}
+.tg .n{display:flex;align-items:center;gap:8px;font-size:11px;font-weight:600;letter-spacing:.14em;text-transform:uppercase}.tg .n .glb{display:inline-grid;place-items:center;min-width:20px;height:20px;padding:0 6px;border-radius:999px;font-size:11px;letter-spacing:0;background:color-mix(in srgb,var(--tinta) 8%,transparent)}
+.tg .nota{flex-basis:100%;order:3;font-size:12px;color:var(--t65)}
+.tg .acc{display:flex;align-items:center;gap:6px;font-size:12.5px}.tg .acc a{color:var(--tinta);text-decoration:underline;text-decoration-color:color-mix(in srgb,var(--tinta) 30%,transparent);text-underline-offset:3px}
+.lapiz{width:32px;height:32px;border-radius:50%;display:grid;place-items:center;color:var(--t80)}.lapiz svg{width:15px;height:15px}
+@media (hover:hover){.lapiz:hover{background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 96%,transparent),color-mix(in srgb,var(--vidrio) 70%,transparent))}}
+.in-grupo{display:grid;grid-template-columns:minmax(0,1fr);gap:10px}
+
+/* ============ 1 · LA FILA DE UN INSUMO ============ */
+.fi{overflow:hidden}
+.fi-b{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1.5fr) auto 16px;align-items:center;gap:12px 20px;width:100%;padding:14px 16px;text-align:left}
+.fi-b .nm{font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.fi-b .cd{font-size:12px;color:var(--t65);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.fi-b .cd span{font-family:ui-monospace,monospace}
+.fi-b .fc{display:flex;align-items:center;gap:6px;margin-top:2px;font-size:12px;color:var(--t80)}.fi-b .fc i{width:10px;height:10px;border-radius:50%;border:1px solid color-mix(in srgb,var(--tinta) 20%,transparent);flex:none}
+.tubo{position:relative;display:block;height:8px;border-radius:999px;background:color-mix(in srgb,var(--tinta) 7%,transparent);box-shadow:inset 0 1px 2px color-mix(in srgb,var(--sombra) 18%,transparent)}
+.tubo i{position:absolute;inset:0 auto 0 0;border-radius:999px;background:var(--c,var(--tinta))}.tubo b{position:absolute;top:-3px;bottom:-3px;width:2px;border-radius:2px;background:var(--taupe)}
+.tubo.fina{height:4px}
+.fi-b .bajo{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:6px;font-size:11.5px;color:var(--t65)}
+.fi-b .sal{font-family:'EB Garamond',serif;font-size:24px;white-space:nowrap;text-align:right;font-variant-numeric:tabular-nums}.fi-b .sal small{font-family:'DM Sans',sans-serif;font-size:12px;color:var(--t65);margin-left:4px}
+.fi-b .che{width:16px;height:16px;color:var(--t50);transition:transform .3s var(--ease)}.fi[data-abierto] .che{transform:rotate(90deg)}
+.fi-c{display:grid;grid-template-rows:0fr;transition:grid-template-rows .3s var(--ease)}.fi[data-abierto] .fi-c{grid-template-rows:1fr}.fi-c>div{min-height:0;overflow:hidden}
+.lotes{margin:0 16px 12px;padding-top:6px;border-top:1px solid var(--sand)}
+.lote{display:grid;grid-template-columns:4.5rem minmax(0,1fr) auto auto 32px;align-items:center;gap:6px 16px;padding:10px 0;font-size:12.5px;border-bottom:1px solid color-mix(in srgb,var(--tinta) 6%,transparent)}.lote:last-child{border-bottom:0}
+.lote .lc{font-family:ui-monospace,monospace;font-weight:500}.lote p{margin-top:4px;color:var(--t65);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.lote .q{white-space:nowrap;font-variant-numeric:tabular-nums}.lote .q span{color:var(--t65)}
+.lote .co{display:flex;align-items:center;justify-content:flex-end;gap:8px;min-width:5.5rem;white-space:nowrap;color:var(--t80);font-variant-numeric:tabular-nums}
+.fi-acc{display:flex;flex-wrap:wrap;gap:8px;margin:0 16px 14px}.fi-acc .btn{height:34px;padding:0 14px;font-size:12.5px}
+/* Como ahora: cada color, una tarjeta de papel suelta con borde arena. */
+[data-fi="ahora"] .fi{border-radius:12px;border:1px solid var(--sand);background:var(--papel)}
+/* A · Una placa por tela: los colores de una tela viven en UNA placa Serena, una fila por color (rayas finas); la fila abierta se hunde en un
+   pozo con sus lotes. Una tela se lee como una cosa. */
+[data-fi="placa"] .grupo-p{border-radius:22px;border:1px solid color-mix(in srgb,var(--vidrio) 60%,transparent);overflow:hidden;
+  background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 64%,transparent),color-mix(in srgb,var(--vidrio) 44%,transparent));-webkit-backdrop-filter:blur(24px) saturate(1.6);backdrop-filter:blur(24px) saturate(1.6);box-shadow:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 90%,transparent),0 24px 50px -30px color-mix(in srgb,var(--sombra) 40%,transparent)}
+[data-tema="oscuro"][data-fi="placa"] .grupo-p{background:color-mix(in srgb,var(--vidrio) 70%,transparent);border-color:color-mix(in srgb,var(--tinta) 10%,transparent)}
+[data-fi="placa"] .fi+.fi{box-shadow:inset 0 1px 0 color-mix(in srgb,var(--tinta) 8%,transparent)}
+[data-fi="placa"] .fi[data-abierto]{margin:6px;border-radius:16px;background:color-mix(in srgb,var(--tinta) 4%,transparent);box-shadow:inset 0 1.5px 4px color-mix(in srgb,var(--sombra) 14%,transparent)}
+[data-tema="oscuro"][data-fi="placa"] .fi[data-abierto]{background:color-mix(in srgb,var(--sombra) 26%,transparent)}
+@media (hover:hover){[data-fi="placa"] .fi:not([data-abierto]) .fi-b:hover{background:color-mix(in srgb,var(--tinta) 3%,transparent)}}
+[data-fi="placa"] .lotes{border-top-color:color-mix(in srgb,var(--tinta) 8%,transparent)}
+/* B · Placas sueltas: cada color, su propia placa Serena; al abrirla, los lotes en un pozo dentro de la placa. */
+:is([data-fi="sueltas"],[data-fi="ahora"]) .grupo-p{display:grid;grid-template-columns:minmax(0,1fr);gap:10px}
+[data-fi="sueltas"] .fi{border-radius:18px;border:1px solid color-mix(in srgb,var(--vidrio) 60%,transparent);background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 64%,transparent),color-mix(in srgb,var(--vidrio) 44%,transparent));-webkit-backdrop-filter:blur(24px) saturate(1.6);backdrop-filter:blur(24px) saturate(1.6);box-shadow:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 90%,transparent)}
+[data-tema="oscuro"][data-fi="sueltas"] .fi{background:color-mix(in srgb,var(--vidrio) 70%,transparent);border-color:color-mix(in srgb,var(--tinta) 10%,transparent)}
+[data-fi="sueltas"] .lotes{margin:0 10px 10px;padding:4px 12px;border-top:0;border-radius:14px;background:color-mix(in srgb,var(--tinta) 4%,transparent);box-shadow:inset 0 1.5px 4px color-mix(in srgb,var(--sombra) 14%,transparent)}
+
+/* ============ 2 · EL LIBRO DE MOVIMIENTOS ============ */
+.libro{padding:16px;position:sticky;top:12px}
+.libro .ts{font-size:20px}.libro>p{font-size:12px;color:var(--t65);margin:2px 0 8px}
+.mv{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 12px;padding:10px 0;font-size:13px}
+.mv p{line-height:1.35}.mv small{display:block;font-size:12px;color:var(--t65);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mv .q{align-self:start;font-weight:600;white-space:nowrap;font-variant-numeric:tabular-nums}.mv .q.in-entra{color:var(--verde)}
+[data-li="ahora"] .libro{border-radius:16px;border:1px solid var(--sand);background:var(--papel);-webkit-backdrop-filter:none;backdrop-filter:none;box-shadow:none}
+[data-li="ahora"] .mv+.mv{border-top:1px solid color-mix(in srgb,var(--tinta) 10%,transparent)}
+/* A · Placa con filas: la placa Serena, una fila por movimiento con rayas finas; lo que entra lleva su cantidad en una lente verde; lo que sale,
+   en tinta. */
+[data-li="filas"] .mv+.mv{box-shadow:inset 0 1px 0 color-mix(in srgb,var(--tinta) 8%,transparent)}
+[data-li="filas"] .mv .q{padding:2px 9px;border-radius:999px;font-size:12.5px;background:color-mix(in srgb,var(--tinta) 6%,transparent)}
+[data-li="filas"] .mv .q.in-entra{border:1px solid color-mix(in srgb,var(--verde) 28%,transparent);background:linear-gradient(180deg,color-mix(in srgb,var(--verde) 6%,color-mix(in srgb,var(--vidrio) 80%,transparent)),color-mix(in srgb,var(--verde) 14%,transparent))}
+/* B · Libro hundido: el libro es un pozo (lo que no se toca, solo se lee), con un riel fino que une los movimientos. */
+[data-li="riel"] .libro{background:color-mix(in srgb,var(--tinta) 4%,transparent);border:1px solid color-mix(in srgb,var(--borde) 70%,transparent);-webkit-backdrop-filter:none;backdrop-filter:none;box-shadow:inset 0 2px 6px color-mix(in srgb,var(--sombra) 16%,transparent)}
+[data-tema="oscuro"][data-li="riel"] .libro{background:color-mix(in srgb,var(--sombra) 28%,transparent)}
+[data-li="riel"] .mv{position:relative;padding-left:18px}
+[data-li="riel"] .mv::before{content:"";position:absolute;left:4px;top:15px;width:7px;height:7px;border-radius:50%;background:var(--tinta)}
+[data-li="riel"] .mv.e::before{background:var(--verde)}
+[data-li="riel"] .mv:not(:last-child)::after{content:"";position:absolute;left:7px;top:26px;bottom:-10px;width:1px;background:color-mix(in srgb,var(--tinta) 15%,transparent)}
+
+/* la hoja «Nueva tela» */
+.hoja{width:min(576px,100%)}
+.hoja .cmb{justify-content:space-between}.hoja .cmb svg{width:14px;height:14px}
+.hoja .col-cs{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px}.hoja .col-cs span{display:inline-flex;align-items:center;gap:6px;height:30px;padding:0 12px;border-radius:999px;font-size:12.5px;border:1px solid var(--borde);background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 90%,transparent),color-mix(in srgb,var(--vidrio) 55%,transparent))}
+.hoja .col-cs span i{width:10px;height:10px;border-radius:50%}
+@container disp (max-width:1279px){.in-cuerpo{grid-template-columns:minmax(0,1fr)}.libro{position:static}}
+@container disp (max-width:700px){.fi-b{grid-template-columns:minmax(0,1fr) auto;padding:12px 14px}.fi-b>.br{order:3;grid-column:1/-1}.fi-b .che{display:none}.lote{grid-template-columns:4rem minmax(0,1fr) auto;gap:4px 10px}.lote .co,.lote .lapiz{display:none}.lotes{margin:0 14px 10px}.fi-acc{margin:0 14px 12px}.in-cif{gap:10px}.cif b{font-size:28px}.hoja .dos{grid-template-columns:minmax(0,1fr)}}
+@media (prefers-reduced-motion:reduce){.fi-c,.fi-b .che{transition:none}}
+</style>
+</head>
+<body>
+
+<div class="spk">
+  <span class="titulo">Producción ▸ Insumos (telas y avíos), con vidrio: la página entera con las piezas elegidas</span>
+  <span class="tag">La fila de un insumo</span><div class="seg-m" data-ctl="fi"><button data-v="ahora">Como ahora</button><button data-v="placa">A · Una placa por tela</button><button data-v="sueltas">B · Placas sueltas</button></div>
+  <span class="tag">El libro de movimientos</span><div class="seg-m" data-ctl="li"><button data-v="ahora">Como ahora</button><button data-v="filas">A · Placa con filas</button><button data-v="riel">B · Libro hundido</button></div>
+  <span class="tag">Tema</span><div class="seg-m" data-ctl="tema"><button data-v="claro">Claro</button><button data-v="oscuro">Oscuro</button></div>
+  <span class="tag">Ancho</span><div class="seg-m" data-ctl="ancho"><button data-v="m320">320</button><button data-v="movil">375</button><button data-v="tablet">Tableta 768</button><button data-v="w1024">1024</button><button data-v="w1280">1280</button><button data-v="w1440">1440</button><button data-v="w1920">1920</button><button data-v="escritorio">Tu ventana</button></div>
+  <span class="tag">Ver abierta</span><button class="accion" data-acc="hoja">«Nueva tela» con «Existe también»</button>
+</div>
+
+<div class="escena"><div class="disp" id="disp" data-ancho="escritorio">
+  <div class="lienzo" aria-hidden="true"><i></i><i></i><i></i></div>
+  <aside class="lat" id="lat" aria-label="Menú principal"></aside>
+  <button class="plegar-flota" id="plegar-flota" data-acc="plegar" aria-controls="lat"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg></button>
+  <header class="cab" id="cab"></header>
+  <main class="cont" id="cont"></main>
+  <div class="flotante" id="flotante"></div>
+  <div class="capa"><div class="velo" data-acc="hoja"></div><div class="hoja" role="dialog" aria-modal="true" aria-labelledby="hTit">
+    <div class="hoja-cuerpo"><h2 id="hTit">Nueva tela</h2><p class="sub">Una tela, todos sus colores, en un solo paso.</p>
+      <p class="et">Nombre de la tela *</p><div class="caja">Popelín stretch</div>
+      <p class="et">Tejido *</p><div class="caja esc cmb"><span>Popelín<span class="cur"></span></span><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></div>
+      <div class="lente-at" role="group" aria-label="Existe también"><p class="t"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 9v4M12 17h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/></svg>¿No será «Popelina», que ya existe?</p>
+        <p>Antes de crear «Popelín»: casi el mismo nombre ya es un tejido. Si es el mismo, úsalo.</p>
+        <div class="op"><span>Popelina <i>· 4 telas</i></span><button class="b sec">Usar Popelina</button></div><button class="no">No, es otro tejido</button></div>
+      <div class="dos"><div><p class="et">Composición</p><div class="caja">97 % algodón, 3 % elastano</div></div><div><p class="et">Se compra</p><div class="caja">por metro</div></div></div>
+      <p class="et">Colores *</p><div class="col-cs"><span><i data-color-dato style="background:#d8cbb3"></i>Hueso</span><span><i data-color-dato style="background:#1d1b19"></i>Negro</span><span>+ Otro color</span></div>
+      <p class="falta">Falta: contestar si el tejido es «Popelina»</p>
+      <div class="pie"><button class="b sec" data-acc="hoja">Cancelar</button><button class="b pri" disabled>Guardar la tela</button></div></div>
+  </div></div>
+</div></div>
+
+<div class="analisis">
+  <section>
+    <h2>Lo que hay hoy</h2>
+    <ul>
+      <li><b>La pantalla</b> (<code>InsumosPanel</code>, ADR-0133): las cifras, «Ver el capital en insumos» (solo el líder), las telas y los avíos, y a la derecha el libro de movimientos, que solo se agrega.</li>
+      <li><b>La fila de un insumo</b> (<code>FilaInsumo</code>): cada color de una tela es <b>una tarjeta de papel suelta</b> bajo el título de su tela: nombre, código, la ficha con su punto de color, la barra del saldo con la marca del mínimo, el estado y el saldo grande. Al tocarla se abre con sus lotes («1º» el que se descuenta primero) e «Ingresar».</li>
+      <li><b>El libro de movimientos</b>: una tarjeta de papel con una línea por movimiento, la cantidad en verde si entra.</li>
+      <li><b>«Nueva tela»</b>: al crear un tejido desde su combo, «Existe también» pregunta antes de crearlo (ADR-0576) y la hoja no se guarda hasta contestar. Su cara es el aviso ya elegido (B · Lente).</li>
+    </ul>
+  </section>
+  <section>
+    <h2>Las caras: lo que gana y lo que cuesta</h2>
+    <table>
+      <tr><th>Pieza</th><th>Cara</th><th>Lo que gana</th><th>Lo que cuesta</th></tr>
+      <tr><td rowspan="2"><b>La fila de un insumo</b></td><td>A · Una placa por tela <span class="ev">Recomendada</span></td><td>Los colores de una tela viven juntos en una placa, una fila por color, como Clientes y Colaboradores; la que abres se hunde con sus lotes. Una tela se lee como una cosa, y la pantalla deja de ser una pila de tarjetas.</td><td>Una tela con muchos colores es una placa alta.</td></tr>
+      <tr><td>B · Placas sueltas</td><td>Cada color sigue suelto, como hoy, ahora de vidrio; los lotes, en un pozo.</td><td>Con 20 colores son 20 placas: mucho vidrio apilado.</td></tr>
+      <tr><td rowspan="2"><b>El libro de movimientos</b></td><td>A · Placa con filas <span class="ev">Recomendada</span></td><td>La placa Serena, una fila por movimiento; lo que entra, en una lente verde. Igual que «Qué hacer» de Proveedores.</td><td>Casi nada.</td></tr>
+      <tr><td>B · Libro hundido</td><td>Un pozo: se lee como lo que es, un registro que no se toca; un riel une los movimientos.</td><td>Lo hundido dice «aquí va tu dato», y aquí no se escribe.</td></tr>
+    </table>
+    <h3>Lo que no cambia</h3>
+    <p>Lo que dice cada fila, la barra del saldo con su mínimo y su color por estado, el saldo que cuenta, el acordeón y sus lotes con «1º», el lápiz de un ingreso, los títulos de cada tela con «+ Agregar colores», el capital que se pide con un toque, el libro que solo se agrega, y todo «Existe también»: lo que pregunta, antes de crear el tejido, y que la hoja espera la respuesta.</p>
+  </section>
+</div>
+
+<script src="../vidrio-base-2026-10/marco.js"></script>
+<!-- Ojo: marco.js deja sus nombres en el ámbito global (SEDES, estado, pintar, boton, encabezado, activa…); esta maqueta vive en su propia función. -->
+<script>
+(() => {
+  const D = { che: 'M9 6l6 6-6 6', lapiz: 'M12 20h9 M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z' };
+  const s = (d, c = 'ic') => `<svg class="${c}" viewBox="0 0 24 24" aria-hidden="true"><path d="${d}"/></svg>`;
+  const EST = { ok: ['verde', 'Alcanza', 'var(--tinta)'], bajo: ['ambar', 'Bajo el mínimo', 'var(--ambar)'], sin: ['roja', 'Sin saldo', 'var(--rojo)'] };
+  // [id, nombre, código, color hex, color, saldo, mínimo, unidad, semanas, estado, lotes [[cód, saldo, ingresó, origen, día, doc, costo]]]
+  const TELAS = [['Popelina stretch', 'TEL-014 · Popelina · 97 % algodón, 3 % elastano · por metro', [
+      ['p1', 'Popelina stretch Hueso', 'TEL-014-HUE', '#d8cbb3', 'Hueso', 42.5, 15, 'm', 6.2, 'ok', [['L-031', 12.5, 40, 'compra', '12 sep', 'F001-2231', 'S/ 9.80 / m'], ['L-044', 30, 30, 'compra', '20 oct', 'F001-2410', 'S/ 10.20 / m']]],
+      ['p2', 'Popelina stretch Negro', 'TEL-014-NEG', '#1d1b19', 'Negro', 8, 15, 'm', 1.4, 'bajo', [['L-029', 8, 35, 'compra', '2 sep', 'F001-2198', 'S/ 9.80 / m']]],
+      ['p3', 'Popelina stretch Vino', 'TEL-014-VIN', '#7a2e2a', 'Vino', 0, 10, 'm', null, 'sin', []]]],
+    ['Lino lavado', 'TEL-009 · Lino · 100 % lino · por rollo de 30 m', [
+      ['l1', 'Lino lavado Arena', 'TEL-009-ARE', '#c9a27e', 'Arena', 63, 20, 'm', 9.5, 'ok', [['L-012', 3, 30, 'saldo inicial', '1 ago', '', 'S/ 14.00 / m'], ['L-038', 60, 60, 'compra', '3 oct', 'F002-0871', 'S/ 14.50 / m']]],
+      ['l2', 'Lino lavado Oliva', 'TEL-009-OLI', '#6b6f3a', 'Oliva', 21, 20, 'm', 3.1, 'ok', [['L-039', 21, 30, 'compra', '3 oct', 'F002-0871', 'S/ 14.50 / m']]]]]];
+  const AVIOS = [['Botones', 'AVI-003 · por ciento', [['a1', 'Botón nácar 18 mm', 'AVI-003-NAC', '#efe7da', 'Nácar', 640, 200, 'u', 11, 'ok', [['L-040', 640, 1000, 'compra', '8 oct', 'B003-1120', 'S/ 0.12 / u']]]]],
+    ['Cierres', 'AVI-007 · por unidad', [['a2', 'Cierre invisible 20 cm', 'AVI-007-NEG', '#1d1b19', 'Negro', 35, 60, 'u', 0.9, 'bajo', [['L-036', 35, 120, 'compra', '28 sep', 'B003-1098', 'S/ 0.85 / u']]]]]];
+  const abiertos = new Set(['p1']);
+  const MOV = [['Entró a L-044', 'Popelina stretch Hueso · F001-2410 · 20 oct', '+30 m', 1], ['Cortó la OP-0187', 'Popelina stretch Negro · L-029 · 18 oct', '−6.5 m'], ['Cortó la OP-0186', 'Lino lavado Arena · L-012 · 17 oct', '−9 m'],
+    ['Entró a L-040', 'Botón nácar 18 mm · B003-1120 · 8 oct', '+1,000 u', 1], ['Devolvió la OP-0181', 'Lino lavado Oliva · L-039 · 6 oct', '+1.5 m', 1], ['Cortó la OP-0183', 'Popelina stretch Hueso · L-031 · 4 oct', '−12 m']];
+  const n = (v, u) => `${v.toLocaleString('es-PE', { maximumFractionDigits: 1 })} ${u}`;
+  function fila([id, nm, cd, hex, col, sal, min, u, sem, est, lotes]) { const [t, tx, c] = EST[est]; const esc = Math.max(sal, min) * 1.25 || 1;
+    return `<article class="fi"${abiertos.has(id) ? ' data-abierto' : ''}><button class="fi-b" data-fila="${id}" aria-expanded="${abiertos.has(id)}"><div style="min-width:0"><p class="nm">${nm}</p><p class="cd"><span>${cd}</span> · ${lotes.length} ${lotes.length === 1 ? 'lote' : 'lotes'}${sem ? ` · alcanza ~${sem} sem.` : ''}</p><p class="fc"><i data-color-dato style="background:${hex}"></i>${col}</p></div>
+      <div class="br"><span class="tubo" style="--c:${c}"><i style="width:${(sal / esc) * 100}%"></i><b style="left:${(min / esc) * 100}%"></b></span><span class="bajo"><span>mínimo ${n(min, u)}</span><span class="chip ${t}">${tx}</span></span></div>
+      <p class="sal">${sal.toLocaleString('es-PE', { maximumFractionDigits: 1 })}<small>${u === 'm' ? 'm' : 'u'}</small></p>${s(D.che, 'ic che')}</button>
+      <div class="fi-c"><div><div class="lotes">${lotes.length ? lotes.map(([lc, ls, li, o, d, doc, co], k) => `<div class="lote"><span class="lc">${lc}</span><div style="min-width:0"><span class="tubo fina"><i style="width:${(ls / li) * 100}%"></i></span><p>${o} · ${d}${doc ? ' · ' + doc : ''}</p></div><span class="q">${n(ls, u)} <span>/ ${n(li, u)}</span></span><span class="co">${co}${k === 0 ? '<span class="chip tinta">1º</span>' : ''}</span><button class="lapiz" aria-label="Editar este ingreso">${s(D.lapiz)}</button></div>`).join('') : '<p style="padding:12px 0;font-size:13px;color:var(--t65)">Todavía no hay lotes de este insumo.</p>'}</div>
+        <div class="fi-acc">${boton(['sec', 'Ingresar'])}${boton(['sec', 'Ficha de la tela'])}</div></div></div></article>`; }
+  const grupo = ([nm, nota, fs], tela) => `<div class="in-grupo"><div class="tg"><span class="n">${nm} <span class="glb">${fs.length}</span></span>${tela ? `<span class="acc"><a href="#">+ Agregar colores</a><button class="lapiz" aria-label="Editar la tela ${nm}">${s(D.lapiz)}</button></span>` : ''}<span class="nota">${nota}</span></div><div class="grupo-p">${fs.map(fila).join('')}</div></div>`;
+  function pantalla() {
+    $('#cont').innerHTML = `${encabezado({ sede: 'Taller Lima', titulo: 'Insumos', frase: 'La tela y los avíos del Taller: cuánto hay por lote, cuánto dura y qué falta.', acciones: [['sec', '+ Nueva tela'], ['sec', '+ Nuevo avío'], ['pri', 'Ingresar insumo']] })}
+      <div class="in-cif"><div class="placa cif" style="--c:var(--ambar)"><p class="vs"><i></i>Bajo el mínimo</p><b>2</b><small class="amb">hay que pedir o esperar lo que viene</small></div><div class="placa cif"><p class="vs"><i></i>Insumos</p><b>7</b><small>5 telas · 2 avíos</small></div></div>
+      <p class="capital"><a href="#">Ver el capital en insumos</a></p>
+      <div class="in-cuerpo"><div class="in-lista"><section class="in-grupo"><p class="ts">Telas <small>por metro o por rollo</small></p>${TELAS.map((g) => grupo(g, 1)).join('')}</section><section class="in-grupo"><p class="ts">Avíos <small>botones, cierres e hilo</small></p>${AVIOS.map((g) => grupo(g, 0)).join('')}</section></div>
+        <aside class="placa libro" aria-label="Libro de movimientos"><p class="ts">Libro de movimientos</p><p>Solo se agrega: nada se edita ni se borra.</p>${MOV.map(([t, d, q, e]) => `<div class="mv${e ? ' e' : ''}"><div><p>${t}</p><small>${d}</small></div><span class="q${e ? ' in-entra' : ''}">${q}</span></div>`).join('')}</aside></div>`;
+    $$('#cont [data-fila]').forEach((b) => b.addEventListener('click', () => { const id = b.dataset.fila, a = b.closest('.fi'); abiertos.has(id) ? abiertos.delete(id) : abiertos.add(id); a.toggleAttribute('data-abierto', abiertos.has(id)); b.setAttribute('aria-expanded', abiertos.has(id)); }));
+  }
+  Marco.iniciar({ estado: { fi: 'placa', li: 'filas' }, alPintar: () => { $('#cont').scrollTop = 0; pantalla(); } });
+})();
+</script>
+</body>
+</html>

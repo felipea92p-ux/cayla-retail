@@ -57,7 +57,7 @@ export function FiltroConteosRecientes({
         Ayer <span className="pildora-cayla__n">{deAyer}</span>
       </Link>
       <div className="flex items-center gap-2 sm:pl-1.5">
-        <span aria-hidden className="text-[13px] text-taupe">
+        <span aria-hidden className="text-sm text-taupe">
           Otra fecha
         </span>
         {/* `CampoFecha` deja debajo un renglón para avisos (`mt-1` + 0,9 rem): aquí nunca los hay, y ese renglón sacaba la caja del

@@ -16,6 +16,9 @@
  *
  * La lista de pantallas repite `PANTALLAS_SIN_CONEXION` de `lib/sin-conexion-reglas.ts` (este archivo no puede
  * importarlo); `sin-conexion-reglas.test.ts` falla si se separan. Cambiar la lógica de este archivo = subir VERSION.
+ *
+ * Avisos de pedido web (ADR-0582, al final del archivo): muestra el aviso que manda `/api/pedidos-web/avisar` y, al tocarlo, abre el
+ * pedido. No toca las copias: agregarlos NO sube VERSION (borraría las copias de Vender); basta con que cambien los bytes.
  */
 
 const VERSION = "v1";
@@ -130,4 +133,69 @@ self.addEventListener("fetch", (evento) => {
   }
   // Lo demás (RSC, API, Supabase) pasa directo. Una lectura RSC que falla sin red hace que Next pida la página
   // completa: esa sí la atiende este SW, con la copia o con «Sin conexión».
+});
+
+// ---- Avisos de pedido web (ADR-0582) -------------------------------------------------------------------------------------------
+// El paquete lo arma `paqueteDelPedido` (lib/push-pedidos-web.ts): título, texto, a qué pantalla ir, la foto de la primera prenda y
+// una etiqueta por pedido. Aquí se le pone lo que dibuja el teléfono: el colibrí, la insignia de la barra de Android, la vibración al
+// ritmo de «Campanita» y los dos botones (el iPhone no muestra foto ni botones; los ignora sin error). El SONIDO no se elige aquí: en
+// Android es el de la app (Ajustes ▸ Apps ▸ CAYLA ERP ▸ Notificaciones), en iPhone el tono de iOS.
+const VIBRACION_CAMPANITA = [120, 80, 220];
+const PEDIDOS_WEB = "/tienda-web/pedidos";
+
+function rutaInterna(enlace) {
+  return typeof enlace === "string" && enlace.startsWith("/") && !enlace.startsWith("//") && enlace.length <= 300 ? enlace : PEDIDOS_WEB;
+}
+
+function mostrarAviso(datos) {
+  const d = datos && typeof datos === "object" ? datos : {};
+  const titulo = typeof d.titulo === "string" && d.titulo ? d.titulo : "Pedido web nuevo";
+  const opciones = {
+    body: typeof d.texto === "string" ? d.texto : "Revisa Tienda web ▸ Pedidos.",
+    icon: "/erp-app-192.png",
+    badge: "/erp-insignia-96.png",
+    tag: typeof d.etiqueta === "string" && d.etiqueta ? d.etiqueta : undefined,
+    // Si el mismo pedido llega dos veces, reemplaza al anterior pero vuelve a sonar.
+    renotify: typeof d.etiqueta === "string" && d.etiqueta !== "",
+    vibrate: VIBRACION_CAMPANITA,
+    timestamp: Date.now(),
+    data: { enlace: rutaInterna(d.enlace) },
+    actions: [
+      { action: "ver", title: "Ver pedido" },
+      { action: "todos", title: "Ver todos" },
+    ],
+  };
+  if (typeof d.imagen === "string" && d.imagen.startsWith("https://")) opciones.image = d.imagen;
+  return self.registration.showNotification(titulo, opciones);
+}
+
+// Todo aviso que llega se muestra (el iPhone le quita el permiso a una app que recibe avisos y no los muestra).
+self.addEventListener("push", (evento) => {
+  let datos = {};
+  try {
+    datos = evento.data ? evento.data.json() : {};
+  } catch {
+    datos = {};
+  }
+  evento.waitUntil(mostrarAviso(datos));
+});
+
+// «Probar el aviso» de la pantalla: el mismo aviso, armado aquí, sin pasar por el servidor (así suena y se ve igual que uno de verdad).
+self.addEventListener("message", (evento) => {
+  if (evento.data && evento.data.tipo === "probar-aviso-pedido-web") evento.waitUntil(mostrarAviso(evento.data.paquete));
+});
+
+// Al tocarlo: si el ERP ya está abierto, se enfoca y va al pedido; si no, se abre. «Ver todos» lleva a la lista.
+self.addEventListener("notificationclick", (evento) => {
+  evento.notification.close();
+  const enlace = evento.action === "todos" ? PEDIDOS_WEB : rutaInterna(evento.notification.data && evento.notification.data.enlace);
+  const destino = new URL(enlace, self.location.origin).href;
+  evento.waitUntil(
+    self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((ventanas) => {
+      for (const ventana of ventanas) {
+        if ("focus" in ventana) return ventana.navigate ? ventana.navigate(destino).then((v) => (v || ventana).focus()) : ventana.focus();
+      }
+      return self.clients.openWindow(destino);
+    }),
+  );
 });

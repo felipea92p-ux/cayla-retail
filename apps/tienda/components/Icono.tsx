@@ -1,5 +1,6 @@
 // Los íconos de la tienda: los mismos trazos de la maqueta aprobada (docs/maquetas/tienda-online-2026-10).
 const TRAZOS = {
+  percha: <path d="M12 7a2 2 0 1 0-2-2M12 7v2l8.5 6.2c.9.7.4 2.1-.7 2.1H4.200c-1.100 0-1.600-1.400-.7-2.100L12 9"/>,
   bolsa: <><path d="M6 8h12l-1 12H7L6 8Z" /><path d="M9 8V6a3 3 0 0 1 6 0v2" /></>,
   persona: <><circle cx="12" cy="8" r="3.5" /><path d="M5 20c1.2-3.6 4-5 7-5s5.8 1.4 7 5" /></>,
   tienda: <><path d="M4 9h16l-1.4-4.5H5.4L4 9Z" /><path d="M5 9v11h14V9" /><path d="M10 20v-5h4v5" /></>,
@@ -25,6 +26,9 @@ const TRAZOS = {
   chevron: <path d="M7 10l5 5 5-5" />,
   // La cabecera con cuenta (actividad 5): el menú, el buscador y cerrar sus hojas.
   menu: <path d="M4 7h16M4 12h16M4 17h10" />,
+  sol: <><circle cx="12" cy="12" r="4" /><path d="M12 3v2M12 19v2M3 12h2M19 12h2M5.6 5.6 7 7M17 17l1.4 1.4M18.4 5.6 17 7M7 17l-1.4 1.4" /></>,
+  luna: <path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5Z" />,
+  contraste: <><circle cx="12" cy="12" r="8.5" /><path d="M12 3.5v17a8.5 8.5 0 0 0 0-17Z" fill="currentColor" /></>,
   lupa: <><circle cx="11" cy="11" r="6.5" /><path d="M20 20l-4.2-4.2" /></>,
   cerrar: <path d="M6 6l12 12M18 6L6 18" />,
   // Instalar CAYLA en el celular (ADR-0431): los botones que la guía nombra, dibujados como los del navegador para reconocerlos.

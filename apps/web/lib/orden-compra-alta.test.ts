@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { sePuedeConfirmar, siguienteDe } from "./guia-campos";
+import { leerMontoPlata } from "./monto-plata-reglas";
 import {
   POR_REPARTIR,
   aTexto,
@@ -57,6 +58,18 @@ describe("leerNumero: lo que se tipea en el puesto", () => {
     expect(leerNumero("0.500", 2)).toEqual({ tipo: "ok", escalado: 50 });
     expect(leerNumero("1234.500", 2)).toEqual({ tipo: "ok", escalado: 123450 });
     expect(leerNumero("S/ 25.50", 2)).toEqual({ tipo: "ok", escalado: 2550 });
+    // «S/.» es el símbolo del sol, no «S/» con un punto decimal: «S/. 25» son veinticinco SOLES (Felipe 2026-10-31).
+    // Antes el punto quedaba suelto y se leían veinticinco CÉNTIMOS, cien veces menos y en silencio, en las órdenes de
+    // compra y de insumos, la factura del proveedor y la recepción. Es el mismo caso que /chaos encontró el 2026-10-28
+    // en el alta de productos («S/. 59» → 0.59) y que allá ya se arregló: `tabla-alta-reglas.test.ts:139`.
+    expect(leerNumero("S/. 25", 2)).toEqual({ tipo: "ok", escalado: 2500 });
+    expect(leerNumero("S/. 59,90", 2)).toEqual({ tipo: "ok", escalado: 5990 });
+    expect(leerNumero("S/.500", 0)).toEqual({ tipo: "ok", escalado: 500 });
+    expect(leerNumero("S/.  25", 2)).toEqual({ tipo: "ok", escalado: 2500 });
+    // Y lo mismo que dice `leerMontoPlata` para el mismo texto: un solo criterio en todo el ERP.
+    expect(leerMontoPlata("S/. 25")).toBe(25);
+    // Sin el símbolo, un punto al inicio SÍ es decimal y no cambia.
+    expect(leerNumero(".50", 2)).toEqual({ tipo: "ok", escalado: 50 });
     expect(leerNumero("12.345", 4)).toEqual({ tipo: "ok", escalado: 123450 });
   });
   it("la coma separa miles («1,950.50», «1,000»); sin punto, «12,50» es doce cincuenta y no mil doscientos cincuenta", () => {

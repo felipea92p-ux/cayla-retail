@@ -37,7 +37,7 @@ export function PuntoDeVentaColaOffline({ cola, onDescartar }: Props) {
   return (
     <div className="anim-revelar space-y-2 border-b border-sand bg-ambar/10 px-4 py-3 sm:px-6">
       {pendientes.length > 0 && (
-        <p className="flex items-center gap-2 text-xs text-ambar-profundo">
+        <p className="flex items-center gap-2 text-sm text-ambar-profundo">
           <CloudOff className="h-4 w-4 shrink-0" aria-hidden />
           {pendientes.length === 1
             ? "1 venta guardada sin conexión en este equipo — subirá sola cuando vuelva el internet. No cierres esta pestaña."
@@ -45,7 +45,7 @@ export function PuntoDeVentaColaOffline({ cola, onDescartar }: Props) {
         </p>
       )}
       {rechazadas.map((venta) => (
-        <div key={venta.token} className="flex flex-wrap items-center gap-2 rounded-lg border border-rojo/30 bg-crema px-3 py-2 text-xs text-rojo-profundo">
+        <div key={venta.token} className="flex flex-wrap items-center gap-2 rounded-lg border border-rojo/30 bg-crema px-3 py-2 text-sm text-rojo-profundo">
           <TriangleAlert className="h-4 w-4 shrink-0" aria-hidden />
           <span className="min-w-0 flex-1">
             Una venta guardada sin conexión ({money(totalDe(venta))}) no pudo subir: {venta.rechazo}

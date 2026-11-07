@@ -16,7 +16,7 @@ export function ListaActividad({ eventos }: { eventos: EventoAcceso[] }) {
     <div className="card-cayla p-5">
       <div className="mb-4 border-b border-tinta/10 pb-3">
         <TituloSeccion dato={total > eventos.length ? `Los ${eventos.length} más recientes de ${total}` : plural(total, "evento", "eventos")}>Registro de accesos</TituloSeccion>
-        <p className="text-xs text-tinta/65">Cada alta, baja, suspensión, reactivación y cambio de ubicación queda escrito una vez. No se edita ni se borra.</p>
+        <p className="text-sm text-tinta/65">Cada alta, baja, suspensión, reactivación y cambio de ubicación queda escrito una vez. No se edita ni se borra.</p>
       </div>
       <ol className="space-y-2.5">
         {eventos.map((e) => {
@@ -31,10 +31,10 @@ export function ListaActividad({ eventos }: { eventos: EventoAcceso[] }) {
                   <p className="text-sm text-tinta">
                     {f.partes.map((p, i) => (p.fuerte ? <strong key={i} className="font-semibold">{p.texto}</strong> : <span key={i}>{p.texto}</span>))}
                   </p>
-                  {f.detalle && <p className="mt-0.5 text-xs text-tinta/65">{f.detalle}</p>}
+                  {f.detalle && <p className="mt-0.5 text-sm text-tinta/65">{f.detalle}</p>}
                 </div>
               </div>
-              <time dateTime={e.created_at} className="shrink-0 whitespace-nowrap text-xs tabular-nums text-tinta/65">
+              <time dateTime={e.created_at} className="shrink-0 whitespace-nowrap text-sm tabular-nums text-tinta/65">
                 {fechaLima(e.created_at)} · {diaYHoraLima(e.created_at).hora}
               </time>
             </li>

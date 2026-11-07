@@ -3,10 +3,14 @@ import { exigir, leerTodas } from "@/lib/resultado";
 import { ID_CARGO_ESPECIAL } from "@/lib/cargo-especial";
 import { fotoPrincipal, sumarCantidades, type Cantidades } from "@/lib/inventario-reglas";
 import { agruparStockPorSede, type FilaStock as FilaStockSede, type SedeConStockId } from "@/lib/stock-por-sede";
+import type { DuenoDeStock } from "@/lib/stock-por-dueno-reglas";
 import { codigoDeEtiqueta } from "@/lib/prenda-reglas";
+import { COLUMNAS_FILA_EN_CERO, filaEnCero } from "@/lib/existencias-fila-en-cero";
 import { getPreciosPorSede } from "@/lib/precios-sede-datos";
 import { precioEnLaSede } from "@/lib/precio-sede-reglas";
-import { leerDevolvibles, origenDeDanada, RPC_DANADAS_DEVOLVIBLES, type DevolucionPosible, type OrigenDanada } from "@/lib/danadas-reglas";
+import { leerEnArreglo, type EnArreglo, type NoSePudo } from "@/lib/danadas-arreglo";
+import { BUCKET_FOTOS_DANADAS, leerRutasDeFotos, RPC_FOTOS_DE_DANADAS } from "@/lib/danadas-foto";
+import { leerDevolvibles, leerTipoDano, origenDeDanada, RPC_DANADAS_DEVOLVIBLES, type DevolucionPosible, type OrigenDanada, type TipoDano } from "@/lib/danadas-reglas";
 import type { CoberturaPiso, RitmoReciente } from "@/lib/existencias-ritmo";
 import type { PisoDeTalla } from "@/lib/piso-plan";
 
@@ -256,6 +260,9 @@ export type FilaExistencias = FilaStock & {
   /** La familia del color (`colores.familia_color`), para el filtro «Color» agrupado por familia (2026-10-03). La pone la
    *  página con `conFamiliaDeColor`, de una lectura aparte y tolerante. Ausente o null = sin familia o no se pudo leer. */
   colorFamilia?: string | null;
+  /** De quién son las unidades de esta talla en esta sede (ADR-0542), solo donde conviven dos empresas y solo si alguien que no es la casa
+   *  tiene unidades. La pone la página con `conDuenos`, de una lectura aparte y tolerante. Ausente = nada que decir, o no se pudo leer. */
+  duenos?: DuenoDeStock[];
 };
 
 /** `fn_stock_por_sede()` entera: ~2.900 filas (variante × sede) y PostgREST corta en 1.000 — «¿dónde más hay?» decía
@@ -371,6 +378,22 @@ export async function getExistencias(
   return filas.sort((a, b) => a.referencia.localeCompare(b.referencia, "es") || (a.sku ?? "").localeCompare(b.sku ?? "", "es"));
 }
 
+/**
+ * La fila en cero de UNA talla que esta sede nunca tuvo (ni una fila de `stock`), para abrir «Ajustar stock» en ella.
+ *
+ * Existencias arma sus filas desde `stock`, y una fila de `stock` nace de un movimiento: una prenda recién creada (o una talla que nunca llegó a
+ * esta tienda) no tiene ninguna, así que `?variante=<id>&ajustar=1` —el candado de Editar producto, ADR-0494— no encontraba nada y la pantalla
+ * no abría nada: justo la prenda a la que hay que cargarle su primer stock. El ajuste no necesita la fila (`AjustarInventarioModal` lee las
+ * tallas del producto de la base y marca «sin historia» la que nunca se movió, ADR-0235): solo necesita saber de qué prenda se habla.
+ * `null` si la variante no existe o está apagada. Mismo cuerpo que la fila «en camino» de `getExistencias`.
+ */
+export async function getFilaSinStockDeVariante(varianteId: string, separaPisoAlmacen: boolean): Promise<FilaExistencias | null> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.from("variantes").select(COLUMNAS_FILA_EN_CERO).eq("id", varianteId).eq("activo", true).maybeSingle();
+  if (error || !data || varianteId === ID_CARGO_ESPECIAL) return null;
+  return filaEnCero(data, separaPisoAlmacen);
+}
+
 export type ResumenExistencias = ResumenInventario & {
   /** Unidades en camino hacia esta ubicación, sumando todas las prendas. */
   enTransito: number;
@@ -387,7 +410,7 @@ export function resumirExistencias(filas: FilaExistencias[]): ResumenExistencias
 
 // ============================================================================
 // "Dañado" (2026-09-17, ADR-0071): la cola de prendas en cuarentena
-// esperando que un líder decida Liquidada / Se botó / Donada
+// esperando que se decida Liquidada / Se botó / Donada (quien ve Existencias en su sede, ADR-0534)
 // (`retail.resolver_prenda_danada`). Consulta aparte de `getStockPorUbicacion`
 // porque acá SÍ hace falta historial (desde cuándo, resuelta por quién) —
 // `retail.stock` (de donde sale `FilaStock.danado`) es solo el snapshot de
@@ -412,6 +435,14 @@ export type PrendaDanada = {
   origen: OrigenDanada;
   /** Qué tiene, según quien la reportó desde Existencias. Null si llegó por una devolución o un cambio. */
   motivoReporte: string | null;
+  /** Qué tiene, de la lista corta (ADR-0564). Null si llegó por una devolución, un cambio o una recepción, o si es de antes de los tipos. */
+  tipoDano: TipoDano | null;
+  /** ADR-0564: si ya salió de la tienda a arreglarse (cuándo y hacia dónde), o null si sigue en la tienda. */
+  enArreglo: EnArreglo | null;
+  /** ADR-0564: si volvió de arreglarse SIN arreglo (con su motivo), o null. Sigue en cuarentena, esperando que se decida su destino. */
+  noSePudo: NoSePudo | null;
+  /** ADR-0564: los enlaces (válidos 1 hora) a las fotos del daño que subió quien la reportó; vacío si no hay o no se pudieron leer. */
+  fotos: string[];
   /** Si llegó dañada en una recepción, a qué proveedor se devuelve (ADR-0362, fase 5b, actividad 6a); si no, null (sin el botón). */
   devolucion: DevolucionPosible | null;
 };
@@ -419,11 +450,11 @@ export type PrendaDanada = {
 export async function getPrendasDanadasPendientes(ubicacionId: string): Promise<PrendaDanada[]> {
   const supabase = await createClient();
   // Por páginas (tarea #8): sin eso, pasado el tope de 1.000 filas de PostgREST las que sobran no aparecían, sin aviso.
-  const conMotivo = await leerTodas((desde, hasta) =>
+  const conTipo = await leerTodas((desde, hasta) =>
     supabase
       .from("prendas_danadas")
       .select(
-        `id, cantidad, created_at, motivo_reporte, cambio_id,
+        `id, cantidad, created_at, motivo_reporte, tipo_dano, cambio_id,
          variante:variantes ( id, sku, codigo, talla:tallas ( valor ), precio, color:colores ( nombre ), producto:productos ( referencia ) )`
       )
       .eq("ubicacion_id", ubicacionId)
@@ -437,6 +468,23 @@ export async function getPrendasDanadasPendientes(ubicacionId: string): Promise<
   // la lista de Dañadas (pasó con #730: la web salió por auto-merge antes que su SQL). Sin la columna se relee sin ella y todo
   // queda como antes (ninguna dañada viene de un reporte); «Reportar dañada» y «Se arregló» solo fallan al usarse. Mismo patrón
   // que `getStockPorUbicacion` con `cantidad_apartada`. Retirar el reintento cuando la migración esté aplicada.
+  // Lo mismo con `tipo_dano` (20261029024000, ADR-0564): sin la columna se relee con el motivo y sin el tipo.
+  const conMotivo =
+    conTipo.error?.code === COLUMNA_INEXISTENTE
+      ? await leerTodas((desde, hasta) =>
+          supabase
+            .from("prendas_danadas")
+            .select(
+              `id, cantidad, created_at, motivo_reporte, cambio_id,
+               variante:variantes ( id, sku, codigo, talla:tallas ( valor ), precio, color:colores ( nombre ), producto:productos ( referencia ) )`
+            )
+            .eq("ubicacion_id", ubicacionId)
+            .eq("estado", "en_cuarentena")
+            .order("created_at")
+            .order("id")
+            .range(desde, hasta)
+        ).then((r) => ({ ...r, data: r.data?.map((f) => ({ ...f, tipo_dano: null as string | null })) ?? null }))
+      : conTipo;
   const filas =
     conMotivo.error?.code === COLUMNA_INEXISTENTE
       ? exigir(
@@ -454,13 +502,19 @@ export async function getPrendasDanadasPendientes(ubicacionId: string): Promise<
               .range(desde, hasta)
           ),
           "las prendas dañadas pendientes"
-        ).map((f) => ({ ...f, motivo_reporte: null as string | null }))
+        ).map((f) => ({ ...f, motivo_reporte: null as string | null, tipo_dano: null as string | null }))
       : exigir(conMotivo, "las prendas dañadas pendientes");
   // Los precios propios de ESTA tienda, solo si hay algo que pintar (si la lectura falla, el precio de la prenda, como antes).
   const propios = filas.length === 0 ? {} : ((await getPreciosPorSede([ubicacionId]))[ubicacionId] ?? {});
   // «Devolver al proveedor» (ADR-0362, fase 5b, actividad 6a): cuáles llegaron dañadas en una recepción y a quién vuelven. Opcional: si la
   // base no responde o todavía no tiene la función, la lista sale sin ese botón, como antes.
   const devolvibles = filas.length === 0 ? new Map<string, DevolucionPosible>() : await leerDevolviblesDeSede(supabase, ubicacionId);
+  // Cuáles ya salieron a arreglarse (ADR-0564): una lectura aparte, opcional como la anterior. Sin las columnas (la web salió antes que
+  // `20261029032000`) o sin respuesta, ninguna sale marcada y la lista es la de antes.
+  const salidas = filas.length === 0 ? new Map<string, SalidaDeArreglo>() : await leerEnArregloDeSede(supabase, ubicacionId);
+  // Las fotos del daño (ADR-0564): opcionales, como la anterior. Sin la función (la web salió antes que `20261029034000`) o sin respuesta, la lista
+  // sale sin fotos, como antes.
+  const fotos = filas.length === 0 ? new Map<string, string[]>() : await leerFotosDeDanadas(supabase, filas.map((f) => f.id));
   return filas.map((f) => ({
     id: f.id,
     varianteId: f.variante?.id ?? "",
@@ -473,8 +527,65 @@ export async function getPrendasDanadasPendientes(ubicacionId: string): Promise<
     precioReferencia: precioEnLaSede(propios, f.variante?.id, f.variante?.precio) ?? 0,
     origen: origenDeDanada({ motivoReporte: f.motivo_reporte, cambioId: f.cambio_id }),
     motivoReporte: f.motivo_reporte,
+    tipoDano: leerTipoDano(f.tipo_dano),
+    enArreglo: salidas.get(f.id)?.enArreglo ?? null,
+    noSePudo: salidas.get(f.id)?.noSePudo ?? null,
+    fotos: fotos.get(f.id) ?? [],
     devolucion: devolvibles.get(f.id) ?? null,
   }));
+}
+
+/**
+ * Dónde deja la tienda las prendas dañadas (ADR-0564, `sububicaciones.lugar` de la cuarentena), o null si aún no lo marcó. Dato
+ * secundario: NUNCA lanza. Sin la columna (la web salió antes que `20261029031000`) o sin respuesta, no hay lugar y la pantalla sigue como antes.
+ */
+export async function getLugarDeDanadas(ubicacionId: string): Promise<string | null> {
+  // `createClient` lee las cookies (una pantalla dinámica): va FUERA del try, para no tragarse el aviso interno de Next.
+  const supabase = await createClient();
+  const { data, error } = await supabase.from("sububicaciones").select("lugar").eq("ubicacion_id", ubicacionId).eq("tipo", "cuarentena").limit(1);
+  // Una consulta de PostgREST no lanza: un error (como la columna aún inexistente, 42703) llega en `error`.
+  if (error) return null;
+  return data?.[0]?.lugar?.trim() || null;
+}
+
+/** Los enlaces firmados (1 hora) a las fotos del daño de esas dañadas. Nunca lanza: cualquier fallo es «sin fotos». */
+async function leerFotosDeDanadas(supabase: Awaited<ReturnType<typeof createClient>>, ids: string[]): Promise<Map<string, string[]>> {
+  const enlaces = new Map<string, string[]>();
+  const { data, error } = await supabase.rpc(RPC_FOTOS_DE_DANADAS, { p_ids: ids });
+  if (error) return enlaces;
+  const rutas = leerRutasDeFotos(data);
+  const todas = [...rutas.values()].flat();
+  if (todas.length === 0) return enlaces;
+  const firmadas = await supabase.storage.from(BUCKET_FOTOS_DANADAS).createSignedUrls(todas, 3600);
+  const urlDe = new Map((firmadas.data ?? []).map((f) => [f.path, f.signedUrl] as const));
+  for (const [id, lista] of rutas) {
+    const urls = lista.map((r) => urlDe.get(r)).filter((u): u is string => typeof u === "string");
+    if (urls.length > 0) enlaces.set(id, urls);
+  }
+  return enlaces;
+}
+
+type SalidaDeArreglo = { enArreglo: EnArreglo | null; noSePudo: NoSePudo | null };
+
+async function leerEnArregloDeSede(supabase: Awaited<ReturnType<typeof createClient>>, ubicacionId: string): Promise<Map<string, SalidaDeArreglo>> {
+  const { data, error } = await supabase
+    .from("prendas_danadas")
+    .select("id, en_arreglo_desde, ruta_arreglo, arreglo_volvio_en, arreglo_resultado, arreglo_no_se_pudo_motivo")
+    .eq("ubicacion_id", ubicacionId)
+    .eq("estado", "en_cuarentena")
+    .not("en_arreglo_desde", "is", null);
+  const salidas = new Map<string, SalidaDeArreglo>();
+  if (error) return salidas;
+  for (const f of data ?? []) {
+    // Fuera de la tienda: salió y todavía no volvió. Volvió sin arreglo: lo dice su resultado (y su motivo, si lo hay).
+    if (f.arreglo_volvio_en === null) {
+      const e = leerEnArreglo(f.en_arreglo_desde, f.ruta_arreglo);
+      if (e) salidas.set(f.id, { enArreglo: e, noSePudo: null });
+    } else if (f.arreglo_resultado === "no_se_pudo") {
+      salidas.set(f.id, { enArreglo: null, noSePudo: { motivo: f.arreglo_no_se_pudo_motivo?.trim() || null } });
+    }
+  }
+  return salidas;
 }
 
 async function leerDevolviblesDeSede(supabase: Awaited<ReturnType<typeof createClient>>, ubicacionId: string): Promise<Map<string, DevolucionPosible>> {

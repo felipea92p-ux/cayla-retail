@@ -336,8 +336,15 @@ export function filaDeVer(filasER: readonly FilaER[], ver: VerResumen): FilaER |
 
 const DINERO = "Cuentas y dinero";
 
-/** «Debes en 7 días»: lo vencido y lo que vence en `aviso_vence_dias` (F4), más la planilla de esos días si se ve (F6). */
-export function debesPronto(r: ResumenFinanzas): { monto: number; vencidas: FilaPorPagar[]; proximas: FilaPorPagar[]; planilla: { monto: number; fecha: string } | null } | null {
+/** Una salida de la proyección que entra en «debes»: un fijo, un impuesto, o AFP y retenciones. */
+export type OtraDeuda = { id: string; titulo: string; monto: number; fecha: string; atrasada: boolean };
+
+/**
+ * «Debes en 7 días»: lo vencido y lo que vence en `aviso_vence_dias` (F4), más lo que la proyección trae en esos días: la planilla, los fijos, los impuestos y
+ * AFP, EsSalud y retenciones (tarea 22). La planilla vale su NETO, lo que sale del banco (Felipe 2026-11-05); `al_cierre` es costo, no salida. Los vencimientos no se
+ * suman de la proyección porque ya están en `porPagar`. Mirando una sede, solo lo de esa sede. `leyoSalidas`: sin esa lectura la cifra no incluye eso y no se puede decir que no vence nada.
+ */
+export function debesPronto(r: ResumenFinanzas): { monto: number; vencidas: FilaPorPagar[]; proximas: FilaPorPagar[]; planilla: { monto: number; fecha: string } | null; otras: OtraDeuda[]; leyoSalidas: boolean; planillaVisible: boolean } | null {
   if (r.porPagar.estado !== "ok") return null;
   const { filas: fs, dias } = r.porPagar.datos;
   const vencidas = fs.filter((f) => diasHasta(f.vence, r.hoy) < 0);
@@ -346,12 +353,26 @@ export function debesPronto(r: ResumenFinanzas): { monto: number; vencidas: Fila
     return d >= 0 && d <= dias;
   });
   let planilla: { monto: number; fecha: string } | null = null;
+  let otras: OtraDeuda[] = [];
   if (r.flujo.estado === "ok") {
-    const pl = r.flujo.datos.salidas.filter((s) => s.tipo === "planilla" && diasHasta(s.fecha, r.hoy) <= dias);
+    const deLoQueSeMira = (u: string | null) => (r.ver.todas ? true : r.ver.soloEmpresa ? u === null : u === r.ver.ubicacionId);
+    const enPlazo = r.flujo.datos.salidas.filter((s) => s.monto > 0 && diasHasta(s.fecha, r.hoy) <= dias && deLoQueSeMira(s.ubicacionId));
+    const pl = enPlazo.filter((s) => s.tipo === "planilla");
     if (pl.length) planilla = { monto: r2(pl.reduce((a, s) => a + s.monto, 0)), fecha: pl[0]!.fecha };
+    otras = enPlazo
+      .filter((s) => s.tipo === "fijo" || s.tipo === "impuesto" || s.tipo === "aportes")
+      .map((s) => ({ id: s.id, titulo: s.titulo, monto: s.monto, fecha: s.vence ?? s.fecha, atrasada: s.atrasada }));
   }
-  const monto = r2([...vencidas, ...proximas].reduce((a, f) => a + f.saldo, 0) + (planilla?.monto ?? 0));
-  return { monto, vencidas, proximas, planilla };
+  const monto = r2([...vencidas, ...proximas].reduce((a, f) => a + f.saldo, 0) + (planilla?.monto ?? 0) + otras.reduce((a, o) => a + o.monto, 0));
+  return {
+    monto,
+    vencidas,
+    proximas,
+    planilla,
+    otras,
+    leyoSalidas: r.flujo.estado === "ok",
+    planillaVisible: r.flujo.estado === "ok" && r.flujo.datos.planillaVisible,
+  };
 }
 
 
@@ -384,12 +405,12 @@ const RANGO: Record<Aviso["tono"], number> = { rojo: 0, ambar: 1, pizarra: 2 };
 /** La clase de cada aviso, en el orden del spike: deudas vencidas, la caja bajo el mínimo, lo que vence, una tienda que
  *  pierde, un fijo que falta, un rubro que se pasa, una campaña que viene, el mes sin cerrar, lo fuera de lo normal, los
  *  egresos sin clasificar, lo que no tiene cuenta y el límite del régimen. */
-const CLASE = { vencida: 0, minimo: 1, vencen: 2, pierde: 3, fijo: 4, ppto: 5, campana: 6, cierre: 7, raro: 8, egresos: 9, sin_cuenta: 10, umbral: 11 } as const;
+export const CLASE_AVISO = { vencida: 0, minimo: 1, vencen: 2, pierde: 3, fijo: 4, ppto: 5, campana: 6, cierre: 7, raro: 8, egresos: 9, sin_cuenta: 10, umbral: 11 } as const;
 const MAX_POR_TIPO = 3;
 /** El lugar del aviso «bajo tu mínimo de caja» en el orden: `alinearAvisoDeCaja` (caja-proxima-reglas) lo crea cuando la tarjeta ve una caída que el bloque semanal no ve. */
-export const ORDEN_AVISO_CAJA = CLASE.minimo;
+export const ORDEN_AVISO_CAJA = CLASE_AVISO.minimo;
 /** El lugar de «te falta pedir» (la inversión en mercadería de una campaña): entre las campañas que vienen. */
-export const ORDEN_AVISO_CAMPANA = CLASE.campana;
+export const ORDEN_AVISO_CAMPANA = CLASE_AVISO.campana;
 
 /** «Primero lo que más cuesta si se deja pasar»: rojo, ámbar, informativo; dentro de cada tono, la clase (el orden del
  *  spike) y, dentro de la clase, más soles primero. */
@@ -424,7 +445,7 @@ export function avisosParaDecidir(r: ResumenFinanzas, acceso: Acceso): Aviso[] {
       const hace = -diasHasta(f.vence, r.hoy);
       out.push({
         clave: `vencida:${f.id}`,
-        orden: CLASE.vencida,
+        orden: CLASE_AVISO.vencida,
         tono: "rojo",
         titulo: `${f.tipo === "factura" ? "Factura vencida" : "Deuda vencida"}: ${f.proveedor}`,
         detalle: `Saldo ${soles(f.saldo)}${f.concepto ? ` (${f.concepto})` : ""}, venció ${hace === 1 ? "ayer" : `hace ${hace} días`}.`,
@@ -440,7 +461,7 @@ export function avisosParaDecidir(r: ResumenFinanzas, acceso: Acceso): Aviso[] {
       const monto = r2(resto.reduce((a, f) => a + f.saldo, 0));
       out.push({
         clave: "vencidas:resto",
-        orden: CLASE.vencida,
+        orden: CLASE_AVISO.vencida,
         tono: "rojo",
         titulo: `${resto.length} deudas vencidas más`,
         detalle: `Por ${soles(monto)} en total.`,
@@ -458,7 +479,7 @@ export function avisosParaDecidir(r: ResumenFinanzas, acceso: Acceso): Aviso[] {
       const dias = r.porPagar.estado === "ok" ? r.porPagar.datos.dias : 7;
       out.push({
         clave: "vencen",
-        orden: CLASE.vencen,
+        orden: CLASE_AVISO.vencen,
         tono: "ambar",
         titulo: `${deb.proximas.length === 1 ? "Vence 1 deuda" : `Vencen ${deb.proximas.length} deudas`} en los próximos ${dias} días`,
         detalle: `Por ${soles(monto)}. La primera: ${primera.proveedor}, ${soles(primera.saldo)}, ${textoVence(primera, r.hoy)}.`,
@@ -480,14 +501,14 @@ export function avisosParaDecidir(r: ResumenFinanzas, acceso: Acceso): Aviso[] {
       const yaHoy = p.saldoHoy < p.minimoCaja;
       out.push({
         clave: "minimo",
-        orden: CLASE.minimo,
+        orden: CLASE_AVISO.minimo,
         tono: peor.saldo < 0 ? "rojo" : "ambar",
         titulo: yaHoy ? "Hoy ya estás bajo tu mínimo de caja" : `La semana del ${etiquetaSemana(bajo.desde, bajo.hasta)} quedas bajo tu mínimo de caja`,
         detalle: yaHoy
           ? `Tienes ${soles(p.saldoHoy)} y tu mínimo es ${soles(p.minimoCaja)}.${peor.saldo < p.saldoHoy ? ` La semana del ${etiquetaSemana(peor.desde, peor.hasta)} llegarías a ${soles(peor.saldo)}: ${queVence(p.salidas, peor.desde, peor.hasta)}.` : ""}`
           : `Quedarías con ${soles(bajo.saldo)} (tu mínimo es ${soles(p.minimoCaja)}). Lo que más sale esa semana: ${queVence(p.salidas, bajo.desde, bajo.hasta)}.`,
         impacto: `faltan ${soles(p.minimoCaja - peor.saldo)}`,
-        href: enlace("reportes_financieros", "/finanzas/reportes/escenarios"),
+        href: enlace("reportes_financieros", "/finanzas/reportes/flujo#y-si"),
         boton: "Probar escenario",
         origen: "Reportes ▸ Flujo de caja",
         peso: p.minimoCaja - peor.saldo,
@@ -503,14 +524,14 @@ export function avisosParaDecidir(r: ResumenFinanzas, acceso: Acceso): Aviso[] {
       const eq = equilibrio(f, diasDelMes(r.mesAnterior));
       out.push({
         clave: `pierde:${f.ubicacionId}`,
-        orden: CLASE.pierde,
+        orden: CLASE_AVISO.pierde,
         tono: "ambar",
         titulo: `${nombreCorto(f)} perdió ${soles(-f.resultado)} en ${mes}`,
         detalle: eq
           ? `Necesita vender ${soles(eq.pe)} al mes y vendió ${soles(eq.ventas)}.`
           : `Vendió ${soles(f.ventas)} y sus gastos fueron ${soles(f.gastos)}.`,
         impacto: `${soles(-f.resultado)} al mes`,
-        href: acceso.lider ? "/finanzas/reportes/escenarios" : enlace("reportes_financieros", "/finanzas/reportes"),
+        href: acceso.lider ? "/finanzas/reportes/flujo#y-si" : enlace("reportes_financieros", "/finanzas/reportes"),
         boton: acceso.lider ? "Probar escenario" : "Ver resultados",
         origen: "Reportes ▸ Estado de resultados",
         peso: -f.resultado,
@@ -524,7 +545,7 @@ export function avisosParaDecidir(r: ResumenFinanzas, acceso: Acceso): Aviso[] {
     for (const f of fs.slice(0, MAX_POR_TIPO)) {
       out.push({
         clave: `fijo:${f.id}`,
-        orden: CLASE.fijo,
+        orden: CLASE_AVISO.fijo,
         tono: "ambar",
         titulo: `Falta registrar: ${f.descripcion} ${deUnidad(f.ubicacionNombre ?? "De la empresa")}`,
         detalle: `Venció el día ${Number(f.fechaEsperada.slice(8, 10)) || f.dia} por unos ${soles(f.monto)}. Si no está, el resultado del mes sale mejor de lo que es.`,
@@ -539,7 +560,7 @@ export function avisosParaDecidir(r: ResumenFinanzas, acceso: Acceso): Aviso[] {
       const resto = fs.slice(MAX_POR_TIPO);
       out.push({
         clave: "fijos:resto",
-        orden: CLASE.fijo,
+        orden: CLASE_AVISO.fijo,
         tono: "ambar",
         titulo: `${resto.length} gastos fijos más sin registrar`,
         detalle: `Por unos ${soles(resto.reduce((a, f) => a + f.monto, 0))}.`,
@@ -558,7 +579,7 @@ export function avisosParaDecidir(r: ResumenFinanzas, acceso: Acceso): Aviso[] {
     for (const g of r.raros.datos.slice(0, MAX_POR_TIPO)) {
       out.push({
         clave: `raro:${g.llave}:${g.ubicacionId ?? "empresa"}:${g.mes}`,
-        orden: CLASE.raro,
+        orden: CLASE_AVISO.raro,
         tono: "pizarra",
         raro: true,
         titulo: `${g.proveedor} ${deUnidad(g.ubicacionNombre)} vino ${porcentaje(g.excesoPct / 100, 1)} más alto que su promedio`,
@@ -578,7 +599,7 @@ export function avisosParaDecidir(r: ResumenFinanzas, acceso: Acceso): Aviso[] {
     const donde = r.ver.todas && e.porUbicacion.length > 1 ? ` ${e.porUbicacion.map((u) => `${corto(u.nombre)} ${u.n}`).join(" · ")}.` : "";
     out.push({
       clave: "egresos",
-      orden: CLASE.egresos,
+      orden: CLASE_AVISO.egresos,
       tono: "pizarra",
       titulo: `${e.n} ${e.n === 1 ? "egreso" : "egresos"} de caja sin clasificar`,
       detalle: `Mientras no se diga si son gasto, depósito o retiro, no cuentan en ningún número.${donde}`,
@@ -600,7 +621,7 @@ export function avisosParaDecidir(r: ResumenFinanzas, acceso: Acceso): Aviso[] {
       const sube = c.conEfecto && c.metaPct != null ? `la meta sube ${porcentaje(c.metaPct, 100)}` : "la meta no sube";
       out.push({
         clave: `campana:${c.id}`,
-        orden: CLASE.campana,
+        orden: CLASE_AVISO.campana,
         tono: v.tono,
         titulo: `${c.nombre} empieza ${dias === 1 ? "mañana" : `en ${dias} días`}`,
         detalle:
@@ -627,7 +648,7 @@ export function avisosParaDecidir(r: ResumenFinanzas, acceso: Acceso): Aviso[] {
       const cerradas = c.unidades.length - abiertas.length;
       out.push({
         clave: "cierre",
-        orden: CLASE.cierre,
+        orden: CLASE_AVISO.cierre,
         tono: primeraSemana ? "pizarra" : "ambar",
         titulo: abiertas.length ? `${mayuscula(mes)} sigue abierto` : `Falta cerrar ${mes} de CAYLA entera`,
         detalle: abiertas.length
@@ -642,7 +663,7 @@ export function avisosParaDecidir(r: ResumenFinanzas, acceso: Acceso): Aviso[] {
     } else if (abiertas.length) {
       out.push({
         clave: "cierre",
-        orden: CLASE.cierre,
+        orden: CLASE_AVISO.cierre,
         tono: primeraSemana ? "pizarra" : "ambar",
         titulo: `${mayuscula(mes)} ${deUnidad(r.ver.nombre)} sigue abierto`,
         detalle: `Mientras siga abierto, se puede registrar con fecha de ${mes} y sus números pueden cambiar.`,
@@ -663,14 +684,14 @@ export function avisosParaDecidir(r: ResumenFinanzas, acceso: Acceso): Aviso[] {
       const cerrado = f.momento === "cerrado";
       out.push({
         clave: `ppto:${f.ubicacionId ?? f.unidad}:${f.linea}`,
-        orden: CLASE.ppto,
+        orden: CLASE_AVISO.ppto,
         tono: "ambar",
         titulo: `${f.lineaNombre} ${deUnidad(f.nombre)} ${cerrado ? "se pasó" : "va a pasarse"} de su tope`,
         detalle: `${cerrado ? "Cerró" : "Al cierre llegaría"} en ${soles(f.proyeccion ?? 0)} contra un tope de ${soles(f.presupuesto ?? 0)} (${chip.texto}); lleva ${soles(f.aLaFecha)}.`,
         impacto: `${soles((f.proyeccion ?? 0) - (f.presupuesto ?? 0))} sobre el tope`,
-        href: enlace("reportes_financieros", conQuery("/finanzas/reportes/presupuesto", verParam(r, f.unidad === "empresa" ? null : f.ubicacionId))),
-        boton: "Ver presupuesto",
-        origen: "Reportes ▸ Presupuesto",
+        href: enlace("reportes_financieros", conQuery("/finanzas/reportes", verParam(r, f.unidad === "empresa" ? null : f.ubicacionId))),
+        boton: "Ver en Ganancias y pérdidas",
+        origen: "Estados financieros ▸ Ganancias y pérdidas",
         peso: (f.proyeccion ?? 0) - (f.presupuesto ?? 0),
       });
     }
@@ -683,7 +704,7 @@ export function avisosParaDecidir(r: ResumenFinanzas, acceso: Acceso): Aviso[] {
     const monto = r2(s.reduce((a, x) => a + Math.abs(x.monto), 0));
     out.push({
       clave: "sin_cuenta",
-      orden: CLASE.sin_cuenta,
+      orden: CLASE_AVISO.sin_cuenta,
       tono: "pizarra",
       titulo: `${n} ${n === 1 ? "movimiento" : "movimientos"} de plata sin cuenta este mes`,
       detalle: `No suman en ningún saldo: ${s.map((x) => `${TEXTO_SIN_CUENTA[x.origen] ?? x.origen} (${soles(Math.abs(x.monto))})`).join("; ")}.`,
@@ -705,7 +726,7 @@ export function avisosParaDecidir(r: ResumenFinanzas, acceso: Acceso): Aviso[] {
   if (anticipado && tituloAnticipado) {
     out.push({
       clave: "umbral_aviso",
-      orden: CLASE.umbral,
+      orden: CLASE_AVISO.umbral,
       tono: "ambar",
       titulo: tituloAnticipado,
       detalle: [anticipado.detalle, anticipado.alcance].filter(Boolean).join(" "),
@@ -726,11 +747,11 @@ export function avisosParaDecidir(r: ResumenFinanzas, acceso: Acceso): Aviso[] {
       const uit = r.igv.datos.parametros.umbralUit?.valor;
       out.push({
         clave: "umbral",
-        orden: CLASE.umbral,
+        orden: CLASE_AVISO.umbral,
         tono: tono === "rojo" ? "rojo" : "pizarra",
         titulo: u.cruzado ? `Cruzaste el límite de ${uit ?? 300} UIT` : `Vas al ${porcentaje(u.avance ?? 0, 1)} del límite de ${uit ?? 300} UIT`,
         detalle: u.cruzado
-          ? "Cambian el régimen y los libros que exige SUNAT: conviene verlo con el contador."
+          ? "Cambian el pago a cuenta de renta y los libros que exige SUNAT: coordina las obligaciones nuevas con el contador."
           : `Al cruzarlo cambian el régimen y los libros que exige SUNAT.${proy.mesCruce ? ` A este ritmo, en ${nombreMes(proy.mesCruce)}.` : ""}`,
         impacto: null,
         href: enlace("impuestos", "/finanzas/impuestos"),
@@ -750,9 +771,9 @@ export function noRevisado(r: ResumenFinanzas): string[] {
     [r.porPagar, "lo que vence", DINERO],
     [r.egresos, "los egresos de caja", "Gastos"],
     [r.fijos, "los gastos fijos", "Gastos"],
-    [r.raros, "los gastos fuera de lo normal", "Reportes financieros"],
-    [r.presupuesto, "el presupuesto", "Reportes financieros"],
-    [r.campanas, "las campañas", "Reportes financieros"],
+    [r.raros, "los gastos fuera de lo normal", "Resumen y estados financieros"],
+    [r.presupuesto, "el presupuesto", "Resumen y estados financieros"],
+    [r.campanas, "las campañas", "Resumen y estados financieros"],
     [r.flujo, "la caja de las próximas semanas", "el líder"],
     [r.cierre, "el cierre del mes", "el líder"],
   ];

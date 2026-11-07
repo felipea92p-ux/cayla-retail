@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useLayoutEffect, useRef } from "react";
+import { prefiereQuieto } from "../../lib/movimiento-cliente";
 
 /* ====================================================================
    IndicadorDeslizante · el subrayado / la pastilla que VIAJA entre opciones
@@ -41,7 +42,10 @@ const memoria = new Map<string, Posicion & { t: number }>();
 const VIGENCIA_MS = 1500;
 
 const SELECTOR_MARCADA = '[aria-current]:not([aria-current="false"])';
-const VARIANTE = { "linea-tinta": "cmp-ind-linea cmp-ind-tinta", "pildora-tinta": "cmp-ind-pildora" } as const;
+const VARIANTE = { "linea-tinta": "cmp-ind-linea cmp-ind-tinta", "pildora-tinta": "cmp-ind-pildora", gota: "cmp-ind-pildora cmp-ind-gota" } as const;
+/** La gota fluye en dos tramos (ADR-0596, «A · La gota de Mi perfil», Felipe 2026-10-31): se estira hasta cubrir la de antes y la nueva,
+ *  y se recoge en la nueva. Los tiempos van en `.cmp-ind-gota[data-fluye]` (vidrio/pantalla.css); aquí solo cuándo pasa al segundo. */
+const GOTA_ESTIRA_MS = 140; // un poco menos que `--t-cambio`: el segundo tramo arranca antes de que la gota se detenga
 
 export function IndicadorDeslizante({
   activa,
@@ -59,6 +63,7 @@ export function IndicadorDeslizante({
 }) {
   const ref = useRef<HTMLSpanElement>(null);
   const ultima = useRef<Posicion | null>(null);
+  const recoge = useRef<number | undefined>(undefined);
 
   useLayoutEffect(() => {
     const el = ref.current;
@@ -87,16 +92,30 @@ export function IndicadorDeslizante({
     const destino: Posicion = { x: activo.offsetLeft, w: activo.offsetWidth };
     el.style.opacity = "1";
 
-    if (ultima.current) {
-      poner(destino); // ya estaba colocado: viaja
-    } else {
+    // Desde dónde viaja: lo último puesto o, si la fila se volvió a montar enseguida (otra ruta del mismo layout), lo que guardó.
+    let antes = ultima.current;
+    if (!antes) {
       const previa = memoria.get(id);
       if (previa && Date.now() - previa.t < VIGENCIA_MS) {
         sinViaje(previa);
-        poner(destino);
-      } else {
-        sinViaje(destino);
+        antes = previa;
       }
+    }
+    window.clearTimeout(recoge.current);
+    const quieto = prefiereQuieto();
+    if (!antes) {
+      sinViaje(destino);
+    } else if (variante === "gota" && !quieto && (antes.x !== destino.x || antes.w !== destino.w)) {
+      // Fluye: primero cubre las dos (la de antes y la nueva), después se recoge en la nueva.
+      const izq = Math.min(antes.x, destino.x);
+      el.dataset.fluye = "estira";
+      poner({ x: izq, w: Math.max(antes.x + antes.w, destino.x + destino.w) - izq });
+      recoge.current = window.setTimeout(() => {
+        el.dataset.fluye = "recoge";
+        poner(destino);
+      }, GOTA_ESTIRA_MS);
+    } else {
+      poner(destino); // ya estaba colocado: viaja
     }
     cont.dataset.indicador = "";
 
@@ -105,19 +124,28 @@ export function IndicadorDeslizante({
     // medida de ESE momento: si nada cambió coincide y no se toca (no corta el viaje en curso); si la tipografía cargó entre la
     // medida de arriba y ese primer aviso, no coincide y se corrige. Ignorarlo a ciegas dejaba la píldora corrida en la
     // primera carga sin la fuente en caché (2026-10-07, Análisis: 24 px a la izquierda, tapando la cuenta de la vecina).
+    // Contra el DESTINO, no contra lo último puesto: mientras la gota fluye, lo puesto es el tramo estirado.
+    let objetivo = destino;
     const ro = new ResizeObserver(() => {
       const a = marcada();
       if (!a) return;
       const p: Posicion = { x: a.offsetLeft, w: a.offsetWidth };
-      if (p.x !== ultima.current?.x || p.w !== ultima.current?.w) sinViaje(p);
+      if (p.x === objetivo.x && p.w === objetivo.w) return;
+      objetivo = p;
+      window.clearTimeout(recoge.current);
+      delete el.dataset.fluye;
+      sinViaje(p);
     });
     ro.observe(cont);
     // Todas las opciones, no solo la marcada: si una de antes se ensancha, la marcada se corre sin cambiar de tamaño (y la
     // fila no crece si ya llena el ancho y se desliza, como en el celular). Por su borde, que es lo que mide `offsetWidth`:
     // la caja de contenido (lo que mira el observador si no se le dice) no cambia cuando cambia el relleno.
     for (const opcion of cont.children) if (opcion !== el) ro.observe(opcion, { box: "border-box" });
-    return () => ro.disconnect();
-  }, [activa, id, selector]);
+    return () => {
+      ro.disconnect();
+      window.clearTimeout(recoge.current);
+    };
+  }, [activa, id, selector, variante]);
 
   // Al desmontarse guarda dónde estaba, por si la pantalla se vuelve a montar enseguida.
   useEffect(

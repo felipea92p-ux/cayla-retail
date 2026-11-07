@@ -6,6 +6,8 @@ import { Chip } from "@/components/ui/Chip";
 import { Tabla, Encabezado, fila, celda } from "@/components/ui/Tabla";
 import { fechaCorta, type RecepcionReciente } from "@/lib/compras-reglas";
 import { EnlaceVer } from "@/components/ui/EnlaceVer";
+import { PaginacionLocal } from "@/components/ui/PaginacionLocal";
+import { paginar } from "@/lib/paginacion";
 
 const PLANTILLA = "sm:grid-cols-[6rem_1fr_7rem]";
 // Con la columna de costo (Ingreso sin comprobante, ADR-0111): fecha · proveedor/nota · unidades · costo.
@@ -27,8 +29,22 @@ const PLANTILLA_DETALLE = "sm:grid-cols-[1fr_5rem]";
  * `getRecepcionesRecientes` (mismo query, sin round-trip al abrir) — con
  * ≤30 lotes por página no vale la pena pedirlo aparte.
  */
-export function RecepcionesRecientes({ recepciones, vacio, costos }: { recepciones: RecepcionReciente[]; vacio: string; costos?: Record<string, CostoRecepcion> }) {
+export function RecepcionesRecientes({
+  recepciones,
+  vacio,
+  costos,
+  porPagina,
+}: {
+  recepciones: RecepcionReciente[];
+  vacio: string;
+  costos?: Record<string, CostoRecepcion>;
+  /** Con un número, la tabla pinta esa cantidad de filas y el resto va paginado (sin ir a la base). Sin él, todas, como siempre. */
+  porPagina?: number;
+}) {
   const [abierta, setAbierta] = useState<RecepcionReciente | null>(null);
+  const [pagina, setPagina] = useState(1);
+  const actual = porPagina ? paginar(recepciones, pagina, porPagina) : null;
+  const visibles = actual ? actual.filas : recepciones;
   const plantilla = costos ? PLANTILLA_CON_COSTO : PLANTILLA;
 
   if (recepciones.length === 0) {
@@ -38,7 +54,7 @@ export function RecepcionesRecientes({ recepciones, vacio, costos }: { recepcion
     <>
       <Tabla>
         <Encabezado plantilla={plantilla} columnas={[{ titulo: "Fecha" }, { titulo: costos ? "Proveedor / nota · guía" : "Proveedor · guía" }, { titulo: "Unidades", alinear: "der" }, ...(costos ? [{ titulo: "Costo" }] : [])]} />
-        {recepciones.map((r) => (
+        {visibles.map((r) => (
           <button
             key={r.loteId}
             type="button"
@@ -46,20 +62,20 @@ export function RecepcionesRecientes({ recepciones, vacio, costos }: { recepcion
             onClick={() => setAbierta(r)}
             className={`${fila(plantilla)} w-full text-left transition-colors hover:bg-tinta/[0.03]`}
           >
-            <span className={celda("izq", "text-xs tabular-nums text-tinta/65")}>{fechaCorta(r.fecha)}</span>
+            <span className={celda("izq", "text-sm tabular-nums text-tinta/65")}>{fechaCorta(r.fecha)}</span>
             <span className={celda("izq")}>
               <span className="text-sm font-medium text-tinta">
                 {r.proveedorNombre || r.nota || "Sin proveedor"}
                 {r.documento ? ` · ${r.documento}` : ""}
               </span>
-              <span className="block truncate text-xs text-tinta/65">
+              <span className="block truncate text-sm text-tinta/65">
                 {r.numeroGuia ? `Guía ${r.numeroGuia}` : "Sin guía"} · {r.ubicacion}
                 {r.recibidoPor ? ` · ${r.recibidoPor}` : ""}
               </span>
             </span>
             <span className={celda("der", "text-sm text-tinta")}>
               {r.unidades} {r.unidades === 1 ? "unidad" : "unidades"}
-              <span className="block text-xs text-tinta/55">
+              <span className="block text-sm text-tinta/55">
                 {r.lineas} {r.lineas === 1 ? "línea" : "líneas"}
               </span>
             </span>
@@ -70,12 +86,20 @@ export function RecepcionesRecientes({ recepciones, vacio, costos }: { recepcion
                 ) : costos[r.loteId]?.costo != null ? (
                   <Chip tono="verde">{`S/\u00a0${costos[r.loteId].costo!.toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} c/u`}</Chip>
                 ) : (
-                  <span className="text-xs text-tinta/45">—</span>
+                  <span className="text-sm text-tinta/45">—</span>
                 )}
               </span>
             )}
           </button>
         ))}
+        {actual && actual.totalPaginas > 1 && (
+          <div className="flex flex-wrap items-center justify-between gap-2 px-5 py-3 text-sm text-taupe">
+            <span>
+              Mostrando {actual.desde}–{actual.hasta} de {recepciones.length}
+            </span>
+            <PaginacionLocal pagina={actual.pagina} totalPaginas={actual.totalPaginas} onPagina={setPagina} />
+          </div>
+        )}
       </Tabla>
 
       {abierta && (
@@ -96,7 +120,7 @@ export function RecepcionesRecientes({ recepciones, vacio, costos }: { recepcion
                   <span className={celda("izq", "text-sm text-tinta")}>
                     {l.referencia}
                     {l.sku ? ` · ${l.sku}` : ""}
-                    <span className="block truncate text-xs text-tinta/65">{[l.talla, l.color].filter(Boolean).join("/") || "—"}</span>
+                    <span className="block truncate text-sm text-tinta/65">{[l.talla, l.color].filter(Boolean).join("/") || "—"}</span>
                   </span>
                   <span className={celda("der", "text-sm tabular-nums text-tinta")}>{l.cantidad}</span>
                 </div>
@@ -111,7 +135,7 @@ export function RecepcionesRecientes({ recepciones, vacio, costos }: { recepcion
             )}
 
             <div className="flex items-center justify-between border-t border-tinta/10 pt-3">
-              <p className="text-xs text-tinta/55">
+              <p className="text-sm text-tinta/55">
                 {abierta.unidades} {abierta.unidades === 1 ? "unidad" : "unidades"} en total
               </p>
               {abierta.conFactura && abierta.compraId && (

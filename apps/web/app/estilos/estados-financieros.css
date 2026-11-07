@@ -1,0 +1,300 @@
+/* ====================================================================
+   Estados financieros (ADR-0585): las piezas de la maqueta aprobada (`docs/maquetas/finanzas-eeff-2026-10/`), con los tokens del ERP.
+   La cascada que flota (`CascadaEstados`) y la tarjeta de una campaña, las dos en «Ver más» de Ganancias y pérdidas. Lo demás de la pantalla está en `vidrio/estados.css`
+   (ADR-0611). Solo tokens (ADR-0169, ADR-0336); movimiento de ADR-0136: una vez, sin rebote, nada con `prefers-reduced-motion`.
+   ==================================================================== */
+@layer components {
+  /* ---- La cascada que flota ---- */
+  .fin-casc {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .fin-casc-fila {
+    display: grid;
+    grid-template-columns: minmax(150px, 230px) minmax(0, 1fr) 112px;
+    align-items: center;
+    gap: 6px 14px;
+    width: 100%;
+    padding: 9px 10px;
+    border: 0;
+    border-radius: 12px;
+    background: transparent;
+    text-align: left;
+    color: inherit;
+    transition: background-color 200ms var(--ease-cayla);
+  }
+  .fin-casc[data-sedes] .fin-casc-fila {
+    grid-template-columns: 150px minmax(0, 1fr) 112px;
+  }
+  @media (hover: hover) {
+    button.fin-casc-fila:hover,
+    a.fin-casc-fila:hover {
+      background: var(--color-hueso);
+    }
+  }
+  .fin-casc-fila[aria-expanded="true"] {
+    background: var(--color-hueso);
+  }
+  .fin-casc-nombre {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+  }
+  .fin-casc-nombre b {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-weight: 500;
+    font-size: 14.5px;
+  }
+  .fin-casc-nombre small {
+    font-size: 12px;
+    color: var(--color-taupe);
+  }
+  .fin-casc-fila[data-tipo="total"] .fin-casc-nombre b {
+    font-family: var(--font-serif);
+    font-size: 19px;
+  }
+  .fin-casc-fila[data-tipo="final"] .fin-casc-nombre b {
+    font-family: var(--font-serif);
+    font-size: 22px;
+  }
+  .fin-casc[data-sedes] .fin-casc-fila .fin-casc-nombre b {
+    font-family: inherit;
+    font-size: 14px;
+  }
+  .fin-casc-punto {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--c);
+    flex: none;
+  }
+  .fin-casc-flecha {
+    color: var(--color-taupe);
+    transition: transform 250ms var(--ease-cayla);
+  }
+  .fin-casc-fila[aria-expanded="true"] .fin-casc-flecha {
+    transform: rotate(90deg);
+  }
+  .fin-casc-pista {
+    position: relative;
+    height: 22px;
+  }
+  .fin-casc-eje {
+    position: absolute;
+    top: -6px;
+    bottom: -6px;
+    width: 1px;
+    background: var(--color-sand);
+  }
+  .fin-casc-barra {
+    position: absolute;
+    top: 0;
+    height: 100%;
+    border-radius: 5px;
+    transform-origin: left;
+    animation: fin-casc-crece 600ms var(--ease-cayla) both;
+    animation-delay: calc(var(--i, 0) * 70ms);
+  }
+  .fin-casc-barra[data-clase="suma"] {
+    background: var(--color-verde);
+  }
+  .fin-casc-barra[data-clase="resta"] {
+    background: var(--color-ambar);
+  }
+  .fin-casc-barra[data-clase="total"] {
+    background: var(--color-tinta);
+  }
+  .fin-casc-barra[data-clase="subtotal"] {
+    background: var(--color-sand);
+  }
+  .fin-casc-barra[data-clase="pierde"] {
+    background: var(--color-rojo);
+  }
+  .fin-casc-barra[data-clase="sede"] {
+    background: var(--c);
+  }
+  .fin-casc-plan {
+    position: absolute;
+    top: -5px;
+    bottom: -5px;
+    width: 2px;
+    border-radius: 1px;
+    background: var(--color-tinta);
+  }
+  .fin-casc-plan::after {
+    content: "";
+    position: absolute;
+    top: -3px;
+    left: -3px;
+    width: 8px;
+    height: 2px;
+    background: var(--color-tinta);
+  }
+  @keyframes fin-casc-crece {
+    from {
+      transform: scaleX(0);
+    }
+  }
+  .fin-casc-monto {
+    text-align: right;
+    font-size: 15px;
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+  }
+  .fin-casc-fila[data-tipo="total"] .fin-casc-monto,
+  .fin-casc-fila[data-tipo="final"] .fin-casc-monto {
+    font-family: var(--font-serif);
+    font-size: 20px;
+  }
+  .fin-casc-fila[data-tipo="final"] .fin-casc-monto {
+    font-size: 24px;
+  }
+  .fin-casc-chip {
+    grid-column: 2;
+    justify-self: start;
+    margin-top: -2px;
+  }
+  .fin-casc-detalle {
+    margin: 2px 10px 10px;
+    padding: 12px 16px;
+    border-left: 2px solid var(--color-rojo);
+    border-radius: 0 10px 10px 0;
+    background: var(--color-crema);
+    font-size: 13.5px;
+    animation: fin-casc-baja 300ms var(--ease-cayla);
+  }
+  .fin-casc-detalle ul {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .fin-casc-detalle li {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .fin-casc-detalle ul[data-con-plan] li {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 88px 88px;
+  }
+  .fin-casc-detalle ul[data-con-plan] li > span:not(:first-child) {
+    text-align: right;
+  }
+  .fin-casc-detalle-cab {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--color-taupe);
+  }
+  .fin-casc-detalle li[data-pasa] > span:nth-child(2) {
+    color: var(--color-ambar);
+    font-weight: 600;
+  }
+  @keyframes fin-casc-baja {
+    from {
+      opacity: 0;
+      transform: translateY(-4px);
+    }
+  }
+  @media (max-width: 640px) {
+    .fin-casc-fila,
+    .fin-casc[data-sedes] .fin-casc-fila {
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 6px 10px;
+    }
+    .fin-casc-pista {
+      grid-column: 1 / -1;
+      grid-row: 2;
+    }
+    .fin-casc-chip {
+      grid-column: 1 / -1;
+      grid-row: 3;
+    }
+  }
+
+  /* ---- La leyenda («Suma · Resta · Lo planeado») ---- */
+  .fin-casc-leyenda {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 14px;
+    font-size: 12.5px;
+    color: var(--color-taupe);
+  }
+  .fin-casc-leyenda i {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    margin-right: 6px;
+    border-radius: 3px;
+    vertical-align: -1px;
+  }
+  .fin-casc-leyenda i[data-clase="suma"] {
+    background: var(--color-verde);
+  }
+  .fin-casc-leyenda i[data-clase="resta"] {
+    background: var(--color-ambar);
+  }
+  .fin-casc-leyenda i[data-clase="plan"] {
+    width: 2px;
+    height: 12px;
+    border-radius: 0;
+    background: var(--color-tinta);
+  }
+
+  /* ---- Una campaña del mes ---- */
+  .fin-camp {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    gap: 14px;
+    align-items: center;
+    padding: 12px 16px;
+    border: 1px solid var(--color-sand);
+    border-radius: 14px;
+  }
+  .fin-camp-sello {
+    display: grid;
+    place-items: center;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: var(--color-hueso);
+    font-family: var(--font-serif);
+    font-size: 18px;
+  }
+  .fin-camp b {
+    font-weight: 600;
+  }
+  .fin-camp small {
+    display: block;
+    font-size: 12.5px;
+    color: var(--color-taupe);
+  }
+  .fin-camp-valor {
+    font-family: var(--font-serif);
+    font-size: 20px;
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+  }
+  .fin-camp-valor[data-tono="verde"] {
+    color: var(--color-verde);
+  }
+  .fin-camp-valor[data-tono="rojo"] {
+    color: var(--color-rojo);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .fin-casc-barra,
+    .fin-casc-detalle {
+      animation: none;
+    }
+    .fin-casc-flecha {
+      transition: none;
+    }
+  }
+}

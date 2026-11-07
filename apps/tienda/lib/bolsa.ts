@@ -464,7 +464,7 @@ export const AGREGAR_NO_ESTA = "Esa prenda ya no está en la tienda online.";
 export const AGREGAR_OTRA_TIENDA = "Tu bolsa es de otra tienda.";
 export const AGREGAR_LLENA = `Tu bolsa lleva hasta ${TOPE_PRENDAS} prendas.`;
 export const AGREGAR_TOPE_PRENDA = `Puedes llevar hasta ${TOPE_POR_PRENDA} de la misma prenda y talla.`;
-export const AGREGAR_TOPE_PRENDA_LOOK = `Ya llevas ${TOPE_POR_PRENDA} de alguna de esas prendas: quita una para agregar el look.`;
+export const AGREGAR_TOPE_PRENDA_LOOK = `Ya llevas ${TOPE_POR_PRENDA} de alguna de esas prendas: quita una para agregar el outfit.`;
 /** Un look entra entero o no entra (no se parte por falta de lugar). */
-export const AGREGAR_LLENA_LOOK = `Tu bolsa lleva hasta ${TOPE_PRENDAS} prendas: quita alguna para agregar el look.`;
+export const AGREGAR_LLENA_LOOK = `Tu bolsa lleva hasta ${TOPE_PRENDAS} prendas: quita alguna para agregar el outfit.`;
 export const AGREGAR_SIN_RESPUESTA = "No pudimos agregarla ahora. Vuelve a intentarlo en un momento.";

@@ -1,0 +1,231 @@
+<!doctype html>
+<html lang="es" data-tema="claro" data-et="pozo" data-cc="placas">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Liquidación con vidrio</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../vidrio-base-2026-10/marco.css">
+<style>
+/* ====================================================================
+   MAQUETA · Catálogo ▸ Liquidación con el vidrio (ADR-0596, tablero docs/vidrio/README.md, sección 3)
+   La pantalla real (app/(app)/productos/liquidacion → components/liquidacion/, ADR-0379): las prendas sueltas que la sede liquida sin
+   registrarlas en el catálogo. Arriba, tres cifras que filtran (en el celular, tres botones chicos en una fila: `.liq-cifra-chica`); abajo,
+   una tarjeta con el buscador que también lee la etiqueta con la pistola, los filtros con su cuenta, «+ Etiquetar una prenda» y la lista (la
+   categoría, el código, el precio con el de entrada tachado si bajó, cuánto lleva a la venta y su estado). Al tocar una, su hoja
+   (PiezaLiquidacionModal): la etiqueta tal como sale impresa, «Retirar», «Bajar el precio» e «Imprimir etiqueta».
+   La ETIQUETA es papel térmico (`EtiquetaLiquidacion`, `data-papel`): negro sobre blanco en los dos temas, nunca cambia. Lo que cambia es
+   cómo se apoya sobre el vidrio de la hoja.
+   Armada SOLO con lo ya elegido: cabecera A, tarjetas de cifra A · Placa (la que filtra, hundida), tabla B · Placa Serena, buscador A · Pozo
+   (con su ícono de barras), filtros A · Gotas con su cuenta, insignia A, la hoja Serena, botones gota (Retirar en rojo, Imprimir en tinta).
+   Lo PROPIO, con sus caras:
+     1. La etiqueta dentro de la hoja.
+     2. Las tres cifras chicas del celular.
+   Solo tokens (el papel de la etiqueta es papel fijo). Sin movimiento nuevo (la etiqueta ya entraba así); todo se apaga con
+   prefers-reduced-motion. Datos inventados.
+   ==================================================================== */
+
+/* ---------- lo ya elegido ---------- */
+.placa{position:relative;border-radius:22px;border:1px solid color-mix(in srgb,var(--vidrio) 60%,transparent);
+  background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 64%,transparent),color-mix(in srgb,var(--vidrio) 44%,transparent));-webkit-backdrop-filter:blur(24px) saturate(1.6);backdrop-filter:blur(24px) saturate(1.6);
+  box-shadow:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 90%,transparent),0 24px 50px -30px color-mix(in srgb,var(--sombra) 40%,transparent)}
+[data-tema="oscuro"] .placa{background:color-mix(in srgb,var(--vidrio) 70%,transparent);border-color:color-mix(in srgb,var(--tinta) 10%,transparent)}
+.chip{--c:var(--verde);display:inline-flex;align-items:center;gap:6px;height:24px;padding:0 11px;border-radius:999px;font-size:12px;white-space:nowrap;color:var(--c);
+  background:linear-gradient(180deg,color-mix(in srgb,var(--c) 10%,color-mix(in srgb,var(--vidrio) 75%,transparent)),color-mix(in srgb,var(--c) 18%,transparent));
+  box-shadow:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 85%,transparent),inset 0 0 0 1px color-mix(in srgb,var(--c) 26%,transparent)}
+.chip::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor}
+.chip.ambar{--c:var(--ambar)}.chip.pizarra{--c:var(--pizarra)}.chip.tinta{--c:var(--tinta)}
+[data-tema="oscuro"] .chip{background:linear-gradient(180deg,color-mix(in srgb,var(--c) 22%,transparent),color-mix(in srgb,var(--c) 12%,transparent));box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--c) 34%,transparent)}
+.pest{display:inline-flex;max-width:100%;overflow-x:auto;scrollbar-width:none;padding:4px;border-radius:999px;background:color-mix(in srgb,var(--tinta) 5%,transparent);box-shadow:inset 0 1.5px 3px color-mix(in srgb,var(--sombra) 14%,transparent)}
+[data-tema="oscuro"] .pest{background:color-mix(in srgb,var(--sombra) 30%,transparent)}
+.pest a{flex:none;display:flex;align-items:center;height:38px;padding:0 16px;border-radius:999px;font-size:11.5px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--t65);text-decoration:none}
+.pest a[aria-current]{color:var(--tinta);background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 96%,transparent),color-mix(in srgb,var(--vidrio) 70%,transparent));box-shadow:inset 0 1px 0 var(--vidrio),0 6px 14px -8px color-mix(in srgb,var(--sombra) 40%,transparent)}
+[data-tema="oscuro"] .pest a[aria-current]{background:color-mix(in srgb,var(--tinta) 18%,transparent)}
+.pozo-b{flex:1;min-width:180px;max-width:24rem;display:flex;align-items:center;gap:10px;height:42px;padding:0 16px;border-radius:999px;font-size:14px;color:var(--t65);border:1px solid color-mix(in srgb,var(--borde) 80%,transparent);
+  background:color-mix(in srgb,var(--tinta) 5%,transparent);box-shadow:inset 0 1.5px 3px color-mix(in srgb,var(--sombra) 14%,transparent)}
+[data-tema="oscuro"] .pozo-b{background:color-mix(in srgb,var(--sombra) 30%,transparent)}
+.pozo-b svg{width:16px;height:16px}.pozo-b span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fp{flex:none;display:inline-flex;align-items:center;gap:6px;height:34px;padding:0 14px;border-radius:999px;font-size:13px;font-weight:600;white-space:nowrap;border:1px solid var(--borde);color:var(--t80);
+  background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 75%,transparent),color-mix(in srgb,var(--vidrio) 40%,transparent));box-shadow:inset 0 1px 0 var(--vidrio)}
+[data-tema="oscuro"] .fp{border-color:color-mix(in srgb,var(--tinta) 30%,transparent);background:color-mix(in srgb,var(--tinta) 9%,transparent);box-shadow:none}
+.fp[aria-pressed="true"]{color:var(--crema);border-color:color-mix(in srgb,var(--tinta) 70%,transparent);background:linear-gradient(180deg,color-mix(in srgb,var(--tinta) 84%,transparent),color-mix(in srgb,var(--tinta) 97%,transparent))}
+.fp svg{width:14px;height:14px}
+.modo{display:inline-flex;padding:3px;border-radius:12px;background:color-mix(in srgb,var(--tinta) 5%,transparent);box-shadow:inset 0 1px 2px color-mix(in srgb,var(--sombra) 12%,transparent)}
+.modo button{height:32px;padding:0 12px;border-radius:9px;font-size:11px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--t65)}
+.modo button[aria-pressed="true"]{color:var(--tinta);background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 96%,transparent),color-mix(in srgb,var(--vidrio) 70%,transparent));box-shadow:inset 0 1px 0 var(--vidrio)}
+[data-tema="oscuro"] .modo button[aria-pressed="true"]{background:color-mix(in srgb,var(--tinta) 18%,transparent)}
+.gota-i{width:40px;height:40px;padding:0;border-radius:50%}
+.tc-cifras{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-top:18px}
+.cif{padding:16px 18px}.cif .vs{font-size:10.5px}.cif b{display:block;font-family:'EB Garamond',serif;font-weight:500;font-size:34px;line-height:1.1;margin-top:4px;font-variant-numeric:tabular-nums}
+.cif small{font-size:12.5px;color:var(--t65)}
+.cif.filtra{cursor:pointer}.cif.puesta{box-shadow:inset 0 1.5px 4px color-mix(in srgb,var(--sombra) 16%,transparent);background:color-mix(in srgb,var(--tinta) 5%,transparent)}
+.mini-ap{display:flex;gap:2px;height:6px;margin-top:10px;border-radius:999px;overflow:hidden;background:color-mix(in srgb,var(--tinta) 7%,transparent)}
+.mini-ap i{display:block;height:100%}
+
+/* ---------- la hoja «Nueva categoría» con «Existe también» ---------- */
+.hoja .hoja-cuerpo{display:grid;grid-template-columns:minmax(0,1fr)}
+.hoja .caja.esc{border-color:color-mix(in srgb,var(--tinta) 40%,transparent);background:var(--papel)}
+.hoja .caja .cur{display:inline-block;width:1px;height:18px;margin-left:1px;background:var(--tinta)}
+.hoja .dos{display:grid;grid-template-columns:minmax(0,1fr) 7rem;gap:12px}
+.lente-at{--c:var(--ambar);margin:2px 0 16px;padding:14px 16px;border-radius:18px;border:1px solid color-mix(in srgb,var(--c) 30%,transparent);
+  background:linear-gradient(180deg,color-mix(in srgb,var(--c) 6%,color-mix(in srgb,var(--vidrio) 80%,transparent)),color-mix(in srgb,var(--c) 13%,color-mix(in srgb,var(--vidrio) 60%,transparent)));box-shadow:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 90%,transparent)}
+[data-tema="oscuro"] .lente-at{background:linear-gradient(180deg,color-mix(in srgb,var(--c) 14%,transparent),color-mix(in srgb,var(--c) 8%,transparent))}
+.lente-at .t{display:flex;gap:8px;align-items:center;font-size:14px;font-weight:600}.lente-at .t svg{width:18px;height:18px;color:var(--c)}
+.lente-at p{font-size:13px;color:var(--t65);margin-top:4px}
+.lente-at .op{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px;margin-top:10px;font-size:14px}.lente-at .op span i{font-style:normal;color:var(--t65)}
+.lente-at .op .b{height:34px;padding:0 14px;font-size:12.5px}
+.lente-at .no{margin-top:8px;font-size:12.5px;color:var(--tinta);text-decoration:underline;text-decoration-color:color-mix(in srgb,var(--tinta) 30%,transparent);text-underline-offset:3px}
+.hoja .b.pri[disabled]{opacity:.45}
+.hoja .falta{font-size:12px;color:var(--t65);text-align:right;margin:-2px 0 8px}
+
+.lq-cif{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-top:20px}
+.cif{padding:16px 18px;text-align:left}.cif .vs{display:flex;align-items:center;gap:6px;font-size:10.5px}.cif .vs i{width:7px;height:7px;border-radius:50%;background:var(--c,var(--taupe))}
+.cif b{display:block;font-family:'EB Garamond',serif;font-weight:500;font-size:34px;line-height:1.1;margin-top:4px}.cif small{font-size:12.5px;color:var(--t65)}
+.cif[aria-pressed="true"]{background:color-mix(in srgb,var(--tinta) 5%,transparent);box-shadow:inset 0 1.5px 4px color-mix(in srgb,var(--sombra) 16%,transparent)}
+.minimo{display:flex;flex-wrap:wrap;align-items:center;gap:6px 12px;margin-top:12px;font-size:13px;color:var(--t65)}.minimo b{color:var(--tinta)}.minimo a{color:var(--tinta);text-decoration:underline;text-decoration-color:color-mix(in srgb,var(--tinta) 30%,transparent);text-underline-offset:3px}
+
+/* ---------- la lista ---------- */
+.lq-l{margin-top:18px;overflow:visible}
+.lq-h{display:flex;flex-wrap:wrap;align-items:center;gap:10px;padding:16px 20px}
+.lq-h .pozo-b{max-width:none;min-width:14rem}.lq-h .grp{display:flex;flex-wrap:wrap;gap:8px}
+.lq-cab,.lq-f{display:grid;grid-template-columns:minmax(0,2fr) 9rem 7rem minmax(7rem,1fr) 8rem;gap:8px 16px;align-items:center;padding:0 20px}
+.lq-cab{min-height:42px;font-size:12px;color:var(--t65);background:color-mix(in srgb,var(--tinta) 4%,transparent);box-shadow:inset 0 1px 2px color-mix(in srgb,var(--sombra) 10%,transparent)}
+.lq-cab span:nth-child(3),.lq-cab span:nth-child(5){text-align:right}
+.lq-f{min-height:62px;padding-top:10px;padding-bottom:10px;border-top:1px solid color-mix(in srgb,var(--tinta) 8%,transparent);text-align:left;width:100%}
+@media (hover:hover){.lq-f:hover{background:color-mix(in srgb,var(--tinta) 3%,transparent)}}
+.lq-p{display:flex;align-items:center;gap:12px;min-width:0}.lq-p .ico{flex:none;width:36px;height:36px;border-radius:10px;display:grid;place-items:center;color:var(--taupe);background:color-mix(in srgb,var(--taupe) 14%,transparent);box-shadow:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 60%,transparent)}.lq-p .ico svg{width:20px;height:20px}
+.lq-p b{display:block;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.lq-p small{display:block;font-size:12px;color:var(--taupe)}
+.lq-cod{font:13px ui-monospace,monospace;color:var(--taupe)}
+.lq-pre{display:flex;flex-direction:column;align-items:flex-end;font-variant-numeric:tabular-nums;white-space:nowrap}.lq-pre s{font-size:12px;color:var(--taupe);text-decoration-thickness:1px}
+.lq-t{font-size:13px;color:var(--taupe)}.lq-e{text-align:right}
+.chip.apagado{--c:var(--t65)}
+
+/* ---------- la etiqueta de papel (papel fijo: no cambia con el tema) ---------- */
+.etq{width:170px;padding:10px 10px 8px;display:flex;flex-direction:column;font-family:'DM Sans',sans-serif;color:var(--tinta-fija);background:var(--crema-fija);border-radius:3px}
+.etq .lg{text-align:center;font-family:'EB Garamond',serif;letter-spacing:.3em;font-size:15px}
+.etq .bd{margin-top:8px;padding:4px 0;text-align:center;font-size:13px;font-weight:700;letter-spacing:.08em;color:var(--crema-fija);background:var(--tinta-fija)}
+.etq .ct{margin-top:7px;font-size:10px;font-weight:700;letter-spacing:.04em;text-transform:uppercase}.etq .ds{font-size:8.5px;font-weight:700;margin-top:2px}.etq .fn{font-size:7.5px;font-weight:700;margin-top:2px}
+.etq .pr{margin:8px 0 10px;font-size:34px;font-weight:700;line-height:1}.etq .pr small{font-size:13px;margin-right:2px}
+.etq .epie{display:flex;justify-content:space-between;align-items:flex-end;gap:6px;margin-top:auto}.etq .epie span{display:block;font-size:8px}.etq .epie b{font:700 9px ui-monospace,monospace}
+.etq .qr{width:52px;height:52px;background:repeating-conic-gradient(var(--tinta-fija) 0 25%,var(--crema-fija) 0 50%) 0 0/10.4px 10.4px;outline:3px solid var(--crema-fija)}
+
+/* ============ 1 · LA ETIQUETA DENTRO DE LA HOJA ============ */
+.previa{display:flex;justify-content:center;padding:14px;margin:4px 0 14px}
+.previa .etq{animation:etq-entra .36s var(--ease) both}
+@keyframes etq-entra{from{opacity:0;transform:translateY(6px)}}
+/* Como ahora: el papel con su sombra, apoyado sobre la hoja. */
+[data-et="ahora"] .previa .etq{box-shadow:0 6px 18px color-mix(in srgb,var(--sombra) 22%,transparent)}
+/* A · En su bandeja: la etiqueta descansa en un pozo de la hoja, como en la bandeja de la impresora; sombra corta. */
+[data-et="pozo"] .previa{border-radius:20px;background:color-mix(in srgb,var(--tinta) 5%,transparent);box-shadow:inset 0 2px 6px color-mix(in srgb,var(--sombra) 18%,transparent)}
+[data-tema="oscuro"][data-et="pozo"] .previa{background:color-mix(in srgb,var(--sombra) 30%,transparent)}
+[data-et="pozo"] .previa .etq{box-shadow:0 3px 8px -2px color-mix(in srgb,var(--sombra) 30%,transparent)}
+/* B · Colgada: la etiqueta flota sobre el vidrio con su ojal y el hilo que la sostiene, como cuelga de la prenda; sombra larga. */
+[data-et="colgada"] .previa{padding-top:30px;position:relative}
+[data-et="colgada"] .previa::before{content:"";position:absolute;top:2px;left:50%;width:1.5px;height:34px;background:color-mix(in srgb,var(--taupe) 70%,transparent)}
+[data-et="colgada"] .previa .etq{position:relative;padding-top:20px;box-shadow:0 22px 40px -18px color-mix(in srgb,var(--sombra) 55%,transparent)}
+[data-et="colgada"] .previa .etq::before{content:"";position:absolute;top:5px;left:50%;width:8px;height:8px;margin-left:-4px;border-radius:50%;background:color-mix(in srgb,var(--tinta) 10%,var(--vidrio));box-shadow:inset 0 1px 2px color-mix(in srgb,var(--sombra) 40%,transparent)}
+.hoja{width:min(576px,100%)}
+.hoja .est{display:flex;flex-wrap:wrap;align-items:center;gap:8px;font-size:13px;color:var(--taupe)}
+.hoja .pie{flex-wrap:wrap}.hoja .b.pel{color:var(--rojo-p);border:1px solid color-mix(in srgb,var(--rojo) 40%,transparent);background:linear-gradient(180deg,color-mix(in srgb,var(--rojo) 5%,color-mix(in srgb,var(--vidrio) 70%,transparent)),color-mix(in srgb,var(--rojo) 10%,transparent))}
+[data-tema="oscuro"] .hoja .b.pel{color:var(--rojo)}
+.hoja .pie .b.pel{margin-right:auto}
+
+/* ============ 2 · LAS CIFRAS CHICAS DEL CELULAR ============ */
+.chicas{display:none;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:18px}
+.chicas button{display:block;min-height:64px;padding:10px 10px 9px;text-align:left;border-radius:14px}
+.chicas b{display:block;font-family:'EB Garamond',serif;font-size:24px;line-height:1;font-weight:400}.chicas span{display:block;margin-top:4px;font-size:10.5px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--taupe)}
+[data-cc="ahora"] .chicas button{border:1px solid var(--sand);background:var(--papel)}[data-cc="ahora"] .chicas button[aria-pressed="true"]{background:var(--sand)}
+/* A · Placas chicas: tres placas Serena; la puesta, hundida como la tarjeta de cifra que filtra en escritorio. */
+[data-cc="placas"] .chicas button{border:1px solid color-mix(in srgb,var(--vidrio) 60%,transparent);background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 64%,transparent),color-mix(in srgb,var(--vidrio) 44%,transparent));-webkit-backdrop-filter:blur(24px) saturate(1.6);backdrop-filter:blur(24px) saturate(1.6);box-shadow:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 90%,transparent)}
+[data-tema="oscuro"][data-cc="placas"] .chicas button{background:color-mix(in srgb,var(--vidrio) 70%,transparent);border-color:color-mix(in srgb,var(--tinta) 10%,transparent)}
+[data-cc="placas"] .chicas button[aria-pressed="true"]{background:color-mix(in srgb,var(--tinta) 5%,transparent);box-shadow:inset 0 1.5px 4px color-mix(in srgb,var(--sombra) 16%,transparent);border-color:color-mix(in srgb,var(--borde) 70%,transparent)}
+/* B · Ranura de tres: las tres en un pozo, como un segmento; la puesta es la gota clara. */
+[data-cc="ranura"] .chicas{gap:2px;padding:3px;border-radius:18px;background:color-mix(in srgb,var(--tinta) 5%,transparent);box-shadow:inset 0 1.5px 3px color-mix(in srgb,var(--sombra) 14%,transparent)}
+[data-tema="oscuro"][data-cc="ranura"] .chicas{background:color-mix(in srgb,var(--sombra) 30%,transparent)}
+[data-cc="ranura"] .chicas button{border-radius:15px}
+[data-cc="ranura"] .chicas button[aria-pressed="true"]{background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 96%,transparent),color-mix(in srgb,var(--vidrio) 70%,transparent));box-shadow:inset 0 1px 0 var(--vidrio),0 6px 14px -8px color-mix(in srgb,var(--sombra) 40%,transparent)}
+[data-tema="oscuro"][data-cc="ranura"] .chicas button[aria-pressed="true"]{background:color-mix(in srgb,var(--tinta) 16%,transparent)}
+
+@container disp (max-width:1023px){.lq-cab{display:none}.lq-f{grid-template-columns:minmax(0,1fr) auto;padding:12px 16px}.lq-f>.lq-cod{display:none}.lq-f>.lq-t{grid-column:1;font-size:12px}.lq-f>.lq-e{grid-column:2}}
+@container disp (max-width:639px){.lq-cif{display:none}.chicas{display:grid}.lq-h{padding:14px}.lq-h .pozo-b{min-width:0;flex-basis:100%}}
+@media (prefers-reduced-motion:reduce){.previa .etq{animation:none}}
+</style>
+</head>
+<body>
+
+<div class="spk">
+  <span class="titulo">Catálogo ▸ Liquidación, con vidrio: la página entera con las piezas elegidas</span>
+  <span class="tag">La etiqueta en la hoja</span><div class="seg-m" data-ctl="et"><button data-v="ahora">Como ahora</button><button data-v="pozo">A · En su bandeja</button><button data-v="colgada">B · Colgada</button></div>
+  <span class="tag">Cifras chicas (celular)</span><div class="seg-m" data-ctl="cc"><button data-v="ahora">Como ahora</button><button data-v="placas">A · Placas chicas</button><button data-v="ranura">B · Ranura de tres</button></div>
+  <span class="tag">Tema</span><div class="seg-m" data-ctl="tema"><button data-v="claro">Claro</button><button data-v="oscuro">Oscuro</button></div>
+  <span class="tag">Ancho</span><div class="seg-m" data-ctl="ancho"><button data-v="m320">320</button><button data-v="movil">375</button><button data-v="tablet">Tableta 768</button><button data-v="w1024">1024</button><button data-v="w1280">1280</button><button data-v="w1440">1440</button><button data-v="w1920">1920</button><button data-v="escritorio">Tu ventana</button></div>
+  <span class="tag">Ver abierta</span><button class="accion" data-acc="hoja">Una prenda con su etiqueta</button>
+</div>
+
+<div class="escena"><div class="disp" id="disp" data-ancho="escritorio">
+  <div class="lienzo" aria-hidden="true"><i></i><i></i><i></i></div>
+  <aside class="lat" id="lat" aria-label="Menú principal"></aside>
+  <button class="plegar-flota" id="plegar-flota" data-acc="plegar" aria-controls="lat"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg></button>
+  <header class="cab" id="cab"></header>
+  <main class="cont" id="cont"></main>
+  <div class="flotante" id="flotante"></div>
+  <div class="capa"><div class="velo" data-acc="hoja"></div><div class="hoja" role="dialog" aria-modal="true" aria-labelledby="hTit">
+    <div class="hoja-cuerpo"><h2 id="hTit">Blusa beige, manga globo</h2><p class="sub">Blusas · LQ-TRU-0042</p>
+      <p class="est"><span class="chip ambar">Precio bajado</span><span>Entró a <s>S/ 39.90</s> · lleva 5 semanas a la venta</span></p>
+      <div class="previa"><article class="etq" data-papel aria-label="Etiqueta de liquidación LQ-TRU-0042"><p class="lg">CAYLA</p><p class="bd">LIQUIDACIÓN</p><p class="ct">Blusas</p><p class="ds">Blusa beige, manga globo</p><p class="fn">Venta final · sin cambio ni devolución</p>
+        <p class="pr"><small>S/</small>24.90</p><div class="epie"><div><b>LQ-TRU-0042</b><span>Impreso 31/10/26</span><span>cayla.pe</span></div><span class="qr" aria-hidden="true"></span></div></article></div>
+      <div class="pie"><button class="b pel">Retirar</button><button class="b sec">Bajar el precio</button><button class="b pri">Imprimir etiqueta</button></div></div>
+  </div></div>
+</div></div>
+
+<div class="analisis">
+  <section>
+    <h2>Lo que hay hoy</h2>
+    <ul>
+      <li><b>La pantalla</b> (<code>LiquidacionPantalla</code>, ADR-0379): tres cifras que filtran; la tarjeta con el buscador que también lee la etiqueta con la pistola, los filtros con su cuenta y «+ Etiquetar una prenda»; la lista con la categoría, el código, el precio (con el de entrada tachado si bajó), cuánto lleva a la venta y su estado.</li>
+      <li><b>La hoja de una prenda</b> (<code>PiezaLiquidacionModal</code>): su estado, la etiqueta <b>tal como sale impresa</b> (papel térmico, negro sobre blanco en los dos temas) <b>con su sombra de papel</b>, y Retirar · Bajar el precio · Imprimir etiqueta.</li>
+      <li><b>Las cifras chicas</b>: en el celular, las tres cifras van en <b>tres botones de papel</b> en una fila (<code>.liq-cifra-chica</code>); la puesta, en arena.</li>
+    </ul>
+  </section>
+  <section>
+    <h2>Las caras: lo que gana y lo que cuesta</h2>
+    <table>
+      <tr><th>Pieza</th><th>Cara</th><th>Lo que gana</th><th>Lo que cuesta</th></tr>
+      <tr><td rowspan="2"><b>La etiqueta en la hoja</b></td><td>A · En su bandeja <span class="ev">Recomendada</span></td><td>El papel descansa en un pozo de la hoja, como en la bandeja de la impresora: se ve que es lo que va a salir, separado del vidrio.</td><td>Un pozo más en una hoja corta.</td></tr>
+      <tr><td>B · Colgada</td><td>Con su ojal y su hilo, la etiqueta se ve como cuelga de la prenda.</td><td>Un dibujo que adorna: el hilo no dice nada que la persona no sepa.</td></tr>
+      <tr><td rowspan="2"><b>Cifras chicas (celular)</b></td><td>A · Placas chicas <span class="ev">Recomendada</span></td><td>Las tres, placas como las cifras de escritorio; la puesta se hunde igual que la tarjeta que filtra. Una sola forma en los dos tamaños.</td><td>Tres placas en 375 px pesan un poco más que una ranura.</td></tr>
+      <tr><td>B · Ranura de tres</td><td>Se lee como lo que es: elegir una de tres.</td><td>En escritorio siguen siendo tarjetas: dos formas para lo mismo.</td></tr>
+    </table>
+    <h3>Lo que no cambia</h3>
+    <p>La etiqueta misma (papel térmico, la franja «LIQUIDACIÓN», el precio, el código y el QR) y su entrada, el precio tachado, el buscador que lee la pistola, los filtros con su cuenta, «+ Etiquetar una prenda», el precio mínimo, Retirar (nunca se borra), Bajar el precio (sale una etiqueta nueva) e Imprimir.</p>
+  </section>
+</div>
+
+<script src="../vidrio-base-2026-10/marco.js"></script>
+<!-- Ojo: marco.js deja sus nombres en el ámbito global (SEDES, estado, pintar, boton, encabezado, activa…); esta maqueta vive en su propia función. -->
+<script>
+(() => {
+  const D = { barras: 'M3 5v14M7 5v14M11 5v14M15 5v14M19 5v14', blusa: 'M20.4 6.6 16 4a4 4 0 0 1-8 0L3.6 6.6a1 1 0 0 0-.5 1.2l.9 2.7a1 1 0 0 0 1.2.6L7 10v10a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V10l1.8.9a1 1 0 0 0 1.2-.6l.9-2.7a1 1 0 0 0-.5-1.2z',
+    vestido: 'M9 2h6l-1 5 4 14H6l4-14z M9 7h6', pantalon: 'M6 2h12l1 20h-5l-2-12-2 12H5z M6 6h12', falda: 'M7 4h10l4 16H3z M7 8h10' };
+  const s = (d) => `<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="${d}"/></svg>`;
+  let filtro = 'venta';
+  const P = [['blusa', 'Blusa beige, manga globo', 'Blusas', 'LQ-TRU-0042', 24.9, 39.9, '5 semanas', ['ambar', 'Precio bajado']], ['vestido', 'Vestido negro midi', 'Vestidos', 'LQ-TRU-0051', 49.9, 0, '2 semanas', ['verde', 'A la venta']],
+    ['pantalon', '', 'Pantalones', 'LQ-TRU-0038', 19.9, 34.9, '9 semanas', ['ambar', 'Precio bajado']], ['falda', 'Falda plisada verde', 'Faldas', 'LQ-TRU-0055', 29.9, 0, '6 días', ['verde', 'A la venta']], ['blusa', 'Polo rayas marinero', 'Blusas', 'LQ-TRU-0047', 14.9, 0, '3 semanas', ['verde', 'A la venta']]];
+  function pantalla() {
+    const cif = [['venta', 'A la venta', '12', 'S/ 342 si se venden todas', 'var(--verde)'], ['bajado', 'Precio bajado', '4', 'a la venta con una etiqueta nueva', 'var(--ambar)'], ['vendidas', 'Vendidas este mes', '8', 'S/ 196 cobrados', 'var(--taupe)']];
+    $('#cont').innerHTML = `${encabezado({ sede: 'Trujillo', titulo: 'Liquidación', frase: 'Las prendas sueltas que se liquidan sin entrar al catálogo: cada una con su etiqueta y su precio, que se va bajando.' })}
+      <div class="chicas" role="group" aria-label="Resumen de la liquidación">${cif.map(([v, t, n]) => `<button data-f="${v}" aria-pressed="${filtro === v}"><b>${n}</b><span>${t.replace(' este mes', '')}</span></button>`).join('')}</div>
+      <div class="lq-cif">${cif.map(([v, t, n, d, c]) => `<button class="placa cif" data-f="${v}" aria-pressed="${filtro === v}" style="--c:${c}"><p class="vs"><i></i>${t}</p><b>${n}</b><small>${d}</small></button>`).join('')}</div>
+      <p class="minimo"><span>Precio mínimo <b>S/ 10.00</b>: por debajo, solo el líder etiqueta.</span><a href="#">Cambiar</a></p>
+      <section class="placa lq-l"><div class="lq-h"><div class="pozo-b">${s(D.barras)}<span>Escanea una etiqueta o busca por categoría o código</span></div>
+          <div class="grp"><button class="fp" aria-pressed="true">A la venta · 12</button><button class="fp">Vendidas · 8</button><button class="fp">Retiradas · 2</button></div>${boton(['pri', '+ Etiquetar una prenda'])}</div>
+        <div class="lq-cab"><span>Prenda</span><span>Código</span><span>Precio</span><span>A la venta</span><span>Estado</span></div>
+        ${P.map(([ic, ds, ct, cd, pr, ini, t, [tn, tx]]) => `<button class="lq-f" data-acc="hoja"><span class="lq-p"><span class="ico">${s(D[ic])}</span><span style="min-width:0"><b>${ds || ct}</b>${ds ? `<small>${ct}</small>` : ''}</span></span><span class="lq-cod">${cd}</span><span class="lq-pre">S/ ${pr.toFixed(2)}${ini ? `<s>S/ ${ini.toFixed(2)}</s>` : ''}</span><span class="lq-t">${t}</span><span class="lq-e"><span class="chip ${tn}">${tx}</span></span></button>`).join('')}</section>`;
+    $$('#cont [data-f]').forEach((b) => b.addEventListener('click', () => { filtro = b.dataset.f; pantalla(); }));
+  }
+  Marco.iniciar({ estado: { et: 'pozo', cc: 'placas' }, alPintar: () => { $('#cont').scrollTop = 0; pantalla(); } });
+})();
+</script>
+</body>
+</html>

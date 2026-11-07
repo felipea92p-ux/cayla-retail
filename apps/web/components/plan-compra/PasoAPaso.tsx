@@ -26,6 +26,7 @@ export function PasoAPaso({
   familias,
   conVersion,
   versiones,
+  precioDeLaPlata = 0,
   onGuardado,
   onCambios,
   pedirSalida,
@@ -45,6 +46,8 @@ export function PasoAPaso({
   /** La base ya compara versiones al guardar (B4) y lo que devolvió cada guardado de esta visita, por categoría. */
   conVersion: boolean;
   versiones: Readonly<Record<string, number>>;
+  /** El precio de la plata del plan con tope que la campaña usa (0 = el plan de siempre). */
+  precioDeLaPlata?: number;
   /** Se guardó una categoría (con su versión nueva, si la base la devuelve): la pantalla la recuerda y enciende su fila. */
   onGuardado: (categoriaId: string, version: number | null) => void;
   /** ¿Hay algo escrito sin guardar en la categoría de ahora? */
@@ -136,7 +139,7 @@ export function PasoAPaso({
         <div className="rounded-2xl border border-sand p-6">
           {cola.length === 0 ? (
             <Aviso tono="info" titulo="Todavía no hay cuáles venden más">
-              No hubo ventas en los últimos 90 días para decir cuáles son las que más venden. Pasa a «Todas con movimiento» o arma la que quieras desde la tabla.
+              Sin ventas en 90 días. Pasa a «Todas con movimiento» o arma la que quieras desde la tabla.
             </Aviso>
           ) : (
             <Aviso tono="exito" titulo={alcance === "top" ? `Ya tienes las ${cola.length === TOP_VENTAS ? TOP_VENTAS : cola.length} que más venden` : "Ya llenaste todas las que se mueven"}>
@@ -180,6 +183,7 @@ export function PasoAPaso({
             enPantalla
             conVersion={conVersion}
             versionConocida={versiones[actual.c.id]}
+            precioDeLaPlata={precioDeLaPlata}
             onCambios={onCambios}
             antesDeRefrescar={antesDeRefrescar}
             irAlMontar={hechas.length > 0 || elegida !== null || saltadas.length > 0}

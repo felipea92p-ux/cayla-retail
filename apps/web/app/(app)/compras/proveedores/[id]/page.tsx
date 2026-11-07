@@ -171,7 +171,7 @@ export default async function ProveedorPage({ params }: { params: Promise<{ id: 
         {!conCompras ? (
           <div className="card-cayla">
             <Vacio icono={<Receipt />} titulo="Todavía no hay comprobantes de este proveedor">
-              Cuando registres su primera factura, aquí verás cuánto le compraste, cuánto le debes y cómo le fue a su mercadería.
+              Con su primera factura verás cuánto le compraste, cuánto le debes y cómo se vende.
             </Vacio>
           </div>
         ) : (
@@ -273,11 +273,11 @@ export default async function ProveedorPage({ params }: { params: Promise<{ id: 
                   <>
                     <span>
                       <span className="block text-sm tabular-nums text-tinta">{c.documento}</span>
-                      <span className="block text-xs text-tinta/55">{diaMes(c.fechaEmision)}</span>
+                      <span className="block text-sm text-tinta/55">{diaMes(c.fechaEmision)}</span>
                     </span>
                     <span>
                       <Chip tono={estado.tono}>{estado.texto}</Chip>
-                      <span className="mt-0.5 block text-xs tabular-nums text-tinta/55">{estado.sub}</span>
+                      <span className="mt-0.5 block text-sm tabular-nums text-tinta/55">{estado.sub}</span>
                     </span>
                     <span className="text-right text-sm tabular-nums text-tinta">{soles(c.total)}</span>
                   </>

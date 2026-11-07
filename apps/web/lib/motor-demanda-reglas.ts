@@ -226,9 +226,6 @@ export function preparacionDeSede(f: FilaPreparacion): PreparacionSede {
   };
 }
 
-/** Lo que falta, en el orden de las condiciones (vacío si el motor puede hablar). */
-export const faltasDe = (p: PreparacionSede): string[] => p.condiciones.flatMap((c) => (c.falta ? [c.falta] : []));
-
 /**
  * Una línea para mostrar donde iría una recomendación (la columna «Sugerencias» de Tareas, ADR-0345): «Ya puedo recomendar en
  * Tienda TRU.» o «Aún no puedo recomendar en Tienda TRU. Falta: 9 días más de ventas con su prenda y cuadrar el piso.».

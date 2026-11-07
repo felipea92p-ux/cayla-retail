@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Aviso de versión nueva · 3 direcciones</title>
+<style>
+  /* Tokens reales de apps/web/app/globals.css y estilos/tema.css (ADR-0169, ADR-0336). Sin hex fuera de esta tabla. */
+  :root{
+    --crema:#f5f0e8; --papel:#fbf8f2; --hueso:#eae1d2; --sand:#e8e0d0; --tinta:#1a1a18; --taupe:#805c4c;
+    --pizarra:#4c5d6e; --rojo:#c0392b; --rojo-profundo:#8f2a1f; --sombra:#1a1a18;
+    --ease:cubic-bezier(.22,1,.36,1);
+  }
+  :root[data-tema="oscuro"]{
+    --crema:#1c1a17; --papel:#26241f; --hueso:#33302a; --sand:#403b34; --tinta:#f5f0e8; --taupe:#c4a898;
+    --pizarra:#9db4cb; --rojo:#e8806a; --rojo-profundo:#f29a86; --sombra:#000000;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--crema);color:var(--tinta);font:14px/1.45 "DM Sans",system-ui,sans-serif;padding:24px}
+  h1{font:500 26px/1.2 "EB Garamond",Georgia,serif;margin:0 0 4px}
+  .sub{color:var(--taupe);margin:0 0 18px;max-width:70ch}
+  .barra{display:flex;gap:8px;margin-bottom:22px;flex-wrap:wrap}
+  .barra button{font:500 13px/1 inherit;font-family:inherit;padding:9px 14px;border-radius:999px;border:1px solid var(--sand);background:var(--papel);color:var(--tinta);cursor:pointer}
+  .opcion{margin:0 0 34px}
+  .opcion h2{font:600 11px/1 inherit;font-family:inherit;letter-spacing:.12em;text-transform:uppercase;color:var(--taupe);margin:0 0 6px}
+  .opcion p.d{margin:0 0 10px;max-width:80ch}
+  .opcion p.d b{font-weight:600}
+
+  /* ---- Marco que imita el ERP: lateral, cabecera, Finanzas con su barra pegada ---- */
+  .marco{position:relative;height:380px;border:1px solid var(--sand);border-radius:14px;overflow:hidden;background:var(--crema)}
+  .lat{position:absolute;inset:0 auto 0 0;width:120px;border-right:1px solid var(--sand);background:var(--crema);padding:14px 12px;display:grid;gap:8px;align-content:start}
+  .lat i{display:block;height:10px;border-radius:5px;background:var(--sand)}
+  .lat i.on{background:var(--tinta);opacity:.8}
+  .cab{position:absolute;left:120px;right:0;top:0;height:44px;border-bottom:1px solid var(--sand);background:var(--crema);display:flex;align-items:center;justify-content:flex-end;gap:10px;padding:0 14px;z-index:30}
+  .cab .sede{font:600 10px/1 inherit;font-family:inherit;letter-spacing:.12em;text-transform:uppercase;color:var(--taupe)}
+  .cab .luna{width:28px;height:28px;border-radius:8px;border:1px solid var(--sand)}
+  .cont{position:absolute;left:120px;right:0;top:44px;bottom:0;padding:16px 18px;overflow:hidden}
+  .mesa{background:var(--crema);border-bottom:1px solid var(--sand);padding:8px 18px;margin:-16px -18px 14px;display:flex;gap:8px;align-items:center;position:relative;z-index:20}
+  .mesa b{font:500 12px/1 inherit;font-family:inherit;padding:7px 12px;border-radius:999px;border:1px solid var(--sand);color:var(--taupe)}
+  .mesa b.on{background:var(--tinta);color:var(--crema);border-color:var(--tinta)}
+  .tit{font:500 28px/1.1 "EB Garamond",Georgia,serif;margin:6px 0 10px}
+  .fila{height:34px;border-radius:8px;background:var(--papel);border:1px solid var(--sand);margin-bottom:6px}
+
+  /* ---- A · La tarjeta flotante (abajo a la derecha) ---- */
+  .a{position:absolute;right:16px;bottom:16px;width:min(340px,calc(100% - 32px));z-index:60;display:grid;grid-template-columns:auto 1fr;gap:4px 12px;
+     background:var(--papel);border:1px solid var(--sand);border-radius:14px;padding:14px 14px 12px;
+     box-shadow:0 14px 28px -10px color-mix(in srgb,var(--sombra) 28%,transparent),0 2px 5px color-mix(in srgb,var(--sombra) 8%,transparent);
+     animation:sube 420ms var(--ease) both}
+  .a .ic{grid-row:1/span2;width:34px;height:34px;border-radius:50%;display:grid;place-items:center;background:color-mix(in srgb,var(--pizarra) 14%,var(--papel));color:var(--pizarra)}
+  .a .ic svg{width:17px;height:17px;transform-origin:center;animation:gira 700ms var(--ease) 350ms both}
+  .a strong{font:600 14px/1.3 inherit;font-family:inherit}
+  .a strong{grid-column:2;padding-right:18px}
+  .a span.t{grid-column:2;color:color-mix(in srgb,var(--tinta) 72%,transparent);font-size:13px}
+  .a .bt{grid-column:2;display:flex;gap:8px;align-items:center;margin-top:8px}
+  .primario{font:600 12px/1 inherit;font-family:inherit;letter-spacing:.06em;text-transform:uppercase;padding:10px 14px;border-radius:10px;border:0;background:var(--tinta);color:var(--crema);cursor:pointer}
+  .enlace{font:500 13px/1 inherit;font-family:inherit;padding:8px 6px;border:0;background:none;color:var(--taupe);text-decoration:underline;text-underline-offset:3px;text-decoration-color:color-mix(in srgb,var(--taupe) 40%,transparent);cursor:pointer}
+  .a .x{position:absolute;right:8px;top:6px;width:24px;height:24px;border:0;background:none;color:var(--taupe);font-size:16px;cursor:pointer}
+
+  /* ---- B · La píldora de arriba (centrada, bajo la cabecera) ---- */
+  .b{position:absolute;left:50%;top:56px;translate:-50% 0;z-index:40;display:flex;align-items:center;gap:10px;white-space:nowrap;
+     background:var(--tinta);color:var(--crema);border-radius:999px;padding:6px 6px 6px 14px;font-size:13px;
+     box-shadow:0 12px 24px -10px color-mix(in srgb,var(--sombra) 45%,transparent);animation:baja 420ms var(--ease) both}
+  .b .pt{width:8px;height:8px;border-radius:50%;background:var(--crema);opacity:.9}
+  .b em{font-style:normal;opacity:.72}
+  .b .go{font:600 12px/1 inherit;font-family:inherit;letter-spacing:.06em;text-transform:uppercase;padding:8px 12px;border-radius:999px;border:0;background:var(--crema);color:var(--tinta);cursor:pointer}
+  .b .x{width:26px;height:26px;border-radius:50%;border:0;background:none;color:var(--crema);opacity:.7;font-size:15px;cursor:pointer}
+
+  /* ---- C · En la cabecera: un chip discreto, y su explicación al pasar el mouse ---- */
+  .c{display:inline-flex;align-items:center;gap:7px;padding:6px 11px 6px 9px;border-radius:999px;border:1px solid color-mix(in srgb,var(--pizarra) 40%,transparent);
+     background:color-mix(in srgb,var(--pizarra) 10%,var(--papel));color:var(--pizarra);font:600 11px/1 inherit;font-family:inherit;letter-spacing:.08em;text-transform:uppercase;cursor:pointer}
+  .c svg{width:13px;height:13px}
+  .c .pt{width:6px;height:6px;border-radius:50%;background:var(--pizarra);animation:late 2.4s ease-in-out infinite}
+  .globo{position:absolute;right:14px;top:50px;width:260px;z-index:60;background:var(--papel);border:1px solid var(--sand);border-radius:12px;padding:12px 14px;
+     box-shadow:0 14px 28px -10px color-mix(in srgb,var(--sombra) 28%,transparent);animation:baja 360ms var(--ease) both}
+  .globo strong{display:block;font:600 14px/1.3 inherit;font-family:inherit;margin-bottom:2px}
+  .globo span{color:color-mix(in srgb,var(--tinta) 72%,transparent);font-size:13px}
+  .globo .bt{display:flex;gap:8px;align-items:center;margin-top:10px}
+
+  @keyframes sube{from{opacity:0;transform:translate3d(0,14px,0)}}
+  @keyframes baja{from{opacity:0;transform:translate3d(0,-10px,0)}}
+  @keyframes gira{from{transform:rotate(-120deg);opacity:0}}
+  @keyframes late{50%{opacity:.35}}
+  @media (prefers-reduced-motion:reduce){*{animation:none!important}}
+  .nota{margin-top:-18px;color:var(--taupe);font-size:12.5px}
+</style>
+</head>
+<body>
+<h1>«Hay una versión nueva de CAYLA» — tres direcciones</h1>
+<p class="sub">Hoy es una franja que va <b>dentro</b> de la página, encima del contenido. En <b>Impuestos</b> (y todo Finanzas) la barra fija de Finanzas la tapa a medias, y en cualquier pantalla empuja el contenido hacia abajo. En las tres direcciones el aviso <b>flota fuera del contenido</b>: no empuja nada, no la tapa nada, y funciona igual en todas las pantallas. Toca «Repetir» para ver cómo entra y «Oscuro» para ver el otro tema.</p>
+<div class="barra">
+  <button onclick="document.documentElement.dataset.tema=document.documentElement.dataset.tema==='oscuro'?'':'oscuro'">Claro / Oscuro</button>
+  <button onclick="repetir()">Repetir la entrada</button>
+</div>
+
+<!-- Dibuja una pantalla de Finanzas con su barra fija; cada opción pone su aviso encima -->
+<template id="pantalla">
+  <div class="lat"><i class="on"></i><i></i><i></i><i></i><i></i></div>
+  <div class="cab"><span class="sede">Lima · 28 oct</span><span class="luna"></span><!--CAB--></div>
+  <div class="cont">
+    <div class="mesa"><b>Resumen</b><b>Gastos</b><b class="on">Impuestos</b><b>Cierre</b></div>
+    <div class="tit">Impuestos</div>
+    <div class="fila"></div><div class="fila"></div><div class="fila"></div><div class="fila"></div>
+  </div>
+</template>
+
+<section class="opcion">
+  <h2>A · La tarjeta flotante</h2>
+  <p class="d"><b>Abajo a la derecha</b>, con su ícono de actualizar que gira una sola vez al entrar, el título, una frase y dos botones. Es la más clara: se lee de un vistazo y «Actualizar» es el botón negro de siempre. Sube 14 px y aparece, sin rebote ni bucle. En el celular iría arriba, bajo la cabecera, para no chocar con la barra de abajo de Vender.</p>
+  <div class="marco" id="ma"></div>
+</section>
+
+<section class="opcion">
+  <h2>B · La píldora de arriba</h2>
+  <p class="d"><b>Centrada bajo la cabecera</b>, una sola línea oscura con «Actualizar» a la derecha y una ✕. Es la más discreta y la que menos tapa, pero queda justo donde mira quien trabaja, así que se nota. <b>Ojo:</b> en Finanzas queda sobre las pestañas (Gastos, Impuestos…) mientras esté abierta; se quita con la ✕.</p>
+  <div class="marco" id="mb"></div>
+</section>
+
+<section class="opcion">
+  <h2>C · En la cabecera</h2>
+  <p class="d"><b>Un chip «Actualizar» junto a la sede</b>, con un puntito que late suave; al pasar el mouse o tocarlo se abre la explicación con sus dos botones. No ocupa nada de la pantalla, pero es la más fácil de ignorar: sirve si prefieres que nunca interrumpa. (Aquí se muestra con la explicación abierta.)</p>
+  <div class="marco" id="mc"></div>
+</section>
+
+<p class="nota">Las tres respetan <code>prefers-reduced-motion</code>, usan solo tokens y «Más tarde» calla 30 min igual que hoy. Nunca recarga sola.</p>
+
+<script>
+  const REFRESH = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 4v5h-5"/></svg>';
+  function pantalla(cab){
+    const t=document.getElementById('pantalla').innerHTML.replace('<!--CAB-->',cab||'');
+    return t;
+  }
+  function pinta(){
+    document.getElementById('ma').innerHTML = pantalla('') +
+      '<div class="a" role="status"><button class="x" aria-label="Cerrar">×</button><span class="ic">'+REFRESH+'</span><strong>Hay una versión nueva de CAYLA</strong>'+
+      '<span class="t">Termina lo que estás haciendo y actualiza.</span><div class="bt"><button class="primario">Actualizar</button><button class="enlace">Más tarde</button></div></div>';
+    document.getElementById('mb').innerHTML = pantalla('') +
+      '<div class="b" role="status"><span class="pt"></span>Hay una versión nueva <em>· actualiza cuando termines</em><button class="go">Actualizar</button><button class="x" aria-label="Más tarde">×</button></div>';
+    document.getElementById('mc').innerHTML = pantalla('<button class="c"><span class="pt"></span>'+REFRESH+'Actualizar</button>') +
+      '<div class="globo" role="status"><strong>Hay una versión nueva de CAYLA</strong><span>Termina lo que estás haciendo y actualiza.</span><div class="bt"><button class="primario">Actualizar</button><button class="enlace">Más tarde</button></div></div>';
+  }
+  function repetir(){ pinta(); }
+  pinta();
+</script>
+</body>
+</html>

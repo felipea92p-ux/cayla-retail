@@ -38,6 +38,10 @@ export type CajaCayla = {
   /** El último día que cuenta (hoy + 14, o antes si la proyección es más corta). */
   hasta: string;
   saldoHoy: number;
+  /** Lo que es de Claudia y ya no cuenta en `saldoHoy` (0 si no hay). */
+  deClaudia: number;
+  /** Lo que las compradoras tienen para comprar y ya no cuenta en `saldoHoy` (0 si no hay; ADR-0621). */
+  porVolver: number;
   minimo: number;
   entra: number;
   sale: number;
@@ -103,6 +107,20 @@ export function estadoDeCaja(c: CajaCayla): { texto: string; tono: TonoCaja } | 
 
 const MESES = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"];
 const r2 = (n: number) => Math.round(n * 100) / 100;
+
+/** Lo que hay de verdad en las cuentas: `saldoHoy` ya viene sin lo de Claudia (ADR-0560) ni lo por volver de compras (ADR-0621), así que para
+ *  comparar con los saldos o repartirlo se les devuelve. */
+export function loQueHayEnCuentas(c: Pick<CajaCayla, "saldoHoy" | "deClaudia" | "porVolver">): number {
+  return r2(c.saldoHoy + c.deClaudia + c.porVolver);
+}
+
+/** La línea bajo «Hoy tienes»: de dónde sale, y lo que ya no cuenta (lo de Claudia, ADR-0560; lo por volver de compras, ADR-0621). */
+export function detalleDeHoy(c: Pick<CajaCayla, "deClaudia" | "porVolver">): string {
+  const sin: string[] = [];
+  if (c.deClaudia > 0) sin.push(`los ${soles(c.deClaudia)} que son de Claudia`);
+  if (c.porVolver > 0) sin.push(`los ${soles(c.porVolver)} por volver de compras`);
+  return `Cajones, cajas fuertes y bancos${sin.length ? `, sin ${sin.join(" ni ")}` : ""}.`;
+}
 
 /** `iso` + `n` días. */
 export function sumarDias(iso: string, n: number): string {
@@ -292,16 +310,16 @@ export function cajaProxima({ flujo, cuentas, ver, inversion }: Entrada): CajaPr
   let titular: string;
   let tono: TonoCaja;
   if (masBajo && sinPlata) {
-    titular = `Tu caja se queda sin plata: el ${fechaEnPalabras(masBajo.fecha)} llegas a ${soles(masBajo.saldo)}.`;
+    titular = `Te quedas sin plata el ${fechaEnPalabras(masBajo.fecha)}: llegas a ${soles(masBajo.saldo)}.`;
     tono = "rojo";
   } else if (masBajo && bajaDelMinimo && bajaDelMinimo.fecha === p.hoy) {
     titular =
       masBajo.fecha === p.hoy
-        ? `Hoy tu caja ya está bajo tu mínimo: tienes ${soles(masBajo.saldo)} y tu mínimo es ${soles(minimo)}.`
-        : `Hoy tu caja ya está bajo tu mínimo (tienes ${soles(p.saldoHoy)}): el ${fechaEnPalabras(masBajo.fecha)} llegas a ${soles(masBajo.saldo)} y tu mínimo es ${soles(minimo)}.`;
+        ? `Hoy estás bajo tu mínimo: tienes ${soles(masBajo.saldo)}, te faltan ${soles(minimo - masBajo.saldo)}.`
+        : `Hoy ya estás bajo tu mínimo y el ${fechaEnPalabras(masBajo.fecha)} llegas a ${soles(masBajo.saldo)}: te faltan ${soles(minimo - masBajo.saldo)}.`;
     tono = "ambar";
   } else if (masBajo) {
-    titular = `Tu caja baja de tu mínimo: el ${fechaEnPalabras(masBajo.fecha)} llegas a ${soles(masBajo.saldo)} y tu mínimo es ${soles(minimo)}.`;
+    titular = `Tu caja baja a ${soles(masBajo.saldo)} el ${fechaEnPalabras(masBajo.fecha)}: ${soles(minimo - masBajo.saldo)} bajo tu mínimo.`;
     tono = "ambar";
   } else if (luego) {
     titular = `Las próximas ${ventana} estás bien: te quedan ${soles(queda)}. Después baja de tu mínimo la semana que termina el ${fechaEnPalabras(luego.fecha)}.`;
@@ -323,6 +341,8 @@ export function cajaProxima({ flujo, cuentas, ver, inversion }: Entrada): CajaPr
     hoy: p.hoy,
     hasta,
     saldoHoy: r2(p.saldoHoy),
+    deClaudia: r2(p.deClaudia ?? 0),
+    porVolver: r2(p.porVolverCompras ?? 0),
     minimo,
     entra,
     sale,

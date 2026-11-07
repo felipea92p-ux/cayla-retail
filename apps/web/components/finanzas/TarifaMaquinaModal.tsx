@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { traducirError } from "@/lib/error-escritura";
@@ -9,15 +9,16 @@ import { Modal } from "@/components/ui/Modal";
 import { Casilla } from "@/components/ui/Casilla";
 import { Boton } from "@/components/ui/campos";
 import { ComboResponsable } from "@/components/ComboResponsable";
-import { CampoFin, InputFin, RadiosFin } from "@/components/finanzas/kit";
+import { CampoFin, InputFin, RadiosFin, SelectFin } from "@/components/finanzas/kit";
 import { CampoGuiado, PieGuia } from "@/components/guia-de-foco/CampoGuiado";
 import { useGuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
 import type { CampoDeGuia } from "@/lib/guia-campos";
 import { useResponsable } from "@/lib/useResponsable";
 import { firmar } from "@/lib/responsable-reglas";
-import { TEXTO_MEDIO_COBRO, mediosDeMaquina, textoTarifa, validarTarifa, type BorradorTarifa, type MaquinaPos, type MedioCobro } from "@/lib/cuentas-dinero-reglas";
+import { limpiarCantidad } from "@/lib/alta-producto";
+import { TEXTO_MEDIO_COBRO, mediosDeMaquina, problemaDeDiasAbono, textoTarifa, validarTarifa, type BorradorTarifa, type MaquinaPos, type MedioCobro } from "@/lib/cuentas-dinero-reglas";
 
-// Configuración ▸ Cuentas y cobros ▸ «Cambiar la tarifa» de una máquina de cobro (ADR-0429, act. 4). La tarifa SOLO estima y avisa:
+// Configuración ▸ Dinero ▸ «Cambiar la tarifa» de una máquina de cobro (ADR-0429, act. 4). La tarifa SOLO estima y avisa:
 // con ella, cada día pendiente de depósito dice la comisión esperada y el ERP avisa cuando la máquina se atrasa. La comisión real
 // sale siempre del depósito (actividad 3). Se cambia desde hoy: lo pasado se estima con la tarifa que regía ese día.
 // Guía de foco (ADR-0284): «falta» es lo mismo que apaga «Guardar» (`validarTarifa` y el responsable); el cargo fijo es opcional.
@@ -25,6 +26,7 @@ import { TEXTO_MEDIO_COBRO, mediosDeMaquina, textoTarifa, validarTarifa, type Bo
 const ID_TASA = "tarifa-tasa";
 const ID_FIJO = "tarifa-fijo";
 const ID_DIAS = "tarifa-dias";
+const ID_BANCO = "tarifa-banco";
 
 export function TarifaMaquinaModal({ maquina, medioInicial, onCerrar }: { maquina: MaquinaPos; medioInicial?: MedioCobro; onCerrar: () => void }) {
   const router = useRouter();
@@ -33,17 +35,33 @@ export function TarifaMaquinaModal({ maquina, medioInicial, onCerrar }: { maquin
   const primero = medios.find((m) => m.medio === medioInicial) ?? medios[0];
   const [b, setB] = useState<BorradorTarifa>(() => deBorrador(primero?.medio ?? "tarjeta", primero?.tarifa ?? null));
   const [guardando, setGuardando] = useState(false);
+  const [banco, setBanco] = useState(maquina.bancoId ?? "");
+  const [bancos, setBancos] = useState<{ id: string; nombre: string }[] | null>(null);
+  useEffect(() => {
+    let vivo = true;
+    void createClient()
+      .rpc("fn_cuentas_dinero_destinos" as never)
+      .then(({ data, error }) => {
+        if (vivo) setBancos(error ? null : ((data ?? []) as { id: string; nombre: string }[]));
+      });
+    return () => {
+      vivo = false;
+    };
+  }, []);
   const cambiar = (c: Partial<BorradorTarifa>) => setB((x) => ({ ...x, ...c }));
   const elegirMedio = (medio: MedioCobro) => setB(deBorrador(medio, medios.find((m) => m.medio === medio)?.tarifa ?? null));
   const vigente = medios.find((m) => m.medio === b.medio)?.tarifa ?? null;
 
   const v = validarTarifa(b, maquina.id);
   const tasaOk = b.tasa.trim() !== "" && (v.ok || !v.error.startsWith("Tasa") && !v.error.startsWith("La tasa"));
-  const diasOk = /^\d{1,2}$/.test(b.diasAbono.trim()) && Number(b.diasAbono) <= 15;
+  const diasOk = problemaDeDiasAbono(b.diasAbono) === null;
+  // Vacío todavía no está mal: la guía ya pide escribirlo.
+  const diasMal = b.diasAbono.trim() === "" ? null : problemaDeDiasAbono(b.diasAbono);
   const campos: CampoDeGuia[] = [
     { id: ID_TASA, nombre: "Tasa", requerido: true, hecho: tasaOk, pendiente: "Escribe la tasa que descuenta la máquina, en %; si no cobra, 0." },
     { id: ID_FIJO, nombre: "Cargo fijo", requerido: false, sugerido: false, hecho: b.cargoFijo.trim() !== "", pendiente: "Si cobra un fijo por cada pago, escríbelo." },
     { id: ID_DIAS, nombre: "Días de abono", requerido: true, hecho: diasOk, pendiente: "En cuántos días hábiles deposita (1 a 3, según la tarjeta)." },
+    { id: ID_BANCO, nombre: "Banco", requerido: false, sugerido: true, hecho: banco !== "", pendiente: "A qué banco deposita: el depósito lo traerá puesto." },
     { id: "responsable", nombre: "Responsable", requerido: true, hecho: responsable.listo, pendiente: responsable.motivo ?? "Elige quién hace el cambio." },
   ];
   const guia = useGuiaCampos(campos);
@@ -55,6 +73,15 @@ export function TarifaMaquinaModal({ maquina, medioInicial, onCerrar }: { maquin
       return;
     }
     setGuardando(true);
+    const cambioBanco = banco !== (maquina.bancoId ?? "");
+    const { error: errorBanco } = cambioBanco
+      ? await firmar(createClient().rpc("guardar_banco_de_maquina" as never, { p_maquina_id: maquina.id, p_banco_id: banco || null } as never), responsable.firma())
+      : { error: null };
+    if (errorBanco) {
+      setGuardando(false);
+      responsable.despues(errorBanco);
+      return avisar.error(traducirError(errorBanco, "guardar el banco de la máquina"));
+    }
     const { error } = await firmar(createClient().rpc("guardar_pos_tarifa" as never, v.valor as never), responsable.firma());
     setGuardando(false);
     responsable.despues(error);
@@ -67,7 +94,7 @@ export function TarifaMaquinaModal({ maquina, medioInicial, onCerrar }: { maquin
   return (
     <Modal
       variante="hoja"
-      titulo={`Tarifa de ${maquina.nombre}`}
+      titulo={`Tarifa y banco de ${maquina.nombre}`}
       subtitulo="Solo para estimar y avisar: la comisión real sale de cada depósito. Cambia desde hoy; lo pasado queda con la tarifa que regía."
       onClose={onCerrar}
       tamano="mediana"
@@ -95,17 +122,34 @@ export function TarifaMaquinaModal({ maquina, medioInicial, onCerrar }: { maquin
       </div>
       <div className="fin-dos-campos">
         <CampoGuiado id={ID_DIAS} guia={guia}>
-          <CampoFin etiqueta={guia.etiqueta(ID_DIAS, "Deposita en (días hábiles)")} htmlFor={ID_DIAS} ayuda="Pasado ese plazo, el día queda «atrasado» y Cuentas y dinero avisa.">
-            <InputFin id={ID_DIAS} inputMode="numeric" value={b.diasAbono} onChange={(e) => cambiar({ diasAbono: e.target.value.replace(/\D/g, "").slice(0, 2) })} placeholder="2" /* sugerir-fijo: un número de días, no depende de nada elegido */ />
+          <CampoFin etiqueta={guia.etiqueta(ID_DIAS, "Deposita en (días hábiles)")} htmlFor={ID_DIAS} ayuda={diasMal ?? "Pasado ese plazo, el día queda «atrasado» y Cuentas y dinero avisa."} tono={diasMal ? "aviso" : undefined}>
+            <InputFin id={ID_DIAS} inputMode="numeric" value={b.diasAbono} aria-invalid={diasMal ? true : undefined} onChange={(e) => cambiar({ diasAbono: limpiarCantidad(e.target.value) })} placeholder="2" /* sugerir-fijo: un número de días, no depende de nada elegido */ />
           </CampoFin>
         </CampoGuiado>
         <CampoFin etiqueta="IGV">
           <div className="flex min-h-10 items-center">
             <Casilla marcada={b.igvSobreTasa} onCambio={() => cambiar({ igvSobreTasa: !b.igvSobreTasa })} etiqueta="La tasa lleva IGV" />
-            <span className="ml-2 text-[13px] text-tinta">La tasa lleva IGV</span>
+            <span className="ml-2 text-sm text-tinta">La tasa lleva IGV</span>
           </div>
         </CampoFin>
       </div>
+
+      <CampoGuiado id={ID_BANCO} guia={guia} className="mb-3">
+        <CampoFin
+          etiqueta={guia.etiqueta(ID_BANCO, "A qué banco deposita")}
+          htmlFor={ID_BANCO}
+          ayuda={bancos === null ? "No se pudieron leer los bancos: se guarda sin cambiar el banco." : "Viene puesto en cada depósito y se puede cambiar ahí."}
+        >
+          <SelectFin
+            id={ID_BANCO}
+            valor={banco}
+            onValor={setBanco}
+            opciones={(bancos ?? []).map((c) => ({ valor: c.id, texto: c.nombre }))}
+            marcador={bancos === null ? "…" : "Sin banco fijo"}
+            deshabilitado={!bancos || guardando}
+          />
+        </CampoFin>
+      </CampoGuiado>
 
       <CampoGuiado id="responsable" guia={guia}>
         <div>

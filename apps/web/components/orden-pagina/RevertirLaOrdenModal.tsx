@@ -59,7 +59,7 @@ export function RevertirLaOrdenModal({ datos, onClose }: { datos: OrdenPagina; o
             <Boton type="button" onClick={onClose}>
               Volver
             </Boton>
-            <Boton type="submit" peso="peligro" cargando={cargando} textoCargando="Revirtiendo…" disabled={!responsable.listo} title={responsable.motivo ?? undefined}>
+            <Boton type="submit" peso="primario" cargando={cargando} textoCargando="Revirtiendo…" disabled={!responsable.listo} title={responsable.motivo ?? undefined}>
               Revertir cierre
             </Boton>
           </div>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState, type RefObject } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type RefObject } from "react";
 import { Globito } from "@/components/ui/Globito";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
@@ -60,6 +60,7 @@ import { OpcionesDePrendaModal } from "@/components/punto-de-venta/OpcionesDePre
 import { fichaDelColor, unidadesPorColor, type ColorConFicha } from "@/lib/ficha-del-color";
 import { PuntoDeVentaTicket } from "@/components/PuntoDeVentaTicket";
 import { HojaDeCobro } from "@/components/punto-de-venta/HojaDeCobro";
+import { HojaDeDescuento } from "@/components/punto-de-venta/HojaDeDescuento";
 import { DocumentoDelComprobante } from "@/components/punto-de-venta/DocumentoDelComprobante";
 import { PuntoDeVentaColaOffline } from "@/components/PuntoDeVentaColaOffline";
 import { ID_CARGO_ESPECIAL } from "@/lib/cargo-especial";
@@ -69,12 +70,18 @@ import { VentaRegistradaModal } from "@/components/VentaRegistradaModal";
 import { useResponsable } from "@/lib/useResponsable";
 import type { DatosPrendaSinRegistrar, ListasPrendaLibre } from "@/lib/prenda-sin-registrar-reglas";
 import { PrendaSinRegistrarModal } from "@/components/PrendaSinRegistrarModal";
+import { motivoParaRegistrar } from "@/lib/prenda-sin-registrar-motivo";
+import { prendasPosibles } from "@/lib/prenda-sin-registrar-posibles";
+import { rangoDePreciosDeCategoria } from "@/lib/prenda-sin-registrar-precio";
 import { AgregarBolsaModal, BotonDeBolsas } from "@/components/punto-de-venta/BolsaDelTicket";
 import { bolsasDeLaCaja } from "@/lib/bolsas-reglas";
 import { EscanerCamara, precargarLectorQR } from "@/components/EscanerCamara";
 import { MQ_TELEFONO, type ResultadoEscaneo } from "@/lib/escaner-reglas";
+import { consultarExistencias } from "@/lib/escaner-existencias";
 import { useConsultaMedia } from "@/lib/useConsultaMedia";
 import { useVentasDeHoy, type VentaDeHoy } from "@/lib/useVentasDeHoy";
+import { useSinRegistrarDeHoy } from "@/lib/useSinRegistrarDeHoy";
+import { SinRegistrarDeHoy } from "@/components/punto-de-venta/SinRegistrarDeHoy";
 import {
   ACCION_BAJAR_Y_AGREGAR,
   accionBajarYAgregar,
@@ -107,7 +114,7 @@ import { avisoFaltanDeRepeticion, type RepeticionDeVenta } from "@/lib/repetir-v
 import { accionDelEnter, buscarVendiblePrimero } from "@/lib/vender-buscador-reglas";
 import { usePistola } from "@/components/ui/usePistola";
 import type { AccesoVenta } from "@/lib/vender-accesos";
-import { hrefApartarDesdeTicket } from "@/lib/apartar-desde-ticket";
+import { hrefApartarDesdeTicket, descuentosDelTicket, dejarDescuentosParaApartar } from "@/lib/apartar-desde-ticket";
 import type { ClientaDelTicket as Clienta } from "@/lib/clienta-ticket-reglas";
 import { documentoParaComprobante, type TipoDocumentoClienta } from "@/lib/documento-clienta-reglas";
 import { cobroDeTicketGuardado, type CobroDelTicket } from "@/lib/ticket-cobro-reglas";
@@ -122,7 +129,7 @@ import {
 } from "@/lib/celular-ficha-reglas";
 import { problemaDocumentoComprobante } from "@/lib/documento-comprobante-reglas";
 import { clientaDeTicketGuardado, nombreDeFichaParaComprobante } from "@/lib/clienta-ticket-reglas";
-import { BotonApartados, MasDeLaTienda } from "@/components/punto-de-venta/AccesosVenta";
+import { BotonApartados, BotonSepararDanada, MasDeLaTienda } from "@/components/punto-de-venta/AccesosVenta";
 import { ResumenDeHoy } from "@/components/punto-de-venta/ResumenDeHoy";
 import { ClientaDelTicket } from "@/components/punto-de-venta/ClientaDelTicket";
 import { useClubDeLaClienta } from "@/components/punto-de-venta/useClubDeLaClienta";
@@ -141,13 +148,14 @@ import {
   rechazoDelCupon,
   solesDelCupon,
 } from "@/lib/club-puntos-reglas";
-import { TicketsSinCobrarModal } from "@/components/punto-de-venta/Esperas";
+import { DescartarTicketModal, TicketsSinCobrarModal } from "@/components/punto-de-venta/Esperas";
 import {
   abrirNuevoTicket,
   cabeOtroTicket,
   nombreDelTicketActivo,
   pasarAlTicket,
   pestanasDeTickets,
+  quitarDeLaEspera,
   siguienteNombreDeCliente,
   ticketsQueDisputanLaPrenda,
   TOPE_TICKETS_ABIERTOS,
@@ -164,6 +172,8 @@ import { CajaCerrada } from "@/components/punto-de-venta/CajaCerrada";
 import { RegistrarBajadaModal } from "@/components/punto-de-venta/RegistrarBajadaModal";
 import type { CierreAnterior } from "@/lib/caja-cerrada-reglas";
 import { ChevronUp, ShoppingBag } from "lucide-react";
+import { soltarPaginaEstable } from "@/components/ui/PaginaEstable";
+import { conDuenoPorLineas, duenoDeLasLineas, duenosParaElegir, variantesSinDueno, type UnidadesDeDueno } from "@/lib/dueno-reglas";
 import { codigoDeLiquidacion, errorDeLiquidacion, nombreEnVenta, piezaLeidaDeJson, soles as solesLiquidacion } from "@/lib/liquidacion-reglas";
 import { Casilla } from "@/components/ui/Casilla";
 import { numeroDeMonto } from "@/lib/monto-plata-reglas";
@@ -204,6 +214,10 @@ export type VarianteBusqueda = PrendaBuscableV2 & {
   colorHex?: string | null;
   /** `variantes.color_codigo`: cruza con la ficha del color (ADR-0316) en «Todo de la prenda». Ausente = sin ficha. */
   colorCodigo?: string | null;
+  /** `variantes.talla_id` y `productos.categoria_id`: con el color, la llave con que «Prenda sin registrar» ofrece la prenda del
+   *  catálogo que coincide («¿Es alguna de estas?», `prendasPosibles`). Ausentes = no se ofrece nada. */
+  tallaId?: string | null;
+  categoriaId?: string | null;
   precio: number;
   /** El precio de arriba es el de ESTA tienda (precio propio, Felipe 2026-10-09): la tarjeta se lo dice a la colaboradora con
    *  «Precio de Trujillo». El cliente no lo ve: para él es el precio. Ausente = el general. */
@@ -354,6 +368,8 @@ type Props = {
   /** Incluye la variante centinela de la «Prenda sin registrar», que este componente filtra
    *  antes de mostrar nada. */
   variantes: VarianteBusqueda[];
+  /** ADR-0542: de quién son las unidades de cada prenda en esta sede, solo las que tienen de alguien que no es la casa (Lima). La cajera elige de cuál sale cuando hay de las dos. */
+  duenosPorVariante?: Record<string, UnidadesDeDueno[]> | null;
   /** La ficha de cada color activo (ADR-0316; Felipe 2026-10-10): «Todo de la prenda» dice con qué se combina el color que se mira,
    *  con lo que cuelga en esta sede primero. Vacío (o ausente) = la hoja no dice nada del color, y se vende igual. */
   colores?: ColorConFicha[];
@@ -371,6 +387,8 @@ type Props = {
   puedeApartar: boolean;
   /** La fila «Clienta» del ticket: su rol ve Clientas (la base rechaza la búsqueda sin el módulo, ADR-0249 2026-09-28). */
   puedeBuscarClienta: boolean;
+  /** La cuenta ve Existencias, donde vive la mesa de Ventas sin registrar (ADR-0306): el pie del ticket enlaza a ella (A5). */
+  verMesaRegularizar?: boolean;
   /** El club (ADR-0288, tanda 1b): los textos vigentes y el WhatsApp de esta tienda, leídos por el servidor. Sin ellos
    *  (`CLUB_APAGADO`) no se invita ni sale QR, y la venta sigue igual (principio 9). */
   club?: ClubDeLaCaja;
@@ -422,10 +440,13 @@ export type ProformaEnCobro = {
   confirmacion: { titulo: string; detalle: string; casilla: string } | null;
 };
 
-export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, cajaId, fondoUltimoCierre = null, cierreAnterior = null, variantes, colores = SIN_COLORES, listasPrendaLibre, campanasNoCargaron = false, ventasHoy, metaVentaDiaria, accesos, puedeApartar, puedeBuscarClienta, club = CLUB_APAGADO, proforma = null, avisoProforma = null, repeticion = null, qrDisponible = false, maquinasCobro = SIN_MAQUINAS, tiposComprobante, redondeoEfectivoDisponible = false, pedirAOtraSede = null, pedidosConCliente = [], ahoraIso = "" }: Props) {
+export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, cajaId, fondoUltimoCierre = null, cierreAnterior = null, variantes, duenosPorVariante = null, colores = SIN_COLORES, listasPrendaLibre, campanasNoCargaron = false, ventasHoy, metaVentaDiaria, accesos, puedeApartar, puedeBuscarClienta, verMesaRegularizar = false, club = CLUB_APAGADO, proforma = null, avisoProforma = null, repeticion = null, qrDisponible = false, maquinasCobro = SIN_MAQUINAS, tiposComprobante, redondeoEfectivoDisponible = false, pedirAOtraSede = null, pedidosConCliente = [], ahoraIso = "" }: Props) {
   const bloqueado = cajaId === null;
   const router = useRouter();
+  // De quién sale cada prenda del ticket cuando hay unidades de las dos empresas (ADR-0542), por prenda. Sin respuesta de fábrica.
+  const [duenoDeLinea, setDuenoDeLinea] = useState<Record<string, string>>({});
   const buscador = useRef<HTMLInputElement>(null);
+  const frenoCantidades = useRef<() => boolean>(null);
   // El botón grande de la persiana «Caja cerrada» (ADR-0301): el modal «Abrir caja» le devuelve el foco si se cierra sin abrir.
   const botonAbrirCaja = useRef<HTMLButtonElement>(null);
   // A dónde vuelve el foco al cerrarse «Abrir caja». Se decide AL CERRARSE, no al dibujar el modal: cuando la caja abre, el
@@ -498,6 +519,9 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
   const [hojaCodigo, setHojaCodigo] = useState(false);
   // Dónde se dibuja el ticket de la caja entre las pestañas (`lib/tickets-abiertos-reglas.ts`); `null` = al final, donde nace uno nuevo.
   const [posActivo, setPosActivo] = useState<number | null>(null);
+  // El ticket que espera y se va a descartar, con lo que dice la hoja de confirmación (se guarda aparte: al descartarlo sale de
+  // la espera y la hoja no puede leerlo de ahí mientras se cierra).
+  const [porDescartar, setPorDescartar] = useState<{ id: string; nombre: string; prendas: number; total: number } | null>(null);
   // Se quiere cerrar la caja con tickets que tienen prendas: antes de abrir el cierre se dice cuáles se pierden.
   const [cierreConTickets, setCierreConTickets] = useState(false);
   // Pago mixto (decidido con Felipe el 2026-09-14): una fila por medio, sin preselección
@@ -632,6 +656,8 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
   // Sube tras cada venta: «Ventas de hoy» se relee sola (`useVentasDeHoy`).
   const [versionVentas, setVersionVentas] = useState(0);
   const ventasDeHoy = useVentasDeHoy(ubicacionId, ventasHoy.inicial, ventasHoy.fallo, versionVentas);
+  // A5 (auditoría 2026-10-14): cuántas sin registrar vendió esta tienda hoy y cuántas siguen por regularizar; se relee tras cada venta.
+  const sinRegistrarDeHoy = useSinRegistrarDeHoy(ubicacionId, versionVentas);
   const variantesAjustadas = useMemo(
     () =>
       conStockAjustado(
@@ -753,7 +779,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
   // del foco mientras vive, y al cerrarse lo devuelve él mismo (`alCerrarEnfocar`). La hoja de la clienta también: con
   // su combo «Tipo de documento» enfocado, una tecla suelta se iba al escáner de atrás, y F1–F5 pasaban el ticket a cobrar.
   const hayModal =
-    manualAbierto || bolsasAbiertas || camaraAbierta || modalAbrirVisible || modalCerrarVisible || ok !== null || hojaTicket || cierreConTickets || hojaClientaAbierta || hojaPuntos || hojaCodigo || bajadaPorConfirmar !== null || envio.incierto;
+    manualAbierto || bolsasAbiertas || camaraAbierta || modalAbrirVisible || modalCerrarVisible || ok !== null || hojaTicket || porDescartar !== null || cierreConTickets || hojaClientaAbierta || hojaPuntos || hojaCodigo || bajadaPorConfirmar !== null || envio.incierto;
 
   // El escáner es la ruta principal de la caja, así que el foco vuelve a él solo.
   // `autoFocus` del campo solo actúa al montar — y si la pantalla cargó con la caja
@@ -849,7 +875,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
       for (const venta of aReintentar) {
         // Sube con el responsable que se eligió al cobrar y la HORA DE LA VENTA (`x-momento`), no la de ahora (ADR-0162),
         // y después la manda sola a SUNAT (D-60), igual que un cobro en línea.
-        const { data: ventaSubida, error, status } = await firmar(supabase.rpc("registrar_venta", venta.params), firmaDeVentaEncolada(venta));
+        const { data: ventaSubida, error, status } = await conDuenoPorLineas(firmar(supabase.rpc("registrar_venta", venta.params), firmaDeVentaEncolada(venta)), duenoDeLasLineas(venta.params.p_items));
         if (!error) {
           resueltos.set(venta.token, null);
           subidas.push(...venta.items);
@@ -926,6 +952,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
    *  almacén: quien arma un aviso en el mismo instante no puede esperar a que el estado se pinte), o null si no se
    *  pudo: la pantalla se queda con lo que ya mostraba. */
   async function releerStock(ids?: string[]): Promise<StockReleido | null> {
+    olvidarDelSondeo();
     const conocidos = variantes.filter((v) => v.varianteId !== ID_CARGO_ESPECIAL).map((v) => v.varianteId);
     const releido = await leerStockDeSede(ubicacionId, conocidos, ids);
     if (!releido) return null;
@@ -942,7 +969,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
    * un problema de la cámara, es que esta pantalla nunca se actualizaba sola. Mismo hook que Apartados y
    * Cambios (`lib/useStockEnVivo.ts`) — no sondea con la caja cerrada (bloqueado: no hay nada que cobrar igual).
    */
-  useStockEnVivo(
+  const olvidarDelSondeo = useStockEnVivo(
     ubicacionId,
     useMemo(() => variantes.filter((v) => v.varianteId !== ID_CARGO_ESPECIAL).map((v) => v.varianteId), [variantes]),
     !bloqueado,
@@ -952,6 +979,8 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
       setAjustesApartado((prev) => new Map([...prev, ...apartado]));
     },
   );
+  // `olvidarDelSondeo`: lo que esta pantalla cambia por su cuenta (vender, bajar al piso) el sondeo no lo sabe; se le avisa para
+  // que la próxima vuelta relea de verdad y no se calle porque «la base sigue igual que la última vez que avisé».
 
   /**
    * Precio y descuento en vivo (Felipe, 2026-10-08): cambió el precio de una prenda y le quitó una etiqueta de
@@ -982,6 +1011,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
    *  prendas y la lista de ventas de hoy. Reemplaza al `router.refresh()` de antes (ADR-0192). */
   function trasVender(vendidas: { varianteId: string; cantidad: number }[]) {
     const stockServidor = new Map(variantes.map((v) => [v.varianteId, v.stockAqui]));
+    olvidarDelSondeo();
     setAjustesStock((prev) => descontarVendido(prev, stockServidor, vendidas));
     setVersionVentas((n) => n + 1);
     void releerStock(vendidas.map((v) => v.varianteId));
@@ -1043,6 +1073,21 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
    *  repetiría lo mismo tapándole la ✕.
    *  `confirmar`: lo que entra por el campo de escaneo (lector o teclado) dice «Agregada al ticket», como la cámara del
    *  teléfono; una tarjeta o una fila tocadas no lo piden: ahí la prenda se ve entrar donde se tocó. */
+  /** Tras agregar una prenda desde la lista de resultados, la persona vuelve al campo de búsqueda. En celular y tablet la lista flotante
+   *  alargaba la página y, al cerrarse, <PaginaEstable> reservaba ese alto como aire: la vista quedaba sobre un vacío («en el aire»,
+   *  2026-11-02). Es un cambio de vista, no un bloque que se encogió: se suelta la reserva y se sube al inicio ANTES de pintar
+   *  (`useLayoutEffect`, igual que el ticket al pasar a «Cobro»). En escritorio la pantalla es fija y no hay nada que subir. */
+  const [vueltaAlCampo, setVueltaAlCampo] = useState(0);
+  useLayoutEffect(() => {
+    if (vueltaAlCampo === 0 || !window.matchMedia("(max-width: 1023.98px)").matches) return;
+    soltarPaginaEstable();
+    window.scrollTo({ top: 0, behavior: "instant" });
+  }, [vueltaAlCampo]);
+  function volverAlCampo() {
+    buscador.current?.focus({ preventScroll: true });
+    setVueltaAlCampo((n) => n + 1);
+  }
+
   function agregar(
     v: VarianteBusqueda,
     { silencioso = false, confirmar = false, origen }: { silencioso?: boolean; confirmar?: boolean; origen?: OrigenDeLinea } = {}
@@ -1059,7 +1104,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
       setAviso(null);
       setQ("");
       setActivo(0);
-      buscador.current?.focus();
+      volverAlCampo();
       return "sin_precio";
     }
     // Los avisos de stock salen como notificación (`avisar`, arriba a la derecha): la línea
@@ -1080,7 +1125,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
       setAviso(null);
       setQ("");
       setActivo(0);
-      buscador.current?.focus();
+      volverAlCampo();
       return motivo;
     }
     const existente = carrito.find((it) => it.claveLinea === v.varianteId);
@@ -1136,7 +1181,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
     setAviso(null);
     setQ("");
     setActivo(0);
-    buscador.current?.focus();
+    volverAlCampo();
     return tope ? "tope" : "agregada";
   }
 
@@ -1231,6 +1276,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
       return !error || !(esErrorDeResponsable(error) || esFalloDeRed(error));
     }
     // Lo libre DESPUÉS, según la base: queda en el stock de la pantalla sin releer (la base es la que manda).
+    olvidarDelSondeo();
     setAjustesStock((prev) => new Map(prev).set(varianteId, r.piso));
     setAjustesAlmacen((prev) => new Map(prev).set(varianteId, r.almacen));
     // `agregar` del render más reciente: el ticket pudo cambiar mientras la base respondía.
@@ -1362,7 +1408,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
         // La descripción de caja es el nombre de la línea en el ticket y en el comprobante.
         referencia: d.descripcion,
         sku: "SIN-REGISTRAR",
-        prendaLibre: { descripcion: d.descripcion, categoriaId: d.categoriaId, tallaId: d.tallaId, colorCodigo: d.colorCodigo },
+        prendaLibre: { descripcion: d.descripcion, categoriaId: d.categoriaId, tallaId: d.tallaId, colorCodigo: d.colorCodigo, motivo: d.motivo, motivoDetalle: d.motivoDetalle },
         codigo: null,
         cantidad: 1,
         precioUnitario: d.precio,
@@ -1418,7 +1464,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
     // descuento «no entró».
     const pedidos = descuentosPedidos(
       descuento.modo,
-      descuento.modo === "monto" ? numeroDeMonto(descuento.monto) : Number(descuento.pct),
+      numeroDeMonto(descuento.modo === "monto" ? descuento.monto : descuento.pct),
       carrito.filter((it) => entraAlDescuento(it, claves)),
     );
     const cedieron = carrito.filter((it) => {
@@ -1435,7 +1481,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
     setCarrito((actual) =>
       descuento.modo === "monto"
         ? aplicarDescuentoMonto(actual, numeroDeMonto(descuento.monto), claves, detalle)
-        : aplicarDescuento(actual, Number(descuento.pct), claves, detalle),
+        : aplicarDescuento(actual, numeroDeMonto(descuento.pct), claves, detalle),
     );
     setMomento("armar");
   }
@@ -1452,6 +1498,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
   }
   function limpiarTicket() {
     setCarrito([]);
+        setDuenoDeLinea({});
     quitarClienta();
     setNota("");
     setNombreTicket("");
@@ -1516,6 +1563,18 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
   function abrirCierreDeCaja() {
     if (pestanas.some((p) => p.prendas > 0)) setCierreConTickets(true);
     else setModalCaja("cerrar");
+  }
+  /** El basurero de «En espera»: pide confirmación, porque se pierden sus prendas. */
+  function pedirDescartar(id: string) {
+    const p = pestanas.find((x) => x.id === id);
+    if (p) setPorDescartar({ id, nombre: p.nombre, prendas: p.prendas, total: p.total });
+  }
+  function descartarDeLaEspera(id: string) {
+    const sin = quitarDeLaEspera(enEspera, posActivo, id);
+    persistirEspera(sin.espera);
+    setPosActivo(sin.posActivo);
+    // Si era el último, ya no queda nada que ver en «En espera»: vuelve al ticket.
+    if (sin.espera.length === 0) setMomento("armar");
   }
   function retomar(id: string) {
     const ticket = enEspera.find((t) => t.id === id);
@@ -1700,7 +1759,12 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
     conVentajaDelClub && carrito.some((it) => it.liquidacion)
       ? "Las prendas de liquidación tienen precio final: el regalo del club se usa en otra venta. Quita el cupón o el canje, o cóbralas aparte."
       : null;
-  const motivoBloqueo = liquidacionConClub ?? cuponNoAlcanza ?? motivoBloqueoCobro({
+  // Lo elegido vale para ESTA venta: lo de una prenda que ya no está en el ticket no cuenta (y se limpia al cobrar).
+  const enTicket = new Set(carrito.map((it) => it.varianteId));
+  const duenoVigente = Object.fromEntries(Object.entries(duenoDeLinea).filter(([v]) => enTicket.has(v)));
+  const faltaDuenoEn = variantesSinDueno([...enTicket], duenosPorVariante, duenoVigente);
+  const motivoDueno = faltaDuenoEn.length > 0 ? `Marca de quién sale ${faltaDuenoEn.length === 1 ? "la prenda que tiene" : "las prendas que tienen"} unidades de CAYLA y de CLAURE.` : null;
+  const motivoBloqueo = motivoDueno ?? liquidacionConClub ?? cuponNoAlcanza ?? motivoBloqueoCobro({
     cajaAbierta: !bloqueado,
     prendas,
     momento,
@@ -1732,6 +1796,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
     setProformaActiva(null);
     setConfirmoVencida(false);
     setCarrito([]);
+        setDuenoDeLinea({});
     limpiarComprobante();
     router.replace("/vender");
   }
@@ -1779,8 +1844,8 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
   useEffect(() => {
     if (bloqueado || hayModal || prendaElegida) return;
     function alAtajo(e: KeyboardEvent) {
-      // Esc cierra la hoja de cobro y vuelve al ticket (un combo de adentro que use el Escape lo detiene antes).
-      if (e.key === "Escape" && momento === "cobrar" && !e.defaultPrevented) {
+      // Esc cierra la hoja de cobro o la del descuento y vuelve al ticket (un combo de adentro que use el Escape lo detiene antes).
+      if (e.key === "Escape" && (momento === "cobrar" || (momento === "descuento" && !apilado)) && !e.defaultPrevented) {
         setMomento("armar");
         return;
       }
@@ -1791,6 +1856,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
         tocarMedio(metodo);
       } else if (momento === "armar" && prendas > 0) {
         e.preventDefault();
+        if (frenoCantidades.current?.()) return;
         setPagos([pagoNuevo(metodo, Math.max(0, total), maquinasCobro)]);
         setMomento("cobrar");
       }
@@ -1852,6 +1918,16 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
   function apartarDesdeTicket() {
     const lineas = lineasParaLlevar("apartar");
     if (lineas.length === 0) return;
+    // ADR-0584: el descuento puesto a mano viaja con las prendas (Apartados lo vuelve a exigir con las reglas de la venta).
+    const { descuentos, sinLlevar } = descuentosDelTicket(carrito.filter((it) => it.varianteId !== ID_CARGO_ESPECIAL));
+    dejarDescuentosParaApartar(lineas, descuentos);
+    if (sinLlevar > 0) {
+      avisar.aviso(
+        sinLlevar === 1
+          ? "Una prenda tenía dos descuentos distintos en el ticket: llega a Apartar sin descuento. Vuelve a ponérselo allá."
+          : `${sinLlevar} prendas tenían descuentos distintos en el ticket: llegan a Apartar sin descuento. Vuelve a ponérselos allá.`,
+      );
+    }
     setHojaTicket(false);
     router.push(hrefApartarDesdeTicket(lineas));
   }
@@ -1877,6 +1953,8 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
       p_ubicacion_id: ubicacionId,
       p_items: lineasConClub.map((it) => ({
         variante_id: it.varianteId,
+        // Solo cuando había de quién elegir: la base toma al único dueño en el resto (ADR-0542).
+        empresa_id: duenosParaElegir(duenosPorVariante?.[it.varianteId]) ? duenoVigente[it.varianteId] : undefined,
         cantidad: it.cantidad,
         precio_unitario: it.precioUnitario,
         // Con el cupón, `descuento_unitario` es el TOTAL (el de siempre + la parte del club, sumados al
@@ -1898,6 +1976,8 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
         categoria_id: it.prendaLibre?.categoriaId,
         talla_id: it.prendaLibre?.tallaId,
         color_codigo: it.prendaLibre?.colorCodigo,
+        // Por qué se anotó a mano (20261106233000): sin motivo las claves ni aparecen y la base la deja «sin motivo».
+        ...motivoParaRegistrar(it.prendaLibre?.motivo, it.prendaLibre?.motivoDetalle),
         // De dónde salió la línea (Felipe 2026-10-10): `registrar_venta` la guarda en `venta_items.origen_sugerencia` cuando la
         // migración 20261010220100 esté pegada; antes, la ignora. Sin origen la clave ni aparece.
         origen_sugerencia: it.origen,
@@ -1925,7 +2005,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
     const r = await envio.enviar(huellaDe({ ...params, p_token: undefined }), (token, senal) => {
       // Antes de mandarlo, el cobro queda anotado: si la página se cae ahora, al volver se pregunta por él.
       anotarCobro(token);
-      return firmar(supabase.rpc("registrar_venta", { ...params, p_token: token }), responsable.firma()).abortSignal(senal);
+      return conDuenoPorLineas(firmar(supabase.rpc("registrar_venta", { ...params, p_token: token }), responsable.firma()).abortSignal(senal), duenoDeLasLineas(params.p_items));
     });
     // Una ráfaga de clics o de Enter: el primero ya está cobrando.
     if (r.tipo === "ocupado" || r.tipo === "congelado") return;
@@ -1960,6 +2040,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
         setHojaTicket(false);
         setOk({ total, prendas, recibo: null, estado: null, offline: true });
         setCarrito([]);
+        setDuenoDeLinea({});
         limpiarComprobante();
         return;
       }
@@ -2161,6 +2242,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
     cuponClub.recargar();
     const vendidas = carrito.map((it) => ({ varianteId: it.varianteId, cantidad: it.cantidad }));
     setCarrito([]);
+        setDuenoDeLinea({});
     limpiarComprobante();
     // Cobrada la proforma, se quita `?proforma=` de la dirección (si no, recargar la volvería a pedir).
     if (proformaActiva) {
@@ -2232,7 +2314,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
               </div>
             )}
             {/* La nota va FUERA de la caja del campo a propósito: ese `div` debe seguir con un solo hijo (ver arriba). */}
-            {notaCelularBoleta && <p className="mt-1 text-xs text-tinta/60">{notaCelularBoleta}</p>}
+            {notaCelularBoleta && <p className="mt-1 text-sm text-tinta/60">{notaCelularBoleta}</p>}
           </fieldset>
         )
       }
@@ -2257,6 +2339,9 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
             carrito={carritoConPiso}
             detalles={detallesDelTicket}
             tambienEn={prendasEnOtrosTickets}
+            duenosPorVariante={duenosPorVariante}
+            duenoElegido={duenoVigente}
+            onDueno={(varianteId, empresaId) => setDuenoDeLinea((d) => ({ ...d, [varianteId]: empresaId }))}
             listaRef={listaTicket}
             onQuitar={quitar}
             onCantidad={cambiarCantidad}
@@ -2265,12 +2350,14 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
             onAbrirDescuento={abrirDescuento}
             onAplicarDescuento={aplicarDescuentoAlTicket}
             onQuitarDescuento={quitarDescuentoDelTicket}
+            descuentoAparte={!enHoja}
             nota={nota}
             onNota={setNota}
             enEspera={enEspera}
             onDejarEnEspera={pedirDejarEnEspera}
             onRetomar={retomar}
             onIrAEspera={() => setMomento("espera")}
+            onDescartarEspera={pedirDescartar}
             total={total}
             prendas={prendas}
             vale={valeDelTicket}
@@ -2284,12 +2371,18 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
             loading={loading}
             onCobrar={cobrar}
             momento={momento}
-            onIrACobrar={() => setMomento("cobrar")}
+            onIrACobrar={() => {
+              // Lo escrito en una cantidad no valió: antes de cobrar lo que quedó, se lee por qué (`useCantidadEscrita`).
+              if (frenoCantidades.current?.()) return;
+              setMomento("cobrar");
+            }}
+            frenoCantidades={frenoCantidades}
             onVolverATicket={() => setMomento("armar")}
             motivoBloqueo={motivoBloqueo}
             responsable={responsable}
           enHoja={enHoja}
           onCerrarHoja={() => setHojaTicket(false)}
+          abajo={<SinRegistrarDeHoy conteo={sinRegistrarDeHoy} verMesa={verMesaRegularizar} />}
           arriba={
             <>
               {/* Cliente y bolsa en UNA fila (Felipe 2026-10-22): apiladas, las dos franjas le quitaban a la lista de prendas casi
@@ -2328,7 +2421,10 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
     // bajo la cabecera fija de AppShell: `100dvh` menos el `pt-24 + pb-12` de su
     // `<main>` (9rem). En celular/tablet (apilado) se mantiene el scroll de página:
     // dos scrolls internos uno debajo del otro serían peores que uno solo.
-    <div className="flex flex-col overflow-hidden rounded-2xl border border-sand bg-crema text-tinta lg:h-[calc(100dvh-9rem)]">
+    // «A · Catálogo al aire, ticket en placa» (vender-vidrio-2026-11, Felipe 2026-11-02): sin la tarjeta grande de crema; el catálogo
+    // vive sobre la Aurora y el ticket es la placa Serena de su columna (vidrio/vender.css). Sin tarjeta tampoco hay `overflow-hidden`:
+    // la lista de resultados del buscador ya no se corta a media prenda en el celular (el arreglo de main del 2026-11-02 queda cubierto).
+    <div className="pv-mesa flex flex-col text-tinta lg:h-[calc(100dvh-9rem)]">
       {/* Sin la franja de arriba (spike «el ticket a lo alto», Felipe 2026-09-26): le quitaba alto al ticket. La columna
           izquierda arranca con la sede, «Apartados» (que se lleva el ticket), «Más» (todo lo demás, con «Hoy» arriba y
           «Cerrar caja» al pie) y la cifra de hoy en chico; el ticket ocupa la columna derecha de arriba abajo.
@@ -2341,13 +2437,14 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
         // ancho) `apilado` todavía es false y el ticket se dibujaba un instante debajo del catálogo en el celular.
         // El ticket mide 420 px cuando hay sitio y cede hasta 320 (el 40 % del ancho): fijo en 420, una laptop de 1024 con
         // el lateral abierto dejaba al catálogo en 190 px — el buscador hecho una pastilla y tarjetas de 90 px (2026-10-02).
-        className="grid lg:min-h-0 lg:flex-1 lg:grid-cols-[minmax(0,1fr)_clamp(320px,40%,420px)] lg:grid-rows-[minmax(0,1fr)] max-lg:[&>aside]:hidden"
+        className="grid lg:min-h-0 lg:flex-1 lg:grid-cols-[minmax(0,1fr)_clamp(320px,40%,420px)] lg:grid-rows-[minmax(0,1fr)] lg:gap-5 max-lg:[&>aside]:hidden"
         inert={bloqueado}
       >
-        <div className="relative flex min-w-0 flex-col lg:min-h-0 lg:border-r lg:border-sand">
-          <div className="anim-revelar flex flex-wrap items-center gap-2 px-4 pt-3 sm:px-6 sm:pt-4">
+        <div className="relative flex min-w-0 flex-col lg:min-h-0">
+          <div className="pv-cat-aire anim-revelar flex flex-wrap items-center gap-2 px-4 pt-3 sm:px-6 sm:pt-4">
             <p className="label-cayla mr-2 w-full text-[11px] text-taupe-profundo sm:w-auto">Venta en tienda · {ubicacionEtiqueta}</p>
             {puedeApartar && <BotonApartados prendas={prendas} onApartar={apartarDesdeTicket} deshabilitado={bloqueado} />}
+            {accesos.filter((a) => a.modulo === "existencias").map((a) => <BotonSepararDanada key={a.href} href={a.href} />)}
             <MasDeLaTienda
               accesos={accesos}
               arriba={
@@ -2491,9 +2588,29 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
                 aria-label="Cobro"
                 // La hoja no scrollea: la cabecera y «Confirmar cobro» van fijos y solo el cuerpo de los pasos lo hace, si de verdad
                 // no caben (`HojaDeCobro`). Es un contenedor de tamaño (`container: cobro`) para que se compacte según SU alto.
-                className="hoja-cobro absolute inset-y-3 right-3 z-30 flex w-[min(46rem,calc(100%-1.5rem))] flex-col overflow-hidden rounded-3xl border border-sand bg-papel"
+                className="hoja-cobro hoja-serena absolute inset-y-3 right-3 z-30 flex w-[min(46rem,calc(100%-1.5rem))] flex-col overflow-hidden"
               >
                 {hojaDeCobro(false)}
+              </section>
+            </>
+          )}
+
+          {/* La hoja del descuento (Felipe, 2026-11-02, «A · Hoja lateral»): como el cobro, sobre el catálogo y con el ticket quieto a la
+              vista. El velo tocado, «Volver» o Esc cierran sin aplicar. En el celular el descuento sigue dentro de la hoja del ticket. */}
+          {!apilado && momento === "descuento" && !bloqueado && (
+            <>
+              <div aria-hidden onClick={() => setMomento("armar")} className="hoja-descuento-velo absolute inset-0 z-30" />
+              <section aria-label="Descuento" className="hoja-descuento hoja-serena absolute inset-y-3 right-3 z-30 flex w-[min(46rem,calc(100%-1.5rem))] flex-col overflow-hidden">
+                <HojaDeDescuento
+                  descuento={descuento}
+                  onDescuento={(cambio) => setDescuento((actual) => ({ ...actual, ...cambio }))}
+                  carrito={carritoConPiso}
+                  vale={valeDelTicket}
+                  bloqueado={bloqueado}
+                  onAplicar={aplicarDescuentoAlTicket}
+                  onQuitar={quitarDescuentoDelTicket}
+                  onVolver={() => setMomento("armar")}
+                />
               </section>
             </>
           )}
@@ -2521,14 +2638,14 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
             <Globito n={prendas} esquina sobreOscuro late className="absolute -right-1.5 -top-1.5" />
           </span>
           <span className="min-w-0 flex-1">
-            <span className="block truncate text-[11px] text-crema/70">
+            <span className="block truncate text-sm text-crema/70">
               {carrito.length > 0
                 ? `${prendas} ${prendas === 1 ? "prenda" : "prendas"} · ${carrito.map((it) => it.referencia).join(", ")}`
                 : `${enEspera.length} en espera`}
             </span>
             <span key={total} className="anim-asentar block font-display text-xl leading-tight tabular-nums">{money(total)}</span>
           </span>
-          <span className="label-cayla flex h-10 shrink-0 items-center gap-1 rounded-lg bg-crema px-3 text-[10.5px] text-tinta">
+          <span className="pv-isla-ver label-cayla flex h-10 shrink-0 items-center gap-1 rounded-lg bg-crema px-3 text-[10.5px] text-tinta">
             Ver ticket
             <ChevronUp className="h-3.5 w-3.5" aria-hidden />
           </span>
@@ -2542,6 +2659,16 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
         </Modal>
       )}
 
+
+      {porDescartar && (
+        <DescartarTicketModal
+          nombre={porDescartar.nombre}
+          prendas={porDescartar.prendas}
+          total={porDescartar.total}
+          onDescartar={() => descartarDeLaEspera(porDescartar.id)}
+          onClose={() => setPorDescartar(null)}
+        />
+      )}
 
       {cierreConTickets && (
         <TicketsSinCobrarModal
@@ -2619,6 +2746,9 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
       {camaraAbierta && (
         <EscanerCamara
           onCodigo={alEscanear}
+          // El interruptor «Al ticket / Existencias» (Felipe 2026-10-28): en «Existencias» la cámara lee la etiqueta y dice cuántas hay de
+          // cada color y talla de esa prenda en el piso y el almacén, sin tocar el ticket. Sobre las variantes con el stock en vivo.
+          consulta={{ leer: (codigo) => consultarExistencias(codigo, variantesVisibles), sede: ubicacionEtiqueta }}
           ticket={{ prendas, total }}
           onBuscarPorNombre={() => {
             cerrarCamara();
@@ -2695,6 +2825,17 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
         <PrendaSinRegistrarModal
           listas={listasPrendaLibre}
           onAgregar={agregarPrendaSinRegistrar}
+          // «¿Es alguna de estas?» (A2, auditoría 2026-10-14): las prendas del catálogo que coinciden y se pueden cobrar AHORA en
+          // esta sede, sobre el mismo stock en vivo con que la caja deja entrar una prenda al ticket. «Es esta» la agrega como
+          // cualquier otra línea: descuenta el piso, lleva su costo, y la cola de regularizar no la recibe.
+          posibles={(elegido) => prendasPosibles(variantesVisibles, elegido, (v) => motivoNoCobrable(v) === "cobrable")}
+          onEsEsta={(varianteId) => {
+            const v = variantesVisibles.find((x) => x.varianteId === varianteId);
+            setManualAbierto(false);
+            if (v) void agregar(v);
+          }}
+          // El precio con referencia (A3): cuánto cuestan en el catálogo las prendas de esa categoría, con el precio de esta tienda.
+          rangoDePrecio={(categoriaId) => rangoDePreciosDeCategoria(variantesVisibles, categoriaId)}
           onClose={() => setManualAbierto(false)}
           alCerrarEnfocar={buscador}
         />

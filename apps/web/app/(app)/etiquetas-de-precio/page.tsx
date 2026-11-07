@@ -31,7 +31,7 @@ type Params = {
   traslado?: string | string[];
   /** Llegó desde «Ajustar stock» de Existencias (`?unidades=` + `?ajuste=1`, ADR-0494): cambia el texto; «Volver» ya va a Existencias. */
   ajuste?: string | string[];
-  /** El envío de Recibir de donde se salió (`?lotes=` + `?envio=`): «Volver» regresa a ese envío, no a la lista. */
+  /** El envío de Recibir de donde se salió (`?lotes=` o `?unidades=` + `?envio=`): «Volver» regresa a ese envío, no a la lista. */
   envio?: string | string[];
 };
 
@@ -68,7 +68,7 @@ export default async function EtiquetasDePrecioPage({ searchParams }: { searchPa
       : origen?.tipo === "producto"
         ? { tipo: "producto", nombre: datos.producto ?? null }
         : origen?.tipo === "variantes"
-          ? { tipo: "variantes", desdeProductos: desde !== null, tallas: variantes.length, entraron: unidades.size > 0, desdeTraslado: unidades.size > 0 && traslado !== undefined, desdeAjuste: unidades.size > 0 && params.ajuste !== undefined }
+          ? { tipo: "variantes", desdeProductos: desde !== null, tallas: variantes.length, entraron: unidades.size > 0, desdeTraslado: unidades.size > 0 && traslado !== undefined, desdeAjuste: unidades.size > 0 && params.ajuste !== undefined, desdeEnvio: unidades.size > 0 && envio !== undefined }
           : origen
             ? { tipo: origen.tipo }
             : { tipo: "ninguno" };
@@ -84,7 +84,7 @@ export default async function EtiquetasDePrecioPage({ searchParams }: { searchPa
       etiquetas={datos.etiquetas}
       sinCodigo={datos.sinCodigo}
       impreso={fechaEtiqueta(hoy)}
-      volver={volverDeEtiquetas(origen, desde, unidades.size > 0 ? (traslado ?? null) : null, envio ?? null)}
+      volver={volverDeEtiquetas(origen, desde, unidades.size > 0 ? (traslado ?? null) : null, origen?.tipo === "lotes" || unidades.size > 0 ? (envio ?? null) : null)}
     />
   );
 }
