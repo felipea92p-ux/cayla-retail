@@ -466,12 +466,13 @@ describe("la empresa de la prenda (ADR-0465)", () => {
   it("sin «Nuevo»: la empresa va ARRIBA, antes del puesto y de la oferta", () => {
     expect(dicen(con({ empresa: CAYLA }))).toEqual(["empresa:CAYLA"]);
     const p = con({ empresa: CAYLA, precio_final: 63.9, campana: { nombre: "Aniversario", pct: 20 } });
-    expect(dicen(p, { puesto: 2 })).toEqual(["empresa:CAYLA", "puesto:N.º 2", "oferta:−20 %"]);
+    expect(dicen(p, { puesto: 2 })).toEqual(["empresa:CAYLA", "oferta:−20 %"]);
   });
 
-  it("con todas: puesto, oferta, «Nuevo» y la empresa al final", () => {
+  it("una sola insignia automática: el descuento le gana al puesto y a «Nuevo» (rediseño Premium)", () => {
     const p = con({ empresa: CLAURE, nuevo: { dias: 1 }, precio_final: 63.9, campana: { nombre: "Aniversario", pct: 20 } });
-    expect(dicen(p, { puesto: 1 })).toEqual(["puesto:N.º 1", "oferta:−20 %", "nuevo:Nuevo", "empresa:CLAURE"]);
+    expect(dicen(p, { puesto: 1 })).toEqual(["empresa:CLAURE", "oferta:−20 %"]);
+    expect(dicen(con({ nuevo: { dias: 1 } }), { puesto: 3 })).toEqual(["puesto:N.º 3"]);
   });
 
   it("en Lo nuevo (sin «Nuevo» en cada tarjeta) la empresa sube arriba", () => {
@@ -515,11 +516,11 @@ describe("las insignias de Catálogo ▸ Insignias en la tarjeta (ADR-0489, act.
     expect(dicen(con({ insignias: CINCO }))).toBe("Halloween,Reedición,Hecho a mano|+2");
   });
 
-  it("«Nuevo» cuenta contra el tope (como el descuento y el puesto): caben 2 y quedan «+3»", () => {
+  it("la insignia automática (una sola: descuento, puesto o «Nuevo») cuenta contra el tope: caben 2 y quedan «+3»", () => {
     expect(dicen(con({ insignias: CINCO, nuevo: { dias: 3 } }))).toBe("Halloween,Reedición|+3");
     const oferta = con({ insignias: CINCO, nuevo: { dias: 3 }, precio_final: 63.9, campana: { nombre: "Aniversario", pct: 20 } });
-    expect(dicen(oferta)).toBe("Halloween|+4");
-    expect(dicen(oferta, { puesto: 1 })).toBe("-|+5");
+    expect(dicen(oferta)).toBe("Halloween,Reedición|+3");
+    expect(dicen(oferta, { puesto: 1 })).toBe("Halloween,Reedición|+3");
   });
 
   it("la empresa (CAYLA o CLAURE) NO cuenta contra el tope", () => {

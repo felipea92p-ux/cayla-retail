@@ -4,11 +4,6 @@
    tienda; solo los tokens de app/globals.css (en oscuro se invierten solos). Entra una vez, sin rebote ni bucle; se apaga con
    prefers-reduced-motion. En el celular la hoja sube desde el borde, con velo.
    ===================================================================================================== */
-.rv-boton { position: fixed; right: 20px; bottom: 20px; z-index: 35; display: inline-flex; align-items: center; gap: 10px; height: 46px; padding: 0 18px 0 14px; border: 1px solid var(--tinta); border-radius: 0; background: var(--tinta); color: var(--crema); font-size: 11.5px; font-weight: 600; letter-spacing: .16em; text-transform: uppercase; box-shadow: 0 10px 28px -14px var(--sombra); cursor: pointer; transition: transform .25s var(--ease), opacity .2s var(--ease); }
-.rv-boton .ic { width: 18px; height: 18px; }
-@media (hover: hover) { .rv-boton:hover { transform: translateY(-2px); } }
-.rv-boton:focus-visible { outline: 2px solid var(--rojo); outline-offset: 3px; }
-.rv-boton[data-abierta] { opacity: 0; pointer-events: none; }
 
 .rv-velo { display: none; }
 .rv-ventana { position: fixed; right: 20px; bottom: 20px; z-index: 36; width: 380px; max-height: min(680px, calc(100dvh - 40px)); display: flex; flex-direction: column; border: 1px solid var(--sand); background: var(--papel); color: var(--tinta); box-shadow: 0 24px 60px -24px var(--sombra); transform-origin: bottom right; animation: rv-entra .28s var(--ease) both; }
@@ -37,10 +32,8 @@
 
 /* Celular: el botón se achica al ícono y la hoja sube desde el borde, con velo y asa. */
 @media (max-width: 640px) {
-  .rv-boton { right: 14px; bottom: 14px; width: 46px; padding: 0; justify-content: center; }
-  .rv-boton-txt { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
   .rv-velo { display: block; position: fixed; inset: 0; z-index: 35; background: var(--velo); }
   .rv-ventana { left: 0; right: 0; bottom: 0; width: auto; max-height: 88dvh; border-width: 1px 0 0; transform-origin: bottom; animation: rv-sube .32s var(--ease) both; }
   .rv-asa { display: block; width: 38px; height: 4px; margin: 8px auto 0; background: var(--sand); }
 }
-@media (prefers-reduced-motion: reduce) { .rv-ventana, .rv-boton { animation: none; transition: none; } }
+@media (prefers-reduced-motion: reduce) { .rv-ventana { animation: none; transition: none; } }
