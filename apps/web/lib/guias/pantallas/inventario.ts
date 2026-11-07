@@ -1564,7 +1564,7 @@ export const GUIA_RECIBIR: Guia = {
       ancla: "recibir.sin-aviso",
       opcional: true,
       titulo: "¿Llegó algo sin aviso?",
-      texto: "Lo que vino directo del proveedor: toca «Sin Aviso» para abrir el formulario, elige de quién es (o «+ Agregar proveedor», o «No sé de quién es»), la guía y quién recibe, y se cuenta por categoría. Con factura por recibir, te ofrece usarla. En la demo no lo abrimos.",
+      texto: "Lo que vino directo del proveedor: toca «Sin Aviso», pon la guía si la trae y quién recibe, y se cuenta por categoría y marca. Casi siempre llega de varios: cada marca dice de quién es. Si todo es de uno, enciende «Todo es de un solo proveedor» y, con factura por recibir, te ofrece usarla. En la demo no lo abrimos.",
     },
     {
       id: "proveedor",
@@ -1909,7 +1909,7 @@ export const GUIA_RECIBIR_ENVIO: Guia = {
       ancla: "recepcion.agregar-modelo",
       opcional: true,
       titulo: "Otro modelo de esta categoría",
-      texto: "Dos modelos de la misma categoría se cuentan aparte. El «+» junto al check agrega otro: su nombre, su marca si tiene y una descripción si quieres. Sin nombre queda como «Blusa 1», y no se cierra hasta cambiarlo. Si te equivocaste, su tacho lo quita, y el de la categoría, todo. En la demo no lo agregamos.",
+      texto: "Dos modelos de la misma categoría se cuentan aparte. El «+» agrega otro. Si es una reposición, «Ya la tenemos» la muestra por su foto. Si es nueva, pones su nombre y su marca, o queda como «Blusa 1» hasta cambiarlo. Su tacho lo quita. En la demo no lo agregamos.",
     },
     {
       id: "agregar",
@@ -1967,7 +1967,7 @@ export const GUIA_RECIBIR_ENVIO: Guia = {
       ancla: "recepcion.tabla-cierre",
       requiere: ["recepcion.tabla-cierre"],
       titulo: "Lo que se cierra",
-      texto: "Una fila por modelo, primero los que piden algo: cuánto llegó y su costo. Si algo no cuadra, debajo te pregunta qué pasó. Lo raro, un costo o un precio distinto por talla, se abre con «Cambiar por talla».",
+      texto: "Una tarjeta por categoría y marca, primero las que piden algo; dentro, una fila por modelo con cuánto llegó y su costo, y al pie lo que suma. Si algo no cuadra, te pregunta qué pasó. Un costo o un precio distinto por talla se abre con «Cambiar por talla».",
     },
     {
       // Solo con muchas filas y más de una que no pide nada.
@@ -1988,13 +1988,28 @@ export const GUIA_RECIBIR_ENVIO: Guia = {
       texto: "Cada prenda tiene su etiqueta: el precio que escribas ahí, o el costo, vale para todas sus tallas y colores, y debajo eliges si vale solo en tu tienda o en todas. «Distinto por talla o color» abre la matriz para cambiar una casilla, un color o una talla. En la demo no escribimos.",
     },
     {
-      // Felipe 2026-10-14: solo en un envío sin aviso que se abrió sin saber de quién es.
+      // Solo en un envío sin aviso: el proveedor va en la cabecera de cada tarjeta, por marca (Felipe 2026-11-07).
       id: "de-quien",
       ancla: "recepcion.de-quien",
       opcional: true,
       requiere: ["recepcion.tabla-cierre"],
-      titulo: "¿De quién llegó?",
-      texto: "Este paquete se abrió sin saber de quién era. Antes de cerrar, pregúntale a Compras y elígelo: sin proveedor no entra al stock, porque el lote, el costo y la factura se unen por él. Las prendas sí pueden quedar sin marca.",
+      titulo: "De quién llegó",
+      texto: "Cada tarjeta dice de quién es en su cabecera. La marca ya lo dice casi siempre («lo dice su marca»); si te equivocaste, «Cambiar». Lo que no se sabe (una marca con dos proveedores, o «Sin marca») se elige ahí y se guarda al elegirlo. Sin proveedor no entra al stock.",
+    },
+    {
+      id: "ver-detalle",
+      ancla: "recepcion.ver-detalle",
+      opcional: true,
+      requiere: ["recepcion.tabla-cierre"],
+      titulo: "Ver detalle",
+      texto: "Lo que anotaste al contar para diferenciarla de las demás, sus observaciones, quién la contó y cuándo y, si la prenda ya existe, su ficha. Solo se lee: no cambia nada.",
+    },
+    {
+      id: "al-cerrar",
+      ancla: "recepcion.al-cerrar",
+      requiere: ["recepcion.tabla-cierre"],
+      titulo: "Al cerrar",
+      texto: "Cuántas prendas, modelos y proveedores cierras, cuánto entra con costo, cuánto sin él y qué queda para después. Debajo, lo que falta: toca una y te lleva a ese campo.",
     },
     {
       id: "cerrar-boton",
@@ -2042,7 +2057,7 @@ export const GUIA_RECIBIR_ENVIO: Guia = {
       ancla: "recepcion.matriz",
       opcional: true,
       titulo: "¿Cuántas llegaron?",
-      texto: "Una casilla por talla y color: escribe cuántas llegaron de cada una, buenas y dañadas juntas. Lo que no llegó, déjalo vacío; «—» es una combinación que la prenda no tiene.",
+      texto: "Una casilla por talla y color: escribe cuántas llegaron de cada una, buenas y dañadas juntas. Lo que no llegó, déjalo vacío; «—» es una combinación que la prenda no tiene. Un color o una talla que agregaste por error en este envío lleva su ×.",
     },
     {
       id: "danadas",
@@ -2133,6 +2148,14 @@ export const GUIA_RECIBIR_ENVIO: Guia = {
       requiere: ["recepcion.cerrado"],
       titulo: "Lo que sigue",
       texto: "Si algo ya se puede vender, el primer botón imprime sus etiquetas de precio y «Bajar al piso» lo lleva al piso de venta. Si todo quedó guardado, el botón te lleva a terminar lo primero de «Para después». En la demo no los tocamos.",
+    },
+    {
+      id: "lo-que-entro",
+      ancla: "recepcion.lo-que-entro",
+      opcional: true,
+      requiere: ["recepcion.lo-que-entro"],
+      titulo: "Lo que entró al stock",
+      texto: "Cada prenda que ya entró, con cuántas llegaron de cada talla y color. Marca de cuáles quieres la etiqueta de precio y toca «Imprimir»: salen solo esas, una por prenda. Las dañadas no salen, quedan en cuarentena.",
     },
     {
       id: "para-despues",
