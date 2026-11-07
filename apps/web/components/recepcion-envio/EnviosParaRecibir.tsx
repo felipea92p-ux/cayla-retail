@@ -10,7 +10,7 @@ import { Encabezado, Tabla, celda, fila, type Columna } from "@/components/ui/Ta
 import { TituloSeccion } from "@/components/ui/TituloSeccion";
 import { Vacio } from "@/components/ui/Vacio";
 import { ESTADO_ENVIO } from "@/lib/ordenes-compra-reglas";
-import { TEXTO_LA_RECIBE_OTRA, type EnvioPorAbrir, type OrdenDirecta } from "@/lib/recepcion-envio-reglas";
+import { TEXTO_LA_RECIBE_OTRA, textoMarcas, type EnvioPorAbrir, type OrdenDirecta } from "@/lib/recepcion-envio-reglas";
 import { esEnvioSinAviso } from "@/lib/recepcion-conteo-reglas";
 import { coincideConBusqueda, ordenarFilasPorRecibir, textoBuscableDeEnvio, textoBuscableDeOrden } from "@/lib/recepcion-envio-busqueda";
 import { contarFiltros, fechaDeEnvioParaTabla, filtrarFilas, proveedoresDeLaLista, SIN_FILTROS, type FiltrosEnvios } from "@/lib/recepcion-envio-filtros";
@@ -39,7 +39,7 @@ const COLUMNAS: Columna[] = [
   { titulo: "Enviado", ayuda: "El día en que salió el envío", clase: "hidden @3xl:block" },
   { titulo: "Envío" },
   { titulo: "Estado" },
-  { titulo: "Proveedor" },
+  { titulo: "Proveedor y marca" },
   { titulo: "Guía", clase: "hidden @5xl:block" },
   { titulo: "Prendas", alinear: "der" },
   { titulo: "", alinear: "der" },
@@ -138,6 +138,7 @@ export function EnviosParaRecibir({
             </span>
             <span className={celda("izq", "text-sm text-tinta")} title={o.proveedor ?? undefined}>
               {o.proveedor ?? "—"}
+              <LineaMarcas marcas={o.marcas} />
             </span>
             <span className={celda("izq", "hidden text-sm text-taupe @5xl:block")}>—</span>
             <span className={celda("der", "text-sm text-tinta")}>{prendas(o.unidadesPorEnviar)}</span>
@@ -191,6 +192,7 @@ export function EnviosParaRecibir({
               </span>
               <span className={celda("izq", "pointer-events-none relative text-sm text-tinta")} title={proveedor}>
                 {proveedor}
+                <LineaMarcas marcas={e.marcas} />
                 {sinAviso && <small className="block truncate text-sm text-taupe">Llegó sin aviso: se sigue contando</small>}
                 {e.numeroGuia && <small className="block truncate text-sm text-taupe @5xl:hidden">guía {e.numeroGuia}</small>}
               </span>
@@ -228,5 +230,16 @@ export function EnviosParaRecibir({
         )}
       </Tabla>
     </section>
+  );
+}
+
+/** La marca que trae, bajo el proveedor (Felipe 2026-11-07): es lo que dice la etiqueta del paquete. Sin marca, no dibuja nada. */
+function LineaMarcas({ marcas }: { marcas: readonly string[] }) {
+  const texto = textoMarcas(marcas);
+  if (!texto) return null;
+  return (
+    <small className="block truncate text-sm text-tinta/65" title={`Marca${marcas.length === 1 ? "" : "s"}: ${marcas.join(", ")}`}>
+      {texto}
+    </small>
   );
 }

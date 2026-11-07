@@ -92,6 +92,7 @@ import {
   marcaDeLinea,
   nombreDeLinea,
   proveedorDelSinAviso,
+  marcasDelSinAviso,
   prendasAnotadasDe,
   separarAnotada,
   type ConteoDeLinea,
@@ -580,6 +581,22 @@ describe("«Hacer ahora», reabrir y el aviso de la sede", () => {
     expect(proveedorDelSinAviso(leerConteosDelEnvio({ despacho_id: "d", origen: "sin_aviso", proveedor_por_confirmar: true }))).toBe("proveedor por confirmar");
     expect(proveedorDelSinAviso(leerConteosDelEnvio({ despacho_id: "d", origen: "sin_aviso", proveedores: [PROV] }))).toBe(PROV.nombre);
     expect(proveedorDelSinAviso(null)).toBeNull();
+  });
+
+  it("en la puerta, la marca de un envío sin aviso sale de lo ya contado: sin repetir y en orden alfabético", () => {
+    const OTRA = { id: "m2", nombre: "Anqori" };
+    const c = leerConteosDelEnvio({
+      despacho_id: "d",
+      origen: "sin_aviso",
+      conteos: [
+        conteoCrudo({ extra_posicion: 1, contadas: 3, proveedor: PROV, categoria: CAT, marca: MARCA }),
+        conteoCrudo({ extra_posicion: 2, contadas: 1, proveedor: PROV, categoria: CAT, marca: OTRA }),
+        conteoCrudo({ extra_posicion: 3, contadas: 2, proveedor: PROV, categoria: CAT, marca: MARCA }),
+        conteoCrudo({ extra_posicion: 4, contadas: 2, proveedor: PROV, categoria: CAT, marca: null }),
+      ],
+    });
+    expect(marcasDelSinAviso(c)).toEqual(["Anqori", "Lima Knit"]);
+    expect(marcasDelSinAviso(null)).toEqual([]);
   });
 
   it("con el envío cerrado, el catálogo se lee solo si queda algo pendiente", () => {

@@ -518,6 +518,12 @@ export function proveedorDelSinAviso(c: ConteosDelEnvio | null): string | null {
   return c.proveedores[0]?.nombre ?? null;
 }
 
+/** Las marcas de un envío sin aviso, para la puerta: las de lo que ya se contó (sin repetir, en orden alfabético); `[]` si no se sabe. */
+export function marcasDelSinAviso(c: ConteosDelEnvio | null): string[] {
+  const nombres = (c?.conteos ?? []).map((k) => k.marca?.nombre).filter((n): n is string => !!n);
+  return [...new Set(nombres)].sort((a, b) => a.localeCompare(b, "es"));
+}
+
 export function necesitaCatalogoAlCerrar(conteos: ConteosDelEnvio | null): boolean {
   return !!conteos && conteos.estado === "cerrado" && conteos.conteos.some((c) => c.pendientes.some((p) => p.estado === "pendiente"));
 }
