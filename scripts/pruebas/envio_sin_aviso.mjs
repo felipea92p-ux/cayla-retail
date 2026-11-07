@@ -85,6 +85,8 @@ const MIGRACIONES = SIN_MIGRACION
       "20261107191000_quitar_combinacion_nacida_al_recibir.sql",
       // Cada línea es de su proveedor; el cierre lo pide por línea (casos P1, A8 y S5).
       "20261107192000_proveedor_por_linea_sin_aviso.sql",
+      // Quien recibe pone el costo de lo que recibe, también en una terminal (casos S3 y S3c).
+      "20261107194000_costo_al_recibir_para_quien_recibe.sql",
     ]
       .map((f) =>
         readFileSync(join(RAIZ, "supabase", "migrations", f), "utf8")
@@ -497,18 +499,16 @@ caso(
   "5:8:3:0:0 / 0 / sin costo,sin costo / 12.00 / 25.00 / 3 / 2 / true / crear=1 / abrió ENV: llegó sin aviso de Proveedor Conteo Prueba",
 );
 caso(
-  "S3 el costo: quien no ve el dinero de Compras no lo escribe; quien lo ve, sí, y promedia",
+  "S3 el costo: quien recibe lo escribe aunque no vea el dinero de Compras (también una terminal, 20261107194000), y promedia",
   `${MICAELA_RECIBE}
    ${SIN_AVISO("d")}
    select ${EXTRA("d", "cat2", 3, SEP([["prod_g", 3, [V("pg_s", 3)]]]))} \\g /dev/null
    ${VERS("d", [], [1])}
    select pg_temp.e(${CIERRA("d", [DEC(1, { costo: 15 })])}) as micaela \\gset
-   ${como(SANDRA)}${SIN_ENCABEZADOS}
-   select pg_temp.e(${CIERRA("d", [DEC(1, { costo: 15 })])}) as sandra \\gset
    reset role;
-   select concat_ws(' / ', :'micaela', :'sandra',
+   select concat_ws(' / ', :'micaela',
      (select string_agg(r.costo_unitario::text, ',') from retail.despacho_recibidos r where r.despacho_id = :'d'), ${COSTO("pg_s")});`,
-  "P0001|recepcion_costo_sin_permiso|Tu rol no ve el dinero de Compras: recibe sin costo, llega con la factura / OK / 15.00 / 15.00",
+  "OK / 15.00 / 15.00",
 );
 caso(
   "S3b un costo fuera de lo normal pide confirmar también sin aviso (la causa vacía no lo salta): sin confirmar no entra nada; confirmado, entra; sin costo, no pregunta",
@@ -529,15 +529,17 @@ caso(
   "P0001|recepcion_costo_atipico|Hay un costo fuera de lo normal: revísalo y confírmalo para recibir / 0 / 12.00 / OK / 999.00 / t",
 );
 caso(
-  "S3c lo que cuesta hoy cada prenda, para decirlo antes de cambiarlo: lo lee quien ve el dinero de Compras; quien no, no",
-  `${como(MICAELA)}${EN_TIENDA}
+  "S3c lo que cuesta hoy cada prenda, para decirlo antes de cambiarlo: lo lee quien ve el dinero de Compras o quien recibe; quien no, no",
+  `${MICAELA_RECIBE}
+   select pg_temp.e(pg_temp.costos_hoy(array[:'pg_s'::uuid])) as recibe \\gset
+   ${rolDeMicaela("existencias")}${como(MICAELA)}${EN_TIENDA}
    select pg_temp.e(pg_temp.costos_hoy(array[:'pg_s'::uuid])) as micaela \\gset
    ${como(SANDRA)}${SIN_ENCABEZADOS}
    select retail.fn_costos_de_hoy(array[:'pg_s'::uuid, :'pv_s'::uuid]) as sandra \\gset
    reset role;
-   select concat_ws(' / ', :'micaela', :'sandra'::jsonb ->> :'pg_s', :'sandra'::jsonb ->> :'pv_s',
+   select concat_ws(' / ', :'recibe', :'micaela', :'sandra'::jsonb ->> :'pg_s', :'sandra'::jsonb ->> :'pv_s',
      has_function_privilege('anon', 'retail.fn_costos_de_hoy(uuid[])', 'execute'));`,
-  "42501|sin_dinero_de_compras|Tu rol no ve el dinero de Compras / 12.00 / 25.00 / f",
+  "OK / 42501|sin_dinero_de_compras|Tu rol no ve el costo de lo que recibe / 12.00 / 25.00 / f",
 );
 caso(
   "S3d corregir el proveedor: solo quien ve el dinero, con motivo y a otro distinto; cambia envío, conteos, lote y recibido, sin tocar stock ni costo; queda en la Actividad",
@@ -1061,13 +1063,13 @@ caso(
   "conteo_cambiado / salida_de_mas / salida_vacia / salida_prenda_no_esta / 0 / 0",
 );
 caso(
-  "A4 sin ver el dinero no se escribe un costo; sin costo entra igual",
+  "A4 quien recibe escribe el costo de lo que lleva al stock, aunque no vea el dinero de Compras (20261107194000)",
   `${CON_PRENDA}
-   select pg_temp.h(${LLEVA(1, { costo: "1" })}) as sin_dinero \\gset
-   select ${LLEVA(1)} as sin_costo \\gset
+   select pg_temp.e(${LLEVA(1, { costo: "1" })}) as con_costo \\gset
    reset role;
-   select concat_ws(' / ', :'sin_dinero', pg_temp.e(:'sin_costo'::jsonb));`,
-  "recepcion_costo_sin_permiso / OK",
+   -- El costo de la prenda queda en su conteo (costos_prendas) y entra con ella.
+   select concat_ws(' / ', :'con_costo', (select k.costos_prendas ->> lower(:'prod_p') from retail.despacho_conteos k where k.despacho_id = :'d'));`,
+  "OK / 1",
 );
 caso(
   "A5 lo que ya salió cuenta al cierre final; el cierre no lo mete dos veces",
