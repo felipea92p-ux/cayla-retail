@@ -141,6 +141,25 @@ describe("recomendacionesGanamos", () => {
     expect(r[1]!.texto).toContain("Lo que más subió: suministros.");
     expect(r[2]).toMatchObject({ tono: "exito", accion: { href: "/finanzas/reportes/campanas" } });
   });
+  it("mes en curso: pide lo del mes entero, nunca los gastos de los días que van (ADR-0621)", () => {
+    const con = recomendacionesGanamos({ fila: fila({}), sedes, tramos, meta: null, campanas: [], enCurso: true, ventaDelMes: () => 40100, href })[0]!;
+    expect(con.texto.replace(/\s/g, " ")).toBe("Para cubrir el mes entero necesita vender S/ 40,100; lleva S/ 12,000.");
+    const sin = recomendacionesGanamos({ fila: fila({}), sedes, tramos, meta: null, campanas: [], enCurso: true, ventaDelMes: () => null, href })[0]!;
+    expect(sin.texto).not.toContain("al mes;");
+    expect(sin.texto).not.toContain("necesita vender");
+  });
+  it("otras fechas: ninguna cifra mensual", () => {
+    expect(recomendacionesGanamos({ fila: fila({}), sedes, tramos, meta: null, campanas: [], enCurso: false, unMes: false, href })[0]!.texto).toBe("En estas fechas, sus gastos pasan lo que deja la venta.");
+  });
+  it("con tres sedes en pérdida, nombra a las que más pierden", () => {
+    const tres = porSede([
+      fila({ unidad: "tienda", ubicacionId: "a", nombre: "A", ventas: 1000, margen: 500, resultado: -100 }),
+      fila({ unidad: "tienda", ubicacionId: "b", nombre: "B", ventas: 1000, margen: 500, resultado: -9000 }),
+      fila({ unidad: "tienda", ubicacionId: "c", nombre: "C", ventas: 1000, margen: 500, resultado: -300 }),
+    ]);
+    const r = recomendacionesGanamos({ fila: fila({}), sedes: tres, tramos: [], meta: null, campanas: [], enCurso: false, href });
+    expect(r.slice(0, 2).map((x) => x.clave)).toEqual(["pierde-b", "pierde-c"]);
+  });
   it("sin nada que decir, lo dice", () => {
     const r = recomendacionesGanamos({ fila: fila({}), sedes: [], tramos: cascadaGanamos(fila({}), []), meta: null, campanas: [], enCurso: true, href });
     expect(r).toEqual([expect.objectContaining({ clave: "tranquilo", tono: "exito" })]);

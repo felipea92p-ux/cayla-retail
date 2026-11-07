@@ -3,7 +3,8 @@ import { exigirModulo, veDiarioDeTodoDe, veModulo } from "@/lib/persona-actual";
 import { hoyLima } from "@/lib/fechas-lima";
 import { mesDe } from "@/lib/gastos-reglas";
 import { avisosER, columnasER, leerVerER, mesAnterior, mesNombre } from "@/lib/resultados-reglas";
-import { getCampanas, getEstadoResultados, getEstadoResultadosAEstaFecha, getUnidadesCerradas } from "@/lib/resultados";
+import { getCampanas, getEstadoResultados, getEstadoResultadosAEstaFecha, getFaltaDelMes, getUnidadesCerradas } from "@/lib/resultados";
+import { ventaParaElMesEntero } from "@/lib/equilibrio-mes-reglas";
 import { getPresupuestoVsReal } from "@/lib/presupuesto";
 import { getParametrosFinanzas } from "@/lib/configuracion";
 import { getVentasClaure } from "@/lib/cuenta-claure";
@@ -14,7 +15,7 @@ import { etiquetaDelPeriodo, leerPeriodo, mesesDelHilo, periodoAnterior, periodo
 import { informeDeGanancias, lecturaDeGanancias, partesDeGanancias } from "@/lib/estados-ganancias";
 import { textoDeVerMas } from "@/lib/estados-partes";
 import { verDeLaVista } from "@/lib/vista-global";
-import { hrefTelar, mesDelDia, sedeDeLaUrl, SEDE_TODAS, type ClaveSede } from "@/lib/finanzas-telar-reglas";
+import { hrefTelar, mesDelDia, SEDE_EMPRESA, sedeDeLaUrl, SEDE_TODAS, type ClaveSede } from "@/lib/finanzas-telar-reglas";
 import { filaDeLaSede, paramsDe } from "@/lib/estados-financieros-reglas";
 import { campanasDelMes, cascadaGanamos, filasDeSedes, metaDeVentas, porSede, pptoDeLaSede, recomendacionesGanamos } from "@/lib/ganamos-reglas";
 import { getIgvDelHilo, getResultadosDeGestion } from "@/lib/igv-gestion";
@@ -61,7 +62,7 @@ export default async function ReportesPage({ searchParams }: { searchParams: Pro
   const ubicacionId = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(sede) ? sede : null;
   // En el mes en curso se compara con los mismos días de los meses pasados: esos días también llevan su parte de sueldos, como hoy (`getEstadoResultadosAEstaFecha`).
   const leerAnterior = enCurso && unMes ? getEstadoResultadosAEstaFecha : getEstadoResultados;
-  const [actual, anterior, comparadas, cerradas, claure, ppto, campanas, cuadre, costoEst] = await Promise.all([
+  const [actual, anterior, comparadas, cerradas, claure, ppto, campanas, cuadre, costoEst, faltaDelMes] = await Promise.all([
     getEstadoResultados(desde, hasta),
     comparar && antes ? leerAnterior(antes.desde, antes.hasta) : Promise.resolve(null),
     Promise.all(anteriores.map(async (c) => ({ etiqueta: c.etiqueta, lectura: await leerAnterior(c.desde, c.hasta) }))),
@@ -76,6 +77,8 @@ export default async function ReportesPage({ searchParams }: { searchParams: Pro
     getCuadreVentas(desde, hasta),
     // Cuánto de lo vendido lleva costo estimado: si no se lee, la ganancia no se presenta como 100 % real sin decirlo (principio 9).
     getCostoEstimado(desde, hasta, ubicacionId),
+    // Lo que el mes en curso todavía va a gastar: sin esto, «cuánto hay que vender» saldría con los gastos de los días que van. Si no se lee, no se da cifra.
+    enCurso && unMes ? getFaltaDelMes(mes) : Promise.resolve(null),
   ]);
   // ADR-0332: un mes anterior a la fecha desde la que cuenta Finanzas sale vacío; se dice por qué en vez de dejar ceros mudos.
   const avisoCorte = inicio && mesAntesDelCorte(mes, inicio) ? avisoAntesDelCorte(inicio) : null;
@@ -101,7 +104,11 @@ export default async function ReportesPage({ searchParams }: { searchParams: Pro
   const delMes = unMes ? campanasDelMes(campanas.datos, mes) : [];
   const sedesCascada = deCadaSede ? filasDeSedes(deCadaSede, (c) => href("/finanzas/reportes", c)) : null;
   const cuadro = cuadroVentas(cuadre.datos, sede);
-  const recomendaciones = recomendacionesGanamos({ fila, sedes: deCadaSede, tramos, meta, campanas: delMes, enCurso, href });
+  const ventaDelMes = (clave: ClaveSede) => {
+    const f = clave ? actual.datos.find((x) => (x.unidad === "empresa" ? SEDE_EMPRESA : x.ubicacionId) === clave) : fila;
+    return f ? ventaParaElMesEntero(f, faltaDelMes) : null;
+  };
+  const recomendaciones = recomendacionesGanamos({ fila, sedes: deCadaSede, tramos, meta, campanas: delMes, enCurso, unMes, ventaDelMes, href });
   const hayCuadre = cuadre.falla || cuadro;
   // Lo que no cuadra o se queda corto se dice a la vista: un número calculado sobre datos que no cuadran es peor que ninguno. Lo demás (las notas) va con el cuadro.
   const verParam = verDeLaVista(persona.vista, sedeDeLaUrl(sp));
@@ -129,7 +136,7 @@ export default async function ReportesPage({ searchParams }: { searchParams: Pro
       ) : (
         <EstadoEnInforme
           nombre={`Resultado · ${periodo.titulo}`}
-          lectura={lecturaDeGanancias(fila, leidas.at(-1)?.fila ?? null, periodo)}
+          lectura={lecturaDeGanancias(fila, leidas.at(-1)?.fila ?? null, periodo, fila ? ventaParaElMesEntero(fila, faltaDelMes) : null)}
           grafico={
             <Suspense fallback={<LineaEsperando />}>
               <LineaDeGanancias hoy={hoy} minimo={inicio} sede={sede} periodo={periodo} resultado={fila?.resultado ?? 0} enLibro={!!gestion.falla} />

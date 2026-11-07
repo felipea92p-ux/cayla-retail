@@ -18,7 +18,7 @@ import {
   RPC_VALIDAR_PRECIOS,
   resultadoDeLigar,
   RPC_GUARDAR_CONTEO,
-  RPC_CAMBIAR_CATEGORIA,
+  RPC_CAMBIAR_LINEA,
   RPC_LIGAR_PRENDA,
   RPC_PONER_PROVEEDOR,
   RPC_CANCELAR_RECEPCION,
@@ -197,9 +197,12 @@ export async function ligarPrendaAPendiente(args: ArgsLigarPrenda, firma: Firma 
   return { resultado: resultadoDeLigar(data, error), error: error ?? null };
 }
 
-/** Pasa un «por crear» a su categoría de verdad, con lo contado (Felipe 2026-11-06). La misma categoría no cambia nada. */
-export async function cambiarCategoriaDePendiente(args: { p_despacho_id: string; p_pendiente_id: string; p_categoria_id: string }, firma: Firma | null): Promise<{ error: ErrorDeBase }> {
-  const { error } = (await firmar(createClient().rpc(RPC_CAMBIAR_CATEGORIA as never, args as never), firma)) as Respuesta;
+/** Pasa un «por crear» a su categoría y su marca de verdad, con lo contado (Felipe 2026-11-06 y 2026-11-07). `p_marca_id` nulo = sin marca; sin cambio, no hace nada. */
+export async function cambiarLineaDePendiente(
+  args: { p_despacho_id: string; p_pendiente_id: string; p_categoria_id: string; p_marca_id: string | null },
+  firma: Firma | null,
+): Promise<{ error: ErrorDeBase }> {
+  const { error } = (await firmar(createClient().rpc(RPC_CAMBIAR_LINEA as never, args as never), firma)) as Respuesta;
   return { error: error ?? null };
 }
 

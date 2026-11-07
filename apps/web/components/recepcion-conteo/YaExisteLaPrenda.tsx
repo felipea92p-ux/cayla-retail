@@ -15,19 +15,20 @@ import type { ControlResponsable } from "@/lib/useResponsable";
 // que se anotó al contar: su categoría, su marca y su nombre; el costo no se pide otra vez, sigue con la prenda (`ligar_prenda_a_pendiente` lo pasa a la elegida).
 // Solo se elige dentro de la marca anotada, porque la base no deja mezclar marcas en una línea; una prenda con ese nombre en otra marca se avisa, para no crearla repetida.
 //
-// La categoría sí se corrige aquí, con el envío cerrado y en lo de fuera de la guía (Felipe 2026-11-06): se anotó «Polos» y era un top. Cambiar el combo solo busca, no
-// guarda nada; el modelo pasa a su categoría al confirmar (`cambiar_categoria_de_pendiente`). Tocar una sugerencia abre su ficha, para reconocerla antes de decir «es esta».
+// La categoría y la marca sí se corrigen aquí, con el envío cerrado y en lo de fuera de la guía (Felipe 2026-11-06 y 2026-11-07): se anotó «Polos» y era un top, o
+// «Sin marca» y sí tenía. Cambiar un combo solo busca, no guarda nada; el modelo pasa a su categoría y su marca al confirmar (`cambiar_linea_de_pendiente`). Tocar una sugerencia abre su ficha, para reconocerla antes de decir «es esta».
 
 export function YaExisteLaPrenda({
   categoria: categoriaAnotada,
-  marca,
+  marca: marcaAnotada,
   nombre,
   cantidad,
   costo,
   comoCorregirMarca,
   categorias = [],
+  marcas = [],
   responsable,
-  onPasarACategoria,
+  onPasarALinea,
   onUsar,
   onCrear,
   onCerrar,
@@ -44,21 +45,24 @@ export function YaExisteLaPrenda({
   comoCorregirMarca: string;
   /** Las categorías a las que se puede pasar. Vacío: la categoría no se cambia aquí (el envío sigue abierto, o la línea viene de una orden). */
   categorias?: readonly CategoriaDeLinea[];
-  /** Quién firma el cambio de categoría. */
+  /** Las marcas a las que se puede pasar (con «Sin marca» siempre). Vacío: la marca no se cambia aquí. */
+  marcas?: readonly { id: string; nombre: string }[];
+  /** Quién firma el cambio. */
   responsable?: ControlResponsable;
-  /** Pasa el modelo a esa categoría. Devuelve el error en palabras, o `null` si quedó. */
-  onPasarACategoria?: (categoriaId: string) => Promise<string | null>;
-  /** `cambioCategoria`: el modelo acaba de pasar a otra categoría. */
+  /** Pasa el modelo a esa categoría y esa marca (`null` = sin marca). Devuelve el error en palabras, o `null` si quedó. */
+  onPasarALinea?: (categoriaId: string, marcaId: string | null) => Promise<string | null>;
+  /** `cambioCategoria`: el modelo acaba de pasar a otra categoría o a otra marca. */
   onUsar: (prenda: PrendaRecepcion, cambioCategoria: boolean) => Promise<void> | void;
   onCrear: (cambioCategoria: boolean) => void;
   onCerrar: () => void;
 }) {
   const [categoria, setCategoria] = useState(categoriaAnotada);
+  const [marca, setMarca] = useState(marcaAnotada);
   const [elegida, setElegida] = useState<PrendaRecepcion | null>(null);
   const [guardando, setGuardando] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [enOtraMarca, setEnOtraMarca] = useState<PrendaRecepcion[]>([]);
-  const cambio = categoria.id !== categoriaAnotada.id;
+  const cambio = categoria.id !== categoriaAnotada.id || (marca.id || null) !== (marcaAnotada.id || null);
 
   useEffect(() => {
     if (!nombre || nombre.trim().length < 2) return;
@@ -82,10 +86,18 @@ export function YaExisteLaPrenda({
     setError(null);
   }
 
-  /** Guarda el cambio de categoría, si lo hay. Si la base lo niega, se dice y no se sigue. */
+  function elegirMarca(id: string) {
+    const nueva = id ? marcas.find((m) => m.id === id) : { id: null, nombre: "Sin marca" };
+    if (!nueva) return;
+    setMarca(nueva);
+    setElegida(null);
+    setError(null);
+  }
+
+  /** Guarda el cambio de categoría o de marca, si lo hay. Si la base lo niega, se dice y no se sigue. */
   async function pasarSiCambio(): Promise<boolean> {
-    if (!cambio || !onPasarACategoria) return true;
-    const problema = await onPasarACategoria(categoria.id);
+    if (!cambio || !onPasarALinea) return true;
+    const problema = await onPasarALinea(categoria.id, marca.id || null);
     setError(problema);
     return problema === null;
   }
@@ -122,7 +134,8 @@ export function YaExisteLaPrenda({
       <div className="space-y-4">
         {categorias.length > 0 && (
           <div className="space-y-2">
-            <CampoSelect
+            <div className="grid gap-3 sm:grid-cols-2">
+              <CampoSelect
               etiqueta="Categoría"
               valor={categoria.id}
               onValor={elegirCategoria}
@@ -130,9 +143,21 @@ export function YaExisteLaPrenda({
               opciones={[categoriaAnotada, ...categorias.filter((c) => c.id !== categoriaAnotada.id)].map((c) => ({ valor: c.id, texto: c.nombre }))}
               sinPie
             />
+              {marcas.length > 0 && (
+                <CampoSelect
+                  etiqueta="Marca"
+                  valor={marca.id ?? ""}
+                  onValor={elegirMarca}
+                  deshabilitado={guardando}
+                  opciones={[{ valor: "", texto: "Sin marca" }, ...marcas.map((m) => ({ valor: m.id, texto: m.nombre }))]}
+                  sinPie
+                />
+              )}
+            </div>
             {cambio && (
               <p className="nota-cayla text-sm">
-                Se anotó en {categoriaAnotada.nombre}. Al confirmar, {cantidad === 1 ? "esta prenda pasa" : `estas ${prendas} pasan`} a {categoria.nombre}.
+                Se anotó en {categoriaAnotada.nombre} · {marcaAnotada.id ? marcaAnotada.nombre : "Sin marca"}. Al confirmar,{" "}
+                {cantidad === 1 ? "esta prenda pasa" : `estas ${prendas} pasan`} a {categoria.nombre} · {marca.id ? marca.nombre : "Sin marca"}.
               </p>
             )}
             {cambio && responsable && <ComboResponsable control={responsable} deshabilitado={guardando} />}

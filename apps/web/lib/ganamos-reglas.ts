@@ -176,7 +176,7 @@ export function campanasDelMes(campanas: readonly CampanaFila[], mes: string): C
   return campanas.filter((c) => (c.momento === "pasada" || c.momento === "en_curso") && c.desde && c.hasta && c.desde <= fin && c.hasta >= ini);
 }
 
-/** Cuánto hay que vender al mes para cubrir lo que cuesta tener la sede abierta, con su margen de hoy. `null` sin margen. */
+/** Cuánto hay que vender para cubrir los gastos de las fechas que se miran, con su margen de hoy: es «al mes» solo en un mes ya terminado. `null` sin margen. */
 export function ventaQueCubre(f: Pick<FilaER, "ventas" | "margen" | "resultado">): number | null {
   if (f.ventas <= 0 || f.margen <= 0) return null;
   const gastos = f.margen - f.resultado;
@@ -205,6 +205,8 @@ export function recomendacionesGanamos({
   meta,
   campanas,
   enCurso,
+  unMes = true,
+  ventaDelMes,
   href,
 }: {
   fila: FilaER | null;
@@ -215,6 +217,10 @@ export function recomendacionesGanamos({
   campanas: readonly CampanaFila[];
   /** El mes de la barra es el de hoy: un desvío o la meta se dicen «al ritmo de hoy». */
   enCurso: boolean;
+  /** Se mira un mes. Con otras fechas no se afirma ninguna cifra mensual. */
+  unMes?: boolean;
+  /** Mes en curso: cuánto hay que vender en el mes entero, por sede (`ventaParaElMesEntero`); `null` si no se pudo leer. */
+  ventaDelMes?: (clave: ClaveSede) => number | null;
   href: (ruta: string, sede?: ClaveSede) => string;
 }): Recomendacion[] {
   const out: Recomendacion[] = [];
@@ -224,14 +230,19 @@ export function recomendacionesGanamos({
     : fila && fila.resultado < 0 && fila.ventas > 0
       ? [{ clave: "", nombre: fila.nombre, color: "otra", resultado: fila.resultado, ventas: fila.ventas, margen: fila.margen }]
       : [];
-  for (const s of pierden.slice(0, 2)) {
-    const cubre = ventaQueCubre(s);
+  // De la que más pierde a la que menos: `porSede` viene al revés, y el corte dejaba fuera a la peor.
+  for (const s of [...pierden].sort((a, b) => a.resultado - b.resultado).slice(0, 2)) {
+    const texto = !unMes
+      ? "En estas fechas, sus gastos pasan lo que deja la venta."
+      : enCurso
+        ? ((c) => (c === null ? `Con lo que va del mes, sus gastos pasan lo que deja la venta. Lleva ${soles(s.ventas)}.` : `Para cubrir el mes entero necesita vender ${soles(c)}; lleva ${soles(s.ventas)}.`))(ventaDelMes?.(s.clave) ?? null)
+        : ((c) => (c ? `Para cubrir lo que cuesta tenerla abierta necesita vender ${soles(c)} al mes; este mes vendió ${soles(s.ventas)}.` : "Sus gastos pasan lo que deja la venta."))(ventaQueCubre(s));
     out.push({
       clave: `pierde-${s.clave || "sede"}`,
       tono: "error",
       prioridad: 1,
       titulo: `${s.nombre} pierde ${soles(-s.resultado)}`,
-      texto: cubre ? `Para cubrir lo que cuesta tenerla abierta necesita vender ${soles(cubre)} al mes; este mes vendió ${soles(s.ventas)}.` : "Sus gastos pasan lo que deja la venta.",
+      texto,
       ...(sedes && s.clave ? { accion: { texto: `Ver ${s.nombre}`, href: href("/finanzas/reportes", s.clave) } } : {}),
     });
   }
