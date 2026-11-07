@@ -224,7 +224,13 @@ describe("la cabecera con cuenta", () => {
       optimizar: true,
       forma: "blusa",
       color: "#D5BA98",
+      nota: null,
+      // Llegó hace 6 días: entra en lo recién llegado del buscador vacío.
+      diasNuevo: 6,
     });
+    // Cada resultado lleva la nota de su tarjeta, la que le pase el servidor (la de la tienda elegida).
+    const conNota = indiceDelBuscador(prendas, null, undefined, (p) => (p.nombre === "Blusa Emma" ? { texto: "Última", tono: "poco" } : null));
+    expect(conNota.map((i) => i.nota)).toEqual([{ texto: "Última", tono: "poco" }, null, null, null, null]);
     expect(indice[2]).toMatchObject({ nombre: "Vestido Rosa", precio: "S/ 63.90", oferta: "−20 %" });
     // Con una tienda elegida, cada resultado lleva a la ficha en esa tienda.
     expect(indiceDelBuscador(prendas, "lima", undefined)[0].href).toBe("/catalogo/Blusa Emma?sede=lima");

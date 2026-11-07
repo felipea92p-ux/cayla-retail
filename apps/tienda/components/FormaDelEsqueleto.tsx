@@ -492,7 +492,7 @@ function Bolsa() {
           <p>Elige una prenda y su talla, o agrega un outfit completo.</p>
           <div className="cp-vacio-acciones">
             <span className="t-btn">Ver toda la tienda</span>
-            <span className="t-btn t-btn-sec">Ver los outfits</span>
+            <span className="t-btn t-btn-sec">Ver outfits listos</span>
           </div>
         </div>
         <section className="t-sec cp-sigue">

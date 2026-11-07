@@ -237,3 +237,15 @@
   .ay-sin-salida-colibri { width: 64px; }
   .ay-sugeridas .t-grilla { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 }
+
+/* ---- Preguntas frecuentes (rediseño Premium, 2026-11-07): una lista de preguntas que se abren, a lo ancho de la lectura ---- */
+.ay-faq { max-width: 760px; border-top: 1px solid var(--sand); }
+.ay-faq details { border-bottom: 1px solid var(--sand); }
+.ay-faq summary { list-style: none; display: flex; align-items: center; gap: 16px; min-height: 56px; padding: 12px 0; font-size: 16px; font-weight: 600; color: var(--tinta); cursor: pointer; }
+.ay-faq summary::-webkit-details-marker { display: none; }
+.ay-faq summary .ic { width: 18px; height: 18px; margin-left: auto; flex: none; color: var(--taupe); transform: rotate(90deg); transition: transform .25s var(--ease); }
+.ay-faq details[open] summary .ic { transform: rotate(-90deg); }
+.ay-faq summary:focus-visible { outline: 2px solid var(--rojo); outline-offset: 2px; }
+.ay-faq p { margin: 0 0 18px; max-width: 64ch; font-size: 15px; line-height: 1.6; color: var(--taupe); }
+.ay-faq-mas { display: flex; flex-wrap: wrap; gap: 12px 28px; margin: 28px 0 0; }
+@media (prefers-reduced-motion: reduce) { .ay-faq summary .ic { transition: none; } }
