@@ -2,7 +2,7 @@
   "guia": "recibir.envio.id",
   "ruta": "/recibir/envio/[id]",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 240,
+  "total": 241,
   "controles": {
     "app/(app)/recibir/envio/[id]/page.tsx": [
       "Volver «/recibir»",
@@ -42,6 +42,7 @@
     ],
     "components/alta-producto/IdentidadAlta.tsx": [
       "ComboResponsable «{control}»",
+      "ComboResponsable «{control}» #2",
       "button «Ir a elegir»"
     ],
     "components/alta-producto/NombreDePrenda.tsx": [

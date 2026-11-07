@@ -2,7 +2,7 @@
   "guia": "productos.id.editar",
   "ruta": "/productos/[id]/editar",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 153,
+  "total": 154,
   "controles": {
     "app/(app)/productos/[id]/editar/page.tsx": [
       "Volver «{volverA}»"
@@ -71,6 +71,7 @@
     ],
     "components/alta-producto/IdentidadAlta.tsx": [
       "ComboResponsable «{control}»",
+      "ComboResponsable «{control}» #2",
       "button «Ir a elegir»"
     ],
     "components/alta-producto/NuevaMarcaForm.tsx": [
