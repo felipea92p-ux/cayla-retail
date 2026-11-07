@@ -6,11 +6,15 @@
 // ASUME: toda cifra viene de la base. Aquí no se suma plata nueva: se agrupa y se escribe. Sin un corte anterior que cuadre no se compara: nunca contra un número que no se sabe.
 
 import { textoRinde, type UnidadBalance } from "./balance-reglas";
-import { chipContraAnterior, type ColumnaDeParte, type FilaDeParte, type FilaDelLibro, type LadoDelLibro, type ParteEstado } from "./estados-partes";
+import { chipContraAnterior, type ColumnaDeParte, type FilaDeParte, type ParteEstado } from "./estados-partes";
 import { finDelMes, sumarMeses } from "./estados-periodo";
-import { soles } from "./flujo-caja-reglas";
+import { pesoContra, type FilaInforme, type Informe } from "./estados-informe";
+import { solesCentimos } from "./flujo-caja-reglas";
 import { mesNombre } from "./resultados-reglas";
 import type { GrupoBalance } from "./vale-reglas";
+
+/** Montos con céntimos (Felipe 2026-11-06): la pantalla los escribe con dos decimales, así que no se redondean al sol. */
+const aCentimos = (n: number) => Math.round(n * 100) / 100;
 
 const rojo = (p: number) => `color-mix(in srgb, var(--color-rojo) ${p}%, var(--color-hueso))`;
 
@@ -61,13 +65,13 @@ export type LecturaDelBalance = { valor: number; mal: boolean; frase: string; ch
 export function lecturaDelBalance(grupos: readonly GrupoBalance[], antes: readonly GrupoBalance[] | null, corte: string): LecturaDelBalance {
   const { tiene, debe, tuyo } = totalesDelBalance(grupos);
   const mercaderia = montoDe(grupos, "mercaderia");
-  const d = antes ? Math.round(tuyo - totalDe(antes, "tuyo")) : null;
+  const d = antes ? aCentimos(tuyo - totalDe(antes, "tuyo")) : null;
   const cierre = nombreDelCierre(corte);
   return {
     valor: tuyo,
     mal: tuyo < 0,
-    frase: `Es lo que vale CAYLA: tienes ${soles(tiene)} y debes ${soles(debe)}.`,
-    chip: d === null ? null : d === 0 ? { texto: `Igual que a ${cierre}`, tono: null } : { texto: `${soles(Math.abs(d))} ${d > 0 ? "más" : "menos"} que a ${cierre}`, tono: d > 0 ? "bien" : "mal" },
+    frase: `Es lo que vale CAYLA: tienes ${solesCentimos(tiene)} y debes ${solesCentimos(debe)}.`,
+    chip: d === null ? null : d === 0 ? { texto: `Igual que a ${cierre}`, tono: null } : { texto: `${solesCentimos(Math.abs(d))} ${d > 0 ? "más" : "menos"} que a ${cierre}`, tono: d > 0 ? "bien" : "mal" },
     nota: tiene > 0 && mercaderia > 0 ? `El ${Math.round((mercaderia / tiene) * 100)} % de lo que tienes está en mercadería.` : null,
   };
 }
@@ -86,33 +90,19 @@ export function partesDelBalance({ grupos, comparadas, etiquetaActual, corte }: 
       nombre: g.nombre,
       color: dato.color,
       enBarra: Math.max(g.monto, 0),
-      texto: soles(g.monto),
+      texto: solesCentimos(g.monto),
       tono: g.clave === "tuyo" ? (g.monto < 0 ? "mal" : "bien") : undefined,
       que: dato.que,
       cifra: g.monto,
       filas: g.lineas.map((l) => ({ nombre: l.nombre, valor: l.monto })),
       columnas,
       // Una deuda que sube no es buena; lo tuyo que sube, sí. El resto solo se dice.
-      chip: chipContraAnterior(columnas, cierre, g.lado === "tuyo" ? true : g.lado === "debe" ? false : null, soles),
+      chip: chipContraAnterior(columnas, cierre, g.lado === "tuyo" ? true : g.lado === "debe" ? false : null, solesCentimos),
       soloEnElGrafico: g.lado === "tuyo",
     };
   });
 }
 
-/** El Balance del contador, con sus nombres de siempre, en dos lados. */
-export function ladosDelBalance(grupos: readonly GrupoBalance[]): LadoDelLibro[] {
-  const contable = (g: GrupoBalance) => DE_CADA_GRUPO[g.clave]?.contable ?? g.nombre;
-  const filas = (lado: GrupoBalance["lado"]): FilaDelLibro[] => grupos.filter((g) => g.lado === lado).map((g) => ({ nombre: contable(g), valor: g.monto, tipo: "normal" }));
-  const { tiene, debe, tuyo } = totalesDelBalance(grupos);
-  return [
-    { titulo: "Lo que tienes · Activo", total: tiene, filas: [...filas("tiene"), { nombre: "Total activo", valor: tiene, tipo: "total" }] },
-    {
-      titulo: "Lo que debes y lo tuyo · Pasivo y patrimonio",
-      total: tiene,
-      filas: [...filas("debe"), { nombre: "Total pasivo", valor: debe, tipo: "total" }, { nombre: "Patrimonio", valor: tuyo, tipo: "total" }],
-    },
-  ];
-}
 
 // ---- Mirando una sede --------------------------------------------------------------------------------------------------------
 
@@ -123,13 +113,13 @@ export type ComparadaSede = { etiqueta: string; unidad: UnidadBalance | null };
 
 /** Lo que dice la pantalla mirando una sede: no es un Balance completo y se dice sin rodeos. */
 export function lecturaDeLaSede(u: UnidadBalance, antes: UnidadBalance | null, corte: string): LecturaDelBalance {
-  const d = antes ? Math.round(u.invertido - antes.invertido) : null;
+  const d = antes ? aCentimos(u.invertido - antes.invertido) : null;
   const cierre = nombreDelCierre(corte);
   return {
     valor: u.invertido,
     mal: u.invertido < 0,
-    frase: `Es lo que hay invertido en ${u.nombre}: tiene ${soles(tieneLaSede(u))} y debe ${soles(u.facturasPorPagar)}.`,
-    chip: d === null ? null : d === 0 ? { texto: `Igual que a ${cierre}`, tono: null } : { texto: `${soles(Math.abs(d))} ${d > 0 ? "más" : "menos"} que a ${cierre}`, tono: d > 0 ? "bien" : "mal" },
+    frase: `Es lo que hay invertido en ${u.nombre}: tiene ${solesCentimos(tieneLaSede(u))} y debe ${solesCentimos(u.facturasPorPagar)}.`,
+    chip: d === null ? null : d === 0 ? { texto: `Igual que a ${cierre}`, tono: null } : { texto: `${solesCentimos(Math.abs(d))} ${d > 0 ? "más" : "menos"} que a ${cierre}`, tono: d > 0 ? "bien" : "mal" },
     nota: u.tipo === "taller" ? "No es un Balance completo: el banco, el capital y el IGV son de CAYLA entera. El Taller no vende." : `No es un Balance completo: el banco, el capital y el IGV son de CAYLA entera. Rinde ${textoRinde(u.rinde)}.`,
   };
 }
@@ -141,7 +131,7 @@ export function partesDeLaSede({ unidad: u, comparadas, etiquetaActual, corte }:
   const columnasDe = (de: (x: UnidadBalance) => number) => [...pasadas.map((c) => ({ etiqueta: c.etiqueta, valor: de(c.unidad!), actual: false })), { etiqueta: etiquetaActual, valor: de(u), actual: true }];
   const parte = (clave: string, nombre: string, color: string, que: string, de: (x: UnidadBalance) => number, filas: FilaDeParte[], buenoSubir: boolean | null, extra: Partial<ParteEstado> = {}): ParteEstado => {
     const columnas = columnasDe(de);
-    return { clave, nombre, color, que, enBarra: Math.max(de(u), 0), texto: soles(de(u)), cifra: de(u), filas, columnas, chip: chipContraAnterior(columnas, cierre, buenoSubir, soles), ...extra };
+    return { clave, nombre, color, que, enBarra: Math.max(de(u), 0), texto: solesCentimos(de(u)), cifra: de(u), filas, columnas, chip: chipContraAnterior(columnas, cierre, buenoSubir, solesCentimos), ...extra };
   };
   const caja: ParteEstado =
     u.caja === null
@@ -170,27 +160,72 @@ export function partesDeLaSede({ unidad: u, comparadas, etiquetaActual, corte }:
   ];
 }
 
-/** Lo de la sede para el contador, en dos lados. */
-export function ladosDeLaSede(u: UnidadBalance): LadoDelLibro[] {
+
+// ---- Como informe (camino A, Felipe 2026-11-06) -----------------------------------------------------------------------------
+
+/**
+ * El Balance como informe: lo que tienes, grupo por grupo, con su subtotal; lo que debes, con el suyo; y lo tuyo como total. Las columnas de antes solo
+ * llevan un cierre que cuadró (los demás son «—»). Cada fila pesa contra lo que tienes. El detalle de cada fila sale de las mismas partes (`partesDelBalance`).
+ */
+export function informeDelBalance({ grupos, partes, comparadas, etiquetaActual }: { grupos: readonly GrupoBalance[]; partes: readonly ParteEstado[]; comparadas: readonly ComparadaBalance[]; etiquetaActual: string }): Informe {
+  const t = totalesDelBalance(grupos);
+  const valores = (de: (gs: readonly GrupoBalance[]) => number) => [...comparadas.map((c) => (c.grupos ? de(c.grupos) : null)), de(grupos)];
+  const deParte = (clave: string) => {
+    const p = partes.find((x) => x.clave === clave);
+    return p ? { que: p.que, detalle: p.filas } : {};
+  };
+  const linea = (g: GrupoBalance): FilaInforme => ({
+    clave: g.clave,
+    nombre: g.nombre,
+    contable: DE_CADA_GRUPO[g.clave]?.contable ?? g.nombre,
+    tipo: "linea",
+    valores: valores((gs) => montoDe(gs, g.clave)),
+    peso: pesoContra(g.monto, t.tiene),
+    ...deParte(g.clave),
+  });
+  const tuyo = grupos.find((g) => g.lado === "tuyo");
+  return {
+    titulo: "Balance general",
+    columnas: [...comparadas.map((c) => ({ etiqueta: c.etiqueta, actual: false })), { etiqueta: etiquetaActual, actual: true }],
+    pesoDe: t.tiene > 0 ? "De lo que tienes" : null,
+    filas: [
+      ...grupos.filter((g) => g.lado === "tiene").map(linea),
+      { clave: "total-tiene", nombre: "Lo que tienes", contable: "Total activo", tipo: "subtotal", valores: valores((gs) => totalDe(gs, "tiene")), peso: t.tiene > 0 ? "100 %" : null },
+      ...grupos.filter((g) => g.lado === "debe").map((g) => ({ ...linea(g), resta: true })),
+      { clave: "total-debe", nombre: "Lo que debes", contable: "Total pasivo", tipo: "subtotal", resta: true, valores: valores((gs) => totalDe(gs, "debe")), peso: pesoContra(t.debe, t.tiene) },
+      {
+        clave: "tuyo",
+        nombre: "Lo tuyo",
+        contable: "Patrimonio",
+        tipo: "total",
+        valores: valores((gs) => totalDe(gs, "tuyo")),
+        peso: pesoContra(t.tuyo, t.tiene),
+        tono: t.tuyo < 0 ? "mal" : "bien",
+        ...(tuyo ? deParte(tuyo.clave) : {}),
+      },
+    ],
+  };
+}
+
+/** Lo de una sede como informe: lo que tiene, lo que debe y lo invertido. No es un Balance completo: el banco, el capital y el IGV son de CAYLA entera. */
+export function informeDeLaSede({ unidad: u, partes, comparadas, etiquetaActual }: { unidad: UnidadBalance; partes: readonly ParteEstado[]; comparadas: readonly ComparadaSede[]; etiquetaActual: string }): Informe {
+  const valores = (de: (x: UnidadBalance) => number | null) => [...comparadas.map((c) => (c.unidad ? de(c.unidad) : null)), de(u)];
   const tiene = tieneLaSede(u);
-  return [
-    {
-      titulo: "Lo que tiene",
-      total: tiene,
-      filas: [
-        ...(u.caja === null ? [] : [{ nombre: "Cajón y caja fuerte", valor: u.caja, tipo: "normal" as const }]),
-        { nombre: "Mercadería", valor: u.mercaderia, tipo: "normal" },
-        { nombre: "Muebles, equipos y mejoras", valor: mueblesDe(u), tipo: "normal" },
-        { nombre: "Total", valor: tiene, tipo: "total" },
-      ],
-    },
-    {
-      titulo: "Lo que debe y lo invertido",
-      total: tiene,
-      filas: [
-        { nombre: "Facturas por pagar", valor: u.facturasPorPagar, tipo: "normal" },
-        { nombre: "Invertido", valor: u.invertido, tipo: "total" },
-      ],
-    },
-  ];
+  const deParte = (clave: string) => {
+    const p = partes.find((x) => x.clave === clave);
+    return p ? { que: p.que, detalle: p.filas } : {};
+  };
+  return {
+    titulo: u.nombre,
+    columnas: [...comparadas.map((c) => ({ etiqueta: c.etiqueta, actual: false })), { etiqueta: etiquetaActual, actual: true }],
+    pesoDe: tiene > 0 ? "De lo que tiene" : null,
+    filas: [
+      { clave: "caja", nombre: "Cajón y caja fuerte", contable: "Efectivo", tipo: "linea", valores: valores((x) => x.caja), peso: u.caja === null ? null : pesoContra(u.caja, tiene), ...deParte("caja") },
+      { clave: "mercaderia", nombre: "Mercadería", contable: "Mercadería", tipo: "linea", valores: valores((x) => x.mercaderia), peso: pesoContra(u.mercaderia, tiene), ...deParte("mercaderia") },
+      { clave: "equipos", nombre: "Muebles, equipos y mejoras", contable: "Inmuebles, maquinaria y equipo", tipo: "linea", valores: valores(mueblesDe), peso: pesoContra(mueblesDe(u), tiene), ...deParte("equipos") },
+      { clave: "total-tiene", nombre: "Lo que tiene", contable: "Total activo", tipo: "subtotal", valores: valores(tieneLaSede), peso: tiene > 0 ? "100 %" : null },
+      { clave: "facturas", nombre: "Facturas por pagar", contable: "Proveedores", tipo: "linea", resta: true, valores: valores((x) => x.facturasPorPagar), peso: pesoContra(u.facturasPorPagar, tiene), ...deParte("facturas") },
+      { clave: "invertido", nombre: "Invertido", contable: "Inversión de la casa", tipo: "total", valores: valores((x) => x.invertido), peso: pesoContra(u.invertido, tiene), tono: u.invertido < 0 ? "mal" : "bien", ...deParte("invertido") },
+    ],
+  };
 }

@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { sePuedeCambiarCategoria } from "./recepcion-conteo-reglas";
 import {
   lineasSinModelosEnCero,
   modelosEnCeroDe,
@@ -1332,5 +1333,15 @@ describe("Cerrar no ve lo que quedó en 0, y avisa cuál fue", () => {
     expect(modelosEnCeroDe(lineas)).toEqual(["Blusa Emma", "Blusa 1"]);
     expect(textoModelosEnCero(["Blusa 1"])).toBe("Blusa 1 quedó en 0: no se guarda.");
     expect(textoModelosEnCero(["Blusa 1", "Blusa 2"])).toBe("Blusa 1 y Blusa 2 quedaron en 0: no se guardan.");
+  });
+});
+
+describe("cambiar la categoría de lo contado (Felipe 2026-11-06)", () => {
+  it("solo lo «por crear» de fuera de la guía: una línea de la guía viene de una orden, y lo sin separar todavía no es un modelo", () => {
+    expect(sePuedeCambiarCategoria({ tipo: "crear" }, { linea: null })).toBe(true);
+    expect(sePuedeCambiarCategoria({ tipo: "crear" }, { linea: { id: "x" } })).toBe(false);
+    expect(sePuedeCambiarCategoria({ tipo: "detalle" }, { linea: null })).toBe(false);
+    expect(sePuedeCambiarCategoria({ tipo: "separar" }, { linea: null })).toBe(false);
+    expect(sePuedeCambiarCategoria({ tipo: "crear" }, null)).toBe(false);
   });
 });

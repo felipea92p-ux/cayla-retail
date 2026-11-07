@@ -818,3 +818,15 @@ Al probar la recepción sin aviso de punta a punta (`docs/flujos/recibir/sin-avi
 Con el envío cerrado, un pendiente «por crear» solo se podía crear: si la prenda ya estaba en el catálogo con otro nombre, no había cómo asociarla y nacía repetida. Ahora «Crear o asociar» (y «Crearlo ahora» con el envío abierto) pregunta primero «¿Esta prenda ya existe?» (`YaExisteLaPrenda.tsx`): busca en su categoría y su marca, con el nombre anotado primero, y pide confirmar. El costo no se pide otra vez: `ligar_prenda_a_pendiente` pasa `nueva:<descripción>` a la prenda elegida.
 
 **La marca anotada manda:** solo se elige dentro de ella, porque la base no mezcla marcas en una línea. Una prenda con ese nombre en otra marca se avisa (reabrir y corregir). Sin migración.
+
+## Actualización 2026-11-06 (b): la categoría de lo contado se corrige, y las sugerencias traen su ficha (Felipe)
+
+Se anotó «Polo 3» en Polos y era un top. Con el envío cerrado no había cómo decirlo: «Crear o asociar» buscaba solo en la categoría de la línea, así que los tops de esa marca no salían, y las sugerencias solo mostraban nombre, código y una miniatura.
+
+- **Categoría:** `¿Esta prenda ya existe?` trae un combo, solo con el envío cerrado y en lo de fuera de la guía. Cambiarlo solo busca, no guarda. Al confirmar, `cambiar_categoria_de_pendiente` (`20261106230000`) pasa el pendiente a una línea de fuera de la guía con la categoría correcta, la misma marca, proveedor y costo (la que ya exista o una nueva), y mueve lo contado con él. Queda en la Actividad.
+- **Por qué mover el pendiente y no soltar el candado:** toda prenda sigue siendo de la categoría de su línea, así que ligar, resolver, entrar al stock, cerrar y reabrir no cambian. Soltarlo en esas funciones dejaba un top en una línea de Polos, y reabrir el envío ya no pasaba `guardar_conteo_envio`. Tampoco se cambia la línea entera: «Polo 1» puede ser polo y «Polo 3» no.
+- **Lo que niega:** una línea de la guía (bajarle lo contado inventaría un faltante; se corrige en Compras), una línea que anotó una diferencia al cerrar (quedó escrita con esa categoría) y un envío abierto (ahí se quita el modelo y se agrega en su categoría). El permiso es el módulo Recibir, como ligar: la categoría no decide a quién se le atribuye un costo.
+- **Ficha:** tocar una sugerencia abre la foto en grande, marca, categoría, material, patrón, tallas, colores y descripción, con «Sí, es esta» y «No, es otra». Lee `productos` con su RLS; lo vacío dice «Sin registrar», y si no responde se decide con la foto y las tallas.
+- **Pruebas:** `pruebas:envio-sin-aviso` S3f y S3g. Probado en el navegador en local: asociar, entrar al stock y crear como nueva, también a 375 px y en oscuro.
+- **En producción desde el 2026-11-06,** con el OK de Felipe, por `supabase db query --linked -f` (no queda fila en `schema_migrations`, igual que un pegado en el SQL Editor). La función tiene el mismo md5 que en local.
+

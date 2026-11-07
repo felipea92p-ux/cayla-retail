@@ -562,6 +562,31 @@ function leerPrenda(f: unknown, nueva: boolean): PrendaRecepcion | null {
   return { productoId, nombre, codigo: texto(r.codigo), fotoUrl: texto(r.foto_url) ?? texto(r.foto) ?? texto(r.foto_principal), variantes, nueva, estadoAlta: texto(r.estado_alta) };
 }
 
+/** Lo esencial de una prenda para reconocerla al recibir (Felipe 2026-11-06): lo que no trae la lista de sugerencias. `null` = sin registrar. */
+export type FichaParaRecibir = { descripcion: string | null; material: string | null; patron: string | null; marca: string | null; categoria: string | null };
+
+/** Lee la fila de `productos` con sus nombres: un dato vacío queda en `null`, para decir «Sin registrar» en vez de esconderlo. */
+export function leerFichaParaRecibir(data: unknown): FichaParaRecibir | null {
+  const r = objeto(Array.isArray(data) ? data[0] : data);
+  if (!r) return null;
+  const nombreDe = (v: unknown) => texto(objeto(Array.isArray(v) ? v[0] : v)?.nombre)?.trim() || null;
+  return {
+    descripcion: texto(r.descripcion)?.trim() || null,
+    material: nombreDe(r.tejido),
+    patron: nombreDe(r.patron),
+    marca: nombreDe(r.marca),
+    categoria: nombreDe(r.categoria),
+  };
+}
+
+/** «3 tallas · S, M, L» y lo mismo con los colores: lo que llega por la prenda elegida. Sin talla o sin color, se dice «Única» y «Sin color» como en la lista. */
+export function tallasYColoresDe(prenda: Pick<PrendaRecepcion, "variantes">): { tallas: string[]; colores: string[] } {
+  return {
+    tallas: [...new Set(prenda.variantes.map((v) => v.talla ?? "Única"))],
+    colores: [...new Set(prenda.variantes.map((v) => v.color ?? "Sin color"))],
+  };
+}
+
 /** Lee `fn_prendas_para_recibir`: las prendas de esa categoría y marca para «Ya la tengo». Una sin id o sin nombre se descarta. */
 export function leerPrendasParaRecibir(data: unknown): PrendaRecepcion[] {
   return lista(data)
@@ -1285,7 +1310,7 @@ export const TEXTO_QUIEN_COMPRO =
 /** Los avisos de la base de esta fase vienen ya en palabras de tienda (`hint` recepcion_*, recibir_*, envio_*, orden_*). Algunos llegan con
  *  42501 (otra sede, quien compró) y sin esto caerían al genérico «No se pudo…»: se dicen tal cual. `null` = no es uno de estos (el
  *  error sigue por `traducirError`: el responsable, la versión, la red). */
-const HINTS_DE_LA_RECEPCION = /^(recepcion|recibir|envio|orden_compra|orden|salida|corregir)_[a-z_]+$/;
+const HINTS_DE_LA_RECEPCION = /^(recepcion|recibir|envio|orden_compra|orden|salida|corregir|categoria)_[a-z_]+$/;
 /** La base dice «pulsa «Empezar a recibir»» (el botón de la fase 4). La cara A (ADR-0393) lo llamó «Abrir el fardo» y el aviso se traducía; con
  *  varios fardos por envío que se abren por partes, «abrir el fardo» ya no decía qué hacía el botón y volvió a ser «Empezar a recibir»
  *  (ADR-0480, 2026-10-26). El texto vive en nueve lugares del SQL, varios dentro de reemplazos anclados y huellas md5: se dice aquí, por su

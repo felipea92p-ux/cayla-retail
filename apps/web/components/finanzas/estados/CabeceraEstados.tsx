@@ -1,7 +1,6 @@
 import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 import { Aviso } from "@/components/ui/Aviso";
 import { DescargarCuadro } from "@/components/finanzas/estados/DescargarContador";
-import { LentesDeVidrio } from "@/components/finanzas/estados/LentesDeVidrio";
 import { MenuContador } from "@/components/finanzas/estados/MenuContador";
 import { SelectorPeriodo } from "@/components/finanzas/estados/SelectorPeriodo";
 import { Pestanas } from "@/components/ui/Pestanas";
@@ -99,7 +98,6 @@ export async function CabeceraEstados({
       )}
       {cuadro && <TituloSeccion accion={<DescargarCuadro archivo={cuadro.clave} mes={mes} />}>{`${cuadro.etiqueta} · ${mesNombre(mes)}`}</TituloSeccion>}
       {/* Va dentro de la página, no en su layout: tocar las placas antes de que React las hidrate sería una discrepancia. */}
-      <LentesDeVidrio />
     </div>
   );
 }

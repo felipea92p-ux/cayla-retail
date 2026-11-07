@@ -6,7 +6,7 @@ import { EnlaceVer } from "@/components/ui/EnlaceVer";
 import { TituloSeccion } from "@/components/ui/TituloSeccion";
 import { Vacio } from "@/components/ui/Vacio";
 import { CascadaEstados, LeyendaCascada } from "@/components/finanzas/estados/CascadaEstados";
-import { soles, solesConSigno } from "@/lib/flujo-caja-reglas";
+import { solesCentimos, solesConSignoCentimos } from "@/lib/flujo-caja-reglas";
 import { filasDeTramos, type FilaCascada } from "@/lib/cascada-estados-reglas";
 import type { metaDeVentas } from "@/lib/ganamos-reglas";
 import type { TramoCascada } from "@/lib/pulso-reglas";
@@ -51,7 +51,7 @@ export function MasDeGanancias({
         fila.ventas > 0 && tramos.some((x) => x.clave === "costo")
           ? { tras: "costo", clave: "margen", nombre: "Te quedó de margen", detalle: (v) => `${Math.round((v / fila.ventas) * 100)} % de lo vendido` }
           : undefined,
-      ).map((f) => (f.clave === "ventas" && meta ? { ...f, detalle: `Meta: ${soles(meta.meta)} · ${enCurso ? "al ritmo de hoy, " : ""}${Math.round(meta.avance * 100)} %` } : f))
+      ).map((f) => (f.clave === "ventas" && meta ? { ...f, detalle: `Meta: ${solesCentimos(meta.meta)} · ${enCurso ? "al ritmo de hoy, " : ""}${Math.round(meta.avance * 100)} %` } : f))
     : [];
   const conPlan = filas.some((f) => f.plan !== undefined);
   return (
@@ -88,7 +88,7 @@ export function MasDeGanancias({
                     <small>{`${fechaCorta(c.desde)} al ${fechaCorta(c.hasta)}${c.tiendas ? ` · ${c.tiendas} ${c.tiendas === 1 ? "tienda" : "tiendas"}` : ""}`}</small>
                   </span>
                   <span className="fin-camp-valor" data-tono={c.margenExtra === null ? undefined : c.margenExtra >= 0 ? "verde" : "rojo"} title="Lo que dejó de más (o de menos) contra sus días de comparación">
-                    {c.margenExtra === null ? "Sin comparar" : solesConSigno(c.margenExtra)}
+                    {c.margenExtra === null ? "Sin comparar" : solesConSignoCentimos(c.margenExtra)}
                   </span>
                 </div>
               ))

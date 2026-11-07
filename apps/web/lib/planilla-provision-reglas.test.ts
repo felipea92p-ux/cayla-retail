@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { aplicarProvision, delMes, hastaDeLaProvision, leerProvision, nombreSedeDynamic, notaProvisionado, resumenDeProvision, type FilaProvision } from "./planilla-provision-reglas";
+import { aplicarProvision, delMes, hastaDeLaProvision, leerProvision, nombreSedeDynamic, notaProvisionado, resumenDeProvision, sueldosAEstaFecha, type FilaProvision } from "./planilla-provision-reglas";
 import type { FilaER } from "./resultados-reglas";
 
 const fila = (p: Partial<FilaER>): FilaER => ({
@@ -226,5 +226,36 @@ describe("hasta dónde se piden los sueldos (tarea 23)", () => {
   it("«del 1 a esta fecha» del mes pasado y las fechas sueltas no piden más que lo que miran", () => {
     expect(hastaDeLaProvision("2026-09-01", "2026-09-27", "2026-10-27")).toBe("2026-09-27");
     expect(hastaDeLaProvision("2026-10-10", "2026-10-27", "2026-10-27")).toBe("2026-10-27");
+  });
+});
+
+describe("sueldosAEstaFecha («octubre a esta fecha» con sueldos, 2026-11-06)", () => {
+  // Período de octubre: del 29 de septiembre al 28 de octubre, 30 días. Del 1 al 6 de octubre corren 8 (29 y 30 de setiembre + 6).
+  const entero = [fila({ ubicacionId: "u-tru", planilla: 3000 }), fila({ unidad: "consolidado", nombre: "CAYLA", planilla: 6000 })];
+  const parcial = [fila({ ubicacionId: "u-tru", gastos: 100, resultado: 500 }), fila({ unidad: "consolidado", nombre: "CAYLA", gastos: 200, resultado: 900 })];
+
+  it("pone la parte de los días corridos de la planilla del mes entero, y la resta del resultado", () => {
+    const [tru, cons] = sueldosAEstaFecha(parcial, entero, "2026-10-06");
+    expect(tru!.planilla).toBe(800);
+    expect(tru!.gastos).toBe(900);
+    expect(tru!.resultado).toBe(-300);
+    expect(tru!.detalleGastos).toContainEqual({ cuenta: "62", nombre: "Gastos de personal", monto: 800 });
+    expect(cons!.planilla).toBe(1600);
+    expect(cons!.resultado).toBe(-700);
+  });
+
+  it("si las fechas llegan al 28 el período ya entró entero: no toca nada", () => {
+    expect(sueldosAEstaFecha(parcial, entero, "2026-10-28")).toEqual(parcial);
+  });
+
+  it("una fila que ya trae planilla, o sin su par en el mes entero, queda tal cual", () => {
+    const conPlanilla = [fila({ ubicacionId: "u-tru", planilla: 50, resultado: 10 }), fila({ ubicacionId: "u-otra", resultado: 5 })];
+    expect(sueldosAEstaFecha(conPlanilla, entero, "2026-10-06")).toEqual(conPlanilla);
+  });
+
+  it("en enero, el período empieza el 29 de diciembre del año anterior", () => {
+    const [tru] = sueldosAEstaFecha([fila({ ubicacionId: "u-tru" })], [fila({ ubicacionId: "u-tru", planilla: 3100 })], "2027-01-03");
+    // Del 29-dic-2026 al 28-ene-2027 son 31 días; al 3 de enero corren 6.
+    expect(tru!.planilla).toBe(600);
   });
 });

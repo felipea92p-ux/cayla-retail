@@ -576,6 +576,7 @@ export const MODALES: Record<string, PantallaGuia> = {
   "components/recepcion-conteo/NuevoModelo.tsx": { estado: "aplicada", evidencia: ["components/recepcion-conteo/NuevoModelo.tsx"] },
   // Ponerle su nombre a un modelo: el nombre es lo que falta; la descripción es opcional.
   "components/recepcion-conteo/EditarModelo.tsx": { estado: "aplicada", evidencia: ["components/recepcion-conteo/EditarModelo.tsx"] },
+  "components/recepcion-conteo/YaExisteLaPrenda.tsx": { estado: "no-aplica", motivo: "Una pregunta con su buscador y dos salidas a la vista. La categoría viene puesta y corregirla es opcional: no hay nada que llenar en orden." },
   // «¿Quién va a contar?» al entrar a Contar desde una terminal: UN solo control (el combo del responsable, que se enciende solo y sale al elegir).
   "components/recepcion-conteo/ElegirQuienCuenta.tsx": { estado: "no-aplica", motivo: "Hoja de un solo control: el combo «Quién cuenta», que la hoja pide al entrar y se cierra sola al elegir; no hay campos ni pasos que guiar." },
   // ADR-0393: «Hacer ahora». Separar pide al menos una prenda y nunca más de lo que queda; las tallas y la prenda nueva son las hojas de

@@ -52,6 +52,8 @@ export const RPC_VALIDAR_PRECIOS = "validar_precios_en_recepcion";
 export const RPC_RESOLVER_PENDIENTE = "resolver_pendiente_envio";
 /** «Crear ahora» deja la prenda creada en «Para después» (ADR-0393, 2026-10-26; migración `20261026163000`). */
 export const RPC_LIGAR_PRENDA = "ligar_prenda_a_pendiente";
+/** Felipe 2026-11-06: lo contado como nuevo en una categoría que no era pasa a la suya, con el envío cerrado. */
+export const RPC_CAMBIAR_CATEGORIA = "cambiar_categoria_de_pendiente";
 export const RPC_REABRIR_ENVIO = "reabrir_envio";
 /** ADR-0605: cancelar la recepción de un envío sin aviso (abierto → anulado, con su motivo). */
 export const RPC_CANCELAR_RECEPCION = "cancelar_recepcion_envio";
@@ -1492,6 +1494,14 @@ export function leerResuelto(data: unknown): { entraron: number; quedaronPendien
   const r = objeto(Array.isArray(data) ? data[0] : data);
   if (!r) return null;
   return { entraron: entero(r.entraron), quedaronPendientes: entero(r.quedaron_pendientes), repetido: booleano(r.repetido) ?? false, conteo: leerConteoDeLinea(r.linea) };
+}
+
+/**
+ * ¿Se puede corregir la categoría de este «por crear»? Solo lo de fuera de la guía: una línea de la guía viene de una orden de compra, y bajarle lo contado
+ * inventaría un faltante (`cambiar_categoria_de_pendiente` lo niega igual). Quien cuenta sin aviso es quien anota la categoría, y ahí es donde se equivoca.
+ */
+export function sePuedeCambiarCategoria(item: Pick<ParaDespues, "tipo">, linea: { linea: unknown } | null): boolean {
+  return item.tipo === "crear" && !!linea && !linea.linea;
 }
 
 export type ArgsLigarPrenda = { p_despacho_id: string; p_pendiente_id: string; p_producto_id: string };

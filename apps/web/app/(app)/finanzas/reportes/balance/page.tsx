@@ -8,13 +8,13 @@ import { mesDe, rangoMes } from "@/lib/gastos-reglas";
 import { getEstadoResultados } from "@/lib/resultados";
 import { getParametrosFinanzas } from "@/lib/configuracion";
 import { mesAnterior } from "@/lib/resultados-reglas";
-import { soles } from "@/lib/flujo-caja-reglas";
+import { solesCentimos } from "@/lib/flujo-caja-reglas";
 import { gruposDelBalance, medidores, recomendacionesVale } from "@/lib/vale-reglas";
 import {
   cortesAnteriores,
   etiquetaDelCorte,
-  ladosDeLaSede,
-  ladosDelBalance,
+  informeDeLaSede,
+  informeDelBalance,
   lecturaDeLaSede,
   lecturaDelBalance,
   partesDeLaSede,
@@ -28,8 +28,7 @@ import { Vacio } from "@/components/ui/Vacio";
 import { Store } from "lucide-react";
 import { Recomendaciones } from "@/components/finanzas/estados/Recomendaciones";
 import { CabeceraEstados } from "@/components/finanzas/estados/CabeceraEstados";
-import { EcuacionDelBalance } from "@/components/finanzas/estados/EcuacionDelBalance";
-import { EstadoVidrio } from "@/components/finanzas/estados/EstadoVidrio";
+import { EstadoEnInforme } from "@/components/finanzas/estados/EstadoEnInforme";
 import { MasDelEstado } from "@/components/finanzas/estados/MasDelEstado";
 import { TubosDelBalance } from "@/components/finanzas/estados/TubosDelBalance";
 import { paramsDe } from "@/lib/estados-financieros-reglas";
@@ -100,27 +99,21 @@ export default async function BalancePage({ searchParams }: { searchParams: Prom
         const t = totalesDelBalance(grupos);
         const delLado = (lado: "tiene" | "debe" | "tuyo") => partes.filter((p) => grupos.find((g) => g.clave === p.clave)?.lado === lado);
         return (
-          <EstadoVidrio
-            nombre={`Balance general · ${periodo.al}`}
+          <EstadoEnInforme
+            nombre={`Lo que vale CAYLA · ${periodo.al}`}
             lectura={lecturaDelBalance(grupos, anteriores.at(-1)?.grupos ?? null, corte)}
             grafico={
               <TubosDelBalance
                 guia="fin-vale.tubos"
-                arriba={{ rotulo: "Lo que tienes", cifra: soles(t.tiene), partes: delLado("tiene") }}
-                abajo={{ rotulo: "Lo que debes y lo que es tuyo", cifra: `Debes ${soles(t.debe)} + tuyo ${soles(t.tuyo)}`, partes: [...delLado("debe"), ...delLado("tuyo")] }}
+                arriba={{ rotulo: "Lo que tienes", cifra: solesCentimos(t.tiene), partes: delLado("tiene") }}
+                abajo={{ rotulo: "Lo que debes y lo que es tuyo", cifra: `Debes ${solesCentimos(t.debe)} + tuyo ${solesCentimos(t.tuyo)}`, partes: [...delLado("debe"), ...delLado("tuyo")] }}
                 huecos={["tuyo"]}
               />
             }
-            conAire
             guiaRespuesta="fin-vale.respuesta"
-            guiaPartes="fin-vale.partes"
-            guiaLibro="fin-vale.libro"
-            titulo="En qué está y a quién se le debe"
-            partes={partes}
-            columnasDeTarjetas={4}
-            tituloColumnas="Mes a mes"
-            libro={{ titulo: "Balance general", detalle: `${periodo.al} · en soles · formato del contador`, lados: ladosDelBalance(grupos) }}
-            pieDeLibro={<EcuacionDelBalance tiene={t.tiene} debe={t.debe} tuyo={t.tuyo} dicho="Activo = Pasivo + Patrimonio: cuadra" />}
+            guiaInforme="fin-vale.partes"
+            guiaContador="fin-vale.libro"
+            informe={informeDelBalance({ grupos, partes, comparadas: anteriores, etiquetaActual })}
           />
         );
       })()}
@@ -130,25 +123,20 @@ export default async function BalancePage({ searchParams }: { searchParams: Prom
         const de = (...claves: string[]) => partes.filter((p) => claves.includes(p.clave));
         const tiene = (unidad.caja ?? 0) + unidad.mercaderia + unidad.activosFijos;
         return (
-          <EstadoVidrio
+          <EstadoEnInforme
             nombre={`${unidad.nombre} · ${periodo.al}`}
             lectura={lecturaDeLaSede(unidad, comparadas.at(-1)?.unidad ?? null, corte)}
             grafico={
               <TubosDelBalance
-                arriba={{ rotulo: "Lo que tiene", cifra: soles(tiene), partes: de("caja", "mercaderia", "equipos") }}
-                abajo={{ rotulo: "Lo que debe y lo invertido", cifra: `Debe ${soles(unidad.facturasPorPagar)} + invertido ${soles(unidad.invertido)}`, partes: de("facturas", "invertido") }}
+                arriba={{ rotulo: "Lo que tiene", cifra: solesCentimos(tiene), partes: de("caja", "mercaderia", "equipos") }}
+                abajo={{ rotulo: "Lo que debe y lo invertido", cifra: `Debe ${solesCentimos(unidad.facturasPorPagar)} + invertido ${solesCentimos(unidad.invertido)}`, partes: de("facturas", "invertido") }}
                 huecos={["invertido"]}
               />
             }
-            conAire
             guiaRespuesta="fin-balance.tienda-respuesta"
-            guiaPartes="fin-balance.tienda-partes"
-            guiaLibro="fin-balance.tienda-libro"
-            titulo="En qué está y a quién se le debe"
-            partes={partes}
-            columnasDeTarjetas={4}
-            tituloColumnas="Mes a mes"
-            libro={{ titulo: unidad.nombre, detalle: `${periodo.al} · en soles`, lados: ladosDeLaSede(unidad) }}
+            guiaInforme="fin-balance.tienda-partes"
+            guiaContador="fin-balance.tienda-libro"
+            informe={informeDeLaSede({ unidad, partes, comparadas, etiquetaActual })}
           />
         );
       })()}

@@ -2,7 +2,7 @@ import { LineaDeMeses } from "@/components/finanzas/estados/LineaDeMeses";
 import { getResultadoPorMes } from "@/lib/estados-serie";
 import { franjaDelPeriodo } from "@/lib/estados-linea";
 import { mesesDelHilo, type Periodo } from "@/lib/estados-periodo";
-import { soles } from "@/lib/flujo-caja-reglas";
+import { solesCentimos } from "@/lib/flujo-caja-reglas";
 import type { ClaveSede } from "@/lib/finanzas-telar-reglas";
 
 /**
@@ -23,7 +23,7 @@ export async function LineaDeGanancias({ hoy, minimo, sede, periodo, resultado }
     <LineaDeMeses
       serie={serie}
       activo={i < 0 ? null : i}
-      franja={franja ? { ...franja, valor: soles(resultado), titulo: periodo.titulo } : null}
+      franja={franja ? { ...franja, valor: solesCentimos(resultado), titulo: periodo.titulo } : null}
       etiqueta="Lo ganado o perdido mes a mes"
     />
   );

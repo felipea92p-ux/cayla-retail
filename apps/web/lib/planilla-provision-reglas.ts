@@ -185,3 +185,36 @@ export function resumenDeProvision(prov: readonly FilaProvision[]): ResumenProvi
   const s = util.reduce(sumar, vacia());
   return { sedes: util.length, personas: s.personas, devengado: s.devengado, alCierre: s.alCierre, deHoy: s.deHoy };
 }
+
+/**
+ * Los sueldos de unas fechas que no cierran el período de Dynamic («octubre a esta fecha», del 1 al 6). La base pone toda la planilla de un período en el
+ * mes donde TERMINA (el 28, D-35): del 1 al 6 de octubre no termina ninguno y la columna salía con S/ 0 de sueldos. Mientras tanto, el mes en curso sí los
+ * lleva (provisionados hasta hoy), así que «X menos que octubre a esta fecha» comparaba noviembre con sueldos contra octubre sin ellos y la caída salía
+ * inflada (Felipe 2026-11-06). Aquí se le pone a cada fila la parte que le toca de la planilla del mes entero: los días corridos del período (del 29 del
+ * mes anterior hasta `hasta`) sobre los días del período, como reparte Dynamic el sueldo fijo. No calcula plata nueva: reparte la del mes entero.
+ * Si las fechas ya llegan al 28 (el período entra entero) o la fila ya trae planilla, queda tal cual.
+ */
+export function sueldosAEstaFecha(parcial: readonly FilaER[], mesEntero: readonly FilaER[], hasta: string): FilaER[] {
+  const [a, m, d] = hasta.split("-").map(Number) as [number, number, number];
+  if (d >= 28) return [...parcial];
+  const ini = Date.UTC(a, m - 2, 29);
+  const fin = Date.UTC(a, m - 1, 28);
+  const fraccion = Math.min(1, Math.max(0, ((Date.UTC(a, m - 1, d) - ini) / 86_400_000 + 1) / ((fin - ini) / 86_400_000 + 1)));
+  const clave = (f: FilaER) => `${f.unidad}|${f.ubicacionId ?? ""}`;
+  const entero = new Map(mesEntero.map((f) => [clave(f), f]));
+  return parcial.map((f) => {
+    const e = entero.get(clave(f));
+    if (!e || e.planilla <= 0 || Math.abs(f.planilla) >= 0.005) return f;
+    const parte = r2(e.planilla * fraccion);
+    if (parte <= 0) return f;
+    return {
+      ...f,
+      planilla: parte,
+      gastos: r2(f.gastos + parte),
+      resultado: r2(f.resultado - parte),
+      detalleGastos: conPersonal(f.detalleGastos, parte),
+      planillaEstimada: parte,
+      planillaNota: `${f.planillaNota ? `${f.planillaNota} · ` : ""}Sueldos de estas fechas: la parte de los días corridos de la planilla de todo el mes (${solesER(e.planilla)}).`,
+    };
+  });
+}

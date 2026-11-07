@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import { Buscador } from "@/components/ui/Buscador";
 import { PaginacionLocal } from "@/components/ui/PaginacionLocal";
 import { Superficie, PieTabla } from "@/components/finanzas/kit";
-import { soles } from "@/lib/flujo-caja-reglas";
+import { solesCentimos } from "@/lib/flujo-caja-reglas";
 import { filtrarDiario } from "@/lib/contador-reglas";
 import { fechaCorta } from "@/lib/gastos-reglas";
 import { mesNombre, type LineaDiario } from "@/lib/resultados-reglas";
@@ -14,7 +14,7 @@ import { mesNombre, type LineaDiario } from "@/lib/resultados-reglas";
 // de lo que se está viendo, que deben ser iguales.
 
 const POR_PAGINA = 100;
-const cifra = (v: number) => (Math.round(v * 100) === 0 ? "" : soles(v));
+const cifra = (v: number) => (Math.round(v * 100) === 0 ? "" : solesCentimos(v));
 
 export function DiarioPanel({ lineas, cuentas, sedes, mes }: { lineas: LineaDiario[]; cuentas: Record<string, string>; sedes: Record<string, string>; mes: string }) {
   const [buscado, setBuscado] = useState("");
@@ -81,10 +81,10 @@ export function DiarioPanel({ lineas, cuentas, sedes, mes }: { lineas: LineaDiar
                 <b>{buscado ? `Total de lo que coincide (${vistas.length} líneas)` : `Total del mes (${vistas.length} líneas)`}</b>
               </td>
               <td className="fin-num" data-l="Debe">
-                <b>{soles(debe)}</b>
+                <b>{solesCentimos(debe)}</b>
               </td>
               <td className="fin-num" data-l="Haber">
-                <b>{soles(haber)}</b>
+                <b>{solesCentimos(haber)}</b>
               </td>
               <td colSpan={2} />
             </tr>

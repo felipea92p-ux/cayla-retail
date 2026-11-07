@@ -36,52 +36,7 @@ export type ParteEstado = {
   soloEnElGrafico?: boolean;
 };
 
-/** La barrita de una fila del detalle, contra la mayor. */
-export function anchoDeFila(valor: number, filas: readonly FilaDeParte[]): number {
-  const tope = Math.max(...filas.map((f) => Math.abs(f.valor)), 1);
-  return (Math.abs(valor) / tope) * 100;
-}
 
-/** Lo alto de una columna del detalle, de 4 a 72 px, contra la mayor. */
-export function altoDeColumna(valor: number, columnas: readonly ColumnaDeParte[]): number {
-  const tope = Math.max(...columnas.map((c) => Math.abs(c.valor)), 1);
-  return Math.max((Math.abs(valor) / tope) * 72, 4);
-}
-
-export type TipoFilaDelLibro = "normal" | "total" | "grupo";
-export type FilaDelLibro = { nombre: string; valor: number; tipo: TipoFilaDelLibro };
-export type PasoDelLibro = FilaDelLibro & { desde: number; ancho: number; color: string };
-
-/**
- * El libro del contador: cada fila con su barrita, y cada barrita empieza donde terminó la anterior, así se ve de dónde sale el total. Un total vuelve a
- * nacer en cero. Es el mismo cuadro de siempre con su nombre contable; la barrita solo ayuda a leerlo.
- */
-export function pasosDelLibro(filas: readonly FilaDelLibro[]): PasoDelLibro[] {
-  let corrido = 0;
-  const tramos = filas.map((f, i) => {
-    const nace = i === 0 || f.tipo === "total";
-    const de = nace ? 0 : corrido;
-    const a = nace ? f.valor : corrido + f.valor;
-    corrido = a;
-    return { f, i, menor: Math.min(de, a), mayor: Math.max(de, a) };
-  });
-  const lo = Math.min(0, ...tramos.map((t) => t.menor));
-  const hi = Math.max(...tramos.map((t) => t.mayor), lo + 1);
-  const escala = (x: number) => ((x - lo) / (hi - lo)) * 100;
-  return tramos.map(({ f, i, menor, mayor }) => ({
-    ...f,
-    desde: escala(menor),
-    ancho: escala(mayor) - escala(menor),
-    color: f.tipo === "total" ? (f.valor < 0 ? "var(--color-rojo)" : "var(--color-verde)") : i === 0 ? "var(--estados-parte-1)" : f.valor < 0 ? "var(--color-rojo)" : "var(--color-verde)",
-  }));
-}
-
-/** Un lado de un cuadro de dos lados (el Balance): cada fila con una barra proporcional al total. */
-export type LadoDelLibro = { titulo: string; total: number; filas: readonly FilaDelLibro[] };
-
-export function pasosDelLado({ total, filas }: LadoDelLibro): PasoDelLibro[] {
-  return filas.map((f) => ({ ...f, desde: 0, ancho: total > 0 ? Math.max(Math.min((Math.abs(f.valor) / total) * 100, 100), 0) : 0, color: f.tipo === "total" ? "var(--estados-parte-1)" : "var(--estados-parte-2)" }));
-}
 
 /** «Ver más: sedes, campañas y lo planeado». Sin nada que ofrecer, `null`: el botón no se dibuja. */
 export function textoDeVerMas(cosas: readonly string[]): string | null {
@@ -89,8 +44,6 @@ export function textoDeVerMas(cosas: readonly string[]): string | null {
   return `Ver más: ${cosas.length === 1 ? cosas[0]! : `${cosas.slice(0, -1).join(", ")} y ${cosas.at(-1)!}`}`;
 }
 
-/** Una cifra de una fila con signo: «+S/ 1,200», «−S/ 1,200». */
-export const textoDelLibro = (n: number) => `${Math.round(n) < 0 ? "−" : ""}${Math.abs(Math.round(n)).toLocaleString("en-US")}`;
 
 /** La diferencia contra la columna anterior, dicha en palabras. Sin columna anterior, nada. */
 export function chipContraAnterior(columnas: readonly ColumnaDeParte[], nombreAnterior: string, buenoSubir: boolean | null, soles: (n: number) => string): ChipDeParte | null {

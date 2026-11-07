@@ -18,6 +18,7 @@ import {
   RPC_VALIDAR_PRECIOS,
   resultadoDeLigar,
   RPC_GUARDAR_CONTEO,
+  RPC_CAMBIAR_CATEGORIA,
   RPC_LIGAR_PRENDA,
   RPC_PONER_PROVEEDOR,
   RPC_CANCELAR_RECEPCION,
@@ -194,6 +195,12 @@ export async function resolverPendiente(args: ArgsResolverPendiente, firma: Firm
 export async function ligarPrendaAPendiente(args: ArgsLigarPrenda, firma: Firma | null): Promise<{ resultado: ResultadoDeLigar; error: ErrorDeBase }> {
   const { data, error } = (await firmar(createClient().rpc(RPC_LIGAR_PRENDA as never, args as never), firma)) as Respuesta;
   return { resultado: resultadoDeLigar(data, error), error: error ?? null };
+}
+
+/** Pasa un «por crear» a su categoría de verdad, con lo contado (Felipe 2026-11-06). La misma categoría no cambia nada. */
+export async function cambiarCategoriaDePendiente(args: { p_despacho_id: string; p_pendiente_id: string; p_categoria_id: string }, firma: Firma | null): Promise<{ error: ErrorDeBase }> {
+  const { error } = (await firmar(createClient().rpc(RPC_CAMBIAR_CATEGORIA as never, args as never), firma)) as Respuesta;
+  return { error: error ?? null };
 }
 
 /** Reabre un envío cerrado para cuadrarlo (decisión 5). */

@@ -122,3 +122,23 @@ Local, base `54421`, con los datos del seed y, solo para mirar, datos inventados
 - **Ancho:** 0 desbordes en 1920, 1440, 1024 y 375, en claro y oscuro, sin errores de consola.
 - **Dedo** (`tacto:medir`): solo quedan los tramos de la barra. **Ciega y notas:** `docs/formidable/finanzas-estados-financieros.md`.
 - **No medido:** la fluidez en el Mac mini (lente, desenfoque y lienzos que se mueven). Si no alcanza, se apaga primero la lente.
+
+## Actualización 2026-11-06 — camino «A · El informe»
+
+Felipe miró la pantalla en producción y la rechazó («qué horrible forma de mostrarme cada estado financiero»): la cifra gigante, los hilos cruzando detrás de los números
+y el Balance enterrado bajo siete tarjetas de comprobación. Eligió mirando el camino **A · El informe** entre tres (`docs/maquetas/estados-financieros-2026-11-rediseno/`).
+
+- **Cada estado es un informe**: una fila por concepto, con sus subtotales y su total, la columna de ahora y las de antes (un período que no se pudo leer es «—», nunca un
+  cero), y cuánto pesa cada fila contra la de referencia (lo vendido, lo que tienes). Una fila se abre en su lugar con qué es y de qué está hecha; «Nombres del contador»
+  cambia las palabras, no las cifras. Reemplaza a las tarjetas de partes y al «formato formal» (eran dos maneras de decir lo mismo). Piezas: `lib/estados-informe.ts`,
+  `InformeEstado`, `EstadoEnInforme`. Es un `<table>` a propósito (un estado contable con columnas, no registros), con su excepción en `unificar/familias.mjs`.
+- **A la derecha, la respuesta**: la cifra (ya no a 148 px), la frase, el chip contra antes, el gráfico del estado y lo que hay que saber.
+- **Sin tela de Hilos ni lentes**: las cifras se leen sobre el fondo del ERP, en la placa Serena. Las variables `--hilos-*` de `recetas.css` se quedan (contrato de familia con
+  Dynamic: quitarlas abre una tarea allá).
+- **El Balance que no cuadra se dice en una línea**: qué no cuadra y por cuánto, cada comprobación como un chip, de dónde sale la diferencia con su enlace y la lista
+  completa a un toque.
+- **Errores corregidos el mismo día**: la comparación «octubre a esta fecha» salía sin sueldos (la base los pone en el mes donde termina el período de Dynamic) y exageraba la
+  caída: ahora lleva la parte de los días corridos (`sueldosAEstaFecha`); la frase de un mes en curso dice que el mes recién empieza; la raya del cero ya no se sale del
+  gráfico; todos los montos van con céntimos (también `solesBalance`).
+- **No verificado en el navegador** (la base local no tiene `fn_patrimonio_cambios` ni un Balance que no cuadre): Cambios en el patrimonio y la vista del bloqueo. Ganancias
+  y Flujo sí, a 1440 px.

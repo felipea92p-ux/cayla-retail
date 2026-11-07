@@ -18,6 +18,8 @@ import {
   type ArgsPrepararPrenda,
   type DetalleEnvio,
   type ArgsRecibirDespacho,
+  leerFichaParaRecibir,
+  type FichaParaRecibir,
   type PrendaRecepcion,
   type ResultadoApertura,
   type ResultadoRecepcion,
@@ -72,6 +74,16 @@ export async function buscarPrendasParaRecibir(categoriaId: string, marcaId: str
     { p_categoria_id: categoriaId, p_marca_id: marcaId, p_busqueda: busqueda.trim() || null } as never,
   )) as unknown as Respuesta;
   return { prendas: error ? [] : leerPrendasParaRecibir(data), error: error ?? null };
+}
+
+/** La ficha de una prenda para reconocerla antes de asociarla. Es lectura y puede faltar: sin respuesta, la persona decide con la foto y el nombre. */
+export async function leerFichaDePrenda(productoId: string): Promise<FichaParaRecibir | null> {
+  const { data, error } = await createClient()
+    .from("productos")
+    .select("descripcion, categoria:categorias(nombre), marca:marcas(nombre), tejido:tejidos(nombre), patron:patrones(nombre)")
+    .eq("id", productoId)
+    .maybeSingle();
+  return error ? null : leerFichaParaRecibir(data);
 }
 
 /** Lo que se parece en TODAS las marcas de la categoría, para no crear una prenda repetida al recibir. Si no responde, se sigue sin ellas. */
