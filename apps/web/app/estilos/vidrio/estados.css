@@ -1,28 +1,8 @@
 /* =====================================================================
-   ESTADOS FINANCIEROS EN VIDRIO (ADR-0611; Felipe eligió la tela «Hilos», las pestañas fijas y la letra Inter mirando la maqueta,
+   ESTADOS FINANCIEROS EN VIDRIO (ADR-0611; Felipe eligió las pestañas fijas y la letra Inter mirando la maqueta; la tela «Hilos» salió el 2026-11-06 con el camino «A · El informe»,
    docs/maquetas/finanzas-eeff-vidrio-2026-11/). Solo vale dentro de `.estados-vidrio`, que pone `app/(app)/finanzas/reportes/layout.tsx`: el resto del ERP no cambia.
    Los números salen de `recetas.css`. El movimiento (una vez, sin rebote ni bucle) es una excepción de ADR-0136, con su lista y su prueba: `lib/estados-movimiento.test.ts`.
    ===================================================================== */
-
-/* ---------- La tela: detrás de todo, también del marco ---------- */
-.tela-hilos {
-  position: fixed;
-  inset: 0;
-  z-index: -1;
-  overflow: hidden;
-  pointer-events: none;
-  background: var(--hilos-base);
-}
-.tela-hilos canvas {
-  position: absolute;
-  top: -8%;
-  left: -8%;
-  display: block;
-  width: 116%;
-  height: 116%;
-  will-change: transform;
-  transition: transform 1500ms var(--ease-cayla);
-}
 
 /* ---------- La placa: lo que explica, de vidrio con un filo de luz que da su vuelta una vez y un brillo que sigue al mouse ---------- */
 @property --giro-estados {
@@ -1747,22 +1727,11 @@
   }
 }
 
-/* ---------- Quien pidió menos transparencia o más contraste: la tela se apaga y el vidrio ya es macizo (`recetas.css`) ---------- */
-@media (prefers-reduced-transparency: reduce) {
-  .tela-hilos canvas {
-    opacity: 0.35;
-  }
-}
+/* ---------- Quien pidió más contraste: el filo de luz se apaga y el vidrio ya es macizo (`recetas.css`) ---------- */
 @media (prefers-contrast: more) {
-  .tela-hilos canvas,
   .placa-estados::before,
   .placa-estados::after {
     display: none;
-  }
-}
-@media (prefers-reduced-motion: reduce) {
-  .tela-hilos canvas {
-    transition: none;
   }
 }
 
