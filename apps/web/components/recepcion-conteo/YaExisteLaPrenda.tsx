@@ -15,8 +15,8 @@ import type { ControlResponsable } from "@/lib/useResponsable";
 // que se anotó al contar: su categoría, su marca y su nombre; el costo no se pide otra vez, sigue con la prenda (`ligar_prenda_a_pendiente` lo pasa a la elegida).
 // Solo se elige dentro de la marca anotada, porque la base no deja mezclar marcas en una línea; una prenda con ese nombre en otra marca se avisa, para no crearla repetida.
 //
-// La categoría y la marca sí se corrigen aquí, con el envío cerrado y en lo de fuera de la guía (Felipe 2026-11-06 y 2026-11-07): se anotó «Polos» y era un top, o
-// «Sin marca» y sí tenía. Cambiar un combo solo busca, no guarda nada; el modelo pasa a su categoría y su marca al confirmar (`cambiar_linea_de_pendiente`). Tocar una sugerencia abre su ficha, para reconocerla antes de decir «es esta».
+// La categoría y la marca sí se corrigen aquí, con el envío cerrado (Felipe 2026-11-06 y 2026-11-07): se anotó «Polos» y era un top, o «Sin marca» y sí tenía; o el
+// aviso decía jeans y llegaron shorts (ahí se corrige la línea entera del aviso, que siempre lleva marca). Cambiar un combo solo busca, no guarda nada; el modelo pasa a su categoría y su marca al confirmar (`cambiar_linea_de_pendiente`). Tocar una sugerencia abre su ficha, para reconocerla antes de decir «es esta».
 
 export function YaExisteLaPrenda({
   categoria: categoriaAnotada,
@@ -27,6 +27,7 @@ export function YaExisteLaPrenda({
   comoCorregirMarca,
   categorias = [],
   marcas = [],
+  conSinMarca = true,
   responsable,
   onPasarALinea,
   onUsar,
@@ -47,6 +48,8 @@ export function YaExisteLaPrenda({
   categorias?: readonly CategoriaDeLinea[];
   /** Las marcas a las que se puede pasar (con «Sin marca» siempre). Vacío: la marca no se cambia aquí. */
   marcas?: readonly { id: string; nombre: string }[];
+  /** `false` en una línea del aviso: siempre lleva marca. */
+  conSinMarca?: boolean;
   /** Quién firma el cambio. */
   responsable?: ControlResponsable;
   /** Pasa el modelo a esa categoría y esa marca (`null` = sin marca). Devuelve el error en palabras, o `null` si quedó. */
@@ -149,7 +152,7 @@ export function YaExisteLaPrenda({
                   valor={marca.id ?? ""}
                   onValor={elegirMarca}
                   deshabilitado={guardando}
-                  opciones={[{ valor: "", texto: "Sin marca" }, ...marcas.map((m) => ({ valor: m.id, texto: m.nombre }))]}
+                  opciones={[...(conSinMarca ? [{ valor: "", texto: "Sin marca" }] : []), ...marcas.map((m) => ({ valor: m.id, texto: m.nombre }))]}
                   sinPie
                 />
               )}

@@ -60,12 +60,19 @@ export function EnvioCerrado({
 }) {
   const [haciendo, setHaciendo] = useState<ParaDespues | null>(null);
   // Al pasar un modelo a su categoría cambia de línea: se relee el envío y, cuando la lista ya lo trae en la línea nueva, se sigue con él. `crear`: la persona pidió crearla.
-  const [seguir, setSeguir] = useState<{ pendienteId: string; lineaAntes: string; crear: boolean } | null>(null);
+  // En una línea del aviso el modelo no cambia de línea: cambia la línea misma, así que también se sigue cuando su categoría o su marca ya no son las de antes (`huellaAntes`).
+  const [seguir, setSeguir] = useState<{ pendienteId: string; lineaAntes: string; huellaAntes: string; crear: boolean } | null>(null);
   const [creando, setCreando] = useState(false);
   const [reabriendo, setReabriendo] = useState(false);
   const cifras = cifrasDelEnvio(lineas);
   const lista = paraDespues(lineas);
-  const movido = seguir ? lista.find((p) => p.tipo !== "separar" && p.pendiente.id === seguir.pendienteId && p.linea !== seguir.lineaAntes) : undefined;
+  const huellaDe = (clave: string) => {
+    const l = lineas.find((x) => x.clave === clave);
+    return `${l?.categoria?.id ?? ""}|${l?.marca?.id ?? ""}`;
+  };
+  const movido = seguir
+    ? lista.find((p) => p.tipo !== "separar" && p.pendiente.id === seguir.pendienteId && (p.linea !== seguir.lineaAntes || huellaDe(p.linea) !== seguir.huellaAntes))
+    : undefined;
   if (seguir && movido) {
     setSeguir(null);
     setCreando(seguir.crear);
@@ -253,7 +260,7 @@ export function EnvioCerrado({
           onPrendaVista={onPrendaVista}
           onCategoriaCambiada={(crear) => {
             if (haciendo.tipo === "separar") return;
-            setSeguir({ pendienteId: haciendo.pendiente.id, lineaAntes: haciendo.linea, crear });
+            setSeguir({ pendienteId: haciendo.pendiente.id, lineaAntes: haciendo.linea, huellaAntes: huellaDe(haciendo.linea), crear });
             setCreando(false);
             setHaciendo(null);
             onCambio();
