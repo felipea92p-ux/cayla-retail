@@ -18,6 +18,8 @@
   --dn-r-s: 8px; --dn-r-m: 14px; --dn-r-l: 20px; --dn-r-p: 999px;
   /* El filo de lo que se toca (campo, talla, cantidad): 3,7:1 sobre papel, WCAG 1.4.11 (rediseño Premium, 2026-11-07). La línea decorativa sigue siendo --sand */
   --dn-borde-control: #958079;
+  /* El vino del Club (el mismo --rojo-profundo): el bloque grande que no es una acción. Letra marfil, 11,6:1 */
+  --dn-vino: #7f1d16;
   --dn-alto: 48px; --dn-alto-chico: 40px; --dn-alto-icono: 44px; --dn-ic: 20px; --dn-ic-boton: 18px; --dn-ic-linea: 16px; --dn-trazo: 1.7;
   --dn-lado: clamp(16px, 4cqi, 64px);
   /* Una sola escala de letra y de espacios */
@@ -99,7 +101,10 @@
   & .pl-cats-flecha { background: var(--papel); border-color: var(--sand); top: 50%; transform: translateY(-50%); }
 
   /* Secciones oscuras y pie */
-  & .t-club { margin-top: var(--dn-seccion); }
+  /* El Club: un bloque vino con sus esquinas dentro del ancho de la página (rediseño Premium, 2026-11-07) */
+  & .t-club { --t-hero: var(--dn-vino); --t-hero-2: #6c1812; --t-hero-filo: rgba(251, 243, 238, .2); margin-top: var(--dn-seccion); padding-block: 0; background: none; }
+  & .t-club-in { background: var(--t-hero); color: var(--t-hero-tinta); border-radius: var(--dn-r-l); padding: clamp(32px, 5cqi, 72px); gap: clamp(32px, 4cqi, 64px); }
+  & .t-club h2 { color: #fff; }
   /* El pie va en marfil: sobre el rojo, el logo no se leería */
   & .t-pie { margin-top: var(--dn-seccion); background: var(--dn-arena-2); border-top: 1px solid var(--sand); }
   /* El pie en cuatro columnas (maqueta Premium): la marca con su lema, comprar, ayuda y el Club */

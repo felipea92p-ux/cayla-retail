@@ -62,8 +62,8 @@ const hrefInicio = (sede: string | null, oferta: string | null = null) => {
 
 // El Inicio de la tienda, para todos (maqueta v4, `vInicio`; sin cuenta desde el 2026-10-17): arriba, si tiene algo del Club a su favor que todavía no cerró, el aviso al
 // entrar (Felipe, 2026-10-14: es adonde se llega al iniciar sesión); el héroe de la campaña vigente (o «Lo nuevo» si no hay), las
-// categorías, Lo nuevo, «Arma tu look» (si hay looks), las ofertas de cada campaña, los más vendidos (sin cifras), cómo se separa, el Club
-// y nuestras tiendas. Todo respeta la tienda elegida en «Ver lo que hay en»: el precio es el de esa tienda y, si hay una elegida, solo
+// categorías, el banner «Arma tu outfit», Lo nuevo, «Outfits listos» (si hay looks), las ofertas de cada campaña, los más vendidos (sin
+// cifras), el Club, nuestras tiendas y cómo se separa (orden del rediseño Premium, 2026-11-07). Todo respeta la tienda elegida en «Ver lo que hay en»: el precio es el de esa tienda y, si hay una elegida, solo
 // sale lo que hay en ella. Una sola lectura del catálogo (`tienda_catalogo` ya trae Lo nuevo y el puesto en Más vendidos); se lee en
 // cada visita.
 export default async function Inicio({ searchParams }: Props) {
@@ -195,10 +195,10 @@ export default async function Inicio({ searchParams }: Props) {
           {looks.length > 0 && (
             <section className="t-sec t-ancho" aria-labelledby="arma-tu-look">
               <div className="t-sec-cab" data-revela>
+                {/* Un nombre por destino (rediseño Premium): «Outfits listos» son los que arma CAYLA; «Arma tu outfit», la herramienta del banner. */}
                 <div>
-                  <h2 id="arma-tu-look">
-                    Arma tu <em>outfit</em>
-                  </h2>
+                  <h2 id="arma-tu-look">Outfits listos</h2>
+                  <p>Prendas que se ven bien juntas. Agregas el outfit entero y eliges cada talla en un paso.</p>
                 </div>
                 <Link className="t-ver" href={hrefLooks(sede)}>
                   Ver todos
@@ -227,6 +227,7 @@ export default async function Inicio({ searchParams }: Props) {
                       <h2 id="las-ofertas">
                         Las <em>ofertas</em>
                       </h2>
+                      <p>El descuento ya está en el precio. Lo tachado es el precio de antes.</p>
                     </div>
                   }
                   campanas={[
@@ -253,6 +254,7 @@ export default async function Inicio({ searchParams }: Props) {
                   <h2 id="mas-vendidos">
                     Más <em>vendidos</em>
                   </h2>
+                  {elegida && <p>Lo que más se llevan en {elegida.nombre}.</p>}
                 </div>
                 <Link className="t-ver" href={lista("vendidos")}>
                   Ver todo <Icono nombre="flecha" />
@@ -271,7 +273,6 @@ export default async function Inicio({ searchParams }: Props) {
         </>
       )}
 
-      <AsiSeSepara conCuenta={conSesion} />
       <SeccionClub
         nombre={cuenta?.nombre ?? null}
         desde={cuenta?.clubDesde ?? anioLima()}
@@ -286,6 +287,8 @@ export default async function Inicio({ searchParams }: Props) {
           ver={Object.fromEntries(sedes.map((s) => [s.id, { href: hrefInicio(claveDeSede(s.nombre)), actual: elegida?.id === s.id }]))}
         />
       )}
+      {/* Cómo se separa, al final (rediseño Premium): es lo que se lee antes de decidir, después de ver las prendas y las tiendas. */}
+      <AsiSeSepara conCuenta={conSesion} />
     </MarcoCatalogo>
   );
 }
