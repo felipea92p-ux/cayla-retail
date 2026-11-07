@@ -79,7 +79,7 @@ update retail.parametros_finanzas set sobrantes_asientan_desde = '2000-01-01' wh
 -- La 201 de la comprobación antes de esta escena: lo que quede «sin explicar» no puede crecer.
 select coalesce((select sum((c ->> 'monto')::numeric) from retail.fn_conciliacion_contable('2024-03-31'), jsonb_array_elements(causas) c
                   where clave = '201' and c ->> 'clave' = 'sin_explicar'), 0) as sin_explicar0 \\gset
-select id as cat from retail.categorias order by created_at limit 1 \\gset
+select id as cat from retail.categorias order by id limit 1 \\gset
 select id as t1 from retail.tallas order by id limit 1 \\gset
 select id as t2 from retail.tallas order by id offset 1 limit 1 \\gset
 select codigo as c1 from retail.colores order by codigo limit 1 \\gset
