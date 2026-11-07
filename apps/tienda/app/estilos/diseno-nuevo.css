@@ -71,6 +71,12 @@
   /* Los filtros de la lista (grupos, categorías, Color y Talla) son fichas que se tocan, no una línea de texto con barras (rediseño Premium,
      2026-11-07): borde de control, 40 px de alto; la elegida, llena de tinta. Las subcategorías siguen como texto subrayado: son el nivel de abajo. */
   & .t-filtros .t-pildoras { gap: var(--e-2); }
+  /* La búsqueda: el nombre en la letra de las tarjetas, lo escrito subrayado (no en una caja beige) y, debajo, cuánto hay (rediseño Premium) */
+  & .t-resultado-nom { font-family: var(--sans); font-style: normal; font-size: 15px; font-weight: 500; }
+  & .t-resultado mark { background: none; color: inherit; text-decoration: underline; text-decoration-color: var(--dn-acento); text-decoration-thickness: 2px; text-underline-offset: 3px; }
+  & .t-resultado small { font-size: 13px; }
+  & .t-resultado .t-card-nota { font-size: 12.5px; }
+  & .t-buscador .t-resultados-cuenta { margin-top: var(--e-5); }
   & .t-vacio-acciones { display: flex; flex-wrap: wrap; justify-content: center; gap: var(--e-3); }
   & .t-filtros .t-pildora { min-height: var(--dn-alto-chico); padding: 0 var(--e-4); border: 1px solid var(--dn-borde-control); border-radius: var(--dn-r-p); background: var(--papel); color: var(--tinta); font-size: 14px; font-weight: 500; }
   & .t-filtros .t-pildora small { font-size: 12.5px; letter-spacing: 0; opacity: 1; color: var(--taupe); font-variant-numeric: tabular-nums; }
