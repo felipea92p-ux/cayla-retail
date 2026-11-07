@@ -1,18 +1,20 @@
 "use client";
 
 import { LogoCayla } from "@/components/ui/LogoCayla";
+import { EsqueletoPantalla } from "@/components/Esqueleto";
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
 import { DETALLE_TARDA, MENSAJE_ESPERA, clasificarPeticion, claveNavegacion, type MensajeEspera } from "@/lib/espera-reglas";
 import { marcarFichas, marcarLoaderALaVista } from "@/lib/espera-estado";
 import { entradaActiva, suscribirEntrada } from "@/lib/entrada-estado";
 import { anotarEscrituraSinRespuesta } from "@/lib/refresco-tras-corte";
+import { prefiereQuieto } from "@/lib/movimiento-cliente";
 
 /* ====================================================================
    El loader general (ADR-0149) — UNO solo, a pantalla completa.
 
-   Cuándo aparece: mientras una pantalla carga, mientras un botón guarda algo y mientras se cambia de
-   sede. Cuándo se va: en el instante en que llegan los datos. No es un reloj: dura lo que tarda la
+   Cuándo aparece: mientras un botón guarda algo y mientras se cambia de sede. Cambiar de pantalla ya no lo
+   muestra (ADR-0623): la pantalla que llega se dibuja como un esqueleto (`EsperaPantalla`) y el menú sigue vivo. Cuándo se va: en el instante en que llegan los datos. No es un reloj: dura lo que tarda la
    respuesta, ni un segundo más (salvo los 400 ms mínimos de abajo, que evitan el destello).
 
    Cómo se activa: nadie lo llama a mano. `EsperaGlobal` (una vez, en el layout raíz) envuelve
@@ -108,11 +110,12 @@ export function useEsperando(activo: boolean, mensaje?: MensajeEspera) {
 
 /**
  * Va dentro de cada `loading.tsx`: mientras ese fallback está montado, la pantalla destino todavía no
- * está lista. Cubre lo que el interceptor de `fetch` no ve (la primera carga en frío, antes de hidratar).
+ * está lista. Dibuja el esqueleto de una pantalla (ADR-0623: cambiar de pantalla no tapa el menú ni la cabecera)
+ * y toma una ficha de carga, que no muestra el velo pero hace esperar a los avisos hasta que la pantalla llegó.
  */
 export function EsperaPantalla() {
   useEffect(() => tomarFicha(PRIORIDAD.carga, MENSAJE_ESPERA), []);
-  return null;
+  return <EsqueletoPantalla />;
 }
 
 // ---- Las navegaciones de un buscador por URL: no muestran el loader (tienen su «Buscando…» propio) ----
@@ -210,6 +213,10 @@ instalarInterceptor();
 export function EsperaGlobal() {
   const activas = useSyncExternalStore(suscribir, () => instantanea, () => SIN_FICHAS);
   const hay = activas.length > 0;
+  // Cambiar de pantalla no tapa nada (ADR-0623, Felipe 2026-11-07): la carga la dibuja el esqueleto de su `loading.tsx` bajo el menú y la
+  // cabecera, que siguen vivos. El velo es solo de lo que guarda o de una espera pedida a mano (cambiar de sede); una vez a la vista, una
+  // carga encadenada (el refresco que sigue a guardar) lo sostiene hasta que la pantalla ya muestra lo guardado, como siempre.
+  const bloquea = activas.some((f) => f.prioridad >= PRIORIDAD.guardado);
   // Mientras vuela el colibrí de la entrada (components/login/EntradaColibri.tsx) el loader se aparta: el vuelo ocupa su lugar y
   // la capa del colibrí espera a que el loader no tenga nada en curso (`esperaOcupada`) para abrirse.
   const entrando = useSyncExternalStore(suscribirEntrada, entradaActiva, () => false);
@@ -242,10 +249,10 @@ export function EsperaGlobal() {
   // La línea de tiempo: 200 ms antes de aparecer, 400 ms mínimo, 150 ms de gracia, salida de 220 ms.
   useEffect(() => {
     const r = relojes.current;
-    if (hay) {
+    if (bloquea || (hay && visibleRef.current)) {
       window.clearTimeout(r.salir);
       window.clearTimeout(r.cerrar);
-      if (!visibleRef.current && r.mostrar === undefined) {
+      if (bloquea && !visibleRef.current && r.mostrar === undefined) {
         r.mostrar = window.setTimeout(() => {
           r.mostrar = undefined;
           desde.current = Date.now();
@@ -258,7 +265,7 @@ export function EsperaGlobal() {
     window.clearTimeout(r.mostrar);
     r.mostrar = undefined;
     if (!visibleRef.current) return;
-    const sinMovimiento = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+    const sinMovimiento = prefiereQuieto();
     const espera = Math.max(MS_GRACIA, MS_MINIMO - (Date.now() - desde.current));
     r.salir = window.setTimeout(() => {
       setSaliendo(true);
@@ -271,7 +278,7 @@ export function EsperaGlobal() {
         sinMovimiento ? 0 : MS_SALIDA,
       );
     }, espera);
-  }, [hay]);
+  }, [hay, bloquea]);
 
   useEffect(() => {
     const r = relojes.current;
@@ -340,6 +347,7 @@ export function EsperaGlobal() {
               r="29"
               strokeDasharray="46 137"
               strokeLinecap="round"
+              data-senal
               className="origin-center stroke-rojo animate-spin [animation-duration:1.1s] motion-reduce:animate-none"
             />
           </svg>
@@ -351,7 +359,7 @@ export function EsperaGlobal() {
         </p>
         {linea ? <p className="mt-2 text-[13px] text-tinta/80">{linea}</p> : null}
         <span aria-hidden className="espera-hilo">
-          <span className="block h-full w-1/3 bg-rojo [animation:cayla-hilo-barrido_1.1s_linear_infinite] motion-reduce:animate-none" />
+          <span data-senal className="block h-full w-1/3 bg-rojo [animation:cayla-hilo-barrido_1.1s_linear_infinite] motion-reduce:animate-none" />
         </span>
       </div>
     </div>,

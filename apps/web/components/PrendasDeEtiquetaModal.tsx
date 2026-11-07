@@ -66,6 +66,7 @@ import { Casilla as CasillaSistema } from "@/components/ui/Casilla";
 import { Vacio } from "@/components/ui/Vacio";
 import { Aviso } from "@/components/ui/Aviso";
 import { BotonDeshacer } from "@/components/ui/BotonDeshacer";
+import { prefiereQuieto } from "@/lib/movimiento-cliente";
 
 /**
  * «Prendas de una etiqueta»: elegir qué prendas llevan, por ejemplo, «Black Friday». Desde el 2026-10-22 es «la etiqueta que se
@@ -421,7 +422,7 @@ export function PrendasDeEtiquetaModal({
     const caja = lista.current;
     const fila = caja?.querySelector<HTMLElement>(`[data-fila="${CSS.escape(senalada.id)}"]`);
     if (!caja || !fila) return;
-    const quieto = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+    const quieto = prefiereQuieto();
     const destino = caja.scrollTop + fila.getBoundingClientRect().top - caja.getBoundingClientRect().top;
     caja.scrollTo({ top: Math.max(0, destino), behavior: quieto ? "auto" : "smooth" });
     fila.querySelector<HTMLElement>("[aria-expanded]")?.focus({ preventScroll: true });

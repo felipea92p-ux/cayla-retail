@@ -176,6 +176,14 @@ Catálogo ▸ Productos, la única hoja con movimiento rico por decisión de Fel
 `prefers-reduced-motion`. Los números exactos y el porqué: `docs/adr/0136-regla-de-movimiento-de-modales.md` y la sección
 «REGLA DE MODALES» de `apps/web/app/globals.css`. Referencia visual: `docs/maquetas/comprobantes-animaciones-2026-09/`.
 
+**Las animaciones arrancan apagadas (ADR-0625, Felipe 2026-11-07):** todo lo de arriba se ve solo si este aparato las encendió con el
+botón «Animaciones» de la cabecera, junto al modo oscuro (`localStorage["cayla-movimiento"]`; el script del `<head>` pone `data-movimiento`
+en `<html>`). Quieto, `app/estilos/movimiento.css` deja cada animación y transición en 0,01 ms. Las únicas que siguen moviéndose son las
+**señales de espera**: el hilo de «Guardando…», el loader y su anillo, el campo que consulta y el buscador que busca. Una señal nueva hecha en JSX lleva
+`data-senal`; una hecha en CSS se suma a la lista de `movimiento.css`. **Lo que anima desde JavaScript pregunta `prefiereQuieto()`
+(`lib/movimiento-cliente.ts`) o `useQuieto()`, nunca `matchMedia("(prefers-reduced-motion: reduce)")`**: no vería el botón. Lo vigila
+`lib/movimiento-reglas.test.ts`. Si el aparato pide menos movimiento, eso gana siempre. Una pantalla nueva se diseña y se revisa también quieta.
+
 **Escape dentro de una hoja (ADR-0136, «Actualización 2026-09-26»):** la hoja se cierra solo con un Escape que ningún
 control de adentro usó (`components/ui/useEscapeLibre.ts`): con la lista de un combo abierta, el primer Escape cierra la
 lista y el segundo, la hoja. **Un control que usa el Escape (cierra su lista, borra su búsqueda) llama a
@@ -240,12 +248,22 @@ Nada sólido sobre el vidrio. Dos cosas que no se tocan sin leer el ADR: **la ho
 contenedor de las listas `fixed` de sus combos y las recortaría; el desenfoque lo pone el velo), y **una pieza nueva no inventa su vidrio**:
 usa una receta o agrega una a `recetas.css`. Lo que ya se eligió vive en el tablero `docs/vidrio/README.md`.
 
+**Lo que se desplaza no se desenfoca (ADR-0623, Felipe 2026-11-07):** la Aurora está fija detrás de todo, así que un `backdrop-filter` en algo que corre con el
+scroll (una tabla, una cifra, una tarjeta, un botón de fila) obliga a desenfocar de nuevo en cada cuadro: en un equipo sin buena tarjeta gráfica era 32 cuadros/s
+y 18 tirones contra 53 y 0 sin él. Eso va en el **vidrio claro** (`--vidrio-claro-*`), sin desenfoque; el desenfoque es solo de lo que flota quieto (cabecera, menú,
+una cabecera pegada, las hojas y sus velos). Ya lo hacen `.tabla-cayla`, `.tarjeta-cifra`, `.resumen-sede`, `TablaViva` y los bloques de `.pantalla-en-vidrio`.
+
 **El vidrio aguanta (ADR-0611, mejora 7):** quien en su aparato pidió menos transparencia o más contraste ve las mismas piezas macizas y sin desenfoque. Una receta nueva con fondo translúcido
 agrega su versión maciza a `vidrio/aguanta.css`: `lib/vidrio-que-aguanta.test.ts` falla si no.
 
 **Retail manda en diseño (contrato de familia v4, Felipe 2026-11-05; `docs/familia/README.md`):** lo que cambie de aspecto aquí llega a CAYLA Dynamic, que trae `recetas.css` con un vigilante. Por eso `recetas.css` **solo lleva variables, en tres formas** (`:root`,
 `@media screen { :root[data-tema="oscuro"] }` y `@media (prefers-reduced-transparency: reduce) { :root, :root[data-tema="oscuro"] }`), sin `--color-*` ni `--radius-*` propios: una regla de clase o un `@keyframes` va en otro archivo de `vidrio/`, y `lib/familia.test.ts` falla si no.
 Renombrar o quitar una variable de una receta abre una tarea en Dynamic; un `--color-*` nuevo que una receta consuma entra antes al contrato; `recetas.css` y `docs/familia/contrato.json` no se mueven de lugar; y este repositorio sigue público, o el vigilante deja de verlo.
+
+**Los dos sistemas: lo que viaja se publica solo, con cuidado, y siempre se avisa (Felipe 2026-11-05, ADR-0516 act. 2026-11-07).** Sus palabras: «Que se publique solo pero que hay que se cuidadosos y hacerle saber al usuario que es necesario actualizar el diseño en dynamic». La lista de qué le toca a Dynamic está en el `docs/familia/compartidos.json` de Dynamic:
+- **Viajan solos** `apps/web/app/estilos/vidrio/recetas.css` y `docs/familia/contrato.json`. El vigilante de Dynamic los ve dentro de la hora y prepara el cambio. Lo publica solo si toca únicamente esos archivos, sus pruebas dan verde, no hay freno y son entre las 22:00 y las 05:00 de Perú. El freno de mano es de Dynamic (`FAMILIA_PUBLICAR`, apagada al 2026-11-07, y `FAMILIA_VIGILANTE = apagado`). Encenderlo o apagarlo lo decide Felipe allá, nunca una sesión de aquí.
+- **Se miran** el resto de `apps/web/app/estilos/vidrio/` y `apps/web/components/ui/`. No se copian: si cambian, el vigilante abre una tarea en su aviso y se hace a mano. `globals.css` y `tema.css` no están en la lista, porque un valor de marca viaja por el contrato.
+- **Lo que te toca:** si tu cambio toca uno de esos archivos, díselo a Felipe en tu cierre y escríbelo en el PR: «Esto cambia el diseño de Dynamic: llega solo» o «queda como tarea allá», con las piezas. Si cambia **cómo funciona** una pieza, y no solo cómo se ve, di también qué tendrá que hacerse a mano en Dynamic. Desde aquí nunca se escribe en el repositorio de Dynamic.
 
 **Con el dedo, todo se toca en 44 px (ADR-0611, mejora 5):** `app/estilos/tacto.css`, solo con `pointer: coarse`. Una pieza nueva del sistema se suma ahí; un botón de ícono sin clase propia lleva
 `area-dedo`, que agranda su área sin cambiar su dibujo. Se mide con `pnpm --filter web tacto:medir`.
@@ -338,7 +356,7 @@ mando común (`app/(app)/finanzas/layout.tsx`) lleva la sede y el mes de todo Fi
 `<DockTelar>` (`components/finanzas/telar/`). Lo que sigue abajo vale para lo que todavía no se rediseñó.
 
 **Estados financieros (`/finanzas/reportes/*`) tiene su propio vidrio por decisión de Felipe (ADR-0611, 2026-11-05; camino «A · El informe», 2026-11-06):** sin tela de fondo, cifras en Inter, cuatro pestañas fijas y un calendario con las fechas en la URL (`?mes=`,
-`?desde=&hasta=`, `lib/estados-periodo.ts`). Cada estado se arma con `<EstadoEnInforme>`: a la izquierda el informe fila por fila (`InformeEstado`, `lib/estados-informe.ts`: columnas de antes, peso de cada fila, la fila que se abre con su detalle y «Nombres del contador»), a la derecha la cifra, la frase, el chip y un gráfico; el Balance que no cuadra se dice en una línea. Lo demás va plegado en «Ver más». Sus estilos viven en `app/estilos/vidrio/estados.css` y no salen de esta
+`?desde=&hasta=`, `lib/estados-periodo.ts`). Cada estado se arma con `<EstadoEnInforme>`: a la izquierda el informe fila por fila (`InformeEstado`, `lib/estados-informe.ts`: columnas de antes, peso de cada fila, la fila que se abre con su detalle y «Nombres del contador»), a la derecha la cifra, la frase, el chip y un gráfico; el Balance que no cuadra se dice en una línea: una cuenta que difiere sale con aviso, y solo si falla el arranque, el diario o la ecuación no se dibuja (ADR-0619). Lo demás va plegado en «Ver más». Sus estilos viven en `app/estilos/vidrio/estados.css` y no salen de esta
 pantalla (`lib/estados-movimiento.test.ts`): llevarlos al resto del ERP es otra decisión, anotada en el backlog de la rama.
 
 **Toda pantalla de Finanzas (Gastos, Configuración, y las que vienen: Cuentas y dinero, Reportes, Impuestos, Cierre) se
@@ -353,7 +371,9 @@ se parecen, no está terminada. Lo que se aparta del spike a propósito queda es
 
 **El ERP tiene UN solo loader a pantalla completa (`apps/web/components/ui/Espera.tsx`, `<EsperaGlobal />` montado una vez en
 `app/layout.tsx`): cubre incluso el lateral y la cabecera, hereda el movimiento de modales y dura solo lo que tarda la
-respuesta.** Se usa SIEMPRE al cargar una pantalla, al presionar un botón que guarda y al cambiar de sede — y se activa solo:
+respuesta.** Se usa al presionar un botón que guarda y al cambiar de sede — y se activa solo. **Cambiar de pantalla ya no lo muestra
+(ADR-0623, Felipe 2026-11-07):** cada `loading.tsx` dibuja el esqueleto (`<EsperaPantalla />` → `EsqueletoPantalla`) bajo el menú y la cabecera,
+que siguen vivos; una ficha de carga solo sostiene el velo que un guardado ya puso a la vista (el refresco encadenado). Para detectar qué es qué,
 parchea `window.fetch` y `lib/espera-reglas.ts` (`clasificarPeticion`, lógica pura y testeada) decide qué es `'carga'` o
 `'guardado'`. **No construyas otro overlay de carga a pantalla completa ni dejes un «Cargando…» suelto**; un botón o una
 pantalla nueva no tiene que hacer nada para tenerlo. Los botones conservan su «Guardando…» con el hilo (`<Boton cargando>`, ronda 12 de `/unificar`; el loader se suma), y un

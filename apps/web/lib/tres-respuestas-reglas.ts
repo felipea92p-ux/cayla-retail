@@ -61,7 +61,9 @@ type Entrada = {
 };
 
 /** Lo que suma «¿Cuánto tienes?», agrupado por lo que una persona entiende: lo que está a mano, lo que las máquinas deben depositar y el resto. */
-export type DesgloseTienes = { enMano: number; porAbonar: number; otros: number };
+/** `porVolver`: lo que queda en los fondos de compras vivos (nunca negativo, como `fn_flujo_por_volver`); `debesCompras`: lo que una compradora gastó de más
+ *  (negativo), que también baja lo que tienes. */
+export type DesgloseTienes = { enMano: number; porAbonar: number; otros: number; porVolver: number; debesCompras: number };
 
 const r2 = (n: number) => Math.round(n * 100) / 100;
 
@@ -78,14 +80,19 @@ export function desgloseDeTienes(cuentas: readonly CuentaDinero[] | null, saldoH
   let enMano = 0;
   let porAbonar = 0;
   let otros = 0;
+  let porVolver = 0;
+  let debesCompras = 0;
   for (const c of suman) {
     const saldo = c.saldo ?? 0;
     if (c.tipo === "banco" || c.tipo === "caja_fuerte" || c.tipo === "cajon") enMano += saldo;
     else if (c.tipo === "por_abonar") porAbonar += saldo;
+    // ADR-0621: el fondo de compras ya viene sin lo gastado; lo que queda es lo que está por volver. Si gastó de más, CAYLA le debe: va aparte.
+    else if (c.tipo === "fondo" && !c.archivada && saldo > 0) porVolver += saldo;
+    else if (c.tipo === "fondo") debesCompras += saldo;
     else otros += saldo;
   }
-  const d = { enMano: r2(enMano), porAbonar: r2(porAbonar), otros: r2(otros) };
-  return Math.abs(d.enMano + d.porAbonar + d.otros - saldoHoy) < 0.5 ? d : null;
+  const d = { enMano: r2(enMano), porAbonar: r2(porAbonar), otros: r2(otros), porVolver: r2(porVolver), debesCompras: r2(debesCompras) };
+  return Math.abs(d.enMano + d.porAbonar + d.otros + d.porVolver + d.debesCompras - saldoHoy) < 0.5 ? d : null;
 }
 
 /** La línea de la tarjeta: lo que está a mano y, aparte, lo que no lo está todavía. Sin nada aparte, el texto de siempre, que ya era exacto. */
@@ -94,7 +101,9 @@ function detalleDeTienes(d: DesgloseTienes | null | undefined): string {
   if (!d) return siempre;
   const aparte: string[] = [];
   if (Math.abs(d.porAbonar) > 0.005) aparte.push(`por llegar ${soles(d.porAbonar)}`);
-  if (Math.abs(d.otros) > 0.005) aparte.push(`en fondos ${soles(d.otros)}`);
+  if (Math.abs(d.otros) > 0.005) aparte.push(`con el líder ${soles(d.otros)}`);
+  if (Math.abs(d.porVolver) > 0.005) aparte.push(`por volver de compras ${soles(d.porVolver)}`);
+  if (d.debesCompras < -0.005) aparte.push(`menos ${soles(-d.debesCompras)} que le debes a las compradoras`);
   if (!aparte.length) return siempre;
   return `A mano ${soles(d.enMano)} · ${aparte.join(" · ")}`;
 }

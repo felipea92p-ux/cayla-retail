@@ -3,7 +3,7 @@
 import { Fragment, useState, type CSSProperties } from "react";
 import { ChevronRight } from "lucide-react";
 import { solesCentimos } from "@/lib/flujo-caja-reglas";
-import { anchoEnElInforme, seAbre, type FilaInforme, type Informe } from "@/lib/estados-informe";
+import { anchoEnElInforme, bloquesDelInforme, seAbre, type FilaInforme, type Informe } from "@/lib/estados-informe";
 
 const cifra = (v: number | null) => (v === null ? "—" : solesCentimos(v));
 
@@ -40,15 +40,26 @@ export function InformeEstado({ informe, guia, guiaContador }: { informe: Inform
             {informe.pesoDe && <th scope="col">{informe.pesoDe}</th>}
           </tr>
         </thead>
-        <tbody>
-          {filas.map((f, i) => {
+        {bloquesDelInforme(filas).map((bloque) => (
+          <tbody key={bloque[0]!.clave}>
+            {bloque.map((f) => {
+            const i = filas.indexOf(f);
+            if (f.tipo === "seccion") {
+              return (
+                <tr key={f.clave} className="estados-informe-fila" data-tipo="seccion" style={{ "--i": i } as CSSProperties}>
+                  <th scope="rowgroup" colSpan={columnas.length + (informe.pesoDe ? 2 : 1)}>
+                    {f.nombre}
+                  </th>
+                </tr>
+              );
+            }
             const abre = seAbre(f);
             const esta = abierta === f.clave;
             return (
               <Fragment key={f.clave}>
                 <tr className="estados-informe-fila" data-tipo={f.tipo} data-abierta={esta || undefined} style={{ "--i": i } as CSSProperties}>
                   <th scope="row">
-                    <NombreDeFila fila={f} contador={contador} abre={abre} abierta={esta} onAbrir={() => setAbierta(esta ? null : f.clave)} ancho={f.tipo === "linea" ? anchoEnElInforme(f, filas) : null} />
+                    <NombreDeFila fila={f} contador={contador} abre={abre} abierta={esta} onAbrir={() => setAbierta(esta ? null : f.clave)} ancho={f.tipo === "linea" && informe.pesoDe ? anchoEnElInforme(f, filas) : null} />
                   </th>
                   {f.valores.map((v, j) => {
                     const actual = columnas[j]?.actual;
@@ -73,8 +84,9 @@ export function InformeEstado({ informe, guia, guiaContador }: { informe: Inform
                 )}
               </Fragment>
             );
-          })}
-        </tbody>
+            })}
+          </tbody>
+        ))}
       </table>
     </section>
   );

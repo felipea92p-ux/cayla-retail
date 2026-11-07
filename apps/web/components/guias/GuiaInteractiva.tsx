@@ -7,6 +7,7 @@ import { Volver } from "@/components/ui/Volver";
 import { caminoDelVelo, esperaPorAncla, pasoAplica, posicionTarjeta, recorteDe, totalEstimado, type Caja } from "@/lib/guias/reglas";
 import type { AccionGuia, Guia, PasoGuia } from "@/lib/guias/tipos";
 import { anclasPresentes, ejecutar, esEscapeDelPiloto, esperarAncla, pausa } from "./piloto";
+import { prefiereQuieto } from "@/lib/movimiento-cliente";
 
 // El motor de una guía interactiva (ADR-0389): oscurece la pantalla, deja a la vista solo la pieza que se explica y la
 // recorre paso a paso con una tarjeta. El piloto automático (`piloto.ts`) abre, escribe un ejemplo y elige, pero NUNCA
@@ -25,8 +26,6 @@ type Mostrando = {
   /** Lo que el piloto no hizo y por qué (se explica en la tarjeta en vez de tocarlo). */
   nota: string | null;
 };
-
-const prefiereQuieto = () => typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
 export function GuiaInteractiva({ guia, onTerminar }: { guia: Guia; onTerminar: (fin: FinDeGuia) => void }) {
   const [mostrando, setMostrando] = useState<Mostrando | null>(null);

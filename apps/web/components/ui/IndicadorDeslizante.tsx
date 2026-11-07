@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useLayoutEffect, useRef } from "react";
+import { prefiereQuieto } from "../../lib/movimiento-cliente";
 
 /* ====================================================================
    IndicadorDeslizante · el subrayado / la pastilla que VIAJA entre opciones
@@ -101,7 +102,7 @@ export function IndicadorDeslizante({
       }
     }
     window.clearTimeout(recoge.current);
-    const quieto = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const quieto = prefiereQuieto();
     if (!antes) {
       sinViaje(destino);
     } else if (variante === "gota" && !quieto && (antes.x !== destino.x || antes.w !== destino.w)) {

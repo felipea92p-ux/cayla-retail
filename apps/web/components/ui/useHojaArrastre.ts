@@ -11,6 +11,7 @@ import {
   velocidad,
   type Muestra,
 } from "@/lib/hoja-gesto";
+import { prefiereQuieto } from "@/lib/movimiento-cliente";
 
 /** Debe coincidir con la regla «HOJA DEL CELULAR» de globals.css: solo bajo 640 px la hoja va pegada abajo. */
 const CELULAR = "(max-width: 639.98px)";
@@ -80,7 +81,7 @@ export function useHojaArrastre(opciones: Opciones) {
     let yAhora = 0;
     let vSoltada = 0;
     let reloj: ReturnType<typeof setTimeout> | undefined;
-    const sinMovimiento = () => window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false;
+    const sinMovimiento = () => prefiereQuieto();
     const enCelular = () => window.matchMedia?.(CELULAR).matches ?? false;
 
     const pintar = (y: number, ms = 0) => {

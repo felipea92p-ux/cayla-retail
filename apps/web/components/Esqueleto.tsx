@@ -50,3 +50,37 @@ export function EsqueletoTarjetas({ tarjetas = 4 }: { tarjetas?: number }) {
     </div>
   );
 }
+
+/**
+ * El esqueleto de una pantalla entera (ADR-0623): lo que dibuja cada `loading.tsx` mientras la pantalla viaja, bajo el menú y
+ * la cabecera que siguen vivos. La forma de casi toda pantalla del ERP: el título, una fila de cifras y una tabla, con las piezas
+ * de vidrio de siempre (`tarjeta-cifra`, `tabla-cayla`) para que al llegar lo real nada cambie de lugar ni de color.
+ */
+export function EsqueletoPantalla() {
+  const anchos = [42, 31, 47, 28, 38, 34, 44, 30];
+  return (
+    <div aria-hidden data-esqueleto-pantalla className="flex flex-col gap-6 pt-2">
+      <div className="flex flex-col gap-3">
+        <Banda ancho={18} />
+        <div className="h-10 w-64 max-w-[70%] animate-pulse rounded bg-tinta/10" />
+      </div>
+      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+        {[0, 1, 2, 3].map((i) => (
+          <div key={i} className="tarjeta-cifra card-cayla flex flex-col gap-3 p-5">
+            <Banda ancho={50} />
+            <div className="h-7 w-2/3 animate-pulse rounded bg-tinta/10" />
+          </div>
+        ))}
+      </div>
+      <div className="tabla-cayla card-cayla divide-y overflow-hidden">
+        {anchos.map((ancho, i) => (
+          <div key={i} className="flex items-center gap-4 px-5 py-4">
+            <div className="h-4 animate-pulse rounded bg-tinta/10" style={{ width: `${ancho}%` }} />
+            <div className="h-4 w-16 animate-pulse rounded bg-tinta/10" />
+            <div className="ml-auto h-4 w-10 animate-pulse rounded bg-tinta/10" />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}

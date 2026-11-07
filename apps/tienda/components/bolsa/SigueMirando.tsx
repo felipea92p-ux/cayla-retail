@@ -21,6 +21,7 @@ export function SigueMirando({
   origenFotos,
   nota,
   guardados,
+  sinNuevo = false,
 }: {
   id: string;
   ceja: string;
@@ -34,6 +35,8 @@ export function SigueMirando({
   origenFotos: string | undefined;
   nota?: (p: Prenda) => NotaStock | null;
   guardados?: ReadonlySet<string>;
+  /** Un carril de Lo nuevo no repite «Nuevo» en cada tarjeta (rediseño Premium, como la lista y el Inicio). */
+  sinNuevo?: boolean;
 }) {
   if (prendas.length === 0) return null;
   return (
@@ -61,6 +64,7 @@ export function SigueMirando({
               origenFotos={origenFotos}
               nota={nota ? nota(p) : null}
               guardado={guardados ? guardados.has(p.id) : undefined}
+              sinNuevo={sinNuevo}
             />
           ))}
         </div>

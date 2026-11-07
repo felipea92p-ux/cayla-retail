@@ -1,6 +1,6 @@
 # ADR-0516 — La familia CAYLA: un contrato con Dynamic y una prueba que impide el desfase en silencio
 
-**Estado:** aceptada, **en su PR (solo documentos, una prueba y un script; sin migración, nada en producción que pegar)**; **falta aplicar el oscuro y el borde de control en Dynamic** (ver «Lo que falta») ·
+**Estado:** aceptada; **versión 4 del contrato desde el 2026-11-05: Retail manda en diseño** (ver «Actualización 2026-11-07»); **falta aplicar el oscuro, el borde de control, el vidrio y los radios en Dynamic** (su Etapa 1) ·
 **Fecha:** 2026-10-26 · **Decidió:** Felipe (opción A, «la tabla de familia y la prueba de paridad», el 2026-10-25; «P1 = C», el oscuro de la familia, y «P2 = C», el borde de un control, el 2026-10-26) ·
 **Sigue a:** ADR-0169 (la paleta oficial «CAYLA Dynamic» en todo el ERP) y ADR-0336 (el modo oscuro; su actualización del 2026-10-26 aplica el oscuro de la familia)
 
@@ -105,6 +105,54 @@ bloque oscuro y `.papel-fijo` de `tema.css`). Lo llevan **lo que se toca o se es
   o si alguien dibuja a mano una celda tecleada de una matriz (`border-transparent bg-hueso`) junto a las celdas con − y +: dentro de la misma tabla cambian de cara. **Mirado el 2026-10-26** con las piezas reales (matriz de 48 celdas y filas de tabla con cuatro campos, en claro y oscuro, antes y después): el borde de control no pesa y mejora los campos sobre una fila rayada. Felipe decidió el mismo día llevarlo también a las celdas que solo se teclean: `MatrizCantidades`, `MatrizStockFicha`, `FlujoTalla` y el cierre de `MatrizOrden` (más el cuadrito ✓ de etiquetas de `MatrizStockFicha`, que estaba en `sand`) usan ahora `border-borde-control`.
 - **Verificación:** las piezas reales (`CampoMonto`, `CampoSelect`, `CampoTexto`, `Casilla`, `Interruptor`, `Boton`) en una página temporal bajo `/login`, en claro y oscuro: bordes `#96786a` y `#8d7a6e`, `sand` intacto en tarjeta y píldora, interruptor
   apagado con su aro y prendido sin él, foco con borde un escalón arriba, anillo y hilo. La página se borró al terminar. 176 pruebas de tema, familia, colores y foco en verde. No se corrió `tema:auditar`.
+
+## Actualización 2026-11-07 — Versión 4: Retail manda en diseño, y lo que viaja se publica solo, con cuidado
+
+**Qué cambió (2026-11-05).** Felipe decidió que Dynamic se vea y se mueva como Retail: desde la versión 4 del contrato **Retail manda en diseño** (`quien_manda`). Lo que cambie de
+aspecto aquí llega a Dynamic, y Dynamic no propone valores de marca por su cuenta. No cubre qué hace cada pantalla ni el vocabulario (P4 sigue abierto). La versión 4 entró a Retail
+con el PR #1656 (fusionado el 2026-11-05, commits `3a59e555f` y `7537b4ea4`):
+
+- **Los radios, uno por pieza:** botón 999 px, campo 14, tarjeta 22, cajón 28 y hoja 32 (cajón y hoja a 26 en el celular), como tokens `--radius-*` de `globals.css`. Los de la versión 3
+  (8, 16 y 20) quedan en `radios_anteriores`.
+- **Dos colores de marca que solo son luz y sombra:** `vidrio` (claro `#ffffff`, oscuro `#33302a`) y `sombra` (claro `#1a1a18`, oscuro `#000000`). S1 y S5 se reescribieron
+  para el vidrio: la tarjeta es una placa, y `sand` deja de ser su borde.
+- **Se cerraron hacia Retail** P3 (foco en tinta), P5 (el número puede llevar color), P6 (serif en 600), P7 (el ícono de lo que falta) y las diferencias D2, D3 y D4.
+- **P10, una sola esquina de tarjeta de 22 px:** se le mostró a Felipe la lámina de antes y después con piezas reales (1440 y 375 px, claro y oscuro, la esquina ampliada seis veces)
+  el 2026-11-05 a las 17:04 de Lima, y respondió «Sí, súbelas». Las tarjetas de 20 y 24 px leen ahora `var(--radius-tarjeta)`. Lo que flota, el marco y lo que tiene diseño
+  propio quedan fuera, cada uno con su motivo en `FUERA_DE_P10` (`lib/familia.test.ts`).
+- **`recetas.css` volvió a tener solo variables,** en tres formas (`:root`, el oscuro dentro de `@media screen` y `prefers-reduced-transparency`). Desde ADR-0611 llevaba reglas de clase
+  y `--color-*` propios, y por eso el vigilante de Dynamic rechazaba el archivo entero. Esas reglas pasaron a `vidrio/aguanta.css`, que no viaja, y una prueba lo exige en cada PR.
+
+**Comprobado el 2026-11-07:** `docs/familia/contrato.json` es idéntico byte a byte al de `main` de Dynamic (sha256 `34b7a7c4b1e78aa60ec1f1c5ea746b6bf4af2a58b2990de8f8a065c49f91f5e1`),
+`pnpm familia:comparar contrato` dice «los dos repositorios guardan el mismo contrato», la autoprueba no está ciega, y `lib/familia.test.ts` y `lib/tema-tokens.test.ts` están en verde
+(203 pruebas). El aviso del vigilante en Dynamic (issue 687) ya no marca a Retail como atrasado en el contrato. Solo lista lo que Dynamic aún no tomó.
+
+**Quién publica en Dynamic (Felipe, 2026-11-05).** La pregunta fue «Cuando algo del diseño cambie en Retail, un vigilante lo detecta y prepara el mismo cambio en Dynamic. ¿Quién lo
+publica?». Respuesta de Felipe: «Que se publique solo pero que hay que se cuidadosos y hacerle saber al usuario que es necesario actualizar el diseño en dynamic». Qué significa
+en cada lado, según `docs/familia/compartidos.json` y `scripts/familia/vigilante.mjs` de Dynamic:
+
+| Archivo de Retail | Qué pasa en Dynamic |
+|---|---|
+| `apps/web/app/estilos/vidrio/recetas.css` y `docs/familia/contrato.json` (**viajan**) | El vigilante los ve dentro de la hora (minuto 17), prepara el cambio y corre sus pruebas. Lo publica solo si se cumplen todas estas condiciones: `FAMILIA_PUBLICAR = si`, toca únicamente esos archivos, las pruebas dan verde, no hay ningún freno y es entre las 22:00 y las 05:00 de Perú. |
+| El resto de `apps/web/app/estilos/vidrio/` y `apps/web/components/ui/` (**se miran**) | No se copia, porque son clases de Retail y piezas sobre Radix que Dynamic no tiene. El vigilante abre la tarea en su aviso, con los archivos, y alguien la hace a mano. |
+| `globals.css`, `tema.css` y lo demás | Fuera de la lista. Un valor de marca llega a Dynamic por el contrato, nunca por estos archivos. |
+
+**Los frenos de mano son de Dynamic:** `FAMILIA_PUBLICAR` (si no vale `si`, no publica) y `FAMILIA_VIGILANTE = apagado` (no mira). El 2026-11-07 la publicación está **apagada**, y el
+README de la familia en Dynamic lista seis cosas que hay que decidir antes de encenderla. Por ejemplo, que fusionar allá es publicar, o que nada mide todavía el contraste de un texto
+sobre el vidrio de Dynamic. Encenderla es decisión de Felipe, en ese repositorio.
+
+**La parte de Retail («hacerle saber»):** una sesión que toca uno de esos archivos lo dice en su cierre y en su PR («Esto cambia el diseño de Dynamic: llega solo» o «queda como
+tarea allá»). Si cambia **cómo funciona** una pieza, y no solo cómo se ve, también dice qué tendrá que hacerse a mano. La regla está en `CLAUDE.md` («Los dos sistemas») y en la plantilla
+del PR. Ninguna sesión de Retail escribe en el repositorio de Dynamic.
+
+**DECIDÍ:** Retail no publica en Dynamic ni lo espera. Su parte es mantener los dos archivos que viajan en una forma que Dynamic pueda tomar sin que nadie los mire (las tres formas de
+`recetas.css`, el contrato idéntico) y avisar de todo lo demás.
+**DESCARTÉ:** (a) que una Action de Retail empuje el cambio a Dynamic, porque necesitaría un token con escritura en otro repositorio (un secreto que vence) y porque las pruebas de
+Retail no miden las pantallas de Dynamic; (b) sumar `globals.css` y `tema.css` a lo que viaja, porque traen tokens de datos propios de Retail (medios de pago, sedes, gráficos);
+(c) confiar solo en el aviso del vigilante, porque llega como un issue en Dynamic que Felipe no lee mientras trabaja aquí, y una frase en el cierre de la sesión sí la lee.
+**SE ROMPE SI:** con la publicación encendida, una sesión cambia una receta a las 21:30 y esa misma noche llega sola a Dynamic sin que nadie la mire en una pantalla de Dynamic. Sus
+pruebas miden la paleta, no un texto sobre el vidrio. También se rompe si una receta renombra una variable que Dynamic ya consume: esa propiedad queda en nada, sin error. Por eso
+renombrar o quitar una variable de una receta abre una tarea en Dynamic.
 
 ## Piezas
 

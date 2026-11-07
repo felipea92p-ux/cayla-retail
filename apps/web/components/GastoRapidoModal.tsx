@@ -45,6 +45,7 @@ import {
   type EstadoGastoRapido,
   type MedioRapido,
 } from "@/lib/gasto-rapido-reglas";
+import { prefiereQuieto } from "@/lib/movimiento-cliente";
 
 // Caja ▸ Registrar gasto, la versión rápida (maqueta A, Felipe 2026-10-09: docs/maquetas/gasto-rapido-caja-2026-10/).
 // Un mosaico con lo que se paga en una tienda —ordenado por lo que más se usa en ESTA sede, con ★ y sus veces en los 4 primeros—,
@@ -78,7 +79,7 @@ export type ProveedorRapido = { id: string; nombre: string; ruc: string | null }
 /** Un número que cuenta desde cero al aparecer (las «12 veces» de la ★). Con reduced-motion llega de una. */
 function useCuenta(objetivo: number, retraso: number): number {
   const [n, setN] = useState(0);
-  const [quieto] = useState(() => typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches);
+  const [quieto] = useState(() => typeof window !== "undefined" && prefiereQuieto());
   const sinCuenta = quieto || objetivo <= 1;
   useEffect(() => {
     if (sinCuenta) return;
@@ -323,7 +324,7 @@ export function GastoRapidoModal({
   if (listo && pantallaLibre && !selloAlaVista) setSelloAlaVista(true);
   useEffect(() => {
     if (!listo || !selloAlaVista) return;
-    const corto = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const corto = prefiereQuieto();
     const t = window.setTimeout(() => {
       avisar.exito("Gasto registrado", { detalle: `${listo.que} · ${soles(listo.monto)}. ${listo.sello}` });
       const guardiaFuera = avisoSalida.retirarYa();

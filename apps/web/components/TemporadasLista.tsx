@@ -65,6 +65,7 @@ import { Buscador } from "@/components/ui/Buscador";
 import { Casilla } from "@/components/ui/Casilla";
 import { TituloSeccion } from "@/components/ui/TituloSeccion";
 import { Vacio } from "@/components/ui/Vacio";
+import { prefiereQuieto } from "@/lib/movimiento-cliente";
 
 /**
  * La pestaña «Temporadas» de Productos ▸ Atributos (ADR-0246). A diferencia de las otras cinco, la lista es CERRADA
@@ -152,7 +153,7 @@ function Pestana({ datos, puedeEditar, esLider, abreFicha }: { datos: DatosPesta
     // (pedir la página otra vez abriría el loader por un cambio que no trae datos nuevos).
     window.history.pushState(null, "", `?${q.toString()}`);
     if (reloj.current) clearTimeout(reloj.current);
-    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    if (prefiereQuieto()) return;
     setSaliendo(true);
     reloj.current = setTimeout(() => setSaliendo(false), SALIDA_MS);
   }

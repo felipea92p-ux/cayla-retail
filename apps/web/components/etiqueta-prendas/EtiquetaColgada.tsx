@@ -12,6 +12,7 @@ import { soles } from "@/lib/compras-reglas";
 import { textoRango } from "@/lib/etiqueta-vigencia";
 import { nombreDeTalla, type PiezaEtiqueta } from "@/lib/etiquetar-prendas";
 import { volar, type Vuelo } from "./vuelo";
+import { prefiereQuieto } from "@/lib/movimiento-cliente";
 
 /* ====================================================================
    La etiqueta colgada (Prendas de una etiqueta, dirección B): la etiqueta como se cuelga en el piso, con lo que la lleva.
@@ -73,7 +74,7 @@ export function EtiquetaColgada({
   useLayoutEffect(() => {
     const raiz = mosaico.current;
     if (!raiz) return;
-    const quieto = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+    const quieto = prefiereQuieto();
     const antes = posiciones.current;
     const ahora = new Map<string, DOMRect>();
     raiz.querySelectorAll<HTMLElement>("[data-pieza]").forEach((el) => {

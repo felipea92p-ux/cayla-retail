@@ -12,7 +12,7 @@ import { desgloseDeTienes, tresRespuestas } from "./tres-respuestas-reglas";
 const texto = (s: string) => s.replace(/ /g, " ");
 const cajaCayla = (extra: Partial<CajaCayla> = {}): CajaProxima =>
   ({
-    tipo: "cayla", hoy: "2026-10-15", hasta: "2026-10-29", saldoHoy: 21500, deClaudia: 0, minimo: 15000, entra: 0, sale: 0, queda: 21500, puntos: [], porSemana: false,
+    tipo: "cayla", hoy: "2026-10-15", hasta: "2026-10-29", saldoHoy: 21500, deClaudia: 0, porVolver: 0, minimo: 15000, entra: 0, sale: 0, queda: 21500, puntos: [], porSemana: false,
     mayores: [], bajaDelMinimo: null, sinPlata: null, masBajo: null, luego: null, titular: "", tono: "verde", provisional: false, faltan: [], sinPlanilla: false,
     ...extra,
   }) as unknown as CajaProxima;
@@ -205,8 +205,8 @@ const cuenta = (tipo: CuentaDinero["tipo"], saldo: number | null, extra: Partial
   id: `${tipo}-${saldo}`, nombre: tipo, tipo, cuentaContable: "", ubicacionId: null, ubicacionNombre: null, numero: null, saldo, archivada: false,
   soloDestino: false, cajaId: null, cajaAbierta: false, saldoDesde: null, ultimaConciliacion: null, ultimoAbono: null, orden: 0, ...extra,
 });
-// La base tiene cuentas de tipo «fondo» y `leerCuenta` las deja pasar tal cual; el tipo de la web todavía no lo lista.
-const FONDO = "fondo" as CuentaDinero["tipo"];
+// El fondo de compras de una compradora (ADR-0621: su saldo ya viene sin lo gastado).
+const FONDO: CuentaDinero["tipo"] = "fondo";
 // La composición real de producción del 27-oct-2026 (suma 99,569.56).
 const HOY_27 = [cuenta("banco", 37648.5), cuenta("caja_fuerte", 3640.64), cuenta("cajon", 1607.9), cuenta("por_abonar", 56146.12), cuenta(FONDO, 500), cuenta("por_rendir", 26.4)];
 const conDesglose = (saldoHoy: number, desglose: ReturnType<typeof desgloseDeTienes>) =>
@@ -217,16 +217,16 @@ describe("«¿Cuánto tienes?» dice de qué está hecha", () => {
     const caja = cajaCayla({ saldoHoy: 98569.56, deClaudia: 1000 }) as CajaCayla;
     const hay = loQueHayEnCuentas(caja);
     expect(hay).toBe(99569.56);
-    expect(desgloseDeTienes(HOY_27, hay)).toEqual({ enMano: 42897.04, porAbonar: 56146.12, otros: 526.4 });
+    expect(desgloseDeTienes(HOY_27, hay)).toEqual({ enMano: 42897.04, porAbonar: 56146.12, otros: 26.4, porVolver: 500, debesCompras: 0 });
   });
-  it("separa lo que está en bancos y cajas de lo que las máquinas todavía no depositan y de los fondos", () => {
-    expect(desgloseDeTienes(HOY_27, 99569.56)).toEqual({ enMano: 42897.04, porAbonar: 56146.12, otros: 526.4 });
+  it("separa lo que está en bancos y cajas de lo que las máquinas todavía no depositan, de lo del líder y de lo por volver de compras", () => {
+    expect(desgloseDeTienes(HOY_27, 99569.56)).toEqual({ enMano: 42897.04, porAbonar: 56146.12, otros: 26.4, porVolver: 500, debesCompras: 0 });
   });
   it("la tarjeta lo dice con palabras de tienda, y la cifra grande no cambia", () => {
     const t = conDesglose(99569.56, desgloseDeTienes(HOY_27, 99569.56));
     expect(t.valor).toBe(99569.56);
     expect(texto(t.detalle!)).toBe(
-      "A mano S/ 42,897 · por llegar S/ 56,146 · en fondos S/ 526",
+      "A mano S/ 42,897 · por llegar S/ 56,146 · con el líder S/ 26 · por volver de compras S/ 500",
     );
   });
   it("si las partes no suman el titular no inventa un desglose (queda el texto de siempre)", () => {
@@ -239,18 +239,23 @@ describe("«¿Cuánto tienes?» dice de qué está hecha", () => {
   });
   it("la tarjeta de crédito es deuda y no entra; una cuenta archivada con saldo sí cuenta, en lo suyo", () => {
     const cuentas = [cuenta("banco", 1000), cuenta("tarjeta_credito", -300), cuenta("banco", 50, { archivada: true }), cuenta("por_abonar", 200)];
-    expect(desgloseDeTienes(cuentas, 1250)).toEqual({ enMano: 1050, porAbonar: 200, otros: 0 });
+    expect(desgloseDeTienes(cuentas, 1250)).toEqual({ enMano: 1050, porAbonar: 200, otros: 0, porVolver: 0, debesCompras: 0 });
   });
   it("si no hay nada más que explicar, queda el texto de siempre, que ya era exacto", () => {
     const solo = [cuenta("banco", 500), cuenta("caja_fuerte", 100), cuenta("cajon", 50)];
     expect(texto(conDesglose(650, desgloseDeTienes(solo, 650)).detalle!)).toBe("Bancos, cajas y cajones.");
   });
-  it("solo lo que las máquinas deben, o solo fondos, también se dice sin «y» de más", () => {
+  it("solo lo que las máquinas deben, o solo lo por volver de compras, también se dice sin «y» de más", () => {
     expect(texto(conDesglose(1200, desgloseDeTienes([cuenta("banco", 1000), cuenta("por_abonar", 200)], 1200)).detalle!)).toBe(
       "A mano S/ 1,000 · por llegar S/ 200",
     );
     expect(texto(conDesglose(1500, desgloseDeTienes([cuenta("banco", 1000), cuenta(FONDO, 500)], 1500)).detalle!)).toBe(
-      "A mano S/ 1,000 · en fondos S/ 500",
+      "A mano S/ 1,000 · por volver de compras S/ 500",
     );
+  });
+  it("si una compradora gastó de más, «por volver» no baja de 0 y lo que se le debe se dice aparte (ADR-0621)", () => {
+    const d = desgloseDeTienes([cuenta("banco", 1000), cuenta(FONDO, 100), cuenta(FONDO, -30)], 1070);
+    expect(d).toEqual({ enMano: 1000, porAbonar: 0, otros: 0, porVolver: 100, debesCompras: -30 });
+    expect(texto(conDesglose(1070, d).detalle!)).toBe("A mano S/ 1,000 · por volver de compras S/ 100 · menos S/ 30 que le debes a las compradoras");
   });
 });

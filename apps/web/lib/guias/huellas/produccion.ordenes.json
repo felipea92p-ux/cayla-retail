@@ -2,7 +2,7 @@
   "guia": "produccion.ordenes",
   "ruta": "/produccion/ordenes",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 107,
+  "total": 108,
   "controles": {
     "components/ModeloNuevoCampos.tsx": [
       "CampoTexto «{guia.etiqueta(\"nombre\", \"Nombre del modelo\")}»",
@@ -44,6 +44,7 @@
     ],
     "components/alta-producto/IdentidadAlta.tsx": [
       "ComboResponsable «{control}»",
+      "ComboResponsable «{control}» #2",
       "button «Ir a elegir»"
     ],
     "components/alta-producto/MatrizCantidades.tsx": [

@@ -1,4 +1,5 @@
 import type { Forma } from "./catalogo";
+import type { NotaStock } from "./stock";
 
 // El buscador de la cabecera (ADR-0408, actividad 5; maqueta v4, `resultadosHTML`): busca mientras se escribe, en el navegador, sobre
 // un índice chico que arma el servidor con el catálogo ya leído. Sin tildes ni mayúsculas. Este archivo no carga nada más (sin
@@ -19,6 +20,10 @@ export type ItemBusqueda = {
   optimizar: boolean;
   forma: Forma;
   color: string | null;
+  /** Cuánto hay, con el mismo punto y la misma frase de su tarjeta («Disponible», «Última», «Hay en Lima»; rediseño Premium). */
+  nota: NotaStock | null;
+  /** Hace cuántos días llegó, si está en Lo nuevo: sin escribir, la hoja ofrece lo recién llegado. */
+  diasNuevo: number | null;
 };
 
 /** Lo que contesta `GET /api/buscador` (la lista llega aparte de la página, 2026-10-17). */
@@ -51,4 +56,12 @@ export function resaltar(texto: string, escrito: string): [string, string, strin
   if (!q) return null;
   const i = normalizar(texto).indexOf(q);
   return i < 0 ? null : [texto.slice(0, i), texto.slice(i, i + q.length), texto.slice(i + q.length)];
+}
+
+/** Sin escribir, lo recién llegado a la tienda elegida: las `max` que llegaron hace menos (rediseño Premium). */
+export function recienLlegadas(items: readonly ItemBusqueda[], max = 3): ItemBusqueda[] {
+  return items
+    .filter((i) => i.diasNuevo !== null)
+    .sort((a, b) => (a.diasNuevo ?? 0) - (b.diasNuevo ?? 0))
+    .slice(0, max);
 }

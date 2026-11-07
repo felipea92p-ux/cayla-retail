@@ -1,0 +1,5 @@
+# 2026-11-07 — Recibir con aviso: corregir categoría y marca en «¿Esta prenda ya existe?»
+
+- **Qué:** llegaron shorts jean y el aviso los traía como «Jean 248A» en Jeans; no se podía asociar al short que ya existe. Ahora, en una línea del aviso, «¿Esta prenda ya existe?» muestra Categoría y Marca (sin «Sin marca») y al confirmar corrige la línea entera (`despacho_items`) con `cambiar_linea_de_pendiente` (migración `20261107185000_corregir_linea_del_aviso.sql`).
+- **Candados:** se niega si algo de la línea ya entró al stock, ya tiene su prenda o anotó una diferencia al cerrar. La orden de compra y la factura no se tocan.
+- **Producción:** la migración se aplicó el 2026-11-07 con el OK de Felipe (`supabase db query --linked -f`, tras comprobar que la función viva era idéntica a la de `20261107142000`). No quedó en `supabase_migrations.schema_migrations`. Verificado: ya no niega las líneas del aviso, `authenticated` la ejecuta y `anon` no. Falta que se publique la web (fusionar el PR) para ver los combos.

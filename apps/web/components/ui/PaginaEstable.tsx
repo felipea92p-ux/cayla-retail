@@ -46,6 +46,13 @@ export function soltarPaginaEstable() {
   window.dispatchEvent(new Event(EVENTO_SOLTAR));
 }
 
+/** Un campo donde se escribe: tocarlo solo pone el cursor. */
+function esCajaDeTexto(el: EventTarget | null) {
+  if (!(el instanceof HTMLElement)) return false;
+  if (el.isContentEditable || el instanceof HTMLTextAreaElement) return true;
+  return el instanceof HTMLInputElement && /^(text|search|email|tel|url|number|password|date|time|datetime-local|month)$/.test(el.type);
+}
+
 function esPagina(el: Element) {
   return el === document.scrollingElement || el === document.documentElement || el === document.body;
 }
@@ -79,7 +86,7 @@ export function PaginaEstable() {
 
   useEffect(() => {
     let reserva: Reserva | null = null;
-    let vigilancia: { contenedor: Element; alClic: Medida; url: string; ro: ResizeObserver; fin: number; inicio: number } | null = null;
+    let vigilancia: { contenedor: Element; alClic: Medida; url: string; ro: ResizeObserver; fin: number; inicio: number; objetivo: EventTarget | null } | null = null;
 
     function soltar() {
       if (!reserva) return;
@@ -129,6 +136,15 @@ export function PaginaEstable() {
       // Un clic en una casilla dispara después su `change`, cuando React ya repintó: medir ahí tomaría la foto de
       // DESPUÉS del recorte. El `change` solo abre vigilancia propia si no viene pegado a un clic (un select con teclado).
       if (esChangeInmediatoAlClic(e.type, vigilancia ? performance.now() - vigilancia.inicio : null)) return;
+      // Medir menos (ADR-0623): una letra más en el mismo campo sigue la ráfaga sin volver a buscar su contenedor (recorrer los
+      // ancestros con `getComputedStyle` en cada tecla era el costo), y un clic que solo pone el cursor en una caja de texto no
+      // puede achicar nada.
+      if (vigilancia && e.type === "input" && e.target === vigilancia.objetivo) {
+        window.clearTimeout(vigilancia.fin);
+        vigilancia.fin = window.setTimeout(terminarVigilancia, VENTANA_TRAS_CLIC_MS);
+        return;
+      }
+      if (e.type === "click" && esCajaDeTexto(e.target)) return;
       const contenedor = contenedorDe(e.target instanceof Element ? e.target : null);
       // Una lista que scrollea por dentro y debe recogerse con su contenido (el ticket de Vender) no quiere aire al fondo.
       if (contenedor.hasAttribute("data-sin-reserva")) return terminarVigilancia();
@@ -146,7 +162,7 @@ export function PaginaEstable() {
       // (su propio alto no cambia mientras el contenido pase del tope; el de sus hijos sí).
       if (esPagina(contenedor)) ro.observe(document.body);
       else [contenedor, ...Array.from(contenedor.children)].forEach((n) => ro.observe(n));
-      vigilancia = { contenedor, alClic: medir(contenedor), url: location.href, ro, fin: window.setTimeout(terminarVigilancia, VENTANA_TRAS_CLIC_MS), inicio: performance.now() };
+      vigilancia = { contenedor, alClic: medir(contenedor), url: location.href, ro, fin: window.setTimeout(terminarVigilancia, VENTANA_TRAS_CLIC_MS), inicio: performance.now(), objetivo: e.target };
       // Primera red (ver comentario de arriba del archivo): si React ya repintó de forma síncrona en este mismo
       // tick, este microtask lo detecta y corrige ANTES de que el navegador llegue a pintar la posición recortada
       // — medido: el ResizeObserver por sí solo puede tardar varios cuadros más. `revisar` no hace nada si

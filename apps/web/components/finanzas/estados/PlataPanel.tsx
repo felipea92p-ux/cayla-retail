@@ -31,6 +31,7 @@ import {
   type Proyeccion,
 } from "@/lib/flujo-caja-reglas";
 import { loQueNoCubre } from "@/lib/plata-reglas";
+import { aparteDePorVolver } from "@/lib/dinero-pulso-reglas";
 import type { FilaER } from "@/lib/resultados-reglas";
 
 // Estados financieros ▸ Flujo de efectivo: lo que no es la cifra (ADR-0195 F6, ADR-0585, ADR-0611). Lo plegado en «Ver más»: lo que no suma aquí, lo que viene semana a semana contra tu
@@ -252,6 +253,7 @@ function LoQueViene({ p }: { p: Proyeccion }) {
   const eje = etiquetasEje(p.semanas.map((w) => w.desde));
   const sinMeta = tiendasDeLaProyeccion(p).filter((t) => t.origen !== "meta");
   const { provisional, faltan } = queFaltaEnLaProyeccion(p);
+  const porVolver = aparteDePorVolver(p.porVolverCompras);
   return (
     <>
       <h3 className="fin-hoy">
@@ -267,6 +269,7 @@ function LoQueViene({ p }: { p: Proyeccion }) {
         )}
       </h3>
       <FaltanProyeccion provisional={provisional} faltan={faltan} className="mb-3" />
+      {porVolver && <p className="nota-cayla mb-3">{porVolver.frase}</p>}
       <p className="mb-2 text-sm leading-snug text-taupe">
         Entra lo que esperas vender (la meta de cada día, con sus campañas); sale lo que vence (facturas, planilla, alquileres, gastos fijos).
       </p>

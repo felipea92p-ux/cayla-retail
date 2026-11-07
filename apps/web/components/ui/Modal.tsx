@@ -9,6 +9,7 @@ import { useHojaArrastre } from "@/components/ui/useHojaArrastre";
 import { useHojaSobreElTeclado } from "@/components/ui/useHojaSobreElTeclado";
 import { useAtrasCierraLaHoja } from "@/components/ui/useAtrasCierraLaHoja";
 import { CELULAR } from "@/components/ui/useEnCelular";
+import { prefiereQuieto } from "@/lib/movimiento-cliente";
 
 /** Debe coincidir con `.anim-salida` en globals.css. */
 const MS_SALIDA = 220;
@@ -199,7 +200,7 @@ export function Modal({ titulo, subtitulo, onClose, children, tamano = "angosta"
   // Lo de atrás se aleja mientras la hoja está abierta (la «B» de ADR-0479): solo en el celular y sin «reducir movimiento».
   // Si la hoja se desmonta sin su salida (una navegación), lo de atrás vuelve de una.
   useEffect(() => {
-    if (!conAsa || !window.matchMedia?.(CELULAR).matches || window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return;
+    if (!conAsa || !window.matchMedia?.(CELULAR).matches || prefiereQuieto()) return;
     const llave = alejarFondo(MS_ENTRADA_CELULAR);
     fondo.current = llave;
     // Una hoja que abre a media altura aleja lo de atrás solo en esa proporción (si no, saltaría al primer toque).
@@ -219,7 +220,7 @@ export function Modal({ titulo, subtitulo, onClose, children, tamano = "angosta"
 
   useEffect(() => {
     if (!cerrando) return;
-    const sinMovimiento = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+    const sinMovimiento = prefiereQuieto();
     const enCelular = variante !== "camara" && window.matchMedia?.(CELULAR).matches;
     const ms = msSalidaPropia.current ?? (enCelular ? MS_SALIDA_CELULAR : MS_SALIDA);
     // Una hoja que quedó movida (a media altura) sale desde ahí: su estilo le gana a la salida de la clase.
