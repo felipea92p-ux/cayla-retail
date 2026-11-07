@@ -3,6 +3,7 @@ import { cacheLife, unstable_cache } from "next/cache";
 import { cache } from "react";
 import { base } from "./base";
 import { interpretarCatalogo, type Catalogo } from "./catalogo";
+import { PAUSA_TRAS_FALLO_MS, unaALaVez } from "./una-a-la-vez";
 
 /** Cuánto se comparte la misma respuesta del catálogo entre visitas (2026-10-15). Corto a propósito: un precio o una prenda que se
  *  publica se ve en medio minuto, y «Separar» vuelve a mirar precio y stock en la base, así que nunca se separa con un dato viejo. */
@@ -13,11 +14,16 @@ export const SEGUNDOS_DEL_CATALOGO = 30;
 // la vez son una consulta a la base, no cien (la conexión de la tienda tiene pocas). Se guarda el JSON crudo de la base y se lee después
 // (`interpretarCatalogo`), así una versión nueva de la tienda nunca recibe una copia armada por otra. Un fallo NO se guarda: se lanza
 // adentro y se responde `null` afuera, para que la próxima visita lo vuelva a intentar.
+// Una sola lectura en vuelo por proceso y tienda, y 15 s sin pedirla tras un fallo: como toda lectura compartida (`una-a-la-vez.ts`).
 const catalogoCompartido = unstable_cache(
-  async (sedeId: string | null): Promise<unknown> => {
-    const [fila] = await base()`select retail.tienda_catalogo(${sedeId}::uuid) as catalogo`;
-    return fila?.catalogo ?? null;
-  },
+  unaALaVez(
+    "tienda-catalogo-v1",
+    async (sedeId: string | null): Promise<unknown> => {
+      const [fila] = await base()`select retail.tienda_catalogo(${sedeId}::uuid) as catalogo`;
+      return fila?.catalogo ?? null;
+    },
+    { pausaMs: PAUSA_TRAS_FALLO_MS },
+  ),
   ["tienda-catalogo-v1"],
   { revalidate: SEGUNDOS_DEL_CATALOGO },
 );

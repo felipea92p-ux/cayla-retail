@@ -90,6 +90,7 @@ import {
   type ParadaDelConteo,
   type TipoDeModelo,
   modelosDelGrupo,
+  categoriasConLoQueYaEntro,
   yaEnStockDelEnvio,
 } from "@/lib/recepcion-modelos-reglas";
 import { borradorDeTallas, mismasVariantes, modoDeTallas, modosAlCambiar, tablaParaElNumero, tallasListas, type BorradorTallas, type ModoDeTallas } from "@/lib/recepcion-tallas-reglas";
@@ -277,8 +278,8 @@ export function ContarEnvio({
     setAlternadas((a) => new Set([...a].filter((k) => k !== focoVisto.categoria && k !== categoriaEnFoco)));
   }
   const enAhora = new Set(Object.entries(modos).filter(([, m]) => m === "ahora").map(([k]) => k));
-  const categorias = categoriasEnOrden(categoriasDelFiltro(grupos, filtro, parada?.clave ?? null, enAhora), orden);
-  const paradas = categorias.flatMap((c) => c.paradas);
+  const categoriasDelConteo = categoriasEnOrden(categoriasDelFiltro(grupos, filtro, parada?.clave ?? null, enAhora), orden);
+  const paradas = categoriasDelConteo.flatMap((c) => c.paradas);
   const { anterior, siguiente } = vecinosDeLaParada(paradas, parada?.clave ?? null);
   const opciones = opcionesDelFiltro(grupos, filtro);
   const cifras = cifrasDelResumen(todas, enAhora);
@@ -625,12 +626,19 @@ export function ContarEnvio({
       vivo = false;
     };
   }, [detalle.id, nRecibidos]);
+  // Lo que ya entró al stock va en su categoría (Felipe 2026-11-07): buscando, una categoría escondida vuelve si lo suyo coincide.
+  const yaEntro = categoriasConLoQueYaEntro(
+    categoriasDelConteo,
+    todas,
+    yaEnStockDelEnvio(detalle.recibidos, todas.flatMap((c) => c.grupos.flatMap(modelosDelGrupo))).map((y) => ({ ...y, salida: ultimaSalidaDe(salidas, y.prenda) })),
+    filtro,
+  );
 
   return (
     <div className="rc-conteo">
       {reabierto && (
         <Aviso tono="info" titulo="Reabriste el envío">
-          Cuenta solo lo nuevo y vuelve a cerrarlo. Lo que ya entró al stock sale con candado, abajo a la izquierda, y desde ahí se corrige.
+          Cuenta solo lo nuevo y vuelve a cerrarlo. Lo que ya entró al stock sale en su categoría, marcado «En stock», y desde ahí se corrige.
         </Aviso>
       )}
       {proveedorPorConfirmar && (
@@ -644,9 +652,11 @@ export function ContarEnvio({
 
       <div ref={mesa} className="rc-mesa">
         <ListaDelEnvio
-            yaEnStock={yaEnStockDelEnvio(detalle.recibidos, categorias.flatMap((c) => c.grupos.flatMap(modelosDelGrupo))).map((y) => ({ ...y, salida: ultimaSalidaDe(salidas, y.prenda) }))}
-            onCorregirSalida={(s) => setHoja({ tipo: "corregir-salida", salida: s })}
-          categorias={categorias}
+          yaEnStock={yaEntro.porCategoria}
+          sueltos={yaEntro.sueltos}
+          colores={catalogo?.colores ?? []}
+          onCorregirSalida={(s) => setHoja({ tipo: "corregir-salida", salida: s })}
+          categorias={yaEntro.categorias}
           enFoco={parada}
           alternadas={alternadas}
           sinAviso={sinAviso}

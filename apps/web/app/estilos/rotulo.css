@@ -32,10 +32,27 @@
     display: flex;
     align-items: center;
     margin: 0;
+    overflow-wrap: anywhere;
+  }
+  /* La letra del nombre, compartida con la regla que lo mide (`useMedirNombre`): si cambias una, cambian las dos. */
+  .rot-nombre,
+  .rot-regla {
     font-weight: 800;
     letter-spacing: -0.01em;
     text-transform: uppercase;
-    overflow-wrap: anywhere;
+  }
+  /* La regla: un texto fuera de la vista, en una sola línea, con la letra del rótulo. Mide cuánto ocupa el nombre en ESTA
+     computadora (la tabla de `anchoEm` es solo la medida de fábrica). */
+  .rot-regla {
+    position: fixed;
+    top: 0;
+    left: -10000px;
+    visibility: hidden;
+    pointer-events: none;
+    white-space: pre;
+    font-family: var(--font-sans);
+    font-size: 200px;
+    line-height: 1;
   }
   .rot-nombre > span {
     width: 100%;
