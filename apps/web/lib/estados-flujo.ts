@@ -9,7 +9,7 @@ import { chipContraAnterior, type ColumnaDeParte, type ParteEstado } from "./est
 import { nombreDelAnterior, type Periodo } from "./estados-periodo";
 import type { FilaInforme, Informe } from "./estados-informe";
 import { solesCentimos, solesConSignoCentimos, type FlujoReal } from "./flujo-caja-reglas";
-import { loQueNoCubre, montoDe, partesDelFlujo, type Actividad } from "./plata-reglas";
+import { loQueNoCubre, montoDe, PARTES, partesDelFlujo, type Actividad, type ParteDelFlujo } from "./plata-reglas";
 import { mesNombre } from "./resultados-reglas";
 
 /** Montos con céntimos (Felipe 2026-11-06): la pantalla los escribe con dos decimales, así que no se redondean al sol. */
@@ -48,7 +48,8 @@ function notaDelFlujo(real: FlujoReal, ganancia: number | null): string | null {
     if (fuera.length) return `Ganaste ${solesCentimos(g)}, pero ${fuera.length > 1 ? `${fuera.slice(0, -1).join(", ")} y ${fuera.at(-1)}` : fuera[0]}.`;
   }
   if (dia < 0) return `En el día a día pagaste ${solesCentimos(-dia)} más de lo que cobraste.`;
-  if (dia > 0 && d > 0) return "Cobraste más de lo que pagaste, y por eso la plata subió.";
+  // «Por eso» solo si el día a día explica toda la subida: lo que vino de otra parte no se le atribuye a las ventas (ADR-0621).
+  if (dia > 0 && d > 0) return dia >= d ? "Cobraste más de lo que pagaste, y por eso la plata subió." : `En el día a día entraron ${solesCentimos(dia)}; los otros ${solesCentimos(d - dia)} no vinieron de vender.`;
   if (dia > 0 && d < 0) return `En el día a día entraron ${solesCentimos(dia)}, pero salió más por otro lado.`;
   return null;
 }
@@ -74,7 +75,30 @@ export function lecturaDelFlujo(real: FlujoReal, ganancia: number | null, p: Per
   return { valor: final, mal: final < 0, frase, chip: { texto: `Empezaste con ${solesCentimos(inicial)}`, tono: null }, nota: notaDelFlujo(real, ganancia) };
 }
 
-export type ComparadaFlujo = { etiqueta: string; real: FlujoReal | null };
+export type ComparadaFlujo = { etiqueta: string; real: FlujoReal | null; motivo?: string | null };
+
+/**
+ * Una columna de antes. Si una cuenta arrancó después de ese período, sus cifras son la columna de un saldo congelado: la base devuelve el saldo declarado hacia atrás, así que
+ * «Al empezar» y «Al terminar» no fueron de verdad. No se muestra: sale «—» y se dice por qué (ADR-0621).
+ */
+export function comparadaDelFlujo(etiqueta: string, lectura: { datos: FlujoReal | null; falla: string | null }): ComparadaFlujo {
+  if (lectura.falla || !lectura.datos) return { etiqueta, real: null };
+  const noCubre = loQueNoCubre(lectura.datos);
+  if (!noCubre) return { etiqueta, real: lectura.datos };
+  const cuantas = noCubre.cuentas.length === 1 ? "una cuenta arrancó" : `${noCubre.cuentas.length} cuentas arrancaron`;
+  return { etiqueta, real: null, motivo: `${etiqueta} no se compara: ${cuantas} ${noCubre.cuando}, y sus saldos de esos días no se conocen.` };
+}
+
+/** Las partes de la pantalla: las de ahora y las que solo tuvo una columna de antes, para que cada columna sume lo mismo que su saldo final. */
+function partesConLasDeAntes(real: FlujoReal, comparadas: readonly ComparadaFlujo[]): ParteDelFlujo[] {
+  const ahora = partesDelFlujo(real);
+  const antes = comparadas.flatMap((c) => (c.real ? partesDelFlujo(c.real) : []));
+  return PARTES.flatMap((p) => {
+    const suya = ahora.find((x) => x.clave === p.clave);
+    if (suya) return [suya];
+    return antes.some((x) => x.clave === p.clave) ? [{ ...p, total: 0, lineas: [] }] : [];
+  });
+}
 
 const COLOR_TOTAL = "var(--estados-parte-1)";
 const colorDe = (n: number) => (n < 0 ? "var(--color-rojo)" : "var(--color-verde)");
@@ -90,7 +114,7 @@ export function partesDelEstadoFlujo({ real, comparadas, etiquetaActual, periodo
     const c = columnas(de);
     return { columnas: c, chip: chipContraAnterior(c, anterior, buenoSubir, solesCentimos) };
   };
-  const delMedio: ParteEstado[] = partesDelFlujo(real).map((p) => ({
+  const delMedio: ParteEstado[] = partesConLasDeAntes(real, comparadas).map((p) => ({
     clave: p.clave,
     nombre: p.nombre,
     color: colorDe(p.total),
@@ -144,28 +168,28 @@ export type ColumnaCascada = {
   /** Es un saldo, no un movimiento. */
   total: boolean;
   color: string;
-  /** Todo en % del alto del gráfico. */
+  /** Dónde empieza y cuánto ocupa, en % del ancho de la fila. */
   abajo: number;
   alto: number;
-  /** Dónde va la raya que la une con la siguiente; `null` en la última. */
-  enlace: number | null;
 };
 
 /** Cada movimiento empieza donde terminó el anterior, y un saldo nace en cero. Con plata en negativo, el piso baja para que quepa. */
 export function columnasDeCascada(partes: readonly ParteEstado[]): ColumnaCascada[] {
   let corrido = 0;
-  const tramos = partes.map((p, i) => {
-    const total = i === 0 || i === partes.length - 1;
+  // Una parte que solo tuvo una columna de antes vale cero aquí: no se dibuja.
+  const conCifra = partes.filter((p, i) => i === 0 || i === partes.length - 1 || Math.round(p.cifra * 100) !== 0);
+  const tramos = conCifra.map((p, i) => {
+    const total = i === 0 || i === conCifra.length - 1;
     const de = total ? 0 : corrido;
     const a = total ? p.cifra : corrido + p.cifra;
     corrido = a;
-    return { p, total, menor: Math.min(de, a), mayor: Math.max(de, a), nivel: a };
+    return { p, total, menor: Math.min(de, a), mayor: Math.max(de, a) };
   });
   const piso = Math.min(0, ...tramos.map((t) => t.menor));
   const maximo = Math.max(...tramos.map((t) => t.mayor), 0);
   const tope = maximo > piso ? maximo + (maximo - piso) * 0.14 : piso + 1;
   const escala = (x: number) => ((x - piso) / (tope - piso)) * 100;
-  return tramos.map(({ p, total, menor, mayor, nivel }, i) => ({
+  return tramos.map(({ p, total, menor, mayor }) => ({
     clave: p.clave,
     nombre: p.nombre,
     texto: total ? solesCentimos(p.cifra) : `${aCentimos(p.cifra) < 0 ? "−" : "+"}${Math.abs(aCentimos(p.cifra)).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
@@ -173,7 +197,6 @@ export function columnasDeCascada(partes: readonly ParteEstado[]): ColumnaCascad
     color: total ? "color-mix(in srgb, var(--color-tinta) 15%, transparent)" : colorDe(p.cifra),
     abajo: escala(menor),
     alto: escala(mayor) - escala(menor),
-    enlace: i < tramos.length - 1 ? escala(nivel) : null,
   }));
 }
 
@@ -188,6 +211,8 @@ export function informeDelFlujo({ real, partes, comparadas, etiquetaActual }: { 
   const deParte = (p: ParteEstado) => ({ que: p.que, detalle: p.filas, aviso: p.aviso ?? null });
   const inicio = partes.find((p) => p.clave === "inicio");
   const fin = partes.find((p) => p.clave === "fin");
+  // «Hoy» solo vale para la columna de ahora: con columnas de antes, la fila es de todas.
+  const nombreFin = comparadas.some((c) => c.real) ? "Al terminar" : (fin?.nombre ?? "Al terminar");
   const medio = partes.filter((p) => p.clave !== "inicio" && p.clave !== "fin");
   const filas: FilaInforme[] = [
     { clave: "inicio", nombre: inicio?.nombre ?? "Al empezar", contable: loQueNoCubre(real) ? "Saldo de partida" : "Saldo inicial", tipo: "subtotal", valores: valores((r) => r.saldoInicial), ...(inicio ? { que: inicio.que } : {}) },
@@ -202,7 +227,7 @@ export function informeDelFlujo({ real, partes, comparadas, etiquetaActual }: { 
     })),
     {
       clave: "fin",
-      nombre: fin?.nombre ?? "Al terminar",
+      nombre: nombreFin,
       contable: "Saldo final",
       tipo: "total",
       valores: valores((r) => r.saldoFinal),

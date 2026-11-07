@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import fixture from "./resumen-finanzas.fixture.json";
-import { equilibrioMes } from "./equilibrio-mes-reglas";
+import { equilibrioMes, ventaParaElMesEntero } from "./equilibrio-mes-reglas";
 import type { FilaER } from "./resultados-reglas";
 import { leerResumen, type ResumenFinanzas } from "./resumen-finanzas-reglas";
 import type { DiaVenta } from "./resumen-telar-reglas";
@@ -179,5 +179,15 @@ describe("equilibrioMes · contra el mes entero (tarea 24)", () => {
     expect(x.estado).toBe("sin_confirmar");
     expect(x.titular).not.toContain("pagado");
     expect(x.detalle).toContain("No se pudo leer");
+  });
+});
+
+describe("ventaParaElMesEntero (ADR-0621)", () => {
+  const tienda = { unidad: "tienda", ubicacionId: "u-tru", ventas: 10_000, margen: 5_000, gastos: 2_000, planillaAlCierre: 4_000, planillaEstimada: 1_000, depreciacion: 0 } as FilaER;
+  it("suma la planilla y los fijos que faltan: pide el mes, no los días que van", () => {
+    expect(ventaParaElMesEntero(tienda, [{ ubicacionId: "u-tru", fijos: 3_000, depreciacion: 0 }, { ubicacionId: "otra", fijos: 9_000, depreciacion: 0 }])).toBe(16_000);
+  });
+  it("sin poder leer lo que falta no da cifra", () => {
+    expect(ventaParaElMesEntero(tienda, null)).toBeNull();
   });
 });

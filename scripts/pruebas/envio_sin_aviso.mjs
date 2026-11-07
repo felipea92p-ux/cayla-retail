@@ -77,6 +77,8 @@ const MIGRACIONES = SIN_MIGRACION
       "20261104012000_a_conector_y_correccion_no_es_perdida.sql",
       // Lo contado como nuevo pasa a su categoría de verdad, con el envío cerrado (casos S3f y S3g).
       "20261106230000_cambiar_categoria_de_lo_contado.sql",
+      // Y a su marca de verdad (caso S3h).
+      "20261107142000_cambiar_marca_de_lo_contado.sql",
     ]
       .map((f) =>
         readFileSync(join(RAIZ, "supabase", "migrations", f), "utf8")
@@ -162,6 +164,7 @@ ${atrapa("costos_hoy", "p_vars uuid[]", "retail.fn_costos_de_hoy(p_vars)")}
 ${atrapa("parecidas", "p_cat uuid, p_q text", "retail.fn_parecidas_para_recibir(p_cat, p_q)")}
 ${atrapa("corrige", "p_d uuid, p_prov uuid, p_motivo text", "retail.corregir_proveedor_envio(p_d, p_prov, p_motivo)")}
 ${atrapa("cambia_cat", "p_d uuid, p_pend uuid, p_cat uuid", "retail.cambiar_categoria_de_pendiente(p_d, p_pend, p_cat)")}
+${atrapa("cambia_linea", "p_d uuid, p_pend uuid, p_cat uuid, p_marca uuid", "retail.cambiar_linea_de_pendiente(p_d, p_pend, p_cat, p_marca)")}
 ${atrapa(
   "prepara",
   "p_d uuid, p_item uuid, p_cat uuid, p_marca uuid, p_prod uuid, p_ref text, p_vars jsonb, p_precio numeric, p_desc text, p_tej uuid, p_pat uuid, p_conf boolean, p_token uuid, p_prov uuid",
@@ -599,6 +602,24 @@ caso(
    select concat_ws(' / ', :'sin_categoria', :'sin_responsable', :'a_mano', :'conteo_a_mano', :'sin_modulo', :'bien', :'reabierto', :'abierto',
      (select k.separado -> 'nuevas' -> 0 ->> 'descripcion' from retail.despacho_conteos k where k.despacho_id = :'d' and k.categoria_id = :'cat_otra'::uuid));`,
   "recepcion_extra_categoria / responsable_requerido / 42501|Un pendiente no cambia: se resuelve, o se anula reabriendo el envío / 23514|Solo se cuenta un envío abierto / recibir_sin_modulo / OK / OK / categoria_envio_no_cerrado / Modelo Tres",
+);
+caso(
+  "S3h pasar un modelo a otra marca (y a sin marca): lo contado se mueve, una marca inactiva no, y la de antes sigue llamando con la marca de su línea",
+  `${SIN_AVISO_CON_DOS_MODELOS}
+   reset role;
+   select id as marca_otra from retail.marcas where activo and id <> :'marca'::uuid order by nombre limit 1 \\gset
+   ${como(MICAELA)}${EN_TIENDA}
+   select pg_temp.h(pg_temp.cambia_linea(:'d', :'pend3', :'cat2', gen_random_uuid())) as marca_inactiva \\gset
+   select pg_temp.e(pg_temp.cambia_linea(:'d', :'pend3', :'cat2', :'marca_otra')) as a_otra \\gset
+   select pg_temp.e(pg_temp.cambia_linea(:'d', :'pend2', :'cat2', null)) as a_sin_marca \\gset
+   select pg_temp.e(pg_temp.cambia_cat(:'d', :'pend3', :'cat_otra')) as vieja \\gset
+   reset role;
+   select concat_ws(' / ', :'marca_inactiva', :'a_otra', :'a_sin_marca', :'vieja',
+     (select string_agg(concat_ws(':', k.extra_posicion, k.categoria_id = :'cat2'::uuid, coalesce((k.marca_id = :'marca_otra'::uuid)::text, 'sin'), k.contadas), ',' order by k.extra_posicion)
+        from retail.despacho_conteos k where k.despacho_id = :'d'),
+     (select sum(k.contadas) from retail.despacho_conteos k where k.despacho_id = :'d'),
+     (select bool_and(c.sin_separar = 0) from retail.fn_envio_cuentas(array[:'d'::uuid]) c));`,
+  "recepcion_marca / OK / OK / OK / 1:t:false:0,2:t:true:0,3:t:sin:2,4:f:true:3 / 5 / t",
 );
 caso(
   "S3e lo que se parece sale con cualquier marca y dice cuál; sin Recibir no se lee; sin nada escrito, nada",

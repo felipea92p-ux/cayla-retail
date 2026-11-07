@@ -44,7 +44,7 @@ import {
   type MarcaDeLinea,
   type ResultadoDeLigar,
 } from "@/lib/recepcion-conteo-reglas";
-import { cambiarCategoriaDePendiente, cambiarPrecioEnRecepcion, ligarPrendaAPendiente, resolverPendiente } from "@/lib/recepcion-conteo-acciones";
+import { cambiarLineaDePendiente, cambiarPrecioEnRecepcion, ligarPrendaAPendiente, resolverPendiente } from "@/lib/recepcion-conteo-acciones";
 import type { Firma } from "@/lib/responsable-reglas";
 import { ConfirmarPrecios } from "./ConfirmarPrecios";
 import { HojaTallas } from "./HojaTallas";
@@ -346,12 +346,15 @@ export function HacerAhora({
     prendaCreada(prenda);
   };
 
-  /** Pasa el «por crear» a la categoría elegida (Felipe 2026-11-06). Devuelve el error en palabras; `null` si quedó. */
-  const pasarACategoria = async (categoriaId: string): Promise<string | null> => {
+  /** Pasa el «por crear» a la categoría y la marca elegidas (Felipe 2026-11-06 y 2026-11-07). Devuelve el error en palabras; `null` si quedó. */
+  const pasarALinea = async (categoriaId: string, marcaId: string | null): Promise<string | null> => {
     if (item.tipo !== "crear") return null;
-    const { error: e } = await cambiarCategoriaDePendiente({ p_despacho_id: detalle.id, p_pendiente_id: item.pendiente.id, p_categoria_id: categoriaId }, responsable.firma());
+    const { error: e } = await cambiarLineaDePendiente(
+      { p_despacho_id: detalle.id, p_pendiente_id: item.pendiente.id, p_categoria_id: categoriaId, p_marca_id: marcaId },
+      responsable.firma(),
+    );
     responsable.despues(e);
-    return e ? mensajeAlGuardar(e, "cambiar la categoría") : null;
+    return e ? mensajeAlGuardar(e, "cambiar la categoría o la marca") : null;
   };
 
   // La hoja que toca (las salidas tempranas de abajo), y encima la confirmación de precios si hay.
@@ -404,10 +407,11 @@ export function HacerAhora({
           nombre={esProvisional(linea, descripcionNueva) ? null : descripcionNueva}
           cantidad={item.cantidad}
           costo={costoDe ? costoInicialDePrenda(linea, "", descripcionNueva) : null}
-          comoCorregirMarca="Si la marca anotada está mal, reabre el conteo y corrígela."
+          comoCorregirMarca={sePuedeCambiarCategoria(item, linea) ? "Si es de esa marca, elígela arriba." : "Si la marca anotada está mal, reabre el conteo y corrígela."}
           categorias={sePuedeCambiarCategoria(item, linea) ? (catalogo?.categorias ?? []) : []}
+          marcas={sePuedeCambiarCategoria(item, linea) ? (catalogo?.marcas ?? []) : []}
           responsable={responsable}
-          onPasarACategoria={pasarACategoria}
+          onPasarALinea={pasarALinea}
           onUsar={async (prenda, cambio) => {
             if (!cambio) return alExistir(prenda);
             // La línea de esta hoja ya no es la suya: se liga la prenda y el padre sigue con la línea nueva.

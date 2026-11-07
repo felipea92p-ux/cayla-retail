@@ -1,0 +1,3 @@
+- **2026-11-06 · Estados financieros (auditoría y primera tanda):** se auditaron los cuatro estados contra producción en solo lectura (101 hallazgos, 16 causas). Decisiones en ADR-0621.
+- Pantalla corregida: columna de antes sin saldos reales sale «—» con su motivo y «1–6 oct»; fila «Al terminar»; filas que suman en cada columna; «por eso» solo si es cierto; venta del mes entero en Ganancias; orden de las sedes que pierden; cascada en filas; Flujo y Patrimonio no muestran una sede; barrita solo con peso.
+- Verificado: suite web completa, Knip y tipado; pantalla a 1440 y 375 px en una página temporal con las cifras de la captura, porque ninguna base local con API está al día. Las páginas reales no se abrieron.
