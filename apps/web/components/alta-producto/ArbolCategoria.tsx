@@ -9,6 +9,7 @@ import { EtiquetaAhora } from "@/components/alta-producto/guia";
 import { SearchX } from "lucide-react";
 import { Buscador } from "@/components/ui/Buscador";
 import { Vacio } from "@/components/ui/Vacio";
+import { prefiereQuieto } from "@/lib/movimiento-cliente";
 
 // El primer paso: ¿QUÉ producto es? Dos toques (familia → categoría) o una
 // búsqueda que salta directo. Decidido con Felipe (2026-09-18): tarjetas por
@@ -66,7 +67,7 @@ export function ArbolCategoria({
   // seguir (prueba con una trabajadora, 2026-09-29). Se traen a la vista con el menor movimiento posible.
   useEffect(() => {
     if (!familiaAbierta) return;
-    const reducido = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const reducido = prefiereQuieto();
     const t = window.setTimeout(() => document.getElementById("categorias-de-la-familia")?.scrollIntoView({ block: "nearest", behavior: reducido ? "auto" : "smooth" }), 60);
     return () => window.clearTimeout(t);
   }, [familiaAbierta]);

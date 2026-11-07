@@ -38,6 +38,7 @@ import { esRafaga, MS_ENTRE_TECLAS } from "@/lib/existencias-pistola";
 import { urlRotulos } from "@/lib/rotulos-reglas";
 import type { FilaExistencias } from "@/lib/inventario-v2";
 import { FOTO_PANEL_TALLA } from "@/lib/fotos-tamanos";
+import { prefiereQuieto } from "@/lib/movimiento-cliente";
 
 type Vista = "talla" | "todas";
 type Prenda = PrendaAgrupada<FilaExistencias>;
@@ -314,7 +315,7 @@ export function PanelTalla({
   useEffect(() => {
     const origen = fotoDesdeRef.current;
     const destino = fotoGrandeRef.current;
-    if (!origen || !destino || !origen.isConnected || window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return;
+    if (!origen || !destino || !origen.isConnected || prefiereQuieto()) return;
     // La hoja entra con un transform (sube 18 px y crece al 96,5 %): el cuadro final de la foto se mide sin él.
     const hoja = destino.closest<HTMLElement>("[data-variante]");
     const animacion = hoja?.style.animation ?? "";
@@ -521,7 +522,7 @@ export function PanelTalla({
     // etiquetas (como en Editar producto), y si solo se restó, de vuelta a la talla. Con movimiento reducido, sin espera.
     setFocoAjuste(null);
     setSellando(r);
-    const quieto = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+    const quieto = prefiereQuieto();
     window.setTimeout(
       () => {
         setSellando(null);

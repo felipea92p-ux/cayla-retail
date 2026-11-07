@@ -55,6 +55,7 @@ import { FrescuraAguja } from "./FrescuraAguja";
 import { loQueMueveLaAguja, loQueSeLlevan, sinEstrenar } from "@/lib/frescura-aguja";
 import { conteoDeTodo, pisoDeLaTienda, pisoPorFamilia, respuestaDelPiso } from "@/lib/frescura-piso";
 import { BotonLimpiar } from "@/components/ui/FiltrosPuestos";
+import { prefiereQuieto } from "@/lib/movimiento-cliente";
 
 // Frescura del piso (ADR-0208, paso 4): cuánto lleva colgada cada prenda de la sede y qué tan rápido se vende, contra las
 // demás de su categoría, y qué hacer con lo que se queda. Maqueta aprobada: `docs/maquetas/frescura-3c-2026-09/` (colores
@@ -319,7 +320,7 @@ export function FrescuraPanel({ datos, acceso }: { datos: DatosFrescura; acceso:
           puedeBajar={acceso.existencias}
           onVerCategoria={(cat) => {
             cambiar({ cat });
-            const quieto = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+            const quieto = prefiereQuieto();
             document.getElementById("frescura-prendas")?.scrollIntoView({ behavior: quieto ? "auto" : "smooth", block: "start" });
           }}
         />

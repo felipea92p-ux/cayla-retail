@@ -176,6 +176,14 @@ Catálogo ▸ Productos, la única hoja con movimiento rico por decisión de Fel
 `prefers-reduced-motion`. Los números exactos y el porqué: `docs/adr/0136-regla-de-movimiento-de-modales.md` y la sección
 «REGLA DE MODALES» de `apps/web/app/globals.css`. Referencia visual: `docs/maquetas/comprobantes-animaciones-2026-09/`.
 
+**Las animaciones arrancan apagadas (ADR-0625, Felipe 2026-11-07):** todo lo de arriba se ve solo si este aparato las encendió con el
+botón «Animaciones» de la cabecera, junto al modo oscuro (`localStorage["cayla-movimiento"]`; el script del `<head>` pone `data-movimiento`
+en `<html>`). Quieto, `app/estilos/movimiento.css` deja cada animación y transición en 0,01 ms. Las únicas que siguen moviéndose son las
+**señales de espera**: el hilo de «Guardando…», el loader y su anillo, el campo que consulta y el buscador que busca. Una señal nueva hecha en JSX lleva
+`data-senal`; una hecha en CSS se suma a la lista de `movimiento.css`. **Lo que anima desde JavaScript pregunta `prefiereQuieto()`
+(`lib/movimiento-cliente.ts`) o `useQuieto()`, nunca `matchMedia("(prefers-reduced-motion: reduce)")`**: no vería el botón. Lo vigila
+`lib/movimiento-reglas.test.ts`. Si el aparato pide menos movimiento, eso gana siempre. Una pantalla nueva se diseña y se revisa también quieta.
+
 **Escape dentro de una hoja (ADR-0136, «Actualización 2026-09-26»):** la hoja se cierra solo con un Escape que ningún
 control de adentro usó (`components/ui/useEscapeLibre.ts`): con la lista de un combo abierta, el primer Escape cierra la
 lista y el segundo, la hoja. **Un control que usa el Escape (cierra su lista, borra su búsqueda) llama a

@@ -26,6 +26,7 @@ import {
   trazoDelVuelo,
   type Punto,
 } from "@/lib/login-vuelo";
+import { prefiereQuieto } from "@/lib/movimiento-cliente";
 
 // Las tres sedes, en el orden en que el hilo las cose. El login se ve antes de entrar: no puede leer `ubicaciones`.
 const SEDES = [
@@ -126,7 +127,7 @@ export function PanelVuelo() {
     const alCambiarTamano = () => terminar();
     window.addEventListener("resize", alCambiarTamano);
 
-    const quieto = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const quieto = prefiereQuieto();
     // Si el login aparece bajo la salida con el colibrí (`data-entrando`, components/login/EntradaColibri.tsx), el ave ya viene volando de vuelta:
     // el login se pone terminado, con el ave en su lugar, y la capa aterriza sobre ella (hoy el ave se esconde con `html[data-entrando]`).
     const llegaSaliendo = document.documentElement.hasAttribute("data-entrando");

@@ -2,6 +2,7 @@
 
 import type { ReactNode } from "react";
 import { chispasDe } from "@/lib/comprobante-linea-tiempo";
+import { prefiereQuieto } from "@/lib/movimiento-cliente";
 
 // El botón que confirma un pago (ADR-0136). Tres estados, una sola pieza:
 //   reposo   → «Registrar pago de S/ X», tinta;
@@ -61,7 +62,7 @@ export function BotonConfirmar({
 }
 
 export function prefiereMovimientoReducido(): boolean {
-  return typeof window !== "undefined" && !!window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+  return typeof window !== "undefined" && !!prefiereQuieto();
 }
 
 const COLORES_CHISPA = ["var(--color-verde)", "var(--color-taupe)", "var(--color-ambar)"] as const;

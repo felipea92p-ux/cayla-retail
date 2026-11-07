@@ -1,0 +1,56 @@
+/* ANIMACIONES ENCENDIDAS O QUIETAS (ADR-0625, Felipe 2026-11-07).
+   El ERP arranca QUIETO: `<html data-movimiento="quieto">` (lo pone el script del <head>, `lib/movimiento-reglas.ts`) y todo lo que se
+   mueve llega de una vez a su lugar. Quien quiera las animaciones las enciende con el botón «Animaciones» de la cabecera, junto al
+   modo oscuro, y queda recordado en ese aparato.
+
+   Cómo: en vez de tocar las ~200 reglas de `prefers-reduced-motion` del ERP, una sola regla deja cada animación y cada transición en
+   0,01 ms y una vuelta. Sigue habiendo `animationend` y `transitionend` (una hoja que espera su salida para cerrarse se cierra igual),
+   y lo que entra con `both` o `forwards` queda en su estado final. Lo que anima desde JavaScript pregunta `prefiereQuieto()`.
+
+   La excepción son las SEÑALES DE ESPERA (`data-senal`): el hilo de «Guardando…», el del loader y su anillo, el de un campo que
+   consulta. Sin ellas un guardado lento parece colgado y la persona aprieta dos veces. Si el aparato pide menos movimiento, sus propias
+   reglas de `prefers-reduced-motion` siguen mandando, también sobre las señales.
+
+   Va sin capa y con `!important`: le gana a toda animación de `components` y de las utilidades. Una regla con capa e `!important`
+   ganaría (así funcionan las capas), y las que hay ya dejan la animación quieta o en 1 ms. */
+:root[data-movimiento="quieto"] :not([data-senal]),
+:root[data-movimiento="quieto"] :not([data-senal])::before,
+:root[data-movimiento="quieto"] :not([data-senal])::after {
+  animation-duration: 0.01ms !important;
+  animation-delay: 0s !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.01ms !important;
+  transition-delay: 0s !important;
+}
+:root[data-movimiento="quieto"] {
+  scroll-behavior: auto !important;
+}
+/* Las señales de espera dibujadas en un pseudo-elemento (no llevan `data-senal`): se les devuelve su vuelta. La misma regla que arriba,
+   más específica y después, así que gana. Solo mientras se ven: el hilo del buscador existe siempre (transparente) y no tiene
+   por qué girar a escondidas. Una señal nueva hecha en CSS se suma aquí; una hecha en JSX lleva `data-senal`. */
+:root[data-movimiento="quieto"] .buscador[data-buscando] .buscador-hilo::before,
+:root[data-movimiento="quieto"] .caja-campo[data-trabajando]::after {
+  animation-duration: 1.1s !important;
+  animation-iteration-count: infinite !important;
+}
+:root[data-movimiento="quieto"] .hilo-l--trabaja::after {
+  animation-duration: 900ms !important;
+  animation-iteration-count: infinite !important;
+}
+/* La transición entre temas (claro ↔ oscuro) es un fundido de la página entera: quieto, cambia de golpe. */
+:root[data-movimiento="quieto"]::view-transition-group(*),
+:root[data-movimiento="quieto"]::view-transition-old(*),
+:root[data-movimiento="quieto"]::view-transition-new(*) {
+  animation: none !important;
+}
+
+/* El botón de la cabecera: el ícono lo decide el atributo, como el del tema (sin destello ni desajuste al hidratar). Quieto, el
+   destello lleva una raya que lo cruza. */
+@layer components {
+  .boton-movimiento .movimiento-raya {
+    opacity: 0;
+  }
+  :root[data-movimiento="quieto"] .boton-movimiento .movimiento-raya {
+    opacity: 1;
+  }
+}

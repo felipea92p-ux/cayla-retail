@@ -42,6 +42,7 @@ import {
 } from "@/lib/analisis-pedir";
 import { plural } from "@/lib/analisis-reglas";
 import { IconoCategoria } from "@/components/IconoCategoria";
+import { prefiereQuieto } from "@/lib/movimiento-cliente";
 
 // Análisis v4 (ADR-0357): «Qué pedir», como la maqueta aprobada (2026-10-06) y su cambio del 2026-10-07 (B2): cuánto falta para
 // Navidad → para cuánto te alcanza cada tipo al ritmo de los días de ventas, contra Navidad (la tabla, que filtra; antes, la
@@ -87,7 +88,7 @@ export function PestanaPedir() {
     window.requestAnimationFrame(() => {
       const r = el.getBoundingClientRect();
       if (r.top > window.innerHeight - 120 || r.bottom < 80) {
-        el.scrollIntoView({ block: "start", behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
+        el.scrollIntoView({ block: "start", behavior: prefiereQuieto() ? "auto" : "smooth" });
       }
     });
   };
@@ -294,7 +295,7 @@ function TablaAlcance({ tipos, hastaNavidad, categoria, onElegir }: { tipos: Alc
           <button
             type="button"
             className="al-mas"
-            onClick={() => lista.current?.scrollBy({ top: lista.current.clientHeight * 0.8, behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" })}
+            onClick={() => lista.current?.scrollBy({ top: lista.current.clientHeight * 0.8, behavior: prefiereQuieto() ? "auto" : "smooth" })}
           >
             ↓ {ocultos} {plural(ocultos, "tipo más", "tipos más")}
           </button>

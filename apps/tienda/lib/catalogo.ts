@@ -153,15 +153,13 @@ export type InsigniaTarjeta = { clave: "puesto" | "oferta" | "nuevo" | "empresa"
  * 2026-10-20: la de la empresa es la de «Nuevo» con su nombre, y va DEBAJO de «Nuevo»; si la tarjeta no la tiene, va ARRIBA de todas).
  */
 export function insigniasDeTarjeta(p: Prenda, { puesto, sinNuevo = false }: { puesto?: number | null; sinNuevo?: boolean } = {}): InsigniaTarjeta[] {
+  // UNA sola insignia automática por tarjeta (rediseño Premium, 2026-11-07): el descuento, si no el puesto en Más vendidos, si no «Nuevo».
+  // Antes iban las tres juntas y la foto quedaba tapada. La empresa (CAYLA o CLAURE, ADR-0465) no es automática: sigue yendo.
   const oferta = insigniaOferta(p);
-  const nueva = Boolean(p.nuevo) && !sinNuevo;
+  const nueva = !oferta && !puesto && Boolean(p.nuevo) && !sinNuevo;
   const empresa: InsigniaTarjeta[] = p.empresa ? [{ clave: "empresa", texto: p.empresa.nombre }] : [];
-  return [
-    ...(nueva ? [] : empresa),
-    ...(puesto ? [{ clave: "puesto" as const, texto: `N.º ${puesto}` }] : []),
-    ...(oferta ? [{ clave: "oferta" as const, texto: oferta }] : []),
-    ...(nueva ? [{ clave: "nuevo" as const, texto: "Nuevo" }, ...empresa] : []),
-  ];
+  const una: InsigniaTarjeta[] = oferta ? [{ clave: "oferta", texto: oferta }] : puesto ? [{ clave: "puesto", texto: `N.º ${puesto}` }] : [];
+  return nueva ? [{ clave: "nuevo", texto: "Nuevo" }, ...empresa] : [...empresa, ...una];
 }
 
 /**
