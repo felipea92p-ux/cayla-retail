@@ -5,10 +5,11 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Boton } from "@/components/ui/campos";
 import { anclaDeArranque, direccionDelTramo, esDeEstaPantalla, guiaDelTramo } from "@/lib/asistente/recorrido";
 import { crearArranqueDemo } from "@/lib/guias/arranque-demo";
-import { GUIAS } from "@/lib/guias/registro";
+import { cargarGuias, guiasCargadas } from "@/lib/guias/diferidas";
 import { debeOfrecer, esEntradaDelMenu, guiaDeRuta } from "@/lib/guias/reglas";
 import type { Guia } from "@/lib/guias/tipos";
-import { GuiaInteractiva, type FinDeGuia } from "./GuiaInteractiva";
+import dynamic from "next/dynamic";
+import type { FinDeGuia } from "./GuiaInteractiva";
 import { esperarAncla } from "./piloto";
 import { guardarRelleno, marcaDeVez, olvidarRecorrido, tomarRelleno, tomarSiguiente } from "./recorrido";
 import { leerVistas, marcarVista } from "./vistas";
@@ -21,6 +22,27 @@ import { leerVistas, marcarVista } from "./vistas";
 //   · «Pregúntale a CAYLA» (ADR-0536, actividad 3) arranca un TRAMO: la guía corta que empieza en el paso que responde
 //     (`?demo=1&paso=…&vez=…`, o el mismo evento con el paso). Al terminarlo, si el recorrido sigue, lleva a la pantalla del
 //     siguiente (`components/guias/recorrido.ts`); si la persona sale, lo que faltaba se olvida.
+
+// La guía en sí (el velo, el piloto, la tarjeta) se descarga al arrancar una, no con cada pantalla (ADR-0623).
+const GuiaInteractiva = dynamic(() => import("./GuiaInteractiva").then((m) => m.GuiaInteractiva), { ssr: false });
+
+/** Las guías, pedidas cuando la pantalla ya terminó de dibujarse (o antes, si algo las pide): `null` mientras no llegan. */
+function useGuiasEnReposo() {
+  const [guias, setGuias] = useState(guiasCargadas);
+  useEffect(() => {
+    if (guias) return;
+    let vigente = true;
+    const pedir = () => void cargarGuias().then((g) => vigente && setGuias(g));
+    const ric = typeof window.requestIdleCallback === "function" ? window.requestIdleCallback(pedir, { timeout: 2500 }) : null;
+    const reloj = ric === null ? window.setTimeout(pedir, 1200) : null;
+    return () => {
+      vigente = false;
+      if (ric !== null) window.cancelIdleCallback(ric);
+      if (reloj !== null) window.clearTimeout(reloj);
+    };
+  }, [guias]);
+  return guias;
+}
 
 export const EVENTO_ABRIR_GUIA = "cayla:abrir-guia";
 
@@ -43,7 +65,8 @@ export function MotorGuias({ quien, entradas }: { quien: string; /** Las rutas d
   const pathname = usePathname();
   const router = useRouter();
   const params = useSearchParams();
-  const guia = guiaDeRuta(pathname, GUIAS);
+  const guias = useGuiasEnReposo();
+  const guia = guias ? guiaDeRuta(pathname, guias) : null;
   const [vistas, setVistas] = useState<{ quien: string; ids: Set<string> } | null>(null);
   const [corriendo, setCorriendo] = useState<Guia | null>(null);
   // ¿Lo que corre es un tramo del asistente? Al terminar no cuenta como demo vista entera, y puede seguir en otra pantalla.
@@ -66,7 +89,7 @@ export function MotorGuias({ quien, entradas }: { quien: string; /** Las rutas d
   const arrancarTramo = useCallback((tramo: Guia) => {
     const ancla = anclaDeArranque(tramo);
     void (ancla ? esperarAncla(ancla, ESPERA_TRAMO_MS) : Promise.resolve(null)).then(() => {
-      if (guiaDeRuta(window.location.pathname, GUIAS)?.id !== tramo.id) return;
+      if (guiaDeRuta(window.location.pathname, guiasCargadas() ?? [])?.id !== tramo.id) return;
       setEnRecorrido(true);
       setCorriendo(tramo);
     });

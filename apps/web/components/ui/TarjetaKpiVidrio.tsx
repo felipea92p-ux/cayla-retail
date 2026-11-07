@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, type CSSProperties, type PointerEvent, type ReactNode } from "react";
+import { useEffect, useRef, type CSSProperties, type PointerEvent, type ReactNode } from "react";
 import type { TonoKpi } from "@/lib/facturacion-resumen-reglas";
 
 // Tono de la cifra cuando la tarjeta la colorea (las de la cola de SUNAT: «Por enviar», «Pendientes»,
@@ -44,12 +44,21 @@ export function TarjetaKpiVidrio({
 }) {
   const tarjeta = useRef<HTMLDivElement>(null);
 
+  // Una vez por cuadro (ADR-0623): el mouse manda más movimientos de los que la pantalla alcanza a pintar.
+  const cuadro = useRef(0);
+  const punto = useRef({ x: 0, y: 0 });
+  useEffect(() => () => cancelAnimationFrame(cuadro.current), []);
   function seguirCursor(e: PointerEvent<HTMLDivElement>) {
-    const el = tarjeta.current;
-    if (!el) return;
-    const caja = el.getBoundingClientRect();
-    el.style.setProperty("--mx", `${e.clientX - caja.left}px`);
-    el.style.setProperty("--my", `${e.clientY - caja.top}px`);
+    punto.current = { x: e.clientX, y: e.clientY };
+    if (cuadro.current) return;
+    cuadro.current = requestAnimationFrame(() => {
+      cuadro.current = 0;
+      const el = tarjeta.current;
+      if (!el) return;
+      const caja = el.getBoundingClientRect();
+      el.style.setProperty("--mx", `${punto.current.x - caja.left}px`);
+      el.style.setProperty("--my", `${punto.current.y - caja.top}px`);
+    });
   }
 
   return (
