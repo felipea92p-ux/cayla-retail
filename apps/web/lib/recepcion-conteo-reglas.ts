@@ -1139,6 +1139,37 @@ export function prendasConCosto(l: Pick<LineaParaContar, "conteo">): PrendaConCo
   ];
 }
 
+/**
+ * Lo que se sabe de un modelo para su «Ver detalle» en «Revisa y cierra» (Felipe 2026-11-07: «ver el detalle que se le puso para diferenciar esa prenda de
+ * las demás»): lo que se escribió al agregarlo («para no confundirlo con otro»), si su nombre es provisional («Blusa 1»), quién lo contó y cuándo (lo más
+ * reciente de las líneas donde vive). Una prenda ya existente no trae nota: su ficha la lee la pantalla.
+ */
+export function detalleDelModelo(
+  lineas: readonly Pick<LineaParaContar, "conteo">[],
+  m: Pick<PrendaConCosto, "nueva" | "nombre" | "clave">,
+): { nota: string | null; provisional: boolean; contaron: string[]; contadoEn: string | null } {
+  const nueva = m.nueva ? lineas.flatMap((l) => l.conteo?.separado.nuevas ?? []).find((n) => n.descripcion === m.nombre) : undefined;
+  const conEsto = lineas.filter((l) => (m.nueva ? (l.conteo?.separado.nuevas ?? []).some((n) => n.descripcion === m.nombre) : (l.conteo?.separado.prendas ?? []).some((p) => p.productoId === m.clave)));
+  const contaron = [...new Set(conEsto.map((l) => l.conteo?.contadoPor?.nombre ?? null).filter((n): n is string => !!n))];
+  const contadoEn = conEsto.map((l) => l.conteo?.contadoEn ?? null).filter((x): x is string => !!x).sort().at(-1) ?? null;
+  return { nota: nueva?.nota?.trim() || null, provisional: nueva?.porDefecto === true, contaron, contadoEn };
+}
+
+/** El costo de un grupo de «Revisa y cierra», al pie de su tarjeta: lo que suma lo que ya tiene costo y cuántas prendas entran sin él. */
+export function costoDelGrupo(filas: readonly { unidades: number; costo: number | null }[]): { total: number; conCosto: number; sinCosto: number } {
+  let total = 0;
+  let conCosto = 0;
+  let sinCosto = 0;
+  for (const f of filas) {
+    if (f.costo == null) sinCosto += f.unidades;
+    else {
+      total += f.costo * f.unidades;
+      conCosto += f.unidades;
+    }
+  }
+  return { total: Math.round(total * 100) / 100, conCosto, sinCosto };
+}
+
 /** Cuántas unidades contadas de la línea todavía no son una prenda con nombre (ni identificada ni descrita): entran con el costo de la línea. */
 export function unidadesSinIdentificar(l: Pick<LineaParaContar, "conteo">): number {
   const contadas = l.conteo?.contadas ?? 0;

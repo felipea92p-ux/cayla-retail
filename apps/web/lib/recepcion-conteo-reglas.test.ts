@@ -76,6 +76,8 @@ import {
   necesitaCatalogoAlCerrar,
   resumenDelCierre,
   loQueEntroPorPrenda,
+  detalleDelModelo,
+  costoDelGrupo,
   deQuienLlego,
   ejesQuitables,
   leerQuitables,
@@ -1456,5 +1458,37 @@ describe("de quién llegó, marca por marca, en un envío sin aviso (Felipe 2026
     expect(deQuienLlego([linea(1, 3, AELO, P1), linea(2, 2, AELO, null)])[0].proveedor).toBeNull();
     expect(deQuienLlego([linea(1, 2, null, null)], { "": P2 })[0].proveedor).toEqual(P2);
     expect(deQuienLlego([linea(1, 3, AELO, P1), linea(2, 2, AELO, P2)])[0].varios).toBe(true);
+  });
+});
+
+describe("«Revisa y cierra» B: el detalle de cada modelo y el costo de cada grupo (Felipe 2026-11-07)", () => {
+  const conteo = (o: { nuevas?: { cantidad: number; descripcion: string | null; nota?: string; porDefecto?: boolean }[]; prendas?: { productoId: string; cantidad: number }[]; por?: string; en?: string }) =>
+    ({
+      conteo: {
+        separado: { nuevas: o.nuevas ?? [], prendas: (o.prendas ?? []).map((p) => ({ ...p, nombre: null, codigo: null, variantes: [] })) },
+        contadoPor: o.por ? { id: "x", nombre: o.por } : null,
+        contadoEn: o.en ?? null,
+      },
+    }) as unknown as Pick<LineaParaContar, "conteo">;
+  it("una nueva trae lo que se anotó, si su nombre es provisional, y quién la contó y cuándo (lo más reciente)", () => {
+    const lineas = [
+      conteo({ nuevas: [{ cantidad: 5, descripcion: "Casaca 1", nota: " Cierre frontal ", porDefecto: true }], por: "Felipe", en: "2026-11-07T14:20:00Z" }),
+      conteo({ nuevas: [{ cantidad: 2, descripcion: "Casaca 1" }], por: "Micaela", en: "2026-11-07T14:25:00Z" }),
+      conteo({ nuevas: [{ cantidad: 1, descripcion: "Otra" }], por: "Sandra", en: "2026-11-07T15:00:00Z" }),
+    ];
+    expect(detalleDelModelo(lineas, { nueva: true, nombre: "Casaca 1", clave: "nueva:Casaca 1" })).toEqual({
+      nota: "Cierre frontal",
+      provisional: true,
+      contaron: ["Felipe", "Micaela"],
+      contadoEn: "2026-11-07T14:25:00Z",
+    });
+  });
+  it("una prenda que ya existe no trae nota; sin quién ni cuándo, vacío", () => {
+    const d = detalleDelModelo([conteo({ prendas: [{ productoId: "p1", cantidad: 3 }] })], { nueva: false, nombre: "Blusa", clave: "p1" });
+    expect(d).toEqual({ nota: null, provisional: false, contaron: [], contadoEn: null });
+  });
+  it("el costo del grupo suma lo que tiene costo y cuenta lo que entra sin él", () => {
+    expect(costoDelGrupo([{ unidades: 5, costo: 50 }, { unidades: 10, costo: null }, { unidades: 2, costo: 12.5 }])).toEqual({ total: 275, conCosto: 7, sinCosto: 10 });
+    expect(costoDelGrupo([])).toEqual({ total: 0, conCosto: 0, sinCosto: 0 });
   });
 });

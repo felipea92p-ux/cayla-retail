@@ -1967,7 +1967,7 @@ export const GUIA_RECIBIR_ENVIO: Guia = {
       ancla: "recepcion.tabla-cierre",
       requiere: ["recepcion.tabla-cierre"],
       titulo: "Lo que se cierra",
-      texto: "Una fila por modelo, primero los que piden algo: cuánto llegó y su costo. Si algo no cuadra, debajo te pregunta qué pasó. Lo raro, un costo o un precio distinto por talla, se abre con «Cambiar por talla».",
+      texto: "Una tarjeta por categoría y marca, primero las que piden algo; dentro, una fila por modelo con cuánto llegó y su costo, y al pie lo que suma. Si algo no cuadra, te pregunta qué pasó. Un costo o un precio distinto por talla se abre con «Cambiar por talla».",
     },
     {
       // Solo con muchas filas y más de una que no pide nada.
@@ -1988,13 +1988,28 @@ export const GUIA_RECIBIR_ENVIO: Guia = {
       texto: "Cada prenda tiene su etiqueta: el precio que escribas ahí, o el costo, vale para todas sus tallas y colores, y debajo eliges si vale solo en tu tienda o en todas. «Distinto por talla o color» abre la matriz para cambiar una casilla, un color o una talla. En la demo no escribimos.",
     },
     {
-      // Solo en un envío sin aviso: una fila por marca, con su proveedor (Felipe 2026-11-07).
+      // Solo en un envío sin aviso: el proveedor va en la cabecera de cada tarjeta, por marca (Felipe 2026-11-07).
       id: "de-quien",
       ancla: "recepcion.de-quien",
       opcional: true,
       requiere: ["recepcion.tabla-cierre"],
       titulo: "De quién llegó",
-      texto: "Una fila por marca de lo que contaste, con su proveedor. La marca ya lo dice casi siempre; lo que no se sabe (una marca con dos proveedores, o «Sin marca») se elige aquí y se guarda al elegirlo. Sin proveedor no entra al stock: el lote, el costo y la factura se unen por él.",
+      texto: "Cada tarjeta dice de quién es en su cabecera. La marca ya lo dice casi siempre («lo dice su marca»); si te equivocaste, «Cambiar». Lo que no se sabe (una marca con dos proveedores, o «Sin marca») se elige ahí y se guarda al elegirlo. Sin proveedor no entra al stock.",
+    },
+    {
+      id: "ver-detalle",
+      ancla: "recepcion.ver-detalle",
+      opcional: true,
+      requiere: ["recepcion.tabla-cierre"],
+      titulo: "Ver detalle",
+      texto: "Lo que anotaste al contar para diferenciarla de las demás, sus observaciones, quién la contó y cuándo y, si la prenda ya existe, su ficha. Solo se lee: no cambia nada.",
+    },
+    {
+      id: "al-cerrar",
+      ancla: "recepcion.al-cerrar",
+      requiere: ["recepcion.tabla-cierre"],
+      titulo: "Al cerrar",
+      texto: "Cuántas prendas, modelos y proveedores cierras, cuánto entra con costo, cuánto sin él y qué queda para después. Debajo, lo que falta: toca una y te lleva a ese campo.",
     },
     {
       id: "cerrar-boton",

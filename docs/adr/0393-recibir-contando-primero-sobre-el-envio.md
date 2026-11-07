@@ -853,3 +853,13 @@ Felipe probó el flujo sin aviso de punta a punta en local y anotó lo que habí
 - **«Revisa y cierra» (punto 3):** tres maquetas en `docs/maquetas/recibir-revisa-y-cierra-2026-11/` para que Felipe elija mirando. No se tocó la pantalla.
 - **En producción desde el 2026-11-07,** con el OK de Felipe (también el permiso del costo): las cuatro migraciones, por `supabase db query --linked -f`; mismo md5 que en local.
 - **Pruebas:** `pruebas:envio-sin-aviso` 43/43 (S3e, S3i, S5, S3d2 nuevos o cambiados; P1, A8, S3, S3c y A4 cambian a propósito con la regla nueva); las demás suites de Recibir en verde salvo L1 de `pendientes-de-envio`, que falla igual que antes por pendientes viejos de la base local. Navegador en local: todos los puntos menos el costo con una cuenta de terminal.
+
+## Actualización 2026-11-07 (c): «Revisa y cierra» con tarjetas por categoría y marca (Felipe eligió la maqueta B)
+
+Felipe eligió la B de `docs/maquetas/recibir-revisa-y-cierra-2026-11/` y pidió, antes de implementarla, poder ver «el detalle que se le puso para diferenciar esa prenda de las demás».
+
+- **Una tarjeta por grupo** (`<Tabla>` por grupo, los mismos grupos de siempre): en la cabecera, «Categoría · Marca», cuántos modelos y prendas, quién contó y el proveedor. Sin aviso el proveedor es un chip con «Cambiar» o, si falta, el combo de `poner_proveedor_de_marca`; el bloque suelto «De quién llegó» se fue a las cabeceras. Al pie, el costo del grupo (`costoDelGrupo`).
+- **«Ver detalle» en cada modelo** (`DetalleDelModelo`, `detalleDelModelo`): lo que se anotó al contarlo para no confundirlo (la nota de «Otro modelo»), sus observaciones, quién lo contó y cuándo y, si la prenda ya existe, su ficha. Solo lee.
+- **La fila dice lo que es:** «Por crear», «Re stock» y «Nombre provisional»; la caja del costo lleva su «S/» y ya no dice «Sin costo» adentro.
+- **«Al cerrar», al costado:** prendas, modelos y proveedores; lo que entra con costo, sin costo y para después; y lo que falta, tocable (lleva al campo con la guía de foco). Reemplaza la nota larga de debajo de la tabla. El pie con «Cerrar el envío» no cambió.
+- **Lo que no cambia:** qué se guarda y cómo: las decisiones, los costos, el reparto por talla, los candados y el cierre son los mismos.
