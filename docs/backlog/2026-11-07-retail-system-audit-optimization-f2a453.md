@@ -1,14 +1,14 @@
 # Rendimiento de la base (ADR-0622) — pendientes
 
-## No está en producción
-- [ ] Pegar, con el OK de Felipe y en hora tranquila, en este orden:
-  - [ ] `20261107164000`: índices y `fn_metas_de_los_dias`.
-  - [ ] `20261107171000`, PARTE 1 (funciones); su PARTE 2 (índice sobre `movimientos`) va aparte.
-  - [ ] `20261107172000`.
-  - [ ] `20261107202000`.
-  - Si salta el candado md5 de una función, esa función se reescribe desde su `pg_get_functiondef` real.
-- [ ] Después de pegar: `pnpm datos:generar:produccion` (incluye la función nueva `fn_proveedor_reparto_de`) y `pnpm datos:comparar`.
-- [ ] Correr `scripts/rendimiento/diagnostico-produccion.sql` antes y después de pegar, y anotar las cifras aquí.
+## En producción (pegado por Felipe el 2026-11-07)
+- [x] `20261107164000`, `20261107171000` (partes 1 y 2), `20261107172000` y `20261107202000`. Verificado en producción: las 16 funciones con el md5
+  de esta rama (`5-verificar.sql`) y los 9 índices nuevos.
+- [ ] `pnpm datos:generar:produccion` (entra la función nueva `fn_proveedor_reparto_de`) y `pnpm datos:comparar`, al refrescar el volcado.
+- [ ] Anotar aquí las cifras de `scripts/rendimiento/diagnostico-produccion.sql` (las consultas 1 a 3; el SQL Editor solo muestra la última de cada
+  archivo, así que hay que correrlas por separado).
+- Conexiones al 2026-11-07: 73 de 90 abiertas y 2 trabajando. Son 22 de PostgREST (su grupo fijo), 11 de la tienda web por Supavisor y ~20 de
+  Supabase.
+- [ ] Riesgo: la tienda abre hasta 3 conexiones por cada copia que levanta Vercel. Llevarla al modo transacción de Supavisor (puerto 6543) antes de un pico.
 
 ## Decisiones de Felipe
 - [ ] Vender pide «dónde más hay» por prenda en vez de todo el stock de la red (`fn_stock_por_sede_json`: 18 MB y 144 mil filas con un año). Toca
