@@ -366,7 +366,7 @@ select retail.fn_texto_movimiento_dinero('abono_tarjeta');`);
 {
   const r = correr(`${ESCENA}
 select retail.fn_dias_habiles(date '2026-10-16', date '2026-10-19'), retail.fn_dias_habiles(date '2026-10-17', date '2026-10-18'), retail.fn_dias_habiles(date '2026-10-17', date '2026-10-19'), retail.fn_dias_habiles(date '2026-10-16', date '2026-10-16');
-select tasa_pct, igv_sobre_tasa, cargo_fijo, dias_abono from retail.fn_pos_tarifa(:'izipay', 'qr', retail.fn_hoy_lima());
+select tasa_pct, igv_sobre_tasa, cargo_fijo, dias_abono, gratis_hasta_dia from retail.fn_pos_tarifa(:'izipay', 'qr', retail.fn_hoy_lima());
 select (retail.fn_pos_tarifa(:'vendemas', 'tarjeta', retail.fn_hoy_lima())).id is null;
 select pg_temp.intento(format('select retail.guardar_pos_tarifa(%L, ''tarjeta'', 101, true, 0, 2)', :'vendemas'));
 select pg_temp.intento(format('select retail.guardar_pos_tarifa(%L, ''tarjeta'', 3, true, 51, 2)', :'vendemas'));
@@ -393,7 +393,7 @@ select pg_temp.intento(format('select retail.guardar_pos_tarifa(%L, ''tarjeta'',
 select pg_temp.intento('select count(*) from retail.fn_pos_alertas()');`);
   const [habiles, izipayQr, vendemasSin, t101, c51, d16, yape, qrNoOpera, nan, repetida, desde, pendiente, estimadas, cambio, historial, editar, retroceder, alertas, maquinas, micaela, micaelaVe] = lineas(r);
   esperar("días hábiles: el sábado cuenta y el domingo no; el día de partida no", r.ok && habiles === "2|0|1|0", r);
-  esperar("el QR de Izipay hoy cobra 2.38 % + IGV y deposita el mismo día (20261017174000: cobró 0 % hasta el 2026-10-09); Vendemás nace sin tarifa", r.ok && izipayQr === "2.38|t|0.00|0" && vendemasSin === "t", r);
+  esperar("el QR de Izipay hoy cobra 2.38 % + IGV, gratis hasta el día 10 de cada mes (ADR-0629), y deposita el mismo día (20261017174000: cobró 0 % hasta el 2026-10-09); Vendemás nace sin tarifa", r.ok && izipayQr === "2.38|t|0.00|0|10" && vendemasSin === "t", r);
   esperar("la base rechaza una tasa de 101, un cargo de 51, 16 días, un medio que no es de máquina, un medio con el que no cobra y NaN",
     r.ok && t101.includes("0 a 100") && c51.includes("0 a S/ 50") && d16.includes("0 a 15") && yape.includes("tarjeta o del QR") && qrNoOpera.includes("no cobra con QR") && nan.includes("0 a 100"), r);
   esperar("la misma tarifa dos veces no abre una fila nueva; la primera vale para todo lo anterior", r.ok && repetida === "t|1" && desde === "1900-01-01", r);

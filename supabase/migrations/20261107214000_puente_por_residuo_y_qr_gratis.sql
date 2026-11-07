@@ -27,8 +27,9 @@
 -- va por su propio camino, no plata que la máquina deba.
 --
 -- SE ROMPE SI: alguien deposita un residuo y además lo cuadra a mano con un abono sin días (como se hizo el 6-nov): se cuenta dos veces.
--- Por eso, al pegar esto en producción, los abonos sin días se anulan antes (con el OK de Felipe, ADR-0629). Y si Izipay cambia la ventana
--- gratis, se agrega otra fila de tarifa (las tarifas solo agregan filas).
+-- Por eso el CANDADO aborta si queda un abono de máquina sin días en o después de un día que reaparece como residuo: se anula antes, con
+-- el OK de Felipe (ADR-0629). Y si Izipay cambia la ventana gratis, se agrega otra fila de tarifa (las tarifas solo agregan filas; cambiar
+-- la tarifa desde Configuración hereda la ventana).
 --
 -- CÓMO SE PEGA EN PRODUCCIÓN: una sola ejecución, sin políticas (las tablas nuevas o tocadas se leen solo por funciones `security definer`).
 -- El CANDADO compara el cuerpo vivo de cada función que se reescribe entera con el de main; si alguien la cambió, aborta y dice cuál. El
@@ -59,6 +60,36 @@ begin
   end loop;
 end
 $candado$;
+
+-- Un abono de máquina SIN días (cuadrado a mano) que cae en o después de un día que va a reaparecer como residuo se contaría dos
+-- veces: el residuo vuelve a pendiente y el abono suelto ya bajó la puente. Se anula con su motivo ANTES de pegar (ADR-0629, paso 1).
+do $sin_dias$
+declare v_lista text;
+begin
+  with depositado as (
+    select a.cuenta_id, a.clave, sum(a.bruto) as monto
+      from retail.pos_abonos_lotes a join retail.movimientos_dinero d on d.id = a.movimiento_dinero_id and d.estado = 'vigente'
+     group by a.cuenta_id, a.clave
+  ),
+  residuos as (
+    select l.cuenta_id, min(l.fecha) as desde
+      from (select cuenta_id, clave, min(fecha) as fecha, sum(monto) as monto from retail.fn_dinero_libro(retail.fn_hoy_lima())
+             where origen = 'cobros' group by cuenta_id, clave) l
+      join depositado x on x.cuenta_id = l.cuenta_id and x.clave = l.clave
+     where l.monto - x.monto >= 0.01
+     group by l.cuenta_id
+  )
+  select string_agg(format('%s (%s, S/ %s)', d.id, to_char(d.fecha, 'DD/MM/YYYY'), d.monto), '; ' order by d.fecha)
+    into v_lista
+    from retail.movimientos_dinero d
+    join residuos r on r.cuenta_id = d.cuenta_origen_id
+   where d.tipo = 'abono_tarjeta' and d.estado = 'vigente' and d.fecha >= r.desde
+     and not exists (select 1 from retail.pos_abonos_lotes a where a.movimiento_dinero_id = d.id);
+  if v_lista is not null then
+    raise exception 'Hay depósitos de máquina sin días que se contarían dos veces con lo cobrado después de un depósito: %. Anúlalos con su motivo antes de pegar (ADR-0629).', v_lista;
+  end if;
+end
+$sin_dias$;
 
 create or replace function pg_temp.reemplazar(p_firma text, p_viejo text, p_nuevo text, p_veces integer)
 returns void
@@ -235,10 +266,21 @@ grant execute on function retail.fn_cuadrar_depositos_vista() to authenticated;
 
 -- ───────────────────────────── 4. El diario revierte lo estimado una sola vez por día ─────────────────────────────
 -- `rev_est` (20261106012000) revertía la comisión estimada del día por CADA lote de un depósito vigente. Con el residuo, un día puede
--- tener dos depósitos: solo el primero vigente (por orden de registro) revierte; el del residuo trae su comisión real y nada más.
+-- tener dos depósitos: solo el primero vigente revierte (por la fecha del depósito y, a igual fecha, por orden de registro: así
+-- reemplazar el primero por lo real, con su misma fecha, no muda la reversa a otro mes); el del residuo trae su comisión real.
 select pg_temp.reemplazar('retail.fn_asientos_dinero_y_caja(date,date,boolean,uuid[])',
 $a$     where p_todo and d.fecha between p_desde and p_hasta and a.fecha >= coalesce(retail.fn_finanzas_desde(), a.fecha)$a$,
 $n$     where p_todo and d.fecha between p_desde and p_hasta and a.fecha >= coalesce(retail.fn_finanzas_desde(), a.fecha)
-       -- ADR-0629: lo estimado de un día se revierte una vez, con su primer depósito vigente.
+       -- ADR-0629: lo estimado de un día se revierte una vez, con su primer depósito vigente (por fecha, luego por registro).
        and not exists (select 1 from retail.pos_abonos_lotes a2 join retail.movimientos_dinero d2 on d2.id = a2.movimiento_dinero_id and d2.estado = 'vigente'
-                        where a2.cuenta_id = a.cuenta_id and a2.clave = a.clave and (a2.created_at, a2.id) < (a.created_at, a.id))$n$, 1);
+                        where a2.cuenta_id = a.cuenta_id and a2.clave = a.clave and (d2.fecha, a2.created_at, a2.id) < (d.fecha, a.created_at, a.id))$n$, 1);
+
+-- ───────────────────────────── 5. Cambiar la tarifa conserva la ventana gratis ─────────────────────────────
+-- `guardar_pos_tarifa` (Configuración ▸ Dinero) crea una fila nueva desde hoy; sin esto nacía con `gratis_hasta_dia = 0` y un cambio de
+-- días de abono borraba en silencio los días gratis del QR. Se hereda de la tarifa vigente (editarla desde la pantalla queda pendiente).
+select pg_temp.reemplazar('retail.guardar_pos_tarifa(uuid,text,numeric,boolean,numeric,integer)',
+$a$dias_abono, vigente_desde, registrado_por)$a$,
+$n$dias_abono, vigente_desde, registrado_por, gratis_hasta_dia)$n$, 1);
+select pg_temp.reemplazar('retail.guardar_pos_tarifa(uuid,text,numeric,boolean,numeric,integer)',
+$a$case when v_antes.id is null then date '1900-01-01' else v_hoy end, v_actor)$a$,
+$n$case when v_antes.id is null then date '1900-01-01' else v_hoy end, v_actor, coalesce(v_antes.gratis_hasta_dia, 0))$n$, 1);

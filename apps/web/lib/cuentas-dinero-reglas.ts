@@ -806,7 +806,7 @@ export function leerFilaCuadre(f: Fila): FilaCuadre {
 
 /** ADR-0629: la línea que avisa que parte de lo propuesto se cobró después de un depósito ya registrado; `null` si no hay. */
 export function textoResiduoCuadre(f: Pick<FilaCuadre, "residuo">): string | null {
-  return f.residuo > 0 ? `Incluye ${soles2(f.residuo)} cobrados después de un depósito que ya registraste: antes quedaban en la máquina sin que nada los mostrara.` : null;
+  return f.residuo > 0 ? `Incluye ${soles2(f.residuo)} cobrados el mismo día después de un depósito que ya registraste.` : null;
 }
 /** Con su banco, su tarifa y algo que depositar. */
 export const sePuedeCuadrar = (f: FilaCuadre) => f.falta === null && f.neto > 0;
