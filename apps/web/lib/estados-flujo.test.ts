@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { columnasDeCascada, comparadaDelFlujo, informeDelFlujo, lecturaDelFlujo, partesDelEstadoFlujo } from "./estados-flujo";
+import { avisoPorVolver, columnasDeCascada, comparadaDelFlujo, informeDelFlujo, lecturaDelFlujo, partesDelEstadoFlujo } from "./estados-flujo";
 import { periodoDe } from "./estados-periodo";
 import { solesCentimos, type FlujoReal } from "./flujo-caja-reglas";
 
@@ -188,5 +188,14 @@ describe("lo que el flujo no debe afirmar (ADR-0621)", () => {
     const comparadas = [{ etiqueta: "1–5 oct", real: real() }];
     const partes = partesDelEstadoFlujo({ real: real(), comparadas, etiquetaActual: "Nov", periodo: NOV });
     expect(informeDelFlujo({ real: real(), partes, comparadas, etiquetaActual: "Nov" }).filas.at(-1)!.nombre).toBe("Al terminar");
+  });
+});
+
+// ADR-0621: cuánto de lo que tienes lo tienen las compradoras para comprar.
+describe("lo por volver de compras", () => {
+  it("se dice solo si hay algo, en presente si el período sigue y en pasado si ya terminó", () => {
+    expect(avisoPorVolver(real({ porVolverCompras: 285 }), periodoDe("2026-11-01", HOY, HOY))).toMatch(/^De lo que tienes hoy, S\/\s285\.00 lo tienen las compradoras/);
+    expect(avisoPorVolver(real({ porVolverCompras: 285 }), OCT)).toMatch(/^De lo que tenías al terminar, S\/\s285\.00 lo tenían/);
+    for (const v of [0, null, undefined]) expect(avisoPorVolver(real({ porVolverCompras: v }), OCT)).toBeNull();
   });
 });

@@ -26,7 +26,7 @@ const TRAZOS = {
 export type TrazoDinero = keyof typeof TRAZOS;
 
 export const TRAZO_DE_MEDIO: Record<MedioCobro, TrazoDinero> = { yape: "celular", plin: "plin", tarjeta: "tarjeta", qr: "qr", transferencia: "transferencia" };
-export const TRAZO_DE_CUENTA: Record<TipoCuenta, TrazoDinero> = { banco: "banco", por_abonar: "maquina", tarjeta_credito: "tarjeta", cajon: "cajon", caja_fuerte: "fuerte", por_rendir: "rendir" };
+export const TRAZO_DE_CUENTA: Record<TipoCuenta, TrazoDinero> = { banco: "banco", por_abonar: "maquina", tarjeta_credito: "tarjeta", cajon: "cajon", caja_fuerte: "fuerte", por_rendir: "rendir", fondo: "rendir" };
 
 /** La gota con su dibujo. `i`: su lugar en la cascada de la entrada. */
 export function GotaDinero({ trazo, i = 0, conColor = false }: { trazo: TrazoDinero; i?: number; conColor?: boolean }) {

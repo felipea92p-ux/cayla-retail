@@ -3,7 +3,7 @@
 Las cifras están fuera del repo, en el informe de la auditoría.
 
 ## Construir
-- [ ] **Fondo de compras:** restar lo gastado en `fn_flujo_disponible`, sumarlo en `fn_flujo_lineas` con la fecha del papel, sin doble conteo al completarlo. «Por volver de compras» aparte. Web: `fondo` en `TipoCuenta` y `ORDEN_TIPO`, `desgloseDeTienes`, `gruposDeDinero`, `orilloDeDinero`.
+- [x] **Fondo de compras:** construido en `20261107165000` (ADR-0621, act. 2026-11-07). **Falta pegarlo en producción** (una sola ejecución, con el OK de Felipe) y mirar las pantallas en la vista previa.
 - [ ] **Proyección:** `puntoMasBajo` incluye hoy y mira cada día; cobros por nivel real y temporada, meta como escenario; reposición % de costo; días de caja restan impuestos fechados; aviso de CTS y gratificación; domingo sin venta da 0.
 - [ ] **Ajuste de conciliación:** tipo nuevo, separado de `aporte`, con cuenta de pasivo.
 - [ ] **Sueldos:** rangos partidos por mes; Patrimonio con el puente; `hastaDeLaProvision`.
