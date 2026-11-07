@@ -1,8 +1,8 @@
 import { exigirModulo, veEstadosFinancierosDeTodoDe } from "@/lib/persona-actual";
 import { hoyLima } from "@/lib/fechas-lima";
-import { situacion, type UnidadBalance } from "@/lib/balance-reglas";
+import { seDibuja, situacion, type UnidadBalance } from "@/lib/balance-reglas";
 import { getBalanceGeneral, getBalancePorTienda, getConciliacion, getSaldosIniciales } from "@/lib/balance";
-import { BalancePanel, MasDeLaSede, MasDelBalance } from "@/components/finanzas/BalancePanel";
+import { AvisoDiferencias, BalancePanel, MasDeLaSede, MasDelBalance } from "@/components/finanzas/BalancePanel";
 import { hrefTelar, mesDelDia, sedeDeLaUrl } from "@/lib/finanzas-telar-reglas";
 import { mesDe, rangoMes } from "@/lib/gastos-reglas";
 import { getEstadoResultados } from "@/lib/resultados";
@@ -36,7 +36,7 @@ import { paramsDe } from "@/lib/estados-financieros-reglas";
 // Finanzas ▸ Estados financieros ▸ Balance general (ADR-0195 F7, ADR-0585, ADR-0611). La fecha es la del calendario de arriba, la misma `hasta` de los otros tres estados (`?corte=`, el
 // nombre viejo, se sigue entendiendo). Lee en el servidor, a la vez: la comprobación, el Balance y lo de cada tienda a esa fecha y en los dos cierres de antes (con los que se compara, solo
 // si también cuadraron). Quien ve todo (ADR-0585) ve CAYLA entera o, con `?sede=<tienda>`, lo que es de una tienda; una terminal con el módulo, lo de SU tienda (lo decide la base). El Balance
-// se dibuja solo si cuadra (ADR-0198): si no, la comprobación y la guía de qué falta. Los saldos de arranque los registra el líder.
+// se dibuja si cuadra lo de fondo, con un aviso si una cuenta difiere (ADR-0619); si no, la comprobación y la guía de qué falta. Los saldos de arranque los registra el líder.
 export default async function BalancePage({ searchParams }: { searchParams: Promise<{ corte?: string; desde?: string; hasta?: string; ver?: string; sede?: string; mes?: string; forma?: string }> }) {
   const persona = await exigirModulo("reportes_financieros");
   const sp = await searchParams;
@@ -77,14 +77,15 @@ export default async function BalancePage({ searchParams }: { searchParams: Prom
     ),
   ]);
   const costoDelMes = erBase && !erBase.falla ? (erBase.datos.find((f) => f.unidad === "consolidado")?.costo ?? null) : null;
-  const cuadra = deUnaSede ? null : situacion(chequeos.datos).tipo === "cuadra";
-  const grupos = cuadra ? gruposDelBalance(lineas.datos) : [];
-  const medidas = cuadra ? medidores(grupos, costoDelMes) : null;
-  const recomendaciones = recomendacionesVale({ cuadra, medidas, unidades: unidades.datos, sede: deUnaSede ? ver : null, href });
+  const sit = deUnaSede ? null : situacion(chequeos.datos);
+  const dibuja = sit ? seDibuja(sit) : null;
+  const grupos = dibuja ? gruposDelBalance(lineas.datos) : [];
+  const medidas = dibuja ? medidores(grupos, costoDelMes) : null;
+  const recomendaciones = recomendacionesVale({ cuadra: dibuja, conDiferencias: sit?.tipo === "con_diferencias", medidas, unidades: unidades.datos, sede: deUnaSede ? ver : null, href });
   const unidad = deUnaSede ? (unidades.datos.find((u) => u.ubicacionId === ver) ?? unidades.datos[0] ?? null) : null;
   const fallas = [chequeos.falla, lineas.falla, unidades.falla, saldos.falla].filter((f): f is string => !!f);
   const etiquetaActual = etiquetaDelCorte(corte);
-  const conVidrio = deUnaSede ? !!unidad : !!cuadra;
+  const conVidrio = deUnaSede ? !!unidad : !!dibuja;
 
   return (
     <div className="space-y-4">
@@ -94,19 +95,20 @@ export default async function BalancePage({ searchParams }: { searchParams: Prom
           {f}
         </Aviso>
       ))}
+      {sit?.tipo === "con_diferencias" && <AvisoDiferencias diferencias={sit.diferencias} esLider={esLider} hoy={hoy} saldos={saldos.datos} />}
       {conVidrio && !deUnaSede && (() => {
         const partes = partesDelBalance({ grupos, comparadas: anteriores, etiquetaActual, corte });
         const t = totalesDelBalance(grupos);
         const delLado = (lado: "tiene" | "debe" | "tuyo") => partes.filter((p) => grupos.find((g) => g.clave === p.clave)?.lado === lado);
         return (
           <EstadoEnInforme
-            nombre={`Lo que vale CAYLA · ${periodo.al}`}
+            nombre={`Patrimonio · ${periodo.al}`}
             lectura={lecturaDelBalance(grupos, anteriores.at(-1)?.grupos ?? null, corte)}
             grafico={
               <TubosDelBalance
                 guia="fin-vale.tubos"
-                arriba={{ rotulo: "Lo que tienes", cifra: solesCentimos(t.tiene), partes: delLado("tiene") }}
-                abajo={{ rotulo: "Lo que debes y lo que es tuyo", cifra: `Debes ${solesCentimos(t.debe)} + tuyo ${solesCentimos(t.tuyo)}`, partes: [...delLado("debe"), ...delLado("tuyo")] }}
+                arriba={{ rotulo: "Activo", cifra: solesCentimos(t.tiene), partes: delLado("tiene") }}
+                abajo={{ rotulo: "Pasivo + Patrimonio", cifra: `${solesCentimos(t.debe)} + ${solesCentimos(t.tuyo)}`, partes: [...delLado("debe"), ...delLado("tuyo")] }}
                 huecos={["tuyo"]}
               />
             }

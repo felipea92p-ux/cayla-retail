@@ -20,6 +20,7 @@ import {
   nombreDeCuenta,
   nombreLinea,
   avisoBalanceSinCuadrar,
+  seDibuja,
   situacion,
   unidadesConSueldos,
   solesBalance,
@@ -98,7 +99,7 @@ describe("lo que llega de la base", () => {
   });
 });
 
-describe("¿se dibuja? (ADR-0198: un número falso es peor que ninguno)", () => {
+describe("¿se dibuja? (ADR-0619)", () => {
   it("sin saldos de arranque no hay Balance", () => {
     expect(situacion([ch({ clave: "arranque", estado: "falta", diario: null, otro: null })]).tipo).toBe("sin_arranque");
     expect(situacion([]).tipo).toBe("sin_arranque");
@@ -106,12 +107,18 @@ describe("¿se dibuja? (ADR-0198: un número falso es peor que ninguno)", () => 
   it("antes del día de arranque no hay Balance", () => {
     expect(situacion([ch({ clave: "corte", estado: "falta", arranque: "2024-03-01" })])).toEqual({ tipo: "antes_del_arranque", arranque: "2024-03-01" });
   });
-  it("una cuenta que no cuadra bloquea; la nota y el IGV para revisar, no", () => {
+  it("una cuenta que difiere no lo esconde: sale con aviso; la nota y el IGV para revisar ni eso", () => {
     const s = situacion([ch({}), ch({ clave: "104", estado: "nota" }), ch({ clave: "4011", estado: "revisar", bloquea: false })]);
     expect(s.tipo).toBe("cuadra");
     if (s.tipo === "cuadra") expect(s.notas.map((c) => c.clave)).toEqual(["104", "4011"]);
-    const no = situacion([ch({}), ch({ clave: "421", estado: "no_cuadra" })]);
-    expect(no.tipo).toBe("no_cuadra");
+    const dif = situacion([ch({}), ch({ clave: "421", estado: "no_cuadra" })]);
+    expect(dif.tipo).toBe("con_diferencias");
+    expect(seDibuja(dif)).toBe(true);
+  });
+  it.each(["arranque", "diario", "ecuacion"])("si falla «%s» no hay Balance que dibujar", (clave) => {
+    const s = situacion([ch({ clave: "421", estado: "no_cuadra" }), ch({ clave, estado: "no_cuadra" })]);
+    expect(s.tipo).toBe("no_cuadra");
+    expect(seDibuja(s)).toBe(false);
   });
   it("lo que no bloquea no impide dibujar aunque diga «no cuadra»", () => {
     expect(situacion([ch({ clave: "4011", estado: "no_cuadra", bloquea: false })]).tipo).toBe("cuadra");
@@ -286,7 +293,7 @@ describe("descargar Excel", () => {
       "2024-03-31",
     );
     expect(csv.startsWith("﻿Balance al;2024-03-31")).toBe(true);
-    expect(csv).toContain("Lo que tiene;101;Caja (cajones, cajas fuertes y lo entregado al líder);125.00");
+    expect(csv).toContain("Activo;101;Caja (cajones, cajas fuertes y lo entregado al líder);125.00");
     expect(csv).toContain("101 Caja;contra lo que dice cada caja;125.00;125.00;0.00;cuadra");
     expect(csv).toContain("Tienda Trujillo;125.00;0.00;0.00;0.00;895.00;113.99;12,7 % al mes");
   });
