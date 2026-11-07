@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { MS_TOPE_DESTINO, destinoDelClic, etiquetaDelDestino, leerEnCamino, leerUltimo, marcarDestino, sigueEnCamino, soltarDestino } from "./navegacion-al-instante";
+import { destinoDelClic, etiquetaDelDestino, leerEnCamino, leerUltimo, llegoAlDestino, marcarDestino, soltarDestino } from "./navegacion-al-instante";
 
 const AQUI = { pathname: "/caja", origin: "https://cayla-retail.vercel.app" };
 const CLIC = { button: 0, metaKey: false, ctrlKey: false, shiftKey: false, altKey: false, defaultPrevented: false };
@@ -40,20 +40,15 @@ describe("etiquetaDelDestino: el nombre del menú de la pantalla a la que se ent
   });
 });
 
-describe("sigueEnCamino: el esqueleto se va cuando llega la pantalla o vence el tope", () => {
+describe("llegoAlDestino: el esqueleto se va cuando llega la pantalla", () => {
   const d = { pathname: "/inventario", etiqueta: "Existencias", desde: 1_000 };
-  it("mientras la ruta no cambia y no venció, sigue", () => {
-    expect(sigueEnCamino(d, "/caja", 1_500)).toBe(true);
+  it("mientras la ruta es otra, no llegó", () => {
+    expect(llegoAlDestino(d, "/caja")).toBe(false);
+    expect(llegoAlDestino(d, "/inventario-viejo")).toBe(false);
   });
-  it("llegó la ruta (o una hija suya): ya no", () => {
-    expect(sigueEnCamino(d, "/inventario", 1_500)).toBe(false);
-    expect(sigueEnCamino(d, "/inventario/conteo", 1_500)).toBe(false);
-  });
-  it("pasado el tope, se devuelve la pantalla anterior", () => {
-    expect(sigueEnCamino(d, "/caja", 1_000 + MS_TOPE_DESTINO)).toBe(false);
-  });
-  it("sin destino, nada que esperar", () => {
-    expect(sigueEnCamino(null, "/caja", 0)).toBe(false);
+  it("la ruta (o una hija suya) ya es la del destino: llegó", () => {
+    expect(llegoAlDestino(d, "/inventario")).toBe(true);
+    expect(llegoAlDestino(d, "/inventario/conteo")).toBe(true);
   });
 });
 

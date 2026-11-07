@@ -44,11 +44,9 @@ export function etiquetaDelDestino(pathname: string, pantallas: readonly { href:
   return mejor?.etiqueta ?? null;
 }
 
-/** ¿Seguimos esperando a que llegue ese destino? No, si la ruta ya es la suya (llegó) o si pasó el tope (no llegará: se devuelve la anterior). */
-export function sigueEnCamino(destino: Destino | null, pathname: string, ahora: number): boolean {
-  if (!destino) return false;
-  if (rutaActiva(pathname, destino.pathname) || pathname === destino.pathname) return false;
-  return ahora - destino.desde < MS_TOPE_DESTINO;
+/** ¿Ya llegó la pantalla a la que se entró? Sí, si la ruta es la suya o una hija suya. El tope de 15 s lo cuenta el marco aparte (un reloj, no la ruta). */
+export function llegoAlDestino(destino: Destino, pathname: string): boolean {
+  return pathname === destino.pathname || rutaActiva(pathname, destino.pathname);
 }
 
 // ---- El almacén (fuera de React: lo escriben los manejadores del menú y lo leen el marco y el `loading.tsx`) ----

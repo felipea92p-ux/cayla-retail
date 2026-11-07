@@ -3,18 +3,16 @@
 import { useEffect, useSyncExternalStore } from "react";
 import { usePathname } from "next/navigation";
 import { soltarPaginaEstable } from "@/components/ui/PaginaEstable";
-import { MS_TOPE_DESTINO, leerEnCamino, leerUltimo, soltarDestino, suscribirDestino, type Destino } from "@/lib/navegacion-al-instante";
-import { rutaActiva } from "@/lib/menu";
+import { MS_TOPE_DESTINO, leerEnCamino, leerUltimo, llegoAlDestino as llego, soltarDestino, suscribirDestino } from "@/lib/navegacion-al-instante";
 
 const ninguno = () => null;
-const llego = (d: Destino, pathname: string) => pathname === d.pathname || rutaActiva(pathname, d.pathname);
 
 /**
  * El destino al que se entró desde el menú y que todavía no llega (ADR-0628), o `null`. Lo usa el marco: mientras haya uno, la fila del menú
  * ya está activa y el contenido es el esqueleto con su nombre. Se suelta solo cuando la ruta cambia, con «atrás», o a los 15 s si nunca llegó
  * (la pantalla anterior, que quedó montada y escondida, vuelve tal cual).
  */
-export function useDestinoEnCamino(): Destino | null {
+export function useDestinoEnCamino(): ReturnType<typeof leerEnCamino> {
   const pathname = usePathname();
   const destino = useSyncExternalStore(suscribirDestino, leerEnCamino, ninguno);
   const enCamino = destino && !llego(destino, pathname) ? destino : null;
