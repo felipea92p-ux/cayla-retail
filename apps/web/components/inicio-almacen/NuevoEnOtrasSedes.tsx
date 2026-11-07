@@ -10,6 +10,7 @@ import { ayudaNuevos, chipsNuevos, filtrarNuevos, hrefFichaProducto, hrefFotosPr
 import { ChipSede } from "./ChipSede";
 import { Ico } from "./iconos";
 import { ReintentarLectura } from "./ReintentarLectura";
+import { prefiereQuieto } from "@/lib/movimiento-cliente";
 
 /**
  * «Nuevo en otras sedes» (maqueta docs/maquetas/inicio-almacen-2026-09/): lo que se dio de alta hoy y ayer, en un carrusel de
@@ -38,7 +39,7 @@ export function NuevoEnOtrasSedes({
     const siguiente = nuevo === filtro && nuevo !== "todas" ? "todas" : nuevo;
     const aplicar = () => setFiltro(siguiente);
     const vt = (document as Document & { startViewTransition?: (cb: () => void) => { ready: Promise<void>; finished: Promise<void>; updateCallbackDone: Promise<void> } }).startViewTransition;
-    if (!vt || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return aplicar();
+    if (!vt || prefiereQuieto()) return aplicar();
     // Dos clics seguidos hacen que el navegador aborte la transición anterior y lo avise por promesa: no es un error.
     const t = vt.call(document, aplicar);
     [t.ready, t.finished, t.updateCallbackDone].forEach((p) => p.catch(() => {}));

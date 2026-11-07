@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { prefiereQuieto } from "./movimiento-cliente";
 
 /**
  * Una cifra que CAMBIÓ cuenta hasta su valor nuevo (ADR-0128): el gesto «asentar» de la capa de
@@ -23,7 +24,7 @@ export function useContar(valor: number, ms = 800, alMontar = false, desde?: num
   useEffect(() => {
     const desde = enPantalla.current;
     if (desde === valor) return;
-    const reducido = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+    const reducido = prefiereQuieto();
     let cuadro = 0;
     if (reducido) {
       cuadro = requestAnimationFrame(() => {

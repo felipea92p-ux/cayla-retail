@@ -90,6 +90,7 @@ import { useCantidadEscrita, type CantidadEscrita } from "@/components/alta-prod
 import { reglaDeEntero } from "@/lib/cantidad-escrita-reglas";
 import { MONTO_ILEGIBLE, montoIlegible } from "@/lib/monto-plata-reglas";
 import { PasoCantidad } from "@/components/ui/PasoCantidad";
+import { prefiereQuieto } from "@/lib/movimiento-cliente";
 
 // Recibir mercadería POR ENVÍO (ADR-0113). Lo que llega a la puerta es un envío —una agencia, una guía,
 // varios bultos— y puede traer comprobantes de VARIOS proveedores y prendas que ningún comprobante lista. Todo se
@@ -490,7 +491,7 @@ export function RecepcionEnvio({
   function quitarConSalida(c: CompraResumen) {
     if (tieneCantidades(c.id)) return alternar(c);
     setSaliendoChip(c.id);
-    const reducido = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const reducido = prefiereQuieto();
     setTimeout(() => {
       setSaliendoChip(null);
       alternar(c);
@@ -520,7 +521,7 @@ export function RecepcionEnvio({
   // (hay que repartirlas mirando la caja), salvo «Nada llegó», que es lo mismo para todas.
   function marcarTodas(compraId: string, que: "todo" | "nada" | "vaciar") {
     // «Todo llegó» se llena fila por fila (50 ms entre una y otra): se ve DÓNDE se anotó. Con movimiento reducido, de golpe.
-    if (que === "todo" && !window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+    if (que === "todo" && !prefiereQuieto()) {
       lineas
         .filter((x) => x.compraId === compraId && x.pendiente > 0 && x.varianteId)
         .forEach((l, i) => setTimeout(() => setReparto((r) => ({ ...r, [l.id]: { [l.varianteId!]: l.pendiente } })), i * 50));
@@ -603,7 +604,7 @@ export function RecepcionEnvio({
   const agregarExtra = () => setExtras((a) => [...a, { productoId: "", varianteId: "", cantidad: 1, costoUnitario: "", proveedorId: proveedorPorDefecto, esRegalo: false }]);
   const quitarExtra = (i: number) => {
     setSaliendoExtra(i);
-    const reducido = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const reducido = prefiereQuieto();
     setTimeout(() => {
       setSaliendoExtra(null);
       setExtras((a) => a.filter((_, n) => n !== i));

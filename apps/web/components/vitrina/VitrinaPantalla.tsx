@@ -47,6 +47,7 @@ import {
   type ModeloVitrina,
   type ModoLote,
 } from "@/lib/vitrina-reglas";
+import { prefiereQuieto } from "@/lib/movimiento-cliente";
 
 // Cómo se llama cada estado en la píldora y en el filtro puesto. «Encendidos sin precio» es lo que el Resumen cuenta: los que alguien
 // prendió y no se ven porque ninguna tienda de la web les pone precio.
@@ -166,7 +167,7 @@ export function VitrinaPantalla({
     if (!saltoAlInicio.current) return;
     saltoAlInicio.current = false;
     soltarPaginaEstable();
-    const sinMovimiento = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const sinMovimiento = prefiereQuieto();
     cajaRef.current?.scrollIntoView({ block: "start", behavior: sinMovimiento ? "auto" : "smooth" });
   });
   // Las categorías de lo que se está mirando: con «Empaque», las del empaque; si no, las de la ropa (una categoría de bolsas no

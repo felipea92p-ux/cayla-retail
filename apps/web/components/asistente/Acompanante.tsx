@@ -11,6 +11,7 @@ import { mismaPantalla, rutaDe, seAbreDesdeOtra, type PasoTarea } from "@/lib/as
 import { caminoDelVelo, recorteDe, type Caja } from "@/lib/guias/reglas";
 import { GUIAS } from "@/lib/guias/registro";
 import { useConsultaMedia } from "@/lib/useConsultaMedia";
+import { prefiereQuieto } from "@/lib/movimiento-cliente";
 
 // «Pregúntale a CAYLA» acompaña una tarea (Felipe 2026-10-27: «la persona hace los clics; CAYLA la guía», con «una barra fija abajo, como un
 // GPS»). Enciende la pieza del paso con un anillo que NO tapa nada (se toca a través), dice la orden en letra grande y pasa sola al
@@ -335,7 +336,7 @@ export function Acompanante() {
   // mueva. Se escribe directo en el DOM (sin pasar por React en cada cuadro) y se acerca a la meta sin pasarse.
   useEffect(() => {
     if (!paso) return;
-    const quieto = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const quieto = prefiereQuieto();
     let actual: Caja | null = null;
     let antes = performance.now();
     let cuadro = 0;

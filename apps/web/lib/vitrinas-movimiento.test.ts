@@ -36,7 +36,7 @@ describe("vitrinas-sedes.css — los límites del movimiento (ADR-0136, excepci�
     const reducido = css.slice(css.indexOf(REDUCIR));
     expect(reducido).toMatch(/animation:\s*none\s*!important/);
     expect(reducido).toMatch(/transition:\s*none\s*!important/);
-    expect(vista).toMatch(/prefers-reduced-motion: reduce/);
+    expect(vista).toMatch(/prefiereQuieto\(\)/); // la pregunta única por el movimiento (ADR-0625)
   });
 
   it("un :hover vive dentro de @media (hover: hover), y la inclinación no pasa de 1,5°", () => {

@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef } from "react";
 import { campoDeMasArriba } from "@/lib/guia-campos";
+import { prefiereQuieto } from "@/lib/movimiento-cliente";
 
 // Llevar a la persona al campo (ADR-0284): lo pide el «Falta: …» del pie, el «Siguiente: …» de la ficha o el botón que confirma. Que la luz
 // cambie de campo nunca mueve la pantalla. Nada aquí decide QUÉ sigue (eso es `lib/alta-producto-guia.ts`):
@@ -39,7 +40,7 @@ type IdCampo = string;
 const CON_CURSOR: ReadonlySet<IdCampo> = new Set(["nombre", "descripcion", "precio"]);
 
 function reducido(): boolean {
-  return typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  return typeof window !== "undefined" && prefiereQuieto();
 }
 
 function fila(id: IdCampo): HTMLElement | null {

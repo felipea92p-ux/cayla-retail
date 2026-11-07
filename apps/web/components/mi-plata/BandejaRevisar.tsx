@@ -35,6 +35,7 @@ import { DetalleCierre } from "./CierresPorRecibir";
 import { DetalleGasto, MiniFotoGasto } from "./GastosPorRevisar";
 import { DetallePapel, MiniFotoPapel } from "./PapelesPorCompletar";
 import { DetallePlata, MiniVoucher } from "./PlataPorConfirmar";
+import { prefiereQuieto } from "@/lib/movimiento-cliente";
 
 // «Revisar compras» como bandeja (rediseño, maqueta docs/maquetas/compras-formidable-2026-10/, Felipe 2026-10-23). Arriba, cuatro cifras
 // que FILTRAN: la plata por confirmar, las compras por completar, los gastos por revisar y los cierres del día (antes eran cuatro secciones
@@ -69,7 +70,7 @@ export function BandejaRevisar(d: Datos) {
   const abrir = (id: string) => {
     setElegido(id);
     if (typeof window === "undefined" || !window.matchMedia("(max-width: 1023.98px)").matches) return;
-    const quieto = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const quieto = prefiereQuieto();
     requestAnimationFrame(() => detalleRef.current?.scrollIntoView({ behavior: quieto ? "auto" : "smooth", block: "start" }));
   };
 

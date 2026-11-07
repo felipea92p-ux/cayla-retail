@@ -14,6 +14,7 @@ import {
 } from "@/lib/avisos-reglas";
 import { esperaOcupada, suscribirEspera } from "@/lib/espera-estado";
 import { velocidad, type Muestra } from "@/lib/hoja-gesto";
+import { prefiereQuieto } from "@/lib/movimiento-cliente";
 
 /* ====================================================================
    Avisos · una sola voz, arriba a la derecha (2026-09-14)
@@ -391,7 +392,7 @@ function useApartarConElDedo(ref: React.RefObject<HTMLDivElement | null>, aparta
       const d = muestras[muestras.length - 1].y;
       const tamano = eje === "x" ? el!.offsetWidth : el!.offsetHeight;
       const salida = e.type === "pointercancel" ? null : salidaDelAviso(eje, d, velocidad(muestras), tamano);
-      const ms = matchMedia("(prefers-reduced-motion: reduce)").matches ? 0 : 220;
+      const ms = prefiereQuieto() ? 0 : 220;
       if (salida) {
         // Sigue de largo hacia donde iba y la pila se cierra detrás (la salida de siempre colapsa su alto).
         if (salida === "arriba") pintar(0, -(el!.offsetHeight + 32), 0, ms);
