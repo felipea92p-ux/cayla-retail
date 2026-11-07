@@ -42,6 +42,11 @@ export function leerFilasIgv(data: unknown): FilaIgvGestion[] {
   }));
 }
 
+/** Lo que dijo el líder de un mes. La base lo repite en cada fila del mes. */
+export function montoDichoDelMes(igv: readonly FilaIgvGestion[], mes: string): number | null {
+  return igv.find((x) => x.mes === mes && x.montoDicho !== null)?.montoDicho ?? null;
+}
+
 /** Los meses con lo dicho que no caben enteros en estas fechas. La cuenta va por mes y con todas las unidades: una sede sola no sabe si su mes está entero. */
 function mesesParciales(igv: readonly FilaIgvGestion[]): Set<string> {
   const porMes = new Map<string, { tramo: number; mes: number }>();

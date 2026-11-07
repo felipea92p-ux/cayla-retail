@@ -147,7 +147,7 @@ export const GUIA_FIN_RESUMEN: Guia = {
       id: "respuestas",
       ancla: "fin-resumen.respuestas",
       titulo: "Las tres preguntas de siempre",
-      texto: "Tres respuestas de un vistazo. Cuánto tienes hoy entre cajones, cajas fuertes y bancos, partido en lo que es de CAYLA y lo que es de CLAURE. Cuánto debes pagar pronto, con cada deuda, su monto y cuándo vence. Y cuánto te deja el mes. Mirando el Taller o la Empresa, la última dice cuánto cuestan: no venden.",
+      texto: "Tres respuestas de un vistazo. Cuánto tienes hoy en cajones, cajas fuertes y bancos, partido entre CAYLA y CLAURE. Cuánto debes pagar pronto, con cada deuda y cuándo vence. Y cuánto te deja el mes, según el libro: las ventas sin IGV. Mirando el Taller o la Empresa, la última dice cuánto cuestan: no venden.",
     },
     {
       id: "sedes",
@@ -1073,7 +1073,7 @@ export const GUIA_FIN_RESULTADOS: Guia = {
       id: "bienvenida",
       ancla: null,
       titulo: "Ganancias y pérdidas",
-      texto: "Lo que se vendió, menos lo que costaron esas prendas y los gastos. Sale solo de cada venta, compra, gasto y movimiento de caja: nadie lo escribe. Es una demo.",
+      texto: "Lo que se vendió con IGV, menos el IGV del mes, lo que costaron esas prendas y los gastos. Sale solo de cada venta, compra, gasto y movimiento de caja: lo único que se dice a mano es el IGV, en Impuestos. Es una demo.",
     },
     ...TELAR_SIN_MES,
     FECHAS,
@@ -1087,6 +1087,13 @@ export const GUIA_FIN_RESULTADOS: Guia = {
       texto: "Lo que quedó en estas fechas, una frase que dice qué significa y contra qué se compara. Debajo, cómo viene mes a mes: pasa el mouse para leer cada mes.",
     },
     {
+      id: "igv",
+      ancla: "fin-ganamos.igv",
+      opcional: true,
+      titulo: "El IGV que falta decir",
+      texto: "Si el líder no dijo cuánto va a pagar de IGV en estas fechas, se resta todo el incluido en las ventas y esta nota lo avisa. El monto se dice en Impuestos, y el botón te lleva. Es lo único de esta pantalla que se escribe a mano.",
+    },
+    {
       id: "costo-estimado",
       ancla: "fin-ganamos.costo-estimado",
       opcional: true,
@@ -1098,7 +1105,7 @@ export const GUIA_FIN_RESULTADOS: Guia = {
       ancla: "fin-ganamos.partes",
       opcional: true,
       titulo: "El estado, fila por fila",
-      texto: "Lo que vendiste, cada gasto que resta y lo que quedó, con los meses de antes al lado y cuánto pesa cada fila de lo vendido. Toca una fila para ver de qué está hecha.",
+      texto: "Las ventas con IGV, el IGV del mes, cada gasto que resta y lo que quedó, con los meses de antes al lado y cuánto pesa cada fila. Al final, lo que dice el libro. Toca una fila para ver de qué está hecha.",
     },
     {
       id: "libro",
@@ -1152,8 +1159,8 @@ export const GUIA_FIN_RESULTADOS: Guia = {
       id: "cuadro",
       ancla: "fin-ganamos.cuadro",
       opcional: true,
-      titulo: "El cuadro por sede",
-      texto: "El estado de resultados como lo lee un contador: una columna por sede y CAYLA al final.",
+      titulo: "El cuadro por sede, según el libro",
+      texto: "El estado de resultados como lo lee un contador: una columna por sede y CAYLA al final. Aquí las ventas van sin IGV, así que su resultado puede ser distinto al de arriba.",
     },
     {
       id: "comparar",
@@ -1843,6 +1850,13 @@ export const GUIA_FIN_IMPUESTOS: Guia = {
       ancla: "fin-impuestos.pagas",
       titulo: "Lo que pagas",
       texto: "La cifra que sale hacia SUNAT por este mes, cuándo se paga y lo que falta hacer. «Registrar pago» te lleva a Cuentas y dinero. Si el IGV queda a favor, solo pagas la renta.",
+    },
+    {
+      id: "decir-igv",
+      ancla: "fin-impuestos.decir-igv",
+      opcional: true,
+      titulo: "Decir el IGV del mes",
+      texto: "Solo el líder dice cuánto va a pagar de IGV este mes, y Ganancias y pérdidas lo resta. No cambia el libro ni lo que se declara. Se dice una vez por mes; si cambia, se dice otra vez, hasta que el mes se cierre. En la demo no lo abrimos.",
     },
     {
       id: "cuenta",

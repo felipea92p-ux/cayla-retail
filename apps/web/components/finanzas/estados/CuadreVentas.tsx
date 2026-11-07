@@ -29,7 +29,7 @@ export function CuadreVentas({ cuadro, falla }: { cuadro: CuadroVentas | null; f
       >
         De Ventas a Finanzas
       </TituloSeccion>
-      <p className="mt-1 text-sm text-taupe">Parten de las mismas ventas. Ventas muestra lo cobrado; Finanzas, lo que es ingreso de CAYLA.</p>
+      <p className="mt-1 text-sm text-taupe">Parten de las mismas ventas. Ventas muestra lo cobrado; el libro de Finanzas, lo que es ingreso de CAYLA, sin IGV. Ganancias parte de esa cifra y le vuelve a sumar el IGV.</p>
       <div className="fin-tabla-wrap mt-3">
         <table className="fin-tabla fin-tabla-flujo" /* unificar-fijo: la tabla del kit de Finanzas (fin-tabla), como sus vecinas de Estados financieros, ADR-0195 */>
           <caption className="sr-only">De lo vendido en Ventas a las ventas de Finanzas</caption>

@@ -44,13 +44,13 @@ type Clave = "vendido" | "igv" | "anulaciones" | "devoluciones" | "cambios" | "c
 
 const CONCEPTOS: readonly { clave: Clave; nombre: string; detalle: string }[] = [
   { clave: "vendido", nombre: "Vendido", detalle: "Ventas ▸ Reportes: lo cobrado, con IGV" },
-  { clave: "igv", nombre: "IGV", detalle: "Está dentro de lo cobrado, pero es de SUNAT" },
+  { clave: "igv", nombre: "IGV", detalle: "Está dentro de lo cobrado. El libro no lo cuenta como ingreso" },
   { clave: "anulaciones", nombre: "Anuladas en otro mes", detalle: "La venta y su anulación cayeron en meses distintos" },
   { clave: "devoluciones", nombre: "Devoluciones", detalle: "Lo devuelto en el mes, sin IGV" },
   { clave: "cambios", nombre: "Diferencias de cambios", detalle: "Lo que se cobró o devolvió al cambiar una prenda, sin IGV" },
   { clave: "claure", nombre: "Prendas de CLAURE", detalle: "Se le deben a CLAURE: no son ingreso de CAYLA" },
   { clave: "otras", nombre: "Sin explicar", detalle: "Una diferencia que ninguna regla nombra: avísale al equipo" },
-  { clave: "ventasNetas", nombre: "Ventas", detalle: "Finanzas: lo que es ingreso de CAYLA" },
+  { clave: "ventasNetas", nombre: "Ventas del libro", detalle: "Finanzas, en el libro, sin IGV" },
 ];
 
 export type FilaCuadro = { clave: Clave; nombre: string; detalle: string; montos: number[]; total: number };

@@ -1,7 +1,9 @@
 import "server-only";
 import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
-import { leerFilasIgv, pasarAGestion, type FilaIgvGestion } from "@/lib/igv-gestion-reglas";
+import { leerFilasIgv, montoDichoDelMes, pasarAGestion, type FilaIgvGestion } from "@/lib/igv-gestion-reglas";
+import { rangoMes } from "@/lib/gastos-reglas";
+import { getUnidadesCerradas } from "@/lib/resultados";
 import type { FilaER } from "@/lib/resultados-reglas";
 
 // El IGV de gestión (ADR-0620; contrato en 20261107034000_igv_de_gestion.sql). Solo LEE. `getEstadoResultados` no cambia: lo que es del libro sigue pidiéndolo a él.
@@ -26,4 +28,12 @@ export async function getResultadosDeGestion(tramos: readonly { desde: string; h
     tramos.map((t) => t.lectura),
     igv,
   );
+}
+
+/** Para la hoja de Impuestos: lo dicho del mes y si ya tiene una unidad cerrada. Sin la lectura, `null`: la pantalla no ofrece un monto que no pudo leer. */
+export async function getIgvDichoDelMes(mes: string): Promise<{ monto: number | null; cerrado: boolean } | null> {
+  const { desde, hasta } = rangoMes(mes);
+  const [igv, cerradas] = await Promise.all([getIgvDeGestion(desde, hasta), getUnidadesCerradas(mes)]);
+  if (igv.falla) return null;
+  return { monto: montoDichoDelMes(igv.datos, mes), cerrado: cerradas.length > 0 };
 }

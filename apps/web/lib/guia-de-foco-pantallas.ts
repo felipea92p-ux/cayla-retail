@@ -513,6 +513,8 @@ export const MODALES: Record<string, PantallaGuia> = {
   "components/conteo/CancelarConteoModal.tsx": PENDIENTE, // 1 control — un solo control: candidato a no-aplica
   "components/ficha-producto/FotosPorColor.tsx": PENDIENTE, // 2 controles
   "components/finanzas/CierreMes.tsx": PENDIENTE, // 5 controles
+  // ADR-0620: el IGV del mes. Falta = el monto (0 vale) y quién lo dice; la nota es opcional.
+  "components/finanzas/DecirIgvDelMesModal.tsx": { estado: "aplicada", evidencia: ["components/finanzas/DecirIgvDelMesModal.tsx"] },
   // Felipe 2026-11-05: «Agregar cuenta», salida de Configuración ▸ Dinero. Falta = lo mismo que frena `agregar`: el nombre, una fecha que no sea futura y quién lo hace.
   "components/finanzas/AgregarCuentaModal.tsx": { estado: "aplicada", evidencia: ["components/finanzas/AgregarCuentaModal.tsx"] },
   // Felipe 2026-11-05: la hoja de la propuesta solo muestra lo que cambiaría; lo único que se llena es el Responsable, que ya trae su candado.

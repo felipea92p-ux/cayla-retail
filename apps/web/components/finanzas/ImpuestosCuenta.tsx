@@ -1,13 +1,17 @@
 "use client";
 
 import { useState } from "react";
-import { ChevronDown, FileText, Landmark } from "lucide-react";
+import { ChevronDown, FileText, Landmark, Percent } from "lucide-react";
 import { Superficie } from "@/components/finanzas/kit";
-import { BotonEnlace } from "@/components/ui/campos";
+import { Boton, BotonEnlace } from "@/components/ui/campos";
 import { CifraAnimada } from "@/components/ui/CifraAnimada";
 import { Vacio } from "@/components/ui/Vacio";
 import { solesRedondo } from "@/lib/gastos-reglas";
+import { fraseDelIgvDicho } from "@/lib/igv-del-mes-reglas";
 import type { CuentaImpuestos } from "@/lib/impuestos-cuenta-reglas";
+
+/** Lo que dijo el líder del mes que se mira. `cerrado`: alguna unidad cerró el mes y la base ya no acepta otro monto. */
+export type IgvDelMesDicho = { monto: number | null; cerrado: boolean };
 
 // Finanzas ▸ Impuestos, «E · B++» (Felipe 2026-10-28, ADR-0573): arriba, UNA respuesta grande («Pagas») y, a su lado, la cuenta en líneas:
 // vendiste → IGV de tus ventas − IGV de tus compras + renta = pagas. Las cifras las arma `lib/impuestos-cuenta-reglas.ts` sobre lo que ya
@@ -16,8 +20,10 @@ import type { CuentaImpuestos } from "@/lib/impuestos-cuenta-reglas";
 const mas = (n: number) => solesRedondo(n);
 
 /** La respuesta: lo que de verdad sale hacia SUNAT por el mes que se mira, cuándo se paga y lo que falta hacer. */
-export function PagasImpuestos({ cuenta, guia }: { cuenta: CuentaImpuestos; guia?: string }) {
+export function PagasImpuestos({ cuenta, guia, mes, igvDelMes, onDecirIgv }: { cuenta: CuentaImpuestos; guia?: string; mes: string; /** Solo el líder lo recibe (ADR-0620). */ igvDelMes: IgvDelMesDicho | null; onDecirIgv: () => void }) {
   const hay = cuenta.estado !== "sin_mes";
+  const hayPago = hay && !cuenta.pagadoTodo;
+  const decir = hay && igvDelMes !== null;
   return (
     <section className="fin-pagas anim-sube" style={{ ["--i" as string]: 1 }} data-guia={guia} aria-label={cuenta.etiqueta}>
       <p className="fin-pagas-nombre">{cuenta.etiqueta}</p>
@@ -26,13 +32,23 @@ export function PagasImpuestos({ cuenta, guia }: { cuenta: CuentaImpuestos; guia
       </p>
       {hay && <span className="fin-pagas-chip">{cuenta.chip}</span>}
       <p className="fin-pagas-frase">{cuenta.frase}</p>
-      {hay && !cuenta.pagadoTodo && (
-        <div>
-          <BotonEnlace href={cuenta.registrarPago} peso="fantasma" title="Anota el pago que hiciste desde un banco, en Cuentas y dinero">
-            <Landmark aria-hidden className="h-4 w-4" /> Registrar pago
-          </BotonEnlace>
+      {(hayPago || decir) && (
+        <div className="flex flex-wrap items-center gap-2">
+          {hayPago && (
+            <BotonEnlace href={cuenta.registrarPago} peso="fantasma" title="Anota el pago que hiciste desde un banco, en Cuentas y dinero">
+              <Landmark aria-hidden className="h-4 w-4" /> Registrar pago
+            </BotonEnlace>
+          )}
+          {decir && !igvDelMes.cerrado && (
+            <Boton type="button" peso="fantasma" onClick={onDecirIgv} aria-haspopup="dialog" data-guia="fin-impuestos.decir-igv" title="Di cuánto vas a pagar de IGV: Ganancias y pérdidas lo resta">
+              <span className="inline-flex items-center gap-2">
+                <Percent aria-hidden className="h-4 w-4" /> {igvDelMes.monto === null ? "Decir IGV del mes" : "Cambiar IGV del mes"}
+              </span>
+            </Boton>
+          )}
         </div>
       )}
+      {decir && <p className="fin-pagas-frase">{igvDelMes.cerrado ? `Mes cerrado. ${fraseDelIgvDicho(igvDelMes.monto, mes)}` : fraseDelIgvDicho(igvDelMes.monto, mes)}</p>}
     </section>
   );
 }

@@ -549,7 +549,7 @@ export function csvDe(filas: (string | number)[][]): string {
 
 export function csvEstado(conceptos: readonly ConceptoER[], columnas: readonly FilaER[], mes: string): string {
   return csvDe([
-    [`Estado de resultados · ${mesTitulo(mes)}`],
+    [`Estado de resultados · ${mesTitulo(mes)} · Según el libro: las ventas van sin IGV`],
     ["Concepto", "Cuenta", ...columnas.map((c) => nombreCorto(c))],
     ...conceptos.map((k) => [k.nombre, k.cuenta, ...columnas.map((c) => Math.round(k.valor(c) * 100) / 100)]),
   ]);

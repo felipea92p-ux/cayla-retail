@@ -1,5 +1,5 @@
 import { Suspense } from "react";
-import { exigirModulo, veDiarioDeTodoDe } from "@/lib/persona-actual";
+import { exigirModulo, veDiarioDeTodoDe, veModulo } from "@/lib/persona-actual";
 import { hoyLima } from "@/lib/fechas-lima";
 import { mesDe } from "@/lib/gastos-reglas";
 import { avisosER, columnasER, leerVerER, mesAnterior, mesNombre } from "@/lib/resultados-reglas";
@@ -111,6 +111,8 @@ export default async function ReportesPage({ searchParams }: { searchParams: Pro
   ])!;
   const leidas = comparadas.map((c, i) => ({ etiqueta: c.etiqueta, fila: antesEnGestion[i]!.falla ? null : filaDeLaSede(antesEnGestion[i]!.datos, sede) }));
   const avisoIgv = avisoDelIgv(fila?.igvGestion, veTodo);
+  // Solo a quien ve toda CAYLA: los demás no reciben lo dicho, y su aviso no es de un mes sin decir.
+  const mesSinDecir = veTodo ? fila?.igvGestion?.mesesSinDecir.at(-1) : undefined;
   const notaCosto = notaCostoEstimado(costoEst.datos);
 
   return (
@@ -146,7 +148,18 @@ export default async function ReportesPage({ searchParams }: { searchParams: Pro
                 </Aviso>
               )}
               {avisoIgv && (
-                <Aviso tono="info" chico>
+                <Aviso
+                  tono="info"
+                  chico
+                  guia="fin-ganamos.igv"
+                  accion={
+                    mesSinDecir && veModulo(persona, "impuestos") ? (
+                      <BotonVer href={`/finanzas/impuestos?mes=${mesSinDecir}`} chico>
+                        Ir a Impuestos
+                      </BotonVer>
+                    ) : undefined
+                  }
+                >
                   {avisoIgv}
                 </Aviso>
               )}
@@ -192,7 +205,8 @@ export default async function ReportesPage({ searchParams }: { searchParams: Pro
           cuadre={hayCuadre ? <CuadreVentas cuadro={cuadro} falla={cuadre.falla} /> : null}
           cuadro={
             <section className="min-w-0 space-y-3" data-guia="fin-ganamos.cuadro">
-              <TituloSeccion>El cuadro por sede</TituloSeccion>
+              <TituloSeccion>El cuadro por sede, según el libro</TituloSeccion>
+              <p className="text-sm text-taupe">Aquí las ventas van sin IGV y se resta todo lo incluido en ellas: es lo que ve el contador. Por eso su resultado puede ser distinto al de arriba.</p>
               <EstadoResultadosPanel
                 filas={actual.datos}
                 anteriores={anterior?.datos ?? null}

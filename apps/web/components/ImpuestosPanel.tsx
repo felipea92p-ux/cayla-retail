@@ -9,7 +9,8 @@ import { avisar } from "@/components/ui/Avisos";
 import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 import { RespuestaTelar } from "@/components/finanzas/telar/RespuestaTelar";
 import { DockTelar } from "@/components/finanzas/telar/DockTelar";
-import { PagasImpuestos, CuentaLineas } from "@/components/finanzas/ImpuestosCuenta";
+import { PagasImpuestos, CuentaLineas, type IgvDelMesDicho } from "@/components/finanzas/ImpuestosCuenta";
+import { DecirIgvDelMesModal } from "@/components/finanzas/DecirIgvDelMesModal";
 import { LimiteAnio, MesesImpuestos, PendientesImpuestos } from "@/components/finanzas/ImpuestosFila";
 import { RentaDelAno } from "@/components/finanzas/ImpuestosRenta";
 import type { RentaPantalla } from "@/lib/renta-anual-reglas";
@@ -49,9 +50,9 @@ const plural = (n: number, uno: string, varios: string) => `${n} ${n === 1 ? uno
 
 type Descarga = "ventas" | "compras" | "resumen" | "paquete";
 
-type Contexto = { sede: ClaveSede; sedes: SedeTelar[]; claure: VentasClaure | null; sire: EstadoSire | null; renta: { datos: RentaPantalla | null; falla: string | null } };
+type Contexto = { sede: ClaveSede; sedes: SedeTelar[]; claure: VentasClaure | null; sire: EstadoSire | null; renta: { datos: RentaPantalla | null; falla: string | null }; igvDelMes: IgvDelMesDicho | null };
 
-export function ImpuestosPanel({ panel, falla, sede, sedes, claure, sire, renta }: { panel: PanelImpuestos | null; falla: string | null } & Contexto) {
+export function ImpuestosPanel({ panel, falla, sede, sedes, claure, sire, renta, igvDelMes }: { panel: PanelImpuestos | null; falla: string | null } & Contexto) {
   if (!panel) {
     return (
       <div className="space-y-6">
@@ -61,13 +62,14 @@ export function ImpuestosPanel({ panel, falla, sede, sedes, claure, sire, renta 
       </div>
     );
   }
-  return <Pantalla panel={panel} falla={falla} sede={sede} sedes={sedes} claure={claure} sire={sire} renta={renta} />;
+  return <Pantalla panel={panel} falla={falla} sede={sede} sedes={sedes} claure={claure} sire={sire} renta={renta} igvDelMes={igvDelMes} />;
 }
 
-function Pantalla({ panel, falla, sede, sedes, claure, sire, renta }: { panel: PanelImpuestos; falla: string | null } & Contexto) {
+function Pantalla({ panel, falla, sede, sedes, claure, sire, renta, igvDelMes }: { panel: PanelImpuestos; falla: string | null } & Contexto) {
   const router = useRouter();
   const sp = useSearchParams();
   const [bajando, setBajando] = useState<Descarga | null>(null);
+  const [diciendoIgv, setDiciendoIgv] = useState(false);
   const { mes, mesActual } = panel;
   // Cambiar de mes sube a la cuenta (la respuesta cambia arriba y tiene que verse) y conserva la sede de la mesa de mando.
   const irA = (m: string) => router.push(hrefTelar("/finanzas/impuestos", sp.entries(), { mes: m }, { mismaPantalla: true, mesDeHoy: mesActual }));
@@ -182,7 +184,7 @@ function Pantalla({ panel, falla, sede, sedes, claure, sire, renta }: { panel: P
       {falla && <p className="card-cayla border-dashed px-5 py-4 text-sm text-tinta/75">{falla}</p>}
 
       <section className="fin-imp-arriba">
-        <PagasImpuestos cuenta={cuenta} guia="fin-impuestos.pagas" />
+        <PagasImpuestos cuenta={cuenta} guia="fin-impuestos.pagas" mes={mes} igvDelMes={igvDelMes} onDecirIgv={() => setDiciendoIgv(true)} />
         <CuentaLineas cuenta={cuenta} guia="fin-impuestos.cuenta" />
       </section>
 
@@ -209,6 +211,7 @@ function Pantalla({ panel, falla, sede, sedes, claure, sire, renta }: { panel: P
       </section>
 
       <RentaDelAno renta={renta.datos} falla={renta.falla} guia="fin-impuestos.renta" />
+      {diciendoIgv && igvDelMes && <DecirIgvDelMesModal panel={panel} dicho={igvDelMes.monto} onCerrar={() => setDiciendoIgv(false)} />}
     </div>
   );
 }

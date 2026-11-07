@@ -29,7 +29,7 @@ const DE_CADA_GRUPO: Record<string, { color: string; que: string; contable: stri
   sueldos: { color: rojo(58), que: "Lo que aún no se paga al equipo.", contable: "Sueldos por pagar" },
   prestamos: { color: rojo(40), que: "Lo que se debe de la tarjeta y de préstamos.", contable: "Tarjeta y préstamos" },
   "otros-debe": { color: rojo(28), que: "Lo demás que CAYLA debe.", contable: "Otros pasivos" },
-  tuyo: { color: "var(--color-verde)", que: "Lo que queda después de pagar todo lo que debes.", contable: "Patrimonio" },
+  tuyo: { color: "var(--color-verde)", que: "Lo que queda después de pagar todo lo que debes, según el libro: sus resultados llevan las ventas sin IGV.", contable: "Patrimonio" },
 };
 
 const totalDe = (grupos: readonly GrupoBalance[], lado: GrupoBalance["lado"]) => grupos.filter((g) => g.lado === lado).reduce((a, g) => a + g.monto, 0);
