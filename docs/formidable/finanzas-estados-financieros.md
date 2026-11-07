@@ -92,9 +92,68 @@ Errores evitables: no aplica, porque fue sobre capturas: no tocó nada. No prueb
 - **Caída externa:** si la base no responde, el marco común manda a `/sin-base` (ADR-0450). Si falla la lectura de apoyo del calendario, el calendario funciona igual, sin barritas ni puntos.
 - **Persona sin contexto:** la prueba ciega de arriba. Falta la colaboradora real.
 
+---
+
+# Re-análisis 2026-11-07 · Ganancias y pérdidas con la regla pareja del IGV (ADR-0624)
+
+- **Rama:** `claude/excluir-igv-compras-66846a` (PR #1697), commit `2fe4eda55` · **Dispositivo que manda:** escritorio (Mac mini); 375 px se adapta.
+- **Alcance:** solo lo que cambió: el informe arranca con «Cobraste» → «IGV de tus ventas · es de SUNAT» (con su detalle) → «Lo que vendiste», y la cascada igual.
+- **Pregunta que debería resolver:** ¿cuánto pagaron los clientes, cuánto de eso es de SUNAT y cuánto vendió de verdad la tienda? · **Protagonista:** el dinero.
+- **Veredicto:** se entiende que el IGV es de SUNAT y no sale de la caja; «Cobraste» y el 18 % confunden, y el nombre largo corta la tabla a 1440 px.
+- **Cómo se hizo:** pasada media: medición en el navegador local (base de prueba aparte, datos inventados), un agente ciego (Sonnet, sobre capturas), un revisor de leyes sobre código y capturas; el escéptico fui yo, contra el código. Colaboradora real: sin probar.
+
+## Notas (0–10), solo de lo cambiado
+
+| Eje | Nota | Evidencia |
+|---|---|---|
+| 1 Sin manual | 7 | [Observado] respondió bien B y C; A con seguridad media («Cobraste: no sé si es lo que me pagaron los clientes»); D baja por la cadena de signos |
+| 2 Una pregunta, una respuesta | 9 | [Observado] la lectura de 5 s coincide: «cuánto ganó la tienda en noviembre» |
+| 3 Simplicidad profunda | 7 | [Medido] la fila del IGV lleva «18 %» y barrita: siempre da 18 %, no dice nada (`estados-ganancias.ts:274`) |
+| 4 Lenguaje de tienda | 7 | [Observado] duda en «Cobraste» · [Opinión] choca con «cobrado» de Caja y Flujo, que incluye abonos |
+| 5 Contenido primero | 9 | [Observado] la cifra grande se lee primero |
+| 6 Lo difícil, a un toque | 7 | [Observado] encontró el detalle del IGV con un toque · [Medido] «(míralo en Impuestos)» es texto, no se puede tocar |
+| 7 Perdonar antes que preguntar | 10 | [Medido] solo lee |
+| 8 Quitar antes de agregar | 7 | [Medido] «es de SUNAT» se dice tres veces: nombre de la fila, su nota y la nota de «Lo que vendiste» (`ganamos-reglas.ts:22,28,33`) |
+| 9 De punta a punta | 7 | [Medido] a 1440 px la tabla mide 660 px en una caja de 642: «De lo vendido» queda cortado. El nombre del IGV mide 260 px; el siguiente, 178. A 375 px corre dentro de su caja, sin desborde de página |
+| **Leyes (promedio)** | **7,8** | |
+| **Oficio visual** | sin nota | [Medido] contraste de las filas nuevas: 15,36 · 13,75 · detalle 4,66 (14 px) · tenue 5,21 · los nombres de fila miden 23 px de alto (viene de antes, en todas las filas) |
+
+## Los 3 cambios de mayor impacto (Felipe aprobó los tres el 2026-11-07; ya están hechos)
+
+**Después [Medido], a 1440 px:** la tabla mide 642 px en su caja de 642 (antes 660): «De lo vendido» se lee entero. La fila del IGV va sin «18 %» ni barrita, y su detalle trae «Ver tu saldo a favor en Impuestos» (`<EnlaceVer>`, con la sede y el mes de la pantalla). La primera fila se llama «Vendiste con IGV»: Felipe pidió la recomendación y se eligió porque esa cifra son ventas, no la plata que entró (lo que Caja y el Flujo llaman «cobrado»). Sin nueva pasada ciega.
+
+1. **Nombre corto y una sola explicación.** Antes: «IGV de tus ventas · es de SUNAT» + dos notas que repiten «es de SUNAT». Después: «IGV de tus ventas»; su nota «Le toca a SUNAT. Mientras tengas saldo a favor no sale de tu caja: se descuenta de ese saldo.»; la de «Lo que vendiste», «Sin IGV.». Leyes 9 y 8. Se verifica midiendo que la tabla quepa en su caja a 1440 y 1024 px. Esfuerzo S. Solo texto.
+2. **Sin «18 %» ni barrita en la fila del IGV**, como «Cobraste». Leyes 8 y 3. Se verifica en la captura y en su prueba. Esfuerzo S. Ninguna suma cambia.
+3. **Un nombre que no se confunda con la caja, y el enlace tocable a Impuestos.** Antes: «Cobraste» y «míralo en Impuestos» como texto. Después: el nombre que Felipe elija y «Ver en Impuestos» con `<EnlaceVer>` dentro del detalle, conservando sede y mes. Leyes 4, 1 y 6. Se verifica con otra pasada ciega («¿cuánto entró a tu caja?») y abriendo el enlace. Esfuerzo M. Nombre de una cifra que roza lo tributario: decide Felipe.
+
+## Lo que sobra (ley 8)
+- La nota «Sin IGV: ese 18 % es de SUNAT.» sobre «Lo que vendiste»: la fila de arriba ya lo dice.
+
+## Lo que no pediste y importa más
+- La cadena de signos de «Otros gastos a favor» (−S/ 135.83 que suma) confundió a la ciega más que todo lo nuevo. Viene de antes y de datos inventados raros; va a la lista aparte.
+
+## Lista aparte (no se ejecuta)
+- Nombres de fila de 23 px de alto, bajo el mínimo de 24 (todas las filas, viene de antes).
+- «1–7 sep / 1–7 oct» sin explicar por qué siete días (mes en curso comparado a la fecha).
+
+## Prueba ciega (Sonnet, capturas a 1440 px, datos inventados)
+
+| Tarea | Lectura de 5 s | Primer intento | Dudas | Palabras no entendidas |
+|---|---|---|---|---|
+| A ¿Cuánto pagaron los clientes? | coincide | sí, seguridad media | «Cobraste» | — |
+| B ¿Cuánto no es de la tienda y de quién? | coincide | sí, seguridad alta | — | IGV (lo entendió bien) |
+| C ¿Sale plata de la caja para el IGV? | coincide | sí, tras abrir el detalle | no ve cuánto saldo queda | saldo a favor (lo entendió bien) |
+| D ¿Cuánto vendió y ganó o perdió? | coincide | no del todo | la cadena de signos, «a favor» | ajustes a favor que no son ventas |
+
+## Antes de decir «listo»
+- **Concurrencia:** no aplica, solo lee.
+- **Caída externa:** si `fn_igv_de_las_ventas` no responde, las dos filas de arriba no se dibujan y la pantalla queda como antes; el resultado no depende de ellas.
+- **Persona sin contexto:** la prueba ciega de arriba. Falta la colaboradora real.
+
 ## Historial
 
 | Fecha | SHA | Leyes | Oficio | Cambios cerrados |
 |---|---|---|---|---|
 | 2026-10-31 | rama `claude/dazzling-gauss-34te52` | 7,8 (provisional) | sin medir | — |
 | 2026-11-05 | cierre de la rama | 8,5 (antes de los 3 cambios de texto; sin volver a medir con el ciego) | medido, sin nota | Los 3 de esta pasada. De los 3 de octubre: la línea de lo tuyo ya no arranca en 0 (`geometriaDeLinea`) y «Qué te recomiendo» va a todo el ancho antes de «Ver más». El de la terminal sigue esperando |
+| 2026-11-07 | `2fe4eda55` (PR #1697) | 7,8 (solo lo cambiado por ADR-0624, antes de los 3 cambios) | medido, sin nota | Los 3 de esta pasada: nombre corto y una sola explicación, sin 18 % ni barrita, «Vendiste con IGV» y el enlace a Impuestos |

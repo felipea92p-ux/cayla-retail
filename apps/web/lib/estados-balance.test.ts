@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { cortesAnteriores, etiquetaDelCorte, informeDeLaSede, informeDelBalance, lecturaDeLaSede, lecturaDelBalance, nombreDelCierre, partesDeLaSede, partesDelBalance, totalesDelBalance } from "./estados-balance";
 import { solesCentimos } from "./flujo-caja-reglas";
-import type { UnidadBalance } from "./balance-reglas";
-import type { GrupoBalance } from "./vale-reglas";
+import { cuadreArranque, leerMontoArranque, nombreLinea, type LineaBalance, type UnidadBalance } from "./balance-reglas";
+import { gruposDelBalance, type GrupoBalance } from "./vale-reglas";
 
 const g = (clave: string, lado: GrupoBalance["lado"], monto: number, nombre = clave): GrupoBalance => ({ clave, nombre, lado, clase: "", monto, lineas: [{ nombre: `${nombre} 1`, monto, cuenta: lado === "tuyo" ? "50" : clave }] });
 const GRUPOS: GrupoBalance[] = [g("plata", "tiene", 30000, "Plata"), g("mercaderia", "tiene", 60000, "Mercadería"), g("equipos", "tiene", 10000, "Muebles"), g("proveedores", "debe", 25000, "Proveedores"), g("impuestos", "debe", 5000, "Impuestos"), g("tuyo", "tuyo", 70000, "Lo tuyo")];
@@ -138,5 +138,36 @@ describe("mirando una sede", () => {
     const ahora = (clave: string) => inf.filas.find((f) => f.clave === clave)!.valores.at(-1)!;
     expect(ahora("total-tiene")).toBe(50000);
     expect(ahora("facturas") + ahora("invertido")).toBe(50000);
+  });
+});
+
+// ADR-0620: el arranque resta los 62,035 de saldo a favor contra los 20,157 de IGV por pagar.
+describe("el IGV a favor", () => {
+  const lineaIgv = (seccion: LineaBalance["seccion"], monto: number): LineaBalance => ({ seccion, cuenta: "4011", nombre: "IGV — cuenta corriente", monto, orden: 8, detalle: {} });
+
+  it("a favor va aparte, con su nombre, y no entra a Impuestos", () => {
+    const linea = lineaIgv("activo", 41878);
+    expect(nombreLinea(linea)).toBe("Crédito fiscal de IGV (SUNAT le debe a CAYLA)");
+    const grupos = gruposDelBalance([linea]);
+    expect(grupos.map((x) => [x.clave, x.monto])).toEqual([["credito", 41878]]);
+  });
+  it("por pagar va en Impuestos, y Impuestos no promete un pago al mes siguiente", () => {
+    const linea = lineaIgv("pasivo", 1200);
+    expect(nombreLinea(linea)).toBe("IGV por pagar");
+    const grupos = gruposDelBalance([linea]);
+    expect(grupos.map((x) => x.clave)).toEqual(["impuestos"]);
+    const parte = partesDelBalance({ grupos, comparadas: [], etiquetaActual: "Nov", corte: "2026-11-30" }).find((p) => p.clave === "impuestos");
+    expect(parte?.que).toContain("Impuestos");
+    expect(parte?.que).not.toContain("mes siguiente");
+  });
+  it("el modal de arranque cuadra con la 4011 en negativo y el capital corregido", () => {
+    const lineas = [
+      ["101", "activo", 2682.44], ["104", "activo", 5305.24], ["1413", "activo", 5700], ["201", "activo", 82168.11], ["231", "activo", 1238.93], ["241", "activo", 197.93],
+      ["332", "activo", 581.7], ["333", "activo", 15327.1], ["335", "activo", 920], ["336", "activo", 39021.48], ["391", "activo", 11979.45], ["122", "pasivo", 11.78],
+      ["41", "pasivo", 10571.07], ["4011", "pasivo", -41878], ["50", "patrimonio", 201758.78], ["591", "patrimonio", -29300.15],
+    ] as const;
+    expect(cuadreArranque(lineas.map(([cuenta, tipo, monto]) => ({ cuenta, tipo, monto }))).cuadra).toBe(true);
+    expect(leerMontoArranque("-41878")).toBe(-41878);
+    expect(leerMontoArranque("−41878")).toBe(-41878);
   });
 });

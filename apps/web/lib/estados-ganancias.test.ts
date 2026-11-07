@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { informeDeGanancias, lecturaDeGanancias, montosDeGanancias, partesDeGanancias } from "./estados-ganancias";
+import { anchoEnElInforme } from "./estados-informe";
 import { chipContraAnterior, textoDeVerMas } from "./estados-partes";
 import { franjaDelPeriodo, geometriaDeLinea } from "./estados-linea";
 import { periodoDe } from "./estados-periodo";
@@ -45,7 +46,7 @@ const params = (f: FilaER, comparadas: { etiqueta: string; fila: FilaER | null }
 describe("los montos siempre suman", () => {
   it("lo vendido menos los cuatro gastos da la ganancia", () => {
     const m = montosDeGanancias(fila());
-    expect(m).toEqual({ ventas: 10000, mercaderia: 4150, sueldos: 2000, local: 800, otros: 500, resultado: 2550 });
+    expect(m).toEqual({ ventas: 10000, igv: null, mercaderia: 4150, sueldos: 2000, local: 800, otros: 500, resultado: 2550 });
     expect(m.ventas - m.mercaderia - m.sueldos - m.local - m.otros).toBe(m.resultado);
   });
 
@@ -74,6 +75,89 @@ describe("los montos siempre suman", () => {
     const f = fila({ ventas: 5000, resultado: -2450 });
     const inf = informeDeGanancias({ fila: f, partes: partesDeGanancias(params(f)), comparadas: [], etiquetaActual: "Oct" });
     expect(inf.filas.at(-1)).toMatchObject({ nombre: "Perdiste", tono: "mal", peso: "−49 %" });
+  });
+});
+
+// ADR-0624, «regla pareja»: el IGV de las ventas es de SUNAT y el resultado lo resta siempre. Arriba de lo vendido se PRESENTA lo cobrado y su IGV, sin cambiar ninguna cifra.
+describe("lo cobrado y el IGV de tus ventas", () => {
+  // Octubre de 2026: cobraste 133,922.31, el IGV de tus ventas fue 20,501.26 y lo vendido sin IGV, 113,421.05.
+  const oct = (o: Partial<FilaER> = {}) => fila({ ventas: 113421.05, igvCobrado: 20501.26, ...o });
+  const informe = (f: FilaER, comparadas: { etiqueta: string; fila: FilaER | null }[] = []) => informeDeGanancias({ fila: f, partes: partesDeGanancias(params(f, comparadas)), comparadas, etiquetaActual: "Oct" });
+
+  it("arriba: Vendiste con IGV → IGV de tus ventas → Lo que vendiste, y lo de arriba menos el IGV da lo vendido", () => {
+    const inf = informe(oct());
+    expect(inf.filas.slice(0, 3).map((f) => [f.clave, f.nombre, f.tipo, f.resta ?? false])).toEqual([
+      ["con_igv", "Vendiste con IGV", "linea", false],
+      ["igv", "IGV de tus ventas", "linea", true],
+      ["ventas", "Lo que vendiste", "subtotal", false],
+    ]);
+    const [cobraste, igv, ventas] = inf.filas.map((f) => f.valores.at(-1)!);
+    expect(cobraste).toBeCloseTo(133922.31, 2);
+    expect(igv).toBeCloseTo(20501.26, 2);
+    expect(cobraste! - igv!).toBeCloseTo(ventas!, 2);
+  });
+
+  it("el IGV dice que es de SUNAT y que con saldo a favor no sale de tu caja; los pesos siguen contra lo vendido sin IGV", () => {
+    const inf = informe(oct());
+    const igv = inf.filas.find((f) => f.clave === "igv")!;
+    expect(igv.que).toContain("SUNAT");
+    expect(igv.que).toContain("saldo a favor");
+    // Siempre daría 18 %: no ayuda a decidir (/formidable 2026-11-07). Sin peso no lleva barrita.
+    expect(igv.peso).toBeNull();
+    expect(inf.filas.find((f) => f.clave === "ventas")!.peso).toBe("100 %");
+    expect(inf.filas.find((f) => f.clave === "con_igv")!.peso).toBeNull();
+  });
+
+  it("no cambia ninguna cifra: el resultado y los montos son los mismos con o sin el IGV leído", () => {
+    const con = oct();
+    const sin = fila({ ventas: 113421.05 });
+    const { igv: _a, ...m1 } = montosDeGanancias(con);
+    const { igv: _b, ...m2 } = montosDeGanancias(sin);
+    expect(m1).toEqual(m2);
+    expect(informe(con).filas.find((f) => f.clave === "resultado")!.valores).toEqual(informe(sin).filas.find((f) => f.clave === "resultado")!.valores);
+    expect(lecturaDeGanancias(con, null, OCT)).toEqual(lecturaDeGanancias(sin, null, OCT));
+  });
+
+  it("sin el IGV leído no se dibujan esas dos filas y la pantalla queda como siempre", () => {
+    const inf = informe(fila());
+    expect(inf.filas[0]).toMatchObject({ clave: "ventas", tipo: "linea", que: "Sin IGV." });
+    expect(inf.filas.some((f) => f.clave === "con_igv" || f.clave === "igv")).toBe(false);
+  });
+
+  it("un mes de antes sin el IGV leído va en blanco en esas filas, no en cero", () => {
+    const inf = informe(oct(), [{ etiqueta: "Sep", fila: fila({ ventas: 90000 }) }]);
+    expect(inf.filas.find((f) => f.clave === "con_igv")!.valores[0]).toBeNull();
+    expect(inf.filas.find((f) => f.clave === "ventas")!.valores[0]).toBe(90000);
+  });
+
+  it("las barritas se miden contra lo vendido sin IGV, como su peso; ni «Vendiste con IGV» ni el IGV llevan barra", () => {
+    const inf = informe(oct());
+    const ancho = (clave: string) => anchoEnElInforme(inf.filas.find((f) => f.clave === clave)!, inf.filas, inf.referencia);
+    expect(ancho("con_igv")).toBeNull();
+    expect(ancho("igv")).toBeNull();
+    for (const f of inf.filas.filter((x) => x.tipo === "linea" && x.peso)) {
+      expect(Math.round(ancho(f.clave)!)).toBe(Number.parseInt(f.peso!, 10));
+    }
+  });
+
+  it("un IGV a favor (más devuelto que vendido) lleva el mismo nombre que en la cascada y suma, no resta un negativo", () => {
+    const inf = informe(oct({ igvCobrado: -500 }));
+    const igv = inf.filas.find((f) => f.clave === "igv")!;
+    expect(igv.nombre).toBe("IGV de tus ventas");
+    expect(igv.resta).toBe(false);
+    expect(igv.valores.at(-1)).toBe(500);
+  });
+
+  it("el detalle del IGV lleva a Impuestos con la misma sede y el mismo mes, y sin destino no lleva enlace", () => {
+    const f = oct();
+    const con = informeDeGanancias({ fila: f, partes: partesDeGanancias(params(f, [])), comparadas: [], etiquetaActual: "Oct", verImpuestos: "/finanzas/impuestos?sede=tr&mes=2026-10" });
+    expect(con.filas.find((x) => x.clave === "igv")!.ver).toEqual({ href: "/finanzas/impuestos?sede=tr&mes=2026-10", texto: "Ver tu saldo a favor en Impuestos" });
+    expect(informe(f).filas.find((x) => x.clave === "igv")!.ver).toBeUndefined();
+  });
+
+  it("el chip contra el mes de antes vuelve a compararse siempre: es la misma base", () => {
+    const l = lecturaDeGanancias(oct(), oct({ resultado: 1550 }), OCT);
+    expect(l.chip?.texto).toContain("más que");
   });
 });
 

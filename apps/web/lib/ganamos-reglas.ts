@@ -18,6 +18,24 @@ export const DESVIO_QUE_IMPORTA = 0.1;
 
 const r2 = (n: number) => Math.round(n * 100) / 100;
 
+/** Lo que se dice de las ventas sin IGV, la base de toda la pantalla. */
+export const NOTA_VENTAS = "Sin IGV.";
+
+/**
+ * El IGV de tus ventas (ADR-0624, «regla pareja»): se resta siempre, porque es de SUNAT. Que hoy no salga de la caja no lo vuelve ganancia: se descuenta del saldo a favor, que ya
+ * está en el Balance. Una línea, para el informe y la cascada.
+ */
+export const NOTA_IGV_VENTAS = "Le toca a SUNAT. Mientras tengas saldo a favor no sale de tu caja: se descuenta de ese saldo.";
+
+/**
+ * Lo vendido con su IGV: solo se muestra para que se vea de dónde sale lo vendido. No es ingreso de CAYLA. Se llama «Vendiste con IGV» y no «Cobraste»: lo cobrado es la plata
+ * que entró (Caja y el Flujo cuentan también los abonos de apartados), y esta cifra son ventas (Felipe, /formidable 2026-11-07).
+ */
+export const NOMBRE_VENDISTE_CON_IGV = "Vendiste con IGV";
+export const NOTA_VENDISTE_CON_IGV = "Tus ventas con el IGV que pagaron tus clientes, menos lo devuelto y lo anulado.";
+/** El nombre de la fila del IGV de las ventas: el mismo en el informe y en la cascada. */
+export const NOMBRE_IGV_VENTAS = "IGV de tus ventas";
+
 /** Los gastos (que no son sueldos ni desgaste), agrupados como los dice una tienda. Lo que no está aquí cae en «Otros gastos». */
 const GRUPOS: readonly { clave: string; nombre: string; cuentas: readonly string[] }[] = [
   { clave: "local", nombre: "Local y servicios", cuentas: ["635", "636", "634", "651"] },
@@ -45,7 +63,7 @@ export function desvio(real: number, plan: number | null | undefined): number | 
 }
 
 /**
- * La cascada de Ganancias y pérdidas: vendiste → lo que costaron esas prendas → sueldos → cada grupo de gastos → desgaste → queda. Cada gasto con su
+ * La cascada de Ganancias y pérdidas: (cobraste → IGV de tus ventas →) vendiste → lo que costaron esas prendas → sueldos → cada grupo de gastos → desgaste → queda. Cada gasto con su
  * tope lleva `plan` y `desvio` (contra la proyección en el mes en curso) y sus cuentas, para abrirlo.
  */
 export function cascadaGanamos(f: FilaER, ppto: readonly FilaPpto[]): TramoCascada[] {
@@ -59,7 +77,16 @@ export function cascadaGanamos(f: FilaER, ppto: readonly FilaPpto[]): TramoCasca
     return { ...t, plan, desvio: desvio(comp, plan) ?? undefined };
   };
   const detalle = f.detalleGastos.filter((g) => g.monto !== 0);
-  const tramos: TramoCascada[] = [{ clave: "ventas", nombre: "Vendiste", monto: f.ventas, tipo: "entra", detalle: "Sin IGV: ese 18 % es de SUNAT." }];
+  const igv = f.igvCobrado ?? 0;
+  // Con el IGV de las ventas leído, la cascada parte de lo cobrado, le resta el IGV y llega a lo vendido como subtotal: la suma de los tramos no cambia (ADR-0624).
+  const tramos: TramoCascada[] =
+    Math.abs(igv) >= 0.005
+      ? [
+          { clave: "con_igv", nombre: NOMBRE_VENDISTE_CON_IGV, monto: r2(f.ventas + igv), tipo: "entra", detalle: NOTA_VENDISTE_CON_IGV },
+          { clave: "igv", nombre: NOMBRE_IGV_VENTAS, monto: Math.abs(igv), tipo: igv > 0 ? "sale" : "entra", detalle: NOTA_IGV_VENTAS },
+          { clave: "ventas", nombre: "Vendiste", monto: f.ventas, tipo: "entra", subtotal: true, detalle: NOTA_VENTAS },
+        ]
+      : [{ clave: "ventas", nombre: "Vendiste", monto: f.ventas, tipo: "entra", detalle: NOTA_VENTAS }];
 
   const costo = f.costo + f.fletes + f.mermas;
   if (costo > 0) {
@@ -107,7 +134,7 @@ export function cascadaGanamos(f: FilaER, ppto: readonly FilaPpto[]): TramoCasca
   }
   // Lo que la cascada no nombra (un gasto devuelto, una nota de crédito, un ajuste) va en un tramo propio: sumar los tramos da siempre
   // «te queda». Una cuenta que no cuadra es peor que una línea de más (la misma regla que la cascada del Resumen).
-  const explicado = tramos.reduce((s, t) => s + (t.tipo === "entra" ? t.monto : -t.monto), 0);
+  const explicado = tramos.filter((t) => !t.subtotal).reduce((s, t) => s + (t.tipo === "entra" ? t.monto : -t.monto), 0);
   const ajuste = r2(f.resultado - explicado);
   if (Math.abs(ajuste) >= 0.5) tramos.push({ clave: "ajustes", nombre: ajuste > 0 ? "Otros ajustes a favor" : "Otros ajustes", monto: Math.abs(ajuste), tipo: ajuste > 0 ? "entra" : "sale", detalle: "Devoluciones, notas de crédito o correcciones del mes." });
   tramos.push({ clave: "queda", nombre: f.resultado >= 0 ? "Ganaste" : "Perdiste", monto: Math.abs(r2(f.resultado)), tipo: "queda", ...(f.resultado < 0 ? { negativo: true } : {}) });
