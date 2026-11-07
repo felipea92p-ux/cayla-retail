@@ -1993,6 +1993,12 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
   `leerProvision` la suma al devengado y las pantallas dicen «provisionado».
   **El costo de planilla es el costo real (ADR-0474, 20261022164000):** `planilla_por_sede.costo_total` y `fn_planilla_provision_calc` cuentan `total + AFP + renta de 4ª + EsSalud del
   empleador + provisiones` (antes, `total + provisiones`: 12,5 % corto en septiembre); en un período abierto el EsSalud corre por días corridos. `pagado` (el neto) no cambia: el Flujo de caja lo lee.
+  **El IGV de gestión (ADR-0620, 20261107034000, sin aplicar en producción):** una capa de lectura sobre `fn_estado_resultados`, como los sueldos estimados. El líder dice el monto en `/finanzas/impuestos`
+  (`components/finanzas/DecirIgvDelMesModal.tsx`, RPC `decir_igv_del_mes`, `lib/igv-del-mes-reglas.ts`, `lib/sugerencias-igv-del-mes.ts`) y queda en `retail.igv_del_mes` (solo agrega filas; candado `fn_exigir_igv_mes_abierto`).
+  `fn_igv_de_gestion` → `lib/igv-gestion.ts` (`getIgvDeGestion`, `getResultadosDeGestion`, `getIgvDichoDelMes`) → `lib/igv-gestion-reglas.ts` (`filasDeGestion`, `pasarAGestion`, `columnasDelMes`) lo llevan a Ganancias
+  (`/finanzas/reportes`, `lib/ganamos-reglas.ts`, `lib/estados-ganancias.ts`), a la línea de meses (`lib/estados-serie.ts`) y a «Ganaste» del Flujo. Si falla la lectura, todo cae a netas con aviso. El cuadro por sede, el cuadre de ventas,
+  Resumen, Balance, Patrimonio y el CSV siguen con el libro y lo rotulan; `lib/igv-gestion-uso.test.ts` falla si la renta, el contador, el Balance o Patrimonio leen esta capa.
+  **El arranque resta el crédito (ADR-0620, 20261107035000, sin aplicar):** dos filas en `saldos_iniciales` (4011 = 41,878.00 a favor, 50 = 201,758.78) y ninguna función cambia. Pruebas: `pnpm pruebas:igv-gestion`, `pnpm pruebas:arranque-igv`.
 - **Finanzas F3–F10** (2026-09-25, ADR-0195, PR #396; detalle por fase en `docs/finanzas/fases/`). Todas las pantallas se
   arman con `components/finanzas/kit.tsx` + `app/estilos/finanzas.css`; permisos en la base con `fn_es_lider()` o
   `fn_capacidad_por_modulos(array['<clave>'])` y la tienda de la cuenta.
@@ -2142,7 +2148,7 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
       más `fn_saldos_por_cuenta` (migración `20261031120000`) y `fn_diario`. Lo pide el «Descargar Excel» de cada cuadro
       (`DescargarCuadro`, `components/finanzas/estados/DescargarContador.tsx`).
   - `/finanzas/impuestos` → `lib/impuestos.ts` → lecturas de IGV y registros (`parametros_tributarios` con vigencia y
-    correcciones; se lee con `fn_tasa_igv`/`fn_parametro_tributario`, nunca directo).
+    correcciones; se lee con `fn_tasa_igv`/`fn_parametro_tributario`, nunca directo). Al líder le suma el botón «Decir IGV del mes» (ADR-0620).
   - `/finanzas/impuestos/sire` (ADR-0601, «Comparar con SUNAT»; `?registro=ventas` para el RVIE) → `lib/sire.ts` → `fn_sire_propuesta` (la
     propuesta vigente del SIRE, jsonb) y `fn_impuestos_registro_compras` o `_ventas` (los mismos registros del contador), cruzados por
     `lib/sire-cruce-reglas.ts` (`cruzarCompras`, `cruzarVentas`). Se sube con
