@@ -3,7 +3,7 @@ import type { RespuestaBuscador } from "./buscador";
 import { leerCatalogo } from "./catalogo-servidor";
 import { indiceDelBuscador } from "./inicio";
 import { claveDeSede, sedeDeLaUrl, sedesEnOrden } from "./sede-elegida";
-import { hayEnTienda } from "./stock";
+import { hayEnTienda, notaDeStock } from "./stock";
 import { leerSedes } from "./tiendas-servidor";
 
 // La lista del buscador de la cabecera (2026-10-17). Antes viajaba con CADA página con cuenta (~530 bytes por prenda: con las 298 de
@@ -19,5 +19,7 @@ export async function leerIndiceDelBuscador(sede: string | null): Promise<Respue
   // La tienda cuyo precio usó la base (si la escondieron entretanto, la base respondió con «Todas»), como el marco de cada página.
   const elegida = catalogo.sede ? sedes.find((s) => s.id === catalogo.sede) ?? null : null;
   const prendas = catalogo.prendas.filter((p) => hayEnTienda(p.stock, elegida?.id ?? null));
-  return { estado: "ok", indice: indiceDelBuscador(prendas, elegida ? claveDeSede(elegida.nombre) : null, process.env.TIENDA_FOTOS_ORIGEN) };
+  // Cada resultado dice cuánto hay con la misma frase de su tarjeta (rediseño Premium): antes se descubría al entrar a la prenda.
+  const nota = (p: (typeof prendas)[number]) => notaDeStock(p.stock, elegida, sedes);
+  return { estado: "ok", indice: indiceDelBuscador(prendas, elegida ? claveDeSede(elegida.nombre) : null, process.env.TIENDA_FOTOS_ORIGEN, nota) };
 }
