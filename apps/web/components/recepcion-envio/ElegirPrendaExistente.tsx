@@ -6,7 +6,7 @@ import { Buscador } from "@/components/ui/Buscador";
 import { Vacio } from "@/components/ui/Vacio";
 import { Aviso } from "@/components/ui/Aviso";
 import { MiniaturaPrenda } from "@/components/ui/PrendaCelda";
-import { buscarPrendasParaRecibir } from "@/lib/recepcion-envio-acciones";
+import { buscarParecidasParaRecibir, buscarPrendasParaRecibir } from "@/lib/recepcion-envio-acciones";
 import { MAX_PRENDAS_PARA_RECIBIR, type CategoriaDeLinea, type PrendaRecepcion } from "@/lib/recepcion-envio-reglas";
 
 // «Ya la tengo» (ADR-0362, fase 4): la prenda que llegó ya existe en el catálogo. Se busca entre las de ESA categoría y marca
@@ -18,6 +18,7 @@ export function ElegirPrendaExistente({
   marca,
   busquedaInicial = "",
   textoElegir = "Elegir",
+  todasLasMarcas = false,
   onElegir,
   onEsNueva,
 }: {
@@ -28,6 +29,8 @@ export function ElegirPrendaExistente({
   busquedaInicial?: string;
   /** Lo que dice cada fila a la derecha: qué pasa al tocarla. */
   textoElegir?: string;
+  /** Busca en todas las marcas de la categoría (`fn_parecidas_para_recibir`), y cada fila dice la suya. `marca` queda solo como nombre del filtro. */
+  todasLasMarcas?: boolean;
   onElegir: (prenda: PrendaRecepcion) => void;
   onEsNueva: () => void;
 }) {
@@ -48,7 +51,9 @@ export function ElegirPrendaExistente({
     const mia = ++vuelta.current;
     const t = window.setTimeout(
       async () => {
-        const { prendas: halladas, error } = await buscarPrendasParaRecibir(categoria.id, marca.id, busqueda);
+        const { prendas: halladas, error } = todasLasMarcas
+          ? await buscarParecidasParaRecibir(categoria.id, busqueda).then((prendas) => ({ prendas, error: null }))
+          : await buscarPrendasParaRecibir(categoria.id, marca.id, busqueda);
         if (mia !== vuelta.current) return;
         setBuscando(false);
         setFallo(Boolean(error));
@@ -57,16 +62,20 @@ export function ElegirPrendaExistente({
       busqueda ? 250 : 0,
     );
     return () => window.clearTimeout(t);
-  }, [categoria.id, marca.id, busqueda]);
+  }, [categoria.id, marca.id, busqueda, todasLasMarcas]);
 
+  // `fn_parecidas_para_recibir` trae hasta 200; `fn_prendas_para_recibir`, hasta MAX_PRENDAS_PARA_RECIBIR.
+  const tope = todasLasMarcas ? 200 : MAX_PRENDAS_PARA_RECIBIR;
   const conteo =
     prendas === null
       ? ""
       : prendas.length === 0
         ? ""
-        : prendas.length >= MAX_PRENDAS_PARA_RECIBIR
-          ? `Las primeras ${MAX_PRENDAS_PARA_RECIBIR}: escribe para encontrar la tuya`
-          : `${prendas.length} ${prendas.length === 1 ? "prenda" : "prendas"} de ${categoria.nombre} · ${marca.nombre}`;
+        : prendas.length >= tope
+          ? `Las primeras ${tope}: escribe para encontrar la tuya`
+          : `${prendas.length} ${prendas.length === 1 ? "prenda" : "prendas"} de ${categoria.nombre}${todasLasMarcas ? "" : ` · ${marca.nombre}`}`;
+  // Cómo se nombra lo que se busca: «polos de Miramhe», «polos sin marca» o, en todas las marcas, solo «polos».
+  const deQue = `${categoria.nombre.toLowerCase()}${todasLasMarcas ? "" : marca.id ? ` de ${marca.nombre}` : " sin marca"}`;
 
   return (
     <div data-guia="recepcion.ya-la-tengo" className="space-y-2.5">
@@ -76,7 +85,7 @@ export function ElegirPrendaExistente({
         buscando={buscando}
         conteo={conteo}
         placeholder="Busca por nombre o código"
-        etiqueta={`Buscar la prenda entre ${categoria.nombre} · ${marca.nombre}`}
+        etiqueta={`Buscar la prenda entre ${todasLasMarcas ? categoria.nombre : `${categoria.nombre} · ${marca.nombre}`}`}
         autoFocus
       />
       {fallo && (
@@ -86,9 +95,7 @@ export function ElegirPrendaExistente({
       )}
       {prendas !== null && prendas.length === 0 && !fallo && !buscando && (
         <Vacio tamano="chico" icono={<SearchX />} accion={{ texto: "Crearla como nueva", onClick: onEsNueva }}>
-          {busqueda
-            ? `No hay ${categoria.nombre.toLowerCase()} ${marca.id ? `de ${marca.nombre}` : "sin marca"} que digan «${busqueda}».`
-            : `Todavía no hay ${categoria.nombre.toLowerCase()} ${marca.id ? `de ${marca.nombre}` : "sin marca"} en el catálogo.`}
+          {busqueda ? `No hay ${deQue} que digan «${busqueda}».` : `Todavía no hay ${deQue} en el catálogo.`}
         </Vacio>
       )}
       {prendas !== null && prendas.length > 0 && (
@@ -103,7 +110,7 @@ export function ElegirPrendaExistente({
                   <span className="min-w-0 flex-1">
                     <span className="block truncate text-sm text-tinta">{p.nombre}</span>
                     <span className="block truncate text-sm text-taupe">
-                      {[p.codigo, `${tallas} ${tallas === 1 ? "talla" : "tallas"} · ${colores} ${colores === 1 ? "color" : "colores"}`].filter(Boolean).join(" · ")}
+                      {[p.codigo, todasLasMarcas ? (p.marca?.nombre ?? "Sin marca") : null, `${tallas} ${tallas === 1 ? "talla" : "tallas"} · ${colores} ${colores === 1 ? "color" : "colores"}`].filter(Boolean).join(" · ")}
                     </span>
                   </span>
                   <span className="shrink-0 text-sm font-medium text-tinta/70">{textoElegir}</span>
