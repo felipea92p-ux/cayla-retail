@@ -151,6 +151,7 @@ export const PRUEBAS = [
   // Balance (ADR-0195 F7): saldos de arranque que se corrigen y no se editan, el Balance cuadra con operaciones de cada
   // tipo, cada cuenta por dos caminos (si no, no se dibuja y dice por qué), lo que es de la tienda y permisos. ROLLBACK.
   "pruebas:balance",
+  "pruebas:conteo-explicado",
 
   // La mercadería de CLAURE en Lima no es de CAYLA en el Balance (ADR-0558): entrar, vender, anular, devolver y perder mercadería de
   // CLAURE mueve la mercadería del Balance (fn_bal_stock) igual que la 201 del diario; lo debido va a la 4699; un corte pasado; la

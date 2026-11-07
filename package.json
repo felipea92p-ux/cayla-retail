@@ -87,6 +87,7 @@
     "pruebas:cierre-mes": "node scripts/pruebas/cierre_mes.mjs",
     "pruebas:cierre-diferencias": "node scripts/pruebas/cierre_diferencias.mjs",
     "pruebas:balance": "node scripts/pruebas/balance.mjs",
+    "pruebas:conteo-explicado": "node scripts/pruebas/conteo_explicado.mjs",
     "pruebas:patrimonio-cambios": "node scripts/pruebas/patrimonio_cambios.mjs",
     "pruebas:saldos-por-cuenta": "node scripts/pruebas/saldos_por_cuenta.mjs",
     "pruebas:reversa-de-cobro": "node scripts/pruebas/reversa_de_cobro_por_su_cuenta.mjs",
