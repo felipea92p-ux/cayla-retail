@@ -152,6 +152,23 @@ select pg_temp.huella(:'va');`);
   esperar("un producto descontinuado sin historia se elimina igual", r.ok && devuelto === "Virgen A" && despues === "0|0|0|0|0", r);
 }
 
+// 3b. Uno que nació al recibir un envío y nunca se movió también (ADR-0393, act. 2026-11-07 b): la nota de en qué envío nació cada
+// combinación (`variantes_nacidas_al_recibir`) no es historia y se va con la ficha por su `on delete cascade` (20261107201000).
+{
+  const r = correr(`${ESCENA}
+select id as tienda from retail.ubicaciones where nombre = 'Tienda Trujillo' \\gset
+select c.persona_id as yo from retail.colaboradores c join public.personas p on p.id = c.persona_id where p.auth_user_id = '${FELIPE}' \\gset
+insert into retail.despachos (ubicacion_destino_id, despachado_por) values (:'tienda', :'yo') returning id as desp \\gset
+insert into retail.variantes_nacidas_al_recibir (variante_id, despacho_id)
+  select id, :'desp' from retail.variantes where producto_id = :'va';
+select pg_temp.puede(:'va');
+select retail.eliminar_producto(:'va');
+select pg_temp.huella(:'va') || '|' || (select count(*) from retail.variantes_nacidas_al_recibir where despacho_id = :'desp');`);
+  const [puede, devuelto, despues] = lineas(r);
+  esperar("una prenda nacida al recibir y sin movimientos se puede eliminar", r.ok && puede === "true|", r);
+  esperar("y se elimina con su nota de en qué envío nació", r.ok && devuelto === "Virgen A" && despues === "0|0|0|0|0|0", r);
+}
+
 // 4. Con un movimiento de stock ya no: lo dice con palabras del negocio, sugiere desactivar y no se lleva nada (todo o nada).
 {
   const r = correr(`${ESCENA}
@@ -330,7 +347,10 @@ select pg_temp.huella(:'va');`);
     // se va con la ficha por su `on delete cascade` (la prueba de forma de `produccion_ficha_consumo.mjs` lo exige).
     // ADR-0551: si el modelo lleva ojales y botones (`producto_taller`) es configuración suya, como su ficha de consumo: la escribe Producción SIN orden y se va con él por su `on delete cascade`.
     // ADR-0570 (actividad 5): `producto_procesos` (qué procesos lleva el modelo) reemplaza a `producto_taller.lleva_ojales_botones`: la misma configuración, con `on delete cascade`.
-    "producto_consumos", "producto_avios", "producto_taller", "producto_procesos"];
+    "producto_consumos", "producto_avios", "producto_taller", "producto_procesos",
+    // ADR-0393 (act. 2026-11-07 b): en qué envío nació una combinación (`variantes_nacidas_al_recibir`) es un dato de la ficha, como
+    // `producto_origen`: se va con ella por su `on delete cascade` (20261107201000). Lo que sí se recibió deja movimientos y frena el borrado.
+    "variantes_nacidas_al_recibir"];
   const HISTORIA = [
     "venta_items", "movimientos", "compra_items", "producciones", "transferencia_items", "apartados", "separacion_items",
     "conteo_items", "cambios", "prendas_danadas", "prendas_por_regularizar", "bajada_piso_items", "costo_historial",
