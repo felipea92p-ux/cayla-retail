@@ -33,6 +33,9 @@ Lo que cambió en el repo para que la cola funcione (este ADR):
   `gh-readonly-queue/main/pr-…`, no es dueña de ninguna reserva, y el PR ya las revisó con su rama de verdad.
 - **Vercel no construye vista previa de la rama de la cola** (`scripts/ci/vercel-ignorar.mjs`): la prueba el CI y, si pasa,
   producción construye `main`. La tienda ya no construía vistas previas.
+- **Las tandas de Postgres reservan los puertos de la base** (`sysctl net.ipv4.ip_local_reserved_ports=54420-54429`). Caían
+  en el rango de puertos salientes de Linux y una conexión de la instalación a veces tomaba el 54422 («address already in
+  use»): pasó dos veces el 2026-11-07, y con la cola cada tanda en rojo frena la fila entera.
 - **El push a `main` sigue sin repetir lo probado (ADR-0345).** Su premisa era «el árbol de `main` es el que se probó»; con la
   cola obligatoria eso se cumple por construcción, también con «Require branches to be up to date» apagado.
 

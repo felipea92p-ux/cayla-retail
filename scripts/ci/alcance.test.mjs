@@ -219,3 +219,17 @@ test("ci.yml y sql-pegado.yml escuchan la cola de fusión: sin `merge_group` la 
   // Sin número de PR en la cola: el grupo cae en la rama de la cola, nunca en uno vacío que compartirían todas las filas.
   assert.match(sql, /group: sql-pegado-\$\{\{ github\.event\.pull_request\.number \|\| github\.ref \}\}/);
 });
+
+test("ci.yml: las tandas de Postgres reservan los puertos de la base antes de instalar y levantarla (address already in use)", () => {
+  const ci = readFileSync(join(RAIZ, ".github", "workflows", "ci.yml"), "utf8");
+  const job = ci.slice(ci.indexOf("  pruebas-postgres-tandas:"), ci.indexOf("  pruebas-postgres:\n"));
+  const reserva = job.indexOf("net.ipv4.ip_local_reserved_ports=54420-54429");
+  assert.ok(reserva > 0, "falta reservar los puertos de la base en las tandas");
+  assert.ok(reserva < job.indexOf("pnpm install --frozen-lockfile"), "la reserva va antes de instalar");
+  assert.ok(reserva < job.indexOf('SUPABASE_CLI" start'), "la reserva va antes de levantar la base");
+  // Los puertos de `supabase/config.toml` siguen dentro de lo reservado.
+  const config = readFileSync(join(RAIZ, "supabase", "config.toml"), "utf8");
+  for (const [, puerto] of config.matchAll(/^(?:port|shadow_port) = (\d+)$/gm)) {
+    if (Number(puerto) >= 54400 && Number(puerto) < 54500) assert.ok(Number(puerto) >= 54420 && Number(puerto) <= 54429, `puerto ${puerto} fuera de la reserva`);
+  }
+});
