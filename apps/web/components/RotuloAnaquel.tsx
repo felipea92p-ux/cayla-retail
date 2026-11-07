@@ -1,5 +1,5 @@
 import { esTallaUnica } from "@/lib/etiqueta-precio-reglas";
-import { INTERLINEA_NOMBRE, medidaNombre, textoVarios, type Rotulo } from "@/lib/rotulos-reglas";
+import { INTERLINEA_NOMBRE, medidaNombre, textoVarios, type MedirEm, type Rotulo } from "@/lib/rotulos-reglas";
 
 /**
  * El rótulo de anaquel impreso (ADR-0366): 62 × 40,1 mm acostado —el mismo papel que la etiqueta de precio—, para leerlo de
@@ -8,9 +8,12 @@ import { INTERLINEA_NOMBRE, medidaNombre, textoVarios, type Rotulo } from "@/lib
  * `app/estilos/rotulo.css` y son milímetros: esto es papel.
  *
  * Sin QR a propósito: el escáner de la caja y Buscar leen el código de una TALLA, no el de un modelo.
+ *
+ * `medir`: con qué se mide el nombre. En la pantalla llega `useMedirNombre()` —la letra real de esta computadora—; sin él, la
+ * tabla de fábrica (act. 2026-11-07).
  */
-export function RotuloAnaquel({ rotulo: r }: { rotulo: Rotulo }) {
-  const { mm } = medidaNombre(r.modelos);
+export function RotuloAnaquel({ rotulo: r, medir }: { rotulo: Rotulo; medir?: MedirEm }) {
+  const { mm } = medidaNombre(r.modelos, medir);
   const unica = r.tallas.length === 1 && esTallaUnica(r.tallas[0]);
   return (
     <article data-papel className="rotulo-anaquel" aria-label={`Rótulo de ${r.modelos.join(", ")}`}>
