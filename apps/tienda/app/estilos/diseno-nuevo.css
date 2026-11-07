@@ -428,19 +428,8 @@
   & .t-stock-linea b { font-weight: 600; color: var(--tinta); }
   & :is(.t-stock-linea.poco, .t-stock-linea .poco) b { color: var(--dn-acento); }
   & :is(.t-stock-linea.cero, .t-stock-linea .cero) b { color: var(--taupe); font-weight: 400; }
-
-  /* Un solo outfit: la lámina junto a lo que trae */
-  & .t-outfit-unico { display: grid; gap: var(--e-5); }
-  & .t-outfit-unico-datos { display: flex; flex-direction: column; gap: var(--e-3); }
-  & .t-outfit-unico-datos h3 { margin: 0; font-family: var(--nombre); font-weight: 400; font-size: var(--dn-pagina); line-height: 1.08; }
-  & .t-outfit-unico-datos p { margin: 0; color: var(--taupe); font-size: 15px; line-height: 1.5; }
-  & .t-outfit-unico-datos ul { list-style: none; margin: var(--e-2) 0 0; padding: 0; border-top: 1px solid var(--sand); }
-  & .t-outfit-unico-datos li { display: flex; justify-content: space-between; align-items: baseline; gap: var(--e-4); padding-block: var(--e-3); border-bottom: 1px solid var(--sand); font-size: 15px; }
-  & .t-outfit-unico-datos small { display: block; margin-top: 2px; font-size: 13px; color: var(--taupe); }
-  & .t-outfit-unico-datos .t-btn { width: 100%; margin-top: var(--e-2); }
 }
 @container tienda (min-width: 960px) {
-  :root[data-diseno="nuevo"] .t-outfit-unico { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: clamp(32px, 5cqi, 80px); align-items: center; }
   /* La barra del catálogo, ordenada a la izquierda: las pestañas centradas quedaban sueltas respecto de lo demás */
   :root[data-diseno="nuevo"] :is(.t-pildoras, .t-subcats) { justify-content: flex-start; }
   :root[data-diseno="nuevo"] .t-filtros-niveles { align-items: flex-start; }
