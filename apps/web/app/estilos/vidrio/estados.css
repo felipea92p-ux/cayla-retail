@@ -1824,8 +1824,19 @@
   width: 100%;
   padding-left: 0;
   text-align: left;
+  /* Un nombre largo baja de línea: si no, empuja las cifras fuera de la placa. */
+  white-space: normal;
   font-weight: 400;
   color: var(--color-tinta);
+}
+.estados-informe-fila[data-tipo="seccion"] > th {
+  padding: 22px 0 8px;
+  font-family: var(--font-serif);
+  font-size: 21px;
+  color: var(--color-tinta);
+}
+tbody:first-of-type > .estados-informe-fila[data-tipo="seccion"] > th {
+  padding-top: 6px;
 }
 .estados-informe-fila[data-tipo="subtotal"] > * {
   background: var(--hundido-fondo);
@@ -1856,6 +1867,13 @@
 }
 .estados-informe-peso {
   font-size: 13px;
+}
+/* En el celular solo cabe la cifra de ahora: las de antes y el peso se van, nunca ella. */
+@media (max-width: 639px) {
+  .estados-informe-tabla thead th:not(:first-child):not([data-actual]),
+  .estados-informe-fila > td:not([data-actual]) {
+    display: none;
+  }
 }
 /* Angosto: la columna más vieja se va primero; la de ahora y la de antes siempre quedan. */
 @container (max-width: 620px) {
