@@ -127,6 +127,10 @@ export const PRUEBAS = [
   // solo el líder dice y una terminal no lo recibe; y una regla nueva que escriba la 4011 o la 7011 la pone en rojo. ROLLBACK.
   "pruebas:igv-gestion",
 
+  // El arranque contra el crédito (ADR-0620): 4011 = 41,878 a favor y 50 = 201,758.78 como correcciones que cuadran; el Balance la muestra como
+  // activo, la Comprobación conserva diferencia y estado, Impuestos no cambia una fila, repetirla no agrega nada y sus guardas no tocan lo ajeno. ROLLBACK.
+  "pruebas:arranque-igv",
+
   // Impuestos (ADR-0195 F8): débito y crédito del mes, las boletas no dan crédito, anulados fuera, el saldo a favor que
   // se arrastra, el límite del régimen, parámetros con vigencia, solo el líder y los registros para el contador. ROLLBACK.
   "pruebas:impuestos",

@@ -25,7 +25,7 @@ const DE_CADA_GRUPO: Record<string, { color: string; que: string; contable: stri
   equipos: { color: "var(--estados-parte-2)", que: "Lo que valen hoy, ya restado el desgaste.", contable: "Muebles y equipos" },
   "otros-tiene": { color: "var(--estados-parte-4)", que: "Lo demás que CAYLA tiene.", contable: "Otros activos" },
   proveedores: { color: "var(--color-rojo)", que: "Facturas de compras por pagar.", contable: "Proveedores" },
-  impuestos: { color: rojo(78), que: "El impuesto de las ventas, que se paga a SUNAT el mes siguiente.", contable: "Tributos por pagar" },
+  impuestos: { color: rojo(78), que: "Lo que el libro dice que le debes a SUNAT. Cuánto pagas cada mes lo dice Impuestos.", contable: "Tributos por pagar" },
   sueldos: { color: rojo(58), que: "Lo que aún no se paga al equipo.", contable: "Sueldos por pagar" },
   prestamos: { color: rojo(40), que: "Lo que se debe de la tarjeta y de préstamos.", contable: "Tarjeta y préstamos" },
   "otros-debe": { color: rojo(28), que: "Lo demás que CAYLA debe.", contable: "Otros pasivos" },
