@@ -33,7 +33,7 @@
   .titulo { font: 500 21px "EB Garamond", serif; margin: 0; }
   .sub { color: var(--taupe); font-size: 14px; }
   .num { font-variant-numeric: tabular-nums; }
-  .chip { display: inline-flex; align-items: center; gap: 6px; border-radius: 999px; padding: 2px 10px; font-size: 12.5px; background: var(--hueso); color: var(--tinta); }
+  .chip { display: inline-flex; align-items: center; gap: 6px; border-radius: 999px; padding: 2px 10px; font-size: 12.5px; background: var(--hueso); color: var(--tinta); white-space: nowrap; margin: 2px 0; }
   .chip::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--pizarra); }
   .chip.ambar::before { background: var(--ambar); }
   .chip.verde::before { background: var(--verde); }
@@ -71,6 +71,31 @@
   .marco[data-ancho="movil"] .fila { grid-template-columns: minmax(0, 1fr) 90px; }
   .marco[data-ancho="movil"] .fila .caja { grid-column: 1 / -1; }
   .prov { display: grid; grid-template-columns: auto minmax(0, 220px); gap: 8px; align-items: center; }
+  .fila { grid-template-columns: minmax(0, 1fr) 84px 140px auto; }
+  .marco[data-ancho="movil"] .fila { grid-template-columns: minmax(0, 1fr) auto; }
+  .marco[data-ancho="movil"] .fila .costo { grid-column: 1; }
+  .costo { display: flex; align-items: center; gap: 6px; color: var(--taupe); font-size: 14px; }
+  .costo .caja { flex: 1; min-width: 0; }
+  .ver { border: 1px solid var(--borde-control); background: transparent; color: var(--tinta); border-radius: 999px; padding: 7px 12px; font: 500 13.5px "DM Sans"; cursor: pointer; white-space: nowrap; }
+  .ver span { display: inline-block; transition: transform 200ms cubic-bezier(.2,.7,.2,1); }
+  .ver[aria-expanded="true"] { background: var(--tinta); color: var(--crema); border-color: var(--tinta); }
+  .ver[aria-expanded="true"] span { transform: rotate(180deg); }
+  .detalle { padding: 4px 16px 14px 64px; border-bottom: 1px solid var(--sand); background: color-mix(in srgb, var(--hueso) 30%, transparent); animation: abre 240ms cubic-bezier(.2,.7,.2,1); }
+  .marco[data-ancho="movil"] .detalle { padding-left: 16px; }
+  .detalle dl, .cuenta { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 6px 16px; margin: 10px 0 6px; font-size: 14px; }
+  .detalle dt, .cuenta dt { color: var(--taupe); }
+  .detalle dd, .cuenta dd { margin: 0; }
+  .ficha { display: grid; grid-template-columns: 112px minmax(0, 1fr); gap: 16px; align-items: start; }
+  .marco[data-ancho="movil"] .ficha { grid-template-columns: 1fr; }
+  .foto { aspect-ratio: 3 / 4; border-radius: 14px; background: var(--hueso); display: grid; place-items: center; font-size: 38px; margin-top: 10px; }
+  .pieB { display: flex; justify-content: space-between; align-items: baseline; padding: 10px 16px; background: color-mix(in srgb, var(--hueso) 35%, transparent); }
+  .resumenB { position: sticky; top: 76px; }
+  .falta { width: 100%; text-align: left; border: 1px solid color-mix(in srgb, var(--ambar) 45%, transparent); background: color-mix(in srgb, var(--ambar) 10%, transparent);
+    color: var(--tinta); border-radius: 14px; padding: 10px 12px; font: 500 14px "DM Sans"; cursor: pointer; }
+  .destella { animation: destella 900ms cubic-bezier(.2,.7,.2,1); }
+  @keyframes abre { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: none; } }
+  @keyframes destella { 0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--tinta) 30%, transparent); } 40% { box-shadow: 0 0 0 6px color-mix(in srgb, var(--tinta) 18%, transparent); } 100% { box-shadow: 0 0 0 0 transparent; } }
+  @media (prefers-reduced-motion: reduce) { .detalle, .destella, .ver span { animation: none; transition: none; } }
 
   /* --- C: resumen arriba --- */
   .cifras { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin-bottom: 14px; }
@@ -125,34 +150,107 @@
 
   <!-- ============ B ============ -->
   <section class="vista" data-op="B">
-    <h2 class="op">B · Una tarjeta por categoría y marca, con su proveedor</h2>
-    <p class="nota">Cada grupo dice de quién es en su propia cabecera (y lo pide ahí si falta), así «De quién llegó» deja de ser un bloque aparte. A la derecha, el resumen fijo
-      con el total y el botón.</p>
+    <h2 class="op">B · Una tarjeta por categoría y marca, con su proveedor <span class="sub" style="font: 400 14px 'DM Sans'">· elegida, ronda 2</span></h2>
+    <p class="nota">Ronda 2 (Felipe 2026-11-07): cada prenda tiene su <b>«Ver detalle»</b>, con lo que se anotó al contar para no confundirla con otra (su descripción), las
+      observaciones, quién la contó y cuándo, y, si ya existe, su foto, su código y sus tallas. Además: el nombre provisional se avisa en la fila, cada grupo suma su costo y
+      el resumen dice lo que falta y lleva a ello. Toca «Ver detalle» en cualquier prenda.</p>
     <div class="grid2">
       <div class="pila">
         <article class="grupoB">
           <header>
             <div><div class="titulo">Casacas · Sin marca</div><span class="sub num">2 modelos · 15 prendas</span></div>
-            <label class="prov"><span class="sub">Proveedor</span><select class="combo"><option>Elige el proveedor</option><option>Confecciones del Sur EIRL</option><option>Textiles Andina SAC</option></select></label>
+            <label class="prov" id="prov-casacas"><span class="sub">Proveedor</span><select class="combo"><option>Elige el proveedor</option><option>Confecciones del Sur EIRL</option><option>Textiles Andina SAC</option></select></label>
           </header>
-          <div class="fila"><div class="modelo"><span class="ic">🧥</span><div><div>Casaca 1</div><span class="chip ambar">Por crear</span></div></div><div class="num" style="text-align:right"><b>5</b> <span class="sub">llegaron</span></div><input class="caja" placeholder="Costo S/" /></div>
-          <div class="fila"><div class="modelo"><span class="ic">🧥</span><div><div>Casaca 2</div><span class="chip ambar">Por crear</span></div></div><div class="num" style="text-align:right"><b>10</b> <span class="sub">llegaron</span></div><input class="caja" placeholder="Costo S/" /></div>
+          <div class="fila">
+            <div class="modelo"><span class="ic">🧥</span><div><div>Casaca 1</div><span class="chip ambar">Por crear</span> <span class="chip ambar">Nombre provisional</span></div></div>
+            <div class="num" style="text-align:right"><b>5</b> <span class="sub">llegaron</span></div>
+            <label class="costo"><span>S/</span><input class="caja" placeholder="0.00" /></label>
+            <button class="ver" aria-expanded="false" aria-controls="d1">Ver detalle <span aria-hidden>⌄</span></button>
+          </div>
+          <div class="detalle" id="d1" hidden>
+            <dl>
+              <dt>Lo que anotaste</dt><dd>«Cierre frontal, capucha desmontable, forro polar.»</dd>
+              <dt>Observación</dt><dd>2 con la cremallera trabada · la anotó Felipe a las 14:22</dd>
+              <dt>Contó</dt><dd>Felipe Alvarez · hoy 14:20</dd>
+            </dl>
+            <p class="sub">Se llama «Casaca 1» porque nadie puso su nombre: se le pone al crearla, en «Para después».</p>
+          </div>
+          <div class="fila">
+            <div class="modelo"><span class="ic">🧥</span><div><div>Casaca 2</div><span class="chip ambar">Por crear</span> <span class="chip ambar">Nombre provisional</span></div></div>
+            <div class="num" style="text-align:right"><b>10</b> <span class="sub">llegaron</span></div>
+            <label class="costo"><span>S/</span><input class="caja" placeholder="0.00" /></label>
+            <button class="ver" aria-expanded="false" aria-controls="d2">Ver detalle <span aria-hidden>⌄</span></button>
+          </div>
+          <div class="detalle" id="d2" hidden>
+            <dl>
+              <dt>Lo que anotaste</dt><dd>«Sin capucha, botones de madera, cuello alto.»</dd>
+              <dt>Observación</dt><dd class="sub">Ninguna</dd>
+              <dt>Contó</dt><dd>Felipe Alvarez · hoy 14:21</dd>
+            </dl>
+          </div>
+          <footer class="pieB"><span class="sub">Costo de Casacas</span><b class="num">S/ —</b></footer>
         </article>
+
         <article class="grupoB">
           <header>
             <div><div class="titulo">Vestidos · AELO</div><span class="sub num">1 modelo · 10 prendas</span></div>
             <span class="chip verde">Textiles Andina · lo dice su marca</span>
           </header>
-          <div class="fila"><div class="modelo"><span class="ic">👗</span><div><div>Vestido 1</div><span class="chip ambar">Por crear</span></div></div><div class="num" style="text-align:right"><b>10</b> <span class="sub">llegaron</span></div><input class="caja" placeholder="Costo S/" /></div>
+          <div class="fila">
+            <div class="modelo"><span class="ic">👗</span><div><div>Vestido 1</div><span class="chip ambar">Por crear</span> <span class="chip ambar">Nombre provisional</span></div></div>
+            <div class="num" style="text-align:right"><b>10</b> <span class="sub">llegaron</span></div>
+            <label class="costo"><span>S/</span><input class="caja" placeholder="0.00" /></label>
+            <button class="ver" aria-expanded="false" aria-controls="d3">Ver detalle <span aria-hidden>⌄</span></button>
+          </div>
+          <div class="detalle" id="d3" hidden>
+            <dl>
+              <dt>Lo que anotaste</dt><dd class="sub">Nada: no se escribió una descripción al contarlo.</dd>
+              <dt>Observación</dt><dd class="sub">Ninguna</dd>
+              <dt>Contó</dt><dd>Felipe Alvarez · hoy 14:24</dd>
+            </dl>
+          </div>
+          <footer class="pieB"><span class="sub">Costo de Vestidos</span><b class="num">S/ —</b></footer>
+        </article>
+
+        <article class="grupoB">
+          <header>
+            <div><div class="titulo">Camisas y Blusas · CAYLA</div><span class="sub num">1 modelo · 5 prendas · <i>ejemplo de una reposición</i></span></div>
+            <span class="chip verde">CAYLA SAC · lo dice su marca</span>
+          </header>
+          <div class="fila">
+            <div class="modelo"><span class="ic">👚</span><div><div>Blusa Aurora</div><span class="chip">Re stock · CMS-0003</span></div></div>
+            <div class="num" style="text-align:right"><b>5</b> <span class="sub">llegaron</span></div>
+            <label class="costo"><span>S/</span><input class="caja" value="50.00" /></label>
+            <button class="ver" aria-expanded="false" aria-controls="d4">Ver detalle <span aria-hidden>⌄</span></button>
+          </div>
+          <div class="detalle" id="d4" hidden>
+            <div class="ficha">
+              <div class="foto" aria-hidden>👚</div>
+              <dl>
+                <dt>Prenda</dt><dd>Blusa Aurora · CMS-0003 · CAYLA</dd>
+                <dt>Material</dt><dd>Algodón pima · liso</dd>
+                <dt>Tallas y colores</dt><dd>S, M, L · Azul</dd>
+                <dt>Costo de hoy</dt><dd>S/ 50.00 · precio S/ 90.00</dd>
+                <dt>Contó</dt><dd>Felipe Alvarez · hoy 14:23</dd>
+              </dl>
+            </div>
+          </div>
+          <footer class="pieB"><span class="sub">Costo de Camisas y Blusas</span><b class="num">S/ 250.00</b></footer>
         </article>
       </div>
-      <aside class="tarjeta" style="position:sticky;top:76px">
+
+      <aside class="tarjeta resumenB">
         <div class="titulo">Al cerrar</div>
-        <p class="num" style="font: 500 44px 'EB Garamond', serif; margin: 6px 0 0">25</p>
-        <p class="sub" style="margin:0 0 12px">prendas · 3 modelos · 2 proveedores</p>
-        <p class="sub">Quedan guardadas para después: crear los 3 modelos y poner sus tallas. Sin costo entran igual; llega con la factura.</p>
-        <p class="sub" style="color:var(--ambar)">Falta: el proveedor de Casacas.</p>
-        <button class="btn prim" style="width:100%">Cerrar el envío</button>
+        <p class="num" style="font: 500 44px 'EB Garamond', serif; margin: 6px 0 0">30</p>
+        <p class="sub" style="margin:0 0 12px">prendas · 4 modelos · 3 proveedores</p>
+        <dl class="cuenta">
+          <dt>Entran con costo</dt><dd class="num">5 · S/ 250.00</dd>
+          <dt>Sin costo</dt><dd class="num">25 · llega con la factura</dd>
+          <dt>Para después</dt><dd class="num">25 · crear 3 modelos</dd>
+        </dl>
+        <p class="etq">Falta</p>
+        <button class="falta" data-ir="prov-casacas">El proveedor de Casacas ›</button>
+        <button class="btn prim" style="width:100%; margin-top:14px">Cerrar el envío</button>
       </aside>
     </div>
   </section>
@@ -193,6 +291,18 @@
   document.querySelectorAll('.pild[data-op]').forEach((b) => b.addEventListener('click', () => {
     document.querySelectorAll('.pild[data-op]').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
     document.querySelectorAll('.vista').forEach((v) => v.toggleAttribute('data-activa', v.dataset.op === b.dataset.op));
+  }));
+  document.querySelectorAll('.ver').forEach((b) => b.addEventListener('click', () => {
+    const abierto = b.getAttribute('aria-expanded') === 'true';
+    b.setAttribute('aria-expanded', String(!abierto));
+    b.firstChild.textContent = abierto ? 'Ver detalle ' : 'Ocultar detalle ';
+    document.getElementById(b.getAttribute('aria-controls')).hidden = abierto;
+  }));
+  document.querySelectorAll('.falta').forEach((b) => b.addEventListener('click', () => {
+    const el = document.getElementById(b.dataset.ir);
+    el.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    el.classList.remove('destella'); void el.offsetWidth; el.classList.add('destella');
+    el.querySelector('select')?.focus({ preventScroll: true });
   }));
   document.getElementById('tema').addEventListener('click', (e) => {
     const oscuro = raiz.dataset.tema !== 'oscuro';
