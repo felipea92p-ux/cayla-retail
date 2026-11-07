@@ -17,6 +17,7 @@ export function ElegirPrendaExistente({
   categoria,
   marca,
   busquedaInicial = "",
+  textoElegir = "Elegir",
   onElegir,
   onEsNueva,
 }: {
@@ -25,6 +26,8 @@ export function ElegirPrendaExistente({
   marca: { id: string | null; nombre: string };
   /** Lo que ya se sabe de la prenda: las que coinciden salen primero, y las demás siguen en la lista. */
   busquedaInicial?: string;
+  /** Lo que dice cada fila a la derecha: qué pasa al tocarla. */
+  textoElegir?: string;
   onElegir: (prenda: PrendaRecepcion) => void;
   onEsNueva: () => void;
 }) {
@@ -103,7 +106,7 @@ export function ElegirPrendaExistente({
                       {[p.codigo, `${tallas} ${tallas === 1 ? "talla" : "tallas"} · ${colores} ${colores === 1 ? "color" : "colores"}`].filter(Boolean).join(" · ")}
                     </span>
                   </span>
-                  <span className="text-sm font-medium text-tinta/70">Elegir</span>
+                  <span className="shrink-0 text-sm font-medium text-tinta/70">{textoElegir}</span>
                 </button>
               </li>
             );

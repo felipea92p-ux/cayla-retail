@@ -75,6 +75,8 @@ const MIGRACIONES = SIN_MIGRACION
       // Un modelo sale a la venta sin cerrar el envío.
       "20261104005000_salida_anticipada_de_un_modelo.sql",
       "20261104012000_a_conector_y_correccion_no_es_perdida.sql",
+      // Lo contado como nuevo pasa a su categoría de verdad, con el envío cerrado (casos S3f y S3g).
+      "20261106230000_cambiar_categoria_de_lo_contado.sql",
     ]
       .map((f) =>
         readFileSync(join(RAIZ, "supabase", "migrations", f), "utf8")
@@ -159,6 +161,7 @@ ${atrapa("abre", "p_id uuid, p_version integer", "retail.abrir_despacho(p_id, p_
 ${atrapa("costos_hoy", "p_vars uuid[]", "retail.fn_costos_de_hoy(p_vars)")}
 ${atrapa("parecidas", "p_cat uuid, p_q text", "retail.fn_parecidas_para_recibir(p_cat, p_q)")}
 ${atrapa("corrige", "p_d uuid, p_prov uuid, p_motivo text", "retail.corregir_proveedor_envio(p_d, p_prov, p_motivo)")}
+${atrapa("cambia_cat", "p_d uuid, p_pend uuid, p_cat uuid", "retail.cambiar_categoria_de_pendiente(p_d, p_pend, p_cat)")}
 ${atrapa(
   "prepara",
   "p_d uuid, p_item uuid, p_cat uuid, p_marca uuid, p_prod uuid, p_ref text, p_vars jsonb, p_precio numeric, p_desc text, p_tej uuid, p_pat uuid, p_conf boolean, p_token uuid, p_prov uuid",
@@ -545,6 +548,57 @@ caso(
      ${STOCK_TRU("pg_s")}, ${COSTO("pg_s")},
      (select count(*) from retail.actividad a where a.registro_id = :'d'::text and a.accion = 'despacho_sin_aviso_proveedor_corregido'));`,
   "sin_dinero_de_compras / corregir_motivo / proveedor_igual / OK / t / t / t / t / 3 / 12.00 / 1",
+);
+// Lo contado en una categoría que no era: el modelo pasa a una línea de la correcta y lo contado se mueve con él, sin descuadrar nada (Felipe 2026-11-06).
+const SIN_AVISO_CON_DOS_MODELOS = `${MICAELA_RECIBE}
+   ${SIN_AVISO("d")}
+   select ${EXTRA("d", "cat2", 5, SEP([], [[3, "Modelo Tres"], [2, "Modelo Dos"]]))} \\g /dev/null
+   ${VERS("d", [], [1])}
+   select ${CIERRA("d", [DEC(1)])} as r \\gset
+   reset role;
+   select id as pend3 from retail.despacho_pendientes where despacho_id = :'d' and descripcion = 'Modelo Tres' \\gset
+   select id as pend2 from retail.despacho_pendientes where despacho_id = :'d' and descripcion = 'Modelo Dos' \\gset
+   select id as cat_otra from retail.categorias where activo and id <> :'cat2'::uuid order by nombre limit 1 \\gset
+   ${como(MICAELA)}${EN_TIENDA}`;
+const LINEAS_DE = (d) =>
+  `(select string_agg(concat_ws(':', k.extra_posicion, k.categoria_id = :'cat2'::uuid, k.contadas, jsonb_array_length(k.separado -> 'nuevas')), ',' order by k.extra_posicion)
+      from retail.despacho_conteos k where k.despacho_id = :'${d}')`;
+caso(
+  "S3f pasar un modelo a su categoría: lo contado se mueve con él, el otro modelo se queda, cada línea cuadra, y la prenda de la categoría nueva ya se puede ligar; queda en la Actividad",
+  `${SIN_AVISO_CON_DOS_MODELOS}
+   select pg_temp.e(pg_temp.cambia_cat(:'d', :'pend3', :'cat_otra')) as cambio \\gset
+   select pg_temp.e(pg_temp.cambia_cat(:'d', :'pend3', :'cat_otra')) as otra_vez \\gset
+   reset role;
+   select concat_ws(' / ', :'cambio', :'otra_vez',
+     ${LINEAS_DE("d")},
+     (select string_agg(x.descripcion || ':' || x.extra_posicion || ':' || x.tipo || ':' || x.cantidad, ',' order by x.extra_posicion) from retail.despacho_pendientes x where x.despacho_id = :'d'),
+     (select string_agg(c.extra_posicion || ':' || c.en_pendientes || ':' || c.sin_separar, ',' order by c.extra_posicion) from retail.fn_envio_cuentas(array[:'d'::uuid]) c),
+     (select sum(k.contadas) from retail.despacho_conteos k where k.despacho_id = :'d'),
+     (select count(*) from retail.actividad a where a.registro_id = :'d'::text and a.accion = 'despacho_pendiente_categoria_cambiada'));`,
+  "OK / OK / 1:t:2:1,2:f:3:1 / Modelo Dos:1:crear:2,Modelo Tres:2:crear:3 / 1:2:0,2:3:0 / 5 / 1",
+);
+caso(
+  "S3g no se puede con el envío abierto ni con otra categoría inactiva, ni sin responsable, ni sin Recibir; los candados no dejan moverlo a mano; reabrir lo devuelve a la línea nueva",
+  `${SIN_AVISO_CON_DOS_MODELOS}
+   select pg_temp.h(pg_temp.cambia_cat(:'d', :'pend3', gen_random_uuid())) as sin_categoria \\gset
+   ${como(MICAELA)}${SIN_ENCABEZADOS}
+   select pg_temp.h(pg_temp.cambia_cat(:'d', :'pend3', :'cat_otra')) as sin_responsable \\gset
+   reset role;
+   select pg_temp.intento($q$update retail.despacho_pendientes set extra_posicion = 9 where id = '$q$ || :'pend3' || $q$'$q$) as a_mano \\gset
+   select pg_temp.intento($q$update retail.despacho_conteos set contadas = 1 where despacho_id = '$q$ || :'d' || $q$'$q$) as conteo_a_mano \\gset
+   ${rolDeMicaela("existencias")}${como(MICAELA)}${EN_TIENDA}
+   select pg_temp.h(pg_temp.cambia_cat(:'d', :'pend3', :'cat_otra')) as sin_modulo \\gset
+   ${rolDeMicaela("recibir")}${como(MICAELA)}${EN_TIENDA}
+   select pg_temp.e(pg_temp.cambia_cat(:'d', :'pend3', :'cat_otra')) as bien \\gset
+   reset role;
+   select version as ver from retail.despachos where id = :'d' \\gset
+   ${como(MICAELA)}${EN_TIENDA}
+   select pg_temp.e(pg_temp.reabre(:'d', :ver, 'Faltó contar otra cosa', gen_random_uuid())) as reabierto \\gset
+   select pg_temp.h(pg_temp.cambia_cat(:'d', :'pend2', :'cat_otra')) as abierto \\gset
+   reset role;
+   select concat_ws(' / ', :'sin_categoria', :'sin_responsable', :'a_mano', :'conteo_a_mano', :'sin_modulo', :'bien', :'reabierto', :'abierto',
+     (select k.separado -> 'nuevas' -> 0 ->> 'descripcion' from retail.despacho_conteos k where k.despacho_id = :'d' and k.categoria_id = :'cat_otra'::uuid));`,
+  "recepcion_extra_categoria / responsable_requerido / 42501|Un pendiente no cambia: se resuelve, o se anula reabriendo el envío / 23514|Solo se cuenta un envío abierto / recibir_sin_modulo / OK / OK / categoria_envio_no_cerrado / Modelo Tres",
 );
 caso(
   "S3e lo que se parece sale con cualquier marca y dice cuál; sin Recibir no se lee; sin nada escrito, nada",

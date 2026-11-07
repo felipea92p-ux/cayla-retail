@@ -59,9 +59,18 @@ export function EnvioCerrado({
   onReabierto: () => void;
 }) {
   const [haciendo, setHaciendo] = useState<ParaDespues | null>(null);
+  // Al pasar un modelo a su categoría cambia de línea: se relee el envío y, cuando la lista ya lo trae en la línea nueva, se sigue con él. `crear`: la persona pidió crearla.
+  const [seguir, setSeguir] = useState<{ pendienteId: string; lineaAntes: string; crear: boolean } | null>(null);
+  const [creando, setCreando] = useState(false);
   const [reabriendo, setReabriendo] = useState(false);
   const cifras = cifrasDelEnvio(lineas);
   const lista = paraDespues(lineas);
+  const movido = seguir ? lista.find((p) => p.tipo !== "separar" && p.pendiente.id === seguir.pendienteId && p.linea !== seguir.lineaAntes) : undefined;
+  if (seguir && movido) {
+    setSeguir(null);
+    setCreando(seguir.crear);
+    setHaciendo(movido);
+  }
   // Qué dice el envío sobre el stock: listas para etiquetar o, si nada entró, por qué y qué lo resuelve (formidable 2026-10-13, cambio 1).
   const veredicto = veredictoDelCerrado(lineas, lista);
   const buenas = buenasDeRecibidos(detalle.recibidos);
@@ -234,6 +243,7 @@ export function EnvioCerrado({
           detalle={detalle}
           item={haciendo}
           linea={lineas.find((l) => l.clave === haciendo.linea) ?? null}
+          empezarCreando={creando}
           catalogo={catalogo}
           responsable={responsable}
           prendas={prendas}
@@ -241,12 +251,21 @@ export function EnvioCerrado({
           sinAviso={sinAviso}
           veDinero={veDinero}
           onPrendaVista={onPrendaVista}
+          onCategoriaCambiada={(crear) => {
+            if (haciendo.tipo === "separar") return;
+            setSeguir({ pendienteId: haciendo.pendiente.id, lineaAntes: haciendo.linea, crear });
+            setCreando(false);
+            setHaciendo(null);
+            onCambio();
+          }}
           onListo={() => {
+            setCreando(false);
             setHaciendo(null);
             onCambio();
           }}
           // La prenda de un «crear» ya existe aunque no se hayan metido sus tallas: «Para después» se relee para decirlo.
           onCerrar={(huboCambio) => {
+            setCreando(false);
             setHaciendo(null);
             if (huboCambio) onCambio();
           }}

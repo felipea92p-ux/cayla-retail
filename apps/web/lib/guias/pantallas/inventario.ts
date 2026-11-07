@@ -2035,7 +2035,7 @@ export const GUIA_RECIBIR_ENVIO: Guia = {
       ancla: "recepcion.ya-la-tengo",
       opcional: true,
       titulo: "Una prenda que ya tienes",
-      texto: "Escribe y la lista se filtra entre las prendas de esa categoría y marca; eliges la que llegó con un toque. Si no está, la creas como nueva.",
+      texto: "Escribe y la lista se filtra entre las prendas de esa categoría y marca. Toca una para ver su ficha, con la foto en grande, y confirma si es la que llegó. Si se anotó en otra categoría, en «Para después» la corriges arriba. Si no está, la creas como nueva.",
     },
     {
       id: "matriz",
