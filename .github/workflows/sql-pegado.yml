@@ -14,9 +14,12 @@ name: SQL pegado
 on:
   pull_request:
     types: [opened, edited, synchronize, reopened, ready_for_review]
+  # La cola de fusión (2026-11-07) pide este check sobre su propio commit. Ahí no hay nada nuevo que mirar: las migraciones y
+  # la casilla son las del PR, que ya pasó este check para entrar a la fila. El job responde en verde sin revisar.
+  merge_group:
 
 concurrency:
-  group: sql-pegado-${{ github.event.pull_request.number }}
+  group: sql-pegado-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 permissions:
@@ -31,12 +34,18 @@ jobs:
     # Hasta 20 min esperando que el CI de este commit deje sus huellas (sale apenas su base está arriba, ~3 min).
     timeout-minutes: 25
     steps:
+      - name: En la cola de fusión, ya lo revisó el PR
+        if: ${{ github.event_name == 'merge_group' }}
+        run: |
+          echo "La cola de fusión no trae migraciones ni casilla propias: el PR ya pasó «SQL pegado» para entrar a la fila."
       - uses: actions/checkout@v4
+        if: ${{ github.event_name == 'pull_request' }}
         with:
           sparse-checkout: scripts/migraciones
       # El cuerpo va por variable de entorno, nunca interpolado en el script: el repo es público y el cuerpo lo escribe
       # quien abre el PR.
       - name: Archivos y cuerpo del PR
+        if: ${{ github.event_name == 'pull_request' }}
         env:
           GH_TOKEN: ${{ github.token }}
           CUERPO: ${{ github.event.pull_request.body }}
@@ -48,6 +57,7 @@ jobs:
       # Las pruebas del detector corren en el CI («Tipos, lint y pruebas»), que tiene el repo completo.
       - name: Revisar
         id: revisar
+        if: ${{ github.event_name == 'pull_request' }}
         run: node scripts/migraciones/sql-pegado.mjs "$RUNNER_TEMP/archivos.json" "$RUNNER_TEMP/cuerpo.md" "$RUNNER_TEMP/nuevas.txt"
       # La casilla, comprobada. Corre con el código del PR y el secreto de la deriva: un PR de un fork no recibe secretos y
       # sale en rojo («falta configurar»), nunca en verde sin mirar. La llave solo lee huellas del catálogo.
