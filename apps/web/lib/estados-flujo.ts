@@ -5,7 +5,7 @@
 // ASUME: toda cifra viene de la base. Aquí no se suma plata nueva: se agrupa lo que ya dio y se escribe. Con una cuenta que arrancó a mitad del período (ADR-0609) no se afirma
 // cuánto subió o bajó: no se sabe.
 
-import { chipContraAnterior, type ColumnaDeParte, type FilaDelLibro, type ParteEstado } from "./estados-partes";
+import { chipContraAnterior, type ColumnaDeParte, type ParteEstado } from "./estados-partes";
 import { nombreDelAnterior, type Periodo } from "./estados-periodo";
 import type { FilaInforme, Informe } from "./estados-informe";
 import { solesCentimos, solesConSignoCentimos, type FlujoReal } from "./flujo-caja-reglas";

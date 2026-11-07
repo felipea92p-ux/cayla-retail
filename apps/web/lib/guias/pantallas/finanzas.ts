@@ -1726,14 +1726,14 @@ export const GUIA_FIN_PATRIMONIO: Guia = {
       ancla: "fin-patrimonio.partes",
       opcional: true,
       titulo: "Qué movió tu parte",
-      texto: "Con cuánto empezaste, lo que ganaste, lo que pusiste, lo que retiraste y con cuánto terminaste. Si algo se movió a mano, sale aparte como «Sin explicar». Al tocar una parte ves de qué está hecha y cómo venía.",
+      texto: "Con cuánto empezaste, lo que ganaste, lo que pusiste, lo que retiraste y con cuánto terminaste. Si algo se movió a mano, sale aparte como «Sin explicar». Fila por fila, con los meses de antes al lado: toca una para ver de qué está hecha.",
     },
     {
       id: "libro",
       ancla: "fin-patrimonio.libro",
       opcional: true,
-      titulo: "El formato formal",
-      texto: "El mismo estado con sus nombres de siempre, como lo lee un contador. Se abre aquí mismo.",
+      titulo: "Los nombres del contador",
+      texto: "Cambia las palabras de cada fila a las de siempre del contador: Saldo inicial, Resultado del período, Saldo final. Las cifras no cambian.",
     },
     {
       id: "recos",

@@ -8,7 +8,7 @@
 import { solesCentimos, soles as solesEntero } from "./flujo-caja-reglas";
 import { cascadaGanamos, porSede, type DejaSede } from "./ganamos-reglas";
 import { nombreCortoSede, SEDE_EMPRESA } from "./finanzas-telar-reglas";
-import { chipContraAnterior, type ColumnaDeParte, type FilaDeParte, type FilaDelLibro, type ParteEstado } from "./estados-partes";
+import { chipContraAnterior, type ColumnaDeParte, type FilaDeParte, type ParteEstado } from "./estados-partes";
 import { nombreDelAnterior, type Periodo } from "./estados-periodo";
 import { pesoContra, type FilaInforme, type Informe } from "./estados-informe";
 import type { FilaPpto } from "./presupuesto-reglas";

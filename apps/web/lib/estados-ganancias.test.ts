@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { informeDeGanancias, lecturaDeGanancias, montosDeGanancias, partesDeGanancias } from "./estados-ganancias";
-import { altoDeColumna, anchoDeFila, chipContraAnterior, pasosDelLibro, textoDeVerMas, textoDelLibro } from "./estados-partes";
+import { chipContraAnterior, textoDeVerMas } from "./estados-partes";
 import { franjaDelPeriodo, geometriaDeLinea } from "./estados-linea";
 import { periodoDe } from "./estados-periodo";
 import { solesCentimos, soles as solesEntero } from "./flujo-caja-reglas";
@@ -240,43 +240,7 @@ it("lo que ofrece «Ver más» se dice", () => {
   expect(textoDeVerMas(["lo planeado", "las sedes", "las campañas"])).toBe("Ver más: lo planeado, las sedes y las campañas");
 });
 
-describe("el libro", () => {
-  const pasos = pasosDelLibro([
-    { nombre: "Ventas", valor: 100, tipo: "normal" },
-    { nombre: "Costo", valor: -40, tipo: "normal" },
-    { nombre: "Bruta", valor: 60, tipo: "total" },
-    { nombre: "Gastos", valor: -80, tipo: "normal" },
-    { nombre: "Resultado", valor: -20, tipo: "total" },
-  ]);
-  it("cada paso empieza donde terminó el anterior", () => {
-    const escala = (x: number) => ((x + 20) / 120) * 100;
-    expect(pasos[0]).toMatchObject({ desde: escala(0), ancho: escala(100) - escala(0) });
-    expect(pasos[1]!.desde).toBeCloseTo(escala(60));
-    expect(pasos[1]!.ancho).toBeCloseTo(escala(100) - escala(60));
-    expect(pasos[3]!.desde).toBeCloseTo(escala(-20));
-  });
-  it("un total nace en cero y su color dice cómo terminó", () => {
-    expect(pasos[4]!.desde).toBeCloseTo(0);
-    expect(pasos[4]!.color).toBe("var(--color-rojo)");
-    expect(pasos[2]!.color).toBe("var(--color-verde)");
-    expect(pasos[1]!.color).toBe("var(--color-rojo)");
-  });
-  it("sin movimiento no se rompe", () => {
-    expect(pasosDelLibro([{ nombre: "Ventas", valor: 0, tipo: "normal" }])[0]!.ancho).toBe(0);
-  });
-  it("las cifras", () => {
-    expect(textoDelLibro(1234.4)).toBe("1,234");
-    expect(textoDelLibro(-1234.4)).toBe("−1,234");
-  });
-});
-
 describe("el detalle", () => {
-  it("las barritas", () => {
-    expect(anchoDeFila(50, [{ nombre: "a", valor: 100 }, { nombre: "b", valor: -50 }])).toBe(50);
-    expect(anchoDeFila(0, [])).toBe(0);
-    expect(altoDeColumna(100, [{ etiqueta: "a", valor: 100, actual: true }])).toBe(72);
-    expect(altoDeColumna(0, [{ etiqueta: "a", valor: 100, actual: true }])).toBe(4);
-  });
   it("el chip sin nada con qué comparar", () => {
     expect(chipContraAnterior([{ etiqueta: "a", valor: 1, actual: true }], "x", true, solesCentimos)).toBeNull();
     expect(chipContraAnterior([{ etiqueta: "a", valor: 5, actual: false }, { etiqueta: "b", valor: 1, actual: true }], "x", true, solesCentimos)).toEqual({ texto: `${solesCentimos(4)} menos que x`, tono: "mal" });

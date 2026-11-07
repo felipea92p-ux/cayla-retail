@@ -4,7 +4,8 @@
 // terminar, y lo que la base no explica se muestra aparte, nunca se esconde.
 // ASUME: toda cifra viene de la base, del mismo diario que el Balance. Aquí no se suma plata nueva: se ordena y se escribe.
 
-import { chipContraAnterior, type ColumnaDeParte, type FilaDeParte, type FilaDelLibro, type ParteEstado } from "./estados-partes";
+import { chipContraAnterior, type ColumnaDeParte, type FilaDeParte, type ParteEstado } from "./estados-partes";
+import type { FilaInforme, Informe } from "./estados-informe";
 import { nombreDelAnterior, type Periodo } from "./estados-periodo";
 import { solesCentimos, solesConSignoCentimos } from "./flujo-caja-reglas";
 import { cambioDelMes, tieneExtremos } from "./patrimonio-reglas";
@@ -121,17 +122,40 @@ export function partesDelPatrimonio({ datos, comparadas, etiquetaActual, periodo
   return partes;
 }
 
-/** Qué se ve abajo: una sola barra sumaría cosas que no se suman, así que aquí mandan las tarjetas. */
-export const tituloDelPatrimonio = "Qué movió tu parte";
-
-/** El estado del contador, con sus nombres de siempre. Suma: saldo inicial + lo que lo movió = saldo final. */
-export function libroDelPatrimonio(p: ConExtremos): FilaDelLibro[] {
-  return [
-    { nombre: "Saldo inicial", valor: p.inicio.total, tipo: "normal" },
-    { nombre: "Resultado del período", valor: p.ganancia, tipo: "normal" },
-    ...(pesa(p.aportes) ? [{ nombre: "Aportes del dueño", valor: p.aportes, tipo: "normal" as const }] : []),
-    { nombre: "Retiros del dueño", valor: -p.retiros, tipo: "normal" },
-    ...(pesa(p.otros) ? [{ nombre: "Otros ajustes", valor: p.otros, tipo: "normal" as const }] : []),
-    { nombre: "Saldo final", valor: p.fin.total, tipo: "total" },
-  ];
+/**
+ * Cambios en el patrimonio como informe (camino A, Felipe 2026-11-06): con cuánto empezaste, lo que lo movió (lo ganado, lo que pusiste, lo que retiraste y un
+ * ajuste a mano si lo hubo) y con cuánto terminaste, con los períodos de antes al lado. Suma: saldo inicial + lo que lo movió = saldo final. Las frases y el
+ * detalle de cada fila salen de las mismas partes (`partesDelPatrimonio`).
+ */
+export function informeDelPatrimonio({ datos, partes, comparadas, etiquetaActual }: { datos: ConExtremos; partes: readonly ParteEstado[]; comparadas: readonly ComparadaPatrimonio[]; etiquetaActual: string }): Informe {
+  const DE: Record<string, { contable: string; de: (x: ConExtremos) => number; tipo: FilaInforme["tipo"] }> = {
+    inicio: { contable: "Saldo inicial", de: (x) => x.inicio.total, tipo: "subtotal" },
+    ganancia: { contable: "Resultado del período", de: (x) => x.ganancia, tipo: "linea" },
+    aportes: { contable: "Aportes del dueño", de: (x) => x.aportes, tipo: "linea" },
+    retiros: { contable: "Retiros del dueño", de: (x) => -x.retiros, tipo: "linea" },
+    otros: { contable: "Otros ajustes", de: (x) => x.otros, tipo: "linea" },
+    fin: { contable: "Saldo final", de: (x) => x.fin.total, tipo: "total" },
+  };
+  const filas: FilaInforme[] = partes.flatMap((p) => {
+    const d = DE[p.clave];
+    if (!d) return [];
+    return [
+      {
+        clave: p.clave,
+        nombre: p.nombre,
+        contable: d.contable,
+        tipo: d.tipo,
+        valores: [...comparadas.map((c) => (tieneExtremos(c.datos) ? d.de(c.datos as ConExtremos) : null)), d.de(datos)],
+        tono: p.clave === "fin" ? (datos.fin.total < 0 ? "mal" : null) : (p.tono ?? null),
+        que: p.que,
+        detalle: p.filas,
+      },
+    ];
+  });
+  return {
+    titulo: "Cambios en el patrimonio",
+    columnas: [...comparadas.map((c) => ({ etiqueta: c.etiqueta, actual: false })), { etiqueta: etiquetaActual, actual: true }],
+    pesoDe: null,
+    filas,
+  };
 }

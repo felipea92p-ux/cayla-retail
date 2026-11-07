@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { lecturaDelPatrimonio, libroDelPatrimonio, partesDelPatrimonio } from "./estados-patrimonio";
+import { informeDelPatrimonio, lecturaDelPatrimonio, partesDelPatrimonio } from "./estados-patrimonio";
 import { periodoDe } from "./estados-periodo";
 import { solesCentimos } from "./flujo-caja-reglas";
 import type { PatrimonioCambios } from "./estados-financieros-reglas";
@@ -86,11 +86,15 @@ describe("las partes", () => {
   });
 });
 
-it("el libro suma: saldo inicial + lo que lo movió = saldo final", () => {
-  const l = libroDelPatrimonio(dato({ aportes: 500, otros: 40, fin: { ...dato().fin, total: 96540 } }));
-  expect(l.map((x) => x.nombre)).toEqual(["Saldo inicial", "Resultado del período", "Aportes del dueño", "Retiros del dueño", "Otros ajustes", "Saldo final"]);
-  expect(l.slice(0, -1).reduce((a, x) => a + x.valor, 0)).toBe(l.at(-1)!.valor);
-  expect(libroDelPatrimonio(dato()).map((x) => x.nombre)).toEqual(["Saldo inicial", "Resultado del período", "Retiros del dueño", "Saldo final"]);
+it("el informe suma: saldo inicial + lo que lo movió = saldo final (camino A, 2026-11-06)", () => {
+  const informe = (d: ReturnType<typeof dato>) =>
+    informeDelPatrimonio({ datos: d, partes: partesDelPatrimonio({ datos: d, comparadas: [], etiquetaActual: "Oct", periodo: OCT, porSede: [] }), comparadas: [{ etiqueta: "Sep", datos: null }], etiquetaActual: "Oct" });
+  const l = informe(dato({ aportes: 500, otros: 40, fin: { ...dato().fin, total: 96540 } }));
+  expect(l.filas.map((x) => x.contable)).toEqual(["Saldo inicial", "Resultado del período", "Aportes del dueño", "Retiros del dueño", "Otros ajustes", "Saldo final"]);
+  const ahora = l.filas.map((x) => x.valores.at(-1)!);
+  expect(ahora.slice(0, -1).reduce((a, x) => a + x, 0)).toBe(ahora.at(-1));
+  expect(l.filas[0]!.valores[0]).toBeNull();
+  expect(informe(dato()).filas.map((x) => x.contable)).toEqual(["Saldo inicial", "Resultado del período", "Retiros del dueño", "Saldo final"]);
 });
 
 describe("con sueldos que Dynamic todavía no paga (tarea 23)", () => {

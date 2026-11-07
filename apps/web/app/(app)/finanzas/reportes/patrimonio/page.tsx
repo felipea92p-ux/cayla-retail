@@ -5,7 +5,7 @@ import { hrefTelar, mesDelDia, nombreCortoSede, sedeDeLaUrl } from "@/lib/finanz
 import { paramsDe } from "@/lib/estados-financieros-reglas";
 import { etiquetaDelPeriodo, leerPeriodo, periodoDe, periodosAnteriores } from "@/lib/estados-periodo";
 import { getPatrimonioCambios, getPatrimonioEnFechas } from "@/lib/estados-financieros";
-import { lecturaDelPatrimonio, libroDelPatrimonio, partesDelPatrimonio, tituloDelPatrimonio } from "@/lib/estados-patrimonio";
+import { informeDelPatrimonio, lecturaDelPatrimonio, partesDelPatrimonio } from "@/lib/estados-patrimonio";
 import { textoDeVerMas } from "@/lib/estados-partes";
 import { getParametrosFinanzas } from "@/lib/configuracion";
 import { getEstadoResultados } from "@/lib/resultados";
@@ -15,7 +15,7 @@ import { recomendacionesTuyo, tieneExtremos } from "@/lib/patrimonio-reglas";
 import { Aviso } from "@/components/ui/Aviso";
 import { BotonVer } from "@/components/ui/BotonDescargar";
 import { CabeceraEstados } from "@/components/finanzas/estados/CabeceraEstados";
-import { EstadoVidrio } from "@/components/finanzas/estados/EstadoVidrio";
+import { EstadoEnInforme } from "@/components/finanzas/estados/EstadoEnInforme";
 import { LineaDePatrimonio } from "@/components/finanzas/estados/LineaDePatrimonio";
 import { LineaEsperando } from "@/components/finanzas/estados/LineaDeGanancias";
 import { MasDelEstado } from "@/components/finanzas/estados/MasDelEstado";
@@ -81,28 +81,26 @@ export default async function PatrimonioPage({ searchParams }: { searchParams: P
             }
           />
         )}
-        <EstadoVidrio
-          nombre={`Cambios en el patrimonio · ${periodo.titulo}`}
-          lectura={lecturaDelPatrimonio(datos, sueldosEstimados)}
-          grafico={
-            <Suspense fallback={<LineaEsperando />}>
-              <LineaDePatrimonio hoy={hoy} periodo={periodo} final={datos.fin.total} />
-            </Suspense>
-          }
-          guiaRespuesta="fin-patrimonio.respuesta"
-          guiaPartes="fin-patrimonio.partes"
-          guiaLibro="fin-patrimonio.libro"
-          titulo={tituloDelPatrimonio}
-          partes={partesDelPatrimonio({
-            datos,
-            comparadas: comparadas.map((c) => ({ etiqueta: c.etiqueta, datos: c.lectura.falla ? null : c.lectura.datos })),
-            etiquetaActual: etiquetaDelPeriodo(periodo),
-            periodo,
-            porSede,
-          })}
-          tituloColumnas={periodo.unMes ? "Mes a mes" : "Período a período"}
-          libro={{ titulo: "Cambios en el patrimonio", detalle: `${periodo.titulo} · en soles · formato del contador`, filas: libroDelPatrimonio(datos) }}
-        />
+        {(() => {
+          const comparadasLeidas = comparadas.map((c) => ({ etiqueta: c.etiqueta, datos: c.lectura.falla ? null : c.lectura.datos }));
+          const etiquetaActual = etiquetaDelPeriodo(periodo);
+          const partes = partesDelPatrimonio({ datos, comparadas: comparadasLeidas, etiquetaActual, periodo, porSede });
+          return (
+            <EstadoEnInforme
+              nombre={`Lo tuyo · ${periodo.titulo}`}
+              lectura={lecturaDelPatrimonio(datos, sueldosEstimados)}
+              grafico={
+                <Suspense fallback={<LineaEsperando />}>
+                  <LineaDePatrimonio hoy={hoy} periodo={periodo} final={datos.fin.total} />
+                </Suspense>
+              }
+              guiaRespuesta="fin-patrimonio.respuesta"
+              guiaInforme="fin-patrimonio.partes"
+              guiaContador="fin-patrimonio.libro"
+              informe={informeDelPatrimonio({ datos, partes, comparadas: comparadasLeidas, etiquetaActual })}
+            />
+          );
+        })()}
         </>
       )}
       {recomendaciones.length > 0 && <Recomendaciones recomendaciones={recomendaciones} />}

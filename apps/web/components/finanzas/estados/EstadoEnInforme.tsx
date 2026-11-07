@@ -3,9 +3,18 @@ import { Chip } from "@/components/ui/Chip";
 import { CifraQueRueda } from "@/components/finanzas/estados/CifraQueRueda";
 import { InformeEstado } from "@/components/finanzas/estados/InformeEstado";
 import type { Informe } from "@/lib/estados-informe";
-import type { LecturaDelEstado } from "@/components/finanzas/estados/EstadoVidrio";
 
 const TONO_CHIP = { bien: "verde", mal: "rojo" } as const;
+
+/** Lo que dice la respuesta de un estado: la cifra, la frase que la interpreta, contra qué se compara y la razón. */
+export type LecturaDelEstado = {
+  valor: number;
+  mal?: boolean;
+  conSigno?: boolean;
+  frase: string;
+  chip?: { texto: string; tono: "bien" | "mal" | null } | null;
+  nota?: string | null;
+};
 
 /**
  * Un estado financiero, camino «A · El informe» (Felipe 2026-11-06; maqueta `docs/maquetas/estados-financieros-2026-11-rediseno/`): a la izquierda el informe,
