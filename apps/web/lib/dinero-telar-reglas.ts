@@ -99,7 +99,7 @@ export function colorDeGrupo(clave: string | null, sedes: readonly Pick<SedeTela
 }
 
 /** En cada grupo, de lo que está más a la mano a lo que está más lejos: el cajón, la caja fuerte, lo del líder, el banco. */
-const ORDEN_TIPO: Record<CuentaDinero["tipo"], number> = { cajon: 0, caja_fuerte: 1, por_rendir: 2, banco: 3, por_abonar: 4, tarjeta_credito: 5 };
+const ORDEN_TIPO: Record<CuentaDinero["tipo"], number> = { cajon: 0, caja_fuerte: 1, por_rendir: 2, fondo: 3, banco: 4, por_abonar: 5, tarjeta_credito: 6 };
 
 /** El grupo al que va una cuenta (ver el encabezado). La tarjeta de crédito no es plata que se tiene: es deuda, y no va en ninguno. */
 export function grupoDe(c: Pick<CuentaDinero, "tipo" | "ubicacionId">): string | null {
@@ -169,7 +169,7 @@ export function gruposDeDinero(
       clave === GRUPO_EMPRESA ? "Empresa" : clave === GRUPO_CAMINO ? "En camino" : (ubicaciones.find((u) => u.id === clave)?.nombre ?? "Tu tienda");
     const nota =
       clave === GRUPO_EMPRESA
-        ? "Los bancos y lo que se entregó al líder son de la empresa, no de una sede."
+        ? "Los bancos, lo que se entregó al líder y lo que las compradoras tienen para comprar son de la empresa, no de una sede."
         : clave === GRUPO_CAMINO
           ? "Lo que las máquinas de tarjeta y QR depositan en 1 o 2 días. Todavía no tiene sede."
           : suyas.length === 0
