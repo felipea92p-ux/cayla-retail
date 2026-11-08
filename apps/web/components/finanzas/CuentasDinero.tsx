@@ -282,6 +282,7 @@ export function ConciliacionPanel({
   hoy,
   deUnaFecha = false,
   maquinas = null,
+  extracto = null,
 }: {
   cuentas: ConciliacionCuenta[];
   actual: Conciliacion | null;
@@ -290,6 +291,8 @@ export function ConciliacionPanel({
   deUnaFecha?: boolean;
   /** «Lo que te deben las máquinas» (ADR-0629, Fase B): va bajo la lista de bancos, que ya no lleva las puentes. */
   maquinas?: ReactNode;
+  /** «Subir extracto», solo en el banco donde depositan las máquinas (ADR-0629, Fase B). */
+  extracto?: ReactNode;
 }) {
   const router = useRouter();
   const ruta = usePathname();
@@ -474,6 +477,7 @@ export function ConciliacionPanel({
               </b>
               <p>A la izquierda, lo que anotó CAYLA; a la derecha, si está en el extracto del banco.</p>
             </div>
+            {extracto}
             <SegmentoDeslizante
               etiqueta="Qué líneas ver"
               forma="modo"

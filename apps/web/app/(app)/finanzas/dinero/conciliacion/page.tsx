@@ -2,9 +2,10 @@ import { redirect } from "next/navigation";
 import { exigirModulo } from "@/lib/persona-actual";
 import { hoyLima } from "@/lib/fechas-lima";
 import { cuentaParaConciliar } from "@/lib/cuentas-dinero-reglas";
-import { getConciliacion, getContextoDinero, getDeudaDeMaquinas, pendientesDeConciliar } from "@/lib/cuentas-dinero";
+import { getConciliacion, getContextoDinero, getDeudaDeMaquinas, getMaquinasPos, pendientesDeConciliar } from "@/lib/cuentas-dinero";
 import { ConciliacionPanel, PantallaDinero } from "@/components/finanzas/CuentasDinero";
 import { DeudaDeMaquinas } from "@/components/finanzas/dinero/DeudaDeMaquinas";
+import { CuadrarConExtracto } from "@/components/finanzas/dinero/CuadrarConExtracto";
 import { getSedesDelTelar } from "@/lib/finanzas-telar";
 import { preguntaDeDinero, respuestaCuadrar } from "@/lib/dinero-telar-reglas";
 import { hastaDeLaUrl } from "@/lib/cuadrar-reglas";
@@ -24,7 +25,9 @@ export default async function ConciliacionPage({ searchParams }: { searchParams:
   // (/chaos 2026-10-23, hallazgo #1).
   const inicioFinanzas = (await getParametrosFinanzas())?.inicioFinanzas ?? null;
   const hasta = hastaDeLaUrl(sp.hasta, hoy, ctx.cuentas.datos.find((c) => c.id === elegida?.id)?.saldoDesde ?? inicioFinanzas);
-  const [actual, telar, maquinas] = await Promise.all([elegida ? getConciliacion(elegida.id, hasta) : Promise.resolve({ datos: null, falla: null }), getSedesDelTelar(), getDeudaDeMaquinas()]);
+  const [actual, telar, maquinas, pos] = await Promise.all([elegida ? getConciliacion(elegida.id, hasta) : Promise.resolve({ datos: null, falla: null }), getSedesDelTelar(), getDeudaDeMaquinas(), getMaquinasPos()]);
+  // «Subir extracto» va solo en el banco al que deposita alguna máquina (ADR-0629, Fase B: siempre Interbank Empresas).
+  const recibeMaquinas = !!elegida && (pos ?? []).some((m) => m.bancoId === elegida.id);
   const cuadre = respuestaCuadrar(ctx.conciliacion.datos);
 
   return (
@@ -47,7 +50,7 @@ export default async function ConciliacionPage({ searchParams }: { searchParams:
       hoy={hoy}
       fallas={[ctx.cuentas.falla, ctx.conciliacion.falla, actual.falla, maquinas.falla].filter((f): f is string => !!f)}
     >
-      <ConciliacionPanel key={`${elegida?.id}-${hasta ?? ""}`} cuentas={ctx.conciliacion.datos} actual={actual.datos} hoy={hoy} deUnaFecha={hasta !== null} maquinas={<DeudaDeMaquinas maquinas={maquinas.datos} />} />
+      <ConciliacionPanel key={`${elegida?.id}-${hasta ?? ""}`} cuentas={ctx.conciliacion.datos} actual={actual.datos} hoy={hoy} deUnaFecha={hasta !== null} maquinas={<DeudaDeMaquinas maquinas={maquinas.datos} />} extracto={recibeMaquinas && elegida ? <CuadrarConExtracto banco={elegida.nombre} /> : null} />
     </PantallaDinero>
   );
 }

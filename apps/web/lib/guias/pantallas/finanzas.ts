@@ -1047,6 +1047,13 @@ export const GUIA_FIN_CONCILIACION: Guia = {
       texto: "A la izquierda, cada entrada y salida que anotó CAYLA en el período; a la derecha, si está en el extracto del banco. Con «Sí, está» el hilo que los une se vuelve verde. Arriba, la barra dice cuántas llevas revisadas y el filtro deja ver solo las que faltan. Lo que no encuentres en el banco es lo que hay que aclarar.",
     },
     {
+      id: "extracto",
+      ancla: "fin-conciliacion.extracto",
+      opcional: true,
+      titulo: "El extracto del banco",
+      texto: "En el banco donde depositan las máquinas, «Subir extracto» lee el .txt que bajas de la banca (o la tabla copiada) y te dice qué trajo: los QR de Izipay uno por uno, los lotes de tarjeta y los de Vendemás. Si al extracto le faltan movimientos, lo avisa. No se guarda.",
+    },
+    {
       id: "anotar",
       ancla: "fin-conciliacion.anotar",
       opcional: true,
