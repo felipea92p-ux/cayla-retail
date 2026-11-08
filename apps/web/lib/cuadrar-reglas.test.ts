@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import type { ConciliacionCuenta, LineaConciliacion } from "./cuentas-dinero-reglas";
-import { avanceDeLineas, bancosParaCuadrar, camposDeAnotarSaldo, estadoDeBanco, estadoPar, filtrarLineas, inicialesDeBanco, textoUltimaVez, hastaDeLaUrl, respuestaCuadre, textoLadoBanco, textoPeriodo } from "./cuadrar-reglas";
+import type { AlertaPos, ConciliacionCuenta, LineaConciliacion, LotePendiente } from "./cuentas-dinero-reglas";
+import { deudaDeMaquinas, tieneExtracto, avanceDeLineas, bancosParaCuadrar, camposDeAnotarSaldo, estadoDeBanco, estadoPar, filtrarLineas, inicialesDeBanco, textoUltimaVez, hastaDeLaUrl, respuestaCuadre, textoLadoBanco, textoPeriodo } from "./cuadrar-reglas";
 import { sePuedeConfirmar } from "./guia-campos";
 import { leerMontoPlata } from "./monto-plata-reglas";
 
@@ -135,5 +135,52 @@ describe("la lista de bancos (B · Lista y detalle)", () => {
     expect(filtrarLineas(ls, "revisadas").map((l) => l.clave)).toEqual(["a"]);
     expect(filtrarLineas(ls, "todas")).toHaveLength(3);
     expect(avanceDeLineas([]).pct).toBe(0);
+  });
+});
+
+// ---- ADR-0629, Fase B: la puente no se cuadra contra un extracto -----------------------------------------------------------------
+
+describe("tieneExtracto", () => {
+  it("la puente de una máquina no tiene extracto; un banco y una tarjeta sí", () => {
+    expect(tieneExtracto("por_abonar")).toBe(false);
+    expect(tieneExtracto("banco")).toBe(true);
+    expect(tieneExtracto("tarjeta_credito")).toBe(true);
+  });
+});
+
+const alerta = (p: Partial<AlertaPos>): AlertaPos => ({ maquinaId: "m", nombre: "Izipay", cuentaId: "c-izi", pendientes: 0, montoPendiente: 0, esperado: null, atrasados: 0, montoAtrasado: 0, diasHabilesMasViejo: 0, diasAbono: 0, sinTarifa: false, ...p });
+const lote = (p: Partial<LotePendiente>): LotePendiente => ({ clave: "k", fecha: "2026-11-06", ubicacionId: "u", ubicacionNombre: "Tienda TRU", medio: "qr", bruto: 100, dias: 1, nPagos: 1, esperado: 0, diasHabiles: 1, atrasado: true, yaDepositado: 0, ...p });
+
+describe("deudaDeMaquinas", () => {
+  it("separa lo atrasado de lo que todavía no le toca, del día más viejo al más nuevo", () => {
+    const [m] = deudaDeMaquinas(
+      [alerta({})],
+      new Map([["c-izi", [lote({ clave: "b", fecha: "2026-11-06", bruto: 185.7, yaDepositado: 641.2 }), lote({ clave: "a", fecha: "2026-11-04", ubicacionNombre: "Tienda AQP", bruto: 401.2 }), lote({ clave: "h", fecha: "2026-11-07", bruto: 950.2, atrasado: false })]]]),
+    );
+    expect(m.total).toBe(1537.1);
+    expect(m.atrasados.map((d) => d.clave)).toEqual(["a", "b"]);
+    expect(m.atrasados[0].titulo).toContain("Tienda AQP · QR");
+    expect(m.atrasados[1].nota).toContain("Ya llegaron");
+    expect(m.atrasados[0].nota).toBeNull();
+    expect(m.estado.tono).toBe("ambar");
+    expect(m.enCamino).toContain("950.20");
+  });
+
+  it("sin nada atrasado está al día, y sin nada pendiente no debe nada", () => {
+    const [a, b] = deudaDeMaquinas(
+      [alerta({ nombre: "Vendemás", cuentaId: "c-ven" }), alerta({ nombre: "Izipay", cuentaId: "c-izi" })],
+      new Map([["c-izi", [lote({ atrasado: false })]]]),
+    );
+    expect(a.nombre).toBe("Izipay");
+    expect(a.estado).toEqual({ texto: "Al día", tono: "verde" });
+    expect(a.atrasados).toEqual([]);
+    expect(b.estado.texto).toBe("No debe nada");
+    expect(b.enCamino).toBeNull();
+  });
+
+  it("un residuo negativo o en cero no es deuda", () => {
+    const [m] = deudaDeMaquinas([alerta({})], new Map([["c-izi", [lote({ bruto: 0 }), lote({ clave: "z", bruto: -20 })]]]));
+    expect(m.total).toBe(0);
+    expect(m.atrasados).toEqual([]);
   });
 });

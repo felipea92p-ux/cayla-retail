@@ -1,7 +1,7 @@
 # ADR-0629 — Cuadrar las puentes de las máquinas como paga cada una: el residuo primero, el QR uno por uno después
 
-- **Fecha:** 2026-11-07 · **Estado:** aceptado por Felipe el 2026-11-07. **Fase A construida** en `20261107214000` (sin pegar en producción);
-  la Fase B (pantalla) espera.
+- **Fecha:** 2026-11-07 · **Estado:** aceptado por Felipe el 2026-11-07. **Fase A construida** en `20261107214000` (pegada el 7-nov);
+  **Fase B construida** en la rama `claude/interbank-empresas-cuentas-93baab` (migración `20261108023000`, sin pegar: ver «Fase B — lo construido»).
 - **Relacionados:** ADR-0429 (la máquina, las puentes «Por depositar» y la comisión real), ADR-0552 (cuadre de depósitos con tope de 2 días y
   la comisión en su mes), ADR-0622 (rendimiento de las lecturas de Finanzas).
 - **Cifras:** las del caso real viven fuera del repo (es público). Aquí solo van reglas.
@@ -91,11 +91,47 @@ SE ROMPE SI:
   `comision_estimada.mjs` vuelve a pegar la tarea 14 y ahora deshace antes lo de este ADR (`_deshacer_0629.mjs`). `pos_maquinas.mjs` medía el
   QR «hoy» y ahora usa una fecha fuera de la ventana gratis (la prueba dependía del calendario).
 
-## Fase B — lo que sigue (espera, decisión 1)
+## Fase B — lo construido (2026-11-07, rama `claude/interbank-empresas-cuentas-93baab`)
 
-En «Cuadrar con el banco», la puente deja de pedir saldo. El QR de Izipay se ve pago por pago en el orden de la app, se pegan los montos del
-banco y se emparejan solos (por monto y hora, con lógica pura y su prueba). Lo que llegó se registra como depósito del residuo del día. Vendemás,
-por lote neto del día.
+**La fuente es el extracto de Interbank Empresas, no el reporte de cada máquina (Felipe, 2026-11-07).** El ADR-0630 (decisión 1) había
+cambiado la fuente a «el Excel de Izipay, uno por código». Felipe lo descartó el mismo día, con sus palabras: «ese adr es quivoco no puedo
+estar cuadrando asi es tedioso y me entiendes que esos dos terminales van a la cuenta de interbank empresa?». Las dos máquinas depositan en
+Interbank Empresas (`pos_maquinas.banco_id`, fijado el 7-nov), así que un solo archivo, el que ya baja, cuadra las dos. Se le avisó a la
+sesión del ADR-0630, que no construye su parte 2. Lo que el banco no dice (la tienda y la comisión) lo pone el ERP: la tienda sale de la
+venta emparejada y la comisión es lo cobrado menos lo que llegó.
+
+1. **La puente sale de «Cuadrar con el banco»** (`tieneExtracto`, aplicado al leer `fn_conciliacion_cuentas`) y en su lugar está «Lo que te
+   deben las máquinas»: por máquina y día, lo atrasado y lo que todavía no le toca, con el depósito de siempre.
+2. **«Subir extracto»** en el banco al que deposita alguna máquina: lee el .txt de la banca (columnas fijas) o la tabla copiada de la web,
+   en céntimos enteros, **en el orden real del banco (fecha de proceso y correlativo), no el del archivo** (un sábado procesado el lunes sale
+   mezclado con el domingo), y revisa la cadena de saldos: un hueco en medio del período se avisa; uno en el borde es de un día vecino.
+3. **Vendemás por lote:** cada «PAGO ESTABLECIMIENTOS» cubre lo cobrado desde el lote anterior hasta el día antes (el del lunes junta
+   sábado y domingo); la comisión se mide con la regla del formulario del depósito (`revisarComision`) y se registra con
+   `registrar_abono_pos`. Una línea con un depósito vigente del mismo día y monto sale «Ya registrado».
+4. **Izipay pago por pago** (`20261108023000`): cada «Abono QR IBK» se junta con un QR por día y neto exacto (empate por hora; uno de
+   medianoche puede llegar al día siguiente) y cada «PAGO IZIPAY <código>» con la tarjeta (y los QR pagados con tarjeta) de UNA tienda en
+   su ventana (Izipay no abona el fin de semana: el lunes trae viernes a domingo), al céntimo. Se registra con `registrar_abono_pos_pagos`:
+   un depósito por día del banco, con bruto parcial por día y la lista de pagos en `pos_abonos_pagos`. Lo que se cobró y no llegó, y lo que
+   llegó sin venta (casi siempre un QR anotado como Yape), se dicen con nombre.
+
+DECIDÍ:
+- **Guardar qué pagos cubrió cada depósito** (`pos_abonos_pagos`, solo agrega). Sin eso, un día que llega a medias dice cuánto falta pero no
+  cuál. No contradice el «DESCARTÉ» de arriba: el depósito sigue siendo uno por día y no hay un movimiento por pago.
+- **Un día con un depósito sin detalle no entra al pago por pago** (`dia_sin_detalle`): son todos los de antes de la Fase B y los de
+  «Cuadrar depósitos». Adivinar qué pagos cubrió depositaría dos veces el mismo QR; esos días siguen con «Cuadrar depósitos».
+- **Un lote que no calza al céntimo no se propone.** Dice qué revisar; no se registra «a ojo».
+
+SE ROMPE SI:
+1. **Izipay cambia cómo escribe sus líneas** («Abono QR IBK», «PAGO IZIPAY») o Interbank cambia las columnas del .txt: las líneas caen en
+   «Lo demás» y no se emparejan (nada se registra mal: solo deja de proponer).
+2. **Dos QR del mismo monto, el mismo día, en dos tiendas, llegan en otro orden que el de la hora:** el depósito del día queda igual (va al
+   mismo banco con el mismo neto), pero cada tienda se lleva el pago de la otra. Raro y sin efecto en la plata.
+3. **Una venta se anula después de que su QR se depositó:** el pago sigue en `pos_abonos_pagos` del depósito vigente; el residuo de la Fase
+   A (negativo) no se ve, como ya dice el ADR-0630 («SE ROMPE SI» 1).
+4. **La máquina se reconoce por su nombre** (`/izipay/`, `/vendem/`): una tercera máquina con otro nombre no se empareja hasta agregarla.
+
+Pruebas: `pnpm pruebas:pos-pagos` (25 casos; su control `--mutante` quita el freno del pago repetido y ese caso cae), `lib/extracto-interbank.test.ts`
+(14, con el .txt real de octubre leído en local sin subirlo: 930 líneas, 0 sin leer, huecos solo en el borde), `lib/emparejar-maquinas.test.ts` (20).
 
 ## Al pegar en producción (cada paso con el OK de Felipe)
 
@@ -104,6 +140,8 @@ por lote neto del día.
 3. Corregir los depósitos de máquina anotados a otro banco que Interbank Empresas.
 4. Reemplazar la comisión del depósito de los primeros días de noviembre por lo real (gratis).
 5. Decidir qué pasa con el QR que no llegó al banco (reclamo a Izipay, venta mal cobrada o pérdida).
+6. (Fase B) Pegar `20261108023000` en una sola parte (sin políticas ni `alter` de tablas en uso) y verificar con un `select` que existen
+   `pos_abonos_pagos`, `fn_pos_pagos_por_depositar` y `registrar_abono_pos_pagos`.
 
 ## Revisión y contraste (2026-11-07, antes de pegar)
 
