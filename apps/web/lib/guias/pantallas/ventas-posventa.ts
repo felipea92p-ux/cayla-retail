@@ -416,7 +416,7 @@ export const GUIA_CAJA: Guia = {
       ancla: "caja.historial-todas",
       opcional: true,
       titulo: "Historial de cierres",
-      texto: "Con la caja cerrada, este botón te lleva a los cierres de todas las tiendas: si cuadraron, cuánto faltó o sobró y el detalle de cada turno.",
+      texto: "Los cierres de esta tienda, mes por mes: si cuadraron, cuánto faltó o sobró y, al tocar uno, el detalle del turno. Es el mismo con la caja abierta o cerrada.",
     },
     {
       id: "turno",
