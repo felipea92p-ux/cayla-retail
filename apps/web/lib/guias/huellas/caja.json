@@ -2,7 +2,7 @@
   "guia": "caja",
   "ruta": "/caja",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 114,
+  "total": 115,
   "controles": {
     "components/BarraCierreCaja.tsx": [
       "button «Cerrar caja»",
@@ -144,6 +144,7 @@
       "Boton «Igual al cierre ·»",
       "input «Ej.: se usó para dar vuelto»",
       "button «Contar billetes y monedas»",
+      "button «{`Ver el detalle del cierre del ${dia}»",
       "ComboResponsable «{responsable}»",
       "BotonEnlace «Ir a vender»",
       "Boton «Ver la caja»"
