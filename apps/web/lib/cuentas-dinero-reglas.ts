@@ -657,6 +657,8 @@ export type LotePendiente = {
   diasHabiles: number;
   /** Lleva más días hábiles que los que la máquina tarda en depositar (sin tarifa, 3). */
   atrasado: boolean;
+  /** Lo que ya cubrieron depósitos de ese mismo día (ADR-0629): si es mayor que 0, `bruto` es lo cobrado DESPUÉS del depósito. */
+  yaDepositado: number;
 };
 export function leerLotePendiente(f: Fila): LotePendiente {
   return {
@@ -671,7 +673,13 @@ export function leerLotePendiente(f: Fila): LotePendiente {
     esperado: numONull(f.esperado),
     diasHabiles: num(f.dias_habiles),
     atrasado: f.atrasado === true,
+    yaDepositado: num(f.ya_depositado),
   };
+}
+
+/** ADR-0629: si este día ya tuvo un depósito y lo que queda es lo cobrado después, en palabras; `null` si no. */
+export function textoDespuesDelDeposito(l: Pick<LotePendiente, "yaDepositado">): string | null {
+  return l.yaDepositado > 0 ? `Ese día ya se depositaron ${soles2(l.yaDepositado)}; esto se cobró después.` : null;
 }
 
 /**
@@ -774,6 +782,8 @@ export type FilaCuadre = {
   hasta: string;
   /** Lo que impide cuadrar esa máquina. */
   falta: "banco" | "tarifa" | null;
+  /** Cuánto de `bruto` se cobró después de un depósito ya registrado de ese mismo día (ADR-0629). */
+  residuo: number;
 };
 export const TEXTO_FALTA_CUADRE: Record<"banco" | "tarifa", string> = { banco: "Falta su banco", tarifa: "Falta su tarifa" };
 
@@ -790,7 +800,13 @@ export function leerFilaCuadre(f: Fila): FilaCuadre {
     desde: String(f.desde),
     hasta: String(f.hasta),
     falta: f.falta === "banco" || f.falta === "tarifa" ? f.falta : null,
+    residuo: num(f.residuo),
   };
+}
+
+/** ADR-0629: la línea que avisa que parte de lo propuesto se cobró después de un depósito ya registrado; `null` si no hay. */
+export function textoResiduoCuadre(f: Pick<FilaCuadre, "residuo">): string | null {
+  return f.residuo > 0 ? `Incluye ${soles2(f.residuo)} cobrados el mismo día después de un depósito que ya registraste.` : null;
 }
 /** Con su banco, su tarifa y algo que depositar. */
 export const sePuedeCuadrar = (f: FilaCuadre) => f.falta === null && f.neto > 0;

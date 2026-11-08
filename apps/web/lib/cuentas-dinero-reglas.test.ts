@@ -39,6 +39,8 @@ import {
   validarMovimiento,
   validarPagoSunat,
   leerFilaCuadre,
+  textoDespuesDelDeposito,
+  textoResiduoCuadre,
   sePuedeCuadrar,
   validarPagoPlanilla,
   mesesDePlanilla,
@@ -244,6 +246,13 @@ describe("el formulario «Registrar movimiento»", () => {
     expect(leerFilaCuadre({ falta: "otra", claves: null }).falta).toBeNull();
   });
 
+  it("dice cuánto de lo propuesto se cobró después de un depósito ya registrado (ADR-0629)", () => {
+    expect(leerFilaCuadre({ residuo: "33.33" }).residuo).toBe(33.33);
+    expect(leerFilaCuadre({}).residuo).toBe(0);
+    expect(textoResiduoCuadre({ residuo: 33.33 })).toContain("33.33");
+    expect(textoResiduoCuadre({ residuo: 0 })).toBeNull();
+  });
+
   it("pagar a SUNAT dice de qué mes es y separa IGV de renta (tarea 10)", () => {
     const b = { origen: "bcp", referencia: "", fecha: hoy };
     const c = { cuentas: TODAS, hoy };
@@ -442,7 +451,7 @@ describe("el monto de un movimiento tiene tope", () => {
 
 describe("el depósito de la máquina se cruza contra los días pendientes (ADR-0429)", () => {
   const izipay = cuenta({ id: "pdi", nombre: "Por depositar Izipay", tipo: "por_abonar" });
-  const sinTarifa = { nPagos: 1, esperado: null, diasHabiles: 1, atrasado: false };
+  const sinTarifa = { nPagos: 1, esperado: null, diasHabiles: 1, atrasado: false, yaDepositado: 0 };
   const lotes: LotePendiente[] = [
     { clave: "cobros:2026-10-14:u-tru:tarjeta", fecha: "2026-10-14", ubicacionId: TRU, ubicacionNombre: "Tienda TRU", medio: "tarjeta", bruto: 1200, dias: 2, ...sinTarifa },
     { clave: "cobros:2026-10-14:u-tru:qr", fecha: "2026-10-14", ubicacionId: TRU, ubicacionNombre: "Tienda TRU", medio: "qr", bruto: 300, dias: 2, ...sinTarifa },
@@ -455,6 +464,13 @@ describe("el depósito de la máquina se cruza contra los días pendientes (ADR-
   it("de entrada vienen marcados los días hasta la fecha del depósito, no los de después", () => {
     expect(lotesPorDefecto(lotes, "2026-10-15")).toEqual(["cobros:2026-10-14:u-tru:tarjeta", "cobros:2026-10-14:u-tru:qr", "cobros:2026-10-15:u-lim:tarjeta"]);
     expect(lotesPorDefecto(lotes, "2026-10-13")).toEqual([]);
+  });
+
+  it("un día que ya tuvo depósito y siguió vendiendo dice que lo que queda se cobró después (ADR-0629)", () => {
+    expect(leerLotePendiente({ clave: "x", fecha: "2026-11-06", ubicacion_id: TRU, medio: "qr", bruto: "33.33", ya_depositado: "100" }).yaDepositado).toBe(100);
+    expect(leerLotePendiente({ clave: "x", fecha: "2026-11-06", ubicacion_id: TRU, medio: "qr", bruto: "33.33" }).yaDepositado).toBe(0);
+    expect(textoDespuesDelDeposito({ yaDepositado: 100 })).toContain("100.00");
+    expect(textoDespuesDelDeposito({ yaDepositado: 0 })).toBeNull();
   });
 
   it("cada día se lee en palabras de tienda", () => {
@@ -520,7 +536,7 @@ describe("la tarifa de cada máquina solo estima y avisa (ADR-0429, act. 4)", ()
   });
 
   it("la comisión esperada de los días marcados solo se suma si TODOS tienen tarifa", () => {
-    const base = { ubicacionId: TRU, ubicacionNombre: "Tienda TRU", medio: "tarjeta" as const, dias: 1, nPagos: 2, diasHabiles: 1, atrasado: false };
+    const base = { ubicacionId: TRU, ubicacionNombre: "Tienda TRU", medio: "tarjeta" as const, dias: 1, nPagos: 2, diasHabiles: 1, atrasado: false, yaDepositado: 0 };
     const conTarifa: LotePendiente[] = [
       { ...base, clave: "a", fecha: "2026-10-15", bruto: 100, esperado: 4.53 },
       { ...base, clave: "b", fecha: "2026-10-15", bruto: 50, esperado: 2.27 },
