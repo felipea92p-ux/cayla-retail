@@ -54,11 +54,13 @@ function verificar(titulo, r, esperados) {
     }
   }
 }
+// El aviso «tendría que haber fallado» lleva su propio código (XX999): con el P0001 de fábrica, un freno esperado P0001 se tragaba
+// el aviso y el caso pasaba aunque no frenara nada (lo destapó el control de `pos_pagos.mjs`, 2026-11-07).
 const debeFallar = (nombre, sql, codigo) => `
 do $$
 begin
   ${sql};
-  raise exception '${nombre}: tendría que haber fallado';
+  raise exception '${nombre}: tendría que haber fallado' using errcode = 'XX999';
 exception when others then
   if sqlstate <> '${codigo}' then raise; end if;
 end $$;
