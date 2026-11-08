@@ -766,6 +766,8 @@ describe("después de recibir", () => {
     expect(despuesDeRecibirEnvio({ lotes: ["l"], buenas: [], unidades: 2, unidadesBuenas: 0, veExistencias: true }).map((a) => a.clave)).toEqual(["etiquetas"]);
     // Un envío ya cerrado, sin saber las variantes: «Bajar al piso» abre la pantalla sin nada marcado.
     expect(despuesDeRecibirEnvio({ lotes: [], buenas: [], unidades: 4, unidadesBuenas: 4, veExistencias: true })[0]!.href).toBe("/inventario/bajar");
+    // Las etiquetas llevan el envío, para que «Volver» regrese a él y no a la lista de Recibir (Felipe 2026-11-07).
+    expect(despuesDeRecibirEnvio({ lotes: ["l"], envioId: "e1", buenas: [], unidades: 2, unidadesBuenas: 0, veExistencias: true })[0]!.href).toBe("/etiquetas-de-precio?lotes=l&envio=e1");
   });
 
   it("lo bueno de un envío cerrado sale de «cómo se cerró» si la base manda la variante", () => {

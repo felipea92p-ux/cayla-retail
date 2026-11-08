@@ -82,7 +82,7 @@ export function EnvioCerrado({
   // Qué dice el envío sobre el stock: listas para etiquetar o, si nada entró, por qué y qué lo resuelve (formidable 2026-10-13, cambio 1).
   const veredicto = veredictoDelCerrado(lineas, lista);
   const buenas = buenasDeRecibidos(detalle.recibidos);
-  const acciones = despuesDeRecibirEnvio({ lotes, buenas, unidades: cifras.enStock, unidadesBuenas: buenas.reduce((a, b) => a + b.cantidad, 0), veExistencias });
+  const acciones = despuesDeRecibirEnvio({ lotes, envioId: detalle.id, buenas, unidades: cifras.enStock, unidadesBuenas: buenas.reduce((a, b) => a + b.cantidad, 0), veExistencias });
   const diferencias = (detalle.diferencias ?? []).filter((d) => d.cantidad > 0);
   const cuando = detalle.cerradoEn ? diaYHoraLima(detalle.cerradoEn) : null;
   const reabrir = conteos?.reabrir ?? null;
