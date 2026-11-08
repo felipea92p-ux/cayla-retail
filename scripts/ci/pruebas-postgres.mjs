@@ -342,6 +342,11 @@ export const PRUEBAS = [
 
   "pruebas:registrar-venta",
 
+  // Un día de tienda (abrir caja, venta en efectivo con boleta, venta mixta, anular, cambio, devolución, cerrar caja) mirando
+  // las invariantes de /chaos después de CADA paso: falla si la base queda descuadrada (stock contra movimientos, venta contra
+  // pagos, caja, comprobantes, libro) aunque la suite propia de la función siga verde. ROLLBACK.
+  "pruebas:dia-de-tienda",
+
   // Descuento de campaña EXACTO, al céntimo (ADR-0302; reemplaza el .90 de ADR-0182): la base da lo mismo que la caja,
   // registrar_venta y separar_prendas aceptan el descuento exacto y rechazan el del .90, y la migración se puede pegar
   // dos veces. ROLLBACK.
