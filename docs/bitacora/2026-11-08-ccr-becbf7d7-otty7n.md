@@ -8,4 +8,5 @@
 
 - **Qué pasó:** en «Abrir caja», las tarjetas de «Cierres anteriores» (los últimos 7 de la tienda) solo se leían; para ver el detalle de uno había que ir al historial.
 - **Arreglo:** cada tarjeta es un botón que abre la misma hoja de detalle del historial (`useDetalleCierre`, 1024 px: lo cobrado por medio de pago, cómo cuadró, a dónde fue el efectivo y los movimientos). La hoja va fuera del `<form>` de abrir la caja. La guía de Caja gana su paso «Cierres anteriores» (`caja.cierres-anteriores`) y su huella está aceptada.
+- **Después:** cada tarjeta dice «Ver detalle ›» al pie (en tinta, no en rojo: son siete), y las siete van en fila solo desde 1400 px; por debajo, de a cuatro (a 1024 px cada tarjeta medía 72 px y el monto y el texto se salían del borde).
 - **Felipe se lleva:** con la caja cerrada, tocar cualquiera de los últimos cierres lleva directo a su detalle, sin pasar por el historial.

@@ -2,7 +2,7 @@
 
 import { useLayoutEffect, useRef, useState, type CSSProperties } from "react";
 import { useRouter } from "next/navigation";
-import { Check, ShoppingBag } from "lucide-react";
+import { Check, ChevronRight, ShoppingBag } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { traducirError } from "@/lib/error-escritura";
 import { avisar } from "@/components/ui/Avisos";
@@ -237,8 +237,10 @@ export function AbrirCajaPantalla({
           <div data-guia="caja.cierres-anteriores" className="mt-auto pt-6">
             <TituloGrupo>Cierres anteriores</TituloGrupo>
             {/* Cada cierre abre su detalle (Felipe 2026-11-08): el mismo de «Historial de cierres», con lo cobrado por medio de
-                pago, cómo cuadró el efectivo y los movimientos del turno. */}
-            <ol className="mt-2.5 grid grid-cols-2 gap-2.5 sm:grid-cols-4 lg:grid-cols-7">
+                pago, cómo cuadró el efectivo y los movimientos del turno. Las siete en fila solo desde 1400 px: a 1024 cada tarjeta
+                quedaba de 72 px (y a 1280, de 96) y el monto de cuatro cifras y «Ver detalle» se salían del borde. Va en rem
+                (87.5rem): escrito en px, Tailwind lo ordena antes que `sm:` y pierde. */}
+            <ol className="mt-2.5 grid grid-cols-2 gap-2.5 sm:grid-cols-4 min-[87.5rem]:grid-cols-7">
               {serie.map((c) => {
                 const estado = estadoCierre(c.diferencia);
                 const dia = diaYHoraLima(c.cerradaEn).dia;
@@ -248,12 +250,18 @@ export function AbrirCajaPantalla({
                       type="button"
                       onClick={() => verCierre(c)}
                       aria-label={`Ver el detalle del cierre del ${dia}: ${NOMBRE_CIERRE[estado].toLowerCase()}`}
-                      className="flex h-full w-full min-w-0 flex-col gap-0.5 rounded-2xl border border-tinta/10 bg-tinta/[0.04] px-3.5 py-3 text-left transition-colors duration-200 ease-cayla hover:border-tinta/25 hover:bg-tinta/[0.08] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-tinta"
+                      className="group flex h-full w-full min-w-0 flex-col gap-0.5 rounded-2xl border border-tinta/10 bg-tinta/[0.04] px-3.5 py-3 text-left transition-colors duration-200 ease-cayla hover:border-tinta/25 hover:bg-tinta/[0.08] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-tinta"
                     >
                       <span className="label-cayla text-[11px] text-taupe-profundo">{dia}</span>
                       <b className="font-display text-[23px] font-medium leading-tight tabular-nums text-tinta">{(c.montoFondo ?? c.montoCierreReal).toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</b>
                       <span className="truncate text-xs text-tinta/65">Cerró {primerNombre(c.cerradaPorNombre)}</span>
                       <span className="mt-1.5 self-start"><Chip tono={TONO_CIERRE[estado]} versalitas={false}>{NOMBRE_CIERRE[estado].toLowerCase()}</Chip></span>
+                      {/* Dice que la tarjeta se toca (Felipe 2026-11-08). Las palabras de la tabla del historial, en tinta y no en rojo:
+                          son siete por pantalla y el rojo de un «ver» es para dos como mucho (ADR-0358, `enlace`). */}
+                      <span aria-hidden className="mt-auto flex items-center gap-0.5 whitespace-nowrap pt-2 text-[13px] font-semibold text-tinta/70 transition-colors duration-200 ease-cayla group-hover:text-tinta">
+                        Ver detalle
+                        <ChevronRight className="h-3.5 w-3.5 transition-transform duration-200 ease-cayla group-hover:translate-x-0.5" />
+                      </span>
                     </button>
                   </li>
                 );
