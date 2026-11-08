@@ -2,7 +2,7 @@
   "guia": "finanzas.dinero.conciliacion",
   "ruta": "/finanzas/dinero/conciliacion",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 53,
+  "total": 56,
   "controles": {
     "components/finanzas/CuadrarDepositos.tsx": [
       "button «Reintentar»",
@@ -48,7 +48,10 @@
       "Boton «Elegir el .txt del banco»",
       "textarea «07/11/2026 09/11/2026 - . Abono QR IBK S/ 45.90 S/ 2,793.69»",
       "Boton «Leer lo pegado»",
-      "button «Usar otro extracto»"
+      "button «Usar otro extracto»",
+      "ComboResponsable «{responsable}»",
+      "Boton «Reintentar»",
+      "Boton «→() => void registrar(p)»"
     ],
     "components/finanzas/dinero/DeudaDeMaquinas.tsx": [
       "button «Registrar el depósito»"

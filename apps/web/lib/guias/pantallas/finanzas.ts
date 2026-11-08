@@ -1054,6 +1054,13 @@ export const GUIA_FIN_CONCILIACION: Guia = {
       texto: "En el banco donde depositan las máquinas, «Subir extracto» lee el .txt que bajas de la banca (o la tabla copiada) y te dice qué trajo: los QR de Izipay uno por uno, los lotes de tarjeta y los de Vendemás. Si al extracto le faltan movimientos, lo avisa. No se guarda.",
     },
     {
+      id: "vendemas",
+      ancla: "fin-conciliacion.vendemas",
+      opcional: true,
+      titulo: "Los lotes de Vendemás",
+      texto: "Con el extracto leído, cada lote de Vendemás dice qué días cubre, cuánto se cobró y la comisión que queda. Si cuadra, «Registrar el depósito» lo anota con la comisión real; si algo no cuadra, dice qué revisar. Lo que ya está registrado no se vuelve a ofrecer. En la demo no se registra nada.",
+    },
+    {
       id: "anotar",
       ancla: "fin-conciliacion.anotar",
       opcional: true,

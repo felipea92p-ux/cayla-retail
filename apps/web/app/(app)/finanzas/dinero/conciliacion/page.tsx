@@ -50,7 +50,7 @@ export default async function ConciliacionPage({ searchParams }: { searchParams:
       hoy={hoy}
       fallas={[ctx.cuentas.falla, ctx.conciliacion.falla, actual.falla, maquinas.falla].filter((f): f is string => !!f)}
     >
-      <ConciliacionPanel key={`${elegida?.id}-${hasta ?? ""}`} cuentas={ctx.conciliacion.datos} actual={actual.datos} hoy={hoy} deUnaFecha={hasta !== null} maquinas={<DeudaDeMaquinas maquinas={maquinas.datos} />} extracto={recibeMaquinas && elegida ? <CuadrarConExtracto banco={elegida.nombre} /> : null} />
+      <ConciliacionPanel key={`${elegida?.id}-${hasta ?? ""}`} cuentas={ctx.conciliacion.datos} actual={actual.datos} hoy={hoy} deUnaFecha={hasta !== null} maquinas={<DeudaDeMaquinas maquinas={maquinas.datos} />} extracto={recibeMaquinas && elegida ? <CuadrarConExtracto banco={elegida.nombre} bancoId={elegida.id} maquinas={(pos ?? []).filter((m) => m.bancoId === elegida.id && !m.archivada).map((m) => ({ cuentaId: m.cuentaId, nombre: m.nombre }))} /> : null} />
     </PantallaDinero>
   );
 }
