@@ -216,6 +216,10 @@ export const PRUEBAS = [
   "pruebas:pago-planilla-y-sunat",
   "pruebas:planilla-conceptos",
   "pruebas:comision-estimada",
+
+  // La puente de la máquina por residuo (ADR-0629): un día depositado que siguió vendiendo vuelve a pendiente con lo que falta,
+  // el diario revierte lo estimado una sola vez y el QR de Izipay no cobra los primeros días del mes. ROLLBACK.
+  "pruebas:puente-residuo",
   "pruebas:gasto-fecha-pago",
 
   // La salida del banco de la planilla que Dynamic marca pagada (ADR-0567): el banco del colaborador desde las grafías reales, el grupo

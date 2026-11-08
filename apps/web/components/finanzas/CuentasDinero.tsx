@@ -37,6 +37,7 @@ import {
   resumenAbono,
   revisarComision,
   resumenConciliacion,
+  textoDespuesDelDeposito,
   textoLote,
   textoSalida,
   tipoDeMovimiento,
@@ -926,6 +927,14 @@ function RegistrarMovimientoModal({
                         <>
                           {" "}
                           <Chip tono="ambar">atrasado</Chip>
+                        </>
+                      )}
+                      {textoDespuesDelDeposito(l) && (
+                        <>
+                          {" "}
+                          <Chip tono="pizarra" title={textoDespuesDelDeposito(l) ?? undefined}>
+                            después del depósito
+                          </Chip>
                         </>
                       )}
                       {desdeDeLaMaquina && l.fecha < desdeDeLaMaquina && (

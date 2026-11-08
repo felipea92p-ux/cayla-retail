@@ -17,7 +17,7 @@ import { firmar } from "@/lib/responsable-reglas";
 import { useResponsable } from "@/lib/useResponsable";
 import { soles } from "@/lib/compras-reglas";
 import { fechaCorta, montoDentroDelTope, parsearMonto } from "@/lib/gastos-reglas";
-import { leerFilaCuadre, sePuedeCuadrar, TEXTO_FALTA_CUADRE, type FilaCuadre } from "@/lib/cuentas-dinero-reglas";
+import { leerFilaCuadre, sePuedeCuadrar, TEXTO_FALTA_CUADRE, textoResiduoCuadre, type FilaCuadre } from "@/lib/cuentas-dinero-reglas";
 
 // Cuentas y dinero ▸ «Cuadrar depósitos» (tarea 14, ADR-0552): la vista previa de lo que ya venció en cada máquina y cuánto debería haber llegado. Confirmar lo registra como depósito
 // ESTIMADO; cuando se ve el banco, `ReemplazarEstimado` lo cambia por lo que llegó. Nada se guarda sin este clic, y la base vuelve a comparar lo que se vio con lo que hay.
@@ -92,6 +92,7 @@ export function CuadrarDepositosHoja({ onCerrar }: { onCerrar: () => void }) {
                 {f.dias === 1 ? "1 cobro" : `${f.dias} cobros`} del {fechaCorta(f.desde)}
                 {f.hasta !== f.desde ? ` al ${fechaCorta(f.hasta)}` : ""}: {soles(f.bruto)} − {soles(f.comision)} de comisión = <b>{soles(f.neto)}</b>
               </p>
+              {textoResiduoCuadre(f) && <p className="text-sm text-taupe">{textoResiduoCuadre(f)}</p>}
             </li>
           ))}
         </ul>

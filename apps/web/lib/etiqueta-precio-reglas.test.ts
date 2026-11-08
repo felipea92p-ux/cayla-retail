@@ -735,6 +735,18 @@ describe("Etiquetas desde un traslado (?unidades= con ?traslado=, «Lo siguiente
     expect(volverDeEtiquetas({ tipo: "lotes" }, null, ID).href).toBe("/recibir");
     expect(volverDeEtiquetas({ tipo: "producto" }, null, ID).href).toBe("/productos");
   });
+
+  it("desde un envío de Recibir, «Volver» regresa a ESE envío y no a la lista de todos (Felipe 2026-11-07)", () => {
+    const LOTE = "7f1c1e2a-3b4c-4d5e-8f60-718293a4b5c6";
+    const url = urlEtiquetasDePrecio({ lotes: [LOTE], envio: ID });
+    expect(url).toBe(`/etiquetas-de-precio?lotes=${LOTE}&envio=${ID}`);
+    const [envio] = idsDeParam(new URL(url, "http://x").searchParams.get("envio") ?? "");
+    expect(volverDeEtiquetas({ tipo: "lotes" }, null, null, envio)).toEqual({ href: `/recibir/envio/${ID}`, a: "Envío" });
+    // Sin envío (Llegó mercadería, Ingreso sin comprobante) sigue volviendo a Recibir; el envío no manda sobre otro origen.
+    expect(volverDeEtiquetas({ tipo: "lotes" }, null, null, null)).toEqual({ href: "/recibir", a: "Recibir mercadería" });
+    expect(urlEtiquetasDePrecio({ lotes: [LOTE] })).toBe(`/etiquetas-de-precio?lotes=${LOTE}`);
+    expect(volverDeEtiquetas({ tipo: "producto" }, null, null, ID).href).toBe("/productos");
+  });
 });
 
 describe("agruparPorPrenda", () => {
@@ -763,7 +775,7 @@ describe("nombreDeFila", () => {
 
 describe("etiquetas de lo elegido en un envío de Recibir (Felipe 2026-11-07)", () => {
   it("vuelve al envío y lo dice como lo elegido de lo que entró", () => {
-    expect(volverDeEtiquetas({ tipo: "variantes" }, null, null, "abc")).toEqual({ href: "/recibir/envio/abc", a: "el envío" });
+    expect(volverDeEtiquetas({ tipo: "variantes" }, null, null, "abc")).toEqual({ href: "/recibir/envio/abc", a: "Envío" });
     const e = encabezadoDeEtiquetas({ tipo: "variantes", entraron: true, desdeEnvio: true }, { unidades: 4, modelos: 1 }, "Tienda Lima");
     expect(e.sobretitulo).toBe("Recibir · Lo que elegiste");
     expect(e.columnaCantidad).toBe("Entraron");
