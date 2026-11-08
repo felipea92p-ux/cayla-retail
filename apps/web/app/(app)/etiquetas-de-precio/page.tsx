@@ -6,7 +6,7 @@ import { hoyLima } from "@/lib/fechas-lima";
 import { ImprimirEtiquetasPrecio } from "@/components/ImprimirEtiquetasPrecio";
 
 // Etiquetas de precio (ADR-0180). Se llega desde:
-//   - el resultado de Recibir (`?lotes=` con los lotes del envío) o de Ingreso sin comprobante (`?lotes=` con su lote);
+//   - el resultado de Recibir (`?lotes=` con los lotes del envío, y `?envio=` para volver a él) o de Ingreso sin comprobante (`?lotes=` con su lote);
 //   - una orden cerrada del Taller (`?produccion=`);
 //   - una campaña (`?campana=`): sus prendas en la tienda, con el precio de campaña o, si ya terminó, el normal;
 //   - un producto (`?producto=`): sus tallas y colores en la tienda.
@@ -31,7 +31,7 @@ type Params = {
   traslado?: string | string[];
   /** Llegó desde «Ajustar stock» de Existencias (`?unidades=` + `?ajuste=1`, ADR-0494): cambia el texto; «Volver» ya va a Existencias. */
   ajuste?: string | string[];
-  /** El envío de Recibir de donde se salió (`?unidades=` + `?envio=`): lo elegido de lo que entró; «Volver» regresa a él. */
+  /** El envío de Recibir de donde se salió (`?lotes=` o `?unidades=` + `?envio=`): «Volver» regresa a ese envío, no a la lista. */
   envio?: string | string[];
 };
 
@@ -84,7 +84,7 @@ export default async function EtiquetasDePrecioPage({ searchParams }: { searchPa
       etiquetas={datos.etiquetas}
       sinCodigo={datos.sinCodigo}
       impreso={fechaEtiqueta(hoy)}
-      volver={volverDeEtiquetas(origen, desde, unidades.size > 0 ? (traslado ?? null) : null, unidades.size > 0 ? (envio ?? null) : null)}
+      volver={volverDeEtiquetas(origen, desde, unidades.size > 0 ? (traslado ?? null) : null, origen?.tipo === "lotes" || unidades.size > 0 ? (envio ?? null) : null)}
     />
   );
 }
