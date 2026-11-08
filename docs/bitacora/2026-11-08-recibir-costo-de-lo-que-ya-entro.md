@@ -1,0 +1,5 @@
+# 2026-11-08 · Recibir: lo que ya entró al stock cuenta con su costo en «Revisa y cierra»
+
+- **Qué pasó:** en el envío n.º 7 (sin aviso, abierto) las 113 prendas ya habían entrado al stock con «llevar al stock ahora», todas con su costo, pero «Revisa y cierra» decía «Sin costo: 98 · llega con la factura» y «Hay 15 prendas sin identificar». Lo que entra sale de `separado`, y la pantalla armaba el costo solo con `separado` y el costo de la línea. El stock y su costo estaban bien; el resumen mentía.
+- **Arreglo:** `fn_envio_conteo_json` trae `en_stock_costo` (migración `20261108002000`, EN PRODUCCIÓN desde el 2026-11-08 por `apply_migration`, versión registrada `20261108001737`); la pantalla suma lo ya entrado con su costo, no lo cuenta como «sin identificar» y en una línea que ya entró entera dice «Ya está en el stock · S/ 40.68 · ya entró» en vez de pedir el costo de la línea.
+- **Pendiente:** al cerrar, `cerrar_conteo_envio` deja `costos_prendas` del conteo en `{}` cuando todo ya entró (pasó en ENV-000005). No toca el costo del stock; es solo la copia del conteo.
