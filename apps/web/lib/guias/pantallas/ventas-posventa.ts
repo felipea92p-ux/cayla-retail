@@ -398,6 +398,13 @@ export const GUIA_CAJA: Guia = {
       texto: "Quién cerró la caja la última vez y cuánto debería haber hoy en el cajón.",
     },
     {
+      id: "cierres-anteriores",
+      ancla: "caja.cierres-anteriores",
+      opcional: true,
+      titulo: "Cierres anteriores",
+      texto: "Los últimos cierres de esta tienda, con lo que quedó en el cajón y si cuadró. Toca uno para ver su detalle: lo cobrado por medio de pago, cómo cuadró y los movimientos del turno.",
+    },
+    {
       id: "abrir",
       ancla: "caja.abrir",
       opcional: true,
