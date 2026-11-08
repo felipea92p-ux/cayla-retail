@@ -1054,6 +1054,13 @@ export const GUIA_FIN_CONCILIACION: Guia = {
       texto: "En el banco donde depositan las máquinas, «Subir extracto» lee el .txt que bajas de la banca (o la tabla copiada) y te dice qué trajo: los QR de Izipay uno por uno, los lotes de tarjeta y los de Vendemás. Si al extracto le faltan movimientos, lo avisa. No se guarda.",
     },
     {
+      id: "izipay",
+      ancla: "fin-conciliacion.izipay",
+      opcional: true,
+      titulo: "Lo que llegó de Izipay",
+      texto: "Cada QR que llegó se junta con su venta, por día y monto; los lotes de tarjeta, con su tienda. Lo que cuadra se registra con un toque y la comisión sale sola. Abajo dice lo que se cobró y no llegó, y lo que llegó sin venta (casi siempre un QR anotado como Yape). En la demo no se registra nada.",
+    },
+    {
       id: "vendemas",
       ancla: "fin-conciliacion.vendemas",
       opcional: true,

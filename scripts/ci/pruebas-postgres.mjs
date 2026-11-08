@@ -220,6 +220,9 @@ export const PRUEBAS = [
   // La puente de la máquina por residuo (ADR-0629): un día depositado que siguió vendiendo vuelve a pendiente con lo que falta,
   // el diario revierte lo estimado una sola vez y el QR de Izipay no cobra los primeros días del mes. ROLLBACK.
   "pruebas:puente-residuo",
+  // El depósito de la máquina pago por pago (ADR-0629, Fase B): de tres QR llegan dos, se depositan esos dos y queda el tercero; un pago
+  // no entra a dos depósitos (con su control `--mutante`), ni de otra máquina, ni de un día con un depósito sin detalle. ROLLBACK.
+  "pruebas:pos-pagos",
   "pruebas:gasto-fecha-pago",
 
   // La salida del banco de la planilla que Dynamic marca pagada (ADR-0567): el banco del colaborador desde las grafías reales, el grupo

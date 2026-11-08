@@ -102,3 +102,130 @@ describe("lo que ya está registrado no se propone otra vez", () => {
     expect([...lineasYaRegistradas(l, [{ fecha: "2026-11-05", centimos: 9729 }])]).toEqual([]);
   });
 });
+
+// ---- Izipay ----------------------------------------------------------------------------------------------------------------------
+import { emparejarIzipay, loteAnteriorIzipay, type PagoMaquina } from "./emparejar-maquinas";
+
+const lq = (orden: number, fecha: string, centimos: number, tipo: LineaExtracto["tipo"] = "qr_izipay", codigo: string | null = null): LineaExtracto => ({
+  orden,
+  fecha,
+  descripcion: tipo === "qr_izipay" ? ". Abono QR IBK" : `PAGO IZIPAY ${codigo}`,
+  centimos,
+  saldoCentimos: null,
+  tipo,
+  codigoComercio: codigo,
+});
+// Un pago con la regla de la máquina: QR gratis hasta el 10; tarjeta (y QR dentro de un lote) 2,38 % + IGV redondeados por separado.
+const comision = (c: number) => {
+  const base = Math.round(c * 0.0238);
+  return base + Math.round(base * 0.18);
+};
+const pq = (id: string, fecha: string, hora: string, monto: number, o: Partial<PagoMaquina> = {}): PagoMaquina => {
+  const c = Math.round(monto * 100);
+  const medio = o.medio ?? "qr";
+  const gratis = medio === "qr" && Number(fecha.slice(8)) <= 10;
+  return {
+    origen: "venta_pago",
+    origenId: id,
+    clave: `cobros:${fecha}:${o.ubicacionId ?? "tru"}:${medio}`,
+    fecha,
+    hora: `${fecha}T${hora}:00-05:00`,
+    ubicacionId: "tru",
+    ubicacionNombre: "Tienda TRU",
+    medio,
+    montoCentimos: c,
+    netoCentimos: gratis ? c : c - comision(c),
+    netoTarjetaCentimos: c - comision(c),
+    depositado: false,
+    diaSinDetalle: false,
+    ...o,
+  };
+};
+
+describe("loteAnteriorIzipay", () => {
+  it("Izipay no abona el fin de semana: el lote del lunes viene después del viernes", () => {
+    expect(loteAnteriorIzipay("2026-11-09")).toBe("2026-11-06");
+    expect(loteAnteriorIzipay("2026-11-05")).toBe("2026-11-04");
+  });
+});
+
+describe("emparejarIzipay — QR sueltos", () => {
+  it("cada línea con su QR, en orden de hora; lo que no llegó queda dicho y el depósito del día suma lo que llegó", () => {
+    const r = emparejarIzipay(
+      [lq(0, "2026-11-05", 4590), lq(1, "2026-11-05", 13980)],
+      [pq("a", "2026-11-05", "10:15", 45.9), pq("b", "2026-11-05", "11:40", 89.9), pq("c", "2026-11-05", "18:55", 139.8)],
+    );
+    expect(r.propuestas).toHaveLength(1);
+    expect(r.propuestas[0].pagos.map((p) => p.origenId)).toEqual(["a", "c"]);
+    expect(r.propuestas[0].netoCentimos).toBe(18570);
+    expect(r.propuestas[0].brutoCentimos).toBe(18570);
+    expect(r.sinLlegar.map((p) => p.origenId)).toEqual(["b"]);
+    expect(r.sinVenta).toEqual([]);
+  });
+
+  it("dos QR del mismo monto se emparejan en orden de hora (el empate se resuelve, no se adivina)", () => {
+    const r = emparejarIzipay([lq(0, "2026-11-05", 4990)], [pq("tarde", "2026-11-05", "18:00", 49.9), pq("manana", "2026-11-05", "09:00", 49.9)]);
+    expect(r.propuestas[0].pagos.map((p) => p.origenId)).toEqual(["manana"]);
+    expect(r.sinLlegar.map((p) => p.origenId)).toEqual(["tarde"]);
+  });
+
+  it("pasado el día 10 llega neto: la línea calza con lo cobrado menos la comisión de ese pago", () => {
+    const r = emparejarIzipay([lq(0, "2026-11-12", 9719)], [pq("a", "2026-11-12", "12:00", 100)]);
+    expect(r.propuestas[0].pagos).toHaveLength(1);
+    expect(r.propuestas[0].brutoCentimos - r.propuestas[0].netoCentimos).toBe(281);
+  });
+
+  it("un QR cobrado a medianoche puede llegar al día siguiente", () => {
+    const r = emparejarIzipay([lq(0, "2026-11-06", 3500)], [pq("a", "2026-11-05", "23:58", 35)]);
+    expect(r.propuestas[0].pagos.map((p) => p.origenId)).toEqual(["a"]);
+    expect(r.propuestas[0].fecha).toBe("2026-11-06");
+  });
+
+  it("una línea sin venta se dice; una de un día ya depositado no se vuelve a ofrecer", () => {
+    const r = emparejarIzipay(
+      [lq(0, "2026-11-05", 2000), lq(1, "2026-11-04", 5500)],
+      [pq("viejo", "2026-11-04", "12:00", 55, { diaSinDetalle: true }), pq("ya", "2026-11-05", "12:00", 20, { depositado: true })],
+    );
+    expect(r.propuestas).toEqual([]);
+    expect(r.yaRegistradas.map((l) => l.orden)).toEqual([0, 1]);
+    expect(r.sinVenta).toEqual([]);
+    const s = emparejarIzipay([lq(0, "2026-11-05", 2000)], []);
+    expect(s.sinVenta.map((l) => l.orden)).toEqual([0]);
+  });
+});
+
+describe("emparejarIzipay — lotes de tarjeta", () => {
+  it("el lote calza con la tarjeta de UNA tienda en su ventana (el del lunes junta viernes a domingo)", () => {
+    const tarjetas = [pq("vie", "2026-11-06", "12:00", 200, { medio: "tarjeta" }), pq("dom", "2026-11-08", "12:00", 200, { medio: "tarjeta" }), pq("otra", "2026-11-08", "12:00", 200, { medio: "tarjeta", ubicacionId: "aqp", ubicacionNombre: "Tienda AQP" })];
+    const neto = 2 * (20000 - comision(20000));
+    const r = emparejarIzipay([lq(0, "2026-11-09", neto, "lote_izipay", "005800001")], tarjetas);
+    const [p] = r.propuestas;
+    expect(p.tipo).toBe("lote");
+    expect(p.estado).toBe("cuadra");
+    // Las dos tiendas suman lo mismo por separado: gana la primera que calza y la otra queda libre (sin emparejar a ciegas las dos).
+    expect(p.pagos).toHaveLength(2);
+    expect(new Set(p.pagos.map((x) => x.ubicacionId)).size).toBe(1);
+  });
+
+  it("un QR pagado con tarjeta llega en el lote, con la comisión de tarjeta aunque sea día gratis", () => {
+    const r = emparejarIzipay([lq(0, "2026-11-06", 4590 - comision(4590), "lote_izipay", "005800001")], [pq("qr", "2026-11-05", "12:00", 45.9)]);
+    expect(r.propuestas[0].pagos.map((p) => p.origenId)).toEqual(["qr"]);
+    expect(r.sinLlegar).toEqual([]);
+  });
+
+  it("un lote que no calza al céntimo no se propone: dice qué revisar", () => {
+    const r = emparejarIzipay([lq(0, "2026-11-06", 12345, "lote_izipay", "005800001")], [pq("t", "2026-11-05", "12:00", 200, { medio: "tarjeta" })]);
+    expect(r.propuestas[0].estado).toBe("sin_ventas");
+    expect(r.propuestas[0].pagos).toEqual([]);
+    expect(r.propuestas[0].motivo).toContain("Ninguna tienda suma");
+  });
+
+  it("un QR que llegó suelto no se cuenta otra vez dentro de un lote", () => {
+    const r = emparejarIzipay(
+      [lq(0, "2026-11-05", 4590), lq(1, "2026-11-06", 4590 - comision(4590), "lote_izipay", "005800001")],
+      [pq("qr", "2026-11-05", "12:00", 45.9)],
+    );
+    expect(r.propuestas.find((p) => p.tipo === "qr")?.pagos.map((p) => p.origenId)).toEqual(["qr"]);
+    expect(r.propuestas.find((p) => p.tipo === "lote")?.estado).toBe("sin_ventas");
+  });
+});

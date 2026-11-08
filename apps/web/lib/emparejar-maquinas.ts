@@ -8,7 +8,7 @@
 
 import { revisarComision, type LotePendiente } from "./cuentas-dinero-reglas";
 import { fechaCorta } from "./gastos-reglas";
-import type { LineaExtracto } from "./extracto-interbank";
+import { solesDeCentimos, type LineaExtracto } from "./extracto-interbank";
 
 export type EstadoPropuesta = "cuadra" | "revisar" | "sin_ventas" | "ya_registrado";
 
@@ -98,4 +98,187 @@ export function lineasYaRegistradas(lineas: readonly LineaExtracto[], registrado
     }
   }
   return ya;
+}
+
+// ---- Izipay, pago por pago (ADR-0629, Fase B, actividad 4) -------------------------------------------------------------------
+// El QR de Izipay llega suelto a Interbank, un «Abono QR IBK» por pago, con las tiendas mezcladas y en el orden en que se cobró. Lo que se
+// paga con tarjeta (en la máquina o escaneando el QR con la app del banco) llega en un lote por código de comercio («PAGO IZIPAY 0058…»):
+// un código es una tienda, y el lote del lunes junta viernes, sábado y domingo (Izipay no abona el fin de semana).
+
+/** Un pago de una máquina como lo devuelve `fn_pos_pagos_por_depositar`, con sus montos en céntimos. */
+export type PagoMaquina = {
+  origen: "venta_pago" | "separacion_pago" | "cambio";
+  origenId: string;
+  clave: string;
+  fecha: string;
+  /** La hora del cobro (ISO): decide el orden cuando dos pagos son del mismo monto. */
+  hora: string;
+  ubicacionId: string;
+  ubicacionNombre: string;
+  medio: "qr" | "tarjeta";
+  montoCentimos: number;
+  /** Lo que llega suelto con la tarifa de su medio (gratis los primeros días del mes); nulo sin tarifa. */
+  netoCentimos: number | null;
+  /** Lo que llega dentro de un lote de tarjeta (un QR pagado con tarjeta cobra como tarjeta). */
+  netoTarjetaCentimos: number | null;
+  depositado: boolean;
+  /** Su día ya tiene un depósito que no dice qué pagos cubrió: se cuadra con «Cuadrar depósitos». */
+  diaSinDetalle: boolean;
+};
+
+const centimosONull = (v: unknown) => (v === null || v === undefined ? null : Math.round(Number(v) * 100));
+export function leerPagoMaquina(f: Record<string, unknown>): PagoMaquina {
+  return {
+    origen: String(f.origen) as PagoMaquina["origen"],
+    origenId: String(f.origen_id),
+    clave: String(f.clave),
+    fecha: String(f.fecha),
+    hora: String(f.hora),
+    ubicacionId: String(f.ubicacion_id),
+    ubicacionNombre: String(f.ubicacion_nombre ?? ""),
+    medio: String(f.medio) as PagoMaquina["medio"],
+    montoCentimos: Math.round(Number(f.monto) * 100),
+    netoCentimos: centimosONull(f.neto_esperado),
+    netoTarjetaCentimos: centimosONull(f.neto_tarjeta),
+    depositado: f.depositado === true,
+    diaSinDetalle: f.dia_sin_detalle === true,
+  };
+}
+
+/** Un depósito que se propone: lo que llegó (líneas del banco) y los pagos que lo explican. */
+export type PropuestaIzipay = {
+  clave: string;
+  /** El día del banco: es la fecha del depósito. */
+  fecha: string;
+  tipo: "qr" | "lote";
+  lineas: LineaExtracto[];
+  pagos: PagoMaquina[];
+  netoCentimos: number;
+  brutoCentimos: number;
+  estado: EstadoPropuesta;
+  motivo: string | null;
+};
+
+export type CuadreIzipay = {
+  propuestas: PropuestaIzipay[];
+  /** Llegaron al banco y ninguna venta del ERP las explica: una venta anotada con otro medio («Yape»), o que nadie registró. */
+  sinVenta: LineaExtracto[];
+  /** QR cobrados en los días del extracto que no llegaron ni sueltos ni en un lote. */
+  sinLlegar: PagoMaquina[];
+  /** Líneas de días que ya tienen su depósito registrado: no se proponen otra vez. */
+  yaRegistradas: LineaExtracto[];
+};
+
+/** El día del lote anterior de Izipay cuando el extracto no lo trae: el viernes para un lote del lunes; el día anterior para los demás. */
+export function loteAnteriorIzipay(fecha: string): string {
+  return diaAntes(fecha, new Date(`${fecha}T12:00:00Z`).getUTCDay() === 1 ? 3 : 1);
+}
+
+const suma = (xs: readonly number[]) => xs.reduce((s, x) => s + x, 0);
+const porHora = (a: PagoMaquina, b: PagoMaquina) => a.hora.localeCompare(b.hora) || a.origenId.localeCompare(b.origenId);
+
+/**
+ * Empareja el extracto con los pagos de Izipay. Los QR sueltos primero, por día y monto exactos, en el orden en que se cobraron (dos del
+ * mismo monto se emparejan en orden de hora; uno cobrado a medianoche puede llegar al día siguiente). Después, cada lote de tarjeta con
+ * lo que queda de UNA tienda en su ventana: la tarjeta sola o con los QR que no llegaron sueltos (un QR pagado con tarjeta), al céntimo.
+ * Un lote que no calza no se propone: dice qué revisar.
+ */
+export function emparejarIzipay(lineas: readonly LineaExtracto[], pagos: readonly PagoMaquina[]): CuadreIzipay {
+  const libres = pagos.filter((p) => !p.depositado && !p.diaSinDetalle).sort(porHora);
+  const usados = new Set<string>();
+  const id = (p: PagoMaquina) => `${p.origen}:${p.origenId}`;
+  const propuestas: PropuestaIzipay[] = [];
+  const sinVenta: LineaExtracto[] = [];
+  const yaRegistradas: LineaExtracto[] = [];
+
+  // 1. Los QR sueltos, por día del banco.
+  const qr = lineas.filter((l) => l.tipo === "qr_izipay" && l.centimos > 0).sort((a, b) => a.orden - b.orden);
+  const porDia = new Map<string, LineaExtracto[]>();
+  for (const l of qr) porDia.set(l.fecha, [...(porDia.get(l.fecha) ?? []), l]);
+  for (const [fecha, delDia] of porDia) {
+    const llegaron: LineaExtracto[] = [];
+    const explican: PagoMaquina[] = [];
+    for (const l of delDia) {
+      const buscar = (dia: string) => libres.find((p) => p.medio === "qr" && p.fecha === dia && !usados.has(id(p)) && p.netoCentimos === l.centimos);
+      const p = buscar(fecha) ?? buscar(diaAntes(fecha));
+      if (p) {
+        usados.add(id(p));
+        llegaron.push(l);
+        explican.push(p);
+        continue;
+      }
+      // Sin venta libre que la explique: o su día ya está depositado (no se vuelve a ofrecer), o llegó sin venta.
+      const cubierta = pagos.some((x) => x.medio === "qr" && (x.depositado || x.diaSinDetalle) && (x.fecha === fecha || x.fecha === diaAntes(fecha)) && x.netoCentimos === l.centimos);
+      (cubierta ? yaRegistradas : sinVenta).push(l);
+    }
+    if (explican.length > 0) {
+      const neto = suma(llegaron.map((l) => l.centimos));
+      const bruto = suma(explican.map((p) => p.montoCentimos));
+      propuestas.push({ clave: `qr:${fecha}`, fecha, tipo: "qr", lineas: llegaron, pagos: explican, netoCentimos: neto, brutoCentimos: bruto, estado: "cuadra", motivo: null });
+    }
+  }
+
+  // 2. Los lotes de tarjeta, cada uno con UNA tienda. Un código que ya calzó con una tienda en este extracto la sigue usando.
+  const lotes = lineas.filter((l) => l.tipo === "lote_izipay" && l.centimos > 0).sort((a, b) => a.orden - b.orden);
+  const tiendaDe = new Map<string, string>();
+  const anterior = new Map<string, string>();
+  for (const l of lotes) {
+    const codigo = l.codigoComercio ?? "";
+    const desde = anterior.get(codigo) ?? loteAnteriorIzipay(l.fecha);
+    anterior.set(codigo, l.fecha);
+    const hasta = diaAntes(l.fecha);
+    const enVentana = libres.filter((p) => !usados.has(id(p)) && p.fecha >= desde && p.fecha <= hasta && p.netoTarjetaCentimos !== null);
+    const tiendas = [...new Set(enVentana.map((p) => p.ubicacionId))].sort((a, b) => Number(b === tiendaDe.get(codigo)) - Number(a === tiendaDe.get(codigo)));
+    let calzo: PagoMaquina[] | null = null;
+    for (const t of tiendas) {
+      const deLaTienda = enVentana.filter((p) => p.ubicacionId === t);
+      const soloTarjeta = deLaTienda.filter((p) => p.medio === "tarjeta");
+      for (const grupo of [soloTarjeta, deLaTienda]) {
+        if (grupo.length > 0 && suma(grupo.map((p) => p.netoTarjetaCentimos ?? 0)) === l.centimos) {
+          calzo = grupo;
+          break;
+        }
+      }
+      if (calzo) break;
+    }
+    if (calzo) {
+      calzo.forEach((p) => usados.add(id(p)));
+      tiendaDe.set(codigo, calzo[0].ubicacionId);
+      propuestas.push({
+        clave: `lote:${l.orden}`,
+        fecha: l.fecha,
+        tipo: "lote",
+        lineas: [l],
+        pagos: calzo,
+        netoCentimos: l.centimos,
+        brutoCentimos: suma(calzo.map((p) => p.montoCentimos)),
+        estado: "cuadra",
+        motivo: null,
+      });
+      continue;
+    }
+    const cubierto = pagos.some((p) => (p.depositado || p.diaSinDetalle) && p.fecha >= desde && p.fecha <= hasta);
+    propuestas.push({
+      clave: `lote:${l.orden}`,
+      fecha: l.fecha,
+      tipo: "lote",
+      lineas: [l],
+      pagos: [],
+      netoCentimos: l.centimos,
+      brutoCentimos: 0,
+      estado: cubierto ? "ya_registrado" : "sin_ventas",
+      motivo: cubierto
+        ? null
+        : `Ninguna tienda suma ${solesDeCentimos(l.centimos)} con lo cobrado con tarjeta del ${fechaCorta(desde)} al ${fechaCorta(hasta)}: falta anotar una venta, o una tarjeta quedó en otra máquina.`,
+    });
+  }
+
+  // 3. Lo que se cobró con QR en los días del extracto y no llegó por ningún lado.
+  const desde = lineas.length ? lineas.reduce((m, l) => (l.fecha < m ? l.fecha : m), lineas[0].fecha) : "";
+  const hasta = lineas.length ? lineas.reduce((m, l) => (l.fecha > m ? l.fecha : m), lineas[0].fecha) : "";
+  const sinLlegar = libres.filter((p) => p.medio === "qr" && !usados.has(id(p)) && p.fecha >= desde && p.fecha <= hasta);
+
+  propuestas.sort((a, b) => a.fecha.localeCompare(b.fecha) || a.tipo.localeCompare(b.tipo));
+  const porOrden = (a: LineaExtracto, b: LineaExtracto) => a.orden - b.orden;
+  return { propuestas, sinVenta: sinVenta.sort(porOrden), sinLlegar, yaRegistradas: yaRegistradas.sort(porOrden) };
 }

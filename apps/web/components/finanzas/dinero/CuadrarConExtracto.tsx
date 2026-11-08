@@ -17,12 +17,12 @@ import { Aviso } from "@/components/ui/Aviso";
 import { Chip } from "@/components/ui/Chip";
 import { TituloGrupo } from "@/components/ui/TituloSeccion";
 import { ComboResponsable } from "@/components/ComboResponsable";
-import { useResponsable } from "@/lib/useResponsable";
+import { useResponsable, type ControlResponsable } from "@/lib/useResponsable";
 import { firmar } from "@/lib/responsable-reglas";
 import { fechaCorta } from "@/lib/gastos-reglas";
 import { leerLotePendiente, type LotePendiente } from "@/lib/cuentas-dinero-reglas";
 import { leerExtracto, resumenExtracto, solesDeCentimos, type ExtractoLeido } from "@/lib/extracto-interbank";
-import { emparejarVendemas, type DepositoRegistrado, type PropuestaLote } from "@/lib/emparejar-maquinas";
+import { emparejarIzipay, emparejarVendemas, leerPagoMaquina, type DepositoRegistrado, type PagoMaquina, type PropuestaIzipay, type PropuestaLote } from "@/lib/emparejar-maquinas";
 
 /** Una máquina que deposita en este banco: su puente («Por depositar …») y su nombre. */
 export type MaquinaDelBanco = { cuentaId: string; nombre: string };
@@ -112,8 +112,13 @@ function ResumenDelExtracto({ extracto, bancoId, maquinas, onOtro }: { extracto:
   const resumen = resumenExtracto(extracto.lineas);
   const huecosAdentro = extracto.huecos.filter((h) => !h.enElBorde);
   const huecosBorde = extracto.huecos.filter((h) => h.enElBorde);
-  // Vendemás se reconoce por su nombre: es la máquina cuyo lote el banco escribe «PAGO ESTABLECIMIENTOS».
+  // Cada máquina se reconoce por su nombre: Vendemás manda «PAGO ESTABLECIMIENTOS»; Izipay, «Abono QR IBK» y «PAGO IZIPAY».
   const vendemas = maquinas.find((m) => /vendem/i.test(m.nombre)) ?? null;
+  const izipay = maquinas.find((m) => /izipay/i.test(m.nombre)) ?? null;
+  const responsable = useResponsable();
+  const cuantas = (t: string) => resumen.find((r) => r.tipo === t)?.cuantas ?? 0;
+  const hayVendemas = cuantas("lote_vendemas") > 0;
+  const hayIzipay = cuantas("qr_izipay") + cuantas("lote_izipay") > 0;
   return (
     <div className="space-y-4">
       <p className="text-sm text-tinta">
@@ -152,13 +157,19 @@ function ResumenDelExtracto({ extracto, bancoId, maquinas, onOtro }: { extracto:
           {extracto.ignoradas === 1 ? "Un renglón no era un movimiento" : `${extracto.ignoradas} renglones no eran movimientos`} (títulos o totales) y no se leyó.
         </p>
       )}
-      {resumen.find((r) => r.tipo === "lote_vendemas")?.cuantas ? (
-        vendemas ? (
-          <LotesDeVendemas extracto={extracto} bancoId={bancoId} maquina={vendemas} />
+      {(hayVendemas || hayIzipay) && <ComboResponsable control={responsable} />}
+      {hayIzipay &&
+        (izipay ? (
+          <IzipayDelExtracto extracto={extracto} bancoId={bancoId} maquina={izipay} responsable={responsable} />
+        ) : (
+          <Aviso tono="atencion">El extracto trae abonos de Izipay, pero ninguna máquina llamada Izipay deposita en este banco: revísalo en Configuración ▸ Dinero.</Aviso>
+        ))}
+      {hayVendemas &&
+        (vendemas ? (
+          <LotesDeVendemas extracto={extracto} bancoId={bancoId} maquina={vendemas} responsable={responsable} />
         ) : (
           <Aviso tono="atencion">El extracto trae lotes de Vendemás, pero ninguna máquina llamada Vendemás deposita en este banco: revísalo en Configuración ▸ Dinero.</Aviso>
-        )
-      ) : null}
+        ))}
     </div>
   );
 }
@@ -167,9 +178,8 @@ const TONO: Record<PropuestaLote["estado"], "verde" | "ambar" | "pizarra"> = { c
 const TEXTO_ESTADO: Record<PropuestaLote["estado"], string> = { cuadra: "Cuadra", revisar: "Revisar", sin_ventas: "Sin ventas por depositar", ya_registrado: "Ya registrado" };
 
 /** Los lotes de Vendemás del extracto, cada uno con los días que cubre y su botón para registrarlo. */
-function LotesDeVendemas({ extracto, bancoId, maquina }: { extracto: ExtractoLeido; bancoId: string; maquina: MaquinaDelBanco }) {
+function LotesDeVendemas({ extracto, bancoId, maquina, responsable }: { extracto: ExtractoLeido; bancoId: string; maquina: MaquinaDelBanco; responsable: ControlResponsable }) {
   const router = useRouter();
-  const responsable = useResponsable();
   const [datos, setDatos] = useState<{ pendientes: LotePendiente[]; registrados: DepositoRegistrado[] } | null>(null);
   const [falla, setFalla] = useState(false);
   const [guardando, setGuardando] = useState<number | null>(null);
@@ -235,7 +245,6 @@ function LotesDeVendemas({ extracto, bancoId, maquina }: { extracto: ExtractoLei
   return (
     <section className="space-y-3" data-guia="fin-conciliacion.vendemas" aria-label={`Lotes de ${maquina.nombre}`}>
       <TituloGrupo cuenta={propuestas.length}>{maquina.nombre}</TituloGrupo>
-      <ComboResponsable control={responsable} deshabilitado={guardando !== null} />
       {falla ? (
         <Aviso tono="error" accion={<Boton peso="fantasma" onClick={() => void cargar()}>Reintentar</Boton>}>
           No se pudo leer lo que {maquina.nombre} tiene por depositar.
@@ -279,6 +288,137 @@ function LotesDeVendemas({ extracto, bancoId, maquina }: { extracto: ExtractoLei
             </li>
           ))}
         </ul>
+      )}
+    </section>
+  );
+}
+
+const TEXTO_ORIGEN: Record<PagoMaquina["origen"], string> = { venta_pago: "venta", separacion_pago: "apartado", cambio: "cambio" };
+const horaDe = (iso: string) => new Date(iso).toLocaleTimeString("es-PE", { hour: "2-digit", minute: "2-digit", timeZone: "America/Lima" });
+
+/**
+ * Izipay en el extracto: los QR sueltos de cada día con las ventas que los explican, los lotes de tarjeta con su tienda, y lo que no calza
+ * dicho con nombre (lo que llegó sin venta y lo que se cobró y no llegó). Cada propuesta se registra con `registrar_abono_pos_pagos`.
+ */
+function IzipayDelExtracto({ extracto, bancoId, maquina, responsable }: { extracto: ExtractoLeido; bancoId: string; maquina: MaquinaDelBanco; responsable: ControlResponsable }) {
+  const router = useRouter();
+  const [pagos, setPagos] = useState<PagoMaquina[] | null>(null);
+  const [falla, setFalla] = useState<string | null>(null);
+  const [guardando, setGuardando] = useState<string | null>(null);
+  const tokens = useRef(new Map<string, string>());
+
+  // Tres días antes del extracto: el lote del lunes trae el viernes, y un QR de medianoche llega al día siguiente.
+  const desde = extracto.desde ? new Date(Date.parse(`${extracto.desde}T12:00:00Z`) - 3 * 86_400_000).toISOString().slice(0, 10) : null;
+  const cargar = useCallback(async () => {
+    if (!desde || !extracto.hasta) return;
+    const { data, error } = await createClient().rpc("fn_pos_pagos_por_depositar" as never, { p_cuenta_id: maquina.cuentaId, p_desde: desde, p_hasta: extracto.hasta } as never);
+    if (error) {
+      setFalla(traducirError(error, "leer los pagos de la máquina"));
+      return;
+    }
+    setFalla(null);
+    setPagos(((data ?? []) as Record<string, unknown>[]).map(leerPagoMaquina));
+  }, [maquina.cuentaId, desde, extracto.hasta]);
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- la lectura llega una vez al abrir la sección, como el formulario del depósito
+    void cargar();
+  }, [cargar]);
+
+  async function registrar(p: PropuestaIzipay) {
+    if (!responsable.listo) {
+      avisar.error(responsable.motivo ?? "Elige quién lo hace (Responsable).");
+      return;
+    }
+    const token = tokens.current.get(p.clave) ?? crypto.randomUUID();
+    tokens.current.set(p.clave, token);
+    setGuardando(p.clave);
+    const { error } = await firmar(
+      createClient().rpc(
+        "registrar_abono_pos_pagos" as never,
+        {
+          p_cuenta_id: maquina.cuentaId,
+          p_banco_id: bancoId,
+          p_fecha: p.fecha,
+          p_neto: p.netoCentimos / 100,
+          p_pagos: p.pagos.map((x) => ({ origen: x.origen, origen_id: x.origenId })),
+          p_referencia: p.tipo === "qr" ? `Extracto: ${p.lineas.length} QR de ${maquina.nombre} del ${fechaCorta(p.fecha)}` : `Extracto: lote de tarjeta de ${maquina.nombre} del ${fechaCorta(p.fecha)}`,
+          p_token: token,
+        } as never,
+      ) as never,
+      responsable.firma(),
+    );
+    setGuardando(null);
+    responsable.despues(error);
+    if (error) return avisar.error(traducirError(error, "registrar el depósito"));
+    const comision = p.brutoCentimos - p.netoCentimos;
+    avisar.exito(`Depósito de ${maquina.nombre} registrado`, { detalle: comision > 0 ? `La comisión real, ${solesDeCentimos(comision)}, quedó como gasto bancario de la empresa.` : "Llegó completo: sin comisión." });
+    await cargar();
+    router.refresh();
+  }
+
+  if (falla)
+    return (
+      <Aviso tono="error" accion={<Boton peso="fantasma" onClick={() => void cargar()}>Reintentar</Boton>}>
+        {falla}
+      </Aviso>
+    );
+  if (!pagos) return <p className="din-cuad-tenue">Leyendo los pagos de {maquina.nombre}…</p>;
+  const r = emparejarIzipay(extracto.lineas, pagos);
+  const porRegistrar = r.propuestas.filter((p) => p.estado === "cuadra");
+  return (
+    <section className="space-y-3" data-guia="fin-conciliacion.izipay" aria-label={`Lo que llegó de ${maquina.nombre}`}>
+      <TituloGrupo cuenta={porRegistrar.length}>{maquina.nombre}</TituloGrupo>
+      {r.propuestas.length === 0 && r.sinVenta.length === 0 && r.sinLlegar.length === 0 && (
+        <p className="din-cuad-tenue">{r.yaRegistradas.length > 0 ? "Todo lo de Izipay en este extracto ya está registrado." : `Nada de ${maquina.nombre} por registrar en este extracto.`}</p>
+      )}
+      <ul className="din-maq-lista">
+        {r.propuestas.map((p) => (
+          <li key={p.clave} className="din-maq-it">
+            <div className="din-maq-cab">
+              <b className="text-sm font-semibold text-tinta">
+                {p.tipo === "qr" ? `${p.lineas.length} ${p.lineas.length === 1 ? "QR llegó" : "QR llegaron"} el ${fechaCorta(p.fecha)}` : `Lote de tarjeta del ${fechaCorta(p.fecha)}`}
+              </b>
+              <span className="din-cuad-it-der">
+                <b className="din-cuad-num">{solesDeCentimos(p.netoCentimos)}</b>
+                <Chip tono={TONO[p.estado]} versalitas={false}>
+                  {TEXTO_ESTADO[p.estado]}
+                </Chip>
+              </span>
+            </div>
+            {p.pagos.length > 0 && (
+              <p className="din-cuad-tenue">
+                {[...new Set(p.pagos.map((x) => x.ubicacionNombre))].join(", ")}: se cobraron {solesDeCentimos(p.brutoCentimos)}
+                {p.brutoCentimos > p.netoCentimos ? ` y la comisión es ${solesDeCentimos(p.brutoCentimos - p.netoCentimos)}` : ", sin comisión"}.
+              </p>
+            )}
+            {p.motivo && <p className="text-sm text-tinta">{p.motivo}</p>}
+            {p.estado === "cuadra" && (
+              <span>
+                <Boton type="button" peso="primario" cargando={guardando === p.clave} textoCargando="Registrando…" disabled={guardando !== null} onClick={() => void registrar(p)}>
+                  Registrar el depósito
+                </Boton>
+              </span>
+            )}
+          </li>
+        ))}
+      </ul>
+      {r.yaRegistradas.length > 0 && r.propuestas.length + r.sinVenta.length + r.sinLlegar.length > 0 && (
+        <p className="din-cuad-tenue">
+          {r.yaRegistradas.length === 1 ? "Un abono de este extracto ya tiene su depósito" : `${r.yaRegistradas.length} abonos de este extracto ya tienen su depósito`}.
+        </p>
+      )}
+      {r.sinLlegar.length > 0 && (
+        <Aviso tono="atencion" titulo={`${r.sinLlegar.length === 1 ? "Un QR se cobró y no llegó" : `${r.sinLlegar.length} QR se cobraron y no llegaron`}`}>
+          {r.sinLlegar.map((x) => `${solesDeCentimos(x.montoCentimos)} · ${x.ubicacionNombre} · ${fechaCorta(x.fecha)} ${horaDe(x.hora)} (${TEXTO_ORIGEN[x.origen]})`).join("; ")}. Si
+          nunca llegan, puede que el cliente no completó el pago, o que se cobró con otro medio: revísalo en la venta.
+        </Aviso>
+      )}
+      {r.sinVenta.length > 0 && (
+        <Aviso tono="atencion" titulo={`${r.sinVenta.length === 1 ? "Un abono llegó sin venta" : `${r.sinVenta.length} abonos llegaron sin venta`}`}>
+          {r.sinVenta.map((l) => `${solesDeCentimos(l.centimos)} el ${fechaCorta(l.fecha)}`).join("; ")}. Casi siempre es un QR que se anotó como «Yape» u otro medio:
+          corrige el pago de esa venta y vuelve a subir el extracto.
+        </Aviso>
       )}
     </section>
   );
