@@ -47,10 +47,51 @@
     gap: 20px;
     align-items: start;
   }
+  /* La columna izquierda: los bancos y, debajo, lo que deben las máquinas (ADR-0629, Fase B). Ya no se pega al bajar: con las dos
+     tarjetas puede ser más alta que la pantalla y su final quedaría fuera de alcance. */
+  .din-cuad-col {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    min-width: 0;
+  }
   .din-cuad-lista {
     padding: 6px 8px 12px;
-    position: sticky;
-    top: 76px;
+  }
+  .din-maq {
+    padding: 6px 8px 12px;
+  }
+  .din-maq-lista {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .din-maq-it {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 11px 12px;
+    border-top: 1px solid var(--color-sand);
+  }
+  .din-maq-it:first-child {
+    border-top: 0;
+  }
+  .din-maq-cab {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 12px;
+  }
+  .din-maq-dias {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .din-maq-dias > li {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: baseline;
+    gap: 12px;
   }
   .din-cuad-lista-cab {
     padding: 14px 12px 8px;
@@ -155,9 +196,6 @@
     .din-cuad,
     .din-cuad-hero {
       grid-template-columns: minmax(0, 1fr);
-    }
-    .din-cuad-lista {
-      position: static;
     }
   }
   .din-pares {

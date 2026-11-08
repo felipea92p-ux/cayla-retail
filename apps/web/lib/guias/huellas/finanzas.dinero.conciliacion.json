@@ -2,7 +2,7 @@
   "guia": "finanzas.dinero.conciliacion",
   "ruta": "/finanzas/dinero/conciliacion",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 46,
+  "total": 47,
   "controles": {
     "components/finanzas/CuadrarDepositos.tsx": [
       "button «Reintentar»",
@@ -41,6 +41,9 @@
     "components/finanzas/PagosSinCuenta.tsx": [
       "Boton «Guardar»",
       "ComboResponsable «{responsable}»"
+    ],
+    "components/finanzas/dinero/DeudaDeMaquinas.tsx": [
+      "button «Registrar el depósito»"
     ],
     "components/finanzas/dinero/HistorialDinero.tsx": [
       "button «fin-dinero.movimiento»",

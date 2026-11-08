@@ -1026,6 +1026,13 @@ export const GUIA_FIN_CONCILIACION: Guia = {
       texto: "A la izquierda están tus bancos: cada uno dice cuánto suma el sistema, cuándo lo cuadraste por última vez y si cuadra, no cuadra o tiene líneas por revisar. Tocas uno y a la derecha aparece su detalle. Los bancos son de CAYLA entera, no de una sede.",
     },
     {
+      id: "maquinas",
+      ancla: "fin-conciliacion.maquinas",
+      opcional: true,
+      titulo: "Lo que te deben las máquinas",
+      texto: "Izipay y Vendemás no tienen extracto: lo que cobraron y todavía no llegó se ve aquí, con los días que ya se atrasaron. Lo que sí llegó lo buscas en el banco que lo recibe. Si un día atrasado ya está en el banco, «Registrar el depósito»; si no, se reclama a la máquina.",
+    },
+    {
       id: "responsable",
       ancla: "fin-conciliacion.responsable",
       opcional: true,
