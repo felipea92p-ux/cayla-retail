@@ -155,7 +155,8 @@ verificar("el mismo pago no entra a dos depósitos", correr(`${ESCENA}
 ${DEPOSITO_DE_DOS}
 -- El mismo pago no entra a otro depósito (el freno que muta el control).
 ${debeFallar("no_dos_depositos", `perform retail.registrar_abono_pos_pagos((select id from retail.cuentas_dinero where nombre = 'Por depositar Izipay' and archivada_en is null), (select id from retail.cuentas_dinero where nombre = 'Interbank' and archivada_en is null), date '2026-11-05', 45.90, jsonb_build_array(jsonb_build_object('origen', 'venta_pago', 'origen_id', (select vp.id from retail.venta_pagos vp join retail.ventas v on v.id = vp.venta_id where vp.monto = 45.90 and not v.es_prueba and v.created_at::date between '2026-11-04' and '2026-11-06' limit 1))), null, null)`, "P0001")}
-select 'nada_mas_se_escribio|' || count(*) from retail.pos_abonos_pagos;
+-- Solo lo que escribió esta escena (la base local puede traer depósitos de otras pruebas): now() es el mismo en toda la transacción.
+select 'nada_mas_se_escribio|' || count(*) from retail.pos_abonos_pagos where created_at = now();
 `), { no_dos_depositos: "ok", nada_mas_se_escribio: "2" });
 
 verificar("frenos", correr(`${ESCENA}
@@ -163,7 +164,7 @@ ${debeFallar("no_repetido_en_la_lista", `perform retail.registrar_abono_pos_pago
 -- La tarjeta de Trujillo es de Vendemás: no se deposita como Izipay.
 ${debeFallar("no_otra_maquina", `perform retail.registrar_abono_pos_pagos((select id from retail.cuentas_dinero where nombre = 'Por depositar Izipay' and archivada_en is null), (select id from retail.cuentas_dinero where nombre = 'Interbank' and archivada_en is null), date '2026-11-05', 240, jsonb_build_array(jsonb_build_object('origen', 'venta_pago', 'origen_id', (select vp.id from retail.venta_pagos vp join retail.ventas v on v.id = vp.venta_id where vp.metodo = 'tarjeta' and vp.monto = 250 and not v.es_prueba limit 1))), null, null)`, "P0001")}
 ${debeFallar("no_mas_de_lo_cobrado", `perform retail.registrar_abono_pos_pagos((select id from retail.cuentas_dinero where nombre = 'Por depositar Izipay' and archivada_en is null), (select id from retail.cuentas_dinero where nombre = 'Interbank' and archivada_en is null), date '2026-11-12', 100.01, jsonb_build_array(jsonb_build_object('origen', 'venta_pago', 'origen_id', (select vp.id from retail.venta_pagos vp join retail.ventas v on v.id = vp.venta_id where vp.monto = 100 and not v.es_prueba limit 1))), null, null)`, "P0001")}
-select 'nada_se_escribio|' || count(*) from retail.pos_abonos_pagos;
+select 'nada_se_escribio|' || count(*) from retail.pos_abonos_pagos where created_at = now();
 `), { no_repetido_en_la_lista: "ok", no_otra_maquina: "ok", no_mas_de_lo_cobrado: "ok", nada_se_escribio: "0" });
 
 verificar("un día con un depósito sin detalle", correr(`${ESCENA}
