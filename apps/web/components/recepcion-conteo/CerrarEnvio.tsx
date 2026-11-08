@@ -37,7 +37,7 @@ import { useEmpresasDeSede } from "@/lib/useEmpresasDeSede";
 import { DuenoDeLoQueEntra } from "./DuenoDeLoQueEntra";
 import { agruparLineasDelCierre, camposDelCierrePorGrupo, nombreDelGrupoDelCierre, causasDelGrupo, filasDelCierre, lineaDeLaPrenda, lineaDelGrupo, textoDeLasPlegadas, type GrupoDeLineas } from "@/lib/recepcion-grupos-reglas";
 import { borrarBorradorDelCierre, conCostosDecididos, conLoDecidido, costosCambiados, costosDeCombinacionCambiados, decisionCambiada, type FotoDelCierre, guardarBorradorDelCierre, leerBorradorDelCierre } from "@/lib/recepcion-cierre-borrador";
-import { type PrendaConCosto, lineasSinModelosEnCero, modelosEnCeroDe, textoModelosEnCero, avisoDePrecioRechazado, type CambioDePrecio, cambioDePrecioDeCompra, camposDelCierre, conCostoDeHoy, contadasDe, costoComoTexto, costoDePrendaTexto, esRegaloFuera, costosDePrendaConProblema, type CostosDePrendas, costoDelGrupo, detalleDelModelo, deQuienLlego, type FilaDeQuien, idCampoProveedor, type DecisionCierre, decisionInicial, detalladas, detalleParaDespues, diferenciaDe, HINT_CONTEO_CAMBIADO, idCampoCierre, leerCostoCierre, type ClaveLinea, type LineaParaContar, lineasParaCerrar, lineaVisible, marcaDeLinea, mensajeAlGuardar, nombreDeLinea, prendasConCosto, resumenDelCierre, textoBotonCerrar, textoResumenDelCierre, TOPES_CONTEO, unidadesSinIdentificar } from "@/lib/recepcion-conteo-reglas";
+import { type PrendaConCosto, lineasSinModelosEnCero, modelosEnCeroDe, textoModelosEnCero, avisoDePrecioRechazado, type CambioDePrecio, cambioDePrecioDeCompra, camposDelCierre, conCostoDeHoy, contadasDe, costoComoTexto, costoDePrendaTexto, esRegaloFuera, filasDeCostoEnStock, textoCostoEnStock, costosDePrendaConProblema, type CostosDePrendas, costoDelGrupo, detalleDelModelo, deQuienLlego, type FilaDeQuien, idCampoProveedor, type DecisionCierre, decisionInicial, detalladas, detalleParaDespues, diferenciaDe, HINT_CONTEO_CAMBIADO, idCampoCierre, leerCostoCierre, type ClaveLinea, type LineaParaContar, lineasParaCerrar, lineaVisible, marcaDeLinea, mensajeAlGuardar, nombreDeLinea, prendasConCosto, resumenDelCierre, textoBotonCerrar, textoResumenDelCierre, TOPES_CONTEO, unidadesSinIdentificar } from "@/lib/recepcion-conteo-reglas";
 import { VALOR_OTRO } from "@/lib/recepcion-envio-reglas";
 import { cambiarPreciosEnRecepcion, cerrarConteo, corregirGuiaEnvio, leerCostosDeHoy, leerObservacionesDelEnvio, leerPreciosDeCombinaciones, ponerProveedorDeMarca, validarPreciosEnRecepcion } from "@/lib/recepcion-conteo-acciones";
 import {
@@ -621,15 +621,20 @@ export function CerrarEnvio({
     const dP = decisionDe(g.principal.clave);
     if (esRegaloFuera(g.principal, dP)) return [{ unidades: g.contadas, costo: 0 }];
     const deLaLinea = leerCostoCierre(dP.costo).valor;
+    // Lo que ya entró al stock lleva el costo con que entró (2026-11-08): ya no está en `separado`, y sin esto contaba como «sin costo».
+    const delStock = filasDeCostoEnStock(g.enStock, l.conteo?.costoEnStock);
     const conNombre = prendasConCosto(l);
-    if (conNombre.length === 0) return [{ unidades: g.contadas, costo: deLaLinea }];
+    if (conNombre.length === 0) {
+      const porEntrar = Math.max(0, g.contadas - g.enStock);
+      return porEntrar > 0 ? [...delStock, { unidades: porEntrar, costo: deLaLinea }] : delStock;
+    }
     const filas = conNombre.map((m) => {
       const v = dondeViveEn(g, m).clave;
       const c = costoDePrenda(v, decisionDe(v).costo, m.clave);
       return { unidades: m.unidades, costo: leerCostoCierre(c.valor.trim() ? c.valor : c.deLaLinea).valor };
     });
     const sinId = unidadesSinIdentificar(l);
-    return sinId > 0 ? [...filas, { unidades: sinId, costo: deLaLinea }] : filas;
+    return [...delStock, ...filas, ...(sinId > 0 ? [{ unidades: sinId, costo: deLaLinea }] : [])];
   };
   // El proveedor va en la cabecera de cada tarjeta (sin aviso, por marca). Si dos tarjetas son de la misma marca, el campo de la guía va en la primera.
   const primeraDeLaMarca = new Map<string, string>();
@@ -704,7 +709,10 @@ export function CerrarEnvio({
     // de la guía es la excepción: su costo es obligatorio y no viene de ninguna orden, así que lleva su campo y se ve abierta.
     const conNombre = prendasConCosto(l);
     const sinIdentificar = unidadesSinIdentificar(l);
-    const costoDeLaLineaObligatorio = editaCosto && !p.linea && g.contadas > 0;
+    // Lo ya entrado al stock tiene su costo: la caja de la línea solo se pide por lo que todavía no entró (2026-11-08).
+    const costoDeLaLineaObligatorio = editaCosto && !p.linea && g.contadas - g.enStock > 0;
+    const todoEnStock = g.enStock > 0 && g.contadas - g.enStock <= 0;
+    const costoDelStock = textoCostoEnStock(l.conteo?.costoEnStock);
     // UN solo aviso para lo que no tiene nombre (Felipe 2026-10-26): cuántas son y a qué costo entran (el de la orden, si la línea venía en
     // la guía). Si no hay ninguna prenda con nombre, ese mismo aviso hace de vacío y dice cuándo se podrá cambiar su costo. Con varias
     // órdenes de costos distintos, el aviso dice entre cuáles.
@@ -828,7 +836,7 @@ export function CerrarEnvio({
                     {m?.nueva && <Chip tono="ambar">Por crear</Chip>}
                     {m && !m.nueva && <Chip tono="pizarra">Re stock</Chip>}
                     {det?.provisional && <Chip tono="ambar">Nombre provisional</Chip>}
-                    {!m && <span className="text-sm text-taupe">Sin identificar todavía</span>}
+                    {!m && <span className="text-sm text-taupe">{todoEnStock ? "Ya está en el stock" : "Sin identificar todavía"}</span>}
                     {cambiaVenta && !abierta && i === 0 && <Chip tono="ambar">Precio de venta cambiado</Chip>}
                   </span>
                 </span>
@@ -857,6 +865,10 @@ export function CerrarEnvio({
                   </CampoGuiado>
                 ) : m || costoDeLaLineaObligatorio ? (
                   caja
+                ) : todoEnStock && costoDelStock ? (
+                  <p className="text-sm tabular-nums text-tinta" title="El costo con que entró al stock">
+                    {costoDelStock} <span className="text-taupe">· ya entró</span>
+                  </p>
                 ) : null}
               </div>
               <div className="flex min-w-0 flex-wrap gap-2 @min-[760px]:justify-end" role="cell">

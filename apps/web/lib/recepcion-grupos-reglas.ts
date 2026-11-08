@@ -23,6 +23,7 @@ import {
   marcaDeLinea,
   nuevasSinDescribir,
   prendasAnotadasDe,
+  sumarCostoEnStock,
   totalSeparado,
   type ClaveLinea,
   type ConteoDeLinea,
@@ -298,6 +299,7 @@ export function lineaDelGrupo(g: GrupoDeLineas): LineaParaContar {
     separado: g.separado,
     enStock: g.enStock,
     costosPrendas: Object.assign({}, ...g.lineas.map((l) => l.conteo?.costosPrendas ?? {})),
+    costoEnStock: sumarCostoEnStock(g.lineas.map((l) => l.conteo?.costoEnStock)),
     sinSeparar: g.lineas.reduce((a, l) => a + (l.conteo?.sinSeparar ?? 0), 0),
     pendientes: g.lineas.flatMap((l) => l.conteo?.pendientes ?? []),
   };
