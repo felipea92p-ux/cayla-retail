@@ -1,7 +1,7 @@
 # ADR-0629 — Cuadrar las puentes de las máquinas como paga cada una: el residuo primero, el QR uno por uno después
 
 - **Fecha:** 2026-11-07 · **Estado:** aceptado por Felipe el 2026-11-07. **Fase A construida** en `20261107214000` (pegada el 7-nov);
-  **Fase B construida** en la rama `claude/interbank-empresas-cuentas-93baab` (migración `20261108023000`, sin pegar: ver «Fase B — lo construido»).
+  **Fase B construida** en la rama `claude/interbank-empresas-cuentas-93baab` (migración `20261108023000`, pegada en producción por Felipe el 2026-11-07: ver «Fase B — lo construido»).
 - **Relacionados:** ADR-0429 (la máquina, las puentes «Por depositar» y la comisión real), ADR-0552 (cuadre de depósitos con tope de 2 días y
   la comisión en su mes), ADR-0622 (rendimiento de las lecturas de Finanzas).
 - **Cifras:** las del caso real viven fuera del repo (es público). Aquí solo van reglas.
@@ -140,8 +140,9 @@ Pruebas: `pnpm pruebas:pos-pagos` (25 casos; su control `--mutante` quita el fre
 3. Corregir los depósitos de máquina anotados a otro banco que Interbank Empresas.
 4. Reemplazar la comisión del depósito de los primeros días de noviembre por lo real (gratis).
 5. Decidir qué pasa con el QR que no llegó al banco (reclamo a Izipay, venta mal cobrada o pérdida).
-6. (Fase B) Pegar `20261108023000` en una sola parte (sin políticas ni `alter` de tablas en uso) y verificar con un `select` que existen
-   `pos_abonos_pagos`, `fn_pos_pagos_por_depositar` y `registrar_abono_pos_pagos`.
+6. (Fase B) **Hecho el 2026-11-07:** Felipe pegó `20261108023000` en una sola parte; existen `pos_abonos_pagos` (RLS sin políticas, con su
+   disparador de solo agregar), `fn_pos_comision_pago`, `fn_pos_pagos_por_depositar` y `registrar_abono_pos_pagos`, y la lista responde en
+   producción. Del 1 al 6-nov los días ya tenían depósito sin detalle (el cuadre del 7-nov): esos se siguen con «Cuadrar depósitos».
 
 ## Revisión y contraste (2026-11-07, antes de pegar)
 
