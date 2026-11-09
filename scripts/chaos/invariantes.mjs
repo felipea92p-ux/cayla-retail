@@ -155,7 +155,14 @@ select i.id as venta_item_id, i.venta_id, i.variante_id, i.cantidad as vendido, 
    -- ADR-0408 act. 10: la prenda de un pedido web se vende al quedar pagado y sale del stock recién al entregarla. Mientras su
    -- línea del pedido no se entrega, su línea de venta no tiene salida a propósito (con una, sí es violación). La cuida INV-18.
    and not (coalesce(m.t, 0) = 0
-            and exists (select 1 from retail.pedido_web_lineas pwl where pwl.venta_item_id = i.id and pwl.estado <> 'entregada'))`,
+            and exists (select 1 from retail.pedido_web_lineas pwl where pwl.venta_item_id = i.id and pwl.estado <> 'entregada'))
+   -- ADR-0179 y ADR-0334: la «Prenda sin registrar» se vende sin stock y espera en su cola; al regularizarla, la línea pasa a la
+   -- prenda real con su salida. Mientras espera (pendiente) o si se cerró sin prenda al cerrar la cola de arranque de su sede, no tiene salida a
+   -- propósito. Una línea sin salida que NO está en esa cola sí es violación. (Visto el 2026-11-09 por el vigía de producción,
+   -- ADR-0632: eran 1.280 falsos positivos, 1.233 cerradas sin prenda y 47 pendientes; la base local no tiene ninguna.)
+   and not (coalesce(m.t, 0) = 0
+            and exists (select 1 from retail.prendas_por_regularizar pr
+                         where pr.venta_item_id = i.id and pr.estado in ('pendiente', 'cerrada_sin_prenda')))`,
     corrompe: `update retail.venta_items set cantidad = cantidad + 1 where ctid = (select ctid from retail.venta_items limit 1);`,
   },
   {

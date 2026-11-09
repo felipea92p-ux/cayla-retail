@@ -17,6 +17,8 @@
  *      pero no corre; sin sesión, ni siquiera se puede llamar.
  *   H. Volver a pegar la migración no reenciende una invariante que alguien apagó.
  *   I. Dos corridas a la vez: la segunda vuelve sin hacer nada (`ya_corriendo`).
+ *   J. La «Prenda sin registrar» que espera en su cola, o que se cerró sin prenda, no cuenta como venta sin salida (INV-03); si sale de
+ *      la cola sin su salida de stock, sí. En producción eran 1.280 falsos positivos antes de la primera corrida (ADR-0632).
  *
  * CÓMO. Cada caso en su transacción con ROLLBACK, con la migración pegada antes (en local la prueba aunque no esté aplicada; en el CI,
  * donde ya está, prueba además que se puede volver a pegar). El caso I abre una segunda conexión que solo toma el candado y se deshace.
@@ -33,7 +35,10 @@ import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const RAIZ = join(fileURLToPath(new URL(".", import.meta.url)), "..", "..");
-const MIGRACION = readFileSync(join(RAIZ, "supabase", "migrations", "20261109152000_vigia_de_invariantes.sql"), "utf8");
+// Las dos, en su orden: la segunda vuelve a sembrar con INV-03 corregida (la «Prenda sin registrar», ADR-0179).
+const MIGRACION = ["20261109152000_vigia_de_invariantes.sql", "20261109163000_vigia_inv03_prenda_sin_registrar.sql"]
+  .map((m) => readFileSync(join(RAIZ, "supabase", "migrations", m), "utf8"))
+  .join("\n");
 const CONTENEDOR_LOCAL = process.env.RETAIL_CONTENEDOR_PG ?? "supabase_db_cayla-retail";
 const FELIPE = "22222222-2222-4222-8222-000000000001"; // líder y Admin (seed)
 const MICAELA = "22222222-2222-4222-8222-000000000003"; // colaboradora — Tienda Trujillo (seed)
@@ -223,6 +228,38 @@ select estado from retail.invariantes_corridas where invariante_id = 'INV-01' or
   const r = correr(`select retail.fn_correr_invariantes() ->> 'motivo';`);
   await new Promise((listo) => tenedor.on("close", listo));
   esperar("si otra corrida ya está en curso, la segunda vuelve sin hacer nada", ultima(r) === "ya_corriendo", r);
+}
+
+// J. La «Prenda sin registrar» (ADR-0179): se vende sin stock y espera en su cola; al regularizarla pasa a la prenda real con su salida.
+{
+  const SIN_REGISTRAR = "22222222-2222-4222-8222-222222222222"; // la variante centinela, sembrada por 20260923161700
+  const INV03 = `select c.estado || '|' || c.total || '|' || c.nuevas from retail.invariantes_corridas c
+  where c.invariante_id = 'INV-03' order by c.corrida_en desc, c.id desc limit 1;\n`;
+  const r = correr(`${CORRER}
+with v as (select v.id, v.ubicacion_id from retail.ventas v where v.estado = 'completada' order by v.id limit 1),
+     linea as (insert into retail.venta_items (venta_id, variante_id, cantidad, precio_unitario, costo_unitario)
+               select v.id, '${SIN_REGISTRAR}', 1, 50, 0 from v returning id)
+insert into retail.prendas_por_regularizar (venta_item_id, ubicacion_id, descripcion, categoria_id, talla_id, color_codigo, precio_cobrado, estado)
+select linea.id, v.ubicacion_id, 'Blusa de prueba sin registrar', (select id from retail.categorias order by id limit 1),
+       (select id from retail.tallas order by id limit 1), 'NEG', 50, 'pendiente' from linea, v;
+${CORRER}${INV03}
+-- Se cierra la cola de arranque de esa sede (ADR-0334): la prenda queda «cerrada sin prenda», con su cierre.
+with cierre as (insert into retail.cierres_cola_arranque (ubicacion_id, corte, motivo, filas, soles, cerrado_por)
+                select p.ubicacion_id, current_date, 'no_se_sabe', 1, 50, (select id from public.personas where auth_user_id = '${FELIPE}')
+                  from retail.prendas_por_regularizar p where p.descripcion = 'Blusa de prueba sin registrar' returning id)
+update retail.prendas_por_regularizar set estado = 'cerrada_sin_prenda', cierre_id = (select id from cierre)
+ where descripcion = 'Blusa de prueba sin registrar';
+${CORRER}${INV03}
+-- Sale de la cola como «regularizada», pero la línea sigue siendo la comodín y nunca salió del stock: eso sí es un estado imposible.
+update retail.prendas_por_regularizar
+   set estado = 'regularizada', cierre_id = null, forma = 'ya_registrada', precio_oficial = 50, diferencia = 0, regularizado_en = now(),
+       variante_id = (select id from retail.variantes where id <> '${SIN_REGISTRAR}' order by id limit 1)
+ where descripcion = 'Blusa de prueba sin registrar';
+${CORRER}${INV03}`);
+  const [pendiente, cerrada, sinSalida] = r.ok ? r.lineas.slice(-3) : [];
+  esperar("la «Prenda sin registrar» que espera en su cola no cuenta como venta sin salida", pendiente === "limpia|0|0", r);
+  esperar("…tampoco la que se cerró sin prenda al cerrar la cola de arranque (ADR-0334)", cerrada === "limpia|0|0", r);
+  esperar("…pero si sale de la cola sin su salida de stock, es nueva", sinSalida === "viola|1|1", r);
 }
 
 console.log(fallos ? `\n${fallos} caso(s) fallaron` : "\nTodo en verde");
