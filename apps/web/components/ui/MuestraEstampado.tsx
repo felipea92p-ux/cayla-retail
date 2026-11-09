@@ -21,3 +21,12 @@ export function MuestraEstampado({ fotoUrl, hex, forma = "punto" }: { fotoUrl: s
     />
   );
 }
+
+/** La foto en un cuadrito, para las filas donde un color va con su nombre al lado (Vender, Recibir, Ajustar stock). */
+export function CuadroEstampado({ fotoUrl, hex, className = "h-10 w-10" }: { fotoUrl: string; hex?: string | null; className?: string }) {
+  return (
+    <span aria-hidden className={`relative shrink-0 overflow-hidden rounded-lg shadow-[inset_0_0_0_1px_color-mix(in_srgb,var(--color-tinta)_16%,transparent)] ${className}`}>
+      <MuestraEstampado fotoUrl={fotoUrl} hex={hex} forma="lista" />
+    </span>
+  );
+}

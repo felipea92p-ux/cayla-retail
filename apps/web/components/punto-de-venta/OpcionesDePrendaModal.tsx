@@ -14,7 +14,7 @@ import { textoOtrasSedes } from "@/lib/stock-por-sede";
 import { motivoNoCobrable } from "@/lib/vender-stock-local";
 import { estiloMosaicoColor } from "@/lib/color-prenda-reglas";
 import { fotoQueDistingue } from "@/lib/color-estampado-reglas";
-import { MuestraEstampado } from "@/components/ui/MuestraEstampado";
+import { CuadroEstampado } from "@/components/ui/MuestraEstampado";
 import { ETIQUETA_COMBINA, FichaDelColor } from "@/components/ui/FichaDelColor";
 import type { FichaDelColor as FichaDelColorTipo } from "@/lib/ficha-del-color";
 import { MiniaturaPrenda } from "@/components/ui/PrendaCelda";
@@ -169,9 +169,7 @@ export function OpcionesDePrendaModal({ prenda, colorClave, ubicacionEtiqueta, c
                       className="flex w-full items-center gap-2.5 pr-1 text-left outline-none focus-visible:underline"
                     >
                       {c.tallas[0]?.variante.colorEstampado && fotoQueDistingue(c.fotoUrl, prenda.colores.map((x) => x.fotoUrl)) ? (
-                        <span aria-hidden className="relative h-10 w-10 shrink-0 overflow-hidden rounded-lg shadow-[inset_0_0_0_1px_color-mix(in_srgb,var(--color-tinta)_16%,transparent)]">
-                          <MuestraEstampado fotoUrl={c.fotoUrl!} hex={c.tallas[0]?.variante.colorHex} forma="lista" />
-                        </span>
+                        <CuadroEstampado fotoUrl={c.fotoUrl!} hex={c.tallas[0]?.variante.colorHex} />
                       ) : (
                         <span
                           aria-hidden

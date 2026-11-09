@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { agruparPorFamilia } from "./colores-familias";
-import { coloresDominantes, ejemploDeEstampado, esEstampado, familiaEnCarta, fotoQueDistingue, faltaParaEstampado, nombreDeEstampado, patronesDeEstampado } from "./color-estampado-reglas";
+import { coloresDominantes, ejemploDeEstampado, esEstampado, familiaEnCarta, fotoQueDistingue, faltaParaEstampado, fotoDeLaFila, nombreDeEstampado, patronesDeEstampado } from "./color-estampado-reglas";
 
 const colores = [
   { codigo: "NEG", nombre: "Negro", hex: "#1A1A1A", familiaColor: "neutro" },
@@ -74,5 +74,22 @@ describe("fotoQueDistingue", () => {
     expect(fotoQueDistingue("a.jpg", ["a.jpg", "b.jpg", null])).toBe("a.jpg");
     expect(fotoQueDistingue("general.jpg", ["general.jpg", "general.jpg", "b.jpg"])).toBeNull();
     expect(fotoQueDistingue(null, ["a.jpg"])).toBeNull();
+  });
+});
+
+describe("fotoDeLaFila", () => {
+  const fotos = [
+    { url: "principal.jpg", orden: 0, es_principal: true, color_codigo: "NEG" },
+    { url: "flores.jpg", orden: 1, es_principal: false, color_codigo: "FLA" },
+    { url: "general.jpg", orden: 2, es_principal: false, color_codigo: null },
+  ];
+  it("un liso sigue con la principal del modelo", () => {
+    expect(fotoDeLaFila({ codigo: "NEG", tipo: "solido" }, fotos)).toBe("principal.jpg");
+    expect(fotoDeLaFila({ codigo: "ROJ", tipo: "solido" }, fotos)).toBe("principal.jpg");
+  });
+  it("un estampado lleva la suya, o la General, nunca la de otro color", () => {
+    expect(fotoDeLaFila({ codigo: "FLA", tipo: "estampado" }, fotos)).toBe("flores.jpg");
+    expect(fotoDeLaFila({ codigo: "RAY", tipo: "estampado" }, fotos)).toBe("general.jpg");
+    expect(fotoDeLaFila({ codigo: "RAY", tipo: "estampado" }, fotos.slice(0, 2))).toBeNull();
   });
 });

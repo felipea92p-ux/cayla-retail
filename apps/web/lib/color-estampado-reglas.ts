@@ -9,6 +9,8 @@
 import { nombreDeColor } from "./color-alta-reglas";
 import { esHexValido } from "./color-parecido";
 import { FAMILIAS_COLOR } from "./colores-familias";
+import { fotoPrincipal } from "./inventario-reglas";
+import { fotoDeVariante, type FotoCruda } from "./producto-fotos-reglas";
 
 type ColorParaEstampado = { codigo: string; nombre: string; hex: string | null; familiaColor: string | null; tipo?: string | null };
 
@@ -47,6 +49,14 @@ export function patronesDeEstampado<P extends { nombre: string }>(patrones: read
 export function fotoQueDistingue(fotoUrl: string | null | undefined, todas: readonly (string | null | undefined)[]): string | null {
   if (!fotoUrl) return null;
   return todas.filter((u) => u === fotoUrl).length === 1 ? fotoUrl : null;
+}
+
+/**
+ * La foto de una fila de Existencias: los colores lisos siguen con la principal del modelo y un estampado lleva la suya (o la General),
+ * nunca la de otro color: es lo único que lo reconoce.
+ */
+export function fotoDeLaFila(color: { codigo?: string | null; tipo?: string | null } | null | undefined, fotos: FotoCruda[] | null | undefined): string | null {
+  return color && esEstampado(color) ? fotoDeVariante(fotos ?? [], color.codigo ?? null) : fotoPrincipal(fotos);
 }
 
 /** El nombre que se propone: el patrón y el color dominante, o vacío mientras falte uno de los dos. */

@@ -1,6 +1,9 @@
 "use client";
 
 import { Punto } from "@/components/alta-producto/ElegirColores";
+import { CuadroEstampado } from "@/components/ui/MuestraEstampado";
+import { useFotosDeEstampados } from "@/components/recepcion-envio/useFotosDeEstampados";
+import { esEstampado } from "@/lib/color-estampado-reglas";
 import { RAYADO_FUERA } from "@/components/alta-producto/MatrizVariantes";
 import { limpiarCantidad, leerCantidad, type ColorAlta } from "@/lib/alta-producto";
 import { fondoDeMuestra } from "@/lib/colores-familias";
@@ -45,6 +48,7 @@ export function MatrizRecepcion({
 }) {
   const matriz = matrizDe(prenda, colores.map((c) => c.codigo));
   const porCodigo = new Map(colores.map((c) => [c.codigo, c]));
+  const fotosEstampado = useFotosDeEstampados(prenda.productoId, matriz.colores.flatMap((c) => { const color = c.codigo ? porCodigo.get(c.codigo) : undefined; return c.codigo && color && esEstampado(color) ? [c.codigo] : []; }));
   const numero = (varianteId: string) => leerCantidad(valores[varianteId] ?? "") ?? 0;
 
   const totalFila = (colorCodigo: string | null) =>
@@ -120,7 +124,7 @@ export function MatrizRecepcion({
                     style={{ background: franja }}
                   />
                   <span className="flex items-center gap-1.5">
-                    {color && <Punto hex={color.hex} familia={color.familiaColor} tipo={color.tipo} />}
+                    {c.codigo && fotosEstampado.get(c.codigo) ? <CuadroEstampado fotoUrl={fotosEstampado.get(c.codigo)!} hex={color?.hex} className="h-8 w-8" /> : color && <Punto hex={color.hex} familia={color.familiaColor} tipo={color.tipo} />}
                     {c.nombre}
                     {quitar("color", quitables?.colores.get(c.codigo ?? ""), c.nombre)}
                   </span>
