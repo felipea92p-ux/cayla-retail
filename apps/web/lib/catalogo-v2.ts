@@ -130,7 +130,8 @@ async function getVariantesConCostoOficial(ids: string[]): Promise<Set<string> |
 
 /**
  * Lo que la pestaña «Costos» de la ficha dice además de cada celda (ADR-0631): cuánto cuesta hoy cada prenda —la misma cifra del
- * Historial ▸ Costo (`fn_costo_de_la_prenda`)— y la última compra de cada talla gris (`fn_costo_de_las_tallas`, 20261107232000).
+ * Historial ▸ Costo (`fn_costo_de_la_prenda`)—, la última compra de cada talla gris y qué tallas sin stock toman el costo de la última
+ * compra (`fn_costo_de_las_tallas`, 20261107232000).
  * Tolerante, parte por parte: sin permiso de dinero, sin la función nueva o con un error, esa parte es `null` y la ficha sigue igual.
  * Los tipos generados todavía no traen las dos funciones: las llamadas van con `as never`, como en `historial-prenda.ts`.
  */
@@ -140,9 +141,11 @@ export async function getCostoEnLaFicha(productoId: string): Promise<CostoEnLaFi
     supabase.rpc("fn_costo_de_la_prenda" as never, { p_producto_id: productoId } as never),
     supabase.rpc("fn_costo_de_las_tallas" as never, { p_producto_id: productoId } as never),
   ]);
+  const deLasTallas = tallas.error ? null : leerCostoDeLasTallas(tallas.data);
   return {
     prenda: prenda.error ? null : resumenCostoPrenda(leerCostoPrenda(prenda.data)),
-    tallas: tallas.error ? null : leerCostoDeLasTallas(tallas.data),
+    tallas: deLasTallas?.tallas ?? null,
+    igualar: deLasTallas?.igualar ?? null,
   };
 }
 

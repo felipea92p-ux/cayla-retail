@@ -35,11 +35,18 @@ export type ResumenCostoPrenda = {
   ultima: { costo: number; fecha: string; origen: OrigenEntrada };
 };
 
+/** Las tallas que toman el costo de la última compra, según la base (`fn_tallas_para_igualar_costo`, «Solo sin stock», Felipe
+ *  2026-11-09): activas, sin compra, sin stock y fuera de traslados en camino. La regla vive allá, una sola vez: la usa también el script
+ *  de una sola vez del 2026-11-09. */
+export type IgualarCosto = { costo: number; ids: string[] };
+
 /** Lo que la ficha sabe del costo, más allá de la celda. Cada parte es `null` si no se pudo leer o la cuenta no ve el dinero. */
 export type CostoEnLaFicha = {
   prenda: ResumenCostoPrenda | null;
   /** Por id de variante; una variante sin compras no está. */
   tallas: Record<string, CuentaTalla> | null;
+  /** `null` = ninguna talla para igualar, o la base todavía sin la función. */
+  igualar: IgualarCosto | null;
 };
 
 const num = (v: unknown): number | null => {
@@ -48,9 +55,23 @@ const num = (v: unknown): number | null => {
 };
 
 /** Lo que devolvió `fn_costo_de_las_tallas`, ya con forma. `null` si no vino nada (sin permiso de dinero, o la base sin la función). */
-export function leerCostoDeLasTallas(json: unknown): Record<string, CuentaTalla> | null {
+export function leerCostoDeLasTallas(json: unknown): { tallas: Record<string, CuentaTalla>; igualar: IgualarCosto | null } | null {
   if (!json || typeof json !== "object" || Array.isArray(json)) return null;
+  const j = json as Record<string, unknown>;
+  return { tallas: leerTallas(j.tallas), igualar: leerIgualar(j.igualar) };
+}
+
+function leerIgualar(json: unknown): IgualarCosto | null {
+  if (!json || typeof json !== "object" || Array.isArray(json)) return null;
+  const j = json as Record<string, unknown>;
+  const costo = num(j.costo);
+  const ids = Array.isArray(j.variantes) ? j.variantes.filter((x): x is string => typeof x === "string") : [];
+  return costo !== null && costo > 0 && ids.length > 0 ? { costo, ids } : null;
+}
+
+function leerTallas(json: unknown): Record<string, CuentaTalla> {
   const salida: Record<string, CuentaTalla> = {};
+  if (!json || typeof json !== "object" || Array.isArray(json)) return salida;
   for (const [id, x] of Object.entries(json as Record<string, unknown>)) {
     const c = (x ?? {}) as Record<string, unknown>;
     const habia = num(c.habia), llegaron = num(c.llegaron), costoLlegaron = num(c.costo_llegaron), quedo = num(c.quedo);
@@ -113,25 +134,38 @@ export function cuentaDeLaTalla(c: CuentaTalla | undefined, costoHoy: number): s
 }
 
 /**
- * «Usar S/ 48.00, el de la última compra»: las tallas activas que todavía no llegan por compra (su costo se escribió a mano) y tienen
- * otro costo. Lo que hace el botón es «Cambiar el costo de Todas a S/ 48.00»: las tallas grises no se tocan. `null` si no hay ninguna,
- * o si la última compra fue sin costo (un obsequio de S/ 0 no es el costo de la prenda).
+ * «Usar S/ 48.00, el de la última compra»: las tallas que la base dice que se igualan (`igualar`: sin compra, sin stock, fuera de
+ * traslados) y que en la ficha todavía tienen otro costo. Una talla sin compra que SÍ tiene prendas no se toca: su costo escrito puede ser
+ * el real de lo que hay en tienda, y se corrige en su celda (Felipe, «Solo sin stock»). `null` si no hay ninguna.
  */
 export function sugerenciaDeCosto(
   filas: readonly FilaFicha[],
-  ultima: ResumenCostoPrenda["ultima"] | null | undefined,
-): { monto: string; cuantas: number; texto: string; boton: string } | null {
-  if (!ultima || !(ultima.costo > 0)) return null;
-  const centimos = Math.round(ultima.costo * 100);
-  const cuantas = filas.filter((f) => f.activo && !f.costoFijo && Math.round(numeroDeMonto(costoEfectivo(f)) * 100) !== centimos).length;
-  if (cuantas === 0) return null;
+  igualar: IgualarCosto | null | undefined,
+  origen: OrigenEntrada = "compra",
+): { monto: string; claves: string[]; texto: string; boton: string } | null {
+  if (!igualar || !(igualar.costo > 0)) return null;
+  const centimos = Math.round(igualar.costo * 100);
+  const ids = new Set(igualar.ids);
+  // Sin compra y con otro costo en la ficha; de esas, las que la base deja igualar y las que no (tienen prendas en tienda o en camino).
+  const distintas = filas.filter(
+    (f) => f.activo && !f.costoFijo && f.id !== null && Math.round(numeroDeMonto(costoEfectivo(f)) * 100) !== centimos,
+  );
+  const claves = distintas.filter((f) => ids.has(f.id!)).map((f) => f.clave);
+  if (claves.length === 0) return null;
+  const otras = distintas.length - claves.length;
+  const n = claves.length;
+  const conPrendas =
+    otras === 0 ? "" : otras === 1 ? " La que tiene prendas se corrige en su celda." : ` Las ${otras} que tienen prendas se corrigen en su celda.`;
   return {
-    monto: ultima.costo.toFixed(2),
-    cuantas,
-    texto:
-      cuantas === 1
-        ? "1 talla aún no llega por compra: su costo es el que se escribió a mano."
-        : `${cuantas} tallas aún no llegan por compra: su costo es el que se escribió a mano.`,
-    boton: `Usar ${soles(ultima.costo)}, el ${ultima.origen === "produccion" ? "del último cierre del Taller" : "de la última compra"}`,
+    monto: igualar.costo.toFixed(2),
+    claves,
+    texto: `${n === 1 ? "1 talla sin stock aún no llega" : `${n} tallas sin stock aún no llegan`} por compra: su costo es el que se escribió a mano.${conPrendas}`,
+    boton: `Usar ${soles(igualar.costo)}, el ${origen === "produccion" ? "del último cierre del Taller" : "de la última compra"}`,
   };
+}
+
+/** Pone el costo en esas tallas (por su clave) y deja las demás como están. Nada se guarda: va con «Revisar y guardar». */
+export function aplicarCostoEn(filas: readonly FilaFicha[], claves: readonly string[], monto: string): FilaFicha[] {
+  const cuales = new Set(claves);
+  return filas.map((f) => (cuales.has(f.clave) && !f.costoFijo ? { ...f, costo: monto } : f));
 }

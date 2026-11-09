@@ -63,3 +63,18 @@
 - [x] `eliminar_producto_con_historia` y `purgar_producto_de_prueba` fallaban en la base privada por los datos de prueba que dejé ahí. En
   una base limpia, con todas las migraciones de la rama, pasan enteras (66 ✓ y 100 ✓), igual que `costo-de-las-tallas` y
   `costo-de-compras-solo-por-funciones`.
+
+## 🧾 Revisión antes de fusionar con /ultra-criterio, /rigor y /chaos dirigido (2026-11-09, ADR-0631 act. c)
+
+- [x] Producción (solo lectura): están `fn_costo_historial_efectivo` (sin cierres revertidos) y la columna `orden`; `costo_historial` tiene
+  259 filas. Ninguna función que la tienda pueda llamar, ninguna vista ni ninguna consulta registrada lee la tabla directo.
+- [x] La regla de «igualar» vive una sola vez: `fn_tallas_para_igualar_costo`. La usan el botón de la ficha y el script, que ahora va
+  después de la migración.
+- [x] Pruebas que pueden fallar:
+  - dos mutaciones de la regla en SQL y tres de la lógica de la web, todas en rojo;
+  - el ensayo del script repetido con los casos borde;
+  - doble clic y script con la ficha abierta en el navegador: la ficha vieja se rechaza por versión y la base queda intacta.
+- [ ] **Orden para pegar en producción:**
+  1. `20261107232000`;
+  2. `20261109140000`, la PARTE 1 y después la PARTE 2, sola;
+  3. el script, cuando Felipe decida: primero el ensayo.

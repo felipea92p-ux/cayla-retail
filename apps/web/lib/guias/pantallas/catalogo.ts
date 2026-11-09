@@ -404,7 +404,7 @@ export const GUIA_EDITAR_PRODUCTO: Guia = {
       opcional: true,
       preparar: [{ tipo: "clic", ancla: "editar.vista-costo" }],
       titulo: "Las tallas que aún no llegan",
-      texto: "Las tallas que todavía no entraron por compra siguen con el costo que se escribió a mano. Este botón les pone el de la última compra; las grises no se tocan. Se guarda con «Revisar y guardar». En la demo no lo tocamos.",
+      texto: "Las tallas que todavía no entraron por compra siguen con el costo que se escribió a mano. Este botón les pone el de la última compra a las que no tienen prendas; las grises y las que tienen stock no se tocan. Se guarda con «Revisar y guardar». En la demo no lo tocamos.",
     },
     {
       id: "vistas-vuelta",

@@ -26,3 +26,9 @@ Qué hice: una migración que deja `costo_historial` con un solo camino de lectu
 ya era el costo de cada prenda. Antes medí que no rompe nada: ninguna pantalla lo leía directo y las 20 pruebas que lo tocan dan lo mismo.
 Por qué así: Felipe eligió un solo camino al dato. Con dos (la tabla y las funciones) cada uno tendría su propia regla de quién ve qué.
 Felipe se lleva: dos partes cortas por pegar, cada una sola, en orden.
+
+## 2026-11-09 (Revisión con ultra-criterio antes de fusionar: una sola regla para igualar)
+Qué hice: revisé el PR con /ultra-criterio, /rigor y un /chaos dirigido. Encontré que el botón de la ficha también le cambiaba el costo a
+tallas con prendas, que es justo lo que Felipe había descartado para el script. Ahora los dos preguntan a una sola función de la base.
+Por qué así: si la regla está escrita en dos lugares, termina diciendo dos cosas distintas. Además, la ficha no sabe qué va en un traslado.
+Felipe se lleva: el mismo orden para pegar, con el script al final.

@@ -130,3 +130,30 @@ muestran todas las sedes; la tabla, solo la propia). Además, es un cambio de po
 
 SE ROMPE SI: una pantalla nueva consulta `costo_historial` con `.from(...)`: recibe 42501. La salida es pedirlo a una función que pregunte el
 permiso. Lo vigila `pnpm pruebas:costo-de-compras-solo-por-funciones`.
+
+## Actualización 2026-11-09 (c) · Una sola regla para «igualar» (revisión con /ultra-criterio y /rigor)
+
+**Problema:** al revisar el PR antes de fusionarlo, salió que el botón «Usar S/ …» y el script de una sola vez igualaban dos conjuntos
+distintos.
+- El script: activas, sin compra, **sin stock** y fuera de traslados.
+- El botón: activas y sin compra; también cambiaba una talla con prendas en tienda.
+
+Eran dos definiciones del mismo «igualar», y la del botón contradecía «Solo sin stock».
+
+DECIDÍ: la regla vive una sola vez en la base, en `fn_tallas_para_igualar_costo(p_producto_id)` (interna, sin grant a la tienda, en
+`20261107232000`).
+- `fn_costo_de_las_tallas` la devuelve en `igualar` (el costo y las variantes), y el botón solo toca esas tallas (`aplicarCostoEn`).
+- La línea dice cuántas con prendas se corrigen en su celda.
+- El script de una sola vez la usa también, por eso se pega después de la migración.
+
+DESCARTÉ: filtrar en la ficha con el stock que ya trae (`fn_variantes_estado`).
+- La ficha no sabe qué va en un traslado en camino.
+- La regla quedaría escrita dos veces, una en la pantalla y otra en el script.
+
+SE ROMPE SI: alguien cambia la regla en el script o en la pantalla en vez de en la función. Lo vigilan dos pruebas:
+- `pnpm pruebas:costo-de-las-tallas` falla si la función iguala una talla con stock o en traslado (se comprobó con dos mutaciones);
+- `lib/costo-tallas-reglas.test.ts` falla si el botón toca una talla que la base no lista (otra mutación).
+
+**Chaos dirigido** (base privada y navegador): doble clic en el botón, y el script pegado con la ficha abierta.
+- El doble clic aplica una sola vez.
+- Al guardar la ficha vieja, la base la rechaza por versión («Otra persona cambió esta prenda…») y no escribe nada.

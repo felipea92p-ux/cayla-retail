@@ -10,6 +10,8 @@
  *     de lo que llegó y lo que dejó la última; y la cuenta cierra a céntimos;
  *   · un cierre del Taller revertido no cuenta: la última entrada vuelve a ser la compra de antes (ADR-0614);
  *   · una talla sin compras no aparece (su costo es el declarado);
+ *   · «igualar» (Solo sin stock, Felipe 2026-11-09): la talla sin compra y sin stock toma el costo de la última compra que cuenta (la del
+ *     22-oct, no el cierre revertido); NO entran la que tiene stock, la que va en un traslado en camino ni la desactivada;
  *   · quien no ve el dinero de compras recibe null.
  *
  * CÓMO. Una transacción con ROLLBACK. Crea su propia prenda con tres variantes a S/ 45 y sin stock antes de 2030, y escribe las
@@ -43,17 +45,27 @@ select :'${v}', ${stockPrevio}, ${costoAntes}, ${llegan}, ${costoLlega}, ${queda
 const ESCENARIO = `
 begin;
 select id as tru from retail.ubicaciones where nombre = 'Tienda Trujillo' \\gset
+select id as lima from retail.ubicaciones where nombre = 'Tienda Lima' \\gset
+select id as sub from retail.sububicaciones where ubicacion_id = :'tru' order by nombre limit 1 \\gset
 with p as (
   insert into retail.productos (categoria_id, referencia, descripcion)
   select id, 'Prueba tallas ' || substr(gen_random_uuid()::text, 1, 8), 'prenda propia de la prueba' from retail.categorias order by nombre limit 1
   returning id)
 insert into retail.variantes (producto_id, color_codigo, talla_id, sku, precio, costo)
 select p.id, (select codigo from retail.colores where activo order by codigo limit 1), t.id, 'PRUEBA-TALLAS-' || substr(gen_random_uuid()::text, 1, 8), 89.90, 45
-  from p cross join (select id from retail.tallas where activo and estado = 'aprobado' order by valor limit 3) t;
+  from p cross join (select id from retail.tallas where activo and estado = 'aprobado' order by valor limit 6) t;
 select producto_id as p1 from retail.variantes where sku like 'PRUEBA-TALLAS-%' order by created_at desc limit 1 \\gset
 select id as v1 from retail.variantes where producto_id = :'p1' order by sku limit 1 \\gset
 select id as v2 from retail.variantes where producto_id = :'p1' order by sku offset 1 limit 1 \\gset
 select id as v3 from retail.variantes where producto_id = :'p1' order by sku offset 2 limit 1 \\gset
+select id as v4 from retail.variantes where producto_id = :'p1' order by sku offset 3 limit 1 \\gset
+select id as v5 from retail.variantes where producto_id = :'p1' order by sku offset 4 limit 1 \\gset
+select id as v6 from retail.variantes where producto_id = :'p1' order by sku offset 5 limit 1 \\gset
+-- Sin compra las cuatro (v3…v6). v4 tiene 1 prenda en tienda, v5 va en un traslado en camino y v6 está desactivada: solo v3 se iguala.
+insert into retail.stock (variante_id, ubicacion_id, cantidad, updated_at, sububicacion_id, cantidad_apartada) values (:'v4', :'tru', 1, now(), :'sub', 0);
+with t as (insert into retail.transferencias (ubicacion_origen_id, ubicacion_destino_id, estado) values (:'tru', :'lima', 'en_transito') returning id)
+insert into retail.transferencia_items (transferencia_id, variante_id, cantidad) select t.id, :'v5', 1 from t;
+update retail.variantes set activo = false where id = :'v6';
 
 -- v1 tiene 1 de la carga inicial (sin fila de costo, a su costo declarado de S/ 45).
 insert into retail.movimientos (variante_id, ubicacion_id, tipo, cantidad, motivo, created_at) values (:'v1', :'tru', 'entrada', 1, 'prueba', '2030-09-12');
@@ -80,7 +92,7 @@ select 'sin_permiso|' || coalesce(retail.fn_costo_de_las_tallas(:'p1')::text, 'n
 set local request.jwt.claim.sub = '${FELIPE}';
 set local request.jwt.claims = '{"sub":"${FELIPE}","role":"authenticated"}';
 select 'tallas|' || retail.fn_costo_de_las_tallas(:'p1')::text;
-select 'ids|' || :'v1' || ',' || :'v2' || ',' || :'v3';
+select 'ids|' || :'v1' || ',' || :'v2' || ',' || :'v3' || ',' || :'v4' || ',' || :'v5' || ',' || :'v6';
 rollback;
 `;
 
@@ -101,7 +113,8 @@ try {
   process.exit(1);
 }
 const linea = (clave) => salida.split("\n").find((l) => l.startsWith(`${clave}|`))?.slice(clave.length + 1) ?? "";
-const tallas = JSON.parse(linea("tallas") || "{}");
+const respuesta = JSON.parse(linea("tallas") || "{}");
+const tallas = respuesta.tallas ?? {};
 const [v1, v2, v3] = linea("ids").split(",");
 const forma = (t) => (t ? [t.habia, Number(t.costo_habia), t.llegaron, Number(t.costo_llegaron), Number(t.quedo), t.origen] : null);
 
@@ -112,6 +125,8 @@ esperar("con una prenda de antes: había 1 a 45, llegó 1 a 48, quedó en 46.50 
 esperar("dos líneas de la misma compra son una: había 1 a 48, llegaron 3 a 50.67, quedó en 50.00",
   JSON.stringify(forma(tallas[v2])) === JSON.stringify([1, 48, 3, 50.67, 50, "compra"]), tallas[v2]);
 esperar("la fecha es la de la última compra de la talla", String(tallas[v2]?.fecha ?? "").startsWith("2030-10-22"), tallas[v2]?.fecha);
+esperar("igualar: solo la talla sin compra NI stock, al costo de la última compra que cuenta (50.67, no el cierre revertido)",
+  JSON.stringify(respuesta.igualar) === JSON.stringify({ costo: 50.67, variantes: [v3] }), respuesta.igualar);
 for (const [nombre, t] of [["v1", tallas[v1]], ["v2", tallas[v2]]]) {
   if (!t) continue;
   const antes = t.habia * Number(t.costo_habia) + t.llegaron * Number(t.costo_llegaron);

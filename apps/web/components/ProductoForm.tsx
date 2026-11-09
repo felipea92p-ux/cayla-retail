@@ -1886,7 +1886,8 @@ export function ProductoForm({
                       deshabilitado={loading}
                       campoFijo={vista === "costo" ? "costo" : "precio"}
                       admitePrecioCero={!!categoriaActual?.admitePrecioCero}
-                      ultimaEntrada={ctx.costo?.prenda?.ultima ?? null}
+                      igualar={ctx.costo?.igualar ?? null}
+                      origenUltima={ctx.costo?.prenda?.ultima.origen}
                     />
                   </div>
                 ) : undefined

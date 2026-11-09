@@ -79,7 +79,7 @@ const lider = correr(`${como(FELIPE)}select count(*) from retail.costo_historial
 esperar("un líder tampoco lo lee directo: el camino es la función", negado(lider), lider);
 
 const funciones = correr(`${como(FELIPE)}
-select 'tallas|' || coalesce((retail.fn_costo_de_las_tallas(:'p1') -> (:'v1')::text ->> 'quedo'), 'null');
+select 'tallas|' || coalesce((retail.fn_costo_de_las_tallas(:'p1') -> 'tallas' -> (:'v1')::text ->> 'quedo'), 'null');
 select 'prenda|' || coalesce((retail.fn_costo_de_la_prenda(:'p1') -> 'compras' -> 0 ->> 'costo_llegaron'), 'null');`);
 const linea = (clave) => (funciones.ok ? funciones.salida.split("\n").find((l) => l.startsWith(`${clave}|`))?.slice(clave.length + 1) : null);
 esperar("el líder sí ve el costo por las funciones de siempre, corriendo como la tienda",

@@ -5,7 +5,7 @@ import { Desplegable } from "@/components/ui/campos";
 import { SegmentoDeslizante } from "@/components/ui/SegmentoDeslizante";
 import { alcancesDeBloque, aplicarEnBloque, type CampoBloque, type FilaFicha, type NombresFicha } from "@/lib/variantes-ficha-reglas";
 import { CLASE_MONTO_ILEGIBLE, atributosMontoTexto } from "@/components/ui/CampoMonto";
-import { sugerenciaDeCosto, type ResumenCostoPrenda } from "@/lib/costo-tallas-reglas";
+import { aplicarCostoEn, sugerenciaDeCosto, type IgualarCosto, type OrigenEntrada } from "@/lib/costo-tallas-reglas";
 
 // Precio o costo en bloque: «Cambiar [Precio|Costo] de [Todas | Color: Negro | Talla: S] a [monto] · Aplicar». Es la
 // fila de grupo de Shopify («si cambias el precio del grupo, cambia en todas sus variantes») y el «Price extra» de Odoo,
@@ -29,7 +29,8 @@ export function CambiarEnBloque({
   onCampo,
   campoFijo,
   admitePrecioCero = false,
-  ultimaEntrada = null,
+  igualar = null,
+  origenUltima = "compra",
 }: {
   filas: FilaFicha[];
   onFilas: (siguiente: FilaFicha[]) => void;
@@ -44,9 +45,11 @@ export function CambiarEnBloque({
   campoFijo?: CampoBloque;
   /** La categoría elegida es de Empaque (fuera de los motores, ADR-0377): el precio puede ser 0, la bolsa de obsequio. */
   admitePrecioCero?: boolean;
-  /** La última compra o cierre del Taller de la prenda (ADR-0631): en Costos, ofrece su costo para las tallas que aún no llegan por
-   *  compra. `null` = no hubo, o la cuenta no ve el dinero. */
-  ultimaEntrada?: ResumenCostoPrenda["ultima"] | null;
+  /** Las tallas sin compra ni stock que toman el costo de la última compra, según la base (ADR-0631, «Solo sin stock»). `null` = ninguna,
+   *  la cuenta no ve el dinero o la base todavía no tiene la función: no se ofrece. */
+  igualar?: IgualarCosto | null;
+  /** De dónde vino esa última entrada: el botón dice «de la última compra» o «del último cierre del Taller». */
+  origenUltima?: OrigenEntrada;
 }) {
   const [campoPropio, setCampo] = useState<CampoBloque>("precio");
   const campo = campoFijo ?? campoPropio;
@@ -73,18 +76,16 @@ export function CambiarEnBloque({
   useEffect(() => () => onPendiente(null), [onPendiente]);
 
   // Las tallas escritas a mano con otro costo que el de la última compra (ADR-0631). Solo en Costos y sin nada escrito en el monto.
-  const sugerencia = campo === "costo" && monto.trim() === "" ? sugerenciaDeCosto(filas, ultimaEntrada) : null;
+  const sugerencia = campo === "costo" && monto.trim() === "" ? sugerenciaDeCosto(filas, igualar, origenUltima) : null;
 
-  /** «Usar S/ 48.00, el de la última compra»: es «Cambiar el costo de Todas a S/ 48.00»; las tallas grises no se tocan. */
+  /** «Usar S/ 48.00, el de la última compra»: solo en las tallas sin compra ni stock que dice la base; las grises y las que tienen
+   *  prendas no se tocan. */
   function usarSugerencia() {
     if (!sugerencia) return;
-    const r = aplicarEnBloque(filas, "costo", "todas", sugerencia.monto, admitePrecioCero);
-    if (r.error) return setResultado({ texto: r.error, error: true });
-    onFilas(r.filas);
+    onFilas(aplicarCostoEn(filas, sugerencia.claves, sugerencia.monto));
+    const n = sugerencia.claves.length;
     setResultado({
-      texto: `Costo de S/\u00a0${sugerencia.monto} puesto en ${r.aplicadas} ${r.aplicadas === 1 ? "talla" : "tallas"}${
-        r.fijas > 0 ? ` · ${r.fijas} no ${r.fijas === 1 ? "cambia" : "cambian"}: su costo viene de compras` : ""
-      }. Se guarda con «Revisar y guardar».`,
+      texto: `Costo de S/\u00a0${sugerencia.monto} puesto en ${n} ${n === 1 ? "talla sin stock" : "tallas sin stock"}. Se guarda con «Revisar y guardar».`,
       error: false,
     });
   }

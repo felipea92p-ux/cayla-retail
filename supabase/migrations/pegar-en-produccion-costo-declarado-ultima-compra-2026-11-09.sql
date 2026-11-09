@@ -1,8 +1,8 @@
 -- ============================================================================
 -- pegar-en-produccion-costo-declarado-ultima-compra-2026-11-09.sql — las tallas sin compra y sin stock toman el costo de la última compra de
 -- su prenda (Felipe, 2026-11-09; ADR-0631, «Solo sin stock»)
--- SCRIPT DE UNA SOLA VEZ (no es una migración: no tiene versión, no entra al CI de migraciones). No depende de `20261107232000`: se puede
--- pegar antes, después o sin ella.
+-- SCRIPT DE UNA SOLA VEZ (no es una migración: no tiene versión, no entra al CI de migraciones). Va DESPUÉS de `20261107232000`: usa su
+-- `fn_tallas_para_igualar_costo`, la misma regla que el botón «Usar S/ …» de la ficha. Sin ella, se detiene sin tocar nada.
 --
 -- EL PROBLEMA PRIMERO. El costo se lleva por talla. Una talla que todavía no llegó por Compras ni por el Taller sigue con el costo que se
 --   escribió a mano al darla de alta. El Short Sohanna llegó el 7-nov a S/ 48 en 3 tallas, y las otras 6 quedaron en S/ 45. Medido en
@@ -11,15 +11,9 @@
 --   stock: a esas, cambiarles el costo no cambia el valor del inventario. Las que tienen stock se quedan como están. Su costo escrito puede
 --   ser el real de las prendas que hay en tienda, que no llegaron en esa compra.
 --
--- QUÉ HACE. Todo o nada, sin ningún `drop`, sin tocar stock, ventas, compras ni `costo_historial`. Cambia una talla solo si cumple todo esto:
---     · está activa;
---     · no tiene ninguna fila en `costo_historial` (nunca llegó por compra; es la misma regla del candado `20260927190000` y de la ficha);
---     · no tiene stock en ninguna sede;
---     · no está en un traslado en camino;
---     · la última compra o cierre del Taller de su prenda tuvo costo mayor que 0 (un obsequio de S/ 0 no es el costo de la prenda);
---     · su costo es distinto del de esa compra.
---   La «última compra» es lo mismo que dicen la ficha y el Historial: el promedio de lo que llegó en la última entrada efectiva de la prenda
---   (`fn_costo_historial_efectivo`: con la corrección de ADR-0515 aplicada y sin los cierres revertidos).
+-- QUÉ HACE. Todo o nada, sin ningún `drop`, sin tocar stock, ventas, compras ni `costo_historial`. Cambia las tallas que devuelve
+--   `fn_tallas_para_igualar_costo` para cada prenda. Su encabezado (en `20261107232000`) dice la regla completa: activa, sin compra, sin
+--   stock, fuera de traslados en camino, con una última compra de costo mayor que 0 y un costo distinto del de esa compra.
 --   Pasos:
 --   1. Deja la foto de cada talla en `respaldo_purgas.filas` (purga «costo-declarado-ultima-compra-2026-11-09», tabla `variantes`). De ahí
 --      sale el camino de vuelta.
@@ -35,22 +29,14 @@
 --     · una prenda que replica el Short Sohanna;
 --     · una talla sin compra CON stock, una en traslado, una desactivada y una de una prenda sin compras (las cuatro no se tocan);
 --     · el ensayo, la aplicación, el segundo pegado (se detiene) y el camino de vuelta.
+--   Medido en producción el 2026-11-09 con la misma regla: 45 tallas de 13 prendas, ninguna con una última compra de costos distintos
+--   entre tallas. Los saltos más grandes: Falda Jean de 35 a 60, Vestido Campanita de 48 a 70, y 4 prendas que hoy están en S/ 0.
 --
 -- VISTA PREVIA, talla por talla (solo lectura; se puede pegar sola antes):
---     with e as (select v.producto_id, x.created_at, x.cantidad_nueva, x.costo_unitario_nuevo
---                  from retail.productos p cross join lateral retail.fn_costo_historial_efectivo(p.id) x
---                  join retail.variantes v on v.id = x.variante_id),
---          u as (select e.producto_id, round(sum(e.cantidad_nueva * e.costo_unitario_nuevo) / nullif(sum(e.cantidad_nueva), 0), 2) as costo
---                  from e where (e.producto_id, e.created_at) in (select producto_id, max(created_at) from e group by producto_id)
---                 group by e.producto_id)
---     select p.referencia, p.codigo, c.nombre as color, t.valor as talla, v.costo as hoy, u.costo as queda
---       from retail.variantes v join u on u.producto_id = v.producto_id join retail.productos p on p.id = v.producto_id
+--     select p.referencia, p.codigo, c.nombre as color, t.valor as talla, v.costo as hoy, i.costo as queda
+--       from retail.productos p cross join lateral retail.fn_tallas_para_igualar_costo(p.id) i
+--       join retail.variantes v on v.id = i.variante_id
 --       left join retail.colores c on c.codigo = v.color_codigo left join retail.tallas t on t.id = v.talla_id
---      where v.activo and u.costo > 0 and round(v.costo, 2) <> u.costo
---        and not exists (select 1 from retail.costo_historial ch where ch.variante_id = v.id)
---        and coalesce((select sum(s.cantidad) from retail.stock s where s.variante_id = v.id), 0) = 0
---        and not exists (select 1 from retail.transferencia_items ti join retail.transferencias tr on tr.id = ti.transferencia_id
---                         where ti.variante_id = v.id and tr.estado = 'en_transito')
 --      order by p.referencia, c.nombre, t.valor;
 --
 -- LO QUE CAMBIA PARA QUIEN USA EL ERP, al aplicar:
@@ -92,37 +78,21 @@ begin
   if to_regclass('respaldo_purgas.filas') is null then
     raise exception 'Falta el respaldo (respaldo_purgas.filas): no se toca nada sin la foto de antes';
   end if;
-  if to_regprocedure('retail.fn_costo_historial_efectivo(uuid)') is null then
-    raise exception 'Falta fn_costo_historial_efectivo (20261026160000): sin ella no se sabe cuál es la última compra. No se tocó nada.';
+  if to_regprocedure('retail.fn_tallas_para_igualar_costo(uuid)') is null then
+    raise exception 'Falta fn_tallas_para_igualar_costo: pega antes 20261107232000_costo_de_las_tallas.sql. No se tocó nada.';
   end if;
   if exists (select 1 from respaldo_purgas.filas where purga = v_purga) then
     raise exception 'Este script ya se aplicó (hay filas de la purga «%» en respaldo_purgas.filas): no se aplica dos veces. No se tocó nada.', v_purga;
   end if;
 
   -- 1 y 2: la foto de antes y el costo nuevo, en una sola sentencia (las dos partes ven la misma foto de la base).
-  with efectivo as (
-    select v.producto_id, x.created_at, x.cantidad_nueva, x.costo_unitario_nuevo
+  -- La regla es la de la ficha (`fn_tallas_para_igualar_costo`); cada talla se toma `for update` (si alguien la está guardando, espera o
+  -- falla por el `lock_timeout`).
+  with objetivo as (
+    select v.id, i.costo as costo_nuevo
       from retail.productos p
-     cross join lateral retail.fn_costo_historial_efectivo(p.id) x
-      join retail.variantes v on v.id = x.variante_id
-  ),
-  ultima as (
-    select e.producto_id, round(sum(e.cantidad_nueva * e.costo_unitario_nuevo) / nullif(sum(e.cantidad_nueva), 0), 2) as costo
-      from efectivo e
-     where (e.producto_id, e.created_at) in (select producto_id, max(created_at) from efectivo group by producto_id)
-     group by e.producto_id
-  ),
-  objetivo as (
-    select v.id, u.costo as costo_nuevo
-      from retail.variantes v
-      join ultima u on u.producto_id = v.producto_id
-     where v.activo
-       and u.costo > 0
-       and round(v.costo, 2) <> u.costo
-       and not exists (select 1 from retail.costo_historial ch where ch.variante_id = v.id)
-       and coalesce((select sum(s.cantidad) from retail.stock s where s.variante_id = v.id), 0) = 0
-       and not exists (select 1 from retail.transferencia_items ti join retail.transferencias tr on tr.id = ti.transferencia_id
-                        where ti.variante_id = v.id and tr.estado = 'en_transito')
+     cross join lateral retail.fn_tallas_para_igualar_costo(p.id) i
+      join retail.variantes v on v.id = i.variante_id
        for update of v
   ),
   respaldo as (
