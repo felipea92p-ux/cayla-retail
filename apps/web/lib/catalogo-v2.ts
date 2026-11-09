@@ -5,7 +5,8 @@ import { unstable_cache } from "next/cache";
 import { createClient as crearClienteSupabase, type SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@cayla-retail/database";
 import { createClient } from "@/lib/supabase/server";
-import { exigir, leerTodas } from "@/lib/resultado";
+import { exigir, FILAS_POR_PAGINA, leerTodas } from "@/lib/resultado";
+import { leerPorCursor } from "@/lib/catalogo-copia-reglas";
 import { getEmpresasAqui } from "@/lib/empresas-de-sede";
 import { insigniaDeEmpresa, soloLasDeAqui } from "@/lib/empresas-de-sede-reglas";
 import { leerExistenciasProductos, type ExistenciasProducto } from "@/lib/productos-stock";
@@ -87,14 +88,18 @@ export async function getCatalogo(): Promise<VarianteCatalogo[]> {
   const [{ data: version, error }, { data: sesion }] = await Promise.all([supabase.rpc("fn_catalogo_version"), supabase.auth.getSession()]);
   const token = sesion.session?.access_token;
   // Sin versión (la migración aún no está, o falló la lectura) se lee en vivo: más lento, nunca viejo.
-  if (error || version === null || !token) return leerCatalogo(supabase);
+  if (error || version === null || !token) return leerCatalogo(supabase, enVivo);
   // La copia no puede leer cookies: la consulta que la llena usa el token de esta sesión (PostgREST lo valida igual).
-  return unstable_cache(() => leerCatalogo(clienteConToken(token)), ["catalogo-v2", String(version), process.env.VERCEL_GIT_COMMIT_SHA ?? "local"], {
-    // ponytail: la copia vive en la caché de datos de Vercel (tope ~2 MB por entrada; hoy ~0,5 MB con 1.295 variantes).
-    // Pasadas ~5.000 variantes ya no entra y se lee en vivo en cada visita: entonces, adelgazar lo que se guarda.
-    revalidate: 3600,
-  })();
+  // POR PARTES (2026-11-09, `lib/catalogo-copia-reglas.ts`): una entrada por página de 1.000 variantes y otra para las marcas. En una sola
+  // entrada pasaba el tope de 2 MB de la caché de Vercel y no se guardaba nunca: cada visita leía el catálogo entero en vivo.
+  const clave = ["catalogo-v2", String(version), process.env.VERCEL_GIT_COMMIT_SHA ?? "local"];
+  const guardar: Guardar = (partes, leer) => unstable_cache(leer, [...clave, ...partes], { revalidate: 3600 })();
+  return leerCatalogo(clienteConToken(token), guardar);
 }
+
+/** Cómo se guarda una parte del catálogo entre visitas: en la caché de Vercel, o nada (`enVivo`). Lo que lanza un error no se guarda. */
+type Guardar = <T>(partes: string[], leer: () => Promise<T>) => Promise<T>;
+const enVivo: Guardar = (_partes, leer) => leer();
 
 /** Una variante del listado de /productos: la del catálogo más su costo, que `fn_productos` entrega vacío (null) a quien
  *  no tiene permiso de ver el dinero (20260923193700). */
@@ -135,41 +140,24 @@ function clienteConToken(token: string) {
   });
 }
 
-async function leerCatalogo(supabase: SupabaseClient<Database, "retail">): Promise<VarianteCatalogo[]> {
-  const [resVariantes, resMarcas] = await Promise.all([
-    // Más de 1.000 variantes desde sep-2026: se lee por páginas (`leerTodas`). `id` desempata el
-    // orden — `sku` está vacío en casi todas, y sin desempate las páginas se pisan.
-    leerTodas((desde, hasta) =>
-      supabase
-        .from("variantes")
-        .select(
-          `id, sku, codigo, color_codigo, talla_id, precio, activo,
-           talla:tallas ( valor ),
-           producto:productos ( id, referencia, categoria_id, empresa_id, categoria:categorias ( nombre, prefijo, familia ), producto_fotos ( url, color_codigo, orden, es_principal ) ),
-           color:colores ( nombre, hex ),
-           codigos_barras ( codigo )`
-        )
-        .order("sku")
-        .order("id")
-        .range(desde, hasta)
-    ),
-    // La marca va en una consulta APARTE y tolerante, no anidada arriba: `getCatalogo()` lo
-    // leen la caja, cambios, buscar, compras, recepción, conteo y traslados. Un embed que la
-    // base todavía no conoce (el SQL de marcas, 20260918231000, aún sin pegar en producción)
-    // haría fallar TODA esa consulta y con ella siete pantallas. Sin la marca, la caja
-    // sigue vendiendo: solo deja de encontrar por «adidas» hasta que el SQL entre.
-    leerTodas((desde, hasta) => supabase.from("productos").select("id, marca_id, marca:marcas ( nombre )").order("id").range(desde, hasta)),
-  ]);
-  const filas = exigir(resVariantes, "el catálogo");
-  const marcaPorProducto = new Map<string, string>();
-  // El id de la marca decide, en Lima, si la prenda es de CAYLA o de CLAURE (ADR-0532). Sin la consulta, queda ausente (no «sin marca»).
-  const marcaIdPorProducto = new Map<string, string | null>();
-  for (const p of resMarcas.error ? [] : (resMarcas.data ?? [])) {
-    if (p.marca?.nombre) marcaPorProducto.set(p.id, p.marca.nombre);
-    marcaIdPorProducto.set(p.id, p.marca_id ?? null);
-  }
+/** Una variante del catálogo sin su marca: así se guarda cada página (la marca llega aparte, ver abajo). */
+type VarianteSinMarca = Omit<VarianteCatalogo, "marca" | "marcaId">;
 
-  return filas.map((v) => ({
+/** Una página de variantes, las que siguen a `despuesDe` en el orden de la llave: el índice de `id`, sin ordenar ni saltar filas. */
+async function paginaDeVariantes(supabase: SupabaseClient<Database, "retail">, despuesDe: string | null): Promise<VarianteSinMarca[]> {
+  let consulta = supabase
+    .from("variantes")
+    .select(
+      `id, sku, codigo, color_codigo, talla_id, precio, activo,
+       talla:tallas ( valor ),
+       producto:productos ( id, referencia, categoria_id, empresa_id, categoria:categorias ( nombre, prefijo, familia ), producto_fotos ( url, color_codigo, orden, es_principal ) ),
+       color:colores ( nombre, hex ),
+       codigos_barras ( codigo )`
+    )
+    .order("id")
+    .limit(FILAS_POR_PAGINA);
+  if (despuesDe) consulta = consulta.gt("id", despuesDe);
+  return exigir(await consulta, "el catálogo").map((v) => ({
     varianteId: v.id,
     sku: v.sku ?? "",
     codigo: v.codigo,
@@ -190,11 +178,34 @@ async function leerCatalogo(supabase: SupabaseClient<Database, "retail">): Promi
     categoria: v.producto?.categoria?.nombre ?? null,
     categoriaPrefijo: v.producto?.categoria?.prefijo ?? null,
     categoriaFamilia: v.producto?.categoria?.familia ?? null,
-    marca: marcaPorProducto.get(v.producto?.id ?? "") ?? null,
-    marcaId: marcaIdPorProducto.get(v.producto?.id ?? ""),
     empresaId: v.producto?.empresa_id ?? null,
     codigosBarras: (v.codigos_barras ?? []).map((c) => c.codigo),
   }));
+}
+
+async function leerCatalogo(supabase: SupabaseClient<Database, "retail">, guardar: Guardar): Promise<VarianteCatalogo[]> {
+  const [variantes, marcas] = await Promise.all([
+    leerPorCursor((despuesDe) => guardar(["variantes", despuesDe ?? "inicio"], () => paginaDeVariantes(supabase, despuesDe)), (v) => v.varianteId, FILAS_POR_PAGINA),
+    // La marca va en una consulta APARTE y tolerante, no anidada arriba: `getCatalogo()` lo
+    // leen la caja, cambios, buscar, compras, recepción, conteo y traslados. Un embed que la
+    // base todavía no conoce (el SQL de marcas, 20260918231000, aún sin pegar en producción)
+    // haría fallar TODA esa consulta y con ella siete pantallas. Sin la marca, la caja
+    // sigue vendiendo: solo deja de encontrar por «adidas» hasta que el SQL entre. Si falla, lanza DENTRO de `guardar` (no se guarda
+    // una lista vacía como si fuera la buena) y aquí se sigue sin marcas.
+    guardar(["marcas"], async () => {
+      const { data, error } = await leerTodas((desde, hasta) => supabase.from("productos").select("id, marca_id, marca:marcas ( nombre )").order("id").range(desde, hasta));
+      if (error || !data) throw new Error(`No se pudieron leer las marcas: ${error?.message ?? "sin datos"}`);
+      return data.map((p) => [p.id, p.marca_id ?? null, p.marca?.nombre ?? null] as const);
+    }).catch(() => null),
+  ]);
+  const marcaPorProducto = new Map<string, string>();
+  // El id de la marca decide, en Lima, si la prenda es de CAYLA o de CLAURE (ADR-0532). Sin la consulta, queda ausente (no «sin marca»).
+  const marcaIdPorProducto = new Map<string, string | null>();
+  for (const [productoId, marcaId, marca] of marcas ?? []) {
+    if (marca) marcaPorProducto.set(productoId, marca);
+    marcaIdPorProducto.set(productoId, marcaId);
+  }
+  return variantes.map((v) => ({ ...v, marca: marcaPorProducto.get(v.productoId) ?? null, marcaId: marcaIdPorProducto.get(v.productoId) }));
 }
 
 /**
