@@ -2,7 +2,7 @@
 
 - **Fecha:** 2026-11-09
 - **Decide:** Felipe
-- **Estado:** en construcción (actividad 1 de 5 hecha)
+- **Estado:** en construcción (hechas: la línea del Balance y el aviso del cierre; faltan las dos preguntas de origen)
 - **Toca:** ADR-0621 (el fondo sale al gastarse), ADR-0485 decisión 6 (sin cuenta puente), ADR-0574 (el papel pasa solo a los libros), ADR-0618 (arranque)
 
 ## El problema
@@ -30,7 +30,11 @@ Medido en producción ese día (solo lectura):
    lo compraste?». Si es compra, se elige el papel.
 3. **Camino A (Felipe):** esa carga cuenta como la llegada de la compra: el papel pasa al libro ahí, sin esperar un envío. Un mismo papel no
    puede recibirse por los dos caminos.
-4. Se guarda la fecha en que cada papel pasa al libro (para cortes pasados) y el cierre de mes avisa de papeles sin pasar.
+4. **El cierre de mes avisa con el monto y no bloquea** (Felipe, 2026-11-09, entre bloquear, avisar o mandar la compra al mes siguiente).
+   El papel de un mes cerrado no puede entrar al libro (`compras_mes_abierto` rechaza a `completar_papel_compra`) hasta reabrirlo: el aviso
+   lo dice. Migración `20261109235000`.
+5. **No se guarda la fecha en que el papel pasa al libro** (se propuso y se retiró). El diario es en vivo y el papel entra con SU fecha: un
+   Balance a un corte pasado ya lo muestra en la 201. Una línea «como estaba ese día» lo contaría dos veces.
 
 ## Descarté
 
@@ -42,7 +46,7 @@ Medido en producción ese día (solo lectura):
 
 ## Se rompe si
 
-- Se mira un corte pasado antes de la actividad 2: la línea usa el estado de hoy del papel.
+- Se cierra un mes con papeles pendientes: quedan fuera del libro hasta reabrirlo (el cierre lo avisa con el monto).
 - Un papel de antes del arranque (hay 6, S/ 4,293, del 28-oct) se completa: su asiento cae fuera del Balance y la plata vuelve a verse en la
   1413. Se corrige fijando de nuevo el arranque; **pendiente de decisión de Felipe**, y en dos pasos para no restar dos veces.
 - Se archiva un fondo con papeles pendientes: `fn_fondo_por_completar` deja de verlos.
@@ -57,4 +61,5 @@ Medido en producción ese día (solo lectura):
 
 ## Cómo se verifica
 
-`pnpm pruebas:mercaderia-pagada-balance` (18 casos: la plata cambia de casillero, el activo no cambia, al completar no se cuenta doble ni cero).
+`pnpm pruebas:mercaderia-pagada-balance` (18 casos: la plata cambia de casillero, el activo no cambia, al completar no se cuenta doble ni cero)
+y `pnpm pruebas:cierre-papeles-con-monto` (4 casos).

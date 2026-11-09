@@ -122,6 +122,7 @@ export const PRUEBAS = [
   // queda en la mano, el Flujo cuadra, la proyección parte sin lo por volver y completar el papel no lo cuenta dos veces. ROLLBACK.
   "pruebas:fondo-sale-al-gastarse",
   "pruebas:mercaderia-pagada-balance",
+  "pruebas:cierre-papeles-con-monto",
 
   // De Ventas a Finanzas y lo que el Flujo no cubre (ADR-0609): el cuadre suma exacto y da la cifra del Estado de resultados, sede por sede;
   // lo anterior al arranque de una cuenta no suma, pero se dice. ROLLBACK.

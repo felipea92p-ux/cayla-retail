@@ -395,7 +395,12 @@ export function textoChequeo(c: Chequeo, mes: string, u?: UnidadDeFrase | null):
     case "papeles_por_completar": {
       if (c.ok) return { titulo, detalle: "Ninguna compra espera su papel" };
       const n = numero(d.n);
-      return { titulo, detalle: `${plural(n, "compra espera", "compras esperan")} completarse. Puedes cerrar igual` };
+      // `monto` nulo: esta cuenta no ve la plata de proveedores. ADR-0636: el papel de un mes cerrado no puede entrar al libro, y se dice.
+      const cuanto = hayCifra(d.monto) ? ` por ${soles(numero(d.monto))}` : "";
+      return {
+        titulo,
+        detalle: `${plural(n, "compra pagada", "compras pagadas")}${cuanto} todavía no ${n === 1 ? "entra" : "entran"} al libro. Puedes cerrar igual, pero no ${n === 1 ? "entrará" : "entrarán"} hasta reabrir ${m}`,
+      };
     }
     case "gastos_por_revisar": {
       if (c.ok) return { titulo, detalle: "Ningún gasto de compra espera revisión" };

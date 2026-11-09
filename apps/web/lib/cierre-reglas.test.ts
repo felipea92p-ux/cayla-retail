@@ -158,6 +158,10 @@ describe("cada chequeo en palabras", () => {
     expect(textoChequeo(ch("fijos", false, { total: 3, faltan: 2, cuales: ["Luz", "Internet"] }, false), mes).detalle).toBe("Faltan 2: Luz y Internet. Si ese mes no correspondía, puedes cerrar igual");
     expect(textoChequeo(ch("fijos", true, { total: 3, faltan: 0 }, false), mes).detalle).toBe("Los 3 gastos fijos del mes están registrados");
     expect(textoChequeo(ch("sin_costo", false, { n: 1 }, false), mes).detalle).toBe("1 prenda vendida sin costo cargado: el margen del mes sale inflado");
+    // ADR-0636: el papel de un mes cerrado no entra al libro; se dice cuánto queda fuera, y se calla el monto a quien no ve plata.
+    expect(textoChequeo(ch("papeles_por_completar", false, { n: 35, monto: 24452 }, false), mes).detalle).toBe("35 compras pagadas por S/\u00a024,452 todavía no entran al libro. Puedes cerrar igual, pero no entrarán hasta reabrir agosto");
+    expect(textoChequeo(ch("papeles_por_completar", false, { n: 1, monto: null }, false), mes).detalle).toBe("1 compra pagada todavía no entra al libro. Puedes cerrar igual, pero no entrará hasta reabrir agosto");
+    expect(textoChequeo(ch("papeles_por_completar", true, { n: 0, monto: 0 }, false), mes).detalle).toBe("Ninguna compra espera su papel");
   });
   it("ventas cerradas sin prenda (ADR-0337): cuántas, cuánto vendieron y que su costo es desconocido; avisa, no bloquea", () => {
     expect(textoChequeo(ch("cerrada_sin_prenda", false, { n: 2, monto: 150 }, false), mes)).toEqual({
