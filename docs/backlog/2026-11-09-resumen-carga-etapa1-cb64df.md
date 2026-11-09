@@ -2,8 +2,8 @@
 
 - [ ] **Medir en producción una semana después**: `vercel logs --query finanzas_resumen_ms` (qué pieza del resumen pesa más) y la memoria comprometida
       en Observability ▸ Database al abrir Resumen. Con eso, afinar `CUPOS_PESADOS` (3) en `app/(app)/finanzas/resumen/page.tsx`.
-- [ ] **El flujo de caja se calcula dos veces por carga**: `fn_resumen_finanzas` lo arma sin cobros y la página pide el completo
-      (`getFlujoProximo`). Quitar uno pide cambiar `fn_resumen_finanzas` (un parámetro para no armarlo, o que traiga los cobros): migración.
-- [ ] **El Observatorio** (Inicio del administrador) lanza cuatro lecturas de 1,6 a 2,8 s a la vez (liquidaciones vencidas ×2, la tienda, el
-      resumen de variantes): el mismo turnero cuando se mida.
+- [x] **El flujo de caja se calcula una sola vez** (2026-11-09, `20261109175000` + `flujoDelResumen`).
+- [ ] **El Observatorio** (Inicio del administrador, `lib/observatorio.ts`): `getAvisosObservatorio` lanza más de 14 lecturas a la vez, varias
+      tienda por tienda. La pieza cara es `fn_resumen_variantes_json` (medido en producción el 2026-11-09: 1,5 s de promedio, picos de 6,6 s,
+      ~31.000 bloques por llamada y 31.584 bloques temporales a disco). Las de liquidaciones que coinciden en el mismo minuto son de Dynamic.
 - [ ] **«Movimientos» de Resumen** (`fn_flujo_caja_real`, en su `Suspense`) no pasa por el turnero: medir cuánto pesa.

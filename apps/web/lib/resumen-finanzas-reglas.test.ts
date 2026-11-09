@@ -8,6 +8,7 @@ import {
   diasDelMes,
   equilibrio,
   estadoDelMesYaLeido,
+  flujoDelResumen,
   explicarFallaLectura,
   leerResumen,
   leerVerResumen,
@@ -379,5 +380,27 @@ describe("el estado de resultados del mes que el resumen ya armó (2026-11-09, e
     expect(estadoDelMesYaLeido(null, MES)).toBeNull();
     const caido = leerResumen({ ...fixture.todas, resultados_mes: { falla: "se cortó por tiempo", desde: "2026-09-01", hasta: "2026-09-24" } });
     expect(estadoDelMesYaLeido(caido, MES)).toBeNull();
+  });
+});
+
+describe("el flujo de caja que el resumen ya trae entero (20261109175000)", () => {
+  // La página lo pedía aparte porque el resumen le quitaba los cobros. Desde la migración vienen; sin ella, la página lo pide como antes.
+  const conFlujo = (flujo: unknown) => leerResumen({ ...fixture.todas, flujo });
+  const PROYECCION = { ...(fixture.todas.flujo as object), cobros: [] };
+
+  it("con los cobros: es la proyección entera, y la página la usa", () => {
+    const r = conFlujo(PROYECCION);
+    expect(r.flujoConCobros).toBe(true);
+    const f = flujoDelResumen(r);
+    expect(f?.estado).toBe("ok");
+    expect(f && f.estado === "ok" && r.flujo.estado === "ok" ? f.datos : null).toBe(r.flujo.estado === "ok" ? r.flujo.datos : undefined);
+  });
+
+  it("sin los cobros (una base sin la migración), sin permiso, caído o mirando una sola sede: null, la página la pide aparte", () => {
+    expect(flujoDelResumen(todas())).toBeNull();
+    expect(flujoDelResumen(conFlujo({ sin_permiso: "no ves el flujo" }))).toBeNull();
+    expect(flujoDelResumen(conFlujo({ falla: "se cortó por tiempo" }))).toBeNull();
+    expect(flujoDelResumen(tru())).toBeNull();
+    expect(flujoDelResumen(null)).toBeNull();
   });
 });

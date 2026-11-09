@@ -4,7 +4,7 @@ import { getValorInventario } from "@/lib/valor-inventario";
 import { Movimientos, MovimientosEsperando } from "@/components/finanzas/bolsillos/Movimientos";
 import { hoyLima } from "@/lib/fechas-lima";
 import { getConfianzaFinanzas, getResumenFinanzas } from "@/lib/resumen-finanzas";
-import { estadoDelMesYaLeido, leerVerResumen } from "@/lib/resumen-finanzas-reglas";
+import { estadoDelMesYaLeido, flujoDelResumen, leerVerResumen } from "@/lib/resumen-finanzas-reglas";
 import { crearCupos } from "@/lib/cupos";
 import { getBalancePorTienda } from "@/lib/balance";
 import { getEstadoResultados, getFaltaDelMes } from "@/lib/resultados";
@@ -34,8 +34,8 @@ import { getPlanillaParaElInicio } from "@/lib/cuentas-dinero";
 // usar swap. Las PESADAS pasan por un turnero de `CUPOS_PESADOS`; las livianas (la sede, los parámetros, la confianza…) salen de inmediato.
 // 3 y no 2: con los tiempos medidos en producción (el resumen ~6 s; el balance, el flujo, la comparación y la inversión, de 2 a 4 s cada una),
 // con 2 todo lo demás esperaría detrás del resumen y la página pasaría de ~6,6 s a ~10 s; con 3 tarda casi lo mismo y el pico baja a la mitad.
-// Se afina con `finanzas_resumen_ms` en los logs. Y el estado de resultados del mes no se pide dos veces: si el resumen ya lo armó igual
-// (todas las sedes, del 1 a hoy), se usa ese (`estadoDelMesYaLeido`).
+// Se afina con `finanzas_resumen_ms` en los logs. Y ni el estado de resultados del mes ni el flujo de caja se piden dos veces: si el resumen
+// ya los armó igual (todas las sedes, del 1 a hoy; la proyección con sus cobros), se usan esos (`estadoDelMesYaLeido`, `flujoDelResumen`).
 const CUPOS_PESADOS = 3;
 
 export default async function ResumenFinanzasPage({ searchParams }: { searchParams: Promise<{ ver?: string; sede?: string; mes?: string; desde?: string; hasta?: string; inversion?: string }> }) {
@@ -78,7 +78,8 @@ export default async function ResumenFinanzasPage({ searchParams }: { searchPara
       return comparar ? pesada(() => getEstadoResultados(comparar.desde, comparar.hasta)) : null;
     }),
     getSedesDelTelar(),
-    pesada(() => getFlujoProximo()),
+    // Del resumen si ya la trajo entera (con sus cobros, desde 20261109175000); si no, aparte, por el turnero.
+    resumenP.then(({ datos: r }) => flujoDelResumen(r) ?? pesada(() => getFlujoProximo())),
     pesada(() => getInversionMercaderia(hoy, sp.inversion === "ejemplo")),
     ventasAdelantadas ?? Promise.resolve(null),
     periodo.unMes && mes === mesDeHoy ? getFaltaDelMes(mes) : Promise.resolve([]),

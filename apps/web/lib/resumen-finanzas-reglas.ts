@@ -11,6 +11,7 @@
 // «Para decidir hoy» con su origen y su enlace, y el orden («primero lo que más cuesta si se deja pasar»).
 
 import { leerCuenta, type CuentaDinero, type SinCuenta } from "./cuentas-dinero-reglas";
+import type { FlujoProximo } from "./caja-proxima-reglas";
 import { leerInicioFinanzas, mesAntesDelCorte } from "./finanzas-arranque-reglas";
 import { diasHasta, leerFilaPorPagar, textoVence, type FilaPorPagar } from "./por-pagar-consolidado-reglas";
 import {
@@ -112,6 +113,8 @@ export type ResumenFinanzas = {
   cuentas: Parte<CuentaDinero[]>;
   porPagar: Parte<PorPagarResumen>;
   flujo: Parte<Proyeccion>;
+  /** Si `flujo` trae los cobros día a día (desde 20261109175000): entonces es la proyección entera, la misma que pide la página. */
+  flujoConCobros?: boolean;
   igv: Parte<PanelImpuestos>;
   campanas: Parte<CampanaFila[]>;
   egresos: Parte<EgresosResumen>;
@@ -171,6 +174,17 @@ export function estadoDelMesYaLeido(r: ResumenFinanzas | null, tramo: { desde: s
   return r.resultadosMes.datos;
 }
 
+/**
+ * La proyección de caja que la página iba a pedir aparte (`getFlujoProximo`), si el resumen ya la trae ENTERA (2026-11-09, el pico de memoria de
+ * Resumen): desde 20261109175000 `fn_resumen_finanzas` devuelve `fn_flujo_caja_proyeccion(6)` con sus cobros, la misma llamada que hace la
+ * página. Si viene sin cobros (una base sin esa migración), sin permiso o caída, null: la página la pide como antes. Así el orden en que se
+ * publican la web y la migración no importa.
+ */
+export function flujoDelResumen(r: ResumenFinanzas | null): FlujoProximo | null {
+  if (!r || !r.flujoConCobros || r.flujo.estado !== "ok") return null;
+  return { estado: "ok", datos: r.flujo.datos };
+}
+
 function leerResumenBruto(data: unknown): ResumenFinanzas {
   const d = obj(data);
   const v = obj(d.ver);
@@ -200,6 +214,7 @@ function leerResumenBruto(data: unknown): ResumenFinanzas {
     cuentas: parte(d.cuentas, (p) => lista(p.filas).map(leerCuenta)),
     porPagar: parte(d.por_pagar, (p) => ({ dias: p.dias == null ? 7 : num(p.dias), total: num(p.total), n: num(p.n), filas: lista(p.filas).map(leerFilaPorPagar) })),
     flujo: parte(d.flujo, (p) => leerProyeccion(p)),
+    flujoConCobros: Array.isArray(obj(d.flujo).cobros),
     igv: parte(d.igv, (p) => leerPanelImpuestos(p)),
     campanas: parte(d.campanas, (p) => lista(p.filas).map(leerCampana)),
     egresos: parte(d.egresos, (p) => ({
