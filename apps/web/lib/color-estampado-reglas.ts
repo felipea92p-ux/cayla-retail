@@ -4,7 +4,7 @@
 //   («Floral» + «Azul marino» → «Floral azul marino»), de dónde sale su familia y su tono, y qué falta para crearlo.
 // ASUME: `colores` es la lista que ya tiene la pantalla. El candado del nombre y del código sigue en la base.
 // NO HACE: el patrón no se guarda en el color: solo ayuda a nombrarlo. El tono y la familia del estampado son los de su color
-//   dominante, y por eso Análisis y Frescura lo cuentan en esa familia sin saber que es un estampado.
+//   dominante, y por eso los filtros de color, la demanda y el plan del piso lo cuentan en esa familia sin saber que es un estampado.
 
 import { nombreDeColor } from "./color-alta-reglas";
 import { esHexValido } from "./color-parecido";
@@ -24,7 +24,7 @@ export const GRUPO_ESTAMPADOS = "estampados";
 
 /**
  * En qué grupo de la carta va un color. Un estampado va con los estampados: un punto de su tono dominante no dice cuál es,
- * así que no puede mezclarse con los lisos. Solo es para dibujar la carta: lo que cuenta ventas sigue usando la familia del color.
+ * así que no puede mezclarse con los lisos. Solo es para dibujar la carta: lo que agrupa por familia sigue usando la del color dominante.
  */
 export function familiaEnCarta(color: { tipo?: string | null; familiaColor?: string | null }): string | null {
   return esEstampado(color) ? GRUPO_ESTAMPADOS : (color.familiaColor ?? null);
@@ -76,7 +76,7 @@ export function ejemploDeEstampado(patron: string | null | undefined, colorDomin
 /** Lo primero que le falta a un estampado, antes de las reglas de cualquier color; `null` si ya tiene lo suyo. */
 export function faltaParaEstampado({ nombre, colorDominante }: { nombre: string; colorDominante: unknown }): string | null {
   if (!nombreDeColor(nombre)) return "Elige el patrón y el color, o escribe el nombre.";
-  if (!colorDominante) return "Elige el color que más se ve: con él se cuenta en Análisis.";
+  if (!colorDominante) return "Elige el color que más se ve.";
   return null;
 }
 

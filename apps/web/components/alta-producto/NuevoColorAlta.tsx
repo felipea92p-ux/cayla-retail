@@ -127,7 +127,7 @@ export function NuevoColorAlta({
   const dominante = opcionesDominante.find((c) => c.codigo === dominanteCodigo) ?? null;
   const patron = patrones.find((p) => p.id === patronId)?.nombre ?? null;
   const nombre = esForma && !nombreEscrito ? nombreDeEstampado(patron, dominante?.nombre) : nombrePropio;
-  // El tono y la familia de un estampado son los de su color dominante: así cae en esa familia en la carta y en Análisis.
+  // El tono y la familia de un estampado son los de su color dominante: así cae en esa familia en los filtros, la demanda y el plan del piso.
   const hex = esForma ? (dominante?.hex ?? null) : hexElegido;
   const familia = esForma ? (dominante?.familiaColor ?? "") : (familiaElegida ?? familiaSugerida(hex, colores));
   const codigo = codigoEscrito ?? sugerirCodigoColor(nombre, new Set(ocupados.keys()));
@@ -310,7 +310,7 @@ export function NuevoColorAlta({
       </div>
 
       {esForma && dominante && (
-        <p className="text-sm text-taupe">En Análisis cuenta como {textoDeFamilia(dominante.familiaColor)}. Súbele su foto: es como se va a reconocer.</p>
+        <p className="text-sm text-taupe">Cuenta como {textoDeFamilia(dominante.familiaColor)} en los filtros y en el plan del piso. Súbele su foto: es como se va a reconocer.</p>
       )}
 
       <ExisteTambien que="color" nombre={nombre} solo="nombre" estado={existe} si={elegirExistente} deshabilitado={guardando} />

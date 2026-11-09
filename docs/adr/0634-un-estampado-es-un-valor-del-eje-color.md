@@ -1,9 +1,9 @@
 # ADR-0634 — Un estampado es un valor del eje color
 
 **Fecha:** 2026-11-09
-**Estado:** En construcción (rama `claude/product-color-variants-restock-108f1a`).
+**Estado:** Construido y verificado en local (rama `claude/product-color-variants-restock-108f1a`). Sin migración.
 **Reabre:** ADR-0106, que dejó el estampado solo en Patrones.
-**Afecta:** `retail.colores.tipo` (ya existía, sin uso), `POST /api/productos/colores`, `NuevoColorAlta.tsx`, `lib/color-estampado-reglas.ts`.
+**Afecta:** `retail.colores.tipo` (ya existía, sin uso), `POST /api/productos/colores`, `NuevoColorAlta.tsx`, `ElegirColores.tsx`, `lib/color-estampado-reglas.ts`, `components/ui/MuestraEstampado.tsx`, Vender, Recibir ▸ Contar, Existencias y Ajustar stock.
 
 ## El problema
 
@@ -17,7 +17,7 @@ y se mezclan en una sola fila de stock, o dos cosas diferentes se llaman «Azul�
 `colores.tipo = 'estampado'`. Se arma eligiendo el patrón y el color que más se ve:
 
 - El **nombre** se propone con los dos y se puede escribir a mano.
-- El **tono y la familia** son los del color dominante, y por eso Análisis, Frescura y el plan del piso lo cuentan en esa familia sin saber que es un estampado.
+- El **tono y la familia** son los del color dominante, y por eso lo que agrupa por familia (el filtro de color de Productos, la demanda `fn_demanda_sede`, el plan del piso `fn_piso_plan_lectura` y los filtros de la tienda) lo cuenta ahí sin saber que es un estampado. Análisis y Frescura no agrupan por familia: ven cada estampado como un color más.
 - El **patrón no se guarda en el color**: solo ayuda a nombrarlo. Si los patrones no se pueden leer, el nombre se escribe a mano.
 - «Liso» no se ofrece como patrón y «Multicolor» no se ofrece como color dominante: no dice qué color manda.
 - Un estampado no compara su tono con los demás, porque siempre se parecería a su color dominante.
@@ -35,3 +35,10 @@ Variantes, stock, movimientos y ventas no cambian: para ellos sigue siendo un co
 
 ADR-0106 sacó `tipo` de las pantallas porque nadie lo usaba y había dos lugares para decir «floral». Sigue vigente para el **modelo**: el patrón del producto vive en Patrones.
 Lo que cambia es que un modelo con **varios** estampados necesita distinguirlos dentro de sí mismo, y eso solo puede hacerse en el eje que separa el stock.
+
+## Cómo se ve cada estampado (Felipe, 2026-11-09, mirando las capturas)
+
+Un puntito redondo con la foto en la tarjeta (22 px en Vender) y un cuadrito de 40 px junto al nombre en las listas. La foto solo se dibuja si distingue a ese estampado de los otros colores
+de la prenda (`fotoQueDistingue`): un color sin foto propia hereda la General, y dos con la misma foto no se reconocen por ella; entonces queda el punto y su nombre.
+
+Existencias usaba la foto principal del modelo para todos los colores. Solo los estampados pasan a leer la suya (`fotoDeLaFila`): los lisos no cambian.
