@@ -37,12 +37,17 @@ DECIDÍ: una **foto** del diario por mes, invisible para quien usa el sistema, s
    todo y el permiso se aplica al leer. La planilla de Dynamic no se vigila con disparadores (es otro sistema): la foto guarda una huella de lo
    que leyó de Dynamic para ese mes y, si al leer ya no coincide, ese mes se calcula en vivo.
 4. **Cuándo se rehace.** El trabajo programado rehace cada 5 minutos los meses vencidos (desde la fecha anotada hasta el mes pasado) y cada
-   madrugada rehace todos, por si alguna regla del diario depende del día y no de una escritura.
+   madrugada rehace todos, por si alguna regla del diario depende del día y no de una escritura. Son dos rutas de Vercel Cron
+   (`/api/finanzas/foto-diario`, `*/5`; `/api/finanzas/foto-diario/todas`, 4:00 de Lima, después del vigía) que llaman a
+   `retail.rehacer_fotos_diario(todas)` (`20261109184000`). La vuelta anota cuál es la última marca al empezar y al terminar borra solo
+   hasta ahí: lo que vence mientras rehace queda para la vuelta siguiente. Un candado consultivo evita dos vueltas a la vez.
 5. **Cómo se lee.** `fn_diario` toma la foto de los meses que terminaron si está al día; desde el primer mes sin foto válida, calcula en vivo
    como hoy (el mismo corte que ADR-0583 usa para lo cerrado). Lo cerrado sigue ganando. **Un interruptor** en `parametros_finanzas`, apagado
    de fábrica, decide si se usa: apagarlo vuelve todo a como está hoy, sin migración.
-6. **Quién la vigila.** Una invariante más del vigía de la madrugada (ADR-0632): «una foto no coincide con el diario en vivo». Si salta, el
-   Observatorio lo dice y la foto se rehace en la próxima vuelta.
+6. **Quién la vigila.** Una invariante más del vigía de la madrugada (ADR-0632), INV-29 (`retail.fn_fotos_del_diario_distintas()`): compara las
+   LÍNEAS que la foto sirve (no la huella anotada al tomarla) con el diario en vivo, así nota tanto una tabla que se escapó de la vigilancia como
+   una línea de la foto que alguien tocó. Si salta, el Observatorio lo dice y la reconstrucción de las 4:00 la corrige; la causa (la tabla sin
+   vigilar) se arregla con una migración.
 7. **El candado.** Una prueba del CI falla si una tabla nueva alimenta `fn_asientos` sin estar clasificada (vigilada, de configuración, de
    permisos o de Dynamic, cada una con su motivo).
 

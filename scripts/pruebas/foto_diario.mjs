@@ -30,7 +30,7 @@ const a = process.argv.indexOf("--contenedor");
 const CONTENEDOR = a > 0 ? process.argv[a + 1] : "supabase_db_cayla-retail";
 const FELIPE = "22222222-2222-4222-8222-000000000001";
 const RAIZ = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
-const MIGRACIONES = ["20261109180000_foto_del_diario_tomar.sql", "20261109182000_foto_del_diario_leer.sql", "20261109183000_foto_del_diario_vence.sql"].map((f) => readFileSync(join(RAIZ, "supabase", "migrations", f), "utf8")).join("\n");
+const MIGRACIONES = ["20261109180000_foto_del_diario_tomar.sql", "20261109182000_foto_del_diario_leer.sql", "20261109183000_foto_del_diario_vence.sql", "20261109184000_foto_del_diario_rehacer.sql"].map((f) => readFileSync(join(RAIZ, "supabase", "migrations", f), "utf8")).join("\n");
 
 function correr(sql) {
   try {
@@ -247,6 +247,61 @@ select 'otro_parametro_vence_todo|' || ${DESDE};
   prender_el_interruptor_no_vence: "nada",
   otro_parametro_vence_todo: "1900-01-01",
 });
+
+// El trabajo programado: rehace lo vencido y lo que falta, borra solo las marcas que vio, y el vigía nota una foto que no es el diario.
+const REHACER = (todas) => `(select retail.rehacer_fotos_diario(${todas}))`;
+const DISTINTAS = `(select count(*) from retail.fn_fotos_del_diario_distintas())`;
+verificar("se rehace sola y el vigía la revisa", correr(`${ESCENA}
+update retail.parametros_finanzas set inicio_finanzas = :'mes2'::date;
+${FOTOS}
+${TESTIGO("prueba_foto")}
+${comoServicio}
+select 'con_testigo_el_vigia_la_nota|' || ${DISTINTAS};
+create temp table r0 as select ${REHACER("false")} r;
+select 'al_dia_no_rehace_nada|' || (select r->>'rehechas' from r0);
+${comoLider}
+update retail.ventas set es_prueba = true where id = :'v1';
+insert into retail.diario_vencido_marcas (fecha) values (:'mes2'::date + 2);
+create temp table m0 as select max(id) m from retail.diario_vencido_marcas;
+${comoServicio}
+create temp table r1 as select ${REHACER("false")} r;
+select 'rehace_desde_la_marca_mas_vieja|' || (select r->>'rehechas' from r1);
+select 'borra_las_marcas_que_vio|' || ${MARCA};
+select 'el_testigo_se_fue|' || (select count(*) from retail.diario_foto_lineas where asiento = 'testigo:prueba_foto');
+select 'quedo_igual_al_vivo|' || ${DISTINTAS};
+-- Una escritura que llega MIENTRAS se rehace (aquí, un disparador temporal que anota al guardar cada foto) deja su marca para la vuelta siguiente.
+create function pg_temp.llega_otra() returns trigger language plpgsql as $f$ begin insert into retail.diario_vencido_marcas (fecha) values (date '2999-01-01'); return null; end $f$;
+create trigger llega_otra after insert or update on retail.diario_fotos for each row execute function pg_temp.llega_otra();
+create temp table r4 as select ${REHACER("true")} r;
+drop trigger llega_otra on retail.diario_fotos;
+select 'la_marca_que_llega_mientras_rehace_queda|' || (select count(*) from retail.diario_vencido_marcas where fecha = date '2999-01-01');
+delete from retail.diario_vencido_marcas;
+delete from retail.diario_fotos where mes = :'mes2'::date;
+create temp table r2 as select ${REHACER("false")} r;
+select 'toma_la_que_falta|' || (select r->>'rehechas' from r2) || ',' || (select count(*) from retail.diario_fotos where mes = :'mes2'::date);
+create temp table r3 as select ${REHACER("true")} r;
+select 'de_madrugada_todas|' || (select r->>'rehechas' from r3);
+update retail.diario_foto_lineas set debe = debe + 1 where ctid = (select ctid from retail.diario_foto_lineas where mes = :'mes'::date and debe > 0 limit 1);
+select 'la_corrompida_la_nota|' || ((select string_agg(mes::text, ',') from retail.fn_fotos_del_diario_distintas()) = :'mes');
+${comoLider}
+`), {
+  con_testigo_el_vigia_la_nota: "1",
+  al_dia_no_rehace_nada: "0",
+  rehace_desde_la_marca_mas_vieja: "2",
+  borra_las_marcas_que_vio: "0",
+  el_testigo_se_fue: "0",
+  quedo_igual_al_vivo: "0",
+  la_marca_que_llega_mientras_rehace_queda: "2",
+  toma_la_que_falta: "1,1",
+  de_madrugada_todas: "2",
+  la_corrompida_la_nota: "true",
+});
+
+verificar("el trabajo programado no es de la web", correr(`${ESCENA}
+${debeFallar("rehacer_el_lider_no", "perform retail.rehacer_fotos_diario(false)", "42501")}
+${debeFallar("revisar_el_lider_no", "perform * from retail.fn_fotos_del_diario_distintas()", "42501")}
+select 'nadie_desde_la_web|' || not (has_function_privilege('authenticated', 'retail.rehacer_fotos_diario(boolean)', 'execute') or has_function_privilege('anon', 'retail.fn_fotos_del_diario_distintas()', 'execute'));
+`), { rehacer_el_lider_no: "ok", revisar_el_lider_no: "ok", nadie_desde_la_web: "true" });
 
 // El candado: toda tabla que el diario lee (recorriendo fn_asientos y lo que llama) tiene su disparador o está exenta con su motivo.
 const FUENTES = `with recursive f(oid, nivel) as (

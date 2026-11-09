@@ -690,6 +690,22 @@ having c.pagado <> coalesce(sum(p.monto), 0)`,
     corrompe: `update retail.compra_pagos set monto = monto + 1
  where ctid = (select p.ctid from retail.compra_pagos p join retail.compras c on c.id = p.compra_id where c.estado = 'vigente' limit 1);`,
   },
+  {
+    id: "INV-29",
+    nombre: "foto_del_diario_igual_al_vivo",
+    gravedad: 2,
+    nivel: "cruzada",
+    clave: ["mes"],
+    dice: "La foto de un mes que el diario da por vigente es el diario de ese mes armado en vivo (ADR-0633). Si no, alguna tabla que alimenta el diario cambió sin vencer la foto (hay que sumarla a la vigilancia) o alguien tocó una línea de la foto.",
+    sql: `select mes, guardada, viva from retail.fn_fotos_del_diario_distintas()`,
+    // Toma la foto del mes pasado como el trabajo programado, la da por vigente y le agrega una línea que el diario no tiene.
+    corrompe: `select set_config('request.jwt.claim.role', 'service_role', true);
+select count(*) as foto_tomada from (select retail.tomar_foto_diario((date_trunc('month', retail.fn_hoy_lima()) - interval '1 month')::date)) x;
+select set_config('request.jwt.claim.role', '', true);
+delete from retail.diario_vencido_marcas;
+insert into retail.diario_foto_lineas (mes, fecha, asiento, regla, cuenta, debe, haber, glosa)
+  values ((date_trunc('month', retail.fn_hoy_lima()) - interval '1 month')::date, (date_trunc('month', retail.fn_hoy_lima()) - interval '1 month')::date, 'corrompida', 'chaos', '99', 1, 0, 'línea que el diario no tiene');`,
+  },
 ];
 
 // ── Instrumento (Docker + psql) ─────────────────────────────────────────────────────────────────────────────────────────────
