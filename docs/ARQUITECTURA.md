@@ -2157,6 +2157,7 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
   - `/finanzas/cierre` → `lib/cierre.ts` → cerrar/reabrir período, `fn_diario` (lo congelado si el mes está cerrado).
     Tablas `periodos`, `periodo_cierres`, `diario_cerrado` (con hash); disparadores de bloqueo por fecha en gastos, compras
     y sus pagos y notas, reembolsos, activos, movimientos de dinero, ventas de prueba y costo de lo vendido.
+  - Deshacer (tarea 21 de «Las 36», 2026-11-09): `anular_pago_compra` desde `components/AnularPagoModal.tsx` (factura de Compras, `ComprobantePagos`), `quitar_comprobante_de_gasto` desde la hoja del gasto (`GastosPanel`), `fn_anulados_de_compra` → lo anulado de la factura (`getAnuladosCompra`). Lo anulado vive en `documentos_anulados`. La factura tardía (tarea 20): `fn_fecha_contable` → `components/finanzas/gastos/useFechaContable.ts`; `fn_gastos_papeles_tardios` → `lib/gastos.ts`. El IGV cambiado desde el cierre (tarea 19): `fn_igv_cambios_desde_cierre` → `getIgvCambiado` (`lib/impuestos.ts`) → `AvisoIgvCambiado` en Impuestos y Cierre.
   - `/finanzas/resumen` → el tablero que junta lo anterior (F10). Desde El telar (2026-10-23, ADR-0493) lee, además de
     `fn_resumen_finanzas` (los avisos de hoy) y `fn_finanzas_confianza` (del mes elegido), `fn_estado_resultados` del mes de la barra
     y del tramo con que se compara (`lib/resultados.ts`), y `fn_rendimiento_serie` por tienda si la cuenta ve Rendimiento
