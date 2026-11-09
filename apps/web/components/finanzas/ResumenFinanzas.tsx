@@ -19,11 +19,13 @@ import { SedesJuntas } from "@/components/finanzas/SedesJuntas";
 import { VendidoPorSede } from "@/components/finanzas/VendidoPorSede";
 import { sedesJuntas } from "@/lib/sedes-juntas-reglas";
 import type { UnidadBalance } from "@/lib/balance-reglas";
-import { EquilibrioMesPieza } from "@/components/finanzas/EquilibrioMes";
 import { ResumenDecidir } from "@/components/finanzas/ResumenDecidir";
 import { DockTelar } from "@/components/finanzas/telar/DockTelar";
 import { TresRespuestas } from "@/components/finanzas/TresRespuestas";
 import { SaldoLibre } from "@/components/finanzas/bolsillos/SaldoLibre";
+import { TarjetaMes } from "@/components/finanzas/bolsillos/TarjetaMes";
+import { teDejaDelMes } from "@/lib/te-deja-mes-reglas";
+import { conElRango, nombreDelAnterior } from "@/lib/estados-periodo";
 import { saldoEnBolsillos, type ClaveBolsillo } from "@/lib/bolsillos-reglas";
 import { alinearAvisoDeCaja, cajaProxima, loQueHayEnCuentas, type FlujoProximo } from "@/lib/caja-proxima-reglas";
 import { equilibrioMes, type FaltaDelMes } from "@/lib/equilibrio-mes-reglas";
@@ -35,7 +37,7 @@ import { soles } from "@/lib/flujo-caja-reglas";
 import { recorridoPlata } from "@/lib/recorrido-plata-reglas";
 import { desgloseDeTienes, tresRespuestas } from "@/lib/tres-respuestas-reglas";
 import { cambiosDelMes } from "@/lib/resumen-cambios-reglas";
-import { avisosParaDecidir, noRevisado, ordenarAvisos, type Acceso, type ResumenFinanzas } from "@/lib/resumen-finanzas-reglas";
+import { avisosParaDecidir, filaDeVer, noRevisado, ordenarAvisos, type Acceso, type ResumenFinanzas } from "@/lib/resumen-finanzas-reglas";
 import { campanasQueSeVen } from "@/lib/ajustes-resumen-reglas";
 import { avisoDeInversion, pagosDeLaCompra, type CampanaInversion } from "@/lib/inversion-mercaderia-reglas";
 import {
@@ -170,6 +172,18 @@ export function ResumenFinanzasPanel({ resumen, falla, confianza, mes, periodo, 
     claure: destino("cuentas_dinero", "/finanzas/dinero/claure"),
     planilla: destino("cuentas_dinero", "/finanzas/dinero"),
   };
+  // «Noviembre va así» (camino A): lo que te deja el mes —estimado con rango mientras corre (Felipe 2026-11-09)— y, abajo, si ya se pagó el mes.
+  const fila = filaDeVer(filas, r.ver) ?? null;
+  const filaAntes = estadoAntes ? (filaDeVer(estadoAntes, r.ver) ?? null) : null;
+  const te = teDejaDelMes({ f: fila, ver: r.ver, mes, hoy, unMes: periodo.unMes, faltaDelMes });
+  const eq = periodo.unMes ? equilibrioMes({ r, filas, ventasPorDia, hoy, mes, enCurso, faltaDelMes }) : null;
+  const Mes = mesNombre(mes).charAt(0).toUpperCase() + mesNombre(mes).slice(1);
+  const tituloMes = !periodo.unMes ? periodo.titulo : enCurso ? `${Mes} va así` : `Así cerró ${mesNombre(mes)}`;
+  const diaDeHoy = Number(hoy.slice(8, 10));
+  const diasMes = new Date(Date.UTC(Number(mes.slice(0, 4)), Number(mes.slice(5, 7)), 0)).getUTCDate();
+  const noVende = r.ver.todas || r.ver.tipo === "tienda" ? null : resp;
+  const cambio = fila && filaAntes && filaAntes.ventas > 0 && !noVende ? { pct: fila.ventas / filaAntes.ventas - 1, contra: nombreDelAnterior(periodo) } : null;
+  const hrefGanancias = ve("reportes_financieros") ? conElRango(ir("/finanzas/reportes"), sp.entries()) : null;
   // «¿Cuánto tienes?» de CAYLA entera dice de qué está hecho; una sede no lleva los bancos ni lo que las máquinas deben, así que ahí no se reparte.
   const desglose = caja.tipo === "cayla" ? desgloseDeTienes(r.cuentas.estado === "ok" ? r.cuentas.datos : null, loQueHayEnCuentas(caja)) : null;
   // Lo de CLAURE es de la empresa entera, como los bancos: mirando una sola sede no se reparte.
@@ -201,7 +215,21 @@ export function ResumenFinanzasPanel({ resumen, falla, confianza, mes, periodo, 
       {/* Camino A (Felipe 2026-11-09): «Libre para usar» con sus bolsillos reemplaza a «¿Cuánto tienes?»; las otras dos respuestas siguen a su lado. */}
       <section className="grid items-start gap-4 xl:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)]">
         <SaldoLibre saldo={saldo} destinos={destinos} otroMes={periodo.enCurso ? null : mesNombre(mes)} />
-        <TresRespuestas respuestas={tresRespuestas({ r, caja, deja: resp, hrefDinero: ir("/finanzas/dinero"), hrefPorPagar: ir("/finanzas/dinero/por-pagar"), desglose, claure: saldoClaure, claureFalla, planillaSinSalida, plata }).filter((x) => x.clave !== "tienes")} />
+        <div className="flex min-w-0 flex-col gap-4">
+          <TarjetaMes
+            titulo={tituloMes}
+            te={te}
+            eq={eq}
+            vendido={fila?.ventas ?? 0}
+            gastos={fila?.gastos ?? 0}
+            cambio={cambio}
+            noVende={noVende}
+            provisional={provisional}
+            hoyEnElMes={enCurso ? { van: diaDeHoy, total: diasMes } : null}
+            hrefGanancias={hrefGanancias}
+          />
+          <TresRespuestas respuestas={tresRespuestas({ r, caja, deja: resp, hrefDinero: ir("/finanzas/dinero"), hrefPorPagar: ir("/finanzas/dinero/por-pagar"), desglose, claure: saldoClaure, claureFalla, planillaSinSalida, plata }).filter((x) => x.clave === "debes")} />
+        </div>
       </section>
       {/* «Vendido por sede» y la confianza del número, en UNA tarjeta (ADR-0417; Felipe 2026-10-29, opción 3). Si no se pudo medir, se dice (nunca un 0 % falso). */}
       <VendidoPorSede porSede={porSedeDe(vendidoPorSede(filas))} sedes={sedes} hoy={hoy} mes={mesNombre(mes)} confianza={confianza.datos} falla={confianza.falla} hrefCuadre={`${ir("/finanzas/reportes")}${ir("/finanzas/reportes").includes("?") ? "&" : "?"}cuadre=1#de-ventas-a-finanzas`} />
@@ -254,10 +282,6 @@ export function ResumenFinanzasPanel({ resumen, falla, confianza, mes, periodo, 
         </div>
 
         <div className="flex flex-col gap-4">
-          <div {...columna(5)}>
-            {periodo.unMes && <EquilibrioMesPieza eq={equilibrioMes({ r, filas, ventasPorDia, hoy, mes, enCurso, faltaDelMes })} provisional={provisional} />}
-          </div>
-
           <div {...columna(6)}>
             <CambiosDelMesPieza cambios={cambiosDelMes({ r, ...comparacion, enCurso })} />
           </div>

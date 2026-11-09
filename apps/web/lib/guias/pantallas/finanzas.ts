@@ -163,10 +163,23 @@ export const GUIA_FIN_RESUMEN: Guia = {
       texto: "Aquí se abre la cuenta: lo que hay, cada bolsillo que se resta y lo que queda. No cuenta lo que vas a vender. En la demo no la abrimos.",
     },
     {
+      id: "mes",
+      ancla: "fin-resumen.mes",
+      titulo: "Cómo va el mes",
+      texto: "Cuánto te deja el mes. Mientras corre es un estimado, con lo que vendes al día: puede quedar entre dos cifras, más cerca a medida que pasan los días. Abajo, lo vendido contra el mes pasado y los gastos. Si el mes ya cerró, dice lo que dejó o lo que faltó.",
+    },
+    {
+      id: "equilibrio",
+      ancla: "fin-resumen.equilibrio",
+      opcional: true,
+      titulo: "¿Ya pagaste el mes?",
+      texto: "La barra es lo vendido contra lo que hay que vender para pagar TODO el mes: ropa, sueldos, alquileres, servicios. Cuando se llena, cada sol vendido es ganancia; la frase dice desde qué día. La rayita marca hoy.",
+    },
+    {
       id: "respuestas",
       ancla: "fin-resumen.respuestas",
-      titulo: "Lo que debes y lo que te deja",
-      texto: "Al lado, cuánto debes pagar pronto, con cada deuda, su monto y cuándo vence, y cuánto te deja el mes. Mirando el Taller o la Empresa, la última dice cuánto cuestan: no venden.",
+      titulo: "Lo que debes pagar pronto",
+      texto: "Cuánto debes pagar pronto, con cada deuda, su monto y cuándo vence. Lo vencido sale primero.",
     },
     {
       id: "sedes",
@@ -230,13 +243,6 @@ export const GUIA_FIN_RESUMEN: Guia = {
       opcional: true,
       titulo: "A dónde va la plata",
       texto: "El anillo reparte lo que salió: lo que costaron las prendas, los gastos de las tiendas, el Taller, la Empresa y lo que faltó en caja. Pasa el mouse por un tramo o por un renglón y el centro dice cuánto es y qué parte del total.",
-    },
-    {
-      id: "equilibrio",
-      ancla: "fin-resumen.equilibrio",
-      opcional: true,
-      titulo: "¿Ya pagaste el mes?",
-      texto: "La barra es lo vendido en el mes. La raya marca cuánto hay que vender para pagar TODO —ropa, sueldos, alquileres, servicios—. Pasada la raya, cada sol vendido es ganancia; la frase dice desde qué día. Si faltan gastos por registrar, dice «Provisional»: hace falta vender más.",
     },
     {
       id: "cambios",

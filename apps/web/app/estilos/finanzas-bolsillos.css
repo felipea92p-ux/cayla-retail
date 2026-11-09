@@ -176,3 +176,99 @@
     transition: none;
   }
 }
+
+/* ---------- «Noviembre va así»: lo que te deja el mes ---------- */
+.mes-a {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+.mes-a-cab {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+}
+.mes-a-titulo {
+  font-family: var(--font-serif);
+  font-size: 21px;
+  line-height: 1.2;
+  color: var(--color-tinta);
+}
+.mes-a-cifra {
+  margin-top: 6px;
+  font-family: var(--font-serif);
+  font-size: clamp(36px, 3.6vw, 52px);
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-tinta);
+}
+.mes-a-cifra.es-falta {
+  color: var(--color-rojo-profundo);
+}
+.mes-a-bajada {
+  margin-top: 8px;
+  max-width: 62ch;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--color-taupe-profundo);
+}
+.mes-a-bajada b {
+  font-weight: 600;
+  color: var(--color-tinta);
+}
+.mes-a-tres {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  margin: 16px 0 0;
+  padding-top: 14px;
+  border-top: 1px solid var(--color-sand);
+}
+.mes-a-tres > div {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+}
+.mes-a-tres dt {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--color-taupe-profundo);
+}
+.mes-a-tres dd {
+  margin: 0;
+}
+.mes-a-monto {
+  font-size: 20px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-tinta);
+}
+.mes-a-nota {
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--color-taupe-profundo);
+}
+.mes-a-eq {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px solid var(--color-sand);
+}
+.mes-a-eq-titular {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-tinta);
+}
+.mes-a-pie {
+  margin-top: 14px;
+}
