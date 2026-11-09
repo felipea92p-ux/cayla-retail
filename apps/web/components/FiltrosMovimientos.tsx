@@ -1,11 +1,11 @@
 "use client";
 
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useRef, useState, type ReactNode } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Camera, X } from "lucide-react";
 import { CampoFecha } from "@/components/ui/CampoFecha";
 import { Modal } from "@/components/ui/Modal";
-import { useBusquedaEnUrl } from "@/components/ui/BusquedaEnUrl";
+import { useBuscarAlEscribir } from "@/components/ui/BusquedaEnUrl";
 import { Buscador } from "@/components/ui/Buscador";
 import { EscanerBusqueda } from "@/components/EscanerBusqueda";
 import {
@@ -133,9 +133,11 @@ export function FiltrosMovimientos({
   const router = useRouter();
   const pathname = usePathname();
   const params = useSearchParams();
-  const [busqueda, setBusqueda] = useState(params.get("q") ?? "");
-  const primera = useRef(true);
-  const { buscando, buscar } = useBusquedaEnUrl();
+  // Si lo escrito es el nombre de un proceso, se vuelve su filtro y la caja queda en blanco.
+  const { texto: busqueda, setTexto: setBusqueda, buscando, fijar } = useBuscarAlEscribir(params.get("q") ?? "", (q) => {
+    const filtro = filtroDePalabra(q);
+    return filtro ? { href: hrefCon({ q: "", cat: filtro.cat ?? "", proc: filtro.proc ?? "" }), vaciar: true } : hrefCon({ q });
+  });
   const entrada = useRef<HTMLInputElement>(null);
   // Celular (ADR-0241): los filtros viven en una hoja y la cámara lee una etiqueta.
   const [hoja, setHoja] = useState(false);
@@ -151,8 +153,7 @@ export function FiltrosMovimientos({
   const enPersonalizado = periodo === "personalizado" || periodo === "todo";
   const mostrarFechas = enPersonalizado || personalizadoAbierto;
 
-  /** `tipeado`: viene del buscador (se escribió): navega sin el loader, con «Buscando…». */
-  function aplicar(cambios: Record<string, string>, { tipeado = false } = {}) {
+  function hrefCon(cambios: Record<string, string>) {
     const p = new URLSearchParams(params.toString());
     for (const [k, v] of Object.entries(cambios)) {
       if (v) p.set(k, v);
@@ -161,30 +162,12 @@ export function FiltrosMovimientos({
     p.delete("cursor");
     p.delete("mov");
     const qs = p.toString();
-    const href = qs ? `${pathname}?${qs}` : pathname;
-    if (tipeado) buscar(href);
-    else router.push(href);
+    return qs ? `${pathname}?${qs}` : pathname;
   }
 
-  // La búsqueda se manda sola al dejar de tipear (350 ms): sin botón, pero
-  // sin una consulta por tecla. Si lo escrito es el nombre de un proceso, se vuelve su filtro.
-  useEffect(() => {
-    if (primera.current) {
-      primera.current = false;
-      return;
-    }
-    const t = setTimeout(() => {
-      const filtro = filtroDePalabra(busqueda);
-      if (filtro) {
-        setBusqueda("");
-        aplicar({ q: "", cat: filtro.cat ?? "", proc: filtro.proc ?? "" }, { tipeado: true });
-        return;
-      }
-      if ((params.get("q") ?? "") !== busqueda.trim()) aplicar({ q: busqueda.trim() }, { tipeado: true });
-    }, 350);
-    return () => clearTimeout(t);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [busqueda]);
+  function aplicar(cambios: Record<string, string>) {
+    router.push(hrefCon(cambios));
+  }
 
   const subDisponibles = FILTROS_SUBUBICACION.filter((f) => sububicaciones.some((s) => s.tipo === f.tipo));
   const hayFiltros = !!(params.get("q") || cat || sub || proc || emp || periodo !== periodoPorDefecto);
@@ -215,7 +198,7 @@ export function FiltrosMovimientos({
   const hayProcesos = procesosDelTipo.length >= 2 || (!!proc && procesosDelTipo.length >= 1);
 
   function limpiar() {
-    setBusqueda("");
+    fijar("");
     setPersonalizadoAbierto(false);
     router.push(pathname);
   }
@@ -223,7 +206,7 @@ export function FiltrosMovimientos({
   function alLeerCodigo(codigo: string) {
     setCamara(false);
     const texto = codigo.trim();
-    setBusqueda(texto);
+    fijar(texto);
     aplicar({ q: texto });
   }
 
