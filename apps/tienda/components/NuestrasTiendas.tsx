@@ -5,6 +5,7 @@ import { EstadoDeTienda } from "./EstadoDeTienda";
 import { Icono } from "./Icono";
 import { columnasDeTiendas, enlaceMapa, enlaceWhatsapp, whatsappLegible, type Sede } from "@/lib/tiendas";
 import "@/app/estilos/tiendas.css";
+import { CREDITOS_DE_ESCUDOS } from "@/lib/escudos-creditos";
 
 /**
  * «Nuestras tiendas» (la maqueta, `seccionTiendas`): dónde recoger lo que se separa, con la dirección, el horario y el WhatsApp de cada
@@ -146,6 +147,7 @@ export function NuestrasTiendas({
             bajada="Lo que separas en la web lo recoges en la tienda que elijas. ¿Tienes una duda? Escríbele por WhatsApp."
           />
           {lista}
+          <CreditosDeEscudos />
         </section>
       </div>
     );
@@ -162,5 +164,29 @@ export function NuestrasTiendas({
       </div>
       {lista}
     </section>
+  );
+}
+
+/** Los escudos de las ciudades (cabecera y tarjetas) son de Wikimedia Commons con licencia Creative Commons, que pide nombrar al autor y la
+ *  licencia. Desde el 2026-11-09 el crédito vive aquí, en «Nuestras tiendas» (enlazada desde el pie), y no en el pie de cada página (Felipe). */
+function CreditosDeEscudos() {
+  return (
+    <p className="ay-tiendas-creditos">
+      Escudos de las ciudades, de Wikimedia Commons, reducidos de tamaño:{" "}
+      {CREDITOS_DE_ESCUDOS.map((c, i) => (
+        <span key={c.clave}>
+          {i > 0 && (i === CREDITOS_DE_ESCUDOS.length - 1 ? " y " : ", ")}
+          <a href={c.hrefArchivo} target="_blank" rel="noopener noreferrer">
+            {c.ciudad}
+          </a>{" "}
+          (por {c.autor},{" "}
+          <a href={c.hrefLicencia} target="_blank" rel="noopener noreferrer">
+            {c.licencia}
+          </a>
+          )
+        </span>
+      ))}
+      .
+    </p>
   );
 }

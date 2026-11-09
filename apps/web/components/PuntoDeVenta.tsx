@@ -212,6 +212,8 @@ export type VarianteBusqueda = PrendaBuscableV2 & {
   empresa?: string | null;
   /** `#rrggbb` del color de la variante (`colores.hex`): el fondo del ícono en la grilla y en el buscador. Ausente = el tono de su familia. */
   colorHex?: string | null;
+  /** El color es un estampado (ADR-0634): se reconoce por su foto, no por un punto. Ausente = se dibuja como cualquier color. */
+  colorEstampado?: boolean;
   /** `variantes.color_codigo`: cruza con la ficha del color (ADR-0316) en «Todo de la prenda». Ausente = sin ficha. */
   colorCodigo?: string | null;
   /** `variantes.talla_id` y `productos.categoria_id`: con el color, la llave con que «Prenda sin registrar» ofrece la prenda del
