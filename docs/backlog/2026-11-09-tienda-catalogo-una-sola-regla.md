@@ -11,7 +11,7 @@
 - [x] Pruebas, en una base con `main` + `20261109171000` + esta y collation de idioma (`en-US`): 21 suites de la tienda en verde. Tres que
   vuelven a pegar migraciones viejas del catálogo parten del de main de antes (`scripts/pruebas/_antes_catalogo_una_regla.sql`). Cinco
   roturas a propósito de las reglas nuevas las ve `tienda_inicio`.
-- [ ] **POR PEGAR (2026-11-09):** `20261109181000`, antes de fusionar. La web no cambia, así que puede ir antes o después, pero mientras no
-  esté, producción sigue con la copia de las reglas.
-- [ ] Después de pegar: volver a medir por el conector el md5 del catálogo de cada sede (debe dar lo mismo que antes) y la deriva diaria (ya
-  no debe listar `tienda_catalogo`).
+- [x] **Pegada en producción por Felipe (2026-11-09).** Verificación `t | t | t | t`; los cuerpos tienen la misma huella que el repo; los
+  permisos no cambiaron; el catálogo tarda 340–390 ms (antes, 315–377).
+- [ ] Mañana: que la deriva diaria ya no liste `tienda_catalogo`. Lo que quede ahí es de otras ramas (tickets compartidos, verificación de
+  pagos web, `cerrar_produccion_con_motivo`).
