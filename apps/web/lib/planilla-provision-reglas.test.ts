@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { aplicarProvision, delMes, hastaDeLaProvision, leerProvision, nombreSedeDynamic, notaProvisionado, resumenDeProvision, sueldosAEstaFecha, type FilaProvision } from "./planilla-provision-reglas";
+import { aplicarProvision, delMes, hastaDeLaProvision, leerProvision, mesesDelRango, nombreSedeDynamic, notaProvisionado, provisionDelRango, resumenDeProvision, sueldosAEstaFecha, type FilaProvision } from "./planilla-provision-reglas";
+import { rangoMes } from "./gastos-reglas";
 import type { FilaER } from "./resultados-reglas";
 
 const fila = (p: Partial<FilaER>): FilaER => ({
@@ -257,5 +258,45 @@ describe("sueldosAEstaFecha («octubre a esta fecha» con sueldos, 2026-11-06)",
     const [tru] = sueldosAEstaFecha([fila({ ubicacionId: "u-tru" })], [fila({ ubicacionId: "u-tru", planilla: 3100 })], "2027-01-03");
     // Del 29-dic-2026 al 28-ene-2027 son 31 días; al 3 de enero corren 6.
     expect(tru!.planilla).toBe(600);
+  });
+});
+
+describe("una lectura por mes (el pico de memoria del 2026-11-09)", () => {
+  it("los meses de un rango, en orden y cruzando el año; un rango al revés o mal escrito no toca ninguno", () => {
+    expect(mesesDelRango("2026-10-01", "2026-11-30")).toEqual(["2026-10", "2026-11"]);
+    expect(mesesDelRango("2026-11-01", "2026-11-09")).toEqual(["2026-11"]);
+    expect(mesesDelRango("2026-12-15", "2027-02-01")).toEqual(["2026-12", "2027-01", "2027-02"]);
+    expect(mesesDelRango("2026-11-09", "2026-11-01")).toEqual([]);
+    expect(mesesDelRango("2026-11", "2026-11-30")).toEqual([]);
+  });
+
+  // Lo que hace la base (20261022081000): los períodos que TERMINAN en el rango y, con sede, solo los de esa sede («de la empresa» no entra).
+  const laBase = (todas: FilaProvision[], desde: string, hasta: string, ubicacionId: string | null) =>
+    todas.filter((f) => f.fechaFin >= desde && f.fechaFin <= hasta && (ubicacionId === null || f.ubicacionId === ubicacionId));
+  const todas: FilaProvision[] = [
+    prov({ periodoId: "sep", ubicacionId: "u-tru", fechaIni: "2026-08-29", fechaFin: "2026-09-28", devengado: 900 }),
+    prov({ periodoId: "oct", ubicacionId: "u-tru", fechaIni: "2026-09-29", fechaFin: "2026-10-28", devengado: 1000 }),
+    prov({ periodoId: "oct", ubicacionId: "u-aqp", fechaIni: "2026-09-29", fechaFin: "2026-10-28", devengado: 800 }),
+    prov({ periodoId: "oct", ubicacionId: null, unidad: "empresa", sedeCodigo: "CCO", fechaIni: "2026-09-29", fechaFin: "2026-10-28", devengado: 300 }),
+    prov({ periodoId: "nov", ubicacionId: "u-tru", fechaIni: "2026-10-29", fechaFin: "2026-11-28", devengado: 400 }),
+    prov({ periodoId: "nov", ubicacionId: "u-aqp", fechaIni: "2026-10-29", fechaFin: "2026-11-28", devengado: 350 }),
+    prov({ periodoId: "dic", ubicacionId: "u-tru", fechaIni: "2026-11-29", fechaFin: "2026-12-28", devengado: 0 }),
+  ];
+
+  it("leer cada mes entero y recortar da EXACTAMENTE lo que la base daría para cada rango y sede que pide el Resumen", () => {
+    // Las cinco lecturas de una carga de Finanzas ▸ Resumen el 2026-11-09 (Resumen, Confianza, Ganancias del mes, la comparación y Balance por tienda),
+    // más una que cruza el año y unas fechas sueltas.
+    const rangos: [string, string][] = [["2026-10-01", "2026-11-30"], ["2026-11-01", "2026-11-30"], ["2026-10-01", "2026-10-09"], ["2026-10-28", "2026-10-28"], ["2026-11-29", "2027-01-31"], ["2026-09-15", "2026-10-27"]];
+    for (const [desde, hasta] of rangos) {
+      const leidos = mesesDelRango(desde, hasta).flatMap((mes) => laBase(todas, rangoMes(mes).desde, rangoMes(mes).hasta, null));
+      for (const ubicacionId of [null, "u-tru", "u-aqp", "u-otra"]) {
+        expect(provisionDelRango(leidos, desde, hasta, ubicacionId), `${desde}…${hasta} · ${ubicacionId}`).toEqual(laBase(todas, desde, hasta, ubicacionId));
+      }
+    }
+  });
+
+  it("con una sede, «de la empresa» (la central) no se le suma: igual que la base", () => {
+    expect(provisionDelRango(todas, "2026-10-01", "2026-10-31", "u-tru").map((f) => f.devengado)).toEqual([1000]);
+    expect(provisionDelRango(todas, "2026-10-01", "2026-10-31", null).map((f) => f.devengado)).toEqual([1000, 800, 300]);
   });
 });
