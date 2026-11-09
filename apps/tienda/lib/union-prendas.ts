@@ -162,10 +162,14 @@ export const HOLGURA_DE_LA_UNION = 0.15;
 /** El largo más corto y el más largo (cm) que se le deja a una prenda de abajo al igualarla con la de arriba: una foto rara no dibuja un pantalón de 20 cm. */
 export const LARGO_MINIMO_DE_ABAJO = 20;
 export const LARGO_MAXIMO_DE_ABAJO = 120;
-/** Cuánto más ancha que la prenda de arriba puede verse la de abajo (×1,05). Una blusa con vuelo abajo (un peplum) lleva la pretina al máximo de
- *  la holgura, y una falda acampanada se abría hasta verse 20 % más ancha que la blusa (FAL-0011 con CMS-0026, 2026-10-22). La pretina nunca baja de la
- *  cintura mínima (`HOLGURA_DE_LA_UNION`): una falda de mucho vuelo sigue siendo más ancha que su blusa, como en una persona. */
+/** Cuánto más ancha que la prenda de arriba puede verse una FALDA (×1,05). Una blusa con vuelo abajo (un peplum) lleva la pretina al máximo de
+ *  la holgura, y una falda acampanada se abría hasta verse 20 % más ancha que la blusa (FAL-0011 con CMS-0026, 2026-10-22). Solo vale para faldas
+ *  (Felipe, 2026-11-09): un pantalón, un short o un jean se abre en las piernas, y medirlo contra la blusa encogía su pretina hasta 8 cm por debajo
+ *  del bajo de la blusa. */
 export const ANCHO_MAXIMO_DE_ABAJO_SOBRE_ARRIBA = 1.05;
+/** Hasta dónde puede ese tope encoger la pretina de una falda: nunca por debajo del 92 % del bajo de la blusa (Felipe eligió mirando, 2026-11-09:
+ *  sin tope la falda del peplum se ve muy grande; con el tope entero, la pretina queda 11 cm más angosta que el bajo y se ve el escalón). */
+export const PRETINA_MINIMA_DE_LA_FALDA = 0.92;
 /** Cuánto entra la pretina bajo el borde del torso (px de la escena), para que no quede una línea de aire entre las dos. */
 export const SOLAPE_DE_LA_UNION = 3;
 /** Cuánto puede crecer, a lo más, una prenda de arriba que se dibuja con el bajo demasiado angosto (×1,3). Nunca se encoge: una prenda ancha es ancha a propósito. */
@@ -228,13 +232,13 @@ export function cajaDeArribaAjustada(arriba: { caja: Caja; medida: MedidaDelReco
 
 /**
  * Dónde va la prenda de abajo para que su pretina siga al borde de abajo de la de arriba (dentro de ±15 % de la cintura estándar). `null` si no se puede (sin medidas, o
- * la prenda de arriba va metida —un body—): entonces se queda la caja de siempre, por su largo en cm. Es la misma regla para una falda, un
- * short y un pantalón: lo que se fija es la pretina; el largo sale de la forma de la foto, entre `LARGO_MINIMO_DE_ABAJO` y
- * `LARGO_MAXIMO_DE_ABAJO`.
+ * la prenda de arriba va metida —un body—): entonces se queda la caja de siempre, por su largo en cm. Lo que se fija es la pretina; el largo sale de la forma
+ * de la foto, entre `LARGO_MINIMO_DE_ABAJO` y `LARGO_MAXIMO_DE_ABAJO`. Un pantalón, un short o un jean calza su pretina con el bajo de la blusa; una falda
+ * (`falda`) además no se ve más de ×1,05 el ancho de la blusa, sin que su pretina baje del 92 % de ese bajo.
  */
 export function cajaDeAbajoUnida(
   arriba: { caja: Caja; medida: MedidaDelRecorte | null | undefined; metida: boolean },
-  abajo: { proporcion: number; medida: MedidaDelRecorte | null | undefined },
+  abajo: { proporcion: number; medida: MedidaDelRecorte | null | undefined; falda?: boolean },
 ): Caja | null {
   const a = arriba.medida;
   const b = abajo.medida;
@@ -245,8 +249,13 @@ export function cajaDeAbajoUnida(
   const bordeAncho = Math.max(a.borde, anchoDelBajo(a) ?? 0);
   const pretinaMinima = estandar * (1 - HOLGURA_DE_LA_UNION);
   const pretinaSegunElBorde = Math.min(Math.max(arriba.caja.w * bordeAncho, pretinaMinima), estandar * (1 + HOLGURA_DE_LA_UNION));
-  // Y que toda la prenda de abajo no se vea mucho más ancha que la de arriba (sin bajar de la cintura mínima).
-  const pretinaPx = Math.max(pretinaMinima, Math.min(pretinaSegunElBorde, arriba.caja.w * ANCHO_MAXIMO_DE_ABAJO_SOBRE_ARRIBA * b.pretina));
+  // Una falda, además, no se ve mucho más ancha que la blusa: el tope la encoge, pero su pretina no baja del 92 % del bajo (ni de la cintura mínima).
+  const pretinaPx = abajo.falda
+    ? Math.max(
+        pretinaMinima,
+        Math.min(pretinaSegunElBorde, Math.max(arriba.caja.w * ANCHO_MAXIMO_DE_ABAJO_SOBRE_ARRIBA * b.pretina, pretinaSegunElBorde * PRETINA_MINIMA_DE_LA_FALDA)),
+      )
+    : pretinaSegunElBorde;
   // El bajo de la prenda de arriba no siempre es recto: la pretina arranca donde el bajo está más ALTO dentro de su ancho (sin aire en ese lado)
   // y la parte del bajo que cuelga más abajo la tapa. Sin perfil medido, el punto más bajo de siempre.
   const franja = Math.min(Math.max(pretinaPx / arriba.caja.w, FRANJA_MINIMA_DE_LA_UNION), FRANJA_MAXIMA_DE_LA_UNION);
