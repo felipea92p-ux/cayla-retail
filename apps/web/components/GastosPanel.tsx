@@ -27,6 +27,7 @@ import { CorreccionesDeCompra } from "@/components/mi-plata/CorreccionesDeCompra
 import { HojaCorregirGasto } from "@/components/finanzas/gastos/HojaCorregirGasto";
 import { HojaComprobanteDeGasto } from "@/components/finanzas/gastos/HojaComprobanteDeGasto";
 import { puedeRecibirComprobante } from "@/lib/gastos-comprobante-tardio-reglas";
+import { MAX_MOTIVO, RPC_QUITAR_COMPROBANTE, loQuePasaAlQuitar, puedeQuitarComprobante } from "@/lib/anular-documento-reglas";
 import { HojaNoEmiteGasto } from "@/components/finanzas/gastos/HojaNoEmiteGasto";
 import { textoNoEmite } from "@/lib/gastos-no-emite-reglas";
 import { FotoDelComprobante } from "@/components/finanzas/gastos/FotoDelComprobante";
@@ -788,6 +789,7 @@ function GastoDetalle({
   const [corrigiendo, setCorrigiendo] = useState(false);
   const [recibiendo, setRecibiendo] = useState(false);
   const [sinPapel, setSinPapel] = useState(false);
+  const [quitando, setQuitando] = useState(false);
   const [motivo, setMotivo] = useState("");
   const [guardando, setGuardando] = useState(false);
   const e = TEXTO_ESTADO_GASTO[estadoGasto(g)];
@@ -808,6 +810,23 @@ function GastoDetalle({
     router.refresh();
   }
 
+  // Tarea 21: el gasto vuelve a «sin comprobante» (lo contrario de «Llegó el comprobante»).
+  async function quitar() {
+    if (motivo.trim().length < 3) return avisar.error("Di por qué se quita el comprobante.");
+    if (!responsable.listo) {
+      if (responsable.motivo) avisar.error(responsable.motivo);
+      return;
+    }
+    setGuardando(true);
+    const { error } = await firmar(createClient().rpc(RPC_QUITAR_COMPROBANTE as never, { p_gasto_id: g.id, p_motivo: motivo.trim() } as never), responsable.firma());
+    setGuardando(false);
+    responsable.despues(error);
+    if (error) return avisar.error(traducirError(error, "quitar el comprobante"));
+    avisar.exito("Comprobante quitado", { detalle: `${g.descripcion} vuelve a «Sin comprobante».` });
+    onCerrar();
+    router.refresh();
+  }
+
   const pendiente = g.compraId && g.estado === "vigente" && (g.saldo ?? 0) > 0;
   const bajada = [g.ubicacionNombre ?? "De la empresa", fechaCorta(g.fecha, true), papelEnUnaLinea(g), g.proveedorNombre].filter(Boolean).join(" · ");
   // ADR-0362, fase 6 (decisión 76): el IGV que se perdió por pagar sin banco no se llama «descontable».
@@ -821,6 +840,23 @@ function GastoDetalle({
   if (corrigiendo) return <HojaCorregirGasto gasto={g} categorias={categorias} onVolver={() => setCorrigiendo(false)} onCerrar={onCerrar} />;
   if (recibiendo) return <HojaComprobanteDeGasto gasto={g} proveedores={proveedores} hoy={hoy} rucEmpresa={rucEmpresa} onVolver={() => setRecibiendo(false)} onCerrar={onCerrar} />;
   if (sinPapel) return <HojaNoEmiteGasto gasto={g} onVolver={() => setSinPapel(false)} onCerrar={onCerrar} />;
+
+  if (quitando) {
+    return (
+      <Modal variante="hoja" titulo="Quitar el comprobante" subtitulo={loQuePasaAlQuitar(g)} onClose={onCerrar}>
+        <CampoFin etiqueta="Motivo" htmlFor="quitar-motivo">
+          <InputFin id="quitar-motivo" value={motivo} onChange={(ev) => setMotivo(ev.target.value)} placeholder="Ej. el RUC era de otro proveedor" maxLength={MAX_MOTIVO} />
+        </CampoFin>
+        <ComboResponsable control={responsable} deshabilitado={guardando} />
+        <div className="pie-acciones mt-4">
+          <Volver onClick={() => setQuitando(false)} a="Volver al gasto" />
+          <Boton peso="primario" cargando={guardando} textoCargando="Quitando…" type="button" onClick={quitar} disabled={guardando || !responsable.listo} className="ml-auto">
+            Quitar el comprobante
+          </Boton>
+        </div>
+      </Modal>
+    );
+  }
 
   if (anulando) {
     return (
@@ -858,6 +894,11 @@ function GastoDetalle({
           {puedeAnular(g) && (
             <button type="button" className="btn-cayla btn-peligro mr-auto" onClick={() => setAnulando(true)}>
               Anular…
+            </button>
+          )}
+          {puedeQuitarComprobante(g) && (
+            <button type="button" className={`btn-cayla btn-peligro ${puedeAnular(g) ? "" : "mr-auto"}`} onClick={() => setQuitando(true)}>
+              Quitar el comprobante…
             </button>
           )}
           {puedeRecibirComprobante(g) && (

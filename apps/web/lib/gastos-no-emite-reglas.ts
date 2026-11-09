@@ -88,9 +88,9 @@ export function leerPapelesTardios(data: unknown): Map<string, PapelTardio> {
 }
 
 /** Un gasto con su papel tardío se lee como uno con comprobante: deja de pedirlo y la lista dice cuál es. Sin papel tardío, queda igual (la misma referencia). */
-export function conPapelTardio<T extends { id: string; comprobanteTipo: string; comprobante: string | null }>(gastos: readonly T[], papeles: ReadonlyMap<string, PapelTardio>): T[] {
+export function conPapelTardio<T extends { id: string; comprobanteTipo: string; comprobante: string | null; papelTardio?: boolean }>(gastos: readonly T[], papeles: ReadonlyMap<string, PapelTardio>): T[] {
   return gastos.map((g) => {
     const p = papeles.get(g.id);
-    return p && g.comprobanteTipo === "sin_comprobante" ? { ...g, comprobanteTipo: p.tipo, comprobante: p.documento } : g;
+    return p && g.comprobanteTipo === "sin_comprobante" ? { ...g, comprobanteTipo: p.tipo, comprobante: p.documento, papelTardio: true } : g;
   });
 }

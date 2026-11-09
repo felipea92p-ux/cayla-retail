@@ -223,6 +223,8 @@ export type GastoFila = {
   pagosSinBanco: PagoSinBanco[];
   /** Marcado «no emite comprobante», con su motivo (ADR-0588, `fn_gastos_no_emiten`): ya no pide comprobante. Sin la lectura, `undefined`. */
   noEmite?: NoEmite | null;
+  /** Su papel llegó con el mes cerrado y vive aparte (tarea 20, `fn_gastos_papeles_tardios`): quitarlo lo anula en su lugar. */
+  papelTardio?: boolean;
 };
 
 /** Un pago en efectivo o desde un fondo de una factura de S/ 2 000 o más: la base dice cuánto IGV se llevó (`fn_igv_perdido`). */

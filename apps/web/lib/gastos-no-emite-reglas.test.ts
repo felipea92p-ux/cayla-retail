@@ -65,7 +65,7 @@ describe("el papel que llegó con el mes cerrado (tarea 20)", () => {
   });
   it("el gasto deja de pedir comprobante y dice cuál es; los demás quedan igual", () => {
     const [a, b, c] = conPapelTardio([g("a"), g("b"), g("c", "factura")], papeles);
-    expect(a).toMatchObject({ comprobanteTipo: "factura", comprobante: "F001-9" });
+    expect(a).toMatchObject({ comprobanteTipo: "factura", comprobante: "F001-9", papelTardio: true });
     expect(b).toMatchObject({ comprobanteTipo: "sin_comprobante" });
     expect(c).toMatchObject({ comprobanteTipo: "factura" });
   });
