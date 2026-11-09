@@ -231,8 +231,8 @@ select 'A · F4: la empresa, lo de la empresa',
   (pg_temp.r('emp') -> 'por_pagar' ->> 'n')::integer = (select count(*) from retail.fn_por_pagar_consolidado(null, null, true) p);
 
 -- F6 · Flujo.
-select 'A · F6: días de caja, la semana bajo el mínimo y las 6 semanas son fn_flujo_caja_proyeccion(6) (sin los cobros día a día)',
-  pg_temp.r('todas') -> 'flujo' = retail.fn_flujo_caja_proyeccion(6) - 'cobros';
+select 'A · F6: el flujo es fn_flujo_caja_proyeccion(6) entera, con los cobros día a día (20261109175000: la página la usa y no la pide otra vez)',
+  pg_temp.r('todas') -> 'flujo' = retail.fn_flujo_caja_proyeccion(6) and jsonb_typeof(pg_temp.r('todas') -> 'flujo' -> 'cobros') = 'array';
 select 'A · F6: mirando una tienda, el Taller o la empresa, el flujo no aplica (es de CAYLA entera)',
   pg_temp.r('tru') -> 'flujo' = '{"no_aplica": true}' and pg_temp.r('tal') -> 'flujo' = '{"no_aplica": true}' and pg_temp.r('emp') -> 'flujo' = '{"no_aplica": true}';
 
