@@ -60,5 +60,6 @@
   - `roles_cobertura_modulos` sigue 32/32.
 - [ ] **Por pegar en producción:** la PARTE 1 y después la PARTE 2, cada una por separado.
 - [ ] Al refrescar el diccionario (`pnpm datos:generar:produccion`), mover la fila de `docs/datos/01-INVARIANTES.md` de «Local» a «Las dos».
-- [ ] **Sin explicar:** en esta base privada, `eliminar_producto_con_historia` (15 ✗) y `purgar_producto_de_prueba` (58 ✗) ya fallaban
-  antes de la migración. Probablemente por los datos de prueba que dejé en esa base, sin confirmar: falta correrlas en una base limpia.
+- [x] `eliminar_producto_con_historia` y `purgar_producto_de_prueba` fallaban en la base privada por los datos de prueba que dejé ahí. En
+  una base limpia, con todas las migraciones de la rama, pasan enteras (66 ✓ y 100 ✓), igual que `costo-de-las-tallas` y
+  `costo-de-compras-solo-por-funciones`.
