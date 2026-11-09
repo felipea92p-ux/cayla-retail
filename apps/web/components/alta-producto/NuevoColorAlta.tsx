@@ -7,8 +7,11 @@ import { SelectorColor } from "@/components/SelectorColor";
 import type { ColorAlta } from "@/lib/alta-producto";
 import { colorDeRespuesta, coloresQueYaExisten, faltaParaCrear, familiaSugerida, nombreDeColor } from "@/lib/color-alta-reglas";
 import { normalizarCodigo, sugerirCodigoColor } from "@/lib/color-codigo";
+import { esHexValido } from "@/lib/color-parecido";
 import { FAMILIAS_COLOR, textoDeFamilia } from "@/lib/colores-familias";
-import { coloresDominantes, ejemploDeEstampado, faltaParaEstampado, nombreDeEstampado, patronesDeEstampado } from "@/lib/color-estampado-reglas";
+import { camposDeNuevoColor, coloresDominantes, ejemploDeEstampado, faltaParaEstampado, nombreDeEstampado, patronesDeEstampado } from "@/lib/color-estampado-reglas";
+import { CampoGuiado, PieGuia } from "@/components/guia-de-foco/CampoGuiado";
+import { useGuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
 import { SegmentoDeslizante } from "@/components/ui/SegmentoDeslizante";
 import { ComboBuscable } from "@/components/ui/ComboBuscable";
 import { Punto } from "@/components/alta-producto/Punto";
@@ -77,6 +80,7 @@ export function NuevoColorAlta({
   const [familiaElegida, setFamiliaElegida] = useState<string | null>(null);
   const [codigoEscrito, setCodigoEscrito] = useState<string | null>(null);
   const [otrosCodigos, setOtrosCodigos] = useState<Map<string, string>>(() => new Map());
+  const [catalogoCompleto, setCatalogoCompleto] = useState<ColorAlta[] | null>(null);
   const [guardando, setGuardando] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [intento, setIntento] = useState(false);
@@ -89,8 +93,12 @@ export function NuevoColorAlta({
   useEffect(() => {
     let vigente = true;
     void (async () => {
-      const { data } = await createClient().from("colores").select("codigo, nombre");
-      if (vigente && data) setOtrosCodigos(new Map(data.map((c) => [c.codigo, c.nombre])));
+      const { data } = await createClient().from("colores").select("codigo, nombre, hex, familia_color, tipo, sinonimos, activo");
+      if (vigente && data) {
+        setOtrosCodigos(new Map(data.map((c) => [c.codigo, c.nombre])));
+        // `colores` puede traer solo los que a la prenda le faltan, y un estampado sí puede tener de dominante un color que la prenda ya tiene.
+        setCatalogoCompleto(data.filter((c) => c.activo).map((c) => ({ codigo: c.codigo, nombre: c.nombre, hex: c.hex, familiaColor: c.familia_color ?? "", tipo: c.tipo, sinonimos: c.sinonimos })));
+      }
     })().catch(() => {
       // Sin la lista completa se sugiere con los activos; si choca, lo dice la API.
     });
@@ -115,7 +123,7 @@ export function NuevoColorAlta({
   for (const c of colores) ocupados.set(c.codigo, c.nombre);
 
   const esForma = forma === "estampado";
-  const opcionesDominante = coloresDominantes(colores);
+  const opcionesDominante = coloresDominantes(catalogoCompleto ?? colores);
   const dominante = opcionesDominante.find((c) => c.codigo === dominanteCodigo) ?? null;
   const patron = patrones.find((p) => p.id === patronId)?.nombre ?? null;
   const nombre = esForma && !nombreEscrito ? nombreDeEstampado(patron, dominante?.nombre) : nombrePropio;
@@ -139,6 +147,8 @@ export function NuevoColorAlta({
       : duenoDelCodigo
         ? `El código ${codigo} ya lo usa «${duenoDelCodigo}». Escribe otro.`
         : falta;
+
+  const guia = useGuiaCampos(camposDeNuevoColor({ estampado: esForma, nombre, hexListo: esHexValido(hexElegido), patron: patron !== null, hayPatrones: patrones.length > 0, dominante: dominante !== null }));
 
   async function crear() {
     setIntento(true);
@@ -202,28 +212,32 @@ export function NuevoColorAlta({
       {esForma && (
         <div className="grid gap-3 sm:grid-cols-2 sm:items-start">
           {patrones.length > 0 && (
-            <Campo etiqueta="Patrón" idEtiqueta={`${id}-patron`} sinPie>
-              <Desplegable
-                forma="campo"
-                idEtiqueta={`${id}-patron`}
-                valor={patronId}
-                onValor={setPatronId}
-                opciones={patrones.map((p) => ({ valor: p.id, texto: p.nombre }))}
-                marcador="Elige…"
-                deshabilitado={guardando}
+            <CampoGuiado id="patron" guia={guia}>
+              <Campo etiqueta={guia.etiqueta("patron", "Patrón")} idEtiqueta={`${id}-patron`} sinPie>
+                <Desplegable
+                  forma="campo"
+                  idEtiqueta={`${id}-patron`}
+                  valor={patronId}
+                  onValor={setPatronId}
+                  opciones={patrones.map((p) => ({ valor: p.id, texto: p.nombre }))}
+                  marcador="Elige…"
+                  deshabilitado={guardando}
+                />
+              </Campo>
+            </CampoGuiado>
+          )}
+          <CampoGuiado id="dominante" guia={guia}>
+            <Campo etiqueta={guia.etiqueta("dominante", "El color que más se ve")} idEtiqueta={`${id}-dominante`} sinPie>
+              <ComboBuscable
+                id={`${id}-dominante`}
+                valor={dominanteCodigo}
+                onValor={setDominanteCodigo}
+                etiquetaAccesible="El color que más se ve"
+                marcador="Busca el color…"
+                opciones={opcionesDominante.map((c) => ({ valor: c.codigo, texto: c.nombre, claves: c.sinonimos, icono: <Punto hex={c.hex} familia={c.familiaColor} tipo={c.tipo} /> }))}
               />
             </Campo>
-          )}
-          <Campo etiqueta="El color que más se ve" idEtiqueta={`${id}-dominante`} sinPie>
-            <ComboBuscable
-              id={`${id}-dominante`}
-              valor={dominanteCodigo}
-              onValor={setDominanteCodigo}
-              etiquetaAccesible="El color que más se ve"
-              marcador="Busca el color…"
-              opciones={opcionesDominante.map((c) => ({ valor: c.codigo, texto: c.nombre, claves: c.sinonimos, icono: <Punto hex={c.hex} familia={c.familiaColor} tipo={c.tipo} /> }))}
-            />
-          </Campo>
+          </CampoGuiado>
         </div>
       )}
 
@@ -232,9 +246,9 @@ export function NuevoColorAlta({
           esForma ? "" : enModal ? "sm:grid-cols-[minmax(0,1fr)_minmax(0,11rem)_auto]" : "sm:grid-cols-[minmax(0,1fr)_minmax(0,15rem)_minmax(0,11rem)_auto]"
         }`}
       >
-        <div className={esForma ? "" : enModal ? "col-span-2 sm:col-span-3" : "col-span-2 sm:col-span-1"}>
+        <CampoGuiado id="nombre" guia={guia} className={esForma ? "" : enModal ? "col-span-2 sm:col-span-3" : "col-span-2 sm:col-span-1"}>
           <CampoTexto
-            etiqueta={esForma ? "Nombre del estampado" : "Nombre del color"}
+            etiqueta={guia.etiqueta("nombre", esForma ? "Nombre del estampado" : "Nombre del color")}
             sinPie
             id={`${id}-nombre`}
             autoFocus
@@ -248,15 +262,15 @@ export function NuevoColorAlta({
             placeholder={esForma ? ejemploDeEstampado(patron, dominante?.nombre) : ejemplo.nombre.texto}
             disabled={guardando}
           />
-        </div>
+        </CampoGuiado>
 
         {!esForma && (
           <>
             {/* El tono, igual que en Atributos (`SelectorColor`): la muestra abre el selector del navegador y al lado se escribe
                 el #hex o el R, G, B que trae la ficha del proveedor. Sin tono, la muestra es punteada: nunca un beige de relleno. */}
-            <div className="col-span-2 sm:col-span-1">
+            <CampoGuiado id="tono" guia={guia} className="col-span-2 sm:col-span-1">
               <SelectorColor hex={hexElegido} onHex={setHex} etiqueta="Color · #hex o RGB" caja deshabilitado={guardando} />
-            </div>
+            </CampoGuiado>
 
             <div>
               <Campo etiqueta="Familia" idEtiqueta={`${id}-familia`} sinPie>
@@ -303,9 +317,12 @@ export function NuevoColorAlta({
       <ExisteTambien que="color" nombre={nombre} solo="tono" estado={existe} si={elegirExistente} deshabilitado={guardando} />
 
       {conCombo ? <ResponsableEnHoja deshabilitado={guardando} /> : <AvisoSinIdentidad firma={firma} enHoja={enModal} />}
+      <PieGuia guia={guia} listo={esForma ? "Todo listo para crear el estampado." : "Todo listo para crear el color."} />
       <div className="flex flex-wrap items-center gap-2.5">
         <Boton peso="primario" cargando={guardando} textoCargando="Creando…"
           type="button"
+          confirma={guia}
+          className={guia.claseConfirmar}
           onClick={() => void crear()}
           disabled={guardando || !enLinea || existe.bloquea || !firma.listo}
           title={(!enLinea || existe.bloquea ? bloqueo : firma.motivo) ?? undefined}

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { agruparPorFamilia } from "./colores-familias";
-import { coloresDominantes, ejemploDeEstampado, esEstampado, familiaEnCarta, fotoQueDistingue, faltaParaEstampado, fotoDeLaFila, nombreDeEstampado, patronesDeEstampado } from "./color-estampado-reglas";
+import { camposDeNuevoColor, coloresDominantes, ejemploDeEstampado, esEstampado, familiaEnCarta, fotoQueDistingue, faltaParaEstampado, fotoDeLaFila, nombreDeEstampado, patronesDeEstampado } from "./color-estampado-reglas";
 
 const colores = [
   { codigo: "NEG", nombre: "Negro", hex: "#1A1A1A", familiaColor: "neutro" },
@@ -91,5 +91,27 @@ describe("fotoDeLaFila", () => {
     expect(fotoDeLaFila({ codigo: "FLA", tipo: "estampado" }, fotos)).toBe("flores.jpg");
     expect(fotoDeLaFila({ codigo: "RAY", tipo: "estampado" }, fotos)).toBe("general.jpg");
     expect(fotoDeLaFila({ codigo: "RAY", tipo: "estampado" }, fotos.slice(0, 2))).toBeNull();
+  });
+});
+
+describe("camposDeNuevoColor", () => {
+  const base = { nombre: "", hexListo: false, patron: false, hayPatrones: true, dominante: false };
+  const faltan = (c: Parameters<typeof camposDeNuevoColor>[0]) => camposDeNuevoColor(c).filter((x) => !x.hecho).map((x) => x.id);
+  it("liso: nombre y tono", () => {
+    expect(faltan({ ...base, estampado: false })).toEqual(["nombre", "tono"]);
+    expect(faltan({ ...base, estampado: false, nombre: "Coral", hexListo: true })).toEqual([]);
+  });
+  it("estampado: patrón, color y nombre, en ese orden", () => {
+    expect(faltan({ ...base, estampado: true })).toEqual(["patron", "dominante", "nombre"]);
+  });
+  it("el patrón no se pide si el nombre ya se escribió o si no hay patrones", () => {
+    expect(faltan({ ...base, estampado: true, nombre: "Rayas negro-blanco" })).toEqual(["dominante"]);
+    expect(camposDeNuevoColor({ ...base, estampado: true, hayPatrones: false }).map((x) => x.id)).toEqual(["dominante", "nombre"]);
+  });
+  it("coincide con lo que de verdad impide crear", () => {
+    expect(faltaParaEstampado({ nombre: "", colorDominante: null })).not.toBeNull();
+    expect(camposDeNuevoColor({ ...base, estampado: true }).filter((x) => x.requerido && !x.hecho).length).toBeGreaterThan(0);
+    expect(camposDeNuevoColor({ ...base, estampado: true, nombre: "Rayas", dominante: true }).filter((x) => x.requerido && !x.hecho)).toEqual([]);
+    expect(faltaParaEstampado({ nombre: "Rayas", colorDominante: colores[0] })).toBeNull();
   });
 });

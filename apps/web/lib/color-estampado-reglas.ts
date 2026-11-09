@@ -9,6 +9,7 @@
 import { nombreDeColor } from "./color-alta-reglas";
 import { esHexValido } from "./color-parecido";
 import { FAMILIAS_COLOR } from "./colores-familias";
+import type { CampoDeGuia } from "./guia-campos";
 import { fotoPrincipal } from "./inventario-reglas";
 import { fotoDeVariante, type FotoCruda } from "./producto-fotos-reglas";
 
@@ -78,3 +79,23 @@ export function faltaParaEstampado({ nombre, colorDominante }: { nombre: string;
   if (!colorDominante) return "Elige el color que más se ve: con él se cuenta en Análisis.";
   return null;
 }
+
+/**
+ * La guía de foco de la hoja «Nuevo color» (ADR-0284): sale de lo que `faltaParaEstampado` y `faltaParaCrear` ya piden. El patrón es sugerido:
+ * solo ayuda a armar el nombre, y deja de pedirse si el nombre ya se escribió a mano o si los patrones no se pudieron leer.
+ */
+export function camposDeNuevoColor(c: { estampado: boolean; nombre: string; hexListo: boolean; patron: boolean; hayPatrones: boolean; dominante: boolean }): CampoDeGuia[] {
+  const nombreHecho = nombreDeColor(c.nombre) !== "";
+  if (!c.estampado) {
+    return [
+      { id: "nombre", nombre: "Nombre", requerido: true, hecho: nombreHecho, pendiente: "Escribe el nombre del color." },
+      { id: "tono", nombre: "Tono", requerido: true, hecho: c.hexListo, pendiente: "Toca la muestra y elige el tono." },
+    ];
+  }
+  return [
+    ...(c.hayPatrones ? [{ id: "patron", nombre: "Patrón", requerido: false, sugerido: true, hecho: c.patron || nombreHecho, pendiente: "Elige el patrón: arma el nombre." }] : []),
+    { id: "dominante", nombre: "El color que más se ve", requerido: true, hecho: c.dominante, pendiente: "Elige el color que más se ve." },
+    { id: "nombre", nombre: "Nombre", requerido: true, hecho: nombreHecho, pendiente: "Elige el patrón y el color, o escribe el nombre." },
+  ];
+}
+

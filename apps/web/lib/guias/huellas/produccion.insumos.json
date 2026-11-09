@@ -65,7 +65,7 @@
       "SegmentoDeslizante «Cómo es la prenda»",
       "Desplegable «{patronId}»",
       "ComboBuscable «{`${id}»",
-      "CampoTexto «{esForma ? \"Nombre del estampado\" : \"Nombre del color\"}»",
+      "CampoTexto «{guia.etiqueta(\"nombre\", esForma ? \"Nombre del estampado\" : \"Nombre del color\")}»",
       "Desplegable «{familia}»",
       "CampoTexto «Código»",
       "Boton «{(!enLinea || existe.bloquea ? bloqueo : firma.motivo) ?? undefined}»",
