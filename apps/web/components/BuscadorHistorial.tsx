@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useRef } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
-import { useBusquedaEnUrl } from "@/components/ui/BusquedaEnUrl";
+import { useBuscarAlEscribir } from "@/components/ui/BusquedaEnUrl";
 import { MAX_LARGO_BUSQUEDA } from "@/lib/cambios-reglas";
 import { Buscador } from "@/components/ui/Buscador";
 
@@ -15,39 +15,18 @@ import { Buscador } from "@/components/ui/Buscador";
 // y `replace` (no `push`) para que «atrás» no recorra letra por letra. En el celular queda fijo bajo la cabecera.
 // «/» lo enfoca desde cualquier parte de la pantalla (como en Shopify o GitHub).
 
-const PAUSA_MS = 400;
-
 export function BuscadorHistorial({ valor }: { valor: string }) {
   const pathname = usePathname();
   const params = useSearchParams();
-  const [texto, setTexto] = useState(valor);
   const campo = useRef<HTMLInputElement>(null);
-  const ultimoEnviado = useRef(valor);
-  const { buscando, buscar } = useBusquedaEnUrl();
-
-  // Si la URL cambia desde afuera («Limpiar todo», atrás del navegador), el campo la sigue.
-  useEffect(() => {
-    if (valor !== ultimoEnviado.current) {
-      ultimoEnviado.current = valor;
-      setTexto(valor);
-    }
-  }, [valor]);
-
-  useEffect(() => {
-    const limpio = texto.trim();
-    if (limpio === ultimoEnviado.current) return;
-    const t = window.setTimeout(() => {
-      ultimoEnviado.current = limpio;
-      const p = new URLSearchParams(params.toString());
-      if (limpio) p.set("q", limpio);
-      else p.delete("q");
-      p.delete("cursor");
-      const qs = p.toString();
-      buscar(qs ? `${pathname}?${qs}` : pathname, { reemplazar: true });
-    }, PAUSA_MS);
-    return () => window.clearTimeout(t);
-  }, [texto, params, pathname, buscar]);
-
+  const { texto, setTexto, buscando } = useBuscarAlEscribir(valor, (termino) => {
+    const p = new URLSearchParams(params.toString());
+    if (termino) p.set("q", termino);
+    else p.delete("q");
+    p.delete("cursor");
+    const qs = p.toString();
+    return qs ? `${pathname}?${qs}` : pathname;
+  });
 
   // La pieza única de buscar (ADR-0358, ronda 5): filtra mientras se escribe; «Buscando…» solo si la base tarda.
   return (
