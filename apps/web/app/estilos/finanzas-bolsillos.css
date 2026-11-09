@@ -1,0 +1,178 @@
+/* =========================================================================================================================================
+   FINANZAS ▸ RESUMEN, CAMINO «A · BOLSILLOS» (Felipe 2026-11-09; maqueta docs/maquetas/finanzas-resumen-de-punta-a-punta-2026-11/).
+   Lo libre para usar y la plata partida en bolsillos con dueño. Solo tokens (ADR-0169, ADR-0336); el movimiento es el del sistema: la cifra cuenta
+   una vez (CifraAnimada) y los renglones entran en cascada (`anim-entra`), sin rebote ni bucle (ADR-0136).
+   ========================================================================================================================================= */
+
+.bolsillos {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+.bolsillos-cab {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.bolsillos-etiqueta {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--color-taupe-profundo);
+}
+.bolsillos-como {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+}
+.bolsillos-cifra {
+  margin-top: 6px;
+  font-family: var(--font-serif);
+  font-size: clamp(44px, 5.2vw, 72px);
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+  color: var(--color-tinta);
+}
+.bolsillos-cifra.es-falta {
+  color: var(--color-rojo-profundo);
+}
+.bolsillos-dicho {
+  margin-top: 6px;
+  max-width: 62ch;
+  font-size: 14px;
+  color: var(--color-taupe-profundo);
+}
+.bolsillos-motivo,
+.bolsillos-hoy {
+  margin-top: 6px;
+  font-size: 14px;
+  color: var(--color-taupe-profundo);
+}
+.bolsillos-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+.bolsillos-barra {
+  margin-top: 16px;
+}
+.bolsillos-subtitulo {
+  margin-top: 16px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--color-taupe-profundo);
+}
+.bolsillos-lista {
+  margin: 6px 0 0;
+  padding: 0;
+  list-style: none;
+}
+.bolsillos-lista > li + li {
+  border-top: 1px solid var(--color-sand);
+}
+.bolsillos-fila {
+  display: grid;
+  grid-template-columns: 12px minmax(0, 1fr) auto 16px;
+  align-items: center;
+  gap: 12px;
+  min-height: 52px;
+  padding: 8px 8px;
+  margin-inline: -8px;
+  border-radius: 12px;
+  color: var(--color-tinta);
+  transition: background-color var(--t-resp, 200ms) var(--ease-cayla);
+}
+.bolsillos-muestra {
+  width: 12px;
+  height: 12px;
+  border-radius: 4px;
+  background: var(--c);
+}
+.bolsillos-texto {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 2px;
+}
+.bolsillos-texto b {
+  font-size: 14px;
+  font-weight: 600;
+}
+.bolsillos-texto small {
+  font-size: 13px;
+  line-height: 1.35;
+  color: var(--color-taupe-profundo);
+}
+.bolsillos-monto {
+  font-size: 15px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.bolsillos-flecha {
+  color: var(--color-taupe);
+  transition: translate var(--t-resp, 200ms) var(--ease-cayla);
+}
+.bolsillos-fila.es-enlace:focus-visible {
+  outline: 2px solid var(--color-tinta);
+  outline-offset: 2px;
+}
+@media (hover: hover) {
+  .bolsillos-fila.es-enlace:hover {
+    background: color-mix(in srgb, var(--color-tinta) 4%, transparent); /* contraste: no aplica — es un fondo, no un texto */
+  }
+  .bolsillos-fila.es-enlace:hover .bolsillos-flecha {
+    translate: 4px 0;
+  }
+}
+
+/* La cuenta de «¿Cómo se calcula?»: una boleta, renglón por renglón, con el resultado subrayado. */
+.bolsillos-cuenta {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.bolsillos-cuenta > li {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 10px 0;
+  border-top: 1px solid var(--color-sand);
+}
+.bolsillos-cuenta > li:first-child {
+  border-top: 0;
+}
+.bolsillos-cuenta .num {
+  font-size: 15px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  color: var(--color-tinta);
+}
+.bolsillos-cuenta .es-resta {
+  color: var(--color-taupe-profundo);
+}
+.bolsillos-cuenta > li.es-total {
+  border-top: 2px solid var(--color-tinta);
+}
+.bolsillos-cuenta > li.es-total .num {
+  font-family: var(--font-serif);
+  font-size: 24px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bolsillos-fila,
+  .bolsillos-flecha {
+    transition: none;
+  }
+}

@@ -23,6 +23,8 @@ import { EquilibrioMesPieza } from "@/components/finanzas/EquilibrioMes";
 import { ResumenDecidir } from "@/components/finanzas/ResumenDecidir";
 import { DockTelar } from "@/components/finanzas/telar/DockTelar";
 import { TresRespuestas } from "@/components/finanzas/TresRespuestas";
+import { SaldoLibre } from "@/components/finanzas/bolsillos/SaldoLibre";
+import { saldoEnBolsillos, type ClaveBolsillo } from "@/lib/bolsillos-reglas";
 import { alinearAvisoDeCaja, cajaProxima, loQueHayEnCuentas, type FlujoProximo } from "@/lib/caja-proxima-reglas";
 import { equilibrioMes, type FaltaDelMes } from "@/lib/equilibrio-mes-reglas";
 import type { Confianza as ConfianzaDatos } from "@/lib/finanzas-confianza";
@@ -153,6 +155,21 @@ export function ResumenFinanzasPanel({ resumen, falla, confianza, mes, periodo, 
   const proyeccion = flujoProximo.estado === "ok" ? flujoProximo.datos : null;
   const pagosDeCompra = ajustes.enCaja && proyeccion ? pagosDeLaCompra(campanas, proyeccion, ajustes.conIgv, elegidas) : [];
   const caja = cajaProxima({ flujo: flujoProximo, cuentas: r.cuentas.estado === "ok" ? r.cuentas.datos : null, ver: r.ver, inversion: pagosDeCompra.length ? { pagos: pagosDeCompra, dias: 42 } : null });
+  // «Libre para usar» y sus bolsillos (camino A, Felipe 2026-11-09): de la misma caja, pero sin la compra de campaña que todavía no se pide (no tiene dueño
+  // aún) y con su ventana de 14 días de siempre, aunque «Tu caja» mire seis semanas por la inversión.
+  const saldo = saldoEnBolsillos({ caja: cajaProxima({ flujo: flujoProximo, cuentas: r.cuentas.estado === "ok" ? r.cuentas.datos : null, ver: r.ver }), proyeccion, planillaSinSalida });
+  const ve = (modulo: string) => acceso.lider || acceso.modulos.includes(modulo);
+  const destino = (modulo: string, ruta: string) => (ve(modulo) ? ir(ruta) : undefined);
+  const destinos: Partial<Record<ClaveBolsillo, string>> = {
+    equipo: destino("cuentas_dinero", "/finanzas/dinero"),
+    sunat: destino("impuestos", "/finanzas/impuestos"),
+    proveedores: destino("cuentas_dinero", "/finanzas/dinero/por-pagar"),
+    fijos: destino("gastos", "/finanzas/gastos"),
+    otros: destino("reportes_financieros", "/finanzas/reportes/flujo"),
+    compras: destino("cuentas_dinero", "/finanzas/dinero"),
+    claure: destino("cuentas_dinero", "/finanzas/dinero/claure"),
+    planilla: destino("cuentas_dinero", "/finanzas/dinero"),
+  };
   // «¿Cuánto tienes?» de CAYLA entera dice de qué está hecho; una sede no lleva los bancos ni lo que las máquinas deben, así que ahí no se reparte.
   const desglose = caja.tipo === "cayla" ? desgloseDeTienes(r.cuentas.estado === "ok" ? r.cuentas.datos : null, loQueHayEnCuentas(caja)) : null;
   // Lo de CLAURE es de la empresa entera, como los bancos: mirando una sola sede no se reparte.
@@ -181,7 +198,11 @@ export function ResumenFinanzasPanel({ resumen, falla, confianza, mes, periodo, 
       <EncabezadoPagina sede={sede} titulo="Resumen" subtitulo={FRASE} acciones={fecha} />
       {/* Las tres preguntas que una persona sin formación de finanzas se hace al abrir esta pantalla, con la cifra de cada una. «Tienes» dice cuánto es de CAYLA
           y cuánto de CLAURE, y «Debes pronto» lista cada deuda con su fecha (Felipe 2026-10-29). */}
-      <TresRespuestas respuestas={tresRespuestas({ r, caja, deja: resp, hrefDinero: ir("/finanzas/dinero"), hrefPorPagar: ir("/finanzas/dinero/por-pagar"), desglose, claure: saldoClaure, claureFalla, planillaSinSalida, plata })} />
+      {/* Camino A (Felipe 2026-11-09): «Libre para usar» con sus bolsillos reemplaza a «¿Cuánto tienes?»; las otras dos respuestas siguen a su lado. */}
+      <section className="grid items-start gap-4 xl:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)]">
+        <SaldoLibre saldo={saldo} destinos={destinos} otroMes={periodo.enCurso ? null : mesNombre(mes)} />
+        <TresRespuestas respuestas={tresRespuestas({ r, caja, deja: resp, hrefDinero: ir("/finanzas/dinero"), hrefPorPagar: ir("/finanzas/dinero/por-pagar"), desglose, claure: saldoClaure, claureFalla, planillaSinSalida, plata }).filter((x) => x.clave !== "tienes")} />
+      </section>
       {/* «Vendido por sede» y la confianza del número, en UNA tarjeta (ADR-0417; Felipe 2026-10-29, opción 3). Si no se pudo medir, se dice (nunca un 0 % falso). */}
       <VendidoPorSede porSede={porSedeDe(vendidoPorSede(filas))} sedes={sedes} hoy={hoy} mes={mesNombre(mes)} confianza={confianza.datos} falla={confianza.falla} hrefCuadre={`${ir("/finanzas/reportes")}${ir("/finanzas/reportes").includes("?") ? "&" : "?"}cuadre=1#de-ventas-a-finanzas`} />
       {juntas && <SedesJuntas juntas={juntas} mes={mesNombre(mes)} hoy={hoy} falla={cajasPorSede?.falla ?? null} />}

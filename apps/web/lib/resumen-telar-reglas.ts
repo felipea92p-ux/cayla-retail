@@ -62,13 +62,6 @@ export function respuestaResumen(
   return { pregunta, valor: f.resultado, chips };
 }
 
-/** El tramo del mes pasado con el que se compara: del 1 al mismo día de hoy (o a su último día, si el mes pasado es más corto). */
-export function tramoAnteriorALaFecha(hoy: string, mesAnterior: string): { desde: string; hasta: string } {
-  const [a, m] = mesAnterior.split("-").map(Number) as [number, number];
-  const ultimo = new Date(Date.UTC(a, m, 0)).getUTCDate();
-  const dia = Math.min(Number(hoy.slice(8, 10)), ultimo);
-  return { desde: `${mesAnterior}-01`, hasta: `${mesAnterior}-${String(dia).padStart(2, "0")}` };
-}
 
 /** Lo que pone cada sede en el orillo del Resumen: lo VENDIDO (sin IGV). El Taller y la Empresa no venden: no tienen tramo. */
 export function vendidoPorSede(filas: readonly FilaER[]): { ubicacionId: string | null; monto: number }[] {
@@ -145,13 +138,6 @@ export function lineaVentasMeta(series: readonly (readonly DiaVenta[])[], mes: s
 
 // ---- El mes que se mira (el `?mes=` de la barra) ------------------------------------------------------------------------------
 
-/** Del 1 del mes elegido a hoy (si es el mes en curso) o a su último día (si ya pasó). `null` si el mes todavía no llega. */
-export function tramoDelMes(mes: string, hoy: string): { desde: string; hasta: string } | null {
-  if (mes > hoy.slice(0, 7)) return null;
-  const [a, m] = mes.split("-").map(Number) as [number, number];
-  const ultimo = `${mes}-${String(new Date(Date.UTC(a, m, 0)).getUTCDate()).padStart(2, "0")}`;
-  return { desde: `${mes}-01`, hasta: mes === hoy.slice(0, 7) ? hoy : ultimo };
-}
 
 /** La misma columna sin sueldos: los saca de la planilla, de los gastos, de su línea 62 y de lo que deja. */
 function sinSueldos(f: FilaER): FilaER {
@@ -184,15 +170,6 @@ export function mesAnteriorDe(mes: string): string {
   return m === 1 ? `${a - 1}-12` : `${a}-${String(m - 1).padStart(2, "0")}`;
 }
 
-/**
- * Con qué se compara la respuesta: en el mes en curso, el mes pasado del 1 al mismo día; en un mes que ya cerró, el mes pasado
- * entero (mes completo contra mes completo).
- */
-export function tramoDeComparacion(mes: string, hoy: string): { desde: string; hasta: string } {
-  const ant = mesAnteriorDe(mes);
-  if (mes === hoy.slice(0, 7)) return tramoAnteriorALaFecha(hoy, ant);
-  return tramoDelMes(ant, hoy)!;
-}
 
 /** Las tiendas cuyo ritmo de ventas entra a la línea: todas las que se ven, o la elegida. El Taller y la Empresa no venden. */
 export function tiendasDeLaLinea(r: ResumenFinanzas): string[] {

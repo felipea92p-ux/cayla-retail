@@ -150,10 +150,23 @@ export const GUIA_FIN_RESUMEN: Guia = {
       texto: "El mismo calendario de Estados financieros. Las flechas pasan al mes de al lado; tocando el nombre eliges un atajo, un mes o dos días, el primero y el último. Lo que es de hoy (cuánto tienes, lo que viene) no cambia con la fecha.",
     },
     {
+      id: "libre",
+      ancla: "fin-resumen.libre",
+      titulo: "Lo que puedes usar",
+      texto: "La cifra grande es lo que puedes gastar sin dejar de pagar nada. Es lo que hay en bancos y cajas menos lo que ya tiene dueño: lo de CLAURE, el fondo de compras, lo que pagas en 14 días y el IGV que vas juntando. Cada bolsillo te lleva a donde se paga. Mirando una sede, ves su efectivo.",
+    },
+    {
+      id: "como-se-calcula",
+      ancla: "fin-resumen.como-se-calcula",
+      opcional: true,
+      titulo: "La cuenta, renglón por renglón",
+      texto: "Aquí se abre la cuenta: lo que hay, cada bolsillo que se resta y lo que queda. No cuenta lo que vas a vender. En la demo no la abrimos.",
+    },
+    {
       id: "respuestas",
       ancla: "fin-resumen.respuestas",
-      titulo: "Las tres preguntas de siempre",
-      texto: "Tres respuestas de un vistazo. Cuánto tienes hoy entre cajones, cajas fuertes y bancos, partido en lo que es de CAYLA y lo que es de CLAURE. Cuánto debes pagar pronto, con cada deuda, su monto y cuándo vence. Y cuánto te deja el mes. Mirando el Taller o la Empresa, la última dice cuánto cuestan: no venden.",
+      titulo: "Lo que debes y lo que te deja",
+      texto: "Al lado, cuánto debes pagar pronto, con cada deuda, su monto y cuándo vence, y cuánto te deja el mes. Mirando el Taller o la Empresa, la última dice cuánto cuestan: no venden.",
     },
     {
       id: "sedes",

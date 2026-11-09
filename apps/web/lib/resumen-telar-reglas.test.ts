@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import fixture from "./resumen-finanzas.fixture.json";
 import { leerResumen } from "./resumen-finanzas-reglas";
 import type { FilaER } from "./resultados-reglas";
-import { comparacionMesPasado, lineaVentasMeta, mismasTiendas, respuestaResumen, tiendasAdivinadas, tramoAnteriorALaFecha, vendidoPorSede } from "./resumen-telar-reglas";
+import { comparacionMesPasado, lineaVentasMeta, mismasTiendas, respuestaResumen, tiendasAdivinadas, vendidoPorSede } from "./resumen-telar-reglas";
 
 // Lo que el Resumen le pasa a la barra común del telar (su respuesta y su orillo) y la línea de ventas contra la meta.
 
@@ -62,11 +62,6 @@ describe("el orillo y el tramo de comparación", () => {
     const v = vendidoPorSede(filas(todas()));
     expect(v.length).toBeGreaterThan(0);
     expect(v.every((x) => x.ubicacionId !== null && x.monto > 0)).toBe(true);
-  });
-
-  it("el mes pasado hasta el mismo día, o hasta su último día si es más corto", () => {
-    expect(tramoAnteriorALaFecha("2026-10-23", "2026-09")).toEqual({ desde: "2026-09-01", hasta: "2026-09-23" });
-    expect(tramoAnteriorALaFecha("2026-03-31", "2026-02")).toEqual({ desde: "2026-02-01", hasta: "2026-02-28" });
   });
 });
 
