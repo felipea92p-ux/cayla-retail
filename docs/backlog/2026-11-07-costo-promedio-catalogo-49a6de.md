@@ -24,8 +24,10 @@
   - la ficha sin la función nueva.
 
   Sin errores en consola. Pasan las 854 suites de la web, el chequeo de tipos, el lint y Knip en sus dos modos.
-- [ ] **Por pegar en producción:** `20261107232000_costo_de_las_tallas.sql` (una parte, sin políticas, re-ejecutable). Verificación:
-  `select to_regprocedure('retail.fn_costo_de_las_tallas(uuid)') is not null;` → `t`. Después, `pnpm datos:generar:produccion`.
+- [x] **En producción desde el 2026-11-09** (lo pegó Felipe): `20261107232000_costo_de_las_tallas.sql`, en su versión con
+  `fn_tallas_para_igualar_costo`. Verificado con una lectura: existen las dos funciones, la tienda solo llama la que pregunta el permiso
+  de dinero, y la regla da 45 tallas para igualar (6 del Short Sohanna).
+- [ ] `pnpm datos:generar:produccion` para que el diccionario vea las funciones nuevas.
 - [ ] **Sin correr:** `/chaos` (el botón solo cambia la ficha en pantalla; guardar no cambió), `/formidable`, `guias:recorrer` y
   `tema:auditar` (los dos piden Playwright).
 - [ ] **Decisión de Felipe:** ¿el costo de S/ 45 de la carga inicial del Short Sohanna era real o un estimado? Si era un estimado:
@@ -58,8 +60,9 @@
   - devolver el permiso la pone en rojo;
   - las 20 pruebas que tocan la tabla dan lo mismo que antes;
   - `roles_cobertura_modulos` sigue 32/32.
-- [ ] **Por pegar en producción:** la PARTE 1 y después la PARTE 2, cada una por separado.
-- [ ] Al refrescar el diccionario (`pnpm datos:generar:produccion`), mover la fila de `docs/datos/01-INVARIANTES.md` de «Local» a «Las dos».
+- [x] **En producción desde el 2026-11-09** (lo pegó Felipe): la PARTE 1 y la PARTE 2. Verificado: la tienda no lee `costo_historial`
+  (sin permiso), hay 0 reglas y RLS está encendido.
+- [x] La fila de `docs/datos/01-INVARIANTES.md` ya dice «Las dos».
 - [x] `eliminar_producto_con_historia` y `purgar_producto_de_prueba` fallaban en la base privada por los datos de prueba que dejé ahí. En
   una base limpia, con todas las migraciones de la rama, pasan enteras (66 ✓ y 100 ✓), igual que `costo-de-las-tallas` y
   `costo-de-compras-solo-por-funciones`.
@@ -74,7 +77,5 @@
   - dos mutaciones de la regla en SQL y tres de la lógica de la web, todas en rojo;
   - el ensayo del script repetido con los casos borde;
   - doble clic y script con la ficha abierta en el navegador: la ficha vieja se rechaza por versión y la base queda intacta.
-- [ ] **Orden para pegar en producción:**
-  1. `20261107232000`;
-  2. `20261109140000`, la PARTE 1 y después la PARTE 2, sola;
-  3. el script, cuando Felipe decida: primero el ensayo.
+- [x] Las dos migraciones, pegadas el 2026-11-09.
+- [ ] El script de igualar, cuando Felipe decida: primero el ensayo (la regla en vivo da 45 tallas de 13 prendas).
