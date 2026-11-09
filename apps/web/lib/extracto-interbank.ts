@@ -22,6 +22,20 @@ export type LineaExtracto = {
   tipo: TipoLinea;
   /** Solo en un lote de Izipay: el código de comercio («PAGO IZIPAY 005839943»), que es de una tienda. */
   codigoComercio: string | null;
+  // Lo que el banco da para reconocer la MISMA línea en otra descarga. Solo lo trae el .txt; en la tabla pegada de la web va todo vacío.
+  /** Día en que el banco la procesó, `AAAA-MM-DD`: un sábado se procesa el lunes. Nulo si no viene. */
+  fechaProceso: string | null;
+  /** El número correlativo del banco, tal cual (11 cifras). Nulo si no viene. */
+  correlativo: string | null;
+  /** El código de movimiento del banco (4 cifras: dice si es un QR, un lote, una transferencia, el ITF). Nulo si no viene. */
+  codigo: string | null;
+  /** El número de operación; el banco pone «-» en las que no lo tienen (un QR), y aquí eso es nulo. */
+  operacion: string | null;
+  /**
+   * Verdadero solo si el banco ya la procesó y su correlativo es el definitivo: (fechaProceso, correlativo) no cambia entre descargas.
+   * Falso en las que todavía no procesó (correlativo provisional, que empieza con `0000`) y en la tabla de la web, que no lo trae.
+   */
+  firme: boolean;
 };
 
 export type ExtractoLeido = {
@@ -60,16 +74,98 @@ export function tipoDeLinea(descripcion: string): { tipo: TipoLinea; codigoComer
   return { tipo: "otro", codigoComercio: null };
 }
 
-// Columnas del .txt de Interbank (medidas el 2026-11-07 sobre un mes entero: 930 líneas, todas de 183 caracteres).
-// Al final de cada renglón van la fecha de operación, la de proceso y el número correlativo del banco: el orden real es (proceso, correlativo).
-// El orden del archivo NO lo es: un sábado que el banco procesa el lunes sale mezclado con el domingo (medido en octubre de 2026).
-const TXT = { descripcion: [35, 63], cargo: [88, 105], abono: [105, 122], saldo: [122, 139], fecha: [156, 164], proceso: [164, 172], correlativo: [172, 183] } as const;
+// Columnas del .txt de Interbank (medidas el 2026-11-07 sobre un mes entero, 930 líneas, y otra vez el 2026-11-09 sobre 1,136: todas de
+// 183 caracteres). Tras la descripción van el código de movimiento y el número de operación; al final de cada renglón, la fecha de
+// operación, la de proceso y el número correlativo del banco.
+//
+// EL ORDEN (regla medida el 2026-11-09; con ella la cadena de saldos de las 1,136 líneas cierra sin un solo hueco):
+//   1. El orden del archivo NO es el real: un sábado que el banco procesa el lunes sale mezclado con el domingo (medido en octubre de 2026).
+//   2. Una línea FIRME es la que el banco ya procesó. Su correlativo es definitivo: `00` + año (2) + día del año de la fecha de proceso (3)
+//      + secuencia (4). Las firmes van por (proceso, correlativo), que sí es el orden en que pasaron.
+//   3. Lo del fin de semana que el banco aún no procesó llega con la fecha de proceso del día de la descarga y un correlativo PROVISIONAL
+//      (empieza con `0000`) que no respeta el orden: un lote que por saldo va primero recibe un número mayor que los pagos que le siguen.
+//      Ordenarlas por ese número dejaba tres huecos falsos. Las provisionales van AL FINAL (son lo más nuevo del archivo), en el orden
+//      inverso del archivo, que dentro de ese bloque sí es el real. Lo mismo vale para una línea sin correlativo legible.
+//   4. Verificación y reparación: si aun así la cadena de saldos se rompe en el bloque provisional, se rearma siguiéndola (después de un
+//      saldo va la línea cuyo saldo menos su monto es ese saldo), partiendo del saldo de la última firme. Solo se acepta si la cadena
+//      alcanza a TODAS las líneas del bloque; si no (falta una de verdad), queda el orden inverso del archivo y el hueco se dice.
+const TXT = {
+  descripcion: [35, 63],
+  codigo: [63, 67],
+  operacion: [68, 75],
+  cargo: [88, 105],
+  abono: [105, 122],
+  saldo: [122, 139],
+  fecha: [156, 164],
+  proceso: [164, 172],
+  correlativo: [172, 183],
+} as const;
 const corte = (l: string, [a, b]: readonly [number, number]) => l.slice(a, b).trim();
+const aFecha = (f: string) => `${f.slice(0, 4)}-${f.slice(4, 6)}-${f.slice(6, 8)}`;
 
-function leerTxt(renglones: string[]): { crudas: Omit<LineaExtracto, "orden">[]; ignoradas: number } {
-  const crudas: (Omit<LineaExtracto, "orden"> & { clave: string })[] = [];
+type Cruda = Omit<LineaExtracto, "orden">;
+
+/**
+ * Rearma un bloque siguiendo la cadena de saldos: cada línea une el saldo de antes (su saldo menos su monto) con su saldo, y se camina
+ * de saldo en saldo usando cada línea una sola vez. Si dos líneas parten del mismo saldo se toma primero la que el bloque trae antes; si
+ * por ahí el camino se cierra antes de usarlas todas, se retrocede y el rodeo queda intercalado (es un camino de Euler: no se prueban
+ * combinaciones). `desde` es el saldo del que hay que partir; nulo = el saldo del que sale una línea más de las que llegan.
+ * Devuelve nulo si no hay UNA cadena que use todas las líneas (se comprueba al final, línea por línea): nunca un orden a medias.
+ */
+function seguirCadena(bloque: readonly Cruda[], desde: number | null): Cruda[] | null {
+  const salen = new Map<number, { l: Cruda; saldo: number }[]>();
+  const llegan = new Map<number, number>();
+  let primero: number | null = null;
+  for (const l of bloque) {
+    if (l.saldoCentimos === null) return null;
+    const antes = l.saldoCentimos - l.centimos;
+    primero ??= antes;
+    salen.set(antes, [...(salen.get(antes) ?? []), { l, saldo: l.saldoCentimos }]);
+    llegan.set(l.saldoCentimos, (llegan.get(l.saldoCentimos) ?? 0) + 1);
+  }
+  const arranque = desde ?? [...salen].find(([saldo, ls]) => ls.length > (llegan.get(saldo) ?? 0))?.[0] ?? primero;
+  if (arranque === null) return null;
+  const pila: { saldo: number; por: Cruda | null }[] = [{ saldo: arranque, por: null }];
+  const alReves: Cruda[] = [];
+  while (pila.length > 0) {
+    const tope = pila[pila.length - 1];
+    const sigue = salen.get(tope.saldo)?.shift();
+    if (sigue) {
+      pila.push({ saldo: sigue.saldo, por: sigue.l });
+    } else {
+      pila.pop();
+      if (tope.por) alReves.push(tope.por);
+    }
+  }
+  if (alReves.length !== bloque.length) return null;
+  // Haberlas usado todas no basta: si dos parten del mismo saldo y falta la que volvía a él, el recorrido las usa igual, pero sueltas y
+  // con la más nueva primero. Solo vale si cada línea parte del saldo en que dejó la cuenta la anterior.
+  const cadena = alReves.reverse();
+  let saldo = arranque;
+  for (const l of cadena) {
+    if (l.saldoCentimos === null || l.saldoCentimos - l.centimos !== saldo) return null;
+    saldo = l.saldoCentimos;
+  }
+  return cadena;
+}
+
+/** El bloque provisional, que llega en el orden inverso del archivo: se deja así si su cadena de saldos cierra; si no, se intenta rearmar. */
+function ordenarProvisionales(bloque: Cruda[], saldoFirme: number | null): Cruda[] {
+  const rota = (antes: number | null, l: Cruda) => antes !== null && l.saldoCentimos !== null && l.saldoCentimos - l.centimos !== antes;
+  const rotaAdentro = bloque.some((l, k) => k > 0 && rota(bloque[k - 1].saldoCentimos, l));
+  const rotaEnLaUnion = bloque.length > 0 && rota(saldoFirme, bloque[0]);
+  if (!rotaAdentro && !rotaEnLaUnion) return bloque;
+  // Primero, la cadena que empalma con la última firme. Si no existe pero el bloque está desordenado por dentro, la que cierre por dentro:
+  // el hueco de la unión (lo que falta entre lo firme y lo provisional) se dirá igual, una sola vez.
+  const empalmada = saldoFirme !== null ? seguirCadena(bloque, saldoFirme) : null;
+  return empalmada ?? (rotaAdentro ? seguirCadena(bloque, null) : null) ?? bloque;
+}
+
+function leerTxt(renglones: string[]): { crudas: Cruda[]; ignoradas: number } {
+  const firmes: { c: Cruda; i: number; clave: string }[] = [];
+  const provisionales: Cruda[] = [];
   let ignoradas = 0;
-  for (const l of renglones) {
+  renglones.forEach((l, i) => {
     const f = corte(l, TXT.fecha);
     const cargo = corte(l, TXT.cargo);
     const abono = corte(l, TXT.abono);
@@ -77,31 +173,41 @@ function leerTxt(renglones: string[]): { crudas: Omit<LineaExtracto, "orden">[];
     const monto = abono ? centimosDe(abono) : cargo ? centimosDe(cargo) : null;
     if (!/^\d{8}$/.test(f) || monto === null || (cargo !== "" && abono !== "")) {
       ignoradas++;
-      continue;
+      return;
     }
     const descripcion = corte(l, TXT.descripcion);
-    crudas.push({
-      fecha: `${f.slice(0, 4)}-${f.slice(4, 6)}-${f.slice(6, 8)}`,
+    const proceso = corte(l, TXT.proceso);
+    const correlativo = corte(l, TXT.correlativo);
+    const codigo = corte(l, TXT.codigo);
+    const operacion = corte(l, TXT.operacion);
+    const fechaProceso = /^\d{8}$/.test(proceso) ? aFecha(proceso) : null;
+    const firme = fechaProceso !== null && /^\d{11}$/.test(correlativo) && !correlativo.startsWith("0000");
+    const c: Cruda = {
+      fecha: aFecha(f),
       descripcion,
       centimos: abono ? monto : -Math.abs(monto),
       saldoCentimos: saldo,
       ...tipoDeLinea(descripcion),
-      clave: `${corte(l, TXT.proceso)}${corte(l, TXT.correlativo)}`,
-    });
-  }
-  // De la más vieja a la más nueva por (proceso, correlativo); un empate exacto conserva el orden inverso del archivo.
-  const ordenadas = crudas
-    .map((c, i) => ({ c, i }))
-    .sort((a, b) => (a.c.clave < b.c.clave ? -1 : a.c.clave > b.c.clave ? 1 : b.i - a.i))
-    .map(({ c: { clave: _clave, ...resto } }) => resto);
-  return { crudas: ordenadas, ignoradas };
+      fechaProceso,
+      correlativo: correlativo || null,
+      codigo: codigo || null,
+      operacion: operacion === "" || operacion === "-" ? null : operacion,
+      firme,
+    };
+    if (firme) firmes.push({ c, i, clave: `${proceso}${correlativo}` });
+    else provisionales.push(c);
+  });
+  // Las firmes, de la más vieja a la más nueva por (proceso, correlativo); un empate exacto conserva el orden inverso del archivo.
+  const ordenadas = firmes.sort((a, b) => (a.clave < b.clave ? -1 : a.clave > b.clave ? 1 : b.i - a.i)).map(({ c }) => c);
+  const saldoFirme = ordenadas[ordenadas.length - 1]?.saldoCentimos ?? null;
+  return { crudas: [...ordenadas, ...ordenarProvisionales(provisionales.reverse(), saldoFirme)], ignoradas };
 }
 
 const FECHA_WEB = /(\d{2})\/(\d{2})\/(\d{4})/g;
 const MONTO_WEB = /S\/\s*-?\s*[\d,]+\.\d{2}/g;
 
-function leerTablaWeb(renglones: string[]): { crudas: Omit<LineaExtracto, "orden">[]; ignoradas: number } {
-  const crudas: Omit<LineaExtracto, "orden">[] = [];
+function leerTablaWeb(renglones: string[]): { crudas: Cruda[]; ignoradas: number } {
+  const crudas: Cruda[] = [];
   let ignoradas = 0;
   for (const l of renglones) {
     const fechas = [...l.matchAll(FECHA_WEB)];
@@ -125,7 +231,19 @@ function leerTablaWeb(renglones: string[]): { crudas: Omit<LineaExtracto, "orden
       .replace(/^[\s\-]+/, "")
       .replace(/\s+/g, " ")
       .trim();
-    crudas.push({ fecha: `${aaaa}-${mm}-${dd}`, descripcion, centimos: importe, saldoCentimos: saldo, ...tipoDeLinea(descripcion) });
+    crudas.push({
+      fecha: `${aaaa}-${mm}-${dd}`,
+      descripcion,
+      centimos: importe,
+      saldoCentimos: saldo,
+      ...tipoDeLinea(descripcion),
+      // La tabla pegada no trae el correlativo y lo demás no se lee de ella: ninguna de sus líneas es firme.
+      fechaProceso: null,
+      correlativo: null,
+      codigo: null,
+      operacion: null,
+      firme: false,
+    });
   }
   // La tabla de la web va de la más nueva a la más vieja y no trae el correlativo: se da vuelta.
   return { crudas: crudas.reverse(), ignoradas };
