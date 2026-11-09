@@ -81,3 +81,30 @@ funciona igual, solo que el «?» explica en palabras. Verificación: `select to
   Dos mutaciones de la función hacen fallar la prueba.
 - `lib/costo-tallas-reglas.test.ts`: las frases, la línea de la prenda y la sugerencia contra «Cambiar en bloque», con el caso real.
 - `lib/matriz-ficha-reglas.test.ts`: la columna en dos líneas.
+
+## Actualización 2026-11-09 · Igualar las tallas sin stock en todas las prendas («Solo sin stock», Felipe)
+
+Felipe pidió «esto realízalo para todos los productos». La pantalla ya sirve para todas las prendas. Lo nuevo es igualar en la base el costo
+de las tallas que todavía no llegan por compra al de la última compra de su prenda, sin esperar a que alguien abra cada ficha.
+
+Medido en producción el 2026-11-07 (solo lectura):
+- **45 prendas** tienen al menos una compra.
+- En **13** de ellas hay **60 tallas** sin compra con otro costo: 34 subirían, 26 bajarían y 16 están en S/ 0.
+- **15 de esas 60 tienen stock** (30 prendas en tienda). Cambiarlas movería el valor del inventario en −S/ 79.28.
+
+DECIDÍ (Felipe, entre tres): solo las tallas **sin stock**, con el script de una sola vez
+`supabase/migrations/pegar-en-produccion-costo-declarado-ultima-compra-2026-11-09.sql`. Funciona así:
+- Primero hace un ensayo («ENSAYO_OK» que deshace todo) y se aplica cambiando una línea.
+- Guarda la foto de antes en `respaldo_purgas.filas` y sube la versión de cada prenda tocada (una ficha abierta desde antes no pisa el costo
+  nuevo).
+- Se detiene si ya se aplicó.
+- Excluye las tallas con stock, las que están en un traslado en camino, las desactivadas y las prendas cuya última compra fue sin costo.
+
+DESCARTÉ:
+- Las 60 con stock: reescribe lo que cuestan 30 prendas que ya estaban en tienda y no llegaron en esa compra. Si su costo escrito era el
+  real, se pierde.
+- No tocar la base: cada prenda quedaba con su costo viejo hasta que alguien abriera su ficha y usara el botón.
+
+SE ROMPE SI: una prenda tiene la última compra de una sola talla más cara que las demás (por ejemplo, la XL). Todas sus tallas sin compra
+toman ese costo. El ensayo lista cada prenda con cuántas tallas cambian, para revisarlo antes de aplicar.
+Las 15 tallas con stock quedan como están y se corrigen una por una en su ficha, si hace falta.

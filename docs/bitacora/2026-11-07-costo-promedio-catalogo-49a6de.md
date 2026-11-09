@@ -12,3 +12,11 @@ la pantalla no decía de dónde salía cada número. Las tallas que no llegaron 
 cuesta la 32. Por eso es un botón que la persona decide usar.
 Felipe se lleva: un SQL de solo lectura por pegar (sin él la ficha funciona igual, solo que el «?» explica en palabras). También una pregunta
 de negocio: ¿los S/ 45 de la carga inicial eran el costo real o un estimado?
+
+## 2026-11-09 (Igualar el costo de las tallas sin stock en todas las prendas)
+Qué hice: un script de una sola vez. A cada talla sin compra y sin stock le pone el costo de la última compra de su prenda, en todo el
+catálogo. Trae ensayo, respaldo de cada fila, versión de la prenda subida, freno contra el segundo pegado y camino de vuelta. Lo ensayé en
+una base privada con los casos que no deben cambiar: con stock, en traslado y desactivada.
+Por qué así: Felipe eligió «Solo sin stock». A una talla sin stock, cambiarle el costo no mueve el valor del inventario. A una con stock, sí
+reescribiría lo que cuestan prendas que no llegaron en esa compra.
+Felipe se lleva: pegarlo primero como ensayo, mirar la lista y recién después aplicarlo cambiando una línea.

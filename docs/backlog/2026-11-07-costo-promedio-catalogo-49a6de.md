@@ -32,3 +32,18 @@
   - las 3 ventas de octubre se guardaron con un margen inflado;
   - el S/ 46.50 de Azul marino 30 mezcla ese dato;
   - desde la app no se corrige, porque esa talla ya tiene una compra.
+
+## 🧾 Igualar las tallas sin stock en todas las prendas (2026-11-09, ADR-0631 act.) — script de una sola vez, misma rama
+
+- [x] Felipe eligió «Solo sin stock». En producción (medido el 2026-11-07) son 45 de 60 tallas en 13 prendas. Las 15 con stock no se tocan.
+- [x] Script `supabase/migrations/pegar-en-produccion-costo-declarado-ultima-compra-2026-11-09.sql`. Se ensayó en la base privada:
+  - el ensayo no cambia nada;
+  - la aplicación cambia solo las 3 tallas esperadas: no toca la talla con stock, la del traslado en camino ni la desactivada;
+  - sube la versión de la prenda, deja «costo declarado» en el historial y una línea en Actividad;
+  - el segundo pegado se detiene y el camino de vuelta devuelve los costos.
+- [ ] **Por pegar en producción (Felipe):**
+  1. pegar tal cual (es el ensayo): debe decir «ENSAYO_OK: N tallas de M prendas…»;
+  2. revisar la lista;
+  3. cambiar `false` por `true` en la línea APLICAR y pegar de nuevo.
+
+  El conector de Supabase dejó de dar lectura de producción el 2026-11-09, así que las cifras de hoy las dice el ensayo, no esta nota.
