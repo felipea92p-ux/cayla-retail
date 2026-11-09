@@ -228,3 +228,13 @@ guarda no cambia (`lib/clasificar-egreso.ts`, la misma regla que la hoja «¿Qu�
 más clara de que eso no se guardó. **DESCARTÉ:** el guardado al instante en el resto de Gastos (registrar un gasto, anular): son de a uno,
 y ahí el loader dice «espera, se está guardando» sin estorbar. **SE ROMPE SI:** alguien quita el `setHeader("x-espera", "no")` de
 `GastosPulso` (vuelve el loader en cada «Listo») o el `navegacionSinEspera` del refresco (el loader vuelve después).
+
+## Actualización 2026-11-09 — la pausa del buscador vive en un solo lugar
+
+Cada búsqueda por URL vuelve a pedir la pantalla entera y el router de Next no cancela la anterior (`fetch-server-response.js`, 16.4.1). La pausa estaba copiada en
+cada buscador, con 350 o 400 ms, y Compras, Movimientos y Recibidas sumaban una entrada a «Atrás» por pausa. Ahora el buscador que va a la URL se arma con `useBuscarAlEscribir`
+(`components/ui/BusquedaEnUrl.tsx`) y la regla está en `@cayla-retail/shared/busqueda`, porque Notificaciones de la tienda la usa también.
+
+**DECIDÍ:** 350 ms para todos y que una letra sola no busque, porque la «a» encuentra los 386 productos de la base local: era recargar la pantalla sin filtrar. Un dígito solo sí busca (es un número de orden) y Enter manda lo que haya.
+**DESCARTÉ:** subir la pausa, que haría más lenta la búsqueda y no toca el costo de la pantalla; y agregar índices trigram, porque buscar en Productos tarda 11–16 ms en local. Productos no usa el hook: su pausa también cubre las cajas de precio, y comparte la constante y la regla.
+**SE ROMPE SI:** un buscador nuevo arma su propio temporizador con `useBusquedaEnUrl` (lo vigila `lib/busqueda-al-escribir.test.ts`), o un cambio que no es teclear usa `setTexto` en vez de `fijar`: la pausa lo volvería a mandar sobre la URL de antes.

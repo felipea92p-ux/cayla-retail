@@ -17,8 +17,8 @@ import { LoaderCircle, Search, X } from "lucide-react";
 
    Lo que pidió Felipe al elegir: «que no salga buscando cuando no sea necesario, y que siempre se priorice que se vaya actualizando
    conforme se vaya escribiendo». Por eso:
-     – la lista se filtra MIENTRAS se escribe (`onCambio` en cada tecla; quien filtra en la base lo hace con `useBusquedaEnUrl` y su
-       pausa corta), nunca esperando un Enter;
+     – la lista se filtra MIENTRAS se escribe (`onCambio` en cada tecla; quien filtra en la base lo hace con `useBuscarAlEscribir` y
+       su pausa corta), nunca esperando un Enter;
      – «Buscando…» y el hilo salen SOLO si la espera de verdad tarda (`buscando` sigue en true pasados 350 ms). Lo que se filtra en
        el navegador nunca lo muestra, y una respuesta rápida tampoco: no parpadea.
 
