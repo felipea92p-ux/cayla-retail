@@ -1,7 +1,7 @@
 # ADR-0632 — El vigía diario de invariantes: producción se revisa sola cada madrugada y avisa solo lo nuevo
 
-- **Fecha:** 2026-11-09 · **Estado:** construido en la rama `claude/system-audit-improvements-069230` (5 commits). La migración
-  `20261109152000_vigia_de_invariantes.sql` **no está pegada en producción**: la pega Felipe (ver «Cómo se pega»).
+- **Fecha:** 2026-11-09 · **Estado:** PR #1731. `20261109152000` **pegada por Felipe el 2026-11-09** y verificada por efectos;
+  `20261109163000` (INV-03 corregida, ver «Actualización») **por pegar**.
 - **Nace de:** el problema #8 de la auditoría del 2026-11-09 («Nadie vigila la salud del negocio en producción»). Felipe: «empieza por el 8,
   pero utiliza las skills que consideres apropiadas empezando por ultra criterio».
 - **Relacionados:** ADR-0356 (`/chaos` y sus invariantes), ADR-0450 (`/api/salud` y su vigía), ADR-0424 (Sentry), ADR-0322 (el Observatorio
@@ -81,7 +81,7 @@ son ~10 mil en 3 años. No hace falta índice ni caché.
 
 ## Cómo se pega (Felipe)
 
-Una sola parte, en el SQL Editor de cayla-dynamic: el archivo entero. No tiene `create policy` ni `alter` de tablas en uso; trae su
+`20261109152000` y después `20261109163000` (esta última solo vuelve a sembrar con INV-03 corregida). Cada una en una sola parte, en el SQL Editor de cayla-dynamic: el archivo entero. No tiene `create policy` ni `alter` de tablas en uso; trae su
 `set lock_timeout = '3s'`; todo está prefijado con `retail.`; ningún `select … into` dentro de comillas simples (las consultas van entre
 `$inv$`). Se puede volver a pegar. Para deshacerlo: `drop function` de `fn_correr_invariantes`, `fn_invariantes_estado` y
 `fn_invariantes_aceptar`, y `drop table` de `invariantes_conocidas`, `invariantes_corridas` e `invariantes` (en ese orden).
@@ -91,6 +91,20 @@ Una sola parte, en el SQL Editor de cayla-dynamic: el archivo entero. No tiene `
 `conocidas`. Si sale algo en `conocidas`, eso es lo heredado: conviene mirarlo, porque es la primera vez que alguien lo cuenta.
 
 **Aceptar algo que es así a propósito** (hasta que tenga botón): `select retail.fn_invariantes_aceptar('INV-02', '<por qué, 10 letras o más>');`
+
+## Actualización 2026-11-09: lo que mostró producción antes de la primera corrida
+
+Con `20261109152000` ya pegada, todas las reglas activas se corrieron contra producción en solo lectura. **INV-03 marcaba 1.280
+líneas vendidas sin salida de stock, y las 1.280 eran la «Prenda sin registrar» (ADR-0179)**: 47 pendientes en `prendas_por_regularizar`
+y 1.233 cerradas sin prenda con la cola de arranque (ADR-0334). No mueven stock a propósito. La base local no tiene ninguna, y por eso
+`/chaos` nunca lo vio. La línea base las habría tomado como heredadas, pero cada venta «sin registrar» nueva (unas 12 al día en noviembre)
+habría encendido la lente cada mañana: exactamente el ruido que este ADR quería evitar. INV-03 ahora excluye la línea **sin salida** que
+está en esa cola como pendiente o cerrada sin prenda (`20261109163000`); fuera de la cola sigue siendo violación. Con eso, producción da
+**0 en todas las reglas de estado imposible**. Solo quedan 9 movimientos sin responsable (INV-10, dato dudoso): ajustes de conteo del
+2026-09-30, que serán heredados.
+
+**Lección para la próxima regla:** el detector se diseñó contra la base local. Antes de encender una regla nueva en el vigía, se corre una
+vez contra producción en solo lectura y se mira de qué está hecho cada conteo grande.
 
 ## Lo que queda
 

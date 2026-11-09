@@ -12,10 +12,15 @@ Nace del #8 de la auditoría del 2026-11-09 («Nadie vigila la salud del negocio
 - [x] Lente «Vigía de la base» en el Observatorio del Admin. Visto en local con una violación provocada (precio de una línea +5): «2 ·
   Problemas nuevos en la base» (INV-02 y INV-07), sin enlace, en claro y en oscuro. `tsc`, eslint, knip, knip:produccion, guías, unificar,
   tema-colores y hover en verde; el hook completo pasó en el commit de la actividad 4.
-- [ ] **POR PEGAR (Felipe):** `supabase/migrations/20261109152000_vigia_de_invariantes.sql` entero, una sola parte. Verificar:
-  `select count(*) from retail.invariantes;` → 28. Después `select retail.fn_correr_invariantes();` fija la línea base sin esperar a las 3:30
-  y muestra lo heredado en `conocidas`: es la primera vez que alguien lo cuenta, conviene mirarlo.
-- [ ] **Antes de fusionar:** pegar primero (fusionar es publicar, y la lente diría «?» hasta que la función exista). Abrir el PR con `/abrir-pr`.
+- [x] `20261109152000` **pegada por Felipe el 2026-11-09**. Verificada por efectos (solo lectura): 28 invariantes (26 activas, 2 sospechas
+  apagadas, 1 con sesión), 3 funciones, RLS en las 3 tablas, `authenticated` no las lee, `fn_correr_invariantes` solo `service_role`.
+- [x] PR #1731 abierto con `/abrir-pr`.
+- [x] Antes de la primera corrida, todas las reglas activas contra producción (solo lectura): INV-03 daba 1.280 falsos positivos (la
+  «Prenda sin registrar», ADR-0179/0334). Corregida en `20261109163000`: producción queda en 0 en todo; solo 9 movimientos sin
+  responsable (INV-10, ajustes de conteo del 2026-09-30) que serán heredados.
+- [ ] **POR PEGAR (Felipe):** `supabase/migrations/20261109163000_vigia_inv03_prenda_sin_registrar.sql`, una parte. Verificar:
+  `select sql like '%prendas_por_regularizar%' from retail.invariantes where id = 'INV-03';` → true. Después marcar «SQL pegado» en el PR.
+- [ ] Primera corrida: `select retail.fn_correr_invariantes();` (o esperar a las 3:30). Debe decir 0 nuevas y 9 conocidas.
 - [ ] **Sentry:** una regla de alerta que escriba a Felipe cuando aparezca `donde = "salud/invariantes (cron): …"` (hoy nadie verificó que
   Sentry mande correos).
 - [ ] Tras pegar: `pnpm datos:generar:produccion` y `pnpm datos:comparar` al refrescar el volcado (3 tablas y 3 funciones nuevas).
