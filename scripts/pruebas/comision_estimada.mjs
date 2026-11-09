@@ -18,6 +18,7 @@ import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { DESHACER_0629 } from "./_deshacer_0629.mjs";
 
 const a = process.argv.indexOf("--contenedor");
 const CONTENEDOR = a > 0 ? process.argv[a + 1] : "supabase_db_cayla-retail";
@@ -53,11 +54,13 @@ function verificar(titulo, r, esperados) {
     }
   }
 }
+// El aviso «tendría que haber fallado» lleva su propio código (XX999): con el P0001 de fábrica, un freno esperado P0001 se tragaba
+// el aviso y el caso pasaba aunque no frenara nada (lo destapó el control de `pos_pagos.mjs`, 2026-11-07).
 const debeFallar = (nombre, sql, codigo) => `
 do $$
 begin
   ${sql};
-  raise exception '${nombre}: tendría que haber fallado';
+  raise exception '${nombre}: tendría que haber fallado' using errcode = 'XX999';
 exception when others then
   if sqlstate <> '${codigo}' then raise; end if;
 end $$;
@@ -75,6 +78,7 @@ select retail.registrar_venta(:'tru',
 const ESCENA = `
 begin;
 set local request.jwt.claim.sub = '${FELIPE}';
+${DESHACER_0629}
 ${MIGRACION}
 update retail.parametros_finanzas set inicio_finanzas = '2019-01-01';
 select id as tru from retail.ubicaciones where nombre = 'Tienda Trujillo' \\gset
@@ -191,6 +195,7 @@ select 'pero_devenga|' || ${CUENTA("6392", HOY, HOY)};
 `), { hoy_no: "0", pero_devenga: "3.62" });
 
 verificar("pegar dos veces", correr(`begin;
+${DESHACER_0629}
 ${MIGRACION}
 create temp table antes as select md5(pg_get_functiondef('retail.fn_asientos_dinero_y_caja(date,date,boolean,uuid[])'::regprocedure)) h, (select count(*) from retail.pos_tarifas) n, (select count(*) from retail.cuentas) c;
 ${MIGRACION}

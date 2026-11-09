@@ -25,7 +25,7 @@ const EXCEPCIONES: Record<string, string> = {
   "/finanzas/reportes/escenarios": "solo redirige a «¿Y si…?», dentro de Flujo de efectivo (ADR-0585)",
   "/compras/notas-credito": "solo redirige a /compras: las notas de crédito se retiraron (ADR-0480)",
   "/gestion": "solo redirige a la primera de sus cuatro pantallas que la cuenta ve (ADR-0392)",
-  "/buscar": "la abre la lupa de la cabecera, desde cualquier pantalla: no cuelga de un submódulo",
+  "/buscar": "se abre desde los accesos de Inicio y el dock de Almacén, desde cualquier sede: no cuelga de un submódulo",
   "/produccion/cotizaciones-maquila": "no se llega desde ninguna pantalla todavía (URL directa, D-82)",
   // Raíces propias fuera del lateral: se abren desde la cabecera o el perfil, estando en cualquier pantalla.
   "/actividad": "la abre el botón de actividad de la cabecera",

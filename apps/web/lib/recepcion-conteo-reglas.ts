@@ -511,6 +511,8 @@ export type ConteoDeLinea = {
   costoUnitario: number | null;
   /** ADR-0519: el costo propio de las prendas separadas de esta línea que no cuestan lo que la línea ({producto: costo}); las demás, el de la línea. */
   costosPrendas: Readonly<Record<string, number>>;
+  /** Lo de esta línea que YA entró al stock y a qué costo (`en_stock_costo`, 2026-11-08); `null` con la base de antes. */
+  costoEnStock?: CostoEnStock | null;
   version: number;
   contadoPor: Persona | null;
   contadoEn: string | null;
@@ -519,6 +521,52 @@ export type ConteoDeLinea = {
   sinSeparar: number;
   pendientes: PendienteDeLinea[];
 };
+
+/** A qué costo entró lo que ya está en el stock: cuántas con costo y sin él, cuánto suman y entre qué costos. */
+export type CostoEnStock = { conCosto: number; sinCosto: number; monto: number; minimo: number | null; maximo: number | null };
+
+/** Lee `en_stock_costo` del conteo. `null` si la base todavía no lo manda. */
+export function leerCostoEnStock(v: unknown): CostoEnStock | null {
+  const o = objeto(v);
+  if (!o) return null;
+  return { conCosto: entero(o.con_costo), sinCosto: entero(o.sin_costo), monto: cifra(o.monto) ?? 0, minimo: cifra(o.minimo), maximo: cifra(o.maximo) };
+}
+
+/** Suma lo ya entrado de varias líneas (la categoría vista como una sola en el cierre). `null` si ninguna lo trae. */
+export function sumarCostoEnStock(cs: readonly (CostoEnStock | null | undefined)[]): CostoEnStock | null {
+  const hay = cs.filter((c): c is CostoEnStock => !!c);
+  if (hay.length === 0) return null;
+  const minimos = hay.map((c) => c.minimo).filter((n): n is number => n != null);
+  const maximos = hay.map((c) => c.maximo).filter((n): n is number => n != null);
+  return {
+    conCosto: hay.reduce((a, c) => a + c.conCosto, 0),
+    sinCosto: hay.reduce((a, c) => a + c.sinCosto, 0),
+    monto: Math.round(hay.reduce((a, c) => a + c.monto, 0) * 100) / 100,
+    minimo: minimos.length ? Math.min(...minimos) : null,
+    maximo: maximos.length ? Math.max(...maximos) : null,
+  };
+}
+
+/**
+ * Las filas de costo de lo que ya entró al stock (para `costoDelGrupo`): lo que entró con costo, con su monto exacto, y lo que entró sin él.
+ * Con la base de antes (sin `en_stock_costo`) no se sabe: todo lo ya entrado cuenta como sin costo, como antes.
+ */
+export function filasDeCostoEnStock(enStock: number, c: CostoEnStock | null | undefined): { unidades: number; costo: number | null; monto?: number }[] {
+  if (enStock <= 0) return [];
+  if (!c) return [{ unidades: enStock, costo: null }];
+  const filas: { unidades: number; costo: number | null; monto?: number }[] = [];
+  if (c.conCosto > 0) filas.push({ unidades: c.conCosto, costo: c.monto / c.conCosto, monto: c.monto });
+  const sin = Math.max(0, enStock - c.conCosto);
+  if (sin > 0) filas.push({ unidades: sin, costo: null });
+  return filas;
+}
+
+/** El costo de lo ya entrado, para la fila de «Revisa y cierra»: «S/ 40.68» o «S/ 15.00 a S/ 39.00». `null` si nada entró con costo. */
+export function textoCostoEnStock(c: CostoEnStock | null | undefined): string | null {
+  if (!c || c.conCosto === 0 || c.minimo == null || c.maximo == null) return null;
+  const s = (n: number) => `S/\u00a0${n.toFixed(2)}`;
+  return c.minimo === c.maximo ? s(c.minimo) : `${s(c.minimo)} a ${s(c.maximo)}`;
+}
 
 export type CierreDelEnvio = { tipo: "cierre" | "reapertura"; motivo: string | null; hechoPor: Persona | null; hechoEn: string | null; porDetallar: number | null; faltan: number | null };
 
@@ -618,6 +666,7 @@ function leerConteoDeLinea(v: unknown): ConteoDeLinea | null {
     separado: leerSeparado(r.separado),
     costoUnitario: cifra(r.costo_unitario),
     costosPrendas: leerCostosPrendas(r.costos_prendas),
+    costoEnStock: leerCostoEnStock(r.en_stock_costo),
     version: Math.max(1, entero(r.version)),
     contadoPor: persona(r.contado_por),
     contadoEn: texto(r.contado_en),
@@ -1156,24 +1205,28 @@ export function detalleDelModelo(
 }
 
 /** El costo de un grupo de «Revisa y cierra», al pie de su tarjeta: lo que suma lo que ya tiene costo y cuántas prendas entran sin él. */
-export function costoDelGrupo(filas: readonly { unidades: number; costo: number | null }[]): { total: number; conCosto: number; sinCosto: number } {
+export function costoDelGrupo(filas: readonly { unidades: number; costo: number | null; monto?: number }[]): { total: number; conCosto: number; sinCosto: number } {
   let total = 0;
   let conCosto = 0;
   let sinCosto = 0;
   for (const f of filas) {
     if (f.costo == null) sinCosto += f.unidades;
     else {
-      total += f.costo * f.unidades;
+      // `monto`: lo que ya entró al stock, sumado talla por talla en la base (sin redondear un promedio).
+      total += f.monto ?? f.costo * f.unidades;
       conCosto += f.unidades;
     }
   }
   return { total: Math.round(total * 100) / 100, conCosto, sinCosto };
 }
 
-/** Cuántas unidades contadas de la línea todavía no son una prenda con nombre (ni identificada ni descrita): entran con el costo de la línea. */
+/**
+ * Cuántas unidades contadas de la línea todavía no son una prenda con nombre (ni identificada ni descrita): entran con el costo de la línea.
+ * Lo que ya entró al stock está identificado (salió de `separado` al entrar), como en `sinIdentificarDelGrupo` (2026-11-08).
+ */
 export function unidadesSinIdentificar(l: Pick<LineaParaContar, "conteo">): number {
   const contadas = l.conteo?.contadas ?? 0;
-  return Math.max(0, contadas - prendasConCosto(l).reduce((a, p) => a + p.unidades, 0));
+  return Math.max(0, contadas - (l.conteo?.enStock ?? 0) - prendasConCosto(l).reduce((a, p) => a + p.unidades, 0));
 }
 
 /** Lo que cada prenda cuesta de verdad al cerrar: su costo propio si es un monto y distinto del de la línea; vacío o igual al de la línea, el de la línea. */

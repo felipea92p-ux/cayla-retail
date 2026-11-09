@@ -7,6 +7,7 @@ import {
   leerConciliacion,
   leerConciliacionCuenta,
   leerCuenta,
+  leerLotePendiente,
   leerEfectivo,
   leerMedio,
   leerMovimiento,
@@ -19,12 +20,14 @@ import {
   type CuentaDinero,
   type EfectivoFila,
   type FilaMedio,
+  type LotePendiente,
   type MaquinaPos,
   type MovimientoDinero,
   type MovimientoDueno,
   type SinCuenta,
 } from "@/lib/cuentas-dinero-reglas";
 import { deudaConDueno } from "@/lib/cuentas-dinero-reglas";
+import { deudaDeMaquinas, tieneExtracto, type DeudaDeMaquina } from "@/lib/cuadrar-reglas";
 import { leerVer, type UbicacionGastos, type Ver } from "@/lib/gastos-reglas";
 import { leerCuentaPlanilla, leerTramo, planillaParaElInicio, type CuentaPlanilla, type PlanillaParaElInicio, type TramoPlanilla } from "@/lib/planilla-salidas-reglas";
 import { esFuncionAusente } from "@/lib/compras-reglas";
@@ -190,7 +193,20 @@ export async function getConciliacionCuentas(): Promise<Lectura<ConciliacionCuen
   const supabase = await createClient();
   const { data, error } = await supabase.rpc("fn_conciliacion_cuentas" as never);
   if (error) return { datos: [], falla: falla("las cuentas por conciliar", error) };
-  return { datos: ((data ?? []) as Fila[]).map(leerConciliacionCuenta), falla: null };
+  return { datos: ((data ?? []) as Fila[]).map(leerConciliacionCuenta).filter((c) => tieneExtracto(c.tipo)), falla: null };
+}
+
+/** Solo el líder: por máquina, lo que cobró y todavía no llegó, con los días atrasados (ADR-0629, Fase B). Si la base no responde, lo dice. */
+export async function getDeudaDeMaquinas(): Promise<Lectura<DeudaDeMaquina[]>> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("fn_pos_alertas" as never);
+  if (error) return { datos: [], falla: falla("lo que deben las máquinas", error) };
+  const alertas = ((data ?? []) as Fila[]).map(leerAlertaPos);
+  const lecturas = await Promise.all(alertas.map((a) => supabase.rpc("fn_pos_pendientes" as never, { p_cuenta_id: a.cuentaId } as never)));
+  const caida = lecturas.find((l) => l.error);
+  if (caida?.error) return { datos: [], falla: falla("lo que deben las máquinas", caida.error) };
+  const lotes = new Map<string, LotePendiente[]>(alertas.map((a, i) => [a.cuentaId, ((lecturas[i].data ?? []) as Fila[]).map(leerLotePendiente)]));
+  return { datos: deudaDeMaquinas(alertas, lotes), falla: null };
 }
 
 export async function getConciliacion(cuentaId: string, hasta: string | null): Promise<Lectura<Conciliacion | null>> {

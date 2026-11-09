@@ -13,9 +13,8 @@ import { getParametrosCaja } from "@/lib/configuracion";
 import { hoyLima } from "@/lib/fechas-lima";
 import { createClient } from "@/lib/supabase/server";
 import { tolerar } from "@/lib/resultado";
-import { History } from "lucide-react";
 import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
-import { BotonEnlace } from "@/components/ui/campos";
+import { BotonHistorialCierres } from "@/components/caja/BotonHistorialCierres";
 import { AbrirCajaPantalla } from "@/components/caja/AbrirCajaPantalla";
 import { CajaAbiertaPanel, type VentaDelDia } from "@/components/CajaAbiertaPanel";
 
@@ -48,17 +47,16 @@ export default async function CajaPage({ searchParams }: { searchParams: Promise
     // `/caja` va a todo el ancho (AppShell), con la caja abierta y también cerrada: «Abrir caja» llena la pantalla (2026-11-03).
     <div className="space-y-6">
       {/* Sin caja: la misma cabecera de Cambios (`EncabezadoPagina`), con «Historial de cierres» como su acción (un botón a la
-          vista desde el 2026-10-08: el enlace gris no se notaba). Con caja, la cabecera la trae el propio tablero (necesita el estado de sus modales). */}
+          vista desde el 2026-10-08: el enlace gris no se notaba). Abre el MISMO modal por mes que con la caja abierta (Felipe
+          2026-11-08); los últimos 7 cierres de la sede lo dibujan al instante mientras llega el mes. Con caja, la cabecera la trae
+          el propio tablero (necesita el estado de sus modales). */}
       {!caja && (
         <EncabezadoPagina
           sede={persona.ubicacionEtiqueta}
           titulo="Caja"
           subtitulo="Cuenta el cajón y abre la caja para vender."
           acciones={
-            <BotonEnlace href="/caja/historial" data-guia="caja.historial-todas">
-              <History className="h-4 w-4" aria-hidden />
-              Historial de cierres
-            </BotonEnlace>
+            <BotonHistorialCierres cierres={cierresRecientesSede} ubicacionId={persona.ubicacionId} ubicacionNombre={persona.ubicacionEtiqueta} />
           }
         />
       )}

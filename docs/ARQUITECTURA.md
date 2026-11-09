@@ -2013,6 +2013,13 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
     `fn_por_pagar_consolidado`. Tablas `cuentas_dinero`, `medios_de_cobro`, `movimientos_dinero`, `conciliaciones`,
     `dinero_revisados`. La cuenta sellada (F3b): `cuenta_dinero_id` en los pagos de venta, separación, cambio,
     devolución, traslado de caja y compra, llenada por disparador (cobros) o elegida con la cuenta propuesta (pagos).
+  - **Cuadrar con el banco sin las puentes (ADR-0629, Fase B, 2026-11-07):** `conciliacion` lista solo las cuentas con extracto
+    (`tieneExtracto`, `lib/cuadrar-reglas.ts`, aplicado en `getConciliacionCuentas`); la puente «Por depositar» va en «Lo que te deben las
+    máquinas» (`getDeudaDeMaquinas` → `fn_pos_alertas` + `fn_pos_pendientes` por máquina → `deudaDeMaquinas` →
+    `components/finanzas/dinero/DeudaDeMaquinas.tsx`). En el banco al que depositan las máquinas, «Subir extracto»
+    (`components/finanzas/dinero/CuadrarConExtracto.tsx`) lee el .txt (`lib/extracto-interbank.ts`), empareja
+    (`lib/emparejar-maquinas.ts`: Vendemás por lote con `registrar_abono_pos`; Izipay pago por pago con `fn_pos_pagos_por_depositar` y
+    `registrar_abono_pos_pagos`, tabla `pos_abonos_pagos`, migración `20261108023000`).
   - **La cuenta con CLAURE (ADR-0560, 2026-10-29; actividad 1, solo lectura):** `/finanzas/dinero/claure` (la cuarta cara de Cuentas y dinero, «CLAURE») →
     `lib/cuenta-claure.ts` → `fn_claure_cuenta()` y `fn_claure_cuenta_desde()` (20261029004000) → `lib/cuenta-claure-reglas.ts` (`resumenClaure`) →
     `components/finanzas/dinero/CuentaClaure.tsx`. Lo que CLAURE (Claudia) cobró en **cuentas de CAYLA** (tarjeta, QR, Yape…; el efectivo no, lo tiene ella), por día, medio y

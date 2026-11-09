@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { costoDelGrupo as costoDelGrupoStock, filasDeCostoEnStock, leerConteosDelEnvio as leerConteosStock, textoCostoEnStock, unidadesSinIdentificar as sinIdentificarStock } from "./recepcion-conteo-reglas";
 import { admiteSinMarca, sePuedeCambiarCategoria, costoDeCatalogo, costosConCatalogo } from "./recepcion-conteo-reglas";
 import {
   lineasSinModelosEnCero,
@@ -1490,5 +1491,36 @@ describe("«Revisa y cierra» B: el detalle de cada modelo y el costo de cada gr
   it("el costo del grupo suma lo que tiene costo y cuenta lo que entra sin él", () => {
     expect(costoDelGrupo([{ unidades: 5, costo: 50 }, { unidades: 10, costo: null }, { unidades: 2, costo: 12.5 }])).toEqual({ total: 275, conCosto: 7, sinCosto: 10 });
     expect(costoDelGrupo([])).toEqual({ total: 0, conCosto: 0, sinCosto: 0 });
+  });
+});
+
+// 2026-11-08, envío n.º 7: las 113 prendas ya habían entrado al stock con su costo y «Revisa y cierra» decía «Sin costo: 98».
+
+describe("lo que ya entró al stock en «Revisa y cierra»", () => {
+  const envio = (enStock: number, enStockCosto: unknown) =>
+    leerConteosStock({
+      despacho_id: "d",
+      estado: "abierto",
+      conteos: [{ extra_posicion: 2, contadas: 15, en_stock: enStock, separado: { prendas: [], nuevas: [] }, costo_unitario: null, en_stock_costo: enStockCosto }],
+    })!.conteos[0];
+
+  it("lee el costo con que entró y lo cuenta con costo, no «sin costo» ni «sin identificar»", () => {
+    const c = envio(15, { con_costo: 15, sin_costo: 0, monto: 610.2, minimo: 40.68, maximo: 40.68 });
+    expect(c.costoEnStock).toEqual({ conCosto: 15, sinCosto: 0, monto: 610.2, minimo: 40.68, maximo: 40.68 });
+    expect(sinIdentificarStock({ conteo: c })).toBe(0);
+    expect(costoDelGrupoStock(filasDeCostoEnStock(15, c.costoEnStock))).toEqual({ total: 610.2, conCosto: 15, sinCosto: 0 });
+    expect(textoCostoEnStock(c.costoEnStock)).toBe("S/ 40.68");
+  });
+
+  it("con costos distintos dice el rango, y lo que entró sin costo sigue sin costo", () => {
+    const c = envio(11, { con_costo: 8, sin_costo: 3, monto: 261, minimo: 15, maximo: 39 });
+    expect(textoCostoEnStock(c.costoEnStock)).toBe("S/ 15.00 a S/ 39.00");
+    expect(costoDelGrupoStock(filasDeCostoEnStock(11, c.costoEnStock))).toEqual({ total: 261, conCosto: 8, sinCosto: 3 });
+  });
+
+  it("con la base de antes (sin en_stock_costo) no inventa un costo", () => {
+    const c = envio(15, undefined);
+    expect(c.costoEnStock).toBeNull();
+    expect(costoDelGrupoStock(filasDeCostoEnStock(15, c.costoEnStock))).toEqual({ total: 0, conCosto: 0, sinCosto: 15 });
   });
 });
