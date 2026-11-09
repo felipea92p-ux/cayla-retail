@@ -526,7 +526,8 @@ export type AvisoObs = {
   porTienda: Record<string, number> | null;
   /** Días que lleva esperando el más antiguo (el aro se llena a los 7). */
   edad: number | null;
-  href: string;
+  /** A dónde lleva «Ver»; `null` si el aviso no tiene pantalla propia (el vigía de la base, ADR-0632): el detalle es la lista. */
+  href: string | null;
   detalle: DetalleAviso | null;
 };
 
