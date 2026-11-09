@@ -33,6 +33,7 @@ import {
   type EntradaAvioNuevo,
 } from "@/lib/avio-nuevo-reglas";
 import { agruparPorFamilia } from "@/lib/colores-familias";
+import { familiaEnCarta } from "@/lib/color-estampado-reglas";
 import { traducirError } from "@/lib/error-escritura";
 import { CANTIDAD_ILEGIBLE, UNIDADES_INSUMO, unidadesPermitidas, type MaterialVista, type UnidadInsumo } from "@/lib/insumos-reglas";
 import { MONTO_ILEGIBLE, montoIlegible } from "@/lib/monto-plata-reglas";
@@ -119,7 +120,7 @@ export function NuevoAvioModal({
   const ejemplo = sugerirAvio(clase?.prefijo ?? null, materiales);
 
   const disponibles = useMemo(() => coloresCarta.filter((c) => !coloresDelAvio.includes(c.codigo)), [coloresCarta, coloresDelAvio]);
-  const grupos = useMemo(() => agruparPorFamilia(disponibles, (c) => c.familiaColor), [disponibles]);
+  const grupos = useMemo(() => agruparPorFamilia(disponibles, familiaEnCarta), [disponibles]);
   const porCodigo = useMemo(() => new Map(coloresCarta.map((c) => [c.codigo, c])), [coloresCarta]);
 
   const fotoActual = fotoFormulario({ claseId, nombre, unidad, medida, medidaUnidad, merma, filas });

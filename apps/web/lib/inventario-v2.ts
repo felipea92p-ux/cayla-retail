@@ -1,7 +1,8 @@
 import { createClient } from "@/lib/supabase/server";
 import { exigir, leerTodas } from "@/lib/resultado";
 import { ID_CARGO_ESPECIAL } from "@/lib/cargo-especial";
-import { fotoPrincipal, sumarCantidades, type Cantidades } from "@/lib/inventario-reglas";
+import { sumarCantidades, type Cantidades } from "@/lib/inventario-reglas";
+import { fotoDeLaFila } from "@/lib/color-estampado-reglas";
 import { agruparStockPorSede, type FilaStock as FilaStockSede, type SedeConStockId } from "@/lib/stock-por-sede";
 import type { DuenoDeStock } from "@/lib/stock-por-dueno-reglas";
 import { codigoDeEtiqueta } from "@/lib/prenda-reglas";
@@ -38,6 +39,8 @@ export type FilaStock = {
   /** `#rrggbb` de `colores.hex`; null en los colores que no son un color
    *  (Estampado, Multicolor, Animal print) — la pantalla los dibuja distinto. */
   colorHex: string | null;
+  /** El color es un estampado (ADR-0634): se reconoce por su foto. Ausente = se dibuja como cualquier color. */
+  colorEstampado?: boolean;
   referencia: string;
   /** El precio de catálogo de la variante (`variantes.precio`), para la tarjeta de Existencias (2026-10-05). Opcional: una fila armada por
    *  una prueba o por otra lectura no lo trae, y la tarjeta simplemente no lo dibuja. */
@@ -104,8 +107,8 @@ export async function getStockPorUbicacion(ubicacionId: string): Promise<FilaSto
        sububicacion:sububicaciones ( tipo ),
        variante:variantes!inner (
          sku, codigo, precio, talla:tallas ( valor ),
-         color:colores ( nombre, hex ),
-         producto:productos ( id, referencia, categoria:categorias ( nombre, prefijo, familia ), producto_fotos ( url, orden, es_principal ) ),
+         color:colores ( codigo, nombre, hex, tipo ),
+         producto:productos ( id, referencia, categoria:categorias ( nombre, prefijo, familia ), producto_fotos ( url, orden, es_principal, color_codigo ) ),
          codigos_barras ( codigo )
        )`
     )
@@ -135,8 +138,8 @@ export async function getStockPorUbicacion(ubicacionId: string): Promise<FilaSto
                sububicacion:sububicaciones ( tipo ),
                variante:variantes!inner (
                  sku, codigo, precio, talla:tallas ( valor ),
-                 color:colores ( nombre, hex ),
-                 producto:productos ( id, referencia, categoria:categorias ( nombre, prefijo, familia ), producto_fotos ( url, orden, es_principal ) ),
+                 color:colores ( codigo, nombre, hex, tipo ),
+                 producto:productos ( id, referencia, categoria:categorias ( nombre, prefijo, familia ), producto_fotos ( url, orden, es_principal, color_codigo ) ),
                  codigos_barras ( codigo )
                )`
             )
@@ -168,7 +171,8 @@ export async function getStockPorUbicacion(ubicacionId: string): Promise<FilaSto
       categoriaPrefijo: f.variante?.producto?.categoria?.prefijo ?? null,
       categoriaFamilia: f.variante?.producto?.categoria?.familia ?? null,
       codigosBarras: (f.variante?.codigos_barras ?? []).map((c) => c.codigo),
-      fotoUrl: fotoPrincipal(f.variante?.producto?.producto_fotos),
+      fotoUrl: fotoDeLaFila(f.variante?.color, f.variante?.producto?.producto_fotos),
+      colorEstampado: f.variante?.color?.tipo === "estampado",
       precio: propios[f.variante_id] ?? f.variante?.precio ?? null,
       ...(propios[f.variante_id] !== undefined ? { precioDeSede: true } : {}),
     });
@@ -298,8 +302,8 @@ export async function getExistencias(
            transferencia:transferencias!inner ( estado, ubicacion_destino_id ),
            variante:variantes (
              sku, codigo, talla:tallas ( valor ),
-             color:colores ( nombre, hex ),
-             producto:productos ( id, referencia, categoria:categorias ( nombre, prefijo, familia ), producto_fotos ( url, orden, es_principal ) ),
+             color:colores ( codigo, nombre, hex, tipo ),
+             producto:productos ( id, referencia, categoria:categorias ( nombre, prefijo, familia ), producto_fotos ( url, orden, es_principal, color_codigo ) ),
              codigos_barras ( codigo )
            )`
         )
@@ -361,7 +365,8 @@ export async function getExistencias(
       categoriaPrefijo: item.variante?.producto?.categoria?.prefijo ?? null,
       categoriaFamilia: item.variante?.producto?.categoria?.familia ?? null,
       codigosBarras: (item.variante?.codigos_barras ?? []).map((c) => c.codigo),
-      fotoUrl: fotoPrincipal(item.variante?.producto?.producto_fotos),
+      fotoUrl: fotoDeLaFila(item.variante?.color, item.variante?.producto?.producto_fotos),
+      colorEstampado: item.variante?.color?.tipo === "estampado",
       total: 0,
       piso: separa ? 0 : null,
       almacen: separa ? 0 : null,
