@@ -41,12 +41,17 @@ export async function GET(request: Request) {
     return Response.json({ corrio: false, motivo: "ya_corriendo" });
   }
   const estado = leerEstadoVigia(data);
+  // Con un `Error` que dice qué pasó: con `null`, Sentry titula el aviso «Error: null» y quien lo lee no sabe de qué se trata.
   if (!estado) {
-    capturarError("salud/invariantes (cron): la base respondió con otra forma", null);
+    capturarError("salud/invariantes (cron): la base respondió con otra forma", new Error("fn_correr_invariantes devolvió una forma inesperada"));
     return Response.json({ error: "Respuesta inesperada de fn_correr_invariantes" }, { status: 500 });
   }
   if (hayQueAvisar(estado)) {
-    capturarError("salud/invariantes (cron): estados imposibles nuevos o sin mirar", null, contextoParaSentry(estado));
+    capturarError(
+      "salud/invariantes (cron): estados imposibles nuevos o sin mirar",
+      new Error("El vigía encontró estados imposibles nuevos o reglas que no pudo mirar: el detalle está en el Observatorio del Admin"),
+      contextoParaSentry(estado),
+    );
   }
   return Response.json(contextoParaSentry(estado));
 }
