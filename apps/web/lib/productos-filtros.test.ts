@@ -55,7 +55,7 @@ describe("productos-filtros — cajas que se escriben", () => {
     expect(cambiosTipeados("q=blusa", { q: " blusa " })).toEqual({});
     expect(cambiosTipeados("q=blusa", { q: "" })).toEqual({ q: "" });
     // Nunca reaparece una caja que no se tocó (antes el precio viejo volvía con la primera letra del buscador).
-    expect(cambiosTipeados("stock=reponer", { q: "b" })).toEqual({ q: "b" });
+    expect(cambiosTipeados("stock=reponer", { q: "bl" })).toEqual({ q: "bl" });
   });
 
   it("el precio se manda normalizado y a medio escribir se espera, sin borrar el filtro", () => {

@@ -2,7 +2,7 @@
   "guia": "productos.id.editar",
   "ruta": "/productos/[id]/editar",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 154,
+  "total": 155,
   "controles": {
     "app/(app)/productos/[id]/editar/page.tsx": [
       "Volver «{volverA}»"
@@ -104,7 +104,8 @@
       "SegmentoDeslizante «Qué cambiar»",
       "Desplegable «{alcanceVigente}»",
       "input «{campo === \"precio\" ? \"Nuevo precio\" : \"Nuevo costo\"}»",
-      "button «Aplicar»"
+      "button «Aplicar»",
+      "button «{sugerencia.boton}»"
     ],
     "components/ficha-producto/EtiquetasDeLaMatriz.tsx": [
       "button «Poner en todas»",

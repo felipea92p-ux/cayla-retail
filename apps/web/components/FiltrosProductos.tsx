@@ -11,6 +11,7 @@ import { BotonFiltros, DesplegablePildora, FilaPildoras, PanelPildoras, TODOS } 
 import { Modal } from "@/components/ui/Modal";
 import { guardarPanelFiltros, type EstadoPanelFiltros } from "@/lib/panel-filtros";
 import { avisar } from "@/components/ui/Avisos";
+import { PAUSA_BUSQUEDA_MS } from "@cayla-retail/shared/busqueda";
 import { useBusquedaEnUrl } from "@/components/ui/BusquedaEnUrl";
 import { opcionesConConteo, textoTramo, tramoActivo, type FacetaClave, type FacetasProductos, type TramoPrecio } from "@/lib/productos-facetas";
 import { montoParaCaja, pasoDePrecio, posicionEnControl, rangoDesdeControl, solesFiltro, type LimitesPrecio } from "@/lib/productos-filtro-precio";
@@ -219,7 +220,7 @@ export function FiltrosProductos({
       if (ajena.current && Date.now() - ajena.current < 3000) return; // espera a que llegue el enlace: lo rearma su URL
       const cambios = cambiosTipeados(consultaVigente(), tipeado);
       if (Object.keys(cambios).length > 0) aplicar(cambios, { teclado: true });
-    }, 350);
+    }, PAUSA_BUSQUEDA_MS);
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tipeado, consultaUrl]);

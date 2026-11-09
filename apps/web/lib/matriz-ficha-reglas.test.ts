@@ -19,6 +19,7 @@ import {
   tallasQueSeQuitan,
   devolverTalla,
   rangoDePrecios,
+  rangoEnDosLineas,
   resumenVariantes,
   tonoDeBarra,
   totalesMatriz,
@@ -132,6 +133,10 @@ describe("textos", () => {
   it("el rango de precios", () => {
     expect(rangoDePrecios([69, 89, 79])).toBe("S/\u00a069–89");
     expect(rangoDePrecios([69.9, 69.9])).toBe("S/\u00a069.90");
+    // La columna de la tabla mide 60 px: sin \u00abS/\u00bb y en dos l\u00edneas si var\u00edan (Short Sohanna, 2026-11-07: \u00abS/ 45\u2013\u2026\u00bb se cortaba).
+    expect(rangoEnDosLineas([45, 48, 45])).toEqual({ desde: "45", hasta: "a 48" });
+    expect(rangoEnDosLineas([45, 46.5])).toEqual({ desde: "45.00", hasta: "a 46.50" });
+    expect(rangoEnDosLineas([89.9, 89.9])).toEqual({ desde: "89.90", hasta: null });
     expect(resumenVariantes([fila("CRU", "s"), fila("NEG", "s", { precio: "89" }), fila("NEG", "m", { activo: false })])).toBe("2 variantes activas · S/\u00a069–89");
     // La tienda de quien edita con precio propio: se dice junto al de la prenda.
     expect(resumenVariantes([fila("CRU", "s", { precio: "79.90" })], { sede: "TRU", precio: 69.9 })).toBe("1 variante activa · S/\u00a079.90 · S/\u00a069.90 en TRU");

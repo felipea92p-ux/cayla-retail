@@ -26,6 +26,9 @@ import {
   ultimoMesDeLaRuta,
 } from "@/lib/finanzas-telar-reglas";
 
+/** El Resumen elige sus fechas con el calendario de Estados financieros, en su cabecera. */
+const RUTA_RESUMEN = "/finanzas/resumen";
+
 const conRegistrar = (href: string) => `${href}${href.includes("?") ? "&" : "?"}registrar=1`;
 
 /** El lugar de la barra donde una pantalla puede colgar su propio ajuste, junto al mes. */
@@ -121,8 +124,9 @@ export function MesaDeMando({
             ))
           )}
         </div>
-        {/* Los cuatro estados financieros eligen sus fechas con el calendario de su cabecera (ADR-0611): un solo control de la fecha en la pantalla. */}
-        {!ESTADOS.some((e) => e.ruta === pathname) && (
+        {/* Los cuatro estados financieros y el Resumen eligen sus fechas con el calendario de su cabecera (ADR-0611; el Resumen desde el camino «A · Bolsillos»,
+            Felipe 2026-11-09): un solo control de la fecha en la pantalla. */}
+        {!ESTADOS.some((e) => e.ruta === pathname) && pathname !== RUTA_RESUMEN && (
           <div className={alcance.mes ? "contents" : "mesa-telar-no-aplica"} inert={!alcance.mes} title={alcance.mes ? undefined : "Esta pantalla no cambia con el mes"}>
             <SelectorMes
               valor={{ anio, mes: m }}
