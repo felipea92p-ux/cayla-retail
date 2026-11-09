@@ -450,3 +450,59 @@
 .movs-semanas > li:first-child {
   border-top: 0;
 }
+
+/* ---------- Las preguntas de siempre ---------- */
+.preguntas-a {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+@media (max-width: 639px) {
+  .preguntas-a {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    padding-bottom: 4px;
+    scrollbar-width: none;
+  }
+  .preguntas-a > * {
+    flex: none;
+  }
+}
+
+/* ---------- El orden de la pantalla (camino A): dos columnas desde 1280 px; en una sola, lo que más importa primero ----------
+   En una columna las dos se deshacen (`display: contents`) y cada pieza toma su lugar con `order`: lo libre, el mes, las preguntas, lo urgente, lo que
+   viene, lo que pasó y las tiendas. Desde 1280 px cada columna vuelve a ser una pila y el orden es el del código. */
+.resumen-a {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.resumen-a-col {
+  display: contents;
+}
+.resumen-a [data-orden="1"] { order: 1; }
+.resumen-a [data-orden="2"] { order: 2; }
+.resumen-a [data-orden="3"] { order: 3; }
+.resumen-a [data-orden="4"] { order: 4; }
+.resumen-a [data-orden="5"] { order: 5; }
+.resumen-a [data-orden="6"] { order: 6; }
+.resumen-a [data-orden="7"] { order: 7; }
+@media (min-width: 1280px) {
+  .resumen-a {
+    display: grid;
+    grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
+    align-items: start;
+  }
+  .resumen-a-col {
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
+    gap: 16px;
+  }
+  .resumen-a [data-orden] {
+    order: 0;
+  }
+}
+.resumen-ancla {
+  scroll-margin-top: 140px;
+}

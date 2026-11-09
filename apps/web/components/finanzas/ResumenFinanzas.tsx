@@ -23,6 +23,7 @@ import { DockTelar } from "@/components/finanzas/telar/DockTelar";
 import { SaldoLibre } from "@/components/finanzas/bolsillos/SaldoLibre";
 import { TarjetaMes } from "@/components/finanzas/bolsillos/TarjetaMes";
 import { Proximos } from "@/components/finanzas/bolsillos/Proximos";
+import { Preguntas, type Pregunta } from "@/components/finanzas/bolsillos/Preguntas";
 import { proximosPagos } from "@/lib/proximos-reglas";
 import { teDejaDelMes } from "@/lib/te-deja-mes-reglas";
 import { conElRango, nombreDelAnterior } from "@/lib/estados-periodo";
@@ -47,16 +48,15 @@ import {
   type DiaVenta,
 } from "@/lib/resumen-telar-reglas";
 
-// Finanzas ▸ Resumen en El telar (Felipe 2026-10-23, ADR-0493), pulido el 2026-10-29: arriba, las tres respuestas (¿cuánto tienes —de CAYLA y de CLAURE—?,
-// ¿cuánto debes pronto —cada deuda con su fecha—?, ¿cuánto te deja?), «Vendido por sede» con la confianza del número adentro (ADR-0417), la caja
-// al lado de «Hoy te toca», «A dónde va la plata» (el anillo), «¿Ya pagaste el mes?» y, al final, la inversión en mercadería (siempre a la vista).
-// La sede la pone la barra común; las fechas, el calendario de Estados financieros en la cabecera (camino «A · Bolsillos», Felipe 2026-11-09).
-// No calcula plata: lo arman `recorrido-plata-reglas`, `resumen-telar-reglas` y `resumen-finanzas-reglas` con lo que lee la página.
+// Finanzas ▸ Resumen, camino «A · Bolsillos» (Felipe 2026-11-09; antes El telar, ADR-0493): la plata contada como en la app del banco. A la izquierda,
+// «Libre para usar» con sus bolsillos, las preguntas de siempre y los movimientos; a la derecha, cómo va el mes, «Hoy te toca», «Próximos» y las tiendas
+// con la confianza del número (ADR-0417). Debajo, «Cada sede, junta», «A dónde va la plata», lo que más se movió y, al final, la inversión en mercadería
+// (siempre a la vista, Felipe 2026-10-29). La sede la pone la barra común; las fechas, el calendario de Estados financieros en la cabecera.
+// No calcula plata: lo arman `bolsillos-reglas`, `te-deja-mes-reglas`, `proximos-reglas`, `recorrido-plata-reglas`, `resumen-telar-reglas` y
+// `resumen-finanzas-reglas` con lo que lee la página.
 
-/** La entrada escalonada de cada pieza; esta llena su celda: dos tarjetas lado a lado miden lo mismo. */
-const alto = (i: number) => ({ className: "anim-entra h-full", style: { ["--i" as string]: i } as CSSProperties });
-/** Una tarjeta de las columnas: no se parte entre dos y deja 1 rem hasta la de abajo. */
-const columna = (i: number) => ({ className: "anim-entra", style: { ["--i" as string]: i } as CSSProperties });
+/** La entrada escalonada de cada pieza (con la clase de su lugar, si lleva). */
+const columna = (i: number, clase = "") => ({ className: `anim-entra ${clase}`.trim(), style: { ["--i" as string]: i } as CSSProperties });
 
 type Props = {
   resumen: ResumenFinanzas | null;
@@ -187,6 +187,22 @@ export function ResumenFinanzasPanel({ resumen, falla, confianza, mes, periodo, 
   const noVende = r.ver.todas || r.ver.tipo === "tienda" ? null : resp;
   const cambio = fila && filaAntes && filaAntes.ventas > 0 && !noVende ? { pct: fila.ventas / filaAntes.ventas - 1, contra: nombreDelAnterior(periodo) } : null;
   const hrefGanancias = ve("reportes_financieros") ? conElRango(ir("/finanzas/reportes"), sp.entries()) : null;
+  // Las preguntas de siempre: cada una lleva a donde se responde (un bloque de aquí o la pantalla que la responde). Solo las que la cuenta puede abrir.
+  const preguntas: Pregunta[] = (
+    r.ver.todas
+      ? [
+          { texto: "¿Puedo comprar mercadería?", href: "#inversion" },
+          { texto: "¿Cuánto le debo a SUNAT?", href: destino("impuestos", "/finanzas/impuestos") },
+          { texto: "¿Gané plata este mes?", href: hrefGanancias },
+          { texto: "¿Qué tienda vende más?", href: "#tiendas" },
+          { texto: "¿En qué se va la plata?", href: "#a-donde-va" },
+        ]
+      : [
+          { texto: "¿Cómo le va a esta sede?", href: "#tiendas" },
+          { texto: "¿Qué paga esta sede?", href: "#proximos" },
+          { texto: "¿Ganó plata este mes?", href: hrefGanancias },
+        ]
+  ).filter((q): q is Pregunta => !!q.href);
   // «Hoy te toca» y «Próximos» cuentan el mismo hecho con el mismo número (el punto más bajo que ve la tarjeta, con la compra si está contada).
   const verReportes = acceso.lider || acceso.modulos.includes("reportes_financieros");
   const avisos = ordenarAvisos([
@@ -207,59 +223,70 @@ export function ResumenFinanzasPanel({ resumen, falla, confianza, mes, periodo, 
   return (
     <div className="space-y-6">
       <EncabezadoPagina sede={sede} titulo="Resumen" subtitulo={FRASE} acciones={fecha} />
-      {/* Las tres preguntas que una persona sin formación de finanzas se hace al abrir esta pantalla, con la cifra de cada una. «Tienes» dice cuánto es de CAYLA
-          y cuánto de CLAURE, y «Debes pronto» lista cada deuda con su fecha (Felipe 2026-10-29). */}
-      {/* Camino A (Felipe 2026-11-09): «Libre para usar» con sus bolsillos reemplaza a «¿Cuánto tienes?»; las otras dos respuestas siguen a su lado. */}
-      <section className="grid items-start gap-4 xl:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)]">
-        <SaldoLibre saldo={saldo} destinos={destinos} otroMes={periodo.enCurso ? null : mesNombre(mes)} />
-        <div className="flex min-w-0 flex-col gap-4">
-          <TarjetaMes
-            titulo={tituloMes}
-            te={te}
-            eq={eq}
-            vendido={fila?.ventas ?? 0}
-            gastos={fila?.gastos ?? 0}
-            cambio={cambio}
-            noVende={noVende}
-            provisional={provisional}
-            hoyEnElMes={enCurso ? { van: diaDeHoy, total: diasMes } : null}
-            hrefGanancias={hrefGanancias}
-          />
+      {/* Camino «A · Bolsillos» (Felipe 2026-11-09; maqueta docs/maquetas/finanzas-resumen-de-punta-a-punta-2026-11/). A la izquierda, la plata como en la app
+          del banco: lo libre con sus bolsillos, las preguntas de siempre y los movimientos. A la derecha, el mes: lo que te deja, lo urgente, lo que viene y las
+          tiendas. En una sola columna, en el orden de `data-orden`. */}
+      <div className="resumen-a">
+        <div className="resumen-a-col">
+          <div data-orden="1" {...columna(1)}>
+            <SaldoLibre saldo={saldo} destinos={destinos} otroMes={periodo.enCurso ? null : mesNombre(mes)} />
+          </div>
+          <div data-orden="3" {...columna(3)}>
+            <Preguntas preguntas={preguntas} />
+          </div>
+          {movimientos && (
+            <div data-orden="6" {...columna(6)}>
+              {movimientos}
+            </div>
+          )}
         </div>
-      </section>
-      {/* «Vendido por sede» y la confianza del número, en UNA tarjeta (ADR-0417; Felipe 2026-10-29, opción 3). Si no se pudo medir, se dice (nunca un 0 % falso). */}
-      <VendidoPorSede porSede={porSedeDe(vendidoPorSede(filas))} sedes={sedes} hoy={hoy} mes={mesNombre(mes)} confianza={confianza.datos} falla={confianza.falla} hrefCuadre={`${ir("/finanzas/reportes")}${ir("/finanzas/reportes").includes("?") ? "&" : "?"}cuadre=1#de-ventas-a-finanzas`} />
-      {juntas && <SedesJuntas juntas={juntas} mes={mesNombre(mes)} hoy={hoy} falla={cajasPorSede?.falla ?? null} />}
+        <div className="resumen-a-col">
+          <div data-orden="2" {...columna(2)}>
+            <TarjetaMes
+              titulo={tituloMes}
+              te={te}
+              eq={eq}
+              vendido={fila?.ventas ?? 0}
+              gastos={fila?.gastos ?? 0}
+              cambio={cambio}
+              noVende={noVende}
+              provisional={provisional}
+              hoyEnElMes={enCurso ? { van: diaDeHoy, total: diasMes } : null}
+              hrefGanancias={hrefGanancias}
+            />
+          </div>
+          <div data-orden="4" {...columna(4)} data-guia="fin-resumen.decidir">
+            <Superficie pad>
+              <CabeceraBloque titulo="Hoy te toca" bajada={periodo.enCurso ? "Lo urgente, primero." : `Es de hoy, aunque mires ${mesNombre(mes)}. Lo urgente, primero.`} />
+              <ResumenDecidir avisos={avisos} parcial={faltan.length > 0} />
+              {faltan.length > 0 && (
+                <ul className="fin-no-revisado">
+                  {faltan.map((t) => (
+                    <li key={t}>{t}</li>
+                  ))}
+                </ul>
+              )}
+            </Superficie>
+          </div>
+          <div data-orden="5" id="proximos" {...columna(5, "resumen-ancla")}>
+            <Proximos datos={proximos} hoy={hoy} hrefPorPagar={destino("cuentas_dinero", "/finanzas/dinero/por-pagar") ?? null} hrefFlujo={ve("reportes_financieros") ? ir("/finanzas/reportes/flujo") : null} />
+          </div>
+          {/* «Tus tiendas»: lo vendido por sede con la confianza del número, en UNA tarjeta (ADR-0417; Felipe 2026-10-29). Si no se pudo medir, se dice. */}
+          <div data-orden="7" id="tiendas" {...columna(7, "resumen-ancla")}>
+            <VendidoPorSede porSede={porSedeDe(vendidoPorSede(filas))} sedes={sedes} hoy={hoy} mes={mesNombre(mes)} confianza={confianza.datos} falla={confianza.falla} hrefCuadre={`${ir("/finanzas/reportes")}${ir("/finanzas/reportes").includes("?") ? "&" : "?"}cuadre=1#de-ventas-a-finanzas`} />
+          </div>
+        </div>
+      </div>
       {dock}
 
-      {/* La caja y «Hoy te toca» van lado a lado y a la misma altura (desde 1280 px, con 20 rem de piso para «Hoy te toca»: antes, a 1024 px
-          quedaba tan angosta que partía el texto palabra por palabra). Más angosto, una bajo la otra. Sin huecos (Felipe 2026-10-26). */}
-      <section className="grid items-stretch gap-4 xl:grid-cols-[minmax(0,1.7fr)_minmax(20rem,1fr)]">
-        <div {...alto(2)}>
-          <Proximos datos={proximos} hoy={hoy} hrefPorPagar={destino("cuentas_dinero", "/finanzas/dinero/por-pagar") ?? null} hrefFlujo={ve("reportes_financieros") ? ir("/finanzas/reportes/flujo") : null} />
-        </div>
-
-        <div {...alto(3)} data-guia="fin-resumen.decidir">
-          <Superficie pad className="h-full">
-            <CabeceraBloque titulo="Hoy te toca" bajada={enCurso ? "Lo urgente, primero." : `Es de hoy, aunque mires ${mesNombre(mes)}. Lo urgente, primero.`} />
-            <ResumenDecidir avisos={avisos} parcial={faltan.length > 0} />
-            {faltan.length > 0 && (
-              <ul className="fin-no-revisado">
-                {faltan.map((t) => (
-                  <li key={t}>{t}</li>
-                ))}
-              </ul>
-            )}
-          </Superficie>
-        </div>
-      </section>
-      {movimientos}
+      {/* «Cada sede, junta» (tarea 27), a todo el ancho: es una tabla. */}
+      {juntas && <SedesJuntas juntas={juntas} mes={mesNombre(mes)} hoy={hoy} falla={cajasPorSede?.falla ?? null} />}
 
       {/* Lo demás, en dos columnas FIJAS: el anillo a la izquierda y «¿Ya pagaste el mes?» con «Contra el mes pasado» apiladas a la derecha, cada
           una pegada a la de arriba, sin aire entre ellas (Felipe 2026-10-26). Con menos de 69 rem van en una sola, en el mismo orden. Con columnas
           fijas, lo que crece solo empuja lo que tiene debajo (con `columns-[34rem]` el navegador pasaba una tarjeta de columna a media animación). */}
       <div className="grid grid-cols-[repeat(auto-fit,minmax(min(34rem,100%),1fr))] items-start gap-4">
-        <div {...columna(4)}>
+        <div id="a-donde-va" {...columna(8, "resumen-ancla")}>
           {recorrido ? (
             <AdondeVaLaPlata recorrido={recorrido} bajada={bajadaPlata} />
           ) : (
@@ -279,7 +306,7 @@ export function ResumenFinanzasPanel({ resumen, falla, confianza, mes, periodo, 
         </div>
 
         <div className="flex flex-col gap-4">
-          <div {...columna(6)}>
+          <div {...columna(9)}>
             <CambiosDelMesPieza cambios={cambiosDelMes({ r, ...comparacion, enCurso })} />
           </div>
         </div>
@@ -292,7 +319,7 @@ export function ResumenFinanzasPanel({ resumen, falla, confianza, mes, periodo, 
           {inversionFalla} Lo ya registrado (órdenes, facturas por pagar) sigue contando.
         </Aviso>
       )}
-      <div className="space-y-4 pb-4">
+      <div id="inversion" className="resumen-ancla space-y-4 pb-4">
         <InversionMercaderia
           campanas={campanas}
           conIgv={ajustes.conIgv}

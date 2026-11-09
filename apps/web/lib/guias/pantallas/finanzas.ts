@@ -163,6 +163,12 @@ export const GUIA_FIN_RESUMEN: Guia = {
       texto: "Aquí se abre la cuenta: lo que hay, cada bolsillo que se resta y lo que queda. No cuenta lo que vas a vender. En la demo no la abrimos.",
     },
     {
+      id: "preguntas",
+      ancla: "fin-resumen.preguntas",
+      titulo: "Las preguntas de siempre",
+      texto: "Cada botón te lleva a donde se responde: «¿Puedo comprar mercadería?» baja a la inversión, «¿Cuánto le debo a SUNAT?» abre Impuestos. En el celular, la fila se desliza.",
+    },
+    {
       id: "mes",
       ancla: "fin-resumen.mes",
       titulo: "Cómo va el mes",
