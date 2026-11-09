@@ -48,7 +48,20 @@ function Fila({ p, hoy }: { p: PagoProximo; hoy: string }) {
   );
 }
 
-export function Proximos({ datos, hoy, hrefPorPagar, hrefFlujo }: { datos: DatosProximos; hoy: string; hrefPorPagar: string | null; hrefFlujo: string | null }) {
+export function Proximos({
+  datos,
+  hoy,
+  hrefPorPagar,
+  hrefFlujo,
+  onVerTodo,
+}: {
+  datos: DatosProximos;
+  hoy: string;
+  hrefPorPagar: string | null;
+  hrefFlujo: string | null;
+  /** «Ver todo» abre la hoja con todos los pagos (y desde ella, Por pagar). Sin ella, el enlace va directo a Por pagar. */
+  onVerTodo?: () => void;
+}) {
   const [mas, setMas] = useState(false);
   if (datos.tipo === "sin_dato") {
     return (
@@ -62,7 +75,10 @@ export function Proximos({ datos, hoy, hrefPorPagar, hrefFlujo }: { datos: Datos
   const resto = datos.pagos.slice(VISIBLES);
   return (
     <section className="fin-superficie fin-pad proximos" data-guia="fin-resumen.proximos">
-      <TituloSeccion cuenta={datos.pagos.length} accion={hrefPorPagar ? <EnlaceVer href={hrefPorPagar}>Por pagar</EnlaceVer> : undefined}>
+      <TituloSeccion
+        cuenta={datos.pagos.length}
+        accion={onVerTodo && datos.pagos.length ? <EnlaceVer onClick={onVerTodo}>Ver todo</EnlaceVer> : hrefPorPagar ? <EnlaceVer href={hrefPorPagar}>Por pagar</EnlaceVer> : undefined}
+      >
         Próximos
       </TituloSeccion>
       <p className="mes-a-nota">

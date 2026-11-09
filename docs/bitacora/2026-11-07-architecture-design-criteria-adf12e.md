@@ -17,3 +17,8 @@ Felipe se lleva: elegir camino y fondo mirando (recomiendo C con los bolsillos d
 Qué hice: construí en el ERP el camino «A · Bolsillos» que eligió Felipe, en ocho actividades con su commit: el calendario de Estados financieros, «Libre para usar» con sus bolsillos, el mes estimado con rango, «Próximos» con el día más justo, «Movimientos» día por día, las dos columnas con las preguntas de siempre y siete hojas de detalle. El fondo es el del ERP.
 Por qué así: Felipe decidió las dos reglas de dinero («todo lo que tiene dueño» y el estimado con rango) y pidió también las hojas. Todo sale de lecturas que ya existían (la proyección de caja, el estado de resultados, el flujo real), y las pruebas exigen que bolsillos, próximos y equilibrio digan los mismos números.
 Felipe se lleva: el PR sin abrir (commits locales en `claude/architecture-design-criteria-adf12e`). Verificado en local con la base compartida, que casi no tiene ventas de noviembre: el estimado con rango solo está probado con pruebas unitarias. Falta verlo con colaboradoras reales.
+
+## 2026-11-09 (Finanzas ▸ Resumen: más parecido a la maqueta)
+Qué hice: acerqué el Resumen construido a la maqueta A: la frase con la respuesta a la vista, vidrio claro, cifras en Inter con la «S/» chica, bolsillos en tarjetitas con ícono, íconos por categoría en los movimientos, columnas 7 a 5 desde 1100 px y sin el hueco de «A dónde va la plata» vacío.
+Por qué así: Felipe vio que no se parecía en el espacio, el celular ni los íconos. Lo que no se movió (la barra de sede y mes, el tamaño del título) es de piezas comunes del ERP ya decididas.
+Felipe se lleva: mirarla a 1440 y en el celular. Contraste medido en claro y oscuro (0 fallas nuevas); la guía se recorre entera en escritorio y a 375 px.

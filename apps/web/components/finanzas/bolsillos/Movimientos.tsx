@@ -1,4 +1,5 @@
-import { ArrowDownLeft, ArrowLeftRight, ArrowUpRight, Plus, Scale, Store } from "lucide-react";
+import { createElement } from "react";
+import { Armchair, ArrowLeftRight, ArrowUpRight, CreditCard, HandCoins, Landmark, Package, Receipt, Scale, ShoppingBag, Store, Users, Wallet, type LucideIcon } from "lucide-react";
 import { EnlaceVer } from "@/components/ui/EnlaceVer";
 import { TituloSeccion } from "@/components/ui/TituloSeccion";
 import { BarraAvance } from "@/components/ui/BarraAvance";
@@ -13,15 +14,30 @@ import { diaDelFeed, diasDelFeed, pasosDelFeed, semanasDelFeed, type MovimientoF
 // pide `fn_flujo_caja_real` (la lectura de Estados financieros ▸ Flujo de efectivo) un día a la vez, a la vez, sin hacer esperar al resto del Resumen.
 // La base pide el líder: el flujo es de CAYLA entera. Si una lectura se cae, se dice; nunca un día en cero que parezca un dato.
 
-const ICONO: Record<TipoMovimientoFeed, typeof Plus> = { cobro: ArrowDownLeft, entra: Plus, sale: ArrowUpRight, claure: Store, ajuste: Scale, mueve: ArrowLeftRight };
+/** El ícono de cada movimiento, por su categoría (como en la maqueta): la bolsa para lo cobrado, el recibo para un gasto, las personas para la planilla. */
+const ICONO_CATEGORIA: Record<string, LucideIcon> = {
+  mercaderia: Package,
+  gastos: Receipt,
+  planilla: Users,
+  impuestos: Landmark,
+  comision_pos: CreditCard,
+  pago_tarjeta: CreditCard,
+  activos: Armchair,
+  dueno_saca: Wallet,
+  dueno_pone: HandCoins,
+  otros_ingresos: HandCoins,
+  pago_claure: Store,
+  entre_cuentas: ArrowLeftRight,
+};
+const ICONO_TIPO: Record<TipoMovimientoFeed, LucideIcon> = { cobro: ShoppingBag, entra: HandCoins, sale: ArrowUpRight, claure: Store, ajuste: Scale, mueve: ArrowLeftRight };
+const iconoDe = (m: MovimientoFeed): LucideIcon => (m.tipo === "cobro" ? ShoppingBag : (ICONO_CATEGORIA[m.clave.split("|")[1] ?? ""] ?? ICONO_TIPO[m.tipo]));
 
 function Renglon({ m }: { m: MovimientoFeed }) {
-  const Icono = ICONO[m.tipo];
   const signo = m.tipo === "cobro" || m.tipo === "entra" ? "+" : m.tipo === "mueve" ? "" : m.tipo === "ajuste" ? (m.monto >= 0 ? "+" : "−") : "−";
   return (
     <li className="movs-renglon" data-tipo={m.tipo}>
       <span className="movs-icono" aria-hidden>
-        <Icono className="h-4 w-4" />
+        {createElement(iconoDe(m), { className: "h-4 w-4" })}
       </span>
       <span className="bolsillos-texto">
         <b>{m.titulo}</b>

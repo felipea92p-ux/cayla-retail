@@ -385,3 +385,14 @@ compra de campaña (como lo hacía «Tu caja») cortada a 14 días. **DESCARTÉ:
 la comparación con el año pasado y el puente «¿por qué tengo menos plata?», que eran del camino C; el inventario, el sankey y el calendario del camino B.
 **SE ROMPE SI:** `fn_flujo_caja_proyeccion` cambia el id de su fila de IGV (`igv:<mes>`, de ahí sale lo que se junta), o deja de restar CLAURE y el
 fondo de compras de `saldo_hoy` (`loQueHayEnCuentas` los vuelve a sumar). La fecha de SUNAT sigue siendo el día 15 hasta que se cargue el RUC.
+
+## Actualización 2026-11-09 (b) — El Resumen, más cerca de la maqueta (Felipe: «no se parece mucho»)
+
+Felipe comparó la pantalla con la maqueta y pidió acercarla en el espacio, el celular y los íconos. Se hizo, sin cambiar ninguna cuenta:
+la respuesta va a la vista bajo la cabecera (`lib/frase-resumen-reglas.ts`: cuánto tienes, cuánto puedes usar y cuánto te deja el mes; el subtítulo
+sigue en su «?»); el Resumen pasa a **`pantalla-en-vidrio`** (ADR-0596: el vidrio claro que ya esperaba el rediseño) y sus cifras a **Inter con la «S/»
+chica**, la letra de las cifras de Estados financieros (ADR-0611); los bolsillos son tarjetitas con su ícono en un cuadrito de su color; los movimientos
+llevan el ícono de su categoría; el cambio contra el mes pasado es texto con su flecha; las columnas van 7 a 5 desde 1100 px, como la maqueta; y
+«A dónde va la plata» ya no guarda su lugar cuando no tiene qué dibujar. En oscuro, el rojo de «Ver …» se aclara un poco sobre el vidrio (4.1:1 → pasa).
+**DESCARTÉ:** mover la barra de sede y mes bajo el título como en la maqueta (es la mesa común de Finanzas, ADR-0493) y achicar el título (es la
+cabecera única del ERP, ADR-0220).

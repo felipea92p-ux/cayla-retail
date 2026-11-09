@@ -1,7 +1,7 @@
 "use client";
 
 import type { CSSProperties } from "react";
-import { ChevronRight, CircleHelp } from "lucide-react";
+import { ChevronRight, CircleHelp, Landmark, Receipt, ShoppingBag, Store, UserCheck, Users, Wallet, Zap, type LucideIcon } from "lucide-react";
 import { BarraApilada } from "@/components/ui/BarraApilada";
 import { Chip } from "@/components/ui/Chip";
 import { CifraAnimada } from "@/components/ui/CifraAnimada";
@@ -21,6 +21,9 @@ type Props = {
   /** Para la nota bajo la cifra: «Es de hoy, aunque mires octubre». `null` si se mira hoy. */
   otroMes: string | null;
 };
+
+/** El ícono de cada bolsillo, sobre un cuadrito teñido de su color (como en la maqueta). */
+const ICONO: Record<ClaveBolsillo, LucideIcon> = { equipo: Users, sunat: Landmark, proveedores: Receipt, fijos: Zap, otros: Wallet, compras: ShoppingBag, claure: Store, planilla: UserCheck };
 
 const entra = (i: number) => ({ className: "anim-entra", style: { ["--i" as string]: i } as CSSProperties });
 
@@ -42,7 +45,7 @@ export function SaldoLibre({ saldo, onAbrir, otroMes }: Props) {
       <section className="fin-superficie fin-pad bolsillos" data-guia="fin-resumen.libre">
         <p className="bolsillos-etiqueta">En {saldo.nombre}</p>
         {saldo.efectivo !== null && saldo.vende ? (
-          <p className="bolsillos-cifra">
+          <p className="bolsillos-cifra cifra-a">
             <CifraAnimada valor={Math.round(saldo.efectivo)} formato="soles-redondo" />
           </p>
         ) : null}
@@ -66,7 +69,7 @@ export function SaldoLibre({ saldo, onAbrir, otroMes }: Props) {
           ¿Cómo se calcula?
         </button>
       </div>
-      <p className={`bolsillos-cifra ${saldo.libre < 0 ? "es-falta" : ""}`}>
+      <p className={`bolsillos-cifra cifra-a ${saldo.libre < 0 ? "es-falta" : ""}`}>
         <CifraAnimada valor={Math.round(saldo.libre)} formato="soles-redondo" />
       </p>
       <p className="bolsillos-dicho">{saldo.dicho}</p>
@@ -100,18 +103,31 @@ export function SaldoLibre({ saldo, onAbrir, otroMes }: Props) {
             etiqueta={`Lo que tienes, repartido: ${tramos.map((t) => `${t.nombre.toLowerCase()}: ${soles(t.valor)}`).join("; ")}`}
             segmentos={tramos.map((t) => ({ clave: t.clave, nombre: t.nombre, valor: t.valor, color: t.color }))}
           />
+          {saldo.bolsillos.length > 0 && (
+            <p className="bolsillos-ley">
+              {saldo.libre > 0 && (
+                <span>
+                  <i aria-hidden style={{ ["--c" as string]: COLOR_LIBRE } as CSSProperties} />
+                  Libre
+                </span>
+              )}
+              <span>Lo demás, en sus bolsillos, hasta el {fechaEnPalabras(saldo.hasta)}:</span>
+            </p>
+          )}
         </div>
       )}
 
       {saldo.bolsillos.length > 0 && (
-        <>
-          <p className="bolsillos-subtitulo">Lo demás, en sus bolsillos · hasta el {fechaEnPalabras(saldo.hasta)}</p>
-          <ul className="bolsillos-lista">
-            {saldo.bolsillos.map((b, i) => (
+        <ul className="bolsillos-lista">
+          {saldo.bolsillos.map((b, i) => {
+            const Icono = ICONO[b.clave];
+            return (
               <li key={b.clave} {...entra(i + 2)}>
-                <button type="button" className="bolsillos-fila es-enlace" onClick={() => onAbrir(HOJA_DE[b.clave])}>
-                  <span aria-hidden className="bolsillos-muestra" style={{ ["--c" as string]: b.color } as CSSProperties} />
-                  <span className="bolsillos-texto">
+                <button type="button" className="bolsillos-fila es-enlace" style={{ ["--c" as string]: b.color } as CSSProperties} onClick={() => onAbrir(HOJA_DE[b.clave])}>
+                  <span aria-hidden className="bolsillos-icono">
+                    <Icono className="h-4 w-4" />
+                  </span>
+                  <span className="bolsillos-texto bolsillos-texto-fila">
                     <b>{b.nombre}</b>
                     <small>{b.detalle}</small>
                   </span>
@@ -119,11 +135,10 @@ export function SaldoLibre({ saldo, onAbrir, otroMes }: Props) {
                   <ChevronRight aria-hidden className="bolsillos-flecha h-4 w-4" />
                 </button>
               </li>
-            ))}
-          </ul>
-        </>
+            );
+          })}
+        </ul>
       )}
-
     </section>
   );
 }

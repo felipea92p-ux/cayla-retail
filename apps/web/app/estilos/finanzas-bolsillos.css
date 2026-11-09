@@ -5,10 +5,27 @@
    ========================================================================================================================================= */
 
 .bolsillos {
+  position: relative;
   display: flex;
   flex-direction: column;
   gap: 4px;
   min-width: 0;
+}
+.fin-superficie.bolsillos {
+  padding: 26px 28px 24px;
+}
+/* El resplandor verde de la maqueta: dice «esto es plata tuya» sin decirlo. */
+.bolsillos::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  background: radial-gradient(90% 70% at 100% 0%, color-mix(in srgb, var(--color-verde) 9%, transparent), transparent 60%); /* contraste: no aplica — es una luz, no un texto */
+}
+.bolsillos > * {
+  position: relative;
+  z-index: 1;
 }
 .bolsillos-cab {
   display: flex;
@@ -31,21 +48,18 @@
   font-size: 13px;
 }
 .bolsillos-cifra {
-  margin-top: 6px;
-  font-family: var(--font-serif);
-  font-size: clamp(44px, 5.2vw, 72px);
+  margin-top: 10px;
+  font-size: clamp(52px, 6.2vw, 104px);
   line-height: 1;
-  font-variant-numeric: tabular-nums;
-  letter-spacing: -0.01em;
   color: var(--color-tinta);
 }
 .bolsillos-cifra.es-falta {
   color: var(--color-rojo-profundo);
 }
 .bolsillos-dicho {
-  margin-top: 6px;
+  margin-top: 8px;
   max-width: 62ch;
-  font-size: 14px;
+  font-size: 16px;
   color: var(--color-taupe-profundo);
 }
 .bolsillos-motivo,
@@ -61,41 +75,69 @@
   margin-top: 8px;
 }
 .bolsillos-barra {
-  margin-top: 16px;
+  margin-top: 22px;
 }
-.bolsillos-subtitulo {
-  margin-top: 16px;
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
+.bolsillos-ley {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 14px;
+  margin-top: 10px;
+  font-size: 13px;
   color: var(--color-taupe-profundo);
 }
+.bolsillos-ley i {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  margin-right: 6px;
+  border-radius: 3px;
+  background: var(--c);
+  vertical-align: -1px;
+}
+/* Cada bolsillo es una tarjetita con su ícono en un cuadrito de su color, como las cajitas de la app del banco. */
 .bolsillos-lista {
-  margin: 6px 0 0;
+  display: grid;
+  gap: 6px;
+  margin: 14px 0 0;
   padding: 0;
   list-style: none;
 }
-.bolsillos-lista > li + li {
-  border-top: 1px solid var(--color-sand);
-}
 .bolsillos-fila {
   display: grid;
-  grid-template-columns: 12px minmax(0, 1fr) auto 16px;
+  width: 100%;
+  grid-template-columns: 30px minmax(0, 1fr) auto 16px;
   align-items: center;
   gap: 12px;
   min-height: 52px;
-  padding: 8px 8px;
-  margin-inline: -8px;
-  border-radius: 12px;
+  padding: 10px 14px;
+  border-radius: 18px;
+  text-align: left;
   color: var(--color-tinta);
-  transition: background-color var(--t-resp, 200ms) var(--ease-cayla);
+  background: color-mix(in srgb, var(--color-papel) 70%, transparent); /* contraste: no aplica — es un fondo, no un texto */
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-sand) 70%, transparent); /* contraste: no aplica — es un borde, no un texto */
+  transition: translate var(--t-resp, 200ms) var(--ease-cayla), box-shadow var(--t-resp, 200ms) var(--ease-cayla);
 }
-.bolsillos-muestra {
-  width: 12px;
-  height: 12px;
-  border-radius: 4px;
-  background: var(--c);
+.bolsillos-icono {
+  display: grid;
+  width: 30px;
+  height: 30px;
+  place-items: center;
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--c) 15%, transparent); /* contraste: no aplica — es un fondo, no un texto */
+  color: color-mix(in srgb, var(--c) 70%, var(--color-tinta)); /* contraste: no aplica — es un ícono que acompaña a su nombre */
+}
+.bolsillos-texto-fila {
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: baseline;
+  column-gap: 10px;
+}
+.bolsillos-texto-fila b {
+  font-size: 14.5px;
+  font-weight: 500;
+}
+.bolsillos-texto-fila small {
+  font-size: 12.5px;
 }
 .bolsillos-texto {
   display: flex;
@@ -113,8 +155,9 @@
   color: var(--color-taupe-profundo);
 }
 .bolsillos-monto {
-  font-size: 15px;
-  font-weight: 600;
+  font-size: 17px;
+  font-weight: 500;
+  letter-spacing: -0.02em;
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
@@ -128,7 +171,8 @@
 }
 @media (hover: hover) {
   .bolsillos-fila.es-enlace:hover {
-    background: color-mix(in srgb, var(--color-tinta) 4%, transparent); /* contraste: no aplica — es un fondo, no un texto */
+    translate: 0 -2px;
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--c) 45%, transparent), 0 14px 26px -18px color-mix(in srgb, var(--color-sombra) 45%, transparent); /* contraste: no aplica — es un borde y una sombra */
   }
   .bolsillos-fila.es-enlace:hover .bolsillos-flecha {
     translate: 4px 0;
@@ -189,11 +233,15 @@
 }
 .mes-a-cifra {
   margin-top: 6px;
-  font-family: var(--font-serif);
-  font-size: clamp(36px, 3.6vw, 52px);
+  font-size: clamp(40px, 4vw, 56px);
   line-height: 1;
-  font-variant-numeric: tabular-nums;
   color: var(--color-tinta);
+}
+.mes-a-etiqueta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
 }
 .mes-a-cifra.es-falta {
   color: var(--color-rojo-profundo);
@@ -225,10 +273,7 @@
   gap: 4px;
 }
 .mes-a-tres dt {
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
+  font-size: 13px;
   color: var(--color-taupe-profundo);
 }
 .mes-a-tres dd {
@@ -236,7 +281,7 @@
 }
 .mes-a-monto {
   font-size: 20px;
-  font-weight: 600;
+  font-weight: 500;
   font-variant-numeric: tabular-nums;
   color: var(--color-tinta);
 }
@@ -255,7 +300,7 @@
 }
 .mes-a-eq-titular {
   font-size: 14px;
-  font-weight: 600;
+  line-height: 1.45;
   color: var(--color-tinta);
 }
 
@@ -273,15 +318,16 @@
   gap: 16px;
   margin-top: 4px;
   padding: 12px 14px;
-  border-radius: 14px;
-  background: var(--color-hueso);
-  border-left: 3px solid var(--color-verde);
+  border-radius: 16px;
+  --tono: var(--color-verde);
+  background: color-mix(in srgb, var(--tono) 8%, transparent); /* contraste: no aplica — es un fondo, no un texto */
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--tono) 22%, transparent); /* contraste: no aplica — es un borde, no un texto */
 }
 .proximos-justo.es-ambar {
-  border-left-color: var(--color-ambar);
+  --tono: var(--color-ambar);
 }
 .proximos-justo.es-rojo {
-  border-left-color: var(--color-rojo-profundo);
+  --tono: var(--color-rojo);
 }
 .proximos-justo-cifra {
   margin-top: 4px;
@@ -289,13 +335,14 @@
   color: var(--color-tinta);
 }
 .proximos-justo-cifra b {
-  font-family: var(--font-serif);
-  font-size: 22px;
-  font-weight: 400;
+  font-size: 17px;
+  font-weight: 500;
 }
 .proximos-linea {
   min-width: 0;
-  color: var(--color-tinta);
+}
+.proximos-linea path {
+  color: var(--tono);
 }
 .proximos-lista {
   margin: 4px 0 0;
@@ -325,14 +372,13 @@
   width: 44px;
   height: 44px;
   border-radius: 12px;
-  background: var(--color-hueso);
+  box-shadow: inset 0 0 0 1px var(--color-sand);
   color: var(--color-tinta);
   line-height: 1;
 }
 .proximos-fecha b {
-  font-family: var(--font-serif);
-  font-size: 18px;
-  font-weight: 400;
+  font-size: 16px;
+  font-weight: 600;
 }
 .proximos-fecha small {
   margin-top: 2px;
@@ -343,7 +389,12 @@
   color: var(--color-taupe-profundo);
 }
 .proximos-fecha.es-vencida {
-  box-shadow: inset 0 0 0 1.5px var(--color-rojo-profundo);
+  background: color-mix(in srgb, var(--color-rojo) 12%, transparent); /* contraste: no aplica — es un fondo, no un texto */
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-rojo) 35%, transparent); /* contraste: no aplica — es un borde, no un texto */
+  color: var(--color-rojo-profundo);
+}
+.proximos-fecha.es-vencida small {
+  color: inherit;
 }
 .bolsillos-texto small.proximos-vencido {
   color: var(--color-rojo-profundo);
@@ -378,15 +429,13 @@
   gap: 12px;
   padding: 10px 0 6px;
   border-bottom: 1px solid var(--color-sand);
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 600;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
+  letter-spacing: 0.02em;
   color: var(--color-taupe-profundo);
 }
 .movs-dia-cab .num {
   font-size: 13px;
-  letter-spacing: 0;
   color: var(--color-tinta);
 }
 .movs-lista,
@@ -397,7 +446,7 @@
 }
 .movs-renglon {
   display: grid;
-  grid-template-columns: 32px minmax(0, 1fr) auto;
+  grid-template-columns: 36px minmax(0, 1fr) auto;
   align-items: center;
   gap: 12px;
   min-height: 52px;
@@ -406,19 +455,27 @@
 .movs-renglon + .movs-renglon {
   border-top: 1px solid color-mix(in srgb, var(--color-sand) 60%, transparent); /* contraste: no aplica — es un borde, no un texto */
 }
+/* El ícono de cada movimiento, en un cuadrito de su tono (la maqueta): verde lo que entra, tinta lo que sale, taupe lo que cambia de lugar. */
 .movs-icono {
+  --c: var(--color-tinta);
   display: grid;
-  width: 32px;
-  height: 32px;
+  width: 36px;
+  height: 36px;
   place-items: center;
-  border-radius: 999px;
-  background: var(--color-hueso);
-  color: var(--color-tinta);
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--c) 10%, transparent); /* contraste: no aplica — es un fondo, no un texto */
+  color: var(--c);
 }
 .movs-renglon[data-tipo="cobro"] .movs-icono,
 .movs-renglon[data-tipo="entra"] .movs-icono {
-  background: color-mix(in srgb, var(--color-verde) 16%, transparent); /* contraste: no aplica — es un fondo, no un texto */
-  color: var(--color-verde-profundo);
+  --c: var(--color-verde-profundo);
+}
+.movs-renglon[data-tipo="mueve"] .movs-icono,
+.movs-renglon[data-tipo="claure"] .movs-icono {
+  --c: var(--color-taupe-profundo);
+}
+.movs-renglon[data-tipo="ajuste"] .movs-icono {
+  --c: var(--color-ambar-profundo);
 }
 .movs-renglon[data-tipo="cobro"] .movs-monto,
 .movs-renglon[data-tipo="entra"] .movs-monto {
@@ -454,11 +511,19 @@
   flex-wrap: wrap;
   gap: 8px;
 }
+/* Las preguntas van en píldora, como en la maqueta: el botón secundario del sistema con las esquinas redondas. */
+.preguntas-a > .btn-cayla {
+  min-height: 40px;
+  padding-inline: 16px;
+  border-radius: 999px;
+  font-size: 14px;
+}
 @media (max-width: 639px) {
   .preguntas-a {
     flex-wrap: nowrap;
     overflow-x: auto;
-    padding-bottom: 4px;
+    margin-inline: -16px;
+    padding: 2px 16px 4px;
     scrollbar-width: none;
   }
   .preguntas-a > * {
@@ -466,13 +531,13 @@
   }
 }
 
-/* ---------- El orden de la pantalla (camino A): dos columnas desde 1280 px; en una sola, lo que más importa primero ----------
+/* ---------- El orden de la pantalla (camino A): dos columnas desde 1100 px (7 a 5, como la maqueta); en una sola, lo que más importa primero ----------
    En una columna las dos se deshacen (`display: contents`) y cada pieza toma su lugar con `order`: lo libre, el mes, las preguntas, lo urgente, lo que
    viene, lo que pasó y las tiendas. Desde 1280 px cada columna vuelve a ser una pila y el orden es el del código. */
 .resumen-a {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 20px;
 }
 .resumen-a-col {
   display: contents;
@@ -484,17 +549,17 @@
 .resumen-a [data-orden="5"] { order: 5; }
 .resumen-a [data-orden="6"] { order: 6; }
 .resumen-a [data-orden="7"] { order: 7; }
-@media (min-width: 1280px) {
+@media (min-width: 1100px) {
   .resumen-a {
     display: grid;
-    grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
+    grid-template-columns: minmax(0, 7fr) minmax(0, 5fr);
     align-items: start;
   }
   .resumen-a-col {
     display: flex;
     min-width: 0;
     flex-direction: column;
-    gap: 16px;
+    gap: 20px;
   }
   .resumen-a [data-orden] {
     order: 0;
@@ -518,10 +583,8 @@
   border-bottom: 1px solid var(--color-sand);
 }
 .hoja-a-cifra {
-  font-family: var(--font-serif);
-  font-size: 40px;
+  font-size: 44px;
   line-height: 1.05;
-  font-variant-numeric: tabular-nums;
   color: var(--color-tinta);
 }
 .hoja-a-cifra.es-falta {
@@ -589,4 +652,75 @@
   align-items: center;
   justify-content: space-between;
   gap: 12px;
+}
+
+/* ---------- Las cifras, como en la maqueta: Inter (la letra de las cifras de Estados financieros, ADR-0611), y la «S/» chica y en taupe ---------- */
+.resumen-bolsillos :is(.cifra-a, .hoja-a-cifra, .num, .bolsillos-monto, .mes-a-monto) {
+  font-family: var(--letra-estados), ui-sans-serif, system-ui, sans-serif;
+  font-variant-numeric: tabular-nums;
+}
+.resumen-bolsillos :is(.cifra-a, .hoja-a-cifra) {
+  font-weight: 500;
+  letter-spacing: -0.045em;
+  white-space: nowrap;
+}
+/* Lo de antes del primer dígito («S/ », «−S/ »): la primera pieza que no gira de `CifraAnimada`. */
+.resumen-bolsillos .cifra-a .cifra-rueda > span:first-child:not(.cifra-rueda-col) {
+  /* Las columnas que giran no tienen línea base (`overflow: hidden`): la «S/» se apoya al pie, a la altura de la base de los dígitos. */
+  align-self: flex-end;
+  margin-bottom: 0.24em;
+  line-height: 1;
+  margin-right: 0.12em;
+  font-size: 0.42em;
+  letter-spacing: -0.01em;
+  color: var(--color-taupe-profundo); /* contraste: texto grande sobre la placa de vidrio */
+}
+.resumen-bolsillos .cifra-a.es-falta .cifra-rueda > span:first-child:not(.cifra-rueda-col) {
+  color: inherit;
+}
+@media (max-width: 639px) {
+  .fin-superficie.bolsillos {
+    padding: 20px 18px;
+  }
+}
+
+/* La respuesta bajo la cabecera (la frase de la maqueta). */
+.resumen-frase {
+  max-width: 68ch;
+  margin-top: -8px;
+  font-size: 17px;
+  line-height: 1.5;
+  color: var(--color-taupe-profundo);
+}
+.resumen-frase b {
+  font-weight: 600;
+  color: var(--color-tinta);
+}
+.mes-a-delta {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+  font-size: 13px;
+  color: var(--color-taupe-profundo);
+}
+.mes-a-delta b {
+  font-weight: 600;
+}
+.mes-a-delta[data-tono="sube"] :is(svg, b) {
+  color: var(--color-verde-profundo);
+}
+.mes-a-delta[data-tono="baja"] :is(svg, b) {
+  color: var(--color-ambar-profundo);
+}
+
+/* En oscuro, el vidrio claro es más claro que el papel y el rojo de «Ver …» (versalitas de 11 px) quedaba en 4.1:1 (tema:auditar, 2026-11-09): aquí se
+   aclara un poco hacia el texto. Al pasar el mouse sigue yendo al rojo profundo, como en todo el ERP. */
+:root[data-tema="oscuro"] .resumen-bolsillos .enlace-ver {
+  color: color-mix(in srgb, var(--color-rojo) 72%, var(--color-tinta)); /* contraste: texto sobre papel, vidrio */
+}
+@media (hover: hover) {
+  :root[data-tema="oscuro"] .resumen-bolsillos .enlace-ver:hover:not(:disabled) {
+    color: var(--color-rojo-profundo);
+  }
 }

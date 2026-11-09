@@ -28,6 +28,7 @@ import { HojasResumen, hojasQueHay, type DatosHojas, type DestinosHojas } from "
 import type { ClaveHoja } from "@/lib/hojas-resumen-reglas";
 import type { SedeConValor } from "@/lib/valor-inventario-reglas";
 import { proximosPagos } from "@/lib/proximos-reglas";
+import { FRASE_DE_SIEMPRE, fraseDelResumen } from "@/lib/frase-resumen-reglas";
 import { teDejaDelMes } from "@/lib/te-deja-mes-reglas";
 import { conElRango, nombreDelAnterior } from "@/lib/estados-periodo";
 import { saldoEnBolsillos } from "@/lib/bolsillos-reglas";
@@ -96,7 +97,6 @@ type Props = {
   cajasPorSede?: Lectura<UnidadBalance[]> | null;
 };
 
-const FRASE = "De lo que vendes a lo que te queda.";
 
 export function ResumenFinanzasPanel({ resumen, falla, confianza, mes, periodo, minimo, hoy, estadoMes, estadoAntes, faltaDelMes, planillaSinSalida, ventasPorDia, sedes, flujoProximo, inversion, inversionFalla = null, acceso, cajasPorSede = null, movimientos = null, inventarioValor = null }: Props) {
   const sp = useSearchParams();
@@ -137,8 +137,8 @@ export function ResumenFinanzasPanel({ resumen, falla, confianza, mes, periodo, 
 
   if (!resumen) {
     return (
-      <div className="space-y-6">
-        <EncabezadoPagina sede="Finanzas" titulo="Resumen" subtitulo={FRASE} acciones={fecha} />
+      <div className={`pantalla-en-vidrio resumen-bolsillos space-y-6 ${letraEstados.variable}`}>
+        <EncabezadoPagina sede="Finanzas" titulo="Resumen" subtitulo={FRASE_DE_SIEMPRE} acciones={fecha} />
         <Aviso tono="error" titulo="El Resumen no respondió">
           {falla ?? "No se pudo leer el resumen. Vuelve a cargar la página; si sigue igual, avisa a Felipe."}
         </Aviso>
@@ -247,8 +247,23 @@ export function ResumenFinanzasPanel({ resumen, falla, confianza, mes, periodo, 
   const juntas = cajasPorSede && r.ver.todas ? sedesJuntas(filas, cajasPorSede.falla ? null : cajasPorSede.datos) : null;
 
   return (
-    <div className="space-y-6">
-      <EncabezadoPagina sede={sede} titulo="Resumen" subtitulo={FRASE} acciones={fecha} />
+    // `pantalla-en-vidrio`: el Resumen ya está rediseñado (camino A), así que sus bloques van al vidrio claro, como en la maqueta (ADR-0596); las cifras,
+    // en la letra de Estados financieros (Inter, ADR-0611).
+    <div className={`pantalla-en-vidrio resumen-bolsillos space-y-6 ${letraEstados.variable}`}>
+      <EncabezadoPagina sede={sede} titulo="Resumen" subtitulo={FRASE_DE_SIEMPRE} acciones={fecha} />
+      {/* La respuesta, a la vista bajo la cabecera, como en la maqueta: cuánto tienes, cuánto puedes usar y cuánto te deja el mes (los mismos números
+          de las tarjetas de abajo, `fraseDelResumen`). El subtítulo de la cabecera queda en su «?», como en todo el ERP. */}
+      <p className="resumen-frase anim-entra" style={{ ["--i" as string]: 0 } as CSSProperties}>
+        {fraseDelResumen({ saldo, te, nombreMes: mesNombre(mes), enCurso: periodo.enCurso && periodo.unMes }).map((p, i) =>
+          p.fuerte ? (
+            <b key={i} className="num">
+              {p.texto}
+            </b>
+          ) : (
+            <span key={i}>{p.texto}</span>
+          ),
+        )}
+      </p>
       {/* Camino «A · Bolsillos» (Felipe 2026-11-09; maqueta docs/maquetas/finanzas-resumen-de-punta-a-punta-2026-11/). A la izquierda, la plata como en la app
           del banco: lo libre con sus bolsillos, las preguntas de siempre y los movimientos. A la derecha, el mes: lo que te deja, lo urgente, lo que viene y las
           tiendas. En una sola columna, en el orden de `data-orden`. */}
@@ -297,7 +312,13 @@ export function ResumenFinanzasPanel({ resumen, falla, confianza, mes, periodo, 
             </Superficie>
           </div>
           <div data-orden="5" id="proximos" {...columna(5, "resumen-ancla")}>
-            <Proximos datos={proximos} hoy={hoy} hrefPorPagar={destino("cuentas_dinero", "/finanzas/dinero/por-pagar") ?? null} hrefFlujo={ve("reportes_financieros") ? ir("/finanzas/reportes/flujo") : null} />
+            <Proximos
+              datos={proximos}
+              hoy={hoy}
+              hrefPorPagar={destino("cuentas_dinero", "/finanzas/dinero/por-pagar") ?? null}
+              hrefFlujo={ve("reportes_financieros") ? ir("/finanzas/reportes/flujo") : null}
+              onVerTodo={hay.includes("pagos") ? () => setHoja("pagos") : undefined}
+            />
           </div>
           {/* «Tus tiendas»: lo vendido por sede con la confianza del número, en UNA tarjeta (ADR-0417; Felipe 2026-10-29). Si no se pudo medir, se dice. */}
           <div data-orden="7" id="tiendas" {...columna(7, "resumen-ancla")}>
@@ -316,24 +337,12 @@ export function ResumenFinanzasPanel({ resumen, falla, confianza, mes, periodo, 
           una pegada a la de arriba, sin aire entre ellas (Felipe 2026-10-26). Con menos de 69 rem van en una sola, en el mismo orden. Con columnas
           fijas, lo que crece solo empuja lo que tiene debajo (con `columns-[34rem]` el navegador pasaba una tarjeta de columna a media animación). */}
       <div className="grid grid-cols-[repeat(auto-fit,minmax(min(34rem,100%),1fr))] items-start gap-4">
-        <div id="a-donde-va" {...columna(8, "resumen-ancla")}>
-          {recorrido ? (
+        {/* Sin salidas que repartir, el anillo no dibuja nada: tampoco se guarda su lugar (dejaba media fila vacía), y lo que más se movió toma el ancho. */}
+        {recorrido && recorrido.salidas.some((h) => h.monto > 0) && (
+          <div id="a-donde-va" {...columna(8, "resumen-ancla")}>
             <AdondeVaLaPlata recorrido={recorrido} bajada={bajadaPlata} />
-          ) : (
-            <Superficie pad guia="fin-resumen.recorrido">
-              <CabeceraBloque
-                titulo="A dónde va la plata"
-                bajada={
-                  estadoMes.falla
-                    ? "No se pudo leer el mes. Reintenta en un rato."
-                    : r.ver.todas || r.ver.tipo === "tienda"
-                      ? "Todavía no hay ventas ni gastos este mes."
-                      : "Elige «Todas las sedes» o una tienda para ver esto."
-                }
-              />
-            </Superficie>
-          )}
-        </div>
+          </div>
+        )}
 
         <div className="flex flex-col gap-4">
           <div {...columna(9)}>

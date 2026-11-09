@@ -1,6 +1,6 @@
-import { CircleHelp } from "lucide-react";
 import { BarraAvance } from "@/components/ui/BarraAvance";
-import { Chip, type TonoChip } from "@/components/ui/Chip";
+import { Minus, TrendingDown, TrendingUp } from "lucide-react";
+import { Chip } from "@/components/ui/Chip";
 import { CifraAnimada } from "@/components/ui/CifraAnimada";
 import { EnlaceVer } from "@/components/ui/EnlaceVer";
 import { TituloSeccion } from "@/components/ui/TituloSeccion";
@@ -34,14 +34,15 @@ type Props = {
   hojas: readonly ClaveHoja[];
 };
 
+/** El cambio contra el período anterior, como en la maqueta: una flecha, el porcentaje y contra qué, en texto (no una insignia que se parte). */
 function Delta({ cambio }: { cambio: NonNullable<Props["cambio"]> }) {
   const p = Math.round(cambio.pct * 100);
-  const tono: TonoChip = p === 0 ? "pizarra" : p > 0 ? "verde" : "ambar";
-  const texto = p === 0 ? `Igual que ${cambio.contra}` : `${p > 0 ? "+" : "−"}${Math.abs(p)} % contra ${cambio.contra}`;
+  const Icono = p === 0 ? Minus : p > 0 ? TrendingUp : TrendingDown;
   return (
-    <Chip tono={tono} versalitas={false} className="chip-envuelve">
-      {texto}
-    </Chip>
+    <span className="mes-a-delta" data-tono={p === 0 ? "igual" : p > 0 ? "sube" : "baja"}>
+      <Icono aria-hidden className="h-3.5 w-3.5" />
+      <b className="num">{p === 0 ? "Igual" : `${p > 0 ? "+" : "−"}${Math.abs(p)} %`}</b> {p === 0 ? "que" : "contra"} {cambio.contra}
+    </span>
   );
 }
 
@@ -74,13 +75,16 @@ export function TarjetaMes({ titulo, te, eq, vendido, gastos, cambio, noVende, p
 
   return (
     <section className="fin-superficie fin-pad mes-a" data-guia="fin-resumen.mes">
+      {/* Como en la maqueta: el título y, a la derecha, «La cuenta», que abre la hoja con la cuenta del mes (y desde ella, Ganancias y pérdidas). */}
       <TituloSeccion
         className="mes-a-cab"
         accion={
-          provisional ? (
-            <Chip tono="ambar" versalitas={false} title="Al número le faltan cosas por registrar: «Vendido por sede» dice cuáles.">
-              Provisional
-            </Chip>
+          hojas.includes("deja") ? (
+            <EnlaceVer onClick={() => onAbrir("deja")} guia="fin-resumen.cuenta-del-mes">
+              La cuenta
+            </EnlaceVer>
+          ) : hrefGanancias ? (
+            <EnlaceVer href={hrefGanancias}>Ganancias</EnlaceVer>
           ) : undefined
         }
       >
@@ -93,18 +97,25 @@ export function TarjetaMes({ titulo, te, eq, vendido, gastos, cambio, noVende, p
           {noVende.valor === null ? (
             <p className="bolsillos-motivo">{noVende.motivo}</p>
           ) : (
-            <p className="mes-a-cifra">
+            <p className="mes-a-cifra cifra-a">
               <CifraAnimada valor={Math.round(noVende.valor)} formato="soles-redondo" />
             </p>
           )}
         </>
       ) : (
         <>
-          <p className="bolsillos-etiqueta">{etiqueta}</p>
+          <p className="bolsillos-etiqueta mes-a-etiqueta">
+            {etiqueta}
+            {provisional && (
+              <Chip tono="ambar" versalitas={false} title="Al número le faltan cosas por registrar: «Vendido por sede» dice cuáles.">
+                Provisional
+              </Chip>
+            )}
+          </p>
           {cifra === null ? (
             <p className="bolsillos-motivo">{te.tipo === "sin_dato" ? te.motivo : ""}</p>
           ) : (
-            <p className={`mes-a-cifra ${conSigno !== null && conSigno < 0 ? "es-falta" : ""}`}>
+            <p className={`mes-a-cifra cifra-a ${conSigno !== null && conSigno < 0 ? "es-falta" : ""}`}>
               <CifraAnimada valor={Math.round(cifra)} formato="soles-redondo" />
             </p>
           )}
@@ -168,17 +179,6 @@ export function TarjetaMes({ titulo, te, eq, vendido, gastos, cambio, noVende, p
       )}
       {eq && eq.tipo !== "ok" && !noVende && <p className="mes-a-nota mes-a-eq">{eq.motivo}</p>}
 
-      {(hrefGanancias || hojas.includes("deja")) && (
-        <div className="mes-a-pie">
-          {hojas.includes("deja") && (
-            <button type="button" className="btn-cayla btn-enlace bolsillos-como" onClick={() => onAbrir("deja")} data-guia="fin-resumen.cuenta-del-mes">
-              <CircleHelp aria-hidden className="h-3.5 w-3.5" />
-              ¿Cómo se calcula?
-            </button>
-          )}
-          {hrefGanancias && <EnlaceVer href={hrefGanancias}>Ganancias y pérdidas</EnlaceVer>}
-        </div>
-      )}
     </section>
   );
 }

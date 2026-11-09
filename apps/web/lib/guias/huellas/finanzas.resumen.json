@@ -2,7 +2,7 @@
   "guia": "finanzas.resumen",
   "ruta": "/finanzas/resumen",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 41,
+  "total": 40,
   "controles": {
     "components/finanzas/AdondeVaLaPlata.tsx": [
       "button «{h.nombre}»"
@@ -47,8 +47,7 @@
       "button «{b.nombre}»"
     ],
     "components/finanzas/bolsillos/TarjetaMes.tsx": [
-      "button «{etiqueta}»",
-      "button «fin-resumen.cuenta-del-mes»"
+      "button «{etiqueta}»"
     ],
     "components/finanzas/estados/SelectorPeriodo.tsx": [
       "button «{`Ver el ${queSeMira}»",
