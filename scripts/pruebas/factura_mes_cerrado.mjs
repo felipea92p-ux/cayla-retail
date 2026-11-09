@@ -162,7 +162,7 @@ select 'el gasto no cambia|' || (select to_jsonb(g.*) = z.fila from retail.gasto
 select 'no se crea una compra ni un pago|' || (select count(*) = 0 from retail.compras where serie = 'FT05');
 select 'marzo no cambia|' || (select (select count(*) from retail.fn_asientos('2025-03-01', '2025-03-31', :'tru')) = n from zz_marzo);
 select 'la huella de marzo sigue igual|' || (select bool_and((x ->> 'ok')::boolean) from retail.fn_cierre_mes_estado('2025-03-01') e, jsonb_array_elements(e.chequeos) x where x ->> 'clave' = 'huella');
-select 'el asiento entra hoy y cuadra|' || (select count(*) = 2 and sum(a.debe) = 18 and sum(a.haber) = 18 and min(a.fecha) = :'hoy'::date from retail.fn_asientos('2025-03-01', :'hoy'::date, :'tru') a where a.regla = 'gasto_papel');
+select 'el asiento entra hoy y cuadra|' || (select count(*) = 2 and sum(a.debe) = 18 and sum(a.haber) = 18 and min(a.fecha) = :'hoy'::date from retail.fn_asientos('2025-03-01', :'hoy'::date, :'tru') a where a.asiento like 'gasto_papel:%');
 select 'descuenta el crédito hoy|' || (select count(*) = 1 and sum(x.igv) = 18 from retail.fn_impuestos_compras(date_trunc('month', :'hoy'::date)::date, :'hoy'::date) x join retail.gasto_papeles_tardios t on t.id = x.id where x.da_credito);
 select 'y el IGV del mes lo suma|' || (select credito_gastos >= 18 from retail.fn_impuestos_igv_meses(date_trunc('month', :'hoy'::date)::date, :'hoy'::date));
 select 'el registro la lista hoy con su fecha real|' || (select count(*) = 1 from retail.fn_impuestos_registro_compras(:'hoy'::date) r where r.serie = 'FT05' and r.fecha = '2025-03-25');
@@ -170,7 +170,7 @@ select 'el gasto ya dice su papel|' || (select tipo = 'factura' and documento = 
 select 'dos toques devuelven lo mismo|' || ((retail.agregar_comprobante_a_gasto(:'g', jsonb_build_object('tipo', 'factura', 'proveedor_id', :'prov'::uuid, 'serie', 'FT05', 'numero', '1', 'fecha_emision', '2025-03-25', 'igv', 18)) ->> 'ya_estaba')::boolean);
 select 'otro papel para el mismo gasto, no|' || (pg_temp.intento(format($s$select retail.agregar_comprobante_a_gasto(%L, jsonb_build_object('tipo', 'factura', 'proveedor_id', %L::uuid, 'serie', 'FT05', 'numero', '2', 'igv', 18))$s$, :'g', :'prov')) like '%ya tiene su comprobante%');
 select 'el mismo papel no entra como compra|' || (pg_temp.intento(format($s$insert into retail.compras (proveedor_id, tipo, serie, numero, fecha_emision, condicion, subtotal, igv, total, naturaleza) values (%L, 'factura', 'FT05', '1', '2025-04-01', 'contado', 100, 18, 118, 'gasto')$s$, :'prov')) like '%ya está registrado%');
-select 'el Balance sigue cuadrando el IGV: el diario y lo declarado dicen lo mismo|' || (select coalesce(sum(a.debe) - sum(a.haber), 0) = 18 from retail.fn_asientos(date_trunc('month', :'hoy'::date)::date, :'hoy'::date, :'tru') a where a.regla = 'gasto_papel' and a.cuenta = '4011');
+select 'el Balance sigue cuadrando el IGV: el diario y lo declarado dicen lo mismo|' || (select coalesce(sum(a.debe) - sum(a.haber), 0) = 18 from retail.fn_asientos(date_trunc('month', :'hoy'::date)::date, :'hoy'::date, :'tru') a where a.asiento like 'gasto_papel:%' and a.cuenta = '4011');
 `));
 
 verificar("pegar dos veces", correr(`

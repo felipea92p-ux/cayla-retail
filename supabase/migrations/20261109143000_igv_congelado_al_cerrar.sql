@@ -95,10 +95,13 @@ alter table retail.periodo_igv enable row level security;
 comment on table retail.periodo_igv is
   'Tarea 19: el IGV del mes como estaba al cerrar CAYLA entera. Una fila por cierre; la vigente es la del cierre que apunta el período. Sirve para avisar que cambió, no para declarar.';
 
--- Quien cierra el mes tiene que poder leer su IGV: la foto la saca él, aunque su rol no vea Impuestos.
+-- Quien cierra el mes tiene que poder leer su IGV: la foto la saca él, aunque su rol no vea Impuestos. Va como un `elsif` delante del permiso de
+-- siempre para no tocar su texto, que deja 20261030235000 y que vuelve a pegar `pruebas:planilla-provision`.
 select pg_temp.reemplazar('retail.fn_impuestos_igv_meses(date,date)',
-$a$if not (retail.fn_puede_ver_impuestos() or retail.fn_ve_estados_financieros_de_todo()) then$a$,
-$n$if not (retail.fn_puede_ver_impuestos() or retail.fn_ve_estados_financieros_de_todo() or retail.fn_puede_cerrar_mes()) then$n$, 1);
+$a$  if not (retail.fn_puede_ver_impuestos() or retail.fn_ve_estados_financieros_de_todo()) then$a$,
+$n$  if retail.fn_puede_cerrar_mes() then
+    null;
+  elsif not (retail.fn_puede_ver_impuestos() or retail.fn_ve_estados_financieros_de_todo()) then$n$, 1);
 
 select pg_temp.reemplazar('retail.cerrar_periodo(date,text,uuid)',
 $a$          v_debe, v_haber, v_unidades, v_avisos);

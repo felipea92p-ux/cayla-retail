@@ -6,7 +6,7 @@
 -- LA DECISIÓN (Felipe, 2026-11-06: el papel guarda su fecha real y entra en el mes abierto). El gasto cerrado no se toca: tocarlo movería la huella de su mes. Y no sirve crear una compra como en
 -- un mes abierto, porque su pago volvería a sacar del banco una plata que ya salió en octubre. Por eso el papel vive en `gasto_papeles_tardios` y entra por su cuenta en el mes abierto:
 --   · el crédito fiscal y el registro de compras, con su fecha real;
---   · el diario, con el asiento `gasto_papel`: 4011 al debe y la cuenta del gasto al haber. El gasto de octubre llevó el IGV como costo; noviembre lo devuelve como crédito;
+--   · el diario, con el asiento `gasto_papel:<id>` (regla `gasto`, la de siempre del IGV de un gasto): 4011 al debe y la cuenta del gasto al haber. El gasto de octubre llevó el IGV como costo; noviembre lo devuelve como crédito;
 --   · el gasto deja de pedir su comprobante (la lista lo lee aparte, como «no emite»), y su sustento dice qué papel tiene.
 --
 -- SUPUESTO PARA EL CONTADOR: el IGV de ese gasto se descuenta en el mes en que se anota, y baja el gasto de ese mes en vez de corregir el mes cerrado. Lo revisa el contador.
@@ -134,11 +134,11 @@ $n$                else 'Pagado (' || gg.medio_pago || ')' end
       from gg
     union all
     -- Tarea 20: el comprobante de un gasto de un mes cerrado. El IGV que ese mes llevó como costo se descuenta y baja el gasto en el mes en que se anota.
-    select t.fecha_contable, g.ubicacion_id, 'gasto_papel:' || t.id, 'gasto_papel', '4011', t.igv, 0, 'gastos', g.id, 'IGV del comprobante que llegó con el mes cerrado'
+    select t.fecha_contable, g.ubicacion_id, 'gasto_papel:' || t.id, 'gasto', '4011', t.igv, 0, 'gastos', g.id, 'IGV del comprobante que llegó con el mes cerrado'
       from retail.gasto_papeles_tardios t join retail.gastos g on g.id = t.gasto_id
      where t.anulado_en is null and t.igv > 0 and g.estado = 'vigente' and t.fecha_contable between p_desde and p_hasta and (v_todo or g.ubicacion_id = any (v_ubics))
     union all
-    select t.fecha_contable, g.ubicacion_id, 'gasto_papel:' || t.id, 'gasto_papel', k.cuenta_pcge::text, 0, t.igv, 'gastos', g.id, 'El IGV ya no es costo: ' || t.serie || '-' || t.numero
+    select t.fecha_contable, g.ubicacion_id, 'gasto_papel:' || t.id, 'gasto', k.cuenta_pcge::text, 0, t.igv, 'gastos', g.id, 'El IGV ya no es costo: ' || t.serie || '-' || t.numero
       from retail.gasto_papeles_tardios t join retail.gastos g on g.id = t.gasto_id join retail.categorias_gasto k on k.codigo = g.categoria
      where t.anulado_en is null and t.igv > 0 and g.estado = 'vigente' and t.fecha_contable between p_desde and p_hasta and (v_todo or g.ubicacion_id = any (v_ubics))
   ),$n$, 1);
