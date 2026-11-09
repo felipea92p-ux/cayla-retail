@@ -11,6 +11,9 @@
  *   · LEER LA FOTO NO CAMBIA NADA: `fn_diario` da las mismas filas con el interruptor encendido y apagado (todas las sedes, una sede, un
  *     mes cerrado de por medio). Encendido, de verdad la lee (una línea testigo aparece); deja de leerla si cambió la planilla de Dynamic;
  *     a quien no ve la planilla no se la muestra; apagado, nunca la lee.
+ *   · VENCE SOLA (parte 3, `20261109183000_foto_del_diario_vence.sql`): una venta del mes pasado vence ese mes y el anterior sigue valiendo;
+ *     la configuración y el costo de una prenda vencen todo; una venta de hoy y un precio nuevo no anotan nada.
+ *   · EL CANDADO: toda tabla que el diario lee tiene su disparador o está exenta con su motivo.
  *   · PEGAR DOS VECES no cambia nada.
  *
  * CÓMO. Cada escena corre dentro de UNA transacción con ROLLBACK, y pega la migración adentro (si la base ya la tiene, no hace nada).
@@ -27,7 +30,7 @@ const a = process.argv.indexOf("--contenedor");
 const CONTENEDOR = a > 0 ? process.argv[a + 1] : "supabase_db_cayla-retail";
 const FELIPE = "22222222-2222-4222-8222-000000000001";
 const RAIZ = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
-const MIGRACIONES = ["20261109180000_foto_del_diario_tomar.sql", "20261109182000_foto_del_diario_leer.sql"].map((f) => readFileSync(join(RAIZ, "supabase", "migrations", f), "utf8")).join("\n");
+const MIGRACIONES = ["20261109180000_foto_del_diario_tomar.sql", "20261109182000_foto_del_diario_leer.sql", "20261109183000_foto_del_diario_vence.sql"].map((f) => readFileSync(join(RAIZ, "supabase", "migrations", f), "utf8")).join("\n");
 
 function correr(sql) {
   try {
@@ -153,7 +156,9 @@ const IGUALES = (a, b) => `(select count(*) from ((select t from ${a}) except al
 const FOTOS = `${comoServicio}
 select retail.tomar_foto_diario(:'mes2') as _f2 \\gset
 select retail.tomar_foto_diario(:'mes') as _f1 \\gset
-${comoLider}`;
+${comoLider}
+-- Como lo deja el trabajo programado al terminar una vuelta: nada vencido (sin la parte 3, la tabla no existe y no hace falta).
+do $$ begin if to_regclass('retail.diario_vencido_marcas') is not null then delete from retail.diario_vencido_marcas; end if; end $$;`;
 const ENCENDER = `update retail.parametros_finanzas set usar_foto_diario = true;`;
 const APAGAR = `update retail.parametros_finanzas set usar_foto_diario = false;`;
 
@@ -198,6 +203,75 @@ select 'una_sede_no_la_lee|' || (select count(*) from retail.fn_diario(:'mes2'::
 update retail.diario_fotos set huella_planilla = 'otra' where mes = :'mes'::date;
 select 'si_cambio_la_planilla_no_la_lee|' || ${VE_TESTIGO("prueba_foto")};
 `), { apagado_no_la_lee: "0", encendido_la_lee: "1", la_planilla_no_a_quien_no_la_ve: "0", una_sede_no_la_lee: "0", si_cambio_la_planilla_no_la_lee: "0" });
+
+const AL_DIA = `delete from retail.diario_vencido_marcas;`;
+const MARCA = `(select count(*) from retail.diario_vencido_marcas)`;
+const DESDE = `(select coalesce(min(fecha)::text, 'nada') from retail.diario_vencido_marcas)`;
+
+verificar("la foto vence sola", correr(`${ESCENA}
+${FOTOS}
+${TESTIGO("prueba_foto")}
+${ENCENDER}
+${AL_DIA}
+select 'al_dia_la_lee|' || ${VE_TESTIGO("prueba_foto")};
+create temp table m0 as select ${MARCA} m;
+${venta("v6", 9, [["efectivo", 33]], "hoymes")}
+select 'una_venta_de_hoy_no_anota|' || (${MARCA} = (select m from m0)) || ',' || ${DESDE};
+update retail.variantes set precio = precio + 1 where id = :'v';
+select 'un_precio_no_anota|' || ${DESDE};
+update retail.ventas set es_prueba = true where id = :'v1';
+select 'una_venta_del_mes_pasado_vence_ese_mes|' || (${DESDE} = (:'mes'::date + 4)::text);
+select 'ya_no_la_lee|' || ${VE_TESTIGO("prueba_foto")};
+select 'el_mes_anterior_sigue_valiendo|' || retail.fn_foto_diario_vale(:'mes2'::date);
+${AL_DIA}
+update retail.categorias_gasto set nombre = nombre where ctid = (select ctid from retail.categorias_gasto limit 1);
+select 'la_configuracion_vence_todo|' || ${DESDE};
+${AL_DIA}
+update retail.variantes set costo = coalesce(costo, 0) + 1 where id = :'v';
+select 'el_costo_de_una_prenda_vence_todo|' || ${DESDE};
+${AL_DIA}
+${APAGAR}
+${ENCENDER}
+select 'prender_el_interruptor_no_vence|' || ${DESDE};
+update retail.parametros_finanzas set minimo_caja = coalesce(minimo_caja, 0) + 1;
+select 'otro_parametro_vence_todo|' || ${DESDE};
+`), {
+  al_dia_la_lee: "1",
+  una_venta_de_hoy_no_anota: "true,nada",
+  un_precio_no_anota: "nada",
+  una_venta_del_mes_pasado_vence_ese_mes: "true",
+  ya_no_la_lee: "0",
+  el_mes_anterior_sigue_valiendo: "true",
+  la_configuracion_vence_todo: "1900-01-01",
+  el_costo_de_una_prenda_vence_todo: "1900-01-01",
+  prender_el_interruptor_no_vence: "nada",
+  otro_parametro_vence_todo: "1900-01-01",
+});
+
+// El candado: toda tabla que el diario lee (recorriendo fn_asientos y lo que llama) tiene su disparador o está exenta con su motivo.
+const FUENTES = `with recursive f(oid, nivel) as (
+    select 'retail.fn_asientos(date,date,uuid)'::regprocedure::oid, 0
+    union
+    select p2.oid, f.nivel + 1 from f join pg_proc p on p.oid = f.oid
+      cross join lateral regexp_matches(p.prosrc, '(fn_[a-z_0-9]+)\\s*\\(', 'g') m
+      join pg_proc p2 on p2.proname = m[1] and p2.pronamespace = 'retail'::regnamespace
+     where f.nivel < 6)
+  select distinct tb.schemaname || '.' || x[1] tabla
+    from f join pg_proc p on p.oid = f.oid
+    cross join lateral regexp_matches(p.prosrc, '(?:from|join)\\s+(?:retail\\.|public\\.)?([a-z_]+)', 'gi') x
+    join pg_tables tb on tb.tablename = x[1] and tb.schemaname in ('retail', 'public')`;
+verificar("ninguna tabla del diario sin vigilar", correr(`begin;
+${MIGRACIONES}
+create temp table fuentes as ${FUENTES};
+select 'fuentes_encontradas|' || ((select count(*) from fuentes) >= 40);
+select 'sin_clasificar|' || coalesce((select string_agg(f.tabla, ',' order by f.tabla) from fuentes f
+   where not exists (select 1 from pg_trigger t join pg_class c on c.oid = t.tgrelid join pg_namespace n on n.oid = c.relnamespace
+                      where n.nspname || '.' || c.relname = f.tabla and t.tgname = 'diario_vence')
+     and not exists (select 1 from retail.diario_fuentes_exentas e where e.tabla = f.tabla)), 'ninguna');
+select 'exentas_sin_disparador|' || coalesce((select string_agg(e.tabla, ',') from retail.diario_fuentes_exentas e
+   where exists (select 1 from pg_trigger t join pg_class c on c.oid = t.tgrelid join pg_namespace n on n.oid = c.relnamespace
+                  where n.nspname || '.' || c.relname = e.tabla and t.tgname = 'diario_vence')), 'ninguna');
+`), { fuentes_encontradas: "true", sin_clasificar: "ninguna", exentas_sin_disparador: "ninguna" });
 
 verificar("pegar dos veces", correr(`begin;
 ${MIGRACIONES}

@@ -28,8 +28,11 @@ DECIDÍ: una **foto** del diario por mes, invisible para quien usa el sistema, s
 2. **Quién la toma.** Un trabajo de **Vercel Cron** con la llave de servicio, no `pg_cron` (ADR-0632: el repo lo descartó tres veces).
    `fn_asientos` gana un modo interno que solo usa la llave de servicio (el mismo patrón de `fn_tomar_comprobantes_para_reintento`,
    `auth.role() = 'service_role'`): ve todo y la planilla, porque la foto es de la empresa entera.
-3. **Cuándo vence.** Cada tabla que alimenta el diario anota la fecha **más antigua** que tocó, solo si es de un mes pasado
-   (`diario_vencido_desde`). Una venta de hoy no escribe nada extra: el mostrador no paga este cambio ni espera turno. Las tablas sin fecha
+3. **Cuándo vence.** Cada tabla que alimenta el diario anota la fecha **más antigua** que tocó, solo si es de un mes pasado, como una
+   fila NUEVA en `diario_vencido_marcas` (una foto vale si no hay ninguna marca de su mes o de antes). Se agrega, no se actualiza una fila
+   común: dos escrituras a la vez sobre meses pasados no se esperan ni se trancan (con una fila única, la segunda esperaba a la primera y
+   podían cruzarse en un deadlock; medido el 2026-11-09). Una venta de hoy no escribe nada extra: el mostrador no paga este cambio ni espera
+   turno. Las tablas sin fecha
    (configuración: tarifas, parámetros, cuentas) vencen todos los meses, porque cambian poco. Las de permisos no vencen nada: la foto guarda
    todo y el permiso se aplica al leer. La planilla de Dynamic no se vigila con disparadores (es otro sistema): la foto guarda una huella de lo
    que leyó de Dynamic para ese mes y, si al leer ya no coincide, ese mes se calcula en vivo.
@@ -46,6 +49,8 @@ DECIDÍ: una **foto** del diario por mes, invisible para quien usa el sistema, s
 DESCARTÉ:
 - **Cerrar los meses solos y reabrirlos con cada movimiento:** cambia lo que significa cerrar (candado, chequeos, contador) y bloquearía las
   facturas que llegan tarde.
+- **Una sola fila «vencido desde» que cada escritura actualiza:** se probó en la actividad 4 y se cambió por la cola de marcas: dos escrituras
+  sobre meses pasados a la vez se esperaban y podían trancarse.
 - **Una versión por mes con un disparador que la sube en cada escritura:** cada venta escribiría en la misma fila; en el mostrador eso es una
   fila de espera y un candado más. Con «la fecha más antigua tocada, solo si es pasada», lo de hoy no escribe nada.
 - **Rehacer la foto dentro de la lectura:** las funciones de lectura tendrían que escribir (dejan de ser `stable`) y dos pantallas a la vez
