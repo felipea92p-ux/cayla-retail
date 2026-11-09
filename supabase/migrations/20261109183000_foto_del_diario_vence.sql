@@ -161,7 +161,6 @@ create or replace trigger diario_vence after insert or update or delete on retai
 create or replace trigger diario_vence after insert or update or delete on retail.devoluciones for each row execute function retail.fn_diario_vence();
 create or replace trigger diario_vence after insert or update or delete on retail.empresa_sedes for each row execute function retail.fn_diario_vence('todo');
 create or replace trigger diario_vence after insert or update or delete on retail.empresas for each row execute function retail.fn_diario_vence('todo');
-create or replace trigger diario_vence after insert or update or delete on retail.gasto_papeles_tardios for each row execute function retail.fn_diario_vence();
 create or replace trigger diario_vence after insert or update or delete on retail.gasto_reparto_claure for each row execute function retail.fn_diario_vence('todo');
 create or replace trigger diario_vence after insert or update or delete on retail.gastos for each row execute function retail.fn_diario_vence();
 create or replace trigger diario_vence after insert or update or delete on retail.gastos_viaje for each row execute function retail.fn_diario_vence('madre:gastos:gasto_id');
