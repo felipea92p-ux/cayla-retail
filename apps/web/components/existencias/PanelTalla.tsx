@@ -19,6 +19,8 @@ import { AroSemanas } from "@/components/existencias/AroSemanas";
 import { navegacionSinEspera } from "@/components/ui/Espera";
 import { FlujoTalla } from "@/components/existencias/FlujoTalla";
 import { soltarPaginaEstable } from "@/components/ui/PaginaEstable";
+import { fotoQueDistingue } from "@/lib/color-estampado-reglas";
+import { MuestraEstampado } from "@/components/ui/MuestraEstampado";
 import { BandaAjustar, ListoDelAjuste, PieDelAjuste, PlanillaDelAjuste, TalonDelAjuste, useTopeDeLaPlanilla } from "@/components/existencias/AjusteDelModelo";
 import { useAjusteDelModelo, type AjusteGuardado } from "@/components/existencias/useAjusteDelModelo";
 import { anchoDelModalAlAjustar, lugarInicial } from "@/lib/existencias-ajuste-modelo";
@@ -824,6 +826,11 @@ export function PanelTalla({
                             style={{ background: c.colorHex ?? "var(--color-hueso)" }}
                             className="relative h-[30px] w-[30px] rounded-full border-2 border-papel shadow-[0_0_0_1px_var(--color-sand)] aria-checked:shadow-[0_0_0_2px_var(--color-tinta)]"
                           >
+                            {c.colorEstampado && fotoQueDistingue(c.fotoUrl, colores.map((x) => x.fotoUrl)) && (
+                              <span className="absolute inset-0 overflow-hidden rounded-full">
+                                <MuestraEstampado fotoUrl={c.fotoUrl!} hex={c.colorHex} />
+                              </span>
+                            )}
                             {punto && <i aria-hidden className={`absolute -right-1 -top-1 h-3 w-3 rounded-full border-2 border-papel ${punto}`} />}
                           </button>
                         );
@@ -904,6 +911,10 @@ export function PanelTalla({
                   />
                 ) : flujo?.tipo === "ajustar" ? (
                   <PlanillaDelAjuste
+                    fotoDelEstampado={(color) => {
+                      const c = colores.find((x) => x.color === color);
+                      return c?.colorEstampado ? fotoQueDistingue(c.fotoUrl, colores.map((x) => x.fotoUrl)) : null;
+                    }}
                     // Al cambiar de lugar la planilla empieza de nuevo: «Revisaste» y el aviso son de lo contado en un lugar.
                     key={ajuste.ubicado}
                     control={ajuste}

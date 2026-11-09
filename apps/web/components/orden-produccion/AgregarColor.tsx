@@ -5,6 +5,7 @@ import { Boton } from "@/components/ui/campos";
 import { ElegirColores } from "@/components/alta-producto/ElegirColores";
 import type { ColorAlta } from "@/lib/alta-producto";
 import { agruparPorFamilia } from "@/lib/colores-familias";
+import { familiaEnCarta } from "@/lib/color-estampado-reglas";
 
 // Los colores de un MODELO NUEVO dentro de «Nueva orden de producción» (ADR-0396, A2). Antes los colores se elegían arriba, en el bloque de «Modelo nuevo», y las cantidades se
 // escribían mucho más abajo: quien cambiaba de idea tenía que subir, quitar y volver a bajar. Ahora cada color elegido es una FILA de la tabla de cantidades (con su «×» para
@@ -50,7 +51,7 @@ export function AgregarColor({
   useEffect(() => {
     recorrio.current = false;
   }, [elegidos]);
-  const grupos = useMemo(() => agruparPorFamilia(colores, (c) => c.familiaColor), [colores]);
+  const grupos = useMemo(() => agruparPorFamilia(colores, familiaEnCarta), [colores]);
 
   /** Antes que el buscador (captura): con la lista abierta, la primera fila ya viene resaltada aunque no se haya escrito nada, y un Enter «de costumbre» agregaba el primer color
    *  (Blanco) sin que nadie lo pidiera. Sin escribir ni recorrer la lista, Enter no elige a ciegas (como el buscador de modelos de A1). */

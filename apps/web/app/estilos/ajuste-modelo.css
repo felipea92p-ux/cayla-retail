@@ -158,6 +158,9 @@
 .ajuste-desliza[data-desliza="si"] .ajuste-col-color { box-shadow: 8px 0 10px -8px color-mix(in srgb, var(--color-sombra) 40%, transparent); }
 .ajuste-franja { position: absolute; top: 0; bottom: 0; left: 0; width: 6px; box-shadow: inset -1px 0 0 color-mix(in srgb, var(--color-tinta) 18%, transparent); }
 .ajuste-color { display: flex; flex-wrap: wrap; align-items: center; gap: 0 8px; min-width: 0; }
+/* Con la foto de un estampado (ADR-0634) el nombre sigue en su línea: la fila no crece y la columna se ensancha sola. */
+.ajuste-color:has(> [aria-hidden]) { flex-wrap: nowrap; }
+.ajuste-color:has(> [aria-hidden]) b { white-space: nowrap; }
 .ajuste-color b { overflow: hidden; text-overflow: ellipsis; font-family: var(--font-serif); font-size: 17.5px; font-weight: 500; line-height: 1.25; color: var(--color-tinta); }
 .ajuste-hoy-movil { display: none; flex-basis: 100%; font-size: 11.5px; color: var(--color-taupe); }
 .ajuste-hoy { min-width: 46px; font-size: 14px; color: var(--color-taupe); }
