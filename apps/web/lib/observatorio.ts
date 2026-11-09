@@ -29,6 +29,7 @@ import { sinRespuestaEnLaRed, textoEspera } from "@/lib/pedidos-por-atender-regl
 import { getResumenPerdidas } from "@/lib/perdidas";
 import { DIAS_VENTANA_REPETICION, perdidasQueSeRepiten } from "@/lib/perdidas-reglas";
 import { restarDias } from "@/lib/movimientos-reglas";
+import { avisoDelVigia, leerEstadoVigia } from "@/lib/vigia-invariantes-reglas";
 import {
   avisoPerdidasObs,
   avisoPlanillaObs,
@@ -89,7 +90,7 @@ export async function getAvisosObservatorio(tiendas: readonly TiendaObs[]): Prom
   const porNombre = new Map(tiendas.map((t) => [t.nombre, t.id]));
   const ahora = new Date();
 
-  const [aperturas, regularizar, traslados, apartados, tramos, fotos, sunat, devoluciones, pedidosEntreSedes, perdidas, cuentasBancarias, igv, planilla] = await Promise.all([
+  const [aperturas, regularizar, traslados, apartados, tramos, fotos, sunat, devoluciones, pedidosEntreSedes, perdidas, cuentasBancarias, igv, planilla, vigia] = await Promise.all([
     getAperturasPorRevisar(),
     tolerar("las prendas por regularizar", async () => (await getPorRegularizar(null)).filter((f) => f.estado === "pendiente")),
     tolerar("los traslados", async () => (await Promise.all(tiendas.map((t) => getTrasladosEnCurso(t.id)))).flat()),
@@ -132,6 +133,13 @@ export async function getAvisosObservatorio(tiendas: readonly TiendaObs[]): Prom
     tolerar("el IGV en espera", () => getIgvEnEspera()),
     // ADR-0567: la planilla que Dynamic pagó sin su salida del banco (undefined si la base todavía no tiene la función).
     tolerar("la planilla por registrar", () => getPlanillaParaElObservatorio()),
+    // ADR-0632: la última corrida del vigía de invariantes (null si no se pudo leer: la migración sin pegar o una forma rara).
+    tolerar("el vigía de la base", async () => {
+      // La función es nueva y los tipos generados todavía no la traen: se llama por nombre.
+      const { data, error } = await supabase.rpc("fn_invariantes_estado" as never);
+      if (error) throw new Error(error.message);
+      return leerEstadoVigia(data);
+    }),
   ]);
 
   const contarPor = (ids: readonly string[]) => {
@@ -327,6 +335,8 @@ export async function getAvisosObservatorio(tiendas: readonly TiendaObs[]): Prom
     href: "/vender/comprobantes/por-reintentar",
     detalle: null,
   });
+  // ADR-0632: ¿la base cuadra? Lo dice el vigía de cada madrugada (o que no corre, o que no se pudo leer).
+  avisos.push(avisoDelVigia(vigia, ahora));
   {
     // ADR-0328 act. 17 (Felipe: a las 48 h sin respuesta, aviso a los líderes de las dos tiendas): cada pedido cuenta una
     // vez y suma a las DOS sedes en el reparto.

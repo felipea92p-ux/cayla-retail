@@ -57,6 +57,9 @@ const MAX = 64 * 1024 * 1024;
  * `nivel`: `cruzada` = la base NO lo impide (solo este script lo ve) · `sospecha` = heurística, puede ser legítima: se confirma mirando.
  * `sql`: devuelve UNA FILA POR VIOLACIÓN (vacío = limpia). `corrompe`: SQL que rompe a propósito el dato que vigila (solo para la
  * autoprueba, siempre revertido). `sinAutoprueba`: por qué no se puede corromper (se dice en voz alta).
+ * `clave`: las columnas que dicen QUÉ está roto (la venta, la caja, la prenda en su sede), nunca los montos. Las usa el vigía diario de
+ * producción (`vigia-semilla.mjs`, ADR-0632): una violación que sigue abierta cambia de cifras de un día a otro, y con la fila entera
+ * volvería a contarse como «nueva» cada mañana. Aquí, en un ataque de minutos, se sigue comparando la fila entera (`huellaDe`).
  */
 /** Las columnas de dinero de Ventas y Caja que vigila INV-16 (todas las `numeric` de esas tablas, 2026-10-13). */
 const COLUMNAS_DE_DINERO = [
@@ -93,6 +96,7 @@ export const INVARIANTES = [
     nombre: "stock_igual_a_movimientos",
     gravedad: 1,
     nivel: "cruzada",
+    clave: ["variante_id", "ubicacion_id", "sububicacion_id"],
     dice: "`stock` es un snapshot derivado: debe ser exactamente lo que sale de sumar `movimientos` (la misma cuenta de `retail.recalcular_stock()`), por prenda, sede y sububicación, en cantidad y en apartado (principio 4).",
     sql: `
 with rec as (
@@ -120,6 +124,7 @@ select coalesce(r.variante_id, s.variante_id) as variante_id,
     nombre: "venta_cuadra_con_sus_pagos",
     gravedad: 1,
     nivel: "cruzada",
+    clave: ["venta_id"],
     dice: "Una venta completada cobra exactamente lo que suman sus líneas: Σ `venta_items.subtotal` = Σ `venta_pagos.monto` (el redondeo es un pago más).",
     sql: `
 select v.id as venta_id, v.ubicacion_id, round(coalesce(i.t, 0), 2) as lineas, round(coalesce(p.t, 0), 2) as pagos
@@ -135,6 +140,7 @@ select v.id as venta_id, v.ubicacion_id, round(coalesce(i.t, 0), 2) as lineas, r
     nombre: "venta_descuenta_lo_que_vendio",
     gravedad: 1,
     nivel: "cruzada",
+    clave: ["venta_item_id"],
     dice: "Cada línea de una venta completada tiene salidas de stock por exactamente su cantidad: lo vendido y lo descontado no se separan (ni dobles ni faltantes).",
     sql: `
 select i.id as venta_item_id, i.venta_id, i.variante_id, i.cantidad as vendido, coalesce(m.t, 0) as salido
@@ -149,7 +155,14 @@ select i.id as venta_item_id, i.venta_id, i.variante_id, i.cantidad as vendido, 
    -- ADR-0408 act. 10: la prenda de un pedido web se vende al quedar pagado y sale del stock recién al entregarla. Mientras su
    -- línea del pedido no se entrega, su línea de venta no tiene salida a propósito (con una, sí es violación). La cuida INV-18.
    and not (coalesce(m.t, 0) = 0
-            and exists (select 1 from retail.pedido_web_lineas pwl where pwl.venta_item_id = i.id and pwl.estado <> 'entregada'))`,
+            and exists (select 1 from retail.pedido_web_lineas pwl where pwl.venta_item_id = i.id and pwl.estado <> 'entregada'))
+   -- ADR-0179 y ADR-0334: la «Prenda sin registrar» se vende sin stock y espera en su cola; al regularizarla, la línea pasa a la
+   -- prenda real con su salida. Mientras espera (pendiente) o si se cerró sin prenda al cerrar la cola de arranque de su sede, no tiene salida a
+   -- propósito. Una línea sin salida que NO está en esa cola sí es violación. (Visto el 2026-11-09 por el vigía de producción,
+   -- ADR-0632: eran 1.280 falsos positivos, 1.233 cerradas sin prenda y 47 pendientes; la base local no tiene ninguna.)
+   and not (coalesce(m.t, 0) = 0
+            and exists (select 1 from retail.prendas_por_regularizar pr
+                         where pr.venta_item_id = i.id and pr.estado in ('pendiente', 'cerrada_sin_prenda')))`,
     corrompe: `update retail.venta_items set cantidad = cantidad + 1 where ctid = (select ctid from retail.venta_items limit 1);`,
   },
   {
@@ -157,6 +170,7 @@ select i.id as venta_item_id, i.venta_id, i.variante_id, i.cantidad as vendido, 
     nombre: "venta_en_su_caja_y_su_hora",
     gravedad: 1,
     nivel: "cruzada",
+    clave: ["venta_id"],
     dice: "Toda venta cae en una caja de SU sede y dentro del tiempo en que esa caja estuvo abierta: nunca en la de otra sede ni en el día de ayer, ya contado y depositado.",
     sql: `
 select v.id as venta_id, v.caja_id, v.ubicacion_id as sede_venta, c.ubicacion_id as sede_caja, v.created_at, c.abierta_en, c.cerrada_en
@@ -174,6 +188,7 @@ select v.id as venta_id, v.caja_id, v.ubicacion_id as sede_venta, c.ubicacion_id
     nombre: "caja_cerrada_cuadra_su_diferencia",
     gravedad: 1,
     nivel: "cruzada",
+    clave: ["caja_id"],
     dice: "Una caja cerrada tiene fecha de cierre y monto contado, una abierta no tiene ninguno, y la diferencia es exactamente lo contado menos lo que el sistema esperaba.",
     sql: `
 select id as caja_id, ubicacion_id, estado, cerrada_en, monto_cierre_sistema, monto_cierre_real, diferencia
@@ -189,6 +204,7 @@ select id as caja_id, ubicacion_id, estado, cerrada_en, monto_cierre_sistema, mo
     nombre: "un_comprobante_por_venta",
     gravedad: 1,
     nivel: "cruzada",
+    clave: ["venta_id"],
     dice: "Una venta tiene a lo sumo un comprobante vivo (boleta o factura): dos significa que se cobró y se facturó dos veces. Los anulados y rechazados no cuentan; los anticipos de un apartado tampoco.",
     sql: `
 select venta_id, count(*) as comprobantes, array_agg(serie || '-' || numero order by numero) as numeros
@@ -207,6 +223,7 @@ insert into retail.comprobantes select * from _c;`,
     nombre: "comprobante_suma_lo_que_la_venta",
     gravedad: 1,
     nivel: "cruzada",
+    clave: ["comprobante_id"],
     dice: "El total de la boleta o factura es el de la venta que la originó: lo que SUNAT recibe es lo que la clienta pagó.",
     sql: `
 select c.id as comprobante_id, c.venta_id, c.serie || '-' || c.numero as numero, c.total as comprobante, round(i.t, 2) as venta
@@ -222,6 +239,7 @@ select c.id as comprobante_id, c.venta_id, c.serie || '-' || c.numero as numero,
     nombre: "lo_que_entra_por_un_traslado_salio_de_alguna_sede",
     gravedad: 1,
     nivel: "cruzada",
+    clave: ["transferencia_id", "variante_id"],
     // ADR-0404: contar de más ya no es una violación (queda como sobrante a revisar, fuera del stock). Lo imposible es que entre
     // al stock por un traslado más de lo que SALIÓ por él: lo enviado y, si un líder dijo «salió del origen», esa salida.
     dice: "Por un traslado no puede entrar a una sede más de una prenda que la que salió por él: sería stock que apareció sin salir de ninguna parte.",
@@ -251,6 +269,7 @@ select tr.variante_id, t.ubicacion_destino_id, coalesce(t.sububicacion_destino_i
     nombre: "asientos_cuadran",
     gravedad: 1,
     nivel: "cruzada",
+    clave: ["asiento"],
     dice: "El libro cuadra: ningún asiento tiene Σdebe distinto de Σhaber (usa `retail.fn_asientos_descuadrados`, la misma función que Finanzas).",
     // La función pregunta por el módulo «Reportes financieros» de la sesión: sin una cuenta, falla. Se mira como el líder del seed.
     comoLider: true,
@@ -262,6 +281,7 @@ select tr.variante_id, t.ubicacion_destino_id, coalesce(t.sububicacion_destino_i
     nombre: "movimiento_con_responsable",
     gravedad: 2,
     nivel: "cruzada",
+    clave: ["movimiento_id"],
     dice: "Todo movimiento de stock lo firma una persona (`usuario_id`): un movimiento sin autor no se puede explicar en el conteo del mes.",
     sql: `
 select id as movimiento_id, tipo, variante_id, ubicacion_id, cantidad, created_at
@@ -273,6 +293,7 @@ select id as movimiento_id, tipo, variante_id, ubicacion_id, cantidad, created_a
     nombre: "sospecha_de_doble_cobro",
     gravedad: 2,
     nivel: "sospecha",
+    clave: ["venta_a", "venta_b"],
     dice: "SOSPECHA (se confirma mirando): dos ventas de la misma sede y persona, con las mismas prendas, a menos de 10 segundos y con tokens distintos: el patrón de un doble clic que se coló.",
     sql: `
 with firma as (
@@ -300,6 +321,7 @@ select id, venta_id, variante_id, cantidad, precio_unitario, descuento_unitario,
     nombre: "sospecha_de_movimiento_repetido",
     gravedad: 2,
     nivel: "sospecha",
+    clave: ["movimiento_a", "movimiento_b"],
     dice: "SOSPECHA (se confirma mirando): dos movimientos idénticos (misma prenda, sede, tipo, cantidad y persona) a menos de 2 segundos y sin venta: el patrón de un «Guardar» pulsado dos veces en Ajustar, Recibir o Traslado.",
     sql: `
 select a.id as movimiento_a, b.id as movimiento_b, a.tipo, a.variante_id, a.cantidad, a.ubicacion_id,
@@ -319,6 +341,7 @@ select a.id as movimiento_a, b.id as movimiento_b, a.tipo, a.variante_id, a.cant
     nombre: "pieza_de_liquidacion_cuadra",
     gravedad: 1,
     nivel: "cruzada",
+    clave: ["pieza_id"],
     dice: "Una pieza de liquidación (ADR-0379) a la venta tiene UNA etiqueta que la caja acepta, y una vendida apunta a una línea de una venta completada, de una sola unidad, cobrada al precio de su etiqueta: nunca vendida dos veces, ni vendida en una venta anulada, ni a otro precio.",
     sql: `
 select p.id as pieza_id, p.estado, p.precio, vi.precio_unitario, vi.cantidad, v.estado as venta_estado,
@@ -337,6 +360,7 @@ select p.id as pieza_id, p.estado, p.precio, vi.precio_unitario, vi.cantidad, v.
     nombre: "compra_anulada_sin_mercaderia",
     gravedad: 1,
     nivel: "cruzada",
+    clave: ["compra_id"],
     dice: "Una factura de proveedor anulada no tiene mercadería ingresada: `anular_compra` lo prohíbe («dejaría stock o dinero sin respaldo»). Si la tiene, hay prendas en el stock que ya no le deben nada a nadie. Nació de /chaos 2026-10-13 (recibir y anular a la vez: las dos pasaban).",
     sql: `
 select c.id as compra_id, c.serie || '-' || c.numero as factura, sum(m.cantidad) as unidades_ingresadas
@@ -354,6 +378,7 @@ select c.id as compra_id, c.serie || '-' || c.numero as factura, sum(m.cantidad)
     nombre: "caja_abierta_con_efectivo",
     gravedad: 1,
     nivel: "cruzada",
+    clave: ["caja_id"],
     dice: "Una caja abierta nunca espera menos de cero en el cajón: no se puede sacar plata que no está (egresos, reembolsos, vueltos de un cambio, ventas anuladas). Se calcula con `fn_calcular_esperado_caja`, la misma cuenta que usa `cerrar_caja`. Nació de /chaos 2026-10-13.",
     sql: `
 select c.id as caja_id, c.ubicacion_id, e.esperado
@@ -370,6 +395,7 @@ select c.id as caja_id, c.ubicacion_id, e.esperado
     nombre: "montos_de_ventas_finitos",
     gravedad: 1,
     nivel: "cruzada",
+    clave: ["tabla", "fila_id"],
     dice: "Ningún monto de Ventas o de Caja es `NaN` ni infinito. En Postgres `'NaN'::numeric` es mayor que cualquier número y `'Infinity'` también existe: los dos pasan los CHECK `>= 0` y, una vez dentro, cualquier suma que los toque (el esperado de la caja, el total del día) se rompe. Nació de /chaos 2026-10-13.",
     sql: COLUMNAS_DE_DINERO.map(([tabla, columnas]) =>
       `select '${tabla}' as tabla, id::text as fila_id, '${columnas.join(",")}' as columnas from retail.${tabla} where ${columnas.map((c) => `abs(${c}) >= 'Infinity'`).join(" or ")}`
@@ -384,6 +410,7 @@ update retail.venta_pagos set monto = 'NaN' where ctid = (select ctid from retai
     nombre: "montos_de_plata_finitos",
     gravedad: 1,
     nivel: "cruzada",
+    clave: ["tabla", "fila_id"],
     dice: "Ningún monto de la plata de Finanzas o de un fondo (movimientos de dinero, gastos, pagos a proveedores, el reparto de un gasto del viaje, las rendiciones) es `NaN` ni infinito. Un NaN pasa el CHECK `> 0` y, una vez dentro, deja en NaN el saldo del fondo, la caja de origen y el Diario. Nació de /chaos 2026-10-14 (fase 6).",
     sql: COLUMNAS_DE_PLATA.map(([tabla, columnas]) =>
       `select '${tabla}' as tabla, ${tabla === "gastos_viaje_ordenes" ? "gasto_id" : tabla === "rendicion_fondo_items" ? "rendicion_id || ':' || clave" : "id"}::text as fila_id, '${columnas.join(",")}' as columnas from retail.${tabla} where ${columnas.map((c) => `abs(${c}) >= 'Infinity'`).join(" or ")}`
@@ -399,6 +426,7 @@ update retail.movimientos_dinero set monto = 'NaN' where ctid = (select ctid fro
     nombre: "pedido_web_cuadra_con_su_venta",
     gravedad: 1,
     nivel: "cruzada",
+    clave: ["pedido_id", "problema"],
     dice: "Un pedido web pagado o entregado tiene UNA venta (ADR-0408 act. 10): una línea de venta por prenda no quitada, cobrada con un solo «anticipo» por el total, con su boleta; y cada prenda sale del stock al entregarse, nunca antes (una salida por prenda entregada, ninguna por la que todavía espera). Un pedido sin pagar no tiene venta. Uno anulado DESPUÉS de pagarse (20261015114000) conserva su venta, ANULADA entera, se le devolvió todo y su boleta no quedó viva ante SUNAT sin su nota de crédito.",
     sql: `
 select w.id as pedido_id, w.codigo, w.estado, 'venta' as problema
@@ -459,6 +487,7 @@ update retail.pedido_web_lineas set venta_item_id = null where ctid = (select ct
     nombre: "la_plata_de_nos_debe_cuadra",
     gravedad: 1,
     nivel: "cruzada",
+    clave: ["fila_id", "problema"],
     dice: "La plata de «Nos debe» (ADR-0362, fase 5b) cuadra entre tablas: el documento interno por lo que no llegó cierra sus prendas en el comprobante y el de lo devuelto por llegar dañado no cierra nada (sí llegaron), cada uno de la deuda que le corresponde; un «Depositó» devuelve exactamente lo que su documento dejó a favor (ni más ni menos: lo demás sería saldo a favor fantasma o un reembolso de más); y la nota de crédito del proveedor (07) dice lo mismo que los documentos internos que respalda, todos de su comprobante. Nació de /chaos 2026-10-15 (fase 5b).",
     sql: `
 select n.id::text as fila_id, n.serie_numero, 'documento_y_cierre' as problema
@@ -493,6 +522,7 @@ update retail.compra_notas_credito set cierre_id = null where ctid = (select cti
     nombre: "lo_devuelto_cuadra_con_su_prenda",
     gravedad: 1,
     nivel: "cruzada",
+    clave: ["diferencia_id", "problema"],
     dice: "Cada deuda «devuelta» (lo que se le devolvió al proveedor por llegar dañado, ADR-0362 fase 5b, actividad 6a) tiene su prenda de la cuarentena marcada «devuelta al proveedor» a ESE proveedor y por la misma cantidad, con su salida de la cuarentena sin `compra_item_id` (si lo llevara, el comprobante la contaría como recibida otra vez). Si no, la deuda cobra prendas que siguen en la cuarentena, o a otro proveedor. Nació de /chaos 2026-10-15 (fase 5b).",
     sql: `
 select x.id::text as diferencia_id, coalesce(pd.estado, 'sin prenda') as estado, 'prenda' as problema
@@ -512,6 +542,7 @@ update retail.despacho_diferencias set cantidad = cantidad + 1 where ctid = (sel
     nombre: "caja_cerrada_cuadra_su_fondo",
     gravedad: 1,
     nivel: "cruzada",
+    clave: ["caja_id"],
     dice: "Una caja cerrada real cumple contado = fondo que deja + trasladado (ADR-0186: el fondo se calcula, nunca se escribe). Si no, el cajón de esa noche sale inflado o desinflado, la apertura del día siguiente «falta» o «sobra» contra un esperado que nunca existió, y el Diario lo asienta como pérdida. Nació de la auditoría de Finanzas 2026-10-16 (G01): un traslado regularizado a mano sin tocar el fondo dejó S/ 700 de falso faltante en Trujillo. Desde `20261016211000` un candado diferido lo impide; esta invariante vigila lo que ya estaba o lo que se cuele por una puerta nueva.",
     sql: `
 select c.id as caja_id, c.ubicacion_id, c.monto_cierre_real, c.monto_fondo,
@@ -529,6 +560,7 @@ update retail.cajas set monto_fondo = monto_fondo + 700 where ctid = (select cti
     nombre: "cambio_por_varias_cuadra",
     gravedad: 1,
     nivel: "cruzada",
+    clave: ["cambio_id"],
     dice: "Un cambio de una prenda por VARIAS cuadra en las tres cosas que lo definen (ADR-0470): su diferencia es el valor de todo lo que se llevó menos lo que la clienta pagó por lo que devolvió; las unidades que salieron del piso son las que dice su lista de prendas; y las que volvieron son las que se devolvieron. Si no, la caja o la cuenta de Izipay cobraron una cifra y el stock movió otra. `registrar_cambio_varias` lo guarda todo junto; esto vigila lo que se cuele por otra puerta o un arreglo a mano. Nació del cambio del body por dos Top Rib (B005-000670, 2026-10-21), que se había registrado como un cambio uno por uno y una venta aparte.",
     sql: `
 select c.id as cambio_id, c.diferencia,
@@ -553,6 +585,7 @@ having c.diferencia <> round(sum(s.precio_unitario * s.cantidad) - (vi.precio_un
     nombre: "stock_por_dueno_cuadra",
     gravedad: 1,
     nivel: "cruzada",
+    clave: ["variante_id", "ubicacion_id", "sububicacion_id", "motivo"],
     dice: "En una sede donde operan dos empresas (Lima), lo de CLAURE (`stock_dueno`) nunca pasa del stock de su fila, ni lo apartado de lo apartado, y no hay reparto por dueño donde operan una sola empresa (ADR-0542: CAYLA es el resto, así que este es el único descuadre posible).",
     sql: `select variante_id, ubicacion_id, sububicacion_id, motivo from retail.fn_stock_dueno_descuadres()`,
     corrompe: `insert into retail.stock_dueno (variante_id, ubicacion_id, sububicacion_id, empresa_id, cantidad)
@@ -563,6 +596,7 @@ select variante_id, ubicacion_id, sububicacion_id, 'c1a07e00-0000-4000-8000-0000
     nombre: "copias_del_color_iguales_a_su_tela",
     gravedad: 2,
     nivel: "cruzada",
+    clave: ["insumo_id"],
     dice: "Cada color de una tela (un insumo con `material_id`, ADR-0554) es el reflejo de su tela: mismo tipo y unidad (una tela siempre en metros), mismo tejido, misma merma, el código «código de la tela-código del color» y un nombre que empieza por el de la ficha MÁS SU MEDIDA si la tiene (ADR-0580: el disparador compone «Botón nácar 18 L · Negro», y sin contar la medida esta invariante gritaba en cada avío y se volvía ciega para un descuadre de verdad). Si no, la orden pide una merma que la tela ya no tiene, el plan sugiere el tejido equivocado o dos colores de una misma tela se llaman distinto. Un disparador las copia en cada guardado; esto vigila lo que se cuele por un camino que lo salte (un arreglo a mano con los disparadores apagados, o una migración). El nombre se compara solo hasta el de la tela: el color puede haberse renombrado en Catálogo y el insumo no se entera hasta que se guarda su tela (se corrige guardándola desde «Editar tela»).",
     sql: `
 select i.id as insumo_id, i.codigo, i.nombre, m.codigo as tela_codigo, m.nombre as tela,
@@ -588,6 +622,7 @@ update retail.insumos set merma_pct = case when merma_pct < 0.4 then merma_pct +
     nombre: "color_retirado_sin_tela_guardada",
     gravedad: 1,
     nivel: "cruzada",
+    clave: ["insumo_id", "ubicacion_id", "motivo"],
     dice: "Un color de tela retirado (`archivado_at`, «Retirar color», ADR-0554) no guarda tela: ni saldo distinto de cero en ninguna sede, ni un lote que haya entrado DESPUÉS de retirarlo. Si lo tuviera, serían metros que el libro de movimientos sigue contando (y suman al capital en insumos) pero que ninguna lista muestra: stock fantasma. `retirar_color_de_material` se niega con saldo y un disparador en `insumo_lotes` rechaza el ingreso a un retirado; esto vigila lo que se cuele por un camino que los salte (un arreglo a mano, una migración, una función nueva que escriba el libro sin pasar por el lote).",
     sql: `
 select i.id as insumo_id, i.codigo, i.archivado_at, s.ubicacion_id, s.fisico as cantidad, 'saldo' as motivo
@@ -608,6 +643,7 @@ select i.id, i.codigo, i.archivado_at, l.ubicacion_id, l.cantidad_ingresada, 'lo
     nombre: "lote_de_insumo_cuadra_con_su_libro",
     gravedad: 1,
     nivel: "cruzada",
+    clave: ["lote_id"],
     dice: "La cantidad de cada lote de insumo es lo que su `compra` y sus `ajuste` suman en el libro de movimientos (ADR-0570: corregir o eliminar un ingreso cambia el lote Y deja el par «deshago + anoto» en el libro). Si no coinciden, el saldo del color que muestra la orden (la suma del libro) y el que descuenta el PEPS (la cantidad del lote) dicen cosas distintas: tela que se ve y no se puede cortar, o tela que se corta y no se ve.",
     sql: `
 select l.id as lote_id, l.insumo_id, l.ubicacion_id, l.cantidad_ingresada as cantidad_del_lote, coalesce(m.suma, 0) as suma_del_libro
@@ -625,6 +661,7 @@ select l.id as lote_id, l.insumo_id, l.ubicacion_id, l.cantidad_ingresada as can
     nombre: "compra_anulada_sin_pagos",
     gravedad: 1,
     nivel: "cruzada",
+    clave: ["compra_id"],
     dice: "Una factura de proveedor anulada no tiene pagos: `anular_compra` lo prohíbe, porque la plata saldría del banco sin una deuda que la respalde (tarea 36 de «Las 36»).",
     sql: `
 select c.id as compra_id, c.serie || '-' || c.numero as factura, sum(p.monto) as pagado
@@ -641,6 +678,7 @@ select c.id as compra_id, c.serie || '-' || c.numero as factura, sum(p.monto) as
     nombre: "compra_pagado_igual_a_sus_pagos",
     gravedad: 1,
     nivel: "cruzada",
+    clave: ["compra_id"],
     dice: "Lo que una factura vigente dice que tiene pagado es la suma de sus pagos. Si no, Por pagar y el banco cuentan dos historias de la misma deuda (tarea 36 de «Las 36»).",
     sql: `
 select c.id as compra_id, c.serie || '-' || c.numero as factura, c.pagado, coalesce(sum(p.monto), 0) as suma_pagos

@@ -173,6 +173,7 @@
     "pruebas:deriva-produccion": "node scripts/pruebas/deriva_produccion.mjs",
     "pruebas:registrar-venta": "node scripts/pruebas/registrar_venta.mjs",
     "pruebas:dia-de-tienda": "node scripts/pruebas/dia_de_tienda_invariantes.mjs",
+    "pruebas:vigia-invariantes": "node scripts/pruebas/vigia_invariantes.mjs",
     "pruebas:campana-redondeo": "node scripts/pruebas/campana_redondeo.mjs",
     "pruebas:tienda-puerta": "node scripts/pruebas/tienda_puerta.mjs",
     "pruebas:tienda-web-configuracion": "node scripts/pruebas/tienda_web_configuracion.mjs",
