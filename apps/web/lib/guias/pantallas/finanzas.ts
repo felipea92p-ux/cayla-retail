@@ -142,7 +142,13 @@ export const GUIA_FIN_RESUMEN: Guia = {
       titulo: "Por dónde pasa la plata",
       texto: "Aquí ves de un vistazo cuánto te deja el mes, de dónde vino la plata y a dónde se fue. Nada se escribe aquí: todo sale de lo que ya registran Ventas, Caja, Compras y Producción. Es una demo.",
     },
-    ...TELAR,
+    ...TELAR_SIN_MES,
+    {
+      id: "fecha",
+      ancla: "fin-estados.fecha",
+      titulo: "Qué fechas mirar",
+      texto: "El mismo calendario de Estados financieros. Las flechas pasan al mes de al lado; tocando el nombre eliges un atajo, un mes o dos días, el primero y el último. Lo que es de hoy (cuánto tienes, lo que viene) no cambia con la fecha.",
+    },
     {
       id: "respuestas",
       ancla: "fin-resumen.respuestas",

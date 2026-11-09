@@ -4,6 +4,9 @@ import { useSearchParams } from "next/navigation";
 import { useState, type CSSProperties } from "react";
 import { BookOpen, CalendarCheck, Percent, Wallet } from "lucide-react";
 import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
+import { SelectorPeriodo } from "@/components/finanzas/estados/SelectorPeriodo";
+import { letraEstados } from "@/lib/letra-estados";
+import type { Periodo } from "@/lib/estados-periodo";
 import { Aviso } from "@/components/ui/Aviso";
 import { CabeceraBloque, Superficie } from "@/components/finanzas/kit";
 import { AjustesResumen } from "@/components/finanzas/AjustesResumen";
@@ -25,7 +28,7 @@ import { equilibrioMes, type FaltaDelMes } from "@/lib/equilibrio-mes-reglas";
 import type { Confianza as ConfianzaDatos } from "@/lib/finanzas-confianza";
 import type { Lectura } from "@/lib/resumen-finanzas";
 import { mesNombre, type FilaER } from "@/lib/resultados-reglas";
-import { hrefTelar, mesDelDia, porSedeDe, type SedeTelar } from "@/lib/finanzas-telar-reglas";
+import { hrefTelar, mesDelDia, porSedeDe, sedeDeLaUrl, type SedeTelar } from "@/lib/finanzas-telar-reglas";
 import { soles } from "@/lib/flujo-caja-reglas";
 import { recorridoPlata } from "@/lib/recorrido-plata-reglas";
 import { desgloseDeTienes, tresRespuestas } from "@/lib/tres-respuestas-reglas";
@@ -44,7 +47,7 @@ import {
 // Finanzas ▸ Resumen en El telar (Felipe 2026-10-23, ADR-0493), pulido el 2026-10-29: arriba, las tres respuestas (¿cuánto tienes —de CAYLA y de CLAURE—?,
 // ¿cuánto debes pronto —cada deuda con su fecha—?, ¿cuánto te deja?), «Vendido por sede» con la confianza del número adentro (ADR-0417), la caja
 // al lado de «Hoy te toca», «A dónde va la plata» (el anillo), «¿Ya pagaste el mes?» y, al final, la inversión en mercadería (siempre a la vista).
-// La sede y el mes los pone la barra común; esta pantalla no tiene selector propio.
+// La sede la pone la barra común; las fechas, el calendario de Estados financieros en la cabecera (camino «A · Bolsillos», Felipe 2026-11-09).
 // No calcula plata: lo arman `recorrido-plata-reglas`, `resumen-telar-reglas` y `resumen-finanzas-reglas` con lo que lee la página.
 
 /** La entrada escalonada de cada pieza; esta llena su celda: dos tarjetas lado a lado miden lo mismo. */
@@ -56,8 +59,12 @@ type Props = {
   resumen: ResumenFinanzas | null;
   falla: string | null;
   confianza: Lectura<ConfianzaDatos | null>;
-  /** El mes que se mira («2026-10») y hoy («2026-10-23»). */
+  /** El mes que se mira («2026-10», el de `hasta` del período) y hoy («2026-10-23»). */
   mes: string;
+  /** Las fechas del calendario: un mes entero o cualquier tramo (`leerPeriodo`, el mismo de Estados financieros). */
+  periodo: Periodo;
+  /** Desde cuándo hay Finanzas: el calendario no ofrece antes. */
+  minimo: string | null;
   hoy: string;
   /** El Estado de resultados del mes elegido (al día de hoy si es el mes en curso), de todas las sedes que la cuenta ve. */
   estadoMes: Lectura<FilaER[]>;
@@ -83,7 +90,7 @@ type Props = {
 
 const FRASE = "De lo que vendes a lo que te queda.";
 
-export function ResumenFinanzasPanel({ resumen, falla, confianza, mes, hoy, estadoMes, estadoAntes, faltaDelMes, planillaSinSalida, ventasPorDia, sedes, flujoProximo, inversion, inversionFalla = null, acceso, claure = null, cajasPorSede = null }: Props) {
+export function ResumenFinanzasPanel({ resumen, falla, confianza, mes, periodo, minimo, hoy, estadoMes, estadoAntes, faltaDelMes, planillaSinSalida, ventasPorDia, sedes, flujoProximo, inversion, inversionFalla = null, acceso, claure = null, cajasPorSede = null }: Props) {
   const sp = useSearchParams();
   // «Qué se ve»: lo que esta persona esconde de la inversión en mercadería, y qué forma de pagar mira en cada campaña (mirar no guarda nada).
   const [ajustes, ponerAjustes] = useAjustesResumen();
@@ -91,7 +98,8 @@ export function ResumenFinanzasPanel({ resumen, falla, confianza, mes, hoy, esta
   const [abierta, setAbierta] = useState<string | null>(null);
   const delPlan = inversion ?? [];
   const mesDeHoy = mesDelDia(hoy);
-  const enCurso = mes === mesDeHoy;
+  // Lo que va por mes (el equilibrio, «al ritmo de hoy») solo se dice mirando un mes entero; el mes en curso es el de hoy hasta hoy.
+  const enCurso = periodo.unMes && mes === mesDeHoy;
   // Las acciones del dock llevan la sede y el mes que se miran (`hrefTelar`).
   const ir = (ruta: string) => hrefTelar(ruta, sp.entries(), {}, { mismaPantalla: false, mesDeHoy });
   const dock = (
@@ -105,10 +113,16 @@ export function ResumenFinanzasPanel({ resumen, falla, confianza, mes, hoy, esta
     />
   );
 
+  const fecha = (
+    <span className={`${letraEstados.variable} estados-vidrio contents`}>
+      <SelectorPeriodo desde={periodo.desde} hasta={periodo.hasta} hoy={hoy} minimo={minimo} una={false} sede={sedeDeLaUrl({ sede: sp.get("sede"), ver: sp.get("ver") })} />
+    </span>
+  );
+
   if (!resumen) {
     return (
       <div className="space-y-6">
-        <EncabezadoPagina sede="Finanzas" titulo="Resumen" subtitulo={FRASE} />
+        <EncabezadoPagina sede="Finanzas" titulo="Resumen" subtitulo={FRASE} acciones={fecha} />
         <Aviso tono="error" titulo="El Resumen no respondió">
           {falla ?? "No se pudo leer el resumen. Vuelve a cargar la página; si sigue igual, avisa a Felipe."}
         </Aviso>
@@ -164,7 +178,7 @@ export function ResumenFinanzasPanel({ resumen, falla, confianza, mes, hoy, esta
 
   return (
     <div className="space-y-6">
-      <EncabezadoPagina sede={sede} titulo="Resumen" subtitulo={FRASE} />
+      <EncabezadoPagina sede={sede} titulo="Resumen" subtitulo={FRASE} acciones={fecha} />
       {/* Las tres preguntas que una persona sin formación de finanzas se hace al abrir esta pantalla, con la cifra de cada una. «Tienes» dice cuánto es de CAYLA
           y cuánto de CLAURE, y «Debes pronto» lista cada deuda con su fecha (Felipe 2026-10-29). */}
       <TresRespuestas respuestas={tresRespuestas({ r, caja, deja: resp, hrefDinero: ir("/finanzas/dinero"), hrefPorPagar: ir("/finanzas/dinero/por-pagar"), desglose, claure: saldoClaure, claureFalla, planillaSinSalida, plata })} />
@@ -220,7 +234,7 @@ export function ResumenFinanzasPanel({ resumen, falla, confianza, mes, hoy, esta
 
         <div className="flex flex-col gap-4">
           <div {...columna(5)}>
-            <EquilibrioMesPieza eq={equilibrioMes({ r, filas, ventasPorDia, hoy, mes, enCurso, faltaDelMes })} provisional={provisional} />
+            {periodo.unMes && <EquilibrioMesPieza eq={equilibrioMes({ r, filas, ventasPorDia, hoy, mes, enCurso, faltaDelMes })} provisional={provisional} />}
           </div>
 
           <div {...columna(6)}>

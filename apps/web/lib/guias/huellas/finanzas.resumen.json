@@ -2,7 +2,7 @@
   "guia": "finanzas.resumen",
   "ruta": "/finanzas/resumen",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 18,
+  "total": 30,
   "controles": {
     "components/finanzas/AdondeVaLaPlata.tsx": [
       "button «{h.nombre}»"
@@ -28,6 +28,20 @@
     "components/finanzas/VendidoPorSede.tsx": [
       "Link «Por qué no es la cifra de Ventas»",
       "Link «{`${t.nombre}»"
+    ],
+    "components/finanzas/estados/SelectorPeriodo.tsx": [
+      "button «{`Ver el ${queSeMira}»",
+      "button «{una ? p.al : p.titulo}»",
+      "button «{`Ver el ${queSeMira}» #2",
+      "CampoTexto «Desde»",
+      "CampoTexto «{una ? \"Fecha\" : \"Hasta\"}»",
+      "Boton «Ver»",
+      "button «Cerrar»",
+      "button «{a.titulo}»",
+      "button «{dicho}»",
+      "button «Meses anteriores»",
+      "button «Meses siguientes»",
+      "button «{fechaLarga(d.iso)}»"
     ],
     "components/finanzas/telar/DockTelar.tsx": [
       "Link «{`${a.texto}»",
