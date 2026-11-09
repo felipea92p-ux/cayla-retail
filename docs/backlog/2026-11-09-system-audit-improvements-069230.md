@@ -20,7 +20,9 @@ Nace del #8 de la auditoría del 2026-11-09 («Nadie vigila la salud del negocio
   responsable (INV-10, ajustes de conteo del 2026-09-30) que serán heredados.
 - [x] `20261109163000` **pegada por Felipe el 2026-11-09**. Verificada por efectos: INV-03 con la exclusión (`true`), 28 invariantes,
   26 activas y 2 apagadas (la siembra no reencendió nada), 0 corridas. «SQL pegado» marcada en el PR #1731.
-- [ ] Primera corrida: `select retail.fn_correr_invariantes();` (o esperar a las 3:30). Debe decir 0 nuevas y 9 conocidas.
+- [x] Primera corrida en producción el 2026-11-09 (con el «sí» de Felipe, por el conector): 0 nuevas, 0 errores, 24 limpias, 3 omitidas y
+  9 conocidas (INV-10, heredadas). Las 25 reglas que el vigía mira quedaron con su línea base. Hasta que se fusione el PR y se publique la
+  ruta del cron, nadie la vuelve a correr sola.
 - [ ] **Sentry:** una regla de alerta que escriba a Felipe cuando aparezca `donde = "salud/invariantes (cron): …"` (hoy nadie verificó que
   Sentry mande correos).
 - [ ] Tras pegar: `pnpm datos:generar:produccion` y `pnpm datos:comparar` al refrescar el volcado (3 tablas y 3 funciones nuevas).
