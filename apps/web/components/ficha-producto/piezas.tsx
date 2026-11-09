@@ -6,6 +6,7 @@ import { RAYADO_FUERA } from "@/components/alta-producto/MatrizVariantes";
 import type { CeldaAlta, ColorAlta } from "@/lib/alta-producto";
 import type { EstadoVariante, NombresFicha } from "@/lib/variantes-ficha-reglas";
 import type { Sububicacion } from "@/lib/sububicaciones";
+import type { CostoEnLaFicha } from "@/lib/costo-tallas-reglas";
 import { CLASE_MONTO_ILEGIBLE, atributosMontoTexto } from "@/components/ui/CampoMonto";
 
 // Piezas de la sección «Variantes» de la ficha de una prenda (ADR-0263). Lo que comparten la sección y sus modales:
@@ -52,6 +53,11 @@ export type ContextoFicha = {
    *  (`variantes_terminal_no_cambia_precio`). Trae el nombre de su tienda, donde sí pone el suyo («Precio en …»); `""` si la
    *  terminal no está en una tienda. Ausente = la cuenta cambia el precio de la prenda como siempre. Una talla NUEVA sí lleva su precio. */
   precioFijoEn?: string | null;
+  /** Costos (ADR-0631): cuánto cuesta hoy cada prenda y la última compra de cada talla gris. Ausente o `null` = la ficha no lo dice
+   *  (alta de una prenda, sin permiso de dinero o la base sin la función): la celda gris explica en palabras. */
+  costo?: CostoEnLaFicha | null;
+  /** Para llevar al Historial ▸ Costo de la prenda. Ausente en el alta. */
+  productoId?: string | null;
 };
 
 /** Valor del combo para «Sin color»: los códigos de color son 3 mayúsculas, este no choca con ninguno. */

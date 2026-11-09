@@ -93,6 +93,7 @@ import {
 } from "@/lib/variantes-ficha-reglas";
 import { PanelDelTaller } from "@/components/ficha-producto/PanelDelTaller";
 import type { PuertaDeLaFicha } from "@/lib/ficha-consumo-datos";
+import type { CostoEnLaFicha } from "@/lib/costo-tallas-reglas";
 import { SeccionFicha } from "@/components/ficha-producto/SeccionFicha";
 import { PreciosPorSede } from "@/components/ficha-producto/PreciosPorSede";
 import type { Tienda } from "@/components/ficha-producto/PrecioSedeModal";
@@ -314,6 +315,7 @@ export function ProductoForm({
   producto,
   volverA = "/productos",
   nombreProveedor,
+  costoEnLaFicha,
 }: {
   categorias: Categoria[];
   /** Vocabulario de colores activo, con familia y sinónimos (lo mismo que ve el alta). */
@@ -363,6 +365,8 @@ export function ProductoForm({
   volverA?: string;
   /** Cómo lo llama el proveedor (ADR-0556). `undefined` = la base todavía no tiene la columna: la fila no se dibuja. */
   nombreProveedor?: string | null;
+  /** Costos (ADR-0631): cuánto cuesta hoy cada prenda y la última compra de cada talla gris. Ausente en el alta. */
+  costoEnLaFicha?: CostoEnLaFicha | null;
 }) {
   const router = useRouter();
   const editando = !!producto;
@@ -532,6 +536,8 @@ export function ProductoForm({
     puedeCorregir,
     ajusteStock,
     precioFijoEn: preciosSede?.soloAqui ? (preciosSede.tiendas[0]?.nombre ?? "") : null,
+    costo: veCosto ? (costoEnLaFicha ?? null) : null,
+    productoId: producto?.id ?? null,
   };
 
   // «Para completar esta ficha» (ADR-0284 c): lo que le falta a la prenda para estar completa. Solo guía; guardar no depende de esto.
@@ -1880,6 +1886,8 @@ export function ProductoForm({
                       deshabilitado={loading}
                       campoFijo={vista === "costo" ? "costo" : "precio"}
                       admitePrecioCero={!!categoriaActual?.admitePrecioCero}
+                      igualar={ctx.costo?.igualar ?? null}
+                      origenUltima={ctx.costo?.prenda?.ultima.origen}
                     />
                   </div>
                 ) : undefined

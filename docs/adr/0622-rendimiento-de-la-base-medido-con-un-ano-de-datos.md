@@ -125,3 +125,30 @@ Estas cambian el diseño o el negocio y las decide Felipe:
 - **Lo que no se probó.** Las pruebas de Postgres del repo (`scripts/pruebas/*.mjs`) no se corrieron contra la base compartida; las corre el CI. Las
   de reparto, `proveedor_reparto.mjs` y `proveedores_ventas_diarias.mjs`, pasaron contra `cayla_carga`. `proveedor_prendas_origen.mjs` ya fallaba
   igual en esa copia antes del cambio.
+
+## Actualización 2026-11-09 — la comisión de las máquinas, en una sola pasada (`20261109162000`)
+
+**El problema, medido en producción y no en la copia.** El 2026-11-09 la base (2 GB) llegó a 3,36 GB de memoria y cortó por tiempo varias
+funciones de Finanzas. `pg_stat_statements` (solo lectura): `fn_resumen_finanzas` tarda 5,9 s en promedio y toca ~256.000 bloques por llamada, con
+apenas 2.137 ventas desde el 28-sep. Ningún mes está cerrado (`periodos` y `diario_cerrado` vacíos), así que el diario (`fn_asientos`) se arma de
+cero en cada pantalla, y una carga de Resumen pide el estado de resultados cuatro veces. Midiendo cada pieza de `fn_asientos` como `postgres` (las
+funciones de apoyo no piden sesión), la más cara es `fn_asientos_dinero_y_caja` (1,5 s y 71.600 bloques para octubre y noviembre). Dentro de ella,
+`lotes_est` y `rev_est` llamaban a `fn_pos_comision_lote` una vez por lote y una vez por abono, y cada llamada volvía a recorrer las ventas de su día.
+Es el mismo patrón que la parte 3 de este ADR corrigió en `fn_dinero_libro`.
+
+**Decisión.** Las dos sumas se hacen en una pasada sobre los pagos, con la misma cuenta de `fn_pos_comision_lote`, pago por pago. Se cambian solo
+esas dos CTE, con reemplazos anclados. Ni la línea de `rev_est` que decide qué abono revierte (ADR-0629) ni `fn_pos_comision_lote`, que la usan
+otras seis funciones, se tocan. `lotes_est`: 403 ms y 29.684 bloques → 70 ms y 3.361. `rev_est`: 394 ms y 30.642 → 84 ms y 10.433. Las filas son las
+mismas (`except all` en las dos direcciones) y la suma es igual al céntimo, en producción y en cinco rangos.
+
+**Cómo se cuida.** `pnpm pruebas:comision-lotes` arma ventas con tarjeta y QR, un día gratis, una venta de prueba y un depósito real, y exige que
+cada asiento `comision_est` y cada reversa `comision_rev` valgan lo que da `fn_pos_comision_lote`. Con la regla de los días gratis rota, o con la
+reversa duplicada, la prueba falla: se probó. `_deshacer_20261109162000.mjs` devuelve la función a su md5 original para las pruebas que vuelven a
+pegar la tarea 14.
+
+**Riesgo.** La regla de la comisión queda escrita en dos lugares: `fn_pos_comision_lote` y estas dos CTE. Si cambia una, cambia la otra. Lo dicen
+sus comentarios, y la prueba falla si dejan de coincidir.
+
+**Lo que sigue sin tocar.** El resto de `fn_asientos_dinero_y_caja` (~28.000 bloques), `fn_asientos_claure` (24.000), el costo de cada prenda
+vendida (`fn_costo_variante_al`, ~7 bloques por llamada), y `fn_flujo_caja_proyeccion` y `fn_presupuesto_vs_real` (~2 s cada una, todavía sin
+abrir). Y una decisión que no es técnica: cerrar octubre congela su diario y el «mes anterior» del Resumen deja de recalcularse.

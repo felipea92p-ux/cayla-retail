@@ -288,7 +288,7 @@ jobs:
       # las corre `node scripts/chaos/invariantes.mjs --autoprueba` en local.
       - name: Catálogo de caos e invariantes
         if: ${{ !cancelled() }}
-        run: node --test scripts/chaos/invariantes.test.mjs scripts/chaos/catalogo.test.mjs
+        run: node --test scripts/chaos/invariantes.test.mjs scripts/chaos/catalogo.test.mjs scripts/chaos/vigia-semilla.test.mjs
 
       # La lectura de código de `pnpm datos:comparar` (la que escribe `DRIFT.md`): que un nombre de función entre comillas
       # en una pantalla —en un ternario, en un ayudante— cuente como «la pantalla la usa», y que un comentario NO. Sin esto
