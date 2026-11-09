@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest";
 import {
   agruparMaquinas,
+  avisoFechaAntesDelInicio,
   avisosDeMaquinas,
+  salidasDelCajon,
   cuadra,
   cuentaParaConciliar,
   cuentasPara,
@@ -56,6 +58,47 @@ import {
 
 // Finanzas ▸ Cuentas y dinero (ADR-0195 F3): las reglas puras de la pantalla. Los saldos los suma la base
 // (scripts/pruebas/cuentas_dinero.mjs); aquí se prueba cómo se agrupan, se explican y se valida el formulario.
+
+describe("avisoFechaAntesDelInicio: la cuenta que no se moverá", () => {
+  const banco = { id: "b", nombre: "BCP Operativa", saldoDesde: "2026-10-28" };
+  const otro = { id: "i", nombre: "Interbank", saldoDesde: "2026-10-28T00:00:00" };
+  const fondo = { id: "f", nombre: "Fondo Felipe", saldoDesde: null };
+
+  it("nombra solo la cuenta que no se mueve: en una entrega a fondo, el banco", () => {
+    expect(avisoFechaAntesDelInicio("2026-10-27", [banco, fondo])).toBe("BCP Operativa empieza el 28 oct: este movimiento no cambiará su saldo.");
+  });
+  it("si son dos, las nombra a las dos", () => {
+    expect(avisoFechaAntesDelInicio("2026-10-27", [banco, otro])).toBe("BCP Operativa empieza el 28 oct: este movimiento no cambiará su saldo. Interbank empieza el 28 oct: este movimiento no cambiará su saldo.");
+  });
+  it("el mismo día del inicio o después sí mueve el saldo: calla", () => {
+    expect(avisoFechaAntesDelInicio("2026-10-28", [banco])).toBeNull();
+    expect(avisoFechaAntesDelInicio("2026-11-02", [banco])).toBeNull();
+  });
+  it("calla si la cuenta no tiene inicio, si no hay cuenta o si no hay fecha", () => {
+    expect(avisoFechaAntesDelInicio("2026-10-27", [fondo, null, undefined])).toBeNull();
+    expect(avisoFechaAntesDelInicio("", [banco])).toBeNull();
+  });
+  it("una cuenta repetida se dice una vez", () => {
+    expect(avisoFechaAntesDelInicio("2026-10-27", [banco, banco])).toBe("BCP Operativa empieza el 28 oct: este movimiento no cambiará su saldo.");
+  });
+});
+
+describe("salidasDelCajon: lo leído va con su cajón", () => {
+  const e: EgresoParaMovimiento = { id: "e", cajaId: "c", monto: 50, motivo: "Depósito", nota: null, creadoEn: "2026-11-07T10:00:00Z", marca: null };
+  it("sin respuesta todavía: leyendo, nunca «no hay»", () => {
+    expect(salidasDelCajon(null, "tru")).toEqual({ estado: "leyendo", egresos: [] });
+  });
+  it("la lista de otro cajón no se muestra mientras llega la nueva", () => {
+    expect(salidasDelCajon({ ubicacionId: "aqp", egresos: [e], falla: false }, "tru")).toEqual({ estado: "leyendo", egresos: [] });
+  });
+  it("si falló, lo dice y no entrega salidas", () => {
+    expect(salidasDelCajon({ ubicacionId: "tru", egresos: [], falla: true }, "tru")).toEqual({ estado: "falla", egresos: [] });
+  });
+  it("leída: la lista, aunque venga vacía", () => {
+    expect(salidasDelCajon({ ubicacionId: "tru", egresos: [e], falla: false }, "tru")).toEqual({ estado: "lista", egresos: [e] });
+    expect(salidasDelCajon({ ubicacionId: "tru", egresos: [], falla: false }, "tru")).toEqual({ estado: "lista", egresos: [] });
+  });
+});
 
 const TRU = "u-tru";
 const LIM = "u-lim";

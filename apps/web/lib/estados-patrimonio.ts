@@ -117,7 +117,7 @@ export function partesDelPatrimonio({ datos, comparadas, etiquetaActual, periodo
     conSignos: true,
     ...con((x) => x.retiros, false),
   });
-  if (pesa(datos.otros)) partes.push({ clave: "otros", nombre: "Sin explicar", color: "var(--color-ambar)", enBarra: 0, texto: solesConSignoCentimos(datos.otros), que: "Un ajuste a mano: ni una venta, ni un gasto, ni un aporte, ni un retiro. El Balance dice de dónde sale.", cifra: datos.otros, filas: [], conSignos: true, ...con((x) => x.otros, null) });
+  if (pesa(datos.otros)) partes.push({ clave: "otros", nombre: "Carga inicial y ajustes", color: "var(--color-ambar)", enBarra: 0, texto: solesConSignoCentimos(datos.otros), que: "Mercadería que entró al sistema por primera vez (carga inicial) u otro ajuste directo a tu parte: ni una venta, ni un gasto, ni un aporte, ni un retiro. El Balance dice de dónde sale.", cifra: datos.otros, filas: [], conSignos: true, ...con((x) => x.otros, null) });
   partes.push({ clave: "fin", nombre: "Terminaste", color: "var(--estados-parte-1)", enBarra: 0, texto: solesCentimos(datos.fin.total), que: "Tu parte en CAYLA al terminar estas fechas.", cifra: datos.fin.total, filas: deQueEstaHecho(datos.fin), ...con((x) => x.fin.total, true) });
   return partes;
 }

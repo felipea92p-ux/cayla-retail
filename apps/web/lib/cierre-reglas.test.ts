@@ -22,7 +22,6 @@ import {
   resumenAvisos,
   textoBotonCerrar,
   textoChequeo,
-  tituloPantalla,
   tituloUnidad,
   unidadInicial,
   validarMotivo,
@@ -104,8 +103,7 @@ describe("leer lo que devuelve la base", () => {
 });
 
 describe("palabras", () => {
-  it("el título y el botón, como el spike", () => {
-    expect(tituloPantalla("2026-08")).toBe("Cerrar agosto 2026");
+  it("el botón, como el spike", () => {
     expect(textoBotonCerrar("2026-08", { alcance: "ubicacion", nombre: "Tienda LIM", tipo: "tienda" })).toBe("Cerrar agosto de LIM");
     expect(textoBotonCerrar("2026-08", { alcance: "ubicacion", nombre: "Taller", tipo: "taller" })).toBe("Cerrar agosto del Taller");
     expect(textoBotonCerrar("2026-08", { alcance: "empresa", nombre: "De la empresa", tipo: "empresa" })).toBe("Cerrar agosto de la empresa");
@@ -280,6 +278,8 @@ describe("cada chequeo en palabras", () => {
     expect(textoChequeo(ch("diario", true, { asientos: 1, lineas: 3 }), mes).detalle).toBe("Debe = haber en su único asiento (3 líneas)");
     expect(textoChequeo(ch("diario", true, { asientos: 0, lineas: 0 }), mes).detalle).toBe("Sin movimientos en agosto");
     expect(textoChequeo(ch("diario", false, { descuadrados: 1 }), mes).detalle).toMatch(/^1 asiento descuadrado/);
+    // Se llama como el menú (tarea 121).
+    expect(textoChequeo(ch("diario", false, { descuadrados: 1 }), mes).detalle).toMatch(/míralo en Estados financieros/);
     expect(textoChequeo(ch("huella", false, {}, false), mes).titulo).toBe("Lo congelado sigue igual al diario de hoy");
     expect(textoChequeo(ch("huella", false, {}, false), mes).detalle).toMatch(/ya no da la misma huella/);
   });

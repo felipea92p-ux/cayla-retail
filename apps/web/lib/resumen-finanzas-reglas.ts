@@ -23,6 +23,7 @@ import {
 } from "./flujo-caja-reglas";
 import { avisoUmbral, leerPanelImpuestos, nombreMes, proyectarUmbral, tonoAvance, type PanelImpuestos } from "./impuestos-reglas";
 import { chipPpto, leerFilaPpto, type FilaPpto } from "./presupuesto-reglas";
+import { ventaParaDecir } from "./igv-ventas-reglas";
 import {
   extraNecesario,
   leerCampana,
@@ -522,14 +523,16 @@ export function avisosParaDecidir(r: ResumenFinanzas, acceso: Acceso): Aviso[] {
     const tiendas = r.resultadosAnterior.datos.filter((f) => f.unidad === "tienda" && (r.ver.todas || f.ubicacionId === r.ver.ubicacionId));
     for (const f of tiendas.filter((x) => x.resultado < 0).sort((a, b) => a.resultado - b.resultado)) {
       const eq = equilibrio(f, diasDelMes(r.mesAnterior));
+      // Lo que necesita y lo que vendió, en la misma base: con IGV y lo de CAYLA, nunca lo cobrado con CLAURE. Sin la lectura, sin IGV y lo dice (tarea 19).
+      const venta = ventaParaDecir(f);
       out.push({
         clave: `pierde:${f.ubicacionId}`,
         orden: CLASE_AVISO.pierde,
         tono: "ambar",
         titulo: `${nombreCorto(f)} perdió ${soles(-f.resultado)} en ${mes}`,
         detalle: eq
-          ? `Necesita vender ${soles(eq.pe)} al mes y vendió ${soles(eq.ventas)}.`
-          : `Vendió ${soles(f.ventas)} y sus gastos fueron ${soles(f.gastos)}.`,
+          ? `Necesita vender ${soles(eq.pe * venta.factor)} al mes y vendió ${soles(venta.vendido)}, ${venta.rotulo}.`
+          : `Vendió ${soles(venta.vendido)} ${venta.rotulo}; sus gastos fueron ${soles(f.gastos)}.`,
         impacto: `${soles(-f.resultado)} al mes`,
         href: acceso.lider ? "/finanzas/reportes/flujo#y-si" : enlace("reportes_financieros", "/finanzas/reportes"),
         boton: acceso.lider ? "Probar escenario" : "Ver resultados",
@@ -716,7 +719,7 @@ export function avisosParaDecidir(r: ResumenFinanzas, acceso: Acceso): Aviso[] {
     });
   }
 
-  // El aviso anticipado del límite (250 UIT, parámetro): «Llevas S/ X vendidos este año, a S/ Y de las 300 UIT: habla con tu contador». Mide el año calendario, la misma cifra que la
+  // El aviso anticipado del límite (250 UIT, parámetro): «Llevas S/ X vendidos este año, sin IGV, a S/ Y de las 300 UIT: habla con tu contador». Mide el año calendario, la misma cifra que la
   // tarjeta del límite, y dice que cuenta lo registrado en el sistema. Mientras no llegue al límite REEMPLAZA al «Vas al X % del límite» de abajo (mismo tema, menos preciso);
   // pasado el límite manda el aviso rojo de siempre.
   const datosIgv = r.igv.estado === "ok" ? r.igv.datos : null;

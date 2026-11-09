@@ -51,7 +51,7 @@ export function EquilibrioMesPieza({ eq, provisional }: { eq: EquilibrioMes; pro
           alto="gruesa"
           tono={eq.estado === "cubierto" ? "verde" : "tinta"}
           marca={eq.meta !== null ? [p(eq.pe), p(eq.meta)] : p(eq.pe)}
-          etiqueta={`Vendido ${soles(eq.vendido)}; para pagar todo el mes hacen falta ${soles(eq.pe)}${eq.meta !== null ? `; tu meta es ${soles(eq.meta)}` : ""}`}
+          etiqueta={`Vendido ${soles(eq.vendido)}; para pagar todo el mes hacen falta ${soles(eq.pe)}${eq.meta !== null ? `; tu meta es ${soles(eq.meta)}` : ""}; ${eq.rotulo}`}
         />
         {eq.meta !== null && (
           <span className="absolute bottom-0 -translate-x-1/2 whitespace-nowrap text-sm text-taupe" style={posicion(p(eq.meta))}>
@@ -61,7 +61,7 @@ export function EquilibrioMesPieza({ eq, provisional }: { eq: EquilibrioMes; pro
       </div>
 
       <p className="text-sm">
-        <b className="num">Llevas {soles(eq.vendido)}</b> vendidos sin IGV. {eq.detalle}
+        <b className="num">Llevas {soles(eq.vendido)}</b> vendidos {eq.rotulo}. {eq.detalle}
       </p>
       {provisional && (
         <p className="nota-cayla mt-3">Provisional: si faltan gastos por registrar, hace falta vender más.</p>

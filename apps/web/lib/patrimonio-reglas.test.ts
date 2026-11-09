@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { cambioDelMes, cuadroFormalPatrimonio, mesesBajando, recomendacionesTuyo, tieneExtremos } from "./patrimonio-reglas";
+import { cambioDelMes, cuadroFormalPatrimonio, mesesBajando, recomendacionesTuyo, tieneExtremos, empiezaAntesDelArranque, puntoDePartidaDelPatrimonio } from "./patrimonio-reglas";
 import type { PatrimonioCambios } from "./estados-financieros-reglas";
 
 const S = (s: string) => s.replace(/S\/ /g, "S/ ");
@@ -105,5 +105,37 @@ describe("retirar contra lo ganado de verdad (tarea 23)", () => {
     expect(claves()).toContain("retiro-alto");
     expect(claves(500)).toContain("retiro-mayor");
     expect(claves(500)).not.toContain("retiro-alto");
+  });
+});
+
+describe("antes del punto de partida del Balance no hay puente (tarea 20)", () => {
+  const conArranque = (arranque: string | null) => ({ ...datos(), arranque });
+  it("un período que empieza antes del arranque: también si cruza y termina después", () => {
+    expect(empiezaAntesDelArranque(conArranque("2026-11-01"), "2026-10-01")).toBe(true);
+    expect(empiezaAntesDelArranque(conArranque("2026-11-01"), "2026-10-15")).toBe(true);
+  });
+  it("desde el arranque en adelante hay puente", () => {
+    expect(empiezaAntesDelArranque(conArranque("2026-11-01"), "2026-11-01")).toBe(false);
+    expect(empiezaAntesDelArranque(conArranque("2026-11-01"), "2026-12-01")).toBe(false);
+  });
+  it("sin dato no se afirma nada", () => {
+    expect(empiezaAntesDelArranque(conArranque(null), "2026-10-01")).toBe(false);
+    expect(empiezaAntesDelArranque(null, "2026-10-01")).toBe(false);
+  });
+  it("dice cuál es el punto de partida y a dónde ir por lo ganado", () => {
+    const f = puntoDePartidaDelPatrimonio("2026-11-01");
+    expect(f).toContain("1 de noviembre de 2026");
+    expect(f).toContain("punto de partida");
+    expect(f).toContain("Ganancias y pérdidas");
+    expect(f).not.toContain("sin explicar");
+  });
+});
+
+describe("la recomendación de lo que no es venta ni gasto (tarea 20)", () => {
+  it("nombra la carga inicial y no da por hecho un error", () => {
+    const r = recomendacionesTuyo({ datos: datos({ otros: 10000, retiros: 0 }), href });
+    expect(r[0]).toMatchObject({ clave: "otros", tono: "info" });
+    expect(r[0]!.titulo).toContain("carga inicial");
+    expect(r[0]!.titulo).not.toContain("sin explicar");
   });
 });

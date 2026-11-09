@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
 import fixture from "./resumen-finanzas.fixture.json";
+import type { FilaER } from "./resultados-reglas";
+import type { ResumenFinanzas } from "./resumen-finanzas-reglas";
 import {
   avisosParaDecidir,
   claveVer,
@@ -115,7 +117,26 @@ describe("Para decidir hoy", () => {
     expect(as[0]!.href).toMatch(/^\/finanzas\/dinero\/por-pagar\?ver=todas&pagar=/);
     expect(as[1]).toMatchObject({ tono: "ambar", titulo: "La semana del 12 – 18 oct quedas bajo tu mínimo de caja", impacto: "faltan S/\u00a0490", href: "/finanzas/reportes/flujo#y-si" });
     expect(as[1]!.detalle).toContain("Distribuidora Norte S/\u00a015,300");
-    expect(as[3]).toMatchObject({ titulo: "LIM perdió S/\u00a02,484 en agosto", detalle: "Necesita vender S/\u00a024,763 al mes y vendió S/\u00a019,800." });
+    expect(as[3]).toMatchObject({ titulo: "LIM perdió S/\u00a02,484 en agosto", detalle: "Necesita vender S/\u00a024,763 al mes y vendió S/\u00a019,800, sin IGV." });
+  });
+
+  // Tarea 19: el mes pasado también se dice con IGV y es lo de CAYLA.
+  const conAnterior = (cambio: Partial<FilaER>) => {
+    const r = todas();
+    if (r.resultadosAnterior.estado !== "ok") throw new Error("fixture");
+    return { ...r, resultadosAnterior: { estado: "ok" as const, datos: r.resultadosAnterior.datos.map((f) => (f.unidad === "tienda" && f.resultado < 0 ? { ...f, ...cambio } : f)) } };
+  };
+  const pierde = (r: ResumenFinanzas) => avisosParaDecidir(r, LIDER).find((a) => a.clave.startsWith("pierde:"))!;
+  it("la tienda que perdió: lo que necesita y lo que vendió, los dos con IGV", () => {
+    expect(pierde(conAnterior({ igvCobrado: 3_564, claureSinIgv: 0 })).detalle).toBe("Necesita vender S/\u00a029,220 al mes y vendió S/\u00a023,364, con IGV.");
+  });
+  it("con CLAURE no se infla: la tasa sale de lo vendido con CLAURE", () => {
+    const a = pierde(conAnterior({ igvCobrado: 3_564 + 180, claureSinIgv: 1_000 }));
+    expect(a.detalle).toBe("Necesita vender S/\u00a029,220 al mes y vendió S/\u00a023,364, con IGV y sin lo de CLAURE.");
+  });
+  it("sin equilibrio calculable, lo vendido lleva su rótulo junto a los gastos", () => {
+    expect(pierde(conAnterior({ margen: -10, igvCobrado: 3_564, claureSinIgv: 0 })).detalle).toMatch(/^Vendió S\/\u00a023,364 con IGV; sus gastos fueron /);
+    expect(pierde(conAnterior({ margen: -10 })).detalle).toMatch(/^Vendió S\/\u00a019,800 sin IGV; sus gastos fueron /);
   });
 
   it("cada aviso dice de dónde sale y a dónde ir", () => {
@@ -159,12 +180,12 @@ describe("Para decidir hoy", () => {
       expect(claves(avisosParaDecidir(todas(), LIDER))).not.toContain("umbral_aviso");
     });
 
-    it("al llegar al aviso sale «Llevas S/ X vendidos este año, a S/ Y de las 300 UIT: habla con tu contador» y REEMPLAZA al «Vas al X %»", () => {
+    it("al llegar al aviso sale «Llevas S/ X vendidos este año, sin IGV, a S/ Y de las 300 UIT: habla con tu contador» y REEMPLAZA al «Vas al X %»", () => {
       const as = avisosParaDecidir(conAviso({}), LIDER);
       const a = as.find((x) => x.clave === "umbral_aviso")!;
       expect(a).toMatchObject({
         tono: "ambar",
-        titulo: "Llevas S/\u00a01,400,000 vendidos este año, a S/\u00a0250,000 de las 300 UIT: habla con tu contador.",
+        titulo: "Llevas S/\u00a01,400,000 vendidos este año, sin IGV, a S/\u00a0250,000 de las 300 UIT: habla con tu contador.",
         href: "/finanzas/impuestos",
         origen: "Impuestos",
       });

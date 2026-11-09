@@ -30,7 +30,8 @@ export function estadoDeRegistro(c: Pick<ComparacionSire, "propuesta" | "cruce" 
 
 /**
  * Las líneas de «Antes de declarar» (Impuestos). Solo de un mes que ya terminó: la propuesta de un mes en curso todavía cambia.
- * Compras avisa también si no se subió (ahí se esconde el IGV que no se descuenta); ventas solo si se subió y algo no cuadra.
+ * Las dos avisan si no se subió: en compras se esconde el IGV que no se descuenta y en ventas, lo que SUNAT cree que vendiste; es lo único del
+ * ERP que ve un comprobante que quedó vivo allá (las copias B005 de octubre, cuya baja ya no se sigue).
  */
 export function lineasSireImpuestos(e: EstadoSire | null, mesActual: string): LineaPendiente[] {
   if (!e || e.mes >= mesActual) return [];
@@ -38,6 +39,9 @@ export function lineasSireImpuestos(e: EstadoSire | null, mesActual: string): Li
   const lineas: LineaPendiente[] = [];
   if (e.compras && !e.compras.subida) {
     lineas.push({ id: "sire_compras_sin_subir", tono: "gris", texto: "Compras sin comparar con SUNAT", monto: 0, detalle: "Baja la propuesta del portal SIRE y compárala antes de que el contador la acepte.", href: href("compras") });
+  }
+  if (e.ventas && !e.ventas.subida) {
+    lineas.push({ id: "sire_ventas_sin_subir", tono: "gris", texto: "Ventas sin comparar con SUNAT", monto: 0, detalle: "Baja la propuesta del portal SIRE y compárala: muestra lo que SUNAT tiene de tus ventas y aquí no.", href: href("ventas") });
   }
   for (const registro of ["compras", "ventas"] as const) {
     const r = e[registro];
@@ -57,15 +61,15 @@ export function lineasSireImpuestos(e: EstadoSire | null, mesActual: string): Li
 
 /**
  * El aviso del Cierre de mes (la unidad «empresa»: la propuesta es del RUC entero). Nunca bloquea. `null` si no se sabe nada de compras:
- * un aviso sin dato confunde más de lo que ayuda.
+ * un aviso sin dato confunde más de lo que ayuda. Ventas cuenta solo si se pudo leer: `ventas_subida` es `null` cuando no se sabe.
  */
 export function chequeoSire(e: EstadoSire | null): Chequeo | null {
   if (!e?.compras) return null;
   const porMirar = e.compras.porMirar + (e.ventas?.subida ? e.ventas.porMirar : 0);
   return {
     clave: "sire",
-    ok: e.compras.subida && porMirar === 0,
+    ok: e.compras.subida && e.ventas?.subida !== false && porMirar === 0,
     bloquea: false,
-    datos: { subida: e.compras.subida, por_mirar: porMirar, resueltas: e.compras.resueltas + (e.ventas?.resueltas ?? 0) },
+    datos: { subida: e.compras.subida, ventas_subida: e.ventas?.subida ?? null, por_mirar: porMirar, resueltas: e.compras.resueltas + (e.ventas?.resueltas ?? 0) },
   };
 }

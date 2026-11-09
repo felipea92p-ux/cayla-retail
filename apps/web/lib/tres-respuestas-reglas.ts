@@ -56,8 +56,8 @@ type Entrada = {
   claureFalla?: boolean;
   /** Lo que Dynamic marcó pagado de la planilla y aquí no dice de qué banco salió: sigue sumando en lo que tienes, y la tarjeta lo dice. */
   planillaSinSalida?: number | null;
-  /** Lo vendido y lo que salió del mes: la frase bajo «¿Cuánto te deja?» («Vendiste S/ 99,950 y salió S/ 130,215»). */
-  plata?: { vendido: number; salio: number; nota?: string } | null;
+  /** La frase bajo «¿Cuánto te deja?» (`vendisteYSalio`: «Vendiste S/ 1,180 con IGV y salió S/ 1,300, contando ese IGV.»). */
+  plata?: { frase: string; nota?: string } | null;
 };
 
 /** Lo que suma «¿Cuánto tienes?», agrupado por lo que una persona entiende: lo que está a mano, lo que las máquinas deben depositar y el resto. */
@@ -152,21 +152,32 @@ function cuandoVence(fecha: string, hoy: string): string {
 }
 const MAX_DEUDAS = 4;
 
+/**
+ * Por qué «¿Cuánto debes pronto?» no trae los fijos ni la planilla (tarea 24). Mirando una sede la base no manda la proyección (`no_aplica`): no hubo ninguna
+ * falla, la cifra solo cuenta facturas, y decir «no se pudo leer» era falso. `sin_permiso` es de la cuenta. Solo una falla de verdad dice que no se pudo.
+ */
+function sinFijosNiPlanilla(r: ResumenFinanzas): { chip: string; frase: string } {
+  if (r.flujo.estado === "no_aplica") return { chip: "Solo facturas", frase: "Al mirar una sede, esta cifra solo cuenta facturas: no suma fijos, impuestos ni planilla." };
+  if (r.flujo.estado === "sin_permiso") return { chip: "Sin fijos ni planilla", frase: "Tu cuenta no ve los fijos ni la planilla." };
+  return { chip: "Sin leer fijos ni planilla", frase: "No se pudieron leer los fijos ni la planilla." };
+}
+
 function debes(r: ResumenFinanzas, href: string | null): Respuesta {
   const base = { clave: "debes" as const, pregunta: "¿Cuánto debes pagar pronto?", ...(href ? { href } : {}) };
   const d = debesPronto(r);
   if (!d) return { ...base, valor: null, chips: [], noSePudoLeer: r.porPagar.estado === "falla", motivo: r.porPagar.estado === "falla" ? "No se pudo leer lo que debes. Vuelve a cargar la página en un rato." : "Tu cuenta no ve lo que debes." };
   const dias = r.porPagar.estado === "ok" ? r.porPagar.datos.dias : 7;
   const hayAlgo = d.proximas.length > 0 || !!d.planilla || d.otras.length > 0;
+  const sinLeer = sinFijosNiPlanilla(r);
   const chip: Chip = d.vencidas.length
     ? { texto: d.vencidas.length === 1 ? "1 vencida" : `${d.vencidas.length} vencidas`, tono: "ambar" }
     : hayAlgo
       ? { texto: "Vence pronto", tono: "pizarra" }
       : d.leyoSalidas && d.planillaVisible
         ? { texto: "Nada por vencer", tono: "verde" }
-        : { texto: d.leyoSalidas ? "Sin planilla" : "Sin leer fijos ni planilla", tono: "pizarra" };
+        : { texto: d.leyoSalidas ? "Sin planilla" : sinLeer.chip, tono: "pizarra" };
   // Lo que la cifra no incluye se dice aunque haya otras deudas: nunca verde sin haberlo leído.
-  const aparte: Chip[] = (d.vencidas.length || hayAlgo) && !d.planillaVisible ? [{ texto: d.leyoSalidas ? "Sin planilla" : "Sin leer fijos ni planilla", tono: "pizarra" }] : [];
+  const aparte: Chip[] = (d.vencidas.length || hayAlgo) && !d.planillaVisible ? [{ texto: d.leyoSalidas ? "Sin planilla" : sinLeer.chip, tono: "pizarra" }] : [];
   // Cada deuda con su fecha, de la que vence antes a la que vence después: así se ve QUÉ hay que pagar, no solo cuánto.
   const todas = [
     ...[...d.vencidas, ...d.proximas].map((f) => ({ fecha: f.vence, fila: { texto: f.proveedor, monto: f.saldo, cuando: cuandoVence(f.vence, r.hoy), tono: diasHasta(f.vence, r.hoy) < 0 ? ("rojo" as const) : ("ambar" as const) } })),
@@ -178,14 +189,14 @@ function debes(r: ResumenFinanzas, href: string | null): Respuesta {
   return {
     ...base,
     valor: d.monto,
-    detalle: filas.length ? undefined : d.leyoSalidas && d.planillaVisible ? `No vence nada en los próximos ${dias} días.` : `Sin facturas por vencer en ${dias} días. ${d.leyoSalidas ? "Tu cuenta no ve la planilla." : "No se pudieron leer los fijos ni la planilla."}`,
+    detalle: filas.length ? undefined : d.leyoSalidas && d.planillaVisible ? `No vence nada en los próximos ${dias} días.` : `Sin facturas por vencer en ${dias} días. ${d.leyoSalidas ? "Tu cuenta no ve la planilla." : sinLeer.frase}`,
     chips: [chip, ...aparte],
     ...(filas.length ? { filas, ...(masFilas > 0 ? { masFilas } : {}) } : {}),
   };
 }
 
-function deja(resp: RespuestaResumen, plata?: { vendido: number; salio: number; nota?: string } | null): Respuesta {
-  const detalle = plata && resp.valor !== null ? `Vendiste ${soles(plata.vendido)} y salió ${soles(plata.salio)}.${plata.nota ? ` ${plata.nota}` : ""}` : undefined;
+function deja(resp: RespuestaResumen, plata?: { frase: string; nota?: string } | null): Respuesta {
+  const detalle = plata && resp.valor !== null ? `${plata.frase}${plata.nota ? ` ${plata.nota}` : ""}` : undefined;
   return { clave: "deja", pregunta: resp.pregunta, valor: resp.valor, ...(resp.motivo ? { motivo: resp.motivo } : {}), ...(detalle ? { detalle } : {}), chips: resp.chips };
 }
 

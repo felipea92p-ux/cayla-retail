@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
+import { periodoDe } from "./estados-periodo";
 import {
   ARCHIVOS_CONTADOR,
+  avisoDelContador,
   conPrimerasLineas,
   csvDiarioContador,
   csvFlujoContador,
@@ -165,22 +167,31 @@ describe("ver en pantalla: los saldos por cuenta y el libro diario", () => {
 describe("«Para el contador»", () => {
   const hrefCuentas = (v: string) => `/cuentas?cuadro=${v}`;
   it("ver los dos cuadros y bajar cada archivo", () => {
-    const o = opcionesDelContador({ veTodo: true, hrefCuentas });
+    const o = opcionesDelContador({ veTodo: true, hrefCuentas, mes: "2026-10", hoy: "2026-11-08" });
     expect(o.map((x) => x.etiqueta)).toEqual([
       "Ver saldos por cuenta",
       "Ver el libro diario",
-      "Descargar estado de resultados",
-      "Descargar flujo de efectivo",
-      "Descargar Balance general",
-      "Descargar cambios en el patrimonio",
-      "Descargar saldos por cuenta",
-      "Descargar libro diario",
+      "Descargar estado de resultados de octubre",
+      "Descargar flujo de efectivo de octubre",
+      "Descargar Balance general al 31 de octubre",
+      "Descargar cambios en el patrimonio de octubre",
+      "Descargar saldos por cuenta de octubre",
+      "Descargar libro diario de octubre",
     ]);
     expect(o[0]).toMatchObject({ href: "/cuentas?cuadro=saldos" });
     expect(o[2]).toMatchObject({ archivo: "resultados" });
   });
   it("una terminal solo ve lo suyo: lo de CAYLA entera no se le ofrece", () => {
-    expect(opcionesDelContador({ veTodo: false, hrefCuentas }).map((x) => x.clave)).toEqual(["bajar-resultados"]);
+    expect(opcionesDelContador({ veTodo: false, hrefCuentas, mes: "2026-10", hoy: "2026-11-08" }).map((x) => x.clave)).toEqual(["bajar-resultados"]);
+  });
+  it("el mes en curso va «a la fecha» y el Balance dice hasta qué día", () => {
+    const o = opcionesDelContador({ veTodo: true, hrefCuentas, mes: "2026-11", hoy: "2026-11-08" });
+    expect(o.find((x) => x.clave === "bajar-resultados")!.etiqueta).toBe("Descargar estado de resultados de noviembre (a la fecha)");
+    expect(o.find((x) => x.clave === "bajar-balance")!.etiqueta).toBe("Descargar Balance general al 8 de noviembre (a la fecha)");
+  });
+  it("otro año lo dice", () => {
+    const o = opcionesDelContador({ veTodo: false, hrefCuentas, mes: "2026-10", hoy: "2027-01-15" });
+    expect(o[0]!.etiqueta).toBe("Descargar estado de resultados de octubre de 2026");
   });
   it("el cuadro que se mira", () => {
     expect(leerVerCuentas("diario")).toBe("diario");
@@ -200,5 +211,26 @@ describe("lo que hay que saber antes de leer un archivo (tarea 23)", () => {
   it("sin avisos, el archivo no cambia", () => {
     const csv = csvDe([["a"]]);
     expect(conPrimerasLineas(csv, [])).toBe(csv);
+  });
+});
+
+describe("avisar antes de bajar cuando lo elegido no es un mes entero (tarea 86)", () => {
+  const HOY = "2026-11-08";
+  it("con un mes entero, o el mes en curso, no hay aviso", () => {
+    expect(avisoDelContador(periodoDe("2026-10-01", "2026-10-31", HOY), HOY, false)).toBeNull();
+    expect(avisoDelContador(periodoDe("2026-11-01", HOY, HOY), HOY, false)).toBeNull();
+  });
+  it("este trimestre: dice que baja solo noviembre, a la fecha", () => {
+    const a = avisoDelContador(periodoDe("2026-10-01", HOY, HOY), HOY, false)!;
+    expect(a).toContain("van por mes");
+    expect(a).toContain("noviembre (a la fecha)");
+  });
+  it("unos días sueltos dentro de un mes: baja el mes completo", () => {
+    expect(avisoDelContador(periodoDe("2026-10-05", "2026-10-20", HOY), HOY, false)).toContain("octubre");
+  });
+  it("el Balance a mitad de un mes pasado baja el cierre de ese mes", () => {
+    const a = avisoDelContador(periodoDe("2026-10-01", "2026-10-05", HOY), HOY, true)!;
+    expect(a).toContain("Al 5 de octubre");
+    expect(a).toContain("al 31 de octubre");
   });
 });

@@ -26,7 +26,7 @@
       "Link «{s.nombre}»"
     ],
     "components/finanzas/VendidoPorSede.tsx": [
-      "Link «Por qué no es la cifra de Ventas»",
+      "Link «{enlace}»",
       "Link «{`${t.nombre}»"
     ],
     "components/finanzas/telar/DockTelar.tsx": [

@@ -1,14 +1,47 @@
 import { describe, expect, it } from "vitest";
 import fixture from "./resumen-finanzas.fixture.json";
 import { leerResumen } from "./resumen-finanzas-reglas";
+import type { SedeTelar } from "./finanzas-telar-reglas";
 import type { FilaER } from "./resultados-reglas";
-import { comparacionMesPasado, lineaVentasMeta, mismasTiendas, respuestaResumen, tiendasAdivinadas, tramoAnteriorALaFecha, vendidoPorSede } from "./resumen-telar-reglas";
+import { comparacionMesPasado, dockDelResumen, lineaVentasMeta, mismasTiendas, respuestaResumen, tiendasAdivinadas, tramoAnteriorALaFecha, vendidoPorSede } from "./resumen-telar-reglas";
 
 // Lo que el Resumen le pasa a la barra común del telar (su respuesta y su orillo) y la línea de ventas contra la meta.
 
 const todas = () => leerResumen(fixture.todas);
 const filas = (r: ReturnType<typeof todas>): FilaER[] => (r.resultadosMes.estado === "ok" ? r.resultadosMes.datos : []);
 const conResultado = (fs: FilaER[], delta: number) => fs.map((f) => ({ ...f, resultado: f.resultado - delta }));
+
+describe("respuestaResumen · un mes anterior al inicio de Finanzas", () => {
+  it("no dice que no hubo movimientos: dice que Finanzas todavía no contaba", () => {
+    const r = { ...todas(), mes: "2026-09", resultadosMes: { estado: "ok" as const, datos: [] } };
+    const resp = respuestaResumen(r, null, false, false, false, "2026-10-01");
+    expect(resp.valor).toBeNull();
+    expect(resp.motivo).toBe("Finanzas empezó a contar en octubre: este mes no se mide.");
+  });
+  it("desde el mes del corte, si falta la fila, sigue diciendo que no hay movimientos", () => {
+    const r = { ...todas(), mes: "2026-10", resultadosMes: { estado: "ok" as const, datos: [] } };
+    expect(respuestaResumen(r, null, false, true, false, "2026-10-01").motivo).toBe("No hay movimientos de este mes para lo que miras.");
+  });
+});
+
+describe("dockDelResumen (tarea 178)", () => {
+  const TODOS = ["cuentas_dinero", "impuestos", "cierre_mes", "reportes_financieros"];
+  it("con todos los módulos salen las cuatro, y «Pagar facturas» manda", () => {
+    const d = dockDelResumen(TODOS);
+    expect(d.map((a) => a.tecla)).toEqual(["p", "i", "m", "r"]);
+    expect(d.filter((a) => a.principal).map((a) => a.tecla)).toEqual(["p"]);
+  });
+  it("el botón se llama como el menú y conserva su tecla (tarea 121)", () => {
+    expect(dockDelResumen(["reportes_financieros"])).toEqual([expect.objectContaining({ texto: "Estados financieros", tecla: "r" })]);
+  });
+  it("con solo el Resumen queda Reportes, y es la principal", () => {
+    expect(dockDelResumen(["reportes_financieros"])).toEqual([expect.objectContaining({ tecla: "r", principal: true })]);
+  });
+  it("sin Cuentas y dinero, la primera que queda pasa a ser la principal", () => {
+    const d = dockDelResumen(["impuestos", "reportes_financieros"]);
+    expect(d.map((a) => [a.tecla, !!a.principal])).toEqual([["i", true], ["r", false]]);
+  });
+});
 
 describe("respuestaResumen", () => {
   it("CAYLA: «¿Cuánto te deja <mes>?» con lo que queda y el chip contra el mes pasado a esta fecha", () => {
@@ -58,10 +91,51 @@ describe("respuestaResumen", () => {
 });
 
 describe("el orillo y el tramo de comparación", () => {
+  // Felipe 2026-11-09: «Vendido por sede» es todo lo de la tienda, con IGV y con lo de CLAURE. Cifras inventadas con las proporciones de producción (las reales no entran al repo, que es público: ADR-0609).
+  const SEDES = [
+    { clave: "tru", nombre: "Trujillo", color: "tru" },
+    { clave: "lim", nombre: "Lima", color: "lim" },
+  ] as const satisfies readonly SedeTelar[];
+  const tienda = (ubicacionId: string, nombre: string, extra: Partial<FilaER>) => ({ ...filas(todas())[0]!, unidad: "tienda", ubicacionId, nombre, ...extra }) as FilaER;
+  const texto = (s: string) => s.replace(/\u00a0/g, " ");
+  const OCT = [tienda("tru", "Tienda TRU", { ventas: 75_000, igvCobrado: 13_500, claureSinIgv: 0 }), tienda("lim", "Tienda LIM", { ventas: 1_000, igvCobrado: 270, claureSinIgv: 500 })];
+
   it("el orillo del Resumen es lo vendido por tienda; el Taller y la Empresa no tienen tramo", () => {
-    const v = vendidoPorSede(filas(todas()));
-    expect(v.length).toBeGreaterThan(0);
-    expect(v.every((x) => x.ubicacionId !== null && x.monto > 0)).toBe(true);
+    const v = vendidoPorSede(filas(todas()), filas(todas()).filter((f) => f.ubicacionId).map((f) => ({ clave: f.ubicacionId!, nombre: f.nombre, color: "otra" as const })), "octubre");
+    expect(v.tramos.length).toBeGreaterThan(0);
+    expect(v.tramos.every((x) => x.monto > 0)).toBe(true);
+    const unidades = new Map(filas(todas()).map((f) => [f.ubicacionId, f.unidad]));
+    expect(v.tramos.every((x) => unidades.get(x.clave) === "tienda")).toBe(true);
+  });
+
+  it("los montos van con IGV y con lo de CLAURE; el porcentaje mide lo mismo, sin IGV", () => {
+    const v = vendidoPorSede(OCT, SEDES, "octubre");
+    expect(v.tramos.map((t) => [t.clave, t.monto])).toEqual([["tru", 88_500], ["lim", 1_770]]);
+    expect(v.total).toBe(90_270);
+    expect(v.tramos.map((t) => t.pct)).toEqual([98, 2]);
+    expect(texto(v.frase)).toBe("S/ 90,270 en octubre, con IGV y con lo de CLAURE. Si no es igual a Ventas, es por lo devuelto, anulado o cambiado.");
+    expect(v.enlace).toBe("Ver la cuenta");
+  });
+
+  it("Lima, con más de CLAURE que de CAYLA: el porcentaje es el de su monto y su barra, no solo el de CAYLA", () => {
+    const v = vendidoPorSede([tienda("tru", "Tienda TRU", { ventas: 24_000, igvCobrado: 4_320, claureSinIgv: 0 }), tienda("lim", "Tienda LIM", { ventas: 400, igvCobrado: 180, claureSinIgv: 600 })], SEDES, "noviembre");
+    const lima = v.tramos.find((t) => t.clave === "lim")!;
+    expect(lima.monto).toBe(1_180);
+    // 1,180 de 29,500 es el 4 %. Solo con lo de CAYLA (400 de 24,400) diría 2 %.
+    expect(lima.pct).toBe(4);
+  });
+
+  it("una sede que solo vendió CLAURE no desaparece; sin CLAURE en el mes, la frase no lo nombra", () => {
+    const soloClaure = vendidoPorSede([OCT[0]!, tienda("lim", "Tienda LIM", { ventas: 0, igvCobrado: 90, claureSinIgv: 500 })], SEDES, "octubre");
+    expect(soloClaure.tramos.find((t) => t.clave === "lim")).toMatchObject({ monto: 590, pct: 1 });
+    expect(texto(vendidoPorSede([OCT[0]!], SEDES, "octubre").frase)).toBe("S/ 88,500 en octubre, con IGV. Si no es igual a Ventas, es por lo devuelto, anulado o cambiado.");
+  });
+
+  it("sin la lectura del IGV queda como antes y lo dice", () => {
+    const v = vendidoPorSede([tienda("tru", "Tienda TRU", { ventas: 75_000, igvCobrado: undefined, claureSinIgv: undefined }), tienda("lim", "Tienda LIM", { ventas: 1_000, igvCobrado: undefined, claureSinIgv: undefined })], SEDES, "octubre");
+    expect(v.tramos.map((t) => t.monto)).toEqual([75_000, 1_000]);
+    expect(texto(v.frase)).toBe("S/ 76,000 en octubre, sin IGV ni CLAURE.");
+    expect(v.enlace).toBe("Por qué no es la cifra de Ventas");
   });
 
   it("el mes pasado hasta el mismo día, o hasta su último día si es más corto", () => {

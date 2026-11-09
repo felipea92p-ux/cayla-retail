@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  textoMetaVentasTopes,
   cambiosDePropuesta,
   chipPpto,
   claveCelda,
@@ -112,6 +113,13 @@ describe("Configuración ▸ Gastos", () => {
   it("los meses que se pueden presupuestar: dos atrás y tres adelante", () => {
     expect(mesesParaPresupuestar("2026-09-24")).toEqual(["2026-07", "2026-08", "2026-09", "2026-10", "2026-11", "2026-12"]);
     expect(mesesParaPresupuestar("2026-01-05")[0]).toBe("2025-11");
+  });
+});
+
+describe("la meta de ventas en Topes (tarea 53)", () => {
+  it("dice la misma cifra que Configuración ▸ Metas, con IGV", () => {
+    expect(textoMetaVentasTopes(80_000).replace(/\u00a0/g, " ")).toBe("Meta de ventas con IGV: S/ 94,400");
+    expect(textoMetaVentasTopes(null)).toBe("Meta de ventas: sin meta");
   });
 });
 

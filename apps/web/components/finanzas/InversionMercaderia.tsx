@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronDown, PackageCheck } from "lucide-react";
+import { ChevronDown, Package } from "lucide-react";
 import { useState, type CSSProperties } from "react";
 import { BarraApilada, MuestraTramo } from "@/components/ui/BarraApilada";
 import { Chip } from "@/components/ui/Chip";
@@ -18,12 +18,15 @@ import type { Proyeccion } from "@/lib/flujo-caja-reglas";
 import {
   cajaConCompra,
   cambioSugerido,
+  categoriasPlaneadas,
   cuantoDejaLaCampana,
   diasParaPedir,
+  estadoDeLaCompra,
   evaluarFormas,
+  faltaPedirDeLaBarra,
   formaEfectiva,
   formasDePago,
-  mejorMezcla,
+  mezclaParaMostrar,
   ordenarHistoria,
   pendienteDeCaja,
   pocosDatos,
@@ -31,10 +34,12 @@ import {
   repartoDeLaCompra,
   saleDeCajaDelPlan,
   saldoBase,
+  sinContarPagos,
   type CampanaInversion,
   type CostosCampana,
   type FormaEvaluada,
   type HistoriaCampana,
+  type VacioInversion,
 } from "@/lib/inversion-mercaderia-reglas";
 
 // Finanzas ▸ Resumen, «Inversión en mercadería» (Felipe 2026-10-26, demo aprobada). Solo DIBUJA lo que arman las reglas de
@@ -53,7 +58,10 @@ function fechasDeCampana(c: CampanaInversion): string {
 }
 
 function EstadoDeLaCompra({ c, hoy, conIgv }: { c: CampanaInversion; hoy: string; conIgv: boolean }) {
-  if (pendienteDeCaja(c, conIgv) <= 0) return <Chip tono="verde">Todo pedido</Chip>;
+  const estado = estadoDeLaCompra(c, conIgv);
+  if (estado === "sin-planear") return <Chip tono="pizarra" title="Todavía hay categorías sin plan en esta campaña">Sin planear</Chip>;
+  if (estado === "no-hace-falta") return <Chip tono="verde" title="Hay plan y el stock lo cubre">No hace falta comprar</Chip>;
+  if (estado === "todo-pedido") return <Chip tono="verde">Todo pedido</Chip>;
   const dias = diasParaPedir(c, hoy);
   if (dias === null) return <Chip tono="pizarra">Sin fecha para pedir</Chip>;
   if (dias < 0) return <Chip tono="ambar">Ya pasó la fecha de pedir</Chip>;
@@ -64,15 +72,16 @@ function EstadoDeLaCompra({ c, hoy, conIgv }: { c: CampanaInversion; hoy: string
   );
 }
 
-function BarraDeLaCompra({ c }: { c: CampanaInversion }) {
+function BarraDeLaCompra({ c, conIgv }: { c: CampanaInversion; conIgv: boolean }) {
   const r = repartoDeLaCompra(c);
   const tope = c.tope ?? c.planSinIgv;
+  const falta = faltaPedirDeLaBarra(c, conIgv);
   return (
     <div>
       <BarraApilada
         unidad="soles"
         formato={soles}
-        etiqueta={`De ${soles(c.planSinIgv)} planeados: ${soles(r.pagado)} pagados, ${soles(r.pedidoSinPagar)} pedidos sin pagar y ${soles(r.faltaPedir)} por pedir.${c.tope ? ` Tu tope es ${soles(c.tope)}.` : ""}`}
+        etiqueta={`De ${soles(c.planSinIgv)} planeados, sin IGV: ${soles(r.pagado)} pagados y ${soles(r.pedidoSinPagar)} pedidos sin pagar. ${falta}.${c.tope ? ` Tu tope es ${soles(c.tope)}.` : ""}`}
         total={Math.max(tope, c.planSinIgv, c.pedido)}
         segmentos={[
           { clave: "pagado", nombre: "Pagado", valor: r.pagado, clase: "bg-verde" },
@@ -88,7 +97,7 @@ function BarraDeLaCompra({ c }: { c: CampanaInversion }) {
           <MuestraTramo clase="bg-taupe" /> Pedido, por pagar {soles(r.pedidoSinPagar)}
         </span>
         <span className="inline-flex items-center gap-1.5">
-          <MuestraTramo clase="bg-tinta/20" /> Falta pedir {soles(r.faltaPedir)}
+          <MuestraTramo clase="bg-tinta/20" /> {falta}
         </span>
         {c.tope !== null && <span>Tu tope: {soles(c.tope)}</span>}
       </p>
@@ -109,25 +118,29 @@ type Props = {
   /** La campaña cuyo cuadro de «cómo pagarla» está abierto. */
   abierta: string | null;
   onAbrir: (id: string | null) => void;
-  /** Todas las campañas están ocultas por quien mira (no por el Plan): se dice dónde volver a mostrarlas. */
-  ocultasAqui: boolean;
+  /** Por qué no hay campañas que dibujar, si no las hay (`vacioDeInversion`). */
+  vacio: VacioInversion;
 };
 
-export function InversionMercaderia({ campanas, conIgv, hoy, proyeccion, elegidas, onElegir, abierta, onAbrir, ocultasAqui }: Props) {
+export function InversionMercaderia({ campanas, conIgv, hoy, proyeccion, elegidas, onElegir, abierta, onAbrir, vacio }: Props) {
   if (!campanas.length) {
-    // Escondidas aquí: se dice, o parece que «no hay campañas». Sin campañas del Plan: no se dibuja nada (esta base aún no las trae).
-    return ocultasAqui ? (
-      <p className="nota-cayla" data-guia="fin-resumen.inversion">
-        La inversión en mercadería está oculta. Vuelve a mostrarla en «Qué se ve», junto al mes.
-      </p>
-    ) : (
-      // Felipe 2026-10-29: la tarjeta está siempre, al final del Resumen; sin nada pendiente dice eso en una línea, no tres ceros.
+    // Sin leer no se sabe si hay campañas: si se cayó, el aviso de arriba lo dice, y a quien no ve el Plan el Resumen no le ofrece nada.
+    if (vacio === "no-se-sabe") return null;
+    // Escondidas aquí: se dice, o parece que «no hay campañas».
+    if (vacio === "ocultas")
+      return (
+        <p className="nota-cayla" data-guia="fin-resumen.inversion">
+          La inversión en mercadería está oculta. Vuelve a mostrarla en «Qué se ve», junto al mes.
+        </p>
+      );
+    // Felipe 2026-10-29: la tarjeta está siempre, al final del Resumen; sin campañas lo dice en una línea, no tres ceros. El chip y la frase afirman que no hay: solo con CAYLA entera leída.
+    return (
       <Superficie pad guia="fin-resumen.inversion">
         <CabeceraBloque titulo="Inversión en mercadería" bajada="Sale de tu caja cuando pagas. Aún no es gasto.">
-          <Chip tono="verde">Todo pedido</Chip>
+          {vacio === "sin-campanas" && <Chip tono="pizarra">Sin campañas</Chip>}
         </CabeceraBloque>
-        <Vacio tamano="chico" icono={<PackageCheck />}>
-          Nada pendiente: no hay campañas por pedir ni por pagar.
+        <Vacio tamano="chico" icono={<Package />}>
+          {vacio === "sin-campanas" ? "Aquí no hay ninguna campaña con plan para los próximos 120 días." : "La inversión en mercadería es de toda CAYLA: elige «Todas» en la barra de arriba para verla."}
         </Vacio>
       </Superficie>
     );
@@ -138,7 +151,7 @@ export function InversionMercaderia({ campanas, conIgv, hoy, proyeccion, elegida
     <Superficie pad guia="fin-resumen.inversion">
       <CabeceraBloque
         titulo="Inversión en mercadería"
-        bajada={conIgv ? `Sale de tu caja cuando pagas. Aún no es gasto. Con IGV, ${soles(total)} en total.` : "Sale de tu caja cuando pagas. Aún no es gasto. Sin contar el IGV."}
+        bajada={!conIgv ? "Sale de tu caja cuando pagas. Aún no es gasto. Sin contar el IGV." : total > 0 ? `Sale de tu caja cuando pagas. Aún no es gasto. Con IGV, ${soles(total)} en total.` : "Sale de tu caja cuando pagas. Aún no es gasto."}
       />
       <div className="grid gap-3 grid-cols-[repeat(auto-fit,minmax(min(100%,26rem),1fr))]">
         {campanas.map((c, i) => {
@@ -147,7 +160,9 @@ export function InversionMercaderia({ campanas, conIgv, hoy, proyeccion, elegida
           const hayCuadro = hayQuePagar || c.historia !== null || c.costos !== null;
           const estaAbierta = abierta === c.id;
           const reparto = repartoDeLaCompra(c);
-          // Una campaña sin nada que pagar ni pedir no necesita su barra: «Todo pedido» y el enlace al Plan.
+          const estado = estadoDeLaCompra(c, conIgv);
+          const planeadas = categoriasPlaneadas(c);
+          // Una campaña sin nada que pagar ni pedir no necesita su barra: su estado, cuántas categorías faltan planear y el enlace al Plan.
           const enCero = reparto.pagado + reparto.pedidoSinPagar + reparto.faltaPedir <= 0 && !hayCuadro;
           if (enCero)
             return (
@@ -157,6 +172,7 @@ export function InversionMercaderia({ campanas, conIgv, hoy, proyeccion, elegida
                 </TituloSeccion>
                 <span className="flex flex-wrap items-center gap-3">
                   <EstadoDeLaCompra c={c} hoy={hoy} conIgv={conIgv} />
+                  {planeadas && <span className="text-sm text-taupe">{planeadas}</span>}
                   {c.hrefPlan && <EnlaceVer href={c.hrefPlan}>Ver en el Plan de campaña</EnlaceVer>}
                 </span>
               </div>
@@ -169,7 +185,7 @@ export function InversionMercaderia({ campanas, conIgv, hoy, proyeccion, elegida
                 </TituloSeccion>
                 <EstadoDeLaCompra c={c} hoy={hoy} conIgv={conIgv} />
               </div>
-              <BarraDeLaCompra c={c} />
+              <BarraDeLaCompra c={c} conIgv={conIgv} />
               <div className="flex flex-wrap items-center gap-2">
                 {hayCuadro && (
                   <Boton peso="fantasma" type="button" className="whitespace-nowrap" aria-expanded={estaAbierta} aria-controls={`pagar-${c.id}`} onClick={() => onAbrir(estaAbierta ? null : c.id)}>
@@ -178,7 +194,9 @@ export function InversionMercaderia({ campanas, conIgv, hoy, proyeccion, elegida
                   </Boton>
                 )}
                 {c.hrefPlan && <EnlaceVer href={c.hrefPlan}>Ver en el Plan de campaña</EnlaceVer>}
-                {!hayCuadro && pendienteDeCaja(c, conIgv) <= 0 && <span className="text-sm text-taupe">Todo pedido. Lo que falta pagar está en Por pagar.</span>}
+                {planeadas && <span className="text-sm text-taupe">{planeadas}</span>}
+                {!hayCuadro && estado === "todo-pedido" && <span className="text-sm text-taupe">Todo pedido. Lo que falta pagar está en Por pagar.</span>}
+                {!hayCuadro && estado === "sin-planear" && <span className="text-sm text-taupe">Lo pedido que falta pagar está en Por pagar.</span>}
               </div>
             </div>
           );
@@ -336,7 +354,7 @@ function CostoDeLaCampana({ c, costos, conIgv }: { c: CampanaInversion; costos: 
         <p className="mb-2 mt-1 text-sm text-taupe">Lo que esperas vender menos lo que cuesta venderlo. Las ventas ya vienen con el descuento.</p>
         <ListaDatos
           filas={[
-            { dato: "Lo que esperas vender (con el descuento)", valor: `+${soles(costos.ventasEsperadas)}` },
+            { dato: "Lo que esperas vender, con el descuento y sin IGV", valor: `+${soles(costos.ventasEsperadas)}` },
             { dato: "Lo que costaron las prendas que se venden", valor: `−${soles(costos.costoDeLoVendido)}` },
             { dato: "Publicidad de la campaña", valor: `−${soles(costos.publicidad)}` },
             { dato: "Comisión de tarjeta", valor: `−${soles(costos.comision)}` },
@@ -359,7 +377,7 @@ function PagarLaCompra({ c, conIgv, hoy, proyeccion, elegida, onElegir }: { c: C
   const formas: FormaEvaluada[] = evaluarFormas(proyeccion, formasDePago(c, hoy, conIgv));
   if (!formas.length) return null;
   const efectiva = formaEfectiva(formas, elegida);
-  const mejor = mejorMezcla(formas);
+  const { clave: mejor, muyLejos } = mezclaParaMostrar(formas);
   const caja = efectiva?.caja ?? null;
   const base = saldoBase(proyeccion);
   const ultimo = base.at(-1)!;
@@ -367,7 +385,7 @@ function PagarLaCompra({ c, conIgv, hoy, proyeccion, elegida, onElegir }: { c: C
   const detalleDe = (f: FormaEvaluada) =>
     [
       `${f.pagos.map((p) => `${soles(p.monto)} el ${diaYMes(p.fecha)}`).join(" · ")}.`,
-      f.caja ? `Tu caja más baja: ${soles(f.caja.masBajo.saldo)} (${diaYMes(f.caja.masBajo.fecha)}); ${f.caja.diasBajoMinimo} días bajo tu mínimo.` : "",
+      f.caja ? `Tu caja más baja${sinContarPagos(f) ? `, ${sinContarPagos(f)}` : ""}: ${soles(f.caja.masBajo.saldo)} (${diaYMes(f.caja.masBajo.fecha)}); ${f.caja.diasBajoMinimo} días bajo tu mínimo.` : "",
       `${f.llegaAbrir} % de lo que falta llega a tiempo para abrir la campaña.`,
       f.requiere ?? "",
     ]
@@ -375,17 +393,24 @@ function PagarLaCompra({ c, conIgv, hoy, proyeccion, elegida, onElegir }: { c: C
       .join(" ");
   // Si la caja ya se queda sin plata ANTES de la compra, la compra no es lo que la rompe: se dice, o parecería que la forma de pagar tiene la culpa.
   const sinLaCompra = cajaConCompra(proyeccion, []);
-  const frase = efectiva && caja
+  const sinContar = efectiva ? sinContarPagos(efectiva) : null;
+  const frasePrincipal = efectiva && caja
     ? sinLaCompra?.sinPlata
       ? `Aun sin la compra tu caja se queda sin plata el ${fechaEnPalabras(sinLaCompra.sinPlata.fecha)}. Con «${efectiva.nombre}» llega a ${soles(caja.masBajo.saldo)}.`
       : caja.sinPlata
       ? `Con «${efectiva.nombre}» la caja se queda sin plata el ${fechaEnPalabras(caja.sinPlata.fecha)}: llega a ${soles(caja.masBajo.saldo)}.`
       : `Con «${efectiva.nombre}» tu caja baja a ${soles(caja.masBajo.saldo)} el ${fechaEnPalabras(caja.masBajo.fecha)}${proyeccion.minimoCaja > 0 ? ` y pasa ${caja.diasBajoMinimo} días bajo tu mínimo` : ""}.`
     : "Elige una forma para ver cómo queda tu caja.";
+  const frase = sinContar ? `${frasePrincipal} Eso es ${sinContar}.` : frasePrincipal;
 
   return (
     <div data-guia="fin-resumen.inversion-pagos">
       <p className="mb-3 text-sm text-taupe">Lo que elijas aquí se cuenta en «Tu caja» de arriba.</p>
+      {muyLejos && (
+        <p className="nota-cayla mb-3">
+          <b>Aún muy lejos para compararlo con tu caja.</b> Tu caja se ve hasta el {fechaEnPalabras(ultimo.fecha)} y hay pagos que caen después: por eso ninguna forma se marca como «la mejor mezcla».
+        </p>
+      )}
       <div className="grid gap-4 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)]">
         <OpcionesFin
           nombre={`forma-${c.id}`}
@@ -433,7 +458,7 @@ function PagarLaCompra({ c, conIgv, hoy, proyeccion, elegida, onElegir }: { c: C
             </p>
           )}
           <p className="nota-cayla">
-            <b>Cómo se elige «la mejor mezcla»:</b> entre las formas que no dependen de nadie, que nunca dejan la caja en negativo y llegan a tiempo con al menos el 70 % de lo que abre la campaña, la que pasa menos días bajo tu mínimo.
+            <b>Cómo se elige «la mejor mezcla»:</b> entre las formas que no dependen de nadie, que nunca dejan la caja en negativo y llegan a tiempo con al menos el 70 % de lo que abre la campaña, la que pasa menos días bajo tu mínimo. Si alguno de sus pagos cae después de lo que tu caja alcanza a ver, no se marca.
             {conIgv && ` De caja sale con IGV; ese IGV vuelve como crédito fiscal en la declaración siguiente (${soles(c.igv)} en esta campaña).`}
           </p>
         </div>

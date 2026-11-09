@@ -1,6 +1,8 @@
+import { empezoAContar, mesAntesDelCorte } from "./finanzas-arranque-reglas";
 import { soles } from "./flujo-caja-reglas";
 import { mesNombre, puntoDeEquilibrio, type FilaER } from "./resultados-reglas";
 import { filaDeVer, motivoSinEquilibrio, type ResumenFinanzas } from "./resumen-finanzas-reglas";
+import { metaConIgv, ventaParaDecir } from "./igv-ventas-reglas";
 import { lineaVentasMeta, metaVentasPresupuesto, type DiaVenta } from "./resumen-telar-reglas";
 
 // Finanzas ▸ Resumen, «¿Ya pagaste el mes?» (Felipe 2026-10-24, spike 4). Lógica pura: cuánto hay que vender en el mes para cubrir TODOS sus
@@ -8,9 +10,10 @@ import { lineaVentasMeta, metaVentasPresupuesto, type DiaVenta } from "./resumen
 // Reemplaza a «ventas contra la meta»: la meta es del área comercial (Rendimiento) y se queda como una marca en el camino; lo que Finanzas
 // tiene que decir es desde qué día lo vendido ya paga el mes.
 //
-// UNIDADES. El Estado de resultados cuenta SIN IGV; la venta por día y la meta de Caja, CON IGV. Para no comparar peras con manzanas, lo de
-// Caja se convierte con la proporción del propio período (ventas del Estado de resultados ÷ ventas del día a día); sin día a día, se usa
-// la tasa del 18 %. Todo lo que se dice aquí va sin IGV.
+// UNIDADES. El Estado de resultados cuenta SIN IGV; la venta por día, CON IGV. Para no comparar peras con manzanas, la venta por día se convierte
+// con la proporción del propio período (ventas del Estado de resultados ÷ ventas del día a día); sin día a día, se usa la tasa del 18 %. La meta del
+// presupuesto (`fn_presupuesto_vs_real`) YA viene sin IGV y no se convierte: descontarla otra vez la dejaba 15 % más baja. Todo se CALCULA sin IGV; lo que se MUESTRA va con IGV (Felipe 2026-11-09,
+// tarea 19, `ventaParaDecir`): lo vendido, el equilibrio, el ritmo y el cierre llevan el mismo factor (la meta, la tasa fija de 18 %, `metaConIgv`), y por eso la barra y el estado no cambian. Es lo de CAYLA, sin CLAURE, y sin leer el IGV queda sin IGV y lo dice.
 //
 // MIENTE SI FALTAN GASTOS. Un equilibrio calculado sin los gastos registrados sale bajísimo y la tienda parece sana. `motivoSinEquilibrio`
 // lo corta de raíz cuando no hay NINGÚN gasto; con gastos a medias no se puede saber, y por eso la pieza lleva «Provisional» cuando la
@@ -38,14 +41,31 @@ function gastosDelMesEntero(f: FilaER, ver: Pick<ResumenFinanzas["ver"], "todas"
 }
 
 /**
+ * La nota de «Otros gastos» en el mes en curso (tarea 150): lo que Ganancias todavía no resta. El desgaste se asienta el último día y los fijos, cuando se registran. No cambia ninguna
+ * cifra. `falta` solo llega con el mes completo en curso; `null` (otro período o lectura caída) no dice nada. Si el desgaste ya está restado, tampoco: el último día del mes ya no es cierto.
+ */
+export function notaDeLoQueFaltaDelMes(f: Pick<FilaER, "unidad" | "ubicacionId" | "depreciacion">, falta: readonly FaltaDelMes[] | null): string | null {
+  if (falta === null || f.depreciacion > 0) return null;
+  const mias = falta.filter((x) => f.unidad === "consolidado" || (f.unidad === "empresa" ? x.ubicacionId === null : x.ubicacionId === f.ubicacionId));
+  const desgaste = mias.reduce((s, x) => s + x.depreciacion, 0);
+  const fijos = mias.reduce((s, x) => s + x.fijos, 0);
+  const partes = [
+    ...(desgaste > 0 ? [`${soles(desgaste)} de desgaste de los equipos (se resta el último día)`] : []),
+    ...(fijos > 0 ? [`${soles(fijos)} de gastos fijos sin registrar`] : []),
+  ];
+  return partes.length ? `Este mes todavía no incluye ${partes.join(" ni ")}.` : null;
+}
+
+/**
  * Cuánto hay que vender en el mes ENTERO para cubrirlo, con el margen de hoy, de una fila del Estado de resultados. Es la cuenta de «¿Ya pagaste el mes?»: Ganancias no se queda
  * con los gastos de los días que van. `null` sin margen o si no se pudo leer lo que falta: en un mes a medias, una cifra sin esos gastos saldría muy por debajo (ADR-0621).
+ * Con IGV si la fila lo trae: se convierte antes de redondear, o la centena se correría.
  */
 export function ventaParaElMesEntero(f: FilaER, falta: readonly FaltaDelMes[] | null): number | null {
   if (falta === null) return null;
   const ver = { todas: f.unidad === "consolidado", soloEmpresa: f.unidad === "empresa", ubicacionId: f.ubicacionId };
   const eq = puntoDeEquilibrio({ ...f, gastos: gastosDelMesEntero(f, ver, falta) });
-  return eq ? Math.ceil(eq.ventas / 100) * 100 : null;
+  return eq ? Math.ceil((eq.ventas * ventaParaDecir(f).factor) / 100) * 100 : null;
 }
 
 export type EquilibrioMes =
@@ -54,10 +74,12 @@ export type EquilibrioMes =
   | {
       tipo: "ok";
       estado: EstadoEquilibrio;
-      /** Lo vendido en el mes a la fecha (sin IGV) y lo que hay que vender para pagarlo todo. */
+      /** Lo vendido en el mes a la fecha y lo que hay que vender para pagarlo todo, en la base de `rotulo`, igual que `meta`, `ritmoPorDia`, `cierre` y `tope`. */
       vendido: number;
       pe: number;
-      /** La meta de ventas del MES del presupuesto, en las mismas unidades (sin IGV); `null` si no hay. La meta por día de cada sede no
+      /** En qué base se dicen las cifras: «con IGV», «con IGV y sin lo de CLAURE» o «sin IGV». */
+      rotulo: string;
+      /** La meta de ventas del MES del presupuesto, en las mismas unidades; `null` si no hay. La meta por día de cada sede no
        *  entra: solo cubre hasta hoy (`fn_rendimiento_serie` termina en hoy), no es la del mes, y esa es de Rendimiento. */
       meta: number | null;
       /** El día del mes en que lo vendido llegó a `pe` (con la venta día a día real); `null` si no se sabe o todavía no. */
@@ -65,9 +87,9 @@ export type EquilibrioMes =
       /** Si sigue al ritmo de lo que va del mes: el día en que lo cubriría, o `null` si no llega este mes. */
       diaLlegada: number | null;
       ritmoPorDia: number;
-      /** Cuánto cerraría vendiendo así todo el mes (sin IGV). */
+      /** Cuánto cerraría vendiendo así todo el mes. */
       cierre: number;
-      /** Cuántos soles de cada 100 vendidos quedan después de la ropa y las comisiones (el margen). */
+      /** Cuántos soles de cada 100 vendidos SIN IGV quedan después de la ropa y las comisiones (el margen). */
       margenPor100: number;
       /** El largo del camino: lo mayor entre lo vendido, el equilibrio y la meta, con un poco de aire. */
       tope: number;
@@ -92,13 +114,15 @@ export function equilibrioMes(o: {
   enCurso: boolean;
   /** Lo que falta del mes en curso; `null` si no se pudo leer. En un mes que ya pasó no se usa. */
   faltaDelMes: readonly FaltaDelMes[] | null;
+  /** Desde cuándo cuenta Finanzas (ADR-0332): un mes anterior no se mide, y no es que no haya tenido movimientos. */
+  inicioFinanzas?: string | null;
 }): EquilibrioMes {
-  const { r, filas, ventasPorDia, hoy, mes, enCurso, faltaDelMes } = o;
+  const { r, filas, ventasPorDia, hoy, mes, enCurso, faltaDelMes, inicioFinanzas = null } = o;
   if (!(r.ver.todas || r.ver.tipo === "tienda"))
     return { tipo: "no_vende", motivo: r.ver.tipo === "taller" ? "El Taller no vende: no hay equilibrio que calcular. Se paga con lo que dejan las tiendas." : "La empresa no vende: no hay equilibrio que calcular. Se paga con lo que dejan las tiendas." };
 
   const f = filaDeVer(filas, r.ver);
-  if (!f) return { tipo: "sin_calculo", motivo: "No hay movimientos de este mes para lo que miras." };
+  if (!f) return { tipo: "sin_calculo", motivo: inicioFinanzas && mesAntesDelCorte(mes, inicioFinanzas) ? `${empezoAContar(inicioFinanzas)}: este mes no se mide.` : "No hay movimientos de este mes para lo que miras." };
   const motivo = motivoSinEquilibrio(f);
   if (motivo === "sin_ventas") return { tipo: "sin_calculo", motivo: "Todavía no hay ventas este mes, así que no hay con qué calcularlo." };
   if (motivo === "sin_margen") return { tipo: "sin_calculo", motivo: "Este mes lo que se vende no deja margen: vender más no paga los gastos. Revisa el costo de las prendas." };
@@ -108,12 +132,14 @@ export function equilibrioMes(o: {
   if (!eq) return { tipo: "sin_calculo", motivo: "No se pudo calcular cuánto hay que vender para pagar el mes." };
 
   const { total: diasMes, van } = diasDelMes(mes, hoy);
-  const dia = lineaVentasMeta(ventasPorDia?.series ?? [], mes, hoy, enCurso ? metaVentasPresupuesto(r) : null);
-  // De «con IGV» (Caja) a «sin IGV» (Estado de resultados), con la proporción del propio período.
+  const dia = lineaVentasMeta(ventasPorDia?.series ?? [], mes, hoy, null);
+  // La venta por día, de «con IGV» (Caja) a «sin IGV» (Estado de resultados), con la proporción del propio período.
   const k = dia.vendido > 0 && !ventasPorDia?.incompleta ? f.ventas / dia.vendido : 1 / TASA_IGV;
   const pe = eq.ventas;
   const vendido = r2(f.ventas);
-  const meta = dia.origenMeta === "presupuesto" && dia.meta !== null ? r2(dia.meta * k) : null;
+  // La marca sale del presupuesto del mes y de nada más: las metas por día de cada sede (`lineaVentasMeta`) no la tapan, y mirando una sede también se ve.
+  const metaDelMes = enCurso ? metaVentasPresupuesto(r) : null;
+  const meta = metaDelMes !== null && metaDelMes > 0 ? r2(metaDelMes) : null;
 
   const diaCubierto = vendido >= pe && !ventasPorDia?.incompleta ? (dia.serie.find((p) => p.y * k >= pe)?.x ?? null) : null;
   const ritmoPorDia = r2(vendido / Math.max(van, 1));
@@ -124,28 +150,34 @@ export function equilibrioMes(o: {
   const estado: EstadoEquilibrio = vendido >= pe ? (sinConfirmar ? "sin_confirmar" : "cubierto") : diaLlegada !== null ? "en_camino" : "no_llega";
   const margenPor100 = Math.round((f.margen / f.ventas) * 100);
   const nombreMes = mesNombre(mes);
+  // Hasta aquí, la cuenta sin IGV. De aquí en adelante, lo que se dice.
+  const venta = ventaParaDecir(f);
+  const aMostrar = (n: number) => r2(n * venta.factor);
+  const [vendidoDicho, peDicho, ritmoDicho, cierreDicho] = [venta.vendido, aMostrar(pe), aMostrar(ritmoPorDia), aMostrar(cierre)];
+  // La meta es una sola y se escribió con IGV: vuelve con la tasa fija (`metaConIgv`), para decir lo mismo que Ganancias y Configuración ▸ Metas. Sin la lectura del IGV, todo sigue sin IGV y lo dice.
+  const metaDicha = meta === null ? null : f.igvCobrado === undefined ? meta : metaConIgv(meta);
 
   let titular: string;
   let detalle: string;
   if (estado === "sin_confirmar") {
-    titular = `Llevas ${soles(vendido)}: cubre lo registrado hasta hoy.`;
+    titular = `Llevas ${soles(vendidoDicho)}: cubre lo registrado hasta hoy.`;
     detalle = `No se pudo leer lo que falta de ${nombreMes}, así que todavía no se puede decir que está pagado. Vuelve a cargar en un rato.`;
   } else if (estado === "cubierto") {
     titular = diaCubierto
       ? `${enCurso ? "El día" : "Desde el día"} ${diaCubierto} ya ${enCurso ? "habías" : "se había"} pagado todo lo de ${nombreMes}.`
-      : `Ya pagaste todo lo de ${nombreMes}: llevas ${soles(vendido)} y hacían falta ${soles(pe)}.`;
-    detalle = `Desde ahí, cada S/\u00a0100 que vendes te dejan S/\u00a0${margenPor100}.`;
+      : `Ya pagaste todo lo de ${nombreMes}: llevas ${soles(vendidoDicho)} y hacían falta ${soles(peDicho)}.`;
+    detalle = `Desde ahí, cada S/\u00a0100 sin IGV que vendes te dejan S/\u00a0${margenPor100}.`;
   } else if (estado === "en_camino") {
-    titular = `Te faltan ${soles(pe - vendido)} vendidos para pagar todo lo de ${nombreMes}.`;
-    detalle = `Con lo que vendes al día (${soles(ritmoPorDia)}), lo pagas el día ${diaLlegada}.`;
+    titular = `Te faltan ${soles(peDicho - vendidoDicho)} vendidos para pagar todo lo de ${nombreMes}.`;
+    detalle = `Con lo que vendes al día (${soles(ritmoDicho)}), lo pagas el día ${diaLlegada}.`;
   } else {
     titular = enCurso ? `A este ritmo no alcanzas a pagar todo lo de ${nombreMes}.` : `${mayuscula(nombreMes)} no alcanzó a pagar todo lo suyo.`;
     detalle = enCurso
-      ? `Cerrarías con ${soles(cierre)} y hacen falta ${soles(pe)}: te faltarían ${soles(pe - cierre)}.`
-      : `Se vendió ${soles(vendido)} y hacían falta ${soles(pe)}: faltaron ${soles(pe - vendido)}.`;
+      ? `Cerrarías con ${soles(cierreDicho)} y hacen falta ${soles(peDicho)}: te faltarían ${soles(peDicho - cierreDicho)}.`
+      : `Se vendió ${soles(vendidoDicho)} y hacían falta ${soles(peDicho)}: faltaron ${soles(peDicho - vendidoDicho)}.`;
   }
-  const tope = Math.max(vendido, pe, meta ?? 0) * 1.08;
-  return { tipo: "ok", estado, vendido, pe, meta, diaCubierto, diaLlegada, ritmoPorDia, cierre, margenPor100, tope, titular, detalle };
+  const tope = Math.max(vendidoDicho, peDicho, metaDicha ?? 0) * 1.08;
+  return { tipo: "ok", estado, vendido: vendidoDicho, pe: peDicho, meta: metaDicha, rotulo: venta.rotulo, diaCubierto, diaLlegada, ritmoPorDia: ritmoDicho, cierre: cierreDicho, margenPor100, tope, titular, detalle };
 }
 
 const mayuscula = (s: string) => `${s.charAt(0).toUpperCase()}${s.slice(1)}`;

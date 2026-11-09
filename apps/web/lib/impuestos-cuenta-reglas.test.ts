@@ -61,6 +61,34 @@ describe("cuentaImpuestos", () => {
     expect(otro).toMatchObject({ etiqueta: "Pagas a SUNAT", pagas: 9230, registrarPago: "/finanzas/dinero?registrar=pago_sunat&mes=2026-09" });
   });
 
+  it("si no se pudo leer lo pagado: no dice «Pagas a SUNAT» ni deja registrar un pago que puede estar hecho", () => {
+    const c = cuentaImpuestos({ ...PANEL, pagosFalla: true }, { enCurso: false, pendientes: 2 });
+    if (c.estado !== "a_pagar") throw new Error("a pagar");
+    expect(c).toMatchObject({ etiqueta: "Impuesto del mes", pagas: 9230, pagadoTodo: false, puedeRegistrarPago: false, chip: "Pago sin leer" });
+    expect(c.frase).toMatch(/No se pudo leer lo pagado a SUNAT/);
+    expect(c.frase).not.toMatch(/descargar y pagar/);
+    const enCurso = cuentaImpuestos({ ...PANEL, pagosFalla: true }, { enCurso: true, pendientes: 0 });
+    if (enCurso.estado !== "a_pagar") throw new Error("a pagar");
+    expect(enCurso).toMatchObject({ etiqueta: "Impuesto del mes", puedeRegistrarPago: false });
+  });
+
+  it("sin leer lo pagado y sin nada que pagar: no habla de un pago, y se queda el dato del IGV a favor", () => {
+    const c = cuentaImpuestos({ ...PANEL, pagosFalla: true, foco: mes({ aPagar: 0, saldoAFavor: 9700, debito: 4860, credito: 14560 }), renta: { base: 0, tasa: 0.015, monto: 0 } }, { enCurso: false, pendientes: 0 });
+    if (c.estado !== "a_favor") throw new Error("a favor");
+    expect(c).toMatchObject({ etiqueta: "Pagas a SUNAT", pagas: 0, puedeRegistrarPago: false });
+    expect(c.chip).toMatch(/^IGV a favor/);
+    expect(c.chip).not.toBe("Pago sin leer");
+    expect(c.frase).toMatch(/^No pagas IGV/);
+  });
+
+  it("el botón de registrar pago: se ve si falta pagar y se leyó lo pagado", () => {
+    const sinPago = cuentaImpuestos(PANEL, { enCurso: false, pendientes: 0 });
+    const todo = cuentaImpuestos({ ...PANEL, pagos: [{ mes: "2026-09", igv: 7400, renta: 1830 }] }, { enCurso: false, pendientes: 0 });
+    if (sinPago.estado !== "a_pagar" || todo.estado !== "a_pagar") throw new Error("a pagar");
+    expect(sinPago.puedeRegistrarPago).toBe(true);
+    expect(todo.puedeRegistrarPago).toBe(false);
+  });
+
   it("con otra tasa en el parámetro, cambia el texto y no hay ningún 1 % escrito en la cuenta", () => {
     const c = cuentaImpuestos({ ...PANEL, renta: { base: 122000, tasa: 0.01, monto: 1220 } }, { enCurso: false, pendientes: 0 });
     if (c.estado !== "a_pagar") throw new Error("a pagar");

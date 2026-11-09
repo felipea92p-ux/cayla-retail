@@ -1,5 +1,6 @@
 import "server-only";
 import { createClient } from "@/lib/supabase/server";
+import { getCuadreVentas } from "@/lib/cuadre-ventas";
 import { conIgvDeLasVentas, leerFilasIgvVentas } from "@/lib/igv-ventas-reglas";
 import type { FilaER } from "@/lib/resultados-reglas";
 
@@ -9,9 +10,10 @@ import type { FilaER } from "@/lib/resultados-reglas";
 type Lectura<T> = { datos: T; falla: string | null };
 
 /** Las columnas de una lectura del Estado de resultados, con el IGV de las ventas de esas fechas. Una lectura que falló sigue como está. */
-export async function conIgvDeLasVentasDe(desde: string, hasta: string, lectura: Lectura<FilaER[]>): Promise<Lectura<FilaER[]>> {
+export async function conIgvDeLasVentasDe<L extends Lectura<FilaER[]>>(desde: string, hasta: string, lectura: L): Promise<L> {
   if (lectura.falla) return lectura;
   const supabase = await createClient();
-  const { data, error } = await supabase.rpc("fn_igv_de_las_ventas" as never, { p_desde: desde, p_hasta: hasta } as never);
-  return { datos: conIgvDeLasVentas(lectura.datos, error ? null : leerFilasIgvVentas(data)), falla: null };
+  // Lo vendido de CLAURE sale del mismo cuadre que explica las ventas (ADR-0609): es lo que el Diario le quitó a cada sede, también en los cambios.
+  const [{ data, error }, cuadre] = await Promise.all([supabase.rpc("fn_igv_de_las_ventas" as never, { p_desde: desde, p_hasta: hasta } as never), getCuadreVentas(desde, hasta)]);
+  return { ...lectura, datos: conIgvDeLasVentas(lectura.datos, error ? null : leerFilasIgvVentas(data), cuadre.falla ? null : cuadre.datos), falla: null };
 }

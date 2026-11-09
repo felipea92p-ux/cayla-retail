@@ -159,6 +159,8 @@ Felipe, mirando las cinco pantallas a ~2000 px: «que todos usen la pantalla al 
 viendo la barra cambiar de ancho cada vez que cambiaba de submódulo y obligaba a cada pantalla nueva de Finanzas a acordarse de pedirlo. **SE ROMPE SI:** una pantalla de Finanzas trae un bloque que no se llena a 1920 px y deja un hueco grande
 (se ve en la captura a lo ancho, no en la prueba), o si una pieza nueva se suma a la fila de la barra sin sumar su ancho a los 1038 px de arriba (volvería a dos filas a 1280 px).
 
+**Corrección 2026-11-09 (tareas 88 y 61 de la revisión de Finanzas):** la suma de arriba omitía el ícono «Qué se ve»: la cuenta real da 1162 px, 1178 en el peor caso. La barra ya no se parte: va en una fila de 61 px, medida en el ERP a 1024, 1280, 1440 y 1920 px. Los cortes viven en `app/estilos/telar.css` (`@container mesa`: la frase se esconde bajo 1340, y bajo 1200 y 1090 se recogen «Registrar gasto» y «Te toca»), y las sedes tapadas se deslizan. Lo que explica por qué una sede no aplica ya no depende de esa frase: lo dice el rótulo («Toda CAYLA», «Aquí, de a una»), que no se quita por falta de lugar, y el `title` del control apagado.
+
 ## Actualización 2026-10-30 — «En qué se va» de Gastos deja el retazo por los hilos, con su desglose (Felipe, eligiendo mirando)
 
 Felipe, sobre una captura de Gastos: «ese gráfico inicial es horrible y muestra todo de mala manera, no se entiende». Se armaron siete maquetas

@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { CuentaDinero } from "./cuentas-dinero-reglas";
 import type { CobroEsperado, Proyeccion, SalidaProy } from "./flujo-caja-reglas";
-import { alinearAvisoDeCaja, cajaProxima, detalleDeHoy, DIAS_CAJA_PROXIMA, diasEntre, fechaEnPalabras, loQueHayEnCuentas, salidasGrandes, sumarDias } from "./caja-proxima-reglas";
+import { alinearAvisoDeCaja, cajaProxima, detalleDeHoy, loQueNoIncluye, NO_INCLUYE_SEMANAS, DIAS_CAJA_PROXIMA, diasEntre, fechaEnPalabras, loQueHayEnCuentas, salidasGrandes, sumarDias } from "./caja-proxima-reglas";
 import fixture from "./resumen-finanzas.fixture.json";
 import { avisosParaDecidir, leerResumen, type VerResumen } from "./resumen-finanzas-reglas";
 
@@ -393,5 +393,19 @@ describe("lo por volver de compras", () => {
   });
   it("una base más vieja que no lo manda deja 0", () => {
     expect(cayla(proyeccion({ saldoHoy: 20_000 })).porVolver).toBe(0);
+  });
+});
+
+// Tarea 30: la proyección no trae la mercadería sin factura ni el gasto de cada día, y una persona la leía como completa.
+describe("lo que la caja deja fuera", () => {
+  it("sin la compra de campaña, dice las dos cosas", () => {
+    expect(loQueNoIncluye(false)).toBe("No incluye la mercadería que aún no tiene factura ni los gastos del día a día.");
+  });
+  it("con la compra de campaña ya contada no choca con su chip: solo habla de los gastos del día a día", () => {
+    expect(loQueNoIncluye(true)).toBe("No incluye los gastos del día a día.");
+  });
+  it("«¿Me alcanza?» habla de las semanas: los días de caja sí llevan el gasto normal", () => {
+    expect(NO_INCLUYE_SEMANAS).toContain("semanas");
+    expect(NO_INCLUYE_SEMANAS).toContain("la mercadería que aún no tiene factura");
   });
 });

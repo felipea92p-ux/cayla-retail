@@ -1,6 +1,6 @@
 // Cuentas y dinero ▸ Dónde está ▸ historial de movimientos entre cuentas (rediseño Felipe 2026-10-31, maqueta docs/maquetas/finanzas-dinero-rediseno-2026-10/):
 // una ventana con el período que se quiere ver (día, semana, mes o todo), separada por día y paginada de 30 o 40. Lógica pura sobre los movimientos
-// que la pantalla ya lee (`fn_movimientos_dinero`, los últimos 150): no pide nada nuevo a la base. El día de un movimiento es el de Lima.
+// que la pantalla ya lee (`fn_movimientos_dinero`, todos): no pide nada nuevo a la base. El día de un movimiento es el de Lima.
 
 import { diaLima } from "./fechas-lima";
 import type { MovimientoDinero } from "./cuentas-dinero-reglas";

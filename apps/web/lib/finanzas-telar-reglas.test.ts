@@ -1,4 +1,4 @@
-import { readdirSync } from "node:fs";
+import { readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import {
@@ -7,9 +7,12 @@ import {
   dichoDelAlcance,
   aceptaVariasSedes,
   alternarSede,
+  avisoDeAUna,
   claveDeSedes,
   colorDeSede,
   dichoDeLaSede,
+  DICHO_EMPRESA_SIN_BALANCE,
+  esBalanceDeEmpresa,
   esMesTelar,
   hrefConSedeYMes,
   hrefTelar,
@@ -17,12 +20,13 @@ import {
   mesDeLaRuta,
   mesTelar,
   porSedeDe,
+  rotuloDeSedes,
   RUTAS_CON_VARIAS_SEDES,
   sedeDeLaUrl,
-  sedeElegida,
   sedesDeLaUrl,
   sedesDelTelar,
   sedesElegidas,
+  sedesMarcadas,
   tramosDelOrillo,
   ultimoMesDeLaRuta,
 } from "./finanzas-telar-reglas";
@@ -42,14 +46,6 @@ describe("la sede de la URL", () => {
     expect(sedeDeLaUrl({ sede: "l", ver: "empresa" })).toBe("empresa");
     expect(sedeDeLaUrl({})).toBe("todas");
     expect(sedeDeLaUrl({ sede: "  " })).toBe("todas");
-  });
-
-  it("quien no ve todo mira siempre la suya; quien ve todo, la pedida si existe", () => {
-    expect(sedeElegida("l", SEDES, false, "tr")).toBe("tr");
-    expect(sedeElegida("l", SEDES, true, "tr")).toBe("l");
-    expect(sedeElegida("empresa", SEDES, true, "tr")).toBe("empresa");
-    expect(sedeElegida("no-existe", SEDES, true, "tr")).toBe("todas");
-    expect(sedeElegida("todas", SEDES, true, "tr")).toBe("todas");
   });
 });
 
@@ -262,6 +258,27 @@ describe("el mes de Cierre de mes", () => {
   });
 });
 
+describe("el mes de Comparar con SUNAT", () => {
+  const HOY = "2026-11";
+  const RUTA = "/finanzas/impuestos/sire";
+  it("sin ?mes=, la barra y la página parten del mes anterior: SUNAT aún no arma la propuesta del mes en curso", () => {
+    expect(ultimoMesDeLaRuta(RUTA, HOY)).toBe("2026-10");
+    expect(mesDeLaRuta(RUTA, null, HOY)).toBe("2026-10");
+  });
+  it("un mes terminado se respeta; uno que todavía corre (viene de Impuestos) se lee como el anterior, igual que en Cierre", () => {
+    expect(mesDeLaRuta(RUTA, "2026-08", HOY)).toBe("2026-08");
+    expect(mesDeLaRuta(RUTA, "2026-11", HOY)).toBe("2026-10");
+    expect(mesDeLaRuta(RUTA, "2026-12", HOY)).toBe("2026-10");
+  });
+  it("la página lee el mes con la misma regla que la barra", () => {
+    expect(readFileSync("app/(app)/finanzas/impuestos/sire/page.tsx", "utf8")).toMatch(/mesDeLaRuta\(RUTA_SIRE, sp\.mes,/);
+  });
+  it("Impuestos sigue mirando el mes en curso", () => {
+    expect(ultimoMesDeLaRuta("/finanzas/impuestos", HOY)).toBe(HOY);
+    expect(mesDeLaRuta("/finanzas/impuestos", null, HOY)).toBe(HOY);
+  });
+});
+
 describe("ALCANCE_POR_RUTA: la barra dice qué filtra cada pantalla (tarea 26)", () => {
   /** Las rutas reales: cada `page.tsx` bajo Finanzas. */
   function rutasDeFinanzas(dir = "app/(app)/finanzas", base = "/finanzas"): string[] {
@@ -279,9 +296,87 @@ describe("ALCANCE_POR_RUTA: la barra dice qué filtra cada pantalla (tarea 26)",
     expect(dichoDelAlcance(alcanceDeRuta("/finanzas/reportes/flujo"))).toBe("Aquí es toda CAYLA");
     expect(dichoDelAlcance(alcanceDeRuta("/finanzas/dinero"))).toBe("No cambia con el mes");
   });
+  it("Impuestos es de toda CAYLA: a SUNAT se le paga por RUC, así que la barra apaga las sedes y la cabecera nunca nombra una", () => {
+    expect(alcanceDeRuta("/finanzas/impuestos")).toEqual({ sede: "toda", mes: true });
+    expect(dichoDelAlcance(alcanceDeRuta("/finanzas/impuestos"))).toBe("Aquí es toda CAYLA");
+    // Las dos caras de la pantalla, también la de falla: quien está atado a su sede no ve la línea de la barra, y lo que le aclara es esto.
+    expect(readFileSync("components/ImpuestosPanel.tsx", "utf8").match(/sede="CAYLA entera"/g)).toHaveLength(2);
+  });
   it("donde todo aplica no dice nada, y una ruta que no se conoce deja la barra como siempre", () => {
     expect(dichoDelAlcance(alcanceDeRuta("/finanzas/gastos"))).toBeNull();
     expect(alcanceDeRuta("/finanzas/nueva")).toEqual({ sede: "sede", mes: true });
     expect(alcanceDeRuta("/finanzas")).toEqual({ sede: "sede", mes: true });
+  });
+});
+
+describe("lo que la barra dice siempre a la vista, aunque no quepa la frase larga", () => {
+  it("una pantalla que no se parte por sede lo dice en el rótulo, y es corto", () => {
+    expect(rotuloDeSedes({ sedeNoAplica: true, variasSinJuntar: false })).toEqual({ texto: "Toda CAYLA", dice: true });
+    // También si la URL trae varias: lo que manda es que aquí no hay sedes.
+    expect(rotuloDeSedes({ sedeNoAplica: true, variasSinJuntar: true })).toEqual({ texto: "Toda CAYLA", dice: true });
+  });
+
+  it("varias sedes en una pantalla que no las suma: el rótulo avisa", () => {
+    expect(rotuloDeSedes({ sedeNoAplica: false, variasSinJuntar: true })).toEqual({ texto: "Aquí, de a una", dice: true });
+  });
+
+  it("sin nada que aclarar, el rótulo de siempre, que puede esconderse si falta lugar", () => {
+    expect(rotuloDeSedes({ sedeNoAplica: false, variasSinJuntar: false })).toEqual({ texto: "Ver sede", dice: false });
+  });
+
+  it("Balance general con «Empresa»: el rótulo dice que es toda CAYLA, porque la frase larga se esconde en un laptop", () => {
+    expect(rotuloDeSedes({ sedeNoAplica: false, variasSinJuntar: false, empresaSinBalance: true })).toEqual({ texto: "Toda CAYLA", dice: true });
+  });
+
+  it("los rótulos que aclaran no pasan de 14 letras: uno largo devolvería la barra a dos filas", () => {
+    for (const o of [{ sedeNoAplica: true, variasSinJuntar: false }, { sedeNoAplica: false, variasSinJuntar: true }]) {
+      expect(rotuloDeSedes(o).texto.length).toBeLessThanOrEqual(14);
+    }
+  });
+});
+
+describe("las sedes que se ven marcadas", () => {
+  it("varias en una pantalla de a una: se marca «Todas», que es lo que las cifras muestran", () => {
+    expect(sedesMarcadas(["l", "a"], true)).toEqual([]);
+  });
+
+  it("una sola, o una pantalla que sí suma varias: se marcan tal cual", () => {
+    expect(sedesMarcadas(["l"], true)).toEqual(["l"]);
+    expect(sedesMarcadas(["l", "a"], false)).toEqual(["l", "a"]);
+    expect(sedesMarcadas([], true)).toEqual([]);
+  });
+});
+
+describe("el aviso al tocar otra sede donde se ve de a una", () => {
+  const base = { deAUna: true, elegidas: ["l"], tocada: "a", sedes: SEDES };
+
+  it("cambiar de una sede a otra se explica, con el nombre de la que quedó", () => {
+    expect(avisoDeAUna(base)).toBe("Aquí se ve una sede a la vez. Ahora estás viendo Arequipa.");
+  });
+
+  it("donde sí se suman varias, no hay nada que explicar", () => {
+    expect(avisoDeAUna({ ...base, deAUna: false })).toBeNull();
+  });
+
+  it("tocar «Todas», la misma sede o la primera sede no reemplaza a ninguna: no avisa", () => {
+    expect(avisoDeAUna({ ...base, tocada: "todas" })).toBeNull();
+    expect(avisoDeAUna({ ...base, tocada: "l" })).toBeNull();
+    expect(avisoDeAUna({ ...base, elegidas: [] })).toBeNull();
+  });
+
+  it("una sede que no está en la barra no inventa un nombre", () => {
+    expect(avisoDeAUna({ ...base, tocada: "fantasma" })).toBeNull();
+  });
+});
+
+describe("«Empresa» en el Balance (tarea 58)", () => {
+  it("la empresa no tiene Balance aparte: se dice", () => {
+    expect(esBalanceDeEmpresa("/finanzas/reportes/balance", ["empresa"])).toBe(true);
+    expect(DICHO_EMPRESA_SIN_BALANCE).toBe("Empresa no tiene Balance aparte: aquí es toda CAYLA");
+  });
+  it("una tienda, varias sedes u otro estado siguen igual", () => {
+    expect(esBalanceDeEmpresa("/finanzas/reportes/balance", ["u-lim"])).toBe(false);
+    expect(esBalanceDeEmpresa("/finanzas/reportes/balance", ["empresa", "u-lim"])).toBe(false);
+    expect(esBalanceDeEmpresa("/finanzas/reportes", ["empresa"])).toBe(false);
   });
 });

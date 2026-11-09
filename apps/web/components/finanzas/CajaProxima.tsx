@@ -7,7 +7,7 @@ import { Linea, topeRedondo } from "@/components/ui/Linea";
 import { BarraApilada, MuestraTramo } from "@/components/ui/BarraApilada";
 import { TarjetaCifra } from "@/components/ui/TarjetaCifra";
 import { CabeceraBloque, Superficie } from "@/components/finanzas/kit";
-import { detalleDeHoy, diasEntre, estadoDeCaja, fechaEnPalabras, ventanaEnPalabras, type CajaCayla, type CajaProxima, type CajaSede, type SalidaGrande } from "@/lib/caja-proxima-reglas";
+import { detalleDeHoy, diasEntre, estadoDeCaja, fechaEnPalabras, loQueNoIncluye, ventanaEnPalabras, type CajaCayla, type CajaProxima, type CajaSede, type SalidaGrande } from "@/lib/caja-proxima-reglas";
 import { soles } from "@/lib/flujo-caja-reglas";
 
 // Finanzas ▸ Resumen, «Tu caja en las próximas dos semanas» (Felipe 2026-10-24, spike 1). Solo DIBUJA lo que arma `cajaProxima`: la línea del
@@ -170,6 +170,7 @@ function CajaDeCayla({ caja: c, hrefFlujo, className, incluye }: { caja: CajaCay
       </div>
 
       <Pesan mayores={c.mayores} />
+      <p className="mt-3 text-sm text-taupe">{loQueNoIncluye(!!c.conInversion)}</p>
       {c.sinPlanilla && <p className="nota-cayla mt-3">La planilla no se ve desde tu cuenta en Dynamic: no está en lo que sale.</p>}
       {c.provisional && c.faltan[0] && (
         <p className="nota-cayla mt-3">
@@ -203,7 +204,7 @@ function CajaDeSede({ caja: c, hrefFlujo, className }: { caja: CajaSede; hrefFlu
       </div>
       <Pesan mayores={c.mayores} />
       <p className="nota-cayla mt-3">
-        Los bancos son de CAYLA entera: no se reparten por sede. Elige «Todas las sedes» para ver la caja de todo.
+        {loQueNoIncluye(false)} Los bancos son de CAYLA entera: no se reparten por sede. Elige «Todas las sedes» para ver la caja de todo.
         {c.sinPlanilla ? " La planilla no se ve desde tu cuenta en Dynamic: no está en lo que sale." : ""}
       </p>
       <div className="mt-3 flex justify-end">

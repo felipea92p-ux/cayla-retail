@@ -2,7 +2,7 @@
   "guia": "inventario",
   "ruta": "/inventario",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 192,
+  "total": 193,
   "controles": {
     "components/AjustarInventarioModal.tsx": [
       "CampoSelect «{guia.etiqueta(\"motivo\", \"¿Por qué ajustas?\")}»",
@@ -248,6 +248,7 @@
       "button «Ocultar la lista»",
       "button «→verCuales»",
       "button «→() => setPorQue((v) => !v)»",
+      "Link «Ver cuánto es hoy en el Balance»",
       "Link «Poner costo»"
     ],
     "components/ficha-producto/ImprimirLoQueEntro.tsx": [

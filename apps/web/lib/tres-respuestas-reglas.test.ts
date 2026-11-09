@@ -49,6 +49,14 @@ describe("tresRespuestas", () => {
     expect(t.reparto!.reduce((a, p) => a + p.monto, 0)).toBe(t.valor);
   });
 
+  it("«¿Cuánto te deja?» repite la frase de lo vendido y lo que salió, y sin cifra no la dice", () => {
+    const frase = "Vendiste S/ 88,500 con IGV y salió S/ 93,300, contando ese IGV.";
+    const con = (deja: typeof DEJA | { pregunta: string; valor: null; chips: never[] }, nota?: string) => tresRespuestas({ r: leerResumen(fixture.todas), caja: cajaCayla(), deja, hrefDinero: null, hrefPorPagar: null, plata: { frase, nota } })[2];
+    expect(con(DEJA).detalle).toBe(frase);
+    expect(con(DEJA, "Solo lo de LIM.").detalle).toBe(`${frase} Solo lo de LIM.`);
+    expect(con({ pregunta: "¿Cuánto te deja?", valor: null, chips: [] }).detalle).toBeUndefined();
+  });
+
   it("la planilla que ya salió y no se registró se dice en «¿Cuánto tienes?» (tarea 1)", () => {
     const [t] = tresRespuestas({ r: leerResumen(fixture.todas), caja: cajaCayla(), deja: DEJA, hrefDinero: null, hrefPorPagar: null, planillaSinSalida: 35861 });
     expect(t.chips.map((c) => texto(c.texto))).toContain("Incluye S/ 35,861 de planilla que ya salió");
@@ -170,6 +178,32 @@ describe("tresRespuestas", () => {
       r.flujo = { estado: "falla", mensaje: "x" };
       const [, b] = armar(cajaCayla(), r);
       expect(b.chips).toEqual([{ texto: "Sin leer fijos ni planilla", tono: "pizarra" }]);
+      expect(b.detalle).toContain("No se pudieron leer los fijos ni la planilla");
+    });
+
+    // Tarea 24: mirando una sede la base no manda la proyección (`no_aplica`). No hubo ninguna falla: la cifra solo cuenta facturas, y se dice eso.
+    it("mirando una sede no dice que no pudo leer: dice que solo cuenta facturas", () => {
+      const r = conSalidas([]);
+      r.flujo = { estado: "no_aplica" };
+      const [, b] = armar(cajaCayla(), r);
+      expect(b.chips).toEqual([{ texto: "Solo facturas", tono: "pizarra" }]);
+      expect(b.detalle).toContain("solo cuenta facturas");
+      expect(b.detalle).not.toContain("No se pudieron leer");
+    });
+
+    it("sin permiso dice que tu cuenta no lo ve", () => {
+      const r = conSalidas([]);
+      r.flujo = { estado: "sin_permiso", mensaje: "x" };
+      const [, b] = armar(cajaCayla(), r);
+      expect(b.chips).toEqual([{ texto: "Sin fijos ni planilla", tono: "pizarra" }]);
+      expect(b.detalle).toContain("Tu cuenta no ve los fijos ni la planilla");
+    });
+
+    it("con facturas a la vista, el chip de al lado también dice la verdad", () => {
+      const r = leerResumen(fixture.todas);
+      r.flujo = { estado: "no_aplica" };
+      const [, b] = armar(cajaCayla(), r);
+      expect(b.chips.map((c) => c.texto)).not.toContain("Sin leer fijos ni planilla");
     });
   });
 

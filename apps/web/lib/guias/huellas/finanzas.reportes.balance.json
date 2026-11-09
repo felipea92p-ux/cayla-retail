@@ -19,7 +19,7 @@
       "button «Usar esta cifra»",
       "ComboResponsable «{responsable}»",
       "button «Cancelar»",
-      "Boton «→guardar»"
+      "Boton «{guia.frase ?? undefined}»"
     ],
     "components/finanzas/estados/CabeceraEstados.tsx": [
       "Pestanas «(sin nombre)»"

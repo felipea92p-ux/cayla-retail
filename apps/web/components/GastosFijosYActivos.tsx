@@ -30,11 +30,13 @@ import { firmar } from "@/lib/responsable-reglas";
 import { soles } from "@/lib/compras-reglas";
 import {
   AYUDA_MOMENTO_FIJO,
+  cuantoSaleAlArchivarFijo,
   MOMENTOS_FIJO,
   TEXTO_COMPROBANTE,
   TEXTO_DIA_FIJO,
   TEXTO_DIAS_ANTES_FIJO,
   TEXTO_ESTADO_ACTIVO,
+  TEXTO_FIJO_ARCHIVADO,
   TEXTO_MOMENTO_FIJO,
   TIPOS_COMPROBANTE,
   diaDeFijoValido,
@@ -348,6 +350,7 @@ export function GastoFijoModal({
   const router = useRouter();
   const responsable = useResponsable();
   const [guardando, setGuardando] = useState(false);
+  const [confirmaArchivo, setConfirmaArchivo] = useState(false);
   const base = fijo ?? inicial;
   // Un fijo nuevo parte de lo que la categoría sugiere (3 días en un recibo) mientras la persona no escriba su propio número.
   const pideDiasAntes = fijo ? fijo.diasAntes !== null : conDiasAntes;
@@ -443,7 +446,7 @@ export function GastoFijoModal({
     responsable.despues(error);
     if (error) return avisar.error(traducirError(error, accion === "archivar" ? "archivar el gasto fijo" : "guardar el gasto fijo"));
     avisar.exito(accion === "archivar" ? "Gasto fijo archivado" : fijo ? "Gasto fijo guardado" : "Gasto fijo creado", {
-      detalle: accion === "archivar" ? "Deja de aparecer desde este mes; sus gastos registrados se quedan." : "Cada mes Gastos dirá si ya se registró.",
+      detalle: accion === "archivar" ? TEXTO_FIJO_ARCHIVADO : "Cada mes Gastos dirá si ya se registró.",
     });
     onCerrar();
     router.refresh();
@@ -454,6 +457,29 @@ export function GastoFijoModal({
   // Con la ficha, el proveedor es solo quien EMITE el papel (luz, agua, internet…): la mercadería no se ofrece. Sin la ficha (la base
   // aún no la tiene) queda el combo de siempre.
   const emisores = fichaOn ? proveedores.filter((p) => esProveedorDeGasto(p) || p.id === b.proveedorId) : proveedores;
+
+  // Archivar no se hace de un toque (tarea 96): se dice cuánto sale de lo que viene. Volver a traerlo pide una función nueva en la base y la decisión de Felipe;
+  // mientras no exista, de verdad no se deshace y lleva `AvisoNoSeDeshace` (cuando exista «Archivados» con reactivar, se quita).
+  if (confirmaArchivo && fijo) {
+    return (
+      <Modal variante="hoja" titulo={`¿Archivar «${fijo.descripcion}»?`} subtitulo={cuantoSaleAlArchivarFijo(fijo)} onClose={() => setConfirmaArchivo(false)} tamano="angosta">
+        <p className="nota-cayla">
+          {TEXTO_FIJO_ARCHIVADO} Si vuelves a pagarlo, tendrás que crearlo de nuevo, con sus datos de pago.
+        </p>
+        <ComboResponsable control={responsable} deshabilitado={guardando} />
+        <AvisoNoSeDeshace className="mt-4" />
+        <div className="fin-botones mt-4">
+          <button type="button" className="btn-cayla btn-secundario" onClick={() => setConfirmaArchivo(false)} disabled={guardando}>
+            Cancelar
+          </button>
+          <Boton textoCargando="Archivando…" peso="primario" cargando={guardando} type="button" onClick={() => ejecutar("archivar")} disabled={guardando || !responsable.listo}>
+            Archivar
+          </Boton>
+        </div>
+      </Modal>
+    );
+  }
+
   return (
     <Modal variante="hoja" titulo={fijo ? "Editar gasto fijo" : "Nuevo gasto fijo"} subtitulo="Lo que se paga todos los meses. Es un recordatorio: cuenta cuando se registra con lo que llegó." onClose={onCerrar} tamano="mediana">
       <CampoFin etiqueta="Qué se paga" htmlFor="fijo-descripcion">
@@ -562,8 +588,8 @@ export function GastoFijoModal({
       <ComboResponsable control={responsable} deshabilitado={guardando} />
       <div className="fin-botones pie-hoja-fijo mt-4">
         {fijo && (
-          <button type="button" className="btn-cayla btn-sutil mr-auto" disabled={guardando} onClick={() => ejecutar("archivar")}>
-            Ya no se paga: archivar
+          <button type="button" className="btn-cayla btn-peligro mr-auto" disabled={guardando} onClick={() => setConfirmaArchivo(true)}>
+            Ya no se paga: archivar…
           </button>
         )}
         <button type="button" className="btn-cayla btn-secundario" onClick={onCerrar} disabled={guardando}>

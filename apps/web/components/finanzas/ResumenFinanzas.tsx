@@ -24,16 +24,17 @@ import { alinearAvisoDeCaja, cajaProxima, loQueHayEnCuentas, type FlujoProximo }
 import { equilibrioMes, type FaltaDelMes } from "@/lib/equilibrio-mes-reglas";
 import type { Confianza as ConfianzaDatos } from "@/lib/finanzas-confianza";
 import type { Lectura } from "@/lib/resumen-finanzas";
-import { mesNombre, type FilaER } from "@/lib/resultados-reglas";
-import { hrefTelar, mesDelDia, porSedeDe, type SedeTelar } from "@/lib/finanzas-telar-reglas";
-import { soles } from "@/lib/flujo-caja-reglas";
-import { recorridoPlata } from "@/lib/recorrido-plata-reglas";
+import { AVISO_SUELDOS_SIN_LEER, mesNombre, type FilaER } from "@/lib/resultados-reglas";
+import { avisoAntesDelCorte, empezoAContar, mesAntesDelCorte } from "@/lib/finanzas-arranque-reglas";
+import { hrefTelar, mesDelDia, type SedeTelar } from "@/lib/finanzas-telar-reglas";
+import { recorridoPlata, vendisteYSalio } from "@/lib/recorrido-plata-reglas";
 import { desgloseDeTienes, tresRespuestas } from "@/lib/tres-respuestas-reglas";
 import { cambiosDelMes } from "@/lib/resumen-cambios-reglas";
 import { avisosParaDecidir, noRevisado, ordenarAvisos, type Acceso, type ResumenFinanzas } from "@/lib/resumen-finanzas-reglas";
 import { campanasQueSeVen } from "@/lib/ajustes-resumen-reglas";
-import { avisoDeInversion, pagosDeLaCompra, type CampanaInversion } from "@/lib/inversion-mercaderia-reglas";
+import { avisoDeInversion, pagosDeLaCompra, vacioDeInversion, type CampanaInversion } from "@/lib/inversion-mercaderia-reglas";
 import {
+  dockDelResumen,
   mesAnteriorDe,
   comparacionMesPasado,
   respuestaResumen,
@@ -79,11 +80,18 @@ type Props = {
   claure?: { saldo: number | null } | null;
   /** La caja de cada sede, para «Cada sede, junta»; `null` si la cuenta no ve todas las sedes. */
   cajasPorSede?: Lectura<UnidadBalance[]> | null;
+  /** Desde cuándo cuenta Finanzas (ADR-0332); `null` sin corte o sin lectura. */
+  inicioFinanzas?: string | null;
+  /** Cuánto de lo vendido lleva costo estimado, por tienda y en `todas`; `null` si la cuenta no ve todas las sedes. */
+  estimadosPorSede?: Readonly<Record<string, number | null>> | null;
+  /** Las cifras se leyeron, pero los sueldos estimados no (tarea 43): se dice y las cifras se siguen viendo. */
+  sueldosSinLeer?: boolean;
 };
 
 const FRASE = "De lo que vendes a lo que te queda.";
+const ICONO_DOCK = { pagar: <Wallet aria-hidden />, igv: <Percent aria-hidden />, cierre: <CalendarCheck aria-hidden />, reportes: <BookOpen aria-hidden /> } as const;
 
-export function ResumenFinanzasPanel({ resumen, falla, confianza, mes, hoy, estadoMes, estadoAntes, faltaDelMes, planillaSinSalida, ventasPorDia, sedes, flujoProximo, inversion, inversionFalla = null, acceso, claure = null, cajasPorSede = null }: Props) {
+export function ResumenFinanzasPanel({ resumen, falla, confianza, mes, hoy, estadoMes, estadoAntes, faltaDelMes, planillaSinSalida, ventasPorDia, sedes, flujoProximo, inversion, inversionFalla = null, acceso, claure = null, cajasPorSede = null, inicioFinanzas = null, estimadosPorSede = null, sueldosSinLeer = false }: Props) {
   const sp = useSearchParams();
   // «Qué se ve»: lo que esta persona esconde de la inversión en mercadería, y qué forma de pagar mira en cada campaña (mirar no guarda nada).
   const [ajustes, ponerAjustes] = useAjustesResumen();
@@ -96,12 +104,7 @@ export function ResumenFinanzasPanel({ resumen, falla, confianza, mes, hoy, esta
   const ir = (ruta: string) => hrefTelar(ruta, sp.entries(), {}, { mismaPantalla: false, mesDeHoy });
   const dock = (
     <DockTelar
-      acciones={[
-        { texto: "Pagar facturas", tecla: "p", icono: <Wallet aria-hidden />, principal: true, href: ir("/finanzas/dinero/por-pagar") },
-        { texto: "IGV del mes", tecla: "i", icono: <Percent aria-hidden />, href: ir("/finanzas/impuestos") },
-        { texto: "Cierre de mes", tecla: "m", icono: <CalendarCheck aria-hidden />, href: ir("/finanzas/cierre") },
-        { texto: "Reportes", tecla: "r", icono: <BookOpen aria-hidden />, href: ir("/finanzas/reportes") },
-      ]}
+      acciones={dockDelResumen(acceso.modulos).map((a) => ({ texto: a.texto, tecla: a.tecla, icono: ICONO_DOCK[a.clave], principal: a.principal, href: ir(a.ruta) }))}
     />
   );
 
@@ -129,7 +132,8 @@ export function ResumenFinanzasPanel({ resumen, falla, confianza, mes, hoy, esta
   const provisional = !confianza.datos || confianza.datos.nivel === "bajo";
   const filas = estadoMes.falla ? [] : estadoMes.datos;
   const comparacion = comparacionMesPasado(filas, estadoAntes);
-  const resp = respuestaResumen(r, comparacion.antes, provisional, enCurso, comparacion.antesDeSueldos);
+  const resp = respuestaResumen(r, comparacion.antes, provisional, enCurso, comparacion.antesDeSueldos, inicioFinanzas);
+  const antesDelCorte = mesAntesDelCorte(mes, inicioFinanzas);
   const recorrido = filas.length ? recorridoPlata(filas, r.ver) : null;
   const faltan = noRevisado(resumen);
   // La inversión en mercadería es de CAYLA entera: mirando una sola sede no se reparte (como el saldo de los bancos), así que ahí no se dibuja.
@@ -153,23 +157,26 @@ export function ResumenFinanzasPanel({ resumen, falla, confianza, mes, hoy, esta
   ]);
   const sede = r.ver.todas ? "Todas las sedes" : r.ver.soloEmpresa ? "Empresa" : r.ver.nombre.replace(/^Tienda\s+/i, "");
 
-  // «Vendiste X y salió Y» bajo «¿Cuánto te deja?»: de lo mismo que dibuja «A dónde va la plata» (el recorrido), así que las dos dicen el mismo número.
-  const plata = recorrido && recorrido.modo === "vende" ? { vendido: recorrido.nudo.monto, salio: recorrido.salidas.filter((h) => h.tipo !== "deja").reduce((a, h) => a + h.monto, 0), nota: r.ver.todas ? undefined : recorrido.nota } : null;
-  const bajadaPlata = recorrido
-    ? recorrido.modo === "vende" && plata
-      ? `Vendiste ${soles(plata.vendido)} y salió ${soles(plata.salio)}. ${recorrido.nota}`
-      : recorrido.nota
-    : "";
-  const juntas = cajasPorSede && r.ver.todas ? sedesJuntas(filas, cajasPorSede.falla ? null : cajasPorSede.datos) : null;
+  // «Vendiste X con IGV y salió Y» bajo «¿Cuánto te deja?»: de lo mismo que dibuja «A dónde va la plata» (el recorrido), así que las dos dicen el mismo número.
+  const frasePlata = recorrido ? vendisteYSalio(recorrido) : null;
+  const plata = frasePlata ? { frase: frasePlata, nota: r.ver.todas ? undefined : recorrido?.nota } : null;
+  const bajadaPlata = recorrido ? (frasePlata ? `${frasePlata} ${recorrido.nota}` : recorrido.nota) : "";
+  const juntas = cajasPorSede && r.ver.todas ? sedesJuntas(filas, cajasPorSede.falla ? null : cajasPorSede.datos, estimadosPorSede) : null;
 
   return (
     <div className="space-y-6">
       <EncabezadoPagina sede={sede} titulo="Resumen" subtitulo={FRASE} />
+      {antesDelCorte && inicioFinanzas && <Aviso tono="info">{avisoAntesDelCorte(inicioFinanzas)}</Aviso>}
+      {sueldosSinLeer && (
+        <Aviso tono="atencion" chico>
+          {AVISO_SUELDOS_SIN_LEER} Vuelve a cargar en un rato.
+        </Aviso>
+      )}
       {/* Las tres preguntas que una persona sin formación de finanzas se hace al abrir esta pantalla, con la cifra de cada una. «Tienes» dice cuánto es de CAYLA
           y cuánto de CLAURE, y «Debes pronto» lista cada deuda con su fecha (Felipe 2026-10-29). */}
       <TresRespuestas respuestas={tresRespuestas({ r, caja, deja: resp, hrefDinero: ir("/finanzas/dinero"), hrefPorPagar: ir("/finanzas/dinero/por-pagar"), desglose, claure: saldoClaure, claureFalla, planillaSinSalida, plata })} />
       {/* «Vendido por sede» y la confianza del número, en UNA tarjeta (ADR-0417; Felipe 2026-10-29, opción 3). Si no se pudo medir, se dice (nunca un 0 % falso). */}
-      <VendidoPorSede porSede={porSedeDe(vendidoPorSede(filas))} sedes={sedes} hoy={hoy} mes={mesNombre(mes)} confianza={confianza.datos} falla={confianza.falla} hrefCuadre={`${ir("/finanzas/reportes")}${ir("/finanzas/reportes").includes("?") ? "&" : "?"}cuadre=1#de-ventas-a-finanzas`} />
+      <VendidoPorSede vendido={vendidoPorSede(filas, sedes, mesNombre(mes))} hoy={hoy} mes={mesNombre(mes)} confianza={confianza.datos} falla={confianza.falla} hrefCuadre={`${ir("/finanzas/reportes")}${ir("/finanzas/reportes").includes("?") ? "&" : "?"}cuadre=1#de-ventas-a-finanzas`} />
       {juntas && <SedesJuntas juntas={juntas} mes={mesNombre(mes)} hoy={hoy} falla={cajasPorSede?.falla ?? null} />}
       {dock}
 
@@ -209,7 +216,9 @@ export function ResumenFinanzasPanel({ resumen, falla, confianza, mes, hoy, esta
                 bajada={
                   estadoMes.falla
                     ? "No se pudo leer el mes. Reintenta en un rato."
-                    : r.ver.todas || r.ver.tipo === "tienda"
+                    : antesDelCorte && inicioFinanzas
+                      ? `${empezoAContar(inicioFinanzas)}: este mes no se mide.`
+                      : r.ver.todas || r.ver.tipo === "tienda"
                       ? "Todavía no hay ventas ni gastos este mes."
                       : "Elige «Todas las sedes» o una tienda para ver esto."
                 }
@@ -220,11 +229,11 @@ export function ResumenFinanzasPanel({ resumen, falla, confianza, mes, hoy, esta
 
         <div className="flex flex-col gap-4">
           <div {...columna(5)}>
-            <EquilibrioMesPieza eq={equilibrioMes({ r, filas, ventasPorDia, hoy, mes, enCurso, faltaDelMes })} provisional={provisional} />
+            <EquilibrioMesPieza eq={equilibrioMes({ r, filas, ventasPorDia, hoy, mes, enCurso, faltaDelMes, inicioFinanzas })} provisional={provisional} />
           </div>
 
           <div {...columna(6)}>
-            <CambiosDelMesPieza cambios={cambiosDelMes({ r, ...comparacion, enCurso })} />
+            <CambiosDelMesPieza cambios={cambiosDelMes({ r, ...comparacion, enCurso, inicioFinanzas })} />
           </div>
         </div>
       </div>
@@ -246,7 +255,7 @@ export function ResumenFinanzasPanel({ resumen, falla, confianza, mes, hoy, esta
           onElegir={(id, clave) => setElegidas((e) => ({ ...e, [id]: clave }))}
           abierta={abierta}
           onAbrir={setAbierta}
-          ocultasAqui={todasLasCampanas.some((c) => c.visible) && campanas.length === 0}
+          vacio={vacioDeInversion({ leida: inversion !== null && !inversionFalla, todas: r.ver.todas, ocultasAqui: todasLasCampanas.some((c) => c.visible) && campanas.length === 0 })}
         />
         <AjustesResumen campanas={todasLasCampanas.filter((c) => c.visible)} ajustes={ajustes} onCambiar={ponerAjustes} />
       </div>
