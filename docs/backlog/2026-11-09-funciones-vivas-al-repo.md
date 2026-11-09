@@ -8,7 +8,8 @@
   17-oct antes de volver a pegar las del 21-oct).
 - [x] Pruebas de base que llaman a estas funciones o repegan sus migraciones, en una base con `main` más esta: 25 suites en verde (895 casos), entre ellas `tienda_club` entera; `tienda_inicio` y `precio_sede` 30 solo cambian
   de orden (ver abajo).
-- [ ] **`tienda_catalogo` (decisión de Felipe):** producción corre una versión más rápida que el repo no tiene. Copia adentro la regla de
+- [x] **`tienda_catalogo`: Felipe eligió «una sola regla» (2026-11-09)** y se hace en `20261109181000` (rama
+  `claude/tienda-catalogo-una-sola-regla`, ADR-0408 act. j). Lo que sigue es el porqué. Producción corre una versión más rápida que el repo no tiene. Copia adentro la regla de
   «lo nuevo» y la de «lo más vendido» en vez de pedírselas a `fn_tienda_lo_nuevo` y `fn_tienda_mas_vendidos`, y por eso pone en rojo
   `pruebas:tienda-club` (N3, «no hay una segunda copia») y tres pruebas que vuelven a pegar migraciones viejas del catálogo. Caminos:
   reescribirla para que la regla viva en un solo lugar sin perder la velocidad (hay que pegarla y medirla), o subirla tal cual y aceptar la

@@ -41,6 +41,7 @@
  */
 import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
+import { DESHACER_UNA_REGLA } from "./_deshacer_catalogo_una_regla.mjs";
 
 const ARG_CONTENEDOR = process.argv.indexOf("--contenedor");
 const CONTENEDOR_LOCAL = ARG_CONTENEDOR > 0 ? process.argv[ARG_CONTENEDOR + 1] : "supabase_db_cayla-retail";
@@ -202,7 +203,8 @@ begin if position($n$${nuevo}$n$ in d) > 0 then execute replace(d, $n$${nuevo}$n
   // transacción vuelve la de 20261017025000, para pegar 20261021000000 sobre el probador que ella conoció.
   const probadorQueConocio = readFileSync("supabase/migrations/20261017025000_tienda_probador.sql", "utf8")
     .match(/create or replace function retail\.tienda_probador\([\s\S]*?\n\$fn\$;/)[0];
-  const dos = correr(`begin;\n${deshacerPorLotes}\n${probadorQueConocio}\n${sql}\n${sql}\nrollback;`);
+  // 20261109181000 (una sola regla) escribió el catálogo entero: vuelve el de main de antes, y sobre él se deshace 20261031161000.
+  const dos = correr(`begin;\n${DESHACER_UNA_REGLA}${deshacerPorLotes}\n${probadorQueConocio}\n${sql}\n${sql}\nrollback;`);
   esperar("pegadas dos veces no fallan", dos.ok, dos.mensaje);
 }
 
