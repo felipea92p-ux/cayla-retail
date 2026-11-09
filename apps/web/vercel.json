@@ -11,6 +11,7 @@
     { "path": "/api/pedidos-web/avisar", "schedule": "* * * * *" },
     { "path": "/api/apartados/vencer", "schedule": "40 8 * * *" },
     { "path": "/api/asistente/informe", "schedule": "0 12 * * 1" },
-    { "path": "/api/sire/propuesta", "schedule": "30 13 2-10 * *" }
+    { "path": "/api/sire/propuesta", "schedule": "30 13 2-10 * *" },
+    { "path": "/api/salud/invariantes", "schedule": "30 8 * * *" }
   ]
 }

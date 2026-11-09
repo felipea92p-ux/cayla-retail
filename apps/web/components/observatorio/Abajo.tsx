@@ -207,9 +207,11 @@ function Detalle({ aviso, onCerrar }: { aviso: AvisoObs; onCerrar: () => void })
       {viz}
       <div className="o-det-pie">
         {pie}
-        <Link className="o-ir" href={aviso.href}>
-          {d.tipo === "diferencias" ? "Revisar" : "Ver"} <Ic n="flecha" t="s" />
-        </Link>
+        {aviso.href && (
+          <Link className="o-ir" href={aviso.href}>
+            {d.tipo === "diferencias" ? "Revisar" : "Ver"} <Ic n="flecha" t="s" />
+          </Link>
+        )}
       </div>
     </div>
   );
@@ -241,7 +243,8 @@ export function PorRevisar({
 
   const tocar = (x: AvisoObs) => {
     if (x.nivel === "ok" || !x.detalle || x.n === null) {
-      router.push(x.href);
+      // Un aviso sin pantalla propia (el vigía de la base) no lleva a ningún lado: lo que tiene que decir, lo dice su detalle.
+      if (x.href) router.push(x.href);
       return;
     }
     onAbrir(abierta === x.clave ? null : x.clave);

@@ -349,6 +349,11 @@ export const PRUEBAS = [
   // pagos, caja, comprobantes, libro) aunque la suite propia de la función siga verde. ROLLBACK.
   "pruebas:dia-de-tienda",
 
+  // El vigía diario de producción (ADR-0632): lo roto antes de mirar es heredado, lo que se rompe después es nuevo y lo sigue
+  // siendo hasta que se arregla o el Admin lo acepta; arreglado y vuelto a romper cuenta otra vez; lo que no se pudo mirar es
+  // «error» u «omitida», nunca «limpia»; solo la llave de servicio o el SQL Editor lo corren. ROLLBACK.
+  "pruebas:vigia-invariantes",
+
   // Descuento de campaña EXACTO, al céntimo (ADR-0302; reemplaza el .90 de ADR-0182): la base da lo mismo que la caja,
   // registrar_venta y separar_prendas aceptan el descuento exacto y rechazan el del .90, y la migración se puede pegar
   // dos veces. ROLLBACK.
