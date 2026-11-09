@@ -117,7 +117,8 @@ create or replace function pg_temp.distintas(a text, b text) returns text langua
     select split_part(e, ':', 1) from unnest(string_to_array(btrim(a), ' ')) e where e = any (string_to_array(btrim(b), ' '))) d
 $f$;
 `;
-const QUEDAN_IGUAL = "array['actividad', 'historial_producto_cambios', 'catalogo_version']";
+// `diario_vencido_marcas` (ADR-0633): borrar una prenda anota que las fotos del diario vencen, como la versión del catálogo: solo avanza.
+const QUEDAN_IGUAL = "array['actividad', 'historial_producto_cambios', 'catalogo_version', 'diario_vencido_marcas']";
 
 /**
  * El escenario «Top Aurora». `nota`: la venta lleva nota interna (`true`) o boleta (`false`). Deja estas variables psql:
