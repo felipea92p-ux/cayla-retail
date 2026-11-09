@@ -106,6 +106,7 @@
     "pruebas:pago-planilla-y-sunat": "node scripts/pruebas/pago_planilla_y_sunat.mjs",
     "pruebas:planilla-conceptos": "node scripts/pruebas/planilla_conceptos.mjs",
     "pruebas:comision-estimada": "node scripts/pruebas/comision_estimada.mjs",
+    "pruebas:comision-lotes": "node scripts/pruebas/comision_lotes.mjs",
     "pruebas:puente-residuo": "node scripts/pruebas/puente_residuo.mjs",
     "pruebas:pos-pagos": "node scripts/pruebas/pos_pagos.mjs",
     "pruebas:gasto-fecha-pago": "node scripts/pruebas/gasto_fecha_pago.mjs",

@@ -667,7 +667,8 @@ rollback;`);
   // (y la anote). Es el candado que reemplaza a «acordarse»: sin él, cada lector olvidado deja una cifra de dinero mal.
   const REVISADAS = {
     fn_pos_comision_lote: "Tarea 14 (20261106012000): suma solo las filas con el medio de la máquina (tarjeta o QR); la fila de redondeo no pasa por ninguna máquina.",
-    fn_asientos_dinero_y_caja: "Tarea 14 (20261106012000): de venta_pagos solo saca qué lotes hubo con cuenta de una máquina; la fila de redondeo no lleva esa cuenta.",
+    fn_asientos_dinero_y_caja:
+      "Tarea 14 (20261106012000) y 20261109162000: de venta_pagos saca los lotes con cuenta de una máquina y suma su comisión pago por pago (la misma cuenta de fn_pos_comision_lote); la fila de redondeo no lleva esa cuenta, así que no entra.",
     abonar_separacion: "Apartados: los abonos no se redondean (ADR-0311 §7); solo lee separacion_pagos.",
     buscar_separaciones: "Apartados: lectura de separacion_pagos.",
     corregir_pagos_venta:

@@ -216,6 +216,8 @@ export const PRUEBAS = [
   "pruebas:pago-planilla-y-sunat",
   "pruebas:planilla-conceptos",
   "pruebas:comision-estimada",
+  // La comisión estimada de las máquinas en una sola pasada (20261109162000): cada asiento y cada reversa igual a fn_pos_comision_lote. ROLLBACK.
+  "pruebas:comision-lotes",
 
   // La puente de la máquina por residuo (ADR-0629): un día depositado que siguió vendiendo vuelve a pendiente con lo que falta,
   // el diario revierte lo estimado una sola vez y el QR de Izipay no cobra los primeros días del mes. ROLLBACK.
