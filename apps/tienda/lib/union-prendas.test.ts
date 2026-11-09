@@ -25,6 +25,7 @@ import {
   MARGEN_DEL_HILO,
   MEDIDAS_QUE_SE_RECUERDAN,
   MS_DEL_LISTO,
+  PRETINA_MINIMA_DE_LA_FALDA,
   type MedidaDelRecorte,
   medidasATexto,
   medidasDesdeTexto,
@@ -307,22 +308,47 @@ describe("cajaDeAbajoUnida: la pretina sigue al borde del torso, dentro de la ci
   });
 
   it("una falda acampanada no se ve mucho más ancha que su blusa, aunque la blusa tenga vuelo abajo (FAL-0011 con CMS-0026, 2026-10-22)", () => {
-    // La blusa mide 125 px de ancho y su bajo con vuelo, 120: antes llevaba la pretina al máximo (103,5 px) y la falda salía de 148 px (×1,18).
+    // La blusa mide 125 px de ancho y su bajo con vuelo, 120: sin tope la pretina llega al máximo (103,5 px) y la falda sale de 148 px (×1,18).
     const blusa = { caja: { x: 66, y: 44, w: 125, h: 170 }, medida: { filaDelBorde: 0.9, borde: 0.95, pretina: null, bajo: null, anchoBajo: 0.95 }, metida: false };
-    const acampanada = { proporcion: 1.2824, medida: { filaDelBorde: 0.1, borde: 0.9, pretina: 0.698, bajo: null, anchoBajo: null } };
+    const acampanada = { proporcion: 1.2824, medida: { filaDelBorde: 0.1, borde: 0.9, pretina: 0.698, bajo: null, anchoBajo: null }, falda: true };
     const c = cajaDeAbajoUnida(blusa, acampanada)!;
-    expect(c.w).toBeLessThanOrEqual(Math.ceil(125 * ANCHO_MAXIMO_DE_ABAJO_SOBRE_ARRIBA));
-    // Su cintura queda en la estándar, no en el máximo de la holgura.
-    expect(c.w * 0.698).toBeGreaterThanOrEqual(ESTANDAR * (1 - HOLGURA_DE_LA_UNION) - 1);
-    expect(c.w * 0.698).toBeLessThan(ESTANDAR * (1 + HOLGURA_DE_LA_UNION) - 5);
+    const sinTope = cajaDeAbajoUnida(blusa, { ...acampanada, falda: false })!;
+    expect(c.w).toBeLessThan(sinTope.w);
+    // El tope la encoge, pero su pretina no baja del 92 % de lo que pedía el bajo (Felipe, 2026-11-09: el escalón se notaba).
+    const pedida = ESTANDAR * (1 + HOLGURA_DE_LA_UNION);
+    expect(c.w * 0.698).toBeGreaterThanOrEqual(pedida * PRETINA_MINIMA_DE_LA_FALDA - 1);
+    expect(c.w * 0.698).toBeLessThan(pedida - 5);
   });
 
-  it("el tope de ancho nunca baja la pretina de la cintura mínima: una falda de mucho vuelo sigue siendo más ancha que su blusa", () => {
+  it("el tope de una falda nunca baja la pretina de la cintura mínima ni del 92 % del bajo: una falda de mucho vuelo sigue siendo más ancha que su blusa", () => {
     const blusa = { caja: { x: 66, y: 44, w: 100, h: 150 }, medida: { filaDelBorde: 0.9, borde: 0.9, pretina: null, bajo: null, anchoBajo: null }, metida: false };
-    const vuelo = { proporcion: 0.9, medida: { filaDelBorde: 0.1, borde: 0.9, pretina: 0.5, bajo: null, anchoBajo: null } };
+    const vuelo = { proporcion: 0.9, medida: { filaDelBorde: 0.1, borde: 0.9, pretina: 0.5, bajo: null, anchoBajo: null }, falda: true };
     const c = cajaDeAbajoUnida(blusa, vuelo)!;
-    expect(c.w * 0.5).toBeCloseTo(ESTANDAR * (1 - HOLGURA_DE_LA_UNION), 0);
+    // El bajo pide 90 px: el tope (52,5 px) la encogería a la cintura mínima, pero se queda en el 92 % del bajo.
+    expect(c.w * 0.5).toBeCloseTo(90 * PRETINA_MINIMA_DE_LA_FALDA, 0);
+    expect(c.w * 0.5).toBeGreaterThanOrEqual(ESTANDAR * (1 - HOLGURA_DE_LA_UNION));
     expect(c.w).toBeGreaterThan(100 * ANCHO_MAXIMO_DE_ABAJO_SOBRE_ARRIBA);
+  });
+
+  it("un short, un jean o un pantalón calza su pretina con el bajo de la blusa, aunque se abra en las piernas (Felipe, 2026-11-09)", () => {
+    // Polo Corazón con Short Sohanna, medidos en la tienda: caja de 112 px, bajo de 103 px; el short tiene la pretina al 69 % de su ancho.
+    const polo = { caja: { x: 139, y: 44, w: 112, h: 131 }, medida: { filaDelBorde: 0.98, borde: 0.92, pretina: null, bajo: null, anchoBajo: 0.92 }, metida: false };
+    const short = { proporcion: 1.391, medida: { filaDelBorde: 0.1, borde: 0.9, pretina: 0.69, bajo: null, anchoBajo: null } };
+    const c = cajaDeAbajoUnida(polo, short)!;
+    // Con el tope de las faldas la pretina caía a 83 px (33 cm), 20 px más angosta que el bajo: ahora mide lo que el bajo.
+    expect(Math.abs(c.w * 0.69 - 112 * 0.92)).toBeLessThan(1.5);
+    expect(c.w).toBeGreaterThan(112 * ANCHO_MAXIMO_DE_ABAJO_SOBRE_ARRIBA);
+    // Y sigue centrado bajo la blusa.
+    expect(Math.abs(c.x + c.w / 2 - ESCENA.ancho / 2)).toBeLessThanOrEqual(1);
+  });
+
+  it("solo la falda lleva el tope: con la misma blusa, la misma prenda sale más ancha como short que como falda", () => {
+    const blusa = { caja: { x: 66, y: 44, w: 100, h: 150 }, medida: { filaDelBorde: 0.9, borde: 0.9, pretina: null, bajo: null, anchoBajo: null }, metida: false };
+    const prenda = { proporcion: 0.9, medida: { filaDelBorde: 0.1, borde: 0.9, pretina: 0.5, bajo: null, anchoBajo: null } };
+    const comoShort = cajaDeAbajoUnida(blusa, prenda)!;
+    const comoFalda = cajaDeAbajoUnida(blusa, { ...prenda, falda: true })!;
+    expect(comoShort.w * 0.5).toBeCloseTo(90, 0);
+    expect(comoFalda.w).toBeLessThan(comoShort.w);
   });
 
   it("la misma falda varía poco de largo al cambiar de blusa (nunca más de ±15 %)", () => {
