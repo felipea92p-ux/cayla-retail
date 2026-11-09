@@ -217,6 +217,13 @@ export const GUIA_FIN_RESUMEN: Guia = {
       texto: "El día en que la caja queda más baja en esas dos semanas, contando lo que esperas cobrar. Verde si alcanza, ámbar si queda bajo tu mínimo, rojo si no alcanza. La línea chica muestra cómo sube y baja.",
     },
     {
+      id: "movimientos",
+      ancla: "fin-resumen.movimientos",
+      opcional: true,
+      titulo: "Lo que entró y salió",
+      texto: "Como la lista de tu banco: lo que cobraste, lo que pagaste y lo que pasó de una caja al banco, día por día. Lo que cambia de lugar no es gasto. Un mes que ya cerró se cuenta por semanas. Sale del Flujo de efectivo.",
+    },
+    {
       id: "decidir",
       ancla: "fin-resumen.decidir",
       titulo: "Hoy te toca",

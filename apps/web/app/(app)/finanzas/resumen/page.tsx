@@ -1,4 +1,6 @@
-import { exigirModulo, veFinanzasDeTodoDe, veModulo } from "@/lib/persona-actual";
+import { Suspense } from "react";
+import { exigirModulo, veEstadosFinancierosDeTodoDe, veFinanzasDeTodoDe, veModulo } from "@/lib/persona-actual";
+import { Movimientos, MovimientosEsperando } from "@/components/finanzas/bolsillos/Movimientos";
 import { hoyLima } from "@/lib/fechas-lima";
 import { getConfianzaFinanzas, getResumenFinanzas } from "@/lib/resumen-finanzas";
 import { leerVerResumen } from "@/lib/resumen-finanzas-reglas";
@@ -7,9 +9,9 @@ import { getEstadoResultados, getFaltaDelMes } from "@/lib/resultados";
 import { getSedesDelTelar } from "@/lib/finanzas-telar";
 import { getFlujoProximo, getTiendasActivas, getVentasPorDia } from "@/lib/resumen-telar";
 import { getInversionMercaderia } from "@/lib/inversion-mercaderia";
-import { mesDelDia, sedeDeLaUrl } from "@/lib/finanzas-telar-reglas";
+import { hrefTelar, mesDelDia, sedeDeLaUrl } from "@/lib/finanzas-telar-reglas";
 import { mismasTiendas, tiendasAdivinadas, tiendasDeLaLinea } from "@/lib/resumen-telar-reglas";
-import { leerPeriodo, periodoAnterior } from "@/lib/estados-periodo";
+import { conElRango, leerPeriodo, periodoAnterior } from "@/lib/estados-periodo";
 import { getParametrosFinanzas } from "@/lib/configuracion";
 import { ResumenFinanzasPanel } from "@/components/finanzas/ResumenFinanzas";
 import { getPlanillaParaElInicio } from "@/lib/cuentas-dinero";
@@ -74,8 +76,18 @@ export default async function ResumenFinanzasPage({ searchParams }: { searchPara
       ? adelantadas.ventas
       : await getVentasPorDia(tiendas, tramo.desde, tramo.hasta);
 
+  // «Movimientos» (camino A): la plata que entró y salió, de `fn_flujo_caja_real`, que es de CAYLA entera (la base pide ver los estados de todo). Llega
+  // aparte, en su `Suspense`, para que el resto del Resumen no la espere.
+  const actuales = Object.entries(sp).filter((e): e is [string, string] => typeof e[1] === "string");
+  const movimientos = veEstadosFinancierosDeTodoDe(persona) ? (
+    <Suspense fallback={<MovimientosEsperando />}>
+      <Movimientos periodo={periodo} hoy={hoy} hrefFlujo={conElRango(hrefTelar("/finanzas/reportes/flujo", actuales, {}, { mismaPantalla: false, mesDeHoy }), actuales)} />
+    </Suspense>
+  ) : null;
+
   return (
     <ResumenFinanzasPanel
+      movimientos={movimientos}
       resumen={datos}
       falla={falla}
       confianza={confianza}

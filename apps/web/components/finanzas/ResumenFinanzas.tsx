@@ -1,7 +1,7 @@
 "use client";
 
 import { useSearchParams } from "next/navigation";
-import { useState, type CSSProperties } from "react";
+import { useState, type CSSProperties, type ReactNode } from "react";
 import { BookOpen, CalendarCheck, Percent, Wallet } from "lucide-react";
 import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 import { SelectorPeriodo } from "@/components/finanzas/estados/SelectorPeriodo";
@@ -85,13 +85,15 @@ type Props = {
   /** La lectura del Plan de campaña se cayó (ADR-0527): el bloque no se dibuja y se dice, nunca un 0 que parezca un dato. */
   inversionFalla?: string | null;
   acceso: Acceso;
+  /** «Movimientos» (camino A): lo arma la página como Server Component dentro de su `Suspense`; `null` si la cuenta no ve el flujo de CAYLA entera. */
+  movimientos?: ReactNode;
   /** La caja de cada sede, para «Cada sede, junta»; `null` si la cuenta no ve todas las sedes. */
   cajasPorSede?: Lectura<UnidadBalance[]> | null;
 };
 
 const FRASE = "De lo que vendes a lo que te queda.";
 
-export function ResumenFinanzasPanel({ resumen, falla, confianza, mes, periodo, minimo, hoy, estadoMes, estadoAntes, faltaDelMes, planillaSinSalida, ventasPorDia, sedes, flujoProximo, inversion, inversionFalla = null, acceso, cajasPorSede = null }: Props) {
+export function ResumenFinanzasPanel({ resumen, falla, confianza, mes, periodo, minimo, hoy, estadoMes, estadoAntes, faltaDelMes, planillaSinSalida, ventasPorDia, sedes, flujoProximo, inversion, inversionFalla = null, acceso, cajasPorSede = null, movimientos = null }: Props) {
   const sp = useSearchParams();
   // «Qué se ve»: lo que esta persona esconde de la inversión en mercadería, y qué forma de pagar mira en cada campaña (mirar no guarda nada).
   const [ajustes, ponerAjustes] = useAjustesResumen();
@@ -251,6 +253,7 @@ export function ResumenFinanzasPanel({ resumen, falla, confianza, mes, periodo, 
           </Superficie>
         </div>
       </section>
+      {movimientos}
 
       {/* Lo demás, en dos columnas FIJAS: el anillo a la izquierda y «¿Ya pagaste el mes?» con «Contra el mes pasado» apiladas a la derecha, cada
           una pegada a la de arriba, sin aire entre ellas (Felipe 2026-10-26). Con menos de 69 rem van en una sola, en el mismo orden. Con columnas

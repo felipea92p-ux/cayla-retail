@@ -361,3 +361,92 @@
   background: var(--c);
   vertical-align: 1px;
 }
+
+/* ---------- «Movimientos»: lo que entró y salió, día por día ---------- */
+.movs {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+.movs-dia + .movs-dia {
+  margin-top: 6px;
+}
+.movs-dia-cab {
+  position: sticky;
+  top: 0;
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 0 6px;
+  border-bottom: 1px solid var(--color-sand);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-taupe-profundo);
+}
+.movs-dia-cab .num {
+  font-size: 13px;
+  letter-spacing: 0;
+  color: var(--color-tinta);
+}
+.movs-lista,
+.movs-semanas {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.movs-renglon {
+  display: grid;
+  grid-template-columns: 32px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  min-height: 52px;
+  padding: 6px 0;
+}
+.movs-renglon + .movs-renglon {
+  border-top: 1px solid color-mix(in srgb, var(--color-sand) 60%, transparent); /* contraste: no aplica — es un borde, no un texto */
+}
+.movs-icono {
+  display: grid;
+  width: 32px;
+  height: 32px;
+  place-items: center;
+  border-radius: 999px;
+  background: var(--color-hueso);
+  color: var(--color-tinta);
+}
+.movs-renglon[data-tipo="cobro"] .movs-icono,
+.movs-renglon[data-tipo="entra"] .movs-icono {
+  background: color-mix(in srgb, var(--color-verde) 16%, transparent); /* contraste: no aplica — es un fondo, no un texto */
+  color: var(--color-verde-profundo);
+}
+.movs-renglon[data-tipo="cobro"] .movs-monto,
+.movs-renglon[data-tipo="entra"] .movs-monto {
+  color: var(--color-verde-profundo);
+}
+.movs-renglon[data-tipo="mueve"] .movs-monto,
+.movs-renglon[data-tipo="claure"] .movs-monto {
+  color: var(--color-taupe-profundo);
+}
+.movs-baja {
+  color: var(--color-taupe-profundo);
+}
+.movs-vacio {
+  padding: 10px 0;
+  font-size: 13px;
+  color: var(--color-taupe-profundo);
+}
+.movs-semanas > li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 16px;
+  padding: 10px 0;
+  border-top: 1px solid var(--color-sand);
+}
+.movs-semanas > li:first-child {
+  border-top: 0;
+}
