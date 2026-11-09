@@ -4,7 +4,8 @@ import { getValorInventario } from "@/lib/valor-inventario";
 import { Movimientos, MovimientosEsperando } from "@/components/finanzas/bolsillos/Movimientos";
 import { hoyLima } from "@/lib/fechas-lima";
 import { getConfianzaFinanzas, getResumenFinanzas } from "@/lib/resumen-finanzas";
-import { leerVerResumen } from "@/lib/resumen-finanzas-reglas";
+import { estadoDelMesYaLeido, leerVerResumen } from "@/lib/resumen-finanzas-reglas";
+import { crearCupos } from "@/lib/cupos";
 import { getBalancePorTienda } from "@/lib/balance";
 import { getEstadoResultados, getFaltaDelMes } from "@/lib/resultados";
 import { getSedesDelTelar } from "@/lib/finanzas-telar";
@@ -27,6 +28,16 @@ import { getPlanillaParaElInicio } from "@/lib/cuentas-dinero";
 //   - `fn_flujo_caja_proyeccion`, la misma de Dinero ▸ Flujo: «Tu caja en las próximas dos semanas»;
 //   - la inversión en mercadería que entrega el Plan de campaña (`getInversionMercaderia`, ADR-0527): si la cuenta no ve el Plan o la base aún no la trae, el Resumen no ofrece nada; si se cae, lo dice.
 // Quien no ve las finanzas de todo mira su sede: lo decide la base.
+//
+// CUÁNTAS A LA VEZ (2026-11-09, el pico de memoria de producción). La base tiene 2 núcleos y cada lectura pesada arma el diario contable:
+// lanzadas todas juntas no terminan antes, pero cada una ocupa su memoria al mismo tiempo, y una sola carga de Resumen empujaba la máquina a
+// usar swap. Las PESADAS pasan por un turnero de `CUPOS_PESADOS`; las livianas (la sede, los parámetros, la confianza…) salen de inmediato.
+// 3 y no 2: con los tiempos medidos en producción (el resumen ~6 s; el balance, el flujo, la comparación y la inversión, de 2 a 4 s cada una),
+// con 2 todo lo demás esperaría detrás del resumen y la página pasaría de ~6,6 s a ~10 s; con 3 tarda casi lo mismo y el pico baja a la mitad.
+// Se afina con `finanzas_resumen_ms` en los logs. Y el estado de resultados del mes no se pide dos veces: si el resumen ya lo armó igual
+// (todas las sedes, del 1 a hoy), se usa ese (`estadoDelMesYaLeido`).
+const CUPOS_PESADOS = 3;
+
 export default async function ResumenFinanzasPage({ searchParams }: { searchParams: Promise<{ ver?: string; sede?: string; mes?: string; desde?: string; hasta?: string; inversion?: string }> }) {
   const persona = await exigirModulo("reportes_financieros");
   const sp = await searchParams;
@@ -43,31 +54,38 @@ export default async function ResumenFinanzasPage({ searchParams }: { searchPara
   // La línea de ventas (si la cuenta ve Rendimiento) se pide A LA VEZ que todo lo demás, con las tiendas adivinadas de la URL (ADR-0583): antes
   // esperaba al resumen entero para saber qué tiendas pedir. Si la base resolvió otras, se piden de nuevo abajo.
   const veRendimiento = veModulo(persona, "rendimiento");
+  const pesada = crearCupos(CUPOS_PESADOS);
+  // El resumen entra primero al turnero: es la más larga, y el estado de resultados del mes puede salir de él.
+  const resumenP = pesada(() => getResumenFinanzas(pedido));
   const ventasAdelantadas = veRendimiento
     ? getTiendasActivas().then(async (activas) => {
         const ids = tiendasAdivinadas(pedido, persona.ubicacionId, activas);
-        return { ids, ventas: await getVentasPorDia(ids, tramo.desde, tramo.hasta) };
+        return { ids, ventas: await pesada(() => getVentasPorDia(ids, tramo.desde, tramo.hasta)) };
       })
     : null;
 
   const [{ datos, falla }, confianza, erMes, erAntes, telar, flujoProximo, inversion, adelantadas, faltaDelMes, planillaPorRegistrar, cajasPorSede, minimo, inventarioValor] = await Promise.all([
-    getResumenFinanzas(pedido),
+    resumenP,
     getConfianzaFinanzas(pedido, mes),
-    getEstadoResultados(tramo.desde, tramo.hasta),
+    // Del resumen si ya lo armó igual; si no, aparte, por el turnero.
+    resumenP.then(({ datos: r }) => {
+      const yaLeido = estadoDelMesYaLeido(r, tramo);
+      return yaLeido ? { datos: yaLeido, falla: null } : pesada(() => getEstadoResultados(tramo.desde, tramo.hasta));
+    }),
     // Contra qué se compara: el mes pasado a la misma fecha, el mes anterior entero o los mismos días justo antes. Antes de que Finanzas empezara, nada.
     minimoP.then((min) => {
       const comparar = periodoAnterior(periodo, min);
-      return comparar ? getEstadoResultados(comparar.desde, comparar.hasta) : null;
+      return comparar ? pesada(() => getEstadoResultados(comparar.desde, comparar.hasta)) : null;
     }),
     getSedesDelTelar(),
-    getFlujoProximo(),
-    getInversionMercaderia(hoy, sp.inversion === "ejemplo"),
+    pesada(() => getFlujoProximo()),
+    pesada(() => getInversionMercaderia(hoy, sp.inversion === "ejemplo")),
     ventasAdelantadas ?? Promise.resolve(null),
     periodo.unMes && mes === mesDeHoy ? getFaltaDelMes(mes) : Promise.resolve([]),
     // La planilla que Dynamic pagó y aquí no bajó del banco: «¿Cuánto tienes?» la sigue sumando, y lo dice. Sin lectura, calla: el aviso sale en el cajón.
     persona.rol === "lider" ? getPlanillaParaElInicio().catch(() => undefined) : Promise.resolve(undefined),
     // «Cada sede, junta» (tarea 27): la caja de cada sede a la misma fecha que las cifras del mes. Solo quien ve todas las sedes.
-    veTodo ? getBalancePorTienda(tramo.hasta) : Promise.resolve(null),
+    veTodo ? pesada(() => getBalancePorTienda(tramo.hasta)) : Promise.resolve(null),
     minimoP,
     // Lo que vale la ropa a costo (la hoja «La ropa que tienes»): la misma lectura de Existencias, que la base solo da con el dinero de Compras.
     veTodo && (persona.rol === "lider" || puede(persona, "verDineroCompras")) ? getValorInventario() : Promise.resolve(null),
@@ -77,7 +95,7 @@ export default async function ResumenFinanzasPage({ searchParams }: { searchPara
     ? null
     : adelantadas && mismasTiendas(adelantadas.ids, tiendas)
       ? adelantadas.ventas
-      : await getVentasPorDia(tiendas, tramo.desde, tramo.hasta);
+      : await pesada(() => getVentasPorDia(tiendas, tramo.desde, tramo.hasta));
 
   // «Movimientos» (camino A): la plata que entró y salió, de `fn_flujo_caja_real`, que es de CAYLA entera (la base pide ver los estados de todo). Llega
   // aparte, en su `Suspense`, para que el resto del Resumen no la espere.

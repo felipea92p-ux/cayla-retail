@@ -7,6 +7,7 @@ import {
   deUnidad,
   diasDelMes,
   equilibrio,
+  estadoDelMesYaLeido,
   explicarFallaLectura,
   leerResumen,
   leerVerResumen,
@@ -342,5 +343,41 @@ describe("que el número diga la verdad (auditoría v3 del Resumen, 2026-10-23)"
     expect(explicarFallaLectura({ code: "42501", message: "permission denied" }, "leer el resumen")).toMatch(/permiso/);
     expect(explicarFallaLectura({ message: "TypeError: fetch failed" }, "leer el resumen")).toMatch(/conexión/);
     expect(explicarFallaLectura({ code: "XX000", message: "boom" }, "leer el resumen")).toBe("No se pudo leer el resumen. Vuelve a cargar la página; si sigue igual, avisa a Felipe.");
+  });
+});
+
+describe("el estado de resultados del mes que el resumen ya armó (2026-11-09, el pico de memoria)", () => {
+  // `fn_resumen_finanzas` lo arma del 1 a hoy; la página lo pedía otra vez aparte. Se reusa solo si es EXACTAMENTE el mismo.
+  const conRango = (caso: Record<string, unknown>, desde = "2026-09-01", hasta = "2026-09-24") =>
+    leerResumen({ ...caso, resultados_mes: { ...(caso.resultados_mes as object), desde, hasta } });
+  const MES = { desde: "2026-09-01", hasta: "2026-09-24" };
+
+  it("todas las sedes y el mismo rango: devuelve las filas del resumen, las mismas que mostraría", () => {
+    const r = conRango(fixture.todas);
+    expect(r.rangoMes).toEqual(MES);
+    const filas = estadoDelMesYaLeido(r, MES);
+    expect(filas).not.toBeNull();
+    expect(filas).toBe(r.resultadosMes.estado === "ok" ? r.resultadosMes.datos : null);
+    expect(filas).toHaveLength(6);
+  });
+
+  it("otro rango (un mes entero, otro día, otro mes): null, la página lo pide como antes", () => {
+    const r = conRango(fixture.todas);
+    expect(estadoDelMesYaLeido(r, { desde: "2026-09-01", hasta: "2026-09-30" })).toBeNull();
+    expect(estadoDelMesYaLeido(r, { desde: "2026-09-01", hasta: "2026-09-23" })).toBeNull();
+    expect(estadoDelMesYaLeido(r, { desde: "2026-08-01", hasta: "2026-08-31" })).toBeNull();
+  });
+
+  it("una sede, el Taller o «de la empresa»: null (el resumen mira solo eso; la página, todas las sedes)", () => {
+    for (const caso of [fixture.tru, fixture.taller, fixture.empresa, fixture.colaboradora]) {
+      expect(estadoDelMesYaLeido(conRango(caso), MES)).toBeNull();
+    }
+  });
+
+  it("sin rango (un resumen de antes), sin resumen o con su estado de resultados caído: null", () => {
+    expect(estadoDelMesYaLeido(todas(), MES)).toBeNull();
+    expect(estadoDelMesYaLeido(null, MES)).toBeNull();
+    const caido = leerResumen({ ...fixture.todas, resultados_mes: { falla: "se cortó por tiempo", desde: "2026-09-01", hasta: "2026-09-24" } });
+    expect(estadoDelMesYaLeido(caido, MES)).toBeNull();
   });
 });
