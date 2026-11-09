@@ -1,7 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-import { useBusquedaEnUrl } from "@/components/ui/BusquedaEnUrl";
+import { useBuscarAlEscribir } from "@/components/ui/BusquedaEnUrl";
 import { Buscador } from "@/components/ui/Buscador";
 import { hrefLista, type FiltrosLista } from "@/lib/ordenes-compra-reglas";
 
@@ -13,30 +12,8 @@ import { hrefLista, type FiltrosLista } from "@/lib/ordenes-compra-reglas";
 // (`useBusquedaEnUrl`): mientras la base responde, la lista marcada con `data-resultados` se atenúa. Conserva la sede y el estado
 // elegidos y vuelve a la primera página (`hrefLista`).
 
-const PAUSA_MS = 350;
-
 export function BuscadorOrdenes({ filtros }: { filtros: FiltrosLista }) {
-  const [texto, setTexto] = useState(filtros.q);
-  const ultimoEnviado = useRef(filtros.q);
-  const { buscando, buscar } = useBusquedaEnUrl();
-
-  // Si la URL cambia desde afuera («Borrar la búsqueda», atrás del navegador), el campo la sigue.
-  useEffect(() => {
-    if (filtros.q !== ultimoEnviado.current) {
-      ultimoEnviado.current = filtros.q;
-      setTexto(filtros.q);
-    }
-  }, [filtros.q]);
-
-  useEffect(() => {
-    const limpio = texto.trim();
-    if (limpio === ultimoEnviado.current) return;
-    const t = window.setTimeout(() => {
-      ultimoEnviado.current = limpio;
-      buscar(hrefLista(filtros, { q: limpio }), { reemplazar: true });
-    }, PAUSA_MS);
-    return () => window.clearTimeout(t);
-  }, [texto, filtros, buscar]);
+  const { texto, setTexto, buscando } = useBuscarAlEscribir(filtros.q, (termino) => hrefLista(filtros, { q: termino }));
 
   return (
     <Buscador

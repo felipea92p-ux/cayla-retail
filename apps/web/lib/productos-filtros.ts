@@ -1,3 +1,4 @@
+import { terminoParaBuscar } from "@cayla-retail/shared/busqueda";
 import { enEscala } from "./color-escala";
 import { agruparPorFamilia } from "./colores-familias";
 import { alternarEnLista, type EstadoCasilla } from "./pildora-reglas";
@@ -52,7 +53,8 @@ export function valorDeCaja(tipeado: Tipeado, caja: CajaTipeada, consulta: strin
 /** Lo que una caja manda a la URL. El precio se normaliza («39,90» → «39.9»: la URL solo acepta el punto y con la coma
  *  ignoraba el filtro en silencio); a medio escribir («39,») devuelve `null` y se espera, en vez de borrar el filtro. */
 function valorParaUrl(caja: CajaTipeada, texto: string): string | null {
-  if (caja === "q" || texto.trim() === "") return texto.trim();
+  if (caja === "q") return terminoParaBuscar(texto);
+  if (texto.trim() === "") return "";
   const n = leerMonto(texto);
   return n == null ? null : String(n);
 }
