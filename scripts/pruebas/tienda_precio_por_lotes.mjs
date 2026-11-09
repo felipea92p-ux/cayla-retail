@@ -30,6 +30,7 @@
 
 import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
+import { DESHACER_UNA_REGLA } from "./_deshacer_catalogo_una_regla.mjs";
 
 const ARG_CONTENEDOR = process.argv.indexOf("--contenedor");
 const CONTENEDOR_LOCAL = ARG_CONTENEDOR > 0 ? process.argv[ARG_CONTENEDOR + 1] : "supabase_db_cayla-retail";
@@ -118,8 +119,9 @@ const PRECIO_DE_ANTES_TEMP = PRECIO_DE_ANTES.replace(
   "CREATE FUNCTION pg_temp.precio_de_antes(",
 );
 
-/** Deshace la migración DENTRO de la transacción: las tres funciones vuelven a como estaban. */
-const DESHACER = `${PRECIO_DE_ANTES}
+/** Deshace la migración DENTRO de la transacción: las tres funciones vuelven a como estaban. 20261109181000 (una sola regla) escribió
+ *  el catálogo entero: primero vuelve el de main de antes, que es el que conoce esta migración. */
+const DESHACER = `${DESHACER_UNA_REGLA}${PRECIO_DE_ANTES}
 do $deshacer$
 declare d text;
 begin
@@ -300,7 +302,7 @@ console.log("— 5. La migración —");
 esperarValor(
   "se puede pegar dos veces y no cambia nada la segunda",
   correr(`begin;
-set client_min_messages = warning;
+${DESHACER_UNA_REGLA}set client_min_messages = warning;
 ${SQL_MIGRACION}
 select md5(string_agg(md5(pg_get_functiondef(p.oid)), ',' order by p.proname)) as antes from pg_proc p
  where p.pronamespace = 'retail'::regnamespace and p.proname in ('fn_precio_en_sede', 'fn_precios_en_sedes', 'fn_tienda_precio_talla', 'tienda_catalogo') \\gset

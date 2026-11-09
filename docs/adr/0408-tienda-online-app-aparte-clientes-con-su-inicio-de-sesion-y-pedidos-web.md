@@ -393,3 +393,27 @@ antes de que existiera la página no sabe que tiene una ficha, y la página no t
 
 
 **Actualización 2026-10-21 (grupos y respaldo por familia).** Chompas y Poleras pasan a «Chompas/Abrigos»; Accesorios se reparte en Bolsos/Cinturones, Lentes/Gorros/Pañuelos, Bisutería/Belleza y Otros accesorios. Se cierra el pendiente de arriba: `tienda_catalogo` manda `categoria_familia` (migración `20261021163000`) y una categoría que la tabla por prefijo no conoce cae según su familia (`GRUPO_DE_LA_FAMILIA`), no siempre en abrigos; sin familia, en «Más ropa». Descartado: columnas de grupo nuevas (un paso más) y la categoría madre (casi sin uso).
+
+## Actualización 2026-11-09 (j): «lo nuevo» y «lo más vendido» vuelven a vivir en un solo lugar
+
+**El problema.** Producción corría una `tienda_catalogo` más rápida que la del repo, escrita en el SQL Editor y nunca subida. Para ganar
+velocidad copiaba adentro la regla de «lo nuevo» (DECIDÍ 7) y la de «lo más vendido», en vez de pedírselas a `fn_tienda_lo_nuevo` y
+`fn_tienda_mas_vendidos`. «Novedades para ti» del club sigue leyendo `fn_tienda_lo_nuevo`. Si alguien cambiaba la regla en un lugar, el
+catálogo y el club dirían cosas distintas de la misma prenda, y la prueba que lo vigila (`pnpm pruebas:tienda-club`, N3) lo rechazaba.
+Felipe eligió «una sola regla».
+
+**Lo que se midió en producción (solo lectura).** La copia no era más rápida por estar adentro del catálogo, sino porque las dos reglas estaban
+escritas talla por talla: `fn_tienda_lo_nuevo` tardaba 56 ms y leía 19 491 bloques, y `fn_tienda_mas_vendidos` 33 ms y 16 886 bloques. Se
+reescribieron para leer los movimientos de una pasada y preguntar la familia una vez por categoría, y quedaron en 24 ms / 2 110 bloques y
+21 ms / 1 557 bloques. El catálogo nuevo, cargado aparte y comparado con el de producción sobre los mismos datos, devuelve el mismo JSON (md5)
+con «Todas», cada sede y una que no existe, y tarda lo mismo (~330 ms).
+
+- **DECIDÍ:** cada regla vive solo en su función, escrita de una pasada (`20261109181000_tienda_catalogo_una_sola_regla.sql`), y
+  `tienda_catalogo` es la versión rápida de producción pidiéndoselas.
+- **DESCARTÉ:** dejar la copia, que no ganaba nada medible una vez escritas bien las reglas y deja dos reglas que pueden separarse sin
+  aviso; y pasarle a las reglas lo ya calculado por el catálogo, que ataría su firma a una sola pantalla.
+- **SE ROMPE SI:** los movimientos pasan de cientos de miles. Hoy son 9 883 y cada pasada lee 259 bloques. Con 250 000 serían ~6 500, todavía
+  menos que las 3 233 búsquedas de antes; más allá, un índice parcial de llegadas y de ventas recientes.
+
+Las suites que vuelven a pegar migraciones viejas del catálogo (`tienda_empresas`, `tienda_rapida`, `tienda_precio_por_lotes`) parten del
+catálogo de main de antes de este cambio (`scripts/pruebas/_antes_catalogo_una_regla.sql`), como ya hacen las del ADR-0622.

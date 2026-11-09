@@ -32,6 +32,7 @@
 
 import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
+import { DESHACER_UNA_REGLA } from "./_deshacer_catalogo_una_regla.mjs";
 
 const ARG_CONTENEDOR = process.argv.indexOf("--contenedor");
 const CONTENEDOR_LOCAL = ARG_CONTENEDOR > 0 ? process.argv[ARG_CONTENEDOR + 1] : "supabase_db_cayla-retail";
@@ -383,6 +384,7 @@ console.log("— 4. Las migraciones —");
 // `20261017173000` reescribe `tienda_catalogo` ENTERO («se vuelve a escribir igual»): vuelve a su cuerpo de siempre y se lleva lo que le sumaron
 // 20261031161000 (las empresas leídas una vez), 20261021000000 y 20261021001000 (ADR-0465: el filtro por empresa y la clave `empresa`), 20261021163000 (`categoria_familia`) y 20261023205000 (ADR-0489:
 // las insignias). Para medir que el segundo pegado no cambia nada, se parte de ese cuerpo: se les quita lo de los parches posteriores antes de medir.
+// 20261109181000 (una sola regla) escribió el catálogo entero: antes de quitar esos parches vuelve el de main de antes (`DESHACER_UNA_REGLA`).
 const ANCLA_EMPRESAS = [...readFileSync(M_POR_LOTES, "utf8").matchAll(/\$v\$([\s\S]*?)\$v\$,\s*\$n\$([\s\S]*?)\$n\$/g)][1];
 const SIN_PARCHES_DE_EMPRESA = `do $quitar$
 declare v_def text := pg_get_functiondef('retail.tienda_catalogo(uuid)'::regprocedure);
@@ -406,7 +408,7 @@ const sql = (archivo) => readFileSync(archivo, "utf8");
 esperarValor(
   "las tres se pueden volver a correr (dos veces seguidas, como un segundo pegado) y no cambian nada",
   correr(`begin;
-${SIN_PARCHES_DE_EMPRESA}
+${DESHACER_UNA_REGLA}${SIN_PARCHES_DE_EMPRESA}
 select md5(string_agg(md5(pg_get_functiondef(p.oid)), ',' order by p.proname)) as antes from pg_proc p join pg_namespace n on n.oid = p.pronamespace
  where n.nspname = 'retail' and p.proname in ('fn_tienda_precio_talla', 'fn_categoria_entra_a_motores', 'fn_tienda_modelo_se_ve', 'fn_vitrina_por_que_no', 'fn_vitrina_publicable', 'tienda_catalogo') \\gset
 set client_min_messages = warning;
