@@ -715,6 +715,8 @@ rollback;`);
     separar_prendas: "Adelanto de un apartado: no se redondea (ADR-0311 §7); solo escribe separacion_pagos.",
     fn_pos_pendientes:
       "Las máquinas de cobro (ADR-0429, 20261016191000): cuenta cuántos pagos con tarjeta o QR hubo ese día en esa tienda (para el cargo fijo por pago de la tarifa); filtra `vp.metodo = p.medio` (tarjeta, qr), así que la fila de redondeo (que va con el efectivo) queda fuera. El bruto lo toma de fn_dinero_libro, que ya la excluye.",
+    fn_pos_pagos_por_depositar:
+      "El depósito pago por pago (ADR-0629 Fase B, 20261108023000): lista los pagos de una máquina para emparejarlos con el extracto; filtra `vp.metodo in ('qr', 'tarjeta')` y `sp.metodo = 'tarjeta'`, así que la fila de redondeo (que va con el efectivo) queda fuera. No suma por venta.",
     fn_resellar_cobros_a_maquinas:
       "La corrección de una vez (ADR-0429, 20261016193000): mueve la cuenta sellada de los pagos con tarjeta o QR (`vp.metodo in ('tarjeta', 'qr')`) de un banco a la puente de su máquina; no suma montos y la fila de redondeo no le toca.",
     trg_efectivo_de_caja:

@@ -281,12 +281,18 @@ export function ConciliacionPanel({
   actual,
   hoy,
   deUnaFecha = false,
+  maquinas = null,
+  extracto = null,
 }: {
   cuentas: ConciliacionCuenta[];
   actual: Conciliacion | null;
   hoy: string;
   /** Se mira una conciliación pasada (`?hasta=`): la flecha vuelve a la de hoy. */
   deUnaFecha?: boolean;
+  /** «Lo que te deben las máquinas» (ADR-0629, Fase B): va bajo la lista de bancos, que ya no lleva las puentes. */
+  maquinas?: ReactNode;
+  /** «Subir extracto», solo en el banco donde depositan las máquinas (ADR-0629, Fase B). */
+  extracto?: ReactNode;
 }) {
   const router = useRouter();
   const ruta = usePathname();
@@ -301,11 +307,14 @@ export function ConciliacionPanel({
 
   if (!actual) {
     return (
-      <Superficie>
-        <Vacio guia="fin-conciliacion.vacia" icono={<Landmark />} titulo="No hay bancos que conciliar">
-          Agrega los bancos, el POS y la tarjeta en Configuración ▸ Dinero.
-        </Vacio>
-      </Superficie>
+      <div className="din-cuad-col">
+        <Superficie>
+          <Vacio guia="fin-conciliacion.vacia" icono={<Landmark />} titulo="No hay bancos que conciliar">
+            Agrega los bancos y la tarjeta en Configuración ▸ Dinero.
+          </Vacio>
+        </Superficie>
+        {maquinas}
+      </div>
     );
   }
   const r = resumenConciliacion(actual.lineas);
@@ -362,6 +371,7 @@ export function ConciliacionPanel({
   return (
     <div className="din-cuad">
       {/* «B · Lista y detalle» (Felipe 2026-10-31): a la izquierda, los bancos con su estado de un vistazo; a la derecha, el del elegido. */}
+      <div className="din-cuad-col">
       <aside className="card-cayla din-cuad-lista anim-sube" data-guia="fin-conciliacion.otras" aria-label="Tus bancos">
         <header className="din-cuad-lista-cab">
           <TituloSeccion cuenta={totalPendientes}>Tus bancos</TituloSeccion>
@@ -390,6 +400,8 @@ export function ConciliacionPanel({
           })}
         </div>
       </aside>
+      {maquinas}
+      </div>
 
       <div className="din-cuad-det">
         <div className="w-full max-w-xs" data-guia="fin-conciliacion.responsable">
@@ -465,6 +477,7 @@ export function ConciliacionPanel({
               </b>
               <p>A la izquierda, lo que anotó CAYLA; a la derecha, si está en el extracto del banco.</p>
             </div>
+            {extracto}
             <SegmentoDeslizante
               etiqueta="Qué líneas ver"
               forma="modo"

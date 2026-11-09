@@ -3,7 +3,7 @@
 import { useState, type ReactNode } from "react";
 import { BarrasTiempo } from "@/components/ui/BarrasTiempo";
 import { Flag, FunnelX, Receipt } from "lucide-react";
-import { ANCHO_HOJA, Modal } from "@/components/ui/Modal";
+import { Modal } from "@/components/ui/Modal";
 import { getDetalleCierre, type DetalleCierre, type EventoCaja } from "@/app/actions/caja";
 import type { CierreCaja } from "@/lib/caja";
 import { etiquetaDestino } from "@/lib/caja-cierre-reglas";
@@ -73,8 +73,13 @@ export function useDetalleCierre() {
   return { abrir, modal };
 }
 
-/** El ancho de la hoja con el detalle: deja las tres tarjetas del cierre en una fila (en celular y tablet pasan a una sola columna). */
-export const ANCHO_DETALLE_CIERRE = ANCHO_HOJA.ancha;
+/**
+ * El ancho de la hoja con el detalle: deja las tres tarjetas del cierre en una fila (en celular y tablet pasan a una sola columna).
+ * Es 1024 px y no la «ancha» de 768 de las demás hojas: el detalle es un diseño propio («La línea del día», Felipe 2026-10-12) que pide
+ * ~900 px para poner «Qué se cobró», «Cómo cuadró el efectivo» y «A dónde fue» lado a lado. A 768 (ronda 12, 2026-10-14) se apilaban y los
+ * medios de pago y los movimientos quedaban dos pantallas abajo; Felipe pidió recuperarlo el 2026-11-08.
+ */
+export const ANCHO_DETALLE_CIERRE = "max-w-5xl"; // unificar-fijo: hoja de diseño propio, tres tarjetas en fila (Felipe 2026-11-08)
 
 type FiltroFlujo = "todo" | "ventas" | "cajon";
 const FILTROS: [FiltroFlujo, string][] = [
@@ -101,7 +106,7 @@ const TEXTO_ESTADO = (estado: keyof typeof COLOR_ESTADO, dif: number) => (estado
 /** El modal de un cierre cuando no hay una hoja de atrás a la que volver (la página `/caja/historial`). */
 export function DetalleCierreModal({ cierre, detalle, cargando, error, onClose }: { cierre: CierreCaja; detalle: DetalleCierre | null; cargando: boolean; error: boolean; onClose: () => void }) {
   return (
-    <Modal conCerrar titulo={tituloDelCierre(cierre)} subtitulo={bajadaDelCierre(cierre)} onClose={onClose} tamano="ancha">
+    <Modal conCerrar titulo={tituloDelCierre(cierre)} subtitulo={bajadaDelCierre(cierre)} onClose={onClose} ancho={ANCHO_DETALLE_CIERRE} /* unificar-fijo: el ancho propio del detalle del cierre */>
       <DetalleCierreContenido cierre={cierre} detalle={detalle} cargando={cargando} error={error} />
     </Modal>
   );

@@ -1026,6 +1026,13 @@ export const GUIA_FIN_CONCILIACION: Guia = {
       texto: "A la izquierda están tus bancos: cada uno dice cuánto suma el sistema, cuándo lo cuadraste por última vez y si cuadra, no cuadra o tiene líneas por revisar. Tocas uno y a la derecha aparece su detalle. Los bancos son de CAYLA entera, no de una sede.",
     },
     {
+      id: "maquinas",
+      ancla: "fin-conciliacion.maquinas",
+      opcional: true,
+      titulo: "Lo que te deben las máquinas",
+      texto: "Izipay y Vendemás no tienen extracto: lo que cobraron y todavía no llegó se ve aquí, con los días que ya se atrasaron. Lo que sí llegó lo buscas en el banco que lo recibe. Si un día atrasado ya está en el banco, «Registrar el depósito»; si no, se reclama a la máquina.",
+    },
+    {
       id: "responsable",
       ancla: "fin-conciliacion.responsable",
       opcional: true,
@@ -1038,6 +1045,27 @@ export const GUIA_FIN_CONCILIACION: Guia = {
       opcional: true,
       titulo: "Lo anotado y el extracto, en pares",
       texto: "A la izquierda, cada entrada y salida que anotó CAYLA en el período; a la derecha, si está en el extracto del banco. Con «Sí, está» el hilo que los une se vuelve verde. Arriba, la barra dice cuántas llevas revisadas y el filtro deja ver solo las que faltan. Lo que no encuentres en el banco es lo que hay que aclarar.",
+    },
+    {
+      id: "extracto",
+      ancla: "fin-conciliacion.extracto",
+      opcional: true,
+      titulo: "El extracto del banco",
+      texto: "En el banco donde depositan las máquinas, «Subir extracto» lee el .txt que bajas de la banca (o la tabla copiada) y te dice qué trajo: los QR de Izipay uno por uno, los lotes de tarjeta y los de Vendemás. Si al extracto le faltan movimientos, lo avisa. No se guarda.",
+    },
+    {
+      id: "izipay",
+      ancla: "fin-conciliacion.izipay",
+      opcional: true,
+      titulo: "Lo que llegó de Izipay",
+      texto: "Cada QR que llegó se junta con su venta, por día y monto; los lotes de tarjeta, con su tienda. Lo que cuadra se registra con un toque y la comisión sale sola. Abajo dice lo que se cobró y no llegó, y lo que llegó sin venta (casi siempre un QR anotado como Yape). En la demo no se registra nada.",
+    },
+    {
+      id: "vendemas",
+      ancla: "fin-conciliacion.vendemas",
+      opcional: true,
+      titulo: "Los lotes de Vendemás",
+      texto: "Con el extracto leído, cada lote de Vendemás dice qué días cubre, cuánto se cobró y la comisión que queda. Si cuadra, «Registrar el depósito» lo anota con la comisión real; si algo no cuadra, dice qué revisar. Lo que ya está registrado no se vuelve a ofrecer. En la demo no se registra nada.",
     },
     {
       id: "anotar",
