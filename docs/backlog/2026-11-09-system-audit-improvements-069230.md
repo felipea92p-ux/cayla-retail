@@ -18,8 +18,8 @@ Nace del #8 de la auditoría del 2026-11-09 («Nadie vigila la salud del negocio
 - [x] Antes de la primera corrida, todas las reglas activas contra producción (solo lectura): INV-03 daba 1.280 falsos positivos (la
   «Prenda sin registrar», ADR-0179/0334). Corregida en `20261109163000`: producción queda en 0 en todo; solo 9 movimientos sin
   responsable (INV-10, ajustes de conteo del 2026-09-30) que serán heredados.
-- [ ] **POR PEGAR (Felipe):** `supabase/migrations/20261109163000_vigia_inv03_prenda_sin_registrar.sql`, una parte. Verificar:
-  `select sql like '%prendas_por_regularizar%' from retail.invariantes where id = 'INV-03';` → true. Después marcar «SQL pegado» en el PR.
+- [x] `20261109163000` **pegada por Felipe el 2026-11-09**. Verificada por efectos: INV-03 con la exclusión (`true`), 28 invariantes,
+  26 activas y 2 apagadas (la siembra no reencendió nada), 0 corridas. «SQL pegado» marcada en el PR #1731.
 - [ ] Primera corrida: `select retail.fn_correr_invariantes();` (o esperar a las 3:30). Debe decir 0 nuevas y 9 conocidas.
 - [ ] **Sentry:** una regla de alerta que escriba a Felipe cuando aparezca `donde = "salud/invariantes (cron): …"` (hoy nadie verificó que
   Sentry mande correos).

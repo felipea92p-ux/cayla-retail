@@ -1,7 +1,7 @@
 # ADR-0632 — El vigía diario de invariantes: producción se revisa sola cada madrugada y avisa solo lo nuevo
 
 - **Fecha:** 2026-11-09 · **Estado:** PR #1731. `20261109152000` **pegada por Felipe el 2026-11-09** y verificada por efectos;
-  `20261109163000` (INV-03 corregida, ver «Actualización») **por pegar**.
+  `20261109163000` (INV-03 corregida, ver «Actualización») **pegada el 2026-11-09** y verificada.
 - **Nace de:** el problema #8 de la auditoría del 2026-11-09 («Nadie vigila la salud del negocio en producción»). Felipe: «empieza por el 8,
   pero utiliza las skills que consideres apropiadas empezando por ultra criterio».
 - **Relacionados:** ADR-0356 (`/chaos` y sus invariantes), ADR-0450 (`/api/salud` y su vigía), ADR-0424 (Sentry), ADR-0322 (el Observatorio
