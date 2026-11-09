@@ -11,7 +11,7 @@ import { SIZES_OPCIONES_VENDER, SIZES_TARJETA_VENDER as SIZES_FOTO } from "@/lib
 import { textoOtrasSedes } from "@/lib/stock-por-sede";
 import { motivoNoCobrable, tooltipTallaSinPiso } from "@/lib/vender-stock-local";
 import { estiloMosaicoColor } from "@/lib/color-prenda-reglas";
-import { fotoQueDistingue } from "@/lib/color-estampado-reglas";
+import { fotoQueDistingue, inicialDeEstampado } from "@/lib/color-estampado-reglas";
 import { MuestraEstampado } from "@/components/ui/MuestraEstampado";
 import { MosaicoPrenda } from "@/components/MosaicoPrenda";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
@@ -182,6 +182,11 @@ export function TarjetaPrenda({ prenda, bloqueado, carrito, indice, pulsoTope, o
               >
                 {fotoEstampado ? (
                   <i className="vg-punto-foto"><MuestraEstampado fotoUrl={fotoEstampado} hex={variante?.colorHex} /></i>
+                ) : variante?.colorEstampado && inicialDeEstampado(c.color) ? (
+                  // Sin foto que lo distinga, dos estampados del mismo color serían dos puntos iguales (ADR-0634): la letra los separa.
+                  <i aria-hidden data-color-dato className="vg-punto-inicial" style={{ backgroundColor: estiloMosaicoColor(variante.colorHex)?.fondo ?? "var(--color-hueso)", color: estiloMosaicoColor(variante.colorHex)?.trazo ?? "var(--color-tinta-fija)" }}>
+                    {inicialDeEstampado(c.color)}
+                  </i>
                 ) : (
                   <i style={{ backgroundColor: estiloMosaicoColor(variante?.colorHex)?.fondo ?? "var(--color-hueso)" }} />
                 )}

@@ -60,6 +60,30 @@ export function fotoDeLaFila(color: { codigo?: string | null; tipo?: string | nu
   return color && esEstampado(color) ? fotoDeVariante(fotos ?? [], color.codigo ?? null) : fotoPrincipal(fotos);
 }
 
+const GRUPO_DE_FAMILIA: Readonly<Record<string, string>> = {
+  neutro: "los neutros",
+  tierra: "los tonos tierra",
+  rosado: "los rosados",
+  rojo: "los rojos",
+  naranja: "los naranjas",
+  amarillo: "los amarillos",
+  verde: "los verdes",
+  azul: "los azules",
+  morado: "los morados",
+  metalico: "los metálicos",
+};
+
+/** «los azules»: con qué se agrupa el estampado, como se dice en la tienda. Sin familia conocida, `null`: la hoja no afirma nada. */
+export function grupoDeFamilia(familia: string | null | undefined): string | null {
+  return familia ? (GRUPO_DE_FAMILIA[familia] ?? null) : null;
+}
+
+/** La letra que distingue a un estampado sin foto en su punto: la primera del nombre. Sin letra, `null`. */
+export function inicialDeEstampado(nombre: string | null | undefined): string | null {
+  const letra = nombre?.trim().match(/\p{L}/u)?.[0];
+  return letra ? letra.toLocaleUpperCase("es") : null;
+}
+
 /** El nombre que se propone: el patrón y el color dominante, o vacío mientras falte uno de los dos. */
 export function nombreDeEstampado(patron: string | null | undefined, colorDominante: string | null | undefined): string {
   if (!patron?.trim() || !colorDominante?.trim()) return "";
@@ -81,10 +105,10 @@ export function faltaParaEstampado({ nombre, colorDominante }: { nombre: string;
 }
 
 /**
- * La guía de foco de la hoja «Nuevo color» (ADR-0284): sale de lo que `faltaParaEstampado` y `faltaParaCrear` ya piden. El patrón es sugerido:
- * solo ayuda a armar el nombre, y deja de pedirse si el nombre ya se escribió a mano o si los patrones no se pudieron leer.
+ * La guía de foco de la hoja «Nuevo color» (ADR-0284): sale de lo que `faltaParaEstampado` y `faltaParaCrear` ya piden.
+ * El patrón no entra: es opcional y solo ayuda a armar el nombre.
  */
-export function camposDeNuevoColor(c: { estampado: boolean; nombre: string; hexListo: boolean; patron: boolean; hayPatrones: boolean; dominante: boolean }): CampoDeGuia[] {
+export function camposDeNuevoColor(c: { estampado: boolean; nombre: string; hexListo: boolean; dominante: boolean }): CampoDeGuia[] {
   const nombreHecho = nombreDeColor(c.nombre) !== "";
   if (!c.estampado) {
     return [
@@ -93,7 +117,6 @@ export function camposDeNuevoColor(c: { estampado: boolean; nombre: string; hexL
     ];
   }
   return [
-    ...(c.hayPatrones ? [{ id: "patron", nombre: "Patrón", requerido: false, sugerido: true, hecho: c.patron || nombreHecho, pendiente: "Elige el patrón: arma el nombre." }] : []),
     { id: "dominante", nombre: "El color que más se ve", requerido: true, hecho: c.dominante, pendiente: "Elige el color que más se ve." },
     { id: "nombre", nombre: "Nombre", requerido: true, hecho: nombreHecho, pendiente: "Elige el patrón y el color, o escribe el nombre." },
   ];

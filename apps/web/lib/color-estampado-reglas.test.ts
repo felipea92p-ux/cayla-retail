@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { agruparPorFamilia } from "./colores-familias";
-import { camposDeNuevoColor, coloresDominantes, ejemploDeEstampado, esEstampado, familiaEnCarta, fotoQueDistingue, faltaParaEstampado, fotoDeLaFila, nombreDeEstampado, patronesDeEstampado } from "./color-estampado-reglas";
+import { agruparPorFamilia, FAMILIAS_COLOR } from "./colores-familias";
+import { camposDeNuevoColor, grupoDeFamilia, inicialDeEstampado, coloresDominantes, ejemploDeEstampado, esEstampado, familiaEnCarta, fotoQueDistingue, faltaParaEstampado, fotoDeLaFila, nombreDeEstampado, patronesDeEstampado } from "./color-estampado-reglas";
 
 const colores = [
   { codigo: "NEG", nombre: "Negro", hex: "#1A1A1A", familiaColor: "neutro" },
@@ -95,23 +95,41 @@ describe("fotoDeLaFila", () => {
 });
 
 describe("camposDeNuevoColor", () => {
-  const base = { nombre: "", hexListo: false, patron: false, hayPatrones: true, dominante: false };
+  const base = { nombre: "", hexListo: false, dominante: false };
   const faltan = (c: Parameters<typeof camposDeNuevoColor>[0]) => camposDeNuevoColor(c).filter((x) => !x.hecho).map((x) => x.id);
   it("liso: nombre y tono", () => {
     expect(faltan({ ...base, estampado: false })).toEqual(["nombre", "tono"]);
     expect(faltan({ ...base, estampado: false, nombre: "Coral", hexListo: true })).toEqual([]);
   });
-  it("estampado: patrón, color y nombre, en ese orden", () => {
-    expect(faltan({ ...base, estampado: true })).toEqual(["patron", "dominante", "nombre"]);
-  });
-  it("el patrón no se pide si el nombre ya se escribió o si no hay patrones", () => {
-    expect(faltan({ ...base, estampado: true, nombre: "Rayas negro-blanco" })).toEqual(["dominante"]);
-    expect(camposDeNuevoColor({ ...base, estampado: true, hayPatrones: false }).map((x) => x.id)).toEqual(["dominante", "nombre"]);
+  it("estampado: el color y el nombre; el patrón es opcional y no se lista", () => {
+    expect(faltan({ ...base, estampado: true })).toEqual(["dominante", "nombre"]);
+    expect(camposDeNuevoColor({ ...base, estampado: true }).map((x) => x.id)).not.toContain("patron");
   });
   it("coincide con lo que de verdad impide crear", () => {
     expect(faltaParaEstampado({ nombre: "", colorDominante: null })).not.toBeNull();
-    expect(camposDeNuevoColor({ ...base, estampado: true }).filter((x) => x.requerido && !x.hecho).length).toBeGreaterThan(0);
     expect(camposDeNuevoColor({ ...base, estampado: true, nombre: "Rayas", dominante: true }).filter((x) => x.requerido && !x.hecho)).toEqual([]);
     expect(faltaParaEstampado({ nombre: "Rayas", colorDominante: colores[0] })).toBeNull();
+  });
+});
+
+describe("grupoDeFamilia", () => {
+  it("toda familia de la carta tiene su frase", () => {
+    for (const f of FAMILIAS_COLOR) expect(grupoDeFamilia(f.valor), f.valor).toMatch(/^los /);
+  });
+  it("sin familia conocida no afirma nada", () => {
+    expect(grupoDeFamilia("")).toBeNull();
+    expect(grupoDeFamilia(null)).toBeNull();
+    expect(grupoDeFamilia("turquesa")).toBeNull();
+  });
+});
+
+describe("inicialDeEstampado", () => {
+  it("la primera letra, en mayúscula, aunque el nombre empiece con otra cosa", () => {
+    expect(inicialDeEstampado("Floral azul petróleo")).toBe("F");
+    expect(inicialDeEstampado("  rayas")).toBe("R");
+    expect(inicialDeEstampado("<img> ñandú")).toBe("I");
+    expect(inicialDeEstampado("Ñandú")).toBe("Ñ");
+    expect(inicialDeEstampado("123")).toBeNull();
+    expect(inicialDeEstampado(null)).toBeNull();
   });
 });

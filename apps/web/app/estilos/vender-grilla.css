@@ -32,6 +32,17 @@
   width: 1.375rem;
   height: 1.375rem;
 }
+/* Un estampado sin foto que lo distinga lleva su inicial (ADR-0634). El color de la letra sale del fondo, y los dos son dato de la prenda. */
+.vg-punto > i.vg-punto-inicial {
+  display: grid;
+  place-items: center;
+  width: 1.375rem;
+  height: 1.375rem;
+  font-size: 11px;
+  font-style: normal;
+  font-weight: 700;
+  line-height: 1;
+}
 .vg-punto::after {
   content: "";
   position: absolute;

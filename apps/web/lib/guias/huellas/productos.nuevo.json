@@ -137,7 +137,7 @@
       "Boton «{firma.motivo ?? guia.frase ?? undefined}»"
     ],
     "components/alta-producto/NuevoColorAlta.tsx": [
-      "SegmentoDeslizante «Cómo es la prenda»",
+      "SegmentoDeslizante «¿Es de un solo color o tiene dibujo?»",
       "Desplegable «{patronId}»",
       "ComboBuscable «{`${id}»",
       "CampoTexto «{guia.etiqueta(\"nombre\", esForma ? \"Nombre del estampado\" : \"Nombre del color\")}»",

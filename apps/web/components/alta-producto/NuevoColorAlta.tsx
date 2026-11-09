@@ -8,8 +8,8 @@ import type { ColorAlta } from "@/lib/alta-producto";
 import { colorDeRespuesta, coloresQueYaExisten, faltaParaCrear, familiaSugerida, nombreDeColor } from "@/lib/color-alta-reglas";
 import { normalizarCodigo, sugerirCodigoColor } from "@/lib/color-codigo";
 import { esHexValido } from "@/lib/color-parecido";
-import { FAMILIAS_COLOR, textoDeFamilia } from "@/lib/colores-familias";
-import { camposDeNuevoColor, coloresDominantes, ejemploDeEstampado, faltaParaEstampado, nombreDeEstampado, patronesDeEstampado } from "@/lib/color-estampado-reglas";
+import { FAMILIAS_COLOR } from "@/lib/colores-familias";
+import { camposDeNuevoColor, grupoDeFamilia, coloresDominantes, ejemploDeEstampado, faltaParaEstampado, nombreDeEstampado, patronesDeEstampado } from "@/lib/color-estampado-reglas";
 import { CampoGuiado, PieGuia } from "@/components/guia-de-foco/CampoGuiado";
 import { useGuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
 import { SegmentoDeslizante } from "@/components/ui/SegmentoDeslizante";
@@ -148,7 +148,7 @@ export function NuevoColorAlta({
         ? `El código ${codigo} ya lo usa «${duenoDelCodigo}». Escribe otro.`
         : falta;
 
-  const guia = useGuiaCampos(camposDeNuevoColor({ estampado: esForma, nombre, hexListo: esHexValido(hexElegido), patron: patron !== null, hayPatrones: patrones.length > 0, dominante: dominante !== null }));
+  const guia = useGuiaCampos(camposDeNuevoColor({ estampado: esForma, nombre, hexListo: esHexValido(hexElegido), dominante: dominante !== null }));
 
   async function crear() {
     setIntento(true);
@@ -198,33 +198,33 @@ export function NuevoColorAlta({
 
   return (
     <div className={enModal ? "space-y-3" : "anim-revelar space-y-3 rounded-xl border border-sand bg-crema px-3.5 py-3"}>
-      <SegmentoDeslizante
-        etiqueta="Cómo es la prenda"
-        valor={forma}
-        onCambio={(clave) => setForma(clave === "estampado" ? "estampado" : "liso")}
-        opciones={[
-          { clave: "liso", etiqueta: "Liso" },
-          { clave: "estampado", etiqueta: "Estampado" },
-        ]}
-      />
+      <Campo etiqueta="¿Es de un solo color o tiene dibujo?" sinPie>
+        <SegmentoDeslizante
+          etiqueta="¿Es de un solo color o tiene dibujo?"
+          valor={forma}
+          onCambio={(clave) => setForma(clave === "estampado" ? "estampado" : "liso")}
+          opciones={[
+            { clave: "liso", etiqueta: "Liso" },
+            { clave: "estampado", etiqueta: "Estampado" },
+          ]}
+        />
+      </Campo>
 
       {/* Un estampado se nombra con lo que tiene (ADR-0634): dos «azules» distintos de la misma prenda dejan de ser el mismo color. */}
       {esForma && (
         <div className="grid gap-3 sm:grid-cols-2 sm:items-start">
           {patrones.length > 0 && (
-            <CampoGuiado id="patron" guia={guia}>
-              <Campo etiqueta={guia.etiqueta("patron", "Patrón")} idEtiqueta={`${id}-patron`} sinPie>
-                <Desplegable
-                  forma="campo"
-                  idEtiqueta={`${id}-patron`}
-                  valor={patronId}
-                  onValor={setPatronId}
-                  opciones={patrones.map((p) => ({ valor: p.id, texto: p.nombre }))}
-                  marcador="Elige…"
-                  deshabilitado={guardando}
-                />
-              </Campo>
-            </CampoGuiado>
+            <Campo etiqueta={<>Patrón <span className="font-normal normal-case text-tinta/45">· opcional</span></>} idEtiqueta={`${id}-patron`} sinPie>
+              <Desplegable
+                forma="campo"
+                idEtiqueta={`${id}-patron`}
+                valor={patronId}
+                onValor={setPatronId}
+                opciones={patrones.map((p) => ({ valor: p.id, texto: p.nombre }))}
+                marcador="Elige…"
+                deshabilitado={guardando}
+              />
+            </Campo>
           )}
           <CampoGuiado id="dominante" guia={guia}>
             <Campo etiqueta={guia.etiqueta("dominante", "El color que más se ve")} idEtiqueta={`${id}-dominante`} sinPie>
@@ -310,7 +310,7 @@ export function NuevoColorAlta({
       </div>
 
       {esForma && dominante && (
-        <p className="text-sm text-taupe">Cuenta como {textoDeFamilia(dominante.familiaColor)} en los filtros y en el plan del piso. Súbele su foto: es como se va a reconocer.</p>
+        <p className="text-sm text-taupe">{grupoDeFamilia(dominante.familiaColor) ? `Se agrupa con ${grupoDeFamilia(dominante.familiaColor)}. ` : ""}La foto la subes en la lista de colores.</p>
       )}
 
       <ExisteTambien que="color" nombre={nombre} solo="nombre" estado={existe} si={elegirExistente} deshabilitado={guardando} />
