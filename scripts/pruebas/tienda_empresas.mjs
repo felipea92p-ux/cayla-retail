@@ -198,7 +198,11 @@ console.log("F. Las migraciones se pueden pegar dos veces");
   )][1];
   const deshacerPorLotes = `do $d$ declare d text := pg_get_functiondef('retail.tienda_catalogo(uuid)'::regprocedure);
 begin if position($n$${nuevo}$n$ in d) > 0 then execute replace(d, $n$${nuevo}$n$, $a$${antes}$a$); end if; end $d$;`;
-  const dos = correr(`begin;\n${deshacerPorLotes}\n${sql}\n${sql}\nrollback;`);
+  // 20261109171000 escribió `tienda_probador` entera, como corre en producción (sin el ancla de 20261021000000): dentro de la
+  // transacción vuelve la de 20261017025000, para pegar 20261021000000 sobre el probador que ella conoció.
+  const probadorQueConocio = readFileSync("supabase/migrations/20261017025000_tienda_probador.sql", "utf8")
+    .match(/create or replace function retail\.tienda_probador\([\s\S]*?\n\$fn\$;/)[0];
+  const dos = correr(`begin;\n${deshacerPorLotes}\n${probadorQueConocio}\n${sql}\n${sql}\nrollback;`);
   esperar("pegadas dos veces no fallan", dos.ok, dos.mensaje);
 }
 
