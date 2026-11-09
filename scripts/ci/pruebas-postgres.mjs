@@ -216,6 +216,8 @@ export const PRUEBAS = [
   "pruebas:pago-planilla-y-sunat",
   "pruebas:planilla-conceptos",
   "pruebas:comision-estimada",
+  // La foto del diario (ADR-0633): la foto de un mes es el diario del líder, línea por línea; solo la toma el trabajo programado. ROLLBACK.
+  "pruebas:foto-diario",
   // La comisión estimada de las máquinas en una sola pasada (20261109162000): cada asiento y cada reversa igual a fn_pos_comision_lote. ROLLBACK.
   "pruebas:comision-lotes",
 
