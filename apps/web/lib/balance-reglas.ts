@@ -389,7 +389,24 @@ export function nombreLinea(l: Pick<LineaBalance, "cuenta" | "nombre" | "seccion
     const mes = desde ? MESES[Number(desde.slice(5, 7)) - 1] : "el mes";
     return `${l.monto < 0 ? "Pérdida" : "Utilidad"} de ${mes}`;
   }
+  if (l.cuenta === MERCADERIA_PAGADA) return nombreMercaderiaPagada(l.detalle);
+  if (l.cuenta === MERCADERIA_PAGADA_IGV) return "IGV de esas compras (se descuenta cuando entre la factura)";
   return NOMBRE_LINEA[l.cuenta] ?? l.nombre;
+}
+
+/** Las dos líneas calculadas del Balance (ADR-0636): lo que la compradora ya pagó y el libro todavía no ve. No son cuentas del plan. */
+export const MERCADERIA_PAGADA = "mercaderia_pagada";
+export const MERCADERIA_PAGADA_IGV = "mercaderia_pagada_igv";
+const compras = (k: number) => (k === 1 ? "1 compra" : `${k} compras`);
+/** «Mercadería pagada, en camino (35 compras)»: dice dónde está, porque ese es el paso que falta (cerrar el conteo o completar el papel). */
+function nombreMercaderiaPagada(detalle: Fila | undefined): string {
+  const papeles = n(detalle?.papeles);
+  const enCamino = n(detalle?.en_camino);
+  const enTienda = n(detalle?.en_tienda);
+  const cuantas = papeles > 0 ? ` (${compras(papeles)})` : "";
+  if (enTienda > 0 && enCamino > 0) return `Mercadería pagada: ${solesExactos(enCamino)} en camino y ${solesExactos(enTienda)} ya en tienda${cuantas}`;
+  if (enTienda > 0) return `Mercadería pagada, ya en tienda: falta su papel${cuantas}`;
+  return `Mercadería pagada, en camino${cuantas}`;
 }
 /** El nombre de una cuenta en los saldos de arranque (la ayuda de cada una, p. ej. que el IGV a favor va en negativo, la da la base). */
 export function nombreDeCuenta(cuenta: string, nombre: string): string {
@@ -397,8 +414,8 @@ export function nombreDeCuenta(cuenta: string, nombre: string): string {
   return NOMBRE_LINEA[cuenta] ?? nombre;
 }
 
-/** El código que se muestra a la izquierda (el resultado del mes no tiene cuenta propia: se cierra en «lo tuyo»). */
-export const cuentaLinea = (l: Pick<LineaBalance, "cuenta">) => (l.cuenta === "resultado_mes" ? "" : l.cuenta);
+/** El código que se muestra a la izquierda. El resultado del mes y la mercadería pagada (ADR-0636) no son cuentas del plan: van sin código. */
+export const cuentaLinea = (l: Pick<LineaBalance, "cuenta">) => (/^\d+$/.test(l.cuenta) ? l.cuenta : "");
 
 
 export type BalanceAgrupado = {

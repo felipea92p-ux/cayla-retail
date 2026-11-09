@@ -6,7 +6,7 @@
 // ASUME: toda cifra viene de la base (`fn_balance_general`, `fn_balance_por_tienda`, `fn_estado_resultados`). Si hay Balance que dibujar lo
 // decide `situacion` (ADR-0619): aquí se recibe ya decidido.
 
-import { nombreLinea, type LineaBalance, type UnidadBalance } from "./balance-reglas";
+import { MERCADERIA_PAGADA, MERCADERIA_PAGADA_IGV, nombreLinea, type LineaBalance, type UnidadBalance } from "./balance-reglas";
 import { soles } from "./flujo-caja-reglas";
 import type { Recomendacion } from "./ganamos-reglas";
 
@@ -15,10 +15,10 @@ export type GrupoBalance = { clave: string; nombre: string; lado: "tiene" | "deb
 /** Los grupos de cada lado, en el orden en que se leen. `de` dice qué líneas son suyas (por su cuenta), y lo que no cae en ninguno va a «Otros». */
 const GRUPOS: readonly { clave: string; nombre: string; lado: GrupoBalance["lado"]; clase: string; de: (cuenta: string) => boolean }[] = [
   { clave: "plata", nombre: "Plata en cajas y bancos", lado: "tiene", clase: "bg-verde", de: (c) => c.startsWith("10") && c !== "105" },
-  { clave: "cobros", nombre: "Lo que te deben o está por llegar", lado: "tiene", clase: "bg-verde/40", de: (c) => c === "105" || c.startsWith("12") || c.startsWith("14") || c.startsWith("16") },
+  { clave: "cobros", nombre: "Lo que te deben o está por llegar", lado: "tiene", clase: "bg-verde/40", de: (c) => c === "105" || c.startsWith("12") || c.startsWith("14") || c.startsWith("16") || c === MERCADERIA_PAGADA_IGV },
   // Va aparte: SUNAT lo descuenta del IGV que viene, no lo paga en plata, así que no entra a «si te cobraran todo hoy» (ADR-0620).
   { clave: "credito", nombre: "Saldo a favor de IGV", lado: "tiene", clase: "bg-verde/25", de: (c) => c === "4011" },
-  { clave: "mercaderia", nombre: "Mercadería y telas", lado: "tiene", clase: "bg-tinta/55", de: (c) => c.startsWith("20") || c.startsWith("21") || c.startsWith("23") || c.startsWith("24") || c.startsWith("28") },
+  { clave: "mercaderia", nombre: "Mercadería y telas", lado: "tiene", clase: "bg-tinta/55", de: (c) => c.startsWith("20") || c.startsWith("21") || c.startsWith("23") || c.startsWith("24") || c.startsWith("28") || c === MERCADERIA_PAGADA },
   { clave: "equipos", nombre: "Muebles y equipos", lado: "tiene", clase: "bg-tinta/25", de: (c) => c.startsWith("33") || c.startsWith("39") },
   { clave: "proveedores", nombre: "Proveedores", lado: "debe", clase: "bg-ambar", de: (c) => c.startsWith("42") },
   { clave: "impuestos", nombre: "Impuestos", lado: "debe", clase: "bg-taupe", de: (c) => c.startsWith("40") },

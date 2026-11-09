@@ -21,6 +21,13 @@ const LINEAS = [
 
 describe("gruposDelBalance (ADR-0585)", () => {
   const g = gruposDelBalance(LINEAS);
+  it("la mercadería pagada va con la mercadería y su IGV con lo que está por llegar (ADR-0636)", () => {
+    const x = gruposDelBalance([L("activo", "1413", 7), L("activo", "201", 100), L("activo", "mercaderia_pagada", 400), L("activo", "mercaderia_pagada_igv", 36)]);
+    expect(x.map((y) => [y.clave, y.monto])).toEqual([
+      ["cobros", 43],
+      ["mercaderia", 500],
+    ]);
+  });
   it("cada lado en grupos que una tienda reconoce, y los dos lados pesan lo mismo", () => {
     expect(g.map((x) => [x.clave, x.monto])).toEqual([
       ["plata", 27450],
