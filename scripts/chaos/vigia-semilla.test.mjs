@@ -1,8 +1,11 @@
 // Pruebas de `scripts/chaos/vigia-semilla.mjs` (ADR-0632): que la siembra del vigía de producción salga del detector de `/chaos` y no
-// pueda separarse de él. Que cada consulta corra de verdad contra Postgres lo prueba `scripts/pruebas/vigia_invariantes.sql`.
+// pueda separarse de él. Que cada consulta corra de verdad contra Postgres lo prueba `scripts/pruebas/vigia_invariantes.mjs`.
 // `node --test scripts/chaos/vigia-semilla.test.mjs`
 import assert from "node:assert/strict";
+import { readdirSync, readFileSync } from "node:fs";
+import { dirname, join } from "node:path";
 import { test } from "node:test";
+import { fileURLToPath } from "node:url";
 import { INVARIANTES } from "./invariantes.mjs";
 import { filasDelVigia, MARCA_FIN, MARCA_INICIO, semillaSql } from "./vigia-semilla.mjs";
 
@@ -47,4 +50,18 @@ test("una siembra nueva no vuelve a encender lo que alguien apagó en producció
 test("si un texto trae la comilla de la siembra, el generador se niega en vez de escribir un SQL roto", () => {
   const rota = [{ ...filasDelVigia()[0], sql: "select 1 as x from $inv$ y" }];
   assert.throws(() => semillaSql(rota), /comilla/);
+});
+
+test("la última migración que siembra el vigía trae EXACTAMENTE la siembra que sale hoy del detector", () => {
+  // Si cambias una invariante de invariantes.mjs, este rojo te pide una migración nueva con la siembra regenerada
+  // (`node scripts/chaos/vigia-semilla.mjs`): si no, producción seguiría mirando la versión vieja sin que nadie lo sepa.
+  const dir = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "supabase", "migrations");
+  const conSiembra = readdirSync(dir)
+    .filter((f) => /^\d{14}_.+\.sql$/.test(f))
+    .sort()
+    .filter((f) => readFileSync(join(dir, f), "utf8").includes(MARCA_INICIO));
+  assert.ok(conSiembra.length > 0, "ninguna migración siembra el vigía");
+  const texto = readFileSync(join(dir, conSiembra.at(-1)), "utf8");
+  const bloque = texto.slice(texto.indexOf(MARCA_INICIO), texto.indexOf(MARCA_FIN) + MARCA_FIN.length);
+  assert.equal(bloque, semillaSql(), `${conSiembra.at(-1)} no trae la siembra de hoy: genera una migración nueva con \`node scripts/chaos/vigia-semilla.mjs\``);
 });
