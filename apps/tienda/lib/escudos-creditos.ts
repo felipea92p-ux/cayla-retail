@@ -1,7 +1,7 @@
 // De dónde salió cada escudo de `public/escudos/` y bajo qué licencia (Wikimedia Commons, bajados el 2026-10-26). Las tres licencias exigen
 // mencionar al autor, decir la licencia y avisar que se cambió algo: aquí se reducen a 120 px de ancho (la miniatura PNG que Commons genera
 // del mismo archivo). Las dos CC BY-SA piden además compartir igual lo que se derive del dibujo: el escudo reducido sigue bajo esa licencia.
-// El pie de la tienda (`components/Pie.tsx`) los muestra en toda página; la prueba exige un crédito por cada escudo anotado.
+// La página «Nuestras tiendas» (`components/NuestrasTiendas.tsx`) los muestra al final; la prueba exige un crédito por cada escudo anotado.
 
 export type CreditoDeEscudo = {
   /** La tienda, con la clave de `ESCUDOS_DE_TIENDA`. */

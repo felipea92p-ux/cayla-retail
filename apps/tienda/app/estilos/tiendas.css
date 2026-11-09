@@ -63,3 +63,7 @@
 @container tienda (min-width: 960px) {
   .ay-tiendas { gap: clamp(24px, 4cqi, 64px); }
 }
+
+/* El crédito de los escudos (licencias Creative Commons): chico y al final, debajo de las tiendas. */
+.ay-tiendas-creditos { margin: 40px 0 0; font-size: 12px; line-height: 1.5; color: var(--taupe); }
+.ay-tiendas-creditos a { text-decoration: underline; text-underline-offset: 2px; }
