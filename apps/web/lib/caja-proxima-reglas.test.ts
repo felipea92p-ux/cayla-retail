@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { CuentaDinero } from "./cuentas-dinero-reglas";
 import type { CobroEsperado, Proyeccion, SalidaProy } from "./flujo-caja-reglas";
-import { alinearAvisoDeCaja, cajaProxima, detalleDeHoy, DIAS_CAJA_PROXIMA, diasEntre, fechaEnPalabras, loQueHayEnCuentas, salidasGrandes, sumarDias } from "./caja-proxima-reglas";
+import { alinearAvisoDeCaja, cajaProxima, DIAS_CAJA_PROXIMA, diasEntre, fechaEnPalabras, loQueHayEnCuentas, salidasGrandes, sumarDias } from "./caja-proxima-reglas";
 import fixture from "./resumen-finanzas.fixture.json";
 import { avisosParaDecidir, leerResumen, type VerResumen } from "./resumen-finanzas-reglas";
 
@@ -385,11 +385,6 @@ describe("lo por volver de compras", () => {
     const c = cayla(proyeccion({ saldoHoy: 20_000, deClaudia: 300, porVolverCompras: 285 }));
     expect(c.porVolver).toBe(285);
     expect(loQueHayEnCuentas(c)).toBe(20_585);
-  });
-  it("la línea bajo «Hoy tienes» nombra lo que ya no cuenta", () => {
-    expect(texto(detalleDeHoy({ deClaudia: 0, porVolver: 0 }))).toBe("Cajones, cajas fuertes y bancos.");
-    expect(texto(detalleDeHoy({ deClaudia: 0, porVolver: 285 }))).toBe("Cajones, cajas fuertes y bancos, sin los S/ 285 por volver de compras.");
-    expect(texto(detalleDeHoy({ deClaudia: 300, porVolver: 285 }))).toBe("Cajones, cajas fuertes y bancos, sin los S/ 300 que son de Claudia ni los S/ 285 por volver de compras.");
   });
   it("una base más vieja que no lo manda deja 0", () => {
     expect(cayla(proyeccion({ saldoHoy: 20_000 })).porVolver).toBe(0);

@@ -385,7 +385,7 @@ function PagarLaCompra({ c, conIgv, hoy, proyeccion, elegida, onElegir }: { c: C
 
   return (
     <div data-guia="fin-resumen.inversion-pagos">
-      <p className="mb-3 text-sm text-taupe">Lo que elijas aquí se cuenta en «Tu caja» de arriba.</p>
+      <p className="mb-3 text-sm text-taupe">Lo que elijas aquí se cuenta en «Próximos», arriba.</p>
       <div className="grid gap-4 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)]">
         <OpcionesFin
           nombre={`forma-${c.id}`}

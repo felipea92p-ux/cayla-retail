@@ -2178,6 +2178,12 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
     Tablas `periodos`, `periodo_cierres`, `diario_cerrado` (con hash); disparadores de bloqueo por fecha en gastos, compras
     y sus pagos y notas, reembolsos, activos, movimientos de dinero, ventas de prueba y costo de lo vendido.
   - `/finanzas/resumen` → también «Cada sede, junta» (tarea 27 de «Las 36», 2026-11-06): `getEstadoResultados` + `getBalancePorTienda` → `lib/sedes-juntas-reglas.ts` → `components/finanzas/SedesJuntas.tsx`. Los sueldos estimados de un tramo se piden en un solo lugar (`hastaDeLaProvision`, `lib/planilla-provision-reglas.ts`).
+  - `/finanzas/resumen` → **desde 2026-11-09, camino «A · Bolsillos» (ADR-0493, actualización 2026-11-09)**: las fechas con `SelectorPeriodo`
+    (`leerPeriodo`/`periodoAnterior`, `lib/estados-periodo.ts`); «Libre para usar» y sus bolsillos (`lib/bolsillos-reglas.ts` →
+    `components/finanzas/bolsillos/SaldoLibre.tsx`); «Noviembre va así» (`lib/te-deja-mes-reglas.ts` + `equilibrioMes` → `TarjetaMes.tsx`);
+    «Próximos» (`lib/proximos-reglas.ts` → `Proximos.tsx`); «Movimientos» (`fn_flujo_caja_real` por día, `lib/movimientos-resumen-reglas.ts` →
+    `Movimientos.tsx`, Server Component en su `Suspense`); las preguntas (`Preguntas.tsx`) y las hojas de detalle (`lib/hojas-resumen-reglas.ts` →
+    `HojasResumen.tsx`, la de la ropa con `getValorInventario`). `TresRespuestas`, `CajaProxima` y `EquilibrioMes` se borraron. Lo de abajo es la historia.
   - `/finanzas/resumen` → el tablero que junta lo anterior (F10). Desde El telar (2026-10-23, ADR-0493) lee, además de
     `fn_resumen_finanzas` (los avisos de hoy) y `fn_finanzas_confianza` (del mes elegido), `fn_estado_resultados` del mes de la barra
     y del tramo con que se compara (`lib/resultados.ts`), y `fn_rendimiento_serie` por tienda si la cuenta ve Rendimiento
