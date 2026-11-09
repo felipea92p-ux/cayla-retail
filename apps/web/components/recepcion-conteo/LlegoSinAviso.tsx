@@ -11,7 +11,7 @@ import { Vacio } from "@/components/ui/Vacio";
 import { Modal } from "@/components/ui/Modal";
 import { BotonSinAviso, useSinAviso } from "./SinAvisoContexto";
 import { ComboResponsable } from "@/components/ComboResponsable";
-import { useAltaDeProveedor } from "@/components/useAltaDeProveedor";
+import { ProveedorNuevoRecepcion } from "@/components/recepcion-conteo/ProveedorNuevoRecepcion";
 import { CampoGuiado, PieGuia } from "@/components/guia-de-foco/CampoGuiado";
 import { useGuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
 import { diaMes } from "@/lib/fechas-lima";
@@ -37,8 +37,6 @@ export function LlegoSinAviso({
   ubicacionId,
   ubicacionEtiqueta,
   proveedores,
-  rubrosEnUso,
-  puedeAgregarProveedor,
   facturas,
   hayListaArriba = false,
 }: {
@@ -46,10 +44,6 @@ export function LlegoSinAviso({
   ubicacionEtiqueta: string;
   /** Con sus marcas (se leen en la puerta): se ven bajo cada proveedor y sirven para encontrarlo. */
   proveedores: readonly ProveedorDeLaPuerta[];
-  /** Los rubros que ya usa el directorio: los botones del formulario de «Agregar proveedor». */
-  rubrosEnUso: readonly string[];
-  /** La cuenta tiene el módulo Proveedores (lo que exige `registrar_proveedor`): puede dar de alta uno desde aquí. */
-  puedeAgregarProveedor: boolean;
   facturas: readonly FacturaPorRecibir[];
   /** Arriba hay envíos u órdenes de Compras para esta sede: esta tarjeta es para lo que NO está en esa lista (formidable, 2026-10-14). */
   hayListaArriba?: boolean;
@@ -84,16 +78,8 @@ export function LlegoSinAviso({
   // guardado se suma a la lista y queda elegido, sin esperar a que la página relea el directorio.
   const [agregados, setAgregados] = useState<ProveedorDeLaPuerta[]>([]);
   const todos = [...proveedores, ...agregados.filter((a) => !proveedores.some((p) => p.id === a.id))];
-  const alta = useAltaDeProveedor({
-    habilitado: puedeAgregarProveedor,
-    rubrosEnUso,
-    existentes: todos.map((p) => ({ id: p.id, nombre: p.nombre, ruc: p.ruc ?? null })),
-    alGuardar: (p) => {
-      setAgregados((a) => [...a, { id: p.id, nombre: p.nombre, ruc: p.ruc, marcas: [] }]);
-      setProveedorId(p.id);
-      setBuscar("");
-    },
-  });
+  // ADR-0635 (Felipe 2026-11-09): lo agrega quien recibe, sin el módulo Proveedores, con su razón social y su RUC si lo tiene.
+  const [agregando, setAgregando] = useState<string | null>(null);
 
   const sinTurno = responsable.estado === "nadie" || responsable.estado === "sin_lectura";
   const campos = useGuiaCampos(
@@ -212,16 +198,12 @@ export function LlegoSinAviso({
               )}
               {coinciden.length > primeros.length && <li className="px-1 text-sm text-taupe">Escribe para encontrar a los demás ({coinciden.length - primeros.length} más).</li>}
             </ul>
-            {puedeAgregarProveedor ? (
-              <p className="mt-2 text-sm text-taupe">
-                ¿No está?{" "}
-                <button type="button" onClick={() => alta.abrir(buscar)} className="btn-cayla btn-enlace whitespace-normal text-left text-xs">
-                  + Agregar proveedor
-                </button>
-              </p>
-            ) : (
-              <p className="mt-2 text-sm text-taupe">¿No está? Pídele a quien administra Proveedores que lo agregue, o apaga «Todo es de un solo proveedor».</p>
-            )}
+            <p className="mt-2 text-sm text-taupe">
+              ¿No está?{" "}
+              <button type="button" onClick={() => setAgregando(buscar)} className="btn-cayla btn-enlace whitespace-normal text-left text-xs">
+                + Agregar proveedor
+              </button>
+            </p>
           </CampoGuiado>
           )}
 
@@ -287,7 +269,20 @@ export function LlegoSinAviso({
     )}
     </div>
     {/* Fuera del <form> (ADR-0128): un `submit` del alta no debe llegar a «Empezar a contar». */}
-    {alta.modal}
+    {agregando !== null && (
+      <ProveedorNuevoRecepcion
+        proveedores={todos}
+        tipeado={agregando}
+        responsable={responsable}
+        onRegistrado={(p) => {
+          setAgregados((a) => (a.some((x) => x.id === p.id) ? a : [...a, { id: p.id, nombre: p.nombre, ruc: p.ruc, marcas: [] }]));
+          setProveedorId(p.id);
+          setBuscar("");
+          setAgregando(null);
+        }}
+        onCerrar={() => setAgregando(null)}
+      />
+    )}
     </>
   );
 }

@@ -5,7 +5,9 @@ import { Check, ChevronDown, ChevronRight } from "lucide-react";
 import { Volver } from "@/components/ui/Volver";
 import { Aviso } from "@/components/ui/Aviso";
 import { avisar } from "@/components/ui/Avisos";
-import { Boton, CampoSelect, CampoTexto } from "@/components/ui/campos";
+import { Boton, Campo, CampoTexto } from "@/components/ui/campos";
+import { ComboBuscable } from "@/components/ui/ComboBuscable";
+import { ProveedorNuevoRecepcion, type ProveedorDeLaLista } from "./ProveedorNuevoRecepcion";
 import { Modal } from "@/components/ui/Modal";
 import { Chip } from "@/components/ui/Chip";
 import { TABLA, Tabla } from "@/components/ui/Tabla";
@@ -84,6 +86,7 @@ export function CerrarEnvio({
   veDinero,
   soloSede = false,
   proveedores = [],
+  onProveedorNuevo,
   esperandoGuardar,
   onVolver,
   decisionesPrevias = null,
@@ -104,7 +107,9 @@ export function CerrarEnvio({
   veDinero: boolean;
   /** Una terminal (Felipe 2026-10-26): el precio de venta vale solo en su sede; la base no le deja cambiar el de todas. */
   soloSede?: boolean;
-  proveedores?: readonly { id: string; nombre: string }[];
+  proveedores?: readonly ProveedorDeLaLista[];
+  /** Se agregó un proveedor desde «De quién llegó» (ADR-0635): la pantalla lo suma a su lista. */
+  onProveedorNuevo?: (p: ProveedorDeLaLista) => void;
   /** Algo de lo contado todavía se está guardando: se espera antes de cerrar. */
   esperandoGuardar: boolean;
   /** Volver a contar; `clave`: la línea que falta contar, para llegar a ella. */
@@ -224,8 +229,11 @@ export function CerrarEnvio({
   const [poniendo, setPoniendo] = useState<string | null>(null);
   const [errorDeQuien, setErrorDeQuien] = useState<{ clave: string; texto: string } | null>(null);
   const deQuien = sinAviso ? deQuienLlego(visibles, puestos) : [];
-  async function ponerDeQuien(fila: FilaDeQuien, proveedorId: string) {
-    const prov = proveedores.find((x) => x.id === proveedorId);
+  // «+ Agregar proveedor» en «De quién llegó» (ADR-0635): la marca a la que se le pone y lo escrito en su combo.
+  const [agregandoProveedor, setAgregandoProveedor] = useState<{ fila: FilaDeQuien; tipeado: string } | null>(null);
+  /** `recien`: el proveedor que se acaba de registrar, que todavía no está en `proveedores` (la pantalla lo suma en el próximo dibujo). */
+  async function ponerDeQuien(fila: FilaDeQuien, proveedorId: string, recien?: { id: string; nombre: string }) {
+    const prov = recien ?? proveedores.find((x) => x.id === proveedorId);
     if (!prov || poniendo) return;
     setPoniendo(fila.clave);
     setErrorDeQuien(null);
@@ -661,20 +669,29 @@ export function CerrarEnvio({
     const id = idCampoProveedor(f.clave);
     const combo = (
       <div className="w-full sm:w-72">
-        <CampoSelect
+        <Campo
           etiqueta={f.proveedor ? `Proveedor de ${f.marca?.nombre ?? "lo sin marca"}` : guia.etiqueta(id, `Proveedor de ${f.marca?.nombre ?? "lo sin marca"}`)}
-          valor={f.proveedor?.id ?? ""}
-          onValor={(v) => {
-            setCambiandoProveedor(null);
-            void ponerDeQuien(f, v);
-          }}
-          opciones={proveedores.map((x) => ({ valor: x.id, texto: x.nombre }))}
-          marcador="Elige el proveedor"
-          deshabilitado={poniendo !== null || guardando}
+          htmlFor={id}
           tono={enError ? "error" : undefined}
           pie={enError ? errorDeQuien.texto : f.varios ? "Trae más de un proveedor: elegir uno los junta." : undefined}
           sinPie={!enError && !f.varios}
-        />
+        >
+          <fieldset disabled={poniendo !== null || guardando} className="contents">
+            <ComboBuscable
+              id={id}
+              etiquetaAccesible={`Proveedor de ${f.marca?.nombre ?? "lo sin marca"}`}
+              valor={f.proveedor?.id ?? ""}
+              onValor={(v) => {
+                setCambiandoProveedor(null);
+                void ponerDeQuien(f, v);
+              }}
+              opciones={proveedores.map((x) => ({ valor: x.id, texto: x.nombre }))}
+              marcador="Busca el proveedor o agrégalo"
+              // ADR-0635: el que no está se agrega aquí mismo, con su razón social y su RUC si lo tiene.
+              crear={{ etiqueta: (q) => (q ? `+ Agregar «${q}» como proveedor nuevo` : "+ Agregar proveedor"), onCrear: (q) => setAgregandoProveedor({ fila: f, tipeado: q }) }}
+            />
+          </fieldset>
+        </Campo>
       </div>
     );
     return !f.proveedor && primeraDeLaMarca.get(f.clave) === g.clave ? (
@@ -1259,6 +1276,21 @@ export function CerrarEnvio({
       </div>
     </form>
     {/* Fuera del <form> (ADR-0128): un clic o una tecla de la hoja no debe llegar al envío del cierre. */}
+    {agregandoProveedor && (
+      <ProveedorNuevoRecepcion
+        proveedores={proveedores}
+        tipeado={agregandoProveedor.tipeado}
+        responsable={responsable}
+        onRegistrado={(p) => {
+          const { fila } = agregandoProveedor;
+          setAgregandoProveedor(null);
+          setCambiandoProveedor(null);
+          onProveedorNuevo?.(p);
+          void ponerDeQuien(fila, p.id, p);
+        }}
+        onCerrar={() => setAgregandoProveedor(null)}
+      />
+    )}
     {porConfirmar && (
       <ConfirmarPrecios
         cambios={porConfirmar}
