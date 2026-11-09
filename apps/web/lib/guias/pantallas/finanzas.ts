@@ -160,7 +160,7 @@ export const GUIA_FIN_RESUMEN: Guia = {
       ancla: "fin-resumen.como-se-calcula",
       opcional: true,
       titulo: "La cuenta, renglón por renglón",
-      texto: "Aquí se abre la cuenta: lo que hay, cada bolsillo que se resta y lo que queda. No cuenta lo que vas a vender. En la demo no la abrimos.",
+      texto: "Aquí se abre la cuenta: lo que hay, cada bolsillo que se resta y lo que queda. No cuenta lo que vas a vender. Cada bolsillo también abre su hoja. En la demo no la abrimos.",
     },
     {
       id: "preguntas",
@@ -173,6 +173,13 @@ export const GUIA_FIN_RESUMEN: Guia = {
       ancla: "fin-resumen.mes",
       titulo: "Cómo va el mes",
       texto: "Cuánto te deja el mes. Mientras corre es un estimado, con lo que vendes al día: puede quedar entre dos cifras, más cerca a medida que pasan los días. Abajo, lo vendido contra el mes pasado y los gastos. Si el mes ya cerró, dice lo que dejó o lo que faltó.",
+    },
+    {
+      id: "cuenta-del-mes",
+      ancla: "fin-resumen.cuenta-del-mes",
+      opcional: true,
+      titulo: "La cuenta, en hojas",
+      texto: "Aquí se abre la cuenta del mes: de lo vendido a lo que te deja, renglón por renglón. Desde esa hoja, la flecha de abajo pasa a la siguiente: lo vendido, los gastos, lo que viene, SUNAT y la ropa. Las cifras subrayadas también abren su hoja. En la demo no la abrimos.",
     },
     {
       id: "equilibrio",

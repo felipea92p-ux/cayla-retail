@@ -1,3 +1,4 @@
+import { CircleHelp } from "lucide-react";
 import { BarraAvance } from "@/components/ui/BarraAvance";
 import { Chip, type TonoChip } from "@/components/ui/Chip";
 import { CifraAnimada } from "@/components/ui/CifraAnimada";
@@ -7,6 +8,7 @@ import type { EquilibrioMes } from "@/lib/equilibrio-mes-reglas";
 import { soles } from "@/lib/flujo-caja-reglas";
 import type { RespuestaResumen } from "@/lib/resumen-telar-reglas";
 import type { TeDejaMes } from "@/lib/te-deja-mes-reglas";
+import type { ClaveHoja } from "@/lib/hojas-resumen-reglas";
 
 // Finanzas ▸ Resumen, camino «A · Bolsillos»: la tarjeta «Noviembre va así» (Felipe 2026-11-09). Cuánto te deja el mes —estimado con su rango mientras
 // corre, lo que fue si ya cerró—, lo vendido contra el período anterior, los gastos y, abajo, si ya se pagó el mes (la barra del equilibrio con la
@@ -27,6 +29,9 @@ type Props = {
   /** «Día 9 de 30», para la rayita de hoy; `null` fuera del mes en curso. */
   hoyEnElMes: { van: number; total: number } | null;
   hrefGanancias: string | null;
+  /** Abre la hoja de detalle («Lo que te deja», «Lo que vendiste», «En qué se va la plata»); `null` si esa hoja no tiene con qué. */
+  onAbrir: (hoja: ClaveHoja) => void;
+  hojas: readonly ClaveHoja[];
 };
 
 function Delta({ cambio }: { cambio: NonNullable<Props["cambio"]> }) {
@@ -40,7 +45,17 @@ function Delta({ cambio }: { cambio: NonNullable<Props["cambio"]> }) {
   );
 }
 
-export function TarjetaMes({ titulo, te, eq, vendido, gastos, cambio, noVende, provisional, hoyEnElMes, hrefGanancias }: Props) {
+/** Una cifra que abre su hoja, o la cifra sola si la hoja no está. */
+function Cifra({ hoja, hojas, onAbrir, children, etiqueta }: { hoja: ClaveHoja; hojas: readonly ClaveHoja[]; onAbrir: (h: ClaveHoja) => void; children: React.ReactNode; etiqueta: string }) {
+  if (!hojas.includes(hoja)) return <>{children}</>;
+  return (
+    <button type="button" className="mes-a-abre" onClick={() => onAbrir(hoja)} aria-label={etiqueta}>
+      {children}
+    </button>
+  );
+}
+
+export function TarjetaMes({ titulo, te, eq, vendido, gastos, cambio, noVende, provisional, hoyEnElMes, hrefGanancias, onAbrir, hojas }: Props) {
   const etiqueta =
     te.tipo === "estimado"
       ? "Te deja (estimado)"
@@ -111,7 +126,11 @@ export function TarjetaMes({ titulo, te, eq, vendido, gastos, cambio, noVende, p
       <dl className="mes-a-tres">
         <div>
           <dt>Vendiste</dt>
-          <dd className="num mes-a-monto">{soles(vendido)}</dd>
+          <dd className="num mes-a-monto">
+            <Cifra hoja="ventas" hojas={hojas} onAbrir={onAbrir} etiqueta="Ver lo que vendió cada tienda">
+              {soles(vendido)}
+            </Cifra>
+          </dd>
           {cambio && (
             <dd>
               <Delta cambio={cambio} />
@@ -120,7 +139,11 @@ export function TarjetaMes({ titulo, te, eq, vendido, gastos, cambio, noVende, p
         </div>
         <div>
           <dt>{te.tipo === "estimado" || te.tipo === "sin_estimado" ? "Gastos, hasta hoy" : "Gastaste"}</dt>
-          <dd className="num mes-a-monto">{soles(gastos)}</dd>
+          <dd className="num mes-a-monto">
+            <Cifra hoja="gastos" hojas={hojas} onAbrir={onAbrir} etiqueta="Ver en qué se va la plata">
+              {soles(gastos)}
+            </Cifra>
+          </dd>
           {te.tipo === "estimado" && te.faltaGastar > 0 && <dd className="mes-a-nota">de {soles(gastos + te.faltaGastar)} del mes</dd>}
           {(te.tipo === "cerrado" || te.tipo === "tramo") && vendido > 0 && <dd className="mes-a-nota">{Math.round((gastos / vendido) * 100)} de cada S/&nbsp;100 vendidos</dd>}
         </div>
@@ -145,9 +168,15 @@ export function TarjetaMes({ titulo, te, eq, vendido, gastos, cambio, noVende, p
       )}
       {eq && eq.tipo !== "ok" && !noVende && <p className="mes-a-nota mes-a-eq">{eq.motivo}</p>}
 
-      {hrefGanancias && (
+      {(hrefGanancias || hojas.includes("deja")) && (
         <div className="mes-a-pie">
-          <EnlaceVer href={hrefGanancias}>Ganancias y pérdidas</EnlaceVer>
+          {hojas.includes("deja") && (
+            <button type="button" className="btn-cayla btn-enlace bolsillos-como" onClick={() => onAbrir("deja")} data-guia="fin-resumen.cuenta-del-mes">
+              <CircleHelp aria-hidden className="h-3.5 w-3.5" />
+              ¿Cómo se calcula?
+            </button>
+          )}
+          {hrefGanancias && <EnlaceVer href={hrefGanancias}>Ganancias y pérdidas</EnlaceVer>}
         </div>
       )}
     </section>

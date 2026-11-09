@@ -258,9 +258,6 @@
   font-weight: 600;
   color: var(--color-tinta);
 }
-.mes-a-pie {
-  margin-top: 14px;
-}
 
 /* ---------- «Próximos»: lo que se paga en dos semanas y el día más justo ---------- */
 .proximos {
@@ -505,4 +502,91 @@
 }
 .resumen-ancla {
   scroll-margin-top: 140px;
+}
+
+/* ---------- Las hojas de detalle ---------- */
+.hoja-a {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.hoja-a-respuesta {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--color-sand);
+}
+.hoja-a-cifra {
+  font-family: var(--font-serif);
+  font-size: 40px;
+  line-height: 1.05;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-tinta);
+}
+.hoja-a-cifra.es-falta {
+  color: var(--color-rojo-profundo);
+}
+.hoja-a-lista {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.hoja-a-lista > li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 16px;
+  padding: 10px 0;
+  border-top: 1px solid var(--color-sand);
+}
+.hoja-a-lista > li:first-child {
+  border-top: 0;
+}
+.hoja-a-lista .num {
+  font-size: 15px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.hoja-a-lista .bolsillos-texto {
+  gap: 6px;
+}
+.hoja-a-lado {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+}
+.hoja-a-lado small {
+  font-size: 12px;
+  color: var(--color-taupe-profundo);
+}
+.pie-acciones.hoja-a-pie {
+  justify-content: space-between;
+  margin-top: 20px;
+}
+.hoja-a-hueco {
+  width: 40px;
+}
+.mes-a-abre {
+  color: inherit;
+  font: inherit;
+  text-decoration: underline;
+  text-decoration-color: color-mix(in srgb, var(--color-tinta) 25%, transparent); /* contraste: no aplica — es un subrayado, no un texto */
+  text-underline-offset: 4px;
+  transition: text-decoration-color var(--t-resp, 200ms) var(--ease-cayla);
+}
+@media (hover: hover) {
+  .mes-a-abre:hover {
+    text-decoration-color: var(--color-rojo);
+  }
+}
+.mes-a-pie {
+  margin-top: 14px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
 }

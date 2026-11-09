@@ -1,7 +1,7 @@
 "use client";
 
 import { useSearchParams } from "next/navigation";
-import { useState, type CSSProperties, type ReactNode } from "react";
+import { useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { BookOpen, CalendarCheck, Percent, Wallet } from "lucide-react";
 import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 import { SelectorPeriodo } from "@/components/finanzas/estados/SelectorPeriodo";
@@ -24,10 +24,13 @@ import { SaldoLibre } from "@/components/finanzas/bolsillos/SaldoLibre";
 import { TarjetaMes } from "@/components/finanzas/bolsillos/TarjetaMes";
 import { Proximos } from "@/components/finanzas/bolsillos/Proximos";
 import { Preguntas, type Pregunta } from "@/components/finanzas/bolsillos/Preguntas";
+import { HojasResumen, hojasQueHay, type DatosHojas, type DestinosHojas } from "@/components/finanzas/bolsillos/HojasResumen";
+import type { ClaveHoja } from "@/lib/hojas-resumen-reglas";
+import type { SedeConValor } from "@/lib/valor-inventario-reglas";
 import { proximosPagos } from "@/lib/proximos-reglas";
 import { teDejaDelMes } from "@/lib/te-deja-mes-reglas";
 import { conElRango, nombreDelAnterior } from "@/lib/estados-periodo";
-import { saldoEnBolsillos, type ClaveBolsillo } from "@/lib/bolsillos-reglas";
+import { saldoEnBolsillos } from "@/lib/bolsillos-reglas";
 import { alinearAvisoDeCaja, cajaProxima, type FlujoProximo } from "@/lib/caja-proxima-reglas";
 import { equilibrioMes, type FaltaDelMes } from "@/lib/equilibrio-mes-reglas";
 import type { Confianza as ConfianzaDatos } from "@/lib/finanzas-confianza";
@@ -87,18 +90,28 @@ type Props = {
   acceso: Acceso;
   /** «Movimientos» (camino A): lo arma la página como Server Component dentro de su `Suspense`; `null` si la cuenta no ve el flujo de CAYLA entera. */
   movimientos?: ReactNode;
+  /** Lo que vale la ropa a costo por sede (para su hoja); `null` si la cuenta no ve el dinero de Compras o la base no respondió. */
+  inventarioValor?: SedeConValor[] | null;
   /** La caja de cada sede, para «Cada sede, junta»; `null` si la cuenta no ve todas las sedes. */
   cajasPorSede?: Lectura<UnidadBalance[]> | null;
 };
 
 const FRASE = "De lo que vendes a lo que te queda.";
 
-export function ResumenFinanzasPanel({ resumen, falla, confianza, mes, periodo, minimo, hoy, estadoMes, estadoAntes, faltaDelMes, planillaSinSalida, ventasPorDia, sedes, flujoProximo, inversion, inversionFalla = null, acceso, cajasPorSede = null, movimientos = null }: Props) {
+export function ResumenFinanzasPanel({ resumen, falla, confianza, mes, periodo, minimo, hoy, estadoMes, estadoAntes, faltaDelMes, planillaSinSalida, ventasPorDia, sedes, flujoProximo, inversion, inversionFalla = null, acceso, cajasPorSede = null, movimientos = null, inventarioValor = null }: Props) {
   const sp = useSearchParams();
   // «Qué se ve»: lo que esta persona esconde de la inversión en mercadería, y qué forma de pagar mira en cada campaña (mirar no guarda nada).
   const [ajustes, ponerAjustes] = useAjustesResumen();
   const [elegidas, setElegidas] = useState<Record<string, string>>({});
   const [abierta, setAbierta] = useState<string | null>(null);
+  // La hoja de detalle abierta (camino A): solo se lee, no va en la URL.
+  const [hoja, ponerHoja] = useState<ClaveHoja | null>(null);
+  // Al cerrar la hoja, el foco vuelve al botón que la abrió (un bolsillo, una pregunta, una cifra), aunque se haya pasado de hoja en hoja.
+  const origenDeLaHoja = useRef<HTMLElement | null>(null);
+  const setHoja = (c: ClaveHoja | null) => {
+    if (!hoja && c && document.activeElement instanceof HTMLElement) origenDeLaHoja.current = document.activeElement;
+    ponerHoja(c);
+  };
   const delPlan = inversion ?? [];
   const mesDeHoy = mesDelDia(hoy);
   // Lo que va por mes (el equilibrio, «al ritmo de hoy») solo se dice mirando un mes entero; el mes en curso es el de hoy hasta hoy.
@@ -165,16 +178,7 @@ export function ResumenFinanzasPanel({ resumen, falla, confianza, mes, periodo, 
   const proximos = proximosPagos({ cajaSola, caja, proyeccion, compra: pagosDeCompra, deLaSede });
   const ve = (modulo: string) => acceso.lider || acceso.modulos.includes(modulo);
   const destino = (modulo: string, ruta: string) => (ve(modulo) ? ir(ruta) : undefined);
-  const destinos: Partial<Record<ClaveBolsillo, string>> = {
-    equipo: destino("cuentas_dinero", "/finanzas/dinero"),
-    sunat: destino("impuestos", "/finanzas/impuestos"),
-    proveedores: destino("cuentas_dinero", "/finanzas/dinero/por-pagar"),
-    fijos: destino("gastos", "/finanzas/gastos"),
-    otros: destino("reportes_financieros", "/finanzas/reportes/flujo"),
-    compras: destino("cuentas_dinero", "/finanzas/dinero"),
-    claure: destino("cuentas_dinero", "/finanzas/dinero/claure"),
-    planilla: destino("cuentas_dinero", "/finanzas/dinero"),
-  };
+
   // «Noviembre va así» (camino A): lo que te deja el mes —estimado con rango mientras corre (Felipe 2026-11-09)— y, abajo, si ya se pagó el mes.
   const fila = filaDeVer(filas, r.ver) ?? null;
   const filaAntes = estadoAntes ? (filaDeVer(estadoAntes, r.ver) ?? null) : null;
@@ -187,22 +191,44 @@ export function ResumenFinanzasPanel({ resumen, falla, confianza, mes, periodo, 
   const noVende = r.ver.todas || r.ver.tipo === "tienda" ? null : resp;
   const cambio = fila && filaAntes && filaAntes.ventas > 0 && !noVende ? { pct: fila.ventas / filaAntes.ventas - 1, contra: nombreDelAnterior(periodo) } : null;
   const hrefGanancias = ve("reportes_financieros") ? conElRango(ir("/finanzas/reportes"), sp.entries()) : null;
-  // Las preguntas de siempre: cada una lleva a donde se responde (un bloque de aquí o la pantalla que la responde). Solo las que la cuenta puede abrir.
+  // Las hojas de detalle (camino A, «También las hojas»): de lo que la pantalla ya leyó; cada una termina en la pantalla que lo resuelve.
+  const datosHojas: DatosHojas = {
+    saldo,
+    te,
+    fila,
+    filas,
+    filasAntes: estadoAntes,
+    contra: cambio?.contra ?? null,
+    proximos,
+    inventario: r.ver.todas ? inventarioValor : null,
+    hoy,
+    enElPeriodo: periodo.en,
+  };
+  const hay = hojasQueHay(datosHojas);
+  const conDestino = (modulo: string, ruta: string, texto: string) => (ve(modulo) ? { href: ir(ruta), texto } : undefined);
+  const destinosHojas: DestinosHojas = {
+    plata: conDestino("cuentas_dinero", "/finanzas/dinero", "Cuentas y dinero"),
+    deja: hrefGanancias ? { href: hrefGanancias, texto: "Ganancias y pérdidas" } : undefined,
+    ventas: hrefGanancias ? { href: hrefGanancias, texto: "Ganancias y pérdidas" } : undefined,
+    gastos: conDestino("gastos", "/finanzas/gastos", "Gastos"),
+    pagos: conDestino("cuentas_dinero", "/finanzas/dinero/por-pagar", "Por pagar"),
+    sunat: conDestino("impuestos", "/finanzas/impuestos", "Impuestos"),
+    inventario: ve("existencias") ? { href: "/inventario", texto: "Existencias" } : undefined,
+  };
+  // Las preguntas de siempre: cada una abre su hoja (o baja al bloque que la responde). Solo las que tienen con qué responder.
+  const conHoja = (texto: string, h: ClaveHoja): Pregunta | null => (hay.includes(h) ? { texto, hoja: h } : null);
   const preguntas: Pregunta[] = (
     r.ver.todas
       ? [
           { texto: "¿Puedo comprar mercadería?", href: "#inversion" },
-          { texto: "¿Cuánto le debo a SUNAT?", href: destino("impuestos", "/finanzas/impuestos") },
-          { texto: "¿Gané plata este mes?", href: hrefGanancias },
-          { texto: "¿Qué tienda vende más?", href: "#tiendas" },
-          { texto: "¿En qué se va la plata?", href: "#a-donde-va" },
+          conHoja("¿Cuánto le debo a SUNAT?", "sunat"),
+          conHoja("¿Gané plata este mes?", "deja"),
+          conHoja("¿Qué tienda vende más?", "ventas"),
+          conHoja("¿En qué se va la plata?", "gastos"),
+          conHoja("¿Cuánta ropa tengo?", "inventario"),
         ]
-      : [
-          { texto: "¿Cómo le va a esta sede?", href: "#tiendas" },
-          { texto: "¿Qué paga esta sede?", href: "#proximos" },
-          { texto: "¿Ganó plata este mes?", href: hrefGanancias },
-        ]
-  ).filter((q): q is Pregunta => !!q.href);
+      : [conHoja("¿Ganó plata esta sede?", "deja"), conHoja("¿En qué se va la plata?", "gastos"), conHoja("¿Qué paga esta sede?", "pagos")]
+  ).filter((q): q is Pregunta => q !== null);
   // «Hoy te toca» y «Próximos» cuentan el mismo hecho con el mismo número (el punto más bajo que ve la tarjeta, con la compra si está contada).
   const verReportes = acceso.lider || acceso.modulos.includes("reportes_financieros");
   const avisos = ordenarAvisos([
@@ -229,10 +255,10 @@ export function ResumenFinanzasPanel({ resumen, falla, confianza, mes, periodo, 
       <div className="resumen-a">
         <div className="resumen-a-col">
           <div data-orden="1" {...columna(1)}>
-            <SaldoLibre saldo={saldo} destinos={destinos} otroMes={periodo.enCurso ? null : mesNombre(mes)} />
+            <SaldoLibre saldo={saldo} onAbrir={setHoja} otroMes={periodo.enCurso ? null : mesNombre(mes)} />
           </div>
           <div data-orden="3" {...columna(3)}>
-            <Preguntas preguntas={preguntas} />
+            <Preguntas preguntas={preguntas} onAbrir={setHoja} />
           </div>
           {movimientos && (
             <div data-orden="6" {...columna(6)}>
@@ -253,6 +279,8 @@ export function ResumenFinanzasPanel({ resumen, falla, confianza, mes, periodo, 
               provisional={provisional}
               hoyEnElMes={enCurso ? { van: diaDeHoy, total: diasMes } : null}
               hrefGanancias={hrefGanancias}
+              onAbrir={setHoja}
+              hojas={hay}
             />
           </div>
           <div data-orden="4" {...columna(4)} data-guia="fin-resumen.decidir">
@@ -278,6 +306,8 @@ export function ResumenFinanzasPanel({ resumen, falla, confianza, mes, periodo, 
         </div>
       </div>
       {dock}
+
+      <HojasResumen abierta={hoja} onAbrir={setHoja} datos={datosHojas} destinos={destinosHojas} volverA={origenDeLaHoja} />
 
       {/* «Cada sede, junta» (tarea 27), a todo el ancho: es una tabla. */}
       {juntas && <SedesJuntas juntas={juntas} mes={mesNombre(mes)} hoy={hoy} falla={cajasPorSede?.falla ?? null} />}

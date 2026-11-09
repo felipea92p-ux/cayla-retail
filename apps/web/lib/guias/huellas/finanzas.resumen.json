@@ -2,7 +2,7 @@
   "guia": "finanzas.resumen",
   "ruta": "/finanzas/resumen",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 35,
+  "total": 41,
   "controles": {
     "components/finanzas/AdondeVaLaPlata.tsx": [
       "button «{h.nombre}»"
@@ -29,7 +29,13 @@
       "Link «Por qué no es la cifra de Ventas»",
       "Link «{`${t.nombre}»"
     ],
+    "components/finanzas/bolsillos/HojasResumen.tsx": [
+      "BotonVer «{destino.texto}»",
+      "Volver «→() => onAbrir(antes)»",
+      "button «{NOMBRE[despues]}»"
+    ],
     "components/finanzas/bolsillos/Preguntas.tsx": [
+      "button «{p.texto}»",
       "a «{p.texto}»",
       "Link «{p.texto}»"
     ],
@@ -38,7 +44,11 @@
     ],
     "components/finanzas/bolsillos/SaldoLibre.tsx": [
       "button «fin-resumen.como-se-calcula»",
-      "Link «{cuerpo}»"
+      "button «{b.nombre}»"
+    ],
+    "components/finanzas/bolsillos/TarjetaMes.tsx": [
+      "button «{etiqueta}»",
+      "button «fin-resumen.cuenta-del-mes»"
     ],
     "components/finanzas/estados/SelectorPeriodo.tsx": [
       "button «{`Ver el ${queSeMira}»",

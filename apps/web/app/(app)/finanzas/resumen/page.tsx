@@ -1,5 +1,6 @@
 import { Suspense } from "react";
-import { exigirModulo, veEstadosFinancierosDeTodoDe, veFinanzasDeTodoDe, veModulo } from "@/lib/persona-actual";
+import { exigirModulo, puede, veEstadosFinancierosDeTodoDe, veFinanzasDeTodoDe, veModulo } from "@/lib/persona-actual";
+import { getValorInventario } from "@/lib/valor-inventario";
 import { Movimientos, MovimientosEsperando } from "@/components/finanzas/bolsillos/Movimientos";
 import { hoyLima } from "@/lib/fechas-lima";
 import { getConfianzaFinanzas, getResumenFinanzas } from "@/lib/resumen-finanzas";
@@ -49,7 +50,7 @@ export default async function ResumenFinanzasPage({ searchParams }: { searchPara
       })
     : null;
 
-  const [{ datos, falla }, confianza, erMes, erAntes, telar, flujoProximo, inversion, adelantadas, faltaDelMes, planillaPorRegistrar, cajasPorSede, minimo] = await Promise.all([
+  const [{ datos, falla }, confianza, erMes, erAntes, telar, flujoProximo, inversion, adelantadas, faltaDelMes, planillaPorRegistrar, cajasPorSede, minimo, inventarioValor] = await Promise.all([
     getResumenFinanzas(pedido),
     getConfianzaFinanzas(pedido, mes),
     getEstadoResultados(tramo.desde, tramo.hasta),
@@ -68,6 +69,8 @@ export default async function ResumenFinanzasPage({ searchParams }: { searchPara
     // «Cada sede, junta» (tarea 27): la caja de cada sede a la misma fecha que las cifras del mes. Solo quien ve todas las sedes.
     veTodo ? getBalancePorTienda(tramo.hasta) : Promise.resolve(null),
     minimoP,
+    // Lo que vale la ropa a costo (la hoja «La ropa que tienes»): la misma lectura de Existencias, que la base solo da con el dinero de Compras.
+    veTodo && (persona.rol === "lider" || puede(persona, "verDineroCompras")) ? getValorInventario() : Promise.resolve(null),
   ]);
   const tiendas = datos ? tiendasDeLaLinea(datos) : [];
   const ventas = !veRendimiento
@@ -88,6 +91,7 @@ export default async function ResumenFinanzasPage({ searchParams }: { searchPara
   return (
     <ResumenFinanzasPanel
       movimientos={movimientos}
+      inventarioValor={inventarioValor}
       resumen={datos}
       falla={falla}
       confianza={confianza}
