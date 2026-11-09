@@ -175,3 +175,22 @@ medida al generar el recorte (sigue siendo la migración pendiente de arriba) y 
 
 **Prueba.** `union-prendas.test.ts` (10 casos nuevos: topes, banda muerta, monotonía, forma de la caja, lo que no se toca). `tsc` limpio.
 **Pendiente.** Verlo con la tienda local sobre blusas reales (cambian de tamaño ~80 % de las blusas, poco cada una): conviene mirar un par de looks antes de fusionar.
+
+## Actualización 2026-11-09 — el tope de ×1,05 solo para faldas, y suave
+
+**Qué pasó.** Felipe mandó cinco looks con «descuadres de la unión»: un polo floreado con un pantalón de pierna ancha, un polo con un jean palazzo, y tres tops con shorts.
+Medido en `cayla.pe` (Trujillo, 109 prendas de arriba y 32 de abajo, copiando la regla en la página y comprobando que daba la misma caja que la tienda): en todos, la pretina
+quedaba en la cintura mínima (30,6 a 33 cm) mientras el bajo de la blusa medía 38,8 a 41,6 cm, unos 4 cm de escalón por lado. La culpa era el tope de la actualización del
+2026-10-22: compara el ancho ENTERO de la prenda de abajo con la caja de la blusa, y un short o un pantalón se abre en las piernas (su pretina mide el 50–70 % de su ancho), así
+que el tope encogía la pretina aunque la blusa no tuviera vuelo. El centrado (menos de 3,6 px de desfase en las 32 de abajo) y la proporción de los recortes estaban bien.
+
+**Lo que no sirvió.** Separar el peplum por la forma de la blusa: su vuelo (bajo contra cintura, medido a 20 y 25 % del alto sobre el bajo) da 1,11 y 1,21, el mismo rango que
+blusas ajustadas sin vuelo (Polo Kristell 1,22 y 1,34). Ninguna medida simple de la foto los separa.
+
+**Decisión (Felipe, 2026-11-09, eligió mirando la lámina con las tres maneras sobre la tienda real).** Para pantalones, shorts y jeans, la pretina sigue al bajo sin tope («B»).
+Para faldas (`FAL`, `PrendaDelProbador.falda`), el tope de ×1,05 sigue, pero no puede bajar la pretina del 92 % del bajo (`PRETINA_MINIMA_DE_LA_FALDA`, «C»): con el tope entero
+la falda del peplum quedaba 11 cm más angosta que el bajo, y sin tope se veía muy grande. Blusa Catalina con Falda Sastre Cayla: la pretina pasa de 30,6 a 38,1 cm.
+
+**Prueba.** `union-prendas.test.ts`: los dos casos de falda con su valor nuevo, y dos nuevos (el short del look de Felipe calza con el bajo; la misma prenda sale más ancha como
+short que como falda). 1071 pruebas de la tienda, `tsc`, `eslint` (sin avisos en estos archivos), `pnpm knip` y `knip:produccion` en verde.
+**No verificado:** la tienda local con este código (no hay base local con recortes); lo que se vio es la misma regla dibujada sobre la tienda de producción, a 375 px.
