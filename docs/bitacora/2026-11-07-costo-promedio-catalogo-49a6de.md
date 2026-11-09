@@ -20,3 +20,9 @@ una base privada con los casos que no deben cambiar: con stock, en traslado y de
 Por qué así: Felipe eligió «Solo sin stock». A una talla sin stock, cambiarle el costo no mueve el valor del inventario. A una con stock, sí
 reescribiría lo que cuestan prendas que no llegaron en esa compra.
 Felipe se lleva: pegarlo primero como ensayo, mirar la lista y recién después aplicarlo cambiando una línea.
+
+## 2026-11-09 (El historial del costo se lee solo por funciones)
+Qué hice: una migración que deja `costo_historial` con un solo camino de lectura, el de las funciones que preguntan el permiso de dinero, como
+ya era el costo de cada prenda. Antes medí que no rompe nada: ninguna pantalla lo leía directo y las 20 pruebas que lo tocan dan lo mismo.
+Por qué así: Felipe eligió un solo camino al dato. Con dos (la tabla y las funciones) cada uno tendría su propia regla de quién ve qué.
+Felipe se lleva: dos partes cortas por pegar, cada una sola, en orden.

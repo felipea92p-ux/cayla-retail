@@ -47,3 +47,18 @@
   3. cambiar `false` por `true` en la línea APLICAR y pegar de nuevo.
 
   El conector de Supabase dejó de dar lectura de producción el 2026-11-09, así que las cifras de hoy las dice el ensayo, no esta nota.
+
+## 🧾 El historial del costo se lee solo por funciones (2026-11-09, ADR-0631 act. b) — 1 migración, misma rama
+
+- [x] Felipe eligió «Solo por funciones». `20261109140000_costo_de_compras_solo_por_funciones.sql`:
+  - PARTE 1 quita el permiso de lectura de la tienda;
+  - PARTE 2, sola, quita la regla de lectura de la tabla (RLS sigue encendido).
+- [x] `pnpm pruebas:costo-de-compras-solo-por-funciones` (5 casos, en `scripts/ci/pruebas-postgres.mjs`):
+  - antes de la migración falla y después pasa;
+  - devolver el permiso la pone en rojo;
+  - las 20 pruebas que tocan la tabla dan lo mismo que antes;
+  - `roles_cobertura_modulos` sigue 32/32.
+- [ ] **Por pegar en producción:** la PARTE 1 y después la PARTE 2, cada una por separado.
+- [ ] Al refrescar el diccionario (`pnpm datos:generar:produccion`), mover la fila de `docs/datos/01-INVARIANTES.md` de «Local» a «Las dos».
+- [ ] **Sin explicar:** en esta base privada, `eliminar_producto_con_historia` (15 ✗) y `purgar_producto_de_prueba` (58 ✗) ya fallaban
+  antes de la migración. Probablemente por los datos de prueba que dejé en esa base, sin confirmar: falta correrlas en una base limpia.

@@ -108,3 +108,25 @@ DESCARTÉ:
 SE ROMPE SI: una prenda tiene la última compra de una sola talla más cara que las demás (por ejemplo, la XL). Todas sus tallas sin compra
 toman ese costo. El ensayo lista cada prenda con cuántas tallas cambian, para revisarlo antes de aplicar.
 Las 15 tallas con stock quedan como están y se corrigen una por una en su ficha, si hace falta.
+
+## Actualización 2026-11-09 (b) · El historial del costo se lee solo por funciones (Felipe)
+
+**La regla:** `costo_historial` (lo que había, lo que llegó y a cuánto, en qué quedó el costo de cada compra) se lee igual que
+`variantes.costo` desde `20260923193700`, solo por funciones `security definer` que preguntan `fn_puede_ver_dinero_de_compras()`:
+- Historial ▸ Costo: `fn_costo_de_la_prenda`;
+- Catálogo ▸ Costos: `fn_costo_de_las_tallas` y `fn_variantes_con_costo_oficial`;
+- Resumen, Balance y Estados financieros: sus propias funciones.
+
+La tienda ya no tiene permiso de lectura sobre la tabla, y la tabla queda con RLS encendido y sin reglas
+(`20261109140000_costo_de_compras_solo_por_funciones.sql`, dos partes).
+
+DECIDÍ (Felipe, entre dos): **un solo camino al dato**, las funciones. Antes de cambiarlo se verificó que no rompe nada:
+- ninguna pantalla lee la tabla directo;
+- las cinco funciones `security invoker` que la leen no se pueden llamar desde la tienda;
+- las 20 pruebas que la tocan dan lo mismo con y sin el permiso.
+
+DESCARTÉ: sumar el permiso de dinero a la regla de la tabla. Quedaban dos caminos al mismo dato con reglas de sede distintas (las funciones
+muestran todas las sedes; la tabla, solo la propia). Además, es un cambio de política que toma candados en Supabase (ADR-0195).
+
+SE ROMPE SI: una pantalla nueva consulta `costo_historial` con `.from(...)`: recibe 42501. La salida es pedirlo a una función que pregunte el
+permiso. Lo vigila `pnpm pruebas:costo-de-compras-solo-por-funciones`.
