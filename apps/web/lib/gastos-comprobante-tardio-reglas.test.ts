@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  avisoMesCerrado,
   borradorInicial,
   camposDelComprobante,
   igvDelPapel,
@@ -92,4 +93,27 @@ describe("loQuePasaAlGuardar", () => {
     expect(l.at(-1)).toMatch(/su IGV se pierde/);
   });
   it("una boleta dice que no trae IGV", () => expect(loQuePasaAlGuardar(g, { ...LLENO, tipo: "boleta" }).at(-1)).toMatch(/no trae IGV/));
+});
+
+describe("el comprobante de un mes cerrado (tarea 20)", () => {
+  it("dice qué mes está cerrado y en cuál entra", () => {
+    const t = avisoMesCerrado("2026-10-30", "2026-11-06")!;
+    expect(t).toContain("Octubre");
+    expect(t).toContain("entra en noviembre");
+    expect(t).toContain("guarda su fecha real");
+  });
+  it("sin mes cerrado no dice nada, y mientras no se sabe tampoco", () => {
+    expect(avisoMesCerrado("2026-11-02", "2026-11-02")).toBeNull();
+    expect(avisoMesCerrado("2026-10-30", null)).toBeNull();
+    expect(avisoMesCerrado("", "2026-11-06")).toBeNull();
+  });
+});
+
+describe("lo que pasa al guardar con el mes cerrado (tarea 20)", () => {
+  it("el IGV cuenta en el mes en que entra, no en el del papel", () => {
+    const g = { montoTotal: 118, medioPago: "transferencia", cajaMovimientoId: null } as Parameters<typeof loQuePasaAlGuardar>[0];
+    const b = { tipo: "factura", fecha: "2026-10-30", igv: "18" } as unknown as BorradorComprobante;
+    expect(loQuePasaAlGuardar(g, b, "2026-11-06").join(" ")).toContain("Impuestos de noviembre");
+    expect(loQuePasaAlGuardar(g, b).join(" ")).toContain("Impuestos de octubre");
+  });
 });

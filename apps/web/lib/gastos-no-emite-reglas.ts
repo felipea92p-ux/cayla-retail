@@ -72,3 +72,25 @@ export function leerNoEmiten(data: unknown): Map<string, NoEmite> {
 export function conNoEmite<T extends { id: string }>(gastos: readonly T[], marcados: ReadonlyMap<string, NoEmite>): (T & { noEmite: NoEmite | null })[] {
   return gastos.map((g) => ({ ...g, noEmite: marcados.get(g.id) ?? null }));
 }
+
+// ---- El papel que llegó con el mes del gasto cerrado (tarea 20 de «Las 36») -------------------------------------------------------
+
+/** El papel de un gasto de un mes cerrado (`fn_gastos_papeles_tardios`): vive aparte porque el gasto no se toca, y la lista lo trae aparte, como «no emite». */
+export type PapelTardio = { tipo: "factura" | "boleta" | "recibo_por_honorarios"; documento: string; entraEn: string };
+
+export function leerPapelesTardios(data: unknown): Map<string, PapelTardio> {
+  const filas = Array.isArray(data) ? (data as Record<string, unknown>[]) : [];
+  return new Map(
+    filas
+      .filter((f) => f.gasto_id && (f.tipo === "factura" || f.tipo === "boleta" || f.tipo === "recibo_por_honorarios"))
+      .map((f) => [String(f.gasto_id), { tipo: f.tipo as PapelTardio["tipo"], documento: String(f.documento ?? ""), entraEn: String(f.fecha_contable ?? "") }]),
+  );
+}
+
+/** Un gasto con su papel tardío se lee como uno con comprobante: deja de pedirlo y la lista dice cuál es. Sin papel tardío, queda igual (la misma referencia). */
+export function conPapelTardio<T extends { id: string; comprobanteTipo: string; comprobante: string | null }>(gastos: readonly T[], papeles: ReadonlyMap<string, PapelTardio>): T[] {
+  return gastos.map((g) => {
+    const p = papeles.get(g.id);
+    return p && g.comprobanteTipo === "sin_comprobante" ? { ...g, comprobanteTipo: p.tipo, comprobante: p.documento } : g;
+  });
+}

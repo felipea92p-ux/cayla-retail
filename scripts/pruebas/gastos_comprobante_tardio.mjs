@@ -201,7 +201,8 @@ ${agregar(`:'g'`, papel("factura", "4", ", 'fecha_emision', '2026-10-02'"))};`);
   esperar("un gasto anulado no recibe comprobante", r.ok && anulado.includes("anulado"), r);
   esperar("uno pagado desde un fondo va en la rendición", r.ok && fondo.includes("rendición"), r);
   esperar("uno del viaje va en Compras", r.ok && viaje.includes("viaje de compra"), r);
-  esperar("con el mes del gasto cerrado no se puede (aunque el papel sea de octubre), y lo dice para qué", r.ok && cerrado.includes("cerrado") && cerrado.includes("para agregarle su comprobante"), r);
+  // Tarea 20 (Felipe 2026-11-06): con el mes del gasto cerrado, el papel entra en el mes abierto y el gasto no se toca (pruebas:factura-mes-cerrado).
+  esperar("con el mes del gasto cerrado, el papel entra en el mes abierto", r.ok && cerrado === "SIN_ERROR", r);
 }
 
 // 6. Las marcas: sin la de este gasto no se cambia el comprobante ni la cuenta; con ella, nada más que el pago.

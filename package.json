@@ -102,6 +102,7 @@
     "pruebas:finanzas-confianza": "node scripts/pruebas/finanzas_confianza.mjs",
     "pruebas:cierre-orden-y-planilla": "node scripts/pruebas/cierre_orden_y_planilla.mjs",
     "pruebas:igv-congelado": "node scripts/pruebas/igv_congelado.mjs",
+    "pruebas:factura-mes-cerrado": "node scripts/pruebas/factura_mes_cerrado.mjs",
     "pruebas:pago-planilla-y-sunat": "node scripts/pruebas/pago_planilla_y_sunat.mjs",
     "pruebas:planilla-conceptos": "node scripts/pruebas/planilla_conceptos.mjs",
     "pruebas:comision-estimada": "node scripts/pruebas/comision_estimada.mjs",
