@@ -17,7 +17,7 @@ import { Boton } from "@/components/ui/campos";
 import { Aviso } from "@/components/ui/Aviso";
 import { Punto } from "@/components/alta-producto/Punto";
 import { ChipOpcion } from "@/components/alta-producto/piezas";
-import { GRUPO_ESTAMPADOS } from "@/lib/color-estampado-reglas";
+import { esEstampado, GRUPO_ESTAMPADOS } from "@/lib/color-estampado-reglas";
 
 // `Punto` vive en su propio archivo (la tabla de cantidades lo usa sin arrastrar este selector); se sigue exportando de aquí para quien ya lo importaba.
 export { Punto };
@@ -276,7 +276,8 @@ export function ElegirColores({
  * transmite. Un color sin ficha deja el segundo renglón vacío: nunca un «sin datos».
  */
 function PieDeLaCarta({ senalado, elegido, colores, porCodigo }: { senalado: ColorAlta | null; elegido: boolean; colores: ColorAlta[]; porCodigo: ReadonlyMap<string, ColorAlta> }) {
-  const parecidos = senalado ? coloresParecidos(senalado.hex, senalado.familiaColor, colores, { excluir: senalado.codigo }).slice(0, 2) : [];
+  // Un estampado lleva el tono de su color dominante (ADR-0634): ni «se confunde» con otros ni otros con él.
+  const parecidos = senalado && !esEstampado(senalado) ? coloresParecidos(senalado.hex, senalado.familiaColor, colores.filter((c) => !esEstampado(c)), { excluir: senalado.codigo }).slice(0, 2) : [];
   const ficha = senalado ? fichaDelColor(senalado.codigo, porCodigo) : null;
   return (
     // En el celular y la tablet, pegado abajo sobre la barra de la ficha mientras se recorre la carta (Felipe, 2026-10-09): el pie
