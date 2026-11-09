@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import fixture from "./resumen-finanzas.fixture.json";
-import { cuentaDelMes, gastosDelMes, hojaVecina, ventasPorTienda } from "./hojas-resumen-reglas";
+import { colorDeSede, cuentaDelMes, deCadaCien, gastosDelMes, hojaVecina, rubrosEnBarra, ventasDiaADia, ventasPorTienda } from "./hojas-resumen-reglas";
 import type { FilaER } from "./resultados-reglas";
 import { leerResumen } from "./resumen-finanzas-reglas";
 
@@ -58,5 +58,37 @@ describe("las hojas del Resumen", () => {
       { nombre: "Sueldos", monto: 600, deCada100: 60 },
       { nombre: "Alquiler", monto: 400, deCada100: 40 },
     ]);
+  });
+});
+
+
+describe("los gráficos de las hojas", () => {
+  it("de cada S/ 100: ropa, gastos y lo que quedó suman lo vendido", () => {
+    const x = deCadaCien({ ventas: 10_000, margen: 6_000, gastos: 4_000, resultado: 2_000 })!;
+    expect(x.tramos.map((t) => [t.clave, t.valor])).toEqual([["ropa", 4_000], ["gastos", 4_000], ["deja", 2_000]]);
+    expect(x.total).toBe(10_000);
+    expect(x.frase.replace(/ /g, " ")).toBe("De cada S/ 100 vendidos, 40 se fueron en la ropa, 40 en gastos y 20 te quedaron.");
+  });
+  it("si faltó, la barra se mide contra lo que salió y dice cuánto faltó", () => {
+    const x = deCadaCien({ ventas: 796, margen: 316, gastos: 768, resultado: -452 })!;
+    expect(x.tramos.map((t) => t.clave)).toEqual(["ropa", "gastos"]);
+    expect(x.total).toBe(480 + 768);
+    expect(x.frase).toContain("faltaron 57");
+    expect(deCadaCien({ ventas: 0, margen: 0, gastos: 10, resultado: -10 })).toBeNull();
+  });
+  it("los rubros: los cuatro mayores y el resto junto", () => {
+    const g = [6, 5, 4, 3, 2, 1].map((n) => ({ nombre: `R${n}`, monto: n * 100, deCada100: 0 }));
+    const t = rubrosEnBarra(g);
+    expect(t.map((x) => x.nombre)).toEqual(["R6", "R5", "R4", "R3", "Otros 2"]);
+    expect(t.at(-1)!.valor).toBe(300);
+    expect(rubrosEnBarra(g.slice(0, 3))).toHaveLength(3);
+  });
+  it("la venta de cada día va con cero los días sin venta y no pasa de hoy", () => {
+    const d = ventasDiaADia({ "2026-11-02": 500 }, "2026-11-01", "2026-11-30", "2026-11-04");
+    expect(d.map((x) => x.total)).toEqual([0, 500, 0, 0]);
+  });
+  it("cada sede con su color de dato", () => {
+    expect(colorDeSede("tru")).toBe("var(--color-sede-tru)");
+    expect(colorDeSede("otra")).toBe("var(--color-grafico-neutro)");
   });
 });

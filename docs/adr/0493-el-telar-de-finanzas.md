@@ -405,3 +405,13 @@ Con dos pilas sueltas, la que tenía menos datos terminaba antes y dejaba media 
 entera, y «Movimientos» reparte sus días en dos columnas. El último par («A dónde va la plata» y lo que más se movió) sigue la misma regla, 1 a 1,2.
 «Flujo de caja» sale de «Próximos» (flotaba suelto; «Movimientos» ya lleva al Flujo de efectivo). En el celular, el orden del código.
 **DESCARTÉ:** acomodar las piezas con JavaScript según su alto (masonry): saltaría al cargar los datos y cambiaría de lugar entre un mes y otro.
+
+## Actualización 2026-11-09 (d) — Cada hoja del Resumen abre con su gráfico (Felipe: «varios modales no tienen gráficos»)
+
+Las hojas eran listas. Ahora cada una abre con un gráfico de las piezas decididas del ERP (ADR-0358), con lo que la página ya leyó: «Libre» y la ropa,
+la barra apilada (lo libre y sus bolsillos; la ropa por sede, con el color de dato de cada sede); «Lo que te deja», de cada S/ 100 vendidos (ropa,
+gastos y lo que quedó) y la barra de «¿Ya pagaste el mes?» con la rayita de hoy; lo vendido, el reparto por tienda y las barras por día (`BarrasTiempo`,
+si la cuenta ve Rendimiento); los gastos, la barra por rubro (los cuatro mayores y «Otros»); lo que viene, la línea de la caja de 14 días contra tu
+mínimo (`Linea`, la misma caja de «Próximos»); SUNAT, lo que vence ahora contra lo que se junta. Los renglones llevan la muestra del color de su tramo
+(antes, una barrita gris que repetía el gráfico), una barra de un solo tramo no se dibuja, las hojas pasan a 768 px y las cifras a Inter con la «S/»
+chica también dentro del portal. Lógica en `lib/hojas-resumen-reglas.ts` (`deCadaCien`, `rubrosEnBarra`, `ventasDiaADia`, `colorDeSede`), con su prueba.

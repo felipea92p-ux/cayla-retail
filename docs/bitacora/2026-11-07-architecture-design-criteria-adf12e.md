@@ -27,3 +27,8 @@ Felipe se lleva: mirarla a 1440 y en el celular. Contraste medido en claro y osc
 Qué hice: rearmé el Resumen por filas de dos tarjetas del mismo alto (libre y mes, lo urgente y lo que viene, movimientos y tiendas), y el último par igual. Una pieza sin pareja toma la fila entera.
 Por qué así: con dos columnas sueltas la más corta dejaba unos 470 px vacíos al pie, como mostró Felipe. Con filas, todo termina parejo con cualquier dato.
 Felipe se lleva: verificado a 1180, 1440 y 375 px, con y sin tiendas; contraste en claro y oscuro sin fallas nuevas; la guía se recorre entera.
+
+## 2026-11-09 (Finanzas ▸ Resumen: gráficos en las hojas)
+Qué hice: cada hoja de detalle abre con su gráfico: reparto de lo libre, de cada S/ 100 vendidos con la barra del mes, venta por día y por tienda, gastos por rubro, la caja de 14 días contra el mínimo, SUNAT y la ropa por sede. Los renglones llevan el color de su tramo.
+Por qué así: Felipe vio hojas sin gráficos. Se usaron solo las piezas decididas (barra apilada, barras por tiempo, línea, barra de avance) y los datos que la pantalla ya tenía: ninguna lectura nueva.
+Felipe se lleva: verificado en escritorio y a 375 px, con contraste en claro y oscuro sin fallas nuevas. La venta por día solo sale si la cuenta ve Rendimiento.

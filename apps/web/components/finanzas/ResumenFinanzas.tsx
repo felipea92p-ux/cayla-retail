@@ -25,12 +25,12 @@ import { TarjetaMes } from "@/components/finanzas/bolsillos/TarjetaMes";
 import { Proximos } from "@/components/finanzas/bolsillos/Proximos";
 import { Preguntas, type Pregunta } from "@/components/finanzas/bolsillos/Preguntas";
 import { HojasResumen, hojasQueHay, type DatosHojas, type DestinosHojas } from "@/components/finanzas/bolsillos/HojasResumen";
-import type { ClaveHoja } from "@/lib/hojas-resumen-reglas";
+import { ventasDiaADia, type ClaveHoja } from "@/lib/hojas-resumen-reglas";
 import type { SedeConValor } from "@/lib/valor-inventario-reglas";
 import { proximosPagos } from "@/lib/proximos-reglas";
 import { FRASE_DE_SIEMPRE, fraseDelResumen } from "@/lib/frase-resumen-reglas";
 import { teDejaDelMes } from "@/lib/te-deja-mes-reglas";
-import { conElRango, nombreDelAnterior } from "@/lib/estados-periodo";
+import { conElRango, nombreDelAnterior, ventasPorFecha } from "@/lib/estados-periodo";
 import { saldoEnBolsillos } from "@/lib/bolsillos-reglas";
 import { alinearAvisoDeCaja, cajaProxima, type FlujoProximo } from "@/lib/caja-proxima-reglas";
 import { equilibrioMes, type FaltaDelMes } from "@/lib/equilibrio-mes-reglas";
@@ -205,6 +205,12 @@ export function ResumenFinanzasPanel({ resumen, falla, confianza, mes, periodo, 
     inventario: r.ver.todas ? inventarioValor : null,
     hoy,
     enElPeriodo: periodo.en,
+    eq,
+    hoyEnElMes: enCurso ? { van: diaDeHoy, total: diasMes } : null,
+    // Los gráficos de las hojas: la venta de cada día (si la cuenta ve Rendimiento) y la caja de 14 días, la misma de «Próximos».
+    ventasDia: ventasPorDia ? ventasDiaADia(ventasPorFecha(ventasPorDia.series), periodo.desde, periodo.hasta, hoy) : null,
+    caja: caja.tipo === "cayla" && cajaSola.tipo === "cayla" ? { puntos: caja.puntos.filter((p) => p.fecha <= cajaSola.hasta), minimo: caja.minimo } : null,
+    sedes,
   };
   const hay = hojasQueHay(datosHojas);
   const conDestino = (modulo: string, ruta: string, texto: string) => (ve(modulo) ? { href: ir(ruta), texto } : undefined);
