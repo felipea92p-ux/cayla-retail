@@ -32,3 +32,8 @@ Felipe se lleva: verificado a 1180, 1440 y 375 px, con y sin tiendas; contraste 
 Qué hice: cada hoja de detalle abre con su gráfico: reparto de lo libre, de cada S/ 100 vendidos con la barra del mes, venta por día y por tienda, gastos por rubro, la caja de 14 días contra el mínimo, SUNAT y la ropa por sede. Los renglones llevan el color de su tramo.
 Por qué así: Felipe vio hojas sin gráficos. Se usaron solo las piezas decididas (barra apilada, barras por tiempo, línea, barra de avance) y los datos que la pantalla ya tenía: ninguna lectura nueva.
 Felipe se lleva: verificado en escritorio y a 375 px, con contraste en claro y oscuro sin fallas nuevas. La venta por día solo sale si la cuenta ve Rendimiento.
+
+## 2026-11-09 (Finanzas ▸ Resumen: el vidrio con las piezas elegidas)
+Qué hice: pasé cada pieza propia del Resumen a su receta de vidrio de ADR-0596: los bolsillos, las fechas y los gráficos de las hojas a la placa; los íconos a la gota del tono; el día más justo y lo vencido a la lente chica teñida; las líneas al hilo de las tablas; el total de la cuenta con un filo fino.
+Por qué así: Felipe pidió un vidrio bien integrado y elegante. Las recetas ya traen su oscuro, así que nada se inventó; solo el canto de la placa, que sobre el vidrio claro se perdía, lo dibuja el hilo.
+Felipe se lleva: contraste medido en claro y oscuro, sin fallas nuevas, anotado en `docs/vidrio/README.md`. Sin probar en el Mac mini.

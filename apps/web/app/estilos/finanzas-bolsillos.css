@@ -113,17 +113,20 @@
   border-radius: 18px;
   text-align: left;
   color: var(--color-tinta);
-  background: color-mix(in srgb, var(--color-papel) 70%, transparent); /* contraste: no aplica — es un fondo, no un texto */
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-sand) 70%, transparent); /* contraste: no aplica — es un borde, no un texto */
+  /* La placa (ADR-0596, «lo que explica»): vidrio con su luz arriba y su canto claro. */
+  background: var(--placa-fondo);
+  box-shadow: inset 0 0 0 1px var(--hilo-fila), var(--placa-luz); /* sobre el vidrio claro, el canto de la placa se pierde: lo dibuja el hilo de las tablas */
   transition: translate var(--t-resp, 200ms) var(--ease-cayla), box-shadow var(--t-resp, 200ms) var(--ease-cayla);
 }
+/* El ícono en su gota (la de las tarjetas de indicador, ADR-0596): redonda, del tono del bolsillo, con su luz arriba. */
 .bolsillos-icono {
   display: grid;
   width: 30px;
   height: 30px;
   place-items: center;
-  border-radius: 10px;
-  background: color-mix(in srgb, var(--c) 15%, transparent); /* contraste: no aplica — es un fondo, no un texto */
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--c) var(--gota-icono-tinte), transparent);
+  box-shadow: var(--gota-icono-luz);
   color: color-mix(in srgb, var(--c) 70%, var(--color-tinta)); /* contraste: no aplica — es un ícono que acompaña a su nombre */
 }
 .bolsillos-texto-fila {
@@ -172,7 +175,8 @@
 @media (hover: hover) {
   .bolsillos-fila.es-enlace:hover {
     translate: 0 -2px;
-    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--c) 45%, transparent), 0 14px 26px -18px color-mix(in srgb, var(--color-sombra) 45%, transparent); /* contraste: no aplica — es un borde y una sombra */
+    /* Al apuntar sube 2 px y el canto toma el tono del bolsillo, con la sombra de lo que está encima (la placa Serena). */
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--c) 40%, transparent), var(--serena-sombra-encima); /* contraste: no aplica — es un borde y una sombra */
   }
   .bolsillos-fila.es-enlace:hover .bolsillos-flecha {
     translate: 4px 0;
@@ -191,7 +195,7 @@
   justify-content: space-between;
   gap: 16px;
   padding: 10px 0;
-  border-top: 1px solid var(--color-sand);
+  border-top: 1px solid var(--hilo-fila);
 }
 .bolsillos-cuenta > li:first-child {
   border-top: 0;
@@ -206,8 +210,9 @@
 .bolsillos-cuenta .es-resta {
   color: var(--color-taupe-profundo);
 }
+/* El total, como en una boleta, pero con un filo fino de tinta (no 2 px sólidos que pesaban más que la cifra). */
 .bolsillos-cuenta > li.es-total {
-  border-top: 2px solid var(--color-tinta);
+  border-top: 1px solid color-mix(in srgb, var(--color-tinta) 40%, transparent); /* contraste: no aplica — es un borde, no un texto */
 }
 .bolsillos-cuenta > li.es-total .num {
   font-size: 22px;
@@ -264,7 +269,7 @@
   gap: 16px;
   margin: 16px 0 0;
   padding-top: 14px;
-  border-top: 1px solid var(--color-sand);
+  border-top: 1px solid var(--hilo-fila);
 }
 .mes-a-tres > div {
   display: flex;
@@ -297,7 +302,7 @@
   gap: 8px;
   margin-top: 16px;
   padding-top: 14px;
-  border-top: 1px solid var(--color-sand);
+  border-top: 1px solid var(--hilo-fila);
 }
 .mes-a-eq-titular {
   font-size: 14px;
@@ -321,8 +326,13 @@
   padding: 12px 14px;
   border-radius: 16px;
   --tono: var(--color-verde);
-  background: color-mix(in srgb, var(--tono) 8%, transparent); /* contraste: no aplica — es un fondo, no un texto */
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--tono) 22%, transparent); /* contraste: no aplica — es un borde, no un texto */
+  /* La lente chica teñida (la de una tarjeta con estado, ADR-0596): vidrio con más tono abajo que arriba y un filo del tono. */
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--tono) var(--lente-chica-tinte-arriba), var(--lente-chica-base-arriba)),
+    color-mix(in srgb, var(--tono) var(--lente-chica-tinte-abajo), var(--lente-chica-base-abajo))
+  );
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--tono) var(--lente-chica-filo), transparent), var(--placa-luz);
 }
 .proximos-justo.es-ambar {
   --tono: var(--color-ambar);
@@ -360,7 +370,7 @@
   gap: 12px;
   min-height: 52px;
   padding: 6px 0;
-  border-top: 1px solid var(--color-sand);
+  border-top: 1px solid var(--hilo-fila);
 }
 .proximos-lista:first-of-type > .proximos-fila:first-child {
   border-top: 0;
@@ -373,7 +383,8 @@
   width: 44px;
   height: 44px;
   border-radius: 12px;
-  box-shadow: inset 0 0 0 1px var(--color-sand);
+  background: var(--placa-fondo);
+  box-shadow: inset 0 0 0 1px var(--hilo-fila), var(--placa-luz); /* sobre el vidrio claro, el canto de la placa se pierde: lo dibuja el hilo de las tablas */
   color: var(--color-tinta);
   line-height: 1;
 }
@@ -390,8 +401,12 @@
   color: var(--color-taupe-profundo);
 }
 .proximos-fecha.es-vencida {
-  background: color-mix(in srgb, var(--color-rojo) 12%, transparent); /* contraste: no aplica — es un fondo, no un texto */
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-rojo) 35%, transparent); /* contraste: no aplica — es un borde, no un texto */
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--color-rojo) var(--lente-chica-tinte-arriba), var(--lente-chica-base-arriba)),
+    color-mix(in srgb, var(--color-rojo) var(--lente-chica-tinte-abajo), var(--lente-chica-base-abajo))
+  );
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-rojo) var(--lente-chica-filo), transparent), var(--placa-luz);
   color: var(--color-rojo-profundo);
 }
 .proximos-fecha.es-vencida small {
@@ -429,7 +444,7 @@
   justify-content: space-between;
   gap: 12px;
   padding: 10px 0 6px;
-  border-bottom: 1px solid var(--color-sand);
+  border-bottom: 1px solid var(--hilo-fila);
   font-size: 13px;
   font-weight: 600;
   letter-spacing: 0.02em;
@@ -454,7 +469,7 @@
   padding: 6px 0;
 }
 .movs-renglon + .movs-renglon {
-  border-top: 1px solid color-mix(in srgb, var(--color-sand) 60%, transparent); /* contraste: no aplica — es un borde, no un texto */
+  border-top: 1px solid var(--hilo-fila);
 }
 /* El ícono de cada movimiento, en un cuadrito de su tono (la maqueta): verde lo que entra, tinta lo que sale, taupe lo que cambia de lugar. */
 .movs-icono {
@@ -463,8 +478,9 @@
   width: 36px;
   height: 36px;
   place-items: center;
-  border-radius: 12px;
-  background: color-mix(in srgb, var(--c) 10%, transparent); /* contraste: no aplica — es un fondo, no un texto */
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--c) var(--gota-icono-tinte), transparent);
+  box-shadow: var(--gota-icono-luz);
   color: var(--c);
 }
 .movs-renglon[data-tipo="cobro"] .movs-icono,
@@ -500,7 +516,7 @@
   align-items: center;
   gap: 16px;
   padding: 10px 0;
-  border-top: 1px solid var(--color-sand);
+  border-top: 1px solid var(--hilo-fila);
 }
 .movs-semanas > li:first-child {
   border-top: 0;
@@ -575,7 +591,7 @@
   flex-direction: column;
   gap: 4px;
   padding-bottom: 12px;
-  border-bottom: 1px solid var(--color-sand);
+  border-bottom: 1px solid var(--hilo-fila);
 }
 .hoja-a-cifra {
   font-size: 44px;
@@ -596,7 +612,7 @@
   align-items: center;
   gap: 16px;
   padding: 10px 0;
-  border-top: 1px solid var(--color-sand);
+  border-top: 1px solid var(--hilo-fila);
 }
 .hoja-a-lista > li:first-child {
   border-top: 0;
@@ -820,4 +836,22 @@
 .hoja-a > .hoja-a-grafico + .hoja-a-lista,
 .hoja-a > div + .bolsillos-cuenta {
   margin-top: 8px;
+}
+
+/* Dentro de una hoja, cada gráfico va sobre su placa (ADR-0596: «lo que explica»), con la luz arriba, como las láminas de las hojas de vidrio. */
+.hoja-a > .hoja-a-grafico,
+.hoja-a > div.hoja-a-grafico {
+  padding: 14px 16px;
+  border-radius: 18px;
+  background: var(--placa-fondo);
+  box-shadow: inset 0 0 0 1px var(--hilo-fila), var(--placa-luz); /* sobre el vidrio claro, el canto de la placa se pierde: lo dibuja el hilo de las tablas */
+}
+.hoja-a > .hoja-a-grafico .hoja-a-grafico {
+  padding: 0;
+  background: none;
+  box-shadow: none;
+}
+.hoja-a-respuesta {
+  border-bottom: 0;
+  padding-bottom: 0;
 }
