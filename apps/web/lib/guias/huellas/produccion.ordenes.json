@@ -2,7 +2,7 @@
   "guia": "produccion.ordenes",
   "ruta": "/produccion/ordenes",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 108,
+  "total": 111,
   "controles": {
     "components/ModeloNuevoCampos.tsx": [
       "CampoTexto «{guia.etiqueta(\"nombre\", \"Nombre del modelo\")}»",
@@ -54,7 +54,10 @@
       "input «{`${enCostos ? \"Costo\" : \"Precio\"}»"
     ],
     "components/alta-producto/NuevoColorAlta.tsx": [
-      "CampoTexto «Nombre del color»",
+      "SegmentoDeslizante «Cómo es la prenda»",
+      "Desplegable «{patronId}»",
+      "ComboBuscable «{`${id}»",
+      "CampoTexto «{esForma ? \"Nombre del estampado\" : \"Nombre del color\"}»",
       "Desplegable «{familia}»",
       "CampoTexto «Código»",
       "Boton «{(!enLinea || existe.bloquea ? bloqueo : firma.motivo) ?? undefined}»",

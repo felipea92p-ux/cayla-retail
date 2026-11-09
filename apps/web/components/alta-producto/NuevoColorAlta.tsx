@@ -7,7 +7,11 @@ import { SelectorColor } from "@/components/SelectorColor";
 import type { ColorAlta } from "@/lib/alta-producto";
 import { colorDeRespuesta, coloresQueYaExisten, faltaParaCrear, familiaSugerida, nombreDeColor } from "@/lib/color-alta-reglas";
 import { normalizarCodigo, sugerirCodigoColor } from "@/lib/color-codigo";
-import { FAMILIAS_COLOR } from "@/lib/colores-familias";
+import { FAMILIAS_COLOR, textoDeFamilia } from "@/lib/colores-familias";
+import { coloresDominantes, ejemploDeEstampado, faltaParaEstampado, nombreDeEstampado, patronesDeEstampado } from "@/lib/color-estampado-reglas";
+import { SegmentoDeslizante } from "@/components/ui/SegmentoDeslizante";
+import { ComboBuscable } from "@/components/ui/ComboBuscable";
+import { Punto } from "@/components/alta-producto/Punto";
 import { vistaDeCoincidencias } from "@/lib/atributo-parecido";
 import { ExisteTambien, faltaPorExistente, useExisteTambien } from "@/components/ui/ExisteTambien";
 import { createClient } from "@/lib/supabase/client";
@@ -61,8 +65,14 @@ export function NuevoColorAlta({
   onElegir: (codigo: string) => void;
   onCerrar: () => void;
 }) {
-  const [nombre, setNombre] = useState(() => nombreDeColor(nombreInicial));
-  const [hex, setHex] = useState<string | null>(null);
+  const [nombrePropio, setNombre] = useState(() => nombreDeColor(nombreInicial));
+  // Un estampado (ADR-0634) arma su nombre con el patrón y el color que más se ve, hasta que la persona lo escribe a su manera.
+  const [forma, setForma] = useState<"liso" | "estampado">("liso");
+  const [nombreEscrito, setNombreEscrito] = useState(() => nombreDeColor(nombreInicial) !== "");
+  const [patrones, setPatrones] = useState<{ id: string; nombre: string }[]>([]);
+  const [patronId, setPatronId] = useState("");
+  const [dominanteCodigo, setDominanteCodigo] = useState("");
+  const [hexElegido, setHex] = useState<string | null>(null);
   // `null` = sin tocar: se muestra la sugerencia, que sigue al tono o al nombre.
   const [familiaElegida, setFamiliaElegida] = useState<string | null>(null);
   const [codigoEscrito, setCodigoEscrito] = useState<string | null>(null);
@@ -89,19 +99,39 @@ export function NuevoColorAlta({
     };
   }, []);
 
+  // Los patrones solo ayudan a nombrar el estampado: si no se pueden leer, el combo no sale y el nombre se escribe a mano.
+  useEffect(() => {
+    let vigente = true;
+    void (async () => {
+      const { data } = await createClient().from("patrones").select("id, nombre").eq("activo", true).eq("estado", "aprobado").order("nombre");
+      if (vigente && data) setPatrones(patronesDeEstampado(data));
+    })().catch(() => {});
+    return () => {
+      vigente = false;
+    };
+  }, []);
+
   const ocupados = new Map(otrosCodigos);
   for (const c of colores) ocupados.set(c.codigo, c.nombre);
 
-  const familia = familiaElegida ?? familiaSugerida(hex, colores);
+  const esForma = forma === "estampado";
+  const opcionesDominante = coloresDominantes(colores);
+  const dominante = opcionesDominante.find((c) => c.codigo === dominanteCodigo) ?? null;
+  const patron = patrones.find((p) => p.id === patronId)?.nombre ?? null;
+  const nombre = esForma && !nombreEscrito ? nombreDeEstampado(patron, dominante?.nombre) : nombrePropio;
+  // El tono y la familia de un estampado son los de su color dominante: así cae en esa familia en la carta y en Análisis.
+  const hex = esForma ? (dominante?.hex ?? null) : hexElegido;
+  const familia = esForma ? (dominante?.familiaColor ?? "") : (familiaElegida ?? familiaSugerida(hex, colores));
   const codigo = codigoEscrito ?? sugerirCodigoColor(nombre, new Set(ocupados.keys()));
   // Los ejemplos de las dos cajas siguen a la familia (elegida, o la que sale del tono) y no repiten un color que ya existe.
   const ejemplo = sugerirColor(familia || null, colores, new Set(ocupados.keys()));
   const duenoDelCodigo = codigo.length === 3 ? ocupados.get(codigo) : undefined;
   // Lo que ya existe y se parece (ADR-0576). Mismo nombre: la base lo rechazaría (`colores_clave_unica`) y no se deja crear. Un sinónimo o un
   // casi igual («Verde Olivo»): se pregunta, puede ser otro color. Solo el tono: se avisa y se deja crear.
-  const existe = useExisteTambien(nombre, vistaDeCoincidencias(coloresQueYaExisten(nombre, hex, familia || null, colores), (c) => ({ id: c.codigo, nombre: c.nombre })));
+  // Un estampado no compara su tono: es el de su color dominante y siempre «se parecería» a ese color.
+  const existe = useExisteTambien(nombre, vistaDeCoincidencias(coloresQueYaExisten(nombre, esForma ? null : hex, familia || null, colores), (c) => ({ id: c.codigo, nombre: c.nombre })));
   const faltaExiste = faltaPorExistente("color", nombre, existe);
-  const falta = faltaParaCrear({ nombre, hex, familia, codigo });
+  const falta = (esForma ? faltaParaEstampado({ nombre, colorDominante: dominante }) : null) ?? faltaParaCrear({ nombre, hex, familia, codigo });
   const bloqueo = !enLinea
     ? "Crear un color necesita internet. Cuando vuelva la conexión, toca «Crear y elegir»."
     : faltaExiste
@@ -119,7 +149,7 @@ export function NuevoColorAlta({
       const res = await fetch("/api/productos/colores", {
         method: "POST",
         headers: { "Content-Type": "application/json", ...firma.encabezados() },
-        body: JSON.stringify({ nombre: nombreDeColor(nombre), codigo, familiaColor: familia, hex }),
+        body: JSON.stringify({ nombre: nombreDeColor(nombre), codigo, familiaColor: familia, hex, tipo: esForma ? "estampado" : "solido" }),
       });
       const datos = await res.json().catch(() => null);
       const leido = res.ok ? colorDeRespuesta(datos) : null;
@@ -158,45 +188,91 @@ export function NuevoColorAlta({
 
   return (
     <div className={enModal ? "space-y-3" : "anim-revelar space-y-3 rounded-xl border border-sand bg-crema px-3.5 py-3"}>
+      <SegmentoDeslizante
+        etiqueta="Cómo es la prenda"
+        valor={forma}
+        onCambio={(clave) => setForma(clave === "estampado" ? "estampado" : "liso")}
+        opciones={[
+          { clave: "liso", etiqueta: "Liso" },
+          { clave: "estampado", etiqueta: "Estampado" },
+        ]}
+      />
+
+      {/* Un estampado se nombra con lo que tiene (ADR-0634): dos «azules» distintos de la misma prenda dejan de ser el mismo color. */}
+      {esForma && (
+        <div className="grid gap-3 sm:grid-cols-2 sm:items-start">
+          {patrones.length > 0 && (
+            <Campo etiqueta="Patrón" idEtiqueta={`${id}-patron`} sinPie>
+              <Desplegable
+                forma="campo"
+                idEtiqueta={`${id}-patron`}
+                valor={patronId}
+                onValor={setPatronId}
+                opciones={patrones.map((p) => ({ valor: p.id, texto: p.nombre }))}
+                marcador="Elige…"
+                deshabilitado={guardando}
+              />
+            </Campo>
+          )}
+          <Campo etiqueta="El color que más se ve" idEtiqueta={`${id}-dominante`} sinPie>
+            <ComboBuscable
+              id={`${id}-dominante`}
+              valor={dominanteCodigo}
+              onValor={setDominanteCodigo}
+              etiquetaAccesible="El color que más se ve"
+              marcador="Busca el color…"
+              opciones={opcionesDominante.map((c) => ({ valor: c.codigo, texto: c.nombre, claves: c.sinonimos, icono: <Punto hex={c.hex} familia={c.familiaColor} tipo={c.tipo} /> }))}
+            />
+          </Campo>
+        </div>
+      )}
+
       <div
         className={`grid grid-cols-[minmax(0,1fr)_auto] gap-3 sm:items-start ${
-          enModal ? "sm:grid-cols-[minmax(0,1fr)_minmax(0,11rem)_auto]" : "sm:grid-cols-[minmax(0,1fr)_minmax(0,15rem)_minmax(0,11rem)_auto]"
+          esForma ? "" : enModal ? "sm:grid-cols-[minmax(0,1fr)_minmax(0,11rem)_auto]" : "sm:grid-cols-[minmax(0,1fr)_minmax(0,15rem)_minmax(0,11rem)_auto]"
         }`}
       >
-        <div className={enModal ? "col-span-2 sm:col-span-3" : "col-span-2 sm:col-span-1"}>
+        <div className={esForma ? "" : enModal ? "col-span-2 sm:col-span-3" : "col-span-2 sm:col-span-1"}>
           <CampoTexto
-            etiqueta="Nombre del color"
+            etiqueta={esForma ? "Nombre del estampado" : "Nombre del color"}
             sinPie
             id={`${id}-nombre`}
             autoFocus
             value={nombre}
-            onChange={(e) => setNombre(e.target.value)}
-            onBlur={() => setNombre((n) => nombreDeColor(n))}
+            onChange={(e) => {
+              setNombre(e.target.value);
+              setNombreEscrito(e.target.value.trim() !== "");
+            }}
+            onBlur={() => setNombre((n) => (esForma && !nombreEscrito ? n : nombreDeColor(n)))}
             onKeyDown={teclas}
-            placeholder={ejemplo.nombre.texto}
+            placeholder={esForma ? ejemploDeEstampado(patron, dominante?.nombre) : ejemplo.nombre.texto}
             disabled={guardando}
           />
         </div>
 
-        {/* El tono, igual que en Atributos (`SelectorColor`): la muestra abre el selector del navegador y al lado se escribe
-            el #hex o el R, G, B que trae la ficha del proveedor. Sin tono, la muestra es punteada: nunca un beige de relleno. */}
-        <div className="col-span-2 sm:col-span-1">
-          <SelectorColor hex={hex} onHex={setHex} etiqueta="Color · #hex o RGB" caja deshabilitado={guardando} />
-        </div>
+        {!esForma && (
+          <>
+            {/* El tono, igual que en Atributos (`SelectorColor`): la muestra abre el selector del navegador y al lado se escribe
+                el #hex o el R, G, B que trae la ficha del proveedor. Sin tono, la muestra es punteada: nunca un beige de relleno. */}
+            <div className="col-span-2 sm:col-span-1">
+              <SelectorColor hex={hexElegido} onHex={setHex} etiqueta="Color · #hex o RGB" caja deshabilitado={guardando} />
+            </div>
 
-        <div>
-          <Campo etiqueta="Familia" idEtiqueta={`${id}-familia`} sinPie>
-            <Desplegable
-              forma="campo"
-              idEtiqueta={`${id}-familia`}
-              valor={familia}
-              onValor={setFamiliaElegida}
-              opciones={FAMILIAS_COLOR.map((f) => ({ valor: f.valor, texto: f.texto }))}
-              marcador={hex ? "Elige…" : "Sale del tono"}
-              deshabilitado={guardando}
-            />
-          </Campo>
-        </div>
+            <div>
+              <Campo etiqueta="Familia" idEtiqueta={`${id}-familia`} sinPie>
+                <Desplegable
+                  forma="campo"
+                  idEtiqueta={`${id}-familia`}
+                  valor={familia}
+                  onValor={setFamiliaElegida}
+                  opciones={FAMILIAS_COLOR.map((f) => ({ valor: f.valor, texto: f.texto }))}
+                  marcador={hex ? "Elige…" : "Sale del tono"}
+                  deshabilitado={guardando}
+                />
+              </Campo>
+            </div>
+          </>
+        )}
 
         <div className="w-[5.5rem]">
           <CampoTexto
@@ -218,6 +294,10 @@ export function NuevoColorAlta({
           </p>
         </div>
       </div>
+
+      {esForma && dominante && (
+        <p className="text-sm text-taupe">En Análisis cuenta como {textoDeFamilia(dominante.familiaColor)}. Súbele su foto: es como se va a reconocer.</p>
+      )}
 
       <ExisteTambien que="color" nombre={nombre} solo="nombre" estado={existe} si={elegirExistente} deshabilitado={guardando} />
       <ExisteTambien que="color" nombre={nombre} solo="tono" estado={existe} si={elegirExistente} deshabilitado={guardando} />
