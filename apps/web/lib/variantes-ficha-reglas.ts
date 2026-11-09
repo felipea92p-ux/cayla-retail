@@ -694,8 +694,9 @@ export function textosCostoFijo(sinComprobar: boolean): { nota: string; celda: s
         celda: "No se pudo comprobar si este costo ya viene de compras: por ahora no se corrige aquí.",
       }
     : {
-        nota: "El costo de una variante que ya entró por Compras o por el Taller es su promedio ponderado: no se corrige a mano. Hasta su primera compra, sí.",
-        celda: "Viene de sus compras y del Taller (promedio ponderado): no se corrige a mano.",
+        // Corta desde ADR-0631: la cuenta de cada talla gris la dice su «?», y arriba va el costo de la prenda.
+        nota: "Las tallas grises ya entraron por Compras o por el Taller: su costo es su promedio y no se corrige a mano. Su «?» dice de dónde sale.",
+        celda: "Viene de sus compras o del Taller: es el promedio de lo que había y lo que llegó, y no se corrige a mano.",
       };
 }
 

@@ -140,6 +140,18 @@ export function rangoDePrecios(precios: readonly number[]): string {
   return min === max ? `S/\u00a0${f(min)}` : `S/\u00a0${f(min)}–${f(max)}`;
 }
 
+/**
+ * La columna de la derecha de la tabla de la ficha (Precio, Costo), que mide 60 px: «S/ 45–…» se cortaba (Short Sohanna, 2026-11-07).
+ * Sin «S/» (las celdas tampoco lo llevan; el título de la columna dice qué es) y, si varían, en dos líneas: «45» y «a 48».
+ */
+export function rangoEnDosLineas(montos: readonly number[]): { desde: string; hasta: string | null } {
+  const min = Math.min(...montos);
+  const max = Math.max(...montos);
+  const conCentimos = montos.some((p) => !Number.isInteger(p));
+  const f = (p: number) => (conCentimos ? p.toFixed(2) : String(p));
+  return { desde: f(min), hasta: min === max ? null : `a ${f(max)}` };
+}
+
 // ---------------------------------------------------------------------------
 // Etiquetas y colores que se quitan, desde la misma matriz (ADR-0313, act. 2026-10-03)
 // ---------------------------------------------------------------------------
