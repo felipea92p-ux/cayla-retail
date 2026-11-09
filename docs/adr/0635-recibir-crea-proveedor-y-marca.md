@@ -1,6 +1,6 @@
 # ADR-0635 — Quien recibe crea el proveedor y la marca que no están, sin los otros módulos
 
-- **Fecha:** 2026-11-09 · **Estado:** construido en la rama `claude/provider-brands-creation-e1ae21`; la migración `20261109230000` no está en producción.
+- **Fecha:** 2026-11-09 · **Estado:** construido en la rama `claude/provider-brands-creation-e1ae21`; la migración `20261109230000` está en producción desde el 2026-11-09 (verificada por su huella).
 - **Nace de:** Felipe, mirando «Algo que no estaba en la guía»: «Aquí debería permitirme crear un nuevo proveedor y nuevas marcas, pero no me deja».
   Después: «Al agregar nuevo proveedor solo pida la razón social y el RUC (opcional)», «Debería poder crear proveedores y marcas sin necesidad de
   tener los otros módulos», «Yo a lo que me refería es al recibir mercadería sin aviso». Maqueta: `docs/maquetas/recibir-alta-proveedor-marca-2026-11/`.
