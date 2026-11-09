@@ -17,6 +17,7 @@ import { TituloGrupo } from "@/components/ui/TituloSeccion";
 import { useSalidaSinGuardar } from "@/components/ui/useSalidaSinGuardar";
 import type { ColorAlta } from "@/lib/alta-producto";
 import { agruparPorFamilia } from "@/lib/colores-familias";
+import { familiaEnCarta } from "@/lib/color-estampado-reglas";
 import { traducirError } from "@/lib/error-escritura";
 import type { VocabularioDeTelas } from "@/lib/insumos-ficha-reglas";
 import { CANTIDAD_ILEGIBLE, textoDeCompra, type CompraDeTela, type MaterialVista } from "@/lib/insumos-reglas";
@@ -134,7 +135,7 @@ export function NuevaTelaModal({
 
   // Los colores que se pueden elegir: en una tela que ya existe, los que no tiene.
   const disponibles = useMemo(() => coloresCarta.filter((c) => !coloresDeLaTela.includes(c.codigo)), [coloresCarta, coloresDeLaTela]);
-  const grupos = useMemo(() => agruparPorFamilia(disponibles, (c) => c.familiaColor), [disponibles]);
+  const grupos = useMemo(() => agruparPorFamilia(disponibles, familiaEnCarta), [disponibles]);
   const porCodigo = useMemo(() => new Map(coloresCarta.map((c) => [c.codigo, c])), [coloresCarta]);
 
   // «¿Salir sin guardar?» (ADR-0136): solo cuenta lo que la persona escribió o eligió.

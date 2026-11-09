@@ -16,6 +16,17 @@ export function esEstampado(color: { tipo?: string | null }): boolean {
   return color.tipo === "estampado";
 }
 
+/** El nombre del grupo de los estampados en la carta: `agruparPorFamilia` lo pone después de las familias y antes de «Varios colores». */
+export const GRUPO_ESTAMPADOS = "estampados";
+
+/**
+ * En qué grupo de la carta va un color. Un estampado va con los estampados: un punto de su tono dominante no dice cuál es,
+ * así que no puede mezclarse con los lisos. Solo es para dibujar la carta: lo que cuenta ventas sigue usando la familia del color.
+ */
+export function familiaEnCarta(color: { tipo?: string | null; familiaColor?: string | null }): string | null {
+  return esEstampado(color) ? GRUPO_ESTAMPADOS : (color.familiaColor ?? null);
+}
+
 /**
  * Los colores que pueden ser el dominante de un estampado: los que tienen tono y familia, y no son a su vez estampados.
  * «Multicolor» no tiene ni tono ni familia, así que no entra: justamente no dice qué color manda.

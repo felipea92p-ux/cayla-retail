@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { coloresDominantes, ejemploDeEstampado, esEstampado, faltaParaEstampado, nombreDeEstampado, patronesDeEstampado } from "./color-estampado-reglas";
+import { agruparPorFamilia } from "./colores-familias";
+import { coloresDominantes, ejemploDeEstampado, esEstampado, familiaEnCarta, faltaParaEstampado, nombreDeEstampado, patronesDeEstampado } from "./color-estampado-reglas";
 
 const colores = [
   { codigo: "NEG", nombre: "Negro", hex: "#1A1A1A", familiaColor: "neutro" },
@@ -54,5 +55,16 @@ describe("faltaParaEstampado", () => {
     expect(faltaParaEstampado({ nombre: "  ", colorDominante: null })).toMatch(/patrón/);
     expect(faltaParaEstampado({ nombre: "Rayas negro-blanco", colorDominante: null })).toMatch(/más se ve/);
     expect(faltaParaEstampado({ nombre: "Rayas negro-blanco", colorDominante: colores[0] })).toBeNull();
+  });
+});
+
+describe("familiaEnCarta", () => {
+  it("los estampados van aparte, después de las familias y antes de «Varios colores»", () => {
+    const g = agruparPorFamilia(colores, familiaEnCarta);
+    expect(g.map((x) => x.texto)).toEqual(["Neutro", "Azul", "Estampados", "Varios colores"]);
+    expect(g.find((x) => x.familia === "azul")?.colores.map((c) => c.codigo)).toEqual(["AZM"]);
+  });
+  it("no pierde ni repite ningún color", () => {
+    expect(agruparPorFamilia(colores, familiaEnCarta).flatMap((x) => x.colores.map((c) => c.codigo)).sort()).toEqual(colores.map((c) => c.codigo).sort());
   });
 });

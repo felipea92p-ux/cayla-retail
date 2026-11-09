@@ -16,6 +16,8 @@ import { useEnLinea } from "@/lib/useEnLinea";
 import { Boton } from "@/components/ui/campos";
 import { Aviso } from "@/components/ui/Aviso";
 import { Punto } from "@/components/alta-producto/Punto";
+import { ChipOpcion } from "@/components/alta-producto/piezas";
+import { GRUPO_ESTAMPADOS } from "@/lib/color-estampado-reglas";
 
 // `Punto` vive en su propio archivo (la tabla de cantidades lo usa sin arrastrar este selector); se sigue exportando de aquí para quien ya lo importaba.
 export { Punto };
@@ -208,6 +210,19 @@ export function ElegirColores({
               >
                 {/* El nombre se alinea con la PRIMERA fila (los círculos miden 32 px), no con el centro del bloque. */}
                 <p className="text-[11.5px] text-taupe @md:flex @md:h-8 @md:items-center">{g.texto}</p>
+                {g.familia === GRUPO_ESTAMPADOS ? (
+                  // Un estampado se elige por su nombre (ADR-0634): su punto solo dice el color dominante, y dos azules distintos se verían iguales.
+                  <div className="flex flex-wrap gap-1.5">
+                    {g.colores.map((c) => (
+                      <ChipOpcion key={c.codigo} elegido={elegidos.includes(c.codigo)} onClick={() => { onAlternar(c.codigo); setSenalado(c); }}>
+                        <span className="inline-flex items-center gap-1.5">
+                          <Punto hex={c.hex} familia={c.familiaColor} tipo={c.tipo} />
+                          {c.nombre}
+                        </span>
+                      </ChipOpcion>
+                    ))}
+                  </div>
+                ) : (
                 <div className="flex flex-col gap-1.5">
                   {partirEnGamas(g.colores).map((gama, k) => (
                     <div key={k} className="flex flex-wrap gap-1.5">
@@ -240,6 +255,7 @@ export function ElegirColores({
                     </div>
                   ))}
                 </div>
+                )}
               </div>
             ))}
           </div>
