@@ -292,6 +292,14 @@ export const PRUEBAS = [
   // compras, junta dos líneas de una misma variante), la cuenta de la pantalla cierra y sin permiso de dinero no ve nada. ROLLBACK.
   "pruebas:costo-de-la-prenda",
 
+  // El «?» de cada talla gris en Catálogo ▸ Costos (ADR-0631): la última compra de cada talla, con lo que había antes, lo que llegó
+  // y en cuánto quedó; dos líneas de una misma compra son una; un cierre revertido no cuenta; sin permiso de dinero, null. ROLLBACK.
+  "pruebas:costo-de-las-tallas",
+
+  // El historial del costo de cada compra se lee solo por funciones (ADR-0631 act. b): la tienda no lo lee directo, ni un líder; las
+  // funciones de siempre sí lo muestran; service_role lo lee; RLS encendido y sin reglas de lectura. ROLLBACK.
+  "pruebas:costo-de-compras-solo-por-funciones",
+
   // Corregir el costo de la ÚLTIMA compra (Felipe 2026-10-24, ADR-0515): solo un líder y con motivo, solo la última, un cierre del
   // Taller no, encadena dos líneas de una misma variante, costo_historial queda idéntico, la tabla solo agrega y la vista previa
   // dice lo mismo que quedó. ROLLBACK.

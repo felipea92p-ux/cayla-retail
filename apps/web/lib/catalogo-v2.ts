@@ -18,6 +18,8 @@ import { FAMILIAS_COLOR } from "@/lib/colores-familias";
 import { leerMonto } from "@/lib/productos-filtro-precio";
 import { leerFacetas, type FacetasProductos } from "@/lib/productos-facetas";
 import { leerOrdenProductos, type OrdenProductos } from "@/lib/productos-orden";
+import { leerCostoPrenda } from "@/lib/costo-prenda-reglas";
+import { leerCostoDeLasTallas, resumenCostoPrenda, type CostoEnLaFicha } from "@/lib/costo-tallas-reglas";
 
 // Catálogo V2: `productos` + `variantes` + `categorias` + `colores` +
 // `codigos_barras`. No es una edición de `catalogo.ts` (V1) — ese archivo
@@ -129,6 +131,27 @@ async function getVariantesConCostoOficial(ids: string[]): Promise<Set<string> |
   const { data, error } = await supabase.rpc("fn_variantes_con_costo_oficial", { p_ids: ids });
   if (error || !Array.isArray(data)) return null;
   return new Set(data as string[]);
+}
+
+/**
+ * Lo que la pestaña «Costos» de la ficha dice además de cada celda (ADR-0631): cuánto cuesta hoy cada prenda —la misma cifra del
+ * Historial ▸ Costo (`fn_costo_de_la_prenda`)—, la última compra de cada talla gris y qué tallas sin stock toman el costo de la última
+ * compra (`fn_costo_de_las_tallas`, 20261107232000).
+ * Tolerante, parte por parte: sin permiso de dinero, sin la función nueva o con un error, esa parte es `null` y la ficha sigue igual.
+ * Los tipos generados todavía no traen las dos funciones: las llamadas van con `as never`, como en `historial-prenda.ts`.
+ */
+export async function getCostoEnLaFicha(productoId: string): Promise<CostoEnLaFicha> {
+  const supabase = await createClient();
+  const [prenda, tallas] = await Promise.all([
+    supabase.rpc("fn_costo_de_la_prenda" as never, { p_producto_id: productoId } as never),
+    supabase.rpc("fn_costo_de_las_tallas" as never, { p_producto_id: productoId } as never),
+  ]);
+  const deLasTallas = tallas.error ? null : leerCostoDeLasTallas(tallas.data);
+  return {
+    prenda: prenda.error ? null : resumenCostoPrenda(leerCostoPrenda(prenda.data)),
+    tallas: deLasTallas?.tallas ?? null,
+    igualar: deLasTallas?.igualar ?? null,
+  };
 }
 
 /** Un cliente sin cookies para usar dentro de la copia guardada, con la sesión de quien la llena. */

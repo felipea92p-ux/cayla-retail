@@ -14,12 +14,13 @@ export default async function HistorialProductoPage({
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ desde?: string | string[] }>;
+  searchParams: Promise<{ desde?: string | string[]; ver?: string | string[] }>;
 }) {
   const persona = await requirePersonaActualV2();
   const { id: productoId } = await params;
   // Tabla o Grilla de Productos de donde se salió (`lib/vuelta-productos.ts`).
-  const desde = desdeDeParams((await searchParams).desde);
+  const parametros = await searchParams;
+  const desde = desdeDeParams(parametros.desde);
 
   const [prenda, lectura] = await Promise.all([getPrendaDelHistorial(productoId), getHistorialPrenda(productoId)]);
   if (!prenda) notFound();
@@ -39,6 +40,7 @@ export default async function HistorialProductoPage({
         nombre={prenda.referencia}
         totalVariantes={prenda.variantes}
         hrefMovimientos={veModulo(persona, "movimientos") ? `/inventario/movimientos?q=${encodeURIComponent(prenda.codigo ?? prenda.referencia)}` : null}
+        abrirEnCosto={parametros.ver === "costo"}
       />
     </div>
   );
