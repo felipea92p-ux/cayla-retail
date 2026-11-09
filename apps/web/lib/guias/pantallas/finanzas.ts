@@ -176,12 +176,6 @@ export const GUIA_FIN_RESUMEN: Guia = {
       texto: "La barra es lo vendido contra lo que hay que vender para pagar TODO el mes: ropa, sueldos, alquileres, servicios. Cuando se llena, cada sol vendido es ganancia; la frase dice desde qué día. La rayita marca hoy.",
     },
     {
-      id: "respuestas",
-      ancla: "fin-resumen.respuestas",
-      titulo: "Lo que debes pagar pronto",
-      texto: "Cuánto debes pagar pronto, con cada deuda, su monto y cuándo vence. Lo vencido sale primero.",
-    },
-    {
       id: "sedes",
       ancla: "fin-resumen.sedes",
       opcional: true,
@@ -210,11 +204,17 @@ export const GUIA_FIN_RESUMEN: Guia = {
       texto: "Abajo están las cuatro cosas que más se hacen desde el Resumen: pagar facturas (P), el IGV del mes (I), el cierre de mes (M) y los reportes (R). Las tocas o apretas su letra cuando no estás escribiendo.",
     },
     {
-      id: "caja",
-      ancla: "fin-resumen.caja",
+      id: "proximos",
+      ancla: "fin-resumen.proximos",
+      titulo: "Lo que viene",
+      texto: "Lo que pagas en las próximas dos semanas, con su fecha: lo vencido sale primero. Son los mismos pagos de los bolsillos de arriba. «Por pagar» te lleva a pagarlos.",
+    },
+    {
+      id: "dia-justo",
+      ancla: "fin-resumen.dia-justo",
       opcional: true,
-      titulo: "Tu caja, dos semanas",
-      texto: "Ganar plata no es tener plata. La línea sigue lo que tendrás cada día contra tu mínimo. Lo que cae bajo el mínimo se pinta de rojo y el punto más bajo dice su día y su monto. Abajo, lo que más pesa y el enlace al flujo completo. Con una sede elegida solo se separan sus cobros y salidas: los bancos son de CAYLA entera.",
+      titulo: "El día más justo",
+      texto: "El día en que la caja queda más baja en esas dos semanas, contando lo que esperas cobrar. Verde si alcanza, ámbar si queda bajo tu mínimo, rojo si no alcanza. La línea chica muestra cómo sube y baja.",
     },
     {
       id: "decidir",
@@ -263,7 +263,7 @@ export const GUIA_FIN_RESUMEN: Guia = {
       ancla: "fin-resumen.inversion-pagos",
       opcional: true,
       titulo: "Cuándo compro",
-      texto: "Compara pagar todo junto, en dos tandas o a plazo y mira cómo queda tu caja con cada una. Mirar no guarda nada: la forma de pago se deja escrita en el Plan de campaña. Lo que elijas se cuenta en «Tu caja».",
+      texto: "Compara pagar todo junto, en dos tandas o a plazo y mira cómo queda tu caja con cada una. Mirar no guarda nada: la forma de pago se deja escrita en el Plan de campaña. Lo que elijas se cuenta en «Próximos».",
     },
     {
       id: "inversion-historia",

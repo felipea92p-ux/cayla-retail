@@ -12,9 +12,7 @@ import { mismasTiendas, tiendasAdivinadas, tiendasDeLaLinea } from "@/lib/resume
 import { leerPeriodo, periodoAnterior } from "@/lib/estados-periodo";
 import { getParametrosFinanzas } from "@/lib/configuracion";
 import { ResumenFinanzasPanel } from "@/components/finanzas/ResumenFinanzas";
-import { getCuentaClaure } from "@/lib/cuenta-claure";
 import { getPlanillaParaElInicio } from "@/lib/cuentas-dinero";
-import { resumenClaure } from "@/lib/cuenta-claure-reglas";
 
 // Finanzas ▸ Resumen en El telar (ADR-0195 F10; ADR-0493, Felipe 2026-10-23). La sede la elige la barra común (`?sede=`; mientras dure el cambio,
 // `?ver=` gana). Las fechas, desde el camino «A · Bolsillos» (Felipe 2026-11-09), con el calendario de Estados financieros (`SelectorPeriodo`): un mes
@@ -49,7 +47,7 @@ export default async function ResumenFinanzasPage({ searchParams }: { searchPara
       })
     : null;
 
-  const [{ datos, falla }, confianza, erMes, erAntes, telar, flujoProximo, inversion, claureLeido, adelantadas, faltaDelMes, planillaPorRegistrar, cajasPorSede, minimo] = await Promise.all([
+  const [{ datos, falla }, confianza, erMes, erAntes, telar, flujoProximo, inversion, adelantadas, faltaDelMes, planillaPorRegistrar, cajasPorSede, minimo] = await Promise.all([
     getResumenFinanzas(pedido),
     getConfianzaFinanzas(pedido, mes),
     getEstadoResultados(tramo.desde, tramo.hasta),
@@ -61,8 +59,6 @@ export default async function ResumenFinanzasPage({ searchParams }: { searchPara
     getSedesDelTelar(),
     getFlujoProximo(),
     getInversionMercaderia(hoy, sp.inversion === "ejemplo"),
-    // Lo que se le debe a CLAURE (ADR-0560, actividad 4): solo quien ve las finanzas de todo (los bancos son de la empresa) y con el módulo Cuentas y dinero.
-    veTodo ? getCuentaClaure() : Promise.resolve(null),
     ventasAdelantadas ?? Promise.resolve(null),
     periodo.unMes && mes === mesDeHoy ? getFaltaDelMes(mes) : Promise.resolve([]),
     // La planilla que Dynamic pagó y aquí no bajó del banco: «¿Cuánto tienes?» la sigue sumando, y lo dice. Sin lectura, calla: el aviso sale en el cajón.
@@ -71,15 +67,6 @@ export default async function ResumenFinanzasPage({ searchParams }: { searchPara
     veTodo ? getBalancePorTienda(tramo.hasta) : Promise.resolve(null),
     minimoP,
   ]);
-  // `null`: la cuenta no lo ve o CLAURE no tiene nada todavía (la tarjeta no se dibuja); `{ saldo: null }`: se cayó la lectura (se dice, no se inventa).
-  const claure =
-    !claureLeido || claureLeido.sinAcceso
-      ? null
-      : claureLeido.falla
-        ? { saldo: null }
-        : claureLeido.datos.filas.length || claureLeido.datos.pagos.length
-          ? { saldo: resumenClaure(claureLeido.datos.filas, claureLeido.datos.pagos, claureLeido.datos.gastos).saldo }
-          : null;
   const tiendas = datos ? tiendasDeLaLinea(datos) : [];
   const ventas = !veRendimiento
     ? null
@@ -106,7 +93,6 @@ export default async function ResumenFinanzasPage({ searchParams }: { searchPara
       inversion={inversion.datos}
       inversionFalla={inversion.falla}
       acceso={{ lider: veTodo, modulos: persona.modulos.map((m) => m.clave) }}
-      claure={claure}
       cajasPorSede={cajasPorSede}
     />
   );

@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { bolsilloDe, cuentaDeLibre, saldoEnBolsillos } from "./bolsillos-reglas";
+import { bolsilloDe, cuentaDeLibre, desgloseDeTienes, detalleDeTienes, saldoEnBolsillos } from "./bolsillos-reglas";
+import type { CuentaDinero } from "./cuentas-dinero-reglas";
 import type { CajaCayla, CajaProxima } from "./caja-proxima-reglas";
 import type { Proyeccion, SalidaProy } from "./flujo-caja-reglas";
 
@@ -154,5 +155,42 @@ describe("saldoEnBolsillos — los bordes", () => {
 
   it("todo tipo de salida tiene bolsillo", () => {
     for (const t of ["vencimiento", "fijo", "planilla", "aportes", "impuesto", "nuevo"] as const) expect(bolsilloDe({ tipo: t })).toBeTruthy();
+  });
+});
+
+// Examen de Finanzas 2026-10-27, tarea #1 (vivía en «¿Cuánto tienes?»): lo que tienes suma también lo que las máquinas de tarjeta y QR todavía no
+// depositan, los fondos y la plata por rendir. La primera línea de la cuenta de «Libre» lo dice.
+const texto = (s: string) => s.replace(/\u00a0/g, " ");
+const cuenta = (tipo: CuentaDinero["tipo"], saldo: number | null, extra: Partial<CuentaDinero> = {}): CuentaDinero => ({
+  id: `${tipo}-${saldo}`, nombre: tipo, tipo, cuentaContable: "", ubicacionId: null, ubicacionNombre: null, numero: null, saldo, archivada: false,
+  soloDestino: false, cajaId: null, cajaAbierta: false, saldoDesde: null, ultimaConciliacion: null, ultimoAbono: null, orden: 0, ...extra,
+});
+const FONDO: CuentaDinero["tipo"] = "fondo";
+// La composición real de producción del 27-oct-2026 (suma 99,569.56).
+const HOY_27 = [cuenta("banco", 37648.5), cuenta("caja_fuerte", 3640.64), cuenta("cajon", 1607.9), cuenta("por_abonar", 56146.12), cuenta(FONDO, 500), cuenta("por_rendir", 26.4)];
+
+describe("de qué está hecho lo que tienes", () => {
+  it("separa lo que está a mano de lo que las máquinas todavía no depositan, de lo del líder y de lo por volver de compras", () => {
+    expect(desgloseDeTienes(HOY_27, 99569.56)).toEqual({ enMano: 42897.04, porAbonar: 56146.12, otros: 26.4, porVolver: 500, debesCompras: 0 });
+    expect(texto(detalleDeTienes(desgloseDeTienes(HOY_27, 99569.56)))).toBe("A mano S/ 42,897 · por llegar S/ 56,146 · con el líder S/ 26 · por volver de compras S/ 500");
+  });
+  it("si las partes no suman lo que tienes, o falta una cuenta, no inventa un desglose", () => {
+    expect(desgloseDeTienes(HOY_27, 90000)).toBeNull();
+    expect(desgloseDeTienes(null, 100)).toBeNull();
+    expect(desgloseDeTienes([cuenta("banco", 100), cuenta("cajon", null)], 100)).toBeNull();
+    expect(detalleDeTienes(null)).toBe("Bancos, cajas y cajones.");
+  });
+  it("la tarjeta de crédito es deuda y no entra; una cuenta archivada con saldo sí cuenta", () => {
+    const cuentas = [cuenta("banco", 1000), cuenta("tarjeta_credito", -300), cuenta("banco", 50, { archivada: true }), cuenta("por_abonar", 200)];
+    expect(desgloseDeTienes(cuentas, 1250)).toEqual({ enMano: 1050, porAbonar: 200, otros: 0, porVolver: 0, debesCompras: 0 });
+  });
+  it("si una compradora gastó de más, se dice aparte (ADR-0621)", () => {
+    const d = desgloseDeTienes([cuenta("banco", 1000), cuenta(FONDO, 100), cuenta(FONDO, -30)], 1070);
+    expect(texto(detalleDeTienes(d))).toBe("A mano S/ 1,000 · por volver de compras S/ 100 · menos S/ 30 que le debes a las compradoras");
+  });
+  it("la cuenta de «Libre» empieza diciendo de qué está hecho lo que tienes", () => {
+    const s = saldoEnBolsillos({ caja: caja({ saldoHoy: 1000, deClaudia: 0, porVolver: 200 }), proyeccion: proyeccion([]), cuentas: [cuenta("banco", 1000), cuenta("por_abonar", 200)] });
+    if (s.tipo !== "cayla") throw new Error();
+    expect(texto(cuentaDeLibre(s)[0]!.detalle)).toBe("A mano S/ 1,000 · por llegar S/ 200");
   });
 });

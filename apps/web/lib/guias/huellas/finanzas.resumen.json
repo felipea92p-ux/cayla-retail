@@ -2,7 +2,7 @@
   "guia": "finanzas.resumen",
   "ruta": "/finanzas/resumen",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 32,
+  "total": 33,
   "controles": {
     "components/finanzas/AdondeVaLaPlata.tsx": [
       "button «{h.nombre}»"
@@ -28,6 +28,9 @@
     "components/finanzas/VendidoPorSede.tsx": [
       "Link «Por qué no es la cifra de Ventas»",
       "Link «{`${t.nombre}»"
+    ],
+    "components/finanzas/bolsillos/Proximos.tsx": [
+      "BotonVerMas «{`Ver ${resto.length}»"
     ],
     "components/finanzas/bolsillos/SaldoLibre.tsx": [
       "button «fin-resumen.como-se-calcula»",

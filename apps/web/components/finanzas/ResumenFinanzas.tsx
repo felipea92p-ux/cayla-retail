@@ -10,7 +10,6 @@ import type { Periodo } from "@/lib/estados-periodo";
 import { Aviso } from "@/components/ui/Aviso";
 import { CabeceraBloque, Superficie } from "@/components/finanzas/kit";
 import { AjustesResumen } from "@/components/finanzas/AjustesResumen";
-import { CajaProximaPieza } from "@/components/finanzas/CajaProxima";
 import { InversionMercaderia } from "@/components/finanzas/InversionMercaderia";
 import { useAjustesResumen } from "@/components/finanzas/useAjustesResumen";
 import { CambiosDelMesPieza } from "@/components/finanzas/CambiosDelMes";
@@ -21,13 +20,14 @@ import { sedesJuntas } from "@/lib/sedes-juntas-reglas";
 import type { UnidadBalance } from "@/lib/balance-reglas";
 import { ResumenDecidir } from "@/components/finanzas/ResumenDecidir";
 import { DockTelar } from "@/components/finanzas/telar/DockTelar";
-import { TresRespuestas } from "@/components/finanzas/TresRespuestas";
 import { SaldoLibre } from "@/components/finanzas/bolsillos/SaldoLibre";
 import { TarjetaMes } from "@/components/finanzas/bolsillos/TarjetaMes";
+import { Proximos } from "@/components/finanzas/bolsillos/Proximos";
+import { proximosPagos } from "@/lib/proximos-reglas";
 import { teDejaDelMes } from "@/lib/te-deja-mes-reglas";
 import { conElRango, nombreDelAnterior } from "@/lib/estados-periodo";
 import { saldoEnBolsillos, type ClaveBolsillo } from "@/lib/bolsillos-reglas";
-import { alinearAvisoDeCaja, cajaProxima, loQueHayEnCuentas, type FlujoProximo } from "@/lib/caja-proxima-reglas";
+import { alinearAvisoDeCaja, cajaProxima, type FlujoProximo } from "@/lib/caja-proxima-reglas";
 import { equilibrioMes, type FaltaDelMes } from "@/lib/equilibrio-mes-reglas";
 import type { Confianza as ConfianzaDatos } from "@/lib/finanzas-confianza";
 import type { Lectura } from "@/lib/resumen-finanzas";
@@ -35,7 +35,6 @@ import { mesNombre, type FilaER } from "@/lib/resultados-reglas";
 import { hrefTelar, mesDelDia, porSedeDe, sedeDeLaUrl, type SedeTelar } from "@/lib/finanzas-telar-reglas";
 import { soles } from "@/lib/flujo-caja-reglas";
 import { recorridoPlata } from "@/lib/recorrido-plata-reglas";
-import { desgloseDeTienes, tresRespuestas } from "@/lib/tres-respuestas-reglas";
 import { cambiosDelMes } from "@/lib/resumen-cambios-reglas";
 import { avisosParaDecidir, filaDeVer, noRevisado, ordenarAvisos, type Acceso, type ResumenFinanzas } from "@/lib/resumen-finanzas-reglas";
 import { campanasQueSeVen } from "@/lib/ajustes-resumen-reglas";
@@ -86,15 +85,13 @@ type Props = {
   /** La lectura del Plan de campaña se cayó (ADR-0527): el bloque no se dibuja y se dice, nunca un 0 que parezca un dato. */
   inversionFalla?: string | null;
   acceso: Acceso;
-  /** Lo que se le debe a CLAURE (ADR-0560): `null` = no se ve o no hay nada; `saldo: null` = se cayó la lectura. */
-  claure?: { saldo: number | null } | null;
   /** La caja de cada sede, para «Cada sede, junta»; `null` si la cuenta no ve todas las sedes. */
   cajasPorSede?: Lectura<UnidadBalance[]> | null;
 };
 
 const FRASE = "De lo que vendes a lo que te queda.";
 
-export function ResumenFinanzasPanel({ resumen, falla, confianza, mes, periodo, minimo, hoy, estadoMes, estadoAntes, faltaDelMes, planillaSinSalida, ventasPorDia, sedes, flujoProximo, inversion, inversionFalla = null, acceso, claure = null, cajasPorSede = null }: Props) {
+export function ResumenFinanzasPanel({ resumen, falla, confianza, mes, periodo, minimo, hoy, estadoMes, estadoAntes, faltaDelMes, planillaSinSalida, ventasPorDia, sedes, flujoProximo, inversion, inversionFalla = null, acceso, cajasPorSede = null }: Props) {
   const sp = useSearchParams();
   // «Qué se ve»: lo que esta persona esconde de la inversión en mercadería, y qué forma de pagar mira en cada campaña (mirar no guarda nada).
   const [ajustes, ponerAjustes] = useAjustesResumen();
@@ -158,8 +155,12 @@ export function ResumenFinanzasPanel({ resumen, falla, confianza, mes, periodo, 
   const pagosDeCompra = ajustes.enCaja && proyeccion ? pagosDeLaCompra(campanas, proyeccion, ajustes.conIgv, elegidas) : [];
   const caja = cajaProxima({ flujo: flujoProximo, cuentas: r.cuentas.estado === "ok" ? r.cuentas.datos : null, ver: r.ver, inversion: pagosDeCompra.length ? { pagos: pagosDeCompra, dias: 42 } : null });
   // «Libre para usar» y sus bolsillos (camino A, Felipe 2026-11-09): de la misma caja, pero sin la compra de campaña que todavía no se pide (no tiene dueño
-  // aún) y con su ventana de 14 días de siempre, aunque «Tu caja» mire seis semanas por la inversión.
-  const saldo = saldoEnBolsillos({ caja: cajaProxima({ flujo: flujoProximo, cuentas: r.cuentas.estado === "ok" ? r.cuentas.datos : null, ver: r.ver }), proyeccion, planillaSinSalida });
+  // aún) y con su ventana de 14 días de siempre, aunque la caja mire seis semanas por la inversión.
+  const cajaSola = cajaProxima({ flujo: flujoProximo, cuentas: r.cuentas.estado === "ok" ? r.cuentas.datos : null, ver: r.ver });
+  const saldo = saldoEnBolsillos({ caja: cajaSola, proyeccion, planillaSinSalida, cuentas: r.cuentas.estado === "ok" ? r.cuentas.datos : null });
+  // «Próximos»: los mismos pagos de los bolsillos, uno por renglón, y el día más justo de la caja que dibuja la pantalla (con la compra si se cuenta).
+  const deLaSede = r.ver.todas ? null : r.ver.soloEmpresa ? (u: string | null) => u === null : (u: string | null) => u === r.ver.ubicacionId;
+  const proximos = proximosPagos({ cajaSola, caja, proyeccion, compra: pagosDeCompra, deLaSede });
   const ve = (modulo: string) => acceso.lider || acceso.modulos.includes(modulo);
   const destino = (modulo: string, ruta: string) => (ve(modulo) ? ir(ruta) : undefined);
   const destinos: Partial<Record<ClaveBolsillo, string>> = {
@@ -184,13 +185,7 @@ export function ResumenFinanzasPanel({ resumen, falla, confianza, mes, periodo, 
   const noVende = r.ver.todas || r.ver.tipo === "tienda" ? null : resp;
   const cambio = fila && filaAntes && filaAntes.ventas > 0 && !noVende ? { pct: fila.ventas / filaAntes.ventas - 1, contra: nombreDelAnterior(periodo) } : null;
   const hrefGanancias = ve("reportes_financieros") ? conElRango(ir("/finanzas/reportes"), sp.entries()) : null;
-  // «¿Cuánto tienes?» de CAYLA entera dice de qué está hecho; una sede no lleva los bancos ni lo que las máquinas deben, así que ahí no se reparte.
-  const desglose = caja.tipo === "cayla" ? desgloseDeTienes(r.cuentas.estado === "ok" ? r.cuentas.datos : null, loQueHayEnCuentas(caja)) : null;
-  // Lo de CLAURE es de la empresa entera, como los bancos: mirando una sola sede no se reparte.
-  const saldoClaure = claure && r.ver.todas && claure.saldo !== null ? { saldo: claure.saldo } : null;
-  // Si la lectura de CLAURE se cayó, «¿Cuánto tienes?» lo dice (un chip), no se inventa un reparto ni se calla.
-  const claureFalla = !!claure && r.ver.todas && claure.saldo === null;
-  // «Hoy te toca» y «Tu caja» cuentan el mismo hecho con el mismo número (el punto más bajo que ve la tarjeta, con la compra si está contada).
+  // «Hoy te toca» y «Próximos» cuentan el mismo hecho con el mismo número (el punto más bajo que ve la tarjeta, con la compra si está contada).
   const verReportes = acceso.lider || acceso.modulos.includes("reportes_financieros");
   const avisos = ordenarAvisos([
     ...alinearAvisoDeCaja(avisosParaDecidir(resumen, acceso), caja, verReportes ? "/finanzas/reportes/flujo#y-si" : null),
@@ -228,7 +223,6 @@ export function ResumenFinanzasPanel({ resumen, falla, confianza, mes, periodo, 
             hoyEnElMes={enCurso ? { van: diaDeHoy, total: diasMes } : null}
             hrefGanancias={hrefGanancias}
           />
-          <TresRespuestas respuestas={tresRespuestas({ r, caja, deja: resp, hrefDinero: ir("/finanzas/dinero"), hrefPorPagar: ir("/finanzas/dinero/por-pagar"), desglose, claure: saldoClaure, claureFalla, planillaSinSalida, plata }).filter((x) => x.clave === "debes")} />
         </div>
       </section>
       {/* «Vendido por sede» y la confianza del número, en UNA tarjeta (ADR-0417; Felipe 2026-10-29, opción 3). Si no se pudo medir, se dice (nunca un 0 % falso). */}
@@ -240,7 +234,7 @@ export function ResumenFinanzasPanel({ resumen, falla, confianza, mes, periodo, 
           quedaba tan angosta que partía el texto palabra por palabra). Más angosto, una bajo la otra. Sin huecos (Felipe 2026-10-26). */}
       <section className="grid items-stretch gap-4 xl:grid-cols-[minmax(0,1.7fr)_minmax(20rem,1fr)]">
         <div {...alto(2)}>
-          <CajaProximaPieza caja={caja} hrefFlujo={ir("/finanzas/reportes/flujo")} className="h-full" incluye={ajustes.conIgv ? "inversión en mercadería (con IGV)" : "inversión en mercadería"} />
+          <Proximos datos={proximos} hoy={hoy} hrefPorPagar={destino("cuentas_dinero", "/finanzas/dinero/por-pagar") ?? null} hrefFlujo={ve("reportes_financieros") ? ir("/finanzas/reportes/flujo") : null} />
         </div>
 
         <div {...alto(3)} data-guia="fin-resumen.decidir">

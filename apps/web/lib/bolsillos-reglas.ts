@@ -1,5 +1,6 @@
 import { fechaEnPalabras, loQueHayEnCuentas, type CajaProxima } from "./caja-proxima-reglas";
 import { soles, type Proyeccion, type SalidaProy } from "./flujo-caja-reglas";
+import type { CuentaDinero } from "./cuentas-dinero-reglas";
 
 // Finanzas ▸ Resumen, camino «A · Bolsillos» (Felipe 2026-11-09; maqueta docs/maquetas/finanzas-resumen-de-punta-a-punta-2026-11/): lo que hay en bancos y
 // cajas, partido en bolsillos con dueño, y lo que queda «Libre para usar».
@@ -12,7 +13,7 @@ import { soles, type Proyeccion, type SalidaProy } from "./flujo-caja-reglas";
 //   − la planilla que Dynamic ya pagó y aquí todavía no bajó del banco (ya salió: sigue sumando en las cuentas solo porque falta registrarlo).
 // Es la lectura prudente: NO cuenta lo que se va a vender. Si da negativo, es lo que falta para cubrir lo que ya tiene dueño.
 //
-// UNA SOLA VERDAD. Todo sale de la misma proyección de caja que dibuja «Tu caja» (`fn_flujo_caja_proyeccion`, vía `cajaProxima`): el saldo de hoy ya
+// UNA SOLA VERDAD. Todo sale de la misma proyección de caja que dibuja «Próximos» (`fn_flujo_caja_proyeccion`, vía `cajaProxima`): el saldo de hoy ya
 // viene sin CLAURE ni el fondo de compras (`loQueHayEnCuentas` los vuelve a sumar para «lo que tienes»), los pagos son sus `salidas` hasta el último día
 // de la caja (`caja.hasta`, hoy + 14) y el IGV que se junta es su fila `igv:<mes>` que cae después de esa ventana. Ninguna cifra se calcula aparte.
 //
@@ -41,6 +42,8 @@ export type SaldoBolsillos =
       /** Lo que hay en bancos y cajas hoy (lo mismo que «¿Cuánto tienes?»). */
       tienes: number;
       libre: number;
+      /** De qué está hecho lo que tienes, en palabras de tienda («A mano S/ 42,897 · por llegar S/ 56,146»): decidido el 2026-10-29 para «¿Cuánto tienes?». */
+      tienesDetalle: string;
       /** El último día que cuentan los pagos (hoy + 14). */
       hasta: string;
       bolsillos: Bolsillo[];
@@ -55,7 +58,7 @@ export type SaldoBolsillos =
   | { tipo: "sin_dato"; motivo: string; noSePudoLeer: boolean };
 
 /** El color de cada bolsillo: la familia «reparto» del ERP, que existe para partir plata en partes (el verde queda para «Libre»). */
-const COLOR: Record<ClaveBolsillo, string> = {
+export const COLOR_BOLSILLO: Record<ClaveBolsillo, string> = {
   equipo: "var(--color-pizarra)",
   sunat: "var(--color-reparto-terracota)",
   proveedores: "var(--color-reparto-ocre)",
@@ -125,13 +128,68 @@ function detalleDe(clave: ClaveBolsillo, pagos: PagoDelBolsillo[], igvJuntando: 
   }
 }
 
+// De qué está hecho «lo que tienes» (examen de Finanzas del 2026-10-27, tarea #1; vivía en «¿Cuánto tienes?», que el camino A reemplaza por «Libre»).
+export type DesgloseTienes = { enMano: number; porAbonar: number; otros: number; porVolver: number; debesCompras: number };
+
+/**
+ * «¿Cuánto tienes?» es la suma de TODAS las cuentas menos la tarjeta de crédito (`fn_flujo_disponible`), pero su texto decía «en cajones, cajas
+ * fuertes y bancos»: el 27-oct-2026 el 56 % del titular (S/ 56,146 de S/ 99,570) era tarjeta y QR que las máquinas todavía no depositaban, más un
+ * fondo y plata por rendir. Aquí se reparte esa suma por tipo con los saldos que la base ya calculó, y solo se devuelve si las partes suman la cifra
+ * de arriba (S/ 0.50 de tolerancia): si una cuenta no se ve (saldo nulo) o las lecturas se desfasaron, `null` y la tarjeta queda como estaba.
+ */
+export function desgloseDeTienes(cuentas: readonly CuentaDinero[] | null, saldoHoy: number): DesgloseTienes | null {
+  if (!cuentas) return null;
+  const suman = cuentas.filter((c) => c.tipo !== "tarjeta_credito");
+  if (suman.some((c) => c.saldo === null)) return null;
+  let enMano = 0;
+  let porAbonar = 0;
+  let otros = 0;
+  let porVolver = 0;
+  let debesCompras = 0;
+  for (const c of suman) {
+    const saldo = c.saldo ?? 0;
+    if (c.tipo === "banco" || c.tipo === "caja_fuerte" || c.tipo === "cajon") enMano += saldo;
+    else if (c.tipo === "por_abonar") porAbonar += saldo;
+    // ADR-0621: el fondo de compras ya viene sin lo gastado; lo que queda es lo que está por volver. Si gastó de más, CAYLA le debe: va aparte.
+    else if (c.tipo === "fondo" && !c.archivada && saldo > 0) porVolver += saldo;
+    else if (c.tipo === "fondo") debesCompras += saldo;
+    else otros += saldo;
+  }
+  const d = { enMano: r2(enMano), porAbonar: r2(porAbonar), otros: r2(otros), porVolver: r2(porVolver), debesCompras: r2(debesCompras) };
+  return Math.abs(d.enMano + d.porAbonar + d.otros + d.porVolver + d.debesCompras - saldoHoy) < 0.5 ? d : null;
+}
+
+/** La línea de la tarjeta: lo que está a mano y, aparte, lo que no lo está todavía. Sin nada aparte, el texto de siempre, que ya era exacto. */
+export function detalleDeTienes(d: DesgloseTienes | null | undefined): string {
+  const siempre = "Bancos, cajas y cajones.";
+  if (!d) return siempre;
+  const aparte: string[] = [];
+  if (Math.abs(d.porAbonar) > 0.005) aparte.push(`por llegar ${soles(d.porAbonar)}`);
+  if (Math.abs(d.otros) > 0.005) aparte.push(`con el líder ${soles(d.otros)}`);
+  if (Math.abs(d.porVolver) > 0.005) aparte.push(`por volver de compras ${soles(d.porVolver)}`);
+  if (d.debesCompras < -0.005) aparte.push(`menos ${soles(-d.debesCompras)} que le debes a las compradoras`);
+  if (!aparte.length) return siempre;
+  return `A mano ${soles(d.enMano)} · ${aparte.join(" · ")}`;
+}
+
 const ORDEN: readonly ClaveBolsillo[] = ["equipo", "sunat", "proveedores", "fijos", "otros", "compras", "claure", "planilla"];
 
 /**
- * Libre para usar y los bolsillos. `caja` es la de «Tu caja» (`cajaProxima`); `proyeccion`, la misma proyección de donde salió; `planillaSinSalida`, lo que
+ * Libre para usar y los bolsillos. `caja` es la de 14 días (`cajaProxima`); `proyeccion`, la misma proyección de donde salió; `planillaSinSalida`, lo que
  * Dynamic marcó pagado de la planilla y aquí no bajó del banco.
  */
-export function saldoEnBolsillos({ caja, proyeccion, planillaSinSalida = null }: { caja: CajaProxima; proyeccion: Proyeccion | null; planillaSinSalida?: number | null }): SaldoBolsillos {
+export function saldoEnBolsillos({
+  caja,
+  proyeccion,
+  planillaSinSalida = null,
+  cuentas = null,
+}: {
+  caja: CajaProxima;
+  proyeccion: Proyeccion | null;
+  planillaSinSalida?: number | null;
+  /** Las cuentas, para decir de qué está hecho lo que tienes; sin ellas, el texto de siempre. */
+  cuentas?: readonly CuentaDinero[] | null;
+}): SaldoBolsillos {
   if (caja.tipo === "falla") return { tipo: "sin_dato", motivo: "No se pudo leer la caja. Vuelve a cargar la página en un rato.", noSePudoLeer: true };
   if (caja.tipo === "oculta") return { tipo: "sin_dato", motivo: "Tu rol no ve la caja de CAYLA.", noSePudoLeer: false };
   if (caja.tipo === "sede") {
@@ -169,12 +227,12 @@ export function saldoEnBolsillos({ caja, proyeccion, planillaSinSalida = null }:
           : clave === "claure"
             ? "Lo que Claudia vendió en Lima: no es de CAYLA"
             : "Dynamic ya la pagó; falta registrar de qué banco salió";
-      if (monto > 0.004) bolsillos.push({ clave, nombre: NOMBRE[clave], monto, detalle, color: COLOR[clave], pagos: [] });
+      if (monto > 0.004) bolsillos.push({ clave, nombre: NOMBRE[clave], monto, detalle, color: COLOR_BOLSILLO[clave], pagos: [] });
       continue;
     }
     const pagos = porClave.get(clave) ?? [];
     const monto = suma(pagos.map((p) => p.monto));
-    if (monto > 0.004) bolsillos.push({ clave, nombre: NOMBRE[clave], monto, detalle: detalleDe(clave, pagos, clave === "sunat" ? igvJuntando : null), color: COLOR[clave], pagos });
+    if (monto > 0.004) bolsillos.push({ clave, nombre: NOMBRE[clave], monto, detalle: detalleDe(clave, pagos, clave === "sunat" ? igvJuntando : null), color: COLOR_BOLSILLO[clave], pagos });
   }
 
   const libre = r2(tienes - suma(bolsillos.map((b) => b.monto)));
@@ -182,13 +240,14 @@ export function saldoEnBolsillos({ caja, proyeccion, planillaSinSalida = null }:
     libre >= 0
       ? `de ${soles(tienes)} que tienes. Lo demás ya tiene dueño.`
       : `Tienes ${soles(tienes)} y lo que ya tiene dueño suma ${soles(tienes - libre)}: faltan ${soles(-libre)} para cubrirlo sin lo que vendas.`;
-  return { tipo: "cayla", tienes, libre, hasta: caja.hasta, bolsillos, provisional: caja.provisional, sinPlanilla: caja.sinPlanilla, dicho };
+  const tienesDetalle = detalleDeTienes(desgloseDeTienes(cuentas, tienes));
+  return { tipo: "cayla", tienes, libre, tienesDetalle, hasta: caja.hasta, bolsillos, provisional: caja.provisional, sinPlanilla: caja.sinPlanilla, dicho };
 }
 
 /** La cuenta de «Libre para usar», renglón por renglón, para la hoja «¿Cómo se calcula?». La última línea es el resultado. */
 export function cuentaDeLibre(s: Extract<SaldoBolsillos, { tipo: "cayla" }>): { texto: string; detalle: string; monto: number; total?: boolean }[] {
   return [
-    { texto: "Lo que hay en bancos y cajas", detalle: "Bancos, cajones, cajas fuertes y lo que el POS todavía no abona", monto: s.tienes },
+    { texto: "Lo que hay en bancos y cajas", detalle: s.tienesDetalle, monto: s.tienes },
     ...s.bolsillos.map((b) => ({ texto: b.nombre, detalle: b.detalle, monto: -b.monto })),
     { texto: "Libre para usar", detalle: "Sin dejar de pagar nada de lo de arriba", monto: s.libre, total: true },
   ];

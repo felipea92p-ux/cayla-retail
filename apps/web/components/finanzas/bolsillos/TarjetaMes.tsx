@@ -2,6 +2,7 @@ import { BarraAvance } from "@/components/ui/BarraAvance";
 import { Chip, type TonoChip } from "@/components/ui/Chip";
 import { CifraAnimada } from "@/components/ui/CifraAnimada";
 import { EnlaceVer } from "@/components/ui/EnlaceVer";
+import { TituloSeccion } from "@/components/ui/TituloSeccion";
 import type { EquilibrioMes } from "@/lib/equilibrio-mes-reglas";
 import { soles } from "@/lib/flujo-caja-reglas";
 import type { RespuestaResumen } from "@/lib/resumen-telar-reglas";
@@ -58,14 +59,18 @@ export function TarjetaMes({ titulo, te, eq, vendido, gastos, cambio, noVende, p
 
   return (
     <section className="fin-superficie fin-pad mes-a" data-guia="fin-resumen.mes">
-      <div className="mes-a-cab">
-        <h2 className="mes-a-titulo">{titulo}</h2>
-        {provisional && (
-          <Chip tono="ambar" versalitas={false} title="Al número le faltan cosas por registrar: «Vendido por sede» dice cuáles.">
-            Provisional
-          </Chip>
-        )}
-      </div>
+      <TituloSeccion
+        className="mes-a-cab"
+        accion={
+          provisional ? (
+            <Chip tono="ambar" versalitas={false} title="Al número le faltan cosas por registrar: «Vendido por sede» dice cuáles.">
+              Provisional
+            </Chip>
+          ) : undefined
+        }
+      >
+        {titulo}
+      </TituloSeccion>
 
       {noVende ? (
         <>
