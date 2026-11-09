@@ -13,6 +13,8 @@ import { SIZES_OPCIONES_VENDER as SIZES_FOTO } from "@/lib/fotos-tamanos";
 import { textoOtrasSedes } from "@/lib/stock-por-sede";
 import { motivoNoCobrable } from "@/lib/vender-stock-local";
 import { estiloMosaicoColor } from "@/lib/color-prenda-reglas";
+import { fotoQueDistingue } from "@/lib/color-estampado-reglas";
+import { MuestraEstampado } from "@/components/ui/MuestraEstampado";
 import { ETIQUETA_COMBINA, FichaDelColor } from "@/components/ui/FichaDelColor";
 import type { FichaDelColor as FichaDelColorTipo } from "@/lib/ficha-del-color";
 import { MiniaturaPrenda } from "@/components/ui/PrendaCelda";
@@ -166,11 +168,17 @@ export function OpcionesDePrendaModal({ prenda, colorClave, ubicacionEtiqueta, c
                       aria-pressed={c.clave === elegido.clave}
                       className="flex w-full items-center gap-2.5 pr-1 text-left outline-none focus-visible:underline"
                     >
-                      <span
-                        aria-hidden
-                        className="h-4 w-4 shrink-0 rounded-full shadow-[inset_0_0_0_1px_color-mix(in_srgb,var(--color-tinta)_16%,transparent)]"
-                        style={{ backgroundColor: estiloMosaicoColor(c.tallas[0]?.variante.colorHex)?.fondo ?? "var(--color-hueso)" }}
-                      />
+                      {c.tallas[0]?.variante.colorEstampado && fotoQueDistingue(c.fotoUrl, prenda.colores.map((x) => x.fotoUrl)) ? (
+                        <span aria-hidden className="relative h-10 w-10 shrink-0 overflow-hidden rounded-lg shadow-[inset_0_0_0_1px_color-mix(in_srgb,var(--color-tinta)_16%,transparent)]">
+                          <MuestraEstampado fotoUrl={c.fotoUrl!} hex={c.tallas[0]?.variante.colorHex} forma="lista" />
+                        </span>
+                      ) : (
+                        <span
+                          aria-hidden
+                          className="h-4 w-4 shrink-0 rounded-full shadow-[inset_0_0_0_1px_color-mix(in_srgb,var(--color-tinta)_16%,transparent)]"
+                          style={{ backgroundColor: estiloMosaicoColor(c.tallas[0]?.variante.colorHex)?.fondo ?? "var(--color-hueso)" }}
+                        />
+                      )}
                       <span className="min-w-0 flex-1 truncate text-[15px] font-semibold text-tinta">{c.color ?? "Sin color"}</span>
                       {lleva > 0 && (
                         <span key={lleva} className="anim-revelar shrink-0 text-sm font-semibold text-rojo tabular-nums">

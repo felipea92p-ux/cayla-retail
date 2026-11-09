@@ -40,6 +40,15 @@ export function patronesDeEstampado<P extends { nombre: string }>(patrones: read
   return patrones.filter((p) => p.nombre.normalize("NFD").replace(/[̀-ͯ]/g, "").trim().toLowerCase() !== "liso");
 }
 
+/**
+ * La foto que de verdad reconoce a un estampado entre los colores de su prenda. Un color sin foto propia hereda la General del modelo
+ * (`fotoDeVariante`), y dos estampados con la misma foto no se distinguen por ella: en ese caso no se dibuja, y queda el punto y su nombre.
+ */
+export function fotoQueDistingue(fotoUrl: string | null | undefined, todas: readonly (string | null | undefined)[]): string | null {
+  if (!fotoUrl) return null;
+  return todas.filter((u) => u === fotoUrl).length === 1 ? fotoUrl : null;
+}
+
 /** El nombre que se propone: el patrón y el color dominante, o vacío mientras falte uno de los dos. */
 export function nombreDeEstampado(patron: string | null | undefined, colorDominante: string | null | undefined): string {
   if (!patron?.trim() || !colorDominante?.trim()) return "";

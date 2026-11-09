@@ -11,6 +11,8 @@ import { SIZES_OPCIONES_VENDER, SIZES_TARJETA_VENDER as SIZES_FOTO } from "@/lib
 import { textoOtrasSedes } from "@/lib/stock-por-sede";
 import { motivoNoCobrable, tooltipTallaSinPiso } from "@/lib/vender-stock-local";
 import { estiloMosaicoColor } from "@/lib/color-prenda-reglas";
+import { fotoQueDistingue } from "@/lib/color-estampado-reglas";
+import { MuestraEstampado } from "@/components/ui/MuestraEstampado";
 import { MosaicoPrenda } from "@/components/MosaicoPrenda";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { InsigniaEmpresa } from "@/components/InsigniaEmpresa";
@@ -160,6 +162,8 @@ export function TarjetaPrenda({ prenda, bloqueado, carrito, indice, pulsoTope, o
             const estado = c.stockTotal > 0 ? "piso" : c.almacenTotal > 0 ? "almacen" : "agotado";
             const activo = c.clave === elegido.clave;
             const detalle = estado === "almacen" ? ", solo en el almacén" : estado === "agotado" ? ", sin stock aquí" : "";
+            const variante = c.tallas[0]?.variante;
+            const fotoEstampado = variante?.colorEstampado ? fotoQueDistingue(c.fotoUrl, prenda.colores.map((x) => x.fotoUrl)) : null;
             return (
               <button
                 key={c.clave}
@@ -176,7 +180,11 @@ export function TarjetaPrenda({ prenda, bloqueado, carrito, indice, pulsoTope, o
                 aria-label={`${c.color ?? "Sin color"}${detalle}`}
                 className="vg-punto"
               >
-                <i style={{ backgroundColor: estiloMosaicoColor(c.tallas[0]?.variante.colorHex)?.fondo ?? "var(--color-hueso)" }} />
+                {fotoEstampado ? (
+                  <i className="vg-punto-foto"><MuestraEstampado fotoUrl={fotoEstampado} hex={variante?.colorHex} /></i>
+                ) : (
+                  <i style={{ backgroundColor: estiloMosaicoColor(variante?.colorHex)?.fondo ?? "var(--color-hueso)" }} />
+                )}
               </button>
             );
           })}

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { agruparPorFamilia } from "./colores-familias";
-import { coloresDominantes, ejemploDeEstampado, esEstampado, familiaEnCarta, faltaParaEstampado, nombreDeEstampado, patronesDeEstampado } from "./color-estampado-reglas";
+import { coloresDominantes, ejemploDeEstampado, esEstampado, familiaEnCarta, fotoQueDistingue, faltaParaEstampado, nombreDeEstampado, patronesDeEstampado } from "./color-estampado-reglas";
 
 const colores = [
   { codigo: "NEG", nombre: "Negro", hex: "#1A1A1A", familiaColor: "neutro" },
@@ -66,5 +66,13 @@ describe("familiaEnCarta", () => {
   });
   it("no pierde ni repite ningún color", () => {
     expect(agruparPorFamilia(colores, familiaEnCarta).flatMap((x) => x.colores.map((c) => c.codigo)).sort()).toEqual(colores.map((c) => c.codigo).sort());
+  });
+});
+
+describe("fotoQueDistingue", () => {
+  it("solo sirve la foto que nadie más comparte", () => {
+    expect(fotoQueDistingue("a.jpg", ["a.jpg", "b.jpg", null])).toBe("a.jpg");
+    expect(fotoQueDistingue("general.jpg", ["general.jpg", "general.jpg", "b.jpg"])).toBeNull();
+    expect(fotoQueDistingue(null, ["a.jpg"])).toBeNull();
   });
 });
