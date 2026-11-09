@@ -1,5 +1,5 @@
 -- ============================================================================
--- 20261106164000 — El IGV de un mes cerrado deja una foto, y cambiarlo se avisa (tarea 19 de «Las 36 de Finanzas»)
+-- 20261109143000 — El IGV de un mes cerrado deja una foto, y cambiarlo se avisa (tarea 19 de «Las 36 de Finanzas»)
 --
 -- EL PROBLEMA PRIMERO. `fn_impuestos_igv_meses` se calcula en vivo, y cada mes arrastra el saldo del anterior. Dos cosas podían mover el IGV de un mes ya cerrado sin que nadie se entere:
 -- anular en noviembre una boleta aceptada de octubre (baja el débito de octubre y sube el saldo de noviembre, sin tocar el diario), y los comprobantes del Taller, que no tenían candado de
@@ -16,7 +16,7 @@
 -- NO HACE: no impide anular una boleta (SUNAT manda sobre eso), no cambia ninguna cifra y no reescribe el pasado. No hay fotos de meses cerrados antes de esta migración: no se puede saber qué
 -- decían, y la función no los compara.
 --
--- CÓMO SE PEGA EN PRODUCCIÓN: una ejecución. Crea una tabla (con RLS y sin políticas: se lee solo por funciones) y un disparador con `create or replace trigger`. Las funciones se reescriben
+-- CÓMO SE PEGA EN PRODUCCIÓN: una ejecución, DESPUÉS de 20261107172000 (rendimiento de Finanzas: reescribe `fn_impuestos_igv_meses` y comprueba su huella; si esta va antes, aquella aborta). Crea una tabla (con RLS y sin políticas: se lee solo por funciones) y un disparador con `create or replace trigger`. Las funciones se reescriben
 -- desde la definición viva; si un ancla no aparece exactamente una vez, aborta entero. Pegarla dos veces no hace nada. Verificado: `pnpm pruebas:igv-congelado`.
 --
 -- SE ROMPE SI: una migración futura recrea `cerrar_periodo` copiando un texto viejo del repo (la prueba lo vigila).

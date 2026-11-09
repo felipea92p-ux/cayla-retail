@@ -1,5 +1,5 @@
 -- ============================================================================
--- 20261106165000 — La factura que llega con el mes cerrado (tarea 20 de «Las 36 de Finanzas»)
+-- 20261109144000 — La factura que llega con el mes cerrado (tarea 20 de «Las 36 de Finanzas»)
 --
 -- EL PROBLEMA PRIMERO. Una factura del 30 de octubre llega el 6 de noviembre, con octubre cerrado, y el sistema dice «reábrelo o registra con fecha de noviembre». Cambiar la fecha falsea el
 -- registro de compras y el cruce con SUNAT; reabrir solo se puede en el último mes cerrado, y mueve lo ya declarado.
@@ -14,7 +14,7 @@
 -- SUPUESTO PARA EL CONTADOR: gasto y crédito fiscal entran en el mes abierto, no en el mes de la factura. El registro de compras la lista en ese mes con su fecha real. Lo revisa el contador.
 --
 -- NO HACE: un gasto SIN comprobante, un activo o un pago con fecha de un mes cerrado se siguen rechazando; no hay papel que justifique la excepción. El papel de un gasto de un mes cerrado va en
--- la migración 20261106170000.
+-- la migración 20261109145000.
 --
 -- CÓMO SE PEGA EN PRODUCCIÓN: una ejecución. Dos columnas sin valor por defecto (no reescriben las tablas), dos disparadores con `create or replace trigger`, sin políticas. Las funciones se
 -- reescriben desde la definición viva; si un ancla no aparece las veces esperadas, aborta entero. Pegarla dos veces no hace nada. Verificado: `pnpm pruebas:factura-mes-cerrado`.

@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
- * Prueba de la tarea 20 de «Las 36 de Finanzas» — la factura que llega con el mes cerrado (`20261106165000_factura_con_el_mes_cerrado.sql` y
- * `20261106170000_papel_de_un_gasto_con_el_mes_cerrado.sql`).
+ * Prueba de la tarea 20 de «Las 36 de Finanzas» — la factura que llega con el mes cerrado (`20261109144000_factura_con_el_mes_cerrado.sql` y
+ * `20261109145000_papel_de_un_gasto_con_el_mes_cerrado.sql`).
  *
  * QUÉ CUBRE
  *   · GASTO CON FACTURA: en un mes cerrado entra con su fecha real y cuenta hoy: gasto, pago, crédito y registro. El mes cerrado no cambia: ni su huella, ni su IGV, ni su registro.
@@ -31,9 +31,9 @@ const CONTENEDOR = arg("--contenedor", "supabase_db_cayla-retail");
 const FELIPE = "22222222-2222-4222-8222-000000000001"; // líder
 const RAIZ = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
 const leer = (m) => readFileSync(join(RAIZ, "supabase", "migrations", m), "utf8");
-const MIGRACION = leer("20261106165000_factura_con_el_mes_cerrado.sql");
-const ANTERIOR = leer("20261106164000_igv_congelado_al_cerrar.sql");
-const PAPEL_TARDIO = leer("20261106170000_papel_de_un_gasto_con_el_mes_cerrado.sql");
+const MIGRACION = leer("20261109144000_factura_con_el_mes_cerrado.sql");
+const ANTERIOR = leer("20261109143000_igv_congelado_al_cerrar.sql");
+const PAPEL_TARDIO = leer("20261109145000_papel_de_un_gasto_con_el_mes_cerrado.sql");
 
 function psql(sql) {
   return execFileSync(

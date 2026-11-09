@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Prueba de la tarea 21 de «Las 36 de Finanzas» — deshacer un pago, una nota, un reembolso o el papel de un gasto (`20261109141000_anular_pago_nota_y_papel.sql`).
+ * Prueba de la tarea 21 de «Las 36 de Finanzas» — deshacer un pago, una nota, un reembolso o el papel de un gasto (`20261109150000_anular_pago_nota_y_papel.sql`).
  *
  * QUÉ CUBRE
  *   · PAGO: anularlo deja la factura, Por pagar y el diario como antes del pago; la fila completa queda en el archivo con su motivo. Dos toques no fallan. Sin motivo, con el mes cerrado,
@@ -30,8 +30,8 @@ const FELIPE = "22222222-2222-4222-8222-000000000001"; // líder
 const MICAELA = "22222222-2222-4222-8222-000000000003"; // colaboradora de Trujillo, sin Por pagar
 const RAIZ = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
 const leer = (m) => readFileSync(join(RAIZ, "supabase", "migrations", m), "utf8");
-const MIGRACION = leer("20261109141000_anular_pago_nota_y_papel.sql");
-const ANTES = ["20261106164000_igv_congelado_al_cerrar.sql", "20261106165000_factura_con_el_mes_cerrado.sql", "20261106170000_papel_de_un_gasto_con_el_mes_cerrado.sql"].map(leer).join("\n");
+const MIGRACION = leer("20261109150000_anular_pago_nota_y_papel.sql");
+const ANTES = ["20261109143000_igv_congelado_al_cerrar.sql", "20261109144000_factura_con_el_mes_cerrado.sql", "20261109145000_papel_de_un_gasto_con_el_mes_cerrado.sql"].map(leer).join("\n");
 
 function psql(sql) {
   return execFileSync(

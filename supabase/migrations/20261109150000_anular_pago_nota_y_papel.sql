@@ -1,5 +1,5 @@
 -- ============================================================================
--- 20261109141000 — Deshacer un pago a proveedor, una nota de crédito, un reembolso o el papel de un gasto (tarea 21 de «Las 36 de Finanzas»)
+-- 20261109150000 — Deshacer un pago a proveedor, una nota de crédito, un reembolso o el papel de un gasto (tarea 21 de «Las 36 de Finanzas»)
 --
 -- EL PROBLEMA PRIMERO. Nada se podía corregir. Un pago con el monto mal se quedaba: ni el pago ni la factura se anulaban, y Por pagar perdía esa deuda. Una nota de crédito mal digitada bajaba
 -- el crédito para siempre, y su disparador pedía «registrar un documento nuevo» que no existía. Un comprobante agregado a un gasto con el RUC equivocado no se quitaba.
@@ -15,7 +15,7 @@
 -- NO HACE: no devuelve plata a ningún banco; corrige el registro. No anula lo que tiene otra cosa encima: un pago que usó o dejó saldo a favor, una nota que dejó saldo a favor o que nació de
 -- cerrar una línea, una con archivos adjuntos. Esos casos lo dicen y esperan otra decisión.
 --
--- CÓMO SE PEGA EN PRODUCCIÓN: una ejecución, DESPUÉS de 20261106170000. Crea una tabla con RLS y sin políticas (se lee solo por funciones). Las funciones existentes se reescriben desde la
+-- CÓMO SE PEGA EN PRODUCCIÓN: una ejecución, DESPUÉS de 20261109145000. Crea una tabla con RLS y sin políticas (se lee solo por funciones). Las funciones existentes se reescriben desde la
 -- definición viva; si un ancla no aparece exactamente una vez, aborta entero. Pegarla dos veces no hace nada. Verificado: `pnpm pruebas:anular-pago-nota-papel`.
 --
 -- SE ROMPE SI: alguien lee pagos, notas o reembolsos anulados desde sus tablas: ya no están ahí. El historial vive en `documentos_anulados`.

@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Prueba de la tarea 19 de «Las 36 de Finanzas» — el IGV de un mes cerrado deja una foto (`20261106164000_igv_congelado_al_cerrar.sql`).
+ * Prueba de la tarea 19 de «Las 36 de Finanzas» — el IGV de un mes cerrado deja una foto (`20261109143000_igv_congelado_al_cerrar.sql`).
  *
  * QUÉ CUBRE
  *   · CANDADOS: un comprobante del Taller no entra, no cambia y no se anula con el mes del Taller cerrado; el saldo a favor no se cambia desde un mes cerrado.
@@ -27,7 +27,7 @@ const arg = (nombre, porDefecto) => {
 const CONTENEDOR = arg("--contenedor", "supabase_db_cayla-retail");
 const FELIPE = "22222222-2222-4222-8222-000000000001"; // líder
 const RAIZ = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
-const MIGRACION = readFileSync(join(RAIZ, "supabase", "migrations", "20261106164000_igv_congelado_al_cerrar.sql"), "utf8");
+const MIGRACION = readFileSync(join(RAIZ, "supabase", "migrations", "20261109143000_igv_congelado_al_cerrar.sql"), "utf8");
 
 function psql(sql) {
   return execFileSync(

@@ -1,5 +1,5 @@
 -- ============================================================================
--- 20261106170000 — El comprobante de un gasto de un mes ya cerrado (tarea 20 de «Las 36 de Finanzas», segunda parte)
+-- 20261109145000 — El comprobante de un gasto de un mes ya cerrado (tarea 20 de «Las 36 de Finanzas», segunda parte)
 --
 -- EL PROBLEMA PRIMERO. «Llegó el comprobante» exige abierto el mes del gasto: con octubre cerrado, un gasto de octubre se queda sin papel para siempre, sin sustento y sin crédito fiscal.
 --
@@ -13,7 +13,7 @@
 --
 -- NO HACE: no reabre nada ni cambia el gasto. Si el gasto y su mes están abiertos, sigue el camino de siempre, y si solo está cerrado el mes del papel, la compra entra con la tarea 20.
 --
--- CÓMO SE PEGA EN PRODUCCIÓN: una ejecución, DESPUÉS de 20261106165000. Crea una tabla con RLS y sin políticas: se lee solo por funciones. Las funciones se reescriben desde la definición viva; si
+-- CÓMO SE PEGA EN PRODUCCIÓN: una ejecución, DESPUÉS de 20261109144000. Crea una tabla con RLS y sin políticas: se lee solo por funciones. Las funciones se reescriben desde la definición viva; si
 -- un ancla no aparece las veces esperadas, aborta entero. Pegarla dos veces no hace nada. Verificado: `pnpm pruebas:factura-mes-cerrado`.
 --
 -- SE ROMPE SI: una migración futura recrea una de estas funciones copiando un texto viejo del repo (la prueba lo vigila).
