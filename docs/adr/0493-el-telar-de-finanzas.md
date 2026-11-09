@@ -396,3 +396,12 @@ llevan el ícono de su categoría; el cambio contra el mes pasado es texto con s
 «A dónde va la plata» ya no guarda su lugar cuando no tiene qué dibujar. En oscuro, el rojo de «Ver …» se aclara un poco sobre el vidrio (4.1:1 → pasa).
 **DESCARTÉ:** mover la barra de sede y mes bajo el título como en la maqueta (es la mesa común de Finanzas, ADR-0493) y achicar el título (es la
 cabecera única del ERP, ADR-0220).
+
+## Actualización 2026-11-09 (c) — El Resumen por filas, no por columnas (Felipe: «optimiza el espacio, todo bien ubicado»)
+
+Con dos pilas sueltas, la que tenía menos datos terminaba antes y dejaba media pantalla vacía al pie (a 1440 px, 470 px: la izquierda acababa en
+1291 y la derecha en 1758). El Resumen pasa a filas de dos (7 a 5): lo libre con el mes, las preguntas a lo ancho, «Hoy te toca» con «Próximos» y
+«Movimientos» con las tiendas; las dos tarjetas de una fila miden lo mismo. Una pieza sin pareja (sin ventas por sede, o sin el flujo) toma la fila
+entera, y «Movimientos» reparte sus días en dos columnas. El último par («A dónde va la plata» y lo que más se movió) sigue la misma regla, 1 a 1,2.
+«Flujo de caja» sale de «Próximos» (flotaba suelto; «Movimientos» ya lleva al Flujo de efectivo). En el celular, el orden del código.
+**DESCARTÉ:** acomodar las piezas con JavaScript según su alto (masonry): saltaría al cargar los datos y cambiaría de lugar entre un mes y otro.

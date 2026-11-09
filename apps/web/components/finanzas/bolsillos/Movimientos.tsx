@@ -101,28 +101,30 @@ export async function Movimientos({ periodo, hoy, hrefFlujo }: { periodo: Period
     <section className="fin-superficie fin-pad movs" data-guia="fin-resumen.movimientos">
       <TituloSeccion accion={accion}>Movimientos</TituloSeccion>
       {cayo && <p className="bolsillos-motivo">Algún día no se pudo leer. Vuelve a cargar la página en un rato.</p>}
-      {pasosDelFeed(feed).map((p) =>
-        p.tipo === "vacios" ? (
-          <p key={p.clave} className="movs-vacio">
-            {p.texto}
-          </p>
-        ) : (
-          <div key={p.dia.fecha} className="movs-dia">
-            <div className="movs-dia-cab">
-              <span>{p.dia.nombre}</span>
-              <span className={`num ${p.dia.neto < 0 ? "movs-baja" : ""}`}>
-                {p.dia.neto >= 0 ? "+" : "−"}
-                {soles(Math.abs(p.dia.neto))}
-              </span>
+      <div className="movs-cuerpo">
+        {pasosDelFeed(feed).map((p) =>
+          p.tipo === "vacios" ? (
+            <p key={p.clave} className="movs-vacio">
+              {p.texto}
+            </p>
+          ) : (
+            <div key={p.dia.fecha} className="movs-dia">
+              <div className="movs-dia-cab">
+                <span>{p.dia.nombre}</span>
+                <span className={`num ${p.dia.neto < 0 ? "movs-baja" : ""}`}>
+                  {p.dia.neto >= 0 ? "+" : "−"}
+                  {soles(Math.abs(p.dia.neto))}
+                </span>
+              </div>
+              <ul className="movs-lista">
+                {p.dia.movimientos.map((m) => (
+                  <Renglon key={m.clave} m={m} />
+                ))}
+              </ul>
             </div>
-            <ul className="movs-lista">
-              {p.dia.movimientos.map((m) => (
-                <Renglon key={m.clave} m={m} />
-              ))}
-            </ul>
-          </div>
-        ),
-      )}
+          ),
+        )}
+      </div>
       <p className="nota-cayla mt-3">{NOTA}</p>
     </section>
   );

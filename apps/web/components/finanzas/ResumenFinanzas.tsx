@@ -190,6 +190,8 @@ export function ResumenFinanzasPanel({ resumen, falla, confianza, mes, periodo, 
   const diasMes = new Date(Date.UTC(Number(mes.slice(0, 4)), Number(mes.slice(5, 7)), 0)).getUTCDate();
   const noVende = r.ver.todas || r.ver.tipo === "tienda" ? null : resp;
   const cambio = fila && filaAntes && filaAntes.ventas > 0 && !noVende ? { pct: fila.ventas / filaAntes.ventas - 1, contra: nombreDelAnterior(periodo) } : null;
+  // Las tiendas solo se dibujan si alguna vendió (la pieza no dibuja nada sin ventas: no se le guarda lugar).
+  const hayTiendas = vendidoPorSede(filas).some((x) => x.monto > 0);
   const hrefGanancias = ve("reportes_financieros") ? conElRango(ir("/finanzas/reportes"), sp.entries()) : null;
   // Las hojas de detalle (camino A, «También las hojas»): de lo que la pantalla ya leyó; cada una termina en la pantalla que lo resuelve.
   const datosHojas: DatosHojas = {
@@ -264,67 +266,67 @@ export function ResumenFinanzasPanel({ resumen, falla, confianza, mes, periodo, 
           ),
         )}
       </p>
-      {/* Camino «A · Bolsillos» (Felipe 2026-11-09; maqueta docs/maquetas/finanzas-resumen-de-punta-a-punta-2026-11/). A la izquierda, la plata como en la app
-          del banco: lo libre con sus bolsillos, las preguntas de siempre y los movimientos. A la derecha, el mes: lo que te deja, lo urgente, lo que viene y las
-          tiendas. En una sola columna, en el orden de `data-orden`. */}
+      {/* Camino «A · Bolsillos» (Felipe 2026-11-09; maqueta docs/maquetas/finanzas-resumen-de-punta-a-punta-2026-11/), armado POR FILAS: lo libre junto al
+          mes, las preguntas a lo ancho, lo urgente junto a lo que viene y los movimientos junto a las tiendas. Las dos tarjetas de una fila miden lo mismo,
+          así ninguna columna termina antes que la otra (con dos pilas sueltas quedaba media pantalla vacía al pie de la más corta, Felipe 2026-11-09). En
+          una sola columna, el orden del código es el de importancia. */}
       <div className="resumen-a">
-        <div className="resumen-a-col">
-          <div data-orden="1" {...columna(1)}>
-            <SaldoLibre saldo={saldo} onAbrir={setHoja} otroMes={periodo.enCurso ? null : mesNombre(mes)} />
-          </div>
-          <div data-orden="3" {...columna(3)}>
+        <div data-area="libre" {...columna(1)}>
+          <SaldoLibre saldo={saldo} onAbrir={setHoja} otroMes={periodo.enCurso ? null : mesNombre(mes)} />
+        </div>
+        <div data-area="mes" {...columna(2)}>
+          <TarjetaMes
+            titulo={tituloMes}
+            te={te}
+            eq={eq}
+            vendido={fila?.ventas ?? 0}
+            gastos={fila?.gastos ?? 0}
+            cambio={cambio}
+            noVende={noVende}
+            provisional={provisional}
+            hoyEnElMes={enCurso ? { van: diaDeHoy, total: diasMes } : null}
+            hrefGanancias={hrefGanancias}
+            onAbrir={setHoja}
+            hojas={hay}
+          />
+        </div>
+        {preguntas.length > 0 && (
+          <div data-area="preguntas" {...columna(3)}>
             <Preguntas preguntas={preguntas} onAbrir={setHoja} />
           </div>
-          {movimientos && (
-            <div data-orden="6" {...columna(6)}>
-              {movimientos}
-            </div>
-          )}
+        )}
+        <div data-area="decidir" {...columna(4)} data-guia="fin-resumen.decidir">
+          <Superficie pad>
+            <CabeceraBloque titulo="Hoy te toca" bajada={periodo.enCurso ? "Lo urgente, primero." : `Es de hoy, aunque mires ${mesNombre(mes)}. Lo urgente, primero.`} />
+            <ResumenDecidir avisos={avisos} parcial={faltan.length > 0} />
+            {faltan.length > 0 && (
+              <ul className="fin-no-revisado">
+                {faltan.map((t) => (
+                  <li key={t}>{t}</li>
+                ))}
+              </ul>
+            )}
+          </Superficie>
         </div>
-        <div className="resumen-a-col">
-          <div data-orden="2" {...columna(2)}>
-            <TarjetaMes
-              titulo={tituloMes}
-              te={te}
-              eq={eq}
-              vendido={fila?.ventas ?? 0}
-              gastos={fila?.gastos ?? 0}
-              cambio={cambio}
-              noVende={noVende}
-              provisional={provisional}
-              hoyEnElMes={enCurso ? { van: diaDeHoy, total: diasMes } : null}
-              hrefGanancias={hrefGanancias}
-              onAbrir={setHoja}
-              hojas={hay}
-            />
+        <div data-area="proximos" id="proximos" {...columna(5, "resumen-ancla")}>
+          <Proximos
+            datos={proximos}
+            hoy={hoy}
+            hrefPorPagar={destino("cuentas_dinero", "/finanzas/dinero/por-pagar") ?? null}
+            onVerTodo={hay.includes("pagos") ? () => setHoja("pagos") : undefined}
+          />
+        </div>
+        {movimientos && (
+          <div data-area="movs" data-solo={hayTiendas ? undefined : ""} {...columna(6)}>
+            {movimientos}
           </div>
-          <div data-orden="4" {...columna(4)} data-guia="fin-resumen.decidir">
-            <Superficie pad>
-              <CabeceraBloque titulo="Hoy te toca" bajada={periodo.enCurso ? "Lo urgente, primero." : `Es de hoy, aunque mires ${mesNombre(mes)}. Lo urgente, primero.`} />
-              <ResumenDecidir avisos={avisos} parcial={faltan.length > 0} />
-              {faltan.length > 0 && (
-                <ul className="fin-no-revisado">
-                  {faltan.map((t) => (
-                    <li key={t}>{t}</li>
-                  ))}
-                </ul>
-              )}
-            </Superficie>
-          </div>
-          <div data-orden="5" id="proximos" {...columna(5, "resumen-ancla")}>
-            <Proximos
-              datos={proximos}
-              hoy={hoy}
-              hrefPorPagar={destino("cuentas_dinero", "/finanzas/dinero/por-pagar") ?? null}
-              hrefFlujo={ve("reportes_financieros") ? ir("/finanzas/reportes/flujo") : null}
-              onVerTodo={hay.includes("pagos") ? () => setHoja("pagos") : undefined}
-            />
-          </div>
-          {/* «Tus tiendas»: lo vendido por sede con la confianza del número, en UNA tarjeta (ADR-0417; Felipe 2026-10-29). Si no se pudo medir, se dice. */}
-          <div data-orden="7" id="tiendas" {...columna(7, "resumen-ancla")}>
+        )}
+        {/* «Tus tiendas»: lo vendido por sede con la confianza del número, en UNA tarjeta (ADR-0417; Felipe 2026-10-29). Sin ventas no se dibuja. */}
+        {hayTiendas && (
+          <div data-area="tiendas" data-solo={movimientos ? undefined : ""} id="tiendas" {...columna(7, "resumen-ancla")}>
             <VendidoPorSede porSede={porSedeDe(vendidoPorSede(filas))} sedes={sedes} hoy={hoy} mes={mesNombre(mes)} confianza={confianza.datos} falla={confianza.falla} hrefCuadre={`${ir("/finanzas/reportes")}${ir("/finanzas/reportes").includes("?") ? "&" : "?"}cuadre=1#de-ventas-a-finanzas`} />
           </div>
-        </div>
+        )}
       </div>
       {dock}
 
@@ -333,21 +335,16 @@ export function ResumenFinanzasPanel({ resumen, falla, confianza, mes, periodo, 
       {/* «Cada sede, junta» (tarea 27), a todo el ancho: es una tabla. */}
       {juntas && <SedesJuntas juntas={juntas} mes={mesNombre(mes)} hoy={hoy} falla={cajasPorSede?.falla ?? null} />}
 
-      {/* Lo demás, en dos columnas FIJAS: el anillo a la izquierda y «¿Ya pagaste el mes?» con «Contra el mes pasado» apiladas a la derecha, cada
-          una pegada a la de arriba, sin aire entre ellas (Felipe 2026-10-26). Con menos de 69 rem van en una sola, en el mismo orden. Con columnas
-          fijas, lo que crece solo empuja lo que tiene debajo (con `columns-[34rem]` el navegador pasaba una tarjeta de columna a media animación). */}
-      <div className="grid grid-cols-[repeat(auto-fit,minmax(min(34rem,100%),1fr))] items-start gap-4">
-        {/* Sin salidas que repartir, el anillo no dibuja nada: tampoco se guarda su lugar (dejaba media fila vacía), y lo que más se movió toma el ancho. */}
+      {/* El último par: a dónde va la plata y lo que más se movió, mitad y mitad y del mismo alto (como las filas de arriba). Sin salidas que repartir, el
+          anillo no dibuja nada y no se le guarda lugar: lo que más se movió toma la fila entera. */}
+      <div className="resumen-par">
         {recorrido && recorrido.salidas.some((h) => h.monto > 0) && (
           <div id="a-donde-va" {...columna(8, "resumen-ancla")}>
             <AdondeVaLaPlata recorrido={recorrido} bajada={bajadaPlata} />
           </div>
         )}
-
-        <div className="flex flex-col gap-4">
-          <div {...columna(9)}>
-            <CambiosDelMesPieza cambios={cambiosDelMes({ r, ...comparacion, enCurso })} />
-          </div>
+        <div {...columna(9)}>
+          <CambiosDelMesPieza cambios={cambiosDelMes({ r, ...comparacion, enCurso })} />
         </div>
       </div>
 

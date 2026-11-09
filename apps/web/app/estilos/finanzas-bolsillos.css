@@ -531,38 +531,32 @@
   }
 }
 
-/* ---------- El orden de la pantalla (camino A): dos columnas desde 1100 px (7 a 5, como la maqueta); en una sola, lo que más importa primero ----------
-   En una columna las dos se deshacen (`display: contents`) y cada pieza toma su lugar con `order`: lo libre, el mes, las preguntas, lo urgente, lo que
-   viene, lo que pasó y las tiendas. Desde 1280 px cada columna vuelve a ser una pila y el orden es el del código. */
+/* ---------- El orden de la pantalla (camino A): por filas, 7 a 5 desde 1100 px ----------
+   Lo libre junto al mes, las preguntas a lo ancho, lo urgente junto a lo que viene y los movimientos junto a las tiendas. Las dos tarjetas de una fila
+   se estiran al mismo alto (`stretch` y la tarjeta al 100 %), así ninguna columna termina antes que la otra. Una pieza sin pareja (sin tiendas, o sin
+   movimientos) toma la fila entera (`data-solo`). En una sola columna, el orden del código, que es el de importancia. */
 .resumen-a {
   display: flex;
   flex-direction: column;
   gap: 20px;
 }
-.resumen-a-col {
-  display: contents;
-}
-.resumen-a [data-orden="1"] { order: 1; }
-.resumen-a [data-orden="2"] { order: 2; }
-.resumen-a [data-orden="3"] { order: 3; }
-.resumen-a [data-orden="4"] { order: 4; }
-.resumen-a [data-orden="5"] { order: 5; }
-.resumen-a [data-orden="6"] { order: 6; }
-.resumen-a [data-orden="7"] { order: 7; }
 @media (min-width: 1100px) {
   .resumen-a {
     display: grid;
     grid-template-columns: minmax(0, 7fr) minmax(0, 5fr);
-    align-items: start;
+    align-items: stretch;
   }
-  .resumen-a-col {
+  .resumen-a > [data-area="preguntas"],
+  .resumen-a > [data-solo] {
+    grid-column: 1 / -1;
+  }
+  .resumen-a > [data-area]:not([data-area="preguntas"]) {
     display: flex;
     min-width: 0;
     flex-direction: column;
-    gap: 20px;
   }
-  .resumen-a [data-orden] {
-    order: 0;
+  .resumen-a > [data-area]:not([data-area="preguntas"]) > :first-child {
+    flex: 1 1 auto;
   }
 }
 .resumen-ancla {
@@ -722,5 +716,58 @@
 @media (hover: hover) {
   :root[data-tema="oscuro"] .resumen-bolsillos .enlace-ver:hover:not(:disabled) {
     color: var(--color-rojo-profundo);
+  }
+}
+
+/* «Movimientos» con la fila entera para él: los días en dos columnas (desde 900 px de tarjeta), así no queda una tira larga y angosta. */
+.movs {
+  container-type: inline-size;
+}
+.movs-cuerpo {
+  display: grid;
+  align-content: start;
+}
+@container (min-width: 900px) {
+  .movs-cuerpo {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    column-gap: 40px;
+  }
+  .movs-cuerpo > .movs-dia + .movs-dia {
+    margin-top: 0;
+  }
+  .movs-semanas {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    column-gap: 40px;
+  }
+  .movs-semanas > li:nth-child(2) {
+    border-top: 0;
+  }
+}
+
+/* El último par del Resumen (a dónde va la plata y lo que más se movió): mitad y mitad desde 1100 px, del mismo alto; si va solo, la fila entera. */
+.resumen-par {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+@media (min-width: 1100px) {
+  .resumen-par {
+    display: grid;
+    grid-auto-flow: column;
+    grid-auto-columns: minmax(0, 1fr);
+    align-items: stretch;
+  }
+  /* Con las dos: lo que más se movió, una lista con barras y cifras, lleva un poco más de ancho para no partirlas, sin apretar la leyenda del anillo. */
+  .resumen-par:has(> :nth-child(2)) {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr);
+  }
+  .resumen-par > * {
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
+  }
+  .resumen-par > * > :first-child {
+    flex: 1 1 auto;
   }
 }

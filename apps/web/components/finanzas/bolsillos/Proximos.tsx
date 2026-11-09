@@ -52,13 +52,11 @@ export function Proximos({
   datos,
   hoy,
   hrefPorPagar,
-  hrefFlujo,
   onVerTodo,
 }: {
   datos: DatosProximos;
   hoy: string;
   hrefPorPagar: string | null;
-  hrefFlujo: string | null;
   /** «Ver todo» abre la hoja con todos los pagos (y desde ella, Por pagar). Sin ella, el enlace va directo a Por pagar. */
   onVerTodo?: () => void;
 }) {
@@ -100,13 +98,6 @@ export function Proximos({
               <Sparkline serie={paraLaLinea(datos.serie)} lleno />
             </div>
           )}
-        </div>
-      )}
-
-      {/* Fuera de la caja hueso: el rojo del enlace no pasa 4.5:1 sobre ella (tema:auditar, 2026-11-09). */}
-      {datos.justo && hrefFlujo && (
-        <div>
-          <EnlaceVer href={hrefFlujo}>Flujo de caja</EnlaceVer>
         </div>
       )}
 

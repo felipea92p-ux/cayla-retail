@@ -22,3 +22,8 @@ Felipe se lleva: el PR sin abrir (commits locales en `claude/architecture-design
 Qué hice: acerqué el Resumen construido a la maqueta A: la frase con la respuesta a la vista, vidrio claro, cifras en Inter con la «S/» chica, bolsillos en tarjetitas con ícono, íconos por categoría en los movimientos, columnas 7 a 5 desde 1100 px y sin el hueco de «A dónde va la plata» vacío.
 Por qué así: Felipe vio que no se parecía en el espacio, el celular ni los íconos. Lo que no se movió (la barra de sede y mes, el tamaño del título) es de piezas comunes del ERP ya decididas.
 Felipe se lleva: mirarla a 1440 y en el celular. Contraste medido en claro y oscuro (0 fallas nuevas); la guía se recorre entera en escritorio y a 375 px.
+
+## 2026-11-09 (Finanzas ▸ Resumen: por filas, sin huecos)
+Qué hice: rearmé el Resumen por filas de dos tarjetas del mismo alto (libre y mes, lo urgente y lo que viene, movimientos y tiendas), y el último par igual. Una pieza sin pareja toma la fila entera.
+Por qué así: con dos columnas sueltas la más corta dejaba unos 470 px vacíos al pie, como mostró Felipe. Con filas, todo termina parejo con cualquier dato.
+Felipe se lleva: verificado a 1180, 1440 y 375 px, con y sin tiendas; contraste en claro y oscuro sin fallas nuevas; la guía se recorre entera.
