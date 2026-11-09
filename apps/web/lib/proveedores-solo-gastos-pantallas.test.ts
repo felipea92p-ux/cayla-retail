@@ -50,20 +50,30 @@ describe("los proveedores solo de gastos no se ofrecen para comprar ni recibir m
   });
 
   it("el alta nunca ofrece «Gastos» como botón de rubro", () => {
-    expect(codigo("components/useAltaDeProveedor.tsx")).toMatch(/rubrosSinGastos\(/);
+    // La hoja corta de Recibir (ADR-0635) no pide rubros: el proveedor nace sin ninguno y se ofrece para recibir.
+    expect(codigo("components/recepcion-conteo/ProveedorNuevoRecepcion.tsx")).not.toMatch(/rubro/i);
     expect(codigo("components/LlegoMercaderia.tsx")).toMatch(/rubrosSinGastos\(/);
   });
 });
 
 describe("«+ Agregar proveedor» se dibuja fuera del <form>", () => {
-  // Quien usa `useAltaDeProveedor` dibuja `alta.modal` DESPUÉS de cerrar su <form> (o fuera de él).
-  for (const ruta of ["components/recepcion-conteo/LlegoSinAviso.tsx"]) {
-    it(`${ruta}: alta.modal va después del </form>`, () => {
+  // Recibir agrega el proveedor con la hoja corta (ADR-0635): siempre DESPUÉS de cerrar el <form> de la pantalla que la abre.
+  for (const ruta of [
+    "components/recepcion-conteo/LlegoSinAviso.tsx",
+    "components/recepcion-conteo/CerrarEnvio.tsx",
+    "components/recepcion-conteo/MarcaNuevaRecepcion.tsx",
+  ]) {
+    it(`${ruta}: la hoja del proveedor nuevo va después del </form>`, () => {
       const fuente = leer(ruta);
-      expect(fuente).toMatch(/\{alta\.modal\}/);
-      expect(fuente.lastIndexOf("{alta.modal}")).toBeGreaterThan(fuente.lastIndexOf("</form>"));
+      expect(fuente).toMatch(/<ProveedorNuevoRecepcion\b/);
+      expect(fuente.lastIndexOf("<ProveedorNuevoRecepcion")).toBeGreaterThan(fuente.lastIndexOf("</form>"));
     });
   }
+
+  it("«¿Qué llegó?» dibuja su hoja de marca nueva fuera de su <form>", () => {
+    const fuente = leer("components/recepcion-conteo/NuevoModelo.tsx");
+    expect(fuente.indexOf("<MarcaNuevaRecepcion")).toBeGreaterThan(fuente.lastIndexOf("</form>"));
+  });
 
   it("Nueva orden dibuja su «Registrar proveedor» fuera del <form> de la orden", () => {
     const fuente = leer("components/ordenes-compra/NuevaOrdenCompra.tsx");
@@ -76,6 +86,6 @@ describe("«+ Agregar proveedor» se dibuja fuera del <form>", () => {
   });
 
   it("la pieza no refresca la página al guardar (sería un disparador de remontes al editar)", () => {
-    expect(leer("components/useAltaDeProveedor.tsx")).not.toMatch(/router\.refresh|useRouter/);
+    expect(leer("components/recepcion-conteo/ProveedorNuevoRecepcion.tsx")).not.toMatch(/router\.refresh|useRouter/);
   });
 });

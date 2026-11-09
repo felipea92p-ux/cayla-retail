@@ -1,0 +1,4 @@
+## 2026-11-09 (Quien recibe crea el proveedor y la marca que no están — ADR-0635)
+Qué hice: en Recibir, «+ Marca nueva» en la marca de lo que llegó y «+ Agregar proveedor» (razón social y RUC opcional) en «¿Quién te la trae?», en «De quién llegó» del cierre y en la entrada sin aviso; dos funciones nuevas (`registrar_proveedor_de_recepcion`, `registrar_marca_de_recepcion`) que piden solo el módulo Recibir.
+Por qué así: la tienda que recibe no tiene Proveedores ni Catálogo y se quedaba sin poder seguir; se copió el molde de Mis compras en funciones propias, sin tocar las que ya se usan. En un envío de Compras el proveedor sigue siendo uno de su guía: lo de otro se recibe sin aviso.
+Felipe se lleva: la migración `20261109230000` por pegar en producción (una parte, solo dos `create or replace`); probado en un banco propio con una cuenta que solo ve Recibir.
