@@ -19,6 +19,7 @@ import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { DESHACER_0629 } from "./_deshacer_0629.mjs";
+import { DESHACER_20261109162000 } from "./_deshacer_20261109162000.mjs";
 
 const a = process.argv.indexOf("--contenedor");
 const CONTENEDOR = a > 0 ? process.argv[a + 1] : "supabase_db_cayla-retail";
@@ -78,6 +79,7 @@ select retail.registrar_venta(:'tru',
 const ESCENA = `
 begin;
 set local request.jwt.claim.sub = '${FELIPE}';
+${DESHACER_20261109162000}
 ${DESHACER_0629}
 ${MIGRACION}
 update retail.parametros_finanzas set inicio_finanzas = '2019-01-01';
@@ -195,6 +197,7 @@ select 'pero_devenga|' || ${CUENTA("6392", HOY, HOY)};
 `), { hoy_no: "0", pero_devenga: "3.62" });
 
 verificar("pegar dos veces", correr(`begin;
+${DESHACER_20261109162000}
 ${DESHACER_0629}
 ${MIGRACION}
 create temp table antes as select md5(pg_get_functiondef('retail.fn_asientos_dinero_y_caja(date,date,boolean,uuid[])'::regprocedure)) h, (select count(*) from retail.pos_tarifas) n, (select count(*) from retail.cuentas) c;
