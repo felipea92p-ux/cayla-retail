@@ -100,3 +100,12 @@ describe("coloresQueYaExisten: nombre y tono en una sola lista (ADR-0576)", () =
     expect(lista("Verde pacay", "#B0C4DE", "azul")).toEqual([]);
   });
 });
+
+describe("coloresQueYaExisten con estampados (ADR-0634)", () => {
+  it("un estampado no se avisa por tono: lleva el de su color dominante", () => {
+    const conEstampado: ColorAlta[] = [...colores, { codigo: "FLA", nombre: "Floral rojo", hex: "#B3202A", familiaColor: "rojo", tipo: "estampado" }];
+    const hallados = coloresQueYaExisten("Carmesí", "#B3202A", "rojo", conEstampado).map((c) => c.item.codigo);
+    expect(hallados).toContain("ROJ");
+    expect(hallados).not.toContain("FLA");
+  });
+});

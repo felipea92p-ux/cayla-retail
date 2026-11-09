@@ -1,6 +1,8 @@
 "use client";
 
 import { useRef, useState } from "react";
+import { fotoQueDistingue } from "@/lib/color-estampado-reglas";
+import { MuestraEstampado } from "@/components/ui/MuestraEstampado";
 import { Check } from "lucide-react";
 import { Chip } from "@/components/ui/Chip";
 import { precargarFotoFija, precargarMiniaturas } from "@/components/ui/precargar-miniaturas";
@@ -377,6 +379,12 @@ export function ExistenciasTarjetas({
                       }`}
                       style={{ background: h.colorHex ?? "conic-gradient(from 20deg, #C0272D, #F2C14E, #3E7A4E, #1B2A4A, #5B3A78, #C0272D)" }}
                     >
+                      {/* Un estampado se reconoce por su foto (ADR-0634). En su propia caja: recortar el botón se llevaría su área de toque. */}
+                      {h.colorEstampado && fotoQueDistingue(h.fotoUrl, m.colores.map((x) => x.fotoUrl)) && (
+                        <span className="absolute inset-0 overflow-hidden rounded-full">
+                          <MuestraEstampado fotoUrl={h.fotoUrl!} hex={h.colorHex} />
+                        </span>
+                      )}
                       {n > 0 && marcaDelFiltro && <i aria-hidden className={`absolute -right-1 -top-1 h-2.5 w-2.5 rounded-full border-[1.5px] border-papel ${TONO_PUNTO[marcaDelFiltro.tono]}`} />}
                     </button>
                   );

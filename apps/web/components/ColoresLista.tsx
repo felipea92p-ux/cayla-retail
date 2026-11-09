@@ -2,6 +2,7 @@
 
 import { fondoDeColor } from "@/components/ui/MuestraColor";
 import { agruparPorFamilia, bordeDeMuestra, enLaCarta, FAMILIAS_COLOR, textoDeFamilia, type FamiliaColor } from "@/lib/colores-familias";
+import { familiaEnCarta } from "@/lib/color-estampado-reglas";
 import { coloresQueYaExisten } from "@/lib/color-alta-reglas";
 import { vistaDeCoincidencias } from "@/lib/atributo-parecido";
 import { claveTexto } from "@/lib/nombres-parecidos";
@@ -109,7 +110,7 @@ function gruposPorFamilia(lista: Color[]) {
   // Un solo agrupador para todas las pantallas de colores (`agruparPorFamilia`, lib/colores-familias.ts). Una familia que esta pantalla aún
   // no conoce —la base la agregó antes de que el código se desplegara— sale con su propio nombre, no escondida en «Varios colores», que
   // es solo para el color que de verdad no tiene familia (el 2-oct se vieron «Sin familia 7» que eran Rosado y Naranja).
-  return agruparPorFamilia(lista, (c) => c.familiaColor);
+  return agruparPorFamilia(lista, familiaEnCarta);
 }
 
 // El cuadradito de la grilla: el color tal cual está en el vocabulario. Las
@@ -207,7 +208,7 @@ export function ColoresLista({ coloresIniciales, puedeEditar }: { coloresInicial
   const porCodigo = useMemo(() => new Map(colores.map((c) => [c.codigo, c])), [colores]);
   const vocabularioPantone = new Map(colores.filter((c) => c.pantoneTcx).map((c) => [c.pantoneTcx!, c.nombre]));
   const desactivados = colores.filter((c) => !c.activo);
-  const familiaDe = (c: Color) => c.familiaColor || "sin-familia";
+  const familiaDe = (c: Color) => familiaEnCarta(c) || "sin-familia";
   const pasaFamilia = (c: Color) => familia === "todas" || familiaDe(c) === familia;
   const activosVisibles = filtrarColores(activos, busqueda).filter(pasaFamilia);
   const desactivadosVisibles = filtrarColores(desactivados, busqueda).filter(pasaFamilia);

@@ -19,7 +19,7 @@ export function nombreDeColor(texto: string): string {
   return limpio ? limpio[0].toLocaleUpperCase("es") + limpio.slice(1) : "";
 }
 
-type ColorConNombres = { codigo: string; nombre: string; hex: string | null; familiaColor: string | null; sinonimos?: readonly string[]; activo?: boolean };
+type ColorConNombres = { codigo: string; nombre: string; hex: string | null; familiaColor: string | null; sinonimos?: readonly string[]; activo?: boolean; tipo?: string | null };
 
 export type CoincidenciaDeColor<C> = { item: C; por: MotivoVisto; con: string | null };
 
@@ -38,7 +38,8 @@ export function coloresQueYaExisten<C extends ColorConNombres>(
 ): CoincidenciaDeColor<C>[] {
   const porNombre: CoincidenciaDeColor<C>[] = atributosParecidos(nombre, colores, { excluir: (c) => c.codigo === excluir });
   const vistos = new Set(porNombre.map((c) => c.item.codigo));
-  const porTono = coloresParecidos(hex, familiaColor, colores, { excluir })
+  // Un estampado lleva el tono de su color dominante (ADR-0634): no es un color parecido, es otra cosa.
+  const porTono = coloresParecidos(hex, familiaColor, colores.filter((c) => c.tipo !== "estampado"), { excluir })
     .filter((p) => !vistos.has(p.color.codigo) && p.color.activo !== false)
     .slice(0, 3)
     .map((p) => ({ item: p.color, por: "tono" as const, con: null }));
