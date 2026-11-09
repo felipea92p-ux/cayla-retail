@@ -78,17 +78,19 @@ export function Proximos({ datos, hoy, hrefPorPagar, hrefFlujo }: { datos: Datos
               <span>{datos.justo.fecha === hoy ? "Hoy" : fechaEnPalabras(datos.justo.fecha)}</span> · <b className="num">{soles(datos.justo.saldo)}</b>
             </p>
             <p className="mes-a-nota">{datos.justo.frase}</p>
-            {hrefFlujo && (
-              <div className="mt-2">
-                <EnlaceVer href={hrefFlujo}>Flujo de caja</EnlaceVer>
-              </div>
-            )}
           </div>
           {datos.serie.length > 2 && (
             <div className="proximos-linea" aria-hidden>
               <Sparkline serie={paraLaLinea(datos.serie)} lleno />
             </div>
           )}
+        </div>
+      )}
+
+      {/* Fuera de la caja hueso: el rojo del enlace no pasa 4.5:1 sobre ella (tema:auditar, 2026-11-09). */}
+      {datos.justo && hrefFlujo && (
+        <div>
+          <EnlaceVer href={hrefFlujo}>Flujo de caja</EnlaceVer>
         </div>
       )}
 

@@ -166,7 +166,7 @@ export const GUIA_FIN_RESUMEN: Guia = {
       id: "preguntas",
       ancla: "fin-resumen.preguntas",
       titulo: "Las preguntas de siempre",
-      texto: "Cada botón te lleva a donde se responde: «¿Puedo comprar mercadería?» baja a la inversión, «¿Cuánto le debo a SUNAT?» abre Impuestos. En el celular, la fila se desliza.",
+      texto: "Cada botón te lleva a donde se responde: «¿Puedo comprar mercadería?» baja a la inversión y los demás abren su hoja con la cuenta. En el celular, la fila se desliza.",
     },
     {
       id: "mes",

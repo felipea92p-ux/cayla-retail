@@ -356,3 +356,32 @@ Después de juntar «corregir sin anular» y el comprobante (ADR-0588) con la pi
 cajón aunque el foco esté en una fila «×N». **DESCARTÉ:** la miniatura del comprobante en la fila (la propuesta 06 la traía): la lista
 del mes no sabe qué gasto tiene foto sin una lectura más de la base; queda para cuando `fn_gastos_lista` lo diga. **SE ROMPE SI:**
 `registrar_gasto` deja de devolver el id (no aterriza, sin caerse) o la lista deja de marcar sus filas con `data-id`.
+
+## Actualización 2026-11-09 — El Resumen pasa al camino «A · Bolsillos» (Felipe lo eligió mirando)
+
+Felipe miró las tres maquetas de punta a punta (`docs/maquetas/finanzas-resumen-de-punta-a-punta-2026-11/`) y eligió **A · Bolsillos**, con **el
+fondo del resto del ERP** (ninguno propio para Finanzas) y **el calendario de Estados financieros** (`SelectorPeriodo`, ADR-0611) en lugar del mes
+de la barra. Decidió también las dos reglas de dinero nuevas y pidió las hojas de detalle:
+
+1. **«Libre para usar»** («Todo lo que tiene dueño»): lo que hay en bancos y cajas − lo de CLAURE − el fondo de compras − lo que se paga en 14 días −
+   el IGV que se va juntando este mes − la planilla que Dynamic ya pagó y aquí no bajó del banco. No cuenta lo que se va a vender. Regla pura en
+   `lib/bolsillos-reglas.ts`, sobre la misma proyección de caja (`fn_flujo_caja_proyeccion`); una prueba exige que los bolsillos sumen `tienes − libre`.
+2. **«Te deja» del mes en curso es un estimado con rango**: lo de hasta hoy + el margen de lo que falta vender al ritmo de hoy − los gastos del mes que
+   faltan registrar; el rango, ±(4 % + 16 % × lo que falta del mes) sobre ese margen. Sale del mismo ritmo y los mismos gastos que «¿Ya pagaste el
+   mes?» (`lib/te-deja-mes-reglas.ts`; una prueba exige que coincidan). Sin lo que falta del mes, no estima.
+3. **Las hojas de detalle** (Libre, lo que te deja, lo vendido, los gastos, lo que viene, SUNAT y la ropa a costo) se abren desde los bolsillos, las
+   preguntas y las cifras del mes, se recorren con «Siguiente» y terminan en la pantalla que lo resuelve (`components/finanzas/bolsillos/HojasResumen.tsx`).
+
+Lo que cambió en la pantalla: «Libre para usar» con sus bolsillos reemplaza a «¿Cuánto tienes?» (lo que decía de qué está hecho lo que tienes pasó a
+la primera línea de su cuenta); «Noviembre va así» reemplaza a «¿Cuánto te deja?» y a «¿Ya pagaste el mes?» (que vive dentro, con la rayita de hoy);
+«Próximos» con el día más justo reemplaza a «Tu caja, dos semanas» y a «¿Cuánto debes pagar pronto?» (la compra de campaña que se cuenta en la
+inversión entra a su lista); «Movimientos» es nuevo, de `fn_flujo_caja_real` un día a la vez y en su propio `Suspense`. Se quedan, porque ya estaban
+decididos: «Hoy te toca», lo vendido por sede con la confianza (ADR-0417), «Cada sede, junta», «A dónde va la plata», lo que más se movió y la
+inversión en mercadería al final (2026-10-29).
+
+**DECIDÍ:** las dos columnas de la maqueta (la plata a la izquierda, el mes a la derecha) y, en una sola columna, el orden de importancia con `order`;
+que los bolsillos, «Próximos» y «Libre» salgan de los mismos pagos, para que nunca den tres totales distintos; que el día más justo use la caja con la
+compra de campaña (como lo hacía «Tu caja») cortada a 14 días. **DESCARTÉ:** los fondos Rejilla y Clima (Felipe: «el fondo como el resto del sistema»);
+la comparación con el año pasado y el puente «¿por qué tengo menos plata?», que eran del camino C; el inventario, el sankey y el calendario del camino B.
+**SE ROMPE SI:** `fn_flujo_caja_proyeccion` cambia el id de su fila de IGV (`igv:<mes>`, de ahí sale lo que se junta), o deja de restar CLAURE y el
+fondo de compras de `saldo_hoy` (`loQueHayEnCuentas` los vuelve a sumar). La fecha de SUNAT sigue siendo el día 15 hasta que se cargue el RUC.
