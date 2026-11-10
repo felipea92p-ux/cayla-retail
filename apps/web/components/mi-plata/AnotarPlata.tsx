@@ -9,6 +9,7 @@ import { Modal } from "@/components/ui/Modal";
 import { Aviso } from "@/components/ui/Aviso";
 import { Boton, CampoMonto } from "@/components/ui/campos";
 import { Casilla } from "@/components/ui/Casilla";
+import { CampoFecha } from "@/components/ui/CampoFecha";
 import { FichasMedio } from "@/components/ui/FichasMedio";
 import { avisar } from "@/components/ui/Avisos";
 import { useSalidaSinGuardar } from "@/components/ui/useSalidaSinGuardar";
@@ -23,9 +24,10 @@ import { AvisoIntentoIncierto, avisarCongelado } from "@/components/ui/AvisoInte
 import { firmaOmitida } from "@/lib/responsable-omitido";
 import { esFalloDeRed, traducirError } from "@/lib/error-escritura";
 import { leerMontoPlata } from "@/lib/monto-plata-reglas";
+import { diaMes, hoyLima } from "@/lib/fechas-lima";
 import { soles } from "@/lib/compras-reglas";
 import { anotarPlata, subirVoucher } from "@/lib/mi-plata-acciones";
-import { MEDIOS_PLATA, bancoSugerido, camposAnotar, fraseAnotar, type MedioPlata } from "@/lib/mi-plata-reglas";
+import { MEDIOS_PLATA, bancoSugerido, camposAnotar, diaDeLlegadaAMandar, fraseAnotar, limitesDeLlegada, type MedioPlata } from "@/lib/mi-plata-reglas";
 import type { CuentaOpcion } from "@/lib/fondos-reglas";
 import { FichasCuenta } from "@/components/fondos/FichasCuenta";
 
@@ -78,6 +80,11 @@ function AnotarPlataModal({ puedeYaTenia, bancos, onClose, volverA }: { puedeYaT
   // «¿De qué banco salió?»: solo con una transferencia; llega elegido el BCP (Felipe 2026-10-26) y se cambia de un toque.
   const [banco, setBanco] = useState<string | null>(null);
   const [monto, setMonto] = useState("");
+  // «¿Qué día te llegó?» (20261110025000): llega «hoy»; se cambia si la plata ya había salido del banco antes (una compra anterior), para que el
+  // saldo de esa cuenta no la reste otra vez hoy. Solo viaja si es otro día.
+  const hoy = hoyLima();
+  const [otroDia, setOtroDia] = useState(false);
+  const [dia, setDia] = useState(hoy);
   const [archivo, setArchivo] = useState<File | null>(null);
   // La ruta de la foto ya subida, junto al archivo del que salió: si se elige otra foto, se vuelve a subir.
   const [subida, setSubida] = useState<{ archivo: File; ruta: string } | null>(null);
@@ -114,6 +121,7 @@ function AnotarPlataModal({ puedeYaTenia, bancos, onClose, volverA }: { puedeYaT
       return;
     }
     setRechazo(null);
+    if (otroDia && !yaTenia && !dia) return setRechazo({ titulo: "Falta el día", texto: "Elige el día en que te llegó la plata, o vuelve a «hoy».", tono: "atencion" });
     let ruta: string | null = null;
     if (archivo) {
       if (subida?.archivo === archivo) {
@@ -129,7 +137,14 @@ function AnotarPlataModal({ puedeYaTenia, bancos, onClose, volverA }: { puedeYaT
     }
     const firma = esPersona ? firmaOmitida("plata_anotar") : responsable.firma();
     const conBanco = medio === "transferencia" && bancos.length > 0 && banco !== null;
-    const args = { p_medio: medio!, p_monto: montoLeido ?? 0, p_foto_ruta: ruta, ...(conBanco ? { p_cuenta_indicada_id: banco } : {}) };
+    const diaAMandar = yaTenia ? undefined : diaDeLlegadaAMandar(dia, hoy);
+    const args = {
+      p_medio: medio!,
+      p_monto: montoLeido ?? 0,
+      p_foto_ruta: ruta,
+      ...(conBanco ? { p_cuenta_indicada_id: banco } : {}),
+      ...(diaAMandar ? { p_fecha: diaAMandar } : {}),
+    };
     const r = await intento.enviar(huellaDe(args), (token, senal) => anotarPlata(args, firma, token, senal));
     if (r.tipo === "ocupado") return;
     if (r.tipo === "congelado") return avisarCongelado(avisar);
@@ -237,6 +252,29 @@ function AnotarPlataModal({ puedeYaTenia, bancos, onClose, volverA }: { puedeYaT
                 onChange={(e) => limpiar(setMonto)(e.target.value)}
               />
             </CampoGuiado>
+            {!yaTenia && medio && (
+              <div data-guia="mi-plata.dia">
+                {otroDia ? (
+                  <CampoFecha
+                    etiqueta="¿Qué día te llegó?"
+                    valor={dia}
+                    onValor={limpiar(setDia)}
+                    {...limitesDeLlegada(hoy)}
+                    motivoMax="No puede ser un día que todavía no llega."
+                    motivoMin="Ese día es de hace más de 120 días."
+                    pie="Si la plata ya había salido del banco antes, pon ese día: así el saldo del banco no la descuenta otra vez hoy."
+                    disabled={guardando}
+                  />
+                ) : (
+                  <p className="flex flex-wrap items-center gap-x-2 text-sm text-taupe">
+                    Llegó hoy, {diaMes(hoy)}
+                    <button type="button" className="btn-cayla btn-enlace" onClick={() => setOtroDia(true)} disabled={guardando}>
+                      Cambiar el día
+                    </button>
+                  </p>
+                )}
+              </div>
+            )}
             {!yaTenia && (
               <CampoGuiado id="foto" guia={guia} titulo="Foto del voucher" ayuda="· opcional">
                 <TarjetaFoto

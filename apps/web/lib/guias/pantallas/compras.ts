@@ -2470,6 +2470,15 @@ export const GUIA_MI_PLATA: Guia = {
       demostrar: [{ tipo: "escribir", ancla: "mi-plata.monto", texto: "300" }],
     },
     {
+      id: "dia",
+      ancla: "mi-plata.dia",
+      opcional: true,
+      preparar: [{ tipo: "clic", ancla: "mi-plata.me-dieron" }, { tipo: "clic", ancla: "mi-plata.medio" }],
+      prepararSoloAlAvanzar: true,
+      titulo: "¿Qué día te llegó?",
+      texto: "Sale «hoy». Si la plata ya había salido del banco antes, toca «Cambiar el día» y pon ese día: así el saldo del banco no la descuenta otra vez hoy.",
+    },
+    {
       id: "foto",
       ancla: "mi-plata.foto",
       opcional: true,

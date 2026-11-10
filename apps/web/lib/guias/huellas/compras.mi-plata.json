@@ -2,7 +2,7 @@
   "guia": "compras.mi-plata",
   "ruta": "/compras/mi-plata",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 60,
+  "total": 62,
   "controles": {
     "app/(app)/compras/mi-plata/page.tsx": [
       "BotonVer «Mis envíos»"
@@ -25,6 +25,8 @@
     "components/mi-plata/AnotarPlata.tsx": [
       "Casilla «{`${MEDIOS_PLATA.ya_tenia.nombre}»",
       "CampoMonto «mi-plata.monto»",
+      "CampoFecha «¿Qué día te llegó?»",
+      "button «Cambiar el día»",
       "ComboResponsable «{responsable}»",
       "Boton «Cancelar»",
       "Boton «{guia.frase ?? undefined}»"
