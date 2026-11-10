@@ -2,7 +2,7 @@
   "guia": "tienda-web.ajustes",
   "ruta": "/tienda-web/ajustes",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 14,
+  "total": 13,
   "controles": {
     "components/ConfiguracionTiendaWeb.tsx": [
       "ComboResponsable «{responsable}»",
@@ -17,8 +17,7 @@
       "CampoFecha «Cerrar otro día»"
     ],
     "components/tienda-web-conf/HorarioSemanal.tsx": [
-      "button «{`${DIAS_LARGOS[i]}»",
-      "button «Copiar lunes a todos»"
+      "button «Los días abiertos toman el horario del lunes; los cerrados siguen cerrados»"
     ],
     "components/tienda-web-conf/PuertaDeTienda.tsx": [
       "button «{`Mover ${nombre}»",
