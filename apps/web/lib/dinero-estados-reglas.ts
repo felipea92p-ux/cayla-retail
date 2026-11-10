@@ -214,6 +214,32 @@ export function contadorDeCampana(filas: readonly FilaEstado[], cierres: readonl
   return filas.filter((f) => f.pide !== null).length + cierresConFaltante(cierres) + pendientes.filter((p) => p.accion?.tipo === "planilla").length;
 }
 
+/** Lo que dicen el botón de la campana y su ventana. `incompleto`: no se pudo leer alguno de los avisos, así que no se puede afirmar que todo está en orden. */
+export function textoCampana(contador: number, incompleto: boolean): { etiqueta: string; subtitulo: string } {
+  const piden = contador > 0 ? `${contador} ${contador === 1 ? "pide" : "piden"} atención` : null;
+  if (incompleto) {
+    return {
+      etiqueta: `Estado de las cuentas: ${piden ? `${piden}, y ` : ""}no se pudo leer todo`,
+      subtitulo: `${contador > 0 ? `${contador} ${contador === 1 ? "cosa pide" : "cosas piden"} tu atención. ` : ""}No se pudo leer todo: puede faltar algo aquí.`,
+    };
+  }
+  return piden
+    ? { etiqueta: `Estado de las cuentas: ${piden}`, subtitulo: `${contador} ${contador === 1 ? "cosa pide" : "cosas piden"} tu atención. Toca una fila para ver qué hacer.` }
+    : { etiqueta: "Estado de las cuentas: todo en orden", subtitulo: "Todo en orden: ninguna cuenta ni cierre pide revisión." };
+}
+
+/** La pestaña «Por registrar» sin filas. */
+export function textoNadaPorRegistrar(incompleto: boolean): string {
+  return incompleto ? "No se pudo leer lo que falta registrar: puede haber depósitos de máquinas o salidas de planilla." : "Nada espera que lo registres: ni depósitos de máquinas ni salidas de planilla.";
+}
+
+/** El chip y la frase de «Pide tu atención». */
+export function estadoDeAtencion(n: number, incompleto: boolean): { chip: string; tono: "ambar" | "verde"; frase: string } {
+  const cuantas = `${n} ${n === 1 ? "cosa" : "cosas"}`;
+  if (incompleto) return { chip: n > 0 ? `${cuantas} · puede faltar algo` : "No se pudo leer todo", tono: "ambar", frase: "Puede faltar algo: arriba dice qué no se pudo leer." };
+  return n > 0 ? { chip: cuantas, tono: "ambar", frase: "" } : { chip: "Todo en orden", tono: "verde", frase: "Ninguna cuenta ni cierre pide revisión." };
+}
+
 // ---- «Cuánto hay en cada etapa» y «Pide tu atención» (el panorama de Dónde está) ------------------------------------------------
 
 export const ETAPAS_EN_ORDEN: readonly EtapaDinero[] = ["banco", "camino", "deposito", "caja"];

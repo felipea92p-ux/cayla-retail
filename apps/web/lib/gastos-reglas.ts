@@ -1022,6 +1022,14 @@ export function textoColumnaCuando(momento: MomentoFijo, dia: number): string {
   return String(dia);
 }
 
+/** Lo que dice la confirmación de archivar un fijo (tarea 96): cuánto sale de lo que viene por pagar. El monto que cambia cada mes es un «unos». */
+export function cuantoSaleAlArchivarFijo(f: Pick<GastoFijoMes, "monto" | "montoVariable">): string {
+  return `Sale ${f.montoVariable ? "unos " : ""}${soles(f.monto)} al mes de lo que viene por pagar.`;
+}
+
+/** Tras archivar: `fn_gastos_fijos_mes` filtra por `activo` sin mirar el mes, así que el fijo se va también de los meses pasados. */
+export const TEXTO_FIJO_ARCHIVADO = "Deja de aparecer en Gastos, también al mirar meses pasados. Los gastos que ya registraste se quedan.";
+
 export type GastoFijoMes = {
   id: string;
   ubicacionId: string | null;

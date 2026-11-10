@@ -293,10 +293,32 @@ describe("la respuesta de cada cara", () => {
     ]);
   });
   it("Cuadrar: lo que suman los bancos y lo que falta revisar; sin bancos, no hay cifra", () => {
-    const c = (tipo: "banco" | "por_abonar", saldoHoy: number, pendientes: number) => ({ tipo, saldoHoy, pendientes });
-    expect(respuestaCuadrar([c("banco", 18300, 1), c("banco", 9830, 4), c("por_abonar", 2140, 2)])).toEqual({ valor: 28130, chips: [{ texto: "7 líneas por revisar", tono: "ambar" }] });
-    expect(respuestaCuadrar([c("banco", 100, 0)]).chips).toEqual([{ texto: "Todo revisado", tono: "verde" }]);
+    const c = (tipo: "banco" | "por_abonar" | "tarjeta_credito", saldoHoy: number, pendientes: number, ultimaFecha: string | null = null, ultimaDiferencia: number | null = null) => ({ tipo, saldoHoy, pendientes, ultimaFecha, ultimaDiferencia });
+    expect(respuestaCuadrar([c("banco", 18300, 1), c("banco", 9830, 4), c("por_abonar", 2140, 2)])).toEqual({
+      valor: 28130,
+      chips: [
+        { texto: "5 líneas por revisar", tono: "ambar" },
+        { texto: "0 de 2 coinciden con el banco", tono: "pizarra" },
+      ],
+    });
     expect(respuestaCuadrar([c("por_abonar", 50, 0)])).toEqual({ valor: null, chips: [] });
+  });
+  it("Cuadrar: el verde exige saldo anotado, sin diferencia y sin pendientes en todas las cuentas, también la tarjeta", () => {
+    const c = (tipo: "banco" | "tarjeta_credito", pendientes: number, ultimaFecha: string | null, ultimaDiferencia: number | null) => ({ tipo, saldoHoy: 100, pendientes, ultimaFecha, ultimaDiferencia });
+    const HOY = "2026-11-08";
+    // Sin saldo anotado, aunque no quede nada por revisar.
+    expect(respuestaCuadrar([c("banco", 0, null, null)]).chips).toEqual([{ texto: "0 de 1 coinciden con el banco", tono: "pizarra" }]);
+    // Saldo anotado que no coincide.
+    expect(respuestaCuadrar([c("banco", 0, HOY, -60)]).chips).toEqual([{ texto: "0 de 1 coinciden con el banco", tono: "ambar" }]);
+    // Coincide, pero entraron líneas nuevas: sigue diciendo cuántas.
+    expect(respuestaCuadrar([c("banco", 3, HOY, 0)]).chips).toEqual([
+      { texto: "3 líneas por revisar", tono: "ambar" },
+      { texto: "1 de 1 coincide con el banco", tono: "pizarra" },
+    ]);
+    // La tarjeta sin saldo anotado impide el verde.
+    expect(respuestaCuadrar([c("banco", 0, HOY, 0), c("tarjeta_credito", 0, null, null)]).chips).toEqual([{ texto: "1 de 2 coincide con el banco", tono: "pizarra" }]);
+    // Las tres cosas en todas: recién ahí.
+    expect(respuestaCuadrar([c("banco", 0, HOY, 0), c("tarjeta_credito", 0, HOY, 0)]).chips).toEqual([{ texto: "2 de 2 coinciden con el banco", tono: "verde" }]);
   });
 });
 

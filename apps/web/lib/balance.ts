@@ -3,7 +3,8 @@ import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
 import { hoyLima } from "@/lib/fechas-lima";
 import { getProvisionPlanilla } from "@/lib/planilla-provision";
-import { hastaDeLaProvision } from "@/lib/planilla-provision-reglas";
+import { hastaDeLaProvision, sueldosSinLeerDelBalance } from "@/lib/planilla-provision-reglas";
+import { getEstadoResultados } from "@/lib/resultados";
 import {
   leerChequeo,
   leerLinea,
@@ -41,7 +42,7 @@ export const getBalanceGeneral = cache(async function getBalanceGeneral(corte: s
 });
 
 /** Lo que es de cada tienda y del Taller (el líder, todas; con el módulo, la suya). */
-export const getBalancePorTienda = cache(async function getBalancePorTienda(corte: string): Promise<Lectura<UnidadBalance[]>> {
+export const getBalancePorTienda = cache(async function getBalancePorTienda(corte: string): Promise<Lectura<UnidadBalance[]> & { sueldosSinLeer?: boolean }> {
   const supabase = await createClient();
   // El mes del corte, como la base: sus sueldos estimados son los mismos que resta Ganancias y pérdidas. Si no se pueden leer, sale la utilidad del diario (principio 9).
   const desde = `${corte.slice(0, 7)}-01`;
@@ -50,7 +51,9 @@ export const getBalancePorTienda = cache(async function getBalancePorTienda(cort
     getProvisionPlanilla(desde, hastaDeLaProvision(desde, corte, hoyLima())),
   ]);
   if (error) return { datos: [], falla: falla("lo que es de cada tienda", error) };
-  return { datos: unidadesConSueldos(((data ?? []) as Record<string, unknown>[]).map(leerUnidad), provision), falla: null };
+  // Solo si la lectura se cayó se pregunta por el mes (la misma lectura y las mismas fechas que Ganancias): sin esto, un mes con la planilla ya pagada avisaría en falso.
+  const sueldosSinLeer = provision.sinLeer && sueldosSinLeerDelBalance(true, await getEstadoResultados(desde, corte));
+  return { datos: unidadesConSueldos(((data ?? []) as Record<string, unknown>[]).map(leerUnidad), provision.filas), falla: null, sueldosSinLeer };
 });
 
 /** Los saldos de arranque con su historia (solo el líder). */

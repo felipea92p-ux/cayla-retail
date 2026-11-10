@@ -2,13 +2,15 @@
   "guia": "finanzas.reportes",
   "ruta": "/finanzas/reportes",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 28,
+  "total": 30,
   "controles": {
     "app/(app)/finanzas/reportes/page.tsx": [
+      "BotonVer «Ver las pérdidas»",
       "BotonVer «Registrar el costo real»"
     ],
     "components/finanzas/EstadoResultadosPanel.tsx": [
       "input «→(e) => ir({ comparar: e.target.checked ? \"1\" : null»",
+      "Link «Ver las pérdidas»",
       "button «{k.clave === \"ventas\" ? \"fin-resultados.celda\" : undefined}»"
     ],
     "components/finanzas/estados/CabeceraEstados.tsx": [

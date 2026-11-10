@@ -10,6 +10,7 @@ import {
   leerGastoClaure,
   leerPagoClaure,
   leerVentasClaure,
+  IGV_DE_CLAURE,
   lineaImpuestosClaure,
   montoSugeridoPago,
   notaResultadosClaure,
@@ -21,6 +22,8 @@ import {
   type FilaClaure,
   type PagoClaure,
 } from "./cuenta-claure-reglas";
+import { NOTA_CLAURE_VENTAS } from "./ganamos-reglas";
+import { NOTA_CLAURE_JUNTAS } from "./sedes-juntas-reglas";
 
 // Las mismas filas que arma `scripts/pruebas/claure_cuenta.mjs` contra Postgres: lo que la base devuelve, sumado aquí.
 const fila = (r: Partial<FilaClaure>): FilaClaure => ({
@@ -209,8 +212,12 @@ describe("lo vendido de CLAURE en un período (ADR-0560, actividad 5)", () => {
   it("Impuestos: el IGV de SUNAT queda entero y se dice cuánto es de CLAURE", () => {
     const l = lineaImpuestosClaure(leerVentasClaure([fila5]));
     expect(l?.titulo).toBe("De ese IGV, S/\u00a018.00 es de ventas de CLAURE");
-    expect(l?.texto).toContain("S/\u00a0118.00 con IGV, de sus ventas");
+    // Lo de Claudia es la base: el IGV va a SUNAT.
+    expect(l?.texto).toContain("(S/\u00a0100.00 sin IGV) es de Claudia");
     expect(l?.texto).toContain("RUC de CAYLA");
+    expect(l?.texto).toContain(IGV_DE_CLAURE);
+    expect(l?.texto).not.toContain("no es un gasto de CAYLA");
+    expect(l?.texto).not.toContain("no está tomada");
   });
 
   it("Impuestos: sin IGV de CLAURE en el mes (o con un neto negativo) la línea no se dibuja", () => {
@@ -219,9 +226,21 @@ describe("lo vendido de CLAURE en un período (ADR-0560, actividad 5)", () => {
     expect(lineaImpuestosClaure({ ventas: -118, igv: -18, base: -100, costo: -10 })).toBeNull();
   });
 
+  it("toda nota sobre su IGV dice lo mismo: lo cobrado en cuentas de CAYLA ya se le descontó y solo el efectivo queda por recuperar", () => {
+    expect(IGV_DE_CLAURE).toContain("ya se le descuenta");
+    expect(IGV_DE_CLAURE).toContain("en efectivo");
+    for (const nota of [NOTA_CLAURE_VENTAS, NOTA_CLAURE_JUNTAS]) {
+      expect(nota).toContain(IGV_DE_CLAURE);
+      // «Lo que se le debe» es de la Cuenta CLAURE: de lo vendido en efectivo no se le debe nada, porque lo tiene Claudia.
+      expect(nota).not.toMatch(/se le debe/);
+    }
+  });
+
   it("Estado de resultados: la nota dice cuánto NO se incluyó, sin IGV", () => {
     const n = notaResultadosClaure(leerVentasClaure([fila5]));
-    expect(n).toContain("No incluye lo vendido de CLAURE (S/\u00a0100.00 sin IGV)");
+    expect(n).toContain("Lo vendido de CLAURE (S/\u00a0100.00 sin IGV) no cuenta en las ventas ni en la ganancia de este cuadro");
+    // Arriba, en la misma pantalla, «Prendas de CLAURE» sí lo separa: la nota no puede decir que no está.
+    expect(n).not.toContain("No incluye");
     expect(n).toContain("Cuentas y dinero ▸ CLAURE");
     expect(notaResultadosClaure(null)).toBeNull();
     expect(notaResultadosClaure({ ventas: 0, igv: 0, base: 0, costo: 5 })).toBeNull();

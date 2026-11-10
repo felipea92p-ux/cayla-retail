@@ -1,10 +1,10 @@
 // Cuentas y dinero en camino A («La respuesta», Felipe 2026-10-15): tres preguntas arriba de la lista de cuentas.
-// ¿Dónde está mi plata? (lo que tienes, sumado de los saldos que la base ya calculó), ¿me alcanza? (la primera semana en que
-// el Flujo proyectado baja de tu mínimo, y que lo guardado ya cuenta en ese saldo) y ¿qué debes? (lo vencido y lo
+// ¿Dónde está mi plata? (lo que tienes, sumado de los saldos que la base ya calculó), ¿me alcanza? (si hoy o algún día de la
+// proyección quedas bajo tu mínimo, y que lo guardado ya cuenta en ese saldo) y ¿qué debes? (lo vencido y lo
 // próximo de Por pagar). Lógica pura: no suma plata que la base no haya sumado; solo decide qué se dice primero.
 
 import { cuentasVisibles, type CuentaDinero } from "./cuentas-dinero-reglas";
-import { etiquetaSemana, queFaltaEnLaProyeccion, soles, type FaltaProy, type Proyeccion, type SemanaProy } from "./flujo-caja-reglas";
+import { cajaDiaria, conLoRegistrado, etiquetaSemana, fechaEnPalabras, fraseBajoMinimo, puntoMasBajo, queFaltaEnLaProyeccion, soles, type FaltaProy, type Proyeccion, type SemanaProy } from "./flujo-caja-reglas";
 import { diasHasta, type FilaPorPagar } from "./por-pagar-consolidado-reglas";
 
 const r2 = (n: number) => Math.round(n * 100) / 100;
@@ -58,9 +58,10 @@ export function tienesPulso(cuentas: readonly CuentaDinero[], ubicacionId: strin
 export type Alcanza =
   | { estado: "sin_dato"; frase: string }
   | {
-      estado: "bien" | "baja";
+      /** `hoy_bajo`: ya hoy estás bajo el mínimo. `baja`: un día de la proyección lo estarás. */
+      estado: "bien" | "baja" | "hoy_bajo";
       frase: string;
-      /** La primera semana bajo el mínimo (baja) o la más baja (bien). */
+      /** La semana donde cae la primera baja, o la que cierra más bajo si no baja o si ya estás bajo hoy. */
       semana: SemanaProy;
       minimo: number;
       diasDeCaja: number | null;
@@ -78,7 +79,10 @@ export type Alcanza =
 export function alcanzaPulso(p: Proyeccion | null, guardado: number, falla = false): Alcanza {
   if (falla) return { estado: "sin_dato", frase: "No se pudo leer lo que viene. Vuelve a cargar la página en un rato." };
   if (!p || p.semanas.length === 0) return { estado: "sin_dato", frase: "El flujo de caja de las próximas semanas lo ve el líder." };
-  const baja = p.semanas.find((s) => s.bajoMinimo) ?? null;
+  // El mismo día por día de «Tu caja», con hoy incluido y en todas las semanas: el cierre de una semana no ve hoy ni la caída de un día de planilla.
+  const caja = cajaDiaria(p);
+  const primera = caja.puntos.find((x) => x.saldo < p.minimoCaja) ?? null;
+  const masBajo = puntoMasBajo(caja.puntos)!;
   const masBaja = p.semanas.reduce((m, s) => (s.saldo < m.saldo ? s : m), p.semanas[0]!);
   const { provisional, faltan } = queFaltaEnLaProyeccion(p);
   // El saldo de la proyección (`fn_flujo_disponible`) suma todas las cuentas, cajas fuertes y lo del líder incluidos: sumarles `guardado`
@@ -90,31 +94,40 @@ export function alcanzaPulso(p: Proyeccion | null, guardado: number, falla = fal
           frase: `Lo que tienes guardado (${soles(guardado)}, en cajas fuertes y con el líder) ya cuenta en ese saldo: depositarlo lo pasa al banco, pero no lo aumenta.`,
         }
       : null;
-  if (baja) {
-    return {
-      estado: "baja",
-      frase: `La semana ${etiquetaSemana(baja.desde, baja.hasta)} bajas a ${soles(baja.saldo)}, bajo tu mínimo de ${soles(p.minimoCaja)}.`,
-      semana: baja,
-      minimo: p.minimoCaja,
-      diasDeCaja: p.diasDeCaja,
-      provisional,
-      faltan,
-      guardadoYaCuenta,
-      deClaudia: aparteDeClaudia(p.deClaudia),
-      porVolver: aparteDePorVolver(p.porVolverCompras),
-    };
-  }
-  return {
-    estado: "bien",
-    frase: `En las próximas ${p.semanas.length} semanas no bajas de tu mínimo de ${soles(p.minimoCaja)}. La más baja es la ${etiquetaSemana(masBaja.desde, masBaja.hasta)}, con ${soles(masBaja.saldo)}.`,
-    semana: masBaja,
+  const comun = {
     minimo: p.minimoCaja,
     diasDeCaja: p.diasDeCaja,
     provisional,
     faltan,
-    guardadoYaCuenta: null,
     deClaudia: aparteDeClaudia(p.deClaudia),
     porVolver: aparteDePorVolver(p.porVolverCompras),
+  };
+  if (primera) {
+    const hoyBajo = primera.fecha === p.hoy;
+    const delDia = fraseBajoMinimo({ hoy: p.hoy, masBajo, bajaDesde: primera.fecha, sinPlata: caja.puntos.some((x) => x.saldo < 0), minimo: p.minimoCaja });
+    const frase =
+      primera.semana && !hoyBajo
+        ? `La semana ${etiquetaSemana(primera.semana.desde, primera.semana.hasta)} bajas a ${soles(primera.saldo)}, bajo tu mínimo de ${soles(p.minimoCaja)}.`
+        : provisional
+          ? conLoRegistrado(delDia)
+          : delDia;
+    return {
+      ...comun,
+      estado: hoyBajo ? "hoy_bajo" : "baja",
+      frase,
+      semana: p.semanas.find((s) => s.desde <= primera.fecha && primera.fecha <= s.hasta) ?? masBaja,
+      guardadoYaCuenta,
+    };
+  }
+  const elMasBajo = masBajo.fecha === p.hoy ? "hoy" : `el ${fechaEnPalabras(masBajo.fecha)}`;
+  return {
+    ...comun,
+    estado: "bien",
+    frase: `En las próximas ${p.semanas.length} semanas no bajas de tu mínimo de ${soles(p.minimoCaja)}. ${
+      caja.porSemana ? `La más baja es la ${etiquetaSemana(masBaja.desde, masBaja.hasta)}, con ${soles(masBaja.saldo)}.` : `El día más bajo es ${elMasBajo}, con ${soles(masBajo.saldo)}.`
+    }`,
+    semana: masBaja,
+    guardadoYaCuenta: null,
   };
 }
 

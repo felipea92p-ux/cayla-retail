@@ -6,7 +6,7 @@ import { EnlaceVer } from "@/components/ui/EnlaceVer";
 import { Sparkline } from "@/components/ui/Sparkline";
 import { TituloSeccion } from "@/components/ui/TituloSeccion";
 import { COLOR_BOLSILLO } from "@/lib/bolsillos-reglas";
-import { fechaEnPalabras } from "@/lib/caja-proxima-reglas";
+import { fechaEnPalabras, loQueNoIncluye } from "@/lib/caja-proxima-reglas";
 import { soles } from "@/lib/flujo-caja-reglas";
 import { cuandoSale, type PagoProximo, type Proximos as DatosProximos } from "@/lib/proximos-reglas";
 
@@ -92,6 +92,8 @@ export function Proximos({
               <span>{datos.justo.fecha === hoy ? "Hoy" : fechaEnPalabras(datos.justo.fecha)}</span> · <b className="num">{soles(datos.justo.saldo)}</b>
             </p>
             <p className="mes-a-nota">{datos.justo.frase}</p>
+            {/* Lo que la caja no cuenta (tarea 30): solo trae lo que ya tiene fecha; sin decirlo, el día más justo se lee como completo. */}
+            <p className="mes-a-nota">{loQueNoIncluye(datos.incluyeCompra)}</p>
           </div>
           {datos.serie.length > 2 && (
             <div className="proximos-linea" aria-hidden>

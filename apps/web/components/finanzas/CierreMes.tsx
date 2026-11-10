@@ -6,16 +6,18 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { traducirError } from "@/lib/error-escritura";
 import { avisar } from "@/components/ui/Avisos";
+import { Aviso } from "@/components/ui/Aviso";
 import { Modal } from "@/components/ui/Modal";
+import { fallaLegible } from "@/lib/gastos-telar-reglas";
 import { Chip } from "@/components/ui/Chip";
-import { CabeceraPantalla } from "@/components/ui/CabeceraPantalla";
+import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 import { CierrePulso } from "@/components/finanzas/CierrePulso";
 import { pulsoCierre } from "@/lib/cierre-pulso-reglas";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { CabeceraBloque, CampoFin, InputFin, Superficie } from "@/components/finanzas/kit";
 import { useResponsable } from "@/lib/useResponsable";
 import { firmar } from "@/lib/responsable-reglas";
-import { fechaCorta } from "@/lib/gastos-reglas";
+import { fechaCorta, textoMes } from "@/lib/gastos-reglas";
 import { diaLima } from "@/lib/fechas-lima";
 import {
   avisosPendientes,
@@ -36,7 +38,6 @@ import {
   resumenAvisos,
   textoBotonCerrar,
   textoChequeo,
-  tituloPantalla,
   tituloUnidad,
   unidadInicial,
   validarMotivo,
@@ -76,8 +77,8 @@ export function CierreMes({
   if (!panel) {
     return (
       <div className="space-y-6">
-        <CabeceraPantalla sobretitulo="Finanzas · Cierre de mes" titulo="Cierre de mes" />
-        <p className="card-cayla border-dashed px-5 py-4 text-sm text-tinta/75">{avisoCorte ?? falla ?? "No se pudo leer el cierre de mes."}</p>
+        <EncabezadoPagina sede="CAYLA entera" titulo="Cierre de mes" />
+        {avisoCorte ? <Aviso tono="info">{avisoCorte}</Aviso> : <Aviso tono="error">{falla ? fallaLegible(falla) : "No se pudo leer el cierre de mes."}</Aviso>}
       </div>
     );
   }
@@ -104,12 +105,11 @@ function Pantalla({ panel, unidadPedida, esAdmin }: { panel: PanelCierre; unidad
 
   return (
     <div className="space-y-6">
-      <CabeceraPantalla
-        sobretitulo="Finanzas · Cierre de mes"
-        titulo={tituloPantalla(mes)}
-        accionesAbajo
-        bajada="Cerrar un mes lo congela: nadie puede registrar ni cambiar nada con fecha de ese mes, y el diario queda guardado con su huella. Se cierra cada tienda, el Taller y lo de la empresa; CAYLA entera, cuando cerraron todas (ADR-0198)."
-        acciones={<Chip versalitas={false}>CAYLA entera</Chip>}
+      <EncabezadoPagina
+        sede="CAYLA entera"
+        titulo="Cierre de mes"
+        detalle={textoMes(mes)}
+        subtitulo="Cerrar un mes lo congela: nadie puede registrar ni cambiar nada con fecha de ese mes, y el diario queda guardado con su huella. Se cierra cada tienda, el Taller y lo de la empresa; CAYLA entera, cuando cerraron todas."
       />
 
       {/* Camino A (Felipe 2026-10-15): primero la respuesta; la matriz y los chequeos, después. */}
@@ -189,7 +189,7 @@ function Pantalla({ panel, unidadPedida, esAdmin }: { panel: PanelCierre; unidad
             </div>
             <div>
               <h3>Día 3 · el sistema (5 min)</h3>
-              <p>Mirar el Estado de resultados contra el mes anterior y cerrar. Desde ahí, el mes ya no cambia.</p>
+              <p>Mirar Ganancias y pérdidas contra el mes anterior y cerrar. Desde ahí, el mes ya no cambia.</p>
             </div>
           </div>
           <p className="nota-cayla mt-3.5">

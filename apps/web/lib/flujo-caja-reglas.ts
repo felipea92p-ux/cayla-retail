@@ -6,7 +6,7 @@
 // para Escenarios, se rehace LA MISMA cuenta de la proyección con las palancas («¿y si vendo 10 % más?») sin guardar nada.
 // Sin palancas, `proyectar` da exactamente las semanas de la base (lo prueba `flujo-caja-reglas.test.ts`).
 
-import { fechaCorta, solesRedondo } from "./gastos-reglas";
+import { fechaCorta, solesRedondo, textoMes } from "./gastos-reglas";
 import { sumarDias } from "./fechas-lima";
 import { puntoDeEquilibrio, type FilaER } from "./resultados-reglas";
 
@@ -476,10 +476,79 @@ export function proyectar(p: Proyeccion, palancas: Palancas = PALANCAS_INICIALES
   });
 }
 
-/** Lo más bajo que llega la caja en el horizonte, y en qué semana. */
-export function puntoMasBajo(semanas: readonly SemanaProy[]): SemanaProy | null {
-  return semanas.reduce<SemanaProy | null>((a, w) => (a === null || w.saldo < a.saldo ? w : a), null);
+/** Lo más bajo que llega la caja en esos puntos (semanas o días): el primero si hay empate. */
+export function puntoMasBajo<T extends { saldo: number }>(puntos: readonly T[]): T | null {
+  return puntos.reduce<T | null>((a, w) => (a === null || w.saldo < a.saldo ? w : a), null);
 }
+
+// ---- La caja día por día ------------------------------------------------------------------------------------------------
+
+const MESES_LARGOS = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"];
+/** «31 de octubre». */
+export function fechaEnPalabras(iso: string): string {
+  return `${Number(iso.slice(8, 10))} de ${MESES_LARGOS[Number(iso.slice(5, 7)) - 1]}`;
+}
+
+/** El saldo al terminar `fecha`; si la caja no se pudo armar por día, el cierre del bloque `semana`. */
+export type SaldoDelDia = { fecha: string; saldo: number; semana?: { desde: string; hasta: string } };
+export type CajaDiaria = { hoy: string; puntos: SaldoDelDia[]; porSemana: boolean };
+
+function diaADia(p: Proyeccion, salidas: readonly SalidaProy[], palancas: Palancas): SaldoDelDia[] {
+  const delDia = new Map<string, number>();
+  const anotar = (f: string, monto: number) => {
+    if (f >= p.desde && f <= p.hasta) delDia.set(f, (delDia.get(f) ?? 0) + monto);
+  };
+  for (const c of p.cobros) anotar(c.fecha, c.monto * factorVentas(c.ubicacionId, palancas));
+  for (const s of salidas) anotar(s.fecha, -s.monto);
+  const puntos: SaldoDelDia[] = [{ fecha: p.hoy, saldo: r2(p.saldoHoy) }];
+  if (!p.hoy || !p.hasta) return puntos;
+  let saldo = p.saldoHoy;
+  for (let f = sumarDias(p.hoy, 1); f <= p.hasta; f = sumarDias(f, 1)) {
+    saldo += delDia.get(f) ?? 0;
+    puntos.push({ fecha: f, saldo: r2(saldo) });
+  }
+  return puntos;
+}
+
+/**
+ * UNA SOLA CUENTA del saldo día por día: hoy y cada día hasta el final de la proyección, de CAYLA entera. La usan «Tu caja», «¿Me alcanza?» y «¿Qué pasa si…?»,
+ * porque el cierre de una semana esconde lo que pasa dentro (la planilla un día, los cobros al siguiente) y deja fuera el día de hoy.
+ * Sale de las mismas piezas de `proyectar`, así que al cierre de cada bloque da su mismo saldo. Si eso no cuadra con lo que dijo la base (±1 sol: una base más
+ * vieja que esta web), no se inventa el detalle: `porSemana`, con hoy y los cierres de la base, más lo que muevan las palancas.
+ */
+export function cajaDiaria(p: Proyeccion, palancas: Palancas = PALANCAS_INICIALES, alquilerActual: number | null = null): CajaDiaria {
+  const sinCambios = new Map(diaADia(p, p.salidas, PALANCAS_INICIALES).map((x) => [x.fecha, x.saldo]));
+  const cuadra = p.semanas.every((s) => {
+    const saldo = sinCambios.get(s.hasta);
+    return saldo !== undefined && Math.abs(saldo - s.saldo) <= 1;
+  });
+  if (cuadra) return { hoy: p.hoy, puntos: diaADia(p, salidasConPalancas(p, palancas, alquilerActual), palancas), porSemana: false };
+  const sin = proyectar(p);
+  const con = proyectar(p, palancas, alquilerActual);
+  return {
+    hoy: p.hoy,
+    porSemana: true,
+    puntos: [
+      { fecha: p.hoy, saldo: r2(p.saldoHoy) },
+      ...p.semanas.map((s, i) => ({ fecha: s.hasta, saldo: r2(s.saldo + con[i]!.saldo - sin[i]!.saldo), semana: { desde: s.desde, hasta: s.hasta } })),
+    ],
+  };
+}
+
+/** La frase de una caja que baja del mínimo, la misma en «Tu caja» y en «¿Me alcanza?»: cuánto y cuándo, y si hoy ya pasó. */
+export function fraseBajoMinimo(x: { hoy: string; masBajo: { fecha: string; saldo: number }; bajaDesde: string; sinPlata: boolean; minimo: number }): string {
+  const falta = soles(x.minimo - x.masBajo.saldo);
+  if (x.sinPlata) return `Te quedas sin plata el ${fechaEnPalabras(x.masBajo.fecha)}: llegas a ${soles(x.masBajo.saldo)}.`;
+  if (x.bajaDesde === x.hoy) {
+    return x.masBajo.fecha === x.hoy
+      ? `Hoy estás bajo tu mínimo: tienes ${soles(x.masBajo.saldo)}, te faltan ${falta}.`
+      : `Hoy ya estás bajo tu mínimo y el ${fechaEnPalabras(x.masBajo.fecha)} llegas a ${soles(x.masBajo.saldo)}: te faltan ${falta}.`;
+  }
+  return `Tu caja baja a ${soles(x.masBajo.saldo)} el ${fechaEnPalabras(x.masBajo.fecha)}: ${falta} bajo tu mínimo.`;
+}
+
+/** ADR-0417: un veredicto firme solo con datos firmes; con la proyección provisional, la frase lo dice. */
+export const conLoRegistrado = (frase: string): string => `Con lo que hay registrado, ${frase.charAt(0).toLowerCase()}${frase.slice(1)}`;
 
 /** «Si mañana no vendieras nada…»: el tono del spike (rojo bajo 10 días, ámbar bajo 20). */
 export const DIAS_DE_HISTORIA_MINIMOS = 28;
@@ -599,17 +668,50 @@ export function tiendaInicial(filas: readonly FilaER[], tiendas: readonly { id: 
   return tiendas[0]?.id ?? null;
 }
 
+/** La frase de la caja de «Qué pasaría»: por día y desde hoy, para no prometer holgura donde hoy ya falta. */
+function lineaDeCaja(base: CajaDiaria, nueva: CajaDiaria, semanas: number, minimo: number): Parte[] | null {
+  const hoy = nueva.puntos[0];
+  const bajoN = puntoMasBajo(nueva.puntos);
+  if (!hoy || !bajoN || semanas < 1) return null;
+  const bajoB = puntoMasBajo(base.puntos);
+  const cuando = (x: SaldoDelDia) => (x.semana ? `la semana del ${etiquetaSemana(x.semana.desde, x.semana.hasta)}` : x.fecha === nueva.hoy ? "hoy" : `el ${fechaEnPalabras(x.fecha)}`);
+  if (hoy.saldo < minimo) {
+    const inicio: Parte[] = ["Hoy ya estás bajo tu mínimo: tienes ", { b: soles(hoy.saldo) }, `, te faltan ${soles(minimo - hoy.saldo)}.`];
+    const futuro = puntoMasBajo(nueva.puntos.slice(1));
+    if (!futuro) return inicio;
+    return futuro.saldo < minimo
+      ? [...inicio, " Más adelante también quedarías bajo él: lo más bajo sería ", { b: soles(futuro.saldo) }, ` ${cuando(futuro)}.`]
+      : [...inicio, ` En las próximas ${semanas} semanas no volverías a bajar de él (lo más bajo: `, { b: soles(futuro.saldo) }, `, ${cuando(futuro)}).`];
+  }
+  if (bajoN.saldo < minimo) {
+    return [`La caja ${bajoB && bajoB.saldo < minimo ? "seguiría bajando" : "bajaría"} del mínimo: lo más bajo sería `, { b: soles(bajoN.saldo) }, ` ${cuando(bajoN)}.`];
+  }
+  return [
+    `La caja no bajaría de tu mínimo en ${semanas} semanas (lo más bajo: `,
+    { b: soles(bajoN.saldo) },
+    `, ${cuando(bajoN)}${bajoB && bajoB.saldo < minimo ? `; hoy bajaría a ${soles(bajoB.saldo)}` : ""}).`,
+  ];
+}
+
+/** «En octubre»: el título de la columna de la utilidad, que es la del último mes completo y no la de hoy. */
+export function etiquetaMesBase(mes: string): string {
+  return `En ${textoMes(mes).split(" ")[0]!.toLowerCase()}`;
+}
+
 /** Las frases de «Qué pasaría» (spike). La utilidad solo si hay estado de resultados; la caja, siempre. */
 export function conclusiones(args: {
   utilidad: ReturnType<typeof utilidadConCambios> | null;
   palancas: Palancas;
   nombreTienda: string | null;
-  semanasBase: readonly SemanaProy[];
-  semanasNuevas: readonly SemanaProy[];
+  /** La caja día por día, sin palancas y con ellas (`cajaDiaria`). */
+  cajaBase: CajaDiaria;
+  cajaNueva: CajaDiaria;
+  /** Cuántas semanas mira la proyección. */
+  semanas: number;
   minimo: number;
   pagoMovido: { titulo: string; monto: number; de: string; a: string | null } | null;
 }): Parte[][] {
-  const { utilidad: u, palancas: p, nombreTienda, semanasBase, semanasNuevas, minimo, pagoMovido } = args;
+  const { utilidad: u, palancas: p, nombreTienda, cajaBase, cajaNueva, semanas, minimo, pagoMovido } = args;
   const salida: Parte[][] = [];
   if (u) {
     const dif = u.cayla.despues - u.cayla.antes;
@@ -632,28 +734,13 @@ export function conclusiones(args: {
         salida.push([
           `${nombreTienda} ${t.despues >= 0 ? "dejaría" : "perdería"} `,
           { b: soles(Math.abs(t.despues)) },
-          t.equilibrio !== null ? ` al mes; necesitaría vender ${soles(t.equilibrio)} para no perder.` : " al mes.",
+          t.equilibrio !== null ? ` al mes; necesitaría vender ${soles(t.equilibrio)} sin IGV para no perder.` : " al mes.",
         ]);
       }
     }
   }
-  const bajoN = puntoMasBajo(semanasNuevas);
-  const bajoB = puntoMasBajo(semanasBase);
-  if (bajoN) {
-    if (bajoN.saldo < minimo) {
-      salida.push([
-        `La caja ${bajoB && bajoB.saldo < minimo ? "seguiría bajando" : "bajaría"} del mínimo: lo más bajo sería `,
-        { b: soles(bajoN.saldo) },
-        ` la semana del ${etiquetaSemana(bajoN.desde, bajoN.hasta)}.`,
-      ]);
-    } else {
-      salida.push([
-        `La caja no bajaría de tu mínimo en ${semanasNuevas.length} semanas (lo más bajo: `,
-        { b: soles(bajoN.saldo) },
-        bajoB && bajoB.saldo < minimo ? `; hoy bajaría a ${soles(bajoB.saldo)}).` : ").",
-      ]);
-    }
-  }
+  const caja = lineaDeCaja(cajaBase, cajaNueva, semanas, minimo);
+  if (caja) salida.push(caja);
   if (pagoMovido) {
     salida.push([
       `Pasar ${soles(pagoMovido.monto)} de ${pagoMovido.titulo} del ${fechaCorta(pagoMovido.de)} `,
@@ -690,15 +777,15 @@ const celda = (v: string | number) => {
 /** CSV separado por «;» (Excel en español), montos exactos con punto: el mismo formato de Reportes (F5). */
 const csv = (filas: (string | number)[][]) => "﻿" + filas.map((f) => f.map(celda).join(";")).join("\r\n");
 
-/** El escenario: la caja semana por semana (hoy y con el cambio) y la utilidad de cada unidad. */
-export function csvEscenario(base: readonly SemanaProy[], nuevo: readonly SemanaProy[], u: ReturnType<typeof utilidadConCambios> | null): string {
+/** El escenario: la caja semana por semana (hoy y con el cambio) y la utilidad de cada unidad (la del mes base y con el cambio). */
+export function csvEscenario(base: readonly SemanaProy[], nuevo: readonly SemanaProy[], u: ReturnType<typeof utilidadConCambios> | null, mesBase: string): string {
   const filas: (string | number)[][] = [["Tu caja", "Hoy", "Con el cambio", "Diferencia"]];
   base.forEach((w, i) => {
     const n = nuevo[i]?.saldo ?? w.saldo;
     filas.push([etiquetaSemana(w.desde, w.hasta), w.saldo, n, r2(n - w.saldo)]);
   });
   if (u) {
-    filas.push([], ["Utilidad al mes", "Hoy", "Con el cambio", "Diferencia"]);
+    filas.push([], ["Utilidad al mes", etiquetaMesBase(mesBase), "Con el cambio", "Diferencia"]);
     for (const x of u.unidades) filas.push([x.nombre, x.antes, x.despues, r2(x.despues - x.antes)]);
     filas.push(["CAYLA", u.cayla.antes, u.cayla.despues, r2(u.cayla.despues - u.cayla.antes)]);
   }

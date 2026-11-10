@@ -276,7 +276,7 @@ export function GastosPanel({
   // Lo grande sin comprobante, como lo marca la lista: el chip y la bandeja dicen el mismo número (/formidable, cambio 3; Felipe 2026-10-30).
   const sinPapel = useMemo(() => sinComprobanteGrande(gastos), [gastos]);
   const chipsRespuesta = panel
-    ? [...chipsDeGastos({ n: panel.n, sinComprobante: sinPapel.n }), ...(chipAnterior ? [chipAnterior] : []), ...chipDeFijosPorConfirmar(fijosPorConfirmar(fijosDelMes))]
+    ? [...chipsDeGastos({ n: panel.n, sinComprobante: sinPapel.n, total: panel.total, igv: panel.igv }), ...(chipAnterior ? [chipAnterior] : []), ...chipDeFijosPorConfirmar(fijosPorConfirmar(fijosDelMes))]
     : [];
 
   return (
@@ -297,7 +297,7 @@ export function GastosPanel({
           )
         }
       >
-        <RespuestaTelar pregunta={preguntaDeGastos(ver, ubicaciones, mes)} valor={panel ? panel.total : null} chips={chipsRespuesta} />
+        <RespuestaTelar pregunta={preguntaDeGastos(ver, ubicaciones, mes)} valor={panel ? panel.total : null} unidad="con IGV" chips={chipsRespuesta} />
       </EncabezadoPagina>
       <Orillo porSede={porSedeDe(panel?.porUbicacion ?? [])} sedes={sedesTelar} que="gastado" hoy={hoy} />
       <DockTelar
@@ -540,7 +540,7 @@ export function GastosPanel({
           )}
           {marcas.length > 0 && <MarcasNoGasto marcas={marcas} />}
           <p className="nota-cayla">
-            Un egreso de caja es <b>cómo salió la plata</b>, no qué se compró (ADR-0117). Solo cuenta como gasto cuando alguien dice qué fue; un depósito al banco o un retiro del dueño no son gastos.
+            Un egreso de caja es <b>cómo salió la plata</b>, no qué se compró. Solo cuenta como gasto cuando alguien dice qué fue; un depósito al banco o un retiro del dueño no son gastos.
           </p>
         </>
       )}

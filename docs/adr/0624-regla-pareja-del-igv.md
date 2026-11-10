@@ -78,6 +78,18 @@ que no entra a ninguna suma. Se llama `igvCobrado` y no `igvVentas` porque `fn_e
 - Las puertas del Taller y los gastos: el IGV con factura no es costo; el de boleta o informal, sí.
 - En esta entrega no se tocan costos, `variantes`, `venta_items`, `registrar_venta` ni `fn_asientos`.
 
+## Actualización 2026-11-09: lo vendido de CLAURE se ve, con su línea (Felipe)
+
+**El problema:** «Vendiste con IGV» sumaba `ventas + igvCobrado`. Las ventas ya venían sin lo de CLAURE, pero el IGV lo traía, porque la boleta sale con el RUC de CAYLA. En Lima, octubre no decía ni lo de CAYLA ni lo de la tienda: era la venta de CAYLA con el IGV de las dos.
+
+**Lo decidido:** «Vendiste con IGV» es todo lo vendido en la tienda, y una línea aparte dice lo de CLAURE sin IGV. Cada columna se lee: vendiste con IGV − IGV − Prendas de CLAURE = Lo que vendiste. El IGV de CLAURE se queda en su fila porque CAYLA lo declara; palabras de Felipe sobre quién lo asume: «claure puede luego devolvernos el igv con facturas de compras».
+
+**Cómo se arma:** `FilaER.claureSinIgv` sale de `fn_cuadre_ventas_finanzas.claure` (lo que el Diario le quitó a cada sede, también en cambios). No se usa `fn_claure_ventas_en` porque no trae los cambios. Es solo presentación: `ventas`, `margen` y `resultado` no cambian, y sin una de las dos lecturas no se dibuja ninguna. Las cifras que se comparan contra una meta o un punto de equilibrio siguen siendo de CAYLA: lo de CLAURE no cuenta para ellas (ADR-0560).
+
+**Las facturas de CLAURE:** el IGV de lo cobrado en cuentas de CAYLA ya se descuenta de lo que se le debe a CLAURE (ADR-0560, decisión 2), y el de las ventas en efectivo no. Si CLAURE además factura con IGV lo vendido, CAYLA recuperaría dos veces la parte ya descontada. Felipe decidió el mismo día que, cuando CLAURE facture, se deja de descontar (ADR-0560, actualización del 2026-11-09, con lo que falta definir con el contador). CLAURE tampoco existe hoy como proveedor, y registrar una factura de mercadería en consignación como compra normal subiría stock y costo que no son de CAYLA.
+
+**En el Resumen (mismo día):** «Vendido por sede», la frase de «¿Cuánto te deja?» y «A dónde va la plata» dicen lo vendido con IGV y con lo de CLAURE. En el anillo, el IGV y las Prendas de CLAURE salen por su propio hilo, sin porcentaje, así que «Otros ajustes» y lo que te deja no cambian; los porcentajes de los demás se siguen midiendo sin IGV. «Lo que más se movió» conserva la fila «Ventas, sin IGV», porque es la que suma la diferencia de lo que te deja.
+
 ## Alternativas descartadas
 
 - **Seguir con el IGV dicho y restar el arranque aparte:** dos cifras de resultado que no cuadran entre sí, y el doble conteo del saldo a favor sigue en otra forma.

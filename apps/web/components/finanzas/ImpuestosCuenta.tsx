@@ -10,7 +10,8 @@ import { solesRedondo } from "@/lib/gastos-reglas";
 import type { CuentaImpuestos } from "@/lib/impuestos-cuenta-reglas";
 
 // Finanzas ▸ Impuestos, «E · B++» (Felipe 2026-10-28, ADR-0573): arriba, UNA respuesta grande («Pagas») y, a su lado, la cuenta en líneas:
-// vendiste → IGV de tus ventas − IGV de tus compras + renta = pagas. Las cifras las arma `lib/impuestos-cuenta-reglas.ts` sobre lo que ya
+// vendiste → IGV de tus boletas y facturas − IGV de tus compras + renta = pagas. Se llama distinto que «IGV de tus ventas» de Ganancias porque
+// es otra cifra: esta es lo declarable, sale de los comprobantes; aquella sale de cada venta, tenga comprobante o no. Las cifras las arma `lib/impuestos-cuenta-reglas.ts` sobre lo que ya
 // calcula la base; aquí solo se dibujan. El porcentaje de la renta es el del parámetro del año (hoy «por confirmar»).
 
 const mas = (n: number) => solesRedondo(n);
@@ -26,7 +27,7 @@ export function PagasImpuestos({ cuenta, guia }: { cuenta: CuentaImpuestos; guia
       </p>
       {hay && <span className="fin-pagas-chip">{cuenta.chip}</span>}
       <p className="fin-pagas-frase">{cuenta.frase}</p>
-      {hay && !cuenta.pagadoTodo && (
+      {hay && cuenta.puedeRegistrarPago && (
         <div>
           <BotonEnlace href={cuenta.registrarPago} peso="fantasma" title="Anota el pago que hiciste desde un banco, en Cuentas y dinero">
             <Landmark aria-hidden className="h-4 w-4" /> Registrar pago
@@ -59,7 +60,7 @@ export function CuentaLineas({ cuenta, guia }: { cuenta: CuentaImpuestos; guia?:
       </div>
       <div className="fin-cuenta-fila">
         <span>
-          IGV de tus ventas
+          IGV de tus boletas y facturas
           <small>{c.tasaIgv} % de lo vendido</small>
         </span>
         <span className="fin-cuenta-monto">{mas(c.igvVentas)}</span>

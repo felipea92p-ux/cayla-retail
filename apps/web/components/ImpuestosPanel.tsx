@@ -17,9 +17,8 @@ import { mesADeclarar, sobresIgv } from "@/lib/impuestos-sobres-reglas";
 import { pendientesCompactos } from "@/lib/impuestos-antes-reglas";
 import { lineasSireImpuestos, type EstadoSire } from "@/lib/sire-estado-reglas";
 import { barrasMeses, cuentaImpuestos, limiteImpuestos } from "@/lib/impuestos-cuenta-reglas";
-import { sedeDeLaCabecera } from "@/lib/impuestos-telar-reglas";
 import { lineaImpuestosClaure, type VentasClaure } from "@/lib/cuenta-claure-reglas";
-import { hrefTelar, type ClaveSede, type SedeTelar } from "@/lib/finanzas-telar-reglas";
+import { hrefTelar } from "@/lib/finanzas-telar-reglas";
 import { descargarBlob, descargarCsv, textoCsv } from "@/lib/exportar-csv";
 import { crearZip } from "@/lib/zip-simple";
 import { solesRedondo, textoMes } from "@/lib/gastos-reglas";
@@ -49,22 +48,22 @@ const plural = (n: number, uno: string, varios: string) => `${n} ${n === 1 ? uno
 
 type Descarga = "ventas" | "compras" | "resumen" | "paquete";
 
-type Contexto = { sede: ClaveSede; sedes: SedeTelar[]; claure: VentasClaure | null; sire: EstadoSire | null; renta: { datos: RentaPantalla | null; falla: string | null } };
+type Contexto = { claure: VentasClaure | null; sire: EstadoSire | null; renta: { datos: RentaPantalla | null; falla: string | null } };
 
-export function ImpuestosPanel({ panel, falla, sede, sedes, claure, sire, renta }: { panel: PanelImpuestos | null; falla: string | null } & Contexto) {
+export function ImpuestosPanel({ panel, falla, claure, sire, renta }: { panel: PanelImpuestos | null; falla: string | null } & Contexto) {
   if (!panel) {
     return (
       <div className="space-y-6">
-        <EncabezadoPagina sede={sedeDeLaCabecera(sede, sedes)} titulo="Impuestos">
+        <EncabezadoPagina sede="CAYLA entera" titulo="Impuestos">
           <RespuestaTelar pregunta="¿Cuánto le pagas a SUNAT?" valor={null} motivo={falla ?? "No se pudo leer el IGV. Vuelve a intentarlo en un rato."} />
         </EncabezadoPagina>
       </div>
     );
   }
-  return <Pantalla panel={panel} falla={falla} sede={sede} sedes={sedes} claure={claure} sire={sire} renta={renta} />;
+  return <Pantalla panel={panel} claure={claure} sire={sire} renta={renta} />;
 }
 
-function Pantalla({ panel, falla, sede, sedes, claure, sire, renta }: { panel: PanelImpuestos; falla: string | null } & Contexto) {
+function Pantalla({ panel, claure, sire, renta }: { panel: PanelImpuestos } & Contexto) {
   const router = useRouter();
   const sp = useSearchParams();
   const [bajando, setBajando] = useState<Descarga | null>(null);
@@ -72,7 +71,7 @@ function Pantalla({ panel, falla, sede, sedes, claure, sire, renta }: { panel: P
   // Cambiar de mes sube a la cuenta (la respuesta cambia arriba y tiene que verse) y conserva la sede de la mesa de mando.
   const irA = (m: string) => router.push(hrefTelar("/finanzas/impuestos", sp.entries(), { mes: m }, { mismaPantalla: true, mesDeHoy: mesActual }));
   const aDeclarar = mesADeclarar(mesActual);
-  const sobres = sobresIgv(panel.historial, mesActual, mes, panel.pagos);
+  const sobres = sobresIgv(panel.historial, mesActual, mes, panel.pagos, panel.pagosFalla);
   const sobreADeclarar = sobres.find((x) => x.mes === aDeclarar);
 
   async function bajar(que: Descarga) {
@@ -129,8 +128,9 @@ function Pantalla({ panel, falla, sede, sedes, claure, sire, renta }: { panel: P
   return (
     <div className="space-y-6">
       <EncabezadoPagina
-        sede={sedeDeLaCabecera(sede, sedes)}
+        sede="CAYLA entera"
         titulo="Impuestos"
+        subtitulo="Lo que le pagas a SUNAT por el mes. Se declara con el RUC de CAYLA, así que estas cifras son de toda la empresa: no se parten por sede."
         acciones={
           <span className="flex flex-wrap items-center gap-2">
           {/* La propuesta del SIRE contra lo registrado, antes de que el contador la acepte (ADR-0601). */}
@@ -164,7 +164,7 @@ function Pantalla({ panel, falla, sede, sedes, claure, sire, renta }: { panel: P
       />
 
       {/* El mes en curso todavía corre: lo urgente es el que se declara ahora, a un toque (la vuelta, hallazgo 9 de la auditoría v3). */}
-      {mes !== aDeclarar && sobreADeclarar && (
+      {mes !== aDeclarar && sobreADeclarar && sobreADeclarar.estado !== "sin_leer" && (
         <Aviso
           tono={sobreADeclarar.estado === "por_declarar" ? "atencion" : "info"}
           chico
@@ -179,7 +179,6 @@ function Pantalla({ panel, falla, sede, sedes, claure, sire, renta }: { panel: P
         </Aviso>
       )}
 
-      {falla && <p className="card-cayla border-dashed px-5 py-4 text-sm text-tinta/75">{falla}</p>}
 
       <section className="fin-imp-arriba">
         <PagasImpuestos cuenta={cuenta} guia="fin-impuestos.pagas" />
