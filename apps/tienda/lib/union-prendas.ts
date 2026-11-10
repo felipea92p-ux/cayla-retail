@@ -274,6 +274,18 @@ export function cajaDeAbajoUnida(
 
 /** En qué parte del alto de la prenda de arriba se supone su borde de abajo mientras todavía no se midió su recorte. */
 export const FILA_ESTIMADA_DEL_BORDE = 0.9;
+/**
+ * Dónde va la prenda de abajo mientras la unión no tiene sus medidas (todavía no llegan, o no se pudieron leer): con su tamaño de siempre, pero
+ * arrancando en el bajo de la prenda de arriba (el medido si ya se midió; si no, `FILA_ESTIMADA_DEL_BORDE`), donde corre el hilo. Antes se quedaba en la
+ * cintura fija de la figura: con una blusa larga, la falda quedaba escondida detrás y asomaba por los costados de la cintura (Felipe, 2026-11-10).
+ * `null`: no hay nada que mover (la de arriba va metida, o la caja es rara).
+ */
+export function cajaDeAbajoSinMedida(arriba: { caja: Caja; medida: MedidaDelRecorte | null | undefined; metida: boolean }, abajo: Caja): Caja | null {
+  if (arriba.metida || !(arriba.caja.h > 0) || !(abajo.h > 0)) return null;
+  const fila = arriba.medida?.filaDelBorde ?? FILA_ESTIMADA_DEL_BORDE;
+  return { ...abajo, y: Math.round(arriba.caja.y + arriba.caja.h * fila - SOLAPE_DE_LA_UNION) };
+}
+
 /** Cuánto sobresale el hilo por cada lado de la cintura estándar (px de la escena). */
 export const MARGEN_DEL_HILO = 14;
 
