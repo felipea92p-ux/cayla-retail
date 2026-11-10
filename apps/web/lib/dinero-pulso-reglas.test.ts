@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { CuentaDinero } from "./cuentas-dinero-reglas";
-import type { Proyeccion } from "./flujo-caja-reglas";
+import { soles, type Proyeccion } from "./flujo-caja-reglas";
 import type { FilaPorPagar } from "./por-pagar-consolidado-reglas";
 import { alcanzaPulso, debesPulso, tienesPulso } from "./dinero-pulso-reglas";
 
@@ -101,6 +101,53 @@ describe("alcanzaPulso", () => {
     if (a.estado === "sin_dato") return;
     expect(a.provisional).toBe(false);
     expect(a.faltan).toEqual([]);
+  });
+});
+
+// Tarea 46: el mismo punto día por día que «Tu caja», con hoy incluido y sobre TODO el horizonte de las semanas, no solo sus cierres.
+describe("alcanzaPulso mira día por día, con hoy incluido", () => {
+  const cobro = (fecha: string, monto: number) => ({ fecha, ubicacionId: "t1", tienda: "Trujillo", monto, origen: "meta" as const, metaPct: 0, campanas: [] });
+  const salida = (fecha: string, monto: number) => ({ tipo: "planilla" as const, id: `p:${fecha}`, fecha, vence: fecha, titulo: "Planilla", detalle: "", clase: "planilla", ubicacionId: null, unidad: null, monto, atrasada: false });
+  const semana = (desde: string, hasta: string, saldo: number) => ({ desde, hasta, entra: 0, sale: 0, saldo, bajoMinimo: saldo < 15000 });
+  const BASE = {
+    ...PROY, hoy: "2026-11-08", desde: "2026-11-09", hasta: "2026-12-20", minimoCaja: 15000,
+    semanas: [
+      semana("2026-11-09", "2026-11-15", 43000),
+      semana("2026-11-16", "2026-11-22", 43000),
+      semana("2026-11-23", "2026-11-29", 43000),
+      semana("2026-11-30", "2026-12-06", 43000),
+      semana("2026-12-07", "2026-12-13", 43000),
+      semana("2026-12-14", "2026-12-20", 43000),
+    ],
+  };
+  const COMO_HOY: Proyeccion = { ...BASE, saldoHoy: 14600, cobros: [cobro("2026-11-09", 3000), cobro("2026-11-12", 25400)], salidas: [] };
+
+  it("con la caja de hoy bajo el mínimo ya no dice que está dentro, aunque ninguna semana cierre bajo él", () => {
+    const a = alcanzaPulso(COMO_HOY, 0);
+    expect(a.estado).toBe("hoy_bajo");
+    expect(a.frase).toBe(`Hoy estás bajo tu mínimo: tienes ${soles(14600)}, te faltan ${soles(400)}.`);
+  });
+  it("«hoy ya estás bajo» guarda la nota de lo guardado: depositarlo no arregla el mínimo", () => {
+    const a = alcanzaPulso(COMO_HOY, 5000);
+    expect(a.estado === "hoy_bajo" && a.guardadoYaCuenta).toMatchObject({ monto: 5000 });
+  });
+  it("con la proyección provisional lo dice como «Tu caja»", () => {
+    const a = alcanzaPulso({ ...COMO_HOY, historiaDias: 16, saldoInicialDeclarado: false, hayFacturasDeProveedor: true, incluyeImpuestos: true, diasDeCajaConfiable: false }, 0);
+    expect(a.frase.startsWith("Con lo que hay registrado, hoy estás bajo tu mínimo")).toBe(true);
+  });
+  it("ve una caída dentro de una semana que cierra bien, también después del día 14", () => {
+    const p: Proyeccion = { ...BASE, saldoHoy: 43000, cobros: [cobro("2026-12-02", 40000)], salidas: [salida("2026-12-01", 40000)] };
+    const a = alcanzaPulso(p, 0);
+    expect(a.estado).toBe("baja");
+    expect(a.frase).toBe(`Tu caja baja a ${soles(3000)} el 1 de diciembre: ${soles(12000)} bajo tu mínimo.`);
+  });
+  it("sin caída, nombra el día más bajo y no el cierre de una semana", () => {
+    const p: Proyeccion = { ...BASE, saldoHoy: 20000, cobros: [cobro("2026-11-10", 23000)], salidas: [] };
+    const a = alcanzaPulso(p, 0);
+    expect(a.estado).toBe("bien");
+    expect(a.frase).toBe(`En las próximas 6 semanas no bajas de tu mínimo de ${soles(15000)}. El día más bajo es hoy, con ${soles(20000)}.`);
+    const conDia: Proyeccion = { ...p, salidas: [salida("2026-11-09", 3000)], cobros: [cobro("2026-11-10", 26000)] };
+    expect(alcanzaPulso(conDia, 0).frase).toContain(`El día más bajo es el 9 de noviembre, con ${soles(17000)}.`);
   });
 });
 

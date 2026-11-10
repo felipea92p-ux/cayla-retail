@@ -14,7 +14,7 @@ import { agruparPorDia, delPeriodo, diaDe, etiquetaDePeriodo, haySiguiente, move
 
 // Cuentas y dinero ▸ Dónde está ▸ movimientos entre cuentas (rediseño Felipe 2026-10-31, maqueta docs/maquetas/finanzas-dinero-rediseno-2026-10/): «Últimos
 // movimientos» (los 6 más recientes, en una tarjeta) y «Historial de movimientos» en una ventana: por día, semana, mes o todo, separado por día y de 30 o
-// 40 por página. También por cuenta (desde el detalle de una cuenta). Lee los movimientos que la pantalla ya trae (los últimos 150): no pide nada nuevo.
+// 40 por página. También por cuenta (desde el detalle de una cuenta). Lee los movimientos que la pantalla ya trae (todos): no pide nada nuevo.
 // Un movimiento abre su detalle (donde se anula con motivo) con `onElegir`; sin él, solo se lee.
 
 const OPCIONES_PERIODO = [
@@ -129,7 +129,7 @@ export function HistorialModal({
   return (
     <Modal
       titulo={titulo}
-      subtitulo={cuenta ? `Lo que entró y salió de ${cuenta.nombre}.` : "La plata cambia de lugar: no son ventas ni gastos. Se leen los últimos 150 movimientos."}
+      subtitulo={cuenta ? `Lo que entró y salió de ${cuenta.nombre}.` : "La plata cambia de lugar: no son ventas ni gastos."}
       onClose={onCerrar}
       conCerrar
       ancho="max-w-[56rem]" /* unificar-fijo: el historial es de diseño propio, con filtro de período, separador por día y páginas (Felipe 2026-10-31) */

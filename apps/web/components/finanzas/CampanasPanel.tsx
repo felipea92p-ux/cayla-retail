@@ -2,7 +2,9 @@
 
 import Link from "next/link";
 import type { CSSProperties } from "react";
+import { Aviso } from "@/components/ui/Aviso";
 import { Chip } from "@/components/ui/Chip";
+import { fallaLegible } from "@/lib/gastos-telar-reglas";
 import { CabeceraReportes } from "@/components/finanzas/CabeceraReportes";
 import { BarrasFin, CabeceraBloque, Herramientas, PieTabla, Superficie } from "@/components/finanzas/kit";
 import { fechaCorta } from "@/lib/gastos-reglas";
@@ -19,6 +21,7 @@ import {
   type CampanaFila,
 } from "@/lib/resultados-reglas";
 import { BotonDescargar } from "@/components/ui/BotonDescargar";
+import { metaConIgv } from "@/lib/igv-ventas-reglas";
 import { Megaphone } from "lucide-react";
 import { Vacio } from "@/components/ui/Vacio";
 
@@ -91,9 +94,9 @@ export function CampanasPanel({
       />
 
       {fallas.map((f) => (
-        <p key={f} className="card-cayla border-dashed px-5 py-4 text-sm text-tinta/75">
-          {f}
-        </p>
+        <Aviso key={f} tono="error">
+          {fallaLegible(f)}
+        </Aviso>
       ))}
 
       <section className="fin-dos-col fin-der">
@@ -111,7 +114,7 @@ export function CampanasPanel({
                   valor: c.margenExtra ?? 0,
                   mala: (c.margenExtra ?? 0) < 0,
                   malaTexto: "no se pagó",
-                  detalle: `${c.nombre}: vendió ${solesER(c.ventas ?? 0)} (normal ${solesER(c.normal ?? 0)}) · descuento ${solesER(c.descuento)} · margen ${pct(c.margenPct)}`,
+                  detalle: `${c.nombre}: vendió ${solesER(c.ventas ?? 0)} sin IGV (normal ${solesER(c.normal ?? 0)}) · descuento ${solesER(c.descuento)} · margen ${pct(c.margenPct)}`,
                 }))}
               />
             ) : (
@@ -130,7 +133,7 @@ export function CampanasPanel({
                 <thead>
                   <tr>
                     <th>Campaña</th>
-                    <th className="fin-num">Vendió</th>
+                    <th className="fin-num">Vendió, sin IGV</th>
                     <th className="fin-num">vs normal</th>
                     <th className="fin-num">Descuento</th>
                     <th className="fin-num">Margen extra</th>
@@ -145,7 +148,7 @@ export function CampanasPanel({
                           {fechaCorta(c.desde)} – {fechaCorta(c.hasta)} · {c.prendas ?? 0} prendas
                         </span>
                       </td>
-                      <td className="fin-num" data-l="Vendió">
+                      <td className="fin-num" data-l="Vendió, sin IGV">
                         {solesER(c.ventas ?? 0)}
                       </td>
                       <td className="fin-num" data-l="vs normal">
@@ -199,7 +202,7 @@ export function CampanasPanel({
                   <th className="fin-num">Descuento</th>
                   <th className="fin-num">Para ganar lo mismo, vender</th>
                   <th className="fin-num">La meta sube</th>
-                  <th className="fin-num">Meta de la campaña</th>
+                  <th className="fin-num">Meta de la campaña, con IGV</th>
                   <th>Qué dice el sistema</th>
                 </tr>
               </thead>
@@ -234,11 +237,11 @@ export function CampanasPanel({
                       <td className="fin-num" data-l="Meta sube">
                         {c.conEfecto && c.metaPct != null ? `+${c.metaPct} %` : <span className="fin-tenue">sin efecto en caja</span>}
                       </td>
-                      <td className="fin-num" data-l="Meta">
+                      <td className="fin-num" data-l="Meta con IGV">
                         {c.conEfecto && c.metaCampana != null ? (
                           <>
-                            {solesER(c.metaCampana)}
-                            <span className="fin-sub">normal {solesER(c.metaNormal ?? 0)}</span>
+                            {solesER(metaConIgv(c.metaCampana))}
+                            <span className="fin-sub">normal {solesER(metaConIgv(c.metaNormal ?? 0))}</span>
                           </>
                         ) : (
                           "—"

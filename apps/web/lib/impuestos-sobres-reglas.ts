@@ -29,6 +29,7 @@ const FORMA: Record<EstadoMesIgv, Sobre["forma"]> = {
   pagado: "cerrado",
   a_favor: "cerrado",
   sin_movimiento: "vacio",
+  sin_leer: "abierto",
 };
 
 const Mayus = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
@@ -36,9 +37,9 @@ const Mayus = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 /** El mes que se declara ahora: el anterior al de hoy. */
 export const mesADeclarar = (mesActual: string) => sumarMeses(mesActual, -1);
 
-export function sobresIgv(historial: MesIgv[], mesActual: string, mesElegido: string, pagos: readonly PagoDeMes[] = []): Sobre[] {
+export function sobresIgv(historial: MesIgv[], mesActual: string, mesElegido: string, pagos: readonly PagoDeMes[] = [], pagosFalla = false): Sobre[] {
   return historial.map((m) => {
-    const estado = estadoMes(m, mesActual, pagos.find((p) => p.mes === m.mes));
+    const estado = estadoMes(m, mesActual, pagos.find((p) => p.mes === m.mes), pagosFalla);
     const aFavor = m.aPagar === 0 && m.saldoAFavor > 0;
     return {
       mes: m.mes,

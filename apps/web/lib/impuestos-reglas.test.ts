@@ -13,6 +13,7 @@ import { leerPagosSunat,
   delAnio,
   diaDelRegistro,
   estadoMes,
+  TEXTO_ESTADO_MES,
   fechaPle,
   leerFilaCompras,
   leerFilaVentas,
@@ -63,6 +64,15 @@ describe("lo pagado a SUNAT", () => {
       { mes: "2026-09-01", concepto: "igv", monto: 50 },
     ])).toEqual([{ mes: "2026-10", igv: 300, renta: 100.5 }, { mes: "2026-09", igv: 50, renta: 0 }]);
     expect(leerPagosSunat(null)).toEqual([]);
+  });
+  it("si no se pudo leer lo pagado, un mes con IGV a pagar no afirma «por declarar» ni «sin pago»", () => {
+    expect(estadoMes(mesIgv("2026-08", 500), "2026-09", undefined, true)).toBe("sin_leer");
+    expect(estadoMes(mesIgv("2026-06", 800), "2026-09", undefined, true)).toBe("sin_leer");
+    expect(TEXTO_ESTADO_MES.sin_leer.texto).toBe("pago sin leer");
+    // Lo que no depende de un pago sigue igual.
+    expect(estadoMes(mesIgv("2026-09", 500), "2026-09", undefined, true)).toBe("en_curso");
+    expect(estadoMes(mesIgv("2026-06", 0, 120), "2026-09", undefined, true)).toBe("a_favor");
+    expect(estadoMes(mesIgv("2026-06"), "2026-09", undefined, true)).toBe("sin_movimiento");
   });
   it("el mes queda pagado solo si su IGV está cubierto, y el mes en curso sigue en curso", () => {
     expect(estadoMes(mesIgv("2026-08", 500), "2026-09", { mes: "2026-08", igv: 500, renta: 0 })).toBe("pagado");
@@ -225,20 +235,20 @@ describe("el aviso anticipado del límite (parámetro)", () => {
     const a = avisoUmbral(panel({ ventas_anio_erp: 1_400_000, ventas_anio: 1_400_000, aviso_alcanzado: true }));
     expect(a.nivel).toBe("aviso");
     expect(a.faltaSoles).toBe(250_000);
-    expect(a.titulo).toBe("Llevas S/\u00a01,400,000 vendidos este año, a S/\u00a0250,000 de las 300 UIT: habla con tu contador.");
+    expect(a.titulo).toBe("Llevas S/\u00a01,400,000 vendidos este año, sin IGV, a S/\u00a0250,000 de las 300 UIT: habla con tu contador.");
     // La tasa del pago a cuenta sale del parámetro de la renta; el código no la sabe.
     expect(a.detalle).toBe("Pasadas las 300 UIT, el pago a cuenta de renta deja de ser el 1 % de lo vendido. Mejor verlo antes de que pase.");
   });
 
   it("si cambian los parámetros, cambian las palabras: otro límite, otra tasa, sin tocar el código", () => {
     const a = avisoUmbral(panel({ ventas_anio_erp: 1_000_000, ventas_anio: 1_000_000, umbral_soles: 1_100_000, aviso_alcanzado: true }, { umbral_uit: { valor: 200, provisional: false }, renta: { valor: 0.015, provisional: false } }));
-    expect(a.titulo).toBe("Llevas S/\u00a01,000,000 vendidos este año, a S/\u00a0100,000 de las 200 UIT: habla con tu contador.");
+    expect(a.titulo).toBe("Llevas S/\u00a01,000,000 vendidos este año, sin IGV, a S/\u00a0100,000 de las 200 UIT: habla con tu contador.");
     expect(a.detalle).toContain("el 1.5 % de lo vendido");
   });
 
   it("sin la tasa del pago a cuenta ni el límite en UIT, igual se entiende", () => {
     const a = avisoUmbral(panel({ ventas_anio_erp: 1_400_000, ventas_anio: 1_400_000, aviso_alcanzado: true }, { umbral_uit: null, renta: null }));
-    expect(a.titulo).toBe("Llevas S/\u00a01,400,000 vendidos este año, a S/\u00a0250,000 del límite del régimen: habla con tu contador.");
+    expect(a.titulo).toBe("Llevas S/\u00a01,400,000 vendidos este año, sin IGV, a S/\u00a0250,000 del límite del régimen: habla con tu contador.");
     expect(a.detalle).toBe("Pasado el límite del régimen, el pago a cuenta de renta deja de ser el de ahora. Mejor verlo antes de que pase.");
   });
 
@@ -246,7 +256,7 @@ describe("el aviso anticipado del límite (parámetro)", () => {
     const a = avisoUmbral(panel({ ventas_anio_erp: 1_700_000, ventas_anio: 1_700_000, cruzado: true }));
     expect(a.nivel).toBe("cruzado");
     expect(a.faltaSoles).toBe(0);
-    expect(a.titulo).toBe("Pasaste las 300 UIT este año: llevas S/\u00a01,700,000 vendidos. Hay obligaciones nuevas que coordinar con tu contador.");
+    expect(a.titulo).toBe("Pasaste las 300 UIT este año: llevas S/\u00a01,700,000 vendidos, sin IGV. Hay obligaciones nuevas que coordinar con tu contador.");
     expect(a.detalle).toContain("Cambian el pago a cuenta de renta, desde el mes en que pasaste el límite");
   });
 

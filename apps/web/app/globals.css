@@ -1799,7 +1799,7 @@ html[data-buscando] [data-resultados] {
   :is(.mov-boton, .btn-cayla:not(.btn-enlace))[data-onda]::before { animation: cayla-onda var(--t-hoja) var(--ease-cayla); }
 
   /* LAS DOS VOCES (ADR-0358, ronda 4: Felipe eligió la B, 2026-10-07). Dentro de la cabecera de una pantalla
-     (`data-voz="cabecera"`: EncabezadoPagina, CabeceraPantalla y las cabeceras propias de Compras y Producción) los botones
+     (`data-voz="cabecera"`: EncabezadoPagina y las cabeceras propias de Compras y Producción) los botones
      hablan en VERSALITAS de 11 px y 40 px, como la acción principal; en todo lo demás —hojas, tarjetas, filas— en letra
      normal de 13,5 px, que se lee como una frase. La pieza es la misma (`btn-cayla`, o `<Boton>`, que la dibuja): la voz la
      pone el lugar, no cada pantalla. */

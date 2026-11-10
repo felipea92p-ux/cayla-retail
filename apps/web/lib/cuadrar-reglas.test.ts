@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { AlertaPos, ConciliacionCuenta, LineaConciliacion, LotePendiente } from "./cuentas-dinero-reglas";
-import { deudaDeMaquinas, tieneExtracto, avanceDeLineas, bancosParaCuadrar, camposDeAnotarSaldo, estadoDeBanco, estadoPar, filtrarLineas, inicialesDeBanco, textoUltimaVez, hastaDeLaUrl, respuestaCuadre, textoLadoBanco, textoPeriodo } from "./cuadrar-reglas";
+import { cabeceraDeBancos, coincidenciasConBanco, textoMarcarRevisadas, deudaDeMaquinas, tieneExtracto, avanceDeLineas, bancosParaCuadrar, camposDeAnotarSaldo, estadoDeBanco, estadoPar, filtrarLineas, inicialesDeBanco, textoUltimaVez, hastaDeLaUrl, respuestaCuadre, textoLadoBanco, textoPeriodo } from "./cuadrar-reglas";
 import { sePuedeConfirmar } from "./guia-campos";
 import { leerMontoPlata } from "./monto-plata-reglas";
 
@@ -14,10 +14,44 @@ describe("estadoPar y su lado del banco", () => {
     expect(estadoPar(linea({}))).toBe("pendiente");
   });
   it("dice quién la revisó, cuánto era antes o la pregunta", () => {
-    expect(textoLadoBanco(linea({ revisado: true, revisadoPor: "Felipe" }))).toBe("Está en el extracto · la revisó Felipe");
-    expect(textoLadoBanco(linea({ revisado: true }))).toBe("Está en el extracto");
+    expect(textoLadoBanco(linea({ revisado: true, revisadoPor: "Felipe" }))).toBe("La revisó Felipe");
+    expect(textoLadoBanco(linea({ revisado: true }))).toBe("Revisada");
     expect(plano(textoLadoBanco(linea({ montoRevisado: 90 })))).toBe("Cambió desde que se revisó (era S/ 90.00): mírala otra vez");
     expect(textoLadoBanco(linea({}))).toBe("¿Está en el extracto del banco?");
+  });
+});
+
+describe("el botón que marca varias dice lo que hace", () => {
+  it("da por revisadas, sin afirmar nada del banco", () => {
+    expect(textoMarcarRevisadas(1)).toBe("Dar por revisada la que falta");
+    expect(textoMarcarRevisadas(33)).toBe("Dar por revisadas las 33");
+    expect(textoMarcarRevisadas(33)).not.toMatch(/extracto|banco|cuadra/i);
+  });
+});
+
+describe("cuántas cuentas coinciden con el banco", () => {
+  type C = Pick<ConciliacionCuenta, "tipo" | "pendientes" | "ultimaFecha" | "ultimaDiferencia">;
+  const c = (p: Partial<C>): C => ({ tipo: "banco", pendientes: 0, ultimaFecha: null, ultimaDiferencia: null, ...p });
+  const si = { ultimaFecha: "2026-11-07", ultimaDiferencia: 0 };
+  const no = { ultimaFecha: "2026-11-07", ultimaDiferencia: -60 };
+
+  it("coincide solo la que tiene saldo anotado y sin diferencia", () => {
+    expect(coincidenciasConBanco([c(si), c(no), c({})])).toMatchObject({ coinciden: 1, total: 3, noCuadran: 1, pendientes: 0, todoCuadra: false });
+  });
+  it("todo cuadra solo con saldo anotado, sin diferencia y sin pendientes en todas", () => {
+    expect(coincidenciasConBanco([c(si), c(si)]).todoCuadra).toBe(true);
+    expect(coincidenciasConBanco([c(si), c({ ...si, pendientes: 3 })]).todoCuadra).toBe(false);
+    expect(coincidenciasConBanco([c({}), c({})]).todoCuadra).toBe(false);
+    expect(coincidenciasConBanco([]).todoCuadra).toBe(false);
+  });
+  it("cuenta la tarjeta de crédito, y no las puentes de las máquinas", () => {
+    expect(coincidenciasConBanco([c(si), c({ ...si, tipo: "tarjeta_credito" }), c({ tipo: "por_abonar", pendientes: 2 })])).toMatchObject({ coinciden: 2, total: 2, pendientes: 0 });
+  });
+  it("la cabecera de «Tus bancos» nunca dice «Todo revisado» sin saber si coincide", () => {
+    expect(cabeceraDeBancos([c({}), c({})])).toBe("0 de 2 coinciden con el banco.");
+    expect(cabeceraDeBancos([c(si), c(no)])).toBe("1 de 2 coincide con el banco.");
+    expect(cabeceraDeBancos([c({ ...si, pendientes: 1 }), c({ pendientes: 4 })])).toBe("5 líneas por revisar · 1 de 2 coincide con el banco.");
+    expect(cabeceraDeBancos([c({ pendientes: 1 })])).toBe("1 línea por revisar · 0 de 1 coinciden con el banco.");
   });
 });
 
@@ -113,6 +147,10 @@ describe("la lista de bancos (B · Lista y detalle)", () => {
   const b = (c: Partial<Pick<ConciliacionCuenta, "pendientes" | "ultimaFecha" | "ultimaDiferencia">>) => ({ pendientes: 0, ultimaFecha: null, ultimaDiferencia: null, ...c });
   it("lo que falta revisar manda sobre cómo cerró la última vez", () => {
     expect(estadoDeBanco(b({ pendientes: 3, ultimaFecha: "2026-10-23", ultimaDiferencia: 0 }))).toEqual({ texto: "3 por revisar", tono: "ambar" });
+  });
+  it("«No cuadra» manda sobre lo que falta revisar, solo si hay un saldo anotado que no coincide", () => {
+    expect(estadoDeBanco(b({ pendientes: 3, ultimaFecha: "2026-10-23", ultimaDiferencia: -60 }))).toEqual({ texto: "No cuadra", tono: "ambar" });
+    expect(estadoDeBanco(b({ pendientes: 3 }))).toEqual({ texto: "3 por revisar", tono: "ambar" });
   });
   it("sin saldo anotado nunca: falta el saldo; con él: cuadra o no cuadra", () => {
     expect(estadoDeBanco(b({}))).toEqual({ texto: "Falta el saldo", tono: "pizarra" });

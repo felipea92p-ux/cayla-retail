@@ -2,7 +2,7 @@
   "guia": "finanzas.reportes.patrimonio",
   "ruta": "/finanzas/reportes/patrimonio",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 25,
+  "total": 26,
   "controles": {
     "app/(app)/finanzas/reportes/patrimonio/page.tsx": [
       "BotonVer «Ver el Balance»"
@@ -21,7 +21,8 @@
       "BotonVerMas «{guia}»"
     ],
     "components/finanzas/estados/PatrimonioPanel.tsx": [
-      "Link «Balance general»"
+      "Link «Balance general»",
+      "BotonVer «Ver Ganancias y pérdidas»"
     ],
     "components/finanzas/estados/Recomendaciones.tsx": [
       "BotonVer «{r.accion.texto}»"

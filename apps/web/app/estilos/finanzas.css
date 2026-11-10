@@ -142,7 +142,7 @@
     min-height: 36px;
     padding: 8px 12px;
     border-radius: var(--radius-md);
-    border: 1px solid var(--color-sand);
+    border: 1px solid var(--color-borde-control); /* lo que se toca pasa 3:1; `sand` es solo la línea decorativa (ADR-0516) */
     background: var(--color-hueso);
     font-size: 13.5px;
     color: var(--color-tinta);
@@ -150,7 +150,7 @@
   }
   .fin-control:focus {
     outline: none;
-    border-color: color-mix(in oklab, var(--color-taupe) 55%, transparent);
+    border-color: var(--color-tinta); /* más fuerte que el reposo: un taupe aguado apagaría el campo justo al entrar */
   }
   .fin-control:disabled,
   .fin-control[readonly] {
@@ -171,7 +171,7 @@
   }
   /* Con la lista abierta el foco está en la lista, no en el botón: el borde sigue diciendo «estoy abierto». */
   .fin-desplegable[aria-expanded="true"] {
-    border-color: color-mix(in oklab, var(--color-taupe) 55%, transparent);
+    border-color: var(--color-tinta);
   }
   .fin-herramientas .fin-desplegable-caja {
     width: auto;
@@ -331,9 +331,13 @@
   .fin-tabla-wrap {
     overflow-x: auto;
   }
+  /* El ancho lo da su tarjeta, no la ventana (tarea 119): con el lateral abierto, una ventana de 1024 px deja 650 para la tabla. Las que viven en una columna (flujo, utilidad,
+     una hoja) o traen su propio ancho siguen mirando la ventana: pasarían a fichas sin necesidad. `inline-size` colapsa dentro de un padre que se ajusta a su contenido: estas viven en una Superficie. */
+  .fin-tabla-wrap:has(> .fin-tabla:not(.fin-tabla-flujo, .fin-tabla-utilidad, .fin-tabla-hoja, [style])) {
+    container: fin-tabla / inline-size;
+  }
   .fin-tabla {
     width: 100%;
-    min-width: 900px;
     border-collapse: collapse;
     font-size: 14px;
     color: var(--color-tinta);
@@ -598,6 +602,94 @@
     }
     .fin-barra {
       margin-left: 0;
+    }
+  }
+
+  /* Las mismas fichas cuando lo angosto es la TARJETA y no la ventana (tarea 119). Es copia del bloque de 860 px a propósito: ese sigue cubriendo las tablas que no son contenedor
+     (flujo, utilidad, hoja) y las rejillas de la pantalla. Solo la tabla entra aquí. */
+  @container fin-tabla (max-width: 759.98px) {
+    .fin-tabla thead {
+      display: none;
+    }
+    .fin-tabla,
+    .fin-tabla tbody,
+    .fin-tabla tr,
+    .fin-tabla td {
+      display: block;
+      width: 100%;
+    }
+    .fin-tabla tbody tr {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px 14px;
+      padding: 12px 14px;
+      border-top: 1px solid var(--color-sand);
+    }
+    .fin-tabla tbody tr:first-child {
+      border-top: 0;
+    }
+    .fin-tabla td {
+      border: 0;
+      padding: 0;
+    }
+    .fin-tabla td[data-l]::before {
+      content: attr(data-l);
+      display: block;
+      margin-bottom: 3px;
+      font-size: 10.5px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--color-taupe);
+    }
+    .fin-tabla td.fin-ancha {
+      grid-column: 1 / -1;
+    }
+    .fin-tabla td.fin-num {
+      text-align: left;
+    }
+    .fin-tabla .fin-barra {
+      margin-left: 0;
+    }
+  }
+
+  /* «Cada sede, junta» con IGV lleva una columna más: su mínimo sube de 739 a unos 830 px, y entre 760 y eso «En caja» se saldría de la tarjeta. Copia del bloque de arriba a propósito,
+     solo para ella: el corte de 760 sigue valiendo para las demás tablas, y una tabla más ancha que su tarjeta se desplaza mal. */
+  @container fin-tabla (max-width: 879.98px) {
+    .sedes-juntas-con-igv .fin-tabla thead {
+      display: none;
+    }
+    .sedes-juntas-con-igv .fin-tabla,
+    .sedes-juntas-con-igv .fin-tabla tbody,
+    .sedes-juntas-con-igv .fin-tabla tr,
+    .sedes-juntas-con-igv .fin-tabla td {
+      display: block;
+      width: 100%;
+    }
+    .sedes-juntas-con-igv .fin-tabla tbody tr {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px 14px;
+      padding: 12px 14px;
+      border-top: 1px solid var(--color-sand);
+    }
+    .sedes-juntas-con-igv .fin-tabla tbody tr:first-child {
+      border-top: 0;
+    }
+    .sedes-juntas-con-igv .fin-tabla td {
+      border: 0;
+      padding: 0;
+    }
+    .sedes-juntas-con-igv .fin-tabla td[data-l]::before {
+      content: attr(data-l);
+      display: block;
+      margin-bottom: 3px;
+      font-size: 10.5px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--color-taupe);
+    }
+    .sedes-juntas-con-igv .fin-tabla td.fin-num {
+      text-align: left;
     }
   }
 }
@@ -977,6 +1069,37 @@
   .fin-eerr tr.fin-eerr-sub td.fin-eerr-cons {
     background: color-mix(in oklab, var(--color-sand) 45%, transparent);
   }
+  /* El cuadro por sede se desliza de lado en pantallas chicas: el nombre del concepto se queda, con un fondo macizo por tipo de fila para que los números no se vean a través. */
+  @media (max-width: 1023px) {
+    .fin-eerr th:first-child,
+    .fin-eerr td:first-child {
+      position: sticky;
+      left: 0;
+      z-index: 1;
+      background: var(--color-papel);
+      box-shadow: inset -1px 0 0 var(--color-sand);
+    }
+    .fin-eerr th:first-child {
+      background: color-mix(in oklab, var(--color-sand) 70%, var(--color-papel));
+    }
+    .fin-eerr tr.fin-eerr-sub td:first-child {
+      background: color-mix(in oklab, var(--color-hueso) 55%, var(--color-papel));
+    }
+  }
+  /* Bajo 640 px el ancho lo dan las columnas que hay: con una sede elegida no hace falta deslizar tanto. El concepto parte en dos líneas para dejarles lugar a las cifras. */
+  @media (max-width: 639px) {
+    .fin-eerr {
+      width: max-content;
+      min-width: 100%;
+    }
+    .fin-eerr th:first-child,
+    .fin-eerr td:first-child {
+      min-width: 7.5rem;
+      max-width: 9.5rem;
+      white-space: normal;
+    }
+  }
+  /* Fin del cuadro por sede en pantallas chicas */
   /* La línea chica bajo una cifra o un encabezado («+S/ 1,200 vs ago.», «a la fecha»). */
   .fin-delta {
     display: block;

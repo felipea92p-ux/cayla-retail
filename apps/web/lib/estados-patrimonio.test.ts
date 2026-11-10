@@ -67,7 +67,7 @@ describe("las partes", () => {
   it("perdiste en rojo y lo que no se explica aparte", () => {
     const p = partesDelPatrimonio({ ...base, datos: dato({ ganancia: -100, otros: 40 }) });
     expect(p.find((x) => x.clave === "ganancia")).toMatchObject({ nombre: "Perdiste", tono: "mal", color: "var(--color-rojo)" });
-    expect(p.find((x) => x.clave === "otros")!.nombre).toBe("Sin explicar");
+    expect(p.find((x) => x.clave === "otros")!.nombre).toBe("Carga inicial y ajustes");
   });
   it("sin retiros, dice S/ 0 y no se pinta de rojo", () => {
     expect(partesDelPatrimonio({ ...base, datos: dato({ retiros: 0 }) }).find((x) => x.clave === "retiros")).toMatchObject({ texto: solesCentimos(0), tono: undefined, filas: [] });
@@ -109,5 +109,14 @@ describe("con sueldos que Dynamic todavía no paga (tarea 23)", () => {
     const d = dato({ ganancia: 1000, retiros: 800, fin: { ...dato().fin, total: dato().inicio.total + 200 } });
     expect(lecturaDelPatrimonio(d).nota).toBe("El 20 % de lo ganado se quedó en CAYLA.");
     expect(lecturaDelPatrimonio(d, 500).nota).toContain(`Retiraste más de lo que ganaste: ${solesCentimos(300)}`);
+  });
+});
+
+describe("lo que no es venta, gasto, aporte ni retiro se nombra (tarea 20)", () => {
+  it("dice carga inicial y no «un ajuste a mano»", () => {
+    const otros = partesDelPatrimonio({ comparadas: [], etiquetaActual: "Nov", periodo: OCT, porSede: [], datos: dato({ otros: 9000 }) }).find((x) => x.clave === "otros")!;
+    expect(otros.nombre).toBe("Carga inicial y ajustes");
+    expect(otros.que).toContain("carga inicial");
+    expect(otros.que).not.toContain("a mano");
   });
 });

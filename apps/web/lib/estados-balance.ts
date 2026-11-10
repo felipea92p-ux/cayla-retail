@@ -77,6 +77,18 @@ export function lecturaDelBalance(grupos: readonly GrupoBalance[], antes: readon
   };
 }
 
+/**
+ * El puente con Ganancias y pérdidas (ADR-0621, decisión 4). El Balance sale del diario y Ganancias ya resta los sueldos que Dynamic todavía no paga: sin esto, las dos pantallas dicen lo contrario
+ * del mismo mes. No mueve el libro: lo dice. `sueldosEstimados` es la `planillaEstimada` de la misma lectura que usa Ganancias, nunca una cifra escrita a mano. `null` si no hay nada que restar.
+ */
+export function avisoSueldosDelBalance(grupos: readonly GrupoBalance[], sueldosEstimados: number): string | null {
+  if (Math.round(sueldosEstimados) <= 0) return null;
+  const resultado = grupos.find((g) => g.lado === "tuyo")?.lineas.find((l) => l.cuenta === "resultado_mes")?.monto ?? 0;
+  const despues = aCentimos(resultado - sueldosEstimados);
+  const cambiaDeSigno = resultado > 0 && despues < 0 ? ` Restados, la utilidad queda en pérdida de ${solesCentimos(-despues)}.` : "";
+  return `Sin sueldos provisionados: aún falta restar ${solesCentimos(sueldosEstimados)} que Dynamic no paga.${cambiaDeSigno} El Pasivo tampoco los incluye.`;
+}
+
 export type ComparadaBalance = { etiqueta: string; grupos: readonly GrupoBalance[] | null };
 
 /** Una parte por grupo. El Patrimonio solo está en el tubo: es lo que queda, no algo que se pueda sumar a las tarjetas. */
@@ -177,7 +189,7 @@ const ordenPatrimonio = (cuenta: string) => {
  * El Patrimonio va línea por línea: capital, aportes, resultados acumulados y el resultado del mes. Las columnas de antes solo llevan un cierre que cuadró (los demás son «—»). Cada fila pesa
  * contra el Activo. El detalle de cada fila sale de las mismas partes (`partesDelBalance`).
  */
-export function informeDelBalance({ grupos, partes, comparadas, etiquetaActual }: { grupos: readonly GrupoBalance[]; partes: readonly ParteEstado[]; comparadas: readonly ComparadaBalance[]; etiquetaActual: string }): Informe {
+export function informeDelBalance({ grupos, partes, comparadas, etiquetaActual, avisoResultado = null }: { grupos: readonly GrupoBalance[]; partes: readonly ParteEstado[]; comparadas: readonly ComparadaBalance[]; etiquetaActual: string; /** Lo que hay que saber de la fila del resultado (`avisoSueldosDelBalance`). Va por su cuenta, no por su nombre: con columnas de antes se llama «Resultado del mes». */ avisoResultado?: string | null }): Informe {
   const t = totalesDelBalance(grupos);
   const valores = (de: (gs: readonly GrupoBalance[]) => number) => [...comparadas.map((c) => (c.grupos ? de(c.grupos) : null)), de(grupos)];
   const deParte = (clave: string) => {
@@ -222,6 +234,7 @@ export function informeDelBalance({ grupos, partes, comparadas, etiquetaActual }
           tipo: "linea",
           valores: valores((gs) => montoPatrimonio(gs, l.cuenta)),
           peso: pesoContra(montoPatrimonio(grupos, l.cuenta), t.tiene),
+          ...(l.cuenta === "resultado_mes" && avisoResultado ? { aviso: avisoResultado } : {}),
         }),
       ),
       { clave: "total-tuyo", nombre: "Total Patrimonio", contable: "Total patrimonio", tipo: "subtotal", valores: valores((gs) => totalDe(gs, "tuyo")), peso: pesoContra(t.tuyo, t.tiene), tono: t.tuyo < 0 ? "mal" : "bien" },

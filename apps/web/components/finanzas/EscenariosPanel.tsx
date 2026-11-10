@@ -13,8 +13,10 @@ import {
   PALANCAS_INICIALES,
   alquilerDe,
   alquilerDeFijos,
+  cajaDiaria,
   conclusiones,
   csvEscenario,
+  etiquetaMesBase,
   etiquetaSemana,
   etiquetasEje,
   hayCambios,
@@ -47,14 +49,12 @@ export function EscenariosPanel({
   proyeccion,
   resultados,
   mesBase,
-  fallas,
   hoy,
 }: {
   proyeccion: Proyeccion | null;
   /** El estado de resultados del último mes completo (F5). `null` si no se pudo leer. */
   resultados: FilaER[] | null;
   mesBase: string;
-  fallas: string[];
   hoy: string;
 }) {
   const tiendas = useMemo(() => {
@@ -82,12 +82,15 @@ export function EscenariosPanel({
       ? { titulo: pago.titulo, monto: pago.monto, de: pago.fecha, a: nuevaFecha > proyeccion.hasta ? null : nuevaFecha < proyeccion.desde ? proyeccion.desde : nuevaFecha }
       : null;
   const frases = proyeccion
-    ? conclusiones({ utilidad, palancas: p, nombreTienda, semanasBase: base, semanasNuevas: nuevo, minimo: proyeccion.minimoCaja, pagoMovido })
+    ? conclusiones({ utilidad, palancas: p, nombreTienda, cajaBase: cajaDiaria(proyeccion), cajaNueva: cajaDiaria(proyeccion, p, alquilerActual), semanas: proyeccion.semanas.length, minimo: proyeccion.minimoCaja, pagoMovido })
     : [];
   const movido = hayCambios(p, alquilerActual);
+  // La utilidad de la tabla es la del último mes completo; lo de hoy es solo la caja.
+  const enMesBase = etiquetaMesBase(mesBase);
+  const mesEnFrase = enMesBase.slice(3);
 
   const descargar = () => {
-    descargarBlob(`escenario-${hoy}.csv`, new Blob([csvEscenario(base, nuevo, utilidad)], { type: "text/csv;charset=utf-8" }));
+    descargarBlob(`escenario-${hoy}.csv`, new Blob([csvEscenario(base, nuevo, utilidad, mesBase)], { type: "text/csv;charset=utf-8" }));
   };
   const volver = () => {
     setP(inicial);
@@ -109,11 +112,6 @@ export function EscenariosPanel({
         }
       />
 
-      {fallas.map((f) => (
-        <p key={f} className="card-cayla border-dashed px-5 py-4 text-sm text-tinta/75">
-          {f}
-        </p>
-      ))}
 
       <section className="fin-dos-col fin-esc">
         <div {...entra(1)} data-guia="fin-escenarios.valores">
@@ -280,7 +278,7 @@ export function EscenariosPanel({
         <div className="fin-columna">
           <div {...entra(2)} data-guia="fin-escenarios.que-pasaria">
             <Superficie pad>
-              <CabeceraBloque titulo="Qué pasaría" bajada="Comparado con cómo está hoy." />
+              <CabeceraBloque titulo="Qué pasaría" bajada={`Comparado con ${mesEnFrase} y con tu caja de hoy.`} />
               {frases.length ? (
                 <ul className="fin-conclusiones" aria-live="polite">
                   {frases.map((f, i) => (
@@ -300,11 +298,11 @@ export function EscenariosPanel({
               <Superficie>
                 <div className="fin-tabla-wrap">
                   <table className="fin-tabla fin-tabla-utilidad">
-                    <caption className="sr-only">Utilidad al mes de cada unidad, hoy y con el cambio</caption>
+                    <caption className="sr-only">Utilidad al mes de cada unidad, en {mesEnFrase} y con el cambio</caption>
                     <thead>
                       <tr>
                         <th>Utilidad al mes</th>
-                        <th className="fin-num">Hoy</th>
+                        <th className="fin-num">{enMesBase}</th>
                         <th className="fin-num">Con el cambio</th>
                         <th className="fin-num">Diferencia</th>
                       </tr>
@@ -316,7 +314,7 @@ export function EscenariosPanel({
                         return (
                           <tr key={u.ubicacionId ?? u.nombre} className={total ? "fin-total-t" : undefined}>
                             <td data-l="Unidad">{total ? <b>CAYLA</b> : u.nombre}</td>
-                            <td className="fin-num" data-l="Hoy">
+                            <td className="fin-num" data-l={enMesBase}>
                               {soles(u.antes)}
                             </td>
                             <td className="fin-num" data-l="Con el cambio">
@@ -334,7 +332,7 @@ export function EscenariosPanel({
               </Superficie>
             ) : (
               <div className="nota-cayla">
-                <b>La utilidad sale del estado de resultados de {textoMes(mesBase)}</b> (Reportes ▸ Estado de resultados) y todavía no se pudo leer: por
+                <b>La utilidad sale de Ganancias y pérdidas de {textoMes(mesBase)}</b> (Estados financieros) y todavía no se pudo leer: por
                 ahora el escenario solo mueve tu caja.
               </div>
             )}
@@ -343,7 +341,7 @@ export function EscenariosPanel({
           {proyeccion && (
             <div {...entra(4)} data-guia="fin-escenarios.caja">
               <Superficie pad>
-                <CabeceraBloque titulo="Tu caja con el cambio" bajada={`Próximas ${proyeccion.semanas.length} semanas.`} />
+                <CabeceraBloque titulo="Tu caja con el cambio" bajada={`Próximas ${proyeccion.semanas.length} semanas. Cada barra es cómo cierra la semana: dentro de ella puede bajar más.`} />
                 <GraficoSemanas
                   etiqueta={`Tu caja con el cambio, contra tu mínimo de ${soles(proyeccion.minimoCaja)}`}
                   alto={190}

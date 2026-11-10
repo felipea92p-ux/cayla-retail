@@ -264,7 +264,7 @@ probado en local:
     pago y sus estados: `baja` con fecha y motivo, y `anulado`. Se agregan 6 **tipos de activo** cerrados, con su cuenta y
     una vida útil sugerida, y las cuentas 332–334, 391 y 681.
     - El costo es sin el IGV de la factura (ese IGV se descuenta).
-    - Se deprecia en línea recta desde el mes siguiente a la compra. La depreciación de un mes es lo acumulado a fin de mes
+    - Se deprecia en línea recta desde el mes siguiente a la compra (**reemplazado:** ADR-0485, sección 7, lo cambió a «desde el mes de uso», y así lo dicen las pantallas desde el 2026-11-09). La depreciación de un mes es lo acumulado a fin de mes
       menos lo acumulado a fin del mes anterior, así los meses suman exactamente el costo.
     - No se edita ni se borra; con factura ya pagada no se anula, se da de baja.
     - Las dos políticas viejas de la tabla no se tocan (tocarlas bloquea `auth` y `storage`): se le quitan los permisos

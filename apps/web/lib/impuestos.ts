@@ -27,9 +27,9 @@ export async function getPanelImpuestos(mes?: string): Promise<Lectura<PanelImpu
     supabase.rpc("fn_impuestos_pagos" as never),
   ]);
   if (error) return { datos: null, falla: `No se pudo leer el IGV: ${error.message}` };
-  // Sin esta lectura el panel se dibuja igual y ningún mes se da por pagado (principio 9).
-  if (pagos.error) console.error("Impuestos: no se pudo leer lo pagado a SUNAT", pagos.error);
-  return { datos: { ...leerPanelImpuestos(data), ...(pagos.error ? {} : { pagos: leerPagosSunat(pagos.data) }) }, falla: null };
+  // Sin esta lectura el panel se dibuja igual, ningún mes se da por pagado y la pantalla lo dice (principio 9): `pagosFalla` evita que invite a registrar un pago que puede estar hecho.
+  if (pagos.error) return { datos: { ...leerPanelImpuestos(data), pagosFalla: true }, falla: `No se pudo leer lo pagado a SUNAT: ${pagos.error.message}` };
+  return { datos: { ...leerPanelImpuestos(data), pagos: leerPagosSunat(pagos.data) }, falla: null };
 }
 
 /** Configuración ▸ Impuestos: cada vigencia con su valor de hoy. */

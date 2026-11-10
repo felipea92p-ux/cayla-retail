@@ -3,6 +3,9 @@ import type { GrupoCuentas } from "./dinero-telar-reglas";
 import {
   cierresConFaltante,
   contadorDeCampana,
+  estadoDeAtencion,
+  textoCampana,
+  textoNadaPorRegistrar,
   etapaDe,
   filasDeCierres,
   filasDeEstado,
@@ -36,6 +39,30 @@ const grupos: GrupoCuentas[] = [
   grupo("empresa", "Empresa", [fila("bcp", "banco", 4009, { texto: "sin conciliar", tono: "ambar" }), fila("ibk", "banco", 9830, { texto: "conciliada 14 oct", tono: "verde" }), fila("lider", "por_rendir", -5)]),
   grupo("camino", "En camino", [fila("izi", "por_abonar", 8190, { texto: "4 días sin abonar", tono: "pizarra" }), fila("ven", "por_abonar", 3169, { texto: "2 días sin abonar", tono: "pizarra" })]),
 ];
+
+describe("la campana no dice «todo en orden» si no pudo leer todo", () => {
+  it("leído todo y nada pendiente: todo en orden", () => {
+    expect(textoCampana(0, false).etiqueta).toBe("Estado de las cuentas: todo en orden");
+    expect(textoCampana(0, false).subtitulo).toMatch(/^Todo en orden/);
+    expect(estadoDeAtencion(0, false)).toEqual({ chip: "Todo en orden", tono: "verde", frase: "Ninguna cuenta ni cierre pide revisión." });
+    expect(textoNadaPorRegistrar(false)).toMatch(/^Nada espera/);
+  });
+  it("con pendientes, los cuenta como siempre", () => {
+    expect(textoCampana(2, false).etiqueta).toBe("Estado de las cuentas: 2 piden atención");
+    expect(estadoDeAtencion(1, false).chip).toBe("1 cosa");
+  });
+  it("sin leer todo, nunca afirma que está en orden", () => {
+    for (const n of [0, 2]) {
+      const t = textoCampana(n, true);
+      expect(`${t.etiqueta} ${t.subtitulo}`).not.toMatch(/en orden/i);
+      expect(t.subtitulo).toMatch(/no se pudo leer/i);
+      expect(estadoDeAtencion(n, true).chip).not.toMatch(/en orden/i);
+      expect(estadoDeAtencion(n, true).tono).toBe("ambar");
+    }
+    expect(textoNadaPorRegistrar(true)).toMatch(/no se pudo leer/i);
+    expect(textoNadaPorRegistrar(true)).not.toMatch(/^Nada espera/);
+  });
+});
 
 describe("etapaDe", () => {
   it("lleva cada tipo de cuenta a su etapa del recorrido", () => {

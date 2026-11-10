@@ -39,6 +39,8 @@ export type CuentaImpuestos =
       pagas: number;
       /** Ya se registró todo el pago de este mes: no hay nada más que registrar. */
       pagadoTodo: boolean;
+      /** «Registrar pago» se ofrece: falta pagar y se pudo leer lo pagado (sin ese dato, invitaría a anotar dos veces una salida a SUNAT). */
+      puedeRegistrarPago: boolean;
       /** A dónde lleva «Registrar pago»: la hoja abierta en este mes. */
       registrarPago: string;
       /** El chip bajo la cifra: cuándo se paga, o cuánto IGV pasa al mes siguiente. */
@@ -87,7 +89,11 @@ export function cuentaImpuestos(p: PanelImpuestos, opciones: { enCurso: boolean;
   const pago = p.pagos?.find((x) => x.mes === pulso.mes);
   const pagado = pago ? r2(pago.igv + pago.renta) : 0;
   const pagadoTodo = pagado > 0 && pagado >= pagas - 0.005;
-  const dichoDelPago = pagadoTodo
+  const sinLeerPagos = p.pagosFalla === true;
+  // Sin nada que pagar no hay pago que pueda faltar descontar: se queda lo que el mes sí dice (el IGV a favor), como `estadoMes`.
+  const dichoDelPago = sinLeerPagos && pagas > 0
+    ? { etiqueta: "Impuesto del mes", pagas, chip: "Pago sin leer", frase: "No se pudo leer lo pagado a SUNAT: esta cifra no descuenta pagos. No registres un pago hasta que vuelva a leerse." }
+    : pagadoTodo
     ? { etiqueta: "Ya pagaste a SUNAT", pagas: pagado, chip: "Pagado", frase: `El pago de ${nombreMes(pulso.mes)} ya está registrado.` }
     : pagado > 0
       ? { etiqueta: "Te falta pagar a SUNAT", pagas: r2(pagas - pagado), chip, frase: `Ya pagaste ${solesRedondo(pagado)} de ${solesRedondo(pagas)}.` }
@@ -97,6 +103,7 @@ export function cuentaImpuestos(p: PanelImpuestos, opciones: { enCurso: boolean;
     estado: pulso.estado,
     ...dichoDelPago,
     pagadoTodo,
+    puedeRegistrarPago: !pagadoTodo && !sinLeerPagos,
     registrarPago: `/finanzas/dinero?registrar=pago_sunat&mes=${pulso.mes}`,
     vendiste: f.baseVentas,
     comprobantes: f.comprobantes,
