@@ -4,7 +4,7 @@ import { EsperaPantalla } from "@/components/ui/Espera";
 import { getPendientesDeLaSede } from "@/lib/recepcion-conteo";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-import { ChevronDown, LayoutGrid, Rows3, SignpostBig } from "lucide-react";
+import { BadgePercent, ChevronDown, LayoutGrid, Rows3, SignpostBig } from "lucide-react";
 import { exigirModulo, puede, veModulo } from "@/lib/persona-actual";
 import { createClient } from "@/lib/supabase/server";
 import { exigir } from "@/lib/resultado";
@@ -277,6 +277,13 @@ async function ListaDeProductos({ searchParams }: { searchParams: Promise<Params
               <SignpostBig aria-hidden className="h-4 w-4" />
               <span className="max-sm:sr-only">Rótulos</span>
             </BotonEnlace>
+            {/* ADR-0641: las prendas cuyo precio conviene mirar, con su costo y sus parecidas; la IA propone, la persona aplica. */}
+            {editaCatalogo && (
+              <BotonEnlace href="/productos/revisar-precios" peso="fantasma" title="Revisar precios" className="max-sm:!px-3" data-guia="productos.revisar-precios">
+                <BadgePercent aria-hidden className="h-4 w-4" />
+                <span className="max-sm:sr-only">Revisar precios</span>
+              </BotonEnlace>
+            )}
             {editaCatalogo && (
               <BotonEnlace href="/productos/nuevo" peso="primario" data-guia="productos.nuevo">
                 + Nuevo producto

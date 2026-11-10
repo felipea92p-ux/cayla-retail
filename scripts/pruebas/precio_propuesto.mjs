@@ -138,6 +138,27 @@ select jsonb_array_length((:'c'::jsonb) -> 'parecidas') between 1 and 12
                     where x ->> 'referencia' = (:'c'::jsonb) -> 'producto' ->> 'referencia')
    and not exists (select 1 from jsonb_array_elements((:'c'::jsonb) -> 'parecidas') x where (x ->> 'precio')::numeric <= 0);`));
 
+caso("Revisar precios: una prenda con costo real sobre su precio sale como «pierde dinero», primero", da("pierde_dinero", `
+update retail.variantes set costo = precio + 10 where producto_id = :'prod' and activo and precio > 0;
+${como(FELIPE)}
+select motivo from retail.fn_precios_a_revisar(null, 1, 0) where producto_id = :'prod';`));
+
+caso("Revisar precios: sin costo propio NO se acusa pérdida con el promedio de la categoría", da("t", `
+update retail.variantes set costo = 0 where producto_id = :'prod';
+update retail.variantes v set costo = 4999 from retail.productos p
+ where p.id = v.producto_id and p.categoria_id = :'cat' and p.id <> :'prod' and v.activo
+   and p.id = (select id from retail.productos where categoria_id = :'cat' and id <> :'prod' limit 1);
+${como(FELIPE)}
+select not exists (select 1 from retail.fn_precios_a_revisar('pierde_dinero', 100, 0) where producto_id = :'prod');`));
+
+caso("Revisar precios: las familias fuera de los motores (bolsas) no entran", da("t", `
+update retail.familias f set entra_a_motores = false from retail.categorias c where c.id = :'cat' and f.codigo = c.familia;
+${como(FELIPE)}
+select not exists (select 1 from retail.fn_precios_a_revisar(null, 100, 0) where categoria_id = :'cat');`));
+
+caso("Revisar precios: un filtro que no existe se rechaza", rechaza(/Filtro no válido/, `${como(FELIPE)}
+select * from retail.fn_precios_a_revisar('inventado');`));
+
 caso("la tabla no se lee ni se escribe directo desde la API", rechaza(/permission denied/, `${como(FELIPE)}
 select count(*) from retail.precio_propuestas;`));
 

@@ -269,3 +269,128 @@ comment on function retail.fn_precio_gasto_del_mes() is
   'ADR-0641: lo que costaron las propuestas de precio en el mes de Lima (US$), para el tope de US$ 20.';
 revoke all on function retail.fn_precio_gasto_del_mes() from public, anon;
 grant execute on function retail.fn_precio_gasto_del_mes() to authenticated, service_role;
+
+-- «Revisar precios» (Catálogo ▸ Productos): las prendas cuyo precio conviene mirar, con una cuenta fija y gratis (sin IA). La IA entra
+-- después, prenda por prenda, a pedido. Una prenda entra a la lista si:
+--   · pierde_dinero  — su precio no cubre su costo;
+--   · margen_bajo    — deja menos de 30 % de margen (el mismo piso que las propuestas);
+--   · caro / barato  — su precio está más de 35 % arriba o abajo del precio del medio de su categoría (la mediana).
+--   · sin_costo      — no tiene costo propio: su margen no se puede saber (la propuesta usará el promedio de su categoría).
+-- «Pierde dinero» y «margen bajo» se miden SOLO con el costo real de la prenda: con el promedio de la categoría (que puede salir de unas
+-- pocas prendas caras) la lista acusaría pérdidas que no existen. Quedan fuera las familias fuera de los motores (las bolsas, ADR-0377):
+-- su precio no se compara con la ropa.
+-- El precio de una prenda es el del medio de sus variantes activas (una talla grande puede costar más).
+create or replace function retail.fn_precios_a_revisar(p_motivo text default null, p_limite integer default 25, p_desde integer default 0)
+returns table (
+  producto_id uuid,
+  referencia text,
+  codigo text,
+  categoria_id uuid,
+  categoria text,
+  tejido_id uuid,
+  precio numeric,
+  costo numeric,
+  costo_estimado boolean,
+  margen numeric,
+  mediana_categoria numeric,
+  desvio numeric,
+  unidades_90 integer,
+  stock integer,
+  motivo text,
+  total bigint,
+  cuenta_pierde bigint,
+  cuenta_margen bigint,
+  cuenta_lejos bigint,
+  cuenta_sin_costo bigint
+)
+language plpgsql
+stable
+security definer
+set search_path = retail, public, extensions
+as $$
+begin
+  if auth.uid() is null or not retail.fn_ve_modulo('productos') then
+    raise exception 'Sin acceso a Productos' using errcode = '42501';
+  end if;
+  if p_motivo is not null and p_motivo not in ('pierde_dinero', 'margen_bajo', 'lejos', 'sin_costo') then
+    raise exception 'Filtro no válido' using errcode = '22023';
+  end if;
+
+  return query
+  with prendas as (
+    select p.id, p.referencia, p.codigo, p.categoria_id, c.nombre as categoria, p.tejido_id, p.created_at,
+           (select percentile_disc(0.5) within group (order by v.precio) from retail.variantes v
+             where v.producto_id = p.id and v.activo and v.precio > 0) as precio,
+           (select round(avg(v.costo), 2) from retail.variantes v where v.producto_id = p.id and v.activo and v.costo > 0) as costo
+      from retail.productos p
+      join retail.categorias c on c.id = p.categoria_id
+     where p.estado = 'activo' and not p.es_prueba
+       and retail.fn_categoria_entra_a_motores(p.categoria_id)
+  ),
+  por_categoria as (
+    select pr.categoria_id,
+           percentile_cont(0.5) within group (order by pr.precio) as mediana,
+           round(avg(pr.costo) filter (where pr.costo is not null), 2) as costo_promedio,
+           count(*) as cuantas
+      from prendas pr where pr.precio is not null
+     group by pr.categoria_id
+  ),
+  medidas as (
+    select pr.*,
+           coalesce(pr.costo, pc.costo_promedio) as costo_usado,
+           pr.costo is null and pc.costo_promedio is not null as estimado,
+           round(pc.mediana::numeric, 2) as mediana,
+           -- Con menos de 3 prendas con precio en la categoría, «el medio» no dice nada: no se marca caro ni barato.
+           case when pc.cuantas >= 3 and pc.mediana > 0 then round(((pr.precio - pc.mediana) / pc.mediana * 100)::numeric, 1) end as desvio_pct
+      from prendas pr
+      join por_categoria pc on pc.categoria_id = pr.categoria_id
+     where pr.precio is not null
+  ),
+  marcadas as (
+    select m.*,
+           case when m.costo is not null then round(((m.precio - m.costo) / m.precio * 100)::numeric, 1) end as margen_pct,
+           case
+             when m.costo is not null and m.precio <= m.costo then 'pierde_dinero'
+             when m.costo is not null and m.precio * 0.70 < m.costo then 'margen_bajo'
+             when m.desvio_pct > 35 then 'caro'
+             when m.desvio_pct < -35 then 'barato'
+             when m.costo is null then 'sin_costo'
+           end as motivo_calc
+      from medidas m
+  ),
+  lista as (
+    select mk.*,
+           coalesce((select sum(vi.cantidad) from retail.venta_items vi join retail.ventas ve on ve.id = vi.venta_id
+                      join retail.variantes v on v.id = vi.variante_id
+                     where v.producto_id = mk.id and ve.estado <> 'anulada' and not ve.es_prueba
+                       and ve.created_at >= now() - interval '90 days'), 0)::integer as vendidas,
+           coalesce((select sum(s.cantidad) from retail.stock s join retail.variantes v on v.id = s.variante_id where v.producto_id = mk.id), 0)::integer as en_stock
+      from marcadas mk
+     where mk.motivo_calc is not null
+  ),
+  filtrada as (
+    select l.* from lista l
+     where p_motivo is null
+        or (p_motivo = 'pierde_dinero' and l.motivo_calc = 'pierde_dinero')
+        or (p_motivo = 'margen_bajo' and l.motivo_calc = 'margen_bajo')
+        or (p_motivo = 'lejos' and l.motivo_calc in ('caro', 'barato'))
+        or (p_motivo = 'sin_costo' and l.costo is null)
+  )
+  select f.id, f.referencia, f.codigo, f.categoria_id, f.categoria, f.tejido_id, f.precio, f.costo_usado, f.estimado, f.margen_pct, f.mediana,
+         f.desvio_pct, f.vendidas, f.en_stock, f.motivo_calc,
+         count(*) over (),
+         (select count(*) from lista x where x.motivo_calc = 'pierde_dinero'),
+         (select count(*) from lista x where x.motivo_calc = 'margen_bajo'),
+         (select count(*) from lista x where x.motivo_calc in ('caro', 'barato')),
+         (select count(*) from lista x where x.costo is null)
+    from filtrada f
+   order by case f.motivo_calc when 'pierde_dinero' then 0 when 'margen_bajo' then 1 when 'sin_costo' then 3 else 2 end,
+            f.margen_pct asc nulls last, abs(f.desvio_pct) desc nulls last, f.referencia
+   limit greatest(1, least(coalesce(p_limite, 25), 100)) offset greatest(0, coalesce(p_desde, 0));
+end;
+$$;
+
+comment on function retail.fn_precios_a_revisar(text, integer, integer) is
+  'ADR-0641: las prendas cuyo precio conviene mirar (pierde dinero o margen bajo 30 % con su costo real, más de 35 % lejos del medio de su categoría, o sin costo propio), con una cuenta fija. Solo lectura; pide ver Productos.';
+revoke all on function retail.fn_precios_a_revisar(text, integer, integer) from public, anon;
+grant execute on function retail.fn_precios_a_revisar(text, integer, integer) to authenticated, service_role;
