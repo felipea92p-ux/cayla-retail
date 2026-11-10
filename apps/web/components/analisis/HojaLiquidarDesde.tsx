@@ -1,5 +1,6 @@
 "use client";
 
+import { ETIQUETA_LIQUIDAR_DESDE } from "@/lib/analisis-quietas";
 import { useRef, useState, type FormEvent } from "react";
 import { Modal } from "@/components/ui/Modal";
 import { avisar } from "@/components/ui/Avisos";
@@ -86,8 +87,8 @@ export function HojaLiquidarDesde({ dias, onCerrar, onGuardado }: { dias: number
   return (
     // Una salida a la vista (ADR-0358, ronda 12): si hay algo que guardar, «Cancelar»; si solo dice cómo está, la ×.
     <Modal conCerrar={!efecto.cambia}
-      titulo={`Liquidar desde ${efecto.dias} días`}
-      subtitulo={efecto.cambia ? "Para todas las tiendas y todo el equipo." : "Así está para todas las tiendas."}
+      titulo={`${ETIQUETA_LIQUIDAR_DESDE} ${efecto.dias} días`}
+      subtitulo={efecto.cambia ? "Para todas las tiendas y todo el equipo. Solo mueve los tipos con menos de 10 ventas." : "Así está para todas las tiendas."}
       onClose={onCerrar}
       variante="hoja"
       bloqueado={guardando}

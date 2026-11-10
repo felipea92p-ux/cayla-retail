@@ -12,6 +12,7 @@
 // Un parche nuevo a estas funciones posterior al redondeo se suma AQUÍ (o en un módulo hermano) y en las pruebas que pegan las partes
 // viejas (`pruebas:redondeo-efectivo`, casos 12, 19 y 36): si no, fallan con «cambió desde que se escribió esta migración».
 import { readFileSync } from "node:fs";
+import { anclados } from "./_deshacer_claure.mjs";
 
 const MAQUINAS = readFileSync("supabase/migrations/20261016173000_pos_maquinas_interbank_y_por_depositar.sql", "utf8");
 /** Cada `select pg_temp.reemplazar('<firma>', $v$ viejo $v$, $n$ nuevo $n$, 1);` del archivo, en el orden en que se aplican. */
@@ -21,9 +22,15 @@ if (REEMPLAZOS.length !== 8) {
   throw new Error(`sello-antes-de-maquinas: esperaba 8 reemplazos anclados en 20261016173000 y encontré ${REEMPLAZOS.length}`);
 }
 
-/** Las ocho funciones como estaban antes de las máquinas de cobro: del último reemplazo al primero. */
+/**
+ * ADR-0638: el candado de la cuenta de otra empresa en `fn_cuenta_sellada`, posterior a las máquinas. Se deshace antes que ellas y se rehace después: si no, la
+ * parte vieja del redondeo compara una huella que ya no calza. `anclados` lo lee de la propia migración.
+ */
+const POSTERIORES = anclados("20261110001000_cuenta_de_otra_empresa_candados_y_filtro.sql", ["retail.fn_cuenta_sellada(text, text, uuid, date, uuid)"]);
+
+/** Las ocho funciones como estaban antes de las máquinas de cobro: del último reemplazo al primero (lo posterior a ellas, antes). */
 export const DESHACER_MAQUINAS_SELLO =
-  [...REEMPLAZOS]
+  [...REEMPLAZOS, ...POSTERIORES]
     .reverse()
     .map((r) => `do $deshacer$ begin execute replace(pg_get_functiondef('${r.firma}'::regprocedure), $q$${r.nuevo}$q$, $q$${r.viejo}$q$); end $deshacer$;`)
     .join("\n") + "\n";
@@ -34,4 +41,4 @@ export const DESHACER_MAQUINAS_SELLO =
 const REEMPLAZAR = MAQUINAS.match(/create or replace function pg_temp\.reemplazar[\s\S]*?\$f\$;/)?.[0];
 if (!REEMPLAZAR) throw new Error("sello-antes-de-maquinas: no encontré pg_temp.reemplazar en 20261016173000");
 export const REHACER_MAQUINAS_SELLO =
-  `${REEMPLAZAR}\n` + REEMPLAZOS.map((r) => `select pg_temp.reemplazar('${r.firma}', $v$${r.viejo}$v$, $n$${r.nuevo}$n$, 1);`).join("\n") + "\n";
+  `${REEMPLAZAR}\n` + [...REEMPLAZOS, ...POSTERIORES].map((r) => `select pg_temp.reemplazar('${r.firma}', $v$${r.viejo}$v$, $n$${r.nuevo}$n$, 1);`).join("\n") + "\n";
