@@ -13,6 +13,7 @@ import { PasoCantidad } from "@/components/ui/PasoCantidad";
 import { BotonVerMas } from "@/components/ui/VerMas";
 import { Volver } from "@/components/ui/Volver";
 import { FaltanDelPaso } from "@/components/alta-producto/guia";
+import { irAlIdCampo } from "@/components/alta-producto/useGuiaAlta";
 import { EtiquetaDeCampana } from "@/components/campana-hoja/EtiquetaDeCampana";
 import { CategoriasDeCampana } from "@/components/campana-hoja/CategoriasDeCampana";
 import type { CategoriaOpcion, Etiqueta } from "@/components/EtiquetasLista";
@@ -290,6 +291,24 @@ export function OfertasHoja({
   else if (categoriasPendientes) faltan.push({ id: "categorias", nombre: "Elegir las categorías", requerido: true, hecho: false, pendiente: "Marca al menos una categoría." });
   const puedeGuardar = elegido && !tiendasPendientes && !categoriasPendientes && problemas.length === 0 && !terminada;
 
+  // Lo que se ve como botón siempre contesta: «Falta: …» y los botones que avanzan o guardan LLEVAN a la pieza que falta (la dejan a la vista, la
+  // destellan y, si es una lista de opciones, le dan el foco) en vez de quedarse apagados sin decir por qué (ADR-0284; `Boton confirma`, ADR-0611).
+  function llevarA(c: CampoDeGuia | undefined) {
+    if (!c) return;
+    const destino: Paso = c.id === "que" ? 1 : c.id === "cuando" || c.id === "tiendas" ? 2 : 3;
+    const mover = () => {
+      irAlIdCampo(`oferta-${c.id}`, { enModal: true });
+      if (c.id === "que") document.querySelector<HTMLElement>('[data-campo="oferta-que"] button:not([aria-disabled="true"])')?.focus({ preventScroll: true });
+    };
+    if (destino !== paso) {
+      ir(destino);
+      window.setTimeout(mover, 150); // el paso nuevo se dibuja en el siguiente cuadro
+    } else mover();
+  }
+  /** Lo que todavía no existe («Pronto») avisa en vez de callar: un botón apagado no dice por qué ni deja preguntar. */
+  const avisarPronto = (que: string) => avisar.aviso(`${que}: llega pronto`, { detalle: "Cambia el dinero en la caja y lo estamos probando. Por ahora puedes registrar una rebaja." });
+  const confirmaPaso = (puede: boolean) => ({ puedeConfirmar: puede, revisar: () => { llevarA(faltan[0]); return false; } });
+
   // ---- Lo que guarda ------------------------------------------------------------------------------------------------------------
   async function llamar(metodo: "POST" | "PATCH", cuerpo: unknown): Promise<{ ok: true; id: string | null } | { ok: false }> {
     try {
@@ -397,16 +416,15 @@ export function OfertasHoja({
         <h2>¿Qué le das al cliente?</h2>
         <p className="of-baj">{elegido ? "Ajusta el número. Lo demás ya viene contestado." : "Elige lo que más se parezca. Los detalles vienen después."}</p>
         {!elegido ? (
-          <div className="of-fams" role="group" aria-label="Qué le das al cliente">
+          <div className="of-fams" role="group" aria-label="Qué le das al cliente" data-campo="oferta-que">
             {GRUPOS.map((g) => (
               <button
                 key={g.k}
                 type="button"
                 className="of-fam"
-                disabled={!g.activo}
                 aria-disabled={!g.activo || undefined}
                 title={g.activo ? undefined : "Llega pronto: cambia el dinero en la caja y lo estamos probando."}
-                onClick={() => g.activo && setElegido(true)}
+                onClick={() => (g.activo ? setElegido(true) : avisarPronto(g.titulo))}
                 data-guia={g.activo ? "sellos.oferta-rebaja" : undefined}
               >
                 <span className="of-ico">{g.icono}</span>
@@ -420,7 +438,7 @@ export function OfertasHoja({
           <>
             <div className="of-gp" role="group" aria-label="Qué le das al cliente">
               {GRUPOS.map((g) => (
-                <button key={g.k} type="button" className="pildora-cayla" aria-pressed={g.activo} disabled={!g.activo} title={g.activo ? undefined : "Llega pronto"}>
+                <button key={g.k} type="button" className="pildora-cayla" aria-pressed={g.activo} aria-disabled={!g.activo || undefined} title={g.activo ? undefined : "Llega pronto"} onClick={() => !g.activo && avisarPronto(g.titulo)}>
                   {g.corto}
                   {!g.activo && <span className="font-normal"> · pronto</span>}
                 </button>
@@ -432,10 +450,10 @@ export function OfertasHoja({
                 <button type="button" className="pildora-cayla" aria-pressed>
                   Un % menos
                 </button>
-                <button type="button" className="pildora-cayla" disabled title="Llega pronto">
+                <button type="button" className="pildora-cayla" aria-disabled title="Llega pronto" onClick={() => avisarPronto("Soles menos en cada prenda")}>
                   Soles menos en cada prenda · pronto
                 </button>
-                <button type="button" className="pildora-cayla" disabled title="Llega pronto">
+                <button type="button" className="pildora-cayla" aria-disabled title="Llega pronto" onClick={() => avisarPronto("Un precio único")}>
                   Un precio único · pronto
                 </button>
               </div>
@@ -592,12 +610,12 @@ export function OfertasHoja({
             ))}
           </div>
         )}
-        <div className="of-fechas">
+        <div className="of-fechas" data-campo="oferta-cuando">
           <CampoFecha etiqueta="Desde" valor={o.desde} onValor={(v) => cambiar({ desde: v })} tono={errorFechas ? "error" : undefined} />
           <CampoFecha etiqueta="Hasta" valor={o.hasta} onValor={(v) => cambiar({ hasta: v })} tono={errorFechas ? "error" : undefined} pie={errorFechas} />
         </div>
         {dias2()}
-        <div className="of-donde">
+        <div className="of-donde" data-campo="oferta-tiendas">
           <span className="of-lbl">Dónde rige</span>
           {chipsDeTiendas}
           <p className="of-pequeno mt-1.5" aria-live="polite">
@@ -635,7 +653,7 @@ export function OfertasHoja({
         <h2>¿En qué prendas?</h2>
         <p className="of-baj">{distintaDeLaCampana ? "Marca las categorías donde rige esta oferta." : "Ya viene lo de la campaña. Marca o quita categorías para cambiarlo."}</p>
         <div className="of-panel" data-guia="sellos.oferta-prendas">
-          <div>
+          <div data-campo="oferta-categorias">
             <div className="flex items-center justify-between gap-3">
               <span className="of-lbl" style={{ margin: 0 }}>
                 Categorías
@@ -843,7 +861,7 @@ export function OfertasHoja({
     let derecha: ReactNode = null;
 
     if (faltan.length > 0) {
-      falta = <FaltanDelPaso faltan={faltan} ahora={faltan[0].id} onIr={(c) => ir(c.id === "que" ? 1 : c.id === "cuando" || c.id === "tiendas" ? 2 : 3)} />;
+      falta = <FaltanDelPaso faltan={faltan} ahora={faltan[0].id} onIr={llevarA} />;
     }
     if (paso === 1) {
       if (faltan.length === 0) {
@@ -856,11 +874,11 @@ export function OfertasHoja({
       derecha = (
         <>
           {elegido && (
-            <Boton peso="fantasma" disabled={!puedeGuardar || guardandoAlgo} cargando={guardando === "borrador" || guardando === "cambios"} textoCargando="Guardando…" onClick={() => guardar(false)} data-guia="sellos.oferta-atajo">
+            <Boton peso="fantasma" confirma={confirmaPaso(puedeGuardar)} disabled={guardandoAlgo} cargando={guardando === "borrador" || guardando === "cambios"} textoCargando="Guardando…" onClick={() => guardar(false)} data-guia="sellos.oferta-atajo">
               {edita ? "Listo, guardar los cambios" : "Listo, guardar con lo demás de fábrica"}
             </Boton>
           )}
-          <Boton peso="primario" className="of-siguiente" disabled={!elegido} onClick={() => ir(2)}>
+          <Boton peso="primario" className="of-siguiente" confirma={confirmaPaso(elegido)} onClick={() => ir(2)}>
             Siguiente
             <ChevronRight aria-hidden className="ml-1 inline h-4 w-4" />
           </Boton>
@@ -869,7 +887,7 @@ export function OfertasHoja({
     } else if (paso === 2) {
       if (faltan.length === 0) falta = <span className="of-falta">Lo de fábrica sirve casi siempre: rige toda la campaña, todos los días.</span>;
       derecha = (
-        <Boton peso="primario" className="of-siguiente" disabled={problemas.length > 0 || tiendasPendientes} onClick={() => ir(3)}>
+        <Boton peso="primario" className="of-siguiente" confirma={confirmaPaso(problemas.length === 0 && !tiendasPendientes)} onClick={() => ir(3)}>
           Siguiente
           <ChevronRight aria-hidden className="ml-1 inline h-4 w-4" />
         </Boton>
@@ -887,15 +905,15 @@ export function OfertasHoja({
       }
       const activa = edita && estadoEdita === "activa";
       derecha = activa ? (
-        <Boton peso="primario" disabled={!ok || guardandoAlgo} cargando={guardando === "cambios"} onClick={() => guardar(false)}>
+        <Boton peso="primario" confirma={confirmaPaso(ok)} disabled={guardandoAlgo} cargando={guardando === "cambios"} onClick={() => guardar(false)}>
           Guardar cambios
         </Boton>
       ) : (
         <>
-          <Boton peso="fantasma" disabled={!ok || guardandoAlgo} cargando={guardando === "borrador" || guardando === "cambios"} onClick={() => guardar(false)}>
+          <Boton peso="fantasma" confirma={confirmaPaso(ok)} disabled={guardandoAlgo} cargando={guardando === "borrador" || guardando === "cambios"} onClick={() => guardar(false)}>
             {edita ? "Guardar cambios" : "Guardar como borrador"}
           </Boton>
-          <Boton peso="primario" disabled={!ok || guardandoAlgo} cargando={guardando === "activar"} textoCargando="Activando…" onClick={() => guardar(true)} data-guia="sellos.oferta-activar">
+          <Boton peso="primario" confirma={confirmaPaso(ok)} disabled={guardandoAlgo} cargando={guardando === "activar"} textoCargando="Activando…" onClick={() => guardar(true)} data-guia="sellos.oferta-activar">
             <Check aria-hidden className="mr-1 inline h-4 w-4" />
             Activar
           </Boton>
