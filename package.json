@@ -490,6 +490,7 @@
     "pruebas:stock-huella": "node scripts/pruebas/stock_huella.mjs",
     "pruebas:candados-pago-y-firma": "node scripts/pruebas/candados_pago_y_firma.mjs",
     "pruebas:danadas-reportar-arreglar": "node scripts/pruebas/danadas_reportar_arreglar.mjs",
+    "pruebas:danadas-corregir": "node scripts/pruebas/danadas_corregir.mjs",
     "pruebas:danadas-concurrencia": "node scripts/pruebas/danadas_concurrencia.mjs",
     "pruebas:venta-contrato-ampliado": "node scripts/pruebas/venta_contrato_ampliado.mjs",
     "pruebas:colaboradores-alta-aprobacion": "node scripts/pruebas/colaboradores_alta_requiere_aprobacion.mjs",

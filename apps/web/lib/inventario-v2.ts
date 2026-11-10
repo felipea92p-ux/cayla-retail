@@ -11,7 +11,8 @@ import { getPreciosPorSede } from "@/lib/precios-sede-datos";
 import { precioEnLaSede } from "@/lib/precio-sede-reglas";
 import { leerEnArreglo, type EnArreglo, type NoSePudo } from "@/lib/danadas-arreglo";
 import { BUCKET_FOTOS_DANADAS, leerRutasDeFotos, RPC_FOTOS_DE_DANADAS } from "@/lib/danadas-foto";
-import { leerDevolvibles, leerTipoDano, origenDeDanada, RPC_DANADAS_DEVOLVIBLES, type DevolucionPosible, type OrigenDanada, type TipoDano } from "@/lib/danadas-reglas";
+import { leerDevolvibles, leerTipoDano, origenDeDanada, RPC_DANADAS_DEVOLVIBLES, type DesdeDanada, type DevolucionPosible, type OrigenDanada, type TipoDano } from "@/lib/danadas-reglas";
+import { desdeDeLaEntrada } from "@/lib/danadas-correccion";
 import type { CoberturaPiso, RitmoReciente } from "@/lib/existencias-ritmo";
 import type { PisoDeTalla } from "@/lib/piso-plan";
 
@@ -450,6 +451,11 @@ export type PrendaDanada = {
   fotos: string[];
   /** Si llegó dañada en una recepción, a qué proveedor se devuelve (ADR-0362, fase 5b, actividad 6a); si no, null (sin el botón). */
   devolucion: DevolucionPosible | null;
+  /** ADR-0640: de dónde salió si se reportó en la tienda (el piso o el almacén, leído de su movimiento de entrada). Es a donde vuelve con
+   *  «Me equivoqué de prenda» o «No estaba dañada»; null si llegó de una devolución, un cambio o una recepción (esas no se corrigen). */
+  desde: DesdeDanada | null;
+  /** ADR-0640: qué prenda decía antes de su última corrección («antes decía talla 28»), o null si nunca se corrigió. */
+  corregidaDe: { talla: string | null; color: string | null } | null;
 };
 
 export async function getPrendasDanadasPendientes(ubicacionId: string): Promise<PrendaDanada[]> {
@@ -460,7 +466,7 @@ export async function getPrendasDanadasPendientes(ubicacionId: string): Promise<
       .from("prendas_danadas")
       .select(
         `id, cantidad, created_at, motivo_reporte, tipo_dano, cambio_id,
-         variante:variantes ( id, sku, codigo, talla:tallas ( valor ), precio, color:colores ( nombre ), producto:productos ( referencia ) )`
+         variante:variantes!prendas_danadas_variante_id_fkey ( id, sku, codigo, talla:tallas ( valor ), precio, color:colores ( nombre ), producto:productos ( referencia ) )`
       )
       .eq("ubicacion_id", ubicacionId)
       .eq("estado", "en_cuarentena")
@@ -481,7 +487,7 @@ export async function getPrendasDanadasPendientes(ubicacionId: string): Promise<
             .from("prendas_danadas")
             .select(
               `id, cantidad, created_at, motivo_reporte, cambio_id,
-               variante:variantes ( id, sku, codigo, talla:tallas ( valor ), precio, color:colores ( nombre ), producto:productos ( referencia ) )`
+               variante:variantes!prendas_danadas_variante_id_fkey ( id, sku, codigo, talla:tallas ( valor ), precio, color:colores ( nombre ), producto:productos ( referencia ) )`
             )
             .eq("ubicacion_id", ubicacionId)
             .eq("estado", "en_cuarentena")
@@ -498,7 +504,7 @@ export async function getPrendasDanadasPendientes(ubicacionId: string): Promise<
               .from("prendas_danadas")
               .select(
                 `id, cantidad, created_at, cambio_id,
-                 variante:variantes ( id, sku, codigo, talla:tallas ( valor ), precio, color:colores ( nombre ), producto:productos ( referencia ) )`
+                 variante:variantes!prendas_danadas_variante_id_fkey ( id, sku, codigo, talla:tallas ( valor ), precio, color:colores ( nombre ), producto:productos ( referencia ) )`
               )
               .eq("ubicacion_id", ubicacionId)
               .eq("estado", "en_cuarentena")
@@ -520,6 +526,8 @@ export async function getPrendasDanadasPendientes(ubicacionId: string): Promise<
   // Las fotos del daño (ADR-0564): opcionales, como la anterior. Sin la función (la web salió antes que `20261029034000`) o sin respuesta, la lista
   // sale sin fotos, como antes.
   const fotos = filas.length === 0 ? new Map<string, string[]>() : await leerFotosDeDanadas(supabase, filas.map((f) => f.id));
+  // De dónde salió y si se corrigió (ADR-0640): opcional como las anteriores. Sin respuesta, ninguna se ofrece para corregir.
+  const correcciones = filas.length === 0 ? new Map<string, CorreccionDeDanada>() : await leerCorreccionesDeSede(supabase, ubicacionId);
   return filas.map((f) => ({
     id: f.id,
     varianteId: f.variante?.id ?? "",
@@ -537,6 +545,8 @@ export async function getPrendasDanadasPendientes(ubicacionId: string): Promise<
     noSePudo: salidas.get(f.id)?.noSePudo ?? null,
     fotos: fotos.get(f.id) ?? [],
     devolucion: devolvibles.get(f.id) ?? null,
+    desde: correcciones.get(f.id)?.desde ?? null,
+    corregidaDe: correcciones.get(f.id)?.corregidaDe ?? null,
   }));
 }
 
@@ -568,6 +578,42 @@ async function leerFotosDeDanadas(supabase: Awaited<ReturnType<typeof createClie
     if (urls.length > 0) enlaces.set(id, urls);
   }
   return enlaces;
+}
+
+type CorreccionDeDanada = { desde: DesdeDanada | null; corregidaDe: { talla: string | null; color: string | null } | null };
+
+/**
+ * ADR-0640: de dónde salió cada dañada de la sede (su movimiento de entrada) y, si se corrigió, qué decía antes. Dos lecturas que NUNCA
+ * lanzan: sin respuesta, ninguna se ofrece para corregir; sin la columna de la corrección (la web salió antes que `20261110172000`), sin
+ * la marca «antes decía».
+ */
+async function leerCorreccionesDeSede(supabase: Awaited<ReturnType<typeof createClient>>, ubicacionId: string): Promise<Map<string, CorreccionDeDanada>> {
+  const res = new Map<string, CorreccionDeDanada>();
+  const entradas = await supabase
+    .from("prendas_danadas")
+    .select(
+      `id, entrada:movimientos!prendas_danadas_movimiento_entrada_id_fkey ( tipo,
+         origen:sububicaciones!movimientos_sububicacion_pertenece_fk ( tipo ), destino:sububicaciones!movimientos_sububicacion_destino_pertenece_fk ( tipo ) )`
+    )
+    .eq("ubicacion_id", ubicacionId)
+    .eq("estado", "en_cuarentena");
+  if (entradas.error) return res;
+  for (const f of entradas.data ?? []) {
+    res.set(f.id, { desde: desdeDeLaEntrada(f.entrada?.tipo, f.entrada?.origen?.tipo, f.entrada?.destino?.tipo), corregidaDe: null });
+  }
+  const corregidas = await supabase
+    .from("prendas_danadas" as never)
+    .select("id, antes:variantes!prendas_danadas_corregida_de_variante_id_fkey ( talla:tallas ( valor ), color:colores ( nombre ) )" as never)
+    .eq("ubicacion_id" as never, ubicacionId as never)
+    .eq("estado" as never, "en_cuarentena" as never)
+    .not("corregida_de_variante_id" as never, "is", null);
+  if (corregidas.error) return res;
+  for (const f of (corregidas.data ?? []) as unknown as { id: string; antes: { talla: { valor: string } | null; color: { nombre: string } | null } | null }[]) {
+    if (!f.antes) continue;
+    const previo = res.get(f.id) ?? { desde: null, corregidaDe: null };
+    res.set(f.id, { ...previo, corregidaDe: { talla: f.antes.talla?.valor ?? null, color: f.antes.color?.nombre ?? null } });
+  }
+  return res;
 }
 
 type SalidaDeArreglo = { enArreglo: EnArreglo | null; noSePudo: NoSePudo | null };

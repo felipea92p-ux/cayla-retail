@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Globito } from "@/components/ui/Globito";
-import { useMemo, useRef, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import { Aviso } from "@/components/ui/Aviso";
 import { ArrowDownToLine, ArrowRight, Check, ChevronRight, Clock, Eye, ListChecks, Moon, Package, PackageX, ScanLine, ShoppingBag, SignpostBig, Tag, TriangleAlert, X } from "lucide-react";
 import { urlRotulos } from "@/lib/rotulos-reglas";
@@ -27,6 +27,7 @@ import { usePedidoDeAjuste } from "@/components/existencias/BotonAjustarStock";
 // detalle de la prenda el 2026-10-12 (ADR-0391, decisión de Felipe): es de Catálogo, y ahí sigue (la vista rápida de Productos).
 import { alternarMarcasDePrenda, permisosDelDetalle } from "@/lib/existencias-permisos";
 import { ResolverDanadosModal } from "@/components/ResolverDanadosModal";
+import type { Hermana } from "@/lib/danadas-correccion";
 import { ApartadosModal } from "@/components/ApartadosModal";
 import { ResumenStockOverlay } from "@/components/ResumenStockOverlay";
 import { RitmoRecientePopover } from "@/components/RitmoRecientePopover";
@@ -605,6 +606,17 @@ export function InventarioPanel({
   // trabajan siempre sobre la sede de quien las abre, y lo marcado mirando otra se perdería en silencio al llegar.
   const conSeleccion = enSedeActiva;
   const filasMarcadas = useMemo(() => stock.filter((f) => marcadas.has(f.varianteId)), [stock, marcadas]);
+  // ADR-0640: «Me equivoqué de prenda» ofrece las otras tallas y colores del MISMO modelo, con lo libre de hoy en el piso y el almacén.
+  const hermanasDe = useCallback(
+    (varianteId: string): Hermana[] => {
+      const productoId = stock.find((f) => f.varianteId === varianteId)?.productoId;
+      if (!productoId) return [];
+      return stock
+        .filter((f) => f.productoId === productoId)
+        .map((f) => ({ varianteId: f.varianteId, talla: f.talla, color: f.color, piso: Math.max(0, f.pisoDisponible ?? 0), almacen: Math.max(0, f.almacenDisponible ?? 0) }));
+    },
+    [stock]
+  );
   function abrirPrenda(p: Pick<PrendaAgrupada, "clave">, varianteId?: string, origen?: HTMLElement | null) {
     setAbierta({ clave: p.clave, varianteId, origen });
   }
@@ -1406,6 +1418,7 @@ export function InventarioPanel({
           lugar={lugarDanadas}
           otraSede={!enSedeActiva}
           sede={sedeNombre}
+          hermanasDe={hermanasDe}
           onClose={() => {
             setViendoDanados(false);
             setSoloPrenda(null);

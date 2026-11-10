@@ -68,6 +68,22 @@ import { argumentosDeLugar, camposGuiaLugar, MAX_LUGAR_DANADAS, RPC_DEFINIR_LUGA
 import { Aviso } from "@/components/ui/Aviso";
 import { Check } from "lucide-react";
 import { Vacio } from "@/components/ui/Vacio";
+import {
+  argumentosDeCorreccion,
+  argumentosSinDano,
+  camposGuiaCorreccion,
+  nombreCorto,
+  opcionesDeCorreccion,
+  quePasaAlCorregir,
+  quePasaSinDano,
+  RPC_CORREGIR_DANADA,
+  RPC_SIN_DANO,
+  textoCorregidaDe,
+  tituloExitoCorreccion,
+  tituloExitoSinDano,
+  type Hermana,
+} from "@/lib/danadas-correccion";
+import type { DesdeDanada } from "@/lib/danadas-reglas";
 
 // "Dañado" (2026-09-17, ADR-0071, Opción A): cola de prendas en cuarentena
 // (`aprobar_devolucion`, condición danada_reparacion/danada_donar; un cambio con
@@ -116,6 +132,7 @@ export function ResolverDanadosModal({
   ubicacionId,
   lugar,
   sede = "",
+  hermanasDe,
   onClose,
 }: {
   pendientes: PrendaDanada[];
@@ -126,6 +143,9 @@ export function ResolverDanadosModal({
   lugar: string | null;
   /** El nombre de la sede, para decir a qué almacén vuelve una prenda arreglada. */
   sede?: string;
+  /** ADR-0640: las otras tallas y colores del mismo modelo, con lo libre de hoy en el piso y el almacén de la sede: lo que se ofrece
+   *  en «Me equivoqué de prenda». Sin esto (o sin ninguna), el botón no se ofrece. */
+  hermanasDe?: (varianteId: string) => Hermana[];
   onClose: () => void;
 }) {
   // Todo lo de este panel —se arregló, devolver al proveedor, liquidar, botar, donar— lo hace quien ve Existencias, donde vive
@@ -170,6 +190,18 @@ export function ResolverDanadosModal({
   const [errorDevolucion, setErrorDevolucion] = useState<string | null>(null);
   const [devolucionEnDuda, setDevolucionEnDuda] = useState(false);
   const tokenDevolucion = useRef<string>("");
+  // «Me equivoqué de prenda» (ADR-0640): la dañada abierta, la prenda correcta elegida («varianteId|desde»), su marca y si quedó en duda.
+  const [corrigiendo, setCorrigiendo] = useState<string | null>(null);
+  const [eleccion, setEleccion] = useState("");
+  const [errorCorreccion, setErrorCorreccion] = useState<string | null>(null);
+  const [correccionEnDuda, setCorreccionEnDuda] = useState(false);
+  const tokenCorreccion = useRef<string>("");
+  // «No estaba dañada» (ADR-0640): la dañada abierta, por qué (opcional), su marca y si quedó en duda.
+  const [sinDano, setSinDano] = useState<string | null>(null);
+  const [notaSinDano, setNotaSinDano] = useState("");
+  const [errorSinDano, setErrorSinDano] = useState<string | null>(null);
+  const [sinDanoEnDuda, setSinDanoEnDuda] = useState(false);
+  const tokenSinDano = useRef<string>("");
   // Resolver o liquidar una prenda dañada es operación de tienda (sale del stock en cuarentena; liquidar es una
   // venta con caja): pide Responsable, también al líder (ADR-0161, A8/A9). Uno solo para todo el modal.
   const responsable = useResponsable();
@@ -179,6 +211,10 @@ export function ResolverDanadosModal({
   const precioLiquidando = liquidando ? Number(precios[liquidando]) : Number.NaN;
   const camposAbiertos: CampoDeGuia[] = editandoLugar
     ? camposGuiaLugar(textoLugar, responsable.listo)
+    : corrigiendo
+    ? camposGuiaCorreccion(eleccion !== "", responsable.listo)
+    : sinDano
+    ? [{ id: "responsable", nombre: "Quién lo hace", requerido: true, hecho: responsable.listo, pendiente: "Elige quién lo hace." }]
     : sacando
     ? camposGuiaSalida(rutaSalida, notaSalida, responsable.listo)
     : noPudo
@@ -287,7 +323,103 @@ export function ResolverDanadosModal({
     router.refresh();
   }
 
+  /** Cierra los dos paneles de ADR-0640 (los demás se cierran en cada «abrir»). */
+  function cerrarCorreccion() {
+    setCorrigiendo(null);
+    setSinDano(null);
+  }
+
+  function cerrarOtros() {
+    setNoPudo(null);
+    setSacando(null);
+    setLiquidando(null);
+    setArreglando(null);
+    setDevolviendo(null);
+  }
+
+  function abrirCorreccion(id: string) {
+    cerrarOtros();
+    setSinDano(null);
+    setCorrigiendo(id);
+    setEleccion("");
+    setErrorCorreccion(null);
+    setCorreccionEnDuda(false);
+    tokenCorreccion.current = crypto.randomUUID();
+  }
+
+  function abrirSinDano(id: string) {
+    cerrarOtros();
+    setCorrigiendo(null);
+    setSinDano(id);
+    // Lo escrito en «Nota (opcional)» antes de tocar el botón no se pierde: suele ser por qué no lo estaba.
+    setNotaSinDano(notas[id] ?? "");
+    setErrorSinDano(null);
+    setSinDanoEnDuda(false);
+    tokenSinDano.current = crypto.randomUUID();
+  }
+
+  async function confirmarCorreccion(p: PrendaDanada) {
+    if (!guia.puedeConfirmar || resolviendo !== null || eleccion === "" || !p.desde) return;
+    const [varianteId, desde] = eleccion.split("|") as [string, DesdeDanada];
+    const correcta = hermanasDe?.(p.varianteId).find((h) => h.varianteId === varianteId);
+    setResolviendo(p.id);
+    setErrorCorreccion(null);
+    let error: ErrorEscritura = null;
+    try {
+      const r = await firmar(createClient().rpc(RPC_CORREGIR_DANADA as never, argumentosDeCorreccion(p.id, varianteId, desde, tokenCorreccion.current) as never), responsable.firma());
+      error = r.error;
+    } catch (excepcion) {
+      error = { message: excepcion instanceof Error ? excepcion.message : String(excepcion) };
+    }
+    setResolviendo(null);
+    responsable.despues(error);
+    if (error) {
+      const fallo = interpretarErrorDeDanada(error, "corregir la prenda dañada");
+      // Tras un corte de red no se sabe si se corrigió: la elección queda fija y se reenvía igual, con la misma marca.
+      if (fallo.tipo === "red") setCorreccionEnDuda(true);
+      setErrorCorreccion(fallo.mensaje);
+      if (error.hint === "correccion_ya_resuelta") router.refresh();
+      return;
+    }
+    avisar.exito(tituloExitoCorreccion(correcta ?? { talla: null, color: null }), {
+      detalle: `${p.referencia} · la ${nombreCorto(p.talla, p.color)} volvió ${p.desde === "piso" ? "al piso" : "al almacén"}`,
+    });
+    setCorrigiendo(null);
+    router.refresh();
+  }
+
+  async function confirmarSinDano(p: PrendaDanada) {
+    if (!guia.puedeConfirmar || resolviendo !== null || !p.desde) return;
+    const desde = p.desde;
+    setResolviendo(p.id);
+    setErrorSinDano(null);
+    let data: unknown = null;
+    let error: ErrorEscritura = null;
+    try {
+      const r = await firmar(createClient().rpc(RPC_SIN_DANO as never, argumentosSinDano(p.id, notaSinDano, tokenSinDano.current) as never), responsable.firma());
+      data = r.data;
+      error = r.error;
+    } catch (excepcion) {
+      error = { message: excepcion instanceof Error ? excepcion.message : String(excepcion) };
+    }
+    setResolviendo(null);
+    responsable.despues(error);
+    if (error) {
+      const fallo = interpretarErrorDeDanada(error, "devolver la prenda a la venta");
+      if (fallo.tipo === "red") setSinDanoEnDuda(true);
+      setErrorSinDano(fallo.mensaje);
+      if (error.hint === "sin_dano_ya_resuelta" || error.hint === "sin_dano_en_arreglo") router.refresh();
+      return;
+    }
+    const r = leerRespuestaDanada(data) ?? { ya_registrada: false, id: p.id, unidades: p.cantidad };
+    if (r.ya_registrada) avisar.aviso("Esta prenda ya había vuelto a la venta. No se repitió.", { detalle: p.referencia });
+    else avisar.exito(tituloExitoSinDano(r.unidades, desde), { detalle: `${p.referencia} · ${nombreCorto(p.talla, p.color)}` });
+    setSinDano(null);
+    router.refresh();
+  }
+
   function abrirSalida(id: string) {
+    cerrarCorreccion();
     setNoPudo(null);
     setLiquidando(null);
     setDevolviendo(null);
@@ -330,6 +462,7 @@ export function ResolverDanadosModal({
   }
 
   function abrirNoPudo(id: string) {
+    cerrarCorreccion();
     setLiquidando(null);
     setDevolviendo(null);
     setArreglando(null);
@@ -369,6 +502,7 @@ export function ResolverDanadosModal({
   }
 
   function abrirArreglo(id: string) {
+    cerrarCorreccion();
     setNoPudo(null);
     setSacando(null);
     setLiquidando(null);
@@ -421,6 +555,7 @@ export function ResolverDanadosModal({
   }
 
   function abrirDevolucion(id: string) {
+    cerrarCorreccion();
     setNoPudo(null);
     setSacando(null);
     setLiquidando(null);
@@ -566,6 +701,13 @@ export function ResolverDanadosModal({
                         </Chip>
                       </p>
                     )}
+                    {p.corregidaDe && (
+                      <p className="mt-1">
+                        <Chip tono="pizarra" versalitas={false} title="Se reportó con otra talla o color y se corrigió con «Me equivoqué de prenda».">
+                          {textoCorregidaDe(p.corregidaDe.talla, p.corregidaDe.color)}
+                        </Chip>
+                      </p>
+                    )}
                     {p.enArreglo && (
                       <p className="mt-1">
                         <Chip tono="pizarra" versalitas={false} title="La prenda salió de la tienda a arreglarse. Cuando vuelva, marca «Se arregló».">
@@ -574,7 +716,7 @@ export function ResolverDanadosModal({
                       </p>
                     )}
                   </div>
-                  {puedeDecidir && liquidando !== p.id && arreglando !== p.id && devolviendo !== p.id && sacando !== p.id && noPudo !== p.id && (
+                  {puedeDecidir && liquidando !== p.id && arreglando !== p.id && devolviendo !== p.id && sacando !== p.id && noPudo !== p.id && corrigiendo !== p.id && sinDano !== p.id && (
                     <>
                       <CampoTexto
                         etiqueta="Nota (opcional)"
@@ -660,7 +802,117 @@ export function ResolverDanadosModal({
                           </Boton>
                         ))}
                       </div>
+                      {/* ADR-0640: lo reportado por error se corrige aquí, nunca con «Ajustar stock» (que no sabe de la dañada). Solo lo reportado en la tienda. */}
+                      {p.desde && (
+                        <p className="flex flex-wrap items-baseline gap-x-3 gap-y-1 text-sm text-taupe">
+                          <span>¿Te equivocaste al reportarla?</span>
+                          {hermanasDe && (
+                            <button type="button" onClick={() => abrirCorreccion(p.id)} disabled={resolviendo !== null} className="btn-cayla btn-enlace">
+                              Me equivoqué de prenda
+                            </button>
+                          )}
+                          {!p.enArreglo && !p.noSePudo && (
+                            <button type="button" onClick={() => abrirSinDano(p.id)} disabled={resolviendo !== null} className="btn-cayla btn-enlace">
+                              No estaba dañada
+                            </button>
+                          )}
+                        </p>
+                      )}
                     </>
+                  )}
+                  {puedeDecidir && corrigiendo === p.id && p.desde && (() => {
+                    const desdeVieja = p.desde;
+                    const opciones = opcionesDeCorreccion(p, hermanasDe?.(p.varianteId) ?? [], desdeVieja);
+                    const lugares = (o: (typeof opciones)[number]) =>
+                      (["almacen", "piso"] as const).filter((d) => (d === "piso" ? o.piso : o.almacen) >= p.cantidad);
+                    const elegida = eleccion ? opciones.find((o) => o.varianteId === eleccion.split("|")[0]) : undefined;
+                    const desdeNueva = eleccion ? (eleccion.split("|")[1] as DesdeDanada) : null;
+                    return (
+                      <div className="space-y-3 rounded-md bg-sand/30 p-3">
+                        <p className="text-sm text-tinta/65">
+                          Dice <span className="font-semibold text-tinta">{nombreCorto(p.talla, p.color)}</span>. Elige la que está dañada de verdad: las dos se
+                          ponen en su lugar en un solo paso, sin ajustar el stock.
+                        </p>
+                        <CampoGuiado id="correcta" guia={guia}>
+                          <CampoSelect
+                            etiqueta={guia.etiqueta("correcta", "¿Cuál está dañada?")}
+                            valor={eleccion}
+                            onValor={(v) => {
+                              setEleccion(v);
+                              setErrorCorreccion(null);
+                            }}
+                            opciones={opciones.flatMap((o) => {
+                              const donde = lugares(o);
+                              if (donde.length === 0)
+                                return [{ valor: `${o.varianteId}|-`, texto: `${nombreCorto(o.talla, o.color)} · no hay libre`, deshabilitada: true }];
+                              return donde.map((d) => ({
+                                valor: `${o.varianteId}|${d}`,
+                                texto: `${nombreCorto(o.talla, o.color)} · ${d === "piso" ? `en el piso (${o.piso})` : `en el almacén (${o.almacen})`}`,
+                              }));
+                            })}
+                            marcador="Elige la talla o el color"
+                            deshabilitado={resolviendo !== null || correccionEnDuda}
+                          />
+                        </CampoGuiado>
+                        {elegida && desdeNueva && <p className="nota-cayla">{quePasaAlCorregir(p, desdeVieja, elegida, desdeNueva, p.cantidad)}</p>}
+                        {errorCorreccion && <Aviso tono="error">{errorCorreccion}</Aviso>}
+                        <PieGuia guia={guia} listo="Todo listo: se corrige en un solo paso." />
+                        <div className="pie-acciones">
+                          <Boton type="button" onClick={() => setCorrigiendo(null)} disabled={resolviendo !== null}>
+                            Cancelar
+                          </Boton>
+                          <Boton
+                            type="button"
+                            peso="primario"
+                            onClick={() => confirmarCorreccion(p)}
+                            cargando={resolviendo === p.id}
+                            textoCargando="Corrigiendo…"
+                            disabled={resolviendo !== null}
+                            confirma={guia}
+                            title={responsable.motivo ?? guia.frase ?? undefined}
+                            className={`flex-1 ${guia.claseConfirmar}`}
+                          >
+                            {correccionEnDuda ? "Confirmar de nuevo" : "Corregir la prenda"}
+                          </Boton>
+                        </div>
+                      </div>
+                    );
+                  })()}
+                  {puedeDecidir && sinDano === p.id && p.desde && (
+                    <div className="space-y-3 rounded-md bg-sand/30 p-3">
+                      <p className="text-sm text-tinta/65">{quePasaSinDano(p.desde, p.cantidad)}</p>
+                      <CampoTexto
+                        etiqueta="¿Por qué no lo estaba? (opcional)"
+                        // sugerir-fijo: es un dato libre de lo que pasó; no depende de nada elegido antes
+                        placeholder="Ej. la mancha era del probador y salió"
+                        maxLength={MAX_TEXTO_DANADA}
+                        value={notaSinDano}
+                        onChange={(e) => {
+                          setNotaSinDano(e.target.value);
+                          setErrorSinDano(null);
+                        }}
+                        disabled={resolviendo !== null || sinDanoEnDuda}
+                      />
+                      {errorSinDano && <Aviso tono="error">{errorSinDano}</Aviso>}
+                      <PieGuia guia={guia} listo={`Todo listo: vuelve ${p.desde === "piso" ? "al piso" : "al almacén"}.`} />
+                      <div className="pie-acciones">
+                        <Boton type="button" onClick={() => setSinDano(null)} disabled={resolviendo !== null}>
+                          Cancelar
+                        </Boton>
+                        <Boton
+                          type="button"
+                          peso="primario"
+                          onClick={() => confirmarSinDano(p)}
+                          cargando={resolviendo === p.id}
+                          disabled={resolviendo !== null}
+                          confirma={guia}
+                          title={responsable.motivo ?? guia.frase ?? undefined}
+                          className={`flex-1 ${guia.claseConfirmar}`}
+                        >
+                          {sinDanoEnDuda ? "Confirmar de nuevo" : p.desde === "piso" ? "Volver al piso" : "Volver al almacén"}
+                        </Boton>
+                      </div>
+                    </div>
                   )}
                   {puedeDecidir && sacando === p.id && (
                     <div className="space-y-3 rounded-md bg-sand/30 p-3">
