@@ -141,6 +141,7 @@
     "pruebas:editar-marca": "node scripts/pruebas/editar_marca.mjs",
     "pruebas:producto-sin-marca": "node scripts/pruebas/producto_sin_marca_ni_proveedor.mjs",
     "pruebas:categorias-candados": "node scripts/pruebas/categorias_candados.mjs",
+    "pruebas:colores-combinados": "node scripts/pruebas/colores_combinados.mjs",
     "pruebas:eliminar-marca": "node scripts/pruebas/eliminar_marca.mjs",
     "pruebas:purgar-producto": "node scripts/pruebas/purgar_producto_de_prueba.mjs",
     "pruebas:eliminar-producto": "node scripts/pruebas/eliminar_producto.mjs",
