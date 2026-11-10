@@ -124,6 +124,7 @@ export const PRUEBAS = [
   "pruebas:mercaderia-pagada-balance",
   "pruebas:cierre-papeles-con-monto",
   "pruebas:compras-pagadas-hacia",
+  "pruebas:unir-recepcion-con-compra",
 
   // De Ventas a Finanzas y lo que el Flujo no cubre (ADR-0609): el cuadre suma exacto y da la cifra del Estado de resultados, sede por sede;
   // lo anterior al arranque de una cuenta no suma, pero se dice. ROLLBACK.

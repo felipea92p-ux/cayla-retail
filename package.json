@@ -85,6 +85,7 @@
     "pruebas:mercaderia-pagada-balance": "node scripts/pruebas/mercaderia_pagada_balance.mjs",
     "pruebas:cierre-papeles-con-monto": "node scripts/pruebas/cierre_papeles_con_monto.mjs",
     "pruebas:compras-pagadas-hacia": "node scripts/pruebas/compras_pagadas_hacia.mjs",
+    "pruebas:unir-recepcion-con-compra": "node scripts/pruebas/unir_recepcion_con_compra.mjs",
     "pruebas:cuadre-ventas-finanzas": "node scripts/pruebas/cuadre_ventas_finanzas.mjs",
     "pruebas:impuestos": "node scripts/pruebas/impuestos.mjs",
     "pruebas:sustento-costos": "node scripts/pruebas/sustento_costos.mjs",
