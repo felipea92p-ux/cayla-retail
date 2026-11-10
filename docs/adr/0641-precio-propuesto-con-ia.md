@@ -1,7 +1,8 @@
 # ADR-0641 — Precio propuesto con IA: Claude propone, una regla fija pone el piso y una persona aplica
 
-- **Fecha:** 2026-11-10 · **Estado:** construido y probado en local; **la migración `20261110203000_precio_propuesto_con_ia.sql` NO está en
-  producción** (espera el OK de Felipe). En producción falta además confirmar que `ANTHROPIC_API_KEY` esté en Vercel (el asistente ya la usa).
+- **Fecha:** 2026-11-10 · **Estado:** construido y probado en local; **la migración `20261110203000_precio_propuesto_con_ia.sql` está en
+  producción desde el 2026-11-10** (con el OK de Felipe; verificada: tabla con RLS y sin políticas, 5 funciones sin `EXECUTE` para `anon`, 0 filas).
+  Falta confirmar que `ANTHROPIC_API_KEY` esté en Vercel (el asistente ya la usa).
 - **Rama:** `claude/pricing-calculation-ai-cc83d7`. Números reservados con `pnpm reservar`.
 - **Relacionados:** ADR-0536 (el asistente: clave en el servidor, tope por mes en la base, degradar sin IA), ADR-0067 (costo promedio
   ponderado), ADR-0377 (familias fuera de los motores), ADR-0161 (responsable), ADR-0306 (lo de adentro de un módulo no es otro módulo).
@@ -65,6 +66,13 @@ su costo o que está muy lejos de sus parecidas pasa sin que nadie lo vea.
   nada grave: el piso lo pone la regla fija y nada se aplica sin una persona que confirma. No se manda nada de clientes ni de personas.
 - **Pocas prendas tienen costo cargado** (en la base local, 6 de 369). Mientras sea así, casi toda la lista cae en «sin costo propio» y la IA
   propone con el costo de la categoría (estimado). Cargar costos hace que todo esto sirva más.
+
+## Eliminar una prenda que tuvo una propuesta
+
+`precio_propuestas` es **historia** de la prenda para `pruebas:eliminar-producto` (la prueba que exige clasificar toda tabla que cita a `productos`
+o `variantes`): lo que costaron las propuestas alimenta el tope de US$ 20 al mes, y borrarlas con la ficha dejaría gastarlo de nuevo; y su llave a
+`productos` (sin cascada) ya frena el borrado. Queda pendiente, como con `trafico_web`, que Catálogo lo diga con su mensaje en vez del error de la
+llave (renglón nuevo de `fn_producto_historia`, migración aparte).
 
 ## Cómo se verifica
 
