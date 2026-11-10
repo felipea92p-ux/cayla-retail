@@ -670,7 +670,7 @@ export async function getRecepcionesRecientes(
       supabase
         .from("movimientos")
         .select(
-          "lote_id, cantidad, compra_item_id, compra_item:compra_items ( compra_id, compra:compras ( documento ) ), variante:variantes ( sku, codigo, talla:tallas ( valor ), producto:productos ( referencia ), color:colores ( nombre ) )"
+          "lote_id, cantidad, compra_item_id, compra_item:compra_items ( compra_id, compra:compras ( documento ) ), variante:variantes ( sku, codigo, talla:tallas ( valor ), producto:productos ( referencia, marca:marcas ( nombre ) ), color:colores ( nombre ) )"
         )
         .in("lote_id", loteIds)
         .order("created_at")
@@ -718,6 +718,7 @@ export async function getRecepcionesRecientes(
       sku: codigoDeLinea(m.variante),
       talla: m.variante?.talla?.valor ?? null,
       color: m.variante?.color?.nombre ?? null,
+      marca: m.variante?.producto?.marca?.nombre ?? null,
       cantidad: m.cantidad,
     });
     porLote.set(m.lote_id, actual);
