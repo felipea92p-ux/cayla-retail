@@ -526,7 +526,7 @@ export const MODALES: Record<string, PantallaGuia> = {
   "components/finanzas/EditarCuentaModal.tsx": PENDIENTE, // 9 controles
   // ADR-0429 (act. 4): «Cambiar la tarifa» de una máquina de cobro. Falta = lo mismo que apaga «Guardar» (`validarTarifa`): la tasa, los
   // días de abono y quién hace el cambio; el cargo fijo es opcional y el IGV viene marcado (lo usual en Perú).
-  "components/finanzas/dinero/CuadrarConExtracto.tsx": { estado: "no-aplica", motivo: "ADR-0629, Fase B: un solo control, el extracto (el .txt o la tabla pegada), que se lee al momento. Lo demás son propuestas ya armadas: cada lote dice si cuadra y se registra con un toque (con el Responsable de siempre); no hay campos que llenar en un orden." },
+  "components/finanzas/dinero/CuadrarConExtracto.tsx": { estado: "no-aplica", motivo: "ADR-0629, Fase B: un solo control, el extracto (el .txt o la tabla pegada), que se lee al momento. Lo demás son acciones ya armadas que se hacen con un toque y el Responsable de siempre: «Guardar este extracto» (ADR-0637), que si falta el Responsable lo dice al tocarlo, y cada lote, que dice si cuadra y se registra; no hay campos que llenar en un orden." },
   "components/finanzas/CuadrarDepositos.tsx": { estado: "no-aplica", motivo: "Tarea 14: la hoja es una vista previa con un solo botón, y el reemplazo son dos campos que viven dentro del detalle de un movimiento; no hay un camino de pasos que guiar." },
   "components/finanzas/TarifaMaquinaModal.tsx": { estado: "aplicada", evidencia: ["components/finanzas/TarifaMaquinaModal.tsx"] },
   "components/finanzas/dinero/SalidasPlanillaModal.tsx": { estado: "aplicada", evidencia: ["components/finanzas/dinero/SalidasPlanillaModal.tsx"] },

@@ -2020,6 +2020,18 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
     (`components/finanzas/dinero/CuadrarConExtracto.tsx`) lee el .txt (`lib/extracto-interbank.ts`), empareja
     (`lib/emparejar-maquinas.ts`: Vendemás por lote con `registrar_abono_pos`; Izipay pago por pago con `fn_pos_pagos_por_depositar` y
     `registrar_abono_pos_pagos`, tabla `pos_abonos_pagos`, migración `20261108023000`).
+  - **«El banco manda», actividad 1 (ADR-0637, 2026-11-09; migración `20261109232000`, todavía no en producción):** el extracto de ese banco se
+    GUARDA, línea por línea y tal como lo dijo el banco. En la hoja de «Subir extracto», «Guardar este extracto»
+    (`CuadrarConExtracto.tsx` → `lib/banco-lineas.ts`: `paraCargar`, `fuenteDe`, `huellaDeArchivo`, `cuentaDelArchivo`) llama a
+    `cargar_lineas_banco` (solo el líder, con Responsable y token; decide qué es nuevo, qué ya estaba y qué se confirmó). El .txt dice de
+    qué cuenta es: la hoja muestra en qué termina antes de guardar y la base rechaza el de otra cuenta (`p_cuenta_archivo`, contra las
+    cargas anteriores y contra `cuentas_dinero.numero`). La tabla pegada solo agrega o repite: si viene cortada, no entra. Tablas
+    `banco_cargas`, `banco_lineas` y `banco_cortes` (solo agregan, ni con TRUNCATE; RLS sin políticas). En `conciliacion`, el bloque «El banco dice»
+    (`getCuadreBanco` en `lib/cuentas-dinero.ts` → `fn_banco_cuadre` → `leerCuadreBanco` y los textos de `lib/banco-lineas.ts` →
+    `components/finanzas/dinero/BancoDice.tsx`) pone el saldo de la última línea guardada al lado de lo que suma el ERP al mismo día, con
+    la diferencia, lo que trajo por tipo (`grupoDeLinea`, `lib/extracto-interbank.ts`), lo que sigue por confirmar y si a la cadena le
+    falta alguna línea. No escribe plata ni toca `fn_dinero_libro`. Si la base no tiene `fn_banco_cuadre`, el bloque no se dibuja y la hoja
+    no ofrece guardar. Pruebas: `lib/banco-lineas.test.ts`, `pnpm pruebas:banco-lineas`.
   - **La cuenta con CLAURE (ADR-0560, 2026-10-29; actividad 1, solo lectura):** `/finanzas/dinero/claure` (la cuarta cara de Cuentas y dinero, «CLAURE») →
     `lib/cuenta-claure.ts` → `fn_claure_cuenta()` y `fn_claure_cuenta_desde()` (20261029004000) → `lib/cuenta-claure-reglas.ts` (`resumenClaure`) →
     `components/finanzas/dinero/CuentaClaure.tsx`. Lo que CLAURE (Claudia) cobró en **cuentas de CAYLA** (tarjeta, QR, Yape…; el efectivo no, lo tiene ella), por día, medio y

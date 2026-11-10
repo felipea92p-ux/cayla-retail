@@ -286,6 +286,7 @@ export function ConciliacionPanel({
   deUnaFecha = false,
   maquinas = null,
   extracto = null,
+  bancoDice = null,
 }: {
   cuentas: ConciliacionCuenta[];
   actual: Conciliacion | null;
@@ -294,8 +295,10 @@ export function ConciliacionPanel({
   deUnaFecha?: boolean;
   /** «Lo que te deben las máquinas» (ADR-0629, Fase B): va bajo la lista de bancos, que ya no lleva las puentes. */
   maquinas?: ReactNode;
-  /** «Subir extracto», solo en el banco donde depositan las máquinas (ADR-0629, Fase B). */
+  /** «Subir extracto», solo en el banco donde depositan las máquinas (ADR-0629, Fase B). Si va `bancoDice`, el botón vive en ese bloque y aquí no llega. */
   extracto?: ReactNode;
+  /** «El banco dice» (ADR-0637): lo que dicen las líneas guardadas del extracto de este banco, sobre el saldo del sistema. */
+  bancoDice?: ReactNode;
 }) {
   const router = useRouter();
   const ruta = usePathname();
@@ -412,6 +415,8 @@ export function ConciliacionPanel({
             <ComboResponsable control={responsable} deshabilitado={guardando} />
           </CampoGuiado>
         </div>
+
+        {bancoDice}
 
         <section className="card-cayla din-cuad-hero anim-sube" aria-label={`Saldo de ${actual.cuenta.nombre}`}>
           <div className="din-cuad-hero-lado">

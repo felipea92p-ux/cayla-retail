@@ -1,8 +1,9 @@
 // Finanzas ▸ Cuentas y dinero ▸ Cuadrar con el banco, en «El telar» (Felipe 2026-10-23). Cada línea que anotó CAYLA en la cuenta
-// se dibuja junto a la pregunta «¿está en el extracto?», unidas por un hilo que se vuelve verde al marcarla revisada. Es la
-// opción (a) de la decisión D5: la base no guarda el estado de cuenta del banco, solo el saldo anotado (`conciliaciones`) y las
-// líneas revisadas (`dinero_revisados`); subir el extracto queda para otra obra. Lógica pura: no decide qué cuadra (eso lo suma la
-// base), solo en qué estado está cada par y qué banco mirar.
+// se dibuja junto a la pregunta «¿está en el extracto?», unidas por un hilo que se vuelve verde al marcarla revisada. Nació como la
+// opción (a) de la decisión D5: de estos pares la base guarda el saldo anotado (`conciliaciones`) y las líneas revisadas
+// (`dinero_revisados`). Desde «el banco manda» (ADR-0637) el extracto del banco al que depositan las máquinas SÍ se guarda, línea por
+// línea (`banco_lineas`; lo arma y lo dice `lib/banco-lineas.ts`); estos pares siguen igual mientras esa obra avanza. Lógica pura: no
+// decide qué cuadra (eso lo suma la base), solo en qué estado está cada par y qué banco mirar.
 
 import { cuadra, TEXTO_MEDIO_COBRO, type AlertaPos, type Conciliacion, type ConciliacionCuenta, type LineaConciliacion, type LotePendiente, type TipoCuenta } from "./cuentas-dinero-reglas";
 import { diaLima } from "./fechas-lima";

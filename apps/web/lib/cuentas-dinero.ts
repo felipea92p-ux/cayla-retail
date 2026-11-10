@@ -28,6 +28,7 @@ import {
 } from "@/lib/cuentas-dinero-reglas";
 import { deudaConDueno } from "@/lib/cuentas-dinero-reglas";
 import { deudaDeMaquinas, tieneExtracto, type DeudaDeMaquina } from "@/lib/cuadrar-reglas";
+import { leerCuadreBanco, type CuadreBanco } from "@/lib/banco-lineas";
 import { leerVer, type UbicacionGastos, type Ver } from "@/lib/gastos-reglas";
 import { leerCuentaPlanilla, leerTramo, planillaParaElInicio, type CuentaPlanilla, type PlanillaParaElInicio, type TramoPlanilla } from "@/lib/planilla-salidas-reglas";
 import { esFuncionAusente } from "@/lib/compras-reglas";
@@ -221,6 +222,20 @@ export async function getConciliacion(cuentaId: string, hasta: string | null): P
   const { data, error } = await supabase.rpc("fn_conciliacion" as never, { p_cuenta_id: cuentaId, p_hasta: hasta } as never);
   if (error) return { datos: null, falla: falla("la conciliación", error) };
   return { datos: leerConciliacion(data), falla: null };
+}
+
+/**
+ * Solo el líder: lo que dice el banco de una cuenta según las líneas de su extracto ya guardadas, al lado de lo que suma el ERP al mismo
+ * día (ADR-0637, `fn_banco_cuadre`). Los dos saldos y la diferencia los calcula la base. `null` si la base todavía no conoce la función
+ * (la web salió antes que la migración 20261109232000): la pantalla sigue como estaba, sin el bloque ni el botón de guardar. Si no
+ * responde, lo dice.
+ */
+export async function getCuadreBanco(cuentaId: string): Promise<Lectura<CuadreBanco | null> | null> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("fn_banco_cuadre" as never, { p_cuenta_id: cuentaId } as never);
+  if (error) return esFuncionAusente(error) ? null : { datos: null, falla: falla("lo que dice el banco", error) };
+  const datos = leerCuadreBanco(data);
+  return { datos, falla: datos ? null : "No se pudo leer lo que dice el banco: la respuesta llegó incompleta." };
 }
 
 /** Lo que comparten las tres pestañas: las sedes, qué se mira, las cuentas para el modal «+ Registrar movimiento», lo que

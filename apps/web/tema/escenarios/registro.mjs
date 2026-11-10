@@ -2323,6 +2323,16 @@ ESCENARIOS.push(
   // Dynamic y el aviso no aparece: el escenario falla diciendo que no encontró el botón).
   { id: "dinero.salidas-planilla", ruta: "/finanzas/dinero", cuentas: FIN, abre: '[data-guia="fin-dinero.salida-fila"]', nombre: "Cuentas y dinero · «Registrar de qué banco salió» la planilla que Dynamic pagó", preparar: clicRol("button", /^Registrar (la salida|las \d salidas)$/i) },
   { id: "configuracion.maquina-tarifa", ruta: "/configuracion", cuentas: ["admin"], abre: "[role=dialog]", nombre: "Configuración ▸ Dinero · «Tarifa de Izipay»", preparar: secuencia(clicPestana(/^Dinero/i), clicRol("button", /Editar la tarifa de Izipay/i)) },
+  // ADR-0637: la hoja «Subir extracto» con una tabla pegada ya leída: «Qué trajo», el Responsable y «Guardar este extracto». No guarda nada
+  // (montos inventados). Pide que el banco que la pantalla elige sea uno al que deposita una máquina y que la base tenga la migración
+  // 20261109232000; si no, el botón no existe y el escenario falla diciéndolo. «El banco dice» se audita con la ruta, sin escenario.
+  { id: "conciliacion.extracto-leido", ruta: "/finanzas/dinero/conciliacion", cuentas: FIN, abre: '[data-guia="fin-conciliacion.guardar-extracto"]', nombre: "Cuadrar con el banco · el extracto leído, con «Guardar este extracto»", async preparar(pagina) {
+    await pagina.locator('[data-guia="fin-conciliacion.extracto"]').first().click({ timeout: 8000 });
+    await esperar(pagina, 900);
+    await pagina.locator("#extracto-pegado").fill("06/10/2026   07/10/2026   -   .   Abono QR IBK   S/ 45.90   S/ 145.90\n05/10/2026   05/10/2026   -   .   Abono QR IBK   S/ 100.00   S/ 100.00");
+    await pagina.getByRole("button", { name: /Leer lo pegado/i }).click({ timeout: 8000 });
+    await esperar(pagina, 900);
+  } },
 );
 
 export const escenariosDe = (ruta, cuentaClave, celular = false) =>

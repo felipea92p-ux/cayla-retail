@@ -51,6 +51,7 @@
       "Boton «Leer lo pegado»",
       "button «Usar otro extracto»",
       "ComboResponsable «{responsable}»",
+      "Boton «Guardar este extracto»",
       "Boton «Reintentar»",
       "Boton «→() => void registrar(p)»",
       "Boton «Reintentar» #2",
