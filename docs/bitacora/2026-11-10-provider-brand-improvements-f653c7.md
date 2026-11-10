@@ -1,0 +1,4 @@
+## 2026-11-10 (Recibir ▸ Terminados: las marcas al frente)
+Qué hice: cada envío terminado nombra sus marcas (las 3 con más unidades, «+N más» y «Sin marca» en ámbar), debajo dice de quién llegó y una barrita reparte las unidades por marca; la hoja abre con «De qué marcas llegó» y agrupa las prendas por marca. También: una sola fecha, «prendas» en vez de «líneas» y «Llegó con el alta» en vez de «Sin envío». Felipe eligió la cara B de `docs/maquetas/recibidos-marca-2026-11/`.
+Por qué así: un proveedor no dice qué llegó (un envío de «CAYLA SAC» trajo 10 marcas). La marca ya estaba en `productos.marca_id` y se suma al mismo select de `getRecepcionesRecientes`, sin migración. Las reglas viven en `lib/recibido-por-envio-reglas.ts`, con su prueba.
+Felipe se lleva: la lista se lee por marcas, y lo «Sin marca» queda a la vista como dato que hay que completar en Catálogo.
