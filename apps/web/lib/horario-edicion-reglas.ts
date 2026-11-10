@@ -7,7 +7,7 @@
 //   ASUME:   minutos desde la medianoche (`@cayla-retail/shared/horario-de-tienda`).
 //   NO HACE: leer el DOM ni guardar.
 
-import { DIAS_MAXIMOS_DE_ANTICIPO, MAXIMO_DE_CIERRES, PASO_DE_HORA, fechaIsoValida, semanaVacia, sumarDias, type SemanaDeTienda, type TramoDia } from "@cayla-retail/shared/horario-de-tienda";
+import { DIAS_MAXIMOS_DE_ANTICIPO, MAXIMO_DE_CIERRES, PASO_DE_HORA, fechaIsoValida, sumarDias, type SemanaDeTienda, type TramoDia } from "@cayla-retail/shared/horario-de-tienda";
 
 /** Lo que se ve de la línea de horas: de 7 a. m. a 11 p. m. de fábrica; se ensancha solo si la base trae un horario que se sale. */
 export type RangoVisible = { desde: number; hasta: number };
@@ -44,15 +44,6 @@ export function porcentajeDeMinuto(min: number, rango: RangoVisible): number {
   return Math.min(100, Math.max(0, ((min - rango.desde) / (rango.hasta - rango.desde)) * 100));
 }
 
-/** Arrastrar sobre un hueco: el tramo entre donde se empezó y donde se está, en el orden que sea; con un solo punto, media hora (`MINIMO_DE_TRAMO`). */
-export function tramoPintado(desdeMin: number, hastaMin: number, rango: RangoVisible): TramoDia {
-  const a = entre(aPaso(Math.min(desdeMin, hastaMin)), rango);
-  const b = entre(aPaso(Math.max(desdeMin, hastaMin)), rango);
-  if (b > a) return { abre: a, cierra: b };
-  // Un solo punto: media hora hacia la derecha, o hacia la izquierda si ya está en el borde.
-  return a + MINIMO_DE_TRAMO <= rango.hasta ? { abre: a, cierra: a + MINIMO_DE_TRAMO } : { abre: a - MINIMO_DE_TRAMO, cierra: a };
-}
-
 /** Arrastrar el borde izquierdo de una barra: la apertura va donde está el dedo, sin quedar a menos de media hora del cierre. */
 export function conAperturaEn(t: TramoDia, min: number, rango: RangoVisible): TramoDia {
   return { abre: Math.min(entre(aPaso(min), rango), t.cierra - MINIMO_DE_TRAMO), cierra: t.cierra };
@@ -77,10 +68,24 @@ export function tramoParaAbrir(rango: RangoVisible): TramoDia {
   return cierra > abre ? { abre, cierra } : { abre: rango.desde, cierra: rango.desde + MINIMO_DE_TRAMO };
 }
 
-/** El lunes (o el primer día abierto) en toda la semana: «Copiar lunes a todos». Sin lunes abierto, la semana queda cerrada. */
-export function semanaComoElLunes(semana: SemanaDeTienda): SemanaDeTienda {
+/** Un día cerrado que se abre toma el horario del día abierto más cercano (primero hacia atrás: el sábado abre como el viernes; el domingo, como
+ *  el sábado), recortado al rango. Sin ningún día abierto, el de fábrica. Así abrir martes a sábado es un toque por día, sin volver a arrastrar. */
+export function tramoAlAbrirDia(semana: SemanaDeTienda, dia: number, rango: RangoVisible): TramoDia {
+  for (let paso = 1; paso < semana.length; paso++) {
+    const vecino = semana[(dia - paso + semana.length * 2) % semana.length] ?? null;
+    if (!vecino) continue;
+    const abre = Math.max(rango.desde, vecino.abre);
+    const cierra = Math.min(rango.hasta, vecino.cierra);
+    if (cierra - abre >= MINIMO_DE_TRAMO) return { abre, cierra };
+  }
+  return tramoParaAbrir(rango);
+}
+
+/** «Copiar lunes a los abiertos»: cada día que YA abre toma el horario del lunes; los cerrados (el domingo que no se trabaja) siguen cerrados. Sin
+ *  lunes abierto no cambia nada. */
+export function lunesALosDiasAbiertos(semana: SemanaDeTienda): SemanaDeTienda {
   const lunes = semana[0];
-  return lunes ? semana.map(() => ({ ...lunes })) : semanaVacia();
+  return lunes ? semana.map((t) => (t ? { ...lunes } : null)) : semana;
 }
 
 /** Teclas sobre una barra: ←/→ la corren 15 minutos; Mayús + ←/→ mueven el cierre; Alt + ←/→ mueven la apertura; Suprimir cierra el día. `null` si la
