@@ -262,7 +262,7 @@ export function estadoDelCuadre(c: Pick<CuadreBanco, "hayExtracto" | "banco" | "
     clave: "no_cuadra",
     tono: "ambar",
     chip: "No cuadra",
-    frase: `No cuadra por ${solesDeCentimos(Math.abs(c.diferenciaCentimos))}: lo vas a ver línea por línea en el próximo paso.`,
+    frase: `No cuadra por ${solesDeCentimos(Math.abs(c.diferenciaCentimos))}: el detalle línea por línea llega en la siguiente entrega.`,
   };
 }
 

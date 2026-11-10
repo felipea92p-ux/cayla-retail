@@ -354,9 +354,9 @@ describe("estadoDelCuadre: ¿coincide el banco con el ERP?", () => {
       clave: "no_cuadra",
       tono: "ambar",
       chip: "No cuadra",
-      frase: "No cuadra por S/ 35.50: lo vas a ver línea por línea en el próximo paso.",
+      frase: "No cuadra por S/ 35.50: el detalle línea por línea llega en la siguiente entrega.",
     });
-    expect(estadoDelCuadre(cuadre({ diferenciaCentimos: -432110 }), BANCO).frase).toBe("No cuadra por S/ 4,321.10: lo vas a ver línea por línea en el próximo paso.");
+    expect(estadoDelCuadre(cuadre({ diferenciaCentimos: -432110 }), BANCO).frase).toBe("No cuadra por S/ 4,321.10: el detalle línea por línea llega en la siguiente entrega.");
   });
 
   it("un céntimo de diferencia ya no cuadra: no hay tolerancia", () => {
