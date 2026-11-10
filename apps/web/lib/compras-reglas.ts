@@ -198,6 +198,9 @@ export type LineaRecepcion = {
   sku: string | null;
   talla: string | null;
   color: string | null;
+  /** La marca de la prenda (`productos.marca_id`): «Terminados» de Recibir la pone al frente. `null` si la prenda no tiene marca;
+   *  ausente donde la lectura no la trae. */
+  marca?: string | null;
   cantidad: number;
 };
 
