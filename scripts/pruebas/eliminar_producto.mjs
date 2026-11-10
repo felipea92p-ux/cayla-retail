@@ -392,6 +392,11 @@ select pg_temp.huella(:'va');`);
     // prenda que alguien miró en la tienda online. Pendiente aparte, como el de arriba: que Catálogo lo diga con su mensaje («la miraron en
     // la tienda online») en vez del error de la llave, con su renglón en `fn_producto_historia`.
     "trafico_web",
+    // ADR-0641: cada precio que la IA propuso para una prenda ya creada («Revisar precios»), con lo que costó en dólares. Es historia: la suma de
+    // lo que costaron alimenta el tope de US$ 20 al mes, así que borrarla junto con la ficha lo dejaría gastar de nuevo lo ya gastado; y su llave
+    // a `productos` (sin cascada) frena el borrado de una prenda que tuvo una propuesta. Pendiente aparte, como `trafico_web`: que Catálogo lo
+    // diga con su mensaje («tuvo una propuesta de precio») en vez del error de la llave, con su renglón en `fn_producto_historia`.
+    "precio_propuestas",
   ];
   // Las cuenta su tabla madre: una línea de producción cuelga de una orden del MISMO producto; una recepción de traslado, de
   // una línea de traslado de la misma prenda.

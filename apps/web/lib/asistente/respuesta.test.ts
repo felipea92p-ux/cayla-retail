@@ -148,7 +148,11 @@ describe("costoEnDolares", () => {
   });
 
   it("un modelo sin precio conocido cuenta como el más caro: el tope se pasa antes, nunca después", () => {
-    expect(costoEnDolares("otro", { input_tokens: 1_000_000, output_tokens: 0 })).toBeCloseTo(2);
+    expect(costoEnDolares("otro", { input_tokens: 1_000_000, output_tokens: 0 })).toBeCloseTo(4);
+  });
+
+  it("Opus 5.5 (el que propone precios): US$4 la entrada y US$20 la salida por millón", () => {
+    expect(costoEnDolares("claude-opus-5-5", { input_tokens: 1_000_000, output_tokens: 1_000_000 })).toBeCloseTo(24);
   });
 });
 

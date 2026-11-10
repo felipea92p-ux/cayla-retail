@@ -68,6 +68,10 @@ export const PRUEBAS = [
   // mes); «¿Te sirvió?» solo lo contesta quien preguntó, una vez; la tabla no se toca directo desde la API. ROLLBACK.
   "pruebas:asistente-preguntas",
 
+  // Precio propuesto con IA (ADR-0641): ninguna propuesta deja menos de 30 % de margen (lo exige la tabla); el costo de una fila
+  // tiene techo (nadie infla el tope de US$ 20); quien no ve Productos no lee el contexto ni anota. ROLLBACK.
+  "pruebas:precio-propuesto",
+
   // El interruptor de cada sede (ADR-0536, act. 8): nace apagado; lo cambia quien ve Configuración (Felipe 2026-10-27), no una
   // integrante sin el módulo; sin sesión nada sale encendido; apagar no borra la fila; un doble clic no ensucia la historia. ROLLBACK.
   "pruebas:asistente-sedes",

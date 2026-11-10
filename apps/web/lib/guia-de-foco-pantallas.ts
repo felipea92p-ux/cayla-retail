@@ -205,6 +205,7 @@ export const PANTALLAS: Record<string, PantallaGuia> = {
   "/productos/marcas": { estado: "aplicada", evidencia: ["components/alta-producto/NuevaMarcaForm.tsx"] },
   "/productos/nuevo": { estado: "aplicada", evidencia: ["components/NuevoProductoForm.tsx", "components/alta-producto/piezas.tsx"] },
   "/productos/por-revisar": { estado: "no-aplica", motivo: "Cola de solo lectura de las prendas que alguien propuso (ADR-0371): cada fila trae sus datos y dos botones, Aprobar y Rechazar; no hay campos que llenar ni pasos que seguir. Lo único que se elige —quién firma— vive en la hoja de cada decisión (components/RevisarProductoHoja.tsx)." },
+  "/productos/revisar-precios": { estado: "no-aplica", motivo: "Lista de solo lectura de las prendas cuyo precio conviene mirar (ADR-0641): cuatro cifras que filtran y una tabla; no hay campos que llenar ni pasos que seguir. Proponer y aplicar un precio se hace por fila." },
   // ---- recibir ----
   // ADR-0330: la puerta «Llegó mercadería» trae su guía (proveedor → prendas → quién recibe). La rama «contra factura»
   // (`RecepcionEnvio`) sigue declarada como modal pendiente más abajo.
@@ -373,6 +374,7 @@ export const MODALES: Record<string, PantallaGuia> = {
   "components/IngresoRapidoModal.tsx": { estado: "aplicada", evidencia: ["components/IngresoRapidoModal.tsx"] },
   "components/CorregirPagoModal.tsx": { estado: "aplicada", evidencia: ["components/CorregirPagoModal.tsx"] },
   "components/RevisarProductoHoja.tsx": { estado: "no-aplica", motivo: "Confirmación de UN solo control (quién firma): el título dice qué prenda se aprueba o se rechaza y la nota qué pasa después; cuando el rechazo está bloqueado (orden en proceso o stock) la hoja no pide nada, dice qué lo frena y a dónde ir. No hay camino que indicar (ADR-0371)." },
+  "components/AplicarPrecioHoja.tsx": { estado: "no-aplica", motivo: "Confirmación de UN solo control (quién firma): el título dice qué prenda cambia de precio, la cifra muestra el precio de antes tachado y el nuevo con su margen, y la nota dice qué tallas cambian. No hay camino que indicar (ADR-0641)." },
   "components/plan-compra/NuevaCampanaModal.tsx": { estado: "aplicada", evidencia: ["components/plan-compra/NuevaCampanaModal.tsx"] },
   "components/plan-compra/HojaDeCampanaCalendario.tsx": { estado: "aplicada", evidencia: ["components/plan-compra/HojaDeCampanaCalendario.tsx"] },
   "components/plan-compra/EditarCampanaModal.tsx": { estado: "aplicada", evidencia: ["components/plan-compra/EditarCampanaModal.tsx"] },

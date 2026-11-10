@@ -2,12 +2,13 @@
   "guia": "productos",
   "ruta": "/productos",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 93,
+  "total": 94,
   "controles": {
     "app/(app)/productos/page.tsx": [
       "Link «Existencias»",
       "SegmentoEnlaces «(sin nombre)»",
       "BotonEnlace «productos.rotulos»",
+      "BotonEnlace «productos.revisar-precios»",
       "BotonEnlace «productos.nuevo»",
       "Link «Revisar»",
       "Link «Crear desde Recibir»",

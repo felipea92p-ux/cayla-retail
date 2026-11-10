@@ -68,6 +68,7 @@
     "pruebas:metas-mes-y-fecha": "node scripts/pruebas/metas_mes_y_fecha.mjs",
     "pruebas:gastos": "node scripts/pruebas/gastos.mjs",
     "pruebas:asistente-preguntas": "node scripts/pruebas/asistente_preguntas.mjs",
+    "pruebas:precio-propuesto": "node scripts/pruebas/precio_propuesto.mjs",
     "pruebas:asistente-sedes": "node scripts/pruebas/asistente_sedes.mjs",
     "pruebas:asistente-preguntas-equipo": "node scripts/pruebas/asistente_preguntas_equipo.mjs",
     "pruebas:asistente-informes": "node scripts/pruebas/asistente_informes.mjs",
