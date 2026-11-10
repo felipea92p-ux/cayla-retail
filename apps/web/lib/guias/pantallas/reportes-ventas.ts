@@ -46,7 +46,14 @@ export const GUIA_REPORTES_MES: Guia = {
       id: "cifras",
       ancla: "reportes.cifras",
       titulo: "Las cuatro cifras",
-      texto: "Lo vendido, cuántas ventas fueron, lo que deja cada venta, y cuántas prendas salieron. Cada una dice si subió o bajó contra los mismos días del mes pasado, para que la comparación sea justa.",
+      texto: "Lo vendido (con IGV), cuántas ventas fueron, lo que deja cada venta, y cuántas prendas salieron. Cada una dice si subió o bajó contra los mismos días del mes pasado. Si miras Lima o todas, una línea dice cuánto es de CLAURE.",
+    },
+    {
+      id: "cuadre",
+      ancla: "reportes.cuadre",
+      opcional: true,
+      titulo: "Por qué Finanzas da otra cifra",
+      texto: "Aquí lo vendido va con IGV y con lo de CLAURE. En Finanzas, «Vendiste con IGV» también los trae, y «Lo que vendiste» va sin los dos. «Cómo cuadra con Finanzas» te lleva al cuadro que une las dos cifras paso a paso. Solo lo ve quien tiene Resumen y estados financieros.",
     },
     {
       id: "por-dia",
@@ -72,7 +79,7 @@ export const GUIA_REPORTES_MES: Guia = {
       id: "tabla",
       ancla: "reportes.tabla",
       titulo: "Quién vendió cuánto",
-      texto: "El mes partido por tienda, con lo que vendió, cuántas ventas, el ticket y las prendas, o por categoría, con su parte del total. La última fila es el total y es igual a la cifra de arriba.",
+      texto: "El mes partido por tienda, con lo que vendió (con IGV), cuántas ventas, el ticket y las prendas, o por categoría, con su parte del total. La última fila es el total y es igual a la cifra de arriba.",
     },
     {
       id: "corte",
