@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
   camposAnotar,
+  diaDeLlegadaAMandar,
+  limitesDeLlegada,
   camposGasto,
   decisionesCierre,
   nombreGasto,
@@ -729,5 +731,24 @@ describe("la cuenta de CAYLA a la que devuelve al cerrar la ronda", () => {
   it("Compras lee quién dijo a qué cuenta devolvió, y nada si no la indicó", () => {
     expect(textoCuentaDevuelta("Marisol", "BCP")).toBe("Marisol dijo que lo devolvió a BCP.");
     expect(textoCuentaDevuelta("Marisol", null)).toBeNull();
+  });
+});
+
+describe("el día en que llegó la plata que se anota (20261110025000)", () => {
+  const hoy = "2026-11-09";
+  it("el rango va de hace 120 días hasta hoy", () => {
+    expect(limitesDeLlegada(hoy)).toEqual({ min: "2026-07-12", max: "2026-11-09" });
+  });
+  it("hoy, vacío o el mismo día no mandan nada: la base usa hoy, como siempre", () => {
+    expect(diaDeLlegadaAMandar(hoy, hoy)).toBeUndefined();
+    expect(diaDeLlegadaAMandar("", hoy)).toBeUndefined();
+  });
+  it("un día anterior dentro del rango sí viaja", () => {
+    expect(diaDeLlegadaAMandar("2026-11-03", hoy)).toBe("2026-11-03");
+    expect(diaDeLlegadaAMandar("2026-07-12", hoy)).toBe("2026-07-12");
+  });
+  it("un día futuro o de hace más de 120 días no viaja (la base los rechazaría)", () => {
+    expect(diaDeLlegadaAMandar("2026-11-10", hoy)).toBeUndefined();
+    expect(diaDeLlegadaAMandar("2026-07-11", hoy)).toBeUndefined();
   });
 });

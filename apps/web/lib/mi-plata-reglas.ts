@@ -1,4 +1,4 @@
-import { diaLima, diaMes, horaLima } from "./fechas-lima";
+import { diaLima, diaMes, horaLima, sumarDias } from "./fechas-lima";
 import { soles } from "./compras-reglas";
 import { MONTO_MAXIMO_GASTO, MONTO_MAXIMO_PLATA, campoResponsable, problemaDeMonto, type CuentaOpcion } from "./fondos-reglas";
 import type { CampoDeGuia } from "./guia-campos";
@@ -510,6 +510,24 @@ export function textoCuentaDevuelta(persona: string, cuenta: string | null): str
 export function cuentaAlConfirmar(fila: Pick<PlataPorConfirmar, "cuentaIndicadaId">, cuentas: readonly CuentaOpcion[]): string {
   const indicada = fila.cuentaIndicadaId;
   return (indicada && cuentas.some((c) => c.id === indicada) ? indicada : cuentaSugerida(cuentas)) ?? "";
+}
+
+/** Hasta cuántos días atrás pudo llegar la plata que se anota (lo mismo que acepta `anotar_plata_compras`, 20261110025000). */
+export const DIAS_MAX_ATRAS_LLEGADA = 120;
+
+/** El rango de días en que pudo llegar la plata: desde hace 120 días hasta hoy. Es lo que valida la base; aquí lo usa el calendario para no dejar elegir uno imposible. */
+export function limitesDeLlegada(hoy: string): { min: string; max: string } {
+  return { min: sumarDias(hoy, -DIAS_MAX_ATRAS_LLEGADA), max: hoy };
+}
+
+/**
+ * El día que viaja a la base al anotar: solo si es otro que hoy (el día en que de verdad salió o llegó la plata, 20261110025000). Sin
+ * cambio, vacío o fuera de rango no se manda nada y la base usa hoy; así una base de antes, que no conoce el dato, sigue igual.
+ */
+export function diaDeLlegadaAMandar(elegido: string, hoy: string): string | undefined {
+  if (!elegido || elegido === hoy) return undefined;
+  const { min, max } = limitesDeLlegada(hoy);
+  return elegido >= min && elegido <= max ? elegido : undefined;
 }
 
 /** «Marisol dijo que salió del BCP»: lo que ve Compras junto a la cuenta cuando la compradora indicó un banco. */
