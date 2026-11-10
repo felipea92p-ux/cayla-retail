@@ -10,6 +10,7 @@ import {
   BAJO_CREIBLE_MAXIMO,
   BAJO_CREIBLE_MINIMO,
   cajaDeArribaAjustada,
+  cajaDeAbajoSinMedida,
   cajaDeAbajoUnida,
   direccionParaMedir,
   FACTOR_MAXIMO_DEL_TORSO,
@@ -419,6 +420,32 @@ describe("cajaDeAbajoUnida: la pretina sigue al borde del torso, dentro de la ci
     expect(cajaDeAbajoUnida({ ...arribaCon(90), caja: { x: 0, y: 0, w: 0, h: 0 } }, falda)).toBeNull();
     const c = cajaDeAbajoUnida(arribaCon(90), falda)!;
     for (const v of [c.x, c.y, c.w, c.h]) expect(Number.isFinite(v)).toBe(true);
+  });
+});
+
+describe("cajaDeAbajoSinMedida: sin medidas, lo de abajo arranca en el bajo de la blusa, no en la cintura fija", () => {
+  // Polo Kristell Cuello Alto con Short Saskia sin medir (Felipe, 2026-11-10): el polo llega a 194 px y el short arrancaba en 152, detrás del polo.
+  const polo = { caja: { x: 129, y: 44, w: 134, h: 150 }, medida: null, metida: false };
+  const short = { x: 145, y: 152, w: 100, h: 88 };
+
+  it("sin medir la blusa, usa su bajo estimado; el tamaño y el lado no cambian", () => {
+    const c = cajaDeAbajoSinMedida(polo, short)!;
+    expect(c.y).toBe(Math.round(44 + 150 * FILA_ESTIMADA_DEL_BORDE - SOLAPE_DE_LA_UNION));
+    expect(c.y).toBeGreaterThan(short.y + 20);
+    expect({ x: c.x, w: c.w, h: c.h }).toEqual({ x: short.x, w: short.w, h: short.h });
+  });
+
+  it("con la blusa ya medida, usa su bajo medido (es donde corre el hilo)", () => {
+    const medida = { filaDelBorde: 0.8, borde: 0.9, pretina: null, bajo: null, anchoBajo: null };
+    const c = cajaDeAbajoSinMedida({ ...polo, medida }, short)!;
+    expect(c.y).toBe(Math.round(44 + 150 * 0.8 - SOLAPE_DE_LA_UNION));
+    expect(c.y).toBe(hiloDeLaEspera({ caja: polo.caja, medida }).y - SOLAPE_DE_LA_UNION);
+  });
+
+  it("un body metido o una caja rara no se mueven", () => {
+    expect(cajaDeAbajoSinMedida({ ...polo, metida: true }, short)).toBeNull();
+    expect(cajaDeAbajoSinMedida({ ...polo, caja: { x: 0, y: 0, w: 0, h: 0 } }, short)).toBeNull();
+    expect(cajaDeAbajoSinMedida(polo, { ...short, h: 0 })).toBeNull();
   });
 });
 
