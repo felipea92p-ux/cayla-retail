@@ -159,6 +159,58 @@ select not exists (select 1 from retail.fn_precios_a_revisar(null, 100, 0) where
 caso("Revisar precios: un filtro que no existe se rechaza", rechaza(/Filtro no válido/, `${como(FELIPE)}
 select * from retail.fn_precios_a_revisar('inventado');`));
 
+// Para aplicar: la prenda con todas sus tallas en S/ 100 salvo una en S/ 120 (precio propio), costo real S/ 40, y una propuesta de
+// revisión de S/ 89.90 hecha sobre ese precio. Deja `:prop`.
+const PARA_APLICAR = `
+update retail.variantes set precio = 100, costo = 40 where producto_id = :'prod' and activo;
+update retail.variantes set precio = 120 where id = (select id from retail.variantes where producto_id = :'prod' and activo order by id limit 1);
+update retail.variantes set activo = true where producto_id = :'prod' and id in (select id from retail.variantes where producto_id = :'prod' order by id limit 3);
+${como(FELIPE)}
+select ${registrar({ p_origen: "'revision'", p_producto_id: ":'prod'", p_costo: "40", p_precio_actual: "100", p_piso: "57.90", p_precio_propuesto: "89.90" })} as prop \\gset`;
+
+caso("Aplicar: cambia las tallas que estaban en el precio base, deja la de precio propio y queda en el historial", da("t", `${PARA_APLICAR}
+select retail.aplicar_precio_propuesto(:'prop') as r \\gset
+reset role;
+select (:'r'::jsonb ->> 'cambiadas')::int >= 1
+   and (:'r'::jsonb ->> 'con_precio_propio')::int = 1
+   and exists (select 1 from retail.variantes where producto_id = :'prod' and activo and precio = 120)
+   and not exists (select 1 from retail.variantes where producto_id = :'prod' and activo and precio = 100)
+   and exists (select 1 from retail.historial_producto_cambios h join retail.variantes v on v.id = h.entidad_id
+                where v.producto_id = :'prod' and h.campo = 'precio' and h.valor_nuevo::numeric = 89.90)
+   and (select aplicada_en is not null and aplicada_por is not null from retail.precio_propuestas where id = :'prop');`));
+
+caso("Aplicar dos veces la misma propuesta no cambia dos veces (un doble clic)", rechaza(/ya se aplicó/, `${PARA_APLICAR}
+select retail.aplicar_precio_propuesto(:'prop');
+select retail.aplicar_precio_propuesto(:'prop');`));
+
+caso("Aplicar: si alguien cambió el precio después de la propuesta, no se pisa", rechaza(/cambió después de la propuesta/, `${PARA_APLICAR}
+reset role;
+update retail.variantes set precio = 95 where producto_id = :'prod' and activo and precio = 100;
+${como(FELIPE)}
+select retail.aplicar_precio_propuesto(:'prop');`));
+
+caso("Aplicar: con el costo de hoy, el piso de 30 % se vuelve a exigir", rechaza(/menos de 30 %/, `${PARA_APLICAR}
+reset role;
+update retail.variantes set costo = 70 where producto_id = :'prod' and activo;
+${como(FELIPE)}
+select retail.aplicar_precio_propuesto(:'prop');`));
+
+caso("Aplicar: una propuesta de más de un día no se aplica", rechaza(/más de un día/, `${PARA_APLICAR}
+reset role;
+update retail.precio_propuestas set creada_en = now() - interval '2 days' where id = :'prop';
+${como(FELIPE)}
+select retail.aplicar_precio_propuesto(:'prop');`));
+
+caso("Aplicar: quien no edita el catálogo no cambia un precio", rechaza(/Solo quien edita el catálogo/, `${PARA_APLICAR}
+reset role;
+delete from retail.rol_modulos where modulo in ('productos', 'atributos');
+${como(MICAELA)}
+select retail.aplicar_precio_propuesto(:'prop');`));
+
+caso("Aplicar: una propuesta del alta no se aplica aquí", rechaza(/no se puede aplicar/, `${como(FELIPE)}
+select ${registrar()} as id \\gset
+select retail.aplicar_precio_propuesto(:'id');`));
+
 caso("la tabla no se lee ni se escribe directo desde la API", rechaza(/permission denied/, `${como(FELIPE)}
 select count(*) from retail.precio_propuestas;`));
 

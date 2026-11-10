@@ -4,6 +4,9 @@
 // PROMETE: filas con números (la base manda strings en numeric), las cuatro cuentas para las cifras, el filtro de la URL validado
 //   y una frase corta por prenda. ASUME: las filas vienen de `fn_precios_a_revisar`. NO HACE: no decide qué precio poner.
 
+import { soles } from "./compras-reglas";
+import { traducirError, type ErrorEscritura } from "./error-escritura";
+
 export type MotivoPrecio = "pierde_dinero" | "margen_bajo" | "caro" | "barato" | "sin_costo";
 /** Los filtros de las cifras (caro y barato van juntos en «lejos de su categoría»). */
 export type FiltroPrecio = "pierde_dinero" | "margen_bajo" | "lejos" | "sin_costo";
@@ -84,19 +87,58 @@ export function filtroDeUrl(valor: string | undefined): FiltroPrecio | null {
   return FILTROS_PRECIO.includes(valor as FiltroPrecio) ? (valor as FiltroPrecio) : null;
 }
 
-/** Por qué está en la lista, en una frase corta, y su tono. */
-export function textoMotivo(p: Pick<PrendaARevisar, "motivo" | "desvio" | "categoria">): { texto: string; tono: "rojo" | "ambar" | "pizarra" | "apagado" } {
+/** Por qué está en la lista: una etiqueta corta (cabe en la columna, junto al «Medio de su categoría») y la frase entera para el
+ *  `title`, y su tono. */
+export function textoMotivo(p: Pick<PrendaARevisar, "motivo" | "desvio" | "categoria">): { texto: string; frase: string; tono: "rojo" | "ambar" | "pizarra" | "apagado" } {
   const pct = p.desvio === null ? null : Math.round(Math.abs(p.desvio));
   switch (p.motivo) {
     case "pierde_dinero":
-      return { texto: "Pierdes en cada venta", tono: "rojo" };
+      return { texto: "Pierdes en cada venta", frase: "El precio no cubre el costo de la prenda.", tono: "rojo" };
     case "margen_bajo":
-      return { texto: "Gana menos de 30 %", tono: "ambar" };
+      return { texto: "Gana menos de 30 %", frase: "Con su costo real, deja menos de 30 % de margen.", tono: "ambar" };
     case "caro":
-      return { texto: pct === null ? "Más cara que sus parecidas" : `${pct} % más cara que sus parecidas`, tono: "pizarra" };
+      return {
+        texto: pct === null ? "Más cara" : `${pct} % más cara`,
+        frase: `${pct === null ? "Más cara" : `${pct} % más cara`} que el precio del medio de ${p.categoria}.`,
+        tono: "pizarra",
+      };
     case "barato":
-      return { texto: pct === null ? "Más barata que sus parecidas" : `${pct} % más barata que sus parecidas`, tono: "pizarra" };
+      return {
+        texto: pct === null ? "Más barata" : `${pct} % más barata`,
+        frase: `${pct === null ? "Más barata" : `${pct} % más barata`} que el precio del medio de ${p.categoria}.`,
+        tono: "pizarra",
+      };
     case "sin_costo":
-      return { texto: "Sin costo propio", tono: "apagado" };
+      return { texto: "Sin costo propio", frase: "No tiene costo cargado: su margen no se puede saber.", tono: "apagado" };
   }
+}
+
+// ---------------------------------------------------------------------------
+// Aplicar un precio propuesto (actividad 4): lo que dice la hoja antes y después.
+// ---------------------------------------------------------------------------
+
+/** Los rechazos de `aplicar_precio_propuesto` cuyo mensaje ya está en palabras de tienda (la base lo escribe así). */
+const HINTS_APLICAR = new Set(["ya_aplicada", "propuesta_vieja", "precio_cambio", "bajo_el_piso", "propuesta_no_valida"]);
+
+/** Lo que se dice si no se pudo aplicar: el mensaje de la base si es uno de los suyos, o la traducción de siempre. */
+export function mensajeAplicar(error: ErrorEscritura): string {
+  if (error && error.hint && HINTS_APLICAR.has(error.hint) && error.message) return error.message;
+  return traducirError(error, "aplicar el precio");
+}
+
+/** Con estos rechazos lo que se ve ya está viejo: la hoja se cierra y la lista se relee. */
+export function pideReleer(error: ErrorEscritura): boolean {
+  return !!error?.hint && ["ya_aplicada", "precio_cambio", "propuesta_vieja"].includes(error.hint);
+}
+
+/** El aviso de éxito: qué cambió y qué no («La talla con precio propio sigue igual»). */
+export function textoAplicado(referencia: string, precio: number, r: { cambiadas: number; con_precio_propio: number }): string {
+  const base = `${referencia} queda en ${soles(precio)}`;
+  if (r.con_precio_propio === 0) return `${base}.`;
+  return `${base}. ${r.con_precio_propio === 1 ? "Una talla con precio propio sigue igual" : `${r.con_precio_propio} tallas con precio propio siguen igual`}.`;
+}
+
+/** Una propuesta igual al precio de hoy no se aplica: se dice «déjalo como está». */
+export function esMismoPrecio(precioHoy: number, propuesto: number): boolean {
+  return Math.abs(precioHoy - propuesto) < 0.005;
 }

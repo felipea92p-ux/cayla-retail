@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { filtroDeUrl, leerPreciosARevisar, textoMotivo } from "./revisar-precios-reglas";
+import { esMismoPrecio, filtroDeUrl, leerPreciosARevisar, mensajeAplicar, pideReleer, textoAplicado, textoMotivo } from "./revisar-precios-reglas";
 
 const fila = (o: Record<string, unknown> = {}) => ({
   producto_id: "p1",
@@ -55,9 +55,28 @@ describe("filtroDeUrl", () => {
 
 describe("textoMotivo", () => {
   it("dice por qué en palabras de tienda, con cuánto se aleja", () => {
-    expect(textoMotivo({ motivo: "caro", desvio: 45.3, categoria: "Blusas" }).texto).toBe("45 % más cara que sus parecidas");
-    expect(textoMotivo({ motivo: "barato", desvio: -52.1, categoria: "Vestidos" }).texto).toBe("52 % más barata que sus parecidas");
-    expect(textoMotivo({ motivo: "pierde_dinero", desvio: null, categoria: "x" })).toEqual({ texto: "Pierdes en cada venta", tono: "rojo" });
-    expect(textoMotivo({ motivo: "caro", desvio: null, categoria: "x" }).texto).toBe("Más cara que sus parecidas");
+    expect(textoMotivo({ motivo: "caro", desvio: 45.3, categoria: "Blusas" }).texto).toBe("45 % más cara");
+    expect(textoMotivo({ motivo: "caro", desvio: 45.3, categoria: "Blusas" }).frase).toBe("45 % más cara que el precio del medio de Blusas.");
+    expect(textoMotivo({ motivo: "barato", desvio: -52.1, categoria: "Vestidos" }).texto).toBe("52 % más barata");
+    expect(textoMotivo({ motivo: "pierde_dinero", desvio: null, categoria: "x" }).tono).toBe("rojo");
+    expect(textoMotivo({ motivo: "caro", desvio: null, categoria: "x" }).texto).toBe("Más cara");
+  });
+});
+
+describe("aplicar", () => {
+  it("el mensaje de la base pasa tal cual si es uno de los suyos", () => {
+    const e = { message: "El precio de esta prenda cambió después de la propuesta: pide una nueva", hint: "precio_cambio", code: "22023" };
+    expect(mensajeAplicar(e)).toBe(e.message);
+    expect(pideReleer(e)).toBe(true);
+    expect(pideReleer({ message: "x", hint: "bajo_el_piso", code: "22023" })).toBe(false);
+  });
+  it("el aviso dice qué cambió y qué no", () => {
+    expect(textoAplicado("Blusa Emma", 69.9, { cambiadas: 4, con_precio_propio: 0 })).toBe("Blusa Emma queda en S/ 69.90.");
+    expect(textoAplicado("Blusa Emma", 69.9, { cambiadas: 3, con_precio_propio: 1 })).toBe("Blusa Emma queda en S/ 69.90. Una talla con precio propio sigue igual.");
+    expect(textoAplicado("Blusa Emma", 69.9, { cambiadas: 2, con_precio_propio: 2 })).toContain("2 tallas con precio propio siguen igual");
+  });
+  it("una propuesta igual al precio de hoy no se aplica", () => {
+    expect(esMismoPrecio(79.9, 79.9)).toBe(true);
+    expect(esMismoPrecio(79.9, 69.9)).toBe(false);
   });
 });

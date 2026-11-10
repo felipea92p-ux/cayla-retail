@@ -1634,6 +1634,13 @@ export const GUIA_REVISAR_PRECIOS: Guia = {
       texto: "Su precio, su costo (dice «estimado» si es el promedio de su categoría), cuánto gana y el precio del medio de su categoría. A la derecha, por qué está en la lista. Primero van las que pierden dinero.",
     },
     {
+      id: "proponer",
+      ancla: "revisar-precios.proponer",
+      opcional: true,
+      titulo: "Proponer un precio",
+      texto: "«Proponer» le pide a la IA un precio para esa prenda, mirando su costo y sus parecidas. Nunca baja de 30 % de margen. Si te convence, «Cambiar a S/\u00a0…» abre una hoja donde eliges quién lo hace y confirmas. La demo no lo pide.",
+    },
+    {
       id: "paginas",
       ancla: "revisar-precios.paginas",
       opcional: true,

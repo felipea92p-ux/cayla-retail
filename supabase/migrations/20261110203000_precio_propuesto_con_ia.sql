@@ -17,6 +17,10 @@
 --
 -- CÓMO SE PEGA. Una sola parte: tabla nueva (RLS encendido SIN políticas: solo la tocan estas funciones `security definer`) y tres
 -- funciones; no hace `alter` de tablas en uso ni crea políticas (ADR-0195). Re-ejecutable. Nada se borra nunca.
+--
+-- APLICAR (Revisar precios). `aplicar_precio_propuesto` es el único camino que cambia un precio desde aquí, uno por uno y con el
+-- responsable (Felipe: «uno por uno, confirmando»). Cambia solo las tallas que estaban en el precio base: una talla con precio propio lo
+-- conserva, y los precios por sede no se tocan. El historial lo escribe el disparador de siempre (`fn_registrar_cambio_producto`).
 -- ============================================================================
 
 set lock_timeout = '3s';
@@ -64,14 +68,18 @@ create table if not exists retail.precio_propuestas (
   -- Una propuesta cuesta ~US$0,03-0,05; el techo evita que una fila escrita a mano infle el gasto y deje a todos sin IA.
   costo_usd numeric(10, 6) not null default 0 check (costo_usd >= 0 and costo_usd <= 0.5),
   ms integer check (ms >= 0),
+  -- Cuándo y quién la aplicó (solo una revisión se aplica aquí: la del alta la usa la ficha al crear). Una sola vez.
+  aplicada_en timestamptz,
+  aplicada_por uuid references public.personas (id),
   check ((precio_propuesto is null) = (motivo is not null)),
+  check (aplicada_en is null or (origen = 'revision' and precio_propuesto is not null)),
   check (precio_propuesto is null or (piso is not null and costo is not null)),
   -- EL PISO DE FELIPE, en la base: nunca menos de 30 % de margen sobre el precio.
   check (precio_propuesto is null or precio_propuesto * 0.70 >= costo - 0.005),
   check (producto_id is not null or origen = 'alta')
 );
 comment on table retail.precio_propuestas is
-  'ADR-0641: cada precio que la IA propuso (o por qué no propuso), con el costo usado, el piso de 30 % y lo que costó. Sin DELETE. Solo la tocan registrar_precio_propuesta y fn_precio_gasto_del_mes.';
+  'ADR-0641: cada precio que la IA propuso (o por qué no propuso), con el costo usado, el piso de 30 % y lo que costó. Sin DELETE. Solo la tocan registrar_precio_propuesta, aplicar_precio_propuesto y fn_precio_gasto_del_mes.';
 
 create index if not exists precio_propuestas_creada_en on retail.precio_propuestas (creada_en);
 create index if not exists precio_propuestas_producto on retail.precio_propuestas (producto_id, creada_en) where producto_id is not null;
@@ -394,3 +402,69 @@ comment on function retail.fn_precios_a_revisar(text, integer, integer) is
   'ADR-0641: las prendas cuyo precio conviene mirar (pierde dinero o margen bajo 30 % con su costo real, más de 35 % lejos del medio de su categoría, o sin costo propio), con una cuenta fija. Solo lectura; pide ver Productos.';
 revoke all on function retail.fn_precios_a_revisar(text, integer, integer) from public, anon;
 grant execute on function retail.fn_precios_a_revisar(text, integer, integer) to authenticated, service_role;
+
+-- Aplica un precio propuesto en «Revisar precios»: una prenda, con el responsable, solo si nada cambió desde la propuesta.
+--   · ya_aplicada     — esa propuesta ya se aplicó (un doble clic no cambia dos veces);
+--   · propuesta_vieja — tiene más de un día: los datos con que se calculó pueden haber cambiado;
+--   · precio_cambio   — alguien cambió el precio de la prenda después de la propuesta;
+--   · bajo_el_piso    — con el costo de HOY, el precio propuesto deja menos de 30 % (el piso de Felipe, otra vez, al aplicar).
+-- Cambia las variantes activas que estaban en el precio base (el del medio de la prenda) y devuelve cuántas cambió y cuántas siguen con
+-- su precio propio.
+create or replace function retail.aplicar_precio_propuesto(p_propuesta_id uuid)
+returns jsonb
+language plpgsql
+volatile
+security definer
+set search_path = retail, public, extensions
+as $$
+declare
+  v_persona uuid;
+  v_prop retail.precio_propuestas%rowtype;
+  v_precio_hoy numeric;
+  v_costo_hoy numeric;
+  v_cambiadas integer;
+  v_propias integer;
+begin
+  if auth.uid() is null or not retail.fn_ve_modulo('productos') or not retail.fn_puede_editar_catalogo() then
+    raise exception 'Solo quien edita el catálogo cambia un precio' using errcode = '42501';
+  end if;
+  v_persona := retail.fn_actor_persona_id(true);
+
+  select * into v_prop from retail.precio_propuestas where id = p_propuesta_id for update;
+  if not found or v_prop.origen <> 'revision' or v_prop.precio_propuesto is null then
+    raise exception 'Esa propuesta no se puede aplicar' using errcode = '22023', hint = 'propuesta_no_valida';
+  end if;
+  if v_prop.aplicada_en is not null then
+    raise exception 'Esa propuesta ya se aplicó' using errcode = '22023', hint = 'ya_aplicada';
+  end if;
+  if v_prop.creada_en < now() - interval '1 day' then
+    raise exception 'La propuesta tiene más de un día: pide una nueva' using errcode = '22023', hint = 'propuesta_vieja';
+  end if;
+
+  -- La prenda primero (el mismo orden que la ficha: la prenda → sus variantes), para que dos personas no apliquen a la vez.
+  perform 1 from retail.productos where id = v_prop.producto_id for update;
+  select percentile_disc(0.5) within group (order by v.precio), round(avg(v.costo) filter (where v.costo > 0), 2)
+    into v_precio_hoy, v_costo_hoy
+    from retail.variantes v where v.producto_id = v_prop.producto_id and v.activo and v.precio > 0;
+  if v_precio_hoy is distinct from v_prop.precio_actual then
+    raise exception 'El precio de esta prenda cambió después de la propuesta: pide una nueva' using errcode = '22023', hint = 'precio_cambio';
+  end if;
+  if v_costo_hoy is not null and v_prop.precio_propuesto * 0.70 < v_costo_hoy then
+    raise exception 'Con el costo de hoy, ese precio gana menos de 30 %%: pide una nueva' using errcode = '22023', hint = 'bajo_el_piso';
+  end if;
+
+  update retail.variantes set precio = v_prop.precio_propuesto
+   where producto_id = v_prop.producto_id and activo and precio = v_prop.precio_actual;
+  get diagnostics v_cambiadas = row_count;
+  select count(*)::integer into v_propias from retail.variantes
+   where producto_id = v_prop.producto_id and activo and precio > 0 and precio <> v_prop.precio_propuesto;
+
+  update retail.precio_propuestas set aplicada_en = now(), aplicada_por = v_persona where id = p_propuesta_id;
+  return jsonb_build_object('cambiadas', v_cambiadas, 'con_precio_propio', v_propias);
+end;
+$$;
+
+comment on function retail.aplicar_precio_propuesto(uuid) is
+  'ADR-0641: aplica un precio propuesto en Revisar precios (una prenda, con responsable, solo si el precio y el costo no cambiaron y respeta el piso de 30 %). Cambia las tallas en el precio base; el historial lo escribe su disparador.';
+revoke all on function retail.aplicar_precio_propuesto(uuid) from public, anon;
+grant execute on function retail.aplicar_precio_propuesto(uuid) to authenticated, service_role;
