@@ -1165,7 +1165,7 @@ export const GUIA_TIENDA_WEB_AJUSTES: Guia = {
       ancla: "config.tienda-web-horario",
       opcional: true,
       titulo: "El horario, día por día",
-      texto: "Cada día es una barra: arrastra un borde para cambiar esa hora, la barra para correrla, o toca la letra del día para abrirlo o cerrarlo. De a 15 minutos (8:15, 9:45). La tienda online dirá «Abierta · cierra 9 p. m.» sola.",
+      texto: "Cada día tiene su interruptor: apágalo si ese día no se trabaja (el domingo queda «Cerrado»). Abierto, es una barra: arrastra un borde para cambiar esa hora o la barra para correrla, de a 15 minutos (8:15, 9:45). La tienda online dirá «Abierta · cierra 9 p. m.» sola.",
     },
     {
       id: "cierres",

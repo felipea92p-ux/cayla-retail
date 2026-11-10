@@ -562,7 +562,7 @@ function TallerDeTienda({
               <>
                 {etiqueta("horario", "Horario")}
                 <Chip tono="neutro" versalitas={false} className="ml-2">
-                  Arrastra los bordes o la barra · la letra cierra el día
+                  Arrastra los bordes o la barra · el interruptor abre o cierra el día
                 </Chip>
               </>
             }

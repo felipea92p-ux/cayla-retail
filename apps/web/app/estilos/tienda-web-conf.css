@@ -186,23 +186,30 @@
   @media (hover: hover) { .twc-cierre button:hover { background: var(--color-sand); color: var(--color-tinta); } }
 
   /* ───────── El horario por días: una barra por día, con asas ───────── */
-  .twc-horas { display: grid; grid-template-columns: 40px minmax(0, 1fr); gap: 4px 10px; align-items: center; user-select: none; -webkit-user-select: none; }
+  .twc-horario { container-type: inline-size; }
+  .twc-horas { display: grid; grid-template-columns: 76px minmax(0, 1fr); gap: 4px 10px; align-items: center; user-select: none; -webkit-user-select: none; }
   .twc-eje { position: relative; grid-column: 2; height: 16px; font-size: 11px; font-weight: 600; color: var(--color-taupe); }
   .twc-eje span { position: absolute; transform: translateX(-50%); white-space: nowrap; }
-  .twc-dia {
-    height: 34px; display: grid; place-items: center; border-radius: 8px; font-size: 12px; font-weight: 700; letter-spacing: 0.06em; color: var(--color-tinta);
-    transition: background-color 200ms var(--ease-cayla), color 200ms var(--ease-cayla);
-  }
-  @media (hover: hover) { .twc-dia:not(:disabled):hover { background: var(--color-hueso); } }
-  .twc-dia[aria-pressed="false"] { color: var(--color-taupe); opacity: 0.75; }
+  /* El día: su interruptor (abierto / cerrado) y su nombre; el de hoy lleva el anillo. */
+  .twc-dia { height: 34px; display: flex; align-items: center; padding-left: 4px; border-radius: 8px; font-size: 12px; font-weight: 700; letter-spacing: 0.06em; color: var(--color-tinta); }
+  .twc-dia { grid-column: 1; }
+  .twc-dia > div { width: 100%; }
+  .twc-pista { grid-column: 2; }
   .twc-dia[data-hoy] { box-shadow: inset 0 0 0 1.5px var(--color-tinta); }
+  /* Las horas escritas, a la derecha: solo donde hay lugar (el celular las lee en la barra o en su título). */
+  .twc-horas-texto { grid-column: 3; display: none; font-size: 13px; font-weight: 600; color: var(--color-tinta); white-space: nowrap; text-align: right; }
+  @container (min-width: 600px) {
+    .twc-horas { grid-template-columns: 76px minmax(0, 1fr) 138px; }
+    .twc-horas-texto { display: block; }
+    .twc-eje { grid-column: 2; }
+  }
   .twc-pista {
-    position: relative; height: 34px; overflow: hidden; border-radius: 8px; cursor: crosshair; touch-action: pan-y;
+    position: relative; height: 34px; overflow: hidden; border-radius: 8px; touch-action: pan-y;
     background: repeating-linear-gradient(90deg, var(--color-hueso) 0 calc(100% / 16 - 1px), var(--color-sand) calc(100% / 16 - 1px) calc(100% / 16));
   }
-  .twc-pista[data-cerrado] { cursor: pointer; }
+  .twc-pista[data-cerrado] { cursor: default; }
   .twc-pista[data-cerrado]::after {
-    content: "Cerrado · toca para abrir"; position: absolute; inset: 0; display: grid; place-items: center;
+    content: "Cerrado"; position: absolute; inset: 0; display: grid; place-items: center;
     font-size: 11px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-taupe); pointer-events: none;
   }
   .twc-pista[data-cierre] { cursor: not-allowed; background: repeating-linear-gradient(135deg, var(--color-hueso) 0 6px, var(--color-sand) 6px 12px); }
@@ -216,6 +223,8 @@
   .twc-asa-h { position: absolute; top: 0; bottom: 0; width: 16px; display: grid; place-items: center; cursor: ew-resize; }
   .twc-asa-h[data-asa="abre"] { left: 0; }
   .twc-asa-h[data-asa="cierra"] { right: 0; }
+  .twc-tramo[data-corto] { padding: 0; }
+  .twc-tramo[data-corto] .twc-asa-h { width: 12px; }
   .twc-asa-h::before {
     content: ""; width: 4px; height: 14px; transition: transform 200ms var(--ease-cayla);
     border-left: 1.5px solid color-mix(in srgb, var(--color-crema) 70%, transparent); border-right: 1.5px solid color-mix(in srgb, var(--color-crema) 70%, transparent);

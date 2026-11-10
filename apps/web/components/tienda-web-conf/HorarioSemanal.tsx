@@ -1,14 +1,12 @@
 "use client";
 
-import { Fragment, useRef, useState, type KeyboardEvent, type PointerEvent } from "react";
+import { Fragment, useEffect, useRef, useState, type KeyboardEvent, type PointerEvent } from "react";
 import { Rows3 } from "lucide-react";
-import { etiquetaDeHora, mismaSemana, DIAS_LARGOS, type MomentoEnLima, type SemanaDeTienda, type TramoDia } from "@cayla-retail/shared/horario-de-tienda";
+import { Interruptor } from "@/components/ui/campos";
+import { etiquetaDeHora, mismaSemana, DIAS_CORTOS, DIAS_LARGOS, type MomentoEnLima, type SemanaDeTienda, type TramoDia } from "@cayla-retail/shared/horario-de-tienda";
 import {
-  conAperturaEn, conCierreEn, conTecla, corridoPor, minutoDeLaPista, porcentajeDeMinuto, rangoVisible, semanaComoElLunes, tramoParaAbrir, tramoPintado, type RangoVisible,
+  conAperturaEn, conCierreEn, conTecla, corridoPor, lunesALosDiasAbiertos, minutoDeLaPista, porcentajeDeMinuto, rangoVisible, tramoAlAbrirDia, type RangoVisible,
 } from "@/lib/horario-edicion-reglas";
-
-/** La letra de cada día, de lunes a domingo («X» es el miércoles: «M» ya es el martes). */
-const LETRAS = ["L", "M", "X", "J", "V", "S", "D"] as const;
 
 /** Cómo se rotula una hora en el eje de arriba, sin sobrar: «8 a», «12 m», «2 p». */
 function etiquetaDelEje(min: number): string {
@@ -16,14 +14,20 @@ function etiquetaDelEje(min: number): string {
   return `${h % 12 === 0 ? 12 : h % 12} ${h === 12 ? "m" : h < 12 ? "a" : "p"}`;
 }
 
-type Gesto = { dia: number; modo: "pintar" | "mover" | "abre" | "cierra"; minuto0: number; original: TramoDia | null; rango: RangoVisible; ancho: number; movio: boolean; resultado: TramoDia | null };
+/** Cuánto ancho (en pantalla) necesita una barra para que sus dos horas y sus dos asas no se pisen; menos que eso, las horas se leen a la derecha. */
+const ANCHO_PARA_LAS_HORAS = 150;
+/** Bajo este ancho las asas se adelgazan para dejar un pedazo de barra que agarrar. */
+const ANCHO_CORTO = 64;
+
+type Gesto = { dia: number; modo: "mover" | "abre" | "cierra"; minuto0: number; original: TramoDia; rango: RangoVisible; ancho: number; movio: boolean; resultado: TramoDia | null };
 
 /**
- * El horario por días, para pintar (Tienda web ▸ Conf. Tienda, maqueta de 2026-10-26). Cada día es una barra con dos asas: se arrastra un borde
- * para cambiar esa hora, la barra entera para correrla, un hueco para pintar una nueva, y un día cerrado se abre con un toque. Todo de a media
- * hora. Con teclado: ←/→ corren la barra, Mayús + ←/→ mueven el cierre, Alt + ←/→ la apertura, Suprimir cierra el día. La línea roja es la hora de
- * ahora (de Lima) sobre el día de hoy. Es un campo CONTROLADO: no guarda nada, avisa cada cambio con `onCambio`; el gesto se ve mientras se hace
- * y recién al soltar se avisa (una sola vez). La lógica de los números vive en `lib/horario-edicion-reglas.ts`.
+ * El horario por días (Tienda web ▸ Conf. Tienda, maqueta de 2026-10-26; rehecho el 2026-11-10). Cada día tiene su INTERRUPTOR de abierto/cerrado —lo
+ * que no se trabaja (el domingo) queda en «Cerrado» y ahí no pasa nada: ya no se «pinta» una barra por un arrastre sin querer— y, abierto, una barra
+ * con dos asas: se arrastra un borde para cambiar esa hora y la barra entera para correrla. Todo de a 15 minutos. Un día que se abre toma el
+ * horario del día abierto de antes. Con teclado: ←/→ corren la barra, Mayús + ←/→ mueven el cierre, Alt + ←/→ la apertura, Suprimir cierra el
+ * día. La línea roja es la hora de ahora (de Lima) sobre el día de hoy. Es un campo CONTROLADO: no guarda nada, avisa cada cambio con `onCambio`;
+ * el gesto se ve mientras se hace y recién al soltar se avisa (una sola vez). La lógica de los números vive en `lib/horario-edicion-reglas.ts`.
  */
 export function HorarioSemanal({
   valor,
@@ -40,19 +44,33 @@ export function HorarioSemanal({
   deshabilitado?: boolean;
 }) {
   const [vista, setVista] = useState<{ dia: number; tramo: TramoDia } | null>(null);
+  const [anchoPista, setAnchoPista] = useState(0);
   const gesto = useRef<Gesto | null>(null);
+  const raiz = useRef<HTMLDivElement>(null);
   const rango = rangoVisible(valor);
   const mostrada = vista ? valor.map((t, i) => (i === vista.dia ? vista.tramo : t)) : valor;
+
+  // El ancho real de una pista: de él depende si la barra tiene lugar para sus horas.
+  useEffect(() => {
+    const pista = raiz.current?.querySelector<HTMLElement>(".twc-pista");
+    if (!pista || typeof ResizeObserver === "undefined") return;
+    const mide = () => setAnchoPista(pista.getBoundingClientRect().width);
+    mide();
+    const obs = new ResizeObserver(mide);
+    obs.observe(pista);
+    return () => obs.disconnect();
+  }, []);
 
   const poner = (dia: number, tramo: TramoDia | null) => onCambio(valor.map((t, i) => (i === dia ? tramo : t)));
   const fraccion = (e: PointerEvent<HTMLElement>, g: Gesto) => (e.clientX - e.currentTarget.getBoundingClientRect().left) / g.ancho;
 
   function empezar(e: PointerEvent<HTMLDivElement>, dia: number) {
-    if (deshabilitado || (e.pointerType === "mouse" && e.button !== 0) || (cierreHoy && ahora?.dia === dia)) return;
+    const original = valor[dia] ?? null;
+    // Un día cerrado no se toca con el mouse: se abre con su interruptor (un arrastre sin querer ya no le inventa una barra).
+    if (!original || deshabilitado || (e.pointerType === "mouse" && e.button !== 0) || (cierreHoy && ahora?.dia === dia)) return;
     const caja = e.currentTarget.getBoundingClientRect();
     const asa = (e.target as HTMLElement).closest<HTMLElement>("[data-asa]")?.dataset.asa;
-    const original = valor[dia] ?? null;
-    const modo: Gesto["modo"] = asa === "abre" || asa === "cierra" ? asa : (e.target as HTMLElement).closest("[data-tramo]") ? "mover" : "pintar";
+    const modo: Gesto["modo"] = asa === "abre" || asa === "cierra" ? asa : "mover";
     const g: Gesto = { dia, modo, minuto0: 0, original, rango, ancho: caja.width, movio: false, resultado: null };
     g.minuto0 = minutoDeLaPista(fraccion(e, g), rango);
     gesto.current = g;
@@ -66,11 +84,7 @@ export function HorarioSemanal({
     if (!g.movio && minuto === g.minuto0) return;
     g.movio = true;
     const t = g.original;
-    const tramo =
-      g.modo === "abre" && t ? conAperturaEn(t, minuto, g.rango)
-      : g.modo === "cierra" && t ? conCierreEn(t, minuto, g.rango)
-      : g.modo === "mover" && t ? corridoPor(t, minuto - g.minuto0, g.rango)
-      : tramoPintado(g.minuto0, minuto, g.rango);
+    const tramo = g.modo === "abre" ? conAperturaEn(t, minuto, g.rango) : g.modo === "cierra" ? conCierreEn(t, minuto, g.rango) : corridoPor(t, minuto - g.minuto0, g.rango);
     // El último tramo se guarda en el propio gesto: soltar el mouse puede llegar antes de que React vuelva a pintar, y `vista` aún sería el anterior.
     g.resultado = tramo;
     setVista({ dia: g.dia, tramo });
@@ -80,10 +94,7 @@ export function HorarioSemanal({
     const g = gesto.current;
     gesto.current = null;
     setVista(null);
-    if (!g) return;
-    if (g.movio && g.resultado) poner(g.dia, g.resultado);
-    // Un toque sin arrastrar: en un día cerrado lo abre; sobre una barra no hace nada (para cerrarlo está la letra del día).
-    else if (!g.movio && !g.original) poner(g.dia, tramoParaAbrir(g.rango));
+    if (g?.movio && g.resultado) poner(g.dia, g.resultado);
   }
 
   function cancelar() {
@@ -102,10 +113,10 @@ export function HorarioSemanal({
   const horas: number[] = [];
   for (let m = Math.ceil(rango.desde / 120) * 120; m <= rango.hasta; m += 120) horas.push(m);
   const lunesAbierto = valor[0] !== null;
-  const yaIgual = mismaSemana(valor, semanaComoElLunes(valor));
+  const yaIgual = mismaSemana(valor, lunesALosDiasAbiertos(valor));
 
   return (
-    <div className="twc-horario">
+    <div className="twc-horario" ref={raiz}>
       <div className="twc-horas" role="group" aria-label="Horario por días">
         <div className="twc-eje" aria-hidden>
           {horas.map((m) => (
@@ -114,23 +125,27 @@ export function HorarioSemanal({
             </span>
           ))}
         </div>
-        {LETRAS.map((letra, i) => {
+        {DIAS_CORTOS.map((corto, i) => {
           const t = mostrada[i] ?? null;
           const cerradoHoy = cierreHoy && ahora?.dia === i;
+          const barra = t ? ((t.cierra - t.abre) / (rango.hasta - rango.desde)) * anchoPista : 0;
+          const conHoras = barra >= ANCHO_PARA_LAS_HORAS;
+          const horasTexto = t ? `${etiquetaDeHora(t.abre)} – ${etiquetaDeHora(t.cierra)}` : "";
           return (
-            <Fragment key={letra + i}>
-              <button
-                type="button"
-                className="twc-dia"
-                data-hoy={ahora?.dia === i ? "" : undefined}
-                aria-pressed={valor[i] !== null}
-                aria-label={`${DIAS_LARGOS[i]}: ${valor[i] ? "abierto, toca para cerrar" : "cerrado, toca para abrir"}`}
-                title={valor[i] ? `Cerrar el ${DIAS_LARGOS[i].toLocaleLowerCase("es")}` : `Abrir el ${DIAS_LARGOS[i].toLocaleLowerCase("es")}`}
-                disabled={deshabilitado}
-                onClick={() => poner(i, valor[i] ? null : tramoParaAbrir(rango))}
-              >
-                {letra}
-              </button>
+            <Fragment key={corto}>
+              <div className="twc-dia" data-hoy={ahora?.dia === i ? "" : undefined}>
+                <Interruptor
+                  activo={valor[i] !== null}
+                  onActivo={(abre) => poner(i, abre ? tramoAlAbrirDia(valor, i, rango) : null)}
+                  disabled={deshabilitado}
+                  etiqueta={
+                    <>
+                      <span aria-hidden>{corto}</span>
+                      <span className="sr-only">{`${DIAS_LARGOS[i]}: ${valor[i] ? "abierto" : "cerrado"}`}</span>
+                    </>
+                  }
+                />
+              </div>
               <div
                 className="twc-pista"
                 data-dia={i}
@@ -146,16 +161,22 @@ export function HorarioSemanal({
                     className="twc-tramo"
                     data-tramo
                     data-moviendo={vista?.dia === i ? "" : undefined}
+                    data-corto={barra < ANCHO_CORTO ? "" : undefined}
                     tabIndex={deshabilitado ? -1 : 0}
                     role="group"
+                    title={horasTexto}
                     aria-label={`${DIAS_LARGOS[i]}, de ${etiquetaDeHora(t.abre)} a ${etiquetaDeHora(t.cierra)}`}
                     aria-keyshortcuts="ArrowLeft ArrowRight Shift+ArrowLeft Shift+ArrowRight Alt+ArrowLeft Alt+ArrowRight Delete"
                     onKeyDown={(e) => teclas(e, i, t)}
                     style={{ left: `${porcentajeDeMinuto(t.abre, rango)}%`, width: `${porcentajeDeMinuto(t.cierra, rango) - porcentajeDeMinuto(t.abre, rango)}%` }}
                   >
                     <i className="twc-asa-h" data-asa="abre" aria-hidden />
-                    <span>{etiquetaDeHora(t.abre)}</span>
-                    <span>{etiquetaDeHora(t.cierra)}</span>
+                    {conHoras && (
+                      <>
+                        <span>{etiquetaDeHora(t.abre)}</span>
+                        <span>{etiquetaDeHora(t.cierra)}</span>
+                      </>
+                    )}
                     <i className="twc-asa-h" data-asa="cierra" aria-hidden />
                   </div>
                 )}
@@ -163,6 +184,9 @@ export function HorarioSemanal({
                   <span className="twc-ahora" aria-hidden style={{ left: `${porcentajeDeMinuto(ahora.minutos, rango)}%` }} />
                 )}
               </div>
+              <span className="twc-horas-texto" aria-hidden>
+                {horasTexto}
+              </span>
             </Fragment>
           );
         })}
@@ -171,10 +195,11 @@ export function HorarioSemanal({
         <button
           type="button"
           className="btn-cayla btn-sutil btn-chico"
+          title="Los días abiertos toman el horario del lunes; los cerrados siguen cerrados"
           disabled={deshabilitado || !lunesAbierto || yaIgual}
-          onClick={() => onCambio(semanaComoElLunes(valor))}
+          onClick={() => onCambio(lunesALosDiasAbiertos(valor))}
         >
-          <Rows3 aria-hidden className="h-3.5 w-3.5" /> Copiar lunes a todos
+          <Rows3 aria-hidden className="h-3.5 w-3.5" /> Copiar lunes a los abiertos
         </button>
       </div>
     </div>

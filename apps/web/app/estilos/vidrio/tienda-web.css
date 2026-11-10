@@ -237,9 +237,6 @@
   .twc-cierre button:hover {
     background: var(--gota-fondo-encima);
   }
-  .twc-dia:not(:disabled):hover {
-    background: var(--gota-chica-fondo);
-  }
 }
 /* La pista de un día: un pozo con el hilo de cada hora; el tramo abierto, la gota ahumada que se arrastra. */
 .twc-pista {
