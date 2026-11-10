@@ -205,6 +205,7 @@ export const PANTALLAS: Record<string, PantallaGuia> = {
   "/productos/marcas": { estado: "aplicada", evidencia: ["components/alta-producto/NuevaMarcaForm.tsx"] },
   "/productos/nuevo": { estado: "aplicada", evidencia: ["components/NuevoProductoForm.tsx", "components/alta-producto/piezas.tsx"] },
   "/productos/por-revisar": { estado: "no-aplica", motivo: "Cola de solo lectura de las prendas que alguien propuso (ADR-0371): cada fila trae sus datos y dos botones, Aprobar y Rechazar; no hay campos que llenar ni pasos que seguir. Lo único que se elige —quién firma— vive en la hoja de cada decisión (components/RevisarProductoHoja.tsx)." },
+  "/productos/revisar-precios": { estado: "no-aplica", motivo: "Lista de solo lectura de las prendas cuyo precio conviene mirar (ADR-0641): cuatro cifras que filtran y una tabla; no hay campos que llenar ni pasos que seguir. Proponer y aplicar un precio se hace por fila." },
   // ---- recibir ----
   // ADR-0330: la puerta «Llegó mercadería» trae su guía (proveedor → prendas → quién recibe). La rama «contra factura»
   // (`RecepcionEnvio`) sigue declarada como modal pendiente más abajo.
@@ -373,6 +374,7 @@ export const MODALES: Record<string, PantallaGuia> = {
   "components/IngresoRapidoModal.tsx": { estado: "aplicada", evidencia: ["components/IngresoRapidoModal.tsx"] },
   "components/CorregirPagoModal.tsx": { estado: "aplicada", evidencia: ["components/CorregirPagoModal.tsx"] },
   "components/RevisarProductoHoja.tsx": { estado: "no-aplica", motivo: "Confirmación de UN solo control (quién firma): el título dice qué prenda se aprueba o se rechaza y la nota qué pasa después; cuando el rechazo está bloqueado (orden en proceso o stock) la hoja no pide nada, dice qué lo frena y a dónde ir. No hay camino que indicar (ADR-0371)." },
+  "components/AplicarPrecioHoja.tsx": { estado: "no-aplica", motivo: "Confirmación de UN solo control (quién firma): el título dice qué prenda cambia de precio, la cifra muestra el precio de antes tachado y el nuevo con su margen, y la nota dice qué tallas cambian. No hay camino que indicar (ADR-0641)." },
   "components/plan-compra/NuevaCampanaModal.tsx": { estado: "aplicada", evidencia: ["components/plan-compra/NuevaCampanaModal.tsx"] },
   "components/plan-compra/HojaDeCampanaCalendario.tsx": { estado: "aplicada", evidencia: ["components/plan-compra/HojaDeCampanaCalendario.tsx"] },
   "components/plan-compra/EditarCampanaModal.tsx": { estado: "aplicada", evidencia: ["components/plan-compra/EditarCampanaModal.tsx"] },
@@ -499,7 +501,7 @@ export const MODALES: Record<string, PantallaGuia> = {
   // Recomendaciones (ADR-0408): desde el 2026-10-17 la hoja es un `<Cajon>`, que la prueba también cuenta como hoja. Su guía: la respuesta,
   // que falta hasta estar bien escrita, y quién lo hace. «Falta» = lo que `responder_recomendacion` rechazaría (`lib/recomendaciones-guia.ts`).
   "components/recomendaciones/RecomendacionHoja.tsx": { estado: "aplicada", evidencia: ["components/recomendaciones/RecomendacionHoja.tsx"] },
-  "components/alta-producto/ElegirColores.tsx": { estado: "no-aplica", motivo: "Elegir colores sirve a la fila «Colores» de Nuevo producto, que ya lleva su guía (FilaAlta). Su hoja «Nuevo color» lleva su guía en `NuevoColorAlta` (`camposDeNuevoColor`, ADR-0634): nombre y tono, o patrón, color y nombre si es estampado." },
+  "components/alta-producto/ElegirColores.tsx": { estado: "no-aplica", motivo: "Elegir colores sirve a la fila «Colores» de Nuevo producto, que ya lleva su guía (FilaAlta). Su hoja «Nuevo color» lleva su guía en `NuevoColorAlta` (`camposDeNuevoColor`, ADR-0634): nombre y tono, o patrón, color y nombre si es estampado. Su hoja «+ acompañante» (`ArmarMezcla`, ADR-0643) tiene un solo control —los colores que acompañan a la base—, y muestra el nombre de la mezcla armado y qué falta sobre sus botones." },
   "components/alta-producto/ProponerValor.tsx": { estado: "no-aplica", motivo: "Modal «Nuevo tejido / patrón / talla» (2026-10-02): un solo campo, el nombre; «Agregar» se apaga mientras está vacío o mientras queda sin contestar «¿no será uno que ya existe?» (ADR-0576)." },
   "components/alta-producto/ElegirEtiquetas.tsx": { estado: "no-aplica", motivo: "Hoja de elegir etiquetas que sirve a la fila «Etiquetas» de Nuevo producto, que ya lleva su guía (FilaAlta); elegir es opcional y «Listo» aplica lo marcado." },
   "components/alta-producto/ElegirMuestra.tsx": { estado: "no-aplica", motivo: "Hoja de elegir tejido o patrón que sirve a esas filas de Nuevo producto, que ya llevan su guía (FilaAlta); no tiene campo obligatorio propio: tocar una muestra la elige." },

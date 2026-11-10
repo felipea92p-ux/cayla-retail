@@ -2,7 +2,7 @@
   "guia": "productos.nuevo",
   "ruta": "/productos/nuevo",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 124,
+  "total": 132,
   "controles": {
     "app/(app)/productos/nuevo/page.tsx": [
       "Volver «{RUTA_ORDENES}»",
@@ -41,6 +41,12 @@
       "button «→alternarVerMas»",
       "button «nuevo.categoria»"
     ],
+    "components/alta-producto/ArmarMezcla.tsx": [
+      "button «{`Quitar ${c.nombre}»",
+      "ComboBuscable «→(cod) => alternar(cod)»",
+      "Boton «Cancelar»",
+      "Boton «{(bloqueo ?? firma.motivo) ?? undefined}»"
+    ],
     "components/alta-producto/AvisoParecidos.tsx": [
       "Link «Abrir»",
       "Link «{p.referencia}»",
@@ -51,6 +57,7 @@
       "Boton «{firma.motivo ?? undefined}»"
     ],
     "components/alta-producto/ElegirColores.tsx": [
+      "button «{`Agregar un color que acompaña al ${c.nombre.toLocaleLowerCase(\"es\")}»",
       "button «{`Quitar ${c.nombre}»",
       "ComboBuscable «(sin nombre)»",
       "button «{carta ? \"Ocultar la carta\" : `Ver los ${colores.length}»",
@@ -165,6 +172,11 @@
       "CampoTexto «{`Nombre ${tipo === \"tallas\" ? \"de la\" : \"del\"}»",
       "Boton «{firma.motivo ?? faltaExiste ?? undefined}»",
       "button «Cancelar»"
+    ],
+    "components/alta-producto/PropuestaDePrecio.tsx": [
+      "Boton «Proponer precio»",
+      "Boton «{yaUsada ? \"Precio puesto\" : \"Usar este precio\"}»",
+      "button «Proponer otro»"
     ],
     "components/alta-producto/PuntosAvance.tsx": [
       "button «{`${paso.nombre}»"

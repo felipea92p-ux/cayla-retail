@@ -68,6 +68,10 @@ export const PRUEBAS = [
   // mes); «¿Te sirvió?» solo lo contesta quien preguntó, una vez; la tabla no se toca directo desde la API. ROLLBACK.
   "pruebas:asistente-preguntas",
 
+  // Precio propuesto con IA (ADR-0641): ninguna propuesta deja menos de 30 % de margen (lo exige la tabla); el costo de una fila
+  // tiene techo (nadie infla el tope de US$ 20); quien no ve Productos no lee el contexto ni anota. ROLLBACK.
+  "pruebas:precio-propuesto",
+
   // El interruptor de cada sede (ADR-0536, act. 8): nace apagado; lo cambia quien ve Configuración (Felipe 2026-10-27), no una
   // integrante sin el módulo; sin sesión nada sale encendido; apagar no borra la fila; un doble clic no ensucia la historia. ROLLBACK.
   "pruebas:asistente-sedes",
@@ -2249,6 +2253,11 @@ export const PRUEBAS = [
   // Lo que el paso `supabase` hace con las migraciones de un PR (ADR-0251, act. 2026-10-12): aparta, aplica una por una
   // en su transacción, toma huellas y devuelve. En una base APARTE del mismo Postgres: la de las pruebas no se toca.
   "pruebas:huellas-del-pr",
+
+  // Colores combinados (ADR-0643): `color_combinado` busca o crea «Crudo con azur» (la misma mezcla en otro orden es la misma),
+  // con la familia y el hex de la base; el candado rechaza un color que no existe, repetido o una mezcla dentro de otra, y una
+  // mezcla con prendas no cambia de colores. ROLLBACK.
+  "pruebas:colores-combinados",
 ];
 
 /** `"2/4"` → `{ n: 2, de: 4 }`. Lanza si no calza: un error de tipeo en ci.yml no debe correr cero pruebas en verde. */

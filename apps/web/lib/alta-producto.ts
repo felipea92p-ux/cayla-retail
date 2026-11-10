@@ -118,6 +118,8 @@ export type ColorAlta = {
   /** La ficha del color (ADR-0316): qué transmite y con qué se combina (códigos). Ausentes = la pantalla no la pidió o el color no la tiene. */
   descripcion?: string | null;
   combinaCon?: readonly string[];
+  /** Si es una mezcla («Hueso con azul», ADR-0643): la base primero y sus acompañantes. Ausente o nulo = un solo tono. */
+  componentes?: readonly string[] | null;
 };
 
 // El orden de cada familia de la carta lo da `color-escala.ts` (gama y claridad, calculadas del hex): ya no se confía en `colores.orden`,

@@ -336,6 +336,7 @@ export function HojaPrenda({
           setBorrador((b) => (b.colorCodigos.includes(color.codigo) ? b : { ...b, colorCodigos: [...b.colorCodigos, color.codigo] }));
         }}
         cartaAbierta={nueva}
+        conMezclas
       />
     </CampoGuiado>
   );

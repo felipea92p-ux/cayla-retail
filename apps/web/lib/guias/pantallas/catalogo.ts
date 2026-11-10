@@ -39,6 +39,14 @@ export const GUIA_PRODUCTOS: Guia = {
       texto: "Los carteles de anaquel con el nombre y el precio de la prenda. Abre su pantalla para buscar las prendas e imprimirlos; «Volver» te regresa aquí. Si marcas prendas en la lista, la barra de abajo las lleva ya elegidas.",
     },
     {
+      // ADR-0641: lo ve quien edita el catálogo.
+      id: "revisar-precios",
+      ancla: "productos.revisar-precios",
+      opcional: true,
+      titulo: "Revisar precios",
+      texto: "Las prendas cuyo precio conviene mirar: las que pierden dinero, ganan poco o están muy lejos del precio de sus parecidas. Tiene su propia demo.",
+    },
+    {
       id: "por-revisar",
       ancla: "productos.por-revisar",
       opcional: true,
@@ -1500,13 +1508,13 @@ export const GUIA_NUEVO_PRODUCTO: Guia = {
       id: "punto-3",
       ancla: "nuevo.punto-3",
       titulo: "3 · Tallas y colores",
-      texto: "Las tallas vienen marcadas con la curva de siempre de la categoría; eliges los colores que llegaron y una foto por color. Abajo ves la tabla de variantes que van a nacer: toca una celda para quitar la que no llegó.",
+      texto: "Las tallas vienen con la curva de siempre de la categoría; eliges los colores que llegaron. Si una prenda trae dos colores (hueso con azul), toca «+ acompañante» en el de base: queda como un solo color. Abajo, la tabla de variantes que van a nacer: toca una celda para quitar la que no llegó.",
     },
     {
       id: "punto-4",
       ancla: "nuevo.punto-4",
       titulo: "4 · Precio y cantidad",
-      texto: "El precio y el costo, las insignias y campañas, y cuántas llegaron de cada variante: con la carga inicial cerrada entran a nombre del proveedor que elegiste, sin ir a «Llegó mercadería». Ahí mismo está «Crear producto». Para ver estos pasos de verdad hay que elegir una categoría, y la demo no empieza ninguna prenda.",
+      texto: "El precio y el costo («Proponer precio» te sugiere uno con el costo y las prendas parecidas, nunca con menos de 30 % de margen), las insignias y cuántas llegaron de cada variante, a nombre del proveedor. Ahí está «Crear producto». Para verlo hay que elegir una categoría, y la demo no empieza ninguna prenda.",
     },
     {
       id: "quien",
@@ -1581,6 +1589,77 @@ export const GUIA_NUEVO_PRODUCTO: Guia = {
     },
   ],
   alSalir: [{ tipo: "vaciar", ancla: "nuevo.buscar-categoria" }],
+};
+
+// Revisar precios (ADR-0641): la lista de prendas cuyo precio conviene mirar, hecha con una cuenta fija. La demo explica las cifras
+// sin tocarlas: filtrar navega a otra URL y la demo no sale de la pantalla en que empezó.
+export const GUIA_REVISAR_PRECIOS: Guia = {
+  id: "productos.revisar-precios",
+  ruta: "/productos/revisar-precios",
+  titulo: "Revisar precios",
+  resumen: "Las prendas que pierden dinero, ganan poco o están lejos del precio de sus parecidas.",
+  pasos: [
+    {
+      id: "bienvenida",
+      ancla: null,
+      titulo: "Precios que conviene mirar",
+      texto: "Aquí ves las prendas cuyo precio conviene revisar, con su costo y el precio de sus parecidas. La lista sale de una cuenta fija, siempre igual. Es una demo: no se cambia ningún precio.",
+    },
+    {
+      id: "sin-funcion",
+      ancla: "revisar-precios.sin-funcion",
+      opcional: true,
+      titulo: "Todavía no está activa",
+      texto: "Si ves este aviso, la revisión de precios aún no se encendió en el sistema. Los precios siguen como están.",
+    },
+    {
+      id: "cifras",
+      ancla: "revisar-precios.cifras",
+      opcional: true,
+      titulo: "Cuatro razones",
+      texto: "Pierden dinero (el precio no cubre el costo), margen bajo (ganan menos de 30 %), lejos de su categoría (35 % más caras o más baratas que sus parecidas) y sin costo propio. Toca una para ver solo esas; tócala otra vez para ver todas.",
+    },
+    {
+      id: "vacio",
+      ancla: "revisar-precios.vacio",
+      opcional: true,
+      titulo: "Nada que revisar",
+      texto: "Ninguna prenda tiene un precio que mirar, o ninguna con el filtro que elegiste. El botón te lleva de vuelta.",
+    },
+    {
+      id: "tabla",
+      ancla: "revisar-precios.tabla",
+      opcional: true,
+      titulo: "Cada prenda",
+      texto: "Su precio, su costo (dice «estimado» si es el promedio de su categoría), cuánto gana y el precio del medio de su categoría. A la derecha, por qué está en la lista. Primero van las que pierden dinero.",
+    },
+    {
+      id: "proponer",
+      ancla: "revisar-precios.proponer",
+      opcional: true,
+      titulo: "Proponer un precio",
+      texto: "«Proponer» le pide a la IA un precio para esa prenda, mirando su costo y sus parecidas. Nunca baja de 30 % de margen. Si te convence, «Cambiar a S/\u00a0…» abre una hoja donde eliges quién lo hace y confirmas. La demo no lo pide.",
+    },
+    {
+      id: "paginas",
+      ancla: "revisar-precios.paginas",
+      opcional: true,
+      titulo: "Más páginas",
+      texto: "Si son muchas, pasan a la página siguiente. Aquí ves cuántas son en total.",
+    },
+    {
+      id: "nota",
+      ancla: "revisar-precios.nota",
+      titulo: "Con el costo real",
+      texto: "«Pierde dinero» y «margen bajo» solo se miden con el costo real de la prenda. Si una prenda no tiene costo, cárgalo en su ficha para saber cuánto gana.",
+    },
+    {
+      id: "listo",
+      ancla: null,
+      titulo: "¡Listo!",
+      texto: "Ya sabes leer la lista de precios a revisar. La flecha de arriba te devuelve a Productos. Para repasarlo: Mi perfil ▸ Demo ▸ Revisar precios.",
+    },
+  ],
 };
 
 // Por revisar (ADR-0371): la cola de prendas que alguien propuso en un conteo o desde el Taller. Aprobar y Rechazar abren una hoja que

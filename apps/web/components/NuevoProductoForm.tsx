@@ -19,6 +19,7 @@ import { ElegirMarcaProveedor } from "@/components/alta-producto/ElegirMarcaProv
 import { ConfigurarCategoria } from "@/components/alta-producto/ConfigurarCategoria";
 import { ProductoCreado, type ResumenCreado } from "@/components/alta-producto/ProductoCreado";
 import { ChipOpcion, FilaAlta, PasoAlta, PlegableAlta } from "@/components/alta-producto/piezas";
+import { PropuestaDePrecio } from "@/components/alta-producto/PropuestaDePrecio";
 import { ElegirColores } from "@/components/alta-producto/ElegirColores";
 import type { FotoPendiente } from "@/components/alta-producto/FotosAlta";
 import { MatrizVariantes } from "@/components/alta-producto/MatrizVariantes";
@@ -166,11 +167,14 @@ export function NuevoProductoForm({
   contexto,
   destino,
   cargaInicial = null,
+  proponePrecio = false,
 }: {
   contexto: ContextoAlta;
   destino: DestinoStock;
   /** La carga inicial de la sede del stock (ADR-0328): su fecha de cierre y el «hoy» de la base. `null` = no se sabe (no se avisa). */
   cargaInicial?: CargaInicialSede | null;
+  /** «Proponer precio» (ADR-0641): la IA mira costos de las parecidas, así que solo para quien ve el dinero de Compras. */
+  proponePrecio?: boolean;
 }) {
   const router = useRouter();
   const token = useRef<string>(crypto.randomUUID());
@@ -1219,7 +1223,7 @@ export function NuevoProductoForm({
             retiene="fila"
             ayuda={coloresElegidos.length ? plural(coloresElegidos.length, "elegido", "elegidos") : "Si no tiene color (un llavero, un cuaderno), déjalo vacío"}
           >
-            <ElegirColores colores={colores} grupos={grupos} elegidos={coloresElegidos} onAlternar={alternarColor} onCreado={colorCreado} />
+            <ElegirColores colores={colores} grupos={grupos} elegidos={coloresElegidos} onAlternar={alternarColor} onCreado={colorCreado} conMezclas />
           </FilaAlta>
 
           {/* La prenda: una fila por color (con su foto) y una columna por talla. En el paso 4 es la MISMA tabla, con números. */}
@@ -1279,6 +1283,20 @@ export function NuevoProductoForm({
                 Con este precio pierdes dinero en cada venta.
               </Aviso>
             </div>
+          )}
+          {/* ADR-0641: la IA propone el precio mirando el costo y las parecidas; la persona decide si lo usa. Mira costos: solo quien
+              ve el dinero de Compras. */}
+          {proponePrecio && (
+            <PropuestaDePrecio
+              categoriaId={categoriaId}
+              tejidoId={tejidoId}
+              referencia={referencia}
+              descripcion={descripcion}
+              costoBase={costoBase}
+              precioBase={precioBase}
+              disabled={cargando}
+              onUsar={setPrecioBase}
+            />
           )}
         </FilaAlta>
 

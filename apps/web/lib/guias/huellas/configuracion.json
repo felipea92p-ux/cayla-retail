@@ -2,7 +2,7 @@
   "guia": "configuracion",
   "ruta": "/configuracion",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 117,
+  "total": 118,
   "controles": {
     "components/ConfiguracionCargaInicial.tsx": [
       "button «(sin nombre)»",
@@ -151,6 +151,7 @@
       "input «{`${NOMBRE_CAMPO[campo]}»",
       "button «{guia}»",
       "button «{guia}» #2",
+      "button «{guia}» #3",
       "ComboResponsable «{responsable}»"
     ]
   }

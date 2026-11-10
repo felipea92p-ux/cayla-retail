@@ -49,6 +49,7 @@ import {
   GUIA_NUEVO_PRODUCTO,
   GUIA_POR_REVISAR,
   GUIA_PRODUCTOS,
+  GUIA_REVISAR_PRECIOS,
   GUIA_ROTULOS,
 } from "./pantallas/catalogo";
 import {
@@ -185,6 +186,7 @@ export const GUIAS: readonly Guia[] = [
   GUIA_MARCAS,
   GUIA_NUEVO_PRODUCTO,
   GUIA_POR_REVISAR,
+  GUIA_REVISAR_PRECIOS,
   GUIA_ROTULOS,
   GUIA_LIQUIDACION,
   GUIA_FACTURAS,
@@ -408,6 +410,7 @@ export const PANTALLAS: Record<string, PantallaConGuia> = {
   "/productos/marcas": { estado: "aplicada", guia: GUIA_MARCAS.id },
   "/productos/nuevo": { estado: "aplicada", guia: GUIA_NUEVO_PRODUCTO.id },
   "/productos/por-revisar": { estado: "aplicada", guia: GUIA_POR_REVISAR.id },
+  "/productos/revisar-precios": { estado: "aplicada", guia: GUIA_REVISAR_PRECIOS.id },
   // ---- recibir ----
   "/recibir": { estado: "aplicada", guia: GUIA_RECIBIR.id },
   "/recibir/envio/[id]": { estado: "aplicada", guia: GUIA_RECIBIR_ENVIO.id },

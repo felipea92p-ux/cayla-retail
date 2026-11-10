@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { firmaDeEncabezados } from "@/lib/responsable-reglas";
 import { traducirError, type ErrorEscritura } from "@/lib/error-escritura";
 import { normalizarCombinaCon, normalizarDescripcion, normalizarPantone, normalizarSinonimos } from "@/lib/color-referencias";
+import { ERROR_COMPONENTES, normalizarComponentes } from "@/lib/color-combinado";
 import { esFamiliaDeColor } from "@/lib/colores-familias";
 
 // Un código Pantone no puede estar en dos colores (índice único `colores_pantone_tcx_unico`, 20260926180000).
@@ -45,6 +46,23 @@ export async function POST(request: Request) {
   await requirePersonaActualV2();
 
   const cuerpo = await request.json().catch(() => null);
+
+  // Una mezcla («Hueso con azul», ADR-0643): llegan solo los códigos —la base primero y de 1 a 3 acompañantes—, y la base arma
+  // el nombre, el código, la familia y el hex (`retail.color_combinado`). Si la mezcla ya existe, devuelve esa.
+  if (cuerpo?.componentes !== undefined) {
+    const componentes = normalizarComponentes(cuerpo.componentes);
+    if (!componentes) {
+      return Response.json({ error: ERROR_COMPONENTES }, { status: 400 });
+    }
+    const supabase = await createClient({ firma: firmaDeEncabezados(request.headers) });
+    const { data, error } = await supabase.rpc("color_combinado", { p_componentes: componentes });
+    if (error) {
+      // Los errores de la función ya hablan en español y nombran el color («El color ZZZ no existe.»).
+      return Response.json({ error: error.code === "P0001" ? error.message : mensajeDeError(error, "armar la mezcla") }, { status: 400 });
+    }
+    return Response.json({ color: data, creado: (data as { creado?: boolean } | null)?.creado === true });
+  }
+
   const nombre = typeof cuerpo?.nombre === "string" ? cuerpo.nombre.trim() : "";
   const codigo = typeof cuerpo?.codigo === "string" ? cuerpo.codigo.trim().toUpperCase() : "";
   const familiaColor = typeof cuerpo?.familiaColor === "string" ? cuerpo.familiaColor : "";

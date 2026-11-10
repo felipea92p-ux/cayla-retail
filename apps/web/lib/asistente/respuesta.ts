@@ -306,7 +306,10 @@ export function revisarRespuesta(
 const PRECIOS: Record<string, { entrada: number; salida: number }> = {
   "claude-haiku-5-5": { entrada: 0.1, salida: 0.5 },
   "claude-sonnet-5-5": { entrada: 2, salida: 10 },
+  // El que propone precios (ADR-0641), al 2026-11-10.
+  "claude-opus-5-5": { entrada: 4, salida: 20 },
 };
+const MAS_CARO = Object.values(PRECIOS).reduce((a, b) => (b.salida > a.salida ? b : a));
 
 export type Consumo = {
   input_tokens: number;
@@ -318,7 +321,7 @@ export type Consumo = {
 export function costoEnDolares(modelo: string, consumo: Consumo): number {
   const precio = PRECIOS[modelo];
   // Un modelo sin precio conocido cuenta como el más caro de la tabla: el tope se pasa antes, nunca después.
-  const { entrada, salida } = precio ?? { entrada: 2, salida: 10 };
+  const { entrada, salida } = precio ?? MAS_CARO;
   const millon = 1_000_000;
   return (
     (consumo.input_tokens * entrada +
