@@ -121,6 +121,10 @@ export const PRUEBAS = [
   // El fondo de compras sale al gastarse (ADR-0621): lo gastado por completar baja el disponible el día del papel, el fondo dice lo que
   // queda en la mano, el Flujo cuadra, la proyección parte sin lo por volver y completar el papel no lo cuenta dos veces. ROLLBACK.
   "pruebas:fondo-sale-al-gastarse",
+  "pruebas:mercaderia-pagada-balance",
+  "pruebas:cierre-papeles-con-monto",
+  "pruebas:compras-pagadas-hacia",
+  "pruebas:unir-recepcion-con-compra",
 
   // De Ventas a Finanzas y lo que el Flujo no cubre (ADR-0609): el cuadre suma exacto y da la cifra del Estado de resultados, sede por sede;
   // lo anterior al arranque de una cuenta no suma, pero se dice. ROLLBACK.

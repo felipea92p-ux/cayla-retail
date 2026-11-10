@@ -2,7 +2,7 @@
   "guia": "recibir",
   "ruta": "/recibir",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 148,
+  "total": 150,
   "controles": {
     "app/(app)/recibir/page.tsx": [
       "Volver «/recibir»",
@@ -149,6 +149,8 @@
     ],
     "components/recepcion-conteo/LlegoSinAviso.tsx": [
       "ComboResponsable «{responsable}»",
+      "Link «Recibir ese envío»",
+      "Link «Recibir ese envío» #2",
       "button «→() => setProveedorId(p.id)»",
       "button «+ Agregar proveedor»",
       "Link «Sí, viene con la»",

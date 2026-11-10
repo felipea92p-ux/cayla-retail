@@ -4,6 +4,7 @@ import { getNombresPorCategoria } from "@/lib/alta-producto-datos";
 import { getImagenesMuestra } from "@/lib/catalogo-v2";
 import { RPC_DETALLE_ENVIO } from "@/lib/ordenes-compra-reglas";
 import { compararTallas } from "@/lib/tallas";
+import { leerComprasPagadas, type CompraPagada } from "@/lib/compras-pagadas-reglas";
 import { leerEnviosAMedias, RPC_ENVIOS_A_MEDIAS, type EnvioAMedias } from "@/lib/recepcion-salida-reglas";
 import { BUCKET_FOTOS_GASTO_VIAJE } from "@/lib/rendicion-reglas";
 import {
@@ -60,6 +61,19 @@ export async function getPorRecibirEnLaSede(ubicacionId: string): Promise<{ envi
   if (ordenes.error) console.error(`${RPC_ORDENES_DIRECTAS}: ${ordenes.error.message}`);
   if (envios.error && ordenes.error) return null;
   return { envios: envios.error ? [] : leerEnviosPorAbrir(envios.data), ordenes: ordenes.error ? [] : leerOrdenesDirectas(ordenes.data) };
+}
+
+/**
+ * Las compras pagadas que vienen a esta sede (ADR-0636, paso 1), para avisar en la puerta de «Recibir sin aviso». SECUNDARIA: si la base
+ * todavía no tiene la función o la lectura falla, la puerta recibe igual, sin el aviso (principio 9).
+ */
+export async function getComprasPagadasHacia(ubicacionId: string): Promise<CompraPagada[]> {
+  const r = await rpc("fn_compras_pagadas_hacia", { p_ubicacion_id: ubicacionId }).catch((e: unknown) => ({ data: null, error: { message: String(e) } }));
+  if (r.error) {
+    if (!faltaLaFuncion(r.error)) console.error(`fn_compras_pagadas_hacia: ${r.error.message}`);
+    return [];
+  }
+  return leerComprasPagadas(r.data);
 }
 
 type TallaEmbebida = { id: string; valor: string; activo: boolean };

@@ -21,6 +21,7 @@ import { useResponsable } from "@/lib/useResponsable";
 import { claveResponsableRecepcion, recordarResponsableGuardar } from "@/lib/responsable-conteo";
 import { TOPES_CONTEO, mensajeAlGuardar } from "@/lib/recepcion-conteo-reglas";
 import { abrirEnvioSinAviso } from "@/lib/recepcion-conteo-acciones";
+import { COMPRAS_A_LA_VISTA, comprasQueAvisar, lineaDeLaCompra, porEnvio, tituloDelAviso, type CompraPagada } from "@/lib/compras-pagadas-reglas";
 
 // «Llegó mercadería sin aviso» (ADR-0393, decisiones 2 y 10): lo que llega sin que Compras lo haya despachado se recibe con el MISMO conteo
 // que un envío —por categoría, lo demás para después—. Lo que llega sin aviso casi nunca es de un solo proveedor (Felipe 2026-11-07): la puerta ya no
@@ -38,6 +39,7 @@ export function LlegoSinAviso({
   ubicacionEtiqueta,
   proveedores,
   facturas,
+  comprasPagadas = [],
   hayListaArriba = false,
 }: {
   ubicacionId: string;
@@ -45,6 +47,8 @@ export function LlegoSinAviso({
   /** Con sus marcas (se leen en la puerta): se ven bajo cada proveedor y sirven para encontrarlo. */
   proveedores: readonly ProveedorDeLaPuerta[];
   facturas: readonly FacturaPorRecibir[];
+  /** ADR-0636: las compras ya pagadas que vienen a esta sede (sin montos). Si lo que llegó es una de ellas, no se recibe por aquí. */
+  comprasPagadas?: readonly CompraPagada[];
   /** Arriba hay envíos u órdenes de Compras para esta sede: esta tarjeta es para lo que NO está en esa lista (formidable, 2026-10-14). */
   hayListaArriba?: boolean;
 }) {
@@ -73,6 +77,8 @@ export function LlegoSinAviso({
     window.addEventListener("hashchange", segunLaDireccion);
     return () => window.removeEventListener("hashchange", segunLaDireccion);
   }, [setAbierto]);
+  // Con un proveedor elegido, solo sus compras; sin elegir (lo normal), todas las que vienen a la sede.
+  const pagadas = comprasQueAvisar(comprasPagadas, deUnoSolo && proveedorId ? proveedorId : null);
   const susFacturas = deUnoSolo ? facturas.filter((f) => f.proveedorId === proveedorId && f.pendientes > 0) : [];
   // «¿No está? + Agregar proveedor»: lo que llega sin aviso a veces es de un proveedor que todavía no está en el directorio. El recién
   // guardado se suma a la lista y queda elegido, sin esperar a que la página relea el directorio.
@@ -151,6 +157,48 @@ export function LlegoSinAviso({
         >
           {/* Sin nadie que firme no se abre nada: se dice antes de llenar la hoja, no después (prueba ciega, 2026-11-03). */}
           {sinTurno && <ComboResponsable control={responsable} />}
+          {/* ADR-0636: lo ya pagado que viene para acá. Recibirlo «sin aviso» lo metería al stock por otra puerta y después entraría otra vez. */}
+          {pagadas.length > 0 && (
+            <Aviso tono="atencion" titulo={tituloDelAviso(pagadas, ubicacionEtiqueta)}>
+              <p>Si lo que llegó es una de estas, no la recibas por aquí: entraría dos veces.</p>
+              {deUnoSolo && proveedorId ? (
+                <ul className="mt-2 space-y-1.5">
+                  {pagadas.slice(0, COMPRAS_A_LA_VISTA).map((c) => (
+                    <li key={c.papelId} className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                      <span>
+                        {lineaDeLaCompra(c, false)}
+                        {c.fecha ? ` · comprada el ${diaMes(c.fecha)}` : ""}
+                      </span>
+                      {c.envios[0] ? (
+                        <Link href={`/recibir/envio/${c.envios[0].id}`} className="btn-cayla btn-enlace">
+                          Recibir ese envío
+                        </Link>
+                      ) : (
+                        <span className="text-taupe">Pídele que la mande y recíbela en su envío.</span>
+                      )}
+                    </li>
+                  ))}
+                  {pagadas.length > COMPRAS_A_LA_VISTA && <li className="text-taupe">Y {pagadas.length - COMPRAS_A_LA_VISTA} más de este proveedor.</li>}
+                </ul>
+              ) : (
+                // Sin proveedor elegido pueden ser decenas: se dicen por envío, que es lo que la tienda puede abrir.
+                <ul className="mt-2 space-y-1.5">
+                  {porEnvio(pagadas).map((g) => (
+                    <li key={g.clave} className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                      <span>{g.texto}</span>
+                      {g.envioId ? (
+                        <Link href={`/recibir/envio/${g.envioId}`} className="btn-cayla btn-enlace">
+                          Recibir ese envío
+                        </Link>
+                      ) : (
+                        <span className="text-taupe">Pídele a quien compró que las mande.</span>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </Aviso>
+          )}
           <div className="space-y-2">
             <Interruptor
               etiqueta="Todo es de un solo proveedor"

@@ -208,8 +208,18 @@ describe("cifras, fechas y nombres", () => {
     expect(nombreLinea(linea({ cuenta: "resultado_mes", seccion: "patrimonio", monto: -20, detalle: { desde: "2024-04-01" } }))).toBe("Pérdida de abril");
     expect(nombreLinea(linea({ cuenta: "999", nombre: "Otra" }))).toBe("Otra");
     expect(cuentaLinea(linea({ cuenta: "resultado_mes" }))).toBe("");
+    expect(cuentaLinea(linea({ cuenta: "1413" }))).toBe("1413");
     expect(nombreDeCuenta("4011", "IGV — cuenta corriente")).toBe("IGV por pagar");
     expect(nombreDeCuenta("999", "Otra")).toBe("Otra");
+  });
+  it("la mercadería pagada dice dónde está y no lleva código de cuenta (ADR-0636)", () => {
+    const pagada = (detalle: Record<string, unknown>) => nombreLinea(linea({ cuenta: "mercaderia_pagada", nombre: "x", detalle }));
+    expect(pagada({ papeles: 35, en_camino: 23347.44, en_tienda: 0 })).toBe("Mercadería pagada, en camino (35 compras)");
+    expect(pagada({ papeles: 1, en_camino: 0, en_tienda: 200 })).toBe("Mercadería pagada, ya en tienda: falta su papel (1 compra)");
+    expect(pagada({ papeles: 3, en_camino: 400, en_tienda: 200 })).toContain("en camino y");
+    expect(pagada({})).toBe("Mercadería pagada, en camino");
+    expect(nombreLinea(linea({ cuenta: "mercaderia_pagada_igv", nombre: "x" }))).toContain("IGV de esas compras");
+    expect(cuentaLinea(linea({ cuenta: "mercaderia_pagada" }))).toBe("");
   });
   it("la mercadería dice lo que está por recibir y en camino; el IGV, que todavía no baja", () => {
     expect(nombreDeCuenta("4699", "x")).toContain("CLAURE");
