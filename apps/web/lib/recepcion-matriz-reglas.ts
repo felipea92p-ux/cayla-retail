@@ -4,7 +4,10 @@ import type { LineaRecepcion } from "@/lib/compras-reglas";
 export type MatrizModelo = {
   modelo: string;
   tallas: string[];
-  colores: { color: string; porTalla: Record<string, number>; total: number }[];
+  /** `fondo`: cómo se pinta la muestra del color (ver `LineaRecepcion.colorFondo`); `null` si no se sabe. */
+  colores: { color: string; fondo: string | null; porTalla: Record<string, number>; total: number }[];
+  /** Cuántas llegaron de cada talla, sumando todos los colores: la fila «Por talla». */
+  porTalla: Record<string, number>;
   total: number;
 };
 
@@ -29,18 +32,21 @@ export function compararTallas(a: string, b: string): number {
 /** Agrupa el detalle de una recepción por modelo (`referencia`), con colores en filas y tallas en columnas. Suma las líneas repetidas. */
 export function matricesDeRecepcion(detalle: LineaRecepcion[]): MatrizModelo[] {
   const porModelo = new Map<string, Map<string, Record<string, number>>>();
+  const fondos = new Map<string, string | null>();
   for (const l of detalle) {
     const colores = porModelo.get(l.referencia) ?? new Map<string, Record<string, number>>();
     const color = l.color?.trim() || SIN_COLOR;
     const talla = l.talla?.trim() || SIN_TALLA;
     const fila = colores.get(color) ?? {};
     fila[talla] = (fila[talla] ?? 0) + l.cantidad;
+    if (!fondos.get(`${l.referencia}|${color}`)) fondos.set(`${l.referencia}|${color}`, l.colorFondo ?? null);
     colores.set(color, fila);
     porModelo.set(l.referencia, colores);
   }
   return [...porModelo].map(([modelo, colores]) => {
     const tallas = [...new Set([...colores.values()].flatMap((f) => Object.keys(f)))].sort(compararTallas);
-    const filas = [...colores].map(([color, porTalla]) => ({ color, porTalla, total: Object.values(porTalla).reduce((s, n) => s + n, 0) }));
-    return { modelo, tallas, colores: filas, total: filas.reduce((s, f) => s + f.total, 0) };
+    const filas = [...colores].map(([color, porTalla]) => ({ color, fondo: fondos.get(`${modelo}|${color}`) ?? null, porTalla, total: Object.values(porTalla).reduce((s, n) => s + n, 0) }));
+    const porTalla = Object.fromEntries(tallas.map((t) => [t, filas.reduce((s, f) => s + (f.porTalla[t] ?? 0), 0)]));
+    return { modelo, tallas, colores: filas, porTalla, total: filas.reduce((s, f) => s + f.total, 0) };
   });
 }
