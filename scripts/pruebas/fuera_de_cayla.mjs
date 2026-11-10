@@ -524,15 +524,18 @@ const COLUMNAS = {
   "retail.rendiciones_fondo.cuenta_id": "una rendición es de una cuenta de tipo fondo",
   "retail.conciliaciones.cuenta_id": "no mueve plata, y fn_conciliacion_cuentas no la ofrece",
   "retail.dinero_revisados.cuenta_id": "no mueve plata, y fn_conciliacion_cuentas no la ofrece",
+  "retail.banco_cortes.cuenta_id": "guarda lo que dijo el banco (ADR-0637): no mueve plata, no entra al Diario ni a las cifras, y solo cargar_lineas_banco/fn_banco_cuadre del líder lo tocan",
+  "retail.banco_cargas.cuenta_id": "guarda lo que dijo el banco (ADR-0637): no mueve plata, no entra al Diario ni a las cifras, y solo cargar_lineas_banco/fn_banco_cuadre del líder lo tocan",
+  "retail.banco_lineas.cuenta_id": "guarda lo que dijo el banco (ADR-0637): no mueve plata, no entra al Diario ni a las cifras, y solo cargar_lineas_banco/fn_banco_cuadre del líder lo tocan",
 };
 
-caso("cada columna con llave a cuentas_dinero está clasificada (una tabla nueva obliga a decidir), y son 25 tablas", () => {
+caso("cada columna con llave a cuentas_dinero está clasificada (una tabla nueva obliga a decidir), y son 28 tablas", () => {
   const vivas = psql(`select conrelid::regclass::text || '.' || a.attname from pg_constraint c join pg_attribute a on a.attrelid = c.conrelid and a.attnum = any (c.conkey)
                        where c.contype = 'f' and c.confrelid = 'retail.cuentas_dinero'::regclass order by 1;`).split("\n");
   const sinDecidir = vivas.filter((c) => !(c in COLUMNAS));
   const sobran = Object.keys(COLUMNAS).filter((c) => !vivas.includes(c));
   const tablas = new Set(vivas.map((c) => c.split(".").slice(0, 2).join(".")));
-  if (sinDecidir.length || sobran.length || tablas.size !== 25)
+  if (sinDecidir.length || sobran.length || tablas.size !== 28)
     return `Sin decidir: ${sinDecidir.join(", ") || "-"} · ya no existen: ${sobran.join(", ") || "-"} · tablas: ${tablas.size}`;
   return null;
 });

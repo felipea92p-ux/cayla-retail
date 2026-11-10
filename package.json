@@ -112,6 +112,7 @@
     "pruebas:comision-lotes": "node scripts/pruebas/comision_lotes.mjs",
     "pruebas:puente-residuo": "node scripts/pruebas/puente_residuo.mjs",
     "pruebas:pos-pagos": "node scripts/pruebas/pos_pagos.mjs",
+    "pruebas:banco-lineas": "node scripts/pruebas/banco_lineas.mjs",
     "pruebas:gasto-fecha-pago": "node scripts/pruebas/gasto_fecha_pago.mjs",
     "pruebas:planilla-salidas": "node scripts/pruebas/planilla_salidas.mjs",
     "pruebas:planilla-provision": "node scripts/pruebas/planilla_provision.mjs",

@@ -4,6 +4,8 @@ import type { LineaExtracto } from "./extracto-interbank";
 import { emparejarVendemas, lineasYaRegistradas, loteAnteriorDe } from "./emparejar-maquinas";
 
 // Montos inventados (el repo es público). Vendemás: 2,30 % + IGV ≈ 2,71 %.
+// Emparejar no mira con qué reconoce el banco cada línea: aquí van como en la tabla pegada de la web, sin nada.
+const SIN_IDENTIDAD = { fechaProceso: null, correlativo: null, codigo: null, operacion: null, firme: false } as const;
 const linea = (orden: number, fecha: string, centimos: number, tipo: LineaExtracto["tipo"] = "lote_vendemas"): LineaExtracto => ({
   orden,
   fecha,
@@ -12,6 +14,7 @@ const linea = (orden: number, fecha: string, centimos: number, tipo: LineaExtrac
   saldoCentimos: null,
   tipo,
   codigoComercio: null,
+  ...SIN_IDENTIDAD,
 });
 const dia = (clave: string, fecha: string, bruto: number, sede = "Tienda TRU", esperado: number | null = Math.round(bruto * 2.714) / 100): LotePendiente => ({
   clave,
@@ -114,6 +117,7 @@ const lq = (orden: number, fecha: string, centimos: number, tipo: LineaExtracto[
   saldoCentimos: null,
   tipo,
   codigoComercio: codigo,
+  ...SIN_IDENTIDAD,
 });
 // Un pago con la regla de la máquina: QR gratis hasta el 10; tarjeta (y QR dentro de un lote) 2,38 % + IGV redondeados por separado.
 const comision = (c: number) => {

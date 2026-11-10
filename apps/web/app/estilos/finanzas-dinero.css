@@ -187,6 +187,76 @@
   .din-cuad-avance-barra {
     width: 160px;
   }
+  /* ---- «El banco dice» (ADR-0637, actividad 1): lo que dicen las líneas guardadas del extracto, al lado de lo que suma el ERP. Va en el
+     detalle del banco, sobre su saldo. Aquí solo vive la composición: la cifra es la de la tarjeta de al lado (`din-cuad-cifra`, un punto
+     más chica porque van tres en fila), las insignias son <Chip> y lo que falta, un <Aviso>. Solo tokens, sin sombra y sin movimiento
+     propio (la tarjeta entra con `anim-sube`, como sus vecinas). */
+  .din-banco {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+    padding: 20px 24px;
+  }
+  .din-banco-cifras {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 20px;
+  }
+  .din-banco-cifra {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    min-width: 0;
+  }
+  .din-banco-cifra + .din-banco-cifra {
+    padding-left: 20px;
+    border-left: 1px solid var(--color-sand);
+  }
+  .din-banco-num {
+    font-size: clamp(22px, 2vw, 28px);
+    white-space: nowrap;
+  }
+  .din-banco-estado {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    min-width: 0;
+  }
+  .din-banco-chips {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+  }
+  .din-banco-pie {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 20px 28px;
+    padding-top: 18px;
+    border-top: 1px solid var(--color-sand);
+  }
+  .din-banco-col {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    min-width: 0;
+  }
+  /* Con menos de 720 px para el detalle (un laptop de 1024, o el celular) las tres cifras y las dos columnas van una bajo la otra. */
+  @container din-cuad-det (max-width: 720px) {
+    .din-banco-cifras,
+    .din-banco-pie {
+      grid-template-columns: minmax(0, 1fr);
+    }
+    .din-banco-cifras {
+      gap: 14px;
+    }
+    .din-banco-cifra + .din-banco-cifra {
+      padding-left: 0;
+      padding-top: 14px;
+      border-left: 0;
+      border-top: 1px solid var(--color-sand);
+    }
+  }
   @container din-cuad-det (max-width: 520px) {
     .din-cuad-hero {
       grid-template-columns: minmax(0, 1fr);

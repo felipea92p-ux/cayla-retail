@@ -29,6 +29,7 @@ vi.mock("@/lib/supabase/server", () => ({
 // Vitest no conoce el alias «@/»: cada módulo que la función usa se apunta al de verdad.
 vi.mock("@/lib/cuentas-dinero-reglas", () => import("./cuentas-dinero-reglas"));
 vi.mock("@/lib/cuadrar-reglas", () => import("./cuadrar-reglas"));
+vi.mock("@/lib/banco-lineas", () => import("./banco-lineas"));
 vi.mock("@/lib/gastos-reglas", () => import("./gastos-reglas"));
 vi.mock("@/lib/planilla-salidas-reglas", () => import("./planilla-salidas-reglas"));
 vi.mock("@/lib/compras-reglas", () => import("./compras-reglas"));
