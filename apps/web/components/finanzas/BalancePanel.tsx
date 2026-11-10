@@ -208,11 +208,11 @@ function VistaSinCuadrar({
   comprobacionFallo: boolean;
   onArranque: () => void;
 }) {
-  const sit = situacion(chequeos);
+  const sit = situacion(chequeos, { lecturaFallo: comprobacionFallo });
   const visibles = chequeos.filter((c) => c.clave !== "corte");
   return (
     <>
-      {!comprobacionFallo && (
+      {sit.tipo !== "sin_comprobar" && (
       <>
       <div {...entra(1)} data-guia="fin-balance.chequeos">
         <Superficie pad className="fin-balance-tarjeta">
@@ -228,7 +228,7 @@ function VistaSinCuadrar({
           </CabeceraBloque>
           {sit.tipo === "no_cuadra" ? (
             <BloqueoDelBalance bloqueos={sit.bloqueos} chequeos={visibles} onArranque={onArranque} />
-          ) : sit.tipo === "sin_arranque" ? (
+          ) : sit.tipo === "sin_arranque" || sit.tipo === "sin_chequeos" ? (
             <ul className="fin-chequeos">
               <FilaChequeo c={visibles[0] ?? CHEQUEO_SIN_ARRANQUE} onArranque={onArranque} />
             </ul>

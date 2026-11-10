@@ -38,7 +38,7 @@ Configuración, Cierre de mes o CAYLA Global. Esa persona veía «Tienda Lima» 
    - la cabecera única (`<EncabezadoPagina>`, ADR-0220) con `<RespuestaTelar>` a la derecha: la pregunta del submódulo y la cifra grande;
      `valor={null}` dice que no se pudo leer;
    - el **orillo** (`<Orillo>`): la tira que reparte la cifra entre las sedes, donde cada tramo elige su sede;
-   - el **dock** (`<DockTelar>`, solo escritorio): hasta cuatro acciones con su tecla. En el celular, lo de abajo sigue siendo la Isla.
+   - el **dock** (`<DockTelar>`, solo escritorio): hasta cuatro acciones con su tecla. En el celular no hay dock ni barra de abajo: las acciones están en la página (corregido el 2026-11-10; decía que ahí iba la Isla, y ninguna pantalla de Finanzas la usa).
 
    **Finanzas deja `<CabeceraPantalla>` y usa la misma cabecera que el resto del ERP:** este ADR actualiza ADR-0195 y la regla
    «La cabecera de una pantalla» de ADR-0358.

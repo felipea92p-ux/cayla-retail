@@ -4,7 +4,9 @@ import { leerFilaER, type FilaER } from "./resultados-reglas";
 import {
   solesCentimos,
   PALANCAS_INICIALES,
+  SIN_COMPRA_DE_CAMPANA,
   alquilerDe,
+  alquilerDePartida,
   alquilerDeFijos,
   cajaDiaria,
   campanasDeSemana,
@@ -28,6 +30,7 @@ import {
   sumarMesesIso,
   textoCategoria,
   textoSinCuenta,
+  textoSinAlquiler,
   tiendaInicial,
   tiendasDeLaProyeccion,
   tonoDiasDeCaja,
@@ -508,5 +511,61 @@ describe("lo por volver de compras", () => {
   it("sin el dato queda null", () => {
     expect(leerProyeccion(fixture.proyeccion).porVolverCompras).toBeNull();
     expect(leerFlujoReal(fixture.real).porVolverCompras).toBeNull();
+  });
+});
+
+// Tarea 11: una tienda cuyo mes base no trae su alquiler (sin cuenta 635), pero sí lo tiene en sus gastos fijos. Cifras inventadas.
+describe("Escenarios: el alquiler parte del mismo monto en la tabla y en la caja", () => {
+  const SIN_635: FilaER[] = [
+    fila("t1", "tienda", "Tienda Uno", 20_000, 10_000, 0, 0, 8_000, 0, 3_000),
+    fila("t2", "tienda", "Tienda Dos", 10_000, 5_000, 0, 0, 5_000, 0, 0),
+    fila(null, "empresa", "De la empresa", 0, 0, 0, 0, 1_000, 0, 0),
+  ];
+  const t2 = (u: ReturnType<typeof utilidadConCambios>) => u.unidades.find((x) => x.ubicacionId === "t2")!;
+
+  it("la tienda sin cuenta de alquiler parte de sus gastos fijos y lo dice", () => {
+    expect(alquilerDePartida(SIN_635[1], CHICA.salidas, "t2")).toEqual({ monto: 2_000, sinEnResultado: true });
+    expect(alquilerDePartida(SIN_635[0], CHICA.salidas, "t1")).toEqual({ monto: 3_000, sinEnResultado: false });
+    // Sin estado de resultados no hay «parte sin él»: no hay resultado que se vea mejor.
+    expect(alquilerDePartida(undefined, CHICA.salidas, "t2")).toEqual({ monto: 2_000, sinEnResultado: false });
+    expect(alquilerDePartida(SIN_635[1], [], "t2")).toEqual({ monto: null, sinEnResultado: false });
+    const texto = textoSinAlquiler("2026-10", "Tienda Dos", 2_000);
+    expect(texto).toContain("no trae el alquiler de Tienda Dos");
+    expect(texto).toContain(soles(2_000));
+  });
+
+  it("bajarle el alquiler de 2,000 a 1,900 la hace GANAR 100, en la tabla y en la caja (control: contra el mes base perdía 1,900)", () => {
+    const p = con({ tienda: "t2", alquilerTienda: 1_900 });
+    const partida = alquilerDePartida(SIN_635[1], CHICA.salidas, "t2").monto;
+    const u = utilidadConCambios(SIN_635, p, partida);
+    expect(t2(u).despues - t2(u).antes).toBe(100);
+    expect(u.cayla.despues - u.cayla.antes).toBe(100);
+    // Control: sin pasarle la partida resta contra el alquiler del mes base (0), el error de antes.
+    expect(t2(utilidadConCambios(SIN_635, p)).despues - t2(utilidadConCambios(SIN_635, p)).antes).toBe(-1_900);
+    const caja = proyectar(CHICA, p, partida);
+    expect(caja.at(-1)!.saldo - proyectar(CHICA).at(-1)!.saldo).toBe(100);
+  });
+
+  it("volver al alquiler de partida no cambia nada", () => {
+    const p = con({ tienda: "t2", alquilerTienda: 2_000 });
+    const u = utilidadConCambios(SIN_635, p, 2_000);
+    expect(t2(u).despues).toBe(t2(u).antes);
+    expect(hayCambios(p, 2_000)).toBe(false);
+  });
+
+  it("si el resultado y los fijos difieren, la caja cambia en los mismos soles que la tabla (no en proporción)", () => {
+    // El mes base dice 2,500 de alquiler para t2; sus fijos, 2,000. Bajar a 2,000 resta 500 en los dos lados.
+    const conER = [SIN_635[0]!, fila("t2", "tienda", "Tienda Dos", 10_000, 5_000, 0, 0, 5_000, 0, 2_500), SIN_635[2]!];
+    const partida = alquilerDePartida(conER[1], CHICA.salidas, "t2").monto;
+    expect(partida).toBe(2_500);
+    const p = con({ tienda: "t2", alquilerTienda: 2_000 });
+    const u = utilidadConCambios(conER, p, partida);
+    expect(t2(u).despues - t2(u).antes).toBe(500);
+    // Control: escalar por 2,000 / 2,500 habría restado solo 400 de los 2,000 de los fijos.
+    expect(proyectar(CHICA, p, partida).at(-1)!.saldo - proyectar(CHICA).at(-1)!.saldo).toBe(500);
+  });
+
+  it("la caja dice que no trae la compra planeada de campaña", () => {
+    expect(SIN_COMPRA_DE_CAMPANA).toMatch(/no incluye la compra planeada de campaña/);
   });
 });

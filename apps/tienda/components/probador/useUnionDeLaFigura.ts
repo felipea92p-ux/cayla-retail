@@ -4,6 +4,7 @@ import { useEffect, useState, useSyncExternalStore } from "react";
 import type { Caja, FotoDelColor, Zona } from "@/lib/probador";
 import {
   ANCHO_PARA_MEDIR,
+  cajaDeAbajoSinMedida,
   cajaDeAbajoUnida,
   cajaDeArribaAjustada,
   direccionParaMedir,
@@ -82,7 +83,12 @@ function guardarRecordadas() {
 
 type Foto = { url: string; optimizar: boolean };
 
-/** Baja el recorte y lo mide. Nunca falla: un recorte que no se puede medir (o que tarda demasiado) queda `null`. */
+/**
+ * Baja el recorte y lo mide. Nunca falla: un recorte que no se puede medir queda `null`. Uno que tarda más de `LIMITE_POR_RECORTE_MS` también
+ * queda `null` por ahora (la figura deja de esperar), pero si la imagen llega después, su medida se aplica igual (2026-11-10: en el celular, la
+ * primera visita pide decenas de imágenes a la vez y estas dos podían pasar del límite; quedaban sin medida toda la visita y la falda, a su
+ * cintura fija, escondida detrás de la blusa).
+ */
 function medir(foto: Foto): Promise<void> {
   const clave = foto.url;
   const pendiente = enCurso.get(clave);
@@ -90,6 +96,7 @@ function medir(foto: Foto): Promise<void> {
   const tarea = new Promise<void>((resolver) => {
     const img = new Image();
     let listo = false;
+    let vencido = false;
     const terminar = (m: MedidaDelRecorte | null) => {
       if (listo) return;
       listo = true;
@@ -97,9 +104,15 @@ function medir(foto: Foto): Promise<void> {
       medidas.set(clave, m);
       if (m) guardarRecordadas();
       notificar();
-      resolver();
+      if (!vencido) resolver();
     };
-    const reloj = window.setTimeout(() => terminar(null), LIMITE_POR_RECORTE_MS);
+    const reloj = window.setTimeout(() => {
+      // Deja de esperar, pero no da la imagen por perdida: si llega, `terminar` todavía la aplica.
+      vencido = true;
+      medidas.set(clave, null);
+      notificar();
+      resolver();
+    }, LIMITE_POR_RECORTE_MS);
     // Misma procedencia: la copia chica sale de la tienda y no pide permiso; la foto suelta del almacén sí (tiene CORS abierto).
     if (!foto.optimizar) img.crossOrigin = "anonymous";
     img.decoding = "async";
@@ -210,10 +223,16 @@ export function useUnionDeLaFigura<T extends PiezaDeLaFigura>(
           { proporcion: abajo.c.foto.proporcion, medida: medidas.get(urlAbajo), falda: abajo.p.falda },
         )
       : null;
+  // Sin la unión (la medida no llegó o no se pudo leer), la de abajo arranca al menos en el bajo de la de arriba, no en la cintura fija.
+  const cajaAbajo =
+    unida ??
+    (arribaFinal && abajo && urlArriba
+      ? cajaDeAbajoSinMedida({ caja: arribaFinal.caja, medida: medidas.get(urlArriba), metida: arribaFinal.p.metida }, abajo.caja)
+      : null);
   // El hilo de la espera corre por el borde de abajo de la prenda de arriba (con su fila medida si ya se midió); solo hay hilo si hay algo de abajo que unir.
   const hilo = arribaFinal && abajo ? hiloDeLaEspera({ caja: arribaFinal.caja, medida: urlArriba ? medidas.get(urlArriba) : null }) : null;
   return {
-    piezas: piezas.map((x) => (x === arriba && arribaFinal ? arribaFinal : x === abajo && unida ? { ...x, caja: unida } : x)),
+    piezas: piezas.map((x) => (x === arriba && arribaFinal ? arribaFinal : x === abajo && cajaAbajo ? { ...x, caja: cajaAbajo } : x)),
     ajustando,
     hilo,
   };

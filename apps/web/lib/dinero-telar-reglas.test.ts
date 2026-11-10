@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { CuentaDinero } from "./cuentas-dinero-reglas";
 import { solesDos } from "./gastos-reglas";
-import { avisoCajaFuerte, avisoCajon, chipsDondeEsta, colorDeGrupo, cuentasDelAlcance, detalleCajon, GRUPOS_DE_LA_EMPRESA, gruposDelAlcance, movimientosDeLaEmpresa, preguntaDeDinero, respuestaCuadrar, escalaDeCuenta, orilloDeDinero, grupoDe, gruposDeDinero, montoConSigno, nombreSinElLugar, ultimoDepositoDe } from "./dinero-telar-reglas";
+import { avisoCajaFuerte, avisoCajon, diasSinDepositar, chipsDondeEsta, colorDeGrupo, cuentasDelAlcance, detalleCajon, GRUPOS_DE_LA_EMPRESA, gruposDelAlcance, movimientosDeLaEmpresa, preguntaDeDinero, respuestaCuadrar, escalaDeCuenta, orilloDeDinero, grupoDe, gruposDeDinero, montoConSigno, nombreSinElLugar, ultimoDepositoDe } from "./dinero-telar-reglas";
 import { tienesPulso } from "./dinero-pulso-reglas";
 
 const cuenta = (p: Partial<CuentaDinero> & Pick<CuentaDinero, "id" | "nombre" | "tipo">): CuentaDinero => ({
@@ -226,18 +226,32 @@ describe("ultimoDepositoDe y avisoCajaFuerte", () => {
     expect(ultimoDepositoDe("nada", MOVS)).toBeNull();
   });
   it("avisa en ámbar pasados 3 días; antes, en verde; sin depósitos, lo dice", () => {
-    expect(avisoCajaFuerte({ id: "fAQP", tipo: "caja_fuerte", saldo: 3900 }, MOVS, HOY)).toEqual({ texto: "6 días sin depositar", tono: "ambar" });
-    expect(avisoCajaFuerte({ id: "fTRU", tipo: "caja_fuerte", saldo: 6200 }, MOVS, HOY)).toEqual({ texto: "depositada hace 2 días", tono: "verde" });
-    expect(avisoCajaFuerte({ id: "fTRU", tipo: "caja_fuerte", saldo: 6200 }, MOVS, "2026-10-13")).toEqual({ texto: "depositada hoy", tono: "verde" });
-    expect(avisoCajaFuerte({ id: "fLIM", tipo: "caja_fuerte", saldo: 50 }, MOVS, HOY)).toEqual({ texto: "sin depósitos registrados", tono: "pizarra" });
+    expect(avisoCajaFuerte({ id: "fAQP", tipo: "caja_fuerte", saldo: 3900 }, MOVS, HOY, null)).toEqual({ texto: "6 días sin depositar", tono: "ambar" });
+    expect(avisoCajaFuerte({ id: "fTRU", tipo: "caja_fuerte", saldo: 6200 }, MOVS, HOY, null)).toEqual({ texto: "depositada hace 2 días", tono: "verde" });
+    expect(avisoCajaFuerte({ id: "fTRU", tipo: "caja_fuerte", saldo: 6200 }, MOVS, "2026-10-13", null)).toEqual({ texto: "depositada hoy", tono: "verde" });
+    expect(avisoCajaFuerte({ id: "fLIM", tipo: "caja_fuerte", saldo: 50 }, MOVS, HOY, null)).toEqual({ texto: "sin depósitos registrados", tono: "pizarra" });
+  });
+  it("con la lista recortada, el depósito que quedó fuera no se lee como «sin depósitos» (tarea 157)", () => {
+    // Lo leído empieza el 10-10: el único depósito vigente de Arequipa (10-09) quedó fuera.
+    const recortada = MOVS.filter((m) => m.fecha >= "2026-10-10");
+    const aqp = { id: "fAQP", tipo: "caja_fuerte" as const, saldo: 3900 };
+    expect(avisoCajaFuerte(aqp, recortada, HOY, "2026-10-10")).toEqual({ texto: "5 días o más sin depositar", tono: "ambar" });
+    // Control: la misma lista declarada entera diría lo falso.
+    expect(avisoCajaFuerte(aqp, recortada, HOY, null)).toEqual({ texto: "sin depósitos registrados", tono: "pizarra" });
+    // Con poco leído no se sabe si pasó el plazo: dice desde cuándo, sin color de alarma.
+    expect(avisoCajaFuerte(aqp, recortada, HOY, "2026-10-13")).toEqual({ texto: "sin depósitos desde el martes 13", tono: "pizarra" });
+    // Un depósito dentro de lo leído manda, aunque la lista venga recortada.
+    expect(avisoCajaFuerte({ id: "fTRU", tipo: "caja_fuerte", saldo: 6200 }, recortada, HOY, "2026-10-10")).toEqual({ texto: "depositada hace 2 días", tono: "verde" });
+    expect(diasSinDepositar("fAQP", recortada, HOY, "2026-10-10")).toBe(5);
+    expect(diasSinDepositar("fAQP", recortada, HOY, null)).toBeNull();
   });
   it("una caja fuerte vacía u oculta, o un cajón, no avisa", () => {
-    expect(avisoCajaFuerte({ id: "fAQP", tipo: "caja_fuerte", saldo: 0 }, MOVS, HOY)).toBeNull();
-    expect(avisoCajaFuerte({ id: "fAQP", tipo: "caja_fuerte", saldo: null }, MOVS, HOY)).toBeNull();
-    expect(avisoCajaFuerte({ id: "cTRU", tipo: "cajon", saldo: 500 }, MOVS, HOY)).toBeNull();
+    expect(avisoCajaFuerte({ id: "fAQP", tipo: "caja_fuerte", saldo: 0 }, MOVS, HOY, null)).toBeNull();
+    expect(avisoCajaFuerte({ id: "fAQP", tipo: "caja_fuerte", saldo: null }, MOVS, HOY, null)).toBeNull();
+    expect(avisoCajaFuerte({ id: "cTRU", tipo: "cajon", saldo: 500 }, MOVS, HOY, null)).toBeNull();
   });
   it("el aviso llega a la fila cuando la cuenta no trae insignia propia", () => {
-    const tru = gruposDeDinero(CUENTAS, SEDES, "tru", HOY, { avisar: (c) => avisoCajaFuerte(c, MOVS, HOY) })[0];
+    const tru = gruposDeDinero(CUENTAS, SEDES, "tru", HOY, { avisar: (c) => avisoCajaFuerte(c, MOVS, HOY, null) })[0];
     expect(tru.filas.find((f) => f.id === "fTRU")!.insignia).toEqual({ texto: "depositada hace 2 días", tono: "verde" });
   });
 });

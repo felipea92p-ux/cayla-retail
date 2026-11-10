@@ -87,6 +87,8 @@ const MIGRACIONES = SIN_MIGRACION
       "20261107192000_proveedor_por_linea_sin_aviso.sql",
       // Quien recibe pone el costo de lo que recibe, también en una terminal (casos S3 y S3c).
       "20261107194000_costo_al_recibir_para_quien_recibe.sql",
+      // Lo que salió al stock en un lote «Por confirmar» compartido pasa, marca por marca, a su proveedor (caso A13).
+      "20261110141000_completar_lote_por_confirmar_por_marca.sql",
     ]
       .map((f) =>
         readFileSync(join(RAIZ, "supabase", "migrations", f), "utf8")
@@ -1141,6 +1143,49 @@ caso(
      (select count(*) from retail.despacho_recibidos x where x.despacho_id = :'d' and x.proveedor_id = :'pc'),
      (select count(*) from retail.proveedores p where p.por_confirmar and not p.activo));`,
   "OK / envio_sin_proveedor / 1 / OK / 1 / 0 / 1",
+);
+caso(
+  "A13 dos marcas en el mismo lote «Por confirmar»: cada una pasa a su proveedor, el stock no se mueve y el candado de movimientos vuelve",
+  // ENV-000007 (2026-11-07): Jirish y Blues Company salieron al stock sin proveedor y compartían el lote; ponerle proveedor a una se negaba.
+  `${MICAELA_RECIBE}
+   ${SIN_AVISO("d", { prov: "null::uuid" })}
+   reset role;
+   -- Las dos marcas con DOS proveedores: así no se adivina de quién es lo contado y las dos salen a nombre de «Por confirmar».
+   insert into retail.marcas (nombre) values ('Marca Conteo Otra') returning id as marca2 \\gset
+   insert into retail.marca_proveedores (marca_id, proveedor_id) values (:'marca', :'prov2'), (:'marca2', :'prov'), (:'marca2', :'prov2') on conflict do nothing;
+   insert into retail.productos (categoria_id, referencia, marca_id, proveedor_id) values (:'cat', 'Chompa Otra Marca Conteo', :'marca2', :'prov2')
+     returning id as prod_b \\gset
+   insert into retail.variantes (producto_id, talla_id, color_codigo, precio, costo) values (:'prod_b', :'t_s', :'c1', 69.90, 20)
+     returning id as pvb_s \\gset
+   ${como(MICAELA)}${EN_TIENDA}
+   select pg_temp.e(pg_temp.guarda(:'d', null, 5, ${SEP([["prod_p", 5]])}, null::int, null::int, null::uuid, :'cat', :'marca')) as g1 \\gset
+   select pg_temp.e(pg_temp.guarda(:'d', null, 3, ${SEP([["prod_b", 3]])}, null::int, null::int, null::uuid, :'cat', :'marca2')) as g2 \\gset
+   reset role;
+   select k.version as ver1, k.extra_posicion as ex1 from retail.despacho_conteos k where k.despacho_id = :'d' and k.marca_id = :'marca' \\gset
+   select k.version as ver2, k.extra_posicion as ex2 from retail.despacho_conteos k where k.despacho_id = :'d' and k.marca_id = :'marca2' \\gset
+   select ${STOCK_TRU("pv_s")} + ${STOCK_TRU("pvb_s")} as antes \\gset
+   ${como(MICAELA)}${EN_TIENDA}
+   select pg_temp.lleva(:'d', null, :ex1, :ver1, :'prod_p', ${A(V("pv_s", 5))}, null::numeric, false, gen_random_uuid()) as r1 \\gset
+   select pg_temp.lleva(:'d', null, :ex2, :ver2, :'prod_b', ${A(V("pvb_s", 3))}, null::numeric, false, gen_random_uuid()) as r2 \\gset
+   reset role;
+   select id as pc from retail.proveedores where por_confirmar \\gset
+   select (select l.id from retail.lotes l where l.despacho_id = :'d' and l.proveedor_id = :'pc') as lote_pc \\gset
+   select ${STOCK_TRU("pv_s")} + ${STOCK_TRU("pvb_s")} as lleno \\gset
+   ${como(MICAELA)}${EN_TIENDA}
+   select pg_temp.e(pg_temp.pone_marca(:'d', :'marca', :'prov')) as marca_uno \\gset
+   select pg_temp.e(pg_temp.pone_marca(:'d', :'marca2', :'prov2')) as marca_dos \\gset
+   reset role;
+   select concat_ws(' / ', :'g1', :'g2', pg_temp.e(:'r1'::jsonb), pg_temp.e(:'r2'::jsonb), :'marca_uno', :'marca_dos',
+     (:lleno - :antes), (${STOCK_TRU("pv_s")} + ${STOCK_TRU("pvb_s")} - :lleno),
+     (select string_agg(x, ',' order by x) from (
+        select case l.proveedor_id when :'prov'::uuid then 'uno' when :'prov2'::uuid then 'dos' when :'pc'::uuid then 'pc' else '?' end
+               || ':' || coalesce((select sum(m.cantidad) from retail.movimientos m where m.lote_id = l.id), 0) as x
+          from retail.lotes l where l.despacho_id = :'d') t),
+     (select l.id = :'lote_pc'::uuid from retail.lotes l where l.despacho_id = :'d' and l.proveedor_id = :'prov2'),
+     (select count(*) from retail.despacho_recibidos r where r.despacho_id = :'d' and r.proveedor_id = :'pc'),
+     (select tgenabled from pg_trigger where tgrelid = 'retail.movimientos'::regclass and tgname = 'movimientos_inmutables'),
+     (select count(*) from retail.actividad a where a.registro_id = :'d'::text and a.accion = 'despacho_sin_aviso_proveedor_de_marca'));`,
+  "OK / OK / OK / OK / OK / OK / 8 / 0 / dos:3,uno:5 / t / 0 / A / 2",
 );
 caso(
   "A9 en un envío de Compras, solo una línea sale; lo demás se cuenta después y lo que falta se mide contando lo que ya salió",

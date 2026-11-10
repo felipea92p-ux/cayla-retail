@@ -1202,6 +1202,56 @@
     border-top: 1px dashed var(--color-taupe);
   }
 
+  /* El gráfico en el celular (tarea 161). El SVG se escala a su caja: con el lienzo de 560 del Flujo, 11.5 px quedaban en
+     ~6 px a 375 px. Bajo 560 px la letra crece según el lienzo de cada uso (Flujo 560, Escenarios 460, Campañas 440) para
+     quedar cerca de 12 px en pantalla. En los gráficos por semana (Flujo y Escenarios, `GraficoSemanas`) un monto con esa
+     letra ya no cabe sobre cada barra: se dicen solo el de la última semana (con cuánto cierras) y el «bajo el mínimo» del
+     primer tramo que baja; el monto de cada semana sigue al tocar la barra (su recuadro) y en lo que lee el lector. */
+  @media (max-width: 559.98px) {
+    .fin-grafico svg[viewBox^="0 0 560 "] text {
+      font-size: 18px;
+    }
+    .fin-grafico svg[viewBox^="0 0 460 "] text {
+      font-size: 15px;
+    }
+    .fin-grafico svg[viewBox^="0 0 440 "] text {
+      font-size: 14px;
+    }
+    /* Campañas: con la letra grande, «no se pagó» se montaba sobre el monto y el nombre. La barra que baja de la línea y su
+       «−S/» ya lo dicen, y la frase de debajo del gráfico nombra cada campaña que no se pagó. */
+    .fin-grafico svg[viewBox^="0 0 440 "] .fin-grafico-mala text.fin-grafico-valor:nth-of-type(2),
+    .fin-grafico-lienzo text.fin-grafico-valor {
+      display: none;
+    }
+    .fin-grafico-lienzo .fin-grafico-barra:last-of-type:not(.fin-grafico-mala) text.fin-grafico-valor:first-of-type,
+    .fin-grafico-lienzo .fin-grafico-mala + .fin-grafico-mala:last-of-type text.fin-grafico-valor:first-of-type,
+    .fin-grafico-lienzo :not(.fin-grafico-mala) + .fin-grafico-mala text.fin-grafico-valor:nth-of-type(2) {
+      display: inline;
+    }
+    /* En los bordes, el texto se abre hacia adentro para no salirse del gráfico. */
+    .fin-grafico-lienzo .fin-grafico-barra:first-of-type text.fin-grafico-valor {
+      text-anchor: start;
+    }
+    .fin-grafico-lienzo .fin-grafico-barra:last-of-type text.fin-grafico-valor {
+      text-anchor: end;
+    }
+    .fin-grafico-leyenda,
+    .fin-grafico-tip {
+      font-size: 14px;
+    }
+  }
+  @media (max-width: 439.98px) {
+    .fin-grafico svg[viewBox^="0 0 560 "] text {
+      font-size: 22px;
+    }
+    .fin-grafico svg[viewBox^="0 0 460 "] text {
+      font-size: 18px;
+    }
+    .fin-grafico svg[viewBox^="0 0 440 "] text {
+      font-size: 16px;
+    }
+  }
+
   @media (max-width: 860px) {
     .fin-dos-col.fin-der {
       grid-template-columns: minmax(0, 1fr);

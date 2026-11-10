@@ -863,3 +863,27 @@ Felipe eligió la B de `docs/maquetas/recibir-revisa-y-cierra-2026-11/` y pidió
 - **La fila dice lo que es:** «Por crear», «Re stock» y «Nombre provisional»; la caja del costo lleva su «S/» y ya no dice «Sin costo» adentro.
 - **«Al cerrar», al costado:** prendas, modelos y proveedores; lo que entra con costo, sin costo y para después; y lo que falta, tocable (lleva al campo con la guía de foco). Reemplaza la nota larga de debajo de la tabla. El pie con «Cerrar el envío» no cambió.
 - **Lo que no cambia:** qué se guarda y cómo: las decisiones, los costos, el reparto por talla, los candados y el cierre son los mismos.
+
+## Actualización 2026-11-10: cada marca se lleva lo suyo del lote «Por confirmar» (Felipe)
+
+**El problema.** En ENV-000007 (Trujillo) salieron al stock antes de cerrar 15 shorts de Jirish y 12 faldas de Blues Company, las dos sin proveedor:
+se contaron el 2026-11-07 minutos antes de que `20261107192000` empezara a tomar el único proveedor de cada marca, y cayeron en el **mismo** lote «Por
+confirmar» (uno por envío). Cada marca es de un proveedor distinto, pero `poner_proveedor_de_marca` solo sabía cambiarle el proveedor al lote entero y se
+negaba («comparte lote con otras prendas: ponles el mismo proveedor»). Para cerrar había que mentir.
+
+**Decisión de Felipe: «Completar el provisional»** (`20261110141000`). Si el lote «Por confirmar» es entero de la marca y el proveedor real no tiene lote en
+el envío, pasa entero como antes. Si no, las entradas de ESA marca (`despacho_recibidos.movimiento_id` / `movimiento_danada_id`) pasan al lote del proveedor
+real del envío (se crea copiando el provisional si no existe) y lo recibido de esa marca toma su proveedor. Solo cambia `movimientos.lote_id`, del
+provisional al real, en el mismo envío y la misma sede: cantidad, variante, fecha, quién y motivo no se tocan y el stock no se mueve.
+
+**El candado de movimientos no aprende excepciones.** Como al eliminar un producto con historia (ADR-0252), el dueño de la tabla apaga
+`movimientos_inmutables` solo dentro de la transacción, cambia esa columna y lo vuelve a su modo (ALWAYS), y comprueba que volvió; si algo falla, todo
+vuelve solo. Toma `movimientos` en SHARE ROW EXCLUSIVE: una venta espera milisegundos, y si la tienda está escribiendo justo entonces se espera 3 s y se avisa
+«vuelve a intentar» (`proveedor_ocupado`). Queda en la Actividad con el lote de antes, el de ahora y cuántos movimientos pasaron.
+
+**Descarté** movimientos de corrección (salida del provisional + entrada al real): no tocan nada existente, pero cada prenda sumaría dos líneas y todo
+reporte que cuenta lo que llegó (Recibir, Frescura, Análisis, costo) la contaría dos veces. Y una excepción escrita en `fn_historial_es_inmutable`: sería una
+puerta permanente en el candado.
+
+**Pruebas:** `pruebas:envio-sin-aviso` A13 (dos marcas en el mismo lote provisional, cada una a su proveedor: 5 y 3 unidades, el stock igual, el candado en
+`A`); sin la migración, A13 da el mismo error que vio Felipe. **En producción desde el 2026-11-10,** con el OK de Felipe.
