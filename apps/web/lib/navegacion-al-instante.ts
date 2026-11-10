@@ -11,13 +11,20 @@ import { rutaActiva } from "./menu";
 // muestra el esqueleto con el nombre del módulo, sin esperar al servidor; cuando la ruta cambia, el `loading.tsx` (`EsperaPantalla`) sigue
 // con el MISMO título hasta que el módulo llega. La pantalla anterior queda montada y escondida: si la navegación no llega (un error, «atrás»),
 // a los 15 s o con «atrás» vuelve tal cual. Nada de esto cambia adónde lleva cada enlace: solo lo que se ve mientras llega.
+//
+// CUÁNDO LLEGÓ (actualización 2026-11-10, Felipe: «cuando le doy clic a Productos desde otro módulo no me deja ingresar y después de unos
+// segundos recién entra»). Antes se daba por llegado cuando la ruta era la del destino «o una hija suya». Entrar a un PADRE desde su hija
+// (Marcas → Productos, Movimientos → Existencias, Apartados → Vender) se daba por llegado en el mismo clic: el esqueleto ni se veía y la
+// pantalla anterior se quedaba 2,6 s sin cambiar nada, ni la fila del menú (medido en producción). Le pasaba a las 7 filas con hijas en el
+// menú. Ahora el marco navega él mismo, dentro de una transición de React que vigila (`registrarNavegador`), y suelta el esqueleto cuando
+// Next TERMINA esa navegación, sea cual sea la ruta final (una hija, un `redirect` de vuelta a donde estabas, «Sin acceso»).
 
 /** Lo que tarda como máximo en llegar una pantalla antes de devolver la anterior a la vista (la base corta a los 8 s; el doble, de sobra). */
 export const MS_TOPE_DESTINO = 15_000;
 
 export type Destino = { pathname: string; etiqueta: string | null; desde: number };
 
-type Clic = { button: number; metaKey: boolean; ctrlKey: boolean; shiftKey: boolean; altKey: boolean; defaultPrevented: boolean };
+type Clic = { button: number; metaKey: boolean; ctrlKey: boolean; shiftKey: boolean; altKey: boolean; defaultPrevented: boolean; preventDefault?: () => void };
 
 /**
  * ¿Este clic en un enlace del menú lleva a OTRA pantalla de la app, en esta misma pestaña? Devuelve su `pathname`, o `null` si no: con
@@ -44,11 +51,6 @@ export function etiquetaDelDestino(pathname: string, pantallas: readonly { href:
   return mejor?.etiqueta ?? null;
 }
 
-/** ¿Ya llegó la pantalla a la que se entró? Sí, si la ruta es la suya o una hija suya. El tope de 15 s lo cuenta el marco aparte (un reloj, no la ruta). */
-export function llegoAlDestino(destino: Destino, pathname: string): boolean {
-  return pathname === destino.pathname || rutaActiva(pathname, destino.pathname);
-}
-
 // ---- El almacén (fuera de React: lo escriben los manejadores del menú y lo leen el marco y el `loading.tsx`) ----
 let enCamino: Destino | null = null;
 /** El último destino, aunque ya haya llegado: el `loading.tsx` lo lee para seguir con el mismo título. */
@@ -61,10 +63,31 @@ let pantallas: readonly { href: string; etiqueta: string }[] = [];
 export function registrarPantallas(lista: readonly { href: string; etiqueta: string }[]) {
   pantallas = lista;
 }
-/** El clic de una fila del menú: anota su destino si lleva a otra pantalla en esta pestaña (`destinoDelClic`), con su nombre del menú. */
-export function alEntrarDesdeElMenu(href: string, clic: Parameters<typeof destinoDelClic>[2]) {
-  const pathname = destinoDelClic(href, { pathname: window.location.pathname, origin: window.location.origin }, clic);
-  if (pathname) marcarDestino(pathname, etiquetaDelDestino(pathname, pantallas));
+/**
+ * Quién navega: el marco registra aquí su `router.push` envuelto en una transición que él mismo vigila. Mientras esa transición está abierta,
+ * Next sigue trayendo la pantalla; al cerrarse, ya montó la nueva (o su `loading.tsx`) y el esqueleto del marco se suelta.
+ */
+let navegar: ((href: string) => void) | null = null;
+export function registrarNavegador(fn: (href: string) => void) {
+  navegar = fn;
+  return () => {
+    if (navegar === fn) navegar = null;
+  };
+}
+
+/**
+ * El clic de una fila del menú, del logo o del buscador global. Si lleva a OTRA pantalla en esta pestaña (`destinoDelClic`), anota el destino
+ * con su nombre del menú, ataja el clic y navega por el marco: devuelve `true` y quien llama ya no navega. Si no (otra pestaña, la misma
+ * pantalla, sin marco montado), no toca nada y devuelve `false`: el enlace navega como siempre.
+ */
+export function entrarAlInstante(href: string, clic: Clic, actual: { pathname: string; origin: string } = window.location): boolean {
+  if (!navegar) return false;
+  const pathname = destinoDelClic(href, actual, clic);
+  if (!pathname) return false;
+  clic.preventDefault?.();
+  marcarDestino(pathname, etiquetaDelDestino(pathname, pantallas));
+  navegar(href);
+  return true;
 }
 
 export function marcarDestino(pathname: string, etiqueta: string | null, ahora = Date.now()) {

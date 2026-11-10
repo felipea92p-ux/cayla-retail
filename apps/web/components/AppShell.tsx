@@ -25,7 +25,7 @@ import dynamic from "next/dynamic";
 import { INICIO_DE_LA_PALABRA, LogoCayla } from "@/components/ui/LogoCayla";
 import { guardarLateralPlegado } from "@/lib/lateral-cookie";
 import { hrefConSedeYMes } from "@/lib/finanzas-telar-reglas";
-import { alEntrarDesdeElMenu, registrarPantallas } from "@/lib/navegacion-al-instante";
+import { entrarAlInstante, registrarPantallas } from "@/lib/navegacion-al-instante";
 import { useDestinoEnCamino } from "@/components/useNavegacionAlInstante";
 import { EsqueletoPantalla } from "@/components/Esqueleto";
 import { useConsultaMedia } from "@/lib/useConsultaMedia";
@@ -219,10 +219,11 @@ type FilaLateral =
 function useConSedeYMes() {
   const router = useRouter();
   return (href: string) => (e: React.MouseEvent<HTMLAnchorElement>) => {
-    // ADR-0628: el clic entra al módulo EN ESTE INSTANTE (fila activa y esqueleto con su nombre), sin esperar al servidor.
-    alEntrarDesdeElMenu(href, e);
     if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
     const destino = hrefConSedeYMes(href, window.location.pathname, new URLSearchParams(window.location.search));
+    // ADR-0628: el clic entra al módulo EN ESTE INSTANTE (fila activa y esqueleto con su nombre, sin esperar al servidor) y navega el
+    // marco, que así sabe cuándo terminó (act. 2026-11-10). Si es la misma pantalla, sigue como siempre.
+    if (entrarAlInstante(destino, e)) return;
     if (destino === href) return;
     e.preventDefault();
     router.push(destino);
@@ -985,7 +986,7 @@ export function AppShell({ persona, ubicaciones, trasladosPorAtender, pedidosWeb
             al abrir el cajón (globals.css) — logo, cada fila del menú, la firma y la persona. */}
         <div className="flex items-start" data-pieza-cajon style={{ "--k": 0 } as React.CSSProperties}>
         {/* El logo oficial, el mismo dibujo que la tienda (ADR-0446): la palabra CAYLA es el trazo del logo, no una letra. */}
-        <Link href="/" onClick={(e) => alEntrarDesdeElMenu("/", e)} aria-label="CAYLA Retail, ir al inicio" className={`group flex min-w-0 flex-1 flex-col items-start overflow-hidden whitespace-nowrap pb-6 pt-7 transition-[padding] duration-300 ease-cayla ${compacto ? "pl-[18px]" : "pl-7"}`}>
+        <Link href="/" onClick={(e) => entrarAlInstante("/", e)} aria-label="CAYLA Retail, ir al inicio" className={`group flex min-w-0 flex-1 flex-col items-start overflow-hidden whitespace-nowrap pb-6 pt-7 transition-[padding] duration-300 ease-cayla ${compacto ? "pl-[18px]" : "pl-7"}`}>
           {/* Plegado la palabra se desvanece y el lienzo sigue ancho: el colibrí mide 47 px de los 32 de alto (862 × 582), así que
               18 px de margen lo dejan al centro de los 84. */}
           <LogoCayla sinPalabra={compacto} className="h-8 origin-left transition-transform duration-500 ease-cayla group-hover:scale-105" />
@@ -1181,7 +1182,7 @@ export function AppShell({ persona, ubicaciones, trasladosPorAtender, pedidosWeb
               ubicacionEtiqueta={persona.ubicacionEtiqueta}
               mostrarEquipo={persona.ubicacionTipo === "tienda" && !esAparato}
             />
-            <Link href="/" onClick={(e) => alEntrarDesdeElMenu("/", e)} aria-label="CAYLA, ir al inicio" className="marco-colibri mr-1.5 flex items-center gap-2 sm:hidden">
+            <Link href="/" onClick={(e) => entrarAlInstante("/", e)} aria-label="CAYLA, ir al inicio" className="marco-colibri mr-1.5 flex items-center gap-2 sm:hidden">
               <LogoCayla soloColibri className="h-[26px]" />
             </Link>
           </div>

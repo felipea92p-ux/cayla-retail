@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { Suspense } from "react";
+import { EsperaPantalla } from "@/components/ui/Espera";
 import { getPendientesDeLaSede } from "@/lib/recepcion-conteo";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
@@ -77,7 +79,23 @@ import { hoyLima } from "@/lib/fechas-lima";
 // MUESTRA. Editar un producto ya existente sigue en `ProductoForm`
 // (`/productos/[id]/editar`): la matriz es para crear varias variantes de
 // una sola vez, no tiene sentido para una que ya existe.
-export default async function ProductosPage({ searchParams }: { searchParams: Promise<ParamsProductosListado> }) {
+//
+// 2026-11-10 (ADR-0628, act.): la página se dibuja en dos tiempos. Felipe: «cuando le doy clic a Productos desde otro módulo no me deja
+// ingresar y después de unos segundos recién entra». La lista hace 16 lecturas (~2,6 s medidos en producción) y esta carpeta no tiene
+// `loading.tsx`: al llegar desde una pantalla de Catálogo (Marcas, Categorías…) o con «Volver» desde una ficha, Next no tenía nada que
+// mostrar y dejaba la pantalla anterior quieta hasta el final. Ahora la página responde al instante con el esqueleto y la lista entra
+// cuando están sus datos. El límite va AQUÍ y no en un `productos/loading.tsx`: ese envolvería también la ranura `@modal`, y abrir el
+// historial de una prenda dibujaría un esqueleto de pantalla entera debajo de la lista. Cambiar un filtro no lo muestra: React deja la
+// lista a la vista mientras llega la nueva (el buscador tiene su «Buscando…»).
+export default function ProductosPage({ searchParams }: { searchParams: Promise<ParamsProductosListado> }) {
+  return (
+    <Suspense fallback={<EsperaPantalla />}>
+      <ListaDeProductos searchParams={searchParams} />
+    </Suspense>
+  );
+}
+
+async function ListaDeProductos({ searchParams }: { searchParams: Promise<ParamsProductosListado> }) {
   const persona = await exigirModulo("productos"); // ADR-0161: URL directa sin el módulo en su rol → «Sin acceso»
   const params = await searchParams;
   // «Hay en …» y «Sin stock en …» miran la sede elegida arriba; en CAYLA Global no hay una (ADR-0275) y no se aplican.
