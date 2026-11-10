@@ -1,4 +1,4 @@
-import { exigirModulo, veEstadosFinancierosDeTodoDe } from "@/lib/persona-actual";
+import { exigirModulo, veEstadosFinancierosDeTodoDe, veModulo } from "@/lib/persona-actual";
 import { hoyLima } from "@/lib/fechas-lima";
 import { mesDe, rangoMes } from "@/lib/gastos-reglas";
 import { leerSemanas, proyectar } from "@/lib/flujo-caja-reglas";
@@ -100,7 +100,7 @@ export default async function FlujoPage({ searchParams }: { searchParams: Promis
       )}
       <Recomendaciones recomendaciones={recomendaciones} />
       <MasDelEstado texto={textoDeVerMas(["lo que viene", "qué pasa si cambias algo", "semana a semana"])!} guia="fin-plata.mas">
-        <MasDelFlujo real={real.datos} proyeccion={proyeccion.datos} falla={proyeccion.falla} semanas={semanas} hoy={hoy} escenarios={{ resultados: erBase.falla ? null : erBase.datos, mesBase }} />
+        <MasDelFlujo real={real.datos} proyeccion={proyeccion.datos} falla={proyeccion.falla} semanas={semanas} hoy={hoy} escenarios={{ resultados: erBase.falla ? null : erBase.datos, mesBase, vePlan: veModulo(persona, "plan_compra") }} />
       </MasDelEstado>
     </div>
   );

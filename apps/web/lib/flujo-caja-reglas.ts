@@ -413,6 +413,33 @@ export function alquilerDeFijos(salidas: readonly SalidaProy[], tienda: string |
   return montos.length ? Math.max(...montos) : null;
 }
 
+/**
+ * El alquiler del que parte el deslizador de una tienda: el de su estado de resultados del mes base (cuenta 635) y, si ese mes
+ * no lo trae, el de sus gastos fijos. La tabla y la caja restan contra ESTE mismo monto, para que bajar el alquiler dé lo mismo
+ * en las dos (tarea 11: Lima sin 635 en el mes base restaba contra 0 y bajarlo la hacía perder más). `sinEnResultado`: el mes
+ * base no trae el alquiler que sí está en sus gastos fijos, así que su resultado de partida sale mejor de lo que es.
+ */
+export function alquilerDePartida(
+  fila: Pick<FilaER, "detalleGastos"> | null | undefined,
+  salidas: readonly SalidaProy[] | null | undefined,
+  tienda: string | null,
+): { monto: number | null; sinEnResultado: boolean } {
+  const er = fila ? alquilerDe(fila) : 0;
+  if (er > 0) return { monto: er, sinEnResultado: false };
+  const fijos = salidas ? alquilerDeFijos(salidas, tienda) : null;
+  return { monto: fijos, sinEnResultado: !!fila && fijos !== null && fijos > 0 };
+}
+
+/** Lo que la pantalla dice cuando una tienda parte sin su alquiler en el mes base. */
+export function textoSinAlquiler(mesBase: string, nombreTienda: string, monto: number): string {
+  const m = textoMes(mesBase).split(" ")[0]!;
+  const mes = m.charAt(0).toUpperCase() + m.slice(1);
+  return `${mes} no trae el alquiler de ${nombreTienda}: su resultado parte sin sus ${soles(monto)} al mes, así que sale mejor de lo que es y lo que necesita vender para no perder, más bajo. El cambio sí se cuenta desde ${soles(monto)}.`;
+}
+
+/** La compra planeada de campaña no entra a «¿Y si…?» (tarea 100): se dice, para que nadie lea esta caja como completa. */
+export const SIN_COMPRA_DE_CAMPANA = "Esta caja no incluye la compra planeada de campaña.";
+
 /** `iso` + `k` meses, con el día recortado al último del mes (31 ene + 1 = 28 feb). */
 export function sumarMesesIso(iso: string, k: number): string {
   const [a, m, d] = iso.slice(0, 10).split("-").map(Number) as [number, number, number];
@@ -426,15 +453,23 @@ export function sumarMesesIso(iso: string, k: number): string {
  * adelanta, no antes de mañana), el alquiler de la tienda escalado al nuevo monto, y el gasto nuevo.
  */
 export function salidasConPalancas(p: Proyeccion, palancas: Palancas, alquilerActual: number | null): SalidaProy[] {
-  const factorAlquiler =
-    palancas.tienda && palancas.alquilerTienda !== null && alquilerActual && alquilerActual > 0 ? palancas.alquilerTienda / alquilerActual : 1;
+  // El alquiler cambia en SOLES contra el mismo monto del que parte el deslizador (`alquilerActual`), repartido entre los fijos
+  // de alquiler de cada mes: si el estado de resultados dice 2,400 y los fijos 2,500, bajar a 2,000 resta 400 al mes en
+  // la caja, igual que en la tabla (escalar por un factor restaba otra cifra).
+  const delta =
+    palancas.tienda && palancas.alquilerTienda !== null && alquilerActual !== null && alquilerActual > 0 ? palancas.alquilerTienda - alquilerActual : 0;
+  const mesDe = (s: SalidaProy) => s.id.split(":")[1] ?? s.fecha.slice(0, 7);
+  const esAlquiler = (s: SalidaProy) => s.tipo === "fijo" && s.clase === "alquileres" && s.ubicacionId === palancas.tienda;
+  const totalMes = new Map<string, number>();
+  if (delta !== 0) for (const s of p.salidas) if (esAlquiler(s)) totalMes.set(mesDe(s), (totalMes.get(mesDe(s)) ?? 0) + s.monto);
   const salidas: SalidaProy[] = p.salidas.map((s) => {
     let f = s.fecha;
     if (palancas.moverPago && s.id === palancas.moverPago.id && palancas.moverPago.semanas !== 0) {
       f = sumarDias(s.fecha, 7 * palancas.moverPago.semanas);
       if (f < p.desde) f = p.desde;
     }
-    const monto = s.tipo === "fijo" && s.clase === "alquileres" && s.ubicacionId === palancas.tienda ? r2(s.monto * factorAlquiler) : s.monto;
+    const total = delta !== 0 && esAlquiler(s) ? (totalMes.get(mesDe(s)) ?? 0) : 0;
+    const monto = total > 0 ? r2((s.monto * Math.max(0, total + delta)) / total) : s.monto;
     return { ...s, fecha: f, monto };
   });
   const g = palancas.gastoNuevo;
@@ -626,12 +661,12 @@ export type UtilidadUnidad = {
 type Cifras = { ventas: number; costo: number; fletes: number; mermas: number; gastos: number };
 const utilidad = (x: Cifras) => x.ventas - x.costo - x.fletes - x.mermas - x.gastos;
 
-function aplicar(f: FilaER, p: Palancas): Cifras {
+function aplicar(f: FilaER, p: Palancas, alquilerBase: number | null): Cifras {
   const esLa = !!p.tienda && f.ubicacionId === p.tienda;
   if (esLa && p.cerrarTienda) return { ventas: 0, costo: 0, fletes: 0, mermas: 0, gastos: f.depreciacion };
   let factor = f.unidad === "tienda" ? 1 + p.ventasTodas / 100 : 1;
   if (esLa) factor *= 1 + p.ventasTienda / 100;
-  const alquiler = esLa && p.alquilerTienda !== null ? p.alquilerTienda - alquilerDe(f) : 0;
+  const alquiler = esLa && p.alquilerTienda !== null ? p.alquilerTienda - (alquilerBase ?? alquilerDe(f)) : 0;
   const nuevo = f.unidad === "empresa" && p.gastoNuevo?.mensual ? p.gastoNuevo.monto : 0;
   return { ventas: f.ventas * factor, costo: f.costo * factor, fletes: f.fletes * factor, mermas: f.mermas * factor, gastos: f.gastos + alquiler + nuevo };
 }
@@ -641,11 +676,16 @@ function aplicar(f: FilaER, p: Palancas): Cifras {
  * lo cambiado en una tienda se vea en el total). Ventas ±%: ventas, costo, fletes y mermas se mueven juntos. Cerrar una
  * tienda: sin ventas ni costos, pero su depreciación sigue. Un gasto nuevo cada mes cae en «De la empresa».
  */
-export function utilidadConCambios(filas: readonly FilaER[], p: Palancas): { unidades: UtilidadUnidad[]; cayla: { antes: number; despues: number } } {
+export function utilidadConCambios(
+  filas: readonly FilaER[],
+  p: Palancas,
+  /** El alquiler del que parte el deslizador (`alquilerDePartida`); sin dato, el del estado de resultados de la tienda. */
+  alquilerBase: number | null = null,
+): { unidades: UtilidadUnidad[]; cayla: { antes: number; despues: number } } {
   const unidades = filas
     .filter((f) => f.unidad !== "consolidado")
     .map((f) => {
-      const d = aplicar(f, p);
+      const d = aplicar(f, p, alquilerBase);
       const eq = f.unidad === "tienda" ? puntoDeEquilibrio({ ventas: d.ventas, margen: d.ventas - d.costo - d.fletes - d.mermas, gastos: d.gastos }) : null;
       return {
         ubicacionId: f.ubicacionId,
