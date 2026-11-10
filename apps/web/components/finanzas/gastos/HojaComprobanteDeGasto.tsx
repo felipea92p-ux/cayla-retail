@@ -14,6 +14,8 @@ import { Modal } from "@/components/ui/Modal";
 import { Volver } from "@/components/ui/Volver";
 import { Boton, CampoTexto } from "@/components/ui/campos";
 import { CampoFecha } from "@/components/ui/CampoFecha";
+import { Aviso } from "@/components/ui/Aviso";
+import { useFechaContable } from "@/components/finanzas/gastos/useFechaContable";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { ConsultaDocumento } from "@/components/ConsultaDocumento";
 import { EscanerBusqueda } from "@/components/EscanerBusqueda";
@@ -31,6 +33,7 @@ import { leerQrComprobante, serieNumeroDelQr, type QrComprobante } from "@/lib/q
 import {
   PAPELES_TARDIOS,
   RPC_AGREGAR_COMPROBANTE,
+  avisoMesCerrado,
   borradorInicial,
   camposDelComprobante,
   igvDeLoEscrito,
@@ -60,6 +63,10 @@ export function HojaComprobanteDeGasto({
   const router = useRouter();
   const responsable = useResponsable();
   const [b, setB] = useState<BorradorComprobante>(() => borradorInicial(g));
+  // Con el mes del gasto cerrado, el gasto no se toca y el papel entra en el mes abierto; si solo está cerrado el mes del papel, también.
+  const entraGasto = useFechaContable(g.ubicacionId, g.fecha);
+  const entraPapel = useFechaContable(g.ubicacionId, b.fecha);
+  const mesCerrado = avisoMesCerrado(g.fecha, entraGasto) ?? avisoMesCerrado(b.fecha, entraPapel);
   const [guardando, setGuardando] = useState(false);
   const [igvTexto, setIgvTexto] = useState("");
   const [qr, setQr] = useState<QrComprobante | null>(null);
@@ -71,7 +78,7 @@ export function HojaComprobanteDeGasto({
   const guia = useGuiaCampos(camposDelComprobante(b, { proveedorListo, hoy }, { listo: responsable.listo, motivo: responsable.motivo }));
   // Lo mal escrito se dice al salir del campo, no a la primera letra (ADR-0611, mejora 2).
   const avisoSerie = useValidarAlSalir(b.serieNumero && !serieNumeroLegible(b.serieNumero) ? "Escríbela como F001-2231 (la letra, tres números, un guion y el número)." : null);
-  const pasa = loQuePasaAlGuardar(g, b);
+  const pasa = loQuePasaAlGuardar(g, b, mesCerrado ? (entraGasto && entraGasto.slice(0, 7) !== g.fecha.slice(0, 7) ? entraGasto : entraPapel) : null);
 
   /** Lo leído llena la hoja. El IGV del papel se usa solo si su total es el del gasto (si no, es otro papel: lo avisa y se queda el de la tasa). */
   function aplicarQr(leido: QrComprobante) {
@@ -200,6 +207,11 @@ export function HojaComprobanteDeGasto({
             <CampoFecha etiqueta="Fecha del comprobante" valor={b.fecha} onValor={(v) => poner("fecha", v)} />
           </CampoGuiado>
         </div>
+        {mesCerrado && (
+          <Aviso tono="info" chico>
+            {mesCerrado}
+          </Aviso>
+        )}
 
         {b.tipo === "factura" && (
           <div>

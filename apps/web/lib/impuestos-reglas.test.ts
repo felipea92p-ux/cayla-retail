@@ -1,3 +1,5 @@
+import { leerIgvCambiado, textoIgvCambiado } from "./impuestos-reglas";
+import { solesRedondo } from "./gastos-reglas";
 import { describe, expect, it } from "vitest";
 import { leerPagosSunat,
   ALCANCE_DEL_AVISO,
@@ -497,5 +499,21 @@ describe("el paquete .zip para el contador", () => {
     expect(dv.getUint32(offsetIndice, true)).toBe(0x02014b50);
     const segunda = 30 + "registro-ventas-2024-01.csv".length + 8;
     expect(dv.getUint32(segunda, true)).toBe(0x04034b50);
+  });
+});
+
+describe("el IGV de un mes cerrado que cambió (tarea 19)", () => {
+  const c = (o: object) => leerIgvCambiado({ mes: "2026-10-01", a_pagar_foto: 500, a_pagar_hoy: 320, a_favor_foto: 0, a_favor_hoy: 0, ...o });
+  it("dice cuánto daba y cuánto da, y manda al contador sin decidir por él", () => {
+    const t = textoIgvCambiado(c({}));
+    expect(t.titulo).toContain("octubre");
+    expect(t.texto).toContain(`Al cerrar daba ${solesRedondo(500)} a pagar y hoy da ${solesRedondo(320)} a pagar`);
+    expect(t.texto).toContain("revísalo con el contador");
+  });
+  it("habla de saldo a favor cuando lo hay", () => {
+    expect(textoIgvCambiado(c({ a_pagar_hoy: 0, a_favor_hoy: 40 })).texto).toContain(`hoy da ${solesRedondo(40)} a favor`);
+  });
+  it("si el resultado es igual pero cambió lo que lo compone, no dice que nada cambió", () => {
+    expect(textoIgvCambiado(c({ a_pagar_hoy: 500 })).texto).toContain("cambió lo que lo compone");
   });
 });

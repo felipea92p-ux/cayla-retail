@@ -453,6 +453,7 @@ export const MODALES: Record<string, PantallaGuia> = {
   "components/PuntoDeVentaTicket.tsx": PENDIENTE, // 12 controles
   // «Falta» = lo mismo que apaga el botón «Reabrir»: el motivo (único control obligatorio) (ADR-0334).
   "components/ReabrirPrendaModal.tsx": { estado: "aplicada", evidencia: ["components/ReabrirPrendaModal.tsx"] },
+  "components/AnularPagoModal.tsx": { estado: "aplicada", evidencia: ["components/AnularPagoModal.tsx"] },
   "components/SugerenciasColaModal.tsx": {
     estado: "no-aplica",
     motivo: "Es una revisión, no un formulario (ADR-0334): la persona marca o desmarca sugerencias ya armadas por la base; no hay campos que llenar ni pasos. El único requisito —al menos una marcada— lo dice el propio botón («Marca al menos una»).",

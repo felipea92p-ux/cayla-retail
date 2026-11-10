@@ -27,7 +27,7 @@ import {
 } from "@/lib/gastos-reglas";
 import { leerResumenFicha, type ResumenFicha } from "@/lib/gasto-fijo-ficha-reglas";
 import { dentroDeVer, juntarPaneles, juntarRecientes, partesDeVer } from "@/lib/gastos-varias-sedes";
-import { conNoEmite, leerNoEmiten } from "@/lib/gastos-no-emite-reglas";
+import { conNoEmite, leerNoEmiten, conPapelTardio, leerPapelesTardios } from "@/lib/gastos-no-emite-reglas";
 
 /** Todo lo que la cuenta ve: con varias sedes, lo que trae su sede en cada fila se lee así y se filtra con `dentroDeVer`. */
 const TODO: Ver = { clave: "todas", ubicacionId: null, soloEmpresa: false };
@@ -97,19 +97,22 @@ export async function getGastos(desde: string, hasta: string, ver: Ver): Promise
   }
   const supabase = await createClient();
   const rango = { p_desde: desde, p_hasta: hasta, p_ubicacion_id: ver.ubicacionId, p_solo_empresa: ver.soloEmpresa };
-  const [lista, perdido, noEmiten] = await Promise.all([
+  const [lista, perdido, noEmiten, tardios] = await Promise.all([
     // Por páginas y sin el tope de 500 de antes: la lista del mes y el panel (`fn_gastos_panel`, que suma todo) deben cuadrar (~280 gastos al mes hoy).
     leerRpcPorPaginas(supabase, "fn_gastos_lista", { ...rango, p_limite: LIMITE_LISTA_GASTOS }, ORDEN_GASTOS, { enParalelo: 1 }),
     // ADR-0362, fase 6 (decisión 76): qué gasto perdió IGV por pagarse sin banco. Si no se puede leer, la lista sale igual y lo dice.
     supabase.rpc("fn_gastos_igv_perdido" as never, rango as never),
     // ADR-0588: lo marcado «no emite comprobante», que ya no pide nada. Sin esta lectura, siguen pidiendo comprobante (lo seguro) y se dice.
     supabase.rpc("fn_gastos_no_emiten" as never, rango as never),
+    // Tarea 20: el papel que llegó con el mes del gasto cerrado. Sin esta lectura, ese gasto sigue pidiendo comprobante (lo seguro) y se dice.
+    supabase.rpc("fn_gastos_papeles_tardios" as never, rango as never),
   ]);
   if (lista.error) return { datos: [], falla: falla("los gastos", lista.error) };
-  const gastos = conNoEmite((lista.data ?? []).map(leerGasto), leerNoEmiten(noEmiten.data));
+  const gastos = conNoEmite(conPapelTardio((lista.data ?? []).map(leerGasto), leerPapelesTardios(tardios.data)), leerNoEmiten(noEmiten.data));
   if (perdido.error) return { datos: gastos, falla: falla("el IGV perdido por pagar sin banco", perdido.error) };
   const conPerdido = conIgvPerdido(gastos, (perdido.data ?? []) as Record<string, unknown>[]);
   if (noEmiten.error) return { datos: conPerdido, falla: falla("los gastos marcados «no emite comprobante»", noEmiten.error) };
+  if (tardios.error) return { datos: conPerdido, falla: falla("los comprobantes que llegaron con el mes cerrado", tardios.error) };
   return { datos: conPerdido, falla: null };
 }
 
