@@ -6,10 +6,12 @@ import {
   disponibleReal,
   filasContadas,
   fraseClaure,
+  leerCuentaOtraEmpresa,
   leerFilaClaure,
   leerGastoClaure,
   leerPagoClaure,
   leerVentasClaure,
+  notaCuentaOtraEmpresa,
   lineaImpuestosClaure,
   montoSugeridoPago,
   notaResultadosClaure,
@@ -260,5 +262,26 @@ describe("los gastos de CLAURE que pagó CAYLA (ADR-0560, actividad 8)", () => {
   it("un chip dice cuánto es de gastos suyos; sin gastos no hay chip", () => {
     expect(chipsClaure(resumenClaure(FILAS, [], crudo), true).some((c) => c.texto.startsWith("Gastos suyos que pagó CAYLA"))).toBe(true);
     expect(chipsClaure(resumenClaure(FILAS), true).some((c) => c.texto.includes("Gastos suyos"))).toBe(false);
+  });
+});
+
+describe("una cuenta de otra empresa (ADR-0638)", () => {
+  it("lee lo que manda la base y un último cobro vacío se queda vacío", () => {
+    expect(leerCuentaOtraEmpresa({ id: "x", nombre: "Yape de Claudia · LIM", empresa: "CLAURE", cobrado_mes: "59.00", cobrado_total: "118.5", ultimo_cobro: "2026-11-08" })).toEqual({
+      id: "x",
+      nombre: "Yape de Claudia · LIM",
+      empresa: "CLAURE",
+      cobradoMes: 59,
+      cobradoTotal: 118.5,
+      ultimoCobro: "2026-11-08",
+    });
+    expect(leerCuentaOtraEmpresa({ id: "x", nombre: "n", empresa: "e", cobrado_mes: 0, cobrado_total: 0, ultimo_cobro: null }).ultimoCobro).toBeNull();
+  });
+
+  it("la nota dice de quién es, que no suma, y lo de este mes con céntimos", () => {
+    const nota = notaCuentaOtraEmpresa({ id: "x", nombre: "Yape de Claudia · LIM", empresa: "CLAURE", cobradoMes: 0, cobradoTotal: 0, ultimoCobro: null });
+    expect(nota).toContain("Yape de Claudia · LIM: de CLAURE, no suma.");
+    expect(nota).toContain("Este mes S/");
+    expect(nota).toContain("0.00");
   });
 });

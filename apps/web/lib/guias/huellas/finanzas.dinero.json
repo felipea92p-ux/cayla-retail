@@ -2,8 +2,11 @@
   "guia": "finanzas.dinero",
   "ruta": "/finanzas/dinero",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 76,
+  "total": 77,
   "controles": {
+    "app/(app)/finanzas/dinero/page.tsx": [
+      "Link «Ver en CLAURE»"
+    ],
     "components/finanzas/CuadrarDepositos.tsx": [
       "button «Reintentar»",
       "ComboResponsable «{responsable}»",

@@ -17,7 +17,7 @@ import { BotonPagarClaure } from "@/components/finanzas/dinero/BotonPagarClaure"
 import { HistorialClaure } from "@/components/finanzas/dinero/HistorialClaure";
 import { soles } from "@/lib/compras-reglas";
 import { solesDos } from "@/lib/gastos-reglas";
-import { NOTA_CLAURE, NOTA_GASTOS_CLAURE, NOTA_PAGOS_CLAURE, filasContadas, montoSugeridoPago, resumenClaure, type FilaClaure, type GastoClaure, type PagoClaure } from "@/lib/cuenta-claure-reglas";
+import { NOTA_CLAURE, NOTA_GASTOS_CLAURE, NOTA_PAGOS_CLAURE, filasContadas, montoSugeridoPago, resumenClaure, type CuentaOtraEmpresa, type FilaClaure, type GastoClaure, type PagoClaure } from "@/lib/cuenta-claure-reglas";
 import {
   avisosClaure,
   fechaCortaIso,
@@ -51,7 +51,41 @@ const COLUMNAS_MEDIOS = [{ titulo: "Medio" }, { titulo: "Cobrado", alinear: "der
 
 const PAGOS_A_LA_VISTA = 4;
 
-export function CuentaClaure({ filas, pagos, gastos, esLider, hoy }: { filas: FilaClaure[]; pagos: PagoClaure[]; gastos: GastoClaure[]; esLider: boolean; hoy: string }) {
+/** Su Yape (ADR-0638): lo que le pagan a su número llega directo a ella. Va aparte porque no entra a ningún banco de CAYLA ni suma a lo que se le debe. Sin acciones: solo se lee. */
+function SuYape({ cuentas }: { cuentas: CuentaOtraEmpresa[] }) {
+  if (cuentas.length === 0) return null;
+  return (
+    <section className="card-cayla anim-sube grid gap-x-10 gap-y-3 px-6 py-5 @[980px]:grid-cols-2" aria-label="Su Yape, aparte" data-guia="fin-claure.su-yape">
+      <div className="min-w-0">
+        <TituloSeccion dato={<Chip tono="pizarra">{`De ${cuentas[0].empresa} · no suma`}</Chip>}>Su Yape</TituloSeccion>
+        <p className="cl-tenue mt-2">Lo que le pagan a su número llega directo a ella: no entra a los bancos de CAYLA.</p>
+      </div>
+      <div className="min-w-0">
+        {cuentas.map((c) => (
+          <div key={c.id}>
+            <span className="cl-versalita">{c.nombre}</span>
+            <dl className="cl-cuenta">
+              <div>
+                <dt>Cobrado este mes</dt>
+                <dd>{solesDos(c.cobradoMes)}</dd>
+              </div>
+              <div>
+                <dt>Cobrado en total</dt>
+                <dd>{solesDos(c.cobradoTotal)}</dd>
+              </div>
+              <div>
+                <dt>Último cobro</dt>
+                <dd>{c.ultimoCobro ? fechaCortaIso(c.ultimoCobro) : "Todavía ninguno"}</dd>
+              </div>
+            </dl>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+export function CuentaClaure({ filas, pagos, gastos, cuentasAjenas, esLider, hoy }: { filas: FilaClaure[]; pagos: PagoClaure[]; gastos: GastoClaure[]; cuentasAjenas: CuentaOtraEmpresa[]; esLider: boolean; hoy: string }) {
   const abrirMovimiento = useAbrirMovimiento();
   const [historial, setHistorial] = useState<{ filtro: FiltroLibro; periodo: PeriodoLibro } | null>(null);
 
@@ -73,10 +107,11 @@ export function CuentaClaure({ filas, pagos, gastos, esLider, hoy }: { filas: Fi
 
   if (vacio)
     return (
-      <div className="cl-marco">
+      <div className="cl-marco space-y-6">
         <Vacio icono={<Handshake />} titulo="Todavía no hay cobros de CLAURE en cuentas de CAYLA">
           Cuando una venta de una prenda de CLAURE se cobre con tarjeta, QR, Yape o transferencia, aparecerá aquí con lo que se le debe a Claudia.
         </Vacio>
+        <SuYape cuentas={cuentasAjenas} />
       </div>
     );
 
@@ -96,6 +131,8 @@ export function CuentaClaure({ filas, pagos, gastos, esLider, hoy }: { filas: Fi
           </TarjetaCifra>
         ))}
       </section>
+
+      <SuYape cuentas={cuentasAjenas} />
 
       <div className="cl-dos">
         <section className="card-cayla anim-sube" aria-label="Por dónde entra la plata de Claudia" data-guia="fin-claure.entra">

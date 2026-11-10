@@ -18,8 +18,9 @@ import { CobrosDinero } from "@/components/finanzas/dinero/CobrosDinero";
 import { filasDeCobros, movimientosDelDueno } from "@/lib/dinero-dueno-cobros-reglas";
 import { CampanaDinero } from "@/components/finanzas/dinero/CampanaDinero";
 import { contadorDeCampana, filasDeCierres, filasDeEstado, itemsDeAtencion, porRegistrar } from "@/lib/dinero-estados-reglas";
-import { getCuentaClaure } from "@/lib/cuenta-claure";
-import { chipsDisponible, resumenClaure } from "@/lib/cuenta-claure-reglas";
+import { getCuentaClaure, getCuentasDeOtrasEmpresas } from "@/lib/cuenta-claure";
+import { chipsDisponible, notaCuentaOtraEmpresa, resumenClaure } from "@/lib/cuenta-claure-reglas";
+import Link from "next/link";
 
 // Finanzas ▸ Cuentas y dinero ▸ Dónde está (ADR-0195 F3; El telar, Felipe 2026-10-23). Lee en el servidor y deja a una pieza
 // cliente operar. `?sede=` (la barra común; `?ver=` mientras dure el cambio; solo el líder) elige qué mirar: por defecto la sede
@@ -39,7 +40,7 @@ export default async function CuentasDineroPage({ searchParams }: { searchParams
   // El efectivo de hoy (la misma cuenta del cierre) y los cierres con diferencia viven aquí desde que se retiró la pestaña Efectivo;
   // son del cajón de una tienda, así que la empresa no los lee.
   const sinEfectivo: { datos: EfectivoFila[]; falla: string | null } = { datos: [], falla: null };
-  const [movimientos, medios, sinCuenta, proyeccion, alertas, efectivo, cierres, telar, claure, planilla, cuentasPlanilla] = await Promise.all([
+  const [movimientos, medios, sinCuenta, proyeccion, alertas, efectivo, cierres, telar, claure, planilla, cuentasPlanilla, cuentasAjenas] = await Promise.all([
     getMovimientos(ctx.ver.ubicacionId),
     ctx.esLider ? getMediosDeCobro() : Promise.resolve({ datos: [], falla: null }),
     ctx.esLider && !ctx.ver.ubicacionId ? getSinCuenta() : Promise.resolve({ datos: [], falla: null }),
@@ -56,6 +57,8 @@ export default async function CuentasDineroPage({ searchParams }: { searchParams
     // de la empresa y el líder entra mirando su sede.
     ctx.esLider ? getPlanillaPorRegistrar() : Promise.resolve([]),
     ctx.esLider ? getPlanillaCuentas() : Promise.resolve(null),
+    // La plata que llega a la cuenta de otra empresa (el Yape de Claudia, ADR-0638) no está en «tienes»: se dice aparte, para que nadie la busque en los bancos.
+    ctx.esLider && !ctx.ver.ubicacionId ? getCuentasDeOtrasEmpresas() : Promise.resolve([]),
   ]);
   // Con una sede elegida, «tienes» es SOLO lo suyo (su cajón y su caja fuerte): los bancos son de la empresa y no se le suman. Con la
   // empresa, solo lo suyo: lo que ponen las cajas de las tiendas no entra.
@@ -121,6 +124,14 @@ export default async function CuentasDineroPage({ searchParams }: { searchParams
         alcanza={<AlcanzaDinero alcanza={alcanzaPulso(proyeccion.datos, tienes.guardado, !!proyeccion.falla)} deCaylaEntera={!!sedeId} />}
         ultimos={<MovimientosEnPantalla movimientos={movimientosVisibles} hoy={hoy} />}
       />
+      {cuentasAjenas.map((c) => (
+        <p key={c.id} className="nota-cayla">
+          {notaCuentaOtraEmpresa(c)}{" "}
+          <Link href="/finanzas/dinero/claure" className="btn-cayla btn-enlace">
+            Ver en CLAURE
+          </Link>
+        </p>
+      ))}
       {/* Solo el líder y con todas las sedes: lo del dueño es de CAYLA entera, y a qué cuenta entra cada cobro se explica sede por sede (no la empresa). */}
       {ctx.esLider && !sedeId && !ctx.plataFalla && <PlataDelDueno deuda={ctx.deuda} prestamos={deudaConDueno(ctx.plata).prestamos} movimientos={movimientosDelDueno(movimientosVisibles)} />}
       {ctx.esLider && !sedeId && !deLaEmpresa && <CobrosDinero filas={filasDeCobros(medios.datos, ctx.cuentas.datos)} />}
