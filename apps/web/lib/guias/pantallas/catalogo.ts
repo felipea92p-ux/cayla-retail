@@ -1500,7 +1500,7 @@ export const GUIA_NUEVO_PRODUCTO: Guia = {
       id: "punto-3",
       ancla: "nuevo.punto-3",
       titulo: "3 · Tallas y colores",
-      texto: "Las tallas vienen marcadas con la curva de siempre de la categoría; eliges los colores que llegaron y una foto por color. Abajo ves la tabla de variantes que van a nacer: toca una celda para quitar la que no llegó.",
+      texto: "Las tallas vienen con la curva de siempre de la categoría; eliges los colores que llegaron. Si una prenda trae dos colores (hueso con azul), toca «+ acompañante» en el de base: queda como un solo color. Abajo, la tabla de variantes que van a nacer: toca una celda para quitar la que no llegó.",
     },
     {
       id: "punto-4",

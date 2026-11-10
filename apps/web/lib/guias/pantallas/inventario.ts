@@ -1875,7 +1875,7 @@ export const GUIA_RECIBIR_ENVIO: Guia = {
       opcional: true,
       requiere: ["recepcion.categorias"],
       titulo: "Solo cuadrar, o también sus tallas",
-      texto: "Con la cantidad basta para seguir: las tallas y los colores pueden esperar. Si los tienes a mano, elige «Tallas y colores ahora» y los repartes aquí mismo. Si el modelo es nuevo, primero lo creas. Se puede elegir después de contarlo.",
+      texto: "Con la cantidad basta para seguir: las tallas y los colores pueden esperar. Si los tienes a mano, elige «Tallas y colores ahora» y los repartes aquí mismo. Si el modelo es nuevo, primero lo creas; si trae dos colores (hueso con azul), toca «+ acompañante» en el de base. Se puede elegir después de contarlo.",
     },
     {
       // Solo con «Tallas y colores ahora» elegido: cada celda se guarda sola, así que la demo la explica sin tocarla.

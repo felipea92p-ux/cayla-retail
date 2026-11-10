@@ -1219,7 +1219,7 @@ export function NuevoProductoForm({
             retiene="fila"
             ayuda={coloresElegidos.length ? plural(coloresElegidos.length, "elegido", "elegidos") : "Si no tiene color (un llavero, un cuaderno), déjalo vacío"}
           >
-            <ElegirColores colores={colores} grupos={grupos} elegidos={coloresElegidos} onAlternar={alternarColor} onCreado={colorCreado} />
+            <ElegirColores colores={colores} grupos={grupos} elegidos={coloresElegidos} onAlternar={alternarColor} onCreado={colorCreado} conMezclas />
           </FilaAlta>
 
           {/* La prenda: una fila por color (con su foto) y una columna por talla. En el paso 4 es la MISMA tabla, con números. */}

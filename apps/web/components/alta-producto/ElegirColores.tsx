@@ -4,6 +4,7 @@ import { useState } from "react";
 import { ComboBuscable } from "@/components/ui/ComboBuscable";
 import { Modal } from "@/components/ui/Modal";
 import { NuevoColorAlta } from "@/components/alta-producto/NuevoColorAlta";
+import { ArmarMezcla } from "@/components/alta-producto/ArmarMezcla";
 import type { ColorAlta } from "@/lib/alta-producto";
 import { nombreDeColor } from "@/lib/color-alta-reglas";
 import { esColorClaro, partirEnGamas } from "@/lib/color-escala";
@@ -50,6 +51,7 @@ export function ElegirColores({
   cartaAbierta = true,
   sinElegidos = false,
   enfocarBuscador = false,
+  conMezclas = false,
 }: {
   colores: ColorAlta[];
   grupos: { familia: string; texto: string; colores: ColorAlta[] }[];
@@ -64,6 +66,8 @@ export function ElegirColores({
   sinElegidos?: boolean;
   /** El cursor llega al buscador al abrirse (y vuelve a él tras cada color elegido): para agregar varios seguidos tecleando. De fábrica no se mueve el foco. */
   enfocarBuscador?: boolean;
+  /** Cada color elegido trae «+ acompañante»: lo vuelve una mezcla («Hueso con azul», ADR-0643) que se elige en su lugar. Nuevo producto y Recibir. */
+  conMezclas?: boolean;
 }) {
   const [carta, setCarta] = useState(cartaAbierta);
   // Crear un color nuevo sí remonta el buscador (queda vacío mientras la hoja de «Nuevo color» está abierta); elegir uno de la lista NO: el buscador se vacía solo (`varios`) y la lista
@@ -75,6 +79,8 @@ export function ElegirColores({
   // cuando se vuelve a pedir desde el buscador con otro nombre.
   const [nuevo, setNuevo] = useState<{ nombre: string; vez: number } | null>(null);
   const [pidioSinRed, setPidioSinRed] = useState(false);
+  // La base a la que se le arma una mezcla («+ acompañante»), o `null` con la hoja cerrada.
+  const [mezclaDe, setMezclaDe] = useState<ColorAlta | null>(null);
   const enLinea = useEnLinea();
 
   const porCodigo = new Map(colores.map((c) => [c.codigo, c]));
@@ -107,6 +113,17 @@ export function ElegirColores({
             >
               <Punto hex={c.hex} familia={c.familiaColor} tipo={c.tipo} tonos={tonosDeMezcla(c, porCodigo)} />
               {c.nombre}
+              {conMezclas && !esCombinado(c) && porCodigo.has(c.codigo) && (
+                <button
+                  type="button"
+                  onClick={() => setMezclaDe(porCodigo.get(c.codigo) ?? null)}
+                  aria-label={`Agregar un color que acompaña al ${c.nombre.toLocaleLowerCase("es")}`}
+                  title="Si la prenda tiene otro color además de este (hueso con azul), agrégalo aquí"
+                  className="btn-cayla btn-enlace ml-0.5 text-[12.5px]"
+                >
+                  + acompañante
+                </button>
+              )}
               <button
                 type="button"
                 onClick={() => onAlternar(c.codigo)}
@@ -185,6 +202,30 @@ export function ElegirColores({
               onCreado={(color) => {
                 setNuevo(null);
                 onCreado(color);
+              }}
+            />
+          )}
+        </Modal>
+      )}
+
+      {mezclaDe && (
+        <Modal
+          variante="hoja"
+          tamano="mediana"
+          titulo={`${mezclaDe.nombre} con…`}
+          subtitulo={`Elige de 1 a 3 colores que acompañan al ${mezclaDe.nombre.toLocaleLowerCase("es")}. La mezcla queda elegida en su lugar.`}
+          onClose={() => setMezclaDe(null)}
+        >
+          {(cerrar) => (
+            <ArmarMezcla
+              base={mezclaDe}
+              colores={colores}
+              onCerrar={cerrar}
+              onLista={(mezcla) => {
+                // La prenda es UNA: la mezcla reemplaza a la base entre los elegidos.
+                onAlternar(mezclaDe.codigo);
+                if (!elegidos.includes(mezcla.codigo)) onCreado(mezcla);
+                setMezclaDe(null);
               }}
             />
           )}

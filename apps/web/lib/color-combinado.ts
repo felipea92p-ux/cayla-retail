@@ -47,3 +47,35 @@ export function fondoDeMezcla(tonos: readonly string[]): string {
   const partes = resto.map((t, i) => `${t} ${50 + tramo * i}% ${50 + tramo * (i + 1)}%`);
   return `conic-gradient(from 180deg, ${base} 0% 50%, ${partes.join(", ")})`;
 }
+
+type ColorDeMezcla = { codigo: string; nombre: string; componentes?: readonly string[] | null; activo?: boolean };
+
+/** Hasta cuántos colores acompañan a la base (`colores_componentes_cuantos`: 2 a 4 en total). */
+export const MAX_ACOMPANANTES = 3;
+
+/** Los componentes como los guarda la base: la base primero y los acompañantes ordenados por código (la misma prenda en cualquier orden). */
+export function componentesDeMezcla(base: string, acompanantes: readonly string[]): string[] {
+  return [base, ...[...acompanantes].sort()];
+}
+
+/**
+ * El nombre que le pondrá la base (`retail.color_combinado`), para mostrarlo antes de guardar: «Hueso con azul», «Hueso con azul y
+ * negro», «Hueso con azul, negro y rojo». Los acompañantes, en el orden de su código; cada nombre con su primera letra en minúscula.
+ */
+export function nombreDeMezcla(base: { nombre: string }, acompanantes: readonly { codigo: string; nombre: string }[]): string {
+  const nombres = [...acompanantes].sort((a, b) => (a.codigo < b.codigo ? -1 : a.codigo > b.codigo ? 1 : 0)).map((c) => c.nombre.charAt(0).toLocaleLowerCase("es") + c.nombre.slice(1));
+  if (nombres.length === 0) return base.nombre;
+  const lista = nombres.length === 1 ? nombres[0] : `${nombres.slice(0, -1).join(", ")} y ${nombres[nombres.length - 1]}`;
+  return `${base.nombre} con ${lista}`;
+}
+
+/** La mezcla que ya está en la lista de la pantalla con esos componentes, si existe. */
+export function mezclaExistente<C extends ColorDeMezcla>(colores: readonly C[], componentes: readonly string[]): C | null {
+  const clave = componentes.join(",");
+  return colores.find((c) => esCombinado(c) && (c.componentes ?? []).join(",") === clave) ?? null;
+}
+
+/** Qué colores pueden acompañar a una base: los de un solo tono, menos la base. Una mezcla no entra en otra. */
+export function puedeAcompanar(color: ColorDeMezcla, base: string): boolean {
+  return color.codigo !== base && !esCombinado(color) && color.activo !== false;
+}
