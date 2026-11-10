@@ -10,6 +10,14 @@ describe("matricesDeRecepcion", () => {
     expect(m.colores.find((c) => c.color === "Rosado")).toMatchObject({ porTalla: { M: 8, S: 2 }, total: 10 });
     expect(m.total).toBe(22);
   });
+  it("suma cada talla de todos los colores: la fila «Por talla»", () => {
+    const [m] = matricesDeRecepcion([l("Blusa", "Rosado", "M", 8), l("Blusa", "Blanco", "S", 12), l("Blusa", "Rosado", "S", 2)]);
+    expect(m.porTalla).toEqual({ S: 14, M: 8 });
+  });
+  it("cada color lleva el fondo de su muestra, y sin dato queda en null", () => {
+    const [m] = matricesDeRecepcion([{ ...l("Blusa", "Negro", "M", 1), colorFondo: "#1d1c1a" }, l("Blusa", "Estampado", "M", 1)]);
+    expect(m.colores.map((c) => [c.color, c.fondo])).toEqual([["Negro", "#1d1c1a"], ["Estampado", null]]);
+  });
   it("separa modelos y suma líneas repetidas", () => {
     const r = matricesDeRecepcion([l("A", "Rojo", "M", 1), l("B", "Rojo", "M", 3), l("A", "Rojo", "M", 4)]);
     expect(r.map((x) => [x.modelo, x.total])).toEqual([["A", 5], ["B", 3]]);

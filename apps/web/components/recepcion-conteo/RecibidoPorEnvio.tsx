@@ -1,10 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { ChevronRight } from "lucide-react";
 import { Aviso } from "@/components/ui/Aviso";
 import { BarraApilada, MuestraTramo } from "@/components/ui/BarraApilada";
 import { Chip } from "@/components/ui/Chip";
+import { CapsulaColor } from "@/components/ui/MuestraColor";
 import { EnlaceVer } from "@/components/ui/EnlaceVer";
 import { Modal } from "@/components/ui/Modal";
 import { PaginacionLocal } from "@/components/ui/PaginacionLocal";
@@ -12,7 +13,7 @@ import { Encabezado, Tabla, celda, fila } from "@/components/ui/Tabla";
 import { TituloGrupo } from "@/components/ui/TituloSeccion";
 import { FilasDeMas } from "@/components/ui/VerMas";
 import type { CostoRecepcion } from "@/components/RecepcionesRecientes";
-import { fechaCorta, notaSinEnvio, type RecepcionReciente } from "@/lib/compras-reglas";
+import { fechaCorta, notaSinEnvio, soles, type RecepcionReciente } from "@/lib/compras-reglas";
 import { paginar } from "@/lib/paginacion";
 import {
   agruparPorEnvio,
@@ -38,6 +39,7 @@ import type { MatrizModelo } from "@/lib/recepcion-matriz-reglas";
 // agrupa las prendas por marca. Lo que llegó sin marca se ve en ámbar: es un dato por completar en Catálogo.
 const PLANTILLA = "sm:grid-cols-[6rem_8.5rem_minmax(0,1fr)_10rem_9rem]";
 const PLANTILLA_DETALLE = "sm:grid-cols-[1.5rem_1fr_5rem]";
+const PLANTILLA_DETALLE_COSTO = "sm:grid-cols-[1.5rem_1fr_10rem_5rem]";
 
 const unidades = (n: number) => `${n} ${n === 1 ? "unidad" : "unidades"}`;
 const prendas = (n: number) => `${n} ${n === 1 ? "prenda" : "prendas"}`;
@@ -122,7 +124,15 @@ function EnvioAbierto({ envio, costos, onClose }: { envio: EnvioRecibido; costos
   const marcas = marcasDelEnvio(envio);
   const conMarca = marcas.filter((m) => m.marca !== null).length;
   const sinMarca = marcas.find((m) => m.marca === null);
+  // Con una sola marca (y con marca), su nombre va arriba junto a «de …» y no se repite como título de grupo (Felipe 2026-11-10, hoja «A · Pulida»).
+  const unaMarca = marcas.length === 1 && marcas[0].marca !== null ? marcas[0] : null;
   const variosProveedores = envio.proveedores.length > 1;
+  // La columna «Costo» solo para quien ve el dinero de Compras: sin `costos`, la hoja no habla de plata.
+  const conCosto = !!costos;
+  const plantilla = conCosto ? PLANTILLA_DETALLE_COSTO : PLANTILLA_DETALLE;
+  // Cuántas prendas trajo cada llegada (lote): con más de una, su costo es un promedio y se dice.
+  const prendasPorLote = new Map<string, number>();
+  for (const m of marcas) for (const p of m.prendas) prendasPorLote.set(p.loteId, (prendasPorLote.get(p.loteId) ?? 0) + 1);
   const guias = [...new Set(envio.lotes.map((l) => l.numeroGuia).filter((g): g is string => !!g))];
   const notas = [...new Set(envio.lotes.map((l) => notaSinEnvio(l.nota)).filter((n): n is string => !!n && !esNotaDelAlta(n)))];
   const facturas = envio.lotes.filter((l) => l.conFactura && l.compraId);
@@ -137,23 +147,33 @@ function EnvioAbierto({ envio, costos, onClose }: { envio: EnvioRecibido; costos
     <Modal
       conCerrar
       titulo={envio.numero ?? nombreSinEnvio(envio)}
-      subtitulo={[
-        envio.proveedores.join(" · "),
-        envio.llegoEn
-          ? mismoDia(envio.llegoEn, envio.fecha)
-            ? `Llegó el ${fechaCorta(envio.llegoEn)}`
-            : `Llegó el ${fechaCorta(envio.llegoEn)} · Terminado el ${fechaCorta(envio.fecha)}`
-          : fechaCorta(envio.fecha),
-        guias.length > 0 ? `Guía ${guias.join(", ")}` : "Sin guía",
-        envio.ubicacion,
-        envio.recibidoPor ? `Recibido por ${envio.recibidoPor}` : null,
-      ]
-        .filter(Boolean)
-        .join(" · ")}
+      subtitulo={
+        <>
+          {unaMarca && (
+            <Chip versalitas={false} className="mr-1.5 align-[1px]">
+              <MuestraTramo clase={colorDeMarca(marcas, unaMarca.marca)} />
+              {unaMarca.marca}
+            </Chip>
+          )}
+          {deQuienLlego(envio.proveedores)}
+          {envio.proveedores.length > 2 && ` · ${envio.proveedores.join(", ")}`}
+        </>
+      }
       tamano="ancha"
       onClose={onClose}
     >
-      <div data-guia="recibir.detalle" className="mt-4 space-y-4">
+      <div data-guia="recibir.detalle" className="mt-1 space-y-4">
+        {/* Cuatro datos cortos en vez de una línea larga: lo que se busca de un vistazo (cuándo llegó, con qué guía, dónde y quién recibió). */}
+        <dl className="grid grid-cols-2 gap-x-4 gap-y-3 rounded-2xl border border-sand px-4 py-3 sm:grid-cols-4">
+          <Dato titulo="Llegó">
+            {fechaCorta(envio.llegoEn ?? envio.fecha)}
+            {envio.llegoEn && !mismoDia(envio.llegoEn, envio.fecha) && <span className="block text-sm text-tinta/65">terminó {fechaCorta(envio.fecha)}</span>}
+          </Dato>
+          <Dato titulo="Guía">{guias.length > 0 ? guias.join(", ") : <span className="text-tinta/55">Sin guía</span>}</Dato>
+          <Dato titulo="Sede">{envio.ubicacion}</Dato>
+          <Dato titulo="Recibió">{envio.recibidoPor ?? <span className="text-tinta/55">—</span>}</Dato>
+        </dl>
+
         {marcas.length > 1 && (
           <section aria-label="De qué marcas llegó" className="rounded-2xl border border-sand px-5 py-4">
             <div className="mb-3 flex items-baseline justify-between gap-3">
@@ -180,35 +200,50 @@ function EnvioAbierto({ envio, costos, onClose }: { envio: EnvioRecibido; costos
         )}
 
         <Tabla>
-          <Encabezado plantilla={PLANTILLA_DETALLE} columnas={[{ titulo: "" }, { titulo: "Prenda" }, { titulo: "Cantidad", alinear: "der" as const }]} />
+          <Encabezado
+            plantilla={plantilla}
+            columnas={[{ titulo: "" }, { titulo: "Prenda" }, ...(conCosto ? [{ titulo: "Costo", alinear: "der" as const }] : []), { titulo: "Cantidad", alinear: "der" as const }]}
+          />
           {marcas.flatMap((m) => {
             // Si la marca llegó de dos proveedores, cada prenda dice de quién; si no, lo dice el título del grupo.
             const deVarios = m.proveedores.length > 1;
             return [
-              <div key={`g-${nombreMarca(m)}`} id={idGrupo(m)} className="flex scroll-mt-4 items-center gap-3 px-5 pb-1 pt-4">
-                <TituloGrupo nota={variosProveedores && !deVarios ? deQuienLlego(m.proveedores) : undefined} className="min-w-0 flex-1">
-                  <MuestraTramo clase={colorDeMarca(marcas, m.marca)} />
-                  <span className={m.marca === null ? "text-ambar" : undefined}>{nombreMarca(m)}</span>
-                </TituloGrupo>
-                <span className="shrink-0 text-sm tabular-nums text-tinta/65">{unidades(m.unidades)}</span>
-              </div>,
+              unaMarca ? null : (
+                <div key={`g-${nombreMarca(m)}`} id={idGrupo(m)} className="flex scroll-mt-4 items-center gap-3 px-5 pb-1 pt-4">
+                  <TituloGrupo nota={variosProveedores && !deVarios ? deQuienLlego(m.proveedores) : undefined} className="min-w-0 flex-1">
+                    <MuestraTramo clase={colorDeMarca(marcas, m.marca)} />
+                    <span className={m.marca === null ? "text-ambar" : undefined}>{nombreMarca(m)}</span>
+                  </TituloGrupo>
+                  <span className="shrink-0 text-sm tabular-nums text-tinta/65">{unidades(m.unidades)}</span>
+                </div>
+              ),
               ...m.prendas.flatMap((p) => {
                 const abierta = desplegadas.has(p.clave);
                 const panel = `prenda-${p.clave}`;
+                const costo = costos?.[p.loteId];
                 return [
-                  <button key={p.clave} type="button" data-guia="recibir.desplegar" onClick={() => alternar(p.clave)} aria-expanded={abierta} aria-controls={panel} className={`${fila(PLANTILLA_DETALLE)} w-full text-left`}>
+                  <button
+                    key={p.clave}
+                    type="button"
+                    data-guia="recibir.desplegar"
+                    onClick={() => alternar(p.clave)}
+                    aria-expanded={abierta}
+                    aria-controls={panel}
+                    className={`${fila(plantilla)} w-full text-left ${abierta ? "bg-tinta/[0.03]" : ""}`}
+                  >
                     <span className={celda("izq", "text-taupe")}>
                       <ChevronRight aria-hidden className={`h-4 w-4 transition-transform duration-300 ease-cayla ${abierta ? "rotate-90" : ""}`} />
                     </span>
-                    <span className={celda("izq", "whitespace-normal text-sm text-tinta")}>
+                    <span className={celda("izq", "whitespace-normal text-[15px] text-tinta")}>
                       {p.modelo}
-                      {p.sku ? ` · ${p.sku}` : ""}
+                      {p.sku && <span className="text-tinta/55"> · {p.sku}</span>}
                       {deVarios && <span className="block text-sm text-tinta/65">de {p.proveedor}</span>}
                     </span>
-                    <span className={celda("der", "text-sm tabular-nums text-tinta")}>{p.unidades}</span>
+                    {conCosto && <span className={celda("der", "text-sm tabular-nums text-tinta/65")}>{textoCosto(costo, prendasPorLote.get(p.loteId) ?? 1)}</span>}
+                    <span className={celda("der", "text-[15px] font-semibold tabular-nums text-tinta")}>{p.unidades}</span>
                   </button>,
                   <FilasDeMas key={`${p.clave}-d`} id={panel} abierto={abierta} className="!border-t-0">
-                    <ColoresYTallas prenda={p} costo={costos?.[p.loteId]} />
+                    <ColoresYTallas prenda={p} />
                   </FilasDeMas>,
                 ];
               }),
@@ -245,41 +280,78 @@ function EnvioAbierto({ envio, costos, onClose }: { envio: EnvioRecibido; costos
   );
 }
 
-/** Lo que se contó de una prenda en este envío: colores en filas, tallas en columnas, y el costo de lo que entró (solo quien ve el dinero). */
-function ColoresYTallas({ prenda, costo }: { prenda: PrendaRecibida; costo?: CostoRecepcion }) {
+/** Un dato del envío con su título arriba, como el `Dato` de los resúmenes de FlujoGuiado (importarlo arrastraría sus botones a la huella de la guía). */
+function Dato({ titulo, children }: { titulo: string; children: ReactNode }) {
+  return (
+    <div className="min-w-0">
+      <dt className="text-xs font-semibold text-tinta/70">{titulo}</dt>
+      <dd className="mt-0.5 text-tinta">{children}</dd>
+    </div>
+  );
+}
+
+/** El costo en la fila de una prenda: «S/ 21.33 c/u», «Sin costo» o nada si la base no lo dio. La base da el costo PROMEDIO de la llegada
+ *  de cada proveedor (`recepciones_sin_comprobante`), no el de cada prenda: si esa llegada trajo varias prendas, la fila dice «prom.» para no
+ *  hacerlo pasar por el costo de esa prenda. */
+function textoCosto(costo: CostoRecepcion | undefined, prendasDelLote: number) {
+  if (!costo) return null;
+  if (costo.sinCosto) return <span className="text-ambar">Sin costo</span>;
+  if (costo.costo == null) return null;
+  return prendasDelLote > 1 ? (
+    <span title="Costo promedio de lo que trajo este proveedor en el envío">{soles(costo.costo)} c/u prom.</span>
+  ) : (
+    `${soles(costo.costo)} c/u`
+  );
+}
+
+/** Lo que se contó de una prenda en este envío: colores en filas (con su muestra), tallas en columnas y el total de cada talla. A lo ancho
+ *  de la hoja: su «Total» cae bajo la columna «Cantidad». */
+function ColoresYTallas({ prenda }: { prenda: PrendaRecibida }) {
   const m: MatrizModelo = prenda.matriz;
   return (
-    <div className="space-y-2 bg-hueso/40 px-5 py-3 sm:pl-[3.25rem]">
+    <div className="space-y-3 bg-tinta/[0.03] px-5 pb-4 pt-1 sm:pl-[3.25rem]">
       <div className="overflow-x-auto">
-        <table /* unificar-fijo: matriz color × talla de lo recibido, como las de la ficha (las matrices de tallas quedan aparte) */ className="min-w-[16rem] text-sm tabular-nums">
+        {/* `!bg-transparent`: la hoja le pone su lámina a toda tabla (vidrio/hoja.css), y esta ya va dentro de la tabla de prendas, que la
+            tiene: con la suya quedaba una caja de otro tono (Felipe 2026-11-10). */}
+        <table /* unificar-fijo: matriz color × talla de lo recibido, como las de la ficha (las matrices de tallas quedan aparte) */ className="w-full min-w-[16rem] !bg-transparent text-sm tabular-nums">
           <thead>
-            <tr className="text-sm font-normal text-taupe">
-              <th scope="col" className="py-1 pr-4 text-left font-normal">Color</th>
+            <tr className="border-b border-sand text-taupe">
+              <th scope="col" className="py-2 pr-3 text-left font-normal">Color</th>
               {m.tallas.map((t) => (
-                <th key={t} scope="col" className="px-3 py-1 text-right font-normal">{t}</th>
+                <th key={t} scope="col" className="px-3 py-2 text-center font-normal">{t}</th>
               ))}
-              <th scope="col" className="py-1 pl-3 text-right font-normal">Total</th>
+              <th scope="col" className="w-20 py-2 pl-3 text-right font-normal">Total</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-sand">
+          <tbody className="divide-y divide-sand/60">
             {m.colores.map((c) => (
               <tr key={c.color}>
-                <th scope="row" className="py-1.5 pr-4 text-left font-normal text-tinta">{c.color}</th>
+                <th scope="row" className="py-2 pr-3 text-left font-normal text-tinta">
+                  <span className="inline-flex items-center gap-2.5">
+                    <CapsulaColor fondo={c.fondo} compacta />
+                    {c.color}
+                  </span>
+                </th>
                 {m.tallas.map((t) => (
-                  <td key={t} className={`px-3 py-1.5 text-right ${c.porTalla[t] ? "text-tinta" : "text-taupe"}`}>{c.porTalla[t] ?? "—"}</td>
+                  <td key={t} className={`px-3 py-2 text-center ${c.porTalla[t] ? "text-tinta" : "text-tinta/30"}`}>{c.porTalla[t] ?? "—"}</td>
                 ))}
-                <td className="py-1.5 pl-3 text-right font-semibold text-tinta">{c.total}</td>
+                <td className="py-2 pl-3 text-right font-semibold text-tinta">{c.total}</td>
               </tr>
             ))}
           </tbody>
+          {m.colores.length > 1 && (
+            <tfoot>
+              <tr className="border-t border-tinta/15 text-tinta/65">
+                <th scope="row" className="py-2 pr-3 text-left font-medium">Por talla</th>
+                {m.tallas.map((t) => (
+                  <td key={t} className="px-3 py-2 text-center font-medium">{m.porTalla[t]}</td>
+                ))}
+                <td className="py-2 pl-3 text-right font-medium">{m.total}</td>
+              </tr>
+            </tfoot>
+          )}
         </table>
       </div>
-      {costo &&
-        (costo.sinCosto ? (
-          <Chip tono="ambar">Sin costo</Chip>
-        ) : costo.costo != null ? (
-          <Chip tono="verde">{`S/ ${costo.costo.toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} c/u`}</Chip>
-        ) : null)}
     </div>
   );
 }

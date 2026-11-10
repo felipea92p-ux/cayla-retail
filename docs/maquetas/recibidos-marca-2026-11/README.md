@@ -28,6 +28,12 @@ Fecha única («terminó …» solo si cambia), «prendas» en vez de «líneas�
 
 ## Decisiones abiertas (de Felipe)
 
-1. ¿A, B o C?
-2. ¿Entran el buscador y los filtros de Marca y Proveedor?
-3. ¿El aviso de «Sin marca» lleva a Catálogo, o solo se informa?
+1. ~~¿A, B o C?~~ Felipe eligió **B · Marcas al frente** (2026-11-10, PR #1755).
+2. ¿Entran el buscador y los filtros de Marca y Proveedor? (por ahora no: ver el backlog de la rama)
+3. ¿El aviso de «Sin marca» lleva a Catálogo, o solo se informa? (por ahora solo informa)
+
+## La hoja del envío (`hoja.html`)
+
+Tres caras: A · Pulida (el mismo acordeón, ordenado), B · Una ficha por prenda y C · La planilla abierta. **Felipe eligió A (2026-11-10).**
+Una diferencia con la maqueta: la base da el costo **promedio** de lo que trajo cada proveedor, no el de cada prenda. Por eso la fila dice «prom.»
+cuando ese proveedor trajo varias, y no hay «Entró por».
