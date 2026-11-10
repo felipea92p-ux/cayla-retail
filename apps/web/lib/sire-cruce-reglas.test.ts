@@ -193,6 +193,33 @@ describe("cruzarVentas (actividad 3)", async () => {
     expect(r.lineas[0]).toMatchObject({ estado: "montos", motivo: expect.stringContaining("la baja no llegó") });
   });
 
+  it("las copias conocidas B005-8 a 109 tienen su motivo propio, sin cambiar estado ni cifras", async () => {
+    const { esCopiaConocida } = await import("./sire-cruce-reglas");
+    const r = cruzarVentas(
+      [
+        sunat({ tipo: "03", serie: "B005", numero: "00000020", docNumero: null, total: 100 }),
+        sunat({ tipo: "03", serie: "B005", numero: "21", docNumero: null, total: 0 }),
+        sunat({ tipo: "03", serie: "B001", numero: "113", docNumero: null, total: 100 }),
+      ],
+      [],
+    );
+    const por = Object.fromEntries(r.lineas.map((l) => [`${l.serie}-${Number(l.numero)}`, l]));
+    // Con monto: la baja no llegó, y sigue por mirar (estado y resumen igual que antes).
+    expect(por["B005-20"]).toMatchObject({ estado: "solo_sunat", motivo: expect.stringContaining("la baja no llegó") });
+    expect(por["B005-20"]!.motivo).toContain("B005-20");
+    expect(por["B005-21"]).toMatchObject({ estado: "solo_sunat", motivo: expect.stringContaining("confirma con el contador que su baja se aceptó") });
+    for (const k of ["B005-20", "B005-21"]) expect(por[k]!.motivo).not.toContain("fuera del ERP");
+    // Control: otra serie conserva el motivo de siempre.
+    expect(por["B001-113"]!.motivo).toContain("fuera del ERP");
+    expect(r.resumen.solo_sunat.n).toBe(3);
+    // Los bordes de la lista fija.
+    expect([7, 8, 109, 110].map((n) => esCopiaConocida("03", "b005", String(n)))).toEqual([false, true, true, false]);
+    expect(esCopiaConocida("01", "B005", "20")).toBe(false);
+    // En compras no aplica: una B005 de un proveedor es otra cosa.
+    const c = cruzarCompras([sunat({ tipo: "03", serie: "B005", numero: "20", docNumero: "20100000001", total: 100 })], []);
+    expect(c.lineas[0]!.motivo).toContain("El proveedor la emitió");
+  });
+
   it("las notas de venta internas no se comparan; las decisiones son las de vender", () => {
     expect(comprobantesDeVentas([venta({ tipo: "nota_venta" })])).toEqual([]);
     expect(decisionesPara("solo_erp", "ventas").map((d) => d.decision)).toEqual(["otro_mes", "revisada"]);
