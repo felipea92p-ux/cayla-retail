@@ -26,7 +26,7 @@ Medido en producción ese día (solo lectura):
 1. **Línea calculada «Mercadería pagada» en el Balance** (no un asiento). La 1413 baja por lo pagado de los papeles por completar y aparece una
    línea de activo por la base, más otra por el IGV de las facturas. Mismo conjunto que ADR-0621 (`fn_fondo_por_completar`), así que Flujo,
    Cuentas y dinero y Balance dicen lo mismo. El total del activo no cambia. Migración `20261109231000`.
-2. **Toda entrada de stock dice de dónde vino.** Al cargar stock por «Nuevo producto» o al ajustar hacia arriba, la pregunta «¿Ya lo teníamos o
+2. *(Reemplazada, ver «Lo que cambió al medir».)* **Toda entrada de stock dice de dónde vino.** Al cargar stock por «Nuevo producto» o al ajustar hacia arriba, la pregunta «¿Ya lo teníamos o
    lo compraste?». Si es compra, se elige el papel.
 3. **Camino A (Felipe):** esa carga cuenta como la llegada de la compra: el papel pasa al libro ahí, sin esperar un envío. Un mismo papel no
    puede recibirse por los dos caminos.
@@ -35,6 +35,24 @@ Medido en producción ese día (solo lectura):
    lo dice. Migración `20261109235000`.
 5. **No se guarda la fecha en que el papel pasa al libro** (se propuso y se retiró). El diario es en vivo y el papel entra con SU fecha: un
    Balance a un corte pasado ya lo muestra en la 201. Una línea «como estaba ese día» lo contaría dos veces.
+
+## Lo que cambió al medir (2026-11-09, tarde)
+
+La decisión 2 apuntaba a la puerta equivocada. Cruzando producción: las compras con papel **no** entran por «Nuevo producto» (la carga
+inicial de AQP no calza con ninguna compra pendiente: era stock viejo). Entran por **«Recibir sin aviso»**: 112 prendas (S/ 3,157) de
+proveedores con una compra pagada pendiente; tres parejas calzan al centavo. La mercadería llega antes de que quien compró mande el envío (o
+antes de que registre el papel), la tienda la recibe sin aviso y el envío propio de la compra queda esperando: si lo cierran contando, entra
+dos veces; si no, el papel nunca pasa al libro. Stock doble hasta hoy: ninguno.
+
+Felipe aprobó reemplazar las preguntas de Nuevo producto y Ajustar stock por tres pasos:
+
+1. **Aviso en la puerta** (hecho, migración `20261110004000`): la hoja «sin aviso» nombra las compras pagadas que vienen a la sede
+   (`fn_compras_pagadas_hacia`, sin montos), por envío o por compra si se eligió proveedor, con el enlace a su envío.
+2. **Unir una recepción sin aviso con su compra** (por construir): tabla `compra_papel_llegadas` y una función que saca la compra de su
+   envío propio, impide reenviarla o recibirla otra vez y deja que el papel pase al libro. Reglas: la plata la manda el papel y el costo del
+   stock queda como entró; nunca une sola por coincidencia de cifras; no une con proveedor distinto; rechaza si el envío propio ya tiene
+   prendas contadas; una unión no se deshace; lo que faltó queda por recibir.
+3. **La lista para unir lo ya recibido**, que usa el paso 2 y cubre el orden al revés (recibido antes de registrar el papel).
 
 ## Descarté
 

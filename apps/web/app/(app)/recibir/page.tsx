@@ -35,7 +35,7 @@ import { Vacio } from "@/components/ui/Vacio";
 import { BotonEnlace } from "@/components/ui/campos";
 import { AccionSinAviso, SinAvisoProvider } from "@/components/recepcion-conteo/SinAvisoContexto";
 import { EnviosParaRecibir } from "@/components/recepcion-envio/EnviosParaRecibir";
-import { getEnviosAMedias, getPorRecibirEnLaSede } from "@/lib/recepcion-envio";
+import { getComprasPagadasHacia, getEnviosAMedias, getPorRecibirEnLaSede } from "@/lib/recepcion-envio";
 import { diasAMedias, DIAS_PARA_RESALTAR, textoDeEnvioAMedias } from "@/lib/recepcion-salida-reglas";
 import { getConteosDelEnvio, recibirContandoDisponible } from "@/lib/recepcion-conteo";
 import { esEnvioSinAviso, marcasDelSinAviso, proveedorDelSinAviso } from "@/lib/recepcion-conteo-reglas";
@@ -275,6 +275,8 @@ export default async function RecibirPage({ searchParams }: { searchParams: Prom
     // De quién es cada envío sin aviso que alguien dejó abierto (suelen ser uno o dos): la lista de Compras no lo trae. Si no se lee, la
     // fila dice lo de siempre.
     const aMedias = contando.disponible ? await getEnviosAMedias(persona.ubicacionId) : [];
+    // ADR-0636: las compras ya pagadas que vienen a esta sede. La puerta «sin aviso» las nombra antes de abrir, para que no entren dos veces.
+    const comprasPagadas = contando.disponible ? await getComprasPagadasHacia(persona.ubicacionId) : [];
     const sinAvisoAbiertos = contando.disponible ? (deOrdenes?.envios ?? []).filter(esEnvioSinAviso) : [];
     const conteosSinAviso = new Map(await Promise.all(sinAvisoAbiertos.map(async (e) => [e.id, (await getConteosDelEnvio(e.id)).conteos] as const)));
     const proveedoresSinAviso = Object.fromEntries([...conteosSinAviso].map(([id, c]) => [id, proveedorDelSinAviso(c)] as const));
@@ -327,6 +329,7 @@ export default async function RecibirPage({ searchParams }: { searchParams: Prom
             rubrosEnUso={rubrosEnUso}
             puedeAgregarProveedor={puedeAgregarProveedor}
             facturas={facturasDeLaSede}
+            comprasPagadas={comprasPagadas}
             hayListaArriba={(deOrdenes?.envios.length ?? 0) + (deOrdenes?.ordenes.length ?? 0) > 0}
           />
           </SinAvisoProvider>

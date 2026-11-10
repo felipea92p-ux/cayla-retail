@@ -1564,7 +1564,7 @@ export const GUIA_RECIBIR: Guia = {
       ancla: "recibir.sin-aviso",
       opcional: true,
       titulo: "¿Llegó algo sin aviso?",
-      texto: "Lo que vino directo del proveedor: toca «Sin Aviso», pon la guía si la trae y quién recibe, y se cuenta por categoría y marca. Casi siempre llega de varios: cada marca dice de quién es. Si todo es de uno, enciende «Todo es de un solo proveedor» y, con factura por recibir, te ofrece usarla. En la demo no lo abrimos.",
+      texto: "Lo que vino directo del proveedor: toca «Sin Aviso», pon la guía si la trae y quién recibe, y se cuenta por categoría y marca; cada marca dice de quién es. Si la hoja avisa de una compra ya pagada que viene para acá, recíbela en su envío y no por aquí: entraría dos veces. En la demo no lo abrimos.",
     },
     {
       id: "proveedor",
