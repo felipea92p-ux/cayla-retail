@@ -1,5 +1,5 @@
-import { describe, expect, it } from "vitest";
-import { destinoDelClic, etiquetaDelDestino, leerEnCamino, leerUltimo, llegoAlDestino, marcarDestino, soltarDestino } from "./navegacion-al-instante";
+import { beforeEach, describe, expect, it } from "vitest";
+import { destinoDelClic, entrarAlInstante, etiquetaDelDestino, leerEnCamino, leerUltimo, marcarDestino, registrarNavegador, soltarDestino } from "./navegacion-al-instante";
 
 const AQUI = { pathname: "/caja", origin: "https://cayla-retail.vercel.app" };
 const CLIC = { button: 0, metaKey: false, ctrlKey: false, shiftKey: false, altKey: false, defaultPrevented: false };
@@ -40,15 +40,41 @@ describe("etiquetaDelDestino: el nombre del menú de la pantalla a la que se ent
   });
 });
 
-describe("llegoAlDestino: el esqueleto se va cuando llega la pantalla", () => {
-  const d = { pathname: "/inventario", etiqueta: "Existencias", desde: 1_000 };
-  it("mientras la ruta es otra, no llegó", () => {
-    expect(llegoAlDestino(d, "/caja")).toBe(false);
-    expect(llegoAlDestino(d, "/inventario-viejo")).toBe(false);
+describe("entrarAlInstante: el clic marca el destino y lo navega el marco (act. 2026-11-10)", () => {
+  const navegaciones: string[] = [];
+  let atajado = 0;
+  const clic = () => ({ ...CLIC, preventDefault: () => void atajado++ });
+  beforeEach(() => {
+    navegaciones.length = 0;
+    atajado = 0;
+    soltarDestino();
   });
-  it("la ruta (o una hija suya) ya es la del destino: llegó", () => {
-    expect(llegoAlDestino(d, "/inventario")).toBe(true);
-    expect(llegoAlDestino(d, "/inventario/conteo")).toBe(true);
+
+  it("de una hija a su padre (Marcas → Productos) SÍ es entrar: antes se daba por llegado y no se veía nada 2,6 s", () => {
+    const quitar = registrarNavegador((href) => navegaciones.push(href));
+    const MARCAS = { pathname: "/productos/marcas", origin: AQUI.origin };
+    expect(entrarAlInstante("/productos", clic(), MARCAS)).toBe(true);
+    expect(leerEnCamino()?.pathname).toBe("/productos");
+    expect(navegaciones).toEqual(["/productos"]);
+    expect(atajado).toBe(1);
+    quitar();
+  });
+  it("navega con los parámetros del enlace (la sede y el mes de Finanzas) y marca solo la ruta", () => {
+    const quitar = registrarNavegador((href) => navegaciones.push(href));
+    expect(entrarAlInstante("/finanzas/dinero?sede=tr&mes=2026-11", clic(), AQUI)).toBe(true);
+    expect(navegaciones).toEqual(["/finanzas/dinero?sede=tr&mes=2026-11"]);
+    expect(leerEnCamino()?.pathname).toBe("/finanzas/dinero");
+    quitar();
+  });
+  it("la misma pantalla, otra pestaña o sin marco montado: no toca nada y el enlace navega como siempre", () => {
+    expect(entrarAlInstante("/inventario", clic(), AQUI)).toBe(false);
+    const quitar = registrarNavegador((href) => navegaciones.push(href));
+    expect(entrarAlInstante("/caja?cerrar=1", clic(), AQUI)).toBe(false);
+    expect(entrarAlInstante("/inventario", { ...clic(), metaKey: true }, AQUI)).toBe(false);
+    expect(navegaciones).toEqual([]);
+    expect(atajado).toBe(0);
+    expect(leerEnCamino()).toBeNull();
+    quitar();
   });
 });
 

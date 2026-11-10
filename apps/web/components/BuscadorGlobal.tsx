@@ -11,7 +11,7 @@ import { armarEquipo, textoEstado, type MiembroEquipo } from "@/lib/inicio-aviso
 import type { ItemMenu } from "@/lib/menu";
 import { SearchX } from "lucide-react";
 import { Vacio } from "@/components/ui/Vacio";
-import { alEntrarDesdeElMenu } from "@/lib/navegacion-al-instante";
+import { entrarAlInstante } from "@/lib/navegacion-al-instante";
 
 type Props = {
   /** Toda pantalla que este perfil puede abrir, ya resuelta por rol (`menu.riel.flatMap(hojasDe)` en
@@ -154,9 +154,8 @@ export function BuscadorGlobal({ pantallas, modulos = {}, ubicacionId, ubicacion
         e.preventDefault();
         const href = fila.item.href;
         cerrar();
-        // ADR-0628: se entra a la pantalla en el instante (la misma señal que un clic en el menú).
-        alEntrarDesdeElMenu(href, { button: 0, metaKey: false, ctrlKey: false, shiftKey: false, altKey: false, defaultPrevented: false });
-        router.push(href);
+        // ADR-0628: se entra a la pantalla en el instante (lo mismo que un clic en el menú: navega el marco). Si es la misma pantalla, como siempre.
+        if (!entrarAlInstante(href, { button: 0, metaKey: false, ctrlKey: false, shiftKey: false, altKey: false, defaultPrevented: false })) router.push(href);
       }
     }
   }
@@ -225,7 +224,7 @@ export function BuscadorGlobal({ pantallas, modulos = {}, ubicacionId, ubicacion
                       key={p.href}
                       href={p.href}
                       onClick={(e) => {
-                        alEntrarDesdeElMenu(p.href, e);
+                        entrarAlInstante(p.href, e);
                         cerrar();
                       }}
                       className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors ${
