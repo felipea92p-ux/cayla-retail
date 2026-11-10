@@ -1,5 +1,6 @@
 "use client";
 
+import { dondeEstanLasDanadas } from "@/lib/danadas-correccion";
 import { ImagenDePrenda } from "@/components/ui/ImagenDePrenda";
 import { BotonCopiar } from "@/components/ui/BotonCopiar";
 import Link from "next/link";
@@ -151,6 +152,7 @@ export function PanelTalla({
   onVerApartadas,
   onVerDanadas,
   puedeResolverDanadas = false,
+  onArreglarDanada,
   onCerrar,
 }: {
   /** Los colores del modelo, cada uno con sus tallas (`coloresDelModelo`). */
@@ -196,6 +198,8 @@ export function PanelTalla({
   onVerApartadas?: () => void;
   onVerDanadas?: () => void;
   puedeResolverDanadas?: boolean;
+  /** ADR-0640: «Volvió arreglada» de una talla con dañadas: abre Dañadas con su «Se arregló» listo. Sin esto, la fila no se ofrece. */
+  onArreglarDanada?: (varianteId: string) => void;
   onCerrar: () => void;
 }) {
   const router = useRouter();
@@ -389,6 +393,8 @@ export function PanelTalla({
     separa
   );
   const { posibles, noAhora } = separarAcciones(acciones);
+  // ADR-0640: «Volvió arreglada» se ofrece si esta talla tiene una dañada y quien mira puede decidir qué hacer con ella.
+  const arreglable = (fila.danado ?? 0) > 0 && puedeResolverDanadas && !!onArreglarDanada;
   // Las tres respuestas de la talla —hay, colgar, pedir— que siempre dicen algo, aunque el motor del piso no haya decidido (2026-10-06).
   const queToca = queTocaConLaTalla(fila, {
     separa,
@@ -1033,8 +1039,31 @@ export function PanelTalla({
                         {/* ¿Qué hago? Solo lo que hoy se puede, la sugerida primero y teñida; lo demás, en una línea con su porqué. */}
                         <div className="grid gap-2">
                           <span className="label-cayla text-[11px] text-taupe">Qué hago</span>
-                          {posibles.length > 0 && (
+                          {(posibles.length > 0 || arreglable) && (
                             <ul data-guia="existencias.cajon-acciones" className="overflow-hidden rounded-2xl border border-sand bg-crema">
+                              {/* ADR-0640 (Felipe 2026-11-10: «más notable y accesible el pasar de dañada a arreglada»): con una dañada de ESTA
+                                  talla, lo primero es devolverla a la venta cuando vuelve arreglada; un toque abre su «Se arregló». */}
+                              {arreglable && (
+                                <li className="border-t border-sand first:border-t-0">
+                                  <button
+                                    type="button"
+                                    data-guia="existencias.cajon-arreglada"
+                                    onClick={() => onArreglarDanada!(fila.varianteId)}
+                                    className="flex w-full items-center gap-3 bg-verde/[0.08] px-3 py-2.5 text-left transition-colors hover:bg-verde/[0.14]"
+                                  >
+                                    <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-verde/[0.16] text-verde">
+                                      <Check aria-hidden className="h-4 w-4" />
+                                    </span>
+                                    <span className="min-w-0 flex-1">
+                                      <b className="block text-[14px] font-semibold text-tinta">Volvió arreglada</b>
+                                      <small className="block text-sm text-taupe">
+                                        {fila.danado === 1 ? "1 dañada de esta talla" : `${fila.danado} dañadas de esta talla`}: devuélvela a la venta
+                                      </small>
+                                    </span>
+                                    <ChevronRight aria-hidden className="h-4 w-4 shrink-0 text-taupe" />
+                                  </button>
+                                </li>
+                              )}
                               {posibles.map((a) => {
                                 const Ico = ICONO[a.clave];
                                 const tono = a.sugerida ? (a.clave === "pedir" ? "pizarra" : "ambar") : null;
@@ -1115,7 +1144,15 @@ export function PanelTalla({
                           {separa ? casillaCapa("piso", sumaModelo.piso) : casilla(sumaModelo.piso, "disponibles", IconoPercha)}
                           {separa && casillaCapa("almacen", sumaModelo.almacen)}
                           {casilla(sumaModelo.apartado, sumaModelo.apartado === 1 ? "apartada" : "apartadas", ShoppingBag, "apartada")}
-                          {casilla(sumaModelo.danado, sumaModelo.danado === 1 ? "dañada" : "dañadas", Bandage, "danada")}
+                          {/* ADR-0640: la casilla dice en qué talla está la dañada y abre su lista: una talla mal reportada se nota aquí. */}
+                          {casilla(
+                            sumaModelo.danado,
+                            sumaModelo.danado > 0 ? `${sumaModelo.danado === 1 ? "dañada" : "dañadas"} · ${dondeEstanLasDanadas(colores)}` : "dañadas",
+                            Bandage,
+                            "danada",
+                            sumaModelo.danado > 0 ? onVerDanadas : undefined,
+                            puedeResolverDanadas ? "decidir qué hacer" : "ver cuáles"
+                          )}
                         </div>
                         {separa &&
                           (capa ? (
@@ -1144,6 +1181,12 @@ export function PanelTalla({
                                 <i aria-hidden className="inline-block h-3 w-3.5 rounded-[3px] bg-ambar/[0.22]" />
                                 Falta colgar
                               </span>
+                              {sumaModelo.danado > 0 && (
+                                <span className="inline-flex items-center gap-1.5">
+                                  <Bandage aria-hidden className="h-3.5 w-3.5 text-rojo-profundo" />
+                                  Dañada (no se vende)
+                                </span>
+                              )}
                               <span>Toca una celda para abrir esa talla</span>
                             </p>
                           ))}
@@ -1206,16 +1249,35 @@ export function PanelTalla({
                                               : capa === "almacen"
                                                 ? `${celda.almacen} guardadas`
                                                 : `${celda.piso} colgadas, ${celda.almacen} guardadas`
-                                      }. Ver esta talla`;
+                                      }${(f.danado ?? 0) > 0 ? `, ${f.danado} ${f.danado === 1 ? "dañada" : "dañadas"} aparte` : ""}. Ver esta talla`;
                                       // Con una capa elegida, la celda muestra SOLO esa mitad, a todo el alto y con el número más grande.
                                       const verPiso = !separa || capa !== "almacen";
                                       const verAlmacen = separa && capa !== "piso";
                                       const grande = separa && capa !== null;
                                       return (
-                                        <td key={t} className="px-[3px]">
+                                        <td key={t} className="relative px-[3px]">
+                                          {/* ADR-0640: la dañada de esta talla, encima de su celda (no cuenta en piso ni en almacén: está aparte). */}
+                                          {(f.danado ?? 0) > 0 && celda.estado !== "agotada" && (
+                                            <span
+                                              aria-hidden
+                                              title={`${f.danado} ${f.danado === 1 ? "dañada" : "dañadas"} de esta talla, aparte: no se vende`}
+                                              className="pointer-events-none absolute -top-1.5 right-0 z-[1] inline-flex items-center gap-0.5 rounded-full border border-rojo/30 bg-crema px-1.5 text-[12px] font-semibold leading-[18px] text-rojo-profundo" // unificar-fijo: marca dentro de la matriz de tallas, no una insignia de estado
+                                            >
+                                              <Bandage className="h-3 w-3" />
+                                              {f.danado} dañada{f.danado === 1 ? "" : "s"}
+                                            </span>
+                                          )}
                                           {celda.estado === "agotada" ? (
                                             <button type="button" aria-pressed={sel} aria-label={lectura} onClick={ir} className={`grid h-[52px] w-full place-items-center rounded-[9px] border border-rojo/40 bg-rojo/[0.10] text-sm font-bold text-rojo-profundo ${sel ? "ring-2 ring-tinta" : ""}`}>
-                                              Se acabó
+                                              {/* ADR-0640: si lo único que queda de la talla está dañado, la celda lo dice: «Se acabó» escondía dónde estaba. */}
+                                              {(f.danado ?? 0) > 0 ? (
+                                                <span className="inline-flex items-center gap-1">
+                                                  <Bandage aria-hidden className="h-3.5 w-3.5" />
+                                                  {f.danado === 1 ? "Dañada" : `${f.danado} dañadas`}
+                                                </span>
+                                              ) : (
+                                                "Se acabó"
+                                              )}
                                             </button>
                                           ) : (
                                             <button type="button" aria-pressed={sel} aria-label={lectura} onClick={ir} className={`flex h-[52px] w-full flex-col overflow-hidden rounded-[9px] border bg-crema transition-colors ${sel ? "border-tinta ring-1 ring-tinta" : "border-sand hover:border-tinta/35"}`}>

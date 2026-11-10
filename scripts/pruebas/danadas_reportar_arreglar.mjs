@@ -272,7 +272,8 @@ select pg_temp.intento(${"$"}m$${TEXTO_MIGRACION_TIPO.replace(/\\/g, "\\\\")}${"
 select concat_ws(',', :'p1', :'p2',
   (select count(*) from pg_proc where pronamespace = 'retail'::regnamespace and proname in ('reportar_danada', 'arreglar_prenda_danada')),
   (select count(*) from pg_constraint where conrelid = 'retail.prendas_danadas'::regclass and contype = 'c'));`,
-  "true,true,2,14"
+  // 15 desde ADR-0640 (prendas_danadas_correccion_coherente, 20261110172000).
+  "true,true,2,15"
 );
 {
   const sinComentarios = TEXTO_MIGRACION_TIPO.replace(/--[^\n]*/g, "");

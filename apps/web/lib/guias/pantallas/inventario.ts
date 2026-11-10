@@ -283,6 +283,13 @@ export const GUIA_EXISTENCIAS: Guia = {
       texto: "Solo lo que hoy se puede con esta talla: colgar, subir, enviar, apartar, pedir o reportar una dañada. La que más se necesita va primero y pintada. Cada una se confirma antes de mover el stock; en la demo no se toca.",
     },
     {
+      id: "cajon-arreglada",
+      ancla: "existencias.cajon-arreglada",
+      opcional: true,
+      titulo: "Volvió arreglada",
+      texto: "Si esta talla tiene una prenda dañada, aquí la devuelves a la venta cuando vuelve arreglada: abre su «Se arregló» con un toque. Y si te equivocaste al reportarla, en la lista de dañadas está «Me equivoqué de prenda». En la demo no se toca.",
+    },
+    {
       id: "cajon-no-ahora",
       ancla: "existencias.cajon-no-ahora",
       opcional: true,
