@@ -42,3 +42,29 @@ Tienda web ▸ Tráfico, solo visitas desde Perú (`left(region, 2) = 'PE'`), po
 | 128 | 30 (23,4 %) | 3 | 1 | 1 |
 
 **Es poca muestra:** sirve de referencia, no para declarar un ganador con pocos días. Se repite la misma consulta con la portada nueva, y se compara sobre todo «abrieron una prenda»: lo que pase con separar necesitará bastante más tiempo.
+
+## Actualización 2026-11-10 — el recorte no se mete por las rayas blancas de la tela
+
+**Qué pasó.** Felipe vio en la portada el short de rayas rosa y blanco (foto `196f836a…`) con las rayas blancas transparentes: el color del fondo se veía a través
+de la prenda. `recortarFondo` buscaba el fondo inundando desde los bordes por todo lo «casi blanco», y las rayas blancas de la tela tocan el blanco de la foto en la
+pretina y en el bajo, sin borde que las separe: el fondo entraba por ellas. Lo mismo, medido sobre 38 fotos de la portada y del catálogo, le pasaba a una falda de
+rayas finas (casi toda transparente), al cinturón blanco (se veía celeste) y a la plata de aretes y pulseras (se veía lavada).
+
+**Decisión.** Dos señales en vez de una, ambas medidas en las fotos reales:
+- **Fondo puro** (claro como las esquinas de la foto, 250 para arriba): se sigue por donde vaya, también por un hueco angosto, como entre las cadenas de un collar.
+  El blanco de estudio mide 252–255; el blanco de una tela, 224–246.
+- **Claro dudoso** (blanco hueso, gris claro, sombra): solo es fondo si es ANCHO, a más de 1,2 % del lado mayor (18 px en una foto de 1500) de cualquier cosa que no
+  sea claro. Una raya de tela no lo es. Los huecos encerrados siguen la misma regla: una franja blanca larga y angosta ya no es un hueco.
+- Al final, el fondo vuelve a abrazar la orilla de la prenda hasta esa misma profundidad (con menos, el jean y los aretes salían con un halo blanco).
+
+`VERSION_DEL_RECORTE` pasa a 3: Vercel vuelve a calcular cada recorte la primera vez que se pide (~250 ms en el servidor, y luego un año guardado).
+
+**Lo que se paga.** Una raya blanca que corre justo por la orilla de la prenda pierde hasta 18 px de ancho (en la falda, un mordisco en el borde de arriba a la
+izquierda); las de adentro quedan enteras. Las prendas con fondo puro alrededor no cambian (collar, jean, bolso, blazer: menos de 2 % de puntos distintos).
+
+**Descarté.** (a) Usar el recorte oficial del probador (el de la IA, `retail.foto_recortes`) cuando existe: es mejor fuente, pero este short no lo tiene (su foto se
+subió con fondo blanco, ADR-0442) y cambia el aspecto de toda la portada; queda como siguiente paso. (b) Solo subir el grosor: deja entrar el fondo por los huecos
+angostos de los accesorios. (c) Solo el tono: la sombra gris y el blanco de una tela no se distinguen por color.
+
+**Prueba.** `lib/recorte.test.ts`: tres casos nuevos (raya blanca de tela que toca el fondo, pasillo de fondo puro entre dos piezas, franja blanca encerrada). 1084
+pruebas de la tienda, `tsc`, `eslint` y `knip` en verde; comparación antes/después sobre 38 fotos reales, mirada una por una en las que cambian.
