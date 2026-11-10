@@ -391,6 +391,22 @@ export const GUIA_EDITAR_PRODUCTO: Guia = {
       texto: "Elige a cuáles variantes (todas, un color o una talla), escribe el precio nuevo y «Aplicar» lo pone en la tabla. También puedes escribirlo celda por celda. Lo cambiado se pinta en ámbar y recién se guarda con «Revisar y guardar».",
     },
     {
+      id: "costo-prenda",
+      ancla: "editar.costo-prenda",
+      opcional: true,
+      preparar: [{ tipo: "clic", ancla: "editar.vista-costo" }],
+      titulo: "Cuánto te cuesta cada prenda",
+      texto: "En «Costos», arriba: lo que te cuesta hoy cada prenda (el promedio de las que tienes) y la última compra, la misma cifra del Historial. Cada talla lleva su propio promedio: las grises ya entraron por compra y su «?» dice de dónde sale su costo.",
+    },
+    {
+      id: "sugerencia-costo",
+      ancla: "editar.sugerencia-costo",
+      opcional: true,
+      preparar: [{ tipo: "clic", ancla: "editar.vista-costo" }],
+      titulo: "Las tallas que aún no llegan",
+      texto: "Las tallas que todavía no entraron por compra siguen con el costo que se escribió a mano. Este botón les pone el de la última compra a las que no tienen prendas; las grises y las que tienen stock no se tocan. Se guarda con «Revisar y guardar». En la demo no lo tocamos.",
+    },
+    {
       id: "vistas-vuelta",
       ancla: "editar.vistas",
       preparar: [{ tipo: "clic", ancla: "editar.vista-unidades" }],

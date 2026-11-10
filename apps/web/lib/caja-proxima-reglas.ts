@@ -40,6 +40,8 @@ export type CajaCayla = {
   saldoHoy: number;
   /** Lo que es de Claudia y ya no cuenta en `saldoHoy` (0 si no hay). */
   deClaudia: number;
+  /** Lo que las compradoras tienen para comprar y ya no cuenta en `saldoHoy` (0 si no hay; ADR-0621). */
+  porVolver: number;
   minimo: number;
   entra: number;
   sale: number;
@@ -90,25 +92,13 @@ export type CajaSede = {
 
 export type CajaProxima = CajaCayla | CajaSede | { tipo: "oculta" } | { tipo: "falla"; mensaje: string };
 
-/**
- * El estado de la caja en dos o tres palabras, el mismo en «Tu caja en las próximas dos semanas» y en la respuesta «¿Cuánto tienes?»
- * (una sola fuente: las dos dicen lo mismo con las mismas palabras). Sale de lo que pasa, no del color: el ámbar es «bajo tu mínimo»
- * (dentro del horizonte) y también «ojo después». `null`: sin mínimo puesto y sin caída, no hay nada que decir.
- */
-export function estadoDeCaja(c: CajaCayla): { texto: string; tono: TonoCaja } | null {
-  if (c.sinPlata) return { texto: "Sin plata", tono: c.tono };
-  if (c.bajaDelMinimo) return { texto: "Bajo tu mínimo", tono: c.tono };
-  if (c.luego) return { texto: "Ojo después", tono: c.tono };
-  if (c.tono === "verde") return { texto: "Te alcanza", tono: "verde" };
-  return null;
-}
-
 const MESES = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"];
 const r2 = (n: number) => Math.round(n * 100) / 100;
 
-/** Lo que hay de verdad en las cuentas: `saldoHoy` ya viene sin lo de Claudia (ADR-0560), así que para comparar con los saldos o repartirlo se le devuelve. */
-export function loQueHayEnCuentas(c: Pick<CajaCayla, "saldoHoy" | "deClaudia">): number {
-  return r2(c.saldoHoy + c.deClaudia);
+/** Lo que hay de verdad en las cuentas: `saldoHoy` ya viene sin lo de Claudia (ADR-0560) ni lo por volver de compras (ADR-0621), así que para
+ *  comparar con los saldos o repartirlo se les devuelve. */
+export function loQueHayEnCuentas(c: Pick<CajaCayla, "saldoHoy" | "deClaudia" | "porVolver">): number {
+  return r2(c.saldoHoy + c.deClaudia + c.porVolver);
 }
 
 /** `iso` + `n` días. */
@@ -331,6 +321,7 @@ export function cajaProxima({ flujo, cuentas, ver, inversion }: Entrada): CajaPr
     hasta,
     saldoHoy: r2(p.saldoHoy),
     deClaudia: r2(p.deClaudia ?? 0),
+    porVolver: r2(p.porVolverCompras ?? 0),
     minimo,
     entra,
     sale,

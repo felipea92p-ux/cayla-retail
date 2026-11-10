@@ -1005,8 +1005,8 @@ export const GUIA_CONFIGURACION: Guia = {
       id: "tiendas-meses",
       ancla: "config.tiendas-meses",
       opcional: true,
-      titulo: "Un tubo por mes",
-      texto: "Cada mes se llena según su meta, y en gris si usa lo normal. Toca uno y abajo salen sus siete días: escribe solo el día que cambia. Arriba eliges la tienda.",
+      titulo: "Una barra por mes",
+      texto: "Cada mes sube según su meta. Toca uno y abajo salen sus siete días: escribe solo el día que cambia, que queda en negro. Arriba eliges la tienda.",
     },
     {
       id: "tiendas-agregar-dia",

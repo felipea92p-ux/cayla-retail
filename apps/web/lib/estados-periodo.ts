@@ -202,7 +202,9 @@ export type Comparable = Rango & { etiqueta: string };
 export function periodosAnteriores(p: Periodo, hoy: string, minimo: string | null): Comparable[] {
   const uno = periodoAnterior(p, minimo);
   if (!uno) return [];
-  const conEtiqueta = (r: Rango, siNoEsMes: string): Comparable => ({ ...r, etiqueta: p.unMes ? capital(corto(mesDe(r.desde))) : siNoEsMes });
+  // Un mes a medias no se llama como el mes entero: «1–6 oct», para que nadie lea octubre donde hay seis días (ADR-0621).
+  const delMes = (r: Rango) => (r.hasta < finDelMes(mesDe(r.desde)) ? `1–${diaDe(r.hasta)} ${corto(mesDe(r.desde))}` : capital(corto(mesDe(r.desde))));
+  const conEtiqueta = (r: Rango, siNoEsMes: string): Comparable => ({ ...r, etiqueta: p.unMes ? delMes(r) : siNoEsMes });
   const anterior = conEtiqueta(uno, "Anterior");
   const dos =
     p.unMes && p.enCurso

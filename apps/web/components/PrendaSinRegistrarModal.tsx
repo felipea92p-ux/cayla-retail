@@ -1,7 +1,8 @@
 "use client";
 
 import { useId, useMemo, useState, type ReactNode, type RefObject } from "react";
-import { Banknote, Palette, PenLine, Ruler, Tag } from "lucide-react";
+import { Banknote, CircleHelp, Palette, PenLine, Ruler, Tag } from "lucide-react";
+import { MAX_DETALLE_MOTIVO, MOTIVOS_SIN_REGISTRAR, faltaEnMotivo } from "@/lib/prenda-sin-registrar-motivo";
 import { Modal } from "@/components/ui/Modal";
 import { Boton, CampoTexto } from "@/components/ui/campos";
 import { ComboBuscable } from "@/components/ui/ComboBuscable";
@@ -111,6 +112,10 @@ export function PrendaSinRegistrarModal({
   // colaboradora no la toque, sigue a la sugerencia; apenas escribe, es suya.
   const [descripcionEscrita, setDescripcionEscrita] = useState<string | null>(arranque ? arranque.descripcionEscrita : null);
   const [precio, setPrecio] = useState(corregir ? corregir.inicial.precio.toFixed(2) : "");
+  // Por qué se anota a mano (20261106233000): solo al anotar en Vender. Al corregir lo anotado, la venta ya existe y no se pregunta.
+  const [motivo, setMotivo] = useState("");
+  const [motivoDetalle, setMotivoDetalle] = useState("");
+  const idMotivoDetalle = useId();
   const idDescripcion = useId();
   const idPrecio = useId();
 
@@ -146,14 +151,15 @@ export function PrendaSinRegistrarModal({
   const guia = useGuiaCampos(
     corregir
       ? [...camposGuiaPrenda(datos), { id: "responsable", nombre: "Responsable", requerido: true, hecho: corregir.responsable.listo, pendiente: "Elige quién hace la corrección." }]
-      : camposGuiaPrenda(datos),
+      : camposGuiaPrenda(datos, { valor: motivo, detalle: motivoDetalle }),
   );
+  const faltaMotivo = corregir ? null : faltaEnMotivo(motivo, motivoDetalle);
   // El precio con referencia (solo al anotar): el rango de la categoría en el catálogo y, si lo tecleado se sale, la confirmación de ESE precio.
   const [precioConfirmado, setPrecioConfirmado] = useState<number | null>(null);
   const rango = useMemo(() => (!corregir && rangoDePrecio && categoriaId ? rangoDePrecio(categoriaId) : null), [corregir, rangoDePrecio, categoriaId]);
   const veredicto = veredictoDePrecio(datos.precio, rango);
   const faltaConfirmarPrecio = !corregir && precioNecesitaConfirmacion(veredicto, datos.precio, precioConfirmado);
-  const puedeConfirmar = falta === null && cambio && !faltaConfirmarPrecio && (!corregir || (corregir.responsable.listo && !corregir.guardando));
+  const puedeConfirmar = falta === null && faltaMotivo === null && cambio && !faltaConfirmarPrecio && (!corregir || (corregir.responsable.listo && !corregir.guardando));
 
   const opcionesCategoria = useMemo(
     () =>
@@ -254,8 +260,19 @@ export function PrendaSinRegistrarModal({
     if (!puedeConfirmar) return;
     const d = { ...datos, descripcion: descripcion.trim() };
     if (corregir) corregir.onGuardar(d);
-    else onAgregar?.(d);
+    else onAgregar?.({ ...d, motivo, motivoDetalle: motivo === "otro" ? motivoDetalle.trim() : undefined });
   };
+
+  /** Elegido el motivo, el cursor va a lo que sigue: el texto si es «otro», si no la categoría (o lo primero que falte). */
+  function elegirMotivo(valor: string) {
+    setMotivo(valor);
+    requestAnimationFrame(() =>
+      requestAnimationFrame(() => {
+        if (valor === "otro") document.getElementById(idMotivoDetalle)?.focus();
+        else enfocarCampo(pasoSiguiente(datos));
+      }),
+    );
+  }
 
   const botonTalla = (t: Talla, menor = false, ancho = false) => (
     <button
@@ -302,6 +319,50 @@ export function PrendaSinRegistrarModal({
           corría de lado (el precio quedaba cortado a la derecha); ahora el título baja de línea y nada se sale. */}
       <div className="grid grid-cols-[minmax(0,1fr)] gap-x-10 gap-y-5 [grid-template-areas:'etiqueta'_'campos'_'pie'] max-md:[&_button]:scroll-mt-[8.5rem] max-md:[&_input]:scroll-mt-[8.5rem] md:grid-cols-[minmax(0,1fr)_17.5rem] md:grid-rows-[auto_1fr] md:[grid-template-areas:'campos_etiqueta'_'campos_pie']">
         <div className="space-y-6 [grid-area:campos]">
+          {/* Por qué se anota a mano (20261106233000, Felipe 2026-11-06): va primero porque es la pregunta que abre esta hoja. Con
+              «La pistola no la lee» o «El sistema dice que no hay», la lista «¿Es alguna de estas?» de abajo todavía puede encontrar la real. */}
+          {!corregir && (
+            <CampoGuiado
+              id="motivo"
+              guia={guia}
+              titulo={<Titulo icono={<CircleHelp />}>¿Por qué la anotas a mano?</Titulo>}
+              ayuda="Nos ayuda a saber qué arreglar para que no vuelva a pasar."
+            >
+              <div className="grid grid-cols-1 gap-1.5 sm:grid-cols-2" role="group" aria-label="Por qué la anotas a mano">
+                {MOTIVOS_SIN_REGISTRAR.map((m, i) => (
+                  <button
+                    key={m.valor}
+                    type="button"
+                    data-motivo={m.valor}
+                    aria-pressed={motivo === m.valor}
+                    autoFocus={i === 0}
+                    onClick={() => elegirMotivo(m.valor)}
+                    className={`rounded-lg border px-3 py-2 text-left transition-colors duration-200 ease-cayla ${
+                      motivo === m.valor ? "border-tinta bg-tinta text-crema" : "border-taupe/40 bg-hueso text-tinta hover:border-tinta/60"
+                    }`}
+                  >
+                    <span className="block text-sm font-medium">{m.texto}</span>
+                    <span className={`block text-xs ${motivo === m.valor ? "text-crema/80" : "text-tinta/65"}`}>{m.detalle}</span>
+                  </button>
+                ))}
+              </div>
+              {motivo === "otro" && (
+                <div className="anim-revelar mt-2.5" data-sin-cascada>
+                  <CampoTexto
+                    id={idMotivoDetalle}
+                    caja
+                    etiqueta="Cuál fue el motivo"
+                    value={motivoDetalle}
+                    onChange={(e) => setMotivoDetalle(e.target.value)}
+                    // sugerir-fijo: la instrucción de cómo contestar «otro»; no depende de nada elegido antes en la hoja
+                    placeholder="Cuéntalo en pocas palabras"
+                    maxLength={MAX_DETALLE_MOTIVO}
+                  />
+                </div>
+              )}
+            </CampoGuiado>
+          )}
+
           <CampoGuiado id="categoria" guia={guia} titulo={<Titulo icono={<Tag />}>Categoría</Titulo>}>
             <ComboBuscable
               valor={categoriaId}
@@ -309,7 +370,6 @@ export function PrendaSinRegistrarModal({
               opciones={opcionesCategoria}
               marcador="Busca la categoría"
               etiquetaAccesible="Categoría"
-              autoFocus={!corregir}
               caja
             />
           </CampoGuiado>

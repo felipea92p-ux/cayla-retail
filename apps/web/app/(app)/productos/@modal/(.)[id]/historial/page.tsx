@@ -9,7 +9,13 @@ import { ModalRuta } from "@/components/ui/ModalRuta";
 // fila de la Tabla), Next no cambia la pantalla de fondo: dibuja esta página en el slot `modal` del layout y deja la lista donde
 // estaba. La URL sí cambia, así que copiarla, compartirla o recargar muestra la página completa (`../../../[id]/historial/page.tsx`):
 // el mismo hilo, sin ventana. Desde la Grilla, el historial se abre dentro de la vista rápida (no pasa por aquí).
-export default async function HistorialProductoModal({ params }: { params: Promise<{ id: string }> }) {
+export default async function HistorialProductoModal({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ id: string }>;
+  searchParams: Promise<{ ver?: string | string[] }>;
+}) {
   const persona = await requirePersonaActualV2();
   const { id: productoId } = await params;
   const [prenda, lectura] = await Promise.all([getPrendaDelHistorial(productoId), getHistorialPrenda(productoId)]);
@@ -29,6 +35,7 @@ export default async function HistorialProductoModal({ params }: { params: Promi
         nombre={prenda.referencia}
         totalVariantes={prenda.variantes}
         hrefMovimientos={veModulo(persona, "movimientos") ? `/inventario/movimientos?q=${encodeURIComponent(prenda.codigo ?? prenda.referencia)}` : null}
+        abrirEnCosto={(await searchParams).ver === "costo"}
       />
     </ModalRuta>
   );

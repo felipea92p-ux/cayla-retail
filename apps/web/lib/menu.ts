@@ -615,6 +615,20 @@ export function hojasDe(f: FilaMenu): ItemMenu[] {
   return esGrupoMenu(f) ? f.hijos.flatMap(hojasDe) : [f];
 }
 
+/**
+ * El módulo de cada pantalla del menú: los grupos que la contienen, de afuera hacia adentro («Inventario», «Catálogo · Atributos»).
+ * Lo usa el buscador de la cabecera para encontrar una pantalla por su módulo («inven» → Existencias, Traslados…) y para decir de qué
+ * módulo es cada fila. Una pantalla suelta en la raíz (Inicio) no tiene módulo.
+ */
+export function modulosDeLasHojas(filas: readonly FilaMenu[], camino: readonly string[] = []): Record<string, string> {
+  const salida: Record<string, string> = {};
+  for (const f of filas) {
+    if (esGrupoMenu(f)) Object.assign(salida, modulosDeLasHojas(f.hijos, [...camino, f.etiqueta]));
+    else if (camino.length > 0 && !(f.href in salida)) salida[f.href] = camino.join(" · ");
+  }
+  return salida;
+}
+
 export type PerfilDelMenu = {
   permisos: readonly Permiso[];
   ubicacionTipo: TipoUbicacion;

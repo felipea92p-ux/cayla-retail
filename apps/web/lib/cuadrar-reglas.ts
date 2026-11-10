@@ -4,7 +4,7 @@
 // líneas revisadas (`dinero_revisados`); subir el extracto queda para otra obra. Lógica pura: no decide qué cuadra (eso lo suma la
 // base), solo en qué estado está cada par y qué banco mirar.
 
-import { cuadra, type Conciliacion, type ConciliacionCuenta, type LineaConciliacion } from "./cuentas-dinero-reglas";
+import { cuadra, TEXTO_MEDIO_COBRO, type AlertaPos, type Conciliacion, type ConciliacionCuenta, type LineaConciliacion, type LotePendiente, type TipoCuenta } from "./cuentas-dinero-reglas";
 import { diaLima } from "./fechas-lima";
 import { soles } from "./compras-reglas";
 import { fechaCorta } from "./gastos-reglas";
@@ -29,6 +29,15 @@ export function textoLadoBanco(l: Pick<LineaConciliacion, "revisado" | "montoRev
     default:
       return "¿Está en el extracto del banco?";
   }
+}
+
+/**
+ * ADR-0629, Fase B: una cuenta se cuadra contra un extracto solo si tiene uno. La puente de una máquina («Por depositar») no lo tiene: lo que
+ * espera depósito se ve en «Lo que te deben las máquinas» y lo que llegó se cuadra en el banco que lo recibe. Antes se le pedía «¿qué saldo
+ * dice el banco?» y quedaba para siempre en «Nunca se cuadró».
+ */
+export function tieneExtracto(tipo: TipoCuenta): boolean {
+  return tipo !== "por_abonar";
 }
 
 /** Las cuentas que se pueden cuadrar, en el orden de la lista: los bancos primero, y por nombre dentro de cada grupo. */
@@ -126,3 +135,56 @@ export function filtrarLineas<L extends Pick<LineaConciliacion, "revisado" | "mo
   if (filtro === "todas") return [...lineas];
   return lineas.filter((l) => (estadoPar(l) === "revisada") === (filtro === "revisadas"));
 }
+
+// ---- «Lo que te deben las máquinas» (ADR-0629, Fase B, actividad 1) --------------------------------------------------------------
+// La puente salió de la lista de bancos: su lugar es esta lista, que dice por máquina cuánto cobró y todavía no llegó, y qué días ya se
+// pasaron de lo que la máquina tarda en depositar. Solo traduce lo que la base ya calcula (`fn_pos_alertas` y `fn_pos_pendientes`, que
+// cuenta el residuo de cada día): no decide nada de plata.
+
+export type DiaQueSeDebe = { clave: string; titulo: string; monto: number; nota: string | null };
+export type DeudaDeMaquina = {
+  cuentaId: string;
+  nombre: string;
+  /** Todo lo que cobró y no tiene depósito, atrasado o no. */
+  total: number;
+  estado: EstadoBanco;
+  /** Solo los días que ya debieron llegar, del más viejo al más nuevo: son los que hay que buscar en el banco o reclamar. */
+  atrasados: DiaQueSeDebe[];
+  /** Lo que todavía no le toca llegar, en una frase («S/ 1,195.90 de hoy, que llega mañana»); nulo si no hay. */
+  enCamino: string | null;
+};
+
+const textoMedio = (m: LotePendiente["medio"]) => (m === "tarjeta" ? "Tarjeta" : TEXTO_MEDIO_COBRO[m]);
+
+/** Por máquina, lo que debe y qué días ya se atrasaron. Las máquinas sin nada pendiente salen «Al día» para que se vea que se miró. */
+export function deudaDeMaquinas(alertas: readonly AlertaPos[], lotesPorCuenta: ReadonlyMap<string, readonly LotePendiente[]>): DeudaDeMaquina[] {
+  return [...alertas]
+    .sort((a, b) => a.nombre.localeCompare(b.nombre, "es"))
+    .map((a) => {
+      const lotes = [...(lotesPorCuenta.get(a.cuentaId) ?? [])].filter((l) => l.bruto > 0).sort((x, y) => x.fecha.localeCompare(y.fecha) || x.ubicacionNombre.localeCompare(y.ubicacionNombre, "es"));
+      const atrasados = lotes.filter((l) => l.atrasado);
+      const enCaminoMonto = redondear(lotes.filter((l) => !l.atrasado).reduce((s, l) => s + l.bruto, 0));
+      const total = redondear(lotes.reduce((s, l) => s + l.bruto, 0));
+      const montoAtrasado = redondear(atrasados.reduce((s, l) => s + l.bruto, 0));
+      return {
+        cuentaId: a.cuentaId,
+        nombre: a.nombre,
+        total,
+        estado:
+          atrasados.length > 0
+            ? { texto: `${soles(montoAtrasado)} atrasado`, tono: "ambar" as const }
+            : total > 0
+              ? { texto: "Al día", tono: "verde" as const }
+              : { texto: "No debe nada", tono: "verde" as const },
+        atrasados: atrasados.map((l) => ({
+          clave: l.clave,
+          titulo: `${fechaCorta(l.fecha)} · ${l.ubicacionNombre} · ${textoMedio(l.medio)}`,
+          monto: l.bruto,
+          nota: l.yaDepositado > 0 ? `Ya llegaron ${soles(l.yaDepositado)}; esto falta` : null,
+        })),
+        enCamino: enCaminoMonto > 0 ? `${soles(enCaminoMonto)} todavía no le toca llegar.` : null,
+      };
+    });
+}
+
+const redondear = (n: number) => Math.round(n * 100) / 100;

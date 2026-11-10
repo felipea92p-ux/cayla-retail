@@ -85,7 +85,7 @@ export default async function Separado({ params }: { params: Promise<{ numero: s
           </ol>
           <div className="t-separado-acc">
             {enlace ? (
-              <a className="t-btn t-btn-ancho t-btn-wsp" href={enlace} target="_blank" rel="noopener noreferrer">
+              <a className="t-btn t-btn-ancho" href={enlace} target="_blank" rel="noopener noreferrer">
                 <Icono nombre="chat" />
                 Enviar por WhatsApp
               </a>

@@ -4,6 +4,9 @@ import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { ChevronDown, X } from "lucide-react";
 import { EtiquetaAhora } from "@/components/alta-producto/guia";
 import { Punto } from "@/components/alta-producto/ElegirColores";
+import { CuadroEstampado } from "@/components/ui/MuestraEstampado";
+import { useFotosDeEstampados } from "@/components/recepcion-envio/useFotosDeEstampados";
+import { esEstampado } from "@/lib/color-estampado-reglas";
 import { ElegirOpcion } from "@/components/recepcion-envio/BloquePrenda";
 import { Aviso } from "@/components/ui/Aviso";
 import { avisar } from "@/components/ui/Avisos";
@@ -21,6 +24,7 @@ import {
   tallasPorAgregar,
   type BorradorTallas,
 } from "@/lib/recepcion-tallas-reglas";
+import { prefiereQuieto } from "@/lib/movimiento-cliente";
 
 // Tallas y colores en la misma pantalla de Contar (Felipe 2026-11-02, de su boceto; antes se abrían en una hoja). La tabla arranca con las tallas de siempre de la categoría y a cada talla y
 // color se le quita o se le agrega. Quitar solo esconde y limpia lo escrito (si había algo, el aviso ofrece «Deshacer»); nunca se borra una variante del catálogo. Agregar lo que la prenda ya
@@ -132,7 +136,7 @@ function Reparto({
     const el = raiz.current;
     if (!traerALaVista || !el) return;
     const caja = el.closest<HTMLElement>(".rc-scroll");
-    const suave: ScrollBehavior = document.hidden || window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth";
+    const suave: ScrollBehavior = document.hidden || prefiereQuieto() ? "auto" : "smooth";
     const alto = el.getBoundingClientRect().top;
     if (caja && caja.scrollHeight > caja.clientHeight) caja.scrollTo({ top: caja.scrollTop + alto - caja.getBoundingClientRect().top - 8, behavior: suave });
     else window.scrollBy({ top: alto - 88, behavior: suave });
@@ -189,6 +193,7 @@ function Reparto({
 
       <TablaDeTallas
         matriz={matriz}
+        productoId={prenda.productoId}
         catalogo={coloresCatalogo}
         tallas={tallas}
         colores={colores}
@@ -226,6 +231,7 @@ function Reparto({
 /** Si hay más de una talla o color, cada uno se puede quitar; lo que no existe en la prenda sale con su «—», y tocarlo la crea. */
 function TablaDeTallas({
   matriz,
+  productoId,
   catalogo,
   tallas,
   colores,
@@ -237,6 +243,8 @@ function TablaDeTallas({
   onCrear,
 }: {
   matriz: MatrizRecepcion;
+  /** La prenda, para leer la foto de sus estampados. Sin ella, cada color lleva su punto. */
+  productoId?: string;
   catalogo: readonly ColorAlta[];
   tallas: readonly Eje[];
   colores: readonly Eje[];
@@ -250,6 +258,7 @@ function TablaDeTallas({
 }) {
   const caja = useRef<HTMLDivElement>(null);
   const porCodigo = new Map(catalogo.map((c) => [c.codigo, c]));
+  const fotosEstampado = useFotosDeEstampados(productoId, colores.map((c) => c.clave).filter((c) => { const color = porCodigo.get(c); return color ? esEstampado(color) : false; }));
   // La columna del color se fija solo si la tabla no cabe y hay que desplazarla.
   useLayoutEffect(() => {
     const el = caja.current;
@@ -302,7 +311,7 @@ function TablaDeTallas({
               <tr key={c.clave}>
                 <td>
                   <span className="rc-color">
-                    {color && <Punto hex={color.hex} familia={color.familiaColor} tipo={color.tipo} />}
+                    {codigo && fotosEstampado.get(codigo) ? <CuadroEstampado fotoUrl={fotosEstampado.get(codigo)!} hex={color?.hex} className="h-8 w-8" /> : color && <Punto hex={color.hex} familia={color.familiaColor} tipo={color.tipo} />}
                     {c.texto}
                   </span>
                 </td>
@@ -412,7 +421,7 @@ function Danadas({
       {conteo.conDanadas && (
         <div className="anim-revelar space-y-2">
           <p className="text-sm text-taupe">De las que contaste arriba, en su talla y color.</p>
-          <TablaDeTallas matriz={matriz} catalogo={catalogo} tallas={tallas} colores={colores} valores={conteo.danadas} pregunta="Cuántas llegaron dañadas de" topes={topes} onValor={(id, texto) => onConteo({ danadas: { ...conteo.danadas, [id]: texto } })} />
+          <TablaDeTallas matriz={matriz} productoId={prenda.productoId} catalogo={catalogo} tallas={tallas} colores={colores} valores={conteo.danadas} pregunta="Cuántas llegaron dañadas de" topes={topes} onValor={(id, texto) => onConteo({ danadas: { ...conteo.danadas, [id]: texto } })} />
           {s.danadasDeMas.length > 0 && <p className="text-sm text-ambar">No puede haber más dañadas que las que llegaron de esa talla y color.</p>}
           {s.danadas > 0 && (
             <>

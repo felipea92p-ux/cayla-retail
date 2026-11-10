@@ -18,6 +18,9 @@
 /* Los puntos van SOBRE la foto, abajo (2026-10-16): debajo empujaban el nombre y el precio fuera de la primera pantalla del celular. La
    foto es clara en los dos temas (el «estudio», `--t-foto`), así que los puntos usan la tinta fija. */
 .cp-galeria { position: relative; }
+/* Mientras se ven los puntos de la galería (celular y tableta), la leyenda de la foto («Foto en otro color») sube sobre ellos: compartían la
+   misma franja de abajo y una leyenda larga los tapaba (rediseño Premium, 2026-11-07). En la computadora no hay puntos y vuelve abajo. */
+.t-galeria:has(+ .t-gal-puntos) .t-foto-g figcaption { bottom: 30px; }
 .t-gal-puntos { position: absolute; left: 0; right: 0; bottom: 12px; z-index: 2; display: flex; justify-content: center; gap: 6px; pointer-events: none; }
 .t-gal-puntos i { width: 6px; height: 6px; border-radius: 50%; background: color-mix(in srgb, var(--t-tinta-fija) 24%, transparent); transition: width .3s var(--ease), background-color .3s; }
 .t-gal-puntos i[data-on] { width: 18px; border-radius: 0; background: var(--t-tinta-fija); }
@@ -212,6 +215,7 @@
   .t-galeria { grid-auto-flow: row; grid-template-columns: repeat(4, 1fr); grid-auto-columns: auto; overflow: visible; margin-inline: 0; gap: 12px; }
   .t-galeria .t-foto-g:first-child { grid-column: 1 / -1; }
   .t-gal-puntos { display: none; }
+  .t-galeria .t-foto-g figcaption { bottom: 10px; }
   .t-pdp-info { position: sticky; top: 18px; padding-top: 0; }
   .t-pdp-cta { display: grid; }
   .t-pdp-barra { display: none; }

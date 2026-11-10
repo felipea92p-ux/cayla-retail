@@ -11,6 +11,7 @@
 // «Para decidir hoy» con su origen y su enlace, y el orden («primero lo que más cuesta si se deja pasar»).
 
 import { leerCuenta, type CuentaDinero, type SinCuenta } from "./cuentas-dinero-reglas";
+import type { FlujoProximo } from "./caja-proxima-reglas";
 import { leerInicioFinanzas, mesAntesDelCorte } from "./finanzas-arranque-reglas";
 import { diasHasta, leerFilaPorPagar, textoVence, type FilaPorPagar } from "./por-pagar-consolidado-reglas";
 import {
@@ -105,11 +106,15 @@ export type ResumenFinanzas = {
   unidades: UnidadResumen[];
   parametros: Parte<ParametrosResumen>;
   resultadosMes: Parte<FilaER[]>;
+  /** Las fechas con que la base armó `resultadosMes` (del 1 a hoy). Opcional: un resumen leído antes de este campo no lo trae. */
+  rangoMes?: { desde: string; hasta: string } | null;
   resultadosAnterior: Parte<FilaER[]>;
   presupuesto: Parte<FilaPpto[]>;
   cuentas: Parte<CuentaDinero[]>;
   porPagar: Parte<PorPagarResumen>;
   flujo: Parte<Proyeccion>;
+  /** Si `flujo` trae los cobros día a día (desde 20261109175000): entonces es la proyección entera, la misma que pide la página. */
+  flujoConCobros?: boolean;
   igv: Parte<PanelImpuestos>;
   campanas: Parte<CampanaFila[]>;
   egresos: Parte<EgresosResumen>;
@@ -147,6 +152,39 @@ export function leerResumen(data: unknown): ResumenFinanzas {
   return { ...r, antesDelCorte: inicio, resultadosAnterior: { estado: "no_aplica" }, cierre: { estado: "no_aplica" } };
 }
 
+/** Las fechas de una parte («desde», «hasta»), o null si no vienen las dos. */
+function rangoDe(v: unknown): { desde: string; hasta: string } | null {
+  const d = obj(v);
+  const desde = txt(d.desde)?.slice(0, 10) ?? null;
+  const hasta = txt(d.hasta)?.slice(0, 10) ?? null;
+  return desde && hasta ? { desde, hasta } : null;
+}
+
+/**
+ * El estado de resultados que la página iba a pedir aparte, si `fn_resumen_finanzas` ya lo armó IGUAL (2026-11-09, el pico de memoria de
+ * Resumen): la base lo arma con `fn_estado_resultados(del 1, hoy, sede)` y la página lo pedía otra vez con `fn_estado_resultados(desde, hasta)`
+ * de todas las sedes. Se reusa solo si es exactamente el mismo: el resumen mira TODAS las sedes (sin sede ni «de la empresa») y su rango es el
+ * mismo, día por día. Comprobado en local el 2026-11-09: mismas filas, en el mismo orden. Con los sueldos estimados ya sumados, como en
+ * `getEstadoResultados` (los dos los suman del mes, ver `conSueldosEstimados`). En cualquier otro caso, null: la página lo pide como antes.
+ */
+export function estadoDelMesYaLeido(r: ResumenFinanzas | null, tramo: { desde: string; hasta: string }): FilaER[] | null {
+  if (!r || r.resultadosMes.estado !== "ok" || !r.rangoMes) return null;
+  if (!r.ver.todas || r.ver.soloEmpresa || r.ver.ubicacionId !== null) return null;
+  if (r.rangoMes.desde !== tramo.desde || r.rangoMes.hasta !== tramo.hasta) return null;
+  return r.resultadosMes.datos;
+}
+
+/**
+ * La proyección de caja que la página iba a pedir aparte (`getFlujoProximo`), si el resumen ya la trae ENTERA (2026-11-09, el pico de memoria de
+ * Resumen): desde 20261109175000 `fn_resumen_finanzas` devuelve `fn_flujo_caja_proyeccion(6)` con sus cobros, la misma llamada que hace la
+ * página. Si viene sin cobros (una base sin esa migración), sin permiso o caída, null: la página la pide como antes. Así el orden en que se
+ * publican la web y la migración no importa.
+ */
+export function flujoDelResumen(r: ResumenFinanzas | null): FlujoProximo | null {
+  if (!r || !r.flujoConCobros || r.flujo.estado !== "ok") return null;
+  return { estado: "ok", datos: r.flujo.datos };
+}
+
 function leerResumenBruto(data: unknown): ResumenFinanzas {
   const d = obj(data);
   const v = obj(d.ver);
@@ -170,11 +208,13 @@ function leerResumenBruto(data: unknown): ResumenFinanzas {
       avisoVenceDias: p.aviso_vence_dias == null ? 7 : num(p.aviso_vence_dias),
     })),
     resultadosMes: parte(d.resultados_mes, (p) => lista(p.filas).map(leerFilaER)),
+    rangoMes: rangoDe(d.resultados_mes),
     resultadosAnterior: parte(d.resultados_anterior, (p) => lista(p.filas).map(leerFilaER)),
     presupuesto: parte(d.presupuesto, (p) => lista(p.filas).map(leerFilaPpto)),
     cuentas: parte(d.cuentas, (p) => lista(p.filas).map(leerCuenta)),
     porPagar: parte(d.por_pagar, (p) => ({ dias: p.dias == null ? 7 : num(p.dias), total: num(p.total), n: num(p.n), filas: lista(p.filas).map(leerFilaPorPagar) })),
     flujo: parte(d.flujo, (p) => leerProyeccion(p)),
+    flujoConCobros: Array.isArray(obj(d.flujo).cobros),
     igv: parte(d.igv, (p) => leerPanelImpuestos(p)),
     campanas: parte(d.campanas, (p) => lista(p.filas).map(leerCampana)),
     egresos: parte(d.egresos, (p) => ({

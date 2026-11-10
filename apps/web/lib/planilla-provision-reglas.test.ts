@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { aplicarProvision, delMes, leerProvision, nombreSedeDynamic, notaProvisionado, resumenDeProvision, type FilaProvision } from "./planilla-provision-reglas";
+import { aplicarProvision, delMes, hastaDeLaProvision, leerProvision, mesesDelRango, nombreSedeDynamic, notaProvisionado, provisionDelRango, resumenDeProvision, sueldosAEstaFecha, type FilaProvision } from "./planilla-provision-reglas";
+import { rangoMes } from "./gastos-reglas";
 import type { FilaER } from "./resultados-reglas";
 
 const fila = (p: Partial<FilaER>): FilaER => ({
@@ -211,5 +212,91 @@ describe("lo de hoy (act. 2026-10-22)", () => {
   it("el resumen de la confianza suma lo de hoy de todas las sedes", () => {
     const r = resumenDeProvision([prov({ devengado: 1000, deHoy: 100 }), prov({ devengado: 500, deHoy: 40.5 })]);
     expect(r).toMatchObject({ devengado: 1500, deHoy: 140.5 });
+  });
+});
+
+describe("hasta dónde se piden los sueldos (tarea 23)", () => {
+  it("el mes en curso se pide entero: el período que termina el 28 entra desde el día 1, y todas las pantallas dicen la misma ganancia", () => {
+    expect(hastaDeLaProvision("2026-10-01", "2026-10-27", "2026-10-27")).toBe("2026-10-31");
+    expect(hastaDeLaProvision("2026-10-01", "2026-10-05", "2026-10-05")).toBe("2026-10-31");
+    expect(hastaDeLaProvision("2028-02-01", "2028-02-10", "2028-02-10")).toBe("2028-02-29");
+  });
+  it("un mes que ya pasó se pide tal cual", () => {
+    expect(hastaDeLaProvision("2026-09-01", "2026-09-30", "2026-10-27")).toBe("2026-09-30");
+  });
+  it("«del 1 a esta fecha» del mes pasado y las fechas sueltas no piden más que lo que miran", () => {
+    expect(hastaDeLaProvision("2026-09-01", "2026-09-27", "2026-10-27")).toBe("2026-09-27");
+    expect(hastaDeLaProvision("2026-10-10", "2026-10-27", "2026-10-27")).toBe("2026-10-27");
+  });
+});
+
+describe("sueldosAEstaFecha («octubre a esta fecha» con sueldos, 2026-11-06)", () => {
+  // Período de octubre: del 29 de septiembre al 28 de octubre, 30 días. Del 1 al 6 de octubre corren 8 (29 y 30 de setiembre + 6).
+  const entero = [fila({ ubicacionId: "u-tru", planilla: 3000 }), fila({ unidad: "consolidado", nombre: "CAYLA", planilla: 6000 })];
+  const parcial = [fila({ ubicacionId: "u-tru", gastos: 100, resultado: 500 }), fila({ unidad: "consolidado", nombre: "CAYLA", gastos: 200, resultado: 900 })];
+
+  it("pone la parte de los días corridos de la planilla del mes entero, y la resta del resultado", () => {
+    const [tru, cons] = sueldosAEstaFecha(parcial, entero, "2026-10-06");
+    expect(tru!.planilla).toBe(800);
+    expect(tru!.gastos).toBe(900);
+    expect(tru!.resultado).toBe(-300);
+    expect(tru!.detalleGastos).toContainEqual({ cuenta: "62", nombre: "Gastos de personal", monto: 800 });
+    expect(cons!.planilla).toBe(1600);
+    expect(cons!.resultado).toBe(-700);
+  });
+
+  it("si las fechas llegan al 28 el período ya entró entero: no toca nada", () => {
+    expect(sueldosAEstaFecha(parcial, entero, "2026-10-28")).toEqual(parcial);
+  });
+
+  it("una fila que ya trae planilla, o sin su par en el mes entero, queda tal cual", () => {
+    const conPlanilla = [fila({ ubicacionId: "u-tru", planilla: 50, resultado: 10 }), fila({ ubicacionId: "u-otra", resultado: 5 })];
+    expect(sueldosAEstaFecha(conPlanilla, entero, "2026-10-06")).toEqual(conPlanilla);
+  });
+
+  it("en enero, el período empieza el 29 de diciembre del año anterior", () => {
+    const [tru] = sueldosAEstaFecha([fila({ ubicacionId: "u-tru" })], [fila({ ubicacionId: "u-tru", planilla: 3100 })], "2027-01-03");
+    // Del 29-dic-2026 al 28-ene-2027 son 31 días; al 3 de enero corren 6.
+    expect(tru!.planilla).toBe(600);
+  });
+});
+
+describe("una lectura por mes (el pico de memoria del 2026-11-09)", () => {
+  it("los meses de un rango, en orden y cruzando el año; un rango al revés o mal escrito no toca ninguno", () => {
+    expect(mesesDelRango("2026-10-01", "2026-11-30")).toEqual(["2026-10", "2026-11"]);
+    expect(mesesDelRango("2026-11-01", "2026-11-09")).toEqual(["2026-11"]);
+    expect(mesesDelRango("2026-12-15", "2027-02-01")).toEqual(["2026-12", "2027-01", "2027-02"]);
+    expect(mesesDelRango("2026-11-09", "2026-11-01")).toEqual([]);
+    expect(mesesDelRango("2026-11", "2026-11-30")).toEqual([]);
+  });
+
+  // Lo que hace la base (20261022081000): los períodos que TERMINAN en el rango y, con sede, solo los de esa sede («de la empresa» no entra).
+  const laBase = (todas: FilaProvision[], desde: string, hasta: string, ubicacionId: string | null) =>
+    todas.filter((f) => f.fechaFin >= desde && f.fechaFin <= hasta && (ubicacionId === null || f.ubicacionId === ubicacionId));
+  const todas: FilaProvision[] = [
+    prov({ periodoId: "sep", ubicacionId: "u-tru", fechaIni: "2026-08-29", fechaFin: "2026-09-28", devengado: 900 }),
+    prov({ periodoId: "oct", ubicacionId: "u-tru", fechaIni: "2026-09-29", fechaFin: "2026-10-28", devengado: 1000 }),
+    prov({ periodoId: "oct", ubicacionId: "u-aqp", fechaIni: "2026-09-29", fechaFin: "2026-10-28", devengado: 800 }),
+    prov({ periodoId: "oct", ubicacionId: null, unidad: "empresa", sedeCodigo: "CCO", fechaIni: "2026-09-29", fechaFin: "2026-10-28", devengado: 300 }),
+    prov({ periodoId: "nov", ubicacionId: "u-tru", fechaIni: "2026-10-29", fechaFin: "2026-11-28", devengado: 400 }),
+    prov({ periodoId: "nov", ubicacionId: "u-aqp", fechaIni: "2026-10-29", fechaFin: "2026-11-28", devengado: 350 }),
+    prov({ periodoId: "dic", ubicacionId: "u-tru", fechaIni: "2026-11-29", fechaFin: "2026-12-28", devengado: 0 }),
+  ];
+
+  it("leer cada mes entero y recortar da EXACTAMENTE lo que la base daría para cada rango y sede que pide el Resumen", () => {
+    // Las cinco lecturas de una carga de Finanzas ▸ Resumen el 2026-11-09 (Resumen, Confianza, Ganancias del mes, la comparación y Balance por tienda),
+    // más una que cruza el año y unas fechas sueltas.
+    const rangos: [string, string][] = [["2026-10-01", "2026-11-30"], ["2026-11-01", "2026-11-30"], ["2026-10-01", "2026-10-09"], ["2026-10-28", "2026-10-28"], ["2026-11-29", "2027-01-31"], ["2026-09-15", "2026-10-27"]];
+    for (const [desde, hasta] of rangos) {
+      const leidos = mesesDelRango(desde, hasta).flatMap((mes) => laBase(todas, rangoMes(mes).desde, rangoMes(mes).hasta, null));
+      for (const ubicacionId of [null, "u-tru", "u-aqp", "u-otra"]) {
+        expect(provisionDelRango(leidos, desde, hasta, ubicacionId), `${desde}…${hasta} · ${ubicacionId}`).toEqual(laBase(todas, desde, hasta, ubicacionId));
+      }
+    }
+  });
+
+  it("con una sede, «de la empresa» (la central) no se le suma: igual que la base", () => {
+    expect(provisionDelRango(todas, "2026-10-01", "2026-10-31", "u-tru").map((f) => f.devengado)).toEqual([1000]);
+    expect(provisionDelRango(todas, "2026-10-01", "2026-10-31", null).map((f) => f.devengado)).toEqual([1000, 800, 300]);
   });
 });

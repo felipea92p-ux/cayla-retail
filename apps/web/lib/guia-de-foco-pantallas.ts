@@ -277,7 +277,7 @@ export const MODALES: Record<string, PantallaGuia> = {
   "components/AdjuntosCompra.tsx": PENDIENTE, // 3 controles
   "components/AjustarInventarioModal.tsx": { estado: "aplicada", evidencia: ["components/AjustarInventarioModal.tsx"] },
   "components/existencias/BuscarPrendaParaAjustar.tsx": { estado: "no-aplica", motivo: "«¿Qué prenda vas a ajustar?» (ADR-0494): un solo campo, el buscador, y su único paso es elegir la prenda; lo que se llena (la planilla, el motivo y quién) vive en el modal de la prenda, con su guía." },
-  "components/asistente/Asistente.tsx": { estado: "no-aplica", motivo: "«Pregúntale a CAYLA» (ADR-0536): un solo campo obligatorio, la pregunta, que busca mientras se escribe; su único paso es elegir la demo que arranca. Tras un «No» a «¿Te sirvió?» aparece una caja opcional («¿Qué buscabas?») que no bloquea nada. Lo que se llena de verdad vive en la pantalla a la que lleva, con su propia guía." },
+  "components/asistente/CajonAsistente.tsx": { estado: "no-aplica", motivo: "«Pregúntale a CAYLA» (ADR-0536): un solo campo obligatorio, la pregunta, que busca mientras se escribe; su único paso es elegir la demo que arranca. Tras un «No» a «¿Te sirvió?» aparece una caja opcional («¿Qué buscabas?») que no bloquea nada. Lo que se llena de verdad vive en la pantalla a la que lleva, con su propia guía." },
   "components/AnularVentaForm.tsx": PENDIENTE, // 4 controles
   "components/ApartadosModal.tsx": PENDIENTE, // 3 controles
   // ADR-0328 (actividad 9): «La tengo en la mano» en Bajar al piso. Lo que falta es solo quién lo hace (lo mismo que apaga el botón);
@@ -346,6 +346,10 @@ export const MODALES: Record<string, PantallaGuia> = {
   // «No tiene RUC», y el WhatsApp si se escribió; la pregunta «¿no será uno que ya tienes?» sin contestar también bloquea. Sale de lo que la función
   // `registrar_proveedor_de_orden` ya exige (`lib/proveedor-de-orden-reglas.ts`, con su prueba).
   "components/ordenes-compra/RegistrarProveedorOrden.tsx": { estado: "aplicada", evidencia: ["components/ordenes-compra/RegistrarProveedorOrden.tsx"] },
+  // Recibir crea lo que no está (ADR-0635): el proveedor pide su razón social (el RUC es opcional y solo cuenta si se escribió) y contestar «¿no será…?»;
+  // la marca, su nombre (y la misma pregunta) y quién la trae. Lo que falta sale de lo que rechazan `registrar_proveedor_de_recepcion` y `registrar_marca_de_recepcion`.
+  "components/recepcion-conteo/ProveedorNuevoRecepcion.tsx": { estado: "aplicada", evidencia: ["components/recepcion-conteo/ProveedorNuevoRecepcion.tsx"] },
+  "components/recepcion-conteo/MarcaNuevaRecepcion.tsx": { estado: "aplicada", evidencia: ["components/recepcion-conteo/MarcaNuevaRecepcion.tsx"] },
   "components/campanas-web/VistaPreviaCampana.tsx": { estado: "no-aplica", motivo: "Una hoja de un solo paso: «Crear enlace» y copiarlo. El único control es el «Responsable» de siempre y la hoja dice qué hace antes de pedir nada." },
   // Avisos, «Editar mensajes» (2026-10-20): cada aviso es un campo (lo que rechazaría `fn_club_aviso_problema`), el cierre opcional y quién lo cambia.
   "components/clientas/EditarMensajesAvisos.tsx": { estado: "aplicada", evidencia: ["components/clientas/EditarMensajesAvisos.tsx"] },
@@ -495,7 +499,7 @@ export const MODALES: Record<string, PantallaGuia> = {
   // Recomendaciones (ADR-0408): desde el 2026-10-17 la hoja es un `<Cajon>`, que la prueba también cuenta como hoja. Su guía: la respuesta,
   // que falta hasta estar bien escrita, y quién lo hace. «Falta» = lo que `responder_recomendacion` rechazaría (`lib/recomendaciones-guia.ts`).
   "components/recomendaciones/RecomendacionHoja.tsx": { estado: "aplicada", evidencia: ["components/recomendaciones/RecomendacionHoja.tsx"] },
-  "components/alta-producto/ElegirColores.tsx": { estado: "no-aplica", motivo: "Elegir colores sirve a la fila «Colores» de Nuevo producto, que ya lleva su guía (FilaAlta). Su hoja «Nuevo color» (2026-10-02) pide solo nombre y tono: la familia y el código se llenan solos, y lo que falta se dice al tocar «Crear y elegir»." },
+  "components/alta-producto/ElegirColores.tsx": { estado: "no-aplica", motivo: "Elegir colores sirve a la fila «Colores» de Nuevo producto, que ya lleva su guía (FilaAlta). Su hoja «Nuevo color» lleva su guía en `NuevoColorAlta` (`camposDeNuevoColor`, ADR-0634): nombre y tono, o patrón, color y nombre si es estampado." },
   "components/alta-producto/ProponerValor.tsx": { estado: "no-aplica", motivo: "Modal «Nuevo tejido / patrón / talla» (2026-10-02): un solo campo, el nombre; «Agregar» se apaga mientras está vacío o mientras queda sin contestar «¿no será uno que ya existe?» (ADR-0576)." },
   "components/alta-producto/ElegirEtiquetas.tsx": { estado: "no-aplica", motivo: "Hoja de elegir etiquetas que sirve a la fila «Etiquetas» de Nuevo producto, que ya lleva su guía (FilaAlta); elegir es opcional y «Listo» aplica lo marcado." },
   "components/alta-producto/ElegirMuestra.tsx": { estado: "no-aplica", motivo: "Hoja de elegir tejido o patrón que sirve a esas filas de Nuevo producto, que ya llevan su guía (FilaAlta); no tiene campo obligatorio propio: tocar una muestra la elige." },
@@ -522,6 +526,7 @@ export const MODALES: Record<string, PantallaGuia> = {
   "components/finanzas/EditarCuentaModal.tsx": PENDIENTE, // 9 controles
   // ADR-0429 (act. 4): «Cambiar la tarifa» de una máquina de cobro. Falta = lo mismo que apaga «Guardar» (`validarTarifa`): la tasa, los
   // días de abono y quién hace el cambio; el cargo fijo es opcional y el IGV viene marcado (lo usual en Perú).
+  "components/finanzas/dinero/CuadrarConExtracto.tsx": { estado: "no-aplica", motivo: "ADR-0629, Fase B: un solo control, el extracto (el .txt o la tabla pegada), que se lee al momento. Lo demás son propuestas ya armadas: cada lote dice si cuadra y se registra con un toque (con el Responsable de siempre); no hay campos que llenar en un orden." },
   "components/finanzas/CuadrarDepositos.tsx": { estado: "no-aplica", motivo: "Tarea 14: la hoja es una vista previa con un solo botón, y el reemplazo son dos campos que viven dentro del detalle de un movimiento; no hay un camino de pasos que guiar." },
   "components/finanzas/TarifaMaquinaModal.tsx": { estado: "aplicada", evidencia: ["components/finanzas/TarifaMaquinaModal.tsx"] },
   "components/finanzas/dinero/SalidasPlanillaModal.tsx": { estado: "aplicada", evidencia: ["components/finanzas/dinero/SalidasPlanillaModal.tsx"] },
@@ -577,6 +582,7 @@ export const MODALES: Record<string, PantallaGuia> = {
   "components/recepcion-conteo/NuevoModelo.tsx": { estado: "aplicada", evidencia: ["components/recepcion-conteo/NuevoModelo.tsx"] },
   // Ponerle su nombre a un modelo: el nombre es lo que falta; la descripción es opcional.
   "components/recepcion-conteo/EditarModelo.tsx": { estado: "aplicada", evidencia: ["components/recepcion-conteo/EditarModelo.tsx"] },
+  "components/recepcion-conteo/YaExisteLaPrenda.tsx": { estado: "no-aplica", motivo: "Una pregunta con su buscador y dos salidas a la vista. La categoría viene puesta y corregirla es opcional: no hay nada que llenar en orden." },
   // «¿Quién va a contar?» al entrar a Contar desde una terminal: UN solo control (el combo del responsable, que se enciende solo y sale al elegir).
   "components/recepcion-conteo/ElegirQuienCuenta.tsx": { estado: "no-aplica", motivo: "Hoja de un solo control: el combo «Quién cuenta», que la hoja pide al entrar y se cierra sola al elegir; no hay campos ni pasos que guiar." },
   // ADR-0393: «Hacer ahora». Separar pide al menos una prenda y nunca más de lo que queda; las tallas y la prenda nueva son las hojas de

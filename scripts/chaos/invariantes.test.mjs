@@ -148,3 +148,13 @@ test("autoprobar: lo que no se puede corromper se dice en voz alta, no se aprueb
   assert.equal(r.estado, "sin-autoprueba");
   assert.match(r.mensaje, /libro inmutable/);
 });
+
+// Lo vio el vigía de producción el 2026-11-09 (ADR-0632) antes de su primera corrida: INV-03 marcaba 1.280 líneas de la «Prenda
+// sin registrar» (ADR-0179) que esperan en su cola o se cerraron sin prenda al cerrar la cola de arranque (ADR-0334). No mueven stock a
+// propósito. Sin esta exclusión, cada venta «sin registrar» del día pondría el vigía en rojo cada mañana.
+test("INV-03 no cuenta la «Prenda sin registrar» que espera en su cola o se cerró sin prenda (ADR-0179, ADR-0334)", () => {
+  const inv = INVARIANTES.find((i) => i.id === "INV-03");
+  assert.match(inv.sql, /prendas_por_regularizar/, "INV-03 no mira la cola de prendas por regularizar: cada venta «sin registrar» sería un falso positivo");
+  assert.match(inv.sql, /'pendiente',\s*'cerrada_sin_prenda'/, "INV-03 excluye solo lo que espera o se cerró sin prenda, nada más");
+  assert.match(inv.sql, /coalesce\(m\.t, 0\) = 0\s+and exists \(select 1 from retail\.prendas_por_regularizar/, "la exclusión es solo para la línea SIN salida");
+});

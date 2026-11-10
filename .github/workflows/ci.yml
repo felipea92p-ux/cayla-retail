@@ -38,6 +38,9 @@ on:
   push:
     branches: [main]
   pull_request:
+  # La cola de fusión (2026-11-07): GitHub arma `main` + el PR y corre aquí los checks obligatorios antes de fusionar. Sin
+  # este evento la cola esperaría para siempre unos checks que nunca llegan. `alcance.mjs` lo mide como un PR.
+  merge_group:
 
 # Dos pushes seguidos a un PR: el primero se cancela. Sin esto, corregir un typo hace correr lo
 # mismo dos veces y el resultado que llega segundo puede ser el del commit viejo.
@@ -285,7 +288,7 @@ jobs:
       # las corre `node scripts/chaos/invariantes.mjs --autoprueba` en local.
       - name: Catálogo de caos e invariantes
         if: ${{ !cancelled() }}
-        run: node --test scripts/chaos/invariantes.test.mjs scripts/chaos/catalogo.test.mjs
+        run: node --test scripts/chaos/invariantes.test.mjs scripts/chaos/catalogo.test.mjs scripts/chaos/vigia-semilla.test.mjs
 
       # La lectura de código de `pnpm datos:comparar` (la que escribe `DRIFT.md`): que un nombre de función entre comillas
       # en una pantalla —en un ternario, en un ayudante— cuente como «la pantalla la usa», y que un comentario NO. Sin esto
@@ -396,6 +399,14 @@ jobs:
         with:
           node-version-file: .nvmrc
           cache: pnpm
+
+      # Los puertos de la base local (54420–54429, `supabase/config.toml`) caen en el rango de puertos salientes de Linux
+      # (32768–60999): una conexión de `pnpm install` o de la bajada de imágenes a veces toma el 54422 y `supabase start`
+      # falla con «address already in use». El reintento de abajo no alcanzó: pasó dos veces el 2026-11-07 (#1696, #1708), y
+      # con la cola de fusión (ADR-0627) cada tanda en rojo frena la fila entera. Reservarlos saca esos puertos del rango que
+      # el sistema reparte para salir; se puede seguir escuchando en ellos. Va antes de instalar, que es lo que abre conexiones.
+      - name: Reservar los puertos de la base local
+        run: sudo sysctl -w net.ipv4.ip_local_reserved_ports=54420-54429
 
       - id: instalar
         run: pnpm install --frozen-lockfile

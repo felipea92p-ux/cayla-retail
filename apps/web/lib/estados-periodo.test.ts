@@ -210,8 +210,8 @@ describe("las columnas de antes", () => {
 
   it("el mes de hoy, con los mismos días de los dos meses pasados", () => {
     expect(periodosAnteriores(periodoDe("2026-11-01", HOY, HOY), HOY, MIN)).toEqual([
-      { desde: "2026-09-01", hasta: "2026-09-05", etiqueta: "Sep" },
-      { desde: "2026-10-01", hasta: "2026-10-05", etiqueta: "Oct" },
+      { desde: "2026-09-01", hasta: "2026-09-05", etiqueta: "1–5 sep" },
+      { desde: "2026-10-01", hasta: "2026-10-05", etiqueta: "1–5 oct" },
     ]);
   });
 

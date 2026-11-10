@@ -44,6 +44,7 @@ import {
   type Pendientes,
   type Seccion,
 } from "@/lib/plan-piso-grupos";
+import { prefiereQuieto } from "@/lib/movimiento-cliente";
 
 // Plan del piso ▸ los grupos del mix (ADR-0329 + ADR-0328, actividad 12, primera entrega). Quien ve el módulo revisa a qué grupo va cada
 // categoría —la propuesta viene sembrada y se ve «Por revisar»— y la confirma o la cambia. Nada se guarda al tocar: cada cambio
@@ -66,7 +67,7 @@ const ESTADO_CHIP: Record<EstadoCategoria, { tono: TonoChip; texto: string; ayud
   sin_grupo: { tono: "ambar", texto: "Sin grupo", ayuda: "Categoría nueva: todavía no tiene grupo. Elige uno." },
 };
 
-const reducido = () => typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+const reducido = () => typeof window !== "undefined" && prefiereQuieto();
 
 export function GruposDelMix({ grupos, categorias }: { grupos: GrupoMix[]; categorias: CategoriaMix[] }) {
   const router = useRouter();

@@ -14,6 +14,7 @@ import { PorQue } from "./PorQue";
 import { LineaCorregida } from "./LineaCorregida";
 import { estaEscribiendo } from "@/components/alta-producto/useGuiaAlta";
 import { Boton } from "@/components/ui/campos";
+import { prefiereQuieto } from "@/lib/movimiento-cliente";
 
 /** Un rótulo pegado a una marca de la regla no se sale de ella: cerca de un borde se alinea hacia adentro. */
 const alinear = (pos: number): "ini" | "fin" | undefined => (pos < 24 ? "ini" : pos > 76 ? "fin" : undefined);
@@ -89,7 +90,7 @@ export function PuenteUnion({
   const refDeduce = useRef<HTMLParagraphElement>(null);
   useEffect(() => {
     if ((!aviso && !porque) || estaEscribiendo()) return;
-    const quieto = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+    const quieto = prefiereQuieto();
     let segundo = 0;
     const primero = requestAnimationFrame(() => {
       segundo = requestAnimationFrame(() => {
@@ -116,6 +117,8 @@ export function PuenteUnion({
           <b>{venta.descripcion}</b>
           {anotadoPorCaja(venta) && <small className="vsr-sl-anotado">{anotadoPorCaja(venta)}</small>}
           <small>{venta.vendidoPor}</small>
+          {/* Por qué la anotó a mano (20261106233000): las de antes no lo tienen y no dicen nada. */}
+          {venta.motivo && <small data-motivo-sin-registrar>Por qué a mano: {venta.motivo}</small>}
           <LineaCorregida fila={venta} />
           <span className="vsr-sl-pr">{soles(venta.precioCobrado)} cobrado</span>
           {/* Caja anota a ojo (ADR-0369): si la categoría, la talla o el color no eran, se corrigen aquí, antes de buscar la prenda. */}

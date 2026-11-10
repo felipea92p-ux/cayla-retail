@@ -2,7 +2,7 @@
 
 import { useLayoutEffect, useRef, useState, type CSSProperties } from "react";
 import { useRouter } from "next/navigation";
-import { Check, ShoppingBag } from "lucide-react";
+import { Check, ChevronRight, ShoppingBag } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { traducirError } from "@/lib/error-escritura";
 import { avisar } from "@/components/ui/Avisos";
@@ -17,6 +17,7 @@ import { Boton, BotonEnlace } from "@/components/ui/campos";
 import { TituloGrupo } from "@/components/ui/TituloSeccion";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { ContarCajonHoja } from "@/components/caja/ContarCajonHoja";
+import { useDetalleCierre } from "@/components/CierreCajaDetalle";
 import { useResponsable } from "@/lib/useResponsable";
 import { firmar } from "@/lib/responsable-reglas";
 import { estadoApertura, hayConteo, montoEscrito, textoFaltas, type ConteoCajon } from "@/lib/caja-apertura-reglas";
@@ -71,6 +72,8 @@ export function AbrirCajaPantalla({
   const [motivo, setMotivo] = useState("");
   const [conteo, setConteo] = useState<ConteoCajon>({});
   const [contando, setContando] = useState(false);
+  // El detalle de un cierre anterior, al tocarlo (la misma hoja de «Historial de cierres»).
+  const { abrir: verCierre, modal: detalleCierre } = useDetalleCierre();
   const [loading, setLoading] = useState(false);
   const [abierta, setAbierta] = useState<Abierta | null>(null);
   // Abrir caja guarda en la tienda: pide Responsable (ADR-0161).
@@ -231,17 +234,35 @@ export function AbrirCajaPantalla({
         </button>
 
         {serie.length > 1 && (
-          <div className="mt-auto pt-6">
+          <div data-guia="caja.cierres-anteriores" className="mt-auto pt-6">
             <TituloGrupo>Cierres anteriores</TituloGrupo>
-            <ol className="mt-2.5 grid grid-cols-2 gap-2.5 sm:grid-cols-4 lg:grid-cols-7">
+            {/* Cada cierre abre su detalle (Felipe 2026-11-08): el mismo de «Historial de cierres», con lo cobrado por medio de
+                pago, cómo cuadró el efectivo y los movimientos del turno. Las siete en fila solo desde 1400 px: a 1024 cada tarjeta
+                quedaba de 72 px (y a 1280, de 96) y el monto de cuatro cifras y «Ver detalle» se salían del borde. Va en rem
+                (87.5rem): escrito en px, Tailwind lo ordena antes que `sm:` y pierde. */}
+            <ol className="mt-2.5 grid grid-cols-2 gap-2.5 sm:grid-cols-4 min-[87.5rem]:grid-cols-7">
               {serie.map((c) => {
                 const estado = estadoCierre(c.diferencia);
+                const dia = diaYHoraLima(c.cerradaEn).dia;
                 return (
-                  <li key={c.id} className="flex min-w-0 flex-col gap-0.5 rounded-2xl border border-tinta/10 bg-tinta/[0.04] px-3.5 py-3">
-                    <span className="label-cayla text-[11px] text-taupe-profundo">{diaYHoraLima(c.cerradaEn).dia}</span>
-                    <b className="font-display text-[23px] font-medium leading-tight tabular-nums text-tinta">{(c.montoFondo ?? c.montoCierreReal).toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</b>
-                    <span className="truncate text-xs text-tinta/65">Cerró {primerNombre(c.cerradaPorNombre)}</span>
-                    <span className="mt-1.5 self-start"><Chip tono={TONO_CIERRE[estado]} versalitas={false}>{NOMBRE_CIERRE[estado].toLowerCase()}</Chip></span>
+                  <li key={c.id} className="min-w-0">
+                    <button
+                      type="button"
+                      onClick={() => verCierre(c)}
+                      aria-label={`Ver el detalle del cierre del ${dia}: ${NOMBRE_CIERRE[estado].toLowerCase()}`}
+                      className="group flex h-full w-full min-w-0 flex-col gap-0.5 rounded-2xl border border-tinta/10 bg-tinta/[0.04] px-3.5 py-3 text-left transition-colors duration-200 ease-cayla hover:border-tinta/25 hover:bg-tinta/[0.08] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-tinta"
+                    >
+                      <span className="label-cayla text-[11px] text-taupe-profundo">{dia}</span>
+                      <b className="font-display text-[23px] font-medium leading-tight tabular-nums text-tinta">{(c.montoFondo ?? c.montoCierreReal).toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</b>
+                      <span className="truncate text-xs text-tinta/65">Cerró {primerNombre(c.cerradaPorNombre)}</span>
+                      <span className="mt-1.5 self-start"><Chip tono={TONO_CIERRE[estado]} versalitas={false}>{NOMBRE_CIERRE[estado].toLowerCase()}</Chip></span>
+                      {/* Dice que la tarjeta se toca (Felipe 2026-11-08). Las palabras de la tabla del historial, en tinta y no en rojo:
+                          son siete por pantalla y el rojo de un «ver» es para dos como mucho (ADR-0358, `enlace`). */}
+                      <span aria-hidden className="mt-auto flex items-center gap-0.5 whitespace-nowrap pt-2 text-[13px] font-semibold text-tinta/70 transition-colors duration-200 ease-cayla group-hover:text-tinta">
+                        Ver detalle
+                        <ChevronRight className="h-3.5 w-3.5 transition-transform duration-200 ease-cayla group-hover:translate-x-0.5" />
+                      </span>
+                    </button>
                   </li>
                 );
               })}
@@ -298,6 +319,8 @@ export function AbrirCajaPantalla({
         />
       )}
     </form>
+    {/* Fuera del formulario: lo de la hoja no es parte de abrir la caja. */}
+    {detalleCierre}
     </div>
   );
 }

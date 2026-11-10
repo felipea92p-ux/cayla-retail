@@ -11,6 +11,10 @@ export type DatosPrendaSinRegistrar = {
   tallaId: string;
   colorCodigo: string;
   precio: number;
+  /** Por qué se anota a mano (`lib/prenda-sin-registrar-motivo.ts`): solo al anotar en Vender; al corregir lo anotado no viaja. */
+  motivo?: string;
+  /** Con motivo «otro», lo que escribió la caja. */
+  motivoDetalle?: string;
 };
 
 export const FALTA_DESCRIPCION = "Escribe una descripción corta";

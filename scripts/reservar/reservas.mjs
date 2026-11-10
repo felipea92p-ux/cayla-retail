@@ -98,10 +98,12 @@ export function nuevosDeLaRama({ cwd, carpeta, patron }) {
   return [...delArbol].filter((n) => !deMain.has(n)).sort();
 }
 
-/** La rama que se revisa: la del PR en el CI, la actual en local. Vacía en un push a `main` (ahí no se juzga nada). */
+/** La rama que se revisa: la del PR en el CI, la actual en local. Vacía en un push a `main` y en la cola de fusión (ahí no
+ *  se juzga nada: la rama de la cola, `gh-readonly-queue/main/pr-…`, no es la dueña de ninguna reserva, y el PR ya las
+ *  revisó con su rama de verdad). */
 export function ramaQueSeRevisa(cwd) {
   if (process.env.GITHUB_HEAD_REF) return process.env.GITHUB_HEAD_REF;
-  if (process.env.GITHUB_EVENT_NAME === "push") return "";
+  if (process.env.GITHUB_EVENT_NAME === "push" || process.env.GITHUB_EVENT_NAME === "merge_group") return "";
   try {
     const rama = execFileSync("git", ["rev-parse", "--abbrev-ref", "HEAD"], { cwd, encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] }).trim();
     return rama === "main" || rama === "HEAD" ? "" : rama;

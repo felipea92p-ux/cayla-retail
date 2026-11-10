@@ -3,7 +3,7 @@ import { hoyLima } from "@/lib/fechas-lima";
 import { mesDe, rangoMes } from "@/lib/gastos-reglas";
 import { leerSemanas, proyectar } from "@/lib/flujo-caja-reglas";
 import { etiquetaDelPeriodo, leerPeriodo, periodosAnteriores } from "@/lib/estados-periodo";
-import { columnasDeCascada, lecturaDelFlujo, libroDelFlujo, partesDelEstadoFlujo } from "@/lib/estados-flujo";
+import { avisoPorVolver, columnasDeCascada, comparadaDelFlujo, informeDelFlujo, lecturaDelFlujo, partesDelEstadoFlujo } from "@/lib/estados-flujo";
 import { textoDeVerMas } from "@/lib/estados-partes";
 import { getFlujoReal, getProyeccion } from "@/lib/flujo-caja";
 import { getEstadoResultados } from "@/lib/resultados";
@@ -17,7 +17,7 @@ import { Vacio } from "@/components/ui/Vacio";
 import { CalendarX } from "lucide-react";
 import { CabeceraEstados } from "@/components/finanzas/estados/CabeceraEstados";
 import { CascadaDeColumnas } from "@/components/finanzas/estados/CascadaDeColumnas";
-import { EstadoVidrio } from "@/components/finanzas/estados/EstadoVidrio";
+import { EstadoEnInforme } from "@/components/finanzas/estados/EstadoEnInforme";
 import { MasDelEstado } from "@/components/finanzas/estados/MasDelEstado";
 import { MasDelFlujo, NoCubre, NoCuadra } from "@/components/finanzas/estados/PlataPanel";
 import { Recomendaciones } from "@/components/finanzas/estados/Recomendaciones";
@@ -57,7 +57,9 @@ export default async function FlujoPage({ searchParams }: { searchParams: Promis
     ganancia,
     href,
   });
-  const leidas = comparadas.map((c) => ({ etiqueta: c.etiqueta, real: c.lectura.falla ? null : c.lectura.datos }));
+  const leidas = comparadas.map((c) => comparadaDelFlujo(c.etiqueta, c.lectura));
+  const noSeComparan = leidas.flatMap((c) => (c.motivo ? [c.motivo] : []));
+  const porVolver = real.datos ? avisoPorVolver(real.datos, periodo) : null;
   const partes = real.datos ? partesDelEstadoFlujo({ real: real.datos, comparadas: leidas, etiquetaActual: etiquetaDelPeriodo(periodo), periodo }) : [];
 
   return (
@@ -70,24 +72,30 @@ export default async function FlujoPage({ searchParams }: { searchParams: Promis
           No entró ni salió plata en estas fechas.
         </Vacio>
       ) : (
-        <EstadoVidrio
-          nombre={`Flujo de efectivo · ${periodo.titulo}`}
+        <EstadoEnInforme
+          nombre={`Tu plata · ${periodo.titulo}`}
           lectura={lecturaDelFlujo(real.datos, ganancia, periodo)}
           grafico={<CascadaDeColumnas columnas={columnasDeCascada(partes)} etiqueta="Por qué cambió tu plata" />}
-          conAire
           guiaRespuesta="fin-plata.respuesta"
-          guiaPartes="fin-plata.partes"
-          guiaLibro="fin-plata.libro"
+          guiaInforme="fin-plata.partes"
+          guiaContador="fin-plata.libro"
           aviso={
             <>
               <NoCuadra real={real.datos} />
               <NoCubre real={real.datos} />
+              {porVolver && (
+                <Aviso tono="info" chico>
+                  {porVolver}
+                </Aviso>
+              )}
+              {noSeComparan.map((m) => (
+                <Aviso key={m} tono="info" chico>
+                  {m}
+                </Aviso>
+              ))}
             </>
           }
-          titulo="Por qué cambió tu plata"
-          partes={partes}
-          tituloColumnas={periodo.unMes ? "Mes a mes" : "Período a período"}
-          libro={{ titulo: "Flujo de efectivo", detalle: `${periodo.titulo} · en soles · formato del contador`, filas: libroDelFlujo(real.datos) }}
+          informe={informeDelFlujo({ real: real.datos, partes, comparadas: leidas, etiquetaActual: etiquetaDelPeriodo(periodo) })}
         />
       )}
       <Recomendaciones recomendaciones={recomendaciones} />

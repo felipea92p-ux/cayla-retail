@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { leerFichaParaRecibir, tallasYColoresDe } from "./recepcion-envio-reglas";
 import {
   argsPrepararPrenda,
   argsRecibirDespacho,
@@ -31,6 +32,7 @@ import {
   leerDetalleEnvio,
   leerEnviosPorAbrir,
   leerOrdenesDirectas,
+  textoMarcas,
   leerPrecioVenta,
   leerPrendaPreparada,
   leerPrendasParaRecibir,
@@ -160,8 +162,23 @@ describe("leer lo que está por recibir en la sede", () => {
       { id: "e1", numero: "ENV-000061", numero_guia: null, unidades: 32, lineas: 2, ordenes: ["OC-000129"], proveedores: ["Textiles Andina"] },
     ]);
     expect(filas).toEqual([
-      { id: "e1", numero: "ENV-000061", numeroGuia: null, estado: "en_camino", despachadoEn: null, unidades: 32, lineas: 2, ordenes: ["OC-000129"], proveedores: ["Textiles Andina"], creadoPorMi: false },
+      { id: "e1", numero: "ENV-000061", numeroGuia: null, estado: "en_camino", despachadoEn: null, unidades: 32, lineas: 2, ordenes: ["OC-000129"], proveedores: ["Textiles Andina"], marcas: [], creadoPorMi: false },
     ]);
+  });
+
+  it("lee las marcas que trae cada envío y cada orden: sin repetir, en orden alfabético, `[]` si la base no las manda", () => {
+    const [e] = leerEnviosPorAbrir([{ id: "e1", numero: "ENV-000061", marcas: ["Zoe", "Anqori", "Zoe", "", null, { id: "m", nombre: "Bruma" }] }]);
+    expect(e.marcas).toEqual(["Anqori", "Bruma", "Zoe"]);
+    const [o] = leerOrdenesDirectas([{ orden_id: "o1", numero: "OC-000465", unidades_por_enviar: 2, marcas: ["Élite", "Anqori"] }]);
+    expect(o.marcas).toEqual(["Anqori", "Élite"]);
+    expect(leerOrdenesDirectas([{ orden_id: "o1", numero: "OC-000465", unidades_por_enviar: 2 }])[0].marcas).toEqual([]);
+  });
+
+  it("la línea de la marca: hasta tres separadas por «·», con más las dos primeras y «y N más», nada sin marca", () => {
+    expect(textoMarcas([])).toBeNull();
+    expect(textoMarcas(["Anqori"])).toBe("Anqori");
+    expect(textoMarcas(["A", "B", "C"])).toBe("A · B · C");
+    expect(textoMarcas(["A", "B", "C", "D", "E"])).toBe("A · B y 3 más");
   });
 
   it("lee cuándo salió el envío (`despachado_en`) tal como lo manda la base, y null si no lo manda", () => {
@@ -200,8 +217,8 @@ describe("leer lo que está por recibir en la sede", () => {
       { numero: 468, unidades_por_enviar: 4 },
     ]);
     expect(filas).toEqual([
-      { ordenId: "o1", numero: "OC-000465", proveedor: "Textiles Andina", unidadesPorEnviar: 12, creadaPorMi: false },
-      { ordenId: "o2", numero: "OC-000466", proveedor: "Sur", unidadesPorEnviar: 3, creadaPorMi: true },
+      { ordenId: "o1", numero: "OC-000465", proveedor: "Textiles Andina", marcas: [], unidadesPorEnviar: 12, creadaPorMi: false },
+      { ordenId: "o2", numero: "OC-000466", proveedor: "Sur", marcas: [], unidadesPorEnviar: 3, creadaPorMi: true },
     ]);
   });
 });
@@ -749,6 +766,8 @@ describe("después de recibir", () => {
     expect(despuesDeRecibirEnvio({ lotes: ["l"], buenas: [], unidades: 2, unidadesBuenas: 0, veExistencias: true }).map((a) => a.clave)).toEqual(["etiquetas"]);
     // Un envío ya cerrado, sin saber las variantes: «Bajar al piso» abre la pantalla sin nada marcado.
     expect(despuesDeRecibirEnvio({ lotes: [], buenas: [], unidades: 4, unidadesBuenas: 4, veExistencias: true })[0]!.href).toBe("/inventario/bajar");
+    // Las etiquetas llevan el envío, para que «Volver» regrese a él y no a la lista de Recibir (Felipe 2026-11-07).
+    expect(despuesDeRecibirEnvio({ lotes: ["l"], envioId: "e1", buenas: [], unidades: 2, unidadesBuenas: 0, veExistencias: true })[0]!.href).toBe("/etiquetas-de-precio?lotes=l&envio=e1");
   });
 
   it("lo bueno de un envío cerrado sale de «cómo se cerró» si la base manda la variante", () => {
@@ -1178,5 +1197,24 @@ describe("lo comprado desde el celular (ADR-0480, actividad 6): el papel con su 
   it("un envío del escritorio (la base sin papeles) se lee igual: sin papeles ni prenda elegida", () => {
     expect(detalle.papeles).toEqual([]);
     expect(detalle.lineas.every((l) => l.prendaElegida === null)).toBe(true);
+  });
+});
+
+describe("la ficha para reconocer una prenda al recibir (Felipe 2026-11-06)", () => {
+  it("lee los nombres de sus tablas, y lo vacío queda sin registrar", () => {
+    expect(leerFichaParaRecibir({ descripcion: " Top de lino ", tejido: { nombre: "Lino" }, patron: null, marca: { nombre: "Miramhe" }, categoria: [{ nombre: "Tops" }] })).toEqual({
+      descripcion: "Top de lino",
+      material: "Lino",
+      patron: null,
+      marca: "Miramhe",
+      categoria: "Tops",
+    });
+    expect(leerFichaParaRecibir({ descripcion: "  " })).toEqual({ descripcion: null, material: null, patron: null, marca: null, categoria: null });
+    expect(leerFichaParaRecibir(null)).toBeNull();
+  });
+
+  it("junta tallas y colores sin repetir; sin talla o color lo dice", () => {
+    const v = (talla: string | null, color: string | null) => ({ id: `${talla}${color}`, tallaId: null, talla, colorCodigo: null, color, codigo: null, costo: null, precio: null });
+    expect(tallasYColoresDe({ variantes: [v("S", "Negro"), v("M", "Negro"), v(null, null)] })).toEqual({ tallas: ["S", "M", "Única"], colores: ["Negro", "Sin color"] });
   });
 });

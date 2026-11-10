@@ -3,20 +3,19 @@
 import { useState, type CSSProperties } from "react";
 import Link from "next/link";
 import { Chip } from "@/components/ui/Chip";
+import { Aviso } from "@/components/ui/Aviso";
+import { TituloGrupo } from "@/components/ui/TituloSeccion";
+import { BotonVerMas, FilasDeMas } from "@/components/ui/VerMas";
 import { TarjetaCifra } from "@/components/ui/TarjetaCifra";
 import { BarraAvance } from "@/components/ui/BarraAvance";
 import { MESES_DE_MERCADERIA_ALTOS, type Medidores } from "@/lib/vale-reglas";
 import { CabeceraBloque, PieTabla, Superficie, TituloDeTarjeta } from "@/components/finanzas/kit";
 import { SaldosArranqueModal } from "@/components/finanzas/SaldosArranqueModal";
 import {
-  agrupar,
-  causaCorta,
   cifraChequeo,
   enlaceDeCausa,
   iconoChequeo,
   motivoNoCuadra,
-  nombreLinea,
-  notaLinea,
   situacion,
   solesBalance,
   textoRinde,
@@ -24,18 +23,17 @@ import {
   tituloCorte,
   type Chequeo,
   type Enlace,
-  type LineaBalance,
   type LineaPropuesta,
   type SaldoInicial,
   type UnidadBalance,
 } from "@/lib/balance-reglas";
 import { Boton } from "@/components/ui/campos";
 import { Vacio } from "@/components/ui/Vacio";
-import { CalendarX, Flag, Scale } from "lucide-react";
+import { CalendarX, Flag } from "lucide-react";
 
-// Estados financieros ▸ Balance general: lo que no es la cifra (ADR-0195 F7, ADR-0198, ADR-0585, ADR-0611). Si no cuadra, la comprobación y la guía de qué falta siguen a la vista: el
-// Balance no se dibuja (un número falso es peor que ninguno). Si cuadra, la respuesta la dibuja `EstadoVidrio`, y aquí queda lo plegado en «Ver más» (dos preguntas, lo de cada sede, cómo
-// se comprobó y los saldos de arranque). La pantalla no calcula plata: todo viene de la base (`fn_conciliacion_contable`, `fn_balance_general`,
+// Estados financieros ▸ Balance general: lo que no es la cifra (ADR-0195 F7, ADR-0585, ADR-0611, ADR-0619). Si falla lo de fondo (el arranque, el diario o la ecuación), la comprobación y la
+// guía de qué falta siguen a la vista y el Balance no se dibuja. Si no, se dibuja, con su aviso si una cuenta difiere, y aquí queda lo plegado en «Ver más» (dos preguntas, lo de cada sede,
+// cómo se comprobó y los saldos de arranque). La pantalla no calcula plata: todo viene de la base (`fn_conciliacion_contable`, `fn_balance_general`,
 // `fn_balance_por_tienda`).
 
 const entra = (i: number, clase = "") => ({
@@ -73,7 +71,40 @@ export function BalancePanel({
 
 const unDecimal = (n: number) => n.toFixed(1).replace(".", ",");
 
-/** Lo plegado cuando el Balance cuadra: dos preguntas que importan, lo que es de cada sede, cómo se comprobó y los saldos de arranque. */
+/** Lo que hay que saber antes de leer un Balance con una cuenta que difiere (ADR-0619): cuál, por cuánto y dónde se arregla. */
+export function AvisoDiferencias({ diferencias, esLider, hoy, saldos }: { diferencias: Chequeo[]; esLider: boolean; hoy: string; saldos: SaldoInicial[] }) {
+  const [arranqueAbierto, setArranqueAbierto] = useState(false);
+  const m = motivoNoCuadra(diferencias);
+  const c = diferencias[0]!;
+  const arranque = c.arranque ?? saldos.find((s) => s.vigente)?.fecha ?? null;
+  return (
+    <>
+      <Aviso
+        tono="atencion"
+        guia="fin-vale.aviso"
+        titulo={`Balance provisional: ${m.titulo} difiere por ${solesBalance(Math.abs(c.diferencia ?? 0))}`}
+        accion={
+          m.enlace?.href ? (
+            <Link href={m.enlace.href} className="btn-enlace">
+              {m.enlace.texto}
+            </Link>
+          ) : m.enlace?.accion === "arranque" && esLider ? (
+            <button type="button" className="btn-enlace" onClick={() => setArranqueAbierto(true)}>
+              {m.enlace.texto}
+            </button>
+          ) : undefined
+        }
+      >
+        {m.texto}
+        {m.causa && ` Viene de: ${m.causa.texto}.`}
+        {m.otros > 0 && ` Y ${m.otros === 1 ? "una cuenta más difiere" : `${m.otros} cuentas más difieren`}.`}
+      </Aviso>
+      {arranqueAbierto && <SaldosArranqueModal hoy={hoy} arranque={arranque} saldos={saldos} onCerrar={() => setArranqueAbierto(false)} />}
+    </>
+  );
+}
+
+/** Lo plegado cuando el Balance se dibuja: dos preguntas que importan, lo que es de cada sede, cómo se comprobó y los saldos de arranque. */
 export function MasDelBalance({
   esLider,
   hoy,
@@ -101,7 +132,7 @@ export function MasDelBalance({
         </div>
       )}
       <Superficie pad className="fin-balance-tarjeta">
-        <CabeceraBloque titulo="Antes de dibujarlo, el sistema lo comprueba" bajada="Cada cuenta se calcula por dos caminos distintos. Si no coinciden, el Balance no se muestra.">
+        <CabeceraBloque titulo="Antes de dibujarlo, el sistema lo comprueba" bajada="Cada cuenta se calcula por dos caminos distintos. Si una no coincide, el Balance sale con un aviso; si falla la ecuación, no se muestra.">
           {esLider && (
             <button type="button" className="btn-cayla btn-secundario" onClick={() => setArranqueAbierto(true)} data-guia="fin-balance.arranque">
               Saldos de arranque
@@ -154,12 +185,11 @@ function DosPreguntas({ m }: { m: Medidores }) {
   );
 }
 
-const minuscula = (t: string) => t.charAt(0).toLowerCase() + t.slice(1);
 
 
 // ---- CAYLA entera ---------------------------------------------------------------------------------------------------------
 
-/** Si no cuadra, la comprobación y la guía de qué falta: el Balance no se dibuja (ADR-0198). */
+/** Si falla lo de fondo, la comprobación y la guía de qué falta: el Balance no se dibuja (ADR-0619). */
 function VistaSinCuadrar({
   hoy,
   chequeos,
@@ -181,7 +211,7 @@ function VistaSinCuadrar({
         <Superficie pad className="fin-balance-tarjeta">
           <CabeceraBloque
             titulo="Antes de dibujarlo, el sistema lo comprueba"
-            bajada="Cada cuenta se calcula por dos caminos. Si no coinciden, el Balance no se muestra."
+            bajada="Cada cuenta se calcula por dos caminos. Si falla el arranque, el diario o la ecuación, el Balance no se muestra."
           >
             {esLider && (
               <button type="button" className="btn-cayla btn-secundario" onClick={onArranque} data-guia="fin-balance.arranque">
@@ -189,7 +219,9 @@ function VistaSinCuadrar({
               </button>
             )}
           </CabeceraBloque>
-          {sit.tipo === "sin_arranque" ? (
+          {sit.tipo === "no_cuadra" ? (
+            <BloqueoDelBalance bloqueos={sit.bloqueos} chequeos={visibles} onArranque={onArranque} />
+          ) : sit.tipo === "sin_arranque" ? (
             <ul className="fin-chequeos">
               <FilaChequeo c={visibles[0] ?? CHEQUEO_SIN_ARRANQUE} onArranque={onArranque} />
             </ul>
@@ -204,9 +236,7 @@ function VistaSinCuadrar({
       </div>
 
       <div {...entra(2)} data-guia="fin-balance.resultado">
-        {sit.tipo === "no_cuadra" ? (
-          <GuiaNoCuadra bloqueos={sit.bloqueos} onArranque={onArranque} />
-        ) : sit.tipo === "antes_del_arranque" ? (
+        {sit.tipo === "no_cuadra" ? null : sit.tipo === "antes_del_arranque" ? (
           <Superficie>
             <Vacio icono={<CalendarX />} titulo="No hay Balance antes del día en que CAYLA empezó a usar el sistema">
               El punto de partida es el {sit.arranque ? tituloCorte(sit.arranque, hoy).replace(/^Al /, "") : "día de arranque"}. Elige una fecha desde ahí.
@@ -306,31 +336,58 @@ function EnlaceCausa({ enlace, onArranque }: { enlace: Enlace | null; onArranque
   );
 }
 
-function GuiaNoCuadra({ bloqueos, onArranque }: { bloqueos: Chequeo[]; onArranque: () => void }) {
+/**
+ * El Balance bloqueado, dicho en una línea (Felipe 2026-11-06, camino A): qué no cuadra y por cuánto, de dónde sale la diferencia con su enlace para
+ * arreglarla y, en una fila, cada comprobación con su ✓ o su !. La lista completa, con lo que dice cada cuenta, queda a un toque.
+ */
+function BloqueoDelBalance({ bloqueos, chequeos, onArranque }: { bloqueos: Chequeo[]; chequeos: Chequeo[]; onArranque: () => void }) {
+  const [todas, setTodas] = useState(false);
   const m = motivoNoCuadra(bloqueos);
-  const dif = bloqueos[0]?.diferencia;
+  const c = bloqueos[0]!;
+  const dif = c.clave !== "diario" && c.diferencia != null ? ` por ${solesBalance(Math.abs(c.diferencia))}` : "";
   return (
-    <Superficie>
-      <Vacio icono={<Scale />} titulo="No cuadra: el Balance no se muestra hasta resolver la diferencia">
+    <div className="space-y-4">
+      <Aviso tono="error" titulo={`El Balance no se muestra: ${m.titulo} no cuadra${dif}`}>
         {m.texto}
-        {dif != null && bloqueos[0]?.clave !== "diario" && (
-          <>
-            {" "}
-            Diferencia: <b className="text-tinta">{solesBalance(Math.abs(dif))}</b>.
-          </>
-        )}
-        {m.otros > 0 && ` Y ${m.otros === 1 ? "una cosa más" : `${m.otros} cosas más`} que no cuadra${m.otros === 1 ? "" : "n"} (arriba).`}
-      </Vacio>
-      {m.causa && (
-        <div className="fin-franja mx-5 mb-5">
-          <span>
-            <b>{m.causa.clave === "sin_explicar" ? "Todavía sin causa:" : "Causa probable:"}</b> {minuscula(causaCorta(m.causa.texto))}, por{" "}
-            {solesBalance(Math.abs(m.causa.monto))}.
-          </span>
-          <EnlaceCausa enlace={m.enlace} onArranque={onArranque} />
+        {m.otros > 0 && ` Y ${m.otros === 1 ? "una cosa más" : `${m.otros} cosas más`} que no cuadra${m.otros === 1 ? "" : "n"}.`}
+      </Aviso>
+      <div className="flex flex-wrap gap-2" aria-label="Cada comprobación">
+        {chequeos.map((x) => {
+          const ic = iconoChequeo(x.estado);
+          return (
+            <Chip key={x.clave} tono={ic.tono} versalitas={false} title={ic.texto}>
+              {ic.signo} {tituloChequeo(x)}
+            </Chip>
+          );
+        })}
+      </div>
+      {bloqueos.some((x) => x.causas.length > 0) && (
+        <div className="space-y-2">
+          <TituloGrupo>De dónde sale la diferencia</TituloGrupo>
+          <ul className="fin-causas">
+            {bloqueos.flatMap((x) =>
+              x.causas.map((k) => (
+                <li key={`${x.clave}-${k.clave}`}>
+                  <span>
+                    {k.texto}
+                    {!k.acepta && <EnlaceCausa enlace={enlaceDeCausa(k.clave)} onArranque={onArranque} />}
+                  </span>
+                  <b>{solesBalance(k.monto)}</b>
+                </li>
+              )),
+            )}
+          </ul>
         </div>
       )}
-    </Superficie>
+      <BotonVerMas abierto={todas} onCambiar={setTodas} texto="Ver cada comprobación" forma="enlace" />
+      <FilasDeMas abierto={todas}>
+        <ul className="fin-chequeos">
+          {chequeos.map((x) => (
+            <FilaChequeo key={x.clave} c={x} onArranque={onArranque} />
+          ))}
+        </ul>
+      </FilasDeMas>
+    </div>
   );
 }
 
@@ -424,7 +481,7 @@ export function MasDeLaSede({ unidad, hoy, veTodo }: { unidad: UnidadBalance; ho
       <section className="fin-cifras" data-guia="fin-balance.tienda-cifras">
         <TarjetaCifra etiqueta={`Utilidad de ${mes}`} valor={solesBalance(unidad.utilidadMes)} tono={unidad.utilidadMes < 0 ? "text-rojo" : undefined} {...entra(1)}>
           {enCurso ? "a la fecha" : "el mes entero"}
-          {!unidad.planillaVisible ? " · sin planilla" : ""}
+          {!unidad.planillaVisible ? " · sin planilla" : unidad.sueldosEstimados > 0 ? " · con sueldos estimados" : ""}
         </TarjetaCifra>
         <TarjetaCifra etiqueta="Rinde" valor={unidad.tipo === "taller" ? null : textoRinde(unidad.rinde).replace(" al mes", "")} {...entra(2)}>
           {unidad.tipo === "taller" ? "el Taller no vende" : "de lo invertido, al mes"}

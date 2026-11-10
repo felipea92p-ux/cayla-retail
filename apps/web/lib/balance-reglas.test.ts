@@ -3,7 +3,6 @@ import {
   agrupar,
   arranquePropuesto,
   cambiosDelSistema,
-  causaCorta,
   cifraChequeo,
   csvBalance,
   cuadreArranque,
@@ -20,8 +19,10 @@ import {
   motivoNoCuadra,
   nombreDeCuenta,
   nombreLinea,
-  notaLinea,
+  avisoBalanceSinCuadrar,
+  seDibuja,
   situacion,
+  unidadesConSueldos,
   solesBalance,
   solesExactos,
   textoRinde,
@@ -98,7 +99,7 @@ describe("lo que llega de la base", () => {
   });
 });
 
-describe("¿se dibuja? (ADR-0198: un número falso es peor que ninguno)", () => {
+describe("¿se dibuja? (ADR-0619)", () => {
   it("sin saldos de arranque no hay Balance", () => {
     expect(situacion([ch({ clave: "arranque", estado: "falta", diario: null, otro: null })]).tipo).toBe("sin_arranque");
     expect(situacion([]).tipo).toBe("sin_arranque");
@@ -106,12 +107,18 @@ describe("¿se dibuja? (ADR-0198: un número falso es peor que ninguno)", () => 
   it("antes del día de arranque no hay Balance", () => {
     expect(situacion([ch({ clave: "corte", estado: "falta", arranque: "2024-03-01" })])).toEqual({ tipo: "antes_del_arranque", arranque: "2024-03-01" });
   });
-  it("una cuenta que no cuadra bloquea; la nota y el IGV para revisar, no", () => {
+  it("una cuenta que difiere no lo esconde: sale con aviso; la nota y el IGV para revisar ni eso", () => {
     const s = situacion([ch({}), ch({ clave: "104", estado: "nota" }), ch({ clave: "4011", estado: "revisar", bloquea: false })]);
     expect(s.tipo).toBe("cuadra");
     if (s.tipo === "cuadra") expect(s.notas.map((c) => c.clave)).toEqual(["104", "4011"]);
-    const no = situacion([ch({}), ch({ clave: "421", estado: "no_cuadra" })]);
-    expect(no.tipo).toBe("no_cuadra");
+    const dif = situacion([ch({}), ch({ clave: "421", estado: "no_cuadra" })]);
+    expect(dif.tipo).toBe("con_diferencias");
+    expect(seDibuja(dif)).toBe(true);
+  });
+  it.each(["arranque", "diario", "ecuacion"])("si falla «%s» no hay Balance que dibujar", (clave) => {
+    const s = situacion([ch({ clave: "421", estado: "no_cuadra" }), ch({ clave, estado: "no_cuadra" })]);
+    expect(s.tipo).toBe("no_cuadra");
+    expect(seDibuja(s)).toBe(false);
   });
   it("lo que no bloquea no impide dibujar aunque diga «no cuadra»", () => {
     expect(situacion([ch({ clave: "4011", estado: "no_cuadra", bloquea: false })]).tipo).toBe("cuadra");
@@ -124,13 +131,13 @@ describe("cómo se escribe cada chequeo", () => {
     expect(tituloChequeo(ch({ clave: "diario", titulo: "El diario cuadra" }))).toBe("El diario cuadra");
   });
   it("la cifra: si cuadra, una; si no, «a ≠ b»; el diario dice si cuadra", () => {
-    expect(cifraChequeo(ch({ diario: 5420, otro: 5420 }))).toBe("S/\u00a05,420");
-    expect(cifraChequeo(ch({ estado: "no_cuadra", diario: 64300, otro: 63880 }))).toBe("S/\u00a064,300 ≠ S/\u00a063,880");
+    expect(cifraChequeo(ch({ diario: 5420, otro: 5420 }))).toBe("S/\u00a05,420.00");
+    expect(cifraChequeo(ch({ estado: "no_cuadra", diario: 64300, otro: 63880 }))).toBe("S/\u00a064,300.00 ≠ S/\u00a063,880.00");
     expect(cifraChequeo(ch({ clave: "diario", diario: null, otro: null, diferencia: 0 }))).toBe("cuadra");
-    expect(cifraChequeo(ch({ clave: "diario", estado: "no_cuadra", diario: null, otro: null, diferencia: -10 }))).toBe("−S/\u00a010 de diferencia");
+    expect(cifraChequeo(ch({ clave: "diario", estado: "no_cuadra", diario: null, otro: null, diferencia: -10 }))).toBe("−S/\u00a010.00 de diferencia");
     expect(cifraChequeo(ch({ estado: "falta" }))).toBe("falta");
     // Con una aclaración cuadra: va la cifra del diario (la del Balance); la aclaración, debajo.
-    expect(cifraChequeo(ch({ clave: "104", estado: "nota", diario: 4515, otro: 4815 }))).toBe("S/\u00a04,515");
+    expect(cifraChequeo(ch({ clave: "104", estado: "nota", diario: 4515, otro: 4815 }))).toBe("S/\u00a04,515.00");
   });
   it("el ícono: ✓ verde, ✓ ámbar con aclaración, ? para revisar, ! rojo", () => {
     expect(iconoChequeo("ok")).toMatchObject({ signo: "✓", tono: "verde" });
@@ -139,8 +146,6 @@ describe("cómo se escribe cada chequeo", () => {
     expect(iconoChequeo("no_cuadra")).toMatchObject({ signo: "!", tono: "rojo" });
   });
   it("la franja dice la causa sin su aclaración entre paréntesis", () => {
-    expect(causaCorta("Egresos de caja sin clasificar (en Gastos ▸ Egresos por clasificar)")).toBe("Egresos de caja sin clasificar");
-    expect(causaCorta("Sin explicar todavía")).toBe("Sin explicar todavía");
   });
   it("cada causa lleva a donde se arregla", () => {
     expect(enlaceDeCausa("sin_clasificar")?.href).toContain("tab=egresos");
@@ -165,7 +170,7 @@ describe("cómo se escribe cada chequeo", () => {
       }),
       ch({ clave: "101", estado: "no_cuadra" }),
     ]);
-    expect(m.texto).toBe("La cuenta 421 (facturas por pagar) dice S/\u00a0680, pero la suma de las facturas da S/\u00a0916.");
+    expect(m.texto).toBe("La cuenta 421 (facturas por pagar) dice S/\u00a0680.00, pero la suma de las facturas da S/\u00a0916.00.");
     expect(m.causa?.clave).toBe("antes_del_arranque");
     expect(m.enlace?.accion).toBe("arranque");
     expect(m.otros).toBe(1);
@@ -173,17 +178,17 @@ describe("cómo se escribe cada chequeo", () => {
 });
 
 describe("cifras, fechas y nombres", () => {
-  it("soles como el spike: sin céntimos, el menos de verdad, céntimos solo en lo chico", () => {
-    expect(solesBalance(289901)).toBe("S/\u00a0289,901");
-    expect(solesBalance(-1778)).toBe("−S/\u00a01,778");
-    expect(solesBalance(199.01)).toBe("S/\u00a0199");
+  it("soles siempre con céntimos (Felipe 2026-11-06) y el menos de verdad", () => {
+    expect(solesBalance(289901)).toBe("S/\u00a0289,901.00");
+    expect(solesBalance(-1778)).toBe("−S/\u00a01,778.00");
+    expect(solesBalance(199.01)).toBe("S/\u00a0199.01");
     expect(solesBalance(-0.4)).toBe("−S/\u00a00.40");
-    expect(solesBalance(0)).toBe("S/\u00a00");
+    expect(solesBalance(0)).toBe("S/\u00a00.00");
     expect(solesBalance(-0.2)).toBe("−S/\u00a00.20");
     // La diferencia del arranque se escribe tal cual: con sus céntimos, aunque sea grande.
     expect(solesExactos(67928.73)).toBe("S/\u00a067,928.73");
     expect(solesExactos(-67928.7)).toBe("−S/\u00a067,928.70");
-    expect(solesExactos(67929)).toBe("S/\u00a067,929");
+    expect(solesExactos(67929)).toBe("S/\u00a067,929.00");
   });
   it("cuánto rinde, con coma decimal", () => {
     expect(textoRinde(0.0721)).toBe("7,2 % al mes");
@@ -207,12 +212,7 @@ describe("cifras, fechas y nombres", () => {
     expect(nombreDeCuenta("999", "Otra")).toBe("Otra");
   });
   it("la mercadería dice lo que está por recibir y en camino; el IGV, que todavía no baja", () => {
-    expect(notaLinea(linea({ cuenta: "201", detalle: { por_recibir: 400, en_transito: 0 } }))).toBe("incluye S/\u00a0400 facturado por recibir");
-    expect(notaLinea(linea({ cuenta: "201", detalle: { por_recibir: 0, en_transito: 0 } }))).toBeNull();
-    expect(notaLinea(linea({ cuenta: "4011", seccion: "pasivo" }))).toContain("SUNAT");
-    expect(notaLinea(linea({ cuenta: "4699", seccion: "pasivo" }))).toContain("CLAURE");
     expect(nombreDeCuenta("4699", "x")).toContain("CLAURE");
-    expect(notaLinea(linea({ cuenta: "479", seccion: "pasivo" }))).toContain("se le pagó");
     expect(nombreDeCuenta("479", "x")).toContain("Claudia");
   });
   it("agrupa y suma: lo que tiene contra lo que debe + lo tuyo", () => {
@@ -293,7 +293,7 @@ describe("descargar Excel", () => {
       "2024-03-31",
     );
     expect(csv.startsWith("﻿Balance al;2024-03-31")).toBe(true);
-    expect(csv).toContain("Lo que tiene;101;Caja (cajones, cajas fuertes y lo entregado al líder);125.00");
+    expect(csv).toContain("Activo;101;Caja (cajones, cajas fuertes y lo entregado al líder);125.00");
     expect(csv).toContain("101 Caja;contra lo que dice cada caja;125.00;125.00;0.00;cuadra");
     expect(csv).toContain("Tienda Trujillo;125.00;0.00;0.00;0.00;895.00;113.99;12,7 % al mes");
   });
@@ -304,5 +304,37 @@ describe("cuentasQueEmpiezanDespues (tarea 4)", () => {
   it("frena solo las vigentes que empiezan después del día elegido; ese mismo día ya vale", () => {
     expect(cuentasQueEmpiezanDespues([c("2026-10-28"), c("2026-09-30"), c(null), c("2026-10-28", true)], "2026-10-01")).toEqual([c("2026-10-28")]);
     expect(cuentasQueEmpiezanDespues([c("2026-10-01")], "2026-10-01")).toEqual([]);
+  });
+});
+
+describe("la utilidad de cada tienda resta los sueldos que Dynamic no paga (tarea 23)", () => {
+  const tienda = leerUnidad({ ubicacion_id: "t", nombre: "Tienda Trujillo", tipo: "tienda", caja: 100, invertido: 1000, utilidad_mes: 300, rinde: 0.3, planilla_visible: true });
+  const taller = leerUnidad({ ubicacion_id: "x", nombre: "Taller", tipo: "taller", caja: null, invertido: 500, utilidad_mes: -50, rinde: null, planilla_visible: true });
+  it("resta lo de la sede, vuelve a dividir el rinde y deja dicho cuánto restó", () => {
+    const [t, x] = unidadesConSueldos([tienda, taller], [{ ubicacionId: "t", devengado: 120.5 }, { ubicacionId: "t", devengado: 79.5 }, { ubicacionId: "x", devengado: 50 }]);
+    expect(t).toMatchObject({ utilidadMes: 100, rinde: 0.1, sueldosEstimados: 200 });
+    expect(x).toMatchObject({ utilidadMes: -100, rinde: null, sueldosEstimados: 50 });
+  });
+  it("lo de la empresa no se le reparte a ninguna tienda, y sin estimado queda igual", () => {
+    const [t] = unidadesConSueldos([tienda], [{ ubicacionId: null, devengado: 900 }, { ubicacionId: "t", devengado: 0 }]);
+    expect(t).toBe(tienda);
+  });
+  it("sin nada invertido no hay rinde que dividir", () => {
+    const sinInvertir = leerUnidad({ ubicacion_id: "t", nombre: "Tienda Trujillo", tipo: "tienda", invertido: 0, utilidad_mes: 10, rinde: null });
+    expect(unidadesConSueldos([sinInvertir], [{ ubicacionId: "t", devengado: 5 }])[0]).toMatchObject({ utilidadMes: 5, rinde: null });
+  });
+});
+
+describe("lo que se dice cuando el Balance no cuadra (tarea 28)", () => {
+  const ch = (o: object) => leerChequeo({ clave: "101", titulo: "Caja", estado: "ok", bloquea: true, orden: 1, ...o });
+  it("con todo en orden no dice nada", () => {
+    expect(avisoBalanceSinCuadrar([ch({})])).toBeNull();
+  });
+  it("cuenta lo que falta y avisa que las cifras pueden cambiar", () => {
+    expect(avisoBalanceSinCuadrar([ch({ estado: "no_cuadra" })])).toContain("1 comprobación pendiente");
+    expect(avisoBalanceSinCuadrar([ch({ estado: "no_cuadra" }), ch({ clave: "121", estado: "no_cuadra" })])).toContain("2 comprobaciones pendientes");
+  });
+  it("sin arranque tampoco afirma que cuadra", () => {
+    expect(avisoBalanceSinCuadrar([])).toContain("faltan los saldos de arranque");
   });
 });

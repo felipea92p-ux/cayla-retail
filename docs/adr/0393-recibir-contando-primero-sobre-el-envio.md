@@ -812,3 +812,54 @@ Al probar la recepción sin aviso de punta a punta (`docs/flujos/recibir/sin-avi
 - **Producción, revisado el 2026-11-03 antes de arreglar:** 3 envíos sin aviso, 4 líneas recibidas y ninguna fuera de lo normal. No hay costos que corregir.
 - **Pruebas:** `pruebas:envio-sin-aviso` S3b y S3c, que fallaban sin la migración.
 - **En producción desde el 2026-11-03,** con `apply_migration`: quedó registrada con la versión `20261103223056`. Las dos funciones tienen el mismo md5 que en local.
+
+## Actualización 2026-11-06: lo contado como nuevo puede ser re stock (Felipe)
+
+Con el envío cerrado, un pendiente «por crear» solo se podía crear: si la prenda ya estaba en el catálogo con otro nombre, no había cómo asociarla y nacía repetida. Ahora «Crear o asociar» (y «Crearlo ahora» con el envío abierto) pregunta primero «¿Esta prenda ya existe?» (`YaExisteLaPrenda.tsx`): busca en su categoría y su marca, con el nombre anotado primero, y pide confirmar. El costo no se pide otra vez: `ligar_prenda_a_pendiente` pasa `nueva:<descripción>` a la prenda elegida.
+
+**La marca anotada manda:** solo se elige dentro de ella, porque la base no mezcla marcas en una línea. Una prenda con ese nombre en otra marca se avisa (reabrir y corregir). Sin migración.
+
+## Actualización 2026-11-06 (b): la categoría de lo contado se corrige, y las sugerencias traen su ficha (Felipe)
+
+Se anotó «Polo 3» en Polos y era un top. Con el envío cerrado no había cómo decirlo: «Crear o asociar» buscaba solo en la categoría de la línea, así que los tops de esa marca no salían, y las sugerencias solo mostraban nombre, código y una miniatura.
+
+- **Categoría:** `¿Esta prenda ya existe?` trae un combo, solo con el envío cerrado y en lo de fuera de la guía. Cambiarlo solo busca, no guarda. Al confirmar, `cambiar_categoria_de_pendiente` (`20261106230000`) pasa el pendiente a una línea de fuera de la guía con la categoría correcta, la misma marca, proveedor y costo (la que ya exista o una nueva), y mueve lo contado con él. Queda en la Actividad.
+- **Por qué mover el pendiente y no soltar el candado:** toda prenda sigue siendo de la categoría de su línea, así que ligar, resolver, entrar al stock, cerrar y reabrir no cambian. Soltarlo en esas funciones dejaba un top en una línea de Polos, y reabrir el envío ya no pasaba `guardar_conteo_envio`. Tampoco se cambia la línea entera: «Polo 1» puede ser polo y «Polo 3» no.
+- **Lo que niega:** una línea de la guía (bajarle lo contado inventaría un faltante; se corrige en Compras), una línea que anotó una diferencia al cerrar (quedó escrita con esa categoría) y un envío abierto (ahí se quita el modelo y se agrega en su categoría). El permiso es el módulo Recibir, como ligar: la categoría no decide a quién se le atribuye un costo.
+- **Ficha:** tocar una sugerencia abre la foto en grande, marca, categoría, material, patrón, tallas, colores y descripción, con «Sí, es esta» y «No, es otra». Lee `productos` con su RLS; lo vacío dice «Sin registrar», y si no responde se decide con la foto y las tallas.
+- **Pruebas:** `pruebas:envio-sin-aviso` S3f y S3g. Probado en el navegador en local: asociar, entrar al stock y crear como nueva, también a 375 px y en oscuro.
+- **En producción desde el 2026-11-06,** con el OK de Felipe, por `supabase db query --linked -f` (no queda fila en `schema_migrations`, igual que un pegado en el SQL Editor). La función tiene el mismo md5 que en local.
+
+## Actualización 2026-11-07: la marca de lo contado también se corrige (Felipe)
+
+Se anotó «Conjunto 3» sin marca y sí tenía. Con el envío cerrado, «Crear o asociar» solo sugería conjuntos sin marca y la marca no se podía cambiar.
+
+- **Marca:** junto al combo de categoría va el de marca, con «Sin marca». Igual que la categoría, cambiarlo solo busca, y al confirmar el modelo pasa a la línea de esa categoría y esa marca con `cambiar_linea_de_pendiente` (`20261107142000`).
+- **La de ayer sigue:** `cambiar_categoria_de_pendiente` conserva su firma, porque la web publicada la llama, y ahora llama a la nueva con la marca que ya tenía la línea. Se quita cuando ninguna web la use.
+- **Lo que no cambia:** toda prenda sigue siendo de la categoría y la marca de su línea, así que ligar, resolver, entrar al stock y reabrir no se tocan.
+- **Pruebas:** `pruebas:envio-sin-aviso` S3h (otra marca, sin marca, marca inactiva y la función de ayer). Sin prueba en el navegador: Felipe pidió saltar las que no fueran necesarias.
+- **En producción desde el 2026-11-07,** con el OK de Felipe, por `supabase db query --linked -f`; la función tiene el mismo md5 que en local.
+
+
+## Actualización 2026-11-07 (b): pulir lo que llega sin aviso (Felipe, prueba en local)
+
+Felipe probó el flujo sin aviso de punta a punta en local y anotó lo que había que pulir. Lo hecho, punto por punto:
+
+- **Varios proveedores en un envío (puntos 1 y 4, `20261107192000`).** Lo que llega sin aviso casi nunca es de uno solo. La puerta ya no pregunta «¿de quién es?»: queda «Todo es de un solo proveedor» (opcional) y, si se enciende, la oferta de recibir contra su factura. Cada línea contada toma el único proveedor de su marca (`fn_proveedor_unico_de_marca`, sobre `marca_proveedores`); lo que no se puede saber (una marca con dos proveedores, o «Sin marca») queda sin proveedor y se elige al cerrar en «De quién llegó», una fila por marca, con `poner_proveedor_de_marca`, que además registra la pareja marca-proveedor para la próxima vez. El cierre pide proveedor por línea, no por envío. Lo que salió al stock antes de cerrar en «Por confirmar» pasa al real solo si su lote es entero de esa marca: los movimientos apuntan a su lote y no se mueven. «Corregir proveedor» queda para el envío de un solo proveedor.
+- **«Ya la tenemos» al agregar un modelo (punto 2, `20261107183000`).** Una reposición se reconoce a la vista, no por su nombre: la hoja «Otro modelo» pregunta «Es nueva / Ya la tenemos», y la segunda muestra la galería de la categoría (todas las marcas o una) y la ficha de la prenda. `fn_parecidas_para_recibir` sin texto devuelve la categoría entera.
+- **El costo sale junto al precio (punto 5).** En «Hacer ahora», sin costo en el conteo ni en la línea, el campo trae el costo de catálogo de la prenda (el más repetido entre sus combinaciones) y se guarda con lo que entra. Y quien recibe pone el costo de lo que recibe, también una terminal (`20261107194000`, `fn_puede_poner_costo_al_recibir`): solo en los candados del costo de lo que entra y en `fn_costos_de_hoy`. El resto del dinero de Compras sigue cerrado. **Es un permiso sobre dinero: espera el OK de Felipe antes de producción.**
+- **Quitar una talla o un color agregado por error (punto 6, `20261107191000`).** `variantes_nacidas_al_recibir` anota en qué envío nació cada combinación; la tabla de tallas pone una × solo en lo que nació ahí, y `quitar_combinaciones_al_recibir` lo archiva si nadie lo usó (sin stock, movimientos ni reparto, y nunca la última de la prenda). Hecho en «Hacer ahora»; en la placa del conteo («Tallas y colores» al contar) sigue la × de antes, que solo esconde.
+- **Lo que entró al stock, por talla y color (punto 7).** El envío cerrado lista cada prenda con sus tallas y colores y casillas, e «Imprimir N etiquetas» abre `/etiquetas-de-precio?unidades=…&envio=…` solo con lo marcado; «Volver» regresa al envío.
+- **«Revisa y cierra» (punto 3):** tres maquetas en `docs/maquetas/recibir-revisa-y-cierra-2026-11/` para que Felipe elija mirando. No se tocó la pantalla.
+- **En producción desde el 2026-11-07,** con el OK de Felipe (también el permiso del costo): las cuatro migraciones, por `supabase db query --linked -f`; mismo md5 que en local.
+- **Pruebas:** `pruebas:envio-sin-aviso` 43/43 (S3e, S3i, S5, S3d2 nuevos o cambiados; P1, A8, S3, S3c y A4 cambian a propósito con la regla nueva); las demás suites de Recibir en verde salvo L1 de `pendientes-de-envio`, que falla igual que antes por pendientes viejos de la base local. Navegador en local: todos los puntos menos el costo con una cuenta de terminal.
+
+## Actualización 2026-11-07 (c): «Revisa y cierra» con tarjetas por categoría y marca (Felipe eligió la maqueta B)
+
+Felipe eligió la B de `docs/maquetas/recibir-revisa-y-cierra-2026-11/` y pidió, antes de implementarla, poder ver «el detalle que se le puso para diferenciar esa prenda de las demás».
+
+- **Una tarjeta por grupo** (`<Tabla>` por grupo, los mismos grupos de siempre): en la cabecera, «Categoría · Marca», cuántos modelos y prendas, quién contó y el proveedor. Sin aviso el proveedor es un chip con «Cambiar» o, si falta, el combo de `poner_proveedor_de_marca`; el bloque suelto «De quién llegó» se fue a las cabeceras. Al pie, el costo del grupo (`costoDelGrupo`).
+- **«Ver detalle» en cada modelo** (`DetalleDelModelo`, `detalleDelModelo`): lo que se anotó al contarlo para no confundirlo (la nota de «Otro modelo»), sus observaciones, quién lo contó y cuándo y, si la prenda ya existe, su ficha. Solo lee.
+- **La fila dice lo que es:** «Por crear», «Re stock» y «Nombre provisional»; la caja del costo lleva su «S/» y ya no dice «Sin costo» adentro.
+- **«Al cerrar», al costado:** prendas, modelos y proveedores; lo que entra con costo, sin costo y para después; y lo que falta, tocable (lleva al campo con la guía de foco). Reemplaza la nota larga de debajo de la tabla. El pie con «Cerrar el envío» no cambió.
+- **Lo que no cambia:** qué se guarda y cómo: las decisiones, los costos, el reparto por talla, los candados y el cierre son los mismos.

@@ -2,7 +2,7 @@
 
 import { useId, useState, type PointerEvent } from "react";
 import { geometriaDeLinea, LIENZO, type PuntoDeLinea } from "@/lib/estados-linea";
-import { soles } from "@/lib/flujo-caja-reglas";
+import { solesCentimos } from "@/lib/flujo-caja-reglas";
 
 const VERDE = { stopColor: "var(--color-verde)" };
 const ROJO = { stopColor: "var(--color-rojo)" };
@@ -43,7 +43,7 @@ export function LineaDeMeses({
   // El globito: sobre el mes marcado o sobre la franja, sin salirse de la placa.
   const centroFranja = franja ? (franja.de + franja.a) / 2 : 0;
   const yFranja = franja && activo !== null ? geo.puntos[activo]!.y : 40;
-  const globo = conFranja ? { x: centroFranja, y: yFranja, b: franja!.valor, s: franja!.titulo } : punto ? { x: punto.x, y: punto.y, b: soles(serie[marcado!]!.valor), s: serie[marcado!]!.nombre } : null;
+  const globo = conFranja ? { x: centroFranja, y: yFranja, b: franja!.valor, s: franja!.titulo } : punto ? { x: punto.x, y: punto.y, b: solesCentimos(serie[marcado!]!.valor), s: serie[marcado!]!.nombre } : null;
   return (
     <div className="estados-linea-marco">
       <div className="estados-linea">
@@ -68,7 +68,7 @@ export function LineaDeMeses({
         {franja && <i className="estados-linea-franja" style={{ left: `${franja.de}%`, width: `${franja.a - franja.de}%` }} />}
         {geo.cero !== null && (
           <div className="estados-linea-cero" style={{ top: `${geo.cero}%` }}>
-            <small>{soles(0)}</small>
+            <small>{solesCentimos(0)}</small>
           </div>
         )}
         <div className="estados-linea-zona" data-sobre={sobre !== null || undefined} onPointerMove={alPasar} onPointerLeave={() => setSobre(null)}>
@@ -95,7 +95,7 @@ export function LineaDeMeses({
       </div>
       <ul className="sr-only" aria-label={etiqueta}>
         {serie.map((p) => (
-          <li key={p.nombre}>{`${p.nombre}: ${soles(p.valor)}`}</li>
+          <li key={p.nombre}>{`${p.nombre}: ${solesCentimos(p.valor)}`}</li>
         ))}
       </ul>
     </div>

@@ -102,6 +102,7 @@ import { Volver } from "@/components/ui/Volver";
 import { Aviso } from "@/components/ui/Aviso";
 import { MAX_DESCRIPCION_PRODUCTO } from "@/lib/catalogo-topes";
 import { ArrowRight } from "lucide-react";
+import { prefiereQuieto } from "@/lib/movimiento-cliente";
 
 // "Nuevo producto" en 4 PREGUNTAS (spike v2 2026-09-28, docs/maquetas/producto-nuevo-v2-2026-09; antes 5 pasos, spike
 // 2026-09-24, y antes 7 bloques, ADR-0109):
@@ -368,7 +369,7 @@ export function NuevoProductoForm({
     if (pasoPrevio.current === paso) return;
     pasoPrevio.current = paso;
     soltarPaginaEstable();
-    const reducido = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const reducido = prefiereQuieto();
     // Al título del paso (la sección lleva `scroll-mt-24`, así que queda bajo la cabecera). Con «nearest», elegir la categoría dejaba
     // el paso 2 con su título cortado arriba y el campo «Nombre» pegado al borde (prueba con una trabajadora, 2026-09-29).
     requestAnimationFrame(() =>

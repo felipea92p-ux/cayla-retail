@@ -18,6 +18,8 @@ type FilaDb = {
   color: { nombre: string };
   ubicacion: { nombre: string };
   variante: null;
+  motivo?: string | null;
+  motivo_detalle?: string | null;
 };
 
 const base = vi.hoisted(() => ({ filas: [] as unknown[], consultas: 0, alArmarConsulta: null as null | ((n: number) => void) }));
@@ -41,6 +43,8 @@ function consultaFalsa() {
     select: () => q,
     eq: (col: keyof FilaDb, v: unknown) => ((filas = filas.filter((f) => f[col] === v)), q),
     neq: (col: keyof FilaDb, v: unknown) => ((filas = filas.filter((f) => f[col] !== v)), q),
+    // Solo `.not(col, "is", null)`: la lectura del motivo de la venta sin registrar.
+    not: (col: keyof FilaDb) => ((filas = filas.filter((f) => f[col] !== null && f[col] !== undefined)), q),
     gte: (col: keyof FilaDb, v: string) => ((filas = filas.filter((f) => Date.parse(String(f[col])) >= Date.parse(v))), q),
     order: (col: keyof FilaDb, op?: { ascending?: boolean }) => (orden.push({ col, asc: op?.ascending ?? true }), q),
     range: (desde: number, hasta: number) => {
@@ -106,10 +110,21 @@ describe("getPorRegularizar — la cola no se corta", () => {
     expect(new Set(filas.map((f) => f.id)).size).toBe(1250);
   });
 
-  it("lo normal cuesta tres consultas: la cola, lo resuelto y lo cerrado sin prenda", async () => {
+  it("lo normal cuesta cuatro consultas: la cola, lo resuelto, lo cerrado sin prenda y los motivos", async () => {
     base.filas = [...serie(5, (i) => fila("pendiente", 0.5 + i)), ...serie(5, (i) => fila("regularizada", 0.5 + i, { diferencia: -10 }))];
     await getPorRegularizar(null, AHORA);
-    expect(base.consultas).toBe(3);
+    expect(base.consultas).toBe(4);
+  });
+
+  it("cada venta trae por qué se anotó a mano, en palabras; las de antes, sin motivo, no dicen nada", async () => {
+    base.filas = [
+      fila("pendiente", 1, { motivo: "pistola_no_lee" }),
+      fila("pendiente", 2, { motivo: "otro", motivo_detalle: "La trajo de otra tienda" }),
+      fila("pendiente", 3),
+    ];
+    const filas = await getPorRegularizar(null, AHORA);
+    // La cola va de la más vieja a la más nueva.
+    expect(filas.map((f) => f.motivo)).toEqual([null, "Otro: La trajo de otra tienda", "La pistola no la lee"]);
   });
 });
 

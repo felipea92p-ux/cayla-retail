@@ -4,6 +4,7 @@ import { useEffect, useRef, type RefObject } from "react";
 import { CELULAR } from "@/components/ui/useEnCelular";
 import { alejarFondo, devolverFondo, moverFondo } from "@/components/ui/fondoDeLaHoja";
 import { cierraElLateral, decidirLado, posicionDelLateral, velocidad, type Muestra } from "@/lib/hoja-gesto";
+import { prefiereQuieto } from "@/lib/movimiento-cliente";
 
 /** Lo que no se arrastra aunque el dedo vaya de lado: escribir o mover un deslizador. */
 const NO_ARRASTRA = 'input, textarea, select, [contenteditable="true"], [role="slider"]';
@@ -30,7 +31,7 @@ export function useLateralConElDedo(aside: RefObject<HTMLElement | null>, velo: 
   useEffect(() => {
     const el = aside.current;
     if (!el || !abierto) return;
-    const mover = window.matchMedia(CELULAR).matches && !window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const mover = window.matchMedia(CELULAR).matches && !prefiereQuieto();
     const fondo = mover ? alejarFondo(MS_ENTRADA, "lado") : null;
     let gesto: { x0: number; y0: number; deLado: boolean; muestras: Muestra[] } | null = null;
 

@@ -67,10 +67,11 @@ export function cuadroFormalPatrimonio(p: ConExtremos): FilaFormalPatrimonio[] {
  * Qué te recomiendo en Cambios en el patrimonio (hasta 3, la más urgente arriba). Sale de lo que la pantalla ya muestra: si retiraste más de lo
  * que ganaste (o una parte grande), si perdiste, si lo tuyo viene bajando y si hay algo sin explicar. Ninguna inventa una regla.
  */
-export function recomendacionesTuyo({ datos, href }: { datos: PatrimonioCambios | null; href: (ruta: string) => string }): Recomendacion[] {
+export function recomendacionesTuyo({ datos, href, sueldosEstimados = 0 }: { datos: PatrimonioCambios | null; href: (ruta: string) => string; sueldosEstimados?: number }): Recomendacion[] {
   if (!tieneExtremos(datos)) return [];
   const out: Recomendacion[] = [];
-  const g = datos.ganancia;
+  // Lo retirado se mide contra lo ganado de verdad, con los sueldos que Dynamic todavía no paga (tarea 23).
+  const g = r2(datos.ganancia - sueldosEstimados);
   const r = datos.retiros;
   const cambio = cambioDelMes(datos);
   if (pesa(datos.otros)) {

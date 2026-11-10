@@ -2,7 +2,7 @@
   "guia": "recibir.envio.id",
   "ruta": "/recibir/envio/[id]",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 224,
+  "total": 256,
   "controles": {
     "app/(app)/recibir/envio/[id]/page.tsx": [
       "Volver «/recibir»",
@@ -42,6 +42,7 @@
     ],
     "components/alta-producto/IdentidadAlta.tsx": [
       "ComboResponsable «{control}»",
+      "ComboResponsable «{control}» #2",
       "button «Ir a elegir»"
     ],
     "components/alta-producto/NombreDePrenda.tsx": [
@@ -49,7 +50,10 @@
       "CampoTexto «{libre ? \"Nombre\" : `Nombre de la ${tipo.toLocaleLowerCase(\"es\")}»"
     ],
     "components/alta-producto/NuevoColorAlta.tsx": [
-      "CampoTexto «Nombre del color»",
+      "SegmentoDeslizante «¿Es de un solo color o tiene dibujo?»",
+      "Desplegable «{patronId}»",
+      "ComboBuscable «{`${id}»",
+      "CampoTexto «{guia.etiqueta(\"nombre\", esForma ? \"Nombre del estampado\" : \"Nombre del color\")}»",
       "Desplegable «{familia}»",
       "CampoTexto «Código»",
       "Boton «{(!enLinea || existe.bloquea ? bloqueo : firma.motivo) ?? undefined}»",
@@ -82,6 +86,9 @@
     "components/recepcion-conteo/CategoriasAcordeon.tsx": [
       "button «{cat && <MiniaturaPrenda fotoUrl={foto}»",
       "button «{`Quitar ${m.nombre}»",
+      "button «{cat && <MiniaturaPrenda fotoUrl={null}»",
+      "button «Corregir»",
+      "Link «Ajustar stock»",
       "button «{nombre}»",
       "button «{i === 0 ? \"recepcion.agregar-modelo\" : undefined}»",
       "button «{`Quitar ${nombre}»",
@@ -91,20 +98,21 @@
       "SegmentoDeslizante «Ordenar por cantidad»",
       "FiltroPuesto «Quitar el filtro de tipo»",
       "FiltroPuesto «Quitar el filtro de estado»",
-      "button «Corregir»",
-      "Link «Ajustar stock»",
       "button «recepcion.agregar»"
     ],
     "components/recepcion-conteo/CerrarEnvio.tsx": [
+      "button «Cambiar»",
+      "ComboBuscable «{id}»",
       "input «{`Costo de ${nombre}»",
+      "button «{verDet ? \"Ocultar detalle\" : \"Ver detalle\"}»",
       "button «{`${abiertaEsta ? \"Esconder\" : \"Cambiar\"}»",
       "Boton «Contarla»",
       "CampoTexto «¿Qué pasó exactamente?»",
       "button «Empezar de cero»",
       "BotonVerMas «recepcion.plegadas»",
+      "button «{c.nombre}»",
       "CampoTexto «{guia.etiqueta(\"guia\", \"Número de guía\")}»",
       "CampoTexto «Nota (opcional)»",
-      "CampoSelect «{guia.etiqueta(\"proveedor\", \"¿De quién llegó?\")}»",
       "ComboResponsable «{responsable}»",
       "button «Reintentar»",
       "Volver «→() => onVolver(undefined, decisiones)»",
@@ -159,7 +167,9 @@
     ],
     "components/recepcion-conteo/HojaTallas.tsx": [
       "Boton «Dejar para después»",
-      "Boton «{textoListo}»"
+      "Boton «{textoListo}»",
+      "Boton «Cancelar»",
+      "Boton «→() => void confirmarQuitar()»"
     ],
     "components/recepcion-conteo/LlevarAlStock.tsx": [
       "Boton «{esperandoGuardar ? \"Guardando lo último que contaste…\" : undefined}»",
@@ -176,14 +186,29 @@
       "Boton «Cancelar» #2",
       "Boton «{guia.frase ?? undefined}» #2"
     ],
+    "components/recepcion-conteo/LoQueEntro.tsx": [
+      "Casilla «{`Etiquetas de ${p.nombre}»",
+      "Casilla «{`Etiquetas de ${p.nombre}» #2",
+      "BotonImprimir «{`Imprimir ${enlace.etiquetas}»",
+      "button «{todasMarcadas ? \"Desmarcar todas\" : \"Marcar todas\"}»"
+    ],
+    "components/recepcion-conteo/MarcaNuevaRecepcion.tsx": [
+      "CampoTexto «{guia.etiqueta(\"marca-nombre\", \"Marca\")}»",
+      "ComboBuscable «{idCombo}»",
+      "Boton «Cancelar»",
+      "Boton «{guia.frase ?? undefined}»"
+    ],
     "components/recepcion-conteo/NuevoModelo.tsx": [
       "CampoSelect «{guia.etiqueta(\"modelo-proveedor\", \"De qué proveedor\")}»",
       "CampoSelect «{guia.etiqueta(\"modelo-categoria\", \"Qué llegó\")}»",
+      "button «{titulo}»",
+      "CampoSelect «De qué marca»",
       "CampoTexto «{guia.etiqueta(\"modelo-nombre\", \"El nombre\")}»",
       "Boton «Sí, es esta»",
       "Boton «No, es otra»",
-      "CampoSelect «{guia.etiqueta(\"modelo-marca\", \"La marca\")}»",
+      "ComboBuscable «{idComboMarca}»",
       "CampoTexto «{guia.etiqueta(\"modelo-nota\", \"La descripción (para no confundirlo con otro)\")}»",
+      "Boton «No, es otra» #2",
       "Boton «Cancelar»",
       "Boton «{guia.frase ?? undefined}»"
     ],
@@ -233,6 +258,12 @@
       "BotonEditar «Describir»",
       "button «Quitar»"
     ],
+    "components/recepcion-conteo/ProveedorNuevoRecepcion.tsx": [
+      "CampoTexto «{guia.etiqueta(\"razon-social\", \"Razón social\")}»",
+      "CampoTexto «11 dígitos»",
+      "Boton «Cancelar»",
+      "Boton «{guia.frase ?? undefined}»"
+    ],
     "components/recepcion-conteo/QuitarModelo.tsx": [
       "Boton «Cancelar»",
       "Boton «Quitar»"
@@ -275,6 +306,14 @@
     "components/recepcion-conteo/TiposDelEnvio.tsx": [
       "button «{t.icono}»"
     ],
+    "components/recepcion-conteo/YaExisteLaPrenda.tsx": [
+      "CampoSelect «Categoría»",
+      "CampoSelect «Marca»",
+      "ComboResponsable «{responsable}»",
+      "Boton «No, es otra»",
+      "Boton «Sí, es esta»",
+      "Boton «No está, crearla como nueva»"
+    ],
     "components/recepcion-envio/BloquePrenda.tsx": [
       "Boton «+ talla o color»",
       "Boton «Cambiar»",
@@ -314,6 +353,9 @@
       "Boton «Cancelar»",
       "Boton «{guia.frase ?? undefined}»",
       "Boton «{guia.frase ?? undefined}» #2"
+    ],
+    "components/recepcion-envio/MatrizRecepcion.tsx": [
+      "button «{tipo === \"talla\" ? `Quitar la talla ${nombre}»"
     ],
     "components/recepcion-envio/PiezasEnvio.tsx": [
       "Volver «/recibir»"

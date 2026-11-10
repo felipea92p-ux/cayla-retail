@@ -1,6 +1,7 @@
-import { describe, expect, it } from "vitest";
 import {
-  diasHasta,
+  describe,
+  expect,
+  it } from "vitest"; import {   diasHasta,
   filaAPagar,
   leerFilaPorPagar,
   puedePagar,
@@ -10,7 +11,11 @@ import {
   totalPorPagar,
   tramoDe,
   type FilaPorPagar,
+  TEXTO_NATURALEZA,
+  fechaDeVence,
+  textoDelPago,
 } from "./por-pagar-consolidado-reglas";
+import { proveedoresMayores } from "./que-debes-reglas";
 
 const HOY = "2026-09-24";
 const fila = (vence: string, saldo: number, extra: Partial<FilaPorPagar> = {}): FilaPorPagar => ({
@@ -163,5 +168,32 @@ describe("pagar", () => {
     expect(filaAPagar(filas[1].id, filas)).toBeNull();
     expect(filaAPagar("no-es-un-id", filas)).toBeNull();
     expect(filaAPagar(undefined, filas)).toBeNull();
+  });
+});
+
+describe("un servicio del Taller sin papel (ADR-0614)", () => {
+  const crudo = { origen: "servicio", id: "f1", naturaleza: "servicio", proveedor_id: null, proveedor: "Servicios sin nombre", documento: "OP-2 · Costura", tipo: "sin_comprobante", concepto: "Blusa", fecha_emision: null, condicion: null, fecha_vencimiento: null, vence: "2026-11-06", ubicacion_id: "t", unidades: "Taller", total: "100.00", pagado: "60.00", saldo: "40.00" };
+  const fila = leerFilaPorPagar(crudo);
+
+  it("se lee con su origen y su tipo, sin fecha de vencimiento", () => {
+    expect(fila).toMatchObject({ origen: "servicio", naturaleza: "servicio", fechaVencimiento: null, saldo: 40, pagado: 60, total: 100 });
+    expect(TEXTO_NATURALEZA[fila.naturaleza]).toBe("Servicio del Taller");
+  });
+  it("no afirma una fecha que nadie pactó", () => {
+    expect(fechaDeVence(fila, () => "6 nov")).toBe("Sin fecha");
+    expect(textoVence(fila, "2026-11-06")).toBe("aún sin papel");
+    expect(fechaDeVence({ origen: "compras", vence: "2026-11-06" }, () => "6 nov")).toBe("6 nov");
+  });
+  it("lo paga solo el líder, como la tela del Taller", () => {
+    expect(puedePagar(fila, { esLider: true, pagaCompras: false })).toBe(true);
+    expect(puedePagar(fila, { esLider: false, pagaCompras: true })).toBe(false);
+  });
+  it("sin nombre, el botón lleva a decir quién; con nombre, a pagar", () => {
+    expect(textoDelPago(fila)).toBe("Decir quién");
+    expect(textoDelPago(leerFilaPorPagar({ ...crudo, proveedor_id: "p1", proveedor: "Costura" }))).toBe("Pagar");
+    expect(textoDelPago({ origen: "compras", proveedorId: "sin-nombre" })).toBe("Pagar");
+  });
+  it("los servicios sin nombre se agrupan en una sola fila de quién debes más", () => {
+    expect(proveedoresMayores([fila, { ...fila, id: "f2", saldo: 10 }], "2026-11-06")).toEqual([{ proveedorId: "sin-nombre", proveedor: "Servicios sin nombre", saldo: 50, n: 2, vencido: 0 }]);
   });
 });

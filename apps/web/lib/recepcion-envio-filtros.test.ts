@@ -27,12 +27,13 @@ const base: EnvioPorAbrir = {
   lineas: 1,
   ordenes: [],
   proveedores: ["Textiles Andina"],
+  marcas: [],
   creadoPorMi: false,
 };
 const envio = (id: string, o: Partial<EnvioPorAbrir> = {}): FilaPorRecibir => ({ tipo: "envio", envio: { ...base, id, ...o } });
 const orden = (ordenId: string, o: Partial<OrdenDirecta> = {}): FilaPorRecibir => ({
   tipo: "orden",
-  orden: { ordenId, numero: "OC-001311", proveedor: "Confecciones del Sur", unidadesPorEnviar: 6, creadaPorMi: false, ...o },
+  orden: { ordenId, numero: "OC-001311", proveedor: "Confecciones del Sur", marcas: [], unidadesPorEnviar: 6, creadaPorMi: false, ...o },
 });
 const ids = (filas: FilaPorRecibir[]) => filas.map((f) => (f.tipo === "envio" ? f.envio.id : f.orden.ordenId));
 

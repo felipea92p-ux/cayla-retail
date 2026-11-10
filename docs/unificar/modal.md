@@ -50,7 +50,9 @@ se tiñe de rojo al pasar el mouse.
   primero cortaba en el `>` de un título con JSX y dejaba 23 sin migrar); 169 pasan de 384 a la angosta de 448. **Conservan su ancho,
   con su motivo**, las de diseño propio: la vista rápida de un producto, Nueva orden de producción, la mesa de Ventas sin registrar, el
   modal de la prenda de Existencias, la guía de impresión, Revisar fotos y el Historial de una prenda; el Historial de cierres crece de
-  mediana a ancha al abrir uno (con los nombres, `ANCHO_HOJA`).
+  mediana a ancha al abrir uno (con los nombres, `ANCHO_HOJA`). **Actualización 2026-11-08 (Felipe):** el detalle de un cierre vuelve a 1024 px
+  (`ANCHO_DETALLE_CIERRE = "max-w-5xl"`, diseño propio «La línea del día»): a 768 sus tres tarjetas se apilaban y los medios de pago y los
+  movimientos quedaban dos pantallas abajo.
 - **La salida:** la × en Movimientos de la caja, Ventas de hoy, Actividad del equipo, Pendientes de hoy, Campañas archivadas, Recepciones
   recientes, los integrantes de un rol, la demo del sistema, «Más de la tienda», las opciones de un comprobante, una factura de insumos,
   «Tus atajos» y Regularizar prenda; sin la × (porque guardan con «Cancelar») Pagar, Pagar juntos, Registrar nota de crédito, el precio

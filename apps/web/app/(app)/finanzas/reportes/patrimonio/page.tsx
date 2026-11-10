@@ -5,14 +5,17 @@ import { hrefTelar, mesDelDia, nombreCortoSede, sedeDeLaUrl } from "@/lib/finanz
 import { paramsDe } from "@/lib/estados-financieros-reglas";
 import { etiquetaDelPeriodo, leerPeriodo, periodoDe, periodosAnteriores } from "@/lib/estados-periodo";
 import { getPatrimonioCambios, getPatrimonioEnFechas } from "@/lib/estados-financieros";
-import { lecturaDelPatrimonio, libroDelPatrimonio, partesDelPatrimonio, tituloDelPatrimonio } from "@/lib/estados-patrimonio";
+import { informeDelPatrimonio, lecturaDelPatrimonio, partesDelPatrimonio } from "@/lib/estados-patrimonio";
 import { textoDeVerMas } from "@/lib/estados-partes";
 import { getParametrosFinanzas } from "@/lib/configuracion";
 import { getEstadoResultados } from "@/lib/resultados";
+import { getConciliacion } from "@/lib/balance";
+import { avisoBalanceSinCuadrar } from "@/lib/balance-reglas";
 import { recomendacionesTuyo, tieneExtremos } from "@/lib/patrimonio-reglas";
 import { Aviso } from "@/components/ui/Aviso";
+import { BotonVer } from "@/components/ui/BotonDescargar";
 import { CabeceraEstados } from "@/components/finanzas/estados/CabeceraEstados";
-import { EstadoVidrio } from "@/components/finanzas/estados/EstadoVidrio";
+import { EstadoEnInforme } from "@/components/finanzas/estados/EstadoEnInforme";
 import { LineaDePatrimonio } from "@/components/finanzas/estados/LineaDePatrimonio";
 import { LineaEsperando } from "@/components/finanzas/estados/LineaDeGanancias";
 import { MasDelEstado } from "@/components/finanzas/estados/MasDelEstado";
@@ -40,16 +43,21 @@ export default async function PatrimonioPage({ searchParams }: { searchParams: P
   const parametros = await getParametrosFinanzas();
   const anteriores = periodosAnteriores(periodo, hoy, parametros?.inicioFinanzas ?? null);
 
-  const [patrimonio, comparadas, er] = await Promise.all([
+  const [patrimonio, comparadas, er, chequeos] = await Promise.all([
     leerPatrimonio(desde, hasta, hoy),
     Promise.all(anteriores.map(async (c) => ({ etiqueta: c.etiqueta, lectura: await leerPatrimonio(c.desde, c.hasta, hoy) }))),
     getEstadoResultados(desde, hasta),
+    // ¿Lo tuyo? sale del mismo diario que el Balance: si el Balance no cuadra, su cifra tampoco es firme (tarea 28).
+    getConciliacion(hasta),
   ]);
   const datos = patrimonio.datos;
-  const recomendaciones = recomendacionesTuyo({ datos, href });
+  const noCuadra = chequeos.falla ? "No se pudo comprobar si el Balance cuadra: esta cifra puede cambiar." : avisoBalanceSinCuadrar(chequeos.datos);
+  // «Ganaste» sale del diario y aún no resta los sueldos que Dynamic no paga: las filas por sede lo mismo, para sumar lo que dice arriba (cada una, sin su estimado).
+  const sueldosEstimados = er.falla ? 0 : (er.datos.find((f) => f.unidad === "consolidado")?.planillaEstimada ?? 0);
+  const recomendaciones = recomendacionesTuyo({ datos, href, sueldosEstimados });
   const porSede = er.falla
     ? []
-    : er.datos.filter((f) => f.unidad !== "consolidado").map((f) => ({ nombre: f.unidad === "empresa" ? "Empresa" : nombreCortoSede(f.nombre), valor: f.resultado }));
+    : er.datos.filter((f) => f.unidad !== "consolidado").map((f) => ({ nombre: f.unidad === "empresa" ? "Empresa" : nombreCortoSede(f.nombre), valor: f.resultado + f.planillaEstimada }));
 
   return (
     <div className="space-y-4">
@@ -61,28 +69,39 @@ export default async function PatrimonioPage({ searchParams }: { searchParams: P
       ) : !tieneExtremos(datos) ? (
         <PatrimonioSinArranque />
       ) : (
-        <EstadoVidrio
-          nombre={`Cambios en el patrimonio · ${periodo.titulo}`}
-          lectura={lecturaDelPatrimonio(datos)}
-          grafico={
-            <Suspense fallback={<LineaEsperando />}>
-              <LineaDePatrimonio hoy={hoy} periodo={periodo} final={datos.fin.total} />
-            </Suspense>
-          }
-          guiaRespuesta="fin-patrimonio.respuesta"
-          guiaPartes="fin-patrimonio.partes"
-          guiaLibro="fin-patrimonio.libro"
-          titulo={tituloDelPatrimonio}
-          partes={partesDelPatrimonio({
-            datos,
-            comparadas: comparadas.map((c) => ({ etiqueta: c.etiqueta, datos: c.lectura.falla ? null : c.lectura.datos })),
-            etiquetaActual: etiquetaDelPeriodo(periodo),
-            periodo,
-            porSede,
-          })}
-          tituloColumnas={periodo.unMes ? "Mes a mes" : "Período a período"}
-          libro={{ titulo: "Cambios en el patrimonio", detalle: `${periodo.titulo} · en soles · formato del contador`, filas: libroDelPatrimonio(datos) }}
-        />
+        <>
+        {noCuadra && (
+          <Aviso
+            tono={chequeos.falla ? "info" : "atencion"}
+            titulo={noCuadra}
+            accion={
+              <BotonVer href={href("/finanzas/reportes/balance")} chico>
+                Ver el Balance
+              </BotonVer>
+            }
+          />
+        )}
+        {(() => {
+          const comparadasLeidas = comparadas.map((c) => ({ etiqueta: c.etiqueta, datos: c.lectura.falla ? null : c.lectura.datos }));
+          const etiquetaActual = etiquetaDelPeriodo(periodo);
+          const partes = partesDelPatrimonio({ datos, comparadas: comparadasLeidas, etiquetaActual, periodo, porSede });
+          return (
+            <EstadoEnInforme
+              nombre={`Lo tuyo · ${periodo.titulo}`}
+              lectura={lecturaDelPatrimonio(datos, sueldosEstimados)}
+              grafico={
+                <Suspense fallback={<LineaEsperando />}>
+                  <LineaDePatrimonio hoy={hoy} periodo={periodo} final={datos.fin.total} />
+                </Suspense>
+              }
+              guiaRespuesta="fin-patrimonio.respuesta"
+              guiaInforme="fin-patrimonio.partes"
+              guiaContador="fin-patrimonio.libro"
+              informe={informeDelPatrimonio({ datos, partes, comparadas: comparadasLeidas, etiquetaActual })}
+            />
+          );
+        })()}
+        </>
       )}
       {recomendaciones.length > 0 && <Recomendaciones recomendaciones={recomendaciones} />}
       {tieneExtremos(datos) && (

@@ -14,12 +14,11 @@
    de una orden, ordenes.css; la fila y el libro de Insumos, insumos.css), que no dejan de tener sombra por sí solas; y una tarjeta con el fondo del tono de lo que dice. */
 :where(.pantalla-en-vidrio) .card-cayla:where(:not(.tarjeta-cifra, .op-camino, .op-paso, .insumo-fila, .insumos-libro, [class*="bg-rojo"], [class*="bg-ambar"], [class*="bg-verde"], [class*="bg-pizarra"])),
 :where(.pantalla-en-vidrio) .fin-superficie {
+  /* Lo que se desplaza no se desenfoca (ADR-0623): el vidrio claro, sin `backdrop-filter`. */
   border-radius: var(--radius-tarjeta);
-  border-color: var(--serena-borde);
-  background: var(--serena-fondo);
-  -webkit-backdrop-filter: var(--serena-filtro);
-  backdrop-filter: var(--serena-filtro);
-  box-shadow: var(--serena-sombra);
+  border-color: var(--vidrio-claro-borde);
+  background: var(--vidrio-claro-fondo);
+  box-shadow: var(--vidrio-claro-sombra);
 }
 /* La tarjeta que se toca (`mov-boton`) conserva la sombra de su movimiento al pasar el mouse; la que lleva un filo de color a la izquierda, ese filo. */
 :where(.pantalla-en-vidrio) .card-cayla.mov-boton:not(.border-tinta) {

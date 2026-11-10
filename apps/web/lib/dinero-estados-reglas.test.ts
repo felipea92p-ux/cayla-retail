@@ -248,8 +248,8 @@ describe("fraseDeEtapas", () => {
     { etapa: "caja" as const, total: caja },
   ];
   it("nombra solo lo que hay, de lo más usable a lo que está más lejos", () => {
-    expect(fraseDeEtapas(t(0, 0, 222, 797)).replace(/\u00a0/g, " ")).toBe("Faltan por llevar al banco S/ 222 de las cajas fuertes y del líder; S/ 797 están en las cajas de venta.");
-    expect(fraseDeEtapas(t(28130, 3450, 0, 0)).replace(/\u00a0/g, " ")).toBe("Ya puedes usar S/ 28,130 que están en el banco; S/ 3,450 vienen en camino con las máquinas.");
+    expect(fraseDeEtapas(t(0, 0, 222, 797)).replace(/\u00a0/g, " ")).toBe("Faltan por llevar al banco S/ 222.00 de las cajas fuertes y del líder; S/ 797.00 están en las cajas de venta.");
+    expect(fraseDeEtapas(t(28130, 3450, 0, 0)).replace(/\u00a0/g, " ")).toBe("Ya puedes usar S/ 28,130.00 que están en el banco; S/ 3,450.00 vienen en camino con las máquinas.");
   });
   it("sin plata en ninguna etapa, lo dice", () => expect(fraseDeEtapas(t(0, 0, 0, 0))).toBe("Todavía no hay plata registrada en estas cuentas."));
 });

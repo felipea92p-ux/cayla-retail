@@ -15,6 +15,7 @@
 
 import { enEscala } from "./color-escala";
 import { agruparPorFamilia } from "./colores-familias";
+import { familiaEnCarta } from "./color-estampado-reglas";
 import { FRASE_COSTO_CON_TOPE, FRASE_PRECIO_CON_TOPE, MAX_PRECIO_PRENDA } from "./catalogo-topes";
 import { sinBlancosDeMiles } from "./numero-escrito";
 
@@ -135,7 +136,7 @@ export function ordenarColores(
     .slice(0, max);
   // Un solo agrupador para las tres pantallas de colores (`agruparPorFamilia`): una familia que el código aún no conoce sale con su propio
   // nombre y un color sin familia como «Varios colores»; ninguno desaparece.
-  const grupos = agruparPorFamilia(colores, (c) => c.familiaColor, familias).map((g) => ({ ...g, colores: [...g.colores].sort(enEscala) }));
+  const grupos = agruparPorFamilia(colores, familiaEnCarta, familias).map((g) => ({ ...g, colores: [...g.colores].sort(enEscala) }));
   return { frecuentes, grupos };
 }
 

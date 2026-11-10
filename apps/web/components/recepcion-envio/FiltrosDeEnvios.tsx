@@ -51,7 +51,7 @@ export function FiltrosDeEnvios({
       <Buscador
         valor={busqueda}
         onCambio={onBusqueda}
-        placeholder="Busca por número de envío, guía, proveedor u orden"
+        placeholder="Envío, guía, proveedor, marca u orden" // sugerir-fijo: dice en qué busca, no depende de nada elegido antes
         etiqueta="Buscar un envío por recibir"
         conteo={conteo}
         className="w-full min-w-0 sm:w-auto sm:min-w-[16rem] sm:flex-1"

@@ -118,9 +118,22 @@ export const PRUEBAS = [
   // de caja; solo el líder y nada se guarda. ROLLBACK.
   "pruebas:flujo-caja",
 
+  // El fondo de compras sale al gastarse (ADR-0621): lo gastado por completar baja el disponible el día del papel, el fondo dice lo que
+  // queda en la mano, el Flujo cuadra, la proyección parte sin lo por volver y completar el papel no lo cuenta dos veces. ROLLBACK.
+  "pruebas:fondo-sale-al-gastarse",
+
   // De Ventas a Finanzas y lo que el Flujo no cubre (ADR-0609): el cuadre suma exacto y da la cifra del Estado de resultados, sede por sede;
   // lo anterior al arranque de una cuenta no suma, pero se dice. ROLLBACK.
   "pruebas:cuadre-ventas-finanzas",
+
+  // El IGV de las ventas (ADR-0624, regla pareja): ventas con IGV = netas + 4011 de venta, anulación, devolución y cambio, también con adelanto;
+  // por unidad y mes, rango parcial, desde el inicio de Finanzas; leer no toca el diario ni el Estado de resultados; lo de ADR-0620 ya no existe;
+  // una terminal ve solo su tienda; y una regla nueva que escriba la 4011 o la 7011 la pone en rojo. ROLLBACK.
+  "pruebas:igv-ventas",
+
+  // El arranque contra el crédito (ADR-0620): 4011 = 41,878 a favor y 50 = 201,758.78 como correcciones que cuadran; el Balance la muestra como
+  // activo, la Comprobación conserva diferencia y estado, Impuestos no cambia una fila, repetirla no agrega nada y sus guardas no tocan lo ajeno. ROLLBACK.
+  "pruebas:arranque-igv",
 
   // Impuestos (ADR-0195 F8): débito y crédito del mes, las boletas no dan crédito, anulados fuera, el saldo a favor que
   // se arrastra, el límite del régimen, parámetros con vigencia, solo el líder y los registros para el contador. ROLLBACK.
@@ -151,6 +164,7 @@ export const PRUEBAS = [
   // Balance (ADR-0195 F7): saldos de arranque que se corrigen y no se editan, el Balance cuadra con operaciones de cada
   // tipo, cada cuenta por dos caminos (si no, no se dibuja y dice por qué), lo que es de la tienda y permisos. ROLLBACK.
   "pruebas:balance",
+  "pruebas:conteo-explicado",
 
   // La mercadería de CLAURE en Lima no es de CAYLA en el Balance (ADR-0558): entrar, vender, anular, devolver y perder mercadería de
   // CLAURE mueve la mercadería del Balance (fn_bal_stock) igual que la 201 del diario; lo debido va a la 4699; un corte pasado; la
@@ -205,6 +219,17 @@ export const PRUEBAS = [
   "pruebas:pago-planilla-y-sunat",
   "pruebas:planilla-conceptos",
   "pruebas:comision-estimada",
+  // La foto del diario (ADR-0633): la foto de un mes es el diario del líder, línea por línea; solo la toma el trabajo programado. ROLLBACK.
+  "pruebas:foto-diario",
+  // La comisión estimada de las máquinas en una sola pasada (20261109162000): cada asiento y cada reversa igual a fn_pos_comision_lote. ROLLBACK.
+  "pruebas:comision-lotes",
+
+  // La puente de la máquina por residuo (ADR-0629): un día depositado que siguió vendiendo vuelve a pendiente con lo que falta,
+  // el diario revierte lo estimado una sola vez y el QR de Izipay no cobra los primeros días del mes. ROLLBACK.
+  "pruebas:puente-residuo",
+  // El depósito de la máquina pago por pago (ADR-0629, Fase B): de tres QR llegan dos, se depositan esos dos y queda el tercero; un pago
+  // no entra a dos depósitos (con su control `--mutante`), ni de otra máquina, ni de un día con un depósito sin detalle. ROLLBACK.
+  "pruebas:pos-pagos",
   "pruebas:gasto-fecha-pago",
 
   // La salida del banco de la planilla que Dynamic marca pagada (ADR-0567): el banco del colaborador desde las grafías reales, el grupo
@@ -274,6 +299,14 @@ export const PRUEBAS = [
   // compras, junta dos líneas de una misma variante), la cuenta de la pantalla cierra y sin permiso de dinero no ve nada. ROLLBACK.
   "pruebas:costo-de-la-prenda",
 
+  // El «?» de cada talla gris en Catálogo ▸ Costos (ADR-0631): la última compra de cada talla, con lo que había antes, lo que llegó
+  // y en cuánto quedó; dos líneas de una misma compra son una; un cierre revertido no cuenta; sin permiso de dinero, null. ROLLBACK.
+  "pruebas:costo-de-las-tallas",
+
+  // El historial del costo de cada compra se lee solo por funciones (ADR-0631 act. b): la tienda no lo lee directo, ni un líder; las
+  // funciones de siempre sí lo muestran; service_role lo lee; RLS encendido y sin reglas de lectura. ROLLBACK.
+  "pruebas:costo-de-compras-solo-por-funciones",
+
   // Corregir el costo de la ÚLTIMA compra (Felipe 2026-10-24, ADR-0515): solo un líder y con motivo, solo la última, un cierre del
   // Taller no, encadena dos líneas de una misma variante, costo_historial queda idéntico, la tabla solo agrega y la vista previa
   // dice lo mismo que quedó. ROLLBACK.
@@ -323,6 +356,16 @@ export const PRUEBAS = [
   "pruebas:aprobar-devolucion-caja",
 
   "pruebas:registrar-venta",
+
+  // Un día de tienda (abrir caja, venta en efectivo con boleta, venta mixta, anular, cambio, devolución, cerrar caja) mirando
+  // las invariantes de /chaos después de CADA paso: falla si la base queda descuadrada (stock contra movimientos, venta contra
+  // pagos, caja, comprobantes, libro) aunque la suite propia de la función siga verde. ROLLBACK.
+  "pruebas:dia-de-tienda",
+
+  // El vigía diario de producción (ADR-0632): lo roto antes de mirar es heredado, lo que se rompe después es nuevo y lo sigue
+  // siendo hasta que se arregla o el Admin lo acepta; arreglado y vuelto a romper cuenta otra vez; lo que no se pudo mirar es
+  // «error» u «omitida», nunca «limpia»; solo la llave de servicio o el SQL Editor lo corren. ROLLBACK.
+  "pruebas:vigia-invariantes",
 
   // Descuento de campaña EXACTO, al céntimo (ADR-0302; reemplaza el .90 de ADR-0182): la base da lo mismo que la caja,
   // registrar_venta y separar_prendas aceptan el descuento exacto y rechazan el del .90, y la migración se puede pegar
@@ -723,6 +766,9 @@ export const PRUEBAS = [
   // y corregir el pago; el borde exacto en S/ 0; la cifra solo para quien cierra la caja; el segundo retiro espera al primero.
   // Con control. Disparadores diferidos: cada caso corre `set constraints all immediate` y termina en ROLLBACK.
   "pruebas:caja-efectivo-no-negativo",
+  // ADR-0630: con la caja cerrada, un líder corrige lo que no es efectivo (Yape → QR, la máquina de una tarjeta); el efectivo, un
+  // no líder, el efectivo con cuenta, una máquina que no cobra ahí y un mes cerrado DEBEN bloquear. Control: `-- --sin-migracion`.
+  "pruebas:corregir-pagos-caja-cerrada",
   // ADR-0412 (/chaos de Finanzas 2026-10-14): NaN, tope de S/ 1 000 000 y textos con tope en Finanzas; la caja fuerte no queda bajo
   // cero (disparadores diferidos: cada caso corre `set constraints all immediate`); un gasto anterior al inicio de Finanzas. Con controles.
   "pruebas:finanzas-montos-y-caja-fuerte",
@@ -1422,6 +1468,10 @@ export const PRUEBAS = [
   // termina en ROLLBACK.
   "pruebas:corregir-prenda-sin-registrar",
 
+  // Por qué se anotó a mano (20261106233000): `registrar_venta` guarda el motivo de cada «Prenda sin registrar» y, con «otro», su
+  // texto (recortado a 120); un motivo raro o ausente nunca tumba la venta (queda null) y la tabla rechaza uno fuera de la lista. ROLLBACK.
+  "pruebas:prenda-sin-registrar-motivo",
+
   // Limpieza de las ventas sin registrar (ADR-0328, actividad 5; rescatada de #788 el 2026-10-12): las candidatas de cada venta
   // con el saldo del libro a la hora de la venta y lo que cambió después (de ahí la respuesta que sugiere la mesa), que contestar
   // mal descuenta dos veces, que nadie regulariza su propia venta salvo el líder firmando él mismo (ni desde la terminal), que
@@ -1788,6 +1838,8 @@ export const PRUEBAS = [
   "pruebas:compras-simple-revisar",
   // La marca nueva de «Algo nuevo» (Felipe 2026-10-24): con «Mis compras» se crea unida al proveedor, sin duplicarse.
   "pruebas:compras-simple-marca",
+  // Recibir crea el proveedor (razón social y RUC opcional) y la marca que no están, con solo el módulo Recibir (ADR-0635).
+  "pruebas:recibir-crea-proveedor-y-marca",
   // Corregir una compra ya anotada (ADR-0561): la plata vuelve sola mientras Compras no la completa, el papel acompaña si ya cuadraba, no se baja de lo
   // enviado, todo o nada, rastro que no se borra.
   "pruebas:compras-simple-corregir",
@@ -1912,6 +1964,7 @@ export const PRUEBAS = [
   // Lo que se le debe a un servicio llega a Por pagar (ADR-0614, actividad 3): devengado menos lo documentado, se suma a la deuda de Producción,
   // solo lo ve el líder, y el nombre se registra con la orden cerrada sin tocar el monto. ROLLBACK.
   "pruebas:produccion-servicios-por-pagar",
+  "pruebas:finanzas-servicios-por-pagar",
 
   // Pagar a un servicio con el papel que dio (ADR-0614, actividad 4): cada papel, la deuda que baja sin IGV, de más no, sin nombre no, y el token. ROLLBACK.
   "pruebas:produccion-pagar-servicio",

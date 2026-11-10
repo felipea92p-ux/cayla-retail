@@ -38,6 +38,7 @@ import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 import { soltarPaginaEstable } from "@/components/ui/PaginaEstable";
 import { ResumenMarcas } from "@/components/marcas/ResumenMarcas";
 import { FiltrosMarcas } from "@/components/marcas/FiltrosMarcas";
+import { prefiereQuieto } from "@/lib/movimiento-cliente";
 
 /**
  * Marcas del catálogo y sus proveedores (ADR-0109, `retail.marcas` +
@@ -134,7 +135,7 @@ export function MarcasLista({
   // Contra estas pregunta el formulario «¿no será una marca que ya existe?» (las mismas que ofrece Nuevo producto).
   const existentes = activas.map((m) => ({ id: m.id, nombre: m.nombre, proveedores: m.proveedores.map((p) => p.nombre) }));
 
-  const sinMovimiento = () => typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const sinMovimiento = () => typeof window !== "undefined" && prefiereQuieto();
 
   // Después de guardar, la lista te lleva a donde quedó la marca: el orden es alfabético y una marca nueva (o renombrada) puede caer
   // en otra página. Suelta el filtro y la búsqueda para que se vea, y la destella una vez.

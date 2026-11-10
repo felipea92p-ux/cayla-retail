@@ -144,6 +144,8 @@ export type EnvioPorAbrir = {
   lineas: number;
   ordenes: string[];
   proveedores: string[];
+  /** Las marcas que trae (las de sus líneas, `fn_envios_por_recibir` desde 20261107193000); `[]` si la base no las manda. */
+  marcas: string[];
   /** Quien mira hizo alguna de sus órdenes (decisión 17): la pantalla lo dice antes de que la base lo frene. */
   creadoPorMi: boolean;
 };
@@ -169,6 +171,7 @@ export function leerEnviosPorAbrir(data: unknown): EnvioPorAbrir[] {
         lineas: Math.max(0, cifra(r.lineas) ?? 0),
         ordenes: lista(r.ordenes).map(numeroDeOrden).filter((x): x is string => !!x),
         proveedores: lista(r.proveedores).map((p) => texto(p) ?? idNombre(p)?.nombre ?? null).filter((x): x is string => !!x),
+        marcas: leerMarcas(r.marcas),
         creadoPorMi: booleano(r.creado_por_mi) ?? false,
       };
     })
@@ -181,6 +184,8 @@ export type OrdenDirecta = {
   /** «OC-000465». */
   numero: string;
   proveedor: string | null;
+  /** Las marcas de sus líneas (`fn_ordenes_directas_por_recibir` desde 20261107193000); `[]` si la base no las manda. */
+  marcas: string[];
   unidadesPorEnviar: number;
   creadaPorMi: boolean;
 };
@@ -196,9 +201,25 @@ export function leerOrdenesDirectas(data: unknown): OrdenDirecta[] {
       const unidades = cifra(r.unidades_por_enviar) ?? cifra(r.unidades);
       if (!ordenId || !numero || unidades == null || unidades <= 0) return null;
       const proveedor = texto(r.proveedor) ?? idNombre(r.proveedor)?.nombre ?? texto(r.proveedor_nombre);
-      return { ordenId, numero, proveedor, unidadesPorEnviar: unidades, creadaPorMi: booleano(r.creada_por_mi) ?? booleano(r.creado_por_mi) ?? false };
+      return { ordenId, numero, proveedor, marcas: leerMarcas(r.marcas), unidadesPorEnviar: unidades, creadaPorMi: booleano(r.creada_por_mi) ?? booleano(r.creado_por_mi) ?? false };
     })
     .filter((o): o is OrdenDirecta => o !== null);
+}
+
+/** Las marcas que manda la base: nombres sin repetir y en orden alfabético (una base sin el campo da `[]`, y la lista no dibuja la línea). */
+function leerMarcas(v: unknown): string[] {
+  const nombres = lista(v).map((m) => texto(m) ?? idNombre(m)?.nombre ?? null).filter((x): x is string => !!x);
+  return [...new Set(nombres)].sort((a, b) => a.localeCompare(b, "es"));
+}
+
+/**
+ * La línea de la marca bajo el proveedor (Felipe 2026-11-07): quien recibe ve la etiqueta de la prenda, no la razón social. Hasta tres,
+ * separadas por «·»; con más, las dos primeras y «y N más» (el resto va en el `title`). `null` si no hay ninguna: la fila no dibuja la línea.
+ */
+export function textoMarcas(marcas: readonly string[]): string | null {
+  if (marcas.length === 0) return null;
+  if (marcas.length <= 3) return marcas.join(" · ");
+  return `${marcas.slice(0, 2).join(" · ")} y ${marcas.length - 2} más`;
 }
 
 /** Lo que se dice en vez del botón cuando quien mira hizo la orden (decisión 17). */
@@ -560,6 +581,31 @@ function leerPrenda(f: unknown, nueva: boolean): PrendaRecepcion | null {
     .map(leerVariante)
     .filter((v): v is VarianteRecepcion => v !== null);
   return { productoId, nombre, codigo: texto(r.codigo), fotoUrl: texto(r.foto_url) ?? texto(r.foto) ?? texto(r.foto_principal), variantes, nueva, estadoAlta: texto(r.estado_alta) };
+}
+
+/** Lo esencial de una prenda para reconocerla al recibir (Felipe 2026-11-06): lo que no trae la lista de sugerencias. `null` = sin registrar. */
+export type FichaParaRecibir = { descripcion: string | null; material: string | null; patron: string | null; marca: string | null; categoria: string | null };
+
+/** Lee la fila de `productos` con sus nombres: un dato vacío queda en `null`, para decir «Sin registrar» en vez de esconderlo. */
+export function leerFichaParaRecibir(data: unknown): FichaParaRecibir | null {
+  const r = objeto(Array.isArray(data) ? data[0] : data);
+  if (!r) return null;
+  const nombreDe = (v: unknown) => texto(objeto(Array.isArray(v) ? v[0] : v)?.nombre)?.trim() || null;
+  return {
+    descripcion: texto(r.descripcion)?.trim() || null,
+    material: nombreDe(r.tejido),
+    patron: nombreDe(r.patron),
+    marca: nombreDe(r.marca),
+    categoria: nombreDe(r.categoria),
+  };
+}
+
+/** «3 tallas · S, M, L» y lo mismo con los colores: lo que llega por la prenda elegida. Sin talla o sin color, se dice «Única» y «Sin color» como en la lista. */
+export function tallasYColoresDe(prenda: Pick<PrendaRecepcion, "variantes">): { tallas: string[]; colores: string[] } {
+  return {
+    tallas: [...new Set(prenda.variantes.map((v) => v.talla ?? "Única"))],
+    colores: [...new Set(prenda.variantes.map((v) => v.color ?? "Sin color"))],
+  };
 }
 
 /** Lee `fn_prendas_para_recibir`: las prendas de esa categoría y marca para «Ya la tengo». Una sin id o sin nombre se descarta. */
@@ -1285,7 +1331,7 @@ export const TEXTO_QUIEN_COMPRO =
 /** Los avisos de la base de esta fase vienen ya en palabras de tienda (`hint` recepcion_*, recibir_*, envio_*, orden_*). Algunos llegan con
  *  42501 (otra sede, quien compró) y sin esto caerían al genérico «No se pudo…»: se dicen tal cual. `null` = no es uno de estos (el
  *  error sigue por `traducirError`: el responsable, la versión, la red). */
-const HINTS_DE_LA_RECEPCION = /^(recepcion|recibir|envio|orden_compra|orden|salida|corregir)_[a-z_]+$/;
+const HINTS_DE_LA_RECEPCION = /^(recepcion|recibir|envio|orden_compra|orden|salida|corregir|categoria)_[a-z_]+$/;
 /** La base dice «pulsa «Empezar a recibir»» (el botón de la fase 4). La cara A (ADR-0393) lo llamó «Abrir el fardo» y el aviso se traducía; con
  *  varios fardos por envío que se abren por partes, «abrir el fardo» ya no decía qué hacía el botón y volvió a ser «Empezar a recibir»
  *  (ADR-0480, 2026-10-26). El texto vive en nueve lugares del SQL, varios dentro de reemplazos anclados y huellas md5: se dice aquí, por su
@@ -1430,6 +1476,8 @@ export function buenasDeRecibidos(recibidos: readonly RecibidoEnvio[] | null): {
  */
 export function despuesDeRecibirEnvio(p: {
   lotes: readonly string[];
+  /** El envío que se está recibiendo: la hoja de etiquetas vuelve a él, no a la lista de Recibir. */
+  envioId?: string;
   buenas: readonly { varianteId: string; cantidad: number }[];
   unidades: number;
   unidadesBuenas: number;
@@ -1440,7 +1488,7 @@ export function despuesDeRecibirEnvio(p: {
     acciones.push({
       clave: "etiquetas",
       texto: p.unidades === 1 ? "Imprimir la etiqueta de precio" : `Imprimir ${p.unidades.toLocaleString("es-PE")} etiquetas de precio`,
-      href: urlEtiquetasDePrecio({ lotes: [...p.lotes] }),
+      href: urlEtiquetasDePrecio({ lotes: [...p.lotes], envio: p.envioId }),
       principal: true,
     });
   }

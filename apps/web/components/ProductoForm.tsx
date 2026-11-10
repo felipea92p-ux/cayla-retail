@@ -93,6 +93,7 @@ import {
 } from "@/lib/variantes-ficha-reglas";
 import { PanelDelTaller } from "@/components/ficha-producto/PanelDelTaller";
 import type { PuertaDeLaFicha } from "@/lib/ficha-consumo-datos";
+import type { CostoEnLaFicha } from "@/lib/costo-tallas-reglas";
 import { SeccionFicha } from "@/components/ficha-producto/SeccionFicha";
 import { PreciosPorSede } from "@/components/ficha-producto/PreciosPorSede";
 import type { Tienda } from "@/components/ficha-producto/PrecioSedeModal";
@@ -314,6 +315,7 @@ export function ProductoForm({
   producto,
   volverA = "/productos",
   nombreProveedor,
+  costoEnLaFicha,
 }: {
   categorias: Categoria[];
   /** Vocabulario de colores activo, con familia y sinónimos (lo mismo que ve el alta). */
@@ -363,6 +365,8 @@ export function ProductoForm({
   volverA?: string;
   /** Cómo lo llama el proveedor (ADR-0556). `undefined` = la base todavía no tiene la columna: la fila no se dibuja. */
   nombreProveedor?: string | null;
+  /** Costos (ADR-0631): cuánto cuesta hoy cada prenda y la última compra de cada talla gris. Ausente en el alta. */
+  costoEnLaFicha?: CostoEnLaFicha | null;
 }) {
   const router = useRouter();
   const editando = !!producto;
@@ -532,6 +536,8 @@ export function ProductoForm({
     puedeCorregir,
     ajusteStock,
     precioFijoEn: preciosSede?.soloAqui ? (preciosSede.tiendas[0]?.nombre ?? "") : null,
+    costo: veCosto ? (costoEnLaFicha ?? null) : null,
+    productoId: producto?.id ?? null,
   };
 
   // «Para completar esta ficha» (ADR-0284 c): lo que le falta a la prenda para estar completa. Solo guía; guardar no depende de esto.
@@ -880,7 +886,7 @@ export function ProductoForm({
   /** El precio de la tienda que la terminal escribió en la tabla (Felipe 2026-10-27). Va después del guardado de la prenda, con la misma
    *  firma. Devuelve la frase para el aviso de éxito; `null` si no había nada; `false` si falló (ya avisó; lo escrito sigue en la tabla
    *  y «Revisar y guardar» lo vuelve a intentar). `"responsable"`: quien firma ya no está de turno, la hoja sigue abierta. */
-  async function guardarPrecioAqui(supabase: ReturnType<typeof createClient>, firma: NonNullable<ReturnType<typeof stock.responsable.firma>>, nombrePrenda: string) {
+  async function guardarPrecioAqui(supabase: ReturnType<typeof createClient>, firma: ReturnType<typeof stock.responsable.firma>, nombrePrenda: string) {
     if (!producto || !tiendaTerminal || (cambioAqui.que !== "poner" && cambioAqui.que !== "quitar")) return null;
     const corto = nombreCorto(tiendaTerminal.nombre);
     const { error } = await firmar(
@@ -928,14 +934,15 @@ export function ProductoForm({
     // Solo se tocó el precio de la tienda (en una terminal): no hay nada de la prenda que mandar (ni versión que subir, ni
     // historial que escribir).
     if (resumen.total === 0) {
-      const firmaAqui = cambioAqui.que === "nada" ? null : stock.responsable.firma();
-      if (cambioAqui.que !== "nada" && !firmaAqui) {
+      // Se pregunta `listo`, no si hay firma: una terminal con firma de respaldo (ADR-0454, Caja y Almacén de Lima) está lista y no
+      // manda firma (la base firma sola a nombre del respaldo). Preguntar por la firma la bloqueaba con «Elige quién hace estos cambios».
+      if (cambioAqui.que !== "nada" && !stock.responsable.listo) {
         avisar.error(stock.responsable.motivo ?? "Elige quién hace estos cambios.", { enfocar: "confirmar-cambios-responsable" });
         return false;
       }
       setLoading(true);
       const cerrarProceso = avisar.proceso(`Guardando el precio de ${referencia.trim()}…`);
-      const fraseAqui = firmaAqui ? await guardarPrecioAqui(createClient(), firmaAqui, referencia.trim()) : null;
+      const fraseAqui = cambioAqui.que !== "nada" ? await guardarPrecioAqui(createClient(), stock.responsable.firma(), referencia.trim()) : null;
       if (fraseAqui === false || fraseAqui === "responsable") {
         cerrarProceso();
         setLoading(false);
@@ -948,11 +955,12 @@ export function ProductoForm({
       terminarGuardado(referencia.trim(), fraseAqui ? [fraseAqui] : [], false, 0, 0, filas);
       return true;
     }
-    const firma = stock.responsable.firma();
-    if (!firma) {
+    // `listo`, no la firma: con firma de respaldo (ADR-0454) no hay firma que mandar y aun así se puede guardar.
+    if (!stock.responsable.listo) {
       avisar.error(stock.responsable.motivo ?? "Elige quién hace estos cambios.", { enfocar: "confirmar-cambios-responsable" });
       return false;
     }
+    const firma = stock.responsable.firma();
     // Lo que dirá el aviso de éxito, tomado ANTES de que el guardado toque nada.
     const hecho = resumen.frasesPasado;
 
@@ -1597,6 +1605,7 @@ export function ProductoForm({
                   productoId={producto.id}
                   valor={nombreProveedor}
                   firma={() => stock.responsable.firma()}
+                  listo={stock.responsable.listo}
                   motivoSinFirma={stock.responsable.motivo}
                 />
               </div>
@@ -1877,6 +1886,8 @@ export function ProductoForm({
                       deshabilitado={loading}
                       campoFijo={vista === "costo" ? "costo" : "precio"}
                       admitePrecioCero={!!categoriaActual?.admitePrecioCero}
+                      igualar={ctx.costo?.igualar ?? null}
+                      origenUltima={ctx.costo?.prenda?.ultima.origen}
                     />
                   </div>
                 ) : undefined

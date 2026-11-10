@@ -62,6 +62,9 @@ no se toca aquí (ver «Qué se descartó» y el backlog).
 
 ## SE ROMPE SI
 
+> **Actualización 2026-11-07 (ADR-0627):** con la cola de fusión obligatoria, el árbol de `main` es el que probó la cola, así
+> que la premisa se cumple aunque «Require branches to be up to date» esté apagado. Lo de abajo vale si la cola se apaga.
+
 Alguien **apaga «Require branches to be up to date»** en el ruleset `main-protegida` (Settings ▸ Rules). Entonces un PR puede
 fusionarse sin haber corrido sobre el `main` actual, el árbol de `main` deja de ser el que se probó, y este ADR se queda
 sin su premisa: hay que revertir `verificar != 'no'` y el `alcance=nada` del push (volver a `completo` + `si` siempre). El CI

@@ -7,16 +7,15 @@ import type { ColumnaCascada } from "@/lib/estados-flujo";
 function Columna({ c, i }: { c: ColumnaCascada; i: number }) {
   const p = useParte(c.clave, c.nombre);
   return (
-    <button type="button" className="estados-cc" data-total={c.total || undefined} style={{ "--i": i, "--c": c.color } as CSSProperties} {...p}>
-      <span className="estados-cc-plano">
-        <span className="estados-cc-col" style={{ bottom: `${c.abajo}%`, height: `${c.alto}%` }} />
-        <span className="estados-cc-val tabular-nums" data-signo={c.total ? undefined : c.texto.startsWith("−") ? "menos" : "mas"} style={{ bottom: `calc(${c.abajo + c.alto}% + 6px)` }}>
-          {c.texto}
-        </span>
-        {c.enlace !== null && <span className="estados-cc-enlace" style={{ bottom: `${c.enlace}%` }} />}
-      </span>
+    <span role="img" className="estados-cc" data-total={c.total || undefined} style={{ "--i": i, "--c": c.color } as CSSProperties} {...p}>
       <span className="estados-cc-nombre">{c.nombre}</span>
-    </button>
+      <span className="estados-cc-val tabular-nums" data-signo={c.total ? undefined : c.texto.startsWith("−") ? "menos" : "mas"}>
+        {c.texto}
+      </span>
+      <span className="estados-cc-plano">
+        <span className="estados-cc-col" style={{ left: `${c.abajo}%`, width: `${c.alto}%` }} />
+      </span>
+    </span>
   );
 }
 

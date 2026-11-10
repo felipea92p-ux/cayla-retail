@@ -90,12 +90,16 @@ import {
   type ParadaDelConteo,
   type TipoDeModelo,
   modelosDelGrupo,
+  categoriasConLoQueYaEntro,
   yaEnStockDelEnvio,
 } from "@/lib/recepcion-modelos-reglas";
 import { borradorDeTallas, mismasVariantes, modoDeTallas, modosAlCambiar, tablaParaElNumero, tallasListas, type BorradorTallas, type ModoDeTallas } from "@/lib/recepcion-tallas-reglas";
 import { EditarModelo } from "./EditarModelo";
 import { QuitarModelo } from "./QuitarModelo";
+import { YaExisteLaPrenda } from "./YaExisteLaPrenda";
 import { NuevoModelo, type ModeloPedido } from "./NuevoModelo";
+import type { ProveedorDeLaLista } from "./ProveedorNuevoRecepcion";
+import type { MarcaRegistrada } from "./MarcaNuevaRecepcion";
 import { ElegirQuienCuenta } from "./ElegirQuienCuenta";
 import { ListaDelEnvio } from "./CategoriasAcordeon";
 import { AnotarObservacion, ObservacionesAnotadas } from "./ObservacionesDeLinea";
@@ -126,6 +130,8 @@ type Hoja =
   | { tipo: "salida-hecha"; resultado: ResultadoDeSalida; nombre: string }
   | { tipo: "corregir-salida"; salida: SalidaDelEnvio }
   | { tipo: "crear"; grupo: string; nueva: { cantidad: number; descripcion: string; porDefecto: boolean; nota: string | null }; parada: string }
+  // Antes de crear: lo contado como nuevo puede ser una prenda que ya existe.
+  | { tipo: "existe"; grupo: string; nueva: { cantidad: number; descripcion: string; porDefecto: boolean; nota: string | null }; parada: string }
   // «¿Qué llegó?» o, con su categoría, el «+»: otro modelo para contar aparte.
   | { tipo: "modelo"; categoria: string | null }
   | { tipo: "editar"; parada: string }
@@ -172,6 +178,9 @@ export function ContarEnvio({
   esperandoGuardar,
   onSalida,
   onPrendaVista,
+  proveedoresDirectorio = [],
+  onProveedorNuevo,
+  onMarcaNueva,
   onEscribir,
   sinGuardar = 0,
   onReintentar,
@@ -209,6 +218,11 @@ export function ContarEnvio({
   onSalida: () => void;
   /** Recuerda una prenda ya leída (con sus tallas y colores), para no volver a buscarla. */
   onPrendaVista: (p: PrendaRecepcion) => void;
+  /** Sin aviso: todo el directorio, para decir quién trae una marca nueva (ADR-0635). */
+  proveedoresDirectorio?: readonly ProveedorDeLaLista[];
+  /** Se creó un proveedor o una marca en esta visita: la pantalla los suma a sus listas. */
+  onProveedorNuevo?: (p: ProveedorDeLaLista) => void;
+  onMarcaNueva?: (r: MarcaRegistrada) => void;
   onEscribir: (linea: LineaParaContar, cambio: Partial<Borrador>) => void;
   /** Cuántas líneas no se pudieron guardar, en todo el envío. */
   sinGuardar?: number;
@@ -274,8 +288,8 @@ export function ContarEnvio({
     setAlternadas((a) => new Set([...a].filter((k) => k !== focoVisto.categoria && k !== categoriaEnFoco)));
   }
   const enAhora = new Set(Object.entries(modos).filter(([, m]) => m === "ahora").map(([k]) => k));
-  const categorias = categoriasEnOrden(categoriasDelFiltro(grupos, filtro, parada?.clave ?? null, enAhora), orden);
-  const paradas = categorias.flatMap((c) => c.paradas);
+  const categoriasDelConteo = categoriasEnOrden(categoriasDelFiltro(grupos, filtro, parada?.clave ?? null, enAhora), orden);
+  const paradas = categoriasDelConteo.flatMap((c) => c.paradas);
   const { anterior, siguiente } = vecinosDeLaParada(paradas, parada?.clave ?? null);
   const opciones = opcionesDelFiltro(grupos, filtro);
   const cifras = cifrasDelResumen(todas, enAhora);
@@ -441,7 +455,7 @@ export function ContarEnvio({
     const m = p.modelo;
     if (!m) return;
     if (modo === "ahora" && !m.productoId) {
-      setHoja({ tipo: "crear", grupo: p.grupo.clave, nueva: { cantidad: m.contadas, descripcion: m.nombre, porDefecto: m.porDefecto, nota: m.nota }, parada: p.clave });
+      setHoja({ tipo: "existe", grupo: p.grupo.clave, nueva: { cantidad: m.contadas, descripcion: m.nombre, porDefecto: m.porDefecto, nota: m.nota }, parada: p.clave });
       return;
     }
     const sep = prendaSeparada(p);
@@ -603,7 +617,7 @@ export function ContarEnvio({
   // La prenda de la hoja se guarda en la línea de la compra que la anotó (de ahí salen su precio sugerido y su costo).
   const lineaDeHoja =
     grupoDeHoja && hoja && "grupo" in hoja
-      ? lineaDeLaPrenda(grupoDeHoja, hoja.tipo === "crear" ? { descripcion: hoja.nueva.descripcion } : { productoId: hoja.original.productoId })
+      ? lineaDeLaPrenda(grupoDeHoja, hoja.tipo === "crear" || hoja.tipo === "existe" ? { descripcion: hoja.nueva.descripcion } : { productoId: hoja.original.productoId })
       : null;
   const categoriaDeHoja = grupoDeHoja?.principal.categoria ? (catalogo?.categorias.find((c) => c.id === grupoDeHoja.principal.categoria?.id) ?? null) : null;
 
@@ -622,17 +636,24 @@ export function ContarEnvio({
       vivo = false;
     };
   }, [detalle.id, nRecibidos]);
+  // Lo que ya entró al stock va en su categoría (Felipe 2026-11-07): buscando, una categoría escondida vuelve si lo suyo coincide.
+  const yaEntro = categoriasConLoQueYaEntro(
+    categoriasDelConteo,
+    todas,
+    yaEnStockDelEnvio(detalle.recibidos, todas.flatMap((c) => c.grupos.flatMap(modelosDelGrupo))).map((y) => ({ ...y, salida: ultimaSalidaDe(salidas, y.prenda) })),
+    filtro,
+  );
 
   return (
     <div className="rc-conteo">
       {reabierto && (
         <Aviso tono="info" titulo="Reabriste el envío">
-          Cuenta solo lo nuevo y vuelve a cerrarlo. Lo que ya entró al stock sale con candado, abajo a la izquierda, y desde ahí se corrige.
+          Cuenta solo lo nuevo y vuelve a cerrarlo. Lo que ya entró al stock sale en su categoría, marcado «En stock», y desde ahí se corrige.
         </Aviso>
       )}
       {proveedorPorConfirmar && (
         <p className="nota-cayla text-sm">
-          <b className="text-tinta">Proveedor por confirmar.</b> Cuenta igual: al cerrar eliges de quién llegó (pregúntale a Compras).
+          <b className="text-tinta">Algo no dice de quién es.</b> Cuenta igual: al cerrar eliges el proveedor de esa marca (pregúntale a Compras). Lo demás lo dice su marca.
         </p>
       )}
       {/* Lo primero al entrar: sin un responsable la base rechaza todo guardado (ElegirQuienCuenta). */}
@@ -641,9 +662,11 @@ export function ContarEnvio({
 
       <div ref={mesa} className="rc-mesa">
         <ListaDelEnvio
-            yaEnStock={yaEnStockDelEnvio(detalle.recibidos, categorias.flatMap((c) => c.grupos.flatMap(modelosDelGrupo))).map((y) => ({ ...y, salida: ultimaSalidaDe(salidas, y.prenda) }))}
-            onCorregirSalida={(s) => setHoja({ tipo: "corregir-salida", salida: s })}
-          categorias={categorias}
+          yaEnStock={yaEntro.porCategoria}
+          sueltos={yaEntro.sueltos}
+          colores={catalogo?.colores ?? []}
+          onCorregirSalida={(s) => setHoja({ tipo: "corregir-salida", salida: s })}
+          categorias={yaEntro.categorias}
           enFoco={parada}
           alternadas={alternadas}
           sinAviso={sinAviso}
@@ -848,6 +871,10 @@ export function ContarEnvio({
           sinAviso={sinAviso}
           catalogo={catalogo}
           proveedores={proveedores}
+          proveedoresDirectorio={proveedoresDirectorio}
+          responsable={responsable}
+          onProveedorNuevo={onProveedorNuevo}
+          onMarcaNueva={onMarcaNueva}
           errorDelGuardado={errores["extra:0"] ?? null}
           onCrear={crearModelo}
           onIrA={elegir}
@@ -895,10 +922,24 @@ export function ContarEnvio({
         />
       )}
 
+      {hoja?.tipo === "existe" && grupoDeHoja?.principal.categoria && (
+        <YaExisteLaPrenda
+          categoria={grupoDeHoja.principal.categoria}
+          marca={marcaDeLinea(grupoDeHoja.principal)}
+          nombre={hoja.nueva.porDefecto ? null : hoja.nueva.descripcion}
+          cantidad={hoja.nueva.cantidad}
+          costo={null}
+          comoCorregirMarca="Si la marca anotada está mal, quita este modelo y agrégalo de nuevo con su marca."
+          onUsar={(prenda) => prendaDeLaNueva(grupoDeHoja, hoja.parada, hoja.nueva.descripcion, prenda)}
+          onCrear={() => setHoja({ ...hoja, tipo: "crear" })}
+          onCerrar={() => setHoja(null)}
+        />
+      )}
+
       {hoja?.tipo === "crear" && grupoDeHoja?.principal.categoria && lineaDeHoja && (
         <HojaPrenda
           // Lo escrito al contar ya llena la hoja, igual que con «Crear ahora» de «Para después». Un nombre provisional («Blusa 1») no: aquí se le pone el de verdad.
-          destino={{ ...destinoDe(detalle, lineaDeHoja, "nueva", null, proveedores.length), nombreEscrito: hoja.nueva.porDefecto ? null : hoja.nueva.descripcion, nota: hoja.nueva.nota, descripcionOrden: sinAviso ? null : (lineaDeHoja.linea?.descripcion ?? null) }}
+          destino={{ ...destinoDe(detalle, lineaDeHoja, "nueva", null, proveedores.length, sinAviso), nombreEscrito: hoja.nueva.porDefecto ? null : hoja.nueva.descripcion, nota: hoja.nueva.nota, descripcionOrden: sinAviso ? null : (lineaDeHoja.linea?.descripcion ?? null) }}
           categoria={categoriaDeHoja}
           colores={catalogo?.colores ?? []}
           vocabulario={catalogo?.vocabulario ?? null}
@@ -918,7 +959,7 @@ export function ContarEnvio({
 
       {hoja?.tipo === "prenda" && grupoDeHoja?.principal.categoria && lineaDeHoja && (
         <HojaPrenda
-          destino={{ ...destinoDe(detalle, lineaDeHoja, hoja.modo, hoja.prenda, proveedores.length), pedidas: hoja.pedidas }}
+          destino={{ ...destinoDe(detalle, lineaDeHoja, hoja.modo, hoja.prenda, proveedores.length, sinAviso), pedidas: hoja.pedidas }}
           categoria={categoriaDeHoja}
           colores={catalogo?.colores ?? []}
           vocabulario={catalogo?.vocabulario ?? null}
@@ -953,7 +994,7 @@ function estadoDelGrupo(lineas: readonly LineaParaContar[], guardados: Readonly<
 }
 
 /** A dónde va la hoja de la prenda («Es nueva» / «+ talla o color») desde una línea del conteo. */
-function destinoDe(detalle: DetalleEnvio, l: LineaParaContar, modo: "nueva" | "agregar", prenda: PrendaRecepcion | null, nProveedores: number): DestinoHoja {
+function destinoDe(detalle: DetalleEnvio, l: LineaParaContar, modo: "nueva" | "agregar", prenda: PrendaRecepcion | null, nProveedores: number, sinAviso = false): DestinoHoja {
   return {
     modo,
     despachoId: detalle.id,
@@ -965,6 +1006,7 @@ function destinoDe(detalle: DetalleEnvio, l: LineaParaContar, modo: "nueva" | "a
     precioSugerido: l.linea?.precioVentaSugerido ?? null,
     costoUnitario: l.conteo?.costoUnitario ?? l.linea?.costoUnitario ?? null,
     prenda,
-    proveedorId: !l.linea && nProveedores >= 2 ? (l.proveedor?.id ?? null) : null,
+    // Lo de fuera de la guía lleva el proveedor de su línea: con dos o más en el envío, o sin aviso, donde cada línea es de su proveedor (Felipe 2026-11-07).
+    proveedorId: !l.linea && (nProveedores >= 2 || sinAviso) ? (l.proveedor?.id ?? null) : null,
   };
 }

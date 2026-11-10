@@ -21,6 +21,7 @@ export async function getResumenFinanzas(pedido: { ubicacionId: string | null; s
   // Los sueldos estimados se piden A LA VEZ que el resumen (ADR-0583): antes se esperaba a que el resumen terminara para saber su mes, y
   // eso sumaba una espera entera. El mes es el de hoy en Lima, el mismo que usa la base; si justo a medianoche no coinciden, se piden otra vez.
   const mes = hoyLima().slice(0, 7);
+  const inicio = Date.now();
   const [{ data, error }, provision] = await Promise.all([
     supabase.rpc("fn_resumen_finanzas" as never, { p_ubicacion_id: pedido.ubicacionId, p_solo_empresa: pedido.soloEmpresa } as never),
     getProvisionPlanilla(rangoMes(mesAnterior(mes)).desde, rangoMes(mes).hasta, pedido.ubicacionId),
@@ -29,7 +30,18 @@ export async function getResumenFinanzas(pedido: { ubicacionId: string | null; s
     capturarError("finanzas.resumen", error);
     return { datos: null, falla: explicarFallaLectura(error, "leer el resumen") };
   }
-  return { datos: await conSueldosEstimados(leerResumen(data), pedido.ubicacionId, { mes, filas: provision }), falla: null };
+  const resumen = leerResumen(data);
+  anotarTiempos(resumen, Date.now() - inicio);
+  return { datos: await conSueldosEstimados(resumen, pedido.ubicacionId, { mes, filas: provision }), falla: null };
+}
+
+/**
+ * Cuánto tardó cada pieza de `fn_resumen_finanzas` en la base (lo mide ella misma, `ms`), en UNA línea de los logs del servidor
+ * (2026-11-09, el pico de memoria de Resumen): así se ve con tráfico real qué pieza pesa más, sin pedirle a producción permisos que no da
+ * (`track_functions` está apagado). Solo cifras: ni la sede ni la persona. Se busca con `vercel logs --query finanzas_resumen_ms`.
+ */
+function anotarTiempos(r: ResumenFinanzas, totalMs: number): void {
+  console.info(JSON.stringify({ evento: "finanzas_resumen_ms", total_ms: totalMs, todas: r.ver.todas, ...r.ms }));
 }
 
 /**

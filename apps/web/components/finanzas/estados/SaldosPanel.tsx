@@ -1,6 +1,6 @@
 import { Chip } from "@/components/ui/Chip";
 import { Superficie } from "@/components/finanzas/kit";
-import { soles } from "@/lib/flujo-caja-reglas";
+import { solesCentimos } from "@/lib/flujo-caja-reglas";
 import { balanzaCuadra, gruposDeSaldos, type SaldoCuenta } from "@/lib/contador-reglas";
 import { mesNombre } from "@/lib/resultados-reglas";
 
@@ -8,7 +8,7 @@ import { mesNombre } from "@/lib/resultados-reglas";
 // Cada cuenta con su saldo al empezar, el debe y el haber del mes y su saldo al cerrar, agrupadas por tipo con su total; al pie, si cuadra.
 // Aquí sí van las cuentas: es el cuadro del contador.
 
-const cifra = (v: number) => (Math.round(v) === 0 ? "—" : soles(v));
+const cifra = (v: number) => (Math.round(v) === 0 ? "—" : solesCentimos(v));
 
 export function SaldosPanel({ saldos, mes }: { saldos: SaldoCuenta[]; mes: string }) {
   const grupos = gruposDeSaldos(saldos);
@@ -79,10 +79,10 @@ export function SaldosPanel({ saldos, mes }: { saldos: SaldoCuenta[]; mes: strin
               </td>
               <td className="fin-num" data-l="Al empezar" />
               <td className="fin-num" data-l="Debe">
-                <b>{soles(total("debe"))}</b>
+                <b>{solesCentimos(total("debe"))}</b>
               </td>
               <td className="fin-num" data-l="Haber">
-                <b>{soles(total("haber"))}</b>
+                <b>{solesCentimos(total("haber"))}</b>
               </td>
               <td className="fin-num" data-l="Al cerrar" />
             </tr>

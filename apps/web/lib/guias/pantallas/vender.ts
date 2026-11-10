@@ -81,7 +81,7 @@ export const GUIA_PUNTO_DE_VENTA: Guia = {
       ...CAJA_ABIERTA,
       preparar: [{ tipo: "vaciar", ancla: "vender.buscador" }],
       titulo: "Prenda sin registrar",
-      texto: "Para la prenda que llegó sin etiqueta. Te pide categoría, talla y color; si en el piso hay una igual del sistema, «Es esta» la cobra como siempre. Si no, pones el precio (te dice cuánto cuestan las de esa categoría y, si te sales, te pide confirmar) y Almacén la registra después. En la demo no lo tocamos.",
+      texto: "Para la prenda que no puedes escanear. Primero dices por qué (la pistola no la lee, no tiene etiqueta, el sistema dice que no hay…); después categoría, talla y color. Si en el piso hay una igual, «Es esta» la cobra como siempre; si no, pones el precio y Almacén la registra después. En la demo no lo tocamos.",
     },
     {
       id: "ver-catalogo",
@@ -234,6 +234,14 @@ export const GUIA_PUNTO_DE_VENTA: Guia = {
       ...CAJA_ABIERTA,
       titulo: "¿Cómo paga?",
       texto: "Toca cómo paga el cliente: efectivo, tarjeta, Yape o QR. Si paga con dos, toca los dos y escribe cuánto va en cada uno; el otro se queda con el resto.",
+    },
+    {
+      id: "cobro-numero",
+      ancla: "vender.cobro-numero",
+      opcional: true,
+      ...CAJA_ABIERTA,
+      titulo: "¿A qué número paga?",
+      texto: "Donde conviven dos marcas, si paga con Yape o Plin aquí sale a qué número mandarlo: lo de CLAURE va al número de Claudia y lo de CAYLA, al QR o a su número.",
     },
     {
       id: "cobro-recibe",

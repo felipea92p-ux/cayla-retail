@@ -47,6 +47,12 @@ export type FilaER = {
    * Oficina Trujillo (OTRU): sin esto, quien no ve a OTRU en ninguna columna supone que está dentro de la tienda de Trujillo. Vacío si no hay estimación.
    */
   planillaPorSede: PlanillaDeSede[];
+  /**
+   * El IGV que traen las ventas de esta columna según `fn_igv_de_las_ventas` (ADR-0624, «regla pareja»): es de SUNAT y el resultado no lo cuenta. Solo sirve para PRESENTAR
+   * lo cobrado arriba de «Lo que vendiste» (`ventas + igvCobrado`); no cambia ninguna cifra. No es `igvVentas`, que suma también los adelantos. Sin esto (no se pidió o no se
+   * pudo leer), la pantalla no dibuja esas filas.
+   */
+  igvCobrado?: number;
 };
 
 /** Lo que una sede de Dynamic aporta a la planilla provisionada de una columna. Nunca una persona: solo cuántas y cuánto. */
@@ -340,6 +346,15 @@ export function avisosER(columnas: readonly FilaER[], enCurso: boolean): AvisoER
   }
   return out;
 }
+
+/** ¿Esta cuenta ve la planilla en Dynamic? `null` si no se sabe (la lectura falló o no hay filas): no se afirma ni una cosa ni la otra. */
+export function veLaPlanilla(lectura: { datos: readonly Pick<FilaER, "planillaVisible">[]; falla: string | null }): boolean | null {
+  if (lectura.falla || !lectura.datos.length) return null;
+  return lectura.datos.some((f) => f.planillaVisible);
+}
+
+/** Lo mismo en la pantalla y en la primera línea de cada archivo (tarea 23; ocultar la planilla es a propósito, ADR-0133; callarlo, no). */
+export const AVISO_SIN_SUELDOS = "Sin sueldos: esta cuenta no ve la planilla en Dynamic, así que estas cifras no la restan.";
 
 // ---- De dónde sale cada cifra ---------------------------------------------------------------------------------------------
 

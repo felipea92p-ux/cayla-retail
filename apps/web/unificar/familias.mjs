@@ -736,6 +736,7 @@ export const DECISIONES = {
     "deuda": [],
     "excepciones": [
       { "archivo": "app/estilos/finanzas.css", "motivo": "ADR-0195: el CSS del kit de Finanzas (su comentario nombra la tabla del spike)" },
+      { "archivo": "components/finanzas/estados/InformeEstado.tsx", "motivo": "Estados financieros, camino «A · El informe» (Felipe 2026-11-06): un estado contable con sus columnas comparadas y sus subtotales, no un listado de registros" },
       { "archivo": "components/vistas-config/VistaMetas.tsx", "motivo": "ADR-0195/ADR-0435: las tarjetas de metas por mes y por fecha son de Configuración ▸ Metas y usan la tabla del kit de Finanzas (fin-tabla), como sus vecinas" },
       { "archivo": "components/GastosFijosYActivos.tsx", "motivo": "ADR-0195: la tabla del kit de Finanzas (fin-tabla), decidida a propósito; Felipe no la unió en la ronda 7" },
       { "archivo": "components/GastosPanel.tsx", "motivo": "ADR-0195: la tabla del kit de Finanzas (fin-tabla), decidida a propósito; Felipe no la unió en la ronda 7" },
@@ -827,7 +828,7 @@ export const DECISIONES = {
       "components/alta-producto/MatrizVariantes.tsx",
       "components/alta-producto/piezas.tsx",
       "components/asistente/Acompanante.tsx",
-      "components/asistente/Asistente.tsx",
+      "components/asistente/CajonAsistente.tsx",
       "components/clientas/PaginaLegalClub.tsx",
       "components/clientas/club-piezas.tsx",
       "components/ficha-producto/ImprimirLoQueEntro.tsx",

@@ -38,7 +38,7 @@ import { EnviosParaRecibir } from "@/components/recepcion-envio/EnviosParaRecibi
 import { getEnviosAMedias, getPorRecibirEnLaSede } from "@/lib/recepcion-envio";
 import { diasAMedias, DIAS_PARA_RESALTAR, textoDeEnvioAMedias } from "@/lib/recepcion-salida-reglas";
 import { getConteosDelEnvio, recibirContandoDisponible } from "@/lib/recepcion-conteo";
-import { esEnvioSinAviso, proveedorDelSinAviso } from "@/lib/recepcion-conteo-reglas";
+import { esEnvioSinAviso, marcasDelSinAviso, proveedorDelSinAviso } from "@/lib/recepcion-conteo-reglas";
 import { LlegoSinAviso } from "@/components/recepcion-conteo/LlegoSinAviso";
 import { PendientesDeRecibir } from "@/components/recepcion-conteo/PendientesDeRecibir";
 import { RecibidoEnLaSede } from "@/components/recepcion-conteo/RecibidoEnLaSede";
@@ -276,9 +276,14 @@ export default async function RecibirPage({ searchParams }: { searchParams: Prom
     // fila dice lo de siempre.
     const aMedias = contando.disponible ? await getEnviosAMedias(persona.ubicacionId) : [];
     const sinAvisoAbiertos = contando.disponible ? (deOrdenes?.envios ?? []).filter(esEnvioSinAviso) : [];
-    const proveedoresSinAviso = Object.fromEntries(
-      await Promise.all(sinAvisoAbiertos.map(async (e) => [e.id, proveedorDelSinAviso((await getConteosDelEnvio(e.id)).conteos)] as const)),
-    );
+    const conteosSinAviso = new Map(await Promise.all(sinAvisoAbiertos.map(async (e) => [e.id, (await getConteosDelEnvio(e.id)).conteos] as const)));
+    const proveedoresSinAviso = Object.fromEntries([...conteosSinAviso].map(([id, c]) => [id, proveedorDelSinAviso(c)] as const));
+    // La marca bajo el proveedor (Felipe 2026-11-07): la base la manda por las líneas del envío; uno sin aviso no tiene líneas, así que se
+    // toma de lo que ya se contó.
+    const porRecibirEnLaSede = deOrdenes && {
+      ...deOrdenes,
+      envios: deOrdenes.envios.map((e) => (conteosSinAviso.has(e.id) ? { ...e, marcas: marcasDelSinAviso(conteosSinAviso.get(e.id) ?? null) } : e)),
+    };
     // Lo recibido en la sede es la misma tarjeta en las dos caras de la puerta (la de ADR-0393 y la de «Llegó mercadería»); «Por terminar» solo
     // existe si la base ya cuenta lo que quedó por terminar (la cara de ADR-0393).
     const loRecibido = (
@@ -312,15 +317,13 @@ export default async function RecibirPage({ searchParams }: { searchParams: Prom
           <AvisoTrasladosEnCamino traslados={trasladosHaciaAca(trasladosDeLaSede, persona.ubicacionId)} sedeNombre={persona.ubicacionEtiqueta} veTraslados={veModulo(persona, "traslados")} />
           <SinAvisoProvider>
           {deOrdenes && (
-            <EnviosParaRecibir envios={deOrdenes.envios} ordenes={deOrdenes.ordenes} sede={persona.ubicacionEtiqueta} porCategoria proveedoresSinAviso={proveedoresSinAviso} accionTitulo={<AccionSinAviso />} />
+            <EnviosParaRecibir envios={porRecibirEnLaSede?.envios ?? []} ordenes={deOrdenes.ordenes} sede={persona.ubicacionEtiqueta} porCategoria proveedoresSinAviso={proveedoresSinAviso} accionTitulo={<AccionSinAviso />} />
           )}
           <LlegoSinAviso
             key={claveDeLaRecepcion(persona.ubicacionId)}
             ubicacionId={persona.ubicacionId}
             ubicacionEtiqueta={persona.ubicacionEtiqueta}
             proveedores={proveedores.map((p) => ({ id: p.id, nombre: p.nombre, ruc: p.ruc, rubros: p.rubros, marcas: marcas?.[p.id] ?? [] }))}
-            rubrosEnUso={rubrosEnUso}
-            puedeAgregarProveedor={puedeAgregarProveedor}
             facturas={facturasDeLaSede}
             hayListaArriba={(deOrdenes?.envios.length ?? 0) + (deOrdenes?.ordenes.length ?? 0) > 0}
           />

@@ -25,6 +25,7 @@ import { useFlip } from "@/lib/useFlip";
 import { Vacio } from "@/components/ui/Vacio";
 import { Casilla } from "@/components/ui/Casilla";
 import { FiltroPuesto } from "@/components/ui/FiltrosPuestos";
+import { prefiereQuieto } from "@/lib/movimiento-cliente";
 
 // Lista de Por pagar (maqueta 02 y celular de la 11). UNA tabla partida en tramos de urgencia
 // —Vencidas, Vencen esta semana, Más adelante— o, si se prefiere, agrupada por proveedor (para
@@ -85,7 +86,7 @@ function contar(n: number): string {
   return `${n.toLocaleString("es-PE")} ${n === 1 ? "comprobante" : "comprobantes"}`;
 }
 
-const reducido = () => typeof window !== "undefined" && !!window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+const reducido = () => typeof window !== "undefined" && !!prefiereQuieto();
 
 export function PorPagarLista({
   compras,

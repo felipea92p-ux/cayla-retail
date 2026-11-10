@@ -1,0 +1,5 @@
+# 2026-11-07 · Cuadrar las máquinas con el extracto de Interbank Empresas (ADR-0629, Fase B)
+
+- **Qué pasó:** Felipe no podía cuadrar «Por depositar Izipay» y «Por depositar Vendemás»: la pantalla les pedía el saldo de un banco que no tienen («Nunca se cuadró») y las dos máquinas depositan en Interbank Empresas. Ninguna máquina tenía banco elegido; se fijó Interbank Empresas en las dos (`guardar_banco_de_maquina`, a nombre de Felipe, con su OK).
+- **Arreglo:** las puentes salen de «Cuadrar con el banco» y aparece «Lo que te deben las máquinas»; «Subir extracto» lee el .txt de Interbank, empareja los lotes de Vendemás y el Izipay pago por pago (migración `20261108023000`, sin pegar) y registra lo que llegó. Felipe descartó la decisión 1 del ADR-0630 (cuadrar Izipay con su Excel): la fuente es el extracto del banco.
+- **Pendiente:** pegar `20261108023000` con el OK de Felipe; `/chaos` de la hoja del extracto; seis suites de dinero tienen el `debeFallar` que se traga su propio aviso (P0001), así que sus frenos P0001 no prueban nada (ver backlog).

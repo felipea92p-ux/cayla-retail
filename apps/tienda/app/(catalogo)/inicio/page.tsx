@@ -6,19 +6,14 @@ import { EscenarioDelDesfile } from "@/components/desfile/EscenarioDelDesfile";
 import { FilaDeCategorias } from "@/components/FilaDeCategorias";
 import { HeroeDelInicio } from "@/components/HeroeDelInicio";
 import { Icono } from "@/components/Icono";
-import { OutfitUnico } from "@/components/looks/OutfitUnico";
-import { TarjetaLook } from "@/components/looks/TarjetaLook";
 import { MarcoCatalogo } from "@/components/MarcoCatalogo";
 import { NuestrasTiendas } from "@/components/NuestrasTiendas";
-import { OfertasPorCampana } from "@/components/OfertasPorCampana";
 import { SeccionClub } from "@/components/SeccionClub";
 import { TarjetaPrenda } from "@/components/TarjetaPrenda";
 import { leerCatalogo } from "@/lib/catalogo-servidor";
 import {
-  campanasDe,
   filtrarYOrdenar,
   hrefLista,
-  leerCampana,
   type Prenda,
 } from "@/lib/catalogo";
 import { leerMiCuentaEnBase } from "@/lib/cuentas-servidor";
@@ -34,47 +29,37 @@ import { heroDelInicio, lasEnVitrina, lasNuevas } from "@/lib/inicio";
 import { avisoAlEntrar, avisosDeRespuestas } from "@/lib/inicio-aviso";
 import { avisosVistos, leerAvisosDelClub } from "@/lib/inicio-aviso-servidor";
 import { leerMisRecomendaciones } from "@/lib/recomendaciones-servidor";
-import { hrefLooks } from "@/lib/looks";
-import { leerLooks } from "@/lib/looks-servidor";
 import { leerPortada } from "@/lib/portada-servidor";
-import { anioLima, fechaCorta, pctTexto } from "@/lib/portada";
+import { anioLima } from "@/lib/portada";
 import { claveDeSede, sedesEnOrden } from "@/lib/sede-elegida";
 import { sedeDeLaPagina } from "@/lib/sede-servidor";
 import { leerSesion } from "@/lib/sesion-servidor";
 import { hayEnTienda, notaDeStock } from "@/lib/stock";
 import { leerSedes } from "@/lib/tiendas-servidor";
 import "../../estilos/tiendas.css";
-import "../../estilos/looks.css";
 import "../../estilos/inicio.css";
 
 export const metadata: Metadata = { title: "Inicio · CAYLA" };
 
 type Props = { searchParams: Promise<Record<string, string | string[] | undefined>> };
 
-/** El Inicio con la tienda elegida (`?sede=`) y, si se eligió, la campaña de las ofertas (`?oferta=`). */
-const hrefInicio = (sede: string | null, oferta: string | null = null) => {
-  const q = new URLSearchParams();
-  if (sede) q.set("sede", sede);
-  if (oferta) q.set("oferta", oferta);
-  const s = q.toString();
-  return s ? `/inicio?${s}` : "/inicio";
-};
+/** El Inicio con la tienda elegida (`?sede=`). */
+const hrefInicio = (sede: string | null) => (sede ? `/inicio?${new URLSearchParams({ sede })}` : "/inicio");
 
 // El Inicio de la tienda, para todos (maqueta v4, `vInicio`; sin cuenta desde el 2026-10-17): arriba, si tiene algo del Club a su favor que todavía no cerró, el aviso al
 // entrar (Felipe, 2026-10-14: es adonde se llega al iniciar sesión); el héroe de la campaña vigente (o «Lo nuevo» si no hay), las
-// categorías, Lo nuevo, «Arma tu look» (si hay looks), las ofertas de cada campaña, los más vendidos (sin cifras), cómo se separa, el Club
-// y nuestras tiendas. Todo respeta la tienda elegida en «Ver lo que hay en»: el precio es el de esa tienda y, si hay una elegida, solo
+// categorías, el banner «Arma tu outfit», Lo nuevo, los más vendidos (sin cifras), el Club, nuestras tiendas y cómo se separa (orden
+// del rediseño Premium, 2026-11-07; sin «Outfits listos» ni «Las ofertas», que tienen su página). Todo respeta la tienda elegida en «Ver lo que hay en»: el precio es el de esa tienda y, si hay una elegida, solo
 // sale lo que hay en ella. Una sola lectura del catálogo (`tienda_catalogo` ya trae Lo nuevo y el puesto en Más vendidos); se lee en
 // cada visita.
 export default async function Inicio({ searchParams }: Props) {
   const sp = await searchParams;
   const sedes = sedesEnOrden(await leerSedes());
   const pedida = await sedeDeLaPagina(sp, sedes, "/inicio", claveDeSede);
-  const [catalogo, { campana }, sesion, lecturaLooks, puntosDelClub] = await Promise.all([
+  const [catalogo, { campana }, sesion, puntosDelClub] = await Promise.all([
     leerCatalogo(pedida?.id ?? null),
     leerPortada(),
     leerSesion(),
-    leerLooks(pedida?.id ?? null),
     leerConfigDePuntosDelClub(),
   ]);
   const [lectura, avisosDelClub, mias, vistos] =
@@ -94,8 +79,6 @@ export default async function Inicio({ searchParams }: Props) {
   // Sin sesión el Inicio es el mismo (Felipe 2026-10-17): lo que cambia es que «Así se separa» y el Club invitan a crear la cuenta.
   const conSesion = sesion.estado !== "sin_sesion";
   const aviso = avisos ? avisoAlEntrar(avisos, vistos) : null;
-  // Sin looks (o si la base no los dio), la sección no sale.
-  const looks = lecturaLooks?.looks ?? [];
 
   // La tienda cuyo precio usó la base (si la escondieron entretanto, la base ya respondió con «Todas»).
   const elegida = catalogo?.sede ? sedes.find((s) => s.id === catalogo.sede) ?? null : null;
@@ -116,11 +99,9 @@ export default async function Inicio({ searchParams }: Props) {
   const nuevas = lasNuevas(prendas);
   // Sin nada que llegara hace menos de 30 días el programa sigue (Felipe 2026-10-27): lista lo que hay en la tienda, el mismo orden del desfile.
   const delPrograma = nuevas.length > 0 ? nuevas : lasEnVitrina(prendas);
-  const ofertas = filtrarYOrdenar(prendas, { categoria: null, orden: "destacado", lista: "ofertas" });
-  const campanas = campanasDe(prendas);
-  const ofertaElegida = campanas.find((c) => c.id === leerCampana(sp.oferta)) ?? null;
-  const grillaDe = (lista: Prenda[]) =>
-    lista.slice(0, 8).map((p) => <TarjetaPrenda key={p.id} prenda={p} sede={sede} origenFotos={origenFotos} nota={nota(p)} diseno={diseno} />);
+  // En «Lo nuevo» no se repite «Nuevo» en cada tarjeta (como en la lista del catálogo, `sinNuevo`).
+  const grillaDe = (lista: Prenda[], sinNuevo = false) =>
+    lista.slice(0, 8).map((p) => <TarjetaPrenda key={p.id} prenda={p} sede={sede} origenFotos={origenFotos} nota={nota(p)} sinNuevo={sinNuevo} diseno={diseno} />);
   // Filas completas (de a 4 en la computadora, de a 2 en el celular): 5 vendidos dejarían una prenda sola en la última fila.
   const todosLosVendidos = filtrarYOrdenar(prendas, { categoria: null, orden: "destacado", lista: "vendidos" }).slice(0, 8);
   const vendidos = todosLosVendidos.length >= 4 ? todosLosVendidos.slice(0, todosLosVendidos.length - (todosLosVendidos.length % 4)) : todosLosVendidos;
@@ -188,63 +169,11 @@ export default async function Inicio({ searchParams }: Props) {
                   <Icono nombre="flecha" />
                 </Link>
               </div>
-              <div className="t-grilla">{grillaDe(delPrograma)}</div>
+              <div className="t-grilla">{grillaDe(delPrograma, nuevas.length > 0)}</div>
             </section>
           )}
-          {looks.length > 0 && (
-            <section className="t-sec t-ancho" aria-labelledby="arma-tu-look">
-              <div className="t-sec-cab" data-revela>
-                <div>
-                  <h2 id="arma-tu-look">
-                    Arma tu <em>outfit</em>
-                  </h2>
-                </div>
-                <Link className="t-ver" href={hrefLooks(sede)}>
-                  Ver todos
-                  <Icono nombre="flecha" />
-                </Link>
-              </div>
-              {looks.length === 1 ? (
-                <OutfitUnico look={looks[0]} sede={sede} origenFotos={origenFotos} />
-              ) : (
-                <div className="t-looks-inicio" data-revela-lista>
-                  {looks.slice(0, 3).map((l) => (
-                    <TarjetaLook key={l.id} look={l} sede={sede} origenFotos={origenFotos} />
-                  ))}
-                </div>
-              )}
-            </section>
-          )}
-
-          {ofertas.length > 0 && (
-            <section className="t-ofertas" id="ofertas" aria-labelledby="las-ofertas">
-              <div className="t-ancho">
-                <OfertasPorCampana
-                  inicial={ofertaElegida?.id ?? null}
-                  titulo={
-                    <div>
-                      <h2 id="las-ofertas">
-                        Las <em>ofertas</em>
-                      </h2>
-                    </div>
-                  }
-                  campanas={[
-                    { id: null, nombre: "Todas", hasta: null, cuantas: ofertas.length, href: `${hrefInicio(sede)}#ofertas`, verTodas: lista("ofertas"), grilla: grillaDe(ofertas) },
-                    ...campanas.map((c) => ({
-                      id: c.id,
-                      nombre: `${c.nombre} −${pctTexto(c.pct)} %`,
-                      hasta: c.hasta ? `hasta ${fechaCorta(c.hasta)}` : null,
-                      cuantas: c.cuantas,
-                      href: `${hrefInicio(sede, c.id)}#ofertas`,
-                      verTodas: lista("ofertas", c.id),
-                      grilla: grillaDe(ofertas.filter((p) => p.campana?.id === c.id)),
-                    })),
-                  ]}
-                />
-              </div>
-            </section>
-          )}
-
+          {/* «Outfits listos» y «Las ofertas» no van en el Inicio (Felipe, 2026-11-07: demasiada información para la primera pantalla):
+              las dos siguen a un toque en el menú («Outfits», «Ofertas») y en el pie. */}
           {vendidos.length > 0 && (
             <section className="t-sec t-ancho" aria-labelledby="mas-vendidos">
               <div className="t-sec-cab" data-revela>
@@ -252,6 +181,7 @@ export default async function Inicio({ searchParams }: Props) {
                   <h2 id="mas-vendidos">
                     Más <em>vendidos</em>
                   </h2>
+                  {elegida && <p>Lo que más se llevan en {elegida.nombre}.</p>}
                 </div>
                 <Link className="t-ver" href={lista("vendidos")}>
                   Ver todo <Icono nombre="flecha" />
@@ -270,7 +200,6 @@ export default async function Inicio({ searchParams }: Props) {
         </>
       )}
 
-      <AsiSeSepara conCuenta={conSesion} />
       <SeccionClub
         nombre={cuenta?.nombre ?? null}
         desde={cuenta?.clubDesde ?? anioLima()}
@@ -285,6 +214,8 @@ export default async function Inicio({ searchParams }: Props) {
           ver={Object.fromEntries(sedes.map((s) => [s.id, { href: hrefInicio(claveDeSede(s.nombre)), actual: elegida?.id === s.id }]))}
         />
       )}
+      {/* Cómo se separa, al final (rediseño Premium): es lo que se lee antes de decidir, después de ver las prendas y las tiendas. */}
+      <AsiSeSepara conCuenta={conSesion} />
     </MarcoCatalogo>
   );
 }

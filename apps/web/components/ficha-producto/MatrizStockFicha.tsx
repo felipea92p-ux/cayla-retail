@@ -15,10 +15,14 @@ import { nivelMargen } from "@/lib/alta-producto";
 import { fondoDeColor } from "@/components/ui/MuestraColor";
 import { limpiarPrecio } from "@/lib/tabla-alta-reglas";
 import { margenDeFila, textosCostoFijo, type CampoBloque, type FilaFicha } from "@/lib/variantes-ficha-reglas";
-import { armarMatriz, etiquetaCambiada, rangoDePrecios, totalesMatriz, type Hueco } from "@/lib/matriz-ficha-reglas";
+import { armarMatriz, etiquetaCambiada, rangoEnDosLineas, totalesMatriz, type Hueco } from "@/lib/matriz-ficha-reglas";
+import { cuentaDeLaTalla, fraseCostoPrenda } from "@/lib/costo-tallas-reglas";
+import { Ayuda } from "@/components/Ayuda";
+import { EnlaceVer } from "@/components/ui/EnlaceVer";
 import type { ContextoFicha } from "./piezas";
 import type { StockFicha } from "./useStockFicha";
 import { PasoCantidad } from "@/components/ui/PasoCantidad";
+import { prefiereQuieto } from "@/lib/movimiento-cliente";
 
 // La matriz color × talla de Editar producto, con el diseño de «Unidades de hoy» de Nuevo producto (`MatrizCantidades`, Felipe
 // 2026-10-02 noche): la misma tabla con cabecera, franja y punto del color, filas alternadas y la fila «Total» fija abajo.
@@ -170,7 +174,7 @@ export function MatrizStockFicha({
   function cambiarVista(v: VistaMatriz) {
     onVista(v);
     if (v !== "etiquetas" || vista === "etiquetas") return;
-    const quieto = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const quieto = prefiereQuieto();
     window.setTimeout(() => raiz.current?.scrollIntoView({ behavior: quieto ? "auto" : "smooth", block: "start" }), 40);
   }
 
@@ -217,8 +221,9 @@ export function MatrizStockFicha({
   // (`precioAqui`), y «Cambiar en bloque» no sale (escribir en una talla ya las cambia todas).
   const precioFijo = ctx.precioFijoEn != null;
 
-  /** Lo que dice la columna de la derecha en la fila de un color, según la pestaña. */
-  function resumenDeFila(c: string | null, delColor: readonly FilaFicha[]): string {
+  /** Lo que dice la columna de la derecha en la fila de un color, según la pestaña. Precio y costo, sin «S/» y en dos líneas si
+   *  varían («45» / «a 48»): la columna mide 60 px y «S/ 45–48» se cortaba (Short Sohanna, 2026-11-07). */
+  function resumenDeFila(c: string | null, delColor: readonly FilaFicha[]): ReactNode {
     if (enUnidades) return stock.cargando ? "…" : String(totales.porColor.get(c) || "");
     if (enEtiquetas) {
       if (!etiquetaElegida) return "";
@@ -227,8 +232,17 @@ export function MatrizStockFicha({
     const montos = delColor
       .map((f) => Number(vista === "precio" ? (precioAqui && f.guardada ? precioAqui.valor(f) : f.precio) : f.costo))
       .filter((x) => x > 0);
-    return montos.length > 0 ? rangoDePrecios(montos) : "—";
+    if (montos.length === 0) return "—";
+    const r = rangoEnDosLineas(montos);
+    return (
+      <span className="flex flex-col leading-tight" title={r.hasta ? `De ${r.desde} ${r.hasta}` : undefined}>
+        <span>{r.desde}</span>
+        {r.hasta && <span>{r.hasta}</span>}
+      </span>
+    );
   }
+  // Costos (ADR-0631): cuánto cuesta hoy cada prenda, la misma cifra del Historial ▸ Costo. Sin compras, o sin permiso, no se dice.
+  const costoPrenda = ctx.costo?.prenda ? fraseCostoPrenda(ctx.costo.prenda) : null;
 
   if (m.colores.length === 0) return <p className="text-sm text-taupe">Esta prenda no tiene variantes activas. Agrega un color.</p>;
 
@@ -259,10 +273,33 @@ export function MatrizStockFicha({
               : "El precio de la prenda vale en todas las tiendas: desde esta terminal se ve, no se cambia."
             : "Escribe el precio de cada talla, o cambia varias de una vez aquí abajo. Lo que cambió se ve en ámbar hasta guardarlo."}
         </p>
-        <p className={`col-start-1 row-start-1 ${vista === "costo" ? "" : "invisible"}`} aria-hidden={vista !== "costo"}>
-          {costosTodosFijos ? "El costo de cada talla, con su margen debajo. " : "Escribe el costo de cada talla; debajo, el margen. "}
-          {filas.some((f) => f.activo && f.costoFijo) ? `${textosCostoFijo(ctx.costoSinComprobar).nota} Se ve sin caja.` : ""}
-        </p>
+        <div className={`col-start-1 row-start-1 space-y-1 ${vista === "costo" ? "" : "invisible"}`} aria-hidden={vista !== "costo"}>
+          {costoPrenda && (
+            // Una sola frase que corre (no piezas que se parten en renglones): la cifra, lo que la explica y el enlace al final.
+            <p data-guia="editar.costo-prenda" className="text-sm text-taupe">
+              {costoPrenda.cifra && (
+                <>
+                  <span className="text-tinta/80">Cada prenda te cuesta hoy </span>
+                  <span className="font-semibold tabular-nums text-tinta">{costoPrenda.cifra}</span>
+                  {" · "}
+                </>
+              )}
+              {costoPrenda.detalle}
+              {ctx.productoId && (
+                <>
+                  {" "}
+                  <EnlaceVer href={`/productos/${ctx.productoId}/historial?ver=costo`} className="ml-1 align-baseline">
+                    Ver la historia del costo
+                  </EnlaceVer>
+                </>
+              )}
+            </p>
+          )}
+          <p>
+            {costosTodosFijos ? "El costo de cada talla, con su margen debajo. " : "Escribe el costo de cada talla; debajo, el margen. "}
+            {filas.some((f) => f.activo && f.costoFijo) ? textosCostoFijo(ctx.costoSinComprobar).nota : ""}
+          </p>
+        </div>
         <p className={`col-start-1 row-start-1 ${enEtiquetas ? "" : "invisible"}`} aria-hidden={!enEtiquetas}>
           Elige una etiqueta abajo y toca cada talla para ponérsela o quitársela (✓ = la lleva), o ponla en todas. Se guarda con «Revisar y guardar».
         </p>
@@ -694,10 +731,14 @@ export function MatrizStockFicha({
       );
     }
     if (campo === "costo" && f.costoFijo) {
+      // El «?» dice de dónde sale (ADR-0631): la última compra de la talla si su cuenta termina en este costo; si no (la base sin la
+      // función, sin permiso o algo lo movió después), el porqué en palabras. Nunca solo al pasar el mouse (ley 6 de /formidable).
+      const porque = (f.id ? cuentaDeLaTalla(ctx.costo?.tallas?.[f.id], Number(valor)) : null) ?? textosCostoFijo(ctx.costoSinComprobar).celda;
       return (
         <>
-          <span className="px-1 text-[13px] tabular-nums text-tinta/60" title={textosCostoFijo(ctx.costoSinComprobar).celda}>
+          <span className="px-1 text-[13px] tabular-nums text-tinta/60">
             {texto(valor)}
+            <Ayuda titulo={`Costo de ${etiqueta}`}>{porque}</Ayuda>
           </span>
           {margenBajo(f)}
         </>

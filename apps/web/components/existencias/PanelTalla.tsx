@@ -19,6 +19,8 @@ import { AroSemanas } from "@/components/existencias/AroSemanas";
 import { navegacionSinEspera } from "@/components/ui/Espera";
 import { FlujoTalla } from "@/components/existencias/FlujoTalla";
 import { soltarPaginaEstable } from "@/components/ui/PaginaEstable";
+import { fotoQueDistingue } from "@/lib/color-estampado-reglas";
+import { MuestraEstampado } from "@/components/ui/MuestraEstampado";
 import { BandaAjustar, ListoDelAjuste, PieDelAjuste, PlanillaDelAjuste, TalonDelAjuste, useTopeDeLaPlanilla } from "@/components/existencias/AjusteDelModelo";
 import { useAjusteDelModelo, type AjusteGuardado } from "@/components/existencias/useAjusteDelModelo";
 import { anchoDelModalAlAjustar, lugarInicial } from "@/lib/existencias-ajuste-modelo";
@@ -38,6 +40,7 @@ import { esRafaga, MS_ENTRE_TECLAS } from "@/lib/existencias-pistola";
 import { urlRotulos } from "@/lib/rotulos-reglas";
 import type { FilaExistencias } from "@/lib/inventario-v2";
 import { FOTO_PANEL_TALLA } from "@/lib/fotos-tamanos";
+import { prefiereQuieto } from "@/lib/movimiento-cliente";
 
 type Vista = "talla" | "todas";
 type Prenda = PrendaAgrupada<FilaExistencias>;
@@ -314,7 +317,7 @@ export function PanelTalla({
   useEffect(() => {
     const origen = fotoDesdeRef.current;
     const destino = fotoGrandeRef.current;
-    if (!origen || !destino || !origen.isConnected || window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return;
+    if (!origen || !destino || !origen.isConnected || prefiereQuieto()) return;
     // La hoja entra con un transform (sube 18 px y crece al 96,5 %): el cuadro final de la foto se mide sin él.
     const hoja = destino.closest<HTMLElement>("[data-variante]");
     const animacion = hoja?.style.animation ?? "";
@@ -521,7 +524,7 @@ export function PanelTalla({
     // etiquetas (como en Editar producto), y si solo se restó, de vuelta a la talla. Con movimiento reducido, sin espera.
     setFocoAjuste(null);
     setSellando(r);
-    const quieto = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+    const quieto = prefiereQuieto();
     window.setTimeout(
       () => {
         setSellando(null);
@@ -823,6 +826,11 @@ export function PanelTalla({
                             style={{ background: c.colorHex ?? "var(--color-hueso)" }}
                             className="relative h-[30px] w-[30px] rounded-full border-2 border-papel shadow-[0_0_0_1px_var(--color-sand)] aria-checked:shadow-[0_0_0_2px_var(--color-tinta)]"
                           >
+                            {c.colorEstampado && fotoQueDistingue(c.fotoUrl, colores.map((x) => x.fotoUrl)) && (
+                              <span className="absolute inset-0 overflow-hidden rounded-full">
+                                <MuestraEstampado fotoUrl={c.fotoUrl!} hex={c.colorHex} />
+                              </span>
+                            )}
                             {punto && <i aria-hidden className={`absolute -right-1 -top-1 h-3 w-3 rounded-full border-2 border-papel ${punto}`} />}
                           </button>
                         );
@@ -903,6 +911,10 @@ export function PanelTalla({
                   />
                 ) : flujo?.tipo === "ajustar" ? (
                   <PlanillaDelAjuste
+                    fotoDelEstampado={(color) => {
+                      const c = colores.find((x) => x.color === color);
+                      return c?.colorEstampado ? fotoQueDistingue(c.fotoUrl, colores.map((x) => x.fotoUrl)) : null;
+                    }}
                     // Al cambiar de lugar la planilla empieza de nuevo: «Revisaste» y el aviso son de lo contado en un lugar.
                     key={ajuste.ubicado}
                     control={ajuste}

@@ -45,6 +45,9 @@ import { EnvioCerrado } from "./EnvioCerrado";
 import { PapelesDeLaCompra } from "./PapelesDeLaCompra";
 import { Trayecto } from "@/components/recepcion-envio/Trayecto";
 import { etapaDelEnvio } from "@/lib/trayecto-envio-reglas";
+import { conAltas, conMarca, conProveedor, SIN_ALTAS, type AltasDeLaVisita } from "@/lib/recepcion-altas-reglas";
+import type { ProveedorDeLaLista } from "./ProveedorNuevoRecepcion";
+import type { MarcaRegistrada } from "./MarcaNuevaRecepcion";
 
 // «Recibir ENV-000061» contando primero (ADR-0393, la cara A; maqueta `docs/maquetas/recibir-fardo-2026-10/a-camino.html`). Tres pasos:
 // ¿Qué llegó? (en camino: «Empezar a recibir»), Contar (por categoría: un número por línea y, si se quiere, qué prendas son) y Cerrar (lo que
@@ -89,12 +92,12 @@ export function RecibirContando({
   catalogo: CatalogoParaRecibir | null;
   lotes: string[];
   veExistencias: boolean;
-  /** Ve el dinero de Compras: en un envío sin aviso, solo así escribe el costo (ADR-0330). */
+  /** Ve el dinero de Compras: decide «Corregir proveedor». El costo de lo que se recibe ya no depende de esto (`poneCosto`, 20261107194000). */
   veDinero: boolean;
   /** Una terminal: el precio de venta que se cambia al cerrar vale solo en su sede («Todas las sedes» no se ofrece). */
   soloSede?: boolean;
-  /** Un envío sin aviso que llegó sin saber de quién (Felipe 2026-10-14): los proveedores para elegir al cerrar. */
-  proveedoresParaElegir?: readonly { id: string; nombre: string }[];
+  /** Un envío sin aviso (Felipe 2026-10-14): los proveedores para elegir al cerrar y para una marca nueva (ADR-0635). */
+  proveedoresParaElegir?: readonly ProveedorDeLaLista[];
   /** Los papeles de lo comprado desde el celular, con su foto (ADR-0480): se cuenta mirándolos. */
   papeles?: ComponentProps<typeof PapelesDeLaCompra>["papeles"];
 }) {
@@ -127,6 +130,13 @@ export function RecibirContando({
   const [prendas, setPrendas] = useState<ReadonlyMap<string, PrendaRecepcion>>(() => new Map());
   const recordarPrenda = useCallback((p: PrendaRecepcion) => setPrendas((m) => (m.get(p.productoId) === p ? m : new Map(m).set(p.productoId, p))), []);
   const temporizadores = useRef(new Map<string, ReturnType<typeof setTimeout>>());
+
+  // Lo creado en esta visita (ADR-0635): proveedores y marcas nuevos entran a las listas sin esperar a que la página relea.
+  const [altas, setAltas] = useState<AltasDeLaVisita>(SIN_ALTAS);
+  const catalogoVivo = useMemo(() => conAltas(catalogo, altas), [catalogo, altas]);
+  const proveedoresVivos = useMemo(() => [...proveedoresParaElegir, ...altas.proveedores.filter((a) => !proveedoresParaElegir.some((p) => p.id === a.id))], [proveedoresParaElegir, altas.proveedores]);
+  const sumarProveedor = useCallback((p: ProveedorDeLaLista) => setAltas((a) => conProveedor(a, p)), []);
+  const sumarMarca = useCallback((r: MarcaRegistrada) => setAltas((a) => conMarca(a, r)), []);
 
   const base = releidos ?? conteosDeLaBase;
   const conteos: ConteosDelEnvio | null = useMemo(() => {
@@ -312,8 +322,13 @@ export function RecibirContando({
   // Cancelar la recepción (ADR-0605): un envío sin aviso, abierto y sin nada en el stock (también reabierto: lo que frena es el stock). Uno de Compras o uno cerrado no lo ofrecen.
   const sePuedeCancelar = estado === "abierto" && sinAviso && lineas.every((l) => (l.conteo?.enStock ?? 0) === 0) && !otraSede && !noLoRecibe;
   // Corregir de quién llegó: sin aviso, ya con proveedor, y solo quien ve el dinero de Compras.
-  const proveedorActual = sinAviso ? (base?.proveedores[0] ?? null) : null;
+  // Corregir es para un envío de UN proveedor (Felipe 2026-11-07): con varios, cada marca ya tiene el suyo y no hay un «proveedor del envío» que cambiar.
+  const proveedorActual = sinAviso && base?.proveedores.length === 1 ? base.proveedores[0] : null;
   const sePuedeCorregirProveedor = !!proveedorActual && veDinero && (estado === "abierto" || estado === "cerrado") && !otraSede && !noLoRecibe;
+  // El costo de lo que se recibe lo pone quien recibe, también una terminal (Felipe 2026-11-07: «el costo y el precio siempre deben salir juntos, incluso en las
+  // cuentas de terminales»; 20261107194000). Las piezas de abajo lo reciben como `veDinero`, que ahí solo decide el costo; «Corregir proveedor», arriba, sigue
+  // siendo de quien ve el dinero de Compras.
+  const poneCosto = true;
   const accionesDelEnvio = [
     ...(sePuedeCorregirProveedor ? [{ clave: "proveedor", etiqueta: "Corregir el proveedor", onSelect: () => setCorrigiendo(true) }] : []),
     ...(sePuedeCancelar ? [{ clave: "cancelar", etiqueta: "Cancelar recepción", peligro: true, onSelect: () => setCancelando(true) }] : []),
@@ -420,7 +435,7 @@ export function RecibirContando({
       {estado === "abierto" && !otraSede && !noLoRecibe && paso !== 3 && (
         <ContarEnvio
           onCancelarRecepcion={sePuedeCancelar ? () => setCancelando(true) : undefined}
-          veDinero={veDinero}
+          veDinero={poneCosto}
           veExistencias={veExistencias}
           esperandoGuardar={pendientesDeGuardar}
           onSalida={() => void releer()}
@@ -430,7 +445,7 @@ export function RecibirContando({
           sinAviso={sinAviso}
           proveedorPorConfirmar={base?.proveedorPorConfirmar ?? false}
           reabierto={reabierto}
-          catalogo={catalogo}
+          catalogo={catalogoVivo}
           responsable={responsable}
           guardados={guardados}
           errores={errores}
@@ -438,6 +453,9 @@ export function RecibirContando({
           papeles={conPapel ? papeles : []}
           alSubirFoto={subirFotoDelPapel}
           onPrendaVista={recordarPrenda}
+          proveedoresDirectorio={proveedoresVivos}
+          onProveedorNuevo={sumarProveedor}
+          onMarcaNueva={sumarMarca}
           onEscribir={escribir}
           sinGuardar={lineasConError.length}
           onReintentar={() => reintentar.current()}
@@ -471,10 +489,10 @@ export function RecibirContando({
           generacion={base?.cierres.length ?? 0}
           sede={sedeActual.etiqueta}
           responsable={responsable}
-          veDinero={veDinero}
+          veDinero={poneCosto}
           soloSede={soloSede}
-          proveedorPorConfirmar={base?.proveedorPorConfirmar ?? false}
-          proveedores={proveedoresParaElegir}
+          proveedores={proveedoresVivos}
+          onProveedorNuevo={sumarProveedor}
           esperandoGuardar={pendientesDeGuardar}
           onVolver={(clave, decisiones) => {
             setVolverA(clave ?? null);
@@ -499,14 +517,14 @@ export function RecibirContando({
           detalle={detalle}
           lineas={lineas}
           conteos={conteos}
-          catalogo={catalogo}
+          catalogo={catalogoVivo}
           lotes={lotes}
           veExistencias={veExistencias}
           responsable={responsable}
           prendas={prendas}
           soloSede={soloSede}
           sinAviso={sinAviso}
-          veDinero={veDinero}
+          veDinero={poneCosto}
           onPrendaVista={recordarPrenda}
           onCambio={() => void releer()}
           onReabierto={() => {
@@ -522,7 +540,7 @@ export function RecibirContando({
         <CorregirProveedor
           detalle={detalle}
           actual={proveedorActual}
-          proveedores={proveedoresParaElegir}
+          proveedores={proveedoresVivos}
           responsable={responsable}
           onCorregido={() => {
             setCorrigiendo(false);

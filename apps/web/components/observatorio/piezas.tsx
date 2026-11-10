@@ -11,6 +11,7 @@
 import { createContext, useContext, useEffect, useId, useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { formatoSoles } from "@/lib/resumen-formato";
 import { formatoVariacionObs } from "@/lib/observatorio-reglas";
+import { useQuieto } from "@/lib/useQuieto";
 
 export type Formato = "s" | "n" | "p" | "v" | "d";
 
@@ -44,17 +45,8 @@ export const ObsCtx = createContext<ContextoObs>({
 
 export const useObs = () => useContext(ObsCtx);
 
-export function useReducido(): boolean {
-  const [reducido, setReducido] = useState(false);
-  useEffect(() => {
-    const m = window.matchMedia("(prefers-reduced-motion: reduce)");
-    const cambiar = () => setReducido(m.matches);
-    cambiar();
-    m.addEventListener("change", cambiar);
-    return () => m.removeEventListener("change", cambiar);
-  }, []);
-  return reducido;
-}
+/** Animaciones apagadas o el aparato pide menos movimiento (ADR-0625). */
+export const useReducido = useQuieto;
 
 // ── Arranque: lo que crece desde cero al aparecer ─────────────────────────────────────────────────────────────────────
 

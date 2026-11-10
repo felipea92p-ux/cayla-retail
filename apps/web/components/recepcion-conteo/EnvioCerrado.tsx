@@ -1,5 +1,6 @@
 "use client";
 
+import { LoQueEntro } from "./LoQueEntro";
 import { useState } from "react";
 import { Layers, List, ListChecks, Package, RotateCcw, Sparkles } from "lucide-react";
 import { TituloSeccion } from "@/components/ui/TituloSeccion";
@@ -8,7 +9,7 @@ import { Chip } from "@/components/ui/Chip";
 import { diaYHoraLima } from "@/lib/fechas-lima";
 import type { ControlResponsable } from "@/lib/useResponsable";
 import { buenasDeRecibidos, CAUSAS_FALTANTE, CAUSAS_SOBRANTE, despuesDeRecibirEnvio, textoCausa, type CatalogoParaRecibir, type DetalleEnvio, type PrendaRecepcion } from "@/lib/recepcion-envio-reglas";
-import { BOTON_DE_PENDIENTE, cifrasDelEnvio, paraDespues, textoNoSeReabre, veredictoDelCerrado, prendasQueEntraron, type ConteosDelEnvio, type LineaParaContar, type ParaDespues } from "@/lib/recepcion-conteo-reglas";
+import { BOTON_DE_PENDIENTE, cifrasDelEnvio, paraDespues, textoNoSeReabre, veredictoDelCerrado, type ConteosDelEnvio, type LineaParaContar, type ParaDespues } from "@/lib/recepcion-conteo-reglas";
 import { HacerAhora } from "./HacerAhora";
 import { Lacre } from "./Lacre";
 import { Odometro } from "./Odometro";
@@ -59,13 +60,29 @@ export function EnvioCerrado({
   onReabierto: () => void;
 }) {
   const [haciendo, setHaciendo] = useState<ParaDespues | null>(null);
+  // Al pasar un modelo a su categoría cambia de línea: se relee el envío y, cuando la lista ya lo trae en la línea nueva, se sigue con él. `crear`: la persona pidió crearla.
+  // En una línea del aviso el modelo no cambia de línea: cambia la línea misma, así que también se sigue cuando su categoría o su marca ya no son las de antes (`huellaAntes`).
+  const [seguir, setSeguir] = useState<{ pendienteId: string; lineaAntes: string; huellaAntes: string; crear: boolean } | null>(null);
+  const [creando, setCreando] = useState(false);
   const [reabriendo, setReabriendo] = useState(false);
   const cifras = cifrasDelEnvio(lineas);
   const lista = paraDespues(lineas);
+  const huellaDe = (clave: string) => {
+    const l = lineas.find((x) => x.clave === clave);
+    return `${l?.categoria?.id ?? ""}|${l?.marca?.id ?? ""}`;
+  };
+  const movido = seguir
+    ? lista.find((p) => p.tipo !== "separar" && p.pendiente.id === seguir.pendienteId && (p.linea !== seguir.lineaAntes || huellaDe(p.linea) !== seguir.huellaAntes))
+    : undefined;
+  if (seguir && movido) {
+    setSeguir(null);
+    setCreando(seguir.crear);
+    setHaciendo(movido);
+  }
   // Qué dice el envío sobre el stock: listas para etiquetar o, si nada entró, por qué y qué lo resuelve (formidable 2026-10-13, cambio 1).
   const veredicto = veredictoDelCerrado(lineas, lista);
   const buenas = buenasDeRecibidos(detalle.recibidos);
-  const acciones = despuesDeRecibirEnvio({ lotes, buenas, unidades: cifras.enStock, unidadesBuenas: buenas.reduce((a, b) => a + b.cantidad, 0), veExistencias });
+  const acciones = despuesDeRecibirEnvio({ lotes, envioId: detalle.id, buenas, unidades: cifras.enStock, unidadesBuenas: buenas.reduce((a, b) => a + b.cantidad, 0), veExistencias });
   const diferencias = (detalle.diferencias ?? []).filter((d) => d.cantidad > 0);
   const cuando = detalle.cerradoEn ? diaYHoraLima(detalle.cerradoEn) : null;
   const reabrir = conteos?.reabrir ?? null;
@@ -114,17 +131,8 @@ export function EnvioCerrado({
       <section className="card-cayla space-y-3 p-4 sm:p-5" aria-label="Ya en el stock">
         <TituloSeccion dato={veredicto.chip ? <Chip tono={veredicto.chip.tono}>{veredicto.chip.texto}</Chip> : undefined}>{veredicto.titulo}</TituloSeccion>
         <p className="text-sm text-taupe">{veredicto.texto}</p>
-        {cifras.enStock > 0 && (
-          <ul className="flex flex-wrap gap-1.5" aria-label="Lo que ya se puede vender">
-            {prendasQueEntraron(detalle.recibidos).map((p) => (
-              <li key={p.nombre}>
-                <Chip tono="neutro">
-                  {p.nombre} ×{p.cantidad}
-                </Chip>
-              </li>
-            ))}
-          </ul>
-        )}
+        {/* El detalle de lo que entró y de qué imprimir la etiqueta (Felipe 2026-11-07); antes eran chips «Blusa Amancae ×5». */}
+        {cifras.enStock > 0 && <LoQueEntro key={detalle.recibidos?.length ?? 0} despachoId={detalle.id} recibidos={detalle.recibidos} />}
         {veredicto.accion && lista.length > 0 && (
           <div data-guia="recepcion.despues" className="flex flex-wrap gap-2.5">
             <Boton type="button" peso="primario" onClick={() => setHaciendo(lista[0])}>
@@ -234,6 +242,7 @@ export function EnvioCerrado({
           detalle={detalle}
           item={haciendo}
           linea={lineas.find((l) => l.clave === haciendo.linea) ?? null}
+          empezarCreando={creando}
           catalogo={catalogo}
           responsable={responsable}
           prendas={prendas}
@@ -241,12 +250,21 @@ export function EnvioCerrado({
           sinAviso={sinAviso}
           veDinero={veDinero}
           onPrendaVista={onPrendaVista}
+          onCategoriaCambiada={(crear) => {
+            if (haciendo.tipo === "separar") return;
+            setSeguir({ pendienteId: haciendo.pendiente.id, lineaAntes: haciendo.linea, huellaAntes: huellaDe(haciendo.linea), crear });
+            setCreando(false);
+            setHaciendo(null);
+            onCambio();
+          }}
           onListo={() => {
+            setCreando(false);
             setHaciendo(null);
             onCambio();
           }}
           // La prenda de un «crear» ya existe aunque no se hayan metido sus tallas: «Para después» se relee para decirlo.
           onCerrar={(huboCambio) => {
+            setCreando(false);
             setHaciendo(null);
             if (huboCambio) onCambio();
           }}

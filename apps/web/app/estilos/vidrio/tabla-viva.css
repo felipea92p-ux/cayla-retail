@@ -98,11 +98,10 @@
   z-index: -1;
   pointer-events: none;
   border-radius: var(--radius-tarjeta);
-  border: 1px solid var(--serena-borde);
-  background: var(--serena-fondo);
-  -webkit-backdrop-filter: var(--serena-filtro);
-  backdrop-filter: var(--serena-filtro);
-  box-shadow: var(--serena-sombra);
+  /* Lo que se desplaza no se desenfoca (ADR-0623): el vidrio claro. La cabecera, que se queda pegada mientras las filas pasan, sí conserva el suyo. */
+  border: 1px solid var(--vidrio-claro-borde);
+  background: var(--vidrio-claro-fondo);
+  box-shadow: var(--vidrio-claro-sombra);
 }
 .tv-tabla[data-cabeza-propia] > .tv-fondo {
   border-top: 0;

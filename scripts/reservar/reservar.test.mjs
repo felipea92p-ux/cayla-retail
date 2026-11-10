@@ -192,6 +192,8 @@ test("revisarLaRama (lo que agregan los candados del CI): mía pasa, de otra ram
     process.env.GITHUB_EVENT_NAME = "push";
     writeFileSync(join(otra, "docs", "adr", `${suyo}-ajeno.md`), "x");
     assert.equal(revisar(otra).errores, 0, "en un push a main no se juzga");
+    process.env.GITHUB_EVENT_NAME = "merge_group";
+    assert.equal(revisar(otra).errores, 0, "en la cola de fusión no se juzga: la rama de la cola no es dueña de nada, el PR ya lo revisó");
   } finally {
     [console.log, console.error] = silencio;
     for (const k of ["GITHUB_BASE_REF", "GITHUB_HEAD_REF", "GITHUB_EVENT_NAME"]) {

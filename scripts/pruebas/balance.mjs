@@ -171,6 +171,8 @@ set local session_replication_role = replica;
 delete from retail.pos_tarifas where maquina_id in (select id from retail.pos_maquinas where nombre ilike 'vendem%');
 set local session_replication_role = origin;
 ${AYUDANTES}
+-- El mundo de esta prueba es de 2024: las mermas asientan desde antes (en producción el corte es el 1-nov-2026, 20261106153000).
+update retail.parametros_finanzas set mermas_asientan_desde = '2000-01-01' where id;
 ${cambiaA(FELIPE)}
 select id as tru from retail.ubicaciones where nombre = 'Tienda Trujillo' \\gset
 select id as lim from retail.ubicaciones where nombre = 'Tienda Lima' \\gset
@@ -366,10 +368,18 @@ select 'N2 un saldo de arranque no se edita ni se borra', (select pg_temp.intent
 const CASOS_DESCUADRE = `
 update retail.venta_pagos set monto = 190 where venta_id = pg_temp.k('V1');
 select pg_temp.entrada_con_costo('PR1', :'p1', :'tru', 3, 40, 'produccion', '2024-03-22 12:00-05');
+-- 20261106234000: la maquila de esas 3 prendas se paga como gasto «Maquila del Taller», que va a la 231 (no al resultado).
+insert into retail.gastos (id, ubicacion_id, categoria, descripcion, fecha, monto_total, igv, medio_pago)
+values (pg_temp.k('GM1'), :'tru', 'maquila', 'Costura de la orden F7', '2024-03-22', 120, 0, 'transferencia');
 create temp table con as select * from retail.fn_conciliacion_contable('2024-03-31');
 select 'N3 un asiento descuadrado: «el diario cuadra» NO, con el asiento y la diferencia (−10)', (select estado = 'no_cuadra' and bloquea and diferencia = -10 and jsonb_array_length(causas) = 1 from con where clave = 'diario');
-select 'N5 prendas de Producción: la mercadería NO cuadra y lo explica (−120: 3 × 40)', (select estado = 'no_cuadra' and diferencia = -120 from con where clave = '201')
-  and (select (causas -> 0 ->> 'clave') = 'produccion' and (causas -> 0 ->> 'monto')::numeric = -120 from con where clave = '201');
+-- 20261106171000: la Producción ya entra al diario (201 contra 231, al costo de la prenda) y deja de ser una causa.
+select 'N5 prendas de Producción: el diario las asienta (201 contra 231, 3 × 40) y la mercadería cuadra', (select estado = 'ok' from con where clave = '201')
+  and (select sum(debe) filter (where cuenta = '201') = 120 and sum(haber) filter (where cuenta = '231') = 120
+         from retail.fn_asientos('2024-03-01', '2024-03-31') where regla = 'produccion');
+select 'N6 la maquila pagada entra a «Productos en proceso» (231) y no al Estado de resultados (gastos de TRU siguen en 45)',
+  (select sum(debe) filter (where cuenta = '231') = 120 from retail.fn_asientos('2024-03-01', '2024-03-31') where regla = 'gasto' and origen_id = pg_temp.k('GM1'))
+  and (select gastos_operacion = 45 from retail.fn_estado_resultados('2024-03-01', '2024-03-31') where ubicacion_id = :'tru');
 `;
 
 // El arranque tiene que cuadrar, y se registra una sola vez (en una base sin arranque: la escena se arma sin registrarlo).
@@ -394,6 +404,49 @@ select 'V3 el Balance se dibuja', (select count(*) > 0 from retail.fn_balance_ge
 update retail.ventas set estado = 'anulada', anulado_en = '2024-03-26 12:00-05', motivo_anulacion = 'prueba' where id = pg_temp.k('VSP');
 create temp table con2 as select * from retail.fn_conciliacion_contable('2024-03-31');
 select 'V4 anulada, ya no hay nada que explicar', (select count(*) = 0 from con2, jsonb_array_elements(causas) c where clave = '201' and c ->> 'clave' = 'venta_sin_prenda');
+`;
+// ADR-0619: un pago del Taller entra al diario (a la 231, o a la 241 si compra insumos) y deja de ser una diferencia de su cuenta.
+const CASOS_PAGO_TALLER = `
+create temp table con0 as select * from retail.fn_conciliacion_contable('2024-03-31');
+create temp table er0 as select * from retail.fn_estado_resultados('2024-03-01', '2024-03-31');
+insert into retail.proveedores_produccion (id, nombre, rubro) values (pg_temp.k('PPT'), 'Ploteos prueba', 'maquila');
+insert into retail.comprobantes_produccion (id, proveedor_id, tipo, serie, numero, fecha_emision, condicion, subtotal, igv, total)
+values (pg_temp.k('CPT'), pg_temp.k('PPT'), 'nota_venta', 'S/P', 'OP-PRUEBA-1', '2024-03-20', 'contado', 88, 0, 88);
+insert into retail.comprobantes_produccion_pagos (id, comprobante_id, fecha, monto, metodo, cuenta_dinero_id)
+values (pg_temp.k('PGT'), pg_temp.k('CPT'), '2024-03-20', 88, 'transferencia', (select id from retail.cuentas_dinero where tipo = 'banco' order by created_at limit 1));
+create temp table con as select * from retail.fn_conciliacion_contable('2024-03-31');
+select 'T1 el pago entra a la 231 y sale de la 104, por el mismo monto', (select sum(debe) filter (where cuenta = '231') = 88 and sum(haber) filter (where cuenta = '104') = 88 and count(*) = 2
+  from retail.fn_asientos('2024-03-01', '2024-03-31') where regla = 'pago_taller');
+select 'T2 la 104 no cambia su diferencia: el diario y Cuentas y dinero bajaron lo mismo', (select c.diferencia = a.diferencia and c.diario = a.diario - 88 from con c join con0 a using (clave) where clave = '104');
+select 'T3 ya no se explica como causa', (select count(*) = 0 from con, jsonb_array_elements(causas) c where c ->> 'clave' in ('pagos_taller', 'taller_cajon'));
+select 'T4 el asiento cuadra solo', (select count(*) = 0 from retail.fn_asientos_descuadrados('2024-03-01', '2024-03-31', null));
+select 'T5 el Estado de resultados no cambia: la ropa pasa a costo al venderse', (select bool_and(e.resultado is not distinct from a.resultado) from retail.fn_estado_resultados('2024-03-01', '2024-03-31') e join er0 a using (unidad, ubicacion_id));
+select 'T6 el Balance sigue cumpliendo la ecuación', (select estado = 'ok' from con where clave = 'ecuacion');
+-- Una compra de tela: su línea es un insumo del catálogo, aunque no venga de una orden de insumos. Va a la 241, de donde sale al cortarla.
+insert into retail.insumos (id, codigo, nombre, tipo, unidad_medida) values (pg_temp.k('INT'), 'T-PAGO-TALLER', 'Tela prueba pago', 'tela', 'metro');
+insert into retail.comprobantes_produccion (id, proveedor_id, tipo, serie, numero, fecha_emision, condicion, subtotal, igv, total)
+values (pg_temp.k('CPI'), pg_temp.k('PPT'), 'nota_venta', 'S/P', 'TELA-1', '2024-03-21', 'contado', 500, 0, 500);
+insert into retail.comprobantes_produccion_items (comprobante_id, insumo_id, cantidad, costo_unitario) values (pg_temp.k('CPI'), pg_temp.k('INT'), 10, 50);
+insert into retail.comprobantes_produccion_pagos (id, comprobante_id, fecha, monto, metodo, cuenta_dinero_id)
+values (pg_temp.k('PGI'), pg_temp.k('CPI'), '2024-03-21', 500, 'transferencia', (select id from retail.cuentas_dinero where tipo = 'banco' order by created_at limit 1));
+select 'T7 la compra de tela va a la 241, no a la 231', (select sum(debe) filter (where cuenta = '241') = 500 and coalesce(sum(debe) filter (where cuenta = '231'), 0) = 0
+  from retail.fn_asientos('2024-03-01', '2024-03-31') where regla = 'pago_taller' and origen_id = pg_temp.k('PGI'));
+-- Un pago sin cuenta: el diario lo ubica por su medio y la diferencia se explica sola, como todo lo que aún no dice a qué cuenta fue.
+insert into retail.comprobantes_produccion (id, proveedor_id, tipo, serie, numero, fecha_emision, condicion, subtotal, igv, total)
+values (pg_temp.k('CPS'), pg_temp.k('PPT'), 'nota_venta', 'S/P', 'OP-PRUEBA-2', '2024-03-22', 'contado', 30, 0, 30);
+insert into retail.comprobantes_produccion_pagos (id, comprobante_id, fecha, monto, metodo) values (pg_temp.k('PGS'), pg_temp.k('CPS'), '2024-03-22', 30, 'transferencia');
+create temp table con3 as select * from retail.fn_conciliacion_contable('2024-03-31');
+select 'T8 un pago sin cuenta sale de la 104 por su medio y queda como causa sin_cuenta', (select count(*) = 1 from retail.fn_asientos('2024-03-01', '2024-03-31') where regla = 'pago_taller' and origen_id = pg_temp.k('PGS') and cuenta = '104' and haber = 30)
+  and (select count(*) = 1 from con3, jsonb_array_elements(causas) c where clave = '104' and c ->> 'clave' = 'sin_cuenta');
+-- Un pago desde un cajón: sale de la 101 y su egreso ya no es una causa.
+insert into retail.comprobantes_produccion (id, proveedor_id, tipo, serie, numero, fecha_emision, condicion, subtotal, igv, total)
+values (pg_temp.k('CPC'), pg_temp.k('PPT'), 'nota_venta', 'S/P', 'OP-PRUEBA-3', '2024-03-23', 'contado', 20, 0, 20);
+insert into retail.caja_movimientos (id, caja_id, tipo, monto, motivo, created_at)
+values (pg_temp.k('CMT'), (select id from retail.cajas where ubicacion_id = :'tru' order by abierta_en desc limit 1), 'egreso', 20, 'Pago a proveedor', '2024-03-23 12:00-05');
+insert into retail.comprobantes_produccion_pagos (id, comprobante_id, fecha, monto, metodo, cuenta_dinero_id, caja_movimiento_id) values (pg_temp.k('PGC'), pg_temp.k('CPC'), '2024-03-23', 20, 'efectivo', (select id from retail.cuentas_dinero where tipo = 'cajon' and ubicacion_id = :'tru' limit 1), pg_temp.k('CMT'));
+create temp table con4 as select * from retail.fn_conciliacion_contable('2024-03-31');
+select 'T9 un pago desde un cajón sale de la 101 y su egreso no queda sin explicar', (select count(*) = 1 from retail.fn_asientos('2024-03-01', '2024-03-31') where regla = 'pago_taller' and origen_id = pg_temp.k('PGC') and cuenta = '101' and haber = 20)
+  and (select count(*) = 0 from con4, jsonb_array_elements(causas) c where clave = '101' and c ->> 'clave' in ('sin_clasificar', 'taller_cajon'));
 `;
 // Lo recibido antes de tener su papel cuenta como recibido (tarea 5): si no, cada papel completado contaría otra vez como «por recibir».
 const CASOS_RECIBIDO_ANTES = `
@@ -483,6 +536,7 @@ function main() {
   verificar("Abril", correr(base + CASOS_ABRIL), casosDe(CASOS_ABRIL));
   verificar("Cuenta nueva", correr(base + CASOS_CUENTA_NUEVA), casosDe(CASOS_CUENTA_NUEVA));
   verificar("Venta sin prenda", correr(base + CASOS_VENTA_SIN_PRENDA), casosDe(CASOS_VENTA_SIN_PRENDA));
+  verificar("Pagos del Taller", correr(base + CASOS_PAGO_TALLER), casosDe(CASOS_PAGO_TALLER));
   verificar("Recibido antes", correr(base + CASOS_RECIBIDO_ANTES), casosDe(CASOS_RECIBIDO_ANTES));
   verificar("Sobrantes antes del corte", correr(base + CASOS_SOBRANTES), casosDe(CASOS_SOBRANTES));
   verificar("Tienda", correr(base + CASOS_TIENDA), casosDe(CASOS_TIENDA));

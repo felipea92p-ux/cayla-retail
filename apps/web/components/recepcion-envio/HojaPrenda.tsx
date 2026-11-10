@@ -23,6 +23,7 @@ import { useGuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
 import { claveCelda, leerErrorAlta, type ColorAlta } from "@/lib/alta-producto";
 import type { ValorVocabulario } from "@/lib/catalogo-v2";
 import { agruparPorFamilia } from "@/lib/colores-familias";
+import { familiaEnCarta } from "@/lib/color-estampado-reglas";
 import { esFalloDeRed, traducirError } from "@/lib/error-escritura";
 import { avisosDelNombre, floresLibres, otrosTipos, tiposDeCategoria } from "@/lib/nombre-de-prenda";
 import { sugerirDescripcion, sugerirNombre } from "@/lib/sugerencias-alta-producto";
@@ -119,7 +120,7 @@ export function HojaPrenda({
   const nueva = destino.modo === "nueva";
   const [coloresCreados, setColoresCreados] = useState<ColorAlta[]>([]);
   const colores = useMemo(() => [...coloresIniciales, ...coloresCreados.filter((c) => !coloresIniciales.some((x) => x.codigo === c.codigo))], [coloresIniciales, coloresCreados]);
-  const grupos = useMemo(() => agruparPorFamilia(colores, (c) => c.familiaColor), [colores]);
+  const grupos = useMemo(() => agruparPorFamilia(colores, familiaEnCarta), [colores]);
   // Lo que se ofreció en la categoría desde esta hoja («Otra talla», «Ver todos»): la lista de la categoría ya lo trae desde ahora.
   const [ofrecidos, setOfrecidos] = useState(SIN_OFRECIDOS);
 

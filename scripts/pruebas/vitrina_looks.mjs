@@ -937,7 +937,7 @@ function main() {
   }
   {
     const r = correr(`${PREPARAR}${ESCENA_PRECIOS}
-      ${MUTAR("retail.tienda_looks(uuid)", "retail.tienda_catalogo(p_sede)", "retail.tienda_catalogo(null)")}
+      ${MUTAR("retail.tienda_looks(uuid)", "v_sede := retail.fn_tienda_sede_elegida(p_sede, v_sedes);", "v_sede := retail.fn_tienda_sede_elegida(null, v_sedes);")}
       select ${DIFERENCIAS("tru")};
       rollback;`);
     esperar("la tienda que ignora la sede elegida (siempre «Todas»): el candado del precio lo ve", r.ok && !r.salida.startsWith("0|"), r.ok ? r.salida : r.mensaje);

@@ -79,6 +79,51 @@ export const delMes = (prov: readonly FilaProvision[], mes: string): FilaProvisi
 /** La clave con la que una fila de provisión cae en una fila del Estado de resultados: la ubicación, o «empresa». */
 const claveDe = (p: FilaProvision): string => p.ubicacionId ?? "empresa";
 
+/**
+ * Hasta dónde se piden los sueldos estimados de un tramo (tarea 23 de «Las 36»). La base devuelve el período de Dynamic que TERMINA dentro del rango (D-35) con lo devengado
+ * hasta hoy; pedirlos «del 1 a hoy» dejaba fuera el período que termina el 28 y, del 1 al 27, cada pantalla decía una ganancia distinta. Por eso el mes en curso se pide hasta su
+ * último día. Cualquier otro tramo (un mes que ya pasó, «del 1 a hoy» del mes pasado para comparar, unas fechas sueltas) se pide tal cual.
+ */
+export function hastaDeLaProvision(desde: string, hasta: string, hoy: string): string {
+  const mes = hasta.slice(0, 7);
+  if (hasta !== hoy || desde !== `${mes}-01`) return hasta;
+  const [a, m] = mes.split("-").map(Number) as [number, number];
+  return `${mes}-${String(new Date(Date.UTC(a, m, 0)).getUTCDate()).padStart(2, "0")}`;
+}
+
+// UNA LECTURA POR MES (2026-11-09, el pico de memoria de las 09:07). `fn_planilla_provision` le pide a Dynamic la boleta en vivo de cada período sin
+// pagar (~4 s por llamada en producción), y una sola carga de Finanzas ▸ Resumen la pedía 5 veces para rangos que se pisan (oct–nov, nov, nov, 1–9 oct,
+// nov): cinco veces lo mismo, a la vez, en una base de 2 GB. Lo que devuelve un período no depende del rango pedido (el rango solo elige QUÉ períodos:
+// los que terminan en él) ni de la sede (la sede solo filtra filas). Por eso `lib/planilla-provision.ts` lee cada MES entero, una vez por carga, y
+// aquí se recorta lo que pidió cada pantalla.
+
+/** Hasta cuántos meses se leen de a uno; un rango más largo (un reporte de un año) va en una sola lectura, como antes. */
+export const MESES_POR_SEPARADO = 3;
+
+const FECHA = /^\d{4}-\d{2}-\d{2}$/;
+
+/** Los meses («2026-10») que toca un rango de fechas, en orden. Vacío si el rango no es válido. */
+export function mesesDelRango(desde: string, hasta: string): string[] {
+  if (!FECHA.test(desde) || !FECHA.test(hasta) || hasta < desde) return [];
+  const meses: string[] = [];
+  let [a, m] = desde.slice(0, 7).split("-").map(Number) as [number, number];
+  const fin = hasta.slice(0, 7);
+  for (;;) {
+    const mes = `${a}-${String(m).padStart(2, "0")}`;
+    meses.push(mes);
+    if (mes >= fin) return meses;
+    [a, m] = m === 12 ? [a + 1, 1] : [a, m + 1];
+  }
+}
+
+/**
+ * Lo que habría devuelto `fn_planilla_provision(desde, hasta, ubicacionId)`, sacado de los meses leídos enteros y sin sede: los períodos que TERMINAN
+ * en el rango y, con una sede, solo los suyos (la base tampoco suma «de la empresa» a una sede: su filtro es `ubicacion_id = any(...)`).
+ */
+export function provisionDelRango(filas: readonly FilaProvision[], desde: string, hasta: string, ubicacionId: string | null): FilaProvision[] {
+  return filas.filter((f) => f.fechaFin >= desde && f.fechaFin <= hasta && (ubicacionId === null || f.ubicacionId === ubicacionId));
+}
+
 /** Cómo se llama en pantalla una sede de Dynamic que no es una tienda. Un código nuevo se muestra tal cual, nunca se inventa un nombre. */
 const NOMBRE_SEDE_DYNAMIC: Record<string, string> = { CCO: "Central", OTRU: "Oficina Trujillo" };
 export const nombreSedeDynamic = (codigo: string): string => NOMBRE_SEDE_DYNAMIC[codigo] ?? codigo;
@@ -172,4 +217,37 @@ export function resumenDeProvision(prov: readonly FilaProvision[]): ResumenProvi
   if (!util.length) return null;
   const s = util.reduce(sumar, vacia());
   return { sedes: util.length, personas: s.personas, devengado: s.devengado, alCierre: s.alCierre, deHoy: s.deHoy };
+}
+
+/**
+ * Los sueldos de unas fechas que no cierran el período de Dynamic («octubre a esta fecha», del 1 al 6). La base pone toda la planilla de un período en el
+ * mes donde TERMINA (el 28, D-35): del 1 al 6 de octubre no termina ninguno y la columna salía con S/ 0 de sueldos. Mientras tanto, el mes en curso sí los
+ * lleva (provisionados hasta hoy), así que «X menos que octubre a esta fecha» comparaba noviembre con sueldos contra octubre sin ellos y la caída salía
+ * inflada (Felipe 2026-11-06). Aquí se le pone a cada fila la parte que le toca de la planilla del mes entero: los días corridos del período (del 29 del
+ * mes anterior hasta `hasta`) sobre los días del período, como reparte Dynamic el sueldo fijo. No calcula plata nueva: reparte la del mes entero.
+ * Si las fechas ya llegan al 28 (el período entra entero) o la fila ya trae planilla, queda tal cual.
+ */
+export function sueldosAEstaFecha(parcial: readonly FilaER[], mesEntero: readonly FilaER[], hasta: string): FilaER[] {
+  const [a, m, d] = hasta.split("-").map(Number) as [number, number, number];
+  if (d >= 28) return [...parcial];
+  const ini = Date.UTC(a, m - 2, 29);
+  const fin = Date.UTC(a, m - 1, 28);
+  const fraccion = Math.min(1, Math.max(0, ((Date.UTC(a, m - 1, d) - ini) / 86_400_000 + 1) / ((fin - ini) / 86_400_000 + 1)));
+  const clave = (f: FilaER) => `${f.unidad}|${f.ubicacionId ?? ""}`;
+  const entero = new Map(mesEntero.map((f) => [clave(f), f]));
+  return parcial.map((f) => {
+    const e = entero.get(clave(f));
+    if (!e || e.planilla <= 0 || Math.abs(f.planilla) >= 0.005) return f;
+    const parte = r2(e.planilla * fraccion);
+    if (parte <= 0) return f;
+    return {
+      ...f,
+      planilla: parte,
+      gastos: r2(f.gastos + parte),
+      resultado: r2(f.resultado - parte),
+      detalleGastos: conPersonal(f.detalleGastos, parte),
+      planillaEstimada: parte,
+      planillaNota: `${f.planillaNota ? `${f.planillaNota} · ` : ""}Sueldos de estas fechas: la parte de los días corridos de la planilla de todo el mes (${solesER(e.planilla)}).`,
+    };
+  });
 }

@@ -3,15 +3,15 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowRight, Check, CircleHelp, PackageOpen, SearchX, Store } from "lucide-react";
+import { ArrowRight, Check, PackageOpen, SearchX, Store } from "lucide-react";
 import { Aviso } from "@/components/ui/Aviso";
-import { Boton, CampoTexto } from "@/components/ui/campos";
+import { Boton, CampoTexto, Interruptor } from "@/components/ui/campos";
 import { Buscador } from "@/components/ui/Buscador";
 import { Vacio } from "@/components/ui/Vacio";
 import { Modal } from "@/components/ui/Modal";
 import { BotonSinAviso, useSinAviso } from "./SinAvisoContexto";
 import { ComboResponsable } from "@/components/ComboResponsable";
-import { useAltaDeProveedor } from "@/components/useAltaDeProveedor";
+import { ProveedorNuevoRecepcion } from "@/components/recepcion-conteo/ProveedorNuevoRecepcion";
 import { CampoGuiado, PieGuia } from "@/components/guia-de-foco/CampoGuiado";
 import { useGuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
 import { diaMes } from "@/lib/fechas-lima";
@@ -23,12 +23,10 @@ import { TOPES_CONTEO, mensajeAlGuardar } from "@/lib/recepcion-conteo-reglas";
 import { abrirEnvioSinAviso } from "@/lib/recepcion-conteo-acciones";
 
 // «Llegó mercadería sin aviso» (ADR-0393, decisiones 2 y 10): lo que llega sin que Compras lo haya despachado se recibe con el MISMO conteo
-// que un envío —por categoría, lo demás para después—. La puerta pregunta lo de siempre (ADR-0330): ¿de quién es? Si ese proveedor tiene una
-// factura por recibir en esta sede, ofrece recibir contra ella. Si no, abre un envío sin guía y lleva a contarlo. El costo llega con la
-// factura (solo quien ve el dinero de Compras lo pone al cerrar).
-
-/** «No sé de quién es» (Felipe 2026-10-14): a veces Compras manda sin decir de quién es. Se cuenta igual y el proveedor se pone al cerrar. */
-const SIN_PROVEEDOR = "sin-proveedor";
+// que un envío —por categoría, lo demás para después—. Lo que llega sin aviso casi nunca es de un solo proveedor (Felipe 2026-11-07): la puerta ya no
+// pregunta «¿de quién es?». Cada categoría y marca que se cuenta es del proveedor de su marca, y lo que no se puede saber se elige al cerrar
+// (20261107192000). Si todo es de uno, se puede decir aquí («Todo es de un solo proveedor») y, si ese proveedor tiene una factura por recibir en esta
+// sede, se ofrece recibir contra ella. El costo llega con la factura (solo quien ve el dinero de Compras lo pone al cerrar).
 
 /** Un proveedor de la puerta. `rubros`: quien es solo de gastos no se ofrece (`proveedoresParaPedir`); los recién agregados no los traen. */
 export type ProveedorDeLaPuerta = { id: string; nombre: string; ruc?: string | null; rubros?: readonly string[]; marcas?: readonly string[] };
@@ -39,8 +37,6 @@ export function LlegoSinAviso({
   ubicacionId,
   ubicacionEtiqueta,
   proveedores,
-  rubrosEnUso,
-  puedeAgregarProveedor,
   facturas,
   hayListaArriba = false,
 }: {
@@ -48,10 +44,6 @@ export function LlegoSinAviso({
   ubicacionEtiqueta: string;
   /** Con sus marcas (se leen en la puerta): se ven bajo cada proveedor y sirven para encontrarlo. */
   proveedores: readonly ProveedorDeLaPuerta[];
-  /** Los rubros que ya usa el directorio: los botones del formulario de «Agregar proveedor». */
-  rubrosEnUso: readonly string[];
-  /** La cuenta tiene el módulo Proveedores (lo que exige `registrar_proveedor`): puede dar de alta uno desde aquí. */
-  puedeAgregarProveedor: boolean;
   facturas: readonly FacturaPorRecibir[];
   /** Arriba hay envíos u órdenes de Compras para esta sede: esta tarjeta es para lo que NO está en esa lista (formidable, 2026-10-14). */
   hayListaArriba?: boolean;
@@ -59,6 +51,8 @@ export function LlegoSinAviso({
   const router = useRouter();
   const responsable = useResponsable();
   const [proveedorId, setProveedorId] = useState("");
+  // «Todo es de un solo proveedor»: apagado (lo normal), el envío se abre sin proveedor y cada marca dice el suyo.
+  const [deUnoSolo, setDeUnoSolo] = useState(false);
   const [guia, setGuia] = useState("");
   const [buscar, setBuscar] = useState("");
   const [token] = useState(() => crypto.randomUUID());
@@ -79,26 +73,18 @@ export function LlegoSinAviso({
     window.addEventListener("hashchange", segunLaDireccion);
     return () => window.removeEventListener("hashchange", segunLaDireccion);
   }, [setAbierto]);
-  const susFacturas = facturas.filter((f) => f.proveedorId === proveedorId && f.pendientes > 0);
+  const susFacturas = deUnoSolo ? facturas.filter((f) => f.proveedorId === proveedorId && f.pendientes > 0) : [];
   // «¿No está? + Agregar proveedor»: lo que llega sin aviso a veces es de un proveedor que todavía no está en el directorio. El recién
   // guardado se suma a la lista y queda elegido, sin esperar a que la página relea el directorio.
   const [agregados, setAgregados] = useState<ProveedorDeLaPuerta[]>([]);
   const todos = [...proveedores, ...agregados.filter((a) => !proveedores.some((p) => p.id === a.id))];
-  const alta = useAltaDeProveedor({
-    habilitado: puedeAgregarProveedor,
-    rubrosEnUso,
-    existentes: todos.map((p) => ({ id: p.id, nombre: p.nombre, ruc: p.ruc ?? null })),
-    alGuardar: (p) => {
-      setAgregados((a) => [...a, { id: p.id, nombre: p.nombre, ruc: p.ruc, marcas: [] }]);
-      setProveedorId(p.id);
-      setBuscar("");
-    },
-  });
+  // ADR-0635 (Felipe 2026-11-09): lo agrega quien recibe, sin el módulo Proveedores, con su razón social y su RUC si lo tiene.
+  const [agregando, setAgregando] = useState<string | null>(null);
 
   const sinTurno = responsable.estado === "nadie" || responsable.estado === "sin_lectura";
   const campos = useGuiaCampos(
     [
-      { id: "sin-aviso-proveedor", nombre: "De quién es", requerido: true, hecho: proveedorId !== "", pendiente: "Elige de qué proveedor es, o «No sé de quién es»." },
+      ...(deUnoSolo ? [{ id: "sin-aviso-proveedor", nombre: "De qué proveedor", requerido: true, hecho: proveedorId !== "", pendiente: "Elige el proveedor, o apaga «Todo es de un solo proveedor»." }] : []),
       { id: "sin-aviso-guia", nombre: "Número de guía", requerido: false, hecho: guia.trim() !== "", pendiente: "Si vino con guía, escribe su número." },
       { id: "sin-aviso-quien", nombre: "Quién recibe", requerido: true, hecho: responsable.listo, pendiente: "Elige quién recibe." },
     ],
@@ -109,7 +95,7 @@ export function LlegoSinAviso({
     setAbriendo(true);
     setError(null);
     const { abierto, error: e } = await abrirEnvioSinAviso(
-      { p_ubicacion_id: ubicacionId, p_proveedor_id: proveedorId === SIN_PROVEEDOR ? null : proveedorId, p_numero_guia: guia.trim() || null, p_nota: null, p_token: token },
+      { p_ubicacion_id: ubicacionId, p_proveedor_id: deUnoSolo && proveedorId ? proveedorId : null, p_numero_guia: guia.trim() || null, p_nota: null, p_token: token },
       responsable.firma(),
     );
     responsable.despues(e);
@@ -148,8 +134,8 @@ export function LlegoSinAviso({
       <Modal
         titulo={hayListaArriba ? "¿Llegó algo que no está en la lista?" : "¿Llegó algo sin aviso?"}
         subtitulo={hayListaArriba
-          ? "Lo de arriba lo despachó Compras. Si llegó algo más, que nadie despachó desde el sistema, dime de quién es y se cuenta igual, por categoría: solo que sin con qué comparar."
-          : "Nadie lo despachó desde el sistema. Dime de quién es y se cuenta igual, por categoría: solo que sin con qué comparar."}
+          ? "Lo de arriba lo despachó Compras. Lo que llegó además se cuenta igual, por categoría y marca, solo que sin con qué comparar. De quién es cada cosa lo dice su marca."
+          : "Nadie lo despachó desde el sistema. Se cuenta igual, por categoría y marca, solo que sin con qué comparar. De quién es cada cosa lo dice su marca."}
         tamano="mediana"
         onClose={() => setAbierto(false)}
         bloqueado={abriendo}
@@ -165,8 +151,20 @@ export function LlegoSinAviso({
         >
           {/* Sin nadie que firme no se abre nada: se dice antes de llenar la hoja, no después (prueba ciega, 2026-11-03). */}
           {sinTurno && <ComboResponsable control={responsable} />}
+          <div className="space-y-2">
+            <Interruptor
+              etiqueta="Todo es de un solo proveedor"
+              activo={deUnoSolo}
+              onActivo={(v) => {
+                setDeUnoSolo(v);
+                if (!v) setProveedorId("");
+              }}
+              pie={deUnoSolo ? undefined : "Casi siempre llega de varios: no hace falta elegir. Cada marca dice de quién es, y lo que no, lo eliges al cerrar."}
+            />
+          </div>
+          {deUnoSolo && (
           <CampoGuiado id="sin-aviso-proveedor" guia={campos}>
-            <p className="mb-1.5 text-sm font-semibold text-tinta">{campos.etiqueta("sin-aviso-proveedor", "¿De quién es?")}</p>
+            <p className="mb-1.5 text-sm font-semibold text-tinta">{campos.etiqueta("sin-aviso-proveedor", "¿De qué proveedor?")}</p>
             <Buscador valor={buscar} onCambio={setBuscar} placeholder="Busca el proveedor por nombre, marca o RUC" etiqueta="Buscar el proveedor" />
             <ul className="mt-2 space-y-1.5" role="radiogroup" aria-label="Proveedor">
               {aLaVista.map((p) => (
@@ -199,39 +197,15 @@ export function LlegoSinAviso({
                 </li>
               )}
               {coinciden.length > primeros.length && <li className="px-1 text-sm text-taupe">Escribe para encontrar a los demás ({coinciden.length - primeros.length} más).</li>}
-              {/* Siempre a la vista, al final: no depende de lo que se busque. */}
-              <li>
-                <button
-                  type="button"
-                  role="radio"
-                  aria-checked={proveedorId === SIN_PROVEEDOR}
-                  onClick={() => setProveedorId(SIN_PROVEEDOR)}
-                  className={`flex w-full items-center gap-3 rounded-2xl border border-dashed px-3 py-2.5 text-left transition-colors ${
-                    proveedorId === SIN_PROVEEDOR ? "border-tinta bg-papel" : "border-tinta/25 hover:border-tinta/40"
-                  }`}
-                >
-                  <span className="rc-cat-ic" data-tamano="chico" aria-hidden>
-                    <CircleHelp className="h-4 w-4" />
-                  </span>
-                  <span className="min-w-0 flex-1">
-                    <b className="block text-[14.5px] text-tinta">No sé de quién es</b>
-                    <small className="block text-sm text-taupe">Se cuenta igual. Antes de cerrar, pregúntale a Compras y elígelo.</small>
-                  </span>
-                  {proveedorId === SIN_PROVEEDOR && <Check aria-hidden className="h-4 w-4 text-verde" />}
-                </button>
-              </li>
             </ul>
-            {puedeAgregarProveedor ? (
-              <p className="mt-2 text-sm text-taupe">
-                ¿No está?{" "}
-                <button type="button" onClick={() => alta.abrir(buscar)} className="btn-cayla btn-enlace whitespace-normal text-left text-xs">
-                  + Agregar proveedor
-                </button>
-              </p>
-            ) : (
-              <p className="mt-2 text-sm text-taupe">¿No está? Pídele a quien administra Proveedores que lo agregue, o elige «No sé de quién es».</p>
-            )}
+            <p className="mt-2 text-sm text-taupe">
+              ¿No está?{" "}
+              <button type="button" onClick={() => setAgregando(buscar)} className="btn-cayla btn-enlace whitespace-normal text-left text-xs">
+                + Agregar proveedor
+              </button>
+            </p>
           </CampoGuiado>
+          )}
 
           {susFacturas.length > 0 && (
             <div className="nota-cayla space-y-2.5">
@@ -295,7 +269,20 @@ export function LlegoSinAviso({
     )}
     </div>
     {/* Fuera del <form> (ADR-0128): un `submit` del alta no debe llegar a «Empezar a contar». */}
-    {alta.modal}
+    {agregando !== null && (
+      <ProveedorNuevoRecepcion
+        proveedores={todos}
+        tipeado={agregando}
+        responsable={responsable}
+        onRegistrado={(p) => {
+          setAgregados((a) => (a.some((x) => x.id === p.id) ? a : [...a, { id: p.id, nombre: p.nombre, ruc: p.ruc, marcas: [] }]));
+          setProveedorId(p.id);
+          setBuscar("");
+          setAgregando(null);
+        }}
+        onCerrar={() => setAgregando(null)}
+      />
+    )}
     </>
   );
 }

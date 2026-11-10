@@ -62,6 +62,7 @@ import {
   type TonoPase,
   type VistaSellos,
 } from "@/lib/sellos-pases";
+import { prefiereQuieto } from "@/lib/movimiento-cliente";
 
 /* ====================================================================
    Catálogo ▸ Insignias · la billetera de pases (Felipe 2026-10-22: eligió la «II · Pases» de docs/maquetas/sellos-2026-10/)
@@ -196,7 +197,7 @@ export function SellosPantalla({
     if (!enLinea || yaAbierto || !desde) return;
     soltarPaginaEstable();
     const pase = desde.closest("article");
-    const sinMovimiento = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+    const sinMovimiento = prefiereQuieto();
     window.setTimeout(() => pase?.scrollIntoView({ block: "start", behavior: sinMovimiento ? "auto" : "smooth" }), 80);
   };
 

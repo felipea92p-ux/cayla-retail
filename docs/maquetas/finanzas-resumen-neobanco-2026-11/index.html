@@ -1,0 +1,752 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Resumen de Finanzas · tres caminos</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=EB+Garamond:wght@400;500&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600&family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600&display=swap">
+<style>
+/* Finanzas ▸ Resumen · tres caminos de neobanco (maqueta 2026-11-07). Cifras de ejemplo que cuadran entre sí.
+   Composición: la materia que hoy está en producción (ADR-0596 y ADR-0623): crema con la Aurora detrás (tres nubes quietas), lo que
+   se desplaza en vidrio claro SIN desenfoque, y el desenfoque solo en lo que flota quieto (el dock, la franja pegada de C). Los hilos
+   de ADR-0611 se retiraron el 2026-11-06 y no se usan. Encima, un solo modelo de datos contado de tres formas: A «Un número», B «Lo que tienes de verdad», C «Pasó y viene».
+   Colores: solo los tokens del ERP (globals.css / tema.css). Movimiento: una vez, sin rebote ni bucle (ADR-0136). */
+:root{
+  --crema:#f5f0e8;--papel:#fbf8f2;--hueso:#eae1d2;--sand:#e8e0d0;--control:#96786a;--tinta:#1a1a18;--taupe:#805c4c;
+  --rojo:#b8412d;--rojo-p:#8b2a1f;--verde:#48603f;--ambar:#74501a;--pizarra:#4c5d6e;
+  --sede-tru:#2f6aa3;--sede-aqp:#c26a2e;--sede-lim:#1d8a72;--sede-emp:#9a8b7b;
+  --sec:#5d4034;--s3:#b49c88;--s4:#d8c9b4;--pista:color-mix(in srgb,var(--tinta) 8%,transparent);
+  --vidrio:#ffffff;--sombra-c:#1a1a18;--aurora-o:.12;--aurora-o3:.10;
+  --vclaro-fondo:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 86%,transparent),color-mix(in srgb,var(--vidrio) 66%,transparent));
+  --vclaro-borde:color-mix(in srgb,var(--vidrio) 70%,transparent);
+  --vclaro-sombra:inset 0 1px 0 var(--vidrio),0 12px 28px -18px color-mix(in srgb,var(--sombra-c) 35%,transparent);
+  --marco-fondo:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 64%,transparent),color-mix(in srgb,var(--vidrio) 48%,transparent));
+  --marco-borde:color-mix(in srgb,var(--vidrio) 60%,transparent);
+  --marco-sombra:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 90%,transparent),0 24px 50px -30px color-mix(in srgb,var(--sombra-c) 40%,transparent);
+  --flota-filtro:blur(24px) saturate(1.6);
+  --gota-encima:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 78%,transparent),color-mix(in srgb,var(--vidrio) 40%,transparent));
+  --gota-marca:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 92%,transparent),color-mix(in srgb,var(--vidrio) 60%,transparent));
+  --gota-luz:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 95%,transparent),inset 0 -1px 2px color-mix(in srgb,var(--sombra-c) 6%,transparent),0 6px 14px -8px color-mix(in srgb,var(--sombra-c) 30%,transparent);
+  --pozo-fondo:color-mix(in srgb,var(--tinta) 5%,transparent);
+  --pozo-sombra:inset 0 1.5px 3px color-mix(in srgb,var(--sombra-c) 16%,transparent),inset 0 -1px 0 color-mix(in srgb,var(--vidrio) 75%,transparent);
+  --ahumado-fondo:linear-gradient(180deg,color-mix(in srgb,var(--tinta) 72%,transparent),color-mix(in srgb,var(--tinta) 93%,transparent));
+  --ahumado-hover:linear-gradient(180deg,color-mix(in srgb,var(--rojo-p) 78%,transparent),color-mix(in srgb,var(--rojo-p) 94%,transparent));
+  --ahumado-luz:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 45%,transparent),0 8px 18px -10px color-mix(in srgb,var(--sombra-c) 55%,transparent);
+  --globo-fondo:color-mix(in srgb,var(--tinta) 84%,transparent);
+  --vid-fuerte:color-mix(in srgb,var(--vidrio) 82%,transparent);--luz:color-mix(in srgb,var(--vidrio) 95%,transparent);--luz2:color-mix(in srgb,var(--vidrio) 42%,transparent);
+  --sombra:color-mix(in srgb,var(--sombra-c) 30%,transparent);--oscurece:color-mix(in srgb,var(--sombra-c) 12%,transparent);
+  --ease:cubic-bezier(.22,.8,.24,1);--t-resp:200ms;--t-cambio:320ms;--t-hoja:550ms;--t-momento:1000ms;
+  --letra:"Inter",ui-sans-serif,system-ui,sans-serif;--titulo:"EB Garamond",ui-serif,Georgia,serif;--cuerpo:"DM Sans",ui-sans-serif,system-ui,sans-serif;
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){:root:not([data-tema="claro"]):not([data-theme="light"]){
+  --crema:#1c1a17;--papel:#26241f;--hueso:#33302a;--sand:#403b34;--control:#8d7a6c;--tinta:#f5f0e8;--taupe:#c4a898;
+  --rojo:#e8806a;--rojo-p:color-mix(in srgb,#e8806a 62%,#f5f0e8);--verde:#9ccb8d;--ambar:#e4b968;--pizarra:#a2b8cd;
+  --sede-tru:#4f8ad0;--sede-aqp:#d27b3c;--sede-lim:#2fa585;--sede-emp:#8a7d70;
+  --sec:#dcc6b9;--s3:#8d7a6c;--s4:#5d5247;
+  --vidrio:#33302a;--sombra-c:#000000;--aurora-o:.1;--aurora-o3:.1;
+  --vclaro-fondo:color-mix(in srgb,var(--vidrio) 80%,transparent);
+  --vclaro-borde:color-mix(in srgb,var(--tinta) 10%,transparent);
+  --vclaro-sombra:inset 0 1px 0 color-mix(in srgb,var(--tinta) 12%,transparent);
+  --marco-fondo:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 72%,transparent),color-mix(in srgb,var(--vidrio) 60%,transparent));
+  --marco-borde:color-mix(in srgb,var(--tinta) 10%,transparent);
+  --marco-sombra:inset 0 1px 0 color-mix(in srgb,var(--tinta) 12%,transparent),0 24px 50px -30px var(--sombra-c);
+  --gota-encima:linear-gradient(180deg,color-mix(in srgb,var(--tinta) 22%,transparent),color-mix(in srgb,var(--tinta) 10%,transparent));
+  --gota-marca:linear-gradient(180deg,color-mix(in srgb,var(--tinta) 24%,transparent),color-mix(in srgb,var(--tinta) 12%,transparent));
+  --gota-luz:inset 0 1px 0 color-mix(in srgb,var(--tinta) 22%,transparent),0 6px 14px -8px var(--sombra-c);
+  --pozo-fondo:color-mix(in srgb,var(--sombra-c) 30%,transparent);
+  --pozo-sombra:inset 0 1.5px 3px color-mix(in srgb,var(--sombra-c) 55%,transparent),inset 0 -1px 0 color-mix(in srgb,var(--tinta) 8%,transparent);
+  --ahumado-fondo:linear-gradient(180deg,color-mix(in srgb,var(--tinta) 74%,transparent),color-mix(in srgb,var(--tinta) 92%,transparent));
+  --ahumado-luz:inset 0 1px 0 color-mix(in srgb,var(--tinta) 60%,transparent),0 8px 18px -10px var(--sombra-c);
+  --globo-fondo:color-mix(in srgb,var(--tinta) 88%,transparent);
+  --vid-fuerte:color-mix(in srgb,var(--vidrio) 82%,transparent);--luz:color-mix(in srgb,var(--tinta) 14%,transparent);--luz2:color-mix(in srgb,var(--tinta) 6%,transparent);
+  --sombra:color-mix(in srgb,var(--sombra-c) 50%,transparent);--oscurece:color-mix(in srgb,var(--sombra-c) 34%,transparent);color-scheme:dark}}
+:root[data-tema="oscuro"],:root[data-theme="dark"]{
+  --crema:#1c1a17;--papel:#26241f;--hueso:#33302a;--sand:#403b34;--control:#8d7a6c;--tinta:#f5f0e8;--taupe:#c4a898;
+  --rojo:#e8806a;--rojo-p:color-mix(in srgb,#e8806a 62%,#f5f0e8);--verde:#9ccb8d;--ambar:#e4b968;--pizarra:#a2b8cd;
+  --sede-tru:#4f8ad0;--sede-aqp:#d27b3c;--sede-lim:#2fa585;--sede-emp:#8a7d70;
+  --sec:#dcc6b9;--s3:#8d7a6c;--s4:#5d5247;
+  --vidrio:#33302a;--sombra-c:#000000;--aurora-o:.1;--aurora-o3:.1;
+  --vclaro-fondo:color-mix(in srgb,var(--vidrio) 80%,transparent);
+  --vclaro-borde:color-mix(in srgb,var(--tinta) 10%,transparent);
+  --vclaro-sombra:inset 0 1px 0 color-mix(in srgb,var(--tinta) 12%,transparent);
+  --marco-fondo:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 72%,transparent),color-mix(in srgb,var(--vidrio) 60%,transparent));
+  --marco-borde:color-mix(in srgb,var(--tinta) 10%,transparent);
+  --marco-sombra:inset 0 1px 0 color-mix(in srgb,var(--tinta) 12%,transparent),0 24px 50px -30px var(--sombra-c);
+  --gota-encima:linear-gradient(180deg,color-mix(in srgb,var(--tinta) 22%,transparent),color-mix(in srgb,var(--tinta) 10%,transparent));
+  --gota-marca:linear-gradient(180deg,color-mix(in srgb,var(--tinta) 24%,transparent),color-mix(in srgb,var(--tinta) 12%,transparent));
+  --gota-luz:inset 0 1px 0 color-mix(in srgb,var(--tinta) 22%,transparent),0 6px 14px -8px var(--sombra-c);
+  --pozo-fondo:color-mix(in srgb,var(--sombra-c) 30%,transparent);
+  --pozo-sombra:inset 0 1.5px 3px color-mix(in srgb,var(--sombra-c) 55%,transparent),inset 0 -1px 0 color-mix(in srgb,var(--tinta) 8%,transparent);
+  --ahumado-fondo:linear-gradient(180deg,color-mix(in srgb,var(--tinta) 74%,transparent),color-mix(in srgb,var(--tinta) 92%,transparent));
+  --ahumado-luz:inset 0 1px 0 color-mix(in srgb,var(--tinta) 60%,transparent),0 8px 18px -10px var(--sombra-c);
+  --globo-fondo:color-mix(in srgb,var(--tinta) 88%,transparent);
+  --vid-fuerte:color-mix(in srgb,var(--vidrio) 82%,transparent);--luz:color-mix(in srgb,var(--tinta) 14%,transparent);--luz2:color-mix(in srgb,var(--tinta) 6%,transparent);
+  --sombra:color-mix(in srgb,var(--sombra-c) 50%,transparent);--oscurece:color-mix(in srgb,var(--sombra-c) 34%,transparent);color-scheme:dark}
+@media (prefers-reduced-motion:reduce){:root{--t-resp:1ms;--t-cambio:1ms;--t-hoja:1ms;--t-momento:1ms}}
+
+*{box-sizing:border-box}
+html{height:100%}
+body{margin:0;background:var(--crema);color:var(--tinta);font:400 15px/1.5 var(--cuerpo);min-height:100%;overflow-x:hidden;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:16px 120px}
+button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer}
+:focus-visible{outline:2px solid var(--rojo);outline-offset:2px;border-radius:8px}
+h1,h2,h3,p{margin:0}
+/* El fondo del ERP hoy: la Aurora (vidrio/marco.css en main). Tres nubes muy tenues y QUIETAS detrás de todo; entran una vez con un
+   fundido y no se mueven más. Cada nube es un degradado que se apaga hacia el borde, sin filter:blur (ADR-0623). */
+.aurora{position:fixed;inset:0;z-index:-1;overflow:hidden;pointer-events:none}
+.aurora i{position:absolute;border-radius:50%;transform:scale(1.55);opacity:var(--o);animation:aurora 1.4s var(--ease) both;
+  background:radial-gradient(closest-side,var(--c) 0%,color-mix(in srgb,var(--c) 70%,transparent) 30%,color-mix(in srgb,var(--c) 25%,transparent) 62%,transparent 100%)}
+.aurora i:nth-child(1){width:620px;height:520px;right:12%;top:-260px;--c:var(--rojo);--o:var(--aurora-o)}
+.aurora i:nth-child(2){width:700px;height:560px;right:-220px;top:120px;--c:var(--pizarra);--o:var(--aurora-o)}
+.aurora i:nth-child(3){width:560px;height:460px;left:30%;bottom:-260px;--c:var(--ambar);--o:var(--aurora-o3)}
+@keyframes aurora{from{opacity:0}}
+
+/* El vidrio, como está en producción: lo que se desplaza es VIDRIO CLARO, translúcido y sin desenfoque (ADR-0623: desenfocar lo
+   que corre con el scroll bajaba de 53 a 32 cuadros/s). Lo que flota quieto (el dock, la franja pegada de C) lleva el vidrio del
+   marco CON desenfoque. Sin filo que gira ni brillo que sigue al mouse: eran de la tela de Hilos, que se retiró. */
+.vidrio{position:relative;border-radius:22px;background:var(--vclaro-fondo);border:1px solid var(--vclaro-borde);box-shadow:var(--vclaro-sombra)}
+.flota{background:var(--marco-fondo);border-color:var(--marco-borde);box-shadow:var(--marco-sombra);-webkit-backdrop-filter:var(--flota-filtro);backdrop-filter:var(--flota-filtro)}
+.entra{animation:subir var(--t-momento) var(--ease) both;animation-delay:calc(var(--i,0)*70ms)}
+@keyframes subir{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:none}}
+
+/* Mesa de mando (la barra común del telar: sede y mes) + cabecera de la pantalla */
+.mesa{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px 20px;padding:10px 12px 10px 20px;border-radius:24px;margin-bottom:22px}
+.mesa .marca{display:flex;align-items:center;gap:10px;font-weight:500}
+.mesa .marca svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.5}
+.seg{position:relative;display:inline-flex;gap:2px;padding:4px;border-radius:999px;background:var(--pozo-fondo);box-shadow:var(--pozo-sombra);max-width:100%;overflow-x:auto;scrollbar-width:none}
+.seg::-webkit-scrollbar{display:none}
+.seg button{position:relative;z-index:1;min-height:36px;padding:0 14px;border-radius:999px;font-weight:500;font-size:14px;color:var(--sec);white-space:nowrap;transition:color var(--t-cambio)}
+.seg button[aria-pressed="true"]{color:var(--tinta)}
+.seg .gota{position:absolute;z-index:0;top:4px;left:0;height:calc(100% - 8px);border-radius:999px;background:var(--gota-marca);
+  box-shadow:var(--gota-luz);transition:transform var(--t-hoja) var(--ease),width var(--t-hoja) var(--ease)}
+@media (hover:hover){.seg button:hover{color:var(--tinta)}}
+.mes{display:flex;align-items:center;gap:8px;font-weight:500}
+.mes button{display:grid;place-items:center;width:32px;height:32px;border-radius:50%;color:var(--sec)}
+.mes button:disabled{opacity:.35;cursor:default}
+.mes svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2}
+
+.cab{display:flex;flex-wrap:wrap;align-items:flex-start;justify-content:space-between;gap:12px 24px;margin:0 4px 22px}
+.cab .linea{display:flex;align-items:center;gap:10px;color:var(--sec);font-size:14px}
+.cab .linea::before{content:"";width:28px;height:1px;background:var(--taupe)}
+.cab h1{font:400 clamp(34px,3.4vw,46px)/1.06 var(--titulo);margin-top:4px}
+.cab .frase{color:var(--sec);margin-top:4px;max-width:62ch}
+
+/* Cifras */
+.cifra{font-family:var(--letra);font-weight:500;letter-spacing:-.045em;line-height:1.02;display:flex;align-items:baseline;font-variant-numeric:tabular-nums;white-space:nowrap}
+.cifra .mon{font-size:.4em;letter-spacing:-.02em;margin-right:.26em;color:var(--sec)}
+.cifra .sig{font-size:.6em;margin-right:.06em}
+.cifra.neg .num,.cifra.neg .sig{color:var(--rojo-p)}
+.nom{font-weight:500;font-size:15px;color:var(--sec)}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{display:inline-flex;align-items:center;gap:7px;padding:5px 12px;border-radius:999px;font-weight:500;font-size:13.5px;background:var(--pista);color:var(--tinta)}
+.chip::before{content:"";width:7px;height:7px;border-radius:50%;background:currentColor;opacity:.9}
+.chip.verde{background:color-mix(in srgb,var(--verde) 14%,transparent);color:var(--verde)}
+.chip.ambar{background:color-mix(in srgb,var(--ambar) 14%,transparent);color:var(--ambar)}
+.chip.rojo{background:color-mix(in srgb,var(--rojo-p) 12%,transparent);color:var(--rojo-p)}
+.chip.pizarra{background:color-mix(in srgb,var(--pizarra) 13%,transparent);color:var(--pizarra)}
+.chip.sin::before{display:none}
+.porque{font-weight:500;font-size:13.5px;color:var(--sec);text-decoration:underline;text-decoration-color:color-mix(in srgb,var(--sec) 40%,transparent);text-underline-offset:3px}
+@media (hover:hover){.porque:hover{color:var(--tinta)}}
+
+.vista{display:flex;flex-direction:column;gap:18px}
+.bloque{padding:24px 26px}
+.bloque h2{font:400 22px/1.15 var(--titulo)}
+.bloque .bajada{color:var(--sec);font-size:14px;margin-top:2px}
+.cab-bloque{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:6px 16px;margin-bottom:16px}
+
+/* Gráficos */
+.graf{position:relative;width:100%;touch-action:pan-y;user-select:none}
+.graf svg{display:block;width:100%;height:100%;overflow:visible}
+.graf .eje{position:absolute;font-size:12.5px;color:var(--sec);white-space:nowrap;transform:translateX(-50%)}
+.graf .eje.izq{transform:none}.graf .eje.der{transform:translateX(-100%)}
+.trazo{fill:none;stroke-linecap:round;stroke-linejoin:round;vector-effect:non-scaling-stroke}
+.dibuja{stroke-dasharray:var(--largo,2000);stroke-dashoffset:var(--largo,2000);animation:dibuja calc(var(--t-momento)*1.3) var(--ease) forwards;animation-delay:var(--d,0ms)}
+@keyframes dibuja{to{stroke-dashoffset:0}}
+.aparece{animation:aparece var(--t-momento) var(--ease) both;animation-delay:var(--d,0ms)}
+@keyframes aparece{from{opacity:0}to{opacity:1}}
+.guia{position:absolute;top:0;bottom:22px;width:1px;background:color-mix(in srgb,var(--tinta) 30%,transparent);pointer-events:none;opacity:0;transition:opacity var(--t-resp)}
+.punto{position:absolute;width:12px;height:12px;margin:-6px 0 0 -6px;border-radius:50%;background:var(--tinta);box-shadow:0 0 0 4px color-mix(in srgb,var(--papel) 80%,transparent);pointer-events:none}
+.globito{position:absolute;transform:translate(-50%,calc(-100% - 14px));padding:7px 12px;border-radius:14px;white-space:nowrap;font-size:13.5px;line-height:1.3;
+  background:var(--globo-fondo);color:var(--crema);box-shadow:0 10px 22px -10px var(--sombra);pointer-events:none;z-index:3}
+.globito b{font-family:var(--letra);font-weight:600;letter-spacing:-.02em;display:block;font-size:15px}
+.ley{display:flex;flex-wrap:wrap;gap:6px 18px;font-size:13.5px;color:var(--sec);margin-top:12px}
+.ley i{display:inline-block;width:18px;height:0;border-top:2.5px solid var(--tinta);vertical-align:middle;margin-right:6px}
+.ley i.pun{border-top-style:dotted}.ley i.ref{border-top:2px dashed var(--taupe)}
+
+/* Filas de avisos (Hoy te toca) */
+.avisos{display:flex;flex-direction:column;gap:8px}
+.aviso{display:grid;grid-template-columns:10px minmax(0,1fr) auto;align-items:center;gap:12px;padding:12px 12px 12px 14px;border-radius:18px;background:var(--pista)}
+.aviso .dot{width:9px;height:9px;border-radius:50%;background:var(--ambar)}
+.aviso .dot.rojo{background:var(--rojo-p)}.aviso .dot.pizarra{background:var(--pizarra)}
+.aviso b{display:block;font-weight:500}.aviso small{display:block;color:var(--sec);font-size:13.5px;line-height:1.35}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:36px;padding:0 14px;border-radius:999px;font-weight:500;font-size:13.5px;
+  background:var(--gota-encima);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--control) 55%,transparent),var(--gota-luz);transition:transform var(--t-resp) var(--ease),background var(--t-resp)}
+.btn.prim{background:var(--ahumado-fondo);color:var(--crema);box-shadow:var(--ahumado-luz)}
+@media (hover:hover){.btn:hover{transform:translateY(-2px)}.btn.prim:hover{background:var(--ahumado-hover)}}
+.btn:active{transform:scale(.97)}
+.nota{font-size:13.5px;color:var(--sec);line-height:1.45}
+
+/* El dock de la maqueta: elegir camino y tema (no es parte de la pantalla) */
+.dock{position:fixed;left:50%;bottom:calc(14px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);z-index:20;display:flex;align-items:center;gap:8px;padding:6px;border-radius:999px;max-width:calc(100vw - 24px)}
+.dock .seg{background:transparent;box-shadow:none}
+.dock .seg button{min-height:44px;padding:0 16px}
+.dock .seg button span{color:var(--sec);font-weight:400;margin-left:6px}
+.redondo{display:grid;place-items:center;width:44px;height:44px;border-radius:50%;flex:none;color:var(--sec)}
+.redondo svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.5;stroke-linecap:round}
+.etq-maq{position:fixed;top:calc(10px + env(safe-area-inset-top,0px));right:max(16px,env(safe-area-inset-right,0px));z-index:21;font-size:12px;color:var(--sec);background:var(--vid-fuerte);padding:3px 10px;border-radius:999px}
+
+/* ===== A · Un número ===== */
+.a-heroe{display:grid;grid-template-columns:minmax(0,5fr) minmax(0,7fr);gap:28px 40px;padding:26px 30px 24px;align-items:stretch}
+.a-izq{display:flex;flex-direction:column;gap:14px;min-width:0}
+.a-preg{display:flex;flex-wrap:wrap;gap:6px}
+.a-preg button{min-height:40px;padding:0 15px;border-radius:999px;font-weight:500;font-size:14.5px;color:var(--sec);background:transparent;box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--control) 55%,transparent);transition:all var(--t-cambio)}
+.a-preg button[aria-pressed="true"]{color:var(--crema);background:var(--tinta);box-shadow:none}
+@media (hover:hover){.a-preg button:not([aria-pressed="true"]):hover{color:var(--tinta);box-shadow:inset 0 0 0 1px var(--control)}}
+.a-izq .cifra{font-size:clamp(60px,7.6vw,128px);margin-top:auto}
+.a-frase{font-size:clamp(17px,1.5vw,21px);line-height:1.35;max-width:32ch;text-wrap:balance;min-height:2.7em}
+.a-der{display:flex;flex-direction:column;min-width:0}
+.a-der .graf{flex:1;min-height:260px}
+.a-tres{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px}
+.mini{padding:18px 22px;display:flex;flex-direction:column;gap:6px}
+.mini .cifra{font-size:clamp(28px,2.4vw,36px)}
+.mini small{color:var(--sec);font-size:13.5px;line-height:1.35}
+.a-pie{display:grid;grid-template-columns:minmax(0,7fr) minmax(0,5fr);gap:18px}
+.sedes{display:flex;flex-direction:column;gap:14px}
+.sede-f{display:grid;grid-template-columns:92px minmax(0,1fr) 92px;align-items:center;gap:12px;font-size:14px}
+.sede-f .tubo{height:10px;border-radius:999px;background:var(--pista);overflow:hidden}
+.sede-f .tubo i{display:block;height:100%;border-radius:inherit;transform-origin:left;animation:crece var(--t-momento) var(--ease) both;animation-delay:var(--d,0ms)}
+@keyframes crece{from{transform:scaleX(0)}}
+.sede-f .v{text-align:right;font-family:var(--letra);font-weight:500;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+.sede-f .v small{display:block;font-family:var(--cuerpo);font-weight:400;letter-spacing:0;color:var(--sec);font-size:12.5px}
+.muestra{display:inline-block;width:9px;height:9px;border-radius:3px;margin-right:7px;vertical-align:baseline}
+
+/* ===== B · Lo que tienes de verdad ===== */
+.b-heroe{display:grid;grid-template-columns:minmax(0,7fr) minmax(0,5fr);gap:28px 40px;padding:26px 30px}
+.b-izq{display:flex;flex-direction:column;gap:14px;min-width:0}
+.b-izq .cifra{font-size:clamp(60px,7.4vw,124px)}
+.b-frase{font-size:clamp(17px,1.5vw,21px);line-height:1.35;max-width:40ch;text-wrap:balance}
+.bolsa{display:flex;height:58px;border-radius:20px;overflow:hidden;gap:3px;margin-top:6px}
+.bolsa button{position:relative;height:100%;min-width:10px;border-radius:6px;transform-origin:left;animation:crece var(--t-momento) var(--ease) both;animation-delay:var(--d,0ms);transition:opacity var(--t-cambio),filter var(--t-cambio)}
+.bolsa button:first-child{border-radius:18px 6px 6px 18px}.bolsa button:last-child{border-radius:6px 18px 18px 6px}
+.bolsa.apaga button:not(.on){opacity:.28}
+.bolsa .libre{background:var(--tinta);container-type:inline-size}
+/* Si el tramo libre es muy angosto (celular), la cifra no se corta: se calla, y la dice la fila de abajo. */
+@container (max-width:104px){.bolsa .libre span{display:none}}
+.bolsa .pagos{background:var(--taupe)}
+.bolsa .sunat{background:repeating-linear-gradient(135deg,var(--s3) 0 6px,color-mix(in srgb,var(--s3) 60%,transparent) 6px 12px)}
+.bolsa .claudia{background:var(--s4)}
+.bolsa .libre span{position:absolute;left:16px;top:50%;transform:translateY(-50%);color:var(--crema);font-family:var(--letra);font-weight:600;font-size:15px;letter-spacing:-.02em;white-space:nowrap}
+.bolsillos{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.bolsillo{display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:10px;padding:10px 14px;border-radius:16px;text-align:left;transition:background var(--t-cambio)}
+.bolsillo[aria-expanded="true"]{background:var(--pista)}
+@media (hover:hover){.bolsillo:hover{background:var(--pista)}}
+.bolsillo .sw{width:14px;height:14px;border-radius:5px}
+.bolsillo b{font-weight:500;display:block;line-height:1.25}.bolsillo small{display:block;color:var(--sec);font-size:13px;line-height:1.3}
+.bolsillo .v{font-family:var(--letra);font-weight:500;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+.abierto{grid-column:1/-1;padding:4px 14px 10px;animation:subir var(--t-hoja) var(--ease) both}
+.abierto li{display:flex;justify-content:space-between;gap:12px;padding:8px 0;border-bottom:1px solid color-mix(in srgb,var(--sand) 80%,transparent);font-size:14px}
+.abierto li:last-child{border-bottom:0}
+.abierto ul{list-style:none;margin:0;padding:0}
+.abierto .v{font-family:var(--letra);font-weight:500;font-variant-numeric:tabular-nums}
+.donde{display:flex;flex-direction:column;gap:2px;min-width:0}
+.cuenta{display:grid;grid-template-columns:40px minmax(0,1fr) auto;align-items:center;gap:12px;padding:10px 6px;border-bottom:1px solid color-mix(in srgb,var(--sand) 70%,transparent)}
+.cuenta:last-child{border-bottom:0}
+.cuenta .ico{display:grid;place-items:center;width:40px;height:40px;border-radius:13px;background:var(--pista);font:600 12px var(--letra);letter-spacing:.02em;color:var(--sec)}
+.cuenta .ico svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}
+.cuenta b{font-weight:500;display:block;line-height:1.25}.cuenta small{display:block;color:var(--sec);font-size:13px}
+.cuenta .v{font-family:var(--letra);font-weight:500;letter-spacing:-.02em;font-variant-numeric:tabular-nums;text-align:right}
+.cuenta .v small{font-family:var(--cuerpo);letter-spacing:0;font-weight:400}
+.tira{display:grid;grid-template-columns:repeat(15,minmax(64px,1fr));gap:6px;overflow-x:auto;padding:4px 2px 8px;scrollbar-width:thin}
+.dia{display:flex;flex-direction:column;align-items:center;gap:6px;padding:10px 4px 10px;border-radius:18px;min-height:220px;position:relative}
+.dia.hoy{background:var(--pista)}
+.dia .ds{font-size:12px;color:var(--sec);text-transform:uppercase;letter-spacing:.06em}
+.dia .dn{font:500 18px var(--letra);letter-spacing:-.02em}
+.dia .col{flex:1;width:100%;display:flex;align-items:flex-end;justify-content:center;min-height:70px}
+.dia .col i{width:62%;border-radius:8px 8px 4px 4px;background:color-mix(in srgb,var(--tinta) 16%,transparent);transform-origin:bottom;animation:creceY var(--t-momento) var(--ease) both;animation-delay:var(--d,0ms)}
+.dia.bajo .col i{background:var(--tinta)}
+@keyframes creceY{from{transform:scaleY(0)}}
+.dia .cv{font:500 12.5px var(--letra);letter-spacing:-.01em;color:var(--sec);font-variant-numeric:tabular-nums}
+.dia.bajo .cv{color:var(--tinta);font-weight:600}
+.dia .pago{width:100%;padding:5px 6px;border-radius:10px;font-size:11.5px;line-height:1.2;text-align:center;background:color-mix(in srgb,var(--taupe) 18%,transparent)}
+.dia .pago b{display:block;font:600 12px var(--letra);letter-spacing:-.01em}
+.b-pie{display:grid;grid-template-columns:minmax(0,7fr) minmax(0,5fr);gap:18px}
+.cien{display:flex;height:16px;border-radius:999px;overflow:hidden;gap:2px;margin:14px 0 12px}
+.cien i{display:block;height:100%;transform-origin:left;animation:crece var(--t-momento) var(--ease) both;animation-delay:var(--d,0ms)}
+.cien-ley{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:6px 16px;font-size:13.5px}
+.cien-ley span{display:flex;justify-content:space-between;gap:8px}
+.cien-ley b{font-family:var(--letra);font-weight:500;font-variant-numeric:tabular-nums}
+
+/* ===== C · Pasó y viene ===== */
+.c-franja{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:4px;padding:8px;border-radius:24px;position:sticky;top:calc(10px + env(safe-area-inset-top,0px));z-index:5}
+.c-franja div{padding:10px 16px;border-radius:18px}
+.c-franja small{display:block;color:var(--sec);font-size:13px}
+.c-franja .cifra{font-size:clamp(20px,1.9vw,27px)}
+.c-heroe{padding:30px 34px 28px}
+.c-hola{color:var(--sec);font-size:15px}
+.c-texto{font-size:clamp(21px,2.1vw,30px);line-height:1.42;letter-spacing:-.01em;max-width:46ch;margin-top:10px;text-wrap:pretty}
+.c-texto button{font:inherit;font-family:var(--letra);font-weight:500;letter-spacing:-.025em;padding:0 .28em;margin:0 -.06em;border-radius:.4em;background:var(--pista);
+  box-shadow:inset 0 -2px 0 color-mix(in srgb,var(--tinta) 30%,transparent);transition:background var(--t-cambio),box-shadow var(--t-cambio)}
+.c-texto button[aria-expanded="true"]{background:var(--tinta);color:var(--crema);box-shadow:none}
+@media (hover:hover){.c-texto button:not([aria-expanded="true"]):hover{background:color-mix(in srgb,var(--tinta) 14%,transparent)}}
+.c-explica{margin-top:20px;padding:18px 20px;border-radius:20px;background:var(--pista);display:grid;grid-template-columns:minmax(0,5fr) minmax(0,7fr);gap:16px 28px;align-items:center;animation:subir var(--t-hoja) var(--ease) both}
+.c-explica h3{font:500 16px var(--cuerpo)}
+.c-explica p{color:var(--sec);font-size:14px;margin-top:4px}
+.c-explica .graf{height:120px}
+.c-cuerpo{display:grid;grid-template-columns:minmax(0,7fr) minmax(0,5fr);gap:18px;align-items:start}
+.hilo{position:relative;padding-left:4px}
+.tramo{display:grid;grid-template-columns:64px minmax(0,1fr);gap:0 16px;position:relative}
+.tramo::before{content:"";position:absolute;left:31px;top:0;bottom:0;width:1.5px;background:color-mix(in srgb,var(--taupe) 45%,transparent)}
+.tramo.hoy::before{background:linear-gradient(var(--rojo),color-mix(in srgb,var(--taupe) 45%,transparent))}
+.tramo .cuando{position:relative;z-index:1;display:flex;flex-direction:column;align-items:center;padding-top:12px}
+.tramo .cuando span{display:grid;place-items:center;min-width:52px;padding:4px 8px;border-radius:999px;background:var(--vid-fuerte);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--control) 40%,transparent);font-size:12px;color:var(--sec);text-align:center;line-height:1.2}
+.tramo .cuando span b{display:block;font:600 15px var(--letra);color:var(--tinta);letter-spacing:-.02em}
+.tramo.hoy .cuando span{background:var(--tinta);color:var(--crema);box-shadow:none}
+.tramo.hoy .cuando span b{color:var(--crema)}
+.tramo .cosas{display:flex;flex-direction:column;gap:8px;padding:8px 0 18px}
+.titulo-hilo{font:500 13px var(--cuerpo);letter-spacing:.08em;text-transform:uppercase;color:var(--sec);margin:6px 0 10px 84px}
+.cosa{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:12px;padding:12px 16px;border-radius:18px}
+.cosa b{display:block;font-weight:500;line-height:1.3}.cosa small{display:block;color:var(--sec);font-size:13.5px;line-height:1.35}
+.cosa .v{font-family:var(--letra);font-weight:500;letter-spacing:-.02em;font-variant-numeric:tabular-nums;white-space:nowrap}
+.cosa .v.menos{color:var(--tinta)}.cosa .v.mas{color:var(--verde)}
+.billetera{position:relative;height:244px}
+.mesc{position:absolute;left:0;right:0;height:112px;padding:18px 20px;border-radius:24px;background:var(--papel)!important;transition:transform var(--t-hoja) var(--ease);cursor:pointer;text-align:left;width:100%}
+.mesc .r{display:flex;justify-content:space-between;align-items:baseline;gap:12px}
+.mesc h3{font:400 22px var(--titulo)}
+.mesc .cifra{font-size:26px}
+.mesc small{color:var(--sec);font-size:13.5px}
+.mesc .sp{height:40px;margin-top:10px}
+
+/* Responsive */
+@media (max-width:1100px){
+  .a-heroe,.b-heroe,.c-cuerpo,.a-pie,.b-pie{grid-template-columns:minmax(0,1fr)}
+  .c-explica{grid-template-columns:minmax(0,1fr)}
+}
+@media (max-width:720px){
+  body{padding-block:10px 100px}
+  .bloque{padding:20px 18px}
+  .a-heroe,.b-heroe{padding:22px 18px}.c-heroe{padding:22px 20px}
+  .a-tres{grid-template-columns:minmax(0,1fr)}
+  .mini{flex-direction:row;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:2px 12px}
+  .mini small{flex-basis:100%}
+  .c-franja{grid-template-columns:repeat(2,minmax(0,1fr));position:static}
+  .c-franja.flota{background:var(--vclaro-fondo);border-color:var(--vclaro-borde);box-shadow:var(--vclaro-sombra);-webkit-backdrop-filter:none;backdrop-filter:none}
+  .bolsillos{grid-template-columns:minmax(0,1fr)}
+  .dock .seg button{padding:0 12px}.dock .seg button span{display:none}
+  .mesa{padding:10px;border-radius:22px}.mesa .marca{padding-left:6px}
+  .sede-f{grid-template-columns:76px minmax(0,1fr) 84px}
+  .tramo{grid-template-columns:56px minmax(0,1fr);gap:0 10px}.tramo::before{left:27px}.titulo-hilo{margin-left:66px}
+  .bolsa{height:50px}
+}
+</style>
+</head>
+<body>
+<div class="aurora" aria-hidden="true"><i></i><i></i><i></i></div>
+
+<header class="mesa vidrio entra" style="--i:0">
+  <div class="marca"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 10h18M5 10v8m4.7-8v8m4.6-8v8M19 10v8M3 20h18M12 3l9 5H3z"/></svg>Finanzas</div>
+  <div class="seg" id="sedes" role="group" aria-label="Sede"><span class="gota"></span></div>
+  <div class="mes"><button type="button" aria-label="Mes anterior" disabled><svg viewBox="0 0 24 24"><path d="m15 6-6 6 6 6"/></svg></button>Noviembre 2026<button type="button" aria-label="Mes siguiente" disabled><svg viewBox="0 0 24 24"><path d="m9 6 6 6-6 6"/></svg></button></div>
+</header>
+
+<div class="cab entra" style="--i:1">
+  <div>
+    <div class="linea" id="cab-linea">Todas las sedes · sábado 7 de noviembre</div>
+    <h1>Resumen</h1>
+    <p class="frase" id="cab-frase"></p>
+  </div>
+  <span class="chip pizarra">Maqueta · cifras de ejemplo, nada se guarda</span>
+</div>
+
+<main id="vista" class="vista" aria-live="polite"></main>
+
+<nav class="dock vidrio flota" aria-label="Elegir camino de la maqueta">
+  <div class="seg" id="caminos" role="group" aria-label="Camino"><span class="gota"></span>
+    <button type="button" data-c="a">A<span>Un número</span></button>
+    <button type="button" data-c="b">B<span>Lo que tienes</span></button>
+    <button type="button" data-c="c">C<span>Pasó y viene</span></button>
+  </div>
+  <button type="button" class="redondo" id="tema" aria-label="Cambiar tema"><svg viewBox="0 0 24 24"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z"/></svg></button>
+</nav>
+
+<script>
+"use strict";
+/* =====================================================================================================================
+   EL MODELO: una sola fuente de cifras de ejemplo. Las tres vistas leen de `modelo(sede)`; ninguna calcula plata por su cuenta.
+   Hoy: sábado 7 de noviembre de 2026 (Nov 1 es domingo). Ventas sin IGV, salvo donde se dice.
+   ===================================================================================================================== */
+const HOY=7, DIAS_NOV=30, DIAS_OCT=31;
+const SEDES=[{k:"todas",n:"Todas"},{k:"tru",n:"Trujillo"},{k:"aqp",n:"Arequipa"},{k:"lim",n:"Lima"}];
+const TIENDAS=["tru","aqp","lim"];
+const NOMBRE={tru:"Trujillo",aqp:"Arequipa",lim:"Lima",emp:"Empresa"};
+const DSEM=["domingo","lunes","martes","miércoles","jueves","viernes","sábado"];
+const DSEM_C=["dom","lun","mar","mié","jue","vie","sáb"];
+const sem=d=>(d-1)%7;           // noviembre 2026: el 1 es domingo
+const semOct=d=>(d+3)%7;        // octubre 2026: el 1 es jueves
+// Lo vendido del 1 al 7 de noviembre, por tienda y por día (dom → sáb)
+const NOV={tru:[1900,1350,1400,1450,1550,1750,2400],aqp:[1150,850,900,950,1000,1100,1350],lim:[850,700,700,700,750,850,950]};
+const COSTO={tru:.46,aqp:.47,lim:.49};       // de cada sol vendido, cuánto costó la prenda
+const COMISION=.012;                           // máquinas de tarjeta y QR
+const GASTO_MES={tru:{sueldos:11200,alquiler:4000,otros:1000},aqp:{sueldos:8400,alquiler:3200,otros:800},lim:{sueldos:8400,alquiler:3400,otros:700},emp:{sueldos:3600,alquiler:0,otros:400}};
+const FACTOR=[1.18,.82,.84,.87,.92,1.05,1.42]; // cómo vende cada día de la semana (dom → sáb)
+// Octubre se arma con el patrón de la semana; Lima abrió el 20.
+function ventaOct(s,d){const base={tru:1577,aqp:986,lim:760}[s];if(s==="lim"&&d<20)return 0;const ruido=1+.06*Math.sin(d*2.3+s.length);return Math.round(base*FACTOR[semOct(d)]*ruido*(s==="lim"&&d<23?1.3:1)/10)*10}
+const CUENTAS=[
+  {n:"BCP · cuenta corriente",t:"banco",ico:"BCP",s:"emp",m:38400,nota:"Aquí cae lo de Yape"},
+  {n:"Interbank · cuenta corriente",t:"banco",ico:"IBK",s:"emp",m:12150,nota:"De aquí se paga a proveedores"},
+  {n:"Izipay · en camino",t:"camino",ico:"camino",s:"emp",m:3600,nota:"Tarjetas de la semana · llega el lunes 9"},
+  {n:"Caja de Trujillo",t:"caja",ico:"TRU",s:"tru",m:1850,nota:"Cerrada anoche"},
+  {n:"Caja de Arequipa",t:"caja",ico:"AQP",s:"aqp",m:1240,nota:"Cerrada anoche"},
+  {n:"Caja de Lima",t:"caja",ico:"LIM",s:"lim",m:960,nota:"Sin cerrar desde el viernes"}];
+const CLAUDIA={emp:1300,lim:680};              // plata de CLAURE que está en nuestras cuentas (ADR-0560)
+const PAGOS=[
+  {d:9,n:"Alquiler de Trujillo",det:"Local de la tienda",s:{tru:4000}},
+  {d:12,n:"Tela · Textil San Juan",det:"Factura F001-2231",s:{emp:7800}},
+  {d:13,n:"Alquiler de Arequipa",det:"Local de la tienda",s:{aqp:3200}},
+  {d:14,n:"Planilla · 1.ª quincena",det:"Sueldos de las tres tiendas y la oficina",s:{tru:5600,aqp:4200,lim:4200,emp:1800}},
+  {d:18,n:"IGV de octubre",det:"SUNAT",s:{emp:6840}},
+  {d:20,n:"Alquiler de Lima",det:"Local de la tienda",s:{lim:3400}}];
+const FACTURAS_FALTAN={aqp:{n:1,m:600},emp:{n:2,m:1500}};
+
+const suma=a=>a.reduce((x,y)=>x+y,0);
+const r10=n=>Math.round(n/10)*10;
+function enSede(sede,k){return sede==="todas"||sede===k}
+function tiendasDe(sede){return sede==="todas"?TIENDAS:[sede]}
+
+function modelo(sede){
+  const ts=tiendasDe(sede), conEmp=sede==="todas";
+  const ventasDia=d=>suma(ts.map(s=>NOV[s][d-1]));
+  const porDia=Array.from({length:HOY},(_,i)=>ventasDia(i+1));
+  const vendido=suma(porDia);
+  const vendidoOct=suma(ts.map(s=>suma(Array.from({length:HOY},(_,i)=>ventaOct(s,i+1)))));
+  // Lo que deja un día: lo vendido menos lo que costó la prenda y la comisión, menos el día de gastos (sueldos, alquiler, otros).
+  const gastoDiaNov=s=>{const g=GASTO_MES[s];return (g.sueldos+g.alquiler+g.otros)/DIAS_NOV};
+  const gastoDiaOct=(s,d)=>{if(s==="lim"&&d<20)return 0;const g=GASTO_MES[s];return (g.sueldos+g.alquiler+g.otros)/DIAS_OCT+(s==="lim"&&d===20?1500:0)};
+  const quienes=conEmp?[...ts,"emp"]:ts;
+  const margen=(s,v)=>s==="emp"?0:v*(1-COSTO[s]-COMISION);
+  const dejaDiaNov=d=>suma(quienes.map(s=>margen(s,s==="emp"?0:NOV[s][d-1])-gastoDiaNov(s)));
+  const dejaDiaOct=d=>suma(quienes.map(s=>margen(s,s==="emp"?0:ventaOct(s,d))-gastoDiaOct(s,d)));
+  const acu=(f,n)=>{let a=0;return Array.from({length:n},(_,i)=>(a+=f(i+1)))};
+  const acuNov=acu(dejaDiaNov,HOY), acuOct=acu(dejaDiaOct,DIAS_OCT);
+  // Si sigue así: el resto del mes vende como esta semana, día por día de la semana
+  const baseSem=s=>suma(NOV[s])/suma(FACTOR);
+  const ventaProy=(s,d)=>baseSem(s)*FACTOR[sem(d)];
+  const dejaProyDia=d=>suma(quienes.map(s=>margen(s,s==="emp"?0:ventaProy(s,d))-gastoDiaNov(s)));
+  let a=acuNov[HOY-1];const proy=[a];for(let d=HOY+1;d<=DIAS_NOV;d++){a+=dejaProyDia(d);proy.push(a)}
+  const deja=r10(acuNov[HOY-1]), dejaOct=r10(acuOct[HOY-1]), dejaProy=r10(proy[proy.length-1]);
+  const vendidoProy=r10(vendido+suma(Array.from({length:DIAS_NOV-HOY},(_,i)=>suma(ts.map(s=>ventaProy(s,HOY+1+i))))));
+  // A dónde va cada sol vendido
+  const costo=r10(suma(ts.map(s=>suma(NOV[s])*COSTO[s]))), comision=r10(vendido*COMISION);
+  const g=k=>r10(suma(quienes.map(s=>GASTO_MES[s][k]*HOY/DIAS_NOV)));
+  const gastos={sueldos:g("sueldos"),alquiler:g("alquiler"),otros:g("otros")};
+  const salio=costo+comision+gastos.sueldos+gastos.alquiler+gastos.otros;
+  // Por tienda
+  const porTienda=TIENDAS.filter(s=>enSede(sede,s)).map(s=>{const v=suma(NOV[s]);const vo=suma(Array.from({length:HOY},(_,i)=>ventaOct(s,i+1)));
+    const dj=r10(v*(1-COSTO[s]-COMISION)-gastoDiaNov(s)*HOY);return {k:s,n:NOMBRE[s],vendido:v,vendidoOct:vo,deja:dj}});
+  const empDeja=conEmp?r10(-gastoDiaNov("emp")*HOY):0;
+  // La plata: dónde está y de quién es
+  const cuentas=CUENTAS.filter(c=>sede==="todas"?true:c.s===sede);
+  const tienes=suma(cuentas.map(c=>c.m));
+  const claudia=sede==="todas"?suma(Object.values(CLAUDIA)):(CLAUDIA[sede]||0);
+  const pagos=PAGOS.map(p=>({...p,m:sede==="todas"?suma(Object.values(p.s)):(p.s[sede]||0)})).filter(p=>p.m>0);
+  const pagas=suma(pagos.map(p=>p.m));
+  const igvJunta=r10(suma(ts.map(s=>suma(NOV[s])*.18-suma(NOV[s])*COSTO[s]*.18*.85)));
+  const libre=tienes-pagas-claudia-igvJunta;
+  // La caja día por día (del 7 al 21): lo que entra por ventas (con IGV, como esta semana) menos los pagos
+  const caja=[];let c=tienes;
+  for(let d=HOY;d<=HOY+14;d++){
+    const entra=d===HOY?0:r10(suma(ts.map(s=>ventaProy(s,((d-1)%DIAS_NOV)+1)))*1.18*.55*(sede==="todas"?1:.6));   // lo que entra por ventas, menos lo que se repone
+    const sale=suma(pagos.filter(p=>p.d===d).map(p=>p.m));c+=entra-sale;
+    caja.push({d,entra,sale,saldo:c,pagos:pagos.filter(p=>p.d===d)})}
+  const bajo=caja.reduce((m,x)=>x.saldo<m.saldo?x:m,caja[0]);
+  // Qué tan seguro es el número
+  const falt=Object.entries(FACTURAS_FALTAN).filter(([k])=>sede==="todas"||k===sede).map(([,v])=>v);
+  const confianza={n:suma(falt.map(f=>f.n)),m:suma(falt.map(f=>f.m))};
+  // Hoy te toca: como mucho tres, lo que más cuesta si se deja pasar primero
+  const avisos=[];
+  pagos.filter(p=>p.d-HOY<=2).forEach(p=>avisos.push({tono:"rojo",t:`Paga ${min(p.n).replace(/^alquiler/,"el alquiler")}`,d:`${soles(p.m)} · vence el ${DSEM[sem(p.d)]} ${p.d}`,a:"Pagar"}));
+  if(enSede(sede,"lim"))avisos.push({tono:"ambar",t:"Cierra la caja de Lima",d:"Quedó abierta el viernes 6 con S/ 960",a:"Ir a Caja"});
+  if(confianza.n)avisos.push({tono:"pizarra",t:`Registra ${confianza.n===1?"una factura":confianza.n+" facturas"} de proveedor`,d:`${soles(confianza.m)} que todavía no cuentan en lo que te deja`,a:"Registrar"});
+  // Lo que pasó esta semana (C): solo lo que tiene volumen y cambia de verdad
+  const iMejor=porDia.indexOf(Math.max(...porDia));
+  const paso=[{d:iMejor+1,t:`El ${DSEM[sem(iMejor+1)]} ${iMejor+1} fue tu mejor día del mes`,s:`Vendiste ${(porDia[iMejor]/(vendido/HOY)).toFixed(1).replace(".",",")} veces lo de un día promedio de esta semana.`,v:soles(porDia[iMejor]),tono:"mas"}];
+  porTienda.forEach(t=>{if(t.k==="lim"&&t.deja<0)paso.push({d:"1–7",t:"Lima todavía no se paga sola",s:"Abrió el 20 de octubre: lo que vende aún no cubre su alquiler y sus sueldos.",v:soles(t.deja),tono:"menos"})});
+  porTienda.forEach(t=>{if(t.vendidoOct>=3000){const pct=Math.round((t.vendido/t.vendidoOct-1)*100);if(Math.abs(pct)>=3)paso.push({d:"1–7",t:`${t.n} vendió ${Math.abs(pct)} % ${pct>0?"más":"menos"}`,s:"que en la primera semana de octubre.",v:soles(t.vendido),tono:pct>0?"mas":"menos"})}});
+  return {sede,porDia,vendido,vendidoOct,vendidoProy,deja,dejaOct,dejaProy,acuNov,acuOct,proy,costo,comision,gastos,salio,porTienda,empDeja,
+    cuentas,tienes,claudia,pagos,pagas,igvJunta,libre,caja,bajo,confianza,avisos:avisos.slice(0,3),paso:paso.slice(0,3)};
+}
+
+/* ===================== Formato ===================== */
+function soles(n,{signo=false}={}){const s=Math.round(Math.abs(n)).toLocaleString("en-US");return (n<0?"−":signo&&n>0?"+":"")+"S/ "+s}
+function miles(n){return Math.round(Math.abs(n)).toLocaleString("en-US")}
+function min(t){return t.charAt(0).toLowerCase()+t.slice(1)}
+function pct(a,b){return Math.round((a/b-1)*100)}
+function cifra(n,cls=""){return `<div class="cifra ${n<0?"neg":""} ${cls}" data-v="${Math.round(n)}">${n<0?'<span class="sig">−</span>':""}<span class="mon">S/</span><span class="num">${miles(n)}</span></div>`}
+const QUIETO=matchMedia("(prefers-reduced-motion: reduce)").matches;
+function contar(root){root.querySelectorAll(".cifra[data-v]").forEach(el=>{const fin=Math.abs(+el.dataset.v),num=el.querySelector(".num");if(QUIETO||!fin)return;
+  const t0=performance.now(),dur=900;const paso=t=>{const k=Math.min(1,(t-t0)/dur),e=1-Math.pow(1-k,3);num.textContent=miles(fin*e);if(k<1)requestAnimationFrame(paso)};requestAnimationFrame(paso)})}
+const $=s=>document.querySelector(s);
+
+/* ===================== Gráfico de línea (SVG que se estira + rótulos en HTML) ===================== */
+// series: [{v:[...], x0, estilo:"real"|"proy"|"ref", area}] ; dominio x [x0,x1]
+function linea({series,x0,x1,alto=260,marcas=[],cero=true,id}){
+  const todos=series.flatMap(s=>s.v);let mn=Math.min(...todos,cero?0:Infinity),mx=Math.max(...todos,cero?0:-Infinity);const pad=(mx-mn)*.12||1;mn-=pad;mx+=pad;
+  const W=1000,H=alto,X=x=>(x-x0)/(x1-x0)*W,Y=v=>H-22-(v-mn)/(mx-mn)*(H-40);
+  const camino=s=>s.v.map((v,i)=>`${i?"L":"M"}${X(s.x0+i).toFixed(1)},${Y(v).toFixed(1)}`).join("");
+  let svg=`<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" aria-hidden="true">`;
+  if(cero&&mn<0)svg+=`<line x1="0" x2="${W}" y1="${Y(0)}" y2="${Y(0)}" stroke="var(--control)" stroke-opacity=".45" stroke-dasharray="2 6" class="trazo" stroke-width="1"/>`;
+  series.forEach((s,k)=>{const p=camino(s);
+    if(s.area){const base=Y(Math.max(mn,0));svg+=`<path d="${p}L${X(s.x0+s.v.length-1)},${base}L${X(s.x0)},${base}Z" fill="url(#ar-${id})" class="aparece" style="--d:300ms"/>`}
+    const est=s.estilo==="real"?`stroke="var(--tinta)" stroke-width="2.6"`:s.estilo==="proy"?`stroke="var(--tinta)" stroke-opacity=".5" stroke-width="2.2" stroke-dasharray="1 6"`:`stroke="var(--taupe)" stroke-width="1.8" stroke-dasharray="6 6"`;
+    svg+=`<path d="${p}" class="trazo ${s.estilo==="real"?"dibuja":"aparece"}" style="--d:${s.estilo==="real"?0:500}ms" pathLength="2000" ${est}/>`});
+  svg+=`<defs><linearGradient id="ar-${id}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="var(--tinta)" stop-opacity=".16"/><stop offset="1" stop-color="var(--tinta)" stop-opacity="0"/></linearGradient></defs></svg>`;
+  const ejes=marcas.map(m=>`<span class="eje ${m.cls||""}" style="left:${X(m.x)/W*100}%;bottom:0">${m.t}</span>`).join("");
+  return {html:`<div class="graf" id="${id}" style="height:${alto}px">${svg}${ejes}<div class="guia"></div><div class="punto" hidden></div><div class="globito" hidden></div></div>`,X:x=>X(x)/W,Y:v=>Y(v)/H,alto:H};
+}
+// Recorrer un gráfico con el mouse o el dedo; `leer(x)` devuelve {v, globito, alSoltar}
+function recorrer(el,g,x0,x1,leer,soltar){
+  const guia=el.querySelector(".guia"),pt=el.querySelector(".punto"),gl=el.querySelector(".globito");
+  const mover=e=>{const r=el.getBoundingClientRect();const k=Math.min(1,Math.max(0,(e.clientX-r.left)/r.width));const x=Math.round(x0+k*(x1-x0));const l=leer(x);if(!l)return;
+    const px=g.X(x)*100,py=g.Y(l.v)*100;guia.style.left=px+"%";guia.style.opacity=1;pt.hidden=false;pt.style.left=px+"%";pt.style.top=py+"%";gl.hidden=false;gl.innerHTML=l.globito;
+    gl.style.left=Math.min(88,Math.max(12,px))+"%";gl.style.top=Math.max(18,py)+"%"};
+  const fuera=()=>{guia.style.opacity=0;pt.hidden=true;gl.hidden=true;soltar&&soltar()};
+  el.addEventListener("pointermove",mover);el.addEventListener("pointerdown",mover);el.addEventListener("pointerleave",fuera);el.addEventListener("pointerup",e=>{if(e.pointerType!=="mouse")fuera()});
+}
+function fechaNov(d){return `${DSEM[sem(((d-1)%30)+1)]} ${d>30?d-30:d}${d>30?" de dic.":""}`}
+
+/* ======================================================================================================
+   A · UN NÚMERO (Robinhood + Stripe + Copilot): una pregunta, una cifra enorme, una frase y su gráfico,
+   que se recorre con el dedo. Debajo, tres cifras chicas y lo que te toca hoy.
+   ====================================================================================================== */
+let preguntaA="deja";
+function vistaA(m){
+  const comp=m.deja-m.dejaOct;
+  const P={
+    deja:{nom:"Te deja noviembre, hasta hoy",v:m.deja,
+      frase:`${comp>=0?"Vas":"Vas"} ${soles(Math.abs(comp))} ${comp>=0?"mejor":"peor"} que a esta altura de octubre. Si sigue así, cierras el mes con ${soles(m.dejaProy)}.`,
+      chips:[{t:`De cada S/ 100 que vendes, te quedan S/ ${Math.round(m.deja/m.vendido*100)}`,tono:"sin"},{t:m.confianza.n?`Casi seguro · faltan ${m.confianza.n} facturas`:"Número seguro",tono:m.confianza.n?"ambar":"verde"}]},
+    tienes:{nom:"Tienes hoy, entre bancos y cajas",v:m.tienes,
+      frase:`Con lo que entra por ventas y lo que pagas, tu plata no baja de ${soles(m.bajo.saldo)} en las próximas dos semanas.`,
+      chips:[{t:`Lo más bajo: el ${fechaNov(m.bajo.d)}`,tono:"pizarra"},{t:m.claudia?`Incluye ${soles(m.claudia)} de Claudia`:"Todo es de CAYLA",tono:"sin"}]},
+    pagas:{nom:"Pagas en las próximas dos semanas",v:m.pagas,
+      frase:m.pagos.length?`Son ${m.pagos.length} ${m.pagos.length===1?"pago":"pagos"}. ${(()=>{const g=m.pagos.reduce((a,b)=>b.m>a.m?b:a);return `El más grande: ${min(g.n)}, el ${fechaNov(g.d)}.`})()} Tienes con qué cubrirlos.`:"No tienes pagos en las próximas dos semanas.",
+      chips:[{t:`Tienes ${soles(m.tienes)}`,tono:"verde"},{t:"Con el IGV de octubre",tono:"sin"}]}};
+  const p=P[preguntaA];
+  // El gráfico de cada pregunta
+  let g,x0,x1,leer,ley;
+  if(preguntaA==="deja"){x0=1;x1=30;
+    g=linea({id:"ga",x0,x1,series:[{v:m.acuOct.slice(0,30),x0:1,estilo:"ref"},{v:m.proy,x0:HOY,estilo:"proy"},{v:m.acuNov,x0:1,estilo:"real",area:true}],
+      marcas:[{x:1,t:"1 nov",cls:"izq"},{x:HOY,t:"Hoy"},{x:15,t:"15"},{x:30,t:"30 nov",cls:"der"}]});
+    leer=x=>x<=HOY?{v:m.acuNov[x-1],globito:`<b>${soles(m.acuNov[x-1])}</b>al ${fechaNov(x)} · octubre ${soles(m.acuOct[x-1])}`,cifra:m.acuNov[x-1],frase:`Al ${fechaNov(x)} te dejaba ${soles(m.acuNov[x-1])}. A esa altura de octubre, ${soles(m.acuOct[x-1])}.`}
+      :{v:m.proy[x-HOY],globito:`<b>${soles(m.proy[x-HOY])}</b>si sigue así, al ${x} · octubre ${soles(m.acuOct[x-1])}`,cifra:m.proy[x-HOY],frase:`Si vendes como esta semana, al ${x} de noviembre te dejaría ${soles(m.proy[x-HOY])}.`};
+    ley=`<span><i></i>Noviembre</span><span><i class="pun"></i>Si sigue así</span><span><i class="ref"></i>Octubre</span>`;
+  }else if(preguntaA==="tienes"){x0=HOY;x1=HOY+14;
+    const marcas=[{x:HOY,t:"Hoy",cls:"izq"},...m.caja.filter(c=>c.sale).map(c=>({x:c.d,t:`${c.d>30?c.d-30:c.d}`})),{x:HOY+14,t:`${HOY+14} nov`,cls:"der"}];
+    g=linea({id:"ga",x0,x1,cero:false,series:[{v:m.caja.map(c=>c.saldo),x0:HOY,estilo:"real",area:true}],marcas});
+    leer=x=>{const c=m.caja[x-HOY];const qp=c.pagos.map(p=>`${p.n} −${miles(p.m)}`).join(" · ");return {v:c.saldo,globito:`<b>${soles(c.saldo)}</b>${fechaNov(x)}${qp?" · "+qp:c.entra?" · entra "+soles(c.entra):""}`,cifra:c.saldo,frase:x===HOY?p.frase:`El ${fechaNov(x)} tendrías ${soles(c.saldo)}${c.pagos.length?`, después de pagar ${c.pagos.map(p=>min(p.n)).join(" y ")}`:""}.`}};
+    ley=`<span><i></i>Tu plata, si vendes como esta semana</span><span>Cada baja es un pago</span>`;
+  }else{x0=HOY;x1=HOY+14;
+    // Pagos: barras en su día
+    const mx=Math.max(...m.pagos.map(p=>p.m),1),W=1000,H=260,X=x=>(x-x0)/(x1-x0)*W;
+    const barras=m.pagos.map((p,i)=>{const h=(p.m/mx)*(H-70);return `<rect x="${X(p.d)-14}" y="${H-22-h}" width="28" height="${h}" rx="8" fill="var(--tinta)" fill-opacity="${.35+.65*p.m/mx}" class="aparece" style="--d:${i*80}ms"/>`}).join("");
+    const rot=m.pagos.map(p=>`<span class="eje" style="left:${X(p.d)/10}%;bottom:0">${p.d}</span>`).join("");
+    g={html:`<div class="graf" id="ga" style="height:260px"><svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" aria-hidden="true"><line x1="0" x2="${W}" y1="${H-22}" y2="${H-22}" stroke="var(--control)" stroke-opacity=".4" class="trazo"/>${barras}</svg><span class="eje izq" style="left:0;bottom:0">Hoy</span>${rot}<div class="guia"></div><div class="punto" hidden></div><div class="globito" hidden></div></div>`,
+      X:x=>X(x)/W,Y:v=>(H-22-(v/mx)*(H-70))/H};
+    leer=x=>{const pp=m.pagos.find(p=>Math.abs(p.d-x)<=0)||null;if(!pp)return null;return {v:pp.m,globito:`<b>${soles(pp.m)}</b>${pp.n} · ${fechaNov(pp.d)}`,cifra:pp.m,frase:`${pp.n}: ${soles(pp.m)}, el ${fechaNov(pp.d)}. ${pp.det}.`}};
+    ley=`<span>Cada barra es un pago, en el día que vence. Toca una para ver de qué es.</span>`;
+  }
+  const pregs=[["deja","¿Cuánto te deja?"],["tienes","¿Cuánto tienes?"],["pagas","¿Qué pagas pronto?"]];
+  const html=`
+  <section class="vidrio a-heroe entra" style="--i:2" aria-label="La cifra del mes">
+    <div class="a-izq">
+      <div class="a-preg" role="group" aria-label="Elige la pregunta">${pregs.map(([k,t])=>`<button type="button" data-p="${k}" aria-pressed="${k===preguntaA}">${t}</button>`).join("")}</div>
+      <div class="nom" id="a-nom">${p.nom}</div>
+      <div id="a-cifra">${cifra(p.v)}</div>
+      <p class="a-frase" id="a-frase">${p.frase}</p>
+      <div class="chips">${p.chips.map(c=>`<span class="chip ${c.tono}">${c.t}</span>`).join("")}<button type="button" class="porque">¿Por qué?</button></div>
+    </div>
+    <div class="a-der">${g.html}<div class="ley">${ley}</div></div>
+  </section>
+  <section class="a-tres">
+    <div class="vidrio mini entra" style="--i:3"><span class="nom">Vendiste</span>${cifra(m.vendido)}<small>${m.vendidoOct?`${pct(m.vendido,m.vendidoOct)>=0?"+":""}${pct(m.vendido,m.vendidoOct)} % que a esta altura de octubre`:"Lima no vendía a esta altura de octubre"}</small></div>
+    <div class="vidrio mini entra" style="--i:4"><span class="nom">Gastaste</span>${cifra(m.salio)}<small>${soles(m.costo)} en las prendas · ${soles(m.gastos.sueldos)} en sueldos · ${soles(m.gastos.alquiler+m.gastos.otros+m.comision)} en lo demás</small></div>
+    <div class="vidrio mini entra" style="--i:5"><span class="nom">Juntas para SUNAT</span>${cifra(m.igvJunta)}<small>IGV de noviembre. Se paga en diciembre: no es tuyo.</small></div>
+  </section>
+  <section class="a-pie">
+    <div class="vidrio bloque entra" style="--i:6"><div class="cab-bloque"><div><h2>Hoy te toca</h2><p class="bajada">Lo que más cuesta si se deja pasar, primero.</p></div></div>${avisosHTML(m)}</div>
+    <div class="vidrio bloque entra" style="--i:7"><div class="cab-bloque"><div><h2>Cada tienda</h2><p class="bajada">Lo que vendió y lo que te deja, hasta hoy.</p></div></div>${sedesHTML(m)}</div>
+  </section>`;
+  return {html,frase:"Una pregunta a la vez. Recorre el gráfico con el dedo para ver cualquier día.",despues:root=>{
+    root.querySelectorAll("[data-p]").forEach(b=>b.addEventListener("click",()=>{preguntaA=b.dataset.p;pintar()}));
+    const el=root.querySelector("#ga");const nom=$("#a-cifra"),fr=$("#a-frase");
+    recorrer(el,g,x0,x1,x=>{const l=leer(x);if(l){nom.innerHTML=cifra(l.cifra);fr.textContent=l.frase}return l},()=>{nom.innerHTML=cifra(p.v);fr.textContent=p.frase});
+    root.querySelector(".porque").addEventListener("click",()=>alertaPorque(preguntaA,m));
+  }};
+}
+function avisosHTML(m){if(!m.avisos.length)return `<p class="nota">Nada urgente hoy. Vuelve el lunes.</p>`;
+  return `<div class="avisos">${m.avisos.map((a,i)=>`<div class="aviso"><span class="dot ${a.tono}"></span><div><b>${a.t}</b><small>${a.d}</small></div><button type="button" class="btn ${i===0?"prim":""}">${a.a}</button></div>`).join("")}</div>`}
+function sedesHTML(m){const mx=Math.max(...m.porTienda.map(t=>t.vendido));
+  return `<div class="sedes">${m.porTienda.map((t,i)=>`<div class="sede-f"><span><span class="muestra" style="background:var(--sede-${t.k})"></span>${t.n}</span><span class="tubo"><i style="width:${t.vendido/mx*100}%;background:var(--sede-${t.k});--d:${i*90}ms"></i></span><span class="v">${soles(t.vendido)}<small>${t.deja<0?"le faltan "+soles(-t.deja):"te deja "+soles(t.deja)}</small></span></div>`).join("")}
+  ${m.empDeja?`<p class="nota">La oficina y el contador cuestan ${soles(-m.empDeja)} a la semana y no son de ninguna tienda.</p>`:""}</div>`}
+function alertaPorque(k,m){const t={deja:`Lo que te deja = lo vendido (${soles(m.vendido)}) menos lo que costaron esas prendas (${soles(m.costo)}), los sueldos, los alquileres y los demás gastos de estos ${HOY} días (${soles(m.salio-m.costo)}). Un sueldo o un alquiler se reparte día por día: por eso el número no se cae el día que pagas.`,
+  tienes:`Lo que tienes = lo que hay en los bancos, en las cajas de las tiendas y lo que Izipay ya te debe depositar. No es lo que ganaste: una compra de mercadería baja la plata pero no lo que te deja.`,
+  pagas:`Facturas por vencer, alquileres, planilla e impuestos de los próximos 14 días, de Por pagar. Lo que todavía no está registrado no aparece aquí.`}[k];
+  const v=$("#a-frase");v.textContent=t}
+
+/* ======================================================================================================
+   B · LO QUE TIENES DE VERDAD (Monzo + Mercury + Simple): lo que tienes, partido en lo que ya tiene dueño y lo
+   que queda libre; dónde está; las próximas dos semanas día por día; y aparte, lo que te deja el mes.
+   ====================================================================================================== */
+let bolsilloB=null;
+function vistaB(m){
+  const partes=[
+    {k:"libre",n:"Libre para usar",s:"Lo que puedes mover sin descuadrarte",v:m.libre,sw:"var(--tinta)"},
+    {k:"pagos",n:"Ya tiene dueño",s:`${m.pagos.length} pagos de las próximas dos semanas`,v:m.pagas,sw:"var(--taupe)"},
+    {k:"sunat",n:"Es de SUNAT",s:"El IGV que vas juntando en noviembre",v:m.igvJunta,sw:"var(--s3)"},
+    {k:"claudia",n:"Es de Claudia",s:"Lo que vendiste de CLAURE en Lima",v:m.claudia,sw:"var(--s4)"}].filter(p=>p.v>0||p.k==="libre");
+  const total=m.tienes;
+  const det={pagos:m.pagos.map(p=>[`${p.n} · ${fechaNov(p.d)}`,p.m]),sunat:[["IGV de lo que vendiste",r10(m.vendido*.18)],["Menos el IGV de lo que compraste",-(r10(m.vendido*.18)-m.igvJunta)]],
+    claudia:Object.entries(CLAUDIA).filter(([k])=>m.sede==="todas"||k===m.sede).map(([k,v])=>[k==="emp"?"En el BCP":"En la caja de Lima",v]),
+    libre:[["Lo que tienes",total],["Menos lo que ya tiene dueño",-(total-m.libre)]]};
+  const iconos={camino:`<svg viewBox="0 0 24 24"><path d="M3 12h13m-4-5 5 5-5 5M21 5v14"/></svg>`};
+  const mxC=Math.max(...m.caja.map(c=>c.saldo)),mnC0=Math.min(...m.caja.map(c=>c.saldo)),mnC=mnC0-(mxC-mnC0)*.35;
+  const libreNeg=m.libre<0;
+  const html=`
+  <section class="vidrio b-heroe entra" style="--i:2">
+    <div class="b-izq">
+      <span class="nom">${libreNeg?"Te falta para cubrir lo que viene":"Libre para usar"}</span>
+      ${cifra(m.libre)}
+      <p class="b-frase">De tus ${soles(total)}, ${soles(total-m.libre)} ya tienen dueño: los pagos de las próximas dos semanas${m.claudia?", la plata de Claudia":""} y el IGV de noviembre. ${libreNeg?"Lo que vendas en estos días tiene que cubrirlo.":"Y lo que vendas en estos días se suma."}</p>
+      <div class="bolsa" id="bolsa" role="group" aria-label="De quién es lo que tienes">${partes.map((p,i)=>`<button type="button" class="${p.k}" data-b="${p.k}" style="flex:${Math.max(p.v,total*.02)};--d:${i*110}ms" aria-label="${p.n}: ${soles(p.v)}">${p.k==="libre"&&p.v/total>.18?`<span>${soles(p.v)}</span>`:""}</button>`).join("")}</div>
+      <div class="bolsillos">${partes.map(p=>`<button type="button" class="bolsillo" data-b="${p.k}" aria-expanded="${bolsilloB===p.k}"><span class="sw" style="background:${p.k==="sunat"?"repeating-linear-gradient(135deg,var(--s3) 0 3px,transparent 3px 6px)":p.sw}"></span><span><b>${p.n}</b><small>${p.s}</small></span><span class="v">${soles(p.v)}</span></button>${bolsilloB===p.k?`<div class="abierto"><ul>${det[p.k].map(([t,v])=>`<li><span>${t}</span><span class="v">${soles(v)}</span></li>`).join("")}</ul></div>`:""}`).join("")}</div>
+    </div>
+    <div>
+      <div class="cab-bloque"><div><h2 style="font:400 22px var(--titulo)">Dónde está</h2><p class="bajada">${m.sede==="todas"?`${soles(total)} en ${m.cuentas.length} lugares`:`La caja de la tienda. Los bancos son de toda CAYLA.`}</p></div></div>
+      <div class="donde">${m.cuentas.map(c=>`<div class="cuenta"><span class="ico">${iconos[c.ico]||c.ico}</span><span><b>${c.n}</b><small>${c.nota}</small></span><span class="v">${soles(c.m)}</span></div>`).join("")}</div>
+    </div>
+  </section>
+  <section class="vidrio bloque entra" style="--i:3">
+    <div class="cab-bloque"><div><h2>Las próximas dos semanas</h2><p class="bajada">Tu plata cada día, si vendes como esta semana. Lo más bajo: ${soles(m.bajo.saldo)}, el ${fechaNov(m.bajo.d)}.</p></div><span class="chip ${m.bajo.saldo>m.pagas*.5?"verde":"ambar"}">${m.bajo.saldo>0?"Te alcanza para todo":"No te alcanza"}</span></div>
+    <div class="tira">${m.caja.map((c,i)=>`<div class="dia ${c.d===HOY?"hoy":""} ${c.d===m.bajo.d?"bajo":""}"><span class="ds">${c.d===HOY?"hoy":DSEM_C[sem(((c.d-1)%30)+1)]}</span><span class="dn">${c.d>30?c.d-30:c.d}</span>
+      <span class="col"><i style="height:${Math.max(6,(c.saldo-mnC)/(mxC-mnC)*100)}%;--d:${i*40}ms"></i></span><span class="cv">${(c.saldo/1000).toFixed(1)} mil</span>
+      ${c.pagos.map(p=>`<span class="pago"><b>−${miles(p.m)}</b>${p.n.split(" ·")[0]}</span>`).join("")}</div>`).join("")}</div>
+  </section>
+  <section class="b-pie">
+    <div class="vidrio bloque entra" style="--i:4">
+      <div class="cab-bloque"><div><h2>Lo que te deja noviembre</h2><p class="bajada">No es lo mismo que la plata de arriba: una compra de tela baja la plata, no lo que te deja.</p></div>${cifra(m.deja,"")}</div>
+      <p class="nota" style="font-size:14.5px;color:var(--tinta)">De cada S/ 100 que vendes:</p>
+      ${cienHTML(m)}
+    </div>
+    <div class="vidrio bloque entra" style="--i:5"><div class="cab-bloque"><div><h2>Hoy te toca</h2><p class="bajada">Lo que más cuesta si se deja pasar, primero.</p></div></div>${avisosHTML(m)}</div>
+  </section>`;
+  return {html,frase:"Cuánto de tu plata es tuya de verdad, dónde está y cómo llega a las próximas dos semanas.",despues:root=>{
+    root.querySelectorAll("[data-b]").forEach(b=>{b.addEventListener("click",()=>{bolsilloB=bolsilloB===b.dataset.b?null:b.dataset.b;pintar(false)});
+      b.addEventListener("pointerenter",()=>{const bo=$("#bolsa");bo.classList.add("apaga");bo.querySelectorAll("button").forEach(x=>x.classList.toggle("on",x.dataset.b===b.dataset.b))});
+      b.addEventListener("pointerleave",()=>$("#bolsa").classList.remove("apaga"))});
+    const sc=root.querySelector(".tira .hoy");if(sc&&sc.parentElement.scrollWidth>sc.parentElement.clientWidth)sc.parentElement.scrollLeft=0;
+  }};
+}
+function cienHTML(m){const v=m.vendido;const filas=[["La prenda",m.costo,"var(--taupe)"],["Sueldos",m.gastos.sueldos,"var(--s3)"],["Alquileres",m.gastos.alquiler,"var(--s4)"],["Lo demás",m.gastos.otros+m.comision,"color-mix(in srgb,var(--taupe) 30%,var(--hueso))"],["Te queda",m.deja,"var(--tinta)"]];
+  const pc=filas.map(f=>Math.round(f[1]/v*100));const dif=100-suma(pc);pc[0]+=dif;
+  return `<div class="cien" role="img" aria-label="${filas.map((f,i)=>f[0]+" "+pc[i]).join(", ")}">${filas.map((f,i)=>pc[i]>0?`<i style="flex:${pc[i]};background:${f[2]};--d:${i*90}ms"></i>`:"").join("")}</div>
+  <div class="cien-ley">${filas.map((f,i)=>`<span><span><span class="muestra" style="background:${f[2]};box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--control) 35%,transparent)"></span>${f[0]}</span><b>S/ ${pc[i]}</b></span>`).join("")}</div>`}
+
+/* ======================================================================================================
+   C · PASÓ Y VIENE (Copilot + Shopify + Digits): las cuatro cifras quedan fijas arriba; debajo, la semana contada en
+   una frase con sus cifras tocables y un hilo de tiempo: hoy, lo que viene y lo que pasó.
+   ====================================================================================================== */
+let chipC=null;
+function vistaC(m){
+  const cmpV=m.vendidoOct?pct(m.vendido,m.vendidoOct):null;
+  const lima=m.porTienda.find(t=>t.k==="lim");
+  const sinLima=m.sede==="todas"&&lima?pct(m.vendido-lima.vendido,m.vendidoOct):null;
+  const planilla=m.pagos.find(p=>p.n.startsWith("Planilla"));
+  const frases=[];
+  frases.push(`Esta semana <button type="button" data-x="vendido" aria-expanded="${chipC==="vendido"}">vendiste ${soles(m.vendido)}</button>${cmpV!==null?`, <button type="button" data-x="comp" aria-expanded="${chipC==="comp"}">${cmpV>=0?cmpV+" % más":-cmpV+" % menos"}</button> que la primera semana de octubre${sinLima!==null?` (sin Lima, ${sinLima>=0?"+":""}${sinLima} %)`:""}`:""}.`);
+  frases.push(` Te quedan <button type="button" data-x="deja" aria-expanded="${chipC==="deja"}">${soles(m.deja)}</button>, S/ ${Math.round(m.deja/m.vendido*100)} de cada 100.`);
+  if(planilla)frases.push(` El ${DSEM[sem(planilla.d)]} ${planilla.d} pagas la planilla: <button type="button" data-x="caja" aria-expanded="${chipC==="caja"}">tienes con qué</button>.`);
+  else if(m.pagos.length)frases.push(` En dos semanas pagas <button type="button" data-x="caja" aria-expanded="${chipC==="caja"}">${soles(m.pagas)}</button>, y te alcanza.`);
+  const hora=new Date().getHours();const hola=hora<12?"Buenos días":hora<19?"Buenas tardes":"Buenas noches";
+  // La explicación de cada cifra tocada
+  const exp={
+    vendido:()=>{const g=barrasDia(m);return {t:"Lo que vendiste cada día",p:`El sábado es tu día: ${soles(Math.max(...m.porDia))}. El lunes, el más flojo.`,g}},
+    comp:()=>({t:"Contra la misma semana de octubre",p:`Octubre llevaba ${soles(m.vendidoOct)} a esta altura. ${sinLima!==null?"La mayor parte de la diferencia es Lima, que en octubre aún no abría.":""}`,g:lineaMini(m.acuNov.map((_,i)=>suma(m.porDia.slice(0,i+1))),Array.from({length:HOY},(_,i)=>suma(tiendasDe(m.sede).map(s=>suma(Array.from({length:i+1},(_,j)=>ventaOct(s,j+1)))))))}),
+    deja:()=>({t:"Lo que te deja, día a día",p:`Cada día suma lo que deja la venta y resta un día de sueldos y alquiler. Si sigue así, cierras noviembre en ${soles(m.dejaProy)}.`,g:lineaMini(m.acuNov,m.acuOct.slice(0,HOY))}),
+    caja:()=>({t:"Tu plata en las próximas dos semanas",p:`Lo más bajo: ${soles(m.bajo.saldo)}, el ${fechaNov(m.bajo.d)}. Cada baja es un pago.`,g:lineaMini(m.caja.map(c=>c.saldo))})};
+  let explica="";if(chipC&&exp[chipC]){const e=exp[chipC]();explica=`<div class="c-explica"><div><h3>${e.t}</h3><p>${e.p}</p></div>${e.g}</div>`}
+  const viene=[];m.pagos.forEach(p=>viene.push({d:p.d,t:p.n,s:p.det,v:"−"+soles(p.m),cls:"menos"}));
+  if(m.sede==="todas")viene.push({d:9,t:"Izipay te deposita las tarjetas",s:"Lo que cobraste con tarjeta esta semana",v:"+"+soles(3600),cls:"mas"});
+  viene.sort((a,b)=>a.d-b.d);
+  const grupos={};viene.forEach(v=>{(grupos[v.d]=grupos[v.d]||[]).push(v)});
+  const tramo=(d,cosas,hoy)=>`<div class="tramo ${hoy?"hoy":""}"><div class="cuando"><span>${hoy?"hoy":typeof d==="string"?"nov":DSEM_C[sem(((d-1)%30)+1)]}<b>${d}</b></span></div><div class="cosas">${cosas}</div></div>`;
+  const cosa=c=>`<div class="cosa vidrio"><div><b>${c.t}</b><small>${c.s}</small></div><span class="v ${c.cls||""}">${c.v}</span></div>`;
+  const meses=[["Agosto",71500,4800],["Septiembre",78000,6100],["Octubre",r10(suma(tiendasDe("todas").map(s=>suma(Array.from({length:31},(_,i)=>ventaOct(s,i+1)))))),r10(modelo("todas").acuOct[30])]];
+  const html=`
+  <section class="vidrio flota c-franja entra" style="--i:2" aria-label="Las cuatro cifras">
+    <div><small>Vendiste</small>${cifra(m.vendido)}</div><div><small>Te deja</small>${cifra(m.deja)}</div><div><small>Tienes</small>${cifra(m.tienes)}</div><div><small>Pagas en 14 días</small>${cifra(m.pagas)}</div>
+  </section>
+  <section class="vidrio c-heroe entra" style="--i:3">
+    <p class="c-hola">${hola}, Felipe · sábado 7 de noviembre</p>
+    <p class="c-texto">${frases.join("")}</p>
+    ${explica}
+    <div class="chips" style="margin-top:18px"><span class="chip ${m.confianza.n?"ambar":"verde"}">${m.confianza.n?`Casi seguro · faltan ${m.confianza.n} ${m.confianza.n===1?"factura":"facturas"} (${soles(m.confianza.m)})`:"Número seguro"}</span><span class="nota" style="align-self:center">Toca una cifra subrayada para ver de dónde sale.</span></div>
+  </section>
+  <section class="c-cuerpo">
+    <div class="hilo entra" style="--i:4">
+      <p class="titulo-hilo">Hoy te toca</p>
+      ${tramo(HOY,m.avisos.length?m.avisos.map((a,i)=>`<div class="cosa vidrio"><div><b>${a.t}</b><small>${a.d}</small></div><button type="button" class="btn ${i===0?"prim":""}">${a.a}</button></div>`).join(""):cosa({t:"Nada urgente hoy",s:"Vuelve el lunes",v:""}),true)}
+      <p class="titulo-hilo">Lo que viene</p>
+      ${Object.entries(grupos).map(([d,cs])=>tramo(+d,cs.map(cosa).join(""))).join("")||`<p class="nota" style="margin-left:84px">Nada en las próximas dos semanas.</p>`}
+      <p class="titulo-hilo">Lo que pasó esta semana</p>
+      ${m.paso.map(p=>tramo(p.d,cosa({t:p.t,s:p.s,v:p.v,cls:p.tono}))).join("")}
+    </div>
+    <div class="entra" style="--i:5">
+      <div class="vidrio bloque"><div class="cab-bloque"><div><h2>Los meses que cerraron</h2><p class="bajada">Toca uno para traerlo adelante.</p></div></div>
+        <div class="billetera" id="billetera">${meses.map((x,i)=>`<button type="button" class="mesc vidrio" data-i="${i}" style="top:${i*66}px;z-index:${i+1}"><span class="r"><h3>${x[0]}</h3>${cifra(x[2])}</span><small>Vendiste ${soles(x[1])} · te dejó S/ ${Math.round(x[2]/x[1]*100)} de cada 100</small></button>`).join("")}</div>
+      </div>
+      <div class="vidrio bloque" style="margin-top:18px"><div class="cab-bloque"><div><h2>Cada tienda</h2><p class="bajada">Lo que vendió y lo que te deja, hasta hoy.</p></div></div>${sedesHTML(m)}</div>
+    </div>
+  </section>`;
+  return {html,frase:"La semana contada en una frase, lo que te toca hoy y lo que viene, en orden.",despues:root=>{
+    root.querySelectorAll("[data-x]").forEach(b=>b.addEventListener("click",()=>{chipC=chipC===b.dataset.x?null:b.dataset.x;pintar(false)}));
+    const bi=root.querySelector("#billetera");bi.querySelectorAll(".mesc").forEach(c=>c.addEventListener("click",()=>{const i=+c.dataset.i;bi.querySelectorAll(".mesc").forEach((o,j)=>{const arriba=j===i;o.style.zIndex=arriba?10:j+1;o.style.transform=arriba?"translateY(-6px)":"none"})}));
+  }};
+}
+function barrasDia(m){const mx=Math.max(...m.porDia);return `<div class="graf" style="height:120px"><svg viewBox="0 0 700 120" preserveAspectRatio="none" aria-hidden="true">${m.porDia.map((v,i)=>{const h=v/mx*92;return `<rect x="${i*100+24}" y="${98-h}" width="52" height="${h}" rx="8" fill="var(--tinta)" fill-opacity="${i===m.porDia.indexOf(mx)?1:.25}" class="aparece" style="--d:${i*60}ms"/>`}).join("")}</svg>${m.porDia.map((v,i)=>`<span class="eje" style="left:${(i*100+50)/7}%;bottom:-2px">${DSEM_C[i]}</span>`).join("")}</div>`}
+function lineaMini(v,ref){const g=linea({id:"gm"+Math.random().toString(36).slice(2,6),x0:0,x1:Math.max(v.length,ref?ref.length:0)-1,alto:120,cero:false,series:[...(ref?[{v:ref,x0:0,estilo:"ref"}]:[]),{v,x0:0,estilo:"real",area:true}]});return g.html}
+
+/* ===================== Montaje ===================== */
+const E={camino:"a",sede:"todas"};
+function leerHash(){const h=location.hash.slice(1);if(["a","b","c"].includes(h))E.camino=h}
+function gota(seg){const b=seg.querySelector('[aria-pressed="true"]'),g=seg.querySelector(".gota");if(!b||!g)return;g.style.width=b.offsetWidth+"px";g.style.transform=`translateX(${b.offsetLeft}px)`}
+function pintar(entrar=true){
+  const m=modelo(E.sede);
+  const v={a:vistaA,b:vistaB,c:vistaC}[E.camino](m);
+  const main=$("#vista");main.innerHTML=v.html;if(!entrar)main.querySelectorAll(".entra,.dibuja,.aparece,.vidrio").forEach(el=>{el.style.animation="none"});
+  $("#cab-frase").textContent=v.frase;
+  $("#cab-linea").textContent=`${E.sede==="todas"?"Todas las sedes":NOMBRE[E.sede]} · sábado 7 de noviembre`;
+  document.querySelectorAll("#caminos button").forEach(b=>b.setAttribute("aria-pressed",String(b.dataset.c===E.camino)));
+  document.querySelectorAll("#sedes button").forEach(b=>b.setAttribute("aria-pressed",String(b.dataset.s===E.sede)));
+  gota($("#caminos"));gota($("#sedes"));
+  v.despues(main);if(entrar)contar(main);
+}
+$("#sedes").insertAdjacentHTML("beforeend",SEDES.map(s=>`<button type="button" data-s="${s.k}">${s.n}</button>`).join(""));
+$("#sedes").addEventListener("click",e=>{const b=e.target.closest("button");if(!b)return;E.sede=b.dataset.s;pintar()});
+$("#caminos").addEventListener("click",e=>{const b=e.target.closest("button");if(!b)return;E.camino=b.dataset.c;history.replaceState(null,"","#"+E.camino);window.scrollTo({top:0});pintar()});
+addEventListener("hashchange",()=>{leerHash();pintar()});
+addEventListener("resize",()=>{gota($("#caminos"));gota($("#sedes"))});
+
+/* ===================== Tema ===================== */
+function temaActual(){const t=document.documentElement.dataset.tema;if(t)return t;return matchMedia("(prefers-color-scheme: dark)").matches?"oscuro":"claro"}
+$("#tema").addEventListener("click",()=>{document.documentElement.dataset.tema=temaActual()==="oscuro"?"claro":"oscuro";try{localStorage.setItem("cayla-tema-maq",document.documentElement.dataset.tema)}catch(e){}});
+try{const t=localStorage.getItem("cayla-tema-maq");if(t)document.documentElement.dataset.tema=t}catch(e){}
+
+
+leerHash();pintar();
+document.fonts&&document.fonts.ready.then(()=>{gota($("#caminos"));gota($("#sedes"))});
+</script>
+</body>
+</html>

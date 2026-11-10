@@ -16,7 +16,7 @@ import { CabeceraBloque, CampoFin, Herramientas, InputFin, ListaDatos, OpcionesF
 import { useResponsable } from "@/lib/useResponsable";
 import { firmar } from "@/lib/responsable-reglas";
 import { soles } from "@/lib/compras-reglas";
-import { fechaCorta, solesRedondo, type Ver } from "@/lib/gastos-reglas";
+import { fechaCorta, solesDos, type Ver } from "@/lib/gastos-reglas";
 import { leerMontoPlata, MONTO_ILEGIBLE } from "@/lib/monto-plata-reglas";
 import {
   OPCIONES_QUE_PASO,
@@ -37,6 +37,7 @@ import {
   resumenAbono,
   revisarComision,
   resumenConciliacion,
+  textoDespuesDelDeposito,
   textoLote,
   textoSalida,
   tipoDeMovimiento,
@@ -280,12 +281,18 @@ export function ConciliacionPanel({
   actual,
   hoy,
   deUnaFecha = false,
+  maquinas = null,
+  extracto = null,
 }: {
   cuentas: ConciliacionCuenta[];
   actual: Conciliacion | null;
   hoy: string;
   /** Se mira una conciliación pasada (`?hasta=`): la flecha vuelve a la de hoy. */
   deUnaFecha?: boolean;
+  /** «Lo que te deben las máquinas» (ADR-0629, Fase B): va bajo la lista de bancos, que ya no lleva las puentes. */
+  maquinas?: ReactNode;
+  /** «Subir extracto», solo en el banco donde depositan las máquinas (ADR-0629, Fase B). */
+  extracto?: ReactNode;
 }) {
   const router = useRouter();
   const ruta = usePathname();
@@ -300,11 +307,14 @@ export function ConciliacionPanel({
 
   if (!actual) {
     return (
-      <Superficie>
-        <Vacio guia="fin-conciliacion.vacia" icono={<Landmark />} titulo="No hay bancos que conciliar">
-          Agrega los bancos, el POS y la tarjeta en Configuración ▸ Dinero.
-        </Vacio>
-      </Superficie>
+      <div className="din-cuad-col">
+        <Superficie>
+          <Vacio guia="fin-conciliacion.vacia" icono={<Landmark />} titulo="No hay bancos que conciliar">
+            Agrega los bancos y la tarjeta en Configuración ▸ Dinero.
+          </Vacio>
+        </Superficie>
+        {maquinas}
+      </div>
     );
   }
   const r = resumenConciliacion(actual.lineas);
@@ -361,6 +371,7 @@ export function ConciliacionPanel({
   return (
     <div className="din-cuad">
       {/* «B · Lista y detalle» (Felipe 2026-10-31): a la izquierda, los bancos con su estado de un vistazo; a la derecha, el del elegido. */}
+      <div className="din-cuad-col">
       <aside className="card-cayla din-cuad-lista anim-sube" data-guia="fin-conciliacion.otras" aria-label="Tus bancos">
         <header className="din-cuad-lista-cab">
           <TituloSeccion cuenta={totalPendientes}>Tus bancos</TituloSeccion>
@@ -389,6 +400,8 @@ export function ConciliacionPanel({
           })}
         </div>
       </aside>
+      {maquinas}
+      </div>
 
       <div className="din-cuad-det">
         <div className="w-full max-w-xs" data-guia="fin-conciliacion.responsable">
@@ -464,6 +477,7 @@ export function ConciliacionPanel({
               </b>
               <p>A la izquierda, lo que anotó CAYLA; a la derecha, si está en el extracto del banco.</p>
             </div>
+            {extracto}
             <SegmentoDeslizante
               etiqueta="Qué líneas ver"
               forma="modo"
@@ -783,7 +797,7 @@ function RegistrarMovimientoModal({
 
   // En el combo, una máquina se nombra sin «Por depositar» (el campo ya lo dice y con los céntimos no cabría): «Vendemás · S/ 149.90».
   const nombreEnCombo = (c: CuentaDinero) => (saldoConCentimos(c.tipo) ? nombreDeMaquinaDeLaPuente(c.nombre) ?? c.nombre : c.nombre);
-  const conSaldo = (c: CuentaDinero) => (c.saldo === null ? nombreEnCombo(c) : `${nombreEnCombo(c)} · ${verSaldo(c, c.saldo)}`);
+  const conSaldo = (c: CuentaDinero) => (c.saldo === null ? nombreEnCombo(c) : `${nombreEnCombo(c)} · ${soles(c.saldo)}`);
 
   return (
     <Modal variante="hoja" titulo={titulo} subtitulo={`La plata cambia de lugar: no es venta ni gasto.${esLider ? "" : " Tu rol registra los depósitos de tu tienda al banco."}`} onClose={onCerrar} tamano="mediana">
@@ -816,7 +830,7 @@ function RegistrarMovimientoModal({
             valor={b.clase}
             onValor={(v) => cambiar({ clase: v })}
             opciones={[
-              ...(deuda > 0 ? [{ valor: "devolucion_prestamo" as const, titulo: "Devolución de préstamo", detalle: `CAYLA te debe ${solesRedondo(deuda)}. Baja esa deuda.` }] : []),
+              ...(deuda > 0 ? [{ valor: "devolucion_prestamo" as const, titulo: "Devolución de préstamo", detalle: `CAYLA te debe ${solesDos(deuda)}. Baja esa deuda.` }] : []),
               { valor: "retiro", titulo: "Retiro de utilidades", detalle: "Te llevas ganancia del negocio. No es un gasto: no baja la utilidad." },
             ]}
           />
@@ -926,6 +940,14 @@ function RegistrarMovimientoModal({
                         <>
                           {" "}
                           <Chip tono="ambar">atrasado</Chip>
+                        </>
+                      )}
+                      {textoDespuesDelDeposito(l) && (
+                        <>
+                          {" "}
+                          <Chip tono="pizarra" title={textoDespuesDelDeposito(l) ?? undefined}>
+                            después del depósito
+                          </Chip>
                         </>
                       )}
                       {desdeDeLaMaquina && l.fecha < desdeDeLaMaquina && (
@@ -1055,11 +1077,6 @@ function fuenteInicial(c: CuentaDinero | undefined): "caja" | "egreso" {
 function origenDeArranque(que: QuePaso, origenId: string | undefined, cuentas: CuentaDinero[]): CuentaDinero | null {
   if (!origenId) return null;
   return cuentasPara(cuentas, opcionQuePaso(que).origen, "origen").find((c) => c.id === origenId) ?? null;
-}
-
-/** El saldo de una cuenta como lo ve la persona: con céntimos en «Por depositar» (se cruza contra un depósito), redondeado en las demás. */
-function verSaldo(c: CuentaDinero, n: number): string {
-  return saldoConCentimos(c.tipo) ? soles(n) : solesRedondo(n);
 }
 
 function inicialDe(que: QuePaso, cuentas: CuentaDinero[], ubicacionId: string | null, deuda: number, hoy: string, antes?: BorradorMovimiento): BorradorMovimiento {

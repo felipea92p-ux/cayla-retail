@@ -116,6 +116,8 @@ export type FlujoReal = {
   arranques: ArranqueCuenta[];
   planillaVisible: boolean;
   planilla: { nombre: string; fechaFin: string; pagado: number }[];
+  /** ADR-0621: de `saldoFinal`, lo que las compradoras todavía tienen para comprar. `null`: una base más vieja que esta web. */
+  porVolverCompras?: number | null;
 };
 
 const lado = (v: unknown): Lado => (v === "entra" || v === "ajuste" ? v : "sale");
@@ -154,6 +156,7 @@ export function leerFlujoReal(data: unknown): FlujoReal {
     })),
     planillaVisible: d.planilla_visible === true,
     planilla: lista(d.planilla).map((p) => ({ nombre: String(p.nombre ?? ""), fechaFin: fecha(p.fecha_fin), pagado: num(p.pagado) })),
+    porVolverCompras: d.por_volver_compras === null || d.por_volver_compras === undefined ? null : num(d.por_volver_compras),
   };
 }
 
@@ -226,6 +229,8 @@ export type Proyeccion = {
   saldoHoy: number;
   /** Lo que se le debe a Claudia (CLAURE) y ya se restó de `saldoHoy` (ADR-0560, actividad 16). `undefined`/`null`: una base más vieja que esta web, o nada que restar. */
   deClaudia?: number | null;
+  /** Lo que las compradoras todavía tienen del fondo de compras y ya se restó de `saldoHoy`: no paga cuentas (ADR-0621). `null`: base más vieja. */
+  porVolverCompras?: number | null;
   minimoCaja: number;
   salidasDiarias: number;
   diasDeCaja: number | null;
@@ -256,6 +261,7 @@ export function leerProyeccion(data: unknown): Proyeccion {
     hasta: fecha(d.hasta),
     saldoHoy: num(d.saldo_hoy),
     deClaudia: d.de_claudia === null || d.de_claudia === undefined ? null : num(d.de_claudia),
+    porVolverCompras: d.por_volver_compras === null || d.por_volver_compras === undefined ? null : num(d.por_volver_compras),
     minimoCaja: num(d.minimo_caja),
     salidasDiarias: num(d.salidas_diarias),
     diasDeCaja: d.dias_de_caja === null || d.dias_de_caja === undefined ? null : num(d.dias_de_caja),
@@ -697,4 +703,8 @@ export function csvEscenario(base: readonly SemanaProy[], nuevo: readonly Semana
     filas.push(["CAYLA", u.cayla.antes, u.cayla.despues, r2(u.cayla.despues - u.cayla.antes)]);
   }
   return csv(filas);
+}
+/** «+S/ 38,200.00» / «−S/ 41,300.50»: como `solesConSigno`, con céntimos (Estados financieros, Felipe 2026-11-06). */
+export function solesConSignoCentimos(n: number): string {
+  return Math.round(n * 100) < 0 ? solesCentimos(n) : `+${solesCentimos(n)}`;
 }

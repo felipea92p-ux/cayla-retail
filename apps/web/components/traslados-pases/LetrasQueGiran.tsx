@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { prefiereQuieto } from "@/lib/movimiento-cliente";
 
 // Las letras del código de la sede giran una vez, como en un tablero de aeropuerto, y se quedan quietas (ADR-0355). El HTML del
 // servidor ya trae el texto final: el giro solo corre en el navegador, y con «reducir movimiento» no corre.
@@ -10,7 +11,7 @@ const MINUS = "abcdefghijklmnopqrstuvwxyz";
 export function LetrasQueGiran({ texto, demora = 0 }: { texto: string; demora?: number }) {
   const [mostradas, setMostradas] = useState<string[] | null>(null);
   useEffect(() => {
-    if (typeof window === "undefined" || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    if (typeof window === "undefined" || prefiereQuieto()) return;
     const letras = [...texto];
     let vivo = true;
     let timer: ReturnType<typeof setTimeout> | undefined;
