@@ -161,7 +161,8 @@ ${TABLA.map(
 // La salida de cuarentena se arma con `'cuarentena_' || estado`: se arma con los estados que acepta `prendas_danadas`,
 // salvo los que la base resuelve SIN salida: 'en_cuarentena' (todavía no se resolvió) y 'se_arreglo' (ADR-0328 act. 10,
 // 20261005140000: la prenda vuelve al almacén con `mover_interno`, un traslado dentro de la sede; nunca escribe
-// 'cuarentena_se_arreglo'). Que siga siendo así lo vigila la verificación «T "Se arregló" no es una salida».
+// 'cuarentena_se_arreglo'). Que siga siendo así lo vigila la verificación «T "Se arregló" no es una salida». Lo mismo
+// 'no_estaba_danada' (ADR-0640, 20261110173000: `devolver_danada_sin_dano` la devuelve con `mover_interno`).
 // ============================================================================================================================
 const DECIDIDOS = {
   salida: ["venta", "cambio", "traslado_salida", "reversion_produccion", "correccion_recepcion", "cuarentena_liquidada", "cuarentena_se_boto", "cuarentena_donada", "cuarentena_devuelta_proveedor"],
@@ -185,7 +186,7 @@ insert into escritos
 select distinct 'salida', 'cuarentena_' || m[1]
   from pg_constraint c, regexp_matches(pg_get_constraintdef(c.oid), '''([a-z_]+)''', 'g') m
  where c.conrelid = 'retail.prendas_danadas'::regclass and pg_get_constraintdef(c.oid) like '%en_cuarentena%liquidada%'
-   and m[1] not in ('en_cuarentena', 'se_arreglo');
+   and m[1] not in ('en_cuarentena', 'se_arreglo', 'no_estaba_danada');
 select 'T «Se arregló» no es una salida: resolver_prenda_danada no la acepta y arreglar_prenda_danada mueve con mover_interno sin escribir en movimientos',
   (select count(*) >= 1 and bool_and(p.prosrc !~ 'se_arreglo') from pg_proc p where p.pronamespace = 'retail'::regnamespace and p.proname = 'resolver_prenda_danada')
   and (select count(*) = 1 and bool_and(p.prosrc ~ 'mover_interno\\s*\\(' and p.prosrc !~* 'insert\\s+into\\s+(retail\\.)?movimientos')

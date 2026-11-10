@@ -938,6 +938,11 @@ export const PRUEBAS = [
   // los candados del esquema (tres orígenes, arreglo con nota, un movimiento por dañada). Cada caso: ROLLBACK.
   "pruebas:danadas-reportar-arreglar",
 
+  // Dañadas (ADR-0640): «Me equivoqué de prenda» devuelve la equivocada a su lugar y lleva la correcta (otra talla o color del mismo
+  // modelo) a la cuarentena con dos traslados internos, nunca un ajuste; «No estaba dañada» la devuelve sin anotarla como arreglo ni
+  // pérdida. Solo lo reportado en la tienda; lo libre, la marca de reintento y el candado de Existencias. Cada caso: ROLLBACK.
+  "pruebas:danadas-corregir",
+
   // Cron de SUNAT (PL-113): la llave de servicio toma la cola solo de las últimas 4 horas, sin claims el candado
   // sigue cerrado y las tres funciones de la cola la dejan pasar. Control sin la migración. Cada caso: ROLLBACK.
   "pruebas:sunat-reintento-por-cron",

@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Globito } from "@/components/ui/Globito";
-import { useMemo, useRef, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import { Aviso } from "@/components/ui/Aviso";
 import { ArrowDownToLine, ArrowRight, Check, ChevronRight, Clock, Eye, ListChecks, Moon, Package, PackageX, ScanLine, ShoppingBag, SignpostBig, Tag, TriangleAlert, X } from "lucide-react";
 import { urlRotulos } from "@/lib/rotulos-reglas";
@@ -27,6 +27,7 @@ import { usePedidoDeAjuste } from "@/components/existencias/BotonAjustarStock";
 // detalle de la prenda el 2026-10-12 (ADR-0391, decisión de Felipe): es de Catálogo, y ahí sigue (la vista rápida de Productos).
 import { alternarMarcasDePrenda, permisosDelDetalle } from "@/lib/existencias-permisos";
 import { ResolverDanadosModal } from "@/components/ResolverDanadosModal";
+import type { Hermana } from "@/lib/danadas-correccion";
 import { ApartadosModal } from "@/components/ApartadosModal";
 import { ResumenStockOverlay } from "@/components/ResumenStockOverlay";
 import { RitmoRecientePopover } from "@/components/RitmoRecientePopover";
@@ -337,6 +338,8 @@ export function InventarioPanel({
   }
   // «Eliminar el producto» desde el detalle (ADR-0252): el producto entero, no la talla ni el color.
   const [viendoDanados, setViendoDanados] = useState(abrirDanados);
+  // ADR-0640: la dañada cuyo «Se arregló» abre la ventana al llegar desde «Volvió arreglada» de una talla.
+  const [arregloInicial, setArregloInicial] = useState<string | null>(null);
   const [viendoApartados, setViendoApartados] = useState(false);
   // «Pendientes»: la ventana con las tareas de «Para hoy» (ya no van en la pantalla).
   const [viendoPendientes, setViendoPendientes] = useState(false);
@@ -605,6 +608,17 @@ export function InventarioPanel({
   // trabajan siempre sobre la sede de quien las abre, y lo marcado mirando otra se perdería en silencio al llegar.
   const conSeleccion = enSedeActiva;
   const filasMarcadas = useMemo(() => stock.filter((f) => marcadas.has(f.varianteId)), [stock, marcadas]);
+  // ADR-0640: «Me equivoqué de prenda» ofrece las otras tallas y colores del MISMO modelo, con lo libre de hoy en el piso y el almacén.
+  const hermanasDe = useCallback(
+    (varianteId: string): Hermana[] => {
+      const productoId = stock.find((f) => f.varianteId === varianteId)?.productoId;
+      if (!productoId) return [];
+      return stock
+        .filter((f) => f.productoId === productoId)
+        .map((f) => ({ varianteId: f.varianteId, talla: f.talla, color: f.color, piso: Math.max(0, f.pisoDisponible ?? 0), almacen: Math.max(0, f.almacenDisponible ?? 0) }));
+    },
+    [stock]
+  );
   function abrirPrenda(p: Pick<PrendaAgrupada, "clave">, varianteId?: string, origen?: HTMLElement | null) {
     setAbierta({ clave: p.clave, varianteId, origen });
   }
@@ -1406,7 +1420,10 @@ export function InventarioPanel({
           lugar={lugarDanadas}
           otraSede={!enSedeActiva}
           sede={sedeNombre}
+          hermanasDe={hermanasDe}
+          arregloInicial={arregloInicial}
           onClose={() => {
+            setArregloInicial(null);
             setViendoDanados(false);
             setSoloPrenda(null);
           }}
@@ -1516,6 +1533,19 @@ export function InventarioPanel({
               : undefined
           }
           puedeResolverDanadas={enSedeActiva}
+          onArreglarDanada={
+            enSedeActiva
+              ? (varianteId: string) => {
+                  // ADR-0640: «Volvió arreglada» abre Dañadas con el «Se arregló» de la más antigua de esa talla ya abierto.
+                  const danada = danadosPendientes.find((d) => d.varianteId === varianteId);
+                  if (!danada) return;
+                  setAbierta(null);
+                  setSoloPrenda(prendaAbierta);
+                  setArregloInicial(danada.id);
+                  setViendoDanados(true);
+                }
+              : undefined
+          }
           hrefCatalogo={verProductos ? (referencia) => `/productos?q=${encodeURIComponent(referencia)}` : undefined}
           fotoDesde={abierta?.origen ?? null}
           onCerrar={() => setAbierta(null)}
