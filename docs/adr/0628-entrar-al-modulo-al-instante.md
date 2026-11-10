@@ -20,7 +20,7 @@
 ## Decisión
 
 El clic en una fila del menú, en el logo o en una pantalla del buscador global anota el **destino** en ese mismo instante
-(`lib/navegacion-al-instante.ts`, `alEntrarDesdeElMenu`). Con eso, el marco (`AppShell`) hace dos cosas sin esperar al servidor:
+(`lib/navegacion-al-instante.ts`, `entrarAlInstante`, antes `alEntrarDesdeElMenu`). Con eso, el marco (`AppShell`) hace dos cosas sin esperar al servidor:
 
 1. **El menú marca la fila de destino**, y su gota va hacia ella. Se calcula con la ruta que se VE (`rutaVista`), no con la que Next ya confirmó.
 2. **El contenido pasa al esqueleto con el nombre del módulo** (`EsqueletoPantalla titulo`, en la letra y la medida del título de la cabecera,
@@ -49,4 +49,52 @@ con lo que tenía escrito. Nada cambia adónde lleva cada enlace: solo lo que se
 - **No acelera el módulo.** Existencias sigue tardando lo que tarda (3 s medido); el esqueleto con su nombre hace que esa espera se lea como
   «ya entré», no como «no pasó nada». Bajar esos 3 s es otro trabajo (ADR-0622 y su backlog).
 - **Los enlaces dentro de una pantalla** (tarjetas del Inicio, «Ver» en una fila) siguen con el esqueleto del `loading.tsx` a los ~250 ms. Felipe
-  pidió el menú, que es por donde se entra a un módulo. Llevarlo a otros enlaces es llamar a `alEntrarDesdeElMenu` en su `onClick`.
+  pidió el menú, que es por donde se entra a un módulo. Llevarlo a otros enlaces es llamar a `entrarAlInstante` en su `onClick` (act. 2026-11-10: antes `alEntrarDesdeElMenu`).
+
+## Actualización 2026-11-10 · Entrar a un módulo «padre» desde su hija, y Productos con su propio esqueleto
+
+**Pide:** Felipe: «cuando le doy clic a Productos desde otro módulo no me deja ingresar y después de unos segundos recién entra… lo ideal
+sería que, si tarda en cargar, se vea el esquema, pero que no dé la sensación de que no entra al dar clic».
+
+**Medido en producción con la sesión de Felipe** (clic real en el menú, cada cambio de pantalla con su tiempo):
+
+| Del clic en «Productos» a… | desde Movimientos | desde Catálogo ▸ Marcas |
+|---|---|---|
+| El esqueleto con «Productos» | 26 ms | **nunca** |
+| La fila del menú marcada | 26 ms | 2,6 s |
+| Productos | 3,3 s | 2,6 s (de golpe; hasta entonces seguía Marcas, quieta) |
+
+**Las dos causas.**
+
+1. **El marco daba por llegado el destino en el mismo clic.** `llegoAlDestino` decía «llegó» si la ruta era la del destino *o una hija
+   suya*. Entrar a una fila del menú que es PADRE de la pantalla donde estás (Marcas → Productos) cumplía eso antes de navegar: el esqueleto
+   se soltaba en el mismo cuadro y la pantalla anterior volvía a la vista. Les pasaba a las 7 filas del menú que tienen hijas en el menú:
+   Productos, Existencias (`/inventario`), Punto de Venta (`/vender`), Historial de compras (`/compras`), Fichas (`/clientas`), Resumen de
+   Producción (`/produccion`) y Resumen de Tienda web (`/tienda-web`).
+2. **Productos no tenía `loading.tsx`.** Al llegar desde una pantalla de su propia carpeta (Catálogo ▸ Marcas, o «Volver» desde una ficha), el
+   segmento que cambia vive debajo del `layout` de Productos, que no tenía límite de carga: Next dejaba la pantalla anterior hasta que
+   terminaban las 16 lecturas de la lista.
+
+**Decisión.**
+
+- **El marco navega él mismo y suelta el esqueleto cuando Next termina.** El clic de una fila del menú, del logo o del buscador global pasa por
+  `entrarAlInstante` (antes `alEntrarDesdeElMenu`): marca el destino, ataja el clic y navega con `router.push` dentro de una transición que
+  abre el marco (`useDestinoEnCamino`, `registrarNavegador`). React deja abierta esa transición hasta que monta la pantalla nueva o su
+  `loading.tsx`; cuando se cierra, el esqueleto del marco se va. No depende de qué ruta resulte: una hija, un `redirect` que vuelve a la misma
+  ruta (Historial de compras sin su módulo cae en su primera pestaña), «Sin acceso». Siguen el tope de 15 s y «atrás».
+- **Productos se dibuja en dos tiempos:** su `page.tsx` responde al instante con `<Suspense fallback={<EsperaPantalla />}>` y la lista entra
+  cuando están sus datos. Cambiar un filtro o la vista no lo muestra (React deja la lista mientras llega la nueva).
+
+**Descarté** un `productos/loading.tsx`: Next aplica el `loading.tsx` de una carpeta a CADA ranura de su `layout` (lo dice su propio código,
+`layout-router.js`), y Productos tiene la ranura `@modal` del historial: abrir el historial de una prenda habría dibujado un esqueleto de
+pantalla entera debajo de la lista. **Descarté** también mirar si la ruta «cambió desde el clic»: con un `redirect` de vuelta a la misma
+ruta el esqueleto se habría quedado 15 s.
+
+**Se rompe si** una pantalla del menú navega por su cuenta con `router.push` fuera de `entrarAlInstante` y espera ver el esqueleto: no lo verá
+(la regla es la de siempre: el esqueleto instantáneo es del menú, del logo y del buscador global). Y si Next dejara de abrir su navegación
+dentro de la misma transición de React (`sequential-router-queue.js`, `startTransition` síncrono dentro del clic), el esqueleto se iría
+recién a los 15 s: lo vería cualquiera al primer clic.
+
+**Verificado** en local (modo desarrollo, clic real en el menú): Marcas → Productos, esqueleto «Productos» y fila marcada a los 98 ms, la
+lista a los 5 s (con la compilación de la primera visita); Movimientos → Existencias, esqueleto a los 134 ms y Existencias a los 4,1 s;
+«Grilla → Tabla» en Productos sin esqueleto; el historial de una prenda abre en su hoja sobre la lista, sin esqueleto.
