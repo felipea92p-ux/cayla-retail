@@ -1,8 +1,9 @@
 // Finanzas ▸ Cuentas y dinero ▸ Cuadrar con el banco, en «El telar» (Felipe 2026-10-23). Cada línea que anotó CAYLA en la cuenta
-// se dibuja junto a la pregunta «¿está en el extracto?», unidas por un hilo que se vuelve verde al marcarla revisada. Es la
-// opción (a) de la decisión D5: la base no guarda el estado de cuenta del banco, solo el saldo anotado (`conciliaciones`) y las
-// líneas revisadas (`dinero_revisados`); subir el extracto queda para otra obra. Lógica pura: no decide qué cuadra (eso lo suma la
-// base), solo en qué estado está cada par y qué banco mirar.
+// se dibuja junto a la pregunta «¿está en el extracto?», unidas por un hilo que se vuelve verde al marcarla revisada. Nació como la
+// opción (a) de la decisión D5: de estos pares la base guarda el saldo anotado (`conciliaciones`) y las líneas revisadas
+// (`dinero_revisados`). Desde «el banco manda» (ADR-0637) el extracto del banco al que depositan las máquinas SÍ se guarda, línea por
+// línea (`banco_lineas`; lo arma y lo dice `lib/banco-lineas.ts`); estos pares siguen igual mientras esa obra avanza. Lógica pura: no
+// decide qué cuadra (eso lo suma la base), solo en qué estado está cada par y qué banco mirar.
 
 import { cuadra, TEXTO_MEDIO_COBRO, type AlertaPos, type Conciliacion, type ConciliacionCuenta, type LineaConciliacion, type LotePendiente, type TipoCuenta } from "./cuentas-dinero-reglas";
 import { diaLima } from "./fechas-lima";
@@ -23,12 +24,18 @@ export function estadoPar(l: Pick<LineaConciliacion, "revisado" | "montoRevisado
 export function textoLadoBanco(l: Pick<LineaConciliacion, "revisado" | "montoRevisado" | "revisadoPor">): string {
   switch (estadoPar(l)) {
     case "revisada":
-      return l.revisadoPor ? `Está en el extracto · la revisó ${l.revisadoPor}` : "Está en el extracto";
+      // Dice lo que pasó: alguien la marcó. Nada obliga a tener el extracto delante, y un botón marca todas de un toque. La fecha no se dice porque `fn_conciliacion` no la trae.
+      return l.revisadoPor ? `La revisó ${l.revisadoPor}` : "Revisada";
     case "cambio":
       return `Cambió desde que se revisó (era ${soles(l.montoRevisado ?? 0)}): mírala otra vez`;
     default:
       return "¿Está en el extracto del banco?";
   }
+}
+
+/** El botón que marca de un toque lo que falta: dice lo que hace (dejar el visto), sin afirmar nada del banco. */
+export function textoMarcarRevisadas(n: number): string {
+  return n === 1 ? "Dar por revisada la que falta" : `Dar por revisadas las ${n}`;
 }
 
 /**
@@ -102,11 +109,51 @@ export function textoPeriodo(desde: string, hasta: string, hoy: string): string 
 
 export type EstadoBanco = { texto: string; tono: "verde" | "ambar" | "pizarra" };
 
-/** El estado de un banco en la lista: lo que falta revisar manda; si no, cómo cerró la última vez que se anotó su saldo. */
+/**
+ * El estado de un banco en la lista: un saldo anotado que no coincide manda; si no, lo que falta revisar; si no, cómo cerró la última vez. Hasta el 2026-11-08 lo que
+ * faltaba revisar iba primero (la maqueta «B · Lista y detalle»), y como la base solo cuenta las líneas posteriores al último saldo anotado, el «No cuadra» se perdía con
+ * el primer movimiento nuevo.
+ */
 export function estadoDeBanco(c: Pick<ConciliacionCuenta, "pendientes" | "ultimaFecha" | "ultimaDiferencia">): EstadoBanco {
+  if (c.ultimaFecha !== null && !cuadra(c.ultimaDiferencia)) return { texto: "No cuadra", tono: "ambar" };
   if (c.pendientes > 0) return { texto: `${c.pendientes} por revisar`, tono: "ambar" };
-  if (c.ultimaFecha === null) return { texto: "Falta el saldo", tono: "pizarra" };
-  return cuadra(c.ultimaDiferencia) ? { texto: "Cuadra", tono: "verde" } : { texto: "No cuadra", tono: "ambar" };
+  return c.ultimaFecha === null ? { texto: "Falta el saldo", tono: "pizarra" } : { texto: "Cuadra", tono: "verde" };
+}
+
+export type Coincidencias = { coinciden: number; total: number; noCuadran: number; pendientes: number; todoCuadra: boolean };
+
+/**
+ * Cuántas de las cuentas que se cuadran (también la tarjeta de crédito; las puentes de las máquinas no tienen extracto) coinciden con el banco. Revisar líneas no es
+ * cuadrar: `todoCuadra` exige las tres cosas en todas (saldo anotado, sin diferencia y nada por revisar), porque la base no cuenta como pendiente lo anterior al último
+ * saldo anotado, y anotar hoy cinco saldos que no coinciden deja los pendientes en cero.
+ */
+export function coincidenciasConBanco(cuentas: readonly Pick<ConciliacionCuenta, "tipo" | "pendientes" | "ultimaFecha" | "ultimaDiferencia">[]): Coincidencias {
+  const aCuadrar = cuentas.filter((c) => tieneExtracto(c.tipo));
+  const coinciden = aCuadrar.filter((c) => c.ultimaFecha !== null && cuadra(c.ultimaDiferencia)).length;
+  const pendientes = aCuadrar.reduce((a, c) => a + c.pendientes, 0);
+  return {
+    coinciden,
+    total: aCuadrar.length,
+    noCuadran: aCuadrar.filter((c) => c.ultimaFecha !== null && !cuadra(c.ultimaDiferencia)).length,
+    pendientes,
+    todoCuadra: aCuadrar.length > 0 && coinciden === aCuadrar.length && pendientes === 0,
+  };
+}
+
+/** «3 de 5 coinciden con el banco». */
+export function textoCoinciden(r: Pick<Coincidencias, "coinciden" | "total">): string {
+  return `${r.coinciden} de ${r.total} ${r.coinciden === 1 ? "coincide" : "coinciden"} con el banco`;
+}
+
+/** «5 líneas por revisar». */
+export function textoLineasPorRevisar(n: number): string {
+  return `${n} ${n === 1 ? "línea" : "líneas"} por revisar`;
+}
+
+/** La línea bajo «Tus bancos»: lo que falta revisar, si hay, y siempre cuántos coinciden. */
+export function cabeceraDeBancos(cuentas: Parameters<typeof coincidenciasConBanco>[0]): string {
+  const r = coincidenciasConBanco(cuentas);
+  return `${r.pendientes > 0 ? `${textoLineasPorRevisar(r.pendientes)} · ` : ""}${textoCoinciden(r)}.`;
 }
 
 /** «Última vez: 23 oct», o «Nunca se cuadró» si no se anotó nunca un saldo. */

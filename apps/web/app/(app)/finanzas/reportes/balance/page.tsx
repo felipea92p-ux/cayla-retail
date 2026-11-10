@@ -11,6 +11,7 @@ import { mesAnterior } from "@/lib/resultados-reglas";
 import { solesCentimos } from "@/lib/flujo-caja-reglas";
 import { gruposDelBalance, medidores, recomendacionesVale } from "@/lib/vale-reglas";
 import {
+  avisoSueldosDelBalance,
   cortesAnteriores,
   etiquetaDelCorte,
   informeDeLaSede,
@@ -58,7 +59,7 @@ export default async function BalancePage({ searchParams }: { searchParams: Prom
   const parametros = await getParametrosFinanzas();
   const cortes = cortesAnteriores(corte, parametros?.inicioFinanzas ?? null);
 
-  const [chequeos, lineas, unidades, saldos, erBase, anteriores] = await Promise.all([
+  const [chequeos, lineas, unidades, saldos, erBase, erDelMes, anteriores] = await Promise.all([
     deUnaSede ? Promise.resolve({ datos: [], falla: null }) : getConciliacion(corte),
     deUnaSede ? Promise.resolve({ datos: [], falla: null }) : getBalanceGeneral(corte),
     getBalancePorTienda(corte),
@@ -66,6 +67,8 @@ export default async function BalancePage({ searchParams }: { searchParams: Prom
     // Para cuántos meses de venta alcanza la mercadería: lo que costó lo vendido en el último mes completo (CAYLA). Apoyo: sin él, el
     // medidor dice que falta un mes con ventas.
     deUnaSede ? Promise.resolve(null) : getEstadoResultados(base.desde, base.hasta),
+    // Los sueldos que Ganancias y pérdidas ya resta y el libro todavía no: la misma lectura y las mismas fechas (del 1 al corte), para que el aviso diga siempre su misma cifra. Si falla, no se afirma nada.
+    deUnaSede ? Promise.resolve(null) : getEstadoResultados(`${corte.slice(0, 7)}-01`, corte),
     // Con qué se compara: un cierre que no cuadró no se usa. Si no se puede leer, la pantalla sale sin comparar.
     Promise.all(
       cortes.map(async (c) => {
@@ -77,11 +80,15 @@ export default async function BalancePage({ searchParams }: { searchParams: Prom
     ),
   ]);
   const costoDelMes = erBase && !erBase.falla ? (erBase.datos.find((f) => f.unidad === "consolidado")?.costo ?? null) : null;
-  const sit = deUnaSede ? null : situacion(chequeos.datos);
+  // Si la comprobación no se pudo leer, no se sabe si cuadra: unos chequeos vacíos no significan «faltan los saldos de arranque» (tarea 87).
+  const sinComprobar = !deUnaSede && !!chequeos.falla;
+  const sit = deUnaSede || sinComprobar ? null : situacion(chequeos.datos);
   const dibuja = sit ? seDibuja(sit) : null;
   const grupos = dibuja ? gruposDelBalance(lineas.datos) : [];
   const medidas = dibuja ? medidores(grupos, costoDelMes) : null;
-  const recomendaciones = recomendacionesVale({ cuadra: dibuja, conDiferencias: sit?.tipo === "con_diferencias", medidas, unidades: unidades.datos, sede: deUnaSede ? ver : null, href });
+  const sueldosEstimados = erDelMes && !erDelMes.falla ? (erDelMes.datos.find((f) => f.unidad === "consolidado")?.planillaEstimada ?? 0) : 0;
+  const avisoSueldos = avisoSueldosDelBalance(grupos, sueldosEstimados);
+  const recomendaciones = recomendacionesVale({ cuadra: dibuja, sinComprobar, conDiferencias: sit?.tipo === "con_diferencias", medidas, unidades: unidades.datos, sede: deUnaSede ? ver : null, href });
   const unidad = deUnaSede ? (unidades.datos.find((u) => u.ubicacionId === ver) ?? unidades.datos[0] ?? null) : null;
   const fallas = [chequeos.falla, lineas.falla, unidades.falla, saldos.falla].filter((f): f is string => !!f);
   const etiquetaActual = etiquetaDelCorte(corte);
@@ -95,6 +102,11 @@ export default async function BalancePage({ searchParams }: { searchParams: Prom
           {f}
         </Aviso>
       ))}
+      {unidades.sueldosSinLeer && (
+        <Aviso tono="atencion" chico>
+          No se pudieron leer los sueldos: la utilidad de cada tienda no los resta. Vuelve a cargar en un rato.
+        </Aviso>
+      )}
       {sit?.tipo === "con_diferencias" && <AvisoDiferencias diferencias={sit.diferencias} esLider={esLider} hoy={hoy} saldos={saldos.datos} />}
       {conVidrio && !deUnaSede && (() => {
         const partes = partesDelBalance({ grupos, comparadas: anteriores, etiquetaActual, corte });
@@ -115,7 +127,14 @@ export default async function BalancePage({ searchParams }: { searchParams: Prom
             guiaRespuesta="fin-vale.respuesta"
             guiaInforme="fin-vale.partes"
             guiaContador="fin-vale.libro"
-            informe={informeDelBalance({ grupos, partes, comparadas: anteriores, etiquetaActual })}
+            aviso={
+              avisoSueldos ? (
+                <Aviso tono="atencion" chico>
+                  {avisoSueldos}
+                </Aviso>
+              ) : undefined
+            }
+            informe={informeDelBalance({ grupos, partes, comparadas: anteriores, etiquetaActual, avisoResultado: avisoSueldos })}
           />
         );
       })()}
@@ -147,8 +166,8 @@ export default async function BalancePage({ searchParams }: { searchParams: Prom
           Lo que es de una tienda se ve desde su sede. Si trabajas en una, elígela arriba.
         </Vacio>
       )}
-      {!conVidrio && !deUnaSede && <BalancePanel esLider={esLider} hoy={hoy} chequeos={chequeos.datos} unidades={unidades.datos} saldos={saldos.datos} />}
-      <Recomendaciones recomendaciones={recomendaciones} />
+      {!conVidrio && !deUnaSede && <BalancePanel esLider={esLider} hoy={hoy} chequeos={chequeos.datos} unidades={unidades.datos} saldos={saldos.datos} comprobacionFallo={sinComprobar} />}
+      {recomendaciones.length > 0 && <Recomendaciones recomendaciones={recomendaciones} />}
       {conVidrio && !deUnaSede && (
         <MasDelEstado texto={textoDeVerMas(["dos preguntas que importan", "lo de cada sede", "cómo se comprobó"])!} guia="fin-vale.mas">
           <MasDelBalance esLider={esLider} hoy={hoy} chequeos={chequeos.datos} unidades={unidades.datos} saldos={saldos.datos} medidas={medidas} />

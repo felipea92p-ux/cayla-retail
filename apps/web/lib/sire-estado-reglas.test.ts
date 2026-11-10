@@ -31,9 +31,17 @@ describe("lineasSireImpuestos", () => {
   it("el mes en curso no avisa: su propuesta todavía cambia", () => {
     expect(lineasSireImpuestos(estado({ subida: false, porMirar: 0, igv: 0, resueltas: 0 }, null, "2026-11"), "2026-11")).toEqual([]);
   });
-  it("compras sin subir avisa en gris; ventas sin subir no", () => {
+  it("compras y ventas sin subir avisan en gris, cada una con su pestaña", () => {
     const l = lineasSireImpuestos(estado({ subida: false, porMirar: 0, igv: 0, resueltas: 0 }, { subida: false, porMirar: 0, igv: 0, resueltas: 0 }), "2026-11");
-    expect(l.map((x) => [x.id, x.tono, x.href])).toEqual([["sire_compras_sin_subir", "gris", "/finanzas/impuestos/sire?mes=2026-10"]]);
+    expect(l.map((x) => [x.id, x.tono, x.texto, x.href])).toEqual([
+      ["sire_compras_sin_subir", "gris", "Compras sin comparar con SUNAT", "/finanzas/impuestos/sire?mes=2026-10"],
+      ["sire_ventas_sin_subir", "gris", "Ventas sin comparar con SUNAT", "/finanzas/impuestos/sire?mes=2026-10&registro=ventas"],
+    ]);
+  });
+  it("al subir la de ventas, su línea desaparece; si no se pudo leer, se calla", () => {
+    const compras = { subida: true, porMirar: 0, igv: 0, resueltas: 0 };
+    expect(lineasSireImpuestos(estado(compras, { subida: true, porMirar: 0, igv: 0, resueltas: 0 }), "2026-11")).toEqual([]);
+    expect(lineasSireImpuestos(estado(compras, null), "2026-11")).toEqual([]);
   });
   it("lo que no cuadra avisa en ámbar con su IGV y lleva a su pestaña", () => {
     const l = lineasSireImpuestos(estado({ subida: true, porMirar: 2, igv: 36, resueltas: 0 }, { subida: true, porMirar: 1, igv: 18, resueltas: 0 }), "2026-11");
@@ -66,6 +74,39 @@ describe("chequeoSire y el Cierre de mes", () => {
     expect(chequeoSire(estado(null))).toBeNull();
     expect(conChequeoSire(panel, null)).toBe(panel);
     expect(chequeoSire(estado({ subida: true, porMirar: 0, igv: 0, resueltas: 1 }))?.ok).toBe(true);
+  });
+  describe("la propuesta de ventas también cuenta en el Cierre", () => {
+    const compras = { subida: true, porMirar: 0, igv: 0, resueltas: 0 };
+    const sinSubir = { subida: false, porMirar: 0, igv: 0, resueltas: 0 };
+    const subidaBien = { subida: true, porMirar: 0, igv: 0, resueltas: 0 };
+    const ids = { alcance: "empresa", ubicacionId: null } as const;
+
+    it("compras cuadra pero ventas no se subió: no dice «cuadra», avisa sin bloquear y lleva a la pestaña Ventas", () => {
+      const c = chequeoSire(estado(compras, sinSubir))!;
+      expect(c).toMatchObject({ ok: false, bloquea: false, datos: { ventas_subida: false } });
+      expect(textoChequeo(c, "2026-10").detalle).toBe("Todavía no se comparó la propuesta de ventas de octubre. Puedes cerrar igual");
+      expect(enlaceChequeo(c, ids, "2026-10")).toBe("/finanzas/impuestos/sire?mes=2026-10&registro=ventas");
+    });
+    it("ninguna se subió: nombra las dos y parte por compras", () => {
+      const c = chequeoSire(estado(sinSubir, sinSubir))!;
+      expect(textoChequeo(c, "2026-10").detalle).toBe("Todavía no se compararon las propuestas de compras y ventas de octubre. Puedes cerrar igual");
+      expect(enlaceChequeo(c, ids, "2026-10")).toBe("/finanzas/impuestos/sire?mes=2026-10");
+    });
+    it("hay diferencias y falta ventas: dice las dos cosas y va a resolver las diferencias", () => {
+      const c = chequeoSire(estado({ ...compras, porMirar: 2 }, sinSubir))!;
+      expect(textoChequeo(c, "2026-10").detalle).toBe("2 diferencias sin resolver, y falta comparar la propuesta de ventas. Puedes cerrar igual, pero el contador aceptaría la propuesta con ellas");
+      expect(enlaceChequeo(c, ids, "2026-10")).toBe("/finanzas/impuestos/sire?mes=2026-10");
+    });
+    it("las dos subidas y sin diferencias: cuadra, y lo dice de las dos", () => {
+      const c = chequeoSire(estado(compras, subidaBien))!;
+      expect(c.ok).toBe(true);
+      expect(textoChequeo(c, "2026-10").detalle).toBe("Las propuestas de compras y ventas de octubre cuadran con lo registrado");
+    });
+    it("ventas no se pudo leer: se calla, como siempre", () => {
+      const c = chequeoSire(estado(compras, null))!;
+      expect(c.ok).toBe(true);
+      expect(textoChequeo(c, "2026-10").detalle).toBe("La propuesta de compras de octubre cuadra con lo registrado");
+    });
   });
   it("dice qué pasa y lleva a Comparar con SUNAT", () => {
     const sinSubir = chequeoSire(estado({ subida: false, porMirar: 0, igv: 0, resueltas: 0 }))!;

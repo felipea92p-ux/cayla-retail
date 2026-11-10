@@ -1,5 +1,7 @@
 import { exigirModulo } from "@/lib/persona-actual";
 import { getPanelCierre } from "@/lib/cierre";
+import { getIgvCambiado } from "@/lib/impuestos";
+import { AvisoIgvCambiado } from "@/components/finanzas/AvisoIgvCambiado";
 import { getParametrosFinanzas } from "@/lib/configuracion";
 import { hoyLima } from "@/lib/fechas-lima";
 import { avisoAntesDelCorte, mesAntesDelCorte } from "@/lib/finanzas-arranque-reglas";
@@ -30,7 +32,12 @@ export default async function CierrePage({ searchParams }: { searchParams: Promi
   const unidadPedida = sp.u ?? (sedes.length === 1 ? sedes[0]! : null);
   // El aviso de la comparación con SUNAT (ADR-0601) lo arma la web con el mismo cruce de «Comparar con SUNAT»: solo avisa. Sin el módulo
   // Impuestos no se lee y el cierre se ve como siempre.
-  const [panel, sire] = await Promise.all([getPanelCierre(mes), getEstadoSire(mes)]);
+  const [panel, sire, igvCambiado] = await Promise.all([getPanelCierre(mes), getEstadoSire(mes), getIgvCambiado()]);
   // La `key` vuelve a abrir la unidad pedida cuando la barra cambia de mes o de sede (la tarjeta elegida vive en la pieza cliente).
-  return <CierreMes key={`${mes}|${unidadPedida ?? ""}`} panel={panel.datos ? conChequeoSire(panel.datos, chequeoSire(sire)) : null} falla={panel.falla} unidadPedida={unidadPedida} esAdmin={persona.esAdmin} />;
+  return (
+    <>
+      <AvisoIgvCambiado cambios={igvCambiado} />
+      <CierreMes key={`${mes}|${unidadPedida ?? ""}`} panel={panel.datos ? conChequeoSire(panel.datos, chequeoSire(sire)) : null} falla={panel.falla} unidadPedida={unidadPedida} esAdmin={persona.esAdmin} />
+    </>
+  );
 }

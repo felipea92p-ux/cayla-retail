@@ -85,6 +85,7 @@ export const MESES_DE_MERCADERIA_ALTOS = 4;
  */
 export function recomendacionesVale({
   cuadra,
+  sinComprobar = false,
   conDiferencias = false,
   medidas,
   unidades,
@@ -93,6 +94,8 @@ export function recomendacionesVale({
 }: {
   /** `null`: mirando una sede (allí no hay Balance entero que cuadre). */
   cuadra: boolean | null;
+  /** La comprobación no se pudo leer: no se sabe si cuadra, y el error de arriba ya lo dice. Ni «no cuadra» ni «cuadra» (tarea 87). */
+  sinComprobar?: boolean;
   /** Se dibuja, pero una cuenta no coincide (ADR-0619): el aviso de arriba ya lo dice, y aquí no se puede decir «cuadra». */
   conDiferencias?: boolean;
   medidas: Medidores | null;
@@ -142,7 +145,7 @@ export function recomendacionesVale({
   if (!out.length && conDiferencias) {
     out.push({ clave: "solo-la-diferencia", tono: "info", prioridad: 9, titulo: "Lo único por resolver es la diferencia de arriba", texto: "Lo que debes está cubierto y la mercadería no está quieta de más." });
   }
-  if (!out.length) {
+  if (!out.length && !sinComprobar) {
     out.push({ clave: "tranquilo", tono: "exito", prioridad: 9, titulo: sede ? "Nada fuera de lo normal" : "El Balance cuadra", texto: sede ? "Lo invertido rinde y no hay alertas." : "Lo que debes está cubierto y la mercadería no está quieta de más." });
   }
   return out.sort((a, b) => a.prioridad - b.prioridad).slice(0, 3);

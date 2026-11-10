@@ -214,6 +214,9 @@ export const PRUEBAS = [
   // pegar dos veces. ROLLBACK.
   "pruebas:finanzas-confianza",
   "pruebas:cierre-orden-y-planilla",
+  "pruebas:igv-congelado",
+  "pruebas:factura-mes-cerrado",
+  "pruebas:anular-pago-nota-papel",
 
   // Pago de la planilla y pago a SUNAT (ADR-0417, situaciones 15 y 16): salen de un banco, el Diario baja la 41 y la 4011,
   // candados (destino, caja fuerte, comisión, sin ser líder), anular, pegar dos veces. ROLLBACK.
@@ -231,6 +234,10 @@ export const PRUEBAS = [
   // El depósito de la máquina pago por pago (ADR-0629, Fase B): de tres QR llegan dos, se depositan esos dos y queda el tercero; un pago
   // no entra a dos depósitos (con su control `--mutante`), ni de otra máquina, ni de un día con un depósito sin detalle. ROLLBACK.
   "pruebas:pos-pagos",
+  // El banco manda (ADR-0637, actividad 1): el extracto se guarda línea por línea sin duplicar (resubir, archivo viejo, dos pagos iguales),
+  // la provisional se retira al confirmarse, nada se borra, se edita ni se vacía, el archivo de otra cuenta no entra, la tabla pegada cortada
+  // tampoco, y «el banco dice / el ERP dice» al céntimo y en el orden del banco. Cada freno, por su motivo. Con su `--control`. ROLLBACK.
+  "pruebas:banco-lineas",
   "pruebas:gasto-fecha-pago",
 
   // La salida del banco de la planilla que Dynamic marca pagada (ADR-0567): el banco del colaborador desde las grafías reales, el grupo
@@ -767,6 +774,9 @@ export const PRUEBAS = [
   // y corregir el pago; el borde exacto en S/ 0; la cifra solo para quien cierra la caja; el segundo retiro espera al primero.
   // Con control. Disparadores diferidos: cada caso corre `set constraints all immediate` y termina en ROLLBACK.
   "pruebas:caja-efectivo-no-negativo",
+  // ADR-0630: con la caja cerrada, un líder corrige lo que no es efectivo (Yape → QR, la máquina de una tarjeta); el efectivo, un
+  // no líder, el efectivo con cuenta, una máquina que no cobra ahí y un mes cerrado DEBEN bloquear. Control: `-- --sin-migracion`.
+  "pruebas:corregir-pagos-caja-cerrada",
   // ADR-0412 (/chaos de Finanzas 2026-10-14): NaN, tope de S/ 1 000 000 y textos con tope en Finanzas; la caja fuerte no queda bajo
   // cero (disparadores diferidos: cada caso corre `set constraints all immediate`); un gasto anterior al inicio de Finanzas. Con controles.
   "pruebas:finanzas-montos-y-caja-fuerte",
@@ -834,6 +844,11 @@ export const PRUEBAS = [
   // proporción a las líneas de cada empresa; el efectivo, lo anterior al arranque, lo anulado y lo de una cuenta de CLAURE no entran; la
   // comisión del POS sale de su tarifa (nula sin ella); una devolución pagada desde una cuenta de CAYLA resta; un cambio se lista sin contar.
   "pruebas:claure-cuenta",
+
+  // El Yape de Claudia sale de los números de CAYLA (ADR-0638, actividad 2 de Lima): la cuenta nace una y de CLAURE; vacía, nada cambia (16 huellas, con y sin los parches);
+  // un Yape puesto ahí sale de BCP, de los saldos, del Flujo y del Balance y el Diario cuadra; nadie paga nada con ella, no aparece para elegir y un cobro Yape o Plin en su sede sí se puede.
+  // Con CONTROL (sin cada parche, se rompe) y el censo de las columnas con llave a cuentas_dinero: una tabla nueva obliga a decidir. ROLLBACK.
+  "pruebas:fuera-de-cayla",
 
   // Pagar a CLAURE (ADR-0560, actividad 2): un tipo más de movimiento de dinero, como el pago a SUNAT. Sale de un banco, sin destino, sin
   // comisión, de la empresa; solo el líder; el mismo token no lo duplica; baja el banco; el Diario lo asienta 479 | banco; el Flujo real lo
@@ -1836,6 +1851,8 @@ export const PRUEBAS = [
   "pruebas:compras-simple-revisar",
   // La marca nueva de «Algo nuevo» (Felipe 2026-10-24): con «Mis compras» se crea unida al proveedor, sin duplicarse.
   "pruebas:compras-simple-marca",
+  // Recibir crea el proveedor (razón social y RUC opcional) y la marca que no están, con solo el módulo Recibir (ADR-0635).
+  "pruebas:recibir-crea-proveedor-y-marca",
   // Corregir una compra ya anotada (ADR-0561): la plata vuelve sola mientras Compras no la completa, el papel acompaña si ya cuadraba, no se baja de lo
   // enviado, todo o nada, rastro que no se borra.
   "pruebas:compras-simple-corregir",

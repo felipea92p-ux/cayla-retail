@@ -2,7 +2,7 @@
   "guia": "inventario",
   "ruta": "/inventario",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 192,
+  "total": 196,
   "controles": {
     "components/AjustarInventarioModal.tsx": [
       "CampoSelect «{guia.etiqueta(\"motivo\", \"¿Por qué ajustas?\")}»",
@@ -150,7 +150,10 @@
       "button «Ir a elegir»"
     ],
     "components/alta-producto/NuevoColorAlta.tsx": [
-      "CampoTexto «Nombre del color»",
+      "SegmentoDeslizante «¿Es de un solo color o tiene dibujo?»",
+      "Desplegable «{patronId}»",
+      "ComboBuscable «{`${id}»",
+      "CampoTexto «{guia.etiqueta(\"nombre\", esForma ? \"Nombre del estampado\" : \"Nombre del color\")}»",
       "Desplegable «{familia}»",
       "CampoTexto «Código»",
       "Boton «{(!enLinea || existe.bloquea ? bloqueo : firma.motivo) ?? undefined}»",
@@ -248,6 +251,7 @@
       "button «Ocultar la lista»",
       "button «→verCuales»",
       "button «→() => setPorQue((v) => !v)»",
+      "Link «Ver cuánto es hoy en el Balance»",
       "Link «Poner costo»"
     ],
     "components/ficha-producto/ImprimirLoQueEntro.tsx": [

@@ -5,10 +5,11 @@ import { BadgePercent } from "lucide-react";
 import { EnlaceVer } from "@/components/ui/EnlaceVer";
 import { TituloSeccion } from "@/components/ui/TituloSeccion";
 import { Vacio } from "@/components/ui/Vacio";
+import { Aviso } from "@/components/ui/Aviso";
 import { CascadaEstados, LeyendaCascada } from "@/components/finanzas/estados/CascadaEstados";
-import { solesCentimos, solesConSignoCentimos } from "@/lib/flujo-caja-reglas";
+import { solesConSignoCentimos } from "@/lib/flujo-caja-reglas";
 import { filasDeTramos, type FilaCascada } from "@/lib/cascada-estados-reglas";
-import type { metaDeVentas } from "@/lib/ganamos-reglas";
+import { campanasSinFilas, filasConMeta, type metaDeVentas } from "@/lib/ganamos-reglas";
 import type { TramoCascada } from "@/lib/pulso-reglas";
 import type { CampanaFila, FilaER } from "@/lib/resultados-reglas";
 
@@ -25,6 +26,7 @@ export function MasDeGanancias({
   enCurso,
   sedes,
   campanas,
+  campanasFalla,
   hrefCampanas,
   nombreDelMes,
   cuadre,
@@ -38,6 +40,8 @@ export function MasDeGanancias({
   sedes: FilaCascada[] | null;
   /** Las campañas del mes, si se mira un mes entero; `null` con otras fechas. */
   campanas: CampanaFila[] | null;
+  /** No se pudieron leer las campañas: no se afirma que no hubo. */
+  campanasFalla: string | null;
   hrefCampanas: string;
   /** «octubre». */
   nombreDelMes: string;
@@ -46,14 +50,20 @@ export function MasDeGanancias({
   cuadro: ReactNode;
 }) {
   const filas = fila
-    ? filasDeTramos(
-        tramos,
-        fila.ventas > 0 && tramos.some((x) => x.clave === "costo")
-          ? { tras: "costo", clave: "margen", nombre: "Te quedó de margen", detalle: (v) => `${Math.round((v / fila.ventas) * 100)} % de lo vendido` }
-          : undefined,
-      ).map((f) => (f.clave === "ventas" && meta ? { ...f, detalle: `Meta: ${solesCentimos(meta.meta)} · ${enCurso ? "al ritmo de hoy, " : ""}${Math.round(meta.avance * 100)} %` } : f))
+    ? filasConMeta(
+        filasDeTramos(
+          tramos,
+          fila.ventas > 0 && tramos.some((x) => x.clave === "costo")
+            ? { tras: "costo", clave: "margen", nombre: "Te quedó de margen", detalle: (v) => `${Math.round((v / fila.ventas) * 100)} % de lo vendido` }
+            : undefined,
+        ),
+        meta,
+        fila,
+        enCurso,
+      )
     : [];
   const conPlan = filas.some((f) => f.plan !== undefined);
+  const sinFilas = campanasSinFilas(campanasFalla, nombreDelMes);
   return (
     <>
       {conPlan && (
@@ -92,9 +102,13 @@ export function MasDeGanancias({
                   </span>
                 </div>
               ))
+            ) : sinFilas.falla ? (
+              <Aviso tono="atencion" chico>
+                {sinFilas.texto}
+              </Aviso>
             ) : (
               <Vacio tamano="chico" icono={<BadgePercent />}>
-                No hubo campañas en {nombreDelMes}.
+                {sinFilas.texto}
               </Vacio>
             )}
           </div>

@@ -174,8 +174,6 @@ export function leerPanelCierre(data: unknown): PanelCierre | null {
 
 /** «agosto» de «2026-08». */
 export const nombreMes = (mes: string): string => textoMes(mes).split(" ")[0] ?? mes;
-/** «Cerrar agosto 2026». */
-export const tituloPantalla = (mes: string): string => `Cerrar ${textoMes(mes)}`;
 /** «19ce…40ab»: la huella corta, como el spike. */
 export const huellaCorta = (h: string | null | undefined): string => (h && h.length > 8 ? `${h.slice(0, 4)}…${h.slice(-4)}` : h ?? "");
 /** «Felipe» de «Felipe Alvarez». */
@@ -433,9 +431,16 @@ export function textoChequeo(c: Chequeo, mes: string, u?: UnidadDeFrase | null):
     case "sire": {
       // No lleva la `cola` de siempre: este aviso lo arma la web y no queda guardado en el cierre.
       const resueltas = numero(d.resueltas);
-      if (c.ok) return { titulo, detalle: resueltas > 0 ? `Cuadra, con ${plural(resueltas, "diferencia resuelta", "diferencias resueltas")}` : `La propuesta de compras de ${m} cuadra con lo registrado` };
-      if (d.subida !== true) return { titulo, detalle: `Todavía no se comparó la propuesta de compras de ${m}. Puedes cerrar igual` };
-      return { titulo, detalle: `${plural(numero(d.por_mirar), "diferencia", "diferencias")} sin resolver. Puedes cerrar igual, pero el contador aceptaría la propuesta con ellas` };
+      const porMirar = numero(d.por_mirar);
+      // `ventas_subida` es null si no se pudo leer: entonces se habla solo de compras, como antes.
+      const faltaVentas = d.ventas_subida === false;
+      if (c.ok) {
+        if (resueltas > 0) return { titulo, detalle: `Cuadra, con ${plural(resueltas, "diferencia resuelta", "diferencias resueltas")}` };
+        return { titulo, detalle: d.ventas_subida === true ? `Las propuestas de compras y ventas de ${m} cuadran con lo registrado` : `La propuesta de compras de ${m} cuadra con lo registrado` };
+      }
+      if (d.subida !== true) return { titulo, detalle: faltaVentas ? `Todavía no se compararon las propuestas de compras y ventas de ${m}. Puedes cerrar igual` : `Todavía no se comparó la propuesta de compras de ${m}. Puedes cerrar igual` };
+      if (porMirar === 0) return { titulo, detalle: `Todavía no se comparó la propuesta de ventas de ${m}. Puedes cerrar igual` };
+      return { titulo, detalle: `${plural(porMirar, "diferencia", "diferencias")} sin resolver${faltaVentas ? ", y falta comparar la propuesta de ventas" : ""}. Puedes cerrar igual, pero el contador aceptaría la propuesta con ellas` };
     }
     case "diario": {
       const asientos = numero(d.asientos);
@@ -446,7 +451,7 @@ export function textoChequeo(c: Chequeo, mes: string, u?: UnidadDeFrase | null):
           detalle: asientos > 1 ? `Debe = haber en los ${asientos} asientos (${lineas})` : asientos === 1 ? `Debe = haber en su único asiento (${lineas})` : `Sin movimientos en ${m}`,
         };
       const n = numero(d.descuadrados);
-      return { titulo, detalle: `${plural(n, "asiento descuadrado", "asientos descuadrados")}: una fuente no suma lo que debe (míralo en Reportes)` };
+      return { titulo, detalle: `${plural(n, "asiento descuadrado", "asientos descuadrados")}: una fuente no suma lo que debe (míralo en Estados financieros)` };
     }
     case "huella":
       return c.ok
@@ -481,8 +486,11 @@ export function enlaceChequeo(c: Chequeo, u: Pick<Unidad, "alcance" | "ubicacion
       return `/finanzas/gastos?tab=fijos&mes=${mes}&ver=${ver}`;
     case "conciliacion":
       return "/finanzas/dinero/conciliacion";
-    case "sire":
-      return `/finanzas/impuestos/sire?mes=${mes}`;
+    case "sire": {
+      // Compras ya se comparó y no hay nada que resolver: lo único que falta es la pestaña de ventas.
+      const soloFaltaVentas = c.datos.subida === true && c.datos.ventas_subida === false && numero(c.datos.por_mirar) === 0;
+      return `/finanzas/impuestos/sire?mes=${mes}${soloFaltaVentas ? "&registro=ventas" : ""}`;
+    }
     // Los cuatro pendientes por sede: cada uno, a la pantalla donde se resuelve («Nos debe» vive en la ficha de cada proveedor).
     case "envios_con_diferencia":
       return "/compras/proveedores";

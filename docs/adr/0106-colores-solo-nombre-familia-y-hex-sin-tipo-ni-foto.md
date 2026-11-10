@@ -34,3 +34,7 @@ dos pantallas dónde va «jaspeado».
 SE ROMPE SI: CAYLA necesita distinguir dos colores idénticos en hex que solo difieren en la tela
 (un «Azul marino liso» y uno «jaspeado» de igual hex). Eso ya se resuelve con tejido en el
 producto, no con un color distinto; si aun así estorba, se reabre.
+
+## Actualización 2026-11-09
+
+Reabierto en parte por ADR-0634: `colores.tipo` vuelve a usarse para los estampados, porque un modelo con varios estampados necesita distinguirlos en el eje que separa el stock. El patrón del producto sigue en Patrones.

@@ -5,6 +5,7 @@ import {
   getCompra,
   getLineasCompra,
   getPagosCompra,
+  getAnuladosCompra,
   getRecepcionesCompra,
   getAdjuntosCompra,
   ETIQUETA_ESTADO_PAGO,
@@ -68,6 +69,8 @@ export type DetalleCompra = {
   compra: CompraResumen;
   lineas: LineaCompra[];
   pagos: PagoCompra[];
+  /** Pagos, notas y reembolsos anulados, con su motivo (tarea 21). */
+  anulados: Awaited<ReturnType<typeof getAnuladosCompra>>;
   recepciones: RecepcionCompra[];
   adjuntos: AdjuntoCompra[];
   /** Notas de crédito del proveedor y líneas cerradas por faltante (D2, ADR-0111). */
@@ -102,7 +105,7 @@ async function cargarDatosPago(compra: CompraResumen): Promise<DatosPagoProveedo
 export async function cargarDetalleCompra(compraId: string): Promise<DetalleCompra | null> {
   const compra = await getCompra(compraId);
   if (!compra) return null;
-  const [lineas, pagos, recepciones, adjuntos, ubicaciones, notasCredito, cierres, datosPago, reparto, persona] = await Promise.all([
+  const [lineas, pagos, recepciones, adjuntos, ubicaciones, notasCredito, cierres, datosPago, reparto, persona, anulados] = await Promise.all([
     getLineasCompra([compra.id]),
     getPagosCompra(compra.id),
     getRecepcionesCompra(compra.id),
@@ -113,11 +116,13 @@ export async function cargarDetalleCompra(compraId: string): Promise<DetalleComp
     cargarDatosPago(compra),
     getRepartoDeCompra(compra.id),
     requirePersonaActualV2(),
+    getAnuladosCompra(compra.id),
   ]);
   return {
     compra,
     lineas,
     pagos,
+    anulados,
     recepciones,
     adjuntos,
     notasCredito,
@@ -175,7 +180,7 @@ export function DatosComprobante({ compra, destino }: Pick<DetalleCompra, "compr
 }
 
 export function CompraDetalle({
-  detalle: { compra, lineas, pagos, recepciones, adjuntos, datosPago, reparto, ubicaciones, acciones: permite },
+  detalle: { compra, lineas, pagos, anulados, recepciones, adjuntos, datosPago, reparto, ubicaciones, acciones: permite },
   adjuntosFallidos = [],
   acciones = true,
 }: {
@@ -254,7 +259,7 @@ export function CompraDetalle({
         </div>
 
         {/* ---------- pagos: cada pago nuevo entra con un desliz y un destello ---------- */}
-        <ComprobantePagos pagos={pagos.map((p) => ({ id: p.id, fecha: p.fecha, metodo: p.metodo, referencia: p.referencia, monto: p.monto, noDeducible: p.noDeducible }))} />
+        <ComprobantePagos pagos={pagos.map((p) => ({ id: p.id, fecha: p.fecha, metodo: p.metodo, referencia: p.referencia, monto: p.monto, noDeducible: p.noDeducible }))} puedeAnular={permite.pagar && !anulada} anulados={anulados} />
 
         {/* Saldo pendiente: lo que falta y, si es a crédito, cuándo vence. Anulada no genera saldo. */}
         {!anulada && (

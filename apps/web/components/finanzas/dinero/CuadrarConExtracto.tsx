@@ -2,8 +2,9 @@
 
 // Finanzas ▸ Cuentas y dinero ▸ Cuadrar con el banco: el extracto del banco donde depositan las máquinas (ADR-0629, Fase B). Se sube el .txt
 // que exporta la banca, o se pega la tabla copiada de la web, y se ve qué trajo. Cada lote de Vendemás se empareja con los días que cubre y,
-// con un toque, se registra como su depósito (`registrar_abono_pos`, el de siempre). El extracto no se guarda: se lee en el navegador
-// (`lib/extracto-interbank.ts`) y se cierra con la hoja.
+// con un toque, se registra como su depósito (`registrar_abono_pos`, el de siempre). El extracto se lee en el navegador
+// (`lib/extracto-interbank.ts`) y, desde «el banco manda» (ADR-0637), se GUARDA con «Guardar este extracto»: cada línea tal como la dijo el
+// banco (`cargar_lineas_banco`, que decide qué es nuevo y qué ya estaba). Guardar no mueve plata: los depósitos se siguen registrando abajo.
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -22,12 +23,22 @@ import { firmar } from "@/lib/responsable-reglas";
 import { fechaCorta } from "@/lib/gastos-reglas";
 import { leerLotePendiente, type LotePendiente } from "@/lib/cuentas-dinero-reglas";
 import { leerExtracto, resumenExtracto, solesDeCentimos, type ExtractoLeido } from "@/lib/extracto-interbank";
+import { cuentaDelArchivo, fraseDeCarga, fuenteDe, huellaDeArchivo, leerResultadoCarga, paraCargar, type ResultadoCarga } from "@/lib/banco-lineas";
 import { emparejarIzipay, emparejarVendemas, leerPagoMaquina, type DepositoRegistrado, type PagoMaquina, type PropuestaIzipay, type PropuestaLote } from "@/lib/emparejar-maquinas";
 
 /** Una máquina que deposita en este banco: su puente («Por depositar …») y su nombre. */
 export type MaquinaDelBanco = { cuentaId: string; nombre: string };
 
-type Props = { banco: string; bancoId: string; maquinas: readonly MaquinaDelBanco[] };
+type Props = {
+  banco: string;
+  bancoId: string;
+  maquinas: readonly MaquinaDelBanco[];
+  /** La base ya sabe guardar el extracto (migración 20261109232000). Si todavía no, la hoja queda como antes: lee y no guarda. */
+  guardar: boolean;
+};
+
+/** Lo leído, con el texto del que salió (para su huella) y la marca de este envío: si se reintenta, la base devuelve el mismo resultado. */
+type Leido = { extracto: ExtractoLeido; texto: string; token: string };
 
 export function CuadrarConExtracto(props: Props) {
   const [abierto, setAbierto] = useState(false);
@@ -42,8 +53,8 @@ export function CuadrarConExtracto(props: Props) {
   );
 }
 
-function HojaExtracto({ banco, bancoId, maquinas, onCerrar }: Props & { onCerrar: () => void }) {
-  const [extracto, setExtracto] = useState<ExtractoLeido | null>(null);
+function HojaExtracto({ banco, bancoId, maquinas, guardar, onCerrar }: Props & { onCerrar: () => void }) {
+  const [leido, setLeido] = useState<Leido | null>(null);
   const [pegado, setPegado] = useState("");
   const [fallo, setFallo] = useState<string | null>(null);
   const archivo = useRef<HTMLInputElement>(null);
@@ -51,12 +62,13 @@ function HojaExtracto({ banco, bancoId, maquinas, onCerrar }: Props & { onCerrar
   function leer(texto: string) {
     const e = leerExtracto(texto);
     if (e.lineas.length === 0) {
-      setExtracto(null);
+      setLeido(null);
       setFallo("No encontré movimientos en lo que trajiste. Sube el .txt que exporta la banca o copia la tabla entera, con sus montos.");
       return;
     }
     setFallo(null);
-    setExtracto(e);
+    // Cada lectura es un envío nuevo: volver a leer el mismo archivo y guardarlo dice «ya estaban», no repite el aviso de la primera vez.
+    setLeido({ extracto: e, texto, token: crypto.randomUUID() });
   }
 
   async function elegir(f: File | undefined) {
@@ -66,9 +78,15 @@ function HojaExtracto({ banco, bancoId, maquinas, onCerrar }: Props & { onCerrar
   }
 
   return (
-    <Modal titulo={`El extracto de ${banco}`} subtitulo="Lo que llegó de las máquinas, tal como lo dice el banco. El extracto no se guarda." onClose={onCerrar} tamano="mediana" conCerrar>
-      {extracto ? (
-        <ResumenDelExtracto extracto={extracto} bancoId={bancoId} maquinas={maquinas} onOtro={() => setExtracto(null)} />
+    <Modal
+      titulo={`El extracto de ${banco}`}
+      subtitulo={guardar ? "Lo que dice el banco, línea por línea. Guárdalo para verlo al lado de lo que anotaste." : "Lo que llegó de las máquinas, tal como lo dice el banco."}
+      onClose={onCerrar}
+      tamano="mediana"
+      conCerrar
+    >
+      {leido ? (
+        <ResumenDelExtracto leido={leido} banco={banco} bancoId={bancoId} maquinas={maquinas} guardar={guardar} onOtro={() => setLeido(null)} />
       ) : (
         <div className="space-y-4">
           <input
@@ -108,7 +126,8 @@ function HojaExtracto({ banco, bancoId, maquinas, onCerrar }: Props & { onCerrar
   );
 }
 
-function ResumenDelExtracto({ extracto, bancoId, maquinas, onOtro }: { extracto: ExtractoLeido; bancoId: string; maquinas: readonly MaquinaDelBanco[]; onOtro: () => void }) {
+function ResumenDelExtracto({ leido, banco, bancoId, maquinas, guardar, onOtro }: { leido: Leido; banco: string; bancoId: string; maquinas: readonly MaquinaDelBanco[]; guardar: boolean; onOtro: () => void }) {
+  const { extracto } = leido;
   const resumen = resumenExtracto(extracto.lineas);
   const huecosAdentro = extracto.huecos.filter((h) => !h.enElBorde);
   const huecosBorde = extracto.huecos.filter((h) => h.enElBorde);
@@ -157,7 +176,8 @@ function ResumenDelExtracto({ extracto, bancoId, maquinas, onOtro }: { extracto:
           {extracto.ignoradas === 1 ? "Un renglón no era un movimiento" : `${extracto.ignoradas} renglones no eran movimientos`} (títulos o totales) y no se leyó.
         </p>
       )}
-      {(hayVendemas || hayIzipay) && <ComboResponsable control={responsable} />}
+      {(guardar || hayVendemas || hayIzipay) && <ComboResponsable control={responsable} />}
+      {guardar && <GuardarExtracto key={leido.token} leido={leido} banco={banco} bancoId={bancoId} responsable={responsable} />}
       {hayIzipay &&
         (izipay ? (
           <IzipayDelExtracto extracto={extracto} bancoId={bancoId} maquina={izipay} responsable={responsable} />
@@ -170,6 +190,81 @@ function ResumenDelExtracto({ extracto, bancoId, maquinas, onOtro }: { extracto:
         ) : (
           <Aviso tono="atencion">El extracto trae lotes de Vendemás, pero ninguna máquina llamada Vendemás deposita en este banco: revísalo en Configuración ▸ Dinero.</Aviso>
         ))}
+    </div>
+  );
+}
+
+/**
+ * «Guardar este extracto» (ADR-0637): manda cada línea leída a la base, que la guarda tal como la dijo el banco y responde cuántas eran
+ * nuevas, cuántas ya estaban y cuántas se confirmaron. No registra depósitos ni mueve plata. Guardado, el botón deja su lugar al resultado:
+ * para volver a guardar hay que leer el archivo otra vez (un envío nuevo).
+ *
+ * Una línea guardada no se borra: antes del botón se dice de qué cuenta es el archivo (en qué termina), y esa cuenta viaja a la base, que
+ * rechaza la de otro banco. Un archivo que mezcla dos cuentas, o un .txt que no dice la suya, no ofrece guardar.
+ */
+function GuardarExtracto({ leido, banco, bancoId, responsable }: { leido: Leido; banco: string; bancoId: string; responsable: ControlResponsable }) {
+  const router = useRouter();
+  const [guardando, setGuardando] = useState(false);
+  const [guardado, setGuardado] = useState<ResultadoCarga | null>(null);
+  const deQueCuenta = cuentaDelArchivo(leido.extracto, banco);
+
+  async function guardar() {
+    if (!deQueCuenta.ok) return;
+    if (!responsable.listo) {
+      avisar.error(responsable.motivo ?? "Elige quién lo hace (Responsable).");
+      return;
+    }
+    setGuardando(true);
+    let huella: string;
+    try {
+      huella = await huellaDeArchivo(leido.texto);
+    } catch {
+      setGuardando(false);
+      avisar.error("Este navegador no pudo preparar el archivo para guardarlo. Actualiza la pantalla y vuelve a leerlo.");
+      return;
+    }
+    const { data, error } = await firmar(
+      createClient().rpc(
+        "cargar_lineas_banco" as never,
+        { p_cuenta_id: bancoId, p_fuente: fuenteDe(leido.extracto), p_lineas: paraCargar(leido.extracto), p_huella_archivo: huella, p_token: leido.token, p_cuenta_archivo: deQueCuenta.cuenta } as never,
+      ) as never,
+      responsable.firma(),
+    );
+    setGuardando(false);
+    responsable.despues(error);
+    if (error) return avisar.error(traducirError(error, "guardar el extracto"));
+    const resultado = leerResultadoCarga(data);
+    if (!resultado) return avisar.error("El extracto se guardó, pero no llegó el resumen. Actualiza la pantalla para ver lo que dice el banco.");
+    const frase = fraseDeCarga(resultado);
+    avisar.exito(frase.titulo, { detalle: frase.detalle ?? undefined });
+    setGuardado(resultado);
+    router.refresh();
+  }
+
+  if (guardado) {
+    const frase = fraseDeCarga(guardado);
+    return (
+      <Aviso tono="exito" chico titulo={frase.titulo} guia="fin-conciliacion.guardar-extracto">
+        {frase.detalle ? `${frase.detalle} ` : ""}Ya lo ves en «El banco dice» de {banco}.
+      </Aviso>
+    );
+  }
+  if (!deQueCuenta.ok) {
+    return (
+      <Aviso tono="error" chico titulo="Este archivo no se puede guardar" guia="fin-conciliacion.guardar-extracto">
+        {deQueCuenta.motivo}
+      </Aviso>
+    );
+  }
+  return (
+    <div className="space-y-2" data-guia="fin-conciliacion.guardar-extracto">
+      <p className="text-sm text-tinta">{deQueCuenta.frase}</p>
+      <span>
+        <Boton type="button" peso="primario" cargando={guardando} onClick={() => void guardar()}>
+          Guardar este extracto
+        </Boton>
+      </span>
+      <p className="din-cuad-tenue">Guarda cada línea tal como la dijo el banco, para compararla con lo que anotaste. No registra depósitos ni mueve plata. Una línea guardada ya no se borra.</p>
     </div>
   );
 }

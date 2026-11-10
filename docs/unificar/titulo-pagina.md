@@ -2,8 +2,8 @@
 
 **Decidido:** 2026-10-14, Felipe, **mirando** las fotos de cada pantalla con su cabecera de hoy y la propuesta armada en el navegador
 (página de elegir; fuentes en [rondas/pendientes](rondas/pendientes/README.md)).
-**Elegida:** P1. **Pieza:** `<EncabezadoPagina>` (`components/ui/EncabezadoPagina.tsx`) en todo el ERP; `<CabeceraPantalla>` queda solo en
-Finanzas.
+**Elegida:** P1. **Pieza:** `<EncabezadoPagina>` (`components/ui/EncabezadoPagina.tsx`) en todo el ERP (desde el 2026-11-09, Finanzas incluida: `<CabeceraPantalla>` ya no existe; hasta entonces quedó solo en
+Finanzas).
 
 ## Qué se comparó
 
@@ -118,7 +118,7 @@ Cambios a 375 px: ![Cambios a 375 px](capturas/titulo-pagina.ayuda.cambios-375.j
 
 ## Firmas
 
-Un `<h1>` en la serif de la casa (`font-display`) dibujado a mano fuera de la pieza, `<CabeceraPantalla>` fuera de Finanzas y, desde la
+Un `<h1>` en la serif de la casa (`font-display`) dibujado a mano fuera de la pieza y, desde la
 ronda 18, el «!» metido a mano en el título con la letra de la frase (`inline-block align-middle font-sans text-[15px] leading-normal
 tracking-normal`): va en `ayuda`. Las
 excepciones de arriba, cada una con su motivo, en `apps/web/unificar/familias.mjs`.

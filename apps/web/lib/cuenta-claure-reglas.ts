@@ -107,6 +107,28 @@ export function leerPagoClaure(r: Record<string, unknown>): PagoClaure {
   };
 }
 
+/**
+ * Una cuenta de otra empresa (ADR-0638, `fn_cuentas_de_otras_empresas`): la plata que llega ahí no es de CAYLA, así que se muestra aparte y nunca suma.
+ * `ultimoCobro` nulo = todavía no llegó ninguno.
+ */
+export type CuentaOtraEmpresa = { id: string; nombre: string; empresa: string; cobradoMes: number; cobradoTotal: number; ultimoCobro: string | null };
+
+export function leerCuentaOtraEmpresa(r: Record<string, unknown>): CuentaOtraEmpresa {
+  return {
+    id: String(r.id ?? ""),
+    nombre: String(r.nombre ?? ""),
+    empresa: String(r.empresa ?? ""),
+    cobradoMes: numero(r.cobrado_mes),
+    cobradoTotal: numero(r.cobrado_total),
+    ultimoCobro: r.ultimo_cobro ? String(r.ultimo_cobro).slice(0, 10) : null,
+  };
+}
+
+/** La nota de Dónde está: de quién es, que no suma, y cuánto entró este mes. */
+export function notaCuentaOtraEmpresa(c: CuentaOtraEmpresa): string {
+  return `${c.nombre}: de ${c.empresa}, no suma. Este mes ${soles(c.cobradoMes)}.`;
+}
+
 export type ResumenClaure = {
   /** Lo que las ventas de CLAURE cobraron en cuentas de CAYLA. */
   cobrado: number;
@@ -230,6 +252,12 @@ export function chipsDisponible(total: number, saldo: number): { texto: string; 
   ];
 }
 
+/**
+ * Quién pone el IGV de lo vendido de CLAURE, en una sola frase para toda pantalla (ADR-0624, actualización del 2026-11-09). El de lo cobrado en cuentas de CAYLA ya se le descuenta en su cuenta
+ * (ADR-0560); solo el de lo vendido en efectivo queda por recuperar. Decir sin matiz que «puede devolver su IGV» llevaría a pedirle facturas por lo ya descontado, y CAYLA lo recuperaría dos veces.
+ */
+export const IGV_DE_CLAURE = "El IGV de lo cobrado en tus cuentas ya se le descuenta en su cuenta; el de lo vendido en efectivo lo pone CAYLA hasta que CLAURE lo devuelva con sus facturas de compra.";
+
 /** La frase de arriba: desde cuándo se cuenta y qué entra. */
 export function fraseClaure(desde: string | null): string {
   const cuando = desde ? `Se cuenta desde el ${fechaCorta(desde)}. ` : "";
@@ -243,14 +271,14 @@ export const NOTA_CLAURE =
 /** Bajo los pagos: dónde se anula uno equivocado. */
 /** Bajo los gastos: de dónde sale la parte de cada uno. */
 export const NOTA_GASTOS_CLAURE =
-  "Cada categoría de gasto tiene su parte de CLAURE (de fábrica: alquiler, luz y mantenimiento, la mitad; agua, internet, baño, limpieza y bolsas, todo). Esa parte baja lo que se le debe y sale del gasto de CAYLA en Reportes.";
+  "Cada categoría de gasto tiene su parte de CLAURE (de fábrica: alquiler, luz y mantenimiento, la mitad; agua, internet, baño, limpieza y bolsas, todo). Esa parte baja lo que se le debe y sale del gasto de CAYLA en Estados financieros.";
 
 export const NOTA_PAGOS_CLAURE =
   "Un pago equivocado se anula en Dónde está ▸ Movimientos, y el saldo vuelve a subir. El efectivo que se quedó con Claudia al cerrar la caja sale de ese cierre y no se anula desde aquí.";
 
 /**
  * Lo vendido de CLAURE en un período, neto de anulaciones y devoluciones (`fn_claure_ventas_en`, 20261029020000): `ventas` con IGV, `igv`, `base`
- * (sin IGV, lo que se le debe a Claudia y NO es ingreso de CAYLA) y `costo` de sus prendas. Sirve para decir «de eso, CLAURE» donde la cifra
+ * (sin IGV, lo que es de Claudia y NO es ingreso de CAYLA) y `costo` de sus prendas. Sirve para decir «de eso, CLAURE» donde la cifra
  * de CAYLA no lo incluye (el Estado de resultados) o lo incluye a la fuerza (el IGV de Impuestos: la boleta sale con el RUC de CAYLA).
  */
 export type VentasClaure = { ventas: number; igv: number; base: number; costo: number };
@@ -268,12 +296,12 @@ export function lineaImpuestosClaure(v: VentasClaure | null): { titulo: string; 
   if (!v || !(v.igv > 0)) return null;
   return {
     titulo: `De ese IGV, ${soles(v.igv)} es de ventas de CLAURE`,
-    texto: `Las boletas de CLAURE salen con el RUC de CAYLA, así que SUNAT las cuenta aquí. Lo que CLAURE vendió en el mes (${soles(v.ventas)} con IGV, de sus ventas) es de Claudia: si CAYLA le cobra ese IGV o se lo descuenta, es una decisión que todavía no está tomada.`,
+    texto: `Las boletas de CLAURE salen con el RUC de CAYLA, así que SUNAT las cuenta aquí. Lo que CLAURE vendió en el mes (${soles(v.base)} sin IGV) es de Claudia. ${IGV_DE_CLAURE}`,
   };
 }
 
-/** Estado de resultados: lo vendido de CLAURE no suma al ingreso ni al costo de CAYLA; la nota lo dice con su cifra. `null` si no hubo. */
+/** Estado de resultados, el cuadro por sede: lo vendido de CLAURE no suma a sus ventas ni a su ganancia; la nota lo dice con su cifra. No afirma que la pantalla no lo muestre: arriba, «Prendas de CLAURE» sí lo separa. `null` si no hubo. */
 export function notaResultadosClaure(v: VentasClaure | null): string | null {
   if (!v || !(v.base > 0)) return null;
-  return `No incluye lo vendido de CLAURE (${soles(v.base)} sin IGV): es de Claudia, no es ingreso ni costo de CAYLA. Lo que se le debe está en Cuentas y dinero ▸ CLAURE.`;
+  return `Lo vendido de CLAURE (${soles(v.base)} sin IGV) no cuenta en las ventas ni en la ganancia de este cuadro: es de Claudia, no es ingreso ni costo de CAYLA. Lo que se le debe está en Cuentas y dinero ▸ CLAURE.`;
 }

@@ -3,7 +3,7 @@ import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
 import { clavesCerradas, leerCampana, leerFilaER, leerPeriodoMes, type CampanaFila, type FilaER } from "@/lib/resultados-reglas";
 import { hoyLima } from "@/lib/fechas-lima";
-import { aplicarProvision, hastaDeLaProvision, sueldosAEstaFecha } from "@/lib/planilla-provision-reglas";
+import { aplicarProvision, faltanSueldosPorFalla, hastaDeLaProvision, sueldosAEstaFecha } from "@/lib/planilla-provision-reglas";
 import { getProvisionPlanilla } from "@/lib/planilla-provision";
 import type { FaltaDelMes } from "@/lib/equilibrio-mes-reglas";
 
@@ -13,6 +13,8 @@ import type { FaltaDelMes } from "@/lib/equilibrio-mes-reglas";
 // (principio 9): nunca muestra ceros como si fueran datos.
 
 type Lectura<T> = { datos: T; falla: string | null };
+/** `sueldosSinLeer`: las cifras se leyeron, pero los sueldos estimados no (tarea 43). No es `falla`: esa cambia todo el informe por un error, y las cifras se tienen que seguir viendo. */
+type LecturaER = Lectura<FilaER[]> & { sueldosSinLeer?: boolean };
 const falla = (que: string, e: { message: string }) => `No se pudo leer ${que}: ${e.message}`;
 
 /**
@@ -33,16 +35,18 @@ export async function getFaltaDelMes(mes: string): Promise<FaltaDelMes[] | null>
 }
 
 // Un mes, una ganancia (tarea 23): el Resumen, Ganancias y pérdidas, los archivos del contador y la línea de los meses pasan por aquí y piden los mismos sueldos (`hastaDeLaProvision`).
-export const getEstadoResultados = cache(async function getEstadoResultados(desde: string, hasta: string): Promise<Lectura<FilaER[]>> {
+export const getEstadoResultados = cache(async function getEstadoResultados(desde: string, hasta: string): Promise<LecturaER> {
   const supabase = await createClient();
   const [{ data, error }, provision] = await Promise.all([
     supabase.rpc("fn_estado_resultados" as never, { p_desde: desde, p_hasta: hasta } as never),
     getProvisionPlanilla(desde, hastaDeLaProvision(desde, hasta, hoyLima())),
   ]);
   if (error) return { datos: [], falla: falla("el estado de resultados", error) };
+  const filas = ((data ?? []) as Record<string, unknown>[]).map(leerFilaER);
   return {
-    datos: aplicarProvision(((data ?? []) as Record<string, unknown>[]).map(leerFilaER), provision),
+    datos: aplicarProvision(filas, provision.filas),
     falla: null,
+    sueldosSinLeer: faltanSueldosPorFalla(provision.sinLeer, filas),
   };
 });
 
@@ -67,10 +71,15 @@ export async function getEstadoResultadosAEstaFecha(desde: string, hasta: string
  * Es información de apoyo: si la lectura falla, las cifras se ven igual, sin la marca (principio 9: se degrada, no se cae).
  */
 export async function getUnidadesCerradas(mes: string): Promise<string[]> {
+  return (await leerUnidadesCerradas(mes)).datos;
+}
+
+/** Lo mismo, diciendo si se pudo leer: «Te toca» no puede afirmar que un mes sigue abierto sin haberlo comprobado (tarea 155). */
+export async function leerUnidadesCerradas(mes: string): Promise<Lectura<string[]>> {
   const supabase = await createClient();
   const { data, error } = await supabase.rpc("fn_periodos_mes" as never, { p_mes: `${mes}-01` } as never);
-  if (error) return [];
-  return clavesCerradas(((data ?? []) as Record<string, unknown>[]).map(leerPeriodoMes));
+  if (error) return { datos: [], falla: falla("los meses cerrados", error) };
+  return { datos: clavesCerradas(((data ?? []) as Record<string, unknown>[]).map(leerPeriodoMes)), falla: null };
 }
 
 /** Las campañas pasadas, en curso y por venir de las tiendas que la cuenta ve. */

@@ -23,10 +23,17 @@ describe("la cabecera de Gastos en el telar", () => {
   });
 
   it("los chips cuentan los gastos y avisan los que no tienen comprobante", () => {
-    expect(chipsDeGastos({ n: 1, sinComprobante: 0 })).toEqual([{ texto: "1 gasto", tono: "pizarra" }]);
-    expect(chipsDeGastos({ n: 12, sinComprobante: 3 })).toEqual([
+    expect(chipsDeGastos({ n: 1, sinComprobante: 0, total: 500, igv: 0 })).toEqual([{ texto: "1 gasto", tono: "pizarra" }]);
+    expect(chipsDeGastos({ n: 12, sinComprobante: 3, total: 500, igv: 0 })).toEqual([
       { texto: "12 gastos", tono: "pizarra" },
       { texto: "3 sin comprobante", tono: "ambar" },
+    ]);
+  });
+
+  it("con IGV en las facturas, un chip dice cuánto es sin IGV: la cifra grande menos el IGV del mes (tarea 152)", () => {
+    expect(chipsDeGastos({ n: 40, sinComprobante: 0, total: 20000, igv: 300 })).toEqual([
+      { texto: "40 gastos", tono: "pizarra" },
+      { texto: "S/\u00a019,700 sin IGV", tono: "pizarra" },
     ]);
   });
 });

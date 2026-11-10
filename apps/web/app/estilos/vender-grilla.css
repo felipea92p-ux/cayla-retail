@@ -25,6 +25,24 @@
   box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-tinta) 16%, transparent);
   transition: transform 250ms var(--ease-cayla), opacity 250ms var(--ease-cayla);
 }
+/* Un estampado se reconoce por su foto (ADR-0634): llena el lugar del punto, dentro del anillo. */
+.vg-punto > i.vg-punto-foto {
+  position: relative;
+  overflow: hidden;
+  width: 1.375rem;
+  height: 1.375rem;
+}
+/* Un estampado sin foto que lo distinga lleva su inicial (ADR-0634). El color de la letra sale del fondo, y los dos son dato de la prenda. */
+.vg-punto > i.vg-punto-inicial {
+  display: grid;
+  place-items: center;
+  width: 1.375rem;
+  height: 1.375rem;
+  font-size: 11px;
+  font-style: normal;
+  font-weight: 700;
+  line-height: 1;
+}
 .vg-punto::after {
   content: "";
   position: absolute;

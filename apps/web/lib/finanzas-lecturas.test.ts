@@ -7,9 +7,9 @@ import { alcanzaPulso } from "./dinero-pulso-reglas";
 // revisó y calla a propósito (la función aún no está en producción, o es un adorno que no afirma nada). Solo baja: una lectura nueva devuelve
 // `Lectura<T>` con su `falla`, y la pantalla la dice.
 const SILENCIOS_HOY: Record<string, number> = {
-  "lib/cuentas-dinero.ts": 5,
+  "lib/cuentas-dinero.ts": 4,
   "lib/gastos.ts": 7,
-  "lib/resultados.ts": 2,
+  "lib/resultados.ts": 1,
 };
 
 const CALLA = /if \(error\) return (\[\]|null);|const \{ data \} = await/g;

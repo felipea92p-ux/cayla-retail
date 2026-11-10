@@ -75,6 +75,8 @@ export type PanelImpuestos = {
   historial: MesIgv[];
   /** Lo pagado a SUNAT por mes (tarea 10). Sin el dato, ningún mes se da por pagado: el sistema no afirma lo que no leyó. */
   pagos?: PagoDeMes[];
+  /** Se intentó leer lo pagado y no se pudo: no se puede decir si un mes está pagado o no. Ausente en quien no lo pregunta. */
+  pagosFalla?: boolean;
   parametros: {
     igv: Vigente | null;
     uit: (Vigente & { anio: number }) | null;
@@ -192,7 +194,7 @@ export function nombreMes(mes: string): string {
 
 // ---- Estado de cada mes en el historial ----------------------------------------------------------------------------------
 
-export type EstadoMesIgv = "en_curso" | "por_declarar" | "pagado" | "a_favor" | "sin_pago" | "sin_movimiento";
+export type EstadoMesIgv = "en_curso" | "por_declarar" | "pagado" | "a_favor" | "sin_pago" | "sin_movimiento" | "sin_leer";
 export const TEXTO_ESTADO_MES: Record<EstadoMesIgv, { texto: string; tono: "pizarra" | "ambar" | "verde" | "neutro" | "apagado" }> = {
   en_curso: { texto: "en curso", tono: "pizarra" },
   por_declarar: { texto: "por declarar", tono: "ambar" },
@@ -200,6 +202,7 @@ export const TEXTO_ESTADO_MES: Record<EstadoMesIgv, { texto: string; tono: "piza
   a_favor: { texto: "a favor", tono: "verde" },
   sin_pago: { texto: "sin pago registrado", tono: "neutro" },
   sin_movimiento: { texto: "sin movimiento", tono: "apagado" },
+  sin_leer: { texto: "pago sin leer", tono: "neutro" },
 };
 
 /** Las filas de `fn_impuestos_pagos` (mes, concepto, monto), una por mes. */
@@ -218,9 +221,10 @@ export function leerPagosSunat(data: unknown): PagoDeMes[] {
 
 /** El mes en curso todavía cambia; un mes cuyo IGV ya se cubrió con pagos dice «pagado»; el anterior es el que se declara ahora
  *  (se declara aunque quede a favor); los de antes dicen si dejaron algo a pagar o a favor. «Declarado» no se afirma: aquí se
- *  registra el pago, no la declaración. */
-export function estadoMes(m: Pick<MesIgv, "mes" | "aPagar" | "saldoAFavor" | "debito" | "credito">, mesActual: string, pago?: PagoDeMes): EstadoMesIgv {
+ *  registra el pago, no la declaración. Si no se pudo leer lo pagado, un mes con IGV a pagar no dice ni «por declarar» ni «sin pago»: puede estar pagado. */
+export function estadoMes(m: Pick<MesIgv, "mes" | "aPagar" | "saldoAFavor" | "debito" | "credito">, mesActual: string, pago?: PagoDeMes, pagosFalla = false): EstadoMesIgv {
   if (m.mes >= mesActual) return "en_curso";
+  if (pagosFalla && m.aPagar > 0) return "sin_leer";
   if (m.aPagar > 0 && pago && pago.igv >= m.aPagar - 0.005) return "pagado";
   if (m.mes === sumarMeses(mesActual, -1)) return "por_declarar";
   if (m.aPagar > 0) return "sin_pago";
@@ -301,7 +305,7 @@ export type AvisoUmbral = {
   ajuste: number;
   /** Cuánto falta para el límite (0 si ya lo pasó). */
   faltaSoles: number | null;
-  /** «Llevas S/ 1,400,000 vendidos este año, a S/ 250,000 de las 300 UIT: habla con tu contador.» Solo en `aviso` y `cruzado`. */
+  /** «Llevas S/ 1,400,000 vendidos este año, sin IGV, a S/ 250,000 de las 300 UIT: habla con tu contador.» Solo en `aviso` y `cruzado`. */
   titulo: string | null;
   detalle: string | null;
   /** Qué cuenta el aviso (`ALCANCE_DEL_AVISO`). Va aparte del título: se muestra aunque el nivel sea `lejos`; `null` solo si no hay datos. */
@@ -331,7 +335,7 @@ export function avisoUmbral(p: Pick<PanelImpuestos, "parametros" | "umbral">): A
     return {
       ...base,
       nivel: "cruzado",
-      titulo: `Pasaste ${elLimite} este año: llevas ${solesRedondo(u.ventasAnio)} vendidos. Hay obligaciones nuevas que coordinar con tu contador.`,
+      titulo: `Pasaste ${elLimite} este año: llevas ${solesRedondo(u.ventasAnio)} vendidos, sin IGV. Hay obligaciones nuevas que coordinar con tu contador.`,
       detalle: "Cambian el pago a cuenta de renta, desde el mes en que pasaste el límite, y los libros que exige SUNAT. Coordina con él cómo se hacen desde ahora.",
     };
   }
@@ -339,7 +343,7 @@ export function avisoUmbral(p: Pick<PanelImpuestos, "parametros" | "umbral">): A
     return {
       ...base,
       nivel: "aviso",
-      titulo: `Llevas ${solesRedondo(u.ventasAnio)} vendidos este año, a ${solesRedondo(faltaSoles ?? 0)} ${delLimite}: habla con tu contador.`,
+      titulo: `Llevas ${solesRedondo(u.ventasAnio)} vendidos este año, sin IGV, a ${solesRedondo(faltaSoles ?? 0)} ${delLimite}: habla con tu contador.`,
       detalle: `${pasado}, el pago a cuenta de renta deja de ser ${tasa ? `el ${tasa} de lo vendido` : "el de ahora"}. Mejor verlo antes de que pase.`,
     };
   }
@@ -771,3 +775,33 @@ export function csvResumenIgv(panel: Pick<PanelImpuestos, "mes" | "foco" | "para
 
 /** Nombres de archivo con el mes: «registro-ventas-2026-08.csv». */
 export const nombreArchivo = (que: "registro-ventas" | "registro-compras" | "resumen-igv", mes: string) => `${que}-${mes}.csv`;
+
+// ---- El IGV de un mes cerrado que cambió (tarea 19) ---------------------------------------------------------------------------
+
+/** Un mes con CAYLA entera cerrada cuyo IGV de hoy ya no es el de la foto del cierre. */
+export type IgvCambiado = { mes: string; aPagarFoto: number; aPagarHoy: number; aFavorFoto: number; aFavorHoy: number };
+
+export function leerIgvCambiado(r: Record<string, unknown>): IgvCambiado {
+  return {
+    mes: String(r.mes ?? "").slice(0, 7),
+    aPagarFoto: Number(r.a_pagar_foto ?? 0),
+    aPagarHoy: Number(r.a_pagar_hoy ?? 0),
+    aFavorFoto: Number(r.a_favor_foto ?? 0),
+    aFavorHoy: Number(r.a_favor_hoy ?? 0),
+  };
+}
+
+const quedaba = (aPagar: number, aFavor: number) => (aFavor > 0 ? `${solesRedondo(aFavor)} a favor` : `${solesRedondo(aPagar)} a pagar`);
+
+/**
+ * Lo que dice el aviso. No decide qué hacer: rectificatoria o ajuste en el mes corriente lo decide el contador, y por eso lo declarado sigue saliendo del cálculo de hoy.
+ * Si lo que resulta es igual (se movió una cifra y otra la compensó), igual se avisa: el débito o el crédito ya no son los del cierre.
+ */
+export function textoIgvCambiado(c: IgvCambiado): { titulo: string; texto: string } {
+  const antes = quedaba(c.aPagarFoto, c.aFavorFoto);
+  const hoy = quedaba(c.aPagarHoy, c.aFavorHoy);
+  return {
+    titulo: `El IGV de ${textoMes(c.mes)} cambió después de cerrarlo`,
+    texto: `${antes === hoy ? `Sigue dando ${hoy}, pero cambió lo que lo compone.` : `Al cerrar daba ${antes} y hoy da ${hoy}.`} Si ya lo declaraste, revísalo con el contador.`,
+  };
+}

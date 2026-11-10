@@ -2,6 +2,7 @@ import { Suspense } from "react";
 import { exigirModulo, puede } from "@/lib/persona-actual";
 import { accesosVisibles } from "@/lib/vender-accesos";
 import { getCatalogoParaOfrecer } from "@/lib/catalogo-v2";
+import { esEstampado } from "@/lib/color-estampado-reglas";
 import { leerPreciosEnSede } from "@/lib/precio-sede-reglas";
 import { getCajaAbierta, getUltimoCierre } from "@/lib/caja";
 import { getUbicaciones } from "@/lib/ubicaciones";
@@ -146,6 +147,7 @@ async function Caja({ proformaId, repetirVentaId }: { proformaId: string | null;
     descripcion: c.descripcion ?? null,
     combinaCon: c.combina_con ?? [],
   }));
+  const estampados = new Set(coloresConFicha.filter(esEstampado).map((c) => c.codigo));
   const preciosDeEstaSede = leerPreciosEnSede(resPreciosSede.data);
   const campanasNoCargaron = resCampanas.error !== null && resCampanas.error.code !== "PGRST202";
   const campanaPorVariante = new Map<string, CampanaLinea>(
@@ -174,6 +176,7 @@ async function Caja({ proformaId, repetirVentaId }: { proformaId: string | null;
       talla: v.talla,
       color: v.color,
       colorHex: v.colorHex ?? null,
+      colorEstampado: v.colorCodigo ? estampados.has(v.colorCodigo) : false,
       colorCodigo: v.colorCodigo ?? null,
       // Con el color, la llave de «¿Es alguna de estas?» en Prenda sin registrar (`prendasPosibles`).
       tallaId: v.tallaId ?? null,

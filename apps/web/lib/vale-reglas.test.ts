@@ -103,3 +103,11 @@ describe("recomendacionesVale", () => {
     expect(r).toEqual([expect.objectContaining({ clave: "tranquilo", titulo: "El Balance cuadra" })]);
   });
 });
+
+describe("si la comprobación no se pudo leer (tarea 87)", () => {
+  const href = (r: string) => r;
+  it("no afirma que no cuadra ni que cuadra", () => {
+    const r = recomendacionesVale({ cuadra: null, sinComprobar: true, medidas: null, unidades: [], sede: null, href });
+    expect(r).toEqual([]);
+  });
+});

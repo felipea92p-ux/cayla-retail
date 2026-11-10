@@ -1983,6 +1983,9 @@ ESCENARIOS.push(
   { id: "configuracion.carga-inicial", ruta: "/configuracion", cuentas: ["admin"], abre: "[role=dialog]", nombre: "Configuración ▸ Empresa y tiendas · la hoja de la carga inicial", preparar: secuencia(clicPestana(/^Empresa/i), async (pagina) => { await pagina.locator('[data-guia="config.carga-inicial"]').click({ timeout: 8000 }); await esperar(pagina, 900); }) },
   { id: "configuracion.dinero", ruta: "/configuracion", cuentas: ["admin"], nombre: "Configuración · «Dinero»", preparar: secuencia(clicPestana(/^Dinero/i), (pagina) => esperar(pagina, 2600)) },
   { id: "configuracion.gastos", ruta: "/configuracion", cuentas: ["admin"], nombre: "Configuración · «Gastos»", preparar: secuencia(clicPestana(/^Gastos/i), (pagina) => esperar(pagina, 2600)) },
+  // La hoja que confirma archivar un gasto fijo: el fijo solo se edita desde Configuración ▸ Gastos (en Gastos ▸ Fijos del mes solo nace uno nuevo).
+  { id: "configuracion.fijo-archivar", ruta: "/configuracion", cuentas: ["admin"], abre: "text=¿Archivar", nombre: "Configuración ▸ Gastos · «¿Archivar …?» de un gasto fijo",
+    preparar: secuencia(clicPestana(/^Gastos/i), (pagina) => esperar(pagina, 2600), async (pagina) => { await pagina.locator('[data-guia="config.fijos"]').getByRole("button", { name: /^Editar / }).first().click({ timeout: 8000 }); await esperar(pagina, 1100); }, clicRol("button", /Ya no se paga/)) },
   { id: "configuracion.impuestos", ruta: "/configuracion", cuentas: ["admin"], nombre: "Configuración · «Impuestos»", preparar: secuencia(clicPestana(/^Impuestos/i), (pagina) => esperar(pagina, 2600)) },
   { id: "configuracion.empresa", ruta: "/configuracion", cuentas: ["admin"], nombre: "Configuración · «Empresa y tiendas»", preparar: secuencia(clicPestana(/^Empresa/i), (pagina) => esperar(pagina, 2600) /* la entrada de Las vitrinas dura 2,4 s: se mide terminada */) },
   { id: "actividad.modulo", ruta: "/actividad", cuentas: ["admin"], abre: "[role=listbox]", nombre: "Actividad · la lista «Módulo»", preparar: clicRol("combobox", /^Módulo/i) },
@@ -2320,6 +2323,16 @@ ESCENARIOS.push(
   // Dynamic y el aviso no aparece: el escenario falla diciendo que no encontró el botón).
   { id: "dinero.salidas-planilla", ruta: "/finanzas/dinero", cuentas: FIN, abre: '[data-guia="fin-dinero.salida-fila"]', nombre: "Cuentas y dinero · «Registrar de qué banco salió» la planilla que Dynamic pagó", preparar: clicRol("button", /^Registrar (la salida|las \d salidas)$/i) },
   { id: "configuracion.maquina-tarifa", ruta: "/configuracion", cuentas: ["admin"], abre: "[role=dialog]", nombre: "Configuración ▸ Dinero · «Tarifa de Izipay»", preparar: secuencia(clicPestana(/^Dinero/i), clicRol("button", /Editar la tarifa de Izipay/i)) },
+  // ADR-0637: la hoja «Subir extracto» con una tabla pegada ya leída: «Qué trajo», el Responsable y «Guardar este extracto». No guarda nada
+  // (montos inventados). Pide que el banco que la pantalla elige sea uno al que deposita una máquina y que la base tenga la migración
+  // 20261109232000; si no, el botón no existe y el escenario falla diciéndolo. «El banco dice» se audita con la ruta, sin escenario.
+  { id: "conciliacion.extracto-leido", ruta: "/finanzas/dinero/conciliacion", cuentas: FIN, abre: '[data-guia="fin-conciliacion.guardar-extracto"]', nombre: "Cuadrar con el banco · el extracto leído, con «Guardar este extracto»", async preparar(pagina) {
+    await pagina.locator('[data-guia="fin-conciliacion.extracto"]').first().click({ timeout: 8000 });
+    await esperar(pagina, 900);
+    await pagina.locator("#extracto-pegado").fill("06/10/2026   07/10/2026   -   .   Abono QR IBK   S/ 45.90   S/ 145.90\n05/10/2026   05/10/2026   -   .   Abono QR IBK   S/ 100.00   S/ 100.00");
+    await pagina.getByRole("button", { name: /Leer lo pegado/i }).click({ timeout: 8000 });
+    await esperar(pagina, 900);
+  } },
 );
 
 export const escenariosDe = (ruta, cuentaClave, celular = false) =>

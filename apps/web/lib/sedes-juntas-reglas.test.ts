@@ -46,9 +46,65 @@ describe("cada sede, junta (tarea 27)", () => {
     expect([...sinBalance.tiendas, ...sinBalance.aparte, sinBalance.total].every((s) => s.tiene === null)).toBe(true);
   });
 
+  describe("con el IGV de las ventas (Felipe 2026-11-08)", () => {
+    const conIgv = (igv: number, f: FilaER) => ({ ...f, igvCobrado: igv }) as FilaER;
+    const IGVS = [270, 0, 0, 90, 180];
+    const juntas = sedesJuntas(FILAS.map((f, i) => conIgv(IGVS[i]!, f)), UNIDADES)!;
+
+    it("«Vendió» va con IGV y la fila sigue dando su cuenta: vendió − IGV − costó − gastó = dejó", () => {
+      expect(juntas.conIgv).toBe(true);
+      expect(juntas.tiendas.map((s) => [s.vendio, s.igv])).toEqual([[1180, 180], [590, 90]]);
+      for (const s of [...juntas.tiendas, ...juntas.aparte, juntas.total]) expect(s.vendio - (s.igv ?? 0) - s.costo - s.gastos).toBeCloseTo(s.dejo, 2);
+    });
+
+    it("las filas suman la de CAYLA, también el IGV; lo que dejó no cambia", () => {
+      const todas = [...juntas.tiendas, ...juntas.aparte];
+      expect(todas.reduce((a, s) => a + (s.igv ?? 0), 0)).toBeCloseTo(juntas.total.igv ?? 0, 2);
+      expect(juntas.total).toMatchObject({ vendio: 1770, igv: 270, dejo: 300 });
+    });
+
+    it("sin consolidado, el total también suma el IGV", () => {
+      expect(sedesJuntas(FILAS.slice(1).map((f, i) => conIgv(IGVS[i + 1]!, f)), UNIDADES)!.total).toMatchObject({ vendio: 1770, igv: 270 });
+    });
+
+    // Octubre en Tienda LIM, con cifras inventadas con las proporciones de producción (las reales no entran al repo, que es público: ADR-0609). Antes la columna decía la venta de CAYLA con el IGV de las dos.
+    it("Lima: «Vendió con IGV» es todo lo de la tienda, y la fila sigue dando su cuenta restando lo de CLAURE", () => {
+      const lima = { ...fila("tienda", "Tienda Lima", "l", 1000, 200, -120), igvCobrado: 270, claureSinIgv: 500 } as FilaER;
+      const tru = { ...fila("tienda", "Tienda Trujillo", "t", 1000, 500, 450), igvCobrado: 180, claureSinIgv: 0 } as FilaER;
+      const j = sedesJuntas([lima, tru], UNIDADES)!;
+      const l = j.tiendas.find((s) => s.nombre === "Lima")!;
+      expect(l).toMatchObject({ vendio: 1770, igv: 270, claure: 500, costo: 800, dejo: -120 });
+      expect(l.vendio - (l.igv ?? 0) - l.claure - l.costo - l.gastos).toBeCloseTo(l.dejo, 2);
+      expect(j.tiendas.find((s) => s.nombre === "Trujillo")!.claure).toBe(0);
+      expect(j.total).toMatchObject({ vendio: 2950, claure: 500 });
+    });
+
+    it("si a una columna le falta el IGV, ninguna lo muestra: la tabla no mezcla bases", () => {
+      const mezcla = sedesJuntas([conIgv(270, FILAS[0]!), ...FILAS.slice(1)], UNIDADES)!;
+      expect(mezcla.conIgv).toBe(false);
+      expect(mezcla.total).toMatchObject({ vendio: 1500, igv: null });
+    });
+  });
+
   it("sin consolidado, el total es la suma; con una sola sede no hay nada que juntar", () => {
     const sin = sedesJuntas(FILAS.slice(1), UNIDADES)!;
     expect(sin.total).toMatchObject({ vendio: 1500, dejo: 300 });
     expect(sedesJuntas([fila("tienda", "Tienda Lima", "l", 500, 300, 150)], UNIDADES)).toBeNull();
+  });
+});
+
+// Tarea 75: en la comparación de sedes se ve cuánto de lo vendido de cada una lleva costo estimado.
+describe("cada sede con su costo estimado", () => {
+  it("cada tienda muestra el suyo, y la fila de CAYLA el de todas", () => {
+    const j = sedesJuntas(FILAS, UNIDADES, { l: 63.1, t: 27, todas: 38.6 })!;
+    expect(j.tiendas.map((s) => [s.nombre, s.pctEstimado])).toEqual([["Trujillo", 27], ["Lima", 63.1]]);
+    expect(j.total.pctEstimado).toBe(38.6);
+  });
+  it("el Taller y la Empresa no venden: no llevan", () => {
+    const j = sedesJuntas(FILAS, UNIDADES, { l: 63.1, t: 27, x: 10 })!;
+    expect(j.aparte.map((s) => s.pctEstimado)).toEqual([null, null]);
+  });
+  it("sin la lectura, ninguna lo dice", () => {
+    expect(sedesJuntas(FILAS, UNIDADES)!.tiendas.every((s) => s.pctEstimado === null)).toBe(true);
   });
 });

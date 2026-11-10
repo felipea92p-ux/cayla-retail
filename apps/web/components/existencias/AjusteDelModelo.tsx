@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, type CSSProperties, type KeyboardEvent as KeyboardEventReact, type ReactNode, type RefObject } from "react";
+import { CuadroEstampado } from "@/components/ui/MuestraEstampado";
 import { Archive, Check, Info, PencilLine } from "lucide-react";
 import { PasoCantidad } from "@/components/ui/PasoCantidad";
 import { Boton, CampoTexto, Desplegable } from "@/components/ui/campos";
@@ -138,7 +139,10 @@ export function PlanillaDelAjuste({
   onAvisoLugar,
   sedeNombre,
   sellados,
+  fotoDelEstampado,
 }: {
+  /** La foto que reconoce a un estampado en su fila; `null` si es un color liso o no tiene una propia. */
+  fotoDelEstampado?: (color: string | null) => string | null;
   control: ControlAjuste;
   /** La celda de la que se viene (su variante), con su filo; `null` = ya se tocó otra. */
   foco: string | null;
@@ -273,6 +277,7 @@ export function PlanillaDelAjuste({
     <th scope="row" className="ajuste-col-color">
       <span aria-hidden data-color-dato className="ajuste-franja" style={{ background: hex ?? "var(--color-sand)" }} />
       <span className="ajuste-color">
+        {fotoDelEstampado?.(color) && <CuadroEstampado fotoUrl={fotoDelEstampado(color)!} hex={hex} className="h-7 w-7" />}
         <b>{color ?? "Sin color"}</b>
         {extra}
       </span>

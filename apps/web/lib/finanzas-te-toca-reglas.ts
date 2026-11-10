@@ -93,7 +93,31 @@ export function pendientesDeFijos(faltan: readonly { monto: number }[], consulta
 }
 
 /** El mes anterior sin cerrar. `submodulo` es el del menú; `mesNombre`, «octubre». */
-export function pendientesDeCierre(o: { mes: string; mesNombre: string; cerrado: boolean }): PendienteTelar[] {
+/**
+ * El cierre en «Te toca» con su lectura (tarea 155): si no se pudo leer qué meses están cerrados, no se dice «sigue abierto» sin saberlo.
+ * El pendiente no sale y el cajón queda incompleto, así que si nada más responde el cajón dice «No pudimos revisar tus pendientes».
+ * `clave`: la unidad que se mira (la sede o «consolidado»).
+ */
+export function cierreDeTeToca(o: { mes: string; mesNombre: string; clave: string; lectura: { datos: readonly string[]; falla: string | null } }): { pendientes: PendienteTelar[]; incompleto: boolean } {
+  if (o.lectura.falla) return { pendientes: [], incompleto: true };
+  return { pendientes: pendientesDeCierre({ mes: o.mes, mesNombre: o.mesNombre, cerrado: o.lectura.datos.includes(o.clave) }), incompleto: false };
+}
+
+/** Cada pregunta a «Te toca» hace cerca de una docena de lecturas: al recibir el foco se repite, como máximo, una vez por minuto. */
+const ESPERA_ENTRE_PREGUNTAS_MS = 60_000;
+
+export function puedeVolverAPreguntar(ultimaPregunta: number, ahora: number): boolean {
+  return ahora - ultimaPregunta >= ESPERA_ENTRE_PREGUNTAS_MS;
+}
+
+/** Lo que dice el cajón. Con varias sedes marcadas la respuesta es de todas (Por pagar, adonde llevan sus enlaces, mira de a una): se dice, no se finge que filtra. */
+export function frasesDeTeToca(varias: boolean): { frase: string; vacio: string } {
+  return varias
+    ? { frase: "Lo que conviene hacer hoy en Finanzas, de todas las sedes.", vacio: "Nada te toca en Finanzas en ninguna sede." }
+    : { frase: "Lo que conviene hacer hoy en Finanzas, para la sede que elegiste arriba.", vacio: "Nada te toca en Finanzas para esta sede." };
+}
+
+function pendientesDeCierre(o: { mes: string; mesNombre: string; cerrado: boolean }): PendienteTelar[] {
   if (o.cerrado) return [];
   return [
     {

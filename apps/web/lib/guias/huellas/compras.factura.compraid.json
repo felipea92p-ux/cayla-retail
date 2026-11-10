@@ -2,7 +2,7 @@
   "guia": "compras.factura.compraid",
   "ruta": "/compras/factura/[compraId]",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 52,
+  "total": 57,
   "controles": {
     "app/(app)/compras/factura/[compraId]/page.tsx": [
       "Volver «/compras»"
@@ -18,6 +18,12 @@
       "button «Quitar»",
       "button «Cancelar»",
       "Boton «Quitar»"
+    ],
+    "components/AnularPagoModal.tsx": [
+      "CampoTexto «Motivo»",
+      "ComboResponsable «{responsable}»",
+      "Boton «Cancelar»",
+      "Boton «{guia.frase ?? undefined}»"
     ],
     "components/CerrarFaltanteModal.tsx": [
       "CampoSelect «¿En qué tienda faltó?»",
@@ -45,6 +51,9 @@
       "ComboResponsable «{responsable}» #2",
       "button «Volver»",
       "Boton «{responsable.motivo ?? undefined}»"
+    ],
+    "components/ComprobantePagos.tsx": [
+      "button «Anular…»"
     ],
     "components/PagoPiezas.tsx": [
       "BotonCopiar «{que}»",

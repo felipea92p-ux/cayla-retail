@@ -25,6 +25,8 @@ import {
   lineaTodaviaNoQuietas,
   marcaLiquidarComun,
   notaDeUmbrales,
+  plazoDeLiquidar,
+  ETIQUETA_LIQUIDAR_DESDE,
   TEXTO_VACIO_QUIETAS,
   TRAMOS_EDAD,
   vacioQuietas,
@@ -99,7 +101,7 @@ export function PestanaQuieta() {
     {
       clave: "liquidar",
       titulo: "Liquidar",
-      ayuda: `Llevan en el piso sin venderse más de lo que tardan 9 de cada 10 de su tipo que sí se vendieron (si su tipo todavía no tiene ritmo, ${liquidarDesde} días: «Liquidar desde»), aquí ni en otra tienda. En rojo, las de más de 3 meses. Cuánto rebajar lo eliges en Etiquetas.`,
+      ayuda: `Llevan en el piso sin venderse más de lo que tardan 9 de cada 10 de su tipo que sí se vendieron (si su tipo todavía no tiene 10 ventas, ${liquidarDesde} días: la caja «Sin historial»), aquí ni en otra tienda. En rojo, las de más de 3 meses. Cuánto rebajar lo eliges en Etiquetas.`,
       icono: "etiqueta",
       est: "ate",
       prendas: liquidar,
@@ -142,7 +144,7 @@ export function PestanaQuieta() {
   };
   const control = (
     <span className="umbral">
-      <label htmlFor={idUmbral}>Liquidar desde</label>
+      <label htmlFor={idUmbral}>{ETIQUETA_LIQUIDAR_DESDE}</label>
       <span className="paso-dias">
         <button type="button" aria-label={`${LIQUIDAR_PASO} días menos`} disabled={liquidarDesde <= LIQUIDAR_MIN} onClick={() => mover(-LIQUIDAR_PASO)}>
           −
@@ -184,19 +186,26 @@ export function PestanaQuieta() {
 
   const pista = (p: ModeloAnalisis) => {
     const dias = p.diasSinVender ?? 0;
-    // Cada fila dibuja su zona de liquidar desde el umbral de SU tipo (la vara de Frescura) o, sin él, «Liquidar desde».
-    const { n, zona, cifraALaIzquierda, liquidar: desde } = pistaQuieta(dias, liquidarDesde, umbralLiquidar(p, liquidarDesde));
+    // Cada fila dibuja su zona de liquidar desde el umbral de SU tipo (la vara de Frescura) o, sin él, la caja de días; y bajo la
+    // barra dice cuál de los dos manda y cuántos días son (Felipe 2026-11-09: «Plazo por tipo, a la vista»).
+    const plazo = plazoDeLiquidar(p, liquidarDesde);
+    const { n, zona, cifraALaIzquierda, liquidar: desde } = pistaQuieta(dias, liquidarDesde, plazo.dias);
     return (
-      <span className="pista zonas" style={{ ["--u" as string]: `${desde}%`, ["--r" as string]: `${marcas.tresMeses}%` }}>
-        <i className="barra cx" style={{ ["--n" as string]: n }} />
-        <span
-          className="punto po"
-          data-color-dato
-          style={{ ["--n" as string]: n, ["--prenda" as string]: p.colorHex ?? "var(--color-grafico-neutro)", ["--c" as string]: COLOR_ESTADO[zona] }}
-        />
-        <b className="d" style={cifraALaIzquierda ? { left: "auto", right: `calc(${(1 - n) * 100}% + 12px)` } : { left: `calc(${n * 100}% + 12px)` }}>
-          {dias} d
-        </b>
+      <span className="q-pista">
+        <span className="pista zonas" style={{ ["--u" as string]: `${desde}%`, ["--r" as string]: `${marcas.tresMeses}%` }}>
+          <i className="barra cx" style={{ ["--n" as string]: n }} />
+          <span
+            className="punto po"
+            data-color-dato
+            style={{ ["--n" as string]: n, ["--prenda" as string]: p.colorHex ?? "var(--color-grafico-neutro)", ["--c" as string]: COLOR_ESTADO[zona] }}
+          />
+          <b className="d" style={cifraALaIzquierda ? { left: "auto", right: `calc(${(1 - n) * 100}% + 12px)` } : { left: `calc(${n * 100}% + 12px)` }}>
+            {dias} d
+          </b>
+        </span>
+        <span className={`q-plazo ${plazo.propio ? "" : "caja"}`} style={{ ["--u" as string]: `${desde}%` }} title={plazo.detalle}>
+          {plazo.texto}
+        </span>
       </span>
     );
   };

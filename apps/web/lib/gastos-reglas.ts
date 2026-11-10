@@ -223,6 +223,8 @@ export type GastoFila = {
   pagosSinBanco: PagoSinBanco[];
   /** Marcado «no emite comprobante», con su motivo (ADR-0588, `fn_gastos_no_emiten`): ya no pide comprobante. Sin la lectura, `undefined`. */
   noEmite?: NoEmite | null;
+  /** Su papel llegó con el mes cerrado y vive aparte (tarea 20, `fn_gastos_papeles_tardios`): quitarlo lo anula en su lugar. */
+  papelTardio?: boolean;
 };
 
 /** Un pago en efectivo o desde un fondo de una factura de S/ 2 000 o más: la base dice cuánto IGV se llevó (`fn_igv_perdido`). */
@@ -1019,6 +1021,14 @@ export function textoColumnaCuando(momento: MomentoFijo, dia: number): string {
   if (momento === "fin_de_mes") return "Fin de mes";
   return String(dia);
 }
+
+/** Lo que dice la confirmación de archivar un fijo (tarea 96): cuánto sale de lo que viene por pagar. El monto que cambia cada mes es un «unos». */
+export function cuantoSaleAlArchivarFijo(f: Pick<GastoFijoMes, "monto" | "montoVariable">): string {
+  return `Sale ${f.montoVariable ? "unos " : ""}${soles(f.monto)} al mes de lo que viene por pagar.`;
+}
+
+/** Tras archivar: `fn_gastos_fijos_mes` filtra por `activo` sin mirar el mes, así que el fijo se va también de los meses pasados. */
+export const TEXTO_FIJO_ARCHIVADO = "Deja de aparecer en Gastos, también al mirar meses pasados. Los gastos que ya registraste se quedan.";
 
 export type GastoFijoMes = {
   id: string;

@@ -174,6 +174,7 @@ import type { CierreAnterior } from "@/lib/caja-cerrada-reglas";
 import { ChevronUp, ShoppingBag } from "lucide-react";
 import { soltarPaginaEstable } from "@/components/ui/PaginaEstable";
 import { conDuenoPorLineas, duenoDeLasLineas, duenosParaElegir, variantesSinDueno, type UnidadesDeDueno } from "@/lib/dueno-reglas";
+import { esDeClaure, numeroQueDar, repartoDelTicket } from "@/lib/cobro-por-dueno-reglas";
 import { codigoDeLiquidacion, errorDeLiquidacion, nombreEnVenta, piezaLeidaDeJson, soles as solesLiquidacion } from "@/lib/liquidacion-reglas";
 import { Casilla } from "@/components/ui/Casilla";
 import { numeroDeMonto } from "@/lib/monto-plata-reglas";
@@ -212,6 +213,8 @@ export type VarianteBusqueda = PrendaBuscableV2 & {
   empresa?: string | null;
   /** `#rrggbb` del color de la variante (`colores.hex`): el fondo del ícono en la grilla y en el buscador. Ausente = el tono de su familia. */
   colorHex?: string | null;
+  /** El color es un estampado (ADR-0634): se reconoce por su foto, no por un punto. Ausente = se dibuja como cualquier color. */
+  colorEstampado?: boolean;
   /** `variantes.color_codigo`: cruza con la ficha del color (ADR-0316) en «Todo de la prenda». Ausente = sin ficha. */
   colorCodigo?: string | null;
   /** `variantes.talla_id` y `productos.categoria_id`: con el color, la llave con que «Prenda sin registrar» ofrece la prenda del
@@ -718,6 +721,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
   // seguía topada ahí aunque ya hubieran bajado más del almacén — el + apagado y el aviso pidiendo bajar lo que ya se
   // bajó. Lo usan el ticket (el +, el máximo) y `cambiarCantidad`; el mismo piso con el que `agregar()` decide el tope.
   const carritoConPiso = useMemo(() => conPisoAlDia(carrito, variantesVisibles), [carrito, variantesVisibles]);
+  const insigniaPorVariante = useMemo(() => new Map(variantes.map((v) => [v.varianteId, v.empresa])), [variantes]);
   // Color y talla de cada variante, solo para DIBUJAR la fila de cada prenda del ticket (`LineaDelTicket`): la línea del
   // carrito no los guarda. Sale de `variantes` (lo que llegó del servidor), no del stock en vivo: no cambia con él.
   const detallesDelTicket = useMemo(() => new Map(variantes.map((v) => [v.varianteId, { color: v.color, talla: v.talla }])), [variantes]);
@@ -1763,6 +1767,14 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
   const enTicket = new Set(carrito.map((it) => it.varianteId));
   const duenoVigente = Object.fromEntries(Object.entries(duenoDeLinea).filter(([v]) => enTicket.has(v)));
   const faltaDuenoEn = variantesSinDueno([...enTicket], duenosPorVariante, duenoVigente);
+  // Donde conviven dos empresas, a qué número paga quien usa Yape o Plin. Mientras falte decir de quién sale una prenda, no se dice nada.
+  const numeroADar =
+    duenosPorVariante && faltaDuenoEn.length === 0
+      ? numeroQueDar(
+          repartoDelTicket(lineasConClub, (l) => esDeClaure(l.varianteId, insigniaPorVariante.get(l.varianteId), duenosPorVariante, duenoVigente)),
+          pagos.map((p) => p.metodo),
+        )
+      : null;
   const motivoDueno = faltaDuenoEn.length > 0 ? `Marca de quién sale ${faltaDuenoEn.length === 1 ? "la prenda que tiene" : "las prendas que tienen"} unidades de CAYLA y de CLAURE.` : null;
   const motivoBloqueo = motivoDueno ?? liquidacionConClub ?? cuponNoAlcanza ?? motivoBloqueoCobro({
     cajaAbierta: !bloqueado,
@@ -2278,6 +2290,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
       onTocarMedio={tocarMedio}
       maquinas={maquinasCobro}
       onMaquina={cambiarMaquina}
+      numeroADar={numeroADar}
       onMontoPago={cambiarMontoPago}
       onRecibido={cambiarRecibido}
       tipoComprobante={tipoComprobante}

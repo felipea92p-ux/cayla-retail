@@ -326,8 +326,6 @@ export default async function RecibirPage({ searchParams }: { searchParams: Prom
             ubicacionId={persona.ubicacionId}
             ubicacionEtiqueta={persona.ubicacionEtiqueta}
             proveedores={proveedores.map((p) => ({ id: p.id, nombre: p.nombre, ruc: p.ruc, rubros: p.rubros, marcas: marcas?.[p.id] ?? [] }))}
-            rubrosEnUso={rubrosEnUso}
-            puedeAgregarProveedor={puedeAgregarProveedor}
             facturas={facturasDeLaSede}
             comprasPagadas={comprasPagadas}
             hayListaArriba={(deOrdenes?.envios.length ?? 0) + (deOrdenes?.ordenes.length ?? 0) > 0}
