@@ -2173,6 +2173,28 @@
     font-weight: 600;
     white-space: nowrap;
   }
+  /* Un día con sus pagos uno por uno (ADR-0629, Fase B): «3 pagos» (`BotonVerMas`) los abre debajo, sangrados bajo la casilla del día. */
+  .fin-lote-grupo {
+    display: grid;
+    gap: 0.25rem;
+  }
+  .fin-lote-pagos {
+    display: grid;
+    gap: 0.25rem;
+    margin: 0 0 0.25rem 1.75rem;
+    padding: 0;
+    list-style: none;
+  }
+  .fin-lote-pago {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto auto;
+    gap: 0.625rem;
+    align-items: center;
+    padding: 0.25rem 0.625rem;
+    border-left: 2px solid var(--color-sand);
+    font-size: 14px;
+    color: var(--color-tinta);
+  }
   /* En el celular el día no cabe en una línea con su chip «atrasado»: el texto baja a dos líneas (día y hace cuánto) en vez de cortarse. */
   @media (max-width: 560px) {
     .fin-lote {
@@ -2196,6 +2218,21 @@
     }
     .fin-lote-monto {
       grid-column: 3;
+    }
+    .fin-lote-pagos {
+      margin-left: 0.75rem;
+    }
+    .fin-lote-pago {
+      grid-template-columns: auto minmax(0, 1fr) auto;
+    }
+    .fin-lote-pago .fin-lote-dias {
+      grid-column: 2;
+      grid-row: 2;
+    }
+    .fin-lote-pago .fin-lote-monto {
+      grid-column: 3;
+      grid-row: 1 / span 2;
+      align-self: center;
     }
   }
 }

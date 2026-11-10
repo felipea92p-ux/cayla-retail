@@ -2,7 +2,7 @@
   "guia": "finanzas.dinero",
   "ruta": "/finanzas/dinero",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 77,
+  "total": 81,
   "controles": {
     "app/(app)/finanzas/dinero/page.tsx": [
       "Link «Ver en CLAURE»"
@@ -32,6 +32,9 @@
       "button «Volver a intentar»",
       "button «Volver a intentar» #2",
       "Casilla «{`${textoLote(l)}»",
+      "BotonVerMas «{textoCuantosPagos(d, eleccion)}»",
+      "Casilla «{`${textoPago(p)}»",
+      "button «Marcar solo ese pago»",
       "button «Usar ese monto»",
       "Casilla «Sí, revisé el extracto: la comisión es esa»",
       "ComboResponsable «{responsable}» #2",
