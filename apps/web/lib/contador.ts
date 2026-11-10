@@ -7,7 +7,7 @@ import { getPatrimonioCambios } from "@/lib/estados-financieros";
 import { leerRpcPorPaginas } from "@/lib/rpc-por-paginas";
 import { rangoDelMes } from "@/lib/flujo-caja-reglas";
 import { avisoBalanceSinCuadrar, csvBalance } from "@/lib/balance-reglas";
-import { AVISO_SIN_SUELDOS, columnasER, conceptosER, csvDe, csvEstado, leerLineaDiario, mesTitulo, ORDEN_DIARIO, veLaPlanilla, type LineaDiario } from "@/lib/resultados-reglas";
+import { columnasER, conceptosER, csvDe, csvEstado, leerLineaDiario, mesTitulo, ORDEN_DIARIO, primerasLineasDeSueldos, type LineaDiario } from "@/lib/resultados-reglas";
 import {
   conPrimerasLineas,
   csvDiarioContador,
@@ -43,8 +43,7 @@ export async function armarArchivoContador(archivo: ArchivoContador, mes: string
   const { desde, hasta } = rangoDelMes(mes, hoy);
   const [armado, er] = await Promise.all([armarCuerpo(archivo, mes, hoy), getEstadoResultados(desde, hasta)]);
   if (armado.falla !== null) return armado;
-  const ve = veLaPlanilla(er);
-  return listo(conPrimerasLineas(armado.csv, ve === false ? [AVISO_SIN_SUELDOS] : ve === null ? ["No se pudo comprobar si estas cifras llevan sueldos."] : []));
+  return listo(conPrimerasLineas(armado.csv, primerasLineasDeSueldos(er)));
 }
 
 async function armarCuerpo(archivo: ArchivoContador, mes: string, hoy: string): Promise<Armado> {

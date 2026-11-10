@@ -295,7 +295,7 @@ const BASE = [
     grupo: "Textos",
     nombre: "Títulos de pantalla",
     funcion: "El nombre grande de la pantalla, arriba.",
-    pieza: "`<EncabezadoPagina>` en todo el ERP; `<CabeceraPantalla>` solo en Finanzas (decidido el 2026-10-14)",
+    pieza: "`<EncabezadoPagina>` en todo el ERP, Finanzas incluida (decidido el 2026-10-14; Cierre de mes, la última en pasar, el 2026-11-08)",
     gobierna: ["ADR-0220", "ADR-0195", "ADR-0254"],
   },
   {
@@ -602,7 +602,9 @@ export const DECISIONES = {
       // Las dos piezas que existían a mano.
       "^\\s*(?:export\\s+)?function\\s+(?:AvisoInline|AvisoDeError)\\b",
       // Un párrafo rojo suelto (el error va bajo su campo o en <Aviso tono=\"error\">).
-      "<p\\b[^>]*className=\\{?[\"'`][^\"'`]*\\btext-(?:xs|sm|\\[1[23](?:\\.5)?px\\]) text-rojo(?:-profundo)?\\b"
+      "<p\\b[^>]*className=\\{?[\"'`][^\"'`]*\\btext-(?:xs|sm|\\[1[23](?:\\.5)?px\\]) text-rojo(?:-profundo)?\\b",
+      // La caja gris punteada que hacía de aviso de una lectura caída y se confundía con una nota (tarea 144).
+      "\\bcard-cayla border-dashed\\b"
     ],
     "deuda": [
 
@@ -1092,25 +1094,17 @@ export const DECISIONES = {
     "fecha": "2026-10-14",
     "adr": "docs/adr/0358-unificar-una-funcion-una-pieza.md",
     "registro": "docs/unificar/titulo-pagina.md",
-    "elegida": "P1 · la cabecera de Inventario (<EncabezadoPagina>) en todas las pantallas menos Finanzas: arriba la sede y la fecha con su hilo, el nombre del menú en 46 px, la frase y los botones a la derecha; la vuelta es la flecha a la izquierda de la línea de la sede y lo que dice de dónde se llegó va tras la fecha (`detalle`); Finanzas conserva la de su spike (<CabeceraPantalla>, ADR-0195); elegida mirando las fotos de cada pantalla el 2026-10-14. Ronda 18 (2026-10-30, mirando: P2 + D2 + V1): la frase ya no se ve; vive, con lo que explicaba un «!» junto al título (`ayuda`), en el globo de vidrio que abre el «?» junto al título (<AyudaCabecera>), también la que dice un dato",
+    "elegida": "P1 · la cabecera de Inventario (<EncabezadoPagina>) en todas las pantallas, Finanzas incluida: arriba la sede y la fecha con su hilo, el nombre del menú en 46 px, la frase y los botones a la derecha; la vuelta es la flecha a la izquierda de la línea de la sede y lo que dice de dónde se llegó va tras la fecha (`detalle`); elegida mirando las fotos de cada pantalla el 2026-10-14. Ronda 18 (2026-10-30, mirando: P2 + D2 + V1): la frase ya no se ve; vive, con lo que explicaba un «!» junto al título (`ayuda`), en el globo de vidrio que abre el «?» junto al título (<AyudaCabecera>), también la que dice un dato",
     "pieza": "components/ui/EncabezadoPagina.tsx",
-    "tambien": ["components/ui/CabeceraPantalla.tsx", "components/ui/AyudaCabecera.tsx"],
+    "tambien": ["components/ui/AyudaCabecera.tsx"],
     "firmas": [
       // El título de una pantalla dibujado a mano en la serif de la casa (con su sobretítulo en versalitas al lado): es <EncabezadoPagina>.
       "<h1\\b(?:[^>]|=>)*\\bfont-display\\b",
-      // La cabecera de Finanzas fuera de Finanzas.
-      "<CabeceraPantalla\\b",
       // El «!» metido a mano dentro del título con la letra de la frase (Marcas, Productos, Categorías… hasta la ronda 18): va en `ayuda`.
       "inline-block align-middle font-sans text-\\[15px\\] leading-normal tracking-normal"
     ],
     "deuda": [],
     "excepciones": [
-      { "archivo": "components/GastosPanel.tsx", "motivo": "Finanzas conserva la cabecera de su spike (ADR-0195)" },
-      { "archivo": "components/ImpuestosPanel.tsx", "motivo": "Finanzas conserva la cabecera de su spike (ADR-0195)" },
-      { "archivo": "components/finanzas/ResumenFinanzas.tsx", "motivo": "Finanzas conserva la cabecera de su spike (ADR-0195)" },
-      { "archivo": "components/finanzas/CierreMes.tsx", "motivo": "Finanzas conserva la cabecera de su spike (ADR-0195)" },
-      { "archivo": "components/finanzas/CabeceraDinero.tsx", "motivo": "Finanzas conserva la cabecera de su spike (ADR-0195)" },
-      { "archivo": "components/finanzas/CabeceraReportes.tsx", "motivo": "Finanzas conserva la cabecera de su spike (ADR-0195)" },
       { "archivo": "app/(app)/productos/[id]/historial/page.tsx", "motivo": "la página «Historial» de la vista rápida es decidida a propósito (ADR-0354, ADR-0136 act. 2026-10-05)" },
       { "archivo": "components/PantallaNoEncontrada.tsx", "motivo": "un estado (la pantalla que no existe), no la cabecera de una pantalla del menú" },
       { "archivo": "components/ProduccionSoloEnTaller.tsx", "motivo": "un estado (Producción solo se ve parado en el Taller), no la cabecera de una pantalla" },

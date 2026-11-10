@@ -31,6 +31,7 @@ import { deudaDeMaquinas, tieneExtracto, type DeudaDeMaquina } from "@/lib/cuadr
 import { leerVer, type UbicacionGastos, type Ver } from "@/lib/gastos-reglas";
 import { leerCuentaPlanilla, leerTramo, planillaParaElInicio, type CuentaPlanilla, type PlanillaParaElInicio, type TramoPlanilla } from "@/lib/planilla-salidas-reglas";
 import { esFuncionAusente } from "@/lib/compras-reglas";
+import { leerRpcPorPaginas } from "@/lib/rpc-por-paginas";
 
 // Finanzas ▸ Cuentas y dinero (ADR-0195 F3, 20260925110000). Todo sale de funciones que ya miran solo lo que la cuenta ve
 // (`fn_cuentas_dinero_ubicaciones`: el líder, todas; con el módulo, su sede). Los saldos los SUMA la base. Si una lectura
@@ -60,10 +61,16 @@ export async function getSaldos(ubicacionId: string | null = null): Promise<Lect
   return { datos: ((data ?? []) as Fila[]).map(leerCuenta), falla: null };
 }
 
+/** Tope que se le pasa a `fn_movimientos_dinero` (la función exige uno): más de lo que CAYLA moverá nunca. */
+const SIN_TOPE = 1_000_000;
+
+/** Los movimientos entre cuentas, TODOS. Antes eran los últimos 150, y de esta lista salen «Puso / Sacó» de la plata del dueño y los días sin depositar de
+ *  cada caja fuerte: con el corte, «Sacó» mostraba un tercio de lo real y una caja cuyo último depósito quedaba fuera dejaba de avisar. Por páginas y en serie
+ *  (ADR-0192): PostgREST corta en 1.000 filas sin error, y casi siempre basta la primera llamada. */
 export async function getMovimientos(ubicacionId: string | null): Promise<Lectura<MovimientoDinero[]>> {
   const supabase = await createClient();
   const [{ data, error }, estimados] = await Promise.all([
-    supabase.rpc("fn_movimientos_dinero" as never, { p_ubicacion_id: ubicacionId, p_limite: 150 } as never),
+    leerRpcPorPaginas(supabase, "fn_movimientos_dinero", { p_ubicacion_id: ubicacionId, p_limite: SIN_TOPE }, ["fecha desc", "creado_en desc", "id"], { enParalelo: 1 }),
     // Solo el líder los lee; para los demás, o si no responde, ningún depósito lleva la insignia.
     supabase.rpc("fn_depositos_estimados" as never),
   ]);
@@ -100,13 +107,13 @@ export async function getMaquinasPos(): Promise<MaquinaPos[] | null> {
   return agruparMaquinas((data ?? []) as Fila[]).map((m) => ({ ...m, bancoId: bancoDe.get(m.id) ?? null }));
 }
 
-/** Solo el líder: por máquina de cobro, cuánto espera depósito y cuánto ya está atrasado (ADR-0429, act. 4). Vacío si la base todavía
- *  no lo sabe (falta la migración 20261016191000) o la lectura falla: la pantalla no avisa nada y sigue igual. */
-export async function getAlertasPos(): Promise<AlertaPos[]> {
+/** Solo el líder: por máquina de cobro, cuánto espera depósito y cuánto ya está atrasado (ADR-0429, act. 4). Vacío y sin falla si la base
+ *  todavía no lo sabe (falta la migración 20261016191000); si no responde, lo dice: el aviso no sale y la campana no puede decir que todo está en orden. */
+export async function getAlertasPos(): Promise<Lectura<AlertaPos[]>> {
   const supabase = await createClient();
   const { data, error } = await supabase.rpc("fn_pos_alertas" as never);
-  if (error) return [];
-  return ((data ?? []) as Fila[]).map(leerAlertaPos);
+  if (error) return { datos: [], falla: esFuncionAusente(error) ? null : falla("las máquinas atrasadas", error) };
+  return { datos: ((data ?? []) as Fila[]).map(leerAlertaPos), falla: null };
 }
 
 /** La planilla que Dynamic marcó pagada y todavía no dice de qué banco salió (ADR-0567): `undefined` si la base todavía no tiene la función
@@ -121,12 +128,12 @@ async function leerTramosPlanilla(): Promise<TramoPlanilla[] | undefined> {
   return ((data ?? []) as Fila[]).map(leerTramo);
 }
 
-/** Para Cuentas y dinero: si no se puede leer, no hay aviso y la pantalla sigue igual. */
-export async function getPlanillaPorRegistrar(): Promise<TramoPlanilla[]> {
+/** Para Cuentas y dinero: si la base no tiene la función, no hay aviso; si no responde, la pantalla sigue y lo dice. */
+export async function getPlanillaPorRegistrar(): Promise<Lectura<TramoPlanilla[]>> {
   try {
-    return (await leerTramosPlanilla()) ?? [];
-  } catch {
-    return [];
+    return { datos: (await leerTramosPlanilla()) ?? [], falla: null };
+  } catch (e) {
+    return { datos: [], falla: e instanceof Error ? e.message : "No se pudo leer la planilla por registrar." };
   }
 }
 

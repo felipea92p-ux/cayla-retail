@@ -12,15 +12,16 @@ import type { PendienteTelar } from "./finanzas-te-toca-reglas";
 
 type Pendiente = PendienteTelar;
 
-/** Las cajas fuertes con plata que ya avisan en ámbar (más de 3 días sin depositar), de la sede que se mira o de todas. */
+/** Las cajas fuertes con plata que ya avisan en ámbar (más de 3 días sin depositar), de la sede que se mira, de todas o, con `soloEmpresa`, las que no son de ninguna sede. */
 export function cajasSinDepositar(
   cuentas: readonly CuentaDinero[],
   movimientos: readonly Pick<MovimientoDinero, "tipo" | "origenId" | "estado" | "fecha">[],
   hoy: string,
   ubicacionId: string | null,
+  soloEmpresa = false,
 ): { nombre: string; saldo: number; dias: number }[] {
   return cuentas
-    .filter((c) => c.tipo === "caja_fuerte" && !c.archivada && (!ubicacionId || c.ubicacionId === ubicacionId))
+    .filter((c) => c.tipo === "caja_fuerte" && !c.archivada && (soloEmpresa ? c.ubicacionId === null : !ubicacionId || c.ubicacionId === ubicacionId))
     .filter((c) => avisoCajaFuerte(c, movimientos, hoy)?.tono === "ambar")
     .map((c) => ({ nombre: c.nombre, saldo: c.saldo ?? 0, dias: diasEntreFechas(ultimoDepositoDe(c.id, movimientos)!, hoy) }));
 }

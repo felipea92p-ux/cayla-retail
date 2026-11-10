@@ -18,9 +18,11 @@ type Props = {
   titulo: string;
   te: TeDejaMes;
   eq: EquilibrioMes | null;
-  /** Lo vendido y lo gastado en las fechas que se miran (sin IGV). */
+  /** Lo vendido y lo gastado en las fechas que se miran, SIN IGV: es la base de «de cada S/ 100 vendidos», que se mide contra los gastos. */
   vendido: number;
   gastos: number;
+  /** Lo vendido tal como se DICE (Felipe 2026-11-09, ADR-0624): con IGV si se pudo leer, con su rótulo; lo mismo que dice la barra de abajo. */
+  vendidoDicho: { monto: number; rotulo: string };
   /** Cuánto cambió lo vendido contra el período anterior (0.06 = +6 %) y cómo se nombra ese período; `null` sin comparación. */
   cambio: { pct: number; contra: string } | null;
   /** Lo que se mira no vende (el Taller, la Empresa): la respuesta de siempre («¿Cuánto cuesta el Taller?»). */
@@ -56,7 +58,7 @@ function Cifra({ hoja, hojas, onAbrir, children, etiqueta }: { hoja: ClaveHoja; 
   );
 }
 
-export function TarjetaMes({ titulo, te, eq, vendido, gastos, cambio, noVende, provisional, hoyEnElMes, hrefGanancias, onAbrir, hojas }: Props) {
+export function TarjetaMes({ titulo, te, eq, vendido, vendidoDicho, gastos, cambio, noVende, provisional, hoyEnElMes, hrefGanancias, onAbrir, hojas }: Props) {
   const etiqueta =
     te.tipo === "estimado"
       ? "Te deja (estimado)"
@@ -139,9 +141,10 @@ export function TarjetaMes({ titulo, te, eq, vendido, gastos, cambio, noVende, p
           <dt>Vendiste</dt>
           <dd className="num mes-a-monto">
             <Cifra hoja="ventas" hojas={hojas} onAbrir={onAbrir} etiqueta="Ver lo que vendió cada tienda">
-              {soles(vendido)}
+              {soles(vendidoDicho.monto)}
             </Cifra>
           </dd>
+          <dd className="mes-a-nota">{vendidoDicho.rotulo}</dd>
           {cambio && (
             <dd>
               <Delta cambio={cambio} />
@@ -169,7 +172,7 @@ export function TarjetaMes({ titulo, te, eq, vendido, gastos, cambio, noVende, p
             tono={eq.estado === "no_llega" ? "ambar" : undefined}
             marca={hoyEnElMes ? (hoyEnElMes.van / hoyEnElMes.total) * 100 : null}
             etiqueta="Cuánto de lo que hay que vender para pagar el mes ya está vendido"
-            texto={`${soles(eq.vendido)} de ${soles(eq.pe)}`}
+            texto={`${soles(eq.vendido)} de ${soles(eq.pe)}, ${eq.rotulo}`}
           />
           <p className="mes-a-nota">
             {eq.detalle}

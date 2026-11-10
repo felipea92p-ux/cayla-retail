@@ -42,6 +42,12 @@ describe("sobresIgv", () => {
     expect(s.some((x) => x.estado === "pagado")).toBe(false);
   });
 
+  it("si no se pudo leer lo pagado, el mes con IGV a pagar dice que no se leyó, y no se sella", () => {
+    const sinLeer = sobresIgv(HISTORIAL, "2026-10", "2026-09", [], true);
+    expect(sinLeer.find((x) => x.mes === "2026-07")).toMatchObject({ estado: "sin_leer", texto: "pago sin leer", forma: "abierto" });
+    expect(sinLeer.find((x) => x.mes === "2026-08")).toMatchObject({ estado: "a_favor" });
+  });
+
   it("un pago a medias no sella el mes", () => {
     const aMedias = sobresIgv(HISTORIAL, "2026-10", "2026-09", [{ mes: "2026-07", igv: 100, renta: 0 }]);
     expect(aMedias.find((x) => x.mes === "2026-07")).toMatchObject({ estado: "sin_pago", forma: "abierto" });

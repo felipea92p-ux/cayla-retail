@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { Modal } from "@/components/ui/Modal";
 import { Aviso } from "@/components/ui/Aviso";
-import { Boton, CampoSelect, CampoTexto } from "@/components/ui/campos";
+import { Boton, Campo, CampoSelect, CampoTexto } from "@/components/ui/campos";
+import { ComboBuscable } from "@/components/ui/ComboBuscable";
 import { ListaSugerencias } from "@/components/ui/ListaSugerencias";
 import { MiniaturaPrenda } from "@/components/ui/PrendaCelda";
 import { CampoGuiado, PieGuia } from "@/components/guia-de-foco/CampoGuiado";
@@ -17,6 +18,9 @@ import { prendaDeLaCategoria, sugerirDescripcion, sugerirNombre } from "@/lib/su
 import { enterNoGuarda } from "@/components/ui/enterNoGuarda";
 import { ElegirPrendaExistente } from "@/components/recepcion-envio/ElegirPrendaExistente";
 import { FichaDeLaPrenda } from "./FichaDeLaPrenda";
+import { MarcaNuevaRecepcion, type MarcaRegistrada } from "./MarcaNuevaRecepcion";
+import type { ProveedorDeLaLista } from "./ProveedorNuevoRecepcion";
+import type { ControlResponsable } from "@/lib/useResponsable";
 
 // «¿Qué llegó?» y el «+» de una categoría (Felipe 2026-11-03, ADR-0604): un modelo más para contar aparte. Nace en 0 y queda en el contador. La marca es de cada modelo (vacía = sin marca) y el
 // proveedor solo se pregunta si el envío trae dos o más; por dentro cae en la línea de esa categoría y marca, o abre una. Mientras se escribe el nombre salen las prendas parecidas del catálogo,
@@ -25,6 +29,8 @@ import { FichaDeLaPrenda } from "./FichaDeLaPrenda";
 // de la prenda están a un toque, sin escribir nada; elegirla la cuenta a ella, igual que tocar una parecida.
 
 const TODAS = "todas";
+/** La opción «Sin marca» del combo: deshace una marca ya elegida (vacía = sin marca). */
+const SIN_MARCA = "sin-marca";
 
 export type ModeloPedido = { categoriaId: string; proveedorId: string | null; marcaId: string | null; nombre: string; nota: string | null; prenda: PrendaRecepcion | null; porDefecto: boolean };
 
@@ -35,6 +41,10 @@ export function NuevoModelo({
   sinAviso,
   catalogo,
   proveedores,
+  proveedoresDirectorio = [],
+  responsable,
+  onProveedorNuevo,
+  onMarcaNueva,
   errorDelGuardado = null,
   onCrear,
   onIrA,
@@ -48,6 +58,12 @@ export function NuevoModelo({
   sinAviso: boolean;
   catalogo: CatalogoParaRecibir | null;
   proveedores: readonly { id: string; nombre: string }[];
+  /** Sin aviso: todo el directorio, para decir quién trae una marca nueva y agregar un proveedor (ADR-0635). Con guía, la marca nueva es de un proveedor de la guía. */
+  proveedoresDirectorio?: readonly ProveedorDeLaLista[];
+  /** Firma la marca o el proveedor que se crean aquí. */
+  responsable: ControlResponsable;
+  onProveedorNuevo?: (p: ProveedorDeLaLista) => void;
+  onMarcaNueva?: (r: MarcaRegistrada) => void;
   /** La causa que dijo la base al no poder agregar: la conexión no siempre es el motivo. */
   errorDelGuardado?: string | null;
   /** Devuelve el error, o null si quedó. */
@@ -74,6 +90,9 @@ export function NuevoModelo({
   const [marcaGaleria, setMarcaGaleria] = useState<string>(TODAS);
   const [guardando, setGuardando] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  /** «+ Marca nueva»: lo escrito en el combo de la marca, mientras su hoja está abierta (ADR-0635). */
+  const [creandoMarca, setCreandoMarca] = useState<string | null>(null);
+  const idComboMarca = useId();
 
   const texto = nombre.trim();
   // Nadie sabe cómo se llama: queda «Blusa 1» y no se cierra el envío hasta cambiarlo (Felipe 2026-11-03).
@@ -165,6 +184,7 @@ export function NuevoModelo({
       onClose={onCerrar}
     >
       {(cerrar) => (
+        <>
         <form
           noValidate
           onKeyDown={enterNoGuarda}
@@ -182,6 +202,8 @@ export function NuevoModelo({
                 onValor={setProveedorId}
                 opciones={proveedores.map((p) => ({ valor: p.id, texto: p.nombre }))}
                 marcador="Elige el proveedor"
+                // Un envío de Compras está atado a las órdenes de su guía: lo de otro proveedor no se guarda aquí (la base lo rechaza, ADR-0635).
+                pie="¿Llegó de otro proveedor? Recíbelo aparte con «¿Llegó algo sin aviso?»."
               />
             </CampoGuiado>
           )}
@@ -338,14 +360,20 @@ export function NuevoModelo({
             </p>
           )}
           <CampoGuiado id="modelo-marca" guia={guia}>
-            <CampoSelect
-              etiqueta={guia.etiqueta("modelo-marca", "La marca")}
-              valor={marcaId}
-              onValor={setMarcaId}
-              // Vacía = sin marca: «Sin marca» solo aparece para deshacer una ya elegida.
-              opciones={[...(marcaId ? [{ valor: "", texto: "Sin marca" }] : []), ...marcas.map((m) => ({ valor: m.id, texto: m.nombre }))]}
-              marcador="Déjala vacía si no tiene"
-            />
+            <Campo etiqueta={guia.etiqueta("modelo-marca", "La marca")} htmlFor={idComboMarca} sinPie>
+              <ComboBuscable
+                id={idComboMarca}
+                etiquetaAccesible="La marca: elige una o agrega una nueva"
+                valor={marcaId}
+                onValor={(v) => setMarcaId(v === SIN_MARCA ? "" : v)}
+                // Vacía = sin marca: «Sin marca» solo aparece para deshacer una ya elegida.
+                opciones={[...(marcaId ? [{ valor: SIN_MARCA, texto: "Sin marca" }] : []), ...marcas.map((m) => ({ valor: m.id, texto: m.nombre }))]}
+                marcador="Déjala vacía si no tiene"
+                // «+ Marca nueva» (ADR-0635): arriba y fija, como en Nuevo producto.
+                crearArriba
+                crear={{ etiqueta: (q) => (q ? `+ Marca nueva «${q}»` : "+ Marca nueva"), onCrear: (q) => setCreandoMarca(q) }}
+              />
+            </Campo>
           </CampoGuiado>
           <CampoGuiado id="modelo-nota" guia={guia}>
             <CampoTexto
@@ -378,6 +406,26 @@ export function NuevoModelo({
           </div>
           </div>
         </form>
+        {creandoMarca !== null && (
+          <MarcaNuevaRecepcion
+            tipeado={creandoMarca}
+            marcas={catalogo?.marcas ?? []}
+            vinculos={catalogo?.vinculos ?? []}
+            proveedores={sinAviso ? proveedoresDirectorio : proveedores}
+            proveedorInicial={sinAviso ? "" : eligeProveedor ? proveedorId : (proveedores[0]?.id ?? "")}
+            puedeAgregarProveedor={sinAviso}
+            responsable={responsable}
+            onProveedorNuevo={(p) => onProveedorNuevo?.(p)}
+            onRegistrada={(r) => {
+              onMarcaNueva?.(r);
+              setMarcaId(r.marca.id);
+              if (eligeProveedor) setProveedorId(r.proveedor.id);
+              setCreandoMarca(null);
+            }}
+            onCerrar={() => setCreandoMarca(null)}
+          />
+        )}
+        </>
       )}
     </Modal>
   );

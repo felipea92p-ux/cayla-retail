@@ -4,7 +4,9 @@ import { useSyncExternalStore, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import Link from "next/link";
 import { QRCodeSVG } from "qrcode.react";
+import { Aviso } from "@/components/ui/Aviso";
 import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
+import { fallaLegible } from "@/lib/gastos-telar-reglas";
 import { LogoCayla } from "@/components/ui/LogoCayla";
 import { NIVEL_QR, ZONA_MUDA_MODULOS } from "@/lib/qr";
 import { cartelesDelClub, type CartelDeTienda } from "@/lib/club-qr-reglas";
@@ -70,12 +72,12 @@ export function CartelClub({
         }
       />
 
-      {falla && <p className="card-cayla border-dashed px-5 py-4 text-sm text-tinta/75">{falla}</p>}
+      {falla && <Aviso tono="error">{fallaLegible(falla)}</Aviso>}
       {fallaTextos && (
-        <p className="card-cayla border-dashed px-5 py-4 text-sm text-tinta/75">
-          {fallaTextos} Sin ellos no se dibuja el cartel: imprimiría un beneficio que quizá ya no es el vigente. Vuelve a abrir esta
+        <Aviso tono="error">
+          {fallaLegible(fallaTextos)} Sin ellos no se dibuja el cartel: imprimiría un beneficio que quizá ya no es el vigente. Vuelve a abrir esta
           pantalla en un momento.
-        </p>
+        </Aviso>
       )}
 
       {!hay ? (

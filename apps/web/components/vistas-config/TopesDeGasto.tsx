@@ -25,6 +25,7 @@ import {
   nombreCortoPpto,
   parsearTope,
   textoOrigen,
+  textoMetaVentasTopes,
   textoTope,
   type ConfigPpto,
   type OrigenPropuesta,
@@ -97,7 +98,7 @@ export function TopesDeGasto({ datos, hoy, guardar, guardando, responsable }: { 
   return (
     <section className="vs-liquido cv-bloque" data-luz data-guia="config.presupuesto" style={{ "--e": 1 } as CSSProperties}>
       <TituloSeccion
-        ayuda="Cuánto puede gastar cada unidad en cada rubro, mes por mes. Vacío es sin tope. Los topes son sin IGV, como el Estado de resultados. La planilla no lleva tope aquí: la decide Dynamic. Y la meta de ventas no se escribe aquí: sale de Metas."
+        ayuda="Cuánto puede gastar cada unidad en cada rubro, mes por mes. Vacío es sin tope. Los topes son sin IGV, como el Estado de resultados. La planilla no lleva tope aquí: la decide Dynamic. Y la meta de ventas no se escribe aquí: sale de Metas, y va con IGV."
         accion={
           <span className="cv-par flex-wrap">
             {!vacio && datos.unidades.map((u) => (
@@ -147,7 +148,7 @@ export function TopesDeGasto({ datos, hoy, guardar, guardando, responsable }: { 
             <span className="cv-par flex-wrap">
               {unidad.unidad === "tienda" && (
                 <Link href="/configuracion?tab=metas" className="btn-enlace" title="Se cambia en Metas">
-                  Meta de ventas: {unidad.metaVentas === null ? "sin meta" : solesRedondo(unidad.metaVentas)}
+                  {textoMetaVentasTopes(unidad.metaVentas)}
                 </Link>
               )}
               <EnlaceVer href={`/finanzas/reportes?mes=${mes}`}>Ver lo gastado</EnlaceVer>

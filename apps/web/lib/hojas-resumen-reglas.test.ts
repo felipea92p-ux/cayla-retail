@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import fixture from "./resumen-finanzas.fixture.json";
-import { colorDeSede, cuentaDelMes, deCadaCien, gastosDelMes, hojaVecina, rubrosEnBarra, ventasDiaADia, ventasPorTienda } from "./hojas-resumen-reglas";
+import { colorDeSede, cuentaDelMes, deCadaCien, gastosDelMes, hojaVecina, rotuloDeVentas, rubrosEnBarra, ventasDiaADia, ventasPorTienda } from "./hojas-resumen-reglas";
 import type { FilaER } from "./resultados-reglas";
 import { leerResumen } from "./resumen-finanzas-reglas";
 
@@ -50,6 +50,18 @@ describe("las hojas del Resumen", () => {
     expect(v.map((x) => x.nombre)).toEqual(["Lima", "Trujillo"]);
     expect(v[0]!.cambio).toBeCloseTo(0.5);
     expect(v[1]!.cambio).toBeNull();
+  });
+
+  it("lo vendido por tienda se dice con IGV y sin lo de CLAURE si se pudo leer; sin la lectura, sin IGV y lo dice (ADR-0624)", () => {
+    const lima = fila({ unidad: "tienda", ubicacionId: "l", nombre: "Tienda Lima", ventas: 1000, igvCobrado: 200, claureSinIgv: 0 });
+    expect(ventasPorTienda([lima], null)[0]!.ventas).toBe(1200);
+    expect(rotuloDeVentas([lima])).toBe("con IGV");
+    const conClaure = fila({ unidad: "tienda", ubicacionId: "l", nombre: "Tienda Lima", ventas: 1000, igvCobrado: 270, claureSinIgv: 500 });
+    expect(rotuloDeVentas([lima, conClaure])).toBe("con IGV y sin lo de CLAURE");
+    const sinLeer = fila({ unidad: "tienda", ubicacionId: "l", nombre: "Tienda Lima", ventas: 1000 });
+    expect(ventasPorTienda([sinLeer], null)[0]!.ventas).toBe(1000);
+    expect(rotuloDeVentas([sinLeer])).toBe("sin IGV");
+    expect(rotuloDeVentas([])).toBe("sin IGV");
   });
 
   it("los gastos van por rubro, del mayor al menor, con su parte de cada S/ 100", () => {

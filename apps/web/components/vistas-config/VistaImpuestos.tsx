@@ -181,7 +181,7 @@ function ElAnio({ anio, parametros, umbral, guardar }: { anio: number; parametro
       {limite && (
         <div className="cv-reg">
           <div>
-            <span className="vs-rotulo">Vendido este año</span>
+            <span className="vs-rotulo">Vendido este año, sin IGV</span>
             <b>{solesRedondo(limite.vendido)}</b>
           </div>
           <div>

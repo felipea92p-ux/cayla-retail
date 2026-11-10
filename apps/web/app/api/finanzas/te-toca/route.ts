@@ -4,11 +4,11 @@ import { leerVer, mesDe, rangoMes } from "@/lib/gastos-reglas";
 import { getContextoGastos, getFijosMes, getGastos, getPanelGastos } from "@/lib/gastos";
 import { sinComprobanteGrande } from "@/lib/gastos-extracto-reglas";
 import { sedeDeLaUrl, SEDE_TODAS } from "@/lib/finanzas-telar-reglas";
-import { pendientesDeCierre, pendientesDeFijos, pendientesDeGastos, pendientesDeImpuestos, type PendienteTelar } from "@/lib/finanzas-te-toca-reglas";
+import { cierreDeTeToca, pendientesDeFijos, pendientesDeGastos, pendientesDeImpuestos, type PendienteTelar } from "@/lib/finanzas-te-toca-reglas";
 import { getContextoDinero, getMovimientos, getLiquidacionesPorRegistrar, getPlanillaParaElInicio, pendientesDeConciliar } from "@/lib/cuentas-dinero";
 import { mesNombre } from "@/lib/resultados-reglas";
 import { mesAnteriorDe } from "@/lib/resumen-telar-reglas";
-import { getUnidadesCerradas } from "@/lib/resultados";
+import { leerUnidadesCerradas } from "@/lib/resultados";
 import { getPorPagarConsolidado, getUnidadesPorPagar } from "@/lib/por-pagar-consolidado";
 import { cajasSinDepositar, pendientesDeDinero } from "@/lib/dinero-te-toca-reglas";
 import { getPanelImpuestos } from "@/lib/impuestos";
@@ -20,7 +20,7 @@ import { antesDeDeclarar } from "@/lib/impuestos-antes-reglas";
 //   la cuenta puede ver (la base decide). Solo lectura. Un submódulo suma los suyos aquí con su `pendientesDe…` de
 //   `finanzas-te-toca-reglas.ts`.
 // POR QUÉ UNA RUTA Y NO EL LAYOUT: el layout no recibe la URL (no sabe la sede elegida) y no se vuelve a pintar al cambiarla; el
-//   botón pregunta aquí al abrir la pantalla y al cambiar de sede. Un GET a /api no abre el loader global.
+//   botón pregunta aquí al abrir la pantalla, al cambiar de sede, tras un guardado y al volver a la pestaña. Un GET a /api no abre el loader global.
 // SE DEGRADA: si un submódulo no se pudo leer, sus pendientes no salen y `incompleto` lo dice; si nada responde, 503.
 export async function GET(request: Request) {
   const persona = await requirePersonaActualV2();
@@ -56,8 +56,7 @@ export async function GET(request: Request) {
       const esLider = persona.rol === "lider";
       const unidades = await getUnidadesPorPagar(persona);
       const verDeuda = leerVer(sede, unidades, esLider, persona.ubicacionId);
-      // «Dónde está» no tiene «empresa» propia (la empresa no tiene cajón): sus cajas fuertes se miran como todas.
-      const ctx = await getContextoDinero(persona, sede === "empresa" ? SEDE_TODAS : sede);
+      const ctx = await getContextoDinero(persona, sede);
       // La planilla que Dynamic pagó baja un banco de la empresa: se avisa en toda vista, como en Cuentas y dinero (ADR-0567).
       const [deuda, movimientos, planilla, liquidaciones] = await Promise.all([
         getPorPagarConsolidado(verDeuda),
@@ -80,7 +79,7 @@ export async function GET(request: Request) {
         ...pendientesDeDinero(
           {
             porPagar: deuda.datos,
-            cajasSinDepositar: cajasSinDepositar(ctx.cuentas.datos, movimientos.datos, hoy, ctx.ver.ubicacionId),
+            cajasSinDepositar: cajasSinDepositar(ctx.cuentas.datos, movimientos.datos, hoy, ctx.ver.ubicacionId, ctx.ver.soloEmpresa),
             lineasSinRevisar: pendientesDeConciliar(ctx.conciliacion.datos),
             esLider,
             planilla,
@@ -112,8 +111,9 @@ export async function GET(request: Request) {
   if (veModulo(persona, "cierre_mes")) {
     try {
       const mes = mesAnteriorDe(mesDe(hoyLima()));
-      const cerradas = await getUnidadesCerradas(mes);
-      pendientes.push(...pendientesDeCierre({ mes, mesNombre: mesNombre(mes), cerrado: cerradas.includes(sede === SEDE_TODAS ? "consolidado" : sede) }));
+      const cierre = cierreDeTeToca({ mes, mesNombre: mesNombre(mes), clave: sede === SEDE_TODAS ? "consolidado" : sede, lectura: await leerUnidadesCerradas(mes) });
+      if (cierre.incompleto) incompleto = true;
+      pendientes.push(...cierre.pendientes);
     } catch (e) {
       console.error("Te toca: no se pudo leer el cierre de mes", e);
       incompleto = true;

@@ -1,12 +1,16 @@
+import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import {
   avisoAntesDelCorte,
+  avisoConteosAntesDelCorte,
+  CONTEOS_CUENTAN_DESDE,
   baseTraeElCorte,
   consecuenciaCorte,
   corteParaBase,
   SIN_CORTE,
   fechaDelCorte,
   leerInicioFinanzas,
+  empezoAContar,
   mesAntesDelCorte,
   opcionesCorte,
   primerMesCompleto,
@@ -58,6 +62,9 @@ describe("palabras del corte", () => {
   it("el aviso de un mes anterior al corte nombra los dos meses", () => {
     expect(avisoAntesDelCorte("2026-10-01")).toBe("Finanzas cuenta desde el 1 de octubre de 2026: octubre es el primer mes completo y se mide al terminar (desde el 1 de noviembre).");
   });
+  it("una frase corta para lo que no alcanza a medirse", () => {
+    expect(empezoAContar("2026-10-01")).toBe("Finanzas empezó a contar en octubre");
+  });
   it("la consecuencia dice qué se corta y qué no", () => {
     const t = consecuenciaCorte("2026-10-01");
     expect(t).toContain("1 de octubre de 2026");
@@ -95,4 +102,25 @@ describe("corteParaBase — lo que el combo manda", () => {
     expect(corteParaBase("")).toBeNull();
   });
   it("lo que no es un día 1 nunca se manda como fecha", () => expect(corteParaBase("2026-10-15")).toBeNull());
+});
+
+describe("las pérdidas y sobrantes de inventario antes del corte (tarea 78)", () => {
+  it("la fecha es la que dejan las migraciones: `fn_parametros_finanzas` no la devuelve", () => {
+    const leer = (n: string) => readFileSync(new URL(`../../../supabase/migrations/${n}`, import.meta.url), "utf8");
+    expect(leer("20261106153000_mermas_asientan_desde_el_corte.sql")).toContain(`mermas_asientan_desde date not null default '${CONTEOS_CUENTAN_DESDE}'`);
+    expect(leer("20261106002000_sobrantes_de_inventario.sql")).toContain(`sobrantes_asientan_desde date not null default '${CONTEOS_CUENTAN_DESDE}'`);
+  });
+  it("octubre lo dice, sin montos", () => {
+    const a = avisoConteosAntesDelCorte(["2026-10-01"])!;
+    expect(a).toContain("1 de noviembre de 2026");
+    expect(a).toContain("Inventario ▸ Movimientos ▸ Pérdidas");
+    expect(a).not.toMatch(/S\/\s?\d/);
+  });
+  it("noviembre comparando con octubre también", () => {
+    expect(avisoConteosAntesDelCorte(["2026-11-01", "2026-10-01"])).not.toBeNull();
+  });
+  it("sin nada anterior al corte, calla", () => {
+    expect(avisoConteosAntesDelCorte(["2027-01-01", "2026-12-01", "2026-11-01"])).toBeNull();
+    expect(avisoConteosAntesDelCorte([])).toBeNull();
+  });
 });

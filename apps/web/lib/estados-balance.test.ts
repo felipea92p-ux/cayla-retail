@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { cortesAnteriores, etiquetaDelCorte, informeDeLaSede, informeDelBalance, lecturaDeLaSede, lecturaDelBalance, nombreDelCierre, partesDeLaSede, partesDelBalance, totalesDelBalance } from "./estados-balance";
+import { avisoSueldosDelBalance, cortesAnteriores, etiquetaDelCorte, informeDeLaSede, informeDelBalance, lecturaDeLaSede, lecturaDelBalance, nombreDelCierre, partesDeLaSede, partesDelBalance, totalesDelBalance } from "./estados-balance";
 import { solesCentimos } from "./flujo-caja-reglas";
 import { cuadreArranque, leerMontoArranque, nombreLinea, type LineaBalance, type UnidadBalance } from "./balance-reglas";
 import { gruposDelBalance, type GrupoBalance } from "./vale-reglas";
@@ -141,15 +141,15 @@ describe("mirando una sede", () => {
   });
 });
 
-// ADR-0620: el arranque resta los 62,035 de saldo a favor contra los 20,157 de IGV por pagar.
+// ADR-0620: el arranque resta el saldo a favor contra el IGV por pagar.
 describe("el IGV a favor", () => {
   const lineaIgv = (seccion: LineaBalance["seccion"], monto: number): LineaBalance => ({ seccion, cuenta: "4011", nombre: "IGV — cuenta corriente", monto, orden: 8, detalle: {} });
 
   it("a favor va aparte, con su nombre, y no entra a Impuestos", () => {
-    const linea = lineaIgv("activo", 41878);
+    const linea = lineaIgv("activo", 40000);
     expect(nombreLinea(linea)).toBe("Crédito fiscal de IGV (SUNAT le debe a CAYLA)");
     const grupos = gruposDelBalance([linea]);
-    expect(grupos.map((x) => [x.clave, x.monto])).toEqual([["credito", 41878]]);
+    expect(grupos.map((x) => [x.clave, x.monto])).toEqual([["credito", 40000]]);
   });
   it("por pagar va en Impuestos, y Impuestos no promete un pago al mes siguiente", () => {
     const linea = lineaIgv("pasivo", 1200);
@@ -162,12 +162,40 @@ describe("el IGV a favor", () => {
   });
   it("el modal de arranque cuadra con la 4011 en negativo y el capital corregido", () => {
     const lineas = [
-      ["101", "activo", 2682.44], ["104", "activo", 5305.24], ["1413", "activo", 5700], ["201", "activo", 82168.11], ["231", "activo", 1238.93], ["241", "activo", 197.93],
-      ["332", "activo", 581.7], ["333", "activo", 15327.1], ["335", "activo", 920], ["336", "activo", 39021.48], ["391", "activo", 11979.45], ["122", "pasivo", 11.78],
-      ["41", "pasivo", 10571.07], ["4011", "pasivo", -41878], ["50", "patrimonio", 201758.78], ["591", "patrimonio", -29300.15],
+      ["101", "activo", 2000], ["104", "activo", 5000], ["1413", "activo", 6000], ["201", "activo", 80000], ["231", "activo", 1000], ["241", "activo", 200],
+      ["332", "activo", 600], ["333", "activo", 15000], ["335", "activo", 1000], ["336", "activo", 40000], ["391", "activo", 12000], ["122", "pasivo", 100],
+      ["41", "pasivo", 10000], ["4011", "pasivo", -40000], ["50", "patrimonio", 198700], ["591", "patrimonio", -30000],
     ] as const;
     expect(cuadreArranque(lineas.map(([cuenta, tipo, monto]) => ({ cuenta, tipo, monto }))).cuadra).toBe(true);
-    expect(leerMontoArranque("-41878")).toBe(-41878);
-    expect(leerMontoArranque("−41878")).toBe(-41878);
+    expect(leerMontoArranque("-40000")).toBe(-40000);
+    expect(leerMontoArranque("−40000")).toBe(-40000);
+  });
+});
+
+describe("el puente con Ganancias: los sueldos que el libro todavía no tiene (ADR-0621, decisión 4)", () => {
+  const conResultado = (monto: number): GrupoBalance[] => [{ clave: "tuyo", nombre: "Lo tuyo", lado: "tuyo", clase: "", monto: 100000 + monto, lineas: [{ nombre: "Capital", monto: 100000, cuenta: "50" }, { nombre: "Utilidad de noviembre", monto, cuenta: "resultado_mes" }] }];
+  it("sin sueldos estimados (un mes con planilla pagada), no dice nada", () => {
+    expect(avisoSueldosDelBalance(conResultado(5000), 0)).toBeNull();
+    expect(avisoSueldosDelBalance(conResultado(5000), 0.4)).toBeNull();
+  });
+  it("dice cuánto falta restar y que el Pasivo tampoco lo trae", () => {
+    expect(avisoSueldosDelBalance(conResultado(9000), 2000)).toBe(`Sin sueldos provisionados: aún falta restar ${solesCentimos(2000)} que Dynamic no paga. El Pasivo tampoco los incluye.`);
+  });
+  it("si al restarlos el signo cambia, dice que la utilidad queda en pérdida", () => {
+    expect(avisoSueldosDelBalance(conResultado(5000), 16000)).toBe(`Sin sueldos provisionados: aún falta restar ${solesCentimos(16000)} que Dynamic no paga. Restados, la utilidad queda en pérdida de ${solesCentimos(11000)}. El Pasivo tampoco los incluye.`);
+  });
+  it("una pérdida que ya lo era no se anuncia como si cambiara de signo", () => {
+    expect(avisoSueldosDelBalance(conResultado(-300), 1000)).not.toContain("queda en pérdida");
+  });
+  it("la fila del resultado lleva el aviso, se llame «Utilidad de noviembre» o «Resultado del mes»", () => {
+    const ahora = conResultado(5000);
+    const sola = informeDelBalance({ grupos: ahora, partes: [], comparadas: [], etiquetaActual: "Nov", avisoResultado: "OJO" }).filas.find((x) => x.clave === "tuyo-resultado_mes")!;
+    expect(sola).toMatchObject({ nombre: "Utilidad de noviembre", aviso: "OJO" });
+    const conAntes = informeDelBalance({ grupos: ahora, partes: [], comparadas: [{ etiqueta: "Oct", grupos: conResultado(100) }], etiquetaActual: "Nov", avisoResultado: "OJO" }).filas.find((x) => x.clave === "tuyo-resultado_mes")!;
+    expect(conAntes).toMatchObject({ nombre: "Resultado del mes", aviso: "OJO" });
+  });
+  it("las demás filas no lo llevan", () => {
+    const filas = informeDelBalance({ grupos: conResultado(5000), partes: [], comparadas: [], etiquetaActual: "Nov", avisoResultado: "OJO" }).filas;
+    expect(filas.filter((f) => f.aviso).map((f) => f.clave)).toEqual(["tuyo-resultado_mes"]);
   });
 });

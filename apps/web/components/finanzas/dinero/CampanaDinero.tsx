@@ -21,6 +21,8 @@ import type { CuentaDinero } from "@/lib/cuentas-dinero-reglas";
 import {
   filtrosDeCierres,
   filtrosDeEstado,
+  textoCampana,
+  textoNadaPorRegistrar,
   FILTROS_ESTADO,
   ordenarEstados,
   ORDEN_ESTADO_INICIAL,
@@ -54,6 +56,7 @@ export function CampanaDinero({
   cuentas,
   contador,
   esLider,
+  incompleto = false,
 }: {
   filas: FilaEstado[];
   cierres: FilaCierre[];
@@ -62,6 +65,8 @@ export function CampanaDinero({
   cuentas: CuentaDinero[];
   contador: number;
   esLider: boolean;
+  /** No se pudo leer alguno de los avisos (máquinas atrasadas, planilla por registrar): la campana no afirma que todo está en orden. */
+  incompleto?: boolean;
 }) {
   const abrirMovimiento = useAbrirMovimiento();
   const [abierta, setAbierta] = useState(false);
@@ -86,7 +91,7 @@ export function CampanaDinero({
   }, []);
 
   const hayQueVer = filas.length > 0 || cierres.length > 0 || pendientes.length > 0;
-  if (!hayQueVer) return null;
+  if (!hayQueVer && !incompleto) return null;
 
   const filtros = filtrosDeEstado(filas);
   const pasa = FILTROS_ESTADO.find((f) => f.clave === filtro)?.pasa ?? (() => true);
@@ -116,11 +121,11 @@ export function CampanaDinero({
 
   const ordenTabla: OrdenTabla = { campo: orden.campo, dir: orden.dir };
 
-  const etiquetaBoton = contador > 0 ? `Estado de las cuentas: ${contador} ${contador === 1 ? "pide" : "piden"} atención` : "Estado de las cuentas: todo en orden";
+  const texto = textoCampana(contador, incompleto);
 
   return (
     <>
-      <button type="button" className="campana-dinero" onClick={() => setAbierta(true)} aria-haspopup="dialog" aria-label={etiquetaBoton} title={etiquetaBoton} data-guia="fin-dinero.campana">
+      <button type="button" className="campana-dinero" onClick={() => setAbierta(true)} aria-haspopup="dialog" aria-label={texto.etiqueta} title={texto.etiqueta} data-guia="fin-dinero.campana">
         <Bell aria-hidden className="h-5 w-5" />
         <Globito n={contador} pide esquina className="absolute -right-1 -top-1" />
       </button>
@@ -128,7 +133,7 @@ export function CampanaDinero({
       {abierta && (
         <Modal
           titulo="Estado de las cuentas"
-          subtitulo={contador > 0 ? `${contador} ${contador === 1 ? "cosa pide" : "cosas piden"} tu atención. Toca una fila para ver qué hacer.` : "Todo en orden: ninguna cuenta ni cierre pide revisión."}
+          subtitulo={texto.subtitulo}
           onClose={() => setAbierta(false)}
           conCerrar
           ancho="max-w-[80rem]" /* unificar-fijo: la ventana del estado de las cuentas es de diseño propio, con tabla de 5 columnas, filtros y páginas (Felipe 2026-10-31) */
@@ -278,7 +283,7 @@ export function CampanaDinero({
 
             {vista === "pendientes" && pendientes.length === 0 && (
               <Vacio tamano="chico" icono={<CircleCheck />}>
-                Nada espera que lo registres: ni depósitos de máquinas ni salidas de planilla.
+                {textoNadaPorRegistrar(incompleto)}
               </Vacio>
             )}
             {vista === "pendientes" && pendientes.length > 0 && (

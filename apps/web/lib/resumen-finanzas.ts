@@ -2,10 +2,12 @@ import "server-only";
 import { createClient } from "@/lib/supabase/server";
 import { explicarFallaLectura, leerResumen, type ResumenFinanzas } from "@/lib/resumen-finanzas-reglas";
 import { capturarError } from "@/lib/errores";
+import { contarPrendasPorRegistrar } from "@/lib/costo-estimado";
 import { calcularConfianza, leerHechosConfianza, type Confianza } from "@/lib/finanzas-confianza";
-import { aplicarProvision, delMes, resumenDeProvision } from "@/lib/planilla-provision-reglas";
+import { aplicarProvision, delMes, faltanSueldosPorFalla, resumenDeProvision } from "@/lib/planilla-provision-reglas";
 import { getProvisionPlanilla } from "@/lib/planilla-provision";
 import { rangoMes } from "@/lib/gastos-reglas";
+import { conIgvDeLasVentasDe } from "@/lib/igv-ventas";
 import { mesAnterior } from "@/lib/resultados-reglas";
 import { hoyLima } from "@/lib/fechas-lima";
 import type { FilaProvision } from "@/lib/planilla-provision-reglas";
@@ -14,7 +16,7 @@ import type { FilaProvision } from "@/lib/planilla-provision-reglas";
 // `fn_resumen_finanzas` junta lo que ya calculan las fases y respeta el permiso de cada una. Si la lectura entera falla, la
 // pantalla lo dice (principio 9): nunca muestra ceros como si fueran datos.
 
-export type Lectura<T> = { datos: T; falla: string | null };
+export type Lectura<T> = { datos: T; falla: string | null; sueldosSinLeer?: boolean };
 
 export async function getResumenFinanzas(pedido: { ubicacionId: string | null; soloEmpresa: boolean }): Promise<Lectura<ResumenFinanzas | null>> {
   const supabase = await createClient();
@@ -32,7 +34,20 @@ export async function getResumenFinanzas(pedido: { ubicacionId: string | null; s
   }
   const resumen = leerResumen(data);
   anotarTiempos(resumen, Date.now() - inicio);
-  return { datos: await conSueldosEstimados(resumen, pedido.ubicacionId, { mes, filas: provision }), falla: null };
+  const { datos, sinLeer } = await conSueldosEstimados(resumen, pedido.ubicacionId, { mes, ...provision });
+  return { datos, falla: null, sueldosSinLeer: sinLeer };
+}
+
+/**
+ * «Hoy te toca» dice cuánto necesitaba vender la tienda que perdió el mes pasado, y eso va con IGV (tarea 19). `fn_resumen_finanzas` no lo trae: se lee aparte y solo si alguna tienda
+ * perdió. Si no se puede leer, las filas quedan como están y el aviso dice «sin IGV».
+ */
+export async function conIgvDelMesAnterior<L extends { datos: ResumenFinanzas | null }>(lectura: L): Promise<L> {
+  const r = lectura.datos;
+  if (r?.resultadosAnterior.estado !== "ok" || !r.resultadosAnterior.datos.some((f) => f.unidad === "tienda" && f.resultado < 0)) return lectura;
+  const { desde, hasta } = rangoMes(r.mesAnterior);
+  const { datos } = await conIgvDeLasVentasDe(desde, hasta, { datos: r.resultadosAnterior.datos, falla: null });
+  return { ...lectura, datos: { ...r, resultadosAnterior: { estado: "ok", datos } } };
 }
 
 /**
@@ -50,14 +65,18 @@ function anotarTiempos(r: ResumenFinanzas, totalMs: number): void {
  * cubre los dos meses (pedida a la vez que el resumen: `leida`); el período que TERMINA en un mes es la planilla de ese mes (D-35). Sin estimación (Dynamic no la ve esta cuenta,
  * no abrió el período, o la lectura falló), el Resumen queda como la base lo dijo.
  */
-async function conSueldosEstimados(r: ResumenFinanzas, ubicacionId: string | null, leida: { mes: string; filas: FilaProvision[] }): Promise<ResumenFinanzas> {
-  if (r.resultadosMes.estado !== "ok" && r.resultadosAnterior.estado !== "ok") return r;
-  const prov = leida.mes === r.mes ? leida.filas : await getProvisionPlanilla(rangoMes(r.mesAnterior).desde, rangoMes(r.mes).hasta, ubicacionId);
-  if (!prov.length) return r;
+async function conSueldosEstimados(r: ResumenFinanzas, ubicacionId: string | null, leida: { mes: string; filas: FilaProvision[]; sinLeer: boolean }): Promise<{ datos: ResumenFinanzas; sinLeer: boolean }> {
+  if (r.resultadosMes.estado !== "ok" && r.resultadosAnterior.estado !== "ok") return { datos: r, sinLeer: false };
+  const { filas: prov, sinLeer: caida } = leida.mes === r.mes ? leida : await getProvisionPlanilla(rangoMes(r.mesAnterior).desde, rangoMes(r.mes).hasta, ubicacionId);
+  const sinLeer = faltanSueldosPorFalla(caida, r.resultadosMes.estado === "ok" ? r.resultadosMes.datos : []);
+  if (!prov.length) return { datos: r, sinLeer };
   return {
-    ...r,
-    resultadosMes: r.resultadosMes.estado === "ok" ? { estado: "ok", datos: aplicarProvision(r.resultadosMes.datos, delMes(prov, r.mes)) } : r.resultadosMes,
-    resultadosAnterior: r.resultadosAnterior.estado === "ok" ? { estado: "ok", datos: aplicarProvision(r.resultadosAnterior.datos, delMes(prov, r.mesAnterior)) } : r.resultadosAnterior,
+    datos: {
+      ...r,
+      resultadosMes: r.resultadosMes.estado === "ok" ? { estado: "ok", datos: aplicarProvision(r.resultadosMes.datos, delMes(prov, r.mes)) } : r.resultadosMes,
+      resultadosAnterior: r.resultadosAnterior.estado === "ok" ? { estado: "ok", datos: aplicarProvision(r.resultadosAnterior.datos, delMes(prov, r.mesAnterior)) } : r.resultadosAnterior,
+    },
+    sinLeer,
   };
 }
 
@@ -73,11 +92,22 @@ export async function getConfianzaFinanzas(pedido: { ubicacionId: string | null 
     return { datos: null, falla: explicarFallaLectura(error, "medir qué tan seguro es este número") };
   }
   const hechos = leerHechosConfianza(data);
+  const fechaValida = /^\d{4}-\d{2}-\d{2}$/.test(hechos.mes);
+  const { desde, hasta } = rangoMes((fechaValida ? hechos.mes : `${hoyLima().slice(0, 7)}-01`).slice(0, 7));
   // Con la planilla del mes sin pagar, la confianza cuenta los sueldos estimados con las boletas de Dynamic (ADR-0453).
-  if (hechos.planilla.visible && !hechos.planilla.mesPagada && /^\d{4}-\d{2}-\d{2}$/.test(hechos.mes)) {
-    const { desde, hasta } = rangoMes(hechos.mes.slice(0, 7));
-    const provision = resumenDeProvision(await getProvisionPlanilla(desde, hasta, pedido.ubicacionId));
-    return { datos: calcularConfianza({ ...hechos, planilla: { ...hechos.planilla, provision } }), falla: null };
-  }
-  return { datos: calcularConfianza(hechos), falla: null };
+  const pideSueldos = hechos.planilla.visible && !hechos.planilla.mesPagada && fechaValida;
+  // Cuántas siguen por registrar, para no prometer un registro que ya no se puede hacer (tarea 75).
+  const hayEstimado = hechos.costo.unidadesEstimadas > 0 || hechos.costo.unidadesSinCosto > 0;
+  const [sueldos, pendientes] = await Promise.all([
+    pideSueldos ? getProvisionPlanilla(desde, hasta, pedido.ubicacionId) : Promise.resolve(null),
+    hayEstimado ? contarPrendasPorRegistrar(desde, hasta, pedido.ubicacionId) : Promise.resolve(null),
+  ]);
+  return {
+    datos: calcularConfianza({
+      ...hechos,
+      costo: { ...hechos.costo, ...(hayEstimado ? { pendientes } : {}) },
+      planilla: sueldos ? { ...hechos.planilla, provision: resumenDeProvision(sueldos.filas), sinLeer: sueldos.sinLeer } : hechos.planilla,
+    }),
+    falla: null,
+  };
 }

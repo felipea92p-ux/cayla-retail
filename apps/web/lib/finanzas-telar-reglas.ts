@@ -98,7 +98,8 @@ export const ALCANCE_POR_RUTA: Readonly<Record<string, AlcanceDeRuta>> = {
   "/finanzas/dinero/conciliacion": { sede: "toda", mes: false },
   "/finanzas/dinero/claure": { sede: "toda", mes: false },
   "/finanzas/dinero/efectivo": { redirige: true },
-  "/finanzas/impuestos": { sede: "sede", mes: true },
+  // A SUNAT se le paga por RUC: `fn_impuestos_panel` no recibe sede, y cada cifra es de la empresa entera.
+  "/finanzas/impuestos": { sede: "toda", mes: true },
   "/finanzas/impuestos/sire": { sede: "toda", mes: true },
   "/finanzas/reportes": { sede: "sede", mes: true },
   "/finanzas/reportes/balance": { sede: "sede", mes: true },
@@ -120,6 +121,42 @@ export function alcanceDeRuta(ruta: string): { sede: "sede" | "toda"; mes: boole
 export function dichoDelAlcance(a: { sede: "sede" | "toda"; mes: boolean }): string | null {
   if (a.sede === "toda") return a.mes ? "Aquí es toda CAYLA" : "Aquí es toda CAYLA, y no cambia con el mes";
   return a.mes ? null : "No cambia con el mes";
+}
+
+/** Lo que dice la barra en Balance general con «Empresa»: la opción sigue (Ganancias la necesita y la sede viaja en la URL), pero aquí es toda CAYLA. */
+export const DICHO_EMPRESA_SIN_BALANCE = "Empresa no tiene Balance aparte: aquí es toda CAYLA";
+export const esBalanceDeEmpresa = (ruta: string, elegidas: readonly ClaveSede[]): boolean => ruta === "/finanzas/reportes/balance" && elegidas.length === 1 && elegidas[0] === SEDE_EMPRESA;
+
+/** Por qué una sede sale apagada: va en el `title` de cada una, donde la persona pasa el mouse. */
+export const MOTIVO_SEDE_NO_APLICA = "Esta pantalla es de toda CAYLA: no se ve por sede";
+
+/**
+ * El rótulo delante de las sedes. Es lo único que siempre se ve: la frase larga se esconde en un laptop, y sin esto una pantalla de toda CAYLA o una
+ * que no suma varias no lo decía en ninguna parte. `dice`: aclara algo, así que no se quita aunque falte lugar. Tiene que ser corto: un rótulo
+ * largo se come el lugar de las sedes (`lib/mesa-telar-ancho.test.ts`).
+ */
+export function rotuloDeSedes(o: { sedeNoAplica: boolean; variasSinJuntar: boolean; empresaSinBalance?: boolean }): { texto: string; dice: boolean } {
+  if (o.sedeNoAplica || o.empresaSinBalance) return { texto: "Toda CAYLA", dice: true };
+  if (o.variasSinJuntar) return { texto: "Aquí, de a una", dice: true };
+  return { texto: "Ver sede", dice: false };
+}
+
+/**
+ * Las sedes que se ven marcadas. Si llegan varias a una pantalla que no las suma (eligiste dos en Gastos y pasaste al Resumen), las cifras son de
+ * todas (`sedeDeLaUrl`) y la barra marca «Todas», no dos sedes que nada tienen que ver con lo que se muestra.
+ */
+export function sedesMarcadas(elegidas: readonly ClaveSede[], deAUna: boolean): readonly ClaveSede[] {
+  return deAUna && elegidas.length > 1 ? [] : elegidas;
+}
+
+/**
+ * Lo que se avisa al tocar otra sede donde se ve de a una: la nueva reemplaza a la que estaba y, sin decirlo, parece una falla. `null`: no reemplazó
+ * a ninguna, o donde se pueden sumar.
+ */
+export function avisoDeAUna(o: { deAUna: boolean; elegidas: readonly ClaveSede[]; tocada: ClaveSede; sedes: readonly SedeTelar[] }): string | null {
+  if (!o.deAUna || o.tocada === SEDE_TODAS || o.elegidas.length !== 1 || o.elegidas[0] === o.tocada) return null;
+  const nombre = o.sedes.find((s) => s.clave === o.tocada)?.nombre;
+  return nombre ? `Aquí se ve una sede a la vez. Ahora estás viendo ${nombre}.` : null;
 }
 
 /** Estados financieros (antes «Reportes»): su ruta no se renombró (ADR-0585, como `/clientas`). */
@@ -154,18 +191,6 @@ export function hrefConSedeYMes(href: string, desde: string, actuales: Iterable<
   if (esMesTelar(mes)) p.set("mes", mes);
   const q = p.toString();
   return q ? `${href}?${q}` : href;
-}
-
-/**
- * La sede que mira una pantalla que todavía mira de a una. Quien no ve todo, siempre la suya; quien ve todo, la de la URL si existe, o
- * «todas».
- * @public Sin uso en main desde que la barra elige varias (2026-10-24): la leen las pantallas de Reportes e Impuestos que aún no se
- * fusionan, hasta que pasen a `sedesElegidas`.
- */
-export function sedeElegida(pedida: ClaveSede, sedes: readonly SedeTelar[], veTodo: boolean, propia: ClaveSede | null): ClaveSede {
-  if (!veTodo) return propia ?? sedes[0]?.clave ?? SEDE_TODAS;
-  if (pedida === SEDE_TODAS) return SEDE_TODAS;
-  return sedes.some((s) => s.clave === pedida) ? pedida : SEDE_TODAS;
 }
 
 /** «Tienda Trujillo» → «Trujillo». */
@@ -209,23 +234,25 @@ export function mesTelar(anio: number, mes: number): string {
 
 /** Cierre de mes: su pantalla elige el mes que se CIERRA con la barra común, y el mes en curso nunca se cierra. */
 export const RUTA_CIERRE = "/finanzas/cierre";
-const esRutaCierre = (ruta: string) => ruta === RUTA_CIERRE || ruta.startsWith(`${RUTA_CIERRE}/`);
+/** Comparar con SUNAT: se compara el mes que se declara; la propuesta de un mes en curso SUNAT todavía no la arma. */
+export const RUTA_SIRE = "/finanzas/impuestos/sire";
+const miraMesTerminado = (ruta: string) => [RUTA_CIERRE, RUTA_SIRE].some((r) => ruta === r || ruta.startsWith(`${r}/`));
 
-/** El último mes que la barra deja elegir en esta pantalla: en Cierre, el anterior al de hoy; en las demás, el de hoy. */
+/** El último mes que la barra deja elegir en esta pantalla: en Cierre y en Comparar con SUNAT, el anterior al de hoy; en las demás, el de hoy. */
 export function ultimoMesDeLaRuta(ruta: string, mesDeHoy: string): string {
-  if (!esRutaCierre(ruta)) return mesDeHoy;
+  if (!miraMesTerminado(ruta)) return mesDeHoy;
   const [a, m] = mesDeHoy.split("-").map(Number) as [number, number];
   return m === 1 ? mesTelar(a - 1, 12) : mesTelar(a, m - 1);
 }
 
 /**
- * El mes que mira esta pantalla, el MISMO para la barra y para la página. En Cierre, sin `?mes=` o con uno que todavía no
- * terminó, es el anterior al de hoy (antes la barra decía octubre y la página, septiembre). Las demás pantallas, como siempre.
+ * El mes que mira esta pantalla, el MISMO para la barra y para la página. En Cierre y en Comparar con SUNAT, sin `?mes=` o con uno
+ * que todavía no terminó, es el anterior al de hoy (antes la barra decía octubre y la página, septiembre). Las demás, como siempre.
  */
 export function mesDeLaRuta(ruta: string, mesUrl: string | null | undefined, mesDeHoy: string): string {
   const tope = ultimoMesDeLaRuta(ruta, mesDeHoy);
   if (!esMesTelar(mesUrl)) return tope;
-  return esRutaCierre(ruta) && mesUrl > tope ? tope : mesUrl;
+  return miraMesTerminado(ruta) && mesUrl > tope ? tope : mesUrl;
 }
 
 type Params = Iterable<[string, string]>;

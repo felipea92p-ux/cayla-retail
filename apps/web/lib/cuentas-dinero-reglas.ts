@@ -290,6 +290,24 @@ export function leerMovimiento(m: Fila): MovimientoDinero {
   };
 }
 
+/**
+ * Si la fecha es anterior al inicio de alguna cuenta del movimiento, cuál no se moverá y desde cuándo cuenta (fn_dinero_libro y `fn_cuentas_dinero_saldos` solo suman desde
+ * `saldo_desde`). Mira cada cuenta por separado: en una entrega a fondo con fecha vieja, el fondo sube y el banco no baja. Es solo un aviso: no impide guardar, porque puede ser
+ * lo correcto si el saldo de partida ya lo traía.
+ */
+export function avisoFechaAntesDelInicio(fecha: string, cuentas: readonly (Pick<CuentaDinero, "id" | "nombre" | "saldoDesde"> | null | undefined)[]): string | null {
+  if (!fecha) return null;
+  const vistas = new Set<string>();
+  const frases: string[] = [];
+  for (const c of cuentas) {
+    if (!c || vistas.has(c.id)) continue;
+    vistas.add(c.id);
+    const desde = c.saldoDesde?.slice(0, 10);
+    if (desde && fecha < desde) frases.push(`${c.nombre} empieza el ${fechaCorta(desde)}: este movimiento no cambiará su saldo.`);
+  }
+  return frases.length ? frases.join(" ") : null;
+}
+
 export type FilaMedio = { ubicacionId: string; ubicacionNombre: string; medio: MedioCobro; cuentaId: string | null; cuentaNombre: string | null; vigenteDesde: string | null };
 export function leerMedio(m: Fila): FilaMedio {
   return {
@@ -368,6 +386,18 @@ export function leerEgresoParaMovimiento(e: Fila): EgresoParaMovimiento {
  *  El día es el de Lima: la base manda el instante en UTC («2026-10-14T01:00:00+00:00»), y cortarle los 10 primeros
  *  caracteres daba el día de UTC: lo registrado de 7 pm a medianoche de Lima salía con fecha de mañana. Sin instante, o con
  *  uno que no se puede leer, empieza por el monto: no se inventa cuándo. */
+/** Lo que se leyó de `fn_egresos_para_movimiento`, con el cajón del que se leyó. */
+export type LecturaSalidas = { ubicacionId: string; egresos: EgresoParaMovimiento[]; falla: boolean };
+
+/**
+ * Las salidas del cajón que se está mirando. «Todavía no llegó», «no se pudo leer» y «no hay ninguna» son tres respuestas distintas: decir «no hay» sin saberlo lleva a registrar
+ * la salida otra vez. Lo leído de otro cajón no vale mientras llega lo del nuevo.
+ */
+export function salidasDelCajon(leido: LecturaSalidas | null, ubicacionId: string | null): { estado: "leyendo" | "falla" | "lista"; egresos: EgresoParaMovimiento[] } {
+  if (!ubicacionId || !leido || leido.ubicacionId !== ubicacionId) return { estado: "leyendo", egresos: [] };
+  return leido.falla ? { estado: "falla", egresos: [] } : { estado: "lista", egresos: leido.egresos };
+}
+
 export function textoSalida(e: EgresoParaMovimiento): string {
   const dia = diaLima(e.creadoEn);
   const cuerpo = `${soles2(e.monto)} · ${e.motivo}${e.nota ? ` — ${e.nota}` : ""}${e.marca ? " (marcado «no es gasto»)" : ""}`;

@@ -40,3 +40,22 @@ Se volvería a leer «entró» como «cobré» y un saldo de fin de mes como el 
 ## Queda fuera
 
 Rótulos de Ventas ▸ Reportes («Vendido» no dice que lleva IGV ni CLAURE), las 4 ventas con boleta anulada, el IGV de notas de venta y de cambios (del contador), y los costos estimados. Son decisiones aparte.
+
+## Actualización 2026-11-09: el cuadro pasa por «Vendiste con IGV»
+
+Felipe decidió (ADR-0624 y su ampliación del mismo día) que Finanzas muestre todo lo vendido en la tienda con IGV, también lo de CLAURE. El cuadro terminaba en «Ventas» y no pasaba por esa cifra, así que la de arriba quedaba sin explicar.
+
+DECIDÍ: el cuadro va en dos tramos, y solo cambia cómo se presenta (sin migración; `fn_cuadre_ventas_finanzas` sigue igual, y su identidad también).
+
+1. Vendido en Ventas + anuladas en otro mes + devoluciones + cambios + **IGV de cambios y devoluciones** + sin explicar = Vendiste con IGV.
+2. Vendiste con IGV − IGV de tus ventas − Prendas de CLAURE = Lo que vendiste.
+
+La fila **IGV de cambios y devoluciones** se calcula solo en pantalla: es la columna de `fn_igv_de_las_ventas` menos el IGV del cuadro. El del cuadro es solo el de las ventas vigentes; el de la columna suma también el de devoluciones, cambios y anuladas. Por eso el nombre se queda corto cuando hay una anulada de otro mes: su IGV también cae ahí.
+
+**Sin explicar** es, desde hoy, lo que queda para llegar a la cifra de arriba, no solo la `otras` de la base. Incluye `otras`, y además una diferencia entre las ventas del Estado de resultados y las del cuadro si algún día aparece. El «Cuadra al céntimo» mide cada sede en valor absoluto, para que una de más y otra de menos no se cancelen.
+
+Si no se pudo leer el IGV de la columna, el cuadro vuelve a la forma anterior y lo dice en su frase.
+
+DESCARTÉ: agregar «Vendiste con IGV» después de «Ventas» sin tocar la cadena. Era más corto, pero la cifra quedaba al final y sin que nada explicara cómo se llega a ella.
+
+SE ROMPE SI: `fn_igv_de_las_ventas` deja de incluir una regla que mueve las ventas (la diferencia saldría en «IGV de cambios y devoluciones» o en «Sin explicar»), o si el IGV del cuadro empieza a incluir los ajustes (la fila se vaciaría).

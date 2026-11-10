@@ -226,6 +226,37 @@ describe("el borde de lo que se escribe no se diluye sobre el vidrio", () => {
   }
 });
 
+describe("lo que se toca en la barra de Finanzas lleva borde de control, no la línea decorativa", () => {
+  const telar = leer("app/estilos/telar.css");
+  const finanzas = leer("app/estilos/finanzas.css");
+  /** El cuerpo del primer bloque cuyo selector (de una sola línea) es exactamente `selector`. */
+  const bloque = (css: string, selector: string) => {
+    const i = css.search(new RegExp(`(^|[}\\n])\\s*${selector.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\s*\\{`));
+    expect(i, `no aparece ${selector}`).toBeGreaterThanOrEqual(0);
+    const abre = css.indexOf("{", i);
+    return css.slice(abre + 1, css.indexOf("}", abre));
+  };
+
+  it.each([".sede-telar", ".te-toca-telar"])("%s declara borde-control", (selector) => {
+    const cuerpo = bloque(telar, selector);
+    expect(cuerpo).toMatch(/border:\s*1px solid var\(--color-borde-control\)/);
+    expect(cuerpo).not.toMatch(/var\(--color-sand\)/);
+  });
+
+  it(".fin-control declara borde-control en reposo", () => {
+    const cuerpo = bloque(finanzas, ".fin-control");
+    expect(cuerpo).toMatch(/border:\s*1px solid var\(--color-borde-control\)/);
+    expect(cuerpo).not.toMatch(/var\(--color-sand\)/);
+  });
+
+  // Con el borde en reposo ya en 3:1, un foco de taupe aguado haría que el campo se apague justo al entrar en él.
+  it.each([".fin-control:focus", '.fin-desplegable[aria-expanded="true"]'])("%s se ve más fuerte que el reposo, no más tenue", (selector) => {
+    const cuerpo = bloque(finanzas, selector);
+    expect(cuerpo).toMatch(/border-color:\s*var\(--color-tinta\)/);
+    expect(cuerpo).not.toMatch(/transparent/);
+  });
+});
+
 describe("la hoja es una sola y lo que no se deshace no es un bloque rojo", () => {
   it("una hoja con un botón de peligro no cambia de material", () => {
     expect(hoja).not.toMatch(/\.hoja-serena:has\(\.btn-peligro\)/);
