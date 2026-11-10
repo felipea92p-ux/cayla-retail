@@ -3,7 +3,7 @@ import { hoyLima } from "@/lib/fechas-lima";
 import { getContextoDinero, pendientesDeConciliar } from "@/lib/cuentas-dinero";
 import { PantallaDinero } from "@/components/finanzas/CuentasDinero";
 import { CuentaClaure } from "@/components/finanzas/dinero/CuentaClaure";
-import { getCuentaClaure } from "@/lib/cuenta-claure";
+import { getCuentaClaure, getCuentasDeOtrasEmpresas } from "@/lib/cuenta-claure";
 import { BotonPagarClaure } from "@/components/finanzas/dinero/BotonPagarClaure";
 import { chipsClaure, fraseClaure, montoSugeridoPago, respuestaClaure, resumenClaure } from "@/lib/cuenta-claure-reglas";
 import { getSedesDelTelar } from "@/lib/finanzas-telar";
@@ -22,7 +22,7 @@ export default async function ClaureDineroPage({ searchParams }: { searchParams:
   const sp = await searchParams;
   const hoy = hoyLima();
   const ctx = await getContextoDinero(persona, verDeLaVista(persona.vista, sedeDeLaUrl(sp)));
-  const [cuenta, telar] = await Promise.all([getCuentaClaure(), getSedesDelTelar()]);
+  const [cuenta, telar, cuentasAjenas] = await Promise.all([getCuentaClaure(), getSedesDelTelar(), getCuentasDeOtrasEmpresas()]);
   const resumen = resumenClaure(cuenta.datos.filas, cuenta.datos.pagos, cuenta.datos.gastos);
   const respuesta = respuestaClaure(resumen.saldo);
   const nombres = new Set(cuenta.datos.filas.map((f) => ctx.ubicaciones.find((u) => u.id === f.ubicacionId)?.nombre).filter((n): n is string => !!n));
@@ -49,7 +49,7 @@ export default async function ClaureDineroPage({ searchParams }: { searchParams:
       hoy={hoy}
       fallas={[ctx.cuentas.falla, cuenta.falla].filter((f): f is string => !!f)}
     >
-      {!cuenta.falla && <CuentaClaure filas={cuenta.datos.filas} pagos={cuenta.datos.pagos} gastos={cuenta.datos.gastos} esLider={ctx.esLider} hoy={hoy} />}
+      {!cuenta.falla && <CuentaClaure filas={cuenta.datos.filas} pagos={cuenta.datos.pagos} gastos={cuenta.datos.gastos} cuentasAjenas={cuentasAjenas} esLider={ctx.esLider} hoy={hoy} />}
     </PantallaDinero>
   );
 }

@@ -205,16 +205,15 @@ caso("el Diario lo asienta cuadrado: la 479 al debe y la caja (101) al haber", (
   ),
 );
 
-caso("el libro de dinero NO lo trata como un depósito: queda sin cuenta y dice «se queda con Claudia»", () =>
+caso("el libro de dinero NO lo trata como un depósito: el efectivo que se queda con Claudia no es una línea de ninguna cuenta de CAYLA (ADR-0638: tampoco «sin cuenta»)", () =>
   igual(
     dentro(
       `select esperado as esperado from retail.fn_esperado_caja(${ID("e9")}) \\gset
        select retail.cerrar_caja(${ID("e9")}, :esperado, 100, 'claudia', null) is not null;
        reset role;
-       select count(*) || '|' || bool_and(cuenta_id is null) || '|' || bool_and(detalle like '%se queda con Claudia%')
-         from retail.fn_dinero_libro((now() at time zone 'America/Lima')::date) where clave = 'traslado:' || ${TRAS};`,
+       select count(*) from retail.fn_dinero_libro((now() at time zone 'America/Lima')::date) where clave = 'traslado:' || ${TRAS};`,
     ).split("\n").pop(),
-    "1|true|true",
+    "0",
   ),
 );
 

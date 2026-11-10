@@ -18,6 +18,7 @@ import { getMaquinasPos, getMediosDeCobro, getPlanillaCuentas, getSaldos } from 
 import { getPresupuestoConfig } from "@/lib/presupuesto";
 import { getAsistenteSedes } from "@/lib/asistente/sedes-servidor";
 import { getRepartoClaure } from "@/lib/reparto-claure";
+import { getCuentasDeOtrasEmpresas } from "@/lib/cuenta-claure";
 
 // Configuración (ADR-0195, módulo «configuracion»; delegable desde el ADR-0253): lo que se ajusta una vez y todas las pantallas leen. Como
 // en el spike (docs/maquetas/finanzas-2026-09/, `VISTAS.config`), una sola pantalla con pestañas por URL (`?tab=`). Hoy
@@ -102,7 +103,7 @@ async function SeccionMetas() {
 // Dinero (ADR-0195 F3, Felipe 2026-11-05): a dónde entra cada cobro, las cuentas con su saldo de hoy (sumado por la base), las máquinas (ADR-0429; no se dibujan si la base todavía no
 // las conoce), la planilla y cuándo avisa el sistema.
 async function SeccionDinero() {
-  const [cuentas, medios, maquinas, planilla, parametros] = await Promise.all([getSaldos(null), getMediosDeCobro(), getMaquinasPos(), getPlanillaCuentas(), getParametrosFinanzas()]);
+  const [cuentas, medios, maquinas, planilla, parametros, cuentasAjenas] = await Promise.all([getSaldos(null), getMediosDeCobro(), getMaquinasPos(), getPlanillaCuentas(), getParametrosFinanzas(), getCuentasDeOtrasEmpresas()]);
   return (
     <>
       {[cuentas.falla, medios.falla]
@@ -110,7 +111,7 @@ async function SeccionDinero() {
         .map((f) => (
           <FallaDeSeccion key={f} falla={f} />
         ))}
-      <VistaDinero cuentas={cuentas.datos} medios={medios.datos} maquinas={maquinas} planilla={planilla} parametros={parametros} hoy={hoyLima()} />
+      <VistaDinero cuentas={cuentas.datos} cuentasAjenas={cuentasAjenas} medios={medios.datos} maquinas={maquinas} planilla={planilla} parametros={parametros} hoy={hoyLima()} />
     </>
   );
 }

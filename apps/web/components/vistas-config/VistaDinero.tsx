@@ -8,6 +8,7 @@ import { Aviso } from "@/components/ui/Aviso";
 import { avisar } from "@/components/ui/Avisos";
 import { LapizEditar } from "@/components/ui/BotonEditar";
 import { Boton, Desplegable } from "@/components/ui/campos";
+import { Chip } from "@/components/ui/Chip";
 import { TituloGrupo, TituloSeccion } from "@/components/ui/TituloSeccion";
 import { Vacio } from "@/components/ui/Vacio";
 import { BotonVerMas, FilasDeMas } from "@/components/ui/VerMas";
@@ -35,6 +36,7 @@ import {
   type MedioCobro,
 } from "@/lib/cuentas-dinero-reglas";
 import { primerPasoCobros, cobrosDeSede, curvaHilo, destinosDeSede, detalleDeDestino, gruposDeCuentas, maquinaSinTarifa, saldoDeCuenta, sedesDeCobro, tarifaDeMaquina, textoDeLoPlegado } from "@/lib/dinero-config-reglas";
+import type { CuentaOtraEmpresa } from "@/lib/cuenta-claure-reglas";
 import { hoyLima } from "@/lib/fechas-lima";
 import { consecuenciaCorte, corteParaBase, fechaDelCorte, opcionesCorte, SIN_CORTE } from "@/lib/finanzas-arranque-reglas";
 import { BANCOS_CON_CUENTA, TEXTO_BANCO, type CuentaPlanilla } from "@/lib/planilla-salidas-reglas";
@@ -195,7 +197,21 @@ function FilaCuenta({ cuenta, medios, guardando, i, alEditar }: { cuenta: Cuenta
   );
 }
 
-function Cuentas({ cuentas, medios, guardando, alAgregar, alEditar }: { cuentas: readonly CuentaDinero[]; medios: readonly FilaMedio[]; guardando: boolean; alAgregar: () => void; alEditar: (c: CuentaDinero) => void }) {
+/** Una cuenta de otra empresa (ADR-0638): se ve para saber que existe, sin saldo y sin lápiz. No se edita ni se archiva, y nadie la elige. */
+function FilaCuentaAjena({ cuenta, i }: { cuenta: CuentaOtraEmpresa; i: number }) {
+  return (
+    <div className="vs-dato" style={{ "--i": i } as React.CSSProperties}>
+      <GotaDinero trazo={TRAZO_DE_CUENTA.banco} i={i} />
+      <span className="vs-textos">
+        <span className="cv-nombre">{cuenta.nombre}</span>
+        <span className="vs-rotulo">Lo que llega aquí no es de CAYLA</span>
+        <Chip tono="pizarra" className="mt-1 self-start">{`De ${cuenta.empresa} · no suma`}</Chip>
+      </span>
+    </div>
+  );
+}
+
+function Cuentas({ cuentas, cuentasAjenas, medios, guardando, alAgregar, alEditar }: { cuentas: readonly CuentaDinero[]; cuentasAjenas: readonly CuentaOtraEmpresa[]; medios: readonly FilaMedio[]; guardando: boolean; alAgregar: () => void; alEditar: (c: CuentaDinero) => void }) {
   const { aLaVista, deLasSedes, archivadas } = useMemo(() => gruposDeCuentas(cuentas), [cuentas]);
   const [abierto, setAbierto] = useState(false);
   const hayPlegado = deLasSedes.length + archivadas.length > 0;
@@ -215,6 +231,9 @@ function Cuentas({ cuentas, medios, guardando, alAgregar, alEditar }: { cuentas:
       <div className="cv-tarjetas">
         {aLaVista.map((c, i) => (
           <FilaCuenta key={c.id} cuenta={c} medios={medios} guardando={guardando} i={i} alEditar={() => alEditar(c)} />
+        ))}
+        {cuentasAjenas.map((c, i) => (
+          <FilaCuentaAjena key={c.id} cuenta={c} i={aLaVista.length + i} />
         ))}
       </div>
       {hayPlegado && (
@@ -419,6 +438,7 @@ function CuandoAvisa({ parametros, guardar, guardando, responsableListo }: { par
 
 export function VistaDinero({
   cuentas,
+  cuentasAjenas,
   medios,
   maquinas,
   planilla,
@@ -426,6 +446,8 @@ export function VistaDinero({
   hoy,
 }: {
   cuentas: readonly CuentaDinero[];
+  /** Las cuentas de otra empresa (ADR-0638): solo se muestran. */
+  cuentasAjenas: readonly CuentaOtraEmpresa[];
   medios: readonly FilaMedio[];
   /** Nulo = la base todavía no conoce las máquinas: no se dibujan. */
   maquinas: readonly MaquinaPos[] | null;
@@ -449,7 +471,7 @@ export function VistaDinero({
       </div>
       <Cobros medios={medios} activas={activas} guardar={guardar} guardando={guardando} />
       <div className="cv-dos">
-        <Cuentas cuentas={cuentas} medios={medios} guardando={guardando} alAgregar={() => setAgregar(true)} alEditar={setEditar} />
+        <Cuentas cuentas={cuentas} cuentasAjenas={cuentasAjenas} medios={medios} guardando={guardando} alAgregar={() => setAgregar(true)} alEditar={setEditar} />
         <MaquinasYPlanilla maquinas={maquinas} planilla={planilla} activas={activas} guardar={guardar} guardando={guardando} alTarifa={setTarifaDe} />
       </div>
       {parametros ? (
