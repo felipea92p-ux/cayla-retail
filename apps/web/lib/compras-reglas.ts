@@ -201,6 +201,9 @@ export type LineaRecepcion = {
   /** La marca de la prenda (`productos.marca_id`): «Terminados» de Recibir la pone al frente. `null` si la prenda no tiene marca;
    *  ausente donde la lectura no la trae. */
   marca?: string | null;
+  /** Cómo se pinta la muestra del color (`fondoDeMuestra`: el hex, o el metálico o jaspeado); `null` si el color no tiene hex
+   *  (Estampado, Multicolor): la muestra dibuja «varios colores». Ausente donde la lectura no lo trae. */
+  colorFondo?: string | null;
   cantidad: number;
 };
 
