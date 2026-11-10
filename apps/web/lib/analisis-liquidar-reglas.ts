@@ -8,6 +8,7 @@
 
 import type { PrendaAnalisis } from "./analisis-tipos";
 import { LIQUIDAR_DEFECTO, LIQUIDAR_MAX, LIQUIDAR_MIN, liquidarDesdeValido, plural, prendasDe } from "./analisis-reglas";
+import { ETIQUETA_LIQUIDAR_DESDE } from "./analisis-quietas";
 import { esRespuestaIncierta, traducirError, type ErrorEscritura } from "./error-escritura";
 import { mensajeErrorResponsable } from "./responsable-reglas";
 
@@ -75,7 +76,7 @@ export function cifraPrendas(n: number): string {
 
 /** El aviso de éxito (esquina superior derecha, ADR-0149): corto, con el alcance aparte. */
 export function avisoLiquidarGuardado(dias: number): { texto: string; detalle: string } {
-  return { texto: `Liquidar desde ${liquidarDesdeValido(dias)} días`, detalle: "Para todas las tiendas" };
+  return { texto: `${ETIQUETA_LIQUIDAR_DESDE} ${liquidarDesdeValido(dias)} días`, detalle: "Para todas las tiendas" };
 }
 
 /** Un error en tres líneas: qué pasó, qué se conservó y qué sigue. */
