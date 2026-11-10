@@ -210,3 +210,31 @@ no se hidrataba, así que es la causa más probable, no una medida.
   donde ya corre el hilo, y no en la cintura fija (`cajaDeAbajoSinMedida`). Su tamaño sigue siendo el de siempre.
 
 **Prueba.** `union-prendas.test.ts`: tres casos de `cajaDeAbajoSinMedida`. `tsc` y `eslint` limpios. **No verificado** en el navegador ni en el celular.
+
+## Actualización 2026-11-10 (b) — la medida la saca la tienda, no el navegador
+
+**Qué pasó.** Felipe siguió viendo outfits sin unir (Polo Corazón con Pantalón Cayla Clásico, una camisa crop con jean, un top de encaje con short, un corset
+de encaje con falda y con pantalón), desde **Safari en su Mac**, ya con los arreglos de la mañana publicados. En Chrome las mismas combinaciones se unían bien
+(medido: bajo 41,9 cm, pretina 41,3 cm). La causa: **Safari 26 (macOS e iOS) trae encendida para toda la navegación su protección contra la huella digital, que
+le mete ruido a lo que una página lee de un lienzo** (`getImageData`), y esa lectura era la medida de la unión. No es un caso raro: es todo iPhone con iOS 26 y
+todo Mac con Safari 26. Fuentes: WebKit/Apple sobre «Advanced Fingerprinting Protection» por defecto en Safari 26.
+
+**Decisión (Felipe pidió «la mejor manera, que también resuelva errores futuros»).** El navegador ya no lee píxeles. La medida de cada recorte la saca la tienda
+en el servidor, con la MISMA función (`medirRecorte`) sobre los píxeles que entrega `sharp`: `GET /api/medida/<recorte>?v=1` (`app/api/medida/[archivo]/route.ts`,
+`lib/medida-del-recorte.ts`), con el mismo molde que `/api/recorte` (ADR-0613): solo acepta nombres de recortes del almacén, baja el recorte del almacén de la
+tienda (`TIENDA_FOTOS_ORIGEN`, nunca una dirección que llegue en la petición), no pasa por `proxy.ts`, y como el nombre de un recorte no se repite, la respuesta
+se guarda un año: cada recorte se mide una vez en total, no una vez por cliente. Si cambia cómo se mide, se sube `VERSION_DE_LA_MEDIDA`. La figura pide ese JSON
+(`useUnionDeLaFigura`), y lo recordado en el navegador sube a `cayla-union-v4` para que las medidas que Safari ya guardó arruinadas no vuelvan.
+
+**Por qué cierra la familia de errores, no solo este.** Todo navegador recibe el mismo número; ninguna protección de privacidad, extensión ni lienzo raro lo
+toca; y la medida es la de siempre (comprobada: sobre el Polo Kristell y el Short Saskia, la de la ruta y la del lienzo de Chrome coinciden en las tres cifras,
+salvo 0,4 % de redondeo en una). Un fallo de la ruta queda en el registro de Vercel (`tienda_medida_fallo`).
+
+**Descarté.** (a) Seguir midiendo en el navegador y «limpiar» el ruido: es una carrera contra cada versión de Safari. (b) Guardar la medida en la base al
+generar el recorte: es mejor a futuro (sin ninguna petición), pero pide una migración, cambiar el generador del ERP y rellenar los recortes que ya existen;
+queda como siguiente paso si la petición por recorte llegara a pesar.
+
+**Prueba.** `lib/medida-del-recorte.test.ts` (con PNG de verdad hechos con `sharp`: misma medida que `medirRecorte`, la pretina de un short que se abre, una
+imagen grande da la misma fracción, lo que no es imagen lanza) y los casos de la dirección y de la respuesta en `union-prendas.test.ts`. 1081 pruebas de la
+tienda, `tsc`, `eslint`, `knip` y `knip:produccion` en verde. La ruta se probó con la tienda corriendo en local contra el almacén de producción.
+**No verificado:** la figura completa en Safari (la tienda local no tiene base); conviene mirarla en el Mac de Felipe y en un iPhone al publicarse.
