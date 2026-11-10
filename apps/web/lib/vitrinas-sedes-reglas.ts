@@ -13,6 +13,7 @@ import { solesRedondo } from "./gastos-reglas";
 import { estadoCargaInicial, fechaCorta, type EstadoCargaInicial, type LecturaCargaInicial } from "./carga-inicial-reglas";
 import type { SedeAsistente } from "./asistente/sedes";
 import type { DatosEmpresa, TiendaConfig } from "./configuracion-reglas";
+import type { CierreDeHoy } from "./recordatorio-cierre-reglas";
 
 export type CampoSede = "whatsapp" | "cierre" | "fondo" | "preguntar" | "carga";
 
@@ -44,7 +45,10 @@ export type VitrinaSede = {
   /** «Boleta B001»: la serie sola no decía de qué era (segunda prueba ciega, 2026-11-04). */
   series: string[];
   /** Solo las tiendas: el resto de las sedes no cobra a clientes. `null` en una que no lo es. */
-  tienda: Pick<TiendaConfig, "metas" | "fondo" | "horaCierre" | "whatsappNumero"> | null;
+  tienda: (Pick<TiendaConfig, "metas" | "fondo" | "horaCierre" | "whatsappNumero"> & {
+    /** ¿Tiene horario cargado? (Tienda web ▸ Conf. Tienda, ADR-0642.) Sin él «falta»; con él, `horaCierre` es el cierre de HOY (null: hoy no abre). */
+    horarioCargado: boolean;
+  }) | null;
   /** Preguntar en esta sede; `null` si la base no lo trajo (entonces el dato no se dibuja). */
   preguntar: boolean | null;
   /** La carga inicial; `null` si la base no la trajo (entonces el dato no se dibuja). */
@@ -62,8 +66,10 @@ export function armarVitrinas(entrada: {
   asistente: readonly SedeAsistente[] | null;
   carga: LecturaCargaInicial | null;
   hoy: string;
+  /** El cierre de hoy de cada sede, del horario por días (`fn_horas_de_cierre`). Sin él (la base no lo trajo) vale la hora suelta de `fn_configuracion_tiendas`. */
+  cierres?: ReadonlyMap<string, CierreDeHoy> | null;
 }): VitrinaSede[] {
-  const { empresa, tiendas, asistente, carga, hoy } = entrada;
+  const { empresa, tiendas, asistente, carga, hoy, cierres } = entrada;
   const porId = new Map<string, { nombre: string; tipo: VitrinaSede["tipo"] }>();
   for (const t of tiendas) porId.set(t.id, { nombre: t.nombre, tipo: "tienda" });
   for (const s of asistente ?? []) if (!porId.has(s.id)) porId.set(s.id, { nombre: s.nombre, tipo: s.tipo });
@@ -77,6 +83,7 @@ export function armarVitrinas(entrada: {
       const t = tiendas.find((x) => x.id === id);
       const a = asistente?.find((x) => x.id === id);
       const c = carga?.sedes.find((x) => x.ubicacionId === id);
+      const cierre = cierres?.get(id);
       const vitrina: VitrinaSede = {
         id,
         nombre,
@@ -85,7 +92,15 @@ export function armarVitrinas(entrada: {
         color: colorDeSede({ nombre, tipo }),
         direccion: [fiscal?.direccion, fiscal?.distrito].filter(Boolean).join(", ") || null,
         series: (fiscal?.series ?? []).map((s) => `${NOMBRE_SERIE[s.tipo] ?? ""} ${s.serie}`.trim()),
-        tienda: t ? { metas: t.metas, fondo: t.fondo, horaCierre: t.horaCierre, whatsappNumero: t.whatsappNumero } : null,
+        tienda: t
+          ? {
+              metas: t.metas,
+              fondo: t.fondo,
+              horaCierre: cierre ? cierre.hora : t.horaCierre,
+              horarioCargado: cierre ? cierre.cargado : !!t.horaCierre,
+              whatsappNumero: t.whatsappNumero,
+            }
+          : null,
         preguntar: a ? a.encendido : null,
         carga: c ? { hasta: c.hasta, estado: estadoCargaInicial(c.hasta, hoyCarga) } : null,
       };
@@ -107,7 +122,7 @@ export function camposDe(v: VitrinaSede): CampoSede[] {
 /** ¿A este dato le falta algo? Un WhatsApp escrito que no es un celular cuenta como que falta: sin él, la tienda no muestra su QR. */
 export function falta(v: VitrinaSede, c: CampoSede): boolean {
   if (c === "whatsapp") return !!v.tienda && !celularValido(v.tienda.whatsappNumero);
-  if (c === "cierre") return !!v.tienda && !v.tienda.horaCierre;
+  if (c === "cierre") return !!v.tienda && !v.tienda.horarioCargado;
   if (c === "fondo") return !!v.tienda && v.tienda.fondo === null;
   if (c === "carga") return v.carga?.estado.tipo === "sin_fecha";
   return false;
@@ -167,7 +182,7 @@ export function arcoCarga(e: EstadoCargaInicial): number {
 export function valorDe(v: VitrinaSede, c: CampoSede): string {
   if (falta(v, c)) return "Falta";
   if (c === "whatsapp") return celularLegible(v.tienda?.whatsappNumero ?? "");
-  if (c === "cierre") return hora12(v.tienda?.horaCierre ?? "");
+  if (c === "cierre") return v.tienda?.horaCierre ? hora12(v.tienda.horaCierre) : "Hoy cerrada";
   if (c === "fondo") return solesRedondo(v.tienda?.fondo ?? 0);
   if (c === "preguntar") return v.preguntar ? "Activo" : "Apagado";
   const e = v.carga?.estado;

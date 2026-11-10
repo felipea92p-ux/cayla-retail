@@ -1,4 +1,4 @@
-import { exigirModulo } from "@/lib/persona-actual";
+import { exigirModulo, veModulo } from "@/lib/persona-actual";
 import { getCargaInicial } from "@/lib/carga-inicial";
 import { getConfiguracionMetas, getConfiguracionTiendas, getDatosEmpresa, getParametrosCaja, getParametrosFinanzas } from "@/lib/configuracion";
 import { getCategoriasGasto, getContextoGastos, getFichasDeFijos, getFijosMes, getProveedoresParaGasto } from "@/lib/gastos";
@@ -13,6 +13,7 @@ import { VistaImpuestos } from "@/components/vistas-config/VistaImpuestos";
 import { VistaMetas } from "@/components/vistas-config/VistaMetas";
 import { VistaEmpresaTiendas } from "@/components/vitrinas-sedes/VistaEmpresaTiendas";
 import { armarVitrinas } from "@/lib/vitrinas-sedes-reglas";
+import { getUbicaciones } from "@/lib/ubicaciones";
 import { getPanelImpuestos, getParametrosTributarios } from "@/lib/impuestos";
 import { getMaquinasPos, getMediosDeCobro, getPlanillaCuentas, getSaldos } from "@/lib/cuentas-dinero";
 import { getPresupuestoConfig } from "@/lib/presupuesto";
@@ -53,7 +54,7 @@ export default async function ConfiguracionPage({ searchParams }: { searchParams
         subtitulo="Lo que se ajusta una vez y todas las pantallas leen."
       />
       <PestanasFin etiqueta="Secciones de Configuración" valor={pestana} items={[...PESTANAS]} guia="config.pestanas" />
-      {pestana === "empresa" && <SeccionEmpresa esLider={persona.rol === "lider"} esAdmin={persona.esAdmin} />}
+      {pestana === "empresa" && <SeccionEmpresa esLider={persona.rol === "lider"} esAdmin={persona.esAdmin} puedeHorario={veModulo(persona, "ajustes_web")} />}
       {pestana === "metas" && <SeccionMetas />}
       {pestana === "dinero" && <SeccionDinero />}
       {pestana === "gastos" && <SeccionGastos mes={mes} esLider={persona.rol === "lider"} />}
@@ -74,20 +75,23 @@ function FallaDeSeccion({ falla }: { falla: string }) {
 
 // Empresa y tiendas, «Las vitrinas»: el carnet de la empresa, que solo se lee, y una tarjeta por sede. Si una lectura falla, lo demás se sigue viendo: las tiendas
 // avisan (es lo único que se cambia a mano aquí), y la carga inicial o Preguntar simplemente no se dibujan si la base todavía no las tiene.
-async function SeccionEmpresa({ esLider, esAdmin }: { esLider: boolean; esAdmin: boolean }) {
-  const [empresa, tiendas, carga, asistente] = await Promise.all([
+async function SeccionEmpresa({ esLider, esAdmin, puedeHorario }: { esLider: boolean; esAdmin: boolean; puedeHorario: boolean }) {
+  const [empresa, tiendas, carga, asistente, ubicaciones] = await Promise.all([
     getDatosEmpresa(),
     getConfiguracionTiendas().catch((e: Error) => e),
     getCargaInicial(),
     getAsistenteSedes(),
+    getUbicaciones().catch(() => null),
   ]);
   const falla = tiendas instanceof Error;
   const hoy = falla ? hoyLima() : tiendas.hoy;
-  const vitrinas = armarVitrinas({ empresa, tiendas: falla ? [] : tiendas.tiendas, asistente: asistente?.sedes ?? null, carga, hoy });
+  // El cierre de cada tienda sale de su horario por días (Tienda web ▸ Conf. Tienda, ADR-0642): aquí solo se lee el de hoy.
+  const cierres = ubicaciones ? new Map(ubicaciones.map((u) => [u.id, { hora: u.horaCierre, cargado: u.horarioCargado }] as const)) : null;
+  const vitrinas = armarVitrinas({ empresa, tiendas: falla ? [] : tiendas.tiendas, asistente: asistente?.sedes ?? null, carga, hoy, cierres });
   return (
     <>
       {falla && <FallaDeSeccion falla={tiendas.message} />}
-      <VistaEmpresaTiendas datos={empresa} vitrinas={vitrinas} gastado={asistente?.gastado ?? null} carga={carga} esLider={esLider} esAdmin={esAdmin} />
+      <VistaEmpresaTiendas datos={empresa} vitrinas={vitrinas} gastado={asistente?.gastado ?? null} carga={carga} esLider={esLider} esAdmin={esAdmin} puedeHorario={puedeHorario} />
     </>
   );
 }

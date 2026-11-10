@@ -202,3 +202,39 @@ describe("Metas ya no cambia el fondo", () => {
     expect(metas).not.toMatch(/Fondo de caja de/);
   });
 });
+
+describe("la hora de cierre sale del horario por días (ADR-0642)", () => {
+  const armar = (cierre?: { hora: string | null; cargado: boolean }) =>
+    armarVitrinas({
+      empresa: null,
+      tiendas: [tienda({ id: "a", nombre: "Tienda LIM", horaCierre: null })],
+      asistente: null,
+      carga: null,
+      hoy: HOY,
+      cierres: cierre ? new Map([["a", cierre]]) : null,
+    })[0]!;
+
+  it("con horario cargado y hora de hoy, dice el cierre de hoy y no falta", () => {
+    const v = armar({ hora: "19:30", cargado: true });
+    expect(falta(v, "cierre")).toBe(false);
+    expect(valorDe(v, "cierre")).toBe("7:30 p. m.");
+  });
+
+  it("con horario cargado pero hoy cerrada (domingo, feriado), no falta: dice «Hoy cerrada»", () => {
+    const v = armar({ hora: null, cargado: true });
+    expect(falta(v, "cierre")).toBe(false);
+    expect(valorDe(v, "cierre")).toBe("Hoy cerrada");
+  });
+
+  it("sin horario cargado, falta", () => {
+    const v = armar({ hora: null, cargado: false });
+    expect(falta(v, "cierre")).toBe(true);
+    expect(valorDe(v, "cierre")).toBe("Falta");
+  });
+
+  it("si la base no trajo el horario, vale la hora suelta de antes", () => {
+    const v = armarVitrinas({ empresa: null, tiendas: [tienda({ id: "a", nombre: "Tienda LIM", horaCierre: "21:30" })], asistente: null, carga: null, hoy: HOY })[0]!;
+    expect(falta(v, "cierre")).toBe(false);
+    expect(valorDe(v, "cierre")).toBe("9:30 p. m.");
+  });
+});
