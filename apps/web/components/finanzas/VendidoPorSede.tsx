@@ -4,31 +4,30 @@ import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 import { ConfianzaChip, ConfianzaDetalle } from "@/components/finanzas/Confianza";
 import { CabeceraBloque, Superficie } from "@/components/finanzas/kit";
-import { hrefTelar, mesDelDia, sedeDeLaUrl, SEDE_TODAS, tramosDelOrillo, type ClaveSede, type SedeTelar } from "@/lib/finanzas-telar-reglas";
+import { hrefTelar, mesDelDia, sedeDeLaUrl, SEDE_TODAS, type ClaveSede } from "@/lib/finanzas-telar-reglas";
 import { soles } from "@/lib/flujo-caja-reglas";
+import type { VendidoDeSedes } from "@/lib/resumen-telar-reglas";
 import type { Confianza as ConfianzaDatos } from "@/lib/finanzas-confianza";
 
 // Finanzas ▸ Resumen, «Vendido por sede» (Felipe 2026-10-29, opción 3 del spike «Resumen pulido»). Junta en UNA tarjeta lo que antes eran dos franjas
 // finas apiladas: el orillo (cuánto vendió cada sede, ahora más alto y con su leyenda) y la confianza del número («Seguro al 86 %», arriba a la
 // derecha, con lo que falta debajo). Cada tramo sigue siendo un enlace que elige esa sede, como su hilo en la mesa de mando. No calcula nada:
-// los montos vienen de `vendidoPorSede` y la confianza de `lib/finanzas-confianza.ts`.
+// los montos y la frase vienen de `vendidoPorSede` (con IGV y con lo de CLAURE; el porcentaje mide lo mismo, sin IGV) y la confianza de `lib/finanzas-confianza.ts`.
 
 export function VendidoPorSede({
-  porSede,
-  sedes,
+  vendido,
   hoy,
   mes,
   confianza,
   falla,
   hrefCuadre,
 }: {
-  porSede: Record<ClaveSede, number>;
-  sedes: SedeTelar[];
+  vendido: VendidoDeSedes;
   hoy: string;
   /** El nombre del mes que se mira («octubre»). */
   mes: string;
   confianza: ConfianzaDatos | null;
-  /** Lleva a «De Ventas a Finanzas» (ADR-0609): por qué esta cifra no es la de la pantalla de Ventas. */
+  /** Lleva a «De Ventas a Finanzas» (ADR-0609): la cuenta entre esta cifra y la de la pantalla de Ventas. */
   hrefCuadre: string;
   /** Por qué no se pudo medir la confianza, si no se pudo. */
   falla?: string | null;
@@ -36,10 +35,9 @@ export function VendidoPorSede({
   const pathname = usePathname();
   const sp = useSearchParams();
   // Solo las sedes que vendieron: una en cero no tiene nada que dibujar (el Taller y la Empresa no venden).
-  const tramos = tramosDelOrillo(porSede, sedes).filter((t) => t.monto > 0);
+  const { tramos, total, frase, enlace } = vendido;
   if (tramos.length === 0) return null;
   const elegida = sedeDeLaUrl({ sede: sp.get("sede"), ver: sp.get("ver") });
-  const total = tramos.reduce((a, t) => a + t.monto, 0);
   const ir = (clave: ClaveSede) => hrefTelar(pathname, sp.entries(), { sede: clave === elegida ? SEDE_TODAS : clave }, { mismaPantalla: true, mesDeHoy: mesDelDia(hoy) });
   return (
     <Superficie pad guia="fin-resumen.sedes">
@@ -47,9 +45,9 @@ export function VendidoPorSede({
         titulo="Vendido por sede"
         bajada={
           <>
-            {`${soles(total)} en ${mes}, sin IGV ni CLAURE. `}
+            {`${frase} `}
             <Link href={hrefCuadre} className="btn-enlace">
-              Por qué no es la cifra de Ventas
+              {enlace}
             </Link>
           </>
         }

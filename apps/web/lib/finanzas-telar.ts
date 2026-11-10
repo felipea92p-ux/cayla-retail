@@ -23,3 +23,11 @@ export const getSedesDelTelar = cache(
     return { sedes: sedesDelTelar(propias, veTodo), veTodo, propia: persona.ubicacionId, sedesEstados: veEstados ? sedesDelTelar(filas, true) : null };
   }
 );
+
+/**
+ * Cuándo se dibujó el layout de Finanzas en el servidor. Tiene que ser distinta en cada dibujo: `router.refresh()` lo vuelve a dibujar y una navegación no, y
+ * así «Te toca» sabe que la pantalla se volvió a leer tras un guardado (tarea 155).
+ */
+export function marcaDelDibujo(): number {
+  return Date.now();
+}

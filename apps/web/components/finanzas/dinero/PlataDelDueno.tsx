@@ -15,7 +15,7 @@ import { graficoDelDueno, type VistaDueno } from "@/lib/dinero-dueno-cobros-regl
 // Cuentas y dinero ▸ Dónde está ▸ «Plata del dueño» (rediseño Felipe 2026-10-31, maqueta docs/maquetas/finanzas-dinero-rediseno-2026-10/): la tarjeta de
 // siempre (qué es un aporte y qué un préstamo, cuánto te debe CAYLA, cada préstamo con lo devuelto, «Poner plata» y «Sacar plata», que abren el mismo
 // «Registrar movimiento») y, a su lado, quién puso y sacó plata. «Quién» es quien REGISTRÓ el movimiento, no necesariamente quien lo pidió. Solo el
-// líder y solo con todas las sedes. El gráfico lee los últimos movimientos que la pantalla ya trae (`fn_movimientos_dinero`, 150), no una lectura nueva.
+// líder y solo con todas las sedes. El gráfico lee los movimientos que la pantalla ya trae (`fn_movimientos_dinero`, sin tope), no una lectura nueva.
 
 export function PlataDelDueno({
   deuda,

@@ -41,7 +41,7 @@ import {
 
 type EstadoLista = { tipo: "cerrada" } | { tipo: "cargando" } | { tipo: "error" } | { tipo: "lista"; lista: ListaSinCosto };
 
-export function ValorInventarioExistencias({ vista, puedeEditarCatalogo }: { vista: VistaValor; puedeEditarCatalogo: boolean }) {
+export function ValorInventarioExistencias({ vista, puedeEditarCatalogo, veComprobacion }: { vista: VistaValor; puedeEditarCatalogo: boolean; /** Tiene el módulo de reportes financieros: a los roles de Compras el enlace los llevaría a «Sin acceso». */ veComprobacion: boolean }) {
   const [abierto, setAbierto] = useState(false);
   const [porQue, setPorQue] = useState(false);
   const [cuales, setCuales] = useState<EstadoLista>({ tipo: "cerrada" });
@@ -144,7 +144,19 @@ export function ValorInventarioExistencias({ vista, puedeEditarCatalogo }: { vis
         <button type="button" className="btn-enlace text-sm" aria-expanded={porQue} onClick={() => setPorQue((v) => !v)}>
           {porQue ? "Ocultar la explicación" : "¿Por qué no es el de Finanzas?"}
         </button>
-        {porQue && <p className="nota-cayla mt-2">{PORQUE_NO_ES_EL_BALANCE}</p>}
+        {porQue && (
+          <p className="nota-cayla mt-2">
+            {PORQUE_NO_ES_EL_BALANCE}
+            {veComprobacion && (
+              <>
+                {" "}
+                <Link href="/finanzas/reportes/balance" className="btn-enlace">
+                  Ver cuánto es hoy en el Balance
+                </Link>
+              </>
+            )}
+          </p>
+        )}
       </div>
     </section>
   );

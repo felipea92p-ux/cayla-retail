@@ -44,8 +44,8 @@ export default async function CuentasDineroPage({ searchParams }: { searchParams
     ctx.esLider ? getMediosDeCobro() : Promise.resolve({ datos: [], falla: null }),
     ctx.esLider && !ctx.ver.ubicacionId ? getSinCuenta() : Promise.resolve({ datos: [], falla: null }),
     ctx.esLider ? getProyeccion(6) : Promise.resolve({ datos: null, falla: null }),
-    // Las máquinas que se atrasaron con su depósito (ADR-0429, act. 4): solo el líder; vacío si la base no lo sabe todavía.
-    ctx.esLider ? getAlertasPos() : Promise.resolve([]),
+    // Las máquinas que se atrasaron con su depósito (ADR-0429, act. 4): solo el líder; vacío si la base no lo sabe todavía; si no responde, la pantalla lo dice.
+    ctx.esLider ? getAlertasPos() : Promise.resolve({ datos: [], falla: null }),
     deLaEmpresa ? Promise.resolve(sinEfectivo) : getEfectivo(ctx.ver.ubicacionId),
     deLaEmpresa ? Promise.resolve({ datos: [], falla: null }) : getCierresConDiferencia(ctx.ver.ubicacionId),
     getSedesDelTelar(),
@@ -54,7 +54,7 @@ export default async function CuentasDineroPage({ searchParams }: { searchParams
     ctx.esLider && !ctx.ver.ubicacionId ? getCuentaClaure() : Promise.resolve(null),
     // La planilla que Dynamic pagó y no dice de qué banco salió (ADR-0567): como las máquinas atrasadas, en toda vista, porque baja un banco
     // de la empresa y el líder entra mirando su sede.
-    ctx.esLider ? getPlanillaPorRegistrar() : Promise.resolve([]),
+    ctx.esLider ? getPlanillaPorRegistrar() : Promise.resolve({ datos: [], falla: null }),
     ctx.esLider ? getPlanillaCuentas() : Promise.resolve(null),
   ]);
   // Con una sede elegida, «tienes» es SOLO lo suyo (su cajón y su caja fuerte): los bancos son de la empresa y no se le suman. Con la
@@ -71,11 +71,13 @@ export default async function CuentasDineroPage({ searchParams }: { searchParams
   });
 
   // La campana «Estado de las cuentas»: los mismos datos de la pantalla, ordenados por lo que pide mirada (lib/dinero-estados-reglas.ts).
-  const atrasadas = new Set(alertas.filter((a) => a.atrasados > 0).map((a) => a.cuentaId));
+  const atrasadas = new Set(alertas.datos.filter((a) => a.atrasados > 0).map((a) => a.cuentaId));
   const filasEstado = filasDeEstado(grupos, atrasadas);
   const filasCierres = filasDeCierres(cierres.datos);
-  const avisosPlanilla = avisosDePlanilla(planilla, cuentasPlanilla ?? []);
-  const pendientes = porRegistrar(alertas, avisosPlanilla);
+  const avisosPlanilla = avisosDePlanilla(planilla.datos, cuentasPlanilla ?? []);
+  const pendientes = porRegistrar(alertas.datos, avisosPlanilla);
+  // Si no se pudo leer alguno de estos dos avisos, no sale su aviso: la campana no puede decir que todo está en orden.
+  const avisosIncompletos = !!alertas.falla || !!planilla.falla;
   const contador = contadorDeCampana(filasEstado, filasCierres, pendientes);
   const itemsAtencion = itemsDeAtencion(filasEstado, filasCierres, pendientes, ctx.esLider, ctx.esLider && !sedeId ? deudaConDueno(ctx.plata) : null);
   const movimientosVisibles = deLaEmpresa ? movimientosDeLaEmpresa(movimientos.datos, ctx.cuentas.datos) : movimientos.datos;
@@ -101,9 +103,9 @@ export default async function CuentasDineroPage({ searchParams }: { searchParams
       cuentas={ctx.cuentas.datos}
       deuda={ctx.deuda}
       hoy={hoy}
-      fallas={[ctx.cuentas.falla, movimientos.falla, medios.falla, efectivo.falla, ctx.plataFalla, sinCuenta.falla, cierres.falla, proyeccion.falla].filter((f): f is string => !!f)}
+      fallas={[ctx.cuentas.falla, movimientos.falla, medios.falla, efectivo.falla, ctx.plataFalla, sinCuenta.falla, cierres.falla, proyeccion.falla, alertas.falla, planilla.falla].filter((f): f is string => !!f)}
       panorama
-      campana={<CampanaDinero filas={filasEstado} cierres={filasCierres} pendientes={pendientes} planilla={avisosPlanilla} cuentas={ctx.cuentas.datos} contador={contador} esLider={ctx.esLider} />}
+      campana={<CampanaDinero filas={filasEstado} cierres={filasCierres} pendientes={pendientes} planilla={avisosPlanilla} cuentas={ctx.cuentas.datos} contador={contador} esLider={ctx.esLider} incompleto={avisosIncompletos} />}
     >
       <PanoramaDinero
         titulo={quien ? `Tiene ${quien}` : "Tienes en total"}
@@ -118,6 +120,7 @@ export default async function CuentasDineroPage({ searchParams }: { searchParams
         movimientos={movimientosVisibles}
         hoy={hoy}
         items={itemsAtencion}
+        incompleto={avisosIncompletos}
         alcanza={<AlcanzaDinero alcanza={alcanzaPulso(proyeccion.datos, tienes.guardado, !!proyeccion.falla)} deCaylaEntera={!!sedeId} />}
         ultimos={<MovimientosEnPantalla movimientos={movimientosVisibles} hoy={hoy} />}
       />

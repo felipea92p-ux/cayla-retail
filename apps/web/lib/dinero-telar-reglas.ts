@@ -17,6 +17,7 @@ import type { SedeTelar } from "./finanzas-telar-reglas";
 import type { TonoChip } from "@/components/ui/Chip";
 import type { Tienes } from "./dinero-pulso-reglas";
 import type { ConciliacionCuenta } from "./cuentas-dinero-reglas";
+import { coincidenciasConBanco, textoCoinciden, textoLineasPorRevisar } from "./cuadrar-reglas";
 
 const r2 = (n: number) => Math.round(n * 100) / 100;
 
@@ -283,13 +284,17 @@ export function chipsDondeEsta(t: Pick<Tienes, "partes" | "tarjeta" | "ocultas">
   return chips;
 }
 
-/** «¿Cuánto dicen tus bancos?»: lo que suma el sistema en los bancos (nulo si no hay bancos) y cuántas líneas faltan revisar. */
-export function respuestaCuadrar(cuentas: readonly Pick<ConciliacionCuenta, "tipo" | "saldoHoy" | "pendientes">[]): { valor: number | null; chips: ChipRespuesta[] } {
+/**
+ * «¿Cuánto dicen tus bancos?»: lo que suma el sistema en los bancos (nulo si no hay bancos), cuántas líneas faltan revisar y cuántas cuentas coinciden con el banco. El verde
+ * es solo para todas coincidiendo: terminar de revisar líneas no dice que el banco cuadre.
+ */
+export function respuestaCuadrar(cuentas: readonly Pick<ConciliacionCuenta, "tipo" | "saldoHoy" | "pendientes" | "ultimaFecha" | "ultimaDiferencia">[]): { valor: number | null; chips: ChipRespuesta[] } {
   const bancos = cuentas.filter((c) => c.tipo === "banco");
   if (!bancos.length) return { valor: null, chips: [] };
-  const pendientes = cuentas.reduce((a, c) => a + c.pendientes, 0);
+  const r = coincidenciasConBanco(cuentas);
+  const coinciden: ChipRespuesta = { texto: textoCoinciden(r), tono: r.todoCuadra ? "verde" : r.noCuadran > 0 ? "ambar" : "pizarra" };
   return {
     valor: Math.round(bancos.reduce((a, c) => a + c.saldoHoy, 0) * 100) / 100,
-    chips: [pendientes ? { texto: `${pendientes} ${pendientes === 1 ? "línea" : "líneas"} por revisar`, tono: "ambar" } : { texto: "Todo revisado", tono: "verde" }],
+    chips: r.pendientes > 0 ? [{ texto: textoLineasPorRevisar(r.pendientes), tono: "ambar" }, coinciden] : [coinciden],
   };
 }

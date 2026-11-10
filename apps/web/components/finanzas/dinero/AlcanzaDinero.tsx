@@ -2,9 +2,10 @@ import Link from "next/link";
 import { Chip } from "@/components/ui/Chip";
 import { TituloSeccion } from "@/components/ui/TituloSeccion";
 import { FaltanProyeccion } from "@/components/finanzas/FaltanProyeccion";
+import { NO_INCLUYE_SEMANAS } from "@/lib/caja-proxima-reglas";
 import type { Alcanza } from "@/lib/dinero-pulso-reglas";
 
-// Cuentas y dinero ▸ Dónde está ▸ «¿Me alcanza?» (rediseño Felipe 2026-10-31): la semana que baja del mínimo y qué pasa si depositas lo guardado, ahora en la
+// Cuentas y dinero ▸ Dónde está ▸ «¿Me alcanza?» (rediseño Felipe 2026-10-31): si hoy o algún día de las próximas semanas estás bajo el mínimo y qué pasa si depositas lo guardado, ahora en la
 // columna derecha, bajo «Pide tu atención» (antes era una tarjeta de ancho completo debajo de las cuentas). No calcula: lo deciden
 // `lib/dinero-pulso-reglas.ts` y las funciones de la base de siempre. Sin estado: sirve en el servidor y llega a `PanoramaDinero` como una pieza más.
 export function AlcanzaDinero({
@@ -30,8 +31,8 @@ export function AlcanzaDinero({
         {alcanza.estado !== "sin_dato" && (
           <>
             <div className="flex flex-wrap gap-2">
-              <Chip tono={alcanza.estado === "baja" ? "ambar" : alcanza.provisional ? "pizarra" : "verde"}>
-                {alcanza.estado === "baja" ? "Baja del mínimo" : alcanza.provisional ? "Dentro del mínimo · provisional" : "Dentro del mínimo"}
+              <Chip tono={alcanza.estado !== "bien" ? "ambar" : alcanza.provisional ? "pizarra" : "verde"}>
+                {alcanza.estado === "hoy_bajo" ? "Hoy bajo tu mínimo" : alcanza.estado === "baja" ? "Baja del mínimo" : alcanza.provisional ? "Dentro del mínimo · provisional" : "Dentro del mínimo"}
               </Chip>
               {alcanza.diasDeCaja !== null && (
                 <Chip tono="pizarra">
@@ -41,6 +42,7 @@ export function AlcanzaDinero({
                 </Chip>
               )}
             </div>
+            <p className="dp-tenue">{NO_INCLUYE_SEMANAS}</p>
             {alcanza.provisional && <FaltanProyeccion provisional faltan={alcanza.faltan} />}
             {alcanza.guardadoYaCuenta && <p className="nota-cayla">{alcanza.guardadoYaCuenta.frase}</p>}
             {alcanza.deClaudia && <p className="nota-cayla">{alcanza.deClaudia.frase}</p>}

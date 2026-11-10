@@ -22,6 +22,7 @@ import {
   OPCIONES_QUE_PASO,
   TEXTO_MOVIMIENTO,
   TEXTO_SIN_CUENTA,
+  avisoFechaAntesDelInicio,
   cuadra,
   cuentasPara,
   ejemploMontoDeposito,
@@ -37,6 +38,7 @@ import {
   resumenAbono,
   revisarComision,
   resumenConciliacion,
+  salidasDelCajon,
   textoDespuesDelDeposito,
   textoLote,
   textoSalida,
@@ -55,7 +57,7 @@ import {
   type Conciliacion,
   type ConciliacionCuenta,
   type CuentaDinero,
-  type EgresoParaMovimiento,
+  type LecturaSalidas,
   type LotePendiente,
   type MovimientoDinero,
   type QuePaso,
@@ -65,12 +67,13 @@ import { Boton } from "@/components/ui/campos";
 import { UltimosMovimientos } from "@/components/finanzas/dinero/HistorialDinero";
 import { Casilla } from "@/components/ui/Casilla";
 import { Aviso, AvisoNoSeDeshace } from "@/components/ui/Aviso";
+import { fallaLegible } from "@/lib/gastos-telar-reglas";
 import { Vacio } from "@/components/ui/Vacio";
 import { ArrowLeftRight, Landmark } from "lucide-react";
 import { Volver } from "@/components/ui/Volver";
 import { CampoGuiado, PieGuia } from "@/components/guia-de-foco/CampoGuiado";
 import { useGuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
-import { avanceDeLineas, bancosParaCuadrar, camposDeAnotarSaldo, estadoDeBanco, estadoPar, filtrarLineas, inicialesDeBanco, respuestaCuadre, textoLadoBanco, textoPeriodo, textoUltimaVez, type FiltroLineas } from "@/lib/cuadrar-reglas";
+import { avanceDeLineas, bancosParaCuadrar, cabeceraDeBancos, camposDeAnotarSaldo, estadoDeBanco, estadoPar, filtrarLineas, inicialesDeBanco, respuestaCuadre, textoLadoBanco, textoMarcarRevisadas, textoPeriodo, textoUltimaVez, type FiltroLineas } from "@/lib/cuadrar-reglas";
 import { BarraAvance } from "@/components/ui/BarraAvance";
 import { SegmentoDeslizante } from "@/components/ui/SegmentoDeslizante";
 import { TituloSeccion } from "@/components/ui/TituloSeccion";
@@ -197,11 +200,11 @@ export function PantallaDinero({
             )
           }
         />
-        {fallas.map((f) => (
-          <p key={f} className="card-cayla border-dashed px-5 py-4 text-sm text-tinta/75">
-            {f}
-          </p>
-        ))}
+        {fallas.length > 0 && (
+          <Aviso tono="atencion" titulo="Una parte de Cuentas y dinero no respondió">
+            {fallas.map(fallaLegible).join(" ")} Vuelve a entrar en un rato.
+          </Aviso>
+        )}
         {children}
       </div>
       {cuadrando && <CuadrarDepositosHoja onCerrar={() => setCuadrando(false)} />}
@@ -378,7 +381,7 @@ export function ConciliacionPanel({
       <aside className="card-cayla din-cuad-lista anim-sube" data-guia="fin-conciliacion.otras" aria-label="Tus bancos">
         <header className="din-cuad-lista-cab">
           <TituloSeccion cuenta={totalPendientes}>Tus bancos</TituloSeccion>
-          <p className="din-cuad-tenue">{totalPendientes === 0 ? "Todo revisado." : `${totalPendientes} ${totalPendientes === 1 ? "línea" : "líneas"} por revisar.`}</p>
+          <p className="din-cuad-tenue">{cabeceraDeBancos(cuentas)}</p>
         </header>
         <div role="group" aria-label="Qué cuenta cuadrar">
           {bancosParaCuadrar(cuentas).map((c) => {
@@ -480,7 +483,7 @@ export function ConciliacionPanel({
                 {deUnaFecha && <Volver onClick={() => ir(actual.cuenta.id)} a="Volver a hoy" />}
                 {actual.cuenta.nombre} · movimientos {periodo}
               </b>
-              <p>A la izquierda, lo que anotó CAYLA; a la derecha, si está en el extracto del banco.</p>
+              <p>A la izquierda, lo que anotó CAYLA; a la derecha, quién la revisó. Revisarla no compara con el banco: eso lo dice el saldo que anotes.</p>
             </div>
             {extracto}
             <SegmentoDeslizante
@@ -505,7 +508,7 @@ export function ConciliacionPanel({
               </span>
               {r.porRevisar.length > 0 && (
                 <button type="button" className="btn-cayla btn-primario btn-chico" disabled={guardando} onClick={() => marcar(r.porRevisar.map((l) => ({ clave: l.clave, monto: l.monto })), true)}>
-                  {r.porRevisar.length === 1 ? "Marcar la que falta como revisada" : `Marcar las ${r.porRevisar.length} como revisadas`}
+                  {textoMarcarRevisadas(r.porRevisar.length)}
                 </button>
               )}
             </div>
@@ -546,7 +549,7 @@ export function ConciliacionPanel({
                         </button>
                       ) : (
                         <button type="button" className="btn-cayla btn-secundario btn-chico" disabled={guardando} onClick={() => marcar([{ clave: l.clave, monto: l.monto }], true)}>
-                          Sí, está
+                          Marcar revisada
                         </button>
                       )}
                     </div>
@@ -647,7 +650,8 @@ function RegistrarMovimientoModal({
   const opciones = OPCIONES_QUE_PASO.filter((o) => esLider || !o.soloLider);
   const [token] = useState(() => crypto.randomUUID());
   const [guardando, setGuardando] = useState(false);
-  const [egresos, setEgresos] = useState<EgresoParaMovimiento[]>([]);
+  const [salidasLeidas, setSalidasLeidas] = useState<LecturaSalidas | null>(null);
+  const [intentoSalidas, setIntentoSalidas] = useState(0);
   const mesesSunat = mesesParaPagarSunat(hoy);
   const [sunat, setSunat] = useState<BorradorPagoSunat>(() => ({
     mes: mesesSunat.find((m) => m.valor === mesSunatInicial)?.valor ?? mesesSunat[0]!.valor,
@@ -681,13 +685,16 @@ function RegistrarMovimientoModal({
     let vivo = true;
     createClient()
       .rpc("fn_egresos_para_movimiento" as never, { p_ubicacion_id: ubicacionCajon } as never)
-      .then(({ data }) => {
-        if (vivo) setEgresos(((data ?? []) as Record<string, unknown>[]).map(leerEgresoParaMovimiento));
+      .then(({ data, error }) => {
+        if (vivo) setSalidasLeidas({ ubicacionId: ubicacionCajon, egresos: error ? [] : ((data ?? []) as Record<string, unknown>[]).map(leerEgresoParaMovimiento), falla: !!error });
       });
     return () => {
       vivo = false;
     };
-  }, [ubicacionCajon]);
+  }, [ubicacionCajon, intentoSalidas]);
+  // Lo leído va con su cajón: si la persona cambia de cajón, la lista anterior deja de valer mientras llega la nueva.
+  const salidas = salidasDelCajon(salidasLeidas, ubicacionCajon);
+  const egresos = salidas.egresos;
   const egresosDelTipo = egresos.filter((e) => (tipo === "deposito" ? e.marca !== "retiro" : e.marca !== "deposito"));
 
   // El depósito de una máquina (ADR-0429) se cruza contra los días que todavía no depositó: la lista llega de la base
@@ -734,6 +741,8 @@ function RegistrarMovimientoModal({
   const comisionRara = cuentaAbono ? revisarComision(cuentaAbono) : null;
   const confirmada = !!cuentaAbono && cuentaAbono.comision !== null && comisionConfirmada === cuentaAbono.comision;
   const netoPropuesto = cuentaAbono && b.monto.trim() === "" ? netoEsperado(cuentaAbono) : null;
+  // Solo las cuentas que este movimiento de verdad usa: un pago a SUNAT no tiene destino, y un aporte del dueño no tiene origen.
+  const avisoFecha = avisoFechaAntesDelInicio(b.fecha, [op.origen ? origen : null, op.destino ? cuentas.find((c) => c.id === b.destino) : null]);
 
   function elegirQue(que: QuePaso) {
     setB(inicialDe(que, cuentas, ubicacionId, deuda, hoy, b));
@@ -890,8 +899,30 @@ function RegistrarMovimientoModal({
             <CampoFin
               etiqueta="¿Cuál salida?"
               htmlFor="mov-egreso"
-              ayuda={egresosDelTipo.length === 0 ? "No hay salidas de este cajón en los últimos 60 días que no digan ya qué fueron." : "El monto es el de la salida."}
-              tono={egresosDelTipo.length === 0 ? "aviso" : undefined}
+              ayuda={
+                salidas.estado === "leyendo" ? (
+                  "Leyendo las salidas de este cajón…"
+                ) : salidas.estado === "falla" ? (
+                  <>
+                    No se pudieron leer las salidas de este cajón.{" "}
+                    <button
+                      type="button"
+                      className="btn-enlace"
+                      onClick={() => {
+                        setSalidasLeidas(null);
+                        setIntentoSalidas((n) => n + 1);
+                      }}
+                    >
+                      Volver a intentar
+                    </button>
+                  </>
+                ) : egresosDelTipo.length === 0 ? (
+                  "No hay salidas de este cajón en los últimos 60 días que no digan ya qué fueron."
+                ) : (
+                  "El monto es el de la salida."
+                )
+              }
+              tono={salidas.estado !== "leyendo" && egresosDelTipo.length === 0 ? "aviso" : undefined}
             >
               <SelectFin
                 id="mov-egreso"
@@ -899,6 +930,7 @@ function RegistrarMovimientoModal({
                 onValor={(egresoId) => cambiar({ egresoId })}
                 marcador="Elige…"
                 opciones={egresosDelTipo.map((e) => ({ valor: e.id, texto: textoSalida(e) }))}
+                deshabilitado={salidas.estado !== "lista"}
               />
             </CampoFin>
           )}
@@ -1021,7 +1053,7 @@ function RegistrarMovimientoModal({
 
       {!esCajon && (
         <div className="fin-dos-campos" data-sin-cascada data-guia="fin-dinero.mov-fecha">
-          <CampoFin etiqueta="Fecha" htmlFor="mov-fecha">
+          <CampoFin etiqueta="Fecha" htmlFor="mov-fecha" ayuda={avisoFecha ?? undefined} tono={avisoFecha ? "aviso" : undefined}>
             <InputFin id="mov-fecha" type="date" max={hoy} value={b.fecha} onChange={(e) => cambiar({ fecha: e.target.value })} />
           </CampoFin>
           {esDepositoMaquina && cuentaAbono && (

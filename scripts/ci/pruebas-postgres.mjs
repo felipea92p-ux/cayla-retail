@@ -767,6 +767,9 @@ export const PRUEBAS = [
   // y corregir el pago; el borde exacto en S/ 0; la cifra solo para quien cierra la caja; el segundo retiro espera al primero.
   // Con control. Disparadores diferidos: cada caso corre `set constraints all immediate` y termina en ROLLBACK.
   "pruebas:caja-efectivo-no-negativo",
+  // ADR-0630: con la caja cerrada, un líder corrige lo que no es efectivo (Yape → QR, la máquina de una tarjeta); el efectivo, un
+  // no líder, el efectivo con cuenta, una máquina que no cobra ahí y un mes cerrado DEBEN bloquear. Control: `-- --sin-migracion`.
+  "pruebas:corregir-pagos-caja-cerrada",
   // ADR-0412 (/chaos de Finanzas 2026-10-14): NaN, tope de S/ 1 000 000 y textos con tope en Finanzas; la caja fuerte no queda bajo
   // cero (disparadores diferidos: cada caso corre `set constraints all immediate`); un gasto anterior al inicio de Finanzas. Con controles.
   "pruebas:finanzas-montos-y-caja-fuerte",
@@ -1836,6 +1839,8 @@ export const PRUEBAS = [
   "pruebas:compras-simple-revisar",
   // La marca nueva de «Algo nuevo» (Felipe 2026-10-24): con «Mis compras» se crea unida al proveedor, sin duplicarse.
   "pruebas:compras-simple-marca",
+  // Recibir crea el proveedor (razón social y RUC opcional) y la marca que no están, con solo el módulo Recibir (ADR-0635).
+  "pruebas:recibir-crea-proveedor-y-marca",
   // Corregir una compra ya anotada (ADR-0561): la plata vuelve sola mientras Compras no la completa, el papel acompaña si ya cuadraba, no se baja de lo
   // enviado, todo o nada, rastro que no se borra.
   "pruebas:compras-simple-corregir",

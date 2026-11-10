@@ -42,7 +42,7 @@ export function pulsoImpuestos(p: PanelImpuestos): PulsoImpuestos {
     return { estado: "sin_mes", mes: p.mes, frase: `En ${mes} no hubo ventas ni compras con factura en el sistema: no hay IGV que pagar ni saldo a favor.` };
   const estado = igv > 0 ? "a_pagar" : "a_favor";
   const cuenta: TramoImpuesto[] = [
-    { clave: "cobrado", nombre: "IGV que cobraste al vender", monto: r2(f.debito), tipo: "entra", detalle: `${plural(f.comprobantes, "comprobante", "comprobantes")} de ${mes}.` },
+    { clave: "cobrado", nombre: "IGV de tus boletas y facturas", monto: r2(f.debito), tipo: "entra", detalle: `${plural(f.comprobantes, "comprobante", "comprobantes")} de ${mes}.` },
     { clave: "descontado", nombre: "IGV que descuentas por tus compras con factura", monto: r2(f.credito), tipo: "sale" },
   ];
   if (f.saldoAnterior > 0) cuenta.push({ clave: "anterior", nombre: "Saldo a favor que traías", monto: r2(f.saldoAnterior), tipo: "sale" });

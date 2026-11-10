@@ -53,6 +53,11 @@ export type FilaER = {
    * pudo leer), la pantalla no dibuja esas filas.
    */
   igvCobrado?: number;
+  /**
+   * Lo vendido de CLAURE en esta columna, sin IGV (Felipe 2026-11-09). Se cobró en la tienda y su IGV va en `igvCobrado`, pero no es ingreso de CAYLA: `ventas` no lo trae. Solo sirve para
+   * PRESENTAR lo cobrado (`ventas + igvCobrado + claureSinIgv`). Llega junto con `igvCobrado`.
+   */
+  claureSinIgv?: number;
 };
 
 /** Lo que una sede de Dynamic aporta a la planilla provisionada de una columna. Nunca una persona: solo cuántas y cuánto. */
@@ -355,6 +360,15 @@ export function veLaPlanilla(lectura: { datos: readonly Pick<FilaER, "planillaVi
 
 /** Lo mismo en la pantalla y en la primera línea de cada archivo (tarea 23; ocultar la planilla es a propósito, ADR-0133; callarlo, no). */
 export const AVISO_SIN_SUELDOS = "Sin sueldos: esta cuenta no ve la planilla en Dynamic, así que estas cifras no la restan.";
+/** La lectura de los sueldos se cayó (tarea 43): no es culpa de la cuenta, y las cifras se siguen viendo. */
+export const AVISO_SUELDOS_SIN_LEER = "No se pudieron leer los sueldos: estas cifras no los restan.";
+
+/** Lo que un archivo del contador dice en su primera línea sobre los sueldos. */
+export function primerasLineasDeSueldos(lectura: { datos: readonly Pick<FilaER, "planillaVisible">[]; falla: string | null; sueldosSinLeer?: boolean }): string[] {
+  if (lectura.sueldosSinLeer) return [AVISO_SUELDOS_SIN_LEER];
+  const ve = veLaPlanilla(lectura);
+  return ve === false ? [AVISO_SIN_SUELDOS] : ve === null ? ["No se pudo comprobar si estas cifras llevan sueldos."] : [];
+}
 
 // ---- De dónde sale cada cifra ---------------------------------------------------------------------------------------------
 

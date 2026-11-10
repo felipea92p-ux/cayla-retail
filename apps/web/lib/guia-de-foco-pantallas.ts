@@ -271,7 +271,7 @@ export const PANTALLAS: Record<string, PantallaGuia> = {
 // ---------------------------------------------------------------------------------------------------------------------------------
 
 /** Cuántos modales siguen `pendiente`. Baja a medida que se hacen; un modal nuevo no nace pendiente. (55 → 54 con «Ingresar insumo» del rediseño de Producción y 54 → 53 con la ficha de la clienta de `main`: dos archivos distintos que se suman al fusionar; 53 → 52 el 2026-10-17: la orden de Producción pasó a `<Cajon>` y ya no arma su propia hoja, ADR-0358 ronda 17; 52 → 54 ese mismo día, cuando la prueba aprendió a ver el `<Cajon>`: la orden de Producción vuelve —su cajón sigue llevando el cierre y los insumos, sin guía— y entra la ficha de una persona del Equipo, que nació el 2026-10-05 en un cajón hecho a mano que la prueba no veía. Ninguno es un modal nuevo: es deuda que estaba escondida; 54 → 53 ese mismo día, con la guía de la ficha del Equipo.) */
-export const MODALES_PENDIENTES_HOY = 44;
+export const MODALES_PENDIENTES_HOY = 43;
 
 export const MODALES: Record<string, PantallaGuia> = {
   "components/AdjuntosCompra.tsx": PENDIENTE, // 3 controles
@@ -346,6 +346,10 @@ export const MODALES: Record<string, PantallaGuia> = {
   // «No tiene RUC», y el WhatsApp si se escribió; la pregunta «¿no será uno que ya tienes?» sin contestar también bloquea. Sale de lo que la función
   // `registrar_proveedor_de_orden` ya exige (`lib/proveedor-de-orden-reglas.ts`, con su prueba).
   "components/ordenes-compra/RegistrarProveedorOrden.tsx": { estado: "aplicada", evidencia: ["components/ordenes-compra/RegistrarProveedorOrden.tsx"] },
+  // Recibir crea lo que no está (ADR-0635): el proveedor pide su razón social (el RUC es opcional y solo cuenta si se escribió) y contestar «¿no será…?»;
+  // la marca, su nombre (y la misma pregunta) y quién la trae. Lo que falta sale de lo que rechazan `registrar_proveedor_de_recepcion` y `registrar_marca_de_recepcion`.
+  "components/recepcion-conteo/ProveedorNuevoRecepcion.tsx": { estado: "aplicada", evidencia: ["components/recepcion-conteo/ProveedorNuevoRecepcion.tsx"] },
+  "components/recepcion-conteo/MarcaNuevaRecepcion.tsx": { estado: "aplicada", evidencia: ["components/recepcion-conteo/MarcaNuevaRecepcion.tsx"] },
   "components/campanas-web/VistaPreviaCampana.tsx": { estado: "no-aplica", motivo: "Una hoja de un solo paso: «Crear enlace» y copiarlo. El único control es el «Responsable» de siempre y la hoja dice qué hace antes de pedir nada." },
   // Avisos, «Editar mensajes» (2026-10-20): cada aviso es un campo (lo que rechazaría `fn_club_aviso_problema`), el cierre opcional y quién lo cambia.
   "components/clientas/EditarMensajesAvisos.tsx": { estado: "aplicada", evidencia: ["components/clientas/EditarMensajesAvisos.tsx"] },
@@ -527,7 +531,7 @@ export const MODALES: Record<string, PantallaGuia> = {
   "components/finanzas/dinero/SalidasPlanillaModal.tsx": { estado: "aplicada", evidencia: ["components/finanzas/dinero/SalidasPlanillaModal.tsx"] },
   "components/finanzas/EstadoResultadosPanel.tsx": { estado: "no-aplica", motivo: "«De dónde sale» solo se lee: las líneas del diario detrás de una cifra del cuadro por sede. No tiene campos ni guarda nada; su único control es la × que la cierra." },
   "components/finanzas/PagosSinCuenta.tsx": PENDIENTE, // 2 controles
-  "components/finanzas/SaldosArranqueModal.tsx": PENDIENTE, // 3 controles
+  "components/finanzas/SaldosArranqueModal.tsx": { estado: "aplicada", evidencia: ["components/finanzas/SaldosArranqueModal.tsx"] },
   // ADR-0288 tanda 1a: la hoja ganó el alta de la clienta. Tanda 1g: solo el documento (tipo, número, nombre) y quién atiende.
   "components/punto-de-venta/ClientaDelTicket.tsx": { estado: "aplicada", evidencia: ["components/punto-de-venta/ClientaDelTicket.tsx"] },
   // Programa de puntos (actividad 5): «Usar puntos» es un stepper (un solo control: cuántos canjear, con el rango que la base aceptaría)

@@ -5,6 +5,7 @@ import { Check, FileText, Receipt, StickyNote } from "lucide-react";
 import type { MetodoPagoVenta } from "@cayla-retail/shared";
 import { ETIQUETA_TIPO, type TipoComprobante } from "@/lib/comprobantes-reglas";
 import { lecturaDelRecibido, type MaquinaDeCobro, maquinasPara, montosSugeridos, nombreMaquina, type PagoAplicado, preguntaMaquina } from "@/lib/vender-reglas";
+import type { NumeroQueDar } from "@/lib/cobro-por-dueno-reglas";
 import { LEY_REDONDEO, NOMBRE_METODO, TEXTO_REDONDEO } from "@/lib/recibo-reglas";
 import { CLASE_MONTO_ILEGIBLE, EntradaMonto, atributosMontoTexto } from "@/components/ui/CampoMonto";
 import { iconoMetodo } from "@/components/PuntoDeVentaTicket";
@@ -72,6 +73,7 @@ export function HojaDeCobro({
   onTocarMedio,
   maquinas = SIN_MAQUINAS,
   onMaquina,
+  numeroADar = null,
   onMontoPago,
   onRecibido,
   tipoComprobante,
@@ -103,6 +105,8 @@ export function HojaDeCobro({
   maquinas?: readonly MaquinaDeCobro[];
   /** La cajera marcó la otra máquina para ese pago. */
   onMaquina?: (indice: number, cuentaId: string) => void;
+  /** A qué número paga, donde conviven dos empresas (`numeroQueDar`). `null` = no hay nada que decir y la hoja queda como siempre. */
+  numeroADar?: NumeroQueDar | null;
   onMontoPago: (indice: number, monto: number) => void;
   onRecibido: (monto: number | null) => void;
   tipoComprobante: TipoVenta | null;
@@ -282,6 +286,12 @@ export function HojaDeCobro({
             {/* A la derecha, solo lo que el medio pide: con efectivo, los billetes y el vuelto; sin efectivo, una pista. Y, donde la
                 tienda tiene dos máquinas para la tarjeta o el QR, con cuál se cobró (ADR-0429), con la de defecto ya marcada. */}
             <div className="hoja-cobro-extra min-w-0">
+              {numeroADar && (
+                <p data-guia="vender.cobro-numero" role="status" className="nota-cayla sin-i anim-revelar mb-3">
+                  <b>{numeroADar.titulo}</b>
+                  <span className="block">{numeroADar.detalle}</span>
+                </p>
+              )}
               {preguntasMaquina.length > 0 && (
                 <div className="hoja-cobro-maquinas anim-revelar" data-maquinas>
                   {preguntasMaquina.map(({ pago, indice, opciones }) => (

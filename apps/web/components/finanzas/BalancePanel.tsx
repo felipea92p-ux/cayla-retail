@@ -48,6 +48,7 @@ export function BalancePanel({
   unidades,
   saldos,
   propuestaArranque,
+  comprobacionFallo = false,
 }: {
   /** Solo el líder registra los saldos de arranque (`registrar_saldo_inicial`). */
   esLider: boolean;
@@ -57,13 +58,15 @@ export function BalancePanel({
   saldos: SaldoInicial[];
   /** La propuesta de los saldos de arranque ya leída (opcional; si no viene, el modal la pide). */
   propuestaArranque?: LineaPropuesta[] | null;
+  /** La comprobación no se pudo leer: la página dice el error, y aquí no se afirma nada del arranque (lo que se leyó de las tiendas sigue a la vista). */
+  comprobacionFallo?: boolean;
 }) {
   const [arranqueAbierto, setArranqueAbierto] = useState(false);
   const arranque = chequeos.find((c) => c.arranque)?.arranque ?? saldos.find((s) => s.vigente)?.fecha ?? null;
 
   return (
     <div className="space-y-6">
-      <VistaSinCuadrar hoy={hoy} chequeos={chequeos} unidades={unidades} esLider={esLider} onArranque={() => setArranqueAbierto(true)} />
+      <VistaSinCuadrar hoy={hoy} chequeos={chequeos} unidades={unidades} esLider={esLider} comprobacionFallo={comprobacionFallo} onArranque={() => setArranqueAbierto(true)} />
       {arranqueAbierto && <SaldosArranqueModal hoy={hoy} arranque={arranque} saldos={saldos} propuestaInicial={propuestaArranque} onCerrar={() => setArranqueAbierto(false)} />}
     </div>
   );
@@ -195,18 +198,22 @@ function VistaSinCuadrar({
   chequeos,
   unidades,
   esLider,
+  comprobacionFallo,
   onArranque,
 }: {
   hoy: string;
   chequeos: Chequeo[];
   unidades: UnidadBalance[];
   esLider: boolean;
+  comprobacionFallo: boolean;
   onArranque: () => void;
 }) {
   const sit = situacion(chequeos);
   const visibles = chequeos.filter((c) => c.clave !== "corte");
   return (
     <>
+      {!comprobacionFallo && (
+      <>
       <div {...entra(1)} data-guia="fin-balance.chequeos">
         <Superficie pad className="fin-balance-tarjeta">
           <CabeceraBloque
@@ -258,6 +265,8 @@ function VistaSinCuadrar({
           </Superficie>
         )}
       </div>
+      </>
+      )}
 
       {unidades.length > 0 && (
         <div {...entra(3)} data-guia="fin-balance.tiendas">
@@ -492,7 +501,7 @@ export function MasDeLaSede({ unidad, hoy, veTodo }: { unidad: UnidadBalance; ho
       </section>
       <div {...entra(4, "nota-cayla")} data-guia="fin-balance.tienda-nota">
         No es un Balance completo: el <b>banco</b>, el <b>capital</b> y el <b>IGV</b> son de CAYLA entera y no se reparten entre las tiendas (repartirlos sería inventar un número). Aquí está lo que es de
-        la tienda y cuánto le rinde: la utilidad del mes (Estado de resultados) ÷ lo invertido.
+        la tienda y cuánto le rinde: la utilidad del mes (Ganancias y pérdidas) ÷ lo invertido.
         {!unidad.planillaVisible && " La utilidad no descuenta la planilla: esa la ve quien tiene acceso en Dynamic."}
         {veTodo && " El Balance de CAYLA entera, eligiendo «Todas» en la barra de sedes."}
       </div>

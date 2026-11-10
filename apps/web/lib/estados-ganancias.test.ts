@@ -43,10 +43,23 @@ const fila = (o: Partial<FilaER> = {}): FilaER => ({
 const OCT = periodoDe("2026-10-01", "2026-10-31", HOY);
 const params = (f: FilaER, comparadas: { etiqueta: string; fila: FilaER | null }[] = []) => ({ fila: f, ppto: [], datos: [f], veCadaSede: false, comparadas, etiquetaActual: "Oct", periodo: OCT });
 
+describe("lo que falta del mes en curso (tarea 150)", () => {
+  it("la nota va en «Otros gastos», junto a lo que ya dijera, y llega al informe", () => {
+    const f = fila({ depreciacion: 0 });
+    const partes = partesDeGanancias({ ...params(f), notaOtros: "Este mes todavía no incluye S/ 900." });
+    expect(partes.find((p) => p.clave === "otros")?.aviso).toBe("Este mes todavía no incluye S/ 900.");
+    const inf = informeDeGanancias({ fila: f, partes, comparadas: [], etiquetaActual: "Oct" });
+    expect(inf.filas.find((x) => x.clave === "otros")?.aviso).toBe("Este mes todavía no incluye S/ 900.");
+  });
+  it("sin nota, la parte queda como siempre", () => {
+    expect(partesDeGanancias(params(fila())).find((p) => p.clave === "otros")?.aviso).toBeNull();
+  });
+});
+
 describe("los montos siempre suman", () => {
   it("lo vendido menos los cuatro gastos da la ganancia", () => {
     const m = montosDeGanancias(fila());
-    expect(m).toEqual({ ventas: 10000, igv: null, mercaderia: 4150, sueldos: 2000, local: 800, otros: 500, resultado: 2550 });
+    expect(m).toEqual({ ventas: 10000, igv: null, claure: null, mercaderia: 4150, sueldos: 2000, local: 800, otros: 500, resultado: 2550 });
     expect(m.ventas - m.mercaderia - m.sueldos - m.local - m.otros).toBe(m.resultado);
   });
 
@@ -81,8 +94,29 @@ describe("los montos siempre suman", () => {
 // ADR-0624, «regla pareja»: el IGV de las ventas es de SUNAT y el resultado lo resta siempre. Arriba de lo vendido se PRESENTA lo cobrado y su IGV, sin cambiar ninguna cifra.
 describe("lo cobrado y el IGV de tus ventas", () => {
   // Octubre de 2026: cobraste 133,922.31, el IGV de tus ventas fue 20,501.26 y lo vendido sin IGV, 113,421.05.
-  const oct = (o: Partial<FilaER> = {}) => fila({ ventas: 113421.05, igvCobrado: 20501.26, ...o });
+  const oct = (o: Partial<FilaER> = {}) => fila({ ventas: 120000, igvCobrado: 21690, ...o });
   const informe = (f: FilaER, comparadas: { etiqueta: string; fila: FilaER | null }[] = []) => informeDeGanancias({ fila: f, partes: partesDeGanancias(params(f, comparadas)), comparadas, etiquetaActual: "Oct" });
+
+  // Octubre, con cifras inventadas con las proporciones de producción (las reales no entran al repo, que es público: ADR-0609): de todo lo vendido con IGV, una parte sin IGV es de CLAURE.
+  it("con CLAURE: lo cobrado es todo lo de la tienda, y restando IGV y CLAURE se llega a lo vendido", () => {
+    const inf = informe(oct({ claureSinIgv: 500 }));
+    expect(inf.filas.slice(0, 4).map((f) => [f.clave, f.resta ?? false])).toEqual([["con_igv", false], ["igv", true], ["claure", true], ["ventas", false]]);
+    const [cobraste, igv, claure, ventas] = inf.filas.map((f) => f.valores.at(-1)!);
+    expect(cobraste).toBeCloseTo(142190, 2);
+    expect(cobraste! - igv! - claure!).toBeCloseTo(ventas!, 2);
+    expect(inf.filas.find((f) => f.clave === "claure")!.que).toContain("facturas de compra");
+  });
+
+  it("la fila de CLAURE sigue restando si este mes no vendió y un mes anterior sí, para que la columna de antes cuadre", () => {
+    const actual = oct({ claureSinIgv: 0 });
+    const f = informe(actual, [{ etiqueta: "Sep", fila: oct({ claureSinIgv: 500 }) }]).filas.find((x) => x.clave === "claure")!;
+    expect(f.resta).toBe(true);
+    expect(f.valores).toEqual([500, 0]);
+  });
+
+  it("sin CLAURE en ninguna columna no hay fila de CLAURE en S/ 0.00", () => {
+    expect(informe(oct({ claureSinIgv: 0 }), [{ etiqueta: "Sep", fila: oct({ claureSinIgv: 0 }) }]).filas.some((x) => x.clave === "claure")).toBe(false);
+  });
 
   it("arriba: Vendiste con IGV → IGV de tus ventas → Lo que vendiste, y lo de arriba menos el IGV da lo vendido", () => {
     const inf = informe(oct());
@@ -92,8 +126,8 @@ describe("lo cobrado y el IGV de tus ventas", () => {
       ["ventas", "Lo que vendiste", "subtotal", false],
     ]);
     const [cobraste, igv, ventas] = inf.filas.map((f) => f.valores.at(-1)!);
-    expect(cobraste).toBeCloseTo(133922.31, 2);
-    expect(igv).toBeCloseTo(20501.26, 2);
+    expect(cobraste).toBeCloseTo(141690, 2);
+    expect(igv).toBeCloseTo(21690, 2);
     expect(cobraste! - igv!).toBeCloseTo(ventas!, 2);
   });
 
@@ -110,12 +144,15 @@ describe("lo cobrado y el IGV de tus ventas", () => {
 
   it("no cambia ninguna cifra: el resultado y los montos son los mismos con o sin el IGV leído", () => {
     const con = oct();
-    const sin = fila({ ventas: 113421.05 });
-    const { igv: _a, ...m1 } = montosDeGanancias(con);
-    const { igv: _b, ...m2 } = montosDeGanancias(sin);
+    const sin = fila({ ventas: 120000 });
+    const { igv: _a, claure: _c, ...m1 } = montosDeGanancias(con);
+    const { igv: _b, claure: _d, ...m2 } = montosDeGanancias(sin);
     expect(m1).toEqual(m2);
     expect(informe(con).filas.find((f) => f.clave === "resultado")!.valores).toEqual(informe(sin).filas.find((f) => f.clave === "resultado")!.valores);
-    expect(lecturaDeGanancias(con, null, OCT)).toEqual(lecturaDeGanancias(sin, null, OCT));
+    const lecturaCon = lecturaDeGanancias(con, null, OCT);
+    const lecturaSin = lecturaDeGanancias(sin, null, OCT);
+    // La frase solo gana el rótulo: la cuenta es la misma.
+    expect({ ...lecturaCon, frase: lecturaCon.frase.replace(", sin IGV", "") }).toEqual(lecturaSin);
   });
 
   it("sin el IGV leído no se dibujan esas dos filas y la pantalla queda como siempre", () => {
@@ -298,13 +335,35 @@ describe("lo que dice la pantalla", () => {
 describe("la razón de la cifra", () => {
   const nota = (f: FilaER, a: FilaER | null) => lecturaDeGanancias(f, a, OCT).nota;
   it("cuánto hacía falta para no perder", () => {
-    expect(nota(fila({ ventas: 5000, costo: 2500, fletes: 0, mermas: 0, resultado: -300 }), null)).toBe(`Para no perder hacía falta vender unos ${solesCentimos(5600)}. Vendiste ${solesCentimos(5000)}.`);
+    expect(nota(fila({ ventas: 5000, costo: 2500, fletes: 0, mermas: 0, resultado: -300 }), null)).toBe(`Para no perder hacía falta vender unos ${solesCentimos(5600)} y vendiste ${solesCentimos(5000)}, sin IGV.`);
   });
   it("cuando la mercadería ya se comió lo vendido", () => {
-    expect(nota(fila({ ventas: 1000, costo: 1200, fletes: 0, mermas: 0, resultado: -1800 }), null)).toBe(`Lo que costó la mercadería ya pasa lo que vendiste: ${solesCentimos(1200)} contra ${solesCentimos(1000)}.`);
+    expect(nota(fila({ ventas: 1000, costo: 1200, fletes: 0, mermas: 0, resultado: -1800 }), null)).toBe(`Lo que costó la mercadería ya pasa lo que vendiste: ${solesCentimos(1200)} contra ${solesCentimos(1000)}, sin IGV.`);
   });
   it("sin nada con qué comparar", () => {
-    expect(nota(fila(), null)).toBe(`Te quedaron ${solesCentimos(2550)} de ${solesCentimos(10000)} vendidos.`);
+    expect(nota(fila(), null)).toBe(`Te quedaron ${solesCentimos(2550)} de ${solesCentimos(10000)} vendidos sin IGV.`);
+  });
+  // Tarea 19, con cifras inventadas con las proporciones de producción (las reales no entran al repo, que es público: ADR-0609): lo que hace falta y lo vendido, con IGV los dos y calculados sobre el margen sin IGV.
+  const TRUJILLO = { unidad: "tienda" as const, ventas: 75_000, costo: 49_800, fletes: 0, mermas: 0, margen: 25_200, planilla: 20_000, depreciacion: 0, gastos: 30_000, detalleGastos: [{ cuenta: "635", nombre: "Alquileres", monto: 10_000 }], resultado: -4_800 };
+  it("la proporción de la frase se mide sin IGV y, si la pantalla habla con IGV, lo dice", () => {
+    const pierde = fila({ ...TRUJILLO, igvCobrado: 13_500, claureSinIgv: 0 });
+    expect(lecturaDeGanancias(pierde, null, OCT).frase).toBe(`Perdiste en octubre: por cada ${solesEntero(100)} sin IGV que vendiste, faltaron ${solesEntero(6)}.`);
+    expect(lecturaDeGanancias(fila({ ...TRUJILLO }), null, OCT).frase).toBe(`Perdiste en octubre: por cada ${solesEntero(100)} que vendiste, faltaron ${solesEntero(6)}.`);
+    expect(lecturaDeGanancias(pierde, null, periodoDe("2026-11-01", HOY, HOY)).frase).toContain(`por cada ${solesEntero(100)} sin IGV que vendiste, faltan`);
+    expect(lecturaDeGanancias(fila({ igvCobrado: 1_800 }), null, OCT).frase).toContain("de lo que vendiste, sin IGV.");
+  });
+
+  it("Trujillo: unos S/ 105,400 junto a lo vendido con IGV", () => {
+    expect(nota(fila({ ...TRUJILLO, igvCobrado: 13_500, claureSinIgv: 0 }), null)).toBe(`Para no perder hacía falta vender unos ${solesCentimos(105_400)} y vendiste ${solesCentimos(88_500)}, con IGV.`);
+  });
+  it("Tienda LIM: lo de CAYLA con IGV y dice que no incluye a CLAURE", () => {
+    const n = nota(fila({ unidad: "tienda", ventas: 1_000, costo: 500, fletes: 0, mermas: 0, planilla: 1_000, depreciacion: 0, gastos: 1_000, detalleGastos: [], resultado: -500, igvCobrado: 270, claureSinIgv: 500 }), null);
+    expect(n).toBe(`Para no perder hacía falta vender unos ${solesCentimos(2_400)} y vendiste ${solesCentimos(1_180)}, con IGV y sin lo de CLAURE.`);
+  });
+  it("mes en curso: la cifra del mes entero va con lo que lleva, con IGV", () => {
+    const f = fila({ ...TRUJILLO, igvCobrado: 13_500, claureSinIgv: 0 });
+    expect(lecturaDeGanancias(f, null, periodoDe("2026-11-01", HOY, HOY), 105_400).nota).toBe(`Para cubrir el mes entero hacen falta unos ${solesCentimos(105_400)} y llevas ${solesCentimos(88_500)}, con IGV.`);
+    expect(lecturaDeGanancias(f, null, periodoDe("2026-11-01", HOY, HOY), null).nota).toBe(`Llevas ${solesCentimos(88_500)}, con IGV, en lo que va del mes.`);
   });
   it("ventas contra mercadería", () => {
     const antes = fila({ ventas: 8000, costo: 3500, fletes: 0, mermas: 0 });

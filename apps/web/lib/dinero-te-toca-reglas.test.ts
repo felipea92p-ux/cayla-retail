@@ -71,4 +71,10 @@ describe("cajasSinDepositar", () => {
     expect(cajasSinDepositar(CUENTAS, MOVS, HOY, "tru")).toEqual([]);
     expect(cajasSinDepositar(CUENTAS, MOVS, HOY, "aqp")).toHaveLength(1);
   });
+  it("con Empresa no entra ninguna caja fuerte de tienda; solo una sin sede (tarea 143)", () => {
+    expect(cajasSinDepositar(CUENTAS, MOVS, HOY, null, true)).toEqual([]);
+    const deEmpresa = cuenta({ id: "fEMP", nombre: "Caja fuerte · Oficina", ubicacionId: null, saldo: 900 });
+    const conDeposito = [...MOVS, { tipo: "deposito" as const, origenId: "fEMP", estado: "vigente" as const, fecha: "2026-10-09" }];
+    expect(cajasSinDepositar([...CUENTAS, deEmpresa], conDeposito, HOY, null, true).map((c) => c.nombre)).toEqual(["Caja fuerte · Oficina"]);
+  });
 });
