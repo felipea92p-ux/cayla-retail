@@ -61,6 +61,35 @@ describe("recortar la prenda de su foto", () => {
     expect(alfa(p, 200, 100, 100)).toBe(255);
   });
 
+  it("una raya blanca de la tela que llega a la orilla no se vuelve transparente (el short de rayas, 2026-11-10)", () => {
+    // 600×600: un short rosa con rayas de blanco tela (235, más oscuro que el blanco de estudio) de 10 px que van de la pretina al bajo.
+    const ROSA: Color = [230, 150, 160];
+    const TELA: Color = [235, 235, 235];
+    const p = foto(600, 600, (x, y) => (x >= 150 && x < 450 && y >= 150 && y < 450 ? ((x - 150) % 30 < 10 ? TELA : ROSA) : null));
+    recortarFondo(p, 600, 600);
+    expect(alfa(p, 600, 5, 5)).toBe(0);
+    // Una raya blanca de adentro sigue siendo prenda en el medio y cerca de sus puntas, que tocan el fondo de arriba y de abajo.
+    expect(alfa(p, 600, 275, 300)).toBe(255);
+    expect(alfa(p, 600, 305, 300)).toBe(255);
+    expect(alfa(p, 600, 275, 180)).toBe(255);
+    expect(alfa(p, 600, 275, 420)).toBe(255);
+  });
+
+  it("un claro angosto de fondo puro entre dos partes (entre las cadenas de un collar) sí es fondo", () => {
+    // Dos piezas separadas por un pasillo blanco de estudio de 8 px que llega al borde de la foto.
+    const p = foto(600, 600, (x, y) => (y >= 150 && y < 450 && ((x >= 150 && x < 296) || (x >= 304 && x < 450)) ? VINO : null));
+    recortarFondo(p, 600, 600);
+    expect(alfa(p, 600, 300, 300)).toBe(0);
+    expect(alfa(p, 600, 200, 300)).toBe(255);
+  });
+
+  it("un hueco blanco de la tela largo y angosto no es un hueco: se queda", () => {
+    // Una franja blanca tela de 10 px encerrada por la prenda: antes, con 350 puntos o más, se abría.
+    const p = foto(600, 600, (x, y) => (x >= 150 && x < 450 && y >= 150 && y < 450 ? (x >= 295 && x < 305 && y >= 200 && y < 400 ? [242, 242, 242] : VINO) : null));
+    recortarFondo(p, 600, 600);
+    expect(alfa(p, 600, 300, 300)).toBe(255);
+  });
+
   it("respeta la transparencia que ya traía la foto", () => {
     const p = foto(100, 100, (x, y) => (x >= 20 && x < 80 && y >= 20 && y < 80 ? VINO : null));
     for (let i = 0; i < 100; i++) p[i * 4 + 3] = 0;
@@ -78,7 +107,7 @@ describe("las direcciones", () => {
   it("arma el recorte de una foto del almacén; otra dirección se queda sin recorte", () => {
     const original = urlDeFotoOriginal("https://x.supabase.co/", FOTO);
     expect(original).toBe(`https://x.supabase.co/storage/v1/object/public/retail-productos-fotos/fotos/${FOTO}`);
-    expect(urlDeRecorte(original, 640)).toBe(`/api/recorte/${FOTO}?w=640&v=2`);
+    expect(urlDeRecorte(original, 640)).toBe(`/api/recorte/${FOTO}?w=640&v=3`);
     expect(urlDeRecorte(`https://otro.pe/${FOTO}`, 640)).toBeNull();
   });
 });
