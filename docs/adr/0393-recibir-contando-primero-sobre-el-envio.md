@@ -886,4 +886,4 @@ reporte que cuenta lo que llegó (Recibir, Frescura, Análisis, costo) la contar
 puerta permanente en el candado.
 
 **Pruebas:** `pruebas:envio-sin-aviso` A13 (dos marcas en el mismo lote provisional, cada una a su proveedor: 5 y 3 unidades, el stock igual, el candado en
-`A`); sin la migración, A13 da el mismo error que vio Felipe. **No está en producción:** espera el OK de Felipe.
+`A`); sin la migración, A13 da el mismo error que vio Felipe. **En producción desde el 2026-11-10,** con el OK de Felipe.
