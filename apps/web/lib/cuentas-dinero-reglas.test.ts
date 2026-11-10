@@ -504,9 +504,28 @@ describe("el depósito de la máquina se cruza contra los días pendientes (ADR-
   const ctx = { cuentas: [...TODAS, izipay], hoy: "2026-10-16" };
   const base = { origen: "pdi", destino: "ibk", monto: "", referencia: " Liq. 15-oct ", fecha: "2026-10-15" };
 
+  // Los tres días que cubre el depósito del 16-oct en los casos de abajo (la tarjeta del 15 ya se cerró).
+  const hasta15 = ["cobros:2026-10-14:u-tru:tarjeta", "cobros:2026-10-14:u-tru:qr", "cobros:2026-10-15:u-lim:tarjeta"];
+
   it("de entrada vienen marcados los días hasta la fecha del depósito, no los de después", () => {
-    expect(lotesPorDefecto(lotes, "2026-10-15")).toEqual(["cobros:2026-10-14:u-tru:tarjeta", "cobros:2026-10-14:u-tru:qr", "cobros:2026-10-15:u-lim:tarjeta"]);
+    expect(lotesPorDefecto(lotes, "2026-10-16")).toEqual(hasta15);
     expect(lotesPorDefecto(lotes, "2026-10-13")).toEqual([]);
+  });
+
+  it("la tarjeta del mismo día del depósito no viene marcada (el lote llega después); el QR sí", () => {
+    // Control: un día antes, la tarjeta del 15 sí entra.
+    expect(lotesPorDefecto(lotes, "2026-10-16")).toContain("cobros:2026-10-15:u-lim:tarjeta");
+    expect(lotesPorDefecto(lotes, "2026-10-15")).toEqual(["cobros:2026-10-14:u-tru:tarjeta", "cobros:2026-10-14:u-tru:qr"]);
+    const qrDeHoy: LotePendiente = { ...lotes[1]!, clave: "cobros:2026-10-15:u-tru:qr", fecha: "2026-10-15" };
+    expect(lotesPorDefecto([...lotes, qrDeHoy], "2026-10-15")).toContain("cobros:2026-10-15:u-tru:qr");
+  });
+
+  it("el caso real de Vendemás del 10-nov-2026: lo del 9 cuadra con lo que llegó y lo de hoy queda para mañana", () => {
+    const v = (clave: string, fecha: string, bruto: number): LotePendiente => ({ clave, fecha, ubicacionId: TRU, ubicacionNombre: "Tienda TRU", medio: "tarjeta", bruto, dias: 1, ...sinTarifa });
+    const pend = [v("9-a", "2026-11-09", 580.3), v("9-b", "2026-11-09", 215.6), v("10-a", "2026-11-10", 230.7)];
+    const marcados = lotesPorDefecto(pend, "2026-11-10");
+    expect(marcados).toEqual(["9-a", "9-b"]);
+    expect(resumenAbono(pend, marcados, "774.30").comision).toBe(21.6);
   });
 
   it("un día que ya tuvo depósito y siguió vendiendo dice que lo que queda se cobró después (ADR-0629)", () => {
@@ -522,14 +541,14 @@ describe("el depósito de la máquina se cruza contra los días pendientes (ADR-
   });
 
   it("la cuenta que se ve mientras se marca: lo cobrado, lo que llegó y la comisión como diferencia", () => {
-    const marcados = lotesPorDefecto(lotes, "2026-10-15");
+    const marcados = hasta15;
     expect(resumenAbono(lotes, marcados, "")).toEqual({ dias: 3, bruto: 2000.5, neto: null, comision: null, esperado: null });
     expect(resumenAbono(lotes, marcados, "1,950.50")).toEqual({ dias: 3, bruto: 2000.5, neto: 1950.5, comision: 50, esperado: null });
     expect(resumenAbono(lotes, marcados, "2,100").comision).toBe(-99.5);
   });
 
   it("lo que viaja a registrar_abono_pos: la máquina, el banco, la fecha, el neto y las claves marcadas", () => {
-    const v = validarAbonoPos({ ...base, monto: "1,950.50" }, lotes, lotesPorDefecto(lotes, "2026-10-15"), ctx);
+    const v = validarAbonoPos({ ...base, monto: "1,950.50" }, lotes, hasta15, ctx);
     expect(v).toEqual({
       ok: true,
       valor: { p_cuenta_id: "pdi", p_banco_id: "ibk", p_fecha: "2026-10-15", p_neto: 1950.5, p_claves: ["cobros:2026-10-14:u-tru:tarjeta", "cobros:2026-10-14:u-tru:qr", "cobros:2026-10-15:u-lim:tarjeta"], p_referencia: "Liq. 15-oct" },
@@ -537,7 +556,7 @@ describe("el depósito de la máquina se cruza contra los días pendientes (ADR-
   });
 
   it("lo que la base rechazaría se dice antes: sin máquina o banco, sin días, neto mayor que lo cobrado, fecha anterior al último día o futura", () => {
-    const marcados = lotesPorDefecto(lotes, "2026-10-15");
+    const marcados = hasta15;
     expect(validarAbonoPos({ ...base, origen: "ibk", monto: "10" }, lotes, marcados, ctx)).toMatchObject({ ok: false, error: "Elige la máquina que depositó." });
     expect(validarAbonoPos({ ...base, destino: "pos", monto: "10" }, lotes, marcados, ctx)).toMatchObject({ ok: false, error: "Elige a qué banco llegó." });
     expect(validarAbonoPos({ ...base, monto: "10" }, lotes, [], ctx)).toMatchObject({ ok: false, error: "Marca qué días cubre este depósito." });
