@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { aplicarProvision, delMes, hastaDeLaProvision, leerProvision, mesesDelRango, nombreSedeDynamic, notaProvisionado, provisionDelRango, resumenDeProvision, sueldosAEstaFecha, type FilaProvision } from "./planilla-provision-reglas";
+import { aplicarProvision, delMes, faltanSueldosPorFalla, hastaDeLaProvision, leerProvision, mesesDelRango, nombreSedeDynamic, notaProvisionado, provisionDelRango, provisionSinLeer, resumenDeProvision, sueldosAEstaFecha, sueldosSinLeerDelBalance, type FilaProvision } from "./planilla-provision-reglas";
 import { rangoMes } from "./gastos-reglas";
 import type { FilaER } from "./resultados-reglas";
 
@@ -258,6 +258,47 @@ describe("sueldosAEstaFecha («octubre a esta fecha» con sueldos, 2026-11-06)",
     const [tru] = sueldosAEstaFecha([fila({ ubicacionId: "u-tru" })], [fila({ ubicacionId: "u-tru", planilla: 3100 })], "2027-01-03");
     // Del 29-dic-2026 al 28-ene-2027 son 31 días; al 3 de enero corren 6.
     expect(tru!.planilla).toBe(600);
+  });
+});
+
+// Tarea 43: «no hay nada que sumar» y «no se pudo leer» no son lo mismo. Lo primero calla; lo segundo se dice, y las cifras se siguen viendo.
+describe("provisionSinLeer", () => {
+  it("la función ausente o la cuenta sin permiso no son una falla: no hay nada que sumar", () => {
+    for (const code of ["PGRST202", "42883", "42501"]) expect(provisionSinLeer({ code })).toBe(false);
+  });
+  it("cualquier otro error sí lo es", () => {
+    for (const code of ["57014", "XX000", undefined]) expect(provisionSinLeer({ code })).toBe(true);
+  });
+});
+
+describe("faltanSueldosPorFalla", () => {
+  it("una lectura caída con el mes sin sueldos: faltan", () => {
+    expect(faltanSueldosPorFalla(true, [fila({ planilla: 0 })])).toBe(true);
+  });
+  it("una lectura bien leída nunca avisa", () => {
+    expect(faltanSueldosPorFalla(false, [fila({ planilla: 0 })])).toBe(false);
+  });
+  it("un mes que ya trae lo pagado de Dynamic no lo necesitaba: no se alarma", () => {
+    expect(faltanSueldosPorFalla(true, [fila({ planilla: 900 })])).toBe(false);
+  });
+  it("quien no ve la planilla ya tiene su propio aviso", () => {
+    expect(faltanSueldosPorFalla(true, [fila({ planillaVisible: false })])).toBe(false);
+  });
+});
+
+describe("sueldosSinLeerDelBalance", () => {
+  it("sin caída no avisa", () => {
+    expect(sueldosSinLeerDelBalance(false, { falla: null, sueldosSinLeer: true })).toBe(false);
+  });
+  it("se cayó y a ese mes le faltan los sueldos: avisa, como Ganancias", () => {
+    expect(sueldosSinLeerDelBalance(true, { falla: null, sueldosSinLeer: true })).toBe(true);
+  });
+  it("se cayó pero el mes ya trae la planilla pagada: no da falsa alarma", () => {
+    expect(sueldosSinLeerDelBalance(true, { falla: null, sueldosSinLeer: false })).toBe(false);
+    expect(sueldosSinLeerDelBalance(true, { falla: null })).toBe(false);
+  });
+  it("si tampoco se pudo leer el mes, no se sabe: avisa", () => {
+    expect(sueldosSinLeerDelBalance(true, { falla: "no respondió" })).toBe(true);
   });
 });
 

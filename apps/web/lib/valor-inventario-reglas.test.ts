@@ -4,6 +4,7 @@ import {
   fraseDeLasQueFaltan,
   fraseOrigenDelCosto,
   fraseSinCosto,
+  PORQUE_NO_ES_EL_BALANCE,
   leerFilasDeValor,
   leerTallasSinCosto,
   lineaAparte,
@@ -168,5 +169,15 @@ describe("nombreDeTalla y fraseDeLasQueFaltan", () => {
     expect(fraseDeLasQueFaltan(3, 5)).toBeNull();
     expect(fraseDeLasQueFaltan(21, 20)).toBe("y 1 talla más. Corrige estas y vuelve a mirar.");
     expect(fraseDeLasQueFaltan(27, 20)).toBe("y 7 tallas más. Corrige estas y vuelve a mirar.");
+  });
+});
+
+describe("por qué no es el Balance (tarea 81)", () => {
+  it("explica las dos direcciones, en las palabras de la pantalla y sin montos fijos", () => {
+    expect(PORQUE_NO_ES_EL_BALANCE).toMatch(/lo que va en camino/);
+    expect(PORQUE_NO_ES_EL_BALANCE).toMatch(/aún no tiene factura/);
+    expect(PORQUE_NO_ES_EL_BALANCE).toMatch(/ventas sin registrar/);
+    expect(PORQUE_NO_ES_EL_BALANCE).toMatch(/por debajo/);
+    expect(PORQUE_NO_ES_EL_BALANCE).not.toMatch(/S\/|sin prenda|su papel/);
   });
 });

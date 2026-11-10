@@ -71,6 +71,25 @@ describe("calcularConfianza", () => {
     expect(c.pct).toBe(97);
   });
 
+  describe("lo que promete sobre el costo estimado (tarea 75)", () => {
+    const conCosto = (pendientes?: number | null) => calcularConfianza({ ...TODO_BIEN, costo: { ...TODO_BIEN.costo, unidadesEstimadas: 10, ventaEstimada: 5534, pendientes } }).piezas.find((p) => p.clave === "costo")!;
+    it("dice que ese costo se queda así, salvo que se reabran las ventas", () => {
+      expect(conCosto(47).detalle).toContain("se queda así, salvo que reabras esas ventas");
+    });
+    it("con pendientes dice cuántas y lleva a registrarlas", () => {
+      expect(conCosto(47).detalle).toContain("Quedan 47 por registrar");
+      expect(conCosto(47).accion).toBe("Registrar las que quedan");
+      expect(conCosto(47).href).toBe("/inventario/por-regularizar");
+    });
+    it("sin pendientes no ofrece el botón", () => {
+      expect(conCosto(0).accion).toBeUndefined();
+      expect(conCosto(0).href).toBeUndefined();
+    });
+    it("el puntaje no cambia por esto: es solo lo que se dice", () => {
+      expect(conCosto(0).logrado).toBe(conCosto(47).logrado);
+    });
+  });
+
   it("sin ventas en el mes, el costo no resta", () => {
     const c = calcularConfianza({ ...TODO_BIEN, costo: { unidadesEstimadas: 0, ventaEstimada: 0, unidadesSinCosto: 0, ventaSinCosto: 0, unidadesTotal: 0, ventaTotal: 0 } });
     expect(c.piezas.find((p) => p.clave === "costo")!.estado).toBe("ok");
@@ -97,6 +116,11 @@ describe("calcularConfianza", () => {
     // Aporta más que sin estimar, pero menos que pagada: un estimado no es un dato pagado.
     expect(est.logrado).toBeGreaterThan(sin.logrado);
     expect(est.logrado).toBeLessThan(est.peso);
+  });
+
+  it("si no se pudieron leer los sueldos, lo dice: no es que Dynamic no haya pagado", () => {
+    const p = calcularConfianza({ ...HOY, planilla: { visible: true, mesPagada: false, sinLeer: true } }).piezas.find((x) => x.clave === "planilla")!;
+    expect(p.detalle).toBe("No se pudieron leer los sueldos de Dynamic: estas cifras no los restan. Vuelve a cargar en un rato.");
   });
 
   it("pagada manda sobre estimada: si el mes ya se pagó, la estimación no cuenta", () => {

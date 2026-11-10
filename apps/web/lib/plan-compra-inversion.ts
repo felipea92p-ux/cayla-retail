@@ -418,6 +418,9 @@ export function campanaParaFinanzas(e: EntradaParaFinanzas): Record<string, unkn
     pagado: e.pagado.pagadoSinIgv,
     fecha_limite: e.plazo.limite,
     pagos: e.pagos.guardado?.pagos ?? [],
+    // Cuántas categorías tienen plan: sin esto, una campaña con 1 de 46 planeadas y nada por comprar se lee como resuelta.
+    categorias_con_plan: e.filas.filter((f) => f.calculo).length,
+    categorias_total: e.filas.length,
     visibilidad_finanzas: e.pagos.visibilidad,
     href_plan: `/compras/plan?plan=${e.plan.id}`,
   };

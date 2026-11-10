@@ -3,7 +3,7 @@
 import { nombreCortoSede, SEDE_EMPRESA } from "./finanzas-telar-reglas";
 import { sinTildes } from "./marcas";
 import { DESDE_EL_UMBRAL, pideComprobante } from "./gastos-extracto-reglas";
-import { textoMes, type PanelGastos, type UbicacionGastos, type Ver } from "./gastos-reglas";
+import { solesRedondo, textoMes, type PanelGastos, type UbicacionGastos, type Ver } from "./gastos-reglas";
 import { nombresDeVarias } from "./gastos-varias-sedes";
 import type { TonoChip } from "@/components/ui/Chip";
 
@@ -32,9 +32,12 @@ export function sedeDeLaCabecera(ver: Ver, ubicaciones: readonly UbicacionGastos
 /**
  * Bajo la cifra: cuántos gastos son y, si hay, cuántos de S/ 300 o más no tienen comprobante. `sinComprobante` es esa cuenta
  * (`sinComprobanteGrande`), la misma que marca la lista: lo chico sin papel (el mototaxi, el baño) no es una alarma (Felipe 2026-10-30).
+ * La cifra grande va con IGV; si hay IGV de facturas, un chip dice cuánto es sin él (tarea 152). No es el puente con Ganancias y pérdidas:
+ * ese además suma planilla, diferencias de caja, desgaste, comisión estimada y redondeo.
  */
-export function chipsDeGastos(panel: Pick<PanelGastos, "n" | "sinComprobante">): { texto: string; tono: TonoChip }[] {
+export function chipsDeGastos(panel: Pick<PanelGastos, "n" | "sinComprobante" | "total" | "igv">): { texto: string; tono: TonoChip }[] {
   const chips: { texto: string; tono: TonoChip }[] = [{ texto: `${panel.n} ${panel.n === 1 ? "gasto" : "gastos"}`, tono: "pizarra" }];
+  if (panel.igv > 0) chips.push({ texto: `${solesRedondo(panel.total - panel.igv)} sin IGV`, tono: "pizarra" });
   if (panel.sinComprobante > 0) chips.push({ texto: `${panel.sinComprobante} sin comprobante`, tono: "ambar" });
   return chips;
 }

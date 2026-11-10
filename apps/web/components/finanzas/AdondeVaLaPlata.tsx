@@ -3,7 +3,7 @@
 import { useState, type CSSProperties } from "react";
 import { CabeceraBloque, Superficie } from "@/components/finanzas/kit";
 import { soles } from "@/lib/flujo-caja-reglas";
-import { pctDelNudo, type HiloRecorrido, type Recorrido } from "@/lib/recorrido-plata-reglas";
+import { loQueSalio, pctDelNudo, textoPctDelNudo, type HiloRecorrido, type Recorrido } from "@/lib/recorrido-plata-reglas";
 
 // Finanzas ▸ Resumen, «A dónde va la plata» (Felipe 2026-10-29, spike «Resumen pulido»: reemplaza al recorrido en hilos y a «¿Y de cada S/ 100?»).
 // Un anillo con lo que SALE del recorrido de la plata (`recorridoPlata`: lo que costaron las prendas, los gastos, el Taller, la Empresa…) y, al
@@ -14,6 +14,8 @@ import { pctDelNudo, type HiloRecorrido, type Recorrido } from "@/lib/recorrido-
 /** Los colores de cada hilo que sale: los de siempre del recorrido (prendas y gastos en azul pizarra, la caja en ámbar, lo que te deja en verde) y, para
  *  el Taller y la Empresa, los de su sede en el telar. */
 const COLOR_HILO: Partial<Record<HiloRecorrido["tipo"], string>> = {
+  igv: "var(--color-taupe)",
+  claure: "var(--color-reparto-arcilla)",
   // Prendas y gastos son azul pizarra (oscuro y claro): el taupe y el gris de antes se confundían con la Empresa (beige).
   prendas: "color-mix(in srgb, var(--color-pizarra) 85%, transparent)",
   gastos: "color-mix(in srgb, var(--color-rojo) 78%, transparent)",
@@ -24,6 +26,7 @@ const COLOR_HILO: Partial<Record<HiloRecorrido["tipo"], string>> = {
   empresa: "var(--color-sede-emp)",
   pierde: "var(--color-rojo-profundo)",
 };
+const conPct = (pct: number | null, antes = "") => (pct === null ? "" : `${antes}${pct} %`);
 const colorDe = (h: HiloRecorrido) => COLOR_HILO[h.tipo] ?? "var(--color-taupe)";
 
 const R = 76;
@@ -45,7 +48,7 @@ export function AdondeVaLaPlata({ recorrido, bajada }: { recorrido: Recorrido; b
     const antes = largos.slice(0, i).reduce((a, l) => a + l, 0);
     return { h, i, pintado, desfase: -antes };
   });
-  const etiqueta = `${bajada} A dónde va: ${partes.map((h) => `${h.nombre} ${soles(h.monto)}, ${pct(h)} %`).join("; ")}.`;
+  const etiqueta = `${bajada} A dónde va: ${partes.map((h) => `${h.nombre} ${soles(h.monto)}${conPct(pct(h), ", ")}`).join("; ")}.`;
   return (
     <Superficie pad guia="fin-resumen.recorrido">
       <CabeceraBloque titulo="A dónde va la plata" bajada={bajada} />
@@ -73,8 +76,8 @@ export function AdondeVaLaPlata({ recorrido, bajada }: { recorrido: Recorrido; b
           </svg>
           <div className="fin-donut-centro" aria-hidden="true">
             <span>{enFoco ? enFoco.nombre : pierde ? "Salió" : recorrido.nudo.nombre}</span>
-            <b className="num">{soles(enFoco ? enFoco.monto : pierde ? total : recorrido.nudo.monto)}</b>
-            {enFoco && <span>{pct(enFoco)} % de lo que salió</span>}
+            <b className="num">{soles(enFoco ? enFoco.monto : pierde ? loQueSalio(recorrido) : recorrido.nudo.monto)}</b>
+            {enFoco && pct(enFoco) !== null && <span>{textoPctDelNudo(pct(enFoco)!, recorrido)}</span>}
           </div>
         </div>
         <ul className="fin-donut-ley" aria-label="A dónde va cada sol">
@@ -84,7 +87,7 @@ export function AdondeVaLaPlata({ recorrido, bajada }: { recorrido: Recorrido; b
                 <i style={{ background: colorDe(h) }} aria-hidden />
                 <span>{h.nombre}</span>
                 <b className="num">{soles(h.monto)}</b>
-                <span className="num text-xs text-taupe">{pct(h)} %</span>
+                <span className="num text-xs text-taupe">{conPct(pct(h))}</span>
               </button>
             </li>
           ))}

@@ -36,15 +36,17 @@ import { alinearAvisoDeCaja, cajaProxima, type FlujoProximo } from "@/lib/caja-p
 import { equilibrioMes, type FaltaDelMes } from "@/lib/equilibrio-mes-reglas";
 import type { Confianza as ConfianzaDatos } from "@/lib/finanzas-confianza";
 import type { Lectura } from "@/lib/resumen-finanzas";
-import { mesNombre, type FilaER } from "@/lib/resultados-reglas";
-import { hrefTelar, mesDelDia, porSedeDe, sedeDeLaUrl, type SedeTelar } from "@/lib/finanzas-telar-reglas";
-import { soles } from "@/lib/flujo-caja-reglas";
-import { recorridoPlata } from "@/lib/recorrido-plata-reglas";
+import { AVISO_SUELDOS_SIN_LEER, mesNombre, type FilaER } from "@/lib/resultados-reglas";
+import { ventaParaDecir } from "@/lib/igv-ventas-reglas";
+import { avisoAntesDelCorte, empezoAContar, mesAntesDelCorte } from "@/lib/finanzas-arranque-reglas";
+import { hrefTelar, mesDelDia, sedeDeLaUrl, type SedeTelar } from "@/lib/finanzas-telar-reglas";
+import { recorridoPlata, vendisteYSalio } from "@/lib/recorrido-plata-reglas";
 import { cambiosDelMes } from "@/lib/resumen-cambios-reglas";
 import { avisosParaDecidir, filaDeVer, noRevisado, ordenarAvisos, type Acceso, type ResumenFinanzas } from "@/lib/resumen-finanzas-reglas";
 import { campanasQueSeVen } from "@/lib/ajustes-resumen-reglas";
-import { avisoDeInversion, pagosDeLaCompra, type CampanaInversion } from "@/lib/inversion-mercaderia-reglas";
+import { avisoDeInversion, pagosDeLaCompra, vacioDeInversion, type CampanaInversion } from "@/lib/inversion-mercaderia-reglas";
 import {
+  dockDelResumen,
   mesAnteriorDe,
   comparacionMesPasado,
   respuestaResumen,
@@ -95,10 +97,17 @@ type Props = {
   inventarioValor?: SedeConValor[] | null;
   /** La caja de cada sede, para «Cada sede, junta»; `null` si la cuenta no ve todas las sedes. */
   cajasPorSede?: Lectura<UnidadBalance[]> | null;
+  /** Desde cuándo cuenta Finanzas (ADR-0332); `null` sin corte o sin lectura. */
+  inicioFinanzas?: string | null;
+  /** Cuánto de lo vendido lleva costo estimado, por tienda y en `todas`; `null` si la cuenta no ve todas las sedes. */
+  estimadosPorSede?: Readonly<Record<string, number | null>> | null;
+  /** Las cifras se leyeron, pero los sueldos estimados no (tarea 43): se dice y las cifras se siguen viendo. */
+  sueldosSinLeer?: boolean;
 };
 
+const ICONO_DOCK = { pagar: <Wallet aria-hidden />, igv: <Percent aria-hidden />, cierre: <CalendarCheck aria-hidden />, reportes: <BookOpen aria-hidden /> } as const;
 
-export function ResumenFinanzasPanel({ resumen, falla, confianza, mes, periodo, minimo, hoy, estadoMes, estadoAntes, faltaDelMes, planillaSinSalida, ventasPorDia, sedes, flujoProximo, inversion, inversionFalla = null, acceso, cajasPorSede = null, movimientos = null, inventarioValor = null }: Props) {
+export function ResumenFinanzasPanel({ resumen, falla, confianza, mes, periodo, minimo, hoy, estadoMes, estadoAntes, faltaDelMes, planillaSinSalida, ventasPorDia, sedes, flujoProximo, inversion, inversionFalla = null, acceso, cajasPorSede = null, movimientos = null, inventarioValor = null, inicioFinanzas = null, estimadosPorSede = null, sueldosSinLeer = false }: Props) {
   const sp = useSearchParams();
   // «Qué se ve»: lo que esta persona esconde de la inversión en mercadería, y qué forma de pagar mira en cada campaña (mirar no guarda nada).
   const [ajustes, ponerAjustes] = useAjustesResumen();
@@ -120,12 +129,7 @@ export function ResumenFinanzasPanel({ resumen, falla, confianza, mes, periodo, 
   const ir = (ruta: string) => hrefTelar(ruta, sp.entries(), {}, { mismaPantalla: false, mesDeHoy });
   const dock = (
     <DockTelar
-      acciones={[
-        { texto: "Pagar facturas", tecla: "p", icono: <Wallet aria-hidden />, principal: true, href: ir("/finanzas/dinero/por-pagar") },
-        { texto: "IGV del mes", tecla: "i", icono: <Percent aria-hidden />, href: ir("/finanzas/impuestos") },
-        { texto: "Cierre de mes", tecla: "m", icono: <CalendarCheck aria-hidden />, href: ir("/finanzas/cierre") },
-        { texto: "Reportes", tecla: "r", icono: <BookOpen aria-hidden />, href: ir("/finanzas/reportes") },
-      ]}
+      acciones={dockDelResumen(acceso.modulos).map((a) => ({ texto: a.texto, tecla: a.tecla, icono: ICONO_DOCK[a.clave], principal: a.principal, href: ir(a.ruta) }))}
     />
   );
 
@@ -159,7 +163,8 @@ export function ResumenFinanzasPanel({ resumen, falla, confianza, mes, periodo, 
   const provisional = !confianza.datos || confianza.datos.nivel === "bajo";
   const filas = estadoMes.falla ? [] : estadoMes.datos;
   const comparacion = comparacionMesPasado(filas, estadoAntes);
-  const resp = respuestaResumen(r, comparacion.antes, provisional, enCurso, comparacion.antesDeSueldos);
+  const resp = respuestaResumen(r, comparacion.antes, provisional, enCurso, comparacion.antesDeSueldos, inicioFinanzas);
+  const antesDelCorte = mesAntesDelCorte(mes, inicioFinanzas);
   const recorrido = filas.length ? recorridoPlata(filas, r.ver) : null;
   const faltan = noRevisado(resumen);
   // La inversión en mercadería es de CAYLA entera: mirando una sola sede no se reparte (como el saldo de los bancos), así que ahí no se dibuja.
@@ -183,7 +188,7 @@ export function ResumenFinanzasPanel({ resumen, falla, confianza, mes, periodo, 
   const fila = filaDeVer(filas, r.ver) ?? null;
   const filaAntes = estadoAntes ? (filaDeVer(estadoAntes, r.ver) ?? null) : null;
   const te = teDejaDelMes({ f: fila, ver: r.ver, mes, hoy, unMes: periodo.unMes, faltaDelMes });
-  const eq = periodo.unMes ? equilibrioMes({ r, filas, ventasPorDia, hoy, mes, enCurso, faltaDelMes }) : null;
+  const eq = periodo.unMes ? equilibrioMes({ r, filas, ventasPorDia, hoy, mes, enCurso, faltaDelMes, inicioFinanzas }) : null;
   const Mes = mesNombre(mes).charAt(0).toUpperCase() + mesNombre(mes).slice(1);
   const tituloMes = !periodo.unMes ? periodo.titulo : enCurso ? `${Mes} va así` : `Así cerró ${mesNombre(mes)}`;
   const diaDeHoy = Number(hoy.slice(8, 10));
@@ -191,7 +196,8 @@ export function ResumenFinanzasPanel({ resumen, falla, confianza, mes, periodo, 
   const noVende = r.ver.todas || r.ver.tipo === "tienda" ? null : resp;
   const cambio = fila && filaAntes && filaAntes.ventas > 0 && !noVende ? { pct: fila.ventas / filaAntes.ventas - 1, contra: nombreDelAnterior(periodo) } : null;
   // Las tiendas solo se dibujan si alguna vendió (la pieza no dibuja nada sin ventas: no se le guarda lugar).
-  const hayTiendas = vendidoPorSede(filas).some((x) => x.monto > 0);
+  const vendidoSedes = vendidoPorSede(filas, sedes, mesNombre(mes));
+  const hayTiendas = vendidoSedes.tramos.length > 0;
   const hrefGanancias = ve("reportes_financieros") ? conElRango(ir("/finanzas/reportes"), sp.entries()) : null;
   // Las hojas de detalle (camino A, «También las hojas»): de lo que la pantalla ya leyó; cada una termina en la pantalla que lo resuelve.
   const datosHojas: DatosHojas = {
@@ -245,20 +251,22 @@ export function ResumenFinanzasPanel({ resumen, falla, confianza, mes, periodo, 
   ]);
   const sede = r.ver.todas ? "Todas las sedes" : r.ver.soloEmpresa ? "Empresa" : r.ver.nombre.replace(/^Tienda\s+/i, "");
 
-  // «Vendiste X y salió Y» bajo «¿Cuánto te deja?»: de lo mismo que dibuja «A dónde va la plata» (el recorrido), así que las dos dicen el mismo número.
-  const plata = recorrido && recorrido.modo === "vende" ? { vendido: recorrido.nudo.monto, salio: recorrido.salidas.filter((h) => h.tipo !== "deja").reduce((a, h) => a + h.monto, 0), nota: r.ver.todas ? undefined : recorrido.nota } : null;
-  const bajadaPlata = recorrido
-    ? recorrido.modo === "vende" && plata
-      ? `Vendiste ${soles(plata.vendido)} y salió ${soles(plata.salio)}. ${recorrido.nota}`
-      : recorrido.nota
-    : "";
-  const juntas = cajasPorSede && r.ver.todas ? sedesJuntas(filas, cajasPorSede.falla ? null : cajasPorSede.datos) : null;
+  // «Vendiste X con IGV y salió Y» bajo «A dónde va la plata»: de lo mismo que dibuja el recorrido, así que las dos dicen el mismo número.
+  const frasePlata = recorrido ? vendisteYSalio(recorrido) : null;
+  const bajadaPlata = recorrido ? (frasePlata ? `${frasePlata} ${recorrido.nota}` : recorrido.nota) : "";
+  const juntas = cajasPorSede && r.ver.todas ? sedesJuntas(filas, cajasPorSede.falla ? null : cajasPorSede.datos, estimadosPorSede) : null;
 
   return (
     // `pantalla-en-vidrio`: el Resumen ya está rediseñado (camino A), así que sus bloques van al vidrio claro, como en la maqueta (ADR-0596); las cifras,
     // en la letra de Estados financieros (Inter, ADR-0611).
     <div className={`pantalla-en-vidrio resumen-bolsillos space-y-6 ${letraEstados.variable}`}>
       <EncabezadoPagina sede={sede} titulo="Resumen" subtitulo={FRASE_DE_SIEMPRE} acciones={fecha} />
+      {antesDelCorte && inicioFinanzas && <Aviso tono="info">{avisoAntesDelCorte(inicioFinanzas)}</Aviso>}
+      {sueldosSinLeer && (
+        <Aviso tono="atencion" chico>
+          {AVISO_SUELDOS_SIN_LEER} Vuelve a cargar en un rato.
+        </Aviso>
+      )}
       {/* La respuesta, a la vista bajo la cabecera, como en la maqueta: cuánto tienes, cuánto puedes usar y cuánto te deja el mes (los mismos números
           de las tarjetas de abajo, `fraseDelResumen`). El subtítulo de la cabecera queda en su «?», como en todo el ERP. */}
       <p className="resumen-frase anim-entra" style={{ ["--i" as string]: 0 } as CSSProperties}>
@@ -286,6 +294,7 @@ export function ResumenFinanzasPanel({ resumen, falla, confianza, mes, periodo, 
             te={te}
             eq={eq}
             vendido={fila?.ventas ?? 0}
+            vendidoDicho={fila ? { monto: ventaParaDecir(fila).vendido, rotulo: ventaParaDecir(fila).rotulo } : { monto: 0, rotulo: "sin IGV" }}
             gastos={fila?.gastos ?? 0}
             cambio={cambio}
             noVende={noVende}
@@ -330,7 +339,7 @@ export function ResumenFinanzasPanel({ resumen, falla, confianza, mes, periodo, 
         {/* «Tus tiendas»: lo vendido por sede con la confianza del número, en UNA tarjeta (ADR-0417; Felipe 2026-10-29). Sin ventas no se dibuja. */}
         {hayTiendas && (
           <div data-area="tiendas" data-solo={movimientos ? undefined : ""} id="tiendas" {...columna(7, "resumen-ancla")}>
-            <VendidoPorSede porSede={porSedeDe(vendidoPorSede(filas))} sedes={sedes} hoy={hoy} mes={mesNombre(mes)} confianza={confianza.datos} falla={confianza.falla} hrefCuadre={`${ir("/finanzas/reportes")}${ir("/finanzas/reportes").includes("?") ? "&" : "?"}cuadre=1#de-ventas-a-finanzas`} />
+            <VendidoPorSede vendido={vendidoSedes} hoy={hoy} mes={mesNombre(mes)} confianza={confianza.datos} falla={confianza.falla} hrefCuadre={`${ir("/finanzas/reportes")}${ir("/finanzas/reportes").includes("?") ? "&" : "?"}cuadre=1#de-ventas-a-finanzas`} />
           </div>
         )}
       </div>
@@ -350,7 +359,7 @@ export function ResumenFinanzasPanel({ resumen, falla, confianza, mes, periodo, 
           </div>
         )}
         <div {...columna(9)}>
-          <CambiosDelMesPieza cambios={cambiosDelMes({ r, ...comparacion, enCurso })} />
+          <CambiosDelMesPieza cambios={cambiosDelMes({ r, ...comparacion, enCurso, inicioFinanzas })} />
         </div>
       </div>
 
@@ -371,7 +380,7 @@ export function ResumenFinanzasPanel({ resumen, falla, confianza, mes, periodo, 
           onElegir={(id, clave) => setElegidas((e) => ({ ...e, [id]: clave }))}
           abierta={abierta}
           onAbrir={setAbierta}
-          ocultasAqui={todasLasCampanas.some((c) => c.visible) && campanas.length === 0}
+          vacio={vacioDeInversion({ leida: inversion !== null && !inversionFalla, todas: r.ver.todas, ocultasAqui: todasLasCampanas.some((c) => c.visible) && campanas.length === 0 })}
         />
         <AjustesResumen campanas={todasLasCampanas.filter((c) => c.visible)} ajustes={ajustes} onCambiar={ponerAjustes} />
       </div>

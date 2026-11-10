@@ -9,12 +9,12 @@ import { getParametrosFinanzas } from "@/lib/configuracion";
 import { conElRango, leerPeriodo } from "@/lib/estados-periodo";
 import { requirePersonaActualV2, veEstadosFinancierosDeTodoDe } from "@/lib/persona-actual";
 import { getSedesDelTelar } from "@/lib/finanzas-telar";
-import { ESTADOS, type ClaveEstado } from "@/lib/estados-financieros-reglas";
-import { ARCHIVOS_CONTADOR, opcionesDelContador, RUTA_CUENTAS, type VerCuentas } from "@/lib/contador-reglas";
+import { esDeTodaCaylaEnLaCabecera, ESTADOS, type ClaveEstado } from "@/lib/estados-financieros-reglas";
+import { ARCHIVOS_CONTADOR, avisoDelContador, opcionesDelContador, RUTA_CUENTAS, type VerCuentas } from "@/lib/contador-reglas";
 import { hilosDeLaRuta, hrefTelar, mesDelDia, SEDE_EMPRESA, SEDE_TODAS, type ClaveSede } from "@/lib/finanzas-telar-reglas";
 import { rangoDelMes } from "@/lib/flujo-caja-reglas";
 import { getEstadoResultados } from "@/lib/resultados";
-import { AVISO_SIN_SUELDOS, mesNombre, veLaPlanilla } from "@/lib/resultados-reglas";
+import { AVISO_SIN_SUELDOS, AVISO_SUELDOS_SIN_LEER, mesNombre, veLaPlanilla } from "@/lib/resultados-reglas";
 
 // La cabecera de Estados financieros (ADR-0585, rediseñada en ADR-0611): la cabecera única del ERP (ADR-0220) sobre vidrio, con «Estados financieros» de título, el calendario de fechas, el
 // botón «Para el contador» (los saldos, el libro diario y las descargas) y debajo las cuatro pestañas fijas que eligió Felipe, cada una con el nombre real de su estado. En un cuadro del
@@ -39,8 +39,8 @@ export async function CabeceraEstados({
   const ruta = ESTADOS.find((e) => e.clave === pantalla)?.ruta ?? RUTA_CUENTAS;
   const telar = await getSedesDelTelar();
   const { sedes } = hilosDeLaRuta(ruta, telar, telar.sedesEstados);
-  // Flujo y Patrimonio son de CAYLA entera: mostrar una sede sería afirmar que sus cifras son de ella. La sede sigue en la URL para volver a Ganancias con ella.
-  const nombre = sede === SEDE_TODAS || pantalla === "plata" || pantalla === "tuyo" ? null : sede === SEDE_EMPRESA ? "Empresa" : (sedes.find((s) => s.clave === sede)?.nombre ?? null);
+  // Flujo y Patrimonio son de CAYLA entera, y el Balance con «Empresa» también: mostrar una sede sería afirmar que sus cifras son de ella. La sede sigue en la URL para volver a Ganancias con ella.
+  const nombre = sede === SEDE_TODAS || esDeTodaCaylaEnLaCabecera(pantalla, sede) ? null : sede === SEDE_EMPRESA ? "Empresa" : (sedes.find((s) => s.clave === sede)?.nombre ?? null);
   const persona = await requirePersonaActualV2();
   const actuales = [...params];
   const mesDeHoy = mesDelDia(hoy);
@@ -64,7 +64,9 @@ export async function CabeceraEstados({
   const parametros = activa ? await getParametrosFinanzas() : null;
   // Mismas fechas que la página: la lectura ya está en caché y no cuesta otra vuelta a la base (el Balance y los cuadros del contador, sí). Si falla, no se afirma nada.
   const rango = periodo ?? rangoDelMes(mes, hoy);
-  const sinSueldos = veLaPlanilla(await getEstadoResultados(rango.desde, rango.hasta)) === false;
+  const lecturaEr = await getEstadoResultados(rango.desde, rango.hasta);
+  const sinSueldos = veLaPlanilla(lecturaEr) === false;
+  const avisoArchivos = periodo ? avisoDelContador(periodo, hoy, una) : null;
   const dicho = !periodo
     ? `Cómo le fue a CAYLA en ${mesNombre(mes)}${mes === mesDeHoy ? " (a la fecha)" : ""}.`
     : una
@@ -80,7 +82,7 @@ export async function CabeceraEstados({
           acciones={
             <div className="flex w-full flex-wrap items-center justify-end gap-3 sm:w-auto">
               {periodo && <SelectorPeriodo desde={periodo.desde} hasta={periodo.hasta} hoy={hoy} minimo={parametros?.inicioFinanzas ?? null} una={una} sede={sede} />}
-              <MenuContador opciones={opcionesDelContador({ veTodo, hrefCuentas })} mes={periodo?.mes ?? mes} />
+              <MenuContador opciones={opcionesDelContador({ veTodo, hrefCuentas, mes: periodo?.mes ?? mes, hoy })} mes={periodo?.mes ?? mes} />
             </div>
           }
         />
@@ -92,9 +94,19 @@ export async function CabeceraEstados({
         activa={activa ?? ""}
         items={ESTADOS.map((e) => ({ clave: e.clave, etiqueta: e.formal, href: hrefEstado(e.clave) }))}
       />
+      {avisoArchivos && (
+        <Aviso tono="info" chico>
+          {avisoArchivos}
+        </Aviso>
+      )}
       {sinSueldos && (
         <Aviso tono="info" chico>
           {AVISO_SIN_SUELDOS} Los archivos que bajes lo dicen en su primera línea.
+        </Aviso>
+      )}
+      {lecturaEr.sueldosSinLeer && (
+        <Aviso tono="atencion" chico>
+          {AVISO_SUELDOS_SIN_LEER} Vuelve a cargar en un rato. Los archivos que bajes lo dicen en su primera línea.
         </Aviso>
       )}
       {cuadro && <TituloSeccion accion={<DescargarCuadro archivo={cuadro.clave} mes={mes} />}>{`${cuadro.etiqueta} · ${mesNombre(mes)}`}</TituloSeccion>}

@@ -6,6 +6,8 @@
 // bloques y filas se muestran, cómo se escribe cada cifra y cada estado, y cómo se lee una casilla antes de ir a la base.
 
 import { parsearMonto, type Resultado } from "./configuracion-reglas";
+import { solesRedondo } from "./gastos-reglas";
+import { metaConIgv } from "./igv-ventas-reglas";
 import { mesAnterior, mesNombre } from "./resultados-reglas";
 
 export type UnidadPpto = "tienda" | "taller" | "empresa" | "consolidado";
@@ -118,6 +120,9 @@ export type ConfigPpto = {
   /** Cuántos topes tiene el mes anterior (para «Copiar de…»). */
   anterior: number;
 };
+
+/** El enlace a Metas: la misma cifra que se escribió allá, con IGV (`fn_presupuesto_configuracion` la entrega sin IGV; tarea 53). */
+export const textoMetaVentasTopes = (metaVentas: number | null): string => (metaVentas === null ? "Meta de ventas: sin meta" : `Meta de ventas con IGV: ${solesRedondo(metaConIgv(metaVentas))}`);
 
 /** La llave de una casilla: la ubicación (o «empresa») y la cuenta. */
 export const claveCelda = (ubicacionId: string | null, cuenta: string) => `${ubicacionId ?? "empresa"}|${cuenta}`;

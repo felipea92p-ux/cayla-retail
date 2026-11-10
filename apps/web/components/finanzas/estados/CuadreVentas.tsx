@@ -10,14 +10,14 @@ import { solesCentimos } from "@/lib/flujo-caja-reglas";
 export function CuadreVentas({ cuadro, falla }: { cuadro: CuadroVentas | null; falla: string | null }) {
   if (falla) return <Aviso tono="error">{falla}</Aviso>;
   if (!cuadro) return null;
-  const { columnas, filas, conTotal, sinExplicar } = cuadro;
+  const { columnas, filas, conTotal, sinExplicar, conIgv } = cuadro;
   const cuadra = Math.round(sinExplicar * 100) === 0;
   return (
     <section id="de-ventas-a-finanzas" className="scroll-mt-40" data-guia="fin-ganamos.cuadre">
       <TituloSeccion
         accion={
           cuadra ? (
-            <Chip tono="verde" versalitas={false} title="Todo lo que separa las dos cifras tiene nombre">
+            <Chip tono="verde" versalitas={false} title="Todo lo que separa estas cifras tiene nombre">
               Cuadra al céntimo
             </Chip>
           ) : (
@@ -29,7 +29,11 @@ export function CuadreVentas({ cuadro, falla }: { cuadro: CuadroVentas | null; f
       >
         De Ventas a Finanzas
       </TituloSeccion>
-      <p className="mt-1 text-sm text-taupe">Parten de las mismas ventas. Ventas muestra lo cobrado; Finanzas, lo que es ingreso de CAYLA.</p>
+      <p className="mt-1 text-sm text-taupe">
+        {conIgv
+          ? "«Vendiste con IGV» es lo de Ventas con las devoluciones, los cambios y las anuladas ya puestos. Sin el IGV y sin lo de CLAURE, queda lo que vendiste."
+          : "No se pudo leer el IGV de tus ventas: este cuadro va directo a las ventas sin IGV y no pasa por «Vendiste con IGV»."}
+      </p>
       <div className="fin-tabla-wrap mt-3">
         <table className="fin-tabla fin-tabla-flujo" /* unificar-fijo: la tabla del kit de Finanzas (fin-tabla), como sus vecinas de Estados financieros, ADR-0195 */>
           <caption className="sr-only">De lo vendido en Ventas a las ventas de Finanzas</caption>
@@ -46,7 +50,7 @@ export function CuadreVentas({ cuadro, falla }: { cuadro: CuadroVentas | null; f
           </thead>
           <tbody>
             {filas.map((f) => {
-              const fuerte = f.clave === "vendido" || f.clave === "ventasNetas";
+              const fuerte = f.clave === "vendido" || f.clave === "vendisteConIgv" || f.clave === "ventasNetas";
               return (
                 <tr key={f.clave}>
                   <td data-l="Concepto">

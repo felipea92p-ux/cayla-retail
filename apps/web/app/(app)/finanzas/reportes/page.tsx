@@ -1,16 +1,17 @@
 import { Suspense } from "react";
-import { exigirModulo, veDiarioDeTodoDe } from "@/lib/persona-actual";
+import { exigirModulo, veDiarioDeTodoDe, veModulo } from "@/lib/persona-actual";
 import { hoyLima } from "@/lib/fechas-lima";
 import { mesDe } from "@/lib/gastos-reglas";
 import { avisosER, columnasER, leerVerER, mesAnterior, mesNombre } from "@/lib/resultados-reglas";
 import { getCampanas, getEstadoResultados, getEstadoResultadosAEstaFecha, getFaltaDelMes, getUnidadesCerradas } from "@/lib/resultados";
-import { ventaParaElMesEntero } from "@/lib/equilibrio-mes-reglas";
+import { notaDeLoQueFaltaDelMes, ventaParaElMesEntero } from "@/lib/equilibrio-mes-reglas";
 import { getPresupuestoVsReal } from "@/lib/presupuesto";
 import { getParametrosFinanzas } from "@/lib/configuracion";
 import { getVentasClaure } from "@/lib/cuenta-claure";
 import { getCuadreVentas } from "@/lib/cuadre-ventas";
 import { cuadroVentas } from "@/lib/cuadre-ventas-reglas";
-import { avisoAntesDelCorte, mesAntesDelCorte } from "@/lib/finanzas-arranque-reglas";
+import { avisoAntesDelCorte, avisoConteosAntesDelCorte, mesAntesDelCorte } from "@/lib/finanzas-arranque-reglas";
+import { hrefPerdidas } from "@/lib/perdidas-reglas";
 import { etiquetaDelPeriodo, leerPeriodo, periodoAnterior, periodosAnteriores } from "@/lib/estados-periodo";
 import { informeDeGanancias, lecturaDeGanancias, partesDeGanancias } from "@/lib/estados-ganancias";
 import { textoDeVerMas } from "@/lib/estados-partes";
@@ -19,8 +20,8 @@ import { hrefTelar, mesDelDia, SEDE_EMPRESA, sedeDeLaUrl, SEDE_TODAS, type Clave
 import { filaDeLaSede, paramsDe } from "@/lib/estados-financieros-reglas";
 import { campanasDelMes, cascadaGanamos, filasDeSedes, metaDeVentas, porSede, pptoDeLaSede, recomendacionesGanamos } from "@/lib/ganamos-reglas";
 import { conIgvDeLasVentasDe } from "@/lib/igv-ventas";
-import { getCostoEstimado } from "@/lib/costo-estimado";
-import { notaCostoEstimado } from "@/lib/costo-estimado-reglas";
+import { contarPrendasPorRegistrar, getCostoEstimado } from "@/lib/costo-estimado";
+import { aplicaNotaDeCosto, notaCostoEstimado } from "@/lib/costo-estimado-reglas";
 import { CabeceraEstados } from "@/components/finanzas/estados/CabeceraEstados";
 import { CuadreVentas } from "@/components/finanzas/estados/CuadreVentas";
 import { Aviso } from "@/components/ui/Aviso";
@@ -62,13 +63,13 @@ export default async function ReportesPage({ searchParams }: { searchParams: Pro
   // En el mes en curso se compara con los mismos días de los meses pasados: esos días también llevan su parte de sueldos, como hoy (`getEstadoResultadosAEstaFecha`).
   const leerAnterior = enCurso && unMes ? getEstadoResultadosAEstaFecha : getEstadoResultados;
   // Cada lectura de arriba lleva el IGV de sus ventas (ADR-0624): solo para presentar «Vendiste con IGV» e «IGV de tus ventas» sobre «Lo que vendiste». No cambia ninguna cifra.
-  const [actual, anterior, comparadas, cerradas, claure, ppto, campanas, cuadre, costoEst, faltaDelMes] = await Promise.all([
+  const [actual, anterior, comparadas, cerradas, claure, ppto, campanas, cuadre, costoEst, faltaDelMes, porRegistrar] = await Promise.all([
     getEstadoResultados(desde, hasta).then((l) => conIgvDeLasVentasDe(desde, hasta, l)),
     comparar && antes ? leerAnterior(antes.desde, antes.hasta) : Promise.resolve(null),
     Promise.all(anteriores.map(async (c) => ({ etiqueta: c.etiqueta, lectura: await conIgvDeLasVentasDe(c.desde, c.hasta, await leerAnterior(c.desde, c.hasta)) }))),
     // El mes en curso no se cierra: no hay nada que preguntar.
     enCurso ? Promise.resolve([] as string[]) : getUnidadesCerradas(mes),
-    // Lo vendido de CLAURE no suma a nada de esta pantalla: la nota dice cuánto se dejó fuera (apoyo; sin permiso o sin CLAURE llega `null`).
+    // Lo vendido de CLAURE no cuenta en las ventas ni en la ganancia del cuadro por sede: la nota dice cuánto es. Arriba va en su propia fila, que sale de `claureSinIgv` (apoyo; sin permiso o sin CLAURE llega `null`).
     getVentasClaure(desde, hasta),
     // Apoyo: si el presupuesto o las campañas no se pueden leer, la cascada sale sin la raya de lo planeado y sin campañas.
     unMes ? getPresupuestoVsReal(mes) : Promise.resolve({ datos: [], falla: null }),
@@ -79,9 +80,15 @@ export default async function ReportesPage({ searchParams }: { searchParams: Pro
     getCostoEstimado(desde, hasta, ubicacionId),
     // Lo que el mes en curso todavía va a gastar: sin esto, «cuánto hay que vender» saldría con los gastos de los días que van. Si no se lee, no se da cifra.
     enCurso && unMes ? getFaltaDelMes(mes) : Promise.resolve(null),
+    // Cuántas ventas del período siguen por registrar: las cerradas sin prenda no se corrigen solas, y el aviso no lo promete (tarea 75).
+    contarPrendasPorRegistrar(desde, hasta, ubicacionId),
   ]);
   // ADR-0332: un mes anterior a la fecha desde la que cuenta Finanzas sale vacío; se dice por qué en vez de dejar ceros mudos.
   const avisoCorte = inicio && mesAntesDelCorte(mes, inicio) ? avisoAntesDelCorte(inicio) : null;
+  // Octubre se lee sin faltantes ni sobrantes (decisión de Felipe, tarea 78): se dice si se mira o se compara algo anterior a ese corte. El enlace, solo a quien puede abrir esa pantalla.
+  const avisoConteos = avisoConteosAntesDelCorte([desde, ...anteriores.map((c) => c.desde)]);
+  const hrefDePerdidas = veModulo(persona, "movimientos") ? hrefPerdidas() : null;
+  const avisoConteosCuadro = avisoConteosAntesDelCorte([desde, ...(comparar && antes ? [antes.desde] : [])]);
 
   const params = paramsDe(sp);
   const mesDeHoy = mesDelDia(hoy);
@@ -94,7 +101,7 @@ export default async function ReportesPage({ searchParams }: { searchParams: Pro
   const deCadaSede = sede === SEDE_TODAS && veTodo ? porSede(actual.datos) : null;
   const delMes = unMes ? campanasDelMes(campanas.datos, mes) : [];
   const sedesCascada = deCadaSede ? filasDeSedes(deCadaSede, (c) => href("/finanzas/reportes", c)) : null;
-  const cuadro = cuadroVentas(cuadre.datos, sede);
+  const cuadro = cuadroVentas(cuadre.datos, sede, actual.datos);
   const ventaDelMes = (clave: ClaveSede) => {
     const f = clave ? actual.datos.find((x) => (x.unidad === "empresa" ? SEDE_EMPRESA : x.ubicacionId) === clave) : fila;
     return f ? ventaParaElMesEntero(f, faltaDelMes) : null;
@@ -112,12 +119,28 @@ export default async function ReportesPage({ searchParams }: { searchParams: Pro
     "el cuadro por sede",
   ])!;
   const leidas = comparadas.map((c) => ({ etiqueta: c.etiqueta, fila: c.lectura.falla ? null : filaDeLaSede(c.lectura.datos, sede) }));
-  const notaCosto = notaCostoEstimado(costoEst.datos);
+  // Con «Empresa» la lectura sería la de todas las tiendas y la empresa nunca vende: ni la nota ni su aviso de falla le tocan (tarea 58).
+  const conNotaDeCosto = aplicaNotaDeCosto(sede);
+  const notaCosto = conNotaDeCosto ? notaCostoEstimado(costoEst.datos, { periodo: unMes ? mesNombre(mes) : null, pendientes: porRegistrar }) : null;
 
   return (
     <div className="space-y-4">
       <CabeceraEstados pantalla="ganamos" mes={mes} sede={sede} hoy={hoy} params={params} />
       {avisoCorte && <Aviso tono="info">{avisoCorte}</Aviso>}
+      {avisoConteos && (
+        <Aviso
+          tono="info"
+          accion={
+            hrefDePerdidas ? (
+              <BotonVer href={hrefDePerdidas} chico>
+                Ver las pérdidas
+              </BotonVer>
+            ) : undefined
+          }
+        >
+          {avisoConteos}
+        </Aviso>
+      )}
       {/* Si no se pudo leer se dice: nunca una cifra en cero que no es. */}
       {actual.falla ? (
         <Aviso tono="error">{actual.falla}</Aviso>
@@ -147,14 +170,16 @@ export default async function ReportesPage({ searchParams }: { searchParams: Pro
                   titulo={notaCosto.texto}
                   guia="fin-ganamos.costo-estimado"
                   accion={
-                    <BotonVer href={notaCosto.href} chico>
-                      Registrar el costo real
-                    </BotonVer>
+                    notaCosto.conBoton ? (
+                      <BotonVer href={notaCosto.href} chico>
+                        Registrar el costo real
+                      </BotonVer>
+                    ) : undefined
                   }
                 >
                   {notaCosto.detalle}
                 </Aviso>
-              ) : costoEst.falla ? (
+              ) : conNotaDeCosto && costoEst.falla ? (
                 <Aviso tono="info" chico>
                   {costoEst.falla}
                 </Aviso>
@@ -163,7 +188,7 @@ export default async function ReportesPage({ searchParams }: { searchParams: Pro
           }
           informe={
             fila
-              ? informeDeGanancias({ fila, partes: partesDeGanancias({ fila, ppto: pptoSede, datos: actual.datos, veCadaSede: !!deCadaSede, comparadas: leidas, etiquetaActual: etiquetaDelPeriodo(periodo), periodo }), comparadas: leidas, etiquetaActual: etiquetaDelPeriodo(periodo), verImpuestos: href("/finanzas/impuestos") })
+              ? informeDeGanancias({ fila, partes: partesDeGanancias({ fila, ppto: pptoSede, datos: actual.datos, veCadaSede: !!deCadaSede, comparadas: leidas, etiquetaActual: etiquetaDelPeriodo(periodo), periodo, notaOtros: notaDeLoQueFaltaDelMes(fila, faltaDelMes) }), comparadas: leidas, etiquetaActual: etiquetaDelPeriodo(periodo), verImpuestos: href("/finanzas/impuestos") })
               : { titulo: "Ganancias y pérdidas", columnas: [], pesoDe: null, filas: [] }
           }
         />
@@ -177,6 +202,7 @@ export default async function ReportesPage({ searchParams }: { searchParams: Pro
           enCurso={enCurso}
           sedes={sedesCascada}
           campanas={unMes ? delMes : null}
+          campanasFalla={campanas.falla}
           hrefCampanas={href("/finanzas/reportes/campanas")}
           nombreDelMes={mesNombre(mes)}
           cuadre={hayCuadre ? <CuadreVentas cuadro={cuadro} falla={cuadre.falla} /> : null}
@@ -199,6 +225,8 @@ export default async function ReportesPage({ searchParams }: { searchParams: Pro
                 comparar={comparar}
                 claure={claure}
                 fallas={anterior?.falla ? [anterior.falla] : []}
+                avisoConteos={avisoConteosCuadro}
+                hrefDePerdidas={hrefDePerdidas}
               />
             </section>
           }

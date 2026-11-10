@@ -3,11 +3,12 @@ import { exigirModulo, puede, veEstadosFinancierosDeTodoDe, veFinanzasDeTodoDe, 
 import { getValorInventario } from "@/lib/valor-inventario";
 import { Movimientos, MovimientosEsperando } from "@/components/finanzas/bolsillos/Movimientos";
 import { hoyLima } from "@/lib/fechas-lima";
-import { getConfianzaFinanzas, getResumenFinanzas } from "@/lib/resumen-finanzas";
+import { conIgvDelMesAnterior, getConfianzaFinanzas, getResumenFinanzas } from "@/lib/resumen-finanzas";
 import { estadoDelMesYaLeido, flujoDelResumen, leerVerResumen } from "@/lib/resumen-finanzas-reglas";
 import { crearCupos } from "@/lib/cupos";
 import { getBalancePorTienda } from "@/lib/balance";
 import { getEstadoResultados, getFaltaDelMes } from "@/lib/resultados";
+import { conIgvDeLasVentasDe } from "@/lib/igv-ventas";
 import { getSedesDelTelar } from "@/lib/finanzas-telar";
 import { getFlujoProximo, getTiendasActivas, getVentasPorDia } from "@/lib/resumen-telar";
 import { getInversionMercaderia } from "@/lib/inversion-mercaderia";
@@ -16,6 +17,8 @@ import { mismasTiendas, tiendasAdivinadas, tiendasDeLaLinea } from "@/lib/resume
 import { conElRango, leerPeriodo, periodoAnterior } from "@/lib/estados-periodo";
 import { getParametrosFinanzas } from "@/lib/configuracion";
 import { ResumenFinanzasPanel } from "@/components/finanzas/ResumenFinanzas";
+import { getCostoEstimado } from "@/lib/costo-estimado";
+import { pctCostoEstimado } from "@/lib/costo-estimado-reglas";
 import { getPlanillaParaElInicio } from "@/lib/cuentas-dinero";
 
 // Finanzas ▸ Resumen en El telar (ADR-0195 F10; ADR-0493, Felipe 2026-10-23). La sede la elige la barra común (`?sede=`; mientras dure el cambio,
@@ -56,7 +59,8 @@ export default async function ResumenFinanzasPage({ searchParams }: { searchPara
   const veRendimiento = veModulo(persona, "rendimiento");
   const pesada = crearCupos(CUPOS_PESADOS);
   // El resumen entra primero al turnero: es la más larga, y el estado de resultados del mes puede salir de él.
-  const resumenP = pesada(() => getResumenFinanzas(pedido));
+  // Con el IGV del mes anterior si alguna tienda perdió (tarea 19): «Hoy te toca» dice cuánto necesitaba vender, y eso va con IGV.
+  const resumenP = pesada(() => getResumenFinanzas(pedido).then(conIgvDelMesAnterior));
   const ventasAdelantadas = veRendimiento
     ? getTiendasActivas().then(async (activas) => {
         const ids = tiendasAdivinadas(pedido, persona.ubicacionId, activas);
@@ -64,13 +68,24 @@ export default async function ResumenFinanzasPage({ searchParams }: { searchPara
       })
     : null;
 
-  const [{ datos, falla }, confianza, erMes, erAntes, telar, flujoProximo, inversion, adelantadas, faltaDelMes, planillaPorRegistrar, cajasPorSede, minimo, inventarioValor] = await Promise.all([
+  // Cuánto de lo vendido lleva costo estimado en cada tienda (tarea 75): la función de la base, pedida sede por sede; la fila de CAYLA, sin sede. Solo quien ve todas.
+  const estimadosPorSede = veTodo
+    ? getSedesDelTelar().then(async ({ sedes }) => {
+        const claves = [...sedes.filter((s) => s.color !== "tal" && s.color !== "emp" && s.clave).map((s) => s.clave as string), null];
+        const lecturas = await Promise.all(claves.map((c) => getCostoEstimado(tramo.desde, tramo.hasta, c)));
+        return Object.fromEntries(claves.map((c, i) => [c ?? "todas", pctCostoEstimado(lecturas[i]!.datos)]));
+      })
+    : Promise.resolve(null);
+
+  const [resumenLeido, confianza, erMes, erAntes, telar, flujoProximo, inversion, adelantadas, faltaDelMes, planillaPorRegistrar, cajasPorSede, minimo, inventarioValor, estimados] = await Promise.all([
     resumenP,
     getConfianzaFinanzas(pedido, mes),
-    // Del resumen si ya lo armó igual; si no, aparte, por el turnero.
-    resumenP.then(({ datos: r }) => {
+    // Del resumen si ya lo armó igual; si no, aparte, por el turnero. Con el IGV de las ventas (ADR-0624) para que «Cada sede, junta» diga lo vendido con IGV;
+    // si no se puede leer, la tabla sale sin IGV y lo dice.
+    resumenP.then(async ({ datos: r }) => {
       const yaLeido = estadoDelMesYaLeido(r, tramo);
-      return yaLeido ? { datos: yaLeido, falla: null } : pesada(() => getEstadoResultados(tramo.desde, tramo.hasta));
+      const lectura = yaLeido ? { datos: yaLeido, falla: null } : await pesada(() => getEstadoResultados(tramo.desde, tramo.hasta));
+      return conIgvDeLasVentasDe(tramo.desde, tramo.hasta, lectura);
     }),
     // Contra qué se compara: el mes pasado a la misma fecha, el mes anterior entero o los mismos días justo antes. Antes de que Finanzas empezara, nada.
     minimoP.then((min) => {
@@ -90,7 +105,9 @@ export default async function ResumenFinanzasPage({ searchParams }: { searchPara
     minimoP,
     // Lo que vale la ropa a costo (la hoja «La ropa que tienes»): la misma lectura de Existencias, que la base solo da con el dinero de Compras.
     veTodo && (persona.rol === "lider" || puede(persona, "verDineroCompras")) ? getValorInventario() : Promise.resolve(null),
+    estimadosPorSede,
   ]);
+  const { datos, falla } = resumenLeido;
   const tiendas = datos ? tiendasDeLaLinea(datos) : [];
   const ventas = !veRendimiento
     ? null
@@ -129,6 +146,9 @@ export default async function ResumenFinanzasPage({ searchParams }: { searchPara
       inversionFalla={inversion.falla}
       acceso={{ lider: veTodo, modulos: persona.modulos.map((m) => m.clave) }}
       cajasPorSede={cajasPorSede}
+      inicioFinanzas={minimo}
+      estimadosPorSede={estimados}
+      sueldosSinLeer={!!(erMes.sueldosSinLeer || resumenLeido.sueldosSinLeer)}
     />
   );
 }

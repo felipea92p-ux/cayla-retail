@@ -28,6 +28,9 @@ export const ESTADOS: readonly { clave: ClaveEstado; ruta: string; formal: strin
   { clave: "tuyo", ruta: "/finanzas/reportes/patrimonio", formal: "Cambios en el patrimonio" },
 ];
 
+/** ¿La cabecera debe decir «Todas las sedes»? Flujo y Patrimonio son de CAYLA entera, y «Empresa» no tiene Balance aparte: es el de toda CAYLA (tarea 58). Ganancias sí tiene su columna. */
+export const esDeTodaCaylaEnLaCabecera = (pantalla: string, sede: ClaveSede): boolean => pantalla === "plata" || pantalla === "tuyo" || (pantalla === "vale" && sede === SEDE_EMPRESA);
+
 /** La columna del Estado de resultados que corresponde a la sede de la barra: todas → CAYLA (el consolidado), empresa → «De la empresa». */
 export function filaDeLaSede(filas: readonly FilaER[], sede: ClaveSede): FilaER | null {
   if (sede === SEDE_TODAS) return filas.find((f) => f.unidad === "consolidado") ?? (filas.length === 1 ? filas[0]! : null);

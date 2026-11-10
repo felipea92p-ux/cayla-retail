@@ -36,8 +36,8 @@
   min-width: 0;
   padding-block: 4px;
 }
-/* Lo que se está mirando: toma el aire que queda entre el mes y «Te toca» (nunca empuja a «Te toca» a otra línea) y, si no cabe,
-   se parte en dos líneas; el texto entero queda en su `title`. */
+/* Lo que se está mirando: toma solo el aire que sobra entre el mes y «Te toca» (`flex-basis: 0`: nunca empuja la fila) y se esconde si no le
+   alcanza. Lo que la persona necesita saber no depende de esta frase: va en el rótulo de las sedes y en el `title` de lo apagado. */
 .mesa-telar-dice {
   flex: 1 1 0;
   min-width: 0;
@@ -51,21 +51,14 @@
   overflow: hidden;
 }
 
-/* El Resumen cuelga su ícono «Qué se ve» junto al mes. Hasta 1500 px la fila queda justa: ese texto de ayuda se esconde (ya está en su `title`)
-   para que «Registrar gasto» no baje a otra línea. Solo cuando el ícono existe; las otras pantallas de Finanzas no cambian. */
-@media (max-width: 1500px) {
-  .mesa-telar-fila:has(#slot-ajustes-resumen button) .mesa-telar-dice {
-    display: none;
-  }
-}
-
 /* ---- Ver sede: un botón por sede; se marcan una, varias o «Todas» (Felipe 2026-10-24: los hilos no se leían como filtro) ---- */
+/* Lleva `pildoras-desliza`: se desliza de lado y, si algo queda tapado, se desvanece en ese borde. Aquí solo se le quita su margen negativo. */
 .sedes-telar {
-  display: flex;
   align-items: center;
-  flex-wrap: wrap;
   gap: 6px;
   min-width: 0;
+  max-width: 100%;
+  margin: 0;
   padding: 4px 6px 4px 14px;
   border-radius: 999px;
   background: var(--color-hueso);
@@ -86,8 +79,9 @@
   gap: 7px;
   height: 32px;
   padding: 0 13px 0 10px;
+  flex: none;
   border-radius: 999px;
-  border: 1px solid var(--color-sand);
+  border: 1px solid var(--color-borde-control);
   background: var(--color-papel);
   color: var(--color-tinta);
   font-size: 14px;
@@ -97,7 +91,7 @@
   transition: background-color 0.2s var(--ease-cayla), color 0.2s var(--ease-cayla), border-color 0.2s var(--ease-cayla), transform 0.2s var(--ease-cayla);
 }
 span.sede-telar { cursor: default; }
-/* Lo que no aplica en esta pantalla (tarea 26): se ve apagado, y `.mesa-telar-dice` dice por qué. */
+/* Lo que no aplica en esta pantalla (tarea 26): se ve apagado, y su `title` dice por qué. */
 .sede-telar:disabled { opacity: 0.5; cursor: not-allowed; }
 .mesa-telar-no-aplica { opacity: 0.5; cursor: not-allowed; }
 @media (hover: hover) {
@@ -149,7 +143,7 @@ span.sede-telar { cursor: default; }
   height: 40px;
   padding: 0 14px;
   flex: none;
-  border: 1px solid var(--color-sand);
+  border: 1px solid var(--color-borde-control);
   border-radius: 999px;
   background: var(--color-papel);
   font-size: 14px;
@@ -695,6 +689,12 @@ span.sede-telar { cursor: default; }
   font-variant-numeric: tabular-nums;
   color: var(--color-tinta);
 }
+.respuesta-telar-unidad {
+  margin-left: 8px;
+  font-family: var(--font-sans);
+  font-size: 14px;
+  color: var(--color-taupe);
+}
 .respuesta-telar-motivo {
   max-width: 22rem;
   font-size: 14px;
@@ -719,18 +719,36 @@ span.sede-telar { cursor: default; }
   }
 }
 
-/* ---- Celular: líneas cortas (las sedes se deslizan · mes), para que la barra fija no se coma la pantalla ---- */
-/* Medidas de la fila con texto (2026-10-26): sedes 513 + mes 211 + «Te toca» 127 + «Registrar gasto» 151 + 3 huecos de 12 = 1038 px. Por debajo,
-   solo íconos (si no, la barra baja a dos filas y se come 43 px); y el dicho necesita ~150 px propios, o se queda en un hilo de 40 px. */
-@container mesa (max-width: 1190px) {
+/* ---- Lo que cabe en la barra: pregunta por el ancho de la barra, no por el de la ventana (el lateral se lleva 272 px abierto y 84 plegado) ----
+   El presupuesto (`lib/mesa-telar-ancho.test.ts`, peor caso): sedes 571 + mes 236 + ícono «Qué se ve» 32 + «Te toca» 136 + «Registrar gasto» 155 +
+   4 huecos de 12 = 1178 px. Una sola fila desde 680 px (720 contando su relleno: alcanza una ventana de 1024 con el lateral abierto); lo único que se
+   encoge son las sedes, que se deslizan. Antes de encogerlas se quita, en este orden, lo que tiene otra forma de decirse: los textos de los dos
+   botones, que quedan en su `title`, y el rótulo «Ver sede». El rótulo que aclara algo (`data-dice`) no se quita nunca. */
+@container mesa (min-width: 680px) {
+  .mesa-telar-fila { flex-wrap: nowrap; }
+  .sedes-telar { flex: 0 1 auto; }
+  .mesa-telar-fila .selector-mes,
+  .mesa-telar-no-aplica { flex: none; }
+}
+/* La frase larga solo si le quedan 150 px para leerse: con menos, se partía en un hilo de dos líneas. */
+@container mesa (max-width: 1340px) {
   .mesa-telar-dice {
     display: none;
   }
 }
-@container mesa (max-width: 1049px) {
+@container mesa (max-width: 1199.98px) {
   /* Solo el ícono a la vista; el texto queda para el lector de pantalla (es el nombre del botón). */
-  .te-toca-telar-texto,
   .mesa-telar-registrar-texto {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+}
+@container mesa (max-width: 1089.98px) {
+  .te-toca-telar-texto {
     position: absolute;
     width: 1px;
     height: 1px;
@@ -740,25 +758,20 @@ span.sede-telar { cursor: default; }
   }
   .te-toca-telar { padding: 0 12px; }
 }
-@media (max-width: 639px) {
-  .mesa-telar-dice {
-    display: none;
-  }
+@container mesa (min-width: 680px) and (max-width: 1019.98px) {
+  .mesa-telar-fila { column-gap: 8px; }
+  .sedes-telar:not([data-dice]) { padding-left: 6px; }
+  .sedes-telar:not([data-dice]) .sedes-telar-titulo { display: none; }
+}
+/* Más angosto no alcanza para una fila: las sedes van en la suya, deslizable, y lo demás debajo. Con el lateral abierto la barra llega aquí con
+   ventanas de hasta 1011 px; por eso tampoco esto pregunta por la ventana. */
+@container mesa (max-width: 679.98px) {
   .mesa-telar-fila {
     padding-block: 2px;
-  }
-  .mesa-telar-fila {
-    flex-wrap: wrap;
     row-gap: 6px;
   }
   .sedes-telar {
     flex: 1 0 100%;
-    flex-wrap: nowrap;
-    overflow-x: auto;
-    scrollbar-width: none;
-  }
-  .sedes-telar::-webkit-scrollbar {
-    display: none;
   }
 }
 

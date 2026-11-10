@@ -2,10 +2,12 @@
 
 import Link from "next/link";
 import { Landmark } from "lucide-react";
+import { BotonVer } from "@/components/ui/BotonDescargar";
 import { Vacio } from "@/components/ui/Vacio";
+import { CifraQueRueda } from "@/components/finanzas/estados/CifraQueRueda";
 import { Superficie } from "@/components/finanzas/kit";
 import { solesCentimos, solesConSignoCentimos } from "@/lib/flujo-caja-reglas";
-import { cuadroFormalPatrimonio } from "@/lib/patrimonio-reglas";
+import { cuadroFormalPatrimonio, puntoDePartidaDelPatrimonio } from "@/lib/patrimonio-reglas";
 
 // Estados financieros ▸ Cambios en el patrimonio: lo que no es la cifra (ADR-0585, ADR-0611). El cuadro del contador por columna, plegado en «Ver más», y lo que se dice si faltan los saldos de
 // arranque. Las cifras son de `fn_patrimonio_cambios` y `fn_patrimonio_en_fechas`, el mismo diario que el Balance. Lo tuyo es de CAYLA entera.
@@ -20,6 +22,22 @@ export function PatrimonioSinArranque() {
       </Link>
       .
     </Vacio>
+  );
+}
+
+/** Las fechas empiezan antes del arranque: solo el total, de dónde se parte y a dónde ir por lo ganado. No hay puente que dibujar (tarea 20). */
+export function PatrimonioPuntoDePartida({ arranque, total, nombre, hrefGanancias }: { arranque: string; total: number | null; nombre: string; hrefGanancias: string }) {
+  return (
+    <section className="estados-informe-placa estados-respuesta" data-guia="fin-patrimonio.respuesta">
+      <h2 className="estados-respuesta-nombre">{nombre}</h2>
+      {total !== null && <CifraQueRueda valor={total} mal={total < 0} className="estados-respuesta-cifra" />}
+      <p className="estados-respuesta-frase">{puntoDePartidaDelPatrimonio(arranque)}</p>
+      <div>
+        <BotonVer href={hrefGanancias} chico>
+          Ver Ganancias y pérdidas
+        </BotonVer>
+      </div>
+    </section>
   );
 }
 

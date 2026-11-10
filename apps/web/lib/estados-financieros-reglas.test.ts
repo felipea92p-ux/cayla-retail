@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   ESTADOS,
+  esDeTodaCaylaEnLaCabecera,
   filaDeLaSede,
   leerPatrimonio,
 } from "./estados-financieros-reglas";
@@ -54,3 +55,17 @@ describe("leerPatrimonio", () => {
   });
 });
 
+
+describe("cuándo la cabecera no nombra una sede (tarea 58)", () => {
+  it("Flujo y Patrimonio son de CAYLA entera, con cualquier sede", () => {
+    expect(esDeTodaCaylaEnLaCabecera("plata", "u-lim")).toBe(true);
+    expect(esDeTodaCaylaEnLaCabecera("tuyo", "empresa")).toBe(true);
+  });
+  it("el Balance con Empresa es toda CAYLA; con una tienda, esa tienda", () => {
+    expect(esDeTodaCaylaEnLaCabecera("vale", "empresa")).toBe(true);
+    expect(esDeTodaCaylaEnLaCabecera("vale", "u-lim")).toBe(false);
+  });
+  it("Ganancias sí tiene columna de Empresa", () => {
+    expect(esDeTodaCaylaEnLaCabecera("ganamos", "empresa")).toBe(false);
+  });
+});

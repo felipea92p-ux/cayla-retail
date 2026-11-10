@@ -370,6 +370,10 @@ describe("lo que Finanzas lee: la campaña con cada sol en una sola etapa", () =
     const c = armar(pagos({}));
     expect(c).toMatchObject({ id: "plan-navidad", nombre: "Navidad 2026", desde: "2026-12-11", hasta: "2026-12-25", plan_sin_igv: 7000, pedido: 4000, pagado: 1500, igv: 1260, tope: 12000, fecha_limite: LIMITE });
   });
+  it("dice cuántas categorías tienen plan: una fila sin cálculo es una categoría sin planear", () => {
+    expect(armar(pagos({}))).toMatchObject({ categorias_con_plan: 2, categorias_total: 3 });
+    expect(leerInversion([armar(pagos({}))])[0]!.planeadas).toEqual({ conPlan: 2, total: 3 });
+  });
   it("trae la lista de pagos y la visibilidad tal como se guardaron, y dónde se arma", () => {
     const c = armar(pagos({}, "escenarios"));
     expect(c.pagos).toEqual([{ fecha: "2026-11-23", pct: 100 }]);

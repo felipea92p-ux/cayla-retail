@@ -4,16 +4,21 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Aviso } from "@/components/ui/Aviso";
+import { fallaLegible } from "@/lib/gastos-telar-reglas";
 import { leerCuenta, type CuentaDinero } from "@/lib/cuentas-dinero-reglas";
 import { cuentasQueEmpiezanDespues } from "@/lib/balance-reglas";
 import { createClient } from "@/lib/supabase/client";
 import { traducirError } from "@/lib/error-escritura";
 import { avisar } from "@/components/ui/Avisos";
 import { Modal } from "@/components/ui/Modal";
+import { useSalidaSinGuardar } from "@/components/ui/useSalidaSinGuardar";
 import { ComboResponsable } from "@/components/ComboResponsable";
+import { CampoGuiado, PieGuia } from "@/components/guia-de-foco/CampoGuiado";
+import { useGuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
 import { CampoFin, InputFin } from "@/components/finanzas/kit";
 import { useResponsable } from "@/lib/useResponsable";
 import { firmar } from "@/lib/responsable-reglas";
+import { camposDeArranque } from "@/lib/saldos-arranque-guia";
 import {
   arranquePropuesto,
   cambiosDelSistema,
@@ -72,6 +77,8 @@ export function SaldosArranqueModal({
   const [valores, setValores] = useState<Record<string, string>>(() => (propuestaInicial ? comoTexto(valoresIniciales(propuestaInicial, hayArranque)) : {}));
   const [motivo, setMotivo] = useState("");
   const [guardando, setGuardando] = useState(false);
+  // Lo que se escribió aquí: lo que llega calculado no cuenta como un cambio que se pierde.
+  const [editado, setEditado] = useState(false);
   const propuesta = cargadas[fecha] ?? null;
   // Una cuenta que empieza después del día elegido dejaría ese tramo sin explicar: se frena aquí, donde se puede resolver.
   const [cuentas, setCuentas] = useState<CuentaDinero[]>([]);
@@ -98,7 +105,7 @@ export function SaldosArranqueModal({
       .then(({ data, error }) => {
         if (!vigente) return;
         if (error) {
-          setFallas((f) => ({ ...f, [fecha]: `No se pudo calcular lo que había ese día: ${error.message}` }));
+          setFallas((f) => ({ ...f, [fecha]: traducirError(error, "calcular lo que había ese día") }));
           return;
         }
         const filas = ((data ?? []) as Record<string, unknown>[]).map(leerPropuesta);
@@ -126,20 +133,27 @@ export function SaldosArranqueModal({
   const cambios = propuesta ? cambiosDelSistema(propuesta) : [];
   const correcciones = saldos.filter((s) => s.motivo).sort((a, b) => b.creadoEn.localeCompare(a.creadoEn));
 
-  const puedeGuardar =
-    empiezanDespues.length === 0 &&
-    !!propuesta && !guardando && invalidas.length === 0 && cuadre.cuadra && lineas.length > 0 && (!hayArranque || motivo.trim().length >= 5);
+  const nombreDe = (cuenta: string) => {
+    const p = propuesta?.find((x) => x.cuenta === cuenta);
+    return p ? nombreDeCuenta(p.cuenta, p.nombre) : cuenta;
+  };
+  // Lo que falta se dice bajo su campo al tocar el botón (ADR-0611, mejora 4). Lo que no se arregla llenando esta hoja sigue apagándolo y se dice aparte.
+  const guia = useGuiaCampos(
+    propuesta
+      ? camposDeArranque({ corrige: hayArranque, montosIlegibles: invalidas.map(([cuenta]) => nombreDe(cuenta)), cuadra: cuadre.cuadra, motivo, responsableListo: responsable.listo, responsableMotivo: responsable.motivo })
+      : [],
+  );
+  const sinCambios = !!propuesta && lineas.length === 0;
+  const noSePuede = !propuesta || sinCambios || empiezanDespues.length > 0;
+  const salida = useSalidaSinGuardar(editado, "Escribiste parte de los saldos de arranque y todavía no se guardaron. Si cierras ahora, se pierde lo que escribiste.");
+
+  const escribir = (cuenta: string, texto: string) => {
+    setEditado(true);
+    setValores((v) => ({ ...v, [cuenta]: texto }));
+  };
 
   async function guardar() {
-    if (!propuesta) return;
-    if (invalidas.length) return avisar.error("Hay un monto que no es un número.");
-    if (!cuadre.cuadra) return avisar.error("Todavía no cuadra: revisa el capital y las utilidades acumuladas con el contador.");
-    if (hayArranque && motivo.trim().length < 5) return avisar.error("Di por qué se corrige.");
-    if (!lineas.length) return avisar.error(hayArranque ? "No cambiaste nada." : "No hay nada que registrar.");
-    if (!responsable.listo) {
-      if (responsable.motivo) avisar.error(responsable.motivo);
-      return;
-    }
+    if (noSePuede) return;
     setGuardando(true);
     const { error } = await firmar(
       createClient().rpc(
@@ -154,8 +168,9 @@ export function SaldosArranqueModal({
     avisar.exito(hayArranque ? "Saldos de arranque corregidos" : "Saldos de arranque registrados", {
       detalle: hayArranque ? "La fila anterior queda a la vista, con tu motivo." : "Desde ahora el Balance parte de aquí.",
     });
+    const guardiaFuera = salida.retirarYa();
     onCerrar();
-    router.refresh();
+    void guardiaFuera.then(() => router.refresh());
   }
 
   return (
@@ -168,6 +183,8 @@ export function SaldosArranqueModal({
           : "Lo que CAYLA tenía el día que empezó a usar el sistema. Lo que el sistema ya sabe viene calculado; el resto lo pones tú, con el contador. Se registra una vez."
       }
       onClose={onCerrar}
+      antesDeCerrar={salida.pedirAccion}
+      bloqueado={guardando}
       tamano="ancha"
     >
       {!hayArranque && (
@@ -176,7 +193,11 @@ export function SaldosArranqueModal({
           htmlFor="arr-fecha"
           ayuda="Los saldos de ese día al abrir, antes de vender. Lo ideal: el primer día de un mes, con el balance del contador."
         >
-          <InputFin id="arr-fecha" data-guia="fin-balance.arranque-fecha" type="date" max={hoy} value={fecha} onChange={(e) => e.target.value && setFecha(e.target.value)} />
+          <InputFin id="arr-fecha" data-guia="fin-balance.arranque-fecha" type="date" max={hoy} value={fecha} onChange={(e) => {
+              if (!e.target.value) return;
+              setEditado(true);
+              setFecha(e.target.value);
+            }} />
         </CampoFin>
       )}
 
@@ -195,7 +216,7 @@ export function SaldosArranqueModal({
         </Aviso>
       )}
 
-      {falla && <p className="card-cayla border-dashed px-4 py-3 text-sm text-tinta/75">{falla}</p>}
+      {falla && <Aviso tono="error">{fallaLegible(falla)}</Aviso>}
       {!propuesta && !falla && <p className="py-6 text-center text-sm text-taupe">Calculando lo que había ese día…</p>}
 
       {propuesta && (
@@ -207,6 +228,7 @@ export function SaldosArranqueModal({
               Si la aceptas, ajusta también lo que era tuyo para que siga cuadrando.
             </p>
           )}
+          <CampoGuiado id="montos" guia={guia}>
           {LADOS.map(({ lado, titulo }) => {
             const filas = propuesta.filter((p) => ladoDeCuenta(p.cuenta, p.tipo) === lado);
             if (!filas.length) return null;
@@ -225,7 +247,7 @@ export function SaldosArranqueModal({
                         {cambio && (
                           <small data-tono="aviso">
                             Hoy el sistema calcula {solesBalance(p.monto)}.{" "}
-                            <button type="button" className="btn-enlace" onClick={() => setValores((v) => ({ ...v, [p.cuenta]: String(p.monto) }))}>
+                            <button type="button" className="btn-enlace" onClick={() => escribir(p.cuenta, String(p.monto))}>
                               Usar esta cifra
                             </button>
                           </small>
@@ -237,7 +259,7 @@ export function SaldosArranqueModal({
                           aria-label={p.nombre}
                           value={valores[p.cuenta] ?? ""}
                           placeholder="0"
-                          onChange={(e) => setValores((v) => ({ ...v, [p.cuenta]: e.target.value }))}
+                          onChange={(e) => escribir(p.cuenta, e.target.value)}
                           aria-invalid={Number.isNaN(numeros[p.cuenta])}
                         />
                       ) : (
@@ -249,7 +271,9 @@ export function SaldosArranqueModal({
               </div>
             );
           })}
+          </CampoGuiado>
 
+          <CampoGuiado id="cuadre" guia={guia}>
           <div className="fin-arranque-cuadre" role="status" data-guia="fin-balance.arranque-cuadre">
             <span>
               Lo que tenía <b>{solesBalance(cuadre.tiene)}</b> · lo que debía + lo tuyo <b>{solesBalance(cuadre.debe + cuadre.tuyo)}</b>
@@ -262,11 +286,22 @@ export function SaldosArranqueModal({
               </span>
             )}
           </div>
+          </CampoGuiado>
 
           {hayArranque && (
-            <CampoFin etiqueta="Por qué se corrige" htmlFor="arr-motivo" ayuda="Queda escrito junto a la fila nueva (por ejemplo: «factura de agosto registrada tarde»).">
-              <InputFin id="arr-motivo" value={motivo} onChange={(e) => setMotivo(e.target.value)} maxLength={300} />
-            </CampoFin>
+            <CampoGuiado id="motivo" guia={guia}>
+              <CampoFin etiqueta={guia.etiqueta("motivo", "Por qué se corrige")} htmlFor="arr-motivo" ayuda="Al menos 5 letras. Queda escrito junto a la fila nueva (por ejemplo: «factura de agosto registrada tarde»).">
+                <InputFin
+                  id="arr-motivo"
+                  value={motivo}
+                  onChange={(e) => {
+                    setEditado(true);
+                    setMotivo(e.target.value);
+                  }}
+                  maxLength={300}
+                />
+              </CampoFin>
+            </CampoGuiado>
           )}
 
           {correcciones.length > 0 && (
@@ -288,15 +323,25 @@ export function SaldosArranqueModal({
         </>
       )}
 
-      <ComboResponsable control={responsable} deshabilitado={guardando} />
+      <CampoGuiado id="responsable" guia={guia}>
+        <ComboResponsable control={responsable} deshabilitado={guardando} />
+      </CampoGuiado>
+      {sinCambios ? (
+        <p role="status" className="pt-1 text-sm text-taupe">
+          {hayArranque ? "Todavía no cambiaste ninguna cifra: cambia una para poder guardar." : "No hay nada que registrar."}
+        </p>
+      ) : (
+        propuesta && empiezanDespues.length === 0 && <PieGuia guia={guia} />
+      )}
       <div className="fin-botones mt-4" data-guia="fin-balance.arranque-botones">
-        <button type="button" className="btn-cayla btn-secundario" onClick={onCerrar} disabled={guardando}>
+        <button type="button" className="btn-cayla btn-secundario" onClick={() => salida.pedirAccion(onCerrar)} disabled={guardando}>
           Cancelar
         </button>
-        <Boton peso="primario" cargando={guardando} type="button" onClick={guardar} disabled={!puedeGuardar || !responsable.listo}>
+        <Boton peso="primario" cargando={guardando} type="button" onClick={guardar} confirma={guia} disabled={noSePuede} title={guia.frase ?? undefined} className={guia.claseConfirmar}>
           {hayArranque ? "Guardar corrección" : "Registrar saldos de arranque"}
         </Boton>
       </div>
+      {salida.aviso}
     </Modal>
   );
 }

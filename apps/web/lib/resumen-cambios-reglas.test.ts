@@ -32,6 +32,14 @@ function ok(c: ReturnType<typeof cambiosDelMes>) {
 }
 
 describe("cambiosDelMes", () => {
+  it("la fila de ventas dice que va sin IGV, y la lista sigue sumando la diferencia de lo que te deja", () => {
+    const c = ok(cambiosDelMes({ r: verTodas(), ahora: [{ ...OCT, igvCobrado: 900, claureSinIgv: 40 }], antes: [SEP], enCurso: true }));
+    const ventas = c.filas.find((f) => f.clave === "ventas")!;
+    expect(ventas.nombre).toBe("Ventas, sin IGV");
+    expect(ventas.ahora).toBe(OCT.ventas);
+    expect(c.filas.reduce((a, f) => a + f.efecto, 0)).toBeCloseTo(c.dif, 2);
+  });
+
   it("pone cada rubro con lo que movió lo que te deja el mes, de mayor a menor, y lo que no cambió no sale", () => {
     const c = ok(cambiosDelMes({ r: verTodas(), ahora: [OCT], antes: [SEP], enCurso: true }));
     expect(c.dif).toBe(2_450);
@@ -79,7 +87,7 @@ describe("el veredicto, en lenguaje de tienda", () => {
   it("si cambió lo que deja cada prenda, lo dice con el margen de antes y de ahora", () => {
     const barato = columna({ ventas: 46_900, costo: 25_000, gastos: { "62": 11_000 } });
     const c = ok(cambiosDelMes({ r: verTodas(), ahora: [barato], antes: [SEP], enCurso: true }));
-    expect(texto(c.veredicto ?? "")).toBe("Cada prenda te deja menos: de cada S/ 100 vendidos, 47 son margen (antes, 52).");
+    expect(texto(c.veredicto ?? "")).toBe("Cada prenda te deja menos: de cada S/ 100 vendidos sin IGV, 47 son margen (antes, 52).");
   });
 
   it("si las ventas casi no se movieron, calla antes que inventar una explicación", () => {
@@ -141,6 +149,23 @@ describe("cuando no se puede comparar", () => {
 
   it("si lo que miras no tuvo fila el mes pasado, tampoco", () => {
     const c = cambiosDelMes({ r: verTodas(), ahora: [OCT], antes: [], enCurso: true });
-    expect(c.tipo).toBe("sin_comparacion");
+    expect(c).toEqual({ tipo: "sin_comparacion", motivo: "El mes pasado no tuvo movimientos de lo que miras para compararlos." });
+  });
+
+  it("si falta la fila de ESTE mes, no culpa al mes pasado", () => {
+    const c = cambiosDelMes({ r: verTodas(), ahora: [], antes: [SEP], enCurso: true });
+    expect(c).toEqual({ tipo: "sin_comparacion", motivo: "Este mes todavía no tiene movimientos de lo que miras para compararlos." });
+  });
+
+  it("si el mes pasado es anterior al inicio de Finanzas, lo dice", () => {
+    const r = { ...verTodas(), mes: "2026-10", mesAnterior: "2026-09" };
+    const c = cambiosDelMes({ r, ahora: [OCT], antes: [], enCurso: true, inicioFinanzas: "2026-10-01" });
+    expect(c).toEqual({ tipo: "sin_comparacion", motivo: "Finanzas empezó a contar en octubre: el mes pasado no se mide." });
+  });
+
+  it("si este mes es anterior al inicio de Finanzas, tampoco dice que no hubo movimientos", () => {
+    const r = { ...verTodas(), mes: "2026-09", mesAnterior: "2026-08" };
+    const c = cambiosDelMes({ r, ahora: [], antes: [], enCurso: false, inicioFinanzas: "2026-10-01" });
+    expect(c).toEqual({ tipo: "sin_comparacion", motivo: "Finanzas empezó a contar en octubre: este mes no se mide." });
   });
 });

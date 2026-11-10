@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState, type CSSProperties } from "react";
+import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { leerRpcPorPaginas } from "@/lib/rpc-por-paginas";
@@ -30,6 +31,7 @@ import {
   type LineaDiario,
 } from "@/lib/resultados-reglas";
 import { Aviso } from "@/components/ui/Aviso";
+import { fallaLegible } from "@/lib/gastos-telar-reglas";
 import { CalendarX } from "lucide-react";
 import { Vacio } from "@/components/ui/Vacio";
 import { notaResultadosClaure, type VentasClaure } from "@/lib/cuenta-claure-reglas";
@@ -62,6 +64,8 @@ export function EstadoResultadosPanel({
   cerradas,
   claure,
   fallas,
+  avisoConteos,
+  hrefDePerdidas,
 }: {
   filas: FilaER[];
   anteriores: FilaER[] | null;
@@ -83,6 +87,10 @@ export function EstadoResultadosPanel({
   /** Lo vendido de CLAURE en el mes: no suma al ingreso ni al costo de CAYLA, y la nota dice cuánto se dejó fuera. */
   claure: VentasClaure | null;
   fallas: string[];
+  /** Si este cuadro mira o compara fechas en que las pérdidas y sobrantes de inventario no contaban. */
+  avisoConteos: string | null;
+  /** A dónde ir a verlas; `null` si la cuenta no puede abrir esa pantalla. */
+  hrefDePerdidas: string | null;
 }) {
   const router = useRouter();
   const ruta = usePathname();
@@ -112,9 +120,9 @@ export function EstadoResultadosPanel({
   return (
     <div className="space-y-6">
       {fallas.map((f) => (
-        <p key={f} className="card-cayla border-dashed px-5 py-4 text-sm text-tinta/75">
-          {f}
-        </p>
+        <Aviso key={f} tono="error">
+          {fallaLegible(f)}
+        </Aviso>
       ))}
 
       <div {...entra(1)}>
@@ -195,6 +203,20 @@ export function EstadoResultadosPanel({
           )}
         </Superficie>
       </div>
+
+      {avisoConteos && (
+        <div {...entra(2, "nota-cayla")}>
+          {avisoConteos}
+          {hrefDePerdidas && (
+            <>
+              {" "}
+              <Link href={hrefDePerdidas} className="btn-enlace">
+                Ver las pérdidas
+              </Link>
+            </>
+          )}
+        </div>
+      )}
 
       {notaClaure && (
         <div {...entra(2, "nota-cayla")} data-guia="fin-resultados.claure">
