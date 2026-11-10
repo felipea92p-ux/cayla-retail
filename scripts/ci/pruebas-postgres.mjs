@@ -2253,6 +2253,11 @@ export const PRUEBAS = [
   // Lo que el paso `supabase` hace con las migraciones de un PR (ADR-0251, act. 2026-10-12): aparta, aplica una por una
   // en su transacción, toma huellas y devuelve. En una base APARTE del mismo Postgres: la de las pruebas no se toca.
   "pruebas:huellas-del-pr",
+
+  // Colores combinados (ADR-0643): `color_combinado` busca o crea «Crudo con azur» (la misma mezcla en otro orden es la misma),
+  // con la familia y el hex de la base; el candado rechaza un color que no existe, repetido o una mezcla dentro de otra, y una
+  // mezcla con prendas no cambia de colores. ROLLBACK.
+  "pruebas:colores-combinados",
 ];
 
 /** `"2/4"` → `{ n: 2, de: 4 }`. Lanza si no calza: un error de tipeo en ci.yml no debe correr cero pruebas en verde. */

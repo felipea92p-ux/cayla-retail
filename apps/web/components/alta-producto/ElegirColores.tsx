@@ -4,6 +4,7 @@ import { useState } from "react";
 import { ComboBuscable } from "@/components/ui/ComboBuscable";
 import { Modal } from "@/components/ui/Modal";
 import { NuevoColorAlta } from "@/components/alta-producto/NuevoColorAlta";
+import { ArmarMezcla } from "@/components/alta-producto/ArmarMezcla";
 import type { ColorAlta } from "@/lib/alta-producto";
 import { nombreDeColor } from "@/lib/color-alta-reglas";
 import { esColorClaro, partirEnGamas } from "@/lib/color-escala";
@@ -18,6 +19,7 @@ import { Aviso } from "@/components/ui/Aviso";
 import { Punto } from "@/components/alta-producto/Punto";
 import { ChipOpcion } from "@/components/alta-producto/piezas";
 import { esEstampado, GRUPO_ESTAMPADOS } from "@/lib/color-estampado-reglas";
+import { esCombinado, GRUPO_COMBINADOS, tonosDeMezcla } from "@/lib/color-combinado";
 
 // `Punto` vive en su propio archivo (la tabla de cantidades lo usa sin arrastrar este selector); se sigue exportando de aquí para quien ya lo importaba.
 export { Punto };
@@ -49,6 +51,7 @@ export function ElegirColores({
   cartaAbierta = true,
   sinElegidos = false,
   enfocarBuscador = false,
+  conMezclas = false,
 }: {
   colores: ColorAlta[];
   grupos: { familia: string; texto: string; colores: ColorAlta[] }[];
@@ -63,6 +66,8 @@ export function ElegirColores({
   sinElegidos?: boolean;
   /** El cursor llega al buscador al abrirse (y vuelve a él tras cada color elegido): para agregar varios seguidos tecleando. De fábrica no se mueve el foco. */
   enfocarBuscador?: boolean;
+  /** Cada color elegido trae «+ acompañante»: lo vuelve una mezcla («Hueso con azul», ADR-0643) que se elige en su lugar. Nuevo producto y Recibir. */
+  conMezclas?: boolean;
 }) {
   const [carta, setCarta] = useState(cartaAbierta);
   // Crear un color nuevo sí remonta el buscador (queda vacío mientras la hoja de «Nuevo color» está abierta); elegir uno de la lista NO: el buscador se vacía solo (`varios`) y la lista
@@ -74,6 +79,8 @@ export function ElegirColores({
   // cuando se vuelve a pedir desde el buscador con otro nombre.
   const [nuevo, setNuevo] = useState<{ nombre: string; vez: number } | null>(null);
   const [pidioSinRed, setPidioSinRed] = useState(false);
+  // La base a la que se le arma una mezcla («+ acompañante»), o `null` con la hoja cerrada.
+  const [mezclaDe, setMezclaDe] = useState<ColorAlta | null>(null);
   const enLinea = useEnLinea();
 
   const porCodigo = new Map(colores.map((c) => [c.codigo, c]));
@@ -104,8 +111,19 @@ export function ElegirColores({
               key={c.codigo}
               className="inline-flex min-h-9 items-center gap-[7px] rounded-full border border-tinta bg-tinta/[0.07] py-1 pl-3 pr-1.5 text-[13.5px] text-tinta"
             >
-              <Punto hex={c.hex} familia={c.familiaColor} tipo={c.tipo} />
+              <Punto hex={c.hex} familia={c.familiaColor} tipo={c.tipo} tonos={tonosDeMezcla(c, porCodigo)} />
               {c.nombre}
+              {conMezclas && !esCombinado(c) && porCodigo.has(c.codigo) && (
+                <button
+                  type="button"
+                  onClick={() => setMezclaDe(porCodigo.get(c.codigo) ?? null)}
+                  aria-label={`Agregar un color que acompaña al ${c.nombre.toLocaleLowerCase("es")}`}
+                  title="Si la prenda tiene otro color además de este (hueso con azul), agrégalo aquí"
+                  className="btn-cayla btn-enlace ml-0.5 text-[12.5px]"
+                >
+                  + acompañante
+                </button>
+              )}
               <button
                 type="button"
                 onClick={() => onAlternar(c.codigo)}
@@ -138,7 +156,7 @@ export function ElegirColores({
             texto: c.nombre,
             detalle: elegidos.includes(c.codigo) ? "elegido" : undefined,
             claves: c.sinonimos,
-            icono: <Punto hex={c.hex} familia={c.familiaColor} tipo={c.tipo} />,
+            icono: <Punto hex={c.hex} familia={c.familiaColor} tipo={c.tipo} tonos={tonosDeMezcla(c, porCodigo)} />,
           }))}
           crearArriba
           crear={{
@@ -190,6 +208,30 @@ export function ElegirColores({
         </Modal>
       )}
 
+      {mezclaDe && (
+        <Modal
+          variante="hoja"
+          tamano="mediana"
+          titulo={`${mezclaDe.nombre} con…`}
+          subtitulo={`Elige de 1 a 3 colores que acompañan al ${mezclaDe.nombre.toLocaleLowerCase("es")}. La mezcla queda elegida en su lugar.`}
+          onClose={() => setMezclaDe(null)}
+        >
+          {(cerrar) => (
+            <ArmarMezcla
+              base={mezclaDe}
+              colores={colores}
+              onCerrar={cerrar}
+              onLista={(mezcla) => {
+                // La prenda es UNA: la mezcla reemplaza a la base entre los elegidos.
+                onAlternar(mezclaDe.codigo);
+                if (!elegidos.includes(mezcla.codigo)) onCreado(mezcla);
+                setMezclaDe(null);
+              }}
+            />
+          )}
+        </Modal>
+      )}
+
       {carta && (
         // La carta de color (ADR-0312, ADR-0314). Cada familia es un bloque y cada gama, una FILA propia: cada fila es una escala
         // pura de claro a oscuro (la claridad nunca «sube» a mitad de una fila). Los círculos miden 32 px (antes 26): el ojo juzga un tono por su área y por lo
@@ -210,13 +252,14 @@ export function ElegirColores({
               >
                 {/* El nombre se alinea con la PRIMERA fila (los círculos miden 32 px), no con el centro del bloque. */}
                 <p className="text-[11.5px] text-taupe @md:flex @md:h-8 @md:items-center">{g.texto}</p>
-                {g.familia === GRUPO_ESTAMPADOS ? (
+                {g.familia === GRUPO_ESTAMPADOS || g.familia === GRUPO_COMBINADOS ? (
                   // Un estampado se elige por su nombre (ADR-0634): su punto solo dice el color dominante, y dos azules distintos se verían iguales.
+                  // Una mezcla también (ADR-0643): «Hueso con azul» y «Hueso con celeste» se distinguen por su nombre, no por medio círculo.
                   <div className="flex flex-wrap gap-1.5">
                     {g.colores.map((c) => (
                       <ChipOpcion key={c.codigo} elegido={elegidos.includes(c.codigo)} onClick={() => { onAlternar(c.codigo); setSenalado(c); }}>
                         <span className="inline-flex items-center gap-1.5">
-                          <Punto hex={c.hex} familia={c.familiaColor} tipo={c.tipo} />
+                          <Punto hex={c.hex} familia={c.familiaColor} tipo={c.tipo} tonos={tonosDeMezcla(c, porCodigo)} />
                           {c.nombre}
                         </span>
                       </ChipOpcion>
@@ -277,7 +320,9 @@ export function ElegirColores({
  */
 function PieDeLaCarta({ senalado, elegido, colores, porCodigo }: { senalado: ColorAlta | null; elegido: boolean; colores: ColorAlta[]; porCodigo: ReadonlyMap<string, ColorAlta> }) {
   // Un estampado lleva el tono de su color dominante (ADR-0634): ni «se confunde» con otros ni otros con él.
-  const parecidos = senalado && !esEstampado(senalado) ? coloresParecidos(senalado.hex, senalado.familiaColor, colores.filter((c) => !esEstampado(c)), { excluir: senalado.codigo }).slice(0, 2) : [];
+  // Una mezcla guarda el hex de su base (ADR-0643): tampoco se confunde con nada, ni nada con ella.
+  const lisos = (c: ColorAlta) => !esEstampado(c) && !esCombinado(c);
+  const parecidos = senalado && lisos(senalado) ? coloresParecidos(senalado.hex, senalado.familiaColor, colores.filter(lisos), { excluir: senalado.codigo }).slice(0, 2) : [];
   const ficha = senalado ? fichaDelColor(senalado.codigo, porCodigo) : null;
   return (
     // En el celular y la tablet, pegado abajo sobre la barra de la ficha mientras se recorre la carta (Felipe, 2026-10-09): el pie
@@ -287,7 +332,7 @@ function PieDeLaCarta({ senalado, elegido, colores, porCodigo }: { senalado: Col
       {senalado ? (
         <>
           <p className="flex min-w-0 items-center gap-2">
-            <Punto hex={senalado.hex} familia={senalado.familiaColor} tipo={senalado.tipo} grande />
+            <Punto hex={senalado.hex} familia={senalado.familiaColor} tipo={senalado.tipo} tonos={tonosDeMezcla(senalado, porCodigo)} grande />
             <span className="min-w-0 truncate">
               <span className="text-tinta">{senalado.nombre}</span>
               <span className="text-taupe">

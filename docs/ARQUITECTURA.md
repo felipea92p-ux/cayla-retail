@@ -875,6 +875,10 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
   (`filtrarColores`, `filtrarPorNombre`, `usoDe`) y, para Temporadas, `lib/temporadas-pantalla.ts` (`estacionesDe`,
   `grupoDeTemporada`, `tonoDeTemporada`; dibujo en `MuestraTemporada`, molde `MuestraIcono` de `MuestraEtiqueta`).
   Temporadas abre en `?vista=lista` (la grilla) desde el 2026-09-28. ADR-0261.
+- **Colores combinados** («Hueso con azul», ADR-0643): `POST /api/productos/colores` con `{ componentes }` llama a la RPC
+  `retail.color_combinado` (busca o crea la mezcla; nombre y código los arma la base). La pantalla la arma con `ArmarMezcla`
+  («+ acompañante» de `ElegirColores`, prop `conMezclas`: Nuevo producto y `recepcion-envio/HojaPrenda`); la lógica pura vive en
+  `lib/color-combinado.ts` (nombre, componentes, punto partido). La carta y Atributos agrupan las mezclas en «Combinados» con `familiaEnCarta`.
 - `/productos/insignias` (Catálogo ▸ Insignias —se llamó «Sellos» hasta el 2026-10-23—, ADR-0481; lo abren los módulos `etiquetas` o `campanas`; en el código sigue llamándose `sellos`) → `page.tsx` lee con
   `lib/etiquetas-pantalla-datos.ts` (`cargarEtiquetasPantalla({ modo: "todas", conVitrina: true })`: todas las filas de `etiquetas`, las
   prendas a la venta con su modelo, color, categoría y foto —`colores`, `categorias`, `producto_fotos`— y, para quien puede analizar, la

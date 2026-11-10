@@ -3,6 +3,7 @@
 import { fondoDeColor } from "@/components/ui/MuestraColor";
 import { agruparPorFamilia, bordeDeMuestra, enLaCarta, FAMILIAS_COLOR, textoDeFamilia, type FamiliaColor } from "@/lib/colores-familias";
 import { familiaEnCarta } from "@/lib/color-estampado-reglas";
+import { esCombinado, fondoDeMezclaEnFranja, GRUPO_COMBINADOS, tonosDeMezcla } from "@/lib/color-combinado";
 import { coloresQueYaExisten } from "@/lib/color-alta-reglas";
 import { vistaDeCoincidencias } from "@/lib/atributo-parecido";
 import { claveTexto } from "@/lib/nombres-parecidos";
@@ -77,6 +78,8 @@ type Color = {
   descripcion: string | null;
   /** Códigos de los colores con los que se lleva bien (hasta 8). La base rechaza uno que no exista. */
   combinaCon: string[];
+  /** Si es una mezcla («Hueso con azul», ADR-0643): la base y sus acompañantes. Su tono y su familia los pone la base. */
+  componentes: string[] | null;
 };
 
 // El código Pantone se escribe como sea («19-1557», «19 1557 tcx») y se guarda como «19-1557 TCX». Dos colores no
@@ -118,16 +121,24 @@ function gruposPorFamilia(lista: Color[]) {
 // así que un color es nombre, familia y hex; lo único que se suma es que un
 // color de `tipo` textura (Gris melange: el hilo mismo es jaspeado) se pinta
 // jaspeado sobre su hex, para no verse igual que el liso del mismo tono.
-function Muestra({ hex, familia, tipo, className = "aspect-[3/1] w-full" }: { hex: string | null; familia?: string | null; tipo?: string | null; className?: string }) {
-  return <div className={`${className} rounded-lg border border-tinta/10`} style={{ background: fondoDeColor(hex, familia, tipo), borderColor: bordeDeMuestra(hex) }} aria-hidden />;
+// Una mezcla (ADR-0643) pasa `tonos`: la muestra se parte, con la base a la izquierda, como su punto en la carta.
+function Muestra({ hex, familia, tipo, tonos, className = "aspect-[3/1] w-full" }: { hex: string | null; familia?: string | null; tipo?: string | null; tonos?: readonly string[] | null; className?: string }) {
+  const fondo = tonos && tonos.length >= 2 ? fondoDeMezclaEnFranja(tonos) : fondoDeColor(hex, familia, tipo);
+  return <div className={`${className} rounded-lg border border-tinta/10`} data-color-dato style={{ background: fondo, borderColor: bordeDeMuestra(hex) }} aria-hidden />;
 }
 
 /** Bajo el nombre: el código de 3 letras (va en el código de barras) y el Pantone para pedir la tela. */
 function DetalleColor({ c, porCodigo }: { c: Color; porCodigo: ReadonlyMap<string, Color> }) {
   // Solo se ofrecen como compañeros colores que siguen activos: uno desactivado no se recomienda.
   const companeros = c.combinaCon.map((cod) => porCodigo.get(cod)).filter((x): x is Color => !!x && x.activo);
+  const deLaMezcla = (c.componentes ?? []).map((cod) => porCodigo.get(cod)?.nombre ?? cod);
   return (
     <div className="space-y-1.5">
+      {deLaMezcla.length >= 2 && (
+        <p className="text-sm text-tinta/60">
+          Base {deLaMezcla[0].toLocaleLowerCase("es")}, con {deLaMezcla.slice(1).map((n) => n.toLocaleLowerCase("es")).join(", ")}
+        </p>
+      )}
       <p className="flex justify-between gap-2 text-sm text-tinta/60">
         <span className="font-mono">{c.codigo}</span>
         {c.pantoneTcx && (
@@ -308,6 +319,7 @@ export function ColoresLista({ coloresIniciales, puedeEditar }: { coloresInicial
             sinonimos: datos.color.sinonimos ?? [],
             descripcion: datos.color.descripcion ?? null,
             combinaCon: datos.color.combina_con ?? [],
+            componentes: null,
           },
         ])
       );
@@ -441,12 +453,13 @@ export function ColoresLista({ coloresIniciales, puedeEditar }: { coloresInicial
             <TituloGrupo punto="bg-tinta/25" cuenta={coloresDeLaFamilia.length}>
               {texto}
             </TituloGrupo>
-            {partirEnGamas(coloresDeLaFamilia).map((gama, k) => (
+            {/* Las mezclas no tienen una gama: van en una sola grilla (ADR-0643). */}
+            {(clave === GRUPO_COMBINADOS ? [coloresDeLaFamilia] : partirEnGamas(coloresDeLaFamilia)).map((gama, k) => (
               <div key={k} className={GRILLA_ATRIBUTOS}>
                 {gama.map((c) => (
                   <TarjetaAtributo
                     key={c.codigo}
-                    muestra={<Muestra hex={c.hex} familia={c.familiaColor} tipo={c.tipo} />}
+                    muestra={<Muestra hex={c.hex} familia={c.familiaColor} tipo={c.tipo} tonos={tonosDeMezcla(c, porCodigo)} />}
                     nombre={c.nombre}
                     notas={c.notas}
                     insignia={c.estado === "pendiente" ? "Pendiente" : null}
@@ -608,7 +621,7 @@ export function ColoresLista({ coloresIniciales, puedeEditar }: { coloresInicial
             {desactivadosVisibles.map((c) => (
               <TarjetaAtributo
                 key={c.codigo}
-                muestra={<Muestra hex={c.hex} familia={c.familiaColor} tipo={c.tipo} />}
+                muestra={<Muestra hex={c.hex} familia={c.familiaColor} tipo={c.tipo} tonos={tonosDeMezcla(c, porCodigo)} />}
                 nombre={c.nombre}
                 insignia={c.estado === "rechazado" ? "Rechazado" : null}
                 detalle={
@@ -715,6 +728,8 @@ function ColorEditarModal({
   const [hexAbierto, setHexAbierto] = useState(false);
   // Un color sin hex es de varios colores (Multicolor): no tiene un tono ni una familia que elegir, y guardar no se los inventa.
   const esVarios = color.hex === null;
+  // Una mezcla (ADR-0643) toma el tono y la familia de su base: la base los vuelve a poner si se mandan otros, así que no se ofrecen.
+  const esMezcla = esCombinado(color);
   const [notas, setNotas] = useState(color.notas ?? "");
   const [pantone, setPantone] = useState(color.pantoneTcx ?? "");
   const [sinonimos, setSinonimos] = useState(color.sinonimos.join(", "));
@@ -763,7 +778,7 @@ function ColorEditarModal({
       const res = await fetch("/api/productos/colores", {
         method: "PATCH",
         headers: { "Content-Type": "application/json", ...responsable.encabezados() },
-        body: JSON.stringify({ codigo: color.codigo, nombre, ...(esVarios ? {} : { familiaColor, hex }), notas, pantoneTcx: pantone, sinonimos: normalizarSinonimos(sinonimos, nombre), descripcion, combinaCon }),
+        body: JSON.stringify({ codigo: color.codigo, nombre, ...(esVarios || esMezcla ? {} : { familiaColor, hex }), notas, pantoneTcx: pantone, sinonimos: normalizarSinonimos(sinonimos, nombre), descripcion, combinaCon }),
       });
       const datos = await res.json();
       if (!res.ok) {
@@ -786,6 +801,7 @@ function ColorEditarModal({
         sinonimos: datos.color.sinonimos ?? [],
         descripcion: datos.color.descripcion ?? null,
         combinaCon: datos.color.combina_con ?? [],
+        componentes: color.componentes,
       });
     } catch {
       avisar.error("No se pudo hablar con el servidor. Reintenta en un momento.");
@@ -842,7 +858,7 @@ function ColorEditarModal({
               si={(o) => ({ texto: `Ver ${o.nombre}`, onClick: () => { onVer(o.nombre); cerrar(); } })}
               deshabilitado={ocupado}
             />
-            {!esVarios && <CampoSelect etiqueta="Familia" valor={familiaColor} onValor={setFamiliaColor} opciones={FAMILIAS_COLOR} />}
+            {!esVarios && !esMezcla && <CampoSelect etiqueta="Familia" valor={familiaColor} onValor={setFamiliaColor} opciones={FAMILIAS_COLOR} />}
             <CampoTexto etiqueta="Notas" pie="Opcional, uso interno" value={notas} onChange={(e) => setNotas(e.target.value)} placeholder="Proveedor de la tela, advertencias…" />
             <CampoGuiado id="pantone" guia={guia}>
             <CampoTexto
@@ -868,7 +884,15 @@ function ColorEditarModal({
           <DescripcionColorCampo valor={descripcion} onValor={setDescripcion} />
           <CombinaConCampo colores={vocabulario} valor={combinaCon} onValor={setCombinaCon} propio={color.codigo} />
 
-          {esVarios ? (
+          {esMezcla ? (
+            <div>
+              <p className="label-cayla text-[11px] text-tinta/65">Color</p>
+              <div className="mt-1.5 flex items-center gap-3">
+                <Muestra hex={color.hex} tonos={tonosDeMezcla(color, new Map(existentes.map((x) => [x.codigo, x])))} className="h-6 w-10" />
+                <span className="text-sm text-tinta/65">Es una mezcla: su tono y su familia son los de su base. Para otra mezcla, se arma desde «+ acompañante».</span>
+              </div>
+            </div>
+          ) : esVarios ? (
             <div>
               <p className="label-cayla text-[11px] text-tinta/65">Color</p>
               <div className="mt-1.5 flex items-center gap-3">
