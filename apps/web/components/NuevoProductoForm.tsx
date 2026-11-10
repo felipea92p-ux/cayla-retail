@@ -19,6 +19,7 @@ import { ElegirMarcaProveedor } from "@/components/alta-producto/ElegirMarcaProv
 import { ConfigurarCategoria } from "@/components/alta-producto/ConfigurarCategoria";
 import { ProductoCreado, type ResumenCreado } from "@/components/alta-producto/ProductoCreado";
 import { ChipOpcion, FilaAlta, PasoAlta, PlegableAlta } from "@/components/alta-producto/piezas";
+import { PropuestaDePrecio } from "@/components/alta-producto/PropuestaDePrecio";
 import { ElegirColores } from "@/components/alta-producto/ElegirColores";
 import type { FotoPendiente } from "@/components/alta-producto/FotosAlta";
 import { MatrizVariantes } from "@/components/alta-producto/MatrizVariantes";
@@ -1280,6 +1281,17 @@ export function NuevoProductoForm({
               </Aviso>
             </div>
           )}
+          {/* ADR-0641: la IA propone el precio mirando el costo y las parecidas; la persona decide si lo usa. */}
+          <PropuestaDePrecio
+            categoriaId={categoriaId}
+            tejidoId={tejidoId}
+            referencia={referencia}
+            descripcion={descripcion}
+            costoBase={costoBase}
+            precioBase={precioBase}
+            disabled={cargando}
+            onUsar={setPrecioBase}
+          />
         </FilaAlta>
 
         {/* La tabla del paso 3, ahora con números: cuántas hay hoy (ADR-0212) —o, con la carga cerrada, cuántas llegaron (ADR-0328
