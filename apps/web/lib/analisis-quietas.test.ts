@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { PrendaAnalisis } from "./analisis-tipos";
 import { DIAS_VIGILAR, GRUPOS_QUIETAS, LIQUIDAR_DEFECTO, LIQUIDAR_MAX, LIQUIDAR_MIN, prendasDe } from "./analisis-reglas";
-import { barraDeEdad, cifrasQuietas, destinoDeTodas, gruposQuietas, lineaTodaviaNoQuietas, marcaLiquidarComun, marcasEje, notaDeUmbrales, notaSinCosto, pistaQuieta, puedeJuzgarQuietas, TEXTO_VACIO_QUIETAS, TRAMOS_EDAD, vacioQuietas } from "./analisis-quietas";
+import { barraDeEdad, cifrasQuietas, destinoDeTodas, gruposQuietas, lineaTodaviaNoQuietas, marcaLiquidarComun, marcasEje, notaDeUmbrales, plazoDeLiquidar, ETIQUETA_LIQUIDAR_DESDE, notaSinCosto, pistaQuieta, puedeJuzgarQuietas, TEXTO_VACIO_QUIETAS, TRAMOS_EDAD, vacioQuietas } from "./analisis-quietas";
 import { modeloDe } from "./analisis-modelo";
 
 // Datos inventados para la prueba: ni nombres del catálogo ni cifras de producción.
@@ -207,11 +207,42 @@ describe("los escalones de cada tipo en el carril (ADR-0357, act. 2026-10-14)", 
     expect(marcaLiquidarComun([{ umbrales: polos }, { umbrales: polos }], 60)).toBe(5);
     expect(marcaLiquidarComun([{ umbrales: polos }, {}], 60)).toBeNull();
   });
-  it("la nota dice con qué se mide cada tipo", () => {
-    expect(notaDeUmbrales([{ umbrales: polos }], "sin_modulo")).toContain("todo se mide con «Liquidar desde»");
-    expect(notaDeUmbrales([{}, {}], "ok")).toContain("Ningún tipo tiene todavía ventas");
-    expect(notaDeUmbrales([{ umbrales: polos }], "ok")).toBe("Cada tipo se mide con lo que tardan en venderse los suyos en tu piso.");
-    expect(notaDeUmbrales([{ umbrales: polos }, {}], "ok")).toContain("«Liquidar desde» vale para los que todavía no tienen ritmo");
+  it("la nota dice con qué se mide cada tipo, y si la caja hoy no mueve a ninguno", () => {
+    expect(notaDeUmbrales([{ umbrales: polos }], "sin_modulo")).toContain("todo se liquida desde los días de la caja");
+    expect(notaDeUmbrales([{}, {}], "ok")).toContain("Ningún tipo tiene todavía 10 ventas");
+    expect(notaDeUmbrales([{ umbrales: polos }], "ok")).toContain("hoy no hay ninguno");
+    expect(notaDeUmbrales([{ umbrales: polos }, {}], "ok")).toContain("La caja solo vale para tipos con menos de 10 ventas.");
+    expect(notaDeUmbrales([{ umbrales: polos }, {}], "ok")).not.toContain("hoy no hay ninguno");
+  });
+  it("la caja dice en su nombre que solo vale sin historial", () => {
+    expect(ETIQUETA_LIQUIDAR_DESDE).toBe("Sin historial: liquidar desde");
+  });
+});
+
+describe("el plazo de cada fila (Felipe 2026-11-09: «Plazo por tipo, a la vista»)", () => {
+  const blusas = { vigila: 20, liquidar: 27, vara: "mes" as const, vendidas: 34 };
+  it("con ritmo propio dice cuánto suele tardar su tipo, y la caja no lo mueve", () => {
+    for (const caja of [1, 7, 60, 999]) {
+      const p = plazoDeLiquidar({ umbrales: blusas, categoria: "Blusas" }, caja);
+      expect(p).toMatchObject({ dias: 27, propio: true, texto: "Blusas: suelen venderse en 27 d" });
+    }
+    expect(plazoDeLiquidar({ umbrales: blusas, categoria: "Blusas" }, 7).detalle).toBe(
+      "9 de cada 10 blusas que se vendieron en tu piso tardaron 27 días o menos (contando 34 ventas). Pasado eso, se liquida.",
+    );
+  });
+  it("sin ritmo propio sigue a la caja", () => {
+    expect(plazoDeLiquidar({ categoria: "Casacas" }, 7)).toMatchObject({ dias: 7, propio: false, texto: "Sin historial: liquidar desde 7 d" });
+    expect(plazoDeLiquidar({ categoria: "Casacas" }, 1).dias).toBe(1);
+    expect(plazoDeLiquidar({ categoria: "Casacas" }, 1).detalle).toContain("Casacas todavía no tiene 10 ventas");
+  });
+  it("sin categoría no se cae ni inventa un tipo", () => {
+    expect(plazoDeLiquidar({ umbrales: blusas, categoria: null }, 7).texto).toBe("Su tipo suele venderse en 27 d");
+    expect(plazoDeLiquidar({ umbrales: blusas, categoria: "  " }, 7).texto).toBe("Su tipo suele venderse en 27 d");
+    expect(plazoDeLiquidar({ categoria: null }, 7).detalle).toContain("Su tipo todavía no tiene");
+  });
+  it("singular con un día y una venta", () => {
+    const uno = { vigila: 1, liquidar: 1, vara: "hoy" as const, vendidas: 1 };
+    expect(plazoDeLiquidar({ umbrales: uno, categoria: "Polos" }, 7).detalle).toContain("tardaron 1 día o menos (contando 1 venta)");
   });
 });
 

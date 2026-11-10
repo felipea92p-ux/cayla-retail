@@ -86,7 +86,7 @@ describe("palabras de la hoja", () => {
     expect(cifraPrendas(12)).toBe("12 prendas");
   });
   it("el aviso de éxito dice el número y el alcance", () => {
-    expect(avisoLiquidarGuardado(64)).toEqual({ texto: "Liquidar desde 64 días", detalle: "Para todas las tiendas" });
+    expect(avisoLiquidarGuardado(64)).toEqual({ texto: "Sin historial: liquidar desde 64 días", detalle: "Para todas las tiendas" });
   });
   it("la nota cuando la base no respondió dice con cuántos días sigue", () => {
     expect(FALLA_LEER_LIQUIDAR).toContain(`${LIQUIDAR_DEFECTO} días`);
