@@ -1,6 +1,6 @@
 # ADR-0642 — La hora de cierre de una tienda sale de su horario por días
 
-- **Fecha:** 2026-11-10 · **Estado:** construido; **la migración NO está en producción** (la pega Felipe; ver «Cómo se pega»).
+- **Fecha:** 2026-11-10 · **Estado:** construido; **la migración está en producción desde el 2026-11-10** (la pegó Felipe antes de fusionar; ver «Cómo se pega» y «Lo que pasó al pegar»).
 - **Rama:** `claude/closing-time-edit-9f3ccf`. Números reservados con `pnpm reservar`.
 - **Relacionados:** ADR-0518 (Tienda web ▸ Conf. Tienda: horario por días y cierres por fecha), ADR-0305 y ADR-0359 (recordatorio de cierre de caja),
   ADR-0195 (Caja, proyección «al ritmo de hoy cierras en…»), ADR-0596/0328 (las vitrinas de Empresa y tiendas).
@@ -72,3 +72,8 @@ de 3 s. **La web puede publicarse antes o después**: sin la función cae a `hor
 - Verificado: pruebas de `armarVitrinas`/`falta`/`valorDe`, de `horasDeCierreDeHoy`, tipos, knip y la suite completa de la web.
 - Verificado en producción (solo lectura): la política de `ubicaciones` exige `fn_tiene_acceso_retail()` y esa función cubre colaboradores activos y terminales.
 - **No verificado:** la función dentro de un Postgres local (no había Docker) y la pantalla en el navegador. Falta una prueba de base propia (`scripts/pruebas/`) que cubra cierre por fecha y sede sin horario.
+
+## Lo que pasó al pegar
+
+Felipe la pegó el 2026-11-10 en UNA ejecución, sin errores. `fn_horas_de_cierre(hoy de Lima)` dio AQP 22:15, LIM 19:30 y TRU 20:15 (las tres con `tiene_horario`) y el Taller sin hora ni
+horario. Comprobado después con un `select` de solo lectura: las dos funciones son `security definer`, `authenticated` las ejecuta, `anon` no, y piden `fn_tiene_acceso_retail()`.
