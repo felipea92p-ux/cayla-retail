@@ -1,6 +1,7 @@
 // Leer el extracto de Interbank (ADR-0629, Fase B, actividad 2). Las máquinas depositan en Interbank Empresas, y la única forma de saber
 // qué llegó es el extracto: este módulo lo convierte en líneas con fecha, monto y de qué máquina parece ser. Lógica pura, sin red ni base:
-// el extracto no se guarda (decisión D5 del cuadre: la base guarda lo que se registra, no el estado de cuenta).
+// aquí solo se LEE. Desde «el banco manda» (ADR-0637) lo leído sí se guarda, línea por línea y tal como lo dijo el banco: lo arma
+// `lib/banco-lineas.ts` y lo escribe la base (`cargar_lineas_banco`); la decisión D5 del cuadre («la base no guarda el estado de cuenta») quedó atrás.
 //
 // Dos formas de traerlo:
 //   · el .txt que exporta la banca por internet (columnas fijas, de la línea más nueva a la más vieja);
@@ -49,6 +50,11 @@ export type ExtractoLeido = {
   huecos: { despuesDe: LineaExtracto; antesDe: LineaExtracto; faltan: number; enElBorde: boolean }[];
   desde: string | null;
   hasta: string | null;
+  /**
+   * De qué cuenta dice ser el archivo: el .txt lo trae en cada renglón (solo cifras). Una sola, si el archivo está sano; vacío en la tabla
+   * pegada de la web, que no lo dice. Sirve para no guardar en un banco el extracto de otro (ADR-0637): una línea guardada no se borra.
+   */
+  cuentas: string[];
 };
 
 /** «1,803.60» o «-0.30» → céntimos; nulo si no es un monto con sus dos decimales (no se adivina un monto mal copiado). */
@@ -74,9 +80,50 @@ export function tipoDeLinea(descripcion: string): { tipo: TipoLinea; codigoComer
   return { tipo: "otro", codigoComercio: null };
 }
 
+// ---- Qué es un grupo de líneas, para «El banco dice» (ADR-0637) ---------------------------------------------------------------------
+// La base agrupa las líneas guardadas por el código de movimiento del banco y la pantalla le pone nombre de tienda. El código manda cuando
+// lo hay (no cambia aunque el banco recorte o reescriba la glosa); un código que no está en la tabla se nombra con la regla de siempre
+// (`tipoDeLinea`, por la glosa) y, si tampoco, con lo que escribió el banco. La regla de «qué máquina es» sigue viviendo solo en `tipoDeLinea`.
+
+export type GrupoLinea = { clave: string; nombre: string };
+
+const GRUPO_DE_TIPO: Record<Exclude<TipoLinea, "otro">, GrupoLinea> = {
+  qr_izipay: { clave: "qr_izipay", nombre: "QR de Izipay" },
+  lote_izipay: { clave: "lote_izipay", nombre: "Tarjeta de Izipay" },
+  lote_vendemas: { clave: "lote_vendemas", nombre: "Vendemás" },
+};
+const TRANSFERENCIA_SALE: GrupoLinea = { clave: "transferencia_sale", nombre: "Transferencias que salieron" };
+const TRANSFERENCIA_ENTRA: GrupoLinea = { clave: "transferencia_entra", nombre: "Transferencias que entraron" };
+const ITF: GrupoLinea = { clave: "itf", nombre: "ITF, el impuesto del banco por mover plata" };
+/** La tabla copiada de la web no trae el código: todas sus líneas llegan en un solo grupo, que no se puede nombrar por una glosa de muestra. */
+const SIN_CODIGO: GrupoLinea = { clave: "sin_codigo", nombre: "Copiado de la web del banco (sin tipo)" };
+
+// Los códigos de movimiento de Interbank Empresas (columna 63–67 del .txt), medidos el 2026-11-09 sobre un mes y medio de líneas: cada
+// código llevó siempre la misma clase de glosa. El ITF tiene dos (el del cargo y el del abono).
+const GRUPO_DE_CODIGO: Record<string, GrupoLinea> = {
+  "1402": GRUPO_DE_TIPO.qr_izipay,
+  "4225": GRUPO_DE_TIPO.lote_vendemas,
+  "4434": GRUPO_DE_TIPO.lote_izipay,
+  "6362": TRANSFERENCIA_SALE,
+  "6462": TRANSFERENCIA_ENTRA,
+  "0310": ITF,
+  "0311": ITF,
+};
+
+/** El grupo de una línea guardada: por su código de movimiento; si el código no se conoce, por su glosa; si tampoco, la glosa tal cual. */
+export function grupoDeLinea(codigo: string | null, glosa: string): GrupoLinea {
+  const c = codigo?.trim() ?? "";
+  if (c === "") return SIN_CODIGO;
+  const conocido = GRUPO_DE_CODIGO[c];
+  if (conocido) return conocido;
+  const { tipo } = tipoDeLinea(glosa);
+  if (tipo !== "otro") return GRUPO_DE_TIPO[tipo];
+  return { clave: `codigo:${c}`, nombre: glosa.replace(/\s+/g, " ").trim() || `Movimiento ${c} del banco` };
+}
+
 // Columnas del .txt de Interbank (medidas el 2026-11-07 sobre un mes entero, 930 líneas, y otra vez el 2026-11-09 sobre 1,136: todas de
-// 183 caracteres). Tras la descripción van el código de movimiento y el número de operación; al final de cada renglón, la fecha de
-// operación, la de proceso y el número correlativo del banco.
+// 183 caracteres). Antes de la descripción va el número de la cuenta (el mismo en todos los renglones); tras ella, el código de movimiento
+// y el número de operación; al final de cada renglón, la fecha de operación, la de proceso y el número correlativo del banco.
 //
 // EL ORDEN (regla medida el 2026-11-09; con ella la cadena de saldos de las 1,136 líneas cierra sin un solo hueco):
 //   1. El orden del archivo NO es el real: un sábado que el banco procesa el lunes sale mezclado con el domingo (medido en octubre de 2026).
@@ -90,6 +137,7 @@ export function tipoDeLinea(descripcion: string): { tipo: TipoLinea; codigoComer
 //      saldo va la línea cuyo saldo menos su monto es ese saldo), partiendo del saldo de la última firme. Solo se acepta si la cadena
 //      alcanza a TODAS las líneas del bloque; si no (falta una de verdad), queda el orden inverso del archivo y el hueco se dice.
 const TXT = {
+  cuenta: [12, 35],
   descripcion: [35, 63],
   codigo: [63, 67],
   operacion: [68, 75],
@@ -161,9 +209,10 @@ function ordenarProvisionales(bloque: Cruda[], saldoFirme: number | null): Cruda
   return empalmada ?? (rotaAdentro ? seguirCadena(bloque, null) : null) ?? bloque;
 }
 
-function leerTxt(renglones: string[]): { crudas: Cruda[]; ignoradas: number } {
+function leerTxt(renglones: string[]): { crudas: Cruda[]; ignoradas: number; cuentas: string[] } {
   const firmes: { c: Cruda; i: number; clave: string }[] = [];
   const provisionales: Cruda[] = [];
+  const cuentas = new Set<string>();
   let ignoradas = 0;
   renglones.forEach((l, i) => {
     const f = corte(l, TXT.fecha);
@@ -171,10 +220,15 @@ function leerTxt(renglones: string[]): { crudas: Cruda[]; ignoradas: number } {
     const abono = corte(l, TXT.abono);
     const saldo = centimosDe(corte(l, TXT.saldo));
     const monto = abono ? centimosDe(abono) : cargo ? centimosDe(cargo) : null;
-    if (!/^\d{8}$/.test(f) || monto === null || (cargo !== "" && abono !== "")) {
+    // Un renglón de 0.00 no mueve plata (ni el saldo): no es un movimiento, y la base no guarda una línea sin monto.
+    if (!/^\d{8}$/.test(f) || monto === null || monto === 0 || (cargo !== "" && abono !== "")) {
       ignoradas++;
       return;
     }
+    // La cuenta, solo sus cifras (el banco la puede traer con guiones). Un renglón sin cuenta legible no suma ninguna: si ninguno la
+    // trae, la lista queda vacía y quien guarda lo dice.
+    const cuenta = (corte(l, TXT.cuenta).match(/\d/g) ?? []).join("");
+    if (cuenta !== "") cuentas.add(cuenta);
     const descripcion = corte(l, TXT.descripcion);
     const proceso = corte(l, TXT.proceso);
     const correlativo = corte(l, TXT.correlativo);
@@ -200,13 +254,13 @@ function leerTxt(renglones: string[]): { crudas: Cruda[]; ignoradas: number } {
   // Las firmes, de la más vieja a la más nueva por (proceso, correlativo); un empate exacto conserva el orden inverso del archivo.
   const ordenadas = firmes.sort((a, b) => (a.clave < b.clave ? -1 : a.clave > b.clave ? 1 : b.i - a.i)).map(({ c }) => c);
   const saldoFirme = ordenadas[ordenadas.length - 1]?.saldoCentimos ?? null;
-  return { crudas: [...ordenadas, ...ordenarProvisionales(provisionales.reverse(), saldoFirme)], ignoradas };
+  return { crudas: [...ordenadas, ...ordenarProvisionales(provisionales.reverse(), saldoFirme)], ignoradas, cuentas: [...cuentas] };
 }
 
 const FECHA_WEB = /(\d{2})\/(\d{2})\/(\d{4})/g;
 const MONTO_WEB = /S\/\s*-?\s*[\d,]+\.\d{2}/g;
 
-function leerTablaWeb(renglones: string[]): { crudas: Cruda[]; ignoradas: number } {
+function leerTablaWeb(renglones: string[]): { crudas: Cruda[]; ignoradas: number; cuentas: string[] } {
   const crudas: Cruda[] = [];
   let ignoradas = 0;
   for (const l of renglones) {
@@ -219,7 +273,8 @@ function leerTablaWeb(renglones: string[]): { crudas: Cruda[]; ignoradas: number
     const [, dd, mm, aaaa] = fechas[0];
     const importe = centimosDe(montos[montos.length >= 2 ? montos.length - 2 : 0][0]);
     const saldo = montos.length >= 2 ? centimosDe(montos[montos.length - 1][0]) : null;
-    if (importe === null) {
+    // Igual que en el .txt: un renglón de 0.00 no es un movimiento.
+    if (importe === null || importe === 0) {
       ignoradas++;
       continue;
     }
@@ -246,7 +301,7 @@ function leerTablaWeb(renglones: string[]): { crudas: Cruda[]; ignoradas: number
     });
   }
   // La tabla de la web va de la más nueva a la más vieja y no trae el correlativo: se da vuelta.
-  return { crudas: crudas.reverse(), ignoradas };
+  return { crudas: crudas.reverse(), ignoradas, cuentas: [] };
 }
 
 /**
@@ -256,7 +311,7 @@ function leerTablaWeb(renglones: string[]): { crudas: Cruda[]; ignoradas: number
 export function leerExtracto(texto: string): ExtractoLeido {
   const renglones = texto.split(/\r?\n/).filter((l) => l.trim() !== "");
   const esTxt = renglones.some((l) => l.length >= TXT.fecha[1] && /^\d{8}$/.test(corte(l, TXT.fecha)));
-  const { crudas, ignoradas } = esTxt ? leerTxt(renglones) : leerTablaWeb(renglones);
+  const { crudas, ignoradas, cuentas } = esTxt ? leerTxt(renglones) : leerTablaWeb(renglones);
   const lineas = crudas.map((l, orden) => ({ ...l, orden }));
   const huecos: ExtractoLeido["huecos"] = [];
   for (let i = 1; i < lineas.length; i++) {
@@ -270,7 +325,7 @@ export function leerExtracto(texto: string): ExtractoLeido {
   const hasta = lineas[lineas.length - 1]?.fecha ?? null;
   // Un hueco en el primer o el último día del extracto suele ser lo de un día vecino que el banco procesó junto: se dice distinto.
   for (const h of huecos) h.enElBorde = h.antesDe.fecha === hasta || h.despuesDe.fecha === desde;
-  return { lineas, ignoradas, huecos, desde, hasta };
+  return { lineas, ignoradas, huecos, desde, hasta, cuentas };
 }
 
 export type ResumenExtracto = { tipo: TipoLinea; titulo: string; cuantas: number; centimos: number };

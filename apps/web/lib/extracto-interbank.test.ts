@@ -3,6 +3,7 @@ import { centimosDe, leerExtracto, resumenExtracto, solesDeCentimos, tipoDeLinea
 
 // Un renglón del .txt de Interbank armado con las mismas columnas que el archivo real (montos inventados: el repo es público).
 // El código de movimiento va en 63–67 y el número de operación, pegado a la derecha, en 68–75 («-» si la línea no lo tiene).
+const CUENTA = "01020160000003004839999";
 function renglonTxt(o: {
   descripcion: string;
   cargo?: string;
@@ -13,11 +14,12 @@ function renglonTxt(o: {
   correlativo?: string;
   codigo?: string;
   operacion?: string;
+  cuenta?: string;
 }): string {
   const fila = Array.from({ length: 183 }, () => " ");
   const poner = (desde: number, texto: string) => [...texto].forEach((c, i) => (fila[desde + i] = c));
   const alDerecha = (fin: number, texto: string) => poner(fin - texto.length, texto);
-  poner(12, "01020160000003004839999");
+  poner(12, (o.cuenta ?? CUENTA).padEnd(23).slice(0, 23));
   poner(35, o.descripcion.padEnd(28).slice(0, 28));
   poner(63, o.codigo ?? "1402");
   alDerecha(75, o.operacion ?? "-");
@@ -111,6 +113,26 @@ describe("leerExtracto — el .txt de la banca", () => {
   });
   it("un renglón que no es de la tabla se cuenta, no se adivina", () => {
     expect(leerExtracto(`Movimientos de la cuenta\n${TXT}`).ignoradas).toBe(1);
+  });
+  it("un renglón de 0.00 no es un movimiento: se cuenta aparte y la cadena de saldos sigue cerrando", () => {
+    const conCero = [renglonTxt({ descripcion: "AJUSTE SIN MONTO", abono: "0.00", saldo: "1100.00", fecha: "20261107" }), TXT].join("\n");
+    const leido = leerExtracto(conCero);
+    expect(leido.ignoradas).toBe(1);
+    expect(leido.lineas.map((l) => l.centimos)).toEqual(e.lineas.map((l) => l.centimos));
+    expect(leido.huecos).toEqual([]);
+  });
+  it("dice de qué cuenta es el archivo: una sola, con solo sus cifras", () => {
+    expect(e.cuentas).toEqual([CUENTA]);
+    const conGuiones = TXT.split("\n").map((l) => l.slice(0, 12) + "102-0160000003-9999".padEnd(23) + l.slice(35)).join("\n");
+    expect(leerExtracto(conGuiones).cuentas).toEqual(["10201600000039999"]);
+  });
+  it("si el archivo mezcla renglones de dos cuentas, dice las dos (quien guarda se niega)", () => {
+    const deOtra = renglonTxt({ descripcion: ". Abono QR IBK", abono: "5.00", saldo: "1105.00", fecha: "20261107", cuenta: "01020160000003004831111" });
+    expect(leerExtracto([deOtra, TXT].join("\n")).cuentas).toEqual(["01020160000003004831111", CUENTA]);
+  });
+  it("un renglón que no se lee no suma su cuenta", () => {
+    const basura = renglonTxt({ descripcion: "SIN MONTO", saldo: "1.00", fecha: "20261107", cuenta: "01020160000003004831111" });
+    expect(leerExtracto([basura, TXT].join("\n")).cuentas).toEqual([CUENTA]);
   });
 });
 
@@ -284,6 +306,12 @@ describe("leerExtracto — la tabla copiada de la web", () => {
   });
   it("la cadena de saldos también se revisa en la tabla copiada", () => {
     expect(e.huecos.map((h) => h.faltan)).toEqual([]);
+  });
+  it("la tabla copiada no dice de qué cuenta es, y un renglón de 0.00 tampoco es un movimiento", () => {
+    expect(e.cuentas).toEqual([]);
+    const conCero = leerExtracto(`${WEB}\n05/11/2026\t05/11/2026\t-\t.\tAJUSTE\t\tS/ 0.00\tS/ 1,166.29`);
+    expect(conCero.ignoradas).toBe(2);
+    expect(conCero.lineas).toHaveLength(3);
   });
   it("no trae correlativo: ninguna de sus líneas es firme y lo que el banco da para reconocerlas va vacío", () => {
     expect(e.lineas.map((l) => [l.fechaProceso, l.correlativo, l.codigo, l.operacion, l.firme])).toEqual(e.lineas.map(() => [null, null, null, null, false]));

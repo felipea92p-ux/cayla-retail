@@ -227,6 +227,10 @@ export const PRUEBAS = [
   // El depósito de la máquina pago por pago (ADR-0629, Fase B): de tres QR llegan dos, se depositan esos dos y queda el tercero; un pago
   // no entra a dos depósitos (con su control `--mutante`), ni de otra máquina, ni de un día con un depósito sin detalle. ROLLBACK.
   "pruebas:pos-pagos",
+  // El banco manda (ADR-0637, actividad 1): el extracto se guarda línea por línea sin duplicar (resubir, archivo viejo, dos pagos iguales),
+  // la provisional se retira al confirmarse, nada se borra, se edita ni se vacía, el archivo de otra cuenta no entra, la tabla pegada cortada
+  // tampoco, y «el banco dice / el ERP dice» al céntimo y en el orden del banco. Cada freno, por su motivo. Con su `--control`. ROLLBACK.
+  "pruebas:banco-lineas",
   "pruebas:gasto-fecha-pago",
 
   // La salida del banco de la planilla que Dynamic marca pagada (ADR-0567): el banco del colaborador desde las grafías reales, el grupo

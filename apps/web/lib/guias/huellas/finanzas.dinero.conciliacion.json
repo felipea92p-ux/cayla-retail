@@ -2,7 +2,7 @@
   "guia": "finanzas.dinero.conciliacion",
   "ruta": "/finanzas/dinero/conciliacion",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 58,
+  "total": 59,
   "controles": {
     "components/finanzas/CuadrarDepositos.tsx": [
       "button «Reintentar»",
@@ -50,6 +50,7 @@
       "Boton «Leer lo pegado»",
       "button «Usar otro extracto»",
       "ComboResponsable «{responsable}»",
+      "Boton «Guardar este extracto»",
       "Boton «Reintentar»",
       "Boton «→() => void registrar(p)»",
       "Boton «Reintentar» #2",
