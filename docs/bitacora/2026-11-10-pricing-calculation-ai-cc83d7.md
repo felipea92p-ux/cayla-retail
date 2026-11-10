@@ -1,0 +1,4 @@
+## 2026-11-10 (El sistema propone precios con IA y revisa los que ya están puestos)
+Qué hice: en Nuevo producto, «Proponer precio» le pide a Claude un precio mirando el costo y las prendas parecidas; en Productos, «Revisar precios» lista las prendas que pierden dinero, ganan menos de 30 %, están lejos de su categoría o no tienen costo, y deja proponer y aplicar uno por uno con el responsable (ADR-0641).
+Por qué así: la IA propone, pero el piso de costo + 30 % lo pone una regla fija que la base vuelve a exigir al guardar y al aplicar; nada cambia sin una persona que confirma, y los costos solo los ve quien ya los veía.
+Felipe se lleva: la migración `20261110203000` espera su OK para pegarse, hay que confirmar `ANTHROPIC_API_KEY` en Vercel, y la lista sirve más cuantos más costos estén cargados.
