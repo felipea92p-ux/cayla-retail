@@ -763,6 +763,9 @@ export const PRUEBAS = [
   // y corregir el pago; el borde exacto en S/ 0; la cifra solo para quien cierra la caja; el segundo retiro espera al primero.
   // Con control. Disparadores diferidos: cada caso corre `set constraints all immediate` y termina en ROLLBACK.
   "pruebas:caja-efectivo-no-negativo",
+  // ADR-0630: con la caja cerrada, un líder corrige lo que no es efectivo (Yape → QR, la máquina de una tarjeta); el efectivo, un
+  // no líder, el efectivo con cuenta, una máquina que no cobra ahí y un mes cerrado DEBEN bloquear. Control: `-- --sin-migracion`.
+  "pruebas:corregir-pagos-caja-cerrada",
   // ADR-0412 (/chaos de Finanzas 2026-10-14): NaN, tope de S/ 1 000 000 y textos con tope en Finanzas; la caja fuerte no queda bajo
   // cero (disparadores diferidos: cada caso corre `set constraints all immediate`); un gasto anterior al inicio de Finanzas. Con controles.
   "pruebas:finanzas-montos-y-caja-fuerte",

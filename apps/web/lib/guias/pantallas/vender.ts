@@ -236,6 +236,14 @@ export const GUIA_PUNTO_DE_VENTA: Guia = {
       texto: "Toca cómo paga el cliente: efectivo, tarjeta, Yape o QR. Si paga con dos, toca los dos y escribe cuánto va en cada uno; el otro se queda con el resto.",
     },
     {
+      id: "cobro-numero",
+      ancla: "vender.cobro-numero",
+      opcional: true,
+      ...CAJA_ABIERTA,
+      titulo: "¿A qué número paga?",
+      texto: "Donde conviven dos marcas, si paga con Yape o Plin aquí sale a qué número mandarlo: lo de CLAURE va al número de Claudia y lo de CAYLA, al QR o a su número.",
+    },
+    {
       id: "cobro-recibe",
       ancla: "vender.cobro-recibe",
       opcional: true,
