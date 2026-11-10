@@ -29,13 +29,11 @@ import {
   ejemploReferenciaDeposito,
   leerEgresoParaMovimiento,
   leerLotePendiente,
-  lotesPorDefecto,
   nombreDeMaquinaDeLaPuente,
   saldoConCentimos,
   tituloDelMovimiento,
   opcionQuePaso,
   netoEsperado,
-  resumenAbono,
   revisarComision,
   resumenConciliacion,
   salidasDelCajon,
@@ -43,7 +41,6 @@ import {
   textoLote,
   textoSalida,
   tipoDeMovimiento,
-  validarAbonoPos,
   validarMovimiento,
   validarPagoSunat,
   validarPagoPlanilla,
@@ -70,6 +67,27 @@ import { Aviso, AvisoNoSeDeshace } from "@/components/ui/Aviso";
 import { fallaLegible } from "@/lib/gastos-telar-reglas";
 import { Vacio } from "@/components/ui/Vacio";
 import { ArrowLeftRight, Landmark } from "lucide-react";
+import { BotonVerMas, FilasDeMas } from "@/components/ui/VerMas";
+import { leerPagoMaquina, type PagoMaquina } from "@/lib/emparejar-maquinas";
+import { solesDeCentimos } from "@/lib/extracto-interbank";
+import {
+  alternarDia,
+  alternarPago,
+  armarDias,
+  desdeDePagos,
+  eleccionPorDefecto,
+  estadoDia,
+  llavePago,
+  pagosQueCalzan,
+  resumenDeposito,
+  soloEstosPagos,
+  textoCuantosPagos,
+  textoLlega,
+  textoPago,
+  textoPagoSuelto,
+  validarDeposito,
+  type EleccionDeposito,
+} from "@/lib/deposito-pago-por-pago";
 import { Volver } from "@/components/ui/Volver";
 import { CampoGuiado, PieGuia } from "@/components/guia-de-foco/CampoGuiado";
 import { useGuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
@@ -703,7 +721,10 @@ function RegistrarMovimientoModal({
   const maquinaId = esDepositoMaquina ? b.origen || null : null;
   // Lo leído va con la máquina de la que se leyó: si la persona cambia de máquina, la lista anterior deja de valer sola
   // (sin tocar el estado dentro del efecto) mientras llega la nueva.
-  const [leido, setLeido] = useState<{ maquinaId: string; lotes: LotePendiente[]; marcados: string[]; falla: boolean } | null>(null);
+  const [leido, setLeido] = useState<{ maquinaId: string; lotes: LotePendiente[]; eleccion: EleccionDeposito; falla: boolean } | null>(null);
+  // Los pagos uno por uno (ADR-0629, Fase B): el QR de Izipay llega suelto, un abono por pago. Si no llegan, la hoja sigue por días.
+  const [pagosLeidos, setPagosLeidos] = useState<{ maquinaId: string; pagos: PagoMaquina[] | null } | null>(null);
+  const [diasAbiertos, setDiasAbiertos] = useState<string[]>([]);
   const [intentoLotes, setIntentoLotes] = useState(0);
   const desdeDeLaMaquina = cuentas.find((c) => c.id === maquinaId)?.saldoDesde ?? null;
   // La confirmación vale para una comisión: si cambia el monto o los días, se vuelve a preguntar.
@@ -716,7 +737,13 @@ function RegistrarMovimientoModal({
       .then(({ data, error }) => {
         if (!vivo) return;
         const lista = error ? [] : ((data ?? []) as Record<string, unknown>[]).map(leerLotePendiente);
-        setLeido({ maquinaId, lotes: lista, marcados: lotesPorDefecto(lista, b.fecha, desdeDeLaMaquina), falla: !!error });
+        setLeido({ maquinaId, lotes: lista, eleccion: eleccionPorDefecto(armarDias(lista, null), b.fecha, desdeDeLaMaquina), falla: !!error });
+      });
+    // Hasta dos meses atrás (lo que la base acepta en una lectura y en el registro por pagos); lo más viejo se deposita por día.
+    void createClient()
+      .rpc("fn_pos_pagos_por_depositar" as never, { p_cuenta_id: maquinaId, p_desde: desdeDePagos(hoy), p_hasta: hoy } as never)
+      .then(({ data, error }) => {
+        if (vivo) setPagosLeidos({ maquinaId, pagos: error ? null : ((data ?? []) as Record<string, unknown>[]).map(leerPagoMaquina) });
       });
     // El banco al que deposita esta máquina viene puesto; sin banco guardado, se elige (ya no se propone el primero de la lista).
     void createClient()
@@ -734,10 +761,14 @@ function RegistrarMovimientoModal({
   }, [maquinaId, intentoLotes]);
   const lotes = leido && leido.maquinaId === maquinaId ? leido.lotes : null;
   const lotesFalla = !!leido && leido.maquinaId === maquinaId && leido.falla;
-  const marcados = leido && leido.maquinaId === maquinaId ? leido.marcados : [];
-  const marcar = (clave: string, si: boolean) =>
-    setLeido((l) => (l && l.maquinaId === maquinaId ? { ...l, marcados: si ? [...l.marcados.filter((c) => c !== clave), clave] : l.marcados.filter((c) => c !== clave) } : l));
-  const cuentaAbono = esDepositoMaquina ? resumenAbono(lotes ?? [], marcados, b.monto) : null;
+  const eleccion: EleccionDeposito = leido && leido.maquinaId === maquinaId ? leido.eleccion : { dias: [], pagos: [] };
+  const pagosDeLaMaquina = pagosLeidos && pagosLeidos.maquinaId === maquinaId ? pagosLeidos.pagos : null;
+  const diasDeposito = armarDias(lotes ?? [], pagosDeLaMaquina);
+  const elegir = (cambio: (e: EleccionDeposito) => EleccionDeposito) => setLeido((l) => (l && l.maquinaId === maquinaId ? { ...l, eleccion: cambio(l.eleccion) } : l));
+  const abrirDia = (clave: string) => setDiasAbiertos((a) => (a.includes(clave) ? a.filter((c) => c !== clave) : [...a, clave]));
+  const cuentaAbono = esDepositoMaquina ? resumenDeposito(diasDeposito, eleccion, b.monto) : null;
+  const calzan = esDepositoMaquina ? pagosQueCalzan(diasDeposito, eleccion, b.monto, b.fecha) : [];
+  const diaDelPago = (p: PagoMaquina) => diasDeposito.find((d) => d.lote.clave === p.clave);
   const comisionRara = cuentaAbono ? revisarComision(cuentaAbono) : null;
   const confirmada = !!cuentaAbono && cuentaAbono.comision !== null && comisionConfirmada === cuentaAbono.comision;
   const netoPropuesto = cuentaAbono && b.monto.trim() === "" ? netoEsperado(cuentaAbono) : null;
@@ -754,14 +785,15 @@ function RegistrarMovimientoModal({
       return;
     }
     if (esDepositoMaquina) {
-      const v = validarAbonoPos(b, lotes ?? [], marcados, { cuentas, hoy, comisionConfirmada: confirmada });
+      const v = validarDeposito(b, diasDeposito, eleccion, { cuentas, hoy, comisionConfirmada: confirmada });
       if (!v.ok) return avisar.error(v.error);
       setGuardando(true);
-      const { error } = await firmar(createClient().rpc("registrar_abono_pos" as never, { ...v.valor, p_token: token } as never), responsable.firma());
+      // Con los pagos a la vista, por pagos (la base guarda qué pagos cubrió); si no, por días como siempre.
+      const { error } = await firmar(createClient().rpc(v.valor.rpc as never, { ...v.valor.valor, p_token: token } as never), responsable.firma());
       setGuardando(false);
       responsable.despues(error);
       if (error) return avisar.error(traducirError(error, "registrar el depósito de la máquina"));
-      const r = resumenAbono(lotes ?? [], marcados, b.monto);
+      const r = resumenDeposito(diasDeposito, eleccion, b.monto);
       avisar.exito("Depósito de la máquina registrado", {
         detalle: r.comision && r.comision > 0 ? `La comisión real, ${soles(r.comision)}, quedó como gasto bancario de la empresa.` : "Llegó completo: sin comisión.",
       });
@@ -962,46 +994,86 @@ function RegistrarMovimientoModal({
                   )
                 : lotes.length === 0
                   ? "Esta máquina no tiene nada por depositar."
-                  : "Lo cobrado con la máquina que ningún depósito cubre todavía. Vienen marcados los días hasta la fecha del depósito."
+                  : "Lo cobrado con la máquina que ningún depósito cubre todavía. Vienen marcados los días hasta la fecha del depósito; si llegó un solo pago (el QR de Izipay llega uno por uno), abre su día y marca solo ese."
             }
             tono={lotes !== null && lotes.length === 0 ? "aviso" : undefined}
           >
             {lotes && lotes.length > 0 && (
               <ul className="fin-lotes">
-                {lotes.map((l) => (
-                  <li key={l.clave} className="fin-lote">
-                    <Casilla marcada={marcados.includes(l.clave)} onCambio={() => marcar(l.clave, !marcados.includes(l.clave))} etiqueta={`${textoLote(l)} · ${soles(l.bruto)}`} />
-                    <span className="fin-lote-texto">
-                      {textoLote(l)}
-                      {l.atrasado && (
-                        <>
-                          {" "}
-                          <Chip tono="ambar">atrasado</Chip>
-                        </>
+                {diasDeposito.map((d) => {
+                  const l = d.lote;
+                  const estado = estadoDia(d, eleccion);
+                  const abierto = d.conDetalle && diasAbiertos.includes(l.clave);
+                  return (
+                    <li key={l.clave} className="fin-lote-grupo">
+                      <div className="fin-lote">
+                        <Casilla marcada={estado === "todo"} aMedias={estado === "parte"} onCambio={() => elegir((e) => alternarDia(d, e))} etiqueta={`${textoLote(l)} · ${soles(l.bruto)}`} />
+                        <span className="fin-lote-texto">
+                          {textoLote(l)}
+                          {l.atrasado && (
+                            <>
+                              {" "}
+                              <Chip tono="ambar">atrasado</Chip>
+                            </>
+                          )}
+                          {textoDespuesDelDeposito(l) && (
+                            <>
+                              {" "}
+                              <Chip tono="pizarra" title={textoDespuesDelDeposito(l) ?? undefined}>
+                                después del depósito
+                              </Chip>
+                            </>
+                          )}
+                          {desdeDeLaMaquina && l.fecha < desdeDeLaMaquina && (
+                            <>
+                              {" "}
+                              <Chip tono="pizarra" title="Es anterior al saldo de arranque de esta máquina: márcalo solo si este depósito lo cubre de verdad">antes del arranque</Chip>
+                            </>
+                          )}
+                        </span>
+                        <span className="fin-lote-dias">
+                          {d.conDetalle ? (
+                            <BotonVerMas forma="enlace" abierto={abierto} onCambiar={() => abrirDia(l.clave)} texto={textoCuantosPagos(d, eleccion)} controla={`pagos-${l.clave}`} />
+                          ) : (
+                            <>
+                              {l.dias === 0 ? "hoy" : l.dias === 1 ? "ayer" : `hace ${l.dias} días`}
+                              {l.esperado !== null && ` · comisión ≈ ${soles(l.esperado)}`}
+                            </>
+                          )}
+                        </span>
+                        <span className="fin-lote-monto">{soles(l.bruto)}</span>
+                      </div>
+                      {d.conDetalle && (
+                        <FilasDeMas abierto={abierto} id={`pagos-${l.clave}`}>
+                          <ul className="fin-lote-pagos" aria-label={`Pagos del ${textoLote(l)}`}>
+                            {d.pagos.map((p) => {
+                              const marcado = estado === "todo" || eleccion.pagos.includes(llavePago(p));
+                              return (
+                                <li key={llavePago(p)} className="fin-lote-pago">
+                                  <Casilla marcada={marcado} onCambio={() => elegir((e) => alternarPago(d, p, e))} etiqueta={`${textoPago(p)} · ${solesDeCentimos(p.montoCentimos)}`} />
+                                  <span className="fin-lote-texto">{textoPago(p)}</span>
+                                  <span className="fin-lote-dias">{textoLlega(p)}</span>
+                                  <span className="fin-lote-monto">{solesDeCentimos(p.montoCentimos)}</span>
+                                </li>
+                              );
+                            })}
+                          </ul>
+                        </FilasDeMas>
                       )}
-                      {textoDespuesDelDeposito(l) && (
-                        <>
-                          {" "}
-                          <Chip tono="pizarra" title={textoDespuesDelDeposito(l) ?? undefined}>
-                            después del depósito
-                          </Chip>
-                        </>
-                      )}
-                      {desdeDeLaMaquina && l.fecha < desdeDeLaMaquina && (
-                        <>
-                          {" "}
-                          <Chip tono="pizarra" title="Es anterior al saldo de arranque de esta máquina: márcalo solo si este depósito lo cubre de verdad">antes del arranque</Chip>
-                        </>
-                      )}
-                    </span>
-                    <span className="fin-lote-dias">
-                      {l.dias === 0 ? "hoy" : l.dias === 1 ? "ayer" : `hace ${l.dias} días`}
-                      {l.esperado !== null && ` · comisión ≈ ${soles(l.esperado)}`}
-                    </span>
-                    <span className="fin-lote-monto">{soles(l.bruto)}</span>
-                  </li>
-                ))}
+                    </li>
+                  );
+                })}
               </ul>
+            )}
+            {calzan.length > 0 && diaDelPago(calzan[0]!) && (
+              <p className="nota-cayla sin-i mt-2">
+                {calzan.length === 1
+                  ? `${soles(cuentaAbono?.neto ?? 0)} es justo lo que deja un pago: ${textoPagoSuelto(calzan[0]!, textoLote(diaDelPago(calzan[0]!)!.lote))}.`
+                  : `${calzan.length} pagos dejan justo ${soles(cuentaAbono?.neto ?? 0)}; Izipay los manda en orden, así que este suele ser el más antiguo: ${textoPagoSuelto(calzan[0]!, textoLote(diaDelPago(calzan[0]!)!.lote))}.`}{" "}
+                <button type="button" className="btn-enlace" onClick={() => elegir(() => soloEstosPagos(diasDeposito, [calzan[0]!]))}>
+                  Marcar solo ese pago
+                </button>
+              </p>
             )}
           </CampoFin>
         </div>
