@@ -1268,7 +1268,7 @@ export const GUIA_CONFIGURACION: Guia = {
       ancla: "config.tiendas-cierre",
       opcional: true,
       titulo: "A qué hora cierra",
-      texto: "A qué hora cierra la tienda hoy. Sale del horario por días de Tienda web ▸ Conf. Tienda, no se escribe aquí: toca el dato para ir a cambiarlo. Con ese horario, Caja proyecta la venta del día y avisa cuando falta cerrar; un día cerrado o un feriado no avisa nada.",
+      texto: "A qué hora cierra la tienda hoy. Sale del horario por días de Tienda web ▸ Conf. Tienda, no se escribe aquí: quien ve ese módulo toca el dato y llega a cambiarlo. Con ese horario, Caja proyecta la venta del día y avisa cuando falta cerrar; un día cerrado o un feriado no avisa nada.",
     },
     {
       id: "tiendas-fondo",

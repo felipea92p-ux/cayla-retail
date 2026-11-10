@@ -25,7 +25,7 @@ import type { LecturaCargaInicial, SedeCargaInicial } from "@/lib/carga-inicial-
 import { solesRedondo } from "@/lib/gastos-reglas";
 import { semanaConFondo } from "@/lib/metas-frescas-reglas";
 import { NO_SE_PUDO_LEER, tiendaFresca } from "@/lib/metas-frescas";
-import { camposDe, falta, fraseDeLaSede, hora12, llenadoTubo, NOMBRE_CAMPO, puedeCambiarCarga, valorDe, type CampoSede, type VitrinaSede } from "@/lib/vitrinas-sedes-reglas";
+import { camposDe, falta, fraseDeLaSede, llenadoTubo, NOMBRE_CAMPO, puedeCambiarCarga, valorDe, type CampoSede, type VitrinaSede } from "@/lib/vitrinas-sedes-reglas";
 
 // Configuración ▸ Empresa y tiendas, «Las vitrinas» (Felipe 2026-11-04, docs/maquetas/empresa-tiendas-vitrinas-2026-11/): el carnet de la empresa y una tarjeta por sede. Antes
 // eran cuatro tablas con las mismas filas. Cada dato se cambia ahí mismo y se guarda solo al salir de él, firmado con el responsable; la carga inicial abre su hoja, porque

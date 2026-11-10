@@ -4,6 +4,7 @@ import {
   bajadaTarjeta,
   cicloDeDespliegue,
   estadoAviso,
+  esFuncionAusente,
   estadoRecordatorio,
   hora12,
   horasDeCierreDeHoy,
@@ -53,6 +54,16 @@ describe("horasDeCierreDeHoy: lo que devuelve fn_horas_de_cierre (ADR-0642)", ()
     expect(horasDeCierreDeHoy(null)).toBeNull();
     expect(horasDeCierreDeHoy({ error: "x" })).toBeNull();
     expect(horasDeCierreDeHoy([{ hora_cierre: "21:00" }])).toBeNull();
+  });
+});
+
+describe("esFuncionAusente: solo «no existe todavía» cae al respaldo sin avisar", () => {
+  it("reconoce los dos códigos de función inexistente", () => {
+    expect(esFuncionAusente({ code: "PGRST202" })).toBe(true);
+    expect(esFuncionAusente({ code: "42883" })).toBe(true);
+  });
+  it("un corte, un timeout o un permiso NO son «sin horario»", () => {
+    for (const e of [{ code: "57014" }, { code: "42501" }, { message: "fetch failed" }, true, null, undefined]) expect(esFuncionAusente(e)).toBe(false);
   });
 });
 

@@ -35,6 +35,16 @@ export function minutosDeHora(hora: string | null | undefined): number | null {
   return h * 60 + mm;
 }
 
+/**
+ * ¿El error de una RPC es «esa función todavía no existe en la base» (PostgREST `PGRST202`, Postgres `42883`)? Es el ÚNICO error que cae al respaldo
+ * (la hora suelta `ubicaciones.hora_cierre`) sin decir nada: es el caso de publicar la web antes de pegar la migración. Cualquier otro (corte,
+ * tope de conexiones, permiso) NO es «sin horario»: se dice, o el recordatorio despediría una caja que sigue abierta.
+ */
+export function esFuncionAusente(error: unknown): boolean {
+  const codigo = (error as { code?: unknown } | null)?.code;
+  return codigo === "42883" || codigo === "PGRST202";
+}
+
 /** El cierre de hoy de una sede, como lo dice `fn_horas_de_cierre`: `hora` null = hoy no abre; `cargado` = la sede tiene horario (por días, o la hora suelta de antes). */
 export type CierreDeHoy = { hora: string | null; cargado: boolean };
 

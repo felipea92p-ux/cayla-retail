@@ -15,8 +15,10 @@
 --   `fn_horas_de_cierre(fecha)` es la misma regla para todas las sedes activas de una vez (Caja y Configuración leen todas), con
 --   `tiene_horario`: ¿la sede tiene algún horario cargado? Sin él, a Configuración le «falta»; con él y sin hora ese día, hoy no abre.
 --
--- QUIÉN LA LLAMA: cualquier cuenta con sesión (`authenticated`): devuelve solo una hora, como ya la leía cualquiera con la tabla
---   `ubicaciones`. No escribe nada. Las tablas del horario siguen sin políticas (solo funciones `security definer`).
+-- QUIÉN LA LLAMA: el equipo de retail y las terminales, igual que la tabla `ubicaciones` (su política exige `fn_tiene_acceso_retail()`) y como
+--   `fn_nombres_personas` y las demás funciones `security definer` que cerraron «tener sesión no es ser del equipo» (20261015221000/20261015222000):
+--   quien tiene sesión pero no es del equipo recibe null / cero filas. `auth.uid() is null` (la llave de servicio) pasa. No escribe nada. Las tablas
+--   del horario siguen sin políticas (solo funciones `security definer`).
 --
 -- CÓMO SE PEGA EN PRODUCCIÓN: UNA sola ejecución (crea dos funciones; no toca tablas ni políticas), con `lock_timeout` de 3 s e
 --   idempotente (`create or replace`). La web que la usa cae sola a `ubicaciones.hora_cierre` si la función no existe todavía, así que
@@ -37,6 +39,7 @@ set search_path = retail, public, extensions
 as $$
   select case
     when p_ubicacion_id is null or p_fecha is null then null
+    when not (auth.uid() is null or retail.fn_tiene_acceso_retail()) then null
     when exists (select 1 from retail.ubicacion_cierres_web c where c.ubicacion_id = p_ubicacion_id and c.fecha = p_fecha) then null
     when exists (select 1 from retail.ubicacion_horario_web h where h.ubicacion_id = p_ubicacion_id) then
       (select case when h.cierra >= 1440 then time '23:59' else make_time(h.cierra / 60, h.cierra % 60, 0) end
@@ -63,6 +66,7 @@ as $$
          (u.hora_cierre is not null or exists (select 1 from retail.ubicacion_horario_web h where h.ubicacion_id = u.id))
     from retail.ubicaciones u
    where u.activo
+     and (auth.uid() is null or retail.fn_tiene_acceso_retail())
 $$;
 
 revoke all on function retail.fn_horas_de_cierre(date) from public, anon;

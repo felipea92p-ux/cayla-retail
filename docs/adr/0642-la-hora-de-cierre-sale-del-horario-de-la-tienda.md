@@ -37,6 +37,22 @@ En la web:
 - La tarjeta «Hora de cierre» (Empresa y tiendas) **ya no se escribe**: muestra el cierre de hoy («Hoy cerrada» si hoy no abre; «Falta» solo si no hay horario) y, a quien ve el
   módulo «Datos y plazos de la tienda web», lo lleva a `/tienda-web/ajustes`. Quien no lo ve la lee sin botón.
 
+## Lo que encontró la revisión previa al PR (ocho hallazgos reales, todos corregidos)
+
+Antes de abrir el PR, tres revisores independientes (SQL, lógica de Caja, reglas del repo) y dos escépticos por hallazgo revisaron el diff. Sobrevivieron:
+
+- **Un fallo de lectura no es «sin horario».** Si `fn_horas_de_cierre` fallaba por cualquier causa, `getUbicaciones()` caía en silencio a `hora_cierre` (vacía) y el recordatorio
+  despedía con «caja cerrada ✓» una caja que seguía abierta. Ahora solo la función inexistente (`esFuncionAusente`: `PGRST202` / `42883`, el caso de publicar antes de pegar)
+  cae al respaldo sin avisar; cualquier otro error se registra y marca `Ubicacion.horaCierreIncierta`, y `leerRecordatorioCierre` lanza (el sondeo conserva lo último que sabía).
+- **Con hoy cerrado, tampoco se traga la falla de la caja:** si la sede tiene horario cargado, que `getCajaAbierta` falle se dice (puede seguir abierta la caja de ayer).
+- **Caja y Marcador no discrepan:** `horaCierreDeLaCaja` (una sola regla, el cierre del día de apertura) la usan el Marcador y el botón «Cerrar caja» de Caja.
+- **Acceso:** las funciones son `security definer` y dejaban a cualquier cuenta con sesión leer las sedes; ahora piden `auth.uid() is null or fn_tiene_acceso_retail()`, como `fn_nombres_personas`
+  («tener sesión no es ser del equipo», 20261015221000/20261015222000).
+- **Tarjeta:** el dial ya no se pinta ámbar («falta») en una tienda con horario y hoy cerrada; el texto de la guía no promete un toque a quien no ve «Datos y plazos de la tienda web»;
+  `ARQUITECTURA.md` recoge las dos funciones; se quitó un import huérfano.
+- Descartado por los dos escépticos: que el botón de la tarjeta navegue con `router.push` en vez de un `<Link>` (ningún paso de la guía lo toca).
+- Pruebas nuevas: `lib/recordatorio-cierre.test.ts` (con mocks; probada rompiendo a propósito la guarda: falla) y `esFuncionAusente`.
+
 ## DECIDÍ / DESCARTÉ / SE ROMPE SI
 
 - **Decidí** una función de lectura y no una tabla nueva: el horario con apertura, cierre y días cerrados ya existía; lo que faltaba era que Caja lo leyera (principio 4: una sola fuente de verdad).
@@ -54,4 +70,5 @@ de 3 s. **La web puede publicarse antes o después**: sin la función cae a `hor
 
 - Verificado en producción con un `select` de solo lectura (la misma regla, sin crear nada): las 3 tiendas × 7 días dan el cierre correcto (LIM domingo `null`, TRU domingo 18:15, AQP 22:15 todos los días).
 - Verificado: pruebas de `armarVitrinas`/`falta`/`valorDe`, de `horasDeCierreDeHoy`, tipos, knip y la suite completa de la web.
+- Verificado en producción (solo lectura): la política de `ubicaciones` exige `fn_tiene_acceso_retail()` y esa función cubre colaboradores activos y terminales.
 - **No verificado:** la función dentro de un Postgres local (no había Docker) y la pantalla en el navegador. Falta una prueba de base propia (`scripts/pruebas/`) que cubra cierre por fecha y sede sin horario.
