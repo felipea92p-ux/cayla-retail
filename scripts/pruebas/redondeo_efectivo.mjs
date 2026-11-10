@@ -691,6 +691,8 @@ rollback;`);
       "La plata que cambia de dueño en un cambio con prendas de CLAURE (ADR-0560, 20261029162000): de venta_pagos solo toma qué PARTE de lo pagado en la venta original fue en cuentas de CAYLA (yape, plin, tarjeta, transferencia, qr, sobre el total de filas, que incluye el redondeo porque la suma de filas es el total); la fila de redondeo va con el efectivo, no suma dinero y no genera deuda.",
     fn_claure_cierre:
       "El aviso del cierre de caja de Lima (ADR-0560): el efectivo de las ventas de la caja sale de las filas con metodo = 'efectivo' (lo físico, igual que fn_calcular_esperado_caja), así que la fila de redondeo no entra; lo cobrado en cuentas lo trae fn_claure_filas.",
+    fn_claure_fuera:
+      "Lo que cayó en una cuenta de otra empresa (ADR-0638, 20261110002000): lee venta_pagos y separacion_pagos solo por `cuenta_dinero_id` de una cuenta ajena; la fila de redondeo no lleva cuenta (fn_cuenta_sellada la deja en nada), así que no entra.",
     fn_claure_filas:
       "Lo cobrado por CLAURE en cuentas de CAYLA (ADR-0560): filtra venta_pagos por medios explícitos (yape, plin, tarjeta, transferencia, qr); el efectivo no genera deuda (lo tiene Claudia) y la fila de redondeo va con el efectivo: queda fuera y no suma dinero.",
     fn_dinero_libro: "Filtra por medios explícitos (yape, plin, tarjeta, transferencia, qr): el redondeo queda fuera.",

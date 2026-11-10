@@ -1,6 +1,6 @@
 import "server-only";
 import { createClient } from "@/lib/supabase/server";
-import { leerFilaClaure, leerGastoClaure, leerPagoClaure, leerVentasClaure, type FilaClaure, type GastoClaure, type PagoClaure, type VentasClaure } from "@/lib/cuenta-claure-reglas";
+import { leerCuentaOtraEmpresa, leerFilaClaure, leerGastoClaure, leerPagoClaure, leerVentasClaure, type CuentaOtraEmpresa, type FilaClaure, type GastoClaure, type PagoClaure, type VentasClaure } from "@/lib/cuenta-claure-reglas";
 import type { Lectura } from "@/lib/cuentas-dinero";
 
 // Finanzas ▸ Cuentas y dinero ▸ CLAURE (ADR-0560, 20261029004000 y 20261029011000). Todo sale de `fn_claure_cuenta` (lo cobrado) y
@@ -18,6 +18,16 @@ export async function getVentasClaure(desde: string, hasta: string): Promise<Ven
   const supabase = await createClient();
   const { data, error } = await supabase.rpc("fn_claure_ventas_en" as never, { p_desde: desde, p_hasta: hasta } as never);
   return error ? null : leerVentasClaure(data);
+}
+
+/**
+ * Las cuentas de otra empresa (ADR-0638, `fn_cuentas_de_otras_empresas`), para mostrarlas aparte. Es información de apoyo (principio 9): sin permiso, sin cuenta o si
+ * la lectura falla devuelve una lista vacía y la pantalla se ve como siempre.
+ */
+export async function getCuentasDeOtrasEmpresas(): Promise<CuentaOtraEmpresa[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("fn_cuentas_de_otras_empresas" as never);
+  return error ? [] : ((data ?? []) as unknown as Record<string, unknown>[]).map(leerCuentaOtraEmpresa);
 }
 
 /** `sinAcceso`: la cuenta no tiene el módulo Cuentas y dinero (`42501`): no es una falla, solo no ve CLAURE. Las pantallas que la muestran de paso (el Resumen) la esconden. */

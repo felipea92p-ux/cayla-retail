@@ -149,7 +149,7 @@ const FILAS = `select origen, medio, coalesce(cuenta_nombre, '(sin cuenta)'), n_
 caso("la cuenta de dinero nace de CAYLA y la cuenta corriente con CLAURE arranca el 23-oct", () =>
   igual(
     dentro(
-      `select (select count(*) from retail.cuentas_dinero where empresa_id <> ${CAYLA}::uuid)::text || '|' ||
+      `select (select count(*) from retail.cuentas_dinero where empresa_id <> ${CAYLA}::uuid and nombre <> 'Yape de Claudia · LIM')::text || '|' || -- ADR-0638: esa es la única que nace de otra empresa
               (select cuenta_corriente_desde::text from retail.empresas where clave = 'claure') || '|' ||
               coalesce((select cuenta_corriente_desde::text from retail.empresas where clave = 'cayla'), 'nulo');`,
       { escena: false, sesionDe: null },
@@ -196,10 +196,20 @@ caso("lo que cae en una cuenta de CLAURE no genera deuda, ni el efectivo, ni lo 
     "0|267.00",
   )); // 267 = 50 (la mitad de la tarjeta de la venta mixta) + 177 (Yape sellado 118 + inferido 59) + 40 (QR sin cuenta)
 
-caso("si la cuenta cambia de dueño, su plata deja de ser de CAYLA (el saldo cambia hacia atrás, a propósito)", () =>
+// ADR-0638: de quién es una cuenta ya no cambia por ningún camino normal (antes, esta prueba cambiaba `empresa_id` a propósito).
+caso("una cuenta no cambia de empresa: la base lo rechaza", () => {
+  try {
+    dentro(`select 1;`, { sesionDe: null, antes: `update retail.cuentas_dinero set empresa_id = ${CLAURE} where nombre = 'Interbank';` });
+    return "la base dejó cambiar la empresa de una cuenta";
+  } catch (e) {
+    return String(e.stderr).includes("no cambia de empresa") ? null : `falló por otra razón: ${String(e.stderr).split("\n")[0]}`;
+  }
+});
+
+caso("la plata de una cuenta de otra empresa no es de CAYLA (se fuerza sin disparadores, para seguir vigilando la consulta)", () =>
   igual(
     dentro(`select count(*) from retail.fn_claure_cuenta() where cuenta_nombre = 'Interbank' and origen = 'venta';`, {
-      antes: `update retail.cuentas_dinero set empresa_id = ${CLAURE} where nombre = 'Interbank';`,
+      antes: `set local session_replication_role = replica; update retail.cuentas_dinero set empresa_id = ${CLAURE} where nombre = 'Interbank'; set local session_replication_role = origin;`,
     }),
     "0",
   ));

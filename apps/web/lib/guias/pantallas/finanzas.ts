@@ -993,6 +993,13 @@ export const GUIA_FIN_CLAURE: Guia = {
       texto: "La ficha oscura es lo que se le debe a Claudia. Al lado, de dónde sale: lo cobrado de prendas de CLAURE en tus cuentas, lo devuelto, el IGV (lo declara y paga CAYLA, así que se descuenta), la comisión del POS (la asume CLAURE), sus gastos que pagó CAYLA y lo ya pagado. Toca una ficha y se abre el historial de eso.",
     },
     {
+      id: "su-yape",
+      ancla: "fin-claure.su-yape",
+      opcional: true,
+      titulo: "Su Yape, aparte",
+      texto: "Lo que le pagan al número de Claudia llega directo a ella. Por eso no está en los bancos de CAYLA ni suma en «tienes»: se anota aquí, solo para saber cuánto entró.",
+    },
+    {
       id: "entra",
       ancla: "fin-claure.entra",
       opcional: true,

@@ -107,6 +107,28 @@ export function leerPagoClaure(r: Record<string, unknown>): PagoClaure {
   };
 }
 
+/**
+ * Una cuenta de otra empresa (ADR-0638, `fn_cuentas_de_otras_empresas`): la plata que llega ahí no es de CAYLA, así que se muestra aparte y nunca suma.
+ * `ultimoCobro` nulo = todavía no llegó ninguno.
+ */
+export type CuentaOtraEmpresa = { id: string; nombre: string; empresa: string; cobradoMes: number; cobradoTotal: number; ultimoCobro: string | null };
+
+export function leerCuentaOtraEmpresa(r: Record<string, unknown>): CuentaOtraEmpresa {
+  return {
+    id: String(r.id ?? ""),
+    nombre: String(r.nombre ?? ""),
+    empresa: String(r.empresa ?? ""),
+    cobradoMes: numero(r.cobrado_mes),
+    cobradoTotal: numero(r.cobrado_total),
+    ultimoCobro: r.ultimo_cobro ? String(r.ultimo_cobro).slice(0, 10) : null,
+  };
+}
+
+/** La nota de Dónde está: de quién es, que no suma, y cuánto entró este mes. */
+export function notaCuentaOtraEmpresa(c: CuentaOtraEmpresa): string {
+  return `${c.nombre}: de ${c.empresa}, no suma. Este mes ${soles(c.cobradoMes)}.`;
+}
+
 export type ResumenClaure = {
   /** Lo que las ventas de CLAURE cobraron en cuentas de CAYLA. */
   cobrado: number;
