@@ -120,7 +120,7 @@ export async function getContextoAlta(sedeId: string): Promise<ContextoAlta> {
       supabase.from("familias").select("codigo, nombre, exige_tejido_patron").eq("activo", true).order("orden"),
       supabase.from("categorias").select("id, nombre, familia, prefijo, categoria_padre_id").eq("activo", true).order("nombre"),
       // Con su ficha (descripción y «combina con», ADR-0316): el pie de la carta la lee al señalar un color (Felipe 2026-10-10).
-      supabase.from("colores").select("codigo, nombre, hex, familia_color, tipo, sinonimos, pantone_tcx, descripcion, combina_con").eq("activo", true).order("orden"),
+      supabase.from("colores").select("codigo, nombre, hex, familia_color, tipo, sinonimos, pantone_tcx, descripcion, combina_con, componentes").eq("activo", true).order("orden"),
       supabase
         .from("variantes")
         .select("id, color_codigo, created_at, producto:productos!inner ( categoria_id, referencia )")
@@ -210,6 +210,7 @@ export async function getContextoAlta(sedeId: string): Promise<ContextoAlta> {
       pantoneTcx: c.pantone_tcx ?? null,
       descripcion: c.descripcion ?? null,
       combinaCon: c.combina_con ?? [],
+      componentes: c.componentes ?? null,
     })),
     usoColores,
     costoSugerido,

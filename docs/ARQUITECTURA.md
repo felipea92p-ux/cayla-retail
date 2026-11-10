@@ -875,6 +875,10 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
   (`filtrarColores`, `filtrarPorNombre`, `usoDe`) y, para Temporadas, `lib/temporadas-pantalla.ts` (`estacionesDe`,
   `grupoDeTemporada`, `tonoDeTemporada`; dibujo en `MuestraTemporada`, molde `MuestraIcono` de `MuestraEtiqueta`).
   Temporadas abre en `?vista=lista` (la grilla) desde el 2026-09-28. ADR-0261.
+- **Colores combinados** («Hueso con azul», ADR-0643): `POST /api/productos/colores` con `{ componentes }` llama a la RPC
+  `retail.color_combinado` (busca o crea la mezcla; nombre y código los arma la base). La pantalla la arma con `ArmarMezcla`
+  («+ acompañante» de `ElegirColores`, prop `conMezclas`: Nuevo producto y `recepcion-envio/HojaPrenda`); la lógica pura vive en
+  `lib/color-combinado.ts` (nombre, componentes, punto partido). La carta y Atributos agrupan las mezclas en «Combinados» con `familiaEnCarta`.
 - `/productos/insignias` (Catálogo ▸ Insignias —se llamó «Sellos» hasta el 2026-10-23—, ADR-0481; lo abren los módulos `etiquetas` o `campanas`; en el código sigue llamándose `sellos`) → `page.tsx` lee con
   `lib/etiquetas-pantalla-datos.ts` (`cargarEtiquetasPantalla({ modo: "todas", conVitrina: true })`: todas las filas de `etiquetas`, las
   prendas a la venta con su modelo, color, categoría y foto —`colores`, `categorias`, `producto_fotos`— y, para quien puede analizar, la
@@ -1959,7 +1963,7 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
 - **Configuración** (2026-09-24, ADR-0195 F1; módulo `configuracion`, solo líder por ahora; se entra desde el perfil, como
   Colaboradores): `/configuracion` → `lib/configuracion.ts` (`fn_configuracion_tiendas`) + `lib/configuracion-reglas.ts` (lógica
   pura) → `ConfiguracionTiendas.tsx` → RPC `guardar_metas_tienda`, `guardar_efecto_campana` (firmadas con el responsable).
-  **Desde el 2026-11-04 «Tiendas y caja» son dos pestañas: `?tab=metas` (`ConfiguracionMetas.tsx`) y `?tab=empresa` («Las vitrinas», `components/vitrinas-sedes/`, reglas en `lib/vitrinas-sedes-reglas.ts`; fondo de caja y hora de cierre viven aquí, y la hoja de la carga inicial sigue en `ConfiguracionCargaInicial.tsx`); ADR-0195, actualizaciones de ese día. Lo que sigue la nombra como era.**
+  **Desde el 2026-11-04 «Tiendas y caja» son dos pestañas: `?tab=metas` (`ConfiguracionMetas.tsx`) y `?tab=empresa` («Las vitrinas», `components/vitrinas-sedes/`, reglas en `lib/vitrinas-sedes-reglas.ts`; el fondo de caja vive aquí; la hora de cierre solo se LEE aquí —sale del horario por días de Tienda web ▸ Conf. Tienda, ADR-0642— y la tarjeta lleva a cambiarla—, y la hoja de la carga inicial sigue en `ConfiguracionCargaInicial.tsx`); ADR-0195, actualizaciones de ese día. Lo que sigue la nombra como era.**
   Desde ADR-0328 (actividad 4) la pestaña «Tiendas y caja» trae además «Carga inicial de cada sede» (`ConfiguracionCargaInicial.tsx`
   ← `lib/carga-inicial.ts` → `fn_carga_inicial_sedes`; la hoja guarda con `fijar_cierre_carga_inicial`).
   **Dinero** (`components/vistas-config/VistaDinero.tsx`, antes Caja y avisos) también fija «Desde cuándo cuenta Finanzas» (ADR-0332): RPC `guardar_inicio_finanzas` →
@@ -2218,7 +2222,7 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
     **Desde 2026-10-29 (ADR-0579, pulido del Resumen):** `RecorridoPlata.tsx`, `DeCadaCien.tsx` y `lib/de-cada-cien-reglas.ts` ya no existen: «A dónde va la plata» es `AdondeVaLaPlata.tsx` (anillo sobre `recorridoPlata`); `VendidoPorSede.tsx` junta el orillo con `Confianza.tsx` (ahora `ConfianzaChip` y `ConfianzaDetalle`, ya no franja); `TresRespuestas` reparte lo que tienes entre CAYLA y CLAURE y lista las deudas con su fecha (`lib/tres-respuestas-reglas.ts`); `Linea` acepta `bajoReferencia` y `minimo`; `InversionMercaderia` va al final y siempre se ve. Sin migración ni RPC.
     «¿Ya pagaste el mes?» (`lib/equilibrio-mes-reglas.ts`) suma lo que falta del mes en curso con `getFaltaDelMes` (`lib/resultados.ts`, `fn_lo_que_falta_del_mes`, 20261105220000).
   - `/configuracion` gana Empresa (solo lectura), Cuentas y cobros, Caja y avisos (`parametros_finanzas`), Presupuesto e
-    Impuestos; Tiendas y caja suma la hora de cierre (`ubicaciones.hora_cierre`), que Caja usa para «al ritmo de hoy».
+    Impuestos; Tiendas y caja sumó una hora de cierre (`ubicaciones.hora_cierre`) que Caja usa para «al ritmo de hoy»; desde el 2026-11-10 (ADR-0642) esa hora sale del horario por días de Tienda web ▸ Conf. Tienda (`fn_hora_cierre_de` y `fn_horas_de_cierre`, que también miran los cierres por fecha) y la columna queda solo como respaldo de una sede sin horario por días.
   - `/tienda-web/ajustes` (ADR-0408, actividad 6; fue la pestaña `/configuracion?tab=tienda-web` hasta ADR-0430; módulo `ajustes_web` «Datos y plazos de la tienda web» desde 20261016223000, antes `configuracion`) → `lib/configuracion.ts`
     `getConfiguracionTiendaWeb` (`fn_configuracion_tienda_web`) + `lib/tienda-web-reglas.ts` (puro: la regla de qué le falta a una
     tienda para verse en la web, los plazos y la guía de foco) + `lib/sugerencias-tienda-web.ts` → `ConfiguracionTiendaWeb.tsx` →
@@ -2420,7 +2424,7 @@ cuando hace falta hablar con algo que no es Postgres, o devolver un archivo.
   telar (ADR-0493; `components/finanzas/telar/TeToca.tsx`, reglas en `lib/finanzas-te-toca-reglas.ts`). Cada submódulo que la cuenta ve aporta
   los suyos desde las lecturas que ya tiene (hoy Gastos: `fn_gastos_panel`); si uno falla, `incompleto`; si ninguno responde, 503. La sede y el
   mes de Finanzas viven en la URL (`?sede=`, `?mes=`, `lib/finanzas-telar-reglas.ts`), los lee cada página con `sedeDeLaUrl`.
-- `/api/caja/recordatorio` → `GET`, solo lectura: la hora de cierre de la sede de quien pregunta (`ubicaciones.hora_cierre`) y
+- `/api/caja/recordatorio` → `GET`, solo lectura: la hora de cierre de la sede de quien pregunta —la del día en que se abrió su caja, de `fn_horas_de_cierre` vía `getUbicaciones()` o de `fn_hora_cierre_de` (`horaCierreDeLaCaja`), ADR-0642— y
   su caja abierta; con `?cifras=1`, además el efectivo esperado (`fn_esperado_caja`) y las ventas del turno. La sondea cada
   minuto el «Marcador» —la cápsula del centro de la cabecera, ADR-0359; antes la «Isla»— (`components/RecordatorioCierreCaja.tsx`, montada una vez en `app/(app)/layout.tsx`; reglas puras en
   `lib/recordatorio-cierre-reglas.ts`, lecturas en `lib/recordatorio-cierre.ts`), porque el layout no se vuelve a pintar al

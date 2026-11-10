@@ -2,7 +2,7 @@
   "guia": "inventario",
   "ruta": "/inventario",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 205,
+  "total": 210,
   "controles": {
     "components/AjustarInventarioModal.tsx": [
       "CampoSelect «{guia.etiqueta(\"motivo\", \"¿Por qué ajustas?\")}»",
@@ -145,7 +145,14 @@
       "input «Elegir color con el selector»",
       "CampoTexto «{etiqueta}»"
     ],
+    "components/alta-producto/ArmarMezcla.tsx": [
+      "button «{`Quitar ${c.nombre}»",
+      "ComboBuscable «→(cod) => alternar(cod)»",
+      "Boton «Cancelar»",
+      "Boton «{(bloqueo ?? firma.motivo) ?? undefined}»"
+    ],
     "components/alta-producto/ElegirColores.tsx": [
+      "button «{`Agregar un color que acompaña al ${c.nombre.toLocaleLowerCase(\"es\")}»",
       "button «{`Quitar ${c.nombre}»",
       "ComboBuscable «(sin nombre)»",
       "button «{carta ? \"Ocultar la carta\" : `Ver los ${colores.length}»",

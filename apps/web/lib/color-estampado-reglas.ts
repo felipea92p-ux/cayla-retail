@@ -7,6 +7,7 @@
 //   dominante, y por eso los filtros de color, la demanda y el plan del piso lo cuentan en esa familia sin saber que es un estampado.
 
 import { nombreDeColor } from "./color-alta-reglas";
+import { esCombinado, GRUPO_COMBINADOS } from "./color-combinado";
 import { esHexValido } from "./color-parecido";
 import { FAMILIAS_COLOR } from "./colores-familias";
 import type { CampoDeGuia } from "./guia-campos";
@@ -26,7 +27,9 @@ export const GRUPO_ESTAMPADOS = "estampados";
  * En qué grupo de la carta va un color. Un estampado va con los estampados: un punto de su tono dominante no dice cuál es,
  * así que no puede mezclarse con los lisos. Solo es para dibujar la carta: lo que agrupa por familia sigue usando la del color dominante.
  */
-export function familiaEnCarta(color: { tipo?: string | null; familiaColor?: string | null }): string | null {
+export function familiaEnCarta(color: { tipo?: string | null; familiaColor?: string | null; componentes?: readonly string[] | null }): string | null {
+  // Una mezcla («Hueso con azul», ADR-0643) va con las mezclas: su punto partido no cabe en la escala de claro a oscuro de su base.
+  if (esCombinado(color)) return GRUPO_COMBINADOS;
   return esEstampado(color) ? GRUPO_ESTAMPADOS : (color.familiaColor ?? null);
 }
 

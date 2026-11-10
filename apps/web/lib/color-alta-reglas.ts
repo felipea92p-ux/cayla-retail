@@ -19,7 +19,7 @@ export function nombreDeColor(texto: string): string {
   return limpio ? limpio[0].toLocaleUpperCase("es") + limpio.slice(1) : "";
 }
 
-type ColorConNombres = { codigo: string; nombre: string; hex: string | null; familiaColor: string | null; sinonimos?: readonly string[]; activo?: boolean; tipo?: string | null };
+type ColorConNombres = { codigo: string; nombre: string; hex: string | null; familiaColor: string | null; sinonimos?: readonly string[]; activo?: boolean; tipo?: string | null; componentes?: readonly string[] | null };
 
 export type CoincidenciaDeColor<C> = { item: C; por: MotivoVisto; con: string | null };
 
@@ -38,8 +38,8 @@ export function coloresQueYaExisten<C extends ColorConNombres>(
 ): CoincidenciaDeColor<C>[] {
   const porNombre: CoincidenciaDeColor<C>[] = atributosParecidos(nombre, colores, { excluir: (c) => c.codigo === excluir });
   const vistos = new Set(porNombre.map((c) => c.item.codigo));
-  // Un estampado lleva el tono de su color dominante (ADR-0634): no es un color parecido, es otra cosa.
-  const porTono = coloresParecidos(hex, familiaColor, colores.filter((c) => c.tipo !== "estampado"), { excluir })
+  // Un estampado lleva el tono de su color dominante (ADR-0634) y una mezcla el de su base (ADR-0643): no son colores parecidos, son otra cosa.
+  const porTono = coloresParecidos(hex, familiaColor, colores.filter((c) => c.tipo !== "estampado" && (c.componentes?.length ?? 0) < 2), { excluir })
     .filter((p) => !vistos.has(p.color.codigo) && p.color.activo !== false)
     .slice(0, 3)
     .map((p) => ({ item: p.color, por: "tono" as const, con: null }));
@@ -96,6 +96,7 @@ export function colorDeRespuesta(datos: unknown): { color: ColorAlta } | null {
       // La ficha (ADR-0316) también llega en la respuesta: un color recién creado se señala en la carta como cualquier otro.
       descripcion: typeof c.descripcion === "string" ? c.descripcion : null,
       combinaCon: Array.isArray(c.combina_con) ? c.combina_con.filter((s): s is string => typeof s === "string") : [],
+      componentes: Array.isArray(c.componentes) ? c.componentes.filter((s): s is string => typeof s === "string") : null,
     },
   };
 }
