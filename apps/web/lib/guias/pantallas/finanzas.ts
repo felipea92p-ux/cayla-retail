@@ -1527,7 +1527,7 @@ export const GUIA_FIN_FLUJO: Guia = {
       id: "gasto-nuevo",
       ancla: "fin-escenarios.gasto-nuevo",
       titulo: "Un gasto nuevo",
-      texto: "Contratar a alguien, una máquina, un local más: cuánto, si es cada mes o una sola vez, y desde qué semana (te escribimos un ejemplo).",
+      texto: "Contratar a alguien, una máquina, comprar mercadería, un local más: cuánto, si es cada mes o una sola vez, y desde qué semana (te escribimos un ejemplo).",
       demostrar: [
         { tipo: "clic", ancla: "fin-escenarios.gasto-nuevo-marca" },
         { tipo: "escribir", ancla: "fin-escenarios.gasto-monto", texto: "1500" },
@@ -1558,6 +1558,13 @@ export const GUIA_FIN_FLUJO: Guia = {
       opcional: true,
       titulo: "Tu caja con el cambio",
       texto: "La plata que te quedaría al cierre de cada semana con el cambio; dentro de la semana puede bajar más. La línea punteada es tu mínimo de caja.",
+    },
+    {
+      id: "sin-compra",
+      ancla: "fin-escenarios.sin-compra",
+      opcional: true,
+      titulo: "Sin la compra de campaña",
+      texto: "Esta caja no trae la compra planeada de campaña; si ves el Plan de campaña, ahí está lo que falta pedir. Para probarla aquí, márcala como un gasto nuevo de una vez.",
     },
     {
       id: "nota",

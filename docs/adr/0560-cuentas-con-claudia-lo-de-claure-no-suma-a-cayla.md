@@ -79,6 +79,8 @@ Las 17 migraciones se aplicaron en `vovjyyiafkxteijimpuy` (schema `retail`) **en
 
 ## Actualización 2026-11-09: cuando CLAURE facture, se deja de descontar el IGV (decisión de Felipe; sin construir)
 
+> **Reemplazada el mismo día por el ADR-0638, regla 5:** CAYLA asume el IGV de todo lo de CLAURE, también lo vendido por Yape y en efectivo, y ya no se le descuenta, ni siquiera antes de su primera factura; se lleva una línea acumulada de ese IGV contra sus facturas de compra. Lo de abajo queda como historia: ya no hay una fecha de corte que esperar. Sigue sin construir.
+
 **El problema.** El IGV de lo que CLAURE cobra en cuentas de CAYLA ya se le descuenta del saldo. Felipe decidió que también puede devolverlo con facturas de compra. Si las dos cosas corren sobre la misma venta, CAYLA lo recupera dos veces.
 
 **La decisión.** Una sola forma de devolverlo: desde que CLAURE facture, esas ventas ya no llevan el descuento. Hasta la primera factura **nada cambia**: se sigue descontando. Apagarlo antes subiría lo que se le debe sin una factura que le dé a CAYLA el crédito fiscal.

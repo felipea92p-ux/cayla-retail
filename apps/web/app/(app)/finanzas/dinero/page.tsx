@@ -70,7 +70,8 @@ export default async function CuentasDineroPage({ searchParams }: { searchParams
     explicar: (c) =>
       (c.tipo === "cajon" ? detalleCajon(efectivo.datos.find((f) => f.ubicacionId === c.ubicacionId), esTaller(c)) : null) ?? explicacionCuenta(c, medios.datos, esTaller(c)),
     // La caja fuerte sin depositar y, en el cajón, si la caja está abierta o cerrada (la campana y las filas lo muestran como estado).
-    avisar: (c) => avisoCajaFuerte(c, movimientos.datos, hoy) ?? avisoCajon(c, efectivo.datos, esTaller(c)),
+    // `getMovimientos` lee la lista entera: no hay recorte que declarar (`null`).
+    avisar: (c) => avisoCajaFuerte(c, movimientos.datos, hoy, null) ?? avisoCajon(c, efectivo.datos, esTaller(c)),
   });
 
   // La campana «Estado de las cuentas»: los mismos datos de la pantalla, ordenados por lo que pide mirada (lib/dinero-estados-reglas.ts).

@@ -1,6 +1,8 @@
 "use client";
 
+import Link from "next/link";
 import { useMemo, useState, type CSSProperties, type ReactNode } from "react";
+import { Aviso } from "@/components/ui/Aviso";
 import { Chip } from "@/components/ui/Chip";
 import { CabeceraReportes } from "@/components/finanzas/CabeceraReportes";
 import { CabeceraBloque, InputFin, RadiosFin, SelectFin, Superficie } from "@/components/finanzas/kit";
@@ -11,8 +13,8 @@ import { fechaCorta, parsearMonto, textoMes } from "@/lib/gastos-reglas";
 import type { FilaER } from "@/lib/resultados-reglas";
 import {
   PALANCAS_INICIALES,
-  alquilerDe,
-  alquilerDeFijos,
+  SIN_COMPRA_DE_CAMPANA,
+  alquilerDePartida,
   cajaDiaria,
   conclusiones,
   csvEscenario,
@@ -23,6 +25,7 @@ import {
   proyectar,
   soles,
   tiendaInicial,
+  textoSinAlquiler,
   tiendasDeLaProyeccion,
   utilidadConCambios,
   type Palancas,
@@ -50,12 +53,15 @@ export function EscenariosPanel({
   resultados,
   mesBase,
   hoy,
+  vePlan = false,
 }: {
   proyeccion: Proyeccion | null;
   /** El estado de resultados del último mes completo (F5). `null` si no se pudo leer. */
   resultados: FilaER[] | null;
   mesBase: string;
   hoy: string;
+  /** La cuenta ve el Plan de campaña (módulo `plan_compra`): la línea de la compra planeada lleva su enlace. */
+  vePlan?: boolean;
 }) {
   const tiendas = useMemo(() => {
     const deProy = proyeccion ? tiendasDeLaProyeccion(proyeccion).map((t) => ({ id: t.id, nombre: t.nombre })) : [];
@@ -69,9 +75,10 @@ export function EscenariosPanel({
 
   const nombreTienda = tiendas.find((t) => t.id === p.tienda)?.nombre ?? null;
   const filaTienda = (resultados ?? []).find((f) => f.ubicacionId === p.tienda);
-  const alquilerER = filaTienda ? alquilerDe(filaTienda) : 0;
-  const alquilerActual = alquilerER > 0 ? alquilerER : proyeccion ? alquilerDeFijos(proyeccion.salidas, p.tienda) : null;
-  const utilidad = resultados && resultados.length ? utilidadConCambios(resultados, p) : null;
+  // La tabla y la caja restan contra el MISMO alquiler del que parte el deslizador (tarea 11).
+  const partida = alquilerDePartida(filaTienda, proyeccion?.salidas, p.tienda);
+  const alquilerActual = partida.monto;
+  const utilidad = resultados && resultados.length ? utilidadConCambios(resultados, p, alquilerActual) : null;
   const base = proyeccion ? proyectar(proyeccion) : [];
   const nuevo = proyeccion ? proyectar(proyeccion, p, alquilerActual) : [];
   const pagos = (proyeccion?.salidas ?? []).filter((s) => s.tipo === "vencimiento").sort((a, b) => b.monto - a.monto);
@@ -147,6 +154,11 @@ export function EscenariosPanel({
                 deshabilitado={p.cerrarTienda}
                 onValor={(v) => cambiar({ alquilerTienda: v })}
               />
+            )}
+            {nombreTienda && partida.sinEnResultado && alquilerActual !== null && (
+              <Aviso tono="info" chico className="mb-4">
+                {textoSinAlquiler(mesBase, nombreTienda, alquilerActual)}
+              </Aviso>
             )}
             {nombreTienda && (
               <Deslizador
@@ -234,7 +246,7 @@ export function EscenariosPanel({
                 />
                 <span>
                   <b>Un gasto nuevo</b>
-                  <small>Contratar a alguien, una máquina, un local más: cuánto y desde cuándo.</small>
+                  <small>Contratar a alguien, una máquina, comprar mercadería, un local más: cuánto y desde cuándo.</small>
                 </span>
               </label>
               {p.gastoNuevo && proyeccion && (
@@ -361,6 +373,20 @@ export function EscenariosPanel({
                     };
                   })}
                 />
+                <p className="mt-3 text-sm text-taupe" data-guia="fin-escenarios.sin-compra">
+                  {SIN_COMPRA_DE_CAMPANA}{" "}
+                  {vePlan ? (
+                    <>
+                      Lo que falta pedir y cuánto aguanta tu caja lo ves en el{" "}
+                      <Link href="/compras/plan" className="btn-enlace">
+                        Plan de campaña
+                      </Link>
+                      ; para probarla aquí, márcala como «Un gasto nuevo».
+                    </>
+                  ) : (
+                    "Para probarla aquí, márcala como «Un gasto nuevo»."
+                  )}
+                </p>
               </Superficie>
             </div>
           )}

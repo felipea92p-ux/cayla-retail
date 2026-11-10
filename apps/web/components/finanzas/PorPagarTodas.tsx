@@ -182,11 +182,11 @@ export function PorPagarTodas({
                 <div key={`${x.origen}-${x.id}`} className={fila(PLANTILLA, "sm:items-center")}>
                   <span className={celda("izq", "whitespace-nowrap")}>
                     {fechaDeVence(x, fechaCorta)}
-                    <small className={`block text-xs ${vencida ? "text-rojo-profundo" : "text-tinta/65"}`}>{textoVence(x, hoy)}</small>
+                    <small className={`texto-detalle block ${vencida ? "text-rojo-profundo" : "text-tinta/65"}`}>{textoVence(x, hoy)}</small>
                   </span>
                   <span className={celda("izq", "!whitespace-normal")}>
                     <b className="block font-semibold text-tinta">{x.proveedor}</b>
-                    <small className="block text-xs text-tinta/65">{x.concepto ? `${x.documento} · ${x.concepto}` : x.documento}</small>
+                    <small className="texto-detalle block text-tinta/65">{x.concepto ? `${x.documento} · ${x.concepto}` : x.documento}</small>
                   </span>
                   <span className={celda()}>
                     <Chip versalitas={false} tono={TONO_NATURALEZA[x.naturaleza]}>

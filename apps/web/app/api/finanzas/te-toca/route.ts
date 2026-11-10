@@ -79,7 +79,8 @@ export async function GET(request: Request) {
         ...pendientesDeDinero(
           {
             porPagar: deuda.datos,
-            cajasSinDepositar: cajasSinDepositar(ctx.cuentas.datos, movimientos.datos, hoy, ctx.ver.ubicacionId, ctx.ver.soloEmpresa),
+            // `getMovimientos` lee la lista entera: no hay recorte que declarar (`leidoDesde: null`).
+            cajasSinDepositar: cajasSinDepositar(ctx.cuentas.datos, { movimientos: movimientos.datos, leidoDesde: null }, hoy, ctx.ver.ubicacionId, ctx.ver.soloEmpresa),
             lineasSinRevisar: pendientesDeConciliar(ctx.conciliacion.datos),
             esLider,
             planilla,

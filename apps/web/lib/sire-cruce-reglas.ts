@@ -143,11 +143,30 @@ export function cruzarVentas(sunat: readonly LineaSire[], erp: readonly Comproba
   return cruzar("ventas", sunat, erp);
 }
 
+// Las copias conocidas de la renumeración de boletas del 7-oct-2026: la serie B005 del 8 al 109 se emitió del 2 al 5 de octubre, se
+// pidió su baja y el ERP no las guarda como comprobantes. Si SUNAT las lista, NO se emitieron fuera del ERP: decir eso serían hasta 102
+// alarmas iguales y falsas, y el contador aprendería a ignorarlas justo en el caso que importa (una baja que no llegó). Lista fija, sin
+// leer los respaldos: hacerlo pediría una función nueva en la base. Solo cambia el motivo; el estado y las cifras no se tocan.
+const SERIE_COPIAS_CONOCIDAS = "B005";
+const COPIAS_CONOCIDAS_DESDE = 8;
+const COPIAS_CONOCIDAS_HASTA = 109;
+
+/** ¿Es una de las boletas B005-8 a B005-109, las copias conocidas con baja pedida? Las demás series (un B001-113) siguen como antes. */
+export function esCopiaConocida(tipo: string, serie: string, numero: string): boolean {
+  if (tipo.trim().padStart(2, "0") !== "03" || serie.trim().toUpperCase() !== SERIE_COPIAS_CONOCIDAS) return false;
+  const n = Number(numeroSinCeros(numero));
+  return Number.isInteger(n) && n >= COPIAS_CONOCIDAS_DESDE && n <= COPIAS_CONOCIDAS_HASTA;
+}
+
 /** Lo que se dice de cada caso, según el registro. */
-function motivoSoloSunat(registro: RegistroSire): string {
-  return registro === "compras"
-    ? "El proveedor la emitió a nombre de CAYLA y no está en el ERP. Regístrala, o avisa si nadie la reconoce."
-    : "SUNAT lo tiene y el ERP no: se emitió fuera del ERP (en el portal SOL u otro sistema). Díselo al contador.";
+function motivoSoloSunat(registro: RegistroSire, s: LineaSire): string {
+  if (registro === "compras") return "El proveedor la emitió a nombre de CAYLA y no está en el ERP. Regístrala, o avisa si nadie la reconoce.";
+  if (esCopiaConocida(s.tipo, s.serie, s.numero)) {
+    return Math.abs(s.total) <= TOLERANCIA_SOLES
+      ? "Copia conocida de la renumeración de octubre: SUNAT la muestra en cero. Antes de darla por cerrada, confirma con el contador que su baja se aceptó."
+      : `Copia conocida de la renumeración de octubre: la baja no llegó. Reintenta la baja con su número ${s.serie.trim().toUpperCase()}-${numeroSinCeros(s.numero)}.`;
+  }
+  return "SUNAT lo tiene y el ERP no: se emitió fuera del ERP (en el portal SOL u otro sistema). Díselo al contador.";
 }
 
 function motivoSoloErp(registro: RegistroSire, e: ComprobanteErp): string {
@@ -183,7 +202,7 @@ function cruzar(registro: RegistroSire, sunat: readonly LineaSire[], erp: readon
         nombre: s.nombre ?? (registro === "compras" ? "Proveedor sin nombre" : "Cliente sin nombre"),
         erp: null,
         diferencia: null,
-        motivo: motivoSoloSunat(registro),
+        motivo: motivoSoloSunat(registro, s),
       });
       continue;
     }

@@ -52,7 +52,8 @@
     margin: 5px 0 0;
     padding: 0;
     list-style: none;
-    font-size: 12px;
+    /* Dice sede y monto: es lectura, no etiqueta (14 px, la regla de la letra de lectura). */
+    font-size: 14px;
     color: var(--color-taupe);
   }
   .qd-leyenda li {
@@ -66,7 +67,7 @@
   }
   .qd-franja-pie p {
     margin: 0;
-    font-size: 13px;
+    font-size: 14px;
     color: var(--color-tinta);
   }
 
@@ -86,7 +87,9 @@
   }
   .qd-fac {
     display: grid;
-    grid-template-columns: 4.6rem minmax(0, 1fr) auto auto;
+    /* La columna del vencimiento tiene un ancho fijo que cabe «vencida hace 12 días» a 14 px: así todas las filas alinean el proveedor
+       (cada fila es su propia grilla, y un ancho por contenido las desalineaba). */
+    grid-template-columns: 9.5rem minmax(0, 1fr) auto auto;
     gap: 2px 12px;
     align-items: center;
     padding: 10px 18px;
@@ -99,11 +102,14 @@
   }
   .qd-fac small {
     display: block;
-    font-size: 12px;
+    font-size: 14px;
     color: var(--color-taupe);
   }
   .qd-fac-vence b {
-    font-size: 13px;
+    font-size: 14px;
+  }
+  .qd-fac-vence small {
+    white-space: nowrap;
   }
   .qd-fac-prov > * {
     overflow: hidden;
@@ -130,8 +136,12 @@
     text-align: right;
   }
   @container (max-width: 600px) {
+    /* Angosta: la frase del vencimiento baja a dos líneas por su espacio («vencida hace» / «12 días»). */
     .qd-fac {
-      grid-template-columns: 4.6rem minmax(0, 1fr) auto;
+      grid-template-columns: 6.5rem minmax(0, 1fr) auto;
+    }
+    .qd-fac-vence small {
+      white-space: normal;
     }
     .qd-fac-chips {
       grid-column: 2;
@@ -152,7 +162,7 @@
     gap: 6px 12px;
     padding: 12px 20px;
     border-top: 1px solid var(--color-sand);
-    font-size: 12.5px;
+    font-size: 14px;
     color: var(--color-taupe);
   }
   .qd-partido {
@@ -215,7 +225,7 @@
     color: var(--color-tinta);
   }
   .qd-aten span:not(.qd-aten-ic) {
-    font-size: 12.5px;
+    font-size: 14px;
     color: var(--color-taupe);
   }
 
@@ -251,7 +261,7 @@
     font-variant-numeric: tabular-nums;
   }
   .qd-prov small {
-    font-size: 12.5px;
+    font-size: 14px;
     color: var(--color-taupe);
   }
   .qd-prov-barra {
@@ -340,11 +350,11 @@
     margin-bottom: 8px;
   }
   .qd-tipo-cab b {
-    font-size: 13.5px;
+    font-size: 15px;
     font-weight: 600;
   }
   .qd-tipo-cab small {
-    font-size: 12px;
+    font-size: 14px;
     color: var(--color-taupe);
   }
   .qd-tipo-ley {
@@ -377,7 +387,7 @@
   }
   .qd-tipo-ley b {
     font-weight: 600;
-    font-size: 13px;
+    font-size: 14px;
   }
   .qd-tipo-monto {
     font-family: var(--font-serif);
@@ -386,7 +396,7 @@
   }
   .qd-tipo-ley small {
     grid-column: 2 / 4;
-    font-size: 12px;
+    font-size: 14px;
     color: var(--color-taupe);
   }
   .qd-tipo-ley button[aria-pressed="true"] {

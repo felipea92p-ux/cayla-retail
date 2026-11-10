@@ -65,16 +65,26 @@ describe("cajasSinDepositar", () => {
     { tipo: "deposito" as const, origenId: "fTRU", estado: "vigente" as const, fecha: "2026-10-13" },
   ];
   it("solo las que avisan en ámbar (más de 3 días), con cuántos días llevan; sin depósitos registrados no se inventan días", () => {
-    expect(cajasSinDepositar(CUENTAS, MOVS, HOY, null)).toEqual([{ nombre: "Caja fuerte · Arequipa", saldo: 3900, dias: 6 }]);
+    expect(cajasSinDepositar(CUENTAS, { movimientos: MOVS, leidoDesde: null }, HOY, null)).toEqual([{ nombre: "Caja fuerte · Arequipa", saldo: 3900, dias: 6 }]);
   });
   it("con una sede, solo la suya", () => {
-    expect(cajasSinDepositar(CUENTAS, MOVS, HOY, "tru")).toEqual([]);
-    expect(cajasSinDepositar(CUENTAS, MOVS, HOY, "aqp")).toHaveLength(1);
+    expect(cajasSinDepositar(CUENTAS, { movimientos: MOVS, leidoDesde: null }, HOY, "tru")).toEqual([]);
+    expect(cajasSinDepositar(CUENTAS, { movimientos: MOVS, leidoDesde: null }, HOY, "aqp")).toHaveLength(1);
   });
   it("con Empresa no entra ninguna caja fuerte de tienda; solo una sin sede (tarea 143)", () => {
-    expect(cajasSinDepositar(CUENTAS, MOVS, HOY, null, true)).toEqual([]);
+    expect(cajasSinDepositar(CUENTAS, { movimientos: MOVS, leidoDesde: null }, HOY, null, true)).toEqual([]);
     const deEmpresa = cuenta({ id: "fEMP", nombre: "Caja fuerte · Oficina", ubicacionId: null, saldo: 900 });
     const conDeposito = [...MOVS, { tipo: "deposito" as const, origenId: "fEMP", estado: "vigente" as const, fecha: "2026-10-09" }];
-    expect(cajasSinDepositar([...CUENTAS, deEmpresa], conDeposito, HOY, null, true).map((c) => c.nombre)).toEqual(["Caja fuerte · Oficina"]);
+    expect(cajasSinDepositar([...CUENTAS, deEmpresa], { movimientos: conDeposito, leidoDesde: null }, HOY, null, true).map((c) => c.nombre)).toEqual(["Caja fuerte · Oficina"]);
+  });
+  it("con la lista recortada, la caja cuyo depósito quedó fuera avisa con los días desde donde empieza lo leído (tarea 157)", () => {
+    // Lo leído empieza el 10-10: el depósito de Arequipa (10-09) no está. Lima nunca se depositó en lo leído: 5 días como mínimo.
+    const recortada = { movimientos: MOVS.filter((m) => m.fecha >= "2026-10-10"), leidoDesde: "2026-10-10" };
+    expect(cajasSinDepositar(CUENTAS, recortada, HOY, null)).toEqual([
+      { nombre: "Caja fuerte · Arequipa", saldo: 3900, dias: 5, masDe: true },
+      { nombre: "Caja fuerte · Lima", saldo: 50, dias: 5, masDe: true },
+    ]);
+    // Control: la misma lista declarada entera no inventa días para la caja sin depósitos.
+    expect(cajasSinDepositar(CUENTAS, { movimientos: recortada.movimientos, leidoDesde: null }, HOY, null)).toEqual([]);
   });
 });

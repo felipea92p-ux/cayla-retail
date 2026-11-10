@@ -1,7 +1,8 @@
 import { BarChart3 } from "lucide-react";
-import { requirePersonaActualV2 } from "@/lib/persona-actual";
+import { requirePersonaActualV2, veModulo } from "@/lib/persona-actual";
 import { alcanceDeReportes } from "@/lib/reportes-ventas-alcance";
-import { getCortesMes, getReporteMes, getSeriesMes } from "@/lib/reportes-ventas";
+import { getClaureDelTramo, getCortesMes, getReporteMes, getSeriesMes } from "@/lib/reportes-ventas";
+import { hrefCuadreFinanzas } from "@/lib/reportes-vendido-reglas";
 import { hoyLima } from "@/lib/fechas-lima";
 import { mesDeParametro, type Mes } from "@/lib/facturacion-reglas";
 import { nombreDelMes } from "@/lib/historial-cierres-reglas";
@@ -29,8 +30,17 @@ export default async function ReportesVentasPage({ searchParams }: { searchParam
   const { tiendas, tienda, sede } = await alcanceDeReportes(persona, tiendaDeUrl(sp.tienda));
 
   // Las cifras, los gráficos y el desglose se leen a la vez y por separado: si uno falla, los otros siguen a la vista (principio 9).
-  const [lectura, series, cortes] = await Promise.all([getReporteMes(mes, tienda), getSeriesMes(mes, tienda), getCortesMes(mes, tienda)]);
+  // Lo de CLAURE se lee con el tramo que devuelve el reporte (tarea 77): es apoyo, si falla la línea no sale y las cifras siguen.
+  const reporte = getReporteMes(mes, tienda);
+  const [lectura, series, cortes, claure] = await Promise.all([
+    reporte,
+    getSeriesMes(mes, tienda),
+    getCortesMes(mes, tienda),
+    reporte.then((l) => (l.datos ? getClaureDelTramo(l.datos.actual, tienda) : null)),
+  ]);
   const r = lectura.datos;
+  // El cuadro «De Ventas a Finanzas» explica por qué Finanzas da otra cifra: el enlace, solo a quien puede abrir esa pantalla.
+  const hrefCuadre = veModulo(persona, "reportes_financieros") ? hrefCuadreFinanzas(mes, tienda) : null;
 
   return (
     <div className="space-y-6">
@@ -54,7 +64,7 @@ export default async function ReportesVentasPage({ searchParams }: { searchParam
         </Vacio>
       ) : r ? (
         <>
-          <CifrasReporteMes r={r} />
+          <CifrasReporteMes r={r} claure={claure} hrefCuadre={hrefCuadre} />
           {series.datos ? (
             <GraficosReporteMes r={r} s={series.datos} tiendaId={tienda} corte={sp.corte ?? null} />
           ) : (
@@ -67,6 +77,7 @@ export default async function ReportesVentasPage({ searchParams }: { searchParam
               r={r}
               cortes={cortes.datos}
               corte={corteDeUrl(sp.corte, cortesOfrecidos(cortes.datos))}
+              claure={claure}
               hrefDe={(c) => `/vender/reportes?m=${paramDeMes(mes)}${tienda ? `&tienda=${tienda}` : ""}&corte=${c}`}
             />
           ) : (
