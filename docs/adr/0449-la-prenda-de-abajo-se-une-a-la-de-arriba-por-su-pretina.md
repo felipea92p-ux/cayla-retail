@@ -194,3 +194,19 @@ la falda del peplum quedaba 11 cm más angosta que el bajo, y sin tope se veía 
 **Prueba.** `union-prendas.test.ts`: los dos casos de falda con su valor nuevo, y dos nuevos (el short del look de Felipe calza con el bajo; la misma prenda sale más ancha como
 short que como falda). 1071 pruebas de la tienda, `tsc`, `eslint` (sin avisos en estos archivos), `pnpm knip` y `knip:produccion` en verde.
 **No verificado:** la tienda local con este código (no hay base local con recortes); lo que se vio es la misma regla dibujada sobre la tienda de producción, a 375 px.
+
+## Actualización 2026-11-10 — la medida que llega tarde se aplica, y sin medida lo de abajo arranca en el bajo
+
+**Qué pasó.** Felipe mandó dos looks desde el celular (Polo Kristell Cuello Alto con Short Saskia negro, y un top marrón con caída con un short crudo) con el short
+escondido detrás del polo y asomando por los costados de la cintura. Es el dibujo de antes de la unión: cada prenda a su largo típico y la de abajo en la cintura fija
+de la figura (152 px), sin importar cuán larga sea la de arriba. La unión no se había aplicado. La causa probable: el límite de 4 s por recorte corre desde que se pide la
+imagen, y en la primera visita del celular la página pide decenas de imágenes a la vez (la tira, las vecinas); si una de las dos no llegaba a tiempo quedaba `null` toda la
+visita, sin reintento, y como no se guarda, volvía a pasar en la siguiente. **No se reprodujo en el celular de Felipe**: aquí el panel del navegador estaba oculto y la página
+no se hidrataba, así que es la causa más probable, no una medida.
+
+**Decisión.** Dos cosas, sin cambiar la regla de la unión:
+- El límite de 4 s solo deja de esperar (la figura sale de «Ajustando»): si la imagen llega después, su medida se aplica igual y se guarda (`useUnionDeLaFigura`, `medir`).
+- Mientras no hay unión (todavía no llega, o no se pudo leer), lo de abajo arranca en el bajo de la prenda de arriba, el medido o el estimado (`FILA_ESTIMADA_DEL_BORDE`),
+  donde ya corre el hilo, y no en la cintura fija (`cajaDeAbajoSinMedida`). Su tamaño sigue siendo el de siempre.
+
+**Prueba.** `union-prendas.test.ts`: tres casos de `cajaDeAbajoSinMedida`. `tsc` y `eslint` limpios. **No verificado** en el navegador ni en el celular.
