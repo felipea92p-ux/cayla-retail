@@ -5,7 +5,8 @@
 - [x] La carta (Nuevo producto, Recibir) lee los componentes: fila «Combinados» y punto partido.
 - [x] «+ acompañante» (`ArmarMezcla`) en Nuevo producto y Recibir; guías al día y huellas aceptadas.
 - [x] Atributos ▸ Colores: fila «Combinados», muestra partida, base y acompañantes en la tarjeta, sin tono ni familia al editar.
-- [ ] **No está en producción:** pegar la migración (un solo pegado, sin políticas) **antes** de publicar la web. Espera el OK de Felipe.
+- [x] **Migración en producción** (2026-11-10, con el OK de Felipe; versión registrada `20261110224736`). Probada allá sin guardar nada.
+- [ ] Publicar la web (PR con `/abrir-pr`).
 - [ ] Refrescar el diccionario (`pnpm datos:generar:produccion`) cuando la migración esté en producción.
 - [ ] **Sin decidir con Felipe:** si «+ acompañante» también va en «Agregar colores» de la ficha de un producto, y si Vender, Existencias,
       etiquetas y la tienda web deben dibujar el punto partido (hoy dibujan el de la base, con el nombre completo).

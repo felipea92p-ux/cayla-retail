@@ -1,6 +1,6 @@
 # ADR-0643 — Colores combinados: «Hueso con azul» es un color de la carta
 
-- **Fecha:** 2026-11-10 · **Estado:** construido y probado en local; **la migración NO está en producción** (espera el OK de Felipe).
+- **Fecha:** 2026-11-10 · **Estado:** construido y probado en local; **la migración está en producción desde el 2026-11-10** (pegada con el OK de Felipe; ver «Lo que pasó al pegar»). La web todavía no está publicada.
 - **Rama:** `claude/variantes-multiples-colores-bc0ef0`. Números reservados con `pnpm reservar`.
 - **Relacionados:** ADR-0024 (vocabulario cerrado de colores), ADR-0316 (ficha del color: «combina con», que es otra cosa), ADR-0634
   (estampados: un color con nombre propio y su color dominante), ADR-0393 (Recibir contando), ADR-0284 (guía de foco), ADR-0389 (guías).
@@ -57,6 +57,16 @@ stock aparte, con la misma llave única de siempre (`variantes_producto_talla_co
 - **Cambia el hex de una base:** la mezcla guarda el hex viejo hasta que se toque; la carta igual dibuja bien porque arma el punto con los
   componentes.
 - **Una pantalla nueva agrupa colores por tono sin `familiaEnCarta`:** pondría la mezcla junto a su base con el mismo círculo.
+
+## Lo que pasó al pegar (2026-11-10)
+
+- Se pegó con `apply_migration` del MCP de Supabase (proyecto de Dynamic, schema `retail`). Quedó registrada con la versión
+  **`20261110224736`** (la hora de aplicación), no `20261110222000` como el archivo.
+- El primer pegado llevó las funciones sin sus comentarios internos; se volvieron a crear con el texto exacto del archivo y
+  `md5(pg_get_functiondef(...))` de `color_combinado` y `fn_colores_valida_componentes` coincide con el de la base local.
+- Prueba en producción dentro de un bloque que termina en error (nada se guardó): `color_combinado(array['CRU','NEG','AZU'])` armó
+  «Crudo con azul y negro» (código CAZ, familia neutro); la misma en otro orden devolvió `creado=false`; `ZZZ` se rechazó. Después: 0 mezclas
+  guardadas, 109 colores, `authenticated` puede ejecutar la función y `anon` no.
 
 ## Verificación
 
