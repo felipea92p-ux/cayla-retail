@@ -6,6 +6,7 @@ import { getCategoriasGasto, getContextoGastos, getGastosDeCaja, getProveedoresP
 import { DIAS_FRECUENCIA, ordenarPorFrecuencia } from "@/lib/gasto-rapido-reglas";
 import { diaYHoraLima } from "@/lib/fechas-lima";
 import { getUbicaciones } from "@/lib/ubicaciones";
+import { horaCierreDeLaCaja } from "@/lib/recordatorio-cierre";
 import { getEmpresasAqui } from "@/lib/empresas-de-sede";
 import { getVendidoPorEmpresaDeCajas } from "@/lib/vendido-por-empresa";
 import { repartoDeEmpresas } from "@/lib/vendido-por-empresa-reglas";
@@ -165,7 +166,9 @@ async function CajaConDatos({
   });
 
   const metaVentaDiaria = parametros ? parametros.meta : (ubicaciones.find((u) => u.id === caja.ubicacionId)?.metaVentaDiaria ?? null);
-  const horaCierre = ubicaciones.find((u) => u.id === caja.ubicacionId)?.horaCierre ?? null;
+  // El cierre del día en que se abrió esta caja, el mismo que usa el Marcador (nunca deben discrepar). Si no se puede leer, el de hoy: la pantalla no se cae por un horario.
+  const horaHoy = ubicaciones.find((u) => u.id === caja.ubicacionId)?.horaCierre ?? null;
+  const horaCierre = await horaCierreDeLaCaja(caja.ubicacionId, horaHoy, caja.abiertaEn).catch(() => horaHoy);
 
   return (
     <CajaAbiertaPanel

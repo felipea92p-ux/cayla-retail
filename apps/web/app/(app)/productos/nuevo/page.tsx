@@ -74,6 +74,7 @@ export default async function NuevoProductoPage({ searchParams }: { searchParams
           contexto={contexto}
           destino={destino}
           cargaInicial={cargaInicialDe(carga, persona.ubicacionId)}
+          proponePrecio={puede(persona, "verDineroCompras")}
         />
       )}
     </div>

@@ -32,10 +32,11 @@ const MARCAS = Array.from({ length: 13 }, (_, k) => {
   return { k, x1: 29 + Math.sin(a) * 22, y1: 29 - Math.cos(a) * 22, x2: 29 + Math.sin(a) * (22 - largo), y2: 29 - Math.cos(a) * (22 - largo) };
 });
 
-function Dial({ hora }: { hora: string | null }) {
+/** `falta`: no hay horario cargado (ámbar, como lo que falta). Sin hora pero con horario, hoy la tienda no abre: el dial queda quieto y neutro. */
+function Dial({ hora, falta }: { hora: string | null; falta: boolean }) {
   const g = hora ? anguloDial(hora) : -135;
   return (
-    <svg className={`vsi-dial ${hora ? "" : "no"}`} viewBox="0 0 58 58" aria-hidden>
+    <svg className={`vsi-dial ${falta ? "no" : ""}`} viewBox="0 0 58 58" aria-hidden>
       {MARCAS.map(({ k, ...m }) => (
         <line key={k} className="marca" {...m} />
       ))}
@@ -124,7 +125,7 @@ export function Instrumento({ vitrina, campo }: { vitrina: VitrinaSede; campo: C
     <span className="vs-gota" aria-hidden>
       <i className="vs-brillo" />
       {campo === "whatsapp" && <Visor con={!falta(vitrina, "whatsapp")} />}
-      {campo === "cierre" && <Dial hora={vitrina.tienda?.horaCierre ?? null} />}
+      {campo === "cierre" && <Dial hora={vitrina.tienda?.horaCierre ?? null} falta={falta(vitrina, "cierre")} />}
       {campo === "fondo" && <Liquido fondo={vitrina.tienda?.fondo ?? null} />}
       {campo === "preguntar" && <Asistente activo={!!vitrina.preguntar} />}
       {campo === "carga" && <CajaDeCarga vitrina={vitrina} />}
