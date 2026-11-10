@@ -45,6 +45,9 @@ import { EnvioCerrado } from "./EnvioCerrado";
 import { PapelesDeLaCompra } from "./PapelesDeLaCompra";
 import { Trayecto } from "@/components/recepcion-envio/Trayecto";
 import { etapaDelEnvio } from "@/lib/trayecto-envio-reglas";
+import { conAltas, conMarca, conProveedor, SIN_ALTAS, type AltasDeLaVisita } from "@/lib/recepcion-altas-reglas";
+import type { ProveedorDeLaLista } from "./ProveedorNuevoRecepcion";
+import type { MarcaRegistrada } from "./MarcaNuevaRecepcion";
 
 // «Recibir ENV-000061» contando primero (ADR-0393, la cara A; maqueta `docs/maquetas/recibir-fardo-2026-10/a-camino.html`). Tres pasos:
 // ¿Qué llegó? (en camino: «Empezar a recibir»), Contar (por categoría: un número por línea y, si se quiere, qué prendas son) y Cerrar (lo que
@@ -93,8 +96,8 @@ export function RecibirContando({
   veDinero: boolean;
   /** Una terminal: el precio de venta que se cambia al cerrar vale solo en su sede («Todas las sedes» no se ofrece). */
   soloSede?: boolean;
-  /** Un envío sin aviso que llegó sin saber de quién (Felipe 2026-10-14): los proveedores para elegir al cerrar. */
-  proveedoresParaElegir?: readonly { id: string; nombre: string }[];
+  /** Un envío sin aviso (Felipe 2026-10-14): los proveedores para elegir al cerrar y para una marca nueva (ADR-0635). */
+  proveedoresParaElegir?: readonly ProveedorDeLaLista[];
   /** Los papeles de lo comprado desde el celular, con su foto (ADR-0480): se cuenta mirándolos. */
   papeles?: ComponentProps<typeof PapelesDeLaCompra>["papeles"];
 }) {
@@ -127,6 +130,13 @@ export function RecibirContando({
   const [prendas, setPrendas] = useState<ReadonlyMap<string, PrendaRecepcion>>(() => new Map());
   const recordarPrenda = useCallback((p: PrendaRecepcion) => setPrendas((m) => (m.get(p.productoId) === p ? m : new Map(m).set(p.productoId, p))), []);
   const temporizadores = useRef(new Map<string, ReturnType<typeof setTimeout>>());
+
+  // Lo creado en esta visita (ADR-0635): proveedores y marcas nuevos entran a las listas sin esperar a que la página relea.
+  const [altas, setAltas] = useState<AltasDeLaVisita>(SIN_ALTAS);
+  const catalogoVivo = useMemo(() => conAltas(catalogo, altas), [catalogo, altas]);
+  const proveedoresVivos = useMemo(() => [...proveedoresParaElegir, ...altas.proveedores.filter((a) => !proveedoresParaElegir.some((p) => p.id === a.id))], [proveedoresParaElegir, altas.proveedores]);
+  const sumarProveedor = useCallback((p: ProveedorDeLaLista) => setAltas((a) => conProveedor(a, p)), []);
+  const sumarMarca = useCallback((r: MarcaRegistrada) => setAltas((a) => conMarca(a, r)), []);
 
   const base = releidos ?? conteosDeLaBase;
   const conteos: ConteosDelEnvio | null = useMemo(() => {
@@ -435,7 +445,7 @@ export function RecibirContando({
           sinAviso={sinAviso}
           proveedorPorConfirmar={base?.proveedorPorConfirmar ?? false}
           reabierto={reabierto}
-          catalogo={catalogo}
+          catalogo={catalogoVivo}
           responsable={responsable}
           guardados={guardados}
           errores={errores}
@@ -443,6 +453,9 @@ export function RecibirContando({
           papeles={conPapel ? papeles : []}
           alSubirFoto={subirFotoDelPapel}
           onPrendaVista={recordarPrenda}
+          proveedoresDirectorio={proveedoresVivos}
+          onProveedorNuevo={sumarProveedor}
+          onMarcaNueva={sumarMarca}
           onEscribir={escribir}
           sinGuardar={lineasConError.length}
           onReintentar={() => reintentar.current()}
@@ -478,7 +491,8 @@ export function RecibirContando({
           responsable={responsable}
           veDinero={poneCosto}
           soloSede={soloSede}
-          proveedores={proveedoresParaElegir}
+          proveedores={proveedoresVivos}
+          onProveedorNuevo={sumarProveedor}
           esperandoGuardar={pendientesDeGuardar}
           onVolver={(clave, decisiones) => {
             setVolverA(clave ?? null);
@@ -503,7 +517,7 @@ export function RecibirContando({
           detalle={detalle}
           lineas={lineas}
           conteos={conteos}
-          catalogo={catalogo}
+          catalogo={catalogoVivo}
           lotes={lotes}
           veExistencias={veExistencias}
           responsable={responsable}
@@ -526,7 +540,7 @@ export function RecibirContando({
         <CorregirProveedor
           detalle={detalle}
           actual={proveedorActual}
-          proveedores={proveedoresParaElegir}
+          proveedores={proveedoresVivos}
           responsable={responsable}
           onCorregido={() => {
             setCorrigiendo(false);

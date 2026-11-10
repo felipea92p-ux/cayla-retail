@@ -369,6 +369,7 @@
     "pruebas:arranque-igv": "node scripts/pruebas/arranque_igv.mjs",
     "pruebas:compras-simple-revisar": "node scripts/pruebas/compras_simple_revisar.mjs",
     "pruebas:compras-simple-marca": "node scripts/pruebas/compras_simple_marca_nueva.mjs",
+    "pruebas:recibir-crea-proveedor-y-marca": "node scripts/pruebas/recibir_crea_proveedor_y_marca.mjs",
     "pruebas:compras-simple-corregir": "node scripts/pruebas/compras_simple_corregir.mjs",
     "pruebas:compras-simple-reabrir": "node scripts/pruebas/compras_simple_reabrir.mjs",
     "pruebas:compras-simple-corregir-gasto": "node scripts/pruebas/compras_simple_corregir_gasto.mjs",

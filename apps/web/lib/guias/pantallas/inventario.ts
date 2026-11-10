@@ -1571,7 +1571,7 @@ export const GUIA_RECIBIR: Guia = {
       ancla: "recibir.proveedor",
       opcional: true,
       titulo: "¿De quién es?",
-      texto: "Elige el proveedor que la mandó; si es nuevo y tu cuenta puede, «+ Agregar proveedor» lo registra ahí mismo. Si tiene una factura por recibir, te pregunta si vino con ella: así se cuenta contra la factura y queda claro qué faltó.",
+      texto: "Elige el proveedor que la mandó; si es nuevo, «+ Agregar proveedor» lo registra ahí mismo con su razón social y su RUC si lo tiene. Si tiene una factura por recibir, te pregunta si vino con ella: así se cuenta contra la factura y queda claro qué faltó.",
     },
     {
       id: "guia",
@@ -1916,7 +1916,7 @@ export const GUIA_RECIBIR_ENVIO: Guia = {
       ancla: "recepcion.agregar",
       requiere: ["recepcion.categorias"],
       titulo: "Algo que no estaba en la guía",
-      texto: "Si llegó una categoría que no venía, la agregas aquí con su primer modelo y lo cuentas como los demás; la marca va solo si tiene. Al cerrar dirás qué pasa con lo agregado. En un envío sin aviso, todo lo que llega entra por aquí.",
+      texto: "Si llegó una categoría que no venía, la agregas aquí con su primer modelo y lo cuentas como los demás. La marca va solo si tiene; si no está en la lista, «+ Marca nueva» la crea. Al cerrar dirás qué pasa con lo agregado. En un envío sin aviso, todo lo que llega entra por aquí.",
     },
     {
       id: "cifra",
@@ -1994,7 +1994,7 @@ export const GUIA_RECIBIR_ENVIO: Guia = {
       opcional: true,
       requiere: ["recepcion.tabla-cierre"],
       titulo: "De quién llegó",
-      texto: "Cada tarjeta dice de quién es en su cabecera. La marca ya lo dice casi siempre («lo dice su marca»); si te equivocaste, «Cambiar». Lo que no se sabe (una marca con dos proveedores, o «Sin marca») se elige ahí y se guarda al elegirlo. Sin proveedor no entra al stock.",
+      texto: "Cada tarjeta dice de quién es en su cabecera. La marca ya lo dice casi siempre («lo dice su marca»); si te equivocaste, «Cambiar». Lo que no se sabe (una marca con dos proveedores, o «Sin marca») se elige ahí y se guarda al elegirlo; si no está, «+ Agregar proveedor» lo crea. Sin proveedor no entra al stock.",
     },
     {
       id: "ver-detalle",

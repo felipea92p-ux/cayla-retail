@@ -346,6 +346,10 @@ export const MODALES: Record<string, PantallaGuia> = {
   // «No tiene RUC», y el WhatsApp si se escribió; la pregunta «¿no será uno que ya tienes?» sin contestar también bloquea. Sale de lo que la función
   // `registrar_proveedor_de_orden` ya exige (`lib/proveedor-de-orden-reglas.ts`, con su prueba).
   "components/ordenes-compra/RegistrarProveedorOrden.tsx": { estado: "aplicada", evidencia: ["components/ordenes-compra/RegistrarProveedorOrden.tsx"] },
+  // Recibir crea lo que no está (ADR-0635): el proveedor pide su razón social (el RUC es opcional y solo cuenta si se escribió) y contestar «¿no será…?»;
+  // la marca, su nombre (y la misma pregunta) y quién la trae. Lo que falta sale de lo que rechazan `registrar_proveedor_de_recepcion` y `registrar_marca_de_recepcion`.
+  "components/recepcion-conteo/ProveedorNuevoRecepcion.tsx": { estado: "aplicada", evidencia: ["components/recepcion-conteo/ProveedorNuevoRecepcion.tsx"] },
+  "components/recepcion-conteo/MarcaNuevaRecepcion.tsx": { estado: "aplicada", evidencia: ["components/recepcion-conteo/MarcaNuevaRecepcion.tsx"] },
   "components/campanas-web/VistaPreviaCampana.tsx": { estado: "no-aplica", motivo: "Una hoja de un solo paso: «Crear enlace» y copiarlo. El único control es el «Responsable» de siempre y la hoja dice qué hace antes de pedir nada." },
   // Avisos, «Editar mensajes» (2026-10-20): cada aviso es un campo (lo que rechazaría `fn_club_aviso_problema`), el cierre opcional y quién lo cambia.
   "components/clientas/EditarMensajesAvisos.tsx": { estado: "aplicada", evidencia: ["components/clientas/EditarMensajesAvisos.tsx"] },

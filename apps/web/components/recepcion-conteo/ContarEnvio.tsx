@@ -98,6 +98,8 @@ import { EditarModelo } from "./EditarModelo";
 import { QuitarModelo } from "./QuitarModelo";
 import { YaExisteLaPrenda } from "./YaExisteLaPrenda";
 import { NuevoModelo, type ModeloPedido } from "./NuevoModelo";
+import type { ProveedorDeLaLista } from "./ProveedorNuevoRecepcion";
+import type { MarcaRegistrada } from "./MarcaNuevaRecepcion";
 import { ElegirQuienCuenta } from "./ElegirQuienCuenta";
 import { ListaDelEnvio } from "./CategoriasAcordeon";
 import { AnotarObservacion, ObservacionesAnotadas } from "./ObservacionesDeLinea";
@@ -176,6 +178,9 @@ export function ContarEnvio({
   esperandoGuardar,
   onSalida,
   onPrendaVista,
+  proveedoresDirectorio = [],
+  onProveedorNuevo,
+  onMarcaNueva,
   onEscribir,
   sinGuardar = 0,
   onReintentar,
@@ -213,6 +218,11 @@ export function ContarEnvio({
   onSalida: () => void;
   /** Recuerda una prenda ya leída (con sus tallas y colores), para no volver a buscarla. */
   onPrendaVista: (p: PrendaRecepcion) => void;
+  /** Sin aviso: todo el directorio, para decir quién trae una marca nueva (ADR-0635). */
+  proveedoresDirectorio?: readonly ProveedorDeLaLista[];
+  /** Se creó un proveedor o una marca en esta visita: la pantalla los suma a sus listas. */
+  onProveedorNuevo?: (p: ProveedorDeLaLista) => void;
+  onMarcaNueva?: (r: MarcaRegistrada) => void;
   onEscribir: (linea: LineaParaContar, cambio: Partial<Borrador>) => void;
   /** Cuántas líneas no se pudieron guardar, en todo el envío. */
   sinGuardar?: number;
@@ -861,6 +871,10 @@ export function ContarEnvio({
           sinAviso={sinAviso}
           catalogo={catalogo}
           proveedores={proveedores}
+          proveedoresDirectorio={proveedoresDirectorio}
+          responsable={responsable}
+          onProveedorNuevo={onProveedorNuevo}
+          onMarcaNueva={onMarcaNueva}
           errorDelGuardado={errores["extra:0"] ?? null}
           onCrear={crearModelo}
           onIrA={elegir}

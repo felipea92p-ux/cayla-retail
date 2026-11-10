@@ -1835,6 +1835,8 @@ export const PRUEBAS = [
   "pruebas:compras-simple-revisar",
   // La marca nueva de «Algo nuevo» (Felipe 2026-10-24): con «Mis compras» se crea unida al proveedor, sin duplicarse.
   "pruebas:compras-simple-marca",
+  // Recibir crea el proveedor (razón social y RUC opcional) y la marca que no están, con solo el módulo Recibir (ADR-0635).
+  "pruebas:recibir-crea-proveedor-y-marca",
   // Corregir una compra ya anotada (ADR-0561): la plata vuelve sola mientras Compras no la completa, el papel acompaña si ya cuadraba, no se baja de lo
   // enviado, todo o nada, rastro que no se borra.
   "pruebas:compras-simple-corregir",
