@@ -1,6 +1,6 @@
 # ADR-0640 — Dañadas: corregir lo reportado por error sin «Ajustar stock», y «Se arregló» a la vista
 
-- **Fecha:** 2026-11-10 · **Estado:** construido y probado en local; **las dos migraciones NO están en producción** (se pegan con el OK de Felipe).
+- **Fecha:** 2026-11-10 · **Estado:** construido y probado en local; **las dos migraciones están en producción desde el 2026-11-10** (pegadas con el OK de Felipe; ver «Lo que pasó al pegar»).
 - **Rama:** `claude/damaged-items-stock-visibility-b62e57`. Números reservados con `pnpm reservar`.
 - **Relacionados:** ADR-0071 (cuarentena), ADR-0328 act. 10 (`reportar_danada` y «Se arregló»), ADR-0564 (dañadas en tienda), ADR-0534 (quien ve
   Existencias resuelve), ADR-0391 (panel de la talla), ADR-0389 (guías).
@@ -68,6 +68,14 @@ no decía de qué talla era la dañada (la casilla «1 dañada» no tenía lugar
 - **El caso de Trujillo en producción no se arregla solo** con esta rama: la 28 «fantasma» en la cuarentena y la 30 vendible siguen ahí.
   Con la web publicada: «Me equivoqué de prenda» sobre la dañada (28 → 30, desde el almacén) y un «Ajustar stock» que deje la 28 del
   almacén en 0 (la que creó el ajuste de las 10:56). Lo hace la tienda, con el OK de Felipe.
+
+## Lo que pasó al pegar (2026-11-10)
+
+Se pegaron antes de publicar la web, como dice la regla general, y **Existencias se cayó en producción**: la columna `corregida_de_variante_id`
+es una segunda llave de `prendas_danadas` hacia `variantes`, y la web publicada leía `variante:variantes(...)` sin decir cuál; PostgREST
+rechaza ese enlace ambiguo y `getPrendasDanadasPendientes` lanza. Felipe eligió fusionar esta rama (que nombra el enlace) en vez de quitar
+la llave. **Regla que queda:** una migración que agrega una segunda llave hacia una tabla que la web ya enlaza desde la misma tabla se
+pega DESPUÉS de publicar la web que nombra el enlace (casilla «El SQL se pega después de fusionar»).
 
 ## Cómo se pega en producción
 
