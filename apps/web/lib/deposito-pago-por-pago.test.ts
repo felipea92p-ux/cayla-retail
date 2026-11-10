@@ -115,11 +115,10 @@ describe("el depósito de la máquina pago por pago (ADR-0629, Fase B)", () => {
     ).toBe(false);
   });
 
-  it("viene marcado lo de siempre: los días enteros hasta la fecha del depósito", () => {
-    expect(eleccionPorDefecto(dias, "2026-11-09")).toEqual({
-      dias: [QR9, TJ9],
-      pagos: [],
-    });
+  it("viene marcado lo de siempre (`lotesPorDefecto`): el QR hasta el día del depósito, la tarjeta hasta el día anterior", () => {
+    // La tarjeta de LIM del 9 llega al día siguiente: un depósito del 9 no la trae marcada; uno del 10, sí.
+    expect(eleccionPorDefecto(dias, "2026-11-09")).toEqual({ dias: [QR9], pagos: [] });
+    expect(eleccionPorDefecto(dias, "2026-11-10").dias).toEqual([QR9, TJ9, QR10]);
     // Con un día sin pagos a la vista (la tarjeta de LIM) todo va por días, como siempre.
     expect(esPorPagos(dias, eleccionPorDefecto(dias, "2026-11-10"))).toBe(false);
     // Si todo lo marcado tiene sus pagos a la vista, va por pagos aunque los días vayan enteros: así no quedan «sin detalle».

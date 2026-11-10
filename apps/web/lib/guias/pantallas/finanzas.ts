@@ -746,7 +746,7 @@ export const GUIA_FIN_CUENTAS: Guia = {
       ancla: "fin-dinero.mov-lotes",
       opcional: true,
       titulo: "Qué días cubre el depósito",
-      texto: "Son los días cobrados con tarjeta o QR que la máquina no depositó, marcados hasta la fecha del depósito. Si llegó un solo pago (el QR de Izipay llega uno por uno), abre su día con «N pagos» y marca solo ese. Lo cobrado menos lo que llegó es la comisión real. En la demo no registramos.",
+      texto: "Son los días cobrados con tarjeta o QR que la máquina no depositó, marcados hasta el día anterior al depósito. Si llegó un solo pago (el QR de Izipay llega uno por uno), abre su día con «N pagos» y marca solo ese. Lo cobrado menos lo que llegó es la comisión real. En la demo no registramos.",
     },
     {
       id: "total",
