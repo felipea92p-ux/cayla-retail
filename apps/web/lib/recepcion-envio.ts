@@ -132,7 +132,7 @@ export async function getCatalogoParaRecibir(): Promise<CatalogoParaRecibir | nu
         .select("id, nombre, prefijo, familia, categoria_tallas ( habitual, talla:tallas ( id, valor, activo ) )")
         .eq("activo", true)
         .order("nombre"),
-      supabase.from("colores").select("codigo, nombre, hex, familia_color, tipo, sinonimos, pantone_tcx").eq("activo", true).order("orden").order("nombre"),
+      supabase.from("colores").select("codigo, nombre, hex, familia_color, tipo, sinonimos, pantone_tcx, componentes").eq("activo", true).order("orden").order("nombre"),
       supabase.from("familias").select("codigo, exige_tejido_patron"),
       supabase.from("categoria_tejidos").select("categoria_id, valor:tejidos!inner ( id, nombre )").eq("tejidos.activo", true),
       supabase.from("categoria_patrones").select("categoria_id, valor:patrones!inner ( id, nombre )").eq("patrones.activo", true),
@@ -183,6 +183,7 @@ export async function getCatalogoParaRecibir(): Promise<CatalogoParaRecibir | nu
         tipo: c.tipo,
         sinonimos: c.sinonimos ?? [],
         pantoneTcx: c.pantone_tcx ?? null,
+        componentes: c.componentes ?? null,
       })),
       marcas: (marcas.data ?? []).map((m) => ({ id: m.id, nombre: m.nombre })),
       // Un adorno del orden de las marcas: si no se pudo leer, la lista sale igual, por nombre.

@@ -14,3 +14,36 @@ export function normalizarComponentes(crudo: unknown): string[] | null {
   if (new Set(codigos).size !== codigos.length) return null;
   return codigos;
 }
+
+/** ¿Es una mezcla? Una fila con 2 o más componentes; sin el dato (una pantalla que no lo pidió), no. */
+export function esCombinado(color: { componentes?: readonly string[] | null }): boolean {
+  return (color.componentes?.length ?? 0) >= 2;
+}
+
+/** El grupo de las mezclas en la carta: `agruparPorFamilia` lo pone tras las familias, como a los estampados. */
+export const GRUPO_COMBINADOS = "combinados";
+
+/**
+ * Los tonos con que se dibuja el punto de una mezcla, la base primero: los hex de sus componentes, sacados de la lista que ya tiene la
+ * pantalla. Un componente que la lista no trae (desactivado, o la pantalla no lo leyó) se salta; si no quedan dos, `null` y el punto
+ * se dibuja liso con el hex de la base, que es lo que la mezcla guarda.
+ */
+export function tonosDeMezcla(
+  color: { componentes?: readonly string[] | null },
+  porCodigo: ReadonlyMap<string, { hex: string | null }>,
+): string[] | null {
+  if (!esCombinado(color)) return null;
+  const tonos = (color.componentes ?? []).map((c) => porCodigo.get(c)?.hex ?? null).filter((h): h is string => !!h && /^#[0-9A-Fa-f]{6}$/.test(h));
+  return tonos.length >= 2 ? tonos : null;
+}
+
+/**
+ * El fondo del punto partido: la base ocupa la mitad izquierda (es la que más se ve en la prenda) y los acompañantes se reparten la
+ * derecha, de arriba a abajo. Un `conic-gradient` desde abajo: 0–50 % es la mitad izquierda; lo demás, los acompañantes.
+ */
+export function fondoDeMezcla(tonos: readonly string[]): string {
+  const [base, ...resto] = tonos;
+  const tramo = 50 / resto.length;
+  const partes = resto.map((t, i) => `${t} ${50 + tramo * i}% ${50 + tramo * (i + 1)}%`);
+  return `conic-gradient(from 180deg, ${base} 0% 50%, ${partes.join(", ")})`;
+}

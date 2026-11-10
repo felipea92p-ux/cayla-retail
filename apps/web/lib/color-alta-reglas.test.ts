@@ -53,7 +53,11 @@ describe("colorDeRespuesta", () => {
   it("lee el color (desde ADR-0534 nace aprobado: el estado no se lee)", () => {
     const r = colorDeRespuesta({ color: { codigo: "PAR", nombre: "Palo de rosa", familia_color: "rojo", hex: "#C98B8B", estado: "pendiente", sinonimos: ["rosa viejo"] } });
     // Sin ficha todavía (ADR-0316): descripción vacía y sin compañeros, nunca `undefined`.
-    expect(r).toEqual({ color: { codigo: "PAR", nombre: "Palo de rosa", hex: "#C98B8B", familiaColor: "rojo", sinonimos: ["rosa viejo"], pantoneTcx: null, descripcion: null, combinaCon: [] } });
+    expect(r).toEqual({ color: { codigo: "PAR", nombre: "Palo de rosa", hex: "#C98B8B", familiaColor: "rojo", sinonimos: ["rosa viejo"], pantoneTcx: null, descripcion: null, combinaCon: [], componentes: null } });
+  });
+  it("una mezcla trae sus componentes, la base primero (ADR-0643)", () => {
+    const r = colorDeRespuesta({ color: { codigo: "CZU", nombre: "Crudo con azur", familia_color: "neutro", hex: "#F3ECE0", componentes: ["CRU", "AZU"] } });
+    expect(r?.color.componentes).toEqual(["CRU", "AZU"]);
   });
   it("trae el Pantone cuando la API lo devuelve (la referencia real de la tela)", () => {
     const r = colorDeRespuesta({ color: { codigo: "FRA", nombre: "Frambuesa", familia_color: "rojo", hex: "#A52350", estado: "aprobado", pantone_tcx: "19-2039 TCX" } });
