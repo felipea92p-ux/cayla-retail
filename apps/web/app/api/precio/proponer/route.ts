@@ -78,7 +78,8 @@ export async function POST(request: Request) {
     { p_categoria_id: d.categoriaId, p_tejido_id: d.tejidoId ?? null, p_producto_id: d.productoId ?? null } as never,
   );
   if (ctxError) {
-    if (ctxError.code === "42501") return Response.json({ error: "Tu rol no ve Productos." }, { status: 403 });
+    // Sin Productos, o sin ver costos (el dinero de Compras): la base dice cuál de las dos, en palabras de tienda.
+    if (ctxError.code === "42501") return Response.json({ error: ctxError.message || "Tu rol no puede proponer precios." }, { status: 403 });
     console.error(`[precio] no se pudo leer el contexto: ${ctxError.code ?? "sin código"}`);
     return Response.json({ sinPropuesta: { motivo: "sin_respuesta", texto: textoSinPropuesta("sin_respuesta") } } satisfies RespuestaProponer);
   }

@@ -278,7 +278,7 @@ async function ListaDeProductos({ searchParams }: { searchParams: Promise<Params
               <span className="max-sm:sr-only">Rótulos</span>
             </BotonEnlace>
             {/* ADR-0641: las prendas cuyo precio conviene mirar, con su costo y sus parecidas; la IA propone, la persona aplica. */}
-            {editaCatalogo && (
+            {editaCatalogo && puede(persona, "verDineroCompras") && (
               <BotonEnlace href="/productos/revisar-precios" peso="fantasma" title="Revisar precios" className="max-sm:!px-3" data-guia="productos.revisar-precios">
                 <BadgePercent aria-hidden className="h-4 w-4" />
                 <span className="max-sm:sr-only">Revisar precios</span>

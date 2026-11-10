@@ -12,8 +12,10 @@
 --   · Sin costo cargado: se usa el costo promedio de la categoría, y la fila lo dice (`costo_estimado`).
 --   · Tope propio de US$ 20 al mes (aparte del asistente): `fn_precio_gasto_del_mes()` lo suma; la web deja de llamar a la IA al llegar.
 --
--- QUIÉN. Proponer es una función de Productos (ADR-0306: no es un módulo aparte): pide `fn_ve_modulo('productos')`. Firma con
--- `fn_actor_persona_id(true)`, como toda función que guarda (ADR-0161 act. c).
+-- QUIÉN. Proponer es una función de Productos (ADR-0306: no es un módulo aparte): pide `fn_ve_modulo('productos')` y, como todo lo que
+-- muestra costos, `fn_puede_ver_dinero_de_compras()` (la regla que ya esconde costo y margen en la tabla de Productos: no se abre otra
+-- puerta a los costos). Aplicar pide además editar el catálogo. Firma con `fn_actor_persona_id(true)`, como toda función que guarda
+-- (ADR-0161 act. c).
 --
 -- CÓMO SE PEGA. Una sola parte: tabla nueva (RLS encendido SIN políticas: solo la tocan estas funciones `security definer`) y tres
 -- funciones; no hace `alter` de tablas en uso ni crea políticas (ADR-0195). Re-ejecutable. Nada se borra nunca.
@@ -107,6 +109,10 @@ declare
 begin
   if auth.uid() is null or not retail.fn_ve_modulo('productos') then
     raise exception 'Sin acceso a Productos' using errcode = '42501';
+  end if;
+  -- Lo que se mira son costos: solo quien ve el dinero de Compras (la misma regla que esconde costo y margen en Productos).
+  if not retail.fn_puede_ver_dinero_de_compras() then
+    raise exception 'Proponer y revisar precios pide ver el costo de las prendas' using errcode = '42501';
   end if;
 
   select jsonb_build_object('nombre', c.nombre, 'familia', c.familia, 'prefijo', c.prefijo)
@@ -228,6 +234,10 @@ begin
   if auth.uid() is null or not retail.fn_ve_modulo('productos') then
     raise exception 'Sin acceso a Productos' using errcode = '42501';
   end if;
+  -- Lo que se mira son costos: solo quien ve el dinero de Compras (la misma regla que esconde costo y margen en Productos).
+  if not retail.fn_puede_ver_dinero_de_compras() then
+    raise exception 'Proponer y revisar precios pide ver el costo de las prendas' using errcode = '42501';
+  end if;
   begin
     v_persona := retail.fn_actor_persona_id(true);
   exception when others then
@@ -268,6 +278,10 @@ declare
 begin
   if auth.uid() is null or not retail.fn_ve_modulo('productos') then
     raise exception 'Sin acceso a Productos' using errcode = '42501';
+  end if;
+  -- Lo que se mira son costos: solo quien ve el dinero de Compras (la misma regla que esconde costo y margen en Productos).
+  if not retail.fn_puede_ver_dinero_de_compras() then
+    raise exception 'Proponer y revisar precios pide ver el costo de las prendas' using errcode = '42501';
   end if;
   return coalesce((select sum(costo_usd) from retail.precio_propuestas where creada_en >= v_desde), 0);
 end;
@@ -319,6 +333,10 @@ as $$
 begin
   if auth.uid() is null or not retail.fn_ve_modulo('productos') then
     raise exception 'Sin acceso a Productos' using errcode = '42501';
+  end if;
+  -- Lo que se mira son costos: solo quien ve el dinero de Compras (la misma regla que esconde costo y margen en Productos).
+  if not retail.fn_puede_ver_dinero_de_compras() then
+    raise exception 'Proponer y revisar precios pide ver el costo de las prendas' using errcode = '42501';
   end if;
   if p_motivo is not null and p_motivo not in ('pierde_dinero', 'margen_bajo', 'lejos', 'sin_costo') then
     raise exception 'Filtro no válido' using errcode = '22023';
@@ -427,6 +445,9 @@ declare
 begin
   if auth.uid() is null or not retail.fn_ve_modulo('productos') or not retail.fn_puede_editar_catalogo() then
     raise exception 'Solo quien edita el catálogo cambia un precio' using errcode = '42501';
+  end if;
+  if not retail.fn_puede_ver_dinero_de_compras() then
+    raise exception 'Proponer y revisar precios pide ver el costo de las prendas' using errcode = '42501';
   end if;
   v_persona := retail.fn_actor_persona_id(true);
 

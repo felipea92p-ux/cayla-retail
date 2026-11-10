@@ -16,8 +16,8 @@ import { RevisarPreciosCifras, RevisarPreciosTabla } from "@/components/RevisarP
 // no un módulo aparte (ADR-0306): quien ve Productos y edita el catálogo la ve. La propuesta de la IA y aplicar un precio van en cada fila.
 export default async function RevisarPreciosPage({ searchParams }: { searchParams: Promise<{ motivo?: string; pagina?: string }> }) {
   const persona = await requirePersonaActualV2();
-  // Quien no edita el catálogo no puede cambiar un precio: vuelve a la lista.
-  if (!puede(persona, "editarCatalogo")) redirect("/productos");
+  // Quien no edita el catálogo no puede cambiar un precio, y quien no ve el dinero de Compras no ve costos: vuelve a la lista.
+  if (!puede(persona, "editarCatalogo") || !puede(persona, "verDineroCompras")) redirect("/productos");
 
   const { motivo, pagina: paginaTexto } = await searchParams;
   const filtro = filtroDeUrl(motivo);

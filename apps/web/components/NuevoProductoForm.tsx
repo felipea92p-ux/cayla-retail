@@ -167,11 +167,14 @@ export function NuevoProductoForm({
   contexto,
   destino,
   cargaInicial = null,
+  proponePrecio = false,
 }: {
   contexto: ContextoAlta;
   destino: DestinoStock;
   /** La carga inicial de la sede del stock (ADR-0328): su fecha de cierre y el «hoy» de la base. `null` = no se sabe (no se avisa). */
   cargaInicial?: CargaInicialSede | null;
+  /** «Proponer precio» (ADR-0641): la IA mira costos de las parecidas, así que solo para quien ve el dinero de Compras. */
+  proponePrecio?: boolean;
 }) {
   const router = useRouter();
   const token = useRef<string>(crypto.randomUUID());
@@ -1281,17 +1284,20 @@ export function NuevoProductoForm({
               </Aviso>
             </div>
           )}
-          {/* ADR-0641: la IA propone el precio mirando el costo y las parecidas; la persona decide si lo usa. */}
-          <PropuestaDePrecio
-            categoriaId={categoriaId}
-            tejidoId={tejidoId}
-            referencia={referencia}
-            descripcion={descripcion}
-            costoBase={costoBase}
-            precioBase={precioBase}
-            disabled={cargando}
-            onUsar={setPrecioBase}
-          />
+          {/* ADR-0641: la IA propone el precio mirando el costo y las parecidas; la persona decide si lo usa. Mira costos: solo quien
+              ve el dinero de Compras. */}
+          {proponePrecio && (
+            <PropuestaDePrecio
+              categoriaId={categoriaId}
+              tejidoId={tejidoId}
+              referencia={referencia}
+              descripcion={descripcion}
+              costoBase={costoBase}
+              precioBase={precioBase}
+              disabled={cargando}
+              onUsar={setPrecioBase}
+            />
+          )}
         </FilaAlta>
 
         {/* La tabla del paso 3, ahora con números: cuántas hay hoy (ADR-0212) —o, con la carga cerrada, cuántas llegaron (ADR-0328

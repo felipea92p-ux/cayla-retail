@@ -130,6 +130,15 @@ delete from retail.rol_modulos where modulo = 'productos';
 ${como(MICAELA)}
 select retail.fn_precio_contexto(:'cat');`));
 
+caso("quien ve Productos pero NO los costos (el dinero de Compras) no lee el contexto: ahí van costos", rechaza(/pide ver el costo/, `${como(MICAELA)}
+select retail.fn_precio_contexto(:'cat');`));
+
+caso("…ni la lista de Revisar precios", rechaza(/pide ver el costo/, `${como(MICAELA)}
+select * from retail.fn_precios_a_revisar();`));
+
+caso("…ni anota una propuesta", rechaza(/pide ver el costo/, `${como(MICAELA)}
+select ${registrar()};`));
+
 caso("el contexto trae parecidas con precio, sin la prenda que se revisa", da("t", `${como(FELIPE)}
 select retail.fn_precio_contexto(:'cat', null, :'prod') as c \\gset
 select jsonb_array_length((:'c'::jsonb) -> 'parecidas') between 1 and 12
