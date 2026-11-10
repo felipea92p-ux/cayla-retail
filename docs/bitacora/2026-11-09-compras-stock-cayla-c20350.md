@@ -1,12 +1,14 @@
-## 2026-11-09 (Compras → Existencias sin doble ni cero conteo, ADR-0636)
-Qué hice: cuatro cortes en la rama `claude/compras-stock-cayla-c20350`. (1) Línea «Mercadería pagada» en el Balance (`20261109231000`).
-(2) El aviso de cierre de mes dice cuánta plata queda fuera del libro (`20261109235000`). (3) La puerta «Recibir sin aviso» nombra las compras
-pagadas que vienen a esa sede (`20261110004000`, solo lectura). (4) `20261110011000` escrita: tabla `compra_papel_llegadas` y
-`unir_recepcion_con_compra(despacho, papel, token)`, que une una recepción «sin aviso» con su compra pagada.
-Por qué así: «sin aviso» y «con compra» eran dos caminos que no se hablaban, y una misma mercadería podía entrar dos veces o no pasar nunca al libro.
-Qué falta (honesto): la migración 4 está ESCRITA PERO NO PROBADA contra Postgres (Docker dejó de responder) y su revisión adversarial no terminó
-(el límite semanal cortó a los cuatro revisores: devolvieron vacío). Nada de esta rama está en producción (consultado en solo lectura el 2026-11-09:
-ninguna de las funciones ni la tabla existen). Falta además la prueba de base de la unión, la «lista para unir lo ya recibido» (paso 3) y la
-pantalla que llama a la RPC.
-Cómo verificas tú: levantar Docker, correr `node scripts/pruebas/compras_pagadas_hacia.mjs` y la prueba nueva de la unión; no pegar `20261110011000`
-en producción hasta que la revisión y la prueba den verde (va en dos partes, ver su encabezado).
+## 2026-11-09 y 10 (Compras → Existencias sin doble ni cero conteo, ADR-0636)
+Qué hice: (1) Línea «Mercadería pagada» en el Balance (`20261109231000`), (2) el aviso de cierre dice cuánta plata queda fuera del libro
+(`20261109235000`) y (3) la puerta «Recibir sin aviso» nombra las compras pagadas que vienen a esa sede (`20261110004000`): las tres YA ESTÁN EN
+PRODUCCIÓN (verificado en solo lectura el 2026-11-09). (4) `20261110011000`: tabla `compra_papel_llegadas` y `unir_recepcion_con_compra`, que une una
+recepción «sin aviso» con su compra pagada. Escrita, con prueba de base de 20 casos (`pnpm pruebas:unir-recepcion-con-compra`, 20/20; sin la
+migración 0/20) y revisada por cuatro revisores adversariales y un escéptico por hallazgo. NO está pegada en producción.
+La revisión reprodujo dos fallas altas y varias medias. Se cerraron en la migración: (a) la segunda compra se unía sin prendas que repartir
+(se medía con una foto vieja; ahora con lo comprado de cada unida); (b) corregir el proveedor de la recepción después de unir dejaba el comprobante
+con 0 «recibido antes» (stock doble): ahora no se corrige; (c) una compra unida ya no se anula, no cambia de tienda ni proveedor ni de cantidad;
+(d) quien hizo la compra no la une; (e) la unión toma los mismos candados que crear_envio y bloquea envío antes que papel; (f) la PARTE 2 empieza
+con una guarda de md5 (producción y local coincidían el 2026-11-09). Cambio de regla a confirmar con Felipe: NO se une si llegó menos de lo comprado
+(antes: «el resto queda por recibir»), porque una compra unida no tiene otro camino para mandar, recibir o cerrar el resto.
+Cómo verificas tú: levantar la base local al día (`supabase_db_cayla-lima`) y `RETAIL_CONTENEDOR_PG=supabase_db_cayla-lima pnpm pruebas:unir-recepcion-con-compra`.
+No pegar `20261110011000` hasta que Felipe confirme la regla de arriba (va en dos partes, ver su encabezado).

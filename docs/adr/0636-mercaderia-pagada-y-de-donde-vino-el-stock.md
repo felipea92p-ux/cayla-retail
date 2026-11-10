@@ -81,3 +81,11 @@ Felipe aprobó reemplazar las preguntas de Nuevo producto y Ajustar stock por tr
 
 `pnpm pruebas:mercaderia-pagada-balance` (18 casos: la plata cambia de casillero, el activo no cambia, al completar no se cuenta doble ni cero)
 y `pnpm pruebas:cierre-papeles-con-monto` (4 casos).
+
+## Actualización 2026-11-10 — la unión de una recepción con su compra, tras la revisión adversarial
+`20261110011000` (sin pegar) une una recepción «sin aviso» con su compra pagada. Decidido al revisarla (cuatro lentes y un escéptico por hallazgo, dos
+fallas altas reproducidas): **no se une hasta que llegó todo lo comprado** (una compra unida deja de poder mandarse, recibirse o cerrarse por otro
+camino, así que el resto no tendría salida; abierto a decisión de Felipe permitir varias uniones por papel); lo que reclaman otras compras unidas se
+mide por lo comprado, no por una foto; una compra unida no se anula ni cambia de tienda, proveedor o cantidad, y el proveedor de su recepción no se
+corrige (disparadores en el esquema, un solo lugar); quien hizo la compra no la une. La PARTE 2 lleva una guarda de md5 contra parches posteriores.
+Pendiente menor registrado en el backlog de la rama.

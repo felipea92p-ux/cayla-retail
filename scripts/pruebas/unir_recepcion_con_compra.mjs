@@ -3,6 +3,8 @@
  * Pruebas de ADR-0636, paso 2 — unir una recepción «sin aviso» con la compra pagada a la que pertenece
  * (`20261110011000_unir_recepcion_con_su_compra.sql`).
  *
+ * (Incluye lo que cerró la revisión adversarial del 2026-11-10: U15 a U19.)
+ *
  * LO QUE VIGILA. Que una misma mercadería nunca entre dos veces al stock ni se quede sin pasar al libro: tras unir, la compra sale de su
  * envío propio, ya no se puede volver a mandar, y su papel pasa al libro cuando la recepción está cerrada, con lo llegado anotado como
  * «recibido antes». La unión no toca stock ni `movimientos`.
@@ -387,6 +389,95 @@ caso(
    end $f$;
    select concat_ws(' / ', ${RESP("u_viejo")}, ${RESP("u")}, pg_temp.toca());`,
   "0:0:union_papel_no_pendiente / true:false:true:0:0: / P0001",
+);
+
+// ---- Lo que cerró la revisión adversarial (2026-11-10) ----
+const TOCA = `create function pg_temp.toca(p_sql text) returns text language plpgsql as $f$
+   declare v_h text;
+   begin
+     execute p_sql;
+     return 'SIN_ERROR';
+   exception when others then
+     get stacked diagnostics v_h = pg_exception_hint;
+     return coalesce(v_h, sqlstate);
+   end $f$;`;
+const Q = (p) => `''' || :'${p}' || '''`;
+caso(
+  "U15 llegó menos de lo comprado: no se une todavía (union_llego_menos) y nada cambia",
+  `${COMPRA("p1", 8, { token: A1 })}
+   ${SIN_AVISO("r1", 5)}${CIERRA("r1")}
+   ${MICAELA_AQUI}
+   select pg_temp.une(:'r1', :'p1', null) as u \\gset
+   reset role;
+   select concat_ws(' / ', ${RESP("u")}, (select count(*) from retail.compra_papel_llegadas), (select estado from retail.compra_papeles where id = :'p1'), ${POR_MANDAR("p1")});`,
+  "0:0:union_llego_menos / 0 / por_completar / 8",
+);
+caso(
+  "U16 una compra unida no se anula, no cambia de tienda ni de proveedor, y sus prendas no cambian de cantidad ni se quitan (compra_ya_llego)",
+  `${COMPRA("p1", 8, { token: A1 })}
+   ${SIN_AVISO("r1", 8)}${CIERRA("r1")}
+   ${MICAELA_AQUI}
+   select pg_temp.une(:'r1', :'p1', null) as u \\gset
+   reset role;
+   ${TOCA}
+   select concat_ws(' / ', ${RESP("u")},
+     pg_temp.toca('update retail.ordenes_compra set estado = ''anulada'' where papel_id = ${Q("p1")}'),
+     pg_temp.toca('update retail.ordenes_compra set ubicacion_destino_id = ${Q("otra")} where papel_id = ${Q("p1")}'),
+     pg_temp.toca('update retail.ordenes_compra set proveedor_id = ${Q("prov2")} where papel_id = ${Q("p1")}'),
+     pg_temp.toca('update retail.orden_compra_items set cantidad = cantidad + 1 where orden_compra_id in (select id from retail.ordenes_compra where papel_id = ${Q("p1")})'),
+     pg_temp.toca('delete from retail.orden_compra_items where orden_compra_id in (select id from retail.ordenes_compra where papel_id = ${Q("p1")})'),
+     pg_temp.toca('update retail.ordenes_compra set nota = ''x'' where papel_id = ${Q("p1")}'));`,
+  "true:false:true:0:0: / compra_ya_llego / compra_ya_llego / compra_ya_llego / compra_ya_llego / compra_ya_llego / SIN_ERROR",
+);
+caso(
+  "U17 el proveedor de una recepción unida no se corrige (proveedor_con_compra_unida): así el comprobante no queda con 0 «recibido antes»",
+  `${COMPRA("p1", 8, { token: A1 })}
+   ${SIN_AVISO("r1", 8)}
+   reset role;
+   select k.version as ver, k.extra_posicion as extra from retail.despacho_conteos k where k.despacho_id = :'r1' \\gset
+   ${MICAELA_AQUI}
+   select pg_temp.lleva(:'r1', null, :'extra', :'ver', :'prod', ${A(J({ variante_id: ":'var'", cantidad: 8, danadas: 0, danada_solucion: "null::text" }))}, null::numeric, false, gen_random_uuid()) as ll \\gset
+   select pg_temp.une(:'r1', :'p1', null) as u \\gset
+   reset role;
+   ${TOCA}
+   select set_config('retail.corrige_proveedor', 'si', true) \\g /dev/null
+   select concat_ws(' / ', ${RESP("u")}, pg_temp.toca('update retail.despacho_recibidos set proveedor_id = ${Q("prov2")} where despacho_id = ${Q("r1")}'));`,
+  "true:false:false:0:0: / proveedor_con_compra_unida",
+);
+caso(
+  "U18 quien hizo la compra no la une (recibir_quien_compro), aunque reciba en la tienda",
+  `reset role;
+   insert into retail.rol_modulos (rol_id, modulo) values (:'rol_recibe', 'ordenes_compra');
+   ${como(MICAELA, "compra_rapida")}
+   select retail.registrar_compra_rapida('${A1}', current_setting('t.prov')::uuid, 'nota_venta', 80, 'papeles/prueba-u18.jpg', jsonb_build_array(
+     jsonb_build_object('descripcion', 'Polo prueba', 'categoria_id', current_setting('t.cat')::uuid, 'marca_id', current_setting('t.marca')::uuid,
+                        'cantidad', 8, 'costo', 10, 'destino_id', current_setting('t.tru')::uuid))) \\g /dev/null
+   reset role;
+   select '${A1}'::uuid as p1 \\gset
+   ${SIN_AVISO("r1", 8)}${CIERRA("r1")}
+   ${MICAELA_AQUI}
+   select pg_temp.une(:'r1', :'p1', null) as u \\gset
+   reset role;
+   select concat_ws(' / ', ${RESP("u")}, (select count(*) from retail.compra_papel_llegadas), (select estado from retail.compra_papeles where id = :'p1'));`,
+  "0:0:recibir_quien_compro / 0 / por_completar",
+);
+caso(
+  "U19 con 8 llegadas llevadas al stock con la recepción abierta: la primera compra (8) se une y la segunda (5) no, y al cerrar solo la primera reparte",
+  `${COMPRA("p1", 8, { token: A1 })}${COMPRA("p2", 5, { token: A2 })}
+   ${SIN_AVISO("r1", 8)}
+   reset role;
+   select k.version as ver, k.extra_posicion as extra from retail.despacho_conteos k where k.despacho_id = :'r1' \\gset
+   ${MICAELA_AQUI}
+   select pg_temp.lleva(:'r1', null, :'extra', :'ver', :'prod', ${A(J({ variante_id: ":'var'", cantidad: 8, danadas: 0, danada_solucion: "null::text" }))}, null::numeric, false, gen_random_uuid()) as ll \\gset
+   select pg_temp.une(:'r1', :'p1', null) as u1 \\gset
+   select pg_temp.une(:'r1', :'p2', null) as u2 \\gset
+   reset role;
+   ${CIERRA("r1")}
+   reset role;
+   select concat_ws(' / ', ${RESP("u1")}, ${RESP("u2")}, (select count(*) from retail.compra_papel_llegadas),
+     (select string_agg(estado, ',' order by estado) from retail.compra_papeles where id in (:'p1', :'p2')),
+     (select coalesce(sum(a.cantidad), 0) from retail.compra_item_recibido_antes a));`,
+  "true:false:false:0:0: / 0:0:union_sin_prendas / 1 / completado,por_completar / 8",
 );
 
 console.log(`\n${casos - fallas}/${casos} casos en verde.`);

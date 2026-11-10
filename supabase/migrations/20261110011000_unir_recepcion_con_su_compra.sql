@@ -16,19 +16,22 @@
 --
 -- REGLAS (todas de Felipe): la plata la manda el papel y el costo del stock queda como entró · nunca se une sola por coincidencia de cifras ·
 --   no se une con proveedor distinto (primero se corrige el proveedor de la recepción) · si el envío propio ya tiene prendas contadas o ya se
---   recibió, se rechaza y lo resuelve una persona · una unión no se deshace · si llegó menos de lo comprado, el resto queda por recibir contra
---   el comprobante (no se crea deuda del proveedor sola).
+--   recibió, se rechaza y lo resuelve una persona · una unión no se deshace · NO SE UNE hasta que haya llegado todo lo comprado: una compra
+--   unida deja de poder mandarse, recibirse o cerrarse por otro camino, así que lo que faltara no tendría salida (revisión adversarial,
+--   2026-11-10: lo llegado de menos se une cuando llegue el resto, o lo cierra Compras) · quien hizo la compra no la une (como en recibir) ·
+--   una compra unida no se corrige, no se edita ni se anula, y el proveedor de su recepción no se cambia.
 --
 -- CONTRATO (Liskov)
 --   PROMETE: `unir_recepcion_con_compra(despacho, papel, token)` → {unido, repetido, paso_al_libro, motivo, envios_anulados, envios_nuevos,
 --            prendas_papel, prendas_recibidas}. Todo o nada. Con el mismo papel y la misma recepción devuelve `repetido`.
 --   FALLA:   `union_sin_modulo`, `responsable_requerido`, `union_no_es_sin_aviso`, `union_recepcion_no_lista`, `papel_no_existe`,
 --            `union_papel_no_pendiente`, `union_papel_ya_unido`, `union_otra_sede`, `union_varias_sedes`, `union_sin_prendas`,
---            `union_envio_ya_recibido`, `union_envio_con_conteo`.
+--            `union_envio_ya_recibido`, `union_envio_con_conteo`, `union_llego_menos`, `recibir_quien_compro`; y, para otros caminos, `compra_ya_llego`
+--            (la compra unida no se corrige, edita, anula ni reenvía) y `proveedor_con_compra_unida`.
 --   NO HACE: no toca `movimientos`, `costo_historial` ni recalcula costos; no escribe pagos (los escribe `completar_papel_compra`, una vez);
 --            no parcha `fn_recepcion_cerrar`, `fn_recepcion_entrar` ni `completar_papel_compra`.
 --
--- QUÉ CAMBIA DE LO QUE YA EXISTE (reemplazos COMPLETOS: cada una tiene una sola definición viva, leída de producción el 2026-11-09)
+-- QUÉ CAMBIA DE LO QUE YA EXISTE (SEIS reemplazos COMPLETOS: cada una tiene una sola definición viva, leída de producción el 2026-11-09)
 --   `fn_compra_item_por_mandar`              → 0 si la compra de esa línea ya llegó por una recepción unida.
 --   `fn_despacho_items_tope`                 → rechaza enviar una línea de una compra que ya llegó (`compra_ya_llego`).
 --   `fn_papel_pasa_solo`                     → acepta, además de un envío propio cerrado, una recepción unida ya cerrada.
@@ -37,12 +40,15 @@
 --   `fn_mercaderia_pagada` (ADR-0636, paso 0) → una compra unida cuenta como «ya en la tienda».
 --
 -- CÓMO SE PEGA EN PRODUCCIÓN (con el OK de Felipe; mueve reglas de stock y de plata). DOS PARTES, por separado y en orden (ADR-0195):
---   PARTE 1: la tabla (sin políticas: solo la leen funciones `security definer`). PARTE 2: las funciones y los dos disparadores
+--   PARTE 1: la tabla (sin políticas: solo la leen funciones `security definer`). PARTE 2: las funciones y los disparadores
 --   (`create or replace trigger`, nunca `drop trigger`). Las dos son re-ejecutables. La web vieja no llama a nada de esto.
---   ANTES de pegar, comprobar que nadie cambió las cinco funciones desde el 2026-11-09 (md5 de `pg_get_functiondef`, abajo en VERIFICACIÓN).
+--   La PARTE 2 empieza con una guarda: si alguna de las cinco funciones reemplazadas ya no es la del 2026-11-09 (md5 de `pg_get_functiondef`,
+--   iguales en producción y en local ese día) ni la de esta migración, ABORTA sin cambiar nada: alguien la parchó y hay que regenerar el reemplazo.
 -- VERIFICACIÓN (solo lectura): select to_regclass('retail.compra_papel_llegadas') is not null, to_regproc('retail.unir_recepcion_con_compra') is not null;
--- CÓMO SE DESHACE: volver a pegar las cinco funciones de antes (20261012225000, 20261023143000, 20261029194000), `drop trigger` de los dos
---   nuevos y `drop function unir_recepcion_con_compra`. La tabla se queda (historia): con 0 filas no cambia nada.
+-- CÓMO SE DESHACE (solo mientras `compra_papel_llegadas` tenga 0 filas: con filas, deshacer reabre el riesgo de stock doble): volver a pegar las
+--   funciones de antes — `fn_despacho_items_tope` 20261012225000 · `fn_compra_item_por_mandar` 20261023114000 · `fn_compra_item_recibido_antes_valida`
+--   20261023143000 · `fn_papel_pasa_solo` y `fn_despacho_pasa_papeles_a_libros` 20261029194000 · `fn_mercaderia_pagada` 20261109231000 —,
+--   `drop trigger` de los cinco disparadores nuevos y `drop function unir_recepcion_con_compra`. La tabla se queda (historia).
 -- ============================================================================
 set search_path = retail, public, extensions;
 set lock_timeout = '3s';
@@ -73,6 +79,29 @@ comment on table retail.compra_papel_llegadas is
 -- ════════════════════════════════════════ PARTE 2 · funciones y disparadores ════════════════════════════════════════
 set search_path = retail, public, extensions;
 set lock_timeout = '3s';
+
+-- GUARDA: estas cinco funciones se reemplazan COMPLETAS. Si alguien las parchó desde el 2026-11-09 (md5 distinto al de ese día) y todavía no
+-- son las de esta migración, se aborta sin cambiar nada: pisarlas desharía ese parche en silencio.
+do $guarda$
+declare
+  v record;
+  v_def text;
+begin
+  for v in
+    select * from (values
+      ('retail.fn_compra_item_por_mandar(uuid)', '75f0db406c492a63a8c6b55e51c2c817'),
+      ('retail.fn_despacho_items_tope()', '0a4b2e0c3831d58d13f589bce2e34a5f'),
+      ('retail.fn_papel_pasa_solo(uuid)', 'aec9d40d021d585f2a9a743e106aa9a6'),
+      ('retail.fn_despacho_pasa_papeles_a_libros()', '10616b057375d0d1d9e5be38ee07c065'),
+      ('retail.fn_compra_item_recibido_antes_valida()', '21a576a613b0d4e5b684677ce8cda925')
+    ) t(firma, md5_antes)
+  loop
+    v_def := pg_get_functiondef(v.firma::regprocedure);
+    if position('ADR-0636' in v_def) = 0 and md5(v_def) <> v.md5_antes then
+      raise exception '% cambió desde el 2026-11-09: no se reemplaza. Regenera esta migración desde su definición real.', v.firma;
+    end if;
+  end loop;
+end $guarda$;
 
 create or replace function retail.fn_compra_papel_llegadas_fija()
 returns trigger
@@ -335,6 +364,69 @@ create or replace trigger compra_papeles_llegada_reparte after update of estado 
   for each row when (new.estado = 'completado' and old.estado is distinct from 'completado')
   execute function retail.fn_papel_llegada_reparte();
 
+-- ---------- 6b. Una compra unida no se corrige, no se edita ni se anula (revisión adversarial) ----------
+-- La unión sacó la compra de su envío y la dio por llegada: si después se cambia su tienda o su cantidad, o se anula, la unión queda mintiendo.
+-- Se cierra en el esquema (un solo lugar) y no en cada función de Mis compras. Solo mira lo que cambia el sentido de la compra: la tienda, el
+-- proveedor, anularla, y las líneas (agregar, quitar, cambiar la cantidad). Completar el papel no toca nada de eso.
+create or replace function retail.fn_compra_unida_no_se_cambia()
+returns trigger
+language plpgsql
+security definer
+set search_path = retail, public, extensions
+as $$
+declare
+  v_papel uuid;
+begin
+  if tg_table_name = 'ordenes_compra' then
+    v_papel := old.papel_id;
+    if v_papel is null or not exists (select 1 from retail.compra_papel_llegadas l where l.papel_id = v_papel) then
+      return new;
+    end if;
+    if (new.estado = 'anulada' and old.estado <> 'anulada')
+       or new.ubicacion_destino_id is distinct from old.ubicacion_destino_id
+       or new.proveedor_id is distinct from old.proveedor_id then
+      raise exception 'Esa compra ya llegó a la tienda y se unió a su recepción: no se corrige ni se anula. Avisa a Compras.'
+        using errcode = 'P0001', hint = 'compra_ya_llego';
+    end if;
+    return new;
+  end if;
+  -- orden_compra_items
+  v_papel := (select o.papel_id from retail.ordenes_compra o where o.id = coalesce(new.orden_compra_id, old.orden_compra_id));
+  if v_papel is null or not exists (select 1 from retail.compra_papel_llegadas l where l.papel_id = v_papel) then
+    return coalesce(new, old);
+  end if;
+  if tg_op = 'UPDATE' and new.cantidad = old.cantidad and new.orden_compra_id = old.orden_compra_id then
+    return new;
+  end if;
+  raise exception 'Esa compra ya llegó a la tienda y se unió a su recepción: sus prendas no se cambian. Avisa a Compras.'
+    using errcode = 'P0001', hint = 'compra_ya_llego';
+end $$;
+create or replace trigger compra_unida_orden before update on retail.ordenes_compra
+  for each row execute function retail.fn_compra_unida_no_se_cambia();
+create or replace trigger compra_unida_items before insert or update or delete on retail.orden_compra_items
+  for each row execute function retail.fn_compra_unida_no_se_cambia();
+revoke all on function retail.fn_compra_unida_no_se_cambia() from public, anon, authenticated;
+
+-- El proveedor de lo recibido se mira al unir y otra vez al repartir lo «recibido antes»: si cambiara en medio, el reparto no encontraría nada y el
+-- comprobante podría volver a recibirse (stock doble). Con la recepción unida, el proveedor no se corrige aquí.
+create or replace function retail.fn_unida_proveedor_fijo()
+returns trigger
+language plpgsql
+security definer
+set search_path = retail, public, extensions
+as $$
+begin
+  if old.proveedor_id is not null and new.proveedor_id is distinct from old.proveedor_id
+     and exists (select 1 from retail.compra_papel_llegadas l where l.despacho_id = old.despacho_id) then
+    raise exception 'Esa recepción ya está unida a una compra: su proveedor no se corrige aquí. Avisa a Compras.'
+      using errcode = 'P0001', hint = 'proveedor_con_compra_unida';
+  end if;
+  return new;
+end $$;
+create or replace trigger despacho_recibidos_unida_proveedor before update of proveedor_id on retail.despacho_recibidos
+  for each row execute function retail.fn_unida_proveedor_fijo();
+revoke all on function retail.fn_unida_proveedor_fijo() from public, anon, authenticated;
+
 -- ---------- 7. La unión ----------
 create or replace function retail.unir_recepcion_con_compra(p_despacho_id uuid, p_papel_id uuid, p_token uuid default null)
 returns jsonb
@@ -385,9 +477,22 @@ begin
     perform retail.fn_recepcion_exigir(v_d.id, v_d.ubicacion_destino_id, v_actor);
   end if;
 
+  -- Los envíos propios de la compra se bloquean ANTES que el papel: es el orden del cierre del conteo (envío → papel) y así no hay abrazo mortal.
+  perform 1 from retail.despachos d
+   where d.estado in ('en_camino', 'abierto', 'cerrado')
+     and exists (select 1 from retail.despacho_items di join retail.orden_compra_items i on i.id = di.orden_compra_item_id
+                   join retail.ordenes_compra o on o.id = i.orden_compra_id
+                  where di.despacho_id = d.id and o.papel_id = p_papel_id)
+   order by d.id
+     for update of d;
   for v_p in select * from retail.compra_papeles c where c.id = p_papel_id for update loop exit; end loop;
   if v_p.id is null then
     raise exception 'Esa compra no existe' using errcode = 'P0001', hint = 'papel_no_existe';
+  end if;
+  -- Quien hizo la compra no la une (el mismo candado que recibir: ADR-0517; el Admin sí puede). Sin esto una sola persona anotaría, recibiría y
+  -- haría pasar su propio papel al libro.
+  if v_p.persona_id = v_actor and not retail.fn_recepcion_puede_recibir_lo_propio() then
+    raise exception 'Hiciste esta compra: la tiene que unir otra persona' using errcode = '42501', hint = 'recibir_quien_compro';
   end if;
   for v_l in select * from retail.compra_papel_llegadas l where l.papel_id = p_papel_id loop exit; end loop;
   if v_l.papel_id is not null then
@@ -426,13 +531,25 @@ begin
     into v_recibidas, v_valor
     from retail.despacho_recibidos r
    where r.despacho_id = p_despacho_id and r.despacho_item_id is null and r.proveedor_id = v_prov and r.movimiento_id is not null;
-  v_ya_unidas := (select coalesce(sum(least(l.prendas_papel, l.prendas_recibidas)), 0)::integer from retail.compra_papel_llegadas l
+  -- Lo que otras compras ya unidas a esta recepción reclamarán al repartir: lo COMPRADO de cada una (no la foto de lo que había al unirse),
+  -- porque cada una reparte hasta su cantidad cuando se completa. Medir con la foto dejaba unir una segunda compra sin prendas que repartir.
+  v_ya_unidas := (select coalesce(sum(l.prendas_papel), 0)::integer from retail.compra_papel_llegadas l
                    where l.despacho_id = p_despacho_id and l.proveedor_id = v_prov);
   v_recibidas := v_recibidas - v_ya_unidas;
   if v_recibidas <= 0 then
     raise exception 'En esa recepción no hay prendas de ese proveedor que ya estén en el stock (o ya son de otra compra). Si el proveedor quedó mal elegido al recibir, corrígelo primero'
       using errcode = 'P0001', hint = 'union_sin_prendas';
   end if;
+  -- Una compra unida no se puede mandar, recibir ni cerrar por otro camino: lo que faltara no tendría salida. Se une cuando llegó todo.
+  if v_recibidas < v_prendas_papel then
+    raise exception 'De esa compra llegaron % de % prendas: se une cuando llegue todo (o la cierra Compras)', v_recibidas, v_prendas_papel
+      using errcode = 'P0001', hint = 'union_llego_menos';
+  end if;
+
+  -- Las líneas de la compra, con el mismo candado y en el mismo orden que `crear_envio` y `recibir_orden_sin_envio` (órdenes en común, líneas
+  -- exclusivas): quien mande esta compra al mismo tiempo espera aquí, y al seguir ve la unión y el tope la rechaza.
+  perform 1 from retail.ordenes_compra o where o.papel_id = p_papel_id order by o.id for share;
+  perform 1 from retail.orden_compra_items i join retail.ordenes_compra o on o.id = i.orden_compra_id where o.papel_id = p_papel_id order by i.id for update of i;
 
   -- Los envíos propios de la compra: ninguno recibido ni con prendas contadas.
   for v_propio in
