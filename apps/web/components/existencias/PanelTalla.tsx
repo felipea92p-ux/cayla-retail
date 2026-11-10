@@ -1,5 +1,6 @@
 "use client";
 
+import { dondeEstanLasDanadas } from "@/lib/danadas-correccion";
 import { ImagenDePrenda } from "@/components/ui/ImagenDePrenda";
 import { BotonCopiar } from "@/components/ui/BotonCopiar";
 import Link from "next/link";
@@ -1115,7 +1116,15 @@ export function PanelTalla({
                           {separa ? casillaCapa("piso", sumaModelo.piso) : casilla(sumaModelo.piso, "disponibles", IconoPercha)}
                           {separa && casillaCapa("almacen", sumaModelo.almacen)}
                           {casilla(sumaModelo.apartado, sumaModelo.apartado === 1 ? "apartada" : "apartadas", ShoppingBag, "apartada")}
-                          {casilla(sumaModelo.danado, sumaModelo.danado === 1 ? "dañada" : "dañadas", Bandage, "danada")}
+                          {/* ADR-0640: la casilla dice en qué talla está la dañada y abre su lista: una talla mal reportada se nota aquí. */}
+                          {casilla(
+                            sumaModelo.danado,
+                            sumaModelo.danado > 0 ? `${sumaModelo.danado === 1 ? "dañada" : "dañadas"} · ${dondeEstanLasDanadas(colores)}` : "dañadas",
+                            Bandage,
+                            "danada",
+                            sumaModelo.danado > 0 ? onVerDanadas : undefined,
+                            puedeResolverDanadas ? "decidir qué hacer" : "ver cuáles"
+                          )}
                         </div>
                         {separa &&
                           (capa ? (
@@ -1144,6 +1153,12 @@ export function PanelTalla({
                                 <i aria-hidden className="inline-block h-3 w-3.5 rounded-[3px] bg-ambar/[0.22]" />
                                 Falta colgar
                               </span>
+                              {sumaModelo.danado > 0 && (
+                                <span className="inline-flex items-center gap-1.5">
+                                  <Bandage aria-hidden className="h-3.5 w-3.5 text-rojo-profundo" />
+                                  Dañada (no se vende)
+                                </span>
+                              )}
                               <span>Toca una celda para abrir esa talla</span>
                             </p>
                           ))}
@@ -1206,16 +1221,35 @@ export function PanelTalla({
                                               : capa === "almacen"
                                                 ? `${celda.almacen} guardadas`
                                                 : `${celda.piso} colgadas, ${celda.almacen} guardadas`
-                                      }. Ver esta talla`;
+                                      }${(f.danado ?? 0) > 0 ? `, ${f.danado} ${f.danado === 1 ? "dañada" : "dañadas"} aparte` : ""}. Ver esta talla`;
                                       // Con una capa elegida, la celda muestra SOLO esa mitad, a todo el alto y con el número más grande.
                                       const verPiso = !separa || capa !== "almacen";
                                       const verAlmacen = separa && capa !== "piso";
                                       const grande = separa && capa !== null;
                                       return (
-                                        <td key={t} className="px-[3px]">
+                                        <td key={t} className="relative px-[3px]">
+                                          {/* ADR-0640: la dañada de esta talla, encima de su celda (no cuenta en piso ni en almacén: está aparte). */}
+                                          {(f.danado ?? 0) > 0 && celda.estado !== "agotada" && (
+                                            <span
+                                              aria-hidden
+                                              title={`${f.danado} ${f.danado === 1 ? "dañada" : "dañadas"} de esta talla, aparte: no se vende`}
+                                              className="pointer-events-none absolute -top-1.5 right-0 z-[1] inline-flex items-center gap-0.5 rounded-full border border-rojo/30 bg-crema px-1.5 text-[12px] font-semibold leading-[18px] text-rojo-profundo" // unificar-fijo: marca dentro de la matriz de tallas, no una insignia de estado
+                                            >
+                                              <Bandage className="h-3 w-3" />
+                                              {f.danado} dañada{f.danado === 1 ? "" : "s"}
+                                            </span>
+                                          )}
                                           {celda.estado === "agotada" ? (
                                             <button type="button" aria-pressed={sel} aria-label={lectura} onClick={ir} className={`grid h-[52px] w-full place-items-center rounded-[9px] border border-rojo/40 bg-rojo/[0.10] text-sm font-bold text-rojo-profundo ${sel ? "ring-2 ring-tinta" : ""}`}>
-                                              Se acabó
+                                              {/* ADR-0640: si lo único que queda de la talla está dañado, la celda lo dice: «Se acabó» escondía dónde estaba. */}
+                                              {(f.danado ?? 0) > 0 ? (
+                                                <span className="inline-flex items-center gap-1">
+                                                  <Bandage aria-hidden className="h-3.5 w-3.5" />
+                                                  {f.danado === 1 ? "Dañada" : `${f.danado} dañadas`}
+                                                </span>
+                                              ) : (
+                                                "Se acabó"
+                                              )}
                                             </button>
                                           ) : (
                                             <button type="button" aria-pressed={sel} aria-label={lectura} onClick={ir} className={`flex h-[52px] w-full flex-col overflow-hidden rounded-[9px] border bg-crema transition-colors ${sel ? "border-tinta ring-1 ring-tinta" : "border-sand hover:border-tinta/35"}`}>

@@ -6,6 +6,7 @@ import {
   argumentosSinDano,
   camposGuiaCorreccion,
   desdeDeLaEntrada,
+  dondeEstanLasDanadas,
   desdeSugerido,
   nombreCorto,
   opcionesDeCorreccion,
@@ -129,5 +130,18 @@ describe("la guía de «Me equivoqué de prenda»", () => {
   it("pide cuál es la dañada y quién lo hace, en ese orden", () => {
     expect(camposGuiaCorreccion(false, false).map((c) => [c.id, c.hecho])).toEqual([["correcta", false], ["responsable", false]]);
     expect(camposGuiaCorreccion(true, true).every((c) => c.hecho)).toBe(true);
+  });
+});
+
+describe("dondeEstanLasDanadas: la casilla de «Todas» dice en qué talla está la dañada", () => {
+  it("un color: «talla 26»; varias tallas: «tallas 26 · 30 (2)»", () => {
+    expect(dondeEstanLasDanadas([{ color: "Celeste", tallas: [{ talla: "26", danado: 1 }, { talla: "28", danado: 0 }] }])).toBe("talla 26");
+    expect(dondeEstanLasDanadas([{ color: "Celeste", tallas: [{ talla: "26", danado: 1 }, { talla: "30", danado: 2 }] }])).toBe("tallas 26 · 30 (2)");
+  });
+  it("varios colores: nombra el color", () => {
+    expect(dondeEstanLasDanadas([{ color: "Azul", tallas: [{ talla: "28", danado: 0 }] }, { color: "Celeste", tallas: [{ talla: "26", danado: 1 }] }])).toBe("Celeste 26");
+  });
+  it("sin dañadas, nada", () => {
+    expect(dondeEstanLasDanadas([{ color: "Celeste", tallas: [{ talla: "26", danado: 0 }, { talla: "28" }] }])).toBe("");
   });
 });

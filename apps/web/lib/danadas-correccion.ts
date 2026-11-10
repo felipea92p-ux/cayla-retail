@@ -133,3 +133,22 @@ export function tituloExitoSinDano(unidades: number, desde: DesdeDanada): string
 export function textoCorregidaDe(talla: string | null, color: string | null): string {
   return `Corregida: antes decía ${nombreCorto(talla, color)}`;
 }
+
+/**
+ * ADR-0640, actividad 3: en qué tallas (y colores) del modelo hay dañadas, para la casilla «1 dañada · talla 26» de «Todas». Sin esto la
+ * casilla decía un número sin lugar y nadie notaba una talla mal reportada. El color se nombra solo si el modelo tiene más de uno.
+ */
+export function dondeEstanLasDanadas(colores: readonly { color: string | null; tallas: readonly { talla: string | null; danado?: number | null }[] }[]): string {
+  const varios = colores.length > 1;
+  const partes = colores.flatMap((c) =>
+    c.tallas
+      .filter((t) => (t.danado ?? 0) > 0)
+      .map((t) => {
+        const n = t.danado ?? 0;
+        const talla = t.talla ?? "Única";
+        return `${varios && c.color ? `${c.color} ` : ""}${talla}${n > 1 ? ` (${n})` : ""}`;
+      })
+  );
+  if (partes.length === 0) return "";
+  return `${partes.length === 1 && !varios ? "talla " : partes.length > 1 && !varios ? "tallas " : ""}${partes.join(" · ")}`;
+}
