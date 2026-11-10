@@ -221,21 +221,47 @@ export function ultimoDepositoDe(cuentaId: string, movimientos: readonly Pick<Mo
 }
 
 /**
+ * Hasta dónde llega la lista de movimientos que se leyó: `null` si se leyó entera (hoy `getMovimientos` la lee toda), o el día (de Lima)
+ * del movimiento más antiguo que trae si viene recortada. Con un recorte, que no aparezca un depósito no quiere decir que no lo hubo:
+ * quedó antes de ese día (tarea 157).
+ */
+export type LeidoDesde = string | null;
+
+/**
  * El aviso de una caja fuerte con plata: hace cuánto se depositó por última vez. Vacía, o cualquier otra cuenta, no avisa nada.
- * Sin depósitos en la lista que se leyó, lo dice sin inventar fecha.
+ * Sin depósitos en una lista entera, lo dice sin inventar fecha. Sin depósitos en una lista recortada (`leidoDesde`), el último quedó
+ * fuera de lo leído: se dice «más de N días» contando desde donde empieza la lista, nunca «sin depósitos registrados».
  */
 export function avisoCajaFuerte(
   c: Pick<CuentaDinero, "id" | "tipo" | "saldo">,
   movimientos: readonly Pick<MovimientoDinero, "tipo" | "origenId" | "estado" | "fecha">[],
   hoy: string,
+  leidoDesde: LeidoDesde,
 ): Insignia | null {
   if (c.tipo !== "caja_fuerte" || c.saldo === null || c.saldo <= 0) return null;
   const ultimo = ultimoDepositoDe(c.id, movimientos);
-  if (!ultimo) return { texto: "sin depósitos registrados", tono: "pizarra" };
+  if (!ultimo) {
+    if (!leidoDesde) return { texto: "sin depósitos registrados", tono: "pizarra" };
+    const desde = diasEntreFechas(leidoDesde, hoy);
+    if (desde > DIAS_PARA_AVISAR_DEPOSITO) return { texto: `${desde} días o más sin depositar`, tono: "ambar" };
+    // `leidoDesde` es un día, no un instante: se lee al mediodía de Lima para que `diaYNumero` no lo corra al día anterior.
+    return { texto: `sin depósitos desde el ${diaYNumero(`${leidoDesde}T17:00:00Z`)}`, tono: "pizarra" };
+  }
   const d = diasEntreFechas(ultimo, hoy);
   if (d <= 0) return { texto: "depositada hoy", tono: "verde" };
   if (d <= DIAS_PARA_AVISAR_DEPOSITO) return { texto: `depositada hace ${d} ${d === 1 ? "día" : "días"}`, tono: "verde" };
   return { texto: `${d} días sin depositar`, tono: "ambar" };
+}
+
+/** Cuántos días lleva una caja fuerte sin depositar, como mínimo: desde su último depósito leído o, si quedó fuera de lo leído, desde donde empieza la lista. */
+export function diasSinDepositar(
+  cuentaId: string,
+  movimientos: readonly Pick<MovimientoDinero, "tipo" | "origenId" | "estado" | "fecha">[],
+  hoy: string,
+  leidoDesde: LeidoDesde,
+): number | null {
+  const desde = ultimoDepositoDe(cuentaId, movimientos) ?? leidoDesde;
+  return desde ? diasEntreFechas(desde, hoy) : null;
 }
 
 /**

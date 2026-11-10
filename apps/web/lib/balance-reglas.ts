@@ -193,6 +193,10 @@ export function leerPropuesta(r: Fila): LineaPropuesta {
 
 export type Situacion =
   | { tipo: "sin_arranque" }
+  /** La comprobación no se pudo leer (`fn_conciliacion_contable` falló): no se sabe nada del arranque ni de si cuadra (tarea 87 y 157). */
+  | { tipo: "sin_comprobar" }
+  /** La comprobación respondió sin ninguna fila. La base siempre devuelve al menos el arranque o el corte, así que esto no dice que falte el arranque. */
+  | { tipo: "sin_chequeos" }
   | { tipo: "antes_del_arranque"; arranque: string | null }
   | { tipo: "no_cuadra"; bloqueos: Chequeo[] }
   | { tipo: "con_diferencias"; diferencias: Chequeo[] }
@@ -202,11 +206,13 @@ export type Situacion =
  * ADR-0619 (corrige a ADR-0198): lo de fondo (el arranque, el diario y que Activo = Pasivo + Patrimonio) decide si hay Balance. Una cuenta que no coincide con su otro camino
  * no lo esconde: sale con un aviso que dice cuál y por cuánto. Antes, S/ 88 sobre S/ 150 mil dejaban a Felipe sin Activo, Pasivo ni Patrimonio.
  */
-export function situacion(chequeos: readonly Chequeo[]): Situacion {
+export function situacion(chequeos: readonly Chequeo[], opciones: { lecturaFallo?: boolean } = {}): Situacion {
+  // Una lectura caída llega con los chequeos vacíos: leerla como «falta el arranque» le pedía al líder volver a cargar lo que ya registró.
+  if (opciones.lecturaFallo) return { tipo: "sin_comprobar" };
   if (chequeos.some((c) => c.clave === "arranque" && c.estado === "falta")) return { tipo: "sin_arranque" };
   const corte = chequeos.find((c) => c.clave === "corte" && c.estado === "falta");
   if (corte) return { tipo: "antes_del_arranque", arranque: corte.arranque };
-  if (!chequeos.length) return { tipo: "sin_arranque" };
+  if (!chequeos.length) return { tipo: "sin_chequeos" };
   const bloqueos = chequeos.filter((c) => c.bloquea && (c.estado === "no_cuadra" || c.estado === "falta"));
   if (bloqueos.some((c) => !esCuenta(c))) return { tipo: "no_cuadra", bloqueos };
   if (bloqueos.length) return { tipo: "con_diferencias", diferencias: bloqueos };
@@ -224,6 +230,7 @@ export function avisoBalanceSinCuadrar(chequeos: readonly Chequeo[]): string | n
   const s = situacion(chequeos);
   if (s.tipo === "cuadra") return null;
   const pendientes = s.tipo === "no_cuadra" ? s.bloqueos : s.tipo === "con_diferencias" ? s.diferencias : null;
+  if (s.tipo === "sin_comprobar" || s.tipo === "sin_chequeos") return "No se pudo comprobar si el Balance cuadra: estas cifras pueden cambiar.";
   return pendientes
     ? `No cuadra: el Balance tiene ${pendientes.length === 1 ? "1 comprobación pendiente" : `${pendientes.length} comprobaciones pendientes`} y estas cifras pueden cambiar.`
     : "No cuadra todavía: faltan los saldos de arranque de esta fecha y estas cifras pueden cambiar.";

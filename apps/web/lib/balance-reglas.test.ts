@@ -102,7 +102,16 @@ describe("lo que llega de la base", () => {
 describe("¿se dibuja? (ADR-0619)", () => {
   it("sin saldos de arranque no hay Balance", () => {
     expect(situacion([ch({ clave: "arranque", estado: "falta", diario: null, otro: null })]).tipo).toBe("sin_arranque");
-    expect(situacion([]).tipo).toBe("sin_arranque");
+  });
+  it("sin comprobaciones o con la lectura caída no afirma que falte el arranque (tarea 157)", () => {
+    // La base siempre devuelve al menos el arranque o el corte: una lista vacía no es «falta el arranque».
+    expect(situacion([]).tipo).toBe("sin_chequeos");
+    // La lectura caída gana aunque lleguen filas: no se sabe nada.
+    expect(situacion([], { lecturaFallo: true }).tipo).toBe("sin_comprobar");
+    expect(situacion([ch({ clave: "arranque", estado: "falta", diario: null, otro: null })], { lecturaFallo: true }).tipo).toBe("sin_comprobar");
+    expect(seDibuja(situacion([ch({})], { lecturaFallo: true }))).toBe(false);
+    // Control: sin falla, la misma fila de arranque sí lo dice.
+    expect(situacion([ch({ clave: "arranque", estado: "falta", diario: null, otro: null })], { lecturaFallo: false }).tipo).toBe("sin_arranque");
   });
   it("antes del día de arranque no hay Balance", () => {
     expect(situacion([ch({ clave: "corte", estado: "falta", arranque: "2024-03-01" })])).toEqual({ tipo: "antes_del_arranque", arranque: "2024-03-01" });
@@ -345,6 +354,9 @@ describe("lo que se dice cuando el Balance no cuadra (tarea 28)", () => {
     expect(avisoBalanceSinCuadrar([ch({ estado: "no_cuadra" }), ch({ clave: "121", estado: "no_cuadra" })])).toContain("2 comprobaciones pendientes");
   });
   it("sin arranque tampoco afirma que cuadra", () => {
-    expect(avisoBalanceSinCuadrar([])).toContain("faltan los saldos de arranque");
+    expect(avisoBalanceSinCuadrar([ch({ clave: "arranque", estado: "falta", diario: null, otro: null })])).toContain("faltan los saldos de arranque");
+  });
+  it("sin comprobaciones no inventa que faltan los saldos de arranque (tarea 157)", () => {
+    expect(avisoBalanceSinCuadrar([])).toBe("No se pudo comprobar si el Balance cuadra: estas cifras pueden cambiar.");
   });
 });
