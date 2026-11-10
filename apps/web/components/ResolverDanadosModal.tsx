@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import type { ErrorEscritura } from "@/lib/error-escritura";
@@ -133,6 +133,7 @@ export function ResolverDanadosModal({
   lugar,
   sede = "",
   hermanasDe,
+  arregloInicial = null,
   onClose,
 }: {
   pendientes: PrendaDanada[];
@@ -146,6 +147,8 @@ export function ResolverDanadosModal({
   /** ADR-0640: las otras tallas y colores del mismo modelo, con lo libre de hoy en el piso y el almacén de la sede: lo que se ofrece
    *  en «Me equivoqué de prenda». Sin esto (o sin ninguna), el botón no se ofrece. */
   hermanasDe?: (varianteId: string) => Hermana[];
+  /** ADR-0640: la dañada cuyo «Se arregló» se abre al llegar (desde «Volvió arreglada» de la talla): un toque menos para lo más común. */
+  arregloInicial?: string | null;
   onClose: () => void;
 }) {
   // Todo lo de este panel —se arregló, devolver al proveedor, liquidar, botar, donar— lo hace quien ve Existencias, donde vive
@@ -234,6 +237,15 @@ export function ResolverDanadosModal({
         ? [{ id: "responsable", nombre: "Quién lo hace", requerido: true, hecho: responsable.listo, pendiente: "Elige quién decide." }]
         : [];
   const guia = useGuiaCampos(camposAbiertos);
+
+  // «Volvió arreglada» desde la talla (ADR-0640): la ventana llega con su «Se arregló» abierto. Una sola vez, al montarse.
+  const arregloAbierto = useRef(false);
+  useEffect(() => {
+    if (arregloAbierto.current || !arregloInicial || !puedeDecidir) return;
+    arregloAbierto.current = true;
+    if (pendientes.some((p) => p.id === arregloInicial)) abrirArreglo(arregloInicial);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- solo al llegar: después manda lo que toque la persona
+  }, []);
 
   function abrirLugar() {
     setTextoLugar(lugar ?? "");
@@ -668,10 +680,15 @@ export function ResolverDanadosModal({
               {pendientes.map((p) => (
                 <div key={p.id} className="space-y-2 border-b border-tinta/10 pb-3 last:border-b-0">
                   <div>
-                    <p className="text-sm text-tinta">{p.referencia}</p>
+                    <p className="text-sm text-taupe">{p.referencia}</p>
+                    {/* ADR-0640: la talla y el color en grande. Es lo primero que se compara con la prenda en la mano: así una talla mal
+                        reportada se nota aquí, y no después en el stock. */}
+                    <p className="text-[17px] font-semibold leading-snug text-tinta">
+                      {nombreCorto(p.talla, p.color).replace(/^talla/, "Talla")}
+                      {p.cantidad > 1 && <span className="font-normal text-taupe"> · {p.cantidad} unidades</span>}
+                    </p>
                     <p className="font-mono text-[11px] text-tinta/55">
-                      {p.sku} {[p.talla, p.color].filter(Boolean).join("/")} · {p.cantidad}{" "}
-                      {p.cantidad === 1 ? "unidad" : "unidades"} · en cuarentena desde{" "}
+                      {p.sku} · dañada desde{" "}
                       {new Date(p.creadoEn).toLocaleDateString("es-PE", { day: "2-digit", month: "2-digit", year: "numeric" })}
                     </p>
                     {/* De dónde llegó y, si la reportaron en la tienda, qué tiene: es lo que se necesita para decidir. */}
@@ -726,6 +743,18 @@ export function ResolverDanadosModal({
                         placeholder="Detalle de la resolución"
                       />
                       <div className="flex flex-wrap gap-2">
+                        {/* «Se arregló» va primero y en negro (ADR-0640, Felipe 2026-11-10: «que sea más notable y accesible»): es la salida
+                            que no pierde la prenda, y la que más se hace. */}
+                        <Boton
+                          type="button"
+                          peso="primario"
+                          onClick={() => abrirArreglo(p.id)}
+                          disabled={resolviendo !== null || !responsable.listo}
+                          title={responsable.motivo ?? "Vuelve a la venta: al almacén o al piso"}
+                          className="flex-[2]"
+                        >
+                          Se arregló
+                        </Boton>
                         {/* Antes de arreglarla, sale de la tienda (ADR-0564): una costurera cercana o el Taller. Solo una vez. */}
                         {!p.enArreglo && (
                           <Boton
@@ -750,16 +779,10 @@ export function ResolverDanadosModal({
                             No se pudo
                           </Boton>
                         )}
-                        {/* Un arreglo menor vuelve a la venta (ADR-0328): primero, porque es lo que no pierde la prenda. */}
-                        <Boton
-                          type="button"
-                          onClick={() => abrirArreglo(p.id)}
-                          disabled={resolviendo !== null || !responsable.listo}
-                          title={responsable.motivo ?? "Vuelve al almacén de la tienda"}
-                          className="flex-1"
-                        >
-                          Se arregló
-                        </Boton>
+                      </div>
+                      {/* Lo que no tiene arreglo, aparte y en segundo plano: son salidas que pierden la prenda (o la cobran barata). */}
+                      <p className="text-sm text-taupe">Si no tiene arreglo:</p>
+                      <div className="flex flex-wrap gap-2">
                         {/* Lo que llegó dañado en una recepción vuelve a su proveedor y queda como deuda «por reponer» (actividad 6a). */}
                         {p.devolucion && (
                           <Boton

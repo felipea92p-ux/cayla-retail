@@ -338,6 +338,8 @@ export function InventarioPanel({
   }
   // «Eliminar el producto» desde el detalle (ADR-0252): el producto entero, no la talla ni el color.
   const [viendoDanados, setViendoDanados] = useState(abrirDanados);
+  // ADR-0640: la dañada cuyo «Se arregló» abre la ventana al llegar desde «Volvió arreglada» de una talla.
+  const [arregloInicial, setArregloInicial] = useState<string | null>(null);
   const [viendoApartados, setViendoApartados] = useState(false);
   // «Pendientes»: la ventana con las tareas de «Para hoy» (ya no van en la pantalla).
   const [viendoPendientes, setViendoPendientes] = useState(false);
@@ -1419,7 +1421,9 @@ export function InventarioPanel({
           otraSede={!enSedeActiva}
           sede={sedeNombre}
           hermanasDe={hermanasDe}
+          arregloInicial={arregloInicial}
           onClose={() => {
+            setArregloInicial(null);
             setViendoDanados(false);
             setSoloPrenda(null);
           }}
@@ -1529,6 +1533,19 @@ export function InventarioPanel({
               : undefined
           }
           puedeResolverDanadas={enSedeActiva}
+          onArreglarDanada={
+            enSedeActiva
+              ? (varianteId: string) => {
+                  // ADR-0640: «Volvió arreglada» abre Dañadas con el «Se arregló» de la más antigua de esa talla ya abierto.
+                  const danada = danadosPendientes.find((d) => d.varianteId === varianteId);
+                  if (!danada) return;
+                  setAbierta(null);
+                  setSoloPrenda(prendaAbierta);
+                  setArregloInicial(danada.id);
+                  setViendoDanados(true);
+                }
+              : undefined
+          }
           hrefCatalogo={verProductos ? (referencia) => `/productos?q=${encodeURIComponent(referencia)}` : undefined}
           fotoDesde={abierta?.origen ?? null}
           onCerrar={() => setAbierta(null)}

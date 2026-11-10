@@ -152,6 +152,7 @@ export function PanelTalla({
   onVerApartadas,
   onVerDanadas,
   puedeResolverDanadas = false,
+  onArreglarDanada,
   onCerrar,
 }: {
   /** Los colores del modelo, cada uno con sus tallas (`coloresDelModelo`). */
@@ -197,6 +198,8 @@ export function PanelTalla({
   onVerApartadas?: () => void;
   onVerDanadas?: () => void;
   puedeResolverDanadas?: boolean;
+  /** ADR-0640: «Volvió arreglada» de una talla con dañadas: abre Dañadas con su «Se arregló» listo. Sin esto, la fila no se ofrece. */
+  onArreglarDanada?: (varianteId: string) => void;
   onCerrar: () => void;
 }) {
   const router = useRouter();
@@ -390,6 +393,8 @@ export function PanelTalla({
     separa
   );
   const { posibles, noAhora } = separarAcciones(acciones);
+  // ADR-0640: «Volvió arreglada» se ofrece si esta talla tiene una dañada y quien mira puede decidir qué hacer con ella.
+  const arreglable = (fila.danado ?? 0) > 0 && puedeResolverDanadas && !!onArreglarDanada;
   // Las tres respuestas de la talla —hay, colgar, pedir— que siempre dicen algo, aunque el motor del piso no haya decidido (2026-10-06).
   const queToca = queTocaConLaTalla(fila, {
     separa,
@@ -1034,8 +1039,31 @@ export function PanelTalla({
                         {/* ¿Qué hago? Solo lo que hoy se puede, la sugerida primero y teñida; lo demás, en una línea con su porqué. */}
                         <div className="grid gap-2">
                           <span className="label-cayla text-[11px] text-taupe">Qué hago</span>
-                          {posibles.length > 0 && (
+                          {(posibles.length > 0 || arreglable) && (
                             <ul data-guia="existencias.cajon-acciones" className="overflow-hidden rounded-2xl border border-sand bg-crema">
+                              {/* ADR-0640 (Felipe 2026-11-10: «más notable y accesible el pasar de dañada a arreglada»): con una dañada de ESTA
+                                  talla, lo primero es devolverla a la venta cuando vuelve arreglada; un toque abre su «Se arregló». */}
+                              {arreglable && (
+                                <li className="border-t border-sand first:border-t-0">
+                                  <button
+                                    type="button"
+                                    data-guia="existencias.cajon-arreglada"
+                                    onClick={() => onArreglarDanada!(fila.varianteId)}
+                                    className="flex w-full items-center gap-3 bg-verde/[0.08] px-3 py-2.5 text-left transition-colors hover:bg-verde/[0.14]"
+                                  >
+                                    <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-verde/[0.16] text-verde">
+                                      <Check aria-hidden className="h-4 w-4" />
+                                    </span>
+                                    <span className="min-w-0 flex-1">
+                                      <b className="block text-[14px] font-semibold text-tinta">Volvió arreglada</b>
+                                      <small className="block text-sm text-taupe">
+                                        {fila.danado === 1 ? "1 dañada de esta talla" : `${fila.danado} dañadas de esta talla`}: devuélvela a la venta
+                                      </small>
+                                    </span>
+                                    <ChevronRight aria-hidden className="h-4 w-4 shrink-0 text-taupe" />
+                                  </button>
+                                </li>
+                              )}
                               {posibles.map((a) => {
                                 const Ico = ICONO[a.clave];
                                 const tono = a.sugerida ? (a.clave === "pedir" ? "pizarra" : "ambar") : null;
