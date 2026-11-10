@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { componentesDeMezcla, esCombinado, fondoDeMezcla, mezclaExistente, nombreDeMezcla, normalizarComponentes, puedeAcompanar, tonosDeMezcla } from "./color-combinado";
+import { componentesDeMezcla, esCombinado, fondoDeMezcla, fondoDeMezclaEnFranja, mezclaExistente, nombreDeMezcla, normalizarComponentes, puedeAcompanar, tonosDeMezcla } from "./color-combinado";
 
 describe("normalizarComponentes", () => {
   it("acepta la base y de 1 a 3 acompañantes, en mayúsculas y en el orden recibido", () => {
@@ -45,6 +45,7 @@ describe("el punto partido", () => {
   it("la base ocupa la mitad y los acompañantes se reparten la otra", () => {
     expect(fondoDeMezcla(["#111111", "#222222"])).toBe("conic-gradient(from 180deg, #111111 0% 50%, #222222 50% 100%)");
     expect(fondoDeMezcla(["#111111", "#222222", "#333333"])).toBe("conic-gradient(from 180deg, #111111 0% 50%, #222222 50% 75%, #333333 75% 100%)");
+    expect(fondoDeMezclaEnFranja(["#111111", "#222222", "#333333"])).toBe("linear-gradient(90deg, #111111 0% 50%, #222222 50% 75%, #333333 75% 100%)");
   });
 });
 

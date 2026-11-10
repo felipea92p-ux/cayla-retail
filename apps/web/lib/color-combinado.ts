@@ -79,3 +79,11 @@ export function mezclaExistente<C extends ColorDeMezcla>(colores: readonly C[], 
 export function puedeAcompanar(color: ColorDeMezcla, base: string): boolean {
   return color.codigo !== base && !esCombinado(color) && color.activo !== false;
 }
+
+/** La misma partición en una franja (la muestra ancha de Atributos): la base en la mitad izquierda y los acompañantes a la derecha. */
+export function fondoDeMezclaEnFranja(tonos: readonly string[]): string {
+  const [base, ...resto] = tonos;
+  const tramo = 50 / resto.length;
+  const partes = resto.map((t, i) => `${t} ${50 + tramo * i}% ${50 + tramo * (i + 1)}%`);
+  return `linear-gradient(90deg, ${base} 0% 50%, ${partes.join(", ")})`;
+}
