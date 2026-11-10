@@ -23,6 +23,8 @@ import { diaLima } from "@/lib/fechas-lima";
 import { textoDondeQuedo } from "@/lib/gastos-extracto-reglas";
 import { PreguntaParecido } from "@/components/ui/PreguntaParecido";
 import { Aviso } from "@/components/ui/Aviso";
+import { useFechaContable } from "@/components/finanzas/gastos/useFechaContable";
+import { avisoMesCerrado } from "@/lib/gastos-comprobante-tardio-reglas";
 import { choqueConElFijo, claveDeFijo, fijosQueSeParecen, mesDelFijo, textoFechaDeFijo } from "@/lib/fijos-del-mes-reglas";
 import { CampoCuentaFin, useCuentasParaElegir } from "@/components/finanzas/CampoCuenta";
 import { CampoGuiado, PieGuia } from "@/components/guia-de-foco/CampoGuiado";
@@ -163,6 +165,9 @@ export function HojaRegistrarGasto({
   const [medioSinCuentas, setMedioSinCuentas] = useState<MedioGasto | "">("");
   const [referencia, setReferencia] = useState("");
   const papel = conComprobante(h);
+  // El comprobante de un mes cerrado guarda su fecha real y entra en el mes abierto (tarea 20). Lo decide la base: aquí solo se avisa, y sin comprobante el guardado lo rechaza.
+  const entra = useFechaContable(h.sede && h.sede !== "empresa" ? h.sede : null, papel ? h.fecha : null);
+  const mesCerrado = papel ? avisoMesCerrado(h.fecha, entra) : null;
   const credito = aCredito(h);
   const cuentasPago = useCuentasParaElegir("pago", h.sede && h.sede !== "empresa" ? h.sede : null, true);
   const cuentasGasto = useMemo(
@@ -287,7 +292,7 @@ export function HojaRegistrarGasto({
   /** `id`: el del gasto nuevo, si la base lo devolvió (no al confirmarlo con «Revisar si se guardó»). */
   function registrado(otro: boolean, id?: string) {
     // El aviso dice en qué día quedó: si no es hoy, cae en un día de más abajo en la lista (la 05 del benchmark visual).
-    avisar.exito(egreso ? "Egreso clasificado como gasto" : "Gasto registrado", { detalle: [textoDondeQuedo(h.fecha, hoy), ticket.pasara.at(-1)].filter(Boolean).join(" ") });
+    avisar.exito(egreso ? "Egreso clasificado como gasto" : "Gasto registrado", { detalle: [textoDondeQuedo(mesCerrado && entra ? entra : h.fecha, hoy), ticket.pasara.at(-1)].filter(Boolean).join(" ") });
     if (otro) {
       // Lo de recién se limpia; la sede, la fecha y de dónde salió se quedan para el siguiente. La foto de «¿Salir sin guardar?» se vuelve
       // a tomar con la hoja limpia (el /chaos del 2026-10-23: cerrar la hoja recién limpiada preguntaba si se perdía lo que no había).
@@ -541,6 +546,11 @@ export function HojaRegistrarGasto({
                 no={{ texto: "No, es otro gasto", onClick: () => setFijosDescartados((prev) => new Set([...prev, ...fijosPorPreguntar.map(claveDeFijo)])) }}
               />
             </div>
+          )}
+          {mesCerrado && (
+            <Aviso tono="info" chico>
+              {mesCerrado}
+            </Aviso>
           )}
           {fijoElegido && (
             <Aviso

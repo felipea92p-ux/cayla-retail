@@ -518,6 +518,24 @@ export async function getAdjuntosCompra(compraId: string): Promise<AdjuntoCompra
   return filas.map((f) => ({ id: f.id, nombre: f.nombre, tipo: f.tipo, bytes: f.bytes, creadoEn: f.created_at, url: urls.get(f.ruta) ?? null }));
 }
 
+/** Lo anulado de una factura (tarea 21), con su motivo. Es de apoyo: si no se puede leer, la factura se ve igual. */
+export async function getAnuladosCompra(compraId: string): Promise<{ id: string; fecha: string | null; detalle: string; monto: number | null; motivo: string; quien: string }[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("fn_anulados_de_compra" as never, { p_compra_id: compraId } as never);
+  if (error) {
+    console.error("Compras: no se pudo leer lo anulado de la factura", error);
+    return [];
+  }
+  return ((data ?? []) as Record<string, unknown>[]).map((a) => ({
+    id: String(a.documento_id),
+    fecha: a.fecha ? String(a.fecha) : null,
+    detalle: String(a.detalle ?? ""),
+    monto: a.monto == null ? null : Number(a.monto),
+    motivo: String(a.motivo ?? ""),
+    quien: String(a.anulado_por ?? ""),
+  }));
+}
+
 export async function getPagosCompra(compraId: string): Promise<PagoCompra[]> {
   const supabase = await createClient();
   const filas = exigir(

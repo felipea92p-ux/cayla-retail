@@ -111,13 +111,14 @@ export function payloadDelComprobante(gastoId: string, b: BorradorComprobante, p
 }
 
 /** Lo que pasa al guardar, en frases de tienda (para que nadie crea que se paga otra vez). */
-export function loQuePasaAlGuardar(g: Pick<GastoFila, "montoTotal" | "medioPago" | "cajaMovimientoId">, b: BorradorComprobante): string[] {
+export function loQuePasaAlGuardar(g: Pick<GastoFila, "montoTotal" | "medioPago" | "cajaMovimientoId">, b: BorradorComprobante, /** La fecha en que cuenta, si un mes cerrado la lleva a otra (tarea 20). */ entra: string | null = null): string[] {
   const papel = b.tipo ? NOMBRE_DEL_PAPEL[b.tipo] : "comprobante";
   const lineas = [`El gasto queda con su ${papel}: deja de contar como «Sin comprobante».`];
   lineas.push(g.cajaMovimientoId ? "La plata ya salió del cajón: no se mueve la caja ni ninguna cuenta." : "La plata ya salió: no se mueve ninguna cuenta.");
   if (b.tipo === "factura") {
     const igv = igvDelPapel(b, g.montoTotal);
-    lineas.push(b.fecha ? `Su IGV, ${soles(igv)}, cuenta en Impuestos de ${textoMes(b.fecha.slice(0, 7))}.` : `Su IGV, ${soles(igv)}, cuenta en Impuestos.`);
+    const mesIgv = entra ?? b.fecha;
+    lineas.push(mesIgv ? `Su IGV, ${soles(igv)}, cuenta en Impuestos de ${textoMes(mesIgv.slice(0, 7))}.` : `Su IGV, ${soles(igv)}, cuenta en Impuestos.`);
     if (g.medioPago === "efectivo" && g.montoTotal >= UMBRAL_BANCARIZACION) {
       lineas.push(`Pero se pagó en efectivo y es de ${soles(UMBRAL_BANCARIZACION)} o más: sin banco, su IGV se pierde.`);
     }
@@ -125,4 +126,13 @@ export function loQuePasaAlGuardar(g: Pick<GastoFila, "montoTotal" | "medioPago"
     lineas.push("Una boleta no trae IGV que descontar.");
   }
   return lineas;
+}
+
+/**
+ * Lo que se avisa cuando el mes del comprobante o del gasto está cerrado (tarea 20 de «Las 36»; Felipe 2026-11-06). `entra` es la fecha en que cuenta. `null` si cuenta en su propio mes.
+ */
+export function avisoMesCerrado(fecha: string, entra: string | null): string | null {
+  if (!fecha || !entra || entra.slice(0, 7) === fecha.slice(0, 7)) return null;
+  const mes = textoMes(fecha.slice(0, 7));
+  return `${mes.charAt(0).toUpperCase()}${mes.slice(1)} ya está cerrado: el comprobante guarda su fecha real y entra en ${textoMes(entra.slice(0, 7))}. El mes cerrado no cambia.`;
 }

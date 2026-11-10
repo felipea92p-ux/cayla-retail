@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { pideComprobante, sinComprobanteGrande } from "./gastos-extracto-reglas";
-import { camposNoEmite, conNoEmite, leerNoEmiten, payloadNoEmite, problemaNoEmite, textoNoEmite, type BorradorNoEmite } from "./gastos-no-emite-reglas";
+import { camposNoEmite, conNoEmite, conPapelTardio, leerNoEmiten, leerPapelesTardios, payloadNoEmite, problemaNoEmite, textoNoEmite, type BorradorNoEmite } from "./gastos-no-emite-reglas";
 
 const LISTO = { listo: true, motivo: null };
 
@@ -54,5 +54,19 @@ describe("un gasto marcado «no emite» sale de lo que pide algo (Felipe: «sale
   });
   it("y la cuenta del chip, la bandeja y «Te toca» lo deja fuera", () => {
     expect(sinComprobanteGrande([grande, { ...grande, noEmite: { motivo: "se_perdio", nota: null } }]).n).toBe(1);
+  });
+});
+
+describe("el papel que llegó con el mes cerrado (tarea 20)", () => {
+  const g = (id: string, comprobanteTipo = "sin_comprobante") => ({ id, comprobanteTipo, comprobante: null as string | null });
+  const papeles = leerPapelesTardios([{ gasto_id: "a", tipo: "factura", documento: "F001-9", fecha_contable: "2026-11-06" }, { gasto_id: "b", tipo: "otra", documento: "x" }]);
+  it("lee solo los papeles que existen", () => {
+    expect([...papeles.keys()]).toEqual(["a"]);
+  });
+  it("el gasto deja de pedir comprobante y dice cuál es; los demás quedan igual", () => {
+    const [a, b, c] = conPapelTardio([g("a"), g("b"), g("c", "factura")], papeles);
+    expect(a).toMatchObject({ comprobanteTipo: "factura", comprobante: "F001-9", papelTardio: true });
+    expect(b).toMatchObject({ comprobanteTipo: "sin_comprobante" });
+    expect(c).toMatchObject({ comprobanteTipo: "factura" });
   });
 });

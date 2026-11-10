@@ -210,6 +210,9 @@ export const PRUEBAS = [
   // pegar dos veces. ROLLBACK.
   "pruebas:finanzas-confianza",
   "pruebas:cierre-orden-y-planilla",
+  "pruebas:igv-congelado",
+  "pruebas:factura-mes-cerrado",
+  "pruebas:anular-pago-nota-papel",
 
   // Pago de la planilla y pago a SUNAT (ADR-0417, situaciones 15 y 16): salen de un banco, el Diario baja la 41 y la 4011,
   // candados (destino, caja fuerte, comisión, sin ser líder), anular, pegar dos veces. ROLLBACK.

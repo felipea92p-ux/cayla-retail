@@ -2173,6 +2173,7 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
       archivo (los cuatro estados con sus cuentas, los saldos por cuenta y el libro diario), con las mismas lecturas de cada pantalla
       más `fn_saldos_por_cuenta` (migración `20261031120000`) y `fn_diario`. Lo pide el «Descargar Excel» de cada cuadro
       (`DescargarCuadro`, `components/finanzas/estados/DescargarContador.tsx`).
+  - Deshacer (tarea 21 de «Las 36», 2026-11-09): `anular_pago_compra` desde `components/AnularPagoModal.tsx` (factura de Compras, `ComprobantePagos`), `quitar_comprobante_de_gasto` desde la hoja del gasto (`GastosPanel`), `fn_anulados_de_compra` → lo anulado de la factura (`getAnuladosCompra`). Lo anulado vive en `documentos_anulados`. La factura tardía (tarea 20): `fn_fecha_contable` → `components/finanzas/gastos/useFechaContable.ts`; `fn_gastos_papeles_tardios` → `lib/gastos.ts`. El IGV cambiado desde el cierre (tarea 19): `fn_igv_cambios_desde_cierre` → `getIgvCambiado` (`lib/impuestos.ts`) → `AvisoIgvCambiado` en Impuestos y Cierre.
   - `/finanzas/impuestos` → `lib/impuestos.ts` → lecturas de IGV y registros (`parametros_tributarios` con vigencia y
     correcciones; se lee con `fn_tasa_igv`/`fn_parametro_tributario`, nunca directo).
   - `/finanzas/impuestos/sire` (ADR-0601, «Comparar con SUNAT»; `?registro=ventas` para el RVIE) → `lib/sire.ts` → `fn_sire_propuesta` (la
