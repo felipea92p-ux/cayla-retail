@@ -2,7 +2,7 @@
   "guia": "finanzas.reportes.flujo",
   "ruta": "/finanzas/reportes/flujo",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 33,
+  "total": 34,
   "controles": {
     "components/finanzas/EscenariosPanel.tsx": [
       "BotonDescargar «Descargar Excel»",
@@ -10,6 +10,7 @@
       "input «(sin nombre)»",
       "input «→(e) => cambiar({ cerrarTienda: e.target.checked»",
       "input «(sin nombre)» #2",
+      "Link «Plan de campaña»",
       "input «{id}»"
     ],
     "components/finanzas/FaltanProyeccion.tsx": [

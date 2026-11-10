@@ -19,6 +19,7 @@ import {
   type FilaDeTabla,
   type ReporteMes,
 } from "@/lib/reportes-ventas-reglas";
+import { lineaClaure, TITULO_COLUMNA_VENDIDO } from "@/lib/reportes-vendido-reglas";
 
 // La tabla que se corta de «Ventas del mes» (maqueta docs/maquetas/reportes-ventas-2026-11/): el mes por tienda o por categoría, con su «Total» al
 // pie. Es `<Tabla>` (ADR-0358); el corte vive en la URL (`?corte=`), así que es de servidor y «atrás» vuelve al corte anterior. El cambio contra el mes
@@ -29,7 +30,7 @@ const PLANTILLA_TIENDA = "sm:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)_7rem_5rem]
 const PLANTILLA_CATEGORIA = "sm:grid-cols-[minmax(0,1.4fr)_minmax(0,1.6fr)_5rem_7.5rem_5.5rem]";
 const COLUMNAS_TIENDA: Columna[] = [
   { titulo: "Tienda" },
-  { titulo: "Vendido" },
+  { titulo: TITULO_COLUMNA_VENDIDO },
   { titulo: "vs mes pasado", alinear: "der" },
   { titulo: "Ventas", alinear: "der" },
   { titulo: "Ticket", alinear: "der", desdeXl: true },
@@ -37,7 +38,7 @@ const COLUMNAS_TIENDA: Columna[] = [
 ];
 const COLUMNAS_CATEGORIA: Columna[] = [
   { titulo: "Categoría" },
-  { titulo: "Vendido" },
+  { titulo: TITULO_COLUMNA_VENDIDO },
   { titulo: "% del total", alinear: "der" },
   { titulo: "vs mes pasado", alinear: "der" },
   { titulo: "Prendas", alinear: "der" },
@@ -62,7 +63,9 @@ function Cambio({ c }: { c: number | null }) {
 /** En el celular cada dato lleva su nombre delante (la fila se apila y no hay encabezado). */
 const Rotulo = ({ children }: { children: string }) => <span className="mr-1 text-taupe sm:hidden">{children}</span>;
 
-export function TablaCortes({ r, cortes, corte, hrefDe }: { r: ReporteMes; cortes: CortesMes; corte: CorteDeTabla; hrefDe: (c: CorteDeTabla) => string }) {
+/** `claure`: cuánto de lo vendido es de CLAURE; si es mayor que cero, una línea bajo la tabla lo dice (tarea 77). No cambia ninguna cifra. */
+export function TablaCortes({ r, cortes, corte, hrefDe, claure = null }: { r: ReporteMes; cortes: CortesMes; corte: CorteDeTabla; hrefDe: (c: CorteDeTabla) => string; claure?: number | null }) {
+  const deClaure = lineaClaure(claure ?? 0);
   const ofrecidos = cortesOfrecidos(cortes);
   const porTienda = corte === "tienda";
   const filas: FilaDeTabla[] = filasDeTabla(porTienda ? cortes.tiendas : agruparCola(cortes.categorias), r);
@@ -86,6 +89,7 @@ export function TablaCortes({ r, cortes, corte, hrefDe }: { r: ReporteMes; corte
     );
     const vendido = (
       <span className={celda("izq", "block")}>
+        <Rotulo>{TITULO_COLUMNA_VENDIDO}</Rotulo>
         <span className={`tabular-nums ${esTotal ? "font-semibold" : ""}`}>{soles(f.vendido)}</span>
         {!esTotal && <BarraAvance pct={f.barra * 100} alto="fina" tono="tinta" decorativa className="mt-1.5" />}
       </span>
@@ -163,6 +167,7 @@ export function TablaCortes({ r, cortes, corte, hrefDe }: { r: ReporteMes; corte
           </div>
         </Tabla>
       )}
+      {filas.length > 0 && deClaure && <p className="texto-detalle text-taupe">{deClaure}</p>}
     </section>
   );
 }

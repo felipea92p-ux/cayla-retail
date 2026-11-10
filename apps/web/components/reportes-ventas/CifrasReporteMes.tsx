@@ -1,5 +1,7 @@
 import { ArrowDown, ArrowUp, Minus } from "lucide-react";
+import { EnlaceVer } from "@/components/ui/EnlaceVer";
 import { TarjetaCifra } from "@/components/ui/TarjetaCifra";
+import { lineaClaure, pieVendido } from "@/lib/reportes-vendido-reglas";
 import { soles } from "@/lib/flujo-caja-reglas";
 import {
   cambio,
@@ -38,15 +40,20 @@ function Cambio({ c, comparacion }: { c: number | null; comparacion: Comparacion
   );
 }
 
-export function CifrasReporteMes({ r }: { r: ReporteMes }) {
+/**
+ * `claure`: cuánto de lo vendido es de CLAURE (0 o `null` si no hay o no se pudo leer: la línea no sale). `hrefCuadre`: el enlace al cuadro
+ * «De Ventas a Finanzas», solo para quien ve Estados financieros (lo decide la página con `veModulo`). Solo rotulan: la cifra no cambia (tarea 77).
+ */
+export function CifrasReporteMes({ r, claure = null, hrefCuadre = null }: { r: ReporteMes; claure?: number | null; hrefCuadre?: string | null }) {
   const comparacion = comparacionDe(r);
+  const deClaure = lineaClaure(claure ?? 0);
   const { actual, anterior } = r;
   const ticket = ticketPromedio(actual);
   const porVenta = prendasPorVenta(actual);
   return (
     <div className="space-y-3">
     <div data-guia="reportes.cifras" className="grid grid-cols-2 gap-3 lg:grid-cols-4" role="group" aria-label="Las cifras del mes">
-      <TarjetaCifra etiqueta="Vendido" valor={soles(actual.vendido)} pie={tramoEnPalabras(r)}>
+      <TarjetaCifra etiqueta="Vendido" valor={soles(actual.vendido)} pie={pieVendido(tramoEnPalabras(r))}>
         <Cambio c={cambio(actual.vendido, anterior.vendido)} comparacion={comparacion} />
       </TarjetaCifra>
       <TarjetaCifra etiqueta="Ventas" valor={ENTERO.format(actual.tickets)} unidad={actual.tickets === 1 ? "venta" : "ventas"} pie="sin anuladas ni de prueba">
@@ -60,6 +67,16 @@ export function CifrasReporteMes({ r }: { r: ReporteMes }) {
       </TarjetaCifra>
     </div>
     {!comparacion.hay && <p className="texto-detalle text-taupe">{comparacion.motivo}</p>}
+    {(deClaure || hrefCuadre) && (
+      <p className="texto-detalle flex flex-wrap items-baseline gap-x-3 gap-y-1 text-taupe">
+        {deClaure && <span>{deClaure}</span>}
+        {hrefCuadre && (
+          <EnlaceVer href={hrefCuadre} guia="reportes.cuadre">
+            Cómo cuadra con Finanzas
+          </EnlaceVer>
+        )}
+      </p>
+    )}
     </div>
   );
 }

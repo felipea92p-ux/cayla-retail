@@ -56,7 +56,7 @@ export function MasDelFlujo({
   semanas: number;
   hoy: string;
   /** Lo que «¿Y si…?» necesita: el estado de resultados del último mes completo. */
-  escenarios: { resultados: FilaER[] | null; mesBase: string };
+  escenarios: { resultados: FilaER[] | null; mesBase: string; vePlan?: boolean };
 }) {
   const router = useRouter();
   const ruta = usePathname();
@@ -103,7 +103,7 @@ export function MasDelFlujo({
       <section id="y-si" className="scroll-mt-44 space-y-4">
         <BotonVerMas abierto={verYSi} onCambiar={setVerYSi} texto="¿Y si…? Prueba un cambio" forma="enlace" controla="fin-plata-y-si" data-guia="fin-plata.y-si" />
         <FilasDeMas abierto={verYSi} id="fin-plata-y-si">
-          <EscenariosPanel proyeccion={proyeccion} resultados={escenarios.resultados} mesBase={escenarios.mesBase} hoy={hoy} />
+          <EscenariosPanel proyeccion={proyeccion} resultados={escenarios.resultados} mesBase={escenarios.mesBase} hoy={hoy} vePlan={escenarios.vePlan} />
         </FilasDeMas>
       </section>
 

@@ -4,7 +4,7 @@
 - [x] «Cada sede, junta» con «Vendió con IGV» y columna IGV.
 - [x] **Lima en «Cada sede, junta»**: decidido y construido el 2026-11-09 (todo lo vendido en la tienda, con la línea de CLAURE sin IGV; ADR-0624, actualización).
 - [x] El IGV en el resto de Finanzas: Resumen, «Necesitas vender», la meta, Topes, el cuadro «De Ventas a Finanzas» y Ganancias (tareas 19, 53 y 76). Márgenes, el límite de SUNAT, «Lo que más se movió» y Flujo ▸ ¿Y si…? siguen sin IGV, rotulados.
-- [ ] **Facturas de compra de CLAURE**: Felipe decidió (2026-11-09) que, cuando CLAURE facture, se deja de descontarle el IGV (ADR-0560, actualización). Hasta la primera factura se sigue descontando. Falta con el contador: fecha de corte, qué pasa con lo ya descontado y con el efectivo anterior, y cómo se registra sin subir stock ni costo. Construirlo pide migración. Tarea 185 del tablero.
+- [ ] **Facturas de compra de CLAURE**: reemplazado el mismo día por el ADR-0638, regla 5 (CAYLA asume todo el IGV de CLAURE y ya no se le descuenta; línea acumulada contra sus facturas). Sin construir: lleva migración y, con el contador, cómo se registra la factura sin subir stock ni costo. Tarea 185 del tablero.
 - [ ] Elegir el camino del IGV (A, B o C, tablero) y pedir al contador el PDT de septiembre, el crédito de octubre y la decisión sobre las notas de venta, antes de declarar octubre.
 - [ ] Tareas 24, 25, 43, 68, 10 y 96: lo que falta es decisión de Felipe o una migración.
 - [ ] Tareas 61 y 159: mirar en pantalla el recorrido con dos sedes y el globo del mes; correr `tema:auditar` y comparar `.fin-control` con el spike.
