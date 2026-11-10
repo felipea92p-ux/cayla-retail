@@ -1,7 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
   ANCHO_ESTANDAR_DE_LA_UNION,
-  ANCHO_PARA_MEDIR,
   AJUSTE_MAXIMO_DE_ARRIBA,
   ANCHO_MAXIMO_DE_ABAJO_SOBRE_ARRIBA,
   anchoDelBajo,
@@ -12,7 +11,8 @@ import {
   cajaDeArribaAjustada,
   cajaDeAbajoSinMedida,
   cajaDeAbajoUnida,
-  direccionParaMedir,
+  direccionDeLaMedida,
+  esNombreDeRecorte,
   FACTOR_MAXIMO_DEL_TORSO,
   FACTOR_MINIMO_DEL_TORSO,
   factorDelTorso,
@@ -28,12 +28,15 @@ import {
   MS_DEL_LISTO,
   PRETINA_MINIMA_DE_LA_FALDA,
   type MedidaDelRecorte,
+  medidaDesdeDato,
   medidasATexto,
   medidasDesdeTexto,
   medirRecorte,
   siguienteFase,
   SIN_MEDIDA,
   SOLAPE_DE_LA_UNION,
+  urlDelRecorte,
+  VERSION_DE_LA_MEDIDA,
 } from "./union-prendas";
 import { ESCENA, PX_POR_CM } from "./probador";
 
@@ -449,15 +452,39 @@ describe("cajaDeAbajoSinMedida: sin medidas, lo de abajo arranca en el bajo de l
   });
 });
 
-describe("direccionParaMedir: se mide una copia chica, no el PNG entero", () => {
-  it("una foto del almacén pasa por el optimizador, al ancho que ya sirve", () => {
-    const d = direccionParaMedir({ url: "https://x.supabase.co/storage/v1/object/public/retail-productos-fotos/a b.png", optimizar: true });
-    expect(d.startsWith("/_next/image?url=")).toBe(true);
-    expect(d).toContain(`w=${ANCHO_PARA_MEDIR}`);
-    expect(d).toContain(encodeURIComponent("a b.png"));
+describe("la medida la saca la tienda: dónde se pide (Safari 26 le mete ruido a la lectura de píxeles, 2026-11-10)", () => {
+  const RECORTE = "b5595d2a-3d69-41ed-9d0c-d73355d476fb-7ee8fc70.png";
+  const url = `https://x.supabase.co/storage/v1/object/public/retail-productos-fotos/recortes/${RECORTE}`;
+
+  it("un recorte del almacén se pide a la ruta de la tienda, con su versión", () => {
+    expect(direccionDeLaMedida(url)).toBe(`/api/medida/${RECORTE}?v=${VERSION_DE_LA_MEDIDA}`);
   });
-  it("cualquier otra foto se baja tal cual", () => {
-    expect(direccionParaMedir({ url: "https://otro.com/a.png", optimizar: false })).toBe("https://otro.com/a.png");
+
+  it("una foto que no es un recorte del almacén no tiene medida (ni otra carpeta ni otro nombre)", () => {
+    expect(direccionDeLaMedida("https://otro.com/a.png")).toBeNull();
+    expect(direccionDeLaMedida(url.replace("/recortes/", "/fotos/"))).toBeNull();
+    expect(direccionDeLaMedida(url.replace(RECORTE, "../secreto.png"))).toBeNull();
+    expect(direccionDeLaMedida(url.replace(RECORTE, `x/${RECORTE}`))).toBeNull();
+  });
+
+  it("la ruta solo acepta nombres de recortes: nada de carpetas, rutas relativas ni otros archivos", () => {
+    expect(esNombreDeRecorte(RECORTE)).toBe(true);
+    expect(esNombreDeRecorte("b5595d2a-3d69-41ed-9d0c-d73355d476fb.webp")).toBe(true);
+    for (const malo of ["../b5595d2a-3d69-41ed-9d0c-d73355d476fb.png", "b5595d2a-3d69-41ed-9d0c-d73355d476fb.svg", "a.png", "", `${RECORTE}?x=1`, `carpeta/${RECORTE}`]) {
+      expect(esNombreDeRecorte(malo)).toBe(false);
+    }
+  });
+
+  it("la ruta baja el recorte del almacén de la tienda, sin importar de qué host llegó el nombre", () => {
+    expect(urlDelRecorte("https://tienda.supabase.co/", RECORTE)).toBe(`https://tienda.supabase.co/storage/v1/object/public/retail-productos-fotos/recortes/${RECORTE}`);
+  });
+
+  it("solo se usa una respuesta bien formada; lo demás es «sin medida»", () => {
+    const buena = { filaDelBorde: 0.8, borde: 0.4, pretina: null, bajo: null, anchoBajo: 0.5 };
+    expect(medidaDesdeDato(buena)).toEqual(buena);
+    for (const mala of [null, 5, "x", [], { filaDelBorde: 2, borde: 0.4, pretina: null }, { borde: 0.4 }, { ...buena, bajo: [0.5] }]) {
+      expect(medidaDesdeDato(mala)).toBeNull();
+    }
   });
 });
 

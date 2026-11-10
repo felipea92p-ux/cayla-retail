@@ -316,23 +316,52 @@ export function siguienteFase(fase: FaseDelAjuste, ajustando: boolean): FaseDelA
   return fase === "espera" ? "listo" : fase;
 }
 
-/* ======================== Para medir rápido: qué se baja, y lo que se recuerda entre visitas ======================== */
+/* ======================== Para medir rápido: a qué ancho se mide, y lo que se recuerda entre visitas ======================== */
 
-/** El ancho (px) al que se baja un recorte para medirlo: uno de los anchos que el optimizador de imágenes de la tienda ya sirve (`imageSizes`). */
+/** El ancho (px) al que la ruta baja un recorte para medirlo. Las medidas son fracciones de la imagen, así que no cambian por bajarla más chica. */
 export const ANCHO_PARA_MEDIR = 256;
 /** Cuántos recortes medidos se recuerdan en el navegador (los más nuevos): son tres números por prenda. */
 export const MEDIDAS_QUE_SE_RECUERDAN = 300;
 
-/**
- * De dónde se baja un recorte para medirlo. Una foto del almacén de CAYLA pasa por el optimizador (misma dirección que ya usa la figura, 256 px
- * de ancho): pesa una fracción del PNG entero, sale de la caché del CDN y es del mismo origen, sin pedir permisos de lectura. Cualquier otra se
- * baja tal cual. Las medidas son fracciones de la imagen, así que no cambian por bajarla más chica.
- */
-export function direccionParaMedir(foto: { url: string; optimizar: boolean }): string {
-  return foto.optimizar ? `/_next/image?url=${encodeURIComponent(foto.url)}&w=${ANCHO_PARA_MEDIR}&q=75` : foto.url;
+/* ======================== La medida la saca la tienda, no el navegador (2026-11-10) ======================== */
+
+// Safari 26 (macOS y iOS) trae encendida para toda la navegación su protección contra la huella digital: le mete ruido a lo que una página lee de
+// un lienzo (`getImageData`). Esa lectura era la medida de la unión, así que en Safari la blusa y el pantalón quedaban sin unir o mal unidos, y en
+// Chrome no (Felipe, 2026-11-10, desde Safari en su Mac). La medida ahora la saca el servidor de la tienda con la MISMA función (`medirRecorte`),
+// una vez por recorte: `app/api/medida/[archivo]/route.ts`. Todo navegador recibe el mismo número, y ninguna protección de privacidad lo toca.
+
+const CARPETA_DE_RECORTES = "/storage/v1/object/public/retail-productos-fotos/recortes/";
+/** El nombre de un recorte del almacén: el id de la foto y un sufijo (b5595d2a-…-d73355d476fb-7ee8fc70.png). Es lo único que acepta la ruta. */
+const NOMBRE_DE_RECORTE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}(?:-[0-9a-f]{1,32})?\.(?:png|webp)$/i;
+/** La medida se guarda un año por su dirección: si cambia cómo se mide (`medirRecorte`), se sube este número para que se vuelva a calcular. */
+export const VERSION_DE_LA_MEDIDA = 1;
+
+/** ¿Es el nombre de un recorte del almacén? Nada de carpetas ni de otras direcciones. */
+export const esNombreDeRecorte = (archivo: string): boolean => NOMBRE_DE_RECORTE.test(archivo);
+
+/** La dirección del recorte en el almacén de la tienda (`origen`, el de `TIENDA_FOTOS_ORIGEN`). */
+export const urlDelRecorte = (origen: string, archivo: string): string => `${origen.replace(/\/$/, "")}${CARPETA_DE_RECORTES}${archivo}`;
+
+/** Dónde pide el navegador la medida de un recorte; `null` si la foto no es un recorte del almacén (entonces no hay unión: queda la caja de siempre). */
+export function direccionDeLaMedida(url: string): string | null {
+  const i = url.indexOf(CARPETA_DE_RECORTES);
+  if (i < 0) return null;
+  const archivo = url.slice(i + CARPETA_DE_RECORTES.length);
+  return esNombreDeRecorte(archivo) ? `/api/medida/${archivo}?v=${VERSION_DE_LA_MEDIDA}` : null;
 }
 
 const esFraccion = (v: unknown): v is number | null => v === null || (typeof v === "number" && Number.isFinite(v) && v >= 0 && v <= 1);
+
+/** Una medida bien formada (la que responde la ruta o la que se recordó), o `null` si no lo es: un dato roto o de otra versión no rompe nada. */
+export function medidaDesdeDato(m: unknown): MedidaDelRecorte | null {
+  if (!m || typeof m !== "object" || Array.isArray(m)) return null;
+  const { filaDelBorde, borde, pretina, bajo, anchoBajo } = m as Record<string, unknown>;
+  const perfil = Array.isArray(bajo) && bajo.length === FRANJAS_DEL_BAJO && bajo.every(esFraccion) ? (bajo as (number | null)[]) : null;
+  if (esFraccion(filaDelBorde) && esFraccion(borde) && esFraccion(pretina) && (bajo == null || perfil) && (anchoBajo == null || esFraccion(anchoBajo))) {
+    return { filaDelBorde, borde, pretina, bajo: perfil, anchoBajo: anchoBajo ?? null };
+  }
+  return null;
+}
 
 /** Lo que se recordó de visitas anteriores: solo lo bien formado (un texto roto o de otra versión no rompe nada). */
 export function medidasDesdeTexto(texto: string | null): Map<string, MedidaDelRecorte> {
@@ -342,12 +371,8 @@ export function medidasDesdeTexto(texto: string | null): Map<string, MedidaDelRe
     const dato: unknown = JSON.parse(texto);
     if (!dato || typeof dato !== "object" || Array.isArray(dato)) return salida;
     for (const [url, m] of Object.entries(dato)) {
-      if (!m || typeof m !== "object") continue;
-      const { filaDelBorde, borde, pretina, bajo, anchoBajo } = m as Record<string, unknown>;
-      const perfil = Array.isArray(bajo) && bajo.length === FRANJAS_DEL_BAJO && bajo.every(esFraccion) ? (bajo as (number | null)[]) : null;
-      if (esFraccion(filaDelBorde) && esFraccion(borde) && esFraccion(pretina) && (bajo == null || perfil) && (anchoBajo == null || esFraccion(anchoBajo))) {
-        salida.set(url, { filaDelBorde, borde, pretina, bajo: perfil, anchoBajo: anchoBajo ?? null });
-      }
+      const medida = medidaDesdeDato(m);
+      if (medida) salida.set(url, medida);
     }
   } catch {
     // Un texto que no es JSON se ignora: se vuelve a medir.
