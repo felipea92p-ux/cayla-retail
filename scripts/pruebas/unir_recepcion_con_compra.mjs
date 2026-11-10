@@ -3,7 +3,7 @@
  * Pruebas de ADR-0636, paso 2 — unir una recepción «sin aviso» con la compra pagada a la que pertenece
  * (`20261110011000_unir_recepcion_con_su_compra.sql`).
  *
- * (Incluye lo que cerró la revisión adversarial del 2026-11-10: U15 a U19.)
+ * (Incluye lo que cerró la revisión adversarial del 2026-11-10: U15 a U19; y la lista de parejas posibles del paso 3, `20261110022000`: L1 a L6.)
  *
  * LO QUE VIGILA. Que una misma mercadería nunca entre dos veces al stock ni se quede sin pasar al libro: tras unir, la compra sale de su
  * envío propio, ya no se puede volver a mandar, y su papel pasa al libro cuando la recepción está cerrada, con lo llegado anotado como
@@ -32,9 +32,13 @@ const SIN_MIGRACION = process.argv.includes("--sin-migracion");
 const VER_TODO = process.argv.includes("--ver");
 const MIGRACION = SIN_MIGRACION
   ? ""
-  : readFileSync(join(RAIZ, "supabase/migrations/20261110011000_unir_recepcion_con_su_compra.sql"), "utf8")
-      .replace(/^set lock_timeout.*$/gm, "")
-      .replace(/^reset lock_timeout;$/gm, "");
+  : ["20261110011000_unir_recepcion_con_su_compra.sql", "20261110022000_uniones_posibles_recepcion_compra.sql"]
+      .map((f) =>
+        readFileSync(join(RAIZ, "supabase/migrations", f), "utf8")
+          .replace(/^set lock_timeout.*$/gm, "")
+          .replace(/^reset lock_timeout;$/gm, ""),
+      )
+      .join("\n");
 
 const MICAELA = "22222222-2222-4222-8222-000000000003"; // integrante de Trujillo: recibe y une
 const SANDRA = "22222222-2222-4222-8222-000000000005"; // líder: compra y manda
@@ -142,12 +146,12 @@ select (:'sa_${nombre}'::jsonb ->> 'despacho_id') as ${nombre} \\gset
 select pg_temp.guarda(:'${nombre}', null, ${n}, ${J({ prendas: A(J({ producto_id: ":'prod'", cantidad: n, variantes: A(J({ variante_id: ":'var'", cantidad: n, danadas: 0, danada_solucion: "null::text" })) })), nuevas: A() })},
   null::int, null::int, null::uuid, :'cat', :'marca') \\g /dev/null
 `;
-const CIERRA = (nombre) => `
+const CIERRA = (nombre, { costo = "null::numeric" } = {}) => `
 reset role;
 select version as k_${nombre} from retail.despacho_conteos where despacho_id = :'${nombre}' and extra_posicion = 1 \\gset
 select version as v_${nombre} from retail.despachos where id = :'${nombre}' \\gset
 ${MICAELA_AQUI}
-select pg_temp.cierra(:'${nombre}', :v_${nombre}, ${A(J({ extra_posicion: "1", version: `:k_${nombre}`, costo_unitario: "null::numeric", confirma_costo: "false", faltante_causa: "null::text", sobrante_causa: "null::text", nota: "null::text" }))}, null::text, null::uuid) as cierre_${nombre} \\gset
+select pg_temp.cierra(:'${nombre}', :v_${nombre}, ${A(J({ extra_posicion: "1", version: `:k_${nombre}`, costo_unitario: costo, confirma_costo: "false", faltante_causa: "null::text", sobrante_causa: "null::text", nota: "null::text" }))}, null::text, null::uuid) as cierre_${nombre} \\gset
 `;
 const STOCK = `coalesce((select sum(s.cantidad) from retail.stock s where s.variante_id = :'var'), 0)`;
 const MOVS = `(select count(*) from retail.movimientos m where m.variante_id = :'var')`;
@@ -478,6 +482,98 @@ caso(
      (select string_agg(estado, ',' order by estado) from retail.compra_papeles where id in (:'p1', :'p2')),
      (select coalesce(sum(a.cantidad), 0) from retail.compra_item_recibido_antes a));`,
   "true:false:false:0:0: / 0:0:union_sin_prendas / 1 / completado,por_completar / 8",
+);
+
+// ---- Paso 3: la lista de parejas posibles (`fn_uniones_posibles`) ----
+// Lo que dice la lista, en una línea: n filas, luego por fila clase:se_puede:motivo:llegadas:faltan:monto|valor
+const LISTA = (nombre = "lista") => `
+   select retail.fn_uniones_posibles(:'tru') as ${nombre} \\gset`;
+const FILAS = (l, i = 0) => `concat_ws(':', :'${l}'::jsonb -> ${i} ->> 'clase', :'${l}'::jsonb -> ${i} ->> 'se_puede', coalesce(:'${l}'::jsonb -> ${i} ->> 'motivo', '-'),
+     :'${l}'::jsonb -> ${i} ->> 'prendas_llegadas', coalesce(:'${l}'::jsonb -> ${i} ->> 'faltan', '-'),
+     coalesce(:'${l}'::jsonb -> ${i} ->> 'monto_papel', 'null') || '|' || coalesce(:'${l}'::jsonb -> ${i} ->> 'valor_llegado', 'null'))`;
+caso(
+  "L1 mismas prendas y mismo valor es «exacto»: aparece con su recepción y su compra, y quien solo recibe no ve los montos",
+  `${COMPRA("p1", 8, { token: A1 })}
+   ${SIN_AVISO("r1", 8)}${CIERRA("r1", { costo: "10" })}
+   ${MICAELA_AQUI}${LISTA()}
+   reset role;
+   ${COMPRADORA("compra_rapida")}${LISTA("lista_lider")}
+   reset role;
+   select concat_ws(' / ', jsonb_array_length(:'lista'::jsonb), ${FILAS("lista")}, ${FILAS("lista_lider")},
+     (:'lista'::jsonb -> 0 ->> 'despacho_id') = :'r1', (:'lista'::jsonb -> 0 ->> 'papel_id') = :'p1');`,
+  "1 / exacto:true:-:8:-:null|null / exacto:true:-:8:-:80.00|80.00 / t / t",
+);
+caso(
+  "L2 si llegaron todas pero el valor difiere (o no se sabe) es «probable»",
+  `${COMPRA("p1", 8, { token: A1 })}
+   ${SIN_AVISO("r1", 8)}${CIERRA("r1", { costo: "11" })}
+   ${COMPRADORA("compra_rapida")}${LISTA("l_difiere")}
+   reset role;
+   ${COMPRA("p2", 8, { token: A2, prov: "'prov2'" })}
+   ${SIN_AVISO("r2", 8, { prov: "prov2" })}${CIERRA("r2")}
+   ${COMPRADORA("compra_rapida")}${LISTA("l_sin_costo")}
+   reset role;
+   select concat_ws(' / ', ${FILAS("l_difiere")}, jsonb_array_length(:'l_sin_costo'::jsonb), ${FILAS("l_sin_costo", 0)}, ${FILAS("l_sin_costo", 1)});`,
+  "probable:true:-:8:-:80.00|88.00 / 2 / probable:true:-:8:-:80.00|null / probable:true:-:8:-:80.00|88.00",
+);
+caso(
+  "L3 si llegó menos de lo comprado sale «parcial», no se puede unir y dice cuántas faltan",
+  `${COMPRA("p1", 8, { token: A1 })}
+   ${SIN_AVISO("r1", 5)}${CIERRA("r1", { costo: "10" })}
+   ${MICAELA_AQUI}${LISTA()}
+   reset role;
+   select ${FILAS("lista")};`,
+  "parcial:false:llego_menos:5:3:null|null",
+);
+caso(
+  "L4 una compra ya unida deja de salir, y la que quedó sin prendas libres tampoco",
+  `${COMPRA("p1", 8, { token: A1 })}${COMPRA("p2", 5, { token: A2 })}
+   ${SIN_AVISO("r1", 8)}${CIERRA("r1", { costo: "10" })}
+   ${MICAELA_AQUI}${LISTA("antes")}
+   select pg_temp.une(:'r1', :'p1', null) as u \\gset
+   ${LISTA("despues")}
+   reset role;
+   select concat_ws(' / ', jsonb_array_length(:'antes'::jsonb), ${FILAS("antes", 0)}, ${FILAS("antes", 1)}, ${RESP("u")}, jsonb_array_length(:'despues'::jsonb));`,
+  "2 / exacto:true:-:8:-:null|null / probable:true:-:8:-:null|null / true:false:true:0:0: / 0",
+);
+caso(
+  "L5 si la compra ya tiene su envío propio con prendas contadas, sale pero no se puede unir (envio_con_conteo)",
+  `${COMPRA("p1", 8, { token: A1 })}${MANDA("e1", B1)}
+   ${MICAELA_AQUI}
+   reset role;
+   select version as v_e1 from retail.despachos where id = :'e1' \\gset
+   select id as di1 from retail.despacho_items where despacho_id = :'e1' limit 1 \\gset
+   ${MICAELA_AQUI}
+   select pg_temp.abre(:'e1', :v_e1) as ab \\gset
+   select pg_temp.guarda(:'e1', :'di1', 3, '{}'::jsonb, null::int, null::int, null::uuid, null::uuid, null::uuid) as g \\gset
+   ${SIN_AVISO("r1", 8)}${CIERRA("r1", { costo: "10" })}
+   ${MICAELA_AQUI}${LISTA()}
+   reset role;
+   select ${FILAS("lista")};`,
+  "exacto:false:envio_con_conteo:8:-:null|null",
+);
+caso(
+  "L6 otra sede no ve la lista de esta; sin el módulo no se lee (union_sin_modulo); proveedor distinto no se cruza",
+  `${COMPRA("p1", 8, { token: A1 })}
+   ${SIN_AVISO("r1", 8, { prov: "prov2" })}${CIERRA("r1", { costo: "10" })}
+   ${MICAELA_AQUI}${LISTA("distinto")}
+   select jsonb_array_length(retail.fn_uniones_posibles(:'otra')) as otra_sede \\gset
+   reset role;
+   update retail.colaboradores set rol_id = :'rol_nada' where persona_id = :'micaela_p';
+   ${MICAELA_AQUI}
+   create function pg_temp.sin_mod() returns text language plpgsql as $f$
+   declare v_h text;
+   begin
+     perform retail.fn_uniones_posibles(current_setting('t.tru')::uuid);
+     return 'SIN_ERROR';
+   exception when others then
+     get stacked diagnostics v_h = pg_exception_hint;
+     return coalesce(v_h, sqlstate);
+   end $f$;
+   select pg_temp.sin_mod() as sin_modulo \\gset
+   reset role;
+   select concat_ws(' / ', jsonb_array_length(:'distinto'::jsonb), :'otra_sede', :'sin_modulo');`,
+  "0 / 0 / union_sin_modulo",
 );
 
 console.log(`\n${casos - fallas}/${casos} casos en verde.`);
