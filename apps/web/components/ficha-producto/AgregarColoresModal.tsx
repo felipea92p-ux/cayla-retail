@@ -212,7 +212,7 @@ export function AgregarColoresModal({
   ];
 
   return (
-    <Modal titulo="Agregar color" subtitulo="Llegó un color que la prenda no tenía" onClose={onClose} tamano="ancha">
+    <Modal titulo="Agregar color" subtitulo="Llegó un color que la prenda no tenía" onClose={onClose} tamano="ancha" focoEnLaHoja>
       {(cerrar) => (
         <div className="space-y-5">
           <PasosDeAgregar primero="Elige el color" segundo={puedeCargar ? "Unidades de partida" : "Cómo nacen"} hechoPrimero={nuevos.length > 0 && (!eraSinColor || !!colorDeLasQueTiene)} />
@@ -408,6 +408,8 @@ export function AgregarColoresModal({
             </section>
           )}
           <p className="text-sm text-taupe">Nada se guarda todavía: se suma a la ficha y se guarda con «Revisar y guardar».</p>
+          {/* El pie se queda a la vista en una hoja larga: en la prueba ciega el botón quedaba al fondo y no se sabía cómo seguir (ADR-0634). */}
+          <div className="pie-hoja-fijo">
           <PieGuia guia={guia} listo={puedeCargar && nacen > 0 && totalUnidades > 0 ? `Listo: ${totalUnidades} ${totalUnidades === 1 ? "unidad" : "unidades"} de partida.` : "Todo listo."} />
           <PieModal
             guia="agregar-color.pie"
@@ -426,6 +428,7 @@ export function AgregarColoresModal({
               cerrar();
             }}
           />
+          </div>
         </div>
       )}
     </Modal>

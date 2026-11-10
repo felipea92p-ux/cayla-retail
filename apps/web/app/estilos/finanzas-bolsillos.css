@@ -1,0 +1,857 @@
+/* =========================================================================================================================================
+   FINANZAS ▸ RESUMEN, CAMINO «A · BOLSILLOS» (Felipe 2026-11-09; maqueta docs/maquetas/finanzas-resumen-de-punta-a-punta-2026-11/).
+   Lo libre para usar y la plata partida en bolsillos con dueño. Solo tokens (ADR-0169, ADR-0336); el movimiento es el del sistema: la cifra cuenta
+   una vez (CifraAnimada) y los renglones entran en cascada (`anim-entra`), sin rebote ni bucle (ADR-0136).
+   ========================================================================================================================================= */
+
+.bolsillos {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+.fin-superficie.bolsillos {
+  padding: 26px 28px 24px;
+}
+/* El resplandor verde de la maqueta: dice «esto es plata tuya» sin decirlo. */
+.bolsillos::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  background: radial-gradient(90% 70% at 100% 0%, color-mix(in srgb, var(--color-verde) 9%, transparent), transparent 60%); /* contraste: no aplica — es una luz, no un texto */
+}
+.bolsillos > * {
+  position: relative;
+  z-index: 1;
+}
+.bolsillos-cab {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.bolsillos-etiqueta {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--color-taupe-profundo);
+}
+.bolsillos-como {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+}
+.bolsillos-cifra {
+  margin-top: 10px;
+  font-size: clamp(52px, 6.2vw, 104px);
+  line-height: 1;
+  color: var(--color-tinta);
+}
+.bolsillos-cifra.es-falta {
+  color: var(--color-rojo-profundo);
+}
+.bolsillos-dicho {
+  margin-top: 8px;
+  max-width: 62ch;
+  font-size: 16px;
+  color: var(--color-taupe-profundo);
+}
+.bolsillos-motivo,
+.bolsillos-hoy {
+  margin-top: 6px;
+  font-size: 14px;
+  color: var(--color-taupe-profundo);
+}
+.bolsillos-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+.bolsillos-barra {
+  margin-top: 22px;
+}
+.bolsillos-ley {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 14px;
+  margin-top: 10px;
+  font-size: 13px;
+  color: var(--color-taupe-profundo);
+}
+.bolsillos-ley i {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  margin-right: 6px;
+  border-radius: 3px;
+  background: var(--c);
+  vertical-align: -1px;
+}
+/* Cada bolsillo es una tarjetita con su ícono en un cuadrito de su color, como las cajitas de la app del banco. */
+.bolsillos-lista {
+  display: grid;
+  gap: 6px;
+  margin: 14px 0 0;
+  padding: 0;
+  list-style: none;
+}
+.bolsillos-fila {
+  display: grid;
+  width: 100%;
+  grid-template-columns: 30px minmax(0, 1fr) auto 16px;
+  align-items: center;
+  gap: 12px;
+  min-height: 52px;
+  padding: 10px 14px;
+  border-radius: 18px;
+  text-align: left;
+  color: var(--color-tinta);
+  /* La placa (ADR-0596, «lo que explica»): vidrio con su luz arriba y su canto claro. */
+  background: var(--placa-fondo);
+  box-shadow: inset 0 0 0 1px var(--hilo-fila), var(--placa-luz); /* sobre el vidrio claro, el canto de la placa se pierde: lo dibuja el hilo de las tablas */
+  transition: translate var(--t-resp, 200ms) var(--ease-cayla), box-shadow var(--t-resp, 200ms) var(--ease-cayla);
+}
+/* El ícono en su gota (la de las tarjetas de indicador, ADR-0596): redonda, del tono del bolsillo, con su luz arriba. */
+.bolsillos-icono {
+  display: grid;
+  width: 30px;
+  height: 30px;
+  place-items: center;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--c) var(--gota-icono-tinte), transparent);
+  box-shadow: var(--gota-icono-luz);
+  color: color-mix(in srgb, var(--c) 70%, var(--color-tinta)); /* contraste: no aplica — es un ícono que acompaña a su nombre */
+}
+.bolsillos-texto-fila {
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: baseline;
+  column-gap: 10px;
+}
+.bolsillos-texto-fila b {
+  font-size: 14.5px;
+  font-weight: 500;
+}
+.bolsillos-texto-fila small {
+  font-size: 12.5px;
+}
+.bolsillos-texto {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 2px;
+}
+.bolsillos-texto b {
+  font-size: 14px;
+  font-weight: 600;
+}
+.bolsillos-texto small {
+  font-size: 13px;
+  line-height: 1.35;
+  color: var(--color-taupe-profundo);
+}
+.bolsillos-monto {
+  font-size: 17px;
+  font-weight: 500;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.bolsillos-flecha {
+  color: var(--color-taupe);
+  transition: translate var(--t-resp, 200ms) var(--ease-cayla);
+}
+.bolsillos-fila.es-enlace:focus-visible {
+  outline: 2px solid var(--color-tinta);
+  outline-offset: 2px;
+}
+@media (hover: hover) {
+  .bolsillos-fila.es-enlace:hover {
+    translate: 0 -2px;
+    /* Al apuntar sube 2 px y el canto toma el tono del bolsillo, con la sombra de lo que está encima (la placa Serena). */
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--c) 40%, transparent), var(--serena-sombra-encima); /* contraste: no aplica — es un borde y una sombra */
+  }
+  .bolsillos-fila.es-enlace:hover .bolsillos-flecha {
+    translate: 4px 0;
+  }
+}
+
+/* La cuenta de «¿Cómo se calcula?»: una boleta, renglón por renglón, con el resultado subrayado. */
+.bolsillos-cuenta {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.bolsillos-cuenta > li {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 10px 0;
+  border-top: 1px solid var(--hilo-fila);
+}
+.bolsillos-cuenta > li:first-child {
+  border-top: 0;
+}
+.bolsillos-cuenta .num {
+  font-size: 15px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  color: var(--color-tinta);
+}
+.bolsillos-cuenta .es-resta {
+  color: var(--color-taupe-profundo);
+}
+/* El total, como en una boleta, pero con un filo fino de tinta (no 2 px sólidos que pesaban más que la cifra). */
+.bolsillos-cuenta > li.es-total {
+  border-top: 1px solid color-mix(in srgb, var(--color-tinta) 40%, transparent); /* contraste: no aplica — es un borde, no un texto */
+}
+.bolsillos-cuenta > li.es-total .num {
+  font-size: 22px;
+  font-weight: 500;
+  letter-spacing: -0.02em;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bolsillos-fila,
+  .bolsillos-flecha {
+    transition: none;
+  }
+}
+
+/* ---------- «Noviembre va así»: lo que te deja el mes ---------- */
+.mes-a {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+.mes-a-cab {
+  margin-bottom: 8px;
+}
+.mes-a-cifra {
+  margin-top: 6px;
+  font-size: clamp(40px, 4vw, 56px);
+  line-height: 1;
+  color: var(--color-tinta);
+}
+.mes-a-etiqueta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+.mes-a-cifra.es-falta {
+  color: var(--color-rojo-profundo);
+}
+.mes-a-bajada {
+  margin-top: 8px;
+  max-width: 62ch;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--color-taupe-profundo);
+}
+.mes-a-bajada b {
+  font-weight: 600;
+  color: var(--color-tinta);
+}
+.mes-a-tres {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  margin: 16px 0 0;
+  padding-top: 14px;
+  border-top: 1px solid var(--hilo-fila);
+}
+.mes-a-tres > div {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+}
+.mes-a-tres dt {
+  font-size: 13px;
+  color: var(--color-taupe-profundo);
+}
+.mes-a-tres dd {
+  margin: 0;
+}
+.mes-a-monto {
+  font-size: 20px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-tinta);
+}
+.mes-a-nota {
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--color-taupe-profundo);
+}
+.mes-a-eq {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px solid var(--hilo-fila);
+}
+.mes-a-eq-titular {
+  font-size: 14px;
+  line-height: 1.45;
+  color: var(--color-tinta);
+}
+
+/* ---------- «Próximos»: lo que se paga en dos semanas y el día más justo ---------- */
+.proximos {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+.proximos-justo {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(96px, 40%);
+  align-items: center;
+  gap: 16px;
+  margin-top: 4px;
+  padding: 12px 14px;
+  border-radius: 16px;
+  --tono: var(--color-verde);
+  /* La lente chica teñida (la de una tarjeta con estado, ADR-0596): vidrio con más tono abajo que arriba y un filo del tono. */
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--tono) var(--lente-chica-tinte-arriba), var(--lente-chica-base-arriba)),
+    color-mix(in srgb, var(--tono) var(--lente-chica-tinte-abajo), var(--lente-chica-base-abajo))
+  );
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--tono) var(--lente-chica-filo), transparent), var(--placa-luz);
+}
+.proximos-justo.es-ambar {
+  --tono: var(--color-ambar);
+}
+.proximos-justo.es-rojo {
+  --tono: var(--color-rojo);
+}
+.proximos-justo-cifra {
+  margin-top: 4px;
+  font-size: 15px;
+  color: var(--color-tinta);
+}
+.proximos-justo-cifra b {
+  font-size: 17px;
+  font-weight: 500;
+}
+.proximos-linea {
+  min-width: 0;
+}
+.proximos-linea path {
+  color: var(--tono);
+}
+.proximos-lista {
+  margin: 4px 0 0;
+  padding: 0;
+  list-style: none;
+}
+.proximos-lista + .proximos-lista {
+  margin-top: 0;
+}
+.proximos-fila {
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  min-height: 52px;
+  padding: 6px 0;
+  border-top: 1px solid var(--hilo-fila);
+}
+.proximos-lista:first-of-type > .proximos-fila:first-child {
+  border-top: 0;
+}
+.proximos-fecha {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: var(--placa-fondo);
+  box-shadow: inset 0 0 0 1px var(--hilo-fila), var(--placa-luz); /* sobre el vidrio claro, el canto de la placa se pierde: lo dibuja el hilo de las tablas */
+  color: var(--color-tinta);
+  line-height: 1;
+}
+.proximos-fecha b {
+  font-size: 16px;
+  font-weight: 600;
+}
+.proximos-fecha small {
+  margin-top: 2px;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-taupe-profundo);
+}
+.proximos-fecha.es-vencida {
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--color-rojo) var(--lente-chica-tinte-arriba), var(--lente-chica-base-arriba)),
+    color-mix(in srgb, var(--color-rojo) var(--lente-chica-tinte-abajo), var(--lente-chica-base-abajo))
+  );
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-rojo) var(--lente-chica-filo), transparent), var(--placa-luz);
+  color: var(--color-rojo-profundo);
+}
+.proximos-fecha.es-vencida small {
+  color: inherit;
+}
+.bolsillos-texto small.proximos-vencido {
+  color: var(--color-rojo-profundo);
+  font-weight: 600;
+}
+.proximos-punto {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  margin-right: 8px;
+  border-radius: 999px;
+  background: var(--c);
+  vertical-align: 1px;
+}
+
+/* ---------- «Movimientos»: lo que entró y salió, día por día ---------- */
+.movs {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+.movs-dia + .movs-dia {
+  margin-top: 6px;
+}
+.movs-dia-cab {
+  position: sticky;
+  top: 0;
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 0 6px;
+  border-bottom: 1px solid var(--hilo-fila);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--color-taupe-profundo);
+}
+.movs-dia-cab .num {
+  font-size: 13px;
+  color: var(--color-tinta);
+}
+.movs-lista,
+.movs-semanas {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.movs-renglon {
+  display: grid;
+  grid-template-columns: 36px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  min-height: 52px;
+  padding: 6px 0;
+}
+.movs-renglon + .movs-renglon {
+  border-top: 1px solid var(--hilo-fila);
+}
+/* El ícono de cada movimiento, en un cuadrito de su tono (la maqueta): verde lo que entra, tinta lo que sale, taupe lo que cambia de lugar. */
+.movs-icono {
+  --c: var(--color-tinta);
+  display: grid;
+  width: 36px;
+  height: 36px;
+  place-items: center;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--c) var(--gota-icono-tinte), transparent);
+  box-shadow: var(--gota-icono-luz);
+  color: var(--c);
+}
+.movs-renglon[data-tipo="cobro"] .movs-icono,
+.movs-renglon[data-tipo="entra"] .movs-icono {
+  --c: var(--color-verde-profundo);
+}
+.movs-renglon[data-tipo="mueve"] .movs-icono,
+.movs-renglon[data-tipo="claure"] .movs-icono {
+  --c: var(--color-taupe-profundo);
+}
+.movs-renglon[data-tipo="ajuste"] .movs-icono {
+  --c: var(--color-ambar-profundo);
+}
+.movs-renglon[data-tipo="cobro"] .movs-monto,
+.movs-renglon[data-tipo="entra"] .movs-monto {
+  color: var(--color-verde-profundo);
+}
+.movs-renglon[data-tipo="mueve"] .movs-monto,
+.movs-renglon[data-tipo="claure"] .movs-monto {
+  color: var(--color-taupe-profundo);
+}
+.movs-baja {
+  color: var(--color-taupe-profundo);
+}
+.movs-vacio {
+  padding: 10px 0;
+  font-size: 13px;
+  color: var(--color-taupe-profundo);
+}
+.movs-semanas > li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 16px;
+  padding: 10px 0;
+  border-top: 1px solid var(--hilo-fila);
+}
+.movs-semanas > li:first-child {
+  border-top: 0;
+}
+
+/* ---------- Las preguntas de siempre ---------- */
+.preguntas-a {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+/* Las preguntas van en píldora, como en la maqueta: el botón secundario del sistema con las esquinas redondas. */
+.preguntas-a > .btn-cayla {
+  min-height: 40px;
+  padding-inline: 16px;
+  border-radius: 999px;
+  font-size: 14px;
+}
+@media (max-width: 639px) {
+  .preguntas-a {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    margin-inline: -16px;
+    padding: 2px 16px 4px;
+    scrollbar-width: none;
+  }
+  .preguntas-a > * {
+    flex: none;
+  }
+}
+
+/* ---------- El orden de la pantalla (camino A): por filas, 7 a 5 desde 1100 px ----------
+   Lo libre junto al mes, las preguntas a lo ancho, lo urgente junto a lo que viene y los movimientos junto a las tiendas. Las dos tarjetas de una fila
+   se estiran al mismo alto (`stretch` y la tarjeta al 100 %), así ninguna columna termina antes que la otra. Una pieza sin pareja (sin tiendas, o sin
+   movimientos) toma la fila entera (`data-solo`). En una sola columna, el orden del código, que es el de importancia. */
+.resumen-a {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+@media (min-width: 1100px) {
+  .resumen-a {
+    display: grid;
+    grid-template-columns: minmax(0, 7fr) minmax(0, 5fr);
+    align-items: stretch;
+  }
+  .resumen-a > [data-area="preguntas"],
+  .resumen-a > [data-solo] {
+    grid-column: 1 / -1;
+  }
+  .resumen-a > [data-area]:not([data-area="preguntas"]) {
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
+  }
+  .resumen-a > [data-area]:not([data-area="preguntas"]) > :first-child {
+    flex: 1 1 auto;
+  }
+}
+.resumen-ancla {
+  scroll-margin-top: 140px;
+}
+
+/* ---------- Las hojas de detalle ---------- */
+.hoja-a {
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+}
+.hoja-a-respuesta {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--hilo-fila);
+}
+.hoja-a-cifra {
+  font-size: 44px;
+  line-height: 1.05;
+  color: var(--color-tinta);
+}
+.hoja-a-cifra.es-falta {
+  color: var(--color-rojo-profundo);
+}
+.hoja-a-lista {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.hoja-a-lista > li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 16px;
+  padding: 10px 0;
+  border-top: 1px solid var(--hilo-fila);
+}
+.hoja-a-lista > li:first-child {
+  border-top: 0;
+}
+.hoja-a-lista .num {
+  font-size: 15px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.hoja-a-lista .bolsillos-texto {
+  gap: 6px;
+}
+.hoja-a-lado {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+}
+.hoja-a-lado small {
+  font-size: 12px;
+  color: var(--color-taupe-profundo);
+}
+.pie-acciones.hoja-a-pie {
+  justify-content: space-between;
+  margin-top: 20px;
+}
+.hoja-a-hueco {
+  width: 40px;
+}
+.mes-a-abre {
+  color: inherit;
+  font: inherit;
+  text-decoration: underline;
+  text-decoration-color: color-mix(in srgb, var(--color-tinta) 25%, transparent); /* contraste: no aplica — es un subrayado, no un texto */
+  text-underline-offset: 4px;
+  transition: text-decoration-color var(--t-resp, 200ms) var(--ease-cayla);
+}
+@media (hover: hover) {
+  .mes-a-abre:hover {
+    text-decoration-color: var(--color-rojo);
+  }
+}
+.mes-a-pie {
+  margin-top: 14px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+/* ---------- Las cifras, como en la maqueta: Inter (la letra de las cifras de Estados financieros, ADR-0611), y la «S/» chica y en taupe ---------- */
+.resumen-bolsillos :is(.cifra-a, .hoja-a-cifra, .num, .bolsillos-monto, .mes-a-monto) {
+  font-family: var(--letra-estados), ui-sans-serif, system-ui, sans-serif;
+  font-variant-numeric: tabular-nums;
+}
+.resumen-bolsillos :is(.cifra-a, .hoja-a-cifra) {
+  font-weight: 500;
+  letter-spacing: -0.045em;
+  white-space: nowrap;
+}
+/* Lo de antes del primer dígito («S/ », «−S/ »): la primera pieza que no gira de `CifraAnimada`. */
+.resumen-bolsillos .cifra-a .cifra-rueda > span:first-child:not(.cifra-rueda-col) {
+  /* Las columnas que giran no tienen línea base (`overflow: hidden`): la «S/» se apoya al pie, a la altura de la base de los dígitos. */
+  align-self: flex-end;
+  margin-bottom: 0.24em;
+  line-height: 1;
+  margin-right: 0.12em;
+  font-size: 0.42em;
+  letter-spacing: -0.01em;
+  color: var(--color-taupe-profundo); /* contraste: texto grande sobre la placa de vidrio */
+}
+.resumen-bolsillos .cifra-a.es-falta .cifra-rueda > span:first-child:not(.cifra-rueda-col) {
+  color: inherit;
+}
+@media (max-width: 639px) {
+  .fin-superficie.bolsillos {
+    padding: 20px 18px;
+  }
+}
+
+/* La respuesta bajo la cabecera (la frase de la maqueta). */
+.resumen-frase {
+  max-width: 68ch;
+  margin-top: -8px;
+  font-size: 17px;
+  line-height: 1.5;
+  color: var(--color-taupe-profundo);
+}
+.resumen-frase b {
+  font-weight: 600;
+  color: var(--color-tinta);
+}
+.mes-a-delta {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+  font-size: 13px;
+  color: var(--color-taupe-profundo);
+}
+.mes-a-delta b {
+  font-weight: 600;
+}
+.mes-a-delta[data-tono="sube"] :is(svg, b) {
+  color: var(--color-verde-profundo);
+}
+.mes-a-delta[data-tono="baja"] :is(svg, b) {
+  color: var(--color-ambar-profundo);
+}
+
+/* En oscuro, el vidrio claro es más claro que el papel y el rojo de «Ver …» (versalitas de 11 px) quedaba en 4.1:1 (tema:auditar, 2026-11-09): aquí se
+   aclara un poco hacia el texto. Al pasar el mouse sigue yendo al rojo profundo, como en todo el ERP. */
+:root[data-tema="oscuro"] .resumen-bolsillos .enlace-ver {
+  color: color-mix(in srgb, var(--color-rojo) 72%, var(--color-tinta)); /* contraste: texto sobre papel, vidrio */
+}
+@media (hover: hover) {
+  :root[data-tema="oscuro"] .resumen-bolsillos .enlace-ver:hover:not(:disabled) {
+    color: var(--color-rojo-profundo);
+  }
+}
+
+/* «Movimientos» con la fila entera para él: los días en dos columnas (desde 900 px de tarjeta), así no queda una tira larga y angosta. */
+.movs {
+  container-type: inline-size;
+}
+.movs-cuerpo {
+  display: grid;
+  align-content: start;
+}
+@container (min-width: 900px) {
+  .movs-cuerpo {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    column-gap: 40px;
+  }
+  .movs-cuerpo > .movs-dia + .movs-dia {
+    margin-top: 0;
+  }
+  .movs-semanas {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    column-gap: 40px;
+  }
+  .movs-semanas > li:nth-child(2) {
+    border-top: 0;
+  }
+}
+
+/* El último par del Resumen (a dónde va la plata y lo que más se movió): mitad y mitad desde 1100 px, del mismo alto; si va solo, la fila entera. */
+.resumen-par {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+@media (min-width: 1100px) {
+  .resumen-par {
+    display: grid;
+    grid-auto-flow: column;
+    grid-auto-columns: minmax(0, 1fr);
+    align-items: stretch;
+  }
+  /* Con las dos: lo que más se movió, una lista con barras y cifras, lleva un poco más de ancho para no partirlas, sin apretar la leyenda del anillo. */
+  .resumen-par:has(> :nth-child(2)) {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr);
+  }
+  .resumen-par > * {
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
+  }
+  .resumen-par > * > :first-child {
+    flex: 1 1 auto;
+  }
+}
+
+/* ---------- Los gráficos de las hojas (Felipe 2026-11-09: «varios modales no tienen gráficos») ---------- */
+.hoja-a-grafico {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 0;
+}
+.hoja-a-titulo-graf {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--color-taupe-profundo);
+}
+.hoja-a-pie-graf {
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--color-taupe-profundo);
+}
+.hoja-a-ley {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 16px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 13px;
+  color: var(--color-tinta);
+}
+.hoja-a-ley li {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.hoja-a-ley .num {
+  font-weight: 600;
+  color: var(--color-taupe-profundo);
+}
+.hoja-a-con-muestra {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.hoja-a > .hoja-a-grafico + .bolsillos-cuenta,
+.hoja-a > .hoja-a-grafico + .hoja-a-lista,
+.hoja-a > div + .bolsillos-cuenta {
+  margin-top: 8px;
+}
+
+/* Dentro de una hoja, cada gráfico va sobre su placa (ADR-0596: «lo que explica»), con la luz arriba, como las láminas de las hojas de vidrio. */
+.hoja-a > .hoja-a-grafico,
+.hoja-a > div.hoja-a-grafico {
+  padding: 14px 16px;
+  border-radius: 18px;
+  background: var(--placa-fondo);
+  box-shadow: inset 0 0 0 1px var(--hilo-fila), var(--placa-luz); /* sobre el vidrio claro, el canto de la placa se pierde: lo dibuja el hilo de las tablas */
+}
+.hoja-a > .hoja-a-grafico .hoja-a-grafico {
+  padding: 0;
+  background: none;
+  box-shadow: none;
+}
+.hoja-a-respuesta {
+  border-bottom: 0;
+  padding-bottom: 0;
+}

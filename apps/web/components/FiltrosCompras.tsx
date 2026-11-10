@@ -1,12 +1,12 @@
 "use client";
 
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { AlarmClock, Banknote, Building2, CalendarRange, HandCoins, PackageCheck, Receipt, Store } from "lucide-react";
 import { Buscador } from "@/components/ui/Buscador";
 import { Hilo } from "@/components/ui/campos";
 import { CampoFecha } from "@/components/ui/CampoFecha";
-import { useBusquedaEnUrl } from "@/components/ui/BusquedaEnUrl";
+import { useBuscarAlEscribir } from "@/components/ui/BusquedaEnUrl";
 import { BotonFiltros, DesplegablePildora, PanelPildoras, TODOS } from "@/components/ui/FiltrosPildora";
 import { CapaDeFiltro } from "@/components/ui/CapaDeFiltro";
 import {
@@ -85,17 +85,14 @@ export function FiltrosCompras({
   const router = useRouter();
   const pathname = usePathname();
   const params = useSearchParams();
-  const [busqueda, setBusqueda] = useState(params.get("q") ?? "");
+  const { texto: busqueda, setTexto: setBusqueda, buscando, fijar } = useBuscarAlEscribir(params.get("q") ?? "", (q) => hrefCon({ q }));
   const [panelAbierto, setPanelAbierto] = useState(false);
-  const primera = useRef(true);
-  const { buscando, buscar } = useBusquedaEnUrl();
 
   function ver(f: FiltroVisible) {
     return visibles.includes(f);
   }
 
-  /** `tipeado`: viene del buscador (se escribió): navega sin el loader, con «Buscando…». */
-  function aplicar(cambios: Record<string, string>, { tipeado = false } = {}) {
+  function hrefCon(cambios: Record<string, string>) {
     const p = new URLSearchParams(params.toString());
     for (const [k, v] of Object.entries(cambios)) {
       if (v) p.set(k, v);
@@ -103,24 +100,12 @@ export function FiltrosCompras({
     }
     p.delete("cursor");
     const qs = p.toString();
-    const href = qs ? `${pathname}?${qs}` : pathname;
-    if (tipeado) buscar(href);
-    else router.push(href);
+    return qs ? `${pathname}?${qs}` : pathname;
   }
 
-  // La búsqueda se manda sola al dejar de tipear (350 ms): sin botón, pero
-  // sin una consulta por tecla.
-  useEffect(() => {
-    if (primera.current) {
-      primera.current = false;
-      return;
-    }
-    const t = setTimeout(() => {
-      if ((params.get("q") ?? "") !== busqueda.trim()) aplicar({ q: busqueda.trim() }, { tipeado: true });
-    }, 350);
-    return () => clearTimeout(t);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [busqueda]);
+  function aplicar(cambios: Record<string, string>) {
+    router.push(hrefCon(cambios));
+  }
 
   const prov = params.get("prov");
   const pago = params.get("pago") as EstadoPago | null;
@@ -288,7 +273,7 @@ export function FiltrosCompras({
             <FiltroPuesto
               key={c.texto}
               onQuitar={() => {
-                if ("q" in c.quitar) setBusqueda("");
+                if ("q" in c.quitar) fijar("");
                 aplicar(c.quitar);
               }}
               etiqueta={`Quitar filtro ${c.texto}`}
@@ -298,7 +283,7 @@ export function FiltrosCompras({
           ))}
           <BotonLimpiar
             onClick={() => {
-              setBusqueda("");
+              fijar("");
               router.push(pathname);
             }}
           >

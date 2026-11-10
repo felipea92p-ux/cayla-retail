@@ -5,7 +5,7 @@
 // de qué prenda se habla para abrir el MISMO modal de cualquier otra talla. La lee el servidor (`getFilaSinStockDeVariante`, el candado de
 // Editar producto) y el navegador (el buscador de «Ajustar stock»). Mismo cuerpo que la fila «en camino» de `getExistencias`.
 
-import { fotoPrincipal } from "./inventario-reglas";
+import { fotoDeLaFila } from "./color-estampado-reglas";
 import { codigoDeEtiqueta } from "./prenda-reglas";
 import type { FilaExistencias } from "./inventario-v2";
 
@@ -15,19 +15,19 @@ export type VarianteParaFilaEnCero = {
   sku: string | null;
   codigo: string | null;
   talla: { valor: string } | null;
-  color: { nombre: string; hex: string | null } | null;
+  color: { codigo: string; nombre: string; hex: string | null; tipo: string } | null;
   producto: {
     id: string;
     referencia: string;
     categoria: { nombre: string; prefijo: string | null; familia: string | null } | null;
-    producto_fotos: { url: string; orden: number; es_principal: boolean }[] | null;
+    producto_fotos: { url: string; orden: number; es_principal: boolean; color_codigo: string | null }[] | null;
   } | null;
   codigos_barras: { codigo: string }[] | null;
 };
 
 export const COLUMNAS_FILA_EN_CERO = `id, sku, codigo, talla:tallas ( valor ),
-       color:colores ( nombre, hex ),
-       producto:productos ( id, referencia, categoria:categorias ( nombre, prefijo, familia ), producto_fotos ( url, orden, es_principal ) ),
+       color:colores ( codigo, nombre, hex, tipo ),
+       producto:productos ( id, referencia, categoria:categorias ( nombre, prefijo, familia ), producto_fotos ( url, orden, es_principal, color_codigo ) ),
        codigos_barras ( codigo )`;
 
 export function filaEnCero(v: VarianteParaFilaEnCero, separaPisoAlmacen: boolean): FilaExistencias {
@@ -43,7 +43,8 @@ export function filaEnCero(v: VarianteParaFilaEnCero, separaPisoAlmacen: boolean
     categoriaPrefijo: v.producto?.categoria?.prefijo ?? null,
     categoriaFamilia: v.producto?.categoria?.familia ?? null,
     codigosBarras: (v.codigos_barras ?? []).map((c) => c.codigo),
-    fotoUrl: fotoPrincipal(v.producto?.producto_fotos),
+    fotoUrl: fotoDeLaFila(v.color, v.producto?.producto_fotos),
+    colorEstampado: v.color?.tipo === "estampado",
     total: 0,
     piso: separaPisoAlmacen ? 0 : null,
     almacen: separaPisoAlmacen ? 0 : null,

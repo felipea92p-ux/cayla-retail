@@ -126,7 +126,7 @@ function medir(foto: Foto): Promise<void> {
 }
 
 /** Lo que la unión lee de cada pieza: su zona, si va metida, su recorte y su caja (la figura interactiva manda más; la quieta, solo esto). */
-export type PiezaDeLaFigura = { z: Zona; p: { metida: boolean; porTorso?: boolean }; c: { foto: FotoDelColor }; caja: Caja };
+export type PiezaDeLaFigura = { z: Zona; p: { metida: boolean; porTorso?: boolean; falda?: boolean }; c: { foto: FotoDelColor }; caja: Caja };
 
 /**
  * Las piezas de la figura con la de abajo unida a la de arriba. Con las dos zonas puestas pide medir sus recortes y, cuando están, devuelve las
@@ -207,7 +207,7 @@ export function useUnionDeLaFigura<T extends PiezaDeLaFigura>(
     arribaFinal && abajo && urlArriba && urlAbajo && completa
       ? cajaDeAbajoUnida(
           { caja: arribaFinal.caja, medida: medidas.get(urlArriba), metida: arribaFinal.p.metida },
-          { proporcion: abajo.c.foto.proporcion, medida: medidas.get(urlAbajo) },
+          { proporcion: abajo.c.foto.proporcion, medida: medidas.get(urlAbajo), falda: abajo.p.falda },
         )
       : null;
   // El hilo de la espera corre por el borde de abajo de la prenda de arriba (con su fila medida si ya se midió); solo hay hilo si hay algo de abajo que unir.

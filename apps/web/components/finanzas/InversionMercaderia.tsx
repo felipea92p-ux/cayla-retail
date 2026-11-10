@@ -405,10 +405,10 @@ function PagarLaCompra({ c, conIgv, hoy, proyeccion, elegida, onElegir }: { c: C
 
   return (
     <div data-guia="fin-resumen.inversion-pagos">
-      <p className="mb-3 text-sm text-taupe">Lo que elijas aquí se cuenta en «Tu caja» de arriba.</p>
+      <p className="mb-3 text-sm text-taupe">Lo que elijas aquí se cuenta en «Próximos», arriba.</p>
       {muyLejos && (
         <p className="nota-cayla mb-3">
-          <b>Aún muy lejos para compararlo con tu caja.</b> Tu caja se ve hasta el {fechaEnPalabras(ultimo.fecha)} y hay pagos que caen después: por eso ninguna forma se marca como «la mejor mezcla».
+          <b>Aún muy lejos para compararlo con tu caja.</b> Lo que ves en «Próximos» llega hasta el {fechaEnPalabras(ultimo.fecha)} y hay pagos que caen después: por eso ninguna forma se marca como «la mejor mezcla».
         </p>
       )}
       <div className="grid gap-4 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)]">

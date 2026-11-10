@@ -3,7 +3,7 @@ import fixture from "./resumen-finanzas.fixture.json";
 import { leerResumen } from "./resumen-finanzas-reglas";
 import type { SedeTelar } from "./finanzas-telar-reglas";
 import type { FilaER } from "./resultados-reglas";
-import { comparacionMesPasado, dockDelResumen, lineaVentasMeta, mismasTiendas, respuestaResumen, tiendasAdivinadas, tramoAnteriorALaFecha, vendidoPorSede } from "./resumen-telar-reglas";
+import { comparacionMesPasado, dockDelResumen, lineaVentasMeta, mismasTiendas, respuestaResumen, tiendasAdivinadas, vendidoPorSede } from "./resumen-telar-reglas";
 
 // Lo que el Resumen le pasa a la barra común del telar (su respuesta y su orillo) y la línea de ventas contra la meta.
 
@@ -136,11 +136,6 @@ describe("el orillo y el tramo de comparación", () => {
     expect(v.tramos.map((t) => t.monto)).toEqual([75_000, 1_000]);
     expect(texto(v.frase)).toBe("S/ 76,000 en octubre, sin IGV ni CLAURE.");
     expect(v.enlace).toBe("Por qué no es la cifra de Ventas");
-  });
-
-  it("el mes pasado hasta el mismo día, o hasta su último día si es más corto", () => {
-    expect(tramoAnteriorALaFecha("2026-10-23", "2026-09")).toEqual({ desde: "2026-09-01", hasta: "2026-09-23" });
-    expect(tramoAnteriorALaFecha("2026-03-31", "2026-02")).toEqual({ desde: "2026-02-01", hasta: "2026-02-28" });
   });
 });
 

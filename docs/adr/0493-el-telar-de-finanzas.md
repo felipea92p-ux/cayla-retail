@@ -358,3 +358,62 @@ Después de juntar «corregir sin anular» y el comprobante (ADR-0588) con la pi
 cajón aunque el foco esté en una fila «×N». **DESCARTÉ:** la miniatura del comprobante en la fila (la propuesta 06 la traía): la lista
 del mes no sabe qué gasto tiene foto sin una lectura más de la base; queda para cuando `fn_gastos_lista` lo diga. **SE ROMPE SI:**
 `registrar_gasto` deja de devolver el id (no aterriza, sin caerse) o la lista deja de marcar sus filas con `data-id`.
+
+## Actualización 2026-11-09 — El Resumen pasa al camino «A · Bolsillos» (Felipe lo eligió mirando)
+
+Felipe miró las tres maquetas de punta a punta (`docs/maquetas/finanzas-resumen-de-punta-a-punta-2026-11/`) y eligió **A · Bolsillos**, con **el
+fondo del resto del ERP** (ninguno propio para Finanzas) y **el calendario de Estados financieros** (`SelectorPeriodo`, ADR-0611) en lugar del mes
+de la barra. Decidió también las dos reglas de dinero nuevas y pidió las hojas de detalle:
+
+1. **«Libre para usar»** («Todo lo que tiene dueño»): lo que hay en bancos y cajas − lo de CLAURE − el fondo de compras − lo que se paga en 14 días −
+   el IGV que se va juntando este mes − la planilla que Dynamic ya pagó y aquí no bajó del banco. No cuenta lo que se va a vender. Regla pura en
+   `lib/bolsillos-reglas.ts`, sobre la misma proyección de caja (`fn_flujo_caja_proyeccion`); una prueba exige que los bolsillos sumen `tienes − libre`.
+2. **«Te deja» del mes en curso es un estimado con rango**: lo de hasta hoy + el margen de lo que falta vender al ritmo de hoy − los gastos del mes que
+   faltan registrar; el rango, ±(4 % + 16 % × lo que falta del mes) sobre ese margen. Sale del mismo ritmo y los mismos gastos que «¿Ya pagaste el
+   mes?» (`lib/te-deja-mes-reglas.ts`; una prueba exige que coincidan). Sin lo que falta del mes, no estima.
+3. **Las hojas de detalle** (Libre, lo que te deja, lo vendido, los gastos, lo que viene, SUNAT y la ropa a costo) se abren desde los bolsillos, las
+   preguntas y las cifras del mes, se recorren con «Siguiente» y terminan en la pantalla que lo resuelve (`components/finanzas/bolsillos/HojasResumen.tsx`).
+
+Lo que cambió en la pantalla: «Libre para usar» con sus bolsillos reemplaza a «¿Cuánto tienes?» (lo que decía de qué está hecho lo que tienes pasó a
+la primera línea de su cuenta); «Noviembre va así» reemplaza a «¿Cuánto te deja?» y a «¿Ya pagaste el mes?» (que vive dentro, con la rayita de hoy);
+«Próximos» con el día más justo reemplaza a «Tu caja, dos semanas» y a «¿Cuánto debes pagar pronto?» (la compra de campaña que se cuenta en la
+inversión entra a su lista); «Movimientos» es nuevo, de `fn_flujo_caja_real` un día a la vez y en su propio `Suspense`. Se quedan, porque ya estaban
+decididos: «Hoy te toca», lo vendido por sede con la confianza (ADR-0417), «Cada sede, junta», «A dónde va la plata», lo que más se movió y la
+inversión en mercadería al final (2026-10-29).
+
+**DECIDÍ:** las dos columnas de la maqueta (la plata a la izquierda, el mes a la derecha) y, en una sola columna, el orden de importancia con `order`;
+que los bolsillos, «Próximos» y «Libre» salgan de los mismos pagos, para que nunca den tres totales distintos; que el día más justo use la caja con la
+compra de campaña (como lo hacía «Tu caja») cortada a 14 días. **DESCARTÉ:** los fondos Rejilla y Clima (Felipe: «el fondo como el resto del sistema»);
+la comparación con el año pasado y el puente «¿por qué tengo menos plata?», que eran del camino C; el inventario, el sankey y el calendario del camino B.
+**SE ROMPE SI:** `fn_flujo_caja_proyeccion` cambia el id de su fila de IGV (`igv:<mes>`, de ahí sale lo que se junta), o deja de restar CLAURE y el
+fondo de compras de `saldo_hoy` (`loQueHayEnCuentas` los vuelve a sumar). La fecha de SUNAT sigue siendo el día 15 hasta que se cargue el RUC.
+
+## Actualización 2026-11-09 (b) — El Resumen, más cerca de la maqueta (Felipe: «no se parece mucho»)
+
+Felipe comparó la pantalla con la maqueta y pidió acercarla en el espacio, el celular y los íconos. Se hizo, sin cambiar ninguna cuenta:
+la respuesta va a la vista bajo la cabecera (`lib/frase-resumen-reglas.ts`: cuánto tienes, cuánto puedes usar y cuánto te deja el mes; el subtítulo
+sigue en su «?»); el Resumen pasa a **`pantalla-en-vidrio`** (ADR-0596: el vidrio claro que ya esperaba el rediseño) y sus cifras a **Inter con la «S/»
+chica**, la letra de las cifras de Estados financieros (ADR-0611); los bolsillos son tarjetitas con su ícono en un cuadrito de su color; los movimientos
+llevan el ícono de su categoría; el cambio contra el mes pasado es texto con su flecha; las columnas van 7 a 5 desde 1100 px, como la maqueta; y
+«A dónde va la plata» ya no guarda su lugar cuando no tiene qué dibujar. En oscuro, el rojo de «Ver …» se aclara un poco sobre el vidrio (4.1:1 → pasa).
+**DESCARTÉ:** mover la barra de sede y mes bajo el título como en la maqueta (es la mesa común de Finanzas, ADR-0493) y achicar el título (es la
+cabecera única del ERP, ADR-0220).
+
+## Actualización 2026-11-09 (c) — El Resumen por filas, no por columnas (Felipe: «optimiza el espacio, todo bien ubicado»)
+
+Con dos pilas sueltas, la que tenía menos datos terminaba antes y dejaba media pantalla vacía al pie (a 1440 px, 470 px: la izquierda acababa en
+1291 y la derecha en 1758). El Resumen pasa a filas de dos (7 a 5): lo libre con el mes, las preguntas a lo ancho, «Hoy te toca» con «Próximos» y
+«Movimientos» con las tiendas; las dos tarjetas de una fila miden lo mismo. Una pieza sin pareja (sin ventas por sede, o sin el flujo) toma la fila
+entera, y «Movimientos» reparte sus días en dos columnas. El último par («A dónde va la plata» y lo que más se movió) sigue la misma regla, 1 a 1,2.
+«Flujo de caja» sale de «Próximos» (flotaba suelto; «Movimientos» ya lleva al Flujo de efectivo). En el celular, el orden del código.
+**DESCARTÉ:** acomodar las piezas con JavaScript según su alto (masonry): saltaría al cargar los datos y cambiaría de lugar entre un mes y otro.
+
+## Actualización 2026-11-09 (d) — Cada hoja del Resumen abre con su gráfico (Felipe: «varios modales no tienen gráficos»)
+
+Las hojas eran listas. Ahora cada una abre con un gráfico de las piezas decididas del ERP (ADR-0358), con lo que la página ya leyó: «Libre» y la ropa,
+la barra apilada (lo libre y sus bolsillos; la ropa por sede, con el color de dato de cada sede); «Lo que te deja», de cada S/ 100 vendidos (ropa,
+gastos y lo que quedó) y la barra de «¿Ya pagaste el mes?» con la rayita de hoy; lo vendido, el reparto por tienda y las barras por día (`BarrasTiempo`,
+si la cuenta ve Rendimiento); los gastos, la barra por rubro (los cuatro mayores y «Otros»); lo que viene, la línea de la caja de 14 días contra tu
+mínimo (`Linea`, la misma caja de «Próximos»); SUNAT, lo que vence ahora contra lo que se junta. Los renglones llevan la muestra del color de su tramo
+(antes, una barrita gris que repetía el gráfico), una barra de un solo tramo no se dibuja, las hojas pasan a 768 px y las cifras a Inter con la «S/»
+chica también dentro del portal. Lógica en `lib/hojas-resumen-reglas.ts` (`deCadaCien`, `rubrosEnBarra`, `ventasDiaADia`, `colorDeSede`), con su prueba.

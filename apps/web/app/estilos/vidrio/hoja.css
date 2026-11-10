@@ -49,6 +49,16 @@
   -webkit-backdrop-filter: blur(14px) saturate(1.3);
   backdrop-filter: blur(14px) saturate(1.3);
 }
+/* La hoja de vidrio tiene 1,75 rem de relleno desde 640 px y el pie pegado asume 1,5: quedaba 4 px corto y lo de atrás asomaba por debajo. */
+@media (min-width: 640px) {
+  .hoja-serena .pie-hoja-fijo {
+    bottom: calc(-1.75rem - var(--borde-abajo, 0px));
+    margin-inline: -1.75rem;
+    margin-bottom: calc(-1.75rem - var(--borde-abajo, 0px));
+    padding-inline: 1.75rem;
+    padding-bottom: calc(1.75rem + var(--borde-abajo, 0px));
+  }
+}
 
 /* La franja del asa en el celular: solo desenfoca lo que pasa por detrás al correr (Felipe 2026-11-04: lo que flota no queda «en el aire»), con el
    mismo desenfoque del pie pegado. Sin relleno: sobre la hoja quieta, el relleno de vidrio se veía como una banda más clara encima del título (250

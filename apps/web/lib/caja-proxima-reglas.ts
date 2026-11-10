@@ -101,19 +101,6 @@ export type CajaSede = {
 
 export type CajaProxima = CajaCayla | CajaSede | { tipo: "oculta" } | { tipo: "falla"; mensaje: string };
 
-/**
- * El estado de la caja en dos o tres palabras, el mismo en «Tu caja en las próximas dos semanas» y en la respuesta «¿Cuánto tienes?»
- * (una sola fuente: las dos dicen lo mismo con las mismas palabras). Sale de lo que pasa, no del color: el ámbar es «bajo tu mínimo»
- * (dentro del horizonte) y también «ojo después». `null`: sin mínimo puesto y sin caída, no hay nada que decir.
- */
-export function estadoDeCaja(c: CajaCayla): { texto: string; tono: TonoCaja } | null {
-  if (c.sinPlata) return { texto: "Sin plata", tono: c.tono };
-  if (c.bajaDelMinimo) return { texto: "Bajo tu mínimo", tono: c.tono };
-  if (c.luego) return { texto: "Ojo después", tono: c.tono };
-  if (c.tono === "verde") return { texto: "Te alcanza", tono: "verde" };
-  return null;
-}
-
 export { fechaEnPalabras };
 
 const r2 = (n: number) => Math.round(n * 100) / 100;
@@ -122,14 +109,6 @@ const r2 = (n: number) => Math.round(n * 100) / 100;
  *  comparar con los saldos o repartirlo se les devuelve. */
 export function loQueHayEnCuentas(c: Pick<CajaCayla, "saldoHoy" | "deClaudia" | "porVolver">): number {
   return r2(c.saldoHoy + c.deClaudia + c.porVolver);
-}
-
-/** La línea bajo «Hoy tienes»: de dónde sale, y lo que ya no cuenta (lo de Claudia, ADR-0560; lo por volver de compras, ADR-0621). */
-export function detalleDeHoy(c: Pick<CajaCayla, "deClaudia" | "porVolver">): string {
-  const sin: string[] = [];
-  if (c.deClaudia > 0) sin.push(`los ${soles(c.deClaudia)} que son de Claudia`);
-  if (c.porVolver > 0) sin.push(`los ${soles(c.porVolver)} por volver de compras`);
-  return `Cajones, cajas fuertes y bancos${sin.length ? `, sin ${sin.join(" ni ")}` : ""}.`;
 }
 
 /** `iso` + `n` días. */

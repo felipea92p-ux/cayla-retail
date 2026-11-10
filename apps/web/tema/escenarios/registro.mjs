@@ -1801,6 +1801,9 @@ ESCENARIOS.push(
     await esperar(pagina, 900);
   } },
   { id: "finanzas.que-mirar", ruta: "/finanzas/resumen", cuentas: FIN, abre: "[role=listbox]", nombre: "Finanzas · la lista «Qué mirar» (tienda o empresa)", preparar: clicRol("combobox", /Qué mirar/i) },
+  // Camino «A · Bolsillos» (2026-11-09): las hojas de detalle del Resumen, la de «Libre para usar» y la cuenta del mes.
+  { id: "finanzas.resumen-hoja-libre", ruta: "/finanzas/resumen", cuentas: FIN, abre: "[role=dialog]", nombre: "Resumen · la hoja «Libre para usar» (¿Cómo se calcula?)", preparar: clicGuia("fin-resumen.como-se-calcula") },
+  { id: "finanzas.resumen-hoja-mes", ruta: "/finanzas/resumen", cuentas: FIN, abre: "[role=dialog]", nombre: "Resumen · la hoja «Lo que te deja» (la cuenta del mes)", preparar: clicGuia("fin-resumen.cuenta-del-mes") },
   { id: "finanzas.resumen-confianza", ruta: "/finanzas/resumen", cuentas: FIN, abre: "#fin-confianza-piezas", nombre: "Resumen · «cosas por revisar» abre el medidor de confianza", preparar: clicRol("button", /(cosas? por revisar|Ver el detalle)/i) },
   { id: "gastos.registrar", ruta: "/finanzas/gastos", cuentas: FIN, abre: "[role=dialog]", nombre: "Gastos · «Registrar gasto»", preparar: clicRol("button", /Registrar gasto/i) },
   { id: "gastos.desglose", ruta: "/finanzas/gastos", cuentas: FIN, abre: '[data-guia="fin-gastos.desglose"]', nombre: "Gastos · el desglose de «En qué se va» (sedes en columna y sus gastos)", preparar: clicGuia("fin-gastos.hilo-primera") },

@@ -216,6 +216,10 @@ export const PRUEBAS = [
   "pruebas:pago-planilla-y-sunat",
   "pruebas:planilla-conceptos",
   "pruebas:comision-estimada",
+  // La foto del diario (ADR-0633): la foto de un mes es el diario del líder, línea por línea; solo la toma el trabajo programado. ROLLBACK.
+  "pruebas:foto-diario",
+  // La comisión estimada de las máquinas en una sola pasada (20261109162000): cada asiento y cada reversa igual a fn_pos_comision_lote. ROLLBACK.
+  "pruebas:comision-lotes",
 
   // La puente de la máquina por residuo (ADR-0629): un día depositado que siguió vendiendo vuelve a pendiente con lo que falta,
   // el diario revierte lo estimado una sola vez y el QR de Izipay no cobra los primeros días del mes. ROLLBACK.
@@ -292,6 +296,14 @@ export const PRUEBAS = [
   // compras, junta dos líneas de una misma variante), la cuenta de la pantalla cierra y sin permiso de dinero no ve nada. ROLLBACK.
   "pruebas:costo-de-la-prenda",
 
+  // El «?» de cada talla gris en Catálogo ▸ Costos (ADR-0631): la última compra de cada talla, con lo que había antes, lo que llegó
+  // y en cuánto quedó; dos líneas de una misma compra son una; un cierre revertido no cuenta; sin permiso de dinero, null. ROLLBACK.
+  "pruebas:costo-de-las-tallas",
+
+  // El historial del costo de cada compra se lee solo por funciones (ADR-0631 act. b): la tienda no lo lee directo, ni un líder; las
+  // funciones de siempre sí lo muestran; service_role lo lee; RLS encendido y sin reglas de lectura. ROLLBACK.
+  "pruebas:costo-de-compras-solo-por-funciones",
+
   // Corregir el costo de la ÚLTIMA compra (Felipe 2026-10-24, ADR-0515): solo un líder y con motivo, solo la última, un cierre del
   // Taller no, encadena dos líneas de una misma variante, costo_historial queda idéntico, la tabla solo agrega y la vista previa
   // dice lo mismo que quedó. ROLLBACK.
@@ -346,6 +358,11 @@ export const PRUEBAS = [
   // las invariantes de /chaos después de CADA paso: falla si la base queda descuadrada (stock contra movimientos, venta contra
   // pagos, caja, comprobantes, libro) aunque la suite propia de la función siga verde. ROLLBACK.
   "pruebas:dia-de-tienda",
+
+  // El vigía diario de producción (ADR-0632): lo roto antes de mirar es heredado, lo que se rompe después es nuevo y lo sigue
+  // siendo hasta que se arregla o el Admin lo acepta; arreglado y vuelto a romper cuenta otra vez; lo que no se pudo mirar es
+  // «error» u «omitida», nunca «limpia»; solo la llave de servicio o el SQL Editor lo corren. ROLLBACK.
+  "pruebas:vigia-invariantes",
 
   // Descuento de campaña EXACTO, al céntimo (ADR-0302; reemplaza el .90 de ADR-0182): la base da lo mismo que la caja,
   // registrar_venta y separar_prendas aceptan el descuento exacto y rechazan el del .90, y la migración se puede pegar
@@ -746,6 +763,9 @@ export const PRUEBAS = [
   // y corregir el pago; el borde exacto en S/ 0; la cifra solo para quien cierra la caja; el segundo retiro espera al primero.
   // Con control. Disparadores diferidos: cada caso corre `set constraints all immediate` y termina en ROLLBACK.
   "pruebas:caja-efectivo-no-negativo",
+  // ADR-0630: con la caja cerrada, un líder corrige lo que no es efectivo (Yape → QR, la máquina de una tarjeta); el efectivo, un
+  // no líder, el efectivo con cuenta, una máquina que no cobra ahí y un mes cerrado DEBEN bloquear. Control: `-- --sin-migracion`.
+  "pruebas:corregir-pagos-caja-cerrada",
   // ADR-0412 (/chaos de Finanzas 2026-10-14): NaN, tope de S/ 1 000 000 y textos con tope en Finanzas; la caja fuerte no queda bajo
   // cero (disparadores diferidos: cada caso corre `set constraints all immediate`); un gasto anterior al inicio de Finanzas. Con controles.
   "pruebas:finanzas-montos-y-caja-fuerte",
@@ -1815,6 +1835,8 @@ export const PRUEBAS = [
   "pruebas:compras-simple-revisar",
   // La marca nueva de «Algo nuevo» (Felipe 2026-10-24): con «Mis compras» se crea unida al proveedor, sin duplicarse.
   "pruebas:compras-simple-marca",
+  // Recibir crea el proveedor (razón social y RUC opcional) y la marca que no están, con solo el módulo Recibir (ADR-0635).
+  "pruebas:recibir-crea-proveedor-y-marca",
   // Corregir una compra ya anotada (ADR-0561): la plata vuelve sola mientras Compras no la completa, el papel acompaña si ya cuadraba, no se baja de lo
   // enviado, todo o nada, rastro que no se borra.
   "pruebas:compras-simple-corregir",

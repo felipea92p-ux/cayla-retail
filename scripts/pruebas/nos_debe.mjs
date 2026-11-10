@@ -92,10 +92,14 @@ const MIGRACIONES = SIN_MIGRACION
       // ADR-0604: la deuda dice qué prenda, y la reposición salda primero esa.
       "20261103144000_nos_debe_por_prenda.sql",
     ]
-      .map((f) =>
-        readFileSync(join(RAIZ, "supabase", "migrations", f), "utf8")
-          .replace(/^set lock_timeout.*$/m, "")
-          .replace(/^reset lock_timeout;$/m, ""),
+      .map(
+        (f) =>
+          // ADR-0633 (20261109183000) le puso a la nota del proveedor su disparador de la foto del diario; 20261015145000 verifica que esa
+          // tabla tenga EXACTAMENTE sus 3 disparadores. Dentro de esta transacción (que se deshace) se quita antes de volver a pegarla.
+          (f === "20261015145000_nos_debe_saldo_a_favor_esquema.sql" ? "drop trigger if exists diario_vence on retail.compra_notas_proveedor;\n" : "") +
+          readFileSync(join(RAIZ, "supabase", "migrations", f), "utf8")
+            .replace(/^set lock_timeout.*$/m, "")
+            .replace(/^reset lock_timeout;$/m, ""),
       )
       .join("\n");
 

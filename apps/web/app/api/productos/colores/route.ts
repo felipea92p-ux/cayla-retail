@@ -54,7 +54,12 @@ export async function POST(request: Request) {
   const sinonimos = normalizarSinonimos(Array.isArray(cuerpo?.sinonimos) || typeof cuerpo?.sinonimos === "string" ? cuerpo.sinonimos : null, nombre);
   const descripcion = normalizarDescripcion(typeof cuerpo?.descripcion === "string" ? cuerpo.descripcion : null);
   const combinaCon = normalizarCombinaCon(cuerpo?.combinaCon, codigo);
+  // Un estampado es un color con nombre propio (ADR-0634). «textura» no se elige desde aquí; lo que no se manda queda «solido», el valor de la columna.
+  const tipo = cuerpo?.tipo === "estampado" ? "estampado" : "solido";
 
+  if (cuerpo?.tipo !== undefined && cuerpo.tipo !== "estampado" && cuerpo.tipo !== "solido") {
+    return Response.json({ error: "El color es liso o estampado." }, { status: 400 });
+  }
   if (!nombre) {
     return Response.json({ error: "Falta el nombre del color." }, { status: 400 });
   }
@@ -85,7 +90,7 @@ export async function POST(request: Request) {
   // (`lib/color-escala.ts`, ADR-0312), así que el nuevo cae en su lugar solo, por su familia y su claridad.
   const { data, error } = await supabase
     .from("colores")
-    .insert({ codigo, nombre, familia_color: familiaColor, hex, orden: 2000, notas, pantone_tcx: pantoneTcx, sinonimos, descripcion, combina_con: combinaCon })
+    .insert({ codigo, nombre, familia_color: familiaColor, tipo, hex, orden: 2000, notas, pantone_tcx: pantoneTcx, sinonimos, descripcion, combina_con: combinaCon })
     .select("codigo, nombre, familia_color, tipo, hex, notas, estado, pantone_tcx, sinonimos, descripcion, combina_con")
     .single();
 

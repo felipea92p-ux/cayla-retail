@@ -57,6 +57,14 @@ export function notaDeLoQueFaltaDelMes(f: Pick<FilaER, "unidad" | "ubicacionId" 
 }
 
 /**
+ * Lo que el mes en curso todavía va a gastar y el diario no tiene (la planilla por devengar, los fijos que faltan, la depreciación del último día): la
+ * misma cuenta de `gastosDelMesEntero`, sin lo ya registrado. La usa «te deja (estimado)» del camino A para no quedarse con los gastos de los días que van.
+ */
+export function gastosQueFaltanDelMes(f: FilaER, ver: Pick<ResumenFinanzas["ver"], "todas" | "soloEmpresa" | "ubicacionId">, falta: readonly FaltaDelMes[]): number {
+  return r2(gastosDelMesEntero(f, ver, falta) - f.gastos);
+}
+
+/**
  * Cuánto hay que vender en el mes ENTERO para cubrirlo, con el margen de hoy, de una fila del Estado de resultados. Es la cuenta de «¿Ya pagaste el mes?»: Ganancias no se queda
  * con los gastos de los días que van. `null` sin margen o si no se pudo leer lo que falta: en un mes a medias, una cifra sin esos gastos saldría muy por debajo (ADR-0621).
  * Con IGV si la fila lo trae: se convierte antes de redondear, o la centena se correría.

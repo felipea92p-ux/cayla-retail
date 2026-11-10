@@ -113,6 +113,39 @@ export function hastaDeLaProvision(desde: string, hasta: string, hoy: string): s
   return `${mes}-${String(new Date(Date.UTC(a, m, 0)).getUTCDate()).padStart(2, "0")}`;
 }
 
+// UNA LECTURA POR MES (2026-11-09, el pico de memoria de las 09:07). `fn_planilla_provision` le pide a Dynamic la boleta en vivo de cada período sin
+// pagar (~4 s por llamada en producción), y una sola carga de Finanzas ▸ Resumen la pedía 5 veces para rangos que se pisan (oct–nov, nov, nov, 1–9 oct,
+// nov): cinco veces lo mismo, a la vez, en una base de 2 GB. Lo que devuelve un período no depende del rango pedido (el rango solo elige QUÉ períodos:
+// los que terminan en él) ni de la sede (la sede solo filtra filas). Por eso `lib/planilla-provision.ts` lee cada MES entero, una vez por carga, y
+// aquí se recorta lo que pidió cada pantalla.
+
+/** Hasta cuántos meses se leen de a uno; un rango más largo (un reporte de un año) va en una sola lectura, como antes. */
+export const MESES_POR_SEPARADO = 3;
+
+const FECHA = /^\d{4}-\d{2}-\d{2}$/;
+
+/** Los meses («2026-10») que toca un rango de fechas, en orden. Vacío si el rango no es válido. */
+export function mesesDelRango(desde: string, hasta: string): string[] {
+  if (!FECHA.test(desde) || !FECHA.test(hasta) || hasta < desde) return [];
+  const meses: string[] = [];
+  let [a, m] = desde.slice(0, 7).split("-").map(Number) as [number, number];
+  const fin = hasta.slice(0, 7);
+  for (;;) {
+    const mes = `${a}-${String(m).padStart(2, "0")}`;
+    meses.push(mes);
+    if (mes >= fin) return meses;
+    [a, m] = m === 12 ? [a + 1, 1] : [a, m + 1];
+  }
+}
+
+/**
+ * Lo que habría devuelto `fn_planilla_provision(desde, hasta, ubicacionId)`, sacado de los meses leídos enteros y sin sede: los períodos que TERMINAN
+ * en el rango y, con una sede, solo los suyos (la base tampoco suma «de la empresa» a una sede: su filtro es `ubicacion_id = any(...)`).
+ */
+export function provisionDelRango(filas: readonly FilaProvision[], desde: string, hasta: string, ubicacionId: string | null): FilaProvision[] {
+  return filas.filter((f) => f.fechaFin >= desde && f.fechaFin <= hasta && (ubicacionId === null || f.ubicacionId === ubicacionId));
+}
+
 /** Cómo se llama en pantalla una sede de Dynamic que no es una tienda. Un código nuevo se muestra tal cual, nunca se inventa un nombre. */
 const NOMBRE_SEDE_DYNAMIC: Record<string, string> = { CCO: "Central", OTRU: "Oficina Trujillo" };
 export const nombreSedeDynamic = (codigo: string): string => NOMBRE_SEDE_DYNAMIC[codigo] ?? codigo;

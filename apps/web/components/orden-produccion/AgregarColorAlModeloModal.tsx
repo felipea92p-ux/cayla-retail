@@ -8,6 +8,7 @@ import { ElegirColores } from "@/components/alta-producto/ElegirColores";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import type { ColorAlta } from "@/lib/alta-producto";
 import { agruparPorFamilia } from "@/lib/colores-familias";
+import { familiaEnCarta } from "@/lib/color-estampado-reglas";
 import { coloresDesactivados, coloresQueFaltan, fraseDeLosColoresNuevos, type VarianteDesactivada } from "@/lib/agregar-variantes-orden-reglas";
 import { useAgregarVariantes } from "./useAgregarVariantes";
 
@@ -50,7 +51,7 @@ export function AgregarColorAlModeloModal({
     return coloresQueFaltan([...colores, ...creados], variantes, desactivadas).filter((c) => !vistos.has(c.codigo) && vistos.add(c.codigo));
   }, [colores, creados, variantes, desactivadas]);
   const apagados = useMemo(() => coloresDesactivados(colores, variantes, desactivadas).map((c) => c.nombre), [colores, variantes, desactivadas]);
-  const grupos = useMemo(() => agruparPorFamilia(disponibles, (c) => c.familiaColor), [disponibles]);
+  const grupos = useMemo(() => agruparPorFamilia(disponibles, familiaEnCarta), [disponibles]);
   const nombres = elegidos.map((cod) => disponibles.find((c) => c.codigo === cod)?.nombre ?? cod);
 
   const alternar = (codigo: string) => setElegidos((xs) => (xs.includes(codigo) ? xs.filter((x) => x !== codigo) : [...xs, codigo]));

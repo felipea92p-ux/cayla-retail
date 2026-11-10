@@ -77,7 +77,7 @@ export function AjustesResumen({ campanas, ajustes, onCambiar }: { campanas: rea
             <Interruptor
               activo={ajustes.enCaja}
               onActivo={(v) => onCambiar({ ...ajustes, enCaja: v })}
-              etiqueta="Contar la compra en «Tu caja»"
+              etiqueta="Contar la compra en «Próximos»"
               pie="Muestra cómo cambia tu caja con lo que falta pedir. Es una proyección, no un pago."
             />
             <Interruptor activo={ajustes.conIgv} onActivo={(v) => onCambiar({ ...ajustes, conIgv: v })} etiqueta="Contar el IGV (18 %)" pie="De caja sale con IGV; ese IGV vuelve como crédito fiscal en la declaración siguiente." />
