@@ -698,7 +698,7 @@ function RegistrarMovimientoModal({
   const egresosDelTipo = egresos.filter((e) => (tipo === "deposito" ? e.marca !== "retiro" : e.marca !== "deposito"));
 
   // El depósito de una máquina (ADR-0429) se cruza contra los días que todavía no depositó: la lista llega de la base
-  // (`fn_pos_pendientes`), se marcan de entrada los días hasta la fecha del depósito y la comisión sale sola.
+  // (`fn_pos_pendientes`), se marcan de entrada los días anteriores al depósito (la tarjeta del mismo día llega después) y la comisión sale sola.
   const esDepositoMaquina = tipo === "abono_tarjeta";
   const maquinaId = esDepositoMaquina ? b.origen || null : null;
   // Lo leído va con la máquina de la que se leyó: si la persona cambia de máquina, la lista anterior deja de valer sola
@@ -962,7 +962,7 @@ function RegistrarMovimientoModal({
                   )
                 : lotes.length === 0
                   ? "Esta máquina no tiene nada por depositar."
-                  : "Lo cobrado con la máquina que ningún depósito cubre todavía. Vienen marcados los días hasta la fecha del depósito."
+                  : "Lo cobrado con la máquina que ningún depósito cubre todavía. Vienen marcados los días anteriores al depósito: lo cobrado con tarjeta ese mismo día llega mañana."
             }
             tono={lotes !== null && lotes.length === 0 ? "aviso" : undefined}
           >

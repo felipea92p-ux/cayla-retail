@@ -715,9 +715,15 @@ export function textoDespuesDelDeposito(l: Pick<LotePendiente, "yaDepositado">):
 /**
  * Lo que la hoja marca de entrada: los días pendientes hasta la fecha del depósito (la máquina deposita lo de antes). Lo anterior al arranque de la
  * cuenta (`desde`) se puede marcar (ADR-0552), pero no viene marcado: su saldo de arranque ya lo contiene y casi nunca es de este depósito.
+ * Lo cobrado con tarjeta EL MISMO DÍA del depósito tampoco viene marcado: el lote de tarjeta se cierra al final del día y llega después (Vendemás
+ * deposita el día D lo cobrado hasta D-1, como lee `emparejarVendemas`). Marcarlo inflaba lo cobrado y la comisión salía absurda: el 10-nov-2026 el
+ * depósito de S/ 774.30 de Vendemás chocaba con S/ 1,026.60 marcados (~24 %) y la hoja no dejaba guardar. El QR sí llega el mismo día (un abono por
+ * pago), así que se marca. Lo que no viene marcado se puede marcar a mano.
  */
 export function lotesPorDefecto(lotes: readonly LotePendiente[], fechaDeposito: string, desde: string | null = null): string[] {
-  return lotes.filter((l) => l.fecha <= fechaDeposito && !(desde && l.fecha < desde)).map((l) => l.clave);
+  return lotes
+    .filter((l) => (l.fecha < fechaDeposito || (l.fecha === fechaDeposito && l.medio === "qr")) && !(desde && l.fecha < desde))
+    .map((l) => l.clave);
 }
 
 /** Cuántos puntos porcentuales de diferencia con la tarifa aguanta un depósito sin pedir confirmación (Felipe 2026-11-05). */

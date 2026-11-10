@@ -746,7 +746,7 @@ export const GUIA_FIN_CUENTAS: Guia = {
       ancla: "fin-dinero.mov-lotes",
       opcional: true,
       titulo: "Qué días cubre el depósito",
-      texto: "Te abrimos el depósito desde el aviso. Son los días cobrados con tarjeta o QR que la máquina todavía no depositó, marcados hasta la fecha del depósito. Lo cobrado esos días menos lo que llegó al banco es la comisión real: sale sola y queda como gasto. En la demo no registramos.",
+      texto: "Te abrimos el depósito desde el aviso. Son los días cobrados con tarjeta o QR que la máquina todavía no depositó, marcados hasta el día anterior al depósito. Lo cobrado esos días menos lo que llegó al banco es la comisión real: sale sola y queda como gasto. En la demo no registramos.",
     },
     {
       id: "total",
