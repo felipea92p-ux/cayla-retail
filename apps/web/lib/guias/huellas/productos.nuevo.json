@@ -2,7 +2,7 @@
   "guia": "productos.nuevo",
   "ruta": "/productos/nuevo",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 124,
+  "total": 127,
   "controles": {
     "app/(app)/productos/nuevo/page.tsx": [
       "Volver «{RUTA_ORDENES}»",
@@ -165,6 +165,11 @@
       "CampoTexto «{`Nombre ${tipo === \"tallas\" ? \"de la\" : \"del\"}»",
       "Boton «{firma.motivo ?? faltaExiste ?? undefined}»",
       "button «Cancelar»"
+    ],
+    "components/alta-producto/PropuestaDePrecio.tsx": [
+      "Boton «Proponer precio»",
+      "Boton «{yaUsada ? \"Precio puesto\" : \"Usar este precio\"}»",
+      "button «Proponer otro»"
     ],
     "components/alta-producto/PuntosAvance.tsx": [
       "button «{`${paso.nombre}»"
