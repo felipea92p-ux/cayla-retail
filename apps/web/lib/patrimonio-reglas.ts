@@ -5,6 +5,7 @@
 // base dio. Lo que la ganancia, los aportes y los retiros no explican (`otros`) se muestra aparte, nunca se esconde.
 
 import { soles } from "./flujo-caja-reglas";
+import { fechaLarga } from "./estados-periodo";
 import type { PatrimonioCambios } from "./estados-financieros-reglas";
 import type { Recomendacion } from "./ganamos-reglas";
 
@@ -12,6 +13,16 @@ type ConExtremos = PatrimonioCambios & { inicio: NonNullable<PatrimonioCambios["
 
 /** Hay con qué contar lo tuyo: los saldos de arranque están y la base dio los dos extremos del mes. */
 export const tieneExtremos = (p: PatrimonioCambios | null): p is ConExtremos => !!p && !p.sinArranque && !!p.inicio && !!p.fin;
+
+/**
+ * ¿Estas fechas empiezan antes del punto de partida del Balance? Ahí el inicio no existe: la base da «empezaste con 0» y todo lo que había el día del arranque cae en `otros`, como si
+ * fuera un ajuste misterioso. Vale también para un rango que cruza el arranque (del 15-oct al 5-nov). El saldo final sí es correcto.
+ */
+export const empiezaAntesDelArranque = (p: Pick<PatrimonioCambios, "arranque"> | null, desde: string): boolean => !!p?.arranque && desde < p.arranque;
+
+/** Lo que se dice en vez del puente cuando las fechas empiezan antes del arranque. */
+export const puntoDePartidaDelPatrimonio = (arranque: string): string =>
+  `El ${fechaLarga(arranque)} es el punto de partida del Balance: estas fechas empiezan antes y no hay con qué armar de dónde salió esta cifra. Es lo que había al terminar. Lo que se ganó esas fechas está en Ganancias y pérdidas.`;
 
 const r2 = (n: number) => Math.round(n * 100) / 100;
 const pesa = (n: number) => Math.round(n) !== 0;
@@ -65,7 +76,7 @@ export function cuadroFormalPatrimonio(p: ConExtremos): FilaFormalPatrimonio[] {
 
 /**
  * Qué te recomiendo en Cambios en el patrimonio (hasta 3, la más urgente arriba). Sale de lo que la pantalla ya muestra: si retiraste más de lo
- * que ganaste (o una parte grande), si perdiste, si lo tuyo viene bajando y si hay algo sin explicar. Ninguna inventa una regla.
+ * que ganaste (o una parte grande), si perdiste, si lo tuyo viene bajando y si hubo carga inicial o ajustes. Ninguna inventa una regla.
  */
 export function recomendacionesTuyo({ datos, href, sueldosEstimados = 0 }: { datos: PatrimonioCambios | null; href: (ruta: string) => string; sueldosEstimados?: number }): Recomendacion[] {
   if (!tieneExtremos(datos)) return [];
@@ -77,10 +88,10 @@ export function recomendacionesTuyo({ datos, href, sueldosEstimados = 0 }: { dat
   if (pesa(datos.otros)) {
     out.push({
       clave: "otros",
-      tono: "atencion",
+      tono: "info",
       prioridad: 1,
-      titulo: `${soles(Math.abs(datos.otros))} sin explicar`,
-      texto: "Lo tuyo se movió a mano, sin una venta, un gasto, un aporte ni un retiro. Pídele al contador que lo revise.",
+      titulo: `${soles(Math.abs(datos.otros))} de carga inicial o ajustes`,
+      texto: "Lo tuyo se movió sin una venta, un gasto, un aporte ni un retiro: suele ser mercadería que se cargó al sistema por primera vez. Si no reconoces esa carga, pídele al contador que lo revise.",
       accion: { texto: "Ver el Balance", href: href("/finanzas/reportes/balance") },
     });
   }

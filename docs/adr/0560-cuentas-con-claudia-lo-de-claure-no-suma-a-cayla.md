@@ -77,6 +77,16 @@ Las 17 migraciones se aplicaron en `vovjyyiafkxteijimpuy` (schema `retail`) **en
 
 `20261029004000` → `011000` → `013000` → `020000` → `023000` → `030000` → `035000` → `041000` → `043000` → `044000` → `142000` → `144000` → `153000` → `154000` → `160000` → `161000` → `162000`, y recién ahí la web. **Producción ya tiene la `20261028212000` (ADR-0558): esta cadena va después y reemplaza su `fn_asientos_claure`.** (La `155000` se retiró: ver arriba.) Las partes con reemplazos anclados (`020000`, `023000`, `030000`, `035000`, `041000`) **abortan sin cambiar nada** si una función de producción no tiene el texto que esperan; no pude leer los textos vivos de producción, así que el aborto es el aviso. `044000` crea una tabla y dos categorías y va **antes** que la web. Después de pegar: `pnpm datos:generar:produccion` y `pnpm datos:comparar`.
 
+## Actualización 2026-11-09: cuando CLAURE facture, se deja de descontar el IGV (decisión de Felipe; sin construir)
+
+**El problema.** El IGV de lo que CLAURE cobra en cuentas de CAYLA ya se le descuenta del saldo. Felipe decidió que también puede devolverlo con facturas de compra. Si las dos cosas corren sobre la misma venta, CAYLA lo recupera dos veces.
+
+**La decisión.** Una sola forma de devolverlo: desde que CLAURE facture, esas ventas ya no llevan el descuento. Hasta la primera factura **nada cambia**: se sigue descontando. Apagarlo antes subiría lo que se le debe sin una factura que le dé a CAYLA el crédito fiscal.
+
+**Lo que falta decidir, con el contador, antes de construir:** la fecha desde la que rige; qué pasa con lo ya descontado antes de esa fecha (propuesta: queda como está y esas ventas no entran a la factura); cómo se recupera el IGV de las ventas en efectivo anteriores; y cómo se registra la factura para que dé crédito sin subir stock ni costo (CLAURE es consignación, ADR-0558, y hoy no existe como proveedor).
+
+**Lo que tocará, juntos y con la misma fecha de corte, para que el saldo no diga dos cosas:** `resumenClaure` y `seLeDebeDeFila` (`lib/cuenta-claure-reglas.ts`), `fn_claure_cierre` (el aviso del cierre de caja), `fn_claure_saldo_a` (la proyección de caja), `fn_asientos_claure` (el Diario: hoy la 479 va sin IGV) y `fn_impuestos_igv_meses` (hoy el crédito sale solo de compras, gastos, activos y taller). La frase que ve la gente es `IGV_DE_CLAURE`. Son plata y crédito fiscal: migración preparada y probada en local, y Felipe la pega por partes.
+
 ## Qué queda abierto
 
 Ver `docs/backlog/2026-10-28-reverent-mcclintock-755f41.md` (decisiones de Felipe, producción, deuda técnica) y el tablero `docs/maquetas/claure-pendientes-2026-10/index.html`.

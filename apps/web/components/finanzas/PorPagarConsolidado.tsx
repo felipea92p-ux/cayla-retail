@@ -5,7 +5,9 @@ import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Check, Clock3 } from "lucide-react";
 import { BarraApilada, MuestraTramo } from "@/components/ui/BarraApilada";
+import { Aviso } from "@/components/ui/Aviso";
 import { Chip } from "@/components/ui/Chip";
+import { fallaLegible } from "@/lib/gastos-telar-reglas";
 import { TarjetaCifra } from "@/components/ui/TarjetaCifra";
 import { TituloSeccion } from "@/components/ui/TituloSeccion";
 import { BotonLimpiar, FiltroPuesto } from "@/components/ui/FiltrosPuestos";
@@ -129,7 +131,7 @@ export function PorPagarConsolidado({
       />
 
       {falla ? (
-        <p className="card-cayla border-dashed px-5 py-4 text-sm text-tinta/75">{falla}</p>
+        <Aviso tono="error">{fallaLegible(falla)}</Aviso>
       ) : (
         <>
           <section className="qd-franja" data-guia="fin-por-pagar.cifras">

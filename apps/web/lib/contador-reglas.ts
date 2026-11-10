@@ -7,10 +7,11 @@
 // ASUME: toda cifra viene de la base; aquí solo se ordena y se escribe. El formato es el de los demás CSV de Finanzas: separado por «;»
 // (Excel en español), montos exactos con punto, con BOM (`csvDe`).
 
-import { csvDe, mesTitulo, nombreCorto, type FilaER, type LineaDiario } from "./resultados-reglas";
+import { csvDe, mesNombre, mesTitulo, nombreCorto, type FilaER, type LineaDiario } from "./resultados-reglas";
 import { loQueNoCubre, partesDelFlujo } from "./plata-reglas";
 import { cuadroFormalPatrimonio, tieneExtremos } from "./patrimonio-reglas";
-import { etiquetaSemana, type FlujoReal } from "./flujo-caja-reglas";
+import { etiquetaSemana, rangoDelMes, type FlujoReal } from "./flujo-caja-reglas";
+import type { Periodo } from "./estados-periodo";
 import type { PatrimonioCambios } from "./estados-financieros-reglas";
 
 export type ArchivoContador = "resultados" | "flujo" | "balance" | "patrimonio" | "saldos" | "diario";
@@ -187,11 +188,26 @@ const DESCARGA: Readonly<Record<ArchivoContador, string>> = {
   diario: "libro diario",
 };
 
+/** Qué trae el archivo: «de octubre», «de noviembre (a la fecha)»; el Balance, «al 31 de octubre». Los archivos van por mes, se elija lo que se elija en el calendario (tarea 86). */
+function queBaja(clave: ArchivoContador, mes: string, hoy: string): string {
+  const { hasta } = rangoDelMes(mes, hoy);
+  const anio = mes.slice(0, 4) === hoy.slice(0, 4) ? "" : ` de ${mes.slice(0, 4)}`;
+  const aLaFecha = mes === hoy.slice(0, 7) ? " (a la fecha)" : "";
+  return clave === "balance" ? `al ${Number(hasta.slice(8))} de ${mesNombre(mes)}${anio}${aLaFecha}` : `de ${mesNombre(mes)}${anio}${aLaFecha}`;
+}
+
+/** El aviso antes de bajar cuando lo que se mira no es un mes entero: también unos días dentro de un mes. `null` si coincide. */
+export function avisoDelContador(periodo: Pick<Periodo, "mes" | "unMes" | "titulo" | "al">, hoy: string, esBalance: boolean): string | null {
+  if (periodo.unMes) return null;
+  const mes = queBaja("resultados", periodo.mes, hoy).replace(/^de /, "");
+  return `Estás viendo «${esBalance ? periodo.al : periodo.titulo}», pero los archivos de «Para el contador» van por mes: bajarás ${mes}; el Balance, ${queBaja("balance", periodo.mes, hoy)}.`;
+}
+
 /**
- * Lo que hay en «Para el contador» (ADR-0611): ver los dos cuadros que no son un estado y bajar, uno por uno, los archivos del mes con sus cuentas. Cada estado en su formato formal
- * se abre dentro del estado mismo. Lo que es de CAYLA entera no se ofrece a una terminal: la base lo exige igual.
+ * Lo que hay en «Para el contador» (ADR-0611): ver los dos cuadros que no son un estado y bajar, uno por uno, los archivos del mes con sus cuentas. Cada opción dice qué período trae. Cada estado en su
+ * formato formal se abre dentro del estado mismo. Lo que es de CAYLA entera no se ofrece a una terminal: la base lo exige igual.
  */
-export function opcionesDelContador({ veTodo, hrefCuentas }: { veTodo: boolean; hrefCuentas: (ver: VerCuentas) => string }): OpcionContador[] {
+export function opcionesDelContador({ veTodo, hrefCuentas, mes, hoy }: { veTodo: boolean; hrefCuentas: (ver: VerCuentas) => string; mes: string; hoy: string }): OpcionContador[] {
   return [
     ...(veTodo
       ? [
@@ -199,6 +215,6 @@ export function opcionesDelContador({ veTodo, hrefCuentas }: { veTodo: boolean; 
           { clave: "ver-diario", etiqueta: "Ver el libro diario", href: hrefCuentas("diario") },
         ]
       : []),
-    ...ARCHIVOS_CONTADOR.filter((a) => !motivoArchivoContador(a.clave, veTodo)).map((a) => ({ clave: `bajar-${a.clave}`, etiqueta: `Descargar ${DESCARGA[a.clave]}`, archivo: a.clave })),
+    ...ARCHIVOS_CONTADOR.filter((a) => !motivoArchivoContador(a.clave, veTodo)).map((a) => ({ clave: `bajar-${a.clave}`, etiqueta: `Descargar ${DESCARGA[a.clave]} ${queBaja(a.clave, mes, hoy)}`, archivo: a.clave })),
   ];
 }

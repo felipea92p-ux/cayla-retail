@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { CalendarX } from "lucide-react";
 import { Chip } from "@/components/ui/Chip";
@@ -30,7 +30,9 @@ import {
   type FlujoReal,
   type Proyeccion,
 } from "@/lib/flujo-caja-reglas";
+import { loQueNoIncluye } from "@/lib/caja-proxima-reglas";
 import { loQueNoCubre } from "@/lib/plata-reglas";
+import { idDeAncla } from "@/lib/ancla-de-la-direccion";
 import { aparteDePorVolver } from "@/lib/dinero-pulso-reglas";
 import type { FilaER } from "@/lib/resultados-reglas";
 
@@ -60,6 +62,11 @@ export function MasDelFlujo({
   const ruta = usePathname();
   const params = useSearchParams();
   const [verYSi, setVerYSi] = useState(false);
+  // «Probar escenario» llega con #y-si: el simulador se abre solo. `MasDelEstado` abre el pliegue de afuera y lleva la vista.
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- el # solo lo sabe el navegador: leerlo al iniciar el estado rompería la hidratación
+    if (idDeAncla(window.location.hash) === "y-si") setVerYSi(true);
+  }, []);
   const ponerSemanas = (n: number) => {
     const p = new URLSearchParams(params.toString());
     p.set("semanas", String(n));
@@ -93,10 +100,10 @@ export function MasDelFlujo({
         </Superficie>
       </section>
 
-      <section id="y-si" className="space-y-4">
+      <section id="y-si" className="scroll-mt-44 space-y-4">
         <BotonVerMas abierto={verYSi} onCambiar={setVerYSi} texto="¿Y si…? Prueba un cambio" forma="enlace" controla="fin-plata-y-si" data-guia="fin-plata.y-si" />
         <FilasDeMas abierto={verYSi} id="fin-plata-y-si">
-          <EscenariosPanel proyeccion={proyeccion} resultados={escenarios.resultados} mesBase={escenarios.mesBase} fallas={[]} hoy={hoy} />
+          <EscenariosPanel proyeccion={proyeccion} resultados={escenarios.resultados} mesBase={escenarios.mesBase} hoy={hoy} />
         </FilasDeMas>
       </section>
 
@@ -271,7 +278,7 @@ function LoQueViene({ p }: { p: Proyeccion }) {
       <FaltanProyeccion provisional={provisional} faltan={faltan} className="mb-3" />
       {porVolver && <p className="nota-cayla mb-3">{porVolver.frase}</p>}
       <p className="mb-2 text-sm leading-snug text-taupe">
-        Entra lo que esperas vender (la meta de cada día, con sus campañas); sale lo que vence (facturas, planilla, alquileres, gastos fijos).
+        Entra lo que esperas vender (la meta de cada día, con sus campañas); sale lo que vence (facturas, planilla, alquileres, gastos fijos). {loQueNoIncluye(false)}
       </p>
       {p.diasDeCaja !== null && (
         <p className="fin-dias" data-guia="fin-flujo.dias">

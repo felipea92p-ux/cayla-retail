@@ -312,7 +312,7 @@ export function RegistrarGastoModal({
           : !egreso && conCuentas && salida
             ? `Salió de ${salida.nombre}.`
           : esActivo
-            ? "Se deprecia desde el próximo mes."
+            ? "Se deprecia desde el mes de la compra."
             : undefined,
     });
     // El refresco va DESPUÉS de retirar la guardia de «¿Salir sin guardar?» (`retirarYa`): juntos, Next podía volver a montar
@@ -482,7 +482,7 @@ export function RegistrarGastoModal({
               htmlFor="activo-tipo"
               ayuda={
                 tipoActivo
-                  ? `Cuenta ${tipoActivo.cuenta}.${monto.ok ? ` Se deprecia ${soles((monto.valor - igv) / Math.max(1, tipoActivo.vidaUtilMeses))} al mes desde el próximo mes${igv ? ", sobre el costo sin IGV" : ""}.` : ""}`
+                  ? `Cuenta ${tipoActivo.cuenta}.${monto.ok ? ` Se deprecia ${soles((monto.valor - igv) / Math.max(1, tipoActivo.vidaUtilMeses))} al mes desde el mes de la compra${igv ? ", sobre el costo sin IGV" : ""}.` : ""}`
                   : "La sugiere el tipo de bien; el contador la confirma."
               }
             >

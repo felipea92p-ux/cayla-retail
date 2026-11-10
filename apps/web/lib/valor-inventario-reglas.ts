@@ -122,7 +122,7 @@ export function lineaAparte(etiqueta: string, unidades: number, valor: number): 
 
 /** Por qué este número no es el de la «Mercadería» del Balance de Finanzas. Una sola vez, a un toque, para quien se pregunte. */
 export const PORQUE_NO_ES_EL_BALANCE =
-  "Es lo que hay en la sede, a su costo. No incluye lo dañado ni lo de CLAURE (van aparte), ni lo que viene en camino entre sedes, ni lo facturado que aún no llega. Tampoco descuenta lo vendido por la web que todavía no se entrega. El Balance de Finanzas sí cuenta lo que va en camino y lo facturado por recibir, y suma las dañadas, así que su «Mercadería» puede ser distinta.";
+  "Es lo que hay en la sede, a su costo. No incluye lo dañado ni lo de CLAURE (van aparte), ni lo que viene en camino entre sedes, ni lo facturado que aún no llega. Tampoco descuenta lo vendido por la web que todavía no se entrega. El Balance de Finanzas sí cuenta lo que va en camino y lo facturado por recibir, y suma las dañadas: eso la sube. En cambio, lo recibido que aún no tiene factura y las ventas sin registrar todavía no se reflejan igual en el Balance y pueden dejarlo por debajo.";
 
 /* ====================================================================
    «Ver cuáles»: las tallas que la suma cuenta como «sin costo» (`fn_tallas_sin_costo`, ADR-0557)

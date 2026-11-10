@@ -33,6 +33,8 @@ describe("pulsoImpuestos", () => {
     expect(p.verbo).toBe("le pagas");
     expect(p.frase).toBe("Por lo que vendiste en septiembre, en octubre le pagas a SUNAT S/ 9,290 (S/ 8,400 de IGV y S/ 890 de renta a cuenta). El día exacto depende del último dígito de tu RUC.");
     expect(p.deCada).toBe("De cada S/ 118 que cobras, S/ 18 son de SUNAT; te devuelven el IGV que pagaste en tus compras con factura.");
+    // Es lo declarable: sale de los comprobantes. «IGV de tus ventas» es otra cifra, la de Ganancias, y no pueden llamarse igual.
+    expect(p.cuenta[0]?.nombre).toBe("IGV de tus boletas y facturas");
     expect(p.cuenta.map((t) => [t.clave, t.monto, t.tipo])).toEqual([
       ["cobrado", 16020, "entra"],
       ["descontado", 7620, "sale"],

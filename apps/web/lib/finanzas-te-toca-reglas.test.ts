@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { agruparPendientes, listaDeHoy, pendientesDeCierre, pendientesDeFijos, pendientesDeGastos, pendientesDeImpuestos, type PendienteTelar } from "./finanzas-te-toca-reglas";
+import { agruparPendientes, cierreDeTeToca, frasesDeTeToca, listaDeHoy, pendientesDeFijos, pendientesDeGastos, pendientesDeImpuestos, puedeVolverAPreguntar, type PendienteTelar } from "./finanzas-te-toca-reglas";
 import type { Aviso } from "./resumen-finanzas-reglas";
 import type { PendienteImpuesto } from "./impuestos-antes-reglas";
 
@@ -69,10 +69,40 @@ describe("pendientes nuevos del cajón (tarea 1)", () => {
     expect(p!.href).toBe("/finanzas/gastos?sede=a&tab=fijos");
   });
   it("el mes anterior abierto se dice con su nombre; cerrado, nada", () => {
-    expect(pendientesDeCierre({ mes: "2026-10", mesNombre: "octubre", cerrado: true })).toEqual([]);
-    const [p] = pendientesDeCierre({ mes: "2026-10", mesNombre: "octubre", cerrado: false });
+    expect(cierreDeTeToca({ mes: "2026-10", mesNombre: "octubre", clave: "tru", lectura: { datos: ["tru"], falla: null } }).pendientes).toEqual([]);
+    const [p] = cierreDeTeToca({ mes: "2026-10", mesNombre: "octubre", clave: "tru", lectura: { datos: ["lim"], falla: null } }).pendientes;
     expect(p!.titulo).toBe("Octubre sigue abierto");
     expect(p!.submodulo).toBe("finanzas.cierreDeMes");
+  });
+});
+
+describe("el cierre en Te toca distingue «falló» de «no hay cerrados» (tarea 155)", () => {
+  const base = { mes: "2026-10", mesNombre: "octubre", clave: "consolidado" };
+  it("con la lectura caída no afirma que sigue abierto: marca el cajón incompleto", () => {
+    expect(cierreDeTeToca({ ...base, lectura: { datos: [], falla: "No se pudo leer los meses cerrados: boom" } })).toEqual({ pendientes: [], incompleto: true });
+  });
+  it("leído y sin cerrar, avisa; leído y cerrado, nada", () => {
+    const abierto = cierreDeTeToca({ ...base, lectura: { datos: [], falla: null } });
+    expect(abierto.incompleto).toBe(false);
+    expect(abierto.pendientes[0]!.titulo).toBe("Octubre sigue abierto");
+    expect(cierreDeTeToca({ ...base, lectura: { datos: ["consolidado"], falla: null } })).toEqual({ pendientes: [], incompleto: false });
+  });
+});
+
+describe("cuándo vuelve a preguntar al recibir el foco (tarea 155)", () => {
+  const T = 1_000_000;
+  it("una vez por minuto como máximo: cada pregunta son cerca de una docena de lecturas", () => {
+    expect(puedeVolverAPreguntar(T, T + 59_999)).toBe(false);
+    expect(puedeVolverAPreguntar(T, T + 60_000)).toBe(true);
+  });
+});
+
+describe("lo que dice el cajón según las sedes marcadas (tarea 143)", () => {
+  it("con una sede o todas habla de la sede elegida", () => {
+    expect(frasesDeTeToca(false)).toEqual({ frase: "Lo que conviene hacer hoy en Finanzas, para la sede que elegiste arriba.", vacio: "Nada te toca en Finanzas para esta sede." });
+  });
+  it("con varias marcadas no finge filtrar: dice que son de todas las sedes", () => {
+    expect(frasesDeTeToca(true)).toEqual({ frase: "Lo que conviene hacer hoy en Finanzas, de todas las sedes.", vacio: "Nada te toca en Finanzas en ninguna sede." });
   });
 });
 

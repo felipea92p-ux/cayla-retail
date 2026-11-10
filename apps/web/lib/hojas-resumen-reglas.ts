@@ -1,3 +1,4 @@
+import { ventaParaDecir } from "./igv-ventas-reglas";
 import type { FilaER } from "./resultados-reglas";
 import type { TeDejaMes } from "./te-deja-mes-reglas";
 
@@ -51,15 +52,24 @@ export function cuentaDelMes(f: FilaER, te: TeDejaMes): Renglon[] {
 
 export type VentaDeTienda = { id: string; nombre: string; ventas: number; cambio: number | null };
 
-/** Lo vendido por tienda, de la que más vende a la que menos, con cuánto cambió contra el período anterior. */
+/**
+ * Lo vendido por tienda, de la que más vende a la que menos, con cuánto cambió contra el período anterior. Va como se DICE en el Resumen (`ventaParaDecir`, ADR-0624): con IGV si se pudo
+ * leer, y sin lo de CLAURE; el cambio contra el período anterior es una razón y no depende de la base.
+ */
 export function ventasPorTienda(filas: readonly FilaER[], antes: readonly FilaER[] | null): VentaDeTienda[] {
   return filas
     .filter((f) => f.unidad === "tienda" && f.ubicacionId)
     .map((f) => {
       const a = antes?.find((x) => x.ubicacionId === f.ubicacionId);
-      return { id: f.ubicacionId!, nombre: f.nombre.replace(/^Tienda\s+/i, ""), ventas: r2(f.ventas), cambio: a && a.ventas > 0 ? f.ventas / a.ventas - 1 : null };
+      return { id: f.ubicacionId!, nombre: f.nombre.replace(/^Tienda\s+/i, ""), ventas: ventaParaDecir(f).vendido, cambio: a && a.ventas > 0 ? f.ventas / a.ventas - 1 : null };
     })
     .sort((a, b) => b.ventas - a.ventas);
+}
+
+/** El rótulo de lo que suma `ventasPorTienda` («con IGV», «con IGV y sin lo de CLAURE» o «sin IGV»): el de las tiendas que más lo aclaran, para que la cifra de arriba no prometa de más. */
+export function rotuloDeVentas(filas: readonly FilaER[]): string {
+  const rotulos = filas.filter((f) => f.unidad === "tienda").map((f) => ventaParaDecir(f).rotulo);
+  return rotulos.find((x) => x.includes("CLAURE")) ?? rotulos[0] ?? "sin IGV";
 }
 
 export type GastoDelMes = { nombre: string; monto: number; deCada100: number };

@@ -15,7 +15,7 @@ import { colorDeEtapa, repartoPorCuenta } from "@/lib/dinero-reparto-reglas";
 import { montoConSigno } from "@/lib/dinero-telar-reglas";
 import { fechaCorta, solesDos } from "@/lib/gastos-reglas";
 import { TEXTO_MOVIMIENTO, type CuentaDinero, type MovimientoDinero } from "@/lib/cuentas-dinero-reglas";
-import { AYUDA_ETAPA, ETAPAS_EN_ORDEN, TEXTO_ETAPA, fraseDeEtapas, totalesPorEtapa, type EtapaDinero, type FilaEstado, type ItemAtencion, type TipoAtencion } from "@/lib/dinero-estados-reglas";
+import { AYUDA_ETAPA, ETAPAS_EN_ORDEN, TEXTO_ETAPA, estadoDeAtencion, fraseDeEtapas, totalesPorEtapa, type EtapaDinero, type FilaEstado, type ItemAtencion, type TipoAtencion } from "@/lib/dinero-estados-reglas";
 
 // Cuentas y dinero ▸ Dónde está (rediseño «Fusión», Felipe 2026-10-31): la COMPOSICIÓN es la de la maqueta aprobada
 // (docs/maquetas/finanzas-dinero-rediseno-2026-10/index.html#d): la tarjeta «Tienes en total» con las cuatro etapas a su lado, «Mis cuentas»
@@ -57,6 +57,7 @@ export function PanoramaDinero({
   movimientos,
   hoy,
   items,
+  incompleto = false,
   alcanza,
   ultimos,
 }: {
@@ -73,6 +74,8 @@ export function PanoramaDinero({
   movimientos: MovimientoDinero[];
   hoy: string;
   items: ItemAtencion[];
+  /** No se pudo leer alguno de los avisos: «Pide tu atención» no afirma que todo está en orden. */
+  incompleto?: boolean;
   /** «¿Me alcanza?», que llega ya dibujada del servidor y va en la columna derecha, bajo los avisos. */
   alcanza?: ReactNode;
   /** «Últimos movimientos», que llega ya dibujada y va al final de la columna derecha: llena el espacio que dejaba la lista de cuentas. */
@@ -92,6 +95,7 @@ export function PanoramaDinero({
   }
 
   const totales = totalesPorEtapa(filas);
+  const atencion = estadoDeAtencion(items.length, incompleto);
   const visibles = etapa ? filas.filter((f) => f.etapa === etapa) : filas;
   const sel = filas.find((f) => f.id === elegida) ?? null;
   const cuentaSel = cuentas.find((c) => c.id === elegida) ?? null;
@@ -276,13 +280,13 @@ export function PanoramaDinero({
           <section className="card-cayla" aria-label="Pide tu atención" data-guia="fin-dinero.atencion">
             <div className="dp-atencion-cab">
               <TituloSeccion>Pide tu atención</TituloSeccion>
-              <Chip tono={items.length ? "ambar" : "verde"} versalitas>
-                {items.length === 0 ? "Todo en orden" : `${items.length} ${items.length === 1 ? "cosa" : "cosas"}`}
+              <Chip tono={atencion.tono} versalitas>
+                {atencion.chip}
               </Chip>
             </div>
             {items.length === 0 ? (
               <p className="dp-tenue" style={{ padding: "0 24px 22px", fontSize: "15px" }}>
-                Ninguna cuenta ni cierre pide revisión.
+                {atencion.frase}
               </p>
             ) : (
               <ul className="dp-aten" role="list">

@@ -1,10 +1,19 @@
 import { describe, expect, it } from "vitest";
 import fixture from "./resumen-finanzas.fixture.json";
 import { filaDeVer, leerResumen } from "./resumen-finanzas-reglas";
-import { campanasDelMes, cascadaGanamos, desvio, filasDeSedes, metaDeVentas, NOTA_IGV_VENTAS, porSede, pptoDeLaSede, recomendacionesGanamos, ventaQueCubre } from "./ganamos-reglas";
+import { campanasSinFilas, campanasDelMes, cascadaGanamos, desvio, filasConMeta, filasDeSedes, metaDeVentas, metaParaDecir, NOTA_IGV_VENTAS, porSede, pptoDeLaSede, recomendacionesGanamos, ventaQueCubre } from "./ganamos-reglas";
 import { filasDeTramos } from "./cascada-estados-reglas";
 import type { FilaPpto } from "./presupuesto-reglas";
 import type { CampanaFila, FilaER } from "./resultados-reglas";
+
+describe("campanasSinFilas: «no hubo» solo si se pudo leer", () => {
+  it("leídas y sin ninguna: no hubo", () => expect(campanasSinFilas(null, "octubre")).toEqual({ falla: false, texto: "No hubo campañas en octubre." }));
+  it("si falló la lectura, lo dice y no afirma que no hubo", () => {
+    const r = campanasSinFilas("No se pudo leer las campañas: se cayó", "octubre");
+    expect(r).toEqual({ falla: true, texto: "No se pudieron leer las campañas de octubre." });
+    expect(r.texto).not.toMatch(/No hubo/);
+  });
+});
 
 const fila = (p: Partial<FilaER>): FilaER =>
   ({
@@ -49,6 +58,9 @@ describe("cascadaGanamos con lo cobrado", () => {
       ["ventas", "Vendiste", "entra", fila({}).ventas, true],
     ]);
     expect(t[1]!.detalle).toBe(NOTA_IGV_VENTAS);
+    expect(t.some((x) => x.clave === "claure")).toBe(false);
+    const conClaure = cascadaGanamos(fila({ igvCobrado: 1800, claureSinIgv: 500 }), []);
+    expect(conClaure.slice(0, 3).map((x) => [x.clave, x.tipo, x.monto])).toEqual([["con_igv", "entra", fila({}).ventas + 2300], ["igv", "sale", 1800], ["claure", "sale", 500]]);
     expect(filasDeTramos(t).slice(0, 3).map((x) => x.tipo)).toEqual(["total", "paso", "subtotal"]);
   });
   it("no cambia la suma ni agrega «Otros ajustes»", () => {
@@ -146,10 +158,26 @@ describe("recomendacionesGanamos", () => {
   });
   it("mes en curso: pide lo del mes entero, nunca los gastos de los días que van (ADR-0621)", () => {
     const con = recomendacionesGanamos({ fila: fila({}), sedes, tramos, meta: null, campanas: [], enCurso: true, ventaDelMes: () => 40100, href })[0]!;
-    expect(con.texto.replace(/\s/g, " ")).toBe("Para cubrir el mes entero necesita vender S/ 40,100; lleva S/ 12,000.");
+    expect(con.texto.replace(/\s/g, " ")).toBe("Para cubrir el mes entero necesita vender S/ 40,100; lleva S/ 12,000, sin IGV.");
     const sin = recomendacionesGanamos({ fila: fila({}), sedes, tramos, meta: null, campanas: [], enCurso: true, ventaDelMes: () => null, href })[0]!;
     expect(sin.texto).not.toContain("al mes;");
     expect(sin.texto).not.toContain("necesita vender");
+  });
+  // Tarea 19, con cifras inventadas con las proporciones de producción (las reales no entran al repo, que es público: ADR-0609).
+  const TRUJILLO = { unidad: "tienda" as const, ubicacionId: "u-tru", nombre: "Tienda Trujillo", ventas: 75_000, margen: 25_200, resultado: -4_800 };
+  it("Trujillo: unos S/ 105,400 con IGV junto a lo vendido con IGV; el margen sigue siendo 33.6 %", () => {
+    const f = fila({ ...TRUJILLO, igvCobrado: 13_500, claureSinIgv: 0 });
+    expect(ventaQueCubre(f)).toBe(105_400);
+    expect(((f.margen / f.ventas) * 100).toFixed(1)).toBe("33.6");
+    const r = recomendacionesGanamos({ fila: f, sedes: porSede([f]), tramos: [], meta: null, campanas: [], enCurso: false, href })[0]!;
+    expect(r.texto.replace(/\s/g, " ")).toBe("Para cubrir lo que cuesta tenerla abierta necesita vender S/ 105,400 al mes; este mes vendió S/ 88,500, con IGV.");
+  });
+  it("Tienda LIM: lo de CAYLA con IGV, nunca lo cobrado con CLAURE", () => {
+    const f = fila({ unidad: "tienda", ubicacionId: "u-lim", nombre: "Tienda Lima", ventas: 1_000, margen: 500, resultado: -500, igvCobrado: 270, claureSinIgv: 500 });
+    const r = recomendacionesGanamos({ fila: f, sedes: porSede([f]), tramos: [], meta: null, campanas: [], enCurso: false, href })[0]!;
+    // 1,000 ÷ 50 % = 2,000 sin IGV → 2,360 con IGV → 2,400. Con la tasa inflada (27 %) serían 2,600.
+    expect(r.texto.replace(/\s/g, " ")).toBe("Para cubrir lo que cuesta tenerla abierta necesita vender S/ 2,400 al mes; este mes vendió S/ 1,180, con IGV y sin lo de CLAURE.");
+    expect(r.texto).not.toContain("1,770");
   });
   it("otras fechas: ninguna cifra mensual", () => {
     expect(recomendacionesGanamos({ fila: fila({}), sedes, tramos, meta: null, campanas: [], enCurso: false, unMes: false, href })[0]!.texto).toBe("En estas fechas, sus gastos pasan lo que deja la venta.");
@@ -202,5 +230,58 @@ describe("con la forma REAL de la base: `gastos` ya incluye los sueldos y el des
     expect(c.map((t) => t.clave)).not.toContain("ajustes");
     const suma = c.filter((t) => t.tipo !== "queda").reduce((a, t) => a + (t.tipo === "entra" ? t.monto : -t.monto), 0);
     expect(Math.round(suma * 100) / 100).toBe(Math.round(f.resultado * 100) / 100);
+  });
+});
+
+describe("la meta de ventas, con IGV (tarea 53)", () => {
+  const NOVIEMBRE = { meta: 120_000, real: 96_000, avance: 96_000 / 120_000, enCurso: true };
+  const hrefMeta = (r: string) => r;
+  const texto = (s: string) => s.replace(/\u00a0/g, " ");
+  const detalles = (f: ReturnType<typeof fila>, enCurso = true) => {
+    const filas = [
+      { clave: "con_igv", nombre: "Vendiste con IGV", valor: 113_280, tipo: "total" as const, detalle: "nota" },
+      { clave: "ventas", nombre: "Vendiste", valor: 96_000, tipo: "subtotal" as const, detalle: "Sin IGV." },
+    ];
+    const conMeta = filasConMeta(f.igvCobrado === undefined ? filas.slice(1) : filas, NOVIEMBRE, f, enCurso);
+    return Object.fromEntries(conMeta.map((x) => [x.clave, texto(x.detalle ?? "")]));
+  };
+
+  it("la meta del mes dice 141,600 junto a «Vendiste con IGV», y el porcentaje no cambia de base", () => {
+    const d = detalles(fila({ igvCobrado: 17_280, claureSinIgv: 0 }));
+    expect(d.con_igv).toBe("Meta con IGV: S/ 141,600.00 · al ritmo de hoy, 80 %");
+    expect(d.ventas).toBe("Sin IGV.");
+  });
+
+  it("Lima: la meta va junto a lo de CAYLA con IGV, no junto a todo lo cobrado en la tienda", () => {
+    const f = fila({ ventas: 400, igvCobrado: 180, claureSinIgv: 600 });
+    const lima = { meta: 5_000, real: 900, avance: 900 / 5_000, enCurso: true };
+    const filas = [{ clave: "con_igv", nombre: "Vendiste con IGV", valor: 1_180, tipo: "total" as const }];
+    expect(texto(filasConMeta(filas, lima, f, true)[0]!.detalle!)).toBe("Lo de CAYLA con IGV: S/ 472.00 · Meta: S/ 5,900.00 · al ritmo de hoy, 18 %");
+  });
+
+  it("con ventas de CLAURE avisa que la meta no las incluye: en Lima es de CAYLA", () => {
+    const f = fila({ igvCobrado: 180, claureSinIgv: 600 });
+    const lima = { meta: 5_000, real: 900, avance: 900 / 5_000, enCurso: true };
+    expect(metaParaDecir(lima, f)).toMatchObject({ fila: "con_igv", meta: 5_900, rotulo: "con IGV y sin lo de CLAURE" });
+    expect(detalles(f).con_igv).toContain("Meta: S/ 141,600.00");
+    expect(detalles(f).con_igv).toContain("Lo de CAYLA con IGV:");
+  });
+
+  it("sin la fila «Vendiste con IGV», la meta queda en «Vendiste» y dice que va sin IGV", () => {
+    expect(detalles(fila({})).ventas).toBe("Meta sin IGV: S/ 120,000.00 · al ritmo de hoy, 80 %");
+    expect(metaParaDecir(NOVIEMBRE, fila({ igvCobrado: 0, claureSinIgv: 0 }))).toMatchObject({ fila: "ventas", meta: 120_000, rotulo: "sin IGV" });
+    expect(metaParaDecir(NOVIEMBRE, null)).toMatchObject({ fila: "ventas", meta: 120_000, rotulo: "sin IGV" });
+  });
+
+  it("«faltarían» se convierte como la meta: (meta − proyección) × 1.18", () => {
+    expect(metaParaDecir(NOVIEMBRE, fila({ igvCobrado: 17_280, claureSinIgv: 0 })).falta).toBe(28_320);
+    const r = recomendacionesGanamos({ fila: fila({ igvCobrado: 17_280, claureSinIgv: 0 }), sedes: [], tramos: [], meta: NOVIEMBRE, campanas: [], enCurso: true, href: hrefMeta })[0]!;
+    expect(r.titulo).toBe("Al ritmo de hoy, llegas al 80 % de la meta");
+    expect(texto(r.texto)).toBe("La meta, con IGV, es S/ 141,600; faltarían S/ 28,320.");
+  });
+
+  it("sin leer el IGV, la recomendación dice su base", () => {
+    const r = recomendacionesGanamos({ fila: fila({}), sedes: [], tramos: [], meta: NOVIEMBRE, campanas: [], enCurso: false, href: hrefMeta })[0]!;
+    expect(texto(r.texto)).toBe("La meta, sin IGV, es S/ 120,000; faltaron S/ 24,000.");
   });
 });

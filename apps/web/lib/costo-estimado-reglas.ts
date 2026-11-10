@@ -7,6 +7,9 @@
 //   todo lleva costo real. ASUME: toda cifra viene de la base; aquí no se calcula plata, solo un porcentaje de lo que ya sumó.
 // DECIDÍ: el porcentaje es de la VENTA (no de las unidades), el mismo que usa el medidor, para que las dos pantallas digan lo mismo.
 
+import { soles } from "./flujo-caja-reglas";
+import { SEDE_EMPRESA, type ClaveSede } from "./finanzas-telar-reglas";
+
 type Fila = Record<string, unknown>;
 
 export type CostoEstimado = {
@@ -17,7 +20,14 @@ export type CostoEstimado = {
   ventaTotal: number;
 };
 
-export type NotaCostoEstimado = { texto: string; detalle: string; tono: "ambar" | "rojo"; href: string };
+export type NotaCostoEstimado = {
+  texto: string;
+  detalle: string;
+  tono: "ambar" | "rojo";
+  href: string;
+  /** Solo si queda algo por registrar (o no se pudo contar): las cerradas sin prenda no se registran desde ese botón. */
+  conBoton: boolean;
+};
 
 const num = (v: unknown) => {
   const n = Number(v);
@@ -36,8 +46,35 @@ export function leerCostoEstimado(f: Fila): CostoEstimado {
 
 const plural = (n: number, uno: string, varios: string) => (n === 1 ? uno : varios);
 
-/** `null` cuando todo lleva costo real (o no hubo ventas): no hay nada que avisar. */
-export function notaCostoEstimado(c: CostoEstimado | null): NotaCostoEstimado | null {
+/** «63.1»: cuánto de lo vendido lleva costo estimado, con un decimal. `null` sin lectura o sin ventas (nunca un 0 % que parezca un dato). */
+/** «Empresa» nunca vende: pedirle su costo trae el de todas las tiendas, y la nota se lo atribuiría a la oficina (tarea 58). */
+export const aplicaNotaDeCosto = (sede: ClaveSede | null): boolean => sede !== SEDE_EMPRESA;
+
+export function pctCostoEstimado(c: CostoEstimado | null): number | null {
+  if (!c || c.ventaTotal <= 0) return null;
+  return Math.round((Math.min(c.ventaEstimada, c.ventaTotal) / c.ventaTotal) * 1000) / 10;
+}
+
+/**
+ * Cuántas quedan por registrar, en la misma frase en Ganancias y en el medidor (tarea 75). De lo estimado, la mayoría ya se cerró sin prenda y no se corrige sola.
+ * `pendientes`: `null` si no se pudo contar.
+ */
+export function quedanPorRegistrar(pendientes: number | null): string {
+  if (pendientes === null) return "No se pudo contar cuántas quedan por registrar.";
+  if (pendientes === 0) return "";
+  return `${pendientes === 1 ? "Queda" : "Quedan"} ${pendientes} por registrar.`;
+}
+
+/**
+ * ¿El conteo de «por registrar» alcanza a todo lo que se pide? `prendas_por_regularizar` pasa por la RLS (`fn_puede_operar_ubicacion`: el líder, o la sede propia), mientras la cifra de la
+ * nota sale de `fn_diario_ubicaciones()`, que a quien tiene Reportes financieros le da todas. Fuera de ese alcance la cuenta daría un cero falso: mejor «no se pudo contar».
+ */
+export function conteoAlcanzaLoPedido(o: { esLider: boolean; sedePropia: string | null; pedida: string | null }): boolean {
+  return o.esLider || (o.pedida !== null && o.pedida === o.sedePropia);
+}
+
+/** `null` cuando todo lleva costo real (o no hubo ventas): no hay nada que avisar. `contexto.periodo`: el mes en palabras, o `null` si son otras fechas. */
+export function notaCostoEstimado(c: CostoEstimado | null, contexto: { periodo: string | null; pendientes: number | null } = { periodo: null, pendientes: null }): NotaCostoEstimado | null {
   if (!c || c.ventaTotal <= 0) return null;
   const pctEst = Math.round((Math.min(c.ventaEstimada, c.ventaTotal) / c.ventaTotal) * 100);
   const pctSin = Math.round((Math.min(c.ventaSinCosto, c.ventaTotal) / c.ventaTotal) * 100);
@@ -51,8 +88,9 @@ export function notaCostoEstimado(c: CostoEstimado | null): NotaCostoEstimado | 
   const texto = partes.join(" y ");
   return {
     texto: texto.charAt(0).toUpperCase() + texto.slice(1),
-    detalle: "La ganancia es una estimación hasta que cada prenda se registre con su costo real.",
+    detalle: [hayEst ? `De ${contexto.periodo ?? "estas fechas"}, ${soles(c.ventaEstimada)} vendidos con IGV llevan un costo estimado que se queda así, salvo que reabras esas ventas.` : "", quedanPorRegistrar(contexto.pendientes)].filter(Boolean).join(" "),
     tono: haySin ? "rojo" : "ambar",
     href: "/inventario/por-regularizar",
+    conBoton: contexto.pendientes === null || contexto.pendientes > 0,
   };
 }

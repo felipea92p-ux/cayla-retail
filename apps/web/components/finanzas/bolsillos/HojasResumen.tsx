@@ -18,7 +18,7 @@ import { letraEstados } from "@/lib/letra-estados";
 import { COLOR_LIBRE, cuentaDeLibre, type SaldoBolsillos } from "@/lib/bolsillos-reglas";
 import { fechaEnPalabras } from "@/lib/caja-proxima-reglas";
 import { soles } from "@/lib/flujo-caja-reglas";
-import { colorDeSede, cuentaDelMes, deCadaCien, gastosDelMes, hojaVecina, rubrosEnBarra, ventasPorTienda, type ClaveHoja, type Renglon, type TramoHoja } from "@/lib/hojas-resumen-reglas";
+import { colorDeSede, cuentaDelMes, deCadaCien, gastosDelMes, hojaVecina, rotuloDeVentas, rubrosEnBarra, ventasPorTienda, type ClaveHoja, type Renglon, type TramoHoja } from "@/lib/hojas-resumen-reglas";
 import { cuandoSale, type Proximos } from "@/lib/proximos-reglas";
 import type { FilaER } from "@/lib/resultados-reglas";
 import type { TeDejaMes } from "@/lib/te-deja-mes-reglas";
@@ -250,7 +250,7 @@ function Cuerpo({ clave, d }: { clave: ClaveHoja; d: DatosHojas }) {
                 tono={d.eq.estado === "no_llega" ? "ambar" : undefined}
                 marca={d.hoyEnElMes ? (d.hoyEnElMes.van / d.hoyEnElMes.total) * 100 : null}
                 etiqueta="Cuánto de lo que hay que vender para pagar el mes ya está vendido"
-                texto={`${soles(d.eq.vendido)} de ${soles(d.eq.pe)}`}
+                texto={`${soles(d.eq.vendido)} de ${soles(d.eq.pe)}, ${d.eq.rotulo}`}
               />
               <p className="hoja-a-pie-graf">
                 {d.eq.titular} {d.eq.detalle}
@@ -266,7 +266,7 @@ function Cuerpo({ clave, d }: { clave: ClaveHoja; d: DatosHojas }) {
       const total = tiendas.reduce((a, t) => a + t.ventas, 0);
       return (
         <>
-          <Respuesta etiqueta="Vendiste, sin IGV" valor={total} frase={`Lo que vendió cada tienda ${d.enElPeriodo}${d.contra ? `, contra ${d.contra}` : ""}.`} />
+          <Respuesta etiqueta={`Vendiste, ${rotuloDeVentas(d.filas)}`} valor={total} frase={`Lo que vendió cada tienda ${d.enElPeriodo}${d.contra ? `, contra ${d.contra}` : ""}.`} />
           {tiendas.filter((t) => t.ventas > 0).length > 1 && (
             <Reparto etiqueta="Lo vendido, repartido por tienda" tramos={tiendas.map((t) => ({ clave: t.id, nombre: t.nombre, valor: t.ventas, color: colorDeSede(d.sedes.find((x) => x.clave === t.id)?.color) }))} />
           )}

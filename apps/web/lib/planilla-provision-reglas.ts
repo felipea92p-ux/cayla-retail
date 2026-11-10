@@ -73,6 +73,28 @@ export function leerProvision(data: unknown): FilaProvision[] {
   return filas;
 }
 
+/**
+ * ¿Este error es «no se pudo leer» (tarea 43)? La función ausente (antes de pegar su migración) o una cuenta que no ve los números financieros no son una falla: no hay nada que
+ * sumar. Cualquier otro sí: las cifras salen sin sueldos y hay que decirlo. Ojo: si Dynamic falla DENTRO de la base al proyectar un período, llega cero filas sin error y esto no lo ve.
+ */
+export const provisionSinLeer = (error: { code?: string | null }): boolean => error.code !== "PGRST202" && error.code !== "42883" && error.code !== "42501";
+
+/**
+ * ¿A estas filas les faltan los sueldos porque la lectura se cayó? Un mes que ya trae lo pagado por Dynamic no necesitaba la estimación, y quien no ve la planilla ya tiene su
+ * propio aviso (`AVISO_SIN_SUELDOS`). Unas fechas que cruzan meses y traen la planilla de uno se callan: entre una falsa alarma en cada mes cerrado y ese caso raro, se elige este.
+ */
+export function faltanSueldosPorFalla(lecturaCaida: boolean, filas: readonly Pick<FilaER, "planilla" | "planillaVisible">[]): boolean {
+  return lecturaCaida && filas.some((f) => f.planillaVisible) && !filas.some((f) => f.planilla > 0);
+}
+
+/**
+ * ¿El Balance avisa que la utilidad de cada tienda no resta los sueldos? Con la misma respuesta que Ganancias da de ese mes (`er`, `faltanSueldosPorFalla`): si el mes ya trae la planilla
+ * pagada, el diario la tiene y avisar sería falso. Si tampoco se pudo leer el mes, no se sabe, y se avisa.
+ */
+export function sueldosSinLeerDelBalance(lecturaCaida: boolean, er: { falla: string | null; sueldosSinLeer?: boolean }): boolean {
+  return lecturaCaida && (er.falla !== null || er.sueldosSinLeer === true);
+}
+
 /** Las filas de un mes («2026-10»): el período que TERMINA en ese mes es la planilla de ese mes (D-35). */
 export const delMes = (prov: readonly FilaProvision[], mes: string): FilaProvision[] => prov.filter((p) => p.fechaFin.slice(0, 7) === mes);
 

@@ -18,13 +18,13 @@ const TELAR: PasoGuia[] = [
     id: "telar-sedes",
     ancla: "telar.sedes",
     titulo: "Qué sedes mirar",
-    texto: "Toca una sede para ver solo esa; toca otra y se suman. Si las marcas todas, vuelve a «Todas». Lo que eliges vale para todo Finanzas, también cuando pasas a otra parte desde el menú de la izquierda. «Empresa» es lo que no es de ninguna tienda, como el contador. Si tu rol no ve todas, aquí sale solo la tuya.",
+    texto: "Toca una sede para ver solo esa; toca otra y se suman, o la reemplaza donde se ve de a una. Si las marcas todas, vuelve a «Todas». Lo que eliges vale para todo Finanzas, también al pasar a otra parte desde el menú. «Empresa» es lo que no es de ninguna tienda, como el contador. Si tu rol no ve todas, sale solo la tuya.",
   },
   {
     id: "telar-mes",
     ancla: "telar.mes",
     titulo: "Qué mes mirar",
-    texto: "Las flechas pasan al mes anterior o al siguiente; tocando el nombre eliges cualquier mes. Vale para todo Finanzas, como la sede. Donde la sede o el mes no aplican, la barra los apaga y lo dice.",
+    texto: "Las flechas pasan al mes anterior o al siguiente; tocando el nombre eliges cualquier mes. Vale para todo Finanzas, como la sede. Donde la sede o el mes no aplican, la barra los apaga: si la pantalla es de toda CAYLA dice «Toda CAYLA», y al pasar el mouse por lo apagado te dice por qué.",
   },
   {
     id: "telar-te-toca",
@@ -89,7 +89,7 @@ const PARA_EL_CONTADOR: PasoGuia = {
   id: "para-el-contador",
   ancla: "fin-estados.contador",
   titulo: "Para el contador",
-  texto: "Lo que no se usa todos los días: los saldos por cuenta, el libro diario y cada estado en un archivo que abre Excel, con sus cuentas. Cada estado en su formato formal se abre dentro de él.",
+  texto: "Lo que no se usa todos los días: los saldos por cuenta, el libro diario y cada estado en un archivo que abre Excel, con sus cuentas. Los archivos van por mes: cada opción dice qué período trae.",
 };
 
 const EXCEL: PasoGuia = {
@@ -193,14 +193,14 @@ export const GUIA_FIN_RESUMEN: Guia = {
       ancla: "fin-resumen.sedes",
       opcional: true,
       titulo: "Cuánto vendió cada sede",
-      texto: "La barra reparte lo vendido del mes entre las tiendas: cada color es una sede, del tamaño de lo que vendió. Abajo van los montos. Tocas un color y ves solo esa sede; lo tocas otra vez y vuelves a todas. Arriba a la derecha está la confianza del número.",
+      texto: "La barra reparte lo vendido del mes entre las tiendas, con IGV y con lo de CLAURE: cada color es una sede, del tamaño de lo que vendió. Abajo van los montos. Tocas un color y ves solo esa sede; lo tocas otra vez y vuelves a todas. Arriba a la derecha está la confianza del número.",
     },
     {
       id: "sedes-juntas",
       ancla: "fin-resumen.sedes-juntas",
       opcional: true,
       titulo: "Cada sede, junta",
-      texto: "Lo que vendió, costó, gastó y dejó cada sede, y lo que tiene en su caja, en una sola tabla. El Taller y la Empresa van aparte porque no venden. Los bancos no salen aquí: son de toda CAYLA.",
+      texto: "Todo lo que vendió cada sede con IGV, cuánto de eso es IGV, lo que costó, gastó y dejó, y lo que tiene en su caja. El IGV y lo de CLAURE no cuentan en lo que dejó. El Taller y la Empresa van aparte porque no venden. Los bancos no salen aquí: son de toda CAYLA.",
     },
     {
       id: "confianza",
@@ -214,7 +214,7 @@ export const GUIA_FIN_RESUMEN: Guia = {
       ancla: "telar.dock",
       opcional: true,
       titulo: "Lo que más se usa, a una tecla",
-      texto: "Abajo están las cuatro cosas que más se hacen desde el Resumen: pagar facturas (P), el IGV del mes (I), el cierre de mes (M) y los reportes (R). Las tocas o apretas su letra cuando no estás escribiendo.",
+      texto: "Abajo está lo que más se hace desde el Resumen, según lo que tu cuenta puede abrir: pagar facturas (P), el IGV del mes (I), el cierre de mes (M) y los estados financieros (R). Lo tocas o apretas su letra cuando no estás escribiendo.",
     },
     {
       id: "proximos",
@@ -262,28 +262,28 @@ export const GUIA_FIN_RESUMEN: Guia = {
       ancla: "fin-resumen.recorrido",
       opcional: true,
       titulo: "A dónde va la plata",
-      texto: "El anillo reparte lo que salió: lo que costaron las prendas, los gastos de las tiendas, el Taller, la Empresa y lo que faltó en caja. Pasa el mouse por un tramo o por un renglón y el centro dice cuánto es y qué parte del total.",
+      texto: "El anillo reparte lo vendido con IGV: el IGV, que es de SUNAT, las prendas de CLAURE, lo que costaron las prendas, los gastos, el Taller, la Empresa y lo que te deja. Pasa el mouse por un tramo o por un renglón y el centro dice cuánto es y qué parte de lo que salió, sin el IGV ni lo de CLAURE.",
     },
     {
       id: "cambios",
       ancla: "fin-resumen.cambios",
       opcional: true,
       titulo: "Lo que más se movió",
-      texto: "Compara este mes con el mismo tramo del mes pasado, rubro por rubro. Cada barra dice cuánto movió lo que te deja el mes: verde ayuda, taupe resta. La frase de arriba explica si ganas más porque vendes más o porque cada prenda deja más.",
+      texto: "Compara este mes con el mismo tramo del mes pasado, rubro por rubro. Cada barra dice cuánto movió lo que te deja el mes: verde ayuda, taupe resta. Las ventas van sin IGV, para que la lista sume. La frase de arriba explica si ganas más porque vendes más o porque cada prenda deja más.",
     },
     {
       id: "inversion",
       ancla: "fin-resumen.inversion",
       opcional: true,
       titulo: "Inversión en mercadería",
-      texto: "Lo que vas a poner en prendas para una campaña. No es un gasto: sale de tu caja cuando pagas y se vuelve costo cuando vendes. La barra dice cuánto ya pagaste, cuánto pediste sin pagar y cuánto falta pedir. Va al final de la pantalla y siempre está: sin nada pendiente, lo dice en una línea.",
+      texto: "Lo que vas a poner en prendas para una campaña. No es un gasto: sale de tu caja cuando pagas y se vuelve costo cuando vendes. La barra, sin IGV, dice cuánto pagaste, cuánto pediste sin pagar y cuánto falta pedir. La etiqueta dice si falta planear, si toca pedir o si ya no hace falta comprar.",
     },
     {
       id: "inversion-pagos",
       ancla: "fin-resumen.inversion-pagos",
       opcional: true,
       titulo: "Cuándo compro",
-      texto: "Compara pagar todo junto, en dos tandas o a plazo y mira cómo queda tu caja con cada una. Mirar no guarda nada: la forma de pago se deja escrita en el Plan de campaña. Lo que elijas se cuenta en «Próximos».",
+      texto: "Compara pagar todo junto, en dos tandas o a plazo y mira cómo queda tu caja con cada una. Mirar no guarda nada: la forma de pago se deja escrita en el Plan de campaña. Lo que elijas se cuenta en «Próximos». Un pago que cae más allá de lo que la caja alcanza a ver se avisa, y esa forma no se marca como la mejor.",
     },
     {
       id: "inversion-historia",
@@ -332,7 +332,7 @@ export const GUIA_FIN_GASTOS: Guia = {
       id: "respuesta",
       ancla: "telar.respuesta",
       titulo: "Cuánto se gastó",
-      texto: "La cifra grande es todo lo gastado en el mes por la sede que elegiste arriba, con IGV. Debajo dice cuántos gastos son y cuántos no tienen boleta ni factura: sin comprobante no recuperas su IGV. Si faltan fijos por registrar, un aviso ámbar dice cuántos son y cuánto suman: la cifra aún no los cuenta.",
+      texto: "La cifra grande es todo lo gastado en el mes por la sede que elegiste arriba, con IGV. Debajo dice cuánto es sin IGV, cuántos gastos son y cuántos no tienen boleta ni factura: sin comprobante no recuperas su IGV. Si faltan fijos por registrar, un aviso ámbar dice cuántos son y cuánto suman: la cifra aún no los cuenta.",
     },
     {
       id: "orillo",
@@ -710,7 +710,7 @@ export const GUIA_FIN_CUENTAS: Guia = {
       ancla: "fin-dinero.mov-fecha",
       opcional: true,
       titulo: "La fecha",
-      texto: "El día en que la plata se movió de verdad (el del voucher), aunque lo anotes después. Si no sale de un cajón te la pide. En un depósito de la máquina, al lado ves la comisión real que salió de la cuenta.",
+      texto: "El día en que la plata se movió de verdad (el del voucher), aunque lo anotes después. Si no sale de un cajón te la pide. En un depósito de la máquina, al lado ves la comisión real que salió de la cuenta. Con un día anterior al inicio de una cuenta, te avisa cuál no cambiará su saldo.",
     },
     {
       id: "mov-botones",
@@ -725,7 +725,7 @@ export const GUIA_FIN_CUENTAS: Guia = {
       ancla: "fin-dinero.alcanza",
       opcional: true,
       titulo: "¿Me alcanza?",
-      texto: "La primera semana de las próximas seis en que la plata bajaría de tu mínimo de caja, con lo que vence y lo que esperas vender. Y qué pasa si depositas lo que está guardado en las cajas fuertes. Si falta cargar saldos o historia, dice «provisional» y qué falta.",
+      texto: "Si hoy ya estás bajo tu mínimo de caja o qué día bajarías en las próximas seis semanas, con lo que vence y lo que esperas vender. Y qué pasa si depositas lo guardado en las cajas fuertes. Esas semanas no traen la mercadería sin factura ni el gasto del día a día. Si falta cargar saldos o historia, dice «provisional».",
     },
     {
       id: "salida-fila",
@@ -858,7 +858,7 @@ export const GUIA_FIN_CUENTAS: Guia = {
       ancla: "fin-dinero.historial",
       opcional: true,
       titulo: "El historial completo",
-      texto: "Abre todos los movimientos para verlos por día, semana o mes, separados por día y de 30 o 40 por página. Con las flechas pasas al período de al lado. Lee los últimos 150 movimientos. En la demo no lo abrimos.",
+      texto: "Abre todos los movimientos para verlos por día, semana o mes, separados por día y de 30 o 40 por página. Con las flechas pasas al período de al lado. En la demo no lo abrimos.",
     },
     {
       id: "movimiento-detalle",
@@ -1075,7 +1075,7 @@ export const GUIA_FIN_CONCILIACION: Guia = {
       ancla: "fin-conciliacion.otras",
       opcional: true,
       titulo: "Qué banco cuadrar",
-      texto: "A la izquierda están tus bancos: cada uno dice cuánto suma el sistema, cuándo lo cuadraste por última vez y si cuadra, no cuadra o tiene líneas por revisar. Tocas uno y a la derecha aparece su detalle. Los bancos son de CAYLA entera, no de una sede.",
+      texto: "A la izquierda están tus bancos: cada uno dice cuánto suma el sistema, cuándo lo cuadraste por última vez y si cuadra, no cuadra o tiene líneas por revisar. Arriba, cuántos coinciden con el banco. Tocas uno y a la derecha aparece su detalle. Los bancos son de CAYLA entera, no de una sede.",
     },
     {
       id: "maquinas",
@@ -1095,8 +1095,8 @@ export const GUIA_FIN_CONCILIACION: Guia = {
       id: "lineas",
       ancla: "fin-conciliacion.lineas",
       opcional: true,
-      titulo: "Lo anotado y el extracto, en pares",
-      texto: "A la izquierda, cada entrada y salida que anotó CAYLA en el período; a la derecha, si está en el extracto del banco. Con «Sí, está» el hilo que los une se vuelve verde. Arriba, la barra dice cuántas llevas revisadas y el filtro deja ver solo las que faltan. Lo que no encuentres en el banco es lo que hay que aclarar.",
+      titulo: "Lo anotado y lo revisado, en pares",
+      texto: "A la izquierda, lo que anotó CAYLA en el período; a la derecha, quién lo revisó. «Marcar revisada» pone el hilo en verde: es un visto, no compara con el banco; eso lo dice el saldo que anotes. La barra dice cuántas llevas y el filtro deja ver las que faltan. Lo que no encuentres en el banco es lo que hay que aclarar.",
     },
     {
       id: "extracto",
@@ -1171,14 +1171,14 @@ export const GUIA_FIN_RESULTADOS: Guia = {
       ancla: "fin-ganamos.costo-estimado",
       opcional: true,
       titulo: "Cuánto de la ganancia es estimado",
-      texto: "Si vendiste prendas sin registrar, su costo es un promedio y la ganancia es una estimación. Este aviso dice cuánto pesa y lleva a registrar el costo real. Si todo lleva costo real, no aparece.",
+      texto: "Si vendiste prendas sin registrar, su costo es un promedio y la ganancia es una estimación. Ese costo se queda así, salvo que reabras esas ventas. El aviso dice cuánto pesa y cuántas quedan por registrar; si quedan, lleva a registrarlas. Si todo lleva costo real, no aparece.",
     },
     {
       id: "partes",
       ancla: "fin-ganamos.partes",
       opcional: true,
       titulo: "El estado, fila por fila",
-      texto: "Arriba, lo que vendiste con IGV y el IGV de tus ventas, que es de SUNAT. Después lo que vendiste sin IGV, cada gasto que resta y lo que quedó, con los meses de antes al lado y cuánto pesa cada fila de lo vendido. Toca una fila para ver de qué está hecha.",
+      texto: "Arriba, lo que vendiste con IGV, el IGV de tus ventas, que es de SUNAT, y lo de CLAURE, que se cobró en la tienda pero no es de CAYLA. Después lo que vendiste sin IGV, cada gasto que resta y lo que quedó, con los meses de antes al lado. Toca una fila para ver de qué está hecha.",
     },
     {
       id: "libro",
@@ -1205,7 +1205,7 @@ export const GUIA_FIN_RESULTADOS: Guia = {
       opcional: true,
       preparar: [{ tipo: "clic", ancla: "fin-ganamos.mas" }],
       titulo: "Contra lo planeado",
-      texto: "Si hay presupuesto, la raya sobre cada gasto es lo planeado: si se pasa más del 10 %, lo dice. Toca un gasto y ves sus partes.",
+      texto: "Si hay presupuesto, la raya sobre cada gasto es lo planeado: si se pasa más del 10 %, lo dice. La meta de ventas va con IGV, la misma de Configuración ▸ Metas. Toca un gasto y ves sus partes.",
     },
     {
       id: "sedes",
@@ -1226,7 +1226,7 @@ export const GUIA_FIN_RESULTADOS: Guia = {
       ancla: "fin-ganamos.cuadre",
       opcional: true,
       titulo: "De Ventas a Finanzas",
-      texto: "Por qué lo vendido en Ventas no es la venta de aquí: el IGV, las devoluciones, los cambios y lo de CLAURE, en céntimos y por sede. Si algo no tiene nombre, sale como «Sin explicar».",
+      texto: "Cómo se llega de lo vendido en Ventas a «Vendiste con IGV» (devoluciones, cambios y anuladas, con su IGV) y de ahí a lo que vendiste, sin el IGV ni lo de CLAURE, en céntimos y por sede. Si algo no tiene nombre, sale como «Sin explicar».",
     },
     {
       id: "cuadro",
@@ -1277,8 +1277,8 @@ export const GUIA_FIN_RESULTADOS: Guia = {
       ancla: "fin-resultados.claure",
       opcional: true,
       preparar: [{ tipo: "escape" }],
-      titulo: "Lo de CLAURE no está aquí",
-      texto: "En Tienda Lima también se vende lo de CLAURE (de Claudia). Esas ventas no son ingreso ni costo de CAYLA: aquí no suman, y la nota dice cuánto se dejó fuera. Lo que se le debe está en Cuentas y dinero ▸ CLAURE.",
+      titulo: "Lo de CLAURE va aparte",
+      texto: "En Tienda Lima también se vende lo de CLAURE (de Claudia). Esas ventas no son ingreso ni costo de CAYLA: arriba van en su propia fila y no cuentan en lo que vendiste ni en la ganancia. La nota dice cuánto es. Lo que se le debe está en Cuentas y dinero ▸ CLAURE.",
     },
     {
       id: "notas",
@@ -1412,7 +1412,7 @@ export const GUIA_FIN_FLUJO: Guia = {
       id: "viene",
       ancla: "fin-flujo.viene",
       titulo: "Lo que viene",
-      texto: "La plata que tienes hoy, más lo que esperas vender (la meta de cada día), menos lo que vence (facturas, alquileres, gastos fijos). Así sabes con tiempo qué semana te falta plata.",
+      texto: "La plata que tienes hoy, más lo que esperas vender (la meta de cada día), menos lo que vence (facturas, alquileres, gastos fijos). Así sabes con tiempo qué semana te falta plata. No trae la mercadería que aún no tiene factura ni los gastos del día a día.",
     },
     {
       id: "cuantas-semanas",
@@ -1535,15 +1535,15 @@ export const GUIA_FIN_FLUJO: Guia = {
     {
       id: "utilidad",
       ancla: "fin-escenarios.utilidad",
-      titulo: "Cada tienda, hoy y con el cambio",
-      texto: "La utilidad al mes de cada tienda, del Taller, de la empresa y de CAYLA entera: hoy, con el cambio y la diferencia.",
+      titulo: "Cada tienda, su último mes y el cambio",
+      texto: "La utilidad de cada tienda, del Taller, de la empresa y de CAYLA entera en el último mes completo (la columna dice cuál), con el cambio y la diferencia.",
     },
     {
       id: "caja",
       ancla: "fin-escenarios.caja",
       opcional: true,
       titulo: "Tu caja con el cambio",
-      texto: "La plata que te quedaría cada semana con el cambio. La línea punteada es tu mínimo de caja.",
+      texto: "La plata que te quedaría al cierre de cada semana con el cambio; dentro de la semana puede bajar más. La línea punteada es tu mínimo de caja.",
     },
     {
       id: "nota",
@@ -1813,7 +1813,7 @@ export const GUIA_FIN_PATRIMONIO: Guia = {
       ancla: "fin-patrimonio.partes",
       opcional: true,
       titulo: "Qué movió tu parte",
-      texto: "Con cuánto empezaste, lo que ganaste, lo que pusiste, lo que retiraste y con cuánto terminaste. Si algo se movió a mano, sale aparte como «Sin explicar». Fila por fila, con los meses de antes al lado: toca una para ver de qué está hecha.",
+      texto: "Con cuánto empezaste, lo que ganaste, lo que pusiste, lo que retiraste y con cuánto terminaste. Si algo se movió sin venta ni gasto, sale aparte como «Carga inicial y ajustes». Fila por fila, con los meses de antes al lado: toca una para ver de qué está hecha.",
     },
     {
       id: "libro",
@@ -1827,7 +1827,7 @@ export const GUIA_FIN_PATRIMONIO: Guia = {
       ancla: "fin-estados.recos",
       opcional: true,
       titulo: "Qué te recomiendo",
-      texto: "Si retiraste más de lo que ganaste, cuánto habría crecido retirando la mitad, si lo tuyo viene bajando y si hay algo sin explicar. Nada se cambia solo.",
+      texto: "Si retiraste más de lo que ganaste, cuánto habría crecido retirando la mitad, si lo tuyo viene bajando y si hubo carga inicial o ajustes. Nada se cambia solo.",
     },
     {
       id: "mas",
@@ -1909,13 +1909,13 @@ export const GUIA_FIN_IMPUESTOS: Guia = {
   id: "finanzas.impuestos",
   ruta: "/finanzas/impuestos",
   titulo: "Impuestos",
-  resumen: "Lo que le pagas a SUNAT por el mes: el IGV de tus ventas menos el de tus compras, más la renta.",
+  resumen: "Lo que le pagas a SUNAT por el mes: el IGV de tus boletas y facturas menos el de tus compras, más la renta.",
   pasos: [
     {
       id: "bienvenida",
       ancla: null,
       titulo: "Lo que le pagas a SUNAT",
-      texto: "El IGV de tus ventas, menos el de tus compras con factura, más la renta a cuenta. El contador presenta la declaración con lo que sale de aquí. Es una demo: no se declara ni se paga nada.",
+      texto: "El IGV de tus boletas y facturas, menos el de tus compras con factura, más la renta a cuenta. Es de CAYLA entera: a SUNAT se le paga por RUC, no por sede. El contador declara con lo que sale de aquí. Es una demo: no se declara ni se paga nada.",
     },
     ...TELAR,
     {
@@ -1935,7 +1935,7 @@ export const GUIA_FIN_IMPUESTOS: Guia = {
       id: "cuenta",
       ancla: "fin-impuestos.cuenta",
       titulo: "La cuenta, línea por línea",
-      texto: "Lo que vendiste, el IGV de tus ventas, menos el IGV de tus compras con factura (ábrelo para ver de dónde sale), más la renta. El porcentaje de la renta es el de Configuración ▸ Impuestos.",
+      texto: "Lo que vendiste, el IGV de tus boletas y facturas, menos el IGV de tus compras con factura (ábrelo para ver de dónde sale), más la renta. El porcentaje de la renta es el de Configuración ▸ Impuestos.",
     },
     {
       id: "claure",
@@ -1949,7 +1949,7 @@ export const GUIA_FIN_IMPUESTOS: Guia = {
       ancla: "fin-impuestos.por-hacer",
       opcional: true,
       titulo: "Pendientes",
-      texto: "Lo que puede hacer que pagues de más o que SUNAT te observe, con su monto: rechazados, ventas sin comprobante, compras con boleta, IGV que no se descuenta, honorarios y lo que no cuadra con la propuesta de SUNAT. Cada línea lleva a donde se arregla.",
+      texto: "Lo que puede hacer que pagues de más o que SUNAT te observe, con su monto: rechazados, ventas sin comprobante, compras con boleta, IGV que no se descuenta, honorarios y lo que no cuadra o falta comparar con la propuesta de SUNAT. Cada línea lleva a donde se arregla.",
     },
     {
       id: "paquete",
@@ -2146,7 +2146,7 @@ export const GUIA_FIN_CIERRE: Guia = {
       id: "rutina",
       ancla: "fin-cierre.rutina",
       titulo: "La rutina de fin de mes",
-      texto: "Día 1, cada tienda cierra su última caja y clasifica sus egresos. Día 2, el líder revisa gastos fijos, facturas y el banco. Día 3, se mira el Estado de resultados y se cierra.",
+      texto: "Día 1, cada tienda cierra su última caja y clasifica sus egresos. Día 2, el líder revisa gastos fijos, facturas y el banco. Día 3, se mira Ganancias y pérdidas y se cierra.",
     },
     {
       id: "fin",
