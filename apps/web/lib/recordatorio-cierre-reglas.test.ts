@@ -6,6 +6,7 @@ import {
   estadoAviso,
   estadoRecordatorio,
   hora12,
+  horasDeCierreDeHoy,
   horaLima12,
   instanteDeCierre,
   lineaDelDia,
@@ -34,6 +35,24 @@ describe("minutosDeHora y hora12", () => {
     expect(hora12("19:45")).toBe("7:45 p. m.");
     expect(hora12("00:05")).toBe("12:05 a. m.");
     expect(hora12("12:00")).toBe("12:00 p. m.");
+  });
+});
+
+describe("horasDeCierreDeHoy: lo que devuelve fn_horas_de_cierre (ADR-0642)", () => {
+  it("lee la hora, el día cerrado (null) y si hay horario cargado", () => {
+    const m = horasDeCierreDeHoy([
+      { ubicacion_id: "aqp", hora_cierre: "22:15:00", tiene_horario: true },
+      { ubicacion_id: "lim", hora_cierre: null, tiene_horario: true },
+      { ubicacion_id: "taller", hora_cierre: null, tiene_horario: false },
+    ]);
+    expect(m?.get("aqp")).toEqual({ hora: "22:15", cargado: true });
+    expect(m?.get("lim")).toEqual({ hora: null, cargado: true });
+    expect(m?.get("taller")).toEqual({ hora: null, cargado: false });
+  });
+  it("si no trae la forma esperada devuelve null: quien llama cae a la hora suelta", () => {
+    expect(horasDeCierreDeHoy(null)).toBeNull();
+    expect(horasDeCierreDeHoy({ error: "x" })).toBeNull();
+    expect(horasDeCierreDeHoy([{ hora_cierre: "21:00" }])).toBeNull();
   });
 });
 

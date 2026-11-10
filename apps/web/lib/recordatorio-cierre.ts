@@ -1,6 +1,8 @@
+import { unstable_rethrow } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getCajaAbierta } from "@/lib/caja";
 import { getUbicaciones } from "@/lib/ubicaciones";
+import { diaLima, hoyLima } from "@/lib/fechas-lima";
 import { puede, type PersonaActualV2 } from "@/lib/persona-actual";
 import type { CifrasRecordatorio, DatosRecordatorioCierre } from "@/lib/recordatorio-cierre-reglas";
 
@@ -37,13 +39,36 @@ export async function leerRecordatorioCierre(persona: PersonaRecordatorio): Prom
       (e: unknown) => ({ ok: false as const, e }),
     ),
   ]);
-  const horaCierre = ubicaciones.find((u) => u.id === persona.ubicacionId)?.horaCierre ?? null;
-  const base = { ubicacionId: persona.ubicacionId, sede: persona.ubicacionEtiqueta, horaCierre };
-  // Sin hora de cierre no hay nada que recordar.
-  if (!horaCierre) return { ...base, caja: null };
-  if (!caja.ok) throw caja.e;
+  const horaHoy = ubicaciones.find((u) => u.id === persona.ubicacionId)?.horaCierre ?? null;
+  const base = { ubicacionId: persona.ubicacionId, sede: persona.ubicacionEtiqueta, horaCierre: horaHoy };
+  if (!caja.ok) {
+    // Sin hora de hoy no hay nada que recordar; con ella, que la base no responda se dice (ver arriba).
+    if (!horaHoy) return { ...base, caja: null };
+    throw caja.e;
+  }
   const abierta = caja.c;
-  return { ...base, caja: abierta ? { id: abierta.id, abiertaEn: abierta.abiertaEn, abiertaPor: abierta.abiertaPorNombre } : null };
+  if (!abierta) return { ...base, caja: null };
+  // El cierre que cuenta es el del DÍA EN QUE SE ABRIÓ la caja (`instanteDeCierre`): una caja de ayer que sigue abierta a las 00:15 se
+  // recuerda con el cierre de ayer, que puede ser otro que el de hoy (o ninguno, si hoy la tienda no abre). Si no se puede leer, el de hoy.
+  const diaApertura = diaLima(abierta.abiertaEn);
+  const horaDelTurno = diaApertura && diaApertura !== hoyLima() ? await horaCierreDelDia(persona.ubicacionId, diaApertura, horaHoy) : horaHoy;
+  // Sin hora de cierre no hay nada que recordar.
+  if (!horaDelTurno) return { ...base, horaCierre: null, caja: null };
+  return { ...base, horaCierre: horaDelTurno, caja: { id: abierta.id, abiertaEn: abierta.abiertaEn, abiertaPor: abierta.abiertaPorNombre } };
+}
+
+/** El cierre de una sede en una fecha (`fn_hora_cierre_de`, ADR-0642). Si la base no responde o la función no existe aún, `respaldo`. */
+async function horaCierreDelDia(ubicacionId: string, fecha: string, respaldo: string | null): Promise<string | null> {
+  try {
+    const supabase = await createClient();
+    const { data, error } = await supabase.rpc("fn_hora_cierre_de" as never, { p_ubicacion_id: ubicacionId, p_fecha: fecha } as never);
+    if (error) return respaldo;
+    const hora: unknown = data;
+    return typeof hora === "string" && hora ? hora.slice(0, 5) : null;
+  } catch (e) {
+    unstable_rethrow(e);
+    return respaldo;
+  }
 }
 
 /** Lo mismo, total: para el layout. Si la base no responde, no hay recordatorio en esta carga (el sondeo lo trae después). */

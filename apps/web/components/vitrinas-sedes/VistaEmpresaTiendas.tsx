@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, type CSSProperties } from "react";
+import { useRouter } from "next/navigation";
 import { MapPin, Pencil, Settings2 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { avisar } from "@/components/ui/Avisos";
@@ -30,12 +31,12 @@ import { camposDe, falta, fraseDeLaSede, hora12, llenadoTubo, NOMBRE_CAMPO, pued
 // eran cuatro tablas con las mismas filas. Cada dato se cambia ahí mismo y se guarda solo al salir de él, firmado con el responsable; la carga inicial abre su hoja, porque
 // cerrar una sede no debe pasar por un Tab de más (ADR-0328). Las funciones de la base y sus permisos son los de siempre: aquí solo cambia cómo se ve.
 
-type Carga = { esLider: boolean; esAdmin: boolean };
+type Carga = { esLider: boolean; esAdmin: boolean; puedeHorario: boolean };
 
 const conVar = (x: Record<string, string | number>) => x as CSSProperties;
 
 /** Cambiar un dato escrito: valida con las reglas de siempre, guarda con su función y dice cómo queda la vitrina. `null`: no se guardó. */
-async function guardarDato(campo: "whatsapp" | "cierre" | "fondo", v: VitrinaSede, t: string, guardar: Guardar): Promise<VitrinaSede | null> {
+async function guardarDato(campo: "whatsapp" | "fondo", v: VitrinaSede, t: string, guardar: Guardar): Promise<VitrinaSede | null> {
   const tienda = v.tienda;
   if (!tienda) return null;
   if (campo === "whatsapp") {
@@ -49,14 +50,6 @@ async function guardarDato(campo: "whatsapp" | "cierre" | "fondo", v: VitrinaSed
       t ? `${v.corto}: WhatsApp guardado. Su QR del club ya se puede imprimir.` : `${v.corto}: sin WhatsApp. No muestra QR del club.`,
     );
     return ok ? { ...v, tienda: { ...tienda, whatsappNumero: t || null } } : null;
-  }
-  if (campo === "cierre") {
-    const ok = await guardar(
-      () => createClient().rpc("guardar_hora_cierre_tienda" as never, { p_ubicacion_id: v.id, p_hora: t || null } as never),
-      "guardar la hora de cierre",
-      t ? `${v.corto} cierra a las ${hora12(t)}. Caja ya proyecta la venta del día.` : `${v.corto}: sin hora de cierre.`,
-    );
-    return ok ? { ...v, tienda: { ...tienda, horaCierre: t || null } } : null;
   }
   // `guardar_metas_tienda` reemplaza la semana y el fondo: se manda lo último de la base con solo el fondo cambiado, para no pisar lo de otra pestaña.
   const fresca = await tiendaFresca(v.id);
@@ -78,9 +71,9 @@ async function guardarDato(campo: "whatsapp" | "cierre" | "fondo", v: VitrinaSed
 }
 
 /** El dato mientras se escribe: el pozo con su hilo, dentro de la misma placa. */
-function EditarDato({ vitrina, campo, guardar, alTerminar }: { vitrina: VitrinaSede; campo: "whatsapp" | "cierre" | "fondo"; guardar: Guardar; alTerminar: (nueva: VitrinaSede | null) => void }) {
+function EditarDato({ vitrina, campo, guardar, alTerminar }: { vitrina: VitrinaSede; campo: "whatsapp" | "fondo"; guardar: Guardar; alTerminar: (nueva: VitrinaSede | null) => void }) {
   const t0 = vitrina.tienda;
-  const inicial = campo === "whatsapp" ? (t0?.whatsappNumero ?? "") : campo === "cierre" ? (t0?.horaCierre ?? "").slice(0, 5) : t0?.fondo === null || t0?.fondo === undefined ? "" : String(t0.fondo);
+  const inicial = campo === "whatsapp" ? (t0?.whatsappNumero ?? "") : t0?.fondo === null || t0?.fondo === undefined ? "" : String(t0.fondo);
   const [t, setT] = useState(inicial);
   const [ocupado, setOcupado] = useState(false);
   const entrada = useRef<HTMLInputElement>(null);
@@ -88,7 +81,7 @@ function EditarDato({ vitrina, campo, guardar, alTerminar }: { vitrina: VitrinaS
   const visto = useVistoGuardado();
   useEffect(() => {
     entrada.current?.focus();
-    if (campo !== "cierre") entrada.current?.select();
+    entrada.current?.select();
   }, [campo]);
 
   async function salir() {
@@ -102,7 +95,7 @@ function EditarDato({ vitrina, campo, guardar, alTerminar }: { vitrina: VitrinaS
       <input
         ref={entrada}
         aria-label={`${NOMBRE_CAMPO[campo]} de ${vitrina.corto}`}
-        type={campo === "cierre" ? "time" : "text"}
+        type="text"
         inputMode={campo === "whatsapp" ? "tel" : campo === "fondo" ? "decimal" : undefined}
         value={t}
         disabled={ocupado}
@@ -122,6 +115,7 @@ function EditarDato({ vitrina, campo, guardar, alTerminar }: { vitrina: VitrinaS
 }
 
 function Dato({ vitrina, campo, i, guardar, carga, guia, alAbrirCarga }: { vitrina: VitrinaSede; campo: CampoSede; i: number; guardar: Guardar; carga: Carga; guia?: string; alAbrirCarga: () => void }) {
+  const router = useRouter();
   const [escribiendo, setEscribiendo] = useState(false);
   const [recien, setRecien] = useState(0);
   // Lo que acaba de guardarse se ve de inmediato, mientras la página vuelve a leer la base; cuando llega, manda la base.
@@ -208,6 +202,27 @@ function Dato({ vitrina, campo, i, guardar, carga, guia, alAbrirCarga }: { vitri
         {textos(<span className="vs-valor">{valorDe(v, campo)}</span>)}
         {puede && accion}
       </button>
+    );
+  }
+
+  // La hora de cierre NO se escribe aquí: sale del horario por días de Tienda web ▸ Conf. Tienda (una sola fuente, ADR-0642). Aquí se lee el cierre
+  // de hoy y, a quien ve ese módulo, el dato lo lleva a cambiarlo.
+  if (campo === "cierre") {
+    const cuerpo = (
+      <>
+        <Instrumento vitrina={v} campo={campo} />
+        {textos(<span className="vs-valor">{valorDe(v, campo)}</span>)}
+        {carga.puedeHorario && accion}
+      </>
+    );
+    return carga.puedeHorario ? (
+      <button type="button" className={clase} style={estilo} data-guia={guia} aria-label={`Hora de cierre de ${v.corto}: ${valorDe(v, campo)}. Cambiar en Tienda web, Conf. Tienda`} onClick={() => router.push("/tienda-web/ajustes")}>
+        {cuerpo}
+      </button>
+    ) : (
+      <div className={clase} style={estilo} data-guia={guia} title="El horario de la tienda se cambia en Tienda web ▸ Conf. Tienda.">
+        {cuerpo}
+      </div>
     );
   }
 
@@ -369,6 +384,7 @@ export function VistaEmpresaTiendas({
   carga,
   esLider,
   esAdmin,
+  puedeHorario,
 }: {
   datos: DatosEmpresa;
   vitrinas: VitrinaSede[];
@@ -376,6 +392,8 @@ export function VistaEmpresaTiendas({
   carga: LecturaCargaInicial | null;
   esLider: boolean;
   esAdmin: boolean;
+  /** ¿Ve el módulo «Datos y plazos de la tienda web»? Con él, la hora de cierre lleva a Tienda web ▸ Conf. Tienda. */
+  puedeHorario: boolean;
 }) {
   const { responsable, guardando, guardar } = useGuardarCasilla();
   const raiz = useRef<HTMLDivElement>(null);
@@ -385,7 +403,7 @@ export function VistaEmpresaTiendas({
   const lleno = llenadoTubo(gastado, TOPE_MENSUAL_USD);
   const conPreguntar = vitrinas.some((v) => v.preguntar !== null);
   const anclas = anclasDeLaGuia(vitrinas);
-  const contexto: Carga = { esLider, esAdmin };
+  const contexto: Carga = { esLider, esAdmin, puedeHorario };
   const tono: TonoBarraAvance = gasto?.tono === "rojo" ? "rojo" : gasto?.tono === "ambar" ? "ambar" : "tinta";
 
   return (

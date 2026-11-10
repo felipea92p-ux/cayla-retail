@@ -35,6 +35,20 @@ export function minutosDeHora(hora: string | null | undefined): number | null {
   return h * 60 + mm;
 }
 
+/** El cierre de hoy de una sede, como lo dice `fn_horas_de_cierre`: `hora` null = hoy no abre; `cargado` = la sede tiene horario (por días, o la hora suelta de antes). */
+export type CierreDeHoy = { hora: string | null; cargado: boolean };
+
+/** Lo que devuelve `fn_horas_de_cierre` → id de sede → su cierre de hoy. `null` si no trae la forma esperada: quien llama cae al respaldo (la hora suelta de la sede). */
+export function horasDeCierreDeHoy(data: unknown): Map<string, CierreDeHoy> | null {
+  if (!Array.isArray(data)) return null;
+  const mapa = new Map<string, CierreDeHoy>();
+  for (const f of data as { ubicacion_id?: unknown; hora_cierre?: unknown; tiene_horario?: unknown }[]) {
+    if (typeof f?.ubicacion_id !== "string") return null;
+    mapa.set(f.ubicacion_id, { hora: typeof f.hora_cierre === "string" && f.hora_cierre ? f.hora_cierre.slice(0, 5) : null, cargado: f.tiene_horario === true });
+  }
+  return mapa;
+}
+
 /** «21:30» → «9:30 p. m.», como se dice la hora en el mostrador. */
 export function hora12(hora: string): string {
   const total = minutosDeHora(hora) ?? 0;
