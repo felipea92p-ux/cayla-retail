@@ -5,3 +5,4 @@
 - [ ] Decidir si el aviso «Sin marca» lleva a la ficha de la prenda (`/productos/[id]/editar`). Hoy solo informa, porque quien recibe no siempre tiene Catálogo.
 - [ ] Revisar en Catálogo ▸ Marcas dos nombres casi iguales que aparecieron en producción («Divas» y «Divas Now»).
 - [ ] Hay prendas sin marca en tres envíos de la semana del 1 al 9 de noviembre: completarlas.
+- [ ] Costo de cada prenda en la hoja del envío: hoy se muestra el promedio de lo que trajo cada proveedor («prom.»). El costo real por prenda está en cada movimiento, que es dinero con candado (ADR-0126): decisión de Felipe.

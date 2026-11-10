@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { fondoDeMuestra } from "@/lib/colores-familias";
 import { esFechaQueExiste } from "@/lib/fechas-lima";
 import { exigir, exigirOpcional, leerTodas } from "@/lib/resultado";
 import {
@@ -670,7 +671,7 @@ export async function getRecepcionesRecientes(
       supabase
         .from("movimientos")
         .select(
-          "lote_id, cantidad, compra_item_id, compra_item:compra_items ( compra_id, compra:compras ( documento ) ), variante:variantes ( sku, codigo, talla:tallas ( valor ), producto:productos ( referencia, marca:marcas ( nombre ) ), color:colores ( nombre ) )"
+          "lote_id, cantidad, compra_item_id, compra_item:compra_items ( compra_id, compra:compras ( documento ) ), variante:variantes ( sku, codigo, talla:tallas ( valor ), producto:productos ( referencia, marca:marcas ( nombre ) ), color:colores ( nombre, hex, familia_color, tipo ) )"
         )
         .in("lote_id", loteIds)
         .order("created_at")
@@ -718,6 +719,7 @@ export async function getRecepcionesRecientes(
       sku: codigoDeLinea(m.variante),
       talla: m.variante?.talla?.valor ?? null,
       color: m.variante?.color?.nombre ?? null,
+      colorFondo: fondoDeMuestra(m.variante?.color?.hex ?? null, m.variante?.color?.familia_color, m.variante?.color?.tipo) ?? null,
       marca: m.variante?.producto?.marca?.nombre ?? null,
       cantidad: m.cantidad,
     });
