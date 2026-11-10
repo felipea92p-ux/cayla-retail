@@ -30,6 +30,8 @@ const M1 = "20261110001000_cuenta_de_otra_empresa_candados_y_filtro.sql";
 const M2 = "20261110002000_cuenta_de_otra_empresa_en_el_diario.sql";
 const M3 = "20261110003000_yape_de_claudia_lim.sql";
 const leer = (f) => readFileSync(join(RAIZ, "supabase/migrations", f), "utf8");
+// `anotar_plata_compras` vuelve a su firma de 5 parámetros antes de pegar o deshacer M1 (20261110025000 le sumó `p_fecha`: ver `rebobinar_anotar_plata.sql`).
+const REBOBINAR_ANOTAR = readFileSync(join(RAIZ, "scripts/pruebas/rebobinar_anotar_plata.sql"), "utf8");
 const firmasDe = (f) => [...new Set([...leer(f).matchAll(/pg_temp\.reemplazar\('([^']+)',\n\$v\$/g)].map((m) => m[1]))];
 const FIRMAS_M1 = firmasDe(M1);
 const FIRMA_DIARIO = "retail.fn_asientos_claure(date, date, boolean, uuid[])";
@@ -221,6 +223,7 @@ caso("las 16 huellas (libro, Balance, Flujo, Diario, saldos, listas, medidor y c
     dentro(`
 create temp table con on commit drop as ${HUELLAS};
 \\o /dev/null
+${REBOBINAR_ANOTAR}
 ${sqlDeshacer(M1, FIRMAS_M1)}
 ${sqlDeshacer(M2, [FIRMA_DIARIO])}
 set local session_replication_role = replica;
@@ -563,6 +566,7 @@ caso("las tres partes pegadas dos veces no cambian nada", () =>
   igual(
     psql(`begin;
 \\o /dev/null
+${REBOBINAR_ANOTAR}
 ${leer(M1)}
 ${leer(M2)}
 ${leer(M3)}

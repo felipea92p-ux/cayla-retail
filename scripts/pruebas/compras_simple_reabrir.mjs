@@ -26,6 +26,8 @@ import { fileURLToPath } from "node:url";
 
 const RAIZ = join(fileURLToPath(new URL(".", import.meta.url)), "..", "..");
 const REBOBINAR_COMPRA = readFileSync(join(RAIZ, "scripts", "pruebas", "rebobinar_registrar_compra.sql"), "utf8");
+// `anotar_plata_compras` vuelve a su firma de 5 parámetros antes de pegar lo viejo (20261110025000 le sumó `p_fecha`: ver `rebobinar_anotar_plata.sql`).
+const REBOBINAR_ANOTAR = readFileSync(join(RAIZ, "scripts", "pruebas", "rebobinar_anotar_plata.sql"), "utf8");
 const arg = (nombre, porDefecto) => {
   const i = process.argv.indexOf(nombre);
   return i > 0 ? process.argv[i + 1] : porDefecto;
@@ -64,6 +66,7 @@ const como = (auth, clave) =>
 const PRELUDIO = `
 begin;
 ${REBOBINAR_COMPRA}
+${REBOBINAR_ANOTAR}
 ${REBOBINAR}
 ${MIGRACIONES.map((m) => `${m}\n${m}`).join("\n")}
 set local search_path = retail, public, extensions;
