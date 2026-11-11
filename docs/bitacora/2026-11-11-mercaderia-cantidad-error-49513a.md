@@ -1,0 +1,5 @@
+# 2026-11-11 · Recibir: lo contado de un modelo «Nuevo» caía en la primera prenda
+
+- **Qué pasó:** en Camisas y Blusas se contaron 6 + 5 + 5 y la pantalla decía «16 de 6 · Sobran 10» en la primera prenda y «No llegó» en «Bl. indu» y «bl. envolvente». En producción, las 16 entraron al stock a nombre de la línea de la primera prenda (despacho `eeaad8e6…`); las otras dos líneas quedaron en 0. El total del stock está bien; la atribución por línea (costo, sobran/faltan, reclamo) no.
+- **Causa:** `lineaDeLaPrenda` (`apps/web/lib/recepcion-grupos-reglas.ts`) buscaba la línea dueña solo por `productoId`. Un modelo anotado en la compra solo por nombre y creado al contar ya tiene `productoId`, pero su línea lo anotó sin él: no la encontraba y caía en la primera (`g.principal`), al repartir lo separado y al llevarlo al stock.
+- **Arreglo:** la línea también se reconoce por el nombre con que se anotó (el mismo criterio que ya usaba `modelosDelGrupo`). Prueba de regresión en `recepcion-grupos-reglas.test.ts`: sin el arreglo da `[16, 0, 0]`, con él `[6, 5, 5]`. El envío ya cerrado en producción NO se corrigió: mover sus `despacho_recibidos` de línea espera el OK de Felipe.
