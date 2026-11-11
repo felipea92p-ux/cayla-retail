@@ -39,7 +39,7 @@ const COLUMNAS: Columna[] = [
   { titulo: "Enviado", ayuda: "El día en que salió el envío", clase: "hidden @3xl:block" },
   { titulo: "Envío" },
   { titulo: "Estado" },
-  { titulo: "Proveedor y marca" },
+  { titulo: "Marca y proveedor" },
   { titulo: "Guía", clase: "hidden @5xl:block" },
   { titulo: "Prendas", alinear: "der" },
   { titulo: "", alinear: "der" },
@@ -136,9 +136,8 @@ export function EnviosParaRecibir({
             <span className={celda("izq", "overflow-visible")}>
               <Chip tono="neutro">Sin guía</Chip>
             </span>
-            <span className={celda("izq", "text-sm text-tinta")} title={o.proveedor ?? undefined}>
-              {o.proveedor ?? "—"}
-              <LineaMarcas marcas={o.marcas} />
+            <span className={celda("izq", "text-sm text-tinta")}>
+              <MarcaYProveedor marcas={o.marcas} proveedor={o.proveedor ?? "—"} />
             </span>
             <span className={celda("izq", "hidden text-sm text-taupe @5xl:block")}>—</span>
             <span className={celda("der", "text-sm text-tinta")}>{prendas(o.unidadesPorEnviar)}</span>
@@ -190,9 +189,8 @@ export function EnviosParaRecibir({
                   <Chip tono={ESTADO_ENVIO[e.estado].tono}>{ESTADO_ENVIO[e.estado].texto}</Chip>
                 )}
               </span>
-              <span className={celda("izq", "pointer-events-none relative text-sm text-tinta")} title={proveedor}>
-                {proveedor}
-                <LineaMarcas marcas={e.marcas} />
+              <span className={celda("izq", "pointer-events-none relative text-sm text-tinta")}>
+                <MarcaYProveedor marcas={e.marcas} proveedor={proveedor} />
                 {sinAviso && <small className="block truncate text-sm text-taupe">Llegó sin aviso: se sigue contando</small>}
                 {e.numeroGuia && <small className="block truncate text-sm text-taupe @5xl:hidden">guía {e.numeroGuia}</small>}
               </span>
@@ -233,13 +231,21 @@ export function EnviosParaRecibir({
   );
 }
 
-/** La marca que trae, bajo el proveedor (Felipe 2026-11-07): es lo que dice la etiqueta del paquete. Sin marca, no dibuja nada. */
-function LineaMarcas({ marcas }: { marcas: readonly string[] }) {
+/**
+ * La marca primero (ADR-0644, Felipe 2026-11-11: «aquí no aparecen primero las marcas»): lo que trae, como dice la etiqueta del paquete, es el
+ * título; el proveedor baja a la línea de abajo. Sin marca, el proveedor sigue de título, como antes.
+ */
+function MarcaYProveedor({ marcas, proveedor }: { marcas: readonly string[]; proveedor: string }) {
   const texto = textoMarcas(marcas);
-  if (!texto) return null;
+  if (!texto) return <span className="block truncate" title={proveedor}>{proveedor}</span>;
   return (
-    <small className="block truncate text-sm text-tinta/65" title={`Marca${marcas.length === 1 ? "" : "s"}: ${marcas.join(", ")}`}>
-      {texto}
-    </small>
+    <>
+      <span className="block truncate font-medium" title={`Marca${marcas.length === 1 ? "" : "s"}: ${marcas.join(", ")}`}>
+        {texto}
+      </span>
+      <small className="block truncate text-sm text-tinta/65" title={proveedor}>
+        {proveedor}
+      </small>
+    </>
   );
 }

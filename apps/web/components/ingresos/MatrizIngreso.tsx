@@ -1,3 +1,4 @@
+import type { CSSProperties } from "react";
 import { CapsulaColor } from "@/components/ui/MuestraColor";
 import { matrizDeVariantes, type VarianteIngresada } from "@/lib/ingresos-reglas";
 
@@ -7,15 +8,19 @@ import { matrizDeVariantes, type VarianteIngresada } from "@/lib/ingresos-reglas
 //
 // Es una matriz de tallas y no una tabla de registros: la `<Tabla>` del sistema no aplica aquí (ADR-0358, «Tablas»), como en
 // Existencias y Pérdidas, que dibujan la suya.
+//
+// Cada celda lleva `--peso` (lo que trae contra la celda mayor): en pantalla, dentro de la banda de `<DetalleIngreso>`, tiñe la celda
+// para que lo grueso se vea antes de leer (vidrio/ingresos.css). En la hoja impresa no se usa.
 
 export function MatrizIngreso({ variantes }: { variantes: readonly VarianteIngresada[] }) {
   const m = matrizDeVariantes(variantes);
   if (m.filas.length === 0) return <p className="text-sm text-taupe">Este modelo no trae detalle de colores ni tallas.</p>;
   const varias = m.filas.length > 1;
+  const mayor = Math.max(1, ...m.filas.flatMap((f) => Object.values(f.porTalla)));
   return (
     <div className="overflow-x-auto">
       <table // unificar-fijo: matriz de colores × tallas de un modelo (como la de Existencias y Editar producto), no una lista de registros
-        className="min-w-max text-sm tabular-nums"
+        className="ing-matriz min-w-max text-sm tabular-nums"
       >
         <caption className="sr-only">Prendas que entraron, por color y talla</caption>
         <thead>
@@ -42,11 +47,20 @@ export function MatrizIngreso({ variantes }: { variantes: readonly VarianteIngre
                   {f.color ?? "Sin color"}
                 </span>
               </th>
-              {m.tallas.map((talla) => (
-                <td key={talla} className="px-3 py-1 text-right text-tinta">
-                  {f.porTalla[talla] ?? <span className="text-tinta/35">·</span>}
-                </td>
-              ))}
+              {m.tallas.map((talla) => {
+                const n = f.porTalla[talla];
+                return (
+                  <td key={talla} className="px-3 py-1 text-right text-tinta">
+                    {n === undefined ? (
+                      <span className="ing-vacia text-tinta/35">·</span>
+                    ) : (
+                      <span className="ing-celda" style={{ "--peso": n / mayor } as CSSProperties}>
+                        {n}
+                      </span>
+                    )}
+                  </td>
+                );
+              })}
               <td className="py-1 pl-3 text-right font-semibold text-tinta">{f.total}</td>
             </tr>
           ))}

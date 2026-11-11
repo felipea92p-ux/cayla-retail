@@ -165,6 +165,14 @@
 .tv-izq > .tv-col {
   margin-left: -8px;
 }
+/* En una columna centrada, la PALABRA va al centro, no «palabra + embudo/flecha»: los íconos cuelgan a su derecha. Sin esto el nombre
+   quedaba 10 px a la izquierda de su columna y no calzaba con las cifras de abajo (Felipe 2026-11-11). Un ícono son 14 px + 6 de aire. */
+.tv-celda:not(.tv-izq) > .tv-col:has(> svg) {
+  margin-right: -20px;
+}
+.tv-celda:not(.tv-izq) > .tv-col:has(> svg ~ svg) {
+  margin-right: -40px;
+}
 /* Con el dedo, el nombre que se toca mide lo que pide el dedo (la tablet de la tienda). */
 @media (pointer: coarse) {
   .tv-col {

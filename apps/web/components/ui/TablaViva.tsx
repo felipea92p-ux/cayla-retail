@@ -223,6 +223,7 @@ export function TablaViva<F>({
   guiaFrase,
   guiaFila,
   guiaPie,
+  cifrasCentradas = false,
 }: {
   tabla: TablaVivaEstado<F>;
   /** La clave de React de cada fila. */
@@ -251,6 +252,9 @@ export function TablaViva<F>({
   guiaFrase?: string;
   guiaFila?: string;
   guiaPie?: string;
+  /** Cada cifra centrada bajo su cabecera, en vez de en la caja del monto más largo con las cifras a la derecha. Para columnas con
+   *  rangos («S/ 27 – 28.25») junto a montos cortos («S/ 40»): ahí la caja corría lo corto a la derecha (Ingresos, Felipe 2026-11-11). */
+  cifrasCentradas?: boolean;
 }) {
   const { columnas, filas, visibles, filtros, orden } = tabla;
   const letraGrande = useSyncExternalStore(LETRA.suscribir, LETRA.leer, () => false);
@@ -380,7 +384,7 @@ export function TablaViva<F>({
     if (c.tipo === "monto" || c.tipo === "numero") {
       const w = anchoMonto.get(c.clave);
       return (
-        <span className="tv-monto" style={w ? { minWidth: `calc(${w} * var(--tv-cifra))` } : undefined}>
+        <span className="tv-monto" style={w && !cifrasCentradas ? { minWidth: `calc(${w} * var(--tv-cifra))` } : undefined}>
           {propio ?? c.texto?.(f) ?? c.valor(f) ?? "—"}
         </span>
       );
@@ -573,7 +577,7 @@ export function TablaViva<F>({
               return (
                 <div key={c.clave} role="cell" className={`${clases} ${c.suma ? "tv-con-suma" : ""}`}>
                   {c.suma && (
-                    <span className="tv-monto" style={w ? { minWidth: `calc(${w} * var(--tv-cifra))` } : undefined}>
+                    <span className="tv-monto" style={w && !cifrasCentradas ? { minWidth: `calc(${w} * var(--tv-cifra))` } : undefined}>
                       {c.suma(visibles)}
                     </span>
                   )}

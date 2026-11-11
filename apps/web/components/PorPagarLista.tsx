@@ -1,5 +1,6 @@
 "use client";
 
+import { tituloDeCompra } from "@/lib/marcas-de-compras-reglas";
 import { Chip } from "@/components/ui/Chip";
 import { BarraAvance } from "@/components/ui/BarraAvance";
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState, useTransition, type ReactNode } from "react";
@@ -95,6 +96,7 @@ export function PorPagarLista({
   datosProveedores,
   notas,
   pagos = {},
+  marcas = {},
   seleccionInicial = [],
   indice = 0,
 }: {
@@ -106,6 +108,8 @@ export function PorPagarLista({
   notas: Record<string, NotaPendiente>;
   /** Por id de comprobante: sus pagos, del más reciente al más antiguo (solo de los que ya recibieron alguno). El cajón los muestra. */
   pagos?: Record<string, PagoCompra[]>;
+  /** Por id de comprobante: sus marcas (ADR-0644, la marca primero). Son el título de la fila; vacío si no se pudieron leer. */
+  marcas?: Record<string, string[]>;
   /** Comprobantes que llegan ya marcados («Pagar con este saldo»). */
   seleccionInicial?: string[];
   /** Posición de la lista en la entrada escalonada de la pantalla. */
@@ -391,6 +395,7 @@ export function PorPagarLista({
                   datos={datosProveedores[c.proveedorId]}
                   onPagado={alPagar}
                   notaPendiente={notas[c.id]}
+                  marcas={marcas[c.id]}
                   busqueda={q}
                   entrada={llegando ? { indice: Math.min(i, 14) + indice + 1 } : null}
                   posicion={i}
@@ -541,11 +546,14 @@ function FilaPorPagar({
   datos,
   onPagado,
   notaPendiente,
+  marcas,
   busqueda,
   entrada,
   posicion,
 }: {
   c: CompraResumen;
+  /** Sus marcas (ADR-0644): el título de la fila; la razón social baja a la línea de abajo. */
+  marcas?: readonly string[];
   refFila: (el: HTMLElement | null) => void;
   marcada: boolean;
   atenuada: boolean;
@@ -639,12 +647,18 @@ function FilaPorPagar({
         <Casilla marcada={marcada} onCambio={onAlternar} etiqueta={`Elegir ${c.documento} de ${c.proveedorNombre} para pagar`} />
       </span>
       <div className={`min-w-0 flex-1 @[40rem]:flex-none ${sellada ? "opacity-55" : ""}`}>
-        <span className="block truncate text-sm text-tinta">
-          <Resaltar texto={c.proveedorNombre} q={busqueda} />{" "}
-          <Link href={`/compras/factura/${c.id}`} className="btn-enlace relative z-10 ml-1 text-sm tabular-nums">
+        {/* La marca primero (ADR-0644): con marcas, son el título y la razón social baja a la línea de abajo; sin ellas, como antes. */}
+        <span className={`block truncate text-sm text-tinta ${tituloDeCompra(marcas) ? "font-medium" : ""}`}>
+          <Resaltar texto={tituloDeCompra(marcas) ?? c.proveedorNombre} q={busqueda} />{" "}
+          <Link href={`/compras/factura/${c.id}`} className="btn-enlace relative z-10 ml-1 text-sm font-normal tabular-nums">
             <Resaltar texto={c.documento} q={busqueda} />
           </Link>
         </span>
+        {tituloDeCompra(marcas) && (
+          <span className="block truncate text-sm text-tinta/70">
+            <Resaltar texto={c.proveedorNombre} q={busqueda} />
+          </span>
+        )}
         {/* ADR-0195 F2: una factura de GASTO (la luz) o de ACTIVO (un mueble) se paga aquí igual que la de mercadería; se dice qué fue. */}
         {(c.naturaleza === "gasto" || c.naturaleza === "activo") && (
           <span className="mt-0.5 flex min-w-0 items-center gap-1.5 text-sm text-tinta/65">
