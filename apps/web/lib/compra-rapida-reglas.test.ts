@@ -329,13 +329,13 @@ describe("lo que queda después de guardar", () => {
 
 describe("la barra de avance: siempre 3 pasos", () => {
   it("dice el paso, su nombre y el detalle dentro de las prendas", () => {
-    expect(textoAvance("proveedor")).toBe("Paso 1 de 3 · el proveedor");
+    expect(textoAvance("proveedor")).toBe("Paso 1 de 3 · la marca");
     expect(textoAvance("habituales")).toBe("Paso 2 de 3 · las prendas");
     expect(textoAvance("papel")).toBe("Paso 3 de 3 · el papel");
   });
 
   it("los tres tramos tienen nombre y la línea de arriba dice a quién le compra cuando ya lo eligió", () => {
-    expect(PASOS_DE_LA_COMPRA).toEqual(["El proveedor", "Las prendas", "Papel y pago"]);
+    expect(PASOS_DE_LA_COMPRA).toEqual(["La marca", "Las prendas", "Papel y pago"]);
     expect(lineaDeAvance("proveedor", null)).toBe("Paso 1 de 3");
     expect(lineaDeAvance("habituales", "Textiles Rosa")).toBe("Textiles Rosa · paso 2 de 3");
     expect(lineaDeAvance("revisar", "Textiles Rosa")).toBe("Textiles Rosa · paso 2 de 3");

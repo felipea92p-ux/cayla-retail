@@ -85,6 +85,132 @@ export function filtrarProveedores(lista: readonly ProveedorParaComprar[], q: st
   return lista.filter((p) => (!n || normalizar(p.nombre).includes(n) || p.marcas.some((m) => normalizar(m).includes(n))) && (!categoriaId || p.categorias.includes(categoriaId)));
 }
 
+// ---------- La marca primero (ADR-0644, Felipe 2026-11-11) ----------
+// «Muchas veces no se conoce al proveedor sino la marca»: el paso 1 pregunta «¿Qué marca compraste?» y el proveedor sale de la marca. Lo que se
+// guarda no cambia (la compra, la deuda y el pago siguen siendo con la razón social): cambia por dónde se entra. Una marca con un solo proveedor
+// (110 de 115 al 2026-11-11) lo pone sola; con dos o más, se pregunta de quién. Solo con lo que ya se lee (`marcas` + `marca_proveedores`).
+
+/** Una marca y los proveedores que la traen, por id: lo que arma el servidor (se serializa a la pantalla). */
+export type MarcaConProveedores = { id: string; nombre: string; proveedorIds: string[] };
+
+/** La marca ya con sus proveedores de esta lista (solo los que se pueden elegir para comprar). */
+export type MarcaParaComprar = { id: string; nombre: string; proveedores: ProveedorParaComprar[] };
+
+/** Las marcas con sus vínculos: `{ marca_id, proveedor_id }` de `marca_proveedores`, sin repetir, en orden alfabético. */
+export function marcasConProveedores(
+  marcas: readonly { id: string; nombre: string }[],
+  vinculos: readonly { marca_id: string; proveedor_id: string }[],
+): MarcaConProveedores[] {
+  const de = new Map<string, Set<string>>();
+  for (const v of vinculos) {
+    const s = de.get(v.marca_id) ?? new Set<string>();
+    s.add(v.proveedor_id);
+    de.set(v.marca_id, s);
+  }
+  return marcas
+    .map((m) => ({ id: m.id, nombre: m.nombre, proveedorIds: [...(de.get(m.id) ?? [])] }))
+    .sort((a, b) => a.nombre.localeCompare(b.nombre, "es"));
+}
+
+/** Lo más reciente que se le compró a alguno de sus proveedores (`null` si a ninguno). */
+function ultimaDeMarca(m: Pick<MarcaParaComprar, "proveedores">): string | null {
+  return m.proveedores.reduce<string | null>((max, p) => (p.compras > 0 && p.ultima && (!max || p.ultima > max) ? p.ultima : max), null);
+}
+
+/** Más reciente primero; sin fecha, al final; empate o sin fecha, por nombre. */
+function porReciente(a: { ultima: string | null; nombre: string }, b: { ultima: string | null; nombre: string }): number {
+  if (a.ultima && b.ultima && a.ultima !== b.ultima) return a.ultima < b.ultima ? 1 : -1;
+  if (a.ultima && !b.ultima) return -1;
+  if (!a.ultima && b.ultima) return 1;
+  return a.nombre.localeCompare(b.nombre, "es");
+}
+
+/**
+ * Cada marca con los proveedores de la lista que la traen. Una marca sin ninguno elegible no sale (no se podría comprar). Primero las de los
+ * proveedores a los que se les compró más reciente; después el resto, en orden alfabético.
+ */
+export function marcasParaComprar(marcas: readonly MarcaConProveedores[], proveedores: readonly ProveedorParaComprar[]): MarcaParaComprar[] {
+  const porId = new Map(proveedores.map((p) => [p.id, p]));
+  return marcas
+    .map((m) => ({ id: m.id, nombre: m.nombre, proveedores: m.proveedorIds.flatMap((id) => (porId.has(id) ? [porId.get(id)!] : [])) }))
+    .filter((m) => m.proveedores.length > 0)
+    .map((m) => ({ m, ultima: ultimaDeMarca(m), nombre: m.nombre }))
+    .sort(porReciente)
+    .map(({ m }) => m);
+}
+
+/** «La compraste hace poco»: las marcas de proveedores a los que ya se les compró, la más reciente primero. */
+export function marcasRecientes(lista: readonly MarcaParaComprar[], maximo = 5): MarcaParaComprar[] {
+  return lista
+    .filter((m) => ultimaDeMarca(m) !== null)
+    .map((m) => ({ m, ultima: ultimaDeMarca(m), nombre: m.nombre }))
+    .sort(porReciente)
+    .slice(0, maximo)
+    .map(({ m }) => m);
+}
+
+/** Buscar una marca: por su nombre o por el de alguno de sus proveedores; con una categoría, solo las que trae un proveedor que la vende. */
+export function filtrarMarcas(lista: readonly MarcaParaComprar[], q: string, categoriaId: string | null): MarcaParaComprar[] {
+  const n = normalizar(q);
+  return lista.filter(
+    (m) =>
+      (!n || normalizar(m.nombre).includes(n) || m.proveedores.some((p) => normalizar(p.nombre).includes(n))) &&
+      (!categoriaId || m.proveedores.some((p) => p.categorias.includes(categoriaId))),
+  );
+}
+
+/** Los proveedores que no tienen ninguna marca registrada: no salen en la lista por marca, así que buscando se ofrecen aparte. */
+export function proveedoresSinMarca(proveedores: readonly ProveedorParaComprar[], marcas: readonly MarcaConProveedores[]): ProveedorParaComprar[] {
+  const conMarca = new Set(marcas.flatMap((m) => m.proveedorIds));
+  return proveedores.filter((p) => !conMarca.has(p.id));
+}
+
+/** La razón social sin «SAC», «EIRL», «SRL»: como se lee bajo la marca y en la cabecera de la compra. */
+export function nombreSinSociedad(nombre: string): string {
+  return nombre.replace(/\s+(s\.?a\.?c\.?|e\.?i\.?r\.?l\.?|s\.?r\.?l\.?)$/i, "");
+}
+
+/** Lo que se lee bajo cada marca: de quién es y cuándo se le compró a ese proveedor. Con varios, que se va a preguntar de quién. */
+export function detalleMarca(m: MarcaParaComprar, hoy: string): { deQuien: string; cuando: string; preguntaDeQuien: boolean } {
+  if (m.proveedores.length === 1) {
+    const p = m.proveedores[0];
+    return { deQuien: `De ${p.nombre}`, cuando: detalleProveedor(p, hoy), preguntaDeQuien: false };
+  }
+  const ultima = ultimaDeMarca(m);
+  return {
+    deQuien: `De ${m.proveedores.length} proveedores`,
+    cuando: ultima ? `Le compraste a uno ${haceCuanto(diasEntreFechas(ultima, hoy))}` : "Todavía no le compras",
+    preguntaDeQuien: true,
+  };
+}
+
+/** Los proveedores de una marca para «¿Quién te la trajo?»: al que se le compró más reciente primero, después por nombre. */
+export function proveedoresDeLaMarca(m: MarcaParaComprar): ProveedorParaComprar[] {
+  return [...m.proveedores]
+    .map((p) => ({ p, ultima: p.compras > 0 ? p.ultima : null, nombre: p.nombre }))
+    .sort(porReciente)
+    .map(({ p }) => p);
+}
+
+/** Las marcas que trae un proveedor (para «también te trae» del paso 2), en el orden de la lista. */
+export function marcasDelProveedorElegido(lista: readonly MarcaParaComprar[], proveedorId: string): { id: string; nombre: string }[] {
+  return lista.filter((m) => m.proveedores.some((p) => p.id === proveedorId)).map((m) => ({ id: m.id, nombre: m.nombre }));
+}
+
+/**
+ * Las píldoras de marca del paso 2: cada marca del proveedor con cuántas prendas suyas hay. Solo si trae dos o más (con una sola no hay nada que
+ * elegir). La marca por la que se entró va primero.
+ */
+export function pildorasDeMarca(
+  marcasDelProveedor: readonly { id: string; nombre: string }[],
+  habituales: readonly Pick<Habitual, "marcaId">[],
+  primera: string | null,
+): { id: string; nombre: string; cuantos: number }[] {
+  if (marcasDelProveedor.length < 2) return [];
+  const con = marcasDelProveedor.map((m) => ({ ...m, cuantos: habituales.filter((h) => h.marcaId === m.id).length }));
+  return primera ? [...con.filter((m) => m.id === primera), ...con.filter((m) => m.id !== primera)] : con;
+}
+
 /**
  * «Les compraste hace poco» (maqueta compras-formidable-2026-10): los proveedores a los que ya se les compró, el más reciente primero.
  * Los demás se encuentran buscando o por lo que venden.
@@ -662,10 +788,10 @@ export function faseDePaso(p: PasoCompra): 1 | 2 | 3 {
 }
 export function textoAvance(p: PasoCompra): string {
   const fase = faseDePaso(p);
-  return `Paso ${fase} de 3 · ${fase === 1 ? "el proveedor" : fase === 2 ? "las prendas" : "el papel"}`;
+  return `Paso ${fase} de 3 · ${fase === 1 ? "la marca" : fase === 2 ? "las prendas" : "el papel"}`;
 }
-/** Los tres tramos de la barra, con nombre (maqueta mis-compras-rediseno-2026-10, Felipe 2026-10-24). */
-export const PASOS_DE_LA_COMPRA = ["El proveedor", "Las prendas", "Papel y pago"] as const;
+/** Los tres tramos de la barra, con nombre (maqueta mis-compras-rediseno-2026-10, Felipe 2026-10-24). El primero es la marca desde ADR-0644. */
+export const PASOS_DE_LA_COMPRA = ["La marca", "Las prendas", "Papel y pago"] as const;
 /** La línea chica bajo «Compré ropa» en la cabecera compacta: «Paso 1 de 3» y, ya elegido el proveedor, «CAYLA · paso 2 de 3». */
 export function lineaDeAvance(p: PasoCompra, proveedor: string | null): string {
   return proveedor ? `${proveedor} · paso ${faseDePaso(p)} de 3` : `Paso ${faseDePaso(p)} de 3`;

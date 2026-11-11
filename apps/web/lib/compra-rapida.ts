@@ -3,7 +3,15 @@ import { createClient } from "@/lib/supabase/server";
 import { getDestinosOrden } from "@/lib/ordenes-compra";
 import { getMiPlata } from "@/lib/mi-plata";
 import { marcasPorProveedor, type MarcasDeProveedor } from "@/lib/proveedores-reglas";
-import { RPC_PROVEEDORES_PARA_COMPRAR, conMarcas, leerProveedoresParaComprar, type CategoriaParaComprar, type ProveedorParaComprar } from "@/lib/compra-rapida-reglas";
+import {
+  RPC_PROVEEDORES_PARA_COMPRAR,
+  conMarcas,
+  leerProveedoresParaComprar,
+  marcasConProveedores,
+  type CategoriaParaComprar,
+  type MarcaConProveedores,
+  type ProveedorParaComprar,
+} from "@/lib/compra-rapida-reglas";
 
 // Compras simple (ADR-0480, actividad 3): lo que necesita «Compré ropa» al abrir, en paralelo: los proveedores (con lo que venden), las
 // categorías (para las píldoras y «¿Qué es?» de algo nuevo), las marcas (para la de algo nuevo), las tiendas a donde puede ir una prenda y cuánto tiene para comprar. Si una lista no carga, lo dice
@@ -18,6 +26,8 @@ export type DatosCompraRapida = {
   proveedores: ProveedorParaComprar[];
   categorias: CategoriaParaComprar[];
   marcas: { id: string; nombre: string }[];
+  /** Cada marca con los proveedores que la traen (ADR-0644, la marca primero). Vacía si los vínculos no cargaron: el paso 1 vuelve a ser por proveedor. */
+  marcasConProveedores: MarcaConProveedores[];
   tiendas: { id: string; nombre: string }[];
   /** Cuánto tiene para comprar (null si no se pudo leer: la pantalla no inventa la cifra). */
   tiene: number | null;
@@ -41,19 +51,24 @@ export async function getDatosCompraRapida(): Promise<DatosCompraRapida> {
   if (f.error) console.error(`compra rápida: familias: ${f.error.message}`);
   // Un adorno: si no cargan (o la lectura llegó al tope y quedó a medias), la lista sale sin marcas y la búsqueda sigue por nombre.
   let marcasDe: MarcasDeProveedor | null = null;
+  let conProveedores: MarcaConProveedores[] = [];
   if (vinculos.error || m.error) console.error(`compra rápida: marcas de los proveedores: ${(vinculos.error ?? m.error)?.message}`);
   else if ((vinculos.data?.length ?? 0) >= TOPE_FILAS || (m.data?.length ?? 0) >= TOPE_FILAS) console.error(`compra rápida: las marcas llegaron al tope de ${TOPE_FILAS} filas; la lista sale sin ellas.`);
-  else marcasDe = marcasPorProveedor((m.data ?? []).map((x) => ({ id: x.id, nombre: x.nombre, activo: true })), vinculos.data ?? []);
+  else {
+    marcasDe = marcasPorProveedor((m.data ?? []).map((x) => ({ id: x.id, nombre: x.nombre, activo: true })), vinculos.data ?? []);
+    conProveedores = marcasConProveedores(m.data ?? [], vinculos.data ?? []);
+  }
   const admitenPrecioCero = new Set((f.data ?? []).filter((x) => x.entra_a_motores === false).map((x) => x.codigo));
   const error = p.error?.message ?? c.error?.message ?? m.error?.message ?? (tiendas === null ? "sin tiendas" : null);
   if (error) {
     console.error(`compra rápida: ${error}`);
-    return { proveedores: [], categorias: [], marcas: [], tiendas: [], tiene: null, falla: "No se pudieron leer los proveedores o las tiendas. Vuelve a intentarlo en un momento." };
+    return { proveedores: [], categorias: [], marcas: [], marcasConProveedores: [], tiendas: [], tiene: null, falla: "No se pudieron leer los proveedores o las tiendas. Vuelve a intentarlo en un momento." };
   }
   return {
     proveedores: conMarcas(leerProveedoresParaComprar(p.data), marcasDe),
     categorias: (c.data ?? []).map((x) => ({ id: x.id, nombre: x.nombre, prefijo: x.prefijo ?? null, familia: x.familia ?? null, admitePrecioCero: x.familia != null && admitenPrecioCero.has(x.familia) })),
     marcas: (m.data ?? []).map((x) => ({ id: x.id, nombre: x.nombre })),
+    marcasConProveedores: conProveedores,
     tiendas: tiendas ?? [],
     tiene: plata?.persona ? plata.tiene : null,
     falla: null,

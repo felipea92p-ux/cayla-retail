@@ -12,6 +12,7 @@ import { Boton, BotonEnlace, CampoMonto, CampoTexto } from "@/components/ui/camp
 import { BotonFiltro } from "@/components/ui/BotonFiltro";
 import { Buscador } from "@/components/ui/Buscador";
 import { Vacio } from "@/components/ui/Vacio";
+import { Modal } from "@/components/ui/Modal";
 import { Volver } from "@/components/ui/Volver";
 import { soltarPaginaEstable } from "@/components/ui/PaginaEstable";
 import { useSalidaSinGuardar } from "@/components/ui/useSalidaSinGuardar";
@@ -53,6 +54,15 @@ import {
   cuadraElPapel,
   gananciaDeCompra,
   detalleProveedor,
+  detalleMarca,
+  filtrarMarcas,
+  marcasDelProveedorElegido,
+  marcasParaComprar,
+  marcasRecientes,
+  nombreSinSociedad,
+  pildorasDeMarca,
+  proveedoresDeLaMarca,
+  proveedoresSinMarca,
   inicialesProveedor,
   proveedoresRecientes,
   faseDePaso,
@@ -94,6 +104,8 @@ import {
   type CategoriaParaComprar,
   type Habitual,
   type LineaCompra,
+  type MarcaConProveedores,
+  type MarcaParaComprar,
   type PagoCompra,
   type PasoCompra,
   type ProveedorParaComprar,
@@ -125,6 +137,8 @@ type Datos = {
   proveedores: ProveedorParaComprar[];
   categorias: CategoriaParaComprar[];
   marcas: { id: string; nombre: string }[];
+  /** Cada marca con sus proveedores (ADR-0644): con ella el paso 1 pregunta por la marca. Vacía o sin dato, el paso 1 es por proveedor, como antes. */
+  marcasConProveedores?: MarcaConProveedores[];
   tiendas: { id: string; nombre: string }[];
   tiene: number | null;
 };
@@ -175,6 +189,16 @@ export function RegistrarCompra({ datos }: { datos: Datos }) {
   const [proveedores, setProveedores] = useState(datos.proveedores);
   const [registrando, setRegistrando] = useState(false);
   const [proveedor, setProveedor] = useState<ProveedorParaComprar | null>(null);
+  // La marca primero (ADR-0644, Felipe 2026-11-11): el paso 1 pregunta «¿Qué marca compraste?» y el proveedor sale de la marca. «Buscar por
+  // proveedor» vuelve a la lista de proveedores, y es la única si los vínculos marca–proveedor no cargaron.
+  const hayMarcas = (datos.marcasConProveedores?.length ?? 0) > 0;
+  const [porMarca, setPorMarca] = useState(hayMarcas);
+  // La marca por la que se entró (dice la cabecera y la primera de las píldoras del paso 2), la que pregunta «¿Quién te la trajo?» y si se
+  // entró por «Es una marca nueva» (elegido el proveedor, la hoja de «Algo nuevo» se abre escribiendo la marca).
+  const [marcaElegida, setMarcaElegida] = useState<{ id: string; nombre: string } | null>(null);
+  const [deQuien, setDeQuien] = useState<MarcaParaComprar | null>(null);
+  const [marcaNueva, setMarcaNueva] = useState(false);
+  const [marcaHabitual, setMarcaHabitual] = useState<string | null>(null);
   const [habituales, setHabituales] = useState<Habitual[] | null | "cargando">("cargando");
   // La foto de cada prenda del catálogo entre sus habituales, por `producto_id`: llega después de la grilla (sin ella, su categoría).
   const [fotos, setFotos] = useState<ReadonlyMap<string, string>>(new Map());
@@ -238,6 +262,13 @@ export function RegistrarCompra({ datos }: { datos: Datos }) {
   // Sin «Tienda» delante: «va a Lima», «Mandarla a Trujillo» (Felipe 2026-10-23).
   const nombresTienda = useMemo(() => new Map(datos.tiendas.map((t) => [t.id, nombreCortoTienda(t.nombre)])), [datos.tiendas]);
   const deCategoria = useMemo(() => new Map(datos.categorias.map((c) => [c.id, c])), [datos.categorias]);
+  const listaMarcas = useMemo(() => marcasParaComprar(datos.marcasConProveedores ?? [], proveedores), [datos.marcasConProveedores, proveedores]);
+  const sinMarca = useMemo(() => proveedoresSinMarca(proveedores, datos.marcasConProveedores ?? []), [proveedores, datos.marcasConProveedores]);
+  // Las píldoras del paso 2: las marcas del proveedor elegido, con cuántas prendas suyas hay (solo si trae dos o más).
+  const pildoras = useMemo(
+    () => (proveedor ? pildorasDeMarca(marcasDelProveedorElegido(listaMarcas, proveedor.id), Array.isArray(habituales) ? habituales : [], marcaElegida?.id ?? null) : []),
+    [proveedor, listaMarcas, habituales, marcaElegida],
+  );
   const total = totalDeLineas(lineas);
   const ganancia = gananciaDeCompra(lineas);
   // Lo que se VE en «Tu compra» y en la barra de abajo: sin las prendas que todavía vuelan; al aterrizar, el total cuenta hasta la cifra nueva.
@@ -298,15 +329,18 @@ export function RegistrarCompra({ datos }: { datos: Datos }) {
   const montoLeido = leerMontoPlata(monto);
   const pagadoLeido = pago.forma === "despues" ? 0 : leerMontoPlata(pagoAhora.pagado);
   const cuadra = cuadraElPapel(montoLeido, totalDeLineas(lineas));
-  const nombreCorto = proveedor ? proveedor.nombre.replace(/\s+(s\.?a\.?c\.?|e\.?i\.?r\.?l\.?|s\.?r\.?l\.?)$/i, "") : "";
+  const nombreCorto = proveedor ? nombreSinSociedad(proveedor.nombre) : "";
 
   // El último proveedor elegido: con el internet lento del celular, quien elegía uno, volvía y elegía otro recibía las prendas del PRIMERO
   // si su respuesta llegaba después (y hasta su hoja de «Algo nuevo»). Solo cuenta la respuesta del último.
   const proveedorPedido = useRef<string | null>(null);
 
-  async function elegirProveedor(p: ProveedorParaComprar) {
+  async function elegirProveedor(p: ProveedorParaComprar, marca: { id: string; nombre: string } | null = null) {
     proveedorPedido.current = p.id;
     setProveedor(p);
+    setMarcaElegida(marca);
+    setDeQuien(null);
+    setMarcaHabitual(null);
     setCatHabitual(null);
     setVerTodos(false);
     setHabituales("cargando");
@@ -315,19 +349,28 @@ export function RegistrarCompra({ datos }: { datos: Datos }) {
     const leidos = await cargarHabituales(p.id);
     if (proveedorPedido.current !== p.id) return;
     setHabituales(leidos);
+    // Entró por una marca que tiene prendas suyas: la lista llega filtrada a esa marca (las demás del proveedor, a un toque).
+    if (marca && leidos?.some((h) => h.marcaId === marca.id)) setMarcaHabitual(marca.id);
     if (leidos?.length)
       void cargarFotosDeHabituales(leidos.flatMap((h) => (h.productoId ? [h.productoId] : []))).then((f) => {
         if (proveedorPedido.current === p.id) setFotos(f);
       });
-    // Sin nada que se le haya comprado ni prendas suyas en el catálogo: la hoja de «Algo nuevo», de entrada.
-    if (leidos !== null && leidos.length === 0) algoNuevo([]);
+    // Sin nada que se le haya comprado ni prendas suyas en el catálogo, o si se entró por «Es una marca nueva»: la hoja de «Algo nuevo», de entrada.
+    if (leidos !== null && (leidos.length === 0 || marcaNueva)) algoNuevo(leidos, marca, marcaNueva);
+  }
+
+  /** Tocar una marca: con un solo proveedor, sigue con él; con varios, pregunta de quién. */
+  function elegirMarca(m: MarcaParaComprar) {
+    setMarcaNueva(false);
+    if (m.proveedores.length === 1) void elegirProveedor(m.proveedores[0], { id: m.id, nombre: m.nombre });
+    else setDeQuien(m);
   }
 
   function alRegistrarProveedor(p: ProveedorRegistrado) {
     const elegido: ProveedorParaComprar = proveedores.find((x) => x.id === p.id) ?? { id: p.id, nombre: p.nombre, ruc: p.ruc, categorias: [], compras: 0, ultima: null, marcas: [] };
     setProveedores((ps) => (ps.some((x) => x.id === p.id) ? ps : [...ps, elegido]));
     setRegistrando(false);
-    void elegirProveedor(elegido);
+    void elegirProveedor(elegido, null);
   }
 
   const habitualesLeidos = Array.isArray(habituales) ? habituales : [];
@@ -340,8 +383,20 @@ export function RegistrarCompra({ datos }: { datos: Datos }) {
 
   // «Algo nuevo»: la misma hoja, con qué es, la marca y el nombre arriba. `suyos`: los habituales recién leídos (al elegir un proveedor
   // sin prendas, el estado todavía no los tiene).
-  function algoNuevo(suyos: Habitual[] = habitualesLeidos) {
-    abrirHoja({ habitual: EN_BLANCO, cantidad: "", costo: "", venta: "", ...destinosDeEntrada(), edita: null, nueva: nuevoVacio(marcasParaNueva(marcasDeLaCompra, marcasDeHabituales(suyos))) });
+  // `preferida`: la marca por la que se entró o la de la píldora puesta (ADR-0644): la hoja llega con ella. `escribir`: entró por «Es una marca
+  // nueva», así que la marca llega para escribirla.
+  function algoNuevo(suyos: Habitual[] = habitualesLeidos, preferida: { id: string } | null = marcaPreferida(), escribir = false) {
+    const ofrecidas = marcasParaNueva(marcasDeLaCompra, marcasDeHabituales(suyos));
+    const base = nuevoVacio(ofrecidas);
+    const nueva = escribir
+      ? { ...base, marcaId: null, marcaNueva: "" }
+      : preferida && marcasDeLaHoja.some((m) => m.id === preferida.id)
+        ? { ...base, marcaId: preferida.id }
+        : base;
+    abrirHoja({ habitual: EN_BLANCO, cantidad: "", costo: "", venta: "", ...destinosDeEntrada(), edita: null, nueva });
+  }
+  function marcaPreferida(): { id: string } | null {
+    return marcaHabitual ? { id: marcaHabitual } : marcaElegida;
   }
 
   // La tienda llega marcada con la de la prenda anterior; el reparto, vacío hasta que se marque otra.
@@ -525,6 +580,10 @@ export function RegistrarCompra({ datos }: { datos: Datos }) {
   function otraCompra() {
     setId(crypto.randomUUID());
     setProveedor(null);
+    setMarcaElegida(null);
+    setMarcaNueva(false);
+    setMarcaHabitual(null);
+    setPorMarca(hayMarcas);
     setLineas([]);
     setTipo(null);
     setArchivo(null);
@@ -560,7 +619,9 @@ export function RegistrarCompra({ datos }: { datos: Datos }) {
           <div role="heading" aria-level={1} className="font-serif text-[28px] leading-none text-tinta">
             Apunte de compras
           </div>
-          <div className="mt-1 truncate text-sm text-taupe">{lineaDeAvance(paso, proveedor ? nombreCorto : null)}</div>
+          <div className="mt-1 truncate text-sm text-taupe">
+            {lineaDeAvance(paso, proveedor ? (marcaElegida ? `${marcaElegida.nombre} · de ${nombreCorto}` : nombreCorto) : null)}
+          </div>
         </div>
       </div>
       <CaminoDePasos pasos={PASOS_DE_LA_COMPRA} ahora={fase - 1} etiqueta={textoAvance(paso)} />
@@ -575,17 +636,80 @@ export function RegistrarCompra({ datos }: { datos: Datos }) {
       {cabecera}
       <div className={conPanel ? "flex flex-col gap-5 lg:grid lg:grid-cols-[minmax(0,1fr)_19rem] lg:items-start lg:gap-x-8 xl:grid-cols-[minmax(0,1fr)_22rem]" : "flex flex-col gap-5"}>
       <div className="flex min-w-0 flex-col gap-5">
-      {paso === "proveedor" && (
+      {paso === "proveedor" && porMarca && (
+        <PasoMarca
+          datos={datos}
+          marcas={listaMarcas}
+          sinMarca={sinMarca}
+          proveedores={proveedores}
+          q={q}
+          setQ={setQ}
+          cat={catProveedor}
+          setCat={setCatProveedor}
+          alElegir={elegirMarca}
+          alElegirProveedor={(p) => {
+            setMarcaNueva(false);
+            void elegirProveedor(p, null);
+          }}
+          alMarcaNueva={() => {
+            setMarcaNueva(true);
+            setPorMarca(false);
+          }}
+          alPorProveedor={() => {
+            setMarcaNueva(false);
+            setPorMarca(false);
+          }}
+        />
+      )}
+      {paso === "proveedor" && !porMarca && (
         <PasoProveedor
           datos={datos}
           proveedores={proveedores}
+          titulo={marcaNueva ? "¿Quién te trae la marca nueva?" : "¿A quién le compraste?"}
           alNuevo={() => setRegistrando(true)}
           q={q}
           setQ={setQ}
           cat={catProveedor}
           setCat={setCatProveedor}
-          alElegir={(p) => void elegirProveedor(p)}
+          alElegir={(p) => void elegirProveedor(p, null)}
+          alPorMarca={
+            hayMarcas
+              ? () => {
+                  setMarcaNueva(false);
+                  setPorMarca(true);
+                }
+              : undefined
+          }
         />
+      )}
+      {deQuien && (
+        <Modal
+          titulo={`¿Quién te trajo ${deQuien.nombre} esta vez?`}
+          subtitulo={`Esta marca la venden ${deQuien.proveedores.length} proveedores. La compra y lo que se debe quedan con el que elijas.`}
+          onClose={() => setDeQuien(null)}
+          conCerrar
+        >
+          <ul className="flex flex-col gap-2" data-guia="compra.de-quien">
+            {proveedoresDeLaMarca(deQuien).map((p) => (
+              <li key={p.id}>
+                <button
+                  type="button"
+                  onClick={() => void elegirProveedor(p, { id: deQuien.id, nombre: deQuien.nombre })}
+                  className="card-cayla mov-boton grid w-full grid-cols-[44px_minmax(0,1fr)_auto] items-center gap-3 rounded-2xl p-3 text-left"
+                >
+                  <span className="compra-iniciales" aria-hidden>
+                    {inicialesProveedor(p.nombre)}
+                  </span>
+                  <span className="min-w-0">
+                    <span className="block truncate font-medium text-tinta">{p.nombre}</span>
+                    <span className="block text-sm text-taupe">{detalleProveedor(p, hoyLima())}</span>
+                  </span>
+                  <ChevronRight className="h-4 w-4 text-taupe" aria-hidden />
+                </button>
+              </li>
+            ))}
+          </ul>
+        </Modal>
       )}
       {registrando && (
         <RegistrarProveedorOrden
@@ -626,8 +750,37 @@ export function RegistrarCompra({ datos }: { datos: Datos }) {
               Vuelve atrás y elige otra vez al proveedor.
             </Aviso>
           ) : (
+            <>
+            {pildoras.length > 0 && (
+              // ADR-0644: un proveedor puede traer varias marcas (10 al 2026-11-11). Lo que compraste de cualquiera de ellas va en esta misma
+              // compra: las píldoras filtran sus prendas sin salir del paso.
+              <div className="card-cayla flex flex-col gap-2 rounded-2xl p-3" data-guia="compra.otras-marcas">
+                <p className="text-sm text-tinta/80">
+                  {nombreCorto} también te trae otras marcas. Si compraste de ellas, van en esta misma compra:
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  <BotonFiltro activo={marcaHabitual === null} onClick={() => setMarcaHabitual(null)} cuenta={habituales.length}>
+                    Todas
+                  </BotonFiltro>
+                  {pildoras.map((m) => (
+                    <BotonFiltro
+                      key={m.id}
+                      activo={marcaHabitual === m.id}
+                      onClick={() => {
+                        setMarcaHabitual(marcaHabitual === m.id ? null : m.id);
+                        setCatHabitual(null);
+                      }}
+                      cuenta={m.cuantos}
+                    >
+                      {m.nombre}
+                    </BotonFiltro>
+                  ))}
+                </div>
+              </div>
+            )}
             <ListaHabituales
               habituales={habituales}
+              marca={marcaHabitual}
               lineas={lineas}
               categorias={datos.categorias}
               nombresTienda={nombresTienda}
@@ -640,6 +793,7 @@ export function RegistrarCompra({ datos }: { datos: Datos }) {
               alCorregir={corregir}
               fotos={fotos}
             />
+            </>
           )}
           {/* La barra de abajo: «Algo nuevo» y la barra negra de la maqueta (lo que lleva la compra, y «Seguir»). Pegada al pie de la
               columna, no a la ventana: fija, en escritorio el menú lateral la tapaba. */}
@@ -1043,7 +1197,7 @@ export function RegistrarCompra({ datos }: { datos: Datos }) {
           llegaron={llegaron}
           siguiente={
             paso === "proveedor"
-              ? "Sigue: elegir a quién le compraste"
+              ? "Sigue: elegir qué marca compraste"
               : paso === "habituales"
                 ? lineas.length > 0
                   ? "Sigue: revisar las prendas"
@@ -1135,24 +1289,238 @@ export function RegistrarCompra({ datos }: { datos: Datos }) {
   );
 }
 
+/** El otro camino del paso 1, al pie: de la marca al proveedor y al revés (ADR-0644). */
+function OtroCamino({ pregunta, accion, onClick }: { pregunta: string; accion: string; onClick: () => void }) {
+  return (
+    <p className="flex flex-wrap items-baseline justify-center gap-x-2 gap-y-1 pt-1 text-center text-sm text-taupe" data-guia="compra.otro-camino">
+      {pregunta}
+      <button type="button" onClick={onClick} className="btn-enlace">
+        {accion}
+      </button>
+    </p>
+  );
+}
+
+// El paso 1 por marca (ADR-0644, maqueta docs/maquetas/compras-marca-primero-2026-11/): una fila por marca con su proveedor debajo. Las marcas de un
+// mismo proveedor salen por separado (cada una se conoce por su nombre). Buscando, también se encuentra por el nombre del proveedor, y los
+// proveedores sin marca registrada se ofrecen aparte. «Es una marca nueva» pide primero quién la trae (el proveedor es obligatorio: la deuda es
+// con él) y abre «Algo nuevo» escribiendo la marca.
+function PasoMarca({
+  datos,
+  marcas,
+  sinMarca,
+  proveedores,
+  q,
+  setQ,
+  cat,
+  setCat,
+  alElegir,
+  alElegirProveedor,
+  alMarcaNueva,
+  alPorProveedor,
+}: {
+  datos: Datos;
+  marcas: MarcaParaComprar[];
+  sinMarca: ProveedorParaComprar[];
+  proveedores: ProveedorParaComprar[];
+  q: string;
+  setQ: (v: string) => void;
+  cat: string | null;
+  setCat: (v: string | null) => void;
+  alElegir: (m: MarcaParaComprar) => void;
+  alElegirProveedor: (p: ProveedorParaComprar) => void;
+  alMarcaNueva: () => void;
+  alPorProveedor: () => void;
+}) {
+  const categorias = categoriasConProveedor(proveedores, datos.categorias);
+  const hoy = hoyLima();
+  const buscando = q.trim() !== "" || cat !== null;
+  const recientes = buscando ? [] : marcasRecientes(marcas);
+  const lista = buscando ? filtrarMarcas(marcas, q, cat) : [...recientes, ...marcas.filter((m) => !recientes.includes(m))];
+  // Buscando por nombre: los proveedores que no tienen una marca registrada (no salen como marca).
+  const sueltos = q.trim() !== "" ? filtrarProveedores(sinMarca, q, cat) : [];
+  const claveBusqueda = `${q.trim()}|${cat ?? ""}`;
+  const [tanda, setTanda] = useState({ clave: claveBusqueda, cuantos: PROVEEDORES_POR_TANDA });
+  const cuantos = tanda.clave === claveBusqueda ? tanda.cuantos : PROVEEDORES_POR_TANDA;
+  const { visibles, quedan } = tandaDeLista(lista, cuantos);
+  const verRecientes = visibles.filter((m) => recientes.includes(m));
+  const verResto = visibles.filter((m) => !recientes.includes(m));
+  const centinela = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const el = centinela.current;
+    if (!el || quedan === 0 || typeof IntersectionObserver === "undefined") return;
+    const io = new IntersectionObserver(
+      (entradas) => {
+        if (entradas[0]?.isIntersecting) setTanda({ clave: claveBusqueda, cuantos: cuantos + PROVEEDORES_POR_TANDA });
+      },
+      { rootMargin: "0px" },
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, [claveBusqueda, cuantos, quedan]);
+  const fila = (m: MarcaParaComprar) => {
+    const d = detalleMarca(m, hoy);
+    return (
+      <li key={m.id}>
+        <button
+          type="button"
+          onClick={() => alElegir(m)}
+          className="card-cayla mov-boton grid w-full grid-cols-[44px_minmax(0,1fr)_auto] items-center gap-3 rounded-2xl p-3 text-left"
+        >
+          <span className="compra-iniciales compra-iniciales-marca" aria-hidden>
+            {m.nombre.trim().charAt(0).toUpperCase()}
+          </span>
+          <span className="min-w-0">
+            <span className="block truncate font-medium text-tinta">{m.nombre}</span>
+            <span className="block truncate text-sm text-tinta/70">{d.deQuien}</span>
+            <span className="line-clamp-2 block text-sm text-taupe">{d.cuando}</span>
+            {d.preguntaDeQuien && (
+              <span className="mt-1 block">
+                <Chip tono="ambar" versalitas={false}>
+                  Te preguntamos de quién
+                </Chip>
+              </span>
+            )}
+          </span>
+          <ChevronRight className="h-4 w-4 text-taupe" aria-hidden />
+        </button>
+      </li>
+    );
+  };
+  const filaProveedor = (p: ProveedorParaComprar) => (
+    <li key={p.id}>
+      <button
+        type="button"
+        onClick={() => alElegirProveedor(p)}
+        className="card-cayla mov-boton grid w-full grid-cols-[44px_minmax(0,1fr)_auto] items-center gap-3 rounded-2xl p-3 text-left"
+      >
+        <span className="compra-iniciales" aria-hidden>
+          {inicialesProveedor(p.nombre)}
+        </span>
+        <span className="min-w-0">
+          <span className="block truncate font-medium text-tinta">{p.nombre}</span>
+          <span className="line-clamp-2 block text-sm text-taupe">{detalleProveedor(p, hoy)}</span>
+        </span>
+        <ChevronRight className="h-4 w-4 text-taupe" aria-hidden />
+      </button>
+    </li>
+  );
+  return (
+    <section className="flex flex-col gap-4">
+      <h2 className="compra-pregunta">¿Qué marca compraste?</h2>
+      <Buscador
+        valor={q}
+        onCambio={setQ}
+        tamano="mostrador"
+        etiqueta="Busca la marca"
+        placeholder="Marca o proveedor" // sugerir-fijo: se busca una marca por su nombre o por el de su proveedor; no depende de nada elegido antes
+        guia="compra.buscador"
+      />
+      <button
+        type="button"
+        onClick={alMarcaNueva}
+        data-guia="compra.es-marca-nueva"
+        className={`card-cayla mov-boton grid grid-cols-[40px_minmax(0,1fr)_auto] items-center gap-3 rounded-[18px] ${FILA_PUNTEADA} px-3.5 py-3 text-left`}
+      >
+        <span aria-hidden className="grid h-10 w-10 place-items-center rounded-full bg-tinta text-crema">
+          <Plus className="h-5 w-5" />
+        </span>
+        <span className="min-w-0">
+          <span className="block font-medium text-tinta">Es una marca nueva</span>
+          <span className="block text-sm text-taupe">¿Primera vez que la compras? Regístrala aquí</span>
+        </span>
+        <ChevronRight className="h-4 w-4 text-taupe" aria-hidden />
+      </button>
+      {buscando && lista.length === 0 && sueltos.length === 0 ? (
+        <Vacio
+          icono={<Store aria-hidden />}
+          titulo="No hay una marca así"
+          tamano="chico"
+          acciones={
+            <Boton peso="primario" onClick={alMarcaNueva}>
+              <span className="inline-flex items-center gap-2">
+                <Plus className="h-4 w-4" aria-hidden />
+                Es una marca nueva
+              </span>
+            </Boton>
+          }
+        >
+          Si es la primera vez que la compras, regístrala. Si sabes el proveedor, búscalo por su nombre.
+        </Vacio>
+      ) : (
+        <div className="flex flex-col gap-2" data-guia="compra.marcas">
+          {verRecientes.length > 0 && (
+            <>
+              <TituloGrupo>La compraste hace poco</TituloGrupo>
+              <ul className="flex flex-col gap-2 xl:grid xl:grid-cols-2 2xl:grid-cols-3">{verRecientes.map(fila)}</ul>
+            </>
+          )}
+          {verResto.length > 0 && (
+            <>
+              {verRecientes.length > 0 && <TituloGrupo className="pt-2">Las demás</TituloGrupo>}
+              <ul className="flex flex-col gap-2 xl:grid xl:grid-cols-2 2xl:grid-cols-3">{verResto.map(fila)}</ul>
+            </>
+          )}
+          {quedan > 0 && (
+            <div ref={centinela} className="flex justify-center pt-1">
+              <BotonVerMas
+                forma="enlace"
+                abierto={false}
+                onCambiar={() => setTanda({ clave: claveBusqueda, cuantos: cuantos + PROVEEDORES_POR_TANDA })}
+                texto={quedan <= PROVEEDORES_POR_TANDA ? `Ver ${quedan === 1 ? "la que falta" : `las ${quedan} que faltan`}` : `Ver ${PROVEEDORES_POR_TANDA} más · faltan ${quedan}`}
+              />
+            </div>
+          )}
+          {sueltos.length > 0 && (
+            <>
+              <TituloGrupo className="pt-2" cuenta={sueltos.length}>
+                Proveedores sin marca registrada
+              </TituloGrupo>
+              <ul className="flex flex-col gap-2 xl:grid xl:grid-cols-2 2xl:grid-cols-3">{sueltos.map(filaProveedor)}</ul>
+            </>
+          )}
+        </div>
+      )}
+      {categorias.length > 1 && (
+        <div className="flex flex-col gap-2">
+          <TituloGrupo>O busca por lo que vende</TituloGrupo>
+          <div className="flex flex-wrap gap-2" data-guia="compra.categorias">
+            {categorias.map((c) => (
+              <BotonFiltro key={c.id} activo={cat === c.id} onClick={() => setCat(cat === c.id ? null : c.id)} cuenta={marcas.filter((m) => m.proveedores.some((p) => p.categorias.includes(c.id))).length}>
+                {c.nombre}
+              </BotonFiltro>
+            ))}
+          </div>
+        </div>
+      )}
+      <OtroCamino pregunta="¿Sabes el proveedor y no la marca?" accion="Buscar por proveedor" onClick={alPorProveedor} />
+    </section>
+  );
+}
+
 function PasoProveedor({
   datos,
   proveedores,
+  titulo,
   alNuevo,
   q,
   setQ,
   cat,
   setCat,
   alElegir,
+  alPorMarca,
 }: {
   datos: Datos;
   proveedores: ProveedorParaComprar[];
+  titulo: string;
   alNuevo: () => void;
   q: string;
   setQ: (v: string) => void;
   cat: string | null;
   setCat: (v: string | null) => void;
   alElegir: (p: ProveedorParaComprar) => void;
+  /** Volver a la lista por marca (ADR-0644); sin ella (no cargaron las marcas), no se ofrece. */
+  alPorMarca?: () => void;
 }) {
   const categorias = categoriasConProveedor(proveedores, datos.categorias);
   const nombreCat = new Map(datos.categorias.map((c) => [c.id, c.nombre]));
@@ -1217,7 +1585,7 @@ function PasoProveedor({
   );
   return (
     <section className="flex flex-col gap-4">
-      <h2 className="compra-pregunta">¿A quién le compraste?</h2>
+      <h2 className="compra-pregunta">{titulo}</h2>
       <Buscador
         valor={q}
         onCambio={setQ}
@@ -1298,6 +1666,7 @@ function PasoProveedor({
           </div>
         </div>
       )}
+      {alPorMarca && <OtroCamino pregunta="¿Sabes la marca?" accion="Buscar por marca" onClick={alPorMarca} />}
     </section>
   );
 }
@@ -1306,7 +1675,8 @@ function PasoProveedor({
 // te costó, a cuánto la vendes y cuántas fueron la vez pasada. Si ya se le compró, «+ 9 como la vez pasada» la agrega de un toque; si ya va en la
 // compra, dice cuántas. Tocar la fila abre la hoja (o la corrige). Sin cambiar qué se guarda ni las reglas: solo cómo se ve y cómo se agrega.
 function ListaHabituales({
-  habituales,
+  habituales: todos,
+  marca,
   lineas,
   categorias,
   nombresTienda,
@@ -1320,6 +1690,8 @@ function ListaHabituales({
   fotos,
 }: {
   habituales: Habitual[];
+  /** La marca de la píldora puesta (ADR-0644): solo sus prendas. `null`, todas las del proveedor. */
+  marca: string | null;
   lineas: LineaCompra[];
   categorias: CategoriaParaComprar[];
   nombresTienda: ReadonlyMap<string, string>;
@@ -1334,12 +1706,14 @@ function ListaHabituales({
   /** La foto de cada prenda del catálogo, por `producto_id`. */
   fotos: ReadonlyMap<string, string>;
 }) {
+  const habituales = marca ? todos.filter((h) => h.marcaId === marca) : todos;
   const cats = categoriasDeHabituales(habituales);
   const deCat = cat ? habituales.filter((h) => h.categoriaId === cat) : habituales;
   const ver = verTodos || cat ? deCat : deCat.slice(0, HABITUALES_A_LA_VISTA);
   // La miniatura sin foto es el ícono de su categoría sobre su tono (ADR-0333): el prefijo y la familia salen de la categoría.
   const deCategoria = new Map(categorias.map((c) => [c.id, c]));
-  const claves = new Set(habituales.map((h) => h.clave));
+  // Con todas las del proveedor (no solo las de la marca puesta): una prenda de otra marca que ya va en la compra no es «nueva».
+  const claves = new Set(todos.map((h) => h.clave));
   // Las prendas nuevas que ya van en la compra también son filas: así se corrigen igual que las de siempre (una por prenda).
   const nuevas = lineas.map((l, i) => ({ l, i })).filter(({ l, i }) => !claves.has(l.clave) && lineas.findIndex((x) => x.clave === l.clave) === i);
   // La guía interactiva ancla al primer atajo (nunca a clases ni a textos).
@@ -1412,7 +1786,13 @@ function ListaHabituales({
           ))}
         </div>
       )}
-      <ul className="card-cayla overflow-hidden rounded-[18px]" data-guia="compra.habituales">
+      {/* Una marca del proveedor sin prendas suyas todavía (ADR-0644): se dice, y «Algo nuevo» llega con esa marca puesta. */}
+      {marca && habituales.length === 0 && nuevas.length === 0 && (
+        <Vacio icono={<Store aria-hidden />} titulo="Todavía no le compraste esta marca" tamano="chico">
+          Descríbela con «Algo nuevo»: llega con esta marca puesta.
+        </Vacio>
+      )}
+      <ul className="card-cayla overflow-hidden rounded-[18px] empty:hidden" data-guia="compra.habituales">
         {nuevas.map(({ l, i }) => fila(l.clave, l.productoId, l.nombre, l.categoriaId, l.categoria, null, () => alCorregir(i)))}
         {ver.map((h) => fila(h.clave, h.productoId, h.nombre, h.categoriaId, h.categoria, h, () => alElegir(h)))}
       </ul>

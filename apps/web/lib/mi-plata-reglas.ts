@@ -2,7 +2,8 @@ import { diaLima, diaMes, horaLima, sumarDias } from "./fechas-lima";
 import { soles } from "./compras-reglas";
 import { MONTO_MAXIMO_GASTO, MONTO_MAXIMO_PLATA, campoResponsable, problemaDeMonto, type CuentaOpcion } from "./fondos-reglas";
 import type { CampoDeGuia } from "./guia-campos";
-import { TIPOS_PAPEL, type TipoPapel } from "./compra-rapida-reglas";
+import { TIPOS_PAPEL, nombreSinSociedad, type TipoPapel } from "./compra-rapida-reglas";
+import { tituloDeCompra, type MarcasDeCompras } from "./marcas-de-compras-reglas";
 
 // Compras simple (ADR-0480, actividad 2): la plata que anota la compradora y la que confirma Compras. Las reglas puras: leer lo que manda
 // la base (que puede venir vieja o rota: nunca se cae, descarta lo ilegible), las cifras de «Tu plata para compras», qué falta en cada
@@ -803,6 +804,8 @@ export function movimientosDeLaCompradora(
   plata: Pick<MiPlata, "compras" | "gastos" | "anotada" | "hoy" | "ronda">,
   /** Los códigos de envío de cada compra (`codigosPorCompra`, de «Mis envíos»): la fila de una compra ya mandada dice cuál. */
   codigos: ReadonlyMap<string, readonly string[]> = new Map(),
+  /** Las marcas de cada compra (ADR-0644, `fn_marcas_de_compras`): son su título y el proveedor baja al detalle. Sin ellas, «Compra a …». */
+  marcas: MarcasDeCompras = new Map(),
 ): {
   actuales: MovimientoCompradora[];
   antes: MovimientoCompradora[];
@@ -811,14 +814,16 @@ export function movimientosDeLaCompradora(
     ...plata.compras.map((c): MovimientoCompradora => {
       const e = estadoParaLaCompradora("compra", c.porCompletar);
       const d = detalleCompra(c, codigos);
+      const porMarca = tituloDeCompra(marcas.get(c.id));
+      const de = porMarca ? `${nombreSinSociedad(c.proveedor)} · ` : "";
       return {
         clave: `compra-${c.id}`,
         compraId: c.id,
         tipo: "compra",
         icono: "compra",
-        titulo: `Compra a ${c.proveedor}`,
-        detalle: d.detalle,
-        resumen: d.resumen,
+        titulo: porMarca ?? `Compra a ${c.proveedor}`,
+        detalle: de + d.detalle,
+        resumen: de + d.resumen,
         envio: d.envio,
         entra: false,
         // Baja de su plata solo lo que pagó: «− S/ 0.00» si se la dejó toda a Compras.
