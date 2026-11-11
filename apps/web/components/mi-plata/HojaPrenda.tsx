@@ -353,7 +353,8 @@ function DescribirNueva({
             opciones={opcionesCategoriaNueva(nueva.categorias, nueva.suyas)}
           />
         </CampoGuiado>
-        <CampoGuiado id="marca" guia={guia} titulo="¿De qué marca?" ayuda="· opcional">
+        {/* «· opcional» se calla mientras hay una marca empezada a escribir: esa sí hay que terminarla (o cerrar la caja con la ×). */}
+        <CampoGuiado id="marca" guia={guia} titulo="¿De qué marca?" ayuda={n.marcaNueva?.trim() ? undefined : "· opcional"}>
           {/* El «+» del final cambia la lista por una caja para escribir una marca que no está; la «×» vuelve a la lista (Felipe
               2026-10-24). La marca escrita se crea al guardar la compra, unida a este proveedor. */}
           <div className="flex items-start gap-2" data-guia="compra.marca-nueva">
