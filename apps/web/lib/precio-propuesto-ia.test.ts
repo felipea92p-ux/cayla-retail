@@ -63,3 +63,16 @@ describe("mensajePrecio", () => {
     expect(m).toContain("Polo Bianca");
   });
 });
+
+describe("mensajePrecio al recibir (ADR-0641 act. 2026-11-11)", () => {
+  const conProducto = { ...contexto, producto: { referencia: "Polo Bianca", precio: 49.9, costo: 22, unidades_90: 30, stock: 4, dias_desde_alta: 80 } };
+  it("una prenda nueva al recibir se pide como nueva", () => {
+    expect(mensajePrecio({ origen: "recepcion", contexto, costo: { costo: 30, estimado: false } })).toContain("Propón el precio de esta prenda nueva.");
+  });
+  it("una que ya existe lleva su precio de hoy y el costo de esta compra", () => {
+    const m = mensajePrecio({ origen: "recepcion", contexto: conProducto, costo: { costo: 28, estimado: false } });
+    expect(m).toContain("Llegó otra vez esta prenda");
+    expect(m).toContain('"precio_actual": 49.9');
+    expect(m).toContain('"costo": 28');
+  });
+});

@@ -2,6 +2,9 @@ import { describe, expect, it } from "vitest";
 import {
   elegirCosto,
   MARGEN_MINIMO,
+  pideRevisarAlRecibir,
+  precioUnicoAlCerrar,
+  textoRevisarAlRecibir,
   pisoDePrecio,
   redondearA90,
   revisarPrecioDeLaIA,
@@ -102,5 +105,37 @@ describe("textoSinPropuesta", () => {
       expect(t.length).toBeGreaterThan(20);
       expect(t.length).toBeLessThanOrEqual(110);
     }
+  });
+});
+
+describe("al recibir una prenda que ya existe: ¿conviene mirar su precio?", () => {
+  it("margen bajo 30 % con el costo de esta compra", () => {
+    expect(pideRevisarAlRecibir({ precio: 59.9, costo: 45, costoAntes: 45 })).toEqual({ margen: expect.closeTo(24.87, 1), motivo: "margen_bajo" });
+  });
+  it("el costo cambió aunque el margen siga bien", () => {
+    expect(pideRevisarAlRecibir({ precio: 79.9, costo: 30, costoAntes: 25 })?.motivo).toBe("costo_cambio");
+  });
+  it("mismo costo y buen margen: nada que decir (no se gasta)", () => {
+    expect(pideRevisarAlRecibir({ precio: 79.9, costo: 30, costoAntes: 30 })).toBeNull();
+  });
+  it("sin precio o sin costo, nada", () => {
+    expect(pideRevisarAlRecibir({ precio: null, costo: 30, costoAntes: null })).toBeNull();
+    expect(pideRevisarAlRecibir({ precio: 59.9, costo: null, costoAntes: null })).toBeNull();
+    expect(pideRevisarAlRecibir({ precio: 59.9, costo: 0, costoAntes: null })).toBeNull();
+  });
+  it("la línea lo dice con montos que no se parten", () => {
+    expect(textoRevisarAlRecibir(59.9, 45, { margen: 24.9, motivo: "margen_bajo" })).toBe("Con S/ 45.00 de costo, a S/ 59.90 ganas 25 %: menos de 30 %.");
+  });
+});
+
+describe("precioUnicoAlCerrar", () => {
+  it("uno solo en todas las tallas (lo escrito manda sobre el de hoy)", () => {
+    expect(precioUnicoAlCerrar([{ varianteId: "a", precioSede: 59.9 }, { varianteId: "b", precioSede: 59.9 }], {})).toBe(59.9);
+    expect(precioUnicoAlCerrar([{ varianteId: "a", precioSede: 59.9 }, { varianteId: "b", precioSede: 49.9 }], { b: { valor: 59.9 } })).toBe(59.9);
+  });
+  it("distintos por talla, o sin leer todavía: no hay uno solo", () => {
+    expect(precioUnicoAlCerrar([{ varianteId: "a", precioSede: 59.9 }, { varianteId: "b", precioSede: 69.9 }], {})).toBeNull();
+    expect(precioUnicoAlCerrar([{ varianteId: "a", precioSede: null }], {})).toBeNull();
+    expect(precioUnicoAlCerrar([], {})).toBeNull();
   });
 });

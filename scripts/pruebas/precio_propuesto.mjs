@@ -7,7 +7,9 @@
  *   · ninguna fila deja menos de 30 % de margen (precio × 0,70 ≥ costo), la escriba quien la escriba;
  *   · una fila sin propuesta dice por qué, y una con propuesta trae su costo y su piso;
  *   · el costo de una fila tiene techo (nadie infla el tope de US$ 20 y deja a todos sin IA) y el gasto del mes suma;
- *   · quien no ve Productos no lee el contexto ni anota (proponer es una función de Productos, ADR-0306);
+ *   · proponer (contexto, anotar, gasto) lo usa quien ve Recibir o Productos, sin pedir el dinero de Compras (act. 2026-11-11: casi toda
+ *     prenda nace en Recibir, donde solo entran las terminales); quien no ve ninguno de los dos, no. «Revisar precios» y aplicar siguen
+ *     pidiendo el dinero de Compras;
  *   · el contexto trae las parecidas de la categoría con su precio y no se repite la prenda que se revisa;
  *   · la tabla no se lee ni se escribe directo desde la API; la migración se puede pegar dos veces.
  *
@@ -23,7 +25,10 @@ import { fileURLToPath } from "node:url";
 
 const CONTENEDOR_LOCAL = "supabase_db_cayla-retail";
 const RAIZ = join(fileURLToPath(new URL(".", import.meta.url)), "..", "..");
-const MIGRACION = readFileSync(join(RAIZ, "supabase/migrations/20261110203000_precio_propuesto_con_ia.sql"), "utf8");
+// La de origen y la de Recibir (ADR-0641 act. 2026-11-11), en el orden en que se pegan.
+const MIGRACION = ["20261110203000_precio_propuesto_con_ia.sql", "20261111151000_precio_propuesto_en_recibir.sql"]
+  .map((m) => readFileSync(join(RAIZ, "supabase/migrations", m), "utf8"))
+  .join("\n");
 const FELIPE = "22222222-2222-4222-8222-000000000001"; // líder del seed (cuenta)
 const MICAELA = "22222222-2222-4222-8222-000000000003"; // integrante de Trujillo (cuenta)
 
@@ -120,24 +125,39 @@ select retail.fn_precio_gasto_del_mes() >= :antes + 0.0516;`));
 caso("una revisión pide la prenda, y la prenda tiene que ser de esa categoría", rechaza(/check constraint|Producto no válido/, `${como(FELIPE)}
 select ${registrar({ p_origen: "'revision'" })};`));
 
-caso("quien no ve Productos no anota", rechaza(/Sin acceso a Productos/, `
-delete from retail.rol_modulos where modulo = 'productos';
+caso("quien no ve ni Productos ni Recibir no anota", rechaza(/pide ver Recibir mercadería o Productos/, `
+delete from retail.rol_modulos where modulo in ('productos', 'recibir');
 ${como(MICAELA)}
 select ${registrar()};`));
 
-caso("quien no ve Productos no lee el contexto", rechaza(/Sin acceso a Productos/, `
-delete from retail.rol_modulos where modulo = 'productos';
+caso("quien no ve ni Productos ni Recibir no lee el contexto", rechaza(/pide ver Recibir mercadería o Productos/, `
+delete from retail.rol_modulos where modulo in ('productos', 'recibir');
 ${como(MICAELA)}
 select retail.fn_precio_contexto(:'cat');`));
 
-caso("quien ve Productos pero NO los costos (el dinero de Compras) no lee el contexto: ahí van costos", rechaza(/pide ver el costo/, `${como(MICAELA)}
-select retail.fn_precio_contexto(:'cat');`));
+caso("RECIBIR: quien solo ve Recibir (una terminal de almacén) lee el contexto, costos incluidos, y anota una propuesta de recepción", da("t", `
+delete from retail.rol_modulos where modulo = 'productos';
+insert into retail.rol_modulos (rol_id, modulo)
+  select c.rol_id, 'recibir' from retail.colaboradores c join public.personas p on p.id = c.persona_id
+   where p.auth_user_id = '${MICAELA}' on conflict do nothing;
+${como(MICAELA)}
+select retail.fn_precio_contexto(:'cat') as c \\gset
+select ${registrar({ p_origen: "'recepcion'" })} as id \\gset
+select retail.fn_precio_gasto_del_mes() >= 0 and (:'c'::jsonb) ? 'costo_categoria' and :'id' is not null;`));
 
-caso("…ni la lista de Revisar precios", rechaza(/pide ver el costo/, `${como(MICAELA)}
+caso("quien ve Productos sin el dinero de Compras ya puede proponer (Felipe 2026-11-11)", da("t", `${como(MICAELA)}
+select retail.fn_precio_contexto(:'cat') is not null;`));
+
+caso("…pero la lista de Revisar precios sigue pidiendo el dinero de Compras", rechaza(/pide ver el costo/, `${como(MICAELA)}
 select * from retail.fn_precios_a_revisar();`));
 
-caso("…ni anota una propuesta", rechaza(/pide ver el costo/, `${como(MICAELA)}
-select ${registrar()};`));
+caso("una propuesta de recepción puede ser de una prenda que todavía no existe", da("1", `${como(FELIPE)}
+select ${registrar({ p_origen: "'recepcion'" })} as id \\gset
+reset role;
+select count(*) from retail.precio_propuestas where id = :'id' and origen = 'recepcion' and producto_id is null;`));
+
+caso("un origen que no existe no entra", rechaza(/check constraint/, `${como(FELIPE)}
+select ${registrar({ p_origen: "'inventado'" })};`));
 
 caso("el contexto trae parecidas con precio, sin la prenda que se revisa", da("t", `${como(FELIPE)}
 select retail.fn_precio_contexto(:'cat', null, :'prod') as c \\gset

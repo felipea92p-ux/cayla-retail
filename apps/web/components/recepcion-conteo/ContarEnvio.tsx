@@ -181,6 +181,7 @@ export function ContarEnvio({
   proveedoresDirectorio = [],
   onProveedorNuevo,
   onMarcaNueva,
+  onCostoDePrenda,
   onEscribir,
   sinGuardar = 0,
   onReintentar,
@@ -223,6 +224,8 @@ export function ContarEnvio({
   /** Se creó un proveedor o una marca en esta visita: la pantalla los suma a sus listas. */
   onProveedorNuevo?: (p: ProveedorDeLaLista) => void;
   onMarcaNueva?: (r: MarcaRegistrada) => void;
+  /** ADR-0641 act. 2026-11-11: el costo escrito al crear una prenda (en su hoja), para que el cierre lo traiga puesto. */
+  onCostoDePrenda?: (claveLinea: string, productoId: string, costoTexto: string) => void;
   onEscribir: (linea: LineaParaContar, cambio: Partial<Borrador>) => void;
   /** Cuántas líneas no se pudieron guardar, en todo el envío. */
   sinGuardar?: number;
@@ -945,6 +948,7 @@ export function ContarEnvio({
           vocabulario={catalogo?.vocabulario ?? null}
           responsable={responsable}
           onListo={(prenda) => prendaDeLaNueva(grupoDeHoja, hoja.parada, hoja.nueva.descripcion, prenda)}
+          onCostoEscrito={(productoId, costoTexto) => onCostoDePrenda?.(lineaDeHoja.clave, productoId, costoTexto)}
           onUsarExistente={async (productoId, nombre) => {
             if (!grupoDeHoja.principal.categoria) return false;
             const { prendas: halladas } = await buscarPrendasParaRecibir(grupoDeHoja.principal.categoria.id, marcaDeLinea(grupoDeHoja.principal).id, nombre);
@@ -964,6 +968,7 @@ export function ContarEnvio({
           colores={catalogo?.colores ?? []}
           vocabulario={catalogo?.vocabulario ?? null}
           responsable={responsable}
+          onCostoEscrito={(productoId, costoTexto) => onCostoDePrenda?.(lineaDeHoja.clave, productoId, costoTexto)}
           onListo={(prenda) => {
             if (hoja.tabla) return volverATabla(hoja.parada, grupoDeHoja, hoja.prenda, prenda);
             onPrendaVista(prenda);

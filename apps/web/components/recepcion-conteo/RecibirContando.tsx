@@ -7,7 +7,7 @@ import { Aviso } from "@/components/ui/Aviso";
 import { avisar } from "@/components/ui/Avisos";
 import { soltarPaginaEstable } from "@/components/ui/PaginaEstable";
 import { useSalidaSinGuardar } from "@/components/ui/useSalidaSinGuardar";
-import { estabaEnCerrar, recordarEnCerrar } from "@/lib/recepcion-cierre-borrador";
+import { anotarCostoParaElCierre, estabaEnCerrar, recordarEnCerrar } from "@/lib/recepcion-cierre-borrador";
 import { claveResponsableRecepcion } from "@/lib/responsable-conteo";
 import { useResponsable } from "@/lib/useResponsable";
 import type { BorradorTallas, ModoDeTallas } from "@/lib/recepcion-tallas-reglas";
@@ -456,6 +456,7 @@ export function RecibirContando({
           proveedoresDirectorio={proveedoresVivos}
           onProveedorNuevo={sumarProveedor}
           onMarcaNueva={sumarMarca}
+          onCostoDePrenda={(claveLinea, productoId, costoTexto) => anotarCostoParaElCierre(detalle.id, base?.cierres.length ?? 0, claveLinea, productoId, costoTexto)}
           onEscribir={escribir}
           sinGuardar={lineasConError.length}
           onReintentar={() => reintentar.current()}

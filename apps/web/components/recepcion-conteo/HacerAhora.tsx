@@ -515,6 +515,8 @@ export function HacerAhora({
           colores={catalogo?.colores ?? []}
           vocabulario={catalogo?.vocabulario ?? null}
           responsable={responsable}
+          // ADR-0641 act. 2026-11-11: el costo escrito junto al precio en la hoja llega puesto al campo de costo de esta prenda.
+          onCostoEscrito={editaCosto ? (productoId, costoTexto) => cambiarCosto(productoId, costoTexto) : undefined}
           onListo={(prenda) => void alExistir(prenda)}
           onUsarExistente={async (productoId, nombre) => {
             const { prendas: halladas } = await buscarPrendasParaRecibir(categoria.id, marca.id, nombre);

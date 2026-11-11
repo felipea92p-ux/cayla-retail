@@ -1875,7 +1875,7 @@ export const GUIA_RECIBIR_ENVIO: Guia = {
       opcional: true,
       requiere: ["recepcion.categorias"],
       titulo: "Solo cuadrar, o también sus tallas",
-      texto: "Con la cantidad basta para seguir: las tallas y los colores pueden esperar. Si los tienes a mano, elige «Tallas y colores ahora» y los repartes aquí mismo. Si el modelo es nuevo, primero lo creas; si trae dos colores (hueso con azul), toca «+ acompañante» en el de base. Se puede elegir después de contarlo.",
+      texto: "Con la cantidad basta para seguir: las tallas y los colores pueden esperar. Si los tienes a mano, elige «Tallas y colores ahora» y los repartes aquí mismo. Si el modelo es nuevo, primero lo creas: al llegar a su precio, la IA te propone uno con el costo y las parecidas. Si trae dos colores, toca «+ acompañante».",
     },
     {
       // Solo con «Tallas y colores ahora» elegido: cada celda se guarda sola, así que la demo la explica sin tocarla.
@@ -1974,7 +1974,7 @@ export const GUIA_RECIBIR_ENVIO: Guia = {
       ancla: "recepcion.tabla-cierre",
       requiere: ["recepcion.tabla-cierre"],
       titulo: "Lo que se cierra",
-      texto: "Una tarjeta por categoría y marca, primero las que piden algo; dentro, una fila por modelo con cuánto llegó y su costo, y al pie lo que suma. Si algo no cuadra, te pregunta qué pasó. Un costo o un precio distinto por talla se abre con «Cambiar por talla».",
+      texto: "Una tarjeta por categoría y marca, primero las que piden algo; dentro, una fila por modelo con cuánto llegó y su costo. Si algo no cuadra, te pregunta qué pasó. Si el costo deja poco margen, sale «revisar precio»: abre «Cambiar por talla», donde la IA te propone uno.",
     },
     {
       // Solo con muchas filas y más de una que no pide nada.

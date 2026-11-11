@@ -38,6 +38,7 @@ import { soles } from "@/lib/compras-reglas";
 import { useEmpresasDeSede } from "@/lib/useEmpresasDeSede";
 import { DuenoDeLoQueEntra } from "./DuenoDeLoQueEntra";
 import { agruparLineasDelCierre, camposDelCierrePorGrupo, nombreDelGrupoDelCierre, causasDelGrupo, filasDelCierre, lineaDeLaPrenda, lineaDelGrupo, textoDeLasPlegadas, type GrupoDeLineas } from "@/lib/recepcion-grupos-reglas";
+import { pideRevisarAlRecibir, precioUnicoAlCerrar, textoRevisarAlRecibir } from "@/lib/precio-propuesto-reglas";
 import { borrarBorradorDelCierre, conCostosDecididos, conLoDecidido, costosCambiados, costosDeCombinacionCambiados, decisionCambiada, type FotoDelCierre, guardarBorradorDelCierre, leerBorradorDelCierre } from "@/lib/recepcion-cierre-borrador";
 import { type PrendaConCosto, lineasSinModelosEnCero, modelosEnCeroDe, textoModelosEnCero, avisoDePrecioRechazado, type CambioDePrecio, cambioDePrecioDeCompra, camposDelCierre, conCostoDeHoy, contadasDe, costoComoTexto, costoDePrendaTexto, esRegaloFuera, filasDeCostoEnStock, textoCostoEnStock, costosDePrendaConProblema, type CostosDePrendas, costoDelGrupo, detalleDelModelo, deQuienLlego, type FilaDeQuien, idCampoProveedor, type DecisionCierre, decisionInicial, detalladas, detalleParaDespues, diferenciaDe, HINT_CONTEO_CAMBIADO, idCampoCierre, leerCostoCierre, type ClaveLinea, type LineaParaContar, lineasParaCerrar, lineaVisible, marcaDeLinea, mensajeAlGuardar, nombreDeLinea, prendasConCosto, resumenDelCierre, textoBotonCerrar, textoResumenDelCierre, TOPES_CONTEO, unidadesSinIdentificar } from "@/lib/recepcion-conteo-reglas";
 import { VALOR_OTRO } from "@/lib/recepcion-envio-reglas";
@@ -810,6 +811,11 @@ export function CerrarEnvio({
           const heredado = prendaFila ? costoHeredadoDe(v, prendaFila.productoId) : null;
           const combinaciones = prendaFila ? combinacionesContadas(prendaFila, hoy.porVariante, heredado) : [];
           const variosPorTalla = combinaciones.some((x) => cambiosCosto[x.varianteId] !== undefined && cambiosCosto[x.varianteId] !== heredado);
+          // ADR-0641 act. 2026-11-11 (Felipe): una prenda que ya existe y llega con un costo que deja menos de 30 %, o con otro costo, avisa aquí;
+          // la propuesta de la IA vive en «Cambiar por talla», que es donde se cambia su precio. Cuenta gratis, sin IA.
+          const precioQueda = prendaFila ? precioUnicoAlCerrar(combinaciones, cambiosPrecio) : null;
+          const costoQueda = !variosPorTalla ? (lectura.problema === null ? (lectura.valor ?? heredado) : null) : null;
+          const revisarPrecio = prendaFila && editaCosto ? pideRevisarAlRecibir({ precio: precioQueda, costo: costoQueda, costoAntes: antes ? leerCostoCierre(antes).valor : null }) : null;
           const abiertaEsta = abierta && !!prendaFila && prendasALaVista.includes(prendaFila);
           const nombre = m?.nombre ?? nombreGrupo.split(" · ")[0];
           const det = m ? detalleDelModelo(g.lineas, m) : null;
@@ -855,6 +861,17 @@ export function CerrarEnvio({
                     {det?.provisional && <Chip tono="ambar">Nombre provisional</Chip>}
                     {!m && <span className="text-sm text-taupe">{todoEnStock ? "Ya está en el stock" : "Sin identificar todavía"}</span>}
                     {cambiaVenta && !abierta && i === 0 && <Chip tono="ambar">Precio de venta cambiado</Chip>}
+                    {revisarPrecio && precioQueda !== null && costoQueda !== null && (
+                      <button
+                        type="button"
+                        className="btn-cayla btn-enlace text-sm"
+                        title={textoRevisarAlRecibir(precioQueda, costoQueda, revisarPrecio)}
+                        onClick={() => prendaFila && !abiertaEsta && alternarPrenda(prendaFila.productoId)}
+                        data-revisar-precio={prendaFila?.productoId}
+                      >
+                        Gana {Math.round(revisarPrecio.margen)} % · revisar precio
+                      </button>
+                    )}
                   </span>
                 </span>
               </div>
@@ -1019,6 +1036,7 @@ export function CerrarEnvio({
                     rechazo={rechazosPrecio[pr.productoId] ?? null}
                     onCosto={(ids, valor) => cambiarCosto(ids, valor)}
                     onPrecio={(ids, valor, valeEn) => cambiarPrecio(pr.productoId, ids, valor, valeEn)}
+                    productoId={pr.productoId}
                     onQuitar={(cifra, ids) => deshacerCambios(pr.productoId, cifra, ids)}
                     guia={clave === primeraPrenda ? "recepcion.prenda-fila" : undefined}
                   />

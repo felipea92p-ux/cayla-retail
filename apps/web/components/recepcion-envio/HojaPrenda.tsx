@@ -17,6 +17,7 @@ import { ElegirTallas } from "@/components/alta-producto/ElegirTallas";
 import { ID_QUIEN_REGISTRA, IdentidadAltaProveedor } from "@/components/alta-producto/IdentidadAlta";
 import { NombreDePrenda } from "@/components/alta-producto/NombreDePrenda";
 import { PuntosAvance } from "@/components/alta-producto/PuntosAvance";
+import { PropuestaDePrecio } from "@/components/alta-producto/PropuestaDePrecio";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { CampoGuiado, PieGuia } from "@/components/guia-de-foco/CampoGuiado";
 import { useGuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
@@ -102,6 +103,7 @@ export function HojaPrenda({
   vocabulario,
   responsable,
   onListo,
+  onCostoEscrito,
   onUsarExistente,
   onCerrar,
 }: {
@@ -113,6 +115,8 @@ export function HojaPrenda({
   vocabulario: VocabularioParaRecibir | null;
   responsable: ControlResponsable;
   onListo: (prenda: PrendaRecepcion) => void;
+  /** ADR-0641 act. 2026-11-11: el costo que se escribió en el paso del precio, distinto del de la línea, para que el cierre lo traiga puesto. */
+  onCostoEscrito?: (productoId: string, costoTexto: string) => void;
   /** «Ya existe esa prenda»: la pantalla la busca y la pone en la línea. */
   onUsarExistente: (productoId: string, nombre: string) => Promise<boolean>;
   onCerrar: () => void;
@@ -149,6 +153,10 @@ export function HojaPrenda({
       colorCodigos: colorCodigo && !b.colorCodigos.includes(colorCodigo) ? [...b.colorCodigos, colorCodigo] : b.colorCodigos,
     };
   });
+  // El costo, junto al precio (Felipe 2026-11-07 y 2026-11-11: «el costo y el precio siempre deben salir juntos»): viene el de la línea y se
+  // corrige aquí. No va a la base al crear (la prenda nace con el costo de la línea): lo escrito llega puesto al cierre, que es donde se fija.
+  const costoDeLinea = destino.costoUnitario != null ? costoComoTexto(destino.costoUnitario) : "";
+  const [costo, setCosto] = useState(costoDeLinea);
   // La hoja va por pasos: un clic en el velo no puede llevarse lo que se llenó en los anteriores.
   const [borradorInicial] = useState(() => JSON.stringify(borrador));
   const avisoSalida = useSalidaSinGuardar(nueva && JSON.stringify(borrador) !== borradorInicial, "Llenaste parte de esta prenda y todavía no se creó. Si cierras ahora, se pierde lo que llenaste.");
@@ -258,6 +266,8 @@ export function HojaPrenda({
         // Creada por quien no edita el catálogo, nace pendiente (ADR-0371): se recibe igual y un líder la revisa después.
         detalle: prenda.estadoAlta === "pendiente" ? "Ya puedes contarla. Un líder la revisa después en Productos." : "Ya puedes contarla.",
       });
+      const costoEscrito = costo.trim().replace(",", ".");
+      if (nueva && costoEscrito !== "" && costoEscrito !== costoDeLinea && Number(costoEscrito) > 0) onCostoEscrito?.(prenda.productoId, costoEscrito);
       onListo(prenda);
     } finally {
       enVuelo.current = false;
@@ -501,19 +511,46 @@ export function HojaPrenda({
 
                   {paso === 3 && (
                     <>
-                      <CampoGuiado id="prenda-precio" guia={guia}>
+                      <div className="grid gap-4 sm:grid-cols-2">
                         <CampoMonto
-                          etiqueta={guia.etiqueta("prenda-precio", "Precio de venta")}
-                          pie={destino.precioSugerido != null && destino.precioSugerido > 0 ? "Lo sugirió quien hizo la compra. Corrígelo si hace falta." : "El precio al que se va a vender en la tienda."}
+                          etiqueta="Costo"
+                          pie={destino.costoUnitario != null ? "El de esta compra. Corrígelo si hace falta." : "Opcional. Con él, la propuesta usa el costo real."}
                           inputMode="decimal"
                           placeholder="0.00"
-                          value={borrador.precio}
-                          onChange={(e) => {
-                            setTocados((x) => ({ ...x, precio: true }));
-                            cambiar({ precio: e.target.value });
-                          }}
+                          value={costo}
+                          onChange={(e) => setCosto(e.target.value)}
                         />
-                      </CampoGuiado>
+                        <CampoGuiado id="prenda-precio" guia={guia}>
+                          <CampoMonto
+                            etiqueta={guia.etiqueta("prenda-precio", "Precio de venta")}
+                            pie={destino.precioSugerido != null && destino.precioSugerido > 0 ? "Lo sugirió quien hizo la compra. Corrígelo si hace falta." : "El precio al que se va a vender en la tienda."}
+                            inputMode="decimal"
+                            placeholder="0.00"
+                            value={borrador.precio}
+                            onChange={(e) => {
+                              setTocados((x) => ({ ...x, precio: true }));
+                              cambiar({ precio: e.target.value });
+                            }}
+                          />
+                        </CampoGuiado>
+                      </div>
+                      {/* ADR-0641 act. 2026-11-11 (Felipe: «sola, al llegar al paso»): la IA propone con el costo de arriba y las parecidas. */}
+                      <PropuestaDePrecio
+                        origen="recepcion"
+                        automatica
+                        categoriaId={destino.categoriaId}
+                        tejidoId={borrador.tejidoId}
+                        referencia={borrador.nombre}
+                        descripcion={borrador.descripcion}
+                        costoBase={costo.trim().replace(",", ".")}
+                        precioBase={borrador.precio}
+                        disabled={guardando}
+                        onUsar={(p) => {
+                          setTocados((x) => ({ ...x, precio: true }));
+                          cambiar({ precio: p });
+                        }}
+                        onDejar={() => setTocados((x) => ({ ...x, precio: true }))}
+                      />
                       <p className="nota-cayla">Lo que falte, como las fotos, se completa después en Productos. No sale en la tienda web hasta que alguien la publique.</p>
                     </>
                   )}

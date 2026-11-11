@@ -102,3 +102,37 @@ export function textoSinPropuesta(motivo: MotivoSinPropuesta): string {
       return "Esta vez no salió una propuesta que se pueda usar. Prueba de nuevo, o ponlo tú.";
   }
 }
+
+export type RevisionAlRecibir = { margen: number; motivo: "margen_bajo" | "costo_cambio" };
+
+/**
+ * Al cerrar un envío con una prenda que ya existe (ADR-0641 act. 2026-11-11, Felipe: «solo propone si el costo cambió o el margen quedó bajo
+ * 30 %»): ¿conviene mirar su precio? `null` si no (o si faltan datos: sin precio o sin costo no se dice nada). Cuenta gratis, sin IA.
+ */
+export function pideRevisarAlRecibir(p: { precio: number | null; costo: number | null; costoAntes: number | null }): RevisionAlRecibir | null {
+  const { precio, costo, costoAntes } = p;
+  if (precio === null || costo === null || !Number.isFinite(precio) || !Number.isFinite(costo) || precio <= 0 || costo <= 0) return null;
+  const margen = margenPorcentaje(precio, costo) ?? 0;
+  if (margen < MARGEN_MINIMO * 100) return { margen, motivo: "margen_bajo" };
+  if (costoAntes !== null && Number.isFinite(costoAntes) && costoAntes > 0 && Math.abs(costo - costoAntes) >= 0.01) return { margen, motivo: "costo_cambio" };
+  return null;
+}
+
+/** La línea que lo dice, antes de pedir nada a la IA. */
+export function textoRevisarAlRecibir(precio: number, costo: number, r: RevisionAlRecibir): string {
+  const s = (n: number) => `S/ ${n.toFixed(2)}`;
+  return r.motivo === "margen_bajo"
+    ? `Con ${s(costo)} de costo, a ${s(precio)} ganas ${Math.round(r.margen)} %: menos de 30 %.`
+    : `Cambió el costo: con ${s(costo)}, a ${s(precio)} ganas ${Math.round(r.margen)} %.`;
+}
+
+/** El precio que va a quedar en todas las tallas de una prenda al cerrar (lo escrito o el de hoy en la sede), si es uno solo; `null` si no. */
+export function precioUnicoAlCerrar(
+  combinaciones: readonly { varianteId: string; precioSede: number | null }[],
+  cambiosPrecio: Readonly<Record<string, { valor: number }>>,
+): number | null {
+  const precios = new Set(combinaciones.map((c) => cambiosPrecio[c.varianteId]?.valor ?? c.precioSede));
+  if (precios.size !== 1) return null;
+  const [p] = [...precios];
+  return typeof p === "number" && p > 0 ? p : null;
+}

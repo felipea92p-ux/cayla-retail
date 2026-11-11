@@ -3,6 +3,8 @@
 import { useEffect } from "react";
 import { CircleAlert } from "lucide-react";
 import { CampoTexto } from "@/components/ui/campos";
+import { PropuestaDePrecio } from "@/components/alta-producto/PropuestaDePrecio";
+import { pideRevisarAlRecibir, textoRevisarAlRecibir } from "@/lib/precio-propuesto-reglas";
 import { ElegirOpcion } from "@/components/recepcion-envio/BloquePrenda";
 import { ALCANCE_DE_FABRICA, cambioDePrecioDeVenta, hoyDelPrecio, leerCostoCierre, leerPrecioNuevo, type PrecioEditado, type PrendaSeparada, type RangoDePrecio } from "@/lib/recepcion-conteo-reglas";
 import { leerPreciosDePrenda } from "@/lib/recepcion-conteo-acciones";
@@ -119,6 +121,12 @@ export function PrecioDePrenda({
     ? "@min-[1000px]:flex @min-[1000px]:min-h-10 @min-[1000px]:flex-col @min-[1000px]:justify-center"
     : "@min-[820px]:flex @min-[820px]:min-h-10 @min-[820px]:flex-col @min-[820px]:justify-center";
   const deHoy = textoDeHoy(editado, sede);
+  // ADR-0641 act. 2026-11-11 (Felipe: «solo propone si el costo cambió o el margen quedó bajo 30 %»): una cuenta gratis con el precio que va a
+  // quedar (lo escrito, o el de hoy) y el costo de esta compra; solo entonces se ofrece pedirle a la IA un precio para esta prenda.
+  const precioHoy = hoyDelPrecio({ actual: editado?.actual, actualSede: editado?.actualSede, alcance });
+  const precioQueQueda = lectura.valor ?? (precioHoy && precioHoy.desde === precioHoy.hasta ? precioHoy.desde : null);
+  const costoQueQueda = conCosto ? (nuevoCosto?.problema === null ? nuevoCosto.valor : null) : null;
+  const revisar = conCosto ? pideRevisarAlRecibir({ precio: precioQueQueda, costo: costoQueQueda, costoAntes: leerCostoCierre(costo.antes).valor }) : null;
   return (
     <div
       className={
@@ -212,6 +220,22 @@ export function PrecioDePrenda({
           </div>
         </div>
       </div>
+      {revisar && precioQueQueda !== null && costoQueQueda !== null && (
+        <div className="col-span-full" data-revisar-precio={prenda.productoId}>
+          <p className="text-sm text-taupe">{textoRevisarAlRecibir(precioQueQueda, costoQueQueda, revisar)}</p>
+          <PropuestaDePrecio
+            origen="recepcion"
+            productoId={prenda.productoId}
+            categoriaId=""
+            tejidoId=""
+            referencia={prenda.nombre ?? ""}
+            descripcion=""
+            costoBase={String(costoQueQueda)}
+            precioBase={editado?.valor ?? ""}
+            onUsar={onValor}
+          />
+        </div>
+      )}
       {/* El motivo va bajo la fila, a todo el ancho (el campo es angosto y un motivo largo se partía en una columna), con el pie de error de siempre. */}
       {problema && (
         <p role="alert" className="col-span-full text-sm leading-tight text-rojo-profundo">

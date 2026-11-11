@@ -57,7 +57,7 @@ La razón: 1 o 2 frases cortas, de tú, en español neutro peruano, como se lo d
 
 /** Lo que va en el mensaje: la prenda y sus parecidas, como datos. Nada de clientes, personas ni sedes. */
 export function mensajePrecio(p: {
-  origen: "alta" | "revision";
+  origen: "alta" | "revision" | "recepcion";
   contexto: ContextoPrecio;
   costo: CostoUsado;
   referencia?: string | null;
@@ -72,7 +72,8 @@ export function mensajePrecio(p: {
     tejido: p.tejido ?? null,
     costo: p.costo.costo,
     costo_es: p.costo.estimado ? "estimado (promedio de la categoría)" : "real",
-    ...(p.origen === "revision" && p.contexto.producto
+    // Una prenda que ya existe (revisión, o la que llegó otra vez al recibir): su precio de hoy y cómo se vende.
+    ...(p.contexto.producto
       ? {
           precio_actual: p.contexto.producto.precio,
           vendidas_90_dias: p.contexto.producto.unidades_90,
@@ -90,7 +91,11 @@ export function mensajePrecio(p: {
     vendidas_90_dias: x.unidades_90,
     stock: x.stock,
   }));
-  const tarea = p.origen === "revision" ? "Revisa el precio de esta prenda que ya se vende." : "Propón el precio de esta prenda nueva.";
+  const tarea = !p.contexto.producto
+    ? "Propón el precio de esta prenda nueva."
+    : p.origen === "recepcion"
+      ? "Llegó otra vez esta prenda, con el costo de esta compra. Revisa su precio: di si conviene subirlo, bajarlo o dejarlo."
+      : "Revisa el precio de esta prenda que ya se vende.";
   return `${tarea}\n\nPrenda:\n${JSON.stringify(prenda, null, 1)}\n\nParecidas (${parecidas.length}):\n${JSON.stringify(parecidas, null, 1)}`;
 }
 

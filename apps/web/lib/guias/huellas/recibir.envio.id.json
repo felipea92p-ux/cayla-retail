@@ -2,7 +2,7 @@
   "guia": "recibir.envio.id",
   "ruta": "/recibir/envio/[id]",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 261,
+  "total": 267,
   "controles": {
     "app/(app)/recibir/envio/[id]/page.tsx": [
       "Volver «/recibir»",
@@ -72,6 +72,12 @@
       "Boton «{firma.motivo ?? faltaExiste ?? undefined}»",
       "button «Cancelar»"
     ],
+    "components/alta-producto/PropuestaDePrecio.tsx": [
+      "Boton «→proponer»",
+      "Boton «{yaUsada ? \"Precio puesto\" : `Usar ${soles(propuesta.precio)}»",
+      "Boton «{seQuedo ? `Se queda ${soles(precioPuesto)}»",
+      "button «Proponer otro»"
+    ],
     "components/alta-producto/PuntosAvance.tsx": [
       "button «{`${paso.nombre}»"
     ],
@@ -111,6 +117,7 @@
       "button «Cambiar»",
       "ComboBuscable «{id}»",
       "input «{`Costo de ${nombre}»",
+      "button «{textoRevisarAlRecibir(precioQueda, costoQueda, revisarPrecio)}»",
       "button «{verDet ? \"Ocultar detalle\" : \"Ver detalle\"}»",
       "button «{`${abiertaEsta ? \"Esconder\" : \"Cambiar\"}»",
       "Boton «Contarla»",
@@ -355,6 +362,7 @@
       "Boton «Es otra: crearla igual»",
       "CampoTexto «Detalle»",
       "button «Usar ese nombre»",
+      "CampoMonto «Costo»",
       "CampoMonto «{guia.etiqueta(\"prenda-precio\", \"Precio de venta\")}»",
       "Volver «→() => irAPaso(paso - 1)»",
       "Boton «Cancelar»",
