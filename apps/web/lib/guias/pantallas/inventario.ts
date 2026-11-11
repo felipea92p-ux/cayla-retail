@@ -1818,6 +1818,15 @@ export const GUIA_RECIBIR_ENVIO: Guia = {
     },
     // ---- Abierto, contando modelo por modelo (Felipe 2026-11-02, ADR-0604) y en dos mitades (2026-11-11, ADR-0645): a la izquierda lo del envío, a la derecha el modelo elegido ----
     {
+      // Solo si nadie marcó entrada hoy en la sede (o no se pudo leer el turno): el aviso va arriba de las dos mitades.
+      id: "sin-turno",
+      ancla: "recepcion.sin-turno",
+      opcional: true,
+      requiere: ["recepcion.sin-turno"],
+      titulo: "Si nadie marcó entrada hoy",
+      texto: "Para guardar lo que cuentas, alguien tiene que haber marcado su entrada hoy en esta tienda. Si sale este aviso, marca la tuya en la Terminal de marcaje y toca «Actualizar lista». Mientras siga aquí, lo que cuentes no se guarda.",
+    },
+    {
       // Solo en el celular (bajo 640 px): la pantalla es el contador y la lista vive en una hoja que se abre desde esta barra.
       id: "isla",
       ancla: "recepcion.isla",
@@ -2011,7 +2020,7 @@ export const GUIA_RECIBIR_ENVIO: Guia = {
       requiere: ["recepcion.categorias"],
       preparar: [LISTA_DEL_CELULAR],
       titulo: "Revisar y cerrar",
-      texto: "Lleva al cierre, siempre desde este lugar: ahí ves lo que no cuadró, el costo y quién cierra. A su lado dice qué te falta, y tocarlo te lleva hasta ahí. En el celular, con todo contado, sale también en la barra de abajo. En la demo no avanzamos.",
+      texto: "Lleva al cierre, siempre desde este lugar: ahí ves lo que no cuadró, el costo y quién cierra. A su lado dice qué te falta, y tocarlo te lleva hasta ahí. En la demo no avanzamos.",
     },
     {
       id: "ya-en-stock",

@@ -2,6 +2,7 @@
 
 import { useEffect, useLayoutEffect, useRef, useState, type ComponentProps, type Dispatch, type SetStateAction } from "react";
 import { PackageOpen } from "lucide-react";
+import { ComboResponsable } from "@/components/ComboResponsable";
 import { Aviso } from "@/components/ui/Aviso";
 import { avisar } from "@/components/ui/Avisos";
 import { Boton } from "@/components/ui/campos";
@@ -111,7 +112,7 @@ import { AvanceDelEnvio } from "./AvanceDelEnvio";
 import { BotonCerrarConteo } from "./BotonCerrarConteo";
 import { HojaRepartir } from "./HojaRepartir";
 import { HojaDeLaLista, IslaDelEnvio } from "./ListaEnElCelular";
-import { PieDeLaLista } from "./PieDeLaLista";
+import { PieDeLaLista, sinTurno } from "./PieDeLaLista";
 import { TallasDeLaPlaca } from "./TallasDeLaPlaca";
 import { TarjetaDeTallas } from "./TarjetaDeTallas";
 
@@ -837,6 +838,13 @@ export function ContarEnvio({
       )}
       {/* Lo primero al entrar: sin un responsable la base rechaza todo guardado (ElegirQuienCuenta). */}
       {faltaQuien && <ElegirQuienCuenta responsable={responsable} sede={detalle.sede?.nombre ?? "esta sede"} />}
+      {/* Nadie marcó entrada hoy (o no se pudo leer el turno): nada se guarda hasta resolverlo. El combo lo explica con sus pasos y va aquí, a lo ancho:
+          en el pie de la lista ocupaba media columna y dejaba una sola fila de modelos a la vista. Ahí queda dicho en una insignia. */}
+      {sinTurno(responsable.estado) && (
+        <div data-guia="recepcion.sin-turno">
+          <ComboResponsable control={responsable} />
+        </div>
+      )}
 
       <div ref={mesa} className="rc-mesa">
         {listaDelEnvio(false)}

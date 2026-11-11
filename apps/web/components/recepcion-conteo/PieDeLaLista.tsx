@@ -4,13 +4,18 @@ import type { ReactNode } from "react";
 import { Ayuda } from "@/components/Ayuda";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { PieGuia } from "@/components/guia-de-foco/CampoGuiado";
+import { Chip } from "@/components/ui/Chip";
 import type { GuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
+import type { EstadoCombo } from "@/lib/responsable-reglas";
 import type { ControlResponsable } from "@/lib/useResponsable";
 import { BotonCerrarConteo } from "./BotonCerrarConteo";
 
 // El pie de la lista (ADR-0645, Felipe 2026-11-11): lo del envío entero, siempre en el mismo lugar. A la izquierda, lo que falta (tocarlo lleva hasta ahí); a la
 // derecha, quién cuenta, las fotos de las facturas y el ÚNICO «Revisar y cerrar» de la pantalla (había uno en cada mitad: «es redundante»). Lo que antes se leía en el resumen —cómo se guarda,
 // qué pasa al cerrar— va detrás del «?»: una línea a la vista y lo que explica, a un toque.
+
+/** Nadie marcó entrada hoy, o no se pudo leer quién está de turno: no hay a quién elegir y nada se guarda. El aviso completo, con sus pasos, va arriba de las dos mitades. */
+export const sinTurno = (estado: EstadoCombo): boolean => estado === "nadie" || estado === "sin_lectura";
 
 export function PieDeLaLista({
   guia,
@@ -59,7 +64,13 @@ export function PieDeLaLista({
       )}
       <div className="rc-pie-accion">
         <div className="rc-pie-quien" data-guia="recepcion.quien-cuenta">
-          <ComboResponsable control={responsable} compacto className="min-w-0" />
+          {sinTurno(responsable.estado) ? (
+            <Chip tono="ambar" title="Arriba dice cómo resolverlo">
+              {responsable.estado === "nadie" ? "Nadie marcó entrada" : "Sin lista de turno"}
+            </Chip>
+          ) : (
+            <ComboResponsable control={responsable} compacto className="min-w-0" />
+          )}
           <Ayuda titulo="Quién cuenta">{explicacion}</Ayuda>
           {papeles}
         </div>
