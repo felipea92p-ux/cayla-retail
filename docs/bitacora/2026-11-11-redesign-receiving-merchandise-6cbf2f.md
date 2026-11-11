@@ -30,3 +30,18 @@
 - **Por qué:** Felipe: el buscador muy largo y muchos filtros; casi siempre llevan la prenda al stock desde el conteo para venderla ya; y dos botones
   «Revisar y cerrar» a la vez eran redundantes.
 - **Falta:** lo mismo de arriba, más confirmar el punto 7 del README (el peso de «Llevar al stock» es stock: lo decide Felipe). Verificado a 1440 y 375 px.
+
+## En local · Contar en dos mitades (ADR-0645)
+
+- **Qué:** la maqueta «dos mitades» pasó al ERP en siete actividades con su commit cada una (`/construir`), solo web: la lista se queda con
+  todo lo del envío (avance, buscador, un botón «Filtros», quién cuenta y el único «Revisar y cerrar»); el contador va en tres bloques con
+  pie fijo; las tallas y colores se reparten en una hoja que se guarda sola, y «Agregar talla o color» abre la hoja completa de la prenda;
+  «Llevar al stock ahora» es el botón principal; «¿Pasó algo con esta prenda?» va a la vista; en el celular la pantalla es el contador, con
+  la lista en una hoja y la isla abajo. Se fueron `ResumenDelEnvio` y `TiposDelEnvio`. El cierre encontró y corrigió cuatro cosas: el ✓ de la
+  carta de colores no se leía en oscuro, el aviso de asistencia aplastaba la lista, «Llegaron las N» medía 40 px y no 52, y una fila
+  agregada a mano cortaba «10 contadas» en la lista angosta.
+- **Por qué:** Felipe: nadie leía el resumen, había texto por todos lados y con el menú plegado sobraba media pantalla. Las hojas se
+  diseñaron con él al llegar a cada una («las de la maqueta no me convencen»): por eso «Agregar talla o color» no usa combos.
+- **Falta:** que Felipe mire el celular y las mitades apiladas; `/chaos` (a la base local compartida le faltan 51 migraciones de esta
+  rama, y sus instrumentos solo conocen esa base); la prueba ciega de `/formidable` (un filtro de la API frenó al agente) y sus tres
+  cambios propuestos; las decisiones abiertas del backlog de la rama; y el PR, que se abre con `/abrir-pr` cuando Felipe lo pida.

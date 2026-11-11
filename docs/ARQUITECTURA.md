@@ -279,6 +279,13 @@ flowchart TB
   El mismo bloque trae el costo de la prenda (`PrecioDePrenda` con `costo`; `costoInicialDePrenda` / `costosDeHacerAhora` en `lib/recepcion-conteo-reglas.ts`): viaja en
   `p_separado -> 'costos'` a `resolver_pendiente_envio`, que lo valida con `fn_envio_costos_prendas` y lo deja en `despacho_conteos.costos_prendas` para lo que falte de esa prenda
   (`20261026210000`, ADR-0393 act. 2026-10-27, sobre ADR-0519).
+  **Contar va en dos mitades (ADR-0645, 2026-11-11):** `recepcion-conteo/ContarEnvio.tsx` arma, a la izquierda, la lista del envío
+  (`CategoriasAcordeon.tsx` con `AvanceDelEnvio`, `FiltrosDelEnvio` y `PieDeLaLista`: quién cuenta y el único «Revisar y cerrar») y, a la
+  derecha, el contador del modelo (`PlacaDelModelo.tsx`: ¿Cuántas llegaron? · Tallas y colores · ¿Pasó algo?). Las tallas se reparten en
+  `HojaRepartir.tsx` (la tabla `TallasDeLaPlaca`, con guardado solo) desde `TarjetaDeTallas.tsx`; «Agregar talla o color» abre
+  `recepcion-envio/HojaPrenda.tsx` con `enTabla`. En el celular, `ListaEnElCelular.tsx` (la isla y la hoja de la lista). Reglas en
+  `lib/recepcion-modelos-reglas.ts` (`fraseDelAvance`, `siguientePendiente`, `porLlevarAlStock`) y `lib/recepcion-tallas-reglas.ts`
+  (`modoDeTallas`, `estadoDeLaTarjeta`, `tablaConLoMarcado`). Sin RPC nuevas.
 - `/inventario/recibir` → `lib/catalogo.ts` → `RecibirLoteForm.tsx` → RPC
   `recibir_lote` (la función más inestable del sistema, ver §6).
 - `/inventario/compras` → `ComprasManager.tsx` (escribe directo en
