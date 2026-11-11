@@ -1197,7 +1197,7 @@ export function RegistrarCompra({ datos }: { datos: Datos }) {
           llegaron={llegaron}
           siguiente={
             paso === "proveedor"
-              ? "Sigue: elegir a quién le compraste"
+              ? "Sigue: elegir qué marca compraste"
               : paso === "habituales"
                 ? lineas.length > 0
                   ? "Sigue: revisar las prendas"
@@ -1786,7 +1786,13 @@ function ListaHabituales({
           ))}
         </div>
       )}
-      <ul className="card-cayla overflow-hidden rounded-[18px]" data-guia="compra.habituales">
+      {/* Una marca del proveedor sin prendas suyas todavía (ADR-0644): se dice, y «Algo nuevo» llega con esa marca puesta. */}
+      {marca && habituales.length === 0 && nuevas.length === 0 && (
+        <Vacio icono={<Store aria-hidden />} titulo="Todavía no le compraste esta marca" tamano="chico">
+          Descríbela con «Algo nuevo»: llega con esta marca puesta.
+        </Vacio>
+      )}
+      <ul className="card-cayla overflow-hidden rounded-[18px] empty:hidden" data-guia="compra.habituales">
         {nuevas.map(({ l, i }) => fila(l.clave, l.productoId, l.nombre, l.categoriaId, l.categoria, null, () => alCorregir(i)))}
         {ver.map((h) => fila(h.clave, h.productoId, h.nombre, h.categoriaId, h.categoria, h, () => alElegir(h)))}
       </ul>

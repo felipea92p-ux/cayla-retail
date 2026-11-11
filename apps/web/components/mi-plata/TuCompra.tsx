@@ -67,10 +67,10 @@ export function TuCompra({
         <span aria-hidden className="compra-iniciales compra-iniciales-chico">
           {proveedor ? inicialesProveedor(proveedor) : "—"}
         </span>
-        <span className="min-w-0">{proveedor ?? "Aún sin proveedor"}</span>
+        <span className="min-w-0">{proveedor ?? "Aún sin marca"}</span>
       </p>
       {prendas.length === 0 ? (
-        <p className="text-[15px] text-taupe">{proveedor ? "Cuando elijas las prendas, aparecen aquí." : "Elige primero a quién le compraste."}</p>
+        <p className="text-[15px] text-taupe">{proveedor ? "Cuando elijas las prendas, aparecen aquí." : "Elige primero qué marca compraste."}</p>
       ) : (
         <>
           <div className="flex flex-wrap gap-1.5">
