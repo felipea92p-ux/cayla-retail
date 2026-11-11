@@ -5,6 +5,7 @@
  *
  * (Incluye lo que cerró la revisión adversarial del 2026-11-10: U15 a U19; y la lista de parejas posibles del paso 3, `20261110022000`: L1 a L6.
  * Desde `20261111152000` (2026-11-11), U6 y L5: lo contado sin recibir en el envío de Compras ya no frena la unión: lo RECIBIDO sigue sin unirse, con la guarda de siempre.
+ * Desde `20261111175000`, U21 y U22: corregir el proveedor de una marca en una recepción cerrada, y un Admin une con faltante.
  * Desde `20261111165000`, U20: una compra unida deja de salir «por enviar» en Recibir, en Órdenes de compra y en Análisis.)
  *
  * LO QUE VIGILA. Que una misma mercadería nunca entre dos veces al stock ni se quede sin pasar al libro: tras unir, la compra sale de su
@@ -34,7 +35,7 @@ const SIN_MIGRACION = process.argv.includes("--sin-migracion");
 const VER_TODO = process.argv.includes("--ver");
 const MIGRACION = SIN_MIGRACION
   ? ""
-  : ["20261110011000_unir_recepcion_con_su_compra.sql", "20261110022000_uniones_posibles_recepcion_compra.sql", "20261111152000_unir_descarta_lo_contado_en_el_envio_propio.sql", "20261111165000_ordenes_unidas_no_salen_por_enviar.sql"]
+  : ["20261110011000_unir_recepcion_con_su_compra.sql", "20261110022000_uniones_posibles_recepcion_compra.sql", "20261111152000_unir_descarta_lo_contado_en_el_envio_propio.sql", "20261111165000_ordenes_unidas_no_salen_por_enviar.sql", "20261111175000_corregir_proveedor_de_una_marca_y_unir_con_faltante.sql"]
       .map((f) =>
         readFileSync(join(RAIZ, "supabase/migrations", f), "utf8")
           .replace(/^set lock_timeout.*$/gm, "")
@@ -92,6 +93,7 @@ ${atrapa("cierra", "p_d uuid, p_version integer, p_lineas jsonb, p_nota text, p_
 ${atrapa("une", "p_d uuid, p_papel uuid, p_token uuid", "retail.unir_recepcion_con_compra(p_d, p_papel, p_token)")}
 ${atrapa("lleva", "p_d uuid, p_item uuid, p_extra integer, p_ver integer, p_prod uuid, p_vars jsonb, p_costo numeric, p_conf boolean, p_token uuid", "retail.llevar_al_stock_ahora(p_d, p_item, p_extra, p_ver, p_prod, p_vars, p_costo, p_conf, p_token)")}
 ${atrapa("abre", "p_id uuid, p_version integer", "retail.abrir_despacho(p_id, p_version)")}
+${atrapa("corrige_marca", "p_d uuid, p_marca uuid, p_prov uuid, p_motivo text", "retail.corregir_proveedor_de_marca(p_d, p_marca, p_prov, p_motivo)")}
 
 -- Como en producción: responsable obligatorio; Micaela marcó su entrada en Trujillo.
 insert into retail.configuracion_empresa (id, ruc, razon_social, exige_responsable) values (true, '20000000001', 'Prueba', true)
@@ -520,6 +522,40 @@ caso(
    reset role;
    select concat_ws(' / ', ${RESP("u")}, :'antes', :'despues');`,
   "true:false:true:0:0: / 1:1 / 0:0",
+);
+// Sandra pasa a Admin (Dynamic la marca «admin» y aquí es líder): firma sin combo y puede unir lo que ella compró.
+const SANDRA_ADMIN = `reset role;\nupdate public.personas set rol = 'admin' where auth_user_id = '${SANDRA}';\n${COMPRADORA(null)}`;
+caso(
+  "U21 la recepción cerrada quedó con otro proveedor: se corrige SOLO esa marca (lo recibido, lo contado y el lote de sus movimientos), el stock no se mueve y después se une",
+  `${COMPRA("p1", 8, { token: A1 })}
+   ${SIN_AVISO("r1", 8, { prov: "prov2" })}${CIERRA("r1")}
+   reset role;
+   select ${STOCK} as stock_antes, ${MOVS} as movs_antes \\gset
+   ${SANDRA_ADMIN}
+   select pg_temp.corrige_marca(:'r1', :'marca', :'prov', 'Lo de esta marca es de su proveedor') as c \\gset
+   select pg_temp.une(:'r1', :'p1', null) as u \\gset
+   reset role;
+   select concat_ws(' / ', pg_temp.h(:'c'::jsonb), :'c'::jsonb ->> 'recibidos', ${RESP("u")},
+     (select string_agg(distinct (r.proveedor_id = :'prov')::text, ',') from retail.despacho_recibidos r where r.despacho_id = :'r1'),
+     (select string_agg(distinct (l.proveedor_id = :'prov')::text, ',') from retail.despacho_recibidos r join retail.movimientos m on m.id = r.movimiento_id join retail.lotes l on l.id = m.lote_id where r.despacho_id = :'r1'),
+     (${STOCK} = :'stock_antes') and (${MOVS} = :'movs_antes'), (select estado from retail.compra_papeles where id = :'p1'));`,
+  "OK / 1 / true:false:true:0:0: / true / true / t / completado",
+);
+caso(
+  "U22 llegó menos (7 de 8): sin la marca no se une; con la marca pero sin ser Admin tampoco; un Admin con la marca une, y el papel pasa con 7 «recibido antes»",
+  `${COMPRA("p1", 8, { token: A1 })}
+   ${SIN_AVISO("r1", 7)}${CIERRA("r1")}
+   ${MICAELA_AQUI}
+   select pg_temp.une(:'r1', :'p1', null) as u1 \\gset
+   select set_config('retail.union_acepta_faltante', 'si', false) \\g /dev/null
+   select pg_temp.une(:'r1', :'p1', null) as u2 \\gset
+   ${SANDRA_ADMIN}
+   select set_config('retail.union_acepta_faltante', 'si', false) \\g /dev/null
+   select pg_temp.une(:'r1', :'p1', null) as u3 \\gset
+   reset role;
+   select concat_ws(' / ', ${RESP("u1")}, ${RESP("u2")}, ${RESP("u3")}, :'u3'::jsonb ->> 'prendas_recibidas',
+     (select estado from retail.compra_papeles where id = :'p1'), (select coalesce(sum(a.cantidad), 0) from retail.compra_item_recibido_antes a), ${POR_MANDAR("p1")});`,
+  "0:0:union_llego_menos / 0:0:union_llego_menos / true:false:true:0:0: / 7 / completado / 7 / 0",
 );
 caso(
   "L1 mismas prendas y mismo valor es «exacto»: aparece con su recepción y su compra, y quien solo recibe no ve los montos",
