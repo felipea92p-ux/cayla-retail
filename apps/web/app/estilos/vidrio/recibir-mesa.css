@@ -239,12 +239,18 @@ main:has(.rc-conteo) { padding-bottom: 16px; }
 .rc-cuenta-lado > p { color: var(--color-taupe); font-size: 14px; line-height: 1.35; }
 .rc-pista { min-height: 2.7em; }
 /* Los botones del contador: «Llegaron» en verde, grande y primero, porque es lo que más se toca y deja el modelo listo; sumar en su bandeja, y «No llegó» aparte, más callado. */
-.rc-atajo-grande { width: 100%; min-height: 52px; border-radius: 14px; font-size: 16px; }
 .rc-atajos { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
 .rc-suma { display: inline-flex; gap: 3px; padding: 3px; border-radius: 14px; background: var(--pozo-fondo); box-shadow: var(--pozo-sombra); }
 .rc-suma button { min-width: 56px; height: 32px; padding: 0 12px; border-radius: 10px; background: var(--gota-marca); box-shadow: var(--gota-luz); color: var(--color-tinta); font-size: 14px; font-weight: 700; font-variant-numeric: tabular-nums; transition: translate 160ms var(--ease-cayla), scale 120ms var(--ease-cayla), background-color 200ms var(--ease-cayla); }
 .rc-atajo { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 40px; padding: 0 16px; border: 1px solid var(--color-borde-control); border-radius: 12px; color: var(--color-tinta); font-size: 14px; font-weight: 600; white-space: nowrap; font-variant-numeric: tabular-nums; transition: translate 160ms var(--ease-cayla), scale 120ms var(--ease-cayla), box-shadow 200ms var(--ease-cayla), background-color 200ms var(--ease-cayla), color 200ms var(--ease-cayla); }
 .rc-atajo svg { flex: none; }
+/* «Llegaron las N», el botón grande del bloque. Va después de `.rc-atajo`: con la misma fuerza, el orden decide, y escrito antes se quedaba en 40 px. */
+.rc-atajo-grande { width: 100%; min-height: 52px; border-radius: 14px; font-size: 16px; }
+/* Con el dedo, 44 px (ADR-0611, mejora 5): «No llegó nada» medía 40 y «+5» y «+10», 32. */
+@media (pointer: coarse) {
+  .rc-atajo:not(.rc-atajo-grande) { min-height: 44px; }
+  .rc-suma button { height: 44px; }
+}
 /* Por tocar resalta; ya hecho se apaga: lo que sigue es «Listo, siguiente», no este botón. */
 .rc-atajo-llegaron { border-color: color-mix(in srgb, var(--color-verde) 60%, transparent); background: linear-gradient(180deg, color-mix(in srgb, var(--color-verde) 14%, var(--color-vidrio)), color-mix(in srgb, var(--color-verde) 30%, var(--color-vidrio))); box-shadow: var(--gota-luz); color: var(--color-verde-profundo); }
 .rc-atajo-llegaron[data-hecho] { border-color: transparent; background: color-mix(in srgb, var(--color-verde) 13%, transparent); box-shadow: none; color: var(--color-verde-profundo); cursor: default; }
