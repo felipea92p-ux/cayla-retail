@@ -10,6 +10,8 @@
  *         00:10 del día siguiente no); y el total cuadra con una cuenta directa sobre el libro `movimientos`;
  *   · N — Nuevo o Reingreso (un traslado anulado no es un ingreso; haber entrado antes en OTRA sede también cuenta), el precio de
  *         la SEDE (no el de la grilla) y su rango por tallas, el costo solo para quien ve el dinero y un costo en 0 como «sin costo»;
+ *   · VA — el valor de lo que entró (`20261111171000_ingresos_valor_del_ingreso.sql`): unidades × costo de cada variante, las
+ *         prendas sin costo cargado aparte (no suman), null si ninguna tiene costo, y nada para quien no ve el dinero;
  *   · T — el detalle por color y talla de cada modelo: lo que entró de cada variante, con su talla y su color con nombre, y su
  *         suma es SIEMPRE la del modelo;
  *   · V — un rango al revés o de más de un año se rechaza con un mensaje que lo dice;
@@ -97,6 +99,8 @@ const casosDe = (sql) => [...sql.matchAll(/^select '([^']+)',/gm)].map((m) => m[
 //       → p1 «50 a 70» · p2 «40» · p3 «99» (el de la SEDE, no el de la grilla).
 //     Costos: v1a 20 · v1b 30 · v2 0 (sin costo) · v3 15. El líder ve p1 «20 a 30», p2 sin costo (null), p3 «15»;
 //       una integrante sin permiso de dinero ve todo el costo en null y ve_costo = false, pero sí el precio.
+//     Valor (unidades × costo de cada variante): p1 = 19 × 20 + 5 × 30 = 530 · p2 sin costo → null, 4 prendas sin costo ·
+//       p3 = 3 × 15 = 45 (su otra talla, de costo 99, no entró). TOTAL 575 y 4 prendas sin costo.
 // ============================================================================================================================
 const AYUDANTES = `
 create function pg_temp.intento(p_sql text) returns text language plpgsql as $f$
@@ -221,6 +225,18 @@ select 'CO2 un costo en 0 es «sin costo»: p2 sale con costo null, no con 0 (ni
   (select pg_temp.modelo(j, :'p2'::uuid) -> 'costo_min' = 'null'::jsonb and pg_temp.modelo(j, :'p2'::uuid) -> 'costo_max' = 'null'::jsonb from r);
 `;
 
+// A2b · El valor de lo que entró.
+const CASOS_VALOR = `
+select 'VA1 el valor de un modelo es unidades × costo de cada variante: p1 = 19 × 20 + 5 × 30 = 530, sin prendas sin costo',
+  (select (m ->> 'costo_total')::numeric = 530 and (m ->> 'prendas_sin_costo')::int = 0 from (select pg_temp.modelo(j, :'p1'::uuid) as m from r) q);
+select 'VA2 sin ningún costo cargado el valor es null (no 0) y sus 4 prendas se cuentan sin costo',
+  (select m -> 'costo_total' = 'null'::jsonb and (m ->> 'prendas_sin_costo')::int = 4 from (select pg_temp.modelo(j, :'p2'::uuid) as m from r) q);
+select 'VA3 solo cuenta la talla que entró: p3 = 3 × 15 = 45 (la de costo 99 no entró)',
+  (select (m ->> 'costo_total')::numeric = 45 from (select pg_temp.modelo(j, :'p3'::uuid) as m from r) q);
+select 'VA4 los totales: 575 de valor y 4 prendas sin costo',
+  (select (j #>> '{totales,costo_total}')::numeric = 575 and (j #>> '{totales,prendas_sin_costo}')::int = 4 from r);
+`;
+
 // A3 · El detalle por color y talla que se abre debajo de cada modelo.
 const CASOS_VARIANTES = `
 select 'T1 cada modelo trae lo que entró de cada color y talla: p1 = 19 de su primera talla y 5 de la segunda',
@@ -261,6 +277,10 @@ select 'P5 una integrante sin permiso de dinero NO ve el costo (ve_costo false, 
   (select not (j ->> 've_costo')::boolean from rm)
   and (select count(*) = 1 and bool_and(x -> 'costo_min' = 'null'::jsonb and x -> 'costo_max' = 'null'::jsonb and x -> 'precio_min' <> 'null'::jsonb)
          from rm, jsonb_array_elements(rm.j -> 'modelos') x);
+select 'P6 ni el valor ni las prendas sin costo: null por modelo y en los totales',
+  (select bool_and(x -> 'costo_total' = 'null'::jsonb and x -> 'prendas_sin_costo' = 'null'::jsonb)
+     from rm, jsonb_array_elements(rm.j -> 'modelos') x)
+  and (select j #> '{totales,costo_total}' = 'null'::jsonb and j #> '{totales,prendas_sin_costo}' = 'null'::jsonb from rm);
 delete from retail.rol_modulos where modulo = 'movimientos' and rol_id = (select id from retail.roles where clave = 'integrante');
 select 'P3 sin el módulo Movimientos, nada',
   (select pg_temp.intento(format('select retail.fn_ingresos_por_modelo(%L, %L, %L)', :'tru', '2031-03-10', '2031-03-12')) like '%Movimientos%');
@@ -272,6 +292,7 @@ select 'P4 anon no ejecuta; authenticated sí',
 
 verificar("L · lectura", correr(`${ESCENA}${CASOS_LECTURA}`), casosDe(CASOS_LECTURA));
 verificar("N · nuevo, precio y costo", correr(`${ESCENA}${CASOS_VALORES}`), casosDe(CASOS_VALORES));
+verificar("VA · valor de lo que entró", correr(`${ESCENA}${CASOS_VALOR}`), casosDe(CASOS_VALOR));
 verificar("T · color y talla", correr(`${ESCENA}${CASOS_VARIANTES}`), casosDe(CASOS_VARIANTES));
 verificar("V · rango", correr(`${ESCENA}${CASOS_RANGO}`), casosDe(CASOS_RANGO));
 verificar("P · permisos", correr(`${ESCENA}${CASOS_PERMISOS}`), casosDe(CASOS_PERMISOS));

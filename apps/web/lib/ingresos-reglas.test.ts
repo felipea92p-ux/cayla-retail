@@ -18,6 +18,9 @@ import {
   rangoIngresos,
   rangoSolesTexto,
   solesTexto,
+  diasDeEntrada,
+  faltaCostoTexto,
+  valorDelModelo,
 } from "./ingresos-reglas";
 
 const HOY = "2026-10-29";
@@ -144,8 +147,10 @@ describe("leerResumenIngresos", () => {
 
   it("lee la respuesta de la base", () => {
     const r = leerResumenIngresos(bueno);
-    expect(r?.totales).toEqual({ modelos: 2, unidades: 28, deStockInicial: 15, deRecepcion: 13, nuevos: 1 });
+    expect(r?.totales).toEqual({ modelos: 2, unidades: 28, deStockInicial: 15, deRecepcion: 13, nuevos: 1, costoTotal: null, prendasSinCosto: null });
     expect(r?.veCosto).toBe(true);
+    // Una base sin la migración del valor (20261111171000) no manda `costo_total`: la pantalla no dibuja la columna Valor.
+    expect(r?.veValor).toBe(false);
     expect(r?.modelos[0]).toEqual({
       productoId: "p1",
       referencia: "Blusa Emma",
@@ -165,8 +170,25 @@ describe("leerResumenIngresos", () => {
       precioMax: 70,
       costoMin: 20,
       costoMax: 30,
+      costoTotal: null,
+      prendasSinCosto: null,
     });
     expect(r?.modelos[1]).toMatchObject({ codigo: null, categoria: null, esNuevo: true, costoMin: null, costoMax: null });
+  });
+
+  it("con la migración del valor, lee el valor de cada modelo y del período", () => {
+    const conValor = {
+      ...bueno,
+      modelos: bueno.modelos.map((m, i) => ({ ...m, costo_total: i === 0 ? 530 : null, prendas_sin_costo: i === 0 ? 0 : 4 })),
+      totales: { ...bueno.totales, costo_total: 530, prendas_sin_costo: 4 },
+    };
+    const r = leerResumenIngresos(conValor);
+    expect(r?.veValor).toBe(true);
+    expect(r?.totales).toMatchObject({ costoTotal: 530, prendasSinCosto: 4 });
+    expect(r?.modelos[0]).toMatchObject({ costoTotal: 530, prendasSinCosto: 0 });
+    expect(r?.modelos[1]).toMatchObject({ costoTotal: null, prendasSinCosto: 4 });
+    // Sin permiso de dinero, aunque la base mande la llave, no hay valor.
+    expect(leerResumenIngresos({ ...conValor, ve_costo: false })?.veValor).toBe(false);
   });
 
   it("una respuesta que no tiene la forma es `null`, nunca un 0", () => {
@@ -280,6 +302,27 @@ describe("matrizDeVariantes", () => {
       totales: {},
     });
     expect(r?.modelos[0].variantes).toEqual([{ varianteId: "x", color: "Azul", colorHex: null, talla: "S", unidades: 2 }]);
+  });
+});
+
+describe("valor y días de entrada", () => {
+  it("el valor de un modelo, o «Sin costo» si ninguna prenda lo tiene (nunca S/ 0)", () => {
+    expect(valorDelModelo({ costoTotal: 530 })).toBe("S/\u00a0530");
+    expect(valorDelModelo({ costoTotal: 1234.5 })).toBe("S/\u00a01,234.50");
+    expect(valorDelModelo({ costoTotal: null })).toBe("Sin costo");
+  });
+  it("lo que falta en el valor se dice en prendas, y nada si todo tiene costo", () => {
+    expect(faltaCostoTexto(4)).toBe("sin costo en 4 prendas");
+    expect(faltaCostoTexto(1)).toBe("sin costo en 1 prenda");
+    expect(faltaCostoTexto(0)).toBeNull();
+    expect(faltaCostoTexto(null)).toBeNull();
+  });
+  it("los días de entrada: uno, un rango en el mes, entre meses y con el año si no es el de hoy", () => {
+    const hoy = "2026-11-11";
+    expect(diasDeEntrada("2026-11-10", "2026-11-10", hoy)).toBe("10 nov");
+    expect(diasDeEntrada("2026-11-02", "2026-11-10", hoy)).toBe("2 – 10 nov");
+    expect(diasDeEntrada("2026-10-28", "2026-11-10", hoy)).toBe("28 oct – 10 nov");
+    expect(diasDeEntrada("2025-12-28", "2026-01-03", hoy)).toBe("28 dic 2025 – 3 ene");
   });
 });
 

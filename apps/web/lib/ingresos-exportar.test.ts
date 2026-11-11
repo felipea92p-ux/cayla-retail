@@ -19,10 +19,20 @@ const modelo = (extra: Partial<ModeloIngresado> = {}): ModeloIngresado => ({
   precioMax: 70,
   costoMin: 20,
   costoMax: 30,
+  costoTotal: 530,
+  prendasSinCosto: 0,
   ...extra,
 });
 
 describe("el archivo por modelo", () => {
+  it("con el valor, una columna más al final, vacía si el modelo no tiene costo", () => {
+    expect(encabezadosPorModelo(true, true).at(-1)).toBe("Valor (S/)");
+    const [con, sin] = filasPorModelo([modelo(), modelo({ costoTotal: null })], true, true);
+    expect(con).toHaveLength(encabezadosPorModelo(true, true).length);
+    expect(con.at(-1)).toBe(530);
+    expect(sin.at(-1)).toBe("");
+  });
+
   it("una fila por modelo con tantas celdas como encabezados, con o sin costo", () => {
     for (const veCosto of [true, false]) {
       expect(filasPorModelo([modelo()], veCosto)[0]).toHaveLength(encabezadosPorModelo(veCosto).length);

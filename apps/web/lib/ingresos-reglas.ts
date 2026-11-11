@@ -1,5 +1,6 @@
 // Relativo, no `@/`: vitest no resuelve el alias y este archivo tiene pruebas.
 import { restarDias } from "./movimientos-reglas";
+import { fechaDiaMes } from "./tabla-viva-reglas";
 import { compararTallas } from "./tallas";
 
 // Ingresos (pestaña de Movimientos): «qué prendas entraron» a la sede entre dos fechas, UNA línea por modelo. La suma la
@@ -38,6 +39,10 @@ export type ModeloIngresado = {
   /** Lo que costó. `null` si la cuenta no ve el dinero (ver `ResumenIngresos.veCosto`) o si no hay costo cargado (en 0). */
   costoMin: number | null;
   costoMax: number | null;
+  /** Lo que valió lo que entró: unidades × costo de cada variante (solo las que tienen costo). `null` sin permiso o si ninguna tiene costo. */
+  costoTotal: number | null;
+  /** Prendas que entraron sin costo cargado: no suman a `costoTotal`. `null` sin permiso. */
+  prendasSinCosto: number | null;
 };
 
 export type ResumenIngresos = {
@@ -45,8 +50,19 @@ export type ResumenIngresos = {
   hasta: string;
   /** La cuenta ve el costo (permiso de dinero de compras, ADR-0183). Sin él la columna ni se dibuja: nunca un 0. */
   veCosto: boolean;
+  /** La base ya manda el valor de lo que entró (`20261111171000`). Mientras producción no tenga esa migración, la pantalla no dibuja
+   *  la columna Valor ni su cifra: sin el dato, «Sin costo» en cada fila sería mentira (principio 9). */
+  veValor: boolean;
   modelos: ModeloIngresado[];
-  totales: { modelos: number; unidades: number; deStockInicial: number; deRecepcion: number; nuevos: number };
+  totales: {
+    modelos: number;
+    unidades: number;
+    deStockInicial: number;
+    deRecepcion: number;
+    nuevos: number;
+    costoTotal: number | null;
+    prendasSinCosto: number | null;
+  };
 };
 
 type Crudo = Record<string, unknown>;
@@ -97,6 +113,8 @@ export function leerResumenIngresos(data: unknown): ResumenIngresos | null {
       precioMax: montoONulo(m.precio_max),
       costoMin: montoONulo(m.costo_min),
       costoMax: montoONulo(m.costo_max),
+      costoTotal: montoONulo(m.costo_total),
+      prendasSinCosto: m.prendas_sin_costo === null || m.prendas_sin_costo === undefined ? null : entero(m.prendas_sin_costo),
     });
   }
   const t = data.totales;
@@ -104,6 +122,7 @@ export function leerResumenIngresos(data: unknown): ResumenIngresos | null {
     desde,
     hasta,
     veCosto: data.ve_costo === true,
+    veValor: data.ve_costo === true && "costo_total" in t,
     modelos,
     totales: {
       modelos: entero(t.modelos),
@@ -111,6 +130,8 @@ export function leerResumenIngresos(data: unknown): ResumenIngresos | null {
       deStockInicial: entero(t.de_stock_inicial),
       deRecepcion: entero(t.de_recepcion),
       nuevos: entero(t.nuevos),
+      costoTotal: montoONulo(t.costo_total),
+      prendasSinCosto: t.prendas_sin_costo === null || t.prendas_sin_costo === undefined ? null : entero(t.prendas_sin_costo),
     },
   };
 }
@@ -217,6 +238,28 @@ export function precioDelModelo(m: Pick<ModeloIngresado, "precioMin" | "precioMa
  *  cuando la cuenta ve el costo: sin permiso la columna no existe. */
 export function costoDelModelo(m: Pick<ModeloIngresado, "costoMin" | "costoMax">): string {
   return rangoSolesTexto(m.costoMin, m.costoMax) ?? "Sin costo";
+}
+
+/** El valor de lo que entró de un modelo: «S/ 530», o «Sin costo» si ninguna de sus prendas lo tiene cargado. */
+export function valorDelModelo(m: Pick<ModeloIngresado, "costoTotal">): string {
+  return m.costoTotal === null ? "Sin costo" : solesTexto(redondear2(m.costoTotal));
+}
+
+/** Lo que falta en el valor, dicho para la tienda: «sin costo en 4 prendas», o `null` si todo tiene costo. */
+export function faltaCostoTexto(prendasSinCosto: number | null): string | null {
+  if (!prendasSinCosto) return null;
+  return `sin costo en ${prendasSinCosto.toLocaleString("es-PE")} ${prendasSinCosto === 1 ? "prenda" : "prendas"}`;
+}
+
+const redondear2 = (n: number) => Math.round(n * 100) / 100;
+
+/** Los días en que entró, en una fila: «10 nov» si fue uno solo; «2 – 10 nov» en el mismo mes; «28 oct – 10 nov» entre meses. Con el
+ *  año solo si no es el de hoy (como `fechaDiaMes`). Antes la columna decía solo el último día y un modelo que entró dos veces lo escondía. */
+export function diasDeEntrada(primerDia: string, ultimoDia: string, hoy: string): string {
+  const fin = fechaDiaMes(ultimoDia, hoy);
+  if (primerDia >= ultimoDia) return fin;
+  if (primerDia.slice(0, 7) === ultimoDia.slice(0, 7)) return `${Number(primerDia.slice(8, 10))} – ${fin}`;
+  return `${fechaDiaMes(primerDia, hoy)} – ${fin}`;
 }
 
 /** Cuántos hay de cada clase; el filtro solo se ofrece si hay de las dos (con una sola, no filtra nada). */

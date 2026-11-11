@@ -29,6 +29,7 @@ export function IngresosVista({ ingresos, rango, sede, hoy }: { ingresos: Ingres
           modelos={ingresos.resumen.modelos}
           apariencia={ingresos.apariencia}
           veCosto={ingresos.resumen.veCosto}
+          veValor={ingresos.resumen.veValor}
           rangoTexto={rango.texto}
           sede={sede}
           desde={rango.desde}

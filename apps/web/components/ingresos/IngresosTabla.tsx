@@ -10,6 +10,7 @@ import { HojaIngresos } from "./HojaIngresos";
 import { MenuAcciones } from "@/components/ui/MenuAcciones";
 import { DetalleIngreso } from "./DetalleIngreso";
 import { MiniaturaPrenda } from "@/components/ui/PrendaCelda";
+import { TarjetaCifra } from "@/components/ui/TarjetaCifra";
 import { TablaViva, useTablaViva, type ColumnaViva, type FiltroDeAfuera } from "@/components/ui/TablaViva";
 import { descargarCsv } from "@/lib/exportar-csv";
 import { ENCABEZADOS_DETALLE, encabezadosPorModelo, filasPorColorYTalla, filasPorModelo, nombreArchivoIngresos } from "@/lib/ingresos-exportar";
@@ -20,10 +21,16 @@ import {
   conPreposicion,
   costoDelModelo,
   cuentaNovedad,
+  diaLargo,
+  diasDeEntrada,
   esCampoOrdenIngresos,
+  faltaCostoTexto,
+  modelosTexto,
   ordenarModelosIngresos,
   precioDelModelo,
   prendasTexto,
+  solesTexto,
+  valorDelModelo,
   type ModeloIngresado,
 } from "@/lib/ingresos-reglas";
 import { fechaRelativa, ordenarFilas, sumaDe, unirConO, type OrdenViva } from "@/lib/tabla-viva-reglas";
@@ -62,6 +69,7 @@ export function IngresosTabla({
   modelos,
   apariencia,
   veCosto,
+  veValor,
   rangoTexto,
   sede,
   desde,
@@ -71,6 +79,8 @@ export function IngresosTabla({
   modelos: ModeloIngresado[];
   apariencia: Record<string, Apariencia>;
   veCosto: boolean;
+  /** La base ya manda el valor de lo que entró y la cuenta ve el dinero: columna «Valor» y su cifra. */
+  veValor: boolean;
   rangoTexto: string;
   /** Para el nombre del archivo que se baja. */
   sede: string;
@@ -164,9 +174,16 @@ export function IngresosTabla({
         tipo: "fecha",
         valor: (m) => m.ultimoDia,
         seVa: 840,
-        ancho: "7rem",
-        ayuda: "El último día del período en que entró algo de este modelo",
-        resumen: (m) => `entró ${fechaRelativa(m.ultimoDia, hoy).texto}`,
+        ancho: "8.5rem",
+        ayuda: "Los días del período en que entró algo de este modelo; abajo, cuándo fue la última vez",
+        // Del primer al último día: un modelo que entró el 2 y el 10 ya no se esconde tras «10 nov» (Felipe 2026-11-11).
+        celda: (m) => (
+          <span title={m.primerDia < m.ultimoDia ? `Entró del ${diaLargo(m.primerDia, hoy)} al ${diaLargo(m.ultimoDia, hoy)}` : undefined}>
+            <span className="tv-dato">{diasDeEntrada(m.primerDia, m.ultimoDia, hoy)}</span>
+            <span className="tv-sub">{fechaRelativa(m.ultimoDia, hoy).texto}</span>
+          </span>
+        ),
+        resumen: (m) => (m.primerDia < m.ultimoDia ? `entró ${diasDeEntrada(m.primerDia, m.ultimoDia, hoy)}` : `entró ${fechaRelativa(m.ultimoDia, hoy).texto}`),
       },
       {
         clave: "prendas",
@@ -207,8 +224,37 @@ export function IngresosTabla({
             },
           ]
         : []),
+      // El valor de lo que entró: prendas × costo de cada una (la base lo suma variante por variante). Lo que no tiene costo cargado no
+      // suma y se dice debajo: un total que parece completo y no lo es sería peor que ninguno.
+      ...(veValor
+        ? [
+            {
+              clave: "valor",
+              titulo: "Valor",
+              tipo: "monto" as const,
+              valor: (m: ModeloIngresado) => m.costoTotal,
+              texto: valorDelModelo,
+              seVa: 960 as const,
+              celda: (m: ModeloIngresado) => {
+                const falta = faltaCostoTexto(m.costoTotal === null ? null : m.prendasSinCosto);
+                return (
+                  <span title={falta ? `No suma: ${falta}` : undefined}>
+                    {valorDelModelo(m)}
+                    {falta && <span className="tv-sub">{falta}</span>}
+                  </span>
+                );
+              },
+              suma: (v: readonly ModeloIngresado[]) => {
+                const con = v.filter((m) => m.costoTotal !== null);
+                return con.length ? solesTexto(Math.round(sumaDe(con, (m) => m.costoTotal ?? 0) * 100) / 100) : "—";
+              },
+              resumen: (m: ModeloIngresado) => `valor ${valorDelModelo(m)}`,
+              ayuda: "Lo que valió lo que entró: las prendas por el costo de cada una. Lo que no tiene costo cargado no suma.",
+            },
+          ]
+        : []),
     ],
-    [apariencia, abiertos, hayDeLasDos, hoy, veCosto],
+    [apariencia, abiertos, hayDeLasDos, hoy, veCosto, veValor],
   );
   const ordenar = useMemo(() => ordenarIngresos(columnas), [columnas]);
   const tabla = useTablaViva({ filas: encontrados, columnas, ordenInicial: { clave: ORDEN_INICIAL_INGRESOS.campo, dir: ORDEN_INICIAL_INGRESOS.dir }, ordenar });
@@ -252,11 +298,49 @@ export function IngresosTabla({
   function bajar(conDetalle: boolean) {
     const nombre = nombreArchivoIngresos({ sede, desde, hasta, detalle: conDetalle });
     if (conDetalle) descargarCsv(nombre, ENCABEZADOS_DETALLE, filasPorColorYTalla(visibles));
-    else descargarCsv(nombre, encabezadosPorModelo(veCosto), filasPorModelo(visibles, veCosto));
+    else descargarCsv(nombre, encabezadosPorModelo(veCosto, veValor), filasPorModelo(visibles, veCosto, veValor));
   }
+
+  // Las cifras del período, arriba de la tabla (cabecera → cifras → tabla, ADR-0169): cuentan TODO lo que entró en el rango, no lo que
+  // deja ver la búsqueda (eso lo dice la frase de la tabla). «Nuevos» y «Reingresos» filtran la tabla como su cabecera.
+  const prendas = sumaDe(modelos, (m) => m.unidades);
+  const novedad = cuentaNovedad(modelos);
+  const prendasNuevas = sumaDe(modelos.filter((m) => m.esNuevo), (m) => m.unidades);
+  const clasePuesta = tabla.filtros.clase ?? [];
+  const soloClase = (clase: string) => clasePuesta.length === 1 && clasePuesta[0] === clase;
+  function filtrarClase(clase: string) {
+    const ya = soloClase(clase);
+    tabla.quitarColumna("clase");
+    if (!ya) tabla.alternar("clase", clase);
+  }
+  const conValor = modelos.filter((m) => m.costoTotal !== null);
+  const valorTotal = conValor.length ? Math.round(sumaDe(conValor, (m) => m.costoTotal ?? 0) * 100) / 100 : null;
+  const sinCosto = sumaDe(modelos, (m) => m.prendasSinCosto ?? 0);
+  const clicClase = (clase: string) => (hayDeLasDos ? { onClick: () => filtrarClase(clase), activa: soloClase(clase) } : {});
 
   return (
     <>
+      <div data-guia="movimientos.ingresos-cifras" className={`grid grid-cols-2 gap-3 ${veValor ? "xl:grid-cols-4" : "lg:grid-cols-3"}`}>
+        <TarjetaCifra etiqueta="Prendas que entraron" valor={prendas.toLocaleString("es-PE")}>
+          en {modelosTexto(modelos.length)}
+        </TarjetaCifra>
+        <TarjetaCifra etiqueta="Nuevos" punto="verde" valor={novedad.nuevos.toLocaleString("es-PE")} unidad={novedad.nuevos === 1 ? "modelo" : "modelos"} {...clicClase(NUEVO)}>
+          {prendasTexto(prendasNuevas)} · primera vez
+        </TarjetaCifra>
+        <TarjetaCifra etiqueta="Reingresos" punto="neutro" valor={novedad.reingresos.toLocaleString("es-PE")} unidad={novedad.reingresos === 1 ? "modelo" : "modelos"} {...clicClase(REINGRESO)}>
+          {prendasTexto(prendas - prendasNuevas)} · ya habían entrado
+        </TarjetaCifra>
+        {veValor &&
+          (valorTotal === null ? (
+            <TarjetaCifra etiqueta="Valor de lo que entró" valor={null}>
+              Ninguna de estas prendas tiene su costo cargado.
+            </TarjetaCifra>
+          ) : (
+            <TarjetaCifra etiqueta="Valor de lo que entró" valor={solesTexto(valorTotal)}>
+              {faltaCostoTexto(sinCosto) ?? "al costo de cada prenda"}
+            </TarjetaCifra>
+          ))}
+      </div>
       <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
         <Buscador
           valor={busqueda}

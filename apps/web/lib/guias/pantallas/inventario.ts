@@ -595,6 +595,13 @@ export const GUIA_MOVIMIENTOS: Guia = {
       texto: "Con «Elegir fechas» pones el día exacto en que llegó el fardo, y el reporte cuenta hasta hoy.",
     },
     {
+      id: "ingresos-cifras",
+      ancla: "movimientos.ingresos-cifras",
+      opcional: true,
+      titulo: "Lo que entró, de un vistazo",
+      texto: "Cuántas prendas entraron, cuántos modelos son nuevos y cuántos ya habían entrado antes. Toca «Nuevos» o «Reingresos» para ver solo esos en la lista. Quien ve el dinero ve también cuánto valió lo que entró.",
+    },
+    {
       id: "ingresos-total",
       ancla: "movimientos.ingresos-total",
       opcional: true,
@@ -673,7 +680,7 @@ export const GUIA_MOVIMIENTOS: Guia = {
       ancla: "movimientos.ingresos-precio",
       opcional: true,
       titulo: "Precio y costo",
-      texto: "El precio es el que se cobra en esta sede; si las tallas valen distinto, sale un rango. El costo solo lo ven quienes tienen permiso de dinero, y «Sin costo» quiere decir que nadie lo ha cargado todavía.",
+      texto: "El precio es el que se cobra en esta sede; si las tallas valen distinto, sale un rango. El costo y el valor (las prendas por su costo) solo los ven quienes tienen permiso de dinero; «Sin costo» quiere decir que nadie lo cargó todavía.",
     },
     {
       id: "ingresos-pie",

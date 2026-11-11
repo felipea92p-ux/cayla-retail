@@ -18,7 +18,8 @@ export function celdaSegura(valor: string): string {
 
 const montoOVacio = (n: number | null): number | string => (n === null ? "" : n);
 
-export function encabezadosPorModelo(veCosto: boolean): string[] {
+/** `veValor`: la base ya manda el valor de lo que entró (y la cuenta ve el dinero): una columna más, «Valor (S/)», vacía si no tiene costo. */
+export function encabezadosPorModelo(veCosto: boolean, veValor = false): string[] {
   return [
     "Modelo",
     "Código",
@@ -32,11 +33,12 @@ export function encabezadosPorModelo(veCosto: boolean): string[] {
     "Precio mínimo (S/)",
     "Precio máximo (S/)",
     ...(veCosto ? ["Costo mínimo (S/)", "Costo máximo (S/)"] : []),
+    ...(veValor ? ["Valor (S/)"] : []),
   ];
 }
 
 /** Una fila por modelo. */
-export function filasPorModelo(modelos: readonly ModeloIngresado[], veCosto: boolean): (string | number)[][] {
+export function filasPorModelo(modelos: readonly ModeloIngresado[], veCosto: boolean, veValor = false): (string | number)[][] {
   return modelos.map((m) => [
     celdaSegura(m.referencia),
     celdaSegura(m.codigo ?? ""),
@@ -50,6 +52,7 @@ export function filasPorModelo(modelos: readonly ModeloIngresado[], veCosto: boo
     montoOVacio(m.precioMin),
     montoOVacio(m.precioMax),
     ...(veCosto ? [montoOVacio(m.costoMin), montoOVacio(m.costoMax)] : []),
+    ...(veValor ? [montoOVacio(m.costoTotal)] : []),
   ]);
 }
 
