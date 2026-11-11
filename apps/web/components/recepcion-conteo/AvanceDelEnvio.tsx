@@ -7,7 +7,7 @@ import { Odometro } from "./Odometro";
 // columna «Resumen del envío», que casi nadie leía: las colaboradoras se guiaban por las barras de las categorías. Dice lo de todo el envío, con el filtro que
 // sea. Sin aviso no hay con qué comparar: va el número solo, sin barra.
 
-export function AvanceDelEnvio({ cifras, sinAviso }: { cifras: CifrasDelResumen; sinAviso: boolean }) {
+export function AvanceDelEnvio({ cifras, sinAviso, onIrAlQueFalta }: { cifras: CifrasDelResumen; sinAviso: boolean; /** «Faltan N por contar» se toca: lleva al primero que falta (cambio 3 de /formidable: es la única frase que dice cuántos faltan). */ onIrAlQueFalta?: () => void }) {
   const frase = fraseDelAvance(cifras);
   if (!frase) return null;
   const { contadas, avance } = cifras;
@@ -20,7 +20,13 @@ export function AvanceDelEnvio({ cifras, sinAviso }: { cifras: CifrasDelResumen;
           <Odometro valor={contadas} />
           {dijeron != null ? `de ${conMiles(dijeron)} prendas contadas` : contadas === 1 ? "prenda contada" : "prendas contadas"}
         </b>
-        <span data-tono={frase.tono ?? undefined}>{frase.texto}</span>
+        {onIrAlQueFalta && cifras.estados["por-contar"] > 0 ? (
+          <button type="button" className="btn-cayla btn-enlace" title="Ir al primero que falta contar" onClick={onIrAlQueFalta}>
+            {frase.texto}
+          </button>
+        ) : (
+          <span data-tono={frase.tono ?? undefined}>{frase.texto}</span>
+        )}
       </p>
     </div>
   );

@@ -10,7 +10,8 @@ import type { EstadoCombo } from "@/lib/responsable-reglas";
 import type { ControlResponsable } from "@/lib/useResponsable";
 import { BotonCerrarConteo } from "./BotonCerrarConteo";
 
-// El pie de la lista (ADR-0645, Felipe 2026-11-11): lo del envío entero, siempre en el mismo lugar. A la izquierda, lo que falta (tocarlo lleva hasta ahí); a la
+// El pie de la lista (ADR-0645, Felipe 2026-11-11): lo del envío entero, siempre en el mismo lugar. A la izquierda, lo que impide cerrar y no es contar (tocarlo lleva
+// hasta ahí; cuántos faltan por contar lo dice la línea de avance, arriba: cambio 3 de /formidable); a la
 // derecha, quién cuenta, las fotos de las facturas y el ÚNICO «Revisar y cerrar» de la pantalla (había uno en cada mitad: «es redundante»). Lo que antes se leía en el resumen —cómo se guarda,
 // qué pasa al cerrar— va detrás del «?»: una línea a la vista y lo que explica, a un toque.
 
@@ -19,6 +20,7 @@ export const sinTurno = (estado: EstadoCombo): boolean => estado === "nadie" || 
 
 export function PieDeLaLista({
   guia,
+  faltaAparte,
   responsable,
   papeles,
   explicacion,
@@ -31,6 +33,8 @@ export function PieDeLaLista({
   enHoja = false,
 }: {
   guia: GuiaCampos;
+  /** Lo que falta y no es contar un modelo (`faltaAparteDeContar`): quién cuenta, qué son unas prendas, una categoría sin modelos, un nombre que conviene poner. Vacío: el pie no dice nada. */
+  faltaAparte: GuiaCampos["faltan"];
   responsable: ControlResponsable;
   /** El botón de las fotos de las facturas, si la compra tiene papeles. */
   papeles?: ReactNode;
@@ -49,7 +53,7 @@ export function PieDeLaLista({
 }) {
   return (
     <div className={enHoja ? "rc-lista-pie pie-hoja-fijo" : "rc-lista-pie"}>
-      {/* Lo que falta, primero: con la lista angosta va en su propia línea, arriba de los controles. */}
+      {/* Lo que falta aparte de contar, primero: con la lista angosta va en su propia línea, arriba de los controles. Sin nada de eso, el pie es una sola fila. */}
       {onCancelarRecepcion ? (
         <p className="rc-pie-falta">
           ¿No llegó nada?{" "}
@@ -57,11 +61,11 @@ export function PieDeLaLista({
             Cancelar la recepción
           </button>
         </p>
-      ) : (
+      ) : faltaAparte.length > 0 ? (
         <div className="rc-pie-falta">
-          <PieGuia guia={guia} tope={1} listo="Todo contado." />
+          <PieGuia guia={{ ...guia, faltan: faltaAparte }} tope={1} />
         </div>
-      )}
+      ) : null}
       <div className="rc-pie-accion">
         <div className="rc-pie-quien" data-guia="recepcion.quien-cuenta">
           {sinTurno(responsable.estado) ? (

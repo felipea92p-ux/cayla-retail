@@ -1843,7 +1843,7 @@ export const GUIA_RECIBIR_ENVIO: Guia = {
       // En el celular la lista se abre desde la isla; en escritorio ese botón no está y el piloto no toca nada.
       preparar: [LISTA_DEL_CELULAR],
       titulo: "Cómo va todo el envío",
-      texto: "La barra y la línea de arriba dicen cuántas prendas llevas de las que dijeron y cuánto falta por contar. Es de todo el envío, aunque filtres la lista. La barra va de rojo a verde mientras se llena.",
+      texto: "La barra y la línea de arriba dicen cuántas prendas llevas de las que dijeron y cuánto falta por contar. Es de todo el envío, aunque filtres la lista. «Faltan N por contar» se toca: te lleva al primero que falta. La barra va de rojo a verde mientras se llena.",
     },
     {
       id: "categorias",
@@ -1916,7 +1916,7 @@ export const GUIA_RECIBIR_ENVIO: Guia = {
       // El panel de filtros que abrió la guía se cierra antes de pasar al contador; en el celular, también la hoja de la lista.
       preparar: [{ tipo: "clic", ancla: "recepcion.filtros-cerrar", siEsta: true }, { tipo: "escape" }],
       titulo: "Cuántas llegaron de este modelo",
-      texto: "El aro cuenta el modelo que elegiste: verde cuando cuadra. Arriba, junto al nombre, ves cuánto costó cada una. «Llegaron las N», el botón grande, lo deja listo de un toque. O toca el número para escribirlo, o súmalas con + y −. «No llegó nada» también es una respuesta.",
+      texto: "El aro cuenta el modelo que elegiste: verde cuando cuadra. Arriba, junto al nombre, ves cuánto costó cada una. «Llegaron las N», el botón grande, lo deja listo de un toque y, si toca repartir tallas, baja hasta ahí. O toca el número para escribirlo, o súmalas con + y −. «No llegó nada» también vale.",
     },
     {
       id: "siguiente",
@@ -2020,7 +2020,7 @@ export const GUIA_RECIBIR_ENVIO: Guia = {
       requiere: ["recepcion.categorias"],
       preparar: [LISTA_DEL_CELULAR],
       titulo: "Revisar y cerrar",
-      texto: "Lleva al cierre, siempre desde este lugar: ahí ves lo que no cuadró, el costo y quién cierra. A su lado dice qué te falta, y tocarlo te lleva hasta ahí. En la demo no avanzamos.",
+      texto: "Lleva al cierre, siempre desde este lugar: ahí ves lo que no cuadró, el costo y quién cierra. Si algo más que contar impide cerrar (decir qué son unas prendas, una categoría sin modelos), sale a su lado y tocarlo te lleva hasta ahí. En la demo no avanzamos.",
     },
     {
       id: "ya-en-stock",

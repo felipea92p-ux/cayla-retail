@@ -573,6 +573,15 @@ export function siguientePendiente(paradas: readonly ParadaDelConteo[], clave: s
   return enOrden.find((p) => !paradaContada(p)) ?? null;
 }
 
+/**
+ * Adónde lleva «Faltan N por contar», la frase de arriba de la lista (ADR-0645, cambio 3 de /formidable; Felipe 2026-11-11): al modelo que se está mirando si todavía
+ * no se contó; si no, al primero sin contar desde ahí, dando la vuelta. `null` con todo contado.
+ */
+export function primeroPorContar(paradas: readonly ParadaDelConteo[], clave: string | null): ParadaDelConteo | null {
+  const actual = paradas.find((p) => p.clave === clave);
+  return actual && !paradaContada(actual) ? actual : siguientePendiente(paradas, clave);
+}
+
 /** Un doble clic en «Listo, siguiente» saltaba un modelo sin que nadie lo notara (chaos DC-01, 2026-11-02): el segundo toque, tan seguido, no cuenta. */
 export const esToqueRepetido = (anterior: number, ahora: number): boolean => ahora - anterior < 350;
 
@@ -805,6 +814,16 @@ export const idCampoParada = (p: Pick<ParadaDelConteo, "clave">): string => `con
  * prenda es. Lo primero no frena nada (si un modelo no se contó, al cerrar sale como faltante); lo segundo sí: sin eso no se pasa a «Cerrar».
  */
 export const idCampoCategoria = (clave: string): string => `categoria-${clave.replace(/[^a-zA-Z0-9]+/g, "-")}`;
+
+/**
+ * Lo que falta y NO es contar un modelo (ADR-0645, cambio 3 de /formidable; Felipe 2026-11-11): elegir quién cuenta, decir qué son unas prendas, los modelos de una
+ * categoría que vino sin ellos, agregar lo primero que llegó, o un nombre que conviene poner. Es lo único que dice el pie de la lista. Cuántos modelos faltan por
+ * contar lo dice la línea de avance, arriba («Faltan N por contar»): antes salía en los dos lugares, con dos números que no siempre coincidían.
+ */
+export function faltaAparteDeContar<C extends Pick<CampoDeGuia, "id" | "requerido">>(faltan: readonly C[], paradas: readonly Pick<ParadaDelConteo, "clave">[]): C[] {
+  const deContar = new Set(paradas.map(idCampoParada));
+  return faltan.filter((c) => !(c.requerido && deContar.has(c.id)));
+}
 
 export function camposDelConteoPorModelo(categorias: readonly CategoriaDelEnvio[]): CampoDeGuia[] {
   if (categorias.length === 0) {

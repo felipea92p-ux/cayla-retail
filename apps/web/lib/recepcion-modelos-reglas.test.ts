@@ -22,8 +22,11 @@ import {
   tipoDeParada,
   vecinosDeLaParada,
   siguientePendiente,
+  primeroPorContar,
+  faltaAparteDeContar,
   gruposDelFiltro,
   idCampoParada,
+  idCampoCategoria,
   modelosDelGrupo,
   hayQueIdentificar,
   modeloSeQuita,
@@ -473,6 +476,22 @@ describe("categoriasEnOrden: por cantidad, de menos a más o de más a menos", (
     const campos = camposDelConteoPorModelo(categoriasEnOrden(envio(), "desc"));
     expect(campos.map((c) => c.nombre)).toEqual(["Modelo f1", "Modelo f2", "Modelo b", "Modelo c", "Modelo a"]);
   });
+
+  it("el pie de la lista no repite lo que falta por contar: solo dice lo demás (cambio 3 de /formidable)", () => {
+    const categorias = envio();
+    const paradas = categorias.flatMap((c) => c.paradas);
+    const deContar = camposDelConteoPorModelo(categorias);
+    // Contar cada modelo lo dice la línea de avance: en el pie no queda nada.
+    expect(deContar.length).toBeGreaterThan(0);
+    expect(faltaAparteDeContar(deContar, paradas)).toEqual([]);
+    // Lo que no es contar se queda: elegir quién cuenta, una categoría sin modelos, prendas sin identificar.
+    const quien = { id: "quien-cuenta", nombre: "Quién cuenta", requerido: true, hecho: false, pendiente: "Elige quién está contando." };
+    const sinModelos = { id: idCampoCategoria("vestidos"), nombre: "Los modelos de Vestidos", requerido: true, hecho: false, pendiente: "Agrega cada modelo." };
+    expect(faltaAparteDeContar([quien, ...deContar, sinModelos], paradas).map((c) => c.nombre)).toEqual(["Quién cuenta", "Los modelos de Vestidos"]);
+    // Un nombre que conviene poner usa el id de su modelo, pero no es contar (no es requerido): también se queda.
+    const nombre = { id: idCampoParada(paradas[0]), nombre: "El nombre de Vestido 1", requerido: false, sugerido: true, hecho: false, pendiente: "Ponle su nombre." };
+    expect(faltaAparteDeContar([nombre, ...deContar], paradas)).toEqual([nombre]);
+  });
 });
 
 describe("el filtro por proveedor y marca", () => {
@@ -732,6 +751,23 @@ describe("Re stock, Producto nuevo y los estados del resumen", () => {
     it("si lo que se cuenta salió de la lista, lo que sigue es lo primero que queda", () => {
       const ps = paradas();
       expect(vecinosDeLaParada(ps, "otra")).toEqual({ anterior: null, siguiente: ps[0] });
+    });
+
+    it("«Faltan N por contar» lleva al modelo que se mira si no se contó; si no, al primero sin contar desde ahí (cambio 3 de /formidable)", () => {
+      const ps = paradas();
+      const porNombre = (n: string) => ps.find((p) => nombreDeParada(p) === n)!;
+      const [sofia, antonella, lima] = ["Vestido Sofía", "Vestido Antonella", "Vestido Lima"].map(porNombre);
+      // El que se mira no está contado: es él.
+      expect(primeroPorContar(ps, antonella.clave)?.clave).toBe(antonella.clave);
+      // El que se mira ya está contado: el primero sin contar hacia adelante.
+      expect(primeroPorContar(ps, sofia.clave)?.clave).toBe(siguientePendiente(ps, sofia.clave)?.clave);
+      expect(paradaContada(primeroPorContar(ps, sofia.clave)!)).toBe(false);
+      // Sin nada en foco, el primero sin contar de la lista.
+      expect(primeroPorContar(ps, null)?.clave).toBe(ps.find((p) => !paradaContada(p))!.clave);
+      // Con todo contado no hay adónde ir.
+      expect(primeroPorContar([sofia], sofia.clave)).toBeNull();
+      expect(primeroPorContar([], null)).toBeNull();
+      expect(lima).toBeDefined();
     });
 
     it("al final de la lista, lo que sigue es lo que quedó sin contar: da la vuelta y no se devuelve a sí mismo (ADR-0645)", () => {

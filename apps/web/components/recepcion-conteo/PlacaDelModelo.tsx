@@ -93,7 +93,7 @@ export function PlacaDelModelo({
   onDanada?: () => void;
   /** «Es otra prenda»: al tenerla en la mano se vio que era otra. */
   onOtraPrenda?: () => void;
-  /** Por qué alguno de los dos está apagado, a la vista (nunca solo en un `title`). */
+  /** Por qué alguno de los dos está apagado, a la vista. Antes de contar no se repite: lo dice la tarjeta de tallas, justo arriba («Primero cuenta cuántas llegaron»). */
   notaDeAlgo?: string | null;
   /** El botón «Anotar algo». */
   observacion: ReactNode;

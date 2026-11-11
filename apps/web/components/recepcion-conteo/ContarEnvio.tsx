@@ -75,6 +75,8 @@ import {
   grupoDeLaClave,
   hayFiltro,
   idCampoParada,
+  faltaAparteDeContar,
+  primeroPorContar,
   lineasDeLaParada,
   opcionesDelFiltro,
   paradaContada,
@@ -786,7 +788,21 @@ export function ContarEnvio({
       onQuitarCategoria={(c) => (c.contadas > 0 ? setHoja({ tipo: "quitar-categoria", categoria: c.clave }) : quitarCategoria(c))}
       onFotos={(nuevas) => setFotos((f) => new Map([...f, ...nuevas]))}
       cifras={cifras}
-      avance={<AvanceDelEnvio cifras={cifras} sinAviso={sinAviso} />}
+      avance={
+        <AvanceDelEnvio
+          cifras={cifras}
+          sinAviso={sinAviso}
+          onIrAlQueFalta={() => {
+            const destino = primeroPorContar(paradasDelEnvio, parada?.clave ?? null);
+            if (!destino) return;
+            // En el celular la lista está en su hoja: se elige y se cierra, y el contador queda a la vista. En la pantalla, se lleva hasta su fila.
+            if (enHoja) {
+              elegir(destino);
+              setListaEnHoja(false);
+            } else guia.ir(idCampoParada(destino));
+          }}
+        />
+      }
       aviso={
         sinGuardar > 0 ? (
           <Aviso
@@ -806,6 +822,7 @@ export function ContarEnvio({
         <PieDeLaLista
           enHoja={enHoja}
           guia={guia}
+          faltaAparte={faltaAparteDeContar(guia.faltan, paradasDelEnvio)}
           responsable={responsable}
           papeles={papeles.length > 0 ? <PapelesDeLaCompra papeles={papeles} alSubirFoto={alSubirFoto} /> : undefined}
           explicacion={
@@ -931,7 +948,7 @@ export function ContarEnvio({
                 !parada.modelo
                   ? null
                   : tarjeta === "espera"
-                    ? "Primero cuenta cuántas llegaron."
+                    ? null // La tarjeta de tallas, justo arriba, ya dice «Primero cuenta cuántas llegaron»: no se repite (cambio 3 de /formidable).
                     : tarjeta === "nueva"
                       ? "Las dañadas se anotan por talla y color: primero crea la prenda."
                       : tarjeta === "en-stock"
