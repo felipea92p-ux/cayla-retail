@@ -5,3 +5,4 @@
 - 2026-11-11 · ENV-010: `corregir_proveedor_de_marca` (una marca en una recepción cerrada) y unir con faltante solo Admin (Felipe: «Unir con 27»). Migración `20261111175000` y script, sin pegar. 29/29.
 - 2026-11-11 · ENV-010 regularizado en producción con el OK de Felipe: anulado, unido a ENV-005 con 27, compra «completado»; stock y movimientos sin cambio.
 - 2026-11-11 · ENV-002: `dar_compras_por_llegadas` (solo Admin) para compras que entraron por «Nuevo producto» o ajustes; no pasa al libro (antes del arranque). Migración `20261111181000` y script, sin pegar. 30/30 + 84 casos vecinos.
+- 2026-11-11 · ENV-002 regularizado en producción con el OK de Felipe: anulado, 6 compras dadas por llegadas por otra entrada; libros y stock sin cambio. En TRU quedan abiertos ENV-016 y ENV-017.

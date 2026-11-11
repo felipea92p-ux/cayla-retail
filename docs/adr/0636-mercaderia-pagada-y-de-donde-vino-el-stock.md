@@ -124,7 +124,7 @@ Script: `scripts/regularizar/2026-11-11-env-010-valeria-mia.sql`. Pruebas U21 y 
 ## Actualización 2026-11-11 (d) — una compra cuya mercadería entró por otra puerta (ENV-002)
 ENV-002 (TRU, seis compras del 28-oct, 163 prendas, S/ 4,293, 154 contadas) quedó en «Seguir recibiendo». Sus prendas ya habían entrado el
 29-oct, pero con «Nuevo producto» y ajustes de stock, no por una recepción, así que la unión no servía. Felipe pidió «la mejor solución, que
-todo quede cuadrado y no malograr otras cosas». Migración `20261111181000`:
+todo quede cuadrado y no malograr otras cosas». Migración `20261111181000` (EN PRODUCCIÓN el 2026-11-11, con el script aplicado el mismo día):
 - `compra_papel_llegadas` guarda también «llegó por otra entrada» (`via = 'otra_entrada'`, sin recepción, con nota). Todos los candados que
   ya miran esa tabla la reconocen sin tocarlos: no se vuelve a mandar, no se edita ni se anula, y no sale «por enviar».
 - `dar_compras_por_llegadas(papeles, motivo)`, solo para un Admin: anula los envíos de Compras de esas compras (lo contado queda como
