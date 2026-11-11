@@ -20,6 +20,7 @@ import {
   tallasParaDespues,
   tipoDeParada,
   vecinosDeLaParada,
+  siguientePendiente,
   gruposDelFiltro,
   idCampoParada,
   modelosDelGrupo,
@@ -715,6 +716,29 @@ describe("Re stock, Producto nuevo y los estados del resumen", () => {
     it("si lo que se cuenta salió de la lista, lo que sigue es lo primero que queda", () => {
       const ps = paradas();
       expect(vecinosDeLaParada(ps, "otra")).toEqual({ anterior: null, siguiente: ps[0] });
+    });
+
+    it("al final de la lista, lo que sigue es lo que quedó sin contar: da la vuelta y no se devuelve a sí mismo (ADR-0645)", () => {
+      // Sofía ya está contada; Antonella y Lima, no.
+      const ps = paradas();
+      const porNombre = (n: string) => ps.find((p) => nombreDeParada(p) === n)!;
+      const [sofia, antonella, lima] = ["Vestido Sofía", "Vestido Antonella", "Vestido Lima"].map(porNombre);
+      // Desde el último, sin contar: vuelve al primero que falta, saltándose lo contado.
+      const ultimo = ps[ps.length - 1];
+      const otroSinContar = ps.find((p) => p.clave !== ultimo.clave && !paradaContada(p))!;
+      expect(siguientePendiente(ps, ultimo.clave)?.clave).toBe(otroSinContar.clave);
+      // Desde lo contado, el primero que falta hacia adelante.
+      expect(paradaContada(sofia)).toBe(true);
+      expect(siguientePendiente(ps, sofia.clave)).not.toBeNull();
+      expect(siguientePendiente(ps, sofia.clave)?.clave).not.toBe(sofia.clave);
+      // Lo que se está contando nunca es «lo pendiente», aunque no esté contado.
+      expect(siguientePendiente(ps, antonella.clave)?.clave).toBe(lima.clave);
+      expect(siguientePendiente(ps, lima.clave)?.clave).toBe(antonella.clave);
+      // Con todo lo demás contado, no hay a dónde ir.
+      expect(siguientePendiente([sofia, antonella], antonella.clave)).toBeNull();
+      expect(siguientePendiente([sofia], sofia.clave)).toBeNull();
+      // Si lo que se cuenta no está en la lista, el primero sin contar.
+      expect(siguientePendiente(ps, "otra")?.clave).toBe(ps.find((p) => !paradaContada(p))!.clave);
     });
   });
 });

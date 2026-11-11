@@ -550,6 +550,16 @@ export function focoTrasElFiltro(categorias: readonly CategoriaDelEnvio[], foco:
   return (lista.find((p) => !paradaContada(p)) ?? lista[0]).clave;
 }
 
+/**
+ * Al final de la lista, lo que sigue es lo que quedó sin contar (ADR-0645): el contador ya no cierra el conteo («Revisar y cerrar» vive solo en la lista), lleva a lo
+ * pendiente. Busca desde lo que se cuenta hacia adelante y da la vuelta; lo que se está contando no cuenta como pendiente.
+ */
+export function siguientePendiente(paradas: readonly ParadaDelConteo[], clave: string | null): ParadaDelConteo | null {
+  const i = paradas.findIndex((p) => p.clave === clave);
+  const enOrden = i < 0 ? paradas : [...paradas.slice(i + 1), ...paradas.slice(0, i)];
+  return enOrden.find((p) => !paradaContada(p)) ?? null;
+}
+
 /** Un doble clic en «Listo, siguiente» saltaba un modelo sin que nadie lo notara (chaos DC-01, 2026-11-02): el segundo toque, tan seguido, no cuenta. */
 export const esToqueRepetido = (anterior: number, ahora: number): boolean => ahora - anterior < 350;
 

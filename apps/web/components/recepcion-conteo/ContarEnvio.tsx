@@ -78,6 +78,7 @@ import {
   paradaContada,
   paradaEnFoco,
   paradasDelGrupo,
+  siguientePendiente,
   repartirModeloCon,
   repartirOtroCambio,
   SIN_FILTRO,
@@ -292,6 +293,8 @@ export function ContarEnvio({
   const categoriasDelConteo = categoriasEnOrden(categoriasDelFiltro(grupos, filtro, parada?.clave ?? null, enAhora), orden);
   const paradas = categoriasDelConteo.flatMap((c) => c.paradas);
   const { anterior, siguiente } = vecinosDeLaParada(paradas, parada?.clave ?? null);
+  // En el último modelo, lo que sigue es lo que quedó sin contar en todo el envío: el contador no cierra, lleva a lo pendiente.
+  const pendiente = siguiente || !parada ? null : siguientePendiente(paradasDelEnvio, parada.clave);
   const opciones = opcionesDelFiltro(grupos, filtro);
   const cifras = cifrasDelResumen(todas, enAhora);
   // En una terminal hay que elegir quién cuenta antes de guardar: es lo primero que falta, y se elige ahí mismo.
@@ -773,19 +776,20 @@ export function ContarEnvio({
               abrirNumero={escribirEn === parada.clave}
               anterior={anterior}
               siguiente={siguiente}
+              pendiente={pendiente}
               hayFiltroPuesto={hayFiltro(filtro)}
-              puedeCerrar={puedeCerrar}
-              motivosNoCierra={motivosNoCierra}
-              onIrALoQueFalta={() => guia.faltan[0] && guia.ir(guia.faltan[0].id)}
+              todoContado={todoContado}
               filaSeguir={filaSeguir}
               onPoner={(n) => escribirEnParada(parada, n)}
               onAnterior={(e) => pasarA(anterior, e.timeStamp)}
               onSiguiente={(e) => pasarA(siguiente, e.timeStamp)}
+              onPendiente={(e) => pasarA(pendiente, e.timeStamp)}
               onEnter={() => {
-                if (siguiente) elegir(siguiente, true);
-                else requestAnimationFrame(() => filaSeguir.current?.querySelector<HTMLButtonElement>(".btn-primario:not(:disabled)")?.focus());
+                // Enter pasa al siguiente con su número listo para escribir; en el último, a lo que quedó sin contar; y con todo contado, el cursor va a «Revisar y cerrar».
+                const destino = siguiente ?? (hayFiltro(filtro) ? null : pendiente);
+                if (destino) elegir(destino, true);
+                else requestAnimationFrame(() => (mesa.current?.querySelector<HTMLButtonElement>('[data-guia="recepcion.pasar-a-cerrar"]') ?? filaSeguir.current?.querySelector<HTMLButtonElement>("button:not(:disabled)"))?.focus());
               }}
-              onCerrar={onCerrar}
               onModo={(m) => elegirModo(parada, m)}
               observacion={
                 <AnotarObservacion

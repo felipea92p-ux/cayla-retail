@@ -2,7 +2,7 @@
   "guia": "recibir.envio.id",
   "ruta": "/recibir/envio/[id]",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 270,
+  "total": 271,
   "controles": {
     "app/(app)/recibir/envio/[id]/page.tsx": [
       "Volver «/recibir»",
@@ -254,15 +254,16 @@
     "components/recepcion-conteo/PlacaDelModelo.tsx": [
       "button «{titulo}»",
       "LapizEditar «{`el nombre de ${modelo.nombre}»",
+      "button «Llegaron las»",
       "button «+»",
       "button «+» #2",
-      "button «Llegaron las»",
       "button «Poner en cero»",
       "button «No llegó nada»",
+      "button «Reintentar»",
       "Boton «{anterior ? `Antes: ${nombreDeParada(anterior)}»",
       "Boton «{`${hayConteo ? \"Listo, siguiente\" : \"Siguiente\"}»",
-      "Boton «Es el último: ver todos»",
-      "button «Reintentar»"
+      "Boton «Ver todos»",
+      "Boton «{`Ir al que falta: ${nombreDeParada(pendiente)}»"
     ],
     "components/recepcion-conteo/PrecioDePrenda.tsx": [
       "CampoTexto «{`Costo de ${nombre}»",

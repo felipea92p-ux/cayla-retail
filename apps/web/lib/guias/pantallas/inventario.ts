@@ -1888,7 +1888,7 @@ export const GUIA_RECIBIR_ENVIO: Guia = {
       // El panel de filtros que abrió la guía se cierra antes de pasar al contador.
       preparar: [{ tipo: "clic", ancla: "recepcion.filtros-cerrar", siEsta: true }],
       titulo: "Cuántas llegaron de este modelo",
-      texto: "El aro cuenta el modelo que elegiste: verde cuando cuadra. Arriba, junto al nombre, ves cuánto costó cada una. Toca el número para escribirlo, o súmalas con + y − y con los atajos. «Llegaron las N» lo deja listo y «No llegó nada» también es una respuesta.",
+      texto: "El aro cuenta el modelo que elegiste: verde cuando cuadra. Arriba, junto al nombre, ves cuánto costó cada una. «Llegaron las N», el botón grande, lo deja listo de un toque. O toca el número para escribirlo, o súmalas con + y −. «No llegó nada» también es una respuesta.",
     },
     {
       id: "siguiente",
@@ -1896,7 +1896,7 @@ export const GUIA_RECIBIR_ENVIO: Guia = {
       opcional: true,
       requiere: ["recepcion.categorias"],
       titulo: "Al siguiente modelo",
-      texto: "«Listo, siguiente» pasa al modelo que sigue en la lista y «Anterior» vuelve. Con el número abierto, Enter hace lo mismo y deja el siguiente listo para escribir: cuentas todo el envío sin soltar el teclado.",
+      texto: "«Listo, siguiente» pasa al modelo que sigue y «Anterior» vuelve; al lado dice cuál viene. En el último, te lleva al que quedó sin contar. Con el número abierto, Enter hace lo mismo y deja el siguiente listo para escribir: cuentas todo sin soltar el teclado.",
     },
     {
       id: "que-hacer",
