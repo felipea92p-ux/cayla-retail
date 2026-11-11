@@ -96,8 +96,7 @@ Felipe, 2026-11-11: «ya se recibió mercadería sin aviso, ¿cómo regularizamo
 Compras y quedaron en «Seguir recibiendo». La unión se negaba con ENV-009 porque tenía 2 prendas contadas (`union_envio_con_conteo`).
 **Decidido:** contar no mete stock. Si el envío de Compras tiene prendas contadas pero nada recibido, unir lo anula igual y lo contado queda como
 historia del envío anulado (como `cancelar_recepcion_envio`, ADR-0605); la respuesta dice cuántas se descartaron (`conteos_descartados`). Lo ya
-recibido por el envío de Compras se sigue rechazando (`union_envio_ya_recibido`). Migración `20261111152000` (reemplazos anclados, verificados
-contra producción) y el script `scripts/regularizar/2026-11-11-envios-recibidos-sin-aviso.sql`, que une ENV-009 y ENV-011 a nombre de Felipe
+recibido por el envío de Compras se sigue rechazando (`union_envio_ya_recibido`). Migración `20261111152000` (reemplazos anclados; EN PRODUCCIÓN el 2026-11-11, con el script aplicado el mismo día) y el script `scripts/regularizar/2026-11-11-envios-recibidos-sin-aviso.sql`, que une ENV-009 y ENV-011 a nombre de Felipe
 y deshace todo si el stock o los movimientos se movieran. Pruebas: `pnpm pruebas:unir-recepcion-con-compra` (26 casos; U6 y L5 cambian).
 **Quedan fuera, por decidir:** ENV-010 (Valeria Mia: 27 llegaron por ENV-005 a nombre de «CAYLA SAC» y la 28 por un ajuste del 6-nov: hace
 falta corregir el proveedor de UNA marca en una recepción ya cerrada y contar el ajuste) y ENV-002 (entró por «Nuevo producto» el 29-oct, una
