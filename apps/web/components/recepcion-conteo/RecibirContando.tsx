@@ -447,6 +447,7 @@ export function RecibirContando({
         <ContarEnvio
           onCancelarRecepcion={sePuedeCancelar ? () => setCancelando(true) : undefined}
           veDinero={poneCosto}
+          soloSede={soloSede}
           veExistencias={veExistencias}
           esperandoGuardar={pendientesDeGuardar}
           onSalida={() => void releer()}

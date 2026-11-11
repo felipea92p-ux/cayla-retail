@@ -13,9 +13,11 @@ import { Modal } from "@/components/ui/Modal";
 import { hayQueElegirDueno } from "@/lib/dueno-reglas";
 import { useEmpresasDeSede } from "@/lib/useEmpresasDeSede";
 import { DuenoDeLoQueEntra } from "./DuenoDeLoQueEntra";
+import { PrecioDePrenda } from "./PrecioDePrenda";
+import { usePreciosDeVenta } from "./usePreciosDeVenta";
 import { esFalloDeRed } from "@/lib/error-escritura";
-import { corregirSalida, llevarAlStock } from "@/lib/recepcion-conteo-acciones";
-import { mensajeAlGuardar, costoComoTexto, leerCostoCierre, type LineaParaContar } from "@/lib/recepcion-conteo-reglas";
+import { cambiarPreciosEnRecepcion, corregirSalida, llevarAlStock } from "@/lib/recepcion-conteo-acciones";
+import { ALCANCE_DE_FABRICA, cambioDePrecioDeVenta, hoyDelPrecio, leerPrecioNuevo, mensajeAlGuardar, costoComoTexto, leerCostoCierre, type LineaParaContar } from "@/lib/recepcion-conteo-reglas";
 import { atipicosPorLinea, leerCostoAtipicoRecepcion, type CostoAtipicoRecepcion } from "@/lib/recepcion-envio-reglas";
 import { argsLlevarAlStock, urlBajarDeLaTanda, urlEtiquetasDeLaTanda, type ResultadoDeSalida, type SalidaDelEnvio } from "@/lib/recepcion-salida-reglas";
 import type { ControlResponsable } from "@/lib/useResponsable";
@@ -26,6 +28,11 @@ import type { ControlResponsable } from "@/lib/useResponsable";
 //
 // Desde el 2026-11-11 (ADR-0645) es el botón principal al terminar de repartir, en la tarjeta de tallas y en su hoja: casi siempre llevan la prenda al stock desde el conteo, para
 // venderla ya. El peso lo pone el lugar: oscuro con todo repartido, claro si va una parte (`parcial`). La hoja que confirma no cambió.
+//
+// El precio de venta (Felipe 2026-11-11: «que se pueda modificar el precio de venta al llevar al stock»): después de que la prenda entra, ni el cierre ni la base
+// dejan cambiarlo desde Recibir (`cambiar_precios_en_recepcion` solo acepta lo que sigue separado). Por eso se pone aquí, con la misma pieza y la misma regla del
+// cierre, y se guarda JUSTO ANTES de llevar: si la base lo rechaza (bajo el costo, por ejemplo), no entra nada y el motivo sale junto al campo. Si el precio se
+// guardó y lo que falla es llevar, el precio queda (rige hacia adelante) y deja de contarse como cambio: el reintento no lo manda de nuevo.
 
 export function LlevarAlStock({
   despachoId,
@@ -38,6 +45,7 @@ export function LlevarAlStock({
   variantes,
   sinAviso,
   veDinero,
+  soloSede = false,
   responsable,
   esperandoGuardar,
   onHecho,
@@ -57,6 +65,8 @@ export function LlevarAlStock({
   variantes: readonly { varianteId: string; cantidad: number; danadas: number; solucion: string | null; talla: string | null; color: string | null }[];
   sinAviso: boolean;
   veDinero: boolean;
+  /** Una terminal (ADR-0531): el precio vale solo en su sede. */
+  soloSede?: boolean;
   responsable: ControlResponsable;
   /** Lo último que se escribió todavía viaja a la base: se espera, o la base respondería que el conteo cambió. */
   esperandoGuardar: boolean;
@@ -78,6 +88,11 @@ export function LlevarAlStock({
   const [error, setError] = useState<string | null>(null);
   const [atipicos, setAtipicos] = useState<CostoAtipicoRecepcion[] | null>(null);
   const enVuelo = useRef(false);
+  const precios = usePreciosDeVenta();
+  const venta = precios.ventas[productoId];
+  const alcance = soloSede ? "sede" : (venta?.alcance ?? ALCANCE_DE_FABRICA);
+  const problemaPrecio = leerPrecioNuevo(venta?.valor ?? "").problema ?? venta?.rechazo ?? null;
+  const cambioVenta = cambioDePrecioDeVenta(nombre, hoyDelPrecio({ actual: venta?.actual, actualSede: venta?.actualSede, alcance }), venta?.valor ?? "", alcance);
 
   // Sin aviso y sin ver el dinero, entra sin costo: llega con la factura. Lo demás lleva su caja.
   const editaCosto = !(sinAviso && !linea.linea && !veDinero);
@@ -87,6 +102,8 @@ export function LlevarAlStock({
     ...(editaCosto
       ? [{ id: "salida-costo", nombre: "Costo", requerido: faltaCosto || lectura.problema !== null, hecho: costo.trim() !== "" && lectura.problema === null, pendiente: lectura.problema ?? "Escribe el costo." }]
       : []),
+    // Opcional: solo frena si lo escrito no es un precio (o la base ya dijo por qué no).
+    { id: "salida-precio", nombre: "Precio de venta", requerido: problemaPrecio !== null, hecho: problemaPrecio === null, pendiente: problemaPrecio ?? "Revisa el precio de venta." },
     ...(responsable.listo ? [] : [{ id: "salida-responsable", nombre: "Quién lo lleva", requerido: true, hecho: false, pendiente: responsable.motivo ?? "Elige quién lo lleva." }]),
   ];
   // En una sede con dos empresas, lo que entra lleva su dueño (ADR-0542), como al cerrar. La base no lo deja entrar sin él.
@@ -110,6 +127,24 @@ export function LlevarAlStock({
     setGuardando(true);
     setError(null);
     const cambio = editaCosto && costo.trim() !== textoInicial.trim();
+    // Primero el precio, mientras la prenda sigue separada en este envío (después la base ya no lo acepta desde aquí).
+    if (cambioVenta) {
+      const ids = variantes.filter((v) => v.cantidad > 0).map((v) => v.varianteId);
+      const { error: fallaPrecio } = await cambiarPreciosEnRecepcion(
+        { p_despacho_id: despachoId, p_producto_id: productoId, p_precios: Object.fromEntries(ids.map((id) => [id, cambioVenta.despues])), p_alcance: alcance },
+        responsable.firma(),
+      );
+      if (fallaPrecio) {
+        responsable.despues(fallaPrecio);
+        enVuelo.current = false;
+        setGuardando(false);
+        const texto = mensajeAlGuardar(fallaPrecio, "cambiar el precio");
+        precios.rechazar(productoId, texto);
+        setError(`No se llevó nada al stock: el precio no se pudo guardar. ${texto}`);
+        return;
+      }
+      precios.aplicado(productoId, cambioVenta.despues, alcance);
+    }
     const { resultado, error: falla } = await llevarAlStock(
       argsLlevarAlStock({
         despachoId,
@@ -210,6 +245,19 @@ export function LlevarAlStock({
               ) : (
                 <p className="nota-cayla">Entra sin costo: llega con la factura.</p>
               )}
+              <CampoGuiado id="salida-precio" guia={guia}>
+                <PrecioDePrenda
+                  prenda={{ productoId, nombre, codigo: null }}
+                  sede={sede}
+                  soloSede={soloSede}
+                  sedeId={sedeId}
+                  editado={venta}
+                  sinNombre
+                  onActual={(general, enSede) => precios.ponerActual(productoId, general, enSede)}
+                  onValor={(valor) => precios.cambiarVenta(productoId, { valor })}
+                  onAlcance={(a) => precios.cambiarVenta(productoId, { alcance: a })}
+                />
+              </CampoGuiado>
               {preguntaDueno && empresasDeLaSede && (
                 <CampoGuiado id="salida-dueno" guia={guia}>
                   <DuenoDeLoQueEntra empresas={empresasDeLaSede} duenoId={duenoId} onElegir={setDuenoId} deshabilitado={guardando} />
