@@ -206,6 +206,9 @@ function AnotarPlataModal({ puedeYaTenia, bancos, onClose, volverA }: { puedeYaT
               {!yaTenia && (
                 <FichasMedio<Ficha>
                   etiqueta="¿Cómo te llegó?"
+                  // En PC la columna de la izquierda mide ~340 px: tres fichas lado a lado quedaban de 108 px, paradas y con el nombre a 9 px
+                  // (y recortado si la hoja se angostaba). Una debajo de otra van acostadas, con el nombre entero y legible.
+                  className="grid grid-cols-3 gap-2 lg:grid-cols-1"
                   opciones={FICHAS}
                   valor={medio ? (A_FICHA[medio] ?? null) : null}
                   onValor={(f) => {
