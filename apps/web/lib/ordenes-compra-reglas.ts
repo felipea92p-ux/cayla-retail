@@ -500,14 +500,15 @@ export function leerDetalleOrden(data: unknown): DetalleOrden | null {
       const posicion = cifra(r.posicion);
       const categoriaId = texto(r.categoria_id);
       const categoria = texto(r.categoria);
-      const marcaId = texto(r.marca_id);
-      const marca = texto(r.marca);
+      // Una compra de «Algo nuevo» puede ir sin marca (Felipe 2026-11-11): la línea se ve igual, como «Sin marca».
+      const marcaId = texto(r.marca_id) ?? "";
+      const marca = texto(r.marca) ?? "Sin marca";
       const cantidad = cifra(r.cantidad);
       const precioUnitario = cifra(r.precio_unitario);
       const subtotal = cifra(r.subtotal);
       const pendiente = cifra(r.pendiente);
       const porEnviar = cifra(r.por_enviar);
-      if (posicion == null || !categoriaId || !categoria || !marcaId || !marca || cantidad == null || precioUnitario == null || subtotal == null) return null;
+      if (posicion == null || !categoriaId || !categoria || cantidad == null || precioUnitario == null || subtotal == null) return null;
       return {
         id: texto(r.id),
         posicion,

@@ -1140,7 +1140,7 @@ describe("la reposición de lo que faltó en la recepción", () => {
       if (l.sobrante_causa !== "reposicion_faltante") continue;
       const linea = d.lineas.find((x) => x.id === l.despacho_item_id)!;
       const deMas = l.variantes.reduce((a, v) => a + v.cantidad, 0) - linea.enviado;
-      if (!tomar(`${linea.proveedor?.id}|${linea.categoria.id}|${linea.marca.id}`, deMas)) return "reposicion_faltante";
+      if (!tomar(`${linea.proveedor?.id}|${linea.categoria.id}|${linea.marca?.id}`, deMas)) return "reposicion_faltante";
     }
     for (const e of args.p_extras) {
       if (e.sobrante_causa !== "reposicion_faltante") continue;

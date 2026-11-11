@@ -317,8 +317,7 @@ function Atajo({ elegido, onClick, guia, titulo, children }: { elegido: boolean;
   );
 }
 
-/** Lo de arriba de la hoja de una prenda nueva: qué es y la marca, cómo se llama debajo, y la nota de que es solo una
- *  referencia. El ejemplo del nombre sigue a la categoría elegida (ADR-0290). */
+/** Lo de arriba de la hoja de una prenda nueva: qué es y la marca, cómo se llama debajo. El ejemplo del nombre sigue a la categoría elegida (ADR-0290). */
 function DescribirNueva({
   nueva,
   n,
@@ -338,11 +337,8 @@ function DescribirNueva({
   const marcaYaEsta = escrita && !escrita.id.startsWith(MARCA_NUEVA_PREFIJO) ? escrita : null;
   return (
     <div className="space-y-4 border-b border-sand pb-4">
-      <p className="text-sm leading-snug text-taupe">
-        Úsala también si no la encuentras entre sus prendas o no sabes cómo la llaman en la tienda: descríbela como la conoces. Es solo una
-        referencia para la compra: no se crea en el catálogo; la tienda la registra cuando la recibe, con su color y sus tallas.
-      </p>
-      {/* Qué es y la marca, uno bajo otro: con chips, lado a lado se partían. Los chips son lo habitual de este proveedor y «Otra…» abre
+      {/* Sin párrafo de explicación arriba (Felipe 2026-11-11: «innecesario»): la bajada «De … · solo una referencia» ya lo dice.
+          Qué es y la marca, uno bajo otro: con chips, lado a lado se partían. Los chips son lo habitual de este proveedor y «Otra…» abre
           la lista completa (maqueta mis-compras-rediseno-2026-10, Felipe 2026-10-26). */}
       <div className="grid gap-4">
         <CampoGuiado id="categoria" guia={guia} titulo="¿Qué es?">
@@ -357,7 +353,8 @@ function DescribirNueva({
             opciones={opcionesCategoriaNueva(nueva.categorias, nueva.suyas)}
           />
         </CampoGuiado>
-        <CampoGuiado id="marca" guia={guia} titulo="¿De qué marca?">
+        {/* «· opcional» se calla mientras hay una marca empezada a escribir: esa sí hay que terminarla (o cerrar la caja con la ×). */}
+        <CampoGuiado id="marca" guia={guia} titulo="¿De qué marca?" ayuda={n.marcaNueva?.trim() ? undefined : "· opcional"}>
           {/* El «+» del final cambia la lista por una caja para escribir una marca que no está; la «×» vuelve a la lista (Felipe
               2026-10-24). La marca escrita se crea al guardar la compra, unida a este proveedor. */}
           <div className="flex items-start gap-2" data-guia="compra.marca-nueva">
@@ -380,7 +377,8 @@ function DescribirNueva({
                   todas={nueva.marcas}
                   habituales={nueva.marcasDelProveedor.map((m) => m.id)}
                   valor={n.marcaId}
-                  onValor={(v) => nueva.cambiar({ marcaId: v || null })}
+                  // Opcional (Felipe 2026-11-11): tocar otra vez la marca elegida la quita; la tienda la pone al recibir.
+                  onValor={(v) => nueva.cambiar({ marcaId: v && v !== n.marcaId ? v : null })}
                   opciones={opcionesMarcaNueva(nueva.marcas, nueva.marcasDelProveedor)}
                 />
               )}

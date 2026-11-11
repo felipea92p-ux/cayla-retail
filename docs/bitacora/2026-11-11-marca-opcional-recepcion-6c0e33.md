@@ -1,0 +1,2 @@
+- 2026-11-11 · Mis compras ▸ «Algo nuevo»: sin el párrafo de explicación y con la marca opcional; Recibir lee las líneas sin marca y, al ponerle la marca a una, la vincula con el proveedor (ADR-0646). Migración `20261111192000` (15 funciones por ancla, 2 columnas), sin pegar.
+- 2026-11-11 · `20261111192000` aplicada en producción con el OK de Felipe (registrada como `20261111193556`) y verificada: columnas sin `not null`, regla común con la marca opcional, Recibir sin `join` que salte líneas y el vínculo marca–proveedor al poner la marca.
