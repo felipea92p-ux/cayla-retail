@@ -20,7 +20,7 @@ import { RITMOS, alternarComparar, porqueDelRitmo, contarPorRitmo, filasDelRanki
 import type { RendimientoProveedor } from "@/lib/proveedor-prendas-reglas";
 import { soles } from "@/lib/compras-reglas";
 import { clave } from "@/lib/buscar-prenda-v2";
-import { ETIQUETA_TIPO_PROVEEDOR, chipEntregas, haceCuanto, marcasParaMostrar, ordenarProveedores, repartoDeuda, rubrosConConteo, siguienteOrden, resumenSoloMercaderia, sinDatosDePago, textoBuscableProveedor, tieneRubro, type CampoOrden, type MarcasDeProveedor, type Orden, type TipoProveedor } from "@/lib/proveedores-reglas";
+import { ETIQUETA_TIPO_PROVEEDOR, chipEntregas, haceCuanto, ordenarProveedores, tituloDeMarcas, repartoDeuda, rubrosConConteo, siguienteOrden, resumenSoloMercaderia, sinDatosDePago, textoBuscableProveedor, tieneRubro, type CampoOrden, type MarcasDeProveedor, type Orden, type TipoProveedor } from "@/lib/proveedores-reglas";
 import { useFlip } from "@/lib/useFlip";
 import { Boton } from "@/components/ui/campos";
 import { Chip } from "@/components/ui/Chip";
@@ -523,6 +523,7 @@ export function ProveedoresPanel({
             <ProveedoresRanking
               filas={filasRanking}
               proveedores={porId}
+              marcasDe={marcasDe}
               maxValor={Math.max(1, ...ranking.filas.map((f) => valorDe(f, medida)))}
               medida={medida}
               antes={puestosAntes}
@@ -713,6 +714,8 @@ type PropsFila = {
 };
 
 const MONOGRAMA = "font-display grid h-[34px] w-[34px] shrink-0 place-items-center rounded-full bg-sand text-base text-tinta transition-colors duration-300 group-hover:bg-tinta group-hover:text-crema";
+// El de una marca (ADR-0644): la inicial de su primera marca, en tinta, como en Mis compras.
+const MONOGRAMA_MARCA = "font-display grid h-[34px] w-[34px] shrink-0 place-items-center rounded-[10px] bg-tinta text-base text-crema";
 
 function iniciales(nombre: string): string {
   return nombre
@@ -726,9 +729,9 @@ function iniciales(nombre: string): string {
 
 // Nombre/contacto/rubro/plazo: para cualquiera. El resto de la fila (RUC en adelante) cambia de
 // contenido Y de significado entre líder y colaborador, no solo de estilo.
-// Cuántas etiquetas de marca caben en la fila antes de resumir el resto en «+N».
-const MARCAS_POR_FILA = 3;
-
+// La marca primero (ADR-0644, Felipe 2026-11-11): el título de la fila son sus marcas («Kero, Lolita y Mia Rose») y la razón social baja a la
+// línea de abajo, junto al contacto. Antes las marcas iban en etiquetas chicas bajo la razón social (ADR-0140). Sin marcas (servicios,
+// gastos), la razón social sigue de título.
 function NombreCelda({
   p,
   busqueda,
@@ -742,44 +745,32 @@ function NombreCelda({
   marcarSinPago?: boolean;
 }) {
   const sinPago = marcarSinPago && p.activo && sinDatosDePago(p);
-  const { visibles, ocultas } = marcasParaMostrar(marcas, busqueda, MARCAS_POR_FILA);
+  const titulo = tituloDeMarcas(marcas, busqueda);
   return (
     <span className="flex min-w-0 items-center gap-3">
-      <span aria-hidden className={MONOGRAMA}>
-        {iniciales(p.nombre)}
+      <span aria-hidden className={titulo ? MONOGRAMA_MARCA : MONOGRAMA}>
+        {titulo ? titulo.trim().charAt(0).toUpperCase() : iniciales(p.nombre)}
       </span>
       <span className="min-w-0">
-        <span className="block truncate text-sm text-tinta">
-          <Resaltado texto={p.nombre} busqueda={busqueda} />
+        <span className="block truncate text-sm font-medium text-tinta" title={titulo ? marcas.join(", ") : undefined}>
+          <Resaltado texto={titulo ?? p.nombre} busqueda={busqueda} />
         </span>
         <span className="block truncate text-sm text-tinta/65">
+          {titulo && (
+            <>
+              <Resaltado texto={p.nombre} busqueda={busqueda} />
+              {" · "}
+            </>
+          )}
           {p.contacto ? <Resaltado texto={p.contacto} busqueda={busqueda} /> : "Sin contacto"}
           {p.rubros.length > 0 && ` · ${p.rubros.join(", ")}`}
           {p.plazo_credito_dias != null && ` · Crédito ${p.plazo_credito_dias} d`}
         </span>
-        {/* Debajo, no al lado: junto al nombre le quitaba ancho y lo cortaba («Confecciones d…»). Las marcas van en la
-            misma línea que el aviso de pago para no alargar la fila (ADR-0140). */}
-        {(sinPago || visibles.length > 0) && (
+        {sinPago && (
           <span className="mt-1 flex flex-wrap items-center gap-1">
-            {sinPago && (
-              <Chip tono="ambar" versalitas={false}>
-                Sin datos de pago
-              </Chip>
-            )}
-            {visibles.map((m) => (
-              // Un solo hijo dentro del chip: es flex con `gap`, y cada tramo del resaltado (<span>, <mark>, <span>) sería un
-              // ítem aparte con un hueco DENTRO de la palabra. El `truncate` corta una marca más ancha que la columna.
-              <Chip key={m} versalitas={false} className="min-w-0 max-w-full">
-                <span className="truncate">
-                  <Resaltado texto={m} busqueda={busqueda} />
-                </span>
-              </Chip>
-            ))}
-            {ocultas > 0 && (
-              <span className="text-sm text-tinta/55" title={marcas.filter((m) => !visibles.includes(m)).join(", ")}>
-                +{ocultas}
-              </span>
-            )}
+            <Chip tono="ambar" versalitas={false}>
+              Sin datos de pago
+            </Chip>
           </span>
         )}
       </span>

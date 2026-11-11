@@ -419,6 +419,14 @@ describe("Mi plata rediseñada (maqueta compras-formidable-2026-10)", () => {
     expect([taxi.titulo, taxi.icono, taxi.detalle, taxi.estado.texto]).toEqual(["Taxi", "taxi", "Sin papel", "Compras lo revisa"]);
   });
 
+  it("la marca primero (ADR-0644): con marcas, son el título y el proveedor baja al detalle; sin ellas, «Compra a …»", () => {
+    const marcas = new Map([["c1", ["Kero", "Lolita"]]]);
+    const { actuales } = movimientosDeLaCompradora(p, new Map(), marcas);
+    const [andina, , rosa] = actuales;
+    expect([rosa.titulo, rosa.detalle]).toEqual(["Kero · Lolita", "Textiles Rosa · 35 prendas · Factura · AQP"]);
+    expect(andina.titulo).toBe("Compra a Andina");
+  });
+
   it("una compra ya enviada dice su código (Mis envíos); si falta mandar algo, sigue diciendo a qué tienda", () => {
     const codigos = new Map([["c1", ["ENV-000118", "ENV-000119"]], ["c2", ["ENV-000120"]]]);
     const { actuales } = movimientosDeLaCompradora(p, codigos);

@@ -3,6 +3,8 @@ import { redirect } from "next/navigation";
 import { BarraAvance } from "@/components/ui/BarraAvance";
 import { exigirModulo, veModulo } from "@/lib/persona-actual";
 import { entradaDeCompras } from "@/lib/compras-pestanas-reglas";
+import { getMarcasDeCompras } from "@/lib/marcas-de-compras";
+import { tituloDeCompra } from "@/lib/marcas-de-compras-reglas";
 import { listarCompras, getResumenCompras, filtrosDesdeParams, getProveedoresActivos, ETIQUETA_TIPO_DOCUMENTO, soles, type ParamsCompras } from "@/lib/compras";
 import { getNotasPendientes, getResumenComprasExtra } from "@/lib/compras-indicadores";
 import { celdaPago, celdaRecepcion, nombreDelMes, subEmision, vistaActiva, type VistaComprobantes } from "@/lib/comprobantes-lista-reglas";
@@ -71,8 +73,12 @@ export default async function ComprasPage({ searchParams }: { searchParams: Prom
   // Qué comprobantes esperan su nota de crédito por faltante depende de los ids de la página, así que se
   // pide ENCADENADA a la lista (y solo si algún comprobante de la página tiene algo cerrado): sigue corriendo
   // en paralelo con las demás consultas de la pantalla.
-  const [{ pagina: { filas: compras, siguiente }, notas }, resumen, extra, proveedores, ubicaciones] = await Promise.all([
-    listarCompras(filtros, { cursor, orden }).then(async (pagina) => ({ pagina, notas: await getNotasPendientes(idsConFaltanteCerrado(pagina.filas)) })),
+  const [{ pagina: { filas: compras, siguiente }, notas, marcas }, resumen, extra, proveedores, ubicaciones] = await Promise.all([
+    // La marca primero (ADR-0644): las marcas de cada comprobante de la página, encadenadas a la lista como las notas pendientes.
+    listarCompras(filtros, { cursor, orden }).then(async (pagina) => {
+      const [notas, marcas] = await Promise.all([getNotasPendientes(idsConFaltanteCerrado(pagina.filas)), getMarcasDeCompras({ compras: pagina.filas.map((c) => c.id) })]);
+      return { pagina, notas, marcas };
+    }),
     getResumenCompras(),
     getResumenComprasExtra(),
     getProveedoresActivos(),
@@ -233,7 +239,7 @@ export default async function ComprasPage({ searchParams }: { searchParams: Prom
               plantilla={PLANTILLA}
               columnas={[
                 { titulo: "Emisión" },
-                { titulo: "Proveedor" },
+                { titulo: "Marca y proveedor" },
                 { titulo: "N.° documento" },
                 { titulo: "Recepción" },
                 { titulo: "Pago" },
@@ -257,10 +263,21 @@ export default async function ComprasPage({ searchParams }: { searchParams: Prom
                       <span className="block">{diaMes(c.fechaEmision)}</span>
                       <span className={`block text-sm ${c.vencida && c.estadoPago !== "pagada" ? "text-rojo" : "text-tinta/70"}`}>{subEmision(c)}</span>
                     </span>
-                    <span className={celda()} data-guia="compras.proveedor">
-                      <span className={`block text-sm ${c.estado === "anulada" ? "text-tinta/40 line-through" : "text-tinta"}`}>
-                        <Resaltado texto={c.proveedorNombre} busqueda={busqueda} />
-                      </span>
+                    <span className={celda()}>
+                      {/* La marca primero (ADR-0644): con marcas, son el título y la razón social baja con su RUC; sin ellas, como antes.
+                          `compras.proveedor` va siempre en la razón social: la demo de la guía escribe una palabra de ahí en el buscador. */}
+                      {tituloDeCompra(marcas.get(c.id)) ? (
+                        <>
+                          <span className={`block text-sm font-medium ${c.estado === "anulada" ? "text-tinta/40 line-through" : "text-tinta"}`}>{tituloDeCompra(marcas.get(c.id))}</span>
+                          <span className="block text-sm text-tinta/70" data-guia="compras.proveedor">
+                            <Resaltado texto={c.proveedorNombre} busqueda={busqueda} />
+                          </span>
+                        </>
+                      ) : (
+                        <span className={`block text-sm ${c.estado === "anulada" ? "text-tinta/40 line-through" : "text-tinta"}`} data-guia="compras.proveedor">
+                          <Resaltado texto={c.proveedorNombre} busqueda={busqueda} />
+                        </span>
+                      )}
                       {c.proveedorRuc && (
                         <span className="block text-sm tabular-nums text-tinta/70">
                           RUC <Resaltado texto={c.proveedorRuc} busqueda={busqueda} />

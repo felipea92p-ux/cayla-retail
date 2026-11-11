@@ -1,4 +1,5 @@
 import { exigirModulo } from "@/lib/persona-actual";
+import { getMarcasDeCompras } from "@/lib/marcas-de-compras";
 import { listarPorPagar, getPagosDeCompras, getResumenCompras, filtrosDesdeParams, getProveedoresActivos, getCompra, type ParamsCompras } from "@/lib/compras";
 import { getDeudaPorVencimiento, getNotasPendientes, getPorPagarTramos, getResumenComprasExtra, getSalidasCaja30d } from "@/lib/compras-indicadores";
 import { getProveedores } from "@/lib/proveedores";
@@ -57,12 +58,17 @@ export default async function PorPagarPage({ searchParams }: { searchParams: Pro
   // Qué comprobantes esperan su nota de crédito por faltante (para no pagar de más lo que el proveedor va a
   // acreditar) depende de los ids de la página: se pide ENCADENADA a la lista, y solo si algún comprobante de
   // la página tiene algo cerrado, sin frenar las demás consultas.
-  const [{ pagina: { filas: compras, siguiente }, notas, pagos }, resumen, extra, vencimiento, salidas, tramos, directorio, proveedores, compraAPagar, ubicaciones] = await Promise.all([
+  const [{ pagina: { filas: compras, siguiente }, notas, pagos, marcas }, resumen, extra, vencimiento, salidas, tramos, directorio, proveedores, compraAPagar, ubicaciones] = await Promise.all([
     // Notas pendientes y pagos previos dependen de los ids de la página: se piden encadenados y solo de lo que hace falta (los pagos, solo de
     // los comprobantes que ya recibieron alguno), sin frenar las demás consultas.
     listarPorPagar(filtros, cursor).then(async (pagina) => {
-      const [notas, pagos] = await Promise.all([getNotasPendientes(idsConFaltanteCerrado(pagina.filas)), getPagosDeCompras(pagina.filas.filter((c) => c.pagado > 0).map((c) => c.id))]);
-      return { pagina, notas, pagos };
+      // La marca primero (ADR-0644): las marcas de cada comprobante de la página, para el título de su fila.
+      const [notas, pagos, marcas] = await Promise.all([
+        getNotasPendientes(idsConFaltanteCerrado(pagina.filas)),
+        getPagosDeCompras(pagina.filas.filter((c) => c.pagado > 0).map((c) => c.id)),
+        getMarcasDeCompras({ compras: pagina.filas.map((c) => c.id) }),
+      ]);
+      return { pagina, notas, pagos, marcas: Object.fromEntries(marcas) };
     }),
     getResumenCompras(),
     getResumenComprasExtra(),
@@ -254,6 +260,7 @@ export default async function PorPagarPage({ searchParams }: { searchParams: Pro
               datosProveedores={datosProveedores}
               notas={notas}
               pagos={pagos}
+              marcas={marcas}
               seleccionInicial={seleccionInicial}
               indice={10}
             />
