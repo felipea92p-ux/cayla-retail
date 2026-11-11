@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { ArrowDown, ArrowUp, Banknote, ChevronRight, Shirt } from "lucide-react";
 import type { Proveedor } from "@/lib/proveedores";
+import { tituloDeMarcas } from "@/lib/proveedores-reglas";
 import { soles } from "@/lib/compras-reglas";
 import { solesRedondo } from "@/lib/gastos-reglas";
 import { RITMOS, DIAS_DE_VENTAS, FILAS_A_LA_VISTA, MAX_COMPARAR, cambioDePuesto, semanasCortas, esAproximado, semanaDeVentas, textoRitmo, type FilaRanking, type MedidaRanking } from "@/lib/proveedores-ranking-reglas";
@@ -95,6 +96,7 @@ export function MedidaDelRanking({ medida, onMedida, prendas, gasto, cargaPct, p
 export function ProveedoresRanking({
   filas,
   proveedores,
+  marcasDe,
   maxValor,
   medida,
   antes,
@@ -111,6 +113,8 @@ export function ProveedoresRanking({
   filas: readonly FilaRanking[];
   /** El proveedor de cada fila (lo que se le debe, sus marcas y rubros): llega del directorio, no del ranking. */
   proveedores: ReadonlyMap<string, Proveedor>;
+  /** Las marcas de cada proveedor (ADR-0644): son el título de su fila; la razón social baja a la línea de abajo. */
+  marcasDe: (id: string) => readonly string[];
   /** Lo que se le compró al primero en la medida elegida: la barra de cada fila se mide contra él. */
   maxValor: number;
   medida: MedidaRanking;
@@ -131,7 +135,7 @@ export function ProveedoresRanking({
   const vista = filas.slice(0, FILAS_A_LA_VISTA);
   const resto = filas.slice(FILAS_A_LA_VISTA);
   const filaDe = (f: FilaRanking, i: number) => (
-    <FilaDelRanking key={f.proveedorId} f={f} p={proveedores.get(f.proveedorId)} indice={i} maxValor={maxValor} medida={medida} cambio={cambioDePuesto(antes, f)} serie={ventas ? (ventas[f.proveedorId] ?? SIN_VENTAS) : null} busqueda={busqueda} onAbrir={onAbrir} comparado={comparar.includes(f.proveedorId)} onComparar={onComparar} refFila={refFila(f.proveedorId)} />
+    <FilaDelRanking key={f.proveedorId} f={f} p={proveedores.get(f.proveedorId)} marcas={marcasDe(f.proveedorId)} indice={i} maxValor={maxValor} medida={medida} cambio={cambioDePuesto(antes, f)} serie={ventas ? (ventas[f.proveedorId] ?? SIN_VENTAS) : null} busqueda={busqueda} onAbrir={onAbrir} comparado={comparar.includes(f.proveedorId)} onComparar={onComparar} refFila={refFila(f.proveedorId)} />
   );
   return (
     <div className="space-y-3" data-guia="proveedores.lista">
@@ -170,6 +174,7 @@ function FilaDelRanking({
   medida,
   cambio,
   serie,
+  marcas,
   busqueda,
   onAbrir,
   comparado,
@@ -177,6 +182,8 @@ function FilaDelRanking({
   refFila,
 }: {
   f: FilaRanking;
+  /** Sus marcas (ADR-0644): el título de la fila. */
+  marcas: readonly string[];
   p: Proveedor | undefined;
   indice: number;
   maxValor: number;
@@ -196,6 +203,7 @@ function FilaDelRanking({
   const Icono = ICONO_MEDIDA[medida];
   // En dinero, lo vendido va a su costo y lo que queda es la plata que sigue en tus tiendas; con la carga inicial como mayoría, aproximado.
   const enSoles = medida === "soles";
+  const titulo = tituloDeMarcas(marcas, busqueda);
   const valor = enSoles ? `${esAproximado(f) ? "≈ " : ""}${solesRedondo(f.gasto)}` : f.unidadesCompradas.toLocaleString("es-PE");
   return (
     <div
@@ -219,12 +227,12 @@ function FilaDelRanking({
           type="button"
           onClick={() => onAbrir(f.proveedorId)}
           data-guia="proveedores.nombre"
-          aria-label={`${f.nombre}: abrir vista rápida`}
+          aria-label={`${titulo ? `${titulo} (${f.nombre})` : f.nombre}: abrir vista rápida`}
           className="block min-w-0 max-w-full text-left outline-none after:absolute after:inset-0 after:content-[''] focus-visible:after:outline focus-visible:after:outline-2 focus-visible:after:-outline-offset-2 focus-visible:after:outline-rojo/60"
         >
           <span className="flex min-w-0 items-center gap-2">
-            <span className="truncate text-[15px] font-semibold text-tinta">
-              <Resaltado texto={f.nombre} busqueda={busqueda} />
+            <span className="truncate text-[15px] font-semibold text-tinta" title={titulo ? marcas.join(", ") : undefined}>
+              <Resaltado texto={titulo ?? f.nombre} busqueda={busqueda} />
             </span>
             {/* Cuántos puestos se movió al cambiar de medida: responde a esa acción y se queda hasta el próximo cambio. */}
             {cambio !== 0 && (
@@ -235,6 +243,12 @@ function FilaDelRanking({
             )}
           </span>
         </button>
+        {/* La marca primero (ADR-0644): con marcas, la razón social baja aquí, sobre lo que se le debe. */}
+        {titulo && (
+          <span className="block truncate text-sm text-tinta/80">
+            <Resaltado texto={f.nombre} busqueda={busqueda} />
+          </span>
+        )}
         <span className="block truncate text-sm text-tinta/65">
           {saldo > 0 ? (
             <>
