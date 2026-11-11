@@ -106,6 +106,6 @@ puerta que la unión no cubre). Sin pantalla todavía: la unión solo se hace po
 Tras unir ENV-009 y ENV-011, sus órdenes (OC-000008 y OC-000018) siguieron saliendo en Recibir como «Sin guía · Llegó esta orden». La unión le
 enseñó a `fn_compra_item_por_mandar` y al tope de `despacho_items` que la compra ya llegó (nadie puede volver a enviarla ni recibirla), pero
 tres lecturas calculan «lo que falta mandar» solo con los envíos: `fn_ordenes_directas_por_recibir` (Recibir), `fn_ordenes_compra_por_enviar`
-(Órdenes de compra) y `fn_analisis_pedido_en_camino` (Análisis). Migración `20261111165000`: las tres dejan fuera una orden cuyo papel está
+(Órdenes de compra) y `fn_analisis_pedido_en_camino` (Análisis). Migración `20261111165000` (EN PRODUCCIÓN el 2026-11-11): las tres dejan fuera una orden cuyo papel está
 unido. `fn_analisis_pedido_en_camino` existe en producción sin migración en el repo; la migración la salta donde no existe.
 Pendiente: `fn_plan_compra_pedido` (Plan de campaña) sigue contando como «por llegar» lo de una compra unida.

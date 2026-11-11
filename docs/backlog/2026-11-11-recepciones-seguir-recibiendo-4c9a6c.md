@@ -5,5 +5,5 @@
 - [ ] ENV-016 (abierto el 10-nov, 0 contadas): Krisstell 46 y Blues Company 12 ya entraron por ENV-007; Miramhe, Mias e Ivanana por ENV-005 (a nombre de «CAYLA SAC»). Confirmar con Felipe antes de unir; que nadie lo cuente.
 - [ ] ENV-017 (abierto el 10-nov): CHEN 12 YA se recibió por este envío; revisar si son las mismas 12 que entraron el 28-oct por ajuste («Productos nuevo»): posible stock doble. Lady Girl 8, Anqori 7 y acuarela 10 ya entraron por ENV-012; como ENV-017 ya tiene algo recibido, la unión se niega.
 - [ ] La pantalla «Unir» en Recibir (fila del envío de Compras: «Ya llegó sin aviso en ENV-…»), con su guía.
-- [ ] Pegar `20261111165000` (las órdenes unidas dejan de salir «Sin guía · Llegó esta orden» en Recibir, «por enviar» en Órdenes de compra y «en camino» en Análisis). Hoy salen OC-000008 y OC-000018.
+- [x] `20261111165000` EN PRODUCCIÓN (2026-11-11, OK de Felipe): OC-000008 y OC-000018 ya no salen en Recibir «Sin guía» ni en Órdenes de compra «por enviar» (verificado como Felipe en TRU: ninguna).
 - [ ] `fn_plan_compra_pedido`: una orden unida sigue contando como «por llegar» en el Plan de campaña.
