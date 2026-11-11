@@ -169,7 +169,10 @@ caso("…y deja constancia en la nota de la orden, con quién, cuándo y el moti
   const s = escena({ unitario: 70, confirma: true });
   const m = /^Costo atípico confirmado por .+ el \d{2}\/\d{2}\/\d{4} \d{2}:\d{2} \(más del doble del costo vigente\): «motivo de prueba»$/.exec(s.nota ?? "");
   if (!m) return `nota: ${s.nota}`;
-  if (/70|32|79/.test(s.nota)) return `la nota trae cifras de costo: ${s.nota}`;
+  // Sin la fecha y la hora: a las 10:32 o a las 17:09 la marca de tiempo trae esos dígitos y la prueba caía según la hora del CI
+  // (pasó el 2026-11-11 a las 10:32). Lo que importa es que la nota no diga montos.
+  const sinFecha = (s.nota ?? "").replace(/\d{2}\/\d{2}\/\d{4} \d{2}:\d{2}/, "");
+  if (/70|32|79/.test(sinFecha)) return `la nota trae cifras de costo: ${s.nota}`;
 });
 
 caso("un integrante con costo atípico NO puede cerrar: costo_atipico_sin_lider, sin cifras (sin detail)", () => {
