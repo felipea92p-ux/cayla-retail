@@ -1,4 +1,4 @@
-## 📦 Recibir ▸ Contar en dos mitades (2026-11-11, ADR-0645) — solo web, sin migración; rama `claude/redesign-receiving-merchandise-6cbf2f`, **sin PR**
+## 📦 Recibir ▸ Contar en dos mitades (2026-11-11, ADR-0645) — solo web, sin migración; rama `claude/redesign-receiving-merchandise-6cbf2f`, **PR abierto: [felipea92p-ux/cayla-retail#1779](https://github.com/felipea92p-ux/cayla-retail/pull/1779)**
 
 - [x] 1 · La lista se queda con todo lo del envío: avance, buscador, un botón «Filtros», quién cuenta y el único «Revisar y cerrar».
 - [x] 2 · El contador en tres bloques con pie fijo; en el último modelo lleva al que quedó sin contar.
@@ -12,7 +12,7 @@
 - [x] Los 3 cambios de `/formidable`, con el OK de Felipe (2026-11-11): el contador baja a las tallas tras «Llegaron las N» (`c4c3282c5`), un solo botón negro (`c089acb26`), una sola frase de lo que falta (`0075e6e5e`). Medidos; informe en `docs/formidable/recibir-contar-dos-mitades.md`.
 - [x] De paso: la página ya no salta de vuelta al guardar en el celular ni con las mitades apiladas (`history.scrollRestoration = "manual"` mientras se recibe).
 - [ ] **Prueba ciega de `/formidable` sin correr** (un filtro de la API frenó al agente) y prueba con una colaboradora real.
-- [ ] **Abrir el PR** con `/abrir-pr` cuando Felipe lo pida. Decir en el PR: se tocó `apps/web/app/estilos/vidrio/recibir-mesa.css` (Dynamic lo mira; nada que llevar) y `HojaPrenda` cambia de comportamiento cuando se abre desde la tabla (`enTabla`).
+- [x] PR abierto con `/abrir-pr` el 2026-11-11 ([felipea92p-ux/cayla-retail#1779](https://github.com/felipea92p-ux/cayla-retail/pull/1779)): `main` entró sin conflictos, sin choques con otros PR, y su descripción dice lo de Dynamic y el cambio de `HojaPrenda`. **Falta que Felipe lo fusione.**
 
 ### Decisiones abiertas (de Felipe)
 

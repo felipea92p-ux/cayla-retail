@@ -1,6 +1,6 @@
 # ADR-0645 — Recibir ▸ Contar en dos mitades
 
-- **Fecha:** 2026-11-11 · **Estado:** construido y verificado en local, en commits de la rama; **sin PR y sin publicar**. Solo web: no hay
+- **Fecha:** 2026-11-11 · **Estado:** construido y verificado en local; **PR abierto** ([felipea92p-ux/cayla-retail#1779](https://github.com/felipea92p-ux/cayla-retail/pull/1779)), sin fusionar ni publicar. Solo web: no hay
   migración ni RPC nuevas.
 - **Rama:** `claude/redesign-receiving-merchandise-6cbf2f`. Número reservado con `pnpm reservar adr`.
 - **Relacionados:** ADR-0604 (Contar modelo por modelo, la pantalla que esto reordena), ADR-0393 (Recibir contando y «Llevar al stock»),
