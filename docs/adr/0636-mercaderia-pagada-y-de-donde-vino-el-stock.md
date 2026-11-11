@@ -109,3 +109,14 @@ tres lecturas calculan «lo que falta mandar» solo con los envíos: `fn_ordenes
 (Órdenes de compra) y `fn_analisis_pedido_en_camino` (Análisis). Migración `20261111165000` (EN PRODUCCIÓN el 2026-11-11): las tres dejan fuera una orden cuyo papel está
 unido. `fn_analisis_pedido_en_camino` existe en producción sin migración en el repo; la migración la salta donde no existe.
 Pendiente: `fn_plan_compra_pedido` (Plan de campaña) sigue contando como «por llegar» lo de una compra unida.
+
+## Actualización 2026-11-11 (c) — corregir el proveedor de una marca y unir con faltante (ENV-010)
+ENV-010 (Valeria Mia Peru Moda EIRL, 28) llegó sin aviso: 27 por ENV-005, que quedó entera a nombre de «CAYLA SAC», y el chaleco 13 por «Ajustar
+stock» el 6-nov mientras se contaba ENV-005. Migración `20261111175000`:
+1. `corregir_proveedor_de_marca(despacho, marca, proveedor, motivo)`: corrige de quién llegó UNA marca en una recepción sin aviso, abierta o
+   cerrada (lo recibido, lo contado y el lote de sus movimientos). Mismo permiso que `corregir_proveedor_envio` (ver el dinero de Compras).
+2. `fn_unida_proveedor_fijo` se acota: con una compra unida, solo frena mover filas desde o hacia un proveedor ya unido a esa recepción.
+3. **Decidido por Felipe (2026-11-11, «Unir con 27»):** un Admin puede unir con faltante cuando lo que falta ya entró por otra vía, con la marca
+   de transacción `retail.union_acepta_faltante`. La pantalla no la pone. El comprobante queda con 27 «recibido antes»; el chaleco 13 queda en
+   contabilidad como sobrante del ajuste, y el contador lo puede reclasificar.
+Script: `scripts/regularizar/2026-11-11-env-010-valeria-mia.sql`. Pruebas U21 y U22.

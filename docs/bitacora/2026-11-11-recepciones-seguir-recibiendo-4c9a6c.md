@@ -2,3 +2,4 @@
 - 2026-11-11 · Aplicado en producción con el OK de Felipe: la migración y el script. ENV-009 (2 contadas descartadas) y ENV-011 (10) anulados y unidos a ENV-007; las dos compras pasaron al libro; stock y movimientos sin cambio.
 - 2026-11-11 · OC-000008 y OC-000018 seguían en Recibir como «Llegó esta orden» tras unirlas: tres lecturas calculaban lo por mandar sin mirar las uniones. Migración `20261111165000` (sin pegar), prueba U20, 27/27.
 - 2026-11-11 · `20261111165000` aplicada en producción con el OK de Felipe; en TRU ya no queda ninguna orden «Sin guía».
+- 2026-11-11 · ENV-010: `corregir_proveedor_de_marca` (una marca en una recepción cerrada) y unir con faltante solo Admin (Felipe: «Unir con 27»). Migración `20261111175000` y script, sin pegar. 29/29.

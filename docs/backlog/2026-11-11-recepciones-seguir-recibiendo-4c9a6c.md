@@ -1,6 +1,6 @@
 ## Envíos de Compras que ya llegaron sin aviso (rama recepciones-seguir-recibiendo-4c9a6c, ADR-0636 act. 2026-11-11)
 - [x] `20261111152000` y `scripts/regularizar/2026-11-11-envios-recibidos-sin-aviso.sql` EN PRODUCCIÓN (2026-11-11, OK de Felipe): ENV-009 y ENV-011 anulados y unidos a ENV-007, sus dos compras «completado»; stock (3645) y movimientos (10302) sin cambio.
-- [ ] ENV-010 (TRU, Valeria Mia 28): corregir el proveedor de UNA marca en la recepción cerrada ENV-005 (hoy `corregir_proveedor_envio` cambia el envío entero) y contar la prenda 28, que entró por un ajuste el 6-nov.
+- [ ] ENV-010 (TRU, Valeria Mia 28): migración `20261111175000` + `scripts/regularizar/2026-11-11-env-010-valeria-mia.sql`, probadas (29/29); falta pegarlas con OK de Felipe. Decidido: unir con 27 (el chaleco 13 entró por ajuste).
 - [ ] ENV-002 (TRU, 6 compras del 28-oct): las prendas entraron por «Nuevo producto» y ajustes el 29-oct; la unión no cubre esa puerta. Decisión de Felipe.
 - [ ] ENV-016 (abierto el 10-nov, 0 contadas): Krisstell 46 y Blues Company 12 ya entraron por ENV-007; Miramhe, Mias e Ivanana por ENV-005 (a nombre de «CAYLA SAC»). Confirmar con Felipe antes de unir; que nadie lo cuente.
 - [ ] ENV-017 (abierto el 10-nov): CHEN 12 YA se recibió por este envío; revisar si son las mismas 12 que entraron el 28-oct por ajuste («Productos nuevo»): posible stock doble. Lady Girl 8, Anqori 7 y acuarela 10 ya entraron por ENV-012; como ENV-017 ya tiene algo recibido, la unión se niega.
