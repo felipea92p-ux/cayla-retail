@@ -5,6 +5,7 @@
  *
  * (Incluye lo que cerró la revisión adversarial del 2026-11-10: U15 a U19; y la lista de parejas posibles del paso 3, `20261110022000`: L1 a L6.
  * Desde `20261111152000` (2026-11-11), U6 y L5: lo contado sin recibir en el envío de Compras ya no frena la unión: lo RECIBIDO sigue sin unirse, con la guarda de siempre.
+ * Desde `20261111181000`, U23: dar por llegadas compras que entraron por otra puerta (solo Admin), sin pasar al libro.
  * Desde `20261111175000`, U21 y U22: corregir el proveedor de una marca en una recepción cerrada, y un Admin une con faltante.
  * Desde `20261111165000`, U20: una compra unida deja de salir «por enviar» en Recibir, en Órdenes de compra y en Análisis.)
  *
@@ -35,7 +36,7 @@ const SIN_MIGRACION = process.argv.includes("--sin-migracion");
 const VER_TODO = process.argv.includes("--ver");
 const MIGRACION = SIN_MIGRACION
   ? ""
-  : ["20261110011000_unir_recepcion_con_su_compra.sql", "20261110022000_uniones_posibles_recepcion_compra.sql", "20261111152000_unir_descarta_lo_contado_en_el_envio_propio.sql", "20261111165000_ordenes_unidas_no_salen_por_enviar.sql", "20261111175000_corregir_proveedor_de_una_marca_y_unir_con_faltante.sql"]
+  : ["20261110011000_unir_recepcion_con_su_compra.sql", "20261110022000_uniones_posibles_recepcion_compra.sql", "20261111152000_unir_descarta_lo_contado_en_el_envio_propio.sql", "20261111165000_ordenes_unidas_no_salen_por_enviar.sql", "20261111175000_corregir_proveedor_de_una_marca_y_unir_con_faltante.sql", "20261111181000_dar_compras_por_llegadas_por_otra_entrada.sql"]
       .map((f) =>
         readFileSync(join(RAIZ, "supabase/migrations", f), "utf8")
           .replace(/^set lock_timeout.*$/gm, "")
@@ -93,6 +94,7 @@ ${atrapa("cierra", "p_d uuid, p_version integer, p_lineas jsonb, p_nota text, p_
 ${atrapa("une", "p_d uuid, p_papel uuid, p_token uuid", "retail.unir_recepcion_con_compra(p_d, p_papel, p_token)")}
 ${atrapa("lleva", "p_d uuid, p_item uuid, p_extra integer, p_ver integer, p_prod uuid, p_vars jsonb, p_costo numeric, p_conf boolean, p_token uuid", "retail.llevar_al_stock_ahora(p_d, p_item, p_extra, p_ver, p_prod, p_vars, p_costo, p_conf, p_token)")}
 ${atrapa("abre", "p_id uuid, p_version integer", "retail.abrir_despacho(p_id, p_version)")}
+${atrapa("da_llegada", "p_papeles uuid[], p_motivo text", "retail.dar_compras_por_llegadas(p_papeles, p_motivo)")}
 ${atrapa("corrige_marca", "p_d uuid, p_marca uuid, p_prov uuid, p_motivo text", "retail.corregir_proveedor_de_marca(p_d, p_marca, p_prov, p_motivo)")}
 
 -- Como en producción: responsable obligatorio; Micaela marcó su entrada en Trujillo.
@@ -556,6 +558,34 @@ caso(
    select concat_ws(' / ', ${RESP("u1")}, ${RESP("u2")}, ${RESP("u3")}, :'u3'::jsonb ->> 'prendas_recibidas',
      (select estado from retail.compra_papeles where id = :'p1'), (select coalesce(sum(a.cantidad), 0) from retail.compra_item_recibido_antes a), ${POR_MANDAR("p1")});`,
   "0:0:union_llego_menos / 0:0:union_llego_menos / true:false:true:0:0: / 7 / completado / 7 / 0",
+);
+caso(
+  "U23 la mercadería entró por «Nuevo producto»: solo un Admin da la compra por llegada; su envío (contado) se anula, nace otro con la compra que viaja con ella, no vuelve a mandarse, el papel NO pasa al libro y el stock no se mueve",
+  `${COMPRA("p1", 8, { token: A1 })}${COMPRA("p2", 5, { token: A2 })}${MANDA("e1", B1)}
+   reset role;
+   select version as v_e1 from retail.despachos where id = :'e1' \\gset
+   select di.id as di1 from retail.despacho_items di join retail.orden_compra_items i on i.id = di.orden_compra_item_id join retail.ordenes_compra o on o.id = i.orden_compra_id where di.despacho_id = :'e1' and o.papel_id = :'p1' limit 1 \\gset
+   ${MICAELA_AQUI}
+   select pg_temp.abre(:'e1', :v_e1) as ab \\gset
+   select pg_temp.guarda(:'e1', :'di1', 3, '{}'::jsonb, null::int, null::int, null::uuid, null::uuid, null::uuid) as g \\gset
+   reset role;
+   select ${STOCK} as stock_antes, ${MOVS} as movs_antes \\gset
+   ${MICAELA_AQUI}
+   select pg_temp.da_llegada(array[:'p1']::uuid[], 'Entró con Nuevo producto el 29-oct') as d0 \\gset
+   ${SANDRA_ADMIN}
+   select pg_temp.da_llegada(array[:'p1']::uuid[], 'Entró con Nuevo producto el 29-oct') as d1 \\gset
+   select pg_temp.da_llegada(array[:'p1']::uuid[], 'Entró con Nuevo producto el 29-oct') as d2 \\gset
+   reset role;
+   select concat_ws(' / ', pg_temp.h(:'d0'::jsonb), pg_temp.h(:'d1'::jsonb),
+     jsonb_array_length(:'d1'::jsonb -> 'hechas'), jsonb_array_length(:'d1'::jsonb -> 'envios_anulados'), jsonb_array_length(:'d1'::jsonb -> 'envios_nuevos'),
+     :'d1'::jsonb ->> 'conteos_descartados', jsonb_array_length(:'d2'::jsonb -> 'repetidas'),
+     ${ESTADO("e1")},
+     (select coalesce(sum(di.cantidad), 0) from retail.despacho_items di join retail.despachos d on d.id = di.despacho_id where d.estado = 'en_camino' and d.ubicacion_destino_id = :'tru'),
+     ${POR_MANDAR("p1")}, ${POR_MANDAR("p2")},
+     (select l.via from retail.compra_papel_llegadas l where l.papel_id = :'p1'),
+     retail.fn_papel_pasa_solo(:'p1'), (select estado from retail.compra_papeles where id = :'p1'),
+     (${STOCK} = :'stock_antes') and (${MOVS} = :'movs_antes'));`,
+  "solo_admin / OK / 1 / 1 / 1 / 3 / 1 / anulado / 5 / 0 / 0 / otra_entrada / f / por_completar / t",
 );
 caso(
   "L1 mismas prendas y mismo valor es «exacto»: aparece con su recepción y su compra, y quien solo recibe no ve los montos",
