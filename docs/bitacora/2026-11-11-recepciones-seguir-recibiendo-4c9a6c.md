@@ -1,0 +1,1 @@
+- 2026-11-11 · Recibir (ADR-0636 act. 2026-11-11): «unir» ya no se frena por prendas contadas en el envío de Compras si nada entró al stock (`20261111152000`, sin pegar). Script `scripts/regularizar/2026-11-11-envios-recibidos-sin-aviso.sql` para ENV-009 y ENV-011 de TRU (llegaron sin aviso por ENV-007), sin pegar. 26 pruebas en verde en una base propia con todas las migraciones.
