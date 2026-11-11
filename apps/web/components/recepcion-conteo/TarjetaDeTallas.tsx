@@ -37,7 +37,7 @@ export function TarjetaDeTallas({
   esperaTabla: boolean;
   onAbrir: () => void;
   onModo: (m: ModoDeTallas) => void;
-  /** Lo que va debajo cuando ya está repartido (llevar al stock). */
+  /** «Llevar al stock ahora»: con todo repartido es el botón principal de la tarjeta; a medias, acompaña a «Seguir repartiendo». */
   despues?: ReactNode;
 }) {
   const flecha = <ArrowRight aria-hidden className="h-4 w-4 shrink-0" />;
@@ -72,7 +72,7 @@ export function TarjetaDeTallas({
         </span>
         <div className="rc-tarjeta-textos">
           <b>Ya están en el stock</b>
-          <span>No se vuelven a contar. Si hubo un error, ábrelas en la lista, donde dicen «En stock».</span>
+          <span>Están en el almacén: se venden cuando las bajes al piso. No se vuelven a contar.</span>
         </div>
       </div>
     );
@@ -171,6 +171,7 @@ export function TarjetaDeTallas({
             {flecha}
           </span>
         </Boton>
+        {estado === "a-medias" && despues}
         {dejar}
       </div>
     </div>

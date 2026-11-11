@@ -32,7 +32,7 @@ export function PlacaDelModelo({
   error,
   onReintentar,
   pasoTallas,
-  tocaRepartir,
+  principalEnLaTarjeta,
   abrirNumero,
   anterior,
   siguiente,
@@ -63,8 +63,8 @@ export function PlacaDelModelo({
   onReintentar: () => void;
   /** Cómo va el paso 2: espera (sin número o nada que hacer ahora), toca o ya está. */
   pasoTallas: "falta" | "toca" | "hecha";
-  /** Lo que toca ahora es repartir las tallas: el botón principal es el de la tarjeta, no «Listo, siguiente». */
-  tocaRepartir: boolean;
+  /** Lo que toca ahora está en la tarjeta de tallas (repartir, o llevar al stock lo repartido): su botón es el principal, no «Listo, siguiente». */
+  principalEnLaTarjeta: boolean;
   /** Llega con el número listo para escribir: viene de apretar Enter en lo anterior. */
   abrirNumero: boolean;
   anterior: ParadaDelConteo | null;
@@ -124,8 +124,8 @@ export function PlacaDelModelo({
   const nombre = modelo ? modelo.nombre : p.categoria ? p.categoria.nombre.toLowerCase() : "prendas";
   const descripcion = modelo ? null : descripcionDelGrupo(grupo);
 
-  // Sin contar todavía no es «Listo»: pasar es saltarlo, y lo principal es contar. Si toca repartir, lo principal es el botón de la tarjeta. Con todo contado, «Revisar y cerrar», en la lista.
-  const pesoSeguir = hayConteo && !todoContado && !tocaRepartir ? "primario" : "fantasma";
+  // Sin contar todavía no es «Listo»: pasar es saltarlo, y lo principal es contar. Si toca repartir o llevar al stock, lo principal es el botón de la tarjeta. Con todo contado, «Revisar y cerrar», en la lista.
+  const pesoSeguir = hayConteo && !todoContado && !principalEnLaTarjeta ? "primario" : "fantasma";
   const flecha = <ArrowRight aria-hidden className="h-4 w-4 shrink-0" />;
   return (
     <>

@@ -18,6 +18,7 @@ import {
   filtrosPuestos,
   fraseDelAvance,
   tallasParaDespues,
+  porLlevarAlStock,
   tipoDeParada,
   vecinosDeLaParada,
   siguientePendiente,
@@ -565,6 +566,21 @@ describe("Re stock, Producto nuevo y los estados del resumen", () => {
     expect(porNombre.get("Vestido Lima")).toBe(false);
   });
 
+  it("por llevar al stock: lo que ya tiene tallas y colores y todavía no entró (ADR-0645)", () => {
+    const conTallas = [{ variante_id: "v1", cantidad: 5, danadas: 0, danada_solucion: null, talla: "S", color: "Negro", codigo: null }];
+    const lineas = [deLaGuia(sofia(), { contadas: 5, separado: { prendas: [prendaSep("p-sofia", "Vestido Sofía", 5, conTallas)], nuevas: [] } }), deLaGuia(antonella(), { contadas: 3, separado: { prendas: [prendaSep("p-anto", "Vestido Antonella", 3)], nuevas: [] } }), deLaGuia(lima())];
+    const [c] = categoriasDelEnvio(agruparLineas(lineas));
+    const porNombre = new Map(c.paradas.map((p) => [nombreDeParada(p), porLlevarAlStock(p)]));
+    // Sofía está repartida; Antonella está contada pero sin tallas; Lima ni se contó.
+    expect(porNombre.get("Vestido Sofía")).toBe(true);
+    expect(porNombre.get("Vestido Antonella")).toBe(false);
+    expect(porNombre.get("Vestido Lima")).toBe(false);
+    expect(cifrasDelResumen([c]).estados.llevar).toBe(1);
+    // El filtro deja solo esos.
+    const filtradas = categoriasDelFiltro(agruparLineas(lineas), { ...SIN_FILTRO, estado: "llevar" });
+    expect(filtradas.flatMap((x) => x.paradas).map(nombreDeParada)).toEqual(["Vestido Sofía"]);
+  });
+
   it("lo que se pidió hacer ahora no se cuenta «para después»", () => {
     const [c] = categoriasDelEnvio(agruparLineas([deLaGuia(antonella(), { contadas: 3, separado: { prendas: [prendaSep("p-anto", "Vestido Antonella", 3)], nuevas: [] } })]));
     const p = c.paradas[0];
@@ -580,7 +596,7 @@ describe("Re stock, Producto nuevo y los estados del resumen", () => {
     expect(r.contadas).toBe(5);
     expect(r.diferencia).toBe(0);
     expect(Math.round(r.avance ?? 0)).toBe(33);
-    expect(r.estados).toEqual({ cuadran: 1, diferencia: 0, "por-contar": 2, despues: 1 });
+    expect(r.estados).toEqual({ cuadran: 1, diferencia: 0, "por-contar": 2, despues: 1, llevar: 0 });
     expect(r.tipos).toEqual({ restock: { modelos: 2, contados: 1 }, nuevo: { modelos: 1, contados: 0 } });
   });
 

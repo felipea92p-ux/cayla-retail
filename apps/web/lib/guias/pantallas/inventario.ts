@@ -1858,7 +1858,7 @@ export const GUIA_RECIBIR_ENVIO: Guia = {
       requiere: ["recepcion.categorias"],
       preparar: [{ tipo: "clic", ancla: "recepcion.filtros", siEsta: true }],
       titulo: "Lo que falta, de un toque",
-      texto: "Toca «Por contar», «Con diferencia» o «Tallas para después» y la lista deja solo esos; el número dice cuántos son. Otro toque y vuelve a todo.",
+      texto: "Toca «Por contar», «Con diferencia», «Tallas para después» o «Por llevar al stock» y la lista deja solo esos; el número dice cuántos son. Otro toque y vuelve a todo.",
     },
     {
       // Solo si la compra anotó modelos: en un envío sin aviso no se sabe todavía.
@@ -1930,7 +1930,7 @@ export const GUIA_RECIBIR_ENVIO: Guia = {
       ancla: "recepcion.llevar-al-stock",
       requiere: ["recepcion.llevar-al-stock"],
       titulo: "Sale ya, sin cerrar el envío",
-      texto: "Si unas prendas tienen que venderse ya, reparte sus tallas y llévalas al stock desde esta hoja. Lo demás se sigue contando. Después puedes imprimir sus etiquetas y bajarlas al piso.",
+      texto: "Con las tallas repartidas, este botón lleva la prenda al stock sin cerrar el envío: así se vende hoy. También está en la tarjeta del modelo. Puedes llevar una parte y seguir con el resto. Después imprimes sus etiquetas y las bajas al piso. En la demo no lo tocamos.",
     },
     {
       id: "separar",

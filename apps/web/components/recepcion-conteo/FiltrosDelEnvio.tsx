@@ -26,6 +26,7 @@ const ESTADOS: readonly { clave: EstadoDelResumen; texto: string; soloConAviso?:
   { clave: "diferencia", texto: "Con diferencia", soloConAviso: true },
   { clave: "cuadran", texto: "Cuadran", soloConAviso: true },
   { clave: "despues", texto: "Tallas para después" },
+  { clave: "llevar", texto: "Por llevar al stock" },
 ];
 const TIPOS: readonly { clave: TipoDeModelo; texto: string; puesto: string }[] = [
   { clave: "restock", texto: "Re stock", puesto: "Solo re stock" },

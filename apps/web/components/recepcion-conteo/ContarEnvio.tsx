@@ -651,6 +651,57 @@ export function ContarEnvio({
   // La tabla del modelo que se cuenta: lo escrito en esta visita o, si no, lo guardado. Sin la prenda leída todavía, lo guardado dice cuánto va.
   const tablaDeLaParada = parada && grupo && prendaDeLaParada && sepDeLaParada ? (tablas[parada.clave] ?? borradorDeTallas(prendaDeLaParada, coloresOrden, tallasDeLaCategoria(grupo), sepDeLaParada.variantes)) : null;
   const repartidas = tablaDeLaParada && prendaDeLaParada ? sumasDe(tablaDeLaParada.conteo, prendaDeLaParada).contado : (sepDeLaParada?.variantes ?? []).reduce((a, v) => a + v.cantidad, 0);
+  // Lo que se puede llevar al stock ya, sin cerrar el envío: lo repartido en la tabla (aunque sea una parte) o, si la tabla no se abrió en esta visita, lo guardado.
+  const paraLlevar = (() => {
+    if (!parada?.modelo || !grupo || !sepDeLaParada) return null;
+    const linea = lineaDeLaPrenda(grupo, { productoId: sepDeLaParada.productoId });
+    if (!linea?.conteo) return null;
+    if (tablaDeLaParada && prendaDeLaParada) {
+      const sumas = sumasDe(tablaDeLaParada.conteo, prendaDeLaParada);
+      const unidades = loQueSale(sumas, sepDeLaParada.cantidad, tablaDeLaParada.conteo.conDanadas && sumas.danadas > 0 && !tablaDeLaParada.conteo.arreglo);
+      return unidades > 0 ? { linea, unidades, variantes: variantesDeConteo(tablaDeLaParada.conteo, prendaDeLaParada) } : null;
+    }
+    const guardadas = sepDeLaParada.variantes ?? [];
+    const unidades = guardadas.reduce((a, v) => a + v.cantidad, 0);
+    return unidades > 0 ? { linea, unidades, variantes: guardadas } : null;
+  })();
+  /** «Llevar al stock ahora», donde haga falta: en la tarjeta (sin frase) y al pie de la hoja de tallas. Con todo repartido es el botón principal; con una parte, acompaña. */
+  const botonLlevar = (donde: "tarjeta" | "hoja") => {
+    if (!paraLlevar || !parada?.modelo || !sepDeLaParada) return null;
+    const clave = parada.clave;
+    const nombre = parada.modelo.nombre;
+    const todo = paraLlevar.unidades === sepDeLaParada.cantidad;
+    return (
+      <LlevarAlStock
+        key={`${donde}:${clave}`}
+        despachoId={detalle.id}
+        unidades={paraLlevar.unidades}
+        nombre={nombre}
+        sede={detalle.sede?.nombre ?? "esta sede"}
+        sedeId={detalle.sede?.id ?? null}
+        linea={paraLlevar.linea}
+        productoId={sepDeLaParada.productoId}
+        variantes={paraLlevar.variantes}
+        sinAviso={sinAviso}
+        veDinero={veDinero}
+        responsable={responsable}
+        esperandoGuardar={esperandoGuardar}
+        peso={todo ? "primario" : "fantasma"}
+        parcial={!todo}
+        conFrase={donde === "hoja"}
+        onConteoCambiado={onSalida}
+        onHecho={(r) => {
+          setTablas((t) => {
+            const { [clave]: _sale, ...resto } = t;
+            return resto;
+          });
+          setHoja({ tipo: "salida-hecha", resultado: r, nombre });
+          void leerSalidasDelEnvio(detalle.id).then(setSalidas);
+          onSalida();
+        }}
+      />
+    );
+  };
   const tarjeta = parada?.modelo ? estadoDeLaTarjeta({ contadas: parada.modelo.contadas, enStock: parada.modelo.enStock, enCatalogo: !!parada.modelo.productoId, modo: modoDe(parada), repartidas }) : null;
 
   // Lo que salió de este envío, para ofrecer «Corregir». Se relee cuando cambia lo recibido.
@@ -795,7 +846,7 @@ export function ContarEnvio({
               onQuitarFiltro={() => cambiarFiltro(SIN_FILTRO)}
               onDeUnToque={(n) => ponerDeUnToque(parada, n)}
               pasoTallas={!tarjeta || tarjeta === "espera" ? "falta" : tarjeta === "lista" || tarjeta === "en-stock" ? "hecha" : tocaRepartir(tarjeta) ? "toca" : "falta"}
-              tocaRepartir={!!tarjeta && tocaRepartir(tarjeta)}
+              principalEnLaTarjeta={!!tarjeta && (tocaRepartir(tarjeta) || (tarjeta === "lista" && !!paraLlevar))}
               abrirNumero={escribirEn === parada.clave}
               anterior={anterior}
               siguiente={siguiente}
@@ -836,6 +887,7 @@ export function ContarEnvio({
                     esperaTabla={!!tablas[parada.clave]?.sinGuardar}
                     onAbrir={() => elegirModo(parada, "ahora")}
                     onModo={(m) => elegirModo(parada, m)}
+                    despues={botonLlevar("tarjeta")}
                   />
                 ) : null
               }
@@ -911,42 +963,7 @@ export function ContarEnvio({
           nombre={parada.modelo.nombre}
           contadas={sepDeLaParada.cantidad}
           onCerrar={() => setHoja(null)}
-          pie={(() => {
-            if (!prendaDeLaParada || !tablaDeLaParada) return null;
-            const sumas = sumasDe(tablaDeLaParada.conteo, prendaDeLaParada);
-            const unidades = loQueSale(sumas, sepDeLaParada.cantidad, tablaDeLaParada.conteo.conDanadas && sumas.danadas > 0 && !tablaDeLaParada.conteo.arreglo);
-            const linea = lineaDeLaPrenda(grupo, { productoId: sepDeLaParada.productoId });
-            if (unidades === 0 || !linea?.conteo) return null;
-            return (
-              <LlevarAlStock
-                key={parada.clave}
-                despachoId={detalle.id}
-                unidades={unidades}
-                nombre={parada.modelo.nombre}
-                sede={detalle.sede?.nombre ?? "esta sede"}
-                sedeId={detalle.sede?.id ?? null}
-                linea={linea}
-                productoId={sepDeLaParada.productoId}
-                variantes={variantesDeConteo(tablaDeLaParada.conteo, prendaDeLaParada)}
-                sinAviso={sinAviso}
-                veDinero={veDinero}
-                responsable={responsable}
-                esperandoGuardar={esperandoGuardar}
-                onConteoCambiado={onSalida}
-                onHecho={(r) => {
-                  const clave = parada.clave;
-                  const nombre = parada.modelo?.nombre ?? "la prenda";
-                  setTablas((t) => {
-                    const { [clave]: _sale, ...resto } = t;
-                    return resto;
-                  });
-                  setHoja({ tipo: "salida-hecha", resultado: r, nombre });
-                  void leerSalidasDelEnvio(detalle.id).then(setSalidas);
-                  onSalida();
-                }}
-              />
-            );
-          })()}
+          pie={botonLlevar("hoja")}
         >
           <TallasDeLaPlaca
             prenda={prendaDeLaParada}
