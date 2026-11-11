@@ -81,3 +81,35 @@ llave (renglón nuevo de `fn_producto_historia`, migración aparte).
 - `lib/precio-propuesto-reglas.test.ts`, `lib/precio-propuesto-ia.test.ts`, `lib/revisar-precios-reglas.test.ts`.
 - En el navegador: Nuevo producto ▸ paso 4 ▸ costo ▸ «Proponer precio» ▸ «Usar este precio»; Productos ▸ «Revisar precios» ▸ una cifra ▸
   «Proponer» ▸ «Cambiar a S/ …» ▸ la prenda cambia y su Historial lo dice.
+
+## Actualización 2026-11-11 — también en Recibir mercadería, y abierto a las terminales
+
+**El problema.** Con Recibir mercadería listo, casi toda prenda nueva nace ahí («Crear la prenda que llegó»), y en las tiendas solo entran las
+cuentas de terminal (caja y almacén). La propuesta vivía en Nuevo producto y exigía ver el dinero de Compras: las terminales no la veían.
+
+**Lo que decidió Felipe (preguntado con opciones):**
+1. En la hoja de la prenda nueva, la propuesta **sale sola** al llegar al paso «¿Cuánto cuesta?» (no con un botón).
+2. **Costo y precio juntos** en ese paso (su regla del 2026-11-07); el costo escrito llega puesto al cierre del envío.
+3. **Todo abierto** para quien ve Recibir o Productos, **con los costos de otras prendas incluidos**. Se le mostró que fuera de Recibir esos
+   costos solo los ve quien ve el dinero de Compras, y eligió abrirlo igual.
+4. También para una prenda que **ya existe** al cerrar el envío, solo si el costo cambió o el margen quedó bajo 30 %.
+
+**Lo que se construyó** (rama `claude/precio-ia-en-recibir`, migración `20261111151000_precio_propuesto_en_recibir.sql`, **sin pegar**):
+- `fn_precio_contexto`, `registrar_precio_propuesta` y `fn_precio_gasto_del_mes` aceptan a quien ve Recibir o Productos, sin el dinero de
+  Compras; `precio_propuestas` suma el origen `recepcion` (una prenda nueva sin ficha todavía, o una existente al cerrar). Los candados viejos se
+  reemplazan buscándolos por lo que dicen (en local y en producción se llaman distinto). «Revisar precios» y `aplicar_precio_propuesto` **no
+  cambian**: siguen pidiendo editar el catálogo y ver el dinero de Compras. «Proponer precio» de Nuevo producto también queda abierto.
+- **Hoja de la prenda nueva** (`HojaPrenda`, paso 3): Costo + Precio de venta y `PropuestaDePrecio` con `automatica`: se pide **una sola vez**,
+  al aparecer; si después se escribe el costo, se pide con el botón (pedirla con cada cambio gastaría una consulta por tecla: se vio en el navegador
+  y se corrigió). «Usar S/ …» o «Dejar S/ …» (el que sugirió quien compró). El costo escrito se anota en el borrador del cierre
+  (`anotarCostoParaElCierre`) o en «Hacer ahora», y el cierre lo trae puesto.
+- **Prenda que ya existe, al cerrar** («Revisa y cierra»): `pideRevisarAlRecibir` (cuenta gratis) pone en la fila «Gana 23 % · revisar precio»,
+  que abre «Cambiar por talla»; ahí `PropuestaDePrecio` con la prenda y «Usar S/ …» pone el precio en todas sus tallas, en la sede que recibe, y se
+  confirma al cerrar como todo cambio de precio («Vas a cambiar precios»). No sale sola: un envío trae muchas prendas y cada una gastaría.
+- La ruta acepta `recepcion`, usa el costo de esta compra y lee la categoría de la prenda si no viene.
+
+**Cómo se verificó:** `pnpm pruebas:precio-propuesto` (30 casos, también «solo ve Recibir» y «una propuesta de recepción sin prenda»); en el
+navegador, como una integrante que ve Recibir y no el dinero de Compras, con un Claude de mentira: recepción sin aviso → 5 polos nuevos →
+la hoja → la propuesta sola (sin costo: «escribe el costo») → costo S/ 45 → «Proponer precio» → S/ 64.90 (subido al piso) → «Usar» → crear →
+el cierre trae el costo de S/ 45; costo a S/ 50 → «Gana 23 % · revisar precio» → S/ 71.90 → «Usar» en las 3 tallas. Foto de la base antes y
+restaurada después.
