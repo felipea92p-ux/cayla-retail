@@ -10,8 +10,8 @@ import { TIPOS_PAPEL, type TipoPapel } from "@/lib/compra-rapida-reglas";
 import type { PapelDelEnvio } from "@/lib/recepcion-envio-reglas";
 
 // Compras simple (ADR-0480, actividad 6): los papeles de lo comprado desde el celular. Desde el 2026-11-02 (Felipe, ADR-0604) son un solo botón que abre una
-// hoja: la columna fija ocupaba lugar y repetía lo que ya se ve a la izquierda al contar. Va en la cabecera al cerrar y en el resumen al contar (`enResumen`, a lo ancho y con
-// cuántas fotos hay). La foto se abre EN GRANDE sobre la hoja, sin perder el lugar del conteo. Sin montos: la tienda no ve el dinero de Compras por tener Recibir. Un envío
+// hoja: la columna fija ocupaba lugar y repetía lo que ya se ve a la izquierda al contar. Va en la cabecera al cerrar y, al contar, en el pie de la lista
+// (ADR-0645). La foto se abre EN GRANDE sobre la hoja, sin perder el lugar del conteo. Sin montos: la tienda no ve el dinero de Compras por tener Recibir. Un envío
 // armado en el escritorio no tiene papeles y no dibuja nada.
 
 type Papel = PapelDelEnvio & { fotoUrl: string | null };
@@ -113,10 +113,8 @@ function Visor({ papel, onGrande, alSubir }: { papel: Papel; onGrande: () => voi
 export function PapelesDeLaCompra({
   papeles,
   alSubirFoto,
-  enResumen = false,
 }: {
   papeles: readonly Papel[];
-  enResumen?: boolean;
   /** Sube y guarda la foto de un papel que llegó sin ella; devuelve por qué no se pudo, o `null` si quedó. Sin ella, el papel sin foto no ofrece subirla. */
   alSubirFoto?: (papelId: string, archivo: File) => Promise<string | null>;
 }) {
@@ -128,23 +126,12 @@ export function PapelesDeLaCompra({
   const quePuedeHacer = faltaAlguna ? "Subir foto de facturas" : "Ver fotos de facturas";
   return (
     <>
-      <Boton type="button" peso="fantasma" className={enResumen ? "rc-fotos-boton" : "shrink-0"} onClick={() => setAbierta(true)} data-guia="recepcion.papeles" aria-label={quePuedeHacer} title={quePuedeHacer}>
+      <Boton type="button" peso="fantasma" className="shrink-0" onClick={() => setAbierta(true)} data-guia="recepcion.papeles" aria-label={quePuedeHacer} title={quePuedeHacer}>
         <span className="inline-flex items-center gap-2">
           <Camera aria-hidden className="h-4 w-4" />
-          {enResumen ? (
-            <>
-              <span className="rc-fotos-texto">{quePuedeHacer}</span>
-              <small>
-                {papeles.filter((p) => p.fotoRuta).length} de {papeles.length}
-              </small>
-            </>
-          ) : (
-            <>
-              {/* En la fila del título: desde 1700 px cabe entero; antes, corto, para no empujar el Trayecto a otra fila. */}
-              <span className="max-[1699px]:hidden">{quePuedeHacer}</span>
-              <span className="min-[1700px]:hidden">Facturas</span>
-            </>
-          )}
+          {/* En una fila con otras cosas: desde 1700 px cabe entero; antes, corto, para no empujar lo de al lado a otra fila. */}
+          <span className="max-[1699px]:hidden">{quePuedeHacer}</span>
+          <span className="min-[1700px]:hidden">Facturas</span>
         </span>
       </Boton>
       {abierta && (

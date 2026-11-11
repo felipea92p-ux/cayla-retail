@@ -3,10 +3,14 @@ import type { VarianteSeparada } from "./recepcion-conteo-reglas";
 import { matrizDe, type Conteo, type PrendaRecepcion, type TallaDeLaCategoria, type VarianteRecepcion } from "./recepcion-envio-reglas";
 import {
   coloresIniciales,
-  coloresPorAgregar,
   cuadreDeTallas,
+  marcasDeLaTabla,
+  tablaConLoMarcado,
   mismasVariantes,
   modoDeTallas,
+  estadoDeLaTarjeta,
+  tocaRepartir,
+  botonPrincipal,
   modosAlCambiar,
   ordenarTallasVisibles,
   quitarColor,
@@ -14,7 +18,7 @@ import {
   tablaParaElNumero,
   tallasIniciales,
   tallasListas,
-  tallasPorAgregar,
+  type EstadoDeLaTarjeta,
 } from "./recepcion-tallas-reglas";
 
 const CATEGORIA: TallaDeLaCategoria[] = [
@@ -66,41 +70,50 @@ describe("con qué arranca la tabla", () => {
   });
 });
 
-describe("agregar", () => {
-  it("primero lo que la prenda tiene y está escondido, y después lo que la categoría ofrece", () => {
-    const lista = tallasPorAgregar(matrizDe(COMPLETA), ["s", "m", "l"], CATEGORIA);
-    expect(lista).toEqual([
-      { clave: "xs", texto: "XS", crear: false },
-      { clave: "xl", texto: "XL", crear: false },
-      { clave: "xxl", texto: "XXL", crear: true },
-    ]);
-  });
-
-  it("entre lo que falta crear, primero las de siempre", () => {
-    const soloUna = prenda(variante("xl", "neg"));
-    expect(tallasPorAgregar(matrizDe(soloUna), ["xl"], CATEGORIA).map((t) => t.texto)).toEqual(["S", "M", "L", "XS", "XXL"]);
-  });
-
-  it("nada que agregar si ya está todo", () => {
-    const todas = CATEGORIA.map((t) => t.id);
-    const entera = prenda(...todas.map((t) => variante(t, "neg")));
-    expect(tallasPorAgregar(matrizDe(entera), todas, CATEGORIA)).toEqual([]);
-  });
+describe("agregar: la hoja completa de tallas y colores, no un combo (ADR-0645)", () => {
+  const tabla = (cantidades: Record<string, string> = {}, tallas = ["s", "m", "l"], colores = ["neg", "cre"]) => ({ conteo: conteo(cantidades), tallas, colores });
 
   it("una talla nueva cae en su lugar de la curva", () => {
     expect(ordenarTallasVisibles(matrizDe(COMPLETA), ["s", "m", "l", "xs"])).toEqual(["xs", "s", "m", "l"]);
   });
 
-  it("los colores: los escondidos de la prenda y después los del catálogo", () => {
-    const lista = coloresPorAgregar(matrizDe(COMPLETA), ["neg"], [
-      { codigo: "neg", nombre: "Negro" },
-      { codigo: "cre", nombre: "Crema" },
-      { codigo: "vin", nombre: "Vino" },
-    ]);
-    expect(lista).toEqual([
-      { clave: "cre", texto: "Crema", crear: false },
-      { clave: "vin", texto: "Vino", crear: true },
-    ]);
+  it("la hoja arranca con lo que la tabla muestra; la talla única y el sin color no se marcan", () => {
+    expect(marcasDeLaTabla(tabla())).toEqual({ tallaIds: ["s", "m", "l"], colorCodigos: ["neg", "cre"] });
+    expect(marcasDeLaTabla({ tallas: [""], colores: ["", "neg"] })).toEqual({ tallaIds: [], colorCodigos: ["neg"] });
+  });
+
+  it("sin cambiar nada, la tabla queda igual", () => {
+    const antes = tabla({ "s-neg": "4" });
+    const r = tablaConLoMarcado(antes, COMPLETA, marcasDeLaTabla(antes), marcasDeLaTabla(antes));
+    expect(r).toEqual({ tabla: antes, perdidas: 0 });
+  });
+
+  it("lo que se marca se suma a la tabla, lo tuviera ya la prenda o se acabe de crear", () => {
+    const antes = tabla({ "s-neg": "4" }, ["s", "m"], ["neg"]);
+    const r = tablaConLoMarcado(antes, COMPLETA, marcasDeLaTabla(antes), { tallaIds: ["s", "m", "xl", "xxl"], colorCodigos: ["neg", "cre", "vin"] });
+    expect(r.tabla.tallas).toEqual(["s", "m", "xl", "xxl"]);
+    expect(r.tabla.colores).toEqual(["neg", "cre", "vin"]);
+    expect(r.tabla.conteo.cantidades).toEqual({ "s-neg": "4" });
+    expect(r.perdidas).toBe(0);
+  });
+
+  it("lo que se desmarca sale con sus cantidades, y dice cuántas había para el «Deshacer»", () => {
+    const antes = tabla({ "s-neg": "4", "m-neg": "3", "m-cre": "2", "l-cre": "1" });
+    const r = tablaConLoMarcado(antes, COMPLETA, marcasDeLaTabla(antes), { tallaIds: ["s", "l"], colorCodigos: ["neg"] });
+    // Sale la talla M (3 + 2) y el color crema (lo que quedaba: 1 en L).
+    expect(r.tabla.tallas).toEqual(["s", "l"]);
+    expect(r.tabla.colores).toEqual(["neg"]);
+    expect(r.tabla.conteo.cantidades).toEqual({ "s-neg": "4" });
+    expect(r.perdidas).toBe(6);
+    // Lo de antes no se toca: con eso se deshace.
+    expect(antes.conteo.cantidades["m-neg"]).toBe("3");
+  });
+
+  it("la talla única y el sin color se quedan: la hoja no los maneja", () => {
+    const unica = { conteo: conteo(), tallas: [""], colores: ["", "neg"] };
+    const r = tablaConLoMarcado(unica, COMPLETA, marcasDeLaTabla(unica), { tallaIds: [], colorCodigos: ["neg", "cre"] });
+    expect(r.tabla.tallas).toEqual([""]);
+    expect(r.tabla.colores).toEqual(["", "neg", "cre"]);
   });
 });
 
@@ -182,15 +195,56 @@ describe("cuándo se guarda", () => {
   });
 });
 
+describe("la tarjeta «Tallas y colores» del contador (ADR-0645)", () => {
+  const base = { contadas: 10, enStock: 0, enCatalogo: true, modo: "ahora" as const, repartidas: 0 };
+
+  it("sin contar, espera; lo nuevo sin crear queda para después aunque se pida «ahora» (primero se crea)", () => {
+    expect(estadoDeLaTarjeta({ ...base, contadas: 0 })).toBe("espera");
+    expect(estadoDeLaTarjeta({ ...base, enCatalogo: false })).toBe("nueva");
+    expect(estadoDeLaTarjeta({ ...base, enCatalogo: false, modo: "despues" })).toBe("nueva");
+  });
+
+  it("lo del catálogo: repartir, a medias, de más o lista, según cuánto va", () => {
+    expect(estadoDeLaTarjeta(base)).toBe("repartir");
+    expect(estadoDeLaTarjeta({ ...base, repartidas: 7 })).toBe("a-medias");
+    expect(estadoDeLaTarjeta({ ...base, repartidas: 12 })).toBe("de-mas");
+    expect(estadoDeLaTarjeta({ ...base, repartidas: 10 })).toBe("lista");
+    expect(estadoDeLaTarjeta({ ...base, modo: "despues", repartidas: 0 })).toBe("despues");
+  });
+
+  it("lo que ya entró al stock no se vuelve a repartir: se reparte lo que queda", () => {
+    // Contó 10 y 4 ya entraron: quedan 6 por repartir.
+    expect(estadoDeLaTarjeta({ ...base, enStock: 4, repartidas: 6 })).toBe("lista");
+    expect(estadoDeLaTarjeta({ ...base, enStock: 4, repartidas: 2 })).toBe("a-medias");
+    expect(estadoDeLaTarjeta({ ...base, enStock: 4, repartidas: 7 })).toBe("de-mas");
+    // Todo entró: no hay nada que repartir, diga lo que diga el modo.
+    expect(estadoDeLaTarjeta({ ...base, enStock: 10, modo: "despues" })).toBe("en-stock");
+  });
+
+  it("recorre todos los estados: solo repartir, a medias y de más piden el botón principal", () => {
+    const todos = ["espera", "en-stock", "nueva", "despues", "repartir", "a-medias", "de-mas", "lista"] as const;
+    expect(todos.filter(tocaRepartir)).toEqual(["repartir", "a-medias", "de-mas"]);
+  });
+});
+
 describe("la tabla sigue a la vista mientras se escribe (Felipe 2026-11-03)", () => {
   it("sin que nadie elija: «ahora» si tiene tallas guardadas, «después» si no", () => {
     expect(modoDeTallas(undefined, true)).toBe("ahora");
     expect(modoDeTallas(undefined, false)).toBe("despues");
   });
 
-  it("lo que la persona eligió manda, tenga o no tallas", () => {
+  it("viene contestado por lo que es: lo del catálogo se reparte ahora; lo nuevo sin crear, después (ADR-0645)", () => {
+    expect(modoDeTallas(undefined, false, true)).toBe("ahora");
+    expect(modoDeTallas(undefined, false, false)).toBe("despues");
+    // Con tallas guardadas es «ahora», esté o no en el catálogo.
+    expect(modoDeTallas(undefined, true, false)).toBe("ahora");
+  });
+
+  it("lo que la persona eligió manda, tenga o no tallas, esté o no en el catálogo", () => {
     expect(modoDeTallas("ahora", false)).toBe("ahora");
     expect(modoDeTallas("despues", true)).toBe("despues");
+    expect(modoDeTallas("despues", false, true)).toBe("despues");
+    expect(modoDeTallas("ahora", false, false)).toBe("ahora");
   });
 
   it("al recargar y teclear algo que no cuadra, las tallas se sueltan y el modelo sigue en «ahora»: antes se iba a «después» y la tabla se cerraba", () => {
@@ -252,5 +306,49 @@ describe("mismasVariantes", () => {
   it("sin nada y vacío son lo mismo; lo que va en 0 no cuenta", () => {
     expect(mismasVariantes(null, [])).toBe(true);
     expect(mismasVariantes([v("a", 0)], null)).toBe(true);
+  });
+});
+
+describe("botonPrincipal: un solo botón negro a la vez (ADR-0645, cambio 2 de /formidable)", () => {
+  const TARJETAS: (EstadoDeLaTarjeta | null)[] = [null, "espera", "en-stock", "nueva", "despues", "repartir", "a-medias", "de-mas", "lista"];
+  const SI_NO = [true, false];
+
+  it("si al modelo le toca repartir, manda su tarjeta: también con todo contado", () => {
+    for (const tarjeta of ["repartir", "a-medias", "de-mas"] as const) {
+      for (const todoContado of SI_NO) for (const hayConteo of SI_NO) for (const hayParaLlevar of SI_NO) {
+        expect(botonPrincipal({ tarjeta, hayParaLlevar, hayConteo, todoContado })).toBe("tarjeta");
+      }
+    }
+  });
+
+  it("con todo repartido manda la tarjeta solo si queda algo por llevar al stock", () => {
+    expect(botonPrincipal({ tarjeta: "lista", hayParaLlevar: true, hayConteo: true, todoContado: true })).toBe("tarjeta");
+    expect(botonPrincipal({ tarjeta: "lista", hayParaLlevar: false, hayConteo: true, todoContado: true })).toBe("cerrar");
+    expect(botonPrincipal({ tarjeta: "lista", hayParaLlevar: false, hayConteo: true, todoContado: false })).toBe("siguiente");
+  });
+
+  it("«Revisar y cerrar» manda con todo contado y nada pendiente en el modelo en foco", () => {
+    for (const tarjeta of [null, "espera", "en-stock", "nueva", "despues"] as const) {
+      expect(botonPrincipal({ tarjeta, hayParaLlevar: false, hayConteo: true, todoContado: true })).toBe("cerrar");
+    }
+  });
+
+  it("sin contar no hay botón negro: el protagonista es «Llegaron las N»", () => {
+    expect(botonPrincipal({ tarjeta: "espera", hayParaLlevar: false, hayConteo: false, todoContado: false })).toBe("ninguno");
+    expect(botonPrincipal({ tarjeta: null, hayParaLlevar: false, hayConteo: false, todoContado: false })).toBe("ninguno");
+  });
+
+  it("contado y con envío por contar, manda «Listo, siguiente»", () => {
+    for (const tarjeta of ["en-stock", "nueva", "despues"] as const) {
+      expect(botonPrincipal({ tarjeta, hayParaLlevar: false, hayConteo: true, todoContado: false })).toBe("siguiente");
+    }
+  });
+
+  it("es una sola respuesta para cada combinación (nunca dos a la vez)", () => {
+    const respuestas = new Set<string>();
+    for (const tarjeta of TARJETAS) for (const hayParaLlevar of SI_NO) for (const hayConteo of SI_NO) for (const todoContado of SI_NO) {
+      respuestas.add(botonPrincipal({ tarjeta, hayParaLlevar, hayConteo, todoContado }));
+    }
+    expect([...respuestas].sort()).toEqual(["cerrar", "ninguno", "siguiente", "tarjeta"]);
   });
 });

@@ -2,7 +2,7 @@
   "guia": "recibir.envio.id",
   "ruta": "/recibir/envio/[id]",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 267,
+  "total": 281,
   "controles": {
     "app/(app)/recibir/envio/[id]/page.tsx": [
       "Volver «/recibir»",
@@ -85,6 +85,9 @@
       "button «→onClick»",
       "button «›»"
     ],
+    "components/recepcion-conteo/AvanceDelEnvio.tsx": [
+      "button «Ir al primero que falta contar»"
+    ],
     "components/recepcion-conteo/BotonCerrarConteo.tsx": [
       "Boton «{guia}»",
       "Boton «{guia}» #2"
@@ -106,11 +109,6 @@
       "button «{i === 0 ? \"recepcion.agregar-modelo\" : undefined}»",
       "button «{`Quitar ${nombre}»",
       "button «No llegó nada»",
-      "DesplegablePildora «Proveedor»",
-      "DesplegablePildora «Marca»",
-      "SegmentoDeslizante «Ordenar por cantidad»",
-      "FiltroPuesto «Quitar el filtro de tipo»",
-      "FiltroPuesto «Quitar el filtro de estado»",
       "button «recepcion.agregar»"
     ],
     "components/recepcion-conteo/CerrarEnvio.tsx": [
@@ -137,6 +135,8 @@
       "Boton «{textoConfirmar}»"
     ],
     "components/recepcion-conteo/ContarEnvio.tsx": [
+      "button «Reintentar»",
+      "ComboResponsable «{responsable}»",
       "Boton «(sin nombre)»"
     ],
     "components/recepcion-conteo/CorregirProveedor.tsx": [
@@ -175,6 +175,19 @@
       "BotonEnlace «Recibir otro»",
       "BotonEnlace «Ver todo lo recibido»"
     ],
+    "components/recepcion-conteo/FiltrosDelEnvio.tsx": [
+      "BotonFiltros «→() => setAbierto((a) => !a)»",
+      "button «{e.texto}»",
+      "button «{t.texto}»",
+      "DesplegablePildora «Proveedor»",
+      "DesplegablePildora «Marca»",
+      "SegmentoDeslizante «Ordenar por cantidad»",
+      "FiltroPuesto «Quitar el filtro de estado»",
+      "FiltroPuesto «Quitar el filtro de tipo»",
+      "FiltroPuesto «Quitar el filtro de proveedor»",
+      "FiltroPuesto «Quitar el filtro de marca»",
+      "BotonLimpiar «Limpiar filtros»"
+    ],
     "components/recepcion-conteo/HacerAhora.tsx": [
       "Boton «Cancelar»",
       "Boton «Guardar»"
@@ -184,6 +197,10 @@
       "Boton «{textoListo}»",
       "Boton «Cancelar»",
       "Boton «→() => void confirmarQuitar()»"
+    ],
+    "components/recepcion-conteo/ListaEnElCelular.tsx": [
+      "button «{listaAbierta ? undefined : \"recepcion.lista-abrir\"}»",
+      "button «{listaAbierta ? undefined : \"recepcion.lista-abrir\"}» #2"
     ],
     "components/recepcion-conteo/LlevarAlStock.tsx": [
       "Boton «{esperandoGuardar ? \"Guardando lo último que contaste…\" : undefined}»",
@@ -227,7 +244,7 @@
       "Boton «{guia.frase ?? undefined}»"
     ],
     "components/recepcion-conteo/ObservacionesDeLinea.tsx": [
-      "button «recepcion.observaciones»",
+      "Boton «recepcion.observaciones»",
       "button «{t.nombre}»",
       "textarea «Mensaje de la observación»",
       "Boton «Cancelar»",
@@ -238,18 +255,24 @@
       "input «Ver en grande»",
       "Boton «recepcion.papeles»"
     ],
+    "components/recepcion-conteo/PieDeLaLista.tsx": [
+      "button «Cancelar la recepción»",
+      "ComboResponsable «{responsable}»"
+    ],
     "components/recepcion-conteo/PlacaDelModelo.tsx": [
-      "button «{titulo}»",
       "LapizEditar «{`el nombre de ${modelo.nombre}»",
+      "button «Llegaron las»",
       "button «+»",
       "button «+» #2",
-      "button «Llegaron las»",
       "button «Poner en cero»",
       "button «No llegó nada»",
+      "button «Reintentar»",
+      "Boton «Llegó dañada»",
+      "Boton «Es otra prenda»",
       "Boton «{anterior ? `Antes: ${nombreDeParada(anterior)}»",
       "Boton «{`${hayConteo ? \"Listo, siguiente\" : \"Siguiente\"}»",
-      "Boton «Es el último: ver todos»",
-      "button «Reintentar»"
+      "Boton «Ver todos»",
+      "Boton «{`Ir al que falta: ${nombreDeParada(pendiente)}»"
     ],
     "components/recepcion-conteo/PrecioDePrenda.tsx": [
       "CampoTexto «{`Costo de ${nombre}»",
@@ -291,13 +314,6 @@
     "components/recepcion-conteo/RecibirContando.tsx": [
       "Volver «/recibir»"
     ],
-    "components/recepcion-conteo/ResumenDelEnvio.tsx": [
-      "button «{e.texto}»",
-      "button «Reintentar»",
-      "button «Cómo se guarda quién cuenta»",
-      "ComboResponsable «{responsable}»",
-      "button «Cancelar la recepción»"
-    ],
     "components/recepcion-conteo/SepararPrendas.tsx": [
       "button «{`Quitar ${etiqueta}»",
       "button «Cambiar»",
@@ -309,7 +325,7 @@
     ],
     "components/recepcion-conteo/TallasDeLaPlaca.tsx": [
       "button «Reintentar»",
-      "button «Cambiar de prenda»",
+      "Boton «Agregar talla o color»",
       "button «corrige lo contado a»",
       "button «{`Quitar la talla ${t.texto}»",
       "button «{`Crear ${c.texto}»",
@@ -317,8 +333,12 @@
       "button «{`Quitar ${c.texto}»",
       "button «(sin nombre)»"
     ],
-    "components/recepcion-conteo/TiposDelEnvio.tsx": [
-      "button «{t.icono}»"
+    "components/recepcion-conteo/TarjetaDeTallas.tsx": [
+      "button «Dejar para después»",
+      "Boton «Crearla ahora»",
+      "Boton «recepcion.abrir-tallas»",
+      "button «recepcion.abrir-tallas»",
+      "Boton «recepcion.abrir-tallas» #2"
     ],
     "components/recepcion-conteo/YaExisteLaPrenda.tsx": [
       "CampoSelect «Categoría»",
