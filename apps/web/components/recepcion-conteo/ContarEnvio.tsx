@@ -91,7 +91,7 @@ import {
   categoriasConLoQueYaEntro,
   yaEnStockDelEnvio,
 } from "@/lib/recepcion-modelos-reglas";
-import { borradorDeTallas, mismasVariantes, modoDeTallas, modosAlCambiar, tablaParaElNumero, tallasListas, type BorradorTallas, type ModoDeTallas } from "@/lib/recepcion-tallas-reglas";
+import { borradorDeTallas, estadoDeLaTarjeta, marcasDeLaTabla, mismasVariantes, modoDeTallas, modosAlCambiar, tablaConLoMarcado, tablaParaElNumero, tallasListas, tocaRepartir, type BorradorTallas, type MarcasDeLaTabla, type ModoDeTallas } from "@/lib/recepcion-tallas-reglas";
 import { EditarModelo } from "./EditarModelo";
 import { QuitarModelo } from "./QuitarModelo";
 import { YaExisteLaPrenda } from "./YaExisteLaPrenda";
@@ -107,8 +107,10 @@ import { PlacaDelModelo } from "./PlacaDelModelo";
 import { PrendasDeLaPlaca } from "./PrendasDeLaPlaca";
 import type { Borrador, EstadoGuardado } from "./RecibirContando";
 import { AvanceDelEnvio } from "./AvanceDelEnvio";
+import { HojaRepartir } from "./HojaRepartir";
 import { PieDeLaLista } from "./PieDeLaLista";
 import { TallasDeLaPlaca } from "./TallasDeLaPlaca";
+import { TarjetaDeTallas } from "./TarjetaDeTallas";
 
 // Contar (ADR-0393; modelo por modelo desde el 2026-11-02, ADR-0604; en dos mitades desde el 2026-11-11, ADR-0645). A la izquierda, lo del envío: cómo va todo, el buscador con sus filtros
 // en un botón, las categorías, cada una una sola vez y con sus modelos adentro, y abajo quién cuenta y el único «Revisar y cerrar». A la derecha, UNO a la vez: cuántas llegaron de ese modelo
@@ -124,13 +126,16 @@ type Hoja =
   // «Cambiar de prenda»: la hoja de tallas, donde se elige otra.
   | { tipo: "tallas"; grupo: string; original: PrendaSeparada; prenda: PrendaRecepcion; parada: string }
   // `tabla`: la abrió la tabla de la placa para crear lo que la prenda no tiene, y vuelve a ella.
-  | { tipo: "prenda"; grupo: string; original: PrendaSeparada; modo: "nueva" | "agregar"; prenda: PrendaRecepcion | null; parada: string; tabla: boolean; pedidas?: DestinoHoja["pedidas"] }
+  // `enTabla`: lo que la tabla mostraba al abrirla; la hoja arranca con eso marcado y la tabla muestra después lo que quedó marcado.
+  | { tipo: "prenda"; grupo: string; original: PrendaSeparada; modo: "nueva" | "agregar"; prenda: PrendaRecepcion | null; parada: string; tabla: boolean; pedidas?: DestinoHoja["pedidas"]; enTabla?: MarcasDeLaTabla }
   // «Crear ahora» de una nueva ya descrita: la hoja de la prenda, sin una prenda de partida (la descripción es el nombre que se ofrece).
   | { tipo: "salida-hecha"; resultado: ResultadoDeSalida; nombre: string }
   | { tipo: "corregir-salida"; salida: SalidaDelEnvio }
   | { tipo: "crear"; grupo: string; nueva: { cantidad: number; descripcion: string; porDefecto: boolean; nota: string | null }; parada: string }
   // Antes de crear: lo contado como nuevo puede ser una prenda que ya existe.
   | { tipo: "existe"; grupo: string; nueva: { cantidad: number; descripcion: string; porDefecto: boolean; nota: string | null }; parada: string }
+  // «Tallas y colores»: la tabla de un modelo, en su hoja (ADR-0645).
+  | { tipo: "repartir"; parada: string }
   // «¿Qué llegó?» o, con su categoría, el «+»: otro modelo para contar aparte.
   | { tipo: "modelo"; categoria: string | null }
   | { tipo: "editar"; parada: string }
@@ -259,8 +264,6 @@ export function ContarEnvio({
   const [alternadas, setAlternadas] = useState<ReadonlySet<string>>(new Set());
   // Lo que llega con su número listo para escribir: viene de apretar Enter en lo anterior.
   const [escribirEn, setEscribirEn] = useState<string | null>(null);
-  // Se acaba de pedir «Tallas y colores ahora»: la tabla queda bajo el borde de la columna y hay que traerla a la vista.
-  const [traerTallas, setTraerTallas] = useState(false);
   const [fotos, setFotos] = useState<ReadonlyMap<string, string | null>>(() => new Map());
   const filaSeguir = useRef<HTMLDivElement>(null);
   const ultimoPaso = useRef(Number.NEGATIVE_INFINITY);
@@ -289,7 +292,9 @@ export function ContarEnvio({
     setFocoVisto({ parada: parada?.clave ?? null, categoria: categoriaEnFoco });
     setAlternadas((a) => new Set([...a].filter((k) => k !== focoVisto.categoria && k !== categoriaEnFoco)));
   }
-  const enAhora = new Set(Object.entries(modos).filter(([, m]) => m === "ahora").map(([k]) => k));
+  // El modo de cada modelo viene contestado por lo que es (ADR-0645): lo del catálogo se reparte ahora; lo nuevo sin crear, después. Lo que la persona eligió manda.
+  const modoDe = (p: ParadaDelConteo): ModoDeTallas => modoDeTallas(modos[p.clave], !!p.modelo?.conTallas, !!p.modelo?.productoId);
+  const enAhora = new Set(paradasDelEnvio.filter((p) => p.modelo && modoDe(p) === "ahora").map((p) => p.clave));
   const categoriasDelConteo = categoriasEnOrden(categoriasDelFiltro(grupos, filtro, parada?.clave ?? null, enAhora), orden);
   const paradas = categoriasDelConteo.flatMap((c) => c.paradas);
   const { anterior, siguiente } = vecinosDeLaParada(paradas, parada?.clave ?? null);
@@ -350,7 +355,6 @@ export function ContarEnvio({
   function elegir(p: ParadaDelConteo, escribir = false) {
     const suya = claveDeCategoria(p.grupo);
     setAlternadas((a) => new Set([...a].filter((k) => k !== suya)));
-    setTraerTallas(false);
     setErrorHoja(null);
     setEscribirEn(escribir ? p.clave : null);
     setFoco(p.clave);
@@ -382,7 +386,6 @@ export function ContarEnvio({
     for (const c of r.cambios) onEscribir(c.linea, { contadas: c.contadas, separado: c.separado });
   }
 
-  const modoDe = (p: ParadaDelConteo): ModoDeTallas => modoDeTallas(modos[p.clave], !!p.modelo?.conTallas);
   const faltanTallas = (p: ParadaDelConteo): boolean => !!p.modelo && p.modelo.contadas > 0 && !p.modelo.conTallas && modoDe(p) === "ahora";
   const coloresOrden = (catalogo?.colores ?? []).map((c) => c.codigo);
   const tallasDeLaCategoria = (g: GrupoDeLineas) => catalogo?.categorias.find((c) => c.id === g.principal.categoria?.id)?.tallas ?? [];
@@ -454,7 +457,7 @@ export function ContarEnvio({
     }
   }
 
-  /** «Solo cuadrar» o «tallas y colores ahora». Una nueva primero se crea. Dejar para después lo que ya tenía tallas las suelta, y el aviso ofrece deshacerlo. */
+  /** «Para después» o «repartir ahora» (se abre la hoja de tallas). Una nueva primero se crea. Dejar para después lo que ya tenía tallas las suelta, y el aviso ofrece deshacerlo. */
   function elegirModo(p: ParadaDelConteo, modo: ModoDeTallas) {
     const m = p.modelo;
     if (!m) return;
@@ -464,7 +467,7 @@ export function ContarEnvio({
     }
     const sep = prendaSeparada(p);
     setModos((ms) => ({ ...ms, [p.clave]: modo }));
-    setTraerTallas(modo === "ahora");
+    if (modo === "ahora") setHoja({ tipo: "repartir", parada: p.clave });
     if (modo === "despues" && sep?.variantes) {
       const antes = sep.variantes;
       const productoId = sep.productoId;
@@ -597,18 +600,33 @@ export function ContarEnvio({
     const nuevaClave = nombreIgual ? claveParada : claveDeParada(g, prenda.productoId);
     if (!nombreIgual) setFoco(nuevaClave);
     setModos((ms) => ({ ...ms, [nuevaClave]: "ahora" }));
-    setTraerTallas(true);
-    setHoja(null);
+    // Recién creada, se sigue con sus tallas: se abre su hoja.
+    setHoja({ tipo: "repartir", parada: nuevaClave });
   }
 
-  /** Volvió de crear lo que la prenda no tenía: la tabla muestra lo nuevo, sin perder lo escrito. */
-  function volverATabla(claveParada: string, g: GrupoDeLineas, antes: PrendaRecepcion | null, prenda: PrendaRecepcion) {
+  /**
+   * Volvió de la hoja de tallas y colores de la prenda. Abierta desde la tabla (`eran` y `marcas`), la tabla muestra justo lo que quedó marcado: lo nuevo y lo que la prenda ya tenía
+   * y estaba escondido se suman; lo desmarcado sale con sus cantidades, y el aviso ofrece deshacerlo. Si no, se suma lo recién creado, sin perder lo escrito.
+   */
+  function volverATabla(claveParada: string, g: GrupoDeLineas, antes: PrendaRecepcion | null, prenda: PrendaRecepcion, eran?: MarcasDeLaTabla, marcas?: MarcasDeLaTabla) {
     onPrendaVista(prenda);
-    const tabla = tablas[claveParada] ?? borradorDeTallas(antes ?? prenda, coloresOrden, tallasDeLaCategoria(g), null);
-    const ejes = (vs: PrendaRecepcion["variantes"], de: "tallaId" | "colorCodigo") => new Set(vs.map((v) => v[de] ?? ""));
-    const nuevas = (de: "tallaId" | "colorCodigo") => [...ejes(prenda.variantes, de)].filter((x) => !ejes(antes?.variantes ?? [], de).has(x));
-    setTablas((t) => ({ ...t, [claveParada]: { ...tabla, tallas: [...new Set([...tabla.tallas, ...nuevas("tallaId")])], colores: [...new Set([...tabla.colores, ...nuevas("colorCodigo")])] } }));
-    setHoja(null);
+    const guardadas = g.separado.prendas.find((x) => x.productoId === prenda.productoId)?.variantes ?? null;
+    const tabla = tablas[claveParada] ?? borradorDeTallas(antes ?? prenda, coloresOrden, tallasDeLaCategoria(g), guardadas);
+    if (eran && marcas) {
+      const r = tablaConLoMarcado(tabla, prenda, eran, marcas);
+      cambiarTabla(claveParada, prenda, r.tabla);
+      if (r.perdidas > 0) {
+        avisar.exito("Quitaste tallas o colores de la tabla", {
+          detalle: `${conMiles(r.perdidas)} ${r.perdidas === 1 ? "prenda" : "prendas"} por repartir otra vez.`,
+          accion: { texto: "Deshacer", onClick: () => cambiarTabla(claveParada, prenda, tabla) },
+        });
+      }
+    } else {
+      const ejes = (vs: PrendaRecepcion["variantes"], de: "tallaId" | "colorCodigo") => new Set(vs.map((v) => v[de] ?? ""));
+      const nuevas = (de: "tallaId" | "colorCodigo") => [...ejes(prenda.variantes, de)].filter((x) => !ejes(antes?.variantes ?? [], de).has(x));
+      setTablas((t) => ({ ...t, [claveParada]: { ...tabla, tallas: [...new Set([...tabla.tallas, ...nuevas("tallaId")])], colores: [...new Set([...tabla.colores, ...nuevas("colorCodigo")])] } }));
+    }
+    setHoja({ tipo: "repartir", parada: claveParada });
   }
 
   const categoriaDelModelo = hoja?.tipo === "modelo" && hoja.categoria ? (todas.find((c) => c.clave === hoja.categoria) ?? null) : null;
@@ -630,6 +648,10 @@ export function ContarEnvio({
   const faltaFotoDeFactura = papeles.some((p) => !p.fotoRuta);
   const sepDeLaParada = parada ? prendaSeparada(parada) : undefined;
   const prendaDeLaParada = parada?.modelo?.productoId ? (prendas.get(parada.modelo.productoId) ?? null) : null;
+  // La tabla del modelo que se cuenta: lo escrito en esta visita o, si no, lo guardado. Sin la prenda leída todavía, lo guardado dice cuánto va.
+  const tablaDeLaParada = parada && grupo && prendaDeLaParada && sepDeLaParada ? (tablas[parada.clave] ?? borradorDeTallas(prendaDeLaParada, coloresOrden, tallasDeLaCategoria(grupo), sepDeLaParada.variantes)) : null;
+  const repartidas = tablaDeLaParada && prendaDeLaParada ? sumasDe(tablaDeLaParada.conteo, prendaDeLaParada).contado : (sepDeLaParada?.variantes ?? []).reduce((a, v) => a + v.cantidad, 0);
+  const tarjeta = parada?.modelo ? estadoDeLaTarjeta({ contadas: parada.modelo.contadas, enStock: parada.modelo.enStock, enCatalogo: !!parada.modelo.productoId, modo: modoDe(parada), repartidas }) : null;
 
   // Lo que salió de este envío, para ofrecer «Corregir». Se relee cuando cambia lo recibido.
   const nRecibidos = detalle.recibidos?.length ?? 0;
@@ -772,7 +794,8 @@ export function ContarEnvio({
               }}
               onQuitarFiltro={() => cambiarFiltro(SIN_FILTRO)}
               onDeUnToque={(n) => ponerDeUnToque(parada, n)}
-              modo={modoDe(parada)}
+              pasoTallas={!tarjeta || tarjeta === "espera" ? "falta" : tarjeta === "lista" || tarjeta === "en-stock" ? "hecha" : tocaRepartir(tarjeta) ? "toca" : "falta"}
+              tocaRepartir={!!tarjeta && tocaRepartir(tarjeta)}
               abrirNumero={escribirEn === parada.clave}
               anterior={anterior}
               siguiente={siguiente}
@@ -790,7 +813,6 @@ export function ContarEnvio({
                 if (destino) elegir(destino, true);
                 else requestAnimationFrame(() => (mesa.current?.querySelector<HTMLButtonElement>('[data-guia="recepcion.pasar-a-cerrar"]') ?? filaSeguir.current?.querySelector<HTMLButtonElement>("button:not(:disabled)"))?.focus());
               }}
-              onModo={(m) => elegirModo(parada, m)}
               observacion={
                 <AnotarObservacion
                   despachoId={detalle.id}
@@ -804,58 +826,18 @@ export function ContarEnvio({
               onEditarNombre={() => setHoja({ tipo: "editar", parada: parada.clave })}
               identificar={<PrendasDeLaPlaca parada={parada} onSeparado={(s) => escribirSeparado(grupo, s)} onQuitarSueltas={() => aplicar(repartirTotal(grupo, minimoDelGrupo(grupo)))} />}
               tallas={
-                parada.modelo && sepDeLaParada && modoDe(parada) === "ahora" ? (
-                  <TallasDeLaPlaca
-                    prenda={prendaDeLaParada}
-                    cargar={async () => !!(await leerPrenda(grupo, sepDeLaParada.productoId, sepDeLaParada.nombre))}
-                    tallasCategoria={tallasDeLaCategoria(grupo)}
-                    coloresCatalogo={catalogo?.colores ?? []}
-                    contadas={sepDeLaParada.cantidad}
-                    traerALaVista={traerTallas}
-                    borrador={prendaDeLaParada ? (tablas[parada.clave] ?? borradorDeTallas(prendaDeLaParada, coloresOrden, tallasDeLaCategoria(grupo), sepDeLaParada.variantes)) : null}
-                    onCambiar={(t) => prendaDeLaParada && cambiarTabla(parada.clave, prendaDeLaParada, t)}
-                    onDejarSuma={(n) => escribirEnParada(parada, n + (parada.modelo?.enStock ?? 0))}
-                    onCrear={(pedidas) => setHoja({ tipo: "prenda", grupo: grupo.clave, original: sepDeLaParada, modo: "agregar", prenda: prendaDeLaParada, parada: parada.clave, tabla: true, pedidas })}
-                    onCambiarPrenda={() => void cambiarDePrenda(parada, sepDeLaParada)}
+                parada.modelo && tarjeta ? (
+                  <TarjetaDeTallas
+                    estado={tarjeta}
+                    contadas={parada.modelo.contadas - parada.modelo.enStock}
+                    repartidas={repartidas}
+                    variantes={sepDeLaParada?.variantes ?? null}
+                    colores={catalogo?.colores ?? []}
+                    esperaTabla={!!tablas[parada.clave]?.sinGuardar}
+                    onAbrir={() => elegirModo(parada, "ahora")}
+                    onModo={(m) => elegirModo(parada, m)}
                   />
                 ) : null
-              }
-              llevarAlStock={
-                parada.modelo && sepDeLaParada && prendaDeLaParada && modoDe(parada) === "ahora" ? (() => {
-                  const tabla = tablas[parada.clave] ?? borradorDeTallas(prendaDeLaParada, coloresOrden, tallasDeLaCategoria(grupo), sepDeLaParada.variantes);
-                  const unidades = loQueSale(sumasDe(tabla.conteo, prendaDeLaParada), sepDeLaParada.cantidad, tabla.conteo.conDanadas && sumasDe(tabla.conteo, prendaDeLaParada).danadas > 0 && !tabla.conteo.arreglo);
-                  const linea = lineaDeLaPrenda(grupo, { productoId: sepDeLaParada.productoId });
-                  if (unidades === 0 || !linea?.conteo) return null;
-                  return (
-                    <LlevarAlStock
-                      key={parada.clave}
-                      despachoId={detalle.id}
-                      unidades={unidades}
-                      nombre={parada.modelo.nombre}
-                      sede={detalle.sede?.nombre ?? "esta sede"}
-                      sedeId={detalle.sede?.id ?? null}
-                      linea={linea}
-                      productoId={sepDeLaParada.productoId}
-                      variantes={variantesDeConteo(tabla.conteo, prendaDeLaParada)}
-                      sinAviso={sinAviso}
-                      veDinero={veDinero}
-                      responsable={responsable}
-                      esperandoGuardar={esperandoGuardar}
-                      onConteoCambiado={onSalida}
-                      onHecho={(r) => {
-                        const clave = parada.clave;
-                        const nombre = parada.modelo?.nombre ?? "la prenda";
-                        setTablas((t) => {
-                          const { [clave]: _sale, ...resto } = t;
-                          return resto;
-                        });
-                        setHoja({ tipo: "salida-hecha", resultado: r, nombre });
-                        void leerSalidasDelEnvio(detalle.id).then(setSalidas);
-                        onSalida();
-                      }}
-                    />
-                  );
-                })() : null
               }
             />
           )}
@@ -924,6 +906,63 @@ export function ContarEnvio({
         />
       )}
 
+      {hoja?.tipo === "repartir" && parada?.modelo && grupo && sepDeLaParada && hoja.parada === parada.clave && (
+        <HojaRepartir
+          nombre={parada.modelo.nombre}
+          contadas={sepDeLaParada.cantidad}
+          onCerrar={() => setHoja(null)}
+          pie={(() => {
+            if (!prendaDeLaParada || !tablaDeLaParada) return null;
+            const sumas = sumasDe(tablaDeLaParada.conteo, prendaDeLaParada);
+            const unidades = loQueSale(sumas, sepDeLaParada.cantidad, tablaDeLaParada.conteo.conDanadas && sumas.danadas > 0 && !tablaDeLaParada.conteo.arreglo);
+            const linea = lineaDeLaPrenda(grupo, { productoId: sepDeLaParada.productoId });
+            if (unidades === 0 || !linea?.conteo) return null;
+            return (
+              <LlevarAlStock
+                key={parada.clave}
+                despachoId={detalle.id}
+                unidades={unidades}
+                nombre={parada.modelo.nombre}
+                sede={detalle.sede?.nombre ?? "esta sede"}
+                sedeId={detalle.sede?.id ?? null}
+                linea={linea}
+                productoId={sepDeLaParada.productoId}
+                variantes={variantesDeConteo(tablaDeLaParada.conteo, prendaDeLaParada)}
+                sinAviso={sinAviso}
+                veDinero={veDinero}
+                responsable={responsable}
+                esperandoGuardar={esperandoGuardar}
+                onConteoCambiado={onSalida}
+                onHecho={(r) => {
+                  const clave = parada.clave;
+                  const nombre = parada.modelo?.nombre ?? "la prenda";
+                  setTablas((t) => {
+                    const { [clave]: _sale, ...resto } = t;
+                    return resto;
+                  });
+                  setHoja({ tipo: "salida-hecha", resultado: r, nombre });
+                  void leerSalidasDelEnvio(detalle.id).then(setSalidas);
+                  onSalida();
+                }}
+              />
+            );
+          })()}
+        >
+          <TallasDeLaPlaca
+            prenda={prendaDeLaParada}
+            cargar={async () => !!(await leerPrenda(grupo, sepDeLaParada.productoId, sepDeLaParada.nombre))}
+            coloresCatalogo={catalogo?.colores ?? []}
+            contadas={sepDeLaParada.cantidad}
+            traerALaVista
+            borrador={tablaDeLaParada}
+            onCambiar={(t) => prendaDeLaParada && cambiarTabla(parada.clave, prendaDeLaParada, t)}
+            onDejarSuma={(n) => escribirEnParada(parada, n + (parada.modelo?.enStock ?? 0))}
+            onCrear={(pedidas) => setHoja({ tipo: "prenda", grupo: grupo.clave, original: sepDeLaParada, modo: "agregar", prenda: prendaDeLaParada, parada: parada.clave, tabla: true, pedidas, enTabla: tablaDeLaParada ? marcasDeLaTabla(tablaDeLaParada) : undefined })}
+            onCambiarPrenda={() => void cambiarDePrenda(parada, sepDeLaParada)}
+          />
+        </HojaRepartir>
+      )}
+
       {hoja?.tipo === "salida-hecha" && <SalidaHecha resultado={hoja.resultado} nombre={hoja.nombre} veExistencias={veExistencias} onCerrar={() => setHoja(null)} />}
       {hoja?.tipo === "corregir-salida" && (
         <CorregirSalida
@@ -977,14 +1016,14 @@ export function ContarEnvio({
 
       {hoja?.tipo === "prenda" && grupoDeHoja?.principal.categoria && lineaDeHoja && (
         <HojaPrenda
-          destino={{ ...destinoDe(detalle, lineaDeHoja, hoja.modo, hoja.prenda, proveedores.length, sinAviso), pedidas: hoja.pedidas }}
+          destino={{ ...destinoDe(detalle, lineaDeHoja, hoja.modo, hoja.prenda, proveedores.length, sinAviso), pedidas: hoja.pedidas, enTabla: hoja.enTabla }}
           categoria={categoriaDeHoja}
           colores={catalogo?.colores ?? []}
           vocabulario={catalogo?.vocabulario ?? null}
           responsable={responsable}
           onCostoEscrito={(productoId, costoTexto) => onCostoDePrenda?.(lineaDeHoja.clave, productoId, costoTexto)}
-          onListo={(prenda) => {
-            if (hoja.tabla) return volverATabla(hoja.parada, grupoDeHoja, hoja.prenda, prenda);
+          onListo={(prenda, marcas) => {
+            if (hoja.tabla) return volverATabla(hoja.parada, grupoDeHoja, hoja.prenda, prenda, hoja.enTabla, marcas);
             onPrendaVista(prenda);
             setHoja({ tipo: "tallas", grupo: hoja.grupo, original: hoja.original, prenda, parada: hoja.parada });
           }}
@@ -997,7 +1036,7 @@ export function ContarEnvio({
             setHoja({ tipo: "tallas", grupo: hoja.grupo, original: hoja.original, prenda: hallada, parada: hoja.parada });
             return true;
           }}
-          onCerrar={() => setHoja(null)}
+          onCerrar={() => setHoja(hoja.tabla ? { tipo: "repartir", parada: hoja.parada } : null)}
         />
       )}
     </div>

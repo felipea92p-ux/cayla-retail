@@ -92,6 +92,11 @@ export type DestinoHoja = {
   proveedorId: string | null;
   /** En «agregar»: la talla o el color que la persona pidió sumar desde la tabla, ya marcados. */
   pedidas?: { tallaId?: string; colorCodigo?: string };
+  /**
+   * En «agregar», abierta desde la tabla de tallas del conteo (ADR-0645): las tallas y los colores que la tabla muestra. La hoja arranca con eso marcado y devuelve lo que quedó
+   * marcado, para que la tabla muestre justo eso. Felipe 2026-11-11: agregar una talla o un color abre esta hoja completa, no un combo con buscador.
+   */
+  enTabla?: { tallaIds: readonly string[]; colorCodigos: readonly string[] };
 };
 
 const SIN_OFRECIDOS: Record<"tallas" | "tejidos" | "patrones", ValorVocabulario[]> = { tallas: [], tejidos: [], patrones: [] };
@@ -114,7 +119,8 @@ export function HojaPrenda({
   /** Todo el vocabulario, para «Otra talla» y «Ver todos»; `null` si no se pudo leer: se elige entre lo de la categoría. */
   vocabulario: VocabularioParaRecibir | null;
   responsable: ControlResponsable;
-  onListo: (prenda: PrendaRecepcion) => void;
+  /** `marcas`: solo con `destino.enTabla`, las tallas y los colores que quedaron marcados. */
+  onListo: (prenda: PrendaRecepcion, marcas?: { tallaIds: readonly string[]; colorCodigos: readonly string[] }) => void;
   /** ADR-0641 act. 2026-11-11: el costo que se escribió en el paso del precio, distinto del de la línea, para que el cierre lo traiga puesto. */
   onCostoEscrito?: (productoId: string, costoTexto: string) => void;
   /** «Ya existe esa prenda»: la pantalla la busca y la pone en la línea. */
@@ -136,8 +142,9 @@ export function HojaPrenda({
       tejidos: [...(categoria?.tejidos ?? []), ...ofrecidos.tejidos],
       patrones: [...(categoria?.patrones ?? []), ...ofrecidos.patrones],
       existentes: destino.prenda ? new Set(destino.prenda.variantes.map((v) => claveCelda(v.tallaId, v.colorCodigo))) : undefined,
+      enTabla: destino.enTabla,
     }),
-    [destino.modo, destino.prenda, categoria, ofrecidos],
+    [destino.modo, destino.prenda, destino.enTabla, categoria, ofrecidos],
   );
   const contextoNombre = { familia: categoria?.familia, prefijo: categoria?.prefijo };
   const tipos = tiposDeCategoria(contextoNombre);
@@ -183,11 +190,13 @@ export function HojaPrenda({
   const avisoError = useRef<HTMLDivElement>(null);
 
   const camposPrenda = camposDePrenda(borrador, ctx, tocados);
-  const campoResponsable = responsable.listo ? [] : [{ id: "prenda-responsable", nombre: "Quién la crea", requerido: true, hecho: false, pendiente: responsable.motivo ?? "Elige quién recibe." }];
+  const nuevas = combinacionesDeLaHoja(borrador, ctx).length;
+  // Desde la tabla de tallas, sin nada que crear, solo cambia lo que la tabla muestra: no se escribe en la base y no hace falta decir quién.
+  const soloMostrar = !!destino.enTabla && !!destino.prenda && nuevas === 0;
+  const campoResponsable = responsable.listo || soloMostrar ? [] : [{ id: "prenda-responsable", nombre: "Quién la crea", requerido: true, hecho: false, pendiente: responsable.motivo ?? "Elige quién recibe." }];
   // La guía enciende lo que sigue dentro del paso abierto. Quién la crea se pide a la vista desde el principio, pero solo frena al crear, como en Nuevo producto.
   const campos = nueva ? [...camposDelPaso(camposPrenda, paso), ...(enUltimoPaso ? campoResponsable : [])] : [...camposPrenda, ...campoResponsable];
   const guia = useGuiaCampos(campos);
-  const nuevas = combinacionesDeLaHoja(borrador, ctx).length;
   const queSeCrea = textoDeLoQueSeCrea(borrador, ctx, (codigo) => colores.find((c) => c.codigo === codigo)?.nombre ?? codigo);
 
   useEffect(() => {
@@ -229,6 +238,11 @@ export function HojaPrenda({
       irAPaso(conFalta);
       return;
     }
+    const marcas = destino.enTabla ? { tallaIds: borrador.tallaIds, colorCodigos: borrador.colorCodigos } : undefined;
+    if (soloMostrar && destino.prenda) {
+      onListo(destino.prenda, marcas);
+      return;
+    }
     enVuelo.current = true;
     try {
       setGuardando(true);
@@ -268,7 +282,7 @@ export function HojaPrenda({
       });
       const costoEscrito = costo.trim().replace(",", ".");
       if (nueva && costoEscrito !== "" && costoEscrito !== costoDeLinea && Number(costoEscrito) > 0) onCostoEscrito?.(prenda.productoId, costoEscrito);
-      onListo(prenda);
+      onListo(prenda, marcas);
     } finally {
       enVuelo.current = false;
     }
@@ -290,10 +304,12 @@ export function HojaPrenda({
   const sugerenciaNombre = sugerirNombre(contextoNombre);
   const sugerenciaDescripcion = sugerirDescripcion(contextoNombre);
   const nombreDeLaOrden = destino.descripcionOrden?.trim() ?? "";
-  const titulo = nueva ? "Crear la prenda que llegó" : `Sumar tallas o colores a ${destino.prenda?.nombre ?? "la prenda"}`;
+  const titulo = nueva ? "Crear la prenda que llegó" : destino.enTabla ? `Tallas y colores de ${destino.prenda?.nombre ?? "la prenda"}` : `Sumar tallas o colores a ${destino.prenda?.nombre ?? "la prenda"}`;
   const subtitulo = nueva
     ? `${[categoria?.nombre ?? "Categoría", destino.marcaNombre].filter(Boolean).join(" · ")}. Se crea en el catálogo${destino.costoUnitario != null ? ` con el costo de esta línea (S/ ${costoComoTexto(destino.costoUnitario)})` : ""} y queda lista para contar.`
-    : "Elige las tallas y los colores que llegaron: se crean las combinaciones que la prenda todavía no tiene.";
+    : destino.enTabla
+      ? "Marca las tallas y los colores que llegaron: la tabla muestra justo esos. Lo que la prenda todavía no tiene se crea aquí."
+      : "Elige las tallas y los colores que llegaron: se crean las combinaciones que la prenda todavía no tiene.";
   const pasoAbierto = PASOS_PRENDA.find((p) => p.numero === paso) ?? PASOS_PRENDA[0];
   const resumenDe: Record<number, string> = {
     1: borrador.nombre,
@@ -345,7 +361,8 @@ export function HojaPrenda({
           setColoresCreados((cs) => (cs.some((c) => c.codigo === color.codigo) ? cs : [...cs, color]));
           setBorrador((b) => (b.colorCodigos.includes(color.codigo) ? b : { ...b, colorCodigos: [...b.colorCodigos, color.codigo] }));
         }}
-        cartaAbierta={nueva}
+        // Desde la tabla de tallas la carta va abierta: se elige mirando los colores, no buscando su nombre.
+        cartaAbierta={nueva || !!destino.enTabla}
         conMezclas
       />
     </CampoGuiado>
@@ -392,7 +409,7 @@ export function HojaPrenda({
   );
 
   return (
-    <Modal titulo={titulo} subtitulo={subtitulo} tamano={nueva ? "ancha" : "mediana"} bloqueado={guardando} onClose={onCerrar} antesDeCerrar={avisoSalida.pedirAccion}>
+    <Modal titulo={titulo} subtitulo={subtitulo} tamano={nueva || destino.enTabla ? "ancha" : "mediana"} bloqueado={guardando} onClose={onCerrar} antesDeCerrar={avisoSalida.pedirAccion}>
       {(cerrar) => (
         <IdentidadAltaProveedor control={responsable}>
           <form
@@ -569,7 +586,7 @@ export function HojaPrenda({
 
             {avisos}
 
-            <PieGuia guia={guia} listo={!nueva ? "Todo listo para sumarlas." : enUltimoPaso ? "Todo listo para crear la prenda." : "Listo: puedes seguir."} />
+            <PieGuia guia={guia} listo={soloMostrar ? "Listo: la tabla va a mostrar lo que marcaste." : !nueva ? "Todo listo para sumarlas." : enUltimoPaso ? "Todo listo para crear la prenda." : "Listo: puedes seguir."} />
             <div className="pie-acciones pie-hoja-fijo pt-1">
               {nueva && paso > PASOS_PRENDA[0].numero && <Volver onClick={() => irAPaso(paso - 1)} deshabilitado={guardando} a="Volver al paso anterior" className="mr-auto" />}
               <Boton type="button" peso="fantasma" onClick={() => avisoSalida.pedirAccion(cerrar)} disabled={guardando}>
@@ -577,7 +594,7 @@ export function HojaPrenda({
               </Boton>
               {enUltimoPaso ? (
                 <Boton type="submit" peso="primario" cargando={guardando} textoCargando={nueva ? "Creando…" : "Sumando…"} title={guia.frase ?? undefined} className={guia.claseConfirmar}>
-                  {nueva ? "Crear y contar" : nuevas > 0 ? `Sumar ${nuevas} y contar` : "Sumar y contar"}
+                  {nueva ? "Crear y contar" : nuevas > 0 ? `Sumar ${nuevas} y contar` : destino.enTabla ? "Listo" : "Sumar y contar"}
                 </Boton>
               ) : (
                 <Boton type="button" peso="primario" onClick={seguir} title={guia.frase ?? undefined} className={guia.claseConfirmar}>

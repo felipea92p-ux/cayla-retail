@@ -948,6 +948,23 @@ describe("la hoja «+ talla o color» de una prenda que ya existe", () => {
     expect(camposDePrenda(b, ctx).some((c) => c.id === "prenda-nombre" || c.id === "prenda-precio")).toBe(false);
   });
 
+  it("abierta desde la tabla de tallas, arranca con lo que la tabla muestra y no exige crear nada (ADR-0645)", () => {
+    // La tabla muestra S y M en negro; la chompa también tiene L y blanco, escondidos.
+    const deTabla: ContextoPrenda = { ...ctx, enTabla: { tallaIds: ["t-s", "t-m"], colorCodigos: ["NE"] } };
+    const b = borradorDePrenda(deTabla, { prenda: CHOMPA });
+    expect(b.tallaIds).toEqual(["t-s", "t-m"]);
+    expect(b.colorCodigos).toEqual(["NE"]);
+    // Tal cual, no crea nada y no falta nada: se puede volver a la tabla.
+    expect(combinacionesDeLaHoja(b, deTabla)).toEqual([]);
+    expect(camposDePrenda(b, deTabla).filter((c) => c.requerido && !c.hecho)).toEqual([]);
+    // Volver a mostrar L, que la prenda ya tiene en negro, tampoco crea nada.
+    expect(combinacionesDeLaHoja({ ...b, tallaIds: ["t-s", "t-m", "t-l"] }, deTabla)).toEqual([]);
+    // Marcar blanco crea solo lo que falta ENTRE lo marcado: S en blanco (M en blanco ya existe; L no está marcada).
+    expect(combinacionesDeLaHoja({ ...b, colorCodigos: ["NE", "BL"] }, deTabla)).toEqual([{ talla_id: "t-s", color_codigo: "BL" }]);
+    // Sin ninguna talla marcada, sí falta.
+    expect(camposDePrenda({ ...b, tallaIds: [] }, deTabla).filter((c) => c.requerido && !c.hecho).map((c) => c.id)).toEqual(["prenda-tallas"]);
+  });
+
   it("manda la prenda que existe, sin nombre ni precio", () => {
     const b = borradorDePrenda(ctx, { prenda: CHOMPA });
     const args = argsPrepararPrenda(b, ctx, { despachoId: "env-1", despachoItemId: "di-1", categoriaId: "cat", marcaId: "m", productoId: "p-chompa", confirmoDistinto: false, token: "t" });

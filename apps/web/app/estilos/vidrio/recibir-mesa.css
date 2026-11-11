@@ -288,8 +288,41 @@ main:has(.rc-conteo) { padding-bottom: 16px; }
   .rc-pie-pasos .btn-primario { flex: 1 1 auto; }
 }
 
-.rc-seccion { display: grid; gap: 8px; padding: 12px 16px; border-top: 1px solid var(--hilo-fila); }
-.rc-seccion-titulo { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 8px; color: var(--color-tinta); font-size: 15px; font-weight: 600; }
+/* ---------- El paso 2: la tarjeta de tallas y colores (ADR-0645) ----------
+   Dice cómo va y tiene un botón, que abre la hoja. El tono es el estado: encendida lo que toca, verde lo repartido, ámbar si se pasó, callada lo que espera. */
+.rc-tarjeta { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 12px 14px; padding: 14px; border: 1px solid var(--placa-borde); border-radius: 16px; background: var(--placa-fondo); box-shadow: var(--placa-luz); animation: cayla-entrada 320ms var(--ease-cayla) backwards; transition: background-color 250ms var(--ease-cayla), border-color 250ms var(--ease-cayla), box-shadow 250ms var(--ease-cayla); }
+.rc-tarjeta-ic { flex: none; display: grid; place-items: center; width: 40px; height: 40px; border-radius: 12px; background: var(--lente-fondo); box-shadow: var(--lente-luz); color: var(--color-taupe-profundo); }
+.rc-tarjeta-textos { flex: 1 1 14rem; display: grid; gap: 2px; min-width: 0; }
+.rc-tarjeta-textos > b { color: var(--color-tinta); font-size: 15px; font-weight: 600; line-height: 1.3; font-variant-numeric: tabular-nums; }
+.rc-tarjeta-textos > span { color: var(--color-taupe); font-size: 14px; line-height: 1.35; }
+.rc-tarjeta-acciones { flex: 1 1 100%; display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; }
+.rc-tarjeta-acciones .btn-cayla:not(.btn-enlace) { white-space: nowrap; }
+.rc-tarjeta[data-tono="espera"] { border-style: dashed; border-color: var(--color-borde-control); background: transparent; box-shadow: none; }
+.rc-tarjeta[data-tono="ahora"] { border-color: transparent; background: var(--menu-activa-fondo); box-shadow: var(--menu-activa-sombra); }
+.rc-tarjeta[data-tono="ahora"] .rc-tarjeta-ic { color: var(--color-tinta); }
+.rc-tarjeta[data-tono="atencion"] { border-color: color-mix(in srgb, var(--color-ambar) 45%, transparent); background: color-mix(in srgb, var(--color-ambar) 8%, var(--color-vidrio)); }
+.rc-tarjeta[data-tono="atencion"] .rc-tarjeta-ic { color: var(--color-ambar-profundo); }
+.rc-tarjeta[data-tono="lista"] { border-color: color-mix(in srgb, var(--color-verde) 30%, transparent); background: color-mix(in srgb, var(--color-verde) 7%, var(--color-vidrio)); }
+.rc-tarjeta[data-tono="lista"] .rc-tarjeta-ic { background: color-mix(in srgb, var(--color-verde) 18%, transparent); box-shadow: none; color: var(--color-verde-profundo); }
+.rc-tarjeta[data-tono="despues"] .rc-tarjeta-ic { color: var(--color-pizarra); }
+/* Lo repartido, en etiquetas: color, talla y cuántas. */
+.rc-reparto { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+.rc-reparto li { display: inline-flex; align-items: center; gap: 6px; min-height: 26px; padding: 0 9px; border: 1px solid var(--gota-chica-borde); border-radius: 999px; background: var(--gota-chica-fondo); box-shadow: var(--gota-chica-luz); color: var(--color-tinta); font-size: 13px; white-space: nowrap; }
+.rc-reparto li b { font-weight: 700; font-variant-numeric: tabular-nums; }
+.rc-reparto .rc-reparto-mas { border-color: transparent; background: transparent; box-shadow: none; color: var(--color-taupe); }
+
+/* ---------- La hoja «Tallas y colores» (ADR-0645) ----------
+   La tabla que vivía en la placa, con espacio. Arriba, cómo va el reparto; al pie, pegado, lo que se hace con lo repartido. */
+.rc-repartir { display: grid; gap: 14px; min-width: 0; }
+.rc-reparto-tabla { display: grid; gap: 10px; min-width: 0; }
+.rc-reparto-cabeza { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 4px 16px; }
+.rc-reparto-cabeza .rc-matriz-total { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 8px; font-size: 15px; }
+.rc-reparto-cabeza .rc-matriz-total b { font-size: 28px; line-height: 1; }
+/* En la hoja hay lugar: las casillas son más altas y anchas que cuando vivían en la placa. */
+.rc-repartir .rc-tabla-tallas { font-size: 15px; }
+.rc-repartir .rc-celda, .rc-repartir .rc-celda-falta { height: 40px; max-width: 88px; font-size: 15px; }
+.rc-repartir-pie { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 8px 12px; }
+
 .rc-opciones { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
 .rc-opcion { display: flex; align-items: flex-start; gap: 10px; min-width: 0; padding: 10px 12px; border: 1px solid var(--placa-borde); border-radius: 14px; background: var(--placa-fondo); box-shadow: var(--placa-luz); text-align: left; transition: background-color 200ms var(--ease-cayla), box-shadow 200ms var(--ease-cayla); }
 .rc-opcion b { display: block; color: var(--color-tinta); font-size: 14px; font-weight: 600; line-height: 1.3; }
@@ -352,8 +385,8 @@ button.rc-celda-falta:focus-visible { outline: 2px solid var(--color-tinta); out
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .rc-panel, .rc-cat, .rc-otra, .rc-talla, .rc-bloque { animation: none; }
-  .rc-cat-cuerpo, .rc-cat-flecha, .rc-modelo, .rc-opcion, .rc-celda, .rc-celda-falta, .rc-tray, .rc-tray-bola, .rc-suma button, .rc-atajo, .rc-cat-cabeza, .rc-radio, .rc-radio::after, .rc-talla-quitar, .rc-paso { transition: none; }
+  .rc-panel, .rc-cat, .rc-otra, .rc-talla, .rc-bloque, .rc-tarjeta { animation: none; }
+  .rc-cat-cuerpo, .rc-cat-flecha, .rc-modelo, .rc-opcion, .rc-celda, .rc-celda-falta, .rc-tray, .rc-tray-bola, .rc-suma button, .rc-atajo, .rc-cat-cabeza, .rc-radio, .rc-radio::after, .rc-talla-quitar, .rc-paso, .rc-tarjeta { transition: none; }
 }
 
 /* ---------- Lo que ya entró al stock, dentro de su categoría (Felipe 2026-11-07, maqueta «A · Matriz») ----------

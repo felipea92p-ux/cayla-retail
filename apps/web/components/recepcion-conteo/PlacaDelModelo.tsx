@@ -14,7 +14,6 @@ import { atajosDelDial } from "@/lib/recepcion-dial-reglas";
 import { marcaDeLinea, textoPrendas } from "@/lib/recepcion-conteo-reglas";
 import { descripcionDelGrupo, sinIdentificarDelGrupo } from "@/lib/recepcion-grupos-reglas";
 import { conMiles, costoDeLaParada, lineasDeLaParada, nombreDeParada, textoDeCosto, tipoDeParada, type ParadaDelConteo } from "@/lib/recepcion-modelos-reglas";
-import type { ModoDeTallas } from "@/lib/recepcion-tallas-reglas";
 import { EstadoModelo } from "./CategoriasAcordeon";
 import { Dial } from "./Dial";
 import type { EstadoGuardado } from "./RecibirContando";
@@ -32,7 +31,8 @@ export function PlacaDelModelo({
   guardado,
   error,
   onReintentar,
-  modo,
+  pasoTallas,
+  tocaRepartir,
   abrirNumero,
   anterior,
   siguiente,
@@ -47,13 +47,11 @@ export function PlacaDelModelo({
   onPendiente,
   onQuitarFiltro,
   onEnter,
-  onModo,
   observacion,
   observaciones,
   identificar,
   onEditarNombre,
   tallas,
-  llevarAlStock,
 }: {
   parada: ParadaDelConteo;
   sinAviso: boolean;
@@ -63,7 +61,10 @@ export function PlacaDelModelo({
   error: string | null;
   /** Vuelve a mandar lo que no se pudo guardar. */
   onReintentar: () => void;
-  modo: ModoDeTallas;
+  /** Cómo va el paso 2: espera (sin número o nada que hacer ahora), toca o ya está. */
+  pasoTallas: "falta" | "toca" | "hecha";
+  /** Lo que toca ahora es repartir las tallas: el botón principal es el de la tarjeta, no «Listo, siguiente». */
+  tocaRepartir: boolean;
   /** Llega con el número listo para escribir: viene de apretar Enter en lo anterior. */
   abrirNumero: boolean;
   anterior: ParadaDelConteo | null;
@@ -84,7 +85,6 @@ export function PlacaDelModelo({
   onPendiente: (e: MouseEvent) => void;
   onQuitarFiltro: () => void;
   onEnter: () => void;
-  onModo: (m: ModoDeTallas) => void;
   /** El enlace «Anotar observación». */
   observacion: ReactNode;
   /** Lo ya anotado. */
@@ -93,10 +93,8 @@ export function PlacaDelModelo({
   identificar: ReactNode;
   /** Ponerle su nombre al modelo, o cambiárselo. */
   onEditarNombre: () => void;
-  /** La tabla de tallas y colores, cuando se pide. */
+  /** La tarjeta de tallas y colores: dice cómo va y abre la hoja donde se reparten. */
   tallas: ReactNode;
-  /** «Llevar al stock ahora»: el modelo sale sin cerrar el envío, cuando ya se repartió algo. */
-  llevarAlStock: ReactNode;
 }) {
   const { grupo, modelo } = parada;
   const p = grupo.principal;
@@ -125,21 +123,9 @@ export function PlacaDelModelo({
   const llevaCuenta = guardado === "guardando" ? "Guardando…" : guardado === "guardado" ? "Guardado" : contoNombre ? `Contó ${contoNombre}` : null; // unificar-fijo: el estado de lo que se guarda solo, no un botón (como la planilla de Contar)
   const nombre = modelo ? modelo.nombre : p.categoria ? p.categoria.nombre.toLowerCase() : "prendas";
   const descripcion = modelo ? null : descripcionDelGrupo(grupo);
-  const esNueva = !!modelo && !modelo.productoId;
-  const sinNumero = contadas <= 0;
 
-  const opcion = (valor: ModoDeTallas, titulo: string, texto: string) => (
-    <button type="button" role="radio" className="rc-opcion" aria-checked={!sinNumero && modo === valor} disabled={sinNumero} onClick={() => onModo(valor)}>
-      <span className="rc-radio" aria-hidden />
-      <span>
-        <b>{titulo}</b>
-        <small>{texto}</small>
-      </span>
-    </button>
-  );
-
-  // Sin contar todavía no es «Listo»: pasar es saltarlo, y lo principal es contar. Con todo contado, lo principal es «Revisar y cerrar», en la lista.
-  const pesoSeguir = hayConteo && !todoContado ? "primario" : "fantasma";
+  // Sin contar todavía no es «Listo»: pasar es saltarlo, y lo principal es contar. Si toca repartir, lo principal es el botón de la tarjeta. Con todo contado, «Revisar y cerrar», en la lista.
+  const pesoSeguir = hayConteo && !todoContado && !tocaRepartir ? "primario" : "fantasma";
   const flecha = <ArrowRight aria-hidden className="h-4 w-4 shrink-0" />;
   return (
     <>
@@ -268,29 +254,20 @@ export function PlacaDelModelo({
           )}
         </section>
 
-        {modelo && !yaEntroTodo && (
-          <section className="rc-bloque" aria-label="¿Qué deseas hacer?" data-guia="recepcion.que-hacer">
+        {modelo && (
+          <section className="rc-bloque" aria-label="Tallas y colores">
             <div className="rc-bloque-titulo">
-              <span className="rc-paso" data-estado={sinNumero ? "falta" : modelo.conTallas ? "hecha" : "toca"} aria-hidden>
-                {!sinNumero && modelo.conTallas ? <Check className="h-4 w-4" /> : 2}
+              <span className="rc-paso" data-estado={pasoTallas} aria-hidden>
+                {pasoTallas === "hecha" ? <Check className="h-4 w-4" /> : 2}
               </span>
-              <h3 className="rc-bloque-nombre">¿Qué deseas hacer?</h3>
-              <span className="rc-bloque-estado">{modelo.conTallas && modelo.productoId && <Chip tono="verde">Entra al stock</Chip>}</span>
+              <h3 className="rc-bloque-nombre">Tallas y colores</h3>
+              <span className="rc-bloque-estado">
+                {yaEntroTodo ? <Chip tono="verde">Ya en el stock</Chip> : modelo.conTallas && modelo.productoId ? <Chip tono="verde">Entra al stock</Chip> : pasoTallas === "toca" && hayConteo ? <EtiquetaAhora /> : null}
+              </span>
             </div>
-            <div className="rc-opciones" role="radiogroup" aria-label="¿Qué deseas hacer?">
-              {opcion("despues", "Solo la cantidad", "Queda guardada: no se vende hasta terminarla.")}
-              {opcion("ahora", esNueva ? "Crearlo ahora" : "Tallas y colores ahora", esNueva ? "Si ya existe, la eliges; si no, se crea. Después repartes lo contado." : "Entra al stock al cerrar, o antes si tú la llevas.")}
-            </div>
-            {sinNumero && <p className="rc-bloque-nota">Primero cuenta cuántas llegaron. Después podrás poner tallas y colores.</p>}
+            {tallas}
           </section>
         )}
-        {yaEntroTodo && (
-          <div className="rc-bloque rc-bloque-suelto">
-            <Chip tono="verde">Ya en el stock</Chip>
-          </div>
-        )}
-        {tallas}
-        {llevarAlStock}
       </div>
 
       {/* El pie fijo: anterior y siguiente, con su palabra y su flecha (Felipe 2026-11-02). El nombre de lo que sigue va al lado, no en el botón: uno largo no cabía. */}

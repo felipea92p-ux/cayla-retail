@@ -1563,6 +1563,12 @@ export type ContextoPrenda = {
   patrones: readonly { id: string; texto: string }[];
   /** En «agregar»: las combinaciones que la prenda ya tiene (`claveCelda`). */
   existentes?: ReadonlySet<string>;
+  /**
+   * En «agregar», abierta desde la tabla de tallas del conteo (ADR-0645, Felipe 2026-11-11: «debe abrirse todo el modal de tallas y colores, buscar en un combo es muy
+   * complicado»): las tallas y los colores que la tabla muestra ahora. La hoja arranca con eso marcado, no con todo lo que la prenda tiene, y la tabla muestra después justo lo
+   * marcado. Volver a mostrar lo que la prenda ya tenía también vale: no exige crear nada.
+   */
+  enTabla?: { tallaIds: readonly string[]; colorCodigos: readonly string[] };
 };
 
 /** Se pregunta si la familia los pide o si la categoría ofrece alguno, como en Nuevo producto. Preguntar no es exigir: al recibir, siempre se puede seguir sin ellos. */
@@ -1572,6 +1578,9 @@ export const pidePatron = (ctx: Pick<ContextoPrenda, "exigeTejidoPatron" | "patr
 /** Lo que viene puesto: en «nueva», las tallas habituales de la categoría y el precio que sugirió quien compró; en «agregar», lo que la
  *  prenda ya tiene (para ver qué se suma). */
 export function borradorDePrenda(ctx: ContextoPrenda, o: { precioSugerido?: number | null; prenda?: PrendaRecepcion | null } = {}): BorradorPrenda {
+  if (ctx.modo === "agregar" && o.prenda && ctx.enTabla) {
+    return { nombre: o.prenda.nombre, tallaIds: [...ctx.enTabla.tallaIds], colorCodigos: [...ctx.enTabla.colorCodigos], precio: "", descripcion: "", tejidoId: "", patronId: "" };
+  }
   if (ctx.modo === "agregar" && o.prenda) {
     const tallas = new Set(o.prenda.variantes.map((v) => v.tallaId).filter((x): x is string => !!x));
     const colores = [...new Set(o.prenda.variantes.map((v) => v.colorCodigo).filter((x): x is string => !!x))];
@@ -1652,7 +1661,8 @@ export function camposDePrenda(b: BorradorPrenda, ctx: ContextoPrenda, tocados: 
     campos.push({ id: "prenda-tallas", nombre: "Tallas", requerido: true, hecho: ok, pendiente: "Marca las tallas que llegaron." });
   }
   campos.push({ id: "prenda-colores", nombre: "Colores", requerido: false, hecho: b.colorCodigos.length > 0, pendiente: "" });
-  if (!nueva) {
+  // Desde la tabla de tallas, marcar lo que la prenda ya tiene también es un cambio: no hace falta crear nada.
+  if (!nueva && !ctx.enTabla) {
     const nuevas = combinacionesDeLaHoja(b, ctx).length;
     campos.push({ id: "prenda-nuevas", nombre: "Qué se suma", requerido: true, hecho: nuevas > 0, pendiente: "Elige una talla o un color que la prenda todavía no tenga." });
   }

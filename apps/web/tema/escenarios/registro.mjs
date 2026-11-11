@@ -2036,8 +2036,32 @@ const abrirDescribir = async (pagina) => {
   await boton.click({ timeout: 8000 });
   await esperar(pagina, 1100);
 };
+// La hoja de tallas y colores (ADR-0645): se abre desde la tarjeta de un modelo del catálogo ya contado. Se recorren las categorías y sus modelos (elegir uno no
+// guarda nada) hasta dar con el botón de la tarjeta.
+const ENVIO_CON_PRENDA_CONTADA =
+  "d.estado = 'abierto' and exists (select 1 from retail.despacho_conteos c, jsonb_array_elements(c.separado->'prendas') p where c.despacho_id = d.id and (p->>'cantidad')::int > 0)";
+const abrirTallas = async (pagina) => {
+  const boton = pagina.locator('[data-guia="recepcion.abrir-tallas"]').first();
+  const categorias = pagina.locator('[data-guia="recepcion.categorias"] .rc-cat');
+  for (let c = 0, nc = await categorias.count(); c < nc && !(await boton.isVisible().catch(() => false)); c++) {
+    const cabeza = categorias.nth(c).locator("button.rc-cat-cabeza");
+    if ((await cabeza.getAttribute("aria-expanded")) !== "true") {
+      await cabeza.click({ timeout: 8000 });
+      await esperar(pagina, 500);
+    }
+    const modelos = categorias.nth(c).locator("button.rc-modelo[data-campo]");
+    for (let i = 0, n = await modelos.count(); i < n && !(await boton.isVisible().catch(() => false)); i++) {
+      await modelos.nth(i).click({ timeout: 8000 });
+      await esperar(pagina, 500);
+    }
+  }
+  await boton.click({ timeout: 8000 });
+  await esperar(pagina, 1100);
+};
 const RECEPCION = ["integrante"];
 ESCENARIOS.push(
+  { id: "recepcion.repartir", soloPorId: true, ruta: "/recibir/envio/[id]", cuentas: RECEPCION, abre: '[data-guia="recepcion.tallas"]', nombre: "Recibir un envío · la hoja «Tallas y colores» de un modelo", preparar: secuencia(irAlEnvio(ENVIO_CON_PRENDA_CONTADA), abrirTallas) },
+  { id: "recepcion.tallas-de-la-prenda", soloPorId: true, ruta: "/recibir/envio/[id]", cuentas: RECEPCION, abre: '[data-guia="recepcion.hoja-prenda"]', nombre: "Recibir un envío · «Agregar talla o color» (la hoja completa de la prenda)", preparar: secuencia(irAlEnvio(ENVIO_CON_PRENDA_CONTADA), abrirTallas, async (pagina) => { await pagina.locator('[data-guia="recepcion.tallas"] .rc-matriz-pie button').first().click({ timeout: 8000 }); await esperar(pagina, 1100); }) },
   { id: "recepcion.contar", soloPorId: true, ruta: "/recibir/envio/[id]", cuentas: RECEPCION, abre: '[data-guia="recepcion.categorias"]', nombre: "Recibir un envío · Contar (la lista y el contador)", preparar: irAlEnvio(ENVIO_ABIERTO) },
   { id: "recepcion.agregar", soloPorId: true, ruta: "/recibir/envio/[id]", cuentas: RECEPCION, abre: "[role=dialog]", nombre: "Recibir un envío · la hoja «Agregar lo que llegó»", preparar: secuencia(irAlEnvio(ENVIO_ABIERTO), async (pagina) => { await pagina.locator('[data-guia="recepcion.agregar"]').first().click({ timeout: 8000 }); await esperar(pagina, 1100); }) },
   { id: "recepcion.modelo", soloPorId: true, ruta: "/recibir/envio/[id]", cuentas: RECEPCION, abre: "[role=dialog]", nombre: "Recibir un envío · el «+» de otro modelo", preparar: secuencia(irAlEnvio(ENVIO_ABIERTO), async (pagina) => { await pagina.locator(".rc-cat-mas").first().click({ timeout: 8000 }); await esperar(pagina, 1100); }) },
