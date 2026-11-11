@@ -616,6 +616,18 @@ export function avanceDeCategoria(c: Pick<CategoriaDelEnvio, "dijeron" | "contad
   return c.dijeron ? (c.contadas / c.dijeron) * 100 : c.contadas > 0 ? 100 : 0;
 }
 
+/**
+ * La línea de arriba de la lista (ADR-0645): qué falta por contar o cómo quedó todo. Reemplaza al resumen de la derecha, que nadie leía. Sin nada que
+ * contar todavía no dice nada.
+ */
+export function fraseDelAvance(c: CifrasDelResumen): { texto: string; tono: "verde" | "ambar" | null } | null {
+  const porContar = c.estados["por-contar"];
+  if (c.estados.cuadran + c.estados.diferencia + porContar === 0) return null;
+  if (porContar > 0) return { texto: porContar === 1 ? "Falta 1 por contar" : `Faltan ${conMiles(porContar)} por contar`, tono: null };
+  if (c.dijeron != null && c.diferencia !== 0) return { texto: `Todo contado · diferencia ${conSigno(c.diferencia)}`, tono: "ambar" };
+  return { texto: "Todo contado", tono: "verde" };
+}
+
 // ---- El filtro por proveedor y marca ------------------------------------------------------------------------------------------------
 
 export type FiltroDelConteo = {
@@ -630,6 +642,8 @@ export type FiltroDelConteo = {
 };
 export const SIN_FILTRO: FiltroDelConteo = { proveedorId: null, marcaId: null, tipo: null, estado: null, texto: "" };
 export const hayFiltro = (f: FiltroDelConteo): boolean => !!(f.proveedorId || f.marcaId || f.tipo || f.estado || f.texto.trim());
+/** Cuántos filtros hay puestos: lo que dice el botón «Filtros» (ADR-0645). Lo que se busca se ve en su caja y el orden no esconde nada: no cuentan. */
+export const filtrosPuestos = (f: FiltroDelConteo): number => [f.proveedorId, f.marcaId, f.tipo, f.estado].filter(Boolean).length;
 
 /** El valor de «proveedor por confirmar» en el filtro. */
 export const SIN_PROVEEDOR = "sin-proveedor";

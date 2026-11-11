@@ -81,14 +81,11 @@ import {
   repartirModeloCon,
   repartirOtroCambio,
   SIN_FILTRO,
-  tipoDeParada,
   vecinosDeLaParada,
   type CategoriaDelEnvio,
-  type EstadoDelResumen,
   type FiltroDelConteo,
   type OrdenDelConteo,
   type ParadaDelConteo,
-  type TipoDeModelo,
   modelosDelGrupo,
   categoriasConLoQueYaEntro,
   yaEnStockDelEnvio,
@@ -108,13 +105,14 @@ import { HojaTallas } from "./HojaTallas";
 import { PlacaDelModelo } from "./PlacaDelModelo";
 import { PrendasDeLaPlaca } from "./PrendasDeLaPlaca";
 import type { Borrador, EstadoGuardado } from "./RecibirContando";
-import { ResumenDelEnvio } from "./ResumenDelEnvio";
+import { AvanceDelEnvio } from "./AvanceDelEnvio";
+import { PieDeLaLista } from "./PieDeLaLista";
 import { TallasDeLaPlaca } from "./TallasDeLaPlaca";
-import { TiposDelEnvio } from "./TiposDelEnvio";
 
-// Contar (ADR-0393; modelo por modelo y en tres columnas desde el 2026-11-02, ADR-0604): arriba, Re stock y Producto nuevo. A la izquierda las categorías del envío, cada una una sola vez,
-// con sus modelos adentro; al centro, UNO a la vez: cuántas llegaron de ese modelo y, si se quiere, sus tallas y colores; a la derecha, cómo va todo el envío y qué sigue. Cada cambio se guarda
-// solo. La guía de foco enciende el próximo modelo sin contar.
+// Contar (ADR-0393; modelo por modelo desde el 2026-11-02, ADR-0604; en dos mitades desde el 2026-11-11, ADR-0645). A la izquierda, lo del envío: cómo va todo, el buscador con sus filtros
+// en un botón, las categorías, cada una una sola vez y con sus modelos adentro, y abajo quién cuenta y el único «Revisar y cerrar». A la derecha, UNO a la vez: cuántas llegaron de ese modelo
+// y, si se quiere, sus tallas y colores. Se fueron la columna «Resumen del envío» y las tarjetas Re stock / Producto nuevo: nadie las leía y lo que hacían vive en la lista. Cada cambio se
+// guarda solo. La guía de foco enciende el próximo modelo sin contar.
 //
 // Por dentro la base sigue guardando una fila por línea de la compra: `lib/recepcion-modelos-reglas.ts` dice en qué línea cae cada modelo y `lib/recepcion-grupos-reglas.ts` reparte. Lo que no
 // tiene modelo (un envío sin aviso, una compra que no anotó qué prendas eran) se cuenta como un total y después se identifica.
@@ -624,8 +622,9 @@ export function ContarEnvio({
       : null;
   const categoriaDeHoja = grupoDeHoja?.principal.categoria ? (catalogo?.categorias.find((c) => c.id === grupoDeHoja.principal.categoria?.id) ?? null) : null;
 
-  const hayModelos = cifras.tipos.restock.modelos + cifras.tipos.nuevo.modelos > 0;
-  const tipoMarcado: TipoDeModelo | null = filtro.tipo ?? (parada ? tipoDeParada(parada) : null);
+  // «Revisar y cerrar» pasa a ser el botón principal recién cuando ya no queda nada por contar: hasta ahí lo principal es «Listo, siguiente».
+  const todoContado = cifras.estados["por-contar"] === 0 && puedeCerrar;
+  const faltaFotoDeFactura = papeles.some((p) => !p.fotoRuta);
   const sepDeLaParada = parada ? prendaSeparada(parada) : undefined;
   const prendaDeLaParada = parada?.modelo?.productoId ? (prendas.get(parada.modelo.productoId) ?? null) : null;
 
@@ -661,7 +660,6 @@ export function ContarEnvio({
       )}
       {/* Lo primero al entrar: sin un responsable la base rechaza todo guardado (ElegirQuienCuenta). */}
       {faltaQuien && <ElegirQuienCuenta responsable={responsable} sede={detalle.sede?.nombre ?? "esta sede"} />}
-      {!sinAviso && hayModelos && <TiposDelEnvio tipos={cifras.tipos} marcado={tipoMarcado} filtrado={filtro.tipo} onElegir={(t) => cambiarFiltro({ ...filtro, tipo: filtro.tipo === t ? null : t, estado: null })} />}
 
       <div ref={mesa} className="rc-mesa">
         <ListaDelEnvio
@@ -702,6 +700,43 @@ export function ContarEnvio({
           onQuitar={(p) => (p.modelo && p.modelo.contadas > 0 ? setHoja({ tipo: "quitar", parada: p.clave }) : quitarModeloDe(p))}
           onQuitarCategoria={(c) => (c.contadas > 0 ? setHoja({ tipo: "quitar-categoria", categoria: c.clave }) : quitarCategoria(c))}
           onFotos={(nuevas) => setFotos((f) => new Map([...f, ...nuevas]))}
+          cifras={cifras}
+          avance={<AvanceDelEnvio cifras={cifras} sinAviso={sinAviso} />}
+          aviso={
+            sinGuardar > 0 ? (
+              <Aviso
+                tono="error"
+                chico
+                accion={
+                  <button type="button" className="btn-cayla btn-enlace" onClick={onReintentar}>
+                    Reintentar
+                  </button>
+                }
+              >
+                {sinGuardar === 1 ? "Una línea no se pudo guardar." : `${conMiles(sinGuardar)} líneas no se pudieron guardar.`}
+              </Aviso>
+            ) : undefined
+          }
+          pie={
+            <PieDeLaLista
+              guia={guia}
+              responsable={responsable}
+              papeles={papeles.length > 0 ? <PapelesDeLaCompra papeles={papeles} alSubirFoto={alSubirFoto} /> : undefined}
+              explicacion={
+                <>
+                  Lo que cuentas se guarda solo. Cada categoría guarda quién la contó: varias personas pueden contar a la vez, y firma quien cierra.{" "}
+                  {notaAlCerrar(cifras.estados["por-contar"] - cifras.agregadosEnCero, cifras.agregadosEnCero)} Al cerrar: {textoResumenDelCierre(resumenDelCierre(visibles))}
+                  {faltaFotoDeFactura && " La foto de las facturas no frena el cierre."}
+                </>
+              }
+              todoContado={todoContado}
+              puedeCerrar={puedeCerrar}
+              motivosNoCierra={motivosNoCierra}
+              onCerrar={onCerrar}
+              onIrALoQueFalta={() => guia.faltan[0] && guia.ir(guia.faltan[0].id)}
+              onCancelarRecepcion={nadaContado ? onCancelarRecepcion : undefined}
+            />
+          }
         />
 
         <section className="rc-panel rc-placa" aria-label="Cuántas llegaron">
@@ -821,31 +856,6 @@ export function ContarEnvio({
             />
           )}
         </section>
-
-        <ResumenDelEnvio
-          cifras={cifras}
-          sinAviso={sinAviso}
-          filtroEstado={filtro.estado}
-          guia={guia}
-          responsable={responsable}
-          fotos={
-            papeles.length > 0 ? (
-              <div className="grid gap-1">
-                <PapelesDeLaCompra papeles={papeles} alSubirFoto={alSubirFoto} enResumen />
-                {papeles.some((p) => !p.fotoRuta) && <p className="rc-fotos-nota">No frena el cierre.</p>}
-              </div>
-            ) : undefined
-          }
-          sinGuardar={sinGuardar}
-          onReintentar={onReintentar}
-          onCancelarRecepcion={nadaContado ? onCancelarRecepcion : undefined}
-          alCerrar={onCerrar}
-          textoAlCerrar={textoResumenDelCierre(resumenDelCierre(visibles))}
-          puedeCerrar={puedeCerrar}
-          motivosNoCierra={motivosNoCierra}
-              onIrALoQueFalta={() => guia.faltan[0] && guia.ir(guia.faltan[0].id)}
-          onFiltroEstado={(e: EstadoDelResumen | null) => cambiarFiltro({ ...filtro, estado: e, tipo: null })}
-        />
       </div>
 
       {paradaAQuitar?.modelo && <QuitarModelo nombre={paradaAQuitar.modelo.nombre} contadas={paradaAQuitar.modelo.contadas} onQuitar={() => quitarModeloDe(paradaAQuitar)} onCerrar={() => setHoja(null)} />}
@@ -988,6 +998,13 @@ export function ContarEnvio({
       )}
     </div>
   );
+}
+
+/** Lo que falta contar de lo que anotó Compras se pide al cerrar; lo agregado en 0 no: se descarta. */
+function notaAlCerrar(faltanDeCompras: number, agregadosEnCero: number): string {
+  if (faltanDeCompras > 0) return "Lo que falte por contar, al cerrar te lo va a pedir.";
+  if (agregadosEnCero > 0) return "Lo que dejes en 0 no se guarda.";
+  return "";
 }
 
 /** Cómo va el guardado de lo que se cuenta: guardando si alguna de sus líneas guarda, con error si alguna falló, guardado si todas lo están. */

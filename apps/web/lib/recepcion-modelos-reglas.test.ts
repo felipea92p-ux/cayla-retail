@@ -15,6 +15,8 @@ import {
   estadoDeParada,
   focoTrasElFiltro,
   hayFiltro,
+  filtrosPuestos,
+  fraseDelAvance,
   tallasParaDespues,
   tipoDeParada,
   vecinosDeLaParada,
@@ -581,6 +583,26 @@ describe("Re stock, Producto nuevo y los estados del resumen", () => {
     expect(r.tipos).toEqual({ restock: { modelos: 2, contados: 1 }, nuevo: { modelos: 1, contados: 0 } });
   });
 
+  it("la línea de arriba de la lista: qué falta, o cómo quedó (ADR-0645)", () => {
+    // Uno contado y dos por contar.
+    expect(fraseDelAvance(cifrasDelResumen(todas()))).toEqual({ texto: "Faltan 2 por contar", tono: null });
+    const uno = categoriasDelEnvio(agruparLineas([deLaGuia(sofia(), { contadas: 5, separado: { prendas: [prendaSep("p-sofia", "Vestido Sofía", 5)], nuevas: [] } }), deLaGuia(lima())]));
+    expect(fraseDelAvance(cifrasDelResumen(uno))?.texto).toBe("Falta 1 por contar");
+    // Todo contado y cuadra: verde.
+    const cuadra = categoriasDelEnvio(agruparLineas([deLaGuia(sofia(), { contadas: 5, separado: { prendas: [prendaSep("p-sofia", "Vestido Sofía", 5)], nuevas: [] } })]));
+    expect(fraseDelAvance(cifrasDelResumen(cuadra))).toEqual({ texto: "Todo contado", tono: "verde" });
+    // Todo contado y no cuadra: ámbar, con la diferencia.
+    const falta = categoriasDelEnvio(agruparLineas([deLaGuia(sofia(), { contadas: 3, separado: { prendas: [prendaSep("p-sofia", "Vestido Sofía", 3)], nuevas: [] } })]));
+    expect(fraseDelAvance(cifrasDelResumen(falta))).toEqual({ texto: "Todo contado · diferencia −2", tono: "ambar" });
+    // Sin nada que contar todavía, no dice nada.
+    expect(fraseDelAvance(cifrasDelResumen([]))).toBeNull();
+  });
+
+  it("sin aviso, todo contado es verde aunque no haya con qué comparar", () => {
+    const suelta: LineaParaContar = { clave: "extra:1", linea: null, conteo: deLaGuia(linea("x", 0), { contadas: 4 }).conteo, categoria: VESTIDOS, marca: CAYLA, proveedor: SUR, dijeron: null };
+    expect(fraseDelAvance(cifrasDelResumen(categoriasDelEnvio(agruparLineas([suelta]))))).toEqual({ texto: "Todo contado", tono: "verde" });
+  });
+
   it("lo que falta contar no es todavía un faltante", () => {
     const [c] = categoriasDelEnvio(agruparLineas([deLaGuia(sofia(), { contadas: 3, separado: { prendas: [prendaSep("p-sofia", "Vestido Sofía", 3)], nuevas: [] } }), deLaGuia(lima())]));
     const r = cifrasDelResumen([c]);
@@ -653,6 +675,13 @@ describe("Re stock, Producto nuevo y los estados del resumen", () => {
       expect(hayFiltro(SIN_FILTRO)).toBe(false);
       expect(hayFiltro({ ...SIN_FILTRO, texto: "   " })).toBe(false);
       expect(hayFiltro({ ...SIN_FILTRO, tipo: "nuevo" })).toBe(true);
+    });
+
+    it("filtrosPuestos: lo que cuenta el botón «Filtros»; buscar no es un filtro puesto", () => {
+      expect(filtrosPuestos(SIN_FILTRO)).toBe(0);
+      expect(filtrosPuestos({ ...SIN_FILTRO, texto: "sofia" })).toBe(0);
+      expect(filtrosPuestos({ ...SIN_FILTRO, tipo: "nuevo", estado: "por-contar" })).toBe(2);
+      expect(filtrosPuestos({ proveedorId: SUR.id, marcaId: CAYLA.id, tipo: "restock", estado: "despues", texto: "" })).toBe(4);
     });
   });
 

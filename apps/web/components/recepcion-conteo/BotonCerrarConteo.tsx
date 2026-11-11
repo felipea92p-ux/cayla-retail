@@ -5,7 +5,7 @@ import { ArrowRight } from "lucide-react";
 import { Boton } from "@/components/ui/campos";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
-// «Cerrar el conteo»: lleva a la pantalla donde se revisa y se cierra. Apagado dice qué falta (Felipe 2026-11-03): al pasar el mouse, y con el dedo al tocarlo, que además lleva a lo que
+// «Revisar y cerrar» (hasta el 2026-11-11, «Cerrar el conteo»; ADR-0645: el nombre dice a dónde lleva): lleva a la pantalla donde se revisa y se cierra. Apagado dice qué falta (Felipe 2026-11-03): al pasar el mouse, y con el dedo al tocarlo, que además lleva a lo que
 // falta. No usa `disabled` porque un botón así no recibe ni el mouse ni el toque, y `aria-disabled` deja que el lector de pantalla también lo encuentre.
 
 export function BotonCerrarConteo({
@@ -26,7 +26,7 @@ export function BotonCerrarConteo({
   const [tocado, setTocado] = useState(false);
   const cuerpo = (
     <span className="inline-flex items-center gap-2">
-      Cerrar el conteo
+      Revisar y cerrar
       <ArrowRight aria-hidden className="h-4 w-4 shrink-0" />
     </span>
   );

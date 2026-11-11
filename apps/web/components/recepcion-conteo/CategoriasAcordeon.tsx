@@ -1,15 +1,11 @@
 "use client";
 
-import { useEffect, useId, useState } from "react";
+import { useEffect, useId, useState, type ReactNode } from "react";
 import Link from "next/link";
-import { ArrowDown, ArrowUp, ChevronDown, Lock, Plus, SearchX, Sparkles, Tag, Truck, Trash2 } from "lucide-react";
+import { ChevronDown, Lock, Plus, SearchX, Sparkles, Trash2 } from "lucide-react";
 import { BarraAvance } from "@/components/ui/BarraAvance";
-import { Buscador } from "@/components/ui/Buscador";
 import { Chip } from "@/components/ui/Chip";
-import { DesplegablePildora, TODOS } from "@/components/ui/FiltrosPildora";
-import { FiltroPuesto } from "@/components/ui/FiltrosPuestos";
 import { MiniaturaPrenda } from "@/components/ui/PrendaCelda";
-import { SegmentoDeslizante } from "@/components/ui/SegmentoDeslizante";
 import { TituloGrupo, TituloSeccion } from "@/components/ui/TituloSeccion";
 import { Vacio } from "@/components/ui/Vacio";
 import type { SalidaDelEnvio } from "@/lib/recepcion-salida-reglas";
@@ -37,7 +33,7 @@ import {
   tipoDeParada,
   totalesPorTalla,
   type CategoriaDelEnvio,
-  type EstadoDelResumen,
+  type CifrasDelResumen,
   type FiltroDelConteo,
   type ModeloDelConteo,
   type OpcionDelFiltro,
@@ -46,14 +42,14 @@ import {
   type YaEnStock,
 } from "@/lib/recepcion-modelos-reglas";
 import { sinIdentificarDelGrupo } from "@/lib/recepcion-grupos-reglas";
+import { FiltrosDelEnvio } from "./FiltrosDelEnvio";
 import { BaldosaCategoria } from "./piezas";
 import { useFilaActivaALaVista } from "./useFilaActivaALaVista";
 
-// La lista de la izquierda (Felipe 2026-11-02, sobre el acordeón de ADR-0575): el título, el buscador, los filtros y las categorías del envío, cada una UNA vez aunque venga de varios
-// proveedores o marcas, cada una con su banda de color para no confundirse con los modelos de adentro. La abierta muestra lo que anotó Compras modelo por modelo, y tocar uno lo pone en
-// el contador: se cuenta modelo por modelo y la categoría suma sola. Abrir o plegar una categoría no cambia lo que se está contando (Felipe 2026-11-03).
-
-const NOMBRE_ESTADO: Record<EstadoDelResumen, string> = { cuadran: "Cuadran", diferencia: "Con diferencia", "por-contar": "Por contar", despues: "Tallas para después" };
+// La mitad izquierda (Felipe 2026-11-02, sobre el acordeón de ADR-0575; en dos mitades desde el 2026-11-11, ADR-0645): arriba, cómo va todo el envío, el buscador y el botón «Filtros»;
+// al medio, las categorías del envío, cada una UNA vez aunque venga de varios proveedores o marcas, con su banda de color para no confundirse con los modelos de adentro; abajo, lo del
+// envío entero (quién cuenta y «Revisar y cerrar»). La categoría abierta muestra lo que anotó Compras modelo por modelo, y tocar uno lo pone en el contador: se cuenta modelo por modelo
+// y la categoría suma sola. Abrir o plegar una categoría no cambia lo que se está contando (Felipe 2026-11-03).
 
 /** Un solo estado por fila, el de lo que le toca: ámbar por las tallas solo si la persona pidió hacerlas ahora y le faltan (pueden esperar). */
 export function EstadoModelo({ m, faltanTallas, sinAviso = false }: { m: ModeloDelConteo; faltanTallas: boolean; sinAviso?: boolean }) {
@@ -424,7 +420,19 @@ export function ListaDelEnvio({
   onQuitar,
   onQuitarCategoria,
   onFotos,
+  cifras,
+  avance,
+  aviso,
+  pie,
 }: {
+  /** Las cifras de TODO el envío: el número de cada filtro. */
+  cifras: CifrasDelResumen;
+  /** Cómo va todo el envío, en una línea (`AvanceDelEnvio`). */
+  avance?: ReactNode;
+  /** Algo que no se pudo guardar: se dice arriba, esté donde esté quien cuenta. */
+  aviso?: ReactNode;
+  /** Lo del envío entero: quién cuenta y «Revisar y cerrar» (`PieDeLaLista`). */
+  pie?: ReactNode;
   categorias: readonly CategoriaDelEnvio[];
   /** Lo que el contador está contando ahora: su categoría va abierta. */
   enFoco: ParadaDelConteo | null;
@@ -473,79 +481,29 @@ export function ListaDelEnvio({
   const lista = useFilaActivaALaVista<HTMLDivElement>(enFoco?.clave ?? null, categorias[0]?.paradas[0]?.clave ?? null);
   const vistos = categorias.reduce((a, c) => a + c.paradas.filter((p) => p.modelo).length, 0);
   const cuantos = hayFiltro(filtro) ? `${conMiles(vistos)} de ${conMiles(modelosTotales)} modelos` : `${conMiles(modelosTotales)} ${modelosTotales === 1 ? "modelo" : "modelos"}`;
-  const volver = " · tócala otra vez para volver al orden de la compra";
   const conOrden = categorias.flatMap((c) => c.paradas).length > 1;
-  const hayPuestos = !!filtro.tipo || !!filtro.estado;
   const primeraConStock = categorias.find((c) => (yaEnStock.get(c.clave)?.length ?? 0) > 0)?.clave ?? null;
   return (
     <section className="rc-panel rc-lista" aria-label={sinAviso ? "Lo que llegó" : "Categorías del envío"}>
       <div className="rc-lista-cabeza">
         <TituloSeccion dato={modelosTotales > 0 ? cuantos : undefined}>{sinAviso ? "Lo que llegó" : "Categorías del envío"}</TituloSeccion>
-        {modelosTotales > 0 && <Buscador
-          atajo
-          valor={filtro.texto}
-          onCambio={(texto) => onFiltro({ ...filtro, texto })}
-          onKeyDown={(e) => {
-            if (e.key !== "Enter" || !filtro.texto.trim()) return;
-            e.preventDefault();
-            onElegirPrimero();
-          }}
-          etiqueta="Buscar modelo, proveedor o marca"
-          placeholder="Buscar modelo o proveedor…" // sugerir-fijo: dice dónde busca, no depende de nada elegido antes
-          guia="recepcion.buscar"
-        />}
-        {(filtrarProveedor || filtrarMarca || conOrden) && (
-          <div className="rc-filtros" data-guia="recepcion.filtros">
-            {filtrarProveedor && (
-              <DesplegablePildora
-                icono={Truck}
-                etiqueta="Proveedor"
-                encoger
-                valor={filtro.proveedorId ?? TODOS}
-                onValor={(v) => onFiltro({ ...filtro, proveedorId: v === TODOS ? null : v })}
-                opciones={[{ valor: TODOS, texto: "Todos" }, ...proveedores.map((o) => ({ valor: o.valor, texto: o.etiqueta }))]}
-              />
-            )}
-            {filtrarMarca && (
-              <DesplegablePildora
-                icono={Tag}
-                etiqueta="Marca"
-                encoger
-                valor={filtro.marcaId ?? TODOS}
-                onValor={(v) => onFiltro({ ...filtro, marcaId: v === TODOS ? null : v })}
-                opciones={[{ valor: TODOS, texto: "Todas" }, ...marcas.map((o) => ({ valor: o.valor, texto: o.etiqueta }))]}
-              />
-            )}
-            {conOrden && (
-              <div data-orden data-guia="recepcion.orden">
-                {/* Tocar la flecha que ya está puesta vuelve al orden de la compra. */}
-                <SegmentoDeslizante
-                  forma="modo"
-                  etiqueta="Ordenar por cantidad"
-                  valor={orden ?? ""}
-                  onCambio={(o) => onOrden(o === orden ? null : (o as OrdenDelConteo))}
-                  opciones={[
-                    { clave: "asc", icono: <ArrowUp aria-hidden />, etiqueta: <span className="sr-only">De menos a más</span>, ayuda: `De menos a más${orden === "asc" ? volver : ""}` },
-                    { clave: "desc", icono: <ArrowDown aria-hidden />, etiqueta: <span className="sr-only">De más a menos</span>, ayuda: `De más a menos${orden === "desc" ? volver : ""}` },
-                  ]}
-                />
-              </div>
-            )}
-          </div>
-        )}
-        {hayPuestos && (
-          <div className="rc-puestos">
-            {filtro.tipo && (
-              <FiltroPuesto etiqueta="Quitar el filtro de tipo" onQuitar={() => onFiltro({ ...filtro, tipo: null })}>
-                Solo {filtro.tipo === "restock" ? "re stock" : "producto nuevo"}
-              </FiltroPuesto>
-            )}
-            {filtro.estado && (
-              <FiltroPuesto etiqueta="Quitar el filtro de estado" onQuitar={() => onFiltro({ ...filtro, estado: null })}>
-                {NOMBRE_ESTADO[filtro.estado]}
-              </FiltroPuesto>
-            )}
-          </div>
+        {aviso}
+        {avance}
+        {modelosTotales > 0 && (
+          <FiltrosDelEnvio
+            filtro={filtro}
+            orden={orden}
+            cifras={cifras}
+            sinAviso={sinAviso}
+            proveedores={proveedores}
+            marcas={marcas}
+            filtrarProveedor={filtrarProveedor}
+            filtrarMarca={filtrarMarca}
+            conOrden={conOrden || !!orden}
+            onFiltro={onFiltro}
+            onOrden={onOrden}
+            onElegirPrimero={onElegirPrimero}
+          />
         )}
       </div>
       <div ref={lista} className="rc-scroll scroll-cayla">
@@ -585,6 +543,7 @@ export function ListaDelEnvio({
           </button>
         </div>
       </div>
+      {pie}
     </section>
   );
 }
