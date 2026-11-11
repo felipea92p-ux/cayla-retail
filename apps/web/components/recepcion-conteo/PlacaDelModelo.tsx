@@ -1,6 +1,6 @@
 "use client";
 
-import { type MouseEvent, type ReactNode, type Ref } from "react";
+import { useRef, type MouseEvent, type ReactNode, type Ref } from "react";
 import { ArrowLeft, ArrowRight, Ban, Banknote, Check, Package, Repeat, RotateCcw, Sparkles, Tag, TriangleAlert } from "lucide-react";
 import { EtiquetaAhora } from "@/components/alta-producto/guia";
 import { Aviso } from "@/components/ui/Aviso";
@@ -10,6 +10,7 @@ import { LapizEditar } from "@/components/ui/BotonEditar";
 import { Chip } from "@/components/ui/Chip";
 import { MiniaturaPrenda } from "@/components/ui/PrendaCelda";
 import { TituloSeccion } from "@/components/ui/TituloSeccion";
+import { prefiereQuieto } from "@/lib/movimiento-cliente";
 import { atajosDelDial } from "@/lib/recepcion-dial-reglas";
 import { marcaDeLinea, textoPrendas } from "@/lib/recepcion-conteo-reglas";
 import { descripcionDelGrupo, sinIdentificarDelGrupo } from "@/lib/recepcion-grupos-reglas";
@@ -135,6 +136,33 @@ export function PlacaDelModelo({
 
   // Sin contar todavía no es «Listo»: pasar es saltarlo, y lo principal es contar. Si toca repartir o llevar al stock, lo principal es el botón de la tarjeta. Con todo contado, «Revisar y cerrar», en la lista.
   const pesoSeguir = hayConteo && !todoContado && !principalEnLaTarjeta ? "primario" : "fantasma";
+
+  // «Llegaron las N» deja el número listo de un toque. Si con eso toca repartir, el contador baja hasta la tarjeta de tallas (Felipe 2026-11-11, cambio 1 de
+  // /formidable): a 1440×900 «Repartir tallas y colores» quedaba 71 px bajo el borde y había que buscarlo. Baja la mitad del contador, no la página; donde esa
+  // mitad no tiene su propio scroll (apiladas, el celular), baja la página lo justo, sin meter la tarjeta bajo la isla. Con + y − no se mueve nada: la persona
+  // sigue ajustando. Se mira el DOM después de pintar: ahí ya está dicho si el paso 2 «toca».
+  const cuerpo = useRef<HTMLDivElement>(null);
+  const bloqueTallas = useRef<HTMLElement>(null);
+  const bajarALasTallas = () => {
+    const c = cuerpo.current;
+    const b = bloqueTallas.current;
+    if (!c || !b || b.querySelector(".rc-paso")?.getAttribute("data-estado") !== "toca") return;
+    const behavior = prefiereQuieto() ? "auto" : "smooth";
+    const caja = b.getBoundingClientRect();
+    if (c.scrollHeight > c.clientHeight + 1) {
+      const marco = c.getBoundingClientRect();
+      const falta = caja.bottom - marco.bottom;
+      if (falta > 0) c.scrollBy({ top: Math.min(falta, caja.top - marco.top), behavior });
+      return;
+    }
+    const isla = document.querySelector<HTMLElement>(".rc-isla")?.getBoundingClientRect();
+    const fondo = isla && isla.height > 0 ? isla.top - 12 : window.innerHeight - 16;
+    if (caja.bottom > fondo) window.scrollBy({ top: caja.bottom - fondo, behavior });
+  };
+  const llegaronTodas = (n: number) => {
+    deUnToque(n);
+    requestAnimationFrame(() => requestAnimationFrame(bajarALasTallas));
+  };
   const flecha = <ArrowRight aria-hidden className="h-4 w-4 shrink-0" />;
   return (
     <>
@@ -180,7 +208,7 @@ export function PlacaDelModelo({
         </div>
       </div>
 
-      <div key={parada.clave} className="rc-scroll scroll-cayla rc-placa-cuerpo">
+      <div key={parada.clave} ref={cuerpo} className="rc-scroll scroll-cayla rc-placa-cuerpo">
         {identificar}
 
         <section className="rc-bloque" aria-label="¿Cuántas llegaron?">
@@ -197,7 +225,7 @@ export function PlacaDelModelo({
             <div className="rc-cuenta-lado">
               {/* De lo más rápido a lo menos común: «ya llegaron todas» grande y primero (es lo que más se toca y deja el modelo listo), sumar de a varias y «no llegó». El que ya se cumplió se queda en su lugar, marcado. */}
               {dijeron != null && dijeron >= minimo && (
-                <button type="button" className="rc-atajo rc-atajo-llegaron rc-atajo-grande" data-hecho={yaLlegaron ? "" : undefined} disabled={yaLlegaron} onClick={() => deUnToque(dijeron)}>
+                <button type="button" className="rc-atajo rc-atajo-llegaron rc-atajo-grande" data-hecho={yaLlegaron ? "" : undefined} disabled={yaLlegaron} onClick={() => llegaronTodas(dijeron)}>
                   <Check aria-hidden className="h-5 w-5" />
                   Llegaron las {conMiles(dijeron)}
                 </button>
@@ -260,7 +288,7 @@ export function PlacaDelModelo({
         </section>
 
         {modelo && (
-          <section className="rc-bloque" aria-label="Tallas y colores">
+          <section ref={bloqueTallas} className="rc-bloque" aria-label="Tallas y colores">
             <div className="rc-bloque-titulo">
               <span className="rc-paso" data-estado={pasoTallas} aria-hidden>
                 {pasoTallas === "hecha" ? <Check className="h-4 w-4" /> : 2}
