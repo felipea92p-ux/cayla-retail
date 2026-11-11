@@ -8,7 +8,7 @@ import { BotonImprimir } from "@/components/ui/BotonImprimir";
 import { Chip } from "@/components/ui/Chip";
 import { HojaIngresos } from "./HojaIngresos";
 import { MenuAcciones } from "@/components/ui/MenuAcciones";
-import { MatrizIngreso } from "./MatrizIngreso";
+import { DetalleIngreso } from "./DetalleIngreso";
 import { MiniaturaPrenda } from "@/components/ui/PrendaCelda";
 import { TablaViva, useTablaViva, type ColumnaViva, type FiltroDeAfuera } from "@/components/ui/TablaViva";
 import { descargarCsv } from "@/lib/exportar-csv";
@@ -318,15 +318,14 @@ export function IngresosTabla({
         abierta={(m) => abiertos.has(m.productoId)}
         debajoDeFila={(m, i) =>
           abiertos.has(m.productoId) ? (
-            <div id={`ingreso-${m.productoId}`} data-guia={i === 0 ? "movimientos.ingresos-detalle" : undefined} className="anim-revelar rounded-xl bg-hueso/60 px-4 py-3 sm:ml-16">
-              <MatrizIngreso variantes={m.variantes} />
-            </div>
+            <DetalleIngreso modelo={m} id={`ingreso-${m.productoId}`} guia={i === 0 ? "movimientos.ingresos-detalle" : undefined} />
           ) : null
         }
         guia="movimientos.ingresos-tabla"
         guiaFrase="movimientos.ingresos-total"
         guiaFila="movimientos.ingresos-fila"
         guiaPie="movimientos.ingresos-pie"
+        cifrasCentradas
       />
       {imprimiendo &&
         createPortal(

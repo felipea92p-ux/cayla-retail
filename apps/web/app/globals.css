@@ -121,6 +121,7 @@
 @import "./estilos/vidrio/barras.css"; /* La barra de avance «A · Tubo» y los botones de la barra de abajo «A · Gota ahumada» (inicio-lider-vidrio-2026-10) */
 @import "./estilos/vidrio/avisos-espera.css"; /* Los avisos de la esquina, el loader y «Hay una versión nueva» (avisos-espera-vidrio-2026-10) */
 @import "./estilos/vidrio/rendimiento.css"; /* Rendimiento con superpoderes (ADR-0610) */
+@import "./estilos/vidrio/ingresos.css"; /* Ingresos ▸ lo que se abre bajo un modelo: la banda, la matriz en vidrio claro y el reparto */
 @import "./estilos/vidrio/pantalla-en-vidrio.css"; /* Una pantalla armada con las superficies de siempre y el kit de Finanzas, al vidrio de una vez: la placa Serena, el hilo y el pozo (Tienda web, Configuración) */
 /* El marco con vidrio (ADR-0596): la aurora del fondo, el riel del menú con su gota, la bandeja de submódulos y las dos islas
    de la cabecera. La estructura vive en components/AppShell.tsx. */
