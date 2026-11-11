@@ -1419,7 +1419,7 @@ function PasoMarca({
       <button
         type="button"
         onClick={alMarcaNueva}
-        data-guia="compra.marca-nueva"
+        data-guia="compra.es-marca-nueva"
         className={`card-cayla mov-boton grid grid-cols-[40px_minmax(0,1fr)_auto] items-center gap-3 rounded-[18px] ${FILA_PUNTEADA} px-3.5 py-3 text-left`}
       >
         <span aria-hidden className="grid h-10 w-10 place-items-center rounded-full bg-tinta text-crema">
