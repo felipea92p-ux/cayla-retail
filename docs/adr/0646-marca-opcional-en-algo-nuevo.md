@@ -43,4 +43,9 @@ la web sin pegar la migración: «Algo nuevo» sin marca da el error de siempre 
 
 - Las 19 anclas, contadas contra el texto vivo de producción (solo lectura): cada una aparece las veces esperadas.
 - Web: 890 archivos de prueba en verde, `tsc` y Knip limpios; `migraciones:versiones`, `sin-drop-trigger` y `pg-temp` en verde.
-- **No verificado:** la migración aplicada sobre una base con todas las migraciones (lo hace el CI), ni el recorrido en el navegador.
+- Base desechable con las 1 152 migraciones: la migración aplica en una transacción (verificación `t|t|t|t`), una segunda pasada no cambia
+  ninguna función (misma huella md5), `fn_orden_compra_validar` acepta la marca vacía y sigue rechazando una que no existe (con su control:
+  el texto viejo vuelve a rechazarla), y 32 suites de Compras y Recibir en verde. Ninguna de esas suites manda todavía una línea sin marca.
+- Navegador (datos inventados, sin base): «Algo nuevo» sin el párrafo, «· opcional», la marca se quita tocándola otra vez, se agrega sin marca
+  y una marca a medio escribir frena; escritorio y 375 px, sin errores de consola.
+- **No verificado:** «Compré ropa» con sesión real hasta «Guardar la compra», y el recorrido de Recibir con una línea sin marca.
