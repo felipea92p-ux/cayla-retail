@@ -1,8 +1,7 @@
 # ADR-0644 — Compras: la marca primero, el proveedor detrás
 
 - **Fecha:** 2026-11-11 · **Estado:** construido en la rama `claude/compras-marca-proveedor-03ef86`. La migración `20261111155000_marcas_de_compras.sql`
-  **no está en producción**: sin ella, la lista del día, Historial y Por pagar se ven como antes (con la razón social), y Mis compras y Proveedores
-  ya funcionan.
+  **está en producción** desde el 2026-11-11 (con el OK de Felipe; verificada: una firma, `anon` no, `authenticated` sí).
 - **Nace de:** Felipe, 2026-11-11: «En los submódulos de Compras la mayoría de cosas está por proveedor, pero muchas veces no se conoce al proveedor
   sino la marca, y es muy importante que se priorice la marca por encima del proveedor». Después: «un proveedor puede vender varias marcas».
   Eligió mirando la maqueta `docs/maquetas/compras-marca-primero-2026-11/` («Sí, la maqueta», «las cinco pantallas»).
