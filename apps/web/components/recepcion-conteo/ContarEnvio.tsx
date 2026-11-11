@@ -134,8 +134,8 @@ type Hoja =
   | { tipo: "crear"; grupo: string; nueva: { cantidad: number; descripcion: string; porDefecto: boolean; nota: string | null }; parada: string }
   // Antes de crear: lo contado como nuevo puede ser una prenda que ya existe.
   | { tipo: "existe"; grupo: string; nueva: { cantidad: number; descripcion: string; porDefecto: boolean; nota: string | null }; parada: string }
-  // «Tallas y colores»: la tabla de un modelo, en su hoja (ADR-0645).
-  | { tipo: "repartir"; parada: string }
+  // «Tallas y colores»: la tabla de un modelo, en su hoja (ADR-0645). `danadas`: se abrió desde «Llegó dañada».
+  | { tipo: "repartir"; parada: string; danadas?: boolean }
   // «¿Qué llegó?» o, con su categoría, el «+»: otro modelo para contar aparte.
   | { tipo: "modelo"; categoria: string | null }
   | { tipo: "editar"; parada: string }
@@ -875,6 +875,33 @@ export function ContarEnvio({
               }
               observaciones={<ObservacionesAnotadas observaciones={deLasLineas(observaciones, lineasDeEsto.map((l) => l.linea?.id ?? null))} />}
               onEditarNombre={() => setHoja({ tipo: "editar", parada: parada.clave })}
+              // Las dañadas se anotan por talla y color, dentro de la hoja de tallas: solo donde esa hoja se puede abrir.
+              onDanada={
+                tarjeta && tarjeta !== "espera" && tarjeta !== "nueva" && tarjeta !== "en-stock"
+                  ? () => {
+                      setModos((ms) => ({ ...ms, [parada.clave]: "ahora" }));
+                      setHoja({ tipo: "repartir", parada: parada.clave, danadas: true });
+                    }
+                  : undefined
+              }
+              onOtraPrenda={
+                sepDeLaParada
+                  ? () => void cambiarDePrenda(parada, sepDeLaParada)
+                  : parada.modelo && !parada.modelo.productoId && parada.modelo.contadas > 0
+                    ? () => setHoja({ tipo: "existe", grupo: grupo.clave, nueva: { cantidad: parada.modelo?.contadas ?? 0, descripcion: parada.modelo?.nombre ?? "", porDefecto: !!parada.modelo?.porDefecto, nota: parada.modelo?.nota ?? null }, parada: parada.clave })
+                    : undefined
+              }
+              notaDeAlgo={
+                !parada.modelo
+                  ? null
+                  : tarjeta === "espera"
+                    ? "Primero cuenta cuántas llegaron."
+                    : tarjeta === "nueva"
+                      ? "Las dañadas se anotan por talla y color: primero crea la prenda."
+                      : tarjeta === "en-stock"
+                        ? "Ya entró al stock: lo dañado se anota desde Existencias."
+                        : null
+              }
               identificar={<PrendasDeLaPlaca parada={parada} onSeparado={(s) => escribirSeparado(grupo, s)} onQuitarSueltas={() => aplicar(repartirTotal(grupo, minimoDelGrupo(grupo)))} />}
               tallas={
                 parada.modelo && tarjeta ? (
@@ -971,11 +998,11 @@ export function ContarEnvio({
             coloresCatalogo={catalogo?.colores ?? []}
             contadas={sepDeLaParada.cantidad}
             traerALaVista
+            conDanadas={!!hoja.danadas}
             borrador={tablaDeLaParada}
             onCambiar={(t) => prendaDeLaParada && cambiarTabla(parada.clave, prendaDeLaParada, t)}
             onDejarSuma={(n) => escribirEnParada(parada, n + (parada.modelo?.enStock ?? 0))}
             onCrear={(pedidas) => setHoja({ tipo: "prenda", grupo: grupo.clave, original: sepDeLaParada, modo: "agregar", prenda: prendaDeLaParada, parada: parada.clave, tabla: true, pedidas, enTabla: tablaDeLaParada ? marcasDeLaTabla(tablaDeLaParada) : undefined })}
-            onCambiarPrenda={() => void cambiarDePrenda(parada, sepDeLaParada)}
           />
         </HojaRepartir>
       )}

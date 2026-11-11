@@ -1923,7 +1923,7 @@ export const GUIA_RECIBIR_ENVIO: Guia = {
       requiere: ["recepcion.categorias"],
       preparar: [{ tipo: "clic", ancla: "recepcion.abrir-tallas", siEsta: true }],
       titulo: "Si llegó algo dañado",
-      texto: "En la misma hoja, di cuántas llegaron dañadas en su talla y color, y si tienen arreglo. Las dañadas no se venden: entran a la cuarentena de la sede.",
+      texto: "En la misma hoja, di cuántas llegaron dañadas en su talla y color, y si tienen arreglo. Las dañadas no se venden: entran a la cuarentena de la sede. El botón «Llegó dañada» del contador te trae directo aquí.",
     },
     {
       id: "llevar-al-stock",
@@ -1943,14 +1943,23 @@ export const GUIA_RECIBIR_ENVIO: Guia = {
       texto: "Si un envío venía contado con un número suelto, aquí ves cuántas no son de ningún modelo. Agrega su modelo con el «+» y cuéntalas ahí: sin decir cuáles son no se puede cerrar.",
     },
     {
-      // ADR-0507: «Anotar observación» abre una hoja que guarda; la guía la explica sin tocarla.
+      id: "algo",
+      ancla: "recepcion.algo",
+      opcional: true,
+      requiere: ["recepcion.categorias"],
+      preparar: [{ tipo: "escape" }],
+      titulo: "¿Pasó algo con esta prenda?",
+      texto: "Lo que puede pasar con una prenda, a un toque. «Llegó dañada» abre sus tallas para decir cuántas y en qué talla y color. «Es otra prenda» la cambia por la que de verdad llegó, sin perder lo contado. «Anotar algo» deja una nota para Compras.",
+    },
+    {
+      // ADR-0507: «Anotar algo» abre una hoja que guarda; la guía la explica sin tocarla.
       id: "observaciones",
       ancla: "recepcion.observaciones",
       opcional: true,
       requiere: ["recepcion.categorias"],
       preparar: [{ tipo: "escape" }],
       titulo: "Lo que viste al abrir la caja",
-      texto: "Si una prenda llegó rota, manchada o distinta, o faltó alguna, toca «Anotar observación»: eliges qué pasó, lo cuentas en una línea y queda en el envío a tu nombre. Compras lo lee para reclamar. No cambia lo contado.",
+      texto: "Si una prenda llegó rota, manchada o distinta, o faltó alguna, toca «Anotar algo»: eliges qué pasó, lo cuentas en una línea y queda en el envío a tu nombre. Compras lo lee para reclamar. No cambia lo contado.",
     },
     {
       id: "agregar-modelo",

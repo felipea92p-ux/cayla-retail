@@ -3,6 +3,7 @@
 import { useRef, useState } from "react";
 import { Aviso } from "@/components/ui/Aviso";
 import { avisar } from "@/components/ui/Avisos";
+import { MessageSquarePlus } from "lucide-react";
 import { Boton } from "@/components/ui/campos";
 import { Chip } from "@/components/ui/Chip";
 import { Modal } from "@/components/ui/Modal";
@@ -27,7 +28,7 @@ import {
 // Anotar no cambia lo contado ni mueve stock: es un texto para las personas (Compras lo lee para reclamar). No se borra ni se edita: si
 // hubo un error, se anota otra.
 
-/** «Anotar observación», en la cabecera de lo que se cuenta: abre la hoja. */
+/** «Anotar algo», uno de los tres botones de «¿Pasó algo con esta prenda?» (ADR-0645; antes era un enlace en la cabecera): abre la hoja de la observación. */
 export function AnotarObservacion({
   despachoId,
   lineaId,
@@ -46,9 +47,12 @@ export function AnotarObservacion({
   const [abierta, setAbierta] = useState(false);
   return (
     <>
-      <button type="button" className="btn-cayla btn-enlace" onClick={() => setAbierta(true)} data-guia="recepcion.observaciones">
-        Anotar observación
-      </button>
+      <Boton type="button" peso="fantasma" onClick={() => setAbierta(true)} data-guia="recepcion.observaciones" aria-label="Anotar una observación">
+        <span className="inline-flex items-center gap-2">
+          <MessageSquarePlus aria-hidden className="h-4 w-4 shrink-0" />
+          Anotar algo
+        </span>
+      </Boton>
       {abierta && <HojaObservacion despachoId={despachoId} lineaId={lineaId} nombre={nombre} responsable={responsable} onAnotada={onAnotada} onCerrar={() => setAbierta(false)} />}
     </>
   );

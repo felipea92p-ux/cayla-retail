@@ -1,7 +1,7 @@
 "use client";
 
 import { type MouseEvent, type ReactNode, type Ref } from "react";
-import { ArrowLeft, ArrowRight, Ban, Banknote, Check, Package, RotateCcw, Sparkles, Tag } from "lucide-react";
+import { ArrowLeft, ArrowRight, Ban, Banknote, Check, Package, Repeat, RotateCcw, Sparkles, Tag, TriangleAlert } from "lucide-react";
 import { EtiquetaAhora } from "@/components/alta-producto/guia";
 import { Aviso } from "@/components/ui/Aviso";
 import { avisar } from "@/components/ui/Avisos";
@@ -47,6 +47,9 @@ export function PlacaDelModelo({
   onPendiente,
   onQuitarFiltro,
   onEnter,
+  onDanada,
+  onOtraPrenda,
+  notaDeAlgo,
   observacion,
   observaciones,
   identificar,
@@ -85,7 +88,13 @@ export function PlacaDelModelo({
   onPendiente: (e: MouseEvent) => void;
   onQuitarFiltro: () => void;
   onEnter: () => void;
-  /** El enlace «Anotar observación». */
+  /** «Llegó dañada»: abre la hoja de tallas en la parte de las dañadas. Sin ella, el botón va apagado y `notaDeAlgo` dice por qué. */
+  onDanada?: () => void;
+  /** «Es otra prenda»: al tenerla en la mano se vio que era otra. */
+  onOtraPrenda?: () => void;
+  /** Por qué alguno de los dos está apagado, a la vista (nunca solo en un `title`). */
+  notaDeAlgo?: string | null;
+  /** El botón «Anotar algo». */
   observacion: ReactNode;
   /** Lo ya anotado. */
   observaciones: ReactNode;
@@ -167,15 +176,11 @@ export function PlacaDelModelo({
           <p className="rc-guardado" aria-live="polite">
             {llevaCuenta}
           </p>
-          <div className="rc-placa-acciones">
-            {modelo && !modelo.productoId && !modelo.anotada && <LapizEditar que={`el nombre de ${modelo.nombre}`} onClick={onEditarNombre} />}
-            {observacion}
-          </div>
+          <div className="rc-placa-acciones">{modelo && !modelo.productoId && !modelo.anotada && <LapizEditar que={`el nombre de ${modelo.nombre}`} onClick={onEditarNombre} />}</div>
         </div>
       </div>
 
       <div key={parada.clave} className="rc-scroll scroll-cayla rc-placa-cuerpo">
-        {observaciones}
         {identificar}
 
         <section className="rc-bloque" aria-label="¿Cuántas llegaron?">
@@ -268,6 +273,30 @@ export function PlacaDelModelo({
             {tallas}
           </section>
         )}
+
+        {/* Lo que puede pasar con la prenda, a la vista y con su palabra (ADR-0645): antes estaba repartido entre un enlace de la cabecera y dos rincones de la tabla de tallas. */}
+        <section className="rc-bloque" aria-label="¿Pasó algo con esta prenda?">
+          <div className="rc-bloque-titulo">
+            <h3 className="rc-bloque-nombre">¿Pasó algo con esta prenda?</h3>
+          </div>
+          <div className="rc-algo" data-guia="recepcion.algo">
+            <Boton type="button" peso="fantasma" disabled={!onDanada} onClick={onDanada}>
+              <span className="inline-flex items-center gap-2">
+                <TriangleAlert aria-hidden className="h-4 w-4 shrink-0" />
+                Llegó dañada
+              </span>
+            </Boton>
+            <Boton type="button" peso="fantasma" disabled={!onOtraPrenda} onClick={onOtraPrenda}>
+              <span className="inline-flex items-center gap-2">
+                <Repeat aria-hidden className="h-4 w-4 shrink-0" />
+                Es otra prenda
+              </span>
+            </Boton>
+            {observacion}
+          </div>
+          {notaDeAlgo && <p className="rc-bloque-nota">{notaDeAlgo}</p>}
+          {observaciones}
+        </section>
       </div>
 
       {/* El pie fijo: anterior y siguiente, con su palabra y su flecha (Felipe 2026-11-02). El nombre de lo que sigue va al lado, no en el botón: uno largo no cabía. */}

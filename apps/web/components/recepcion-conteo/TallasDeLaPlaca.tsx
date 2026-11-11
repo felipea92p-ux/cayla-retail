@@ -36,7 +36,7 @@ export function TallasDeLaPlaca({
   onCambiar,
   onDejarSuma,
   onCrear,
-  onCambiarPrenda,
+  conDanadas = false,
 }: {
   /** `null` mientras se leen sus tallas y colores. */
   prenda: PrendaRecepcion | null;
@@ -52,8 +52,8 @@ export function TallasDeLaPlaca({
   onDejarSuma: (n: number) => void;
   /** «Agregar talla o color», o una casilla que la prenda no tiene: se abre la hoja completa de sus tallas y colores, con lo pedido ya marcado. */
   onCrear: (pedida: { tallaId?: string; colorCodigo?: string }) => void;
-  /** «Cambiar de prenda»: al repartir se vio que era otra. */
-  onCambiarPrenda: () => void;
+  /** Se abrió desde «Llegó dañada»: la parte de las dañadas llega abierta y a la vista. */
+  conDanadas?: boolean;
 }) {
   const [fallo, setFallo] = useState(false);
   const [intento, setIntento] = useState(0);
@@ -82,7 +82,7 @@ export function TallasDeLaPlaca({
       </div>
     );
   }
-  return <Reparto prenda={prenda} coloresCatalogo={coloresCatalogo} contadas={contadas} traerALaVista={traerALaVista} borrador={borrador} onCambiar={onCambiar} onDejarSuma={onDejarSuma} onCrear={onCrear} onCambiarPrenda={onCambiarPrenda} />;
+  return <Reparto prenda={prenda} coloresCatalogo={coloresCatalogo} contadas={contadas} traerALaVista={traerALaVista} borrador={borrador} onCambiar={onCambiar} onDejarSuma={onDejarSuma} onCrear={onCrear} conDanadas={conDanadas} />;
 }
 
 function Reparto({
@@ -94,7 +94,7 @@ function Reparto({
   onCambiar,
   onDejarSuma,
   onCrear,
-  onCambiarPrenda,
+  conDanadas,
 }: {
   prenda: PrendaRecepcion;
   coloresCatalogo: readonly ColorAlta[];
@@ -104,7 +104,7 @@ function Reparto({
   onCambiar: (b: BorradorTallas) => void;
   onDejarSuma: (n: number) => void;
   onCrear: (pedida: { tallaId?: string; colorCodigo?: string }) => void;
-  onCambiarPrenda: () => void;
+  conDanadas: boolean;
 }) {
   const raiz = useRef<HTMLDivElement>(null);
   const matriz = matrizDe(prenda, coloresCatalogo.map((c) => c.codigo));
@@ -120,6 +120,12 @@ function Reparto({
   useEffect(() => {
     const el = raiz.current;
     if (!traerALaVista || !el) return;
+    // Desde «Llegó dañada»: se abre esa parte y se trae a la vista; el cursor no va a la tabla de arriba.
+    if (conDanadas) {
+      if (!conteo.conDanadas) onCambiar({ ...borrador, conteo: { ...conteo, conDanadas: true } });
+      requestAnimationFrame(() => el.querySelector('[data-guia="recepcion.danadas-contar"]')?.scrollIntoView({ block: "nearest" }));
+      return;
+    }
     if (window.matchMedia("(pointer: fine)").matches) el.querySelector<HTMLInputElement>("input.rc-celda:not(:disabled)")?.focus({ preventScroll: true });
     // Una sola vez, al llegar la tabla.
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -140,15 +146,12 @@ function Reparto({
 
   return (
     <div ref={raiz} className="rc-reparto-tabla" data-guia="recepcion.tallas">
-      {/* Cómo va el reparto, arriba y a la vista mientras se escribe; a su lado, la salida si al repartir se vio que era otra prenda. */}
+      {/* Cómo va el reparto, arriba y a la vista mientras se escribe. «Es otra prenda» salió a la placa, junto a lo demás que puede pasar con la prenda. */}
       <div className="rc-reparto-cabeza">
         <p className="rc-matriz-total" data-tono={cuadra ? "verde" : "ambar"} aria-live="polite">
           <b>{conMiles(s.contado)}</b> de {conMiles(contadas)} · {cuadre.texto}
           {!cuadra && <EtiquetaAhora />}
         </p>
-        <button type="button" className="btn-cayla btn-enlace" onClick={onCambiarPrenda}>
-          Cambiar de prenda
-        </button>
       </div>
 
       <TablaDeTallas

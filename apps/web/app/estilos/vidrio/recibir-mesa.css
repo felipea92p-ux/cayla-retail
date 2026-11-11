@@ -204,7 +204,7 @@ main:has(.rc-conteo) { padding-bottom: 16px; }
 .rc-placa-derecha { flex: none; display: grid; justify-items: end; align-content: space-between; gap: 6px; align-self: stretch; }
 .rc-placa-acciones { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 2px 14px; }
 .rc-guardado { min-height: 20px; color: var(--color-taupe); font-size: 14px; white-space: nowrap; }
-.rc-placa-observaciones { padding: 0 16px 12px; }
+.rc-placa-observaciones { padding: 0; }
 .rc-placa-error { padding: 0; }
 
 /* Los bloques del cuerpo: un número, una pregunta y lo que se hace. El número dice cómo va: negro lo que toca, verde lo hecho, claro lo que espera. */
@@ -310,6 +310,10 @@ main:has(.rc-conteo) { padding-bottom: 16px; }
 .rc-reparto li { display: inline-flex; align-items: center; gap: 6px; min-height: 26px; padding: 0 9px; border: 1px solid var(--gota-chica-borde); border-radius: 999px; background: var(--gota-chica-fondo); box-shadow: var(--gota-chica-luz); color: var(--color-tinta); font-size: 13px; white-space: nowrap; }
 .rc-reparto li b { font-weight: 700; font-variant-numeric: tabular-nums; }
 .rc-reparto .rc-reparto-mas { border-color: transparent; background: transparent; box-shadow: none; color: var(--color-taupe); }
+
+/* «¿Pasó algo con esta prenda?»: tres botones con su palabra, del mismo ancho. */
+.rc-algo { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px; }
+.rc-algo .btn-cayla { width: 100%; white-space: nowrap; }
 
 /* ---------- La hoja «Tallas y colores» (ADR-0645) ----------
    La tabla que vivía en la placa, con espacio. Arriba, cómo va el reparto; al pie, pegado, lo que se hace con lo repartido. */
