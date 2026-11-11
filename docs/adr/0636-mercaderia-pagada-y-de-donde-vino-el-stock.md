@@ -112,7 +112,7 @@ Pendiente: `fn_plan_compra_pedido` (Plan de campaña) sigue contando como «por 
 
 ## Actualización 2026-11-11 (c) — corregir el proveedor de una marca y unir con faltante (ENV-010)
 ENV-010 (Valeria Mia Peru Moda EIRL, 28) llegó sin aviso: 27 por ENV-005, que quedó entera a nombre de «CAYLA SAC», y el chaleco 13 por «Ajustar
-stock» el 6-nov mientras se contaba ENV-005. Migración `20261111175000`:
+stock» el 6-nov mientras se contaba ENV-005. Migración `20261111175000` (EN PRODUCCIÓN el 2026-11-11, con el script aplicado el mismo día):
 1. `corregir_proveedor_de_marca(despacho, marca, proveedor, motivo)`: corrige de quién llegó UNA marca en una recepción sin aviso, abierta o
    cerrada (lo recibido, lo contado y el lote de sus movimientos). Mismo permiso que `corregir_proveedor_envio` (ver el dinero de Compras).
 2. `fn_unida_proveedor_fijo` se acota: con una compra unida, solo frena mover filas desde o hacia un proveedor ya unido a esa recepción.
