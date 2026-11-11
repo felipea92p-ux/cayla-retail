@@ -23,6 +23,9 @@ import type { ControlResponsable } from "@/lib/useResponsable";
 // «Llevar al stock ahora» (ADR-0393, act. 2026-11-03; Felipe: «debe quedar absolutamente perfecto»): un modelo sale a la venta sin cerrar el envío. Sale lo repartido;
 // lo demás se sigue contando. Es dinero y stock: una hoja pregunta lo justo (costo, quién) antes de escribir. El token nace con la hoja: un doble clic o un reintento
 // no meten dos veces. La base manda (`llevar_al_stock_ahora`), y un costo fuera de lo normal pide confirmar.
+//
+// Desde el 2026-11-11 (ADR-0645) es el botón principal al terminar de repartir, en la tarjeta de tallas y en su hoja: casi siempre llevan la prenda al stock desde el conteo, para
+// venderla ya. El peso lo pone el lugar: oscuro con todo repartido, claro si va una parte (`parcial`). La hoja que confirma no cambió.
 
 export function LlevarAlStock({
   despachoId,
@@ -39,6 +42,9 @@ export function LlevarAlStock({
   esperandoGuardar,
   onHecho,
   onConteoCambiado,
+  peso = "fantasma",
+  parcial = false,
+  conFrase = true,
 }: {
   despachoId: string;
   unidades: number;
@@ -56,6 +62,12 @@ export function LlevarAlStock({
   esperandoGuardar: boolean;
   onHecho: (r: ResultadoDeSalida) => void;
   onConteoCambiado: () => void;
+  /** Oscuro donde es lo que toca hacer (todo repartido); claro donde acompaña a otro botón. */
+  peso?: "primario" | "fantasma";
+  /** Va solo una parte de lo contado: lo dice el botón («Llevar 7 al stock ya»). */
+  parcial?: boolean;
+  /** La frase de al lado («Sale ya; lo demás se sigue contando»). La tarjeta ya lo dice con sus palabras. */
+  conFrase?: boolean;
 }) {
   const [abierta, setAbierta] = useState(false);
   const [token, setToken] = useState(() => crypto.randomUUID());
@@ -144,14 +156,14 @@ export function LlevarAlStock({
 
   return (
     <>
-      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 pt-1" data-guia="recepcion.llevar-al-stock">
-        <Boton type="button" peso="fantasma" disabled={esperandoGuardar} title={esperandoGuardar ? "Guardando lo último que contaste…" : undefined} onClick={() => setAbierta(true)}>
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-1" data-guia="recepcion.llevar-al-stock">
+        <Boton type="button" peso={peso} disabled={esperandoGuardar} title={esperandoGuardar ? "Guardando lo último que contaste…" : undefined} onClick={() => setAbierta(true)}>
           <span className="inline-flex items-center gap-2">
             <PackageCheck aria-hidden className="h-4 w-4 shrink-0" />
-            Llevar al stock ahora · {unidades.toLocaleString("es-PE")}
+            {parcial ? `Llevar ${unidades.toLocaleString("es-PE")} al stock ya` : `Llevar al stock ahora · ${unidades.toLocaleString("es-PE")}`}
           </span>
         </Boton>
-        <p className="text-sm text-taupe">Sale ya; lo demás se sigue contando.</p>
+        {conFrase && <p className="text-sm text-taupe">Sale ya; lo demás se sigue contando.</p>}
       </div>
       {abierta && atipicos && (
         <Modal titulo="Hay un costo fuera de lo normal" onClose={() => setAtipicos(null)} bloqueado={guardando} tamano="mediana">

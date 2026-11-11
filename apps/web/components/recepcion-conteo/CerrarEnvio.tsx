@@ -1076,7 +1076,7 @@ export function CerrarEnvio({
       className="space-y-5"
      
     >
-      {/* «Cerrar el conteo» trae hasta aquí: todavía falta este paso (Felipe 2026-11-03). */}
+      {/* «Revisar y cerrar» trae hasta aquí: todavía falta este paso (Felipe 2026-11-03). */}
       <TituloSeccion>Revisa y cierra</TituloSeccion>
       {modelosEnCero.length > 0 && (
         <p className="nota-cayla text-sm">
