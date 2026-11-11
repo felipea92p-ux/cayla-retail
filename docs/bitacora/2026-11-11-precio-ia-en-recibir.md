@@ -1,4 +1,4 @@
 ## 2026-11-11 (La propuesta de precio llega a Recibir mercadería, también en las terminales)
 Qué hice: al crear la prenda que llegó, el paso del precio lleva el costo y la propuesta de la IA sale sola («Usar» o «Dejar» lo que sugirió quien compró); al cerrar, una prenda que ya existe avisa «Gana 23 % · revisar precio» y propone dentro de «Cambiar por talla»; las terminales ya pueden usarlo (ADR-0641 act. 2026-11-11).
 Por qué así: casi toda prenda nace en Recibir y ahí solo entran las terminales; Felipe abrió los costos para ese flujo, pero «Revisar precios» y aplicar siguen cerrados, y el piso de 30 % sigue mandando.
-Felipe se lleva: la migración `20261111151000` espera su OK para pegarse (después de la web o antes, da igual: solo amplía permisos y el origen), y la propuesta con la IA real todavía no se vio.
+Felipe se lleva: la migración `20261111151000` ya está en producción (se pegó antes que la web: solo amplía permisos y el origen); la propuesta con la IA real todavía no se vio.

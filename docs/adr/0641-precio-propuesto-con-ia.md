@@ -94,7 +94,7 @@ cuentas de terminal (caja y almacén). La propuesta vivía en Nuevo producto y e
    costos solo los ve quien ve el dinero de Compras, y eligió abrirlo igual.
 4. También para una prenda que **ya existe** al cerrar el envío, solo si el costo cambió o el margen quedó bajo 30 %.
 
-**Lo que se construyó** (rama `claude/precio-ia-en-recibir`, migración `20261111151000_precio_propuesto_en_recibir.sql`, **sin pegar**):
+**Lo que se construyó** (rama `claude/precio-ia-en-recibir`, migración `20261111151000_precio_propuesto_en_recibir.sql`, **en producción desde el 2026-11-11**, con el OK de Felipe; verificada: los dos candados nuevos, las tres funciones abiertas a Recibir y sin pedir el dinero de Compras, sin `EXECUTE` para `anon`, y «Revisar precios» todavía lo pide):
 - `fn_precio_contexto`, `registrar_precio_propuesta` y `fn_precio_gasto_del_mes` aceptan a quien ve Recibir o Productos, sin el dinero de
   Compras; `precio_propuestas` suma el origen `recepcion` (una prenda nueva sin ficha todavía, o una existente al cerrar). Los candados viejos se
   reemplazan buscándolos por lo que dicen (en local y en producción se llaman distinto). «Revisar precios» y `aplicar_precio_propuesto` **no
