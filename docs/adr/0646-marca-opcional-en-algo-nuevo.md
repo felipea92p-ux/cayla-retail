@@ -1,7 +1,9 @@
 # ADR-0646 — «Algo nuevo»: la marca es opcional y la tienda la pone al recibir
 
 - **Fecha:** 2026-11-11 · **Estado:** construido en la rama `claude/marca-opcional-recepcion-6c0e33`. La migración
-  `20261111192000_marca_opcional_en_algo_nuevo.sql` **no está en producción**: espera el OK de Felipe para pegarla.
+  `20261111192000_marca_opcional_en_algo_nuevo.sql` **está en producción** desde el 2026-11-11 (con el OK de Felipe; registrada como
+  `20261111193556`; verificada: columnas sin `not null`, la regla común con la marca opcional, ningún `join retail.marcas` sin `left` en las
+  funciones de Recibir y el vínculo marca–proveedor en `cambiar_linea_de_pendiente`).
 - **Nace de:** Felipe, 2026-11-11: «que la marca sea opcional, igual en recepción que la puedan colocar» y «al colocar la marca se vincula
   automáticamente con el proveedor». También quitó el párrafo de explicación de «Algo nuevo» («innecesario»).
 - **Relacionados:** ADR-0393 (prenda sin marca), ADR-0480 (Compras simple), ADR-0604 (Recibir «B»), ADR-0644 (la marca primero).
