@@ -54,9 +54,9 @@ import {
   type CategoriaDelEnvio,
 } from "./recepcion-modelos-reglas";
 import { agregarModeloEnCero, agregarPrendaEnCero, devolverModelo, quitarModelo, renombrarModelo } from "./recepcion-conteo-reglas";
-import { agruparLineas, idCampoIdentificar, sinIdentificarDelGrupo, type GrupoDeLineas } from "./recepcion-grupos-reglas";
-import { leerConteosDelEnvio, TOPES_CONTEO, totalSeparado, type LineaParaContar, type Separado } from "./recepcion-conteo-reglas";
-import type { LineaEnvio } from "./recepcion-envio-reglas";
+import { agruparLineas, idCampoIdentificar, repartirSeparado, sinIdentificarDelGrupo, type GrupoDeLineas } from "./recepcion-grupos-reglas";
+import { leerConteosDelEnvio, lineasParaContar, prendaCreadaDeNueva, TOPES_CONTEO, totalSeparado, type LineaParaContar, type Separado } from "./recepcion-conteo-reglas";
+import type { LineaEnvio, RecibidoEnvio } from "./recepcion-envio-reglas";
 
 const VESTIDOS = { id: "c-vestidos", nombre: "Vestidos", prefijo: "VES", familia: "vestidos" };
 const FALDAS = { id: "c-faldas", nombre: "Faldas", prefijo: "FAL", familia: "faldas" };
@@ -1186,5 +1186,49 @@ describe("categoriasConLoQueYaEntro: lo que ya entró, cada cosa en su categorí
     expect(r.porCategoria.size).toBe(0);
     expect(r.sueltos).toEqual([]);
     expect(r.categorias).toEqual([faldas]);
+  });
+});
+
+describe("crear la prenda de un modelo anotado por nombre: la referencia desaparece (Felipe 2026-11-11)", () => {
+  // Compras anotó «Vestido Lima» solo por nombre; al contar se creó como «Vestido Lima Midi». Quedaban dos filas (la referencia en 0, «No llegó»,
+  // y la prenda creada aparte), y al entrar al stock se veía otra vez abajo, en «ya entraron».
+  const creada = { productoId: "p-midi", nombre: "Vestido Lima Midi", codigo: "VES-9" };
+  const antes = () =>
+    grupo(
+      deLaGuia(sofia(), { contadas: 5, separado: { prendas: [prendaSep("p-sofia", "Vestido Sofía", 5)], nuevas: [] } }),
+      deLaGuia(lima(), { contadas: 7, separado: { prendas: [], nuevas: [{ cantidad: 7, descripcion: "Vestido Lima" }] } }),
+    );
+
+  it("al crearla se guarda en la línea que la anotó, no en la primera, y queda una sola fila con el nombre de la prenda", () => {
+    const g = antes();
+    const r = repartirSeparado(g, prendaCreadaDeNueva(g.separado, "Vestido Lima", creada), g.contadas);
+    expect(r.cambios.map((c) => [c.linea.linea?.id, c.separado.prendas.map((p) => p.productoId)])).toEqual([["l-lima", ["p-midi"]]]);
+    const despues = aplicar(g, r.cambios);
+    const ms = modelosDelGrupo(despues);
+    expect(ms.map((m) => [m.nombre, m.productoId, m.esperadas, m.contadas, m.estado])).toEqual([
+      ["Vestido Sofía", "p-sofia", 5, 5, "cuadra"],
+      ["Vestido Lima Midi", "p-midi", 7, 7, "cuadra"],
+    ]);
+  });
+
+  it("ya en el stock, la fila lleva el nombre de lo que entró por su línea y no se repite en «ya entraron»", () => {
+    const recibidos: RecibidoEnvio[] = [
+      { despachoItemId: "l-sofia", extra: null, varianteId: "v1", prenda: "Vestido Sofía", talla: "M", color: "Negro", cantidad: 5, danadas: 0, costoUnitario: 30, categoria: "Vestidos", marca: "CAYLA" },
+      { despachoItemId: "l-lima", extra: null, varianteId: "v2", prenda: "Vestido Lima Midi", talla: "S", color: "Rojo", cantidad: 7, danadas: 0, costoUnitario: 30, categoria: "Vestidos", marca: "CAYLA" },
+    ];
+    const conteos = leerConteosDelEnvio({
+      despacho_id: "d1",
+      conteos: [
+        { despacho_item_id: "l-sofia", contadas: 5, separado: { prendas: [], nuevas: [] }, en_stock: 5, version: 2, pendientes: [] },
+        { despacho_item_id: "l-lima", contadas: 7, separado: { prendas: [], nuevas: [] }, en_stock: 7, version: 2, pendientes: [] },
+      ],
+    });
+    const g = agruparLineas(lineasParaContar({ lineas: [sofia(), lima()], recibidos }, conteos))[0];
+    const ms = modelosDelGrupo(g);
+    expect(ms.map((m) => [m.nombre, m.contadas, m.enStock, m.estado])).toEqual([
+      ["Vestido Sofía", 5, 5, "cuadra"],
+      ["Vestido Lima Midi", 7, 7, "cuadra"],
+    ]);
+    expect(yaEnStockDelEnvio(recibidos, ms)).toEqual([]);
   });
 });

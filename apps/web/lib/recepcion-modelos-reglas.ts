@@ -101,8 +101,15 @@ export function modelosDelGrupo(g: GrupoDeLineas): ModeloDelConteo[] {
   const usadasCatalogo = new Set<string>();
   const usadasNombre = new Set<string>();
   const llegoSinNombre = cuadraEnLaCategoria(g) ? "contado" : "fuera";
-  const filas: ModeloDelConteo[] = anotadasDelGrupo(g).map(({ prenda }) => {
+  // Lo que alguna anotada ya reclama (por su prenda o por su nombre): lo que no, y está en la línea de una anotada solo por nombre, es la prenda
+  // que se creó desde ella con otro nombre (Felipe 2026-11-11: la referencia «Bl. indu» desaparece y queda la prenda creada, sin repetirse).
+  const anotadas = anotadasDelGrupo(g).map((a) => a.prenda);
+  const nombresAnotados = new Set(anotadas.map((a) => normaliza(a.nombre)));
+  const idsAnotados = new Set(anotadas.flatMap((a) => (a.productoId ? [a.productoId] : [])));
+  const reclamada = (p: { productoId: string; nombre: string | null }) => idsAnotados.has(p.productoId) || (!!p.nombre && nombresAnotados.has(normaliza(p.nombre)));
+  const filas: ModeloDelConteo[] = anotadas.map((prenda) => {
     const clave = claveDeAnotada(prenda);
+    let nombre = prenda.nombre;
     let productoId = prenda.productoId;
     let contadas = 0;
     let conTallas = false;
@@ -116,13 +123,29 @@ export function modelosDelGrupo(g: GrupoDeLineas): ModeloDelConteo[] {
       usadasNombre.add(k);
       // Anotada solo por nombre y luego creada en el catálogo con ese nombre («Crear ahora»): sigue siendo este modelo, ahora con su prenda.
       const creada = g.separado.prendas.find((p) => p.nombre && normaliza(p.nombre) === k && !usadasCatalogo.has(p.productoId));
-      if (creada) {
-        usadasCatalogo.add(creada.productoId);
-        productoId = creada.productoId;
-        contadas = creada.cantidad;
-        conTallas = !!creada.variantes;
+      // Creada con otro nombre: la prenda de su línea que ninguna anotada reclama.
+      const deSuLinea = lineasDelModelo(g, { clave }).flatMap((l) => l.conteo?.separado.prendas ?? []);
+      const conOtroNombre = creada ? undefined : deSuLinea.find((p) => !reclamada(p) && !usadasCatalogo.has(p.productoId));
+      const prendaCreada = creada ?? conOtroNombre;
+      if (prendaCreada) {
+        usadasCatalogo.add(prendaCreada.productoId);
+        productoId = prendaCreada.productoId;
+        contadas = prendaCreada.cantidad;
+        conTallas = !!prendaCreada.variantes;
+        if (prendaCreada.nombre) nombre = prendaCreada.nombre;
       } else {
         contadas = g.separado.nuevas.filter((n) => n.descripcion && normaliza(n.descripcion) === k).reduce((a, n) => a + n.cantidad, 0);
+        // Ya entró al stock con otro nombre: el de lo que entró en su línea (si es uno solo), para no verla dos veces («Bl. indu» y su prenda en stock).
+        if (contadas === 0) {
+          const entraron = new Set(
+            lineasDelModelo(g, { clave })
+              .flatMap((l) => l.conteo?.prendasEnStock ?? [])
+              .filter((x) => !nombresAnotados.has(normaliza(x)))
+              .map(normaliza),
+          );
+          const unico = entraron.size === 1 ? lineasDelModelo(g, { clave }).flatMap((l) => l.conteo?.prendasEnStock ?? []).find((x) => entraron.has(normaliza(x))) : undefined;
+          if (unico) nombre = unico;
+        }
       }
     }
     const lineas = lineasDelModelo(g, { clave });
@@ -131,7 +154,7 @@ export function modelosDelGrupo(g: GrupoDeLineas): ModeloDelConteo[] {
     const contado = total > 0 || (lineas.length > 0 && lineas.every((l) => l.conteo !== null));
     return {
       clave,
-      nombre: prenda.nombre,
+      nombre,
       productoId,
       codigo: prenda.codigo,
       esperadas: prenda.cantidad,

@@ -188,29 +188,40 @@ export function repartirTotal(g: GrupoDeLineas, total: number): Reparto {
   return { cambios, contadas: contadas.reduce((a, x) => a + x, 0), subio };
 }
 
-export type PrendaDe = { productoId: string } | { descripcion: string | null };
+/** `nombre`: el de la prenda del catálogo, para reconocerla en la línea que la anotó solo por nombre antes de crearla («Crear ahora»). */
+export type PrendaDe = { productoId: string; nombre?: string | null } | { descripcion: string | null };
 
 /** ¿La prenda separada (del catálogo, o nueva con descripción) es la que anotó esta línea al comprar? */
 function esDeLaLinea(l: LineaParaContar, prenda: PrendaDe): boolean {
-  return prendasAnotadasDe(l).some((a: PrendaAnotada) =>
-    "productoId" in prenda ? a.productoId === prenda.productoId : a.productoId === null && prenda.descripcion != null && normaliza(a.nombre) === normaliza(prenda.descripcion),
-  );
+  return prendasAnotadasDe(l).some((a: PrendaAnotada) => {
+    if (!("productoId" in prenda)) return a.productoId === null && prenda.descripcion != null && normaliza(a.nombre) === normaliza(prenda.descripcion);
+    if (a.productoId === prenda.productoId) return true;
+    // Anotada solo por nombre y creada después en el catálogo con ese nombre: sigue siendo de esta línea (como en `modelosDelGrupo`).
+    return a.productoId === null && !!prenda.nombre && normaliza(a.nombre) === normaliza(prenda.nombre);
+  });
 }
 
 const claveDeDescripcion = (d: string | null): string | null => (d ? normaliza(d) : null);
 
 /**
  * De qué línea es una prenda separada: la línea donde ya estaba separada; si no, la que la anotó al comprar; si ninguna, la primera.
+ * Una prenda anotada solo por nombre y creada después en el catálogo se reconoce por ese nombre: sin eso caía en la primera línea, y al
+ * llevarla al stock entraba a nombre de otra prenda (2026-11-11: «16 de 6 · Sobran 10» con 6 + 5 + 5 contadas).
  * (Lo que se guarda por línea es un detalle: la persona ve la categoría.)
  */
 export function lineaDeLaPrenda(g: GrupoDeLineas, prenda: PrendaDe): LineaParaContar {
+  // El nombre de una prenda del catálogo sale de lo separado si quien llama no lo trae: con él se reconoce la línea que la anotó por nombre.
+  const buscada: PrendaDe =
+    "productoId" in prenda && prenda.nombre == null
+      ? { productoId: prenda.productoId, nombre: g.lineas.flatMap((l) => l.conteo?.separado.prendas ?? []).find((p) => p.productoId === prenda.productoId)?.nombre ?? null }
+      : prenda;
   const estaba = g.lineas.find((l) => {
     const s = l.conteo?.separado ?? SEPARADO_VACIO;
-    return "productoId" in prenda
-      ? s.prendas.some((p) => p.productoId === prenda.productoId)
-      : s.nuevas.some((n) => claveDeDescripcion(n.descripcion) === claveDeDescripcion(prenda.descripcion));
+    return "productoId" in buscada
+      ? s.prendas.some((p) => p.productoId === buscada.productoId)
+      : s.nuevas.some((n) => claveDeDescripcion(n.descripcion) === claveDeDescripcion(buscada.descripcion));
   });
-  return estaba ?? g.lineas.find((l) => esDeLaLinea(l, prenda)) ?? g.principal;
+  return estaba ?? g.lineas.find((l) => esDeLaLinea(l, buscada)) ?? g.principal;
 }
 
 /**
@@ -220,10 +231,20 @@ export function lineaDeLaPrenda(g: GrupoDeLineas, prenda: PrendaDe): LineaParaCo
  */
 export function repartirSeparado(g: GrupoDeLineas, separado: Separado, total: number): Reparto {
   const lineas = g.lineas;
-  const dueña = (prenda: PrendaDe): number => lineas.indexOf(lineaDeLaPrenda(g, prenda));
+  // «Crear ahora»: una nueva descrita sale y entra una prenda que antes no estaba. Si se creó con otro nombre, nada la une a su línea salvo
+  // eso: va a la línea de la nueva que reemplaza (sin esto caía en la primera y la referencia quedaba aparte, Felipe 2026-11-11).
+  const salieron = g.separado.nuevas.filter((n) => n.descripcion && !separado.nuevas.some((x) => claveDeDescripcion(x.descripcion) === claveDeDescripcion(n.descripcion)));
+  const entraron = separado.prendas.filter((p) => !g.separado.prendas.some((x) => x.productoId === p.productoId));
+  const reemplaza = salieron.length === 1 && entraron.length === 1 ? { productoId: entraron[0].productoId, descripcion: salieron[0].descripcion } : null;
+  const dueña = (prenda: PrendaDe): number =>
+    lineas.indexOf(
+      reemplaza && "productoId" in prenda && prenda.productoId === reemplaza.productoId && !lineas.some((l) => esDeLaLinea(l, prenda))
+        ? lineaDeLaPrenda(g, { descripcion: reemplaza.descripcion })
+        : lineaDeLaPrenda(g, prenda),
+    );
 
   const nuevoPorLinea: Separado[] = lineas.map(() => ({ prendas: [], nuevas: [] }));
-  for (const p of separado.prendas) nuevoPorLinea[dueña({ productoId: p.productoId })].prendas.push(p);
+  for (const p of separado.prendas) nuevoPorLinea[dueña({ productoId: p.productoId, nombre: p.nombre })].prendas.push(p);
   for (const n of separado.nuevas) nuevoPorLinea[dueña({ descripcion: n.descripcion })].nuevas.push(n);
 
   const minimos = lineas.map((l, i) => (l.conteo?.enStock ?? 0) + totalSeparado(nuevoPorLinea[i]));

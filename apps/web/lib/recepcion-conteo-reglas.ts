@@ -520,6 +520,8 @@ export type ConteoDeLinea = {
   /** Con el envío cerrado: lo que nadie dijo qué es. Abierto: lo contado que el borrador no separó. */
   sinSeparar: number;
   pendientes: PendienteDeLinea[];
+  /** Los nombres de las prendas que ya entraron al stock por esta línea (de los recibidos del envío): unen la fila anotada por nombre con la prenda creada con otro. */
+  prendasEnStock?: string[];
 };
 
 /** A qué costo entró lo que ya está en el stock: cuántas con costo y sin él, cuánto suman y entre qué costos. */
@@ -725,8 +727,18 @@ export type LineaParaContar = {
 };
 
 /** Las líneas en el orden del envío (las de la guía primero) y después lo de fuera de la guía, por su posición. */
-export function lineasParaContar(d: Pick<DetalleEnvio, "lineas">, c: Pick<ConteosDelEnvio, "conteos"> | null): LineaParaContar[] {
-  const porClave = new Map((c?.conteos ?? []).map((k) => [claveDe(k), k] as const));
+export function lineasParaContar(d: Pick<DetalleEnvio, "lineas"> & Partial<Pick<DetalleEnvio, "recibidos">>, c: Pick<ConteosDelEnvio, "conteos"> | null): LineaParaContar[] {
+  // Qué prendas entraron por cada línea: el conteo solo trae cuántas.
+  const entraron = new Map<string, string[]>();
+  for (const r of d.recibidos ?? []) {
+    const k = r.despachoItemId ? `item:${r.despachoItemId}` : r.extra != null ? `extra:${r.extra}` : null;
+    if (!k || !r.prenda || r.cantidad <= 0) continue;
+    const ya = entraron.get(k) ?? [];
+    if (!ya.includes(r.prenda)) ya.push(r.prenda);
+    entraron.set(k, ya);
+  }
+  const conLoQueEntro = (k: ConteoDeLinea): ConteoDeLinea => (entraron.has(claveDe(k)) ? { ...k, prendasEnStock: entraron.get(claveDe(k)) } : k);
+  const porClave = new Map((c?.conteos ?? []).map((k) => [claveDe(k), conLoQueEntro(k)] as const));
   const deLaGuia: LineaParaContar[] = d.lineas.map((l) => ({
     clave: `item:${l.id}` as ClaveLinea,
     linea: l,
@@ -739,7 +751,7 @@ export function lineasParaContar(d: Pick<DetalleEnvio, "lineas">, c: Pick<Conteo
   const fuera: LineaParaContar[] = (c?.conteos ?? [])
     .filter((k) => k.extraPosicion != null)
     .sort((a, b) => (a.extraPosicion ?? 0) - (b.extraPosicion ?? 0))
-    .map((k) => ({ clave: claveDe(k), linea: null, conteo: k, categoria: k.categoria, marca: k.marca, proveedor: k.proveedor, dijeron: null }));
+    .map((k) => ({ clave: claveDe(k), linea: null, conteo: conLoQueEntro(k), categoria: k.categoria, marca: k.marca, proveedor: k.proveedor, dijeron: null }));
   return [...deLaGuia, ...fuera];
 }
 
