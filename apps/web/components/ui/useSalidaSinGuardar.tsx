@@ -4,7 +4,16 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Modal } from "@/components/ui/Modal";
 import { Boton } from "@/components/ui/campos";
-import { destinoQueSaleDeLaPantalla, registrarGuardia } from "@/lib/salida-sin-guardar";
+import {
+  MARCA_GUARDIA,
+  destinoQueSaleDeLaPantalla,
+  devolverModoDeScroll,
+  empujarGuardia,
+  esEstadoDeGuardia,
+  hayGuardiaConCambios,
+  pasoDeIdaYVuelta,
+  registrarGuardia,
+} from "@/lib/salida-sin-guardar";
 import { MARCA_HOJA } from "@/lib/hojas-atras";
 import { cuandoSinHojas, hojasEnElHistorial, useHojasEnElHistorial } from "@/components/ui/useAtrasCierraLaHoja";
 
@@ -30,6 +39,10 @@ import { cuandoSinHojas, hojasEnElHistorial, useHojasEnElHistorial } from "@/com
    bajo 640 px) o una entrada suya en el historial, la guardia no se pone ni se retira, y su `popstate` no pregunta. Así un formulario
    que vive en una hoja no pone guardia nunca en el teléfono: su «atrás» cierra la hoja y pregunta por la puerta 3 (`antesDeCerrar`).
    Y la guardia de una pantalla entera (Nuevo producto) espera a que se cierre la hoja que se abrió encima para ponerse.
+
+   Poner y retirar la guardia no mueve la página (2026-11-11): mientras está puesta, su entrada y la de abajo están en
+   `scrollRestoration` «manual», y fuera de ella todo vuelve a «auto» (`asentarScroll`). El porqué, lo medido y las reglas, con su
+   prueba: `lib/salida-sin-guardar.ts`. Esta pieza es la única del ERP que escribe ese modo.
    ==================================================================== */
 
 type Destino = { tipo: "ruta"; ruta: string } | { tipo: "atras" } | { tipo: "accion"; hacer: () => void };
@@ -38,8 +51,8 @@ type Destino = { tipo: "ruta"; ruta: string } | { tipo: "atras" } | { tipo: "acc
 const QUE_SE_PIERDE = "Hiciste cambios en esta ficha que todavía no se guardaron. Si sales ahora, se pierden.";
 
 /** Marca de la entrada de guardia en `history.state`: solo se retira una entrada que pusimos nosotros. */
-const MARCA = "__guardiaSalida";
-const esGuardia = () => Boolean((window.history.state as Record<string, unknown> | null)?.[MARCA]);
+const MARCA = MARCA_GUARDIA;
+const esGuardia = () => esEstadoDeGuardia(window.history.state);
 /** El estado de la guardia: el de Next (para que su router no pierda el árbol) con la MARCA. Sin la marca de una hoja: copiada,
  *  la entrada pasaría por la de esa hoja (ADR-0528). */
 function estadoDeGuardia() {
@@ -58,6 +71,38 @@ function guardiaRetirada() {
   avisar?.();
 }
 
+/** Lo que se espera a que la página esté quieta antes de asentar el scroll de la entrada. */
+const QUIETA_MS = 200;
+/** Devuelve a «auto» la entrada en la que se está, si no es una guardia puesta (regla 2 de `lib/salida-sin-guardar.ts`). */
+const devolverModo = () => devolverModoDeScroll(window.history, hayGuardiaConCambios());
+/**
+ * Asienta el scroll de la entrada en la que se quedó: se llama al terminar cada vuelta por el historial y cuando un formulario se
+ * va. Un instante después (nunca dentro del `popstate`), si esa entrada quedó en «manual» y no es una guardia puesta, vuelve a
+ * «auto» y el navegador anota de nuevo dónde está la página: un píxel de ida y vuelta, sin que se pinte nada entre los dos.
+ *   · Si la persona está desplazando, no se mueve nada: el navegador ya lo va anotando, y un scroll de programa le cortaría la
+ *     inercia del dedo.
+ *   · Ese píxel dispara un evento `scroll`, y un menú abierto se cierra al desplazarse la página (`MenuAcciones`): con uno abierto
+ *     se espera a que se cierre (hasta 5 s), con la entrada todavía en «manual».
+ */
+function asentarScroll(esperas = 25) {
+  let seMovio = false;
+  const alMoverse = () => {
+    seMovio = true;
+  };
+  window.addEventListener("scroll", alMoverse, { passive: true, once: true });
+  window.setTimeout(() => {
+    window.removeEventListener("scroll", alMoverse);
+    const conMenu = window.history.scrollRestoration === "manual" && document.querySelector('[role="menu"]') !== null;
+    if (conMenu && !seMovio && esperas > 0) return asentarScroll(esperas - 1);
+    if (!devolverModo() || seMovio) return;
+    const aqui = { left: window.scrollX, top: window.scrollY };
+    const paso = pasoDeIdaYVuelta(aqui.top, document.documentElement.scrollHeight - window.innerHeight);
+    if (paso === null) return;
+    window.scrollTo({ left: aqui.left, top: paso, behavior: "instant" });
+    window.scrollTo({ ...aqui, behavior: "instant" });
+  }, QUIETA_MS);
+}
+
 /* Ese `popstate` propio tampoco le llega al router de Next (2026-10-08). Retirar la guardia vuelve a la MISMA URL, así que no
    hay nada que restaurar; pero Next restaura el árbol guardado en la entrada de abajo, y esa entrada puede ser vieja: Existencias
    cambia sus filtros con `history.replaceState`, sin navegar, y la entrada sigue con el árbol de antes de la búsqueda. Con ese
@@ -66,11 +111,16 @@ function guardiaRetirada() {
    volvía a las tarjetas y el aviso de «listo» se perdía con la recarga.
    Se escucha en la CAPTURA de `window`: en el destino, los escuchadores de captura corren antes que el de Next (que escucha sin
    captura), y `stopImmediatePropagation` corta a todos los demás, también a los `alVolver` de los formularios montados, que de
-   todos modos lo ignoraban. Se instala una sola vez, al cargar el módulo. */
+   todos modos lo ignoraban. Se instala una sola vez, al cargar el módulo.
+   Y toda vuelta por el historial, propia o de la persona, asienta el scroll de la entrada en la que se quedó (`asentarScroll`): la
+   de abajo de la guardia recién retirada, o una que se abandonó con la guardia puesta y a la que se acaba de volver. */
 if (typeof window !== "undefined") {
+  // Una recarga sobre una entrada que quedó en «manual»: no hay `popstate` que lo avise.
+  asentarScroll();
   window.addEventListener(
     "popstate",
     (e) => {
+      asentarScroll();
       if (!ignorarProximoPop) return;
       guardiaRetirada();
       e.stopImmediatePropagation();
@@ -105,6 +155,8 @@ export function useSalidaSinGuardar(
 
   const soltar = useCallback(() => {
     saliendo.current = true;
+    // Se va a navegar desde la guardia: la pantalla nueva no debe heredar su «manual».
+    devolverModo();
   }, []);
 
   const pedirSalir = useCallback(
@@ -167,6 +219,7 @@ export function useSalidaSinGuardar(
 
   // 4. Atrás. La guardia se pone con el primer cambio y se retira cuando ya no hay cambios. Copia el `history.state` de
   //    Next (para que su router no pierda el árbol de la pantalla) y le suma la MARCA.
+  const ponerGuardia = useCallback(() => empujarGuardia(window.history, estadoDeGuardia(), window.location.href), []);
   const retirarGuardia = useCallback(() => {
     // Encima está la entrada de una hoja: un «atrás» se la llevaría a ella. Se retira cuando la hoja se va (el efecto de abajo).
     if (!conGuardia.current || hojasEnElHistorial()) return;
@@ -198,12 +251,12 @@ export function useSalidaSinGuardar(
     if (saliendo.current || conHojas) return;
     if (vigilaAtras && !conGuardia.current) {
       urlGuardia.current = window.location.href;
-      window.history.pushState(estadoDeGuardia(), "", window.location.href);
+      ponerGuardia();
       conGuardia.current = true;
     } else if (!vigilaAtras) {
       retirarGuardia();
     }
-  }, [vigilaAtras, conHojas, retirarGuardia]);
+  }, [vigilaAtras, conHojas, ponerGuardia, retirarGuardia]);
   useEffect(() => {
     const alVolver = () => {
       // Respaldo: el escuchador de captura ya corta este popstate; un navegador que no corra la captura primero lo deja pasar.
@@ -212,7 +265,7 @@ export function useSalidaSinGuardar(
         return;
       }
       if (!conGuardia.current || !debePreguntar() || hojasEnElHistorial()) return;
-      window.history.pushState(estadoDeGuardia(), "", window.location.href);
+      ponerGuardia();
       setPendiente({ tipo: "atras" });
     };
     window.addEventListener("popstate", alVolver);
@@ -221,8 +274,10 @@ export function useSalidaSinGuardar(
       // El formulario desaparece (un modal que se cerró) sin que nadie haya navegado: su guardia sobra. Se mira DESPUÉS
       // de que asiente la navegación que pudo desmontarlo: si Next ya empujó otra entrada, no es nuestra y no se toca.
       if (conGuardia.current && !saliendo.current) window.setTimeout(retirarGuardia, 0);
+      // Si se fue navegando con la guardia puesta, la pantalla nueva heredó su «manual»: se le devuelve «auto».
+      asentarScroll();
     };
-  }, [debePreguntar, retirarGuardia]);
+  }, [debePreguntar, ponerGuardia, retirarGuardia]);
 
   const seguirEditando = useCallback(() => setPendiente(null), []);
 
@@ -235,6 +290,8 @@ export function useSalidaSinGuardar(
     soltar();
     // La pregunta es una hoja: en el teléfono tiene su entrada encima de la guardia. Se sale cuando la retiró (ADR-0528).
     cuandoSinHojas(() => {
+      // Ya sin la pregunta encima, se está otra vez sobre la guardia: lo que se empuje desde ella no hereda su «manual».
+      devolverModo();
       if (destino.tipo === "ruta") router.push(destino.ruta);
       // Dos pasos: la guardia repuesta y la entrada de esta pantalla.
       else window.history.go(-2);
