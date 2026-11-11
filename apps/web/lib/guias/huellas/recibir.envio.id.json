@@ -2,7 +2,7 @@
   "guia": "recibir.envio.id",
   "ruta": "/recibir/envio/[id]",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 266,
+  "total": 267,
   "controles": {
     "app/(app)/recibir/envio/[id]/page.tsx": [
       "Volver «/recibir»",
@@ -117,6 +117,7 @@
       "button «Cambiar»",
       "ComboBuscable «{id}»",
       "input «{`Costo de ${nombre}»",
+      "button «{textoRevisarAlRecibir(precioQueda, costoQueda, revisarPrecio)}»",
       "button «{verDet ? \"Ocultar detalle\" : \"Ver detalle\"}»",
       "button «{`${abiertaEsta ? \"Esconder\" : \"Cambiar\"}»",
       "Boton «Contarla»",

@@ -34,6 +34,7 @@ export function PropuestaDePrecio({
   origen = "alta",
   automatica = false,
   onDejar,
+  productoId,
 }: {
   categoriaId: string;
   tejidoId: string;
@@ -49,10 +50,12 @@ export function PropuestaDePrecio({
   automatica?: boolean;
   /** «Dejar S/ …»: la persona se queda con el precio que ya estaba (el que sugirió quien compró). */
   onDejar?: () => void;
+  /** Una prenda que ya existe (el cierre de Recibir): la IA mira su precio de hoy y cómo se vende. La categoría puede venir vacía. */
+  productoId?: string;
 }) {
   // Una propuesta se calculó con un costo y una categoría: si cambian, ya no vale (podría quedar bajo el piso del costo nuevo). Cada
   // estado guarda con qué datos nació, y uno de otros datos se lee como «nada» (o como lo ya respondido con esos datos).
-  const clave = `${origen}|${categoriaId}|${tejidoId}|${costoBase}`;
+  const clave = `${origen}|${productoId ?? ""}|${categoriaId}|${tejidoId}|${costoBase}`;
   const [guardado, setGuardado] = useState<{ clave: string; estado: Estado }>(() => ({ clave, estado: { tipo: "nada" } }));
   const recordada = YA_RESPONDIDO.get(clave);
   const estado: Estado = guardado.clave === clave ? guardado.estado : recordada ? { tipo: "listo", respuesta: recordada } : { tipo: "nada" };
@@ -69,7 +72,8 @@ export function PropuestaDePrecio({
         headers: { "content-type": "application/json", "x-espera": "no" },
         body: JSON.stringify({
           origen,
-          categoriaId,
+          categoriaId: categoriaId || null,
+          productoId: productoId ?? null,
           tejidoId: tejidoId || null,
           referencia: referencia.trim() || null,
           descripcion: descripcion.trim() || null,
@@ -92,7 +96,7 @@ export function PropuestaDePrecio({
   // sola con cada cambio gastaría una consulta por tecla.
   const pedidaSola = useRef(false);
   useEffect(() => {
-    if (!automatica || !categoriaId || disabled || pedidaSola.current || YA_RESPONDIDO.has(clave)) return;
+    if (!automatica || (!categoriaId && !productoId) || disabled || pedidaSola.current || YA_RESPONDIDO.has(clave)) return;
     pedidaSola.current = true;
     void proponer();
     // eslint-disable-next-line react-hooks/exhaustive-deps -- se pide al aparecer, una sola vez; no en cada cambio de los datos
@@ -108,7 +112,7 @@ export function PropuestaDePrecio({
     <div className="mt-4 space-y-3">
       {!propuesta && (
         <div className="flex flex-wrap items-center gap-3">
-          <Boton type="button" peso="fantasma" onClick={proponer} cargando={estado.tipo === "pidiendo"} textoCargando="Calculando…" disabled={disabled || !categoriaId}>
+          <Boton type="button" peso="fantasma" onClick={proponer} cargando={estado.tipo === "pidiendo"} textoCargando="Calculando…" disabled={disabled || (!categoriaId && !productoId)}>
             <span className="inline-flex items-center gap-2">
               <Sparkles aria-hidden className="h-4 w-4" />
               {estado.tipo === "error" || (estado.tipo === "listo" && "sinPropuesta" in estado.respuesta) ? "Proponer de nuevo" : "Proponer precio"}

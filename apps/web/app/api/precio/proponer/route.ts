@@ -34,7 +34,8 @@ import { createClient } from "@/lib/supabase/server";
 const Cuerpo = z.object({
   // «recepcion» (ADR-0641 act. 2026-11-11): al crear la prenda en Recibir (sin `productoId`) o al cerrar con una que ya existe (con él).
   origen: z.enum(["alta", "revision", "recepcion"]),
-  categoriaId: z.uuid(),
+  // Puede faltar si viene la prenda (el cierre de Recibir no tiene la categoría a mano): se lee de la prenda.
+  categoriaId: z.uuid().nullish(),
   tejidoId: z.uuid().nullish(),
   productoId: z.uuid().nullish(),
   referencia: z.string().trim().max(120).nullish(),
@@ -68,15 +69,25 @@ export async function POST(request: Request) {
   if (!cuerpo.success) return Response.json({ error: "Faltan datos de la prenda." }, { status: 400 });
   const d = cuerpo.data;
   if (d.origen === "revision" && !d.productoId) return Response.json({ error: "Falta la prenda que se revisa." }, { status: 400 });
+  if (!d.categoriaId && !d.productoId) return Response.json({ error: "Faltan datos de la prenda." }, { status: 400 });
 
   const persona = await requirePersonaActualV2();
   const cuenta = persona.personaId ?? `terminal:${persona.ubicacionId}`;
   if (excedeTope(cuenta)) return Response.json({ error: "Son muchas propuestas seguidas: espera un minuto." }, { status: 429 });
 
   const supabase = await createClient();
+  let categoriaId = d.categoriaId ?? null;
+  let tejidoId = d.tejidoId ?? null;
+  if (!categoriaId && d.productoId) {
+    const { data: prenda } = await supabase.from("productos").select("categoria_id, tejido_id").eq("id", d.productoId).maybeSingle();
+    const fila = prenda as { categoria_id?: string; tejido_id?: string | null } | null;
+    if (!fila?.categoria_id) return Response.json({ error: "No encontramos esa prenda." }, { status: 404 });
+    categoriaId = fila.categoria_id;
+    tejidoId = tejidoId ?? fila.tejido_id ?? null;
+  }
   const { data: ctxData, error: ctxError } = await supabase.rpc(
     "fn_precio_contexto" as never,
-    { p_categoria_id: d.categoriaId, p_tejido_id: d.tejidoId ?? null, p_producto_id: d.productoId ?? null } as never,
+    { p_categoria_id: categoriaId, p_tejido_id: tejidoId, p_producto_id: d.productoId ?? null } as never,
   );
   if (ctxError) {
     // Sin Productos, o sin ver costos (el dinero de Compras): la base dice cuál de las dos, en palabras de tienda.
@@ -95,7 +106,7 @@ export async function POST(request: Request) {
       "registrar_precio_propuesta" as never,
       {
         p_origen: d.origen,
-        p_categoria_id: d.categoriaId,
+        p_categoria_id: categoriaId,
         p_producto_id: d.productoId ?? null,
         p_referencia: d.referencia ?? contexto.producto?.referencia ?? null,
         p_costo: costo?.costo ?? null,
@@ -130,8 +141,8 @@ export async function POST(request: Request) {
   if (seLlegoAlTopePrecios(errorGasto ? null : Number(gastado))) return sin("tope");
 
   let tejido: string | null = null;
-  if (d.tejidoId) {
-    const { data: t } = await supabase.from("tejidos").select("nombre").eq("id", d.tejidoId).maybeSingle();
+  if (tejidoId) {
+    const { data: t } = await supabase.from("tejidos").select("nombre").eq("id", tejidoId).maybeSingle();
     tejido = (t as { nombre?: string } | null)?.nombre ?? null;
   }
 

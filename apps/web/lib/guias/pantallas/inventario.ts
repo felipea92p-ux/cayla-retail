@@ -1974,7 +1974,7 @@ export const GUIA_RECIBIR_ENVIO: Guia = {
       ancla: "recepcion.tabla-cierre",
       requiere: ["recepcion.tabla-cierre"],
       titulo: "Lo que se cierra",
-      texto: "Una tarjeta por categoría y marca, primero las que piden algo; dentro, una fila por modelo con cuánto llegó y su costo, y al pie lo que suma. Si algo no cuadra, te pregunta qué pasó. Un costo o un precio distinto por talla se abre con «Cambiar por talla».",
+      texto: "Una tarjeta por categoría y marca, primero las que piden algo; dentro, una fila por modelo con cuánto llegó y su costo. Si algo no cuadra, te pregunta qué pasó. Si el costo deja poco margen, sale «revisar precio»: abre «Cambiar por talla», donde la IA te propone uno.",
     },
     {
       // Solo con muchas filas y más de una que no pide nada.

@@ -1,5 +1,7 @@
 "use client";
 
+import { PropuestaDePrecio } from "@/components/alta-producto/PropuestaDePrecio";
+import { pideRevisarAlRecibir, precioUnicoAlCerrar, textoRevisarAlRecibir } from "@/lib/precio-propuesto-reglas";
 import { useState, type KeyboardEvent } from "react";
 import { ChevronRight } from "lucide-react";
 import { Aviso } from "@/components/ui/Aviso";
@@ -57,6 +59,7 @@ export function PrendaConCombinaciones({
   onPrecio,
   onQuitar,
   guia,
+  productoId,
 }: {
   nombre: string;
   unidades: number;
@@ -82,6 +85,8 @@ export function PrendaConCombinaciones({
   onQuitar: (cifra: Cifra, ids: string[]) => void;
   /** El ancla de la guía interactiva de la fila (solo la de la primera prenda). */
   guia?: string;
+  /** La prenda (ya existe): con ella se ofrece la propuesta de precio de la IA cuando el costo deja poco margen (ADR-0641 act. 2026-11-11). */
+  productoId?: string;
 }) {
   const cuenta = (n: number, uno: string, varios: string) => `${n} ${n === 1 ? uno : varios}`;
   const colores = new Set(combinaciones.map((c) => (c.color ?? "").trim().toLowerCase())).size;
@@ -92,6 +97,14 @@ export function PrendaConCombinaciones({
   const precioCambia = (c: Combinacion) => cambiosPrecio[c.varianteId] !== undefined && cambiosPrecio[c.varianteId].valor !== c.precioSede;
   const hayCostoCambiado = combinaciones.some(costoCambia);
   const hayPrecioCambiado = combinaciones.some(precioCambia);
+  // La revisión del precio con el costo que va a quedar (si es uno solo en todas las tallas): la misma cuenta gratis de la fila del cierre.
+  const costoUnico = (() => {
+    const costos = new Set(combinaciones.map((c) => cambiosCosto[c.varianteId] ?? c.costoHeredado));
+    const [k] = [...costos];
+    return costos.size === 1 && typeof k === "number" && k > 0 ? k : null;
+  })();
+  const precioUnico = precioUnicoAlCerrar(combinaciones, cambiosPrecio);
+  const revisar = productoId && puedeCosto ? pideRevisarAlRecibir({ precio: precioUnico, costo: costoUnico, costoAntes: combinaciones[0]?.costoHeredado ?? null }) : null;
 
   return (
     <div className="rc-vitrina" data-prenda-comb={nombre}>
@@ -113,6 +126,23 @@ export function PrendaConCombinaciones({
         onPrecio={onPrecio}
         guia={guia}
       />
+      {abierta && revisar && productoId && precioUnico !== null && costoUnico !== null && (
+        <div className="px-1 pt-2" data-revisar-precio-panel={productoId}>
+          <p className="text-sm text-taupe">{textoRevisarAlRecibir(precioUnico, costoUnico, revisar)}</p>
+          <PropuestaDePrecio
+            origen="recepcion"
+            productoId={productoId}
+            categoriaId=""
+            tejidoId=""
+            referencia={nombre}
+            descripcion=""
+            costoBase={String(costoUnico)}
+            precioBase={String(precioUnico)}
+            // Todas sus tallas, en la sede que recibe (como la primera opción del cierre; una terminal, solo la suya). Se confirma al cerrar.
+            onUsar={(p) => onPrecio(combinaciones.map((c) => c.varianteId), Number(p), "sede")}
+          />
+        </div>
+      )}
       {abierta && (
         <div className="rc-vitrina-matriz">
           {combinaciones.length === 0 ? (
