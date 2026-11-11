@@ -45,3 +45,15 @@
 - **Falta:** que Felipe mire el celular y las mitades apiladas; `/chaos` (a la base local compartida le faltan 51 migraciones de esta
   rama, y sus instrumentos solo conocen esa base); la prueba ciega de `/formidable` (un filtro de la API frenó al agente) y sus tres
   cambios propuestos; las decisiones abiertas del backlog de la rama; y el PR, que se abre con `/abrir-pr` cuando Felipe lo pida.
+
+## Los tres cambios de /formidable (con el OK de Felipe)
+
+- **Qué:** (1) tras «Llegaron las N» el contador baja solo hasta la tarjeta de tallas; (2) un solo botón negro a la vez, decidido por
+  `botonPrincipal`; (3) una sola frase de lo que falta por contar («Faltan N por contar», arriba, que se toca), y el pie de la lista
+  habla solo de lo que impide cerrar y no es contar. De paso: mientras se recibe, el navegador ya no devuelve el scroll al guardar.
+- **Por qué:** a 1440×900 el paso que sigue quedaba 71 px bajo el borde del contador; con todo contado había dos negros, uno por mitad; y
+  lo que faltaba se decía tres veces con dos números que no siempre coincidían. El salto del scroll ya existía: lo causa la guardia de
+  «salir sin guardar» al quitar su entrada del historial con un «atrás».
+- **Falta:** la prueba ciega y una colaboradora real; `/chaos`; decidir si el arreglo del scroll va a la pieza compartida
+  `useSalidaSinGuardar`; que Felipe mire el celular; el PR.
+

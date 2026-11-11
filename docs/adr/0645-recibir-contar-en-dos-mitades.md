@@ -50,6 +50,17 @@ derecha el modelo que se cuenta. Llenan la ventana y cada una tiene su propio sc
    «Quién cuenta» dibuja un aviso con pasos; en el pie de la lista dejaba una sola fila de modelos a la vista. En el pie queda una insignia
    (`sinTurno`, `PieDeLaLista.tsx`).
 
+9. **Tres ajustes de `/formidable`, con el OK de Felipe (2026-11-11).** (a) Al tocar «Llegaron las N», el contador baja solo hasta la
+   tarjeta de tallas: se mueve su mitad, no la página; apiladas y en el celular, baja la página lo justo. (b) **Un solo botón negro a la
+   vez:** `botonPrincipal` (`lib/recepcion-tallas-reglas.ts`) decide si lo lleva la tarjeta del modelo, «Revisar y cerrar» o «Listo,
+   siguiente»; en la isla del celular «Lista» va siempre en claro. (c) **Una sola frase de lo que falta por contar:** «Faltan N por
+   contar», arriba de la lista, que se toca y lleva al primero (`primeroPorContar`); el pie de la lista habla solo de lo que impide cerrar
+   y no es contar (`faltaAparteDeContar`: quién cuenta, qué son unas prendas, una categoría sin modelos, un nombre que conviene poner).
+10. **Mientras se recibe, el navegador no devuelve el scroll solo** (`history.scrollRestoration = "manual"`, `RecibirContando.tsx`). Cada
+    guardado pone y retira la guardia de «salir sin guardar», una entrada del historial que se quita con un «atrás»; con la restauración
+    automática, ese «atrás» devolvía la página adonde estaba al tocar. Ya pasaba antes de esta obra, donde se desplaza la página (el
+    celular, las mitades apiladas): quien tocaba «+» y bajaba antes de que guardara veía saltar la pantalla.
+
 **Las hojas se diseñaron con Felipe al llegar a cada una en local**, no se portaron de la maqueta («no me convencen del todo»). Las que ya
 existían (agregar modelo, quitar, editar, la confirmación de llevar al stock) quedaron como estaban.
 
@@ -60,9 +71,11 @@ existían (agregar modelo, quitar, editar, la confirmación de llevar al stock) 
   color, y una prenda sin crear no las tiene.
 - **«Es otra prenda» abre la hoja grande de antes** (`HojaTallas`); no se rediseñó.
 - **El rango angosto que no es celular (640 px hasta que caben las dos mitades) se queda apilado**, no pasa a isla y hoja.
-- **Con todo contado hay dos botones negros a la vez**, uno por mitad: «Revisar y cerrar» en la lista y el de la tarjeta del modelo
-  («Repartir tallas y colores», «Llevar al stock ahora»…). Lo confirmó la revisión de `/formidable`, que propone dejar uno solo (cambio 2
-  de `docs/formidable/recibir-contar-dos-mitades.md`); espera el OK de Felipe.
+- **Con todo contado, «Revisar y cerrar» espera en claro mientras al modelo en foco le toque algo** (repartir, llevar al stock) y pasa a
+  negro cuando no. Es la regla del botón único; si todas las prendas del envío quedan con tallas pendientes, el negro lo tiene siempre la
+  tarjeta y el cierre se toca en claro.
+- **«Falta», en el pie de la lista, ya no incluye contar:** lo dice la línea de arriba. Es una decisión de la guía de foco (ADR-0284)
+  que Felipe aceptó con el cambio 3.
 
 ## Descarté
 
@@ -84,6 +97,9 @@ existían (agregar modelo, quitar, editar, la confirmación de llevar al stock) 
 - **Un paso de la guía del contador pide (`requiere`) un ancla de la lista:** en el celular la lista no está a la vista y el paso se salta.
   Los pasos del contador piden `CONTADOR_A_LA_VISTA`; los de la lista abren la hoja con `LISTA_DEL_CELULAR` (`lib/guias/pantallas/inventario.ts`).
 - **`--rc-mesa-arriba` deja de medirse** (`ContarEnvio.tsx`): las mitades toman 540 px o se salen de la ventana.
+- **Alguien quita el `scrollRestoration = "manual"` de `RecibirContando`:** vuelve el salto de la página al guardar, en el celular y
+  apiladas; y el cambio (a) deja de funcionar ahí, porque la página baja y a los 0,7 s vuelve.
+- **Un botón nuevo de Contar se pone negro sin pasar por `botonPrincipal`:** vuelven a convivir dos.
 - **Se cambia el estilo de `.rc-modelo` sin mirar la lista angosta:** bajo 400 px un modelo agregado a mano necesita su tercera línea, o
   «10 contadas» se corta entre «No estaba anotada» y el tacho.
 
@@ -98,7 +114,7 @@ existían (agregar modelo, quitar, editar, la confirmación de llevar al stock) 
   ningún botón encima de otro. Los flujos se recorrieron enteros: contar con Enter, filtrar, repartir con guardado solo, agregar talla y
   color y desmarcar con «Deshacer», llevar al stock, las tres acciones de «¿Pasó algo?» y el celular de punta a punta.
 - **Guía interactiva** (`recibir.envio.id`) recorrida con `guias:recorrer` a 1440 px y a 375 px, con una cuenta Admin y con una sin
-  asistencia: 19 a 20 pasos, sin escribir en la base. Huella aceptada: 280 controles.
+  asistencia: 19 a 21 pasos, sin escribir en la base. Huella aceptada: 281 controles.
 - **Modo oscuro** medido con `tema:auditar` en cuatro escenarios (Contar, la hoja de tallas, la hoja de la prenda y la lista del
   celular): 0 hallazgos solo en oscuro. Encontró y se corrigió el ✓ de la carta de colores, que no se leía sobre un color claro
   (`components/alta-producto/ElegirColores.tsx`, la misma carta de Nuevo producto).
@@ -109,9 +125,10 @@ existían (agregar modelo, quitar, editar, la confirmación de llevar al stock) 
 - **`/chaos` no corrió.** Sus instrumentos (la foto y las invariantes) solo conocen la base local compartida, y a esa base le faltan 51
   migraciones de esta rama; actualizarla es una orden de Felipe. No se rodeó el candado.
 - **La prueba ciega de `/formidable` no corrió:** un filtro de seguridad de la API frenó al agente en su primer mensaje. La medición de
-  oficio, la revisión de leyes y el veredicto del escéptico están en `docs/formidable/recibir-contar-dos-mitades.md`, con tres cambios
-  propuestos sin aplicar. El más serio: **tras contar a 1440×900, el botón que sigue («Repartir tallas y colores») queda fuera de la parte
-  visible del contador** y hay que desplazar dentro de su mitad para verlo.
+  oficio, la revisión de leyes y el veredicto del escéptico están en `docs/formidable/recibir-contar-dos-mitades.md`; sus tres cambios
+  ya están hechos y medidos (punto 9), pero nadie sin contexto usó la pantalla.
+- **La pieza compartida `useSalidaSinGuardar` no se tocó.** El mismo salto del scroll puede pasar en cualquier otra pantalla que se
+  guarde sola mientras la página está desplazada; no se buscó cuáles.
 - **Ninguna colaboradora real la usó**, ni se probó en un celular o una tablet de verdad (solo el tamaño emulado).
 - **Dos personas contando el mismo envío a la vez** no se probó en esta rama: el guardado por línea no cambió, pero la pantalla nueva no
   se miró con dos sesiones.

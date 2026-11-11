@@ -4,8 +4,10 @@
   375 px se adapta (contador + isla + lista en una hoja).
 - **Pregunta que debería resolver (1 frase):** «¿Qué llegó de este envío, modelo por modelo, y qué le falta a cada uno para entrar al stock?»
   · **Protagonista:** la prenda que se está contando.
-- **Veredicto en una línea:** se ve ordenada y un solo botón manda antes de contar, pero **después de contar lo que sigue queda fuera de la
-  vista** en un laptop y **hay dos botones negros a la vez**; la ley 1 está **sin probar** (ni agente ciego ni colaboradora real).
+- **Veredicto en una línea (después de los tres cambios):** lo que sigue queda a la vista, hay un solo botón negro y una sola frase de lo
+  que falta; la ley 1 sigue **sin probar** (ni agente ciego ni colaboradora real).
+- **Veredicto de la primera pasada:** se veía ordenada y un solo botón mandaba antes de contar, pero después de contar lo que sigue quedaba
+  fuera de la vista en un laptop y había dos botones negros a la vez.
 - **Alcance:** la pantalla Contar ya construida (ADR-0645). No cubre «Revisa y cierra» ni «Cerrado». Informes anteriores de esta ruta:
   `recibir-envio.md`, `recibir-contar-ya-en-stock.md`, `recibir-salida-anticipada.md`, `recibir-contar-cancelar.md`.
 - **Costo:** 2 agentes (ciego y escéptico) de los 4 del tope; la medición y la revisión de leyes las hizo quien construyó la pantalla.
@@ -39,7 +41,7 @@
   el «+» de 32 px sobre la cabecera de categoría de 60 px y la separación de 1 px entre nombre y cifras de cada fila. Son por diseño.
 - **Rojo:** 2 (los dos primeros puntos del Trayecto con el envío en 0). **Sin scroll horizontal** en ningún ancho; nada fuera de su panel.
 
-## Los 3 cambios de mayor impacto (propuestos; ninguno aplicado)
+## Los 3 cambios de mayor impacto (**los tres hechos el 2026-11-11, con el OK de Felipe**; el detalle de cada uno, en «Después de los cambios»)
 
 1. **Que lo que sigue después de contar quede a la vista.** *Antes:* tocas «Llegaron las 16» y el paso que sigue, «Repartir tallas y
    colores», empieza 71 px bajo el borde del contador a 1440×900 (a 1366×768 y 1280×720 el contador visible mide 288 px y su contenido pasa de 560); se ve el
@@ -61,6 +63,31 @@
    unas prendas, una categoría sin modelos); la nota repetida del bloque 3 se va. De paso el pie de la lista baja a una fila y entra
    medio modelo más. **Ley** 8 y 3. **Se verifica** en el navegador con un envío a medio contar y con uno que pide identificar.
    **Esfuerzo** S a M. **Decide** Felipe: qué cuenta como «falta» en la guía de foco es decisión suya (ADR-0284).
+
+## Después de los cambios (2026-11-11, `0075e6e5e`)
+
+1. **Hecho (`c4c3282c5`).** Se eligió el camino (a): al tocar «Llegaron las N», el contador baja hasta la tarjeta de tallas. [Medido, con un
+   toque real en Chromium] el botón «Repartir tallas y colores» queda dentro de lo visible a 375×812 (620–664, la isla empieza en 732),
+   768×1024, 1366×768 y 1440×900 (711–751, el contador visible termina en 782), y en el navegador de la app a 1280×720. En escritorio se
+   mueve la mitad del contador (142 px a 1440×900, 203 a 1366×768) y la página no. Con + y − no se mueve nada.
+   **Apareció un error que ya existía:** en el celular y con las mitades apiladas, quien tocaba «+» y bajaba antes de que el número se
+   guardara (0,7 s) veía la página saltar de vuelta. Cada guardado pone y retira la guardia de «salir sin guardar» (una entrada del
+   historial que se quita con un «atrás») y el navegador devolvía el scroll de la entrada de abajo. Corregido dentro de Recibir; la pieza
+   compartida `useSalidaSinGuardar` no se tocó.
+2. **Hecho (`c089acb26`).** `botonPrincipal` decide quién lleva el negro, con su prueba sobre todas las combinaciones. [Medido contando los
+   `btn-primario` a la vista] sin contar: 0 · por repartir: 1 (la tarjeta) · nueva ya contada: 1 («Listo, siguiente») · todo contado con algo
+   pendiente en el modelo: 1 (la tarjeta; «Revisar y cerrar» en claro) · todo contado sin nada pendiente: 1 («Revisar y cerrar») · ya en
+   stock: 1. En el celular, «Lista» siempre en claro.
+3. **Hecho (`0075e6e5e`).** «Faltan N por contar» es la única frase que lo dice y se toca; el pie de la lista habla solo de lo que impide
+   cerrar y no es contar (`faltaAparteDeContar`), y sin eso es una fila: [Medido] de 101 a 69 px a 1440×900, y la lista visible pasa de
+   321 a 353 px. «Primero cuenta cuántas llegaron.» sale una vez. Los botones de los dos pies siguen en la misma línea en los siete
+   tamaños. Felipe aceptó que «falta», en el pie, ya no incluye contar.
+
+**Notas después de los cambios** (mismas reglas: sin evidencia observada no hay número): ley 2 de 6 a **8** (queda la parada sin modelo,
+H6) · ley 3 de 7 a **8** (un solo número de lo que falta) · ley 8 de 7 a **8** (quedan las dos líneas de «Lo que sobra») · leyes 5, 6, 7 y 9
+sin cambio (7, 8, 8 y 7) · leyes 1 y 4, sin probar. **Promedio de las 7 con nota: 7,7 (provisional).** El oficio no se volvió a medir
+entero con el script: lo medido tras los cambios es que no hay scroll horizontal, nada se sale de su panel ni se encima, a 1024, 1280,
+1366, 1440, 1536, 1680 y 1920 px con el menú plegado y abierto, y a 375 px.
 
 ## Lo que sobra (ley 8)
 
@@ -124,3 +151,4 @@ hacer con una colaboradora real, que es la pasada que decide.
 | Fecha | SHA | Leyes | Oficio | Cambios cerrados |
 |---|---|---|---|---|
 | 2026-11-11 | `259e7a82c` | 7,1 (provisional; leyes 1 y 4 sin probar; ley 2: 6) | 7 (provisional) | 0 de 3 propuestos; corregidos al medir: el alto de «Llegaron las N» y los 44 px con el dedo |
+| 2026-11-11 | `0075e6e5e` | 7,7 (provisional; leyes 1 y 4 sin probar; ley 2: 8) | 7 (provisional; sin repetir la medición completa) | **3 de 3**, con el OK de Felipe; de paso, el salto de la página al guardar en el celular |
