@@ -120,3 +120,16 @@ stock» el 6-nov mientras se contaba ENV-005. Migración `20261111175000` (EN PR
    de transacción `retail.union_acepta_faltante`. La pantalla no la pone. El comprobante queda con 27 «recibido antes»; el chaleco 13 queda en
    contabilidad como sobrante del ajuste, y el contador lo puede reclasificar.
 Script: `scripts/regularizar/2026-11-11-env-010-valeria-mia.sql`. Pruebas U21 y U22.
+
+## Actualización 2026-11-11 (d) — una compra cuya mercadería entró por otra puerta (ENV-002)
+ENV-002 (TRU, seis compras del 28-oct, 163 prendas, S/ 4,293, 154 contadas) quedó en «Seguir recibiendo». Sus prendas ya habían entrado el
+29-oct, pero con «Nuevo producto» y ajustes de stock, no por una recepción, así que la unión no servía. Felipe pidió «la mejor solución, que
+todo quede cuadrado y no malograr otras cosas». Migración `20261111181000`:
+- `compra_papel_llegadas` guarda también «llegó por otra entrada» (`via = 'otra_entrada'`, sin recepción, con nota). Todos los candados que
+  ya miran esa tabla la reconocen sin tocarlos: no se vuelve a mandar, no se edita ni se anula, y no sale «por enviar».
+- `dar_compras_por_llegadas(papeles, motivo)`, solo para un Admin: anula los envíos de Compras de esas compras (lo contado queda como
+  historia; si un envío llevaba otras compras, nace otro con ellas) y se niega si por esos envíos ya entró algo.
+- **Los libros no se tocan:** esas prendas entraron antes del arranque (1-nov) y ya están en el inventario de apertura. Estas seis compras
+  son los «6 papeles de antes del arranque» de este ADR. El papel no pasa solo al libro (`fn_papel_pasa_solo` lo salta) y ninguna cifra
+  del Balance cambia. Lo que sigue pendiente es la corrección del arranque con el contador.
+Script: `scripts/regularizar/2026-11-11-env-002-nuevo-producto.sql`. Prueba U23.
