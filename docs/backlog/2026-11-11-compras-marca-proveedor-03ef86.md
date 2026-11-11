@@ -12,3 +12,4 @@
 - [ ] **Segunda parte, espera a Felipe:** buscar y filtrar por marca en Historial y Por pagar (cambia `listar_compras`, `listar_compras_operativo`
       y la función de Por pagar, que están vivas).
 - [ ] `/formidable` y `/chaos` de «Compré ropa» con el paso por marca.
+- [x] Recibir mercadería (Inventario): la lista de envíos dice la marca arriba y el proveedor debajo (Felipe: «aquí no aparecen primero las marcas»).
