@@ -483,11 +483,15 @@ describe("algo nuevo de este proveedor", () => {
     expect(nuevoVacio([{ id: "3" }]).marcaId).toBe("3");
     expect(nuevoVacio([{ id: "1" }, { id: "3" }]).marcaId).toBeNull();
   });
-  it("la hoja de una prenda nueva pide qué es, la marca y el nombre antes que lo de siempre; un parecido sin contestar frena el nombre", () => {
+  it("la hoja de una prenda nueva pide qué es y el nombre antes que lo de siempre; la marca es opcional; un parecido sin contestar frena el nombre", () => {
     const b = { cantidad: "", costo: "", venta: "", destinos: [], reparto: {} };
     const vacio = camposPrendaNueva(nuevoVacio([]), false, b);
     expect(vacio.map((c) => c.id)).toEqual(["categoria", "marca", "nombre", "cantidad", "costo", "venta", "tienda"]);
-    expect(vacio.slice(0, 3).every((c) => !c.hecho && c.requerido)).toBe(true);
+    expect(vacio.map((c) => [c.id, c.hecho, c.requerido]).slice(0, 3)).toEqual([
+      ["categoria", false, true],
+      ["marca", false, false],
+      ["nombre", false, true],
+    ]);
     const n = { categoriaId: "jeans", marcaId: "m1", marcaNueva: null, nombre: "Jean mom", descartadas: new Set<string>() };
     expect(camposPrendaNueva(n, false, b).slice(0, 3).every((c) => c.hecho)).toBe(true);
     const conParecido = camposPrendaNueva(n, true, b)[2];
@@ -499,9 +503,12 @@ describe("algo nuevo de este proveedor", () => {
     const h = habitualDeNuevo("nuevo:1", n, CATS, marcas);
     expect(h).toMatchObject({ clave: "nuevo:1", productoId: null, nombre: "Casaca corta", categoriaId: "blusas", marcaId: "m1", veces: 0, costo: null, venta: null });
     expect(piezasDeFila(h!, [])).toEqual([]);
-    // Sin qué es, sin marca o sin nombre no se arma.
+    // Sin qué es o sin nombre no se arma; una marca elegida que ya no está en la lista, tampoco (no se vuelve «sin marca» en silencio).
     expect(habitualDeNuevo("x", { ...n, categoriaId: null }, CATS, marcas)).toBeNull();
     expect(habitualDeNuevo("x", { ...n, marcaId: "otra" }, CATS, marcas)).toBeNull();
+    // Sin marca (Felipe 2026-11-11): se arma igual, y la tienda se la pone al recibir.
+    expect(habitualDeNuevo("x", { ...n, marcaId: null }, CATS, marcas)).toMatchObject({ marcaId: null, marca: null, nombre: "Casaca corta" });
+    expect(habitualDeNuevo("x", { ...n, marcaId: null, marcaNueva: "  " }, CATS, marcas)).toMatchObject({ marcaId: null, marca: null });
     expect(habitualDeNuevo("x", { ...n, nombre: "ab" }, CATS, marcas)).toBeNull();
   });
 });
@@ -514,10 +521,12 @@ describe("la marca nueva de «Algo nuevo»", () => {
     expect(marcaEscrita("a", marcas)).toBeUndefined();
     expect(marcaEscrita("x".repeat(MARCA_NUEVA_MAX + 1), marcas)).toBeUndefined();
   });
-  it("la guía pide escribirla mientras la caja está abierta, y la prenda se arma con ella", () => {
+  it("la caja abierta y vacía no frena; empezada a escribir, la guía pide terminarla; la prenda se arma con ella", () => {
     const b = { cantidad: "", costo: "", venta: "", destinos: [], reparto: {} };
     const n = { categoriaId: "blusas", marcaId: null, marcaNueva: "", nombre: "Casaca corta", descartadas: new Set<string>() };
-    expect(camposPrendaNueva(n, false, b)[1]).toMatchObject({ hecho: false, pendiente: "Escribe la marca, como dice su etiqueta." });
+    expect(camposPrendaNueva(n, false, b)[1]).toMatchObject({ requerido: false });
+    expect(camposPrendaNueva({ ...n, marcaNueva: "A" }, false, b)[1]).toMatchObject({ requerido: true, hecho: false, pendiente: "Escribe la marca, como dice su etiqueta." });
+    expect(habitualDeNuevo("x", { ...n, marcaNueva: "A" }, [{ id: "blusas", nombre: "Camisas y Blusas", prefijo: "CMS", familia: "indumentaria" }], marcas)).toBeNull();
     const lista = { ...n, marcaNueva: "Andina" };
     expect(camposPrendaNueva(lista, false, b)[1].hecho).toBe(true);
     expect(habitualDeNuevo("nuevo:1", lista, [{ id: "blusas", nombre: "Camisas y Blusas", prefijo: "CMS", familia: "indumentaria" }], marcas)).toMatchObject({ marcaId: `${MARCA_NUEVA_PREFIJO}andina`, marca: "Andina" });

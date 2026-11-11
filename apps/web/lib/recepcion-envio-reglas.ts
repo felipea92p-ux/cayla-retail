@@ -242,7 +242,8 @@ export type LineaEnvio = {
   posicion: number | null;
   proveedor: { id: string; nombre: string } | null;
   categoria: CategoriaDeLinea;
-  marca: { id: string; nombre: string };
+  /** `null` = la compra se anotó sin marca (Felipe 2026-11-11, «Algo nuevo»): quien recibe se la pone al crear la prenda. */
+  marca: { id: string; nombre: string } | null;
   descripcion: string | null;
   /** Lo que salió en este envío: «vienen 20». */
   enviado: number;
@@ -359,7 +360,8 @@ function leerLineaEnvio(f: unknown): LineaEnvio | null {
   const categoria = leerCategoria(r);
   const marca = leerMarca(r);
   const enviado = cifra(r.cantidad) ?? cifra(r.enviado);
-  if (!id || !categoria || !marca || enviado == null || enviado < 0) return null;
+  // Sin marca la línea igual se recibe (una compra de «Algo nuevo» puede venir sin ella).
+  if (!id || !categoria || enviado == null || enviado < 0) return null;
   const o = objeto(r.orden);
   return {
     id,
@@ -521,7 +523,7 @@ export function ordenesDelEnvio(d: Pick<DetalleEnvio, "lineas">): string[] {
 
 /** «Chompas · CAYLA · Chompa cuello alto». */
 export function nombreDeLinea(l: Pick<LineaEnvio, "categoria" | "marca" | "descripcion">): string {
-  return [l.categoria.nombre, l.marca.nombre, l.descripcion].filter(Boolean).join(" · ");
+  return [l.categoria.nombre, l.marca?.nombre, l.descripcion].filter(Boolean).join(" · ");
 }
 
 // ---- Las prendas de una categoría y marca (`fn_prendas_para_recibir`, `preparar_prenda_al_recibir`) -----------------------------------
@@ -976,10 +978,10 @@ export function reposicionesDe(b: BorradorRecepcion, ctx: ContextoRecepcion): Ma
       id: idGuia.sobrante(l.id),
       proveedorId: l.proveedor?.id ?? null,
       categoriaId: l.categoria.id,
-      marcaId: l.marca.id,
+      marcaId: l.marca?.id ?? "",
       cantidad: dif.cantidad,
       categoria: l.categoria.nombre,
-      marca: l.marca.nombre,
+      marca: l.marca?.nombre ?? "Sin marca",
     });
   }
   for (const e of b.extras) {

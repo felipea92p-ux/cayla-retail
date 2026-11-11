@@ -939,7 +939,7 @@ export function marcasConProvisionales(
 /** La prenda nueva, con la forma de un habitual (sin compras ni precios de antes): así sigue por los mismos pasos que las de siempre. */
 function habitualNuevo(
   clave: string,
-  v: { nombre: string; categoria: CategoriaParaComprar; marca: { id: string; nombre: string } },
+  v: { nombre: string; categoria: CategoriaParaComprar; marca: { id: string; nombre: string } | null | undefined },
 ): Habitual {
   return {
     clave,
@@ -947,8 +947,8 @@ function habitualNuevo(
     nombre: v.nombre.trim().replace(/\s+/g, " "),
     categoriaId: v.categoria.id,
     categoria: v.categoria.nombre,
-    marcaId: v.marca.id,
-    marca: v.marca.nombre,
+    marcaId: v.marca?.id ?? null,
+    marca: v.marca?.nombre ?? null,
     veces: 0,
     ultimaFecha: null,
     ultimaCantidad: null,
@@ -962,15 +962,16 @@ export function camposPrendaNueva(n: BorradorNuevo, hayParecido: boolean, b: Bor
   const nombre = faltaNombreNuevo(n.nombre);
   return [
     { id: "categoria", nombre: "Qué es", requerido: true, hecho: n.categoriaId !== null, pendiente: "Elige qué es." },
-    n.marcaNueva !== null
+    // La marca es opcional (Felipe 2026-11-11): quien recibe la pone si falta. Solo frena una marca empezada a escribir que no se entiende.
+    n.marcaNueva !== null && n.marcaNueva.trim() !== ""
       ? { id: "marca", nombre: "Marca", requerido: true, hecho: faltaMarcaNueva(n.marcaNueva) === null, pendiente: "Escribe la marca, como dice su etiqueta." }
-      : { id: "marca", nombre: "Marca", requerido: true, hecho: n.marcaId !== null, pendiente: "Elige la marca, como dice su etiqueta." },
+      : { id: "marca", nombre: "Marca", requerido: false, hecho: n.marcaId !== null && n.marcaNueva === null, pendiente: "" },
     { id: "nombre", nombre: "Nombre", requerido: true, hecho: nombre === null && !hayParecido, pendiente: nombre ? "Escribe cómo se llama." : "Dinos si es la misma prenda." },
     ...camposPrenda(b, admitePrecioCero),
   ];
 }
 
-/** La prenda nueva ya descrita, con la forma de un habitual; `null` si falta qué es, la marca o el nombre. */
+/** La prenda nueva ya descrita, con la forma de un habitual; `null` si falta qué es o el nombre, o si la marca escrita no se entiende. Sin marca, va sin marca. */
 export function habitualDeNuevo(
   clave: string,
   n: BorradorNuevo,
@@ -978,8 +979,11 @@ export function habitualDeNuevo(
   marcas: readonly { id: string; nombre: string }[],
 ): Habitual | null {
   const categoria = categorias.find((c) => c.id === n.categoriaId);
-  const marca = n.marcaNueva !== null ? marcaEscrita(n.marcaNueva, marcas) : marcas.find((m) => m.id === n.marcaId);
-  if (!categoria || !marca || faltaNombreNuevo(n.nombre)) return null;
+  const escribe = n.marcaNueva !== null && n.marcaNueva.trim() !== "";
+  const eligio = n.marcaNueva === null && n.marcaId !== null;
+  const marca = escribe ? marcaEscrita(n.marcaNueva ?? "", marcas) : eligio ? marcas.find((m) => m.id === n.marcaId) : null;
+  // Una marca escrita que no se entiende, o una elegida que ya no está en la lista, no se vuelve «sin marca» en silencio.
+  if (!categoria || ((escribe || eligio) && !marca) || faltaNombreNuevo(n.nombre)) return null;
   return habitualNuevo(clave, { nombre: n.nombre, categoria, marca });
 }
 
