@@ -32,7 +32,8 @@ import { createClient } from "@/lib/supabase/server";
 // POR QUÉ EN EL SERVIDOR: la clave de Anthropic cuesta plata por consulta; en el navegador cualquiera la copiaría.
 
 const Cuerpo = z.object({
-  origen: z.enum(["alta", "revision"]),
+  // «recepcion» (ADR-0641 act. 2026-11-11): al crear la prenda en Recibir (sin `productoId`) o al cerrar con una que ya existe (con él).
+  origen: z.enum(["alta", "revision", "recepcion"]),
   categoriaId: z.uuid(),
   tejidoId: z.uuid().nullish(),
   productoId: z.uuid().nullish(),
@@ -84,7 +85,8 @@ export async function POST(request: Request) {
     return Response.json({ sinPropuesta: { motivo: "sin_respuesta", texto: textoSinPropuesta("sin_respuesta") } } satisfies RespuestaProponer);
   }
   const contexto = ctxData as unknown as ContextoPrecio;
-  const costo = costoDelContexto(contexto, d.origen === "alta" ? (d.costo ?? null) : null);
+  // En el alta y al recibir manda el costo escrito (el de esta compra); en una revisión, el de la prenda.
+  const costo = costoDelContexto(contexto, d.origen === "revision" ? null : (d.costo ?? null));
   const precioActual = contexto.producto?.precio ?? null;
 
   /** Anota el intento y responde. Si la base no lo anota, la respuesta llega igual (con `id: null`). */
