@@ -93,7 +93,7 @@ import {
   categoriasConLoQueYaEntro,
   yaEnStockDelEnvio,
 } from "@/lib/recepcion-modelos-reglas";
-import { borradorDeTallas, estadoDeLaTarjeta, marcasDeLaTabla, mismasVariantes, modoDeTallas, modosAlCambiar, tablaConLoMarcado, tablaParaElNumero, tallasListas, tocaRepartir, type BorradorTallas, type MarcasDeLaTabla, type ModoDeTallas } from "@/lib/recepcion-tallas-reglas";
+import { borradorDeTallas, botonPrincipal, estadoDeLaTarjeta, marcasDeLaTabla, mismasVariantes, modoDeTallas, modosAlCambiar, tablaConLoMarcado, tablaParaElNumero, tallasListas, tocaRepartir, type BorradorTallas, type MarcasDeLaTabla, type ModoDeTallas } from "@/lib/recepcion-tallas-reglas";
 import { EditarModelo } from "./EditarModelo";
 import { QuitarModelo } from "./QuitarModelo";
 import { YaExisteLaPrenda } from "./YaExisteLaPrenda";
@@ -723,6 +723,8 @@ export function ContarEnvio({
     );
   };
   const tarjeta = parada?.modelo ? estadoDeLaTarjeta({ contadas: parada.modelo.contadas, enStock: parada.modelo.enStock, enCatalogo: !!parada.modelo.productoId, modo: modoDe(parada), repartidas }) : null;
+  // Un solo botón negro a la vez (cambio 2 de /formidable): el de la tarjeta si al modelo le toca algo, «Revisar y cerrar» con todo contado, o «Listo, siguiente».
+  const principal = botonPrincipal({ tarjeta, hayParaLlevar: !!paraLlevar, hayConteo: parada?.modelo ? parada.modelo.contado : true, todoContado });
 
   // Lo que salió de este envío, para ofrecer «Corregir». Se relee cuando cambia lo recibido.
   const nRecibidos = detalle.recibidos?.length ?? 0;
@@ -813,7 +815,7 @@ export function ContarEnvio({
               {faltaFotoDeFactura && " La foto de las facturas no frena el cierre."}
             </>
           }
-          todoContado={todoContado}
+          cierrePrincipal={principal === "cerrar"}
           puedeCerrar={puedeCerrar}
           motivosNoCierra={motivosNoCierra}
           onCerrar={onCerrar}
@@ -880,7 +882,7 @@ export function ContarEnvio({
               onQuitarFiltro={() => cambiarFiltro(SIN_FILTRO)}
               onDeUnToque={(n) => ponerDeUnToque(parada, n)}
               pasoTallas={!tarjeta || tarjeta === "espera" ? "falta" : tarjeta === "lista" || tarjeta === "en-stock" ? "hecha" : tocaRepartir(tarjeta) ? "toca" : "falta"}
-              principalEnLaTarjeta={!!tarjeta && (tocaRepartir(tarjeta) || (tarjeta === "lista" && !!paraLlevar))}
+              principalEnLaTarjeta={principal === "tarjeta"}
               abrirNumero={escribirEn === parada.clave}
               anterior={anterior}
               siguiente={siguiente}
@@ -963,7 +965,7 @@ export function ContarEnvio({
         todoContado={todoContado}
         listaAbierta={listaEnHoja}
         onLista={() => setListaEnHoja(true)}
-        cierre={<BotonCerrarConteo peso="primario" puedeCerrar={puedeCerrar} motivos={motivosNoCierra} onCerrar={onCerrar} onIrALoQueFalta={() => guia.faltan[0] && guia.ir(guia.faltan[0].id)} />}
+        cierre={<BotonCerrarConteo peso={principal === "cerrar" ? "primario" : "fantasma"} puedeCerrar={puedeCerrar} motivos={motivosNoCierra} onCerrar={onCerrar} onIrALoQueFalta={() => guia.faltan[0] && guia.ir(guia.faltan[0].id)} />}
       />
       {listaEnHoja && (
         <HojaDeLaLista

@@ -10,6 +10,7 @@ import {
   modoDeTallas,
   estadoDeLaTarjeta,
   tocaRepartir,
+  botonPrincipal,
   modosAlCambiar,
   ordenarTallasVisibles,
   quitarColor,
@@ -17,6 +18,7 @@ import {
   tablaParaElNumero,
   tallasIniciales,
   tallasListas,
+  type EstadoDeLaTarjeta,
 } from "./recepcion-tallas-reglas";
 
 const CATEGORIA: TallaDeLaCategoria[] = [
@@ -304,5 +306,49 @@ describe("mismasVariantes", () => {
   it("sin nada y vacío son lo mismo; lo que va en 0 no cuenta", () => {
     expect(mismasVariantes(null, [])).toBe(true);
     expect(mismasVariantes([v("a", 0)], null)).toBe(true);
+  });
+});
+
+describe("botonPrincipal: un solo botón negro a la vez (ADR-0645, cambio 2 de /formidable)", () => {
+  const TARJETAS: (EstadoDeLaTarjeta | null)[] = [null, "espera", "en-stock", "nueva", "despues", "repartir", "a-medias", "de-mas", "lista"];
+  const SI_NO = [true, false];
+
+  it("si al modelo le toca repartir, manda su tarjeta: también con todo contado", () => {
+    for (const tarjeta of ["repartir", "a-medias", "de-mas"] as const) {
+      for (const todoContado of SI_NO) for (const hayConteo of SI_NO) for (const hayParaLlevar of SI_NO) {
+        expect(botonPrincipal({ tarjeta, hayParaLlevar, hayConteo, todoContado })).toBe("tarjeta");
+      }
+    }
+  });
+
+  it("con todo repartido manda la tarjeta solo si queda algo por llevar al stock", () => {
+    expect(botonPrincipal({ tarjeta: "lista", hayParaLlevar: true, hayConteo: true, todoContado: true })).toBe("tarjeta");
+    expect(botonPrincipal({ tarjeta: "lista", hayParaLlevar: false, hayConteo: true, todoContado: true })).toBe("cerrar");
+    expect(botonPrincipal({ tarjeta: "lista", hayParaLlevar: false, hayConteo: true, todoContado: false })).toBe("siguiente");
+  });
+
+  it("«Revisar y cerrar» manda con todo contado y nada pendiente en el modelo en foco", () => {
+    for (const tarjeta of [null, "espera", "en-stock", "nueva", "despues"] as const) {
+      expect(botonPrincipal({ tarjeta, hayParaLlevar: false, hayConteo: true, todoContado: true })).toBe("cerrar");
+    }
+  });
+
+  it("sin contar no hay botón negro: el protagonista es «Llegaron las N»", () => {
+    expect(botonPrincipal({ tarjeta: "espera", hayParaLlevar: false, hayConteo: false, todoContado: false })).toBe("ninguno");
+    expect(botonPrincipal({ tarjeta: null, hayParaLlevar: false, hayConteo: false, todoContado: false })).toBe("ninguno");
+  });
+
+  it("contado y con envío por contar, manda «Listo, siguiente»", () => {
+    for (const tarjeta of ["en-stock", "nueva", "despues"] as const) {
+      expect(botonPrincipal({ tarjeta, hayParaLlevar: false, hayConteo: true, todoContado: false })).toBe("siguiente");
+    }
+  });
+
+  it("es una sola respuesta para cada combinación (nunca dos a la vez)", () => {
+    const respuestas = new Set<string>();
+    for (const tarjeta of TARJETAS) for (const hayParaLlevar of SI_NO) for (const hayConteo of SI_NO) for (const todoContado of SI_NO) {
+      respuestas.add(botonPrincipal({ tarjeta, hayParaLlevar, hayConteo, todoContado }));
+    }
+    expect([...respuestas].sort()).toEqual(["cerrar", "ninguno", "siguiente", "tarjeta"]);
   });
 });

@@ -38,7 +38,8 @@ export function IslaDelEnvio({ cifras, sinAviso, todoContado, listaAbierta, cier
         detalle={dijeron != null ? `${conMiles(cifras.contadas)} de ${conMiles(dijeron)} prendas` : `${conMiles(cifras.contadas)} ${cifras.contadas === 1 ? "prenda" : "prendas"}`}
       />
       <div className="barra-abajo-acciones">
-        <button type="button" className="btn-cayla btn-primario" aria-label="Ver la lista del envío" data-guia={listaAbierta ? undefined : "recepcion.lista-abrir"} onClick={onLista}>
+        {/* En claro siempre: el botón negro de la pantalla es el del contador («Listo, siguiente» o el de la tarjeta), no este (un solo negro a la vez). */}
+        <button type="button" className="btn-cayla btn-secundario" aria-label="Ver la lista del envío" data-guia={listaAbierta ? undefined : "recepcion.lista-abrir"} onClick={onLista}>
           {lista}
         </button>
       </div>

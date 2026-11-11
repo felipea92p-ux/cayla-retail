@@ -22,7 +22,7 @@ export function PieDeLaLista({
   responsable,
   papeles,
   explicacion,
-  todoContado,
+  cierrePrincipal,
   puedeCerrar,
   motivosNoCierra,
   onCerrar,
@@ -36,8 +36,8 @@ export function PieDeLaLista({
   papeles?: ReactNode;
   /** Lo que dice el «?»: cómo se guarda y qué pasa al cerrar. */
   explicacion: ReactNode;
-  /** Ya no queda nada por contar: «Revisar y cerrar» pasa a ser el botón principal. */
-  todoContado: boolean;
+  /** Ya no queda nada por contar y al modelo en foco no le toca nada: «Revisar y cerrar» es el botón negro. Si a ese modelo le toca repartir o llevar al stock, el negro es el de su tarjeta (un solo negro a la vez). */
+  cierrePrincipal: boolean;
   puedeCerrar: boolean;
   motivosNoCierra: readonly string[];
   onCerrar: () => void;
@@ -74,7 +74,7 @@ export function PieDeLaLista({
           <Ayuda titulo="Quién cuenta">{explicacion}</Ayuda>
           {papeles}
         </div>
-        <BotonCerrarConteo peso={todoContado ? "primario" : "fantasma"} puedeCerrar={puedeCerrar} motivos={motivosNoCierra} onCerrar={onCerrar} onIrALoQueFalta={onIrALoQueFalta} guia="recepcion.pasar-a-cerrar" />
+        <BotonCerrarConteo peso={cierrePrincipal ? "primario" : "fantasma"} puedeCerrar={puedeCerrar} motivos={motivosNoCierra} onCerrar={onCerrar} onIrALoQueFalta={onIrALoQueFalta} guia="recepcion.pasar-a-cerrar" />
       </div>
     </div>
   );
