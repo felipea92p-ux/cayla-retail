@@ -286,9 +286,10 @@ export function ElegirColores({
                             onFocus={() => setSenalado(c)}
                             onBlur={() => setSenalado(null)}
                             style={{ background: fondoDeColor(c.hex, c.familiaColor, c.tipo), borderColor: bordeDeMuestra(c.hex) }}
+                            // El círculo es el color de la prenda, que no cambia con el tema: el visto de encima usa la tinta y la crema fijas (ADR-0336). Con las del tema, en oscuro el ✓ sobre Blanco no se veía.
                             className={`grid h-8 w-8 place-items-center rounded-full border border-tinta/25 text-[12px] font-bold transition-transform duration-150 hover:scale-110 ${
                               elegido ? "ring-2 ring-tinta ring-offset-2 ring-offset-crema" : ""
-                            } ${esColorClaro(c.hex) ? "text-tinta" : "text-crema"}`}
+                            } ${esColorClaro(c.hex) ? "text-tinta-fija" : "text-crema-fija"}`}
                           >
                             {elegido && <span aria-hidden>✓</span>}
                             {!c.hex && !elegido && <span aria-hidden className="text-[9px] text-taupe">?</span>}
