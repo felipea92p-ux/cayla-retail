@@ -4,7 +4,8 @@
  * (`20261110011000_unir_recepcion_con_su_compra.sql`).
  *
  * (Incluye lo que cerró la revisión adversarial del 2026-11-10: U15 a U19; y la lista de parejas posibles del paso 3, `20261110022000`: L1 a L6.
- * Desde `20261111152000` (2026-11-11), U6 y L5: lo contado sin recibir en el envío de Compras ya no frena la unión: lo RECIBIDO sigue sin unirse, con la guarda de siempre.)
+ * Desde `20261111152000` (2026-11-11), U6 y L5: lo contado sin recibir en el envío de Compras ya no frena la unión: lo RECIBIDO sigue sin unirse, con la guarda de siempre.
+ * Desde `20261111165000`, U20: una compra unida deja de salir «por enviar» en Recibir, en Órdenes de compra y en Análisis.)
  *
  * LO QUE VIGILA. Que una misma mercadería nunca entre dos veces al stock ni se quede sin pasar al libro: tras unir, la compra sale de su
  * envío propio, ya no se puede volver a mandar, y su papel pasa al libro cuando la recepción está cerrada, con lo llegado anotado como
@@ -33,7 +34,7 @@ const SIN_MIGRACION = process.argv.includes("--sin-migracion");
 const VER_TODO = process.argv.includes("--ver");
 const MIGRACION = SIN_MIGRACION
   ? ""
-  : ["20261110011000_unir_recepcion_con_su_compra.sql", "20261110022000_uniones_posibles_recepcion_compra.sql", "20261111152000_unir_descarta_lo_contado_en_el_envio_propio.sql"]
+  : ["20261110011000_unir_recepcion_con_su_compra.sql", "20261110022000_uniones_posibles_recepcion_compra.sql", "20261111152000_unir_descarta_lo_contado_en_el_envio_propio.sql", "20261111165000_ordenes_unidas_no_salen_por_enviar.sql"]
       .map((f) =>
         readFileSync(join(RAIZ, "supabase/migrations", f), "utf8")
           .replace(/^set lock_timeout.*$/gm, "")
@@ -498,6 +499,28 @@ const LISTA = (nombre = "lista") => `
 const FILAS = (l, i = 0) => `concat_ws(':', :'${l}'::jsonb -> ${i} ->> 'clase', :'${l}'::jsonb -> ${i} ->> 'se_puede', coalesce(:'${l}'::jsonb -> ${i} ->> 'motivo', '-'),
      :'${l}'::jsonb -> ${i} ->> 'prendas_llegadas', coalesce(:'${l}'::jsonb -> ${i} ->> 'faltan', '-'),
      coalesce(:'${l}'::jsonb -> ${i} ->> 'monto_papel', 'null') || '|' || coalesce(:'${l}'::jsonb -> ${i} ->> 'valor_llegado', 'null'))`;
+caso(
+  "U20 una compra unida deja de salir «por enviar»: en Recibir («Llegó esta orden») y en Órdenes de compra (Análisis no tiene migración en el repo)",
+  `${COMPRA("p1", 8, { token: A1 })}
+   ${SIN_AVISO("r1", 8)}${CIERRA("r1")}
+   reset role;
+   select o.id as oc1 from retail.ordenes_compra o where o.papel_id = :'p1' limit 1 \\gset
+   create function pg_temp.vistas(p_oc uuid, p_tru uuid) returns text language sql security definer as $f$
+     select concat_ws(':',
+       (select count(*) from jsonb_array_elements(retail.fn_ordenes_directas_por_recibir(p_tru)) x where (x ->> 'orden_id')::uuid = p_oc),
+       (select count(*) from retail.fn_ordenes_compra_por_enviar() q where q.orden_compra_id = p_oc));
+   $f$;
+   grant execute on function pg_temp.vistas(uuid, uuid) to authenticated;
+   ${COMPRADORA("compra_mandar")}
+   select pg_temp.vistas(:'oc1', :'tru') as antes \\gset
+   ${MICAELA_AQUI}
+   select pg_temp.une(:'r1', :'p1', null) as u \\gset
+   ${COMPRADORA("compra_mandar")}
+   select pg_temp.vistas(:'oc1', :'tru') as despues \\gset
+   reset role;
+   select concat_ws(' / ', ${RESP("u")}, :'antes', :'despues');`,
+  "true:false:true:0:0: / 1:1 / 0:0",
+);
 caso(
   "L1 mismas prendas y mismo valor es «exacto»: aparece con su recepción y su compra, y quien solo recibe no ve los montos",
   `${COMPRA("p1", 8, { token: A1 })}
