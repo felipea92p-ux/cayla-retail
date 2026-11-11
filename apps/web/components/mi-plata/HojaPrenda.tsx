@@ -353,7 +353,7 @@ function DescribirNueva({
             opciones={opcionesCategoriaNueva(nueva.categorias, nueva.suyas)}
           />
         </CampoGuiado>
-        <CampoGuiado id="marca" guia={guia} titulo="¿De qué marca?">
+        <CampoGuiado id="marca" guia={guia} titulo="¿De qué marca?" ayuda="· opcional">
           {/* El «+» del final cambia la lista por una caja para escribir una marca que no está; la «×» vuelve a la lista (Felipe
               2026-10-24). La marca escrita se crea al guardar la compra, unida a este proveedor. */}
           <div className="flex items-start gap-2" data-guia="compra.marca-nueva">
@@ -376,7 +376,8 @@ function DescribirNueva({
                   todas={nueva.marcas}
                   habituales={nueva.marcasDelProveedor.map((m) => m.id)}
                   valor={n.marcaId}
-                  onValor={(v) => nueva.cambiar({ marcaId: v || null })}
+                  // Opcional (Felipe 2026-11-11): tocar otra vez la marca elegida la quita; la tienda la pone al recibir.
+                  onValor={(v) => nueva.cambiar({ marcaId: v && v !== n.marcaId ? v : null })}
                   opciones={opcionesMarcaNueva(nueva.marcas, nueva.marcasDelProveedor)}
                 />
               )}

@@ -1,0 +1,1 @@
+- 2026-11-11 · Mis compras ▸ «Algo nuevo»: sin el párrafo de explicación y con la marca opcional; Recibir lee las líneas sin marca y, al ponerle la marca a una, la vincula con el proveedor (ADR-0646). Migración `20261111192000` (15 funciones por ancla, 2 columnas), sin pegar.

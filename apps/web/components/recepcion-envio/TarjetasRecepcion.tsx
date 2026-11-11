@@ -155,7 +155,7 @@ export function TarjetaLinea({
   const s = sumasDe(b, b.prenda);
   const contado = contadoDeLinea(b);
   const dif = b.noLlego || b.prenda ? diferenciaDe(l.enviado, contado) : { tipo: null, cantidad: 0 };
-  const prendaTexto = [l.categoria.nombre, l.marca.nombre].join(" · ");
+  const prendaTexto = [l.categoria.nombre, l.marca?.nombre ?? "Sin marca"].join(" · ");
 
   return (
     <article data-guia="recepcion.linea" aria-label={`${nombreLineaGuia(indice)}: ${prendaTexto}`} className="@container card-cayla space-y-4 p-4 sm:p-5">
@@ -182,7 +182,7 @@ export function TarjetaLinea({
         conteo={b}
         prenda={b.prenda}
         categoria={l.categoria}
-        marca={l.marca}
+        marca={l.marca ?? { id: null, nombre: "Sin marca" }}
         colores={colores}
         enviado={l.enviado}
         sinPrendaAbajo={

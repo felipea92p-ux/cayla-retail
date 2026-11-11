@@ -179,8 +179,8 @@ export function FormularioRecepcion({
           despachoId: detalle.id,
           despachoItemId: l.id,
           categoriaId: l.categoria.id,
-          marcaId: l.marca.id,
-          marcaNombre: l.marca.nombre,
+          marcaId: l.marca?.id ?? null,
+          marcaNombre: l.marca?.nombre ?? "Sin marca",
           descripcionOrden: l.descripcion,
           precioSugerido: l.precioVentaSugerido,
           costoUnitario: l.costoUnitario,
@@ -241,7 +241,7 @@ export function FormularioRecepcion({
   function nombrarLinea(c: CostoAtipicoRecepcion): string | null {
     if (c.despachoItemId) {
       const l = detalle.lineas.find((x) => x.id === c.despachoItemId);
-      return l ? (lineaDelBorrador(borrador, l).prenda?.nombre ?? [l.categoria.nombre, l.marca.nombre].join(" · ")) : null;
+      return l ? (lineaDelBorrador(borrador, l).prenda?.nombre ?? [l.categoria.nombre, l.marca?.nombre ?? "Sin marca"].join(" · ")) : null;
     }
     const e = c.extra != null ? borrador.extras[c.extra - 1] : borrador.extras.find((x) => x.prenda?.variantes.some((v) => v.id === c.varianteId));
     return e?.prenda ? `${e.prenda.nombre} (no estaba en la guía)` : null;
@@ -258,7 +258,7 @@ export function FormularioRecepcion({
       if (v) return `${p.nombre} · ${nombreDeVariante(v)}`;
     }
     const l = despachoItemId ? detalle.lineas.find((x) => x.id === despachoItemId) : null;
-    return l ? (lineaDelBorrador(borrador, l).prenda?.nombre ?? [l.categoria.nombre, l.marca.nombre].join(" · ")) : null;
+    return l ? (lineaDelBorrador(borrador, l).prenda?.nombre ?? [l.categoria.nombre, l.marca?.nombre ?? "Sin marca"].join(" · ")) : null;
   }
 
   async function recibir(confirmadas: Confirmadas = SIN_CONFIRMAR) {
@@ -347,7 +347,7 @@ export function FormularioRecepcion({
             indice={i}
             borrador={lineaDelBorrador(borrador, l)}
             conProveedor={variosProveedores}
-            opcionesDeMas={opcionesSobrante(ctx, { proveedorId: l.proveedor?.id ?? null, categoriaId: l.categoria.id, marcaId: l.marca.id, categoria: l.categoria.nombre, marca: l.marca.nombre })}
+            opcionesDeMas={opcionesSobrante(ctx, { proveedorId: l.proveedor?.id ?? null, categoriaId: l.categoria.id, marcaId: l.marca?.id ?? "", categoria: l.categoria.nombre, marca: l.marca?.nombre ?? "Sin marca" })}
             problemaDeMas={reposiciones.get(idGuia.sobrante(l.id))?.problema ?? null}
             onCambio={(cambios) => cambiarLinea(l.id, cambios)}
             guia={guia}

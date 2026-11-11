@@ -1743,7 +1743,10 @@ export function sePuedeCambiarCategoria(item: Pick<ParaDespues, "tipo">, linea: 
   return item.tipo === "crear" && !!linea;
 }
 
-/** Una línea del aviso siempre lleva marca (`despacho_items.marca_id`): ahí «Sin marca» no se ofrece. */
+/**
+ * En una línea del aviso «Sin marca» no se elige: `cambiar_linea_de_pendiente` pide una marca. Una que llegó sin marca (una compra de «Algo nuevo»,
+ * Felipe 2026-11-11) se queda así o se le pone una aquí.
+ */
 export function admiteSinMarca(linea: { linea: unknown } | null): boolean {
   return !linea?.linea;
 }
