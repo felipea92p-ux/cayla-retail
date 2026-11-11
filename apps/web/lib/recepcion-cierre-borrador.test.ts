@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
+  anotarCostoParaElCierre,
   borrarBorradorDelCierre,
   conCostosDecididos,
   conLoDecidido,
@@ -204,5 +205,24 @@ describe("volver a Cerrar al recargar: por pestaña", () => {
     expect(estabaEnCerrar("e2")).toBe(false);
     recordarEnCerrar("e1", false);
     expect(estabaEnCerrar("e1")).toBe(false);
+  });
+});
+
+describe("el costo escrito al crear la prenda llega al cierre (ADR-0641 act. 2026-11-11)", () => {
+  it("sin borrador, deja ese costo como lo decidido de esa prenda en su línea", () => {
+    expect(anotarCostoParaElCierre("envio-1", 0, "item:a", "prod-1", "41.50")).toBe(true);
+    expect(leerBorradorDelCierre("envio-1", 0)?.costosPrenda).toEqual({ "item:a": { "prod-1": "41.50" } });
+  });
+  it("se suma a lo que ya se había decidido, sin borrarlo", () => {
+    guardarBorradorDelCierre("envio-2", 1, { ...FOTO_VACIA, nota: "llegó mojado", costosPrenda: { "item:a": { "prod-0": "30" } } });
+    anotarCostoParaElCierre("envio-2", 1, "item:a", "prod-1", "41.50");
+    const f = leerBorradorDelCierre("envio-2", 1);
+    expect(f?.nota).toBe("llegó mojado");
+    expect(f?.costosPrenda).toEqual({ "item:a": { "prod-0": "30", "prod-1": "41.50" } });
+  });
+  it("lo de otra vuelta (otra generación) no se mezcla", () => {
+    guardarBorradorDelCierre("envio-3", 0, { ...FOTO_VACIA, nota: "vieja" });
+    anotarCostoParaElCierre("envio-3", 1, "item:a", "prod-1", "20");
+    expect(leerBorradorDelCierre("envio-3", 1)?.nota).toBe("");
   });
 });

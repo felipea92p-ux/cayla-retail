@@ -38,7 +38,7 @@ export type FotoDelCierre = {
   duenoId: string;
 };
 
-/** @internal La foto sin nada decidido: de ahí arrancan las pruebas. La pantalla arma la suya con lo que tiene. */
+/** La foto sin nada decidido: de ahí arrancan las pruebas y el costo que se anota al crear una prenda. La pantalla arma la suya con lo que tiene. */
 export const FOTO_VACIA: FotoDelCierre = { decisiones: {}, costosPrenda: {}, cambiosCosto: null, cambiosPrecio: {}, nota: "", guia: null, proveedorId: "", duenoId: "" };
 
 /** Lo que la persona cambió de una decisión, campo por campo. `confirmaCosto` nunca viaja. */
@@ -162,6 +162,17 @@ export function guardarBorradorDelCierre(envioId: string, generacion: number, fo
 }
 
 export const borrarBorradorDelCierre = (envioId: string): void => borrar(claveDelBorrador(envioId));
+
+/**
+ * El costo que se escribió al CREAR una prenda nueva mientras se contaba (ADR-0641 act. 2026-11-11: «costo y precio juntos» en la hoja de la
+ * prenda): queda como lo decidido para esa prenda en su línea, y el cierre lo trae puesto, como si se hubiera escrito ahí. Se suma a lo que ya
+ * hubiera decidido (nunca lo borra). Como todo el borrador, vive en este navegador hasta cerrar. Devuelve si se pudo guardar.
+ */
+export function anotarCostoParaElCierre(envioId: string, generacion: number, claveLinea: string, productoId: string, costoTexto: string, ahora: number = Date.now()): boolean {
+  const foto = leerBorradorDelCierre(envioId, generacion, ahora) ?? FOTO_VACIA;
+  const linea = { ...(foto.costosPrenda[claveLinea] ?? {}), [productoId]: costoTexto };
+  return guardarBorradorDelCierre(envioId, generacion, { ...foto, costosPrenda: { ...foto.costosPrenda, [claveLinea]: linea } }, ahora);
+}
 
 /** ¿Esta pestaña estaba en Cerrar? Al recargar se vuelve ahí. Por pestaña (`sessionStorage`): en otra, o mañana, se entra a contar como siempre. */
 export function estabaEnCerrar(envioId: string): boolean {
