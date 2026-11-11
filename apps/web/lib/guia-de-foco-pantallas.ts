@@ -552,6 +552,10 @@ export const MODALES: Record<string, PantallaGuia> = {
   "components/mi-plata/HojaCorregirGasto.tsx": { estado: "aplicada", evidencia: ["components/mi-plata/HojaCorregirGasto.tsx", "components/mi-plata/CamposDelGasto.tsx"] },
   // La hoja de la prenda de «Compré ropa» (rediseño 2026-10-23): cuántas, costo, venta y tienda; falta lo que antes frenaba cada paso.
   "components/mi-plata/HojaPrenda.tsx": { estado: "aplicada", evidencia: ["components/mi-plata/HojaPrenda.tsx"] },
+  "components/mi-plata/RegistrarCompra.tsx": {
+    estado: "no-aplica",
+    motivo: "Su único modal es «¿Quién te trajo esta marca?» (ADR-0644): una lista de proveedores donde un toque elige y sigue, sin nada que llenar. Los campos de la compra viven en la pantalla, que ya tiene su guía.",
+  },
   // Corregir una compra ya anotada (ADR-0561): todos los datos ya están llenos; la persona solo cambia los que están mal. La luz de «sigue aquí» no
   // tiene a dónde llevar y una marca de «falta» sería mentira. Lo que no se puede guardar lo dice cada dato bajo su campo y el botón queda apagado.
   "components/mi-plata/HojaCorregirCompra.tsx": { estado: "no-aplica", motivo: "ADR-0561: corrige una compra que ya está completa; ningún campo falta ni hay pasos que seguir, solo se cambian los datos que están mal. Cada dato dice bajo su caja qué no se entiende y el botón queda apagado hasta que todo se lea." },

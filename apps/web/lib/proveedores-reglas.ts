@@ -443,6 +443,19 @@ export function marcasParaMostrar(marcas: readonly string[], busqueda: string, m
   return { visibles: orden.slice(0, max), ocultas: Math.max(0, orden.length - max) };
 }
 
+/**
+ * La marca primero (ADR-0644, Felipe 2026-11-11): «muchas veces no se conoce al proveedor sino la marca». El título de la fila de un proveedor
+ * son sus marcas —las que coinciden con lo buscado primero— y la razón social baja a la línea de abajo: «Kero, Lolita, Mia Rose y 2 más».
+ * `null` si no tiene ninguna (los de servicios y gastos): la fila sigue con su razón social, como antes.
+ */
+export function tituloDeMarcas(marcas: readonly string[], busqueda: string, max = 3): string | null {
+  if (marcas.length === 0) return null;
+  const { visibles, ocultas } = marcasParaMostrar(marcas, busqueda, max);
+  if (ocultas > 0) return `${visibles.join(", ")} y ${ocultas} más`;
+  if (visibles.length === 1) return visibles[0];
+  return `${visibles.slice(0, -1).join(", ")} y ${visibles[visibles.length - 1]}`;
+}
+
 // ---------------------------------------------------------------------------
 // RUC duplicado: decirlo al escribir, con el nombre de con quién choca.
 // ---------------------------------------------------------------------------

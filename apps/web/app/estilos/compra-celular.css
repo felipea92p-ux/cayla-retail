@@ -24,6 +24,13 @@
   font-size: 17px;
   color: var(--color-tinta);
 }
+/* La inicial de una MARCA (ADR-0644, la marca primero): el mismo cuadro, en tinta, para que la fila de una marca no se confunda con la de un
+   proveedor cuando las dos aparecen en la misma lista. */
+.compra-iniciales-marca {
+  background: var(--color-tinta);
+  color: var(--color-crema);
+  font-size: 18px;
+}
 /* La misma, en chico (la tarjeta «Tu compra» de PC, 32 px). Va después de la grande: a igual fuerza, la última gana. */
 .compra-iniciales-chico {
   width: 32px;

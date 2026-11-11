@@ -1,6 +1,7 @@
 import { HandCoins } from "lucide-react";
 import { exigirModulo } from "@/lib/persona-actual";
 import { getBancosParaPlata, getCuentasParaDevolver, getMiPlata, getMisEnvios } from "@/lib/mi-plata";
+import { getMarcasDeCompras } from "@/lib/marcas-de-compras";
 import { codigosPorCompra, enviosDeLaFila, rondasConEnvios } from "@/lib/mis-envios-reglas";
 import { hoyLima } from "@/lib/fechas-lima";
 import { PASOS_DE_LA_RONDA, historialDeLaCompradora, movimientosDeLaCompradora, pasoDeLaRonda, tituloDeLaLista, ultimaRondaDelHistorial } from "@/lib/mi-plata-reglas";
@@ -30,7 +31,9 @@ export default async function MiPlataPage({ searchParams }: { searchParams: Prom
   const [plata, bancos, cuentasDevolver, envios, { mandar }] = await Promise.all([getMiPlata(), getBancosParaPlata(), getCuentasParaDevolver(), getMisEnvios(), searchParams]);
   // Arriba lo de la ronda abierta; lo anterior, agrupado por ronda (Felipe 2026-10-23). Cada compra ya mandada dice el código de su envío
   // (Felipe 2026-10-26); si «Mis envíos» no se pudo leer, Mis compras sigue sin ellos.
-  const lista = plata?.persona ? movimientosDeLaCompradora(plata, codigosPorCompra(envios ?? [])) : null;
+  // La marca primero (ADR-0644): cada compra dice sus marcas como título; si no se pudieron leer, «Compra a …» como antes.
+  const marcas = plata?.persona ? await getMarcasDeCompras({ papeles: plata.compras.map((c) => c.id) }) : new Map<string, string[]>();
+  const lista = plata?.persona ? movimientosDeLaCompradora(plata, codigosPorCompra(envios ?? []), marcas) : null;
   const rondaAbierta = plata?.persona ? plata.ronda.abierta : null;
   const hoy = hoyLima();
   // «Manda» (lo que falta mandar) sin ronda abierta: solo si hay prendas por mandar de una ronda ya cerrada; baja sobre el registro (Felipe 2026-10-26).

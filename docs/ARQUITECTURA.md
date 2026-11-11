@@ -1538,6 +1538,10 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
   `registrar_compra`, `recibir_compras`, `registrar_pagos_compra` (varios medios, todo o nada; `registrar_pago_compra` es el atajo de un medio),
   `anular_compra`, `listar_compras`, `resumen_compras`. Sub-navegación en
   `ComprasNav.tsx` (layout de `/compras`).
+- **La marca primero (ADR-0644, 2026-11-11):** `/compras`, `/compras/por-pagar` y `/compras/mi-plata` suman las marcas de cada fila con
+  `lib/marcas-de-compras.ts:getMarcasDeCompras` → RPC `fn_marcas_de_compras(p_compras, p_papeles)` (solo lectura; sin ella, las filas se ven como
+  antes). «Compré ropa» (`components/mi-plata/RegistrarCompra.tsx`) arma la lista por marca con `marcas` + `marca_proveedores`
+  (`lib/compra-rapida.ts`, `marcasConProveedores`).
 - **Historial de compras = una fila, tres pestañas (ADR-0504, 2026-10-24):** `/compras` (Historial), `/compras/fondos` (Revisar compras) y
   `/compras/por-pagar` (Por pagar) comparten la cabecera `components/compras/CabeceraHistorialCompras.tsx` (qué pestañas trae la cuenta y sus
   contadores; dibuja `CabeceraDeCompras.tsx`) → `lib/compras-pestanas-reglas.ts` (puro) + `lib/compras-pestanas.ts` (conteos: `fn_revisar_compras`,
