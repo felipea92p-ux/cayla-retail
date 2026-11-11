@@ -3,7 +3,7 @@
 // trabaja en la tienda («tú»), en lenguaje de tienda. La demo abre cajones, fichas y pestañas, escribe ejemplos, pero nunca
 // cuelga, sube, ajusta, registra ni confirma: lo que guarda se explica con la pieza encendida, sin tocarla.
 
-import type { Guia } from "../tipos";
+import type { AccionGuia, Guia } from "../tipos";
 
 export const GUIA_EXISTENCIAS: Guia = {
   id: "inventario",
@@ -1739,6 +1739,11 @@ export const GUIA_RECIBIR: Guia = {
 // muestra solo lo que hay. Recibir mete stock y mueve el costo, así que la guía EXPLICA: «Empezar a recibir», «Recibir N prendas», crear la
 // prenda y «+ Algo que no estaba en la guía» no se tocan. El único toque es abrir la hoja de «Es nueva» (no guarda) y cerrarla con Escape. No
 // elige una prenda ni marca «No llegó nada de esto»: el piloto no podría deshacerlo sin pisar lo que la persona ya contó.
+/** Contar en el celular (ADR-0645): la lista vive en una hoja que se abre desde la isla de abajo. En escritorio ese botón no está a la vista y el piloto no toca nada. */
+const LISTA_DEL_CELULAR: AccionGuia = { tipo: "clic", ancla: "recepcion.lista-abrir", siEsta: true };
+/** El pie del contador: está a la vista mientras se cuenta, en escritorio y en el celular (la lista, en el celular, no). */
+const CONTADOR_A_LA_VISTA = "recepcion.siguiente";
+
 export const GUIA_RECIBIR_ENVIO: Guia = {
   id: "recibir.envio.id",
   ruta: "/recibir/envio/[id]",
@@ -1813,10 +1818,21 @@ export const GUIA_RECIBIR_ENVIO: Guia = {
     },
     // ---- Abierto, contando modelo por modelo (Felipe 2026-11-02, ADR-0604) y en dos mitades (2026-11-11, ADR-0645): a la izquierda lo del envío, a la derecha el modelo elegido ----
     {
+      // Solo en el celular (bajo 640 px): la pantalla es el contador y la lista vive en una hoja que se abre desde esta barra.
+      id: "isla",
+      ancla: "recepcion.isla",
+      opcional: true,
+      requiere: ["recepcion.isla"],
+      titulo: "En el celular, la lista va aparte",
+      texto: "En el celular la pantalla es el contador. Esta barra dice cuánto falta por contar, y «Lista» abre todo lo del envío: las categorías, el buscador y los filtros. Con todo contado, aquí mismo sale «Revisar y cerrar».",
+    },
+    {
       id: "cifra",
       ancla: "recepcion.cifra",
       opcional: true,
       requiere: ["recepcion.categorias"],
+      // En el celular la lista se abre desde la isla; en escritorio ese botón no está y el piloto no toca nada.
+      preparar: [LISTA_DEL_CELULAR],
       titulo: "Cómo va todo el envío",
       texto: "La barra y la línea de arriba dicen cuántas prendas llevas de las que dijeron y cuánto falta por contar. Es de todo el envío, aunque filtres la lista. La barra va de rojo a verde mientras se llena.",
     },
@@ -1824,6 +1840,7 @@ export const GUIA_RECIBIR_ENVIO: Guia = {
       id: "categorias",
       ancla: "recepcion.categorias",
       requiere: ["recepcion.categorias"],
+      preparar: [LISTA_DEL_CELULAR],
       titulo: "Las categorías del envío",
       texto: "Cada categoría sale una sola vez, aunque venga de varios proveedores. Toca una y se abre con todo lo que anotó Compras, modelo por modelo; tócala otra vez y se pliega. Toca el modelo que tienes en la mano para contarlo.",
     },
@@ -1831,6 +1848,7 @@ export const GUIA_RECIBIR_ENVIO: Guia = {
       id: "buscar",
       ancla: "recepcion.buscar",
       requiere: ["recepcion.categorias"],
+      preparar: [LISTA_DEL_CELULAR],
       titulo: "Buscar un modelo",
       texto: "Escribe el modelo, el proveedor o la marca y la lista deja solo lo que coincide. Desde el teclado llegas aquí con la tecla «/».",
     },
@@ -1839,6 +1857,7 @@ export const GUIA_RECIBIR_ENVIO: Guia = {
       ancla: "recepcion.filtros",
       opcional: true,
       requiere: ["recepcion.categorias"],
+      preparar: [LISTA_DEL_CELULAR],
       titulo: "Los filtros, en un botón",
       texto: "Al lado del buscador, «Filtros» guarda todo lo que acorta la lista. Se abre solo cuando lo pides. Si hay algo puesto, el botón lo dice con un número.",
     },
@@ -1847,7 +1866,7 @@ export const GUIA_RECIBIR_ENVIO: Guia = {
       ancla: "recepcion.filtros-panel",
       opcional: true,
       requiere: ["recepcion.categorias"],
-      preparar: [{ tipo: "clic", ancla: "recepcion.filtros", siEsta: true }],
+      preparar: [LISTA_DEL_CELULAR, { tipo: "clic", ancla: "recepcion.filtros", siEsta: true }],
       titulo: "Lo que puedes filtrar",
       texto: "Por estado, por tipo y, si el envío trae varios, por proveedor o marca; también el orden. Eliges uno y el panel se cierra: lo puesto queda escrito bajo el buscador, con su ✕ para quitarlo.",
     },
@@ -1856,7 +1875,7 @@ export const GUIA_RECIBIR_ENVIO: Guia = {
       ancla: "recepcion.estados",
       opcional: true,
       requiere: ["recepcion.categorias"],
-      preparar: [{ tipo: "clic", ancla: "recepcion.filtros", siEsta: true }],
+      preparar: [LISTA_DEL_CELULAR, { tipo: "clic", ancla: "recepcion.filtros", siEsta: true }],
       titulo: "Lo que falta, de un toque",
       texto: "Toca «Por contar», «Con diferencia», «Tallas para después» o «Por llevar al stock» y la lista deja solo esos; el número dice cuántos son. Otro toque y vuelve a todo.",
     },
@@ -1866,7 +1885,7 @@ export const GUIA_RECIBIR_ENVIO: Guia = {
       ancla: "recepcion.tipos",
       opcional: true,
       requiere: ["recepcion.categorias"],
-      preparar: [{ tipo: "clic", ancla: "recepcion.filtros", siEsta: true }],
+      preparar: [LISTA_DEL_CELULAR, { tipo: "clic", ancla: "recepcion.filtros", siEsta: true }],
       titulo: "Re stock o producto nuevo",
       texto: "Lo dice lo que anotó Compras: no tienes que elegir nada. Re stock ya está en tu inventario; producto nuevo, todavía no. Toca uno para dejar solo esos. En la lista, lo nuevo lleva su marca «Nuevo».",
     },
@@ -1876,7 +1895,7 @@ export const GUIA_RECIBIR_ENVIO: Guia = {
       ancla: "recepcion.orden",
       opcional: true,
       requiere: ["recepcion.categorias"],
-      preparar: [{ tipo: "clic", ancla: "recepcion.filtros", siEsta: true }],
+      preparar: [LISTA_DEL_CELULAR, { tipo: "clic", ancla: "recepcion.filtros", siEsta: true }],
       titulo: "Ordenar por cantidad",
       texto: "Las categorías y sus modelos se ordenan por lo que anotó Compras: de menos a más o de más a menos. Si tocas otra vez la misma, vuelven al orden de la compra. «Listo, siguiente» sigue este orden.",
     },
@@ -1884,9 +1903,9 @@ export const GUIA_RECIBIR_ENVIO: Guia = {
       id: "numero",
       ancla: "recepcion.numero",
       opcional: true,
-      requiere: ["recepcion.categorias"],
-      // El panel de filtros que abrió la guía se cierra antes de pasar al contador.
-      preparar: [{ tipo: "clic", ancla: "recepcion.filtros-cerrar", siEsta: true }],
+      requiere: [CONTADOR_A_LA_VISTA],
+      // El panel de filtros que abrió la guía se cierra antes de pasar al contador; en el celular, también la hoja de la lista.
+      preparar: [{ tipo: "clic", ancla: "recepcion.filtros-cerrar", siEsta: true }, { tipo: "escape" }],
       titulo: "Cuántas llegaron de este modelo",
       texto: "El aro cuenta el modelo que elegiste: verde cuando cuadra. Arriba, junto al nombre, ves cuánto costó cada una. «Llegaron las N», el botón grande, lo deja listo de un toque. O toca el número para escribirlo, o súmalas con + y −. «No llegó nada» también es una respuesta.",
     },
@@ -1894,7 +1913,7 @@ export const GUIA_RECIBIR_ENVIO: Guia = {
       id: "siguiente",
       ancla: "recepcion.siguiente",
       opcional: true,
-      requiere: ["recepcion.categorias"],
+      requiere: [CONTADOR_A_LA_VISTA],
       titulo: "Al siguiente modelo",
       texto: "«Listo, siguiente» pasa al modelo que sigue y «Anterior» vuelve; al lado dice cuál viene. En el último, te lleva al que quedó sin contar. Con el número abierto, Enter hace lo mismo y deja el siguiente listo para escribir: cuentas todo sin soltar el teclado.",
     },
@@ -1902,7 +1921,7 @@ export const GUIA_RECIBIR_ENVIO: Guia = {
       id: "que-hacer",
       ancla: "recepcion.que-hacer",
       opcional: true,
-      requiere: ["recepcion.categorias"],
+      requiere: [CONTADOR_A_LA_VISTA],
       titulo: "Tallas y colores, en su tarjeta",
       texto: "Lo que ya está en tu catálogo pide repartir sus tallas y colores ahora: así entra al stock y se vende. Lo nuevo queda para después, o lo creas aquí. La tarjeta dice cómo va y su botón abre la hoja donde se reparten. «Dejar para después» también vale.",
     },
@@ -1911,7 +1930,7 @@ export const GUIA_RECIBIR_ENVIO: Guia = {
       id: "tallas",
       ancla: "recepcion.tallas",
       opcional: true,
-      requiere: ["recepcion.categorias"],
+      requiere: [CONTADOR_A_LA_VISTA],
       preparar: [{ tipo: "clic", ancla: "recepcion.abrir-tallas", siEsta: true }],
       titulo: "La hoja de tallas y colores",
       texto: "Escribe cuántas llegaron de cada talla y color: arriba ves cuántas van. Quita con la × lo que no llegó. «Agregar talla o color» abre todas las tallas y los colores para marcar los que faltan. Se guarda sola cuando lo repartido cuadra con lo contado.",
@@ -1920,7 +1939,7 @@ export const GUIA_RECIBIR_ENVIO: Guia = {
       id: "danadas-contar",
       ancla: "recepcion.danadas-contar",
       opcional: true,
-      requiere: ["recepcion.categorias"],
+      requiere: [CONTADOR_A_LA_VISTA],
       preparar: [{ tipo: "clic", ancla: "recepcion.abrir-tallas", siEsta: true }],
       titulo: "Si llegó algo dañado",
       texto: "En la misma hoja, di cuántas llegaron dañadas en su talla y color, y si tienen arreglo. Las dañadas no se venden: entran a la cuarentena de la sede. El botón «Llegó dañada» del contador te trae directo aquí.",
@@ -1936,7 +1955,7 @@ export const GUIA_RECIBIR_ENVIO: Guia = {
       id: "separar",
       ancla: "recepcion.separar",
       opcional: true,
-      requiere: ["recepcion.categorias"],
+      requiere: [CONTADOR_A_LA_VISTA],
       // La hoja de tallas que abrió la guía se cierra al salir de ella.
       preparar: [{ tipo: "escape" }],
       titulo: "Lo que falta decir",
@@ -1946,7 +1965,7 @@ export const GUIA_RECIBIR_ENVIO: Guia = {
       id: "algo",
       ancla: "recepcion.algo",
       opcional: true,
-      requiere: ["recepcion.categorias"],
+      requiere: [CONTADOR_A_LA_VISTA],
       preparar: [{ tipo: "escape" }],
       titulo: "¿Pasó algo con esta prenda?",
       texto: "Lo que puede pasar con una prenda, a un toque. «Llegó dañada» abre sus tallas para decir cuántas y en qué talla y color. «Es otra prenda» la cambia por la que de verdad llegó, sin perder lo contado. «Anotar algo» deja una nota para Compras.",
@@ -1956,7 +1975,7 @@ export const GUIA_RECIBIR_ENVIO: Guia = {
       id: "observaciones",
       ancla: "recepcion.observaciones",
       opcional: true,
-      requiere: ["recepcion.categorias"],
+      requiere: [CONTADOR_A_LA_VISTA],
       preparar: [{ tipo: "escape" }],
       titulo: "Lo que viste al abrir la caja",
       texto: "Si una prenda llegó rota, manchada o distinta, o faltó alguna, toca «Anotar algo»: eliges qué pasó, lo cuentas en una línea y queda en el envío a tu nombre. Compras lo lee para reclamar. No cambia lo contado.",
@@ -1965,6 +1984,7 @@ export const GUIA_RECIBIR_ENVIO: Guia = {
       id: "agregar-modelo",
       ancla: "recepcion.agregar-modelo",
       opcional: true,
+      preparar: [LISTA_DEL_CELULAR],
       titulo: "Otro modelo de esta categoría",
       texto: "Dos modelos de la misma categoría se cuentan aparte. El «+» agrega otro. Si es una reposición, «Ya la tenemos» la muestra por su foto. Si es nueva, pones su nombre y su marca, o queda como «Blusa 1» hasta cambiarlo. Su tacho lo quita. En la demo no lo agregamos.",
     },
@@ -1972,6 +1992,7 @@ export const GUIA_RECIBIR_ENVIO: Guia = {
       id: "agregar",
       ancla: "recepcion.agregar",
       requiere: ["recepcion.categorias"],
+      preparar: [LISTA_DEL_CELULAR],
       titulo: "Algo que no estaba en la guía",
       texto: "Si llegó una categoría que no venía, la agregas aquí con su primer modelo y lo cuentas como los demás. La marca va solo si tiene; si no está en la lista, «+ Marca nueva» la crea. Al cerrar dirás qué pasa con lo agregado. En un envío sin aviso, todo lo que llega entra por aquí.",
     },
@@ -1979,6 +2000,7 @@ export const GUIA_RECIBIR_ENVIO: Guia = {
       id: "quien-cuenta",
       ancla: "recepcion.quien-cuenta",
       requiere: ["recepcion.categorias"],
+      preparar: [LISTA_DEL_CELULAR],
       titulo: "Quién cuenta",
       texto: "Abajo de la lista eliges quién está contando: cada modelo guarda quién lo contó, y se recuerda mientras cuentas este envío. Pueden contar varias personas a la vez; al final firma quien cierra. El «?» te lo explica.",
     },
@@ -1987,13 +2009,15 @@ export const GUIA_RECIBIR_ENVIO: Guia = {
       ancla: "recepcion.pasar-a-cerrar",
       opcional: true,
       requiere: ["recepcion.categorias"],
+      preparar: [LISTA_DEL_CELULAR],
       titulo: "Revisar y cerrar",
-      texto: "Es el único botón que lleva al cierre, siempre en este lugar: ahí ves lo que no cuadró, el costo y quién cierra. A su lado dice qué te falta, y tocarlo te lleva hasta ahí. En la demo no avanzamos.",
+      texto: "Lleva al cierre, siempre desde este lugar: ahí ves lo que no cuadró, el costo y quién cierra. A su lado dice qué te falta, y tocarlo te lleva hasta ahí. En el celular, con todo contado, sale también en la barra de abajo. En la demo no avanzamos.",
     },
     {
       id: "ya-en-stock",
       ancla: "recepcion.ya-en-stock",
       requiere: ["recepcion.ya-en-stock"],
+      preparar: [LISTA_DEL_CELULAR],
       titulo: "Lo que ya está en stock",
       texto: "Lo que ya entró al stock sale en su categoría, marcado «En stock», y no se vuelve a contar. Tócalo para ver sus tallas y colores. «Corregir» deshace lo que salió antes de cerrar, mientras siga en el almacén; si no, «Ajustar stock» te lleva a esa prenda.",
     },

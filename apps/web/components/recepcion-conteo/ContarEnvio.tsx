@@ -12,6 +12,7 @@ import { CorregirSalida, LlevarAlStock, SalidaHecha } from "./LlevarAlStock";
 import { leerSalidasDelEnvio } from "@/lib/recepcion-conteo-acciones";
 import { loQueSale, ultimaSalidaDe, type ResultadoDeSalida, type SalidaDelEnvio } from "@/lib/recepcion-salida-reglas";
 import type { ControlResponsable } from "@/lib/useResponsable";
+import { prefiereQuieto } from "@/lib/movimiento-cliente";
 import { buscarPrendasParaRecibir } from "@/lib/recepcion-envio-acciones";
 import { leerObservacionesDelEnvio } from "@/lib/recepcion-conteo-acciones";
 import { deLasLineas, type ObservacionDeEnvio } from "@/lib/observaciones-envio-reglas";
@@ -107,7 +108,9 @@ import { PlacaDelModelo } from "./PlacaDelModelo";
 import { PrendasDeLaPlaca } from "./PrendasDeLaPlaca";
 import type { Borrador, EstadoGuardado } from "./RecibirContando";
 import { AvanceDelEnvio } from "./AvanceDelEnvio";
+import { BotonCerrarConteo } from "./BotonCerrarConteo";
 import { HojaRepartir } from "./HojaRepartir";
+import { HojaDeLaLista, IslaDelEnvio } from "./ListaEnElCelular";
 import { PieDeLaLista } from "./PieDeLaLista";
 import { TallasDeLaPlaca } from "./TallasDeLaPlaca";
 import { TarjetaDeTallas } from "./TarjetaDeTallas";
@@ -309,6 +312,13 @@ export function ContarEnvio({
     { enModal: false },
   );
   const [hoja, setHoja] = useState<Hoja>(null);
+  // En el celular la lista vive en una hoja que se abre desde la isla de abajo. Al abrirse otra hoja (agregar un modelo, quitar), esta se cierra.
+  const [listaEnHoja, setListaEnHoja] = useState(false);
+  const [hojaVista, setHojaVista] = useState<Hoja>(null);
+  if (hojaVista !== hoja) {
+    setHojaVista(hoja);
+    if (hoja) setListaEnHoja(false);
+  }
   // Las observaciones de todo el envío (ADR-0507), leídas una vez; cada modelo muestra las suyas.
   const [observaciones, setObservaciones] = useState<readonly ObservacionDeEnvio[]>([]);
   useEffect(() => {
@@ -358,6 +368,15 @@ export function ContarEnvio({
     setErrorHoja(null);
     setEscribirEn(escribir ? p.clave : null);
     setFoco(p.clave);
+  }
+
+  /** Elegir en la lista de la pantalla. Apiladas (una pantalla angosta), el contador queda bajo la lista: la vista baja hasta él, o el toque parecería no hacer nada. */
+  function elegirEnLaLista(p: ParadaDelConteo, escribir = false) {
+    elegir(p, escribir);
+    requestAnimationFrame(() => {
+      const placa = mesa.current?.querySelector<HTMLElement>(".rc-placa");
+      if (placa && placa.getBoundingClientRect().top > window.innerHeight / 2) placa.scrollIntoView({ block: "start", behavior: prefiereQuieto() ? "auto" : "smooth" });
+    });
   }
 
   /** «Anterior» o «Listo, siguiente». */
@@ -722,6 +741,88 @@ export function ContarEnvio({
     filtro,
   );
 
+  // La lista del envío. Se dibuja en la mesa y, en el celular, dentro de su hoja (`enHoja`): ahí elegir un modelo cierra la hoja y deja el contador a la vista.
+  const listaDelEnvio = (enHoja: boolean) => (
+    <ListaDelEnvio
+      enHoja={enHoja}
+      yaEnStock={yaEntro.porCategoria}
+      sueltos={yaEntro.sueltos}
+      colores={catalogo?.colores ?? []}
+      onCorregirSalida={(s) => setHoja({ tipo: "corregir-salida", salida: s })}
+      categorias={yaEntro.categorias}
+      enFoco={parada}
+      alternadas={alternadas}
+      sinAviso={sinAviso}
+      totalCategorias={todas.length}
+      filtro={filtro}
+      proveedores={opciones.proveedores}
+      marcas={opciones.marcas}
+      filtrarProveedor={opciones.hayQueFiltrarProveedor}
+      filtrarMarca={opciones.hayQueFiltrarMarca}
+      modelosTotales={paradasDelEnvio.filter((p) => p.modelo).length}
+      orden={orden}
+      fotos={fotos}
+      faltanTallas={faltanTallas}
+      onFiltro={cambiarFiltro}
+      onOrden={setOrden}
+      onAlternar={(clave) =>
+        setAlternadas((a) => {
+          const n = new Set(a);
+          if (!n.delete(clave)) n.add(clave);
+          return n;
+        })
+      }
+      onElegir={enHoja ? (p) => (elegir(p), setListaEnHoja(false)) : elegirEnLaLista}
+      onElegirPrimero={() => {
+        if (paradas[0]) elegirEnLaLista(paradas[0], true);
+      }}
+      onAgregar={() => setHoja({ tipo: "modelo", categoria: null })}
+      onAgregarModelo={(categoria) => setHoja({ tipo: "modelo", categoria })}
+      onNoLlego={(c) => c.grupos.forEach((g) => aplicar(repartirTotal(g, 0)))}
+      onQuitar={(p) => (p.modelo && p.modelo.contadas > 0 ? setHoja({ tipo: "quitar", parada: p.clave }) : quitarModeloDe(p))}
+      onQuitarCategoria={(c) => (c.contadas > 0 ? setHoja({ tipo: "quitar-categoria", categoria: c.clave }) : quitarCategoria(c))}
+      onFotos={(nuevas) => setFotos((f) => new Map([...f, ...nuevas]))}
+      cifras={cifras}
+      avance={<AvanceDelEnvio cifras={cifras} sinAviso={sinAviso} />}
+      aviso={
+        sinGuardar > 0 ? (
+          <Aviso
+            tono="error"
+            chico
+            accion={
+              <button type="button" className="btn-cayla btn-enlace" onClick={onReintentar}>
+                Reintentar
+              </button>
+            }
+          >
+            {sinGuardar === 1 ? "Una línea no se pudo guardar." : `${conMiles(sinGuardar)} líneas no se pudieron guardar.`}
+          </Aviso>
+        ) : undefined
+      }
+      pie={
+        <PieDeLaLista
+          enHoja={enHoja}
+          guia={guia}
+          responsable={responsable}
+          papeles={papeles.length > 0 ? <PapelesDeLaCompra papeles={papeles} alSubirFoto={alSubirFoto} /> : undefined}
+          explicacion={
+            <>
+              Lo que cuentas se guarda solo. Cada categoría guarda quién la contó: varias personas pueden contar a la vez, y firma quien cierra.{" "}
+              {notaAlCerrar(cifras.estados["por-contar"] - cifras.agregadosEnCero, cifras.agregadosEnCero)} Al cerrar: {textoResumenDelCierre(resumenDelCierre(visibles))}
+              {faltaFotoDeFactura && " La foto de las facturas no frena el cierre."}
+            </>
+          }
+          todoContado={todoContado}
+          puedeCerrar={puedeCerrar}
+          motivosNoCierra={motivosNoCierra}
+          onCerrar={onCerrar}
+          onIrALoQueFalta={() => guia.faltan[0] && guia.ir(guia.faltan[0].id)}
+          onCancelarRecepcion={nadaContado ? onCancelarRecepcion : undefined}
+        />
+      }
+    />
+  );
+
   return (
     <div className="rc-conteo">
       {reabierto && (
@@ -738,82 +839,7 @@ export function ContarEnvio({
       {faltaQuien && <ElegirQuienCuenta responsable={responsable} sede={detalle.sede?.nombre ?? "esta sede"} />}
 
       <div ref={mesa} className="rc-mesa">
-        <ListaDelEnvio
-          yaEnStock={yaEntro.porCategoria}
-          sueltos={yaEntro.sueltos}
-          colores={catalogo?.colores ?? []}
-          onCorregirSalida={(s) => setHoja({ tipo: "corregir-salida", salida: s })}
-          categorias={yaEntro.categorias}
-          enFoco={parada}
-          alternadas={alternadas}
-          sinAviso={sinAviso}
-          totalCategorias={todas.length}
-          filtro={filtro}
-          proveedores={opciones.proveedores}
-          marcas={opciones.marcas}
-          filtrarProveedor={opciones.hayQueFiltrarProveedor}
-          filtrarMarca={opciones.hayQueFiltrarMarca}
-          modelosTotales={paradasDelEnvio.filter((p) => p.modelo).length}
-          orden={orden}
-          fotos={fotos}
-          faltanTallas={faltanTallas}
-          onFiltro={cambiarFiltro}
-          onOrden={setOrden}
-          onAlternar={(clave) =>
-            setAlternadas((a) => {
-              const n = new Set(a);
-              if (!n.delete(clave)) n.add(clave);
-              return n;
-            })
-          }
-          onElegir={elegir}
-          onElegirPrimero={() => {
-            if (paradas[0]) elegir(paradas[0], true);
-          }}
-          onAgregar={() => setHoja({ tipo: "modelo", categoria: null })}
-          onAgregarModelo={(categoria) => setHoja({ tipo: "modelo", categoria })}
-          onNoLlego={(c) => c.grupos.forEach((g) => aplicar(repartirTotal(g, 0)))}
-          onQuitar={(p) => (p.modelo && p.modelo.contadas > 0 ? setHoja({ tipo: "quitar", parada: p.clave }) : quitarModeloDe(p))}
-          onQuitarCategoria={(c) => (c.contadas > 0 ? setHoja({ tipo: "quitar-categoria", categoria: c.clave }) : quitarCategoria(c))}
-          onFotos={(nuevas) => setFotos((f) => new Map([...f, ...nuevas]))}
-          cifras={cifras}
-          avance={<AvanceDelEnvio cifras={cifras} sinAviso={sinAviso} />}
-          aviso={
-            sinGuardar > 0 ? (
-              <Aviso
-                tono="error"
-                chico
-                accion={
-                  <button type="button" className="btn-cayla btn-enlace" onClick={onReintentar}>
-                    Reintentar
-                  </button>
-                }
-              >
-                {sinGuardar === 1 ? "Una línea no se pudo guardar." : `${conMiles(sinGuardar)} líneas no se pudieron guardar.`}
-              </Aviso>
-            ) : undefined
-          }
-          pie={
-            <PieDeLaLista
-              guia={guia}
-              responsable={responsable}
-              papeles={papeles.length > 0 ? <PapelesDeLaCompra papeles={papeles} alSubirFoto={alSubirFoto} /> : undefined}
-              explicacion={
-                <>
-                  Lo que cuentas se guarda solo. Cada categoría guarda quién la contó: varias personas pueden contar a la vez, y firma quien cierra.{" "}
-                  {notaAlCerrar(cifras.estados["por-contar"] - cifras.agregadosEnCero, cifras.agregadosEnCero)} Al cerrar: {textoResumenDelCierre(resumenDelCierre(visibles))}
-                  {faltaFotoDeFactura && " La foto de las facturas no frena el cierre."}
-                </>
-              }
-              todoContado={todoContado}
-              puedeCerrar={puedeCerrar}
-              motivosNoCierra={motivosNoCierra}
-              onCerrar={onCerrar}
-              onIrALoQueFalta={() => guia.faltan[0] && guia.ir(guia.faltan[0].id)}
-              onCancelarRecepcion={nadaContado ? onCancelarRecepcion : undefined}
-            />
-          }
-        />
+        {listaDelEnvio(false)}
 
         <section className="rc-panel rc-placa" aria-label="Cuántas llegaron">
           {!grupo || !parada ? (
@@ -922,6 +948,24 @@ export function ContarEnvio({
           )}
         </section>
       </div>
+
+      <IslaDelEnvio
+        cifras={cifras}
+        sinAviso={sinAviso}
+        todoContado={todoContado}
+        listaAbierta={listaEnHoja}
+        onLista={() => setListaEnHoja(true)}
+        cierre={<BotonCerrarConteo peso="primario" puedeCerrar={puedeCerrar} motivos={motivosNoCierra} onCerrar={onCerrar} onIrALoQueFalta={() => guia.faltan[0] && guia.ir(guia.faltan[0].id)} />}
+      />
+      {listaEnHoja && (
+        <HojaDeLaLista
+          titulo={sinAviso ? "Lo que llegó" : "Categorías del envío"}
+          cuantos={`${conMiles(paradasDelEnvio.filter((p) => p.modelo).length)} ${paradasDelEnvio.filter((p) => p.modelo).length === 1 ? "modelo" : "modelos"}`}
+          onCerrar={() => setListaEnHoja(false)}
+        >
+          {listaDelEnvio(true)}
+        </HojaDeLaLista>
+      )}
 
       {paradaAQuitar?.modelo && <QuitarModelo nombre={paradaAQuitar.modelo.nombre} contadas={paradaAQuitar.modelo.contadas} onQuitar={() => quitarModeloDe(paradaAQuitar)} onCerrar={() => setHoja(null)} />}
       {categoriaAQuitar && <QuitarModelo nombre={categoriaAQuitar.categoria?.nombre ?? "la categoría"} contadas={categoriaAQuitar.contadas} onQuitar={() => quitarCategoria(categoriaAQuitar)} onCerrar={() => setHoja(null)} />}

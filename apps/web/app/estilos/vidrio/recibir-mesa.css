@@ -164,6 +164,11 @@ main:has(.rc-conteo) { padding-bottom: 16px; }
   /* El tacho, a la altura del estado (Felipe 2026-11-03): los dos en la línea de abajo, y el nombre conserva su línea entera. */
   .rc-modelo-tacho { top: auto; bottom: 4px; transform: none; translate: none; }
 }
+/* Más angosta todavía (la hoja del celular, la columna a 1024 px con el menú abierto), lo agregado a mano no cabe en dos líneas: entre «No estaba anotada» y el tacho,
+   «10 contadas» se leía «10 co…». Su estado baja a una tercera línea, a la altura del tacho. */
+@container rc-lista (max-width: 399px) {
+  .rc-modelo[data-con-tacho] > .chip-cayla { grid-column: 2 / -1; justify-self: start; }
+}
 .rc-lista-agregar { padding: 10px 12px 12px; }
 .rc-acord-agregar { width: 100%; border-radius: 18px; }
 
@@ -383,9 +388,34 @@ button.rc-celda-falta:focus-visible { outline: 2px solid var(--color-tinta); out
 .rc-chipitos { display: flex; flex-wrap: wrap; gap: 6px; }
 .rc-etiqueta-chica { color: var(--color-taupe); font-size: 11px; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase; }
 
+/* ---------- El celular (ADR-0645): el contador a la vista, la lista en su hoja y la isla abajo ----------
+   Bajo 640 px la lista no va en la pantalla: se abre desde la isla, en una hoja que sube desde el borde (como toda hoja en el celular). */
+@media (max-width: 639px) {
+  .rc-mesa > .rc-lista { display: none; }
+  /* La isla flota sobre el final de la pantalla: el pie del contador no queda debajo. */
+  .rc-conteo { padding-bottom: 6.5rem; }
+}
+/* La isla con todo contado: «Lista» a su medida y «Revisar y cerrar» con lo que queda. */
+.rc-isla { flex-wrap: nowrap; padding-left: 0.625rem; }
+.rc-isla .barra-abajo-acciones { flex: 1 1 auto; justify-content: flex-end; min-width: 0; }
+.rc-isla .barra-abajo-acciones .btn-cayla { white-space: nowrap; }
+.rc-isla .barra-abajo-resumen { padding-left: 0.375rem; }
+/* La lista dentro de la hoja: sin su marco (lo pone la hoja), sin su propio scroll y con el pie pegado al borde de abajo. */
+.rc-lista-en-hoja { overflow: visible; border: 0; border-radius: 0; background: none; box-shadow: none; -webkit-backdrop-filter: none; backdrop-filter: none; animation: none; }
+.rc-lista-en-hoja .rc-lista-cabeza { padding: 0 0 12px; }
+.rc-lista-en-hoja .rc-scroll { overflow: visible; }
+.rc-lista-en-hoja .rc-cat { padding: 0; }
+/* La cabeza de la categoría abierta no se pega arriba (la hoja ya tiene su título), pero sigue siendo el lugar de su «+» y de su tacho. */
+.rc-lista-en-hoja .rc-cat[data-abierta] > .rc-cat-tira { position: relative; top: auto; background: none; }
+.rc-lista-en-hoja .rc-lista-agregar { padding-inline: 0; }
+.rc-lista-en-hoja .rc-filtros-flota { left: 0; right: 0; }
+.rc-lista-en-hoja .rc-lista-pie { padding: 12px 1.5rem calc(1.5rem + var(--borde-abajo, 0px)); background: var(--fondo-hoja, var(--color-papel)); }
+
 /* Bajo las dos mitades (una pantalla angosta), una columna: la lista y debajo lo que se cuenta. */
 @container rc-conteo (max-width: 759px) {
   .rc-lista .rc-scroll { max-height: 60dvh; }
+  /* Al elegir un modelo la vista baja hasta el contador: queda bajo la cabecera flotante, no detrás. */
+  .rc-placa { scroll-margin-top: 5.5rem; }
 }
 
 @media (prefers-reduced-motion: reduce) {

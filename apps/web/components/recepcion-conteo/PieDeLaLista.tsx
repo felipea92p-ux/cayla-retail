@@ -23,6 +23,7 @@ export function PieDeLaLista({
   onCerrar,
   onIrALoQueFalta,
   onCancelarRecepcion,
+  enHoja = false,
 }: {
   guia: GuiaCampos;
   responsable: ControlResponsable;
@@ -38,9 +39,11 @@ export function PieDeLaLista({
   onIrALoQueFalta: () => void;
   /** Sin aviso y sin nada contado: la salida es cancelar, no cerrar. */
   onCancelarRecepcion?: () => void;
+  /** Dentro de la hoja del celular: se pega al borde de abajo de la hoja. */
+  enHoja?: boolean;
 }) {
   return (
-    <div className="rc-lista-pie">
+    <div className={enHoja ? "rc-lista-pie pie-hoja-fijo" : "rc-lista-pie"}>
       {/* Lo que falta, primero: con la lista angosta va en su propia línea, arriba de los controles. */}
       {onCancelarRecepcion ? (
         <p className="rc-pie-falta">

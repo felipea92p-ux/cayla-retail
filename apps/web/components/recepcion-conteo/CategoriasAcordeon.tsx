@@ -424,6 +424,7 @@ export function ListaDelEnvio({
   avance,
   aviso,
   pie,
+  enHoja = false,
 }: {
   /** Las cifras de TODO el envío: el número de cada filtro. */
   cifras: CifrasDelResumen;
@@ -433,6 +434,8 @@ export function ListaDelEnvio({
   aviso?: ReactNode;
   /** Lo del envío entero: quién cuenta y «Revisar y cerrar» (`PieDeLaLista`). */
   pie?: ReactNode;
+  /** En el celular la lista se abre en una hoja (ADR-0645): sin su marco ni su título, que los pone la hoja. */
+  enHoja?: boolean;
   categorias: readonly CategoriaDelEnvio[];
   /** Lo que el contador está contando ahora: su categoría va abierta. */
   enFoco: ParadaDelConteo | null;
@@ -484,9 +487,9 @@ export function ListaDelEnvio({
   const conOrden = categorias.flatMap((c) => c.paradas).length > 1;
   const primeraConStock = categorias.find((c) => (yaEnStock.get(c.clave)?.length ?? 0) > 0)?.clave ?? null;
   return (
-    <section className="rc-panel rc-lista" aria-label={sinAviso ? "Lo que llegó" : "Categorías del envío"}>
+    <section className={enHoja ? "rc-panel rc-lista rc-lista-en-hoja" : "rc-panel rc-lista"} aria-label={sinAviso ? "Lo que llegó" : "Categorías del envío"}>
       <div className="rc-lista-cabeza">
-        <TituloSeccion dato={modelosTotales > 0 ? cuantos : undefined}>{sinAviso ? "Lo que llegó" : "Categorías del envío"}</TituloSeccion>
+        {!enHoja && <TituloSeccion dato={modelosTotales > 0 ? cuantos : undefined}>{sinAviso ? "Lo que llegó" : "Categorías del envío"}</TituloSeccion>}
         {aviso}
         {avance}
         {modelosTotales > 0 && (

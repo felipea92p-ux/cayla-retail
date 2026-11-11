@@ -2,7 +2,7 @@
   "guia": "recibir.envio.id",
   "ruta": "/recibir/envio/[id]",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 277,
+  "total": 279,
   "controles": {
     "app/(app)/recibir/envio/[id]/page.tsx": [
       "Volver «/recibir»",
@@ -193,6 +193,10 @@
       "Boton «{textoListo}»",
       "Boton «Cancelar»",
       "Boton «→() => void confirmarQuitar()»"
+    ],
+    "components/recepcion-conteo/ListaEnElCelular.tsx": [
+      "button «{listaAbierta ? undefined : \"recepcion.lista-abrir\"}»",
+      "button «{listaAbierta ? undefined : \"recepcion.lista-abrir\"}» #2"
     ],
     "components/recepcion-conteo/LlevarAlStock.tsx": [
       "Boton «{esperandoGuardar ? \"Guardando lo último que contaste…\" : undefined}»",
