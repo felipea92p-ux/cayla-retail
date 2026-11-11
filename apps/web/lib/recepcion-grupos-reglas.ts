@@ -231,7 +231,17 @@ export function lineaDeLaPrenda(g: GrupoDeLineas, prenda: PrendaDe): LineaParaCo
  */
 export function repartirSeparado(g: GrupoDeLineas, separado: Separado, total: number): Reparto {
   const lineas = g.lineas;
-  const dueña = (prenda: PrendaDe): number => lineas.indexOf(lineaDeLaPrenda(g, prenda));
+  // «Crear ahora»: una nueva descrita sale y entra una prenda que antes no estaba. Si se creó con otro nombre, nada la une a su línea salvo
+  // eso: va a la línea de la nueva que reemplaza (sin esto caía en la primera y la referencia quedaba aparte, Felipe 2026-11-11).
+  const salieron = g.separado.nuevas.filter((n) => n.descripcion && !separado.nuevas.some((x) => claveDeDescripcion(x.descripcion) === claveDeDescripcion(n.descripcion)));
+  const entraron = separado.prendas.filter((p) => !g.separado.prendas.some((x) => x.productoId === p.productoId));
+  const reemplaza = salieron.length === 1 && entraron.length === 1 ? { productoId: entraron[0].productoId, descripcion: salieron[0].descripcion } : null;
+  const dueña = (prenda: PrendaDe): number =>
+    lineas.indexOf(
+      reemplaza && "productoId" in prenda && prenda.productoId === reemplaza.productoId && !lineas.some((l) => esDeLaLinea(l, prenda))
+        ? lineaDeLaPrenda(g, { descripcion: reemplaza.descripcion })
+        : lineaDeLaPrenda(g, prenda),
+    );
 
   const nuevoPorLinea: Separado[] = lineas.map(() => ({ prendas: [], nuevas: [] }));
   for (const p of separado.prendas) nuevoPorLinea[dueña({ productoId: p.productoId, nombre: p.nombre })].prendas.push(p);

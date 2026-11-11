@@ -591,10 +591,11 @@ export function ContarEnvio({
   function prendaDeLaNueva(g: GrupoDeLineas, claveParada: string, descripcion: string, prenda: PrendaRecepcion) {
     onPrendaVista(prenda);
     escribirSeparado(g, prendaCreadaDeNueva(g.separado, descripcion, prenda));
-    // Si se anotó por su nombre y se creó con otro, ahora es otra fila: el contador la sigue.
-    const nombreIgual = parada?.modelo?.nombre === prenda.nombre;
-    const nuevaClave = nombreIgual ? claveParada : claveDeParada(g, prenda.productoId);
-    if (!nombreIgual) setFoco(nuevaClave);
+    // Si la anotó Compras, la fila sigue siendo la misma aunque se cree con otro nombre (toma el de la prenda, Felipe 2026-11-11). Si la agregó
+    // quien cuenta y se creó con otro nombre, ahora es otra fila: el contador la sigue.
+    const misma = parada?.modelo?.nombre === prenda.nombre || !!parada?.modelo?.anotada;
+    const nuevaClave = misma ? claveParada : claveDeParada(g, prenda.productoId);
+    if (!misma) setFoco(nuevaClave);
     setModos((ms) => ({ ...ms, [nuevaClave]: "ahora" }));
     setTraerTallas(true);
     setHoja(null);
