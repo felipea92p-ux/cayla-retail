@@ -38,10 +38,12 @@ set search_path = retail, public, extensions;
 do $$
 declare
   v_def text := pg_get_functiondef('retail.fn_perdida_razon(text, text, integer)'::regprocedure);
-  v_viejo constant text := '''cuarentena_devuelta_proveedor'', ''correccion_recepcion'') then null';
-  v_nuevo constant text := '''cuarentena_devuelta_proveedor'', ''correccion_recepcion'', ''fusion_producto'') then null';
+  -- El ancla va en la primera línea de la lista, no en la última: la última es el ancla de 20261104012000
+  -- («…'cuarentena_devuelta_proveedor', 'correccion_recepcion') then null»), que `pruebas:envio-sin-aviso` vuelve a pegar.
+  v_viejo constant text := '''transferencia'', ''traslado'',';
+  v_nuevo constant text := '''transferencia'', ''traslado'', ''fusion_producto'',';
 begin
-  if position(v_nuevo in v_def) > 0 then
+  if position('''fusion_producto''' in v_def) > 0 then
     return;
   end if;
   if (length(v_def) - length(replace(v_def, v_viejo, ''))) / length(v_viejo) <> 1 then

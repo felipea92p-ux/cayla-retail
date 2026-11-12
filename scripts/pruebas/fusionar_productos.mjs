@@ -512,7 +512,8 @@ select pg_temp.duplicado('Vestido Emma', '[]') as v \\gset
 update retail.productos set categoria_id = (select id from retail.categorias where nombre = 'Vestidos') where id = :'v';
 ${sesion(FELIPE)}
 select 'x',
-  (select string_agg(referencia_a || '/' || referencia_b || ':' || motivo, ',') from retail.fn_productos_posibles_duplicados()
+  -- El orden del par sale de los ids (al azar en cada base): se nombra siempre en orden alfabético.
+  (select string_agg(least(referencia_a, referencia_b) || '/' || greatest(referencia_a, referencia_b) || ':' || motivo, ',') from retail.fn_productos_posibles_duplicados()
     where :'d' in (producto_a::text, producto_b::text)),
   (select count(*) from retail.fn_productos_posibles_duplicados() where :'v' in (producto_a::text, producto_b::text));
 select retail.fusionar_productos('${EMMA}', array[:'d']::uuid[]) is not null as hecho \\gset
@@ -520,7 +521,7 @@ select 'x', (select count(*) from retail.fn_productos_posibles_duplicados() wher
   has_function_privilege('anon', 'retail.fn_productos_posibles_duplicados(integer)', 'execute');`);
   if (!r.ok) return r.mensaje.split("\n").slice(0, 4).join("\n");
   const obtenido = r.salida.split("\n").filter((l) => l.startsWith("x|")).map((l) => l.split("|").slice(1).join("/")).join(" · ");
-  return obtenido === "Blusa Emma/Blusa Ema:una_letra/0 · 0/f" ? null : `obtuve «${obtenido}»`;
+  return obtenido === "Blusa Ema/Blusa Emma:una_letra/0 · 0/f" ? null : `obtuve «${obtenido}»`;
 });
 
 // ---------------------------------------------------------------------------------------------- deriva
