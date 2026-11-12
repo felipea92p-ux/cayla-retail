@@ -92,15 +92,17 @@ describe("los relojes siguen contando con las animaciones apagadas", () => {
     expect(regla![1]).not.toMatch(/(^|\s)animation:/);
   });
 
-  it("no hay otro reloj que cierre algo sin estar en la lista", () => {
-    const componentes = ["components", "app"].flatMap(function archivos(dir: string): string[] {
-      return readdirSync(join(raiz, dir)).flatMap((n) => {
-        const rel = `${dir}/${n}`;
-        if (n === "node_modules" || n.startsWith(".")) return [];
-        if (statSync(join(raiz, rel)).isDirectory()) return archivos(rel);
-        return /\.tsx$/.test(n) && !/\.test\.tsx$/.test(n) ? [rel] : [];
-      });
+  function componentesDe(dir: string): string[] {
+    return readdirSync(join(raiz, dir)).flatMap((n) => {
+      const rel = `${dir}/${n}`;
+      if (n === "node_modules" || n.startsWith(".")) return [];
+      if (statSync(join(raiz, rel)).isDirectory()) return componentesDe(rel);
+      return /\.tsx$/.test(n) && !/\.test\.tsx$/.test(n) ? [rel] : [];
     });
+  }
+
+  it("no hay otro reloj que cierre algo sin estar en la lista", () => {
+    const componentes = ["components", "app"].flatMap(componentesDe);
     const conReloj = componentes.filter((f) => /animationName === "cayla-[a-z-]*reloj"/.test(readFileSync(join(raiz, f), "utf8")));
     expect(conReloj.sort()).toEqual(RELOJES.map((r) => r.archivo).sort());
   });
