@@ -15,7 +15,10 @@
  * «Vercel – cayla-retail» con varios) y decide:
  *   · sin marca a los 3 min de creado el commit → pide la publicación al Deploy Hook (secreto `VERCEL_DEPLOY_HOOK`),
  *     espera a ver la marca nueva y lo deja en un aviso de GitHub: cerrado si Vercel la tomó, abierto si no;
- *   · «Canceled by Ignored Build Step» → producción saltada por el filtro: aviso abierto, sin Deploy Hook (lo saltaría igual);
+ *   · «Canceled by Ignored Build Step» → producción saltada por el filtro. Desde ADR-0648 el filtro se salta a propósito la
+ *     fusión que no toca lo que compila la web (docs, migraciones, scripts): si el commit no toca `RUTAS_DEL_ERP` contra su
+ *     primer padre, está bien («listo»). Si las toca, o no se pudo saber, es un filtro roto: aviso abierto, sin Deploy Hook
+ *     (lo saltaría igual);
  *   · cualquier otra marca (publicando, publicada, falló, cancelada a mano) → nada que hacer: Vercel ya lo tiene. Si había
  *     un aviso abierto, lo cierra: lo que quedó atrás viaja con este commit.
  * Sale con 1 (la corrida queda en rojo) solo si hace falta una persona: aviso abierto, o no pudo leer GitHub.
@@ -33,6 +36,7 @@
  */
 import { appendFileSync } from "node:fs";
 import { pathToFileURL } from "node:url";
+import { tocaElErp } from "./vercel-ignorar.mjs";
 
 export const TITULO_AVISO = "Producción atrás de main (vigía de Vercel)";
 const ADR = "ADR-0425";
@@ -58,11 +62,15 @@ export function ultimaMarca(marcas, proyecto) {
   return delProyecto[0] ?? null;
 }
 
+/** ¿La marca dice que el filtro se saltó la publicación? */
+const esSaltoDelFiltro = (marca) => /Ignored Build Step/i.test(marca?.description ?? "");
+
 /**
- * La decisión, sin red. `marca` = `ultimaMarca(...)`; `edadS` = segundos desde que se creó el commit.
+ * La decisión, sin red. `marca` = `ultimaMarca(...)`; `edadS` = segundos desde que se creó el commit; `archivos` = lo que el
+ * commit cambia contra su primer padre (solo se lee si el filtro se lo saltó), o `null` si no se pudo saber.
  * Devuelve { accion: "esperar" | "listo" | "disparar" | "avisar", motivo }.
  */
-export function decidir({ marca, edadS, plazoS = 180 }) {
+export function decidir({ marca, edadS, plazoS = 180, archivos = null }) {
   if (!marca) {
     if (edadS < plazoS) return { accion: "esperar", motivo: "Vercel todavía no marca el commit" };
     return {
@@ -71,8 +79,19 @@ export function decidir({ marca, edadS, plazoS = 180 }) {
     };
   }
   const descripcion = marca.description ?? "";
-  if (/Ignored Build Step/i.test(descripcion)) {
-    return { accion: "avisar", motivo: "Vercel se saltó producción con el filtro («Canceled by Ignored Build Step»)" };
+  if (esSaltoDelFiltro(marca)) {
+    if (archivos && !tocaElErp(archivos)) {
+      return {
+        accion: "listo",
+        motivo: `el filtro se saltó producción a propósito: el commit no toca lo que compila la web (${archivos.length} archivo${archivos.length === 1 ? "" : "s"}, ADR-0648)`,
+      };
+    }
+    return {
+      accion: "avisar",
+      motivo: archivos
+        ? "Vercel se saltó producción con el filtro («Canceled by Ignored Build Step») y el commit sí cambia la web"
+        : "Vercel se saltó producción con el filtro («Canceled by Ignored Build Step») y no se pudo saber qué cambió el commit",
+    };
   }
   if (marca.state === "pending") return { accion: "listo", motivo: "Vercel lo está publicando" };
   if (marca.state === "success") return { accion: "listo", motivo: "Vercel ya lo publicó" };
@@ -151,7 +170,7 @@ export function textoAviso({ tipo, cabeza, ahora, codigo, marcaNueva, plazoS = 1
       return [
         `${cuando} — Vercel se saltó ${commit} en producción («Canceled by Ignored Build Step»), y lo marcó en verde.`,
         "",
-        "El filtro de `apps/web/vercel.json` (`scripts/ci/vercel-ignorar.mjs`, ADR-0383) solo debe saltar vistas previas. No llamé al Deploy Hook: el filtro lo saltaría igual. Hay que arreglar el filtro y publicar a mano.",
+        "El filtro de `apps/web/vercel.json` (`scripts/ci/vercel-ignorar.mjs`, ADR-0383 y ADR-0648) solo debe saltar vistas previas y las fusiones que no tocan lo que compila la web, y este commit la toca (o no pude leer qué cambió). No llamé al Deploy Hook: el filtro lo saltaría igual. Hay que revisar el filtro y publicar a mano.",
         ADR,
       ].join("\n");
     case "cierre":
@@ -198,9 +217,12 @@ export async function vigilar({
     cabeza = await leer(() => github.cabeza(sha), dormir);
     const marca = ultimaMarca(await leer(() => github.marcas(cabeza.sha), dormir), proyecto);
     const edadS = (reloj() - Date.parse(cabeza.fecha)) / 1000;
+    // Lo que cambió el commit solo hace falta si el filtro se lo saltó; si GitHub no responde, queda «no se sabe» (y se avisa).
+    let archivos = null;
+    if (!probar && esSaltoDelFiltro(marca)) archivos = await leer(() => github.archivos(cabeza.sha), dormir).catch(() => null);
     decision = probar
       ? { accion: "disparar", motivo: "prueba manual del Deploy Hook" }
-      : decidir({ marca, edadS, plazoS });
+      : decidir({ marca, edadS, plazoS, archivos });
     if (decision.accion !== "esperar") break;
     await dormir(Math.min(pausaS, Math.max(0.05, plazoS - edadS)));
   }
@@ -280,6 +302,15 @@ export function clienteGitHub({ api, repo, token, fetchImpl = fetch }) {
       return { sha: c.sha, fecha: c.commit.committer.date, asunto: c.commit.message.split("\n")[0] };
     },
     marcas: (sha) => pedir(`/commits/${sha}/statuses?per_page=100`),
+    /** Lo que el commit cambia contra su primer padre (el `main` de antes), o `null` si la lista viene cortada (300 archivos). */
+    async archivos(sha) {
+      const c = await pedir(`/commits/${sha}`);
+      const padre = c.parents?.[0]?.sha;
+      if (!padre) return null;
+      const comparacion = await pedir(`/compare/${padre}...${sha}`);
+      const lista = (comparacion.files ?? []).map((f) => f.filename);
+      return lista.length >= 300 ? null : lista;
+    },
     async avisoAbierto(titulo) {
       const lista = await pedir("/issues?state=open&per_page=100");
       return lista.find((i) => !i.pull_request && i.title === titulo)?.number ?? null;
