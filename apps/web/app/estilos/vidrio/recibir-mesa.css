@@ -206,6 +206,17 @@ main:has(.rc-conteo) { padding-bottom: 16px; }
 .rc-placa-textos .titulo-seccion-texto { font-size: 28px; font-weight: 500; line-height: 1.12; letter-spacing: -0.01em; }
 .rc-placa-textos > p { color: var(--color-taupe); font-size: 14px; line-height: 1.35; }
 .rc-chips { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 2px; }
+.rc-chips:empty { display: none; }
+/* La foto que abre «Lo que anotó Compras» (Felipe 2026-11-12): se nota que se toca, sin cambiar su dibujo. */
+.rc-placa-foto { flex: none; border-radius: 14px; transition: scale 160ms var(--ease-cayla), box-shadow 200ms var(--ease-cayla); }
+@media (hover: hover) {
+  .rc-placa-foto:hover { scale: 1.03; box-shadow: 0 6px 18px -8px color-mix(in srgb, var(--color-sombra) 45%, transparent); }
+}
+.rc-placa-foto:focus-visible { outline: 2px solid var(--color-tinta); outline-offset: 3px; }
+/* Las cifras de la compra en palabras, en una línea (antes, una píldora de costo junto a la de marca). */
+.rc-placa-cifras { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 16px; margin-top: 4px; color: var(--color-taupe); font-size: 14px; }
+.rc-placa-cifras > span { display: inline-flex; align-items: center; gap: 6px; }
+.rc-placa-cifras b { color: var(--color-tinta); font-weight: 600; font-variant-numeric: tabular-nums; }
 .rc-placa-derecha { flex: none; display: grid; justify-items: end; align-content: space-between; gap: 6px; align-self: stretch; }
 .rc-placa-acciones { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 2px 14px; }
 .rc-guardado { min-height: 20px; color: var(--color-taupe); font-size: 14px; white-space: nowrap; }

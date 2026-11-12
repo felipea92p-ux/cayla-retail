@@ -16,6 +16,7 @@ import { marcaDeLinea, textoPrendas } from "@/lib/recepcion-conteo-reglas";
 import { descripcionDelGrupo, sinIdentificarDelGrupo } from "@/lib/recepcion-grupos-reglas";
 import { conMiles, costoDeLaParada, lineasDeLaParada, nombreDeParada, textoDeCosto, tipoDeParada, type ParadaDelConteo } from "@/lib/recepcion-modelos-reglas";
 import { EstadoModelo } from "./CategoriasAcordeon";
+import { LoQueAnotoCompras } from "./LoQueAnotoCompras";
 import { Dial } from "./Dial";
 import type { EstadoGuardado } from "./RecibirContando";
 
@@ -172,6 +173,11 @@ export function PlacaDelModelo({
     requestAnimationFrame(() => requestAnimationFrame(bajarALasTallas));
   };
   const flecha = <ArrowRight aria-hidden className="h-4 w-4 shrink-0" />;
+  // Lo que anotó Compras de este modelo (Felipe 2026-11-12): la foto se toca y lo abre en una hoja. Sin línea de compra (un envío sin aviso), no hay nada que mostrar.
+  const lineasDeCompra = lineasDeLaParada(parada).map((l) => l.linea).filter((l): l is NonNullable<typeof l> => l !== null);
+  const [verCompra, setVerCompra] = useState(false);
+  const precioSugerido = lineasDeCompra.find((l) => l.precioVentaSugerido != null)?.precioVentaSugerido ?? null;
+  const marcaTexto = p.categoria ? marcaDeLinea(p).nombre : null;
   // El paso 2. Mientras se cuenta va a la DERECHA del dial, bajo los atajos (Felipe 2026-11-12: «el paso dos se acople ahí al lado derecho del
   // contador, ya que es solo un botón»): así «¿Pasó algo con esta prenda?» sale en pantalla sin bajar. Ya contado, debajo y a lo ancho.
   const bloqueDeTallas = (alLado: boolean) =>
@@ -192,12 +198,22 @@ export function PlacaDelModelo({
   return (
     <>
       <div key={`cabeza-${parada.clave}`} className="rc-placa-cabeza">
-        {p.categoria && <MiniaturaPrenda fotoUrl={foto} tamano="2xl" prefijo={p.categoria.prefijo} familia={p.categoria.familia} categoria={p.categoria.nombre} />}
+        {/* La foto (o el ícono) se toca y abre lo que anotó Compras: la descripción, el costo y el precio sugerido (Felipe 2026-11-12). */}
+        {p.categoria &&
+          (lineasDeCompra.length > 0 ? (
+            <button type="button" className="rc-placa-foto" onClick={() => setVerCompra(true)} aria-label={`Ver lo que anotó Compras de ${nombreDeParada(parada)}`} title="Ver lo que anotó Compras">
+              <MiniaturaPrenda fotoUrl={foto} tamano="2xl" prefijo={p.categoria.prefijo} familia={p.categoria.familia} categoria={p.categoria.nombre} />
+            </button>
+          ) : (
+            <MiniaturaPrenda fotoUrl={foto} tamano="2xl" prefijo={p.categoria.prefijo} familia={p.categoria.familia} categoria={p.categoria.nombre} />
+          ))}
         <div className="rc-placa-textos">
           <TituloSeccion>{nombreDeParada(parada)}</TituloSeccion>
-          <p>{[modelo ? p.categoria?.nombre : null, p.proveedor?.nombre, descripcion].filter(Boolean).join(" · ")}</p>
+          {/* De dónde es, en una línea: la categoría, quién la trajo y su marca (antes la marca era una píldora más). */}
+          <p>{[modelo ? p.categoria?.nombre : null, p.proveedor?.nombre, marcaTexto, descripcion].filter(Boolean).join(" · ")}</p>
           {modelo?.nota && <p>{modelo.nota}</p>}
           <div className="rc-chips">
+            {/* La píldora dice solo el estado: nueva o re stock, y si no venía en la guía. Las cifras van aparte, en palabras. */}
             {tipo === "nuevo" && (
               <Chip tono="pizarra" versalitas={false}>
                 <Sparkles aria-hidden className="h-3 w-3" />
@@ -210,20 +226,29 @@ export function PlacaDelModelo({
                 Re stock
               </Chip>
             )}
-            {p.categoria && (
-              <Chip tono="neutro" versalitas={false}>
-                <Tag aria-hidden className="h-3 w-3" />
-                {marcaDeLinea(p).nombre}
-              </Chip>
-            )}
-            {costo && (
-              <Chip tono="neutro" versalitas={false} title="Lo que cuesta cada prenda, según la compra">
-                <Banknote aria-hidden className="h-3 w-3" />
-                Costo {textoDeCosto(costo)}
-              </Chip>
-            )}
             {!p.linea && !sinAviso && <Chip tono="ambar">No estaba en la guía</Chip>}
           </div>
+          {(costo || precioSugerido != null) && (
+            <p className="rc-placa-cifras">
+              {costo && (
+                <span title="Lo que cuesta cada prenda, según la compra">
+                  <Banknote aria-hidden className="h-4 w-4" />
+                  Costo <b>{textoDeCosto(costo)}</b>
+                </span>
+              )}
+              {precioSugerido != null && (
+                <span title="El precio de venta que propuso quien compró">
+                  <Tag aria-hidden className="h-4 w-4" />
+                  Venta sugerida <b>S/&nbsp;{precioSugerido.toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</b>
+                </span>
+              )}
+              {lineasDeCompra.length > 0 && (
+                <button type="button" className="btn-cayla btn-enlace" onClick={() => setVerCompra(true)}>
+                  Ver lo que anotó Compras
+                </button>
+              )}
+            </p>
+          )}
         </div>
         <div className="rc-placa-derecha">
           <p className="rc-guardado" aria-live="polite">
@@ -408,6 +433,9 @@ export function PlacaDelModelo({
           ) : null}
         </div>
       </div>
+      {verCompra && (
+        <LoQueAnotoCompras nombre={nombreDeParada(parada)} foto={foto} categoria={p.categoria ?? null} lineas={lineasDeCompra} onCerrar={() => setVerCompra(false)} />
+      )}
     </>
   );
 }

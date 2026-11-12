@@ -2,7 +2,7 @@
   "guia": "recibir.envio.id",
   "ruta": "/recibir/envio/[id]",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 285,
+  "total": 287,
   "controles": {
     "app/(app)/recibir/envio/[id]/page.tsx": [
       "Volver «/recibir»",
@@ -265,6 +265,8 @@
       "ComboResponsable «{responsable}»"
     ],
     "components/recepcion-conteo/PlacaDelModelo.tsx": [
+      "button «{`Ver lo que anotó Compras de ${nombreDeParada(parada)}»",
+      "button «Ver lo que anotó Compras»",
       "LapizEditar «{`el nombre de ${modelo.nombre}»",
       "LapizEditar «{`la categoría y la marca de ${modelo?.nombre ?? \"este modelo\"}»",
       "button «Cambiar»",
