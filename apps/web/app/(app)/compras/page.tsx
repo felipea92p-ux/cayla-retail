@@ -259,11 +259,13 @@ export default async function ComprasPage({ searchParams }: { searchParams: Prom
                     style={{ ["--k" as string]: Math.min(i, 8) }}
                     className={fila(PLANTILLA, "cmp-fila")}
                   >
-                    <span className={celda("izq", "whitespace-normal text-sm tabular-nums text-tinta")}>
+                    <span className={celda("izq", "cmp-c-emision whitespace-normal text-sm tabular-nums text-tinta")}>
                       <span className="block">{diaMes(c.fechaEmision)}</span>
-                      <span className={`block text-sm ${c.vencida && c.estadoPago !== "pagada" ? "text-rojo" : "text-tinta/70"}`}>{subEmision(c)}</span>
+                      {/* «Venció dd/mm» va en tinta, como «Contado»: el chip «Vencida» de la columna Pago ya lo avisa en rojo y late, y
+                          cada vencida gastaba dos rojos (auditoría al milímetro 2026-11-12; presupuesto, MAX_ROJO_POR_PANTALLA). */}
+                      <span className="block text-sm text-tinta/70">{subEmision(c)}</span>
                     </span>
-                    <span className={celda()}>
+                    <span className={celda("izq", "cmp-c-proveedor")}>
                       {/* La marca primero (ADR-0644): con marcas, son el título y la razón social baja con su RUC; sin ellas, como antes.
                           `compras.proveedor` va siempre en la razón social: la demo de la guía escribe una palabra de ahí en el buscador. */}
                       {tituloDeCompra(marcas.get(c.id)) ? (
@@ -284,13 +286,13 @@ export default async function ComprasPage({ searchParams }: { searchParams: Prom
                         </span>
                       )}
                     </span>
-                    <span className={celda("izq", "whitespace-normal text-sm tabular-nums text-tinta")}>
+                    <span className={celda("izq", "cmp-c-documento whitespace-normal text-sm tabular-nums text-tinta")}>
                       <span className="block">
                         <Resaltado texto={c.documento} busqueda={busqueda} />
                       </span>
                       <span className="block text-sm text-tinta/70">{ETIQUETA_TIPO_DOCUMENTO[c.tipo]}</span>
                     </span>
-                    <span className={celda("izq", "overflow-visible whitespace-normal")} data-guia="compras.recepcion">
+                    <span className={celda("izq", "cmp-c-recepcion overflow-visible whitespace-normal")} data-guia="compras.recepcion">
                       <Chip tono={recepcion.tono}>{recepcion.texto}</Chip>
                       {c.estado !== "anulada" && <span className="mt-0.5 block text-sm text-tinta/70">{recepcion.sub}</span>}
                       {/* Repartido entre varias tiendas (ADR-0139): a cuáles va. Un comprobante de una sola tienda no lo repite acá. */}
@@ -300,7 +302,7 @@ export default async function ComprasPage({ searchParams }: { searchParams: Prom
                       {/* Avance real de lo recibido: solo si hay recepción parcial (`pct` es null si no). */}
                       <AvanceFino pct={recepcion.pct} />
                     </span>
-                    <span className={celda("izq", "overflow-visible whitespace-normal")} data-guia="compras.pago">
+                    <span className={celda("izq", "cmp-c-pago overflow-visible whitespace-normal")} data-guia="compras.pago">
                       {/* Una anulada ya lo dice en Recepción, y una pagada no necesita más que su chip: «Contado» o «Vence» van bajo la emisión. */}
                       {/* Solo lo vencido late: es lo único de la lista que pide actuar hoy. */}
                       {c.estado !== "anulada" && (
@@ -313,7 +315,11 @@ export default async function ComprasPage({ searchParams }: { searchParams: Prom
                       {/* Junto al saldo: lo que el proveedor todavía debe acreditar por un faltante cerrado. */}
                       <ChipNotaPendiente nota={notas[c.id]} saldo={c.saldo} className="mt-1" />
                     </span>
-                    <span className={celda("der", "cmp-total text-sm tabular-nums text-tinta")}>{c.total.toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                    {/* «Total» solo se ve (y se lee) en la fila apilada, donde la cabecera de la tabla ya no está: comprobantes-lista.css. */}
+                    <span className={celda("der", "cmp-total text-sm tabular-nums text-tinta")}>
+                      <span className="cmp-total-titulo hidden text-xs font-normal text-taupe">Total</span>
+                      {c.total.toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </span>
                     <span aria-hidden className="cmp-flecha-fila hidden text-right text-base leading-none sm:block">
                       ›
                     </span>
