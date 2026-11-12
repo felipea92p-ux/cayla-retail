@@ -19,4 +19,5 @@ Una fila por auditoría (la más nueva arriba). Graves = hallazgos de severidad 
 
 | Fecha | Ruta o pieza | Rama / PR | Graves abiertos | Notas |
 |---|---|---|---|---|
+| 2026-11-12 | /productos ▸ «Por completar» ▸ «Sin costo» | claude/catalog-sin-costo-filter-f15815 / #1786 | 0 | Opción nueva en la pieza decidida `filtro`; informe en `auditorias/2026-11-12-productos-por-completar-sin-costo.md` |
 | | | | | |
