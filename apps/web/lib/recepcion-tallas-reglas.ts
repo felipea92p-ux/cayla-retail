@@ -1,5 +1,4 @@
 import { leerCantidad } from "./alta-producto";
-import { compararTallas } from "./tallas";
 import { conteoDeVariantes, type VarianteSeparada } from "./recepcion-conteo-reglas";
 import { matrizDe, sumasDe, type Conteo, type MatrizRecepcion, type PrendaRecepcion, type TallaDeLaCategoria, type VarianteRecepcion } from "./recepcion-envio-reglas";
 
@@ -16,8 +15,47 @@ export const claveDeEje = (id: string | null): string => id ?? "";
 /** Cómo se trabaja un modelo: solo su número, o sus tallas y colores en la misma pantalla. */
 export type ModoDeTallas = "despues" | "ahora";
 
-/** El modo de un modelo. Si nadie lo eligió, sale de lo guardado: con tallas, «ahora»; sin ellas, «después». */
-export const modoDeTallas = (elegido: ModoDeTallas | undefined, conTallas: boolean): ModoDeTallas => elegido ?? (conTallas ? "ahora" : "despues");
+/**
+ * El modo de un modelo. Si nadie lo eligió, viene contestado por lo que es (Felipe 2026-11-11, ADR-0645): lo que ya está en el catálogo se reparte ahora, porque casi siempre lo
+ * llevan al stock desde el conteo para venderlo ya; lo nuevo que todavía no se creó queda para después. Con tallas guardadas, «ahora» siempre. Antes se preguntaba en cada modelo.
+ */
+export const modoDeTallas = (elegido: ModoDeTallas | undefined, conTallas: boolean, enCatalogo = false): ModoDeTallas => elegido ?? (conTallas || enCatalogo ? "ahora" : "despues");
+
+/** Lo que dice la tarjeta «Tallas y colores» del contador (ADR-0645). */
+export type EstadoDeLaTarjeta = "espera" | "en-stock" | "nueva" | "despues" | "repartir" | "a-medias" | "de-mas" | "lista";
+
+/**
+ * Qué dice la tarjeta, por lo que se contó, lo que es la prenda, el modo y cuánto va repartido. `porRepartir` es lo contado menos lo que ya entró al stock: lo que ya entró
+ * no se vuelve a repartir.
+ */
+export function estadoDeLaTarjeta({ contadas, enStock, enCatalogo, modo, repartidas }: { contadas: number; enStock: number; enCatalogo: boolean; modo: ModoDeTallas; repartidas: number }): EstadoDeLaTarjeta {
+  if (contadas <= 0) return "espera";
+  if (enStock > 0 && contadas === enStock) return "en-stock";
+  if (!enCatalogo) return "nueva";
+  if (modo === "despues") return "despues";
+  const porRepartir = contadas - enStock;
+  if (repartidas <= 0) return "repartir";
+  if (repartidas < porRepartir) return "a-medias";
+  return repartidas > porRepartir ? "de-mas" : "lista";
+}
+
+/** ¿Lo que toca ahora en el modelo es repartir sus tallas? Mientras tanto «Listo, siguiente» no es el botón principal: lo es el de la tarjeta. */
+export const tocaRepartir = (e: EstadoDeLaTarjeta): boolean => e === "repartir" || e === "a-medias" || e === "de-mas";
+
+/**
+ * Un solo botón negro a la vez en Contar (ADR-0645, cambio 2 de /formidable; Felipe 2026-11-11). Quién lo lleva:
+ *  - `tarjeta`: al modelo en foco le toca algo en sus tallas (repartir, o llevar al stock lo ya repartido): manda el botón de su tarjeta;
+ *  - `cerrar`: no queda nada por contar y a ese modelo no le toca nada: manda «Revisar y cerrar»;
+ *  - `siguiente`: el modelo ya tiene su número y queda envío por contar: manda «Listo, siguiente»;
+ *  - `ninguno`: todavía no se contó; el protagonista es «Llegaron las N», que no es negro.
+ * Antes, con todo contado, «Revisar y cerrar» era negro junto al de la tarjeta, uno en cada mitad.
+ */
+export type BotonPrincipal = "tarjeta" | "cerrar" | "siguiente" | "ninguno";
+export function botonPrincipal({ tarjeta, hayParaLlevar, hayConteo, todoContado }: { tarjeta: EstadoDeLaTarjeta | null; hayParaLlevar: boolean; hayConteo: boolean; todoContado: boolean }): BotonPrincipal {
+  if (tarjeta && (tocaRepartir(tarjeta) || (tarjeta === "lista" && hayParaLlevar))) return "tarjeta";
+  if (todoContado) return "cerrar";
+  return hayConteo ? "siguiente" : "ninguno";
+}
 
 /**
  * Los modos antes de cambiar el modelo que se está mirando. Si está en «ahora» porque venía con tallas guardadas (al recargar, nadie lo eligió), queda dicho: el cambio se las puede soltar (una celda que deja de
@@ -81,38 +119,6 @@ export function tablaParaElNumero(
   return borradorDeTallas(prenda, ordenColores, categoria, guardadas);
 }
 
-export type TallaPorAgregar = { clave: string; texto: string; /** La prenda no la tiene: agregarla crea la combinación. */ crear: boolean };
-
-/** Lo que se puede sumar a la tabla: primero lo que la prenda ya tiene y está escondido, y después lo que la categoría ofrece, de las de siempre a las menos comunes. */
-export function tallasPorAgregar(matriz: Pick<MatrizRecepcion, "tallas">, visibles: Ids, categoria: readonly TallaDeLaCategoria[]): TallaPorAgregar[] {
-  const usadas = new Set(visibles);
-  const deLaPrenda = new Set(matriz.tallas.map((t) => claveDeEje(t.id)));
-  const habituales = new Set(categoria.filter((t) => t.habitual).map((t) => t.id));
-  const deSiempreAntes = (a: { clave: string; texto: string }, b: { clave: string; texto: string }) => Number(habituales.has(b.clave)) - Number(habituales.has(a.clave)) || compararTallas(a.texto, b.texto);
-  const escondidas = matriz.tallas
-    .map((t) => ({ clave: claveDeEje(t.id), texto: t.texto }))
-    .filter((t) => !usadas.has(t.clave))
-    .sort(deSiempreAntes)
-    .map((t) => ({ ...t, crear: false }));
-  const nuevas = categoria
-    .map((t) => ({ clave: t.id, texto: t.valor }))
-    .filter((t) => !deLaPrenda.has(t.clave))
-    .sort(deSiempreAntes)
-    .map((t) => ({ ...t, crear: true }));
-  return [...escondidas, ...nuevas];
-}
-
-export type ColorPorAgregar = { clave: string; texto: string; crear: boolean };
-
-/** Los colores que se pueden sumar: los que la prenda tiene y están escondidos; después, los del catálogo, en su orden. */
-export function coloresPorAgregar(matriz: Pick<MatrizRecepcion, "colores">, visibles: Ids, catalogo: readonly { codigo: string; nombre: string }[]): ColorPorAgregar[] {
-  const usados = new Set(visibles);
-  const deLaPrenda = new Set(matriz.colores.map((c) => claveDeEje(c.codigo)));
-  const escondidos = matriz.colores.filter((c) => !usados.has(claveDeEje(c.codigo))).map((c) => ({ clave: claveDeEje(c.codigo), texto: c.nombre, crear: false }));
-  const nuevos = catalogo.filter((c) => !deLaPrenda.has(c.codigo)).map((c) => ({ clave: c.codigo, texto: c.nombre, crear: true }));
-  return [...escondidos, ...nuevos];
-}
-
 /** Lo que se quita al esconder una fila o columna: sus cantidades y sus dañadas. También dice cuántas prendas había, para el aviso de «Deshacer». */
 function quitar(conteo: Conteo, variantes: readonly VarianteRecepcion[]): { conteo: Conteo; perdidas: number } {
   const cantidades = { ...conteo.cantidades };
@@ -173,4 +179,35 @@ export function tallasListas(conteo: Conteo, prenda: Pick<PrendaRecepcion, "vari
   if (s.invalidas > 0 || s.contado !== contadas) return false;
   if (!conteo.conDanadas) return true;
   return s.danadasInvalidas === 0 && s.danadasDeMas.length === 0 && (s.danadas === 0 || conteo.arreglo !== null);
+}
+
+/** Lo que quedó marcado en la hoja «Tallas y colores de la prenda»: las tallas (por su id) y los colores (por su código). */
+export type MarcasDeLaTabla = { tallaIds: readonly string[]; colorCodigos: readonly string[] };
+
+/** Lo que la tabla muestra ahora, como lo entiende la hoja: sin la «talla única» ni el «sin color», que no se marcan. */
+export const marcasDeLaTabla = (tabla: Pick<BorradorTallas, "tallas" | "colores">): MarcasDeLaTabla => ({ tallaIds: tabla.tallas.filter((k) => k !== ""), colorCodigos: tabla.colores.filter((k) => k !== "") });
+
+/**
+ * La tabla después de la hoja «Tallas y colores de la prenda» (ADR-0645, Felipe 2026-11-11: agregar una talla o un color abre la hoja completa, no un combo): muestra justo lo
+ * que quedó marcado. Lo que se desmarcó sale con sus cantidades, como con su ×, y se dice cuántas prendas había para el «Deshacer». Lo que la hoja no maneja (la talla única, el
+ * sin color) se queda como estaba.
+ */
+export function tablaConLoMarcado(tabla: BorradorTallas, prenda: Pick<PrendaRecepcion, "variantes">, antes: MarcasDeLaTabla, marcas: MarcasDeLaTabla): { tabla: BorradorTallas; perdidas: number } {
+  const quitadas = (eran: readonly string[], son: readonly string[]) => eran.filter((id) => !son.includes(id));
+  const sinTallas = quitadas(antes.tallaIds, marcas.tallaIds);
+  const sinColores = quitadas(antes.colorCodigos, marcas.colorCodigos);
+  let conteo = tabla.conteo;
+  let perdidas = 0;
+  for (const t of sinTallas) {
+    const r = quitarTalla(conteo, prenda, t);
+    conteo = r.conteo;
+    perdidas += r.perdidas;
+  }
+  for (const c of sinColores) {
+    const r = quitarColor(conteo, prenda, c);
+    conteo = r.conteo;
+    perdidas += r.perdidas;
+  }
+  const con = (visibles: readonly string[], fuera: readonly string[], marcadas: readonly string[]) => [...visibles.filter((k) => !fuera.includes(k)), ...marcadas.filter((k) => !visibles.includes(k))];
+  return { tabla: { ...tabla, conteo, tallas: con(tabla.tallas, sinTallas, marcas.tallaIds), colores: con(tabla.colores, sinColores, marcas.colorCodigos) }, perdidas };
 }

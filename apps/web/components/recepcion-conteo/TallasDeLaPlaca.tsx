@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
-import { ChevronDown, X } from "lucide-react";
+import { ChevronDown, Plus, X } from "lucide-react";
 import { EtiquetaAhora } from "@/components/alta-producto/guia";
 import { Punto } from "@/components/alta-producto/ElegirColores";
 import { CuadroEstampado } from "@/components/ui/MuestraEstampado";
@@ -10,25 +10,17 @@ import { esEstampado } from "@/lib/color-estampado-reglas";
 import { ElegirOpcion } from "@/components/recepcion-envio/BloquePrenda";
 import { Aviso } from "@/components/ui/Aviso";
 import { avisar } from "@/components/ui/Avisos";
-import { Desplegable } from "@/components/ui/campos";
+import { Boton } from "@/components/ui/campos";
 import { leerCantidad, limpiarCantidad, type ColorAlta } from "@/lib/alta-producto";
 import { conMiles } from "@/lib/recepcion-modelos-reglas";
-import { matrizDe, nombreDeVariante, SOLUCIONES_DANADA, sumasDe, type Conteo, type MatrizRecepcion, type PrendaRecepcion, type SolucionDanada, type TallaDeLaCategoria } from "@/lib/recepcion-envio-reglas";
-import {
-  claveDeEje,
-  coloresPorAgregar,
-  cuadreDeTallas,
-  ordenarTallasVisibles,
-  quitarColor,
-  quitarTalla,
-  tallasPorAgregar,
-  type BorradorTallas,
-} from "@/lib/recepcion-tallas-reglas";
-import { prefiereQuieto } from "@/lib/movimiento-cliente";
+import { matrizDe, nombreDeVariante, SOLUCIONES_DANADA, sumasDe, type Conteo, type MatrizRecepcion, type PrendaRecepcion, type SolucionDanada } from "@/lib/recepcion-envio-reglas";
+import { claveDeEje, cuadreDeTallas, ordenarTallasVisibles, quitarColor, quitarTalla, type BorradorTallas } from "@/lib/recepcion-tallas-reglas";
 
-// Tallas y colores en la misma pantalla de Contar (Felipe 2026-11-02, de su boceto; antes se abrían en una hoja). La tabla arranca con las tallas de siempre de la categoría y a cada talla y
-// color se le quita o se le agrega. Quitar solo esconde y limpia lo escrito (si había algo, el aviso ofrece «Deshacer»); nunca se borra una variante del catálogo. Agregar lo que la prenda ya
-// tiene lo vuelve a mostrar; lo que no tiene se crea con la hoja de siempre. No hay más permisos que los de esa hoja: no se ofrecen tallas que la categoría no ofrece.
+// La tabla de tallas y colores de un modelo. Vivió en la placa de Contar (Felipe 2026-11-02) y desde el 2026-11-11 se abre en su hoja (`HojaRepartir`, ADR-0645): en la placa
+// no cabía. La tabla arranca con las tallas de siempre de la categoría y a cada talla y
+// color se le quita o se le agrega. Quitar solo esconde y limpia lo escrito (si había algo, el aviso ofrece «Deshacer»); nunca se borra una variante del catálogo. Agregar abre la hoja
+// completa de la prenda, con las tallas como fichas y los colores como muestras (Felipe 2026-11-11: «buscar en un combo es muy complicado»): lo que la prenda ya tiene vuelve a la tabla
+// y lo que no tiene se crea ahí. No hay más permisos que los de esa hoja.
 //
 // Lo escrito se guarda solo cuando reparte justo lo contado, porque en la base las tallas de una prenda siempre suman su cantidad: mientras tanto espera aquí, y esta pantalla lo dice.
 
@@ -37,7 +29,6 @@ type Eje = { clave: string; texto: string };
 export function TallasDeLaPlaca({
   prenda,
   cargar,
-  tallasCategoria,
   coloresCatalogo,
   contadas,
   traerALaVista,
@@ -45,25 +36,24 @@ export function TallasDeLaPlaca({
   onCambiar,
   onDejarSuma,
   onCrear,
-  onCambiarPrenda,
+  conDanadas = false,
 }: {
   /** `null` mientras se leen sus tallas y colores. */
   prenda: PrendaRecepcion | null;
   /** Lee la prenda con sus tallas y colores. Responde `false` si no se pudo. */
   cargar: () => Promise<boolean>;
-  tallasCategoria: readonly TallaDeLaCategoria[];
   coloresCatalogo: readonly ColorAlta[];
   contadas: number;
-  /** Se acaba de pedir: la tabla sube a la vista y el cursor va a su primera celda. */
+  /** Al abrirse, el cursor va a su primera celda. */
   traerALaVista: boolean;
   borrador: BorradorTallas | null;
   onCambiar: (b: BorradorTallas) => void;
   /** «Corrige lo contado a N»: lo repartido manda. */
   onDejarSuma: (n: number) => void;
-  /** Lo que la prenda no tiene: se crea con la hoja de la prenda. */
+  /** «Agregar talla o color», o una casilla que la prenda no tiene: se abre la hoja completa de sus tallas y colores, con lo pedido ya marcado. */
   onCrear: (pedida: { tallaId?: string; colorCodigo?: string }) => void;
-  /** «Cambiar de prenda»: al repartir se vio que era otra. */
-  onCambiarPrenda: () => void;
+  /** Se abrió desde «Llegó dañada»: la parte de las dañadas llega abierta y a la vista. */
+  conDanadas?: boolean;
 }) {
   const [fallo, setFallo] = useState(false);
   const [intento, setIntento] = useState(0);
@@ -81,8 +71,7 @@ export function TallasDeLaPlaca({
 
   if (!prenda || !borrador) {
     return (
-      <div className="rc-seccion" data-guia="recepcion.tallas">
-        <p className="rc-seccion-titulo">Tallas y colores</p>
+      <div className="rc-reparto-tabla" data-guia="recepcion.tallas">
         {fallo ? (
           <Aviso tono="error" chico accion={<button type="button" className="btn-cayla btn-enlace" onClick={() => { setFallo(false); setIntento((n) => n + 1); }}>Reintentar</button>}>
             No se pudieron leer las tallas y colores de esta prenda.
@@ -93,12 +82,11 @@ export function TallasDeLaPlaca({
       </div>
     );
   }
-  return <Reparto prenda={prenda} tallasCategoria={tallasCategoria} coloresCatalogo={coloresCatalogo} contadas={contadas} traerALaVista={traerALaVista} borrador={borrador} onCambiar={onCambiar} onDejarSuma={onDejarSuma} onCrear={onCrear} onCambiarPrenda={onCambiarPrenda} />;
+  return <Reparto prenda={prenda} coloresCatalogo={coloresCatalogo} contadas={contadas} traerALaVista={traerALaVista} borrador={borrador} onCambiar={onCambiar} onDejarSuma={onDejarSuma} onCrear={onCrear} conDanadas={conDanadas} />;
 }
 
 function Reparto({
   prenda,
-  tallasCategoria,
   coloresCatalogo,
   contadas,
   traerALaVista,
@@ -106,10 +94,9 @@ function Reparto({
   onCambiar,
   onDejarSuma,
   onCrear,
-  onCambiarPrenda,
+  conDanadas,
 }: {
   prenda: PrendaRecepcion;
-  tallasCategoria: readonly TallaDeLaCategoria[];
   coloresCatalogo: readonly ColorAlta[];
   contadas: number;
   traerALaVista: boolean;
@@ -117,7 +104,7 @@ function Reparto({
   onCambiar: (b: BorradorTallas) => void;
   onDejarSuma: (n: number) => void;
   onCrear: (pedida: { tallaId?: string; colorCodigo?: string }) => void;
-  onCambiarPrenda: () => void;
+  conDanadas: boolean;
 }) {
   const raiz = useRef<HTMLDivElement>(null);
   const matriz = matrizDe(prenda, coloresCatalogo.map((c) => c.codigo));
@@ -128,30 +115,21 @@ function Reparto({
   const tallas: Eje[] = ordenarTallasVisibles(matriz, borrador.tallas).map((clave) => ({ clave, texto: matriz.tallas.find((t) => claveDeEje(t.id) === clave)?.texto ?? "" }));
   const visiblesColor = new Set(borrador.colores);
   const colores: Eje[] = matriz.colores.filter((c) => visiblesColor.has(claveDeEje(c.codigo))).map((c) => ({ clave: claveDeEje(c.codigo), texto: c.nombre }));
-  const porAgregarTalla = tallasPorAgregar(matriz, borrador.tallas, tallasCategoria);
-  const porAgregarColor = coloresPorAgregar(matriz, borrador.colores, coloresCatalogo);
 
-  // Se acaba de pedir: en la prueba ciega la tabla quedó bajo el borde y parecía que el botón no había hecho nada. Mueve solo la columna; en el teléfono, donde la columna no se desplaza, la página.
+  // Al abrirse la hoja, el cursor va a la primera celda, para escribir sin buscar dónde. Con el dedo no: abriría el teclado encima de la tabla antes de verla.
   useEffect(() => {
     const el = raiz.current;
     if (!traerALaVista || !el) return;
-    const caja = el.closest<HTMLElement>(".rc-scroll");
-    const suave: ScrollBehavior = document.hidden || prefiereQuieto() ? "auto" : "smooth";
-    const alto = el.getBoundingClientRect().top;
-    if (caja && caja.scrollHeight > caja.clientHeight) caja.scrollTo({ top: caja.scrollTop + alto - caja.getBoundingClientRect().top - 8, behavior: suave });
-    else window.scrollBy({ top: alto - 88, behavior: suave });
+    // Desde «Llegó dañada»: se abre esa parte y se trae a la vista; el cursor no va a la tabla de arriba.
+    if (conDanadas) {
+      if (!conteo.conDanadas) onCambiar({ ...borrador, conteo: { ...conteo, conDanadas: true } });
+      requestAnimationFrame(() => el.querySelector('[data-guia="recepcion.danadas-contar"]')?.scrollIntoView({ block: "nearest" }));
+      return;
+    }
     if (window.matchMedia("(pointer: fine)").matches) el.querySelector<HTMLInputElement>("input.rc-celda:not(:disabled)")?.focus({ preventScroll: true });
     // Una sola vez, al llegar la tabla.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
-  // El cursor va a la talla o al color que se acaba de sumar, para seguir escribiendo.
-  const cursor = useRef<string | null>(null);
-  useEffect(() => {
-    if (!cursor.current) return;
-    raiz.current?.querySelector<HTMLInputElement>(`input[${cursor.current}]:not(:disabled)`)?.focus();
-    cursor.current = null;
-  });
 
   function quitar(tipo: "talla" | "color", eje: Eje) {
     const r = tipo === "talla" ? quitarTalla(conteo, prenda, eje.clave) : quitarColor(conteo, prenda, eje.clave);
@@ -166,29 +144,14 @@ function Reparto({
     }
   }
 
-  function agregar(tipo: "talla" | "color", valor: string) {
-    const clave = valor.slice(2);
-    const lista = tipo === "talla" ? porAgregarTalla : porAgregarColor;
-    const elegida = lista.find((x) => x.clave === clave);
-    if (!elegida) return;
-    if (elegida.crear) return onCrear(tipo === "talla" ? { tallaId: clave } : { colorCodigo: clave });
-    onCambiar(tipo === "talla" ? { ...borrador, tallas: [...borrador.tallas, clave] } : { ...borrador, colores: [...borrador.colores, clave] });
-    cursor.current = `data-${tipo}="${CSS.escape(clave)}"`;
-  }
-
-  const opciones = (lista: readonly { clave: string; texto: string; crear: boolean }[], nombre: string) =>
-    lista.map((x) => ({ valor: `v:${x.clave}`, texto: x.texto, grupo: x.crear ? `${nombre} que se crean en la prenda` : `${nombre} de esta prenda` }));
-
   return (
-    <div ref={raiz} className="rc-seccion" data-guia="recepcion.tallas">
-      <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
-        <p className="rc-seccion-titulo">
-          Tallas y colores
+    <div ref={raiz} className="rc-reparto-tabla" data-guia="recepcion.tallas">
+      {/* Cómo va el reparto, arriba y a la vista mientras se escribe. «Es otra prenda» salió a la placa, junto a lo demás que puede pasar con la prenda. */}
+      <div className="rc-reparto-cabeza">
+        <p className="rc-matriz-total" data-tono={cuadra ? "verde" : "ambar"} aria-live="polite">
+          <b>{conMiles(s.contado)}</b> de {conMiles(contadas)} · {cuadre.texto}
           {!cuadra && <EtiquetaAhora />}
         </p>
-        <button type="button" className="btn-cayla btn-enlace" onClick={onCambiarPrenda}>
-          Cambiar de prenda
-        </button>
       </div>
 
       <TablaDeTallas
@@ -205,13 +168,13 @@ function Reparto({
       />
 
       <div className="rc-matriz-pie">
-        <span className="rc-matriz-botones">
-          {porAgregarColor.length > 0 && <Desplegable<string> forma="pildora" valor="" marcador="Agregar color" etiquetaAccesible="Agregar un color" opciones={opciones(porAgregarColor, "Colores")} onValor={(v) => agregar("color", v)} />}
-          {porAgregarTalla.length > 0 && <Desplegable<string> forma="pildora" valor="" marcador="Agregar talla" etiquetaAccesible="Agregar una talla" opciones={opciones(porAgregarTalla, "Tallas")} onValor={(v) => agregar("talla", v)} />}
-        </span>
-        <span className="rc-matriz-total" data-tono={cuadra ? "verde" : "ambar"} aria-live="polite">
-          {cuadre.texto} · <b>{conMiles(s.contado)}</b> de {conMiles(contadas)}
-        </span>
+        {/* Un botón, no dos combos: abre la hoja con todas las tallas y todos los colores a la vista. */}
+        <Boton type="button" peso="fantasma" onClick={() => onCrear({})}>
+          <span className="inline-flex items-center gap-2">
+            <Plus aria-hidden className="h-4 w-4 shrink-0" />
+            Agregar talla o color
+          </span>
+        </Boton>
       </div>
       {s.invalidas > 0 && <p className="text-sm text-ambar">Las cantidades son números enteros, de 0 a 9999.</p>}
       {(cuadre.estado === "faltan" || cuadre.estado === "sobran") && (

@@ -242,6 +242,29 @@ describe("repartir lo separado: cada prenda va a su línea y los números se aco
     expect(en("l-midi")?.nuevas).toEqual([{ cantidad: 2, descripcion: null }]);
   });
 
+  it("una prenda anotada solo por nombre y creada después en el catálogo va a la línea de ese nombre, no a la primera (2026-11-11)", () => {
+    // Camisas y Blusas: Corterreal 6, «Bl. indu» 5 y «bl. envolvente» 5. Las dos últimas se anotaron por nombre y se crearon al contar.
+    const corte = linea("l-corte", 6, { descripcion: "Corterreal", prendaElegida: { productoId: "p-corte", nombre: "Corterreal", codigo: "BLU-1" } });
+    const indu = linea("l-indu", 5, { descripcion: "Bl. indu" });
+    const envol = linea("l-envol", 5, { descripcion: "bl. envolvente" });
+    const grupo = agruparLineas([deLaGuia(corte, { contadas: 6 }), deLaGuia(indu, { contadas: 0 }), deLaGuia(envol, { contadas: 0 })])[0];
+    const r = repartirSeparado(
+      grupo,
+      { prendas: [sep("p-corte", "Corterreal", 6), sep("p-indu", "Bl. indu", 5), sep("p-envol", "Bl. Envolvente", 5)], nuevas: [] },
+      16,
+    );
+    expect(["l-corte", "l-indu", "l-envol"].map((id) => contadasDe(r, id))).toEqual([6, 5, 5]);
+    expect(r.cambios.find((c) => c.linea.linea?.id === "l-indu")?.separado.prendas.map((p) => p.productoId)).toEqual(["p-indu"]);
+    // Y al llevarla al stock, la línea que se le pasa a la base es la suya, aunque quien llama solo sepa el id de la prenda.
+    const yaSeparado = agruparLineas([
+      deLaGuia(corte, { contadas: 6 }),
+      deLaGuia(indu, { contadas: 5, separado: { prendas: [prendaSep("p-indu", "Bl. indu", 5)], nuevas: [] } }),
+      deLaGuia(envol, { contadas: 0 }),
+    ])[0];
+    expect(lineaDeLaPrenda(yaSeparado, { productoId: "p-indu" }).linea?.id).toBe("l-indu");
+    expect(lineaDeLaPrenda(grupo, { productoId: "p-envol", nombre: "BL. ENVOLVENTE" }).linea?.id).toBe("l-envol");
+  });
+
   it("lo que ya estaba separado en una línea se queda donde estaba, aunque otra la hubiera anotado", () => {
     const grupo = agruparLineas([
       deLaGuia(sofia(), { contadas: 5, separado: { prendas: [prendaSep("p-lima", "Vestido Lima", 2)], nuevas: [] } }),
