@@ -20,7 +20,7 @@ import { claveDe, type ClaveLinea, type ConteoDeLinea, type ConteosDelEnvio } fr
 //          servidor nadie anota: la memoria está vacía y no se comparte entre personas.
 //   NO HACE: no sabe lo que otra persona u otra pestaña guardó después de la lectura de la página, y no recuerda el estado del envío ni
 //            sus cierres: solo las líneas contadas. Eso llega pidiendo la página de nuevo cuando lo que se dibuja es una copia guardada
-//            (`esCopiaDeLaPagina`, la misma idea que el Conteo de inventario); mientras llega, y si no llega, vale lo recordado.
+//            (`lib/copia-de-pagina.ts`, la misma idea que el Conteo de inventario); mientras llega, y si no llega, vale lo recordado.
 
 const recordados = new Map<string, Map<ClaveLinea, ConteoDeLinea>>();
 
@@ -34,20 +34,6 @@ export function recordarConteos(despachoId: string, conteos: readonly ConteoDeLi
     if (!ya || c.version >= ya.version) delEnvio.set(clave, c);
   }
   recordados.set(despachoId, delEnvio);
-}
-
-const cargasDibujadas = new Set<string>();
-
-/**
- * ¿Esta carga de la página de un envío ya se dibujó en esta pestaña? Cada vez que el servidor arma la página le pone un identificador
- * nuevo; si llega uno repetido, lo que se está dibujando es la copia que guardó el router («atrás», o un enlace antes de 30 s) y hay que
- * pedirla de nuevo. La primera vez lo anota. Solo compara por igualdad: no depende del reloj del aparato.
- */
-export function esCopiaDeLaPagina(despachoId: string, carga: string): boolean {
-  const clave = `${despachoId}:${carga}`;
-  if (cargasDibujadas.has(clave)) return true;
-  cargasDibujadas.add(clave);
-  return false;
 }
 
 /** Lo que la pestaña recuerda de un envío, por clave de línea. Vacío si no guardó ni releyó nada de él desde que se cargó. */

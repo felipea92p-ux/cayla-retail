@@ -469,7 +469,7 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
   `app/estilos/traslados-guia.css`. El frente del pase que sale lleva `QrDeLaGuia.tsx` (`VistaPase.conGuia` = `llevaGuia`) y el reverso,
   «Guía». Sin RPC nueva.
   **Recibir (ADR-0239, sin cambios de regla):** `getTrasladoDetalle` (líneas por `fn_traslado_lineas`) → `ReversoPase` → `useRecepcion`:
-  conteo a ciegas con `leerConteo`; cada casilla se guarda sola en `registrar_recepcion_traslado` con `x-espera: no` (`crearColaEnSerie`);
+  conteo a ciegas con `leerConteo`; cada casilla se guarda sola en `registrar_recepcion_traslado` con `x-espera: no` (`crearColaEnSerie`; lo guardado lo recuerda la pestaña en `lib/recepcion-traslado-memoria.ts` y, si al volver con «atrás» se dibuja la copia del router, `useTrasladoAlDia` lo pone encima y pide la página de nuevo con `lib/copia-de-pagina.ts`, ADR-0239 act. 2026-11-11);
   escaneo `resolverEscaneo` (pistola o cámara: `EscanerConteo`), prenda de más; «Terminé de contar» compara; `confirmar_traslado(p_destino)`
   (piso o almacén, D-131); `cerrar_traslado_con_diferencia` (líder, con nota); `anular_traslado` (origen o líder, con motivo, responsable y
   token); «Avisar por WhatsApp» con `mensajeParaLaOtraSede`. **Quién recibe (ADR-0328):** en una terminal, `getFirmaRecepcion` → RPC

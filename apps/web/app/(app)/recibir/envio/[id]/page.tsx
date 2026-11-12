@@ -1,3 +1,4 @@
+import { idDeCarga } from "@/lib/copia-de-pagina";
 import { PackageX } from "lucide-react";
 import { puede, requirePersonaActualV2, veModulo } from "@/lib/persona-actual";
 import { getCatalogoParaRecibir, getDatosRecepcionEnvio } from "@/lib/recepcion-envio";
@@ -112,9 +113,4 @@ export default async function RecibirEnvioPage({ params }: { params: Promise<{ i
       veExistencias={veModulo(persona, "existencias")}
     />
   );
-}
-
-/** Un texto distinto por cada vez que el servidor arma esta página. Solo se compara por igualdad: no es una hora ni se lee. */
-function idDeCarga(): string {
-  return Date.now().toString(36);
 }

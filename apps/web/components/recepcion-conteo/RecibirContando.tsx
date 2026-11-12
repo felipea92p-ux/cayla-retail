@@ -30,7 +30,8 @@ import {
   mensajeAlGuardar,
 } from "@/lib/recepcion-conteo-reglas";
 import { agregarFotoPapel, guardarConteo, leerConteos } from "@/lib/recepcion-conteo-acciones";
-import { conLoMasNuevo, conteosRecordados, esCopiaDeLaPagina, recordarConteos } from "@/lib/recepcion-conteo-memoria";
+import { conLoMasNuevo, conteosRecordados, recordarConteos } from "@/lib/recepcion-conteo-memoria";
+import { anotarCarga } from "@/lib/copia-de-pagina";
 import { navegacionSinEspera } from "@/components/ui/Espera";
 import { subirFotoPapel } from "@/lib/compra-rapida-acciones";
 import { EmpezarARecibir } from "@/components/recepcion-envio/EmpezarARecibir";
@@ -150,7 +151,7 @@ export function RecibirContando({
   // loader. La misma idea que el Conteo de inventario (`ContarConteo`). Una carga que llega con la pantalla ya abierta (un refresco) solo se anota.
   const copiaRevisada = useRef(false);
   useEffect(() => {
-    const copia = esCopiaDeLaPagina(detalle.id, carga);
+    const copia = anotarCarga(`recibir:${detalle.id}`, carga);
     if (copiaRevisada.current) return;
     copiaRevisada.current = true;
     if (!copia) return;

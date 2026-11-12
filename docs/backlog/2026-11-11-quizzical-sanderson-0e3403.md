@@ -10,14 +10,16 @@
   - **C. La base no acepta un guardado hecho sobre una versión vieja** cuando el número cambió: devuelve lo que hay y la pantalla pregunta («Lucía puso 38 mientras tanto: ¿dejas 38 o pones tu 40?»). Ganas: el número mal guardado deja de poder ocurrir, venga de donde venga (principio 2). Pagas: cambia la decisión 9, lleva migración (`guardar_conteo_envio`) y una hoja nueva con su guía; cuando dos personas cuentan la misma línea, la segunda tiene un toque más. Recomendada si en una sede cuentan de a dos.
   - Descartada: mandar la diferencia (+1) en vez del número entero. Sirve para «Una más», pero no para un número escrito a mano, «Poner en cero» ni las tallas (`separado` es una lista entera).
 - [ ] `/chaos` sobre Recibir ▸ Contar con la familia «navegación torcida» (atrás, adelante, dos pestañas): este caso no estaba en el catálogo.
-- [ ] El identificador de carga (`idDeCarga`) y «si ya se dibujó, relee» están copiados en tres pantallas (Contar y Revisar del Conteo de inventario, y Recibir). Vale una pieza común cuando se arregle la siguiente.
+- [x] «¿Es una copia de la página?» es una pieza común (`apps/web/lib/copia-de-pagina.ts`: `idDeCarga`, `anotarCarga`, `cargaVistaEn`) que usan Contar y Traslados.
+- [ ] Contar y Revisar del Conteo de inventario tienen su propia versión (en `sessionStorage`, con su `idDeCarga` en cada página): pasarlas a la pieza común cuando se toquen.
 - [ ] De paso (no es de esta tarea): en la base local falta `retail.fn_invariantes_estado`; el Inicio lo dice en la consola del servidor en cada carga.
 
 ### Otras pantallas con el mismo patrón (buscadas leyendo el código; ninguna medida en el navegador ni arreglada)
 
 Mismo riesgo (guardan desde el navegador, no refrescan el router después, y lo que mandan sale de lo que leyó la página al entrar):
 
-- [ ] **Recibir un traslado** (`/inventario/traslados/[id]`): la más seria. `components/traslados-pases/useRecepcion.ts:129` guarda sola cada prenda contada (`registrar_recepcion_traslado`, con `x-espera: no`) y manda el número ENTERO; sin estado propio, el número sale de `cantidadRecibida`, que trajo la página (`lib/traslados-recepcion-reglas.ts:42`). No hay versión: gana el último. Al volver con «atrás», el siguiente «+» o el siguiente pistoletazo guarda viejo + 1. Lo recibido en un traslado entra al stock de la sede.
+- [x] **Recibir un traslado** (`/inventario/traslados/[id]`), ARREGLADO el 2026-11-11 con el OK de Felipe (ADR-0239 act. 2026-11-11): reproducido con la caja 294 (Blusa Emma M 1 → 2; tras «atrás», 1). La pestaña recuerda lo guardado (`lib/recepcion-traslado-memoria.ts`) y `useTrasladoAlDia` lo pone encima de una copia y pide la página de nuevo. Verificado en escritorio, con dos pestañas y a 375 px.
+- [ ] **Decisión de Felipe, como en Contar:** `registrar_recepcion_traslado` no recibe versión: dos personas contando la misma prenda a la vez siguen con «gana el último».
 - [ ] **Probador de la vitrina** (`/tienda-web/vitrina/probador`): `components/vitrina/ProbadorPrendaHoja.tsx:68` (largo en centímetros) y `LargosTipicosHoja.tsx:54`. Al volver, la hoja arranca con el largo viejo. No toca stock ni dinero.
 - [ ] **Mensaje predeterminado de pedidos web** (`/tienda-web/pedidos`): `EditarMensajePredeterminadoHoja.tsx:85`. Al volver, el editor arranca con el texto viejo.
 - [ ] **Cómo lo llama el proveedor** (`/productos/[id]/editar`): `components/ficha-producto/NombreDelProveedor.tsx:49`. Igual: texto viejo al volver.
