@@ -16,9 +16,9 @@
 - [ ] **Sin probar:** Safari (iPhone) y Firefox. La regla se midió solo en Chromium; el modo se devuelve fuera del `popstate` pensando en ellos.
 - [ ] **Queda en «manual» hasta que se la visita:** la entrada del formulario que se abandonó con la guardia puesta (se guardó y se navegó,
       «Salir sin guardar», una recarga). La primera vez que se vuelve a ella el navegador no le devuelve el scroll; ahí mismo vuelve a «auto».
-- [ ] **Cuando entre la rama de ADR-0645** (`claude/redesign-receiving-merchandise-6cbf2f`): quitar el efecto de
-      `components/recepcion-conteo/RecibirContando.tsx` que pone `scrollRestoration` en «manual». Ya no hace falta, y el candado de la prueba
-      («`history.scrollRestoration` solo se escribe en lib/salida-sin-guardar.ts») lo va a pedir. Volver a probar Recibir.
+- [x] **El parche local de Recibir, quitado** (la rama de ADR-0645 entró a `main` con el PR #1779 mientras se abría este): el efecto de
+      `components/recepcion-conteo/RecibirContando.tsx` que ponía `scrollRestoration` en «manual» ya no está, y el ADR-0645 lo dice.
+      Recibir ▸ Contar vuelto a medir sin él, en escritorio y a 375 px.
 - [ ] **CAYLA Dynamic:** `components/ui/useSalidaSinGuardar.tsx` cambió cómo funciona (y `lib/salida-sin-guardar.ts` ganó la regla). Allá es tarea.
 - [ ] **Hallazgo aparte, sin arreglar (no es de la guardia):** en Recibir ▸ Contar, contar 6, ir a otra pantalla y volver con «atrás» muestra 5
       (la pantalla guardada por el router), con 6 en la base; el siguiente «Una más» o «Una menos» guarda sobre el número viejo. Medido en local

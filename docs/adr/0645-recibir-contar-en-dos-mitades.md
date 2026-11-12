@@ -60,6 +60,8 @@ derecha el modelo que se cuenta. Llenan la ventana y cada una tiene su propio sc
     guardado pone y retira la guardia de «salir sin guardar», una entrada del historial que se quita con un «atrás»; con la restauración
     automática, ese «atrás» devolvía la página adonde estaba al tocar. Ya pasaba antes de esta obra, donde se desplaza la página (el
     celular, las mitades apiladas): quien tocaba «+» y bajaba antes de que guardara veía saltar la pantalla.
+    **Desde el mismo 2026-11-11 lo resuelve la guardia para todo el ERP** (`components/ui/useSalidaSinGuardar.tsx`, ADR-0528 act. 2026-11-11):
+    el efecto de `RecibirContando.tsx` se quitó, y la guardia es la única pieza que escribe ese modo.
 
 **Las hojas se diseñaron con Felipe al llegar a cada una en local**, no se portaron de la maqueta («no me convencen del todo»). Las que ya
 existían (agregar modelo, quitar, editar, la confirmación de llevar al stock) quedaron como estaban.
@@ -97,8 +99,9 @@ existían (agregar modelo, quitar, editar, la confirmación de llevar al stock) 
 - **Un paso de la guía del contador pide (`requiere`) un ancla de la lista:** en el celular la lista no está a la vista y el paso se salta.
   Los pasos del contador piden `CONTADOR_A_LA_VISTA`; los de la lista abren la hoja con `LISTA_DEL_CELULAR` (`lib/guias/pantallas/inventario.ts`).
 - **`--rc-mesa-arriba` deja de medirse** (`ContarEnvio.tsx`): las mitades toman 540 px o se salen de la ventana.
-- **Alguien quita el `scrollRestoration = "manual"` de `RecibirContando`:** vuelve el salto de la página al guardar, en el celular y
-  apiladas; y el cambio (a) deja de funcionar ahí, porque la página baja y a los 0,7 s vuelve.
+- **La guardia deja de cuidar el scroll** (`empujarGuardia` y `asentarScroll` de `useSalidaSinGuardar`, ADR-0528 act. 2026-11-11): vuelve el
+  salto de la página al guardar, en el celular y apiladas; y el cambio (a) deja de funcionar ahí, porque la página baja y a los 0,7 s
+  vuelve. Lo vigila `lib/salida-sin-guardar-scroll.test.ts`.
 - **Un botón nuevo de Contar se pone negro sin pasar por `botonPrincipal`:** vuelven a convivir dos.
 - **Se cambia el estilo de `.rc-modelo` sin mirar la lista angosta:** bajo 400 px un modelo agregado a mano necesita su tercera línea, o
   «10 contadas» se corta entre «No estaba anotada» y el tacho.
