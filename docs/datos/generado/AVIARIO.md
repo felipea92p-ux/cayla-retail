@@ -4,14 +4,14 @@
 > Para darle pájaro a una tabla se edita `scripts/datos/aviario.mjs`. Para apuntarte a un
 > pájaro, `docs/datos/07-GOBIERNO.md` §1: el pájaro es el puesto, quién lo lleva se dice allá.
 >
-> **Origen:** volcado de producción (`retail_columnas.json`) · **Tablas y vistas:** 324 · **Sin pájaro:** 0
+> **Origen:** volcado de producción (`retail_columnas.json`) · **Tablas y vistas:** 346 · **Sin pájaro:** 21
 
 ## Por pájaro
 
 | # | Pájaro | Módulo | Tablas |
 |---|---|---|---|
 | 01 | **Ganso** | Identidad y acceso | `acciones_sin_responsable` · `colaboradores` · `colaboradores_historial` · `colaboradores_suspendidos` · `guias_vistas` · `lider_modulos_ocultos` · `modulos` · `preferencias_colaborador` · `rol_canales` · `rol_modulos` · `roles` · `roles_historial` · `terminales` · `ubicaciones` |
-| 02 | **Loro** | Catálogo y vocabulario | `campana_disenos` · `campana_regla_categorias` · `campana_regla_historial` · `campana_regla_sedes` · `campana_reglas` · `campana_sedes` · `campana_web_disenos` · `campana_web_previas` · `catalogo_version` · `categoria_patrones` · `categoria_tallas` · `categoria_tejidos` · `categorias` · `codigos_barras` · `codigos_correlativos` · `colores` · `empresa_sedes` · `empresas` · `etiqueta_categorias` · `etiquetas` · `familias` · `foto_recortes` · `historial_producto_cambios` · `marca_proveedores` · `marcas` · `patrones` · `precios_sede` · `precios_sede_prenda` · `precios_sede_variante` · `producto_color_temporadas` · `producto_fotos` · `producto_origen` · `productos` · `tallas` · `tejidos` · `temporada_fechas` · `temporadas` · `variante_etiquetas` · `variantes` · `vitrina_largos_tipicos` · `vitrina_look_piezas` · `vitrina_looks` · `vitrina_productos` |
+| 02 | **Loro** | Catálogo y vocabulario | `campana_disenos` · `campana_regla_categorias` · `campana_regla_historial` · `campana_regla_sedes` · `campana_reglas` · `campana_sedes` · `campana_web_disenos` · `campana_web_previas` · `catalogo_version` · `categoria_patrones` · `categoria_tallas` · `categoria_tejidos` · `categorias` · `codigos_barras` · `codigos_correlativos` · `colores` · `empresa_sedes` · `empresas` · `etiqueta_categorias` · `etiquetas` · `familias` · `foto_recortes` · `historial_producto_cambios` · `marca_proveedores` · `marcas` · `patrones` · `precios_sede` · `precios_sede_prenda` · `precios_sede_variante` · `producto_color_temporadas` · `producto_fotos` · `producto_fusiones` · `producto_origen` · `productos` · `tallas` · `tejidos` · `temporada_fechas` · `temporadas` · `variante_etiquetas` · `variantes` · `vitrina_largos_tipicos` · `vitrina_look_piezas` · `vitrina_looks` · `vitrina_productos` |
 | 03 | **Tucán** | Taxonomía universal | *sin tablas hoy* |
 | 04 | **Golondrina** | Importación de catálogo | *sin tablas hoy* |
 | 05 | **Halcón** | Inventario y movimientos | `ajustes_inventario_intentos` · `bajada_piso_items` · `bajadas_en_mano` · `bajadas_piso` · `capacidad_piso` · `categoria_grupo_mix` · `costo_correcciones` · `costo_historial` · `cuadre_piso_items` · `cuadres_piso` · `despacho_cierres` · `despacho_conteos` · `despacho_items` · `despacho_observaciones` · `despacho_pendientes` · `despacho_recibidos` · `despacho_salidas` · `despacho_separaciones` · `despachos` · `despachos_sin_aviso` · `envio_extras` · `envio_traslados` · `envios` · `espacio_piso` · `frescura_decisiones` · `frescura_vara_cayla` · `grupos_mix` · `lotes` · `movimientos` · `movimientos_internos_intentos` · `parametros_analisis` · `prendas_danadas` · `prendas_danadas_fotos` · `prendas_para_enviar` · `prendas_para_enviar_salidas` · `stock` · `stock_dueno` · `sububicaciones` · `transferencia_items` · `transferencia_recepciones` · `transferencias` · `traslado_sobrantes` |
@@ -46,6 +46,9 @@ Tienes un nombre de tabla, quieres el pájaro.
 | `bajada_piso_items` | 05 · Halcón |
 | `bajadas_en_mano` | 05 · Halcón |
 | `bajadas_piso` | 05 · Halcón |
+| `banco_cargas` | ⚠️ **sin pájaro** |
+| `banco_cortes` | ⚠️ **sin pájaro** |
+| `banco_lineas` | ⚠️ **sin pájaro** |
 | `caja_movimientos` | 07 · Colibrí |
 | `caja_traslados` | 07 · Colibrí |
 | `cajas` | 07 · Colibrí |
@@ -111,6 +114,7 @@ Tienes un nombre de tabla, quieres el pájaro.
 | `compra_notas_proveedor` | 09 · Pelícano |
 | `compra_notas_proveedor_documentos` | 09 · Pelícano |
 | `compra_pagos` | 09 · Pelícano |
+| `compra_papel_llegadas` | ⚠️ **sin pájaro** |
 | `compra_papeles` | 09 · Pelícano |
 | `compra_parte_por_tienda` | 09 · Pelícano |
 | `compra_reasignaciones` | 09 · Pelícano |
@@ -160,7 +164,12 @@ Tienes un nombre de tabla, quieres el pájaro.
 | `devolucion_items` | 07 · Colibrí |
 | `devoluciones` | 07 · Colibrí |
 | `diario_cerrado` | 12 · Urraca |
+| `diario_foto_lineas` | ⚠️ **sin pájaro** |
+| `diario_fotos` | ⚠️ **sin pájaro** |
+| `diario_fuentes_exentas` | ⚠️ **sin pájaro** |
+| `diario_vencido_marcas` | ⚠️ **sin pájaro** |
 | `dinero_revisados` | 11 · Garza |
+| `documentos_anulados` | ⚠️ **sin pájaro** |
 | `egresos_no_gasto` | 11 · Garza |
 | `empresa_sedes` | 02 · Loro |
 | `empresas` | 02 · Loro |
@@ -178,6 +187,7 @@ Tienes un nombre de tabla, quieres el pájaro.
 | `frescura_decisiones` | 05 · Halcón |
 | `frescura_vara_cayla` | 05 · Halcón |
 | `gasto_correcciones` | 11 · Garza |
+| `gasto_papeles_tardios` | ⚠️ **sin pájaro** |
 | `gasto_reparto_claure` | 11 · Garza |
 | `gasto_viaje_fotos` | 11 · Garza |
 | `gastos` | 11 · Garza |
@@ -193,10 +203,14 @@ Tienes un nombre de tabla, quieres el pájaro.
 | `guias_vistas` | 01 · Ganso |
 | `historial_producto_cambios` | 02 · Loro |
 | `huellas_llave` | 14 · Gorrión |
+| `impuestos_pagos` | ⚠️ **sin pájaro** |
 | `insumo_lote_cambios` | 10 · Gallito |
 | `insumo_lotes` | 10 · Gallito |
 | `insumos` | 10 · Gallito |
 | `intentos_con_token` | 07 · Colibrí |
+| `invariantes` | ⚠️ **sin pájaro** |
+| `invariantes_conocidas` | ⚠️ **sin pájaro** |
+| `invariantes_corridas` | ⚠️ **sin pájaro** |
 | `lider_modulos_ocultos` | 01 · Ganso |
 | `look_web_piezas` | 07 · Colibrí |
 | `looks_web` | 07 · Colibrí |
@@ -234,6 +248,7 @@ Tienes un nombre de tabla, quieres el pájaro.
 | `pedidos_web_push_aparatos` | 07 · Colibrí |
 | `pedidos_web_push_envios` | 07 · Colibrí |
 | `periodo_cierres` | 12 · Urraca |
+| `periodo_igv` | ⚠️ **sin pájaro** |
 | `periodos` | 12 · Urraca |
 | `piezas_liquidacion` | 07 · Colibrí |
 | `piezas_liquidacion_etiquetas` | 07 · Colibrí |
@@ -246,12 +261,16 @@ Tienes un nombre de tabla, quieres el pájaro.
 | `planes_compra_reparto` | 09 · Pelícano |
 | `planes_compra_versiones` | 09 · Pelícano |
 | `planilla_cuentas` | 11 · Garza |
+| `planilla_pagos_concepto` | ⚠️ **sin pájaro** |
 | `planilla_por_sede` | 11 · Garza |
 | `planilla_salidas` | 11 · Garza |
+| `pos_abonos_estimados` | ⚠️ **sin pájaro** |
 | `pos_abonos_lotes` | 11 · Garza |
+| `pos_abonos_pagos` | ⚠️ **sin pájaro** |
 | `pos_maquinas` | 11 · Garza |
 | `pos_maquinas_sedes` | 11 · Garza |
 | `pos_tarifas` | 11 · Garza |
+| `precio_propuestas` | ⚠️ **sin pájaro** |
 | `precios_sede` | 02 · Loro |
 | `precios_sede_prenda` | 02 · Loro |
 | `precios_sede_variante` | 02 · Loro |
@@ -282,6 +301,7 @@ Tienes un nombre de tabla, quieres el pájaro.
 | `producto_consumo_medido` | 10 · Gallito |
 | `producto_consumos` | 10 · Gallito |
 | `producto_fotos` | 02 · Loro |
+| `producto_fusiones` | 02 · Loro |
 | `producto_origen` | 02 · Loro |
 | `producto_procesos` | 10 · Gallito |
 | `producto_taller` | 10 · Gallito |
@@ -345,8 +365,10 @@ Tienes un nombre de tabla, quieres el pájaro.
 | `v_insumo_saldos` | 10 · Gallito |
 | `variante_etiquetas` | 02 · Loro |
 | `variantes` | 02 · Loro |
+| `variantes_nacidas_al_recibir` | ⚠️ **sin pájaro** |
 | `venta_anulacion_items` | 07 · Colibrí |
 | `venta_items` | 07 · Colibrí |
+| `venta_items_costo_respaldo` | ⚠️ **sin pájaro** |
 | `venta_pagos` | 07 · Colibrí |
 | `venta_pagos_correcciones` | 07 · Colibrí |
 | `ventas` | 07 · Colibrí |
@@ -355,3 +377,29 @@ Tienes un nombre de tabla, quieres el pájaro.
 | `vitrina_look_piezas` | 02 · Loro |
 | `vitrina_looks` | 02 · Loro |
 | `vitrina_productos` | 02 · Loro |
+
+## ⚠️ Sin pájaro
+
+Existen en producción y nadie responde por ellas. Se les da pájaro en `scripts/datos/aviario.mjs`.
+
+- `banco_cargas`
+- `banco_cortes`
+- `banco_lineas`
+- `compra_papel_llegadas`
+- `diario_foto_lineas`
+- `diario_fotos`
+- `diario_fuentes_exentas`
+- `diario_vencido_marcas`
+- `documentos_anulados`
+- `gasto_papeles_tardios`
+- `impuestos_pagos`
+- `invariantes`
+- `invariantes_conocidas`
+- `invariantes_corridas`
+- `periodo_igv`
+- `planilla_pagos_concepto`
+- `pos_abonos_estimados`
+- `pos_abonos_pagos`
+- `precio_propuestas`
+- `variantes_nacidas_al_recibir`
+- `venta_items_costo_respaldo`

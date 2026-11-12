@@ -54,7 +54,7 @@ export const AVIARIO = [
       "preferencias_colaborador"] },
   { n: "02", pajaro: "Loro", modulo: "Catálogo y vocabulario",
     tablas: [
-      "productos", "variantes", "precios_sede", "categorias", "familias", "producto_fotos", "historial_producto_cambios",
+      "productos", "variantes", "precios_sede", "categorias", "familias", "producto_fotos", "historial_producto_cambios", "producto_fusiones",
       // ADR-0370: el precio propio de una tienda es de la PRENDA, uno por prenda y tienda (`precios_sede` por variante quedó como historia).
       // Está en producción desde el 2026-10-11 (20261011100000-100300). Refresco del volcado del 2026-10-11.
       "precios_sede_prenda",

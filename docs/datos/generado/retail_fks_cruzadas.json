@@ -55,6 +55,21 @@
   "src_table": "bajadas_piso"
  },
  {
+  "conname": "banco_cargas_subido_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "banco_cargas"
+ },
+ {
+  "conname": "banco_cortes_anulado_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "banco_cortes"
+ },
+ {
+  "conname": "banco_cortes_registrado_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "banco_cortes"
+ },
+ {
   "conname": "caja_movimientos_usuario_id_fkey",
   "ref_table": "public.personas",
   "src_table": "caja_movimientos"
@@ -288,6 +303,11 @@
   "conname": "compra_pagos_usuario_id_fkey",
   "ref_table": "public.personas",
   "src_table": "compra_pagos"
+ },
+ {
+  "conname": "compra_papel_llegadas_unido_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "compra_papel_llegadas"
  },
  {
   "conname": "compra_papeles_persona_id_fkey",
@@ -655,6 +675,11 @@
   "src_table": "insumos"
  },
  {
+  "conname": "invariantes_conocidas_aceptada_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "invariantes_conocidas"
+ },
+ {
   "conname": "lotes_recibido_por_fkey",
   "ref_table": "public.personas",
   "src_table": "lotes"
@@ -960,6 +985,16 @@
   "src_table": "pos_tarifas"
  },
  {
+  "conname": "precio_propuestas_aplicada_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "precio_propuestas"
+ },
+ {
+  "conname": "precio_propuestas_persona_id_fkey",
+  "ref_table": "public.personas",
+  "src_table": "precio_propuestas"
+ },
+ {
   "conname": "precios_sede_archivado_por_fkey",
   "ref_table": "public.personas",
   "src_table": "precios_sede"
@@ -993,6 +1028,11 @@
   "conname": "preferencias_colaborador_persona_id_fkey",
   "ref_table": "public.personas",
   "src_table": "preferencias_colaborador"
+ },
+ {
+  "conname": "prendas_danadas_corregida_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "prendas_danadas"
  },
  {
   "conname": "prendas_danadas_resuelto_por_fkey",
@@ -1088,6 +1128,11 @@
   "conname": "producto_consumos_actualizado_por_fkey",
   "ref_table": "public.personas",
   "src_table": "producto_consumos"
+ },
+ {
+  "conname": "producto_fusiones_fusionada_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "producto_fusiones"
  },
  {
   "conname": "producto_origen_persona_id_fkey",

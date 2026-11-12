@@ -4,8 +4,7 @@ Felipe (2026-11-12): «hay productos duplicados ya creados; en vez de borrar el 
 solo sin perder los datos de venta, las fotos ni el stock ya ingresado». Es la «Fase 5» que dejaron pendiente
 ADR-0294 y `docs/investigacion/2026-09-29-duplicados-de-producto.md` («con el molde de `unir_clientas`»).
 
-**Estado:** las 8 actividades construidas y probadas en una base local aislada (ADR-0650). **Las migraciones `20261112204000`, `205000`,
-`210000`, `211000` y `212000` NO están en producción**: esperan el OK de Felipe, en ese orden.
+**Estado:** las 8 actividades construidas y probadas (ADR-0650). **Las cinco migraciones están EN PRODUCCIÓN desde el 2026-11-12** (OK de Felipe), y el diccionario de datos ya se refrescó.
 
 ## Las 15 decisiones de Felipe
 
@@ -61,7 +60,7 @@ ADR-0294 y `docs/investigacion/2026-09-29-duplicados-de-producto.md` («con el m
 
 ## Pendiente
 
-- [ ] Pegar las cinco migraciones en producción, en orden (OK de Felipe) y `pnpm datos:generar:produccion`.
+- [x] Pegar las cinco migraciones en producción, en orden (OK de Felipe, 2026-11-12) y refrescar el diccionario (`datos:refrescar`).
 - [ ] Probar «Fusionar» con un par real: la capa registrada como blusa.
 - [ ] «Esta no es repetida» para sacar un par de la lista de sugeridas (si las falsas molestan).
 - [ ] Que Eliminar diga «se fusionó con otra ficha» en vez del error de la llave (`fn_producto_historia`).

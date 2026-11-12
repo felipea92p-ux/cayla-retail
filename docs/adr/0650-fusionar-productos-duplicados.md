@@ -1,7 +1,9 @@
 # ADR-0650 — Fusionar productos duplicados sin perder ventas, fotos ni stock
 
-- **Fecha:** 2026-11-12 · **Estado:** construido en la rama `claude/merge-duplicate-products-09f938`. Cuatro migraciones (`20261112204000`, `205000`,
-  `210000`, `211000`) y una más de lectura (`212000`), **ninguna en producción**: esperan el OK de Felipe.
+- **Fecha:** 2026-11-12 · **Estado:** construido en la rama `claude/merge-duplicate-products-09f938` (PR #1794). Las cinco migraciones (`20261112204000`,
+  `205000`, `210000`, `211000`, `212000`) **están en producción desde el 2026-11-12**, con el OK de Felipe: aplicadas en orden por el CLI de Supabase
+  (`supabase db query --linked`), cada una en su transacción, tras un ensayo de las cinco con `rollback`; la huella de las siete funciones es igual a la de la
+  base de prueba. Producción tenía 8 pares de posibles repetidas al aplicarlas.
 - **Nace de:** Felipe (2026-11-12): «hay productos duplicados ya creados; en vez de borrar el stock, que se puedan fusionar en uno solo para ahorrar
   trabajo y no perder los datos de venta ni las fotos, ni el stock ya ingresado». Caso real: una capa de dos piezas se registró como blusa.
 - **Relacionados:** ADR-0294 y `docs/investigacion/2026-09-29-duplicados-de-producto.md` (dejaron la fusión como «Fase 5», con el molde de
@@ -77,7 +79,5 @@ DECIDÍ:
 
 ## Pendiente
 
-- **Producción:** pegar `20261112204000` → `205000` → `210000` → `211000` → `212000`, en ese orden (solo funciones, columnas e índices; sin políticas), con
-  el OK de Felipe; después `pnpm datos:generar:produccion`.
 - «Esta no es repetida»: hoy un par sugerido que no es la misma prenda sigue en la lista. Si molesta, una tabla de pares descartados.
 - Que Eliminar diga «se fusionó con otra ficha» en vez del error de la llave (`fn_producto_historia`), como los otros pendientes de su prueba.
