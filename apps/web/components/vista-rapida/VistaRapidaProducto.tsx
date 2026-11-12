@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { History, Info, PauseCircle, Pencil, PlayCircle, SignpostBig, Trash2, Tag } from "lucide-react";
+import { History, Info, PauseCircle, Pencil, PlayCircle, SignpostBig, Trash2, Tag, Merge } from "lucide-react";
 import { Modal } from "@/components/ui/Modal";
 import { Chip } from "@/components/ui/Chip";
 import { EnlaceEtiquetas } from "@/components/EnlaceEtiquetas";
@@ -80,6 +80,7 @@ export function VistaRapidaProducto({
   puedeEliminar,
   onEliminar,
   onCambiarEstado,
+  onFusionar,
   preciosAqui,
   campanasHoy,
   colores = SIN_COLORES,
@@ -117,6 +118,8 @@ export function VistaRapidaProducto({
   /** «Desactivar» (activa) o «Reactivar» (descontinuada): abre la hoja que cambia el estado de la prenda. Quien lo ve es quien edita el
    *  catálogo (`puedeEditar`, el mismo permiso de `cambiar_estado_productos`). Debe cerrar ESTA hoja y abrir la otra. */
   onCambiarEstado: () => void;
+  /** «Fusionar» (ADR-0650): abre la hoja que junta esta ficha con otra de la misma prenda. Quien edita el catálogo. Debe cerrar ESTA hoja. */
+  onFusionar?: () => void;
 }) {
   const pantalla = usePantallaActual();
   const mapa = stock && stock !== "error" ? stock : null;
@@ -395,6 +398,14 @@ export function VistaRapidaProducto({
             <BotonVer href={hrefExistencias} className="min-h-10 text-sm">
               Ver en Existencias
             </BotonVer>
+          )}
+          {/* ADR-0650: esta ficha y otra de la misma prenda pasan a ser una sola, sin perder ventas, fotos ni stock. Antes de «Eliminar»:
+              para una ficha repetida, fusionar es lo que conviene (borrar perdería su historia). */}
+          {puedeEditar && onFusionar && (
+            <button type="button" onClick={onFusionar} className={BOTON} data-guia="vista-rapida.fusionar">
+              <Merge aria-hidden className="h-4 w-4" />
+              Fusionar
+            </button>
           )}
           {/* Quien edita el catálogo. Abre una ventana que pregunta a la base qué se puede borrar; con ventas, compras o traslados explica por
               qué no y ofrece desactivarla (el botón «Desactivar» del encabezado hace lo mismo sin pasar por aquí). */}

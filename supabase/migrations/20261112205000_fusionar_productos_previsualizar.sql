@@ -183,7 +183,9 @@ begin
                    else 'junta'
                  end,
          con_variante_id = case when f.producto_id <> p_queda and not f.fusionada and f.con_variante_id <> f.variante_id
-                                then f.con_variante_id end;
+                                then f.con_variante_id end
+   -- Toda la tabla, pero con WHERE: la API de Supabase carga `safeupdate`, que rechaza un UPDATE sin WHERE.
+   where f.variante_id is not null;
 
   -- Lo que está en curso sobre una variante que se JUNTA no tiene a dónde ir: se cierra antes.
   for r in

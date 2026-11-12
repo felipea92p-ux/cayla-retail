@@ -397,6 +397,12 @@ select pg_temp.huella(:'va');`);
     // a `productos` (sin cascada) frena el borrado de una prenda que tuvo una propuesta. Pendiente aparte, como `trafico_web`: que Catálogo lo
     // diga con su mensaje («tuvo una propuesta de precio») en vez del error de la llave, con su renglón en `fn_producto_historia`.
     "precio_propuestas",
+    // ADR-0650: el rastro de una fusión de productos duplicados (`producto_fusiones`) y la marca del duplicado que apunta al que quedó
+    // (`productos.fusionado_en_id`). Es historia: una ficha que absorbió a otra lleva sus ventas y su stock, y la fusionada es la evidencia
+    // para reconstruirla a mano; sus llaves (sin cascada) frenan el borrado. Pendiente aparte, como `trafico_web`: que Catálogo lo diga con
+    // su mensaje («se fusionó con otra ficha») en vez del error de la llave, con su renglón en `fn_producto_historia`.
+    "producto_fusiones",
+    "productos",
   ];
   // Las cuenta su tabla madre: una línea de producción cuelga de una orden del MISMO producto; una recepción de traslado, de
   // una línea de traslado de la misma prenda.

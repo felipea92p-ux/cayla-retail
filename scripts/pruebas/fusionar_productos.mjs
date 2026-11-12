@@ -19,15 +19,19 @@
  */
 
 import { execFileSync } from "node:child_process";
+import { readFileSync } from "node:fs";
 
 const CONTENEDOR_LOCAL = process.env.RETAIL_CONTENEDOR_PG ?? "supabase_db_cayla-retail";
 const FELIPE = "22222222-2222-4222-8222-000000000001"; // líder (y Admin en el seed)
 const MICAELA = "22222222-2222-4222-8222-000000000003"; // integrante
-const EMMA = "78a48ab9-2fae-4d52-96e9-d06d821d9fbe"; // Blusa Emma: NEG y BEI en S, M, L
-const VALENTINA = "7b6c682a-f535-423c-8776-345abd87f33f"; // Blusa Valentina: BLA y ROS en S, M, L
 const CENTINELA = "11111111-1111-4111-8111-111111111111";
-const TRUJILLO = "61412823-3060-4440-8ce6-467a16f0539e";
-const LIMA = "fec73582-5ef7-4eea-ac09-9590f46bcb38";
+
+/** Un id del seed por su nombre: el seed los crea al azar en cada base, así que no se escriben a mano. */
+function idDe(sql) {
+  const id = psql(sql).trim();
+  if (!/^[0-9a-f-]{36}$/.test(id)) throw new Error(`No encontré en la base local: ${sql}`);
+  return id;
+}
 
 function psql(sql) {
   return execFileSync(
@@ -49,6 +53,10 @@ set local request.jwt.claims = '{"sub":"${id}","role":"authenticated"}';
 set local role authenticated;
 `;
 const COMO_POSTGRES = "reset role;\n";
+const EMMA = idDe("select id from retail.productos where referencia = 'Blusa Emma'"); // NEG y BEI en S, M, L
+const VALENTINA = idDe("select id from retail.productos where referencia = 'Blusa Valentina'"); // BLA y ROS en S, M, L
+const TRUJILLO = idDe("select id from retail.ubicaciones where nombre = 'Tienda Trujillo'");
+const LIMA = idDe("select id from retail.ubicaciones where nombre = 'Tienda Lima'");
 
 const AYUDAS = `
 create function pg_temp.intento(p_sql text) returns text language plpgsql as $f$
@@ -579,6 +587,17 @@ caso("21 · DERIVA: toda llave a productos y a variantes tiene su trato al fusio
     if (!lista[llave]) sin.push(`${llave} → ${destino}`);
   }
   return sin.length ? `Sin trato al fusionar:\n${sin.join("\n")}` : null;
+});
+
+caso("23 · ningún UPDATE ni DELETE sin WHERE en las funciones de la fusión (la API carga `safeupdate` y lo rechaza; psql no)", () => {
+  const sin = [];
+  for (const archivo of ["20261112205000_fusionar_productos_previsualizar.sql", "20261112210000_fusionar_productos.sql"]) {
+    const sql = readFileSync(new URL(`../../supabase/migrations/${archivo}`, import.meta.url), "utf8").replace(/--[^\n]*/g, "");
+    for (const m of sql.matchAll(/\b(update|delete from)\s+(retail|pg_temp)\.[\s\S]*?;/gi)) {
+      if (!/\bwhere\b/i.test(m[0])) sin.push(`${archivo}: ${m[0].replace(/\s+/g, " ").slice(0, 90)}`);
+    }
+  }
+  return sin.length ? sin.join("\n") : null;
 });
 
 // ---------------------------------------------------------------------------------------------- correr

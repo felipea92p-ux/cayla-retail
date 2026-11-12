@@ -5,6 +5,7 @@ import { Chip } from "@/components/ui/Chip";
 import { InsigniaEmpresa } from "@/components/InsigniaEmpresa";
 import { EliminarProductoModal } from "@/components/EliminarProductoModal";
 import { CambiarEstadoProductosHoja } from "@/components/CambiarEstadoProductosHoja";
+import { FusionarProductosHoja } from "@/components/fusionar-productos/FusionarProductosHoja";
 import { destinoDelBoton, type EstadoProducto } from "@/lib/cambiar-estado-productos-reglas";
 import type { ProductoListado } from "@/lib/catalogo-v2";
 import { colorPrincipal, coloresDe, variantesQueSeVenden } from "@/lib/productos-vista";
@@ -185,6 +186,8 @@ function TarjetaProducto({
   const [colorHover, setColorHover] = useState<string | null>(null);
   const [vistaRapida, setVistaRapida] = useState(false);
   const [eliminando, setEliminando] = useState(false);
+  // ADR-0650: la hoja «Fusionar productos repetidos», abierta desde la vista rápida con esta ficha.
+  const [fusionando, setFusionando] = useState(false);
   // A qué estado va la hoja, FIJADO al abrirla: si otra persona cambia esta prenda con la hoja abierta (la pantalla se refresca sola, ADR-0363),
   // el destino no se da vuelta bajo el dedo; la hoja solo dice «Ya está…: queda igual» y no deja confirmar.
   const [cambiandoEstado, setCambiandoEstado] = useState<EstadoProducto | null>(null);
@@ -336,6 +339,16 @@ function TarjetaProducto({
             setVistaRapida(false);
             setCambiandoEstado(destinoDelBoton(producto.estado));
           }}
+          onFusionar={() => {
+            setVistaRapida(false);
+            setFusionando(true);
+          }}
+        />
+      )}
+      {fusionando && (
+        <FusionarProductosHoja
+          inicial={[{ productoId: producto.productoId, referencia: producto.referencia }]}
+          onClose={() => setFusionando(false)}
         />
       )}
       {eliminando && (

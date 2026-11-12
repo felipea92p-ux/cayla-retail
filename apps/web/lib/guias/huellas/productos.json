@@ -2,7 +2,7 @@
   "guia": "productos",
   "ruta": "/productos",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 94,
+  "total": 104,
   "controles": {
     "app/(app)/productos/page.tsx": [
       "Link «Existencias»",
@@ -82,6 +82,7 @@
       "button «Eliminar»",
       "button «Descontinuar»",
       "button «Reactivar»",
+      "button «{n < 2 ? \"Marca dos o más fichas de la misma prenda\" : undefined}»",
       "Link «Rótulo»",
       "button «Quitar la marca»"
     ],
@@ -91,6 +92,16 @@
     "components/ficha-producto/RecordatorioEtiquetas.tsx": [
       "BotonImprimir «Imprimir etiquetas»",
       "button «Descartar el aviso de etiquetas pendientes»"
+    ],
+    "components/fusionar-productos/FusionarProductosHoja.tsx": [
+      "button «{`Quitar «${nombre}»",
+      "button «f.esPrincipal)?.url ?? p.fotos[0]?.url ?? null»",
+      "Casilla «{`Quedarse con esta foto de ${de?.referencia ?? \"la prenda\"}»",
+      "ComboResponsable «{responsable}»",
+      "Boton «Cancelar»",
+      "Boton «{responsable.motivo ?? undefined}»",
+      "button «{o.valor}»",
+      "button «{p.referencia}»"
     ],
     "components/historial-prenda/CorregirCostoModal.tsx": [
       "CampoMonto «{guia.etiqueta(\"costo\", \"Costo correcto de lo que llegó\")}»",
@@ -132,6 +143,7 @@
       "Link «Rótulo»",
       "button «vista-rapida.historial»",
       "BotonVer «Ver en Existencias»",
+      "button «vista-rapida.fusionar»",
       "button «Eliminar»"
     ]
   }
