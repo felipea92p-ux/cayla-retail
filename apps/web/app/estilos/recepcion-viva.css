@@ -222,10 +222,3 @@
 @container (max-width: 759px) { .rc-cierre-detalle { padding-left: 20px; } }
 .rc-cierre-pie { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 4px 16px; padding: 10px 20px;
   background: color-mix(in srgb, var(--color-hueso) 30%, transparent); }
-.rc-cierre-falta { display: flex; width: 100%; align-items: center; justify-content: space-between; gap: 8px; min-height: 40px; padding: 8px 12px; text-align: left;
-  border: 1px solid color-mix(in srgb, var(--color-ambar) 45%, transparent); border-radius: 14px; background: color-mix(in srgb, var(--color-ambar) 9%, transparent);
-  color: var(--color-tinta); font-size: 14px; font-weight: 500; transition: background-color 200ms var(--ease-cayla); }
-@media (hover: hover) {
-  .rc-cierre-falta:hover { background: color-mix(in srgb, var(--color-ambar) 16%, transparent); }
-}
-.rc-cierre-falta:focus-visible { outline: 2px solid var(--color-tinta); outline-offset: 2px; }

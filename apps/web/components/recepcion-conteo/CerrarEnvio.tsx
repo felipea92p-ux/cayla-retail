@@ -18,6 +18,8 @@ import { BaldosaCategoria } from "./piezas";
 import { PrendaConCombinaciones } from "./PrendaConCombinaciones";
 import { ConfirmarPrecios } from "./ConfirmarPrecios";
 import { TituloSeccion } from "@/components/ui/TituloSeccion";
+import { TarjetaCifra } from "@/components/ui/TarjetaCifra";
+import { Ayuda } from "@/components/Ayuda";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { AvisoCostoAtipico } from "@/components/AvisoCostoAtipico";
 import { CampoGuiado, PieGuia } from "@/components/guia-de-foco/CampoGuiado";
@@ -37,7 +39,7 @@ import { hayQueElegirDueno } from "@/lib/dueno-reglas";
 import { soles } from "@/lib/compras-reglas";
 import { useEmpresasDeSede } from "@/lib/useEmpresasDeSede";
 import { DuenoDeLoQueEntra } from "./DuenoDeLoQueEntra";
-import { agruparLineasDelCierre, camposDelCierrePorGrupo, nombreDelGrupoDelCierre, causasDelGrupo, filasDelCierre, lineaDeLaPrenda, lineaDelGrupo, textoDeLasPlegadas, type GrupoDeLineas } from "@/lib/recepcion-grupos-reglas";
+import { agruparLineasDelCierre, camposDelCierrePorGrupo, nombreDelGrupoDelCierre, causasDelGrupo, filasDelCierre, lineaDeLaPrenda, lineaDelGrupo, textoDeLasPlegadas, textoDeLoQueFalta, type GrupoDeLineas } from "@/lib/recepcion-grupos-reglas";
 import { pideRevisarAlRecibir, precioUnicoAlCerrar, textoRevisarAlRecibir } from "@/lib/precio-propuesto-reglas";
 import { borrarBorradorDelCierre, conCostosDecididos, conLoDecidido, costosCambiados, costosDeCombinacionCambiados, decisionCambiada, type FotoDelCierre, guardarBorradorDelCierre, leerBorradorDelCierre } from "@/lib/recepcion-cierre-borrador";
 import { type PrendaConCosto, lineasSinModelosEnCero, modelosEnCeroDe, textoModelosEnCero, avisoDePrecioRechazado, type CambioDePrecio, cambioDePrecioDeCompra, camposDelCierre, conCostoDeHoy, contadasDe, costoComoTexto, costoDePrendaTexto, esRegaloFuera, filasDeCostoEnStock, textoCostoEnStock, costosDePrendaConProblema, type CostosDePrendas, costoDelGrupo, detalleDelModelo, deQuienLlego, type FilaDeQuien, idCampoProveedor, type DecisionCierre, decisionInicial, detalladas, detalleParaDespues, diferenciaDe, HINT_CONTEO_CAMBIADO, idCampoCierre, leerCostoCierre, type ClaveLinea, type LineaParaContar, lineasParaCerrar, lineaVisible, marcaDeLinea, mensajeAlGuardar, nombreDeLinea, prendasConCosto, resumenDelCierre, textoBotonCerrar, textoResumenDelCierre, textoDelEnvioCerrado, TOPES_CONTEO, unidadesSinIdentificar } from "@/lib/recepcion-conteo-reglas";
@@ -300,7 +302,9 @@ export function CerrarEnvio({
   // Una categoría es UNA fila (ADR-0393, act. 2026-10-26): las líneas de la compra con el mismo proveedor, categoría y marca van juntas. Lo que se
   // decide en una fila (qué pasó, el costo y el precio de cada prenda) se guarda en las líneas a las que toca: la base sigue pidiéndolo por línea.
   const grupos = agruparLineasDelCierre(visibles);
-  const { piden, cuadran, plegar } = filasDelCierre(grupos, sinAviso, !(sinAviso && !veDinero));
+  const { piden, cuadran, plegar: plegarPorMuchas } = filasDelCierre(grupos, sinAviso, !(sinAviso && !veDinero));
+  // Lo que cuadra no pide nada: con algo por decidir arriba, espera plegado en una tabla corta (Felipe 2026-11-12; antes, solo con más de 6 categorías).
+  const plegar = plegarPorMuchas || (piden.length > 0 && cuadran.length > 0);
   const campos = [
     ...camposDelCierrePorGrupo(
       camposDelCierre({
@@ -956,12 +960,14 @@ export function CerrarEnvio({
             {!sinContar &&
               causas.map((c) => (
                 <CampoGuiado key={c.tipo} id={idCampoCierre("causa", c.lineas[0].clave)} guia={guia} retiene="fila">
-                  {/* «Qué pasó» solo cuando algo no cuadra (Felipe 2026-11-03). Una sola respuesta vale para todas las líneas de la categoría. */}
-                  <div className="flex flex-wrap items-center gap-2">
+                  {/* «Qué pasó» solo cuando algo no cuadra (Felipe 2026-11-03). Una sola respuesta vale para todas las líneas de la categoría.
+                      La pregunta y sus opciones van en la misma fila cuando la tarjeta es ancha (Felipe 2026-11-12: «mucho espacio desperdiciado»). */}
+                  <div className="flex flex-col gap-2 @min-[760px]:flex-row @min-[760px]:items-start @min-[760px]:gap-5">
+                  <div className="flex shrink-0 flex-wrap items-center gap-2 @min-[760px]:w-44 @min-[760px]:flex-col @min-[760px]:items-start @min-[760px]:gap-1 @min-[760px]:pt-1.5">
                     <Chip tono="ambar">{c.tipo === "faltante" ? `Faltan ${c.cantidad}` : !c.lineas[0].linea ? `${c.cantidad} que no venían` : `Sobran ${c.cantidad}`}</Chip>
                     <span className="text-sm text-taupe">¿Qué pasó?</span>
                   </div>
-                  <div className="mt-1">
+                  <div className="min-w-0 flex-1">
                     <ElegirOpcion
                       chico
                       etiqueta={`Qué pasó con ${nombreGrupo}`}
@@ -992,6 +998,7 @@ export function CerrarEnvio({
                         }}
                       />
                     )}
+                  </div>
                   </div>
                 </CampoGuiado>
               ))}
@@ -1057,13 +1064,75 @@ export function CerrarEnvio({
       </Tabla>
     );
   };
-  // «Al cerrar»: los totales de todas las tarjetas.
+  // La franja de cifras de arriba (Felipe 2026-11-12, «Revisa y cierra» rediseñada): adónde va lo contado, lo que no cuadró y su costo. Antes vivía en una
+  // columna «Al cerrar» que decía «16 prendas · 2 modelos · 4 proveedores» y no se entendía (los modelos eran solo los identificados).
   const todosLosGrupos = [...piden, ...cuadran];
   const costoTotal = costoDelGrupo(todosLosGrupos.flatMap((g) => costosDeFilas(g)));
-  const modelosDelCierre = todosLosGrupos.reduce((a, g) => a + prendasConCosto(lineaDelGrupo(g)).length, 0);
-  const proveedoresDelCierre = new Set(
-    todosLosGrupos.map((g) => (sinAviso && !g.principal.linea ? deQuien.find((f) => f.clave === (g.principal.marca?.id ?? ""))?.proveedor?.id : g.principal.proveedor?.id)).filter(Boolean),
-  ).size;
+  const diferencias = grupos.flatMap((g) => causasDelGrupo(g, 0, sinAviso));
+  const faltanTotal = diferencias.filter((c) => c.tipo === "faltante").reduce((a, c) => a + c.cantidad, 0);
+  const sobranTotal = diferencias.filter((c) => c.tipo === "sobrante").reduce((a, c) => a + c.cantidad, 0);
+  const dijeronTotal = grupos.reduce((a, g) => a + (g.dijeron ?? 0), 0);
+  const n = (x: number) => x.toLocaleString("es-PE");
+  // Lo que todavía no se contó en absoluto va en una lista corta, una fila por categoría con su «Contarla»: antes cada una era una tarjeta entera
+  // (con 9 sin contar, la pantalla era casi solo tarjetas vacías). Lo contado a medias sigue en su tarjeta, que dice qué falta.
+  const sinContarDelTodo = piden.filter((g) => g.lineas.every((x) => x.linea && !x.conteo));
+  const pidenConTarjeta = piden.filter((g) => !sinContarDelTodo.includes(g));
+  const faltaTexto = textoDeLoQueFalta(guia.faltan);
+
+  /** Una fila de «Falta contar»: la categoría, lo que dijeron y el botón que lleva a contarla. */
+  const filaSinContar = (g: GrupoDeLineas) => {
+    const sinContar = g.lineas.find((x) => x.linea && !x.conteo) ?? g.principal;
+    return (
+      <div key={g.clave} className={`grid ${TABLA.fila} grid-cols-[minmax(0,1fr)_auto] items-center gap-3`} role="row">
+        <div className="flex min-w-0 items-center gap-2.5" role="cell">
+          <BaldosaCategoria categoria={g.principal.categoria} tamano="chico" />
+          <span className="min-w-0">
+            <p className="truncate font-medium text-tinta" title={nombreDelGrupoDelCierre(g)}>
+              {nombreDelGrupoDelCierre(g)}
+            </p>
+            <p className="text-sm text-taupe">
+              {[g.dijeron != null ? `Dijeron ${n(g.dijeron)}` : null, g.principal.proveedor?.nombre ?? null].filter(Boolean).join(" · ")}
+            </p>
+          </span>
+        </div>
+        <div role="cell">
+          {/* El error («Cuéntala…») va bajo el botón, alineado a la derecha: el botón no se corre al aparecer. */}
+          <CampoGuiado id={idCampoCierre("contar", sinContar.clave)} guia={guia} className="flex flex-col items-end text-right">
+            <Boton type="button" peso="fantasma" onClick={() => onVolver(sinContar.clave, decisiones)} disabled={guardando}>
+              Contarla
+            </Boton>
+          </CampoGuiado>
+        </div>
+      </div>
+    );
+  };
+
+  /** Una fila de la tabla corta de lo que cuadra (plegado): la categoría, cuánto llegó y su costo. Se edita al abrirla. */
+  const filaQueCuadra = (g: GrupoDeLineas) => {
+    const deCosto = costoDelGrupo(costosDeFilas(g));
+    const { costo: cambiaCosto, venta: cambiaVenta } = cambiosDeLaFila(g);
+    return (
+      <div key={g.clave} className={`grid ${TABLA.fila} grid-cols-[minmax(0,1fr)_auto] items-center gap-3 @min-[560px]:grid-cols-[minmax(0,1fr)_9rem_9rem]`} role="row">
+        <div className="flex min-w-0 items-center gap-2.5" role="cell">
+          <BaldosaCategoria categoria={g.principal.categoria} tamano="chico" />
+          <span className="min-w-0">
+            <p className="truncate font-medium text-tinta" title={nombreDelGrupoDelCierre(g)}>
+              {nombreDelGrupoDelCierre(g)}
+            </p>
+            {(cambiaCosto || cambiaVenta) && <Chip tono="ambar">{cambiaCosto ? "Costo cambiado" : "Precio de venta cambiado"}</Chip>}
+          </span>
+        </div>
+        <p className="text-sm tabular-nums text-tinta" role="cell">
+          <b>{n(g.contadas)}</b>
+          {g.dijeron != null && <span className="text-taupe"> de {n(g.dijeron)}</span>}
+          {!sinAviso && <span className="ml-1.5 text-verde">Cuadra</span>}
+        </p>
+        <p className="hidden text-right text-sm tabular-nums text-tinta @min-[560px]:block" role="cell">
+          {editaCostoDe(g) && deCosto.conCosto > 0 ? soles(deCosto.total) : <span className="text-taupe">—</span>}
+        </p>
+      </div>
+    );
+  };
 
   return (
     <>
@@ -1077,7 +1146,7 @@ export function CerrarEnvio({
      
     >
       {/* «Revisar y cerrar» trae hasta aquí: todavía falta este paso (Felipe 2026-11-03). */}
-      <TituloSeccion>Revisa y cierra</TituloSeccion>
+      <TituloSeccion dato={<><b className="text-tinta">{n(contadas)}</b>{dijeronTotal > 0 && !sinAviso ? ` de ${n(dijeronTotal)}` : ""} contadas</>}>Revisa y cierra</TituloSeccion>
       {modelosEnCero.length > 0 && (
         <p className="nota-cayla text-sm">
           <b className="text-tinta">{textoModelosEnCero(modelosEnCero)}</b> Si sí llegaron, vuelve a contarlos.
@@ -1103,120 +1172,114 @@ export function CerrarEnvio({
         </Aviso>
       )}
 
-      {/* «Revisa y cierra» B (Felipe 2026-11-07, maqueta `docs/maquetas/recibir-revisa-y-cierra-2026-11/`): una tarjeta por categoría y marca, con su proveedor
-          en la cabecera y su costo al pie; al costado, lo que pasa al cerrar y lo que falta, tocable. */}
-      <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_20rem] xl:items-start">
-        <div className="space-y-3" data-guia="recepcion.tabla-cierre">
-          {piden.map((g) => filaDe(g))}
-          {plegar ? (
-            <>
-              <FilasDeMas abierto={verCuadran} id="rc-cierre-plegadas">
-                <div className="space-y-3">{cuadran.map((g) => filaDe(g))}</div>
-              </FilasDeMas>
-              <BotonVerMas abierto={verCuadran} onCambiar={setVerCuadran} controla="rc-cierre-plegadas" texto={textoDeLasPlegadas(cuadran.length, plegadasConCambios, sinAviso, piden.length === 0)} data-guia="recepcion.plegadas" />
-            </>
-          ) : (
-            cuadran.map((g) => filaDe(g))
+      {/* «Revisa y cierra» rediseñada (Felipe 2026-11-12: «demasiado pobre, plana, no se entiende qué hay que hacer ni qué se ve, mucho espacio
+          vacío»). Arriba, adónde va lo contado; después, solo lo que te toca decidir; lo que cuadra, plegado en una tabla corta; y al pie, el
+          único «Cerrar el envío», que dice en palabras qué falta. No cambia ninguna regla del cierre: solo cómo se ve y en qué orden. */}
+      <div className={`grid gap-3 grid-cols-2 sm:grid-cols-3 ${costoTotal.conCosto > 0 ? "xl:grid-cols-5" : "xl:grid-cols-4"}`} aria-label="Al cerrar" data-guia="recepcion.al-cerrar">
+        <TarjetaCifra compacta punto="verde" etiqueta="Entran al stock" valor={n(resumen.sePuedenVender)}>
+          al almacén
+        </TarjetaCifra>
+        <TarjetaCifra compacta punto="neutro" etiqueta="Para después" valor={n(porDetallar)} ayuda={porDetallar > 0 ? <Ayuda titulo="Para después">Hoy se venden las que ya tienen tallas y colores; el resto queda contado y guardado hasta terminar cada pendiente (separar, tallas, lo nuevo).</Ayuda> : undefined}>
+          contadas, sin tallas
+        </TarjetaCifra>
+        <TarjetaCifra compacta punto={faltanTotal > 0 ? "ambar" : "neutro"} etiqueta="Faltan" valor={sinAviso ? "—" : n(faltanTotal)}>
+          {sinAviso ? "sin aviso" : "de lo que dijeron"}
+        </TarjetaCifra>
+        <TarjetaCifra compacta punto={sobranTotal > 0 ? "ambar" : "neutro"} etiqueta="Sobran" valor={sinAviso ? "—" : n(sobranTotal)} ayuda={sinAviso ? <Ayuda titulo="Sin aviso">Lo que llega sin aviso no tiene con qué compararse: nada sobra ni falta.</Ayuda> : undefined}>
+          {sinAviso ? "sin aviso" : "o que no venían"}
+        </TarjetaCifra>
+        {costoTotal.conCosto > 0 && (
+          <TarjetaCifra compacta punto="neutro" etiqueta="Costo" valor={soles(costoTotal.total)} className="col-span-2 sm:col-span-1">
+            {costoTotal.sinCosto > 0 ? `${n(costoTotal.sinCosto)} sin costo` : `${n(costoTotal.conCosto)} prendas`}
+          </TarjetaCifra>
+        )}
+      </div>
+
+      <div className="space-y-8" data-guia="recepcion.tabla-cierre">
+        <section className="space-y-3">
+          <TituloSeccion nivel={3} cuenta={piden.length}>Lo que te toca decidir</TituloSeccion>
+          {piden.length === 0 && (
+            <Aviso tono="exito" chico>
+              Nada que decidir: {sinAviso ? "todo lo que llegó tiene de quién es." : "todo lo contado cuadra con lo que dijeron."}
+            </Aviso>
           )}
-        </div>
-        <aside className="card-cayla space-y-3 p-4 sm:p-5 xl:sticky xl:top-24" aria-label="Al cerrar" data-guia="recepcion.al-cerrar">
-          <p className="font-display text-[21px] leading-tight text-tinta">Al cerrar</p>
-          <p>
-            <b className="block font-display text-[44px] leading-none tabular-nums text-tinta">{contadas.toLocaleString("es-PE")}</b>
-            <span className="text-sm text-taupe">
-              {[
-                `${contadas === 1 ? "prenda" : "prendas"}`,
-                `${modelosDelCierre} ${modelosDelCierre === 1 ? "modelo" : "modelos"}`,
-                proveedoresDelCierre > 0 ? `${proveedoresDelCierre} ${proveedoresDelCierre === 1 ? "proveedor" : "proveedores"}` : null,
-              ]
-                .filter(Boolean)
-                .join(" · ")}
-            </span>
-          </p>
-          {/* Primero adónde va cada prenda (al stock o para después: suman lo contado) y aparte su costo. Antes «Entran con costo 9» contaba también las
-              3 que quedan para después y parecía que entraban 9 al stock (auditoría 2026-11-12). */}
-          <dl className="grid grid-cols-[max-content_minmax(0,1fr)] gap-x-4 gap-y-1 text-sm">
-            {resumen.sePuedenVender > 0 && (
-              <>
-                <dt className="text-taupe">Entran al stock</dt>
-                <dd className="tabular-nums text-tinta">{resumen.sePuedenVender.toLocaleString("es-PE")}</dd>
-              </>
-            )}
-            {porDetallar > 0 && (
-              <>
-                <dt className="text-taupe">Para después</dt>
-                <dd className="tabular-nums text-tinta">{porDetallar.toLocaleString("es-PE")} · separar, tallas y lo nuevo</dd>
-              </>
-            )}
-            {costoTotal.conCosto > 0 && (
-              <>
-                <dt className="text-taupe">Costo</dt>
-                <dd className="tabular-nums text-tinta">
-                  {soles(costoTotal.total)} · {costoTotal.conCosto.toLocaleString("es-PE")} {costoTotal.conCosto === 1 ? "prenda" : "prendas"}
-                </dd>
-              </>
-            )}
-            {costoTotal.sinCosto > 0 && (
-              <>
-                <dt className="text-taupe">Sin costo</dt>
-                <dd className="tabular-nums text-tinta">{costoTotal.sinCosto.toLocaleString("es-PE")} · llega con la factura</dd>
-              </>
-            )}
-          </dl>
-          {guia.faltan.length > 0 && (
-            <div className="space-y-1.5">
-              <p className="label-cayla text-[11px] text-taupe">Falta</p>
-              {guia.faltan.slice(0, 4).map((c) => (
-                <button key={c.id} type="button" className="rc-cierre-falta" onClick={() => guia.ir(c.id)}>
-                  {c.nombre}
-                  <ChevronRight aria-hidden className="h-4 w-4 shrink-0" />
-                </button>
-              ))}
-              {guia.faltan.length > 4 && <p className="text-sm text-taupe">y {guia.faltan.length - 4} más.</p>}
-            </div>
+          {sinContarDelTodo.length > 0 && (
+            <Tabla className="@container">
+              <div className="rc-cierre-cabeza">
+                <div className="min-w-0">
+                  <p className="font-display text-[21px] leading-tight text-tinta">Falta contar</p>
+                  <p className="text-sm text-taupe">Si no llegó nada, al contarla elige «No llegó nada».</p>
+                </div>
+                <Chip tono="ambar">{sinContarDelTodo.length === 1 ? "1 sin contar" : `${n(sinContarDelTodo.length)} sin contar`}</Chip>
+              </div>
+              {sinContarDelTodo.map((g) => filaSinContar(g))}
+            </Tabla>
           )}
-          {/* Lo que pasa con lo que no tiene con qué compararse (antes, una nota larga bajo la tabla). */}
-          {sinAviso && <p className="text-sm text-taupe">Lo que llega sin aviso no tiene con qué compararse: nada sobra ni falta.</p>}
-          {porDetallar > 0 && <p className="text-sm text-taupe">Hoy se venden las que ya tienen tallas y colores; el resto, cuando se termine cada pendiente.</p>}
-        </aside>
+          {pidenConTarjeta.map((g) => filaDe(g))}
+        </section>
+
+        {cuadran.length > 0 && (
+          <section className="space-y-3">
+            <TituloSeccion nivel={3} cuenta={cuadran.length}>{sinAviso ? "Lo demás" : "Lo que cuadra"}</TituloSeccion>
+            {plegar ? (
+              <>
+                {!verCuadran && <Tabla className="@container">{cuadran.map((g) => filaQueCuadra(g))}</Tabla>}
+                <FilasDeMas abierto={verCuadran} id="rc-cierre-plegadas">
+                  <div className="space-y-3">{cuadran.map((g) => filaDe(g))}</div>
+                </FilasDeMas>
+                <BotonVerMas
+                  abierto={verCuadran}
+                  onCambiar={setVerCuadran}
+                  controla="rc-cierre-plegadas"
+                  texto={`${textoDeLasPlegadas(cuadran.length, plegadasConCambios, sinAviso, piden.length === 0)}: costos y precios`}
+                  data-guia="recepcion.plegadas"
+                />
+              </>
+            ) : (
+              cuadran.map((g) => filaDe(g))
+            )}
+          </section>
+        )}
       </div>
 
       {/* La balanza de todo el envío se fue (Formidable 2026-10-29): cada fila y la barra de abajo ya dicen cuánto dijeron y cuánto se contó. */}
 
-      <div className="card-cayla grid gap-4 p-4 sm:grid-cols-[minmax(0,16rem)_minmax(0,1fr)] sm:p-5">
-        <CampoGuiado id="guia" guia={guia}>
+      {/* Lo último antes de cerrar, en UNA tarjeta (antes, tres tarjetas apiladas): la guía, una nota y quién cierra. */}
+      <section className="space-y-3">
+        <TituloSeccion nivel={3}>Antes de cerrar</TituloSeccion>
+        <div className={`card-cayla grid gap-4 p-4 sm:p-5 md:grid-cols-2 ${preguntaDueno && empresasDeLaSede ? "" : "xl:grid-cols-3"}`}>
+          <CampoGuiado id="guia" guia={guia}>
+            <CampoTexto
+              etiqueta={guia.etiqueta("guia", "Número de guía")}
+              value={guiaEscrita}
+              maxLength={TOPES_CONTEO.guia}
+              onChange={(e) => setGuiaEscrita(e.target.value)}
+              // sugerir-fijo: el formato de un número de guía no depende de nada elegido antes
+              placeholder="Ej. T001-000342"
+              // Vacía no hay nada que corregir: se pide escribirla si viene (auditoría 2026-11-12).
+              pie={guiaEscrita.trim() && guiaEscrita.trim() !== guiaGuardada ? "Se corrige al cerrar." : guiaEscrita.trim() ? "Si el papel dice otra cosa, corrígela." : "Escríbela si el papel la trae."}
+            />
+          </CampoGuiado>
           <CampoTexto
-            etiqueta={guia.etiqueta("guia", "Número de guía")}
-            value={guiaEscrita}
-            maxLength={TOPES_CONTEO.guia}
-            onChange={(e) => setGuiaEscrita(e.target.value)}
-            // sugerir-fijo: el formato de un número de guía no depende de nada elegido antes
-            placeholder="Ej. T001-000342"
-            // Vacía no hay nada que corregir: se pide escribirla si viene (auditoría 2026-11-12).
-            pie={guiaEscrita.trim() && guiaEscrita.trim() !== guiaGuardada ? "Se corrige al cerrar." : guiaEscrita.trim() ? "Si el papel dice otra cosa, corrígela." : "Escríbela si el papel la trae."}
+            etiqueta="Nota (opcional)"
+            value={nota}
+            maxLength={TOPES_CONTEO.notaEnvio}
+            onChange={(e) => setNota(e.target.value)}
+            // sugerir-fijo: la nota de la recepción no depende de nada elegido antes
+            placeholder="Ej. Llegó en dos bolsas"
           />
-        </CampoGuiado>
-        <CampoTexto
-          etiqueta="Nota (opcional)"
-          value={nota}
-          maxLength={TOPES_CONTEO.notaEnvio}
-          onChange={(e) => setNota(e.target.value)}
-          // sugerir-fijo: la nota de la recepción no depende de nada elegido antes
-          placeholder="Ej. Llegó en dos bolsas"
-        />
-      </div>
-
-      {preguntaDueno && empresasDeLaSede && (
-        <CampoGuiado id="hacer-ahora-dueno" guia={guia} className="card-cayla p-4 sm:p-5">
-          <DuenoDeLoQueEntra empresas={empresasDeLaSede} duenoId={duenoId} onElegir={setDuenoId} deshabilitado={guardando} />
-        </CampoGuiado>
-      )}
-
-      <CampoGuiado id="responsable" guia={guia} className="card-cayla p-4 sm:p-5">
-        <p className="mb-2 text-sm font-semibold text-tinta">{guia.etiqueta("responsable", "Quién cierra el conteo")}</p>
-        <ComboResponsable control={responsable} />
-        {!sinAviso && <p className="mt-2 text-sm text-taupe">Quien hizo una orden no puede cerrar su envío (solo un Admin cierra lo que él mismo compró): firma otra persona de la tienda.</p>}
-      </CampoGuiado>
+          <CampoGuiado id="responsable" guia={guia} className="md:col-span-2 xl:col-span-1">
+            <p className="campo-etiqueta mb-1.5">{guia.etiqueta("responsable", "Quién cierra el conteo")}</p>
+            <ComboResponsable control={responsable} />
+            {!sinAviso && <p className="mt-2 text-sm text-taupe">Quien hizo la compra no puede cerrar su envío (solo un Admin): firma otra persona de la tienda.</p>}
+          </CampoGuiado>
+          {preguntaDueno && empresasDeLaSede && (
+            <CampoGuiado id="hacer-ahora-dueno" guia={guia} className="md:col-span-2">
+              <DuenoDeLoQueEntra empresas={empresasDeLaSede} duenoId={duenoId} onElegir={setDuenoId} deshabilitado={guardando} />
+            </CampoGuiado>
+          )}
+        </div>
+      </section>
 
       {choque && (
         <Modal titulo="Cambió el conteo mientras cerrabas" onClose={() => setChoque(null)} conCerrar>
@@ -1264,7 +1327,6 @@ export function CerrarEnvio({
             />
           ) : (
             <>
-              <p className="text-sm text-tinta" aria-live="polite">{textoResumenDelCierre(resumen)}</p>
               {sinGuardar > 0 && (
                 <Aviso
                   tono="error"
@@ -1278,17 +1340,22 @@ export function CerrarEnvio({
                   {sinGuardar === 1 ? "Una línea no se pudo guardar" : `${sinGuardar} líneas no se pudieron guardar`}: hasta guardarlas no se puede cerrar.
                 </Aviso>
               )}
-              <PieGuia guia={guia} tope={2} listo={porDetallar > 0 ? "Todo listo: lo guardado no frena el cierre." : "Todo listo para cerrar."} />
-              <div className="flex flex-wrap items-center justify-between gap-2.5">
+              {/* Una fila: volver a contar, lo que falta en palabras (o lo que pasa al cerrar) y el único botón. Con algo pendiente, el botón no es negro:
+                  tocarlo igual lleva a lo primero que falta (ADR-0611, mejora 4), pero ya no parece listo (Felipe 2026-11-12). */}
+              <div className="flex flex-wrap items-center gap-x-4 gap-y-3">
                 <Volver onClick={() => onVolver(undefined, decisiones)} a="contar" deshabilitado={guardando} />
+                <div className="min-w-0 flex-1 space-y-0.5" aria-live="polite">
+                  <p className={`text-sm ${faltaTexto ? "font-semibold text-tinta" : "text-tinta"}`}>{faltaTexto ?? textoResumenDelCierre(resumen)}</p>
+                  <PieGuia guia={guia} tope={2} listo={porDetallar > 0 ? "Todo listo: lo guardado no frena el cierre." : "Todo listo para cerrar."} />
+                </div>
                 <Boton
                   type="submit"
-                  peso="primario"
+                  peso={guia.puedeConfirmar ? "primario" : "fantasma"}
                   cargando={guardando}
                   textoCargando="Cerrando…"
                   disabled={esperandoGuardar} confirma={guia}
                   title={sinGuardar > 0 ? "Hay líneas que no se pudieron guardar" : esperandoGuardar ? "Espera: lo último que contaste se está guardando" : (guia.frase ?? undefined)}
-                  className={guia.claseConfirmar}
+                  className={`ml-auto ${guia.claseConfirmar}`}
                   data-guia="recepcion.cerrar-boton"
                 >
                   <span className="inline-flex items-center gap-1.5">

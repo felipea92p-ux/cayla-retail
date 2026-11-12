@@ -405,7 +405,8 @@ export function camposDelCierrePorGrupo(campos: readonly CampoDeGuia[], grupos: 
     }
     const ya = unidos.get(k.clave);
     if (!ya) {
-      const nombre = [k.grupo.principal.categoria?.nombre, k.grupo.principal.categoria ? marcaDeLinea(k.grupo.principal).nombre : null].filter(Boolean).join(" · ") || "esta categoría";
+      // El mismo nombre que la tarjeta o la fila del cierre (Felipe 2026-11-12: el pie decía «Sigue: Camisas y Blusas» y la fila, «Blusa Valeria»).
+      const nombre = nombreDelGrupoDelCierre(k.grupo);
       const uno: CampoDeGuia = { ...c, nombre: c.id.startsWith("causa") ? `Qué pasó · ${nombre}` : nombre };
       unidos.set(k.clave, uno);
       r.push(uno);
@@ -415,4 +416,27 @@ export function camposDelCierrePorGrupo(campos: readonly CampoDeGuia[], grupos: 
     }
   }
   return r;
+}
+
+/**
+ * Lo que falta para cerrar, en palabras, para el pie de «Revisa y cierra» (Felipe 2026-11-12: el botón negro no decía qué faltaba). Sale de los campos
+ * pendientes de la guía, que son los mismos que frenan el cierre (`camposDelCierre`): no agrega ninguna regla. `null` si no falta nada obligatorio.
+ */
+export function textoDeLoQueFalta(faltan: readonly Pick<CampoDeGuia, "id" | "nombre" | "requerido">[]): string | null {
+  const obligatorios = faltan.filter((c) => c.requerido);
+  if (obligatorios.length === 0) return null;
+  const cuantos = (prefijo: string) => obligatorios.filter((c) => c.id.startsWith(prefijo)).length;
+  const contar = cuantos("contar-");
+  const causa = cuantos("causa-");
+  const costo = cuantos("costo-");
+  const proveedor = cuantos("proveedor-");
+  const conocidos = /^(contar|causa|costo|proveedor)-/;
+  const partes = [
+    contar > 0 ? `${contar} por contar` : null,
+    causa > 0 ? `decir qué pasó en ${causa}` : null,
+    costo > 0 ? (costo === 1 ? "1 costo" : `${costo} costos`) : null,
+    proveedor > 0 ? (proveedor === 1 ? "el proveedor de 1 marca" : `el proveedor de ${proveedor} marcas`) : null,
+    ...obligatorios.filter((c) => !conocidos.test(c.id)).map((c) => (c.id === "responsable" ? "quién cierra" : c.nombre.toLocaleLowerCase("es"))),
+  ].filter((p): p is string => !!p);
+  return `Falta: ${new Intl.ListFormat("es", { type: "conjunction" }).format(partes)}.`;
 }

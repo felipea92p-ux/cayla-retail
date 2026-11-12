@@ -21,6 +21,7 @@ import {
   repartirSeparado,
   repartirTotal,
   textoDeLasPlegadas,
+  textoDeLoQueFalta,
 } from "./recepcion-grupos-reglas";
 import { camposDelCierre, detalleParaDespues, diferenciaDe, leerConteosDelEnvio, lineasParaCerrar, separarAnotada, totalSeparado, unidadesSinIdentificar, type LineaParaContar, type Separado } from "./recepcion-conteo-reglas";
 import type { LineaEnvio } from "./recepcion-envio-reglas";
@@ -402,7 +403,7 @@ describe("la categoría en el cierre", () => {
     const g = dos({ contadas: 5 }, { contadas: 3 });
     const lineas = g.lineas;
     const campos = camposDelCierrePorGrupo(camposDelCierre({ ...base, lineas }), [g]);
-    expect(campos.filter((c) => c.id.startsWith("causa")).map((c) => [c.id, c.hecho, c.nombre])).toEqual([["causa-item-l-lima", false, "Qué pasó · Vestidos · CAYLA"]]);
+    expect(campos.filter((c) => c.id.startsWith("causa")).map((c) => [c.id, c.hecho, c.nombre])).toEqual([["causa-item-l-lima", false, "Qué pasó · Vestido Sofía · CAYLA"]]); // el nombre de su tarjeta, no el de la categoría (Felipe 2026-11-12)
     // Una categoría sin contar: un solo «cuéntala» aunque falten las dos líneas.
     const sin = dos(null, null);
     const camposSin = camposDelCierrePorGrupo(camposDelCierre({ ...base, lineas: sin.lineas }), [sin]);
@@ -577,5 +578,26 @@ describe("las filas de Cerrar: lo que no cuadró, contra lo que Compras dijo", (
   it("la misma prenda en dos líneas sigue siendo una fila", () => {
     const grupos = agruparLineasDelCierre([deLaGuia(conNombre("a", "Vestido Sol")), deLaGuia(conNombre("b", "  vestido sol "))]);
     expect(grupos).toHaveLength(1);
+  });
+});
+
+describe("el pie de «Revisa y cierra» dice en palabras qué falta (Felipe 2026-11-12)", () => {
+  const campo = (id: string, nombre = id, requerido = true) => ({ id, nombre, requerido });
+  it("nada obligatorio pendiente: no dice nada", () => {
+    expect(textoDeLoQueFalta([])).toBeNull();
+    expect(textoDeLoQueFalta([campo("guia", "Número de guía", false)])).toBeNull();
+  });
+  it("junta lo de cada tipo y lo dice en una frase", () => {
+    expect(
+      textoDeLoQueFalta([campo("contar-a-1"), campo("contar-a-2"), campo("causa-a-3"), campo("responsable", "Quién cierra")]),
+    ).toBe("Falta: 2 por contar, decir qué pasó en 1 y quién cierra.");
+  });
+  it("costos, proveedores y lo demás con su nombre", () => {
+    expect(textoDeLoQueFalta([campo("costo-x"), campo("proveedor-m1"), campo("proveedor-m2"), campo("hacer-ahora-dueno", "De quién es la mercadería")])).toBe(
+      "Falta: 1 costo, el proveedor de 2 marcas y de quién es la mercadería.",
+    );
+  });
+  it("lo sugerido no cuenta", () => {
+    expect(textoDeLoQueFalta([campo("contar-a-1"), campo("guia", "Número de guía", false)])).toBe("Falta: 1 por contar.");
   });
 });

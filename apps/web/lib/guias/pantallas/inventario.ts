@@ -2031,11 +2031,19 @@ export const GUIA_RECIBIR_ENVIO: Guia = {
       texto: "Lo que ya entró al stock sale en su categoría, marcado «En stock», y no se vuelve a contar. Tócalo para ver sus tallas y colores. «Corregir» deshace lo que salió antes de cerrar, mientras siga en el almacén; si no, «Ajustar stock» te lleva a esa prenda.",
     },
     {
+      // Felipe 2026-11-12: «Revisa y cierra» rediseñada; las cifras van arriba, antes de lo que se decide.
+      id: "al-cerrar",
+      ancla: "recepcion.al-cerrar",
+      requiere: ["recepcion.tabla-cierre"],
+      titulo: "Al cerrar",
+      texto: "Arriba, en cifras: cuántas entran al stock, cuántas quedan para después (contadas, sin tallas), cuántas faltan y sobran contra lo que dijeron, y su costo.",
+    },
+    {
       id: "tabla-cierre",
       ancla: "recepcion.tabla-cierre",
       requiere: ["recepcion.tabla-cierre"],
-      titulo: "Lo que se cierra",
-      texto: "Una tarjeta por categoría y marca, primero las que piden algo; dentro, una fila por modelo con cuánto llegó y su costo. Si algo no cuadra, te pregunta qué pasó. Si el costo deja poco margen, sale «revisar precio»: abre «Cambiar por talla», donde la IA te propone uno.",
+      titulo: "Lo que te toca decidir",
+      texto: "Solo lo que pide algo: lo que falta contar, con su «Contarla», y cada tarjeta donde algo no cuadró, que te pregunta qué pasó. Lo que cuadra va abajo, en una tabla corta. Si el costo deja poco margen, sale «revisar precio».",
     },
     {
       // Solo con muchas filas y más de una que no pide nada.
@@ -2044,7 +2052,7 @@ export const GUIA_RECIBIR_ENVIO: Guia = {
       opcional: true,
       requiere: ["recepcion.tabla-cierre"],
       titulo: "Lo que ya cuadra",
-      texto: "Con muchas categorías, las que cuadran esperan aquí plegadas: no piden nada, pero se pueden revisar. Si cambiaste un costo o un precio adentro, la franja lo dice.",
+      texto: "Lo que cuadra no pide nada: espera en una tabla corta, con cuánto llegó y su costo. Ábrela para cambiar un costo o un precio; si cambiaste algo adentro, la franja lo dice.",
     },
     {
       // Felipe 2026-10-28: el costo y el precio se ponen por combinación (color y talla). La fila de la primera prenda solo existe con la categoría abierta.
@@ -2073,19 +2081,12 @@ export const GUIA_RECIBIR_ENVIO: Guia = {
       texto: "Lo que anotaste al contar para diferenciarla de las demás, sus observaciones, quién la contó y cuándo y, si la prenda ya existe, su ficha. Solo se lee: no cambia nada.",
     },
     {
-      id: "al-cerrar",
-      ancla: "recepcion.al-cerrar",
-      requiere: ["recepcion.tabla-cierre"],
-      titulo: "Al cerrar",
-      texto: "Cuántas prendas, modelos y proveedores cierras, cuánto entra con costo, cuánto sin él y qué queda para después. Debajo, lo que falta: toca una y te lleva a ese campo.",
-    },
-    {
       id: "cerrar-boton",
       ancla: "recepcion.cerrar-boton",
       opcional: true,
       requiere: ["recepcion.tabla-cierre"],
       titulo: "Cerrar el envío",
-      texto: "Si el papel de la guía dice otra cosa, la corriges arriba. Firma quien cierra. Lo que tiene tallas entra al almacén de tu sede (las dañadas, a la cuarentena) y lo demás queda para después, ya contado. En la demo no lo tocamos.",
+      texto: "Al lado dice en palabras qué falta; mientras falte algo, el botón no es negro y tocarlo te lleva a lo primero. Lo que tiene tallas entra al almacén de tu sede (las dañadas, a la cuarentena) y lo demás queda para después, ya contado. En la demo no lo tocamos.",
     },
     // ---- Abierto: el formulario ----
     {
