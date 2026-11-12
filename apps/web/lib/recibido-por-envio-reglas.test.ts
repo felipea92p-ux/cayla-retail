@@ -12,6 +12,8 @@ import {
   nombreSinEnvio,
   prendasDelEnvio,
   prendasDistintas,
+  sigueAbierto,
+  textoTermino,
 } from "./recibido-por-envio-reglas";
 
 const lote = (o: Partial<RecepcionReciente>): RecepcionReciente => ({
@@ -106,5 +108,27 @@ describe("lo que dice la fila", () => {
   it("mismo día se lee en Lima: las 22:00 de Lima ya son el día siguiente en UTC", () => {
     expect(mismoDia("2026-11-09T15:00:00Z", "2026-11-10T03:00:00Z")).toBe(true);
     expect(mismoDia("2026-11-09T15:00:00Z", "2026-11-10T15:00:00Z")).toBe(false);
+  });
+});
+
+describe("sigueAbierto y textoTermino", () => {
+  const llego = "2026-11-11T22:19:00Z";
+  const [envio] = agruparPorEnvio([
+    lote({ loteId: "a", despachoId: "d21", envioNumero: "ENV-000021", llegoEn: llego, fecha: "2026-11-11T23:01:00Z" }),
+    lote({ loteId: "b", despachoId: "d21", envioNumero: "ENV-000021", llegoEn: llego, fecha: "2026-11-12T14:23:00Z" }),
+  ]);
+  const [sinEnvio] = agruparPorEnvio([lote({ loteId: "l9" })]);
+  it("un envío abierto no dice «terminó»", () => {
+    expect(sigueAbierto(envio, new Set(["d21"]))).toBe(true);
+    expect(textoTermino(envio, new Set(["d21"]))).toBeNull();
+  });
+  it("ya cerrado, dice el día en que terminó si no fue el de llegada", () => {
+    expect(sigueAbierto(envio, new Set())).toBe(false);
+    expect(textoTermino(envio, new Set())).toBe("terminó 12/11");
+    const [mismo] = agruparPorEnvio([lote({ loteId: "c", despachoId: "d2", envioNumero: "ENV-000002", llegoEn: llego, fecha: "2026-11-11T23:30:00Z" })]);
+    expect(textoTermino(mismo, new Set())).toBeNull();
+  });
+  it("una llegada sin envío nunca «sigue abierta», aunque su lote coincida", () => {
+    expect(sigueAbierto(sinEnvio, new Set(["l9"]))).toBe(false);
   });
 });

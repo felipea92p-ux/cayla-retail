@@ -166,3 +166,17 @@ export function esNotaDelAlta(nota: string): boolean {
 export function mismoDia(a: string, b: string): boolean {
   return fechaCorta(a) === fechaCorta(b);
 }
+
+/**
+ * Un envío que ya dejó prendas en el stock pero que todavía se está recibiendo (`despachos.estado = 'abierto'`): sale en «Terminados» con lo
+ * que ya entró y, a la vez, en «Envíos por recibir». En «Terminados» no dice «terminó»: dice que sigue abierto (Felipe 2026-11-12).
+ */
+export function sigueAbierto(e: EnvioRecibido, abiertos: ReadonlySet<string>): boolean {
+  return e.numero !== null && abiertos.has(e.clave);
+}
+
+/** «terminó 12/11» bajo la fecha de llegada: solo si el envío ya se cerró y no terminó el mismo día que llegó. */
+export function textoTermino(e: EnvioRecibido, abiertos: ReadonlySet<string>): string | null {
+  if (sigueAbierto(e, abiertos) || !e.llegoEn || mismoDia(e.llegoEn, e.fecha)) return null;
+  return `terminó ${fechaCorta(e.fecha).slice(0, 5)}`;
+}

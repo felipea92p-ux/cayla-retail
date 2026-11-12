@@ -106,6 +106,17 @@ export function leerEnviosAMedias(data: unknown): EnvioAMedias[] {
   );
 }
 
+/**
+ * Lo que ya entró al stock de un envío que se sigue recibiendo, bajo sus prendas en «Envíos por recibir» (Felipe 2026-11-12: ENV-000021 salía
+ * arriba con «43 prendas» y abajo, en «Terminados», con lo ya contado, y parecía repetido). Corto: la columna de prendas mide 5 rem.
+ * `null` si todavía no entró nada.
+ */
+export function textoYaEnStock(enStock: number, total: number): string | null {
+  if (!(enStock > 0)) return null;
+  if (total > 0 && enStock >= total) return "todas en stock";
+  return `${enStock.toLocaleString("es-PE")} en stock`;
+}
+
 export const diasAMedias = (desde: string, ahora: number = Date.now()): number => Math.max(0, Math.floor((ahora - new Date(desde).getTime()) / 86_400_000));
 
 /** «ENV-000012: 12 de 70 ya en stock · se sigue contando, desde hace 3 días». */

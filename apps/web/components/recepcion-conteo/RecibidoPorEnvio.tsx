@@ -3,6 +3,7 @@
 import { useState, type ReactNode } from "react";
 import { ChevronRight } from "lucide-react";
 import { Aviso } from "@/components/ui/Aviso";
+import { BotonEnlace } from "@/components/ui/campos";
 import { BarraApilada, MuestraTramo } from "@/components/ui/BarraApilada";
 import { Chip } from "@/components/ui/Chip";
 import { CapsulaColor } from "@/components/ui/MuestraColor";
@@ -22,9 +23,10 @@ import {
   esNotaDelAlta,
   marcasDelEnvio,
   marcasEnLaFila,
-  mismoDia,
   nombreSinEnvio,
   prendasDistintas,
+  sigueAbierto,
+  textoTermino,
   type EnvioRecibido,
   type MarcaDelEnvio,
   type PrendaRecibida,
@@ -50,8 +52,26 @@ const nombreMarca = (m: MarcaDelEnvio) => m.marca ?? SIN_MARCA;
 const tramos = (marcas: readonly MarcaDelEnvio[]) =>
   marcas.map((m) => ({ clave: nombreMarca(m), nombre: nombreMarca(m), valor: m.unidades, clase: colorDeMarca(marcas, m.marca) }));
 
-export function RecibidoPorEnvio({ recepciones, vacio, costos, porPagina }: { recepciones: RecepcionReciente[]; vacio: string; costos?: Record<string, CostoRecepcion>; porPagina: number }) {
+// Un envío que se sigue recibiendo deja aquí lo que ya entró al stock y, a la vez, sale arriba en «Envíos por recibir» (Felipe 2026-11-12:
+// ENV-000021 salía en las dos y parecía repetido). Su fila no dice «terminó»: lleva el chip «Sigue abierto», y su hoja lleva a seguir recibiéndolo.
+const TITULO_SIGUE_ABIERTO = "Lo de aquí ya entró al stock. El envío se sigue recibiendo: también está arriba, en «Envíos por recibir».";
+
+export function RecibidoPorEnvio({
+  recepciones,
+  vacio,
+  costos,
+  porPagina,
+  enviosAbiertos = [],
+}: {
+  recepciones: RecepcionReciente[];
+  vacio: string;
+  costos?: Record<string, CostoRecepcion>;
+  porPagina: number;
+  /** Los envíos (`despachoId`) que todavía se están recibiendo. */
+  enviosAbiertos?: readonly string[];
+}) {
   const [abierto, setAbierto] = useState<EnvioRecibido | null>(null);
+  const abiertos = new Set(enviosAbiertos);
   const [pagina, setPagina] = useState(1);
   const envios = agruparPorEnvio(recepciones);
   const actual = paginar(envios, pagina, porPagina);
@@ -64,13 +84,23 @@ export function RecibidoPorEnvio({ recepciones, vacio, costos, porPagina }: { re
         {actual.filas.map((e) => {
           const marcas = marcasDelEnvio(e);
           const { visibles, mas, sinMarca } = marcasEnLaFila(marcas);
+          const termino = textoTermino(e, abiertos);
           return (
             <button key={e.clave} type="button" data-guia="recibir.reciente" onClick={() => setAbierto(e)} className={`${fila(PLANTILLA)} w-full text-left`}>
               <span className={celda("izq", "whitespace-normal text-sm tabular-nums text-tinta/65")}>
                 {fechaCorta(e.llegoEn ?? e.fecha)}
-                {e.llegoEn && !mismoDia(e.llegoEn, e.fecha) && <span className="block text-sm text-tinta/55">terminó {fechaCorta(e.fecha).slice(0, 5)}</span>}
+                {termino && <span className="block text-sm text-tinta/55">{termino}</span>}
               </span>
-              <span className={celda("izq", "text-sm font-semibold tabular-nums text-tinta")}>{e.numero ?? <span className="font-normal text-taupe">{nombreSinEnvio(e)}</span>}</span>
+              <span className={celda("izq", "overflow-visible text-sm font-semibold tabular-nums text-tinta")}>
+                {e.numero ?? <span className="font-normal text-taupe">{nombreSinEnvio(e)}</span>}
+                {sigueAbierto(e, abiertos) && (
+                  <span className="mt-1 block">
+                    <Chip tono="ambar" title={TITULO_SIGUE_ABIERTO}>
+                      Sigue abierto
+                    </Chip>
+                  </span>
+                )}
+              </span>
               <span className={celda("izq", "whitespace-normal")}>
                 <span className="flex flex-wrap gap-1.5">
                   {visibles.map((m) => (
@@ -114,12 +144,13 @@ export function RecibidoPorEnvio({ recepciones, vacio, costos, porPagina }: { re
         )}
       </Tabla>
 
-      {abierto && <EnvioAbierto envio={abierto} costos={costos} onClose={() => setAbierto(null)} />}
+      {abierto && <EnvioAbierto envio={abierto} costos={costos} sigueAbierto={sigueAbierto(abierto, abiertos)} onClose={() => setAbierto(null)} />}
     </>
   );
 }
 
-function EnvioAbierto({ envio, costos, onClose }: { envio: EnvioRecibido; costos?: Record<string, CostoRecepcion>; onClose: () => void }) {
+function EnvioAbierto({ envio, costos, sigueAbierto, onClose }: { envio: EnvioRecibido; costos?: Record<string, CostoRecepcion>; sigueAbierto: boolean; onClose: () => void }) {
+  const termino = textoTermino(envio, new Set(sigueAbierto ? [envio.clave] : []));
   const [desplegadas, setDesplegadas] = useState<ReadonlySet<string>>(new Set());
   const marcas = marcasDelEnvio(envio);
   const conMarca = marcas.filter((m) => m.marca !== null).length;
@@ -163,11 +194,25 @@ function EnvioAbierto({ envio, costos, onClose }: { envio: EnvioRecibido; costos
       onClose={onClose}
     >
       <div data-guia="recibir.detalle" className="mt-1 space-y-4">
+        {sigueAbierto && (
+          <Aviso
+            tono="atencion"
+            chico
+            titulo="Este envío sigue abierto"
+            accion={
+              <BotonEnlace href={`/recibir/envio/${envio.clave}`} peso="fantasma">
+                Seguir recibiendo
+              </BotonEnlace>
+            }
+          >
+            Lo que ves aquí ya entró al stock. Lo que falta contar sigue en «Envíos por recibir».
+          </Aviso>
+        )}
         {/* Cuatro datos cortos en vez de una línea larga: lo que se busca de un vistazo (cuándo llegó, con qué guía, dónde y quién recibió). */}
         <dl className="grid grid-cols-2 gap-x-4 gap-y-3 rounded-2xl border border-sand px-4 py-3 sm:grid-cols-4">
           <Dato titulo="Llegó">
             {fechaCorta(envio.llegoEn ?? envio.fecha)}
-            {envio.llegoEn && !mismoDia(envio.llegoEn, envio.fecha) && <span className="block text-sm text-tinta/65">terminó {fechaCorta(envio.fecha)}</span>}
+            {termino && <span className="block text-sm text-tinta/65">{termino}</span>}
           </Dato>
           <Dato titulo="Guía">{guias.length > 0 ? guias.join(", ") : <span className="text-tinta/55">Sin guía</span>}</Dato>
           <Dato titulo="Sede">{envio.ubicacion}</Dato>
