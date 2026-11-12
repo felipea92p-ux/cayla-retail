@@ -641,6 +641,20 @@ a elegir una estética propia —fuentes, paletas, estilos—. Si lo que sugiere
 Sirven, además, para lo que el repo no decide: criterios de accesibilidad y de UX, cómo elegir un gráfico, ideas para una maqueta en
 `docs/maquetas/`. La búsqueda de `ui-ux-pro-max` está en inglés (en español no encuentra nada) y nunca lleva datos de CAYLA.
 
+## Al milímetro: la base teórica del diseño (Felipe 2026-11-12)
+
+**Siete skills de este repo dan el porqué y la medida exacta de cada componente, gráfico, texto y animación:** `/milimetro` (la entrada:
+arma la *ficha al milímetro* de una pieza y audita una pantalla), `/movimiento`, `/tipografia`, `/espacio`, `/color`, `/graficos` y
+`/textos`. Cada regla trae su valor, el token o la pieza del repo que la cumple y su nivel de confianza —**Evidencia** (estudio),
+**Norma** (WCAG, especificación) o **Práctica** (sistemas de diseño)—, y cada skill trae un `referencia/medir.js` para el navegador.
+La investigación vive en `docs/investigacion/2026-11-12-fundamentos-de-diseno/`.
+1. **Este archivo manda sobre ellas:** los tokens, las piezas de «Una función, una pieza» y las reglas de movimiento siguen siendo la
+   fuente; las skills no traen ni un hex, una letra ni una pieza propia.
+2. **Donde la investigación dice que una regla de aquí se puede mejorar, la skill no la cambia: la propone** (Felipe: «reescribimos
+   las reglas siempre y cuando sea una mejora… si es la forma en que lo hacen los mejores del mundo, hagámoslo»). El tablero es
+   `docs/milimetro/propuestas.md`; se decide mirando, con `/milimetro proponer`, y lo elegido entra por su ADR.
+3. **No reemplazan a `/unificar`, `/formidable`, `/focus` ni `/sugerir`:** las alimentan con fundamento y les pasan la posta.
+
 ## Una función, una pieza (regla — ADR-0358, Felipe 2026-10-06)
 
 **Dos piezas que hacen lo mismo se ven igual en todo el ERP.** Si «Cancelar», unas pestañas o una insignia de estado se dibujan distinto en dos
