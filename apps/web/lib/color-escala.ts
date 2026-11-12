@@ -79,13 +79,20 @@ export function enEscala(a: ColorEnEscala, b: ColorEnEscala): number {
 }
 
 /**
- * Parte los colores de UNA familia —ya ordenados con `enEscala`— en sus gamas, para que la pantalla ponga cada gama en su
- * propia fila. Concatenar los bloques devuelve exactamente la entrada: nunca se pierde ni se repite un color.
+ * Parte los colores de UNA familia en sus gamas, para que la pantalla ponga cada gama en su propia fila. Los ordena ella misma con
+ * `enEscala` (gama, de claro a oscuro): llegue la lista como llegue, cada gama es UN solo bloque y cada bloque va de claro a oscuro.
+ * Concatenar los bloques devuelve los mismos colores: nunca se pierde ni se repite uno. No toca la lista que recibe.
+ *
+ * POR QUÉ ORDENA AQUÍ Y NO LO PIDE: antes esta función suponía la lista «ya ordenada con `enEscala`» y abría un bloque cada vez que la
+ * gama CAMBIABA. Tres pantallas le pasaban los colores como los lee la base (`order by orden, nombre`), con las gamas alternadas, y el
+ * Verde salía en seis filas (5, 5, 1, 1, 1, 1): la hoja «Crear la prenda que llegó» de Recibir, la de Insumos (tela y avío) y la de «agregar un
+ * color a la orden» (2026-11-12). Una precondición que nadie comprueba termina rota por la próxima pantalla; ordenar de más cuesta
+ * microsegundos (una familia tiene decenas de colores) y deja a la carta sin forma de verse distinta según quién la use.
  */
 export function partirEnGamas<C extends ColorEnEscala>(colores: readonly C[]): C[][] {
   const bloques: C[][] = [];
   let anterior: number | null = null;
-  for (const c of colores) {
+  for (const c of [...colores].sort(enEscala)) {
     const gama = gamaDeColor(c.familiaColor, c.hex);
     if (gama !== anterior) bloques.push([]);
     bloques[bloques.length - 1].push(c);

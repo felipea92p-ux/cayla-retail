@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  enviosDeLaFila,
   avanceDeEnvios,
   avisosDeEnvio,
   codigosPorCompra,
@@ -199,6 +200,9 @@ describe("buscar y filtrar", () => {
 describe("el resumen de una ronda", () => {
   it("sin envíos", () => {
     expect(resumenDeEnvios([], HOY)).toEqual({ texto: "Sin envíos", chip: null });
+    // Una ronda leída sin envíos es una lista vacía («Sin envíos»); null queda solo para «no se pudieron leer».
+    expect(enviosDeLaFila([], "ronda-r9")).toEqual([]);
+    expect(enviosDeLaFila(null, "ronda-r9")).toBeNull();
     expect(resumenDeEnvios([envio({ estado: "anulado" })], HOY).chip).toBeNull();
   });
   it("todo recibido, con diferencias y sin recibir (ámbar si hay uno atrasado)", () => {

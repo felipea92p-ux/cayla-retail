@@ -183,6 +183,74 @@ describe("la carta de colores de CAYLA", () => {
   });
 });
 
+// Regresión (Felipe, 2026-11-12): en la hoja «Crear la prenda que llegó» de Recibir el Verde salía en SEIS filas (5, 5, 1, 1, 1, 1) y el Morado
+// en tres. Esa hoja, la de Insumos (tela y avío) y la de «agregar un color a la orden» le pasan a la carta los colores como los lee la base
+// (`order by orden, nombre`), sin `enEscala`, y `partirEnGamas` abría una fila cada vez que la gama cambiaba. Estos son los colores lisos y
+// activos de PRODUCCIÓN (consultados el 2026-11-12) en ESE orden: los de la carta original, con su `orden` de 700 a 940, y después los que se
+// crearon a mano, todos con `orden = 2000`, por nombre. Mezclados, alternan de gama a cada paso.
+const TAL_COMO_LOS_LEE_LA_BASE: ReadonlyArray<readonly [codigo: string, nombre: string, hex: string, familia: string]> = [
+  ["PIS", "Pistacho", "#BED38E", "verde"], ["VEL", "Verde limón", "#9FC131", "verde"], ["SAV", "Salvia", "#A1AD92", "verde"],
+  ["VOL", "Verde oliva", "#6A6F34", "verde"], ["VEM", "Verde militar", "#4B5335", "verde"], ["VEA", "Verde agua", "#A1D7C9", "verde"],
+  ["ESM", "Esmeralda", "#009B74", "verde"], ["VER", "Verde", "#487D49", "verde"], ["VEB", "Verde botella", "#264E36", "verde"],
+  ["CEL", "Celeste", "#A9CADA", "azul"], ["TUR", "Turquesa", "#33BECC", "azul"], ["AZP", "Azul petróleo", "#2A5C6A", "azul"],
+  ["AZC", "Azul claro", "#80A0D4", "azul"], ["AZD", "Azul denim", "#5979A2", "azul"], ["AZE", "Azul eléctrico", "#2E5BF2", "azul"],
+  ["AZI", "Azul Intermedio", "#56626e", "azul"], ["AME", "Azul medio", "#4A638D", "azul"], ["COB", "Cobalto", "#00539C", "azul"],
+  ["IND", "Índigo", "#49516D", "azul"], ["AZM", "Azul marino", "#2A304E", "azul"],
+  ["LAV", "Lavanda", "#D2C4D6", "morado"], ["LIL", "Lila", "#BCA4CB", "morado"], ["VIO", "Violeta", "#7A3FB6", "morado"],
+  ["MOR", "Morado", "#563474", "morado"], ["MAL", "Malva", "#B88AAC", "morado"], ["ORQ", "Orquídea", "#AD5E99", "morado"],
+  ["MOA", "Mora", "#854C65", "morado"], ["CIR", "Ciruela", "#692D5D", "morado"], ["BER", "Berenjena", "#47253C", "morado"],
+  // Los creados a mano (`orden = 2000`), por nombre:
+  ["ACO", "Acero oxido", "#515261", "azul"], ["AZU", "Azul", "#4D91C6", "azul"], ["AZA", "Azul acero", "#b0c4de", "azul"],
+  ["AZN", "Azul natural", "#2a2a6f", "azul"], ["AZF", "Azul zafiro", "#203C7F", "azul"], ["CEM", "celeste medio", "#91b9e3", "azul"],
+  ["GLI", "Glicina", "#8B79B1", "morado"], ["HIB", "hielo bleach", "#b4d7ff", "azul"], ["MEN", "Menta", "#D2E8DF", "verde"],
+  ["VHO", "Verde hoja", "#75A14F", "verde"], ["VJA", "Verde jade", "#70A38D", "verde"], ["VEO", "Verde Olivo", "#7a8f4d", "verde"],
+  ["VEP", "Verde pacay", "#6b8367", "verde"],
+];
+
+describe("partirEnGamas no depende del orden en que llega la lista (regresión de Recibir, 2026-11-12)", () => {
+  const deLaBase = (familia: string) =>
+    TAL_COMO_LOS_LEE_LA_BASE.filter((c) => c[3] === familia).map(([codigo, nombre, hex, familiaColor]) => ({ codigo, nombre, hex, familiaColor }));
+  const tamanos = (lista: ReturnType<typeof deLaBase>) => partirEnGamas(lista).map((g) => g.length);
+
+  it("con los colores de producción como los lee la base: Verde 7+7, Azul 3+15 y Morado 5+5 (antes 5,5,1,1,1,1 · 3,15 · 4,5,1)", () => {
+    expect(tamanos(deLaBase("verde"))).toEqual([7, 7]);
+    expect(tamanos(deLaBase("azul"))).toEqual([3, 15]);
+    expect(tamanos(deLaBase("morado"))).toEqual([5, 5]);
+  });
+
+  it("da lo mismo que ordenar antes con `enEscala`: la carta de Nuevo producto y la de Recibir se ven igual", () => {
+    for (const familia of ["verde", "azul", "morado"]) {
+      const lista = deLaBase(familia);
+      expect(partirEnGamas(lista)).toEqual(partirEnGamas([...lista].sort(enEscala)));
+    }
+  });
+
+  it("la carta aprobada sale igual llegue como llegue la lista, sin ordenarla antes (al derecho, al revés o girada)", () => {
+    for (const [familia, esperado] of Object.entries(ESPERADO)) {
+      const lista = deFamilia(familia);
+      const girada = [...lista.slice(3), ...lista.slice(0, 3)];
+      for (const llegada of [lista, [...lista].reverse(), girada]) {
+        expect(partirEnGamas(llegada).map((g) => g.map((c) => c.codigo)), familia).toEqual(esperado);
+      }
+    }
+  });
+
+  it("no pierde ni repite un color aunque la lista llegue desordenada (solo cambia el orden)", () => {
+    for (const familia of ["verde", "azul", "morado"]) {
+      const lista = deLaBase(familia);
+      const juntos = partirEnGamas(lista).flat().map((c) => c.codigo);
+      expect([...juntos].sort()).toEqual(lista.map((c) => c.codigo).sort());
+    }
+  });
+
+  it("no toca la lista que recibe", () => {
+    const lista = deLaBase("verde");
+    const copia = lista.map((c) => c.codigo);
+    partirEnGamas(lista);
+    expect(lista.map((c) => c.codigo)).toEqual(copia);
+  });
+});
+
 describe("enEscala", () => {
   const c = (nombre: string, hex: string | null, familiaColor = "azul") => ({ nombre, hex, familiaColor });
 

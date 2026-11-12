@@ -45,7 +45,8 @@ function Cara({
   icono: LucideIcon;
   titulo: string;
   detalle: string;
-  entra: boolean;
+  /** null: plata que todavía no se movió (lo que CAYLA te devuelve): el monto sin signo ni verde. */
+  entra: boolean | null;
   monto: string;
   /** Sin estado (una ronda): el monto solo, y el título tiene el ancho. */
   estado?: { texto: string; detalle: string; pendiente: boolean };
@@ -64,7 +65,7 @@ function Cara({
       </span>
       <span className="flex flex-col items-end gap-1">
         <span className={`whitespace-nowrap text-sm tabular-nums ${entra ? "text-verde" : "text-tinta"}`}>
-          {entra ? "+" : "−"} {monto}
+          {entra === null ? monto : `${entra ? "+" : "−"} ${monto}`}
         </span>
         {hora && <span className="text-sm tabular-nums text-taupe">{hora}</span>}
         {estado && !chips && (
@@ -354,7 +355,8 @@ export function RondasAnteriores({
   const guardadas = historial.slice(visibles);
   return (
     <section className="flex min-w-0 flex-col gap-1" data-guia="mi-plata.antes">
-      <TituloSeccion cuenta={historial.length}>Rondas anteriores</TituloSeccion>
+      {/* Cuántas RONDAS: la lista también trae la plata anotada sin ronda y lo devuelto al cerrar, que no son rondas (auditoría 2026-11-12). */}
+      <TituloSeccion cuenta={historial.filter((e) => e.tipo === "ronda").length}>Rondas anteriores</TituloSeccion>
       <ul className="divide-y divide-sand border-t border-sand">{historial.slice(0, visibles).map(fila)}</ul>
       {guardadas.length > 0 && (
         <>

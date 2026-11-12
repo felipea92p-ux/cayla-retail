@@ -510,6 +510,26 @@ export function tipoDeParada(p: Pick<ParadaDelConteo, "modelo">): TipoDeModelo |
 }
 
 /**
+ * El lápiz «Corregir la categoría y la marca» mientras se cuenta (Felipe 2026-11-12, `corregir_linea_al_contar`): en la compra se anotó «Polo nousse» en Polos y era
+ * una blusa. Solo un modelo nuevo que vino anotado en la compra por su nombre, todavía sin ficha y sin nada en el stock: corregirlo es corregir su línea de la compra
+ * (casi siempre una; la misma prenda comprada dos veces, dos). Devuelve los ids de esas líneas; `null` si no se ofrece. Un modelo agregado al contar se quita y se
+ * agrega donde va; uno ya creado se corrige en Catálogo ▸ Productos. Lo demás (otra cosa contada en su línea) lo dice la base al guardar.
+ */
+export function lineasParaCorregir(p: Pick<ParadaDelConteo, "grupo" | "modelo">): string[] | null {
+  const m = p.modelo;
+  if (!m || m.productoId || !m.anotada || m.anotada.productoId || m.enStock > 0) return null;
+  const ids = lineasDelModelo(p.grupo, m).map((l) => l.linea?.id ?? null);
+  if (ids.length === 0 || ids.some((id) => !id)) return null;
+  return ids.filter((id): id is string => !!id);
+}
+
+/** Dónde queda el modelo después de corregir su categoría y su marca: el grupo de la guía es «proveedor|categoría|marca» (`claveDeGrupo`); el modelo es el mismo. */
+export function claveTrasCorregir(p: Pick<ParadaDelConteo, "grupo" | "modelo" | "clave">, categoriaId: string, marcaId: string | null): string {
+  if (!p.modelo) return p.clave;
+  return claveDeParada({ clave: `${p.grupo.principal.proveedor?.id ?? "-"}|${categoriaId}|${marcaId ?? "-"}` }, p.modelo.clave);
+}
+
+/**
  * Los estados por los que se filtra la lista. Los tres primeros reparten todas las paradas; «despues» (lo que ya se contó y aún no tiene tallas) y «llevar» (lo repartido que
  * todavía no entró al stock, ADR-0645) se miran aparte.
  */
@@ -679,9 +699,22 @@ export function avanceDeCategoria(c: Pick<CategoriaDelEnvio, "dijeron" | "contad
 export function fraseDelAvance(c: CifrasDelResumen): { texto: string; tono: "verde" | "ambar" | null } | null {
   const porContar = c.estados["por-contar"];
   if (c.estados.cuadran + c.estados.diferencia + porContar === 0) return null;
-  if (porContar > 0) return { texto: porContar === 1 ? "Falta 1 por contar" : `Faltan ${conMiles(porContar)} por contar`, tono: null };
+  // Lo que falta se cuenta en MODELOS (paradas del contador), no en prendas: decirlo con su nombre, o «Faltan 3» parecía de prendas (auditoría 2026-11-12).
+  if (porContar > 0) return { texto: porContar === 1 ? "Falta 1 modelo por contar" : `Faltan ${conMiles(porContar)} modelos por contar`, tono: null };
   if (c.dijeron != null && c.diferencia !== 0) return { texto: `Todo contado · diferencia ${conSigno(c.diferencia)}`, tono: "ambar" };
   return { texto: "Todo contado", tono: "verde" };
+}
+
+/**
+ * Lo que va alrededor del número grande de la línea de avance (auditoría 2026-11-12). Mientras se cuenta: «6 de 10 prendas contadas». Con todo contado ya no
+ * es «contadas» —parecía que faltaba contar una cuando en verdad llegó una menos—: «Llegaron 9 de 10». Sin aviso no hay con qué comparar: «9 prendas».
+ */
+export function etiquetaDelAvance(c: Pick<CifrasDelResumen, "contadas" | "dijeron" | "estados">, sinAviso: boolean): { antes: string; despues: string } {
+  const todoContado = c.estados["por-contar"] === 0 && c.estados.cuadran + c.estados.diferencia > 0;
+  const prendas = (n: number) => (n === 1 ? "prenda" : "prendas");
+  if (sinAviso || c.dijeron == null) return todoContado ? { antes: "Llegaron", despues: prendas(c.contadas) } : { antes: "", despues: c.contadas === 1 ? "prenda contada" : "prendas contadas" };
+  if (todoContado) return { antes: c.contadas === 1 ? "Llegó" : "Llegaron", despues: `de ${conMiles(c.dijeron)}` };
+  return { antes: "", despues: `de ${conMiles(c.dijeron)} ${c.dijeron === 1 ? "prenda contada" : "prendas contadas"}` };
 }
 
 // ---- El filtro por proveedor y marca ------------------------------------------------------------------------------------------------

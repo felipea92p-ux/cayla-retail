@@ -42,7 +42,8 @@ export function ParaMandar({
   return (
     <section aria-label="Para mandar" className="card-cayla flex min-w-0 flex-col gap-3.5 p-4 lg:p-5">
       <TituloSeccion
-        cuenta={faltan}
+        // Sin globito en 0: «Para mandar 0» junto a «Todo mandado» decía lo mismo dos veces (auditoría 2026-11-12).
+        cuenta={faltan > 0 ? faltan : undefined}
         dato={faltan === 0 && envios !== null && envios.length > 0 ? <Chip tono="verde">Todo mandado</Chip> : conPrendas.length > 1 ? `${conPrendas.length} tiendas` : undefined}
       >
         Para mandar

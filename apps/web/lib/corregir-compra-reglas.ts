@@ -222,6 +222,15 @@ export type CambiosDePrenda = {
   destinoId?: string;
 };
 
+/**
+ * El costo que se ve en la tarjeta mientras se corrige: lo escrito, leído IGUAL que lo que se guarda (`leerPrecio`, como `cambiosDePrenda`); si
+ * no se entiende, el guardado. Antes la tarjeta leía con `Number("1,299".replace(",", "."))` = 1.299 y mostraba S/ 1.30 mientras se guardaba
+ * S/ 1,299 (auditoría 2026-11-12).
+ */
+export function costoQueSeVe(p: Pick<PrendaParaCorregir, "costo">, b: Pick<Borrador, "costo">): number {
+  return leerPrecio(b.costo) ?? p.costo;
+}
+
 export function cambiosDePrenda(p: PrendaParaCorregir, b: Borrador): CambiosDePrenda {
   const cambios: CambiosDePrenda = {};
   if (puedeCambiarDeTienda(p) && b.destinoId !== "" && b.destinoId !== p.destinoId) cambios.destinoId = b.destinoId;

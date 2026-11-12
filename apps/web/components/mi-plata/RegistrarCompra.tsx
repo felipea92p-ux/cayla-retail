@@ -40,6 +40,7 @@ import type { ProveedorRegistrado } from "@/lib/proveedor-de-orden-reglas";
 import { cargarFotosDeHabituales, cargarHabituales, registrarCompraRapida, registrarMarcaDeCompra, subirFotoPapel } from "@/lib/compra-rapida-acciones";
 import {
   HABITUALES_A_LA_VISTA,
+  ayudaDeHabituales,
   PROVEEDORES_POR_TANDA,
   tandaDeLista,
   MEDIOS_PAGO_COMPRA,
@@ -727,9 +728,7 @@ export function RegistrarCompra({ datos }: { datos: Datos }) {
         <section className="flex flex-col gap-4">
           <h2 className="compra-pregunta">¿Qué le compraste?</h2>
           <p className="-mt-2 text-sm text-taupe">
-            {Array.isArray(habituales) && habituales.length === 0
-              ? "Todavía no le compraste nada: descríbelo con «Algo nuevo»."
-              : "Toca una prenda de las suyas: viene con lo de la vez pasada. Si es otra, usa «Algo nuevo»."}
+            {ayudaDeHabituales(Array.isArray(habituales) ? habituales : null)}
           </p>
           {habituales === "cargando" ? (
             // El lugar de la grilla, con sus tarjetas por dibujar (sin movimiento: no hay bucle en ADR-0136), para que la pantalla no salte al llegar.
@@ -1100,7 +1099,9 @@ export function RegistrarCompra({ datos }: { datos: Datos }) {
           </div>
           {pago.forma === "ahora" && (
             <>
-              <CampoGuiado id="medio" guia={guia} titulo="¿Con qué pagaste?">
+              {/* `self-stretch!`: la caja de la guía se encoge a su contenido en esta columna (`.hilo-luz { align-self: start }`) y dejaba las tres
+                  fichas de 43 px, con «Efectivo» cortado (auditoría 2026-11-12). Aquí ocupa el ancho de la columna. */}
+              <CampoGuiado id="medio" guia={guia} titulo="¿Con qué pagaste?" className="self-stretch!">
                 <FichasMedio
                   etiqueta="¿Con qué pagaste?"
                   opciones={MEDIOS_PAGO_COMPRA}
@@ -1184,7 +1185,9 @@ export function RegistrarCompra({ datos }: { datos: Datos }) {
       </div>
       {conPanel && (
         <TuCompra
-          proveedor={proveedor ? proveedor.nombre : null}
+          // La marca que eligió (es como la piensa la compradora, ADR-0644); sin marca, el proveedor. Antes mostraba siempre la razón social
+          // («CAYLA SAC») aunque se entró por la marca (auditoría 2026-11-12).
+          proveedor={proveedor ? (marcaElegida?.nombre ?? proveedor.nombre) : null}
           paso={fase}
           prendas={prendasDeLaCompra(lineas)}
           nombresTienda={nombresTienda}
@@ -1262,7 +1265,9 @@ export function RegistrarCompra({ datos }: { datos: Datos }) {
               </>
             )}
           </p>
-          <p className="nota-cayla w-full text-left text-sm">Compras copia el número del papel después. Tú ya terminaste con esta compra.</p>
+          {/* ADR-0574 (20261029194000): ya nadie copia el número después; la compra pasa sola a los libros cuando la tienda cierra el conteo. Antes
+              decía «Compras copia el número del papel después», también con «Sin papel» (auditoría 2026-11-12). */}
+          <p className="nota-cayla w-full text-left text-sm">Tú ya terminaste con esta compra: pasa sola a los libros cuando la tienda termine de contar lo que llegó.</p>
           <div className="flex w-full flex-col gap-2 pt-2">
             {guardada.tiendas.length > 0 && (
               <BotonEnlace href="/compras/mi-plata?mandar=1" peso="primario" data-guia="compra.mandar">

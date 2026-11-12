@@ -20,17 +20,28 @@ export function CodigoDeEnvio({ numero, linea, guia }: { numero: string; linea?:
   );
 }
 
-/** «Copiar el código» y «Compartir por WhatsApp» (el mensaje sale armado; abre WhatsApp en otra pestaña). */
+/**
+ * «Copiar el código» y «Por WhatsApp» (el mensaje sale armado; abre WhatsApp en otra pestaña). «Compartir por WhatsApp» no cabía en la mitad
+ * de la hoja (205 px de texto en un botón de 189, auditoría 2026-11-12): se ve «Por WhatsApp» y el lector oye la acción completa.
+ */
 export function AccionesDelCodigo({ envio, guia }: { envio: EnvioSalido; guia?: string }) {
   return (
     <div className="flex flex-col gap-2 sm:flex-row" data-guia={guia}>
       <BotonCopiar texto={envio.numero} que="el código del envío" className="sm:flex-1">
         Copiar el código
       </BotonCopiar>
-      <BotonAncla href={enlaceDeWhatsapp(mensajeParaLaTienda(envio))} target="_blank" rel="noopener noreferrer" peso="fantasma" className="sm:flex-1">
+      <BotonAncla
+        href={enlaceDeWhatsapp(mensajeParaLaTienda(envio))}
+        target="_blank"
+        rel="noopener noreferrer"
+        peso="fantasma"
+        className="sm:flex-1"
+        aria-label="Compartir el código por WhatsApp"
+        title="Compartir el código por WhatsApp"
+      >
         <span className="flex items-center justify-center gap-2">
           <MessageCircle aria-hidden className="-my-1 h-4 w-4 shrink-0" />
-          Compartir por WhatsApp
+          Por WhatsApp
         </span>
       </BotonAncla>
     </div>
