@@ -44,9 +44,31 @@ select p.referencia as prenda, v.id as variante from retail.variantes v join ret
   where v.activo and p.estado = 'activo' and p.id <> '11111111-1111-4111-8111-111111111111' order by p.referencia, v.id limit 1 \\gset
 update retail.variantes set costo = 0 where id = :'variante';`;
 
-/** Corre `cuerpo` con la migración (salvo `sinMigracion`) y la escena, y devuelve la última línea. */
+// Las tres funciones como estaban ANTES de la migración: se quitan, dentro de la transacción, exactamente los textos que ella
+// agrega. Hace falta porque la base del CI (y la local, una vez aplicada) ya la trae: sin esto, «sin la migración» no lo sería.
+// Si la base no la tiene, los reemplazos no encuentran nada y no cambian nada.
+const DESHACER = String.raw`do $deshacer$
+declare
+  c_filtro  constant text := 'retail.fn_productos_filtro(text, uuid, uuid, uuid, text[], text[], uuid[], text, text, text, numeric, numeric, text, uuid, boolean, uuid)';
+  c_listado constant text := 'retail.fn_productos_listado(text, uuid, uuid, uuid, text[], text[], uuid[], text, text, text, numeric, numeric, text, uuid, text, integer, integer, uuid)';
+  c_facetas constant text := 'retail.fn_productos_facetas(text, uuid, uuid, uuid, text[], text[], uuid[], text, text, text, numeric, numeric, text, uuid, uuid)';
+begin
+  execute replace(replace(pg_get_functiondef(c_filtro::regprocedure),
+    E' v.costo, -- ADR: sin costo (20261112155000)\n          ', ''),
+    E'\n           -- ADR: sin costo (20261112155000)\n           or (p_falta = ''costo'' and (select retail.fn_puede_ver_dinero_de_compras()) and coalesce(vi.costo, 0) <= 0))', ')');
+  execute replace(pg_get_functiondef(c_listado::regprocedure),
+    E', ''costo'') -- ADR: sin costo (20261112155000)\n    ', ')');
+  execute replace(pg_get_functiondef(c_facetas::regprocedure),
+    E',\n      (''costo'', (select retail.fn_puede_ver_dinero_de_compras()) and exists (select 1 from retail.variantes vc where vc.id = fi.variante_id and coalesce(vc.costo, 0) <= 0)) -- ADR: sin costo (20261112155000)', '');
+  if position('ADR: sin costo' in pg_get_functiondef(c_filtro::regprocedure) || pg_get_functiondef(c_listado::regprocedure) || pg_get_functiondef(c_facetas::regprocedure)) > 0 then
+    raise exception 'la prueba no pudo deshacer la migración: el texto que agrega cambió (pon DESHACER al día)';
+  end if;
+end
+$deshacer$;`;
+
+/** Corre `cuerpo` sobre las funciones de antes, con la migración encima (salvo `sinMigracion`) y la escena; devuelve la última línea. */
 const dentro = (cuerpo, { sinMigracion = false, escena = ESCENA, dosVeces = false } = {}) =>
-  psql(`begin;\n${sinMigracion ? "" : MIGRACION}\n${dosVeces ? MIGRACION : ""}\n${escena}\n${cuerpo}\nrollback;`)
+  psql(`begin;\n${DESHACER}\n${sinMigracion ? "" : MIGRACION}\n${dosVeces ? MIGRACION : ""}\n${escena}\n${cuerpo}\nrollback;`)
     .split("\n")
     .filter(Boolean)
     .at(-1);
