@@ -63,3 +63,12 @@ export function enEscala(a: ColorEnEscala, b: ColorEnEscala): number {
   return ob.L - oa.L || a.nombre.localeCompare(b.nombre, "es");
 }
 
+/**
+ * La fila de UNA familia en la carta: sus colores de claro a oscuro (`enEscala`). La ordena ella misma, llegue la lista como llegue, y no toca la
+ * lista que recibe: TRES pantallas le pasan los colores como los lee la base (`order by orden, nombre`), sin ordenar —la hoja «Crear la prenda
+ * que llegó» de Recibir, la de Insumos (tela y avío) y la de «agregar un color a la orden»— (lo encontró otra sesión el 2026-11-12, cuando la carta
+ * todavía partía en gamas y el Verde salía en seis filas). Una precondición que nadie comprueba termina rota por la próxima pantalla.
+ */
+export function filaDeLaFamilia<C extends ColorEnEscala>(colores: readonly C[]): C[] {
+  return [...colores].sort(enEscala);
+}

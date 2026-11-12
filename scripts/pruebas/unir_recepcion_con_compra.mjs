@@ -7,7 +7,8 @@
  * Desde `20261111152000` (2026-11-11), U6 y L5: lo contado sin recibir en el envío de Compras ya no frena la unión: lo RECIBIDO sigue sin unirse, con la guarda de siempre.
  * Desde `20261111181000`, U23: dar por llegadas compras que entraron por otra puerta (solo Admin), sin pasar al libro.
  * Desde `20261111175000`, U21 y U22: corregir el proveedor de una marca en una recepción cerrada, y un Admin une con faltante.
- * Desde `20261111165000`, U20: una compra unida deja de salir «por enviar» en Recibir, en Órdenes de compra y en Análisis.)
+ * Desde `20261111165000`, U20: una compra unida deja de salir «por enviar» en Recibir, en Órdenes de compra y en Análisis.
+ * Desde `20261112153000`, U24: una compra de «Mis compras» sin mandar no sale «Sin guía» en Recibir y «Llegó esta orden» la rechaza; mandada, sale como envío.)
  *
  * LO QUE VIGILA. Que una misma mercadería nunca entre dos veces al stock ni se quede sin pasar al libro: tras unir, la compra sale de su
  * envío propio, ya no se puede volver a mandar, y su papel pasa al libro cuando la recepción está cerrada, con lo llegado anotado como
@@ -36,7 +37,7 @@ const SIN_MIGRACION = process.argv.includes("--sin-migracion");
 const VER_TODO = process.argv.includes("--ver");
 const MIGRACION = SIN_MIGRACION
   ? ""
-  : ["20261110011000_unir_recepcion_con_su_compra.sql", "20261110022000_uniones_posibles_recepcion_compra.sql", "20261111152000_unir_descarta_lo_contado_en_el_envio_propio.sql", "20261111165000_ordenes_unidas_no_salen_por_enviar.sql", "20261111175000_corregir_proveedor_de_una_marca_y_unir_con_faltante.sql", "20261111181000_dar_compras_por_llegadas_por_otra_entrada.sql"]
+  : ["20261110011000_unir_recepcion_con_su_compra.sql", "20261110022000_uniones_posibles_recepcion_compra.sql", "20261111152000_unir_descarta_lo_contado_en_el_envio_propio.sql", "20261111165000_ordenes_unidas_no_salen_por_enviar.sql", "20261111175000_corregir_proveedor_de_una_marca_y_unir_con_faltante.sql", "20261111181000_dar_compras_por_llegadas_por_otra_entrada.sql", "20261112153000_mis_compras_no_salen_sin_guia_en_recibir.sql"]
       .map((f) =>
         readFileSync(join(RAIZ, "supabase/migrations", f), "utf8")
           .replace(/^set lock_timeout.*$/gm, "")
@@ -523,7 +524,34 @@ caso(
    select pg_temp.vistas(:'oc1', :'tru') as despues \\gset
    reset role;
    select concat_ws(' / ', ${RESP("u")}, :'antes', :'despues');`,
-  "true:false:true:0:0: / 1:1 / 0:0",
+  "true:false:true:0:0: / 0:1 / 0:0",
+);
+caso(
+  "U24 una compra de «Mis compras» sin mandar no sale «Sin guía» en Recibir y «Llegó esta orden» la rechaza; cuando Compras la manda, sale como envío",
+  `${COMPRA("p1", 8, { token: A1 })}
+   reset role;
+   select o.id as oc1 from retail.ordenes_compra o where o.papel_id = :'p1' limit 1 \\gset
+   ${atrapa("sin_guia_u24", "p_orden uuid, p_token uuid", "retail.recibir_orden_sin_envio(p_orden, p_token)")}
+   create function pg_temp.en_recibir(p_oc uuid, p_tru uuid) returns text language sql security definer as $f$
+     select concat_ws(':',
+       (select count(*) from jsonb_array_elements(retail.fn_ordenes_directas_por_recibir(p_tru)) x where (x ->> 'orden_id')::uuid = p_oc),
+       (select count(*) from jsonb_array_elements(retail.fn_envios_por_recibir(p_tru)) x
+         where exists (select 1 from retail.despacho_items di join retail.orden_compra_items i on i.id = di.orden_compra_item_id
+                        where di.despacho_id = (x ->> 'id')::uuid and i.orden_compra_id = p_oc)));
+   $f$;
+   grant execute on function pg_temp.en_recibir(uuid, uuid) to authenticated;
+   ${MICAELA_AQUI}
+   select pg_temp.en_recibir(:'oc1', :'tru') as antes \\gset
+   select pg_temp.sin_guia_u24(:'oc1', gen_random_uuid()) as sg \\gset
+   reset role;
+   select (select count(*) from retail.despachos d join retail.despacho_items di on di.despacho_id = d.id join retail.orden_compra_items i on i.id = di.orden_compra_item_id
+            where i.orden_compra_id = :'oc1') as envios_sin_guia \\gset
+   ${MANDA("e1", A2)}
+   ${MICAELA_AQUI}
+   select pg_temp.en_recibir(:'oc1', :'tru') as despues \\gset
+   reset role;
+   select concat_ws(' / ', :'antes', coalesce(:'sg'::jsonb ->> 'hint', 'sin error'), :'envios_sin_guia', :'despues');`,
+  "0:0 / orden_viaja_con_envio / 0 / 0:1",
 );
 // Sandra pasa a Admin (Dynamic la marca «admin» y aquí es líder): firma sin combo y puede unir lo que ella compró.
 const SANDRA_ADMIN = `reset role;\nupdate public.personas set rol = 'admin' where auth_user_id = '${SANDRA}';\n${COMPRADORA(null)}`;

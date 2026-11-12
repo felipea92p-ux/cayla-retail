@@ -53,6 +53,7 @@ export function RecibidoEnLaSede({
   recibidos,
   costos,
   vacio,
+  enviosAbiertos = [],
 }: {
   sede: string;
   /** `null`: la base todavía no cuenta lo que quedó por terminar; entonces solo hay «Terminados». */
@@ -62,6 +63,8 @@ export function RecibidoEnLaSede({
   costos?: Record<string, CostoRecepcion>;
   /** Lo que dice «Terminados» si no hay nada. */
   vacio: string;
+  /** Los envíos que todavía se están recibiendo: en «Terminados» salen con «Sigue abierto», no con «terminó». */
+  enviosAbiertos?: readonly string[];
 }) {
   const [vista, setVista] = useState<VistaRecibido>(() => vistaInicialRecibido(pendientes?.envios));
   const porTerminar = pendientes ? ordenarPorTerminar(pendientes.envios) : [];
@@ -99,6 +102,7 @@ export function RecibidoEnLaSede({
             recepciones={recibidos}
             costos={costos}
             porPagina={TERMINADOS_POR_PAGINA}
+            enviosAbiertos={enviosAbiertos}
             vacio={porTerminar.length > 0 ? "Todavía no hay nada terminado: lo que llegó está en «Por terminar»." : vacio}
           />
           {recibidos.length >= TERMINADOS_MAXIMO && <p className="nota-cayla">Se muestran las {TERMINADOS_MAXIMO} más recientes. Para ver el resto, «Ver todo lo recibido».</p>}

@@ -295,6 +295,7 @@ export default async function RecibirPage({ searchParams }: { searchParams: Prom
         recibidos={recibidos}
         costos={costos}
         vacio={`Todavía no llegó nada a ${persona.ubicacionEtiqueta}.`}
+        enviosAbiertos={(deOrdenes?.envios ?? []).filter((e) => e.estado === "abierto").map((e) => e.id)}
       />
     );
     if (contando.disponible) {
@@ -307,19 +308,20 @@ export default async function RecibirPage({ searchParams }: { searchParams: Prom
               tono={diasAMedias(e.desde) >= DIAS_PARA_RESALTAR ? "atencion" : "info"}
               chico
               accion={
+                // Un solo verbo para el mismo envío: la fila de «Envíos por recibir» también dice «Seguir recibiendo» (auditoría 2026-11-12).
                 <Link href={`/recibir/envio/${e.id}`} className="btn-cayla btn-enlace">
-                  Seguir contando
+                  Seguir recibiendo
                 </Link>
               }
             >
-              {textoDeEnvioAMedias(e)}
+              {textoDeEnvioAMedias(e, undefined, persona.ubicacionEtiqueta)}
             </Aviso>
           ))}
           {contando.pendientes && <PendientesDeRecibir pendientes={contando.pendientes} conLista={false} guia="recibir.pendientes" />}
           <AvisoTrasladosEnCamino traslados={trasladosHaciaAca(trasladosDeLaSede, persona.ubicacionId)} sedeNombre={persona.ubicacionEtiqueta} veTraslados={veModulo(persona, "traslados")} />
           <SinAvisoProvider>
           {deOrdenes && (
-            <EnviosParaRecibir envios={porRecibirEnLaSede?.envios ?? []} ordenes={deOrdenes.ordenes} sede={persona.ubicacionEtiqueta} porCategoria proveedoresSinAviso={proveedoresSinAviso} accionTitulo={<AccionSinAviso />} />
+            <EnviosParaRecibir envios={porRecibirEnLaSede?.envios ?? []} ordenes={deOrdenes.ordenes} sede={persona.ubicacionEtiqueta} porCategoria proveedoresSinAviso={proveedoresSinAviso} enStock={Object.fromEntries(aMedias.map((e) => [e.id, e.enStock]))} accionTitulo={<AccionSinAviso />} />
           )}
           <LlegoSinAviso
             key={claveDeLaRecepcion(persona.ubicacionId)}

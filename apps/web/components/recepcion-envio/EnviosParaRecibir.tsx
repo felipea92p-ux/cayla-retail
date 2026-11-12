@@ -12,6 +12,7 @@ import { Vacio } from "@/components/ui/Vacio";
 import { ESTADO_ENVIO } from "@/lib/ordenes-compra-reglas";
 import { TEXTO_LA_RECIBE_OTRA, textoMarcas, type EnvioPorAbrir, type OrdenDirecta } from "@/lib/recepcion-envio-reglas";
 import { esEnvioSinAviso } from "@/lib/recepcion-conteo-reglas";
+import { textoYaEnStock } from "@/lib/recepcion-salida-reglas";
 import { coincideConBusqueda, ordenarFilasPorRecibir, textoBuscableDeEnvio, textoBuscableDeOrden } from "@/lib/recepcion-envio-busqueda";
 import { contarFiltros, fechaDeEnvioParaTabla, filtrarFilas, proveedoresDeLaLista, SIN_FILTROS, type FiltrosEnvios } from "@/lib/recepcion-envio-filtros";
 import { hoyLima } from "@/lib/fechas-lima";
@@ -56,6 +57,7 @@ export function EnviosParaRecibir({
   sede,
   porCategoria = false,
   proveedoresSinAviso = {},
+  enStock = {},
   accionTitulo,
 }: {
   envios: EnvioPorAbrir[];
@@ -65,6 +67,8 @@ export function EnviosParaRecibir({
   porCategoria?: boolean;
   /** ADR-0393: de quién es cada envío sin aviso abierto (por id): su proveedor o «proveedor por confirmar». */
   proveedoresSinAviso?: Readonly<Record<string, string | null>>;
+  /** Cuántas prendas de cada envío abierto ya entraron al stock (por id, de `fn_envios_a_medias`): lo dice bajo sus prendas. */
+  enStock?: Readonly<Record<string, number>>;
   /** A la derecha del título: «Sin Aviso», lo que llegó y no está en la lista. */
   accionTitulo?: ReactNode;
 }) {
@@ -108,7 +112,7 @@ export function EnviosParaRecibir({
       <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-3">
         <div className="min-w-0 space-y-1">
           <TituloSeccion id="recibir-envios-oc">{porCategoria ? "Envíos por recibir en esta sede" : "Envíos de órdenes de compra para esta sede"}</TituloSeccion>
-          <p className="text-[15px] text-taupe">{porCategoria ? <>Se cuentan por categoría y entran al almacén de {sede}.</> : <>Se cuentan talla por talla y entran al almacén de {sede}.</>}</p>
+          <p className="text-[15px] text-taupe">{porCategoria ? <>Se cuentan modelo por modelo y entran al almacén de {sede}.</> : <>Se cuentan talla por talla y entran al almacén de {sede}.</>}</p>
         </div>
         {accionTitulo}
       </div>
@@ -151,6 +155,7 @@ export function EnviosParaRecibir({
           const salio = fechaDeEnvioParaTabla(e.despachadoEn, hoy);
           const etapa = etapaDelEnvio(e.estado);
           const sinAviso = porCategoria && esEnvioSinAviso(e);
+          const yaEnStock = e.estado === "abierto" ? textoYaEnStock(enStock[e.id] ?? 0, sinAviso ? 0 : e.unidades) : null;
           const proveedor = sinAviso ? (proveedoresSinAviso[e.id] ?? "Por confirmar") : e.proveedores.length > 0 ? e.proveedores.join(", ") : "—";
           return (
             // Toda la fila lleva a su envío (Felipe 2026-10-13, /formidable): la prueba ciega buscaba el botón de SU envío entre cinco
@@ -195,7 +200,11 @@ export function EnviosParaRecibir({
                 {e.numeroGuia && <small className="block truncate text-sm text-taupe @5xl:hidden">guía {e.numeroGuia}</small>}
               </span>
               <span className={celda("izq", "pointer-events-none relative hidden text-sm tabular-nums text-taupe @5xl:block")}>{e.numeroGuia ?? "—"}</span>
-              <span className={celda("der", "pointer-events-none relative text-sm text-tinta")}>{sinAviso ? "—" : prendas(e.unidades)}</span>
+              <span className={celda("der", "pointer-events-none relative text-sm text-tinta")}>
+                {sinAviso ? "—" : prendas(e.unidades)}
+                {/* Lo que ya entró de un envío abierto también sale abajo, en «Terminados»: aquí se dice para que no parezca repetido. */}
+                {yaEnStock && <small className="block whitespace-normal text-sm text-taupe">{yaEnStock}</small>}
+              </span>
               <span className={celda("der", "relative overflow-visible whitespace-normal sm:flex sm:justify-end")}>
                 {e.creadoPorMi ? (
                   <span className="whitespace-normal text-right text-sm leading-snug text-taupe">{TEXTO_LA_RECIBE_OTRA}</span>
@@ -205,7 +214,7 @@ export function EnviosParaRecibir({
                       Seguir recibiendo
                     </BotonEnlace>
                   ) : (
-                    // En camino: «Detalle» abre la hoja con lo que trae y, ahí, «Empezar a recibir» (salta a contar).
+                    // En camino: «Recibir» abre la hoja con lo que trae y, ahí, «Empezar a recibir» (salta a contar).
                     <DetalleEnvioPorRecibir envio={e} sede={sede} />
                   )
                 )}

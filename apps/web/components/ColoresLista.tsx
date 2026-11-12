@@ -4,6 +4,7 @@ import { fondoDeColor } from "@/components/ui/MuestraColor";
 import { agruparPorFamilia, bordeDeMuestra, enLaCarta, FAMILIAS_COLOR, textoDeFamilia, type FamiliaColor } from "@/lib/colores-familias";
 import { familiaEnCarta } from "@/lib/color-estampado-reglas";
 import { esCombinado, fondoDeMezclaEnFranja, tonosDeMezcla } from "@/lib/color-combinado";
+import { filaDeLaFamilia } from "@/lib/color-escala";
 import { coloresQueYaExisten } from "@/lib/color-alta-reglas";
 import { vistaDeCoincidencias } from "@/lib/atributo-parecido";
 import { claveTexto } from "@/lib/nombres-parecidos";
@@ -454,7 +455,7 @@ export function ColoresLista({ coloresIniciales, puedeEditar }: { coloresInicial
             </TituloGrupo>
             {/* Una sola grilla por familia, de claro a oscuro (Felipe 2026-11-12: sin partir Verde, Azul y Morado en «gamas», como la carta). */}
               <div className={GRILLA_ATRIBUTOS}>
-                {coloresDeLaFamilia.map((c) => (
+                {filaDeLaFamilia(coloresDeLaFamilia).map((c) => (
                   <TarjetaAtributo
                     key={c.codigo}
                     muestra={<Muestra hex={c.hex} familia={c.familiaColor} tipo={c.tipo} tonos={tonosDeMezcla(c, porCodigo)} />}

@@ -113,10 +113,26 @@ export function leerEnviosAMedias(data: unknown): EnvioAMedias[] {
   );
 }
 
+/**
+ * Lo que ya entró al stock de un envío que se sigue recibiendo, bajo sus prendas en «Envíos por recibir» (Felipe 2026-11-12: ENV-000021 salía
+ * arriba con «43 prendas» y abajo, en «Terminados», con lo ya contado, y parecía repetido). Corto: la columna de prendas mide 5 rem.
+ * `null` si todavía no entró nada.
+ */
+export function textoYaEnStock(enStock: number, total: number): string | null {
+  if (!(enStock > 0)) return null;
+  if (total > 0 && enStock >= total) return "todas en stock";
+  return `${enStock.toLocaleString("es-PE")} en stock`;
+}
+
 export const diasAMedias = (desde: string, ahora: number = Date.now()): number => Math.max(0, Math.floor((ahora - new Date(desde).getTime()) / 86_400_000));
 
-/** «ENV-000012: 12 de 70 ya en stock · se sigue contando, desde hace 3 días». */
-export function textoDeEnvioAMedias(e: EnvioAMedias, ahora: number = Date.now()): string {
+/**
+ * «ENV-000012: 12 de 70 ya en stock · se sigue recibiendo, desde hace 3 días». A los 3 días el líder también ve los envíos de OTRAS sedes: entonces
+ * se nombra la sede («ENV-000012 · va a Tienda Arequipa: …»), o quien estaba en Trujillo tocaba el aviso y llegaba a «Este envío va a Arequipa»
+ * (auditoría 2026-11-12). `sedeActual`: el nombre de la sede de la cabecera (`ubicaciones.nombre`, el mismo que manda la base).
+ */
+export function textoDeEnvioAMedias(e: EnvioAMedias, ahora: number = Date.now(), sedeActual: string | null = null): string {
   const dias = diasAMedias(e.desde, ahora);
-  return `${e.numero}: ${e.enStock.toLocaleString("es-PE")} de ${e.contadas.toLocaleString("es-PE")} ya en stock · se sigue contando${dias > 0 ? `, desde hace ${dias === 1 ? "1 día" : `${dias} días`}` : ""}`;
+  const otraSede = !!e.sede.trim() && !!sedeActual && e.sede.trim().toLowerCase() !== sedeActual.trim().toLowerCase();
+  return `${e.numero}${otraSede ? ` · va a ${e.sede.trim()}` : ""}: ${e.enStock.toLocaleString("es-PE")} de ${e.contadas.toLocaleString("es-PE")} ya en stock · se sigue recibiendo${dias > 0 ? `, desde hace ${dias === 1 ? "1 día" : `${dias} días`}` : ""}`;
 }

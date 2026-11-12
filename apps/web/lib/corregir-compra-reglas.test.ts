@@ -3,6 +3,7 @@ import {
   borradorDe,
   cambiosDePrenda,
   cambiosParaLaBase,
+  costoQueSeVe,
   cuentaDeLaCorreccion,
   leerCompraParaCorregir,
   leerCorrecciones,
@@ -159,6 +160,17 @@ describe("cambiosDePrenda y cambiosParaLaBase", () => {
   it("solo cuenta lo que cambió, con los números ya leídos", () => {
     expect(cambiosDePrenda(c.prendas[0]!, { ...borradorDe(c.prendas[0]!), costo: "40,00" })).toEqual({ costo: 40 });
     expect(cambiosDePrenda(c.prendas[0]!, { ...borradorDe(c.prendas[0]!), cantidad: "8", venta: "119.9" })).toEqual({ cantidad: 8, precioVenta: 119.9 });
+  });
+
+  it("la tarjeta muestra el mismo costo que se guardará (auditoría 2026-11-12)", () => {
+    const p = c.prendas[0]!;
+    for (const costo of ["1,299", "1.299,50", "40,00", "40.5", "1 299", ""]) {
+      const b = { ...borradorDe(p), costo };
+      const guardado = cambiosDePrenda(p, b).costo ?? p.costo;
+      expect(costoQueSeVe(p, b)).toBeCloseTo(guardado, 2);
+    }
+    // Lo que no se entiende deja el costo guardado.
+    expect(costoQueSeVe(p, { costo: "abc" })).toBe(p.costo);
   });
 
   it("un dato mal escrito no cuenta como cambio", () => {

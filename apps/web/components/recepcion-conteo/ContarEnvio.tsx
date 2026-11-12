@@ -94,9 +94,12 @@ import {
   modelosDelGrupo,
   categoriasConLoQueYaEntro,
   yaEnStockDelEnvio,
+  lineasParaCorregir,
+  claveTrasCorregir,
 } from "@/lib/recepcion-modelos-reglas";
 import { borradorDeTallas, botonPrincipal, estadoDeLaTarjeta, marcasDeLaTabla, mismasVariantes, modoDeTallas, modosAlCambiar, tablaConLoMarcado, tablaParaElNumero, tallasListas, tocaRepartir, type BorradorTallas, type MarcasDeLaTabla, type ModoDeTallas } from "@/lib/recepcion-tallas-reglas";
 import { EditarModelo } from "./EditarModelo";
+import { CorregirCategoriaModelo } from "./CorregirCategoriaModelo";
 import { QuitarModelo } from "./QuitarModelo";
 import { YaExisteLaPrenda } from "./YaExisteLaPrenda";
 import { NuevoModelo, type ModeloPedido } from "./NuevoModelo";
@@ -145,6 +148,8 @@ type Hoja =
   // «¿Qué llegó?» o, con su categoría, el «+»: otro modelo para contar aparte.
   | { tipo: "modelo"; categoria: string | null }
   | { tipo: "editar"; parada: string }
+  // La categoría y la marca de un modelo «por crear» de la compra, mal anotadas (Felipe 2026-11-12).
+  | { tipo: "corregir"; parada: string }
   | { tipo: "quitar"; parada: string }
   | { tipo: "quitar-categoria"; categoria: string }
   | null;
@@ -657,6 +662,8 @@ export function ContarEnvio({
 
   const categoriaDelModelo = hoja?.tipo === "modelo" && hoja.categoria ? (todas.find((c) => c.clave === hoja.categoria) ?? null) : null;
   const paradaAEditar = hoja?.tipo === "editar" ? (paradasDelEnvio.find((p) => p.clave === hoja.parada) ?? null) : null;
+  const paradaACorregir = hoja?.tipo === "corregir" ? (paradasDelEnvio.find((p) => p.clave === hoja.parada) ?? null) : null;
+  const lineasACorregir = paradaACorregir ? lineasParaCorregir(paradaACorregir) : null;
   const paradaAQuitar = hoja?.tipo === "quitar" ? (paradasDelEnvio.find((p) => p.clave === hoja.parada) ?? null) : null;
   const categoriaAQuitar = hoja?.tipo === "quitar-categoria" ? (todas.find((c) => c.clave === hoja.categoria) ?? null) : null;
   const grupoDeHoja = hoja && "grupo" in hoja ? (grupos.find((g) => g.clave === hoja.grupo) ?? null) : null;
@@ -714,6 +721,7 @@ export function ContarEnvio({
         soloSede={soloSede}
         responsable={responsable}
         esperandoGuardar={esperandoGuardar}
+        noSeGuardo={sinGuardar > 0}
         peso={todo ? "primario" : "fantasma"}
         parcial={!todo}
         conFrase={donde === "hoja"}
@@ -934,6 +942,7 @@ export function ContarEnvio({
               }
               observaciones={<ObservacionesAnotadas observaciones={deLasLineas(observaciones, lineasDeEsto.map((l) => l.linea?.id ?? null))} />}
               onEditarNombre={() => setHoja({ tipo: "editar", parada: parada.clave })}
+              onCorregirLinea={catalogo && lineasParaCorregir(parada) ? () => setHoja({ tipo: "corregir", parada: parada.clave }) : undefined}
               // Las dañadas se anotan por talla y color, dentro de la hoja de tallas: solo donde esa hoja se puede abrir.
               onDanada={
                 tarjeta && tarjeta !== "espera" && tarjeta !== "nueva" && tarjeta !== "en-stock"
@@ -1013,6 +1022,27 @@ export function ContarEnvio({
             if (!m) return;
             escribirSeparado(g, renombrarModelo(g.separado, m.nombre, cambio));
             setFoco(claveDeParada(g, claveDeNombre(cambio.nombre)));
+          }}
+          onCerrar={() => setHoja(null)}
+        />
+      )}
+
+      {paradaACorregir?.modelo && lineasACorregir && paradaACorregir.grupo.principal.categoria && (
+        <CorregirCategoriaModelo
+          despachoId={detalle.id}
+          lineaIds={lineasACorregir}
+          nombre={paradaACorregir.modelo.nombre}
+          categoria={paradaACorregir.grupo.principal.categoria}
+          marca={marcaDeLinea(paradaACorregir.grupo.principal)}
+          proveedorId={paradaACorregir.grupo.principal.proveedor?.id ?? null}
+          catalogo={catalogo}
+          responsable={responsable}
+          esperandoGuardar={esperandoGuardar}
+          onCorregido={({ categoriaId, marcaId }) => {
+            // El modelo pasa a otro grupo («proveedor|categoría|marca»): se le sigue el rastro para no perderlo de la vista al releer.
+            setFoco(claveTrasCorregir(paradaACorregir, categoriaId, marcaId));
+            setHoja(null);
+            onSalida();
           }}
           onCerrar={() => setHoja(null)}
         />

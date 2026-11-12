@@ -677,3 +677,13 @@ Las tres migraciones de la entrega 1 están **sin pegar**; se pegan **en este or
 está disponible todavía. **Choque conocido:** la rama sin fusionar `claude/skills-todos-agents-94f745` (Análisis: «Comprar» abre una orden armada, líneas «Por revisar») toca los
 mismos archivos; al fusionarla, `lineaNoCalza` debe saltarse las líneas `prellenadas` y se regeneran las huellas de las guías de Nueva y Editar orden.
 
+
+## Actualización 2026-11-12 · La decisión 48 no vale para las compras de «Mis compras»
+
+Una orden con tienda de destino se recibe «Sin guía» (decisión 48) porque el proveedor la entrega directo. Las órdenes que arma «Compré ropa»
+(ADR-0480, `ordenes_compra.papel_id` no nulo) usan la misma columna para decir «estas prendas son para esa tienda», y viajan siempre en un
+envío de Compras. Desde `20261112153000`, `fn_ordenes_directas_por_recibir` las deja fuera y `recibir_orden_sin_envio` las rechaza
+(`orden_viaja_con_envio`); si la mercadería llega antes que su envío, se recibe «sin aviso» y se une con su compra (ADR-0636). Medido el
+2026-11-12: las 48 órdenes vivas eran de «Mis compras», cada una estuvo en Recibir 15,5 h en promedio antes de su envío y 3 veces una tienda
+pulsó «Llegó esta orden» en una de ellas. **Se rompe si** algún día una compra de «Mis compras» se entrega de verdad directo en la tienda: ese
+caso pasa por «sin aviso» + unir, no por «Sin guía».

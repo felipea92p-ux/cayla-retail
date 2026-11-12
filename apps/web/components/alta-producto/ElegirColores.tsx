@@ -7,7 +7,7 @@ import { NuevoColorAlta } from "@/components/alta-producto/NuevoColorAlta";
 import { ArmarMezcla } from "@/components/alta-producto/ArmarMezcla";
 import type { ColorAlta } from "@/lib/alta-producto";
 import { nombreDeColor } from "@/lib/color-alta-reglas";
-import { esColorClaro } from "@/lib/color-escala";
+import { esColorClaro, filaDeLaFamilia } from "@/lib/color-escala";
 import { coloresParecidos } from "@/lib/color-parecido";
 import { fondoDeColor } from "@/components/ui/MuestraColor";
 import { bordeDeMuestra, textoDeFamilia } from "@/lib/colores-familias";
@@ -290,7 +290,7 @@ export function ElegirColores({
                   </div>
                 ) : (
                 <div className="flex flex-wrap gap-1.5">
-                      {g.colores.map((c) => {
+                      {filaDeLaFamilia(g.colores).map((c) => {
                         // Armando una mezcla, la marca es de acompañante y la base no se toca (no se acompaña a sí misma).
                         const elegido = (mezclaDe ? acompanantes : elegidos).includes(c.codigo);
                         const esLaBase = mezclaDe?.codigo === c.codigo;

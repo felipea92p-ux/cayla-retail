@@ -2241,6 +2241,10 @@ export const PRUEBAS = [
   // sus prendas y las dos suman el total; los permisos no cambian; una sola firma de cada función; aplicarla dos veces es inocuo.
   "pruebas:productos-empresa",
 
+  // «Por completar ▸ Sin costo» de Productos (20261112155000): una variante sin costo (0 o vacío) trae su prenda; el conteo dice lo mismo
+  // que la lista; quien no ve el dinero de Compras no encuentra nada; las faltas de antes no cambian. Con control. ROLLBACK.
+  "pruebas:productos-sin-costo",
+
   // Una talla con prendas no se retira (20260929030000, ADR-0270 decisión 13): con prendas en cualquier sede (Cuarentena
   // incluida) o en camino, pasar `variantes.activo` a false se rechaza diciendo dónde están; en 0 se retira; reactivar
   // siempre se puede; una talla ya retirada con prendas (datos viejos) no bloquea otros cambios. Con control.
