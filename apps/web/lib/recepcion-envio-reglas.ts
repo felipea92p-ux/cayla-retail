@@ -516,6 +516,26 @@ export function proveedoresDelEnvio(d: Pick<DetalleEnvio, "lineas">): { id: stri
   return [...vistos.values()];
 }
 
+/** Un proveedor del envío con lo que trajo, para «Lo que trae» antes de empezar a recibir (Felipe 2026-11-12: agrupado, no trece filas iguales). */
+export type GrupoDeProveedor = { clave: string; proveedor: string; marcas: string[]; lineas: LineaEnvio[]; prendas: number };
+
+/**
+ * Las líneas del envío juntas por proveedor, en el orden en que aparece cada uno; dentro, en el orden del envío. Las marcas sin repetir (una línea
+ * sin marca no suma ninguna). Una línea sin proveedor va en «Sin proveedor». No pierde ni repite una línea.
+ */
+export function gruposPorProveedor(lineas: readonly LineaEnvio[]): GrupoDeProveedor[] {
+  const grupos = new Map<string, GrupoDeProveedor>();
+  for (const l of lineas) {
+    const clave = l.proveedor?.id ?? "sin-proveedor";
+    const g = grupos.get(clave) ?? { clave, proveedor: l.proveedor?.nombre ?? "Sin proveedor", marcas: [], lineas: [], prendas: 0 };
+    g.lineas.push(l);
+    g.prendas += l.enviado;
+    if (l.marca && !g.marcas.includes(l.marca.nombre)) g.marcas.push(l.marca.nombre);
+    grupos.set(clave, g);
+  }
+  return [...grupos.values()];
+}
+
 /** Las órdenes del envío, sin repetir: «OC-000129, OC-000130». */
 export function ordenesDelEnvio(d: Pick<DetalleEnvio, "lineas">): string[] {
   return [...new Set(d.lineas.map((l) => l.orden.numero).filter((x): x is string => !!x))];

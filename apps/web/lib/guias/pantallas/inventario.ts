@@ -1799,14 +1799,14 @@ export const GUIA_RECIBIR_ENVIO: Guia = {
       ancla: "recepcion.trae",
       requiere: ["recepcion.empezar"],
       titulo: "Lo que trae",
-      texto: "Lo que dijeron que trae el envío: cada tipo de prenda con cuántas vienen; arriba, el envío, la guía y quién lo mandó. Léelo antes de empezar a recibir.",
+      texto: "Lo que dijeron que trae el envío, por proveedor: cada modelo con cuántas vienen, y cuántos modelos y prendas trajo cada uno. Arriba, el total del fardo y quién lo mandó. Léelo antes de empezar a recibir.",
     },
     {
       id: "empezar",
       ancla: "recepcion.empezar",
       requiere: ["recepcion.empezar"],
       titulo: "Empezar a recibir",
-      texto: "Cuando la mercadería está en tu sede, eliges quién recibe y tocas el botón: se abre el conteo y la compra ya no se puede anular. Puedes recibirla por partes: lo contado queda guardado y sigues cuando quieras. En la demo no lo tocamos.",
+      texto: "Siempre a la vista, a la derecha. Cuando la mercadería está en tu sede, eliges quién recibe y tocas el botón: se abre el conteo y la compra ya no se puede anular. Puedes recibirla por partes: lo contado queda guardado y sigues cuando quieras. En la demo no lo tocamos.",
     },
     {
       id: "otro-sin-aviso",

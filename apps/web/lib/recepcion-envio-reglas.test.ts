@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { leerFichaParaRecibir, tallasYColoresDe } from "./recepcion-envio-reglas";
+import { gruposPorProveedor, leerFichaParaRecibir, tallasYColoresDe } from "./recepcion-envio-reglas";
 import {
   argsPrepararPrenda,
   argsRecibirDespacho,
@@ -1233,5 +1233,27 @@ describe("la ficha para reconocer una prenda al recibir (Felipe 2026-11-06)", ()
   it("junta tallas y colores sin repetir; sin talla o color lo dice", () => {
     const v = (talla: string | null, color: string | null) => ({ id: `${talla}${color}`, tallaId: null, talla, colorCodigo: null, color, codigo: null, costo: null, precio: null });
     expect(tallasYColoresDe({ variantes: [v("S", "Negro"), v("M", "Negro"), v(null, null)] })).toEqual({ tallas: ["S", "M", "Única"], colores: ["Negro", "Sin color"] });
+  });
+});
+
+// «Lo que trae» antes de empezar a recibir, agrupado por proveedor (Felipe 2026-11-12, al recibir ENV-001660).
+describe("gruposPorProveedor", () => {
+  const linea = (id: string, proveedor: { id: string; nombre: string } | null, marca: string | null, enviado: number) =>
+    ({ id, proveedor, marca: marca ? { id: `m-${marca}`, nombre: marca } : null, enviado }) as unknown as import("./recepcion-envio-reglas").LineaEnvio;
+  const cayla = { id: "p1", nombre: "CAYLA SAC" };
+  const andina = { id: "p2", nombre: "Textiles Andina SAC" };
+
+  it("junta por proveedor en el orden en que aparecen, suma lo que trajo y no repite marcas", () => {
+    const g = gruposPorProveedor([linea("a", cayla, "CAYLA", 8), linea("b", andina, null, 10), linea("c", cayla, "CAYLA", 6), linea("d", andina, null, 18)]);
+    expect(g.map((x) => [x.proveedor, x.marcas, x.lineas.map((l) => l.id), x.prendas])).toEqual([
+      ["CAYLA SAC", ["CAYLA"], ["a", "c"], 14],
+      ["Textiles Andina SAC", [], ["b", "d"], 28],
+    ]);
+  });
+  it("una línea sin proveedor va en «Sin proveedor», y ninguna se pierde", () => {
+    const entrada = [linea("a", null, null, 2), linea("b", cayla, "CAYLA", 1)];
+    const g = gruposPorProveedor(entrada);
+    expect(g[0].proveedor).toBe("Sin proveedor");
+    expect(g.flatMap((x) => x.lineas).length).toBe(entrada.length);
   });
 });
