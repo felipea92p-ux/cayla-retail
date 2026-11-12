@@ -4,7 +4,8 @@ name: Vigía de Vercel
 # ese aviso se pierde nadie lo reintenta: el 2026-10-15 la fusión del PR #1115 quedó 47 min sin publicar, en verde en
 # todas partes. Después de cada push a main, este job mira el ÚLTIMO commit de main (no el del push: si llegaron tres
 # fusiones, publicar la tercera publica las tres). Si Vercel no lo marcó en 3 min, pide la publicación al Deploy Hook y
-# deja un aviso «Producción atrás de main (vigía de Vercel)»; si el filtro se saltó producción, solo avisa. Lo que falla
+# deja un aviso «Producción atrás de main (vigía de Vercel)»; si el filtro se saltó producción y el commit cambiaba la web, solo
+# avisa (si no la cambiaba, el salto es a propósito: ADR-0648). Lo que falla
 # DESPUÉS de que Vercel lo marcó ya avisa solo (X roja en el commit y correo de Vercel): el vigía no lo toca. Toda la
 # lógica, con sus pruebas, en scripts/ci/vigia-vercel.mjs.
 #
