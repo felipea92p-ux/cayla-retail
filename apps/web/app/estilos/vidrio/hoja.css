@@ -140,6 +140,15 @@
   box-shadow: var(--placa-luz);
   border-radius: var(--radius-tarjeta);
 }
+/* La tarjeta ELEGIDA entre varias dentro de una hoja (a qué tienda va, el concepto de un gasto, cómo cierras la ronda): se hunde con su filo
+   de tinta, igual que en una pantalla (`.pantalla-en-vidrio .card-cayla.border-tinta`). Sin esta regla, la lámina de arriba pisaba el
+   `border-tinta bg-sand/40` y la elegida se veía igual que las otras (auditoría de Mis compras, 2026-11-12). Solo `border-tinta` pleno:
+   `border-tinta/40` es otra clase y sigue siendo una tarjeta común. */
+:is(.hoja-serena, .cajon-serena) .card-cayla.border-tinta {
+  border-color: var(--color-tinta);
+  background: var(--hundido-fondo);
+  box-shadow: var(--hundido-sombra);
+}
 /* Lo que era hueso, papel o crema SÓLIDO dentro de una hoja o un cajón (una nota, un resumen, una caja con borde, la pista de una barra): la
    placa de vidrio, en UN solo lugar y no pantalla por pantalla (Felipe 2026-11-02: «muchos módulos tienen el mismo problema»; son ~150
    archivos con hoja). Mismo modelo que `.pantalla-en-vidrio .bg-hueso`. Se quedan opacos a propósito: lo que flota o se pega (`sticky`, `fixed`,

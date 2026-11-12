@@ -2419,7 +2419,7 @@ export const GUIA_MI_PLATA: Guia = {
       ancla: "mi-plata.revisando",
       opcional: true,
       titulo: "Compras la está revisando",
-      texto: "Cuando anotas plata, Compras mira tu voucher y la confirma. Mientras tanto ya es tuya para comprar.",
+      texto: "Una transferencia con su banco entra confirmada. Yape, efectivo o una transferencia sin banco los confirma Compras mirando tu voucher. Mientras tanto ya es tuya para comprar.",
     },
     {
       id: "compre",
@@ -2476,7 +2476,7 @@ export const GUIA_MI_PLATA: Guia = {
       preparar: [{ tipo: "clic", ancla: "mi-plata.me-dieron" }, { tipo: "clic", ancla: "mi-plata.medio" }],
       prepararSoloAlAvanzar: true,
       titulo: "¿Qué día te llegó?",
-      texto: "Sale «hoy». Si la plata ya había salido del banco antes, toca «Cambiar el día» y pon ese día: así el saldo del banco no la descuenta otra vez hoy.",
+      texto: "Sale «hoy». Si la plata ya había salido del banco antes, toca «Cambiar el día» y pon ese día: así el saldo del banco no la descuenta otra vez hoy. «Llegó hoy» lo deja como estaba.",
     },
     {
       id: "foto",
