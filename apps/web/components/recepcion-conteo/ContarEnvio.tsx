@@ -708,6 +708,7 @@ export function ContarEnvio({
         linea={paraLlevar.linea}
         productoId={sepDeLaParada.productoId}
         variantes={paraLlevar.variantes}
+        colores={catalogo?.colores ?? []}
         sinAviso={sinAviso}
         veDinero={veDinero}
         soloSede={soloSede}

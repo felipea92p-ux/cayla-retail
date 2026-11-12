@@ -2,7 +2,7 @@
   "guia": "recibir.envio.id",
   "ruta": "/recibir/envio/[id]",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 281,
+  "total": 280,
   "controles": {
     "app/(app)/recibir/envio/[id]/page.tsx": [
       "Volver «/recibir»",
@@ -204,7 +204,6 @@
     ],
     "components/recepcion-conteo/LlevarAlStock.tsx": [
       "Boton «{esperandoGuardar ? \"Guardando lo último que contaste…\" : undefined}»",
-      "CampoMonto «{guia.etiqueta(\"salida-costo\", \"Costo por prenda\")}»",
       "ComboResponsable «{responsable}»",
       "Boton «Cancelar»",
       "Boton «{guia.frase ?? undefined}»",
