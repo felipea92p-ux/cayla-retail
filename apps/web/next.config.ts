@@ -78,8 +78,8 @@ const nextConfig: NextConfig = {
     //
     // «Atrás» y «adelante» NO miran este número (medido el 2026-11-11; Next lo documenta así): el router dibuja siempre la página
     // que guardó, tenga 5 segundos o 20 minutos. Una pantalla que se guarda sola SIN `router.refresh()` vuelve entonces con datos
-    // viejos bajo el dedo. Recibir ▸ Contar lo resuelve recordando lo que guardó (`lib/recepcion-conteo-memoria.ts`, ADR-0393 act.
-    // 2026-11-11); quitar `staleTimes` no lo arreglaría.
+    // viejos bajo el dedo. Recibir ▸ Contar lo resuelve recordando lo que guardó y pidiendo la página de nuevo si dibuja una copia
+    // (`lib/recepcion-conteo-memoria.ts`, ADR-0393 act. 2026-11-11), como el Conteo de inventario; quitar `staleTimes` no lo arreglaría.
     staleTimes: { dynamic: 30 },
   },
 

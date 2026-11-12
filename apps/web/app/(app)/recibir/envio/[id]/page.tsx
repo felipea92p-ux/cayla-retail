@@ -86,6 +86,7 @@ export default async function RecibirEnvioPage({ params }: { params: Promise<{ i
         key={datos.detalle.id}
         detalle={datos.detalle}
         conteos={conteos.conteos}
+        carga={idDeCarga()}
         sedeActual={{ id: persona.ubicacionId, etiqueta: persona.ubicacionEtiqueta }}
         creadoPorMi={datos.creadoPorMi}
         catalogo={catalogo}
@@ -111,4 +112,9 @@ export default async function RecibirEnvioPage({ params }: { params: Promise<{ i
       veExistencias={veModulo(persona, "existencias")}
     />
   );
+}
+
+/** Un texto distinto por cada vez que el servidor arma esta página. Solo se compara por igualdad: no es una hora ni se lee. */
+function idDeCarga(): string {
+  return Date.now().toString(36);
 }

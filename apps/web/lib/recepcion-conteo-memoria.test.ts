@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { conLoMasNuevo, conteosRecordados, recordarConteos } from "./recepcion-conteo-memoria";
+import { conLoMasNuevo, conteosRecordados, esCopiaDeLaPagina, recordarConteos } from "./recepcion-conteo-memoria";
 import { claveDe, type ConteoDeLinea, type ConteosDelEnvio } from "./recepcion-conteo-reglas";
 
 // Recibir ▸ Contar al volver con «atrás» (medido en local el 2026-11-11, ENV-001244): Next dibuja la página que guardó su router, con lo
@@ -100,8 +100,27 @@ describe("lo que la pestaña recuerda de un envío que se cuenta", () => {
   });
 });
 
+describe("una copia de la página guardada por el router se reconoce", () => {
+  it("la primera vez que se dibuja una carga no es una copia; la segunda, sí", () => {
+    expect(esCopiaDeLaPagina("copia", "mz1abc")).toBe(false);
+    expect(esCopiaDeLaPagina("copia", "mz1abc")).toBe(true);
+  });
+
+  it("una carga nueva del mismo envío no es una copia, y la de otro envío tampoco", () => {
+    expect(esCopiaDeLaPagina("copia-b", "mz1abc")).toBe(false);
+    expect(esCopiaDeLaPagina("copia-b", "mz1abd")).toBe(false);
+    expect(esCopiaDeLaPagina("copia-c", "mz1abc")).toBe(false);
+  });
+});
+
 describe("la pantalla de Contar usa esa memoria", () => {
   const fuente = readFileSync(new URL("../components/recepcion-conteo/RecibirContando.tsx", import.meta.url), "utf8");
+  const pagina = readFileSync(new URL("../app/(app)/recibir/envio/[id]/page.tsx", import.meta.url), "utf8");
+
+  it("la página manda un identificador nuevo en cada carga, y la pantalla pide la página de nuevo si dibuja una copia", () => {
+    expect(pagina).toContain("carga={idDeCarga()}");
+    expect(fuente).toMatch(/esCopiaDeLaPagina\(detalle\.id, carga\)[\s\S]{0,260}router\.refresh\(\)/);
+  });
 
   it("arranca de lo que la pestaña recuerda del envío, no en blanco", () => {
     expect(fuente).toMatch(/useState<Record<string, ConteoDeLinea>>\(\(\) => conteosRecordados\(detalle\.id\)\)/);

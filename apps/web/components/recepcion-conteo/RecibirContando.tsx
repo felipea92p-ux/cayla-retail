@@ -30,7 +30,8 @@ import {
   mensajeAlGuardar,
 } from "@/lib/recepcion-conteo-reglas";
 import { agregarFotoPapel, guardarConteo, leerConteos } from "@/lib/recepcion-conteo-acciones";
-import { conLoMasNuevo, conteosRecordados, recordarConteos } from "@/lib/recepcion-conteo-memoria";
+import { conLoMasNuevo, conteosRecordados, esCopiaDeLaPagina, recordarConteos } from "@/lib/recepcion-conteo-memoria";
+import { navegacionSinEspera } from "@/components/ui/Espera";
 import { subirFotoPapel } from "@/lib/compra-rapida-acciones";
 import { EmpezarARecibir } from "@/components/recepcion-envio/EmpezarARecibir";
 import { LoQueTrae, origenDelEnvio } from "@/components/recepcion-envio/PiezasEnvio";
@@ -76,6 +77,7 @@ function sinClave<T>(r: Readonly<Record<string, T>>, clave: string): Record<stri
 export function RecibirContando({
   detalle,
   conteos: conteosDeLaBase,
+  carga,
   sedeActual,
   creadoPorMi,
   catalogo,
@@ -88,6 +90,8 @@ export function RecibirContando({
 }: {
   detalle: DetalleEnvio;
   conteos: ConteosDelEnvio | null;
+  /** Un texto distinto por cada vez que el servidor armó la página: si se repite, lo que se dibuja es una copia guardada por el router. */
+  carga: string;
   sedeActual: { id: string; etiqueta: string };
   creadoPorMi: boolean;
   catalogo: CatalogoParaRecibir | null;
@@ -140,6 +144,19 @@ export function RecibirContando({
   const proveedoresVivos = useMemo(() => [...proveedoresParaElegir, ...altas.proveedores.filter((a) => !proveedoresParaElegir.some((p) => p.id === a.id))], [proveedoresParaElegir, altas.proveedores]);
   const sumarProveedor = useCallback((p: ProveedorDeLaLista) => setAltas((a) => conProveedor(a, p)), []);
   const sumarMarca = useCallback((r: MarcaRegistrada) => setAltas((a) => conMarca(a, r)), []);
+
+  // Lo recordado cubre lo que guardó ESTA pestaña. Lo que cambió otra persona mientras tanto (y el estado del envío) llega pidiendo la página de nuevo
+  // cuando lo que se dibuja es la copia que guardó el router: cada carga real trae un identificador nuevo y, si este ya se dibujó aquí, se refresca sin
+  // loader. La misma idea que el Conteo de inventario (`ContarConteo`). Una carga que llega con la pantalla ya abierta (un refresco) solo se anota.
+  const copiaRevisada = useRef(false);
+  useEffect(() => {
+    const copia = esCopiaDeLaPagina(detalle.id, carga);
+    if (copiaRevisada.current) return;
+    copiaRevisada.current = true;
+    if (!copia) return;
+    navegacionSinEspera(window.location.href);
+    router.refresh();
+  }, [detalle.id, carga, router]);
 
   const base = releidos ?? conteosDeLaBase;
   const conteos: ConteosDelEnvio | null = useMemo(() => conLoMasNuevo(base, locales), [base, locales]);

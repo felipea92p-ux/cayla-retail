@@ -909,12 +909,19 @@ instante y sin red. Vive en la memoria de la pestaña, como la página que guard
 de versión manda la página (trae al día lo que no lleva versión: lo que ya entró al stock). Medido con clics reales en escritorio y a 375 px: tras
 «atrás» dice 31, y el siguiente «Una menos» guarda 30 sobre la versión correcta, sin «pisaste».
 
-**Descarté** `router.refresh()` después de cada guardado (una página entera por toque, y un refresco en vuelo se descarta si la persona navega); releer
-la base al montar y frenar los toques hasta que conteste (cierra más, pero deja la pantalla sin responder un momento en cada entrada y hay que decidir
-qué pasa si la lectura falla en el almacén sin señal); y quitar `staleTimes` (no arregla «atrás»).
+**Y la página se pide de nuevo cuando lo que se dibuja es una copia** (la convención que ya tenía el Conteo de inventario, `ContarConteo`): cada carga
+real trae un identificador nuevo (`carga`); si ese identificador ya se dibujó en esta pestaña, la pantalla hace `router.refresh()` sin loader
+(`esCopiaDeLaPagina`). Así llega también lo que contó otra persona y el estado del envío. Medido con dos pestañas: la otra suma una prenda, esta vuelve
+con «atrás» y pasa de 30 a 31 en menos de 250 ms. Lo recordado cubre ese cuarto de segundo y el caso en que la relectura no llega (almacén sin señal).
 
-**Lo que NO cubre, y es de Felipe.** Lo que guardó OTRA persona u otra pestaña después de la lectura de la página sigue como en la decisión 9: gana el
-último y avisa, salvo que los dos números coincidan. Cerrarlo del todo es cambiar cómo se guarda: que la base rechace una versión vieja, o que la
-pantalla mande la diferencia (+1) en vez del número entero. Las opciones están en `docs/backlog/2026-11-11-quizzical-sanderson-0e3403.md`.
+**Descarté** `router.refresh()` después de cada guardado (una página entera por toque, y un refresco en vuelo se descarta si la persona navega); frenar
+los toques hasta que llegue la relectura (deja la pantalla sin responder en cada vuelta, y hay que decidir qué pasa si no llega); y quitar `staleTimes`
+(no arregla «atrás»).
 
-**Pruebas:** `lib/recepcion-conteo-memoria.test.ts` (la mezcla, y que `RecibirContando` arranca de la memoria y anota cada guardado y cada relectura).
+**Lo que NO cubre, y es de Felipe.** Dos personas contando la MISMA línea a la vez, o una pantalla que lleva rato abierta mientras otra persona cuenta,
+siguen como en la decisión 9: gana el último y avisa, salvo que los dos números coincidan. Cerrarlo del todo es cambiar cómo se guarda: que la base
+rechace una versión vieja, o que la pantalla mande la diferencia (+1) en vez del número entero. Las opciones están en
+`docs/backlog/2026-11-11-quizzical-sanderson-0e3403.md`.
+
+**Pruebas:** `lib/recepcion-conteo-memoria.test.ts` (la mezcla, la copia reconocida, y que `RecibirContando` arranca de la memoria, anota cada guardado
+y cada relectura, y pide la página de nuevo si dibuja una copia).
