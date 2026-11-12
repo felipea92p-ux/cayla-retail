@@ -322,14 +322,18 @@ function PieDeLaCarta({ senalado, elegido, colores, porCodigo }: { senalado: Col
   const parecidos = senalado && lisos(senalado) ? coloresParecidos(senalado.hex, senalado.familiaColor, colores.filter(lisos), { excluir: senalado.codigo }).slice(0, 2) : [];
   const ficha = senalado ? fichaDelColor(senalado.codigo, porCodigo) : null;
   return (
-    // En el celular y la tablet, pegado abajo sobre la barra de la ficha mientras se recorre la carta (Felipe, 2026-10-09): el pie
-    // quedaba al final de 14 familias y el color tocado se sumaba ARRIBA, a la fila de elegidos; quien tocaba un círculo no veía ni
+    // En el celular y la tablet de Nuevo producto, pegado abajo sobre la barra de la ficha mientras se recorre la carta (Felipe, 2026-10-09):
+    // el pie quedaba al final de 14 familias y el color tocado se sumaba ARRIBA, a la fila de elegidos; quien tocaba un círculo no veía ni
     // su nombre ni que quedó elegido. `--alto-barra-ficha` lo publica la barra (`FichaPrevia`): crece con la tira de parecidas.
-    <div aria-hidden className="sticky bottom-[var(--alto-barra-ficha,6rem)] z-10 -mx-3 mt-1 grid h-12 grid-rows-2 content-center gap-0.5 border-t border-sand bg-crema px-3 pt-1 text-[12px] lg:static lg:mx-0 lg:bg-transparent lg:px-0">
+    // DENTRO DE UNA HOJA (Recibir, Agregar colores…) va quieto al pie de la carta (Felipe 2026-11-12: «queda muy arriba y no se mantiene en
+    // el fondo»): ahí no hay barra que publique su alto, y el respaldo lo dejaba flotando a media carta, tapando dos filas.
+    // El círculo es la muestra grande (40 px) y la letra, de lectura (14 px).
+    <div aria-hidden className="sticky bottom-[var(--alto-barra-ficha,6rem)] z-10 -mx-3 mt-1 grid min-h-14 grid-cols-[auto_minmax(0,1fr)] items-center gap-x-3 border-t border-sand bg-crema px-3 py-1.5 text-sm lg:static lg:mx-0 lg:bg-transparent lg:px-0 [[role=dialog]_&]:static [[role=dialog]_&]:mx-0 [[role=dialog]_&]:bg-transparent [[role=dialog]_&]:px-0">
       {senalado ? (
         <>
+          <Punto hex={senalado.hex} familia={senalado.familiaColor} tipo={senalado.tipo} tonos={tonosDeMezcla(senalado, porCodigo)} muestra />
+          <div className="grid min-w-0 gap-0.5">
           <p className="flex min-w-0 items-center gap-2">
-            <Punto hex={senalado.hex} familia={senalado.familiaColor} tipo={senalado.tipo} tonos={tonosDeMezcla(senalado, porCodigo)} grande />
             <span className="min-w-0 truncate">
               <span className="text-tinta">{senalado.nombre}</span>
               <span className="text-taupe">
@@ -344,9 +348,11 @@ function PieDeLaCarta({ senalado, elegido, colores, porCodigo }: { senalado: Col
           <p className="flex min-w-0 items-center">
             <FichaDelColor ficha={ficha} forma="linea" />
           </p>
+          </div>
         </>
       ) : (
-        <p className="row-span-2 self-center text-taupe">Pasa el mouse o toca un círculo: aquí sale su nombre.</p>
+        // Sin un color señalado, lo justo (Felipe 2026-11-12: «ese texto es muy largo e innecesario»).
+        <p className="col-span-2 text-taupe">Toca un color para ver su nombre.</p>
       )}
     </div>
   );
