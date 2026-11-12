@@ -15,7 +15,7 @@ import { leerCantidad, limpiarCantidad, type ColorAlta } from "@/lib/alta-produc
 import { PasoCantidad } from "@/components/ui/PasoCantidad";
 import { conMiles } from "@/lib/recepcion-modelos-reglas";
 import { matrizDe, nombreDeVariante, SOLUCIONES_DANADA, sumasDe, type Conteo, type MatrizRecepcion, type PrendaRecepcion, type SolucionDanada } from "@/lib/recepcion-envio-reglas";
-import { claveDeEje, cuadreDeTallas, ordenarTallasVisibles, quitarColor, quitarTalla, type BorradorTallas } from "@/lib/recepcion-tallas-reglas";
+import { claveDeEje, cuadreDeTallas, llenarTodasLasTallas, ordenarTallasVisibles, quitarColor, quitarTalla, type BorradorTallas } from "@/lib/recepcion-tallas-reglas";
 
 // La tabla de tallas y colores de un modelo. Vivió en la placa de Contar (Felipe 2026-11-02) y desde el 2026-11-11 se abre en su hoja (`HojaRepartir`, ADR-0645): en la placa
 // no cabía. La tabla arranca con las tallas de siempre de la categoría y a cada talla y
@@ -116,6 +116,16 @@ function Reparto({
   const tallas: Eje[] = ordenarTallasVisibles(matriz, borrador.tallas).map((clave) => ({ clave, texto: matriz.tallas.find((t) => claveDeEje(t.id) === clave)?.texto ?? "" }));
   const visiblesColor = new Set(borrador.colores);
   const colores: Eje[] = matriz.colores.filter((c) => visiblesColor.has(claveDeEje(c.codigo))).map((c) => ({ clave: claveDeEje(c.codigo), texto: c.nombre }));
+  // «Llenar todas con» (Felipe 2026-11-12, como en Nuevo producto): lo escrito va a cada casilla a la vista, en cada tecla. Vacía o con algo que no es una cantidad,
+  // las casillas vuelven a como estaban al entrar a la caja.
+  const [relleno, setRelleno] = useState("");
+  const antesDelRelleno = useRef(conteo.cantidades);
+  const idsALaVista = colores.flatMap((c) => tallas.map((t) => matriz.celda(t.clave === "" ? null : t.clave, c.clave === "" ? null : c.clave)?.id).filter((id): id is string => !!id));
+  const rellenoInvalido = relleno !== "" && leerCantidad(limpiarCantidad(relleno)) === null;
+  function llenar(texto: string) {
+    setRelleno(texto);
+    onCambiar({ ...borrador, conteo: { ...conteo, cantidades: llenarTodasLasTallas(conteo.cantidades, idsALaVista, texto, antesDelRelleno.current) } });
+  }
 
   // Al abrirse la hoja, el cursor va a la primera celda, para escribir sin buscar dónde. Con el dedo no: abriría el teclado encima de la tabla antes de verla.
   useEffect(() => {
@@ -153,6 +163,34 @@ function Reparto({
           <b>{conMiles(s.contado)}</b> de {conMiles(contadas)} · {cuadre.texto}
           {!cuadra && <EtiquetaAhora />}
         </p>
+        {idsALaVista.length > 1 && (
+          <label className="rc-llenar">
+            <span>Llenar todas con</span>
+            <input // unificar-fijo: la caja chica de la cabecera de la matriz, como «Llenar todas con» de Nuevo producto; su título va al lado
+              className="caja-cayla caja-campo"
+              type="text"
+              inputMode="numeric"
+              pattern="[0-9]*"
+              maxLength={7}
+              autoComplete="off"
+              placeholder="0" // sugerir-fijo: una cantidad, sea la prenda que sea
+              value={relleno}
+              aria-invalid={rellenoInvalido || undefined}
+              title={rellenoInvalido ? "Escribe un número entero, de 0 a 9999" : "Pone esta cantidad en todas las tallas y colores"}
+              onFocus={(e) => {
+                antesDelRelleno.current = conteo.cantidades;
+                e.currentTarget.select();
+              }}
+              onChange={(e) => llenar(e.target.value)}
+              onBlur={() => {
+                if (rellenoInvalido) setRelleno("");
+              }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") e.preventDefault();
+              }}
+            />
+          </label>
+        )}
       </div>
 
       <TablaDeTallas

@@ -2,12 +2,14 @@
    Movimiento: una vez por cambio, sin rebote ni bucle, con --ease-cayla (ADR-0136); todo se apaga con prefers-reduced-motion. */
 
 /* ── El número que rueda ── */
-.rc-odo { display: inline-flex; line-height: 1.15; font-variant-numeric: tabular-nums; }
+/* Cada cifra mide un número ENTERO de píxeles (`round()`): a 15 px, 1.15em eran 17,25 px y la tira de un 6 bajaba 103,5 px, medio píxel, mientras
+   la del 0 no se movía; «60 de 119» se veía desfasado (Felipe 2026-11-12). Sin `round()` (un navegador viejo), queda como antes. */
+.rc-odo { display: inline-flex; line-height: 1.15; line-height: round(nearest, 1.15em, 1px); font-variant-numeric: tabular-nums; }
 .rc-odo-cifras { display: inline-flex; }
-.rc-odo-cifra { display: block; overflow: hidden; width: 0.6em; height: 1.15em; text-align: center; }
+.rc-odo-cifra { display: block; overflow: hidden; width: 0.6em; height: 1.15em; height: round(nearest, 1.15em, 1px); text-align: center; }
 .rc-odo-tira { display: grid; transition: transform 600ms var(--ease-cayla); }
-.rc-odo-tira > span { display: block; height: 1.15em; }
-.rc-odo-miles { display: block; width: 0.28em; height: 1.15em; text-align: center; }
+.rc-odo-tira > span { display: block; height: 1.15em; height: round(nearest, 1.15em, 1px); }
+.rc-odo-miles { display: block; width: 0.28em; height: 1.15em; height: round(nearest, 1.15em, 1px); text-align: center; }
 
 /* ── El Dial ── */
 .rc-dial { position: relative; width: 264px; height: 264px; flex: none; }

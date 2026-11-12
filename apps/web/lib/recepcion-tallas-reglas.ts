@@ -1,4 +1,4 @@
-import { leerCantidad } from "./alta-producto";
+import { leerCantidad, limpiarCantidad } from "./alta-producto";
 import { conteoDeVariantes, type VarianteSeparada } from "./recepcion-conteo-reglas";
 import { matrizDe, sumasDe, type Conteo, type MatrizRecepcion, type PrendaRecepcion, type TallaDeLaCategoria, type VarianteRecepcion } from "./recepcion-envio-reglas";
 
@@ -210,4 +210,21 @@ export function tablaConLoMarcado(tabla: BorradorTallas, prenda: Pick<PrendaRece
   }
   const con = (visibles: readonly string[], fuera: readonly string[], marcadas: readonly string[]) => [...visibles.filter((k) => !fuera.includes(k)), ...marcadas.filter((k) => !visibles.includes(k))];
   return { tabla: { ...tabla, conteo, tallas: con(tabla.tallas, sinTallas, marcas.tallaIds), colores: con(tabla.colores, sinColores, marcas.colorCodigos) }, perdidas };
+}
+
+/**
+ * «Llenar todas con» en la tabla de tallas de Recibir (Felipe 2026-11-12: «un textbox pequeño donde se ingrese una cantidad y se aplique a todos los campos,
+ * así como está en Nuevo producto»). Pone lo escrito en cada casilla a la vista (`ids`: las variantes de las tallas y colores que se ven). Si la caja queda
+ * vacía o lo escrito no es una cantidad, las casillas vuelven a como estaban al entrar a la caja (`antes`): una tecla de más nunca borra lo contado.
+ */
+export function llenarTodasLasTallas(cantidades: Readonly<Record<string, string>>, ids: readonly string[], texto: string, antes: Readonly<Record<string, string>>): Record<string, string> {
+  const limpio = limpiarCantidad(texto);
+  const r = { ...cantidades };
+  const n = limpio === "" ? null : leerCantidad(limpio);
+  for (const id of ids) {
+    if (n !== null) r[id] = String(n);
+    else if (antes[id] === undefined) delete r[id];
+    else r[id] = antes[id];
+  }
+  return r;
 }

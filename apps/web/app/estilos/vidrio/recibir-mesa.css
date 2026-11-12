@@ -524,3 +524,8 @@ button.rc-celda-falta:focus-visible { outline: 2px solid var(--color-tinta); out
   .rc-stock, .rc-stock-flecha, .rc-stock-cuerpo { transition: none; }
   .rc-stock[data-abierta] .rc-stock-celda { animation: none; }
 }
+
+/* «Llenar todas con» sobre la tabla de tallas (Felipe 2026-11-12, como en Nuevo producto): una caja chica con su título al lado. */
+.rc-llenar { display: inline-flex; align-items: center; gap: 8px; color: var(--color-taupe); font-size: 14px; }
+.rc-llenar .caja-campo { width: 72px; height: 36px; min-height: 0; padding: 0 8px; text-align: center; font-weight: 600; font-variant-numeric: tabular-nums; }
+.rc-llenar .caja-campo[aria-invalid="true"] { border-color: var(--color-rojo); }

@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import type { VarianteSeparada } from "./recepcion-conteo-reglas";
 import { matrizDe, type Conteo, type PrendaRecepcion, type TallaDeLaCategoria, type VarianteRecepcion } from "./recepcion-envio-reglas";
 import {
+  llenarTodasLasTallas,
   coloresIniciales,
   cuadreDeTallas,
   marcasDeLaTabla,
@@ -350,5 +351,21 @@ describe("botonPrincipal: un solo botón negro a la vez (ADR-0645, cambio 2 de /
       respuestas.add(botonPrincipal({ tarjeta, hayParaLlevar, hayConteo, todoContado }));
     }
     expect([...respuestas].sort()).toEqual(["cerrar", "ninguno", "siguiente", "tarjeta"]);
+  });
+});
+
+describe("«Llenar todas con» en la tabla de tallas (Felipe 2026-11-12)", () => {
+  const antes = { a: "3", b: "" };
+  it("pone lo escrito en cada casilla a la vista y no toca las demás", () => {
+    expect(llenarTodasLasTallas({ a: "3", b: "", z: "7" }, ["a", "b", "c"], "2", antes)).toEqual({ a: "2", b: "2", c: "2", z: "7" });
+  });
+  it("vacía, vuelve a como estaban al entrar a la caja", () => {
+    expect(llenarTodasLasTallas({ a: "2", b: "2", c: "2" }, ["a", "b", "c"], "", antes)).toEqual({ a: "3", b: "" });
+  });
+  it("lo que no es una cantidad no llena nada", () => {
+    expect(llenarTodasLasTallas({ a: "2", b: "2" }, ["a", "b"], "99999", antes)).toEqual({ a: "3", b: "" });
+  });
+  it("limpia lo escrito como una casilla", () => {
+    expect(llenarTodasLasTallas({}, ["a"], " 04", {})).toEqual({ a: "4" });
   });
 });
