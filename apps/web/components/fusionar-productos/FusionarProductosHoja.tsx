@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
-import { Merge, SearchX, X } from "lucide-react";
+import { Check, Merge, SearchX, X } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { traducirError } from "@/lib/error-escritura";
 import { firmar } from "@/lib/responsable-reglas";
@@ -132,11 +132,14 @@ export function FusionarProductosHoja({
 
   const fotos = useMemo(() => fotosEnOrden(productos), [productos]);
   const fotosQueQuedan = elecciones.fotos ?? fotos.map((f) => f.id);
-  const bloqueado = !plan || !plan.ok;
-  const puedeFusionar = !bloqueado && !leyendo && sePuedeConfirmar(campos) && !guardando;
+  // Un bloqueo es lo que la base dijo que frena; sin duplicado todavía no hay plan, y eso lo pide la guía, no un bloqueo.
+  const bloqueado = Boolean(plan && !plan.ok);
+  // ADR-0611: el botón no se apaga por lo que falta llenar (lo hace `confirma={guia}`: al tocarlo, la guía lleva a lo que falta). Solo
+  // se apaga lo que no se arregla aquí: guardando, leyendo el plan o un bloqueo de la base, cuyo aviso queda a la vista.
+  const apagado = guardando || leyendo || bloqueado;
 
   async function fusionar() {
-    if (!puedeFusionar || !plan || !quedaEfectiva) return;
+    if (apagado || !plan || !quedaEfectiva || !sePuedeConfirmar(campos)) return;
     setGuardando(true);
     const versiones = Object.fromEntries(plan.productos.map((p) => [p.id, p.version]));
     const { data, error } = await firmar(
@@ -388,7 +391,7 @@ export function FusionarProductosHoja({
               </section>
 
               {plan.bloqueos.length > 0 && (
-                <Aviso tono="atencion" titulo="Todavía no se puede fusionar" guia="fusionar.bloqueos">
+                <Aviso id="fusionar-bloqueos" tono="atencion" titulo="Todavía no se puede fusionar" guia="fusionar.bloqueos">
                   <ul className="mt-1 list-disc space-y-1 pl-4">
                     {plan.bloqueos.map((b) => (
                       <li key={b.codigo + b.mensaje}>{b.mensaje}</li>
@@ -415,8 +418,11 @@ export function FusionarProductosHoja({
                 type="button"
                 cargando={guardando}
                 textoCargando="Fusionando…"
-                disabled={!puedeFusionar}
-                title={responsable.motivo ?? undefined}
+                disabled={apagado}
+                confirma={guia}
+                title={guia.frase ?? responsable.motivo ?? undefined}
+                className={guia.claseConfirmar}
+                aria-describedby={plan && plan.bloqueos.length > 0 ? "fusionar-bloqueos" : undefined}
                 onClick={() => void fusionar()}
               >
                 <span className="inline-flex items-center gap-2">
@@ -468,7 +474,11 @@ function ElegirCampo({
                 si ? "border-tinta bg-hueso text-tinta" : "border-borde-control bg-papel text-tinta/80 hover:border-tinta/40"
               }`}
             >
-              {o.valor}
+              <span className="flex items-start justify-between gap-2">
+                <span>{o.valor}</span>
+                {/* Lo elegido se ve por su forma, no solo por el color (WCAG 1.4.1): el ✓. */}
+                {si && <Check aria-hidden className="mt-0.5 h-4 w-4 shrink-0 text-tinta" />}
+              </span>
             </button>
           );
         })}

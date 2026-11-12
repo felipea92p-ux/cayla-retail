@@ -99,7 +99,7 @@
       "Casilla «{`Quedarse con esta foto de ${de?.referencia ?? \"la prenda\"}»",
       "ComboResponsable «{responsable}»",
       "Boton «Cancelar»",
-      "Boton «{responsable.motivo ?? undefined}»",
+      "Boton «{guia.frase ?? responsable.motivo ?? undefined}»",
       "button «{o.valor}»",
       "button «{p.referencia}»"
     ],
