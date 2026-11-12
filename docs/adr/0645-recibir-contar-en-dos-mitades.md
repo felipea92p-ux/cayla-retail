@@ -141,3 +141,7 @@ existían (agregar modelo, quitar, editar, la confirmación de llevar al stock) 
 Se tocó `apps/web/app/estilos/vidrio/recibir-mesa.css`, que está en la lista de lo que Dynamic mira: su vigilante abrirá una tarea de
 aviso. **No hay nada que llevar allá:** son clases `rc-*` de esta pantalla, que Dynamic no tiene. No se tocaron `recetas.css`, el contrato
 ni `components/ui/`.
+
+## Actualización 2026-11-12 (ADR-0649)
+
+Contar ya no lleva «Anterior» ni «Siguiente»: al pie, «Falta contar: <modelo>» y el único «Revisar y cerrar». El contador pone el paso 1 y el paso 2 lado a lado. Ver ADR-0649, decisiones 7 y 9.

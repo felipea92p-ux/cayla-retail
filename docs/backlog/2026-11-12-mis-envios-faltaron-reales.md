@@ -36,3 +36,15 @@ Caso: `docs/flujos/recibir/con-aviso-de-compras.md` (aprobado por Felipe el 2026
 - [ ] Restaurar la base con `estado.mjs` no borra el borrador de Recibir que queda en el navegador: la segunda pasada abre en «Revisa y cierra».
 - [ ] El marcaje de prueba va con el id de sede de Dynamic (`ubicaciones.sede_dynamic_id`), no con el de retail; el caso `sin-aviso` no lo dice.
 - [ ] Levantar la web con `pnpm` de `~/.local/bin` reescribe `pnpm-lock.yaml` (quita `@pnpm/exe`).
+
+## 📦 Las 11 notas de Felipe al recibir ENV-001660 (2026-11-12, ADR-0649) — rama `claude/mis-envios-faltaron-reales`
+
+- [x] Hojas al centro en Recibir · Etiquetas vuelve al envío · «Llevar al stock» a la par · tabla de tallas con Tab, − y +, total, 0 centrado y «Llenar todas
+  con» · carta de colores de claro a oscuro · mezclas en la misma carta · contador lado a lado · «Lo que anotó Compras» · pie sin Anterior/Siguiente · hoja
+  del envío por proveedor · «Revisa y cierra» rediseñada · el paso del precio que se saltaba · «60 de 119» desfasado.
+- [ ] **El dial del contador no hidrata igual:** las rayas del aro (`components/recepcion-conteo/Dial.tsx`, coordenadas con `Math.cos`) salen con otro
+  redondeo en el servidor y en el navegador («A tree hydrated but some attributes…»). Redondear las coordenadas a 2 decimales en los dos lados.
+- [ ] **`HojasAlCentro` solo en Recibir.** Felipe: «es un problema que tienen la mayoría de modales». Llevarlo al marco cuando se decida pantalla por pantalla.
+- [ ] **Dynamic:** tarea de `Modal.tsx` + `HojasAlCentro.tsx` (el contexto que recentra la hoja); `recibir-mesa.css` se mira.
+- [ ] **A 1440×900 con la lista abierta** todavía hay que bajar ~90 px para ver «¿Pasó algo con esta prenda?». En la pantalla de Felipe cabe.
+- [ ] Vender, Caja y Bajar al piso siguen `pendiente` en la guía de foco (deuda de antes; esta rama solo les tocó una `key` y el `?envio=`).

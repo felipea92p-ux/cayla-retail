@@ -13,3 +13,18 @@
   y Knip producción en verde. En el navegador, el mismo cierre muestra «Recibido · faltó 1 · 2 de más» y «La tienda contó 16 de 15 · Faltó 1 y
   llegaron 2 de más». La base local quedó como estaba (datos y función).
 - **Falta:** pegar `20261112154000` en producción (una parte, solo la función: con el OK de Felipe) y que decida los hallazgos 2–11.
+
+# 2026-11-12 · Recibir un envío grande: las 11 notas de Felipe, subsanadas (ADR-0649)
+
+- **Qué:** Felipe recibió él mismo ENV-001660 (119 prendas, 4 proveedores, un fardo a Trujillo) y anotó 11 cosas. Se hicieron en 13 actividades, un commit
+  cada una: hojas al centro en Recibir, volver de Etiquetas al envío, «Llevar al stock» con costo y precio a la par, la tabla de tallas (Tab, − y +, total,
+  0 centrado, «Llenar todas con»), la carta de colores en una fila de claro a oscuro, las mezclas armadas en la misma carta y ocultas de las listas, el
+  contador con paso 1 y paso 2 lado a lado (acomodado por Felipe en una mesa de piezas), la cabecera con «Lo que anotó Compras», el pie sin Anterior ni
+  Siguiente, la hoja del envío por proveedor y «Revisa y cierra» rediseñada. De paso: el paso del precio que se saltaba (botones con `key`) y el «60 de 119»
+  desfasado.
+- **Por qué:** son las notas de quien recibe de verdad, medidas en una recepción real. Ninguna regla del cierre ni de la base cambió (ADR-0649).
+- **Verificado:** las 896 pruebas de la web, tsc, lint y Knip en verde en cada commit. En el navegador, con la recepción de Felipe en curso y sin escribir en
+  la base (comparada con su foto): el cierre no cierra con cosas pendientes y lleva a lo primero que falta, «Contarla» lleva al modelo, «Llenar todas con»
+  llena y vuelve atrás, Vender a 375 px abre el cobro sin registrar la venta. `/milimetro`: 0 graves, 0 medias
+  (`docs/milimetro/auditorias/2026-11-12-recibir-envio.md`).
+- **Falta:** pegar `20261112154000` en producción (con el OK de Felipe); en Dynamic, la tarea de `Modal`/`HojasAlCentro`.
