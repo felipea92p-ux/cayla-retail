@@ -6,7 +6,7 @@
   "controles": {
     "app/(app)/recibir/page.tsx": [
       "Volver «/recibir»",
-      "Link «Seguir contando»",
+      "Link «Seguir recibiendo»",
       "BotonEnlace «Limpiar filtros»",
       "Link «recíbela sin factura»",
       "Link «recíbela sin factura» #2"
@@ -178,10 +178,10 @@
       "button «recibir.desplegar»"
     ],
     "components/recepcion-conteo/SinAvisoContexto.tsx": [
-      "Boton «Sin Aviso»"
+      "Boton «Sin aviso»"
     ],
     "components/recepcion-envio/DetalleEnvioPorRecibir.tsx": [
-      "Boton «{`Ver el detalle de ${envio.numero}»",
+      "Boton «{`Recibir ${envio.numero}»",
       "ComboResponsable «{responsable}»",
       "Boton «Recargar»",
       "Boton «Cerrar»",

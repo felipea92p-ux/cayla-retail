@@ -444,7 +444,9 @@ export function AbrirConteo({
           <Boton peso="primario" cargando={abriendo} textoCargando="Abriendo…"
             type="button"
             onClick={() => void abrir()}
-            disabled={!listo || abriendo}
+            // ADR-0611 mejora 4: no se apaga por lo que falta; al tocarlo, cada campo pendiente dice su error (lo destapó la prueba del alias, 2026-11-12).
+            confirma={guia}
+            disabled={abriendo}
             title={guia.frase ?? undefined}
             className={`col-start-2 row-start-1 h-11 @[46rem]:col-auto @[46rem]:row-auto @[46rem]:h-12 @[46rem]:w-full ${guia.claseConfirmar}`}
           >

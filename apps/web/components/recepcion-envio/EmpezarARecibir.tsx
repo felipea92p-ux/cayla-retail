@@ -131,6 +131,10 @@ export function EmpezarARecibir({
               </CampoGuiado>
               <PieGuia guia={guia} listo="Todo listo: empieza a recibir." />
               {errorDeApertura}
+              {/* Sobre el botón, no debajo (auditoría 2026-11-12). */}
+              <Aviso tono="atencion" chico titulo="Desde que empiezas, la compra ya no se puede anular">
+                Puedes recibirla por partes: lo que cuentes queda guardado y sigues cuando quieras.
+              </Aviso>
               <Boton type="button" peso="primario" cargando={abriendo} textoCargando="Empezando…" onClick={() => void abrir()} title={guia.frase ?? undefined} className={guia.claseConfirmar}>
                 <span className="inline-flex items-center gap-2">
                   <Package aria-hidden className="h-4 w-4" />
@@ -138,9 +142,6 @@ export function EmpezarARecibir({
                   <ArrowRight aria-hidden className="h-4 w-4" />
                 </span>
               </Boton>
-              <p className="text-sm text-taupe">
-                Desde que empiezas, la compra ya no se puede anular. Puedes recibirla por partes: lo que cuentes queda guardado y sigues cuando quieras.
-              </p>
             </div>
           </div>
         </article>
@@ -186,7 +187,7 @@ export function EmpezarARecibir({
       <section data-guia="recepcion.empezar" className="space-y-3" aria-label="Empezar a recibir">
         <p className="max-w-2xl text-sm text-tinta/75">
           Ábrelo cuando la caja esté en {sede}. Desde ese momento la compra ya no se puede anular y cuentas lo que llegó,{" "}
-          {porCategoria ? "categoría por categoría: qué prendas son puede quedar para después." : "talla por talla y color por color."}
+          {porCategoria ? "modelo por modelo: las tallas y los colores pueden quedar para después." : "talla por talla y color por color."}
         </p>
         <CampoGuiado id="responsable" guia={guia} titulo="Quién recibe" className="max-w-sm">
           <ComboResponsable control={responsable} deshabilitado={abriendo} />

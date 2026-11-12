@@ -38,8 +38,9 @@ export function DetalleEnvioPorRecibir({ envio, sede }: { envio: EnvioPorAbrir; 
   const [abierta, setAbierta] = useState(false);
   return (
     <>
-      <Boton type="button" peso="fantasma" onClick={() => setAbierta(true)} aria-label={`Ver el detalle de ${envio.numero}`}>
-        Detalle
+      {/* «Recibir», no «Detalle» (auditoría 2026-11-12): es lo que la tienda viene a hacer aquí; la hoja muestra lo que trae y empieza a recibir. */}
+      <Boton type="button" peso="fantasma" onClick={() => setAbierta(true)} aria-label={`Recibir ${envio.numero}: ver lo que trae y empezar`}>
+        Recibir
       </Boton>
       {abierta && <HojaDetalle envio={envio} sede={sede} onCerrar={() => setAbierta(false)} />}
     </>
@@ -167,6 +168,10 @@ function HojaDetalle({ envio, sede, onCerrar }: { envio: EnvioPorAbrir; sede: st
                     {error.texto}
                   </Aviso>
                 )}
+                {/* El aviso va SOBRE los botones: después de «Empezar a recibir» se leía cuando ya lo habías apretado (auditoría 2026-11-12). */}
+                <Aviso tono="atencion" chico titulo="Desde que empiezas, la compra ya no se puede anular">
+                  Puedes recibirla por partes: lo que cuentes queda guardado y sigues cuando quieras.
+                </Aviso>
                 <div className="pie-acciones">
                   <Boton type="button" onClick={cerrar} disabled={abriendo}>
                     Cerrar {/* unificar-fijo: Felipe 2026-10-24 pidió «Cerrar» en el detalle del envío, que además empieza a recibir */}
@@ -179,9 +184,6 @@ function HojaDetalle({ envio, sede, onCerrar }: { envio: EnvioPorAbrir; sede: st
                     </span>
                   </Boton>
                 </div>
-                <p className="text-sm text-taupe">
-                  Desde que empiezas, la compra ya no se puede anular. Puedes recibirla por partes: lo que cuentes queda guardado y sigues cuando quieras.
-                </p>
               </div>
             </>
           )}

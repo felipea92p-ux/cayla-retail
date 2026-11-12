@@ -112,7 +112,7 @@ export function EnviosParaRecibir({
       <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-3">
         <div className="min-w-0 space-y-1">
           <TituloSeccion id="recibir-envios-oc">{porCategoria ? "Envíos por recibir en esta sede" : "Envíos de órdenes de compra para esta sede"}</TituloSeccion>
-          <p className="text-[15px] text-taupe">{porCategoria ? <>Se cuentan por categoría y entran al almacén de {sede}.</> : <>Se cuentan talla por talla y entran al almacén de {sede}.</>}</p>
+          <p className="text-[15px] text-taupe">{porCategoria ? <>Se cuentan modelo por modelo y entran al almacén de {sede}.</> : <>Se cuentan talla por talla y entran al almacén de {sede}.</>}</p>
         </div>
         {accionTitulo}
       </div>
@@ -214,7 +214,7 @@ export function EnviosParaRecibir({
                       Seguir recibiendo
                     </BotonEnlace>
                   ) : (
-                    // En camino: «Detalle» abre la hoja con lo que trae y, ahí, «Empezar a recibir» (salta a contar).
+                    // En camino: «Recibir» abre la hoja con lo que trae y, ahí, «Empezar a recibir» (salta a contar).
                     <DetalleEnvioPorRecibir envio={e} sede={sede} />
                   )
                 )}

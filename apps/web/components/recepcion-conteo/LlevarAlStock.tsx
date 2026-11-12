@@ -48,6 +48,7 @@ export function LlevarAlStock({
   soloSede = false,
   responsable,
   esperandoGuardar,
+  noSeGuardo = false,
   onHecho,
   onConteoCambiado,
   peso = "fantasma",
@@ -70,6 +71,8 @@ export function LlevarAlStock({
   responsable: ControlResponsable;
   /** Lo último que se escribió todavía viaja a la base: se espera, o la base respondería que el conteo cambió. */
   esperandoGuardar: boolean;
+  /** Lo último que se contó no llegó a la base (se cortó la red): hasta reintentar, llevar al stock movería otro número que el que se ve. */
+  noSeGuardo?: boolean;
   onHecho: (r: ResultadoDeSalida) => void;
   onConteoCambiado: () => void;
   /** Oscuro donde es lo que toca hacer (todo repartido); claro donde acompaña a otro botón. */
@@ -192,7 +195,13 @@ export function LlevarAlStock({
   return (
     <>
       <div className="flex flex-wrap items-center gap-x-3 gap-y-1" data-guia="recepcion.llevar-al-stock">
-        <Boton type="button" peso={peso} disabled={esperandoGuardar} title={esperandoGuardar ? "Guardando lo último que contaste…" : undefined} onClick={() => setAbierta(true)}>
+        <Boton
+          type="button"
+          peso={peso}
+          disabled={esperandoGuardar || noSeGuardo}
+          title={noSeGuardo ? "Lo último que contaste no se guardó: toca «Reintentar» y vuelve a intentarlo" : esperandoGuardar ? "Guardando lo último que contaste…" : undefined}
+          onClick={() => setAbierta(true)}
+        >
           <span className="inline-flex items-center gap-2">
             <PackageCheck aria-hidden className="h-4 w-4 shrink-0" />
             {parcial ? `Llevar ${unidades.toLocaleString("es-PE")} al stock ya` : `Llevar al stock ahora · ${unidades.toLocaleString("es-PE")}`}
