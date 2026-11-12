@@ -305,16 +305,16 @@ function ListaDeTallas({ lineas }: { lineas: readonly { cantidad: number; talla?
 }
 
 /** Lo que sigue después de salir: las etiquetas de esa tanda, bajarlas al piso o seguir contando. */
-export function SalidaHecha({ resultado, nombre, veExistencias, onCerrar }: { resultado: ResultadoDeSalida; nombre: string; veExistencias: boolean; onCerrar: () => void }) {
+export function SalidaHecha({ resultado, nombre, envioId, veExistencias, onCerrar }: { resultado: ResultadoDeSalida; nombre: string; envioId: string; veExistencias: boolean; onCerrar: () => void }) {
   const n = resultado.unidades.toLocaleString("es-PE");
   return (
     <Modal titulo={`${n} de ${nombre} ya están en el stock`} subtitulo="Están en el almacén: se venden cuando las bajes al piso. El envío sigue abierto." tamano="angosta" onClose={onCerrar} conCerrar>
       <div className="grid gap-2">
-        <BotonEnlace href={urlEtiquetasDeLaTanda(resultado.lineas)} peso="primario">
+        <BotonEnlace href={urlEtiquetasDeLaTanda(resultado.lineas, envioId)} peso="primario">
           {resultado.unidades === 1 ? "Imprimir la etiqueta" : `Imprimir ${n} etiquetas`}
         </BotonEnlace>
         {veExistencias && (
-          <BotonEnlace href={urlBajarDeLaTanda(resultado.lineas)} peso="fantasma">
+          <BotonEnlace href={urlBajarDeLaTanda(resultado.lineas, envioId)} peso="fantasma">
             Bajar al piso
           </BotonEnlace>
         )}

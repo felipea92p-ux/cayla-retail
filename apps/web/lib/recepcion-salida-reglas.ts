@@ -80,11 +80,18 @@ export function argsLlevarAlStock(p: {
   };
 }
 
-/** Las etiquetas de esa tanda y nada más: las del lote entero repetirían lo que salió antes. */
-export const urlEtiquetasDeLaTanda = (lineas: readonly LineaDeSalida[]): string => `/etiquetas-de-precio?unidades=${lineasEnUrl([...lineas])}`;
+/**
+ * Las etiquetas de esa tanda y nada más: las del lote entero repetirían lo que salió antes. `envioId` hace que «Volver» de Etiquetas regrese a
+ * ESE envío y no a Existencias (Felipe 2026-11-12: imprimía, volvía con la flecha y caía en Existencias, fuera de lo que estaba contando).
+ */
+export const urlEtiquetasDeLaTanda = (lineas: readonly LineaDeSalida[], envioId: string): string =>
+  `/etiquetas-de-precio?unidades=${lineasEnUrl([...lineas])}&envio=${encodeURIComponent(envioId)}`;
 
-export const urlBajarDeLaTanda = (lineas: readonly LineaDeSalida[]): string =>
-  lineas.length > 0 && lineas.length <= MAX_VARIANTES_EN_URL ? `/inventario/bajar?lineas=${lineasEnUrl([...lineas])}` : "/inventario/bajar";
+/** Bajar al piso lo de esa tanda; con `envioId`, su flecha vuelve al envío (como Etiquetas). */
+export const urlBajarDeLaTanda = (lineas: readonly LineaDeSalida[], envioId: string): string => {
+  const parametros = [lineas.length > 0 && lineas.length <= MAX_VARIANTES_EN_URL ? `lineas=${lineasEnUrl([...lineas])}` : null, `envio=${encodeURIComponent(envioId)}`];
+  return `/inventario/bajar?${parametros.filter(Boolean).join("&")}`;
+};
 
 /** Lo último que salió de esa prenda y sigue vigente: es lo que se corrige. */
 export const ultimaSalidaDe = (salidas: readonly SalidaDelEnvio[], prenda: string): SalidaDelEnvio | null =>

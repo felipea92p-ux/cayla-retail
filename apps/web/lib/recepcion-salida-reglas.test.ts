@@ -46,9 +46,15 @@ describe("leer lo que responde la base", () => {
 describe("después de salir", () => {
   const l = [{ varianteId: "v", cantidad: 2 }];
   it("las etiquetas y la bajada son de esa tanda", () => {
-    expect(urlEtiquetasDeLaTanda(l)).toContain("unidades=");
-    expect(urlEtiquetasDeLaTanda(l)).toContain("v");
-    expect(urlBajarDeLaTanda(l)).toContain("lineas=");
+    expect(urlEtiquetasDeLaTanda(l, "e1")).toContain("unidades=");
+    expect(urlEtiquetasDeLaTanda(l, "e1")).toContain("v");
+    expect(urlBajarDeLaTanda(l, "e1")).toContain("lineas=");
+  });
+  // Felipe 2026-11-12: imprimía las etiquetas, volvía con la flecha y caía en Existencias, fuera del envío que estaba contando.
+  it("las dos llevan el envío, para que su flecha vuelva a él", () => {
+    expect(urlEtiquetasDeLaTanda(l, "e1")).toMatch(/[?&]envio=e1(&|$)/);
+    expect(urlBajarDeLaTanda(l, "e1")).toMatch(/[?&]envio=e1(&|$)/);
+    expect(urlBajarDeLaTanda([], "e1")).toBe("/inventario/bajar?envio=e1");
   });
   it("corrige lo último de esa prenda, sin importar mayúsculas", () => {
     const s = (id: string, prenda: string) => ({ id, productoId: "p", prenda, unidades: 1, quien: null, creadoEn: "", lineas: [] });
