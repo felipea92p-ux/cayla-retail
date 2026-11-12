@@ -75,3 +75,7 @@ stock aparte, con la misma llave única de siempre (`variantes_producto_talla_co
 - `lib/color-combinado.test.ts`: el nombre que arma la pantalla es el mismo que arma la base; el punto partido.
 - En el navegador (local, 1440 px): Nuevo producto (Crudo + Azur eligió la mezcla que ya existía; Azur + Negro creó «Azur con negro» una sola
   vez, con doble clic), Recibir (la hoja se abre sobre «Crear la prenda que llegó» y se cancela sin guardar) y Atributos ▸ Colores.
+
+## Actualización 2026-11-12 (ADR-0649)
+
+La mezcla se arma en la misma carta, con un círculo grande, sin abrir otra hoja; las mezclas guardadas no salen en las listas (son de una sola prenda). Ver ADR-0649, decisión 6.

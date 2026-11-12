@@ -93,7 +93,7 @@ export function LogoutButton({ nombre, terminal, forma = "texto" }: { nombre: st
           <LogOut aria-hidden className="h-4 w-4" />
         </button>
       ) : (
-        <button onClick={() => salida.pedir()} className="label-cayla text-[11px] text-tinta/70 transition-colors hover:text-rojo">
+        <button type="button" onClick={() => salida.pedir()} className="label-cayla text-[11px] text-tinta/70 transition-colors hover:text-rojo">
           Salir
         </button>
       )}

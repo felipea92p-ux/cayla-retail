@@ -114,6 +114,8 @@ export function PrecioDePrenda({
   // costo) o desde 820 px (sin él); en angosto, el nombre y la cantidad arriba y los campos con sus opciones debajo. Cada columna lleva su
   // título arriba, en cada fila (Felipe 2026-10-26: «Precio de venta» sobre cada campo), y su contenido mide lo que la caja (40 px).
   const conCosto = costo !== undefined && onCosto !== undefined;
+  // Costo y precio lado a lado, en dos columnas iguales: en la hoja de una sola prenda.
+  const lado = sinNombre && conCosto;
   // «Antes S/ …»: solo si lo que dice el campo es un monto válido y distinto de lo que traía al abrir.
   const nuevoCosto = conCosto ? leerCostoCierre(costo.valor.trim() ? costo.valor : costo.deLaLinea) : null;
   const hayCambio = conCosto && nuevoCosto !== null && nuevoCosto.problema === null && nuevoCosto.valor !== leerCostoCierre(costo.antes).valor;
@@ -165,9 +167,19 @@ export function PrecioDePrenda({
         </div>
       )}
       {/* En ancho, `contents` deja al campo y a las opciones como celdas de la fila; en angosto son una segunda línea. */}
-      <div className={sinNombre ? "flex flex-wrap items-start gap-x-3 gap-y-2" : `col-span-2 flex flex-wrap items-start gap-x-3 gap-y-2 ${conCosto ? "@min-[1000px]:contents" : "@min-[820px]:contents"}`}>
+      {/* En una hoja de una sola prenda con costo (Llevar al stock, la hoja de tallas), costo y precio van lado a lado y del mismo tamaño, y
+          «¿Dónde vale?» debajo (Felipe 2026-11-12: «que estén alineados el costo y el precio y que ambos tengan el mismo tamaño»). */}
+      <div
+        className={
+          sinNombre
+            ? lado
+              ? "grid grid-cols-2 items-start gap-x-3 gap-y-3"
+              : "flex flex-wrap items-start gap-x-3 gap-y-2"
+            : `col-span-2 flex flex-wrap items-start gap-x-3 gap-y-2 ${conCosto ? "@min-[1000px]:contents" : "@min-[820px]:contents"}`
+        }
+      >
         {conCosto && (
-          <div className="w-36 shrink-0" data-costo-prenda={prenda.productoId}>
+          <div className={lado ? "min-w-0" : "w-36 shrink-0"} data-costo-prenda={prenda.productoId}>
             <CampoTexto
               etiqueta="Costo"
               aria-label={`Costo de ${nombre}`}
@@ -183,7 +195,7 @@ export function PrecioDePrenda({
             />
           </div>
         )}
-        <div className="w-36 shrink-0">
+        <div className={lado ? "min-w-0" : "w-36 shrink-0"}>
           <CampoTexto
             etiqueta="Precio de venta"
             aria-label={`Precio de venta de ${nombre}`}
@@ -198,7 +210,7 @@ export function PrecioDePrenda({
             className="text-right font-semibold tabular-nums"
           />
         </div>
-        <div>
+        <div className={lado ? "col-span-2" : undefined}>
           <span className="campo-etiqueta block">¿Dónde vale?</span>
           <div className={`mt-1.5 ${sinNombre ? "flex min-h-10 items-center" : conCosto ? "@min-[1000px]:flex @min-[1000px]:min-h-10 @min-[1000px]:items-center" : "@min-[820px]:flex @min-[820px]:min-h-10 @min-[820px]:items-center"}`}>
             {soloSede ? (

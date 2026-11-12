@@ -929,8 +929,11 @@ export function NuevoProductoForm({
       <Volver onClick={() => irAPaso((n - 1) as NumeroPaso)} deshabilitado={cargando} a="Volver al paso anterior" />
     );
     const cierre =
+      // Una `key` por botón: sin ella, React reusa el MISMO <button> y «Seguir» del paso 3 se volvía `submit` antes de que el navegador
+      // terminara el clic, y creaba la prenda sin pasar por el paso 4 (lib/botones-que-cambian-de-tipo.test.ts).
       n < 4 ? (
         <button
+          key="seguir"
           type="button"
           onClick={() => irAPaso((n + 1) as NumeroPaso)}
           disabled={Boolean(faltaDelPasoProblema(problemas, n))}
@@ -944,6 +947,7 @@ export function NuevoProductoForm({
       ) : (
         // El paso 4 cierra el alta: aquí termina la persona, así que aquí está «Crear» (la ficha conserva el suyo).
         <button
+          key="crear"
           type="submit"
           disabled={cargando || !puedeGuardar || !responsable.listo}
           title={responsable.motivo ?? undefined}

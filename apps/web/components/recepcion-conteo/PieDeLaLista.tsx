@@ -8,7 +8,6 @@ import { Chip } from "@/components/ui/Chip";
 import type { GuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
 import type { EstadoCombo } from "@/lib/responsable-reglas";
 import type { ControlResponsable } from "@/lib/useResponsable";
-import { BotonCerrarConteo } from "./BotonCerrarConteo";
 
 // El pie de la lista (ADR-0645, Felipe 2026-11-11): lo del envío entero, siempre en el mismo lugar. A la izquierda, lo que impide cerrar y no es contar (tocarlo lleva
 // hasta ahí; cuántos faltan por contar lo dice la línea de avance, arriba: cambio 3 de /formidable); a la
@@ -24,11 +23,7 @@ export function PieDeLaLista({
   responsable,
   papeles,
   explicacion,
-  cierrePrincipal,
-  puedeCerrar,
-  motivosNoCierra,
-  onCerrar,
-  onIrALoQueFalta,
+  cierre,
   onCancelarRecepcion,
   enHoja = false,
 }: {
@@ -40,12 +35,8 @@ export function PieDeLaLista({
   papeles?: ReactNode;
   /** Lo que dice el «?»: cómo se guarda y qué pasa al cerrar. */
   explicacion: ReactNode;
-  /** Ya no queda nada por contar y al modelo en foco no le toca nada: «Revisar y cerrar» es el botón negro. Si a ese modelo le toca repartir o llevar al stock, el negro es el de su tarjeta (un solo negro a la vez). */
-  cierrePrincipal: boolean;
-  puedeCerrar: boolean;
-  motivosNoCierra: readonly string[];
-  onCerrar: () => void;
-  onIrALoQueFalta: () => void;
+  /** «Revisar y cerrar», cuando va aquí: en la hoja de la lista del celular, o sin contador a la vista. En escritorio vive en el pie del contador (Felipe 2026-11-12). */
+  cierre?: ReactNode;
   /** Sin aviso y sin nada contado: la salida es cancelar, no cerrar. */
   onCancelarRecepcion?: () => void;
   /** Dentro de la hoja del celular: se pega al borde de abajo de la hoja. */
@@ -78,7 +69,7 @@ export function PieDeLaLista({
           <Ayuda titulo="Quién cuenta">{explicacion}</Ayuda>
           {papeles}
         </div>
-        <BotonCerrarConteo peso={cierrePrincipal ? "primario" : "fantasma"} puedeCerrar={puedeCerrar} motivos={motivosNoCierra} onCerrar={onCerrar} onIrALoQueFalta={onIrALoQueFalta} guia="recepcion.pasar-a-cerrar" />
+        {cierre}
       </div>
     </div>
   );

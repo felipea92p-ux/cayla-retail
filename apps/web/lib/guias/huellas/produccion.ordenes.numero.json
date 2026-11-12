@@ -2,7 +2,7 @@
   "guia": "produccion.ordenes.numero",
   "ruta": "/produccion/ordenes/[numero]",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 229,
+  "total": 228,
   "controles": {
     "app/(app)/produccion/ordenes/[numero]/page.tsx": [
       "Volver «/produccion/ordenes»",
@@ -22,7 +22,6 @@
     ],
     "components/alta-producto/ArmarMezcla.tsx": [
       "button «{`Quitar ${c.nombre}»",
-      "ComboBuscable «→(cod) => alternar(cod)»",
       "Boton «Cancelar»",
       "Boton «{(bloqueo ?? firma.motivo) ?? undefined}»"
     ],
@@ -30,7 +29,7 @@
       "button «{`Agregar un color que acompaña al ${c.nombre.toLocaleLowerCase(\"es\")}»",
       "button «{`Quitar ${c.nombre}»",
       "ComboBuscable «(sin nombre)»",
-      "button «{carta ? \"Ocultar la carta\" : `Ver los ${colores.length}»",
+      "button «{carta ? \"Ocultar la carta\" : `Ver los ${ofrecibles.length}»",
       "Boton «{enLinea ? undefined : \"Crear un color necesita internet\"}»",
       "button «{c.nombre}»"
     ],

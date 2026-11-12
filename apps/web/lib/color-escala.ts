@@ -1,33 +1,26 @@
-// La escala de un color: en qué gama de su familia cae y qué tan claro es (Felipe, 2026-10-02, ADR-0312).
+// La escala de un color: qué tan claro es (Felipe, 2026-10-02, ADR-0312; una sola fila por familia desde el 2026-11-12).
 //
 // PROMETE: un único orden para toda pantalla que muestre colores de una familia — la carta de Nuevo producto, Agregar
-//   colores y Atributos → Colores. Dentro de una familia, de MENOR a MAYOR matiz (las gamas, como el círculo cromático) y,
-//   dentro de cada gama, del más claro al más oscuro. Es una función del color (su #hex), no de un número guardado:
-//   `colores.orden` ya no decide cómo se ve nada, así que un color recién creado cae en su lugar sin que nadie lo ubique.
+//   colores, Recibir y Atributos → Colores: del más CLARO al más OSCURO, en UNA sola fila por familia. Es una función del color
+//   (su #hex), no de un número guardado: `colores.orden` ya no decide cómo se ve nada, así que un color recién creado cae en su
+//   lugar sin que nadie lo ubique.
 // ASUME: el hex en sRGB (#RGB o #RRGGBB). Un color sin hex válido no tiene tono: va al final de su familia.
 // NO HACE: no decide a qué FAMILIA pertenece un color (eso es dato: `colores.familia_color`) ni toca la base. Tampoco
 //   corrige el hex: si un tono está mal puesto, la escala lo muestra mal puesto.
 //
 // POR QUÉ OKLCH Y NO EL BRILLO DE RGB: el orden anterior usaba brillo 0.299R+0.587G+0.114B sobre el RGB de pantalla, que
 // subestima los azules y sobreestima los verdes. OKLab (Ottosson, 2020) está construido para que la «claridad» L coincida con
-// lo que ve el ojo, y de él sale también el matiz (grados), que es lo que parte una familia ancha en gamas.
+// lo que ve el ojo.
 //
-// POR QUÉ GAMAS: Azul, Verde y Morado abarcan 46–69° de matiz. Ordenadas solo por claridad, sus vecinos saltaban ~25° de matiz
-// entre uno y otro (un cian junto a un ultramar, un oliva junto a un esmeralda) y la fila no se leía como escala. Con gamas el
-// salto baja a 10–16° (medido sobre los 75 colores de producción, 2026-10-02). Cada corte está en el MEDIO del mayor hueco de matiz
-// de su familia (ADR-0316: al sumar 16 colores, «Verde hoja» —132°— y «Azur» —244°— quedaron a 2,8° y 4,2° de los cortes que había y se
-// movieron): con los 90 colores de la carta, ningún color queda a menos de 5,8° de un corte (Verde hoja 5,8°, Verde 6,5°, Celeste 7,2°, Lavanda 8,3°).
+// POR QUÉ YA NO HAY GAMAS (Felipe, 2026-11-12, al recibir ENV-001660: «deberían estar todos en una sola línea iniciando por intensidad
+// más suave a más fuerte»): desde ADR-0312, Azul, Verde y Morado se partían en dos filas por matiz («gamas»), cada una de claro a oscuro,
+// para que un cian no quedara junto a un ultramar. Con los colores reales la familia salía en tres o cuatro filas (un color fuera de su
+// gama abría otra) y nadie sabía por qué. Se eligió leer la fila como una escala de claridad pura, aunque dos vecinos difieran de matiz.
 
 export type ColorEnEscala = { nombre: string; hex: string | null; familiaColor?: string | null };
 
 type Oklch = { L: number; C: number; h: number };
 
-/** Matiz (grados OKLCH) donde cada familia ancha cambia de gama. Una familia que no está aquí es de una sola gama. */
-const CORTES_DE_GAMA: Readonly<Record<string, number>> = {
-  verde: 138, // oliva, limón y hoja (113–132°) | verde y agua (144–177°)
-  azul: 236, //  cian y petróleo (205–229°) | azul (244–277°)
-  morado: 327, // violeta y glicina (299–319°) | ciruela y mora (336–353°)
-};
 
 /** El hex como OKLCH: claridad 0–1, intensidad y matiz 0–360°. `null` si no es un #hex válido. */
 export function oklchDeHex(hex: string | null | undefined): Oklch | null {
@@ -57,17 +50,9 @@ export function esColorClaro(hex: string | null | undefined): boolean {
   return !o || o.L > 0.6;
 }
 
-/** La gama dentro de su familia: 0 (la de menor matiz) o 1. Sin hex válido cae en la última, junto al final de la fila. */
-export function gamaDeColor(familiaColor: string | null | undefined, hex: string | null | undefined): number {
-  const corte = familiaColor ? CORTES_DE_GAMA[familiaColor] : undefined;
-  if (corte === undefined) return 0;
-  const o = oklchDeHex(hex);
-  return !o ? 1 : o.h >= corte ? 1 : 0;
-}
-
 /**
- * Comparador de la carta: gama, luego del más claro al más oscuro, luego por nombre (para que el orden sea siempre el mismo
- * con la lista al derecho o al revés). Sin hex válido, al final.
+ * Comparador de la carta: del más claro al más oscuro, luego por nombre (para que el orden sea siempre el mismo con la lista al
+ * derecho o al revés). Sin hex válido, al final.
  */
 export function enEscala(a: ColorEnEscala, b: ColorEnEscala): number {
   const oa = oklchDeHex(a.hex);
@@ -75,28 +60,15 @@ export function enEscala(a: ColorEnEscala, b: ColorEnEscala): number {
   if (!oa && !ob) return a.nombre.localeCompare(b.nombre, "es");
   if (!oa) return 1;
   if (!ob) return -1;
-  return gamaDeColor(a.familiaColor, a.hex) - gamaDeColor(b.familiaColor, b.hex) || ob.L - oa.L || a.nombre.localeCompare(b.nombre, "es");
+  return ob.L - oa.L || a.nombre.localeCompare(b.nombre, "es");
 }
 
 /**
- * Parte los colores de UNA familia en sus gamas, para que la pantalla ponga cada gama en su propia fila. Los ordena ella misma con
- * `enEscala` (gama, de claro a oscuro): llegue la lista como llegue, cada gama es UN solo bloque y cada bloque va de claro a oscuro.
- * Concatenar los bloques devuelve los mismos colores: nunca se pierde ni se repite uno. No toca la lista que recibe.
- *
- * POR QUÉ ORDENA AQUÍ Y NO LO PIDE: antes esta función suponía la lista «ya ordenada con `enEscala`» y abría un bloque cada vez que la
- * gama CAMBIABA. Tres pantallas le pasaban los colores como los lee la base (`order by orden, nombre`), con las gamas alternadas, y el
- * Verde salía en seis filas (5, 5, 1, 1, 1, 1): la hoja «Crear la prenda que llegó» de Recibir, la de Insumos (tela y avío) y la de «agregar un
- * color a la orden» (2026-11-12). Una precondición que nadie comprueba termina rota por la próxima pantalla; ordenar de más cuesta
- * microsegundos (una familia tiene decenas de colores) y deja a la carta sin forma de verse distinta según quién la use.
+ * La fila de UNA familia en la carta: sus colores de claro a oscuro (`enEscala`). La ordena ella misma, llegue la lista como llegue, y no toca la
+ * lista que recibe: TRES pantallas le pasan los colores como los lee la base (`order by orden, nombre`), sin ordenar —la hoja «Crear la prenda
+ * que llegó» de Recibir, la de Insumos (tela y avío) y la de «agregar un color a la orden»— (lo encontró otra sesión el 2026-11-12, cuando la carta
+ * todavía partía en gamas y el Verde salía en seis filas). Una precondición que nadie comprueba termina rota por la próxima pantalla.
  */
-export function partirEnGamas<C extends ColorEnEscala>(colores: readonly C[]): C[][] {
-  const bloques: C[][] = [];
-  let anterior: number | null = null;
-  for (const c of [...colores].sort(enEscala)) {
-    const gama = gamaDeColor(c.familiaColor, c.hex);
-    if (gama !== anterior) bloques.push([]);
-    bloques[bloques.length - 1].push(c);
-    anterior = gama;
-  }
-  return bloques;
+export function filaDeLaFamilia<C extends ColorEnEscala>(colores: readonly C[]): C[] {
+  return [...colores].sort(enEscala);
 }

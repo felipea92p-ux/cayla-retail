@@ -2,7 +2,7 @@
   "guia": "recibir.envio.id",
   "ruta": "/recibir/envio/[id]",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 288,
+  "total": 285,
   "controles": {
     "app/(app)/recibir/envio/[id]/page.tsx": [
       "Volver «/recibir»",
@@ -20,7 +20,6 @@
     ],
     "components/alta-producto/ArmarMezcla.tsx": [
       "button «{`Quitar ${c.nombre}»",
-      "ComboBuscable «→(cod) => alternar(cod)»",
       "Boton «Cancelar»",
       "Boton «{(bloqueo ?? firma.motivo) ?? undefined}»"
     ],
@@ -28,7 +27,7 @@
       "button «{`Agregar un color que acompaña al ${c.nombre.toLocaleLowerCase(\"es\")}»",
       "button «{`Quitar ${c.nombre}»",
       "ComboBuscable «(sin nombre)»",
-      "button «{carta ? \"Ocultar la carta\" : `Ver los ${colores.length}»",
+      "button «{carta ? \"Ocultar la carta\" : `Ver los ${ofrecibles.length}»",
       "Boton «{enLinea ? undefined : \"Crear un color necesita internet\"}»",
       "button «{c.nombre}»"
     ],
@@ -120,9 +119,9 @@
       "button «{`${abiertaEsta ? \"Esconder\" : \"Cambiar\"}»",
       "Boton «Contarla»",
       "CampoTexto «¿Qué pasó exactamente?»",
+      "Boton «Contarla» #2",
       "button «Empezar de cero»",
       "BotonVerMas «recepcion.plegadas»",
-      "button «{c.nombre}»",
       "CampoTexto «{guia.etiqueta(\"guia\", \"Número de guía\")}»",
       "CampoTexto «Nota (opcional)»",
       "ComboResponsable «{responsable}»",
@@ -211,7 +210,6 @@
     ],
     "components/recepcion-conteo/LlevarAlStock.tsx": [
       "Boton «{parcial ? `Llevar ${unidades.toLocaleString(\"es-PE\")}»",
-      "CampoMonto «{guia.etiqueta(\"salida-costo\", \"Costo por prenda\")}»",
       "ComboResponsable «{responsable}»",
       "Boton «Cancelar»",
       "Boton «{guia.frase ?? undefined}»",
@@ -267,9 +265,10 @@
       "ComboResponsable «{responsable}»"
     ],
     "components/recepcion-conteo/PlacaDelModelo.tsx": [
+      "button «{`Ver lo que anotó Compras de ${nombreDeParada(parada)}»",
+      "button «Ver lo que anotó Compras»",
       "LapizEditar «{`el nombre de ${modelo.nombre}»",
       "LapizEditar «{`la categoría y la marca de ${modelo?.nombre ?? \"este modelo\"}»",
-      "button «Cambiar»",
       "button «Llegaron las»",
       "button «+»",
       "button «+» #2",
@@ -278,10 +277,8 @@
       "button «Reintentar»",
       "Boton «Llegó dañada»",
       "Boton «Es otra prenda»",
-      "Boton «{anterior ? `Antes: ${nombreDeParada(anterior)}»",
-      "Boton «{`${hayConteo ? \"Listo, siguiente\" : \"Siguiente\"}»",
-      "Boton «Ver todos»",
-      "Boton «{`Ir al que falta: ${nombreDeParada(pendiente)}»"
+      "button «{`Ir a ${nombreDeParada(pendiente)}»",
+      "button «Ver todos»"
     ],
     "components/recepcion-conteo/PrecioDePrenda.tsx": [
       "CampoTexto «{`Costo de ${nombre}»",
@@ -334,11 +331,11 @@
     ],
     "components/recepcion-conteo/TallasDeLaPlaca.tsx": [
       "button «Reintentar»",
+      "input «0»",
       "Boton «Agregar talla o color»",
       "button «corrige lo contado a»",
       "button «{`Quitar la talla ${t.texto}»",
       "button «{`Crear ${c.texto}»",
-      "input «{`${pregunta}»",
       "button «{`Quitar ${c.texto}»",
       "button «(sin nombre)»"
     ],

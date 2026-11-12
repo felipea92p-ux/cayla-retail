@@ -1799,14 +1799,14 @@ export const GUIA_RECIBIR_ENVIO: Guia = {
       ancla: "recepcion.trae",
       requiere: ["recepcion.empezar"],
       titulo: "Lo que trae",
-      texto: "Lo que dijeron que trae el envío: cada tipo de prenda con cuántas vienen; arriba, el envío, la guía y quién lo mandó. Léelo antes de empezar a recibir.",
+      texto: "Lo que dijeron que trae el envío, por proveedor: cada modelo con cuántas vienen, y cuántos modelos y prendas trajo cada uno. Arriba, el total del fardo y quién lo mandó. Léelo antes de empezar a recibir.",
     },
     {
       id: "empezar",
       ancla: "recepcion.empezar",
       requiere: ["recepcion.empezar"],
       titulo: "Empezar a recibir",
-      texto: "Cuando la mercadería está en tu sede, eliges quién recibe y tocas el botón: se abre el conteo y la compra ya no se puede anular. Puedes recibirla por partes: lo contado queda guardado y sigues cuando quieras. En la demo no lo tocamos.",
+      texto: "Siempre a la vista, a la derecha. Cuando la mercadería está en tu sede, eliges quién recibe y tocas el botón: se abre el conteo y la compra ya no se puede anular. Puedes recibirla por partes: lo contado queda guardado y sigues cuando quieras. En la demo no lo tocamos.",
     },
     {
       id: "otro-sin-aviso",
@@ -1916,15 +1916,15 @@ export const GUIA_RECIBIR_ENVIO: Guia = {
       // El panel de filtros que abrió la guía se cierra antes de pasar al contador; en el celular, también la hoja de la lista.
       preparar: [{ tipo: "clic", ancla: "recepcion.filtros-cerrar", siEsta: true }, { tipo: "escape" }],
       titulo: "Cuántas llegaron de este modelo",
-      texto: "El aro cuenta el modelo que elegiste: verde cuando cuadra. Arriba ves cuánto costó cada una. «Llegaron las N» lo deja listo de un toque: el aro se pliega en una línea con «Cambiar» y, si toca repartir tallas, baja hasta ahí. O toca el número para escribirlo, o súmalas con + y −. «No llegó nada» también vale.",
+      texto: "El aro cuenta el modelo: verde cuando cuadra. Toca la foto para ver lo que anotó Compras. Junto al aro: «Llegaron las N» lo deja listo de un toque, +5 y +10 suman, «Poner en cero» lo vuelve atrás. A la derecha, el paso 2: sus tallas y colores.",
     },
     {
       id: "siguiente",
       ancla: "recepcion.siguiente",
       opcional: true,
       requiere: [CONTADOR_A_LA_VISTA],
-      titulo: "Al siguiente modelo",
-      texto: "«Listo, siguiente» pasa al modelo que sigue y «Anterior» vuelve; al lado dice cuál viene. En el último, te lleva al que quedó sin contar. Con el número abierto, Enter hace lo mismo y deja el siguiente listo para escribir: cuentas todo sin soltar el teclado.",
+      titulo: "Lo que falta y cerrar",
+      texto: "Abajo dice qué modelo falta contar: tócalo y vas a él (o elige otro en la lista de la izquierda). A la derecha, «Revisar y cerrar». Con el número abierto, Enter pasa al siguiente modelo y lo deja listo para escribir: cuentas todo sin soltar el teclado.",
     },
     {
       id: "que-hacer",
@@ -1942,7 +1942,7 @@ export const GUIA_RECIBIR_ENVIO: Guia = {
       requiere: [CONTADOR_A_LA_VISTA],
       preparar: [{ tipo: "clic", ancla: "recepcion.abrir-tallas", siEsta: true }],
       titulo: "La hoja de tallas y colores",
-      texto: "Escribe cuántas llegaron de cada talla y color: arriba ves cuántas van. Quita con la × lo que no llegó. «Agregar talla o color» abre todas las tallas y los colores para marcar los que faltan. Se guarda sola cuando lo repartido cuadra con lo contado.",
+      texto: "Escribe cuántas llegaron de cada talla y color, o súmalas con − y +; con Tab pasas de casilla en casilla. «Llenar todas con» pone el mismo número en todas. Al pie, el total de cada talla. Quita con la × lo que no llegó, y «Agregar talla o color» marca lo que falta. Se guarda sola cuando cuadra con lo contado.",
     },
     {
       id: "danadas-contar",
@@ -2020,7 +2020,7 @@ export const GUIA_RECIBIR_ENVIO: Guia = {
       requiere: ["recepcion.categorias"],
       preparar: [LISTA_DEL_CELULAR],
       titulo: "Revisar y cerrar",
-      texto: "Lleva al cierre, siempre desde este lugar: ahí ves lo que no cuadró, el costo y quién cierra. Si algo más que contar impide cerrar (decir qué son unas prendas, una categoría sin modelos), sale a su lado y tocarlo te lleva hasta ahí. En la demo no avanzamos.",
+      texto: "Lleva al cierre: ahí ves lo que no cuadró, el costo y quién cierra. Si algo más que contar impide cerrar (decir qué son unas prendas, una categoría sin modelos), sale a su lado y tocarlo te lleva hasta ahí. En la demo no avanzamos.",
     },
     {
       id: "ya-en-stock",
@@ -2031,11 +2031,19 @@ export const GUIA_RECIBIR_ENVIO: Guia = {
       texto: "Lo que ya entró al stock sale en su categoría, marcado «En stock», y no se vuelve a contar. Tócalo para ver sus tallas y colores. «Corregir» deshace lo que salió antes de cerrar, mientras siga en el almacén; si no, «Ajustar stock» te lleva a esa prenda.",
     },
     {
+      // Felipe 2026-11-12: «Revisa y cierra» rediseñada; las cifras van arriba, antes de lo que se decide.
+      id: "al-cerrar",
+      ancla: "recepcion.al-cerrar",
+      requiere: ["recepcion.tabla-cierre"],
+      titulo: "Al cerrar",
+      texto: "Arriba, en cifras: cuántas entran al stock, cuántas quedan para después (contadas, sin tallas), cuántas faltan y sobran contra lo que dijeron, y su costo.",
+    },
+    {
       id: "tabla-cierre",
       ancla: "recepcion.tabla-cierre",
       requiere: ["recepcion.tabla-cierre"],
-      titulo: "Lo que se cierra",
-      texto: "Una tarjeta por categoría y marca, primero las que piden algo; dentro, una fila por modelo con cuánto llegó y su costo. Si algo no cuadra, te pregunta qué pasó. Si el costo deja poco margen, sale «revisar precio»: abre «Cambiar por talla», donde la IA te propone uno.",
+      titulo: "Lo que te toca decidir",
+      texto: "Solo lo que pide algo: lo que falta contar, con su «Contarla», y cada tarjeta donde algo no cuadró, que te pregunta qué pasó. Lo que cuadra va abajo, en una tabla corta. Si el costo deja poco margen, sale «revisar precio».",
     },
     {
       // Solo con muchas filas y más de una que no pide nada.
@@ -2044,7 +2052,7 @@ export const GUIA_RECIBIR_ENVIO: Guia = {
       opcional: true,
       requiere: ["recepcion.tabla-cierre"],
       titulo: "Lo que ya cuadra",
-      texto: "Con muchas categorías, las que cuadran esperan aquí plegadas: no piden nada, pero se pueden revisar. Si cambiaste un costo o un precio adentro, la franja lo dice.",
+      texto: "Lo que cuadra no pide nada: espera en una tabla corta, con cuánto llegó y su costo. Ábrela para cambiar un costo o un precio; si cambiaste algo adentro, la franja lo dice.",
     },
     {
       // Felipe 2026-10-28: el costo y el precio se ponen por combinación (color y talla). La fila de la primera prenda solo existe con la categoría abierta.
@@ -2073,19 +2081,12 @@ export const GUIA_RECIBIR_ENVIO: Guia = {
       texto: "Lo que anotaste al contar para diferenciarla de las demás, sus observaciones, quién la contó y cuándo y, si la prenda ya existe, su ficha. Solo se lee: no cambia nada.",
     },
     {
-      id: "al-cerrar",
-      ancla: "recepcion.al-cerrar",
-      requiere: ["recepcion.tabla-cierre"],
-      titulo: "Al cerrar",
-      texto: "Cuántas prendas, modelos y proveedores cierras, cuánto entra con costo, cuánto sin él y qué queda para después. Debajo, lo que falta: toca una y te lleva a ese campo.",
-    },
-    {
       id: "cerrar-boton",
       ancla: "recepcion.cerrar-boton",
       opcional: true,
       requiere: ["recepcion.tabla-cierre"],
       titulo: "Cerrar el envío",
-      texto: "Si el papel de la guía dice otra cosa, la corriges arriba. Firma quien cierra. Lo que tiene tallas entra al almacén de tu sede (las dañadas, a la cuarentena) y lo demás queda para después, ya contado. En la demo no lo tocamos.",
+      texto: "Al lado dice en palabras qué falta; mientras falte algo, el botón no es negro y tocarlo te lleva a lo primero. Lo que tiene tallas entra al almacén de tu sede (las dañadas, a la cuarentena) y lo demás queda para después, ya contado. En la demo no lo tocamos.",
     },
     // ---- Abierto: el formulario ----
     {

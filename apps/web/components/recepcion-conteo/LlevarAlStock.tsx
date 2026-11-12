@@ -8,8 +8,11 @@ import { CampoGuiado, PieGuia } from "@/components/guia-de-foco/CampoGuiado";
 import { useGuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
 import { enterNoGuarda } from "@/components/ui/enterNoGuarda";
 import { Aviso } from "@/components/ui/Aviso";
-import { Boton, BotonEnlace, CampoMonto, CampoTexto } from "@/components/ui/campos";
+import { Boton, BotonEnlace, CampoTexto } from "@/components/ui/campos";
 import { Modal } from "@/components/ui/Modal";
+import { Punto } from "@/components/alta-producto/Punto";
+import type { ColorAlta } from "@/lib/alta-producto";
+import { compararTallas } from "@/lib/tallas";
 import { hayQueElegirDueno } from "@/lib/dueno-reglas";
 import { useEmpresasDeSede } from "@/lib/useEmpresasDeSede";
 import { DuenoDeLoQueEntra } from "./DuenoDeLoQueEntra";
@@ -43,6 +46,7 @@ export function LlevarAlStock({
   linea,
   productoId,
   variantes,
+  colores,
   sinAviso,
   veDinero,
   soloSede = false,
@@ -64,6 +68,8 @@ export function LlevarAlStock({
   linea: LineaParaContar;
   productoId: string;
   variantes: readonly { varianteId: string; cantidad: number; danadas: number; solucion: string | null; talla: string | null; color: string | null }[];
+  /** El catálogo de colores, para dibujar la muestra de cada línea. */
+  colores?: readonly ColorAlta[];
   sinAviso: boolean;
   veDinero: boolean;
   /** Una terminal (ADR-0531): el precio vale solo en su sede. */
@@ -101,12 +107,17 @@ export function LlevarAlStock({
   const editaCosto = !(sinAviso && !linea.linea && !veDinero);
   const lectura = leerCostoCierre(costo);
   const faltaCosto = !sinAviso && !linea.linea && costo.trim() === "";
+  // Costo y precio van lado a lado, del mismo tamaño (Felipe 2026-11-12: «que estén alineados el costo y el precio y que ambos tengan el mismo
+  // tamaño»): son un solo bloque y un solo campo de la guía. El costo frena si falta (con guía) o está mal escrito; el precio, solo si está mal.
+  const problemaCosto = editaCosto ? (lectura.problema ?? (faltaCosto ? "Escribe el costo." : null)) : null;
   const campos = [
-    ...(editaCosto
-      ? [{ id: "salida-costo", nombre: "Costo", requerido: faltaCosto || lectura.problema !== null, hecho: costo.trim() !== "" && lectura.problema === null, pendiente: lectura.problema ?? "Escribe el costo." }]
-      : []),
-    // Opcional: solo frena si lo escrito no es un precio (o la base ya dijo por qué no).
-    { id: "salida-precio", nombre: "Precio de venta", requerido: problemaPrecio !== null, hecho: problemaPrecio === null, pendiente: problemaPrecio ?? "Revisa el precio de venta." },
+    {
+      id: "salida-precio",
+      nombre: editaCosto ? "Costo y precio" : "Precio de venta",
+      requerido: problemaCosto !== null || problemaPrecio !== null,
+      hecho: problemaCosto === null && problemaPrecio === null && (!editaCosto || costo.trim() !== ""),
+      pendiente: problemaCosto ?? problemaPrecio ?? "Revisa el precio de venta.",
+    },
     ...(responsable.listo ? [] : [{ id: "salida-responsable", nombre: "Quién lo lleva", requerido: true, hecho: false, pendiente: responsable.motivo ?? "Elige quién lo lleva." }]),
   ];
   // En una sede con dos empresas, lo que entra lleva su dueño (ADR-0542), como al cerrar. La base no lo deja entrar sin él.
@@ -238,22 +249,8 @@ export function LlevarAlStock({
               }}
             >
               {/* Lo que va a entrar, a la vista antes de confirmar (prueba ciega, 2026-11-03: no se podía revisar la talla). */}
-              <ListaDeTallas lineas={variantes} />
-              {editaCosto ? (
-                <CampoGuiado id="salida-costo" guia={guia}>
-                  <CampoMonto
-                    etiqueta={guia.etiqueta("salida-costo", "Costo por prenda")}
-                    pie={lectura.problema ?? (linea.linea ? "El de la orden. Corrígelo si la factura dice otro." : "Si no lo sabes, déjalo vacío: llega con la factura.")}
-                    tono={lectura.problema ? "error" : undefined}
-                    inputMode="decimal"
-                    placeholder="0.00"
-                    value={costo}
-                    onChange={(e) => setCosto(e.target.value)}
-                  />
-                </CampoGuiado>
-              ) : (
-                <p className="nota-cayla">Entra sin costo: llega con la factura.</p>
-              )}
+              <ListaDeTallas lineas={variantes} colores={colores} />
+              {!editaCosto && <p className="nota-cayla">Entra sin costo: llega con la factura.</p>}
               <CampoGuiado id="salida-precio" guia={guia}>
                 <PrecioDePrenda
                   prenda={{ productoId, nombre, codigo: null }}
@@ -261,11 +258,18 @@ export function LlevarAlStock({
                   soloSede={soloSede}
                   sedeId={sedeId}
                   editado={venta}
+                  costo={editaCosto ? { valor: costo, deLaLinea: textoInicial, antes: textoInicial, problema: lectura.problema } : undefined}
+                  onCosto={editaCosto ? setCosto : undefined}
                   sinNombre
                   onActual={(general, enSede) => precios.ponerActual(productoId, general, enSede)}
                   onValor={(valor) => precios.cambiarVenta(productoId, { valor })}
                   onAlcance={(a) => precios.cambiarVenta(productoId, { alcance: a })}
                 />
+                {editaCosto && !lectura.problema && (
+                  <p className="mt-1.5 text-sm text-taupe">
+                    {linea.linea ? "El costo es el de la orden: corrígelo si la factura dice otro." : "Si no sabes el costo, déjalo vacío: llega con la factura."}
+                  </p>
+                )}
               </CampoGuiado>
               {preguntaDueno && empresasDeLaSede && (
                 <CampoGuiado id="salida-dueno" guia={guia}>
@@ -299,31 +303,43 @@ export function LlevarAlStock({
   );
 }
 
-/** Qué tallas y colores son, una por línea: «M · Rojo: 3». */
-function ListaDeTallas({ lineas }: { lineas: readonly { cantidad: number; talla?: string | null; color?: string | null }[] }) {
+/** Qué tallas y colores son, una por línea: «● Rojo · M   3», con el círculo de su color (Felipe 2026-11-12: «más visual»). */
+function ListaDeTallas({ lineas, colores = [] }: { lineas: readonly { cantidad: number; talla?: string | null; color?: string | null }[]; colores?: readonly ColorAlta[] }) {
+  // El nombre de un color es único en el catálogo: con él se encuentra su muestra.
+  const porNombre = new Map(colores.map((c) => [c.nombre.toLocaleLowerCase("es"), c]));
+  // Por color (en el orden en que aparecen) y, dentro de cada color, de la talla chica a la grande: «Blanco · S, M, L», no «L, L, M, M».
+  const primerColor = new Map<string, number>();
+  lineas.forEach((l, i) => primerColor.has(l.color ?? "") || primerColor.set(l.color ?? "", i));
+  const ordenadas = [...lineas].sort((a, b) => primerColor.get(a.color ?? "")! - primerColor.get(b.color ?? "")! || compararTallas(a.talla ?? "", b.talla ?? ""));
   return (
-    <ul className="nota-cayla sin-i space-y-0.5 text-sm" aria-label="Tallas y colores">
-      {lineas.map((l, i) => (
-        <li key={i} className="flex justify-between gap-3">
-          <span>{[l.talla ?? "Talla única", l.color ?? "Sin color"].join(" · ")}</span>
+    <ul className="nota-cayla sin-i space-y-1 text-sm" aria-label="Tallas y colores">
+      {ordenadas.map((l, i) => {
+        const color = l.color ? porNombre.get(l.color.toLocaleLowerCase("es")) : undefined;
+        return (
+        <li key={i} className="flex items-center justify-between gap-3">
+          <span className="inline-flex items-center gap-2">
+            {color && <Punto hex={color.hex} familia={color.familiaColor} tipo={color.tipo} />}
+            {[l.color ?? "Sin color", l.talla ?? "Talla única"].join(" · ")}
+          </span>
           <b className="tabular-nums text-tinta">{l.cantidad.toLocaleString("es-PE")}</b>
         </li>
-      ))}
+        );
+      })}
     </ul>
   );
 }
 
 /** Lo que sigue después de salir: las etiquetas de esa tanda, bajarlas al piso o seguir contando. */
-export function SalidaHecha({ resultado, nombre, veExistencias, onCerrar }: { resultado: ResultadoDeSalida; nombre: string; veExistencias: boolean; onCerrar: () => void }) {
+export function SalidaHecha({ resultado, nombre, envioId, veExistencias, onCerrar }: { resultado: ResultadoDeSalida; nombre: string; envioId: string; veExistencias: boolean; onCerrar: () => void }) {
   const n = resultado.unidades.toLocaleString("es-PE");
   return (
     <Modal titulo={`${n} de ${nombre} ya están en el stock`} subtitulo="Están en el almacén: se venden cuando las bajes al piso. El envío sigue abierto." tamano="angosta" onClose={onCerrar} conCerrar>
       <div className="grid gap-2">
-        <BotonEnlace href={urlEtiquetasDeLaTanda(resultado.lineas)} peso="primario">
+        <BotonEnlace href={urlEtiquetasDeLaTanda(resultado.lineas, envioId)} peso="primario">
           {resultado.unidades === 1 ? "Imprimir la etiqueta" : `Imprimir ${n} etiquetas`}
         </BotonEnlace>
         {veExistencias && (
-          <BotonEnlace href={urlBajarDeLaTanda(resultado.lineas)} peso="fantasma">
+          <BotonEnlace href={urlBajarDeLaTanda(resultado.lineas, envioId)} peso="fantasma">
             Bajar al piso
           </BotonEnlace>
         )}

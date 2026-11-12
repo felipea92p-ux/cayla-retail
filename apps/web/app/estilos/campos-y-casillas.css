@@ -160,7 +160,9 @@
   .paso-cantidad-b[aria-disabled="true"] { opacity: 0.3; cursor: not-allowed; }
   /* `.paso-cantidad` delante: le gana a la regla de todo control dentro de una caja (`.caja-campo :is(input)`, ancho completo). */
   .paso-cantidad .paso-cantidad-n {
-    width: 2.25rem; flex: none; align-self: stretch; display: grid; place-items: center;
+    /* `justify-items: stretch`, no `center`: con `center` el «0» de ejemplo (el placeholder) se encogía a su ancho y quedaba pegado a la
+       izquierda, mientras lo escrito sí salía al centro (Felipe 2026-11-12, la tabla de tallas de Recibir). */
+    width: 2.25rem; flex: none; align-self: stretch; display: grid; align-items: center; justify-items: stretch;
     padding: 0; border: 0; background: transparent; outline: none;
     text-align: center; font-size: 14px; font-weight: 600; font-variant-numeric: tabular-nums; color: var(--color-tinta);
     appearance: textfield;

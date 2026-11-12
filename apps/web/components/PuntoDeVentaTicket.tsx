@@ -775,7 +775,10 @@ export function PuntoDeVentaTicket({
               )}
             </>
           ) : cobrando ? (
+            // Una `key` por botón: sin ella, React reusa el MISMO <button> y «Cobrar» se volvía `submit` antes de que el navegador terminara
+            // el clic, que podía enviar el cobro sin que la persona lo confirmara (lib/botones-que-cambian-de-tipo.test.ts).
             <button
+              key="confirmar-cobro"
               type="submit"
               // En el celular la hoja de cobro va compacta y su «Confirmar cobro» es este: la misma ancla que el de la hoja (ADR-0536).
               data-guia="vender.cobro-confirmar"
@@ -791,6 +794,7 @@ export function PuntoDeVentaTicket({
             </button>
           ) : (
             <button
+              key="cobrar"
               type="button"
               onClick={onIrACobrar}
               data-guia="vender.cobrar"

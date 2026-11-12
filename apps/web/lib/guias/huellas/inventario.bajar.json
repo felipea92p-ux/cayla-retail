@@ -2,9 +2,10 @@
   "guia": "inventario.bajar",
   "ruta": "/inventario/bajar",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 34,
+  "total": 35,
   "controles": {
     "app/(app)/inventario/bajar/page.tsx": [
+      "Volver «{`/recibir/envio/${envio}»",
       "Volver «/inventario»"
     ],
     "components/BajarAlPisoForm.tsx": [

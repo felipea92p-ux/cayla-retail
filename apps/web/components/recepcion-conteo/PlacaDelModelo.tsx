@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useState, type MouseEvent, type ReactNode, type Ref } from "react";
-import { ArrowLeft, ArrowRight, Ban, Banknote, Check, Package, Repeat, RotateCcw, Sparkles, Tag, TriangleAlert } from "lucide-react";
+import { Ban, Banknote, Check, Package, Repeat, RotateCcw, Sparkles, Tag, TriangleAlert } from "lucide-react";
 import { EtiquetaAhora } from "@/components/alta-producto/guia";
 import { Aviso } from "@/components/ui/Aviso";
 import { avisar } from "@/components/ui/Avisos";
@@ -16,13 +16,14 @@ import { marcaDeLinea, textoPrendas } from "@/lib/recepcion-conteo-reglas";
 import { descripcionDelGrupo, sinIdentificarDelGrupo } from "@/lib/recepcion-grupos-reglas";
 import { conMiles, costoDeLaParada, lineasDeLaParada, nombreDeParada, textoDeCosto, tipoDeParada, type ParadaDelConteo } from "@/lib/recepcion-modelos-reglas";
 import { EstadoModelo } from "./CategoriasAcordeon";
+import { LoQueAnotoCompras } from "./LoQueAnotoCompras";
 import { Dial } from "./Dial";
 import type { EstadoGuardado } from "./RecibirContando";
 
 // La mitad derecha: lo que se está contando (Felipe 2026-11-02, de su boceto; el Dial es el de ADR-0575; en dos mitades desde el 2026-11-11, ADR-0645). El mismo esqueleto que la lista:
 // cabeza (la prenda con su foto, su marca y su costo), cuerpo que corre (1 · cuántas llegaron, con el aro y «Llegaron las N» grande; 2 · sus tallas y colores, si se quiere) y pie fijo
-// (anterior y siguiente). Aquí no se cierra el conteo: «Revisar y cerrar» vive solo en la lista, y en el último modelo el pie lleva al que quedó sin contar. Lo guarda la pantalla: aquí
-// solo se dice qué dejó la persona.
+// (a qué ir si falta algo y «Revisar y cerrar»: desde el 2026-11-12 sin «Anterior» ni «Siguiente», y el cierre pasó de la lista a este pie). Lo guarda la
+// pantalla: aquí solo se dice qué dejó la persona.
 
 export function PlacaDelModelo({
   parada,
@@ -33,19 +34,15 @@ export function PlacaDelModelo({
   error,
   onReintentar,
   pasoTallas,
-  principalEnLaTarjeta,
   abrirNumero,
-  anterior,
-  siguiente,
   pendiente,
   hayFiltroPuesto,
   todoContado,
   filaSeguir,
   onPoner,
   onDeUnToque,
-  onAnterior,
-  onSiguiente,
   onPendiente,
+  cierre,
   onQuitarFiltro,
   onEnter,
   onDanada,
@@ -68,26 +65,22 @@ export function PlacaDelModelo({
   onReintentar: () => void;
   /** Cómo va el paso 2: espera (sin número o nada que hacer ahora), toca o ya está. */
   pasoTallas: "falta" | "toca" | "hecha";
-  /** Lo que toca ahora está en la tarjeta de tallas (repartir, o llevar al stock lo repartido): su botón es el principal, no «Listo, siguiente». */
-  principalEnLaTarjeta: boolean;
   /** Llega con el número listo para escribir: viene de apretar Enter en lo anterior. */
   abrirNumero: boolean;
-  anterior: ParadaDelConteo | null;
-  siguiente: ParadaDelConteo | null;
-  /** En el último modelo: lo que quedó sin contar en otra parte del envío. Con un filtro puesto no se usa: se ofrece ver todos. */
+  /** El próximo modelo sin contar del envío (dando la vuelta): el pie lleva a él. `null` con todo contado. */
   pendiente: ParadaDelConteo | null;
   hayFiltroPuesto: boolean;
   /** Ya no queda nada por contar: el botón principal de la pantalla pasa a ser «Revisar y cerrar», en la lista. */
   todoContado: boolean;
-  /** El pie con «Anterior» y «Listo, siguiente». */
+  /** El pie del contador (Enter, con todo contado, lleva el cursor a su «Revisar y cerrar»). */
   filaSeguir: Ref<HTMLDivElement>;
   /** La persona dejó este número: la pantalla lo guarda en la línea que le toca. */
   onPoner: (n: number) => void;
   /** «Llegaron las N» o «Poner en cero»: pisan lo contado de un toque, y se pueden deshacer. */
   onDeUnToque: (n: number) => void;
-  onAnterior: (e: MouseEvent) => void;
-  onSiguiente: (e: MouseEvent) => void;
   onPendiente: (e: MouseEvent) => void;
+  /** «Revisar y cerrar» (`BotonCerrarConteo`), a la derecha del pie del contador: el único de la pantalla en escritorio. */
+  cierre?: ReactNode;
   onQuitarFiltro: () => void;
   onEnter: () => void;
   /** «Llegó dañada»: abre la hoja de tallas en la parte de las dañadas. Sin ella, el botón va apagado y `notaDeAlgo` dice por qué. */
@@ -137,9 +130,6 @@ export function PlacaDelModelo({
   const nombre = modelo ? modelo.nombre : p.categoria ? p.categoria.nombre.toLowerCase() : "prendas";
   const descripcion = modelo ? null : descripcionDelGrupo(grupo);
 
-  // Sin contar todavía no es «Listo»: pasar es saltarlo, y lo principal es contar. Si toca repartir o llevar al stock, lo principal es el botón de la tarjeta. Con todo contado, «Revisar y cerrar», en la lista.
-  const pesoSeguir = hayConteo && !todoContado && !principalEnLaTarjeta ? "primario" : "fantasma";
-
   // «Llegaron las N» deja el número listo de un toque. Si con eso toca repartir, el contador baja hasta la tarjeta de tallas (Felipe 2026-11-11, cambio 1 de
   // /formidable): a 1440×900 «Repartir tallas y colores» quedaba 71 px bajo el borde y había que buscarlo. Baja la mitad del contador, no la página; donde esa
   // mitad no tiene su propio scroll (apiladas, el celular), baja la página lo justo, sin meter la tarjeta bajo la isla. Con + y − no se mueve nada: la persona
@@ -162,25 +152,58 @@ export function PlacaDelModelo({
     const fondo = isla && isla.height > 0 ? isla.top - 12 : window.innerHeight - 16;
     if (caja.bottom > fondo) window.scrollBy({ top: caja.bottom - fondo, behavior });
   };
-  // Tras «Llegaron las N» el paso 1 se pliega a una línea («✓ Llegaron 6 · Cambiar», auditoría 2026-11-12): al bajar a las tallas, el dial quedaba cortado bajo
-  // la cabecera de la prenda. Se recuerda por modelo (la placa no se vuelve a montar al pasar al siguiente) y «Cambiar» lo vuelve a abrir.
-  const [plegadoEn, setPlegadoEn] = useState<string | null>(null);
-  const plegado = plegadoEn === parada.clave && hayConteo && !error;
+  // «Llegaron las N» y, si la tarjeta de tallas no se ve (el contador angosto la pone debajo), baja hasta ella. Ya no pliega el paso 1: con el paso 2 al lado
+  // (Felipe 2026-11-12, mesa del contador) el dial no queda cortado.
   const llegaronTodas = (n: number) => {
     deUnToque(n);
-    setPlegadoEn(parada.clave);
     requestAnimationFrame(() => requestAnimationFrame(bajarALasTallas));
   };
-  const flecha = <ArrowRight aria-hidden className="h-4 w-4 shrink-0" />;
+  // Lo que anotó Compras de este modelo (Felipe 2026-11-12): la foto se toca y lo abre en una hoja. Sin línea de compra (un envío sin aviso), no hay nada que mostrar.
+  const lineasDeCompra = lineasDeLaParada(parada).map((l) => l.linea).filter((l): l is NonNullable<typeof l> => l !== null);
+  const [verCompra, setVerCompra] = useState(false);
+  const precioSugerido = lineasDeCompra.find((l) => l.precioVentaSugerido != null)?.precioVentaSugerido ?? null;
+  const marcaTexto = p.categoria ? marcaDeLinea(p).nombre : null;
+  // El paso 2, la columna de la derecha (Felipe 2026-11-12, mesa del contador: «una línea separará al medio el paso 1 y el paso 2; de esta manera los
+  // botones de abajo ya no quedan fuera de vista»). El estado del modelo («Faltan tallas») va aquí, sobre la tarjeta: es de las tallas.
+  const bloqueDeTallas = () =>
+    modelo ? (
+      <section ref={bloqueTallas} className="rc-bloque rc-paso-dos" aria-label="Tallas y colores">
+        <div className="rc-bloque-titulo">
+          <span className="rc-paso" data-estado={pasoTallas} aria-hidden>
+            {pasoTallas === "hecha" ? <Check className="h-4 w-4" /> : 2}
+          </span>
+          <h3 className="rc-bloque-nombre">Tallas y colores</h3>
+          <span className="rc-bloque-estado">
+            {yaEntroTodo ? <Chip tono="verde">Ya en el stock</Chip> : modelo.conTallas && modelo.productoId ? <Chip tono="verde">Entra al stock</Chip> : pasoTallas === "toca" && hayConteo ? <EtiquetaAhora /> : null}
+          </span>
+        </div>
+        {hayConteo && (
+          <div className="rc-paso-dos-estado">
+            <EstadoModelo m={modelo} faltanTallas={faltanTallas} sinAviso={sinAviso} />
+          </div>
+        )}
+        {tallas}
+      </section>
+    ) : null;
   return (
     <>
       <div key={`cabeza-${parada.clave}`} className="rc-placa-cabeza">
-        {p.categoria && <MiniaturaPrenda fotoUrl={foto} tamano="2xl" prefijo={p.categoria.prefijo} familia={p.categoria.familia} categoria={p.categoria.nombre} />}
+        {/* La foto (o el ícono) se toca y abre lo que anotó Compras: la descripción, el costo y el precio sugerido (Felipe 2026-11-12). */}
+        {p.categoria &&
+          (lineasDeCompra.length > 0 ? (
+            <button type="button" className="rc-placa-foto" onClick={() => setVerCompra(true)} aria-label={`Ver lo que anotó Compras de ${nombreDeParada(parada)}`} title="Ver lo que anotó Compras">
+              <MiniaturaPrenda fotoUrl={foto} tamano="2xl" prefijo={p.categoria.prefijo} familia={p.categoria.familia} categoria={p.categoria.nombre} />
+            </button>
+          ) : (
+            <MiniaturaPrenda fotoUrl={foto} tamano="2xl" prefijo={p.categoria.prefijo} familia={p.categoria.familia} categoria={p.categoria.nombre} />
+          ))}
         <div className="rc-placa-textos">
           <TituloSeccion>{nombreDeParada(parada)}</TituloSeccion>
-          <p>{[modelo ? p.categoria?.nombre : null, p.proveedor?.nombre, descripcion].filter(Boolean).join(" · ")}</p>
+          {/* De dónde es, en una línea: la categoría, quién la trajo y su marca (antes la marca era una píldora más). */}
+          <p>{[modelo ? p.categoria?.nombre : null, p.proveedor?.nombre, marcaTexto, descripcion].filter(Boolean).join(" · ")}</p>
           {modelo?.nota && <p>{modelo.nota}</p>}
           <div className="rc-chips">
+            {/* La píldora dice solo el estado: nueva o re stock, y si no venía en la guía. Las cifras van aparte, en palabras. */}
             {tipo === "nuevo" && (
               <Chip tono="pizarra" versalitas={false}>
                 <Sparkles aria-hidden className="h-3 w-3" />
@@ -193,20 +216,29 @@ export function PlacaDelModelo({
                 Re stock
               </Chip>
             )}
-            {p.categoria && (
-              <Chip tono="neutro" versalitas={false}>
-                <Tag aria-hidden className="h-3 w-3" />
-                {marcaDeLinea(p).nombre}
-              </Chip>
-            )}
-            {costo && (
-              <Chip tono="neutro" versalitas={false} title="Lo que cuesta cada prenda, según la compra">
-                <Banknote aria-hidden className="h-3 w-3" />
-                Costo {textoDeCosto(costo)}
-              </Chip>
-            )}
             {!p.linea && !sinAviso && <Chip tono="ambar">No estaba en la guía</Chip>}
           </div>
+          {(costo || precioSugerido != null) && (
+            <p className="rc-placa-cifras">
+              {costo && (
+                <span title="Lo que cuesta cada prenda, según la compra">
+                  <Banknote aria-hidden className="h-4 w-4" />
+                  Costo <b>{textoDeCosto(costo)}</b>
+                </span>
+              )}
+              {precioSugerido != null && (
+                <span title="El precio de venta que propuso quien compró">
+                  <Tag aria-hidden className="h-4 w-4" />
+                  Venta sugerida <b>S/&nbsp;{precioSugerido.toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</b>
+                </span>
+              )}
+              {lineasDeCompra.length > 0 && (
+                <button type="button" className="btn-cayla btn-enlace" onClick={() => setVerCompra(true)}>
+                  Ver lo que anotó Compras
+                </button>
+              )}
+            </p>
+          )}
         </div>
         <div className="rc-placa-derecha">
           <p className="rc-guardado" aria-live="polite">
@@ -223,38 +255,29 @@ export function PlacaDelModelo({
       <div key={parada.clave} ref={cuerpo} className="rc-scroll scroll-cayla rc-placa-cuerpo">
         {identificar}
 
-        <section className="rc-bloque" aria-label="¿Cuántas llegaron?">
+        {/* Paso 1 y paso 2 lado a lado, con una línea al medio (Felipe 2026-11-12, mesa del contador). Con el contador angosto, uno bajo el otro (CSS). */}
+        <div className="rc-pasos">
+        <section className="rc-bloque rc-paso-uno" aria-label="¿Cuántas llegaron?">
           <div className="rc-bloque-titulo">
             <span className="rc-paso" data-estado={hayConteo ? "hecha" : "toca"} aria-hidden>
               {hayConteo ? <Check className="h-4 w-4" /> : 1}
             </span>
             <h3 className="rc-bloque-nombre">¿Cuántas llegaron?</h3>
             {/* Lo mismo que dice su fila en la lista. Sin contar, «Sigue» lo dice. */}
-            <span className="rc-bloque-estado">{!hayConteo ? <EtiquetaAhora /> : modelo ? <EstadoModelo m={modelo} faltanTallas={faltanTallas} sinAviso={sinAviso} /> : null}</span>
+            <span className="rc-bloque-estado">{!hayConteo ? <EtiquetaAhora /> : null}</span>
           </div>
-          {plegado ? (
-            <p className="rc-cuenta-plegada" data-guia="recepcion.numero">
-              <Check aria-hidden className="h-4 w-4 shrink-0" />
-              <span>
-                {contadas === 1 ? "Llegó" : "Llegaron"} <b>{conMiles(contadas)}</b>
-                {dijeron != null && dijeron !== contadas ? ` de ${conMiles(dijeron)}` : ""}
-              </span>
-              <button type="button" className="btn-cayla btn-enlace" onClick={() => setPlegadoEn(null)}>
-                Cambiar
-              </button>
-            </p>
-          ) : (
           <div className="rc-cuenta" data-guia="recepcion.numero">
             <Dial contadas={contadas} dijeron={dijeron} hayConteo={hayConteo} minimo={minimo} nombre={nombre} abrirAlEntrar={abrirNumero} onPoner={poner} onEnter={onEnter} />
             <div className="rc-cuenta-lado">
-              {/* De lo más rápido a lo menos común: «ya llegaron todas» grande y primero (es lo que más se toca y deja el modelo listo), sumar de a varias y «no llegó». El que ya se cumplió se queda en su lugar, marcado. */}
-              {dijeron != null && dijeron >= minimo && (
-                <button type="button" className="rc-atajo rc-atajo-llegaron rc-atajo-grande" data-hecho={yaLlegaron ? "" : undefined} disabled={yaLlegaron} onClick={() => llegaronTodas(dijeron)}>
-                  <Check aria-hidden className="h-5 w-5" />
-                  Llegaron las {conMiles(dijeron)}
-                </button>
-              )}
+              {/* De lo más rápido a lo menos común, uno bajo el otro junto al dial (Felipe 2026-11-12, mesa del contador): «ya llegaron todas» primero y en
+                  verde, sumar de a varias y «poner en cero» o «no llegó». El que ya se cumplió se queda en su lugar, marcado. */}
               <div className="rc-atajos">
+                {dijeron != null && dijeron >= minimo && (
+                  <button type="button" className="rc-atajo rc-atajo-llegaron" data-hecho={yaLlegaron ? "" : undefined} disabled={yaLlegaron} onClick={() => llegaronTodas(dijeron)}>
+                    <Check aria-hidden className="h-5 w-5" />
+                    Llegaron las {conMiles(dijeron)}
+                  </button>
+                )}
                 <div className="rc-suma" role="group" aria-label="Sumar de a varias">
                   <button type="button" onClick={() => poner(contadas + atajoChico)}>
                     +{atajoChico}
@@ -289,12 +312,11 @@ export function PlacaDelModelo({
                   )
                 )}
               </div>
-              {/* Una sola línea de ayuda, en su lugar reservado: si apareciera otra, lo de abajo se movería bajo el mouse al primer toque. */}
-              <p className="rc-pista">{diferencia != null && diferencia !== 0 && !sinAviso ? "Si no coincide, al cerrar dices por qué." : "Toca el número para escribirlo."}</p>
-              {enStock > 0 && <p>Ya entraron {textoPrendas(enStock)} al stock: lo contado no baja de ahí.</p>}
             </div>
           </div>
-          )}
+          {/* La pista bajo el dial: una sola línea, en su lugar reservado (si apareciera otra, lo de abajo se movería bajo el mouse al primer toque). */}
+          <p className="rc-pista">{diferencia != null && diferencia !== 0 && !sinAviso ? "Si no coincide, al cerrar dices por qué." : "Toca el número para escribirlo."}</p>
+          {enStock > 0 && <p className="rc-pista-stock">Ya entraron {textoPrendas(enStock)} al stock: lo contado no baja de ahí.</p>}
           {error && (
             <div className="rc-placa-error">
               <Aviso
@@ -311,21 +333,8 @@ export function PlacaDelModelo({
             </div>
           )}
         </section>
-
-        {modelo && (
-          <section ref={bloqueTallas} className="rc-bloque" aria-label="Tallas y colores">
-            <div className="rc-bloque-titulo">
-              <span className="rc-paso" data-estado={pasoTallas} aria-hidden>
-                {pasoTallas === "hecha" ? <Check className="h-4 w-4" /> : 2}
-              </span>
-              <h3 className="rc-bloque-nombre">Tallas y colores</h3>
-              <span className="rc-bloque-estado">
-                {yaEntroTodo ? <Chip tono="verde">Ya en el stock</Chip> : modelo.conTallas && modelo.productoId ? <Chip tono="verde">Entra al stock</Chip> : pasoTallas === "toca" && hayConteo ? <EtiquetaAhora /> : null}
-              </span>
-            </div>
-            {tallas}
-          </section>
-        )}
+        {bloqueDeTallas()}
+        </div>
 
         {/* Lo que puede pasar con la prenda, a la vista y con su palabra (ADR-0645): antes estaba repartido entre un enlace de la cabecera y dos rincones de la tabla de tallas. */}
         <section className="rc-bloque" aria-label="¿Pasó algo con esta prenda?">
@@ -352,53 +361,36 @@ export function PlacaDelModelo({
         </section>
       </div>
 
-      {/* El pie fijo: anterior y siguiente, con su palabra y su flecha (Felipe 2026-11-02). El nombre de lo que sigue va al lado, no en el botón: uno largo no cabía. */}
+      {/* Sin «Anterior» ni «Siguiente» (Felipe 2026-11-12: «no sirven, ya que todas las colaboradoras usan la lista de categorías para moverse
+          entre las prendas»). A la izquierda, a qué ir si falta algo; a la derecha, el ÚNICO «Revisar y cerrar» de la pantalla (ADR-0645), que
+          viene de `ContarEnvio` con su peso (negro solo cuando es lo que toca). Enter sigue pasando al siguiente modelo. */}
       <div ref={filaSeguir} className="rc-placa-pie" data-guia="recepcion.siguiente">
         <p className="rc-pie-sigue">
-          {siguiente ? (
+          {pendiente ? (
             <>
-              Después: <b title={nombreDeParada(siguiente)}>{nombreDeParada(siguiente)}</b>
+              Falta contar:{" "}
+              <button type="button" className="btn-cayla btn-enlace" title={`Ir a ${nombreDeParada(pendiente)}`} onClick={onPendiente}>
+                {nombreDeParada(pendiente)}
+              </button>
             </>
           ) : hayFiltroPuesto ? (
-            "Es el último de lo que filtraste"
-          ) : pendiente ? (
             <>
-              Falta contar: <b title={nombreDeParada(pendiente)}>{nombreDeParada(pendiente)}</b>
+              Es el último de lo que filtraste ·{" "}
+              <button type="button" className="btn-cayla btn-enlace" onClick={onQuitarFiltro}>
+                Ver todos
+              </button>
             </>
           ) : todoContado ? (
-            "Es el último modelo"
+            "Todo contado: revisa y cierra."
           ) : (
-            "Solo falta este"
+            "Solo falta este."
           )}
         </p>
-        <div className="rc-pie-pasos">
-          <Boton type="button" peso="fantasma" disabled={!anterior} title={anterior ? `Antes: ${nombreDeParada(anterior)}` : undefined} onClick={onAnterior}>
-            <span className="inline-flex items-center gap-2">
-              <ArrowLeft aria-hidden className="h-4 w-4 shrink-0" />{/* unificar-fijo: Felipe pidió «Anterior» con su flecha junto a «Listo, siguiente», los dos con palabra, en esta pantalla (2026-11-02) */}
-              Anterior
-            </span>
-          </Boton>
-          {siguiente ? (
-            <Boton type="button" peso={pesoSeguir} title={`Sigue ${nombreDeParada(siguiente)}`} aria-label={`${hayConteo ? "Listo, siguiente" : "Siguiente"}: ${nombreDeParada(siguiente)}`} onClick={onSiguiente}>
-              <span className="inline-flex items-center gap-2">
-                {hayConteo ? "Listo, siguiente" : "Siguiente"}
-                {flecha}
-              </span>
-            </Boton>
-          ) : hayFiltroPuesto ? (
-            <Boton type="button" peso="fantasma" onClick={onQuitarFiltro}>
-              Ver todos
-            </Boton>
-          ) : pendiente ? (
-            <Boton type="button" peso={pesoSeguir} title={`Sigue ${nombreDeParada(pendiente)}`} aria-label={`Ir al que falta: ${nombreDeParada(pendiente)}`} onClick={onPendiente}>
-              <span className="inline-flex items-center gap-2">
-                Ir al que falta
-                {flecha}
-              </span>
-            </Boton>
-          ) : null}
-        </div>
+        {cierre && <div className="rc-pie-pasos rc-pie-cierre">{cierre}</div>}
       </div>
+      {verCompra && (
+        <LoQueAnotoCompras nombre={nombreDeParada(parada)} foto={foto} categoria={p.categoria ?? null} lineas={lineasDeCompra} onCerrar={() => setVerCompra(false)} />
+      )}
     </>
   );
 }

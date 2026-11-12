@@ -1088,7 +1088,8 @@ export function camposDelCierre(
     const dif = diferenciaDe(l);
     const pideCausa = (dif != null && dif !== 0 && l.conteo) || (!l.linea && !p.sinAviso && contadasDe(l) > 0);
     if (l.linea && !l.conteo) {
-      campos.push({ id: idCampoCierre("contar", l.clave), nombre, requerido: true, hecho: false, pendiente: `Cuenta ${nombre} (aunque no haya llegado nada).` });
+      // La fila ya dice cuál: el error solo dice qué hacer (Felipe 2026-11-12).
+      campos.push({ id: idCampoCierre("contar", l.clave), nombre, requerido: true, hecho: false, pendiente: "Cuéntala, aunque no haya llegado nada." });
       continue;
     }
     if (pideCausa) {

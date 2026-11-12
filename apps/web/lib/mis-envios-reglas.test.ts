@@ -17,6 +17,7 @@ import {
   mensajeParaLaTienda,
   notaDeEnvio,
   prendasQueFaltaron,
+  prendasQueSobraron,
   resumenDelEnvioSalido,
   resumenDeEnvios,
   rondasConEnvios,
@@ -43,6 +44,8 @@ function envio(p: Partial<EnvioMio> = {}): EnvioMio {
     motivoAnulacion: null,
     prendas: 10,
     contadas: 0,
+    faltaron: null,
+    sobraron: null,
     rondaId: "r2",
     ronda: "RC-000612",
     rondaAbiertaEn: "2026-10-26T13:30:00+00:00",
@@ -77,6 +80,15 @@ describe("leerMisEnvios", () => {
     ]);
     expect(e).toMatchObject({ numero: "ENV-000118", estado: "cerrado", fardos: 2, prendas: 24, contadas: 22, ronda: "RC-000611", cerradoPor: "Rosa Pérez", papelIds: ["p9"] });
     expect(e.lineas).toEqual([{ nombre: "Jean Recto", cantidad: 14 }]);
+    // Sin `faltaron` ni `sobraron` (la función de antes de 20261112154000): `null`, y se despeja como antes.
+    expect(e).toMatchObject({ faltaron: null, sobraron: null });
+    expect(prendasQueFaltaron(e)).toBe(2);
+  });
+  it("lee lo que faltó y sobró cuando la base lo manda", () => {
+    const [e] = leerMisEnvios([
+      { id: "e1", numero: "ENV-001652", estado: "cerrado", despachado_en: "2026-11-12T14:21:00Z", unidades: 15, contadas: 16, faltaron: 1, sobraron: 2 },
+    ]);
+    expect(e).toMatchObject({ prendas: 15, contadas: 16, faltaron: 1, sobraron: 2 });
   });
   it("descarta lo ilegible y no se cae con basura", () => {
     expect(leerMisEnvios(null)).toEqual([]);
@@ -117,6 +129,32 @@ describe("cómo quedó un envío", () => {
     expect(prendasQueFaltaron(envio({ estado: "cerrado", prendas: 12, contadas: 12 }))).toBe(0);
     expect(prendasQueFaltaron(envio({ estado: "cerrado", prendas: 12, contadas: 14 }))).toBe(0);
     expect(prendasQueFaltaron(envio({ estado: "abierto", prendas: 12, contadas: 5 }))).toBe(0);
+  });
+  // Corrida `recibir/con-aviso-de-compras` (2026-11-12): salen 15, la tienda cuenta 16, falta 1 pantalón, sobran 2 chalecos y 9 nuevas
+  // esperan «para después». Solo 5 entraron al stock: la cuenta vieja («salió − lo del stock») decía «faltaron 10».
+  it("lo que faltó y sobró sale de lo que dijo el cierre, no de una resta", () => {
+    const cerrado = envio({ estado: "cerrado", prendas: 15, contadas: 16, faltaron: 1, sobraron: 2 });
+    expect(prendasQueFaltaron(cerrado)).toBe(1);
+    expect(prendasQueSobraron(cerrado)).toBe(2);
+    expect(notaDeEnvio(cerrado, HOY)).toBe("faltó 1 · 2 de más");
+    expect(avisosDeEnvio(cerrado, HOY)).toEqual([
+      { titulo: "La tienda contó 16 de 15", texto: "Faltó 1 y llegaron 2 de más: Compras lo revisa con el proveedor." },
+    ]);
+    // Cuadró al cerrar aunque nada entró al stock todavía: no hay diferencias.
+    const todoParaDespues = envio({ estado: "cerrado", prendas: 10, contadas: 10, faltaron: 0, sobraron: 0 });
+    expect(prendasQueFaltaron(todoParaDespues)).toBe(0);
+    expect(notaDeEnvio(todoParaDespues, HOY)).toBeNull();
+    // Solo sobrante.
+    expect(notaDeEnvio(envio({ estado: "cerrado", prendas: 4, contadas: 6, faltaron: 0, sobraron: 2 }), HOY)).toBe("2 de más");
+    expect(avisosDeEnvio(envio({ estado: "cerrado", prendas: 4, contadas: 6, faltaron: 0, sobraron: 2 }), HOY)[0].texto).toBe(
+      "Llegaron 2 de más: Compras lo revisa con el proveedor.",
+    );
+    // Abierto (o reabierto) no dice diferencias aunque las traiga.
+    expect(prendasQueSobraron(envio({ estado: "abierto", sobraron: 2 }))).toBe(0);
+    expect(resumenDeEnvios([envio({ estado: "cerrado", prendas: 4, contadas: 6, faltaron: 0, sobraron: 2 })], HOY).chip).toEqual({
+      texto: "1 con diferencias",
+      tono: "ambar",
+    });
   });
   it("avisa los días sin abrir solo en camino y pasado el plazo", () => {
     expect(diasSinAbrir(envio({ salioEn: "2026-10-26T14:48:00+00:00" }), HOY)).toBeNull();

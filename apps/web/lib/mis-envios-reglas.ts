@@ -28,9 +28,15 @@ export type EnvioMio = {
   cerradoPor: string | null;
   anuladoEn: string | null;
   motivoAnulacion: string | null;
-  /** Cuántas prendas salieron y cuántas contó la tienda. */
+  /** Cuántas prendas salieron y cuántas contó la tienda (todo lo contado, también lo que espera «para después»). */
   prendas: number;
   contadas: number;
+  /**
+   * Lo que faltó y lo que sobró según el cierre de la tienda (las diferencias vigentes, con su causa: la misma fila de «Nos debe»).
+   * `null`: la base todavía no lo manda (función anterior a `20261112154000`); entonces se despeja como antes.
+   */
+  faltaron: number | null;
+  sobraron: number | null;
   rondaId: string | null;
   ronda: string | null;
   rondaAbiertaEn: string | null;
@@ -77,6 +83,8 @@ function leerEnvio(x: unknown): EnvioMio | null {
     motivoAnulacion: texto(o.motivo_anulacion),
     prendas: numero(o.unidades) ?? 0,
     contadas: numero(o.contadas) ?? 0,
+    faltaron: numero(o.faltaron),
+    sobraron: numero(o.sobraron),
     rondaId: texto(o.ronda_id),
     ronda: texto(o.ronda),
     rondaAbiertaEn: texto(o.ronda_abierta_en),
@@ -114,9 +122,19 @@ export const ESTADO_ENVIO: Record<EstadoEnvio, { texto: string; tono: TonoChip }
 /** Cuántos días en camino sin que la tienda lo abra para recordarle el código. */
 export const DIAS_PARA_RECORDAR = 2;
 
-/** Cuántas prendas faltaron: lo que salió menos lo que la tienda contó, ya recibido. 0 si no falta nada (o si aún no se recibe). */
-export function prendasQueFaltaron(e: Pick<EnvioMio, "estado" | "prendas" | "contadas">): number {
-  return e.estado === "cerrado" ? Math.max(0, e.prendas - e.contadas) : 0;
+/**
+ * Cuántas prendas faltaron, ya recibido: lo que la tienda dijo al cerrar (`faltaron`). 0 si no falta nada o si aún no se recibe.
+ * Sin ese dato (la base todavía no lo manda), lo que salió menos lo contado. Nunca «salió menos lo que ya está en el stock»: lo contado que
+ * espera a que alguien lo cree no faltó (corrida `recibir/con-aviso-de-compras`, 2026-11-12: decía «faltaron 10» con 1 faltante).
+ */
+export function prendasQueFaltaron(e: Pick<EnvioMio, "estado" | "prendas" | "contadas" | "faltaron">): number {
+  if (e.estado !== "cerrado") return 0;
+  return e.faltaron ?? Math.max(0, e.prendas - e.contadas);
+}
+
+/** Cuántas llegaron de más, ya recibido (con su causa dicha al cerrar: regalo, se cobra aparte…). 0 si no se sabe o aún no se recibe. */
+export function prendasQueSobraron(e: Pick<EnvioMio, "estado" | "sobraron">): number {
+  return e.estado === "cerrado" ? (e.sobraron ?? 0) : 0;
 }
 
 /** Días que lleva en camino sin que la tienda lo abra, solo si ya pasó el plazo para recordarlo. `null` si no aplica. */
@@ -154,7 +172,9 @@ export function detalleDeEnvio(e: EnvioMio, hoy: string = hoyLima(), conRonda = 
 /** La nota de color que lleva una fila al lado del chip: lo que faltó o los días sin recibir. */
 export function notaDeEnvio(e: EnvioMio, hoy: string = hoyLima()): string | null {
   const faltaron = prendasQueFaltaron(e);
-  if (faltaron > 0) return `faltaron ${faltaron}`;
+  const sobraron = prendasQueSobraron(e);
+  const partes = [faltaron > 0 ? `${faltaron === 1 ? "faltó" : "faltaron"} ${faltaron}` : null, sobraron > 0 ? `${sobraron} de más` : null];
+  if (faltaron > 0 || sobraron > 0) return partes.filter(Boolean).join(" · ");
   const dias = diasSinAbrir(e, hoy);
   return dias !== null ? `hace ${dias} días` : null;
 }
@@ -190,10 +210,15 @@ export function avisosDeEnvio(e: EnvioMio, hoy: string = hoyLima()): AvisoDeEnvi
     });
   }
   const faltaron = prendasQueFaltaron(e);
-  if (faltaron > 0) {
+  const sobraron = prendasQueSobraron(e);
+  if (faltaron > 0 || sobraron > 0) {
+    const dijo = [
+      faltaron > 0 ? `${faltaron === 1 ? "Faltó" : "Faltaron"} ${faltaron}` : null,
+      sobraron > 0 ? `${faltaron > 0 ? "llegaron" : "Llegaron"} ${sobraron} de más` : null,
+    ].filter(Boolean).join(" y ");
     avisos.push({
       titulo: `La tienda contó ${e.contadas} de ${e.prendas}`,
-      texto: `Faltaron ${faltaron}: Compras lo revisa con el proveedor.`,
+      texto: `${dijo}: Compras lo revisa con el proveedor.`,
     });
   }
   return avisos;
@@ -253,7 +278,7 @@ export function resumenDeEnvios(envios: readonly EnvioMio[], hoy: string = hoyLi
   const prendas = vivos.reduce((s, e) => s + e.prendas, 0);
   const texto = `${plural(vivos.length, "envío", "envíos")} · ${plural(prendas, "prenda", "prendas")}`;
   const faltan = vivos.filter(sinRecibir).length;
-  const conDiferencias = vivos.filter((e) => prendasQueFaltaron(e) > 0).length;
+  const conDiferencias = vivos.filter((e) => prendasQueFaltaron(e) > 0 || prendasQueSobraron(e) > 0).length;
   if (faltan > 0) {
     const atrasado = vivos.some((e) => diasSinAbrir(e, hoy) !== null);
     return { texto, chip: { texto: `${faltan} sin recibir`, tono: atrasado ? "ambar" : "pizarra" } };
