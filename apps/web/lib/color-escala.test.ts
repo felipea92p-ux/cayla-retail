@@ -1,12 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { enEscala, esColorClaro, gamaDeColor, oklchDeHex, partirEnGamas } from "./color-escala";
+import { enEscala, esColorClaro, oklchDeHex } from "./color-escala";
 import { bordeDeMuestra, enLaCarta, esFamiliaDeColor, FAMILIAS_COLOR, fondoDeMuestra } from "./colores-familias";
 import { distanciaEntreHex } from "./color-parecido";
 
 // La carta de CAYLA: los 90 colores activos (los 75 de producción al 2026-10-02, los 16 de la migración 20261003190100 y ninguno de «Azul
 // Intermedio», que se funde en Azul medio y se archiva —ADR-0317—), con los hex y familias que dejan las migraciones 20261002190000,
 // 20261002191000 y 20261003200000 (Beige, Arena y Topo en Tierra; Eléctrico, Medio y Violeta corregidos). Cada uno con
-// su familia. Es el contrato de la escala: si alguien cambia un corte de gama o la fórmula de claridad, esta prueba dice
+// su familia. Es el contrato de la escala: si alguien cambia la fórmula de claridad, esta prueba dice
 // qué color se movió de lugar, y entonces se decide —con Felipe— si el cambio es lo que se quería.
 const CARTA: ReadonlyArray<readonly [codigo: string, nombre: string, hex: string, familia: string]> = [
   ["BLA", "Blanco", "#F4F9FF", "neutro"],
@@ -102,23 +102,24 @@ const CARTA: ReadonlyArray<readonly [codigo: string, nombre: string, hex: string
 ];
 
 // Cada fila como se ve en la carta: las gamas separadas, de menor a mayor matiz; dentro de cada una, de claro a oscuro.
-const ESPERADO: Record<string, string[][]> = {
-  neutro: [["BLA", "CRU", "PER", "NUD", "GRP", "GPI", "GRM", "GRI", "GRA", "NEG"]],
-  tierra: [["BEI", "ARN", "CAQ", "CAM", "MOK", "TOS", "TOP", "TER", "MAC", "MAR", "CHO"]],
-  rosado: [["RPA", "ROS", "PAL", "RCH", "RSA", "FUC"]],
-  rojo: [["COR", "RTO", "ROJ", "MSA", "FRA", "CER", "VIN"]],
-  naranja: [["DUR", "ALB", "SAL", "MAN", "NAR", "AMB", "NQU"]],
-  amarillo: [["VAI", "AMM", "AML", "AMA", "GIR", "ACH", "MOS"]],
-  verde: [["PIS", "VEL", "SAV", "VHO", "VOL", "VEM"], ["MEN", "VEA", "VJA", "ESM", "VER", "VEB"]],
-  azul: [["CEL", "TUR", "AZP"], ["AZC", "AZU", "AZD", "AZE", "AME", "COB", "IND", "AZF", "AZM"]],
-  morado: [["LAV", "LIL", "GLI", "VIO", "MOR"], ["MAL", "ORQ", "MOA", "CIR", "BER"]],
-  metalico: [["CHA", "PLA", "ORR", "DOR", "ORV", "PLV", "COE", "BRO"]],
+// Una fila por familia, del más claro al más oscuro (Felipe 2026-11-12; antes Verde, Azul y Morado iban en dos «gamas», ADR-0312).
+const ESPERADO: Record<string, string[]> = {
+  neutro: ["BLA",  "CRU",  "PER",  "NUD",  "GRP",  "GPI",  "GRM",  "GRI",  "GRA",  "NEG"],
+  tierra: ["BEI",  "ARN",  "CAQ",  "CAM",  "MOK",  "TOS",  "TOP",  "TER",  "MAC",  "MAR",  "CHO"],
+  rosado: ["RPA",  "ROS",  "PAL",  "RCH",  "RSA",  "FUC"],
+  rojo: ["COR",  "RTO",  "ROJ",  "MSA",  "FRA",  "CER",  "VIN"],
+  naranja: ["DUR",  "ALB",  "SAL",  "MAN",  "NAR",  "AMB",  "NQU"],
+  amarillo: ["VAI",  "AMM",  "AML",  "AMA",  "GIR",  "ACH",  "MOS"],
+  verde: ["MEN",  "VEA",  "PIS",  "VEL",  "SAV",  "VJA",  "VHO",  "ESM",  "VER",  "VOL",  "VEM",  "VEB"],
+  azul: ["CEL",  "TUR",  "AZC",  "AZU",  "AZD",  "AZE",  "AME",  "AZP",  "COB",  "IND",  "AZF",  "AZM"],
+  morado: ["LAV",  "LIL",  "MAL",  "GLI",  "ORQ",  "VIO",  "MOA",  "CIR",  "MOR",  "BER"],
+  metalico: ["CHA",  "PLA",  "ORR",  "DOR",  "ORV",  "PLV",  "COE",  "BRO"],
 };
 
 const deFamilia = (familia: string) =>
   CARTA.filter((c) => c[3] === familia).map(([codigo, nombre, hex, familiaColor]) => ({ codigo, nombre, hex, familiaColor }));
 
-const comoSeVe = (lista: ReturnType<typeof deFamilia>) => partirEnGamas([...lista].sort(enEscala)).map((b) => b.map((c) => c.codigo));
+const comoSeVe = (lista: ReturnType<typeof deFamilia>) => [...lista].sort(enEscala).map((c) => c.codigo);
 
 describe("la carta de colores de CAYLA", () => {
   it("tiene los 90 colores y ninguna familia que FAMILIAS_COLOR no conozca", () => {
@@ -158,28 +159,11 @@ describe("la carta de colores de CAYLA", () => {
     });
   }
 
-  it("las familias de una sola gama no dejan respiros; Verde, Azul y Morado dejan uno", () => {
-    for (const [familia, esperado] of Object.entries(ESPERADO)) {
-      expect(esperado.length).toBe(["verde", "azul", "morado"].includes(familia) ? 2 : 1);
-    }
-  });
-
-  it("ningún color de la carta queda a menos de 5° de un corte de gama (cada corte está en el medio del mayor hueco de matiz)", () => {
-    const cortes: Record<string, number> = { verde: 138, azul: 236, morado: 327 };
-    for (const [familia, corte] of Object.entries(cortes)) {
-      for (const c of deFamilia(familia)) {
-        const h = oklchDeHex(c.hex)!.h;
-        expect(Math.abs(h - corte), `${c.nombre} (${h.toFixed(1)}°)`).toBeGreaterThanOrEqual(5);
-      }
-    }
-  });
-
-  it("INVARIANTE: partir en gamas y volver a juntar devuelve exactamente la lista — nunca se pierde ni se repite un color", () => {
+  it("cada familia es UNA fila y la claridad nunca sube a mitad de ella (de lo más suave a lo más fuerte)", () => {
     for (const familia of Object.keys(ESPERADO)) {
-      const ordenada = [...deFamilia(familia)].sort(enEscala);
-      expect(partirEnGamas(ordenada).flat()).toEqual(ordenada);
+      const claridades = [...deFamilia(familia)].sort(enEscala).map((c) => oklchDeHex(c.hex)!.L);
+      for (let i = 1; i < claridades.length; i++) expect(claridades[i], `${familia}, posición ${i}`).toBeLessThanOrEqual(claridades[i - 1]);
     }
-    expect(partirEnGamas([])).toEqual([]);
   });
 });
 
@@ -224,23 +208,9 @@ describe("oklchDeHex", () => {
   });
 });
 
-describe("gamaDeColor", () => {
-  it("una familia sin corte tiene una sola gama, y un color sin hex cae en la última de una familia con corte", () => {
-    expect(gamaDeColor("rojo", "#bd332d")).toBe(0);
-    expect(gamaDeColor("rojo", null)).toBe(0);
-    expect(gamaDeColor("azul", null)).toBe(1);
-    expect(gamaDeColor(null, "#bd332d")).toBe(0);
-  });
-
-  it("el cian cae en la primera gama del azul y el ultramar en la segunda", () => {
-    expect(gamaDeColor("azul", "#33becc")).toBe(0);
-    expect(gamaDeColor("azul", "#00539c")).toBe(1);
-  });
-});
-
 describe("enLaCarta — toda la paleta en una lista (Atributos → Colores)", () => {
   const todos = CARTA.map(([codigo, nombre, hex, familiaColor]) => ({ codigo, nombre, hex, familiaColor }));
-  const ordenEsperado = FAMILIAS_COLOR.flatMap((f) => (ESPERADO[f.valor] ?? []).flat());
+  const ordenEsperado = FAMILIAS_COLOR.flatMap((f) => ESPERADO[f.valor] ?? []);
 
   it("pone las familias en el espectro y, dentro de cada una, la escala — igual que la carta de Nuevo producto", () => {
     expect([...todos].sort(enLaCarta).map((c) => c.codigo)).toEqual(ordenEsperado);

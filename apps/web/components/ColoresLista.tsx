@@ -3,12 +3,11 @@
 import { fondoDeColor } from "@/components/ui/MuestraColor";
 import { agruparPorFamilia, bordeDeMuestra, enLaCarta, FAMILIAS_COLOR, textoDeFamilia, type FamiliaColor } from "@/lib/colores-familias";
 import { familiaEnCarta } from "@/lib/color-estampado-reglas";
-import { esCombinado, fondoDeMezclaEnFranja, GRUPO_COMBINADOS, tonosDeMezcla } from "@/lib/color-combinado";
+import { esCombinado, fondoDeMezclaEnFranja, tonosDeMezcla } from "@/lib/color-combinado";
 import { coloresQueYaExisten } from "@/lib/color-alta-reglas";
 import { vistaDeCoincidencias } from "@/lib/atributo-parecido";
 import { claveTexto } from "@/lib/nombres-parecidos";
 import { ExisteTambien, faltaPorExistente, useExisteTambien } from "@/components/ui/ExisteTambien";
-import { partirEnGamas } from "@/lib/color-escala";
 import { MAX_DESCRIPCION, normalizarPantone, normalizarSinonimos } from "@/lib/color-referencias";
 import { CombinaConCampo, DescripcionColorCampo } from "@/components/CombinaConCampo";
 import { useEffect, useMemo, useState } from "react";
@@ -453,10 +452,9 @@ export function ColoresLista({ coloresIniciales, puedeEditar }: { coloresInicial
             <TituloGrupo punto="bg-tinta/25" cuenta={coloresDeLaFamilia.length}>
               {texto}
             </TituloGrupo>
-            {/* Las mezclas no tienen una gama: van en una sola grilla (ADR-0643). */}
-            {(clave === GRUPO_COMBINADOS ? [coloresDeLaFamilia] : partirEnGamas(coloresDeLaFamilia)).map((gama, k) => (
-              <div key={k} className={GRILLA_ATRIBUTOS}>
-                {gama.map((c) => (
+            {/* Una sola grilla por familia, de claro a oscuro (Felipe 2026-11-12: sin partir Verde, Azul y Morado en «gamas», como la carta). */}
+              <div className={GRILLA_ATRIBUTOS}>
+                {coloresDeLaFamilia.map((c) => (
                   <TarjetaAtributo
                     key={c.codigo}
                     muestra={<Muestra hex={c.hex} familia={c.familiaColor} tipo={c.tipo} tonos={tonosDeMezcla(c, porCodigo)} />}
@@ -486,7 +484,6 @@ export function ColoresLista({ coloresIniciales, puedeEditar }: { coloresInicial
                   </TarjetaAtributo>
                 ))}
               </div>
-            ))}
           </section>
         ))}
       </div>

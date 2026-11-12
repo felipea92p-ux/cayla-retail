@@ -7,7 +7,7 @@ import { NuevoColorAlta } from "@/components/alta-producto/NuevoColorAlta";
 import { ArmarMezcla } from "@/components/alta-producto/ArmarMezcla";
 import type { ColorAlta } from "@/lib/alta-producto";
 import { nombreDeColor } from "@/lib/color-alta-reglas";
-import { esColorClaro, partirEnGamas } from "@/lib/color-escala";
+import { esColorClaro } from "@/lib/color-escala";
 import { coloresParecidos } from "@/lib/color-parecido";
 import { fondoDeColor } from "@/components/ui/MuestraColor";
 import { bordeDeMuestra, textoDeFamilia } from "@/lib/colores-familias";
@@ -33,8 +33,8 @@ export { Punto };
 // Se elige de una sola manera, con dos entradas:
 //   1. el buscador («petróleo», «coral», o un sinónimo): la opción «+ Crear el color «X»» va primera y fija arriba de
 //      la lista, para que nadie baje 76 colores hasta el final para crear el que falta;
-//   2. la carta de colores, abierta de entrada: una fila por gama (las familias en el orden del espectro; Azul, Verde y Morado, que son
-//      anchas, en dos filas), de claro a oscuro (`lib/color-escala.ts`). El nombre sale al instante bajo la carta al pasar el mouse, al llegar con
+//   2. la carta de colores, abierta de entrada: una fila por familia (las familias en el orden del espectro), del más claro al más
+//      oscuro (`lib/color-escala.ts`; Felipe 2026-11-12: «todos en una sola línea iniciando por intensidad más suave a más fuerte»). El nombre sale al instante bajo la carta al pasar el mouse, al llegar con
 //      Tab o al tocarlo (el `title` del navegador tardaba ~1 s y en tablet no salía), junto con su Pantone —la referencia real
 //      de la tela— y con qué otro color se confunde. El elegido lleva anillo y ✓.
 // «+ Nuevo color» abre un modal (`NuevoColorAlta`) sin salir de la pantalla; el color creado
@@ -233,8 +233,8 @@ export function ElegirColores({
       )}
 
       {carta && (
-        // La carta de color (ADR-0312, ADR-0314). Cada familia es un bloque y cada gama, una FILA propia: cada fila es una escala
-        // pura de claro a oscuro (la claridad nunca «sube» a mitad de una fila). Los círculos miden 32 px (antes 26): el ojo juzga un tono por su área y por lo
+        // La carta de color (ADR-0312, ADR-0314). Cada familia es UNA fila, una escala pura de claro a oscuro (la claridad nunca «sube» a
+        // mitad de una fila; desde el 2026-11-12 sin partir Azul, Verde y Morado en gamas, que la abrían en tres o cuatro filas). Los círculos miden 32 px (antes 26): el ojo juzga un tono por su área y por lo
         // que lo rodea, y uno chico se ve peor. El color adentro es EXACTO (el #hex de la base, sin velo); el borde es el mismo
         // tono más oscuro (`bordeDeMuestra`), así un blanco, un crudo o un negro tienen su filo. Si el BLOQUE es angosto
         // (`@container`, no la ventana), el nombre de la familia va arriba de sus círculos; si es muy ancho, las familias van en
@@ -266,10 +266,8 @@ export function ElegirColores({
                     ))}
                   </div>
                 ) : (
-                <div className="flex flex-col gap-1.5">
-                  {partirEnGamas(g.colores).map((gama, k) => (
-                    <div key={k} className="flex flex-wrap gap-1.5">
-                      {gama.map((c) => {
+                <div className="flex flex-wrap gap-1.5">
+                      {g.colores.map((c) => {
                         const elegido = elegidos.includes(c.codigo);
                         return (
                           <button
@@ -296,8 +294,6 @@ export function ElegirColores({
                           </button>
                         );
                       })}
-                    </div>
-                  ))}
                 </div>
                 )}
               </div>
