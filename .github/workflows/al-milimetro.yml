@@ -29,7 +29,8 @@ jobs:
     steps:
       - name: En la cola de fusión, ya lo revisó el PR
         if: ${{ github.event_name == 'merge_group' }}
-        run: echo "La cola de fusión no trae casilla propia: el PR ya pasó «Al milímetro» para entrar a la fila."
+        run: |
+          echo "La cola de fusión no trae casilla propia: el PR ya pasó «Al milímetro» para entrar a la fila."
       - uses: actions/checkout@v4
         if: ${{ github.event_name == 'pull_request' }}
         with:
