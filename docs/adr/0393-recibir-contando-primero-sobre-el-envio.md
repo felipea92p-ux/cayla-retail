@@ -887,3 +887,34 @@ puerta permanente en el candado.
 
 **Pruebas:** `pruebas:envio-sin-aviso` A13 (dos marcas en el mismo lote provisional, cada una a su proveedor: 5 y 3 unidades, el stock igual, el candado en
 `A`); sin la migración, A13 da el mismo error que vio Felipe. **En producción desde el 2026-11-10,** con el OK de Felipe.
+
+## Actualización 2026-11-11: al volver con «atrás», Contar arranca de lo que la pestaña ya guardó
+
+**El problema (medido en local, ENV-001244 de Tienda Lima).** «Gabardina» en 30 → «Una más» (31, guardado) → ir a Conteo por el menú → «atrás»: la
+pantalla decía 30 con 31 en la base. El siguiente toque guardaba encima del número viejo: «Una más» mandaba 31 (lo que ya había: la prenda sumada se
+perdía sin aviso) y «Una menos» mandaba 29. Lo mismo con un modelo recién anotado: al volver no estaba, y el siguiente guardado de su categoría lo
+borraba de la base, porque los modelos de una categoría y marca viven en el `separado` de UNA fila. Lo contado en una recepción termina en el stock.
+
+**La causa.** Tres cosas juntas, ninguna es un descuido aislado:
+1. Next vuelve a dibujar la página que guardó su router al ir «atrás» o «adelante», sin preguntarle al servidor, tenga 5 segundos o 20 minutos
+   (medido a los 40 s; su documentación lo dice: `staleTimes` no cambia ese comportamiento). Con `staleTimes: { dynamic: 30 }` pasa también al volver
+   por un enlace antes de 30 s (medido a los 26 s).
+2. Contar se guarda solo y no llama `router.refresh()` (rehacer la página entera en cada toque sería caro y lento), así que esa página guardada no se
+   entera. Lo guardado vivía solo en el estado del componente, que muere al salir.
+3. `guardar_conteo_envio` recibe el número ENTERO y gana el último (decisión 9). Si lo que mandas es igual a lo que hay, ni siquiera avisa.
+
+**Decisión (solo de pantalla).** La pestaña recuerda la versión más alta que guardó o releyó de cada línea de cada envío
+(`lib/recepcion-conteo-memoria.ts`) y `RecibirContando` arranca de ahí: al volver, la línea sale con el número y la versión que la base confirmó, al
+instante y sin red. Vive en la memoria de la pestaña, como la página que guarda el router: una recarga vacía las dos y la página viene nueva. En un empate
+de versión manda la página (trae al día lo que no lleva versión: lo que ya entró al stock). Medido con clics reales en escritorio y a 375 px: tras
+«atrás» dice 31, y el siguiente «Una menos» guarda 30 sobre la versión correcta, sin «pisaste».
+
+**Descarté** `router.refresh()` después de cada guardado (una página entera por toque, y un refresco en vuelo se descarta si la persona navega); releer
+la base al montar y frenar los toques hasta que conteste (cierra más, pero deja la pantalla sin responder un momento en cada entrada y hay que decidir
+qué pasa si la lectura falla en el almacén sin señal); y quitar `staleTimes` (no arregla «atrás»).
+
+**Lo que NO cubre, y es de Felipe.** Lo que guardó OTRA persona u otra pestaña después de la lectura de la página sigue como en la decisión 9: gana el
+último y avisa, salvo que los dos números coincidan. Cerrarlo del todo es cambiar cómo se guarda: que la base rechace una versión vieja, o que la
+pantalla mande la diferencia (+1) en vez del número entero. Las opciones están en `docs/backlog/2026-11-11-quizzical-sanderson-0e3403.md`.
+
+**Pruebas:** `lib/recepcion-conteo-memoria.test.ts` (la mezcla, y que `RecibirContando` arranca de la memoria y anota cada guardado y cada relectura).

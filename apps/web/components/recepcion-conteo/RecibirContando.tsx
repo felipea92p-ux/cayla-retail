@@ -30,6 +30,7 @@ import {
   mensajeAlGuardar,
 } from "@/lib/recepcion-conteo-reglas";
 import { agregarFotoPapel, guardarConteo, leerConteos } from "@/lib/recepcion-conteo-acciones";
+import { conLoMasNuevo, conteosRecordados, recordarConteos } from "@/lib/recepcion-conteo-memoria";
 import { subirFotoPapel } from "@/lib/compra-rapida-acciones";
 import { EmpezarARecibir } from "@/components/recepcion-envio/EmpezarARecibir";
 import { LoQueTrae, origenDelEnvio } from "@/components/recepcion-envio/PiezasEnvio";
@@ -107,8 +108,10 @@ export function RecibirContando({
   const [apertura, setApertura] = useState<ResultadoApertura | null>(null);
   const [cancelando, setCancelando] = useState(false);
   const [corrigiendo, setCorrigiendo] = useState(false);
-  // Lo guardado en esta visita, más nuevo que lo que leyó la página: gana la versión más alta.
-  const [locales, setLocales] = useState<Record<string, ConteoDeLinea>>({});
+  // Lo guardado, más nuevo que lo que leyó la página: gana la versión más alta. Arranca de lo que la pestaña recuerda del envío, no en blanco: al volver
+  // con «atrás» Next dibuja la página que guardó su router, con lo contado de cuando se leyó, y el siguiente toque guardaba encima de ese número viejo
+  // (medido el 2026-11-11; `lib/recepcion-conteo-memoria.ts`).
+  const [locales, setLocales] = useState<Record<string, ConteoDeLinea>>(() => conteosRecordados(detalle.id));
   // Lo que se lee de nuevo de la base (después de cerrar, reabrir o «Hacer ahora»), sin esperar a que la página recargue.
   const [releidos, setReleidos] = useState<ConteosDelEnvio | null>(null);
   const [borradores, setBorradores] = useState<Record<string, Borrador>>({});
@@ -139,15 +142,7 @@ export function RecibirContando({
   const sumarMarca = useCallback((r: MarcaRegistrada) => setAltas((a) => conMarca(a, r)), []);
 
   const base = releidos ?? conteosDeLaBase;
-  const conteos: ConteosDelEnvio | null = useMemo(() => {
-    if (!base) return null;
-    const porClave = new Map(base.conteos.map((c) => [claveDe(c), c] as const));
-    for (const [clave, c] of Object.entries(locales)) {
-      const ya = porClave.get(clave as ClaveLinea);
-      if (!ya || c.version >= ya.version) porClave.set(clave as ClaveLinea, c);
-    }
-    return { ...base, conteos: [...porClave.values()] };
-  }, [base, locales]);
+  const conteos: ConteosDelEnvio | null = useMemo(() => conLoMasNuevo(base, locales), [base, locales]);
 
   const estadoBase = base?.estado ?? detalle.estado;
   const estado = detalle.estado === "en_camino" && apertura ? "abierto" : estadoBase;
@@ -206,6 +201,8 @@ export function RecibirContando({
         return null;
       }
       const clave = claveDe(guardado.conteo);
+      // También en la memoria de la pestaña: si la persona ya se fue de la pantalla, al volver arranca de este número.
+      recordarConteos(detalle.id, [guardado.conteo]);
       setLocales((l) => ({ ...l, [clave]: guardado.conteo }));
       setErrores((e) => {
         return sinClave(e, linea.clave);
@@ -289,6 +286,7 @@ export function RecibirContando({
   const releer = useCallback(async () => {
     const { conteos: c } = await leerConteos(detalle.id);
     if (c) {
+      recordarConteos(detalle.id, c.conteos);
       setReleidos(c);
       setLocales({});
     }
