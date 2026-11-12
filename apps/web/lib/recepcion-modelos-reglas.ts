@@ -510,6 +510,26 @@ export function tipoDeParada(p: Pick<ParadaDelConteo, "modelo">): TipoDeModelo |
 }
 
 /**
+ * El lápiz «Corregir la categoría y la marca» mientras se cuenta (Felipe 2026-11-12, `corregir_linea_al_contar`): en la compra se anotó «Polo nousse» en Polos y era
+ * una blusa. Solo un modelo nuevo que vino anotado en la compra por su nombre, todavía sin ficha y sin nada en el stock: corregirlo es corregir su línea de la compra
+ * (casi siempre una; la misma prenda comprada dos veces, dos). Devuelve los ids de esas líneas; `null` si no se ofrece. Un modelo agregado al contar se quita y se
+ * agrega donde va; uno ya creado se corrige en Catálogo ▸ Productos. Lo demás (otra cosa contada en su línea) lo dice la base al guardar.
+ */
+export function lineasParaCorregir(p: Pick<ParadaDelConteo, "grupo" | "modelo">): string[] | null {
+  const m = p.modelo;
+  if (!m || m.productoId || !m.anotada || m.anotada.productoId || m.enStock > 0) return null;
+  const ids = lineasDelModelo(p.grupo, m).map((l) => l.linea?.id ?? null);
+  if (ids.length === 0 || ids.some((id) => !id)) return null;
+  return ids.filter((id): id is string => !!id);
+}
+
+/** Dónde queda el modelo después de corregir su categoría y su marca: el grupo de la guía es «proveedor|categoría|marca» (`claveDeGrupo`); el modelo es el mismo. */
+export function claveTrasCorregir(p: Pick<ParadaDelConteo, "grupo" | "modelo" | "clave">, categoriaId: string, marcaId: string | null): string {
+  if (!p.modelo) return p.clave;
+  return claveDeParada({ clave: `${p.grupo.principal.proveedor?.id ?? "-"}|${categoriaId}|${marcaId ?? "-"}` }, p.modelo.clave);
+}
+
+/**
  * Los estados por los que se filtra la lista. Los tres primeros reparten todas las paradas; «despues» (lo que ya se contó y aún no tiene tallas) y «llevar» (lo repartido que
  * todavía no entró al stock, ADR-0645) se miran aparte.
  */

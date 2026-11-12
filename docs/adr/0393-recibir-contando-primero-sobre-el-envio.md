@@ -925,3 +925,11 @@ rechace una versión vieja, o que la pantalla mande la diferencia (+1) en vez de
 
 **Pruebas:** `lib/recepcion-conteo-memoria.test.ts` (la mezcla, la copia reconocida, y que `RecibirContando` arranca de la memoria, anota cada guardado
 y cada relectura, y pide la página de nuevo si dibuja una copia).
+
+## Actualización 2026-11-12 — la categoría y la marca se corrigen también mientras se cuenta
+
+En «Mis compras» se anotó un polo que era una blusa, y en el almacén no había cómo corregirlo sin cerrar el envío. `corregir_linea_al_contar`
+(20261112162000) corrige, con el envío abierto, la categoría y la marca de las líneas de la compra de un modelo «por crear» (lo contado de una línea
+del aviso no guarda categoría ni marca: se va con ella). Mismos límites que al cerrar (20261107185000): no toca la orden, la factura, el stock ni los
+costos, y se niega si algo de la línea ya entró al stock, ya tiene su prenda o se contó junto con otra cosa. El lápiz vive en la tarjeta del modelo
+(`CorregirCategoriaModelo.tsx`). El proveedor queda fuera: cambiarlo cambia a quién se le debe la compra, y eso lo decide Felipe.

@@ -2,7 +2,7 @@
   "guia": "recibir.envio.id",
   "ruta": "/recibir/envio/[id]",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 282,
+  "total": 288,
   "controles": {
     "app/(app)/recibir/envio/[id]/page.tsx": [
       "Volver «/recibir»",
@@ -139,6 +139,13 @@
       "ComboResponsable «{responsable}»",
       "Boton «(sin nombre)»"
     ],
+    "components/recepcion-conteo/CorregirCategoriaModelo.tsx": [
+      "CampoSelect «{guia.etiqueta(\"corregir-categoria\", \"Categoría\")}»",
+      "CampoSelect «{guia.etiqueta(\"corregir-marca\", \"Marca\")}»",
+      "ComboResponsable «{responsable}»",
+      "Boton «Cancelar»",
+      "Boton «Guardar»"
+    ],
     "components/recepcion-conteo/CorregirProveedor.tsx": [
       "CampoSelect «{guia.etiqueta(\"corregir-proveedor\", \"¿De quién llegó?\")}»",
       "CampoTexto «{guia.etiqueta(\"corregir-motivo\", \"¿Por qué se corrige?\")}»",
@@ -261,6 +268,7 @@
     ],
     "components/recepcion-conteo/PlacaDelModelo.tsx": [
       "LapizEditar «{`el nombre de ${modelo.nombre}»",
+      "LapizEditar «{`la categoría y la marca de ${modelo?.nombre ?? \"este modelo\"}»",
       "button «Cambiar»",
       "button «Llegaron las»",
       "button «+»",

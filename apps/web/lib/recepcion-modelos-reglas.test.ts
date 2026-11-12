@@ -52,6 +52,8 @@ import {
   categoriasConLoQueYaEntro,
   tallasDeYaEnStock,
   totalesPorTalla,
+  lineasParaCorregir,
+  claveTrasCorregir,
   type CategoriaDelEnvio,
 } from "./recepcion-modelos-reglas";
 import { agregarModeloEnCero, agregarPrendaEnCero, devolverModelo, quitarModelo, renombrarModelo } from "./recepcion-conteo-reglas";
@@ -1243,5 +1245,37 @@ describe("crear la prenda de un modelo anotado por nombre: la referencia desapar
       ["Vestido Lima Midi", 7, 7, "cuadra"],
     ]);
     expect(yaEnStockDelEnvio(recibidos, ms)).toEqual([]);
+  });
+});
+
+describe("corregir la categoría y la marca mientras se cuenta (Felipe 2026-11-12)", () => {
+  const deNombre = (g: GrupoDeLineas, nombre: string) => paradasDelGrupo(g).find((p) => nombreDeParada(p) === nombre)!;
+
+  it("se ofrece en un modelo nuevo anotado por su nombre: corrige su línea de la compra", () => {
+    const g = grupo(deLaGuia(sofia()), deLaGuia(lima(), { contadas: 7, separado: { prendas: [], nuevas: [{ cantidad: 7, descripcion: "Vestido Lima" }] } }));
+    expect(lineasParaCorregir(deNombre(g, "Vestido Lima"))).toEqual(["l-lima"]);
+  });
+
+  it("la misma prenda comprada dos veces: se corrigen las dos líneas juntas", () => {
+    const g = grupo(deLaGuia(lima()), deLaGuia(linea("l-lima-2", 2, { descripcion: "Vestido Lima" })));
+    expect(lineasParaCorregir(deNombre(g, "Vestido Lima"))).toEqual(["l-lima", "l-lima-2"]);
+  });
+
+  it("no se ofrece en un re stock, en lo que ya entró al stock ni en un modelo agregado al contar", () => {
+    const g = grupo(
+      deLaGuia(sofia()),
+      deLaGuia(lima(), { contadas: 9, separado: { prendas: [], nuevas: [{ cantidad: 7, descripcion: "Vestido Lima" }, { cantidad: 2, descripcion: "Vestido Rosa" }] } }),
+    );
+    expect(lineasParaCorregir(deNombre(g, "Vestido Sofía"))).toBeNull();
+    expect(lineasParaCorregir(deNombre(g, "Vestido Rosa"))).toBeNull();
+    const enStock = grupo(deLaGuia(lima(), { contadas: 7, en_stock: 2, separado: { prendas: [], nuevas: [{ cantidad: 7, descripcion: "Vestido Lima" }] } }));
+    expect(lineasParaCorregir(deNombre(enStock, "Vestido Lima"))).toBeNull();
+  });
+
+  it("después de corregir, el foco sigue al modelo en su grupo nuevo", () => {
+    const g = grupo(deLaGuia(lima()));
+    const p = deNombre(g, "Vestido Lima");
+    expect(p.clave).toBe("p-sur|c-vestidos|m-cayla::nombre:vestido lima");
+    expect(claveTrasCorregir(p, FALDAS.id, OTRA.id)).toBe("p-sur|c-faldas|m-otra::nombre:vestido lima");
   });
 });

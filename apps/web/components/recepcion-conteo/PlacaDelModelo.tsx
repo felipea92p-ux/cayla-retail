@@ -55,6 +55,7 @@ export function PlacaDelModelo({
   observaciones,
   identificar,
   onEditarNombre,
+  onCorregirLinea,
   tallas,
 }: {
   parada: ParadaDelConteo;
@@ -103,6 +104,8 @@ export function PlacaDelModelo({
   identificar: ReactNode;
   /** Ponerle su nombre al modelo, o cambiárselo. */
   onEditarNombre: () => void;
+  /** Corregir la categoría y la marca de un modelo «por crear» que vino anotado en la compra (Felipe 2026-11-12). Sin ella, no se ofrece. */
+  onCorregirLinea?: () => void;
   /** La tarjeta de tallas y colores: dice cómo va y abre la hoja donde se reparten. */
   tallas: ReactNode;
 }) {
@@ -209,7 +212,11 @@ export function PlacaDelModelo({
           <p className="rc-guardado" aria-live="polite">
             {llevaCuenta}
           </p>
-          <div className="rc-placa-acciones">{modelo && !modelo.productoId && !modelo.anotada && <LapizEditar que={`el nombre de ${modelo.nombre}`} onClick={onEditarNombre} />}</div>
+          <div className="rc-placa-acciones">
+            {modelo && !modelo.productoId && !modelo.anotada && <LapizEditar que={`el nombre de ${modelo.nombre}`} onClick={onEditarNombre} />}
+            {/* Lo anotado en la compra: su nombre no se toca aquí, pero sí la categoría y la marca si se anotaron mal (un polo que era blusa). */}
+            {onCorregirLinea && <LapizEditar que={`la categoría y la marca de ${modelo?.nombre ?? "este modelo"}`} onClick={onCorregirLinea} />}
+          </div>
         </div>
       </div>
 
