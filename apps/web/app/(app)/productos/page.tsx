@@ -362,6 +362,7 @@ async function ListaDeProductos({ searchParams }: { searchParams: Promise<Params
         totalProductos={resultado.totalProductos}
         limitesPrecio={limitesRedondeados(facetas?.precio ?? null)}
         facetas={facetas}
+        veCosto={puede(persona, "verDineroCompras")}
         panelInicial={panelFiltros}
         sede={enSede ? persona.ubicacionEtiqueta : null}
         temporadas={temporadas ? temporadas.lista.map((t) => ({ id: t.clave, nombre: t.nombre })) : null}
