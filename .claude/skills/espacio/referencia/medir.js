@@ -133,11 +133,23 @@
     // La proximidad se compara en el MISMO eje: las celdas de una fila (lado a lado) contra la fila de abajo (arriba-abajo) no son el mismo
     // aire, y la fila lleva su propio relleno. Antes cada fila de una tabla salía como «grupo roto».
     if (afuera.enFila !== adentro.enFila) continue;
-    // El aire de afuera es el hueco de `p` con su vecino más cercano en el eje de su padre.
+    // El aire de afuera es el que separa el CONTENIDO de `p` del de su vecino más cercano en el eje de su padre: el hueco entre las cajas
+    // más el relleno y el borde de las dos caras que se miran. Sin eso, dos filas de una tabla pegadas (hueco 0) pero con 12 px de relleno
+    // cada una y su línea salían como «grupo roto» (Compras apilada a 1024 px, 2026-11-12).
     const rp = p.getBoundingClientRect();
+    const sp = cs(p);
+    const cara = (s, lado) => parseFloat(s[`padding${lado}`]) + parseFloat(s[`border${lado}Width`]);
     const vecinos = hermanos.filter((h) => h !== p).map((h) => {
       const r = h.getBoundingClientRect();
-      return afuera.enFila ? Math.max(r.left - rp.right, rp.left - r.right) : Math.max(r.top - rp.bottom, rp.top - r.bottom);
+      const sh = cs(h);
+      if (afuera.enFila) {
+        return h.getBoundingClientRect().left >= rp.right - 0.5
+          ? r.left - rp.right + cara(sp, 'Right') + cara(sh, 'Left')
+          : rp.left - r.right + cara(sp, 'Left') + cara(sh, 'Right');
+      }
+      return r.top >= rp.bottom - 0.5
+        ? r.top - rp.bottom + cara(sp, 'Bottom') + cara(sh, 'Top')
+        : rp.top - r.bottom + cara(sp, 'Top') + cara(sh, 'Bottom');
     }).filter((x) => x > -0.5);
     if (!vecinos.length) continue;
     const minAfuera = Math.min(...vecinos);
