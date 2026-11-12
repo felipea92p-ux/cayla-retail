@@ -295,6 +295,7 @@ export default async function RecibirPage({ searchParams }: { searchParams: Prom
         recibidos={recibidos}
         costos={costos}
         vacio={`Todavía no llegó nada a ${persona.ubicacionEtiqueta}.`}
+        enviosAbiertos={(deOrdenes?.envios ?? []).filter((e) => e.estado === "abierto").map((e) => e.id)}
       />
     );
     if (contando.disponible) {
@@ -319,7 +320,7 @@ export default async function RecibirPage({ searchParams }: { searchParams: Prom
           <AvisoTrasladosEnCamino traslados={trasladosHaciaAca(trasladosDeLaSede, persona.ubicacionId)} sedeNombre={persona.ubicacionEtiqueta} veTraslados={veModulo(persona, "traslados")} />
           <SinAvisoProvider>
           {deOrdenes && (
-            <EnviosParaRecibir envios={porRecibirEnLaSede?.envios ?? []} ordenes={deOrdenes.ordenes} sede={persona.ubicacionEtiqueta} porCategoria proveedoresSinAviso={proveedoresSinAviso} accionTitulo={<AccionSinAviso />} />
+            <EnviosParaRecibir envios={porRecibirEnLaSede?.envios ?? []} ordenes={deOrdenes.ordenes} sede={persona.ubicacionEtiqueta} porCategoria proveedoresSinAviso={proveedoresSinAviso} enStock={Object.fromEntries(aMedias.map((e) => [e.id, e.enStock]))} accionTitulo={<AccionSinAviso />} />
           )}
           <LlegoSinAviso
             key={claveDeLaRecepcion(persona.ubicacionId)}
