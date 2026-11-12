@@ -5,6 +5,7 @@ import { X } from "lucide-react";
 import { useCallback, useEffect, useRef, useState, type ReactNode, type RefObject } from "react";
 import { alejarFondo, devolverFondo, moverFondo } from "@/components/ui/fondoDeLaHoja";
 import { useEscapeLibre } from "@/components/ui/useEscapeLibre";
+import { useHojaAlCentro } from "@/components/ui/HojasAlCentro";
 import { useHojaArrastre } from "@/components/ui/useHojaArrastre";
 import { useHojaSobreElTeclado } from "@/components/ui/useHojaSobreElTeclado";
 import { useAtrasCierraLaHoja } from "@/components/ui/useAtrasCierraLaHoja";
@@ -210,13 +211,18 @@ export function Modal({ titulo, subtitulo, onClose, children, tamano = "angosta"
       fondo.current = null;
     };
   }, [conAsa, arrastre]);
+  // La hoja como estado (además de la ref): el portal de Radix la monta un instante después, y quien la mide al centro la necesita al llegar.
+  const [hojaMontada, setHojaMontada] = useState<HTMLDivElement | null>(null);
   const ponerHoja = useCallback(
     (el: HTMLDivElement | null) => {
       hoja.current = el;
       arrastre.enlazar(el);
+      setHojaMontada(el);
     },
     [arrastre]
   );
+  // Dentro de `<HojasAlCentro>` (hoy, Recibir), la hoja abre al centro y desde ahí solo crece hacia abajo (HojasAlCentro.tsx).
+  const arribaAlCentro = useHojaAlCentro(deCara, hojaMontada);
 
   useEffect(() => {
     if (!cerrando) return;
@@ -246,9 +252,11 @@ export function Modal({ titulo, subtitulo, onClose, children, tamano = "angosta"
             En escritorio la hoja va ANCLADA ARRIBA (8vh), no centrada (2026-09-23, ADR-0185): centrada, cada
             cambio de alto del contenido (elegir un medio, un motivo, un responsable) movía también su borde de
             arriba y la hoja «bailaba». Anclada, el título no se mueve nunca; solo crece o se acorta el borde de
-            abajo. En celular sigue siendo una hoja pegada abajo. */}
+            abajo. En celular sigue siendo una hoja pegada abajo. Dentro de `<HojasAlCentro>` abre al centro con la misma regla:
+            el borde de arriba se fija al abrir (`arribaAlCentro`, que pisa el 8vh). */}
         <div
           ref={contenedor}
+          style={arribaAlCentro !== null ? { paddingTop: arribaAlCentro } : undefined}
           className={`pointer-events-none fixed inset-0 z-50 flex ${
             variante === "camara" ? "" : variante === "ticket" ? "items-end justify-center" : "items-end justify-center sm:items-start sm:p-6 sm:px-[max(1.5rem,env(safe-area-inset-left),env(safe-area-inset-right))] sm:pt-[8vh]"
           }`}
