@@ -1,5 +1,6 @@
 import { requirePersonaActualV2, veModulo } from "@/lib/persona-actual";
 import { getHistorialPrenda, getPrendaDelHistorial } from "@/lib/historial-prenda";
+import { irAlQueQuedoSiSeFusiono } from "@/lib/producto-fusionado";
 import { HistorialPrenda } from "@/components/historial-prenda/HistorialPrenda";
 import { ModalRuta } from "@/components/ui/ModalRuta";
 
@@ -18,6 +19,8 @@ export default async function HistorialProductoModal({
 }) {
   const persona = await requirePersonaActualV2();
   const { id: productoId } = await params;
+  // Un producto fusionado no tiene historia propia: su historia vive en el que quedó (ADR-0650).
+  await irAlQueQuedoSiSeFusiono(productoId, "historial");
   const [prenda, lectura] = await Promise.all([getPrendaDelHistorial(productoId), getHistorialPrenda(productoId)]);
   if (!prenda) {
     return (

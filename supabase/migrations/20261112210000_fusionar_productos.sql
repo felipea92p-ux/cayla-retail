@@ -219,6 +219,16 @@ begin
     update retail.codigos_barras set variante_id = r.con where variante_id = r.id;
     get diagnostics v_n = row_count;
     v_codigos := v_codigos + v_n;
+    -- La etiqueta impresa también lleva el código de la propia variante (BLU-0042-NEG-M) o su sku viejo: se suman como
+    -- códigos de la que queda, así Vender, Contar y Existencias la encuentran al escanear la etiqueta vieja.
+    insert into retail.codigos_barras (variante_id, codigo, origen)
+      select r.con, x.codigo, 'propio'
+        from retail.variantes j cross join lateral (values (j.codigo), (j.sku)) as x(codigo)
+       where j.id = r.id and nullif(btrim(x.codigo), '') is not null
+         and not exists (select 1 from retail.codigos_barras cb where cb.codigo = x.codigo)
+      on conflict (codigo) do nothing;
+    get diagnostics v_n = row_count;
+    v_codigos := v_codigos + v_n;
 
     -- Insignias y campañas: la que queda suma las de la juntada (agregar, nunca quitar).
     insert into retail.variante_etiquetas (variante_id, etiqueta_id, created_at)

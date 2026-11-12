@@ -308,7 +308,7 @@ select 'x', :'mudadas',
   )
 );
 
-caso("12 · la misma talla y color se junta: sus unidades pasan con salida y entrada (sin pérdida), sus códigos de barras pasan y ella se apaga", () =>
+caso("12 · la misma talla y color se junta: sus unidades pasan con salida y entrada (sin pérdida), sus códigos de barras y el de su etiqueta pasan, y ella se apaga", () =>
   espera(
     correr(`${COMO_POSTGRES}
 select pg_temp.duplicado('ZZ Emma bis', '[{"color":"NEG","talla":"M","stock":3},{"color":"NEG","talla":"XL","stock":2}]') as d \\gset
@@ -324,12 +324,13 @@ select 'x', (:'r'::jsonb) ->> 'juntadas', (:'r'::jsonb) ->> 'unidades_juntadas',
   coalesce((select sum(cantidad) from retail.stock where variante_id = :'j'), 0),
   (select activo || ':' || (fusionada_en_id = :'w') || ':' || (producto_id = '${EMMA}') from retail.variantes where id = :'j'),
   (select variante_id = :'w' from retail.codigos_barras where codigo = 'ZZ-FUSION-0001'),
+  (select cb.variante_id = :'w' from retail.codigos_barras cb join retail.variantes j on j.codigo = cb.codigo where j.id = :'j'),
   (select string_agg(tipo || ':' || cantidad, ',' order by tipo) from retail.movimientos where motivo = 'fusion_producto'),
   (select bool_and(retail.fn_perdida_razon(tipo, motivo, cantidad) is null) from retail.movimientos where motivo = 'fusion_producto'),
   pg_temp.totales(array['${EMMA}']::uuid[]) = :'antes',
   pg_temp.descuadres(array['${EMMA}', :'d']::uuid[]) = :'desc_antes',
   (select count(*) from retail.variantes where producto_id = '${EMMA}' and activo and fusionada_en_id is null and talla_id = (select id from retail.tallas where valor = 'XL'));`),
-    "1|3|3|0|false:true:true|t|entrada:3,salida:3|t|t|t|1"
+    "1|3|3|0|false:true:true|t|t|entrada:3,salida:3|t|t|t|1"
   )
 );
 
@@ -482,6 +483,17 @@ ${COMO_POSTGRES}
 select 'x', :'error', :'anon', :'pasar', (select count(*) from retail.producto_fusiones),
   (select fusionado_en_id is null from retail.productos where id = '${EMMA}');`),
     "42501|f|f|0|t"
+  )
+);
+
+caso("22 · después de fusionar, la alerta de «ya existe uno parecido» no ofrece la ficha fusionada (sí la que quedó)", () =>
+  espera(
+    correr(`${sesion(FELIPE)}
+select retail.fusionar_productos('${VALENTINA}', array['${EMMA}']::uuid[]) is not null as hecho \\gset
+select 'x',
+  (select count(*) from retail.buscar_productos_parecidos('Blusa Emma') b where b.id = '${EMMA}'),
+  (select count(*) from retail.buscar_productos_parecidos('Blusa Valentina') b where b.id = '${VALENTINA}');`),
+    "0|1"
   )
 );
 
