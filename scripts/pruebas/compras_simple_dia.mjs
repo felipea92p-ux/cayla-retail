@@ -64,6 +64,12 @@ const AUDITORIA = readFileSync(join(RAIZ, "supabase", "migrations", "20261027231
   "",
 );
 
+// «Faltaron» de verdad (20261112154000): lo que faltó y sobró sale de las diferencias del cierre, y «contadas» es todo lo contado.
+const FALTARON_REALES = readFileSync(join(RAIZ, "supabase", "migrations", "20261112154000_mis_envios_faltaron_reales.sql"), "utf8").replace(
+  /^set lock_timeout.*$/gm,
+  "",
+);
+
 // Esta función se rebobina antes de pegar las migraciones viejas (`rebobinar_terminar_dia.sql`): en una base que ya pasó por 20261029170000 solo existe la de
 // dos parámetros, y las migraciones de octubre que esta prueba pega crean o parchan la de UNO (el parche falla con «does not exist», o la recreada queda
 // al lado de la nueva y toda llamada con un argumento es ambigua). Rebobinada, la prueba corre en el mundo para el que se escribió.
@@ -98,6 +104,8 @@ ${ENVIOS}
 ${ENVIOS}
 ${AUDITORIA}
 ${AUDITORIA}
+${FALTARON_REALES}
+${FALTARON_REALES}
 ${RONDAS_ABIERTAS}
 set local search_path = retail, public, extensions;
 create function pg_temp.intento(p_sql text) returns text language plpgsql as $f$
@@ -372,6 +380,38 @@ select id as envio from retail.despachos where token_cliente = '${TOKEN}' \\gset
 ${como(FELIPE, null)}
 select count(*) from jsonb_array_elements(retail.fn_mis_envios()) e where e ->> 'id' = :'envio';`,
   "1|t|en_camino|Tienda Trujillo|2|6|0|t|t|1 / 0",
+);
+
+// Corrida de /flujo-de-negocio `recibir/con-aviso-de-compras` (2026-11-12): la tienda contó todo, faltó uno, sobraron dos y lo nuevo quedó
+// «para después», sin entrar al stock. «Mis envíos» decía «faltaron 10» porque contaba solo lo que ya estaba en el stock (20261112154000).
+caso(
+  "Mis envíos: lo que faltó y sobró sale de las diferencias vigentes del cierre, y «contadas» es todo lo contado aunque nada esté en el stock (20261112154000)",
+  `${COMPRA}
+${como(MICAELA, "compra_mandar")}
+${MANDAR()} \\g /dev/null
+reset role;
+select id as envio from retail.despachos where token_cliente = '${TOKEN}' \\gset
+select id as item, categoria_id as cat from retail.despacho_items where despacho_id = :'envio' limit 1 \\gset
+-- El cierre tal como queda en la base: 5 de las 6 contadas, 2 de más de otra prenda, nada en el stock todavía. Se arma sin disparadores,
+-- solo dentro de esta transacción: el camino de pantalla (abrir, contar, cerrar) lo prueban las suites de Recibir.
+set local session_replication_role = replica;
+update retail.despachos set estado = 'cerrado', abierto_por = :'micaela', abierto_en = now(), cerrado_por = :'micaela', cerrado_en = now()
+ where id = :'envio';
+insert into retail.despacho_conteos (despacho_id, despacho_item_id, contadas, contado_por) values (:'envio', :'item', 5, :'micaela');
+insert into retail.despacho_conteos (despacho_id, extra_posicion, proveedor_id, categoria_id, contadas, contado_por)
+  values (:'envio', 1, :'prov', :'cat', 2, :'micaela');
+insert into retail.despacho_diferencias (despacho_id, despacho_item_id, proveedor_id, categoria_id, tipo, causa, cantidad, costo_unitario, creado_por)
+  values (:'envio', :'item', :'prov', :'cat', 'faltante', 'no_vino', 1, 50, :'micaela');
+insert into retail.despacho_diferencias (despacho_id, extra_posicion, proveedor_id, categoria_id, tipo, causa, cantidad, costo_unitario, creado_por)
+  values (:'envio', 1, :'prov', :'cat', 'sobrante', 'cobra_aparte', 2, 30, :'micaela');
+-- La de un cierre anterior que se reabrió ya no vale: no cuenta.
+insert into retail.despacho_diferencias (despacho_id, despacho_item_id, proveedor_id, categoria_id, tipo, causa, cantidad, costo_unitario, creado_por, vigente)
+  values (:'envio', :'item', :'prov', :'cat', 'faltante', 'se_perdio', 3, 50, :'micaela', false);
+set local session_replication_role = origin;
+${como(MICAELA, null)}
+select e ->> 'estado', e ->> 'unidades', e ->> 'contadas', e ->> 'faltaron', e ->> 'sobraron'
+  from jsonb_array_elements(retail.fn_mis_envios()) e where e ->> 'id' = :'envio';`,
+  "cerrado|6|7|1|2",
 );
 
 caso(
