@@ -58,6 +58,7 @@ declare
   v_tejido uuid;
   v_patron uuid;
   v_queda retail.productos;
+  v_ve_costo boolean := retail.fn_puede_ver_dinero_de_compras();
   r record;
 begin
   -- Los duplicados sin repetir, sin vacíos y en el orden en que llegaron (el orden decide quién absorbe a quién).
@@ -269,7 +270,8 @@ begin
         'variantes', (select count(*) from pg_temp.fusion_variantes f where f.producto_id = p.id and f.activo),
         'precio', (select mode() within group (order by v.precio) from retail.variantes v where v.producto_id = p.id and v.activo),
         'precios', coalesce((select jsonb_agg(distinct v.precio) from retail.variantes v where v.producto_id = p.id and v.activo), '[]'::jsonb),
-        'costo', (select mode() within group (order by v.costo) from retail.variantes v where v.producto_id = p.id and v.activo),
+        -- El costo solo lo ve quien ve el dinero de compras (20260923193700); a los demás les llega vacío.
+        'costo', case when v_ve_costo then (select mode() within group (order by v.costo) from retail.variantes v where v.producto_id = p.id and v.activo) end,
         'costo_de_compras', exists (select 1 from retail.costo_historial h join retail.variantes v on v.id = h.variante_id where v.producto_id = p.id),
         'fotos', coalesce((select jsonb_agg(jsonb_build_object('id', fo.id, 'url', fo.url, 'color_codigo', fo.color_codigo,
                                                               'es_principal', fo.es_principal, 'orden', fo.orden)
@@ -324,7 +326,7 @@ begin
       union all select 'patron' from retail.productos where id = any (v_ids) having count(distinct coalesce(patron_id::text, '∅')) > 1
       union all select 'temporada' from retail.productos where id = any (v_ids) having count(distinct coalesce(temporada, '∅')) > 1
       union all select 'precio' from retail.variantes where producto_id = any (v_ids) and activo having count(distinct precio) > 1
-      union all select 'costo' from retail.variantes where producto_id = any (v_ids) and activo having count(distinct costo) > 1
+      union all select 'costo' from retail.variantes where v_ve_costo and producto_id = any (v_ids) and activo having count(distinct costo) > 1
     ) d;
 
   if exists (select 1 from pg_temp.fusion_variantes where trato = 'junta' and stock > 0) then
