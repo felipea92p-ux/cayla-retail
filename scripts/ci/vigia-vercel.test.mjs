@@ -60,15 +60,23 @@ test("decide: con cualquier marca de Vercel no se toca nada, salvo el filtro que
   }
   assert.match(decidir({ marca: CANCELADA, edadS: 1 }).motivo, /no se repite/);
   assert.match(decidir({ marca: FALLO, edadS: 1 }).motivo, /X roja/);
-  // En verde, pero producción no se publicó: el caso del 2026-10-09.
-  assert.equal(decidir({ marca: FILTRO, edadS: 1 }).accion, "avisar");
+  // En verde, pero producción no se publicó: el caso del 2026-10-09 (el commit cambiaba la web).
+  assert.equal(decidir({ marca: FILTRO, edadS: 1, archivos: ["apps/web/app/page.tsx"] }).accion, "avisar");
+  assert.equal(decidir({ marca: FILTRO, edadS: 1, archivos: null }).accion, "avisar", "sin saber qué cambió, se avisa");
+});
+
+test("decide: el filtro que se salta una fusión sin cambios de la web está bien (ADR-0648)", () => {
+  const d = decidir({ marca: FILTRO, edadS: 1, archivos: ["docs/bitacora/2026-11-12-x.md", "supabase/migrations/x.sql"] });
+  assert.equal(d.accion, "listo");
+  assert.match(d.motivo, /a propósito/);
+  assert.equal(decidir({ marca: FILTRO, edadS: 1, archivos: ["docs/x.md", "pnpm-lock.yaml"] }).accion, "avisar");
 });
 
 /**
  * Un GitHub en memoria. `vercel(sha, ahora)` decide qué marcas devuelve en cada lectura: así se simula a Vercel marcando
  * (o no) el commit, antes o después del Deploy Hook.
  */
-function githubFalso({ cabezas, vercel, abierto = null, fallas = 0 }) {
+function githubFalso({ cabezas, vercel, abierto = null, fallas = 0, archivos = () => ["apps/web/app/page.tsx"] }) {
   const registro = { lecturas: 0, hook: 0, creados: [], comentarios: [], cerrados: [] };
   let n = 0;
   let fallasPendientes = fallas;
@@ -80,6 +88,10 @@ function githubFalso({ cabezas, vercel, abierto = null, fallas = 0 }) {
     },
     async marcas(sha) {
       return vercel(sha, reloj.t, registro);
+    },
+    async archivos(sha) {
+      registro.archivosLeidos = (registro.archivosLeidos ?? 0) + 1;
+      return archivos(sha);
     },
     async avisoAbierto(titulo) {
       assert.equal(titulo, TITULO_AVISO);
@@ -196,6 +208,36 @@ test("simulación: el filtro se saltó producción — aviso abierto, sin Deploy
   assert.equal(r.codigo, 1);
   assert.equal(r.registro.hook, 0);
   assert.match(r.registro.creados[0].cuerpo, /Canceled by Ignored Build Step/);
+});
+
+test("simulación: el filtro se saltó una fusión de documentos — nada que hacer, y cierra un aviso viejo", async () => {
+  const falso = githubFalso({ cabezas: () => DB7, vercel: () => [FILTRO], archivos: () => ["docs/adr/0648-x.md"], abierto: 612 });
+  const r = await correr(falso);
+  assert.equal(r.codigo, 0);
+  assert.equal(r.decision.accion, "listo");
+  assert.equal(r.registro.hook, 0);
+  assert.deepEqual(r.registro.creados, []);
+  assert.deepEqual(r.registro.cerrados, [612], "si el filtro salta, nada de la web cambió desde lo publicado: producción está al día");
+});
+
+test("simulación: GitHub no dice qué cambió el commit saltado — se avisa", async () => {
+  const falso = githubFalso({
+    cabezas: () => DB7,
+    vercel: () => [FILTRO],
+    archivos: () => {
+      throw new Error("HTTP 502");
+    },
+  });
+  const r = await correr(falso);
+  assert.equal(r.codigo, 1);
+  assert.equal(r.decision.accion, "avisar");
+  assert.equal(r.registro.hook, 0);
+});
+
+test("simulación: con una publicación normal no se lee qué cambió el commit", async () => {
+  const falso = githubFalso({ cabezas: () => DB7, vercel: () => [PUBLICADA] });
+  await correr(falso);
+  assert.equal(falso.registro.archivosLeidos ?? 0, 0);
 });
 
 test("simulación: si llega otra fusión mientras espera y Vercel la marca, no pide nada (trae todo lo anterior)", async () => {

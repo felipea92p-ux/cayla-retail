@@ -1,7 +1,7 @@
 // Tipografía al milímetro — se pega ENTERO en `javascript_tool` con la pantalla ya cargada y el panel visible (oculto mide 0).
 // Devuelve lo que FALLA, con etiqueta «Medido». No cambia la página: los modos que tocan estilos los quitan antes de terminar.
-// Umbrales y su porqué: ../SKILL.md («Las reglas al milímetro»). Mide a 1440 × 900 primero y luego 1024 × 768: bajo 640 px la tabla pasa
-// a su forma de celular (`tabla-corte.css`) y alinea todo a la izquierda a propósito, así que ahí no se juzgan las columnas.
+// Umbrales y su porqué: ../SKILL.md («Las reglas al milímetro»). Mide a 1440 × 900 primero y luego 1024 × 768: cuando la TABLA es angosta
+// (no la ventana: `tabla-corte.css` mira el contenedor) pasa a su forma de celular y alinea todo a la izquierda a propósito; esas filas no se juzgan.
 //
 // MODO (cámbialo en la línea de abajo antes de pegar):
 //   'medir'                → tamaños de lectura, interlineado, medida, pesos, cifras (tabulares, columnas, decimales, «S/» partible)
@@ -37,7 +37,12 @@
   const esMono = (s) => /mono|consolas|menlo/i.test(s.fontFamily);
   const enControl = (el) => !!el.closest('button, [role=button], [role=tab], [role=option], [role=menuitem], label, th, [role=columnheader], .btn-cayla, input, textarea');
 
-  const conTexto = [...document.body.querySelectorAll('*')].filter((el) => !el.closest(FUERA) && textoPropio(el).length > 0 && vis(el));
+  // `sr-only` (1×1 px recortado) es texto para el lector de pantalla, no letra que alguien lea: antes salía como «etiqueta de 10,5 px».
+  const soloLector = (el) => { const r = el.getBoundingClientRect(), s = getComputedStyle(el); return r.width <= 1 && r.height <= 1 && /hidden|clip/.test(s.overflow + s.overflowX); };
+  // Lo de afuera de <main> (lateral, cabecera, buscador global) es el MARCO: se marca «[marco]» para no cargárselo a la pantalla.
+  const main = document.querySelector('main');
+  const conTexto = [...document.body.querySelectorAll('*')].filter((el) => !el.closest(FUERA) && textoPropio(el).length > 0 && vis(el) && !soloLector(el));
+  const lado = (el) => (main && !main.contains(el) ? ' [marco]' : '');
 
   // ───────────────────────── MODO letra-del-navegador ─────────────────────────
   if (MODO === 'letra-del-navegador') {
@@ -115,8 +120,8 @@
     const versalita = esVersalita(s), mono = esMono(s);
     const palabras = t.split(' ').filter((p) => /\p{L}/u.test(p)).length;
     const lectura = !versalita && !mono && !enControl(el) && palabras >= 4;
-    if (lectura && fs < PISO_LECTURA) lecturaChica.push(`${pista(el)} ${r1(fs)}px`);
-    if (!lectura && fs < PISO_ETIQUETA) etiquetaBajoPiso.push(`${pista(el)} ${r1(fs)}px${versalita ? ' (versalita)' : ''}`);
+    if (lectura && fs < PISO_LECTURA) lecturaChica.push(`${pista(el)} ${r1(fs)}px${lado(el)}`);
+    if (!lectura && fs < PISO_ETIQUETA) etiquetaBajoPiso.push(`${pista(el)} ${r1(fs)}px${versalita ? ' (versalita)' : ''}${lado(el)}`);
     if (!lectura) continue;
     // 'normal' en DM Sans rinde ~1.30 (métricas typo 992/−310, sin lineGap): se cuenta como corto.
     const lh = s.lineHeight === 'normal' ? fs * 1.3 : parseFloat(s.lineHeight);
@@ -173,7 +178,11 @@
   // Columnas numéricas: filas de una tabla (tr, role=row, .fila-cayla); una celda es numérica si TODO su texto es una cifra.
   // Alineada = los bordes derechos del texto coinciden (±1,5 px). Decimales = los mismos en toda la columna.
   const columnas = new Map();
-  const filas = [...document.querySelectorAll('tr, [role=row], .fila-cayla')].filter((f) => vis(f) && !f.closest(FUERA) && !f.matches('.encabezado-tabla-cayla, thead tr'));
+  // Una fila en su forma de celular (una sola columna: `tabla-corte-*`, que mira el ancho de la TABLA y no el de la ventana, ADR-0610 act.)
+  // alinea todo a la izquierda a propósito: no tiene columnas que juzgar. Antes eso solo pasaba bajo 640 px; desde el corte por contenedor
+  // pasa también a 1024 con el lateral abierto, y salía «columna sin alinear».
+  const apilada = (f) => { const s = getComputedStyle(f); return s.display.includes('grid') && !/\s/.test(s.gridTemplateColumns.trim()); };
+  const filas = [...document.querySelectorAll('tr, [role=row], .fila-cayla')].filter((f) => vis(f) && !f.closest(FUERA) && !f.matches('.encabezado-tabla-cayla, thead tr') && !apilada(f));
   for (const fila of filas) {
     [...fila.children].forEach((celda, i) => {
       const t = celda.textContent.replace(/\s+/g, ' ').trim();

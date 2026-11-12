@@ -153,8 +153,16 @@
 
   // Lo que parece un gráfico y no es una pieza del sistema (pista, no veredicto: /unificar decide).
   const dentroDePieza = (el) => PIEZAS.some((p) => el.closest(p.raiz));
+  // Un ícono (lucide, el logo, cualquier svg de 40 px o menos) tiene trazos largos y NO es un gráfico: antes cada ícono del lateral salía
+  // como «gráfico dibujado a mano». Un gráfico de verdad mide más que un ícono.
+  const esIcono = (e) => {
+    const svg = e.closest("svg");
+    if (!svg) return false;
+    const r = svg.getBoundingClientRect();
+    return svg.classList.contains("lucide") || (r.width <= 40 && r.height <= 40) || !!e.closest("aside, nav, header, nextjs-portal");
+  };
   const sospechosos = [
-    ...[...document.querySelectorAll("svg polyline, svg path")].filter((e) => !dentroDePieza(e) && (e.getAttribute("points") || e.getAttribute("d") || "").split(/[ ,LlMm]/).length > 12),
+    ...[...document.querySelectorAll("svg polyline, svg path")].filter((e) => !dentroDePieza(e) && !esIcono(e) && (e.getAttribute("points") || e.getAttribute("d") || "").split(/[ ,LlMm]/).length > 12),
     ...[...document.querySelectorAll("svg circle[stroke-dasharray], svg circle[style*='dash']")].filter((e) => !dentroDePieza(e)),
     ...[...document.querySelectorAll("[role='progressbar']")].filter((e) => !e.classList.contains("barra-avance")),
   ]

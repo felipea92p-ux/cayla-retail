@@ -41,6 +41,26 @@
     return s + (pseudo || "");
   }
 
+  // Bucles que ADR-0136 (o su actualización) aprueba por su nombre y que se reconocen por su clase. No es la lista completa: lo que no
+  // está aquí sale marcado y se confirma contra CLAUDE.md «Movimiento y modales» antes de darlo por hallazgo.
+  const EXCEPCIONES = [
+    [".cmp-punto-vivo", "el punto que late en el chip «Vencida» (ADR-0136)"],
+  ];
+  function excepcion(el) {
+    if (!el || !el.closest) return null;
+    const e = EXCEPCIONES.find(([sel]) => el.closest(sel));
+    return e ? e[1] : null;
+  }
+  // Un bucle sobre algo que no se ve (opacidad 0 en él o en un padre) gasta cuadros sin mostrar nada: no es «no es señal», es otra falla.
+  function invisible(el) {
+    for (let n = el; n && n.nodeType === 1; n = n.parentElement) if (parseFloat(getComputedStyle(n).opacity) === 0) return true;
+    return false;
+  }
+  function esMarco(el) {
+    const main = document.querySelector("main");
+    return !!(main && el && el.nodeType === 1 && !main.contains(el));
+  }
+
   function esSenal(el) {
     if (!el || !el.closest) return false;
     if (el.closest("[data-senal]")) return true;
@@ -82,7 +102,9 @@
         ? `dura ${Math.round(duracion)} ms: pasa incluso el tope de una excepción (1 200)`
         : `dura ${Math.round(duracion)} ms: más de 500 (¿está en la lista de ADR-0136?)`);
     }
-    if (enBucle && !senal) marcas.push("bucle: no es señal de espera (¿tiene su fila en ADR-0136?)");
+    const aprobado = excepcion(el);
+    if (enBucle && !senal && invisible(el)) marcas.push("bucle invisible: corre con opacidad 0 y gasta cuadros sin verse (que se encienda solo cuando se muestra)");
+    else if (enBucle && !senal && !aprobado) marcas.push("bucle: no es señal de espera (¿tiene su fila en ADR-0136?)");
     for (const c of curvas) {
       if (CURVAS[c]) continue;
       if (enBucle && /^steps\(/.test(c)) continue; // el cursor que parpadea
@@ -100,6 +122,8 @@
       curva: curvas.map((c) => CURVAS[c] || c).join(" · "),
       estado: anim.playState,
       senal,
+      decididoAPropósito: aprobado || undefined,
+      lado: esMarco(el) ? "marco" : "pantalla",
       terminaALosMs: finAbs == null || t0 == null ? null : Math.round(finAbs - t0),
       marcas,
       _inicio: inicio,
@@ -121,7 +145,11 @@
   function armarInforme(animaciones, mutaciones) {
     const inicios = animaciones.map((a) => a.startTime).filter((x) => x != null).map(Number);
     const t0 = inicios.length ? Math.min(...inicios) : null;
-    const filas = animaciones.map((a) => leer(a, t0)).filter(Boolean);
+    // En modo quieto (ADR-0625) las transiciones duran ~0 ms: no se mueve nada, pero getAnimations() las lista un instante (al cambiar de
+    // tema salían 676, todas «curva fuera del sistema»). Lo que dura menos de 1 ms no es movimiento: se cuenta aparte, sin marcas.
+    const todas = animaciones.map((a) => leer(a, t0)).filter(Boolean);
+    const filas = todas.filter((f) => f.vueltas === "infinita" || f.duracionMs >= 1);
+    const instantaneas = todas.length - filas.length;
     const fines = filas.map((f) => f._fin).filter((x) => x != null);
     const presupuesto = t0 == null || !fines.length ? null : Math.round(Math.max(...fines) - t0);
     for (const f of filas) { delete f._inicio; delete f._fin; }
@@ -133,8 +161,9 @@
       total: filas.length,
       marcadas: marcadas.length,
       buclesAlaVez: bucles.length,
-      buclesQueNoSonSenal: bucles.filter((f) => !f.senal).length,
+      buclesQueNoSonSenal: bucles.filter((f) => !f.senal && !f["decididoAPropósito"]).length,
       presupuestoMs: presupuesto, // del primer cuadro de la primera animación al último de la última (sin bucles)
+      instantaneas, // duran < 1 ms (lo que deja el modo quieto): no se mueven
       resumen: "",
       filas,
     };

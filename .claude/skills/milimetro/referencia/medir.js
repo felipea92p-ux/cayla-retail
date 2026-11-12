@@ -85,9 +85,28 @@
   const SEL = '[aria-pressed="true"],[aria-selected="true"],[aria-checked="true"],[aria-current]:not([aria-current="false"]),[data-state="active"],[data-state="on"],[data-state="checked"]';
   const rasgos = (el) => { const s = getComputedStyle(el); return { fondo: s.backgroundColor + s.backgroundImage, letra: s.color, borde: s.borderColor, peso: s.fontWeight, sombra: s.boxShadow, deco: s.textDecorationLine, iconos: el.querySelectorAll('svg').length }; };
   const seleccion = [];
+  // La hermana tiene que ser OTRA opción del mismo control: el mismo atributo en «false» (o sin él, en aria-current) y la misma primera clase.
+  // Antes se comparaba con cualquier hermana de la misma etiqueta: el interruptor «Animaciones» salía contra el botón «Pregúntale a CAYLA».
+  const atributoSel = (el) => ['aria-pressed', 'aria-selected', 'aria-checked', 'aria-current', 'data-state'].find((a) => el.hasAttribute(a));
+  const primeraClase = (el) => (typeof el.className === 'string' ? el.className.trim().split(/\s+/)[0] : '') || '';
+  // La gota o la píldora que se desliza bajo la opción elegida (`.cmp-ind`, la de `<Pestanas>` y `SegmentoEnlaces`) es una hermana aparte,
+  // posicionada encima o debajo: si cubre la opción, lo elegido se ve por su FORMA, no solo por el color.
+  const indicador = (el) => {
+    const r = el.getBoundingClientRect();
+    return [...(el.parentElement?.children || [])].some((h) => {
+      if (h === el || !vis(h) || !/absolute|fixed/.test(getComputedStyle(h).position)) return false;
+      const q = h.getBoundingClientRect();
+      const ancho = Math.min(r.right, q.right) - Math.max(r.left, q.left), alto = Math.min(r.bottom, q.bottom) - Math.max(r.top, q.top);
+      return ancho > 0 && alto > 0 && (ancho * alto) / (r.width * r.height) >= 0.7;
+    });
+  };
+  const sueltos = [];
   for (const el of [...raiz.querySelectorAll(SEL)].filter(vis)) {
-    const hermana = [...(el.parentElement?.children || [])].find((h) => h !== el && h.tagName === el.tagName && !h.matches(SEL) && vis(h));
-    if (!hermana) continue;
+    const attr = atributoSel(el);
+    const hermana = [...(el.parentElement?.children || [])].find((h) => h !== el && h.tagName === el.tagName && !h.matches(SEL) && vis(h) &&
+      primeraClase(h) === primeraClase(el) && (attr === 'aria-current' || attr === 'data-state' || h.hasAttribute(attr)));
+    if (!hermana) { if (attr === 'aria-pressed') sueltos.push(pista(el)); continue; } // un interruptor solo: no hay con qué comparar, se mira a ojo
+    if (indicador(el)) continue;
     const a = rasgos(el), b = rasgos(hermana);
     const cambia = Object.keys(a).filter((k) => a[k] !== b[k]);
     if (!cambia.length) seleccion.push({ pieza: pista(el), falla: 'solo lo dice ARIA: no se ve distinta de su hermana (WCAG 1.4.1)' });
@@ -128,16 +147,27 @@
   let foco = 'no medido: corre otra vez con window.__milimetro = { foco: true }';
   if (op.foco) {
     const previo = document.activeElement, sx = scrollX, sy = scrollY;
-    const enfocables = [...raiz.querySelectorAll('a[href], button:not([disabled]), input:not([type="hidden"]):not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])')].filter(vis).slice(0, 80);
-    const sinAnillo = [], anilloFlojo = [], tapado = [], halo = []; let sinMedir = 0;
+    // Lo de un submenú plegado (`inert`, o dentro de algo con `inert`) no recibe el foco: no es un control de esta vista.
+    // La pantalla (<main>) va primero: antes el tope de 80 se llenaba con los enlaces del lateral y la pantalla quedaba sin medir.
+    const main = document.querySelector('main');
+    const todosEnf = [...raiz.querySelectorAll('a[href], button:not([disabled]), input:not([type="hidden"]):not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])')]
+      .filter((el) => vis(el) && !el.closest('[inert]'));
+    const enfocables = [...todosEnf.filter((el) => main?.contains(el)), ...todosEnf.filter((el) => !main?.contains(el))].slice(0, 80);
+    const sinAnillo = [], anilloFlojo = [], tapado = [], halo = []; let sinMedir = 0, noToma = 0;
+    // El campo dentro de una caja del sistema (Buscador, `caja-campo`, `caja-cayla`) dibuja su anillo en la CAJA con :focus-within.
+    const CAJA = '.buscador, .caja-campo, .caja-cayla';
     for (const el of enfocables) {
       el.focus({ preventScroll: false });
-      if (document.activeElement !== el || !el.matches(':focus-visible')) { sinMedir++; continue; }
-      const s = getComputedStyle(el), ancho = parseFloat(s.outlineWidth) || 0;
-      if (s.outlineStyle !== 'none' && ancho >= 2) {
-        const r = ratio(rgba(s.outlineColor), fondo(el.parentElement || el).color);
+      if (document.activeElement !== el) { noToma++; continue; }
+      if (!el.matches(':focus-visible')) { sinMedir++; continue; }
+      const caja = el.closest(CAJA);
+      const s = getComputedStyle(el), sc = caja ? getComputedStyle(caja) : null;
+      const [porta, sp] = (parseFloat(s.outlineWidth) || 0) >= 2 && s.outlineStyle !== 'none' ? [el, s] : sc && sc.outlineStyle !== 'none' && (parseFloat(sc.outlineWidth) || 0) >= 2 ? [caja, sc] : [el, s];
+      const ancho = parseFloat(sp.outlineWidth) || 0;
+      if (sp.outlineStyle !== 'none' && ancho >= 2) {
+        const r = ratio(rgba(sp.outlineColor), fondo(porta.parentElement || porta).color);
         if (r < 3) anilloFlojo.push(`${pista(el)} ${r}:1`);
-      } else if (s.boxShadow !== 'none' || el.closest('.caja-campo, .caja-cayla')) halo.push(pista(el)); // los campos usan halo (ADR-0351 act. 2026-11-05): míralo a ojo
+      } else if (s.boxShadow !== 'none' || caja) halo.push(pista(el)); // los campos usan halo (ADR-0351 act. 2026-11-05): míralo a ojo
       else sinAnillo.push(`${pista(el)} outline ${s.outlineStyle} ${ancho}px`);
       const r = el.getBoundingClientRect(), arriba = document.elementFromPoint(r.left + r.width / 2, r.top + Math.min(r.height / 2, 6));
       if (arriba && !el.contains(arriba) && !arriba.contains(el)) {
@@ -145,16 +175,21 @@
       }
     }
     previo?.focus?.({ preventScroll: true }); scrollTo(sx, sy);
-    foco = { medidos: enfocables.length - sinMedir, sinMedir, sinAnillo: corta(sinAnillo), anilloFlojo: corta(anilloFlojo), focoTapado: corta(tapado), haloRevisarAOjo: halo.length };
+    const medidos = enfocables.length - sinMedir - noToma;
+    foco = medidos === 0 && sinMedir > 0
+      // Chrome solo pinta :focus-visible en un focus() de código si lo último que hizo la persona fue con el teclado. Sin eso, todo sale «sin medir».
+      ? { error: 'Nada se midió: el navegador no está en «modo teclado». Pulsa Tab UNA vez con una tecla real (computer → key Tab) y vuelve a correr.', sinMedir }
+      : { medidos, sinMedir, noTomanElFoco: noToma, sinAnillo: corta(sinAnillo), anilloFlojo: corta(anilloFlojo), focoTapado: corta(tapado), haloRevisarAOjo: halo.length };
   }
 
   return {
     pantalla: location.pathname, ancho: innerWidth, alto: innerHeight, tema: html.dataset.tema || 'claro', movimiento: modo, sistemaPideQuieto: sistemaQuieto,
     raiz: op.raiz || 'body',
-    hover: { ...corta(hoverSueltos), nota: 'revisar: si la línea lleva /* hover-tactil: … */ es a propósito (grep en app/estilos)' },
+    // El navegador recibe el CSS sin comentarios: desde aquí no se ve el `/* hover-tactil: … */` que lo hace a propósito. Lo decide la prueba.
+    hover: { ...corta(hoverSueltos), nota: 'revisar SIEMPRE con `pnpm --filter web test -- hover-con-mouse` (lee los comentarios hover-tactil que el navegador ya no ve) o grep -B3 en app/estilos' },
     apagados: { ...corta(apagados.filter((a) => a.revisar)), conAriaDisabled: apagadosSuaves, todos: apagados.length },
     cargando: { ocupados: cargando.length, ocupadoQueSePulsa: corta(ocupadoQueSePulsa), esperaEscritaAMano: corta(esperaAMano) },
-    seleccion: corta(seleccion),
+    seleccion: { ...corta(seleccion), interruptoresSueltosAOjo: corta(sueltos) },
     errores: corta(errores),
     etiquetas: corta(sinEtiqueta),
     soloLectura: corta(soloLectura),
