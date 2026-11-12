@@ -95,10 +95,13 @@
     texto.sort((a, b) => a.ratio - b.ratio); apcaBajo.sort((a, b) => Math.abs(a.lc) - Math.abs(b.lc));
 
     // ── 2 · bordes de control (lo que se toca o se escribe: 3:1 contra lo que lo rodea, por su borde O por su relleno)
-    const SEL = 'input:not([type=hidden]):not([type=checkbox]):not([type=radio]),textarea,select,[role=combobox],[role=checkbox],[role=switch],[role=radio],[role=slider],.caja-cayla,.btn-secundario,.interruptor';
+    // El campo dentro de una caja del sistema (`<Buscador>`, `caja-campo`, `caja-cayla`) no tiene borde propio: lo lleva la CAJA, que es
+    // la que se mide. Antes el `<input>` del Buscador salía con «borde 0» y fallaba 1.4.11.
+    const CAJA = '.caja-cayla,.caja-campo,.buscador';
+    const SEL = `input:not([type=hidden]):not([type=checkbox]):not([type=radio]),textarea,select,[role=combobox],[role=checkbox],[role=switch],[role=radio],[role=slider],${CAJA},.btn-secundario,.interruptor`;
     const controles = { medidos: 0, fallan: [], vidrio: [] };
     for (const el of document.querySelectorAll(SEL)) {
-      if (deshabilitado(el) || (el.matches('input,textarea') && el.closest('.caja-cayla'))) continue;
+      if (deshabilitado(el) || (el.matches('input,textarea,[role=combobox]') && el.closest(CAJA))) continue;
       const r = el.getBoundingClientRect(), s = getComputedStyle(el); if (!enVista(r) || s.visibility === 'hidden') continue;
       const x = Math.min(innerWidth - 1, r.left + r.width / 2), y = Math.min(innerHeight - 1, r.top + r.height / 2);
       const afuera = fondoEn(x, y, (n) => n !== el && !el.contains(n)).acc;
@@ -145,16 +148,19 @@
       if (el instanceof SVGElement && (igual(rgba(s.fill), m) || igual(rgba(s.stroke), m))) props.push('trazo');
       return props;
     };
-    const cuenta = (m) => {
+    // El presupuesto es de la PANTALLA (<main>): el colibrí del logo y lo que vive en el lateral o la cabecera es el marco, se lista aparte.
+    const mainEl = document.querySelector('main') || document.body;
+    const cuenta = (m, raizCuenta = mainEl) => {
       const piezas = [];
-      for (const el of document.body.querySelectorAll('*')) {
+      for (const el of raizCuenta.querySelectorAll('*')) {
+        if (raizCuenta === document.body && (mainEl.contains(el) || el.closest('nextjs-portal'))) continue;
         const r = el.getBoundingClientRect(); if (!enVista(r) || getComputedStyle(el).visibility === 'hidden' || opacidad(el) < 0.3) continue;
         if (piezas.some((p) => p.el.contains(el))) continue;
         const props = pinta(el, m); if (props.length) piezas.push({ el, donde: `${pista(el)} (${props.join('+')})` });
       }
       return piezas.map((p) => p.donde);
     };
-    const rojos = cuenta(ROJO), profundos = cuenta(PROF);
+    const rojos = cuenta(ROJO), profundos = cuenta(PROF), rojosDelMarco = mainEl === document.body ? [] : cuenta(ROJO, document.body);
 
     // ── 5 · enlaces dentro de una frase que solo se distinguen por el color (1.4.1, G183)
     const enlacesSoloColor = [];
@@ -176,7 +182,7 @@
       },
       texto: texto.slice(0, 25), apcaSegundaMirada: apcaBajo.slice(0, 12), noConcluyente: noConcluyente.slice(0, 12),
       controles: { fallan: controles.fallan.slice(0, 20), vidrio: controles.vidrio.slice(0, 10) },
-      foco, rojos, rojoProfundo: profundos, enlacesSoloColor,
+      foco, rojos, rojoProfundo: profundos, rojosDelMarco, enlacesSoloColor,
       siguiente: 'Corre también en el otro tema (botón de la cabecera) y a 375 px. Lo de vidrio: pnpm --filter web test -- vidrio-contraste.',
     };
   } finally {

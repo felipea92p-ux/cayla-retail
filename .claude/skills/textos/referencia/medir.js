@@ -11,7 +11,9 @@
   const limpio = (t) => (t || '').replace(/\s+/g, ' ').trim();
   const pista = (el) => `${el.tagName.toLowerCase()} «${limpio(el.getAttribute('aria-label') || el.innerText || el.value || el.placeholder).slice(0, 50)}»`;
   const papel = (el) => !!el.closest('.papel-fijo,[data-papel],[data-color-dato]'); // boleta, ticket, etiqueta: tienen su norma
-  const todos = [...document.body.querySelectorAll('*')].filter(vis);
+  // `sr-only` recorta a 1×1 px A PROPÓSITO (es para el lector de pantalla): no es un texto «cortado» que alguien vea.
+  const soloLector = (el) => { const r = el.getBoundingClientRect(), s = getComputedStyle(el); return r.width <= 1 && r.height <= 1 && /hidden|clip/.test(s.overflow + s.overflowX); };
+  const todos = [...document.body.querySelectorAll('*')].filter((e) => vis(e) && !soloLector(e));
   const hojas = todos.filter((e) => [...e.childNodes].some((n) => n.nodeType === 3 && n.textContent.trim()));
   const textoVisto = limpio(document.body.innerText);
 
@@ -63,10 +65,13 @@
 
   // ── Largo: texto que se corta (ellipsis o recorte) o un botón que salta a dos renglones
   const cortados = hojas.filter((e) => e.scrollWidth > e.clientWidth + 1 && /hidden|clip/.test(getComputedStyle(e).overflowX)).slice(0, 12).map(pista);
+  // Un botón «en dos» es UN texto que salta de renglón. Se cuentan los renglones de cada nodo de texto (Range), no el alto de su caja:
+  // un botón con nombre y cargo en dos líneas a propósito (el de la persona en el lateral) tiene dos textos de un renglón cada uno.
+  const renglones = (n) => { const rg = document.createRange(); rg.selectNodeContents(n); const tops = [...rg.getClientRects()].filter((q) => q.width > 1).map((q) => Math.round(q.top)); return new Set(tops).size; };
   const botonEnDos = botones.filter((b) => {
-    const s = getComputedStyle(b), lh = parseFloat(s.lineHeight) || parseFloat(s.fontSize) * 1.3;
-    const t = [...b.querySelectorAll('*')].concat(b).find((x) => [...x.childNodes].some((n) => n.nodeType === 3 && n.textContent.trim()));
-    return t && t.getBoundingClientRect().height > lh * 1.6;
+    const paseo = document.createTreeWalker(b, NodeFilter.SHOW_TEXT, { acceptNode: (t) => (t.textContent.trim() ? 1 : 2) });
+    for (let t = paseo.nextNode(); t; t = paseo.nextNode()) if (vis(t.parentElement) && !soloLector(t.parentElement) && renglones(t) > 1) return true;
+    return false;
   }).slice(0, 10).map(pista);
 
   // ── Accesibilidad de los avisos (WCAG 4.1.3): un aviso a la vista tiene role=status o role=alert
