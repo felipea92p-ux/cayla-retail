@@ -826,6 +826,11 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
   única definición, cada renglón `borrable` o no; `fn_producto_se_puede_eliminar` también la lee). Con historia SOLO de stock
   y cuenta Admin llama a `eliminar_producto_con_historia` (respaldo en `respaldo_purgas.filas`, que devuelve
   `scripts/purga/restaurar-purga.sql`).
+- **Fusionar productos duplicados (ADR-0650, 2026-11-12):** `components/fusionar-productos/FusionarProductosHoja.tsx` (se abre con «Fusionar» de la
+  vista rápida, `ProductosGrilla.tsx`, y de la barra de marcadas de `ProductosTabla.tsx`) lee `previsualizar_fusion_productos` y guarda con
+  `fusionar_productos` (con «Responsable»); los dos usan el mismo cálculo, `fn_fusion_productos_plan`. Lógica pura en `lib/fusionar-productos-reglas.ts`.
+  El aviso «N posibles fichas repetidas» de `/productos` (`PosiblesDuplicados.tsx`) lee `fn_productos_posibles_duplicados` (`lib/posibles-duplicados.ts`).
+  Un enlace viejo a la ficha o al historial de una fusionada lleva al que quedó (`lib/producto-fusionado.ts`).
 - `/productos` (ADR-0281, 2026-09-29): 20 por página (`PRODUCTOS_POR_PAGINA`); `?orden=` acepta `recientes | antiguos |
   vendidos_desc | vendidos_asc | precio_asc | precio_desc` (`lib/productos-orden.ts`; las cuatro nuevas viven en `fn_productos`,
   `20260929180000`, parche por ancla; «vendidos» = unidades de `movimientos` salida/venta de 30 días, como `demanda`); el tamaño

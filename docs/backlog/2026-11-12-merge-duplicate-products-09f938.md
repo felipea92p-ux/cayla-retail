@@ -4,7 +4,8 @@ Felipe (2026-11-12): «hay productos duplicados ya creados; en vez de borrar el 
 solo sin perder los datos de venta, las fotos ni el stock ya ingresado». Es la «Fase 5» que dejaron pendiente
 ADR-0294 y `docs/investigacion/2026-09-29-duplicados-de-producto.md` («con el molde de `unir_clientas`»).
 
-**Estado:** decisiones tomadas; la lista de actividades espera el OK de Felipe. No hay código todavía.
+**Estado:** las 8 actividades construidas y probadas en una base local aislada (ADR-0650). **Las migraciones `20261112204000`, `205000`,
+`210000`, `211000` y `212000` NO están en producción**: esperan el OK de Felipe, en ese orden.
 
 ## Las 15 decisiones de Felipe
 
@@ -47,7 +48,7 @@ ADR-0294 y `docs/investigacion/2026-09-29-duplicados-de-producto.md` («con el m
 - **No queda atrás:** la prueba de deriva de `eliminar_producto_con_historia` se reusa para que una tabla nueva que
   apunte a productos o variantes tenga que decir qué le pasa al fusionar.
 
-## Actividades propuestas (esperan el OK de Felipe)
+## Actividades (aprobadas por Felipe el 2026-11-12, hechas)
 
 1. Migración base: `fusionado_en_id` en productos y variantes, los dos índices únicos, tabla `producto_fusiones`.
 2. Lectura `previsualizar_fusion_productos`: qué pasará, choques de talla y color, bloqueos, campos que difieren, fotos.
@@ -57,3 +58,11 @@ ADR-0294 y `docs/investigacion/2026-09-29-duplicados-de-producto.md` («con el m
 6. Web: «Posibles duplicados» en Catálogo ▸ Productos (misma marca y nombre igual o parecido, sin exigir la misma categoría).
 7. Guía de foco, guía interactiva, sugerencias, modo oscuro, 375 px, `/chaos` y `/formidable`.
 8. ADR, bitácora, ARQUITECTURA y PR con `/abrir-pr`. **Pegar en producción solo con el OK de Felipe.**
+
+## Pendiente
+
+- [ ] Pegar las cinco migraciones en producción, en orden (OK de Felipe) y `pnpm datos:generar:produccion`.
+- [ ] Probar «Fusionar» con un par real: la capa registrada como blusa.
+- [ ] «Esta no es repetida» para sacar un par de la lista de sugeridas (si las falsas molestan).
+- [ ] Que Eliminar diga «se fusionó con otra ficha» en vez del error de la llave (`fn_producto_historia`).
+- [ ] `/formidable` y la prueba ciega de la hoja con una colaboradora real (hecha la revisión en el navegador: claro, oscuro, 375 px).

@@ -1,0 +1,4 @@
+## 2026-11-12 (Fusionar productos duplicados, ADR-0650)
+Qué hice: «Fusionar» en Catálogo ▸ Productos (vista rápida, Tabla con dos o más marcadas y el aviso «N posibles fichas repetidas»): la persona elige cuál ficha queda viendo sus ventas y su fecha de alta, campo por campo lo que difiere y las fotos; `fusionar_productos` muda las tallas al producto que queda y junta las repetidas con salida y entrada `fusion_producto`, cada dueño con lo suyo, y deja el rastro en `producto_fusiones`. Migraciones `20261112204000`–`212000`, sin pegar.
+Por qué así: mudar la variante lleva consigo stock, ventas y códigos sin reescribir el libro de movimientos, que es inmutable; Felipe decidió los 15 conflictos antes de construir (tabla en el ADR).
+Felipe se lleva: el OK para pegar las cinco migraciones en producción, en orden, y probar «Fusionar» con un par real (la capa registrada como blusa).
