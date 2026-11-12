@@ -86,7 +86,7 @@ export function ReabrirEnvio({
             <Boton type="button" onClick={cerrar} disabled={guardando}>
               Cancelar
             </Boton>
-            <Boton type="submit" peso="primario" cargando={guardando} textoCargando="Reabriendo…" disabled={!listo} title={guia.frase ?? undefined} className={guia.claseConfirmar}>
+            <Boton type="submit" peso="primario" cargando={guardando} textoCargando="Reabriendo…" confirma={guia} title={guia.frase ?? undefined} className={guia.claseConfirmar}>
               Reabrir el conteo
             </Boton>
           </div>

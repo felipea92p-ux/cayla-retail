@@ -549,6 +549,16 @@ export function fraseAnotar(monto: number | null): string {
   return monto != null && monto > 0 ? `Anotar ${soles(monto)}` : "Anotar la plata";
 }
 
+/**
+ * El detalle del aviso al anotar la plata. ADR-0574 (20261029192000): una transferencia con su banco y «Ya tenía plata» entran confirmadas
+ * en el mismo instante; Yape o Plin, efectivo o una transferencia sin banco siguen por confirmar para Compras. Antes decía siempre «Compras la
+ * revisa» (auditoría 2026-11-12). `conBanco`: la transferencia lleva el banco del que salió.
+ */
+export function detalleAlAnotarPlata(medio: MedioPlata | null, conBanco: boolean): string {
+  const entraSola = medio === "ya_tenia" || (medio === "transferencia" && conBanco);
+  return entraSola ? "Ya está en tu plata y la puedes usar. Entró confirmada." : "Ya está en tu plata y la puedes usar. Compras la confirma.";
+}
+
 /** «S/ 500 que anotaste · Compras lo revisa…»: lo que se lee dentro de la billetera mientras hay plata por confirmar (maqueta 2026-10-23). */
 export function textoPorConfirmar(porConfirmar: number): string | null {
   return porConfirmar > 0 ? `${soles(porConfirmar)} que anotaste · Compras lo revisa, ya lo puedes usar` : null;
@@ -642,9 +652,20 @@ export function horaDeMovimiento(m: Pick<MovimientoCompradora, "creadoEn">): str
  */
 export function queHaraCompras(m: Pick<MovimientoCompradora, "tipo" | "estado">): string {
   if (!m.estado.pendiente) return m.estado.detalle;
-  if (m.tipo === "compra") return "Compras copia el número del papel y la completa. Si algo no cuadra, te avisa. Mientras tanto, lo que pagaste ya bajó de tu plata.";
+  // ADR-0574 (20261029194000): el papel pasa solo a los libros cuando la tienda termina de contar; Compras solo lo corrige si algo falla.
+  if (m.tipo === "compra") return "Pasa sola a los libros cuando la tienda termine de contar lo que llegó. Si algo no cuadra, Compras te avisa. Lo que pagaste ya bajó de tu plata.";
   if (m.tipo === "plata") return "Compras mira tu voucher y la confirma con su banco o su caja. Mientras tanto ya la puedes usar.";
-  return "Compras lo revisa y lo pasa a los gastos del viaje. Mientras tanto ya bajó de tu plata.";
+  // ADR-0574 (20261029195000): el gasto pasa solo a los gastos del viaje al cerrar la ronda; Compras solo lo corrige si algo falla.
+  return "Pasa solo a los gastos del viaje cuando cierres tu ronda. Hasta entonces lo puedes corregir. Ya bajó de tu plata.";
+}
+
+/**
+ * ¿El cierre de la ronda ya se había guardado? Tras un corte de red la hoja dice «vuelve a tocar el botón: si ya se guardó, no se repite»; si
+ * el primer intento sí llegó, el segundo responde «No tienes una ronda de compras abierta» (`compra_ronda_sin_abrir`) y la pantalla lo mostraba
+ * como «No se guardó» (auditoría 2026-11-12). Solo cuenta como hecho si antes hubo un corte en ESTA hoja: sin corte, ese mismo error es real.
+ */
+export function rondaYaSeCerro(huboCorte: boolean, error: { hint?: string | null } | null | undefined): boolean {
+  return huboCorte && error?.hint === "compra_ronda_sin_abrir";
 }
 
 /** Qué se puede elegir al terminar: con plata, quedársela o devolverla; sin plata, nada; en negativo, CAYLA le debe (sin elegir). */
@@ -663,7 +684,8 @@ export function textoCierre(cierre: { decision: DecisionCierre; monto: number; r
   if (cierre.decision === "le_deben") {
     return cierre.resuelto ? `CAYLA ya te devolvió los ${soles(cierre.monto)} que pusiste.` : `Pusiste ${soles(cierre.monto)} de tu bolsillo: CAYLA te lo devuelve.`;
   }
-  return cierre.monto > 0 ? `Te quedas ${soles(cierre.monto)} para tu próxima compra.` : "No te quedó plata.";
+  // «ronda», como lo dice el historial («Te quedaste … para tu próxima ronda»): la misma decisión, las mismas palabras.
+  return cierre.monto > 0 ? `Te quedas ${soles(cierre.monto)} para tu próxima ronda.` : "No te quedó plata.";
 }
 
 /**
@@ -937,7 +959,8 @@ export type EntradaHistorial =
       decision: Exclude<DecisionCierre, "se_queda">;
       titulo: string;
       detalle: string;
-      entra: boolean;
+      /** true: entra (+, verde); false: sale (−); null: todavía no se movió (lo que CAYLA te devuelve y aún no te devolvió). */
+      entra: boolean | null;
       monto: string;
       estado: { texto: string; detalle: string; pendiente: boolean };
     }
@@ -1043,7 +1066,8 @@ export function historialDeLaCompradora(antes: readonly MovimientoCompradora[], 
           // Mientras Compras no lo recibe no «devolviste» todavía (ADR-0574): la plata ya no cuenta como suya, pero falta entregarla en caja.
           titulo: devuelve ? (r.resuelto ? "Devolviste en caja" : "Por devolver en caja") : "Pusiste de tu bolsillo",
           detalle: [r.texto, diaLima(r.cerradaEn) ? diaMes(diaLima(r.cerradaEn)!) : null].filter(Boolean).join(" · "),
-          entra: !devuelve,
+          // «Pusiste de tu bolsillo» no entra a tu plata hasta que CAYLA te lo devuelve: mientras tanto, el monto sin signo ni verde.
+          entra: devuelve ? false : r.resuelto ? true : null,
           monto: soles(r.monto),
           estado: devuelve
             ? r.resuelto

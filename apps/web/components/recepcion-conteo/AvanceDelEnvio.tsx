@@ -1,6 +1,6 @@
 import { BarraAvance } from "@/components/ui/BarraAvance";
 import { colorDeAvance } from "@/lib/avance-color";
-import { conMiles, fraseDelAvance, type CifrasDelResumen } from "@/lib/recepcion-modelos-reglas";
+import { etiquetaDelAvance, fraseDelAvance, type CifrasDelResumen } from "@/lib/recepcion-modelos-reglas";
 import { Odometro } from "./Odometro";
 
 // Cómo va TODO el envío, en una línea arriba de la lista (ADR-0645, Felipe 2026-11-11): la barra, cuántas van de las que dijeron y qué falta. Reemplaza a la
@@ -12,13 +12,15 @@ export function AvanceDelEnvio({ cifras, sinAviso, onIrAlQueFalta }: { cifras: C
   if (!frase) return null;
   const { contadas, avance } = cifras;
   const dijeron = sinAviso ? null : cifras.dijeron;
+  const etiqueta = etiquetaDelAvance(cifras, sinAviso);
   return (
     <div className="rc-avance" data-guia="recepcion.cifra" aria-live="polite">
       {dijeron != null && avance != null && <BarraAvance pct={Math.min(100, avance)} alto="normal" color={colorDeAvance(avance)} decorativa />}
       <p>
         <b>
+          {etiqueta.antes && <span>{etiqueta.antes}</span>}
           <Odometro valor={contadas} />
-          {dijeron != null ? `de ${conMiles(dijeron)} prendas contadas` : contadas === 1 ? "prenda contada" : "prendas contadas"}
+          {etiqueta.despues}
         </b>
         {onIrAlQueFalta && cifras.estados["por-contar"] > 0 ? (
           <button type="button" className="btn-cayla btn-enlace" title="Ir al primero que falta contar" onClick={onIrAlQueFalta}>

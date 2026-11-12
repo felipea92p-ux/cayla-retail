@@ -720,6 +720,7 @@ export function ContarEnvio({
         soloSede={soloSede}
         responsable={responsable}
         esperandoGuardar={esperandoGuardar}
+        noSeGuardo={sinGuardar > 0}
         peso={todo ? "primario" : "fantasma"}
         parcial={!todo}
         conFrase={donde === "hoja"}

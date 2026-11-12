@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, type MouseEvent, type ReactNode, type Ref } from "react";
+import { useRef, useState, type MouseEvent, type ReactNode, type Ref } from "react";
 import { ArrowLeft, ArrowRight, Ban, Banknote, Check, Package, Repeat, RotateCcw, Sparkles, Tag, TriangleAlert } from "lucide-react";
 import { EtiquetaAhora } from "@/components/alta-producto/guia";
 import { Aviso } from "@/components/ui/Aviso";
@@ -162,8 +162,13 @@ export function PlacaDelModelo({
     const fondo = isla && isla.height > 0 ? isla.top - 12 : window.innerHeight - 16;
     if (caja.bottom > fondo) window.scrollBy({ top: caja.bottom - fondo, behavior });
   };
+  // Tras «Llegaron las N» el paso 1 se pliega a una línea («✓ Llegaron 6 · Cambiar», auditoría 2026-11-12): al bajar a las tallas, el dial quedaba cortado bajo
+  // la cabecera de la prenda. Se recuerda por modelo (la placa no se vuelve a montar al pasar al siguiente) y «Cambiar» lo vuelve a abrir.
+  const [plegadoEn, setPlegadoEn] = useState<string | null>(null);
+  const plegado = plegadoEn === parada.clave && hayConteo && !error;
   const llegaronTodas = (n: number) => {
     deUnToque(n);
+    setPlegadoEn(parada.clave);
     requestAnimationFrame(() => requestAnimationFrame(bajarALasTallas));
   };
   const flecha = <ArrowRight aria-hidden className="h-4 w-4 shrink-0" />;
@@ -227,6 +232,18 @@ export function PlacaDelModelo({
             {/* Lo mismo que dice su fila en la lista. Sin contar, «Sigue» lo dice. */}
             <span className="rc-bloque-estado">{!hayConteo ? <EtiquetaAhora /> : modelo ? <EstadoModelo m={modelo} faltanTallas={faltanTallas} sinAviso={sinAviso} /> : null}</span>
           </div>
+          {plegado ? (
+            <p className="rc-cuenta-plegada" data-guia="recepcion.numero">
+              <Check aria-hidden className="h-4 w-4 shrink-0" />
+              <span>
+                {contadas === 1 ? "Llegó" : "Llegaron"} <b>{conMiles(contadas)}</b>
+                {dijeron != null && dijeron !== contadas ? ` de ${conMiles(dijeron)}` : ""}
+              </span>
+              <button type="button" className="btn-cayla btn-enlace" onClick={() => setPlegadoEn(null)}>
+                Cambiar
+              </button>
+            </p>
+          ) : (
           <div className="rc-cuenta" data-guia="recepcion.numero">
             <Dial contadas={contadas} dijeron={dijeron} hayConteo={hayConteo} minimo={minimo} nombre={nombre} abrirAlEntrar={abrirNumero} onPoner={poner} onEnter={onEnter} />
             <div className="rc-cuenta-lado">
@@ -277,6 +294,7 @@ export function PlacaDelModelo({
               {enStock > 0 && <p>Ya entraron {textoPrendas(enStock)} al stock: lo contado no baja de ahí.</p>}
             </div>
           </div>
+          )}
           {error && (
             <div className="rc-placa-error">
               <Aviso

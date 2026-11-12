@@ -40,7 +40,7 @@ import { DuenoDeLoQueEntra } from "./DuenoDeLoQueEntra";
 import { agruparLineasDelCierre, camposDelCierrePorGrupo, nombreDelGrupoDelCierre, causasDelGrupo, filasDelCierre, lineaDeLaPrenda, lineaDelGrupo, textoDeLasPlegadas, type GrupoDeLineas } from "@/lib/recepcion-grupos-reglas";
 import { pideRevisarAlRecibir, precioUnicoAlCerrar, textoRevisarAlRecibir } from "@/lib/precio-propuesto-reglas";
 import { borrarBorradorDelCierre, conCostosDecididos, conLoDecidido, costosCambiados, costosDeCombinacionCambiados, decisionCambiada, type FotoDelCierre, guardarBorradorDelCierre, leerBorradorDelCierre } from "@/lib/recepcion-cierre-borrador";
-import { type PrendaConCosto, lineasSinModelosEnCero, modelosEnCeroDe, textoModelosEnCero, avisoDePrecioRechazado, type CambioDePrecio, cambioDePrecioDeCompra, camposDelCierre, conCostoDeHoy, contadasDe, costoComoTexto, costoDePrendaTexto, esRegaloFuera, filasDeCostoEnStock, textoCostoEnStock, costosDePrendaConProblema, type CostosDePrendas, costoDelGrupo, detalleDelModelo, deQuienLlego, type FilaDeQuien, idCampoProveedor, type DecisionCierre, decisionInicial, detalladas, detalleParaDespues, diferenciaDe, HINT_CONTEO_CAMBIADO, idCampoCierre, leerCostoCierre, type ClaveLinea, type LineaParaContar, lineasParaCerrar, lineaVisible, marcaDeLinea, mensajeAlGuardar, nombreDeLinea, prendasConCosto, resumenDelCierre, textoBotonCerrar, textoResumenDelCierre, TOPES_CONTEO, unidadesSinIdentificar } from "@/lib/recepcion-conteo-reglas";
+import { type PrendaConCosto, lineasSinModelosEnCero, modelosEnCeroDe, textoModelosEnCero, avisoDePrecioRechazado, type CambioDePrecio, cambioDePrecioDeCompra, camposDelCierre, conCostoDeHoy, contadasDe, costoComoTexto, costoDePrendaTexto, esRegaloFuera, filasDeCostoEnStock, textoCostoEnStock, costosDePrendaConProblema, type CostosDePrendas, costoDelGrupo, detalleDelModelo, deQuienLlego, type FilaDeQuien, idCampoProveedor, type DecisionCierre, decisionInicial, detalladas, detalleParaDespues, diferenciaDe, HINT_CONTEO_CAMBIADO, idCampoCierre, leerCostoCierre, type ClaveLinea, type LineaParaContar, lineasParaCerrar, lineaVisible, marcaDeLinea, mensajeAlGuardar, nombreDeLinea, prendasConCosto, resumenDelCierre, textoBotonCerrar, textoResumenDelCierre, textoDelEnvioCerrado, TOPES_CONTEO, unidadesSinIdentificar } from "@/lib/recepcion-conteo-reglas";
 import { VALOR_OTRO } from "@/lib/recepcion-envio-reglas";
 import { cambiarPreciosEnRecepcion, cerrarConteo, corregirGuiaEnvio, leerCostosDeHoy, leerObservacionesDelEnvio, leerPreciosDeCombinaciones, ponerProveedorDeMarca, validarPreciosEnRecepcion } from "@/lib/recepcion-conteo-acciones";
 import {
@@ -588,7 +588,7 @@ export function CerrarEnvio({
       return;
     }
     avisar.exito(`${detalle.numero} cerrado`, {
-      detalle: resultado && resultado.unidades > 0 ? `${resultado.unidades.toLocaleString("es-PE")} prendas entraron al stock${porDetallar > 0 ? `; ${porDetallar.toLocaleString("es-PE")} quedan para después` : ""}` : porDetallar > 0 ? `${porDetallar.toLocaleString("es-PE")} prendas quedan para después` : undefined,
+      detalle: textoDelEnvioCerrado(resultado?.unidades ?? 0, porDetallar),
     });
     yaCerrado.current = true;
     borrarBorradorDelCierre(detalle.id);
@@ -1133,12 +1133,26 @@ export function CerrarEnvio({
                 .join(" · ")}
             </span>
           </p>
+          {/* Primero adónde va cada prenda (al stock o para después: suman lo contado) y aparte su costo. Antes «Entran con costo 9» contaba también las
+              3 que quedan para después y parecía que entraban 9 al stock (auditoría 2026-11-12). */}
           <dl className="grid grid-cols-[max-content_minmax(0,1fr)] gap-x-4 gap-y-1 text-sm">
+            {resumen.sePuedenVender > 0 && (
+              <>
+                <dt className="text-taupe">Entran al stock</dt>
+                <dd className="tabular-nums text-tinta">{resumen.sePuedenVender.toLocaleString("es-PE")}</dd>
+              </>
+            )}
+            {porDetallar > 0 && (
+              <>
+                <dt className="text-taupe">Para después</dt>
+                <dd className="tabular-nums text-tinta">{porDetallar.toLocaleString("es-PE")} · separar, tallas y lo nuevo</dd>
+              </>
+            )}
             {costoTotal.conCosto > 0 && (
               <>
-                <dt className="text-taupe">Entran con costo</dt>
+                <dt className="text-taupe">Costo</dt>
                 <dd className="tabular-nums text-tinta">
-                  {costoTotal.conCosto.toLocaleString("es-PE")} · {soles(costoTotal.total)}
+                  {soles(costoTotal.total)} · {costoTotal.conCosto.toLocaleString("es-PE")} {costoTotal.conCosto === 1 ? "prenda" : "prendas"}
                 </dd>
               </>
             )}
@@ -1146,12 +1160,6 @@ export function CerrarEnvio({
               <>
                 <dt className="text-taupe">Sin costo</dt>
                 <dd className="tabular-nums text-tinta">{costoTotal.sinCosto.toLocaleString("es-PE")} · llega con la factura</dd>
-              </>
-            )}
-            {porDetallar > 0 && (
-              <>
-                <dt className="text-taupe">Para después</dt>
-                <dd className="tabular-nums text-tinta">{porDetallar.toLocaleString("es-PE")} · separar, tallas y lo nuevo</dd>
               </>
             )}
           </dl>
@@ -1184,7 +1192,8 @@ export function CerrarEnvio({
             onChange={(e) => setGuiaEscrita(e.target.value)}
             // sugerir-fijo: el formato de un número de guía no depende de nada elegido antes
             placeholder="Ej. T001-000342"
-            pie={guiaEscrita.trim() && guiaEscrita.trim() !== guiaGuardada ? "Se corrige al cerrar." : "Si el papel dice otra cosa, corrígela."}
+            // Vacía no hay nada que corregir: se pide escribirla si viene (auditoría 2026-11-12).
+            pie={guiaEscrita.trim() && guiaEscrita.trim() !== guiaGuardada ? "Se corrige al cerrar." : guiaEscrita.trim() ? "Si el papel dice otra cosa, corrígela." : "Escríbela si el papel la trae."}
           />
         </CampoGuiado>
         <CampoTexto

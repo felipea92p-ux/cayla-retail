@@ -12,6 +12,7 @@
 // (no se sabe qué prendas son), detalle (se sabe la prenda, faltan tallas y colores) o crear (es nueva)—.
 
 import { leerCantidad } from "./alta-producto";
+import { diaLima, diasEntreFechas, hoyLima } from "./fechas-lima";
 import { sinBlancosDeMiles } from "./numero-escrito";
 import { esFalloDeRed, traducirError } from "./error-escritura";
 import type { CampoDeGuia } from "./guia-campos";
@@ -1450,10 +1451,19 @@ export function resumenDelCierre(lineas: readonly LineaParaContar[]): { sePueden
   return { sePuedenVender, guardadas };
 }
 
+/** El detalle del aviso «ENV-… cerrado»: cuántas entraron y cuántas quedan para después, con su singular («1 prenda entró», no «1 prendas entraron»). */
+export function textoDelEnvioCerrado(entraron: number, paraDespues: number): string | undefined {
+  const n = (x: number) => x.toLocaleString("es-PE");
+  const despues = paraDespues === 1 ? "1 queda para después" : `${n(paraDespues)} quedan para después`;
+  if (entraron > 0) return `${entraron === 1 ? "1 prenda entró" : `${n(entraron)} prendas entraron`} al stock${paraDespues > 0 ? `; ${despues}` : ""}`;
+  if (paraDespues > 0) return paraDespues === 1 ? "1 prenda queda para después" : `${n(paraDespues)} prendas quedan para después`;
+  return undefined;
+}
+
 /** La línea sobre el botón de cerrar: «Al cerrar: 0 se pueden vender ya · 5 quedan guardadas para terminar después.» */
 export function textoResumenDelCierre(r: { sePuedenVender: number; guardadas: number }): string {
   // Al cerrar entran al almacén, no al piso: para venderlas todavía hay que bajarlas (prueba ciega, 2026-11-03).
-  const entran = `${r.sePuedenVender.toLocaleString("es-PE")} ${r.sePuedenVender === 1 ? "queda" : "quedan"} en el almacén; bájalas al piso para venderlas`;
+  const entran = `${r.sePuedenVender.toLocaleString("es-PE")} ${r.sePuedenVender === 1 ? "queda en el almacén; bájala al piso para venderla" : "quedan en el almacén; bájalas al piso para venderlas"}`;
   const guardadas = `${r.guardadas.toLocaleString("es-PE")} ${r.guardadas === 1 ? "queda guardada" : "quedan guardadas"} para terminar después`;
   if (r.sePuedenVender === 0) return r.guardadas === 0 ? "Al cerrar: todavía no hay nada contado." : `Al cerrar: ${guardadas}.`;
   return r.guardadas === 0 ? `Al cerrar: ${entran}.` : `Al cerrar: ${entran} · ${guardadas}.`;
@@ -1865,11 +1875,13 @@ export function textoAvisoPendientes(p: Pick<PendientesDeLaSede, "total" | "envi
   return `${textoPrendas(p.total)} para terminar${envios > 1 ? ` en ${envios} envíos` : ""}`;
 }
 
-/** Cuántos días lleva lo más antiguo (para el tono del aviso: más de 7 días es lo que ADR-0393 vigila). */
+/**
+ * Cuántos días lleva lo más antiguo (para el tono del aviso: más de 7 días es lo que ADR-0393 vigila). Días de CALENDARIO de Lima, no bloques de 24 h
+ * (auditoría 2026-11-12): un envío cerrado ayer a las 18:00 y mirado hoy a las 09:00 decía «11/11» y «hoy» en la misma celda.
+ */
 export function diasDesde(desde: string | null, hoy: Date = new Date()): number | null {
-  if (!desde) return null;
-  const t = Date.parse(desde);
-  return Number.isFinite(t) ? Math.max(0, Math.floor((hoy.getTime() - t) / 86_400_000)) : null;
+  const dia = diaLima(desde);
+  return dia ? Math.max(0, diasEntreFechas(dia, hoyLima(hoy))) : null;
 }
 
 /**

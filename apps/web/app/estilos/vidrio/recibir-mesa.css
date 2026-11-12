@@ -235,6 +235,10 @@ main:has(.rc-conteo) { padding-bottom: 16px; }
 
 .rc-cuenta { display: grid; grid-template-columns: 192px minmax(0, 1fr); align-items: center; gap: 12px 24px; }
 .rc-cuenta > .rc-dial { grid-column: 1; }
+/* El paso 1 plegado en una línea tras «Llegaron las N» (auditoría 2026-11-12): el número con su ✓ y «Cambiar» para volver al dial. */
+.rc-cuenta-plegada { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; color: var(--color-tinta); font-size: 15px; }
+.rc-cuenta-plegada > svg { color: var(--color-verde-profundo); }
+.rc-cuenta-plegada b { font-variant-numeric: tabular-nums; }
 .rc-cuenta-lado { grid-column: 2; display: grid; align-content: center; gap: 10px; min-width: 0; max-width: 420px; }
 .rc-cuenta-lado > p { color: var(--color-taupe); font-size: 14px; line-height: 1.35; }
 .rc-pista { min-height: 2.7em; }
@@ -373,7 +377,8 @@ main:has(.rc-conteo) { padding-bottom: 16px; }
 .rc-tabla-tallas tbody td:first-child { padding-left: 12px; text-align: left; white-space: nowrap; }
 .rc-color { display: inline-flex; align-items: center; gap: 8px; color: var(--color-tinta); }
 .rc-celda { width: 100%; min-width: 46px; max-width: 72px; height: 32px; padding: 0 4px; border: 0; border-radius: 9px; background: var(--pozo-fondo); box-shadow: var(--pozo-sombra); color: var(--color-tinta); outline: 0; text-align: center; font-variant-numeric: tabular-nums; transition: background-color 200ms var(--ease-cayla), box-shadow 200ms var(--ease-cayla); }
-.rc-celda:focus { background: var(--pozo-encendido-fondo); box-shadow: var(--pozo-encendido-sombra), inset 0 -2px 0 var(--color-rojo); }
+/* El hilo de abajo, de tinta como el de todo campo que se enciende: el rojo es solo del error (auditoría 2026-11-12). */
+.rc-celda:focus { background: var(--pozo-encendido-fondo); box-shadow: var(--pozo-encendido-sombra), inset 0 -2px 0 var(--color-tinta); }
 .rc-celda[aria-invalid="true"] { box-shadow: var(--pozo-sombra), inset 0 0 0 1.5px var(--color-ambar); }
 .rc-celda:disabled { opacity: 0.4; }
 .rc-celda-falta { display: inline-grid; place-items: center; width: 100%; min-width: 46px; height: 32px; border-radius: 9px; color: var(--color-taupe); transition: background-color 200ms var(--ease-cayla), color 200ms var(--ease-cayla); }

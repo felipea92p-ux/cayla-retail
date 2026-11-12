@@ -44,7 +44,9 @@ const PLANTILLA_DETALLE = "sm:grid-cols-[1.5rem_1fr_5rem]";
 const PLANTILLA_DETALLE_COSTO = "sm:grid-cols-[1.5rem_1fr_10rem_5rem]";
 
 const unidades = (n: number) => `${n} ${n === 1 ? "unidad" : "unidades"}`;
-const prendas = (n: number) => `${n} ${n === 1 ? "prenda" : "prendas"}`;
+// Lo que cuenta `prendasDistintas` son MODELOS (Blusa Emma, Casaca Luciana), no unidades: decirlo «modelos», o «12 unidades / 3 prendas» se leía como dos
+// cifras de lo mismo (auditoría 2026-11-12).
+const modelos = (n: number) => `${n} ${n === 1 ? "modelo" : "modelos"}`;
 const SIN_MARCA = "Sin marca";
 const nombreMarca = (m: MarcaDelEnvio) => m.marca ?? SIN_MARCA;
 
@@ -128,7 +130,7 @@ export function RecibidoPorEnvio({
               </span>
               <span className={celda("der", "text-sm text-tinta")}>
                 {unidades(e.unidades)}
-                <span className="block text-sm text-tinta/55">{prendas(prendasDistintas(e))}</span>
+                <span className="block text-sm text-tinta/55">{modelos(prendasDistintas(e))}</span>
                 <BarraApilada segmentos={tramos(marcas)} alto={4} decorativa className="mt-2" />
               </span>
             </button>
@@ -311,7 +313,7 @@ function EnvioAbierto({ envio, costos, sigueAbierto, onClose }: { envio: EnvioRe
 
         <div className="flex flex-wrap items-center justify-between gap-2 border-t border-tinta/10 pt-3">
           <p className="text-sm text-tinta/55">
-            {unidades(envio.unidades)} · {prendas(prendasDistintas(envio))} · {conMarca} {conMarca === 1 ? "marca" : "marcas"}
+            {unidades(envio.unidades)} · {modelos(prendasDistintas(envio))} · {conMarca} {conMarca === 1 ? "marca" : "marcas"}
           </p>
           {facturas.map((l) => (
             // Cierra este modal antes de navegar: la ruta de factura abre SU propio modal interceptado, y sin esto quedaban los dos apilados.

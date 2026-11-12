@@ -9,7 +9,7 @@
     ],
     "components/mi-plata/CodigoDeEnvio.tsx": [
       "BotonCopiar «el código del envío»",
-      "BotonAncla «Compartir por WhatsApp»"
+      "BotonAncla «Compartir el código por WhatsApp»"
     ],
     "components/mi-plata/FilaEnvio.tsx": [
       "button «{abierta && <HojaEnvio e={e}»"
