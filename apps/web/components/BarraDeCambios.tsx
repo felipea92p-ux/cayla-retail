@@ -81,11 +81,11 @@ export function BarraDeCambios({
             Descartar
           </Boton>
           {hayQueRecargar ? (
-            <Boton type="button" peso="primario" className="max-sm:flex-1" onClick={onRecargar}>
+            <Boton key="recargar" type="button" peso="primario" className="max-sm:flex-1" onClick={onRecargar}>
               Recargar la prenda
             </Boton>
           ) : (
-            <Boton type="submit" peso="primario" className="max-sm:flex-1" cargando={bloqueada} data-guia="editar.barra-guardar">
+            <Boton key="guardar" type="submit" peso="primario" className="max-sm:flex-1" cargando={bloqueada} data-guia="editar.barra-guardar">
               Revisar y guardar
             </Boton>
           )}

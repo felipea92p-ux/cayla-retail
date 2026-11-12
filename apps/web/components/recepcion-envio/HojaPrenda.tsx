@@ -592,12 +592,15 @@ export function HojaPrenda({
               <Boton type="button" peso="fantasma" onClick={() => avisoSalida.pedirAccion(cerrar)} disabled={guardando}>
                 Cancelar
               </Boton>
+              {/* Una `key` por botón: sin ella, React reusaba el MISMO <button> y, al tocar «Seguir» en el paso 2, lo volvía `submit` antes de
+                  que el navegador terminara el clic, que enviaba el formulario y creaba la prenda sin mostrar el paso del precio (Felipe
+                  2026-11-12, corrida de /flujo-de-negocio). Lo vigila `lib/botones-que-cambian-de-tipo.test.ts`. */}
               {enUltimoPaso ? (
-                <Boton type="submit" peso="primario" cargando={guardando} textoCargando={nueva ? "Creando…" : "Sumando…"} title={guia.frase ?? undefined} className={guia.claseConfirmar}>
+                <Boton key="crear" type="submit" peso="primario" cargando={guardando} textoCargando={nueva ? "Creando…" : "Sumando…"} title={guia.frase ?? undefined} className={guia.claseConfirmar}>
                   {nueva ? "Crear y contar" : nuevas > 0 ? `Sumar ${nuevas} y contar` : destino.enTabla ? "Listo" : "Sumar y contar"}
                 </Boton>
               ) : (
-                <Boton type="button" peso="primario" onClick={seguir} title={guia.frase ?? undefined} className={guia.claseConfirmar}>
+                <Boton key="seguir" type="button" peso="primario" onClick={seguir} title={guia.frase ?? undefined} className={guia.claseConfirmar}>
                   <span className="flex items-center gap-2">
                     Seguir
                     <ArrowRight aria-hidden className="-my-1 h-4 w-4 shrink-0" />
