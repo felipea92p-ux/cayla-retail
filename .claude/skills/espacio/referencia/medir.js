@@ -23,7 +23,9 @@
   };
   const main = document.querySelector('main') || document.body;
   const lado = (e) => (main.contains(e) ? 'pantalla' : 'marco');
-  const todos = [...document.body.querySelectorAll('*')].filter((e) => !e.closest('svg,nextjs-portal,[aria-hidden="true"],[hidden]') && vis(e));
+  // Lo oculto a la vista (`sr-only`: 1×1 px recortado, con margen −1 px a propósito) es para el lector de pantalla: no tiene espacio que medir.
+  const soloLector = (e) => { const r = e.getBoundingClientRect(), s = cs(e); return r.width <= 1 && r.height <= 1 && /hidden|clip/.test(s.overflow + s.overflowX); };
+  const todos = [...document.body.querySelectorAll('*')].filter((e) => !e.closest('svg,nextjs-portal,[aria-hidden="true"],[hidden]') && vis(e) && !soloLector(e));
 
   // ───────────────────────── 1 · blancos de puntero (WCAG 2.5.8 AA: 24 · repo: 32 objetivo con mouse · 44 con el dedo, ADR-0611 mejora 5)
   const dedo = matchMedia('(pointer: coarse)').matches;
@@ -66,8 +68,16 @@
 
   // ───────────────────────── 2 · relleno, margen y hueco declarados fuera de la escala de 4 px
   // ok: múltiplo de 4 · medio paso: 2, 6 o 10 DENTRO de un control o pieza chica (alto ≤ 48 px) · fuera: todo lo demás (impares, fracciones, 14, 18, 22…)
-  const fuera = {}, medioFuera = {}, ejemplosFuera = {};
-  const anota = (mapa, v, e, prop) => { const k = px(v); mapa[k] = (mapa[k] || 0) + 1; if (mapa === fuera && !(ejemplosFuera[k]?.length >= 2)) (ejemplosFuera[k] ||= []).push(`${prop} en ${pista(e)}`); };
+  // Lo que vive DENTRO de una pieza decidida por /unificar (ADR-0358) trae sus medidas de esa decisión: se cuenta aparte, como «decidido»,
+  // y si choca con la escala va a docs/milimetro/propuestas.md, no a la pantalla que la usa.
+  const PIEZA = '.btn-cayla, .pildora-cayla, .pildora-filtro, .pestana-cayla, .pestanas-cayla, .segmento-cayla, .buscador, .caja-campo, .caja-cayla, .chip-cayla, .globito, .ayuda-cab-q, [data-voz="cabecera"]';
+  const fuera = {}, medioFuera = {}, ejemplosFuera = {}, enPieza = {}, ejemplosPieza = {};
+  const anota = (mapa, v, e, prop) => {
+    const k = px(v); mapa[k] = (mapa[k] || 0) + 1;
+    const ej = mapa === fuera ? ejemplosFuera : mapa === enPieza ? ejemplosPieza : null;
+    if (ej && !(ej[k]?.length >= 2)) (ej[k] ||= []).push(`${prop} en ${pista(e)}`);
+  };
+  const borde = { paddingTop: 'borderTopWidth', paddingRight: 'borderRightWidth', paddingBottom: 'borderBottomWidth', paddingLeft: 'borderLeftWidth' };
   for (const e of todos) {
     if (!main.contains(e) || e === main) continue;
     const s = cs(e), r = e.getBoundingClientRect();
@@ -79,11 +89,17 @@
     const enlace = e.classList.contains('btn-enlace');
     for (const p of props) {
       if (enlace && (p === 'paddingBottom' || p === 'marginBottom')) continue;
-      const v = Math.abs(parseFloat(s[p]));
+      let v = Math.abs(parseFloat(s[p]));
       if (!v || Number.isNaN(v)) continue;
+      // Un margen lateral de más de 64 px (el paso más grande de la escala) es un `auto` que empuja (ml-auto), no un espacio declarado.
+      if (/^margin(Left|Right)$/.test(p) && v > 64) continue;
+      // Un borde TRANSPARENTE no se ve: el aire visible es borde + relleno (`btn-cayla` lleva 1 px transparente y 1 rem de relleno = 17).
+      // Un borde que se ve es la línea contra la que se mide el aire: ahí cuenta solo el relleno.
+      if (borde[p]) { const c = s[borde[p].replace('Width', 'Color')]; if (/rgba\([^)]*,\s*0\)|transparent/.test(c)) v += parseFloat(s[borde[p]]) || 0; }
       if (Math.abs(v / 4 - Math.round(v / 4)) < 0.03) continue;
       const medio = [2, 6, 10].some((m) => Math.abs(v - m) < 0.12);
       if (medio && r.height <= 48) continue;
+      if (e.closest(PIEZA)) { anota(enPieza, v, e, p); continue; }
       anota(medio ? medioFuera : fuera, v, e, p);
     }
   }
@@ -103,20 +119,37 @@
   const proximidad = [];
   for (const p of todos) {
     if (!main.contains(p) || p === main || tieneCaja(cs(p))) continue;
+    // `justify-content: space-between` (o un hijo con margen `auto`) empuja a propósito: ese hueco no es aire de grupo.
+    if (/space-(between|around|evenly)/.test(cs(p).justifyContent)) continue;
     const hijos = [...p.children].filter(enFlujo);
     if (hijos.length < 2) continue;
     const adentro = huecos(hijos);
     if (!adentro.g.length) continue;
     const maxAdentro = Math.max(...adentro.g);
-    if (maxAdentro < 8) continue;
+    if (maxAdentro < 8 || maxAdentro > 64) continue; // más de 64 px adentro es un empuje (ml-auto), no un grupo que se parte
     const hermanos = [...(p.parentElement?.children || [])].filter(enFlujo);
     if (hermanos.length < 2) continue;
     const afuera = huecos(hermanos);
-    // El aire de afuera es el hueco de `p` con su vecino más cercano en el eje de su padre.
+    // La proximidad se compara en el MISMO eje: las celdas de una fila (lado a lado) contra la fila de abajo (arriba-abajo) no son el mismo
+    // aire, y la fila lleva su propio relleno. Antes cada fila de una tabla salía como «grupo roto».
+    if (afuera.enFila !== adentro.enFila) continue;
+    // El aire de afuera es el que separa el CONTENIDO de `p` del de su vecino más cercano en el eje de su padre: el hueco entre las cajas
+    // más el relleno y el borde de las dos caras que se miran. Sin eso, dos filas de una tabla pegadas (hueco 0) pero con 12 px de relleno
+    // cada una y su línea salían como «grupo roto» (Compras apilada a 1024 px, 2026-11-12).
     const rp = p.getBoundingClientRect();
+    const sp = cs(p);
+    const cara = (s, lado) => parseFloat(s[`padding${lado}`]) + parseFloat(s[`border${lado}Width`]);
     const vecinos = hermanos.filter((h) => h !== p).map((h) => {
       const r = h.getBoundingClientRect();
-      return afuera.enFila ? Math.max(r.left - rp.right, rp.left - r.right) : Math.max(r.top - rp.bottom, rp.top - r.bottom);
+      const sh = cs(h);
+      if (afuera.enFila) {
+        return h.getBoundingClientRect().left >= rp.right - 0.5
+          ? r.left - rp.right + cara(sp, 'Right') + cara(sh, 'Left')
+          : rp.left - r.right + cara(sp, 'Left') + cara(sh, 'Right');
+      }
+      return r.top >= rp.bottom - 0.5
+        ? r.top - rp.bottom + cara(sp, 'Bottom') + cara(sh, 'Top')
+        : rp.top - r.bottom + cara(sp, 'Top') + cara(sh, 'Bottom');
     }).filter((x) => x > -0.5);
     if (!vecinos.length) continue;
     const minAfuera = Math.min(...vecinos);
@@ -150,6 +183,7 @@
     blancosBajo24DelMarco: bajo24.filter((x) => x.lado === 'marco').length, // se reporta aparte: es del lateral o la cabecera
     blancosBajo44ConDedo: dedo ? bajo44.filter((x) => x.lado === 'pantalla').length : 'no aplica (puntero fino)',
     valoresFueraDeEscala: Object.values(fuera).reduce((a, b) => a + b, 0),
+    fueraDeEscalaDentroDePiezasDecididas: Object.values(enPieza).reduce((a, b) => a + b, 0), // no es de la pantalla: va a propuestas.md
     mediosPasosFueraDeUnControl: Object.values(medioFuera).reduce((a, b) => a + b, 0),
     gruposConProximidadRota: proximidad.length,
     radiosInvertidos: radiosInvertidos.length,
@@ -163,6 +197,7 @@
       blancosBajo44: bajo44 ? bajo44.slice(0, TOPE).map((x) => x.texto) : 'Con mouse no se mide el 44: el área de tacto.css solo existe con pointer: coarse. Emula un celular táctil en DevTools o corre `pnpm --filter web tacto:medir`.',
       blancosDePantallaBajo32DeAlto: bajo32Alto,
       fueraDeEscala: { valores: fuera, ejemplos: ejemplosFuera },
+      decididoEnPiezas: { valores: enPieza, ejemplos: ejemplosPieza },
       mediosPasosFueraDeUnControl: medioFuera,
       proximidadRota: proximidad.slice(0, TOPE),
       altosDeControles: altosControles,

@@ -19,4 +19,4 @@ Una fila por auditoría (la más nueva arriba). Graves = hallazgos de severidad 
 
 | Fecha | Ruta o pieza | Rama / PR | Graves abiertos | Notas |
 |---|---|---|---|---|
-| | | | | |
+| 2026-11-12 | `/compras` (Historial de compras) | `claude/auditoria-milimetro-compras` | 0 | Primera corrida de los medidores contra el ERP real: 0 graves, 4 medias, 6 leves; arregladas 3 medias (rojo de «Venció», fila apilada propia, pie de paginación a 15 px), quedan el esqueleto global y las leves (backlog de la rama). 16 falsos positivos de los medidores arreglados. Informe: `auditorias/2026-11-12-compras.md` |
