@@ -1942,7 +1942,7 @@ export const GUIA_RECIBIR_ENVIO: Guia = {
       requiere: [CONTADOR_A_LA_VISTA],
       preparar: [{ tipo: "clic", ancla: "recepcion.abrir-tallas", siEsta: true }],
       titulo: "La hoja de tallas y colores",
-      texto: "Escribe cuántas llegaron de cada talla y color: arriba ves cuántas van. Quita con la × lo que no llegó. «Agregar talla o color» abre todas las tallas y los colores para marcar los que faltan. Se guarda sola cuando lo repartido cuadra con lo contado.",
+      texto: "Escribe cuántas llegaron de cada talla y color, o súmalas con − y +; con Tab pasas de casilla en casilla. Al pie, el total de cada talla. Quita con la × lo que no llegó, y «Agregar talla o color» marca lo que falta. Se guarda sola cuando cuadra con lo contado.",
     },
     {
       id: "danadas-contar",

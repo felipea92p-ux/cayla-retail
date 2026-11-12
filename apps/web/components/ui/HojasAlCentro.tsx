@@ -48,7 +48,12 @@ export function useHojaAlCentro(activo: boolean, hoja: HTMLElement | null): numb
     if (!activo || !enLaZona || !hoja) return;
     const escritorio = window.matchMedia("(min-width: 640px)");
     let actual: number | null = null;
+    // Mientras se arma (lo que lee al abrir llega un instante después y la hoja crece) y dura su entrada animada, se vuelve a centrar: si no,
+    // una hoja que abre con «Cargando…» quedaba centrada para su alto de carga y después crecía hacia abajo, baja en la pantalla.
+    const abiertaEn = performance.now();
+    const MS_ARMANDOSE = 600;
     const medir = (abriendo: boolean) => {
+      abriendo = abriendo || performance.now() - abiertaEn < MS_ARMANDOSE;
       if (!escritorio.matches) {
         actual = null;
         setArriba(null);

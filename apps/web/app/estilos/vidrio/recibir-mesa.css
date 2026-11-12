@@ -382,6 +382,12 @@ main:has(.rc-conteo) { padding-bottom: 16px; }
 }
 button.rc-celda-falta:focus-visible { outline: 2px solid var(--color-tinta); outline-offset: 1px; }
 .rc-fila-total { color: var(--color-tinta); font-weight: 600; font-variant-numeric: tabular-nums; }
+/* La tabla de tallas y colores «con superpoderes» (Felipe 2026-11-12): cada número con su − y + (`PasoCantidad`), centrado en su celda; la
+   cabecera en tinta y no en taupe, para que se lea; y al pie, el total de cada talla. */
+.rc-tabla-tallas .rc-paso-celda { margin-inline: auto; }
+.rc-tabla-tallas thead th { color: var(--color-tinta); }
+.rc-fila-pie :is(th, td) { padding: 8px 4px; border-top: 1px solid var(--hilo-cabeza); color: var(--color-tinta); font-weight: 600; font-variant-numeric: tabular-nums; text-align: center; }
+.rc-fila-pie th:first-child { padding-left: 12px; text-align: left; }
 .rc-matriz-pie { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 6px 12px; }
 .rc-matriz-botones { display: flex; flex-wrap: wrap; gap: 6px; }
 .rc-matriz-total { color: var(--color-taupe); font-size: 14px; font-variant-numeric: tabular-nums; }

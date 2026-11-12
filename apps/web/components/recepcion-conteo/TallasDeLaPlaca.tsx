@@ -12,6 +12,7 @@ import { Aviso } from "@/components/ui/Aviso";
 import { avisar } from "@/components/ui/Avisos";
 import { Boton } from "@/components/ui/campos";
 import { leerCantidad, limpiarCantidad, type ColorAlta } from "@/lib/alta-producto";
+import { PasoCantidad } from "@/components/ui/PasoCantidad";
 import { conMiles } from "@/lib/recepcion-modelos-reglas";
 import { matrizDe, nombreDeVariante, SOLUCIONES_DANADA, sumasDe, type Conteo, type MatrizRecepcion, type PrendaRecepcion, type SolucionDanada } from "@/lib/recepcion-envio-reglas";
 import { claveDeEje, cuadreDeTallas, ordenarTallasVisibles, quitarColor, quitarTalla, type BorradorTallas } from "@/lib/recepcion-tallas-reglas";
@@ -247,7 +248,7 @@ function TablaDeTallas({
                 <span className="rc-talla">
                   <span>{t.texto}</span>
                   {conQuitar && tallas.length > 1 && (
-                    <button type="button" className="rc-talla-quitar" aria-label={`Quitar la talla ${t.texto}`} title={`Quitar la talla ${t.texto}`} onClick={() => onQuitar("talla", t)}>
+                    <button type="button" tabIndex={-1} className="rc-talla-quitar" aria-label={`Quitar la talla ${t.texto}`} title={`Quitar la talla ${t.texto}`} onClick={() => onQuitar("talla", t)}>
                       <X aria-hidden className="h-3 w-3" />
                     </button>
                   )}
@@ -286,6 +287,7 @@ function TablaDeTallas({
                         {onCrear ? (
                           <button
                             type="button"
+                            tabIndex={-1}
                             className="rc-celda-falta"
                             title={`La prenda no tiene ${c.texto} en talla ${t.texto}. Tócala para crearla.`}
                             aria-label={`Crear ${c.texto} en talla ${t.texto}`}
@@ -304,22 +306,38 @@ function TablaDeTallas({
                   const deMas = tope !== undefined && numero(v.id) > tope;
                   return (
                     <td key={v.id}>
-                      <input // unificar-fijo: la celda de la matriz, sin los botones de sumar: aquí se reparte escribiendo y con Tab pasa a la siguiente
-                        className="rc-celda"
-                        type="text"
-                        inputMode="numeric"
-                        pattern="[0-9]*"
-                        maxLength={7}
-                        autoComplete="off"
-                        placeholder="0" // sugerir-fijo: una cantidad vacía es cero, sea la prenda que sea
-                        data-talla={t.clave}
-                        data-color={c.clave}
-                        aria-label={`${pregunta} ${nombreDeVariante(v)}`}
-                        aria-invalid={deMas || leerCantidad(valores[v.id] ?? "") === null || undefined}
-                        disabled={sinNada}
-                        value={valores[v.id] ?? ""}
-                        onChange={(e) => onValor(v.id, limpiarCantidad(e.target.value))}
-                        onFocus={(e) => e.currentTarget.select()}
+                      {/* − y + junto a cada número (Felipe 2026-11-12: «para que sea más fácil de agregar las cantidades»), fuera del Tab: el Tab
+                          pasa de número en número (`sinTab`). Con más de 4 tallas, la celda chica, para que la tabla quepa. */}
+                      <PasoCantidad
+                        tamano={tallas.length <= 4 ? "fila" : "celda"}
+                        sinTab
+                        tono={deMas ? "atencion" : undefined}
+                        className="rc-paso-celda"
+                        menos={{
+                          etiqueta: `Una menos: ${nombreDeVariante(v)}`,
+                          deshabilitado: sinNada || numero(v.id) <= 0,
+                          onClick: () => onValor(v.id, String(Math.max(0, numero(v.id) - 1))),
+                        }}
+                        mas={{
+                          etiqueta: `Una más: ${nombreDeVariante(v)}`,
+                          deshabilitado: sinNada || (tope !== undefined && numero(v.id) >= tope),
+                          onClick: () => onValor(v.id, String(numero(v.id) + 1)),
+                        }}
+                        campo={{
+                          type: "text",
+                          inputMode: "numeric",
+                          pattern: "[0-9]*",
+                          maxLength: 7,
+                          autoComplete: "off",
+                          placeholder: "0", // sugerir-fijo: una cantidad vacía es cero, sea la prenda que sea
+                          "aria-label": `${pregunta} ${nombreDeVariante(v)}`,
+                          "aria-invalid": deMas || leerCantidad(valores[v.id] ?? "") === null || undefined,
+                          disabled: sinNada,
+                          value: valores[v.id] ?? "",
+                          onChange: (e) => onValor(v.id, limpiarCantidad(e.target.value)),
+                          onFocus: (e) => e.currentTarget.select(),
+                          ...({ "data-talla": t.clave, "data-color": c.clave } as Record<string, string>),
+                        }}
                       />
                     </td>
                   );
@@ -327,7 +345,7 @@ function TablaDeTallas({
                 <td className="rc-fila-total">{conMiles(total)}</td>
                 {conQuitar && colores.length > 1 && (
                   <td>
-                    <button type="button" className="icono-fila grid h-8 w-8 place-items-center" aria-label={`Quitar ${c.texto}`} title={`Quitar ${c.texto}`} onClick={() => onQuitar("color", c)}>
+                    <button type="button" tabIndex={-1} className="icono-fila grid h-8 w-8 place-items-center" aria-label={`Quitar ${c.texto}`} title={`Quitar ${c.texto}`} onClick={() => onQuitar("color", c)}>
                       <X aria-hidden className="h-4 w-4" />
                     </button>
                   </td>
@@ -343,6 +361,29 @@ function TablaDeTallas({
             </tr>
           )}
         </tbody>
+        {/* El total de cada talla al pie (la tabla con superpoderes: «al pie, el total de lo que ves»), cuando hay más de un color. */}
+        {colores.length > 1 && (
+          <tfoot>
+            <tr className="rc-fila-pie">
+              <th scope="row">Total</th>
+              {tallas.map((t) => (
+                <td key={t.clave}>
+                  {conMiles(colores.reduce((a, c) => {
+                    const v = matriz.celda(t.clave === "" ? null : t.clave, c.clave === "" ? null : c.clave);
+                    return a + (v ? numero(v.id) : 0);
+                  }, 0))}
+                </td>
+              ))}
+              <td className="rc-fila-total">
+                {conMiles(colores.reduce((a, c) => a + tallas.reduce((b, t) => {
+                  const v = matriz.celda(t.clave === "" ? null : t.clave, c.clave === "" ? null : c.clave);
+                  return b + (v ? numero(v.id) : 0);
+                }, 0), 0))}
+              </td>
+              {conQuitar && colores.length > 1 && <td />}
+            </tr>
+          </tfoot>
+        )}
       </table>
     </div>
   );
