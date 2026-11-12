@@ -145,7 +145,11 @@
   function armarInforme(animaciones, mutaciones) {
     const inicios = animaciones.map((a) => a.startTime).filter((x) => x != null).map(Number);
     const t0 = inicios.length ? Math.min(...inicios) : null;
-    const filas = animaciones.map((a) => leer(a, t0)).filter(Boolean);
+    // En modo quieto (ADR-0625) las transiciones duran ~0 ms: no se mueve nada, pero getAnimations() las lista un instante (al cambiar de
+    // tema salían 676, todas «curva fuera del sistema»). Lo que dura menos de 1 ms no es movimiento: se cuenta aparte, sin marcas.
+    const todas = animaciones.map((a) => leer(a, t0)).filter(Boolean);
+    const filas = todas.filter((f) => f.vueltas === "infinita" || f.duracionMs >= 1);
+    const instantaneas = todas.length - filas.length;
     const fines = filas.map((f) => f._fin).filter((x) => x != null);
     const presupuesto = t0 == null || !fines.length ? null : Math.round(Math.max(...fines) - t0);
     for (const f of filas) { delete f._inicio; delete f._fin; }
@@ -159,6 +163,7 @@
       buclesAlaVez: bucles.length,
       buclesQueNoSonSenal: bucles.filter((f) => !f.senal && !f["decididoAPropósito"]).length,
       presupuestoMs: presupuesto, // del primer cuadro de la primera animación al último de la última (sin bucles)
+      instantaneas, // duran < 1 ms (lo que deja el modo quieto): no se mueven
       resumen: "",
       filas,
     };

@@ -1,7 +1,7 @@
 // Tipografía al milímetro — se pega ENTERO en `javascript_tool` con la pantalla ya cargada y el panel visible (oculto mide 0).
 // Devuelve lo que FALLA, con etiqueta «Medido». No cambia la página: los modos que tocan estilos los quitan antes de terminar.
-// Umbrales y su porqué: ../SKILL.md («Las reglas al milímetro»). Mide a 1440 × 900 primero y luego 1024 × 768: bajo 640 px la tabla pasa
-// a su forma de celular (`tabla-corte.css`) y alinea todo a la izquierda a propósito, así que ahí no se juzgan las columnas.
+// Umbrales y su porqué: ../SKILL.md («Las reglas al milímetro»). Mide a 1440 × 900 primero y luego 1024 × 768: cuando la TABLA es angosta
+// (no la ventana: `tabla-corte.css` mira el contenedor) pasa a su forma de celular y alinea todo a la izquierda a propósito; esas filas no se juzgan.
 //
 // MODO (cámbialo en la línea de abajo antes de pegar):
 //   'medir'                → tamaños de lectura, interlineado, medida, pesos, cifras (tabulares, columnas, decimales, «S/» partible)
@@ -178,7 +178,11 @@
   // Columnas numéricas: filas de una tabla (tr, role=row, .fila-cayla); una celda es numérica si TODO su texto es una cifra.
   // Alineada = los bordes derechos del texto coinciden (±1,5 px). Decimales = los mismos en toda la columna.
   const columnas = new Map();
-  const filas = [...document.querySelectorAll('tr, [role=row], .fila-cayla')].filter((f) => vis(f) && !f.closest(FUERA) && !f.matches('.encabezado-tabla-cayla, thead tr'));
+  // Una fila en su forma de celular (una sola columna: `tabla-corte-*`, que mira el ancho de la TABLA y no el de la ventana, ADR-0610 act.)
+  // alinea todo a la izquierda a propósito: no tiene columnas que juzgar. Antes eso solo pasaba bajo 640 px; desde el corte por contenedor
+  // pasa también a 1024 con el lateral abierto, y salía «columna sin alinear».
+  const apilada = (f) => { const s = getComputedStyle(f); return s.display.includes('grid') && !/\s/.test(s.gridTemplateColumns.trim()); };
+  const filas = [...document.querySelectorAll('tr, [role=row], .fila-cayla')].filter((f) => vis(f) && !f.closest(FUERA) && !f.matches('.encabezado-tabla-cayla, thead tr') && !apilada(f));
   for (const fila of filas) {
     [...fila.children].forEach((celda, i) => {
       const t = celda.textContent.replace(/\s+/g, ' ').trim();
