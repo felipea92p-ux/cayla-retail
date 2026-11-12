@@ -268,17 +268,8 @@ export function RecibirContando({
   const pendientesDeGuardar = Object.keys(borradores).length > 0;
   // Lo repartido que todavía no cuadra espera en la pantalla: la base solo guarda tallas que suman lo contado.
   const tablaSinCuadrar = Object.entries(tablas).some(([clave, t]) => t.sinGuardar && modos[clave] !== "despues");
-  // Contar se guarda solo, y cada guardado pone y retira la guardia de «salir sin guardar»: una entrada del historial que se quita con un «atrás». Con la
-  // restauración automática del navegador, ese «atrás» devolvía la página adonde estaba al tocar: quien tocaba «+» y bajaba a las tallas antes de que
-  // guardara (0,7 s) veía la pantalla saltar hacia arriba. Pasa donde se desplaza la página: el celular y las mitades apiladas. Mientras se recibe, esta
-  // entrada no restaura sola; la que pone la guardia hereda lo mismo (medido el 2026-11-11: con «manual» la vista se queda donde la persona la dejó).
-  useEffect(() => {
-    const antes = window.history.scrollRestoration;
-    window.history.scrollRestoration = "manual";
-    return () => {
-      window.history.scrollRestoration = antes;
-    };
-  }, []);
+  // Contar se guarda solo, y cada guardado pone y retira la guardia de «salir sin guardar». Que eso no mueva la página (quien tocaba «+» y bajaba a las
+  // tallas antes de que guardara la veía saltar hacia arriba) lo resuelve la propia guardia desde el 2026-11-11: `lib/salida-sin-guardar.ts`.
   const avisoSalida = useSalidaSinGuardar(
     pendientesDeGuardar || tablaSinCuadrar,
     pendientesDeGuardar
@@ -463,6 +454,7 @@ export function RecibirContando({
         <ContarEnvio
           onCancelarRecepcion={sePuedeCancelar ? () => setCancelando(true) : undefined}
           veDinero={poneCosto}
+          soloSede={soloSede}
           veExistencias={veExistencias}
           esperandoGuardar={pendientesDeGuardar}
           onSalida={() => void releer()}

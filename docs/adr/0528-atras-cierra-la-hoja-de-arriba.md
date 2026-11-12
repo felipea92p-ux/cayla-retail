@@ -77,3 +77,35 @@ la URL no cambió, y el router de Next, si restaurara el árbol de la entrada de
 - Nuevo producto (guardia de pantalla entera): la guardia se pone, «atrás» pregunta, «atrás» otra vez cierra solo la pregunta, y «Salir sin
   guardar» sale a la pantalla anterior.
 - A 1024 px: el cajón y la hoja de pago no ponen entradas.
+
+## Actualización 2026-11-11 — poner y retirar la guardia no mueve la página
+
+**El problema.** La guardia de «¿Salir sin guardar?» es una entrada más del historial y se retira con un «atrás» propio. Al volver a una
+entrada, el navegador le devuelve a la página el scroll que tenía anotado en ella si su modo (`history.scrollRestoration`) es «auto», y la
+entrada de abajo se dejó en el instante del primer cambio. Quien se desplazaba entre un cambio y el retiro de la guardia (un guardado solo en
+Recibir ▸ Contar, deshacer el cambio, guardar y quedarse) veía la página volver adonde estaba al tocar; «atrás» con cambios daba el mismo
+salto antes de preguntar. Medido con un clic real en escritorio y a 375 px.
+
+**Lo que se decidió** (`components/ui/useSalidaSinGuardar.tsx`; reglas y lo medido en Chromium, en `lib/salida-sin-guardar.ts`):
+
+1. **Mientras la guardia está puesta, su entrada y la de abajo están en «manual».** La de abajo se cambia antes de empujar la guardia (el
+   modo es de cada entrada, manda el de la de destino y solo se cambia el de la entrada en la que se está); la guardia lo hereda, y también
+   la entrada de una hoja que se abra encima (punto 2 de arriba). Ni retirar la guardia ni cerrar esa hoja mueven la página.
+2. **Fuera de una guardia puesta, toda entrada vuelve a «auto»:** al terminar cada vuelta por el historial, al soltar la guardia para navegar
+   y cuando el formulario se va. Sin eso, la pantalla a la que se navega heredaría «manual», y de ahí todas las siguientes: el ERP dejaría de
+   recordar el scroll al volver atrás.
+3. **Al volver a «auto», el navegador anota de nuevo dónde está la página** con un píxel de ida y vuelta en el mismo instante. Chromium no
+   vuelve a anotar el scroll de una entrada a la que se llegó en «manual» hasta que la página se desplaza; sin esto, volver más tarde a esa
+   entrada (o cerrar una hoja abierta sobre ella) la llevaba al scroll viejo. Espera si la persona está desplazando (le cortaría la inercia
+   del dedo) o si hay un menú abierto (ese píxel dispara un `scroll`, y `MenuAcciones` se cierra al desplazarse la página).
+4. **La guardia es la única pieza del ERP que escribe `history.scrollRestoration`** (lo vigila `lib/salida-sin-guardar-scroll.test.ts`): otra
+   que lo dejara en «manual» lo perdería en el punto 2.
+
+**Lo que se descartó.** Devolverle «auto» a la guardia apenas se empuja (la primera versión): una guardia repuesta tras un «atrás» con cambios
+hereda el scroll anotado viejo de la de abajo, y en el teléfono cerrar la pregunta movía la página (medido a 375 px en Nuevo producto). Dejar
+la pantalla entera en «manual» mientras está montada: volver a ella con «atrás» ya no la dejaría donde estaba. Guardar el modo original en
+`history.state`: Next reescribe ese estado en cada `router.refresh()` sin copiar lo ajeno.
+
+**Lo que queda abierto.** Safari y Firefox no se midieron. Una entrada que se abandonó con la guardia puesta se queda en «manual» hasta que
+se la visita: esa primera vuelta no recupera su scroll, y ahí mismo vuelve a «auto».
+
