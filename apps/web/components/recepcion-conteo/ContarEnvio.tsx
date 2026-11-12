@@ -184,6 +184,7 @@ export function ContarEnvio({
   papeles = [],
   alSubirFoto,
   veDinero,
+  soloSede = false,
   veExistencias,
   esperandoGuardar,
   onSalida,
@@ -222,6 +223,8 @@ export function ContarEnvio({
   papeles?: ComponentProps<typeof PapelesDeLaCompra>["papeles"];
   alSubirFoto?: ComponentProps<typeof PapelesDeLaCompra>["alSubirFoto"];
   veDinero: boolean;
+  /** Una terminal (ADR-0531): el precio de venta que se pone al llevar al stock vale solo en su sede. */
+  soloSede?: boolean;
   veExistencias: boolean;
   /** Lo último que se escribió todavía viaja a la base. */
   esperandoGuardar: boolean;
@@ -707,6 +710,7 @@ export function ContarEnvio({
         variantes={paraLlevar.variantes}
         sinAviso={sinAviso}
         veDinero={veDinero}
+        soloSede={soloSede}
         responsable={responsable}
         esperandoGuardar={esperandoGuardar}
         peso={todo ? "primario" : "fantasma"}
