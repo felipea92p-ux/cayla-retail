@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { argsLlevarAlStock, diasAMedias, leerEnviosAMedias, textoDeEnvioAMedias, leerResultadoDeSalida, leerSalidas, loQueSale, ultimaSalidaDe, urlBajarDeLaTanda, urlEtiquetasDeLaTanda } from "./recepcion-salida-reglas";
+import { argsLlevarAlStock, diasAMedias, leerEnviosAMedias, textoDeEnvioAMedias, textoYaEnStock, leerResultadoDeSalida, leerSalidas, loQueSale, ultimaSalidaDe, urlBajarDeLaTanda, urlEtiquetasDeLaTanda } from "./recepcion-salida-reglas";
 
 const sumas = { contado: 4, invalidas: 0, danadasInvalidas: 0, danadasDeMas: [] as string[] };
 
@@ -68,5 +68,23 @@ describe("lo que quedó a medias", () => {
   it("una respuesta rara no dibuja nada", () => {
     expect(leerEnviosAMedias(null)).toEqual([]);
     expect(leerEnviosAMedias([{ id: "e" }])).toEqual([]);
+  });
+});
+
+describe("textoYaEnStock", () => {
+  it("dice cuánto ya entró del envío que se sigue recibiendo", () => {
+    expect(textoYaEnStock(32, 43)).toBe("32 en stock");
+    expect(textoYaEnStock(1200, 1500)).toBe("1,200 en stock");
+  });
+  it("con todo adentro, «todas» (también si se contaron de más)", () => {
+    expect(textoYaEnStock(43, 43)).toBe("todas en stock");
+    expect(textoYaEnStock(45, 43)).toBe("todas en stock");
+  });
+  it("sin nada adentro, no dice nada", () => {
+    expect(textoYaEnStock(0, 43)).toBeNull();
+    expect(textoYaEnStock(Number.NaN, 43)).toBeNull();
+  });
+  it("sin total conocido, solo la cifra", () => {
+    expect(textoYaEnStock(5, 0)).toBe("5 en stock");
   });
 });

@@ -1650,7 +1650,7 @@ export const GUIA_RECIBIR: Guia = {
       ancla: "recibir.reciente",
       opcional: true,
       titulo: "Cada llegada",
-      texto: "Cada fila es un envío: arriba sus marcas (las que más trajeron) y debajo de quién llegó. La barrita reparte las unidades por marca, y «Sin marca» en ámbar falta completarla en Catálogo. Tócala para ver qué prendas trajo (te la abrimos).",
+      texto: "Cada fila es un envío: arriba sus marcas (las que más trajeron) y debajo de quién llegó. La barrita reparte las unidades por marca, y «Sin marca» en ámbar falta completarla en Catálogo. «Sigue abierto»: ya entró una parte y lo demás se recibe arriba. Tócala para ver qué trajo.",
     },
     {
       id: "detalle",
