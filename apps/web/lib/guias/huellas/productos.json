@@ -2,7 +2,7 @@
   "guia": "productos",
   "ruta": "/productos",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 104,
+  "total": 106,
   "controles": {
     "app/(app)/productos/page.tsx": [
       "Link «Existencias»",
@@ -102,6 +102,10 @@
       "Boton «{responsable.motivo ?? undefined}»",
       "button «{o.valor}»",
       "button «{p.referencia}»"
+    ],
+    "components/fusionar-productos/PosiblesDuplicados.tsx": [
+      "button «Revisar»",
+      "button «Revisar y fusionar»"
     ],
     "components/historial-prenda/CorregirCostoModal.tsx": [
       "CampoMonto «{guia.etiqueta(\"costo\", \"Costo correcto de lo que llegó\")}»",

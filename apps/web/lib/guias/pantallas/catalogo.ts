@@ -54,6 +54,14 @@ export const GUIA_PRODUCTOS: Guia = {
       texto: "Las que alguien propuso en un conteo o desde el Taller esperan que quien edita el catálogo las apruebe o las rechace. Mientras tanto se pueden vender, si tienen precio. «Revisar» te lleva a la lista.",
     },
     {
+      // ADR-0650 (decisión 3): sale solo si hay fichas activas con el nombre igual o casi igual.
+      id: "posibles-duplicados",
+      ancla: "productos.posibles-duplicados",
+      opcional: true,
+      titulo: "Fichas que parecen repetidas",
+      texto: "Si dos fichas tienen el nombre igual o casi igual, el sistema te las muestra aquí. «Revisar» abre la lista: si son la misma prenda, las fusionas en una y no se pierden ventas, fotos ni stock. Si no, las dejas como están.",
+    },
+    {
       // ADR-0393 (decisión 4): sale solo si lo recibido en la sede tiene prendas nuevas por crear.
       id: "por-crear",
       ancla: "productos.por-crear",

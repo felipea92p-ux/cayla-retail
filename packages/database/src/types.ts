@@ -7139,7 +7139,18 @@ export type Database = {
         Args: { p_producto_id: string }
         Returns: string
       }
-      // Fusionar productos duplicados (ADR-0650, 20261112205000 y 210000). Escritos a mano con la forma que da `supabase gen types`.
+      // Fusionar productos duplicados (ADR-0650, 20261112205000, 210000 y 212000). Escritos a mano con la forma que da `supabase gen types`.
+      fn_productos_posibles_duplicados: {
+        Args: { p_limite?: number }
+        Returns: {
+          motivo: string
+          producto_a: string
+          producto_b: string
+          referencia_a: string
+          referencia_b: string
+          similitud: number
+        }[]
+      }
       fusionar_productos: {
         Args: {
           p_duplicados: string[]
