@@ -24,7 +24,7 @@ import {
   marcadosDeColor,
   opcionesDeColor,
   separarColor,
-  FALTAS,
+  faltasVisibles,
   ROTULO_FALTA,
   SIN_TEMPORADA,
   faltaDeUrl,
@@ -79,6 +79,7 @@ export function FiltrosProductos({
   temporadas,
   empresas,
   facetas,
+  veCosto = false,
   junto,
 }: {
   categorias: Opcion[];
@@ -102,6 +103,8 @@ export function FiltrosProductos({
   empresas: Opcion[] | null;
   /** Cuántas prendas hay en cada opción y los tramos de precio (`fn_productos_facetas`); `null` = no se pudo saber. */
   facetas: FacetasProductos | null;
+  /** Si esta cuenta ve el costo (el dinero de Compras): solo entonces «Por completar» ofrece «Sin costo». */
+  veCosto?: boolean;
   /** Lo que va a la derecha del conteo, al final de su fila: el tamaño de las tarjetas en la Grilla (2026-10-09). */
   junto?: ReactNode;
 }) {
@@ -509,7 +512,7 @@ export function FiltrosProductos({
           etiqueta="Por completar"
           valor={falta ?? TODOS}
           onValor={(v) => aplicar({ falta: v === TODOS ? "" : v })}
-          opciones={[{ valor: TODOS, texto: "Cualquiera" }, ...contar(FALTAS.map((f) => ({ valor: f as string, texto: ROTULO_FALTA[f] })), "falta", [falta ?? null])]}
+          opciones={[{ valor: TODOS, texto: "Cualquiera" }, ...contar(faltasVisibles(veCosto).map((f) => ({ valor: f as string, texto: ROTULO_FALTA[f] })), "falta", [falta ?? null])]}
         />
       </FilaPildoras>
     </PanelPildoras>
