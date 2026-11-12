@@ -15,6 +15,7 @@ import { SelloPase } from "@/components/traslados-pases/SelloPase";
 import { usePase } from "@/components/traslados-pases/PaseTraslado";
 import { rutaDelPase } from "@/components/traslados-pases/Billetera";
 import { useRecepcion, type VarianteBusqueda } from "@/components/traslados-pases/useRecepcion";
+import { useTrasladoAlDia } from "@/components/traslados-pases/useTrasladoAlDia";
 import { codigoPrenda } from "@/lib/prenda-reglas";
 import { ejemploNotaCierre } from "@/lib/sugerencias-traslados";
 import { enlaceWhatsAppA } from "@/lib/facturacion-comprobantes-reglas";
@@ -80,7 +81,8 @@ const LUGARES: Record<"piso_venta" | "almacen_tienda", { texto: string; icono: R
 
 export function ReversoPase({
   vista,
-  traslado: t,
+  traslado: trasladoDeLaPagina,
+  carga,
   esDestino,
   esOrigen,
   esLider,
@@ -93,6 +95,8 @@ export function ReversoPase({
 }: {
   vista: VistaPase;
   traslado: TrasladoDetalle;
+  /** Un texto distinto por cada vez que el servidor armó la página: si se repite, lo que se dibuja es una copia guardada por el router. */
+  carga: string;
   esDestino: boolean;
   esOrigen: boolean;
   esLider: boolean;
@@ -106,6 +110,8 @@ export function ReversoPase({
   whatsappDestino: string | null;
 }) {
   const pase = usePase();
+  // Al volver con «atrás», lo que esta pestaña ya guardó va encima de la copia del router, y la página se pide de nuevo (2026-11-11).
+  const t = useTrasladoAlDia(trasladoDeLaPagina, carga);
   const r = useRecepcion({
     traslado: t,
     esDestino,

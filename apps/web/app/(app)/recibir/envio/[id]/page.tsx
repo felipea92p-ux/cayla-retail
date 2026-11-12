@@ -1,3 +1,4 @@
+import { idDeCarga } from "@/lib/copia-de-pagina";
 import { PackageX } from "lucide-react";
 import { puede, requirePersonaActualV2, veModulo } from "@/lib/persona-actual";
 import { getCatalogoParaRecibir, getDatosRecepcionEnvio } from "@/lib/recepcion-envio";
@@ -86,6 +87,7 @@ export default async function RecibirEnvioPage({ params }: { params: Promise<{ i
         key={datos.detalle.id}
         detalle={datos.detalle}
         conteos={conteos.conteos}
+        carga={idDeCarga()}
         sedeActual={{ id: persona.ubicacionId, etiqueta: persona.ubicacionEtiqueta }}
         creadoPorMi={datos.creadoPorMi}
         catalogo={catalogo}
