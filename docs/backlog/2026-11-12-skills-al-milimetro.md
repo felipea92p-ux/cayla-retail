@@ -6,4 +6,6 @@
 - [x] Investigación en `docs/investigacion/2026-11-12-fundamentos-de-diseno/`; sección «Al milímetro» en `CLAUDE.md`; tablero en `docs/milimetro/propuestas.md`.
 - [ ] **Sin probar contra el ERP real:** ningún `medir.js` se corrió todavía en local contra una pantalla del ERP. La primera auditoría (`/milimetro auditar <ruta>`) tiene que leer cada «revisar» por si es un falso positivo.
 - [ ] **Sin ADR:** el número no se pudo reservar desde la sesión en la nube. Reservarlo con `pnpm reservar adr` si Felipe quiere el ADR.
+- [x] **Obligatorias para todos (Felipe 2026-11-12):** regla en `CLAUDE.md` «Al milímetro», casillas en `.github/pull_request_template.md`, check «Al milímetro» (`.github/workflows/al-milimetro.yml` + `scripts/milimetro/casilla.mjs`, 5 pruebas en verde con `node --test scripts/milimetro/casilla.test.mjs`, sumadas al CI) y tablero `docs/milimetro/README.md`.
+- [ ] **Al fusionar:** los PR abiertos que toquen un archivo visual verán el check en rojo hasta marcar su casilla; si Felipe quiere que bloquee la fusión, hay que agregarlo a los checks obligatorios de `main` en GitHub (no se puede desde el repo).
 - [ ] Las 10 propuestas de `docs/milimetro/propuestas.md` esperan a Felipe; ninguna se aplicó.

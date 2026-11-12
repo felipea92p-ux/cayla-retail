@@ -1,9 +1,13 @@
 ---
 name: milimetro
-description: La entrada del set «Al milímetro». Diseña y audita cada pieza del ERP CAYLA (botón, campo, tabla, gráfico, texto) con base teórica y medida en el navegador. Arma la «ficha al milímetro» llamando a /espacio, /tipografia, /color, /movimiento, /textos y /graficos, y define los estados de toda pieza interactiva. Antes de dibujar mira «Una función, una pieza»: nunca dibuja una pieza nueva a mano. Modos: `diseñar <pieza>`, `auditar <ruta|pieza>` (corre los medidores de las siete skills y ordena los hallazgos por severidad) y `proponer` (junta en un tablero las mejoras al repo que proponen las seis, para que Felipe decida mirando). Úsala cuando Felipe diga «al milímetro», «diseña este componente», «con base teórica», «full animaciones», «audita esta pieza» o «qué estados le faltan».
+description: OBLIGATORIA en todo cambio visual, pantalla o modal nuevo y auditoría del ERP (CLAUDE.md «Al milímetro»; el check del PR la pide). La entrada del set «Al milímetro». Diseña y audita cada pieza del ERP CAYLA (botón, campo, tabla, gráfico, texto) con base teórica y medida en el navegador. Arma la «ficha al milímetro» llamando a /espacio, /tipografia, /color, /movimiento, /textos y /graficos, y define los estados de toda pieza interactiva. Antes de dibujar mira «Una función, una pieza»: nunca dibuja una pieza nueva a mano. Modos: `diseñar <pieza>`, `auditar <ruta|pieza>` (corre los medidores de las siete skills y ordena los hallazgos por severidad) y `proponer` (junta en un tablero las mejoras al repo que proponen las seis, para que Felipe decida mirando). Úsala siempre que cambie algo que se ve en `apps/web`, y cuando alguien diga «al milímetro», «diseña este componente», «con base teórica», «full animaciones», «audita esta pieza» o «qué estados le faltan».
 ---
 
 Al milímetro: $ARGUMENTS   (`diseñar <pieza>`, `auditar <ruta|pieza>`, `proponer`; sin argumento = la pieza que estás construyendo)
+
+**Obligatoria (Felipe 2026-11-12):** pieza nueva → `diseñar` antes del código; cambio visual → `auditar` al terminar; auditoría de lo existente →
+`auditar`. El PR marca «pasó por `/milimetro`» con la ruta auditada, o el check «Al milímetro» sale rojo (`scripts/milimetro/casilla.mjs`).
+Deja la fila de la auditoría en `docs/milimetro/README.md`.
 
 **Cada pieza del ERP se decide con un número, el token o la pieza del repo que lo cumple, una fuente con su nivel y la forma de medirlo. Lo que no se puede medir, no se afirma.**
 
