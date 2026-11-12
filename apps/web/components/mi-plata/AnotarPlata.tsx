@@ -27,7 +27,7 @@ import { leerMontoPlata } from "@/lib/monto-plata-reglas";
 import { diaMes, hoyLima } from "@/lib/fechas-lima";
 import { soles } from "@/lib/compras-reglas";
 import { anotarPlata, subirVoucher } from "@/lib/mi-plata-acciones";
-import { MEDIOS_PLATA, bancoSugerido, camposAnotar, diaDeLlegadaAMandar, fraseAnotar, limitesDeLlegada, type MedioPlata } from "@/lib/mi-plata-reglas";
+import { MEDIOS_PLATA, bancoSugerido, camposAnotar, detalleAlAnotarPlata, diaDeLlegadaAMandar, fraseAnotar, limitesDeLlegada, type MedioPlata } from "@/lib/mi-plata-reglas";
 import type { CuentaOpcion } from "@/lib/fondos-reglas";
 import { FichasCuenta } from "@/components/fondos/FichasCuenta";
 
@@ -162,7 +162,7 @@ function AnotarPlataModal({ puedeYaTenia, bancos, onClose, volverA }: { puedeYaT
 
   // Lo que se anuncia es lo que se mandó: con la hoja congelada mientras estuvo en duda, es lo mismo que guardó la base.
   function anotada() {
-    avisar.exito(`Anotaste ${soles(montoLeido ?? 0)}`, { detalle: "Ya está en tu plata y la puedes usar. Compras la revisa." });
+    avisar.exito(`Anotaste ${soles(montoLeido ?? 0)}`, { detalle: detalleAlAnotarPlata(medio, medio === "transferencia" && bancos.length > 0 && banco !== null) });
     // La guardia del «atrás» se retira antes de refrescar: los dos a la vez pueden recargar la página entera (useSalidaSinGuardar).
     void salida.retirarYa().then(() => router.refresh());
     onClose();
@@ -258,16 +258,32 @@ function AnotarPlataModal({ puedeYaTenia, bancos, onClose, volverA }: { puedeYaT
             {!yaTenia && medio && (
               <div data-guia="mi-plata.dia">
                 {otroDia ? (
-                  <CampoFecha
-                    etiqueta="¿Qué día te llegó?"
-                    valor={dia}
-                    onValor={limpiar(setDia)}
-                    {...limitesDeLlegada(hoy)}
-                    motivoMax="No puede ser un día que todavía no llega."
-                    motivoMin="Ese día es de hace más de 120 días."
-                    pie="Si la plata ya había salido del banco antes, pon ese día: así el saldo del banco no la descuenta otra vez hoy."
-                    disabled={guardando}
-                  />
+                  <div className="flex flex-col gap-1">
+                    <CampoFecha
+                      etiqueta="¿Qué día te llegó?"
+                      valor={dia}
+                      onValor={limpiar(setDia)}
+                      {...limitesDeLlegada(hoy)}
+                      motivoMax="No puede ser un día que todavía no llega."
+                      motivoMin="Ese día es de hace más de 120 días."
+                      pie="Si la plata ya había salido del banco antes, pon ese día: así el saldo del banco no la descuenta otra vez hoy."
+                      disabled={guardando}
+                    />
+                    {/* La vuelta a «hoy» que promete el aviso de «Falta el día»: antes, una vez tocado «Cambiar el día», no había forma de volver
+                        (auditoría 2026-11-12). */}
+                    <button
+                      type="button"
+                      className="btn-cayla btn-enlace self-start"
+                      onClick={() => {
+                        setRechazo(null);
+                        setOtroDia(false);
+                        setDia(hoy);
+                      }}
+                      disabled={guardando}
+                    >
+                      Llegó hoy
+                    </button>
+                  </div>
                 ) : (
                   <p className="flex flex-wrap items-center gap-x-2 text-sm text-taupe">
                     Llegó hoy, {diaMes(hoy)}

@@ -308,12 +308,13 @@ export default async function RecibirPage({ searchParams }: { searchParams: Prom
               tono={diasAMedias(e.desde) >= DIAS_PARA_RESALTAR ? "atencion" : "info"}
               chico
               accion={
+                // Un solo verbo para el mismo envío: la fila de «Envíos por recibir» también dice «Seguir recibiendo» (auditoría 2026-11-12).
                 <Link href={`/recibir/envio/${e.id}`} className="btn-cayla btn-enlace">
-                  Seguir contando
+                  Seguir recibiendo
                 </Link>
               }
             >
-              {textoDeEnvioAMedias(e)}
+              {textoDeEnvioAMedias(e, undefined, persona.ubicacionEtiqueta)}
             </Aviso>
           ))}
           {contando.pendientes && <PendientesDeRecibir pendientes={contando.pendientes} conLista={false} guia="recibir.pendientes" />}

@@ -13,7 +13,7 @@ import { firmaOmitida } from "@/lib/responsable-omitido";
 import { esFalloDeRed, traducirError } from "@/lib/error-escritura";
 import { soles } from "@/lib/compras-reglas";
 import { terminarDia } from "@/lib/mi-plata-acciones";
-import { EVENTO_MANDAR, decisionesCierre, faltaCuentaDeLaDevolucion, puedeCerrarLaRonda, resumenRonda, textoCierre, textoFaltaMandar, type DecisionCierre, type MiPlata } from "@/lib/mi-plata-reglas";
+import { EVENTO_MANDAR, decisionesCierre, faltaCuentaDeLaDevolucion, puedeCerrarLaRonda, resumenRonda, rondaYaSeCerro, textoCierre, textoFaltaMandar, type DecisionCierre, type MiPlata } from "@/lib/mi-plata-reglas";
 import { resumenDeEnvios, type EnvioMio } from "@/lib/mis-envios-reglas";
 import { FichasCuenta } from "@/components/fondos/FichasCuenta";
 import type { CuentaOpcion } from "@/lib/fondos-reglas";
@@ -118,6 +118,8 @@ function TerminarModal({
   const [cuentaId, setCuentaId] = useState<string | null>(null);
   const [guardando, setGuardando] = useState(false);
   const [rechazo, setRechazo] = useState<Rechazo | null>(null);
+  // Si un intento se quedó sin respuesta (corte de red), el siguiente puede encontrar la ronda ya cerrada: eso es éxito, no error.
+  const [huboCorte, setHuboCorte] = useState(false);
   const d = resumenRonda(plata);
   const texto = plata.ronda.abierta?.texto ?? "";
   const falta = textoFaltaMandar(plata.porMandar);
@@ -130,7 +132,15 @@ function TerminarModal({
     setGuardando(true);
     const { error } = await terminarDia({ p_decision: decision, p_cuenta_indicada_id: decision === "devuelve" ? cuentaId : null }, firmaOmitida("compra_terminar_dia"));
     setGuardando(false);
+    if (error && rondaYaSeCerro(huboCorte, error)) {
+      // El intento que se cortó sí llegó: la ronda ya está cerrada. Se dice así, sin repetir la decisión (pudo cambiar entre los dos toques).
+      avisar.exito(`Cerraste tu ronda ${texto}`, { detalle: "Ya se había guardado antes del corte." });
+      onClose();
+      router.refresh();
+      return;
+    }
     if (error) {
+      if (esFalloDeRed(error)) setHuboCorte(true);
       return setRechazo(
         esFalloDeRed(error)
           ? { titulo: "Se cortó la conexión", texto: "No sabemos si se guardó. Vuelve a tocar el botón: si ya se guardó, no se repite.", tono: "atencion" }

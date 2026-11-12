@@ -18,6 +18,8 @@ import {
   cuentaSugerida,
   detalleTienes,
   fraseAnotar,
+  rondaYaSeCerro,
+  detalleAlAnotarPlata,
   leerMiPlata,
   leerPlataPorConfirmar,
   leerBancosDePlata,
@@ -250,6 +252,12 @@ describe("textos", () => {
   });
   it("el botón dice cuánto se anota", () => {
     expect(plano(fraseAnotar(300))).toBe("Anotar S/ 300.00");
+    // La transferencia con banco y «ya tenía» entran confirmadas solas (ADR-0574); lo demás lo confirma Compras.
+    expect(detalleAlAnotarPlata("transferencia", true)).toMatch(/Entró confirmada/);
+    expect(detalleAlAnotarPlata("ya_tenia", false)).toMatch(/Entró confirmada/);
+    expect(detalleAlAnotarPlata("transferencia", false)).toMatch(/Compras la confirma/);
+    expect(detalleAlAnotarPlata("efectivo", false)).toMatch(/Compras la confirma/);
+    expect(detalleAlAnotarPlata("yape_plin", false)).toMatch(/Compras la confirma/);
     expect(plano(fraseAnotar(null))).toBe("Anotar la plata");
     expect(plano(fraseAnotar(0))).toBe("Anotar la plata");
   });
@@ -345,9 +353,14 @@ describe("el resto del día de compras (actividad 5)", () => {
     expect(decisionesCierre(80)).toEqual(["se_queda", "devuelve"]);
     expect(decisionesCierre(0)).toEqual(["se_queda"]);
     expect(decisionesCierre(-20)).toEqual(["le_deben"]);
+    // Tras un corte, «no tienes una ronda abierta» quiere decir que el primer intento sí la cerró; sin corte, es un error de verdad.
+    expect(rondaYaSeCerro(true, { hint: "compra_ronda_sin_abrir" })).toBe(true);
+    expect(rondaYaSeCerro(false, { hint: "compra_ronda_sin_abrir" })).toBe(false);
+    expect(rondaYaSeCerro(true, { hint: "otra_cosa" })).toBe(false);
+    expect(rondaYaSeCerro(true, null)).toBe(false);
     expect(plano(textoCierre({ decision: "devuelve", monto: 80 }))).toBe("Entrega S/ 80.00 en caja: Compras lo recibe.");
     expect(plano(textoCierre({ decision: "le_deben", monto: 20 }))).toBe("Pusiste S/ 20.00 de tu bolsillo: CAYLA te lo devuelve.");
-    expect(plano(textoCierre({ decision: "se_queda", monto: 80 }))).toBe("Te quedas S/ 80.00 para tu próxima compra.");
+    expect(plano(textoCierre({ decision: "se_queda", monto: 80 }))).toBe("Te quedas S/ 80.00 para tu próxima ronda.");
     expect(textoCierre({ decision: "se_queda", monto: 0 })).toBe("No te quedó plata.");
     // Recibido por Compras (actividad 7), en pasado.
     expect(plano(textoCierre({ decision: "devuelve", monto: 80, resuelto: true }))).toBe("Entregaste S/ 80.00: Compras ya lo recibió.");
@@ -528,9 +541,9 @@ describe("Mi plata rediseñada (maqueta compras-formidable-2026-10)", () => {
     // 15:05 UTC = 10:05 en Lima (cinco horas detrás todo el año).
     expect(horaDeMovimiento(andina)).toBe("10:05");
     expect(horaDeMovimiento({ creadoEn: "" })).toBeNull();
-    expect(queHaraCompras(rosa)).toMatch(/copia el número del papel/);
+    expect(queHaraCompras(rosa)).toMatch(/Pasa sola a los libros cuando la tienda termine de contar/);
     expect(queHaraCompras(yape)).toMatch(/confirma con su banco o su caja/);
-    expect(queHaraCompras(taxi)).toMatch(/pasa a los gastos del viaje/);
+    expect(queHaraCompras(taxi)).toMatch(/Pasa solo a los gastos del viaje cuando cierres tu ronda/);
     // Lo que ya está hecho dice lo que ya pasó, no lo que va a pasar.
     expect(queHaraCompras({ tipo: "compra", estado: { texto: "En los libros", detalle: "Compras ya la pasó a los libros", pendiente: false } })).toBe("Compras ya la pasó a los libros");
   });
@@ -660,6 +673,12 @@ describe("el historial por ronda (Felipe 2026-10-23)", () => {
     const sin = h.at(-1);
     expect(sin?.tipo === "ronda" && [sin.titulo, sin.movimientos.length]).toEqual(["Antes de las rondas", 1]);
     const vacia = historialDeLaCompradora([], [{ id: "r5", texto: "RC-000005", abiertaEn: "2026-10-22T08:00:00Z", cerradaEn: "2026-10-22T09:00:00Z", decision: "le_deben", monto: 30, resuelto: true }]);
+    // Lo que CAYLA te devuelve entra (+) solo cuando ya te lo devolvió; antes, el monto sin signo (auditoría 2026-11-12).
+    const cierreR5 = vacia.find((e) => e.clave === "cierre-r5");
+    expect(cierreR5?.tipo === "cierre" && cierreR5.entra).toBe(true);
+    const sinDevolver = historialDeLaCompradora([], [{ id: "r6", texto: "RC-000006", abiertaEn: "2026-10-22T08:00:00Z", cerradaEn: "2026-10-22T09:00:00Z", decision: "le_deben", monto: 30, resuelto: false }]);
+    const cierreR6 = sinDevolver.find((e) => e.clave === "cierre-r6");
+    expect(cierreR6?.tipo === "cierre" && cierreR6.entra).toBeNull();
     expect(vacia.map((e) => [e.clave, e.tipo === "ronda" ? e.detalle : e.tipo === "cierre" ? e.estado.texto : ""])).toEqual([
       ["cierre-r5", "Te lo devolvieron"],
       ["ronda-r5", "22/10 · Sin compras ni gastos"],

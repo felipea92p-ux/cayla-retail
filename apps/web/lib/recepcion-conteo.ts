@@ -66,7 +66,11 @@ export async function recibirContandoDisponible(ubicacionId: string): Promise<{ 
     const r = await rpc(RPC_PENDIENTES_SEDE, { p_ubicacion_id: ubicacionId });
     if (faltaLaFuncion(r.error)) return { disponible: false, pendientes: null };
     return { disponible: true, pendientes: r.error ? null : leerPendientesDeLaSede(r.data) };
-  } catch {
-    return { disponible: false, pendientes: null };
+  } catch (e) {
+    // Un hipo de la base (red, tiempo de espera) no es «la base no sabe recibir contando»: apagarla dibujaba por un rato la puerta vieja
+    // («Llegó mercadería», `recibir_lote`) y la tienda recibía por otra entrada (auditoría 2026-11-12). Solo `faltaLaFuncion` la apaga; aquí sigue
+    // encendida, sin los pendientes (que la página ya trata como «no se pudieron leer»).
+    console.error(`${RPC_PENDIENTES_SEDE}: ${String(e)}`);
+    return { disponible: true, pendientes: null };
   }
 }

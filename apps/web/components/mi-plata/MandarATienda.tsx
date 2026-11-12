@@ -121,8 +121,14 @@ export function FranjaFaltaMandar({
 
 type Rechazo = { tienda: string; titulo: string; texto: string; tono: "error" | "atencion" };
 
-function MandarModal({ porMandar, onClose, volverA }: { porMandar: PorMandar[]; onClose: () => void; volverA: RefObject<HTMLElement | null> }) {
+function MandarModal({ porMandar: delServidor, onClose, volverA }: { porMandar: PorMandar[]; onClose: () => void; volverA: RefObject<HTMLElement | null> }) {
   const router = useRouter();
+  // Las tiendas que ya salieron desde esta hoja, con cuántas prendas salieron. La lista del servidor sigue vieja hasta que llega el refresco:
+  // sin esto, «Mandar a la siguiente tienda» volvía a ofrecer la que acababa de salir y, al tocarla, con su marca ya borrada, la base respondía
+  // «No salió» (auditoría 2026-11-12). Se esconde solo mientras el servidor la muestre IGUAL: si después llega otra compra para esa tienda, sus
+  // prendas ya no coinciden y vuelve a la lista.
+  const [yaSalieron, setYaSalieron] = useState<ReadonlyMap<string, number>>(() => new Map());
+  const porMandar = delServidor.filter((t) => yaSalieron.get(t.tiendaId) !== t.unidades);
   const [fardos, setFardos] = useState<Record<string, number>>({});
   // La marca de cada tienda nace en su primer toque y se queda hasta que sale (un reintento manda la misma).
   const marcas = useRef<Record<string, string>>({});
@@ -147,6 +153,7 @@ function MandarModal({ porMandar, onClose, volverA }: { porMandar: PorMandar[]; 
     }
     // Ya salió: si más tarde se compra otra cosa para esta tienda, ese será otro envío, con otra marca.
     delete marcas.current[t.tiendaId];
+    setYaSalieron((antes) => new Map(antes).set(t.tiendaId, t.unidades));
     router.refresh();
     // Con su código a la vista no hace falta el aviso; sin él (la base no lo devolvió), el aviso de siempre.
     if (envio) return setSalio({ envio, tiendaId: t.tiendaId });

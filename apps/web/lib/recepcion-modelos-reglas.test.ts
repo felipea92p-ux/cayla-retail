@@ -17,6 +17,7 @@ import {
   hayFiltro,
   filtrosPuestos,
   fraseDelAvance,
+  etiquetaDelAvance,
   tallasParaDespues,
   porLlevarAlStock,
   tipoDeParada,
@@ -621,9 +622,9 @@ describe("Re stock, Producto nuevo y los estados del resumen", () => {
 
   it("la línea de arriba de la lista: qué falta, o cómo quedó (ADR-0645)", () => {
     // Uno contado y dos por contar.
-    expect(fraseDelAvance(cifrasDelResumen(todas()))).toEqual({ texto: "Faltan 2 por contar", tono: null });
+    expect(fraseDelAvance(cifrasDelResumen(todas()))).toEqual({ texto: "Faltan 2 modelos por contar", tono: null });
     const uno = categoriasDelEnvio(agruparLineas([deLaGuia(sofia(), { contadas: 5, separado: { prendas: [prendaSep("p-sofia", "Vestido Sofía", 5)], nuevas: [] } }), deLaGuia(lima())]));
-    expect(fraseDelAvance(cifrasDelResumen(uno))?.texto).toBe("Falta 1 por contar");
+    expect(fraseDelAvance(cifrasDelResumen(uno))?.texto).toBe("Falta 1 modelo por contar");
     // Todo contado y cuadra: verde.
     const cuadra = categoriasDelEnvio(agruparLineas([deLaGuia(sofia(), { contadas: 5, separado: { prendas: [prendaSep("p-sofia", "Vestido Sofía", 5)], nuevas: [] } })]));
     expect(fraseDelAvance(cifrasDelResumen(cuadra))).toEqual({ texto: "Todo contado", tono: "verde" });
@@ -632,6 +633,18 @@ describe("Re stock, Producto nuevo y los estados del resumen", () => {
     expect(fraseDelAvance(cifrasDelResumen(falta))).toEqual({ texto: "Todo contado · diferencia −2", tono: "ambar" });
     // Sin nada que contar todavía, no dice nada.
     expect(fraseDelAvance(cifrasDelResumen([]))).toBeNull();
+  });
+
+  it("la etiqueta del número: «contadas» mientras se cuenta, «Llegaron N de M» al terminar (auditoría 2026-11-12)", () => {
+    expect(etiquetaDelAvance(cifrasDelResumen(todas()), false)).toEqual({ antes: "", despues: "de 15 prendas contadas" });
+    const falta = categoriasDelEnvio(agruparLineas([deLaGuia(sofia(), { contadas: 3, separado: { prendas: [prendaSep("p-sofia", "Vestido Sofía", 3)], nuevas: [] } })]));
+    expect(etiquetaDelAvance(cifrasDelResumen(falta), false)).toEqual({ antes: "Llegaron", despues: "de 5" });
+    // Sin aviso no hay «de N».
+    expect(etiquetaDelAvance({ contadas: 1, dijeron: null, estados: { cuadran: 0, diferencia: 0, "por-contar": 1, despues: 0, llevar: 0 } }, true).despues).toBe("prenda contada");
+    expect(etiquetaDelAvance({ contadas: 4, dijeron: null, estados: { cuadran: 1, diferencia: 0, "por-contar": 0, despues: 0, llevar: 0 } }, true)).toEqual({ antes: "Llegaron", despues: "prendas" });
+    // Una sola prenda que se esperaba y llegó.
+    expect(etiquetaDelAvance({ contadas: 1, dijeron: 1, estados: { cuadran: 1, diferencia: 0, "por-contar": 0, despues: 0, llevar: 0 } }, false)).toEqual({ antes: "Llegó", despues: "de 1" });
+    expect(etiquetaDelAvance({ contadas: 0, dijeron: 1, estados: { cuadran: 0, diferencia: 0, "por-contar": 1, despues: 0, llevar: 0 } }, false).despues).toBe("de 1 prenda contada");
   });
 
   it("sin aviso, todo contado es verde aunque no haya con qué comparar", () => {

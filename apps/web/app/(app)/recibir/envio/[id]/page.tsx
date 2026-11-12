@@ -67,7 +67,7 @@ export default async function RecibirEnvioPage({ params }: { params: Promise<{ i
           <EncabezadoPagina
             sede={persona.ubicacionEtiqueta}
             titulo={`Recibir ${datos.detalle.numero}`}
-            subtitulo="Lo que llegó, contado por categoría."
+            subtitulo="Lo que llegó, contado modelo por modelo."
             volver={<Volver href="/recibir" a="Recibir mercadería" />}
           />
           <Aviso tono="error" titulo="No se pudo leer lo contado">

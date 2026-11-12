@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { Aviso } from "@/components/ui/Aviso";
-import { diaMes } from "@/lib/fechas-lima";
+import { diaLima, diaMes } from "@/lib/fechas-lima";
 import { diasDesde, textoAvisoPendientes, textoPrendas, type PendientesDeLaSede } from "@/lib/recepcion-conteo-reglas";
 
 // Lo recibido que todavía no está en el stock (ADR-0393, decisión 4): el mismo número en la puerta de Recibir y en el Inicio. Siempre
@@ -29,7 +29,8 @@ export function PendientesDeRecibir({ pendientes, conLista = true, guia }: { pen
             <li key={e.despachoId}>
               <Link href={`/recibir/envio/${e.despachoId}`} className="btn-cayla btn-secundario btn-chico h-auto whitespace-normal text-left">
                 {e.numero ?? "Envío"} · {textoPrendas(e.porSeparar + e.porDetallar + e.porCrear)}
-                {e.cerradoEn ? <span className="font-normal text-taupe"> · {diaMes(e.cerradoEn)}</span> : null}
+                {/* El día de Lima del cierre: cortar el instante en UTC daba el día siguiente a un cierre después de las 19:00 (auditoría 2026-11-12). */}
+                {e.cerradoEn ? <span className="font-normal text-taupe"> · {diaMes(diaLima(e.cerradoEn) ?? e.cerradoEn)}</span> : null}
               </Link>
             </li>
           ))}

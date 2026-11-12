@@ -2,7 +2,7 @@
   "guia": "recibir.envio.id",
   "ruta": "/recibir/envio/[id]",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 281,
+  "total": 282,
   "controles": {
     "app/(app)/recibir/envio/[id]/page.tsx": [
       "Volver «/recibir»",
@@ -203,7 +203,7 @@
       "button «{listaAbierta ? undefined : \"recepcion.lista-abrir\"}» #2"
     ],
     "components/recepcion-conteo/LlevarAlStock.tsx": [
-      "Boton «{esperandoGuardar ? \"Guardando lo último que contaste…\" : undefined}»",
+      "Boton «{parcial ? `Llevar ${unidades.toLocaleString(\"es-PE\")}»",
       "CampoMonto «{guia.etiqueta(\"salida-costo\", \"Costo por prenda\")}»",
       "ComboResponsable «{responsable}»",
       "Boton «Cancelar»",
@@ -261,6 +261,7 @@
     ],
     "components/recepcion-conteo/PlacaDelModelo.tsx": [
       "LapizEditar «{`el nombre de ${modelo.nombre}»",
+      "button «Cambiar»",
       "button «Llegaron las»",
       "button «+»",
       "button «+» #2",

@@ -9,11 +9,6 @@ import { cuentaDeLaBilletera, detalleTienes, textoPorConfirmar, usoDeLaPlata, ty
 // queda solo la cifra. Si la cifra es negativa, una nota dice qué hacer; si Compras todavía revisa plata anotada, otra dice que ya se puede
 // usar. Tinta sobre crema: en modo oscuro se invierte sola, como todo token. Sin JavaScript propio: la dibuja el servidor. Su cara de vidrio,
 // «A · Ahumada» (Felipe 2026-11-02, docs/maquetas/mis-compras-vidrio-2026-11/), vive en estilos/vidrio/pantalla.css (`.mc-billetera`).
-function Menos({ monto }: { monto: number }) {
-  // Lo que baja de la plata lleva su «−» delante del «S/», salvo cuando no hay nada.
-  return <>{monto > 0.004 ? "− " : ""}{soles(monto)}</>;
-}
-
 export function Billetera({ plata }: { plata: Pick<MiPlata, "tiene" | "porConfirmar" | "ronda"> }) {
   const cuenta = cuentaDeLaBilletera(plata);
   const revisando = textoPorConfirmar(plata.porConfirmar);
@@ -45,14 +40,16 @@ export function Billetera({ plata }: { plata: Pick<MiPlata, "tiene" | "porConfir
       {cuenta && (
         <dl className="grid grid-cols-3 gap-1.5 border-t border-crema/20 pt-2.5 text-sm">
           {[
-            { clave: "dieron", nombre: "Te dieron", monto: cuenta.dieron, resta: false },
-            { clave: "compraste", nombre: "Compraste", monto: cuenta.compraste, resta: true },
-            { clave: "gastaste", nombre: "Gastaste", monto: cuenta.gastaste, resta: true },
+            // Las tres cifras van iguales, sin signo: «Compraste» y «Gastaste» ya dicen que bajan. Con el «−» solo en dos de tres, «Compraste
+            // − S/ 448» se leía como un saldo negativo (auditoría 2026-11-12).
+            { clave: "dieron", nombre: "Te dieron", monto: cuenta.dieron },
+            { clave: "compraste", nombre: "Compraste", monto: cuenta.compraste },
+            { clave: "gastaste", nombre: "Gastaste", monto: cuenta.gastaste },
           ].map((c) => (
             // Los montos quedan alineados abajo aunque un nombre ocupe dos líneas a 375 px.
             <div key={c.clave} className="flex min-w-0 flex-col justify-between gap-px">
               <dt className="text-crema/75">{c.nombre}</dt>
-              <dd className="whitespace-nowrap text-sm font-semibold tabular-nums">{c.resta ? <Menos monto={c.monto} /> : soles(c.monto)}</dd>
+              <dd className="whitespace-nowrap text-sm font-semibold tabular-nums">{soles(c.monto)}</dd>
             </div>
           ))}
         </dl>

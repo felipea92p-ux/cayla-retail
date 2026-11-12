@@ -679,9 +679,22 @@ export function avanceDeCategoria(c: Pick<CategoriaDelEnvio, "dijeron" | "contad
 export function fraseDelAvance(c: CifrasDelResumen): { texto: string; tono: "verde" | "ambar" | null } | null {
   const porContar = c.estados["por-contar"];
   if (c.estados.cuadran + c.estados.diferencia + porContar === 0) return null;
-  if (porContar > 0) return { texto: porContar === 1 ? "Falta 1 por contar" : `Faltan ${conMiles(porContar)} por contar`, tono: null };
+  // Lo que falta se cuenta en MODELOS (paradas del contador), no en prendas: decirlo con su nombre, o «Faltan 3» parecía de prendas (auditoría 2026-11-12).
+  if (porContar > 0) return { texto: porContar === 1 ? "Falta 1 modelo por contar" : `Faltan ${conMiles(porContar)} modelos por contar`, tono: null };
   if (c.dijeron != null && c.diferencia !== 0) return { texto: `Todo contado · diferencia ${conSigno(c.diferencia)}`, tono: "ambar" };
   return { texto: "Todo contado", tono: "verde" };
+}
+
+/**
+ * Lo que va alrededor del número grande de la línea de avance (auditoría 2026-11-12). Mientras se cuenta: «6 de 10 prendas contadas». Con todo contado ya no
+ * es «contadas» —parecía que faltaba contar una cuando en verdad llegó una menos—: «Llegaron 9 de 10». Sin aviso no hay con qué comparar: «9 prendas».
+ */
+export function etiquetaDelAvance(c: Pick<CifrasDelResumen, "contadas" | "dijeron" | "estados">, sinAviso: boolean): { antes: string; despues: string } {
+  const todoContado = c.estados["por-contar"] === 0 && c.estados.cuadran + c.estados.diferencia > 0;
+  const prendas = (n: number) => (n === 1 ? "prenda" : "prendas");
+  if (sinAviso || c.dijeron == null) return todoContado ? { antes: "Llegaron", despues: prendas(c.contadas) } : { antes: "", despues: c.contadas === 1 ? "prenda contada" : "prendas contadas" };
+  if (todoContado) return { antes: c.contadas === 1 ? "Llegó" : "Llegaron", despues: `de ${conMiles(c.dijeron)}` };
+  return { antes: "", despues: `de ${conMiles(c.dijeron)} ${c.dijeron === 1 ? "prenda contada" : "prendas contadas"}` };
 }
 
 // ---- El filtro por proveedor y marca ------------------------------------------------------------------------------------------------

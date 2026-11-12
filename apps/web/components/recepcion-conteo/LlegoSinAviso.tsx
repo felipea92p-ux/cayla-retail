@@ -133,15 +133,15 @@ export function LlegoSinAviso({
     {!hayListaArriba && (
       <div className="flex flex-wrap items-center gap-3">
         <BotonSinAviso abierto={abierto} onCambiar={() => setAbierto((a) => !a)} />
-        {!abierto && <p className="text-[15px] text-taupe">¿Llegó algo que nadie despachó desde el sistema? Ábrelo aquí.</p>}
+        {!abierto && <p className="text-[15px] text-taupe">¿Llegó algo sin aviso? Ábrelo aquí.</p>}
       </div>
     )}
     {abierto && (
       <Modal
         titulo={hayListaArriba ? "¿Llegó algo que no está en la lista?" : "¿Llegó algo sin aviso?"}
         subtitulo={hayListaArriba
-          ? "Lo de arriba lo despachó Compras. Lo que llegó además se cuenta igual, por categoría y marca, solo que sin con qué comparar. De quién es cada cosa lo dice su marca."
-          : "Nadie lo despachó desde el sistema. Se cuenta igual, por categoría y marca, solo que sin con qué comparar. De quién es cada cosa lo dice su marca."}
+          ? "Lo de arriba lo despachó Compras. Lo que llegó además se cuenta igual, modelo por modelo, solo que sin con qué comparar. De quién es cada cosa lo dice su marca."
+          : "Nadie lo despachó desde el sistema. Se cuenta igual, modelo por modelo, solo que sin con qué comparar. De quién es cada cosa lo dice su marca."}
         tamano="mediana"
         onClose={() => setAbierto(false)}
         bloqueado={abriendo}

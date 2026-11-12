@@ -78,7 +78,7 @@ export function MisEnvios({
           onCambio={(c) => setAlcance(c as Alcance)}
           items={[
             { clave: "esta", etiqueta: "Esta ronda", conteo: deEsta.length, guia: "mis-envios.tab-esta" },
-            { clave: "anteriores", etiqueta: "Rondas anteriores", conteo: anteriores, guia: "mis-envios.tab-anteriores" },
+            { clave: "anteriores", etiqueta: "Rondas anteriores", conteo: anteriores > 0 ? anteriores : undefined, guia: "mis-envios.tab-anteriores" },
           ]}
         />
         <Buscador

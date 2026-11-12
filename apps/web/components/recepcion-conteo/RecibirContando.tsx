@@ -266,15 +266,21 @@ export function RecibirContando({
   }, []);
 
   const pendientesDeGuardar = Object.keys(borradores).length > 0;
+  // «En vuelo» y «falló» son dos cosas (auditoría 2026-11-12): un borrador cuyo guardado falló sigue en `borradores` para reintentar, pero ya no viaja. Contarlo
+  // como «se está guardando» dejaba «Llevar al stock» apagado para siempre con un «Guardando…» falso y la salida pidiendo «espera un segundo».
+  const enVuelo = Object.keys(borradores).some((k) => !errores[k]);
+  const noSeGuardo = Object.keys(borradores).some((k) => !!errores[k]);
   // Lo repartido que todavía no cuadra espera en la pantalla: la base solo guarda tallas que suman lo contado.
   const tablaSinCuadrar = Object.entries(tablas).some(([clave, t]) => t.sinGuardar && modos[clave] !== "despues");
   // Contar se guarda solo, y cada guardado pone y retira la guardia de «salir sin guardar». Que eso no mueva la página (quien tocaba «+» y bajaba a las
   // tallas antes de que guardara la veía saltar hacia arriba) lo resuelve la propia guardia desde el 2026-11-11: `lib/salida-sin-guardar.ts`.
   const avisoSalida = useSalidaSinGuardar(
     pendientesDeGuardar || tablaSinCuadrar,
-    pendientesDeGuardar
+    enVuelo
       ? "Lo último que contaste todavía se está guardando. Espera un segundo: si sales ahora, ese número se pierde (lo demás ya quedó guardado)."
-      : "Tienes tallas y colores sin cuadrar con lo contado. Si sales ahora, lo que repartiste se pierde (lo contado ya quedó guardado).",
+      : noSeGuardo
+        ? "Lo último que contaste no se guardó (¿se cortó la conexión?). Si sales ahora, ese número se pierde: toca «Reintentar» antes de salir (lo demás ya quedó guardado)."
+        : "Tienes tallas y colores sin cuadrar con lo contado. Si sales ahora, lo que repartiste se pierde (lo contado ya quedó guardado).",
   );
 
   /** Vuelve a mandar lo que no se pudo guardar: al tocar «Volver a guardar» y al volver la conexión. */
@@ -456,7 +462,7 @@ export function RecibirContando({
           veDinero={poneCosto}
           soloSede={soloSede}
           veExistencias={veExistencias}
-          esperandoGuardar={pendientesDeGuardar}
+          esperandoGuardar={enVuelo}
           onSalida={() => void releer()}
           detalle={detalle}
           lineas={lineas}
@@ -513,7 +519,7 @@ export function RecibirContando({
           soloSede={soloSede}
           proveedores={proveedoresVivos}
           onProveedorNuevo={sumarProveedor}
-          esperandoGuardar={pendientesDeGuardar}
+          esperandoGuardar={enVuelo}
           onVolver={(clave, decisiones) => {
             setVolverA(clave ?? null);
             setDecisionesCierre(decisiones);

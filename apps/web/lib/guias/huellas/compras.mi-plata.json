@@ -2,7 +2,7 @@
   "guia": "compras.mi-plata",
   "ruta": "/compras/mi-plata",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 62,
+  "total": 63,
   "controles": {
     "app/(app)/compras/mi-plata/page.tsx": [
       "BotonVer «Mis envíos»"
@@ -26,6 +26,7 @@
       "Casilla «{`${MEDIOS_PLATA.ya_tenia.nombre}»",
       "CampoMonto «mi-plata.monto»",
       "CampoFecha «¿Qué día te llegó?»",
+      "button «Llegó hoy»",
       "button «Cambiar el día»",
       "ComboResponsable «{responsable}»",
       "Boton «Cancelar»",
@@ -39,7 +40,7 @@
     ],
     "components/mi-plata/CodigoDeEnvio.tsx": [
       "BotonCopiar «el código del envío»",
-      "BotonAncla «Compartir por WhatsApp»"
+      "BotonAncla «Compartir el código por WhatsApp»"
     ],
     "components/mi-plata/CorreccionesDeCompra.tsx": [
       "BotonVerMas «Ver qué cambió»"
