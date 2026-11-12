@@ -1916,7 +1916,7 @@ export const GUIA_RECIBIR_ENVIO: Guia = {
       // El panel de filtros que abrió la guía se cierra antes de pasar al contador; en el celular, también la hoja de la lista.
       preparar: [{ tipo: "clic", ancla: "recepcion.filtros-cerrar", siEsta: true }, { tipo: "escape" }],
       titulo: "Cuántas llegaron de este modelo",
-      texto: "El aro cuenta el modelo que elegiste: verde cuando cuadra. Arriba, el costo y el precio que propuso Compras; toca la foto para ver todo lo que anotó. «Llegaron las N» lo deja listo de un toque y, si toca repartir tallas, baja hasta ahí. O escribe el número, o súmalas con + y −.",
+      texto: "El aro cuenta el modelo: verde cuando cuadra. Toca la foto para ver lo que anotó Compras. Junto al aro: «Llegaron las N» lo deja listo de un toque, +5 y +10 suman, «Poner en cero» lo vuelve atrás. A la derecha, el paso 2: sus tallas y colores.",
     },
     {
       id: "siguiente",

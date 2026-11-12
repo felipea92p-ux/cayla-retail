@@ -152,13 +152,10 @@ export function PlacaDelModelo({
     const fondo = isla && isla.height > 0 ? isla.top - 12 : window.innerHeight - 16;
     if (caja.bottom > fondo) window.scrollBy({ top: caja.bottom - fondo, behavior });
   };
-  // Tras «Llegaron las N» el paso 1 se pliega a una línea («✓ Llegaron 6 · Cambiar», auditoría 2026-11-12): al bajar a las tallas, el dial quedaba cortado bajo
-  // la cabecera de la prenda. Se recuerda por modelo (la placa no se vuelve a montar al pasar al siguiente) y «Cambiar» lo vuelve a abrir.
-  const [plegadoEn, setPlegadoEn] = useState<string | null>(null);
-  const plegado = plegadoEn === parada.clave && hayConteo && !error;
+  // «Llegaron las N» y, si la tarjeta de tallas no se ve (el contador angosto la pone debajo), baja hasta ella. Ya no pliega el paso 1: con el paso 2 al lado
+  // (Felipe 2026-11-12, mesa del contador) el dial no queda cortado.
   const llegaronTodas = (n: number) => {
     deUnToque(n);
-    setPlegadoEn(parada.clave);
     requestAnimationFrame(() => requestAnimationFrame(bajarALasTallas));
   };
   // Lo que anotó Compras de este modelo (Felipe 2026-11-12): la foto se toca y lo abre en una hoja. Sin línea de compra (un envío sin aviso), no hay nada que mostrar.
@@ -166,11 +163,11 @@ export function PlacaDelModelo({
   const [verCompra, setVerCompra] = useState(false);
   const precioSugerido = lineasDeCompra.find((l) => l.precioVentaSugerido != null)?.precioVentaSugerido ?? null;
   const marcaTexto = p.categoria ? marcaDeLinea(p).nombre : null;
-  // El paso 2. Mientras se cuenta va a la DERECHA del dial, bajo los atajos (Felipe 2026-11-12: «el paso dos se acople ahí al lado derecho del
-  // contador, ya que es solo un botón»): así «¿Pasó algo con esta prenda?» sale en pantalla sin bajar. Ya contado, debajo y a lo ancho.
-  const bloqueDeTallas = (alLado: boolean) =>
+  // El paso 2, la columna de la derecha (Felipe 2026-11-12, mesa del contador: «una línea separará al medio el paso 1 y el paso 2; de esta manera los
+  // botones de abajo ya no quedan fuera de vista»). El estado del modelo («Faltan tallas») va aquí, sobre la tarjeta: es de las tallas.
+  const bloqueDeTallas = () =>
     modelo ? (
-      <section ref={bloqueTallas} className={alLado ? "rc-bloque rc-tallas-al-lado" : "rc-bloque"} aria-label="Tallas y colores">
+      <section ref={bloqueTallas} className="rc-bloque rc-paso-dos" aria-label="Tallas y colores">
         <div className="rc-bloque-titulo">
           <span className="rc-paso" data-estado={pasoTallas} aria-hidden>
             {pasoTallas === "hecha" ? <Check className="h-4 w-4" /> : 2}
@@ -180,6 +177,11 @@ export function PlacaDelModelo({
             {yaEntroTodo ? <Chip tono="verde">Ya en el stock</Chip> : modelo.conTallas && modelo.productoId ? <Chip tono="verde">Entra al stock</Chip> : pasoTallas === "toca" && hayConteo ? <EtiquetaAhora /> : null}
           </span>
         </div>
+        {hayConteo && (
+          <div className="rc-paso-dos-estado">
+            <EstadoModelo m={modelo} faltanTallas={faltanTallas} sinAviso={sinAviso} />
+          </div>
+        )}
         {tallas}
       </section>
     ) : null;
@@ -253,33 +255,22 @@ export function PlacaDelModelo({
       <div key={parada.clave} ref={cuerpo} className="rc-scroll scroll-cayla rc-placa-cuerpo">
         {identificar}
 
-        <section className="rc-bloque" aria-label="¿Cuántas llegaron?">
+        {/* Paso 1 y paso 2 lado a lado, con una línea al medio (Felipe 2026-11-12, mesa del contador). Con el contador angosto, uno bajo el otro (CSS). */}
+        <div className="rc-pasos">
+        <section className="rc-bloque rc-paso-uno" aria-label="¿Cuántas llegaron?">
           <div className="rc-bloque-titulo">
             <span className="rc-paso" data-estado={hayConteo ? "hecha" : "toca"} aria-hidden>
               {hayConteo ? <Check className="h-4 w-4" /> : 1}
             </span>
             <h3 className="rc-bloque-nombre">¿Cuántas llegaron?</h3>
             {/* Lo mismo que dice su fila en la lista. Sin contar, «Sigue» lo dice. */}
-            <span className="rc-bloque-estado">{!hayConteo ? <EtiquetaAhora /> : modelo ? <EstadoModelo m={modelo} faltanTallas={faltanTallas} sinAviso={sinAviso} /> : null}</span>
+            <span className="rc-bloque-estado">{!hayConteo ? <EtiquetaAhora /> : null}</span>
           </div>
-          {plegado ? (
-            <p className="rc-cuenta-plegada" data-guia="recepcion.numero">
-              <Check aria-hidden className="h-4 w-4 shrink-0" />
-              <span>
-                {contadas === 1 ? "Llegó" : "Llegaron"} <b>{conMiles(contadas)}</b>
-                {dijeron != null && dijeron !== contadas ? ` de ${conMiles(dijeron)}` : ""}
-              </span>
-              <button type="button" className="btn-cayla btn-enlace" onClick={() => setPlegadoEn(null)}>
-                Cambiar
-              </button>
-            </p>
-          ) : (
           <div className="rc-cuenta" data-guia="recepcion.numero">
             <Dial contadas={contadas} dijeron={dijeron} hayConteo={hayConteo} minimo={minimo} nombre={nombre} abrirAlEntrar={abrirNumero} onPoner={poner} onEnter={onEnter} />
             <div className="rc-cuenta-lado">
-              {/* De lo más rápido a lo menos común: «ya llegaron todas» grande y primero (es lo que más se toca y deja el modelo listo), sumar de a varias y «no llegó». El que ya se cumplió se queda en su lugar, marcado. */}
-              {/* «Llegaron las N» a su ancho y en la misma fila que sumar y «poner en cero» (Felipe 2026-11-12: «está muy largo y se desperdicia
-                  mucho espacio»): sigue primero y en verde, que es lo que más se toca. */}
+              {/* De lo más rápido a lo menos común, uno bajo el otro junto al dial (Felipe 2026-11-12, mesa del contador): «ya llegaron todas» primero y en
+                  verde, sumar de a varias y «poner en cero» o «no llegó». El que ya se cumplió se queda en su lugar, marcado. */}
               <div className="rc-atajos">
                 {dijeron != null && dijeron >= minimo && (
                   <button type="button" className="rc-atajo rc-atajo-llegaron" data-hecho={yaLlegaron ? "" : undefined} disabled={yaLlegaron} onClick={() => llegaronTodas(dijeron)}>
@@ -321,14 +312,11 @@ export function PlacaDelModelo({
                   )
                 )}
               </div>
-              {/* Una sola línea de ayuda, en su lugar reservado: si apareciera otra, lo de abajo se movería bajo el mouse al primer toque. */}
-              <p className="rc-pista">{diferencia != null && diferencia !== 0 && !sinAviso ? "Si no coincide, al cerrar dices por qué." : "Toca el número para escribirlo."}</p>
-              {enStock > 0 && <p>Ya entraron {textoPrendas(enStock)} al stock: lo contado no baja de ahí.</p>}
             </div>
-            {/* Hija de la grilla del contador: con el panel ancho va a la derecha del dial, bajo los atajos; angosto, debajo y a lo ancho (CSS). */}
-            {bloqueDeTallas(true)}
           </div>
-          )}
+          {/* La pista bajo el dial: una sola línea, en su lugar reservado (si apareciera otra, lo de abajo se movería bajo el mouse al primer toque). */}
+          <p className="rc-pista">{diferencia != null && diferencia !== 0 && !sinAviso ? "Si no coincide, al cerrar dices por qué." : "Toca el número para escribirlo."}</p>
+          {enStock > 0 && <p className="rc-pista-stock">Ya entraron {textoPrendas(enStock)} al stock: lo contado no baja de ahí.</p>}
           {error && (
             <div className="rc-placa-error">
               <Aviso
@@ -345,9 +333,8 @@ export function PlacaDelModelo({
             </div>
           )}
         </section>
-
-        {/* Ya contado (el paso 1 plegado), las tallas van debajo, a lo ancho; antes, al lado del dial (arriba). */}
-        {plegado && bloqueDeTallas(false)}
+        {bloqueDeTallas()}
+        </div>
 
         {/* Lo que puede pasar con la prenda, a la vista y con su palabra (ADR-0645): antes estaba repartido entre un enlace de la cabecera y dos rincones de la tabla de tallas. */}
         <section className="rc-bloque" aria-label="¿Pasó algo con esta prenda?">

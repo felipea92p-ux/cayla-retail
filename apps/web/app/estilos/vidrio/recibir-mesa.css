@@ -245,25 +245,37 @@ main:has(.rc-conteo) { padding-bottom: 16px; }
   box-shadow: var(--vidrio-claro-filo), var(--lente-paso-hecha-sombra); color: var(--lente-paso-hecha-tinta);
 }
 
-.rc-cuenta { display: grid; grid-template-columns: 192px minmax(0, 1fr); align-items: center; gap: 12px 24px; }
-.rc-cuenta > .rc-dial { grid-column: 1; }
-/* El paso 1 plegado en una línea tras «Llegaron las N» (auditoría 2026-11-12): el número con su ✓ y «Cambiar» para volver al dial. */
-.rc-cuenta-plegada { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; color: var(--color-tinta); font-size: 15px; }
-.rc-cuenta-plegada > svg { color: var(--color-verde-profundo); }
-.rc-cuenta-plegada b { font-variant-numeric: tabular-nums; }
-.rc-cuenta-lado { grid-column: 2; display: grid; align-content: center; gap: 10px; min-width: 0; max-width: 420px; }
-.rc-cuenta-lado > p { color: var(--color-taupe); font-size: 14px; line-height: 1.35; }
-.rc-pista { min-height: 2.7em; }
-/* El paso 2 a la derecha del dial, bajo los atajos (Felipe 2026-11-12): un bloque sin su marco, con una línea arriba. Con él, el dial se alinea
-   arriba (centrado, quedaba flotando a media altura de un lado más alto). */
-.rc-tallas-al-lado { grid-column: 1 / -1; padding: 12px 0 0; border-top: 1px solid var(--hilo-fila); animation: none; }
-@container rc-placa (min-width: 620px) {
-  .rc-cuenta:has(.rc-tallas-al-lado) { align-items: start; }
-  .rc-cuenta:has(.rc-tallas-al-lado) > .rc-dial { grid-row: 1 / span 2; align-self: center; }
-  .rc-cuenta > .rc-tallas-al-lado { grid-column: 2; max-width: 420px; }
+/* Paso 1 y paso 2 lado a lado, con una línea al medio (Felipe 2026-11-12, en la mesa del contador: «una línea separará al medio el paso 1 y el paso 2;
+   de esta manera los botones de abajo ya no quedan fuera de vista»). El paso 1 mide lo que piden el dial y sus botones; el paso 2 toma el resto. */
+.rc-pasos { display: grid; grid-template-columns: max-content minmax(0, 1fr); border-top: 1px solid var(--hilo-fila); }
+.rc-placa-cuerpo > .rc-pasos:first-child { border-top: 0; }
+.rc-pasos > .rc-bloque { border-top: 0; align-content: start; }
+.rc-pasos > .rc-paso-dos { border-left: 1px solid var(--hilo-fila); animation-delay: 70ms; }
+.rc-paso-dos > :not(.rc-bloque-titulo) { max-width: 460px; }
+/* «Faltan tallas»: el estado del modelo, sobre su tarjeta. */
+.rc-paso-dos-estado { display: flex; justify-content: flex-end; }
+/* Con la placa de ~640 px (1440 con la lista al lado), el paso 1 se aprieta para que la tarjeta del paso 2 quepa, y sus botones pueden partirse en dos renglones. */
+@container rc-placa (max-width: 759px) {
+  .rc-pasos > .rc-bloque { padding-inline: 12px; }
+  .rc-pasos .rc-cuenta { column-gap: 16px; }
+  .rc-paso-dos .rc-tarjeta-acciones .btn-cayla:not(.btn-enlace) { white-space: normal; text-align: left; }
 }
-/* Los botones del contador: «Llegaron» en verde, grande y primero, porque es lo que más se toca y deja el modelo listo; sumar en su bandeja, y «No llegó» aparte, más callado. */
-.rc-atajos { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+/* Más angosta, uno bajo el otro. */
+@container rc-placa (max-width: 599px) {
+  .rc-pasos { grid-template-columns: minmax(0, 1fr); }
+  .rc-pasos > .rc-paso-dos { border-left: 0; border-top: 1px solid var(--hilo-fila); }
+}
+/* El dial y, a su lado, sus botones uno bajo el otro (Felipe 2026-11-12). */
+.rc-cuenta { display: grid; grid-template-columns: 192px max-content; align-items: center; gap: 12px 24px; }
+.rc-cuenta > .rc-dial { grid-column: 1; }
+.rc-cuenta-lado { grid-column: 2; display: grid; align-content: center; gap: 10px; min-width: 0; }
+.rc-pista, .rc-pista-stock { color: var(--color-taupe); font-size: 14px; line-height: 1.35; }
+/* Un renglón reservado: bajo el dial cabe en una línea, y si apareciera otra, lo de abajo se movería bajo el mouse. */
+.rc-pista { min-height: 1.35em; }
+/* Los botones del contador, apilados: «Llegaron» en verde y primero, porque es lo que más se toca y deja el modelo listo; sumar en su bandeja, y «No llegó» al final, más callado. Todos del mismo ancho. */
+.rc-atajos { display: flex; flex-direction: column; align-items: stretch; gap: 8px; }
+.rc-atajos .rc-suma { display: flex; }
+.rc-atajos .rc-suma button { flex: 1 1 0; }
 .rc-suma { display: inline-flex; gap: 3px; padding: 3px; border-radius: 14px; background: var(--pozo-fondo); box-shadow: var(--pozo-sombra); }
 .rc-suma button { min-width: 56px; height: 32px; padding: 0 12px; border-radius: 10px; background: var(--gota-marca); box-shadow: var(--gota-luz); color: var(--color-tinta); font-size: 14px; font-weight: 700; font-variant-numeric: tabular-nums; transition: translate 160ms var(--ease-cayla), scale 120ms var(--ease-cayla), background-color 200ms var(--ease-cayla); }
 .rc-atajo { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 40px; padding: 0 16px; border: 1px solid var(--color-borde-control); border-radius: 12px; color: var(--color-tinta); font-size: 14px; font-weight: 600; white-space: nowrap; font-variant-numeric: tabular-nums; transition: translate 160ms var(--ease-cayla), scale 120ms var(--ease-cayla), box-shadow 200ms var(--ease-cayla), background-color 200ms var(--ease-cayla), color 200ms var(--ease-cayla); }
@@ -320,9 +332,8 @@ main:has(.rc-conteo) { padding-bottom: 16px; }
 @container rc-placa (max-width: 439px) {
   .rc-cuenta { grid-template-columns: minmax(0, 1fr); }
   .rc-cuenta > .rc-dial { justify-self: center; }
-  .rc-cuenta-lado { grid-column: 1; justify-items: stretch; max-width: none; }
-  .rc-atajos { justify-content: center; }
-  .rc-cuenta-lado > p { text-align: center; }
+  .rc-cuenta-lado { grid-column: 1; justify-items: stretch; }
+  .rc-pista, .rc-pista-stock { text-align: center; }
   /* En el teléfono «Anterior» va a su medida y lo que sigue toma lo que queda. */
   .rc-pie-pasos .btn-primario { flex: 1 1 auto; }
 }
