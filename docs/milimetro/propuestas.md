@@ -29,6 +29,8 @@ hacen los mejores del mundo, hagámoslo». Cada propuesta dice qué se gana, de 
   sin cascada cuando la hoja se abre con el teclado, un token `--t-salida` para los 220 ms sueltos, `@keyframes cayla-onda` definido dos veces en `globals.css`, dos `transition-all`.
 - **`/tipografia`:** la vigilancia de `texto` solo mira `<p>` (deja pasar 13 px en `<span>`/`<div>`: globo de `<Ayuda>`, frase de `<Cajon>`); interlineados fraccionarios (23,25 y 19,5 px);
   `.texto-bajada`, `.texto-detalle` y `.nota-cayla` en px y no en rem; `case` en las versalitas de DM Sans.
+  Visto en `/compras` (2026-11-12): las versalitas de dos piezas decididas van en 10,5 px, bajo el piso de 11 de las etiquetas (el globito de `pestana-cayla__cuenta` y
+  `segmento-cayla__opcion`); subirlas a 11 px las cambia en todo el ERP, así que se decide aquí y no en la pantalla.
 - **`/espacio`:** `btn-chico` mediría 40 px y no 44 (una regla sin capa le gana; falta medirlo); la regla «sin sombras» no calza con el vidrio claro; densidad compacta opcional;
   la cebra de `.fila-cayla`; 52 cortes de ventana a medida.
 - **`/color`:** `packages/shared/src/design-tokens.ts` está desactualizado; el texto tenue del oscuro al 70 % y no al 60 % (APCA); colores de dato vecinos que se confunden con daltonismo
