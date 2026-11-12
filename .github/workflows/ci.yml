@@ -284,6 +284,12 @@ jobs:
         if: ${{ !cancelled() }}
         run: node --test scripts/sugerir/escanear.test.mjs scripts/focus/escanear.test.mjs
 
+      # El check «Al milímetro» (`.github/workflows/al-milimetro.yml`): qué archivos cuentan como visuales y qué casilla lo deja
+      # pasar. Solo lee su lista; no necesita node_modules.
+      - name: Check «Al milímetro»
+        if: ${{ !cancelled() }}
+        run: node --test scripts/milimetro/casilla.test.mjs
+
       # `/chaos`: el catálogo de ataques y el detector de invariantes. Solo la parte pura (sin Docker); las consultas contra la base
       # las corre `node scripts/chaos/invariantes.mjs --autoprueba` en local.
       - name: Catálogo de caos e invariantes
