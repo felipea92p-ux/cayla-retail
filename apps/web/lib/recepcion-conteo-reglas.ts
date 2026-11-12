@@ -56,6 +56,7 @@ export const RPC_RESOLVER_PENDIENTE = "resolver_pendiente_envio";
 export const RPC_LIGAR_PRENDA = "ligar_prenda_a_pendiente";
 /** Felipe 2026-11-06 y 2026-11-07: lo contado como nuevo en una categoría o una marca que no era pasa a la suya, con el envío cerrado. */
 export const RPC_CAMBIAR_LINEA = "cambiar_linea_de_pendiente";
+export const RPC_CORREGIR_LINEA_AL_CONTAR = "corregir_linea_al_contar";
 /** Las tallas y colores que nacieron al recibir este envío y todavía se pueden quitar (Felipe 2026-11-07). Solo lectura. */
 export const RPC_COMBINACIONES_QUITABLES = "fn_combinaciones_quitables";
 /** Archiva lo agregado por error al recibir: solo lo que nació en este envío y nadie usó (`quitar_combinaciones_al_recibir`). */
