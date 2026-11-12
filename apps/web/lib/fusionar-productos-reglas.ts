@@ -284,7 +284,13 @@ export function frasesDelResumen(plan: Pick<PlanFusion, "resumen" | "productos">
   const deLaRepetida = duplicados.length === 1 ? "la ficha repetida" : "las fichas repetidas";
   if (vendidas === 1) frases.push(`La prenda vendida de ${deLaRepetida} cuenta en el que queda.`);
   if (vendidas > 1) frases.push(`Las ${plural(vendidas, "prenda vendida", "prendas vendidas")} de ${deLaRepetida} cuentan en el que queda.`);
-  frases.push(`Quedan ${plural(fotosQueQuedan, "foto", "fotos")} en el producto; las demás se guardan en la ficha repetida.`);
+  const fotosTotal = plan.productos.reduce((s, p) => s + p.fotos.length, 0);
+  if (fotosTotal > 0)
+    frases.push(
+      fotosQueQuedan === fotosTotal
+        ? `Quedan las ${plural(fotosTotal, "foto", "fotos")} en el producto.`.replace("las 1 foto", "la foto")
+        : `Quedan ${plural(fotosQueQuedan, "foto", "fotos")} en el producto; las demás se guardan en la ficha repetida.`,
+    );
   frases.push(`Las etiquetas ya impresas siguen sirviendo al escanearlas.`);
   return frases;
 }

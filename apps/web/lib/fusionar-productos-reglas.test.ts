@@ -137,6 +137,11 @@ describe("fotos y resumen", () => {
     ]);
     expect(frases.join(" ")).not.toMatch(/variante|mud/i);
   });
+  it("sin fotos no habla de fotos; con todas marcadas no dice «las demás»", () => {
+    const sinFotos = { ...plan, productos: plan.productos.map((p) => ({ ...p, fotos: [] })) };
+    expect(frasesDelResumen(sinFotos, 0).some((f) => f.includes("foto"))).toBe(false);
+    expect(frasesDelResumen(plan, 3)).toContain("Quedan las 3 fotos en el producto.");
+  });
 });
 
 describe("guía de foco (ADR-0284)", () => {
