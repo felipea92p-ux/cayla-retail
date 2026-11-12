@@ -177,7 +177,8 @@ main:has(.rc-conteo) { padding-bottom: 16px; }
 .rc-pie-falta { flex: 1 1 0; min-width: 0; min-height: 24px; color: var(--color-taupe); font-size: 14px; line-height: 1.35; }
 .rc-pie-falta > div, .rc-pie-falta p { padding-top: 0; }
 .rc-pie-accion { flex: none; display: flex; align-items: center; gap: 12px; min-width: 0; max-width: 100%; min-height: 44px; }
-.rc-pie-quien { display: flex; align-items: center; gap: 8px; min-width: 0; }
+/* Por abajo y no al centro (Felipe 2026-11-12): el combo «Responsable» lleva su título encima, y centrados, «Facturas» y el «?» quedaban más altos que su caja. */
+.rc-pie-quien { display: flex; align-items: flex-end; gap: 8px; min-width: 0; }
 .rc-pie-accion > .btn-cayla { flex: none; white-space: nowrap; }
 /* Con la lista angosta van en dos filas: arriba lo que falta, en una línea; abajo quién cuenta y el botón, cada uno a su lado. */
 @container rc-lista (max-width: 699px) {
@@ -298,6 +299,10 @@ main:has(.rc-conteo) { padding-bottom: 16px; }
 .rc-pie-sigue b { color: var(--color-tinta); font-weight: 600; }
 .rc-pie-pasos { flex: none; display: flex; align-items: center; gap: 8px; min-width: 0; max-width: 100%; min-height: 44px; }
 .rc-pie-pasos .btn-cayla { flex: none; white-space: nowrap; }
+/* En el celular «Revisar y cerrar» lo trae la isla de abajo (y la hoja de la lista): en el pie del contador sobraría uno (ADR-0645, uno solo). */
+@media (max-width: 639px) {
+  .rc-pie-cierre { display: none; }
+}
 /* Con el contador angosto, en dos filas como el pie de la lista: arriba lo que sigue; abajo los dos botones, cada uno a su lado. */
 @container rc-placa (max-width: 699px) {
   .rc-pie-sigue { flex-basis: 100%; }

@@ -311,9 +311,11 @@ export function ContarEnvio({
   const enAhora = new Set(paradasDelEnvio.filter((p) => p.modelo && modoDe(p) === "ahora").map((p) => p.clave));
   const categoriasDelConteo = categoriasEnOrden(categoriasDelFiltro(grupos, filtro, parada?.clave ?? null, enAhora), orden);
   const paradas = categoriasDelConteo.flatMap((c) => c.paradas);
-  const { anterior, siguiente } = vecinosDeLaParada(paradas, parada?.clave ?? null);
-  // En el último modelo, lo que sigue es lo que quedó sin contar en todo el envío: el contador no cierra, lleva a lo pendiente.
+  const { siguiente } = vecinosDeLaParada(paradas, parada?.clave ?? null);
+  // En el último modelo, lo que sigue es lo que quedó sin contar en todo el envío: Enter no cierra, lleva a lo pendiente.
   const pendiente = siguiente || !parada ? null : siguientePendiente(paradasDelEnvio, parada.clave);
+  // El pie del contador dice siempre cuál es el próximo sin contar del envío (sin «Siguiente», es lo único que lleva a otro modelo desde ahí).
+  const faltaContar = parada ? siguientePendiente(paradasDelEnvio, parada.clave) : null;
   const opciones = opcionesDelFiltro(grupos, filtro);
   const cifras = cifrasDelResumen(todas, enAhora);
   // En una terminal hay que elegir quién cuenta antes de guardar: es lo primero que falta, y se elige ahí mismo.
@@ -760,6 +762,18 @@ export function ContarEnvio({
     filtro,
   );
 
+  // El ÚNICO «Revisar y cerrar» de la pantalla (ADR-0645): negro solo cuando es lo que toca (`botonPrincipal`). En escritorio vive en el pie del contador,
+  // a la derecha (Felipe 2026-11-12: «considerar si el de revisar y cerrar se pase a la mano derecha»); en la hoja de la lista del celular, ahí.
+  const botonCerrar = (
+    <BotonCerrarConteo
+      peso={principal === "cerrar" ? "primario" : "fantasma"}
+      puedeCerrar={puedeCerrar}
+      motivos={motivosNoCierra}
+      onCerrar={onCerrar}
+      onIrALoQueFalta={() => guia.faltan[0] && guia.ir(guia.faltan[0].id)}
+      guia="recepcion.pasar-a-cerrar"
+    />
+  );
   // La lista del envío. Se dibuja en la mesa y, en el celular, dentro de su hoja (`enHoja`): ahí elegir un modelo cierra la hoja y deja el contador a la vista.
   const listaDelEnvio = (enHoja: boolean) => (
     <ListaDelEnvio
@@ -846,11 +860,8 @@ export function ContarEnvio({
               {faltaFotoDeFactura && " La foto de las facturas no frena el cierre."}
             </>
           }
-          cierrePrincipal={principal === "cerrar"}
-          puedeCerrar={puedeCerrar}
-          motivosNoCierra={motivosNoCierra}
-          onCerrar={onCerrar}
-          onIrALoQueFalta={() => guia.faltan[0] && guia.ir(guia.faltan[0].id)}
+          // En escritorio «Revisar y cerrar» va en el pie del contador (Felipe 2026-11-12); aquí solo en la hoja del celular o si no hay contador a la vista.
+          cierre={enHoja || !parada ? botonCerrar : null}
           onCancelarRecepcion={nadaContado ? onCancelarRecepcion : undefined}
         />
       }
@@ -913,18 +924,14 @@ export function ContarEnvio({
               onQuitarFiltro={() => cambiarFiltro(SIN_FILTRO)}
               onDeUnToque={(n) => ponerDeUnToque(parada, n)}
               pasoTallas={!tarjeta || tarjeta === "espera" ? "falta" : tarjeta === "lista" || tarjeta === "en-stock" ? "hecha" : tocaRepartir(tarjeta) ? "toca" : "falta"}
-              principalEnLaTarjeta={principal === "tarjeta"}
               abrirNumero={escribirEn === parada.clave}
-              anterior={anterior}
-              siguiente={siguiente}
-              pendiente={pendiente}
+              pendiente={faltaContar}
               hayFiltroPuesto={hayFiltro(filtro)}
               todoContado={todoContado}
               filaSeguir={filaSeguir}
               onPoner={(n) => escribirEnParada(parada, n)}
-              onAnterior={(e) => pasarA(anterior, e.timeStamp)}
-              onSiguiente={(e) => pasarA(siguiente, e.timeStamp)}
-              onPendiente={(e) => pasarA(pendiente, e.timeStamp)}
+              onPendiente={(e) => pasarA(faltaContar, e.timeStamp)}
+              cierre={botonCerrar}
               onEnter={() => {
                 // Enter pasa al siguiente con su número listo para escribir; en el último, a lo que quedó sin contar; y con todo contado, el cursor va a «Revisar y cerrar».
                 const destino = siguiente ?? (hayFiltro(filtro) ? null : pendiente);

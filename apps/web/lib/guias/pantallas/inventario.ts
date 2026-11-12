@@ -1923,8 +1923,8 @@ export const GUIA_RECIBIR_ENVIO: Guia = {
       ancla: "recepcion.siguiente",
       opcional: true,
       requiere: [CONTADOR_A_LA_VISTA],
-      titulo: "Al siguiente modelo",
-      texto: "«Listo, siguiente» pasa al modelo que sigue y «Anterior» vuelve; al lado dice cuál viene. En el último, te lleva al que quedó sin contar. Con el número abierto, Enter hace lo mismo y deja el siguiente listo para escribir: cuentas todo sin soltar el teclado.",
+      titulo: "Lo que falta y cerrar",
+      texto: "Abajo dice qué modelo falta contar: tócalo y vas a él (o elige otro en la lista de la izquierda). A la derecha, «Revisar y cerrar». Con el número abierto, Enter pasa al siguiente modelo y lo deja listo para escribir: cuentas todo sin soltar el teclado.",
     },
     {
       id: "que-hacer",
@@ -2020,7 +2020,7 @@ export const GUIA_RECIBIR_ENVIO: Guia = {
       requiere: ["recepcion.categorias"],
       preparar: [LISTA_DEL_CELULAR],
       titulo: "Revisar y cerrar",
-      texto: "Lleva al cierre, siempre desde este lugar: ahí ves lo que no cuadró, el costo y quién cierra. Si algo más que contar impide cerrar (decir qué son unas prendas, una categoría sin modelos), sale a su lado y tocarlo te lleva hasta ahí. En la demo no avanzamos.",
+      texto: "Lleva al cierre: ahí ves lo que no cuadró, el costo y quién cierra. Si algo más que contar impide cerrar (decir qué son unas prendas, una categoría sin modelos), sale a su lado y tocarlo te lleva hasta ahí. En la demo no avanzamos.",
     },
     {
       id: "ya-en-stock",

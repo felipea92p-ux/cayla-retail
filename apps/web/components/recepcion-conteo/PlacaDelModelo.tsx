@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useState, type MouseEvent, type ReactNode, type Ref } from "react";
-import { ArrowLeft, ArrowRight, Ban, Banknote, Check, Package, Repeat, RotateCcw, Sparkles, Tag, TriangleAlert } from "lucide-react";
+import { Ban, Banknote, Check, Package, Repeat, RotateCcw, Sparkles, Tag, TriangleAlert } from "lucide-react";
 import { EtiquetaAhora } from "@/components/alta-producto/guia";
 import { Aviso } from "@/components/ui/Aviso";
 import { avisar } from "@/components/ui/Avisos";
@@ -22,8 +22,8 @@ import type { EstadoGuardado } from "./RecibirContando";
 
 // La mitad derecha: lo que se está contando (Felipe 2026-11-02, de su boceto; el Dial es el de ADR-0575; en dos mitades desde el 2026-11-11, ADR-0645). El mismo esqueleto que la lista:
 // cabeza (la prenda con su foto, su marca y su costo), cuerpo que corre (1 · cuántas llegaron, con el aro y «Llegaron las N» grande; 2 · sus tallas y colores, si se quiere) y pie fijo
-// (anterior y siguiente). Aquí no se cierra el conteo: «Revisar y cerrar» vive solo en la lista, y en el último modelo el pie lleva al que quedó sin contar. Lo guarda la pantalla: aquí
-// solo se dice qué dejó la persona.
+// (a qué ir si falta algo y «Revisar y cerrar»: desde el 2026-11-12 sin «Anterior» ni «Siguiente», y el cierre pasó de la lista a este pie). Lo guarda la
+// pantalla: aquí solo se dice qué dejó la persona.
 
 export function PlacaDelModelo({
   parada,
@@ -34,19 +34,15 @@ export function PlacaDelModelo({
   error,
   onReintentar,
   pasoTallas,
-  principalEnLaTarjeta,
   abrirNumero,
-  anterior,
-  siguiente,
   pendiente,
   hayFiltroPuesto,
   todoContado,
   filaSeguir,
   onPoner,
   onDeUnToque,
-  onAnterior,
-  onSiguiente,
   onPendiente,
+  cierre,
   onQuitarFiltro,
   onEnter,
   onDanada,
@@ -69,26 +65,22 @@ export function PlacaDelModelo({
   onReintentar: () => void;
   /** Cómo va el paso 2: espera (sin número o nada que hacer ahora), toca o ya está. */
   pasoTallas: "falta" | "toca" | "hecha";
-  /** Lo que toca ahora está en la tarjeta de tallas (repartir, o llevar al stock lo repartido): su botón es el principal, no «Listo, siguiente». */
-  principalEnLaTarjeta: boolean;
   /** Llega con el número listo para escribir: viene de apretar Enter en lo anterior. */
   abrirNumero: boolean;
-  anterior: ParadaDelConteo | null;
-  siguiente: ParadaDelConteo | null;
-  /** En el último modelo: lo que quedó sin contar en otra parte del envío. Con un filtro puesto no se usa: se ofrece ver todos. */
+  /** El próximo modelo sin contar del envío (dando la vuelta): el pie lleva a él. `null` con todo contado. */
   pendiente: ParadaDelConteo | null;
   hayFiltroPuesto: boolean;
   /** Ya no queda nada por contar: el botón principal de la pantalla pasa a ser «Revisar y cerrar», en la lista. */
   todoContado: boolean;
-  /** El pie con «Anterior» y «Listo, siguiente». */
+  /** El pie del contador (Enter, con todo contado, lleva el cursor a su «Revisar y cerrar»). */
   filaSeguir: Ref<HTMLDivElement>;
   /** La persona dejó este número: la pantalla lo guarda en la línea que le toca. */
   onPoner: (n: number) => void;
   /** «Llegaron las N» o «Poner en cero»: pisan lo contado de un toque, y se pueden deshacer. */
   onDeUnToque: (n: number) => void;
-  onAnterior: (e: MouseEvent) => void;
-  onSiguiente: (e: MouseEvent) => void;
   onPendiente: (e: MouseEvent) => void;
+  /** «Revisar y cerrar» (`BotonCerrarConteo`), a la derecha del pie del contador: el único de la pantalla en escritorio. */
+  cierre?: ReactNode;
   onQuitarFiltro: () => void;
   onEnter: () => void;
   /** «Llegó dañada»: abre la hoja de tallas en la parte de las dañadas. Sin ella, el botón va apagado y `notaDeAlgo` dice por qué. */
@@ -138,9 +130,6 @@ export function PlacaDelModelo({
   const nombre = modelo ? modelo.nombre : p.categoria ? p.categoria.nombre.toLowerCase() : "prendas";
   const descripcion = modelo ? null : descripcionDelGrupo(grupo);
 
-  // Sin contar todavía no es «Listo»: pasar es saltarlo, y lo principal es contar. Si toca repartir o llevar al stock, lo principal es el botón de la tarjeta. Con todo contado, «Revisar y cerrar», en la lista.
-  const pesoSeguir = hayConteo && !todoContado && !principalEnLaTarjeta ? "primario" : "fantasma";
-
   // «Llegaron las N» deja el número listo de un toque. Si con eso toca repartir, el contador baja hasta la tarjeta de tallas (Felipe 2026-11-11, cambio 1 de
   // /formidable): a 1440×900 «Repartir tallas y colores» quedaba 71 px bajo el borde y había que buscarlo. Baja la mitad del contador, no la página; donde esa
   // mitad no tiene su propio scroll (apiladas, el celular), baja la página lo justo, sin meter la tarjeta bajo la isla. Con + y − no se mueve nada: la persona
@@ -172,7 +161,6 @@ export function PlacaDelModelo({
     setPlegadoEn(parada.clave);
     requestAnimationFrame(() => requestAnimationFrame(bajarALasTallas));
   };
-  const flecha = <ArrowRight aria-hidden className="h-4 w-4 shrink-0" />;
   // Lo que anotó Compras de este modelo (Felipe 2026-11-12): la foto se toca y lo abre en una hoja. Sin línea de compra (un envío sin aviso), no hay nada que mostrar.
   const lineasDeCompra = lineasDeLaParada(parada).map((l) => l.linea).filter((l): l is NonNullable<typeof l> => l !== null);
   const [verCompra, setVerCompra] = useState(false);
@@ -386,52 +374,32 @@ export function PlacaDelModelo({
         </section>
       </div>
 
-      {/* El pie fijo: anterior y siguiente, con su palabra y su flecha (Felipe 2026-11-02). El nombre de lo que sigue va al lado, no en el botón: uno largo no cabía. */}
+      {/* Sin «Anterior» ni «Siguiente» (Felipe 2026-11-12: «no sirven, ya que todas las colaboradoras usan la lista de categorías para moverse
+          entre las prendas»). A la izquierda, a qué ir si falta algo; a la derecha, el ÚNICO «Revisar y cerrar» de la pantalla (ADR-0645), que
+          viene de `ContarEnvio` con su peso (negro solo cuando es lo que toca). Enter sigue pasando al siguiente modelo. */}
       <div ref={filaSeguir} className="rc-placa-pie" data-guia="recepcion.siguiente">
         <p className="rc-pie-sigue">
-          {siguiente ? (
+          {pendiente ? (
             <>
-              Después: <b title={nombreDeParada(siguiente)}>{nombreDeParada(siguiente)}</b>
+              Falta contar:{" "}
+              <button type="button" className="btn-cayla btn-enlace" title={`Ir a ${nombreDeParada(pendiente)}`} onClick={onPendiente}>
+                {nombreDeParada(pendiente)}
+              </button>
             </>
           ) : hayFiltroPuesto ? (
-            "Es el último de lo que filtraste"
-          ) : pendiente ? (
             <>
-              Falta contar: <b title={nombreDeParada(pendiente)}>{nombreDeParada(pendiente)}</b>
+              Es el último de lo que filtraste ·{" "}
+              <button type="button" className="btn-cayla btn-enlace" onClick={onQuitarFiltro}>
+                Ver todos
+              </button>
             </>
           ) : todoContado ? (
-            "Es el último modelo"
+            "Todo contado: revisa y cierra."
           ) : (
-            "Solo falta este"
+            "Solo falta este."
           )}
         </p>
-        <div className="rc-pie-pasos">
-          <Boton type="button" peso="fantasma" disabled={!anterior} title={anterior ? `Antes: ${nombreDeParada(anterior)}` : undefined} onClick={onAnterior}>
-            <span className="inline-flex items-center gap-2">
-              <ArrowLeft aria-hidden className="h-4 w-4 shrink-0" />{/* unificar-fijo: Felipe pidió «Anterior» con su flecha junto a «Listo, siguiente», los dos con palabra, en esta pantalla (2026-11-02) */}
-              Anterior
-            </span>
-          </Boton>
-          {siguiente ? (
-            <Boton type="button" peso={pesoSeguir} title={`Sigue ${nombreDeParada(siguiente)}`} aria-label={`${hayConteo ? "Listo, siguiente" : "Siguiente"}: ${nombreDeParada(siguiente)}`} onClick={onSiguiente}>
-              <span className="inline-flex items-center gap-2">
-                {hayConteo ? "Listo, siguiente" : "Siguiente"}
-                {flecha}
-              </span>
-            </Boton>
-          ) : hayFiltroPuesto ? (
-            <Boton type="button" peso="fantasma" onClick={onQuitarFiltro}>
-              Ver todos
-            </Boton>
-          ) : pendiente ? (
-            <Boton type="button" peso={pesoSeguir} title={`Sigue ${nombreDeParada(pendiente)}`} aria-label={`Ir al que falta: ${nombreDeParada(pendiente)}`} onClick={onPendiente}>
-              <span className="inline-flex items-center gap-2">
-                Ir al que falta
-                {flecha}
-              </span>
-            </Boton>
-          ) : null}
-        </div>
+        {cierre && <div className="rc-pie-pasos rc-pie-cierre">{cierre}</div>}
       </div>
       {verCompra && (
         <LoQueAnotoCompras nombre={nombreDeParada(parada)} foto={foto} categoria={p.categoria ?? null} lineas={lineasDeCompra} onCerrar={() => setVerCompra(false)} />
