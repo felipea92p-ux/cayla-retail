@@ -17,6 +17,7 @@ import {
   hayFiltro,
   filtrosPuestos,
   fraseDelAvance,
+  etiquetaDelAvance,
   tallasParaDespues,
   porLlevarAlStock,
   tipoDeParada,
@@ -51,6 +52,8 @@ import {
   categoriasConLoQueYaEntro,
   tallasDeYaEnStock,
   totalesPorTalla,
+  lineasParaCorregir,
+  claveTrasCorregir,
   type CategoriaDelEnvio,
 } from "./recepcion-modelos-reglas";
 import { agregarModeloEnCero, agregarPrendaEnCero, devolverModelo, quitarModelo, renombrarModelo } from "./recepcion-conteo-reglas";
@@ -621,9 +624,9 @@ describe("Re stock, Producto nuevo y los estados del resumen", () => {
 
   it("la línea de arriba de la lista: qué falta, o cómo quedó (ADR-0645)", () => {
     // Uno contado y dos por contar.
-    expect(fraseDelAvance(cifrasDelResumen(todas()))).toEqual({ texto: "Faltan 2 por contar", tono: null });
+    expect(fraseDelAvance(cifrasDelResumen(todas()))).toEqual({ texto: "Faltan 2 modelos por contar", tono: null });
     const uno = categoriasDelEnvio(agruparLineas([deLaGuia(sofia(), { contadas: 5, separado: { prendas: [prendaSep("p-sofia", "Vestido Sofía", 5)], nuevas: [] } }), deLaGuia(lima())]));
-    expect(fraseDelAvance(cifrasDelResumen(uno))?.texto).toBe("Falta 1 por contar");
+    expect(fraseDelAvance(cifrasDelResumen(uno))?.texto).toBe("Falta 1 modelo por contar");
     // Todo contado y cuadra: verde.
     const cuadra = categoriasDelEnvio(agruparLineas([deLaGuia(sofia(), { contadas: 5, separado: { prendas: [prendaSep("p-sofia", "Vestido Sofía", 5)], nuevas: [] } })]));
     expect(fraseDelAvance(cifrasDelResumen(cuadra))).toEqual({ texto: "Todo contado", tono: "verde" });
@@ -632,6 +635,18 @@ describe("Re stock, Producto nuevo y los estados del resumen", () => {
     expect(fraseDelAvance(cifrasDelResumen(falta))).toEqual({ texto: "Todo contado · diferencia −2", tono: "ambar" });
     // Sin nada que contar todavía, no dice nada.
     expect(fraseDelAvance(cifrasDelResumen([]))).toBeNull();
+  });
+
+  it("la etiqueta del número: «contadas» mientras se cuenta, «Llegaron N de M» al terminar (auditoría 2026-11-12)", () => {
+    expect(etiquetaDelAvance(cifrasDelResumen(todas()), false)).toEqual({ antes: "", despues: "de 15 prendas contadas" });
+    const falta = categoriasDelEnvio(agruparLineas([deLaGuia(sofia(), { contadas: 3, separado: { prendas: [prendaSep("p-sofia", "Vestido Sofía", 3)], nuevas: [] } })]));
+    expect(etiquetaDelAvance(cifrasDelResumen(falta), false)).toEqual({ antes: "Llegaron", despues: "de 5" });
+    // Sin aviso no hay «de N».
+    expect(etiquetaDelAvance({ contadas: 1, dijeron: null, estados: { cuadran: 0, diferencia: 0, "por-contar": 1, despues: 0, llevar: 0 } }, true).despues).toBe("prenda contada");
+    expect(etiquetaDelAvance({ contadas: 4, dijeron: null, estados: { cuadran: 1, diferencia: 0, "por-contar": 0, despues: 0, llevar: 0 } }, true)).toEqual({ antes: "Llegaron", despues: "prendas" });
+    // Una sola prenda que se esperaba y llegó.
+    expect(etiquetaDelAvance({ contadas: 1, dijeron: 1, estados: { cuadran: 1, diferencia: 0, "por-contar": 0, despues: 0, llevar: 0 } }, false)).toEqual({ antes: "Llegó", despues: "de 1" });
+    expect(etiquetaDelAvance({ contadas: 0, dijeron: 1, estados: { cuadran: 0, diferencia: 0, "por-contar": 1, despues: 0, llevar: 0 } }, false).despues).toBe("de 1 prenda contada");
   });
 
   it("sin aviso, todo contado es verde aunque no haya con qué comparar", () => {
@@ -1230,5 +1245,37 @@ describe("crear la prenda de un modelo anotado por nombre: la referencia desapar
       ["Vestido Lima Midi", 7, 7, "cuadra"],
     ]);
     expect(yaEnStockDelEnvio(recibidos, ms)).toEqual([]);
+  });
+});
+
+describe("corregir la categoría y la marca mientras se cuenta (Felipe 2026-11-12)", () => {
+  const deNombre = (g: GrupoDeLineas, nombre: string) => paradasDelGrupo(g).find((p) => nombreDeParada(p) === nombre)!;
+
+  it("se ofrece en un modelo nuevo anotado por su nombre: corrige su línea de la compra", () => {
+    const g = grupo(deLaGuia(sofia()), deLaGuia(lima(), { contadas: 7, separado: { prendas: [], nuevas: [{ cantidad: 7, descripcion: "Vestido Lima" }] } }));
+    expect(lineasParaCorregir(deNombre(g, "Vestido Lima"))).toEqual(["l-lima"]);
+  });
+
+  it("la misma prenda comprada dos veces: se corrigen las dos líneas juntas", () => {
+    const g = grupo(deLaGuia(lima()), deLaGuia(linea("l-lima-2", 2, { descripcion: "Vestido Lima" })));
+    expect(lineasParaCorregir(deNombre(g, "Vestido Lima"))).toEqual(["l-lima", "l-lima-2"]);
+  });
+
+  it("no se ofrece en un re stock, en lo que ya entró al stock ni en un modelo agregado al contar", () => {
+    const g = grupo(
+      deLaGuia(sofia()),
+      deLaGuia(lima(), { contadas: 9, separado: { prendas: [], nuevas: [{ cantidad: 7, descripcion: "Vestido Lima" }, { cantidad: 2, descripcion: "Vestido Rosa" }] } }),
+    );
+    expect(lineasParaCorregir(deNombre(g, "Vestido Sofía"))).toBeNull();
+    expect(lineasParaCorregir(deNombre(g, "Vestido Rosa"))).toBeNull();
+    const enStock = grupo(deLaGuia(lima(), { contadas: 7, en_stock: 2, separado: { prendas: [], nuevas: [{ cantidad: 7, descripcion: "Vestido Lima" }] } }));
+    expect(lineasParaCorregir(deNombre(enStock, "Vestido Lima"))).toBeNull();
+  });
+
+  it("después de corregir, el foco sigue al modelo en su grupo nuevo", () => {
+    const g = grupo(deLaGuia(lima()));
+    const p = deNombre(g, "Vestido Lima");
+    expect(p.clave).toBe("p-sur|c-vestidos|m-cayla::nombre:vestido lima");
+    expect(claveTrasCorregir(p, FALDAS.id, OTRA.id)).toBe("p-sur|c-faldas|m-otra::nombre:vestido lima");
   });
 });

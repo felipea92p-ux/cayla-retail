@@ -9,7 +9,7 @@ import { Chip } from "@/components/ui/Chip";
 import { diaYHoraLima } from "@/lib/fechas-lima";
 import type { ControlResponsable } from "@/lib/useResponsable";
 import { buenasDeRecibidos, CAUSAS_FALTANTE, CAUSAS_SOBRANTE, despuesDeRecibirEnvio, textoCausa, type CatalogoParaRecibir, type DetalleEnvio, type PrendaRecepcion } from "@/lib/recepcion-envio-reglas";
-import { BOTON_DE_PENDIENTE, cifrasDelEnvio, paraDespues, textoNoSeReabre, veredictoDelCerrado, type ConteosDelEnvio, type LineaParaContar, type ParaDespues } from "@/lib/recepcion-conteo-reglas";
+import { BOTON_DE_PENDIENTE, cifrasDelEnvio, loQueEntroPorPrenda, paraDespues, textoNoSeReabre, veredictoDelCerrado, type ConteosDelEnvio, type LineaParaContar, type ParaDespues } from "@/lib/recepcion-conteo-reglas";
 import { HacerAhora } from "./HacerAhora";
 import { Lacre } from "./Lacre";
 import { Odometro } from "./Odometro";
@@ -82,7 +82,12 @@ export function EnvioCerrado({
   // Qué dice el envío sobre el stock: listas para etiquetar o, si nada entró, por qué y qué lo resuelve (formidable 2026-10-13, cambio 1).
   const veredicto = veredictoDelCerrado(lineas, lista);
   const buenas = buenasDeRecibidos(detalle.recibidos);
-  const acciones = despuesDeRecibirEnvio({ lotes, envioId: detalle.id, buenas, unidades: cifras.enStock, unidadesBuenas: buenas.reduce((a, b) => a + b.cantidad, 0), veExistencias });
+  // Con «Lo que entró» a la vista (su lista con casillas trae su propio «Imprimir N etiquetas»), arriba no va otro botón de imprimir: eran dos botones para
+  // lo mismo y no se sabía si eran distintos (auditoría 2026-11-12). Arriba queda «Bajar al piso»; sin esa lista, arriba sigue el de imprimir.
+  const conListaDeEtiquetas = cifras.enStock > 0 && loQueEntroPorPrenda(detalle.recibidos).length > 0;
+  const acciones = despuesDeRecibirEnvio({ lotes, envioId: detalle.id, buenas, unidades: cifras.enStock, unidadesBuenas: buenas.reduce((a, b) => a + b.cantidad, 0), veExistencias }).filter(
+    (a) => !(conListaDeEtiquetas && a.clave === "etiquetas"),
+  );
   const diferencias = (detalle.diferencias ?? []).filter((d) => d.cantidad > 0);
   const cuando = detalle.cerradoEn ? diaYHoraLima(detalle.cerradoEn) : null;
   const reabrir = conteos?.reabrir ?? null;

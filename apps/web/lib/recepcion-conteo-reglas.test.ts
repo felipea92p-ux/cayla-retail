@@ -91,6 +91,7 @@ import {
   BOTON_DE_PENDIENTE,
   insigniaDelEnvio,
   textoResumenDelCierre,
+  textoDelEnvioCerrado,
   veredictoDelCerrado,
   lineasALaVista,
   leerContadas,
@@ -637,7 +638,12 @@ describe("«Hacer ahora», reabrir y el aviso de la sede", () => {
     expect(textoAvisoPendientes(p)).toBe("8 prendas para terminar");
     expect(textoAvisoPendientes({ total: 1, envios: [p.envios[0], p.envios[0]] })).toBe("1 prenda para terminar en 2 envíos");
     expect(textoAvisoPendientes(leerPendientesDeLaSede(null))).toBeNull();
-    expect(diasDesde("2026-10-01T10:00:00Z", new Date("2026-10-09T09:00:00Z"))).toBe(7);
+    // Días de calendario de Lima: del 1 (05:00 en Lima) al 9 (04:00 en Lima) son 8, aunque no pasen 8 × 24 h.
+    expect(diasDesde("2026-10-01T10:00:00Z", new Date("2026-10-09T09:00:00Z"))).toBe(8);
+    // Cerrado ayer 18:00 de Lima (23:00 UTC), mirado hoy 09:00: 1 día, no «hoy».
+    expect(diasDesde("2026-11-11T23:00:00Z", new Date("2026-11-12T14:00:00Z"))).toBe(1);
+    // Cerrado a las 20:00 de Lima (01:00 UTC del día siguiente) y mirado a las 21:00 de Lima: sigue siendo hoy.
+    expect(diasDesde("2026-11-12T01:00:00Z", new Date("2026-11-12T02:00:00Z"))).toBe(0);
     expect(diasDesde(null)).toBeNull();
   });
 });
@@ -830,12 +836,19 @@ describe("formidable 2026-10-13: el veredicto al cerrar y lo que pasa al cerrar"
     expect(veredictoDelCerrado([], [])).toMatchObject({ titulo: "Nada entró al stock", accion: null });
   });
 
+  it("el aviso del envío cerrado pluraliza bien (auditoría 2026-11-12)", () => {
+    expect(textoDelEnvioCerrado(1, 1)).toBe("1 prenda entró al stock; 1 queda para después");
+    expect(textoDelEnvioCerrado(6, 3)).toBe("6 prendas entraron al stock; 3 quedan para después");
+    expect(textoDelEnvioCerrado(0, 1)).toBe("1 prenda queda para después");
+    expect(textoDelEnvioCerrado(0, 0)).toBeUndefined();
+  });
+
   it("cambio 3: al cerrar, cuántas se pueden vender ya y cuántas quedan guardadas", () => {
     const l = extra({ contadas: 5, en_stock: 0, sin_separar: 5 });
     expect(resumenDelCierre([l])).toEqual({ sePuedenVender: 0, guardadas: 5 });
     expect(textoResumenDelCierre({ sePuedenVender: 0, guardadas: 0 })).toBe("Al cerrar: todavía no hay nada contado.");
     expect(textoResumenDelCierre({ sePuedenVender: 0, guardadas: 5 })).toBe("Al cerrar: 5 quedan guardadas para terminar después.");
-    expect(textoResumenDelCierre({ sePuedenVender: 1, guardadas: 1 })).toBe("Al cerrar: 1 queda en el almacén; bájalas al piso para venderlas · 1 queda guardada para terminar después.");
+    expect(textoResumenDelCierre({ sePuedenVender: 1, guardadas: 1 })).toBe("Al cerrar: 1 queda en el almacén; bájala al piso para venderla · 1 queda guardada para terminar después.");
     expect(textoResumenDelCierre({ sePuedenVender: 4, guardadas: 0 })).toBe("Al cerrar: 4 quedan en el almacén; bájalas al piso para venderlas.");
   });
 });

@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  ayudaDeHabituales,
   camposPapel,
   serieYNumeroParaBase,
   categoriasConProveedor,
@@ -124,6 +125,14 @@ const HABITUALES = leerHabituales([
 ]);
 
 describe("habituales", () => {
+  it("la frase de la lista solo habla de «la vez pasada» si hubo una (auditoría 2026-11-12)", () => {
+    expect(ayudaDeHabituales([])).toMatch(/Todavía no le compraste nada/);
+    expect(ayudaDeHabituales([{ veces: 0 }, { veces: 0 }])).toMatch(/de su catálogo/);
+    expect(ayudaDeHabituales([{ veces: 0 }, { veces: 0 }])).not.toMatch(/vez pasada/);
+    expect(ayudaDeHabituales([{ veces: 0 }, { veces: 2 }])).toMatch(/la vez pasada/);
+    expect(ayudaDeHabituales(null)).not.toMatch(/vez pasada/);
+  });
+
   it("lee cada uno; sin categoría no se puede comprar y se descarta", () => {
     expect(HABITUALES.map((h) => [h.clave, h.veces, h.costo, h.venta, h.marcaId])).toEqual([
       ["a", 3, 17.5, 39.9, "m"],

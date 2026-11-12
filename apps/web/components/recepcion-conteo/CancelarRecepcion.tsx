@@ -105,7 +105,7 @@ export function CancelarRecepcion({
             <Boton type="button" onClick={cerrar} disabled={guardando}>
               Seguir recibiendo
             </Boton>
-            <Boton type="submit" peso="primario" cargando={guardando} textoCargando="Cancelando…" disabled={!listo} title={guia.frase ?? undefined} className={guia.claseConfirmar}>
+            <Boton type="submit" peso="primario" cargando={guardando} textoCargando="Cancelando…" confirma={guia} title={guia.frase ?? undefined} className={guia.claseConfirmar}>
               Cancelar recepción
             </Boton>
           </div>

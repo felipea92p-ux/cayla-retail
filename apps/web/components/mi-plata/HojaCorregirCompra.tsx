@@ -17,6 +17,7 @@ import {
   borradorDe,
   cambiosDePrenda,
   cambiosParaLaBase,
+  costoQueSeVe,
   cuentaDeLaCorreccion,
   prendaCambio,
   NOMBRE_MAXIMO,
@@ -318,10 +319,9 @@ export function HojaCorregirCompra({ papelId, onClose, volverA }: { papelId: str
   );
 }
 
-/** El costo que se ve en la tarjeta: lo que va escrito si se entiende; si no, lo guardado. */
+/** El costo que se ve en la tarjeta: lo que va escrito si se entiende (leído como se guarda); si no, lo guardado. */
 function leerPrecioDe(b: Borrador, p: PrendaParaCorregir): number {
-  const n = Number(b.costo.replace(",", "."));
-  return b.costo.trim() !== "" && Number.isFinite(n) && n >= 0 ? n : p.costo;
+  return costoQueSeVe(p, b);
 }
 
 function FormularioDePrenda({
@@ -446,7 +446,7 @@ function FormularioDePrenda({
           value={borrador.costo}
           onChange={(e) => alCambiar("costo", e.target.value)}
           tono={problemas.costo ? "error" : cambios.costo !== undefined ? "aviso" : "neutro"}
-          pie={problemas.costo ?? antes(soles(prenda.costo), borrador.costo.trim() !== "" && Math.abs(Number(borrador.costo.replace(",", ".")) - prenda.costo) > 0.001)}
+          pie={problemas.costo ?? antes(soles(prenda.costo), Math.abs(costoQueSeVe(prenda, borrador) - prenda.costo) > 0.001)}
         />
         <CampoMonto
           etiqueta="Se vende a"

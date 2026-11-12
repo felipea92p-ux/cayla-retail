@@ -273,6 +273,19 @@ export type Habitual = {
   venta: number | null;
 };
 
+/**
+ * La frase sobre la lista de «¿Qué le compraste?». «Viene con lo de la vez pasada» solo si de verdad hubo una vez pasada (alguna con `veces`
+ * > 0); si la lista es solo su catálogo, viene con el precio del catálogo. Antes decía «la vez pasada» también con una marca que dice «Todavía
+ * no le compras» (auditoría 2026-11-12).
+ */
+export function ayudaDeHabituales(habituales: readonly Pick<Habitual, "veces">[] | null): string {
+  // Mientras se lee (o si no se pudo leer): un texto que no promete nada sobre la vez pasada.
+  if (habituales === null) return "Toca una prenda de la lista. Si es otra, usa «Algo nuevo».";
+  if (habituales.length === 0) return "Todavía no le compraste nada: descríbelo con «Algo nuevo».";
+  if (habituales.some((h) => h.veces > 0)) return "Toca una prenda de las suyas: viene con lo de la vez pasada. Si es otra, usa «Algo nuevo».";
+  return "Toca una prenda de su catálogo: viene con su costo y su precio. Si es otra, usa «Algo nuevo».";
+}
+
 /** Lo que manda `fn_habituales_proveedor`: lo más comprado primero, como viene. */
 export function leerHabituales(data: unknown): Habitual[] {
   if (!Array.isArray(data)) return [];

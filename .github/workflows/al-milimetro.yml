@@ -1,0 +1,52 @@
+name: Al milímetro
+
+# Un PR que cambia la cara del ERP (un .tsx de apps/web/components o apps/web/app, o un .css de apps/web/app) dice que pasó
+# por /milimetro, o por qué no aplica (casillas del formulario). Felipe, 2026-11-12: obligatorio para todo cambio visual,
+# pantalla nueva o auditoría, y para todos los que trabajan en el proyecto. Detalle: encabezado de scripts/milimetro/casilla.mjs
+# y CLAUDE.md «Al milímetro».
+#
+# Workflow aparte del CI porque corre también al EDITAR el cuerpo del PR (marcar la casilla), y eso no debe volver a correr
+# las pruebas.
+on:
+  pull_request:
+    types: [opened, edited, synchronize, reopened, ready_for_review]
+  # En la cola de fusión no hay casilla propia: el PR ya pasó este check para entrar a la fila.
+  merge_group:
+
+concurrency:
+  group: al-milimetro-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  al-milimetro:
+    name: Al milímetro
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: En la cola de fusión, ya lo revisó el PR
+        if: ${{ github.event_name == 'merge_group' }}
+        run: |
+          echo "La cola de fusión no trae casilla propia: el PR ya pasó «Al milímetro» para entrar a la fila."
+      - uses: actions/checkout@v4
+        if: ${{ github.event_name == 'pull_request' }}
+        with:
+          sparse-checkout: scripts/milimetro
+      # El cuerpo va por variable de entorno, nunca interpolado en el script: el repo es público y el cuerpo lo escribe
+      # quien abre el PR.
+      - name: Archivos y cuerpo del PR
+        if: ${{ github.event_name == 'pull_request' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+          CUERPO: ${{ github.event.pull_request.body }}
+          PR: ${{ github.event.pull_request.number }}
+          REPO: ${{ github.repository }}
+        run: |
+          gh api "repos/$REPO/pulls/$PR/files" --paginate --slurp > "$RUNNER_TEMP/archivos.json"
+          printf '%s' "$CUERPO" > "$RUNNER_TEMP/cuerpo.md"
+      - name: Revisar
+        if: ${{ github.event_name == 'pull_request' }}
+        run: node scripts/milimetro/casilla.mjs "$RUNNER_TEMP/archivos.json" "$RUNNER_TEMP/cuerpo.md"

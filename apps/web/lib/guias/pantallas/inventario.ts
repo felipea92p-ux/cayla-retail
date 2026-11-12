@@ -1547,7 +1547,7 @@ export const GUIA_RECIBIR: Guia = {
       ancla: "recibir.envios-oc",
       opcional: true,
       titulo: "Lo que viene de una orden de compra",
-      texto: "Lo que Compras mandó a tu sede, con el día en que salió cada envío. Primero lo que ya empezaste y luego lo que va en camino; dentro de cada grupo, lo más antiguo arriba. «Detalle» abre lo que trae; ahí empiezas a recibir. Cada orden sin guía va con «Llegó esta orden». Si hiciste la orden, la recibe otra persona.",
+      texto: "Lo que Compras mandó a tu sede, con el día en que salió cada envío. Primero lo que ya empezaste y luego lo que va en camino; dentro de cada grupo, lo más antiguo arriba. «Recibir» abre lo que trae; ahí empiezas a recibir. Cada orden sin guía va con «Llegó esta orden». Si hiciste la orden, la recibe otra persona.",
     },
     {
       // Los filtros viven en el navegador y no cambian nada de la base: el piloto no necesita abrirlos, solo se explican.
@@ -1571,7 +1571,7 @@ export const GUIA_RECIBIR: Guia = {
       ancla: "recibir.sin-aviso",
       opcional: true,
       titulo: "¿Llegó algo sin aviso?",
-      texto: "Lo que vino directo del proveedor: toca «Sin Aviso», pon la guía si la trae y quién recibe, y se cuenta por categoría y marca; cada marca dice de quién es. Si la hoja avisa de una compra ya pagada que viene para acá, recíbela en su envío y no por aquí: entraría dos veces. En la demo no lo abrimos.",
+      texto: "Lo que vino directo del proveedor: toca «Sin aviso», pon la guía si la trae y quién recibe, y se cuenta modelo por modelo; cada marca dice de quién es. Si la hoja avisa de una compra ya pagada que viene para acá, recíbela en su envío y no por aquí: entraría dos veces. En la demo no lo abrimos.",
     },
     {
       id: "proveedor",
@@ -1916,7 +1916,7 @@ export const GUIA_RECIBIR_ENVIO: Guia = {
       // El panel de filtros que abrió la guía se cierra antes de pasar al contador; en el celular, también la hoja de la lista.
       preparar: [{ tipo: "clic", ancla: "recepcion.filtros-cerrar", siEsta: true }, { tipo: "escape" }],
       titulo: "Cuántas llegaron de este modelo",
-      texto: "El aro cuenta el modelo que elegiste: verde cuando cuadra. Arriba, junto al nombre, ves cuánto costó cada una. «Llegaron las N», el botón grande, lo deja listo de un toque y, si toca repartir tallas, baja hasta ahí. O toca el número para escribirlo, o súmalas con + y −. «No llegó nada» también vale.",
+      texto: "El aro cuenta el modelo que elegiste: verde cuando cuadra. Arriba ves cuánto costó cada una. «Llegaron las N» lo deja listo de un toque: el aro se pliega en una línea con «Cambiar» y, si toca repartir tallas, baja hasta ahí. O toca el número para escribirlo, o súmalas con + y −. «No llegó nada» también vale.",
     },
     {
       id: "siguiente",
@@ -2215,7 +2215,7 @@ export const GUIA_RECIBIR_ENVIO: Guia = {
       opcional: true,
       requiere: ["recepcion.cerrado"],
       titulo: "Lo que sigue",
-      texto: "Si algo ya se puede vender, el primer botón imprime sus etiquetas de precio y «Bajar al piso» lo lleva al piso de venta. Si todo quedó guardado, el botón te lleva a terminar lo primero de «Para después». En la demo no los tocamos.",
+      texto: "Si algo ya se puede vender, «Bajar al piso» lo lleva al piso de venta; sus etiquetas de precio se imprimen abajo, en «Lo que entró». Si todo quedó guardado, el botón te lleva a terminar lo primero de «Para después». En la demo no los tocamos.",
     },
     {
       id: "lo-que-entro",
