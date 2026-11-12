@@ -242,6 +242,14 @@ main:has(.rc-conteo) { padding-bottom: 16px; }
 .rc-cuenta-lado { grid-column: 2; display: grid; align-content: center; gap: 10px; min-width: 0; max-width: 420px; }
 .rc-cuenta-lado > p { color: var(--color-taupe); font-size: 14px; line-height: 1.35; }
 .rc-pista { min-height: 2.7em; }
+/* El paso 2 a la derecha del dial, bajo los atajos (Felipe 2026-11-12): un bloque sin su marco, con una línea arriba. Con él, el dial se alinea
+   arriba (centrado, quedaba flotando a media altura de un lado más alto). */
+.rc-tallas-al-lado { grid-column: 1 / -1; padding: 12px 0 0; border-top: 1px solid var(--hilo-fila); animation: none; }
+@container rc-placa (min-width: 620px) {
+  .rc-cuenta:has(.rc-tallas-al-lado) { align-items: start; }
+  .rc-cuenta:has(.rc-tallas-al-lado) > .rc-dial { grid-row: 1 / span 2; align-self: center; }
+  .rc-cuenta > .rc-tallas-al-lado { grid-column: 2; max-width: 420px; }
+}
 /* Los botones del contador: «Llegaron» en verde, grande y primero, porque es lo que más se toca y deja el modelo listo; sumar en su bandeja, y «No llegó» aparte, más callado. */
 .rc-atajos { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
 .rc-suma { display: inline-flex; gap: 3px; padding: 3px; border-radius: 14px; background: var(--pozo-fondo); box-shadow: var(--pozo-sombra); }

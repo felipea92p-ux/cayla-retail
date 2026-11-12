@@ -172,6 +172,23 @@ export function PlacaDelModelo({
     requestAnimationFrame(() => requestAnimationFrame(bajarALasTallas));
   };
   const flecha = <ArrowRight aria-hidden className="h-4 w-4 shrink-0" />;
+  // El paso 2. Mientras se cuenta va a la DERECHA del dial, bajo los atajos (Felipe 2026-11-12: «el paso dos se acople ahí al lado derecho del
+  // contador, ya que es solo un botón»): así «¿Pasó algo con esta prenda?» sale en pantalla sin bajar. Ya contado, debajo y a lo ancho.
+  const bloqueDeTallas = (alLado: boolean) =>
+    modelo ? (
+      <section ref={bloqueTallas} className={alLado ? "rc-bloque rc-tallas-al-lado" : "rc-bloque"} aria-label="Tallas y colores">
+        <div className="rc-bloque-titulo">
+          <span className="rc-paso" data-estado={pasoTallas} aria-hidden>
+            {pasoTallas === "hecha" ? <Check className="h-4 w-4" /> : 2}
+          </span>
+          <h3 className="rc-bloque-nombre">Tallas y colores</h3>
+          <span className="rc-bloque-estado">
+            {yaEntroTodo ? <Chip tono="verde">Ya en el stock</Chip> : modelo.conTallas && modelo.productoId ? <Chip tono="verde">Entra al stock</Chip> : pasoTallas === "toca" && hayConteo ? <EtiquetaAhora /> : null}
+          </span>
+        </div>
+        {tallas}
+      </section>
+    ) : null;
   return (
     <>
       <div key={`cabeza-${parada.clave}`} className="rc-placa-cabeza">
@@ -248,13 +265,15 @@ export function PlacaDelModelo({
             <Dial contadas={contadas} dijeron={dijeron} hayConteo={hayConteo} minimo={minimo} nombre={nombre} abrirAlEntrar={abrirNumero} onPoner={poner} onEnter={onEnter} />
             <div className="rc-cuenta-lado">
               {/* De lo más rápido a lo menos común: «ya llegaron todas» grande y primero (es lo que más se toca y deja el modelo listo), sumar de a varias y «no llegó». El que ya se cumplió se queda en su lugar, marcado. */}
-              {dijeron != null && dijeron >= minimo && (
-                <button type="button" className="rc-atajo rc-atajo-llegaron rc-atajo-grande" data-hecho={yaLlegaron ? "" : undefined} disabled={yaLlegaron} onClick={() => llegaronTodas(dijeron)}>
-                  <Check aria-hidden className="h-5 w-5" />
-                  Llegaron las {conMiles(dijeron)}
-                </button>
-              )}
+              {/* «Llegaron las N» a su ancho y en la misma fila que sumar y «poner en cero» (Felipe 2026-11-12: «está muy largo y se desperdicia
+                  mucho espacio»): sigue primero y en verde, que es lo que más se toca. */}
               <div className="rc-atajos">
+                {dijeron != null && dijeron >= minimo && (
+                  <button type="button" className="rc-atajo rc-atajo-llegaron" data-hecho={yaLlegaron ? "" : undefined} disabled={yaLlegaron} onClick={() => llegaronTodas(dijeron)}>
+                    <Check aria-hidden className="h-5 w-5" />
+                    Llegaron las {conMiles(dijeron)}
+                  </button>
+                )}
                 <div className="rc-suma" role="group" aria-label="Sumar de a varias">
                   <button type="button" onClick={() => poner(contadas + atajoChico)}>
                     +{atajoChico}
@@ -293,6 +312,8 @@ export function PlacaDelModelo({
               <p className="rc-pista">{diferencia != null && diferencia !== 0 && !sinAviso ? "Si no coincide, al cerrar dices por qué." : "Toca el número para escribirlo."}</p>
               {enStock > 0 && <p>Ya entraron {textoPrendas(enStock)} al stock: lo contado no baja de ahí.</p>}
             </div>
+            {/* Hija de la grilla del contador: con el panel ancho va a la derecha del dial, bajo los atajos; angosto, debajo y a lo ancho (CSS). */}
+            {bloqueDeTallas(true)}
           </div>
           )}
           {error && (
@@ -312,20 +333,8 @@ export function PlacaDelModelo({
           )}
         </section>
 
-        {modelo && (
-          <section ref={bloqueTallas} className="rc-bloque" aria-label="Tallas y colores">
-            <div className="rc-bloque-titulo">
-              <span className="rc-paso" data-estado={pasoTallas} aria-hidden>
-                {pasoTallas === "hecha" ? <Check className="h-4 w-4" /> : 2}
-              </span>
-              <h3 className="rc-bloque-nombre">Tallas y colores</h3>
-              <span className="rc-bloque-estado">
-                {yaEntroTodo ? <Chip tono="verde">Ya en el stock</Chip> : modelo.conTallas && modelo.productoId ? <Chip tono="verde">Entra al stock</Chip> : pasoTallas === "toca" && hayConteo ? <EtiquetaAhora /> : null}
-              </span>
-            </div>
-            {tallas}
-          </section>
-        )}
+        {/* Ya contado (el paso 1 plegado), las tallas van debajo, a lo ancho; antes, al lado del dial (arriba). */}
+        {plegado && bloqueDeTallas(false)}
 
         {/* Lo que puede pasar con la prenda, a la vista y con su palabra (ADR-0645): antes estaba repartido entre un enlace de la cabecera y dos rincones de la tabla de tallas. */}
         <section className="rc-bloque" aria-label="¿Pasó algo con esta prenda?">
