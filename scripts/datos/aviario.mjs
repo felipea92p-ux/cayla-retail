@@ -54,6 +54,8 @@ export const AVIARIO = [
       "preferencias_colaborador"] },
   { n: "02", pajaro: "Loro", modulo: "Catálogo y vocabulario",
     tablas: [
+      // Los precios que propuso la IA en «Revisar precios» (ADR-0641). Asignadas en el refresco del volcado del 2026-11-12 (ADR-0650): ya estaban en producción, venían de otras ramas.
+      "precio_propuestas",
       "productos", "variantes", "precios_sede", "categorias", "familias", "producto_fotos", "historial_producto_cambios", "producto_fusiones",
       // ADR-0370: el precio propio de una tienda es de la PRENDA, uno por prenda y tienda (`precios_sede` por variante quedó como historia).
       // Está en producción desde el 2026-10-11 (20261011100000-100300). Refresco del volcado del 2026-10-11.
@@ -109,6 +111,8 @@ export const AVIARIO = [
   { n: "04", pajaro: "Golondrina", modulo: "Importación de catálogo", tablas: [] },
   { n: "05", pajaro: "Halcón", modulo: "Inventario y movimientos",
     tablas: [
+      // La talla o el color que nació al recibir (con `despacho_recibidos`). Asignadas en el refresco del volcado del 2026-11-12 (ADR-0650): ya estaban en producción, venían de otras ramas.
+      "variantes_nacidas_al_recibir",
       "movimientos", "stock", "lotes", "sububicaciones", "costo_historial", "prendas_danadas",
       // Las fotos del daño de una prenda dañada (ADR de «Dañadas», 20261029140739-141031): cuelgan de `prendas_danadas`, que ya es de Halcón.
       // Asignada en el refresco del volcado del 2026-10-29.
@@ -180,6 +184,8 @@ export const AVIARIO = [
     tablas: ["conteos", "conteo_items"] },
   { n: "07", pajaro: "Colibrí", modulo: "Ventas y caja",
     tablas: [
+      // El respaldo del costo de una línea vendida. Asignadas en el refresco del volcado del 2026-11-12 (ADR-0650): ya estaban en producción, venían de otras ramas.
+      "venta_items_costo_respaldo",
       "ventas", "venta_items", "venta_pagos", "venta_anulacion_items", "cajas", "caja_movimientos",
       // ADR-0365: la corrección del medio de pago de una venta con la caja abierta (20261009120000). Refresco del 2026-10-09.
       "venta_pagos_correcciones",
@@ -283,7 +289,9 @@ export const AVIARIO = [
       // poder rehacerlo. Solo se lee a mano. Refresco del 2026-10-09.
       "respaldo_b001_f001_renumeradas_20261007"] },
   { n: "09", pajaro: "Pelícano", modulo: "Compras y proveedores",
-    tablas: ["proveedores", "compras", "compra_items", "compra_pagos", "compra_adjuntos", "compras_resumen", "compra_items_resumen",
+    tablas: [
+      // La llegada del papel de una compra y el archivo de pagos, notas y créditos anulados de Compras. Asignadas en el refresco del volcado del 2026-11-12 (ADR-0650): ya estaban en producción, venían de otras ramas.
+      "compra_papel_llegadas", "documentos_anulados","proveedores", "compras", "compra_items", "compra_pagos", "compra_adjuntos", "compras_resumen", "compra_items_resumen",
       // ADR-0349 (Plan de campaña): cuánto comprar por categoría para una campaña. Nace con dueño; refresco del 2026-10-05.
       "planes_compra", "planes_compra_lineas",
       // ADR-0372 (Plan de campaña, 2026-10-12): el mínimo de cada tienda en el reparto del plan, y la historia de ventas de antes del ERP
@@ -379,7 +387,9 @@ export const AVIARIO = [
   // balance y el cierre del mes—. Asignadas en el refresco del volcado del 2026-09-25; Finanzas (Felipe) las confirma en el
   // PR de ese refresco, porque ningún ADR de Finanzas nombra pájaro.
   { n: "11", pajaro: "Garza", modulo: "Finanzas operativas",
-    tablas: ["gastos", "planilla_por_sede",
+    tablas: [
+      // Los extractos del banco, los papeles tardíos de un gasto, la planilla por concepto y los abonos del POS (con `pos_abonos_lotes`). Asignadas en el refresco del volcado del 2026-11-12 (ADR-0650): ya estaban en producción, venían de otras ramas.
+      "banco_cargas", "banco_cortes", "banco_lineas", "gasto_papeles_tardios", "planilla_pagos_concepto", "pos_abonos_estimados", "pos_abonos_pagos","gastos", "planilla_por_sede",
       // Gastos (F2): la lista cerrada de lo que se registra como gasto, los que se repiten cada mes (y las sugerencias que
       // alguien dijo que no lo son), los egresos de caja que NO son gasto, y `gastos_legado_2026_09` —la `gastos` de antes de
       // la unificación, renombrada, con 0 filas—, que sigue siendo de quien responde por `gastos` hasta que se decida quitarla.
@@ -413,7 +423,9 @@ export const AVIARIO = [
       // Asignadas en el refresco del volcado del 2026-11-04. Finanzas (Felipe) confirma la asignación.
       "gasto_correcciones", "gastos_no_emiten"] },
   { n: "12", pajaro: "Urraca", modulo: "Contabilidad",
-    tablas: ["activos_fijos",
+    tablas: [
+      // El diario (sus fotos, lo exento y lo que vence) y los pagos y periodos del IGV. Asignadas en el refresco del volcado del 2026-11-12 (ADR-0650): ya estaban en producción, venían de otras ramas.
+      "diario_fotos", "diario_foto_lineas", "diario_fuentes_exentas", "diario_vencido_marcas", "impuestos_pagos", "periodo_igv","activos_fijos",
       // El plan de cuentas (PCGE, F2a) y la lista cerrada de tipos de activo, que trae su cuenta y su vida útil (F2b).
       "cuentas", "tipos_activo",
       // Tasa de IGV (F2a) y, desde Impuestos (F8), UIT y régimen con vigencia. Solo las leen las pantallas y funciones de
@@ -431,7 +443,9 @@ export const AVIARIO = [
   // ADR-0536 («Pregúntale a CAYLA»): en qué sedes está encendido, las preguntas y sus respuestas, y los informes del lunes. Refresco del 2026-10-28.
   { n: "13", pajaro: "Águila", modulo: "Inteligencia y reportes", tablas: ["actividad", "asistente_sedes", "asistente_preguntas", "asistente_informes"] },
   // ADR-0251: la llave de la revisión diaria de deriva (`huellas_catalogo`); no es dato del negocio. Refresco del 2026-09-28.
-  { n: "14", pajaro: "Gorrión", modulo: "Plataforma y esquema", tablas: ["huellas_llave"] },
+  { n: "14", pajaro: "Gorrión", modulo: "Plataforma y esquema", tablas: ["huellas_llave",
+    // Las invariantes que vigila /chaos y sus corridas: no son dato del negocio. Asignadas en el refresco del volcado del 2026-11-12 (ADR-0650): ya estaban en producción, venían de otras ramas.
+    "invariantes", "invariantes_conocidas", "invariantes_corridas"] },
 ];
 
 /**
