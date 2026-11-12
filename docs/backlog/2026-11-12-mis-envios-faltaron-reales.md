@@ -5,7 +5,8 @@ Caso: `docs/flujos/recibir/con-aviso-de-compras.md` (aprobado por Felipe el 2026
 
 - [x] **«Mis envíos» decía «faltaron 10» con 1 faltante.** `fn_mis_envios` lee lo que faltó y sobró de `despacho_diferencias_vigentes` y «contadas» es
   todo lo contado (migración `20261112154000`); la pantalla dice «faltó 1 · 2 de más».
-- [ ] **`20261112154000` no está en producción.** Una parte: solo `create or replace function` y sus permisos. Compatible en los dos órdenes de publicación.
+- [ ] **POR PEGAR (2026-11-12): `20261112154000` no está en producción.** Una parte: solo `create or replace function` y sus permisos. Compatible en los dos
+  órdenes de publicación: sin ella, Mis envíos cae a la resta de antes. Se pega con el OK de Felipe, después de fusionar.
 
 ### Decisiones de Felipe (reglas de negocio)
 
