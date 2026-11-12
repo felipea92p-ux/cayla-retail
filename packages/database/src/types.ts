@@ -3462,6 +3462,8 @@ export type Database = {
           es_prueba: boolean
           estado: string
           estado_alta: string
+          fusionado_en: string | null
+          fusionado_en_id: string | null
           id: string
           marca_id: string | null
           nombre_proveedor: string | null
@@ -3487,6 +3489,8 @@ export type Database = {
           es_prueba?: boolean
           estado?: string
           estado_alta?: string
+          fusionado_en?: string | null
+          fusionado_en_id?: string | null
           id?: string
           marca_id?: string | null
           nombre_proveedor?: string | null
@@ -3512,6 +3516,8 @@ export type Database = {
           es_prueba?: boolean
           estado?: string
           estado_alta?: string
+          fusionado_en?: string | null
+          fusionado_en_id?: string | null
           id?: string
           marca_id?: string | null
           nombre_proveedor?: string | null
@@ -4709,6 +4715,7 @@ export type Database = {
           color_codigo: string | null
           costo: number
           created_at: string
+          fusionada_en_id: string | null
           id: string
           precio: number
           producto_id: string
@@ -4721,6 +4728,7 @@ export type Database = {
           color_codigo?: string | null
           costo?: number
           created_at?: string
+          fusionada_en_id?: string | null
           id?: string
           precio: number
           producto_id: string
@@ -4733,6 +4741,7 @@ export type Database = {
           color_codigo?: string | null
           costo?: number
           created_at?: string
+          fusionada_en_id?: string | null
           id?: string
           precio?: number
           producto_id?: string
@@ -7129,6 +7138,35 @@ export type Database = {
       eliminar_producto_con_historia: {
         Args: { p_producto_id: string }
         Returns: string
+      }
+      // Fusionar productos duplicados (ADR-0650, 20261112205000, 210000 y 212000). Escritos a mano con la forma que da `supabase gen types`.
+      fn_productos_posibles_duplicados: {
+        Args: { p_limite?: number }
+        Returns: {
+          motivo: string
+          producto_a: string
+          producto_b: string
+          referencia_a: string
+          referencia_b: string
+          similitud: number
+        }[]
+      }
+      fusionar_productos: {
+        Args: {
+          p_duplicados: string[]
+          p_elecciones?: Json
+          p_queda: string
+          p_versiones?: Json
+        }
+        Returns: Json
+      }
+      previsualizar_fusion_productos: {
+        Args: {
+          p_duplicados: string[]
+          p_elecciones?: Json
+          p_queda: string
+        }
+        Returns: Json
       }
       emitir_comprobante: {
         Args: {

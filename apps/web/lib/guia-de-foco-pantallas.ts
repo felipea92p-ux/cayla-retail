@@ -455,6 +455,8 @@ export const MODALES: Record<string, PantallaGuia> = {
   "components/PuntoDeVentaTicket.tsx": PENDIENTE, // 12 controles
   // «Falta» = lo mismo que apaga el botón «Reabrir»: el motivo (único control obligatorio) (ADR-0334).
   "components/ReabrirPrendaModal.tsx": { estado: "aplicada", evidencia: ["components/ReabrirPrendaModal.tsx"] },
+  // ADR-0650: «falta» la ficha repetida y quién la hace; «lo que es distinto» es sugerido (viene armado con el del que queda).
+  "components/fusionar-productos/FusionarProductosHoja.tsx": { estado: "aplicada", evidencia: ["components/fusionar-productos/FusionarProductosHoja.tsx"] },
   "components/AnularPagoModal.tsx": { estado: "aplicada", evidencia: ["components/AnularPagoModal.tsx"] },
   "components/SugerenciasColaModal.tsx": {
     estado: "no-aplica",

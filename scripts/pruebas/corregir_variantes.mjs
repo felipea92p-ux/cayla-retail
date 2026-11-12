@@ -946,7 +946,12 @@ rollback;`);
 });
 
 caso("+ la migración se puede pegar dos veces más (la base ya la tiene): un candado, un índice, cada función parchada una sola vez", () => {
-  const salida = psql(`begin;\n${MIGRACION}\n${MIGRACION}
+  // ADR-0650 (20261112204000) le sumó al índice «where fusionada_en_id is null»; esta migración exige su forma original al
+  // pegarse, así que se vuelve a esa forma dentro de la transacción (todo termina en rollback).
+  const salida = psql(`begin;
+drop index retail.variantes_identidad_unica;
+create unique index variantes_identidad_unica on retail.variantes (producto_id, talla_id, color_codigo) nulls not distinct;
+${MIGRACION}\n${MIGRACION}
 select 'x', (select count(*) from pg_trigger where tgname = 'variantes_identidad_solo_por_funcion')
   || ',' || (select count(*) from pg_indexes where indexname = 'variantes_identidad_unica')
   || ',' || (select count(*) from pg_constraint where conname = 'variantes_producto_talla_color_unico')

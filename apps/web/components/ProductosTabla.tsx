@@ -3,11 +3,12 @@
 import { useEffect, useMemo, useState, type MouseEvent, type ReactNode } from "react";
 import { BarraAvance } from "@/components/ui/BarraAvance";
 import Link from "next/link";
-import { ChevronRight, History, PackageOpen, PauseCircle, PlayCircle, SignpostBig, Trash2, X, FunnelX, Tag } from "lucide-react";
+import { ChevronRight, FunnelX, History, Merge, PackageOpen, PauseCircle, PlayCircle, SignpostBig, Tag, Trash2, X } from "lucide-react";
 import { Chip } from "@/components/ui/Chip";
 import { InsigniaEmpresa } from "@/components/InsigniaEmpresa";
 import { EliminarProductoModal } from "@/components/EliminarProductoModal";
 import { CambiarEstadoProductosHoja } from "@/components/CambiarEstadoProductosHoja";
+import { FusionarProductosHoja } from "@/components/fusionar-productos/FusionarProductosHoja";
 import { MiniaturaPrenda, SwatchesColor } from "@/components/ProductoPiezas";
 import { categoriaDe } from "@/lib/categoria-de-prenda";
 import { describirRotacion } from "@/lib/reorden-reglas";
@@ -162,6 +163,8 @@ export function ProductosTabla({
   const [marcados, setMarcados] = useState<Set<string>>(new Set());
   const [eliminando, setEliminando] = useState<ProductoListado | null>(null);
   const [cambiando, setCambiando] = useState<"activo" | "descontinuado" | null>(null);
+  // ADR-0650: las fichas marcadas que se van a fusionar (dos o más de la misma prenda).
+  const [fusionando, setFusionando] = useState<ProductoListado[] | null>(null);
   const stockSede = useStockEnSede(ubicacionId);
 
   // Otra página u otros filtros = otras prendas: lo marcado de antes ya no está a la vista y no debe viajar escondido.
@@ -315,6 +318,7 @@ export function ProductosTabla({
         }}
         onDescontinuar={() => setCambiando("descontinuado")}
         onReactivar={() => setCambiando("activo")}
+        onFusionar={() => setFusionando(seleccion)}
         onLimpiar={() => setMarcados(new Set())}
       />
 
@@ -323,6 +327,13 @@ export function ProductosTabla({
         <EliminarProductoModal
           producto={{ productoId: eliminando.productoId, referencia: eliminando.referencia, estado: eliminando.estado, numVariantes: eliminando.variantes.length }}
           onClose={() => setEliminando(null)}
+        />
+      )}
+      {fusionando && (
+        <FusionarProductosHoja
+          inicial={fusionando.map((p) => ({ productoId: p.productoId, referencia: p.referencia }))}
+          onClose={() => setFusionando(null)}
+          onHecho={() => setMarcados(new Set())}
         />
       )}
       {cambiando && (
@@ -830,6 +841,7 @@ function BarraMarcadas({
   unidades,
   onDescontinuar,
   onReactivar,
+  onFusionar,
   onLimpiar,
 }: {
   seleccion: ProductoListado[];
@@ -839,6 +851,8 @@ function BarraMarcadas({
   unidades: (varianteIds: string[]) => Promise<number | null>;
   onDescontinuar: () => void;
   onReactivar: () => void;
+  /** ADR-0650: fusionar las fichas marcadas en una sola. Se ofrece con dos o más marcadas. */
+  onFusionar: () => void;
   onLimpiar: () => void;
 }) {
   const pantalla = usePantallaActual();
@@ -874,6 +888,10 @@ function BarraMarcadas({
           <button type="button" onClick={onReactivar} disabled={!hayDescontinuadas} className={boton} tabIndex={n > 0 ? 0 : -1}>
             <PlayCircle aria-hidden className="h-4 w-4" />
             Reactivar
+          </button>
+          <button type="button" onClick={onFusionar} disabled={n < 2} className={boton} tabIndex={n > 0 ? 0 : -1} title={n < 2 ? "Marca dos o más fichas de la misma prenda" : undefined}>
+            <Merge aria-hidden className="h-4 w-4" />
+            Fusionar
           </button>
         </>
       )}

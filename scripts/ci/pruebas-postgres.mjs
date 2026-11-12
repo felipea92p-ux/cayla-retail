@@ -2210,6 +2210,11 @@ export const PRUEBAS = [
   // tabla que cita movimientos, o un candado de DELETE, sin clasificar. Cada caso termina en ROLLBACK.
   "pruebas:eliminar-producto-con-historia",
 
+  // Fusionar productos duplicados (ADR-0650): la previsualización dice qué variante se muda y cuál se junta, con las ventas y la
+  // fecha de alta de cada producto, y frena con su frase lo que dejaría el stock en un estado imposible; la fusión mueve stock,
+  // ventas, fotos y códigos sin perder una unidad (el libro cuadra antes y después, también por dueño). ROLLBACK.
+  "pruebas:fusionar-productos",
+
   // Una sola cifra de stock (20260929010000, ADR-0270): fn_existencias devuelve por talla y sede físico, dañado, apartado y
   // disponible = físico − dañado − apartado = piso + almacén + sin lugar, en TODA fila del seed; el físico cuadra con `stock`;
   // la Cuarentena y lo apartado no se ofrecen; pruebas y «Monto manual» no cuentan; una talla retirada con unidades se ve;

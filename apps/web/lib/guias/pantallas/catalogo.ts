@@ -54,6 +54,14 @@ export const GUIA_PRODUCTOS: Guia = {
       texto: "Las que alguien propuso en un conteo o desde el Taller esperan que quien edita el catálogo las apruebe o las rechace. Mientras tanto se pueden vender, si tienen precio. «Revisar» te lleva a la lista.",
     },
     {
+      // ADR-0650 (decisión 3): sale solo si hay fichas activas con el nombre igual o casi igual.
+      id: "posibles-duplicados",
+      ancla: "productos.posibles-duplicados",
+      opcional: true,
+      titulo: "Fichas que parecen repetidas",
+      texto: "Si dos fichas tienen el nombre igual o casi igual, el sistema te las muestra aquí. «Revisar» abre la lista: si son la misma prenda, las fusionas en una y no se pierden ventas, fotos ni stock. Si no, las dejas como están.",
+    },
+    {
       // ADR-0393 (decisión 4): sale solo si lo recibido en la sede tiene prendas nuevas por crear.
       id: "por-crear",
       ancla: "productos.por-crear",
@@ -165,7 +173,7 @@ export const GUIA_PRODUCTOS: Guia = {
       ancla: "vista-rapida.botones",
       opcional: true,
       titulo: "Lo que haces con ella",
-      texto: "«Editar» abre su ficha completa. «Etiquetas» imprime las de lo elegido (o de toda la prenda) y «Rótulo», su cartel de anaquel. «Ver en Existencias» te lleva a su stock. «Eliminar» solo borra si nunca se vendió; arriba, junto a su estado, «Desactivar» la descontinúa. En la demo no tocamos ninguno.",
+      texto: "«Editar» abre su ficha. «Etiquetas» imprime las de lo elegido y «Rótulo», su cartel de anaquel. «Ver en Existencias» te lleva a su stock. «Fusionar» junta dos fichas de la misma prenda. «Eliminar» solo borra si nunca se vendió; arriba, «Desactivar» la descontinúa. En la demo no tocamos ninguno.",
     },
     {
       id: "vr-historial",
@@ -278,6 +286,63 @@ export const GUIA_PRODUCTOS: Guia = {
       texto: "La hoja vuelve a la página de antes, tal como la dejaste. Para cerrarla, la ✕ de arriba o Escape (la cerramos nosotros).",
     },
     {
+      id: "vr-fusionar",
+      ancla: "vista-rapida.fusionar",
+      opcional: true,
+      titulo: "Una prenda con dos fichas",
+      texto: "Si la misma prenda se registró dos veces (una capa que entró como blusa, por ejemplo), «Fusionar» junta las dos fichas en una sola. Las ventas, las fotos y el stock pasan a la que elijas: no se pierde nada. Te la abrimos.",
+    },
+    {
+      id: "fusionar-fichas",
+      ancla: "fusionar.fichas",
+      opcional: true,
+      preparar: [{ tipo: "clic", ancla: "vista-rapida.fusionar" }],
+      titulo: "Busca la otra ficha",
+      texto: "Arriba, la ficha con la que abriste. Escribe el nombre o el código de la otra y elígela; si el sistema cree que hay una parecida, te la ofrece de un toque. Puedes juntar más de dos.",
+    },
+    {
+      id: "fusionar-queda",
+      ancla: "fusionar.queda",
+      opcional: true,
+      titulo: "¿Cuál se queda?",
+      texto: "Cada ficha dice cuánto vendió, cuánto tiene en stock y cuándo se creó. Te proponemos la que más vendió; tocas otra si prefieres. Las demás pasan a esa.",
+    },
+    {
+      id: "fusionar-diferencias",
+      ancla: "fusionar.diferencias",
+      opcional: true,
+      titulo: "Lo que es distinto",
+      texto: "Solo aparece lo que no coincide: el nombre, la categoría, el precio… Tocas el dato con el que se queda. Lo que no aparece es igual en las fichas.",
+    },
+    {
+      id: "fusionar-fotos",
+      ancla: "fusionar.fotos",
+      opcional: true,
+      titulo: "Las fotos que quedan",
+      texto: "Marca las fotos que quieres en la ficha final; la primera es la principal. Las que no marques no se borran: se guardan en la ficha repetida.",
+    },
+    {
+      id: "fusionar-resumen",
+      ancla: "fusionar.resumen",
+      opcional: true,
+      titulo: "Qué va a pasar",
+      texto: "Antes de confirmar, aquí lees qué tallas pasan tal cual y cuáles se juntan con la misma talla y color (su stock se suma). Las etiquetas ya impresas siguen sirviendo.",
+    },
+    {
+      id: "fusionar-bloqueos",
+      ancla: "fusionar.bloqueos",
+      opcional: true,
+      titulo: "Lo que falta cerrar",
+      texto: "Si una talla repetida tiene algo en curso (un apartado, un traslado en camino, un pedido web), aquí te dice cuál cerrar primero y dónde.",
+    },
+    {
+      id: "fusionar-botones",
+      ancla: "fusionar.botones",
+      opcional: true,
+      titulo: "Fusionar",
+      texto: "Eliges quién la hace y tocas «Fusionar». No se puede deshacer: por eso todo lo de arriba se ve antes. En la demo no fusionamos: cerramos sin guardar.",
+    },
+    {
       id: "paginacion",
       ancla: "productos.paginacion",
       opcional: true,
@@ -291,7 +356,7 @@ export const GUIA_PRODUCTOS: Guia = {
       opcional: true,
       preparar: [{ tipo: "escape" }, { tipo: "clic", ancla: "productos.vista-tabla" }],
       titulo: "La vista en Tabla",
-      texto: "Pasamos a «Tabla». Aquí marcas prendas con su casilla (o toda la página) y abajo aparece una barra para descontinuarlas o reactivarlas juntas. Siempre te pide confirmar antes.",
+      texto: "Pasamos a «Tabla». Aquí marcas prendas con su casilla (o toda la página) y abajo aparece una barra para descontinuarlas o reactivarlas juntas, o fusionar dos fichas de la misma prenda. Siempre te pide confirmar antes.",
     },
     {
       id: "tabla",

@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { requirePersonaActualV2, veModulo } from "@/lib/persona-actual";
 import { getHistorialPrenda, getPrendaDelHistorial } from "@/lib/historial-prenda";
+import { irAlQueQuedoSiSeFusiono } from "@/lib/producto-fusionado";
 import { desdeDeParams, vueltaAProductos } from "@/lib/vuelta-productos";
 import { HistorialPrenda } from "@/components/historial-prenda/HistorialPrenda";
 import { Volver } from "@/components/ui/Volver";
@@ -18,6 +19,8 @@ export default async function HistorialProductoPage({
 }) {
   const persona = await requirePersonaActualV2();
   const { id: productoId } = await params;
+  // Un producto fusionado no tiene historia propia: su historia vive en el que quedó (ADR-0650).
+  await irAlQueQuedoSiSeFusiono(productoId, "historial");
   // Tabla o Grilla de Productos de donde se salió (`lib/vuelta-productos.ts`).
   const parametros = await searchParams;
   const desde = desdeDeParams(parametros.desde);

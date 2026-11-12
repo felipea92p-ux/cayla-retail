@@ -18,6 +18,7 @@ import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 import { esUuid } from "@/lib/club-registro-reglas";
 import { hoyLima } from "@/lib/fechas-lima";
 import { getPuertaDeLaFicha } from "@/lib/ficha-consumo-datos";
+import { irAlQueQuedoSiSeFusiono } from "@/lib/producto-fusionado";
 import type { CampanaDelVocabulario } from "@/lib/precio-de-hoy";
 
 
@@ -39,6 +40,8 @@ export default async function EditarProductoPage({
   const volverA = vueltaAProductos(desdeDeParams((await searchParams).desde));
   const persona = await requirePersonaActualV2();
   if (!puede(persona, "editarCatalogo")) redirect("/productos");
+  // Un producto fusionado no tiene ficha propia: el enlace viejo lleva al que quedó (ADR-0650).
+  await irAlQueQuedoSiSeFusiono(id, "editar");
 
   const supabase = await createClient();
   const [producto, categorias, colores, ejes, resEtiquetas, marcas, familias, imagenes, resEstado, resTiendas, resSedesCampanas, puertaDeLaFicha, resNombreProveedor, costoEnLaFicha] = await Promise.all([

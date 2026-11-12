@@ -477,15 +477,6 @@
   "with_check": "COALESCE((( SELECT retail.fn_es_lider() AS fn_es_lider) OR (ubicacion_id = ( SELECT retail.fn_ubicacion_actual_persona() AS fn_ubicacion_actual_persona))), false)"
  },
  {
-  "cmd": "SELECT",
-  "policyname": "costo_historial_select",
-  "qual": "(EXISTS ( SELECT 1\n   FROM retail.movimientos m\n  WHERE ((m.id = costo_historial.movimiento_id) AND COALESCE((( SELECT retail.fn_es_lider() AS fn_es_lider) OR (m.ubicacion_id = ( SELECT retail.fn_ubicacion_actual_persona() AS fn_ubicacion_actual_persona))), false))))",
-  "roles": "{public}",
-  "schemaname": "retail",
-  "tablename": "costo_historial",
-  "with_check": null
- },
- {
   "cmd": "INSERT",
   "policyname": "cotizaciones_maquila_insert",
   "qual": null,

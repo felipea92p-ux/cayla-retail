@@ -42,6 +42,8 @@ import { BotonEnlace } from "@/components/ui/campos";
 import { urlRotulos } from "@/lib/rotulos-reglas";
 import { Aviso } from "@/components/ui/Aviso";
 import { getPorRevisarResumen } from "@/lib/revisar-productos-datos";
+import { getPosiblesDuplicados } from "@/lib/posibles-duplicados";
+import { PosiblesDuplicados } from "@/components/fusionar-productos/PosiblesDuplicados";
 import { getPreciosDeLasTiendas } from "@/lib/precios-sede-datos";
 import { preciosDeTiendaPorProducto } from "@/lib/precio-sede-reglas";
 import { variantesQueSeVenden } from "@/lib/productos-vista";
@@ -132,7 +134,7 @@ async function ListaDeProductos({ searchParams }: { searchParams: Promise<Params
   // módulo «Categorías, marcas y atributos». `editarCatalogo` también sale de ver Productos completo, así que el permiso
   // solo no basta: sin el módulo, «Completar» caería en «Sin acceso». A quien no puede completarlas no se le muestra.
   const completaTemporadas = editaCatalogo && veModulo(persona, "atributos");
-  const [resultado, facetas, categorias, colores, resMarcas, resProveedores, sinTemporada, resTallas, temporadas, porRevisar, recibidoPorCrear] = await Promise.all([
+  const [resultado, facetas, categorias, colores, resMarcas, resProveedores, sinTemporada, resTallas, temporadas, porRevisar, recibidoPorCrear, posiblesDuplicados] = await Promise.all([
     listarProductos(filtros, pagina),
     // Cuántas hay en cada opción, el rango real del precio y sus tramos (ADR-0308). `null` si falla: opciones sin número.
     getFacetasProductos(filtros),
@@ -152,6 +154,8 @@ async function ListaDeProductos({ searchParams }: { searchParams: Promise<Params
     editaCatalogo ? getPorRevisarResumen() : Promise.resolve(null),
     // ADR-0393 (decisión 4): lo nuevo que llegó a la sede y todavía no existe en el catálogo («por crear»). `null` si la base no lo sabe.
     getPendientesDeLaSede(persona.ubicacionId),
+    // ADR-0650 (decisión 3): las fichas que parecen la misma prenda, para fusionarlas. Solo a quien edita el catálogo; `null` si no se pudo.
+    editaCatalogo ? getPosiblesDuplicados() : Promise.resolve(null),
   ]);
   // ADR-0467 + ADR-0505: la píldora «Tienda» solo donde conviven dos empresas (Lima, Global); en Trujillo no hay nada que elegir.
   const empresas = opcionesDeEmpresa(empresasAqui);
@@ -311,6 +315,8 @@ async function ListaDeProductos({ searchParams }: { searchParams: Promise<Params
           La propusieron en un conteo o desde el Taller. Mientras tanto se pueden vender.
         </Aviso>
       )}
+
+      {posiblesDuplicados && posiblesDuplicados.length > 0 && <PosiblesDuplicados pares={posiblesDuplicados} />}
 
       {recibidoPorCrear && recibidoPorCrear.porCrear > 0 && (
         // ADR-0393 (decisión 4): lo que llegó y se contó como «nuevo» espera su ficha. Se crea desde Recibir («Crear ahora»), con las
