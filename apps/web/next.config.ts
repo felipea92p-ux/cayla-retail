@@ -25,6 +25,12 @@ const nextConfig: NextConfig = {
   // `NEXT_PUBLIC_VERCEL_ENV` porque esa depende de una casilla del panel de Vercel.
   env: { NEXT_PUBLIC_BUILD_ID: versionDeEstaCompilacion, NEXT_PUBLIC_ENTORNO: process.env.VERCEL_ENV ?? "local" },
 
+  // Solo en Vercel, `next build` no vuelve a revisar los tipos (ADR-0648). Vercel cobra la compilación por minuto y por núcleo
+  // (82 % de la factura), y esa revisión ya la hizo el CI sobre el MISMO commit que llega a `main`: la cola de fusión exige
+  // «Tipos, lint y pruebas» (`pnpm typecheck`) y además compila la web con los tipos encendidos («Compila la web»). Afuera de
+  // Vercel —el CI, la máquina de cada uno— `next build` los sigue revisando: un error de tipos nunca llega a la cola sin verse.
+  typescript: { ignoreBuildErrors: process.env.VERCEL === "1" },
+
   images: {
     remotePatterns: supabaseUrl
       ? [
