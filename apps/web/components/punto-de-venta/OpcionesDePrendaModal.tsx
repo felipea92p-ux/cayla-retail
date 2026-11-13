@@ -96,8 +96,11 @@ export function OpcionesDePrendaModal({ prenda, colorClave, ubicacionEtiqueta, c
               <div className="min-w-0 sm:mt-3.5">
                 <p className="label-cayla text-[10.5px] text-taupe">Color</p>
                 <p key={mostrado.clave} className="anim-revelar truncate font-display text-xl leading-tight text-tinta">{mostrado.color ?? "Sin color"}</p>
-                <p className="mt-1 text-sm font-semibold tabular-nums text-tinta">
-                  {mostrado.precioMin === mostrado.precioMax ? money(mostrado.precioMin) : `desde ${money(mostrado.precioMin)}`}
+                {/* El precio es lo que más se mira al vender (Felipe 2026-11-13: «sale muy pequeño»): la cifra en serif de 30 px, la misma de
+                    los montos de Vender (el total de «Hoy», el cupón), más grande que el nombre del color. */}
+                <p key={`precio-${mostrado.clave}`} className="anim-revelar mt-1.5 flex items-baseline gap-1.5 text-tinta">
+                  {mostrado.precioMin !== mostrado.precioMax && <span className="text-sm text-taupe">desde</span>}
+                  <span className="font-display text-3xl leading-none tabular-nums">{money(mostrado.precioMin)}</span>
                 </p>
                 <p className="mt-0.5 text-sm text-tinta/60 tabular-nums">
                   {mostrado.stockTotal > 0
