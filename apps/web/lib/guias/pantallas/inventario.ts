@@ -1854,6 +1854,15 @@ export const GUIA_RECIBIR_ENVIO: Guia = {
       texto: "Cada categoría sale una sola vez, aunque venga de varios proveedores. Toca una y se abre con todo lo que anotó Compras, modelo por modelo; tócala otra vez y se pliega. Toca el modelo que tienes en la mano para contarlo.",
     },
     {
+      id: "llegaron",
+      ancla: "recepcion.llegaron",
+      opcional: true,
+      requiere: ["recepcion.llegaron"],
+      preparar: [LISTA_DEL_CELULAR],
+      titulo: "Llegó lo que dijeron",
+      texto: "Si de un modelo llegó justo lo que anotó Compras, toca el ✓ de su fila: queda contado sin ir al contador. Si llegaron más o menos, toca el modelo y cuéntalo a la derecha. En la demo no se toca.",
+    },
+    {
       id: "buscar",
       ancla: "recepcion.buscar",
       requiere: ["recepcion.categorias"],

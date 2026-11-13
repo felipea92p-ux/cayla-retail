@@ -813,6 +813,7 @@ export function ContarEnvio({
       onAgregarModelo={(categoria) => setHoja({ tipo: "modelo", categoria })}
       onNoLlego={(c) => c.grupos.forEach((g) => aplicar(repartirTotal(g, 0)))}
       onQuitar={(p) => (p.modelo && p.modelo.contadas > 0 ? setHoja({ tipo: "quitar", parada: p.clave }) : quitarModeloDe(p))}
+      onLlegaron={ponerDeUnToque}
       onQuitarCategoria={(c) => (c.contadas > 0 ? setHoja({ tipo: "quitar-categoria", categoria: c.clave }) : quitarCategoria(c))}
       onFotos={(nuevas) => setFotos((f) => new Map([...f, ...nuevas]))}
       cifras={cifras}
