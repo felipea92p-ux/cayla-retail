@@ -6,4 +6,4 @@ Felipe se lleva: es solo maqueta, sin código ni base tocados. Construirla cambi
 ## 2026-11-13 (/formidable sobre la maqueta: ciega, escéptico y los 3 cambios)
 Qué hice: tres agentes ciegos sin los textos de la auditoría y un escéptico; leyes 6,4 → 7,1 tras los 3 cambios que Felipe aprobó: el resumen se pliega a una franja bajo 1380 px (la primera fila pasa de 886 a 523 px en un portátil), la compradora se encuentra desde el buscador de Historial y el viaje se nombra por sus fechas, y «Pagar» abre una hoja de pago con «Pagar juntos» pegada abajo.
 Por qué así: la ciega de Revisar compras buscó a Maribel en Historial y llegó en el paso 5; repetida, llegó en 3. La de Por pagar no podía pagar; repetida, terminó en 3 toques.
-Felipe se lleva: queda decidir el nombre de la pestaña («Revisar compras» no dice que ahí vive la plata de las compradoras) y la regla para pagar una compra que no llegó; el informe es `docs/formidable/compras-historial-maqueta.md`.
+Felipe se lleva: la pestaña ya se llama «Compradoras» en la propuesta (lo eligió él); queda la regla para pagar una compra que no llegó; el informe es `docs/formidable/compras-historial-maqueta.md`.

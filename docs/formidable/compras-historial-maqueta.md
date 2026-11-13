@@ -37,7 +37,7 @@
 | **Oficio** | 4 | 4 (sin repetir la medición completa) | las casillas de 18 px, el foco del buscador y los radios siguen (lista aparte; la pantalla real usaría las piezas del sistema) |
 
 ### Lo que queda
-- **El nombre de la pestaña** («Revisar compras» no dice que ahí vive la plata de las compradoras): lo decides tú; la lectura de 5 s sigue fallando por eso.
+- **El nombre de la pestaña: decidido.** Felipe eligió «Compradoras» (2026-11-13) y ya está en la maqueta; falta repetir la ciega para ver si la lectura de 5 s pasa.
 - **Tu regla para pagar una compra que no llegó**: la hoja avisa («Revisa antes de pagar»), no frena.
 - La lista aparte de la primera vuelta (la hoja que crece, «Qué compraste2», las casillas, el foco del buscador).
 

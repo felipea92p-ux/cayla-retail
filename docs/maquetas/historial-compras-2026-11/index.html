@@ -665,7 +665,7 @@ a.fr-c{border-radius:10px;padding:4px 8px;margin:-4px -8px}
     </ul>
   </section>
   <section>
-    <h2>Revisar compras: una sola cola, por viaje</h2>
+    <h2>Revisar compras → «Compradoras»: una sola cola, por viaje</h2>
     <p>Leído en <code>compras/fondos/page.tsx</code>, <code>components/mi-plata/BandejaRevisar.tsx</code> y sus detalles (en la base local no había nada por revisar: la réplica usa datos inventados).</p>
     <h3>Los hallazgos</h3>
     <table>
@@ -688,7 +688,7 @@ a.fr-c{border-radius:10px;padding:4px 8px;margin:-4px -8px}
       <li><b>La plata de cada persona, a un toque:</b> «Quién tiene plata» es solo el nombre y el monto. Al tocar a la persona se abre una hoja (<code>&lt;Modal&gt;</code> mediana, solo se lee: se cierra con la ×) que se lee como una libreta: <b>primero la respuesta</b> («Tiene que devolver S/ 180.00 · le dieron S/ 500.00 el 10 nov y gastó S/ 320.00», con su barra); después <b>qué hizo con la plata</b>, contado desde su lado (recibió, compró en…, gastó en…, devolvió), con <b>lo que le queda</b> tras cada movimiento; y al final <b>lo que falta para cerrar su cuenta</b>, cada cosa con su verbo («Registrar la nota de venta de Puesto 214», con una línea que dice para qué), que al tocarla abre ese pendiente en la cola. Sin estados de oficina ni signos sueltos: los viajes anteriores, a un toque, dicen si cuadraron.</li>
       <li><b>El detalle es el mismo cajón de las otras dos pestañas:</b> al confirmar pasa a lo siguiente de la cola, y una compra completada avisa que pasa al Historial.</li>
       <li><b>No cambia</b> qué pide y qué guarda cada detalle ni quién puede confirmar. Lo que sí cambia en la base, si se construye: la entrega guarda su cuenta y ya no espera una confirmación (eso es de Felipe, por ser dinero).</li>
-      <li><b>Lo decides tú:</b> ¿agrupar por ronda?, ¿«Quién tiene plata» deja de ser una hoja?, ¿renombrar la pestaña (por ejemplo, «Por revisar»)? Recomiendo sí, sí y esperar con el nombre.</li>
+      <li><b>La pestaña se llama «Compradoras»</b> (Felipe, 2026-11-13): la ciega no adivinaba que la plata de las compradoras vivía en «Revisar compras», y la mitad de lo que hay ahí es plata y gastos, no compras.</li>
     </ul>
   </section>
   <section>
@@ -971,7 +971,7 @@ a.fr-c{border-radius:10px;padding:4px 8px;margin:-4px -8px}
   const enRevisar = () => RV.filter((x) => !x.hecho && !(sinPlata() && x.tipo === 'plata')).length;
   function pestanas(activa, acciones) {
     const n = COMPRAS.filter((c) => como(c).saldo > 0).length;
-    const t = [['historial', 'Historial'], ['revisar', 'Revisar compras', enRevisar(), true], ['pagar', 'Por pagar', n, true]];
+    const t = [['historial', 'Historial'], ['revisar', estado.vista === 'ahora' ? 'Revisar compras' : 'Compradoras', enRevisar(), true], ['pagar', 'Por pagar', n, true]];
     return `<div class="fila-tabs"><nav class="pest" aria-label="Secciones de Historial de compras">${t.map(([k, x, g, pide]) =>
       `<a href="#" data-hc="tab" data-v="${k}" ${activa === k ? 'aria-current="page"' : ''}>${x}${g ? `<span class="glb${pide ? ' pide' : ''}">${g}</span>` : ''}</a>`).join('')}</nav>
       <span class="acc">${acciones || ''}</span></div>`;
