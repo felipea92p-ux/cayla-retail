@@ -1,0 +1,11 @@
+# 2026-11-13 · La barra de scroll de las hojas
+
+- **Qué:** la barra de scroll de toda hoja (`<Modal>`, `<ModalRuta>`, `<Cajon>`, un `Dialog.Content` propio y las listas de sus combos) y de todo `.scroll-cayla` es ahora UNA píldora de 6 px a 3 px del borde, en tinta suave (crema en oscuro), que se oscurece y se ensancha a 8 px con el mouse; en la hoja su recorrido para antes de la curva (75 % del radio). Vive en `apps/web/app/estilos/barra-de-scroll.css`; `.scroll-cayla` salió de `globals.css`.
+- **Por qué:** Felipe (captura de «Fusionar productos repetidos»): la barra se salía de la esquina redonda de la hoja y no iba con el sistema. Causa raíz: `.scroll-cayla` ponía `scrollbar-width`/`scrollbar-color`, y desde Chrome 121 eso hace que Chrome ignore los `::-webkit-scrollbar` y dibuje su barra nativa, recta y pegada al borde. Ahora esas dos solo van a Firefox (`@supports not selector(::-webkit-scrollbar)`), y todo vive en `@layer base` con `:where`, así que una fila que esconde su barra le sigue ganando.
+- **Verificado:** en el navegador local, la hoja de Fusionar (forzada a correr) en claro y oscuro y el cuerpo del cajón de Movimientos; `vitest` completo de `apps/web` en verde. No toca `estilos/vidrio/`: Dynamic no tiene tarea.
+
+# 2026-11-13 · El cajón de Movimientos desenfoca lo de atrás
+
+- **Qué:** el cajón de un movimiento (`CajonMovimiento`) ahora lleva el velo de todo cajón: lo de atrás se desenfoca. Como ya no se toca otra fila con el cajón abierto, suma ↑ ↓ y «n de N» en su pie (`navegacion`), que recorren las operaciones de la página en el orden de la lista sin cerrar el cajón.
+- **Por qué:** Felipe lo vio sin desenfoque, distinto de las otras hojas laterales. Iba `velo={false}` para que la lista siguiera viva detrás; las flechas cubren ese uso.
+- **Verificado:** en local, el fondo desenfocado y ↓ pasa de «1 de 11» a «2 de 11» con la URL al día. Hallado de paso, ya venía de antes: abrir `?mov=<id>` directo no abre el cajón (pasa igual sin este cambio). Gastos (`GastosPanel`, `GastoDetalle`) pasó también a velo, con el OK de Felipe: ya tenía su «n de N» con ↑ ↓. No se vio en el navegador: la base local no tiene ningún gasto y no se crean datos para probar.
