@@ -5,6 +5,7 @@
 - [x] Presupuesto de bloques en el CI: `scripts/rendimiento/presupuesto.mjs` + `presupuesto-volumen.sql` + `presupuesto.json`, en `PRUEBAS` (`pnpm pruebas:presupuesto-rendimiento`); se acepta con `pnpm rendimiento:aceptar`.
 - [x] **Pegada en producción** el 2026-11-13. Antes se comprobó `pg_read_all_stats` = true; el SHA-256 de lo cargado en el editor era igual al del archivo; el md5 de las dos funciones es el de la rama; la primera foto dio `"ok": true, "arranco_de_cero": true`. Ya se puede fusionar sin que el cron falle.
 - [ ] Refrescar el diccionario (`pnpm datos:generar:produccion`) cuando esté pegada: tres tablas nuevas.
-- [ ] Aceptar el presupuesto desde la primera corrida verde del CI (`pnpm rendimiento:aceptar -- --desde-ci <id>`): el de este PR salió de la base local, que lee más.
+- [x] Presupuesto aceptado desde el CI (corrida 43508089266), con `pnpm rendimiento:aceptar -- --desde-ci`.
+- [ ] **Por entender:** `fn_resumen_finanzas` lee en el CI unas 5 veces lo que lee en la base local (las demás funciones leen menos en el CI, como se espera de una base limpia). No es la zona horaria, y a la base local no le falta ninguna migración que toque Finanzas. Si la próxima corrida del CI no repite su cifra, la medida de esa función no es estable y hay que mirar su plan.
 - [ ] La lente del Observatorio: «se volvió lenta» (lo que más subió en 24 h contra la semana) y «el vigía no corre» (más de 2 h sin foto). Con `/milimetro` y las demás reglas de interfaz.
 - [ ] Compactar las fotos de más de 90 días cuando el vigía cumpla un año (~1.000 filas al día).

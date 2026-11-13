@@ -160,5 +160,5 @@ select * from retail.fn_rendimiento_antes_despues('2026-11-14 22:00-05');
 ## Lo que queda
 
 - La lente «se volvió lenta» y «el vigía no corre» en el Observatorio del Admin (con `/milimetro` y las demás reglas de interfaz).
-- Aceptar el presupuesto desde la primera corrida del CI (`--desde-ci`): el de este PR se aceptó en local, que lee más que la base limpia.
+- Entender por qué `fn_resumen_finanzas` lee en el CI unas 5 veces lo que lee en la base local (el presupuesto se aceptó del CI, corrida 43508089266).
 - Compactar las fotos de más de 90 días cuando pasen de un año.

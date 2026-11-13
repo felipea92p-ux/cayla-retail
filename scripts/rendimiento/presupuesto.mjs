@@ -48,7 +48,7 @@ const QUIEN = {
 const TRUJILLO = "(select id from retail.ubicaciones where nombre = 'Tienda Trujillo')";
 
 /**
- * Lo que se mide: las seis funciones del marco (`apps/web/lib/persona-actual.ts`, en cada render del servidor), como líder y como
+ * Lo que se mide: las seis funciones del marco (`lib/persona-actual.ts` de la web, en cada render del servidor), como líder y como
  * colaboradora, y la función con que entra cada módulo pesado, como el líder (que ve todo). `sql` se arma con `format` ANTES de medir,
  * para que lo medido sea solo la llamada.
  */
@@ -116,6 +116,8 @@ export function armarScript(volumen, medidas = MEDIDAS) {
   const lineas = medidas.map((m) => `${comoCuenta(QUIEN[m.quien])}select '${m.clave}|' || pg_temp.bloques(${m.sql});\n${comoNadie}`);
   return [
     "begin;",
+    // En hora de Lima, como la base del CI (`baseEnHoraDeLima` en scripts/ci/pruebas-postgres.mjs): la local va en UTC.
+    "set local timezone = 'America/Lima';",
     PRELUDIO,
     `select 'base|' || count(*) from retail.productos;`,
     volumen,
