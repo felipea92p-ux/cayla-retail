@@ -33,6 +33,12 @@ const DESHACER_CANAL = sqlDeshacer("20261104032000_motores_del_piso_solo_tienda.
   "retail.fn_demanda_sede(uuid, integer)",
   "retail.fn_motor_demanda_preparacion(uuid)",
 ]);
+// 20261113201000 (ADR-0658) cambia a propósito la línea de CLAURE del piso y del plan de compra por `fn_lineas_de_claure`: se deshace antes
+// que todo, para que esta migración se reaplique sobre su propio texto. Que las dos versiones digan lo mismo lo prueba `pruebas:lineas-de-claure`.
+const DESHACER_UNA_PASADA = sqlDeshacer("20261113201000_claure_de_una_pasada_en_los_motores.sql", [
+  "retail.fn_piso_plan_lectura(uuid)",
+  "retail.fn_plan_compra(uuid)",
+]);
 const FELIPE = "22222222-2222-4222-8222-000000000001"; // líder (seed)
 const CAYLA = "'ca71a000-0000-4000-8000-000000000001'";
 const CLAURE = "'c1a07e00-0000-4000-8000-000000000002'";
@@ -63,6 +69,7 @@ const ID = (n) => `'00000000-0000-4000-8000-0000000000${n}'`;
 //   S4 (solo en el caso de «antes del arranque»): A 59 hace 12 días.
 const PRELUDIO = `
 begin;
+${DESHACER_UNA_PASADA}
 ${DESHACER_CANAL}
 \\o /dev/null
 ${DESHACER_0622}
