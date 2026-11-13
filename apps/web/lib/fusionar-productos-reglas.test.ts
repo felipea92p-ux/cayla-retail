@@ -3,6 +3,8 @@ import {
   ELECCIONES_VACIAS,
   camposAElegir,
   camposDeLaGuia,
+  mensajeAlNoFusionar,
+  yaFusionadas,
   eleccionesParaLaBase,
   fechaDeAlta,
   fotosEnOrden,
@@ -147,7 +149,7 @@ describe("fotos y resumen", () => {
 describe("guía de foco (ADR-0284)", () => {
   it("falta la ficha repetida y quién la hace; lo distinto es sugerido, nunca un candado", () => {
     const c = camposDeLaGuia({ duplicados: 0, queda: "A", hayDiferencias: true, responsableListo: false });
-    expect(c.filter((x) => x.requerido && !x.hecho).map((x) => x.id)).toEqual(["duplicados", "responsable"]);
+    expect(c.filter((x) => x.requerido && !x.hecho).map((x) => x.id)).toEqual(["duplicados", "queda", "responsable"]);
     expect(c.find((x) => x.id === "diferencias")).toMatchObject({ requerido: false, sugerido: true });
   });
   it("en dos pasos: armar pide las fichas y cuál queda; revisar, solo quién firma", () => {
@@ -159,5 +161,30 @@ describe("guía de foco (ADR-0284)", () => {
     expect(camposDeLaGuia({ duplicados: 1, queda: "A", hayDiferencias: false, responsableListo: true }).map((x) => x.id)).toEqual([
       "duplicados", "queda", "responsable",
     ]);
+  });
+});
+
+// /chaos 2026-11-13 (semilla 1113), RS-03 y NAV-05: con la respuesta perdida o con otra persona que fusionó antes, la hoja decía «Las fichas
+// siguen como estaban» y era falso. Ahora pregunta a la base si ya quedaron fusionadas en la que queda.
+describe("después de un error al fusionar", () => {
+  it("ya fusionadas: todas las repetidas apuntan a la que queda", () => {
+    const filas = [{ id: "B", fusionadoEnId: "A" }, { id: "C", fusionadoEnId: "A" }];
+    expect(yaFusionadas(filas, "A", ["B", "C"])).toBe(true);
+    expect(yaFusionadas([{ id: "B", fusionadoEnId: "A" }, { id: "C", fusionadoEnId: null }], "A", ["B", "C"])).toBe(false);
+    expect(yaFusionadas([{ id: "B", fusionadoEnId: "Z" }], "A", ["B"])).toBe(false);
+    expect(yaFusionadas([], "A", ["B"])).toBe(false);
+    expect(yaFusionadas([], "A", [])).toBe(false);
+  });
+  it("solo afirma que nada cambió cuando la base dijo que no", () => {
+    expect(mensajeAlNoFusionar("La base dijo que no.", false)).toBe("La base dijo que no. Las fichas siguen como estaban.");
+    expect(mensajeAlNoFusionar("Se cortó la conexión.", true)).toBe("Se cortó la conexión.");
+  });
+});
+
+// /chaos 2026-11-13, ENT-01: con una sola ficha, «¿Cuál se queda?» salía hecho antes de haber con qué compararla.
+describe("la guía con una sola ficha", () => {
+  it("«Cuál queda» no está hecho sin una ficha repetida", () => {
+    const c = camposDeLaGuia({ duplicados: 0, queda: "A", hayDiferencias: false, responsableListo: true, vista: "armar" });
+    expect(c.find((x) => x.id === "queda")?.hecho).toBe(false);
   });
 });
