@@ -9,7 +9,9 @@ ADR-0379 (2026-10-10) creó Catálogo ▸ Liquidación: etiquetar las prendas su
 bajarles el precio con una etiqueta nueva y venderlas en la caja escaneándolas, sin tocar `stock` ni `movimientos`.
 
 Un mes después no tiene uso. El volcado de producción del 2026-11-12 (`docs/datos/generado/retail_filas.json`) dice
-`piezas_liquidacion: 0` y `piezas_liquidacion_etiquetas: 0`; `parametros_liquidacion` tiene su única fila de siempre (S/ 10). Y el
+`piezas_liquidacion: 0` y `piezas_liquidacion_etiquetas: 0`; `parametros_liquidacion` tiene su única fila de siempre (S/ 10).
+**Confirmado en vivo el 2026-11-13** (Felipe, SQL Editor, solo lectura): 0 piezas, 0 etiquetas, 0 líneas en `actividad`, 0 roles con
+Liquidación de pantalla principal y 0 ocultos a un líder. **Un rol la tenía asignada: «Compras»** (nunca la usó); la migración se la quita. Y el
 nombre confunde: «Liquidación» suena a la insignia «Para liquidar», que sí rebaja prendas del catálogo. En la sesión de diseño de
 «Campañas y ofertas», Felipe ordenó el catálogo así: una **insignia** dice qué es la prenda (nunca cambia el precio), una **campaña** es
 la fecha especial y una **oferta** es lo que el cliente paga de menos, siempre dentro de una campaña. «Para liquidar» pasa a ser una
