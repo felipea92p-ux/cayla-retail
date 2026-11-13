@@ -13,6 +13,7 @@ import { Vacio } from "@/components/ui/Vacio";
 import { fechaCorta } from "@/lib/gastos-reglas";
 import { solesDeCentimos } from "@/lib/extracto-interbank";
 import {
+  diaSinCerrar,
   estadoDelCuadre,
   fraseDeCadenaCompleta,
   fraseDeHuecos,
@@ -74,6 +75,8 @@ function Cuerpo({ banco, cuadre }: { banco: string; cuadre: CuadreBanco }) {
   const cadenaCompleta = fraseDeCadenaCompleta(cuadre);
   const grupos = gruposDelBanco(cuadre.porCodigo);
   const diferencia = cuadre.diferenciaCentimos;
+  // Si el último día todavía corría al subirlo, el saldo del banco es el de esa hora, no el del cierre: se dice bajo la cifra.
+  const abierto = diaSinCerrar(cuadre);
   return (
     <>
       <div className="din-banco-cifras">
@@ -82,7 +85,9 @@ function Cuerpo({ banco, cuadre }: { banco: string; cuadre: CuadreBanco }) {
             {banco} · al {dia}
           </span>
           <b className="din-cuad-cifra din-banco-num">{cifra(cuadre.banco.saldoCentimos)}</b>
-          <span className="din-cuad-tenue">El saldo de la última línea guardada.</span>
+          <span className="din-cuad-tenue">
+            {abierto?.hora ? `Lo que había a las ${abierto.hora}: el día no había terminado.` : "El saldo de la última línea guardada."}
+          </span>
         </div>
         <div className="din-banco-cifra">
           <span className="label-cayla">Tu ERP dice · al {dia}</span>

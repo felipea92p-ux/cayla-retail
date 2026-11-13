@@ -233,7 +233,7 @@ export function leerCuadreBanco(json: unknown): CuadreBanco | null {
 // ---- Los textos de la pantalla, como funciones puras ----------------------------------------------------------------------------
 
 export type EstadoCuadre = {
-  clave: "sin_extracto" | "sin_saldo" | "sin_erp" | "cuadra" | "no_cuadra";
+  clave: "sin_extracto" | "sin_saldo" | "sin_erp" | "cuadra" | "dia_sin_cerrar" | "no_cuadra";
   tono: "verde" | "ambar" | "pizarra";
   /** La insignia: «Cuadra al 6 oct», «No cuadra». */
   chip: string;
@@ -242,10 +242,29 @@ export type EstadoCuadre = {
 };
 
 /**
- * ¿Coincide lo que dice el banco con lo que dice el ERP? Solo compara los dos saldos que manda la base, al céntimo. Cuando no cuadra no
- * promete más de lo que hay: en esta entrega se ve la diferencia; el detalle línea por línea llega en el paso siguiente.
+ * ¿El último día guardado seguía en curso cuando se subió el extracto? Pasa cuando se sube el mismo día que trae como último: el banco
+ * todavía recibe pagos ese día (el .txt los trae como provisionales), pero `fn_banco_cuadre` le suma al ERP el día ENTERO. La diferencia
+ * de ese momento mezcla medio día del banco con un día completo del ERP y no dice nada (el 9-nov-2026 mostró al ERP con más plata que el
+ * banco, y el banco, ya cerrado, tenía más: después de la subida entraron un QR y un ITF). Se mira la última subida, y solo si es
+ * la que trae ese último día. Si el archivo se bajó un día y se subió al siguiente no se ve; nulo en ese caso y en todos los demás.
  */
-export function estadoDelCuadre(c: Pick<CuadreBanco, "hayExtracto" | "banco" | "erpCentimos" | "diferenciaCentimos">, nombreDelBanco: string): EstadoCuadre {
+export function diaSinCerrar(c: Pick<CuadreBanco, "banco" | "ultimaCarga">): { dia: string; hora: string | null } | null {
+  const u = c.ultimaCarga;
+  if (!c.banco || !u || u.hasta !== c.banco.al) return null;
+  const subida = diaLima(u.cuando);
+  if (!subida || subida > c.banco.al) return null;
+  return { dia: c.banco.al, hora: horaLima(u.cuando) };
+}
+
+/**
+ * ¿Coincide lo que dice el banco con lo que dice el ERP? Solo compara los dos saldos que manda la base, al céntimo. Cuando no cuadra no
+ * promete más de lo que hay: en esta entrega se ve la diferencia; el detalle línea por línea llega en el paso siguiente. Si el último día
+ * seguía en curso al subirlo (`diaSinCerrar`), la diferencia no se presenta como un descuadre: se dice por qué todavía no vale.
+ */
+export function estadoDelCuadre(
+  c: Pick<CuadreBanco, "hayExtracto" | "banco" | "erpCentimos" | "diferenciaCentimos" | "ultimaCarga">,
+  nombreDelBanco: string,
+): EstadoCuadre {
   if (!c.hayExtracto || !c.banco) {
     return { clave: "sin_extracto", tono: "pizarra", chip: "Sin extracto guardado", frase: `El saldo de ${nombreDelBanco} es lo que anotaste, no está probado.` };
   }
@@ -257,6 +276,19 @@ export function estadoDelCuadre(c: Pick<CuadreBanco, "hayExtracto" | "banco" | "
   }
   if (c.diferenciaCentimos === 0) {
     return { clave: "cuadra", tono: "verde", chip: `Cuadra al ${fechaCorta(c.banco.al)}`, frase: "El banco y tu ERP dicen lo mismo, al céntimo." };
+  }
+  const abierto = diaSinCerrar(c);
+  if (abierto) {
+    const dia = fechaCorta(abierto.dia);
+    return {
+      clave: "dia_sin_cerrar",
+      tono: "pizarra",
+      chip: `El ${dia} sigue abierto`,
+      frase:
+        `Subiste el extracto el ${dia}${abierto.hora ? ` a las ${abierto.hora}` : ""}, con ese día todavía en curso: lo que el banco recibió después no está, ` +
+        `y tu ERP cuenta el ${dia} entero. Por eso la diferencia de ${solesDeCentimos(Math.abs(c.diferenciaCentimos))} todavía no dice nada. ` +
+        `Sube el extracto del día siguiente: trae el ${dia} completo.`,
+    };
   }
   return {
     clave: "no_cuadra",
@@ -299,14 +331,14 @@ export function fraseDeLineas(c: Pick<CuadreBanco, "piso" | "lineasDesdePiso" | 
 
 /**
  * Las líneas sin confirmar, en una frase; nulo si no hay ninguna. Son de dos clases y la frase vale para las dos: las del fin de semana
- * que el banco aún no procesa (el .txt las trae con un número provisional) y las pegadas de la web, que el banco sí procesó pero llegan
+ * o del día en curso, que el banco aún no procesa (el .txt las trae con un número provisional) y las pegadas de la web, que el banco sí procesó pero llegan
  * sin su número. Las dos se confirman igual: con el .txt que ya las traiga procesadas.
  */
 export function fraseDePorConfirmar(n: number): string | null {
   if (n <= 0) return null;
   return n === 1
-    ? "1 línea sigue sin el número definitivo del banco: es del fin de semana que el banco aún no procesa, o la pegaste de la web. Se confirma al subir el .txt que ya la traiga procesada."
-    : `${miles(n)} líneas siguen sin el número definitivo del banco: son del fin de semana que el banco aún no procesa, o las pegaste de la web. Se confirman al subir el .txt que ya las traiga procesadas.`;
+    ? "1 línea sigue sin el número definitivo del banco: es del fin de semana o del día en curso, que el banco aún no procesa, o la pegaste de la web. Se confirma al subir el .txt que ya la traiga procesada."
+    : `${miles(n)} líneas siguen sin el número definitivo del banco: son del fin de semana o del día en curso, que el banco aún no procesa, o las pegaste de la web. Se confirman al subir el .txt que ya las traiga procesadas.`;
 }
 
 /**
