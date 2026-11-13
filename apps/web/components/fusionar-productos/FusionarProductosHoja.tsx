@@ -60,6 +60,10 @@ type Encontrado = {
 /** Cuánto espera la búsqueda a que la persona deje de escribir. */
 const ESPERA_BUSQUEDA_MS = 250;
 
+/** El ancho de la hoja: mediana (576 px, el de `tamano="mediana"`) mientras no hay con qué comparar; 1080 px para las fichas lado a lado. */
+const ANCHO_UNA_FICHA = "max-w-xl";
+const ANCHO_COMPARAR = "max-w-[67.5rem]";
+
 /** Cuántas «¿Es alguna de estas?» se ofrecen de un toque: más alargan la hoja; las demás se encuentran escribiendo. */
 const MAX_SUGERIDOS = 6;
 
@@ -281,6 +285,9 @@ export function FusionarProductosHoja({
   const nombreInicial = inicial[0]?.referencia ?? "esta prenda";
   const nombreQueda = productos.find((p) => p.id === quedaEfectiva)?.referencia ?? nombreInicial;
   const nombresRepetidas = productos.filter((p) => p.id !== quedaEfectiva).map((p) => p.referencia);
+  // Con una sola ficha no hay nada que comparar ni «Así va a quedar»: la hoja es mediana y se ensancha al sumar la segunda. El «Fusionado»
+  // también va mediano (Felipe 2026-11-13: «sigue espacio innecesario a la derecha»).
+  const anchoHoja = vista === "listo" || (vista === "armar" && ids.length < 2) ? ANCHO_UNA_FICHA : ANCHO_COMPARAR;
   const titulo = vista === "revisar" ? "Revisa y fusiona" : vista === "listo" ? "Productos fusionados" : "Fusionar productos repetidos";
   const subtitulo =
     vista === "revisar"
@@ -291,7 +298,7 @@ export function FusionarProductosHoja({
 
   return (
     <>
-      <Modal /* unificar-fijo: la ficha que se arma es de diseño propio (dirección B, Felipe 2026-11-13): 1080 px */ variante="hoja" ancho="max-w-[67.5rem]" bloqueado={guardando} conCerrar={vista === "listo"} titulo={titulo} subtitulo={subtitulo} onClose={onClose}>
+      <Modal /* unificar-fijo: la ficha que se arma es de diseño propio (dirección B, Felipe 2026-11-13): 1080 px con dos fichas o más */ variante="hoja" ancho={anchoHoja} bloqueado={guardando} conCerrar={vista === "listo"} titulo={titulo} subtitulo={subtitulo} onClose={onClose}>
         {(cerrar) => (
           <div ref={cuerpo} className="fus-cuerpo" key={vista}>
             {vista === "armar" && (

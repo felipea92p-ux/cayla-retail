@@ -8,6 +8,11 @@
    «Animaciones» apagado (movimiento.css) o con prefers-reduced-motion.
    ===================================================================================================================== */
 
+/* La hoja se ensancha al sumar la segunda ficha (de 576 a 1080 px) y vuelve a angostarse en «Fusionado»: de a poco, no de golpe. */
+.hoja-serena:has(> * .fus-cuerpo, > .fus-cuerpo) {
+  transition: max-width var(--t-hoja) var(--ease-cayla);
+}
+
 /* ---------- el cuerpo: dos columnas, una sola bajo 880 px de ancho de la hoja ---------- */
 .fus-cuerpo {
   container-type: inline-size;
@@ -569,6 +574,11 @@
   .fus-comparar > * {
     scroll-snap-align: start;
   }
+  /* Con una sola ficha no hay nada que deslizar: ocupa toda la fila. */
+  .fus-mesa:not(:has(> :nth-child(2))) {
+    grid-auto-columns: 100%;
+    overflow-x: visible;
+  }
   .fus-fila {
     grid-template-columns: minmax(0, 1fr);
     gap: 8px;
@@ -618,6 +628,7 @@
   .fus-galeria-grande img {
     animation: none !important;
   }
+  .hoja-serena:has(> * .fus-cuerpo, > .fus-cuerpo),
   .fus-opcion,
   .fus-celda,
   .fus-final,
