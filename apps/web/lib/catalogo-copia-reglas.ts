@@ -9,8 +9,21 @@
 // LO QUE SE HACE. Cada página se pide «después del último id» (el índice de la llave, sin ordenar ni saltar filas) y se guarda en su propia
 // entrada: ~0,8 MB por cada 1.000 variantes, lejos del tope, y sigue lejos aunque el catálogo crezca (crecen las entradas, no su tamaño).
 
+/**
+ * La FORMA de la copia guardada del catálogo: la huella (sha-256, 16 letras) del código que arma cada página (`paginaDeVariantes`, la
+ * consulta de marcas de `leerCatalogo`, `fotoDeVariante`, `fotoPrincipal` y `VARIANTES_POR_PARTE`). Va en la llave de la copia en vez del commit
+ * (2026-11-13, `cambiar-de-modulo#3`): la caché de Vercel sobrevive a las publicaciones, y con el commit cada una la dejaba vacía. Si
+ * cambia ese código, `catalogo-copia-reglas.test.ts` falla y dice la huella nueva: al ponerla aquí cambia la llave sola y nadie lee
+ * una copia armada con la forma vieja. Nunca se cambia a mano por otra cosa.
+ */
+export const FORMA_COPIA_CATALOGO = "7a851c1e2e1df952";
+
+/** Variantes por cada entrada de la copia. 800 y no las 1.000 de PostgREST desde que la copia lleva también la foto principal del producto
+ *  (2026-11-13): con 1.000, la variante más pesada posible dejaba la entrada sobre la mitad del tope; con 800 vuelve a quedar lejos. */
+export const VARIANTES_POR_PARTE = 800;
+
 /** @internal Lo más que guarda la caché de datos de Vercel en UNA entrada (una más grande no se guarda, sin error a la vista): la prueba
- *  comprueba que una página de 1.000 variantes quede lejos de él. */
+ *  comprueba que una parte de `VARIANTES_POR_PARTE` variantes quede lejos de él. */
 export const TOPE_COPIA_BYTES = 2 * 1024 * 1024;
 
 /**
