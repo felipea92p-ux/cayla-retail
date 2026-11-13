@@ -464,6 +464,10 @@ describe("conciliación", () => {
     expect(c?.saldoSistema).toBe(1200);
     expect(c?.conciliacion?.diferencia).toBe(-50);
     expect(c?.lineas[1]?.montoRevisado).toBe(99);
+    // ADR-0652: una conciliación sin `despues` (anotada un día pasado, o de antes del corte) lo lee nulo; con él, el monto.
+    expect(c?.conciliacion?.despues).toBeNull();
+    const conCorte = leerConciliacion({ cuenta: {}, desde: "", hasta: "", saldo_sistema: 0, conciliacion: { id: "k2", saldo_banco: 1480.39, saldo_sistema: 1480.39, diferencia: 0, despues: "-280.39" }, lineas: [], historial: [] });
+    expect(conCorte?.conciliacion?.despues).toBe(-280.39);
     const r = resumenConciliacion(c!.lineas);
     expect([r.total, r.revisadas, r.porRevisar.map((l) => l.clave)]).toEqual([2, 1, ["mov:2"]]);
     expect(leerConciliacion(null)).toBeNull();

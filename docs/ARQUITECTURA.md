@@ -2495,6 +2495,12 @@ cuando hace falta hablar con algo que no es Postgres, o devolver un archivo.
   montado una vez en `app/(app)/layout.tsx`, reglas en `lib/version-nueva-reglas.ts`) cada 5 min con la pestaña a la vista: si la de producción es
   otra que la de la pestaña, sale «Hay una versión nueva de CAYLA» con «Actualizar» / «Más tarde». No es pública y su `fetch` no lleva `?dpl=` (la
   protección de versiones de Vercel, 12 h, lo atendería en la versión vieja). `Cache-Control: no-store`. ADR-0422.
+- `/api/tiempos` → `POST`, con sesión, 204 siempre: el cronómetro del clic (ADR-0654). `onRouterTransitionStart` (`instrumentation-client.ts`,
+  con `experimental.instrumentationClientRouterTransitionEvents`) arranca la medición en `lib/tiempos-de-pantalla-cliente.ts`; termina en el
+  primer cuadro sin `[data-esqueleto-pantalla]` con la ruta nueva ya anotada por `<CronometroDelClic sedeId>` (`components/CronometroDelClic.tsx`,
+  montado una vez en `app/(app)/layout.tsx`: ruta, `useParams()`, envío cada 30 s y al ocultar la pestaña por `sendBeacon`). La ruta valida el
+  lote (`leerLote`, `lib/tiempos-de-pantalla-reglas.ts`) y escribe una línea `tiempo_de_pantalla` por medición (patrón de ruta, ms, sede,
+  `sin_esqueleto`, versión). Sin base. Se lee con `vercel logs --query tiempo_de_pantalla` (p75 por módulo y sede: el ADR).
 
 - `/api/clientas/acceso-web` → `POST` desde la ficha de un cliente, «Restablecer acceso» a la tienda online (2026-10-15,
   `20261015132000`): `restablecer_acceso_tienda_web` (con la firma del Responsable) deja pedido el cambio del correo de entrada y

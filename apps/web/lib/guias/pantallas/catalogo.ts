@@ -70,13 +70,6 @@ export const GUIA_PRODUCTOS: Guia = {
       texto: "Llegaron a tu sede, se contaron como nuevas y están en el almacén, pero no se pueden vender hasta crearlas. Se crean desde Recibir, con «Crear ahora»: así la prenda nace con lo que ya se contó.",
     },
     {
-      id: "sin-temporada",
-      ancla: "productos.sin-temporada",
-      opcional: true,
-      titulo: "Prendas sin temporada",
-      texto: "Te avisa cuántas prendas no tienen temporada. Sin ella, Frescura no sabe cuándo pasan de moda. «Completar» te lleva a ponérsela de a varias a la vez.",
-    },
-    {
       id: "buscador",
       ancla: "productos.buscador",
       titulo: "Busca una prenda",
