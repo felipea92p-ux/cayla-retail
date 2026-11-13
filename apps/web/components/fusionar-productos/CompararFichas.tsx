@@ -4,7 +4,7 @@
 // decidir cuál queda: la foto en grande con su galería, las ventas, el stock en cada sede, las tallas y colores, el precio, el costo
 // (solo a quien ve el dinero de compras: la base no lo manda) y el alta. Solo se lee: su única salida es la ×.
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { SearchX } from "lucide-react";
 import { Modal } from "@/components/ui/Modal";
 import { Chip } from "@/components/ui/Chip";
@@ -12,6 +12,7 @@ import { BarraAvance } from "@/components/ui/BarraAvance";
 import { CapsulaColor } from "@/components/ui/MuestraColor";
 import { ImagenDePrenda } from "@/components/ui/ImagenDePrenda";
 import { Vacio } from "@/components/ui/Vacio";
+import { FotoAmpliada } from "@/components/existencias/FotoAmpliada";
 import { FotoFicha } from "./piezas";
 import { soles } from "@/lib/compras-reglas";
 import { fechaDeAlta, textoVentas, type ProductoPlan } from "@/lib/fusionar-productos-reglas";
@@ -55,7 +56,7 @@ export function CompararFichas({
               <div>
                 <div className="flex min-h-7 flex-wrap items-center gap-1.5">
                   <h3 className="text-[15px] font-semibold leading-tight text-tinta">{p.referencia}</h3> {/* unificar-fijo: el nombre de la ficha en su columna, no un título de sección */}
-                  {p.id === quedaId && <Chip tono="tinta">Queda</Chip>}
+                  {p.id === quedaId && <Chip tono="verde">Queda</Chip>}
                 </div>
                 <p className="texto-detalle text-sm text-taupe">{[p.codigo, p.categoria.nombre].filter(Boolean).join(" · ")}</p>
               </div>
@@ -160,12 +161,22 @@ function Galeria({ p }: { p: ProductoPlan }) {
   const fotos = [...p.fotos].sort((a, b) => Number(b.esPrincipal) - Number(a.esPrincipal));
   const [vista, setVista] = useState(fotos[0]?.id ?? null);
   const grande = fotos.find((f) => f.id === vista) ?? fotos[0] ?? null;
+  // Tocar la foto la abre sola y entera (Felipe 2026-11-13), con el visor de Existencias y la vista rápida.
+  const [ampliada, setAmpliada] = useState(false);
+  const boton = useRef<HTMLButtonElement>(null);
   if (!grande) return <FotoFicha url={null} categoria={p.categoria} />;
   return (
     <div className="space-y-2">
-      <div className="fus-galeria-grande">
-        <ImagenDePrenda key={grande.id} src={grande.url} alt={`Foto de ${p.referencia}`} fill sizes="340px" className="object-cover" fallback={null} />
-      </div>
+      <button
+        ref={boton}
+        type="button"
+        onClick={() => setAmpliada(true)}
+        className="fus-galeria-grande block cursor-zoom-in"
+        aria-label={`Ver la foto de ${p.referencia} en grande`}
+      >
+        <ImagenDePrenda key={grande.id} src={grande.url} alt="" fill sizes="340px" className="object-cover" fallback={null} />
+      </button>
+      {ampliada && <FotoAmpliada fotoUrl={grande.url} referencia={p.referencia} color={null} onCerrar={() => setAmpliada(false)} alCerrarEnfocar={boton} />}
       {fotos.length > 1 && (
         <div
           className="flex gap-2 overflow-x-auto pb-1"
