@@ -61,6 +61,6 @@ Para mostrarle a Felipe: «Fotos que quedan» no estaba en la maqueta B; va como
 - [x] «En ventas» fuera de Comparar (Vendidas ya lo dice; en producción eran iguales en los 7 pares).
 - [x] La matriz con 6 tallas o más: mínimo por columna y corre de lado dentro de su caja; probado con 6 (26 a 36).
 - [x] Sacar de la venta las tallas vacías al fusionar: migración `20261113175000`, casos 25–28, bloque «Tallas sin prendas».
-- [ ] **`20261113175000` no está en producción:** pegarla con el OK de Felipe (`supabase db query --linked -f`), ensayo antes con `begin; … rollback;`.
-      Sin ella la web no ofrece sacar tallas (no rompe nada).
+- [x] `20261113175000` en producción (2026-11-13, OK de Felipe): ensayo con `rollback` y aplicada por el CLI; 23 tallas vacías en los 7 pares reales.
+- [ ] Refrescar el volcado (`docs/datos/generado/COMO-REFRESCAR.md`) para que el diccionario vea las dos funciones nuevas.
 - [ ] «Así va a quedar» con muchos colores (12–13 en producción): mostrar solo los que cambian. Espera la respuesta de Felipe.

@@ -111,7 +111,9 @@ DESCARTÉ:
 
 Felipe, probando con fichas reales: «si no tienen ninguna unidad en alguna talla o de plano nunca se ingresó ninguna prenda en esa talla,
 que te permita eliminarla de la fusión». Migración `20261113175000_fusionar_productos_tallas_vacias.sql` (reemplazos anclados de
-`fn_fusion_productos_plan` y `fusionar_productos`; **no está en producción** hasta el OK de Felipe).
+`fn_fusion_productos_plan` y `fusionar_productos`). **En producción desde el 2026-11-13**, con el OK de Felipe: ensayo con `rollback` y
+después aplicada por el CLI (`supabase db query --linked -f`), como las cinco de arriba. Ese día ofrecía 23 tallas vacías en los 7 pares
+sugeridos (3 que nunca tuvieron prendas).
 
 DECIDÍ:
 
