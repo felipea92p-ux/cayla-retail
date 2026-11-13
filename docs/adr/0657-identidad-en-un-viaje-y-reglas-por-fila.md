@@ -1,8 +1,8 @@
 # ADR-0657 — «Quién eres» en un viaje, y la convención de dos capas: la puerta y la regla por fila
 
 **Fecha:** 2026-11-13 · **Estado:** aprobado por Felipe (propuestas #15, paso 1, y #9 del informe `/innovar` «cambiar de módulo», 2026-11-13).
-Construido en la rama `claude/identidad-en-un-viaje`. Dos migraciones, **sin pegar en producción** (esperan el OK de Felipe):
-`20261113195000_mis_modulos_identidad_una_vez.sql` y `20261113200000_mi_sesion_en_un_viaje.sql`, en ese orden.
+Construido en la rama `claude/identidad-en-un-viaje` (PR #1823). Dos migraciones, **pegadas en producción el 2026-11-13** con el OK de Felipe y
+verificadas por md5: `20261113195000_mis_modulos_identidad_una_vez.sql` y `20261113200000_mi_sesion_en_un_viaje.sql`, en ese orden.
 **Sigue a:** ADR-0622 (rendimiento medido; el backlog de «juntar las 6 RPC del marco»), ADR-0161/0178 (módulos y roles), ADR-0450 (la base caída
 no es «sin acceso»), ADR-0533 (`fn_mi_persona_id`).
 
