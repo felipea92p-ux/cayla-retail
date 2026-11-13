@@ -452,6 +452,44 @@
   .mdl-hoja::before{content:"";position:absolute;top:9px;left:50%;width:40px;height:5px;margin-left:-20px;border-radius:9px;background:var(--t25)}
 }
 
+/* Formidable (2026-11-13), cambio 1: bajo 1380 px el resumen se pliega a una franja de una línea y la lista queda a la vista.
+   Lo demás (barras, semanas, proveedores) se abre con «Ver el resumen». */
+.lb-franja{display:none}
+.fr-c{display:flex;flex-direction:column;gap:2px;min-width:0;text-align:left}
+.fr-c small{font-size:11px;letter-spacing:.12em;text-transform:uppercase;font-weight:600;color:var(--t65)}
+.fr-c b{font-size:17px;font-weight:600;font-variant-numeric:tabular-nums;white-space:nowrap}.fr-c b.serif-n{font-size:24px;font-weight:500;line-height:1.1}
+.fr-c .r{color:var(--rojo-p);font-size:13.5px;font-weight:600}
+/* Con la franja, los títulos de columna se van antes: la fila ya dice qué es cada cosa. */
+@container disp (max-width:1100px){.lb-col{display:none}}
+a.fr-c{border-radius:10px;padding:4px 8px;margin:-4px -8px}
+@media (hover:hover){a.fr-c:hover{background:color-mix(in srgb,var(--tinta) 5%,transparent)}}
+.fr-ver{margin-left:auto;display:inline-flex;align-items:center;gap:6px;height:36px;padding:0 14px;border-radius:999px;font-size:13.5px;font-weight:600;color:var(--t80);border:1px solid var(--borde-control,var(--borde))}
+.fr-ver .chev{width:14px;height:14px;transition:transform .25s var(--ease)}.fr-ver[aria-expanded="true"] .chev{transform:rotate(180deg)}
+@media (hover:hover){.fr-ver:hover{background:color-mix(in srgb,var(--tinta) 5%,transparent)}}
+@container disp (max-width:1380px){
+  .lb-ano.plegable .lb-franja{grid-column:1/-1;display:flex;align-items:center;flex-wrap:wrap;gap:12px 22px;padding:14px 20px}
+  .lb-ano.plegable:not(.abierto)>section{display:none!important}
+  .lb-ano.plegable.abierto .lb-franja{border-bottom:1px solid color-mix(in srgb,var(--tinta) 8%,transparent)}
+}
+@container disp (max-width:520px){.lb-ano.plegable .lb-franja{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);align-items:end;gap:12px 16px;padding:12px 16px}.fr-ver{margin-left:0;justify-self:start}.fr-c b.serif-n{font-size:22px}.fr-c b{white-space:normal}}
+/* La barra «Pagar juntos» se pega abajo: el sticky va en su contenedor, que vive al final de la lista (antes iba en la barra, dentro de una caja de su mismo alto, y nunca se pegaba). */
+#pl-juntos{position:sticky;bottom:14px;z-index:3}#pl-juntos .pp-juntos{position:static}
+/* Cambio 2: la compradora aparece al buscarla en Historial, y su nombre dice que se abre */
+.lb-gente{display:grid;gap:6px;padding:14px 20px;border-bottom:1px solid color-mix(in srgb,var(--tinta) 8%,transparent)}
+.lb-gente>h3{font-size:11px;letter-spacing:.12em;text-transform:uppercase;font-weight:600;color:var(--t65)}
+.lb-persona{display:grid;grid-template-columns:36px minmax(0,1fr) auto;gap:12px;align-items:center;padding:10px 12px;border-radius:14px;text-align:left;box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--tinta) 12%,transparent)}
+@media (hover:hover){.lb-persona:hover{background:color-mix(in srgb,var(--tinta) 5%,transparent)}.lb-persona:hover .ver svg{transform:translateX(3px)}}
+.lb-persona .ini{width:36px;height:36px;font-size:15px}.lb-persona b{display:block;font-size:15px;font-weight:600}.lb-persona small{display:block;font-size:13.5px;color:var(--t65)}
+.lb-persona .ver{display:inline-flex;align-items:center;gap:4px;font-size:13.5px;font-weight:600;color:var(--tinta)}.lb-persona .ver svg{width:14px;height:14px;transition:transform .2s var(--ease)}
+.rq-pb .tx{min-width:0}.rq-pb .tx small{display:block;font-size:12.5px;color:var(--t65);font-weight:500}
+/* Cambio 3: la hoja de pago */
+.pg-de{margin-top:16px;display:grid;gap:6px}
+.pg-c{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:2px 12px;padding:10px 14px;border-radius:14px;box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--tinta) 10%,transparent)}
+.pg-c b{font-size:14.5px;font-weight:600}.pg-c .num{font-size:14.5px;font-weight:600;text-align:right}.pg-c small{grid-column:1/-1;font-size:13px;color:var(--t65)}
+.pg-c .ll{grid-column:1/-1;display:flex;align-items:center;gap:6px;font-size:13.5px;font-weight:600;color:var(--verde)}.pg-c .ll svg{width:14px;height:14px}
+.pg-c .ll.no{color:var(--ambar)}
+.pg-aviso{margin-top:10px;padding:10px 14px;border-radius:12px;font-size:14px;color:var(--t80);background:color-mix(in srgb,var(--ambar) 10%,transparent);box-shadow:inset 3px 0 0 var(--ambar)}.pg-aviso b{color:var(--tinta)}
+
 /* ---------- los anchos ---------- */
 /* Bajo 1380 (un portátil): el resumen deja el costado y sube como una banda de tres partes, más baja. */
 @container disp (max-width:1380px){
@@ -627,7 +665,7 @@
     </ul>
   </section>
   <section>
-    <h2>Revisar compras: una sola cola, por ronda</h2>
+    <h2>Revisar compras: una sola cola, por viaje</h2>
     <p>Leído en <code>compras/fondos/page.tsx</code>, <code>components/mi-plata/BandejaRevisar.tsx</code> y sus detalles (en la base local no había nada por revisar: la réplica usa datos inventados).</p>
     <h3>Los hallazgos</h3>
     <table>
@@ -641,11 +679,11 @@
     </table>
     <h3>La propuesta</h3>
     <ul>
-      <li><b>Una sola cola, agrupada por ronda</b> (la compradora y su viaje) y en el orden en que se revisa: compras → gastos → lo que devuelve. Primero van las rondas cerradas, que son las que esperan a la oficina.</li>
+      <li><b>Una sola cola, agrupada por viaje</b> (la compradora y sus fechas: «Maribel · viaje del 10 al 12 nov»; el código RC-000030 queda en el detalle) y en el orden en que se revisa: compras → gastos → lo que devuelve. Primero van los viajes de quien ya volvió, que son los que esperan a la oficina.</li>
       <li><b>La plata entregada no se confirma</b> (Felipe, 2026-11-13: «no es necesario confirmar que recibió una cantidad de dinero»): sale de la cola, y recibir lo que devuelve ya no espera a nada. Hoy esa confirmación es donde se elige <b>de qué cuenta salió</b> la plata cuando la anotó la compradora; desde ahora <b>se pide al entregarla</b> (Felipe: «Sí, al entregarla»).</li>
-      <li><b>«Entregar plata» pregunta de qué cuenta sale</b>: a quién (con lo que ya tiene), cuánto, cómo (efectivo, Yape o transferencia) y de qué cuenta, con lo que hay en cada una y un «no alcanza» si no llega. La cuenta se sugiere según lo elegido: en efectivo, la caja de la sede de quien recibe; con Yape, la única que hay. Al entregar, la plata entra a su libreta sin confirmar nada después. Desde la hoja de una persona con su viaje abierto, «Darle más plata» abre la misma hoja con ella elegida.</li>
+      <li><b>«Darle plata» (antes «Entregar plata», que se leía como dar o recibir) pregunta de qué cuenta sale</b>: a quién (con lo que ya tiene), cuánto, cómo (efectivo, Yape o transferencia) y de qué cuenta, con lo que hay en cada una y un «no alcanza» si no llega. La cuenta se sugiere según lo elegido: en efectivo, la caja de la sede de quien recibe; con Yape, la única que hay. Al entregar, la plata entra a su libreta sin confirmar nada después. Desde la hoja de una persona con su viaje abierto, «Darle más plata» abre la misma hoja con ella elegida.</li>
       <li><b>«Completar» pasa a «Registrar»</b>, y cada pendiente dice para qué: «Registrar la nota de venta de Puesto 214 · copia de la foto la serie, el número y el monto, para que la compra entre al Historial».</li>
-      <li><b>Cada fila dice qué hacer:</b> Registrar o Recibir. Los filtros quedan cortos (Todo, Compras, Gastos, Rondas) para quien quiere ver una sola cosa.</li>
+      <li><b>Cada fila dice qué hacer:</b> Registrar o Recibir. Los filtros quedan cortos (Todo, Compras, Gastos, Devoluciones) para quien quiere ver una sola cosa.</li>
       <li><b>Al costado, «Quién tiene plata»</b>, a la vista: el total y, por persona, cuánto tiene.</li>
       <li><b>La plata de cada persona, a un toque:</b> «Quién tiene plata» es solo el nombre y el monto. Al tocar a la persona se abre una hoja (<code>&lt;Modal&gt;</code> mediana, solo se lee: se cierra con la ×) que se lee como una libreta: <b>primero la respuesta</b> («Tiene que devolver S/ 180.00 · le dieron S/ 500.00 el 10 nov y gastó S/ 320.00», con su barra); después <b>qué hizo con la plata</b>, contado desde su lado (recibió, compró en…, gastó en…, devolvió), con <b>lo que le queda</b> tras cada movimiento; y al final <b>lo que falta para cerrar su cuenta</b>, cada cosa con su verbo («Registrar la nota de venta de Puesto 214», con una línea que dice para qué), que al tocarla abre ese pendiente en la cola. Sin estados de oficina ni signos sueltos: los viajes anteriores, a un toque, dicen si cuadraron.</li>
       <li><b>El detalle es el mismo cajón de las otras dos pestañas:</b> al confirmar pasa a lo siguiente de la cola, y una compra completada avisa que pasa al Historial.</li>
@@ -664,8 +702,20 @@
       <tr><td>Por pagar</td><td>Primera deuda a 375</td><td>1336 px</td><td><b>375 px</b></td></tr>
       <tr><td>Revisar compras</td><td>Pendientes a la vista sin tocar nada</td><td>2 de 7</td><td><b>todos (5: la plata ya no se confirma)</b></td></tr>
       <tr><td>Revisar compras</td><td>Primera cosa por revisar a 375</td><td>649 px</td><td><b>468 px</b></td></tr>
-      <tr><td>Las tres</td><td>Formas de abrir un detalle</td><td>3 (hoja al centro, panel al lado, hoja de pago)</td><td><b>1: el cajón lateral, con ↑ ↓</b></td></tr>
+      <tr><td>Historial</td><td>Primera compra en un portátil (1024 × 768 · 1280 × 800)</td><td>—</td><td><b>523 · 563 px</b> (la primera versión de la propuesta: 886 · 749)</td></tr>
+      <tr><td>Por pagar</td><td>Primera deuda en un portátil (1024 × 768 · 1280 × 800)</td><td>—</td><td><b>477 · 517 px</b> (la primera versión: 927 · 722)</td></tr>
+      <tr><td>Las tres</td><td>Formas de abrir un detalle</td><td>3 (hoja al centro, panel al lado, hoja de pago)</td><td><b>2: el cajón lateral para ver (con ↑ ↓) y una hoja para lo que mueve plata (pagar, darle plata)</b></td></tr>
     </table>
+  </section>
+  <section>
+    <h2>La prueba ciega y lo que cambió (Formidable, 2026-11-13)</h2>
+    <p>Tres agentes sin contexto, uno por pestaña, recorrieron la propuesta sin estos textos. Informe completo: <code>docs/formidable/compras-historial-maqueta.md</code>.</p>
+    <ul>
+      <li><b>Historial se entendió al primer toque.</b> Revisar compras no se encontró: la ciega buscó a Maribel en Historial (0 resultados) y llegó en el paso 5. En Por pagar, «Pagar» abría el detalle. En un portátil de 1024 px la lista quedaba bajo el borde.</li>
+      <li><b>1 · La lista a la vista en un portátil:</b> bajo 1380 px el resumen se pliega a una franja de una línea («Este mes · Por llegar · Por pagar», o «Debes · Ya vencido»), y lo demás se abre con «Ver todo».</li>
+      <li><b>2 · La plata de las compradoras se encuentra:</b> el buscador de Historial ofrece «Maribel · Tiene que devolver S/ 180.00 · Ver su cuenta»; cada nombre de «Quién tiene plata» dice «Ver su cuenta»; el viaje se nombra por sus fechas; «Entregar plata» pasa a «Darle plata».</li>
+      <li><b>3 · «Pagar» paga:</b> abre una hoja con cuánto le debes, qué compraste y si llegó (con «Revisa antes de pagar» si falta mercadería), cuánto pagas, de qué cuenta sale y quién paga. «Pagar juntos» se queda pegada abajo. La regla para pagar una compra que no llegó sigue siendo tuya: la hoja solo avisa.</li>
+    </ul>
   </section>
 </div>
 
@@ -831,7 +881,11 @@
       ${pestanas('historial', `<button class="btn sec">${ic(P.descargar)}Descargar el mes</button>`)}
 
       <div class="lb-cuerpo">
-      <aside class="lb-lado placa lb-ano" aria-label="Resumen de tus compras">
+      <aside class="lb-lado placa lb-ano plegable${st.resumen ? ' abierto' : ''}" aria-label="Resumen de tus compras">
+        <div class="lb-franja"><span class="fr-c"><small>Este mes</small><b class="serif-n">${soles(esteMes)}</b></span>
+          <a class="fr-c" href="#" data-hc="ir" title="Lleva a Inventario ▸ Recibir mercadería"><small>Por llegar</small><b>${porLlegar.length} compras</b></a>
+          <a class="fr-c" href="#" data-hc="tab" data-v="pagar" title="Lleva a la pestaña Por pagar"><small>Por pagar</small><b>${soles(sum(porPagar, (c) => como(c).saldo))} <span class="r">· ${vencidas.length} vencidas</span></b></a>
+          <button class="fr-ver" data-hc="resumen" aria-expanded="${!!st.resumen}">${st.resumen ? 'Ocultar' : 'Ver todo'}${ic(P.abajo, 'ic chev')}</button></div>
         <section class="lb-mes"><span class="vs">Comprado en noviembre</span><b class="serif-n">${soles(esteMes)}</b>
           <p>${dif >= 0 ? `<span class="sube">${soles(dif)} más</span>` : `<span>${soles(-dif)} menos</span>`} que al 13 de octubre (${soles(alaAltura)}).</p>
           <p class="tenue">IGV de las facturas del mes: ${soles(igvMes)}</p></section>
@@ -845,11 +899,12 @@
 
       <div class="lb-main">
       <div class="lb-herr">
-        <label class="pozo-b">${ic(P.buscar)}<input id="lb-q" placeholder="Marca, proveedor, prenda o número" value="${st.q.replace(/"/g, '&quot;')}" autocomplete="off">${st.q ? `<button class="borrar" data-hc="borrarq" aria-label="Borrar la búsqueda">${ic(P.x)}</button>` : '<kbd>/</kbd>'}</label>
+        <label class="pozo-b">${ic(P.buscar)}<input id="lb-q" placeholder="Marca, proveedor, prenda, número o compradora" value="${st.q.replace(/"/g, '&quot;')}" autocomplete="off">${st.q ? `<button class="borrar" data-hc="borrarq" aria-label="Borrar la búsqueda">${ic(P.x)}</button>` : '<kbd>/</kbd>'}</label>
         <button class="fp" data-hc="panel" aria-expanded="${st.panel}">${ic(P.filtros)}Filtros</button>
+        <span class="modo" role="group" aria-label="Ver la lista"><button data-hc="modo" data-v="compra" aria-pressed="${st.modo === 'compra'}">Por compra</button><button data-hc="modo" data-v="proveedor" aria-pressed="${st.modo === 'proveedor'}">Por proveedor</button></span>
       </div>
       <div class="lb-herr2"><span class="lb-pills" id="lb-pills"></span>
-        <span class="modo" role="group" aria-label="Ver la lista"><button data-hc="modo" data-v="compra" aria-pressed="${st.modo === 'compra'}">Por compra</button><button data-hc="modo" data-v="proveedor" aria-pressed="${st.modo === 'proveedor'}">Por proveedor</button></span></div>
+</div>
       ${st.panel ? `<div class="lb-filtros"><button class="fp">${ic(P.prov)}Proveedor ${ic(P.abajo)}</button><button class="fp">${ic(P.camion)}Tienda ${ic(P.abajo)}</button><button class="fp">Papel ${ic(P.abajo)}</button><button class="fp">Fechas ${ic(P.abajo)}</button>
         <p class="nota-f">Cuatro filtros en vez de ocho: «Pago», «Recepción», «Condición» y «Vencidas» ya los responden los tres estados. (En la maqueta no filtran.)</p></div>` : ''}
       <div class="lb-puestos" id="lb-puestos"></div>
@@ -867,6 +922,11 @@
       `<button class="fp" data-hc="filtro" data-v="${k}" aria-pressed="${st.filtro === k}">${st.filtro === k ? ic(P.check) : ''}${t}<span class="glb${k !== 'todas' && n[k] && st.filtro !== k ? ' pide' : ''}">${n[k]}</span></button>`).join('');
     $('#lb-puestos').innerHTML = st.mes ? `<button class="fp puesto" data-hc="mes" data-m="${st.mes}">${Mayus(nombreMes(st.mes))} 2026 ${ic(P.x)}</button>` : '';
     const caja = $('#lb-lista');
+    // Una compradora no es una compra, pero quien la busca aquí quiere su plata: se ofrece su cuenta encima de la lista.
+    const qq = sinTildes(st.q.trim()), gente = qq.length >= 2 ? Object.values(RONDAS).filter((r) => sinTildes(r.quien).includes(qq)) : [];
+    const deGente = gente.length ? `<div class="lb-gente"><h3>Compradoras</h3>${gente.map((r) => `<button class="lb-persona" data-hc="rq-persona" data-v="${r.quien}" aria-haspopup="dialog"><span class="ini" aria-hidden="true">${r.quien[0]}</span>
+      <span><b>${r.quien}</b><small>${r.cerrada ? `Tiene que devolver ${soles(r.entregado - r.gasto)}` : `Tiene ${soles(r.entregado - r.gasto)} y sigue comprando`}</small></span><span class="ver">Ver su cuenta ${ic(P.chev)}</span></button>`).join('')}</div>` : '';
+    if (!l.length && gente.length) { caja.innerHTML = deGente + `<div class="lb-pie"><span>No hay compras con «${st.q}»</span></div>`; return; }
     if (!l.length) {
       caja.innerHTML = `<div class="lb-vacio">${ic(P.lupax)}<h3>${st.q ? `No hay compras con «${st.q}»` : 'Nada en este filtro'}</h3><p>${st.q ? 'Prueba con la marca, el proveedor o el nombre de una prenda.' : 'Todo lo de este período llegó y está pagado.'}</p>
         <button class="btn sec" data-hc="limpiar">${st.q ? 'Borrar la búsqueda' : 'Ver todas'}</button></div>`;
@@ -875,7 +935,7 @@
     if (st.modo === 'proveedor') { caja.innerHTML = porProveedor(l); return; }
     const grupos = [];
     for (const c of l) { const m = mesDe(c.fecha); let g = grupos.find((x) => x.m === m); if (!g) grupos.push(g = { m, c: [] }); g.c.push(c); }
-    caja.innerHTML = `<div class="lb-col"><span>Fecha</span><span>Qué compraste y a quién</span><span>Cómo va</span><span>Total</span><span></span></div>` +
+    caja.innerHTML = deGente + `<div class="lb-col"><span>Fecha</span><span>Qué compraste y a quién</span><span>Cómo va</span><span>Total</span><span></span></div>` +
       grupos.map((g) => `<div class="lb-mesg"><h3>${Mayus(nombreMes(g.m))} ${g.m.slice(0, 4)}</h3><span>${g.c.length} ${g.c.length === 1 ? 'compra' : 'compras'} · <b class="num">${soles(g.c.reduce((s, c) => s + c.total, 0))}</b></span></div>` +
         g.c.map(fila).join('')).join('') +
       `<div class="lb-pie"><span>${l.length} ${l.length === 1 ? 'compra' : 'compras'}${st.filtro !== 'todas' || st.mes || st.q ? ` de ${COMPRAS.length}` : ''}</span><span>Toca una para ver su detalle · ↑ ↓ para pasar</span></div>`;
@@ -1021,7 +1081,7 @@
       </div>`;
   }
   const VERBO = { plata: (x) => `Confirmar ${soles(x.monto)}`, papel: () => 'Guardar', gasto: () => 'Pasar a gastos del viaje', cierre: (x) => `Recibir ${soles(x.monto)}` };
-  const QUE = { plata: 'Plata por confirmar', papel: 'Compra por registrar', gasto: 'Gasto por registrar', cierre: 'Ronda cerrada' };
+  const QUE = { plata: 'Plata por confirmar', papel: 'Compra por registrar', gasto: 'Gasto por registrar', cierre: 'Volvió del viaje' };
   const tituloRevisar = (tipo, x) => tipo === 'plata' ? x.quien : tipo === 'papel' ? x.titulo.split(' · ')[0] : tipo === 'gasto' ? 'Taxi a Gamarra' : `${x.quien} cerró su ronda`;
   const subRevisar = (tipo, x) => tipo === 'plata' ? `${x.titulo.split(' · ')[0]} · ${x.cuando}` : tipo === 'papel' ? `${x.titulo.split(' · ')[1]} · ${x.quien} · ${x.cuando}` : `${x.quien === undefined ? '' : x.quien + ' · '}${x.cuando}`;
   function cuerpoRevisar(tipo, x) {
@@ -1060,7 +1120,10 @@
     const venc = todas.filter((c) => como(c).vencida);
     $('#cont').innerHTML = `${cabecera()}${pestanas('pagar')}
       <div class="lb-cuerpo lado-abajo">
-      <aside class="lb-lado placa lb-ano pl-lado" aria-label="Lo que debes">
+      <aside class="lb-lado placa lb-ano pl-lado plegable${st.resumen ? ' abierto' : ''}" aria-label="Lo que debes">
+        <div class="lb-franja"><span class="fr-c"><small>Debes</small><b class="serif-n">${soles(sum(todas))}</b></span>
+          <span class="fr-c"><small>Ya vencido</small><b><span class="r" style="font-size:inherit">${soles(sum(venc))}</span></b></span>
+          <button class="fr-ver" data-hc="resumen" aria-expanded="${!!st.resumen}">${st.resumen ? 'Ocultar' : 'Ver cuándo vence y a quién'}${ic(P.abajo, 'ic chev')}</button></div>
         <section class="lb-mes"><span class="vs">Debes</span><b class="serif-n">${soles(sum(todas))}</b>
           <p><span class="rojo-t">${soles(sum(venc))} ya vencido</span> en ${venc.length} ${venc.length === 1 ? 'comprobante' : 'comprobantes'}.</p></section>
         <section><h3>Cuándo vence</h3>
@@ -1098,7 +1161,7 @@
       grupos.map(([t, x, c]) => `<div class="lb-mesg pl-g" style="${c ? `--c:${c}` : ''}"><h3>${t}</h3><span>${x.length} · <b class="num">${soles(sum(x))}</b></span></div>${x.map(filaPagar).join('')}`).join('') +
       `<div class="lb-pie"><span>${l.length} ${l.length === 1 ? 'comprobante' : 'comprobantes'} con saldo</span><span>Toca uno para ver su detalle · marca varios del mismo proveedor para pagarlos juntos</span></div>`;
     const m = COMPRAS.filter((c) => pp.marcadas.has(c.id)), provs = [...new Set(m.map((c) => c.prov))];
-    $('#pl-juntos').innerHTML = m.length ? `<div class="pp-juntos"><span><b>${soles(sum(m))}</b><small>${m.length} ${m.length === 1 ? 'comprobante' : 'comprobantes'} · ${provs.length > 1 ? 'de varios proveedores: se pagan por separado' : PROV[provs[0]].razon}</small></span><button class="btn" title="En la maqueta no se paga">${provs.length > 1 ? 'Pagar uno por uno' : 'Pagar juntos'}</button></div>` : '';
+    $('#pl-juntos').innerHTML = m.length ? `<div class="pp-juntos"><span><b>${soles(sum(m))}</b><small>${m.length} ${m.length === 1 ? 'comprobante' : 'comprobantes'} · ${provs.length > 1 ? 'de varios proveedores: se pagan por separado' : PROV[provs[0]].razon}</small></span>${provs.length > 1 ? '<button class="btn" title="Se pagan por separado: quita las de otro proveedor">Pagar uno por uno</button>' : `<button class="btn" data-hc="pago-juntos" aria-haspopup="dialog">Pagar juntos</button>`}</div>` : '';
   }
   function filaPagar(c) {
     const e = como(c), fr = frases(c);
@@ -1108,7 +1171,7 @@
         <span><span class="l1"><b>${c.marca || 'Sin marca'}</b> · ${c.razon}</span><span class="l2">${queCompraste(c)} · ${c.papel.toLowerCase()} ${c.num}</span></span></span>
       <span class="va">${trayecto(c)}<span class="ps">${fr.filter(([t]) => t !== 'ok').slice(0, 2).map(([t, x]) => `<p class="${t}">${x.replace(/ · S\/\u00a0[\d,.]+$/, '')}</p>`).join('')}</span></span>
       <span class="tot"><b class="serif-n">${soles(e.saldo)}</b><small>${c.pagado ? `pagaste ${soles(c.pagado)}` : `de ${soles(c.total)}`}</small></span>
-      <button class="btn sec pa" title="En la maqueta no se paga">Pagar</button></div>`;
+      <button class="btn sec pa" data-hc="pago-abrir" data-id="${c.id}" aria-haspopup="dialog">Pagar</button></div>`;
   }
 
   // ---------- REVISAR COMPRAS · PROPUESTA: una sola cola, por ronda, en el orden en que se revisa ----------
@@ -1117,7 +1180,7 @@
   const ICONO_TIPO = { plata: T.fondos, papel: T.facturas, gasto: T.gastos, cierre: P.caja };
   const HACER = { plata: 'Confirmar', papel: 'Registrar', gasto: 'Registrar', cierre: 'Recibir' };
   // Filtros cortos: el verbo («Confirmar», «Completar»…) lo dice cada fila.
-  const PILDORA = { plata: 'Plata', papel: 'Compras', gasto: 'Gastos', cierre: 'Rondas' };
+  const PILDORA = { plata: 'Plata', papel: 'Compras', gasto: 'Gastos', cierre: 'Devoluciones' };
   const rq = { tipo: null, abierto: null, persona: null, ant: false, entregar: null };
   const ordenRondas = Object.keys(RONDAS).sort((a, b) => Number(RONDAS[b].cerrada) - Number(RONDAS[a].cerrada));
   const cola = () => RV.filter((x) => !x.hecho && x.tipo !== 'plata' && (!rq.tipo || x.tipo === rq.tipo)).sort((a, b) => ordenRondas.indexOf(a.ronda) - ordenRondas.indexOf(b.ronda) || ORDEN_TIPO[a.tipo] - ORDEN_TIPO[b.tipo]);
@@ -1125,7 +1188,7 @@
   const espera = () => false; // sin confirmar la plata, nada espera a otra cosa
   function revisarMesa() {
     const pend = RV.filter((x) => !x.hecho && x.tipo !== 'plata');
-    $('#cont').innerHTML = `${cabecera()}${pestanas('revisar', `<button class="btn pri" data-hc="en-abrir" aria-haspopup="dialog">${ic('M12 5v14M5 12h14')}Entregar plata</button>`)}
+    $('#cont').innerHTML = `${cabecera()}${pestanas('revisar', `<button class="btn pri" data-hc="en-abrir" aria-haspopup="dialog">${ic('M12 5v14M5 12h14')}Darle plata</button>`)}
       <div class="lb-cuerpo lado-abajo">
       <aside class="lb-lado placa lb-ano rq-lado" aria-label="Quién tiene plata"><section id="rq-quien"></section>
       </aside>
@@ -1141,14 +1204,15 @@
   function ladoRevisar() {
     const personas = Object.entries(RONDAS).map(([k, r]) => ({ k, r, tiene: r.entregado - r.gasto }));
     $('#rq-quien').innerHTML = `<h3 class="rq-titulo"><span>Quién tiene plata</span><b class="num">${soles(personas.reduce((s, x) => s + x.tiene, 0))}</b></h3>
-      <div class="rq-quien">${personas.map(({ r, tiene }) => `<button class="rq-pb" data-hc="rq-persona" data-v="${r.quien}" aria-haspopup="dialog" title="Ver los movimientos de ${r.quien}"><span class="ini" aria-hidden="true">${r.quien[0]}</span><b>${r.quien}</b><b class="num">${soles(tiene)}</b>${ic(P.chev, 'ic chev')}</button>`).join('')}</div>`;
+      <div class="rq-quien">${personas.map(({ r, tiene }) => `<button class="rq-pb" data-hc="rq-persona" data-v="${r.quien}" aria-haspopup="dialog" title="Ver los movimientos de ${r.quien}"><span class="ini" aria-hidden="true">${r.quien[0]}</span><span class="tx"><b>${r.quien}</b><small>Ver su cuenta</small></span><b class="num">${soles(tiene)}</b>${ic(P.chev, 'ic chev')}</button>`).join('')}</div>`;
   }
   // ---------- La hoja «La plata de Rosa»: lo que le dieron y lo que hizo con eso ----------
   // La hoja se lee como una libreta: primero la respuesta («Tiene que devolver S/ 180»), después qué pasó con la plata, con lo que le
   // queda tras cada movimiento, y al final lo que falta para cerrar su cuenta, cada cosa con su verbo y un toque que lleva a hacerla.
   function modalPersona() {
-    const el = $('#modal'), quien = rq.persona, abierto = !!(quien || rq.entregar);
+    const el = $('#modal'), quien = rq.persona, abierto = !!(quien || rq.entregar || pg);
     el.classList.toggle('abierto', abierto); el.setAttribute('aria-hidden', String(!abierto));
+    if (pg) { hojaPago(); return; }
     if (rq.entregar) { hojaEntregar(); return; }
     if (!quien) return;
     const [k, r] = Object.entries(RONDAS).find(([, x]) => x.quien === quien), tiene = r.entregado - r.gasto;
@@ -1209,7 +1273,7 @@
       <button class="cj-x" data-hc="mdl-cerrar" aria-label="Cerrar">${ic(P.x)}</button></header>`;
     if (e.listo) {
       hoja.innerHTML = `${cab('Listo', 'Plata entregada')}<div class="en-listo"><span class="c">${ic(P.check)}</span>
-        <b>Le entregaste ${soles(e.monto)} a ${e.quien}</b>
+        <b>Le diste ${soles(e.monto)} a ${e.quien}</b>
         <p>Salió de ${c[1]} (${MEDIO[e.medio].toLowerCase()}). ${r.cerrada ? 'Empieza un viaje nuevo.' : 'Ya está en su libreta'}: no hay que confirmarla después.</p></div>
         <div class="en-pie">${r.cerrada ? '' : `<button class="btn sec" data-hc="en-ver">Ver la plata de ${e.quien}</button>`}<button class="btn pri" data-hc="mdl-cerrar">Listo</button></div>`;
       return;
@@ -1219,14 +1283,14 @@
       <span class="tx"><b>${x.quien}</b><small>${x.cerrada ? 'Su viaje cerró: empieza uno nuevo' : `Tiene ${soles(x.entregado - x.gasto)} · se suma a su viaje`}</small></span><span class="ok" aria-hidden="true"></span></button>`).join('');
     const cuentas = e.medio ? CUENTAS[e.medio].map(([id, n, hay]) => `<button class="en-op" data-hc="en-cuenta" data-v="${id}" aria-pressed="${e.cuenta === id}">
       <span class="tx"><b>${n}</b><small>Hay ${soles(hay)}${e.monto > hay ? ' · <em>no alcanza</em>' : ''}</small></span><span class="ok" aria-hidden="true"></span></button>`).join('') : '';
-    hoja.innerHTML = `${cab('Entregar plata', 'Para que una compradora salga a comprar')}
+    hoja.innerHTML = `${cab('Darle plata', 'Para que una compradora salga a comprar')}
       <div class="en-campo" data-campo="quien"><span class="t">¿A quién?</span><div class="en-ops">${personas}</div>${err('quien', 'Elige a quién le das la plata.')}</div>
       <div class="en-campo" data-campo="monto"><label class="t" for="en-monto">¿Cuánto?</label><div class="en-monto"><span>S/</span><input id="en-monto" inputmode="decimal" autocomplete="off" placeholder="0.00" value="${e.texto || ''}"></div>${err('monto', 'Escribe cuánto le das.')}</div>
       <div class="en-campo" data-campo="medio"><span class="t">¿Cómo se la das?</span><div class="en-medios">${Object.entries(MEDIO).map(([k, n]) => `<button class="fp" data-hc="en-medio" data-v="${k}" aria-pressed="${e.medio === k}">${e.medio === k ? ic(P.check) : ''}${n}</button>`).join('')}</div>${err('medio', 'Elige si es en efectivo, por Yape o por transferencia.')}</div>
       <div class="en-campo" data-campo="cuenta"><span class="t">¿De qué cuenta sale?</span>${e.medio ? `<div class="en-ops">${cuentas}</div>` : '<p class="en-vacio">Elige primero cómo se la das.</p>'}${err('cuenta', 'Elige de qué cuenta sale.')}</div>
       <div class="en-campo"><span class="t">Quién la entrega</span><div class="rv-campo"><div>Lucía Ramos${ic(P.abajo)}</div></div></div>
       ${!Object.values(f).some(Boolean) ? `<p class="en-res">Sale de <b>${c[1]}</b> y pasa a <b>${e.quien}</b>. No hay que confirmarla después.</p>` : ''}
-      <div class="en-pie"><button class="btn sec" data-hc="mdl-cerrar">Cancelar</button><button class="btn pri" data-hc="en-ok">${e.monto > 0 ? `Entregar ${soles(e.monto)}` : 'Entregar'}</button></div>`;
+      <div class="en-pie"><button class="btn sec" data-hc="mdl-cerrar">Cancelar</button><button class="btn pri" data-hc="en-ok">${e.monto > 0 ? `Darle ${soles(e.monto)}` : 'Darle la plata'}</button></div>`;
   }
   function entregar() {
     const e = rq.entregar, f = faltaEntregar(e);
@@ -1236,12 +1300,62 @@
     if (!r.cerrada) { r.entregado += e.monto; MOVS.push({ quien: e.quien, ronda: k, fecha: '2026-11-13', tipo: 'entrega', concepto: 'Le entregaron plata', detalle: `${MEDIO[e.medio]} · de ${cuentaDe(e.cuenta)[1]}`, monto: e.monto }); }
     e.listo = true; hojaEntregar(); if ($('#rq-quien')) ladoRevisar(); $('#modal .btn.pri')?.focus();
   }
+  // «ronda RC-000030» es un código: en la lista el viaje se nombra por sus fechas; el código queda en el detalle.
+  const sinDia = (t) => t.replace(/^\S+ (?=\d)/, '');
+  const viaje = (r) => { const a = sinDia(r.desde); if (!r.cerrada) return `viaje desde el ${a}`; const [da, ma] = a.split(' '), [db, mb] = r.cerro.split(' ');
+    return ma === mb ? `viaje del ${da} al ${db} ${mb}` : `viaje del ${a} al ${r.cerro}`; };
+  // ---------- La hoja de pago (Formidable, cambio 3): cuánto, a quién, de qué cuenta y si la mercadería llegó ----------
+  // Es dinero: en el ERP la regla para pagar una compra que no llegó la decide Felipe. La maqueta solo avisa, no frena.
+  let pg = null;
+  const CUENTAS_PAGO = [['bcp', 'BCP Soles', 18450], ['ibk', 'Interbank Soles', 6200]];
+  function hojaPago() {
+    const hoja = $('#modal .mdl-hoja'), cs = pg.ids.map((id) => COMPRAS.find((c) => c.id === id)), c0 = cs[0], prov = c0.marca || c0.razon;
+    const debe = cs.reduce((s, c) => s + como(c).saldo, 0), cuentas = [...CUENTAS_PAGO, [`caja-${c0.tienda}`, `Caja de ${c0.tienda}`, 1310]];
+    const cuenta = cuentas.find((x) => x[0] === pg.cuenta);
+    const cab = (t, s) => `<header class="mdl-cab"><span class="ini en-ic" aria-hidden="true">${ic(P.pagar)}</span><span class="tx"><h2 id="mdl-titulo">${t}</h2><small>${s}</small></span>
+      <button class="cj-x" data-hc="mdl-cerrar" aria-label="Cerrar">${ic(P.x)}</button></header>`;
+    if (pg.listo) {
+      hoja.innerHTML = `${cab('Listo', 'Pago registrado')}<div class="en-listo"><span class="c">${ic(P.check)}</span><b>Pagaste ${soles(pg.monto)} a ${c0.razon}</b>
+        <p>Salió de ${cuenta[1]}. ${pg.queda > 0 ? `Todavía le debes ${soles(pg.queda)} de ${cs.length > 1 ? 'esas compras' : 'esa compra'}.` : `${cs.length > 1 ? 'Esas compras quedan pagadas' : 'Esa compra queda pagada'}.`}</p></div>
+        <div class="en-pie"><button class="btn pri" data-hc="mdl-cerrar">Listo</button></div>`;
+      return;
+    }
+    const falta = { monto: !(pg.monto > 0) || pg.monto > debe + 0.001, cuenta: !pg.cuenta };
+    const err = (k, t) => pg.intento && falta[k] ? `<small class="en-err">${t}</small>` : '';
+    const sinLlegar = cs.filter((c) => como(c).falta > 0);
+    hoja.innerHTML = `${cab(`Pagar a ${c0.razon}`, `${c0.marca ? `Marca ${c0.marca} · ` : ''}${cs.length > 1 ? `${cs.length} comprobantes` : `${c0.papel.toLowerCase()} ${c0.num}`}`)}
+      <section class="vd"><span class="vs">Le debes</span><b class="serif-n">${soles(debe)}</b><p>${cs.map((c) => { const e = como(c); return e.vencida ? `Venció hace ${-e.venceEn} días` : `Vence el ${corta(c.vence)}`; })[0]}${cs.length > 1 ? ' la más antigua' : ''}.</p></section>
+      <div class="pg-de">${cs.map((c) => { const e = como(c); return `<div class="pg-c"><b>${queCompraste(c)}</b><span class="num">${soles(e.saldo)}</span>
+        <span class="ll${e.falta ? ' no' : ''}">${ic(e.falta ? P.caja : P.check)}${e.falta === 0 ? `Llegó todo: ${c.uds} prendas a ${c.tienda}` : c.rec ? `Llegaron ${c.rec} de ${c.uds}${e.atraso ? ` · ${e.atraso} días tarde` : ''}` : `No llegó nada: 0 de ${c.uds}${e.atraso ? ` · ${e.atraso} días tarde` : ''}`}</span></div>`; }).join('')}</div>
+      ${sinLlegar.length ? `<p class="pg-aviso"><b>Revisa antes de pagar:</b> todavía faltan ${sinLlegar.reduce((s, c) => s + como(c).falta, 0)} prendas de ${sinLlegar.length > 1 ? 'estas compras' : 'esta compra'}.</p>` : ''}
+      <div class="en-campo" data-campo="monto"><label class="t" for="pg-monto">¿Cuánto pagas?</label><div class="en-monto"><span>S/</span><input id="pg-monto" inputmode="decimal" autocomplete="off" value="${pg.texto}" ${cs.length > 1 ? 'readonly' : ''}></div>
+        ${err('monto', pg.monto > debe ? `No puedes pagar más de lo que debes (${soles(debe)}).` : 'Escribe cuánto pagas.')}</div>
+      <div class="en-campo" data-campo="cuenta"><span class="t">¿De qué cuenta sale?</span><div class="en-ops">${cuentas.map(([id, n, hay]) => `<button class="en-op" data-hc="pago-cuenta" data-v="${id}" aria-pressed="${pg.cuenta === id}">
+        <span class="tx"><b>${n}</b><small>Hay ${soles(hay)}${pg.monto > hay ? ' · <em>no alcanza</em>' : ''}</small></span><span class="ok" aria-hidden="true"></span></button>`).join('')}</div>${err('cuenta', 'Elige de qué cuenta sale.')}</div>
+      <div class="en-campo"><span class="t">Quién paga</span><div class="rv-campo"><div>Lucía Ramos${ic(P.abajo)}</div></div></div>
+      ${!falta.monto && !falta.cuenta ? `<p class="en-res">Sale de <b>${cuenta[1]}</b> y va a <b>${c0.razon}</b>.${pg.monto < debe ? ` Quedarán ${soles(debe - pg.monto)} por pagar.` : ''}</p>` : ''}
+      <div class="en-pie"><button class="btn sec" data-hc="mdl-cerrar">Cancelar</button><button class="btn pri" data-hc="pago-ok">${pg.monto > 0 ? `Pagar ${soles(pg.monto)}` : 'Pagar'}</button></div>`;
+  }
+  function abrirPago(ids) {
+    const debe = ids.reduce((s, id) => s + como(COMPRAS.find((c) => c.id === id)).saldo, 0);
+    rq.persona = null; rq.entregar = null; pg = { ids, monto: r2(debe), texto: debe.toFixed(2), cuenta: null, intento: false, listo: false };
+    modalPersona(); $('#modal .mdl-hoja').scrollTop = 0; $('#pg-monto')?.focus();
+  }
+  function pagar() {
+    const cs = pg.ids.map((id) => COMPRAS.find((c) => c.id === id)), debe = cs.reduce((s, c) => s + como(c).saldo, 0);
+    if (!(pg.monto > 0) || pg.monto > debe + 0.001 || !pg.cuenta) { pg.intento = true; hojaPago(); return; }
+    // El pago va a la deuda más antigua primero.
+    let resto = pg.monto; cs.sort((a, b) => a.fecha.localeCompare(b.fecha)).forEach((c) => { const p = Math.min(resto, como(c).saldo); c.pagado = r2(c.pagado + p); resto = r2(resto - p); });
+    pg.queda = r2(debe - pg.monto); pg.ids.forEach((id) => pp.marcadas.delete(id)); pg.listo = true;
+    st.abierta = null; cajon(); if (st.tab === 'pagar' && estado.vista !== 'ahora') { const y = $('#cont').scrollTop; porPagarLibro(); $('#cont').scrollTop = y; }
+    hojaPago(); $('#modal .btn.pri')?.focus();
+  }
   function listaRevisar() {
     const l = cola();
-    if (!l.length) { $('#rq-lista').innerHTML = `<div class="lb-vacio">${ic(P.check)}<h3>Todo al día</h3><p>Cuando una compradora anote algo, aparece aquí, en su ronda.</p></div>`; return; }
+    if (!l.length) { $('#rq-lista').innerHTML = `<div class="lb-vacio">${ic(P.check)}<h3>Todo al día</h3><p>Cuando una compradora anote algo, aparece aquí, en su viaje.</p></div>`; return; }
     const porRonda = ordenRondas.map((k) => [k, l.filter((x) => x.ronda === k)]).filter(([, x]) => x.length);
     $('#rq-lista').innerHTML = porRonda.map(([k, x]) => { const r = RONDAS[k];
-      return `<div class="rq-g"><span class="ini" aria-hidden="true">${r.quien[0]}</span><span class="tx"><b>${r.quien} · ronda ${k}</b><small>${r.cerrada ? `Cerró el ${r.cerro}` : `Abierta desde el ${r.desde}`} · ${r.sede} · le dieron ${soles(r.entregado)}</small></span>
+      return `<div class="rq-g"><span class="ini" aria-hidden="true">${r.quien[0]}</span><span class="tx"><b>${r.quien} · ${viaje(r)}</b><small>${r.cerrada ? 'Ya volvió' : 'Sigue comprando'} · ${r.sede} · le dieron ${soles(r.entregado)}</small></span>
         <span class="der">${x.length} por revisar</span></div>` + x.map((y, i) => filaRevisar(y, i + 1)).join(''); }).join('') +
       `<div class="lb-pie"><span>${l.length} por revisar</span><span>Se revisa en orden: primero lo que compró, después los gastos y al final lo que devuelve</span></div>`;
   }
@@ -1333,7 +1447,7 @@
       </div>
       <footer class="cj-pie"><span class="nav"><button data-hc="nav" data-d="-1" aria-label="Compra anterior" ${i <= 0 ? 'disabled' : ''}>${ic(P.arriba)}</button><button data-hc="nav" data-d="1" aria-label="Compra siguiente" ${i >= l.length - 1 ? 'disabled' : ''}>${ic(P.abajo)}</button><span class="num">${i + 1} de ${l.length}</span></span>
         <button class="cj-mas" title="Más: Reasignar entre tiendas, Cerrar con faltante, Anular" aria-label="Más acciones">${ic(P.mas)}</button>
-        ${st.tab === 'pagar' ? `<button class="btn pri" title="En la maqueta no se paga">Pagar ${soles(e.saldo)}</button>` : `${e.saldo > 0 ? `<button class="btn ${e.falta > 0 ? 'sec' : 'pri'}" data-hc="a-pagar" title="Lleva a Por pagar, con esta compra marcada">Pagar</button>` : ''}${e.falta > 0 ? `<button class="btn pri">Recibir lo que falta</button>` : ''}`}${!e.saldo && !e.falta ? '<button class="btn sec" data-hc="cerrar">Listo</button>' : ''}</footer>`;
+        ${st.tab === 'pagar' ? `<button class="btn pri" data-hc="pago-abrir" data-id="${c.id}" aria-haspopup="dialog">Pagar ${soles(e.saldo)}</button>` : `${e.saldo > 0 ? `<button class="btn ${e.falta > 0 ? 'sec' : 'pri'}" data-hc="a-pagar" title="Lleva a Por pagar, con esta compra marcada">Pagar</button>` : ''}${e.falta > 0 ? `<button class="btn pri">Recibir lo que falta</button>` : ''}`}${!e.saldo && !e.falta ? '<button class="btn sec" data-hc="cerrar">Listo</button>' : ''}</footer>`;
   }
 
   // ---------- los clics y las teclas ----------
@@ -1352,7 +1466,7 @@
     if (k === 'abrir') { st.abierta = Number(a.dataset.id); cajon(); }
     if (k === 'cerrar') { st.abierta = null; cajon(); }
     if (k === 'nav') mover(Number(a.dataset.d));
-    if (k === 'tab') { st.tab = a.dataset.v; st.abierta = null; rq.abierto = null; rq.persona = null; rq.entregar = null; modalPersona(); pp.resaltar = null; $('#cont').scrollTop = 0; pantalla(); cajon(); }
+    if (k === 'tab') { st.tab = a.dataset.v; st.abierta = null; rq.abierto = null; rq.persona = null; rq.entregar = null; pg = null; modalPersona(); pp.resaltar = null; $('#cont').scrollTop = 0; pantalla(); cajon(); }
     if (k === 'a-pagar') { st.tab = 'pagar'; pp.resaltar = st.abierta; if (estado.vista === 'ahora') st.abierta = null; $('#cont').scrollTop = 0; pantalla(); cajon(); }
     if (k === 'pp-venc') { pp.soloVencidas = !pp.soloVencidas; porPagar(); }
     if (k === 'pp-agr') { pp.agrupar = a.dataset.v; porPagar(); }
@@ -1366,13 +1480,19 @@
     if (k === 'rq-cerrar') { rq.abierto = null; cajon(); }
     if (k === 'rq-persona') { rq.persona = a.dataset.v; rq.ant = false; modalPersona(); $('.mdl-hoja .cj-x').focus(); }
     if (k === 'rq-ant') { rq.ant = !rq.ant; modalPersona(); }
-    if (k === 'mdl-ir') { rq.persona = null; modalPersona(); rq.tipo = null; rq.abierto = a.dataset.id; revisarMesa(); cajon(); }
-    if (k === 'mdl-cerrar') { const v = rq.persona; rq.persona = null; rq.entregar = null; modalPersona(); $(`.rq-pb[data-v="${v}"]`)?.focus(); }
+    if (k === 'mdl-ir') { rq.persona = null; modalPersona(); st.tab = 'revisar'; st.abierta = null; rq.tipo = null; rq.abierto = a.dataset.id; $('#cont').scrollTop = 0; revisarMesa(); cajon(); }
+    if (k === 'mdl-cerrar') { const v = rq.persona; rq.persona = null; rq.entregar = null; pg = null; modalPersona(); $(`.rq-pb[data-v="${v}"]`)?.focus(); }
     if (k === 'en-abrir') { rq.persona = null; rq.entregar = { quien: a.dataset.v || null, monto: 0, texto: '', medio: null, cuenta: null, intento: false, listo: false }; modalPersona(); $('#modal .mdl-hoja').scrollTop = 0; (a.dataset.v ? $('#en-monto') : $('#modal .en-op'))?.focus(); }
     if (k === 'en-quien') { const e = rq.entregar; e.quien = a.dataset.v; if (e.medio === 'efectivo') e.cuenta = cuentaSugerida(e); hojaEntregar(); $(`#modal [data-hc="en-quien"][data-v="${e.quien}"]`)?.focus(); }
     if (k === 'en-medio') { const e = rq.entregar; e.medio = a.dataset.v; e.cuenta = cuentaSugerida(e); hojaEntregar(); $(`#modal [data-hc="en-medio"][data-v="${e.medio}"]`)?.focus(); }
     if (k === 'en-cuenta') { rq.entregar.cuenta = a.dataset.v; hojaEntregar(); $(`#modal [data-hc="en-cuenta"][data-v="${a.dataset.v}"]`)?.focus(); }
     if (k === 'en-ok') entregar();
+    if (k === 'resumen') { st.resumen = !st.resumen; const as = a.closest('aside'); as.classList.toggle('abierto', st.resumen); a.setAttribute('aria-expanded', String(st.resumen));
+      a.firstChild.textContent = st.resumen ? 'Ocultar' : (as.classList.contains('pl-lado') ? 'Ver cuándo vence y a quién' : 'Ver todo'); }
+    if (k === 'pago-abrir') { ev.stopPropagation(); abrirPago([Number(a.dataset.id)]); }
+    if (k === 'pago-juntos') abrirPago([...pp.marcadas]);
+    if (k === 'pago-cuenta') { pg.cuenta = a.dataset.v; hojaPago(); $(`#modal [data-hc="pago-cuenta"][data-v="${a.dataset.v}"]`)?.focus(); }
+    if (k === 'pago-ok') pagar();
     if (k === 'en-ver') { rq.persona = rq.entregar.quien; rq.entregar = null; rq.ant = false; modalPersona(); $('#modal .cj-x').focus(); }
     if (k === 'rq-nav' || k === 'rq-luego') moverRevisar(k === 'rq-nav' ? Number(a.dataset.d) : 1);
     if (k === 'rq-hecho') { const l = cola(), i = l.findIndex((x) => x.id === rq.abierto); RV.find((x) => x.id === rq.abierto).hecho = true; const n = cola(); rq.abierto = (n[i] || n[i - 1])?.id || null; revisarMesa(); cajon(); }
@@ -1398,13 +1518,16 @@
   }
   // Lo que se escribe en «¿Cuánto?» se lee al vuelo: el botón dice el monto y cada cuenta dice si alcanza.
   $('#disp').addEventListener('input', (ev) => {
+    if (ev.target.id === 'pg-monto') { const pos = ev.target.selectionStart; pg.texto = ev.target.value; pg.monto = Number(pg.texto.replace(/,/g, '.').replace(/[^\d.]/g, '')) || 0;
+      hojaPago(); const i = $('#pg-monto'); i.focus(); i.setSelectionRange(pos, pos); return; }
     if (ev.target.id !== 'en-monto') return;
     const e = rq.entregar, pos = ev.target.selectionStart; e.texto = ev.target.value; e.monto = Number(e.texto.replace(/,/g, '.').replace(/[^\d.]/g, '')) || 0;
     hojaEntregar(); const i = $('#en-monto'); i.focus(); i.setSelectionRange(pos, pos);
   });
   document.addEventListener('keydown', (ev) => {
-    if (ev.key === 'Escape' && (rq.persona || rq.entregar)) { const v = rq.persona; rq.persona = null; rq.entregar = null; modalPersona(); $(`.rq-pb[data-v="${v}"]`)?.focus(); return; }
+    if (ev.key === 'Escape' && (rq.persona || rq.entregar || pg)) { const v = rq.persona; rq.persona = null; rq.entregar = null; pg = null; modalPersona(); $(`.rq-pb[data-v="${v}"]`)?.focus(); return; }
     if (ev.key === 'Enter' && ev.target.id === 'en-monto') { ev.preventDefault(); entregar(); return; }
+    if (ev.key === 'Enter' && ev.target.id === 'pg-monto') { ev.preventDefault(); pagar(); return; }
     if (estado.vista === 'ahora') return;
     const enCampo = ev.target instanceof Element && ev.target.matches('input,textarea');
     if (st.tab === 'revisar') {
@@ -1420,7 +1543,7 @@
   // Cambiar entre «Como ahora» y «Propuesta» se queda en la misma pestaña: así se compara cada una.
   // El menú abierto en Compras ▸ Historial de compras.
   activa = 'compras.comprobantes'; abiertos.clear(); abiertos.add('compras');
-  Marco.iniciar({ estado: { vista: 'propuesta' }, alPintar: () => { st.abierta = null; rq.abierto = null; rq.persona = null; rq.entregar = null; $('#cont').scrollTop = 0; pantalla(); cajon(); modalPersona(); } });
+  Marco.iniciar({ estado: { vista: 'propuesta' }, alPintar: () => { st.abierta = null; rq.abierto = null; rq.persona = null; rq.entregar = null; pg = null; $('#cont').scrollTop = 0; pantalla(); cajon(); modalPersona(); } });
 })();
 </script>
 </body>
