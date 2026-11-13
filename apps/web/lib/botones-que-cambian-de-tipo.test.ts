@@ -21,41 +21,52 @@ const CARPETAS = ["app", "components"];
 
 type Hallazgo = { archivo: string; linea: number };
 
+// Por qué un filtro de texto antes del árbol (2026-11-13): parsear los ~1400 .tsx con TypeScript cuesta ~3 s y, con la suite completa en
+// paralelo, pasaba los 5 s de fábrica. Solo ~26 archivos tienen un «?» y un «:» seguidos de un botón, y ningún ternario entre dos botones puede
+// escaparse: entre el «?» (o el «:») y el `<Boton` solo caben espacios, paréntesis y comentarios, que el patrón salta.
+const ENTRE = String.raw`(?:[\s(]|\/\/[^\n]*|\/\*[\s\S]*?\*\/)*`;
+const RAMA_SI = new RegExp(String.raw`\?${ENTRE}<(?:Boton|button)\b`);
+const RAMA_NO = new RegExp(String.raw`:${ENTRE}<(?:Boton|button)\b`);
+
+/** ¿Puede este archivo tener un ternario entre dos botones? Si dice que no, seguro que no; si dice que sí, lo decide el árbol. */
+export const puedeTenerTernarioDeBotones = (fuente: string) => RAMA_SI.test(fuente) && RAMA_NO.test(fuente);
+
 /** El elemento JSX de una rama del ternario (quitando paréntesis), si es un `Boton` o un `button`. */
-function botonDe(nodo: ts.Expression): ts.JsxOpeningElement | ts.JsxSelfClosingElement | null {
+function botonDe(nodo: ts.Expression, sf: ts.SourceFile): ts.JsxOpeningElement | ts.JsxSelfClosingElement | null {
   let n: ts.Expression = nodo;
   while (ts.isParenthesizedExpression(n)) n = n.expression;
   const apertura = ts.isJsxElement(n) ? n.openingElement : ts.isJsxSelfClosingElement(n) ? n : null;
   if (!apertura) return null;
-  const tag = apertura.tagName.getText();
+  const tag = apertura.tagName.getText(sf);
   return tag === "Boton" || tag === "button" ? apertura : null;
 }
 
 /** «submit», «button», `null` si el tipo es una expresión. Sin `type`, envía (el de fábrica de HTML dentro de un formulario). */
-function tipoDe(boton: ts.JsxOpeningElement | ts.JsxSelfClosingElement): string | null {
-  const attr = boton.attributes.properties.find((p) => ts.isJsxAttribute(p) && p.name.getText() === "type");
+function tipoDe(boton: ts.JsxOpeningElement | ts.JsxSelfClosingElement, sf: ts.SourceFile): string | null {
+  const attr = boton.attributes.properties.find((p) => ts.isJsxAttribute(p) && p.name.getText(sf) === "type");
   if (!attr) return "submit";
   if (!ts.isJsxAttribute(attr) || !attr.initializer) return null;
   return ts.isStringLiteral(attr.initializer) ? attr.initializer.text : null;
 }
 
-const tieneKey = (boton: ts.JsxOpeningElement | ts.JsxSelfClosingElement) =>
-  boton.attributes.properties.some((p) => ts.isJsxAttribute(p) && p.name.getText() === "key");
+const tieneKey = (boton: ts.JsxOpeningElement | ts.JsxSelfClosingElement, sf: ts.SourceFile) =>
+  boton.attributes.properties.some((p) => ts.isJsxAttribute(p) && p.name.getText(sf) === "key");
 
 /** Las líneas donde un ternario cambia un botón de enviar a no enviar (o al revés) sin `key` en las dos ramas. */
 export function botonesQueCambianDeTipo(ruta: string, fuente: string): number[] {
-  if (!fuente.includes("?")) return [];
-  const archivo = ts.createSourceFile(ruta, fuente, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
+  if (!puedeTenerTernarioDeBotones(fuente)) return [];
+  // Sin punteros al padre (`false`): la mitad del costo de parsear. Por eso cada `getText` recibe el archivo.
+  const archivo = ts.createSourceFile(ruta, fuente, ts.ScriptTarget.Latest, false, ts.ScriptKind.TSX);
   const lineas: number[] = [];
   const visitar = (nodo: ts.Node) => {
     if (ts.isConditionalExpression(nodo)) {
-      const a = botonDe(nodo.whenTrue);
-      const b = botonDe(nodo.whenFalse);
+      const a = botonDe(nodo.whenTrue, archivo);
+      const b = botonDe(nodo.whenFalse, archivo);
       if (a && b) {
-        const ta = tipoDe(a);
-        const tb = tipoDe(b);
+        const ta = tipoDe(a, archivo);
+        const tb = tipoDe(b, archivo);
         const cambia = ta !== null && tb !== null && (ta === "submit") !== (tb === "submit");
-        if (cambia && !(tieneKey(a) && tieneKey(b))) lineas.push(archivo.getLineAndCharacterOfPosition(nodo.getStart(archivo)).line + 1);
+        if (cambia && !(tieneKey(a, archivo) && tieneKey(b, archivo))) lineas.push(archivo.getLineAndCharacterOfPosition(nodo.getStart(archivo)).line + 1);
       }
     }
     ts.forEachChild(nodo, visitar);
@@ -85,6 +96,12 @@ describe("cómo se reconoce un botón que cambia de tipo", () => {
     expect(botonesQueCambianDeTipo("b.tsx", `const B = (u) => (u ? <button>Ok</button> : <button type="button">No</button>);`)).toEqual([1]);
     expect(botonesQueCambianDeTipo("c.tsx", `const C = (u) => (u ? <Boton type="button">A</Boton> : <Boton type="button">B</Boton>);`)).toEqual([]);
   });
+  it("el filtro de texto no se salta un ternario con un comentario entre la rama y el botón", () => {
+    const conComentario = `const E = (u) => (\n  u ? ( // el que crea\n    <Boton type="submit">A</Boton>\n  ) : (\n    /* el que sigue */\n    // otra línea\n    <button type="button">B</button>\n  )\n);`;
+    expect(puedeTenerTernarioDeBotones(conComentario)).toBe(true);
+    expect(botonesQueCambianDeTipo("e.tsx", conComentario)).toEqual([2]);
+    expect(puedeTenerTernarioDeBotones(`const F = (u) => (u ? <Chip /> : <Boton type="button">B</Boton>);`)).toBe(false);
+  });
   it("un `type` que es una expresión no se adivina", () => {
     expect(botonesQueCambianDeTipo("d.tsx", `const D = (u, t) => (u ? <Boton type={t}>A</Boton> : <Boton type="button">B</Boton>);`)).toEqual([]);
   });
@@ -102,7 +119,7 @@ describe("en el ERP, ningún botón se vuelve el de enviar debajo del clic", () 
       hallazgos.map((h) => `${h.archivo}:${h.linea}`),
       "Ponle una `key` distinta a cada rama (`key=\"crear\"`, `key=\"seguir\"`): sin ella React reusa el mismo <button> y, si el clic cambia la rama, el navegador envía el formulario.",
     ).toEqual([]);
-    // Recorre todos los .tsx del ERP: sola tarda ~1,5 s, pero con la suite completa en paralelo (el gancho de commit) pasaba los 5 s de
-    // fábrica y caía por tiempo, no por un hallazgo (2026-11-13).
-  }, 30_000);
+    // Su trabajo propio es ~0,2 s (filtrar ~1400 archivos y parsear ~30). El límite de 15 s no tapa lentitud de la prueba: cubre la espera de
+    // CPU cuando corre con las ~900 de la web en una máquina ocupada, donde se midió hasta 4,5 s (2026-11-13; antes del filtro, 8 a 9 s).
+  }, 15_000);
 });
