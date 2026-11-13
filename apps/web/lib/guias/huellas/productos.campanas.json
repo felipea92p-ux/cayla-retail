@@ -2,7 +2,7 @@
   "guia": "productos.campanas",
   "ruta": "/productos/campanas",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 145,
+  "total": 146,
   "controles": {
     "components/ConfirmarConResponsable.tsx": [
       "ComboResponsable «{control}»",
@@ -130,10 +130,11 @@
       "button «{masQ3 ? \"Menos opciones\" : \"Más opciones\"}»",
       "CampoTexto «Nombre»",
       "button «Usar el nombre automático»",
-      "button «{n === 3 ? \"sellos.oferta-paso-3\" : n === 2 ? \"sellos.oferta-paso-2\" : undefined}»",
+      "button «{hecho ? <Check aria-hidden strokeWidth={3}»",
       "Boton «sellos.oferta-atajo»",
       "Boton «Siguiente»",
       "Boton «Siguiente» #2",
+      "Boton «Siguiente» #3",
       "Boton «Guardar cambios»",
       "Boton «{edita ? \"Guardar cambios\" : \"Guardar como borrador\"}»",
       "Boton «sellos.oferta-activar»",

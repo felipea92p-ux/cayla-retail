@@ -45,6 +45,14 @@ La hoja nueva de la campaña en tres pasos (2), prenda por prenda dentro de una 
 (4), campañas sin fecha de fin y el paso de «Para liquidar» y «Sorteo» a campañas (5), el 3x2 y el monto en la caja y la web (6–8). Hasta la
 actividad 5, Insignias todavía puede tener una insignia con descuento.
 
+## Actividad 2 (2026-11-13): la hoja de la oferta en el orden de la maqueta
+
+`OfertasHoja` («Tres preguntas», ADR-0496) pasa de *Qué le das → Cuándo y dónde → Prendas (con el repaso al pie)* a **Qué le das → En qué
+prendas → Cuándo y dónde → Revisa y activa**: qué prendas preguntar depende de la oferta (con el 3x2 será «¿con qué prendas se arma el
+grupo?»), y el repaso —la frase, los avisos, el nombre y los botones de guardar o activar— es un paso propio. La guía de foco (`faltan`) y
+la guía interactiva siguen ese orden. No cambia qué se guarda ni cómo cobra la caja. El ticket de varias prendas de la maqueta («Así cobra
+la caja») llega con el 3x2 (actividad 6): para una rebaja, la etiqueta viva ya muestra el cobro de prendas reales.
+
 ## Alternativas descartadas
 
 - **Dentro de Insignias, renombrado «Insignias y ofertas».** No mueve nada, pero sigue mezclando dos preguntas en una pantalla y el nombre
