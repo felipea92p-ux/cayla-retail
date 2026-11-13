@@ -6,6 +6,7 @@ import { RecomendacionEnElPie } from "./recomendaciones/RecomendacionFlotante";
 import { TEMAS_DE_AYUDA } from "./ayuda/temas";
 import { Icono } from "./Icono";
 import { Logo } from "./Marca";
+import { Redes } from "./Redes";
 import "@/app/estilos/pie.css";
 
 type Columna = { titulo: string; enlaces: [string, string][]; sugerencia?: boolean };
@@ -86,6 +87,11 @@ export function Pie({ anio, conCuenta = false, sede = null }: { anio: number; co
                 <Logo />
               </Link>
               <p className="t-pie-lema">Donde el estilo transforma.</p>
+              {/* Las redes, junto a la marca: es «quiénes somos» y donde todo el mundo las busca (Felipe 2026-11-12). */}
+              <div className="t-pie-redes">
+                <h2 className="t-pie-tit">Síguenos</h2>
+                <Redes donde="pie" conCuenta />
+              </div>
             </div>
             {columnas(conCuenta, sede).map((c) => (
               <div key={c.titulo}>
