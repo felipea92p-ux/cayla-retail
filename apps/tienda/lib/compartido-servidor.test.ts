@@ -6,15 +6,15 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 vi.mock("server-only", () => ({}));
 
 // La caché de datos de Next, en memoria y con el reloj de la prueba. Next sirve la copia vencida y la rehace por detrás; aquí se rehace en el
-// momento, para contar sin carreras cuántas veces se pidió cada cosa (lo que se decide es lo mismo).
+// momento, para contar sin carreras cuántas veces se pidió cada cosa (lo que se decide es lo mismo). `revalidate: false` no vence nunca.
 const guardado = new Map<string, { valor: unknown; en: number }>();
 vi.mock("next/cache", () => ({
   unstable_cache:
-    (fn: (...a: unknown[]) => Promise<unknown>, partes: string[], { revalidate }: { revalidate: number }) =>
+    (fn: (...a: unknown[]) => Promise<unknown>, partes: string[], { revalidate }: { revalidate: number | false }) =>
     async (...args: unknown[]) => {
       const llave = JSON.stringify([partes, args]);
       const copia = guardado.get(llave);
-      if (copia && Date.now() - copia.en < revalidate * 1000) return copia.valor;
+      if (copia && (revalidate === false || Date.now() - copia.en < revalidate * 1000)) return copia.valor;
       const valor = await fn(...args); // si falla, no se guarda nada (como Next)
       guardado.set(llave, { valor, en: Date.now() });
       return valor;
@@ -41,6 +41,7 @@ let anotado: ReturnType<typeof vi.spyOn>;
 let base: { huella: string; dato: string };
 const H1 = "a".repeat(32);
 const H2 = "b".repeat(32);
+const H3 = "c".repeat(32);
 
 beforeEach(async () => {
   vi.useFakeTimers();
@@ -97,6 +98,22 @@ describe("lecturaPorHuella", () => {
     // serviría algo que ya no es; como no se guardó, se vuelve a pedir y sale el de H1.
     base = { huella: H1, dato: "catálogo 1" };
     expect(await visitaTras(31)).toBe("catálogo 1");
+    expect(consulta).toHaveBeenCalledTimes(2);
+  });
+
+  it("si algo cambia justo después de preguntar una huella nueva, UNA lectura cara y no una por visita de ese medio minuto", async () => {
+    expect(await lector(null)).toBe("catálogo 1");
+    // Pasado el medio minuto, la pregunta ve una huella nueva (H2)… y un instante después ya se vendió otra cosa: la base arma con H3.
+    await vi.advanceTimersByTimeAsync(31_000);
+    huellaDeLaBase = async () => H2;
+    base = { huella: H3, dato: "catálogo 3" };
+    expect(await lector(null)).toBe("catálogo 3"); // lo más nuevo, aunque la huella guardada diga H2
+    huellaDeLaBase = async () => base.huella;
+    // El resto de ese medio minuto la huella guardada sigue en H2: la tienda va directo a lo armado con H3, sin volver a la base.
+    for (let i = 0; i < 10; i++) expect(await visitaTras(2)).toBe("catálogo 3");
+    expect(consulta).toHaveBeenCalledTimes(2);
+    // Lo de H3 quedó guardado bajo H3 (nunca bajo H2): pasado el medio minuto, con la huella en H3, tampoco se vuelve a pedir.
+    expect(await visitaTras(31)).toBe("catálogo 3");
     expect(consulta).toHaveBeenCalledTimes(2);
   });
 

@@ -34,29 +34,33 @@ export const db = () => base();
 //
 // El catálogo, los filtros y el probador son lo más caro que la tienda le pide a la base que comparte con el ERP (medido en producción el
 // 2026-11-13: ~470, ~317 y ~728 ms por llamada), y `lecturaCompartida` los volvía a pedir cada medio minuto aunque nada hubiera cambiado,
-// también de noche. Ahora, cada medio minuto (lo mismo que antes: nada se ve más tarde) la tienda pregunta primero la HUELLA
-// (`retail.tienda_catalogo_version()`, 20261113202000: ~1 ms), que cambia con todo lo que esas lecturas muestran; y solo si cambió vuelve a
-// pedir la lectura cara. Dos copias:
-//   · por argumentos y huella, la lectura armada (`armada`): la base la arma JUNTO con su huella, en la misma consulta (la misma foto de la
-//     base), y se guarda bajo esa huella solo si es la que se pidió. Nunca queda guardado algo bajo una huella que no es la suya.
-//   · por argumentos, cada `segundos`, la pregunta «¿cuál es la huella ahora?» y la copia de esa huella.
-// Si la huella no cambia, la lectura armada igual se rehace cada `SEGUNDOS_SIN_CAMBIOS`: es el tope para lo que la huella no ve a propósito
-// (la venta que cumple 30 días y sale de «Más vendidos») o por un descuido. Sin huella (la función todavía no está en la base, o falla), se
-// arma como antes: cada `segundos`.
+// también de noche. Ahora la tienda pregunta primero la HUELLA (`retail.tienda_catalogo_version()`, 20261113202000: ~1 ms), que cambia con
+// todo lo que esas lecturas muestran, y solo si cambió vuelve a pedir la lectura cara. Dos copias, una AL LADO de la otra (Next se salta la
+// caché de una `unstable_cache` llamada desde dentro de otra: así fallaba la primera versión, medido en local):
+//   · la huella de ahora, una para todas las lecturas y tiendas, cada `segundos` (el mismo medio minuto de antes: nada se ve más tarde);
+//   · la lectura armada, por huella y argumentos. La base la arma JUNTO con su huella, en la misma consulta (la misma foto de la base), y se
+//     guarda solo bajo la huella con que se armó: nunca queda guardado algo bajo una huella que no es la suya.
+// Si algo cambió entre la pregunta y la lectura, la lectura es más nueva que la huella que se tenía: se sirve, se guarda bajo SU huella y, en
+// este proceso, la huella vieja se desvía a la nueva hasta que la copia de la huella se renueve (`desvios`); sin eso, cada visita de ese medio
+// minuto volvería a armarla. La lectura armada no vence sola: su llave lleva el tramo de `SEGUNDOS_SIN_CAMBIOS` en que se pidió, así que
+// aunque la huella no cambie se rehace a los 10 minutos, el tope para lo que la huella no ve a propósito (la venta que cumple 30 días y sale
+// de «Más vendidos») o por un descuido. Sin huella (la función todavía no está en la base, o falla), se arma como antes: cada `segundos`.
 
 /** El tope de una lectura armada aunque la huella no cambie (ver arriba). */
-export const SEGUNDOS_SIN_CAMBIOS = 600;
+const SEGUNDOS_SIN_CAMBIOS = 600;
 
 /** Lo que devuelve la consulta de una lectura por huella: el dato y la huella con que la base lo armó (`null` si se pidió sin ella). */
-export type ArmadaConHuella = { dato: unknown; huella: string | null };
+type ArmadaConHuella = { dato: unknown; huella: string | null };
 
-/** La base armó la lectura con otra huella que la pedida (algo cambió entre la pregunta y la lectura): se usa, pero no se guarda. */
+/** La base armó la lectura con otra huella que la pedida (algo cambió entre la pregunta y la lectura): no se guarda bajo la pedida. */
 class HuellaCorrida extends Error {
   readonly dato: unknown;
-  constructor(dato: unknown) {
+  readonly huella: string | null;
+  constructor(dato: unknown, huella: string | null) {
     super("la huella cambió mientras se armaba la lectura");
     this.name = "HuellaCorrida";
     this.dato = dato;
+    this.huella = huella;
   }
 }
 
@@ -87,6 +91,17 @@ async function huellaAhora(): Promise<string | null> {
   }
 }
 
+/** La copia de la huella, una por cada `segundos` que se use (hoy todas las lecturas usan el mismo medio minuto: una sola). */
+const huellasCompartidas = new Map<number, () => Promise<string | null>>();
+function huellaCompartida(segundos: number): Promise<string | null> {
+  let copia = huellasCompartidas.get(segundos);
+  if (!copia) {
+    copia = unstable_cache(huellaAhora, ["tienda-huella-v1", String(segundos)], { revalidate: segundos });
+    huellasCompartidas.set(segundos, copia);
+  }
+  return copia();
+}
+
 /** Una lectura cara `retail.tienda_*` sin datos de nadie, compartida entre visitas, que se vuelve a pedir a la base solo si cambió la huella
  *  (revisada cada `segundos`). `consulta(conHuella, ...args)` pide el dato y, con `conHuella`, también la huella EN LA MISMA CONSULTA:
  *  `select retail.tienda_x($1) as dato, retail.tienda_catalogo_version() as huella`. */
@@ -97,29 +112,43 @@ export function lecturaPorHuella<A extends readonly (string | null)[]>(
 ): (...args: A) => Promise<unknown> {
   // Una sola lectura cara en vuelo por proceso y argumentos (la pidan con la huella vieja o con la nueva), y la pausa tras un fallo.
   const armar = unaALaVez(`${clave}:armar`, (conHuella: boolean, ...args: A) => consulta(conHuella, ...args), { pausaMs: PAUSA_TRAS_FALLO_MS });
+  const sinHuella = unstable_cache(async (...args: A) => (await armar(false, ...args)).dato, [`${clave}:sin-huella`], { revalidate: segundos });
+  // Lo que se armó con otra huella, para guardarlo bajo la suya sin volver a la base (se consume al instante), y la huella vieja → la nueva.
+  const recienArmadas = new Map<string, unknown>();
+  const desvios = new Map<string, { huella: string; hasta: number }>();
   const armada = unstable_cache(
-    async (huella: string, ...args: A): Promise<unknown> => {
+    async (huella: string, tramo: string, ...args: A): Promise<unknown> => {
+      const llave = JSON.stringify([huella, tramo, ...args]);
+      if (recienArmadas.has(llave)) return recienArmadas.get(llave);
       const lectura = await armar(true, ...args);
-      if (lectura.huella !== huella) throw new HuellaCorrida(lectura.dato);
+      if (lectura.huella !== huella) throw new HuellaCorrida(lectura.dato, lectura.huella);
       return lectura.dato;
     },
     [`${clave}:armada`],
-    { revalidate: SEGUNDOS_SIN_CAMBIOS },
+    { revalidate: false },
   );
-  return unstable_cache(
-    async (...args: A): Promise<unknown> => {
-      const huella = await huellaAhora();
-      if (huella === null) return (await armar(false, ...args)).dato;
+  return async (...args: A): Promise<unknown> => {
+    const pedida = await huellaCompartida(segundos);
+    if (pedida === null) return sinHuella(...args);
+    const ahora = Date.now();
+    const llaveDesvio = JSON.stringify([pedida, ...args]);
+    const desvio = desvios.get(llaveDesvio);
+    if (desvio && desvio.hasta <= ahora) desvios.delete(llaveDesvio);
+    const huella = desvio && desvio.hasta > ahora ? desvio.huella : pedida;
+    const tramo = String(Math.floor(ahora / (SEGUNDOS_SIN_CAMBIOS * 1000)));
+    try {
+      return await armada(huella, tramo, ...args);
+    } catch (error) {
+      if (!(error instanceof HuellaCorrida) || error.huella === null) throw error;
+      const llave = JSON.stringify([error.huella, tramo, ...args]);
+      recienArmadas.set(llave, error.dato);
       try {
-        return await armada(huella, ...args);
-      } catch (error) {
-        // Algo cambió entre la pregunta y la lectura: la lectura es MÁS nueva que la huella pedida. Sirve ahora (y queda en esta copia los
-        // `segundos` de siempre), pero no se guarda con una huella que no es la suya. La próxima vuelta pregunta la huella de nuevo.
-        if (error instanceof HuellaCorrida) return error.dato;
-        throw error;
+        await armada(error.huella, tramo, ...args);
+      } finally {
+        recienArmadas.delete(llave);
       }
-    },
-    [clave],
-    { revalidate: segundos },
-  );
+      desvios.set(llaveDesvio, { huella: error.huella, hasta: ahora + segundos * 1000 });
+      return error.dato;
+    }
+  };
 }
