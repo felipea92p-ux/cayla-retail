@@ -1,16 +1,18 @@
 import "server-only";
 import { cache } from "react";
 import { SEGUNDOS_DEL_CATALOGO } from "./catalogo-servidor";
-import { db, lecturaCompartida } from "./compartido-servidor";
+import { db, lecturaCompartida, lecturaPorHuella } from "./compartido-servidor";
 import type { Prenda } from "./catalogo";
 import { hayParaProbar, interpretarProbador, type LecturaProbador } from "./probador";
 
 // Lo del probador (ADR-0434, actividad 4) es igual para todos los que miran la misma tienda: el largo, los recortes y el precio y el
-// stock de cada color. Se comparte entre visitas el mismo medio minuto que el catálogo, con el que se junta en la página: cien clientes
-// armando su look a la vez son una consulta a la base, no cien.
-const probadorCompartido = lecturaCompartida("tienda-probador-v1", SEGUNDOS_DEL_CATALOGO, async (sedeId: string | null) => {
-  const [fila] = await db()`select retail.tienda_probador(${sedeId}::uuid) as probador`;
-  return fila?.probador ?? null;
+// stock de cada color. Se revisa el mismo medio minuto que el catálogo, con el que se junta en la página: cien clientes armando su look a
+// la vez son una consulta a la base, no cien; y como el catálogo, se vuelve a pedir solo si cambió la huella (`lecturaPorHuella`, 2026-11-13).
+const probadorCompartido = lecturaPorHuella("tienda-probador-v2", SEGUNDOS_DEL_CATALOGO, async (conHuella, sedeId: string | null) => {
+  const [fila] = conHuella
+    ? await db()`select retail.tienda_probador(${sedeId}::uuid) as dato, retail.tienda_catalogo_version() as huella`
+    : await db()`select retail.tienda_probador(${sedeId}::uuid) as dato`;
+  return { dato: fila?.dato ?? null, huella: typeof fila?.huella === "string" ? fila.huella : null };
 });
 
 // La cabecera de TODA página del catálogo pregunta «¿hay algo para probar?» para mostrar «Arma el tuyo» (2026-11-07). Con la lectura de medio

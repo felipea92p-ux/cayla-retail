@@ -1,15 +1,16 @@
 import "server-only";
 import { cache } from "react";
 import { SEGUNDOS_DEL_CATALOGO } from "./catalogo-servidor";
-import { db, lecturaCompartida } from "./compartido-servidor";
+import { db, lecturaPorHuella } from "./compartido-servidor";
 import { interpretarFiltros, type DatosDeFiltros } from "./filtros-color-talla";
 import { sedeDeLaUrl, sedesEnOrden } from "./sede-elegida";
 import { leerSedes } from "./tiendas-servidor";
 
 // Qué hay por color y talla (ADR-0512, actividad 3) es igual para todos los que miran la misma tienda: qué variantes de cada prenda tienen
-// unidades. Se comparte entre visitas el mismo medio minuto que el catálogo, con el que se junta en la página, para que la prenda que se ve
-// en la lista y lo que dice el filtro hablen de la misma foto de la tienda. Solo se pide cuando la dirección trae `?color=` o `?talla=`:
-// una visita sin filtros no gasta ni una consulta de más.
+// unidades. Se revisa el mismo medio minuto que el catálogo, con el que se junta en la página, para que la prenda que se ve en la lista
+// y lo que dice el filtro hablen de la misma foto de la tienda; y como el catálogo, se vuelve a pedir a la base solo si cambió la huella
+// (`lecturaPorHuella`, 2026-11-13). Solo se pide cuando la dirección trae `?color=` o `?talla=`: una visita sin filtros no gasta ni una
+// consulta de más.
 //
 // Es un complemento de la lista (sin él se ve entera), así que NUNCA la hace esperar como al catálogo: la base corta esta lectura a los 2 s (el
 // tope del usuario de la tienda es de 5 s; medido el 2026-10-26: con la función dormida 6 s, la página llegaba a los 5,2 s) y la lista, además,
@@ -17,14 +18,16 @@ import { leerSedes } from "./tiendas-servidor";
 const TOPE_DE_LA_LECTURA = "2s";
 const ESPERA_MAXIMA_DE_LOS_FILTROS_MS = 2000;
 
-const filtrosCompartidos = lecturaCompartida("tienda-filtros-v1", SEGUNDOS_DEL_CATALOGO, async (sedeId: string | null) => {
+const filtrosCompartidos = lecturaPorHuella("tienda-filtros-v2", SEGUNDOS_DEL_CATALOGO, async (conHuella, sedeId: string | null) => {
   // `set local` vale solo dentro de esta transacción: el tope no se queda pegado a la conexión que vuelve al pool.
   const fila = await db().begin(async (sql) => {
     await sql`select set_config('statement_timeout', ${TOPE_DE_LA_LECTURA}, true)`;
-    const [una] = await sql`select retail.tienda_filtros(${sedeId}::uuid) as filtros`;
+    const [una] = conHuella
+      ? await sql`select retail.tienda_filtros(${sedeId}::uuid) as dato, retail.tienda_catalogo_version() as huella`
+      : await sql`select retail.tienda_filtros(${sedeId}::uuid) as dato`;
     return una;
   });
-  return fila?.filtros ?? null;
+  return { dato: fila?.dato ?? null, huella: typeof fila?.huella === "string" ? fila.huella : null };
 });
 
 // Un fallo se anota UNA vez cada 10 s por proceso: con la base caída y mucha gente en la lista, una línea por visita (y por pasada de la página)
