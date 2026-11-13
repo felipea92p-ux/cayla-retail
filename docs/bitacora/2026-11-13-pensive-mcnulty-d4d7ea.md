@@ -8,6 +8,7 @@ Por qué así: una huella que se compara y no una copia guardada en una tabla (e
 con disparador en `stock` haría esperarse a las cajas entre ellas. La lectura se pide junto con su huella en la misma consulta, así nunca
 queda guardado algo bajo una huella que no es la suya. Y las dos copias van una al lado de la otra: Next 16 se salta la caché de una
 `unstable_cache` anidada en otra (la primera versión rearmaba igual; se vio midiendo, no leyendo).
-Felipe se lleva: pegar `20261113202000` cuando quiera (una parte, sin políticas; la tienda funciona igual sin ella) y, después, correr
-`scripts/rendimiento/huella-tienda-por-hora.sql` en el SQL Editor para ver la cifra real; la prueba falla si el catálogo empieza a leer una
+Felipe se lleva: `20261113202000` ya está pegada en producción (con su sí en la sesión, verificada en solo lectura; la huella tarda 18 ms
+allá, contra ~470 ms del catálogo). Falta fusionar el PR y, un día después, correr `scripts/rendimiento/huella-tienda-por-hora.sql` en el
+SQL Editor para ver la cifra real; la prueba falla si el catálogo empieza a leer una
 tabla que la huella no mira.

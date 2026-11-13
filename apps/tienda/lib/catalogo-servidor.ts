@@ -6,7 +6,7 @@ import { db, lecturaPorHuella } from "./compartido-servidor";
 
 /** Cada cuánto la tienda revisa si el catálogo cambió (2026-10-15). Corto a propósito: un precio o una prenda que se publica se ve en
  *  medio minuto, y «Separar» vuelve a mirar precio y stock en la base, así que nunca se separa con un dato viejo. Desde el 2026-11-13 lo
- *  que se revisa cada medio minuto es la huella (~1 ms); el catálogo (~470 ms en producción) solo se vuelve a pedir si cambió. */
+ *  que se revisa cada medio minuto es la huella (~18 ms en producción); el catálogo (~470 ms) solo se vuelve a pedir si cambió. */
 export const SEGUNDOS_DEL_CATALOGO = 30;
 
 // Lo publicado en la Vitrina no es de nadie: toda persona que mira la misma tienda recibe lo mismo (`tienda_catalogo` solo recibe la

@@ -108,7 +108,7 @@ seguridad «Email address changed» encendido con `correo-cambiado.html`, y `htt
   y la ficha 30 s; la campaña y las tiendas 60 s; los plazos y los beneficios del Club 300 s. Lo de una persona (su cuenta, sus favoritos,
   su bolsa, sus pedidos) nunca: se lee en cada visita. Una lectura nueva de la base decide primero de cuál de los dos es.
 - **El catálogo, los filtros y el probador se rearman solo si algo cambió** (`lecturaPorHuella`, cambiar-de-modulo#11, 2026-11-13): cada 30 s
-  la tienda pregunta la huella `retail.tienda_catalogo_version()` (~1 ms; migración `20261113202000`) y solo si cambió vuelve a pedir la lectura
+  la tienda pregunta la huella `retail.tienda_catalogo_version()` (~18 ms en producción; migración `20261113202000`) y solo si cambió vuelve a pedir la lectura
   cara, que la base arma junto con su huella en la misma consulta. Con las tiendas cerradas no se rearma nada; el tope, aunque nada cambie, es
   de 10 min (`SEGUNDOS_SIN_CAMBIOS`). **Si una de esas tres funciones empieza a leer una tabla nueva, súmala a la huella:**
   `pnpm pruebas:tienda-catalogo-version` recorre lo que leen y falla si una queda fuera.

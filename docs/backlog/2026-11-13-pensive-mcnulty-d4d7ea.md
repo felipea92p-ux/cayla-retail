@@ -1,11 +1,12 @@
-## 🛍️ La tienda web rearma su catálogo solo si algo cambió (2026-11-13, cambiar-de-modulo#11) — migración `20261113202000` SIN PEGAR; rama `claude/pensive-mcnulty-d4d7ea`
+## 🛍️ La tienda web rearma su catálogo solo si algo cambió (2026-11-13, cambiar-de-modulo#11) — migración `20261113202000` PEGADA en producción el 2026-11-13; rama `claude/pensive-mcnulty-d4d7ea`
 
 - [x] **Medido antes de construir** (`scripts/rendimiento/huella-tienda-por-hora.sql`, solo lectura): sobre el volumen sintético de ADR-0194
   con un día al azar de 3 tiendas a ~60 ventas cada una, la huella cambia como mucho 33 veces en la hora punta de un día normal (32 tramos
   de 30 s), 55 un sábado al doble y 0 entre las 21:00 y las 9:00. Bajo el umbral de ~60/h que pidió la propuesta.
 - [x] `retail.tienda_catalogo_version()`: md5 del día de Lima, `fn_catalogo_version()`, los movimientos de desde ayer, una suma de hashes de
   las 18 tablas chicas que leen el catálogo, los filtros y el probador, y la firma de las 32 funciones que los arman. Solo lee: sin tablas
-  nuevas ni disparadores. <1 ms en local (con un año sintético: 0,9 ms; el catálogo, 313 ms).
+  nuevas ni disparadores. 0,9 ms en local con un año sintético (el catálogo, 313 ms); **18 ms en producción** (3.462 bloques, todos en
+  memoria), contra ~470 ms del catálogo.
 - [x] La tienda (`lecturaPorHuella`, `apps/tienda/lib/compartido-servidor.ts`): cada 30 s (como antes) pregunta la huella; la lectura cara
   se pide JUNTO con su huella y se guarda bajo esa huella solo si es la pedida. Tope de 10 min aunque nada cambie. Catálogo, filtros y
   probador ya la usan. Sin la función en la base, arma como antes.
@@ -18,8 +19,11 @@
 - [x] Pruebas: `pnpm pruebas:tienda-catalogo-version` (22: venta, precio, campaña que empieza mañana sin escribir nada, foto, Vitrina,
   insignia, familia, «quedan pocas», sede, recorte, Taller, función reemplazada; lo que no mueve la huella; la cobertura de tablas y
   funciones; 2 mutantes; re-pegable) y `apps/tienda/lib/compartido-servidor.test.ts` (10, dos mutantes a mano la rompen).
-- [ ] **Pegar `20261113202000_tienda_catalogo_version.sql` en producción (Felipe).** Una sola parte, re-ejecutable, sin políticas ni
-  `alter`. Puede ir antes o después de publicar la tienda: sin la función, la tienda rearma cada 30 s como hoy.
+- [x] **`20261113202000` pegada en producción (2026-11-13, con el sí de Felipe en la sesión).** Subida como archivo, sin portapapeles;
+  SHA-256 del editor igual al del repo (`d16f7412…fe61b8de`) antes de Run; «Success. No rows returned». Verificación en solo lectura:
+  `32 | true | true | false | 7fa631e0707ae3fa7c97a77aba27f33d`.
+- [ ] **Mirar por qué la huella lee 3.462 bloques en producción** (en local, 295): qué tabla de las sumadas pesa más. A ~120 preguntas por
+  hora son ~2 s de base por hora, frente a los ~470 ms de cada rearmado que se ahorra; mejorarla es opcional.
 - [ ] **Después de pegar:** correr `scripts/rendimiento/huella-tienda-por-hora.sql` en el SQL Editor (`set transaction read only;`) para
   ver la cifra real por hora (no va a ningún archivo: el repo es público), y comparar en `pg_stat_statements` las llamadas de
   `tienda_catalogo` de un día antes y uno después.

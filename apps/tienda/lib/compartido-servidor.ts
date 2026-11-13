@@ -34,7 +34,7 @@ export const db = () => base();
 //
 // El catálogo, los filtros y el probador son lo más caro que la tienda le pide a la base que comparte con el ERP (medido en producción el
 // 2026-11-13: ~470, ~317 y ~728 ms por llamada), y `lecturaCompartida` los volvía a pedir cada medio minuto aunque nada hubiera cambiado,
-// también de noche. Ahora la tienda pregunta primero la HUELLA (`retail.tienda_catalogo_version()`, 20261113202000: ~1 ms), que cambia con
+// también de noche. Ahora la tienda pregunta primero la HUELLA (`retail.tienda_catalogo_version()`, 20261113202000: ~18 ms en producción), que cambia con
 // todo lo que esas lecturas muestran, y solo si cambió vuelve a pedir la lectura cara. Dos copias, una AL LADO de la otra (Next se salta la
 // caché de una `unstable_cache` llamada desde dentro de otra: así fallaba la primera versión, medido en local):
 //   · la huella de ahora, una para todas las lecturas y tiendas, cada `segundos` (el mismo medio minuto de antes: nada se ve más tarde);
