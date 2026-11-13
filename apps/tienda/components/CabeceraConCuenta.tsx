@@ -20,6 +20,7 @@ import { claveMasCercana, debePedirUbicacion } from "@/lib/sede-cercana";
 import { ahoraMs, debeCubrir, esperaHastaElTope, esperaParaSalir, EVENTO_CAMBIAR_TIENDA, VELO_SALE_MS } from "@/lib/sede-velo";
 import { Icono } from "./Icono";
 import { Logo } from "./Marca";
+import { Redes } from "./Redes";
 import { EscudoDeFila } from "./MarcaDeTienda";
 import { BotonDeTema } from "./BotonDeTema";
 import { marcarViaje, useRayaDelNav, viajaHacia } from "./useRayaDelNav";
@@ -736,6 +737,11 @@ function HojaMenu({
             Recomendaciones
           </Link>
         )}
+        {/* En el celular el pie queda muy abajo: las redes cierran el menú (Felipe 2026-11-12). Se abren aparte, así que no cierran la hoja. */}
+        <div className="t-menu-redes">
+          <p className="dn-menu-tit">Síguenos</p>
+          <Redes donde="menu" />
+        </div>
       </div>
     </div>
   );

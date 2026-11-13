@@ -1,0 +1,5 @@
+# 2026-11-12 · Las redes de CAYLA en la tienda web
+
+- **Qué:** las seis redes de CAYLA (Instagram, TikTok, Facebook, Pinterest, YouTube y Spotify) en la tienda, según la propuesta C que eligió Felipe mirando la maqueta (`docs/maquetas/tienda-redes-2026-11/`): en el pie de todas las páginas, al final del menú del celular y al final de «¡Listo, lo separaste!». Al pasar el puntero, cada ícono se pinta con el color de su red. Nunca van arriba ni junto al botón de comprar.
+- **Cómo:** una sola lista (`apps/tienda/lib/redes.ts`, con su prueba) y una sola pieza (`components/Redes.tsx` + `app/estilos/redes.css`), con 44 px para el dedo y 36 px con mouse. Van redondas y en la tinta de la identidad Premium (ADR-0615), no cuadradas como en la maqueta. Sin migración.
+- **Verificado:** en el navegador, a 1280 y a 375 px, en claro y en oscuro: el color al pasar el puntero, una sola fila en el pie y en el menú, y nada se sale de lado. La sección de «¡Listo, lo separaste!» se miró en una página temporal, porque sin base local no se llega a un pedido. Falta ver esa página con un pedido real.
