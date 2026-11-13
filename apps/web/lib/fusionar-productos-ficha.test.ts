@@ -141,9 +141,9 @@ describe("stock por sede (hoja de comparar)", () => {
 });
 
 describe("tallas de cada ficha", () => {
-  it("solo las vigentes, color por color y en orden de talla", () => {
+  it("solo las vigentes, color por color (por nombre) y en orden de talla", () => {
     expect(tallasDeFicha("blusa", detalle).colores).toEqual([{ color: "Negro", colorHex: "#111111", tallas: ["S", "M", "L"] }]);
-    expect(tallasDeFicha("capa", detalle).colores.map((c) => c.color)).toEqual(["Negro", "Blanco"]);
+    expect(tallasDeFicha("capa", detalle).colores.map((c) => c.color)).toEqual(["Blanco", "Negro"]);
   });
 });
 
@@ -159,9 +159,9 @@ describe("la matriz de la ficha final (decisión 7)", () => {
     expect(m.cuenta).toEqual({ ya: 1, pasa: 1, junta: 2 });
   });
 
-  it("no dibuja tallas retiradas (ni de la que queda ni de la repetida)", () => {
+  it("no dibuja tallas retiradas (ni de la que queda ni de la repetida) y ordena los colores por nombre", () => {
     expect(m.tallas).toEqual(["S", "M", "L"]);
-    expect(m.colores.map((c) => c.clave)).toEqual(["NEG", "BLA"]);
+    expect(m.colores.map((c) => c.clave)).toEqual(["BLA", "NEG"]);
   });
 
   it("dos repetidas con la misma talla nueva: la celda pasa y suma lo de las dos", () => {

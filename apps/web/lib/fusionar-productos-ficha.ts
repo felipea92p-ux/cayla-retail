@@ -101,7 +101,11 @@ export function tallasDeFicha(productoId: string, detalle: DetalleFusion): Talla
     if (!c.tallas.includes(v.talla ?? "Única")) c.tallas.push(v.talla ?? "Única");
     porColor.set(clave, c);
   }
-  return { colores: [...porColor.values()].map((c) => ({ ...c, tallas: c.tallas.sort(compararTallas) })) };
+  return {
+    colores: [...porColor.values()]
+      .sort((a, b) => a.color.localeCompare(b.color, "es"))
+      .map((c) => ({ ...c, tallas: c.tallas.sort(compararTallas) })),
+  };
 }
 
 // ---------------------------------------------------------------------------------------------------------------------
@@ -167,7 +171,8 @@ export function matrizFinal(plan: Pick<PlanFusion, "variantes">, quedaId: string
 
   const valores = Object.values(celdas);
   return {
-    colores: [...colores.values()],
+    // Por nombre: el orden en que llegan las filas de la base no dice nada, y así la misma prenda se lee igual cada vez.
+    colores: [...colores.values()].sort((a, b) => a.color.localeCompare(b.color, "es")),
     tallas: [...tallas].sort(compararTallas),
     celdas,
     cuenta: {

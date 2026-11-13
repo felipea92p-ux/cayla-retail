@@ -133,7 +133,7 @@ export function ColumnaFicha({
       <button
         type="button"
         onClick={onVer}
-        className="fus-sobre-foto fus-ver-ficha area-dedo"
+        className="fus-sobre-foto fus-ver-ficha"
         data-ver-ficha
         data-guia={indice === 0 ? "fusionar.ver-ficha" : undefined}
         aria-label={`Ver la ficha completa de ${p.referencia}`}
@@ -146,7 +146,7 @@ export function ColumnaFicha({
           type="button"
           onClick={onQuitar}
           disabled={deshabilitada}
-          className="fus-sobre-foto fus-quitar area-dedo"
+          className="fus-sobre-foto fus-quitar"
           aria-label={`Quitar «${p.referencia}» de la fusión`}
         >
           <X aria-hidden className="h-4 w-4" />
@@ -215,7 +215,7 @@ export function FilaDistinta({
             className="fus-opcion fus-opcion-fila"
           >
             {o.valor}
-            <span className="sr-only">{`, de ${p.referencia}`}</span>
+            <span className="fus-de">{`de ${p.codigo ?? p.referencia}`}</span>
             {si && <Visto />}
           </button>
         );

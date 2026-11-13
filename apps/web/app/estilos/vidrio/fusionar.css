@@ -197,6 +197,20 @@
   justify-content: center;
 }
 
+/* Con el dedo, 44 px de área (ADR-0611, mejora 5) sin el `area-dedo` de tacto.css, que los volvería `position: relative` y los sacaría de
+   encima de la foto: el botón ya es `absolute`, así que su `::after` se mide desde él. */
+@media (pointer: coarse) {
+  .fus-sobre-foto::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: max(100%, 44px);
+    height: max(100%, 44px);
+    transform: translate(-50%, -50%);
+  }
+}
+
 /* La foto de la ficha en 4:3 (la de la prenda es 3:4: en una columna de 328 px mediría 437 px solo de foto). */
 .fus-foto {
   position: relative;
@@ -223,6 +237,16 @@
   padding: 12px 44px 12px 16px;
   font-size: 15px;
   line-height: 1.4;
+}
+/* De qué ficha es la opción: en escritorio la dice su columna (solo el lector lo oye); en el celular, donde las filas se apilan y la
+   columna puede no estar a la vista, se lee debajo del valor. */
+.fus-de {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
 }
 .fus-celda-vacia {
   display: grid;
@@ -505,6 +529,20 @@
   .fus-fila {
     grid-template-columns: minmax(0, 1fr);
     gap: 8px;
+  }
+  .fus-fila > .fus-celda-vacia {
+    display: none;
+  }
+  .fus-de {
+    position: static;
+    display: block;
+    width: auto;
+    height: auto;
+    overflow: visible;
+    clip-path: none;
+    white-space: normal;
+    color: var(--color-taupe);
+    font-size: 14px;
   }
 }
 
