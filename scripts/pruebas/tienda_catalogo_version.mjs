@@ -35,6 +35,16 @@ import { readFileSync } from "node:fs";
 const ARG_CONTENEDOR = process.argv.indexOf("--contenedor");
 const CONTENEDOR_LOCAL = ARG_CONTENEDOR > 0 ? process.argv[ARG_CONTENEDOR + 1] : "supabase_db_cayla-retail";
 const MIGRACION = "supabase/migrations/20261113202000_tienda_catalogo_version.sql";
+// Las migraciones que vinieron después y tocan lo que la huella cubre (ADR-0655): las ofertas prenda por prenda, las cesiones y la huella
+// que las suma. «Cobertura» lee sus listas de la ÚLTIMA (HUELLA_ACTUAL) y, si la base local no las tiene, las aplica en su transacción.
+const HUELLA_ACTUAL = "supabase/migrations/20261113232000_huella_tienda_con_ofertas.sql";
+const DESPUES = [
+  ["retail.fusionar_productos(uuid, uuid[], jsonb, jsonb)", "procedure", ["20261112204000_fusionar_productos_base", "20261112205000_fusionar_productos_previsualizar",
+    "20261112210000_fusionar_productos", "20261112211000_fusionar_productos_lecturas", "20261113175000_fusionar_productos_tallas_vacias"]],
+  ["retail.campana_regla_productos", "class", ["20261113210000_oferta_prenda_por_prenda"]],
+  ["retail.campana_regla_cesiones", "class", ["20261113223000_una_oferta_por_prenda_tienda_y_dia"]],
+  ["retail.fn_variantes_de_oferta(uuid, uuid[], uuid[], uuid[], boolean)", "procedure", ["20261113230000_choques_de_oferta_de_una_vez"]],
+];
 const FELIPE = "22222222-2222-4222-8222-000000000001"; // líder (y Admin): publica en la Vitrina
 
 function psql(sql) {
@@ -81,6 +91,12 @@ if (correr("select to_regprocedure('retail.tienda_catalogo(uuid)') is not null;"
 const TEXTO_MIGRACION = readFileSync(MIGRACION, "utf8");
 const YA_ESTA = correr("select to_regprocedure('retail.tienda_catalogo_version()') is not null;").salida === "t";
 const MIGRACION_EN_LA_TRANSACCION = YA_ESTA ? "" : TEXTO_MIGRACION;
+const TEXTO_HUELLA = readFileSync(HUELLA_ACTUAL, "utf8");
+const FALTA_DESPUES = DESPUES.filter(([que, tipo]) => correr(`select to_reg${tipo}('${que}') is null;`).salida === "t")
+  .flatMap(([, , archivos]) => archivos.map((a) => readFileSync(`supabase/migrations/${a}.sql`, "utf8")))
+  .join("\n");
+const HUELLA_AL_DIA = correr("select position('campana_regla_cesiones' in coalesce(pg_get_functiondef(to_regprocedure('retail.tienda_catalogo_version()')), '')) > 0;").salida === "t";
+const PARA_COBERTURA = `${MIGRACION_EN_LA_TRANSACCION}\n${FALTA_DESPUES}\n${HUELLA_AL_DIA ? "" : TEXTO_HUELLA}`;
 
 /** La migración sin la línea de la huella que contiene `marca` (una de sus tablas): un mutante. */
 function sinLaLinea(marca) {
@@ -278,15 +294,19 @@ esperarValor(
 
 // ---------------------------------------------------------------- 5. Cobertura: nada de lo que leen las lecturas queda fuera de la huella
 {
+  // En una transacción con lo que a la base local le falte (y se deshace): la cobertura mira la base como la deja el repo.
   const r = correr(
-    "select json_agg(json_build_object('n', p.proname, 's', p.prosrc)) from pg_proc p where p.pronamespace = 'retail'::regnamespace;" +
+    `begin;\n${PARA_COBERTURA}\n` +
+      "select json_agg(json_build_object('n', p.proname, 's', p.prosrc)) from pg_proc p where p.pronamespace = 'retail'::regnamespace;" +
       "\nselect json_agg(c.relname) from pg_class c where c.relnamespace = 'retail'::regnamespace and c.relkind in ('r', 'v', 'm', 'p');" +
-      "\nselect json_agg(distinct c.relname) from pg_trigger t join pg_class c on c.oid = t.tgrelid where t.tgfoid = 'retail.fn_catalogo_cambio()'::regprocedure;",
+      "\nselect json_agg(distinct c.relname) from pg_trigger t join pg_class c on c.oid = t.tgrelid where t.tgfoid = 'retail.fn_catalogo_cambio()'::regprocedure;" +
+      "\nrollback;",
   );
   if (!r.ok) {
     esperar("cobertura: leer las funciones y tablas de la base", false, r.mensaje);
   } else {
-    const [funcionesJson, tablasJson, contadorJson] = r.salida.split("\n");
+    // Las tres últimas líneas son las de las consultas (las migraciones aplicadas antes pueden imprimir alguna).
+    const [funcionesJson, tablasJson, contadorJson] = r.salida.split("\n").filter((l) => l.trim()).slice(-3);
     const fuentes = new Map();
     for (const { n, s } of JSON.parse(funcionesJson)) fuentes.set(n, `${fuentes.get(n) ?? ""} ${s}`);
     const tablas = new Set(JSON.parse(tablasJson));
@@ -304,8 +324,8 @@ esperarValor(
         else if (fuentes.has(id) && id !== f) pendientes.push(id);
       }
     }
-    const listaDeFunciones = new Set(TEXTO_MIGRACION.match(/p\.proname = any \(array\[([\s\S]*?)\]::name\[\]\)/)[1].match(/'([a-z_0-9]+)'/g).map((x) => x.slice(1, -1)));
-    const conHash = new Set([...TEXTO_MIGRACION.matchAll(/from retail\.([a-z_]+) t\)::text/g)].map((m) => m[1]));
+    const listaDeFunciones = new Set(TEXTO_HUELLA.match(/p\.proname = any \(array\[([\s\S]*?)\]::name\[\]\)/)[1].match(/'([a-z_0-9]+)'/g).map((x) => x.slice(1, -1)));
+    const conHash = new Set([...TEXTO_HUELLA.matchAll(/from retail\.([a-z_]+) t\)::text/g)].map((m) => m[1]));
     const porElContador = new Set(JSON.parse(contadorJson));
     // `stock` es el snapshot de `movimientos` (principio 4, INV-01): los cubre la cuenta de movimientos.
     const porLosMovimientos = new Set(["movimientos", "stock"]);

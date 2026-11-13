@@ -97,6 +97,12 @@ borrador, pero «Activar» (y «Guardar cambios» de una que ya rige) lleva al c
 las otras ofertas). `20261113230000_choques_de_oferta_de_una_vez.sql` la cambia por cruces de conjuntos (`fn_variantes_de_oferta`, la misma
 regla; la prueba exige que coincidan): la misma consulta así tardó 64 ms en producción.
 
+**La tienda web también tiene que enterarse.** `tienda_catalogo_version()` (20261113202000, de main) le dice a la tienda cuándo rearmar el
+catálogo con un hash de cada tabla chica que leen sus lecturas. No conocía `campana_regla_productos` ni `campana_regla_cesiones`: cambiar
+solo los modelos de una oferta, o que una ceda, cambiaba el precio en la caja y no en la web. `20261113232000_huella_tienda_con_ofertas.sql`
+las suma (y `fn_regla_alcanza_variante` y `fn_oferta_alcanza_variante` a su lista de funciones). Lo vigila la «cobertura» de
+`pruebas:tienda-catalogo-version`, que ahora lee las listas de la última migración de la huella; sin el arreglo, falla en esas dos tablas.
+
 **No vigila** lo que cambia el alcance desde fuera de la oferta (marcar una prenda a mano en otra campaña, sumarle una categoría a una campaña,
 ponerle descuento a una insignia): el candado mira las ofertas al guardarlas o activarlas, que es «al configurar». Si hiciera falta, ese es el
 lugar del próximo paso.
