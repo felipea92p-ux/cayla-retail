@@ -5,7 +5,6 @@ import { Camera, Sparkles } from "lucide-react";
 import { Modal } from "@/components/ui/Modal";
 import { PieAcciones } from "@/components/ui/PieAcciones";
 import { Boton } from "@/components/ui/campos";
-import { ImagenDePrenda } from "@/components/ui/ImagenDePrenda";
 import { BotonFoto } from "@/components/alta-producto/FotosAlta";
 import { avisar } from "@/components/ui/Avisos";
 import { objecionFotoProducto } from "@/lib/producto-fotos";
@@ -75,7 +74,8 @@ export function HojaCatalogoIA({
             <div className="flex w-fit items-center gap-3 rounded-2xl border border-sand bg-hueso p-2 pr-4">
               {molde.url ? (
                 <span className="relative block aspect-[4/5] w-11 shrink-0 overflow-hidden rounded-lg border border-dashed border-borde-control">
-                  <ImagenDePrenda src={molde.url} alt="" fill sizes="44px" className="object-contain" fallback={null} />
+                  {/* eslint-disable-next-line @next/next/no-img-element -- el molde puede ser una vista local (blob:) del alta */}
+                  <img src={molde.url} alt="" className="absolute inset-0 h-full w-full object-contain" />
                 </span>
               ) : (
                 <Sparkles aria-hidden className="h-5 w-5 text-taupe" />

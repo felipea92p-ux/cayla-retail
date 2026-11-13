@@ -1583,6 +1583,14 @@ export const GUIA_NUEVO_PRODUCTO: Guia = {
       texto: "Las tallas vienen con la curva de siempre de la categoría; eliges los colores que llegaron. Si una prenda trae dos colores (hueso con azul), toca «+ acompañante» en el de base: queda como un solo color. Abajo, la tabla de variantes que van a nacer: toca una celda para quitar la que no llegó.",
     },
     {
+      id: "catalogo-ia",
+      ancla: "nuevo.catalogo-ia",
+      // Solo está con una categoría elegida (la tabla de la prenda) y si el servidor tiene la llave de la IA.
+      opcional: true,
+      titulo: "Catálogo con IA",
+      texto: "Encendido, la foto de cada color sale como foto de catálogo: la prenda en un maniquí invisible, de frente y sin fondo. El primer color hace de molde y los demás salen con su misma forma. «Usar mi foto» vuelve a la tuya.",
+    },
+    {
       id: "punto-4",
       ancla: "nuevo.punto-4",
       titulo: "4 · Precio y cantidad",

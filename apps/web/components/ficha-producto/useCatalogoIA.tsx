@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { avisar } from "@/components/ui/Avisos";
-import { subirFotoProducto, subirParDeCatalogo } from "@/lib/producto-fotos";
+import { objecionFotoProducto, subirFotoProducto, subirParDeCatalogo } from "@/lib/producto-fotos";
 import { pedirFotoDeCatalogo } from "@/lib/foto-catalogo-cliente";
 import { esFotoIA, moldeDeLaPrenda, originalDeLaFotoIA } from "@/lib/foto-catalogo-reglas";
 import type { FotoLocal } from "@/lib/fotos-por-color-reglas";
@@ -48,6 +48,37 @@ function leerEncendido(): boolean {
   }
 }
 
+/** La opción «Catálogo con IA», apagada de fábrica y recordada en el aparato. La comparten Editar y Nuevo producto. */
+export function useInterruptorIA(): [boolean, (v: boolean) => void] {
+  const [encendido, setEncendido] = useState(false);
+  useEffect(() => {
+    // Se lee al montar: en el servidor no hay `localStorage`.
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- se lee una vez del aparato, después de hidratar
+    setEncendido(leerEncendido());
+  }, []);
+  function cambiar(v: boolean) {
+    setEncendido(v);
+    try {
+      localStorage.setItem(CLAVE_APARATO, v ? "1" : "0");
+    } catch {
+      // Sin almacenamiento (ventana privada): la opción vale hasta recargar.
+    }
+  }
+  return [encendido, cambiar];
+}
+
+/** La foto de frente que llega a la hoja: la misma validación que una subida normal. `null` si no sirve (y ya se avisó). */
+export function frenteValido(archivos: File[]): File | null {
+  const frente = archivos[0];
+  if (!frente) return null;
+  const objecion = objecionFotoProducto(frente);
+  if (objecion) {
+    avisar.error("Esa foto no se puede usar", { detalle: `${frente.name}: ${objecion}` });
+    return null;
+  }
+  return frente;
+}
+
 export function useCatalogoIA({
   disponible,
   fotos,
@@ -67,7 +98,7 @@ export function useCatalogoIA({
   /** La lista entera, cuando «Usar mi foto» cambia una por otra. */
   onFotos: (siguientes: FotoLocal[]) => void;
 }): CatalogoIA {
-  const [encendido, setEncendido] = useState(false);
+  const [encendido, cambiarEncendido] = useInterruptorIA();
   const [hoja, setHoja] = useState<{ color: string | null; frente: File; espalda: File | null; detalle: File | null } | null>(null);
   const [preparando, setPreparando] = useState<ReadonlyMap<string, string>>(new Map());
   // La de IA de cada foto real preparada en esta sesión: para «Usar la de IA» después de un «Usar mi foto».
@@ -81,21 +112,6 @@ export function useCatalogoIA({
   const moldeEnCurso = useRef<{ color: string | null; promesa: Promise<Blob | null> } | null>(null);
   // Lo mismo, para dibujar: de qué color es el molde que se está preparando (`undefined` = ninguno). La hoja lo nombra.
   const [colorMoldeEnCurso, setColorMoldeEnCurso] = useState<string | null | undefined>(undefined);
-
-  useEffect(() => {
-    // El aparato recuerda la opción. Se lee al montar: en el servidor no hay `localStorage`.
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- se lee una vez del aparato, después de hidratar
-    setEncendido(leerEncendido());
-  }, []);
-
-  function cambiarEncendido(v: boolean) {
-    setEncendido(v);
-    try {
-      localStorage.setItem(CLAVE_APARATO, v ? "1" : "0");
-    } catch {
-      // Sin almacenamiento (ventana privada): la opción vale hasta recargar.
-    }
-  }
 
   const claveDe = (color: string | null) => color ?? "";
   const urlMolde = moldeDeLaPrenda(colores, fotos);
@@ -174,8 +190,8 @@ export function useCatalogoIA({
     encendido: disponible && encendido,
     cambiarEncendido,
     abrir: (archivos, color) => {
-      const [frente, espalda = null, detalle = null] = archivos;
-      if (frente) setHoja({ color, frente, espalda, detalle });
+      const frente = frenteValido(archivos);
+      if (frente) setHoja({ color, frente, espalda: archivos[1] ?? null, detalle: archivos[2] ?? null });
     },
     preparandoDe: (color) => preparando.get(claveDe(color)) ?? null,
     alternativa,

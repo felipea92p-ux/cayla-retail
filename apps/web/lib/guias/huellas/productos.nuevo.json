@@ -2,7 +2,7 @@
   "guia": "productos.nuevo",
   "ruta": "/productos/nuevo",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 132,
+  "total": 133,
   "controles": {
     "app/(app)/productos/nuevo/page.tsx": [
       "Volver «{RUTA_ORDENES}»",
@@ -120,6 +120,7 @@
       "input «{`${enCostos ? \"Costo\" : \"Precio\"}»"
     ],
     "components/alta-producto/MatrizVariantes.tsx": [
+      "button «→() => catalogo.alternar(suyas[suyas.length - 1].clave)»",
       "button «{`Ver o quitar las fotos de ${nombreDe(color)}»",
       "button «{fuera ? `${etiqueta}»",
       "button «Ver o quitar las fotos de todos los colores»",
