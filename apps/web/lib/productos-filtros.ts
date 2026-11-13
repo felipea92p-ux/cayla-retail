@@ -169,7 +169,7 @@ export function rotuloDisponibilidad(d: Disponibilidad, sede: string | null): st
 }
 
 // ── Temporada y «Por completar» (Felipe, 2026-10-02) ──────────────────────────────────────────────────────────────────
-/** `temporada=sin` = las prendas con algún color sin temporada (la misma cuenta que el aviso «N prendas sin temporada»). */
+/** `temporada=sin` = las prendas con algún color sin temporada (lo mismo que «Por completar ▸ Sin temporada»). */
 export const SIN_TEMPORADA = "sin";
 
 export function temporadaDeUrl(valor: string | null | undefined): string | undefined {

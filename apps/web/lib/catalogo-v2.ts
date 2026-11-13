@@ -11,7 +11,7 @@ import { getEmpresasAqui } from "@/lib/empresas-de-sede";
 import { insigniaDeEmpresa, soloLasDeAqui } from "@/lib/empresas-de-sede-reglas";
 import { leerExistenciasProductos, type ExistenciasProducto } from "@/lib/productos-stock";
 import { fotoDeVariante, type FotoCruda } from "@/lib/producto-fotos-reglas";
-import { agruparSinTemporada, type Temporada, type TemporadaEfectiva } from "@/lib/temporada-reglas";
+import { type Temporada, type TemporadaEfectiva } from "@/lib/temporada-reglas";
 import { temporadasPropiasPorColor } from "@/lib/temporada-ficha-reglas";
 import { disponibilidadDeUrl, empresaDeUrl, estadoDeUrl, estadoParaBase, faltaDeUrl, listaDeUrl, temporadaDeUrl, type Disponibilidad, type Falta } from "@/lib/productos-filtros";
 import { FAMILIAS_COLOR } from "@/lib/colores-familias";
@@ -774,24 +774,6 @@ async function getFichaTemporadas(productoId: string): Promise<FichaTemporadas |
     ...catalogo,
     porColor: resEfectiva.error || !resEfectiva.data ? null : temporadasPropiasPorColor(resEfectiva.data as TemporadaEfectiva[]),
   };
-}
-
-/**
- * Cuántas prendas activas no tienen temporada (ni propia, ni en algún color, ni por su categoría): el aviso plegado de
- * /productos para quien edita el catálogo. `null` si no se pudo saber (SQL sin pegar, o la lectura falló): entonces el
- * aviso no se muestra, en vez de decir «0» sin saberlo.
- *
- * Números: una fila por modelo+color activo — hoy unas 400 (1.295 variantes / ~3 tallas), en 3 años unas 3.000. Pasa
- * de las 1.000 que entrega PostgREST por página: se lee paginado, en serie (casi siempre cabe en una).
- */
-export async function getSinTemporadaResumen(): Promise<{ prendas: number } | null> {
-  const supabase = await createClient();
-  const res = await leerTodas(
-    (desde, hasta) => supabase.rpc("fn_temporada_efectiva").order("producto_id").order("color_codigo").range(desde, hasta),
-    { enParalelo: 1 },
-  );
-  if (res.error || !res.data) return null;
-  return { prendas: agruparSinTemporada(res.data as TemporadaEfectiva[]).length };
 }
 
 export type ValorVocabulario = { id: string; texto: string };
