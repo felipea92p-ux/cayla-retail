@@ -1,0 +1,549 @@
+<!doctype html>
+<html lang="es" data-tema="claro">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Foto de catálogo con IA · maqueta</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=EB+Garamond:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* ====================================================================
+   MAQUETA · Foto de catálogo con IA al subir una foto (2026-11-13)
+   Felipe: «hay que integrarlo al subir una foto al ERP, una opción que por defecto esté desactivada y al activarla haga el efecto».
+   Cómo se vería en Editar producto ▸ Fotos por color (en Nuevo producto es la misma pieza, en el paso de fotos). Solo tokens (ADR-0169 /
+   ADR-0336) y las recetas de vidrio/recetas.css copiadas abajo; movimiento de una vez, sin rebote ni bucle, apagado con prefers-reduced-motion
+   (ADR-0136); la única señal que se mueve es el hilo de «Preparando…». Las fotos son reales (img/, fuera de git: el repo es público).
+   ==================================================================== */
+:root{--rojo:#b8412d;--rojo-prof:#8b2a1f;--crema:#f5f0e8;--tinta:#1a1a18;--sand:#e8e0d0;--papel:#fbf8f2;--hueso:#eae1d2;--taupe:#805c4c;
+--verde:#48603f;--ambar:#74501a;--pizarra:#4c5d6e;--borde:#96786a;--sombra:#1a1a18;--vidrio:#ffffff;--lienzo:#ddd5c6;--tinta-fija:#1a1a18;--crema-fija:#f5f0e8;
+--ease:cubic-bezier(.32,.72,.24,1)}
+:root[data-tema="oscuro"]{color-scheme:dark;--crema:#1c1a17;--papel:#26241f;--hueso:#33302a;--sand:#403b34;--tinta:#f5f0e8;--taupe:#c4a898;--borde:#8d7a6e;
+--rojo:#e8806a;--rojo-prof:#f29a86;--verde:#9ccb8d;--ambar:#e4b968;--pizarra:#a2b8cd;--sombra:#000000;--vidrio:#33302a;--lienzo:#0f0e0c}
+:root{
+--hoja-fondo:color-mix(in srgb,var(--vidrio) 70%,transparent);
+--hoja-borde:color-mix(in srgb,var(--vidrio) 55%,transparent);
+--hoja-sombra:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 90%,transparent),0 50px 90px -40px color-mix(in srgb,var(--sombra) 55%,transparent);
+--pozo-fondo:color-mix(in srgb,var(--tinta) 5%,transparent);
+--pozo-sombra:inset 0 1.5px 3px color-mix(in srgb,var(--sombra) 16%,transparent),inset 0 -1px 0 color-mix(in srgb,var(--vidrio) 75%,transparent);
+--gota-fondo:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 58%,transparent),color-mix(in srgb,var(--vidrio) 22%,transparent));
+--gota-luz:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 95%,transparent),inset 0 -1px 2px color-mix(in srgb,var(--sombra) 6%,transparent),0 6px 14px -8px color-mix(in srgb,var(--sombra) 30%,transparent);
+--placa-fondo:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 45%,transparent),color-mix(in srgb,var(--vidrio) 20%,transparent));
+--placa-borde:color-mix(in srgb,var(--vidrio) 55%,transparent);
+--claro-fondo:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 86%,transparent),color-mix(in srgb,var(--vidrio) 66%,transparent));
+--t80:color-mix(in srgb,var(--tinta) 80%,transparent);--t64:color-mix(in srgb,var(--tinta) 64%,transparent);--t25:color-mix(in srgb,var(--tinta) 25%,transparent)}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{background:var(--lienzo)}
+body{font-family:'DM Sans',system-ui,sans-serif;color:var(--tinta);font-size:14px;line-height:1.5;-webkit-font-smoothing:antialiased}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
+img{display:block}
+
+/* ---------- la barra de la maqueta (no es parte del diseño) ---------- */
+.barra{position:sticky;top:0;z-index:300;background:#171614;color:#f5f0e8;font-size:13px;padding:10px 16px;display:grid;gap:8px} /* tema-fijo: barra de la maqueta */
+.barra .t{font-family:'EB Garamond',serif;font-size:20px;line-height:1.15}
+.barra .t span{font-family:'DM Sans',sans-serif;font-size:12.5px;color:rgba(245,240,232,.72);margin-left:8px} /* tema-fijo: barra de la maqueta */
+.barra .fila{display:flex;flex-wrap:wrap;align-items:center;gap:8px 16px}
+.barra .tag{font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;font-weight:600;color:rgba(245,240,232,.62)} /* tema-fijo: barra de la maqueta */
+.barra .grupo{display:inline-flex;align-items:center;gap:7px}
+.seg{display:inline-flex;border:1px solid rgba(245,240,232,.25);border-radius:8px;overflow:hidden} /* tema-fijo: barra de la maqueta */
+.seg button{min-height:28px;padding:0 11px;font-size:12px;color:rgba(245,240,232,.78)} /* tema-fijo: barra de la maqueta */
+.seg button.on{background:#f5f0e8;color:#1a1a18;font-weight:600} /* tema-fijo: barra de la maqueta */
+
+/* ---------- la pantalla ---------- */
+.lienzo{background:var(--crema);min-height:calc(100vh - 92px);padding:28px 40px 60px}
+.sede{display:flex;align-items:center;gap:10px;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--taupe);font-weight:600}
+.sede::before{content:'';width:28px;height:1px;background:var(--taupe)}
+h1{font-family:'EB Garamond',serif;font-weight:500;font-size:46px;line-height:1.05;margin:8px 0 26px}
+.bloque{background:var(--claro-fondo);border:1px solid var(--placa-borde);border-radius:20px;padding:22px 24px;box-shadow:0 1px 0 color-mix(in srgb,var(--vidrio) 80%,transparent) inset}
+.bloque-tit{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:18px}
+.bloque-tit h2{font-family:'EB Garamond',serif;font-weight:500;font-size:21px}
+.bloque-tit .dato{font-family:'DM Sans',sans-serif;font-size:13px;color:var(--taupe);margin-left:10px}
+.ia-mini{display:inline-flex;align-items:center;gap:10px;padding:5px 6px 5px 12px;border-radius:999px;background:var(--placa-fondo);border:1px solid var(--placa-borde)}
+.ia-mini .ico-mini svg{width:16px;height:16px;display:block}
+.ia-mini .lbl{font-size:14px;font-weight:500}
+.ia-mini .q{position:relative;width:22px;height:22px;border-radius:50%;display:grid;place-items:center;font-size:12px;font-weight:600;color:var(--taupe);background:var(--gota-fondo);box-shadow:var(--gota-luz)}
+.ia-mini .q::after{content:attr(data-globo);position:absolute;top:calc(100% + 8px);right:-8px;white-space:nowrap;padding:8px 12px;border-radius:12px;background:var(--hoja-fondo);border:1px solid var(--hoja-borde);box-shadow:var(--hoja-sombra);font-size:14px;font-weight:400;color:var(--tinta);opacity:0;pointer-events:none;transform:translateY(-4px);transition:opacity .2s var(--ease),transform .2s var(--ease);z-index:5}
+.ia-mini .q:focus-visible::after{opacity:1;transform:none}
+@media (hover:hover){.ia-mini .q:hover::after{opacity:1;transform:none}}
+.cuerpo-a{display:grid;grid-template-columns:minmax(0,1fr);gap:22px;align-items:start}
+.cuerpo-a.con-panel{grid-template-columns:minmax(0,1fr) minmax(400px,38%)}
+.panel-rev{display:none;padding:16px;border-radius:18px;background:var(--placa-fondo);border:1px solid var(--placa-borde);position:sticky;top:110px}
+.cuerpo-a.con-panel .panel-rev{display:flex;flex-direction:column;gap:14px}
+.panel-rev h3{display:flex;align-items:center;gap:8px;font-family:'EB Garamond',serif;font-weight:500;font-size:20px}
+.globito{display:inline-grid;place-items:center;min-width:20px;height:20px;padding:0 6px;border-radius:999px;background:color-mix(in srgb,var(--ambar) 16%,transparent);color:var(--ambar);font:700 11.5px 'DM Sans',sans-serif}
+.rev{display:flex;flex-direction:column;gap:10px;padding-top:14px;border-top:1px solid var(--sand)}
+.rev:first-of-type{border-top:0;padding-top:0}
+.rev .cab{display:flex;align-items:center;gap:8px;font-size:15px;font-weight:500}
+.rev .cab .btn{margin-left:auto}
+.rev .dos{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.rev .dos .marco{border-radius:12px}
+.rev .acciones{display:flex;gap:8px;justify-content:flex-end}
+.prep{display:flex;align-items:center;gap:10px;padding-top:12px;border-top:1px solid var(--sand);font-size:14px;color:var(--taupe)}
+.prep .punto{flex:none}.prep .hilo{margin:0 0 0 auto;width:90px}
+
+/* el interruptor de la IA: una placa con su interruptor (Casilla/Interruptor del sistema) */
+.ia{display:flex;gap:16px;align-items:center;padding:14px 16px;border-radius:14px;background:var(--placa-fondo);border:1px solid var(--placa-borde);margin-bottom:18px;max-width:520px}
+.ia .ico{width:32px;height:32px;border-radius:10px;display:grid;place-items:center;background:var(--pozo-fondo);box-shadow:var(--pozo-sombra);flex:none}
+.ia .ico svg{width:18px;height:18px}
+.ia .txt{flex:1;min-width:0}
+.ia .txt b{font-weight:600;font-size:15px;display:block}
+.ia .txt p{font-size:14px;color:var(--t80);margin-top:2px}
+.ia .txt small{display:block;font-size:13px;color:var(--taupe);margin-top:4px}
+.int{position:relative;width:44px;height:26px;border-radius:999px;background:var(--hueso);box-shadow:var(--pozo-sombra);border:1px solid var(--borde);flex:none;transition:background .24s var(--ease),border-color .24s var(--ease)}
+.int i{position:absolute;top:2px;left:2px;width:20px;height:20px;border-radius:999px;background:var(--papel);box-shadow:0 1px 3px color-mix(in srgb,var(--sombra) 30%,transparent);transition:transform .24s var(--ease),width .12s}
+.int[aria-checked="true"]{background:var(--tinta);border-color:var(--tinta)}
+.int[aria-checked="true"] i{transform:translateX(18px);background:var(--crema)}
+
+.colores{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:16px}
+.color{display:flex;flex-direction:column;gap:8px}
+.color .cuadro{position:relative;aspect-ratio:4/5;border-radius:14px;overflow:hidden;background:var(--hueso);border:1px solid var(--sand)}
+.color .cuadro img{width:100%;height:100%;object-fit:contain}
+.color .cuadro.foto-ia,.marco.ia{background:none;border:1px dashed var(--borde)}
+.color .vacio{aspect-ratio:4/5;border-radius:14px;border:1.5px dashed var(--borde);display:grid;place-items:center;text-align:center;padding:16px;color:var(--taupe);font-size:14px;transition:border-color .2s,color .2s}
+@media (hover:hover){.color .vacio:hover{border-color:var(--tinta);color:var(--tinta)}}
+.color .vacio svg{width:22px;height:22px;margin:0 auto 6px}
+.color .nombre{display:flex;align-items:center;gap:8px;font-size:15px;font-weight:500}
+.punto{width:12px;height:12px;border-radius:50%;border:1px solid color-mix(in srgb,var(--tinta) 20%,transparent)}
+.color .estado{font-size:14px;color:var(--taupe)}
+.marca-ia{position:absolute;left:10px;top:10px}
+
+.chip{display:inline-flex;align-items:center;gap:6px;min-height:22px;white-space:nowrap;padding:0 9px;border-radius:999px;font-size:11px;letter-spacing:.08em;text-transform:uppercase;font-weight:600}
+.chip::before{content:'';width:6px;height:6px;border-radius:50%;background:currentColor}
+.chip.verde{color:var(--verde);background:color-mix(in srgb,var(--verde) 13%,transparent)}
+.chip.ambar{color:var(--ambar);background:color-mix(in srgb,var(--ambar) 13%,transparent)}
+.chip.pizarra{color:var(--pizarra);background:color-mix(in srgb,var(--pizarra) 13%,transparent)}
+.chip.sobre-foto{background:color-mix(in srgb,var(--papel) 88%,transparent);color:var(--pizarra)}
+
+/* ---------- botones (btn-cayla) ---------- */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:40px;padding:0 18px;border-radius:12px;font-size:13.5px;font-weight:500;transition:transform .18s var(--ease),background .2s}
+.btn svg{width:16px;height:16px}
+.btn.primario{background:var(--tinta);color:var(--crema)}
+@media (hover:hover){.btn.primario:hover{background:var(--rojo-prof);transform:translateY(-2px)}}
+.btn.secundario{background:var(--gota-fondo);box-shadow:var(--gota-luz);border:1px solid var(--borde)}
+@media (hover:hover){.btn.secundario:hover{transform:translateY(-2px)}}
+.btn.enlace{color:inherit;min-height:32px;padding:0;text-decoration:underline;text-decoration-color:var(--t25);text-underline-offset:4px}
+.btn[disabled]{opacity:.45;cursor:default;transform:none}
+
+/* ---------- la hoja Serena ---------- */
+.velo{position:fixed;inset:0;z-index:200;background:color-mix(in srgb,var(--sombra) 25%,transparent);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);display:none;align-items:flex-start;justify-content:center;padding:112px 20px 40px;overflow:auto}
+:root[data-tema="oscuro"] .velo{background:color-mix(in srgb,var(--sombra) 55%,transparent)}
+.velo.abierta{display:flex}
+.hoja{width:100%;max-width:768px;background:var(--hoja-fondo);border:1px solid var(--hoja-borde);box-shadow:var(--hoja-sombra);border-radius:32px;padding:30px 32px 26px;position:relative;animation:sube .42s var(--ease)}
+.hoja.mediana{max-width:576px}
+@keyframes sube{from{opacity:0;transform:translateY(18px) scale(.985)}to{opacity:1;transform:none}}
+.hoja .x{position:absolute;right:18px;top:18px;width:36px;height:36px;border-radius:50%;display:grid;place-items:center;background:var(--gota-fondo);box-shadow:var(--gota-luz)}
+.hoja .x svg{width:16px;height:16px}
+.hoja h3{font-family:'EB Garamond',serif;font-weight:500;font-size:27px;line-height:1.15;padding-right:40px}
+.hoja .bajada{font-size:15px;color:var(--taupe);margin-top:6px;max-width:60ch}
+.pie{display:flex;align-items:center;justify-content:flex-end;gap:10px;margin-top:22px;padding-top:18px;border-top:1px solid var(--sand)}
+.pie .izq{margin-right:auto}
+.pie .costo{font-size:13px;color:var(--taupe);margin-right:auto}
+
+/* paso 2: los ángulos */
+.angulos{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:20px}
+.angulo{display:flex;flex-direction:column;gap:8px}
+.angulo .caja{aspect-ratio:4/5;border-radius:16px;overflow:hidden;background:var(--pozo-fondo);box-shadow:var(--pozo-sombra);position:relative}
+.angulo .caja img{width:100%;height:100%;object-fit:cover}
+.angulo .caja.vacia{display:grid;place-items:center;text-align:center;padding:12px;color:var(--taupe);font-size:13.5px;border:1.5px dashed var(--borde);box-shadow:none;background:none}
+.angulo .caja.vacia svg{width:22px;height:22px;margin:0 auto 6px}
+.etq{font-size:11px;letter-spacing:.12em;text-transform:uppercase;font-weight:600;color:var(--t80)}
+.etq em{font-style:normal;text-transform:none;letter-spacing:0;font-weight:400;color:var(--taupe)}
+.angulo .ayuda{font-size:13.5px;color:var(--taupe);line-height:1.4}
+.angulo .ok{position:absolute;right:8px;top:8px;width:24px;height:24px;border-radius:50%;background:var(--tinta);color:var(--crema);display:grid;place-items:center}
+.angulo .ok svg{width:13px;height:13px}
+.nota{margin-top:18px;padding:12px 14px;border-radius:12px;background:var(--placa-fondo);border:1px solid var(--placa-borde);font-size:14px;color:var(--t80);display:flex;gap:10px}
+.nota svg{width:18px;height:18px;flex:none;color:var(--pizarra);margin-top:1px}
+
+/* el molde: el segundo color en adelante copia la forma del primero (Felipe 2026-11-13) */
+.molde{display:flex;align-items:center;gap:12px;margin-top:16px;padding:8px 14px 8px 8px;border-radius:14px;background:var(--placa-fondo);border:1px solid var(--placa-borde);width:fit-content}
+.molde img{width:44px;height:55px;object-fit:contain;border-radius:8px;border:1px dashed var(--borde)}
+.molde b{display:block;font-weight:600;font-size:14px}
+.molde span{font-size:13.5px;color:var(--taupe)}
+/* paso 3: preparando */
+.preparando{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-top:20px}
+.marco{aspect-ratio:4/5;border-radius:16px;overflow:hidden;background:var(--crema);border:1px solid var(--sand);position:relative}
+.marco img{width:100%;height:100%;object-fit:contain}
+.espera{display:grid;place-items:center;text-align:center;color:var(--taupe);font-size:14px;padding:20px}
+.hilo{height:2px;width:160px;margin:12px auto 0;border-radius:2px;background:var(--sand);overflow:hidden;position:relative}
+.hilo::after{content:'';position:absolute;inset:0;width:40%;background:var(--tinta);animation:barre 1.4s var(--ease) infinite}
+@keyframes barre{from{transform:translateX(-100%)}to{transform:translateX(260%)}}
+.leyenda{font-size:14px;color:var(--taupe);margin-top:6px}
+
+/* paso 4: revisar */
+.comparar{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-top:20px}
+.cab-col{display:flex;align-items:center;gap:8px;margin-bottom:8px;min-height:32px}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+.revisa{margin-top:18px;padding:14px 16px;border-radius:14px;background:var(--placa-fondo);border:1px solid var(--placa-borde)}
+.revisa b{font-weight:600;font-size:14px}
+.revisa ul{list-style:none;margin-top:6px;display:grid;grid-template-columns:1fr 1fr;gap:4px 18px}
+.revisa li{font-size:14px;color:var(--t80);display:flex;gap:8px;align-items:flex-start}
+.revisa li::before{content:'';width:14px;height:14px;border-radius:4px;border:1.5px solid var(--borde);flex:none;margin-top:3px}
+
+/* varias a la vez: cada color se prepara en su propio cuadro, sin bloquear los demás */
+.color>.cuadro,.color>.vacio{display:block;width:100%;padding:0}
+.color>.vacio{display:grid}
+.color .cuadro.en-proceso img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:.35;filter:grayscale(.4)}
+.color .cuadro .sobre{position:absolute;inset:auto 0 0 0;padding:12px;display:grid;gap:8px;justify-items:center;text-align:center;font-size:13.5px;color:var(--tinta);font-weight:500}
+.color .cuadro .sobre .hilo{margin:0;width:70%}
+.color .cuadro.por-revisar{background:none;border:1px dashed var(--borde);cursor:pointer}
+.color .cuadro.por-revisar .marca-ia{left:10px;top:10px}
+.listas{display:flex;align-items:center;gap:12px;margin:0 0 16px;padding:10px 12px 10px 16px;border-radius:14px;background:var(--placa-fondo);border:1px solid var(--placa-borde);max-width:520px}
+.listas .n{display:inline-grid;place-items:center;min-width:22px;height:22px;padding:0 6px;border-radius:999px;background:color-mix(in srgb,var(--ambar) 16%,transparent);color:var(--ambar);font-size:12px;font-weight:700}
+.listas span.t{flex:1;font-size:14.5px;font-weight:500}
+/* ---------- B · toda la prenda de una vez ---------- */
+.soltar{display:grid;place-items:center;text-align:center;gap:6px;min-height:150px;border:1.5px dashed var(--borde);border-radius:18px;color:var(--taupe);font-size:14.5px;padding:24px}
+.soltar svg{width:26px;height:26px;margin:0 auto}
+.soltar b{color:var(--tinta);font-weight:600;font-size:15px}
+.lote{display:grid;grid-template-columns:repeat(auto-fill,minmax(172px,1fr));gap:16px}
+.lote figure{display:flex;flex-direction:column;gap:8px}
+.lote .mini{aspect-ratio:4/5;border-radius:14px;overflow:hidden;background:var(--hueso);position:relative}
+.lote .mini img{width:100%;height:100%;object-fit:cover}
+.pildoras{display:flex;flex-wrap:wrap;gap:6px}
+.pil{display:inline-flex;align-items:center;gap:6px;height:28px;padding:0 10px;border-radius:999px;border:1px solid var(--borde);font-size:13px;background:var(--gota-fondo);box-shadow:var(--gota-luz)}
+.pil .punto{width:10px;height:10px}
+.pil.duda{border-color:var(--ambar);color:var(--ambar)}
+.pil svg{width:12px;height:12px;opacity:.6}
+.barra-lote{display:flex;align-items:center;gap:12px;margin:18px 0 0;padding-top:16px;border-top:1px solid var(--sand)}
+.barra-lote .t{margin-right:auto;font-size:14.5px;font-weight:500}
+.pares{display:grid;grid-template-columns:repeat(auto-fill,minmax(330px,1fr));gap:18px}
+.par{padding:14px;border-radius:18px;background:var(--placa-fondo);border:1px solid var(--placa-borde)}
+.par .cab{display:flex;align-items:center;gap:8px;margin-bottom:10px;font-size:15px;font-weight:500}
+.par .cab .chip{margin-left:auto}
+.par .dos{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.par .dos .marco{border-radius:12px}
+.par .acciones{display:flex;gap:8px;margin-top:10px;justify-content:flex-end}
+.btn.chico{min-height:32px;padding:0 12px;font-size:13px}
+.par.descartada .dos .marco.ia{opacity:.3}
+
+/* ---------- C · la bandeja del día ---------- */
+.cifras{display:flex;flex-wrap:wrap;gap:14px;margin-bottom:22px}
+.cifra{min-width:170px;padding:14px 18px;border-radius:18px;background:var(--claro-fondo);border:1px solid var(--placa-borde)}
+.cifra span{display:block;font-size:11px;letter-spacing:.12em;text-transform:uppercase;font-weight:600;color:var(--taupe)}
+.cifra b{font-family:'EB Garamond',serif;font-weight:500;font-size:32px;line-height:1.1}
+.bandeja{display:grid;grid-template-columns:330px 1fr;gap:20px;align-items:start;max-width:1280px}
+.lista{display:flex;flex-direction:column;gap:6px;padding:10px;border-radius:20px;background:var(--claro-fondo);border:1px solid var(--placa-borde)}
+.item{display:flex;align-items:center;gap:12px;padding:8px;border-radius:14px;text-align:left;width:100%}
+.item.on{background:var(--gota-fondo);box-shadow:var(--gota-luz)}
+.item img{width:48px;height:60px;object-fit:cover;border-radius:8px;background:var(--hueso)}
+.item .q{flex:1;min-width:0}
+.item .q b{display:block;font-weight:500;font-size:14.5px}
+.item .q small{font-size:13.5px;color:var(--taupe)}
+.item .hecho{color:var(--verde)}
+.item .hecho svg{width:16px;height:16px}
+.visor{padding:20px;border-radius:24px;background:var(--claro-fondo);border:1px solid var(--placa-borde)}
+.visor h3{font-family:'EB Garamond',serif;font-weight:500;font-size:24px}
+.visor .comparar{margin-top:14px}
+.visor .marco{aspect-ratio:auto;height:min(46vh,480px)}
+.teclas{display:flex;gap:14px;margin-right:auto;font-size:13px;color:var(--taupe)}
+kbd{font:600 11px 'DM Sans',sans-serif;padding:2px 6px;border-radius:6px;border:1px solid var(--borde);background:var(--gota-fondo);color:var(--tinta);margin-right:4px}
+
+/* el guardado: la principal con su «Con IA» y la original a mano */
+.original-a-mano{font-size:13.5px;color:var(--taupe)}
+
+.explica{max-width:1180px;margin-top:28px;display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+.explica div{padding:16px 18px;border-radius:16px;background:var(--placa-fondo);border:1px solid var(--placa-borde)}
+.explica b{display:block;font-family:'EB Garamond',serif;font-weight:500;font-size:19px;margin-bottom:4px}
+.explica p{font-size:14px;color:var(--t80)}
+
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+@media (max-width:1100px){.cuerpo-a.con-panel{grid-template-columns:1fr}.panel-rev{position:static}}
+@media (max-width:900px){.bandeja{grid-template-columns:1fr}.lienzo{padding:20px 16px 40px}.angulos,.comparar,.preparando{grid-template-columns:1fr 1fr}.explica{grid-template-columns:1fr}.revisa ul{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+
+<div class="barra">
+  <div class="t">Foto de catálogo con IA <span id="sub-barra">Tres formas de hacer lo mismo · elige mirando</span></div>
+  <div class="fila">
+    <span class="grupo"><span class="tag">Forma</span>
+      <span class="seg" id="seg-forma"><button data-forma="A" class="on">A · Por color</button><button data-forma="B">B · Toda la prenda</button><button data-forma="C">C · Bandeja del día</button></span></span>
+    <span class="grupo"><span class="tag">Paso</span><span class="seg" id="seg-paso"></span></span>
+    <span class="grupo" id="grupo-prenda"><span class="tag">Prenda</span>
+      <span class="seg" id="seg-prenda"><button data-prenda="blusa" class="on">Blusa</button><button data-prenda="top">Top</button></span></span>
+    <span class="grupo"><span class="tag">Tema</span>
+      <span class="seg" id="seg-tema"><button data-tema="claro" class="on">Claro</button><button data-tema="oscuro">Oscuro</button></span></span>
+  </div>
+</div>
+
+<main class="lienzo">
+ <div id="forma-a">
+  <div class="sede">Taller · viernes, 13 de noviembre · <span id="nombre-corto">Blusa Lima</span></div>
+  <h1>Editar producto</h1>
+
+  <section class="bloque">
+    <div class="bloque-tit">
+      <h2>Fotos por color <span class="dato" id="cuenta">0 de 3</span></h2>
+      <div class="ia-mini">
+        <span class="ico-mini" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3 1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/></svg></span>
+        <span class="lbl">Catálogo con IA</span>
+        <button class="q" aria-label="Qué hace" data-globo="Maniquí invisible, sin fondo.">?</button>
+        <button class="int" role="switch" aria-checked="false" aria-label="Catálogo con IA" id="int"><i></i></button>
+      </div>
+    </div>
+    <div class="cuerpo-a" id="cuerpo-a">
+      <div class="colores" id="colores"></div>
+      <aside class="panel-rev" id="panel-rev" aria-label="Por revisar"></aside>
+    </div>
+  </section>
+ </div>
+ <div id="forma-otra"></div>
+</main>
+
+<div class="velo" id="velo" role="dialog" aria-modal="true"><div class="hoja" id="hoja"></div></div>
+
+<script>
+const PRENDAS = {
+  blusa: { nombre: 'Blusa Lima', colgada: 'img/blusa-colgada.webp', ia: 'img/blusa-ia.webp', detalle: 'img/blusa-detalle.webp',
+           colores: [{ nombre: 'Verde limón', hex: '#d9e3b6' }, { nombre: 'Rosa palo', hex: '#e9c9c4' }, { nombre: 'Celeste', hex: '#c9dbe6' }] },
+  top:   { nombre: 'Top Drapeado', colgada: 'img/top-colgado.webp', ia: 'img/top-ia.webp', detalle: null,
+           colores: [{ nombre: 'Gris perla', hex: '#c9c6cb' }, { nombre: 'Negro', hex: '#2a2826' }, { nombre: 'Blanco', hex: '#f4f1ea' }] },
+};
+const ICON = {
+  camara: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3z"/><circle cx="12" cy="13" r="3"/></svg>',
+  x: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>',
+  ok: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>',
+  ia: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3 1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/></svg>',
+};
+let estado = { forma: 'A', paso: 1, prenda: 'blusa', ia: false, b: 1, c: 0, descartadas: {}, mias: {}, hojaDe: null };
+
+/*
+ * Qué tiene cada color en cada paso. Lo que importa (Felipe 2026-11-13: «mientras no termina no puedo subir la que sigue»): «Preparar foto»
+ * cierra la hoja al instante y el color queda preparándose en su cuadro; los demás se pueden agregar enseguida.
+ *   1–2: los tres vacíos (en 2, la hoja abierta para el primero).
+ *   3:   el primero ya está «Por revisar», el segundo se prepara, el tercero se puede agregar.
+ *   4:   la hoja de revisar, sobre lo mismo.
+ *   5:   el primero guardado con IA; el segundo, ya «Por revisar».
+ */
+function estadosDe(paso) {
+  // Sin paso de revisión (Felipe 2026-11-13: «hay que omitir Revisar»): al terminar, la foto de IA queda sola como la de ese color.
+  if (paso <= 2) return ['vacio', 'vacio', 'vacio'];
+  if (paso === 3) return ['guardada', 'preparando', 'vacio'];
+  return ['guardada', 'guardada', 'guardada'];
+}
+// En la maqueta solo hay una prenda real por modelo: los demás colores son la misma foto con el tono cambiado (simulado).
+const TONO_A = { 'Verde limón': 'none', 'Rosa palo': 'hue-rotate(-95deg) saturate(.75)', 'Celeste': 'hue-rotate(115deg) saturate(.8)',
+                 'Gris perla': 'none', 'Negro': 'brightness(.32)', 'Blanco': 'brightness(1.18) saturate(.15)' };
+
+function cuadro(p, c, est, i) {
+  if (est === 'vacio') return `<button class="vacio" data-agregar="${i}"><div>${ICON.camara}Agregar foto de ${c.nombre}</div></button>`;
+  const t = TONO_A[c.nombre] ?? 'none';
+  if (est === 'preparando') return `<div class="cuadro en-proceso"><img src="${p.colgada}" alt="" style="filter:${t}"><div class="sobre" data-senal><div class="hilo"></div>Preparando…</div></div>`;
+  const mia = estado.mias[c.nombre];
+  return mia
+    ? `<div class="cuadro"><img src="${p.colgada}" alt="${p.nombre} ${c.nombre}, tu foto" style="object-fit:cover;filter:${t}"></div>`
+    : `<div class="cuadro foto-ia"><img src="${p.ia}" alt="${p.nombre} ${c.nombre}, foto de catálogo" style="filter:${t}"><span class="chip sobre-foto marca-ia">Con IA</span></div>`;
+}
+function pieDe(c, est) {
+  if (est === 'vacio') return 'Sin foto';
+  if (est === 'preparando') return 'Preparando';
+  return `<button class="btn enlace" data-cambiar="${c.nombre}">${estado.mias[c.nombre] ? 'Usar la de IA' : 'Usar mi foto'}</button>`;
+}
+
+function pintarA() {
+  const p = PRENDAS[estado.prenda];
+  document.getElementById('nombre-corto').textContent = p.nombre;
+  document.getElementById('int').setAttribute('aria-checked', String(estado.ia || estado.paso > 1));
+
+  const ests = estadosDe(estado.paso);
+  document.getElementById('cuenta').textContent = `${ests.filter(e => e === 'guardada').length} de 3`;
+  document.getElementById('cuerpo-a').classList.remove('con-panel');
+  document.getElementById('colores').innerHTML = p.colores.map((c, i) => `
+    <div class="color">
+      ${cuadro(p, c, ests[i], i)}
+      <div class="nombre"><span class="punto" style="background:${c.hex}"></span>${c.nombre}</div>
+      <div class="estado">${pieDe(c, ests[i])}</div>
+    </div>`).join('');
+  // Desde el paso 3 en adelante, agregar otro color abre su hoja encima de lo que ya hay (con el molde del primer color).
+  document.querySelectorAll('[data-agregar]').forEach(b => b.onclick = () => { const i = Number(b.dataset.agregar); if (estado.paso >= 3) { estado.hojaDe = i; pintar(); } else irA(estado.ia || estado.paso > 1 ? 2 : 1); });
+  document.querySelectorAll('[data-cambiar]').forEach(b => b.onclick = () => { const n = b.dataset.cambiar; estado.mias[n] = !estado.mias[n]; pintar(); });
+
+  const velo = document.getElementById('velo'), hoja = document.getElementById('hoja');
+  velo.classList.toggle('abierta', estado.paso === 2 || estado.hojaDe !== null);
+  if (estado.paso === 2 || estado.hojaDe !== null) hoja.innerHTML = hojaFotos(p, p.colores[estado.hojaDe ?? 0]);
+  hoja.querySelectorAll('[data-ir]').forEach(b => b.onclick = () => irA(Number(b.dataset.ir)));
+}
+
+function hojaFotos(p, c) {
+  const angulo = (etq, opcional, img, ayuda) => `
+    <div class="angulo">
+      <span class="etq">${etq}${opcional ? ' <em>· opcional</em>' : ''}</span>
+      ${img ? `<div class="caja"><img src="${img}" alt="${etq}" style="filter:${TONO_A[c.nombre] ?? 'none'}"><span class="ok">${ICON.ok}</span></div>`
+            : `<button class="caja vacia"><div>${ICON.camara}Agregar</div></button>`}
+      <span class="ayuda">${ayuda}</span>
+    </div>`;
+  return `
+    <button class="x" data-ir="${estado.paso > 2 ? 3 : 1}" aria-label="Cerrar">${ICON.x}</button>
+    <h3>Foto de catálogo · ${c.nombre}</h3>
+    <p class="bajada">Más ángulos, más parecida a la real.</p>
+    ${c !== p.colores[0] ? `<div class="molde"><img src="${p.ia}" alt=""><span><b>Misma forma que ${p.colores[0].nombre}</b>Solo cambia el color.</span></div>` : ''}
+    <div class="angulos">
+      ${angulo('De frente', false, p.colgada, 'Entera, como siempre.')}
+      ${angulo('Espalda', true, null, 'Escote y caída.')}
+      ${angulo('Detalle de la tela', true, p.detalle, 'De cerca, con buena luz.')}
+    </div>
+    <div class="pie">
+      <span class="costo">~25 s · ${p.detalle ? '0,06' : '0,05'} USD</span>
+      <button class="btn secundario" data-ir="1">Cancelar</button>
+      <button class="btn primario" data-ir="3">${ICON.ia} Preparar foto</button>
+    </div>`;
+}
+
+function irA(paso) { estado.paso = paso; estado.hojaDe = null; if (paso >= 2) estado.ia = true; pintar(); }
+document.getElementById('int').onclick = () => { estado.ia = !estado.ia; if (!estado.ia) estado.paso = 1; pintar(); };
+document.querySelectorAll('#seg-prenda button').forEach(b => b.onclick = () => {
+  estado.prenda = b.dataset.prenda; document.querySelectorAll('#seg-prenda button').forEach(x => x.classList.toggle('on', x === b)); pintar(); });
+document.querySelectorAll('#seg-tema button').forEach(b => b.onclick = () => {
+  document.documentElement.dataset.tema = b.dataset.tema; document.querySelectorAll('#seg-tema button').forEach(x => x.classList.toggle('on', x === b)); });
+document.addEventListener('keydown', e => {
+  if (estado.forma === 'A' && e.key === 'Escape' && estado.paso === 2) irA(1);
+  if (estado.forma === 'C') {
+    if (e.key === 'ArrowDown' || e.key === 'ArrowUp') { e.preventDefault(); estado.c = Math.max(0, Math.min(COLA.length - 1, estado.c + (e.key === 'ArrowDown' ? 1 : -1))); pintar(); }
+    if (e.key === 'u' || e.key === 'U' || e.key === 'm' || e.key === 'M') decidirC(e.key.toLowerCase() === 'u' ? 'ia' : 'mia');
+  }
+});
+document.querySelectorAll('#seg-forma button').forEach(b => b.onclick = () => { estado.forma = b.dataset.forma; pintar(); });
+
+/* =================== B · toda la prenda de una vez ===================
+   Sueltas todas las fotos de la prenda; el ERP adivina el color de cada una comparando su tono con el de cada variante (y el ángulo,
+   por cómo se ve), tú solo corriges lo dudoso, se preparan todas juntas y una sola pantalla las muestra de a pares: «Usar todas». */
+// En la maqueta solo hay fotos reales de una blusa verde: Rosa palo y Celeste son la misma foto con el tono cambiado (simulado).
+const TONO = { 'Verde limón': 'none', 'Rosa palo': 'hue-rotate(-95deg) saturate(.75)', 'Celeste': 'hue-rotate(115deg) saturate(.8)' };
+const B = PRENDAS.blusa;
+const LOTE = [
+  { img: B.colgada, color: 'Verde limón', angulo: 'Frente' },
+  { img: B.detalle, color: 'Verde limón', angulo: 'Detalle' },
+  { img: B.colgada, color: 'Rosa palo', angulo: 'Frente' },
+  { img: B.colgada, color: 'Celeste', angulo: 'Frente', duda: true },
+];
+const HEX = Object.fromEntries(B.colores.map(c => [c.nombre, c.hex]));
+const flecha = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="m6 9 6 6 6-6"/></svg>';
+
+function cabecera(titulo, detalle) {
+  return `<div class="sede">Taller · viernes, 13 de noviembre${detalle ? ' · ' + detalle : ''}</div><h1>${titulo}</h1>`;
+}
+
+function pintarB() {
+  const paso = estado.b;
+  let cuerpo = '';
+  if (paso === 1) cuerpo = `
+    <div class="soltar">${ICON.camara}<b>Suelta todas las fotos de la prenda</b>Todos los colores y ángulos juntos.</div>`;
+  if (paso === 2) cuerpo = `
+    <div class="lote">${LOTE.map(f => `
+      <figure>
+        <div class="mini"><img src="${f.img}" alt="${f.angulo} · ${f.color}" style="filter:${TONO[f.color]}"></div>
+        <div class="pildoras">
+          <button class="pil ${f.duda ? 'duda' : ''}"><span class="punto" style="background:${HEX[f.color]}"></span>${f.duda ? '¿' + f.color + '?' : f.color}${flecha}</button>
+          <button class="pil">${f.angulo}${flecha}</button>
+        </div>
+      </figure>`).join('')}
+    </div>
+    <div class="barra-lote"><span class="t">3 colores · 1 por confirmar</span>
+      <span class="costo" style="font-size:13px;color:var(--taupe)">~25 s · 0,16 USD</span>
+      <button class="btn primario" data-b="3">${ICON.ia} Preparar todo</button></div>`;
+  if (paso === 3) {
+    const pares = B.colores.map(c => ({ c, listo: c.nombre !== 'Celeste' }));
+    const usadas = pares.filter(x => x.listo && !estado.descartadas[x.c.nombre]).length;
+    cuerpo = `
+    <div class="pares">${pares.map(({ c, listo }) => {
+      const desc = estado.descartadas[c.nombre];
+      return `
+      <div class="par ${desc ? 'descartada' : ''}">
+        <div class="cab"><span class="punto" style="background:${c.hex}"></span>${c.nombre}
+          ${listo ? `<span class="chip ${desc ? 'pizarra' : 'verde'}">${desc ? 'Mi foto' : 'Color igual'}</span>` : '<span class="chip ambar">Preparando</span>'}</div>
+        <div class="dos">
+          <div class="marco"><img src="${B.colgada}" alt="Tu foto · ${c.nombre}" style="object-fit:cover;filter:${TONO[c.nombre]}"></div>
+          ${listo ? `<div class="marco ia"><img src="${B.ia}" alt="Con IA · ${c.nombre}, sin fondo" style="filter:${TONO[c.nombre]}"></div>`
+                  : `<div class="marco espera"><div class="hilo" data-senal></div></div>`}
+        </div>
+        ${listo ? `<div class="acciones"><button class="btn secundario chico" data-descartar="${c.nombre}">${desc ? 'Usar la de IA' : 'Usar mi foto'}</button></div>` : ''}
+      </div>`; }).join('')}
+    </div>
+    <div class="barra-lote"><span class="t">${usadas} de 3 con IA</span>
+      <button class="btn primario">Guardar</button></div>`;
+  }
+  document.getElementById('forma-otra').innerHTML = cabecera('Editar producto', B.nombre) + `
+    <section class="bloque"><div class="bloque-tit"><h2>Fotos por color <span class="dato">${paso === 3 ? '3 de 3' : '0 de 3'}</span></h2>${iaMini()}</div>
+    ${cuerpo}</section>`;
+  document.querySelectorAll('[data-b]').forEach(b => b.onclick = () => { estado.b = Number(b.dataset.b); pintar(); });
+  document.querySelectorAll('[data-descartar]').forEach(b => b.onclick = () => {
+    const n = b.dataset.descartar; estado.descartadas[n] = !estado.descartadas[n]; pintar(); });
+  document.querySelector('.soltar')?.addEventListener('click', () => { estado.b = 2; pintar(); });
+}
+
+function iaMini() {
+  return `<div class="ia-mini"><span class="ico-mini" aria-hidden="true">${ICON.ia}</span><span class="lbl">Catálogo con IA</span>
+    <button class="q" aria-label="Qué hace" data-globo="Maniquí invisible, sin fondo.">?</button>
+    <button class="int" role="switch" aria-checked="true" aria-label="Catálogo con IA"><i></i></button></div>`;
+}
+
+/* =================== C · la bandeja del día ===================
+   Una pantalla en Productos con todas las fotos por revisar de todas las prendas: una lista a la izquierda y el par grande a la derecha.
+   Se revisa de corrido con el teclado: ↑ ↓ para moverse, U usa la de IA, M usa la tuya y pasa a la siguiente. */
+const COLA = [
+  { prenda: 'Blusa Lima', color: 'Verde limón', p: PRENDAS.blusa, tono: 'none' },
+  { prenda: 'Top Drapeado', color: 'Gris perla', p: PRENDAS.top, tono: 'none' },
+  { prenda: 'Blusa Lima', color: 'Rosa palo', p: PRENDAS.blusa, tono: TONO['Rosa palo'] },
+  { prenda: 'Top Drapeado', color: 'Negro', p: PRENDAS.top, tono: 'brightness(.32)' },
+  { prenda: 'Blusa Lima', color: 'Celeste', p: PRENDAS.blusa, tono: TONO['Celeste'] },
+];
+const hechas = {};
+function decidirC(que) { hechas[estado.c] = que; estado.c = Math.min(COLA.length - 1, estado.c + 1); pintar(); }
+
+function pintarC() {
+  const i = estado.c, f = COLA[i];
+  const quedan = COLA.filter((_, k) => !hechas[k]).length;
+  const ok = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>';
+  document.getElementById('forma-otra').innerHTML = cabecera('Fotos por revisar') + `
+    <div class="cifras">
+      <div class="cifra"><span>Por revisar</span><b>${quedan}</b></div>
+      <div class="cifra"><span>Preparando</span><b>2</b></div>
+      <div class="cifra"><span>Usadas hoy</span><b>${12 + Object.values(hechas).filter(x => x === 'ia').length}</b></div>
+    </div>
+    <div class="bandeja">
+      <div class="lista">${COLA.map((x, k) => `
+        <button class="item ${k === i ? 'on' : ''}" data-c="${k}">
+          <img src="${x.p.ia}" alt="" style="filter:${x.tono}">
+          <span class="q"><b>${x.prenda}</b><small>${x.color}</small></span>
+          ${hechas[k] ? `<span class="hecho" title="${hechas[k] === 'ia' ? 'Con IA' : 'Tu foto'}">${ok}</span>` : ''}
+        </button>`).join('')}
+      </div>
+      <div class="visor">
+        <h3>${f.prenda} · ${f.color}</h3>
+        <div class="comparar">
+          <div><div class="cab-col"><span class="etq">Tu foto</span></div><div class="marco"><img src="${f.p.colgada}" alt="Tu foto" style="object-fit:cover;filter:${f.tono}"></div></div>
+          <div><div class="cab-col"><span class="etq">Con IA</span></div><div class="marco ia"><img src="${f.p.ia}" alt="Con IA, sin fondo" style="filter:${f.tono}"></div>
+            <div class="chips"><span class="chip verde">Color igual</span><span class="chip verde">Entra al armador</span></div></div>
+        </div>
+        <div class="pie">
+          <span class="teclas"><span><kbd>↑</kbd><kbd>↓</kbd>moverse</span><span><kbd>U</kbd>usar</span><span><kbd>M</kbd>mi foto</span></span>
+          <button class="btn secundario" data-decidir="mia">Usar mi foto</button>
+          <button class="btn primario" data-decidir="ia">Usar la de IA</button>
+        </div>
+      </div>
+    </div>`;
+  document.querySelectorAll('[data-c]').forEach(b => b.onclick = () => { estado.c = Number(b.dataset.c); pintar(); });
+  document.querySelectorAll('[data-decidir]').forEach(b => b.onclick = () => decidirC(b.dataset.decidir));
+}
+
+const PASOS = {
+  A: [['1', 'Interruptor'], ['2', 'Fotos'], ['3', 'Preparando'], ['4', 'Listas']],
+  B: [['1', 'Soltar'], ['2', 'Confirmar'], ['3', 'Revisar']],
+  C: [],
+};
+function pintar() {
+  const f = estado.forma;
+  document.querySelectorAll('#seg-forma button').forEach(b => b.classList.toggle('on', b.dataset.forma === f));
+  document.getElementById('forma-a').style.display = f === 'A' ? '' : 'none';
+  document.getElementById('forma-otra').style.display = f === 'A' ? 'none' : '';
+  document.getElementById('grupo-prenda').style.display = f === 'A' ? '' : 'none';
+  const seg = document.getElementById('seg-paso');
+  seg.parentElement.style.display = PASOS[f].length ? '' : 'none';
+  const actual = f === 'A' ? estado.paso : estado.b;
+  seg.innerHTML = PASOS[f].map(([n, t]) => `<button data-n="${n}" class="${Number(n) === actual ? 'on' : ''}">${n} · ${t}</button>`).join('');
+  seg.querySelectorAll('button').forEach(b => b.onclick = () => { if (f === 'A') irA(Number(b.dataset.n)); else { estado.b = Number(b.dataset.n); pintar(); } });
+  document.getElementById('velo').classList.remove('abierta');
+  if (f === 'A') pintarA(); else if (f === 'B') pintarB(); else pintarC();
+}
+pintar();
+</script>
+</body>
+</html>

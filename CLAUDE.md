@@ -614,6 +614,19 @@ siempre el OK de Felipe**. Respeta los tokens (ADR-0169), el movimiento sin rebo
 modal, corre `/formidable`; el avance módulo por módulo vive en `docs/formidable/README.md` (piloto: Inventario ▸ Frescura del piso). Detalle:
 `docs/adr/0350-formidable-el-iphone-llevado-al-erp.md` y `.claude/skills/formidable/`.
 
+## Poco texto a la vista (regla — Felipe 2026-11-13)
+
+**Felipe: «hay demasiado texto, hay que evitar esto».** Nació de una opción que decía en tres frases lo que su nombre ya decía. Vale para toda
+pantalla, hoja o pieza nueva o editada:
+1. **Una opción, un botón o un bloque: su nombre y, como mucho, UNA línea de 8 palabras o menos.** Nada más a la vista.
+2. **Lo que explica** (cómo funciona, cuánto cuesta o tarda, las excepciones) **no va a la vista**: va detrás del «?» (`<Ayuda>`) o aparece recién
+   donde se usa (en la hoja que se abre, junto al botón que lo gasta).
+3. **Un estado lo dice el control** (el interruptor prendido, un `<Chip>`), nunca una frase debajo («Apagado: las fotos se suben tal cual»).
+4. **No se repite:** si el título lo dice, la línea no lo vuelve a decir; si la pieza ya lo muestra, no se escribe.
+
+Ejemplo: «Foto de catálogo con IA» + «Maniquí invisible, sin fondo.» + el interruptor; el tiempo y el costo van en el pie de la hoja que se abre.
+Lo revisan `/textos` y `/formidable` (ley 8, «quitar antes de agregar»).
+
 ## La tienda y el ERP no comparten estilos (regla — ADR-0616, Felipe 2026-11-06)
 
 **`apps/tienda` y `apps/web` tienen cada una sus estilos: ninguna importa una hoja ni usa una variable de la otra** (`--color-*` son del ERP, `--dn-*` de la tienda). Cambiar el diseño de una no toca a la
