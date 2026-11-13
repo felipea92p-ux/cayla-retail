@@ -34,3 +34,27 @@ Se sube el extracto de un mes cerrado que termina en fin de semana: la cadena de
 Anular una carga equivocada tampoco existe aún: hoy el freno es la cuenta del archivo.
 
 Prueba: `pnpm pruebas:banco-lineas` (136 casos) y `-- --control` (11 mutantes que tienen que caer).
+
+## Actualización 2026-11-13 — el día a medias y el borde por fecha de proceso
+
+Felipe vio «No cuadra» en Interbank Empresas. Medido con el .txt del 1 al 13 de noviembre y una consulta de solo lectura (las cifras no se
+versionan: el repo es público): el extracto se había subido el 9-nov de noche, con ese día todavía en curso. Después entraron un QR y un ITF,
+y la diferencia cambió de lado: el banco ya cerrado tenía más que el ERP. `fn_banco_cuadre` compara el último día del banco hasta la hora de
+la descarga contra el día entero del ERP.
+
+**DECIDÍ:** decirlo en la pantalla, sin tocar la base. `diaSinCerrar` (`lib/banco-lineas.ts`) mira si la última subida es la que trae el
+último día y si se hizo ese mismo día en hora de Lima. En ese caso el estado es «El 9 nov sigue abierto» (pizarra, no ámbar) y explica por
+qué la diferencia todavía no vale, y la cifra del banco dice de qué hora es.
+
+**DESCARTÉ:** cambiar `fn_banco_cuadre` para comparar hasta el último día que el banco ya procesó (el de su última línea firme). Es más
+exacto, pero necesita una migración que Felipe pega, y castiga al ERP cuando registra un depósito con un día de atraso: con los datos del
+13-nov habría mostrado una diferencia de miles al 12-nov por depósitos que el ERP fechó el 13.
+
+**SE ROMPE SI:** el archivo se baja un día y se sube al siguiente. La subida ya no es del mismo día y el aviso no sale, aunque el último
+día esté a medias. La señal exacta (líneas provisionales en el último día) vive en la base; si vuelve a pasar, `fn_banco_cuadre` puede
+devolverla.
+
+Además, el lector marcaba 11 saltos como «Al extracto le faltan movimientos» en un archivo que empieza el 1-nov. El banco filtra por fecha
+de OPERACIÓN pero procesa por lotes: el sábado 31-oct entró al lote del lunes 2-nov con correlativos intercalados, y el archivo trae ese lote
+sin esas líneas. `leerExtracto` ahora toma como borde también los saltos dentro del primer lote procesado (y del último, si se procesó
+después del último día del archivo). Con el archivo real: 17 saltos, los 17 en el borde.
