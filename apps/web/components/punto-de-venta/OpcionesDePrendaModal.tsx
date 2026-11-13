@@ -185,9 +185,13 @@ export function OpcionesDePrendaModal({ prenda, colorClave, ubicacionEtiqueta, c
             </div>
           </div>
 
-          <div data-guia="vender.prenda-pie" className="mt-5 flex flex-wrap items-end justify-between gap-3">
-            <div className="min-w-0 flex-1">{pie?.(elegido)}</div>
-            <button type="button" onClick={cerrar} className={`${botonPrimario} flex-none px-6`}>
+          {/* «Listo» a la altura del botón de la primera nota (Felipe 2026-11-13: quedaba al ras de abajo de la caja y más bajo que
+              «Anotar que no había»). Las notas van de 40 px como «Listo» y su texto, a 20 px por línea, no pasa de ese alto en dos líneas; «Listo»
+              baja lo que la caja trae arriba (1 px de borde + 10 de aire). Sin nota no baja nada (`peer`, la columna vacía). En el celular la
+              nota va a lo ancho y «Listo» debajo, a todo el ancho: al lado, la nota se apretaba y su botón caía bajo el texto. */}
+          <div data-guia="vender.prenda-pie" className="mt-5 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+            <div className="peer flex min-w-0 flex-1 flex-col gap-3 [&>*]:!mt-0">{pie?.(elegido)}</div>
+            <button type="button" onClick={cerrar} className={`${botonPrimario} min-h-10 w-full flex-none px-6 sm:w-auto sm:peer-[:not(:empty)]:mt-[11px]`}>
               Listo
             </button>
           </div>
