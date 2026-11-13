@@ -21,6 +21,7 @@ export type FilaPrenda = Pick<
   | "talla"
   | "color"
   | "colorHex"
+  | "colorTonos"
   | "colorEstampado"
   | "fotoUrl"
   | "categoriaPrefijo"
@@ -68,6 +69,8 @@ export type PrendaAgrupada<F extends FilaPrenda = FilaPrenda> = {
   marca: string | null;
   color: string | null;
   colorHex: string | null;
+  /** Una mezcla (ADR-0643): sus tonos, para partir el punto. */
+  colorTonos?: readonly string[] | null;
   colorEstampado?: boolean;
   fotoUrl: string | null;
   /** La categoría de la prenda, para dibujarla cuando no hay foto (`SinFoto`): nombre visible, prefijo (el ícono) y familia (el tono). */
@@ -118,6 +121,7 @@ export function agruparPorPrenda<F extends FilaPrenda>(filas: readonly F[]): Pre
       marca: primera.marca ?? null,
       color: primera.color,
       colorHex: primera.colorHex,
+      ...(primera.colorTonos ? { colorTonos: primera.colorTonos } : {}),
       ...(primera.colorEstampado ? { colorEstampado: true } : {}),
       // La foto del color: la de la primera talla que la tenga (una talla sin foto no le quita la foto al color).
       fotoUrl: tallas.find((f) => f.fotoUrl)?.fotoUrl ?? null,

@@ -2,7 +2,7 @@
   "guia": "produccion.ordenes",
   "ruta": "/produccion/ordenes",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 115,
+  "total": 117,
   "controles": {
     "components/ModeloNuevoCampos.tsx": [
       "CampoTexto «{guia.etiqueta(\"nombre\", \"Nombre del modelo\")}»",
@@ -46,6 +46,8 @@
       "ComboBuscable «(sin nombre)»",
       "button «{carta ? \"Ocultar la carta\" : `Ver los ${ofrecibles.length}»",
       "Boton «{enLinea ? undefined : \"Crear un color necesita internet\"}»",
+      "Boton «Para una prenda de dos o más colores: hueso con azul»",
+      "Boton «Cancelar»",
       "button «{c.nombre}»"
     ],
     "components/alta-producto/IdentidadAlta.tsx": [

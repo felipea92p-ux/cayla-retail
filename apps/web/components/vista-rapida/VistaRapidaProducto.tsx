@@ -34,6 +34,7 @@ import { HistorialPrenda } from "@/components/historial-prenda/HistorialPrenda";
 import { useHistorialPrenda } from "@/components/historial-prenda/useHistorialPrenda";
 import { BotonVer } from "@/components/ui/BotonDescargar";
 import { prefiereQuieto } from "@/lib/movimiento-cliente";
+import { fondoDelPunto } from "@/lib/color-combinado";
 
 // Todos los botones del pie con la misma medida (40 px, la letra de una hoja): con letras distintas la fila se veía descuadrada (Felipe 2026-11-13).
 const BOTON = "btn-cayla btn-secundario min-h-10";
@@ -260,7 +261,7 @@ export function VistaRapidaProducto({
           <FotoVistaRapida producto={producto} fila={filaEnFoto} onAmpliar={setFotoGrande} botonAmpliar={botonAmpliar} precargar={fotosDeLosColores} />
           <div>
             <div className="vr-pie-foto">
-              <span className="vr-sw" style={{ background: filaEnFoto?.hex, width: 20, height: 20 }} />
+              <span className="vr-sw" style={{ background: filaEnFoto ? fondoDelPunto(filaEnFoto.hex, filaEnFoto.tonos) : undefined, width: 20, height: 20 }} />
               <span key={filaEnFoto?.nombre} className="vr-nom vr-texto-cambia">
                 {filaEnFoto?.nombre}
               </span>
