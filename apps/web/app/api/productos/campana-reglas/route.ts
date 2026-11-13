@@ -46,7 +46,7 @@ export async function POST(request: Request) {
   const o = leido.valor;
 
   const supabase = await createClient({ firma: firmaDeEncabezados(request.headers) });
-  const { data, error } = await llamar(supabase, "guardar_campana_regla", {
+  const comun = {
     p_regla_id: o.id,
     p_etiqueta_id: o.etiquetaId,
     p_nombre: o.nombre,
@@ -59,7 +59,13 @@ export async function POST(request: Request) {
     p_incluye_claure: o.incluyeClaure,
     p_sede_ids: o.sedeIds,
     p_activar: o.activar,
-  });
+  };
+  // Con modelos elegidos uno por uno (ADR-0655), `guardar_oferta` guarda la oferta y sus modelos en una transacción (20261113210000). Sin ellos
+  // —y para una oferta que los tenía y ya no— la función de siempre basta si la oferta nunca tuvo modelos; si los tuvo, `guardar_oferta` los quita.
+  const conModelos = o.productosSolo.length > 0 || o.teniaModelos;
+  const { data, error } = conModelos
+    ? await llamar(supabase, "guardar_oferta", { ...comun, p_producto_ids: o.productosSolo })
+    : await llamar(supabase, "guardar_campana_regla", comun);
   if (error) return Response.json({ error: traducirError(error, "guardar la oferta") }, { status: 400 });
 
   const lista = await listaFresca(supabase);

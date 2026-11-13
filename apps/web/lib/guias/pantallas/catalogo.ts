@@ -1303,6 +1303,14 @@ export const GUIA_CAMPANAS: Guia = {
       texto: "Viene lo de la campaña. Marca categorías para que rija solo en ellas, aunque la campaña no las tenga: la grilla va por familia, con cuántas prendas trae cada una y un buscador. Toca el nombre de una familia para abrirla o plegarla; la casilla marca toda la familia. Lo que marques se ve al instante en la etiqueta.",
     },
     {
+      id: "oferta-una-por-una",
+      ancla: "sellos.oferta-una-por-una",
+      opcional: true,
+      preparar: [{ tipo: "clic", ancla: "sellos.oferta-paso-2" }],
+      titulo: "Por categoría o prenda por prenda",
+      texto: "Elige categorías enteras o, en «Prenda por prenda», busca y marca modelos sueltos: cada uno entra con todas sus tallas y colores. Se pueden sumar las dos cosas; al elegir prendas sueltas, la oferta rige solo en lo que marques.",
+    },
+    {
       id: "oferta-dias",
       ancla: "sellos.oferta-dias",
       opcional: true,

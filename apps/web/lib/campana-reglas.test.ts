@@ -18,6 +18,8 @@ import {
   esNombreAutomatico,
   fraseDeOferta,
   leerCuerpoOferta,
+  alcanceDicho,
+  MAX_PRODUCTOS_SOLO,
   nombreAutomatico,
   nombreDeOferta,
   ofertaDesdeRegla,
@@ -281,6 +283,14 @@ describe("el cuerpo que manda la hoja a la API", () => {
   ])("lo malo se rechaza: %s", (_nombre, cuerpo) => {
     expect(leerCuerpoOferta(cuerpo).ok).toBe(false);
   });
+  it("los modelos elegidos uno por uno viajan sin repetir y con su tope (ADR-0655)", () => {
+    const r = leerCuerpoOferta({ ...bueno, productosSolo: [ID, ID, CAMPANA], teniaModelos: true });
+    expect(r.ok && r.valor.productosSolo).toEqual([ID, CAMPANA]);
+    expect(r.ok && r.valor.teniaModelos).toBe(true);
+    expect(leerCuerpoOferta(bueno).ok && (leerCuerpoOferta(bueno) as { valor: { productosSolo: string[]; teniaModelos: boolean } }).valor).toMatchObject({ productosSolo: [], teniaModelos: false });
+    expect(leerCuerpoOferta({ ...bueno, productosSolo: ["polo"] }).ok).toBe(false);
+    expect(leerCuerpoOferta({ ...bueno, productosSolo: Array.from({ length: MAX_PRODUCTOS_SOLO + 1 }, (_, i) => `00000000-0000-4000-8000-${String(i).padStart(12, "0")}`) }).ok).toBe(false);
+  });
   it("con id y sin categorías es una edición", () => {
     const r = leerCuerpoOferta({ ...bueno, id: ID, categoriasSolo: undefined });
     expect(r.ok && r.valor.id).toBe(ID);
@@ -437,6 +447,21 @@ describe("cuántas prendas alcanza una oferta", () => {
     expect(prendasQueAlcanza(campana, catalogo, todas).map((p) => p.id)).toEqual(["1"]);
     expect(prendasQueAlcanza(campana, catalogo, { ...todas, categoriasSolo: ["casacas"] }).map((p) => p.id)).toEqual(["9", "10"]);
     expect(prendasQueAlcanza(campana, catalogo, { ...todas, categoriasSolo: ["casacas", "blusas"] }).map((p) => p.id)).toEqual(["1", "9", "10"]);
+  });
+  it("prenda por prenda: los modelos elegidos se suman a «solo estas categorías» y ya no rige en toda la campaña (como fn_campanas_en_sede)", () => {
+    const campana = [{ id: "1", categoriaId: "blusas", productoId: "emma" }];
+    const catalogo = [...campana, { id: "9", categoriaId: "casacas", productoId: "nube" }, { id: "10", categoriaId: "polos", productoId: "brisa" }];
+    expect(prendasQueAlcanza(campana, catalogo, { ...todas, productosSolo: ["nube"] }).map((p) => p.id)).toEqual(["9"]);
+    expect(prendasQueAlcanza(campana, catalogo, { ...todas, categoriasSolo: ["blusas"], productosSolo: ["brisa"] }).map((p) => p.id)).toEqual(["1", "10"]);
+    expect(prendasQueAlcanza(campana, catalogo, { ...todas, productosSolo: ["nube"], categoriasFuera: ["casacas"] }).map((p) => p.id)).toEqual([]);
+  });
+  it("dónde rige, dicho una vez: categorías, prendas elegidas, las dos o toda la campaña", () => {
+    const nom = (id: string) => ({ blusas: "Blusas", polos: "Polos" })[id] ?? "";
+    expect(alcanceDicho({ categoriasSolo: [], productosSolo: [] }, nom)).toBeNull();
+    expect(alcanceDicho({ categoriasSolo: ["blusas"] }, nom)).toBe("Blusas");
+    expect(alcanceDicho({ categoriasSolo: [], productosSolo: ["a"] }, nom)).toBe("1 prenda elegida");
+    expect(alcanceDicho({ categoriasSolo: ["polos"], productosSolo: ["a", "b"] }, nom)).toBe("Polos y 2 prendas elegidas");
+    expect(alcanceDicho({ categoriasSolo: ["polos", "blusas"], productosSolo: ["a"] }, nom)).toBe("Blusas, Polos y 1 prenda elegida");
   });
   it("el conteo de cada categoría y el de «solo esa categoría» dicen lo mismo", () => {
     const cuenta = contarPorCategoria(prendas, false);

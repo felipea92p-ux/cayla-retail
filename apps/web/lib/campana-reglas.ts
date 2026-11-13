@@ -33,6 +33,8 @@ export type ReglaCampana = {
   /** «Solo estas categorías» (vacío = todas las de la campaña) y «dejar fuera». */
   categoriasSolo: string[];
   categoriasFuera: string[];
+  /** Los modelos (productos) elegidos uno por uno (ADR-0655): se suman a «solo estas categorías». Vacío = ninguno. */
+  productosSolo: string[];
   /** Las tiendas donde rige, dentro de las de su campaña. Vacío = en todas las de la campaña. */
   sedeIds: string[];
   creadaEn: string;
@@ -57,6 +59,8 @@ export type FilaRegla = {
   categorias_solo: string[] | null;
   categorias_fuera: string[] | null;
   sedes?: string[] | null;
+  /** Desde 20261113210000; sin esa migración la base no lo manda. */
+  productos_solo?: string[] | null;
   creada_en: string;
   activada_en: string | null;
   cambios: number | null;
@@ -79,6 +83,7 @@ export function reglaDeFila(f: FilaRegla): ReglaCampana {
     estado: ESTADOS.includes(f.estado as EstadoRegla) ? (f.estado as EstadoRegla) : "borrador",
     categoriasSolo: f.categorias_solo ?? [],
     categoriasFuera: f.categorias_fuera ?? [],
+    productosSolo: f.productos_solo ?? [],
     sedeIds: f.sedes ?? [],
     creadaEn: f.creada_en,
     activadaEn: f.activada_en,
@@ -206,6 +211,8 @@ export type OfertaEnEdicion = {
   dias: number[];
   categoriasSolo: string[];
   categoriasFuera: string[];
+  /** Modelos elegidos uno por uno (ADR-0655); se suman a `categoriasSolo`. Con alguno de los dos, la oferta deja de ser «toda la campaña». */
+  productosSolo: string[];
   /** Tiendas donde rige, dentro de las de su campaña; vacío = todas las de la campaña. */
   sedeIds: string[];
   incluyeClaure: boolean;
@@ -221,6 +228,7 @@ export const ofertaNueva = (desde: string, hasta: string): OfertaEnEdicion => ({
   dias: [...DIAS_SEMANA],
   categoriasSolo: [],
   categoriasFuera: [],
+  productosSolo: [],
   sedeIds: [],
   incluyeClaure: false,
   nombre: "",
@@ -234,6 +242,7 @@ export const ofertaDesdeRegla = (r: ReglaCampana, nombreAutomatico: boolean): Of
   dias: [...r.dias],
   categoriasSolo: [...r.categoriasSolo],
   categoriasFuera: [...r.categoriasFuera],
+  productosSolo: [...r.productosSolo],
   sedeIds: [...r.sedeIds],
   incluyeClaure: r.incluyeClaure,
   nombre: nombreAutomatico ? "" : r.nombre,
@@ -258,13 +267,23 @@ export function categoriasDichas(ids: readonly string[], nombreCategoria: (id: s
   return nombres.length > MAX_CATEGORIAS_NOMBRADAS ? `${nombres.length} categorías` : lista(nombres);
 }
 
+/** Dónde rige una oferta, en pocas palabras: «Blusas y Faldas», «3 prendas elegidas», «Polos y 2 prendas elegidas» o `null` (toda la campaña). */
+export function alcanceDicho(o: Pick<OfertaEnEdicion, "categoriasSolo"> & { productosSolo?: readonly string[] }, nombreCategoria: (id: string) => string): string | null {
+  const n = o.productosSolo?.length ?? 0;
+  const nombres = nombresOrdenados(o.categoriasSolo, nombreCategoria);
+  // Una sola lista: «Blusas, Polos y 1 prenda elegida» (no «Blusas y Polos y 1 prenda elegida»).
+  const cats = nombres.length > MAX_CATEGORIAS_NOMBRADAS ? [`${nombres.length} categorías`] : nombres;
+  const partes = [...cats, ...(n ? [`${n} ${n === 1 ? "prenda elegida" : "prendas elegidas"}`] : [])];
+  return partes.length ? lista(partes) : null;
+}
+
 /** «Toda la campaña · −20 % · mar y jue» · «Blusas y Faldas · −20 % · Trujillo». */
 export function nombreAutomatico(
-  o: Pick<OfertaEnEdicion, "porcentaje" | "dias" | "categoriasSolo"> & { sedeIds?: readonly string[] },
+  o: Pick<OfertaEnEdicion, "porcentaje" | "dias" | "categoriasSolo"> & { sedeIds?: readonly string[]; productosSolo?: readonly string[] },
   nombreCategoria: (id: string) => string,
   nombreSede: (id: string) => string = () => "",
 ): string {
-  const donde = o.categoriasSolo.length ? categoriasDichas(o.categoriasSolo, nombreCategoria) : "Toda la campaña";
+  const donde = alcanceDicho(o, nombreCategoria) ?? "Toda la campaña";
   const dias = textoDiasCorto(o.dias);
   const tiendas = lista(nombresDeTiendas(o.sedeIds ?? [], nombreSede));
   const t = `${donde} · −${String(o.porcentaje).replace(".", ",")} %${dias ? ` · ${dias}` : ""}${tiendas ? ` · ${tiendas}` : ""}`;
@@ -276,7 +295,7 @@ export const nombreDeOferta = (o: OfertaEnEdicion, nombreCategoria: (id: string)
 
 /** Si el nombre guardado es el que habría salido solo (para no tratar de «a mano» uno automático). */
 export const esNombreAutomatico = (r: ReglaCampana, nombreCategoria: (id: string) => string, nombreSede: (id: string) => string = () => ""): boolean =>
-  r.nombre === nombreAutomatico({ porcentaje: r.porcentaje, dias: r.dias, categoriasSolo: r.categoriasSolo, sedeIds: r.sedeIds }, nombreCategoria, nombreSede);
+  r.nombre === nombreAutomatico({ porcentaje: r.porcentaje, dias: r.dias, categoriasSolo: r.categoriasSolo, productosSolo: r.productosSolo, sedeIds: r.sedeIds }, nombreCategoria, nombreSede);
 
 /** «del 26 oct al 31 oct» · «el 26 oct». */
 export const textoFechas = (desde: string, hasta: string): string => {
@@ -286,7 +305,8 @@ export const textoFechas = (desde: string, hasta: string): string => {
 
 /** «20 % menos en todas las prendas de la campaña, los martes y jueves, del 26 oct al 31 oct.» */
 export function fraseDeOferta(o: OfertaEnEdicion, nombreCategoria: (id: string) => string, nombreSede: (id: string) => string = () => ""): string {
-  const donde = o.categoriasSolo.length ? `solo en ${categoriasDichas(o.categoriasSolo, nombreCategoria)}` : "en todas las prendas de la campaña";
+  const alcance = alcanceDicho(o, nombreCategoria);
+  const donde = alcance ? `solo en ${alcance}` : "en todas las prendas de la campaña";
   const fuera = o.categoriasFuera.length ? ` (menos ${lista(nombresOrdenados(o.categoriasFuera, nombreCategoria).map((n) => n.toLowerCase()))})` : "";
   const dias = textoDias(o.dias);
   const tiendas = lista(nombresDeTiendas(o.sedeIds, nombreSede));
@@ -348,11 +368,18 @@ export type CuerpoGuardarOferta = {
   dias: number[];
   categoriasSolo: string[];
   categoriasFuera: string[];
+  /** Modelos elegidos uno por uno (ADR-0655). Con alguno, la ruta llama a `guardar_oferta`; sin ninguno, a `guardar_campana_regla` de siempre. */
+  productosSolo: string[];
+  /** La oferta que se edita tenía modelos: aunque ahora no lleve ninguno, se guarda por `guardar_oferta` para quitárselos. */
+  teniaModelos: boolean;
   sedeIds: string[];
   incluyeClaure: boolean;
   /** Activarla ya (rige desde su fecha) o dejarla como borrador; lo hace quien tiene la llave de campañas (ADR-0534). */
   activar: boolean;
 };
+
+/** El tope de modelos sueltos de una oferta: el mismo que exige `guardar_oferta` (20261113210000). */
+export const MAX_PRODUCTOS_SOLO = 500;
 
 const FECHA = /^\d{4}-\d{2}-\d{2}$/;
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -375,6 +402,9 @@ export function leerCuerpoOferta(cuerpo: unknown): Resultado<CuerpoGuardarOferta
   if (![...solo, ...fuera].every(esTextoUuid)) return { ok: false, error: "Una de las categorías no es válida." };
   const sedes = lista(c.sedeIds);
   if (!sedes.every(esTextoUuid)) return { ok: false, error: "Una de las tiendas no es válida." };
+  const productos = lista(c.productosSolo);
+  if (!productos.every(esTextoUuid)) return { ok: false, error: "Una de las prendas elegidas no es válida." };
+  if (productos.length > MAX_PRODUCTOS_SOLO) return { ok: false, error: `Una oferta puede elegir hasta ${MAX_PRODUCTOS_SOLO} modelos sueltos. Para más, elige sus categorías.` };
   return {
     ok: true,
     valor: {
@@ -387,6 +417,8 @@ export function leerCuerpoOferta(cuerpo: unknown): Resultado<CuerpoGuardarOferta
       dias: ordenados(c.dias as number[]),
       categoriasSolo: solo as string[],
       categoriasFuera: fuera as string[],
+      productosSolo: [...new Set(productos as string[])],
+      teniaModelos: c.teniaModelos === true,
       sedeIds: sedes as string[],
       incluyeClaure: c.incluyeClaure === true,
       activar: c.activar === true,
@@ -426,7 +458,8 @@ export function atajosDeFechas(inicio: string, hastaCampana: string | null, hoy:
 
 /** Las ofertas de la misma campaña con las que esta se cruza: ni retiradas ni terminadas, con fechas que se pisan, algún día de la
  *  semana en común y prendas en común («toda la campaña» se cruza con todo). En cada prenda gana la de mayor descuento; no se suman. */
-export function reglasQueSeCruzan(o: Pick<OfertaEnEdicion, "id" | "desde" | "hasta" | "dias" | "categoriasSolo" | "sedeIds">, otras: readonly ReglaCampana[], hoy: string): ReglaCampana[] {
+export function reglasQueSeCruzan(o: Pick<OfertaEnEdicion, "id" | "desde" | "hasta" | "dias" | "categoriasSolo" | "sedeIds"> & { productosSolo?: readonly string[] }, otras: readonly ReglaCampana[], hoy: string): ReglaCampana[] {
+  const prodO = o.productosSolo ?? [];
   return otras.filter((r) => {
     if (r.id === o.id) return false;
     if (["retirada", "terminada"].includes(vigenciaDeRegla(r, hoy))) return false;
@@ -434,8 +467,12 @@ export function reglasQueSeCruzan(o: Pick<OfertaEnEdicion, "id" | "desde" | "has
     if (!r.dias.some((d) => o.dias.includes(d))) return false;
     // Dos ofertas de tiendas distintas no se cruzan (una oferta sin tiendas rige en todas las de la campaña).
     if (r.sedeIds.length > 0 && o.sedeIds.length > 0 && !r.sedeIds.some((x) => o.sedeIds.includes(x))) return false;
-    if (r.categoriasSolo.length === 0 || o.categoriasSolo.length === 0) return true;
-    return r.categoriasSolo.some((c) => o.categoriasSolo.includes(c));
+    const todaR = r.categoriasSolo.length === 0 && r.productosSolo.length === 0;
+    const todaO = o.categoriasSolo.length === 0 && prodO.length === 0;
+    if (todaR || todaO) return true;
+    // Un modelo elegido puede ser de una categoría elegida por la otra: sin saber su categoría aquí, se avisa (es solo un aviso).
+    if ((r.productosSolo.length > 0 && o.categoriasSolo.length > 0) || (prodO.length > 0 && r.categoriasSolo.length > 0)) return true;
+    return r.categoriasSolo.some((c) => o.categoriasSolo.includes(c)) || r.productosSolo.some((x) => prodO.includes(x));
   });
 }
 
@@ -456,7 +493,7 @@ export function resumenAntes(antes: Record<string, unknown> | null): string {
 
 // ---- Cuántas prendas alcanza una oferta (lo que dicen los conteos de la hoja) -------------------------------------------------------
 
-export type PrendaDeCampana = { id: string; categoriaId: string | null; deClaure?: boolean; modelo?: string };
+export type PrendaDeCampana = { id: string; categoriaId: string | null; deClaure?: boolean; modelo?: string; productoId?: string };
 
 /** Cuántas prendas son estas. Una prenda es un modelo en su color: sus tallas cuentan una vez, como en el pase de Insignias y en la etiqueta
  *  de la campaña (ADR-0488). Sin `modelo`, cada fila cuenta como una. */
@@ -470,12 +507,15 @@ export function contarPrendas(prendas: readonly Pick<PrendaDeCampana, "id" | "mo
 export function prendasQueAlcanza<P extends PrendaDeCampana>(
   prendasDeLaCampana: readonly P[],
   prendasDelCatalogo: readonly P[],
-  o: Pick<OfertaEnEdicion, "categoriasSolo" | "categoriasFuera" | "incluyeClaure">,
+  o: Pick<OfertaEnEdicion, "categoriasSolo" | "categoriasFuera" | "incluyeClaure"> & { productosSolo?: readonly string[] },
 ): P[] {
-  return (o.categoriasSolo.length > 0 ? prendasDelCatalogo : prendasDeLaCampana).filter((p) => {
+  // Con categorías «solo» o modelos elegidos (ADR-0655), la oferta rige en ESAS categorías y ESOS modelos, estén o no en la campaña.
+  const productos = o.productosSolo ?? [];
+  const elegida = o.categoriasSolo.length > 0 || productos.length > 0;
+  return (elegida ? prendasDelCatalogo : prendasDeLaCampana).filter((p) => {
     if (!o.incluyeClaure && p.deClaure) return false;
     const c = p.categoriaId;
-    if (o.categoriasSolo.length > 0 && !(c && o.categoriasSolo.includes(c))) return false;
+    if (elegida && !((c && o.categoriasSolo.includes(c)) || (p.productoId && productos.includes(p.productoId)))) return false;
     return !(c && o.categoriasFuera.includes(c));
   });
 }

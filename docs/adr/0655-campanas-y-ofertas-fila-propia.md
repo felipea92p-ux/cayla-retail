@@ -53,6 +53,21 @@ grupo?»), y el repaso —la frase, los avisos, el nombre y los botones de guard
 la guía interactiva siguen ese orden. No cambia qué se guarda ni cómo cobra la caja. El ticket de varias prendas de la maqueta («Así cobra
 la caja») llega con el 3x2 (actividad 6): para una rebaja, la etiqueta viva ya muestra el cobro de prendas reales.
 
+## Actividad 3 (2026-11-13): prenda por prenda dentro de una oferta
+
+Felipe: «Me pide por categoría, pero si quiero seleccionar las prendas, ¿cómo hago?». En «¿En qué prendas?» la hoja suma un segmento
+**Por categoría | Prenda por prenda**: un buscador (sin tildes) y la lista de modelos del catálogo a la venta, cada uno con todas sus tallas y
+colores (Felipe mide por modelo). Lo que entra por una categoría marcada lo dice («Entra por Polos») y no se marca dos veces.
+
+En la base (`20261113210000_oferta_prenda_por_prenda.sql`, **sin pegar en producción**): la tabla `campana_regla_productos`; `fn_campanas_en_sede`
+suma, por reemplazo anclado, que una oferta con categorías «solo» **o** modelos elegidos alcanza a esas categorías y esos modelos (sin ninguno
+de los dos, a su campaña, como siempre); `campana_reglas()` devuelve `productos_solo`; y `guardar_oferta` envuelve a `guardar_campana_regla` y
+deja los modelos en la misma transacción (el historial, que solo se agrega, suma una fila con los modelos de antes). La web llama a
+`guardar_oferta` solo si la oferta trae o traía modelos: sin ellos sigue usando la función de siempre, así que publicar la web antes que la
+migración no rompe nada salvo elegir prendas sueltas. Al elegir el primer modelo sin haber tocado las categorías, la hoja fija las categorías
+que se veían: la oferta deja de ser «toda la campaña» y lo dice («rige solo en lo que marques»), porque la base no suma «toda la campaña» con
+modelos sueltos. Prueba: `pnpm pruebas:campana-reglas` (83 de 83, con escenarios «Prenda por prenda»).
+
 ## Alternativas descartadas
 
 - **Dentro de Insignias, renombrado «Insignias y ofertas».** No mueve nada, pero sigue mezclando dos preguntas en una pantalla y el nombre

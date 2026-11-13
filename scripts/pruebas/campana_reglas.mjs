@@ -15,7 +15,9 @@
  *   · permisos: sin la llave de las campañas no se guarda, activa ni retira nada; con la llave (sin ser líder) se guarda un borrador, se
  *     activa, se cambia una que ya rige y se retira (ADR-0534, 20261027164000: antes, activar, cambiar y retirar eran de un líder);
  *   · validaciones: %, fechas (hoy o después, dentro de la campaña), días (al menos uno, y que alguno caiga en las fechas), categorías;
- *   · el historial, `campana_reglas()` para la pantalla, las tablas que no se leen directo y la migración re-ejecutable.
+ *   · el historial, `campana_reglas()` para la pantalla, las tablas que no se leen directo y la migración re-ejecutable;
+ *   · prenda por prenda (`20261113210000`, ADR-0655): una oferta con modelos elegidos alcanza a esos modelos (y a sus categorías «solo»),
+ *     no a toda la campaña; «dejar fuera» y la llave siguen mandando; `guardar_oferta` guarda la oferta y sus modelos en una transacción.
  *
  * CÓMO. Cada escenario en su propia transacción con ROLLBACK (como `campanas_por_sede.mjs`): la base compartida queda igual.
  *
@@ -35,6 +37,7 @@ const CONTENEDOR_LOCAL = ARG_CONTENEDOR > 0 ? process.argv[ARG_CONTENEDOR + 1] :
 const iBase = process.argv.indexOf("--base");
 const BASE = iBase > 0 ? process.argv[iBase + 1] : "postgres";
 const MIGRACION = "supabase/migrations/20261023232000_campana_reglas_de_precio.sql";
+const MIGRACION_PRODUCTOS = "supabase/migrations/20261113210000_oferta_prenda_por_prenda.sql";
 const APLICAR_ANTES = process.env.APLICAR_ANTES ? readFileSync(process.env.APLICAR_ANTES, "utf8") : "";
 const FELIPE = "22222222-2222-4222-8222-000000000001"; // líder — opera cualquier ubicación
 const MICAELA = "22222222-2222-4222-8222-000000000003"; // integrante de Tienda Trujillo (seed): no es líder
@@ -502,6 +505,69 @@ rollback;`),
     correr(`${PREPARAR}${OFERTA({ activar: "false" })}select retail.activar_campana_regla(:'r');\nselect retail.activar_campana_regla(:'r');\nselect estado || '|' || (activada_por is not null)::text || '|' || (select count(*) from retail.campana_regla_historial where regla_id = :'r') from retail.campana_reglas where id = :'r';\nrollback;`),
     "activa|true|1",
   );
+
+  // ---------------------------------------------------------------- 9b. Prenda por prenda (20261113210000, ADR-0655)
+  console.log("\n— Prenda por prenda —");
+  {
+    // Si la base todavía no la tiene, se aplica dentro de cada escenario (y se deshace con él).
+    const tiene = correr("select to_regclass('retail.campana_regla_productos') is not null;").salida === "t";
+    const conProductos = tiene ? "" : `${readFileSync(MIGRACION_PRODUCTOS, "utf8")}\n`;
+    const P = `${PREPARAR}${conProductos}set local request.jwt.claim.sub = '${FELIPE}';
+select p.id as prod2 from retail.variantes v join retail.productos p on p.id = v.producto_id where v.id = :'v2' \\gset
+`;
+    const OFERTA_P = ({ productos = "array[:'prod2']::uuid[]", solo = "'{}'::uuid[]", fuera = "'{}'::uuid[]", activar = "true", id = "null", pct = 30 } = {}) =>
+      `select retail.guardar_oferta(${id}, :'camp', 'ZZ por prenda', ${pct}, ${HOY}, ${HOY} + 3, null, ${solo}, ${fuera}, false, '{}'::uuid[], ${productos}, ${activar}) as r \\gset\n`;
+    esperarValor(
+      "una oferta con un modelo elegido lo alcanza aunque la campaña no lo tenga, y ya no alcanza a toda la campaña",
+      correr(`${P}${OFERTA_P()}select ${VE(HOY, 0, ":'v2'")} || ' · ' || ${VE()};\nrollback;`),
+      "1|30.00 · 0|0",
+    );
+    esperarValor(
+      "categorías «solo» y modelos elegidos se suman",
+      correr(`${P}${OFERTA_P({ solo: "array[:'cat']::uuid[]" })}select ${VE(HOY, 0, ":'v2'")} || ' · ' || ${VE()};\nrollback;`),
+      "1|30.00 · 1|30.00",
+    );
+    esperarValor(
+      "sin modelos ni categorías, guardar_oferta deja la oferta en toda la campaña (como siempre)",
+      correr(`${P}${OFERTA_P({ productos: "'{}'::uuid[]" })}select ${VE()} || ' · ' || ${VE(HOY, 0, ":'v2'")};\nrollback;`),
+      "1|30.00 · 0|0",
+    );
+    esperarValor(
+      "«dejar fuera» gana a un modelo elegido de esa categoría",
+      correr(`${P}select p.categoria_id as cat2 from retail.productos p where p.id = :'prod2' \\gset\n${OFERTA_P({ fuera: "array[:'cat2']::uuid[]" })}select ${VE(HOY, 0, ":'v2'")};\nrollback;`),
+      "0|0",
+    );
+    esperarValor(
+      "un borrador con modelos no lo cobra la caja",
+      correr(`${P}${OFERTA_P({ activar: "false" })}select ${VE(HOY, 0, ":'v2'")};\nrollback;`),
+      "0|0",
+    );
+    esperarValor(
+      "campana_reglas() dice los modelos de cada oferta",
+      correr(`${P}${OFERTA_P()}select productos_solo = array[:'prod2']::uuid[] from retail.campana_reglas() where id = :'r';\nrollback;`),
+      "t",
+    );
+    esperarValor(
+      "cambiar los modelos de una oferta: el historial suma una fila con los de antes (solo se agrega), la edición cuenta una vez y la caja sigue los modelos nuevos",
+      correr(`${P}${OFERTA_P()}select retail.guardar_oferta(:'r', :'camp', 'ZZ por prenda', 30, ${HOY}, ${HOY} + 3, null, '{}'::uuid[], '{}'::uuid[], false, '{}'::uuid[], array[:'prod1']::uuid[], true) as r2 \\gset
+select (select count(*) from retail.campana_regla_historial h where h.regla_id = :'r' and h.antes ? 'productos_solo')::text || '|' || (select cambios from retail.campana_reglas() where id = :'r') || '|' || ${VE(HOY, 0, ":'v2'")} || '|' || ${VE()};\nrollback;`),
+      "1|1|0|0|1|30.00",
+    );
+    esperarError("un modelo que no existe no se guarda", correr(`${P}${OFERTA_P({ productos: "array[gen_random_uuid()]::uuid[]" })}\nrollback;`), "ya no existe");
+    esperarValor(
+      "sin la llave de las campañas no se guarda la oferta ni sus modelos",
+      correr(`${P}${COMO_MICAELA}select count(*) from retail.campana_regla_productos;\nrollback;`).ok
+        ? correr(`${P}${COMO_MICAELA}do $$ begin perform retail.guardar_oferta(null, (select id from retail.etiquetas where nombre = 'ZZ Campaña con ofertas (prueba)'), 'x', 30, retail.fn_hoy_lima(), retail.fn_hoy_lima() + 3, null, '{}'::uuid[], '{}'::uuid[], false, '{}'::uuid[], '{}'::uuid[], false); exception when others then raise notice 'rechazada'; end $$;
+reset request.jwt.claim.sub;
+select count(*) from retail.campana_regla_productos rp join retail.campana_reglas r on r.id = rp.regla_id where r.etiqueta_id = :'camp';\nrollback;`)
+        : { ok: false, mensaje: "no se pudo preparar" },
+      "0",
+    );
+    esperar(
+      "la migración de prenda por prenda se puede pegar dos veces",
+      correr(`begin;\n${readFileSync(MIGRACION_PRODUCTOS, "utf8")}\n${readFileSync(MIGRACION_PRODUCTOS, "utf8")}\nrollback;`).ok,
+    );
+  }
 
   // ---------------------------------------------------------------- 10. La migración
   console.log("\n— La migración —");
