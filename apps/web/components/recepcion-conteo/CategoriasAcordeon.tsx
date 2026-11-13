@@ -2,7 +2,7 @@
 
 import { useEffect, useId, useState, type ReactNode } from "react";
 import Link from "next/link";
-import { ChevronDown, Lock, Plus, SearchX, Sparkles, Trash2 } from "lucide-react";
+import { Check, ChevronDown, Lock, Plus, SearchX, Sparkles, Trash2 } from "lucide-react";
 import { BarraAvance } from "@/components/ui/BarraAvance";
 import { Chip } from "@/components/ui/Chip";
 import { MiniaturaPrenda } from "@/components/ui/PrendaCelda";
@@ -96,16 +96,18 @@ function useFotosDeLaCategoria(c: CategoriaDelEnvio, enUso: boolean, onFotos: (f
   }, [enUso, clave, leida]);
 }
 
-function FilaDeParada({ p, activa, conOrigen, foto, faltanTallas, sinAviso, onElegir, onQuitar }: { p: ParadaDelConteo; activa: boolean; conOrigen: boolean; foto: string | null; faltanTallas: boolean; sinAviso: boolean; onElegir: (p: ParadaDelConteo) => void; onQuitar: (p: ParadaDelConteo) => void }) {
+function FilaDeParada({ p, activa, conOrigen, foto, faltanTallas, sinAviso, onElegir, onQuitar, onLlegaron }: { p: ParadaDelConteo; activa: boolean; conOrigen: boolean; foto: string | null; faltanTallas: boolean; sinAviso: boolean; onElegir: (p: ParadaDelConteo) => void; onQuitar: (p: ParadaDelConteo) => void; onLlegaron: (p: ParadaDelConteo, n: number) => void }) {
   const m = p.modelo;
   const cat = p.grupo.principal.categoria;
   const contadas = m ? m.contadas : sinIdentificarDelGrupo(p.grupo);
   const esperadas = m ? m.esperadas : null;
   const seQuita = !!m && modeloSeQuita(m);
+  // El check de la fila (reunión del 13-nov, punto 2): lo anotado y todavía sin contar se confirma de un toque, sin ir al contador. Lo demás se cuenta en el contador.
+  const llegaron = !seQuita && m && m.estado === "por-contar" && m.esperadas != null && m.esperadas > 0 ? m.esperadas : null;
   const cifras = esperadas != null ? <><b>{conMiles(contadas)}</b> de {conMiles(esperadas)}</> : <><b>{conMiles(contadas)}</b> {contadas === 1 ? "contada" : "contadas"}</>;
   return (
     <li className="rc-modelo-fila">
-      <button type="button" className="rc-modelo" data-con-tacho={seQuita ? "" : undefined} data-activa={activa ? "" : undefined} data-campo={idCampoParada(p)} aria-current={activa ? "true" : undefined} onClick={() => onElegir(p)}>
+      <button type="button" className="rc-modelo" data-con-tacho={seQuita || llegaron != null ? "" : undefined} data-activa={activa ? "" : undefined} data-campo={idCampoParada(p)} aria-current={activa ? "true" : undefined} onClick={() => onElegir(p)}>
         {cat && <MiniaturaPrenda fotoUrl={foto} tamano="md" prefijo={cat.prefijo} familia={cat.familia} categoria={cat.nombre} />}
         <span className="rc-modelo-textos">
           <span className="rc-modelo-nombre">
@@ -126,6 +128,11 @@ function FilaDeParada({ p, activa, conOrigen, foto, faltanTallas, sinAviso, onEl
         </span>
         {m ? <EstadoModelo m={m} faltanTallas={faltanTallas} sinAviso={sinAviso} /> : <Chip tono="ambar">Falta decir cuál</Chip>}
       </button>
+      {llegaron != null && m && (
+        <button type="button" className="rc-modelo-check" data-guia="recepcion.llegaron" aria-label={`Llegaron las ${conMiles(llegaron)} de ${nombreDeParada(p)}`} title={`Llegaron las ${conMiles(llegaron)}`} onClick={() => onLlegaron(p, llegaron)}>
+          <Check aria-hidden className="h-4 w-4" />
+        </button>
+      )}
       {seQuita && m && (
         <button type="button" className="rc-modelo-tacho" aria-label={`Quitar ${m.nombre}`} title={`Quitar ${m.nombre}`} onClick={() => onQuitar(p)}>
           <Trash2 aria-hidden className="h-4 w-4" />
@@ -269,6 +276,7 @@ function Categoria({
   onAgregarModelo,
   onNoLlego,
   onQuitar,
+  onLlegaron,
   onQuitarCategoria,
   yaEnStock,
   colores,
@@ -289,6 +297,8 @@ function Categoria({
   /** Vino en la guía y no llegó nada: queda contada en 0. */
   onNoLlego: () => void;
   onQuitar: (p: ParadaDelConteo) => void;
+  /** El check de la fila: lo anotado llegó entero. */
+  onLlegaron: (p: ParadaDelConteo, n: number) => void;
   onQuitarCategoria: () => void;
   /** Lo de esta categoría que ya entró al stock: va al final de sus modelos, con candado. */
   yaEnStock: readonly YaEnStockDeLaLista[];
@@ -372,7 +382,7 @@ function Categoria({
           )}
           <ul className="rc-modelos">
             {c.paradas.map((p) => (
-              <FilaDeParada key={p.clave} p={p} activa={enFoco?.clave === p.clave} conOrigen={c.variosOrigenes} foto={p.modelo?.productoId ? (fotos.get(p.modelo.productoId) ?? null) : null} faltanTallas={faltanTallas(p)} sinAviso={sinAviso} onElegir={onElegir} onQuitar={onQuitar} />
+              <FilaDeParada key={p.clave} p={p} activa={enFoco?.clave === p.clave} conOrigen={c.variosOrigenes} foto={p.modelo?.productoId ? (fotos.get(p.modelo.productoId) ?? null) : null} faltanTallas={faltanTallas(p)} sinAviso={sinAviso} onElegir={onElegir} onQuitar={onQuitar} onLlegaron={onLlegaron} />
             ))}
             {/* Con modelos por contar al lado, un divisor dice dónde empieza lo que ya entró. */}
             {c.paradas.length > 0 && yaEnStock.length > 0 && (
@@ -418,6 +428,7 @@ export function ListaDelEnvio({
   onAgregarModelo,
   onNoLlego,
   onQuitar,
+  onLlegaron,
   onQuitarCategoria,
   onFotos,
   cifras,
@@ -475,6 +486,8 @@ export function ListaDelEnvio({
   onNoLlego: (c: CategoriaDelEnvio) => void;
   /** El tacho de un modelo agregado al contar. */
   onQuitar: (p: ParadaDelConteo) => void;
+  /** El check de una fila: lo anotado llegó entero. */
+  onLlegaron: (p: ParadaDelConteo, n: number) => void;
   /** El tacho de una categoría entera que nada de ella venía en la guía. */
   onQuitarCategoria: (c: CategoriaDelEnvio) => void;
   onFotos: (fotos: ReadonlyMap<string, string | null>) => void;
@@ -518,7 +531,7 @@ export function ListaDelEnvio({
           )}
           {categorias.map((c, i) => {
             const esta = !!enFoco && c.grupos.some((g) => g.clave === enFoco.grupo.clave);
-            return <Categoria key={c.clave} c={c} i={i} yaEnStock={yaEnStock.get(c.clave) ?? []} colores={colores} onCorregirSalida={onCorregirSalida} guiaYaEnStock={c.clave === primeraConStock} enFoco={enFoco} abierta={categoriaAbierta(esta, leyendo, alternadas.has(c.clave))} sinAviso={sinAviso} fotos={fotos} faltanTallas={faltanTallas} onAlternar={() => onAlternar(c.clave)} onElegir={onElegir} onFotos={onFotos} onAgregarModelo={() => onAgregarModelo(c.clave)} onNoLlego={() => onNoLlego(c)} onQuitar={onQuitar} onQuitarCategoria={() => onQuitarCategoria(c)} />;
+            return <Categoria key={c.clave} c={c} i={i} yaEnStock={yaEnStock.get(c.clave) ?? []} colores={colores} onCorregirSalida={onCorregirSalida} guiaYaEnStock={c.clave === primeraConStock} enFoco={enFoco} abierta={categoriaAbierta(esta, leyendo, alternadas.has(c.clave))} sinAviso={sinAviso} fotos={fotos} faltanTallas={faltanTallas} onAlternar={() => onAlternar(c.clave)} onElegir={onElegir} onFotos={onFotos} onAgregarModelo={() => onAgregarModelo(c.clave)} onNoLlego={() => onNoLlego(c)} onQuitar={onQuitar} onLlegaron={onLlegaron} onQuitarCategoria={() => onQuitarCategoria(c)} />;
           })}
         </nav>
         {/* Lo que ya entró sin una categoría de este envío (un recibido viejo que no la trae): al pie, para que no se pierda. */}
