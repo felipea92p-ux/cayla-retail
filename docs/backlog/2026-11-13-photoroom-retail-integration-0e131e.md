@@ -6,7 +6,7 @@
 
 ## Lo que no se cubrió
 - [x] `/formidable` en Editar y Nuevo producto (2026-11-13: 3 cambios hechos; la ciega no se repitió).
-- [ ] `/chaos`, 3 de gravedad 4 abiertos (esperan el OK de Felipe): el foco no vuelve al botón al cerrar la hoja de ángulos; `/api/fotos/catalogo` no rechaza un archivo que no es imagen antes de llamar a OpenAI; el aviso de Nuevo no nombra el color.
+- [x] `/chaos`, 3 de gravedad 4, cerrados el mismo día: el foco no vuelve al botón al cerrar la hoja de ángulos; `/api/fotos/catalogo` no rechaza un archivo que no es imagen antes de llamar a OpenAI; el aviso de Nuevo no nombra el color.
 - [ ] Recibir ▸ «Crear la prenda que llegó» con una cuenta que recibe pero no edita el catálogo: debe crearse sin la sección de fotos (sin probar en el navegador).
 - [ ] Recibir ▸ «Sumar tallas o colores» a una prenda que ya existe: hoy no pide la foto del color nuevo.
 - [x] Guardar o salir mientras una foto se prepara: ahora pregunta y espera (2026-11-13, /formidable).

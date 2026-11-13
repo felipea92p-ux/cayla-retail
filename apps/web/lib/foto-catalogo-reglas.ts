@@ -66,3 +66,20 @@ export function moldeDeLaPrenda(colores: readonly string[], fotos: readonly { ur
   // La foto «para todos los colores» (sin color) nunca es molde: puede mostrar la prenda en otra forma (formidable, 2026-11-13).
   return fotos.find((f) => f.colorCodigo !== null && esFotoIA(f.url))?.url ?? null;
 }
+
+/**
+ * Qué imagen es un archivo por sus primeros bytes (JPEG, PNG o WebP), o `null` si no es ninguna. El servidor no confía en el nombre ni en el
+ * tipo que declara el navegador: un texto con nombre «.jpg» llegaba a OpenAI y se pagaba una llamada inútil (/chaos, 2026-11-13).
+ */
+export function firmaDeImagen(b: Uint8Array): "jpeg" | "png" | "webp" | null {
+  if (b.length >= 3 && b[0] === 0xff && b[1] === 0xd8 && b[2] === 0xff) return "jpeg";
+  if (b.length >= 8 && [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a].every((x, i) => b[i] === x)) return "png";
+  const ascii = (desde: number, hasta: number) => String.fromCharCode(...b.slice(desde, hasta));
+  if (b.length >= 12 && ascii(0, 4) === "RIFF" && ascii(8, 12) === "WEBP") return "webp";
+  return null;
+}
+
+/** El aviso cuando la IA falla y queda la foto real; `deQue` es «de Verde agua» o «para todos los colores» (/chaos, 2026-11-13). */
+export function avisoIANoRespondio(deQue: string): string {
+  return `La IA no respondió: quedó tu foto ${deQue}.`;
+}

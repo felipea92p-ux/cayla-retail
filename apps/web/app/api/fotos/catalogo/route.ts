@@ -1,6 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { capturarError } from "@/lib/errores";
-import { contarPedido, MAX_BYTES_POR_FOTO_IA } from "@/lib/foto-catalogo-reglas";
+import { contarPedido, firmaDeImagen, MAX_BYTES_POR_FOTO_IA } from "@/lib/foto-catalogo-reglas";
 import { fotoCatalogoDisponible, llaveOpenAI, modeloOpenAI } from "@/lib/foto-catalogo";
 import {
   OPENAI_TOPE_MS,
@@ -92,6 +92,8 @@ export async function POST(request: Request) {
     const f = formulario.get(angulo);
     if (!(f instanceof File) || f.size === 0) continue;
     if (f.size > MAX_BYTES_POR_FOTO_IA) return error("Una de las fotos pesa demasiado. Prueba de nuevo.", 400);
+    // Solo una imagen de verdad llega a OpenAI (cada llamada se paga): se mira la firma de sus primeros bytes, no el nombre ni el tipo declarado.
+    if (!firmaDeImagen(new Uint8Array(await f.slice(0, 12).arrayBuffer()))) return error("Esa foto no es JPG, PNG ni WebP. Prueba con otra.", 400);
     fotos[angulo] = f;
   }
   if (!fotos.frente) return error("Falta la foto de frente.", 400);
