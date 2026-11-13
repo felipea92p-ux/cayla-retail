@@ -42,8 +42,11 @@ export type VariantePlan = {
   varianteId: string;
   productoId: string;
   talla: string | null;
+  colorCodigo: string | null;
   color: string;
   colorHex: string | null;
+  /** Una talla retirada (`activo = false`) también se muda, pero no se dibuja en la matriz: no se vende. */
+  activa: boolean;
   stock: number;
   trato: "muda" | "junta";
   conVarianteId: string | null;
@@ -118,8 +121,10 @@ export function leerPlan(json: unknown): PlanFusion {
         varianteId: String(v.variante_id),
         productoId: String(v.producto_id),
         talla: texto(v.talla),
+        colorCodigo: texto(v.color_codigo),
         color: String(v.color ?? "Sin color"),
         colorHex: texto(v.color_hex),
+        activa: v.activo !== false,
         stock: Number(v.stock ?? 0),
         trato: v.trato === "junta" ? "junta" : "muda",
         conVarianteId: texto(v.con_variante_id),
