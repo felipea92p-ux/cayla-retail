@@ -5,8 +5,14 @@ import { Merge } from "lucide-react";
 import { Aviso } from "@/components/ui/Aviso";
 import { Modal } from "@/components/ui/Modal";
 import { Chip } from "@/components/ui/Chip";
-import { MOTIVO_DUPLICADO, type ParDuplicado } from "@/lib/posibles-duplicados-reglas";
-import { FusionarProductosHoja, type FichaParaFusionar } from "./FusionarProductosHoja";
+import {
+  MOTIVO_DUPLICADO,
+  type ParDuplicado,
+} from "@/lib/posibles-duplicados-reglas";
+import {
+  FusionarProductosHoja,
+  type FichaParaFusionar,
+} from "./FusionarProductosHoja";
 
 /**
  * «N posibles fichas repetidas» en Catálogo ▸ Productos (ADR-0650, decisión 3): el sistema sugiere los pares que parecen la misma
@@ -15,21 +21,32 @@ import { FusionarProductosHoja, type FichaParaFusionar } from "./FusionarProduct
  */
 export function PosiblesDuplicados({ pares }: { pares: ParDuplicado[] }) {
   const [lista, setLista] = useState(false);
-  const [fusionando, setFusionando] = useState<FichaParaFusionar[] | null>(null);
+  const [fusionando, setFusionando] = useState<FichaParaFusionar[] | null>(
+    null,
+  );
   if (pares.length === 0) return null;
   return (
     <>
       <Aviso
         guia="productos.posibles-duplicados"
         tono="info"
-        titulo={pares.length === 1 ? "1 posible ficha repetida" : `${pares.length.toLocaleString("es-PE")} posibles fichas repetidas`}
+        titulo={
+          pares.length === 1
+            ? "1 posible ficha repetida"
+            : `${pares.length.toLocaleString("es-PE")} posibles fichas repetidas`
+        }
         accion={
-          <button type="button" onClick={() => setLista(true)} className="btn-cayla btn-enlace text-[13px]">
+          <button
+            type="button"
+            onClick={() => setLista(true)}
+            className="btn-cayla btn-enlace text-[13px]"
+          >
             Revisar
           </button>
         }
       >
-        Prendas con el nombre igual o casi igual. Si son la misma, fusiónalas: las ventas, las fotos y el stock no se pierden.
+        Prendas con el nombre igual o casi igual. Si son la misma, fusiónalas:
+        las ventas, las fotos y el stock no se pierden.
       </Aviso>
       {lista && (
         <Modal
@@ -42,10 +59,14 @@ export function PosiblesDuplicados({ pares }: { pares: ParDuplicado[] }) {
         >
           <ul className="divide-y divide-sand border-y border-sand">
             {pares.map((p) => (
-              <li key={`${p.productoA}-${p.productoB}`} className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 py-3">
+              <li
+                key={`${p.productoA}-${p.productoB}`}
+                className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 py-3"
+              >
                 <span className="min-w-0 space-y-1">
                   <span className="block text-[15px] text-tinta">
-                    {p.referenciaA} <span className="text-taupe">y</span> {p.referenciaB}
+                    {p.referenciaA} <span className="text-taupe">y</span>{" "}
+                    {p.referenciaB}
                   </span>
                   <Chip tono="pizarra" versalitas={false}>
                     {MOTIVO_DUPLICADO[p.motivo]}
@@ -70,7 +91,12 @@ export function PosiblesDuplicados({ pares }: { pares: ParDuplicado[] }) {
           </ul>
         </Modal>
       )}
-      {fusionando && <FusionarProductosHoja inicial={fusionando} onClose={() => setFusionando(null)} />}
+      {fusionando && (
+        <FusionarProductosHoja
+          inicial={fusionando}
+          onClose={() => setFusionando(null)}
+        />
+      )}
     </>
   );
 }
