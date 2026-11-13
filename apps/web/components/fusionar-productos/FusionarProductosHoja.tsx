@@ -448,7 +448,7 @@ export function FusionarProductosHoja({
                     <TituloGrupo>Qué va a pasar</TituloGrupo>
                     <ul className="fus-lista-revisar max-w-prose space-y-2 text-[15px] leading-relaxed text-tinta">
                       {[...frasesDelResumen(plan, fotosQueQuedan.length), "La ficha repetida queda archivada con su historia; nunca se borra."].map((f, k) => (
-                        <li key={f} className="flex gap-2.5" style={{ "--fus-k": Math.min(k, 7) } as React.CSSProperties}>
+                        <li key={f} className="flex gap-3" style={{ "--fus-k": Math.min(k, 7) } as React.CSSProperties}>
                           <Check aria-hidden className="mt-1 h-4 w-4 shrink-0 text-verde" />
                           <span>{f}</span>
                         </li>
@@ -490,9 +490,13 @@ export function FusionarProductosHoja({
 
             {/* ---------- El pie de cada paso ---------- */}
             {vista === "armar" && (
-              <div className="pie-hoja-fijo mt-6 space-y-3">
-                <PieGuia guia={guiaArmar} listo={bloqueado ? "Revisa lo que falta arriba." : "Todo listo para revisar."} />
+              // Una sola fila (Felipe 2026-11-13: «la parte de abajo ocupa mucho espacio»): lo que dice la guía a la izquierda, los botones a
+              // la derecha; en el celular la frase toma su propia fila.
+              <div className="pie-hoja-fijo mt-4">
                 <div className="pie-acciones" data-guia="fusionar.botones">
+                  <div className="min-w-0 flex-1 max-sm:order-first max-sm:basis-full">
+                    <PieGuia guia={guiaArmar} listo={bloqueado ? "Revisa lo que falta arriba." : "Todo listo para revisar."} />
+                  </div>
                   <Boton peso="fantasma" type="button" onClick={cerrar}>
                     Cancelar
                   </Boton>
@@ -515,18 +519,18 @@ export function FusionarProductosHoja({
               </div>
             )}
             {vista === "revisar" && (
-              <div className="pie-hoja-fijo mt-6 space-y-3">
+              <div className="pie-hoja-fijo mt-4 space-y-3">
                 {errorGuardar && (
                   <Aviso tono="error" titulo="No se pudo fusionar">
                     {errorGuardar} Las fichas siguen como estaban.
                   </Aviso>
                 )}
                 <AvisoNoSeDeshace />
-                <PieGuia guia={guiaRevisar} listo="Todo listo para fusionar." />
                 <div className="pie-acciones" data-guia="fusionar.confirmar">
-                  <span className="mr-auto">
-                    <Volver onClick={() => setVista("armar")} a="Volver a elegir" />
-                  </span>
+                  <Volver onClick={() => setVista("armar")} a="Volver a elegir" />
+                  <div className="min-w-0 flex-1 max-sm:order-first max-sm:basis-full">
+                    <PieGuia guia={guiaRevisar} listo="Todo listo para fusionar." />
+                  </div>
                   <Boton peso="fantasma" type="button" onClick={cerrar} disabled={guardando}>
                     Cancelar
                   </Boton>

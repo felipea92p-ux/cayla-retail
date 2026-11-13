@@ -226,7 +226,8 @@
 .fus-fila {
   display: grid;
   grid-template-columns: repeat(var(--fus-n, 2), minmax(0, 1fr));
-  gap: 12px;
+  /* El rótulo, más cerca de sus opciones (8) que de la fila de arriba (16, el `space-y-4` de afuera): proximidad. */
+  gap: 8px 12px;
   animation: fus-sube var(--t-hoja) var(--ease-cayla) both;
   animation-delay: calc(200ms + var(--fus-k, 0) * 18ms);
 }
@@ -318,8 +319,9 @@
   padding-bottom: 2px;
   text-align: center;
 }
-.fus-matriz tbody th {
-  width: 72px;
+.fus-matriz tbody th,
+.fus-matriz thead th:first-child {
+  width: 80px;
   text-align: left;
   font-size: 14px;
   font-weight: 500;
@@ -347,7 +349,8 @@
   border-spacing: 8px;
   margin: -8px;
 }
-.fus-matriz-grande tbody th {
+.fus-matriz-grande tbody th,
+.fus-matriz-grande thead th:first-child {
   width: 112px;
 }
 .fus-celda small {
@@ -380,7 +383,7 @@
   color: var(--color-verde);
 }
 .fus-celda-nada {
-  color: color-mix(in srgb, var(--color-tinta) 30%, transparent); /* contraste: no aplica — la raya de una celda vacía es decorativa, no un dato */
+  color: color-mix(in srgb, var(--color-tinta) 45%, transparent); /* contraste: no aplica — la raya de una celda vacía es decorativa, no un dato */
   font-weight: 400;
 }
 .fus-matriz[aria-busy="true"] .fus-celda {
