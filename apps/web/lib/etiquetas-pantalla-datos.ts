@@ -140,6 +140,9 @@ export async function cargarEtiquetasPantalla({
       nombre: `${v.producto?.referencia ?? "Prenda"} (${v.sku})`,
       // Una prenda es un modelo en un color, con la misma clave que el pase de Insignias (`prendasDelSello`): la hoja y el pase cuentan igual.
       modelo: `${v.producto?.id ?? v.id}·${v.color_codigo ?? ""}`,
+      // El modelo elegible uno por uno en una oferta (ADR-0655): el producto, con todas sus tallas y colores, y su nombre.
+      productoId: v.producto?.id ?? undefined,
+      referencia: v.producto?.referencia ?? undefined,
       deClaure: idClaure !== null && v.producto?.empresa_id === idClaure,
     };
   });

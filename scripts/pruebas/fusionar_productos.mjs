@@ -543,6 +543,7 @@ const A_PRODUCTOS = {
   "favoritos_web.producto_id": "se repunta si el que queda no lo tiene",
   "vitrina_look_piezas.producto_id": "se repunta si el look no lo tiene",
   "look_web_piezas.producto_id": "se repunta si el look no lo tiene",
+  "campana_regla_productos.producto_id": "se repunta si la oferta no lo tiene (ADR-0655)",
   // Uno por producto: pasa solo si el que queda no tiene.
   "producto_origen.producto_id": "uno por producto",
   "vitrina_productos.producto_id": "uno por producto",
