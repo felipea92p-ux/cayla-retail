@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 import {
   ALTO_NOMBRE_MM,
+  ALTO_SOLO_NOMBRE_MM,
+  MAX_SOLO_NOMBRE_MM,
+  rotuloDeMarca,
   ANCHO_NOMBRE_MM,
   anchoEm,
   armarRotulos,
@@ -234,5 +237,27 @@ describe("la tira de la Brother", () => {
     // Juntar: los sueltos se van desde arriba (en su lugar) y el junto sube a ocupar la tira mientras se pliegan.
     const junto = [r("a+b")];
     expect(tiraConSalientes(junto, quienesSalen([r("a"), r("b")], junto, clave)).map((t) => `${t.item.clave}${t.sale ? "-" : ""}`)).toEqual(["a-", "b-", "a+b"]);
+  });
+});
+
+describe("rótulo de marca (solo el nombre, en el papel entero)", () => {
+  const OPC = { alto: ALTO_SOLO_NOMBRE_MM, max: MAX_SOLO_NOMBRE_MM };
+  it("lleva solo el nombre, sin marca ni tallas, y su clave no choca con la de un modelo", () => {
+    const r = rotuloDeMarca({ id: ID_A, nombre: "  Mias " });
+    expect(r).toEqual({ clave: `marca:${ID_A}`, modelos: ["Mias"], marcas: [], tallas: [], soloNombre: true });
+  });
+  it.each([["Mia"], ["Cayla"], ["Mango"], ["Basement Collection"], ["Pull and Bear Original Store"], ["Supercalifragilistico"]])(
+    "«%s» entra en el ancho y en el alto del papel entero",
+    (nombre) => {
+      const { mm, lineas } = medidaNombre([nombre], undefined, OPC);
+      expect(mm).toBeGreaterThan(0);
+      expect(mm).toBeLessThanOrEqual(MAX_SOLO_NOMBRE_MM);
+      expect(lineas * mm * INTERLINEA_NOMBRE).toBeLessThanOrEqual(ALTO_SOLO_NOMBRE_MM);
+      for (const p of nombre.split(" ")) expect(anchoEm(p) * mm).toBeLessThanOrEqual(ANCHO_NOMBRE_MM);
+    },
+  );
+  it("el nombre corto crece más que en el rótulo de prenda; el largo se achica", () => {
+    expect(medidaNombre(["Mia"], undefined, OPC).mm).toBeGreaterThan(medidaNombre(["Mia"]).mm);
+    expect(medidaNombre(["Pull and Bear Original Store"], undefined, OPC).mm).toBeLessThan(medidaNombre(["Mia"], undefined, OPC).mm);
   });
 });
