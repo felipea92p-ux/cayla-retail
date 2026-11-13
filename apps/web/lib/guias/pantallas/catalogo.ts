@@ -1820,8 +1820,23 @@ export const GUIA_ROTULOS: Guia = {
       texto: "Aquí armas el rótulo que va en el canto del anaquel o en el frente de una bolsa: dice qué prenda hay ahí, su marca y sus tallas, para encontrarla de lejos. Sale en la Brother, en el mismo papel de las etiquetas.",
     },
     {
+      id: "que",
+      ancla: "rotulos.que",
+      titulo: "Prendas o marcas",
+      texto: "Elige qué rótulo armas: el de una prenda (su nombre, su marca y sus tallas) o el de una marca, que lleva solo su nombre, lo más grande que entra en el papel.",
+      demostrar: [{ tipo: "clic", ancla: "rotulos.de-marcas" }],
+    },
+    {
+      id: "marcas",
+      ancla: "rotulos.marcas",
+      opcional: true,
+      titulo: "Las marcas",
+      texto: "Busca la marca por su nombre y elígela: sale un rótulo por marca. La ✕ la saca de la tira.",
+    },
+    {
       id: "vacio",
       ancla: "rotulos.vacio",
+      preparar: [{ tipo: "clic", ancla: "rotulos.de-prendas", siEsta: true }],
       opcional: true,
       titulo: "Elige las prendas",
       texto: "Todavía no hay ninguna prenda: a la derecha, la Brother muestra en gris cómo saldrá. Búscalas aquí por nombre o código. También puedes marcarlas en Productos o en Existencias y tocar «Rótulo»: llegan ya elegidas.",
@@ -1891,7 +1906,10 @@ export const GUIA_ROTULOS: Guia = {
       texto: "Ya sabes armar e imprimir un rótulo. La flecha de arriba te devuelve a donde estabas. Para repasarlo: Mi perfil ▸ Demo ▸ Rótulos de anaquel.",
     },
   ],
-  alSalir: [{ tipo: "clic", ancla: "rotulos.por-modelo", siEsta: true }],
+  alSalir: [
+    { tipo: "clic", ancla: "rotulos.por-modelo", siEsta: true },
+    { tipo: "clic", ancla: "rotulos.de-prendas", siEsta: true },
+  ],
 };
 
 // Catálogo ▸ Liquidación (ADR-0379): las prendas sueltas que la sede liquida sin entrar al catálogo. La demo abre «Etiquetar una prenda»

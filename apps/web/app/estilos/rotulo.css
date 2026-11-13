@@ -57,6 +57,10 @@
   .rot-nombre > span {
     width: 100%;
   }
+  /* Rótulo de marca: solo el nombre, centrado en el papel entero (su alto lo calcula `medidaNombre` con ALTO_SOLO_NOMBRE_MM). */
+  .rotulo-anaquel--solo-nombre .rot-nombre {
+    text-align: center;
+  }
   /* «Marca: Mias»: una línea (la que el cálculo del nombre le reserva); si no cabe, «…» al final. */
   .rot-marca {
     flex: none;

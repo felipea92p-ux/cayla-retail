@@ -19,7 +19,9 @@ import {
   MAX_JUNTOS,
   MAX_MODELOS_EN_URL,
   recorridoDeImpresion,
+  rotuloDeMarca,
   urlRotulos,
+  type MarcaRotulo,
   type ModeloRotulo,
 } from "@/lib/rotulos-reglas";
 import type { ModeloElegible } from "@/lib/rotulos";
@@ -46,12 +48,15 @@ const ENTRE_QUITAR_MS = 450;
 export function ImprimirRotulos({
   modelos: iniciales,
   catalogo,
+  marcas,
   origen,
   volver,
   sede,
 }: {
   modelos: ModeloRotulo[];
   catalogo: ModeloElegible[];
+  /** Las marcas activas: el rótulo de marca es solo su nombre, lo más grande que entra (Felipe 2026-11-13). */
+  marcas: MarcaRotulo[];
   /** Para reescribir la URL al sumar o quitar una prenda sin perder adónde vuelve «Volver». */
   origen: { desde: "existencias" | "almacen" } | { productos: string | null };
   volver: { href: string; a: string };
@@ -59,11 +64,18 @@ export function ImprimirRotulos({
 }) {
   const [modelos, setModelos] = useState(iniciales);
   const [juntar, setJuntar] = useState(false);
+  // Qué se imprime: los rótulos de prendas (nombre, marca y tallas) o los de marcas (solo el nombre de la marca).
+  const [que, setQue] = useState<"prendas" | "marcas">("prendas");
+  const [marcasElegidas, setMarcasElegidas] = useState<MarcaRotulo[]>([]);
+  const deMarcas = que === "marcas";
   // Las copias son de cada rótulo (su clave): sumar otra prenda no le borra las copias a las que ya estaban.
   const [copias, setCopias] = useState<Record<string, string>>({});
   const escrita = useCantidadEscrita(CUANTAS_COPIAS);
   const puedeJuntar = modelos.length >= 2 && modelos.length <= MAX_JUNTOS;
-  const rotulos = useMemo(() => armarRotulos(modelos, juntar && puedeJuntar), [modelos, juntar, puedeJuntar]);
+  const rotulos = useMemo(
+    () => (deMarcas ? marcasElegidas.map(rotuloDeMarca) : armarRotulos(modelos, juntar && puedeJuntar)),
+    [deMarcas, marcasElegidas, modelos, juntar, puedeJuntar],
+  );
   const numeros = useMemo(() => Object.fromEntries(rotulos.map((r) => [r.clave, copiasDeTexto(copias[r.clave] ?? "1")])), [rotulos, copias]);
   // El nombre se mide con la letra que dibuja esta computadora: la tira y la hoja que va a la Brother usan la misma medida.
   const medir = useMedirNombre();
@@ -171,7 +183,16 @@ export function ImprimirRotulos({
       claves: m.codigo ? [m.codigo] : undefined,
     }));
   const lleno = modelos.length >= MAX_MODELOS_EN_URL;
-  const vacia = modelos.length === 0;
+  const vacia = deMarcas ? marcasElegidas.length === 0 : modelos.length === 0;
+
+  // Las marcas: se suman desde su buscador y se quitan con su ✕; viven solo en la pantalla (no tocan la base ni la URL).
+  const idsMarcas = new Set(marcasElegidas.map((m) => m.id));
+  const opcionesMarca: OpcionCombo<string>[] = marcas.filter((m) => !idsMarcas.has(m.id)).map((m) => ({ valor: m.id, texto: m.nombre }));
+  const sumarMarca = (id: string) => {
+    setVueltaBuscador((v) => v + 1);
+    const m = marcas.find((x) => x.id === id);
+    if (m) setMarcasElegidas((actual) => (actual.some((x) => x.id === id) ? actual : [...actual, m]));
+  };
 
   const acciones = vacia ? undefined : (
     // La guía interactiva enciende los dos botones juntos (ADR-0389): el mismo flex que pone la cabecera, para que se vean igual.
@@ -188,7 +209,7 @@ export function ImprimirRotulos({
       <EncabezadoPagina
         sede={sede}
         titulo="Rótulos de anaquel"
-        subtitulo="Para el canto del anaquel o el frente de las bolsas: dice de lejos qué prenda hay ahí, con su marca y sus tallas."
+        subtitulo="Para el canto del anaquel o el frente de las bolsas: dice de lejos qué prenda hay ahí, con su marca y sus tallas, o solo el nombre de una marca."
         volver={<Volver {...volver} />}
         acciones={acciones}
       />
@@ -197,14 +218,78 @@ export function ImprimirRotulos({
       <div className="grid items-start gap-8 lg:grid-cols-[minmax(18rem,24rem)_minmax(0,1fr)] xl:gap-10">
         <div className="min-w-0 space-y-4">
           <section aria-labelledby="rotulos-titulo" className="space-y-4 rounded-2xl border border-sand bg-papel p-5 sm:p-6">
-            <div className="space-y-1.5" data-guia={vacia ? "rotulos.vacio" : undefined}>
-              <h2 id="rotulos-titulo" className={`font-display leading-tight text-tinta ${vacia ? "text-[32px]" : "text-[26px]"}`}>
-                ¿Qué prendas van en este anaquel?
-              </h2>
-              {vacia && <p className="text-[14.5px] text-tinta/70">Búscalas por nombre o código y el rótulo sale en la Brother, listo para pegar.</p>}
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-2" data-guia="rotulos.que">
+              <span className="label-cayla text-[11px] text-taupe">Rótulos de</span>
+              <SegmentoDeslizante
+                forma="modo"
+                etiqueta="Qué rótulos imprimes"
+                valor={que}
+                onCambio={(c) => setQue(c === "marcas" ? "marcas" : "prendas")}
+                opciones={[
+                  { clave: "prendas", etiqueta: "Prendas", guia: "rotulos.de-prendas" },
+                  { clave: "marcas", etiqueta: "Marcas", guia: "rotulos.de-marcas" },
+                ]}
+              />
             </div>
 
-            {!vacia && (
+            <div className="space-y-1.5" data-guia={vacia && !deMarcas ? "rotulos.vacio" : undefined}>
+              <h2 id="rotulos-titulo" className={`font-display leading-tight text-tinta ${vacia ? "text-[32px]" : "text-[26px]"}`}>
+                {deMarcas ? "¿Qué marcas van en el rótulo?" : "¿Qué prendas van en este anaquel?"}
+              </h2>
+              {vacia && (
+                <p className="text-[14.5px] text-tinta/70">
+                  {deMarcas
+                    ? "Búscalas por nombre: cada marca sale en su propio rótulo, con el nombre lo más grande que entra."
+                    : "Búscalas por nombre o código y el rótulo sale en la Brother, listo para pegar."}
+                </p>
+              )}
+            </div>
+
+            {deMarcas && (
+              <div className="space-y-2.5" data-guia="rotulos.marcas">
+                {marcasElegidas.length > 0 && (
+                  <>
+                    <div className="flex min-h-8 items-center justify-between gap-3">
+                      <span className="label-cayla text-[11px] text-taupe">{plural(marcasElegidas.length, "marca", "marcas")}</span>
+                      {marcasElegidas.length >= 2 && (
+                        <button type="button" className="btn-cayla btn-peligro !px-3 !py-1.5 text-[12.5px]" onClick={() => setMarcasElegidas([])}>
+                          <Trash2 aria-hidden className="h-3.5 w-3.5" />
+                          Quitar todas
+                        </button>
+                      )}
+                    </div>
+                    <ul aria-label="Marcas del rótulo" className="flex flex-wrap items-center gap-2">
+                      {marcasElegidas.map((m) => (
+                        <li key={m.id} className="rot-ficha inline-flex max-w-full items-center gap-1 rounded-full border border-sand bg-crema py-1 pl-3 pr-1 text-sm text-tinta">
+                          <span className="truncate">{m.nombre}</span>
+                          <button
+                            type="button"
+                            onClick={() => setMarcasElegidas((actual) => actual.filter((x) => x.id !== m.id))}
+                            aria-label={`Quitar ${m.nombre}`}
+                            className="grid h-7 w-7 shrink-0 place-items-center rounded-full text-taupe transition-colors hover:bg-hueso hover:text-tinta"
+                          >
+                            <X aria-hidden className="h-3.5 w-3.5" />
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  </>
+                )}
+                <ComboBuscable
+                  key={`marca-${vueltaBuscador}`}
+                  autoFocus={vueltaBuscador > 0}
+                  etiquetaAccesible="Sumar una marca al rótulo"
+                  valor=""
+                  onValor={sumarMarca}
+                  opciones={opcionesMarca}
+                  marcador="Busca la marca" // sugerir-fijo: busca entre todas las marcas, no depende de nada elegido
+                  caja
+                  className="w-full"
+                />
+              </div>
+            )}
+
+            {!deMarcas && !vacia && (
               <div className="space-y-2.5" data-guia="rotulos.modelos">
                 <div className="flex min-h-8 items-center justify-between gap-3">
                   <span className="label-cayla text-[11px] text-taupe">{plural(modelos.length, "prenda", "prendas")}</span>
@@ -242,7 +327,7 @@ export function ImprimirRotulos({
               </div>
             )}
 
-            {!lleno && (
+            {!deMarcas && !lleno && (
               <div data-guia="rotulos.agregar">
                 <ComboBuscable
                   key={vueltaBuscador}
@@ -258,7 +343,7 @@ export function ImprimirRotulos({
               </div>
             )}
 
-            {modelos.length >= 2 && (
+            {!deMarcas && modelos.length >= 2 && (
               <div className="flex flex-wrap items-center gap-x-3 gap-y-2" data-guia="rotulos.como-salen">
                 <span className="label-cayla text-[11px] text-taupe">Cómo salen</span>
                 <SegmentoDeslizante

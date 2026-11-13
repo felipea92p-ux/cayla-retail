@@ -2973,14 +2973,14 @@ export const GUIA_COMPRA_RAPIDA: Guia = {
       ancla: "compra.medio",
       opcional: true,
       titulo: "Con qué le pagaste",
-      texto: "Viene en Yape. Si fue en efectivo o por transferencia, tócalo. Igual sale de tu plata para compras.",
+      texto: "Toca cómo le pagaste: Yape, efectivo o transferencia. No viene elegido, para que no quede anotado uno por otro. Igual sale de tu plata para compras.",
     },
     {
       id: "guardar",
       ancla: "compra.guardar",
       opcional: true,
       titulo: "Guardar",
-      texto: "Guarda la compra: baja de tu plata y Compras la completa después. En la demo no la guardamos.",
+      texto: "Guarda la compra: baja de tu plata y pasa sola a los libros cuando la tienda termine de contar. En la demo no la guardamos.",
     },
     {
       id: "listo",
