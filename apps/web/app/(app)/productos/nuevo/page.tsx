@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { puede, requirePersonaActualV2 } from "@/lib/persona-actual";
 import { encontrarPorTipo, getSububicaciones } from "@/lib/sububicaciones";
 import { NuevoProductoForm } from "@/components/NuevoProductoForm";
+import { fotoCatalogoDisponible } from "@/lib/foto-catalogo";
 import { getContextoAlta } from "@/lib/alta-producto-datos";
 import { getCargaInicial } from "@/lib/carga-inicial";
 import { cargaInicialDe } from "@/lib/carga-inicial-reglas";
@@ -76,6 +77,7 @@ export default async function NuevoProductoPage({ searchParams }: { searchParams
           cargaInicial={cargaInicialDe(carga, persona.ubicacionId)}
           // ADR-0641 act. 2026-11-11: proponer queda abierto a quien crea la prenda (Felipe eligió abrir los costos ajenos).
           proponePrecio
+          catalogoIADisponible={fotoCatalogoDisponible()}
         />
       )}
     </div>

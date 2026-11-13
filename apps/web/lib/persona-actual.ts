@@ -18,6 +18,7 @@ import {
   veEstadosFinancierosDeTodo,
   veFinanzasDeTodo,
 } from "@/lib/modulos";
+import { respuestasDeLaSesion, type RespuestasDeIdentidad } from "@/lib/mi-sesion-reglas";
 import { funcionaEnVistaGlobal, modulosEnLaVista, NOMBRE_VISTA_GLOBAL, RUTA_ELEGIR_SEDE, VALOR_VISTA_GLOBAL, type Vista } from "@/lib/vista-global";
 
 // Integración con Dynamic (2026-09-12): retail ya no tiene su propia
@@ -114,29 +115,15 @@ export const requirePersonaActualV2 = cache(async (): Promise<PersonaActualV2> =
     redirect(errorDeSesion && isAuthRetryableFetchError(errorDeSesion) ? await direccionSinBase() : "/login");
   }
 
-  // «¿Es un aparato?» se pide EN PARALELO con el resumen: no suma una espera. `fn_mi_terminal()` devuelve el nombre del
-  // aparato (una base vieja, su tipo); vacío o error = una persona. Falla cerrado (principio 9).
-  // Los módulos del rol también van en paralelo (ADR-0161). Si la función aún no existe (web publicada antes de pegar
-  // 20260923030000), la cuenta ve lo de hoy: ni más ni menos (principio 9).
-  // Quién es la persona de la sesión (para proponerla en el combo «Responsable»): `fn_mi_persona_id` (ADR-0533) devuelve el id propio y
-  // NULL en una terminal, sin rechazar: antes se leía con `fn_actor_persona_id(false)`, que a una terminal la rechazaba y llenaba el
-  // registro de Postgres (4 258 errores al día). Web publicada antes de pegar 20261027140000: se usa esa lectura de antes (abajo).
-  // ¿Admin? También en paralelo; un error = no es admin (falla cerrado: se le pide el combo como a todos).
-  const [
-    { data, error, status: estadoDelResumen },
-    { data: miTerminal, error: errorTerminal },
-    { data: filasModulos, error: errorModulos },
-    { data: miPersonaId, error: errorPersonaId },
-    { data: soyAdmin },
-    { data: pantallaPrincipal, error: errorPantallaPrincipal },
-  ] = await Promise.all([
-    supabase.rpc("fn_persona_actual_resumen").maybeSingle(),
-    supabase.rpc("fn_mi_terminal"),
-    supabase.rpc("fn_mis_modulos"),
-    supabase.rpc("fn_mi_persona_id"),
-    supabase.rpc("fn_es_admin"),
-    supabase.rpc("fn_mi_pantalla_principal"),
-  ]);
+  // Las seis respuestas de identidad, en un solo viaje (`fn_mi_sesion`, ADR-0657) o, si esa función aún no está, en las seis de siempre.
+  const {
+    resumen: { data, error, status: estadoDelResumen },
+    terminal: { data: miTerminal, error: errorTerminal },
+    modulos: { data: filasModulos, error: errorModulos },
+    personaId: { data: miPersonaId, error: errorPersonaId },
+    esAdmin: { data: soyAdmin },
+    pantalla: { data: pantallaPrincipal, error: errorPantallaPrincipal },
+  } = await leerIdentidad(supabase);
 
   // Un error de la base NO es «sin acceso» (2026-10-17: la base se cayó y a todos los mandó al login con «pide a un Líder que te dé de
   // alta»). Solo una respuesta de la base sin fila dice que la cuenta no entra; si la base no respondió, se espera (ADR-0450).
@@ -215,6 +202,40 @@ export const requirePersonaActualV2 = cache(async (): Promise<PersonaActualV2> =
     pantallaPrincipal: !terminal && !errorPantallaPrincipal && typeof pantallaPrincipal === "string" ? pantallaPrincipal : null,
   };
 });
+
+/** Quién es la cuenta, en UN viaje: `fn_mi_sesion()` (ADR-0657) devuelve las seis respuestas de abajo con la identidad calculada una
+ *  vez. Si la base todavía no tiene la función (web publicada antes de pegar 20261113200000: PGRST202), o falla por algo que no es «la
+ *  base no responde», se preguntan las seis como antes: nadie se queda afuera por la función nueva (principio 9). */
+async function leerIdentidad(supabase: Awaited<ReturnType<typeof createClient>>): Promise<RespuestasDeIdentidad> {
+  const sesion = await supabase.rpc("fn_mi_sesion");
+  return respuestasDeLaSesion(sesion) ?? (await leerLasSeis(supabase));
+}
+
+/** Las seis preguntas de antes de ADR-0657, en paralelo.
+ *  «¿Es un aparato?» (`fn_mi_terminal()`) devuelve el nombre del aparato (una base vieja, su tipo); vacío o error = una persona. Falla
+ *  cerrado (principio 9). Los módulos del rol (ADR-0161): si la función aún no existe (web publicada antes de pegar 20260923030000), la
+ *  cuenta ve lo de hoy, ni más ni menos. Quién es la persona de la sesión (para proponerla en el combo «Responsable»): `fn_mi_persona_id`
+ *  (ADR-0533) devuelve el id propio y NULL en una terminal, sin rechazar (antes se leía con `fn_actor_persona_id(false)`, que a una
+ *  terminal la rechazaba y llenaba el registro de Postgres: 4 258 errores al día); sin ella (base anterior a 20261027140000), el marco
+ *  usa esa lectura de antes. ¿Admin? Un error = no es admin (falla cerrado: se le pide el combo como a todos). */
+async function leerLasSeis(supabase: Awaited<ReturnType<typeof createClient>>): Promise<RespuestasDeIdentidad> {
+  const [resumen, terminal, modulos, personaId, esAdmin, pantalla] = await Promise.all([
+    supabase.rpc("fn_persona_actual_resumen").maybeSingle(),
+    supabase.rpc("fn_mi_terminal"),
+    supabase.rpc("fn_mis_modulos"),
+    supabase.rpc("fn_mi_persona_id"),
+    supabase.rpc("fn_es_admin"),
+    supabase.rpc("fn_mi_pantalla_principal"),
+  ]);
+  return {
+    resumen: { data: resumen.data, error: resumen.error, status: resumen.status },
+    terminal: { data: terminal.data, error: terminal.error },
+    modulos: { data: modulos.data, error: modulos.error },
+    personaId: { data: personaId.data, error: personaId.error },
+    esAdmin: { data: esAdmin.data },
+    pantalla: { data: pantalla.data, error: pantalla.error },
+  };
+}
 
 /** ADR-0454: ¿esta terminal firma a nombre de una persona de respaldo? Solo se pregunta cuando la sesión ES una terminal (una persona
  *  no suma una espera). Falla CERRADO (principio 9): si la función aún no existe (web publicada antes de pegar 20261019185000) o la
