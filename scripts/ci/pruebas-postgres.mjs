@@ -446,6 +446,11 @@ export const PRUEBAS = [
   // ofrece (fn_tienda_precios); coincide con el catálogo, baja al vender o apartar, no cuenta lo retirado, lo de S/ 0, lo no publicado,
   // el Taller ni lo escondido, NUNCA deja salir una cifra y es solo de tienda_web; con 10 mutantes. ROLLBACK.
   "pruebas:tienda-filtros",
+  // La huella del catálogo web (cambiar-de-modulo#11): `tienda_catalogo_version` cambia con una venta, un precio, una campaña que empieza mañana
+  // (sin escribir nada), una foto, la Vitrina, una insignia, una familia, «quedan pocas», una sede, un recorte, el Taller y una función que se
+  // reemplaza; no con una caja ni un cliente; recorre las funciones de las tres lecturas y falla si leen una tabla que la huella no mira; con 2
+  // mutantes. ROLLBACK.
+  "pruebas:tienda-catalogo-version",
   // Las insignias en la ficha de la tienda (ADR-0489): la ficha trae las de Catálogo ▸ Insignias que alcanzan al modelo (a mano en una variante
   // que se ofrece o por su categoría), activas, aprobadas, vigentes hoy y de su tienda, por grupo y nombre; una insignia CON descuento no sale
   // aparte (su descuento es el chip de la campaña: con varias, la de mayor %); la función de adentro es interna y `tienda_web` solo llama a la
