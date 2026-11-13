@@ -77,6 +77,36 @@ DECIDÍ:
   Frescura) tendría que seguir `fusionado_en_id`. Mudarla también, apagada, lo resuelve sin tocar ninguna lectura.
 - **Un «deshacer»:** Felipe eligió no tenerlo; además, con ventas nuevas en la ficha final después de fusionar, separar de nuevo es ambiguo.
 
+## Actualización 2026-11-13: la hoja «La ficha que se arma»
+
+Felipe probó la hoja en local y pidió tres cosas: que lo elegido no fuera un bloque de color sólido (desentonaba con el vidrio), que las
+fichas no cambiaran de lugar al elegir la que queda, y un diseño más claro, con un botón para ver cada ficha completa y comparar. Decidió
+10 preguntas (tabla en `docs/backlog/2026-11-13-fusionar-productos-rediseno.md`) y eligió mirando la dirección **B · La ficha que se arma**
+de `docs/maquetas/fusionar-productos-2026-11/`. La ficha al milímetro (las seis skills de «Al milímetro») es `docs/milimetro/fusionar-productos.md`.
+**No cambia nada de la base ni de lo que hace la fusión:** el plan y la fusión son las mismas funciones.
+
+DECIDÍ:
+
+1. **Las fichas lado a lado y en su sitio.** Cada ficha es una columna en vidrio claro; la que queda pasa a la gota, con su ✓ y «Queda»,
+   sin moverse: el orden es el de la hoja (`ordenFijo`), no el del plan, que pone primero al que queda.
+2. **«Así va a quedar», a la derecha y pegada:** la ficha final se arma con cada elección (`fichaFinal`) y el dato que cambia se voltea una vez.
+   Abajo, la matriz color × talla (`matrizFinal`): «ya estaba», «pasa» (contorno punteado) y «se junta» (+N), con forma y texto, no solo color.
+   Las tallas del que queda salen del detalle (el plan no las manda); **sin el detalle la matriz no se dibuja**, porque todo parecería «pasa».
+3. **«Ver ficha» abre una hoja para comparar:** galería de fotos, ventas, stock por sede con su barra a la misma escala, tallas y colores,
+   precio, costo (solo a quien lo ve) y alta. Los bloques quedan a la misma altura en todas las columnas (subgrid).
+4. **El stock por sede sin migración:** `fn_existencias(null, ids)` (security definer, la única cifra de stock, ADR-0270) ya lo devuelve a toda
+   cuenta de retail; las tallas, de `variantes` (sin `fusionada_en_id`, que la cuenta no puede leer: una talla fusionada ya queda `activo = false`).
+5. **Dos pasos:** «Revisar y fusionar» lleva a un último vistazo (qué va a pasar, la matriz grande, el responsable, «No se puede deshacer»)
+   con «Sí, fusionar»; termina en el sello «Fusionado» en la misma hoja, en vez del aviso de esquina. La guía de foco va por paso.
+6. **Movimiento rico, una vez** (excepción de ADR-0136 del 2026-11-13, `lib/fusionar-movimiento.test.ts`).
+
+DESCARTÉ:
+
+- **A · La mesa** (todo en una tabla que compara): Felipe eligió B mirando las dos.
+- **Ampliar `previsualizar_fusion_productos` con el stock por sede:** era una migración en producción para algo que una lectura existente ya da.
+- **Una pieza nueva en `components/ui/` para «elegir en tarjeta»:** vive en `components/fusionar-productos/` hasta que Felipe la elija para
+  todo el ERP por `/unificar` (Propuesta 1 de la ficha al milímetro).
+
 ## Pendiente
 
 - «Esta no es repetida»: hoy un par sugerido que no es la misma prenda sigue en la lista. Si molesta, una tabla de pares descartados.

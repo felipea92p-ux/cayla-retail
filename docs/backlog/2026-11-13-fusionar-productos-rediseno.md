@@ -30,12 +30,12 @@ Sigue de ADR-0650 (la fusión ya está en producción y la web publicada, PR #17
 - [x] Felipe eligió **B · La ficha que se arma** (2026-11-13): las fichas a la izquierda y «Así va a quedar» a la derecha, que cambia con cada elección.
 - [x] Felipe aprobó las 8 actividades (2026-11-13), con las seis skills de «Al milímetro».
 - [x] 1 · Ficha al milímetro: `docs/milimetro/fusionar-productos.md`.
-- [ ] 2 · Datos para comparar: `fn_existencias(null, ids)` + `variantes` (sin migración).
-- [ ] 3 · Lógica pura con pruebas: matriz final, ficha «Así va a quedar», orden fijo.
-- [ ] 4 · Hoja nueva B: columnas en vidrio, la elegida en gota + ✓, sin reordenar; «Así va a quedar» pegada a la derecha.
-- [ ] 5 · Hoja para comparar («Ver ficha»): galería, ventas, stock por sede, tallas, precio, costo y alta.
-- [ ] 6 · «Revisar y fusionar», «Sí, fusionar» y el sello «Fusionado».
-- [ ] 7 · Movimiento rico una vez (excepción en ADR-0136 y CLAUDE.md, con su prueba).
+- [x] 2 · Datos para comparar: `fn_existencias(null, ids)` + `variantes` (sin migración).
+- [x] 3 · Lógica pura con pruebas: matriz final, ficha «Así va a quedar», orden fijo.
+- [x] 4 · Hoja nueva B: columnas en vidrio, la elegida en gota + ✓, sin reordenar; «Así va a quedar» pegada a la derecha.
+- [x] 5 · Hoja para comparar («Ver ficha»): galería, ventas, stock por sede, tallas, precio, costo y alta.
+- [x] 6 · «Revisar y fusionar», «Sí, fusionar» y el sello «Fusionado».
+- [x] 7 · Movimiento rico una vez (excepción en ADR-0136 y CLAUDE.md, con su prueba).
 - [ ] 8 · Cierre: guía de foco, guía interactiva y huella, oscuro, 375 px, `/milimetro auditar`, `/chaos`, ADR-0650, bitácora, PR.
 
 Para mostrarle a Felipe: «Fotos que quedan» no estaba en la maqueta B; va como tercer bloque bajo «Lo que es distinto» (ADR-0650, decisión 9).

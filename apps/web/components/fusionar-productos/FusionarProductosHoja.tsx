@@ -99,6 +99,9 @@ export function FusionarProductosHoja({
   const [hecho, setHecho] = useState<{ referencia: string; vendidas: number; stock: number; repetidas: number } | null>(null);
   const cuerpo = useRef<HTMLDivElement>(null);
   const radios = useRef<Record<string, HTMLButtonElement | null>>({});
+  // Dos clics en el mismo instante ven `guardando` en falso los dos: el candado de la ref no espera a React. (La base igual frena el
+  // segundo por la versión de las fichas, `p_versiones`; esto evita siquiera pedirlo.)
+  const enviando = useRef(false);
 
   const quedaEfectiva = queda ?? ids[0] ?? null;
   const duplicados = ids.filter((id) => id !== quedaEfectiva);
@@ -190,7 +193,8 @@ export function FusionarProductosHoja({
   }, [vista]);
 
   async function fusionar() {
-    if (guardando || leyendo || bloqueado || !plan || !quedaEfectiva || !sePuedeConfirmar(camposRevisar)) return;
+    if (enviando.current || guardando || leyendo || bloqueado || !plan || !quedaEfectiva || !sePuedeConfirmar(camposRevisar)) return;
+    enviando.current = true;
     setGuardando(true);
     setErrorGuardar(null);
     const versiones = Object.fromEntries(plan.productos.map((p) => [p.id, p.version]));
@@ -203,6 +207,7 @@ export function FusionarProductosHoja({
       }),
       responsable.firma(),
     );
+    enviando.current = false;
     setGuardando(false);
     responsable.despues(error);
     if (error) {
