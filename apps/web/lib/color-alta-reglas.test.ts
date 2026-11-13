@@ -52,8 +52,8 @@ describe("faltaParaCrear", () => {
 describe("colorDeRespuesta", () => {
   it("lee el color (desde ADR-0534 nace aprobado: el estado no se lee)", () => {
     const r = colorDeRespuesta({ color: { codigo: "PAR", nombre: "Palo de rosa", familia_color: "rojo", hex: "#C98B8B", estado: "pendiente", sinonimos: ["rosa viejo"] } });
-    // Sin ficha todavía (ADR-0316): descripción vacía y sin compañeros, nunca `undefined`.
-    expect(r).toEqual({ color: { codigo: "PAR", nombre: "Palo de rosa", hex: "#C98B8B", familiaColor: "rojo", sinonimos: ["rosa viejo"], pantoneTcx: null, descripcion: null, combinaCon: [], componentes: null } });
+    // Sin descripción todavía (ADR-0316): `null`, nunca `undefined`.
+    expect(r).toEqual({ color: { codigo: "PAR", nombre: "Palo de rosa", hex: "#C98B8B", familiaColor: "rojo", sinonimos: ["rosa viejo"], pantoneTcx: null, descripcion: null, componentes: null } });
   });
   it("una mezcla trae sus componentes, la base primero (ADR-0643)", () => {
     const r = colorDeRespuesta({ color: { codigo: "CZU", nombre: "Crudo con azur", familia_color: "neutro", hex: "#F3ECE0", componentes: ["CRU", "AZU"] } });

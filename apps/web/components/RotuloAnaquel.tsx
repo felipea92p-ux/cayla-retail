@@ -1,5 +1,5 @@
 import { esTallaUnica } from "@/lib/etiqueta-precio-reglas";
-import { INTERLINEA_NOMBRE, medidaNombre, textoVarios, type MedirEm, type Rotulo } from "@/lib/rotulos-reglas";
+import { ALTO_SOLO_NOMBRE_MM, INTERLINEA_NOMBRE, MAX_SOLO_NOMBRE_MM, medidaNombre, textoVarios, type MedirEm, type Rotulo } from "@/lib/rotulos-reglas";
 
 /**
  * El rótulo de anaquel impreso (ADR-0366): 62 × 40,1 mm acostado —el mismo papel que la etiqueta de precio—, para leerlo de
@@ -13,10 +13,15 @@ import { INTERLINEA_NOMBRE, medidaNombre, textoVarios, type MedirEm, type Rotulo
  * tabla de fábrica (act. 2026-11-07).
  */
 export function RotuloAnaquel({ rotulo: r, medir }: { rotulo: Rotulo; medir?: MedirEm }) {
-  const { mm } = medidaNombre(r.modelos, medir);
+  // El rótulo de marca es solo su nombre: se lleva el alto entero del papel y va centrado.
+  const { mm } = medidaNombre(r.modelos, medir, r.soloNombre ? { alto: ALTO_SOLO_NOMBRE_MM, max: MAX_SOLO_NOMBRE_MM } : undefined);
   const unica = r.tallas.length === 1 && esTallaUnica(r.tallas[0]);
   return (
-    <article data-papel className="rotulo-anaquel" aria-label={`Rótulo de ${r.modelos.join(", ")}`}>
+    <article
+      data-papel
+      className={`rotulo-anaquel${r.soloNombre ? " rotulo-anaquel--solo-nombre" : ""}`}
+      aria-label={`Rótulo de ${r.modelos.join(", ")}`}
+    >
       <p className="rot-nombre" style={{ fontSize: `${mm}mm`, lineHeight: INTERLINEA_NOMBRE }}>
         {/* Un solo texto, para que el navegador corte las líneas como `medidaNombre`. El «·» va pegado al nombre anterior con un
             espacio duro: si el siguiente baja de línea, el punto no queda colgando al inicio. */}
