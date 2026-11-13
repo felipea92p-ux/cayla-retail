@@ -4,13 +4,13 @@ import "@/app/estilos/redes.css";
 
 /**
  * La fila de redes de CAYLA (`lib/redes.ts`): un ícono por red, de 44 px con el dedo y 36 px con el mouse (así las seis caben en una fila
- * del pie desde una laptop chica). Quietos van en la tinta de la tienda; al pasar el puntero cada uno toma el color de su red (Felipe
- * 2026-11-12). Se abren en otra pestaña.
+ * del pie desde una laptop chica). Quietos van en la tinta de la tienda; al pasar el puntero solo el ícono toma el color de su red y
+ * crece un poco, sin que cambie la casilla (Felipe 2026-11-13). Se abren en otra pestaña.
  *
  * `donde` da nombre al degradado de Instagram: la página puede tener dos filas a la vez (el pie y el menú del celular) y un `id` repetido
  * haría que una pinte con el degradado de la otra. `conCuenta` suma «Estamos como @caylaperu» debajo.
  */
-export function Redes({ donde, conCuenta = false }: { donde: "pie" | "menu" | "separado"; conCuenta?: boolean }) {
+export function Redes({ donde, conCuenta = false }: { donde: "pie" | "menu"; conCuenta?: boolean }) {
   const degradado = `redes-degradado-${donde}`;
   return (
     <div className="redes">

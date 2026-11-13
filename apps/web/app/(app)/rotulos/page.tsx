@@ -21,7 +21,7 @@ export default async function RotulosPage({ searchParams }: { searchParams: Prom
   const ids = idsDeParam(params.productos).slice(0, MAX_MODELOS_EN_URL);
   const desde = desdeDeParams(params.desde);
   const origen = origenDeParam(params.origen, desde);
-  const { modelos, catalogo } = await getRotulos(ids);
+  const { modelos, catalogo, marcas } = await getRotulos(ids);
 
   return (
     // Las prendas que llegan por la URL son las de ARRANQUE: después se suman y se quitan en el navegador, que reescribe la
@@ -29,6 +29,7 @@ export default async function RotulosPage({ searchParams }: { searchParams: Prom
     <ImprimirRotulos
       modelos={modelos}
       catalogo={catalogo}
+      marcas={marcas}
       origen={origen === "existencias" || origen === "almacen" ? { desde: origen } : { productos: desde }}
       volver={volverDeRotulos(origen, desde)}
       sede={persona.ubicacionEtiqueta}

@@ -87,3 +87,30 @@ export function fondoDeMezclaEnFranja(tonos: readonly string[]): string {
   const partes = resto.map((t, i) => `${t} ${50 + tramo * i}% ${50 + tramo * (i + 1)}%`);
   return `linear-gradient(90deg, ${base} 0% 50%, ${partes.join(", ")})`;
 }
+
+type ColorDeLaCarta = { codigo: string; nombre: string; hex: string | null; componentes?: readonly string[] | null };
+
+/**
+ * Los tonos de cada mezcla de la carta, para las pantallas que reciben el color de una prenda ya armado (Catálogo ▸ Productos,
+ * Existencias, Vender) y no la carta entera: de la carta COMPLETA (también los colores desactivados, que siguen siendo el componente de
+ * una mezcla) salen los tonos de cada mezcla, por la llave que esa pantalla tiene a mano —el nombre del color o su código—. Solo entran
+ * las mezclas que se pueden partir; un color de un tono no está, y su punto sigue liso. Un objeto plano: viaja del servidor al cliente.
+ */
+export function tonosDeLasMezclas(colores: readonly ColorDeLaCarta[], clave: "codigo" | "nombre"): Record<string, string[]> {
+  const porCodigo = new Map(colores.map((c) => [c.codigo, c] as const));
+  const salida: Record<string, string[]> = {};
+  for (const c of colores) {
+    const tonos = tonosDeMezcla(c, porCodigo);
+    if (tonos) salida[c[clave]] = tonos;
+  }
+  return salida;
+}
+
+/**
+ * El fondo del punto de un color en una grilla: partido si es una mezcla (la base a la izquierda), liso con su hex si no. Va en
+ * `background` (no en `background-color`: un degradado no es un color). `undefined` si no hay ni tonos ni hex: quien lo usa pone el suyo.
+ */
+export function fondoDelPunto(hex: string | null | undefined, tonos?: readonly string[] | null): string | undefined {
+  if (tonos && tonos.length >= 2) return fondoDeMezcla(tonos);
+  return hex ?? undefined;
+}

@@ -434,7 +434,8 @@ export type Conciliacion = {
   desde: string;
   hasta: string;
   saldoSistema: number;
-  conciliacion: { id: string; saldoBanco: number; saldoSistema: number; diferencia: number; nota: string | null; registradoPor: string | null } | null;
+  /** `despues` (ADR-0652): lo que se registró con fecha de ese día DESPUÉS de anotar el saldo; nulo si se anotó un día que ya había pasado. */
+  conciliacion: { id: string; saldoBanco: number; saldoSistema: number; diferencia: number; nota: string | null; registradoPor: string | null; despues: number | null } | null;
   lineas: LineaConciliacion[];
   historial: HistorialConciliacion[];
 };
@@ -449,7 +450,7 @@ export function leerConciliacion(data: unknown): Conciliacion | null {
     hasta: String(d.hasta),
     saldoSistema: num(d.saldo_sistema),
     conciliacion: k
-      ? { id: String(k.id), saldoBanco: num(k.saldo_banco), saldoSistema: num(k.saldo_sistema), diferencia: num(k.diferencia), nota: texto(k.nota), registradoPor: texto(k.registrado_por) || null }
+      ? { id: String(k.id), saldoBanco: num(k.saldo_banco), saldoSistema: num(k.saldo_sistema), diferencia: num(k.diferencia), nota: texto(k.nota), registradoPor: texto(k.registrado_por) || null, despues: numONull(k.despues) }
       : null,
     lineas: ((d.lineas ?? []) as Fila[]).map((l) => ({
       clave: String(l.clave),

@@ -327,6 +327,10 @@ export function RegistrarCompra({ datos }: { datos: Datos }) {
       (c) => c.id !== "pagado" || verParte,
     ),
   );
+  // «Tu compra» dice lo mismo que la guía del papel: decía «Sigue: guardar la compra» mientras la guía pedía «Con qué pagaste» (auditoría
+  // 2026-11-12; con el medio sin elegir de fábrica, se veía en cada compra).
+  const campoQueSigue = guia.ahora ? guia.campos.find((c) => c.id === guia.ahora) : undefined;
+  const siguePapel = campoQueSigue ? `Sigue: ${campoQueSigue.nombre.charAt(0).toLowerCase()}${campoQueSigue.nombre.slice(1)}` : "Sigue: guardar la compra";
   const montoLeido = leerMontoPlata(monto);
   const pagadoLeido = pago.forma === "despues" ? 0 : leerMontoPlata(pagoAhora.pagado);
   const cuadra = cuadraElPapel(montoLeido, totalDeLineas(lineas));
@@ -972,7 +976,8 @@ export function RegistrarCompra({ datos }: { datos: Datos }) {
                     {TIPOS_PAPEL[k].nombre}
                     {tipo === k && <Check className="h-4 w-4" aria-hidden />}
                   </span>
-                  <span className="text-sm text-taupe">{TIPOS_PAPEL[k].ayuda}</span>
+                  {/* Sobre la tarjeta elegida (hundida) el taupe daba 4,18:1 (/milimetro 2026-11-13, WCAG 1.4.3): elegida, la ayuda va en tinta. */}
+                  <span className={`text-sm ${tipo === k ? "text-tinta/75" : "text-taupe"}`}>{TIPOS_PAPEL[k].ayuda}</span>
                 </button>
               ))}
             </div>
@@ -1092,7 +1097,7 @@ export function RegistrarCompra({ datos }: { datos: Datos }) {
                     {o.nombre}
                     {pago.forma === o.forma && <Check className="h-4 w-4" aria-hidden />}
                   </span>
-                  <span className="text-sm text-taupe">{o.ayuda}</span>
+                  <span className={`text-sm ${pago.forma === o.forma ? "text-tinta/75" : "text-taupe"}`}>{o.ayuda}</span>
                 </button>
               ))}
             </div>
@@ -1205,7 +1210,7 @@ export function RegistrarCompra({ datos }: { datos: Datos }) {
                 ? lineas.length > 0
                   ? "Sigue: revisar las prendas"
                   : "Sigue: elegir qué le compraste"
-                : "Sigue: guardar la compra"
+                : siguePapel
           }
         />
       )}

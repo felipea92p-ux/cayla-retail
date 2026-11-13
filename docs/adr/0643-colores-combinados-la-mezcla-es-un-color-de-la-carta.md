@@ -79,3 +79,30 @@ stock aparte, con la misma llave única de siempre (`variantes_producto_talla_co
 ## Actualización 2026-11-12 (ADR-0649)
 
 La mezcla se arma en la misma carta, con un círculo grande, sin abrir otra hoja; las mezclas guardadas no salen en las listas (son de una sola prenda). Ver ADR-0649, decisión 6.
+
+## Actualización 2026-11-13: el punto partido en las grillas y «+ acompañante» al editar la prenda
+
+Felipe pidió que la mezcla se pueda armar también al editar un producto y que el círculo de la mezcla se vea en Catálogo, Existencias y Vender
+(«actualmente no sale»). Nuevo producto ya lo tenía desde el 2026-11-10 (la píldora del color elegido trae «+ acompañante»). Cambia dos cosas
+de «Lo que doy por hecho»:
+
+- **«Agregar colores» y «Corregir / Cambiar color» de la ficha ahora arman la mezcla.** Agregar colores usa la misma carta que el alta
+  (`ElegirColores conMezclas`), y le pasa la carta entera (`todos`) para los acompañantes: «Rojo con azul marino» se arma aunque la prenda ya
+  venda Azul marino. Corregir color no tiene carta, sino un buscador (`ElegirUnColor`), así que su «+ acompañante» busca los acompañantes en
+  un segundo buscador y usa el mismo panel (`ArmarMezcla desde="buscador"`). Si todavía no se eligió un color, la base es el que ya tiene la
+  variante: «Negro» que en verdad es «Negro con crudo». La mezcla nueva entra al vocabulario de la ficha (`onColorCreado`) y se aplica con
+  «Revisar y guardar», como cualquier corrección.
+- **«+ Color combinado», junto a «+ Nuevo color»** (Felipe lo eligió entre tres, 2026-11-13): primero se toca la BASE en la carta entera
+  («¿Qué color se ve más en la prenda?») y después de 1 a 3 acompañantes, en el mismo panel. Resuelve dos cosas: en Agregar colores la base
+  puede ser un color que la prenda ya vende («Azul marino con crudo» en una prenda que vende Azul marino; antes no había cómo), y es una
+  entrada a la vista —el enlace chico «+ acompañante» de cada píldora, que sigue, no se encontraba—. Va donde se arman mezclas: Nuevo
+  producto, Recibir y Agregar colores. La mezcla queda elegida sola; la base no se elige.
+- **Catálogo ▸ Productos, Existencias y Vender dibujan el punto partido.** Cada pantalla lee la carta entera con `componentes` (también lo
+  desactivado: un color apagado sigue siendo el acompañante de una mezcla) y `tonosDeLasMezclas` arma, por nombre o por código, los tonos de
+  cada mezcla. La variante lleva `colorTonos` y el punto se pinta con `fondoDelPunto` (en `background`, no en `background-color`: un degradado
+  no es un color). El hex de la base sigue tiñendo la foto que falta (`MosaicoPrenda`). Lo cubren: la tarjeta y la tabla de Productos, su
+  vista rápida y su filtro de colores; las tarjetas, las dos tablas, el filtro y el panel de una talla de Existencias; la tarjeta, la hoja de
+  opciones y el buscador de Vender; «Ajustar stock» del modelo (la planilla, el talón y las etiquetas de lo que entró, con los tonos que
+  Existencias ya tiene); y en Editar producto, la matriz, el panel de fotos por color e «Imprimir lo que entró». Queda con el punto liso
+  solo la tienda web (ADR-0616: otra decisión).
+- La ficha de Editar producto lee `componentes`: sin eso no reconocía una mezcla que ya existe y la volvía a crear.

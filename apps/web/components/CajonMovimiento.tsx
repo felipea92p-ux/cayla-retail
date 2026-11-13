@@ -298,19 +298,23 @@ export function CajonMovimiento({
   vista,
   onVerVenta,
   onCerrar,
+  navegacion,
 }: {
   vista: VistaCajon;
   /** Solo si hay venta y quien mira ve Historial de ventas: abre `DetalleVentaModal`, ya existente. */
   onVerVenta?: () => void;
   onCerrar: () => void;
+  /** «3 de 50» con ↑ ↓: pasar al movimiento de al lado sin cerrar el cajón. */
+  navegacion?: { indice: number; total: number; onNavegar: (delta: 1 | -1) => void };
 }) {
-  // La cabecera del cajón lleva el sello y el nombre del movimiento (ADR-0353), en la banda de la pieza (ADR-0358, ronda 17). Sin
-  // velo: la página sigue viva detrás, y pasar de un movimiento a otro (`clave`) re-asienta el contenido sin cerrar el cajón.
+  // La cabecera del cajón lleva el sello y el nombre del movimiento (ADR-0353), en la banda de la pieza (ADR-0358, ronda 17).
+  // Con velo, como todo cajón del sistema (Felipe 2026-11-13: lo de atrás se desenfoca); antes iba sin velo para tocar otra fila
+  // con el cajón abierto, y eso lo hacen ahora ↑ ↓ y «n de N» del pie: el contenido se re-asienta (`clave`) sin cerrar el cajón.
   const d = vista.detalle;
   return (
     <Cajon
       onCerrar={onCerrar}
-      velo={false}
+      navegacion={navegacion ? { ...navegacion, que: "Movimiento" } : undefined}
       clave={d.clave}
       guia="movimientos.cajon"
       marca={<SelloTipo tipo={d.tipo} tamano={40} />}

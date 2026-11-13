@@ -467,5 +467,38 @@ select pg_temp.intento(format('select retail.fn_conciliacion(%L)', :'cajon_tru')
   esperar("un cajón no se concilia contra un banco", r.ok && cajon.includes("Solo se concilian"), r);
 }
 
+// 11. ADR-0652: el saldo de HOY se corta en el momento de anotarlo. El caso real (Felipe 2026-11-13): BCP Empresa cuadraba, después
+// registró un retiro con fecha de ese mismo día y el cuadre pasó a «No cuadra» por el monto exacto del retiro. Lo olvidado de un día
+// ANTERIOR sigue entrando en vivo (registrarlo arregla la diferencia), y un saldo anotado para un día que ya pasó usa el día entero.
+{
+  const r = correr(`${ESCENA}
+select retail.registrar_movimiento_dinero('deposito', 300, :'cajon_tru', :'bcp', null, 'V-1', 0, null, :'egreso') as m \\gset
+select retail.registrar_movimiento_dinero('entre_cuentas', 100, :'bcp', :'ibk', retail.fn_hoy_lima() - 2) as e \\gset
+select retail.registrar_conciliacion(:'bcp', retail.fn_hoy_lima(), 1200, 'banca por internet') as c \\gset
+select retail.registrar_movimiento_dinero('retiro', 280.39, :'bcp') as r \\gset
+select x->>'saldo_sistema', x->'conciliacion'->>'saldo_sistema', x->'conciliacion'->>'diferencia', x->'conciliacion'->>'despues' from retail.fn_conciliacion(:'bcp') x;
+select ultima_diferencia from retail.fn_conciliacion_cuentas() where id = :'bcp';
+select retail.registrar_movimiento_dinero('entre_cuentas', 50, :'bcp', :'ibk', retail.fn_hoy_lima() - 1) as olvido \\gset
+select x->'conciliacion'->>'saldo_sistema', x->'conciliacion'->>'diferencia' from retail.fn_conciliacion(:'bcp') x;
+select ultima_diferencia from retail.fn_conciliacion_cuentas() where id = :'bcp';
+select pg_temp.intento(format('update retail.conciliaciones set estado = ''anulada'', motivo_anulacion = ''x'', anulada_en = now(), movido_del_dia = 0 where id = %L', :'c'));
+select retail.registrar_conciliacion(:'ibk', retail.fn_hoy_lima() - 1, 50) as c_ayer \\gset
+select movido_del_dia is null from retail.conciliaciones where id = :'c_ayer';
+select retail.registrar_movimiento_dinero('entre_cuentas', 20, :'ibk', :'bcp', retail.fn_hoy_lima() - 1) as tarde \\gset
+select x->'conciliacion'->>'saldo_sistema', x->'conciliacion'->>'diferencia', x->'conciliacion'->>'despues' from retail.fn_conciliacion(:'ibk', retail.fn_hoy_lima() - 1) x;`);
+  const [despuesDelRetiro, ultimaTrasRetiro, conOlvido, ultimaConOlvido, editar, ayerNulo, ayer] = lineas(r);
+  esperar(
+    "el retiro de la tarde no rompe el cuadre de hoy: la cuenta dice 919.61, el cuadre sigue en 1,200 sin diferencia y dice que después salieron 280.39",
+    r.ok && despuesDelRetiro === "919.61|1200.00|0.00|-280.39",
+    r
+  );
+  esperar("la lista de bancos tampoco lo ve como «No cuadra»", r.ok && ultimaTrasRetiro === "0.00", r);
+  esperar("algo olvidado de AYER, registrado después, sí entra: el cuadre baja a 1,150 y la diferencia se ve", r.ok && conOlvido === "1150.00|50.00", r);
+  esperar("y la lista de bancos lo ve igual", r.ok && ultimaConOlvido === "50.00", r);
+  esperar("lo movido al anotar no se edita, ni al anular", r.ok && editar.includes("no se edita"), r);
+  esperar("un saldo anotado para un día que ya pasó no guarda corte", r.ok && ayerNulo === "t", r);
+  esperar("y se compara con el día entero, también lo registrado después", r.ok && ayer === "130.00|-80.00|", r);
+}
+
 console.log(fallos ? `\n${fallos} de ${casos} caso(s) fallaron` : `\nTodo en orden (${casos} casos)`);
 process.exit(fallos ? 1 : 0);

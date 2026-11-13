@@ -25,7 +25,8 @@ export type OrigenSugerencia = "categoria" | "familia" | "neutro";
 export type Sugerencia = { texto: string; origen: OrigenSugerencia };
 export type ContextoCategoria = { familia?: string | null; prefijo?: string | null };
 
-/** Lo más largo que cabe en la caja de Descripción de un celular (a 375 px la caja útil mide 279 px y 36 caracteres ocupan ~270 px como máximo), con margen. */
+/** @internal Tope de un placeholder: su prueba lo cruza con cada ejemplo (lo usaba también Liquidación, retirada en ADR-0653). Lo más largo que cabe
+ *  en la caja de Descripción de un celular (a 375 px la caja útil mide 279 px y 36 caracteres ocupan ~270 px como máximo), con margen. */
 export const MAX_DESCRIPCION = 36;
 
 type Ficha = { prenda: string; nombre: string; descripcion: string };

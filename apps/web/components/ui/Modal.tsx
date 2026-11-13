@@ -322,7 +322,7 @@ export function Modal({ titulo, subtitulo, onClose, children, tamano = "angosta"
           </Dialog.Title>
           {subtitulo ? (
             <Dialog.Description asChild>
-              <p className={deCara && !vidrio ? "mb-[18px] mt-1 text-[13.5px] leading-normal text-taupe" : "sr-only"}>{subtitulo}</p>
+              <p className={deCara && !vidrio ? "mb-[18px] mt-1 text-[15px] leading-normal text-taupe" : "sr-only"}>{subtitulo}</p>
             </Dialog.Description>
           ) : (
             // Radix exige una Description por accesibilidad aunque el modal no muestre una visualmente.

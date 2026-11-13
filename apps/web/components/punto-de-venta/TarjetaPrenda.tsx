@@ -16,6 +16,7 @@ import { MuestraEstampado } from "@/components/ui/MuestraEstampado";
 import { MosaicoPrenda } from "@/components/MosaicoPrenda";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { InsigniaEmpresa } from "@/components/InsigniaEmpresa";
+import { fondoDelPunto } from "@/lib/color-combinado";
 
 /** Cuántos puntos de color entran en la tarjeta más angosta (un celular de 320 px, dos columnas): con más, «+N». */
 const PUNTOS_A_LA_VISTA = 5;
@@ -188,7 +189,8 @@ export function TarjetaPrenda({ prenda, bloqueado, carrito, indice, pulsoTope, o
                     {inicialDeEstampado(c.color)}
                   </i>
                 ) : (
-                  <i style={{ backgroundColor: estiloMosaicoColor(variante?.colorHex)?.fondo ?? "var(--color-hueso)" }} />
+                  // Una mezcla («Hueso con azul», ADR-0643) parte su punto: la base a la izquierda.
+                  <i style={{ background: fondoDelPunto(estiloMosaicoColor(variante?.colorHex)?.fondo, variante?.colorTonos) ?? "var(--color-hueso)" }} />
                 )}
               </button>
             );

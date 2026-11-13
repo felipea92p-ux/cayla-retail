@@ -1473,11 +1473,10 @@ export const PRUEBAS = [
   // termina en ROLLBACK.
   "pruebas:prendas-por-regularizar",
 
-  // Piezas de liquidación (ADR-0379): una prenda suelta se etiqueta con categoría y precio, se rebaja con una etiqueta nueva (la
-  // vieja deja de valer) y la caja la vende escaneando el código, sin mover stock ni dejar tarea a almacén. Cubre el mínimo de
-  // precio, la etiqueta vieja, la otra sede, la misma pieza dos veces, la venta final y que anular la devuelva. Cada caso
+  // Liquidación retirada (ADR-0653, reemplaza a ADR-0379): el módulo no está en el catálogo ni en un rol, la web no puede llamar a
+  // sus seis funciones, las tablas siguen ahí, un código LQ mandado a mano se rechaza y una venta normal sigue entrando. Cada caso
   // termina en ROLLBACK.
-  "pruebas:piezas-liquidacion",
+  "pruebas:liquidacion-retirada",
 
   // Cierre de la cola de arranque (ADR-0334): un líder da por hechas, en bloque y dentro de su plazo, las ventas sin registrar que
   // ya no se pueden identificar. Cubre que sea todo-o-nada y solo del líder, que cerrar no mueva stock, que una prenda cerrada no
@@ -1871,6 +1870,8 @@ export const PRUEBAS = [
   "pruebas:compras-simple-cuenta-devolucion",
   // «Compras solo ve historial» (ADR-0574): la serie y el número que la compradora escribe al comprar (con las reglas de completar), sin duplicados, y los gastos que pasan solos al cerrar la ronda.
   "pruebas:compras-simple-historial",
+  // La plata que Compras manda antes de abrir la ronda es de la ronda que se abre (Felipe 2026-11-13): la adopta al abrirla, nada más. ROLLBACK.
+  "pruebas:compras-simple-ronda-adopta",
 
   // La orden con sus fases, quién hace cada una y su tela (ADR-0400, actividad 1): la espina obligatoria, el servicio con
   // proveedor y tarifa congelados, la tela por color con su plan, el estado derivado, cambiar quién solo antes de empezar,

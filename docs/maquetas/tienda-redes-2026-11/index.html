@@ -131,30 +131,26 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
 
 /* ---------- LO NUEVO · la fila de redes (A y C) ----------
    Seis casillas cuadradas de 44 px (se tocan con el dedo), con su filo de 1 px y el ícono en tinta: quietas son monocromas, como todo en la Pasarela.
-   Al pasar el puntero, el ícono se pinta con el color de su red (Instagram con su degradado; TikTok, negro con su eco celeste y rojo), el filo toma
-   ese color y una cortina muy suave de ese tono entra desde la derecha. Antes se rellenaba de negro
-   (la prenda es lo único con color). Al pasar el mouse, la cortina de los botones de la tienda entra desde la derecha y el ícono se invierte. */
+   Al pasar el puntero, el efecto de la banda B (Felipe 2026-11-13): solo el ícono se pinta con el color de su red y crece un poco
+   (Instagram con su degradado; TikTok, negro con su eco celeste y rojo). La casilla no se rellena ni cambia de color. */
 .redes { display: grid; gap: 10px; }
 .t-pie-marca .redes { margin-top: 10px; }
 /* Con `.redes` delante: le gana a `.t-pie-in ul` y a `.t-pie-in li a` del pie. */
 .redes .redes-fila { display: flex; flex-wrap: wrap; gap: 8px; margin: 0; padding: 0; list-style: none; }
-.redes .red { position: relative; isolation: isolate; overflow: hidden; width: 44px; height: 44px; min-height: 0; padding: 0; display: grid; place-items: center; border: 1px solid var(--sand); color: var(--tinta); transition: color .5s var(--ease-cortina), border-color .4s; }
-.red::before { content: ""; position: absolute; inset: 0; z-index: -1; background: color-mix(in srgb, var(--marca, var(--tinta)) 9%, transparent); clip-path: inset(0 0 0 100%); transition: clip-path .6s var(--ease-cortina); }
-.red svg { width: 18px; height: 18px; fill: currentColor; transition: transform .3s var(--ease), filter .3s var(--ease); }
+.redes .red { width: 44px; height: 44px; min-height: 0; padding: 0; display: grid; place-items: center; border: 1px solid var(--sand); color: var(--tinta); }
+.red svg { width: 18px; height: 18px; fill: currentColor; transition: color .3s var(--ease), filter .3s var(--ease), transform .3s var(--ease); }
 .red-instagram { --marca: var(--c-instagram); } .red-tiktok { --marca: var(--c-tiktok); } .red-facebook { --marca: var(--c-facebook); }
 .red-pinterest { --marca: var(--c-pinterest); } .red-youtube { --marca: var(--c-youtube); } .red-spotify { --marca: var(--c-spotify); }
 .red:focus-visible { outline: 2px solid var(--tinta); outline-offset: 3px; }
 @media (hover: hover) {
-  .redes .red:hover { color: var(--marca); border-color: var(--marca); }
-  .red:hover::before { clip-path: inset(0); }
-  .red:hover svg { transform: scale(1.1); }
+  .redes .red:hover svg { color: var(--marca); transform: scale(1.08); }
   .red-instagram:hover svg { fill: url(#g-instagram); }
   .red-tiktok:hover svg { filter: drop-shadow(1.2px 1.2px 0 #fe2c55) drop-shadow(-1.2px -1.2px 0 #25f4ee); }
 }
-.red:focus-visible { color: var(--marca); border-color: var(--marca); }
+.red:focus-visible svg { color: var(--marca); }
 .redes-cuenta { font-size: 13px; color: var(--taupe); }
 .redes-cuenta b { color: var(--tinta); font-weight: 600; }
-@media (prefers-reduced-motion: reduce) { .red, .red::before, .red svg { transition: none; } .red:hover svg { transform: none; } }
+@media (prefers-reduced-motion: reduce) { .red svg { transition: none; } .red:hover svg { transform: none; } }
 /* Con mouse, 36 px (con el dedo siguen en 44): así las seis caben en una fila en la columna de la marca, desde una laptop chica. */
 @media (hover: hover) and (pointer: fine) { .redes .redes-fila { gap: 4px; } .redes .red { width: 36px; height: 36px; } }
 
@@ -432,21 +428,22 @@ td .ic-red { width: 18px; height: 18px; fill: var(--tinta); vertical-align: -4px
       </section>
       ${nota("Cómo se ven en las tres propuestas", [
         "Quietos, los íconos van en negro: en la tienda el único color es el de las prendas, y seis logos de colores le quitarían protagonismo.",
-        "Al pasar el puntero, cada ícono se pinta con el color de su red: Instagram con su degradado, TikTok con su eco celeste y rojo, y el filo de la casilla toma el mismo color. Pruébalo en cualquier propuesta.",
+        "Al pasar el puntero, cada ícono se pinta con el color de su red: Instagram con su degradado, TikTok con su eco celeste y rojo, y crece un poco, como en la banda B. La casilla no cambia de color. Pruébalo en cualquier propuesta.",
         "Cada ícono mide 44 px y se toca bien con el dedo. En el celular no hay puntero, así que ahí se quedan en negro.",
         "Se abren en otra pestaña, así la tienda queda abierta detrás y no se pierde lo que estaba en la bolsa.",
         "El orden es Instagram, TikTok, Facebook, Pinterest, YouTube y Spotify: primero donde se busca ropa en el Perú y al final la música. Lo puedes cambiar.",
       ])}`,
 
     a: () => `
-      <div class="m-cab"><span class="m-ceja">Propuesta A · La más simple</span>
+      <div class="m-cab"><span class="m-ceja">Propuesta A · La más simple <span class="recomendada">la elegida</span></span>
         <h1>En el pie, <em>junto al logo</em></h1>
-        <p>Seis íconos bajo «Donde el estilo transforma.», en todas las páginas, y los mismos al final del menú del celular. Es lo que hacen la mayoría de casas de moda. No cambia nada más del pie.</p>${pista}</div>
+        <p>Seis íconos bajo «Donde el estilo transforma.», en todas las páginas, y los mismos al final del menú del celular. Es lo que hacen la mayoría de casas de moda. No cambia nada más del pie. Al pasar el puntero, el efecto de la banda B: solo el ícono toma el color de su red y crece un poco.</p>${pista}</div>
       ${compu("Pie de página", pie({ enMarca: true }))}
       ${fila(cel("Pie de página", pie({ enMarca: true })), cel("Menú", menuCelular(), false), nota("Qué cambia", [
         "<b>Pie:</b> una fila nueva en la columna de la marca, con «Síguenos» arriba y «Estamos como @caylaperu» abajo. En el celular la marca va arriba, así que las redes aparecen antes que las columnas de enlaces.",
         "<b>Menú del celular:</b> la misma fila al final, separada por una línea, debajo de «Modo oscuro».",
         "<b>Lo que no hace:</b> no se nota mucho. Quien no baja hasta el pie no las ve.",
+        "<b>Al pasar el puntero:</b> el efecto de la banda B. Solo el ícono se pinta con el color de su red y crece un poco; la casilla queda como está, sin relleno ni filo de color.",
         "<b>Esfuerzo:</b> poco. Una lista de redes en un solo archivo y una pieza que la dibuja en los dos lugares.",
       ]))}`,
 
@@ -463,7 +460,7 @@ td .ic-red { width: 18px; height: 18px; fill: var(--tinta); vertical-align: -4px
       ]))}`,
 
     c: () => `
-      <div class="m-cab"><span class="m-ceja">Propuesta C · Recomendada <span class="recomendada">la que haría</span></span>
+      <div class="m-cab"><span class="m-ceja">Propuesta C · La que recomendé</span>
         <h1>A, más <em>el momento justo</em></h1>
         <p>Todo lo de la propuesta A (pie y menú del celular) y, además, las redes en la página «¡Listo, lo separaste!», debajo de los pasos. Ahí la persona ya separó y está esperando que la tienda le responda.</p>${pista}</div>
       ${compu("Después de separar", separado(), false)}

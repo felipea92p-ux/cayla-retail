@@ -3,7 +3,10 @@ import {
   ELECCIONES_VACIAS,
   camposAElegir,
   camposDeLaGuia,
+  mensajeAlNoFusionar,
+  yaFusionadas,
   eleccionesParaLaBase,
+  fraseTallasQueSalen,
   fechaDeAlta,
   fotosEnOrden,
   frasesDelResumen,
@@ -50,6 +53,8 @@ describe("leerPlan", () => {
     expect(p.ok).toBe(true);
     expect(p.productos.map((x) => [x.id, x.queda, x.unidadesVendidas, x.stock])).toEqual([["A", true, 4, 20], ["B", false, 1, 5]]);
     expect(p.variantes.map((v) => v.trato)).toEqual(["junta", "muda"]);
+    // `ventas` de la base es en cuántas ventas aparece, no soles (Felipe 2026-11-13 lo vio como «S/ 1.00» en Comparar).
+    expect(p.productos.map((x) => x.tickets)).toEqual([3, 1]);
     expect(p.resumen).toEqual({ mudan: 1, juntan: 1, unidadesJuntadas: 3, unidadesQueLlegan: 5, fotosDuplicados: 1 });
     expect(p.productos[1].costo).toBeNull();
   });
@@ -107,7 +112,7 @@ describe("lo que se manda a la base", () => {
     expect(eleccionesParaLaBase(ELECCIONES_VACIAS, plan.productos, plan.diferencias, "A")).toEqual({ campos: {}, precio: 79.9 });
   });
   it("lo elegido: nombre y categoría del duplicado, su precio, y las fotos en orden", () => {
-    const e = { campos: { referencia: "B", categoria: "B" }, precioDe: "B", costoDe: null, fotos: ["f3", "f1", "zz"] };
+    const e = { campos: { referencia: "B", categoria: "B" }, precioDe: "B", costoDe: null, fotos: ["f3", "f1", "zz"], retirar: [] };
     expect(eleccionesParaLaBase(e, plan.productos, plan.diferencias, "A")).toEqual({
       campos: { referencia: "B", categoria: "B" },
       precio: 89,
@@ -147,12 +152,70 @@ describe("fotos y resumen", () => {
 describe("guía de foco (ADR-0284)", () => {
   it("falta la ficha repetida y quién la hace; lo distinto es sugerido, nunca un candado", () => {
     const c = camposDeLaGuia({ duplicados: 0, queda: "A", hayDiferencias: true, responsableListo: false });
-    expect(c.filter((x) => x.requerido && !x.hecho).map((x) => x.id)).toEqual(["duplicados", "responsable"]);
+    expect(c.filter((x) => x.requerido && !x.hecho).map((x) => x.id)).toEqual(["duplicados", "queda", "responsable"]);
     expect(c.find((x) => x.id === "diferencias")).toMatchObject({ requerido: false, sugerido: true });
+  });
+  it("en dos pasos: armar pide las fichas y cuál queda; revisar, solo quién firma", () => {
+    const base = { duplicados: 1, queda: "A", hayDiferencias: true, responsableListo: false };
+    expect(camposDeLaGuia({ ...base, vista: "armar" }).map((x) => x.id)).toEqual(["duplicados", "queda", "diferencias"]);
+    expect(camposDeLaGuia({ ...base, vista: "revisar" }).map((x) => x.id)).toEqual(["responsable"]);
   });
   it("sin diferencias no hay paso de diferencias", () => {
     expect(camposDeLaGuia({ duplicados: 1, queda: "A", hayDiferencias: false, responsableListo: true }).map((x) => x.id)).toEqual([
       "duplicados", "queda", "responsable",
     ]);
+  });
+});
+
+// /chaos 2026-11-13 (semilla 1113), RS-03 y NAV-05: con la respuesta perdida o con otra persona que fusionó antes, la hoja decía «Las fichas
+// siguen como estaban» y era falso. Ahora pregunta a la base si ya quedaron fusionadas en la que queda.
+describe("después de un error al fusionar", () => {
+  it("ya fusionadas: todas las repetidas apuntan a la que queda", () => {
+    const filas = [{ id: "B", fusionadoEnId: "A" }, { id: "C", fusionadoEnId: "A" }];
+    expect(yaFusionadas(filas, "A", ["B", "C"])).toBe(true);
+    expect(yaFusionadas([{ id: "B", fusionadoEnId: "A" }, { id: "C", fusionadoEnId: null }], "A", ["B", "C"])).toBe(false);
+    expect(yaFusionadas([{ id: "B", fusionadoEnId: "Z" }], "A", ["B"])).toBe(false);
+    expect(yaFusionadas([], "A", ["B"])).toBe(false);
+    expect(yaFusionadas([], "A", [])).toBe(false);
+  });
+  it("solo afirma que nada cambió cuando la base dijo que no", () => {
+    expect(mensajeAlNoFusionar("La base dijo que no.", false)).toBe("La base dijo que no. Las fichas siguen como estaban.");
+    expect(mensajeAlNoFusionar("Se cortó la conexión.", true)).toBe("Se cortó la conexión.");
+  });
+});
+
+// /chaos 2026-11-13, ENT-01: con una sola ficha, «¿Cuál se queda?» salía hecho antes de haber con qué compararla.
+describe("la guía con una sola ficha", () => {
+  it("«Cuál queda» no está hecho sin una ficha repetida", () => {
+    const c = camposDeLaGuia({ duplicados: 0, queda: "A", hayDiferencias: false, responsableListo: true, vista: "armar" });
+    expect(c.find((x) => x.id === "queda")?.hecho).toBe(false);
+  });
+});
+
+// 20261113175000: sacar de la venta las tallas vacías al fusionar.
+describe("tallas vacías", () => {
+  it("lee las vacías del plan; sin la clave (base de antes), ninguna", () => {
+    const conVacias = leerPlan({ ...PLAN, vacias: [{ variante_id: "v1", producto_id: "B", color: "Negro", color_codigo: "NEG", talla: "XS", nunca_tuvo: true, retirada: false }] });
+    expect(conVacias.vacias).toEqual([{ varianteId: "v1", productoId: "B", color: "Negro", colorCodigo: "NEG", colorHex: null, talla: "XS", nuncaTuvo: true, retirada: false }]);
+    expect(leerPlan(PLAN).vacias).toEqual([]);
+  });
+  it("manda `retirar` solo si hay alguna", () => {
+    const plan = leerPlan(PLAN);
+    expect(eleccionesParaLaBase(ELECCIONES_VACIAS, plan.productos)).not.toHaveProperty("retirar");
+    expect(eleccionesParaLaBase({ ...ELECCIONES_VACIAS, retirar: ["v1"] }, plan.productos)).toMatchObject({ retirar: ["v1"] });
+  });
+  it("las que salen de la venta no cuentan como «pasan tal cual»", () => {
+    const plan = leerPlan(PLAN);
+    const conSalida = { ...plan, vacias: [{ varianteId: "v1", productoId: "B", color: "Negro", colorCodigo: "NEG", colorHex: null, talla: "XL", nuncaTuvo: true, retirada: true }] };
+    expect(frasesDelResumen(plan, 0)[0]).toMatch(/^1 talla y color pasa tal cual/);
+    expect(frasesDelResumen(conSalida, 0).some((f) => /pasa(n)? tal cual/.test(f))).toBe(false);
+  });
+  it("la frase de Revisar nombra las que salen y dice que sus ventas no se pierden", () => {
+    const v = (color: string, talla: string, retirada: boolean) => ({ color, talla, retirada });
+    expect(fraseTallasQueSalen([v("Negro", "XS", false)])).toBeNull();
+    expect(fraseTallasQueSalen([v("Negro", "XS", true)])).toBe("Sale de la venta 1 talla sin prendas: Negro XS. Sus ventas no se pierden.");
+    expect(fraseTallasQueSalen([v("Negro", "XS", true), v("Blanco", "XL", true), v("Rojo", "S", true)])).toBe(
+      "Salen de la venta 3 tallas sin prendas: Negro XS, Blanco XL y Rojo S. Sus ventas no se pierden.",
+    );
   });
 });

@@ -16,7 +16,7 @@ export const CLAVES_MODULO = [
   "tienda_web", "trafico", "pedidos_web", "vitrina_web", "campanas_web", "recomendaciones", "ajustes_web",
   "clientas", "avisos_club", "beneficios_club",
   "existencias", "conteos", "traslados", "movimientos", "recibir",
-  "productos", "atributos", "etiquetas", "campanas", "liquidacion",
+  "productos", "atributos", "etiquetas", "campanas",
   "ordenes_compra", "facturas_compra", "por_pagar", "fondos", "proveedores", "plan_compra",
   "produccion", "ordenes_insumos",
   "analisis", "frescura", "plan_piso", "colaboradores", "roles",
@@ -119,9 +119,6 @@ export const MODULOS: readonly Modulo[] = [
   // o Insignias (`fn_puede_campanas`). Desde esa misma tarde no tiene fila propia: abre Catálogo ▸ Insignias, donde las campañas son
   // la primera vista (la fila Insignias la declara en sus `modulosAlternos`). Sigue siendo un módulo aparte en Roles y accesos.
   { clave: "campanas", grupo: "Catálogo", nombre: "Campañas", incluye: "Crear y archivar campañas (San Valentín, Halloween, Navidad…), elegir sus fechas, su descuento, sus prendas y las categorías donde rige, repetirlas el año siguiente e imprimir sus etiquetas de precio" },
-  // ADR-0379 (Felipe 2026-10-10): las prendas sueltas que se liquidan sin entrar al catálogo. Nace sin rol (20261010195000);
-  // el líder se lo da después a las terminales de almacén y caja.
-  { clave: "liquidacion", grupo: "Catálogo", nombre: "Liquidación", incluye: "Etiquetar las prendas sueltas que se liquidan sin registrarlas en el catálogo, bajarles el precio con una etiqueta nueva y retirarlas" },
   // Órdenes de compra (ADR-0362, 20261010214500): lo que se le pide a cada proveedor antes de la factura. Nace SIN rol (solo el
   // líder) y delegable: sus funciones piden este módulo. Quien lo tiene ve las órdenes de TODAS las sedes con sus precios
   // (decisiones 34 y 37): no pasa por la regla de Compras por tienda (ADR-0184).

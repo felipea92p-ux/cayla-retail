@@ -2,7 +2,7 @@
   "guia": "productos.atributos",
   "ruta": "/productos/atributos",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 144,
+  "total": 120,
   "controles": {
     "components/AtributosHub.tsx": [
       "Pestanas «(sin nombre)»"
@@ -45,15 +45,13 @@
       "Boton «Cancelar» #3",
       "Boton «{responsable.motivo ?? faltaExiste ?? guia.frase ?? undefined}» #2"
     ],
-    "components/CombinaConCampo.tsx": [
-      "button «{`Quitar ${nombre}»",
-      "ComboBuscable «{opciones}»",
-      "textarea «Descripción del color»"
-    ],
     "components/ConfirmarConResponsable.tsx": [
       "ComboResponsable «{control}»",
       "Boton «Cancelar»",
       "Boton «{control?.motivo ?? undefined}»"
+    ],
+    "components/DescripcionColorCampo.tsx": [
+      "textarea «Descripción del color»"
     ],
     "components/DetalleMuestraModal.tsx": [
       "Boton «Subir foto»",
@@ -140,38 +138,6 @@
       "button «{eleccion ? undefined : \"Elige primero la temporada.\"}»",
       "Link «{p.nombre}»",
       "Casilla «{`Marcar ${p.nombre}»"
-    ],
-    "components/alta-producto/ArmarMezcla.tsx": [
-      "button «{`Quitar ${c.nombre}»",
-      "Boton «Cancelar»",
-      "Boton «{(bloqueo ?? firma.motivo) ?? undefined}»"
-    ],
-    "components/alta-producto/ElegirColores.tsx": [
-      "button «{`Agregar un color que acompaña al ${c.nombre.toLocaleLowerCase(\"es\")}»",
-      "button «{`Quitar ${c.nombre}»",
-      "ComboBuscable «(sin nombre)»",
-      "button «{carta ? \"Ocultar la carta\" : `Ver los ${ofrecibles.length}»",
-      "Boton «{enLinea ? undefined : \"Crear un color necesita internet\"}»",
-      "button «{c.nombre}»"
-    ],
-    "components/alta-producto/IdentidadAlta.tsx": [
-      "ComboResponsable «{control}»",
-      "ComboResponsable «{control}» #2",
-      "button «Ir a elegir»"
-    ],
-    "components/alta-producto/NuevoColorAlta.tsx": [
-      "SegmentoDeslizante «¿Es de un solo color o tiene dibujo?»",
-      "Desplegable «{patronId}»",
-      "ComboBuscable «{`${id}»",
-      "CampoTexto «{guia.etiqueta(\"nombre\", esForma ? \"Nombre del estampado\" : \"Nombre del color\")}»",
-      "Desplegable «{familia}»",
-      "CampoTexto «Código»",
-      "Boton «{(!enLinea || existe.bloquea ? bloqueo : firma.motivo) ?? undefined}»",
-      "button «Cancelar»"
-    ],
-    "components/alta-producto/piezas.tsx": [
-      "button «→onClick»",
-      "button «›»"
     ],
     "components/atributos/kit.tsx": [
       "Boton «vocabulario.agregar»",

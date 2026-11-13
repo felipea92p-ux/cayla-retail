@@ -891,7 +891,8 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
   `retail.color_combinado` (busca o crea la mezcla; nombre y código los arma la base). La pantalla la arma con `ArmarMezcla`
   («+ acompañante» de `ElegirColores`, prop `conMezclas`: Nuevo producto y `recepcion-envio/HojaPrenda`); la lógica pura vive en
   `lib/color-combinado.ts` (nombre, componentes, punto partido). La carta y Atributos agrupan las mezclas en «Combinados» con `familiaEnCarta`.
-- `/productos/insignias` (Catálogo ▸ Insignias —se llamó «Sellos» hasta el 2026-10-23—, ADR-0481; lo abren los módulos `etiquetas` o `campanas`; en el código sigue llamándose `sellos`) → `page.tsx` lee con
+- `/productos/campanas` (Catálogo ▸ Campañas y ofertas, ADR-0655; lo abren los módulos `campanas` o `etiquetas`) → la misma `SellosPantalla` con `modo="campanas"` y la misma lectura de abajo (`cargarEtiquetasPantalla({ modo: "campanas" })`); cada campaña dice sus tres preguntas (`preguntasDeCampana`) y el «?» abre `MapaCampanas`.
+- `/productos/insignias` (Catálogo ▸ Insignias —se llamó «Sellos» hasta el 2026-10-23—, ADR-0481; desde ADR-0655 solo Rotación, Artesanal y General y solo con el módulo `etiquetas`; `?vista=campanas` y quien solo tiene `campanas` van a `/productos/campanas`; en el código sigue llamándose `sellos`) → `page.tsx` lee con
   `lib/etiquetas-pantalla-datos.ts` (`cargarEtiquetasPantalla({ modo: "todas", conVitrina: true })`: todas las filas de `etiquetas`, las
   prendas a la venta con su modelo, color, categoría y foto —`colores`, `categorias`, `producto_fotos`— y, para quien puede analizar, la
   lectura de Rotación de `lib/etiqueta-rotacion-datos.ts`: `fn_analisis_sede` por tienda, unidades y vendidas en 30 días por talla) →
@@ -904,12 +905,8 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
   `campanas_web`). `/productos/campanas`, `/productos/etiquetas` y `/productos/atributos?tipo=etiquetas` redirigen aquí
   (`next.config.ts`). La tarjeta de UNA campaña (`TarjetaDeCampana`, en `components/EtiquetasLista.tsx`) sigue en la pestaña «Datos y
   prendas» de `/tienda-web/campanas/[id]`. Una campaña es una fila de `retail.etiquetas` con estilo `campana`; un sello, todo lo demás.
-- `/productos/liquidacion` (Catálogo ▸ Liquidación, módulo `liquidacion`, ADR-0379) → `page.tsx` lee `fn_piezas_liquidacion` y
-  `categorias` → `LiquidacionPantalla.tsx` (cifras, buscador que lee una etiqueta LQ con `fn_pieza_liquidacion`, lista) +
-  `EtiquetarPiezaModal.tsx` (`crear_pieza_liquidacion`) + `PiezaLiquidacionModal.tsx` (`cambiar_precio_pieza_liquidacion`,
-  `retirar_pieza_liquidacion`) + `PrecioMinimoLiquidacion.tsx` (`guardar_precio_minimo_liquidacion`); la etiqueta de papel es
-  `EtiquetaLiquidacion.tsx` y se imprime con `useImprimirLiquidacion` (la misma hoja de la Brother). Vender
-  (`PuntoDeVenta.tsx:agregarPiezaLiquidacion`) manda la línea con `pieza_liquidacion_codigo` a `registrar_venta`.
+- ~~`/productos/liquidacion` (Catálogo ▸ Liquidación, ADR-0379)~~ — **retirada el 2026-11-13 (ADR-0653)**: sin pantalla ni módulo,
+  y Vender ya no lee una etiqueta `LQ`. Las tablas y funciones quedan en la base, sin permiso para la web.
 - **Tienda web** (ADR-0430, Felipe 2026-10-16): el grupo del lateral que junta lo de la tienda online. `/tienda-web/layout.tsx` deja
   entrar a quien ve alguno de sus módulos (`pedidos_web`, `vitrina_web`, `recomendaciones`, `configuracion`) y cada pantalla repite la
   puerta del suyo. Las direcciones de antes (`/vender/pedidos-web`, `/productos/vitrina…`, `/clientas/recomendaciones`,
@@ -2505,6 +2502,12 @@ cuando hace falta hablar con algo que no es Postgres, o devolver un archivo.
   montado una vez en `app/(app)/layout.tsx`, reglas en `lib/version-nueva-reglas.ts`) cada 5 min con la pestaña a la vista: si la de producción es
   otra que la de la pestaña, sale «Hay una versión nueva de CAYLA» con «Actualizar» / «Más tarde». No es pública y su `fetch` no lleva `?dpl=` (la
   protección de versiones de Vercel, 12 h, lo atendería en la versión vieja). `Cache-Control: no-store`. ADR-0422.
+- `/api/tiempos` → `POST`, con sesión, 204 siempre: el cronómetro del clic (ADR-0654). `onRouterTransitionStart` (`instrumentation-client.ts`,
+  con `experimental.instrumentationClientRouterTransitionEvents`) arranca la medición en `lib/tiempos-de-pantalla-cliente.ts`; termina en el
+  primer cuadro sin `[data-esqueleto-pantalla]` con la ruta nueva ya anotada por `<CronometroDelClic sedeId>` (`components/CronometroDelClic.tsx`,
+  montado una vez en `app/(app)/layout.tsx`: ruta, `useParams()`, envío cada 30 s y al ocultar la pestaña por `sendBeacon`). La ruta valida el
+  lote (`leerLote`, `lib/tiempos-de-pantalla-reglas.ts`) y escribe una línea `tiempo_de_pantalla` por medición (patrón de ruta, ms, sede,
+  `sin_esqueleto`, versión). Sin base. Se lee con `vercel logs --query tiempo_de_pantalla` (p75 por módulo y sede: el ADR).
 
 - `/api/clientas/acceso-web` → `POST` desde la ficha de un cliente, «Restablecer acceso» a la tienda online (2026-10-15,
   `20261015132000`): `restablecer_acceso_tienda_web` (con la firma del Responsable) deja pedido el cambio del correo de entrada y

@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { grupoDeLinea, leerExtracto, type LineaExtracto } from "./extracto-interbank";
 import {
   decimalDeCentimos,
+  diaSinCerrar,
   estadoDelCuadre,
   fraseDeCarga,
   fraseDeHuecos,
@@ -343,6 +344,58 @@ describe("leerCuadreBanco: el JSON de fn_banco_cuadre", () => {
   });
 });
 
+// Lo que pasó el 9-nov-2026: se subió el extracto de noche con el 9-nov todavía en curso; después entraron un QR y un ITF, y la diferencia
+// de ese momento mezclaba medio día del banco con el día entero del ERP. Montos inventados: el repo es público.
+const SUBIDO_A_MEDIO_DIA: Partial<CuadreBanco> = {
+  banco: { saldoCentimos: 150000, al: "2026-11-09" },
+  erpCentimos: 151250,
+  diferenciaCentimos: -1250,
+  ultimaCarga: { cuando: "2026-11-10T03:14:00+00:00", por: "Ana Prueba", fuente: "ibk_txt", desde: "2026-10-28", hasta: "2026-11-09", lineas: 40, nuevas: 40 },
+};
+
+describe("diaSinCerrar: el último día del extracto todavía corría al subirlo", () => {
+  it("se subió el mismo día (en hora de Lima) que trae como último: ese día está a medias, y dice a qué hora", () => {
+    expect(diaSinCerrar(cuadre(SUBIDO_A_MEDIO_DIA))).toEqual({ dia: "2026-11-09", hora: "22:14" });
+  });
+
+  it("a las 22:14 de Lima ya es el día siguiente en UTC: se mira la hora de Lima, no la del servidor", () => {
+    expect(SUBIDO_A_MEDIO_DIA.ultimaCarga!.cuando.slice(0, 10)).toBe("2026-11-10");
+    expect(diaSinCerrar(cuadre(SUBIDO_A_MEDIO_DIA))?.dia).toBe("2026-11-09");
+  });
+
+  it("se subió al día siguiente: el banco ya lo cerró y la diferencia vale", () => {
+    const carga = { ...SUBIDO_A_MEDIO_DIA.ultimaCarga!, cuando: "2026-11-10T14:00:00+00:00" };
+    expect(diaSinCerrar(cuadre({ ...SUBIDO_A_MEDIO_DIA, ultimaCarga: carga }))).toBeNull();
+  });
+
+  it("la última subida no es la que trae el último día (se subió después un archivo más viejo): no se afirma nada", () => {
+    const carga = { ...SUBIDO_A_MEDIO_DIA.ultimaCarga!, desde: "2026-10-01", hasta: "2026-10-31" };
+    expect(diaSinCerrar(cuadre({ ...SUBIDO_A_MEDIO_DIA, ultimaCarga: carga }))).toBeNull();
+  });
+
+  it("sin subida o sin líneas, nulo", () => {
+    expect(diaSinCerrar(cuadre({ ...SUBIDO_A_MEDIO_DIA, ultimaCarga: null }))).toBeNull();
+    expect(diaSinCerrar(cuadre({ ...SUBIDO_A_MEDIO_DIA, banco: null }))).toBeNull();
+  });
+
+  it("con el día a medias la diferencia no se da por descuadre: se dice por qué todavía no vale, sin ámbar", () => {
+    const e = estadoDelCuadre(cuadre(SUBIDO_A_MEDIO_DIA), BANCO);
+    // El monto lleva el espacio que no se parte (`solesDeCentimos`): se compara con espacios comunes.
+    expect({ ...e, frase: e.frase.replace(/\u00a0/g, " ") }).toEqual({
+      clave: "dia_sin_cerrar",
+      tono: "pizarra",
+      chip: "El 9 nov sigue abierto",
+      frase:
+        "Subiste el extracto el 9 nov a las 22:14, con ese día todavía en curso: lo que el banco recibió después no está, y tu ERP cuenta el 9 nov entero. " +
+        "Por eso la diferencia de S/ 12.50 todavía no dice nada. Sube el extracto del día siguiente: trae el 9 nov completo.",
+    });
+  });
+
+  it("si con el día a medias ya cuadra al céntimo, cuadra: no se inventa una duda", () => {
+    expect(estadoDelCuadre(cuadre({ ...SUBIDO_A_MEDIO_DIA, diferenciaCentimos: 0 }), BANCO).clave).toBe("cuadra");
+  });
+});
+
 describe("estadoDelCuadre: ¿coincide el banco con el ERP?", () => {
   it("diferencia cero: cuadra, y dice a qué día", () => {
     const e = estadoDelCuadre(cuadre({ erpCentimos: 13550, diferenciaCentimos: 0 }), BANCO);
@@ -383,9 +436,10 @@ describe("estadoDelCuadre: ¿coincide el banco con el ERP?", () => {
       estadoDelCuadre(cuadre({ banco: { saldoCentimos: null, al: "2026-10-06" }, diferenciaCentimos: null }), BANCO),
       estadoDelCuadre(cuadre({ erpCentimos: null, diferenciaCentimos: null }), BANCO),
       estadoDelCuadre(cuadre({ diferenciaCentimos: 0 }), BANCO),
+      estadoDelCuadre(cuadre(SUBIDO_A_MEDIO_DIA), BANCO),
       estadoDelCuadre(cuadre(), BANCO),
     ];
-    expect(casos.map((c) => c.clave)).toEqual(["sin_extracto", "sin_saldo", "sin_erp", "cuadra", "no_cuadra"]);
+    expect(casos.map((c) => c.clave)).toEqual(["sin_extracto", "sin_saldo", "sin_erp", "cuadra", "dia_sin_cerrar", "no_cuadra"]);
     for (const c of casos) {
       expect(c.chip.length).toBeGreaterThan(0);
       expect(c.frase.length).toBeGreaterThan(0);

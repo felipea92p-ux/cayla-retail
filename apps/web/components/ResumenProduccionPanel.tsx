@@ -24,8 +24,6 @@ import { FotoModelo } from "@/components/produccion-resumen/FotoModelo";
 import { ListaQueFabricarPrimero } from "@/components/produccion-resumen/ListaQueFabricarPrimero";
 import { queFabricarPrimero } from "@/lib/produccion-primero";
 import { textosDeCifras } from "@/lib/produccion-cifras-textos";
-import { ProveedorFichasDeColor } from "@/components/produccion-resumen/FichasDeColor";
-import type { ColorConFicha } from "@/lib/ficha-del-color";
 import { TONO_ESTADO_MODELO } from "@/components/produccion-resumen/estado-modelo";
 import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 
@@ -65,7 +63,6 @@ export function ResumenProduccionPanel({
   cifras,
   modelos,
   hojas,
-  fichasDeColor,
   telas,
   hoyEnElTaller,
   falloRed,
@@ -82,8 +79,6 @@ export function ResumenProduccionPanel({
   modelos: FilaModelo[];
   /** La hoja «Ver el modelo» de cada modelo (por `productoId`): lo vendido por color y talla y los enlaces a la orden y al traslado. Se arma en el servidor con lo que ya se leyó. */
   hojas: Record<string, HojaDeModelo>;
-  /** El vocabulario de colores con su ficha (qué transmite y con qué se combina): la hoja de cada modelo la usa bajo su foto. Una sola vez para todo el panel. Vacío si no se pudo leer: la hoja no dice nada del color. */
-  fichasDeColor: ColorConFicha[];
   telas: FilaTela[];
   /** Dónde está cada orden abierta (una tarjeta por fase) y su frase. `null`: la lectura falló (se dice y se manda a Órdenes). */
   hoyEnElTaller: { cifras: CifraDeFase[]; dato: string } | null;
@@ -100,7 +95,6 @@ export function ResumenProduccionPanel({
   const textos = textosDeCifras(cifras);
 
   return (
-    <ProveedorFichasDeColor fichas={fichasDeColor}>
     <div className="space-y-6">
       {/* La cabecera de todo el ERP menos Finanzas (ADR-0358, Felipe 2026-10-14): el título es el del menú («Resumen») y la pregunta
           que responde pasa a la frase. */}
@@ -416,6 +410,5 @@ export function ResumenProduccionPanel({
         />
       </section>
     </div>
-    </ProveedorFichasDeColor>
   );
 }

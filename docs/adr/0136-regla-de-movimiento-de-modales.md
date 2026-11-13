@@ -670,3 +670,14 @@ Felipe, al revisar la guía de foco: «muy llamativa» y «bastante invasiva». 
 Felipe pidió «full animaciones» y eligió la dirección mirando la maqueta (ADR-0611, `docs/maquetas/finanzas-eeff-vidrio-2026-11/`). Entran a la lista de excepciones, solo en `/finanzas/reportes/*`: el filo de luz que corre una vez por la placa, las cifras que ruedan,
 la línea de los meses que se dibuja, las columnas y los tramos que crecen, el hilo del libro del contador y el calendario que entra en cascada. Una vez, sin rebote ni bucle. El brillo, la lente y los hilos del fondo siguen al mouse unos pocos píxeles sin moverse solos, y los hilos se
 reacomodan al cambiar de pestaña. Todo se apaga con `prefers-reduced-motion`, medido: 0 animaciones, 0 filtros y la cifra en su valor final. Lo vigila `lib/estados-movimiento.test.ts`, que además exige que estas reglas no salgan de esta pantalla.
+
+## Actualización 2026-11-13: «Fusionar productos repetidos», la ficha que se arma
+
+Felipe rediseñó la hoja de fusión (ADR-0650) y eligió «movimiento rico, una vez, sin rebote ni bucle» (decisión 8 del 2026-11-13; maqueta
+`docs/maquetas/fusionar-productos-2026-11/`, dirección B). Se suma a las excepciones: las columnas de las fichas se enfocan en cascada
+(`--t-momento`, 80 + 70 ms por ficha), la gota de la elegida cambia por transición y su ✓ se dibuja (`--t-hoja`), el dato de «Así va a quedar»
+que cambia se voltea una vez (`--t-momento`), las celdas de la matriz de tallas entran en cascada con tope (k ≤ 12: todo quieto a ~1 s) y el
+sello «Fusionado» se estampa (`--t-momento`). Se quitaron de la maqueta dos idas y vueltas que contaban como rebote (la columna que «posa» y el
+0,96 del sello) y el desenfoque sobre la foto (lo que se desplaza no se desenfoca, ADR-0623). Todo con los tiempos con nombre y `--ease-cayla`,
+apagado con «Animaciones» apagado y con `prefers-reduced-motion`. Estilos: `app/estilos/vidrio/fusionar.css`; lo vigila
+`lib/fusionar-movimiento.test.ts`. Ficha al milímetro: `docs/milimetro/fusionar-productos.md`.

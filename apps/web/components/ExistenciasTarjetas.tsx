@@ -19,6 +19,7 @@ import { mejorOrigen } from "@/lib/existencias-flujos";
 import { tallasQueFaltan } from "@/lib/reponer-prenda-reglas";
 import type { MarcaDelFiltro } from "@/components/existencias/PanelTalla";
 import type { ModeloPrendas } from "@/lib/existencias-tarjetas";
+import { fondoDelPunto } from "@/lib/color-combinado";
 
 /* ====================================================================
    Existencias en tarjetas (maqueta `docs/maquetas/existencias-tarjetas-2026-09/`)
@@ -377,7 +378,7 @@ export function ExistenciasTarjetas({
                       className={`relative shrink-0 cursor-pointer rounded-full outline transition-[transform,width,height] after:absolute after:-inset-1.5 after:content-[''] pointer-coarse:after:-inset-2.5 hover:scale-110 focus-visible:outline-2 focus-visible:outline-tinta focus-visible:outline-offset-[3px] ${
                         propia ? "onda-color h-4 w-4 outline-[1.5px] outline-offset-[1.5px] outline-tinta" : "h-3 w-3 outline-1 outline-tinta/20"
                       }`}
-                      style={{ background: h.colorHex ?? "conic-gradient(from 20deg, #C0272D, #F2C14E, #3E7A4E, #1B2A4A, #5B3A78, #C0272D)" }}
+                      style={{ background: fondoDelPunto(h.colorHex, h.colorTonos) ?? "conic-gradient(from 20deg, #C0272D, #F2C14E, #3E7A4E, #1B2A4A, #5B3A78, #C0272D)" }}
                     >
                       {/* Un estampado se reconoce por su foto (ADR-0634). En su propia caja: recortar el botón se llevaría su área de toque. */}
                       {h.colorEstampado && fotoQueDistingue(h.fotoUrl, m.colores.map((x) => x.fotoUrl)) && (

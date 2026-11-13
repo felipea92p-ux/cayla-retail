@@ -2147,6 +2147,7 @@ export function ProductoForm({
           tallas={tallasCategoria}
           onConfirmar={(destino) => setFilas(corregir(filas, corrigiendo.claves, destino))}
           onClose={() => setCorrigiendo(null)}
+          onColorCreado={(color) => setColoresCreados((a) => (a.some((c) => c.codigo === color.codigo) ? a : [...a, color]))}
         />
       )}
       {puerta && producto && (

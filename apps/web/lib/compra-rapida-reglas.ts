@@ -741,22 +741,27 @@ function camposSerieNumero(v: { tipo: TipoPapel | null; serie?: string; numero?:
 }
 
 // ---------- Pagar ahora o después (20261023181000; Felipe 2026-10-23) ----------
-// «Pagar ahora» (de fábrica, con todo lo del papel y por Yape) baja lo pagado de su plata para compras; se puede bajar el monto y lo que
+// «Pagar ahora» (de fábrica, con todo lo del papel) baja lo pagado de su plata para compras; se puede bajar el monto y lo que
 // falta queda en Por pagar. «Pagar después»: no baja nada y Compras le paga al proveedor desde Por pagar. Los tres métodos salen de su
 // plata para compras: el método solo dice cómo le pagó.
 
 export type MedioPagoCompra = "yape" | "efectivo" | "transferencia";
 export type PagoCompra = { forma: "ahora" | "despues"; pagado: string; medio: MedioPagoCompra | null };
 
-/** Las fichas, en el orden de la pantalla: Yape primero, que es lo de fábrica. Las mismas fichas de color de Vender. */
+/** Las fichas, en el orden de la pantalla. Las mismas fichas de color de Vender. */
 export const MEDIOS_PAGO_COMPRA: readonly { clave: MedioPagoCompra; etiqueta: string; corta?: string }[] = [
   { clave: "yape", etiqueta: "Yape" },
   { clave: "efectivo", etiqueta: "Efectivo" },
   { clave: "transferencia", etiqueta: "Transferencia", corta: "Transf." },
 ];
 
-/** Cómo llega el paso: pagar ahora, por Yape; lo pagado lo pone la pantalla con lo que dice el papel. */
-export const PAGO_DE_FABRICA: PagoCompra = { forma: "ahora", pagado: "", medio: "yape" };
+/**
+ * Cómo llega el paso: pagar ahora, SIN medio elegido; lo pagado lo pone la pantalla con lo que dice el papel. Venía en Yape y la guía lo
+ * daba por hecho: quien pagó en efectivo y no lo miraba dejaba anotado Yape (auditoría 2026-11-12, punto B). Felipe 2026-11-13 eligió
+ * «sin elegir»: la guía lo pide («Sigue: con qué pagaste») y nada se guarda hasta tocar uno. El medio no cambia la plata (los tres salen de
+ * la plata para compras): solo deja anotado cómo se le pagó al proveedor, y por eso tiene que ser el de verdad.
+ */
+export const PAGO_DE_FABRICA: PagoCompra = { forma: "ahora", pagado: "", medio: null };
 
 /** Lo que pagas ahora: más que cero y no más que lo que dice el papel (lo mismo que rechaza la base con `compra_rapida_pagado`). */
 export function problemaPagado(pagado: string, monto: string): string | null {
