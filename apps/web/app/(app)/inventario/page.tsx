@@ -77,11 +77,27 @@ export default async function InventarioPage({
   // Ventas sin registrar (ADR-0330: viven en Existencias, en /inventario/por-regularizar, bajo este mismo módulo): «Para hoy» cuenta
   // las de ESTA sede y su botón abre la lista de esa misma sede, así la cifra y la lista dicen lo mismo. Solo en una tienda: nacen en
   // Vender.
-  const [stockBase, sububicaciones, traslados, danadosPendientes, apartados, semana, catalogo, colores, colaSinRegistrar, plan, empresasAqui, lugarDanadas] = await Promise.all([
-    // D-54 (ADR-0159): sin el toggle «Con datos de prueba» que sí tienen Caja/Ventas, Existencias
-    // pide siempre el default de la función (apagado) — los productos archivados como dato de
-    // prueba, nunca borrados, quedan afuera.
-    getExistencias(ubicacionActivaId, ubicaciones),
+  // D-54 (ADR-0159): sin el toggle «Con datos de prueba» que sí tienen Caja/Ventas, Existencias
+  // pide siempre el default de la función (apagado) — los productos archivados como dato de
+  // prueba, nunca borrados, quedan afuera.
+  const existencias = getExistencias(ubicacionActivaId, ubicaciones);
+  // Qué empresas operan aquí (ADR-0505): «en el catálogo, sin stock aquí» no ofrece en Trujillo una prenda de CLAURE. Sin respuesta, todas.
+  const empresasDeAqui = getEmpresasAqui(ubicacionActivaId).catch(() => null);
+  // Lo que depende de otra lectura arranca apenas esa responde, no cuando terminan TODAS (2026-11-13, `docs/innovacion/2026-11-13-cambiar-de-modulo.md`):
+  // el ritmo reciente solo necesita las prendas de la sede y antes esperaba también al plan del piso (~0,9 s en producción). Las tres
+  // nunca lanzan: si no responden, su dato queda vacío y la pantalla lo dice, como antes.
+  // Ritmo reciente / Cobertura piso (2026-09-25): sobre el ledger único (`fn_ledger_puntos`), no sobre `fn_resumen_variantes`.
+  const ritmoPendiente = vende
+    ? existencias.then((filas) =>
+        getRitmoRecientePorVariante(ubicacionActivaId, filas.map((f) => f.varianteId), new Map(filas.map((f) => [f.varianteId, f.piso ?? 0])))
+      )
+    : Promise.resolve({ datos: null, fallo: null });
+  // De quién son las unidades de cada talla (ADR-0542): solo donde conviven dos empresas (Lima). Dato secundario: si la base no responde,
+  // las tallas quedan sin la línea «De quién es» y nada más cambia.
+  const repartoPendiente = empresasDeAqui.then((empresas) => getStockPorDueno(ubicacionActivaId, empresas));
+  const etapasPendientes = getEtapasOcultas().catch(() => null);
+  const [stockBase, sububicaciones, traslados, danadosPendientes, apartados, semana, catalogo, colores, colaSinRegistrar, plan, empresasAqui, lugarDanadas, ritmoReciente, repartoDeStock, etapasOcultas] = await Promise.all([
+    existencias,
     getSububicaciones(ubicacionActivaId),
     getTrasladosEnCurso(ubicacionActivaId),
     getPrendasDanadasPendientes(ubicacionActivaId),
@@ -115,15 +131,14 @@ export default async function InventarioPage({
     // almacén, lo vendido ayer y en 14 días (escaneado y anotado a mano) y las tallas centrales. Solo donde se vende. Si no
     // responde, `null`: «Hoy» dice N/D y la pantalla lo avisa; el resto sigue en pie.
     vende ? leerPlanDelPiso(ubicacionActivaId) : Promise.resolve(null),
-    // Qué empresas operan aquí (ADR-0505): «en el catálogo, sin stock aquí» no ofrece en Trujillo una prenda de CLAURE. Sin respuesta, todas.
-    getEmpresasAqui(ubicacionActivaId).catch(() => null),
+    empresasDeAqui,
     // Dónde deja esta tienda las prendas dañadas (ADR-0564). Nunca lanza: sin dato, la pantalla sigue como antes.
     getLugarDeDanadas(ubicacionActivaId),
+    ritmoPendiente,
+    repartoPendiente,
+    etapasPendientes,
   ]);
   const sinRegistrar = vende ? (colaSinRegistrar ?? "fallo") : null;
-  // De quién son las unidades de cada talla (ADR-0542): solo donde conviven dos empresas (Lima). Corre en paralelo con el ritmo de abajo;
-  // dato secundario: si la base no responde, las tallas quedan sin la línea «De quién es» y nada más cambia.
-  const repartoDeStock = getStockPorDueno(ubicacionActivaId, empresasAqui);
   // «Ver el valor a costo» (ADR-0557): solo se pregunta si la cuenta puede pasar la puerta (líder, o quien ve el dinero de Compras); la
   // base la repite y sin permiso devuelve cero filas. Corre en paralelo con el ritmo de abajo; dato secundario: si falla, sin el enlace.
   const valorPendiente = persona.rol === "lider" || puede(persona, "verDineroCompras") ? getValorInventario() : Promise.resolve(null);
@@ -132,13 +147,6 @@ export default async function InventarioPage({
   // no sale de aquí: lo decide el motor del piso (`plan`).
   const politica = politicaDe(ubicacionActivaId);
 
-  // Ritmo reciente / Cobertura piso (2026-09-25): sobre el ledger único (`fn_ledger_puntos`), no
-  // sobre `fn_resumen_variantes` — depende de conocer las variantes de esta sede primero.
-  const varianteIds = stockBase.map((f) => f.varianteId);
-  const pisoPorVariante = new Map(stockBase.map((f) => [f.varianteId, f.piso ?? 0]));
-  const ritmoReciente = vende
-    ? await getRitmoRecientePorVariante(ubicacionActivaId, varianteIds, pisoPorVariante)
-    : { datos: null, fallo: null };
 
   // La decisión de cada talla (por colgar · sin stock atrás · mantener) es la del motor del piso: la misma que lee el
   // Inicio. Sin plan (la lectura no respondió), ninguna fila trae decisión y «Hoy» dice N/D: nunca un «Mantener» que no sabe.
@@ -170,7 +178,7 @@ export default async function InventarioPage({
       ),
       colores
     ),
-    await repartoDeStock
+    repartoDeStock
   );
   // El candado de Editar producto (`?variante=&ajustar=1`) apunta a una talla que esta sede quizá nunca movió: sin fila de `stock` no está en
   // la lista y no abría nada. Se arma su fila en cero para abrir «Ajustar stock» directo en ella. Solo en SU sede y con «Ajustar stock».
@@ -179,7 +187,7 @@ export default async function InventarioPage({
       ? await getFilaSinStockDeVariante(variante, vende).catch(() => null)
       : null;
   // Lo que todavía es una orden no aparece como «sin stock aquí»: aún no es una prenda (ADR-0614, actividad 14). Lo terminado sí.
-  const sinStock = productosSinStockEnSede(sinLasEnProduccion(soloLasDeAqui(catalogo.productos, empresasAqui), await getEtapasOcultas().catch(() => null)), stockBase);
+  const sinStock = productosSinStockEnSede(sinLasEnProduccion(soloLasDeAqui(catalogo.productos, empresasAqui), etapasOcultas), stockBase);
   // Lo que pide cada talla («Hoy») lo cuenta el panel con `hoyDeTalla`, la misma regla de la tabla, el filtro y «Para hoy»; el resumen
   // solo suma cantidades. Hasta el 2026-10-04 también contaba las tallas que piden reponer para una tarjeta que ya no existe.
   const resumen = resumirExistencias(stock);

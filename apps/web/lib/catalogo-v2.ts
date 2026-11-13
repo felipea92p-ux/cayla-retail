@@ -1,12 +1,13 @@
 import { getEtapasOcultas } from "@/lib/etapa-prenda";
 import { soloLasQueLlegaron } from "@/lib/etapa-prenda-reglas";
 import { filtroDeMarcaOProveedor } from "@/lib/marcas";
-import { unstable_cache } from "next/cache";
-import { createClient as crearClienteSupabase, type SupabaseClient } from "@supabase/supabase-js";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@cayla-retail/database";
 import { createClient } from "@/lib/supabase/server";
-import { exigir, FILAS_POR_PAGINA, leerTodas } from "@/lib/resultado";
-import { leerPorCursor } from "@/lib/catalogo-copia-reglas";
+import { exigir, leerTodas } from "@/lib/resultado";
+import { FORMA_COPIA_CATALOGO, leerPorCursor, VARIANTES_POR_PARTE } from "@/lib/catalogo-copia-reglas";
+import { conCopiaPorVersion, type Guardar } from "@/lib/copia-por-version";
+import { fotoPrincipal } from "@/lib/inventario-reglas";
 import { getEmpresasAqui } from "@/lib/empresas-de-sede";
 import { insigniaDeEmpresa, soloLasDeAqui } from "@/lib/empresas-de-sede-reglas";
 import { leerExistenciasProductos, type ExistenciasProducto } from "@/lib/productos-stock";
@@ -38,6 +39,9 @@ export type VarianteCatalogo = {
   talla: string | null;
   color: string | null;
   colorHex: string | null;
+  /** `colores.tipo` («estampado», …): Existencias dibuja un estampado por su foto (ADR-0634). Opcional: una lectura armada
+   *  sin él (una prueba) lo deja ausente y la prenda se dibuja como cualquier color. */
+  colorTipo?: string | null;
   /** `variantes.color_codigo`: la llave para cruzar con el vocabulario de colores (si es estampado) en Vender.
    *  Opcional: un catálogo guardado antes de este cambio no lo trae, y entonces no se marca, nunca un error. */
   colorCodigo?: string | null;
@@ -53,6 +57,9 @@ export type VarianteCatalogo = {
    *  color todavía no tiene foto. El cliente cae a un tinte del color (o
    *  al dibujo de su categoría, en Vender) cuando falta, nunca a un ícono de "sin foto". */
   fotoUrl: string | null;
+  /** La foto principal del PRODUCTO, sin mirar el color (`fotoPrincipal`): la que muestra Existencias para todo lo que no es
+   *  estampado (`fotoDeLaFila`). Opcional por lo mismo que `colorTipo`. */
+  fotoPrincipal?: string | null;
   precio: number;
   activo: boolean;
   productoId: string;
@@ -81,30 +88,19 @@ export type VarianteCatalogo = {
  *  Guardado ENTRE visitas (2026-09-23, opción A de Felipe): ocho pantallas lo leían entero en cada visita (~0,7 s de
  *  una base limitada por CPU). La copia se identifica por la versión que la BASE sube con cada escritura en las tablas
  *  del catálogo (`fn_catalogo_version`, 20260923184300): si alguien cambió un precio, una foto o un código —desde donde
- *  sea—, la versión ya es otra y se lee fresco. Nunca se sirve un catálogo viejo. Y por despliegue: un cambio en la forma
- *  de `VarianteCatalogo` no se encuentra con una copia armada por el código anterior.
+ *  sea—, la versión ya es otra y se lee fresco. Nunca se sirve un catálogo viejo. Y por forma (`FORMA_COPIA_CATALOGO`): un cambio
+ *  en cómo se arma una página no se encuentra con una copia armada por el código anterior.
  *
  *  Es la misma para todas las cuentas: las 8 tablas se leen igual con cualquier sesión (`auth.role() = 'authenticated'`,
  *  verificado 2026-09-23), así que compartirla no muestra nada que la cuenta no pudiera leer. Si esa regla cambia (p. ej.
  *  esconder `costo` a quien no es líder), esta copia deja de poder compartirse. Desde 20260923193700 el costo YA
  *  NO es parte del catálogo: se pide aparte con `getCostosVariantes()`, solo donde se usa y solo a quien lo ve. */
 export async function getCatalogo(): Promise<VarianteCatalogo[]> {
-  const supabase = await createClient();
-  const [{ data: version, error }, { data: sesion }] = await Promise.all([supabase.rpc("fn_catalogo_version"), supabase.auth.getSession()]);
-  const token = sesion.session?.access_token;
-  // Sin versión (la migración aún no está, o falló la lectura) se lee en vivo: más lento, nunca viejo.
-  if (error || version === null || !token) return leerCatalogo(supabase, enVivo);
-  // La copia no puede leer cookies: la consulta que la llena usa el token de esta sesión (PostgREST lo valida igual).
-  // POR PARTES (2026-11-09, `lib/catalogo-copia-reglas.ts`): una entrada por página de 1.000 variantes y otra para las marcas. En una sola
-  // entrada pasaba el tope de 2 MB de la caché de Vercel y no se guardaba nunca: cada visita leía el catálogo entero en vivo.
-  const clave = ["catalogo-v2", String(version), process.env.VERCEL_GIT_COMMIT_SHA ?? "local"];
-  const guardar: Guardar = (partes, leer) => unstable_cache(leer, [...clave, ...partes], { revalidate: 3600 })();
-  return leerCatalogo(clienteConToken(token), guardar);
+  // POR PARTES (2026-11-09, `lib/catalogo-copia-reglas.ts`): una entrada por cada `VARIANTES_POR_PARTE` variantes y otra para las marcas. En
+  // una sola entrada pasaba el tope de 2 MB de la caché de Vercel y no se guardaba nunca: cada visita leía el catálogo entero en vivo.
+  // La llave lleva la FORMA de la copia (`FORMA_COPIA_CATALOGO`, vigilada por su prueba), no el commit: ver `lib/copia-por-version.ts`.
+  return conCopiaPorVersion(["catalogo-v2", FORMA_COPIA_CATALOGO], leerCatalogo);
 }
-
-/** Cómo se guarda una parte del catálogo entre visitas: en la caché de Vercel, o nada (`enVivo`). Lo que lanza un error no se guarda. */
-type Guardar = <T>(partes: string[], leer: () => Promise<T>) => Promise<T>;
-const enVivo: Guardar = (_partes, leer) => leer();
 
 /** Una variante del listado de /productos: la del catálogo más su costo, que `fn_productos` entrega vacío (null) a quien
  *  no tiene permiso de ver el dinero (20260923193700). */
@@ -157,15 +153,6 @@ export async function getCostoEnLaFicha(productoId: string): Promise<CostoEnLaFi
   };
 }
 
-/** Un cliente sin cookies para usar dentro de la copia guardada, con la sesión de quien la llena. */
-function clienteConToken(token: string) {
-  return crearClienteSupabase<Database, "retail">(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!, {
-    db: { schema: "retail" },
-    global: { headers: { Authorization: `Bearer ${token}` } },
-    auth: { persistSession: false, autoRefreshToken: false },
-  });
-}
-
 /** Una variante del catálogo sin su marca: así se guarda cada página (la marca llega aparte, ver abajo). */
 type VarianteSinMarca = Omit<VarianteCatalogo, "marca" | "marcaId">;
 
@@ -177,11 +164,11 @@ async function paginaDeVariantes(supabase: SupabaseClient<Database, "retail">, d
       `id, sku, codigo, color_codigo, talla_id, precio, activo,
        talla:tallas ( valor ),
        producto:productos ( id, referencia, categoria_id, empresa_id, categoria:categorias ( nombre, prefijo, familia ), producto_fotos ( url, color_codigo, orden, es_principal ) ),
-       color:colores ( nombre, hex ),
+       color:colores ( nombre, hex, tipo ),
        codigos_barras ( codigo )`
     )
     .order("id")
-    .limit(FILAS_POR_PAGINA);
+    .limit(VARIANTES_POR_PARTE);
   if (despuesDe) consulta = consulta.gt("id", despuesDe);
   return exigir(await consulta, "el catálogo").map((v) => ({
     varianteId: v.id,
@@ -190,6 +177,7 @@ async function paginaDeVariantes(supabase: SupabaseClient<Database, "retail">, d
     talla: v.talla?.valor ?? null,
     color: v.color?.nombre ?? null,
     colorHex: v.color?.hex ?? null,
+    colorTipo: v.color?.tipo ?? null,
     colorCodigo: v.color_codigo ?? null,
     tallaId: v.talla_id ?? null,
     categoriaId: v.producto?.categoria_id ?? null,
@@ -197,6 +185,7 @@ async function paginaDeVariantes(supabase: SupabaseClient<Database, "retail">, d
     // foto General alcanza para todos los colores: así se decidió con Felipe el 2026-09-26 («una foto por prenda y
     // luego elegir la gama de colores»). Misma regla que Traslados (`fotoDeVariante`) y que `listarProductos`.
     fotoUrl: fotoDeVariante(v.producto?.producto_fotos ?? [], v.color_codigo),
+    fotoPrincipal: fotoPrincipal(v.producto?.producto_fotos),
     precio: Number(v.precio),
     activo: v.activo,
     productoId: v.producto?.id ?? "",
@@ -211,7 +200,7 @@ async function paginaDeVariantes(supabase: SupabaseClient<Database, "retail">, d
 
 async function leerCatalogo(supabase: SupabaseClient<Database, "retail">, guardar: Guardar): Promise<VarianteCatalogo[]> {
   const [variantes, marcas] = await Promise.all([
-    leerPorCursor((despuesDe) => guardar(["variantes", despuesDe ?? "inicio"], () => paginaDeVariantes(supabase, despuesDe)), (v) => v.varianteId, FILAS_POR_PAGINA),
+    leerPorCursor((despuesDe) => guardar(["variantes", despuesDe ?? "inicio"], () => paginaDeVariantes(supabase, despuesDe)), (v) => v.varianteId, VARIANTES_POR_PARTE),
     // La marca va en una consulta APARTE y tolerante, no anidada arriba: `getCatalogo()` lo
     // leen la caja, cambios, buscar, compras, recepción, conteo y traslados. Un embed que la
     // base todavía no conoce (el SQL de marcas, 20260918231000, aún sin pegar en producción)
