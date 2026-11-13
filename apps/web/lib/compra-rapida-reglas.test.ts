@@ -645,9 +645,11 @@ describe("pagar ahora o después (20261023181000)", () => {
   const PERSONA = { esPersona: true, listo: true, motivo: null };
   const faltan = (pago: Parameters<typeof camposPapel>[0]["pago"], monto = "300") =>
     camposPapel({ tipo: "sin_comprobante", conFoto: false, monto, pago }, PERSONA).filter((c) => c.requerido && !c.hecho).map((c) => c.id);
-  it("de fábrica se paga ahora y por Yape; falta cuánto hasta que la pantalla lo llena con el papel", () => {
-    expect(PAGO_DE_FABRICA).toEqual({ forma: "ahora", pagado: "", medio: "yape" });
-    expect(faltan(PAGO_DE_FABRICA)).toEqual(["pagado"]);
+  it("de fábrica se paga ahora, sin medio elegido: faltan cuánto (lo llena la pantalla con el papel) y con qué", () => {
+    expect(PAGO_DE_FABRICA).toEqual({ forma: "ahora", pagado: "", medio: null });
+    expect(faltan(PAGO_DE_FABRICA)).toEqual(["pagado", "medio"]);
+    // Con lo pagado ya puesto por la pantalla, lo único que falta es elegir el medio (Felipe 2026-11-13: nada viene elegido).
+    expect(faltan({ ...PAGO_DE_FABRICA, pagado: "300" })).toEqual(["medio"]);
     expect(faltan({ forma: "ahora", pagado: "300", medio: "yape" })).toEqual([]);
   });
   it("lo pagado va de más de cero a lo del papel; y hace falta el método", () => {
