@@ -30,7 +30,7 @@ import { avisoAlEntrar, avisosDeRespuestas } from "@/lib/inicio-aviso";
 import { avisosVistos, leerAvisosDelClub } from "@/lib/inicio-aviso-servidor";
 import { leerMisRecomendaciones } from "@/lib/recomendaciones-servidor";
 import { leerPortada } from "@/lib/portada-servidor";
-import { anioLima } from "@/lib/portada";
+import { anioActual } from "@/lib/hoy-servidor";
 import { claveDeSede, sedesEnOrden } from "@/lib/sede-elegida";
 import { sedeDeLaPagina } from "@/lib/sede-servidor";
 import { leerSesion } from "@/lib/sesion-servidor";
@@ -56,11 +56,14 @@ export default async function Inicio({ searchParams }: Props) {
   const sp = await searchParams;
   const sedes = sedesEnOrden(await leerSedes());
   const pedida = await sedeDeLaPagina(sp, sedes, "/inicio", claveDeSede);
-  const [catalogo, { campana }, sesion, puntosDelClub] = await Promise.all([
+  // El año va por la lectura guardada (`anioActual`, ADR-0432), no por el reloj: sin sesión esta página se arma por adelantado y Next no deja
+  // leer `new Date()` mientras la arma (lo registraba como error en cada armado de la portada).
+  const [catalogo, { campana }, sesion, puntosDelClub, anio] = await Promise.all([
     leerCatalogo(pedida?.id ?? null),
     leerPortada(),
     leerSesion(),
     leerConfigDePuntosDelClub(),
+    anioActual(),
   ]);
   const [lectura, avisosDelClub, mias, vistos] =
     sesion.estado === "con_sesion"
@@ -202,7 +205,7 @@ export default async function Inicio({ searchParams }: Props) {
 
       <SeccionClub
         nombre={cuenta?.nombre ?? null}
-        desde={cuenta?.clubDesde ?? anioLima()}
+        desde={cuenta?.clubDesde ?? anio}
         conCuenta={conSesion}
         esDelClub={cuenta?.esDelClub ?? conSesion}
         regaloCumple={puntosDelClub?.regaloCumple ?? null}
