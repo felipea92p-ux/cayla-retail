@@ -45,5 +45,5 @@ Para mostrarle a Felipe: «Fotos que quedan» no estaba en la maqueta B; va como
 - [x] El pie fijo de la hoja en una sola fila (~120 → 68 px): «la parte de abajo ocupa mucho espacio».
 - [x] `/chaos` (semilla 1113): 3 hallazgos arreglados, cada uno con su prueba en `lib/fusionar-productos-reglas.test.ts`.
 - [x] Las leves de `/milimetro` que son de la hoja.
-- [ ] Heredado de piezas del sistema (cambia todas las hojas del ERP: decisión de Felipe): letra de lectura < 14 px en la bajada de `<Modal>`
+- [x] (Felipe dijo que sí, 2026-11-13: «Yes, the whole ERP») Heredado de piezas del sistema (cambia todas las hojas del ERP: decisión de Felipe): letra de lectura < 14 px en la bajada de `<Modal>`
       (13,5), la ayuda de `<CampoGuiado>` (12–13) y la cuenta de `<TituloGrupo>` (10,5–11); y el hilo de `<Buscador>` que corre invisible en bucle.
