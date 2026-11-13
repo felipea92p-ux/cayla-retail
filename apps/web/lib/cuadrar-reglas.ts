@@ -68,6 +68,26 @@ export function respuestaCuadre(actual: Pick<Conciliacion, "cuenta" | "hasta" | 
     : { texto: `Faltan revisar ${faltan} ${faltan === 1 ? "línea" : "líneas"} y anotar el saldo del banco.`, tono: "pizarra" };
 }
 
+// ---- El saldo de hoy se corta al anotarlo (ADR-0652) ---------------------------------------------------------------------------
+// Un saldo anotado HOY se compara con lo que el sistema tenía en ese momento: lo que se registra después con fecha de hoy (un retiro,
+// los Yape de la tarde) entra al próximo cuadre. Antes rompía el cuadre: Felipe cuadró BCP Empresa, hizo un retiro y pasó a «No cuadra».
+
+/** La frase bajo «¿Qué saldo dice el banco?»: hoy es «lo que muestra ahora»; un día pasado, «al cierre de ese día». */
+export function textoQueSaldoAnotar(fecha: string, hoy: string): string {
+  return fecha === hoy
+    ? "Lo que muestra la banca por internet ahora. Lo que registres después con fecha de hoy entra al próximo cuadre."
+    : "Lo que mostraba la banca por internet al cierre de ese día; se compara con el día entero del sistema.";
+}
+
+/** Lo que se registró con fecha de ese día después de anotar el saldo, en una frase; nulo si no hubo nada (o si se anotó un día pasado). */
+export function textoDespuesDeAnotar(despues: number | null): string | null {
+  if (despues === null || cuadra(despues)) return null;
+  const monto = soles(Math.abs(despues));
+  return despues < 0
+    ? `Después de anotarlo salieron ${monto} con fecha de ese día: no cuentan aquí, entran al próximo cuadre.`
+    : `Después de anotarlo entraron ${monto} con fecha de ese día: no cuentan aquí, entran al próximo cuadre.`;
+}
+
 // ---- La guía de foco de «¿Qué saldo dice el banco?» (ADR-0284) ---------------------------------------------------------------
 
 /**

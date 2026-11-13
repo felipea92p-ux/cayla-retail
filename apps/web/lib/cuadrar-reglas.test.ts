@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { AlertaPos, ConciliacionCuenta, LineaConciliacion, LotePendiente } from "./cuentas-dinero-reglas";
-import { cabeceraDeBancos, coincidenciasConBanco, textoMarcarRevisadas, deudaDeMaquinas, tieneExtracto, avanceDeLineas, bancosParaCuadrar, camposDeAnotarSaldo, estadoDeBanco, estadoPar, filtrarLineas, inicialesDeBanco, textoUltimaVez, hastaDeLaUrl, respuestaCuadre, textoLadoBanco, textoPeriodo } from "./cuadrar-reglas";
+import { cabeceraDeBancos, coincidenciasConBanco, textoMarcarRevisadas, deudaDeMaquinas, tieneExtracto, avanceDeLineas, bancosParaCuadrar, camposDeAnotarSaldo, estadoDeBanco, estadoPar, filtrarLineas, inicialesDeBanco, textoUltimaVez, hastaDeLaUrl, respuestaCuadre, textoDespuesDeAnotar, textoLadoBanco, textoPeriodo, textoQueSaldoAnotar } from "./cuadrar-reglas";
 import { sePuedeConfirmar } from "./guia-campos";
 import { leerMontoPlata } from "./monto-plata-reglas";
 
@@ -64,7 +64,7 @@ describe("bancosParaCuadrar", () => {
 
 describe("respuestaCuadre", () => {
   const base = { cuenta: { id: "ibk", nombre: "Interbank", tipo: "banco" as const, saldoDesde: null }, hasta: "2026-10-14" };
-  const k = (diferencia: number) => ({ id: "k", saldoBanco: 9650, saldoSistema: 9650 - diferencia, diferencia, nota: null, registradoPor: null });
+  const k = (diferencia: number) => ({ id: "k", saldoBanco: 9650, saldoSistema: 9650 - diferencia, diferencia, nota: null, registradoPor: null, despues: null });
   it("cuadra: el saldo coincide y todo está revisado", () => {
     expect(respuestaCuadre({ ...base, conciliacion: k(0), lineas: [linea({ revisado: true })] })).toEqual({ texto: "Interbank cuadra con el banco al 14 oct.", tono: "verde" });
   });
@@ -220,5 +220,19 @@ describe("deudaDeMaquinas", () => {
     const [m] = deudaDeMaquinas([alerta({})], new Map([["c-izi", [lote({ bruto: 0 }), lote({ clave: "z", bruto: -20 })]]]));
     expect(m.total).toBe(0);
     expect(m.atrasados).toEqual([]);
+  });
+});
+
+describe("el saldo de hoy se corta al anotarlo (ADR-0652)", () => {
+  it("lo registrado después de anotar se dice, con su sentido; nada si no hubo o si se anotó un día pasado", () => {
+    expect(plano(textoDespuesDeAnotar(-280.39) ?? "")).toBe("Después de anotarlo salieron S/ 280.39 con fecha de ese día: no cuentan aquí, entran al próximo cuadre.");
+    expect(plano(textoDespuesDeAnotar(55) ?? "")).toBe("Después de anotarlo entraron S/ 55.00 con fecha de ese día: no cuentan aquí, entran al próximo cuadre.");
+    expect(textoDespuesDeAnotar(0)).toBeNull();
+    expect(textoDespuesDeAnotar(0.004)).toBeNull();
+    expect(textoDespuesDeAnotar(null)).toBeNull();
+  });
+  it("hoy se anota lo que dice el banco ahora; un día pasado, lo del cierre", () => {
+    expect(textoQueSaldoAnotar("2026-11-13", "2026-11-13")).toContain("ahora");
+    expect(textoQueSaldoAnotar("2026-11-12", "2026-11-13")).toContain("al cierre de ese día");
   });
 });
