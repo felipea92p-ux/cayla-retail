@@ -13,6 +13,7 @@ import { TituloSeccion } from "@/components/ui/TituloSeccion";
 import { prefiereQuieto } from "@/lib/movimiento-cliente";
 import { atajosDelDial } from "@/lib/recepcion-dial-reglas";
 import { marcaDeLinea, textoPrendas } from "@/lib/recepcion-conteo-reglas";
+import { esCategoriaPorDefinir } from "@/lib/recepcion-envio-reglas";
 import { descripcionDelGrupo, sinIdentificarDelGrupo } from "@/lib/recepcion-grupos-reglas";
 import { conMiles, costoDeLaParada, lineasDeLaParada, nombreDeParada, textoDeCosto, tipoDeParada, type ParadaDelConteo } from "@/lib/recepcion-modelos-reglas";
 import { EstadoModelo } from "./CategoriasAcordeon";
@@ -104,6 +105,7 @@ export function PlacaDelModelo({
 }) {
   const { grupo, modelo } = parada;
   const p = grupo.principal;
+  const porDefinir = !!p.categoria && esCategoriaPorDefinir(p.categoria);
   const hayConteo = modelo ? modelo.contado : true;
   // Sin modelo, lo contado de antes que todavía no es de ninguno: nunca se compara con lo que dijeron.
   const contadas = modelo ? modelo.contadas : sinIdentificarDelGrupo(grupo);
@@ -254,9 +256,28 @@ export function PlacaDelModelo({
 
       <div key={parada.clave} ref={cuerpo} className="rc-scroll scroll-cayla rc-placa-cuerpo">
         {identificar}
+        {/* ADR-0660: llegó «por definir» desde Mis compras. Antes de contarla se dice qué es (la base no la deja contar sin eso). */}
+        {porDefinir && (
+          <Aviso
+            tono="atencion"
+            titulo="Primero di qué es"
+            chico
+            guia="recepcion.por-definir"
+            accion={
+              onCorregirLinea ? (
+                <Boton type="button" peso="fantasma" onClick={onCorregirLinea}>
+                  Decir qué es
+                </Boton>
+              ) : undefined
+            }
+          >
+            Esta prenda llegó por definir: elige su categoría y después cuéntala.
+          </Aviso>
+        )}
 
         {/* Paso 1 y paso 2 lado a lado, con una línea al medio (Felipe 2026-11-12, mesa del contador). Con el contador angosto, uno bajo el otro (CSS). */}
-        <div className="rc-pasos">
+        {/* Por definir (ADR-0660): el contador espera a que se diga qué es; contar antes era un número que la base no guarda. */}
+        <div className={`rc-pasos ${porDefinir ? "opacity-50" : ""}`} inert={porDefinir} aria-disabled={porDefinir || undefined}>
         <section className="rc-bloque rc-paso-uno" aria-label="¿Cuántas llegaron?">
           <div className="rc-bloque-titulo">
             <span className="rc-paso" data-estado={hayConteo ? "hecha" : "toca"} aria-hidden>

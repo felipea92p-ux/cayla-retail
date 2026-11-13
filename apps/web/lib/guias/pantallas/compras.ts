@@ -2366,6 +2366,13 @@ export const GUIA_MI_PLATA: Guia = {
       texto: "La plata para compras es de cada persona: desde una terminal no hay «tu plata». Entra con tu correo para anotarla.",
     },
     {
+      id: "por-definir",
+      ancla: "mi-plata.por-definir",
+      opcional: true,
+      titulo: "Lo que dejaste por definir",
+      texto: "Las prendas que anotaste sin saber qué son o a cuánto se venden. Cuando lo sepas, toca «Definir» y elige lo que ya sepas: basta una de las dos.",
+    },
+    {
       id: "camino",
       ancla: "mi-plata.camino",
       opcional: true,
@@ -2808,6 +2815,13 @@ export const GUIA_COMPRA_RAPIDA: Guia = {
       texto: "La categoría de la prenda. Los botones son las que ya le compras a este proveedor y las que ya anotaste en esta compra; «Otra…» abre todas las demás, con su buscador. Si es un proveedor nuevo y aún no anotas nada, no hay botones: eliges de la lista.",
     },
     {
+      id: "por-definir",
+      ancla: "compra.por-definir",
+      opcional: true,
+      titulo: "¿No sabes qué es?",
+      texto: "Toca «Por definir»: la compra se guarda igual, con su papel y su pago. Lo dices tú o Compras después, y si nadie lo hace, la tienda lo dice al recibirla.",
+    },
+    {
       id: "marca-nueva",
       ancla: "compra.marca-nueva",
       opcional: true,
@@ -2855,6 +2869,13 @@ export const GUIA_COMPRA_RAPIDA: Guia = {
       opcional: true,
       titulo: "El precio de venta",
       texto: "A cuánto se venderá. La tienda lo ve como sugerido y lo puede cambiar al recibir.",
+    },
+    {
+      id: "venta-espera",
+      ancla: "compra.venta-espera",
+      opcional: true,
+      titulo: "¿Todavía no sabes a cuánto?",
+      texto: "«A la espera de precio sugerido» la anota sin precio de venta. Lo pones tú o Compras después; si llega sin precio, la tienda lo pone al recibirla.",
     },
     {
       id: "tiendas",
@@ -3018,6 +3039,13 @@ export const GUIA_FONDOS: Guia = {
       texto: "Quien compra para CAYLA anota desde su celular la plata que le dan, lo que compra y lo que gasta. Aquí lo revisas y lo pasas a los libros, y ves cuánto tiene cada persona en la mano. Es una demo: no se guarda nada.",
     },
     PASO_PESTANAS,
+    {
+      id: "por-definir",
+      ancla: "fondos.por-definir",
+      opcional: true,
+      titulo: "Prendas por definir",
+      texto: "Lo que una compradora anotó sin saber qué es o a cuánto se vende. «Definir» pone la categoría, el precio o los dos; lo que nadie defina antes de que llegue, lo dice la tienda al recibirlo.",
+    },
     {
       id: "cifras-revisar",
       ancla: "fondos.cifras-revisar",

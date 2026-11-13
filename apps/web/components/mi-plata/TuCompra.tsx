@@ -3,7 +3,7 @@ import { MiniaturaPrenda } from "@/components/ui/PrendaCelda";
 import { Chip } from "@/components/ui/Chip";
 import { soles } from "@/lib/compras-reglas";
 import { soloNumero } from "./montos";
-import { inicialesProveedor, type PrendaDeLaCompra } from "@/lib/compra-rapida-reglas";
+import { fraseGanancia, inicialesProveedor, type PrendaDeLaCompra } from "@/lib/compra-rapida-reglas";
 
 // «Tu compra» (maqueta docs/maquetas/tu-compra-pc-2026-10/, «C · tarjeta oscura de resumen», Felipe 2026-10-26): en PC, a la derecha de cada
 // paso de «Compré ropa», lo que lleva la compra hasta ahora: el total grande, el proveedor, cuántas prendas y modelos y a qué tiendas van,
@@ -35,7 +35,7 @@ export function TuCompra({
   categorias: ReadonlyMap<string, Categoria>;
   total: number;
   unidades: number;
-  ganancia: { vendes: number; ganas: number } | null;
+  ganancia: { vendes: number; ganas: number; completa: boolean } | null;
   /** Qué sigue, en palabras de tienda («Sigue: revisar las prendas»). */
   siguiente: string;
   /** Las prendas que van volando hacia aquí (Felipe 2026-10-28): su línea ya tiene su lugar pero se ve vacía hasta que aterrizan. */
@@ -88,7 +88,7 @@ export function TuCompra({
           </div>
           <ul className="flex flex-col border-t border-sand">
             {prendas.map((p) => {
-              const c = categorias.get(p.categoriaId);
+              const c = categorias.get(p.categoriaId ?? "");
               return (
                 <li
                   key={p.clave}
@@ -109,7 +109,7 @@ export function TuCompra({
           </ul>
           {ganancia && (
             <p className="flex items-baseline justify-between gap-3 text-sm">
-              <span className="text-tinta">Si se vende todo, ganas</span>
+              <span className="text-tinta">{fraseGanancia(ganancia)}</span>
               <b className="tabular-nums text-verde">{soles(ganancia.ganas)}</b>
             </p>
           )}

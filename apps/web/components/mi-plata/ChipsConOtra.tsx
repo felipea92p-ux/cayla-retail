@@ -1,5 +1,6 @@
 "use client";
 
+import type { ReactNode } from "react";
 import { Desplegable, type Opcion } from "@/components/ui/campos";
 import { chipsDeLoHabitual } from "@/lib/compra-rapida-reglas";
 
@@ -16,6 +17,7 @@ export function ChipsConOtra({
   etiqueta,
   marcadorSinChips,
   guia,
+  alFinal,
 }: {
   todas: readonly { id: string; nombre: string }[];
   /** Los ids que se ofrecen como chips, en su orden. */
@@ -27,12 +29,17 @@ export function ChipsConOtra({
   etiqueta: string;
   marcadorSinChips: string;
   guia?: string;
+  /** Una píldora más al final del grupo (ADR-0660: «Por definir» en «¿Qué es?»). */
+  alFinal?: ReactNode;
 }) {
   const { chips, fuera } = chipsDeLoHabitual(todas, habituales, valor);
   if (chips.length === 0) {
     return (
-      <div data-guia={guia}>
-        <Desplegable valor={fuera} onValor={onValor} opciones={opciones} marcador={marcadorSinChips} etiquetaAccesible={etiqueta} />
+      <div data-guia={guia} className={alFinal ? "flex flex-wrap items-center gap-2" : undefined}>
+        <div className={alFinal ? "min-w-[11.5rem] flex-1" : undefined}>
+          <Desplegable valor={fuera} onValor={onValor} opciones={opciones} marcador={marcadorSinChips} etiquetaAccesible={etiqueta} />
+        </div>
+        {alFinal}
       </div>
     );
   }
@@ -44,6 +51,7 @@ export function ChipsConOtra({
         </button>
       ))}
       <Desplegable forma="pildora" className="inline-block min-w-[11.5rem]" valor={fuera} onValor={onValor} opciones={opciones} marcador="Otra…" etiquetaAccesible={`${etiqueta}: otra`} />
+      {alFinal}
     </div>
   );
 }

@@ -20,6 +20,7 @@ import { hrefPerdidas, type AvisoPerdidas } from "./perdidas-reglas";
 import { montosSinCorte } from "./montos-sin-corte";
 import { hrefPrendasSinLlegar, textoPrendasSinLlegar } from "./igv-en-espera-reglas";
 import { soles as solesConCentimos } from "./compras-reglas";
+import { textoAvisoPorDefinir, type ModeloPorDefinir } from "./por-definir-reglas";
 
 export type NivelAviso = "urgente" | "toca" | "info" | "aldia" | "sinleer";
 
@@ -41,6 +42,7 @@ export type ClaveAviso =
   | "cuentasBancarias"
   | "planillaSalidas"
   | "prendasSinLlegar"
+  | "porDefinir"
   | "recibir"
   | "porTerminar"
   | "enviosAMedias"
@@ -108,6 +110,9 @@ export type FuentesAvisos = {
   /** ADR-0362 fase 5b (actividad 4): prendas de una factura que no llegaron y siguen sin resolver (su IGV, en el crédito fiscal sin la
    *  mercadería). Para quien ve Proveedores. */
   prendasSinLlegar?: { prendas: number; facturas: number; igv: number; proveedores: number; proveedorId: string | null } | null;
+  /** ADR-0660: las prendas de Mis compras que esperan su categoría o su precio (la misma lectura que la sección de «Revisar compras»).
+   *  Para quien ve «Revisar compras»; sin la función en la base, el aviso no existe. */
+  porDefinir?: readonly Pick<ModeloPorDefinir, "categoriaPorDefinir" | "precioPorDefinir">[] | null;
   /** Facturas de mercadería que aún le faltan a esta sede, con la primera («F001-2231 · Confecciones Andina») para el detalle. */
   porRecibir?: { facturas: number; primera: string | null } | null;
   /** ADR-0393 (decisión 4): lo recibido en la sede que todavía no está en el stock (por separar, por poner tallas, por crear). */
@@ -459,6 +464,23 @@ export function avisosInicio(f: FuentesAvisos): Aviso[] {
       detalle: t?.detalle ?? SIN_LEER,
       href: p ? hrefPrendasSinLlegar(p) : "/compras/proveedores",
       ocultable: false,
+    });
+  }
+  // ADR-0660 (Felipe 2026-11-13: «un aviso en pantalla. Ejemplo: 3 productos a la espera de definir categoría»). Lleva a cada prenda.
+  if (f.porDefinir !== undefined) {
+    const p = f.porDefinir;
+    const n = p === null ? null : p.length;
+    const t = p === null ? null : textoAvisoPorDefinir(p);
+    avisos.push({
+      clave: "porDefinir",
+      grupo: "Compras",
+      titulo: "Prendas por definir",
+      cantidad: n,
+      nivel: nivelDe(n, "toca"),
+      ahora: n ? `Define ${n} ${plural(n, "prenda", "prendas")} de Mis compras` : "",
+      detalle: p === null ? SIN_LEER : t ? [t.titulo, t.detalle].filter(Boolean).join(" · ") : "Ninguna prenda espera su categoría ni su precio.",
+      href: "/compras/fondos#por-definir",
+      ocultable: true,
     });
   }
   // Inicio de Almacén (2026-09-30). Mercadería de compras que aún le falta a esta sede.

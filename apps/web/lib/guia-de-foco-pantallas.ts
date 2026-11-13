@@ -551,6 +551,9 @@ export const MODALES: Record<string, PantallaGuia> = {
   "components/mi-plata/HojaCorregirGasto.tsx": { estado: "aplicada", evidencia: ["components/mi-plata/HojaCorregirGasto.tsx", "components/mi-plata/CamposDelGasto.tsx"] },
   // La hoja de la prenda de «Compré ropa» (rediseño 2026-10-23): cuántas, costo, venta y tienda; falta lo que antes frenaba cada paso.
   "components/mi-plata/HojaPrenda.tsx": { estado: "aplicada", evidencia: ["components/mi-plata/HojaPrenda.tsx"] },
+  // ADR-0660: la hoja «Definir» de una prenda por definir. «Falta» es lo mismo que rechaza `definir_prenda_de_compra`: con la categoría y el precio por definir,
+  // basta uno de los dos (un campo de grupo); un precio mal escrito; y, desde una terminal, quién define.
+  "components/mi-plata/PorDefinir.tsx": { estado: "aplicada", evidencia: ["components/mi-plata/PorDefinir.tsx"] },
   "components/mi-plata/RegistrarCompra.tsx": {
     estado: "no-aplica",
     motivo: "Su único modal es «¿Quién te trajo esta marca?» (ADR-0644): una lista de proveedores donde un toque elige y sigue, sin nada que llenar. Los campos de la compra viven en la pantalla, que ya tiene su guía.",
