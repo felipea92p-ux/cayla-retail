@@ -5,7 +5,7 @@ import { createClient } from "@/lib/supabase/client";
 import { avisar } from "@/components/ui/Avisos";
 import { objecionFotoProducto, subirFotoProducto, subirParDeCatalogo } from "@/lib/producto-fotos";
 import { pedirFotoDeCatalogo } from "@/lib/foto-catalogo-cliente";
-import { esFotoIA, moldeDeLaPrenda, originalDeLaFotoIA } from "@/lib/foto-catalogo-reglas";
+import { avisoIANoRespondio, esFotoIA, moldeDeLaPrenda, originalDeLaFotoIA } from "@/lib/foto-catalogo-reglas";
 import type { FotoLocal } from "@/lib/fotos-por-color-reglas";
 import type { FotoSubida } from "./useSubirFotos";
 import { HojaCatalogoIA, type PedidoCatalogo } from "./HojaCatalogoIA";
@@ -102,6 +102,7 @@ export function useCatalogoIA({
 }): CatalogoIA {
   const [encendido, cambiarEncendido] = useInterruptorIA();
   const [hoja, setHoja] = useState<{ color: string | null; frente: File; espalda: File | null; detalle: File | null } | null>(null);
+  const volverA = useRef<HTMLElement | null>(null);
   const [preparando, setPreparando] = useState<ReadonlyMap<string, string>>(new Map());
   // La de IA de cada foto real preparada en esta sesión: para «Usar la de IA» después de un «Usar mi foto».
   const [iaDeLaReal, setIaDeLaReal] = useState<ReadonlyMap<string, string>>(new Map());
@@ -162,7 +163,7 @@ export function useCatalogoIA({
         onLista([{ url: subida.url, colorCodigo: p.color }]);
         // Se avisa al FINAL, con la foto ya subida: un aviso que se muestra y enseguida queda tapado por la subida no vuelve (ADR-0146,
         // `lib/espera-estado.ts`), y la persona no se enteraba de que su foto quedó sin IA (encontrado con /chaos, 2026-11-13).
-        if ("error" in r) avisar.aviso(`La IA no respondió: quedó tu foto ${deQue(p.color)}.`, { detalle: r.error });
+        if ("error" in r) avisar.aviso(avisoIANoRespondio(deQue(p.color)), { detalle: r.error });
       }
     } finally {
       setPreparando((m) => {
@@ -201,6 +202,8 @@ export function useCatalogoIA({
     encendido: disponible && encendido,
     cambiarEncendido,
     abrir: (archivos, color) => {
+      // El foco vuelve al botón que abrió la hoja (`HojaCatalogoIA` → `alCerrarEnfocar`).
+      volverA.current = document.activeElement instanceof HTMLElement && document.activeElement !== document.body ? document.activeElement : null;
       const frente = frenteValido(archivos);
       if (frente) setHoja({ color, frente, espalda: archivos[1] ?? null, detalle: archivos[2] ?? null });
     },
@@ -217,6 +220,7 @@ export function useCatalogoIA({
           void preparar(p);
         }}
         onClose={() => setHoja(null)}
+        volverA={volverA}
       />
     ) : null,
   };
