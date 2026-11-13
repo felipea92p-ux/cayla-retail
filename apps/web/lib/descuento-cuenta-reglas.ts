@@ -4,7 +4,6 @@ import { numeroDeMonto } from "./monto-plata-reglas";
 import {
   descuentoResultante,
   descuentosPedidos,
-  entraAlDescuento,
   hayDescuentoManual,
   necesitaArgumentoEscrito,
   pasoDelDescuento,
@@ -29,9 +28,9 @@ export function cuentaDelDescuento(descuento: DescuentoForm, carrito: readonly I
   const elegidas = descuento.elegidas;
   const todoElTicket = elegidas === null;
   const alcanza = (claveLinea: string) => elegidas === null || elegidas.includes(claveLinea);
-  // Lo que de verdad recibe el descuento: lo elegido menos las piezas de liquidación (precio final, ADR-0379). Aquí `[]` es
-  // «ninguna marcada» (en la regla, `[]` es todo el ticket): por eso se pregunta con `alcanza` y no con las claves.
-  const recibeDescuento = (it: ItemCarrito) => alcanza(it.claveLinea) && entraAlDescuento(it, null);
+  // Lo que de verdad recibe el descuento: lo elegido. Aquí `[]` es «ninguna marcada» (en la regla, `[]` es todo el ticket):
+  // por eso se pregunta con `alcanza` y no con las claves.
+  const recibeDescuento = (it: ItemCarrito) => alcanza(it.claveLinea);
   const alcanzadas = carrito.filter(recibeDescuento);
   const elegidasCuenta = elegidas === null ? carrito.length : elegidas.length;
   // «Todo el ticket» está marcado cuando no se eligió nada aparte O cuando las marcadas a mano ya son todas las prendas.

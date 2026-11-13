@@ -175,7 +175,7 @@
       "button «Cancelar»"
     ],
     "components/alta-producto/PropuestaDePrecio.tsx": [
-      "Boton «→proponer»",
+      "Boton «→() => proponer()»",
       "Boton «{yaUsada ? \"Precio puesto\" : `Usar ${soles(propuesta.precio)}»",
       "Boton «{seQuedo ? `Se queda ${soles(precioPuesto)}»",
       "button «Proponer otro»"

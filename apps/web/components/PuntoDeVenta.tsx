@@ -173,7 +173,6 @@ import { ChevronUp, ShoppingBag } from "lucide-react";
 import { soltarPaginaEstable } from "@/components/ui/PaginaEstable";
 import { conDuenoPorLineas, duenoDeLasLineas, duenosParaElegir, variantesSinDueno, type UnidadesDeDueno } from "@/lib/dueno-reglas";
 import { esDeClaure, numeroQueDar, repartoDelTicket } from "@/lib/cobro-por-dueno-reglas";
-import { codigoDeLiquidacion, errorDeLiquidacion, nombreEnVenta, piezaLeidaDeJson, soles as solesLiquidacion } from "@/lib/liquidacion-reglas";
 import { Casilla } from "@/components/ui/Casilla";
 import { numeroDeMonto } from "@/lib/monto-plata-reglas";
 
@@ -274,8 +273,6 @@ export type ItemCarrito = {
   campana?: CampanaLinea | null;
   /** Solo en una «Prenda sin registrar» (ADR-0179): lo que anotó caja para que almacén la reconozca. */
   prendaLibre?: Omit<DatosPrendaSinRegistrar, "precio">;
-  /** Solo en una pieza de liquidación (ADR-0379): el código de su etiqueta. Precio final, sin descuentos, venta final. */
-  liquidacion?: { codigo: string };
 };
 
 /** Lo que la colaboradora está decidiendo en el apartado «Descuento»: el modo (% de cada prenda o S/ del total de lo elegido,
@@ -462,7 +459,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
   // marca vieja devolvía la venta anterior, y la pantalla anunciaba la nueva.
   const envio = useIntento("registrar_venta");
   const [revisandoCobro, setRevisandoCobro] = useState(false);
-  /** Si el cobro en duda fue un corte de red: por qué no se guardó para subir solo (el canje del club, una pieza de liquidación…). */
+  /** Si el cobro en duda fue un corte de red: por qué no se guardó para subir solo (el canje del club…). */
   const [sinColaMotivo, setSinColaMotivo] = useState<string | null>(null);
   /** Mutex de la subida de la cola offline: mientras haya una pasada en curso, un
    *  segundo disparo (mount/online/latido solapados, o React Strict Mode invocando el
@@ -765,12 +762,6 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
       setActivo(0);
       const v = resolverCodigoV2(codigo, variantesVisibles);
       if (!v) {
-        // ADR-0379: una etiqueta de liquidación no es de ninguna prenda del catálogo; se busca su pieza en la base.
-        const liquidacion = codigoDeLiquidacion(codigo);
-        if (liquidacion) {
-          void agregarPiezaLiquidacion(liquidacion);
-          return;
-        }
         setAviso(`No encontramos «${codigo}» en ${ubicacionEtiqueta}.`);
         return;
       }
@@ -1248,12 +1239,6 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
   function alEscanear(codigo: string): ResultadoEscaneo {
     const v = resolverCodigoV2(codigo, variantesVisibles);
     if (!v) {
-      // ADR-0379: la pieza de liquidación se busca en la base; el aviso de cómo fue sale aparte, al responder.
-      const liquidacion = codigoDeLiquidacion(codigo);
-      if (liquidacion) {
-        void agregarPiezaLiquidacion(liquidacion);
-        return { estado: "agregada", codigo, nombre: "Pieza de liquidación" };
-      }
       return { estado: "no-encontrada", codigo };
     }
     const nombre = [v.referencia, v.talla].filter(Boolean).join(" · ");
@@ -1281,70 +1266,6 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
         duracion: 15_000,
       });
     }
-  }
-
-  /**
-   * Una pieza de liquidación (ADR-0379): la prenda suelta que no está en el catálogo, con su etiqueta LQ. Se lee en la base (su
-   * precio vigente, si sigue a la venta y si es de esta tienda) y entra como una línea de la variante centinela, sin mover stock.
-   * La base vuelve a comprobarlo todo al cobrar; aquí se adelanta para decirlo en el mostrador y no en el cobro.
-   */
-  async function agregarPiezaLiquidacion(codigo: string) {
-    if (bloqueado) return;
-    if (carrito.some((it) => it.liquidacion?.codigo === codigo)) {
-      avisar.aviso("Esa prenda ya está en el ticket", { detalle: "Cada prenda de liquidación es una sola unidad." });
-      return;
-    }
-    const { data, error } = await createClient().rpc("fn_pieza_liquidacion", { p_codigo: codigo });
-    const leida = error ? null : piezaLeidaDeJson(data);
-    if (error) {
-      avisar.error("No se pudo leer la etiqueta", { detalle: "Revisa la conexión y vuelve a escanearla." });
-      return;
-    }
-    if (!leida) {
-      setAviso(`No encontramos la etiqueta «${codigo}».`);
-      return;
-    }
-    if (leida.tipo === "otra_sede" || leida.pieza.ubicacionId !== ubicacionId) {
-      avisar.error("Esa prenda es de otra tienda", { detalle: "Las prendas de liquidación se venden en la tienda que las etiquetó." });
-      return;
-    }
-    const pieza = leida.pieza;
-    if (pieza.estado !== "disponible") {
-      avisar.error(pieza.estado === "vendida" ? "Esa prenda ya se vendió" : "Esa prenda ya no está a la venta");
-      return;
-    }
-    if (!leida.vigente) {
-      avisar.error("Esa etiqueta ya no vale", {
-        detalle: `La prenda cuesta ahora S/\u00a0${solesLiquidacion(pieza.precio)} (etiqueta ${pieza.codigo ?? "nueva"}). Pídele a quien la etiquetó que le pegue la nueva.`,
-      });
-      return;
-    }
-    capturarFlip();
-    setCarrito((actual) =>
-      actual.some((it) => it.liquidacion?.codigo === codigo)
-        ? actual
-        : [
-            ...actual,
-            {
-              claveLinea: `liq-${codigo}`,
-              varianteId: ID_CARGO_ESPECIAL,
-              // «Liquidación · Blusas»: el nombre de la línea en el ticket y en la boleta.
-              referencia: nombreEnVenta(pieza.categoria, pieza.descripcion),
-              sku: "LIQUIDACION",
-              codigo,
-              cantidad: 1,
-              precioUnitario: pieza.precio,
-              descuentoUnitario: 0,
-              stockAqui: 1,
-              razonDescuento: "",
-              razonDescuentoOtro: "",
-              argumentoDescuento: "",
-              campana: null,
-              liquidacion: { codigo },
-            },
-          ],
-    );
-    setAviso(null);
   }
 
   function agregarPrendaSinRegistrar(d: DatosPrendaSinRegistrar) {
@@ -1427,7 +1348,6 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
         `${cedieron.map((it) => `${it.referencia} (${it.campana?.nombre})`).join(", ")} ya tiene${cedieron.length > 1 ? "n" : ""} una campaña con igual o más descuento: se mantiene la campaña.`,
       );
     }
-    // ADR-0379: una pieza de liquidación tiene precio final; el descuento del ticket no la toca (`entraAlDescuento`).
     setCarrito((actual) =>
       descuento.modo === "monto"
         ? aplicarDescuentoMonto(actual, numeroDeMonto(descuento.monto), claves, detalle)
@@ -1609,12 +1529,6 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
       setQ("");
       setActivo(0);
       if (accion.tipo === "no-encontrada") {
-        // ADR-0379: el código de una etiqueta de liquidación tecleado a mano (la pistola no la leyó) se busca en la base.
-        const liquidacion = codigoDeLiquidacion(accion.texto);
-        if (liquidacion) {
-          void agregarPiezaLiquidacion(liquidacion);
-          return;
-        }
         setAviso(`No encontramos «${accion.texto}» en ${ubicacionEtiqueta}.`);
         return;
       }
@@ -1704,11 +1618,6 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
     : null;
   // Lo que se le avisa a quien cobra bajo el campo del celular: si también se guarda en la ficha, o que es solo de esta boleta.
   const notaCelularBoleta = notaDelCelularDeLaBoleta({ clienta, celularBoleta, tipoComprobante, puedeGuardarEnFicha: puedeBuscarClienta });
-  // ADR-0379: el cupón del Club no se usa con piezas de liquidación (precio final): la base rechazaría la venta entera.
-  const liquidacionConClub =
-    conVentajaDelClub && carrito.some((it) => it.liquidacion)
-      ? "Las prendas de liquidación tienen precio final: el regalo del club se usa en otra venta. Quita el cupón o el canje, o cóbralas aparte."
-      : null;
   // Lo elegido vale para ESTA venta: lo de una prenda que ya no está en el ticket no cuenta (y se limpia al cobrar).
   const enTicket = new Set(carrito.map((it) => it.varianteId));
   const duenoVigente = Object.fromEntries(Object.entries(duenoDeLinea).filter(([v]) => enTicket.has(v)));
@@ -1722,7 +1631,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
         )
       : null;
   const motivoDueno = faltaDuenoEn.length > 0 ? `Marca de quién sale ${faltaDuenoEn.length === 1 ? "la prenda que tiene" : "las prendas que tienen"} unidades de CAYLA y de CLAURE.` : null;
-  const motivoBloqueo = motivoDueno ?? liquidacionConClub ?? cuponNoAlcanza ?? motivoBloqueoCobro({
+  const motivoBloqueo = motivoDueno ?? cuponNoAlcanza ?? motivoBloqueoCobro({
     cajaAbierta: !bloqueado,
     prendas,
     momento,
@@ -1870,7 +1779,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
   // propia): se dice, en vez de perderla en silencio.
   function lineasParaLlevar(accion: string) {
     const sinRegistrar = carrito.filter((it) => it.varianteId === ID_CARGO_ESPECIAL).length;
-    if (sinRegistrar > 0) avisar.aviso(`La prenda sin registrar o de liquidación no se puede ${accion}: sigue en el ticket.`);
+    if (sinRegistrar > 0) avisar.aviso(`La prenda sin registrar no se puede ${accion}: sigue en el ticket.`);
     return carrito.filter((it) => it.varianteId !== ID_CARGO_ESPECIAL).map((it) => ({ varianteId: it.varianteId, cantidad: it.cantidad }));
   }
   function apartarDesdeTicket() {
@@ -1928,9 +1837,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
         // Solo el descuento de campaña dice de qué etiqueta vino; la base lo verifica.
         descuento_etiqueta_id: it.razonDescuento === RAZON_CAMPANA ? it.campana?.etiquetaId : undefined,
         // «Prenda sin registrar» (ADR-0179): la base exige estos cuatro para dejarla por regularizar.
-        descripcion_libre: it.prendaLibre?.descripcion ?? (it.liquidacion ? it.referencia : undefined),
-        // ADR-0379: la pieza de liquidación viaja con su código; la base la cobra al precio de su etiqueta vigente.
-        pieza_liquidacion_codigo: it.liquidacion?.codigo,
+        descripcion_libre: it.prendaLibre?.descripcion,
         categoria_id: it.prendaLibre?.categoriaId,
         talla_id: it.prendaLibre?.tallaId,
         color_codigo: it.prendaLibre?.colorCodigo,
@@ -2020,13 +1927,6 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
         responsable.despues(error);
         return;
       }
-      // ADR-0379: la pieza de liquidación se vendió, se rebajó o se retiró mientras estaba en el ticket.
-      const rechazoLiquidacion = carrito.some((it) => it.liquidacion) ? errorDeLiquidacion(`${error.message} ${error.hint ?? ""}`) : null;
-      if (rechazoLiquidacion) {
-        avisar.error(rechazoLiquidacion.titulo, rechazoLiquidacion.detalle ? { detalle: `${rechazoLiquidacion.detalle} Sácala del ticket y vuelve a escanearla.` } : undefined);
-        responsable.despues(error);
-        return;
-      }
       // El error de stock de la base no trae el nombre de la prenda; la pantalla sí lo
       // puede deducir comparando el ticket con lo que sabe del stock (un ticket retomado
       // pudo quedarse sin unidades mientras esperaba). Si no lo encuentra, va el genérico.
@@ -2072,16 +1972,13 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
 
   /**
    * Por qué un cobro sin conexión NO se puede guardar para subir solo; `null` si se puede. Con el canje del club (D-5) otra tienda
-   * podría canjearlo a la vez; una pieza de liquidación (ADR-0379) es UNA prenda que otra caja podría vender; y una venta que deja una
+   * podría canjearlo a la vez; y una venta que deja una
    * prenda en 0 necesita que el servidor lo confirme (ADR-0013). Ese cobro queda en duda (`CobroEnDuda`) hasta saber qué pasó.
    */
   function motivoParaNoEncolar(params: ParamsRegistrarVenta): string | null {
     if (conVentajaDelClub && llevaCanje(params)) {
       const { titulo, detalle } = cuponSinConexion();
       return `${titulo}. ${detalle ?? ""}`.trim();
-    }
-    if (carrito.some((it) => it.liquidacion)) {
-      return "Una prenda de liquidación no se cobra sin conexión: es una sola prenda y la base tiene que confirmar que sigue a la venta.";
     }
     const stockOverlay = new Map(variantesConOverlay.map((v) => [v.varianteId, v.stockAqui]));
     const items = carrito.map((it) => ({ varianteId: it.varianteId, cantidad: it.cantidad }));
