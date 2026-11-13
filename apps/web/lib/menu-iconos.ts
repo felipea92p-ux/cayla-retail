@@ -127,8 +127,7 @@ export const TRAZOS_MENU: Record<ClaveIcono, string> = {
   // de Plan de campaña, que es cuánto comprar para una. Desde el 2026-10-22 no tiene fila propia: es el ícono del módulo en Roles.
   calendarioCampana: "M12 22H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v4H3M8 2v4M16 2v4M21.29 14.7a2.43 2.43 0 0 0-2.65-.52c-.3.12-.57.3-.8.53l-.34.34-.35-.34a2.43 2.43 0 0 0-2.65-.53c-.3.12-.56.3-.79.53-.95.94-1 2.53.2 3.74L17.5 22l3.6-3.55c1.2-1.21 1.14-2.8.19-3.74z", // lucide «calendar-heart»
   // Una medalla: Catálogo ▸ Insignias (Felipe 2026-10-22; se llamó «Sellos», con un sello de goma, hasta el 2026-10-23), lo que se le
-  // marca a una prenda, con las campañas dentro. No la insignia dentada con «%» de Liquidación, que va justo debajo, ni la etiqueta
-  // colgante de Categorías ni la cinta de Atributos.
+  // marca a una prenda, con las campañas dentro. No la etiqueta colgante de Categorías ni la cinta de Atributos.
   insignias: "M15.477 12.89l1.515 8.526a.5.5 0 0 1-.81.47l-3.58-2.687a1 1 0 0 0-1.197 0l-3.586 2.686a.5.5 0 0 1-.81-.469l1.514-8.526 M6 8a6 6 0 1 0 12 0a6 6 0 1 0 -12 0", // lucide «award»
   ordenesInsumos: "M9 2h6a1 1 0 0 1 1 1v2a1 1 0 0 1-1 1H9a1 1 0 0 1-1-1V3a1 1 0 0 1 1-1zM16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2M12 11h4M12 16h4M8 11h.01M8 16h.01", // lucide «clipboard-list»
   // Mano con monedas: la plata que se le entrega en la mano a quien viaja a comprar (Fondos por rendir, ADR-0362 fase 6).
@@ -145,9 +144,6 @@ export const TRAZOS_MENU: Record<ClaveIcono, string> = {
   // Un celular con su visto: el pedido que el cliente separó desde su teléfono y la tienda confirma (Pedidos web, ADR-0408). No la
   // bolsa de «Ventas» ni el monitor con percha de la Vitrina: lo que llega de la web para atender.
   pedidosWeb: "M7 2h10a2 2 0 0 1 2 2v16a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2z M12 18h.01 M9 10l2 2 4-4",
-  // Insignia con «%»: la prenda que se liquida con su etiqueta, sin pasar a Productos (ADR-0379). Antes una etiqueta
-  // con una flecha que baja.
-  liquidacion: "M3.85 8.62a4 4 0 0 1 4.78-4.77 4 4 0 0 1 6.74 0 4 4 0 0 1 4.78 4.78 4 4 0 0 1 0 6.74 4 4 0 0 1-4.77 4.78 4 4 0 0 1-6.75 0 4 4 0 0 1-4.78-4.77 4 4 0 0 1 0-6.76Z M15 9l-6 6 M9 9h.01 M15 15h.01", // lucide «badge-percent»
   // Corazón: el club de CAYLA (Clientas, 2026-09-27) — nunca "colaboradores" (esa es la persona
   // dueña de un acceso), esta es la clienta que vuelve.
   clientas: "M20.8 4.6a5.5 5.5 0 00-7.8 0L12 5.6l-1-1a5.5 5.5 0 00-7.8 7.8l1 1L12 21l7.8-7.8 1-1a5.5 5.5 0 000-7.8z",
