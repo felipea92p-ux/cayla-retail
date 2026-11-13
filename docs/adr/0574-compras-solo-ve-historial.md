@@ -39,3 +39,23 @@ El proveedor ya lo elige la compradora (`compra_papeles.proveedor_id not null`; 
 ## Por pegar en producción (esperan el OK de Felipe)
 
 Orden: `20261029191000`, `…192000`, `…193000`, `…194000`, `…195000`, `…200000`, cada una pegada entera y sola, **antes** de publicar la web (la web manda `p_serie`, `p_numero`, `p_papel` y `p_ruc`, que una base sin las migraciones no conoce). Ninguna mezcla `alter` de tablas en uso con políticas (ADR-0195).
+
+## Actualización 2026-11-13 · el margen para corregir: mientras va «En camino» (Felipe)
+
+La «decisión aparte» de arriba («si hace falta un margen para corregir el conteo») quedó tomada. La auditoría del 2026-11-12 mostró que
+casi todo lo que llega a las tiendas es de Mis compras (en producción, las 48 órdenes vivas lo eran), así que «Reabrir el conteo» ya no
+servía en casi ningún envío, y el texto culpaba a Compras («Compras ya completó el papel») cuando nadie de Compras había hecho nada.
+
+Se ofrecieron tres caminos: un margen de 24 h antes de pasar a los libros, reabrir deshaciendo el comprobante, o dejarlo definitivo. Felipe
+eligió otro, más simple: **«cuando realizo el envío, mientras en Recibir todavía dice "En camino", que se pueda; si ya no dice "En camino",
+ya no».** El margen para corregir es antes de que la tienda empiece, no después de cerrar.
+
+- **Quien compró anula el envío en camino desde Mis compras ▸ Mis envíos** (el detalle del envío, «Anular envío»): lo que llevaba vuelve a
+  «Para mandar» y se manda otra vez con un código nuevo. Es la misma hoja y la misma función que ya tenía el detalle de la orden
+  (`AnularEnvioModal`, `anular_envio`), que la compradora no alcanzaba desde su pantalla. La regla la cumple la base: `anular_envio` rechaza
+  un envío abierto o cerrado (`envio_no_en_camino`), sin migración.
+- **Desde que la tienda pulsa «Empezar a recibir», ya no** (la hoja ya lo dice: «Desde que empiezas, la compra ya no se puede anular»), y
+  un envío cerrado de Mis compras no se reabre, como hasta ahora. El texto de Recibir pasa a «Esta compra pasó a los libros al cerrar el
+  conteo, así que este envío ya no se reabre. Si algo quedó mal, avísale a Compras».
+- **Descartado:** el margen de 24 h (los libros se verían un día tarde y suma una tarea programada) y reabrir deshaciendo el comprobante
+  (no existe «anular un comprobante» y tocaría libro, fondo y diario a la vez).

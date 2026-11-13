@@ -1,7 +1,9 @@
 "use client";
 
-import type { RefObject } from "react";
+import { useRef, useState, type RefObject } from "react";
+import { Ban } from "lucide-react";
 import { Aviso } from "@/components/ui/Aviso";
+import { Boton } from "@/components/ui/campos";
 import { Chip } from "@/components/ui/Chip";
 import { Cajon } from "@/components/ui/Cajon";
 import { Modal } from "@/components/ui/Modal";
@@ -15,14 +17,23 @@ import {
   textoDeRondaDelEnvio,
   type EnvioMio,
 } from "@/lib/mis-envios-reglas";
+import { sePuedeAnularEnvio } from "@/lib/envio-orden-reglas";
+import { AnularEnvioModal } from "@/components/ordenes-compra/AnularEnvioModal";
 import { AccionesDelCodigo, CodigoDeEnvio } from "./CodigoDeEnvio";
 
 // Mis envíos ▸ un envío (maqueta docs/maquetas/mis-compras-envios-2026-10/): el mismo detalle para cualquier ronda. El código grande
 // con copiar y compartir, su historia (salió · la tienda lo cuenta · recibido), los avisos que piden hacer algo (nadie lo abrió hace
-// días; la tienda contó menos), la cuenta como un cuaderno y lo que llevaba. Solo se lee: se cierra con la ×. En el celular es la hoja de
+// días; la tienda contó menos), la cuenta como un cuaderno y lo que llevaba. Se cierra con la ×. En el celular es la hoja de
 // siempre (`Modal`); en PC (Felipe 2026-10-26, «A»), un cajón a la derecha con la lista viva detrás, el mismo del resto de Compras.
+//
+// Lo único que se hace aquí: «Anular envío», solo mientras va en camino (Felipe 2026-11-13: «que se pueda mientras en Recibir todavía dice
+// "En camino"; si ya no, ya no»). Lo que llevaba vuelve a «Para mandar» y se manda otra vez con un código nuevo. La regla la hace cumplir
+// la base (`anular_envio` rechaza un envío que la sede ya abrió); la pantalla solo esconde el botón cuando ya no aplica.
 export function HojaEnvio({ e, hoy, onClose, volverA }: { e: EnvioMio; hoy?: string; onClose: () => void; volverA: RefObject<HTMLElement | null> }) {
   const enCelular = useEnCelular();
+  const [anulando, setAnulando] = useState(false);
+  // El botón que abrió «Anular»: al cancelar, el foco vuelve a él (`Boton` no pasa su ref).
+  const botonAnular = useRef<HTMLElement | null>(null);
   const estado = ESTADO_ENVIO[e.estado];
   const avisos = avisosDeEnvio(e, hoy);
   const filas: [string, string][] = [
@@ -71,6 +82,35 @@ export function HojaEnvio({ e, hoy, onClose, volverA }: { e: EnvioMio; hoy?: str
               ))}
             </ul>
           </div>
+        )}
+        {sePuedeAnularEnvio(e) && (
+          <div className="space-y-2.5 border-t border-sand pt-4">
+            <p className="text-sm text-taupe">
+              ¿Salió mal? Mientras la tienda no empiece a recibirlo, puedes anularlo: lo que llevaba vuelve a «Para mandar» y lo mandas otra vez.
+            </p>
+            <Boton
+              type="button"
+              peso="peligro"
+              onClick={(ev) => {
+                botonAnular.current = ev.currentTarget;
+                setAnulando(true);
+              }}
+            >
+              <span className="inline-flex items-center gap-1.5">
+                <Ban aria-hidden className="h-3.5 w-3.5" /> Anular envío
+              </span>
+            </Boton>
+          </div>
+        )}
+        {anulando && (
+          <AnularEnvioModal
+            envio={{ id: e.id, numero: e.numero, sede: e.destino, unidades: e.prendas, version: null }}
+            contexto={e.ronda ? `Ronda ${e.ronda}` : "Mis envíos"}
+            queVuelve="vuelve a «Para mandar»: corrige lo que haga falta y mándalo otra vez"
+            onClose={() => setAnulando(false)}
+            alAnular={onClose}
+            volverA={botonAnular}
+          />
         )}
       </div>
   );

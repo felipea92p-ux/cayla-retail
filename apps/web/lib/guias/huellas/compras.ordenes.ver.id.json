@@ -22,6 +22,13 @@
       "Boton «Cancelar»",
       "Boton «{guia.frase ?? undefined}»"
     ],
+    "components/ordenes-compra/AnularEnvioModal.tsx": [
+      "CampoTexto «Por qué se anula»",
+      "ComboResponsable «{responsable}»",
+      "Boton «Recargar»",
+      "Boton «Cancelar»",
+      "Boton «{guia.frase ?? undefined}»"
+    ],
     "components/ordenes-compra/BotonEditarOrden.tsx": [
       "BotonEditar «{`/compras/ordenes/editar/${id}»"
     ],
@@ -33,12 +40,7 @@
       "Boton «{guia.frase ?? undefined}»"
     ],
     "components/ordenes-compra/EnviosDeOrden.tsx": [
-      "Boton «orden.anular-envio»",
-      "CampoTexto «Por qué se anula»",
-      "ComboResponsable «{responsable}»",
-      "Boton «Recargar»",
-      "Boton «Cancelar»",
-      "Boton «{guia.frase ?? undefined}»"
+      "Boton «orden.anular-envio»"
     ],
     "components/ordenes-compra/GastoDelViaje.tsx": [
       "Boton «{guia}»",

@@ -102,5 +102,7 @@ describe("en el ERP, ningún botón se vuelve el de enviar debajo del clic", () 
       hallazgos.map((h) => `${h.archivo}:${h.linea}`),
       "Ponle una `key` distinta a cada rama (`key=\"crear\"`, `key=\"seguir\"`): sin ella React reusa el mismo <button> y, si el clic cambia la rama, el navegador envía el formulario.",
     ).toEqual([]);
-  });
+    // Recorre todos los .tsx del ERP: sola tarda ~1,5 s, pero con la suite completa en paralelo (el gancho de commit) pasaba los 5 s de
+    // fábrica y caía por tiempo, no por un hallazgo (2026-11-13).
+  }, 30_000);
 });

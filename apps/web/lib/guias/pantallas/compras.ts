@@ -2628,8 +2628,9 @@ export const GUIA_MI_PLATA: Guia = {
   ],
 };
 
-// Compras ▸ Mis compras ▸ Mis envíos (ADR-0480): los paquetes que mandó, con su código y por ronda. Solo se lee: la demo cambia de vista y
-// escribe un ejemplo; nunca abre ni manda nada.
+// Compras ▸ Mis compras ▸ Mis envíos (ADR-0480): los paquetes que mandó, con su código y por ronda. Lo único que se hace es anular un envío
+// que sigue en camino, desde su detalle (2026-11-13): la demo no abre el detalle, lo cuenta en el último paso. Cambia de vista y escribe
+// un ejemplo; nunca abre, manda ni anula nada.
 export const GUIA_MIS_ENVIOS: Guia = {
   id: "compras.mi-plata.envios",
   ruta: "/compras/mi-plata/envios",
@@ -2684,7 +2685,7 @@ export const GUIA_MIS_ENVIOS: Guia = {
       id: "fin",
       ancla: null,
       titulo: "Listo",
-      texto: "Toca un envío para ver su detalle, copiar el código o compartirlo por WhatsApp. Si salió hace días y la tienda no lo abrió, el detalle te lo avisa.",
+      texto: "Toca un envío para ver su detalle, copiar el código o compartirlo. Si salió mal y en Recibir todavía dice «En camino», desde el detalle lo anulas: lo que llevaba vuelve a «Para mandar».",
     },
   ],
 };
