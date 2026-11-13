@@ -1,6 +1,6 @@
 # ADR-0658 — CLAURE se pregunta de una pasada en el plan del piso y el plan de compra (y no se guarda lo vendido por día)
 
-- **Fecha:** 2026-11-13 · **Estado:** construido en la rama `claude/claure-de-una-pasada`. Migración `20261113201000`, **sin pegar en producción**.
+- **Fecha:** 2026-11-13 · **Estado:** construido en la rama `claude/claure-de-una-pasada`. Migración `20261113201000` **pegada en producción el 2026-11-13** (con el OK de Felipe; verificación de solo lectura: `true | true | true | 0`).
 - **Nace de:** la propuesta `cambiar-de-modulo#13` del informe `/innovar` del 2026-11-13 («Lo vendido por prenda, sede y día, guardado»), aprobada por
   Felipe con la condición de no cambiar el uso. Al medirla antes de construirla, la causa resultó ser otra. La sesión que coordina la tanda eligió este
   camino con estas cifras: es técnico y cumple la misma condición.
