@@ -17,7 +17,7 @@ import { ElegirTallas } from "@/components/alta-producto/ElegirTallas";
 import { ID_QUIEN_REGISTRA, IdentidadAltaProveedor } from "@/components/alta-producto/IdentidadAlta";
 import { NombreDePrenda } from "@/components/alta-producto/NombreDePrenda";
 import { PuntosAvance } from "@/components/alta-producto/PuntosAvance";
-import { PropuestaDePrecio } from "@/components/alta-producto/PropuestaDePrecio";
+import { PropuestaDePrecio, adelantarPropuestaDePrecio } from "@/components/alta-producto/PropuestaDePrecio";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { FotosDeLaPrenda } from "@/components/alta-producto/FotosDeColores";
 import type { FotoPendiente } from "@/components/alta-producto/FotosAlta";
@@ -262,6 +262,22 @@ export function HojaPrenda({
     setPaso(numero);
     setVisitados((v) => new Set([...v, numero]));
   }
+
+  // La propuesta de precio se pide al salir de «Cómo es» (Felipe 2026-11-13): el nombre, el tejido y el detalle ya están, y el costo y la
+  // categoría vienen de la línea. Mientras se marcan tallas y colores la IA ya calcula, y al llegar al precio está lista (o casi). Solo al
+  // entrar al paso 2: pedirla con cada cambio gastaría una consulta por tecla.
+  useEffect(() => {
+    if (!nueva || paso !== 2) return;
+    adelantarPropuestaDePrecio({
+      origen: "recepcion",
+      categoriaId: destino.categoriaId,
+      tejidoId: borrador.tejidoId,
+      referencia: borrador.nombre,
+      descripcion: borrador.descripcion,
+      costoBase: costo.trim().replace(",", "."),
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- se pide al entrar al paso, con lo que había; no en cada cambio
+  }, [paso]);
 
   // Cada paso abre desde arriba. Es otra vista y no un bloque que se acortó: sin soltar la reserva de la página, un paso más corto aparece corrido y con aire debajo (ADR-0185).
   const pasoPintado = useRef(paso);
