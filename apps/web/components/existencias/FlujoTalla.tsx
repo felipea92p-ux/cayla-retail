@@ -58,6 +58,7 @@ import { Volver } from "@/components/ui/Volver";
 import { Aviso } from "@/components/ui/Aviso";
 import { Vacio } from "@/components/ui/Vacio";
 import { Boton } from "@/components/ui/campos";
+import { fondoDelPunto } from "@/lib/color-combinado";
 
 type Prenda = PrendaAgrupada<FilaExistencias>;
 
@@ -623,7 +624,7 @@ export function FlujoTalla({
     el?.focus({ preventScroll: true });
   }, [i, tipo]);
 
-  const color = prenda.colorHex ?? "var(--color-hueso)";
+  const color = fondoDelPunto(prenda.colorHex, prenda.colorTonos) ?? "var(--color-hueso)";
   const fondoContexto = (tipo === "colgarVarias" || tipo === "subirVarias") && colores.length > 1 ? `conic-gradient(${colores.map((c) => c.colorHex ?? "var(--color-hueso)").join(",")})` : color;
   const IconoFinal = ICONO_FINAL[tipo];
 
@@ -795,9 +796,9 @@ export function FlujoTalla({
                     return (
                       <tr key={c.clave}>
                         <th scope="row" className={`sticky left-0 z-[1] whitespace-nowrap border-r border-t border-sand py-2 pl-3.5 pr-2.5 text-left text-sm font-semibold text-tinta ${fondo}`}>
-                          <span aria-hidden data-color-dato className="absolute inset-y-0 left-0 w-[5px]" style={{ background: c.colorHex ?? "var(--color-sand)" }} />
+                          <span aria-hidden data-color-dato className="absolute inset-y-0 left-0 w-[5px]" style={{ background: fondoDelPunto(c.colorHex, c.colorTonos) ?? "var(--color-sand)" }} />
                           <span className="flex items-center gap-1.5">
-                            <i aria-hidden data-color-dato className="h-2.5 w-2.5 shrink-0 rounded-full shadow-[0_0_0_1px_var(--color-sand)]" style={{ background: c.colorHex ?? "var(--color-hueso)" }} />
+                            <i aria-hidden data-color-dato className="h-2.5 w-2.5 shrink-0 rounded-full shadow-[0_0_0_1px_var(--color-sand)]" style={{ background: fondoDelPunto(c.colorHex, c.colorTonos) ?? "var(--color-hueso)" }} />
                             {c.color ?? "Sin color"}
                           </span>
                         </th>

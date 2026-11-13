@@ -29,6 +29,7 @@ import {
 import { atajoElegido } from "@/lib/existencias-rapidos";
 import { Buscador } from "@/components/ui/Buscador";
 import { BotonLimpiar, FiltroPuesto } from "@/components/ui/FiltrosPuestos";
+import { fondoDelPunto } from "@/lib/color-combinado";
 
 /* ====================================================================
    La barra de filtros de Existencias (2026-10-03): la MISMA estructura que la de Productos (ADR-0308) —buscador con «/»,
@@ -46,7 +47,7 @@ const MEDIA_ESCRITORIO = "(min-width: 768px)";
 
 /** Un color de la sede, con lo que la lista necesita para agruparlo por familia y pintar su muestra. `id` es su nombre (único
  *  en la base): es lo que va en la URL. */
-export type ColorBarra = { id: string; nombre: string; hex: string | null; familia: string | null; tipo: string | null };
+export type ColorBarra = { id: string; nombre: string; hex: string | null; familia: string | null; tipo: string | null; /** Una mezcla (ADR-0643): su punto se parte. */ tonos?: readonly string[] | null };
 
 /** Cómo se ve la lista: tarjetas (de entrada), la tabla por prenda o la tabla con una fila por talla. */
 export type VistaLista = "tarjetas" | "tabla" | "talla";
@@ -217,7 +218,7 @@ export function FiltrosExistencias({
                       <span
                         aria-hidden
                         className="inline-block h-3.5 w-3.5 shrink-0 rounded-full border border-tinta/15 bg-hueso align-middle"
-                        style={{ background: fondoDeColor(o.color.hex, o.color.familia, o.color.tipo), borderColor: bordeDeMuestra(o.color.hex) }}
+                        style={{ background: o.color.tonos ? fondoDelPunto(o.color.hex, o.color.tonos) : fondoDeColor(o.color.hex, o.color.familia, o.color.tipo), borderColor: bordeDeMuestra(o.color.hex) }}
                       />
                     ),
                   }

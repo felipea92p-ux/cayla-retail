@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { componentesDeMezcla, esCombinado, fondoDeMezcla, fondoDeMezclaEnFranja, mezclaExistente, nombreDeMezcla, normalizarComponentes, puedeAcompanar, tonosDeMezcla } from "./color-combinado";
+import { componentesDeMezcla, esCombinado, fondoDeMezcla, fondoDeMezclaEnFranja, fondoDelPunto, tonosDeLasMezclas, mezclaExistente, nombreDeMezcla, normalizarComponentes, puedeAcompanar, tonosDeMezcla } from "./color-combinado";
 
 describe("normalizarComponentes", () => {
   it("acepta la base y de 1 a 3 acompañantes, en mayúsculas y en el orden recibido", () => {
@@ -82,5 +82,29 @@ describe("armar la mezcla", () => {
     expect(puedeAcompanar(CRU, "CRU")).toBe(false);
     expect(puedeAcompanar({ codigo: "CZU", nombre: "Crudo con azur", componentes: ["CRU", "AZU"] }, "NEG")).toBe(false);
     expect(puedeAcompanar({ ...ROJ, activo: false }, "CRU")).toBe(false);
+  });
+});
+
+describe("el punto partido en las grillas (Productos, Existencias, Vender)", () => {
+  const carta = [
+    { codigo: "HUE", nombre: "Hueso", hex: "#EFE8DA", componentes: null },
+    { codigo: "AZU", nombre: "Azul", hex: "#1F3A93", componentes: null },
+    { codigo: "NEG", nombre: "Negro", hex: "#111111", componentes: null },
+    { codigo: "HAZ", nombre: "Hueso con azul", hex: "#EFE8DA", componentes: ["HUE", "AZU"] },
+    { codigo: "HAN", nombre: "Hueso con azul y negro", hex: "#EFE8DA", componentes: ["HUE", "AZU", "NEG"] },
+    // Un acompañante que la carta no trae (otra pantalla lo filtró): no se puede partir y queda fuera.
+    { codigo: "HXX", nombre: "Hueso con algo", hex: "#EFE8DA", componentes: ["HUE", "XXX"] },
+  ];
+
+  it("solo trae las mezclas que se pueden partir, por código o por nombre, la base primero", () => {
+    expect(tonosDeLasMezclas(carta, "codigo")).toEqual({ HAZ: ["#EFE8DA", "#1F3A93"], HAN: ["#EFE8DA", "#1F3A93", "#111111"] });
+    expect(Object.keys(tonosDeLasMezclas(carta, "nombre"))).toEqual(["Hueso con azul", "Hueso con azul y negro"]);
+  });
+
+  it("parte el punto de una mezcla y deja liso el de un tono", () => {
+    expect(fondoDelPunto("#EFE8DA", ["#EFE8DA", "#1F3A93"])).toBe(fondoDeMezcla(["#EFE8DA", "#1F3A93"]));
+    expect(fondoDelPunto("#1F3A93", undefined)).toBe("#1F3A93");
+    expect(fondoDelPunto("#1F3A93", ["#1F3A93"])).toBe("#1F3A93");
+    expect(fondoDelPunto(null, null)).toBeUndefined();
   });
 });

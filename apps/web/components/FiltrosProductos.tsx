@@ -53,13 +53,14 @@ import {
 import { SIN_EN_URL } from "@/lib/marcas";
 import { Buscador } from "@/components/ui/Buscador";
 import { BotonLimpiar, FiltroPuesto } from "@/components/ui/FiltrosPuestos";
+import { fondoDelPunto } from "@/lib/color-combinado";
 
 // Filtros de /productos. Mismo patrón que `FiltrosMovimientos.tsx`: viven en
 // la URL, la página es un Server Component que filtra en Postgres
 // (fn_productos_listado y fn_productos_facetas, ADR-0308), y cambiar un filtro vuelve a la
 // página 1 — un filtro nuevo sobre "página 7" case casi siempre en vacío.
 type Opcion = { id: string; nombre: string };
-type OpcionColor = Opcion & { hex: string | null; familia: string | null; /** `solido` | `textura` | `estampado`: una textura (Gris melange) se pinta jaspeada. */ tipo?: string | null };
+type OpcionColor = Opcion & { hex: string | null; familia: string | null; /** `solido` | `textura` | `estampado`: una textura (Gris melange) se pinta jaspeada. */ tipo?: string | null; /** Una mezcla (ADR-0643): su punto se parte. */ tonos?: readonly string[] | null };
 
 
 /** Una sola forma desde el 2026-09-28 (ADR-0254, pedido de Felipe): buscador + botón «Filtros» que despliega el panel
@@ -404,7 +405,7 @@ export function FiltrosProductos({
                       <span
                         aria-hidden
                         className="inline-block h-3.5 w-3.5 shrink-0 rounded-full border border-tinta/15 bg-hueso align-middle"
-                        style={{ background: fondoDeColor(o.color.hex, o.color.familia, o.color.tipo), borderColor: bordeDeMuestra(o.color.hex) }}
+                        style={{ background: o.color.tonos ? fondoDelPunto(o.color.hex, o.color.tonos) : fondoDeColor(o.color.hex, o.color.familia, o.color.tipo), borderColor: bordeDeMuestra(o.color.hex) }}
                       />
                     ),
                   },

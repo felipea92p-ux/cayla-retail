@@ -52,6 +52,7 @@ import { precioDeHoy, type CampanaDeVariante, type PrecioDeHoy } from "@/lib/pre
 import { PrecioConCampana } from "@/components/ficha-producto/PrecioConCampana";
 import { Casilla } from "@/components/ui/Casilla";
 import { BotonEditar, LapizEditar } from "@/components/ui/BotonEditar";
+import { fondoDelPunto } from "@/lib/color-combinado";
 
 /**
  * Productos ▸ Tabla (ADR-0254, rediseño 2026-09-28 sobre `docs/maquetas/productos-administrar-2026-09/`).
@@ -741,7 +742,7 @@ function FichaVariantes({
               key={v.varianteId}
               className={`group/variante relative grid grid-cols-[auto_minmax(0,1fr)_auto_auto] items-center gap-x-3 gap-y-0.5 rounded-xl border border-sand bg-papel py-2.5 pl-3 pr-2 ${v.activo ? "" : "opacity-50"}`}
             >
-              <span aria-hidden className="row-span-2 h-6 w-6 rounded-md ring-1 ring-inset ring-tinta/10" style={{ background: v.colorHex ?? "var(--color-sand)" }} />
+              <span aria-hidden className="row-span-2 h-6 w-6 rounded-md ring-1 ring-inset ring-tinta/10" style={{ background: fondoDelPunto(v.colorHex, v.colorTonos) ?? "var(--color-sand)" }} />
               <span className="min-w-0 truncate text-sm text-tinta">
                 <span className="mr-1.5 font-mono font-medium">{v.talla ?? "—"}</span>
                 {v.color ?? "Sin color"}

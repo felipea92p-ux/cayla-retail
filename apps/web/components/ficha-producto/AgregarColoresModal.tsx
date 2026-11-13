@@ -137,6 +137,8 @@ export function AgregarColoresModal({
   const disponibles = ctx.colores.filter((c) => !yaVende.has(c.codigo));
   // Sin «los más usados» (ADR-0260: la carta de colores del alta va abierta de entrada, por familia).
   const { grupos } = ordenarColores(disponibles, {}, FAMILIAS_COLOR);
+  // La carta entera, para armar una mezcla: sus acompañantes pueden ser colores que la prenda ya vende (ADR-0643).
+  const todos = { colores: ctx.colores, grupos: ordenarColores(ctx.colores, {}, FAMILIAS_COLOR).grupos };
 
   const tallasOrdenadas = tallasDeLaPrenda.filter((t) => t.habilitada && tallasElegidas.includes(t.id)).map((t) => ({ id: t.id, texto: n.talla(t.id) }));
   // Sin colores elegidos no hay nada que crear; con la prenda con tallas y ninguna marcada, tampoco (no nacen «sin talla»).
@@ -268,6 +270,9 @@ export function AgregarColoresModal({
                   onColorCreado(color);
                   setNuevos((a) => (a.includes(color.codigo) ? a : [...a, color.codigo]));
                 }}
+                // «+ acompañante» como en Nuevo producto y Recibir: «Hueso con azul» es un color más (ADR-0643).
+                conMezclas
+                todos={todos}
               />
             </CampoGuiado>
             <YaEstan items={ejes.colores.filter((c): c is string => c !== null).map((c) => ({ clave: c, texto: n.color(c), punto: <PuntoColor codigo={c} colores={ctx.colores} /> }))} />

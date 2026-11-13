@@ -15,6 +15,7 @@ import { motivoNoCobrable } from "@/lib/vender-stock-local";
 import { estiloMosaicoColor } from "@/lib/color-prenda-reglas";
 import { fotoQueDistingue } from "@/lib/color-estampado-reglas";
 import { CuadroEstampado } from "@/components/ui/MuestraEstampado";
+import { fondoDelPunto } from "@/lib/color-combinado";
 
 type Color = GrupoCatalogo<VarianteBusqueda>;
 
@@ -153,7 +154,7 @@ export function OpcionesDePrendaModal({ prenda, colorClave, ubicacionEtiqueta, c
                         <span
                           aria-hidden
                           className="h-4 w-4 shrink-0 rounded-full shadow-[inset_0_0_0_1px_color-mix(in_srgb,var(--color-tinta)_16%,transparent)]"
-                          style={{ backgroundColor: estiloMosaicoColor(c.tallas[0]?.variante.colorHex)?.fondo ?? "var(--color-hueso)" }}
+                          style={{ background: fondoDelPunto(estiloMosaicoColor(c.tallas[0]?.variante.colorHex)?.fondo, c.tallas[0]?.variante.colorTonos) ?? "var(--color-hueso)" }}
                         />
                       )}
                       <span className="min-w-0 flex-1 truncate text-[15px] font-semibold text-tinta">{c.color ?? "Sin color"}</span>

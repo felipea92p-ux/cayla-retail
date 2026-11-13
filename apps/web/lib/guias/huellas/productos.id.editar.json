@@ -2,7 +2,7 @@
   "guia": "productos.id.editar",
   "ruta": "/productos/[id]/editar",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 162,
+  "total": 166,
   "controles": {
     "app/(app)/productos/[id]/editar/page.tsx": [
       "Volver «{volverA}»"
@@ -57,6 +57,8 @@
       "ComboBuscable «(sin nombre)»",
       "button «{carta ? \"Ocultar la carta\" : `Ver los ${ofrecibles.length}»",
       "Boton «{enLinea ? undefined : \"Crear un color necesita internet\"}»",
+      "Boton «Para una prenda de dos o más colores: hueso con azul»",
+      "Boton «Cancelar»",
       "button «{c.nombre}»"
     ],
     "components/alta-producto/ElegirMarcaProveedor.tsx": [
@@ -206,6 +208,8 @@
     ],
     "components/ficha-producto/piezas.tsx": [
       "ComboBuscable «{id}»",
+      "button «{`Agregar un color que acompaña al ${deLaBase}»",
+      "ComboBuscable «→tocarAcompanante»",
       "input «0.00»",
       "input «0.00» #2",
       "button «Cancelar»",
