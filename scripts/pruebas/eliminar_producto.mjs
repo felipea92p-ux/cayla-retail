@@ -350,7 +350,10 @@ select pg_temp.huella(:'va');`);
     "producto_consumos", "producto_avios", "producto_taller", "producto_procesos",
     // ADR-0393 (act. 2026-11-07 b): en qué envío nació una combinación (`variantes_nacidas_al_recibir`) es un dato de la ficha, como
     // `producto_origen`: se va con ella por su `on delete cascade` (20261107201000). Lo que sí se recibió deja movimientos y frena el borrado.
-    "variantes_nacidas_al_recibir"];
+    "variantes_nacidas_al_recibir",
+    // ADR-0655: que una oferta haya elegido el modelo prenda por prenda es configuración de la oferta, como sus categorías: se va con él
+    // por su `on delete cascade` (20261113210000). Lo que ya se vendió con esa oferta es venta y frena el borrado.
+    "campana_regla_productos"];
   const HISTORIA = [
     "venta_items", "movimientos", "compra_items", "producciones", "transferencia_items", "apartados", "separacion_items",
     "conteo_items", "cambios", "prendas_danadas", "prendas_por_regularizar", "bajada_piso_items", "costo_historial",
