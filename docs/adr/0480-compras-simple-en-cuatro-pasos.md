@@ -338,3 +338,26 @@ fardo» en una pantalla y deja la base, el aviso y la guía diciendo otra cosa.
 ## Qué queda
 
 Refrescar el diccionario desde el volcado de producción y lo anotado en `docs/backlog/2026-10-22-modulo-compras-66e94a.md`.
+
+## Actualización 2026-11-13 · la plata que llega antes de abrir la ronda es de la ronda que se abre (Felipe)
+
+Decisión C de la auditoría de Mis compras y Recibir del 2026-11-12. «Me dieron plata» no exige ronda abierta (Compras a veces manda la plata antes,
+20261023183000), y esa plata quedaba **sin ronda**: la lista «En esta ronda» la mostraba, pero «Te dieron» decía S/ 0 y la billetera la explicaba como
+«ya tenías al abrir tu ronda»; el cierre que ve Compras no distinguía lo que sobró del viaje anterior de lo que se mandó para este. Lo que tenía para
+gastar siempre estuvo bien; lo que estaba mal era de qué ronda es.
+
+Se ofrecieron tres caminos: que la ronda que se abre la adopte, dejarla como «ya tenías» y solo moverla de lista en la pantalla, o exigir abrir la ronda
+antes de anotarla. **Felipe eligió el primero: es la plata para ese viaje.**
+
+- `abrir_ronda_compras()`, al abrir una ronda nueva, le pone su ronda a la plata de esa persona que está sin ronda y que se anotó después de su última
+  ronda cerrada. «Ya tenía plata» nunca (es el saldo inicial). Sin ninguna ronda cerrada antes, nada: lo anotado antes de las rondas sigue siendo de antes.
+- Los dos candados de la plata anotada (`fn_ronda_id_fija`, «de qué ronda es no cambia», y `fn_fondo_plata_anotada_inmutable`, «solo cambia al
+  confirmarla») suman UNA excepción, la misma: de sin ronda a la ronda que esa transacción abre (`retail.ronda_adopta`), sin tocar nada más de la fila.
+- Las rondas abiertas al pegar la migración adoptan lo mismo una sola vez; las cerradas no se tocan (su cierre ya se hizo).
+- Antes de esto ya estaba resuelta la otra mitad del hallazgo: «Te dieron» suma lo **confirmado** por Compras, no lo anotado (H14, 20261027231000,
+  pegada en producción).
+- **Descartado:** solo mover la plata de lista en la pantalla (el cierre de Compras seguiría mezclando sobrante y plata nueva) y exigir la ronda antes
+  de anotar (contradice la decisión del 2026-10-23: Compras a veces manda antes).
+
+Migración `20261113162000_mis_compras_la_ronda_adopta_la_plata_de_antes.sql` (Felipe la pega; se puede pegar dos veces). Prueba
+`pnpm pruebas:compras-simple-ronda-adopta` (5 casos, 3 de control; sin la migración pasan 2 de 5).
