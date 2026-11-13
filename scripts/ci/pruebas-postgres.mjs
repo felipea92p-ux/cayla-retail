@@ -384,6 +384,11 @@ export const PRUEBAS = [
   // una consulta); lo de postgres y lo de adentro de un `do` no cuenta; solo la llave de servicio o el SQL Editor la toman. ROLLBACK.
   "pruebas:vigia-rendimiento",
 
+  // El presupuesto de rendimiento (ADR-0656): sobre un volumen fijo (3 tiendas, 12.000 variantes, ~3.000 ventas) cargado en una
+  // transacción que se deshace, cuántos bloques lee cada función de entrada de módulo (las seis del marco, Productos, el plan del
+  // piso, el ritmo de venta, el stock por sede, el resumen de Finanzas). Frena si una lee más del 25 % sobre `presupuesto.json`.
+  "pruebas:presupuesto-rendimiento",
+
   // Descuento de campaña EXACTO, al céntimo (ADR-0302; reemplaza el .90 de ADR-0182): la base da lo mismo que la caja,
   // registrar_venta y separar_prendas aceptan el descuento exacto y rechazan el del .90, y la migración se puede pegar
   // dos veces. ROLLBACK.

@@ -189,6 +189,8 @@
     "pruebas:dia-de-tienda": "node scripts/pruebas/dia_de_tienda_invariantes.mjs",
     "pruebas:vigia-invariantes": "node scripts/pruebas/vigia_invariantes.mjs",
     "pruebas:vigia-rendimiento": "node scripts/pruebas/vigia_rendimiento.mjs",
+    "pruebas:presupuesto-rendimiento": "node scripts/rendimiento/presupuesto.mjs",
+    "rendimiento:aceptar": "node scripts/rendimiento/presupuesto.mjs --aceptar",
     "pruebas:campana-redondeo": "node scripts/pruebas/campana_redondeo.mjs",
     "pruebas:tienda-puerta": "node scripts/pruebas/tienda_puerta.mjs",
     "pruebas:tienda-web-configuracion": "node scripts/pruebas/tienda_web_configuracion.mjs",

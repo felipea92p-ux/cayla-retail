@@ -1,0 +1,24 @@
+{
+  "_": "ADR-0656. Bloques de 8 kB que lee cada función de entrada de módulo sobre el volumen de presupuesto-volumen.sql. No se edita a mano: pnpm rendimiento:aceptar.",
+  "origen": "local (base con datos de otras sesiones)",
+  "bloques": {
+    "fn_es_admin@colaboradora": 10,
+    "fn_es_admin@lider": 11,
+    "fn_mi_pantalla_principal@colaboradora": 6,
+    "fn_mi_pantalla_principal@lider": 5,
+    "fn_mi_persona_id@colaboradora": 1,
+    "fn_mi_persona_id@lider": 1,
+    "fn_mi_terminal@colaboradora": 0,
+    "fn_mi_terminal@lider": 0,
+    "fn_mis_modulos@colaboradora": 77,
+    "fn_mis_modulos@lider": 60,
+    "fn_persona_actual_resumen@colaboradora": 18,
+    "fn_persona_actual_resumen@lider": 20,
+    "fn_piso_plan_lectura@lider": 84833,
+    "fn_productos_facetas@lider": 137953,
+    "fn_productos_listado@lider": 3987,
+    "fn_resumen_finanzas@lider": 39262,
+    "fn_resumen_variantes_json@lider": 94147,
+    "fn_stock_por_sede_json@lider": 3256
+  }
+}
