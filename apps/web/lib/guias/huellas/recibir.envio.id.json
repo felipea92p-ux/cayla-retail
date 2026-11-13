@@ -115,6 +115,7 @@
     ],
     "components/recepcion-conteo/CategoriasAcordeon.tsx": [
       "button «{cat && <MiniaturaPrenda fotoUrl={foto}»",
+      "button «recepcion.llegaron»",
       "button «{`Quitar ${m.nombre}»",
       "button «{cat && <MiniaturaPrenda fotoUrl={null}»",
       "button «Corregir»",

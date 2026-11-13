@@ -114,10 +114,10 @@ main:has(.rc-conteo) { padding-bottom: 16px; }
 .rc-cat-mas { position: absolute; top: 50%; right: 64px; display: grid; width: 32px; height: 32px; place-items: center; border-radius: 999px; color: var(--color-tinta); transform: translateY(-50%); background: var(--color-vidrio); }
 /* Con el dedo, 44 px (ADR-0350). */
 @media (pointer: coarse) {
-  .rc-cat-hueco-mas, .rc-cat-mas, .rc-cat-tacho, .rc-modelo-tacho { width: 44px; height: 44px; }
+  .rc-cat-hueco-mas, .rc-cat-mas, .rc-cat-tacho, .rc-modelo-tacho, .rc-modelo-check { width: 44px; height: 44px; }
   .rc-cat-tacho { right: 118px; }
   .rc-modelo[data-con-tacho] { padding-right: 52px; }
-  .rc-modelo-tacho { right: 0; }
+  .rc-modelo-tacho, .rc-modelo-check { right: 0; }
 }
 .rc-cat-tacho { position: absolute; top: 50%; right: 106px; display: grid; width: 32px; height: 32px; place-items: center; border-radius: 999px; color: var(--rc-cat-suave); transform: translateY(-50%); transition: color 200ms var(--ease-cayla), background-color 200ms var(--ease-cayla); }
 @media (hover: hover) {
@@ -140,6 +140,12 @@ main:has(.rc-conteo) { padding-bottom: 16px; }
   .rc-modelo-tacho:hover { color: var(--color-rojo-profundo); background: var(--pozo-fondo); }
 }
 .rc-modelo-tacho:focus-visible { outline: 2px solid var(--color-tinta); outline-offset: 2px; }
+/* El check de la fila: «Llegaron las N» sin ir al contador (reunión del 13-nov). En el lugar del tacho, que nunca lleva la misma fila: lo agregado no estaba anotado. */
+.rc-modelo-check { position: absolute; top: 50%; right: 6px; display: grid; width: 28px; height: 28px; place-items: center; border: 1.5px solid var(--color-borde-control); border-radius: 999px; color: var(--color-tinta); transform: translateY(-50%); transition: color 200ms var(--ease-cayla), background-color 200ms var(--ease-cayla), border-color 200ms var(--ease-cayla); }
+@media (hover: hover) {
+  .rc-modelo-check:hover { color: var(--color-crema); border-color: var(--color-verde); background: var(--color-verde); }
+}
+.rc-modelo-check:focus-visible { outline: 2px solid var(--color-tinta); outline-offset: 2px; }
 .rc-modelos { display: grid; gap: 2px; margin: 0 0 8px 15px; padding: 2px 0 2px 8px; border-left: 2px solid var(--rc-cat-filo); }
 .rc-modelo { display: flex; align-items: center; gap: 10px; width: 100%; min-height: 58px; padding: 7px 10px 7px 7px; border-radius: 14px; text-align: left; transition: background-color 200ms var(--ease-cayla), box-shadow 200ms var(--ease-cayla); }
 @media (hover: hover) {
