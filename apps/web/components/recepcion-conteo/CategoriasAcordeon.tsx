@@ -129,7 +129,15 @@ function FilaDeParada({ p, activa, conOrigen, foto, faltanTallas, sinAviso, onEl
         {m ? <EstadoModelo m={m} faltanTallas={faltanTallas} sinAviso={sinAviso} /> : <Chip tono="ambar">Falta decir cuál</Chip>}
       </button>
       {llegaron != null && m && (
-        <button type="button" className="rc-modelo-check" data-guia="recepcion.llegaron" aria-label={`Llegaron las ${conMiles(llegaron)} de ${nombreDeParada(p)}`} title={`Llegaron las ${conMiles(llegaron)}`} onClick={() => onLlegaron(p, llegaron)}>
+        <button type="button" className="rc-modelo-check" data-guia="recepcion.llegaron" aria-label={`Llegaron las ${conMiles(llegaron)} de ${nombreDeParada(p)}`} title={`Llegaron las ${conMiles(llegaron)}`} onClick={(e) => {
+            // El ✓ desaparece al tocarlo: el foco pasa al ✓ siguiente (o a su propia fila), para seguir confirmando con el teclado.
+            // Solo los que se pueden tocar: una categoría plegada deja los suyos inertes.
+            const todos = [...document.querySelectorAll<HTMLButtonElement>(".rc-modelo-check")].filter((b) => b === e.currentTarget || !b.closest("[inert]"));
+            const siguiente = todos[todos.indexOf(e.currentTarget) + 1] ?? null;
+            const fila = e.currentTarget.parentElement?.querySelector<HTMLButtonElement>(".rc-modelo") ?? null;
+            onLlegaron(p, llegaron);
+            requestAnimationFrame(() => (siguiente ?? fila)?.focus());
+          }}>
           <Check aria-hidden className="h-4 w-4" />
         </button>
       )}
