@@ -1,6 +1,7 @@
 import type { createClient } from "@/lib/supabase/client";
 import { rutaDeLaFoto } from "@/lib/foto-encuadre";
 import { rutaDelRecorte } from "@/lib/recorte-probador-reglas";
+import { rutaDeLaFotoIA } from "@/lib/foto-catalogo-reglas";
 
 // Subida de fotos de producto desde el NAVEGADOR
 // (20260915224500_producto_fotos_temporada_venta_sin_stock.sql). Mismo
@@ -68,6 +69,34 @@ export async function subirFotoProducto(supabase: Cliente, archivo: File): Promi
     .then((m) => m.recortarAlSubir(supabase, { foto: ruta, url }, archivo))
     .catch((err) => console.warn("[producto-fotos] no se pudo empezar el recorte", err));
   return { url };
+}
+
+/**
+ * «Catálogo con IA»: sube la foto real tal cual (como `subirFotoProducto`) y, a su lado, su versión de catálogo (`rutaDeLaFotoIA`: el mismo nombre
+ * más `.ia.png`). Devuelve la URL de la de IA, que es la que queda en la ficha; la real siempre queda guardada para «Usar mi foto». La de IA es
+ * un PNG transparente: también pide su recorte para el armador de looks. Si la de IA no sube, devuelve la real (nunca deja el color sin foto).
+ */
+export async function subirParDeCatalogo(supabase: Cliente, original: File, ia: Blob): Promise<{ url: string; conIA: boolean } | { error: string }> {
+  const real = await subirFotoProducto(supabase, original);
+  if ("error" in real) return real;
+  const rutaReal = rutaDesdeUrl(real.url);
+  if (!rutaReal) return { url: real.url, conIA: false };
+  const ruta = rutaDeLaFotoIA(rutaReal);
+  const almacen = supabase.storage.from(PRODUCTO_FOTOS_BUCKET);
+  const subida = await almacen.upload(ruta, ia, { contentType: "image/png", upsert: false });
+  if (subida.error) return { url: real.url, conIA: false };
+  const url = almacen.getPublicUrl(ruta).data.publicUrl;
+  void import("@/lib/recorte-probador")
+    .then((m) => m.recortarAlSubir(supabase, { foto: ruta, url }, ia))
+    .catch((err) => console.warn("[producto-fotos] no se pudo empezar el recorte", err));
+  return { url, conIA: true };
+}
+
+/** La ruta dentro del bucket de una URL pública suya (`fotos/<id>.<ext>`), o `null` si la URL no es del bucket. */
+function rutaDesdeUrl(url: string): string | null {
+  const marca = `/object/public/${PRODUCTO_FOTOS_BUCKET}/`;
+  const i = url.indexOf(marca);
+  return i < 0 ? null : decodeURIComponent(url.slice(i + marca.length).split("?")[0]);
 }
 
 /**
