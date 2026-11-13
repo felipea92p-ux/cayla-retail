@@ -91,7 +91,7 @@ import {
 import { Volver } from "@/components/ui/Volver";
 import { CampoGuiado, PieGuia } from "@/components/guia-de-foco/CampoGuiado";
 import { useGuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
-import { avanceDeLineas, bancosParaCuadrar, cabeceraDeBancos, camposDeAnotarSaldo, estadoDeBanco, estadoPar, filtrarLineas, inicialesDeBanco, respuestaCuadre, textoLadoBanco, textoMarcarRevisadas, textoPeriodo, textoUltimaVez, type FiltroLineas } from "@/lib/cuadrar-reglas";
+import { avanceDeLineas, bancosParaCuadrar, cabeceraDeBancos, camposDeAnotarSaldo, estadoDeBanco, estadoPar, filtrarLineas, inicialesDeBanco, respuestaCuadre, textoBancoContraSistema, textoDespuesDeAnotar, textoLadoBanco, textoMarcarRevisadas, textoPeriodo, textoQueSaldoAnotar, textoUltimaVez, type FiltroLineas } from "@/lib/cuadrar-reglas";
 import { BarraAvance } from "@/components/ui/BarraAvance";
 import { SegmentoDeslizante } from "@/components/ui/SegmentoDeslizante";
 import { TituloSeccion } from "@/components/ui/TituloSeccion";
@@ -388,6 +388,7 @@ export function ConciliacionPanel({
   }
 
   const periodo = textoPeriodo(actual.desde, actual.hasta, hoy);
+  const despuesDeAnotar = textoDespuesDeAnotar(actual.conciliacion?.despues ?? null);
   const av = avanceDeLineas(actual.lineas);
   const visibles = filtrarLineas(actual.lineas, filtro);
   const totalPendientes = cuentas.reduce((a, c) => a + c.pendientes, 0);
@@ -449,8 +450,9 @@ export function ConciliacionPanel({
               <span className="label-cayla">El banco dijo</span>
               <b className="din-cuad-cifra din-cuad-cifra-chica">{soles(k.saldoBanco)}</b>
               <p className="din-cuad-tenue">
-                {cuadra(k.diferencia) ? "Coincide con el sistema." : `Diferencia de ${soles(Math.abs(k.diferencia))} con el sistema.`} Anotado al {fechaCorta(actual.hasta)}
+                {textoBancoContraSistema(k.diferencia, k.despues)} Anotado al {fechaCorta(actual.hasta)}
                 {k.registradoPor ? ` por ${k.registradoPor}` : ""}.
+                {despuesDeAnotar ? ` ${despuesDeAnotar}` : ""}
               </p>
               <span>
                 <button type="button" className="btn-cayla btn-sutil btn-chico" onClick={() => setAnulando(true)}>
@@ -461,7 +463,7 @@ export function ConciliacionPanel({
           ) : (
             <div className="din-cuad-hero-lado" data-guia="fin-conciliacion.anotar">
               <span className="label-cayla">¿Qué saldo dice el banco?</span>
-              <p className="din-cuad-tenue">Lo que muestra la banca por internet al cierre del día; se compara con el del sistema.</p>
+              <p className="din-cuad-tenue">{textoQueSaldoAnotar(fecha, hoy)}</p>
               <div className="grid gap-3">
                 <CampoGuiado id="saldo" guia={guia}>
                   <CampoFin etiqueta="Saldo del banco" htmlFor="conc-saldo" className="!mb-0">
