@@ -2,7 +2,7 @@
   "guia": "recibir.envio.id",
   "ruta": "/recibir/envio/[id]",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 288,
+  "total": 297,
   "controles": {
     "app/(app)/recibir/envio/[id]/page.tsx": [
       "Volver «/recibir»",
@@ -43,6 +43,19 @@
       "CampoTexto «Buscar talla»",
       "button «Cancelar»",
       "Boton «{nuevas.length > 0 ? (firma.motivo ?? undefined) : undefined}»"
+    ],
+    "components/alta-producto/FotosAlta.tsx": [
+      "button «{etiqueta}»",
+      "input «(sin nombre)»",
+      "button «{etiqueta}» #2"
+    ],
+    "components/alta-producto/FotosDeColores.tsx": [
+      "button «{ultima.ia.usar ? \"Usar mi foto\" : \"Usar la de IA\"}»",
+      "button «{`Ver o quitar las fotos de ${nombre}»",
+      "button «{f.ia.usar ? \"Usar mi foto\" : \"Usar la de IA\"}»",
+      "button «Quitar»",
+      "button «Listo»",
+      "button «{`Ver en grande la foto de ${nombre}»"
     ],
     "components/alta-producto/GrillaMuestras.tsx": [
       "button «{title}»",

@@ -2170,7 +2170,7 @@ export const GUIA_RECIBIR_ENVIO: Guia = {
       requiere: ["recepcion.pie"],
       preparar: [{ tipo: "clic", ancla: "recepcion.es-nueva", siEsta: true }],
       titulo: "Crear la prenda que llegó",
-      texto: "El nombre, las tallas y los colores que llegaron, y el precio de venta: si quien compró sugirió uno, ya viene puesto. Si la familia lo pide, también tejido y patrón. «Crear y contar» la crea y abre su conteo. En la demo no la creamos.",
+      texto: "El nombre, las tallas y los colores que llegaron, la foto de cada color (con «Catálogo con IA», de catálogo) y el precio de venta: si quien compró sugirió uno, ya viene puesto. «Crear y contar» la crea y abre su conteo. En la demo no la creamos.",
     },
     {
       id: "agregar-extra",
