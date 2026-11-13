@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState, type Dispatch, type ReactNode, type SetStateAction } from "react";
 import { avisar } from "@/components/ui/Avisos";
 import { pedirFotoDeCatalogo } from "@/lib/foto-catalogo-cliente";
+import { avisoIANoRespondio } from "@/lib/foto-catalogo-reglas";
 import { HojaCatalogoIA, type PedidoCatalogo } from "@/components/ficha-producto/HojaCatalogoIA";
 import { frenteValido, useInterruptorIA } from "@/components/ficha-producto/useCatalogoIA";
 import type { FotoPendiente } from "./FotosAlta";
@@ -45,6 +46,7 @@ export function useCatalogoIAAlta({
 }): CatalogoIAAlta {
   const [encendido, cambiarEncendido] = useInterruptorIA();
   const [hoja, setHoja] = useState<PedidoCatalogo | null>(null);
+  const volverA = useRef<HTMLElement | null>(null);
   const [preparando, setPreparando] = useState<ReadonlySet<string>>(new Set());
   const enCurso = useRef(new Set<Promise<void>>());
   // Lo que la IA ya devolvió, por foto, apenas llega (sin esperar a que se dibuje): lo lee `esperar`.
@@ -95,7 +97,7 @@ export function useCatalogoIAAlta({
       setFotos((fs) => fs.map((f) => (f.clave === clave ? { ...f, vista: vistaIA, ia: { png: r.png, vistaIA, vistaReal, usar: true } } : f)));
     } else {
       esMolde.soltar?.(null);
-      avisar.aviso("La IA no respondió: quedó tu foto.", { detalle: r.error });
+      avisar.aviso(avisoIANoRespondio(p.color === null ? `para ${nombreColor(null)}` : `de ${nombreColor(p.color)}`), { detalle: r.error });
     }
     if (esMolde.soltar) {
       moldeEnCurso.current = null;
@@ -116,6 +118,8 @@ export function useCatalogoIAAlta({
     encendido: disponible && encendido,
     cambiarEncendido,
     abrir: (archivos, color) => {
+      // El foco vuelve al botón que abrió la hoja (`HojaCatalogoIA` → `alCerrarEnfocar`).
+      volverA.current = document.activeElement instanceof HTMLElement && document.activeElement !== document.body ? document.activeElement : null;
       const frente = frenteValido(archivos);
       if (frente) setHoja({ color, frente, espalda: archivos[1] ?? null, detalle: archivos[2] ?? null });
     },
@@ -140,6 +144,7 @@ export function useCatalogoIAAlta({
           enCurso.current.add(promesa);
         }}
         onClose={() => setHoja(null)}
+        volverA={volverA}
       />
     ) : null,
   };

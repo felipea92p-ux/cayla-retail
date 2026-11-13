@@ -1,6 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { capturarError } from "@/lib/errores";
-import { contarPedido, MAX_BYTES_POR_FOTO_IA } from "@/lib/foto-catalogo-reglas";
+import { contarPedido, firmaDeImagen, MAX_BYTES_POR_FOTO_IA } from "@/lib/foto-catalogo-reglas";
 import { fotoCatalogoDisponible, llaveOpenAI, modeloOpenAI } from "@/lib/foto-catalogo";
 import {
   OPENAI_TOPE_MS,
@@ -37,6 +37,30 @@ function error(texto: string, status: number) {
   return Response.json({ error: texto }, { status });
 }
 
+/**
+ * GET: lo que esta cuenta puede hacer con las fotos de una prenda nueva fuera de Productos (Recibir ▸ «Crear la prenda que llegó»): `fotos`, si
+ * puede guardarlas (la misma regla que `producto_fotos`: `fn_puede_editar_catalogo`), e `ia`, si además puede pedir la de catálogo (la llave
+ * está puesta y ve Productos, como el POST). No gasta nada. Sin sesión o sin respuesta de la base: las dos en falso.
+ */
+export async function GET() {
+  const nada = Response.json({ fotos: false, ia: false });
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return nada;
+  const [catalogo, productos] = await Promise.all([
+    supabase.rpc("fn_puede_editar_catalogo" as never),
+    supabase.rpc("fn_ve_modulo", { p_clave: "productos" }),
+  ]);
+  if (catalogo.error) {
+    capturarError("fotos/catalogo: no se pudo revisar el permiso de fotos", catalogo.error);
+    return nada;
+  }
+  const fotos = catalogo.data === true;
+  return Response.json({ fotos, ia: fotos && fotoCatalogoDisponible() && productos.data === true });
+}
+
 export async function POST(request: Request) {
   if (!fotoCatalogoDisponible()) return error("La foto de catálogo no está disponible ahora. Avísale a tu líder.", 503);
 
@@ -68,6 +92,8 @@ export async function POST(request: Request) {
     const f = formulario.get(angulo);
     if (!(f instanceof File) || f.size === 0) continue;
     if (f.size > MAX_BYTES_POR_FOTO_IA) return error("Una de las fotos pesa demasiado. Prueba de nuevo.", 400);
+    // Solo una imagen de verdad llega a OpenAI (cada llamada se paga): se mira la firma de sus primeros bytes, no el nombre ni el tipo declarado.
+    if (!firmaDeImagen(new Uint8Array(await f.slice(0, 12).arrayBuffer()))) return error("Esa foto no es JPG, PNG ni WebP. Prueba con otra.", 400);
     fotos[angulo] = f;
   }
   if (!fotos.frente) return error("Falta la foto de frente.", 400);
