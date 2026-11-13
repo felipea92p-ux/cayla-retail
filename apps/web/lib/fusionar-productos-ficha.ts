@@ -53,8 +53,6 @@ export type SedeDetalle = { id: string; nombre: string; tipo: string };
 
 export type DetalleFusion = { variantes: VarianteDetalle[]; existencias: ExistenciaDetalle[]; sedes: SedeDetalle[] };
 
-export const DETALLE_VACIO: DetalleFusion = { variantes: [], existencias: [], sedes: [] };
-
 export type StockDeSede = { ubicacionId: string; sede: string; total: number; detalle: string | null };
 
 const ORDEN_TIPO: Record<string, number> = { tienda: 0, almacen: 1, taller: 2 };

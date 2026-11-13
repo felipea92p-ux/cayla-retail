@@ -312,19 +312,27 @@ export function textoVentas(p: Pick<ProductoPlan, "unidadesVendidas">): string {
 }
 
 /** La guía de foco de la hoja (ADR-0284): lo que la base exige para fusionar, sin reglas nuevas. Elegir los campos que
- *  difieren y las fotos ya viene armado (el del que queda), así que son «sugerido», nunca un candado. */
+ *  difieren y las fotos ya viene armado (el del que queda), así que son «sugerido», nunca un candado. La hoja tiene dos pasos
+ *  (rediseño 2026-11-13): en `armar` se eligen las fichas y lo que queda; en `revisar`, quien firma («Sí, fusionar»). Sin vista,
+ *  todo junto. */
 export function camposDeLaGuia(estado: {
   duplicados: number;
   queda: string | null;
   hayDiferencias: boolean;
   responsableListo: boolean;
+  vista?: "armar" | "revisar";
 }): CampoDeGuia[] {
-  return [
+  const armar: CampoDeGuia[] = [
     { id: "duplicados", nombre: "Ficha repetida", requerido: true, hecho: estado.duplicados > 0, pendiente: "Busca la otra ficha de esta misma prenda." },
     { id: "queda", nombre: "Cuál queda", requerido: true, hecho: estado.queda !== null, pendiente: "Elige la ficha que se queda." },
     ...(estado.hayDiferencias
       ? [{ id: "diferencias", nombre: "Lo que es distinto", requerido: false, sugerido: true, hecho: true, pendiente: "Revisa con qué dato se queda." }]
       : []),
+  ];
+  const revisar: CampoDeGuia[] = [
     { id: "responsable", nombre: "Responsable", requerido: true, hecho: estado.responsableListo, pendiente: "Elige quién hace la fusión." },
   ];
+  if (estado.vista === "armar") return armar;
+  if (estado.vista === "revisar") return revisar;
+  return [...armar, ...revisar];
 }

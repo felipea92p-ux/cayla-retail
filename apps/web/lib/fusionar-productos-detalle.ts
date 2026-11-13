@@ -15,7 +15,7 @@ export async function leerDetalleFusion(productoIds: string[]): Promise<DetalleF
   const [variantes, existencias, sedes] = await Promise.all([
     supabase
       .from("variantes")
-      .select("id, producto_id, color_codigo, activo, fusionada_en_id, talla:tallas ( valor ), color:colores ( nombre, hex )")
+      .select("id, producto_id, color_codigo, activo, talla:tallas ( valor ), color:colores ( nombre, hex )")
       .in("producto_id", productoIds),
     supabase.rpc("fn_existencias", { p_ubicacion_id: undefined, p_producto_ids: productoIds }),
     supabase.from("ubicaciones").select("id, nombre, tipo").eq("activo", true),
@@ -32,7 +32,9 @@ export async function leerDetalleFusion(productoIds: string[]): Promise<DetalleF
         color: color?.nombre ?? "Sin color",
         colorHex: color?.hex ?? null,
         talla: uno(v.talla as Uno<{ valor: string }>)?.valor ?? null,
-        vigente: v.activo && v.fusionada_en_id === null,
+        // Una talla ya fusionada en otra queda `activo = false` (fusionar_productos, 20261112210000): con `activo` basta. Y
+        // `fusionada_en_id` no está entre las columnas que puede leer la cuenta.
+        vigente: v.activo,
       };
     }),
     existencias: (existencias.data ?? []).map((e) => ({
