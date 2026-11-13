@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Camera, Sparkles } from "lucide-react";
 import { Modal } from "@/components/ui/Modal";
 import { PieAcciones } from "@/components/ui/PieAcciones";
@@ -38,6 +38,8 @@ export function HojaCatalogoIA({
   onClose: () => void;
 }) {
   const [pedido, setPedido] = useState<PedidoCatalogo>(inicial);
+  // La hoja tarda en irse (su animación de salida): un doble clic en «Preparar foto» la prepararía dos veces, con doble gasto y doble foto.
+  const enviado = useRef(false);
   // Las vistas locales (blob:) se crean y se liberan en el mismo efecto: creadas en el render, el doble montaje de desarrollo las liberaba
   // antes de dibujarlas.
   const [vistas, setVistas] = useState<Record<Angulo, string | null>>({ frente: null, espalda: null, detalle: null });
@@ -125,7 +127,15 @@ export function HojaCatalogoIA({
             <Boton type="button" peso="fantasma" onClick={cerrar}>
               Cancelar
             </Boton>
-            <Boton type="button" peso="primario" onClick={() => onPreparar(pedido)}>
+            <Boton
+              type="button"
+              peso="primario"
+              onClick={() => {
+                if (enviado.current) return;
+                enviado.current = true;
+                onPreparar(pedido);
+              }}
+            >
               <span className="inline-flex items-center gap-2">
                 <Sparkles aria-hidden className="h-4 w-4" />
                 Preparar foto

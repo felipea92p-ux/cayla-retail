@@ -143,7 +143,6 @@ export function useCatalogoIA({
         subida = await subirParDeCatalogo(supabase, p.frente, r.png);
       } else {
         esMolde.soltar?.(null);
-        avisar.aviso("La IA no respondió: quedó tu foto.", { detalle: r.error });
         const real = await subirFotoProducto(supabase, p.frente);
         subida = "error" in real ? real : { url: real.url, conIA: false };
       }
@@ -152,7 +151,12 @@ export function useCatalogoIA({
         setColorMoldeEnCurso(undefined);
       }
       if ("error" in subida) avisar.error(`La foto de ${nombreColor(p.color)} no subió`, { detalle: subida.error });
-      else onLista([{ url: subida.url, colorCodigo: p.color }]);
+      else {
+        onLista([{ url: subida.url, colorCodigo: p.color }]);
+        // Se avisa al FINAL, con la foto ya subida: un aviso que se muestra y enseguida queda tapado por la subida no vuelve (ADR-0146,
+        // `lib/espera-estado.ts`), y la persona no se enteraba de que su foto quedó sin IA (encontrado con /chaos, 2026-11-13).
+        if ("error" in r) avisar.aviso(`La IA no respondió: quedó tu foto de ${nombreColor(p.color)}.`, { detalle: r.error });
+      }
     } finally {
       setPreparando((m) => {
         const n = new Map(m);
