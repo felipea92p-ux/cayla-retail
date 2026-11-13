@@ -1,0 +1,1436 @@
+<!doctype html>
+<html lang="es" data-tema="claro" data-vista="propuesta">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Historial de compras</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../vidrio-base-2026-10/marco.css">
+<style>
+/* ====================================================================
+   MAQUETA · Compras ▸ Historial de compras: auditoría y propuesta «El libro de compras» (2026-11-13)
+   La pantalla real: apps/web/app/(app)/compras/page.tsx (ADR-0035, ADR-0111, ADR-0480 act., ADR-0504), su detalle
+   app/(app)/compras/factura/[compraId] (hoja por ruta interceptada) y las reglas lib/comprobantes-lista-reglas.ts.
+   «Como ahora» la reproduce con los mismos datos; «Propuesta» la reordena alrededor de tres preguntas: ¿cuánto compré?,
+   ¿qué y a quién?, ¿qué quedó pendiente de cada compra?
+   Armada con lo ya elegido: marco de vidrio, cabecera A, pestañas de vista, placa Serena, pozo, píldoras de filtro, insignia A,
+   botones gota, barras por tiempo y el cajón lateral (ADR-0358). Solo tokens; nada nuevo de movimiento; datos inventados.
+   ==================================================================== */
+
+/* ---------- lo ya elegido (copiado de las maquetas del vidrio) ---------- */
+.placa{position:relative;border-radius:22px;border:1px solid color-mix(in srgb,var(--vidrio) 60%,transparent);
+  background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 64%,transparent),color-mix(in srgb,var(--vidrio) 44%,transparent));-webkit-backdrop-filter:blur(24px) saturate(1.6);backdrop-filter:blur(24px) saturate(1.6);
+  box-shadow:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 90%,transparent),0 24px 50px -30px color-mix(in srgb,var(--sombra) 40%,transparent)}
+[data-tema="oscuro"] .placa{background:color-mix(in srgb,var(--vidrio) 70%,transparent);border-color:color-mix(in srgb,var(--tinta) 10%,transparent)}
+.chip{--c:var(--verde);display:inline-flex;align-items:center;gap:6px;height:24px;padding:0 11px;border-radius:999px;font-size:12px;white-space:nowrap;color:var(--c);
+  background:linear-gradient(180deg,color-mix(in srgb,var(--c) 10%,color-mix(in srgb,var(--vidrio) 75%,transparent)),color-mix(in srgb,var(--c) 18%,transparent));
+  box-shadow:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 85%,transparent),inset 0 0 0 1px color-mix(in srgb,var(--c) 26%,transparent)}
+.chip::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor}
+.chip.ambar{--c:var(--ambar)}.chip.pizarra{--c:var(--pizarra)}.chip.neutro{--c:var(--taupe)}.chip.rojo{--c:var(--rojo-p)}
+[data-tema="oscuro"] .chip.rojo{--c:var(--rojo)}
+[data-tema="oscuro"] .chip{background:linear-gradient(180deg,color-mix(in srgb,var(--c) 22%,transparent),color-mix(in srgb,var(--c) 12%,transparent));box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--c) 34%,transparent)}
+.pest{display:inline-flex;max-width:100%;overflow-x:auto;scrollbar-width:none;padding:4px;border-radius:999px;background:color-mix(in srgb,var(--tinta) 5%,transparent);box-shadow:inset 0 1.5px 3px color-mix(in srgb,var(--sombra) 14%,transparent)}
+[data-tema="oscuro"] .pest{background:color-mix(in srgb,var(--sombra) 30%,transparent)}
+.pest a{flex:none;display:flex;align-items:center;height:38px;padding:0 16px;border-radius:999px;font-size:11.5px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--t65);text-decoration:none}
+.pest a[aria-current]{color:var(--tinta);background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 96%,transparent),color-mix(in srgb,var(--vidrio) 70%,transparent));box-shadow:inset 0 1px 0 var(--vidrio),0 6px 14px -8px color-mix(in srgb,var(--sombra) 40%,transparent)}
+[data-tema="oscuro"] .pest a[aria-current]{background:color-mix(in srgb,var(--tinta) 18%,transparent)}
+.glb{display:inline-grid;place-items:center;min-width:20px;height:20px;margin-left:8px;padding:0 6px;border-radius:999px;font-size:11px;letter-spacing:0;font-weight:600;color:var(--t65);background:color-mix(in srgb,var(--tinta) 8%,transparent)}
+.glb.pide{color:var(--tinta);background:color-mix(in srgb,var(--ambar) 30%,transparent)}
+.pozo-b{flex:1;min-width:200px;max-width:30rem;display:flex;align-items:center;gap:10px;height:42px;padding:0 16px;border-radius:999px;font-size:14px;color:var(--t65);border:1px solid color-mix(in srgb,var(--borde) 80%,transparent);
+  background:color-mix(in srgb,var(--tinta) 5%,transparent);box-shadow:inset 0 1.5px 3px color-mix(in srgb,var(--sombra) 14%,transparent)}
+[data-tema="oscuro"] .pozo-b{background:color-mix(in srgb,var(--sombra) 30%,transparent)}
+.pozo-b svg{width:16px;height:16px}.pozo-b input{flex:1;min-width:0;border:0;background:none;outline:none;font-size:14px;color:var(--tinta)}
+.pozo-b input::placeholder{color:var(--t65)}
+.pozo-b .borrar{display:grid;place-items:center;width:26px;height:26px;margin-right:-6px;border-radius:50%;color:var(--t80)}.pozo-b .borrar svg{width:14px;height:14px}
+.pozo-b kbd{font:600 11px 'DM Sans';padding:1px 7px;border-radius:6px;border:1px solid var(--t25);color:var(--t65)}
+.fp{flex:none;display:inline-flex;align-items:center;gap:6px;height:36px;padding:0 14px;border-radius:999px;font-size:13.5px;font-weight:600;white-space:nowrap;border:1px solid var(--borde);color:var(--t80);
+  background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 75%,transparent),color-mix(in srgb,var(--vidrio) 40%,transparent));box-shadow:inset 0 1px 0 var(--vidrio)}
+[data-tema="oscuro"] .fp{border-color:color-mix(in srgb,var(--tinta) 30%,transparent);background:color-mix(in srgb,var(--tinta) 9%,transparent);box-shadow:none}
+.fp[aria-pressed="true"]{color:var(--crema);border-color:color-mix(in srgb,var(--tinta) 70%,transparent);background:linear-gradient(180deg,color-mix(in srgb,var(--tinta) 84%,transparent),color-mix(in srgb,var(--tinta) 97%,transparent))}
+.fp[aria-pressed="true"] .glb{color:var(--crema);background:color-mix(in srgb,var(--crema) 18%,transparent)}
+.fp svg{width:14px;height:14px}
+.fp.puesto{color:var(--crema);border-color:var(--tinta);background:var(--tinta)}
+.modo{display:inline-flex;padding:3px;border-radius:12px;background:color-mix(in srgb,var(--tinta) 5%,transparent);box-shadow:inset 0 1px 2px color-mix(in srgb,var(--sombra) 12%,transparent)}
+.modo button{height:32px;padding:0 12px;border-radius:9px;font-size:11px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--t65)}
+.modo button[aria-pressed="true"]{color:var(--tinta);background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 96%,transparent),color-mix(in srgb,var(--vidrio) 70%,transparent));box-shadow:inset 0 1px 0 var(--vidrio)}
+[data-tema="oscuro"] .modo button[aria-pressed="true"]{background:color-mix(in srgb,var(--tinta) 18%,transparent)}
+.fila-tabs{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px;margin-top:20px}
+.num{font-variant-numeric:tabular-nums}
+.serif-n{font-family:'EB Garamond',serif;font-weight:500;font-variant-numeric:tabular-nums}
+.tenue{color:var(--t65)}
+.ini{flex:none;display:grid;place-items:center;width:36px;height:36px;border-radius:50%;font-family:'EB Garamond',serif;font-size:15px;font-weight:500;color:var(--tinta);background:var(--sand)}
+.sw{flex:none;width:22px;height:22px;border-radius:6px;box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--sombra) 14%,transparent)}
+
+/* =========================== COMO AHORA =========================== */
+.ah-cifras{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-top:20px}
+.ah-cif{padding:16px 18px;border-radius:18px}.ah-cif b{display:block;font-family:'EB Garamond',serif;font-weight:500;font-size:28px;line-height:1.15;margin-top:6px}
+.ah-cif small{display:block;font-size:13px;color:var(--t65);margin-top:2px}.ah-cif small.r{color:var(--rojo-p)}
+.ah-cif .vs{display:flex;align-items:center;gap:6px}.ah-cif .vs i{width:6px;height:6px;border-radius:50%;background:var(--ambar)}
+.ah-cif .barra{height:3px;border-radius:9px;margin-top:10px;background:color-mix(in srgb,var(--tinta) 10%,transparent);overflow:hidden}.ah-cif .barra i{display:block;height:100%}
+.ah-pills{display:flex;flex-wrap:wrap;gap:8px;margin-top:18px}
+.ah-herr{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-top:16px}
+.ah-tabla{margin-top:16px;overflow:hidden}
+.ah-col,.ah-f{display:grid;grid-template-columns:5.5rem minmax(11rem,1fr) 7.5rem 10rem 9.5rem 6.5rem 1rem;gap:8px 14px;align-items:start;padding:0 20px}
+.ah-col{min-height:40px;align-items:center;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--t65);background:color-mix(in srgb,var(--tinta) 4%,transparent)}
+.ah-col span:nth-child(6){text-align:right}
+.ah-f{padding-top:14px;padding-bottom:14px;border-top:1px solid color-mix(in srgb,var(--tinta) 8%,transparent);font-size:14px}
+.ah-f small{display:block;font-size:13.5px;color:var(--t65)}.ah-f .tot{text-align:right}
+.ah-f .bar{height:3px;width:88%;margin-top:6px;border-radius:9px;background:color-mix(in srgb,var(--tinta) 10%,transparent);overflow:hidden}.ah-f .bar i{display:block;height:100%;background:var(--tinta)}
+.ah-nota{margin-top:12px;font-size:13px;color:var(--t65)}
+@container disp (max-width:1180px){.ah-cifras{grid-template-columns:1fr 1fr}}
+@container disp (max-width:900px){.ah-col{display:none}.ah-f{grid-template-columns:1fr auto;gap:6px 12px}.ah-f>*{grid-column:1}.ah-f .tot{grid-column:2;grid-row:1}.ah-f .fl{display:none}}
+
+/* =========================== PROPUESTA =========================== */
+/* 0 · El cuerpo: la lista manda y ocupa el ancho; el resumen del mes va al costado (ADR-0462: «una columna al costado, un resumen»).
+   Así la primera compra sube a la altura de las herramientas, y el cajón del detalle se abre encima del resumen, no de la lista. */
+.lb-cuerpo{display:grid;grid-template-columns:minmax(0,1fr) 18rem;grid-template-areas:"main lado";gap:20px;align-items:start;margin-top:20px}
+.lb-main{grid-area:main;min-width:0}
+.lb-lado{grid-area:lado;position:sticky;top:0}
+/* 1 · El resumen del mes: lo comprado mes a mes (lo histórico) y, aparte, lo que quedó pendiente (un atajo, no una copia de Por pagar). */
+.lb-ano{display:grid;grid-template-columns:1fr;gap:0}
+.lb-ano>section{padding:18px 20px;min-width:0}
+.lb-ano>section+section{border-top:1px solid color-mix(in srgb,var(--tinta) 8%,transparent)}
+.lb-mes b{display:block;font-size:36px;line-height:1.05;margin-top:8px}
+.lb-mes p{font-size:14px;color:var(--t80);margin-top:8px}.lb-mes p.tenue{color:var(--t65);font-size:14px}
+.lb-mes .sube{color:var(--verde);font-weight:600}
+.lb-barras h3,.lb-pend h3{font-size:11px;letter-spacing:.12em;text-transform:uppercase;font-weight:600;color:var(--t65)}
+.lb-barras .cols{display:flex;align-items:flex-end;gap:10px;height:104px;margin-top:12px}
+.lb-barras button{flex:1;min-width:0;height:100%;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;gap:6px;border-radius:10px;padding:0 2px}
+.lb-barras button i{display:block;width:100%;max-width:28px;border-radius:6px 6px 2px 2px;background:var(--sand);transition:background-color .2s var(--ease)}
+.lb-barras button.hoy i{background:repeating-linear-gradient(135deg,var(--sand) 0 5px,color-mix(in srgb,var(--sand) 55%,transparent) 5px 9px)}
+.lb-barras button[aria-pressed="true"] i{background:var(--tinta)}
+.lb-barras button em{font-style:normal;font-size:11.5px;color:var(--t65);font-variant-numeric:tabular-nums;white-space:nowrap}
+.lb-barras button[aria-pressed="true"] em{color:var(--tinta);font-weight:600}
+/* Solo la barra que importa (el mes elegido o, si no, el de hoy) dice su cifra; las demás, al pasar el mouse. */
+.lb-barras button em.calla{visibility:hidden}
+@media (hover:hover){.lb-barras button:hover em.calla{visibility:visible}}
+@media (hover:hover){.lb-barras button:hover i{background:color-mix(in srgb,var(--tinta) 45%,var(--sand))}.lb-barras button[aria-pressed="true"]:hover i{background:var(--tinta)}}
+.lb-barras .eje{display:flex;gap:10px;margin-top:6px}.lb-barras .eje span{flex:1;text-align:center;font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--t65)}
+.lb-barras .eje span.on{color:var(--tinta);font-weight:600}
+.lb-barras .pista{font-size:13px;color:var(--t65);margin-top:10px}
+.lb-pend{display:flex;flex-direction:column;gap:10px}
+.lb-pend a{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:16px;text-decoration:none;color:var(--tinta);
+  background:color-mix(in srgb,var(--vidrio) 50%,transparent);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--tinta) 8%,transparent)}
+[data-tema="oscuro"] .lb-pend a{background:color-mix(in srgb,var(--tinta) 6%,transparent)}
+@media (hover:hover){.lb-pend a:hover{box-shadow:inset 0 0 0 1px var(--borde)}.lb-pend a:hover .fl{transform:translateX(4px)}}
+.lb-pend a .ic-p{flex:none;display:grid;place-items:center;width:34px;height:34px;border-radius:50%;background:color-mix(in srgb,var(--c,var(--ambar)) 14%,transparent);color:var(--c,var(--ambar))}
+.lb-pend a .ic-p svg{width:16px;height:16px}
+.lb-pend a span.tx{flex:1;min-width:0}.lb-pend a b{display:block;font-size:14.5px;font-weight:600;white-space:nowrap}.lb-pend a small{display:block;font-size:13.5px;color:var(--t65)}
+.lb-pend a small.r{color:var(--rojo-p)}[data-tema="oscuro"] .lb-pend a small.r{color:var(--rojo)}
+.lb-pend a .fl{flex:none;width:16px;height:16px;transition:transform .2s var(--ease)}
+.lb-pend p{font-size:13px;color:var(--t65)}
+
+/* 2 · Las herramientas: una búsqueda que encuentra también por prenda, tres estados en vez de cinco y una vista por proveedor. */
+.lb-herr{display:flex;flex-wrap:wrap;align-items:center;gap:10px}
+.lb-herr .pozo-b{max-width:none}
+.lb-herr2{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin-top:10px}
+.lb-herr2 .modo{margin-left:auto}
+.lb-pills{display:flex;gap:8px;flex-wrap:wrap}
+.lb-filtros{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px;padding:12px;border-radius:18px;background:color-mix(in srgb,var(--tinta) 4%,transparent)}
+.lb-filtros .nota-f{width:100%;font-size:13px;color:var(--t65);padding:2px 4px 0}
+.lb-puestos{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+
+/* 3 · El libro: agrupado por mes, cada compra dice qué se compró y cómo va (el trayecto del detalle, en chico). */
+.lb-lista{margin-top:14px;overflow:hidden}
+.lb-col,.lb-f{display:grid;grid-template-columns:3.75rem minmax(0,1.45fr) minmax(0,1.2fr) 6.75rem 1rem;grid-template-areas:"fe cp va tot ch";gap:6px 14px;align-items:center;padding:0 20px}
+.lb-col{min-height:40px;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--t65);background:color-mix(in srgb,var(--tinta) 4%,transparent)}
+.lb-col span:nth-child(4){text-align:right}
+.lb-mesg{position:sticky;top:0;z-index:1;display:flex;align-items:baseline;justify-content:space-between;gap:12px;padding:12px 22px 10px;
+  background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 92%,transparent),color-mix(in srgb,var(--vidrio) 78%,transparent));border-top:1px solid color-mix(in srgb,var(--tinta) 8%,transparent)}
+[data-tema="oscuro"] .lb-mesg{background:color-mix(in srgb,var(--vidrio) 94%,transparent)}
+.lb-mesg h3{font-size:11.5px;letter-spacing:.14em;text-transform:uppercase;font-weight:600;color:var(--tinta)}
+.lb-mesg span{font-size:13.5px;color:var(--t65)}.lb-mesg span b{color:var(--tinta);font-weight:600}
+.lb-f{position:relative;width:100%;text-align:left;padding-top:14px;padding-bottom:14px;border-top:1px solid color-mix(in srgb,var(--tinta) 6%,transparent);transition:background-color .15s var(--ease)}
+@media (hover:hover){.lb-f:hover{background:color-mix(in srgb,var(--tinta) 3%,transparent)}.lb-f:hover .chev{transform:translateX(3px);color:var(--tinta)}}
+.lb-f[aria-current="true"]{background:color-mix(in srgb,var(--tinta) 5%,transparent)}
+.lb-f[aria-current="true"]::before{content:"";position:absolute;left:0;top:10px;bottom:10px;width:3px;border-radius:0 3px 3px 0;background:var(--rojo)}
+.lb-f .fe b{display:block;font-size:15px;font-weight:600}.lb-f .fe small{display:block;font-size:13.5px;color:var(--t65)}
+.lb-f .fe{grid-area:fe}.lb-f .cp{grid-area:cp}.lb-f .va{grid-area:va}.lb-f .tot{grid-area:tot}.lb-f .chev{grid-area:ch}
+/* La compra: el mosaico con los colores de sus prendas (dato, no se oscurece), la marca y su proveedor, y qué se compró. */
+.lb-f .cp{display:flex;align-items:center;gap:14px;min-width:0}.lb-f .cp>span:last-child{min-width:0}
+.mos{flex:none;display:flex;width:38px;height:38px;border-radius:11px;overflow:hidden;box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--sombra) 14%,transparent)}
+.mos i{flex:1;display:block}
+.lb-f .cp b{font-size:15px;font-weight:600}.lb-f .cp .l1{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:13.5px;color:var(--t65)}
+.lb-f .cp .l1 b{color:var(--tinta)}
+.lb-f .cp .l2{display:block;margin-top:1px;font-size:14px;color:var(--t80);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.lb-f .tot{text-align:right}.lb-f .tot b{display:block;font-size:19px;line-height:1.2}.lb-f .tot small{display:block;font-size:13px;color:var(--t65)}
+.lb-f .chev{width:16px;height:16px;color:var(--t50);transition:transform .2s var(--ease)}
+/* El trayecto chico: compra → llegó → pagada. Lleno = hecho, medio = en parte, vacío = falta; el aro dice si urge. */
+.tr{display:flex;align-items:center;max-width:150px}
+.tr i{flex:none;display:grid;place-items:center;width:14px;height:14px;border-radius:50%;border:1.5px solid var(--t25)}
+.tr i.hecho{background:var(--tinta);border-color:var(--tinta)}
+.tr i.hecho svg{width:9px;height:9px;stroke:var(--crema);stroke-width:3.5;fill:none;stroke-linecap:round;stroke-linejoin:round}
+.tr i.parte{border-color:var(--tinta);background:linear-gradient(90deg,var(--tinta) 50%,transparent 50%)}
+.tr i.ambar{border-color:var(--ambar);box-shadow:0 0 0 3px color-mix(in srgb,var(--ambar) 16%,transparent)}
+.tr i.rojo{border-color:var(--rojo-p);box-shadow:0 0 0 3px color-mix(in srgb,var(--rojo) 16%,transparent)}
+[data-tema="oscuro"] .tr i.rojo{border-color:var(--rojo)}
+.tr b{flex:1;height:1.5px;min-width:16px;background:var(--t25)}.tr b.hecho{background:var(--tinta)}
+.va p{font-size:13.5px;line-height:1.35;margin-top:7px;color:var(--t80)}.va p+p{margin-top:2px}
+.va p.ambar{color:var(--ambar)}.va p.rojo{color:var(--rojo-p)}[data-tema="oscuro"] .va p.rojo{color:var(--rojo)}.va p.ok{color:var(--t65)}
+.lb-pie{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:14px 22px;border-top:1px solid color-mix(in srgb,var(--tinta) 8%,transparent);font-size:13.5px;color:var(--t65)}
+.lb-vacio{padding:44px 22px;text-align:center}.lb-vacio svg{width:32px;height:32px;stroke:var(--t50)}.lb-vacio h3{font-family:'EB Garamond',serif;font-weight:500;font-size:22px;margin-top:10px}
+.lb-vacio p{font-size:14px;color:var(--t65);margin-top:4px}.lb-vacio .btn{margin-top:14px}
+/* La vista por proveedor */
+.pv-col,.pv-f{display:grid;grid-template-columns:minmax(14rem,1.4fr) 6rem 9rem 8rem minmax(12rem,1fr) 1rem;gap:6px 18px;align-items:center;padding:0 22px}
+.pv-col{min-height:40px;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--t65);background:color-mix(in srgb,var(--tinta) 4%,transparent)}
+.pv-col span:nth-child(2),.pv-col span:nth-child(3){text-align:right}
+.pv-f{width:100%;text-align:left;padding-top:14px;padding-bottom:14px;border-top:1px solid color-mix(in srgb,var(--tinta) 6%,transparent);font-size:14.5px}
+@media (hover:hover){.pv-f:hover{background:color-mix(in srgb,var(--tinta) 3%,transparent)}}
+.pv-f .pr{display:flex;align-items:center;gap:12px;min-width:0}.pv-f .pr b{display:block;font-weight:600}.pv-f .pr small{display:block;font-size:13.5px;color:var(--t65)}
+.pv-f .n{text-align:right}.pv-f .pend{display:flex;flex-wrap:wrap;gap:6px}
+.pv-f .chev{width:16px;height:16px;color:var(--t50)}
+
+/* 4 · El cajón: el detalle sin tapar la lista; ↑ ↓ pasan de compra. */
+.lb-cajon{position:absolute;z-index:6;top:12px;right:12px;bottom:12px;width:456px;max-width:calc(100% - 24px);display:flex;flex-direction:column;border-radius:28px;overflow:hidden;
+  transform:translateX(calc(100% + 24px));transition:transform .42s var(--ease);
+  background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 90%,transparent),color-mix(in srgb,var(--vidrio) 78%,transparent));-webkit-backdrop-filter:blur(30px) saturate(1.5);backdrop-filter:blur(30px) saturate(1.5);
+  border:1px solid color-mix(in srgb,var(--vidrio) 70%,transparent);box-shadow:inset 0 1px 0 var(--vidrio),0 30px 70px -30px color-mix(in srgb,var(--sombra) 55%,transparent)}
+[data-tema="oscuro"] .lb-cajon{background:color-mix(in srgb,var(--vidrio) 92%,transparent);border-color:color-mix(in srgb,var(--tinta) 12%,transparent)}
+.lb-cajon.abierto{transform:none}
+.cj-cab{display:flex;align-items:flex-start;gap:14px;padding:20px 20px 16px;border-bottom:1px solid color-mix(in srgb,var(--tinta) 8%,transparent)}
+.cj-cab .ini{width:40px;height:40px;font-size:17px}
+.cj-cab .tx{flex:1;min-width:0}.cj-cab h2{font-family:'EB Garamond',serif;font-weight:500;font-size:24px;line-height:1.15;margin-top:2px}
+.cj-cab small{display:block;font-size:13.5px;color:var(--t65);margin-top:2px}
+.cj-x{flex:none;display:grid;place-items:center;width:36px;height:36px;border-radius:50%;color:var(--t80)}
+@media (hover:hover){.cj-x:hover{background:color-mix(in srgb,var(--tinta) 7%,transparent)}}
+.cj-x svg{width:18px;height:18px}
+.cj-cuerpo{flex:1;overflow:auto;padding:18px 20px 24px;display:grid;gap:22px;align-content:start;scrollbar-width:thin}
+.cj-total{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.cj-total b{font-size:34px;line-height:1}.cj-total .chs{display:flex;gap:6px;flex-wrap:wrap}
+.cj-frase{font-size:14.5px;color:var(--t80);margin-top:-8px}
+.cj-tray{display:grid;grid-template-columns:1fr 1fr 1fr;gap:0;position:relative}
+.cj-tray>div{position:relative;display:grid;justify-items:center;text-align:center;gap:4px}
+.cj-tray>div::before{content:"";position:absolute;top:13px;left:-50%;right:50%;height:2px;background:var(--t25);z-index:0}
+.cj-tray>div:first-child::before{display:none}
+.cj-tray>div.hecho::before{background:var(--tinta)}
+.cj-tray .p{position:relative;z-index:1;display:grid;place-items:center;width:28px;height:28px;border-radius:50%;border:2px solid var(--t25);background:var(--papel)}
+.cj-tray .p.hecho{background:var(--tinta);border-color:var(--tinta)}.cj-tray .p.hecho svg{width:14px;height:14px;stroke:var(--crema);stroke-width:3;fill:none;stroke-linecap:round;stroke-linejoin:round}
+.cj-tray .p.parte{border-color:var(--tinta);background:linear-gradient(90deg,var(--tinta) 50%,var(--papel) 50%)}
+.cj-tray .p.ambar{border-color:var(--ambar)}.cj-tray .p.rojo{border-color:var(--rojo-p)}
+.cj-tray .vs{font-size:10.5px}.cj-tray b{font-size:14px;font-weight:600}.cj-tray small{font-size:13px;color:var(--t65)}
+.cj-tray small.ambar{color:var(--ambar)}.cj-tray small.rojo{color:var(--rojo-p)}[data-tema="oscuro"] .cj-tray small.rojo{color:var(--rojo)}
+.cj-sec h3{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:11px;letter-spacing:.12em;text-transform:uppercase;font-weight:600;color:var(--t65);margin-bottom:8px}
+.cj-sec h3 .glb{margin-left:6px}
+.cj-placa{border-radius:18px;background:color-mix(in srgb,var(--vidrio) 55%,transparent);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--tinta) 7%,transparent)}
+[data-tema="oscuro"] .cj-placa{background:color-mix(in srgb,var(--tinta) 5%,transparent)}
+.cj-pr{display:grid;grid-template-columns:22px 1fr auto;gap:4px 12px;align-items:center;padding:12px 14px}
+.cj-pr+.cj-pr{border-top:1px solid color-mix(in srgb,var(--tinta) 6%,transparent)}
+.cj-pr b{font-size:14.5px;font-weight:500}.cj-pr small{grid-column:2;font-size:13px;color:var(--t65)}.cj-pr .st{text-align:right;font-size:14px}
+.cj-pr .bar{grid-column:2/4;height:3px;border-radius:9px;background:color-mix(in srgb,var(--tinta) 10%,transparent);overflow:hidden}.cj-pr .bar i{display:block;height:100%;background:var(--tinta)}
+.cj-sumas{display:grid;gap:4px;padding:12px 14px;border-top:1px solid color-mix(in srgb,var(--tinta) 8%,transparent);font-size:14px}
+.cj-sumas p{display:flex;justify-content:space-between;color:var(--t80)}.cj-sumas p.t{font-weight:600;color:var(--tinta)}
+.cj-linea{display:flex;align-items:center;gap:12px;padding:12px 14px;font-size:14px}
+.cj-linea+.cj-linea{border-top:1px solid color-mix(in srgb,var(--tinta) 6%,transparent)}
+.cj-linea .tx{flex:1;min-width:0}.cj-linea small{display:block;font-size:13px;color:var(--t65)}
+.cj-linea svg.ic{width:16px;height:16px;color:var(--t65)}
+.cj-linea .enl{font-size:13.5px;font-weight:600;color:var(--tinta);text-decoration:underline;text-decoration-color:var(--t25);text-underline-offset:3px}
+.cj-pie{display:flex;align-items:center;gap:10px;padding:14px 16px;border-top:1px solid color-mix(in srgb,var(--tinta) 8%,transparent)}
+.cj-pie .nav{display:flex;align-items:center;gap:6px;margin-right:auto;font-size:13px;color:var(--t65);white-space:nowrap}
+.cj-pie .nav button{display:grid;place-items:center;width:32px;height:32px;border-radius:50%;border:1px solid var(--borde)}
+.cj-pie .nav button:disabled{opacity:.4;cursor:default}
+.cj-pie .nav svg{width:14px;height:14px}
+.cj-pie{flex-wrap:nowrap}.cj-pie .btn{height:40px;padding:0 14px;font-size:13.5px;white-space:nowrap}
+.cj-mas{display:grid;place-items:center;width:40px;height:40px;border-radius:50%;border:1px solid var(--borde)}
+.cj-mas svg{width:16px;height:16px}
+
+
+/* =========================== LAS OTRAS DOS PESTAÑAS (como son hoy) =========================== */
+.nota-maq{display:flex;align-items:center;gap:8px;margin-top:14px;padding:8px 14px;border-radius:999px;width:fit-content;max-width:100%;font-size:13px;color:var(--t80);
+  background:color-mix(in srgb,var(--pizarra) 10%,transparent);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--pizarra) 22%,transparent)}
+.nota-maq::before{content:"";flex:none;width:6px;height:6px;border-radius:50%;background:var(--pizarra)}
+.fila-tabs .acc{display:flex;flex-wrap:wrap;gap:10px}
+/* Por pagar */
+.pp-cifras{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-top:18px}
+.pp-cif{padding:16px 18px;border-radius:18px}.pp-cif b{display:block;font-family:'EB Garamond',serif;font-weight:500;font-size:28px;line-height:1.15;margin-top:6px;font-variant-numeric:tabular-nums}
+.pp-cif small{display:block;font-size:13.5px;color:var(--t65);margin-top:2px}.pp-cif.r b{color:var(--rojo-p)}[data-tema="oscuro"] .pp-cif.r b{color:var(--rojo)}
+.pp-cif .vs{display:flex;align-items:center;gap:6px}.pp-cif .vs i{width:6px;height:6px;border-radius:50%;background:var(--c,var(--taupe))}
+.pp-cif .pp-bar{height:4px;border-radius:9px;margin-top:10px;background:color-mix(in srgb,var(--tinta) 10%,transparent);overflow:hidden}.pp-cif .pp-bar i{display:block;height:100%;background:var(--tinta)}
+.pp-dos{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px;margin-top:12px}
+.pp-dos>section{padding:18px 20px;border-radius:18px}
+.pp-dos h3{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:10px;font-size:11px;letter-spacing:.12em;text-transform:uppercase;font-weight:600;color:var(--t65)}
+.pp-tramos{display:flex;gap:2px;height:10px;margin-top:14px;border-radius:999px;overflow:hidden;background:color-mix(in srgb,var(--tinta) 8%,transparent)}.pp-tramos i{display:block;height:100%}
+.pp-ley{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-top:14px}
+.pp-ley span{display:flex;align-items:center;gap:6px;font-size:13.5px;color:var(--t80)}.pp-ley span i{width:8px;height:8px;border-radius:2px}
+.pp-ley b{display:block;font-family:'EB Garamond',serif;font-weight:500;font-size:20px;margin-top:4px;font-variant-numeric:tabular-nums}.pp-ley small{font-size:13px;color:var(--t65)}
+.pp-caja{display:inline-flex;align-items:center;gap:6px;height:32px;padding:0 12px;border-radius:999px;font-size:13px;letter-spacing:0;text-transform:none;font-weight:500;color:var(--t80);
+  border:1px solid color-mix(in srgb,var(--borde) 80%,transparent);background:color-mix(in srgb,var(--tinta) 5%,transparent);box-shadow:inset 0 1.5px 3px color-mix(in srgb,var(--sombra) 14%,transparent)}
+.pp-caja input{width:84px;border:0;background:none;outline:none;font-size:13.5px;color:var(--tinta);font-variant-numeric:tabular-nums}
+.pp-sem{display:flex;align-items:flex-end;gap:12px;height:112px;margin-top:12px}
+.pp-sem span{flex:1;min-width:0;height:100%;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;gap:5px}
+.pp-sem span em{font-style:normal;font-size:11.5px;color:var(--t65);font-variant-numeric:tabular-nums;white-space:nowrap}
+.pp-sem span i{display:block;width:100%;max-width:26px;border-radius:6px 6px 2px 2px;background:var(--ambar)}
+.pp-sem span.v i{background:var(--rojo)}.pp-sem span.no i{opacity:.35}
+.pp-sem span.si i{box-shadow:0 0 0 2px var(--papel),0 0 0 3.5px var(--verde)}
+.pp-eje{display:flex;gap:12px;margin-top:6px}.pp-eje span{flex:1;min-width:0;text-align:center;font-size:11.5px;color:var(--t65);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pp-dice{font-size:13.5px;color:var(--t65);margin-top:10px}.pp-dice b{color:var(--tinta)}
+.pp-herr{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin-top:18px}.pp-herr .der{margin-left:auto;display:flex;gap:10px;align-items:center}
+.pp-total{margin-top:14px;font-size:14px;color:var(--t80)}.pp-total b{color:var(--tinta)}
+.pp-lista{margin-top:10px;overflow:hidden}
+.pp-col,.pp-f{display:grid;grid-template-columns:2rem minmax(13rem,1.6fr) minmax(9rem,1fr) minmax(9rem,1fr) 8rem 4.5rem;gap:6px 16px;align-items:center;padding:0 20px}
+.pp-col{min-height:40px;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--t65);background:color-mix(in srgb,var(--tinta) 4%,transparent)}
+.pp-col span:nth-child(4),.pp-col span:nth-child(5){text-align:right}
+.pp-g{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 20px;font-size:11.5px;letter-spacing:.12em;text-transform:uppercase;font-weight:600;color:var(--c,var(--t65));
+  background:color-mix(in srgb,var(--c,var(--tinta)) 6%,transparent);border-top:1px solid color-mix(in srgb,var(--tinta) 8%,transparent)}
+.pp-g b{letter-spacing:0;text-transform:none;font-size:14px;font-variant-numeric:tabular-nums}
+.pp-f{padding-top:14px;padding-bottom:14px;border-top:1px solid color-mix(in srgb,var(--tinta) 6%,transparent);font-size:14.5px;transition:background-color .2s var(--ease)}
+.pp-f.marcada{background:color-mix(in srgb,var(--ambar) 10%,transparent)}
+.pp-f .doc{text-decoration:underline;text-decoration-color:var(--t25);text-underline-offset:3px;margin-left:6px;font-variant-numeric:tabular-nums}
+.pp-f small{display:block;font-size:13.5px;color:var(--t65)}.pp-f .ven{color:var(--c,var(--t80))}.pp-f .ven small{color:var(--t65)}
+.pp-f .mini{height:3px;width:70%;margin-top:6px;border-radius:9px;background:color-mix(in srgb,var(--tinta) 10%,transparent);overflow:hidden}.pp-f .mini i{display:block;height:100%;background:var(--c,var(--tinta))}
+.pp-f .der{text-align:right;font-variant-numeric:tabular-nums}.pp-f .sal{font-family:'EB Garamond',serif;font-weight:500;font-size:19px}
+.pp-f .pagar{justify-self:end;font-size:11px;letter-spacing:.12em;text-transform:uppercase;font-weight:600;color:var(--rojo-p)}
+[data-tema="oscuro"] .pp-f .pagar{color:var(--rojo)}
+.cas{width:18px;height:18px;border-radius:5px;border:1.5px solid var(--borde);display:grid;place-items:center}.cas[aria-checked="true"]{background:var(--tinta);border-color:var(--tinta)}
+.cas svg{width:12px;height:12px;stroke:var(--crema);stroke-width:3.5;fill:none;stroke-linecap:round;stroke-linejoin:round;opacity:0}.cas[aria-checked="true"] svg{opacity:1}
+.pp-juntos{position:sticky;bottom:14px;z-index:2;display:flex;align-items:center;gap:14px;margin:14px auto 0;width:fit-content;max-width:100%;padding:8px 8px 8px 20px;border-radius:18px;color:var(--crema);
+  background:color-mix(in srgb,var(--tinta) 92%,transparent);box-shadow:0 20px 40px -18px color-mix(in srgb,var(--sombra) 60%,transparent)}
+[data-tema="oscuro"] .pp-juntos{color:var(--tinta-fija);background:color-mix(in srgb,var(--crema-fija) 94%,transparent)}
+.pp-juntos b{font-family:'EB Garamond',serif;font-weight:500;font-size:20px}.pp-juntos small{display:block;font-size:12.5px;opacity:.8}
+.pp-juntos .btn{height:38px;background:var(--crema);color:var(--tinta);border-color:transparent}[data-tema="oscuro"] .pp-juntos .btn{background:var(--tinta-fija);color:var(--crema-fija)}
+/* Revisar compras: la bandeja */
+.rv-cifras{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-top:18px}
+.rv-cif{text-align:left;padding:16px 18px;border-radius:18px}.rv-cif b{display:block;font-family:'EB Garamond',serif;font-weight:500;font-size:30px;line-height:1.15;margin-top:6px}
+.rv-cif small{display:block;font-size:13.5px;color:var(--t65)}
+.rv-cif[aria-pressed="true"]{background:color-mix(in srgb,var(--sand) 70%,transparent);box-shadow:inset 0 1.5px 4px color-mix(in srgb,var(--sombra) 16%,transparent);border-color:transparent}
+.rv-cuerpo{display:grid;grid-template-columns:22.5rem minmax(0,1fr);gap:14px;margin-top:14px;align-items:start}
+.rv-lista{overflow:hidden}
+.rv-cab{display:flex;align-items:center;padding:14px 18px;font-size:11px;letter-spacing:.12em;text-transform:uppercase;font-weight:600;color:var(--t65);border-bottom:1px solid color-mix(in srgb,var(--tinta) 8%,transparent)}
+.rv-f{position:relative;width:100%;display:grid;grid-template-columns:48px minmax(0,1fr) auto;gap:4px 12px;align-items:center;padding:12px 16px;text-align:left;border-top:1px solid color-mix(in srgb,var(--tinta) 6%,transparent)}
+.rv-f:first-of-type{border-top:0}
+@media (hover:hover){.rv-f:hover{background:color-mix(in srgb,var(--tinta) 3%,transparent)}}
+.rv-f[aria-current="true"]{background:color-mix(in srgb,var(--tinta) 5%,transparent)}
+.rv-f[aria-current="true"]::before{content:"";position:absolute;left:0;top:10px;bottom:10px;width:3px;border-radius:0 3px 3px 0;background:var(--rojo)}
+.rv-mini{grid-row:span 2;display:grid;place-items:center;width:48px;height:48px;border-radius:12px;background:var(--hueso);color:var(--t65)}.rv-mini svg{width:20px;height:20px}
+.rv-f b{font-size:14.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.rv-f .m{text-align:right;font-variant-numeric:tabular-nums;font-size:14.5px}
+.rv-f small{font-size:13px;color:var(--t65);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.rv-f .chip{justify-self:end}
+.rv-vacio{padding:34px 18px;text-align:center;color:var(--t65);font-size:14px}.rv-vacio b{display:block;font-family:'EB Garamond',serif;font-weight:500;font-size:20px;color:var(--tinta);margin-bottom:2px}
+.rv-rondas{margin-top:12px;padding:14px 16px;border-radius:18px}.rv-rondas h3{font-size:11px;letter-spacing:.12em;text-transform:uppercase;font-weight:600;color:var(--t65)}
+.rv-rondas p{display:flex;align-items:center;gap:10px;margin-top:10px;font-size:14px}.rv-rondas p small{display:block;font-size:13px;color:var(--t65)}
+.rv-det{padding:22px 24px;border-radius:22px;display:grid;gap:16px}
+.rv-det h2{font-family:'EB Garamond',serif;font-weight:500;font-size:26px;line-height:1.1;margin-top:2px}.rv-det .sub{font-size:14px;color:var(--t65);margin-top:2px}
+.rv-foto{display:grid;place-items:center;gap:6px;height:150px;border-radius:16px;border:1.5px dashed var(--t25);color:var(--t65);font-size:13px;background:color-mix(in srgb,var(--tinta) 3%,transparent)}.rv-foto svg{width:24px;height:24px}
+.rv-bloque{display:flex;align-items:center;gap:14px;padding:12px 16px;border-radius:16px;box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--tinta) 9%,transparent)}
+.rv-bloque .c{flex:none;display:grid;place-items:center;width:40px;height:40px;border-radius:50%;color:var(--c,var(--tinta));background:color-mix(in srgb,var(--c,var(--tinta)) 12%,transparent)}.rv-bloque .c svg{width:18px;height:18px}
+.rv-bloque b{display:block;font-size:15px}.rv-bloque small{display:block;font-size:13.5px;color:var(--t65)}
+.rv-campos{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.rv-campo span{display:block;font-size:11px;letter-spacing:.12em;text-transform:uppercase;font-weight:600;color:var(--t65);margin-bottom:6px}
+.rv-campo div{display:flex;align-items:center;justify-content:space-between;height:42px;padding:0 14px;border-radius:12px;font-size:14.5px;border:1px solid color-mix(in srgb,var(--borde) 70%,transparent);
+  background:color-mix(in srgb,var(--tinta) 4%,transparent);box-shadow:inset 0 1.5px 3px color-mix(in srgb,var(--sombra) 10%,transparent)}
+.rv-campo div svg{width:14px;height:14px;color:var(--t65)}
+.rv-chips{display:flex;gap:8px;flex-wrap:wrap}
+.rv-pie{display:flex;justify-content:flex-end;gap:10px;padding-top:14px;border-top:1px solid color-mix(in srgb,var(--tinta) 8%,transparent)}
+.rv-listo{font-size:13.5px;color:var(--t65);text-align:right}
+
+
+/* =========================== POR PAGAR · PROPUESTA =========================== */
+.pl-lado h3,.lb-lado section>h3{font-size:11px;letter-spacing:.12em;text-transform:uppercase;font-weight:600;color:var(--t65)}
+.rojo-t{color:var(--rojo-p);font-weight:600}[data-tema="oscuro"] .rojo-t{color:var(--rojo)}
+.pp-caja.grande{display:flex;width:100%;height:42px;margin-top:10px;font-size:14px}.pp-caja.grande input{flex:1;min-width:0;width:auto;font-size:15px}
+.pl-dice{font-size:13.5px;color:var(--t80);margin-top:8px;line-height:1.4}.pl-dice b{color:var(--tinta)}
+.pl-sem{display:grid;gap:2px;margin-top:10px}
+.pl-sem button,.pl-prov button{width:calc(100% + 16px);margin:0 -8px;padding:7px 8px;border-radius:10px;text-align:left;font-size:13.5px}
+.pl-sem button{display:grid;grid-template-columns:5.75rem minmax(0,1fr) auto 1rem;align-items:center;gap:8px}
+.pl-sem button:disabled{opacity:.5;cursor:default}
+.pl-sem button[aria-pressed="true"],.pl-prov button[aria-pressed="true"]{background:color-mix(in srgb,var(--tinta) 8%,transparent)}
+@media (hover:hover){.pl-sem button:not(:disabled):hover,.pl-prov button:hover{background:color-mix(in srgb,var(--tinta) 5%,transparent)}}
+.pl-sem .bar,.pl-prov .bar{display:block;height:6px;border-radius:9px;background:color-mix(in srgb,var(--tinta) 8%,transparent);overflow:hidden}
+.pl-sem .bar i{display:block;height:100%;background:var(--c)}.pl-prov .bar i{display:block;height:100%;background:var(--tinta)}
+.pl-sem b{font-weight:600;font-variant-numeric:tabular-nums}
+.pl-sem .ok{display:grid;place-items:center;color:var(--verde)}.pl-sem .ok.no{color:var(--ambar)}.pl-sem .ok svg{width:14px;height:14px;stroke-width:3}
+.pl-prov{display:grid;gap:2px;margin-top:10px}
+.pl-prov button{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:6px 10px;align-items:center}
+.pl-prov button>span:first-child{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.pl-prov small{color:var(--t65)}
+.pl-prov .bar{grid-column:1/-1}
+.lb-f.pl-f,.lb-col.pl-col{grid-template-columns:1.5rem minmax(0,1.35fr) minmax(0,1.2fr) 7.25rem 5rem;grid-template-areas:"ca cp va tot pa";cursor:pointer}
+.lb-col.pl-col span:nth-child(4){text-align:right}
+.pl-f .ca{grid-area:ca}.pl-f .pa{grid-area:pa;justify-self:end;height:34px;padding:0 14px;font-size:13px}
+.lb-mesg.pl-g h3{color:var(--c,var(--tinta))}
+/* =========================== REVISAR · PROPUESTA =========================== */
+.rq-pills{display:flex;flex-wrap:wrap;gap:8px}
+.rq-lista{margin-top:12px}
+.rq-g{display:flex;align-items:center;gap:12px;padding:14px 20px;border-top:1px solid color-mix(in srgb,var(--tinta) 8%,transparent);background:color-mix(in srgb,var(--tinta) 3.5%,transparent)}
+.rq-g:first-child{border-top:0}.rq-g .tx{min-width:0}.rq-g b{display:block;font-size:15px;font-weight:600}.rq-g small{display:block;font-size:13.5px;color:var(--t65)}
+.rq-g .der{margin-left:auto;font-size:13.5px;color:var(--t65);white-space:nowrap}
+.rq-f{position:relative;width:100%;display:grid;grid-template-columns:2.25rem minmax(0,1fr) auto 7rem 9rem;gap:4px 14px;align-items:center;padding:12px 20px;text-align:left;border-top:1px solid color-mix(in srgb,var(--tinta) 6%,transparent)}
+@media (hover:hover){.rq-f:hover{background:color-mix(in srgb,var(--tinta) 3%,transparent)}.rq-f:hover .hacer svg{transform:translateX(3px)}}
+.rq-f[aria-current="true"]{background:color-mix(in srgb,var(--tinta) 5%,transparent)}
+.rq-f[aria-current="true"]::before{content:"";position:absolute;left:0;top:10px;bottom:10px;width:3px;border-radius:0 3px 3px 0;background:var(--rojo)}
+.rq-f .n{display:grid;place-items:center;width:34px;height:34px;border-radius:50%;color:var(--c);background:color-mix(in srgb,var(--c) 14%,transparent)}.rq-f .n svg{width:16px;height:16px}
+.rq-f .tx{min-width:0}.rq-f .tx b{display:block;font-size:14.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.rq-f .tx small{display:block;font-size:13.5px;color:var(--t65);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rq-f .m{text-align:right;font-size:18px}
+.rq-f .hacer{justify-self:end;display:inline-flex;align-items:center;gap:4px;font-size:13.5px;font-weight:600;color:var(--tinta);white-space:nowrap}.rq-f .hacer svg{width:14px;height:14px;transition:transform .2s var(--ease)}
+.rq-f.espera .tx,.rq-f.espera .m,.rq-f.espera .n{opacity:.55}.rq-f.espera .hacer{color:var(--t65);font-weight:500}
+.cj-cab .ini svg{width:18px;height:18px}
+
+
+
+/* «Quién tiene plata»: una fila por persona (nombre y monto); al tocarla se despliegan sus movimientos */
+.rq-lado.lb-ano{grid-template-columns:minmax(0,1fr)}
+.rq-titulo{display:flex;justify-content:space-between;align-items:baseline;gap:10px}.rq-titulo b{font-family:'EB Garamond',serif;font-weight:500;font-size:22px;letter-spacing:0;text-transform:none;color:var(--tinta)}
+.rq-quien{display:grid;gap:2px;margin-top:8px}
+.rq-pb{display:grid;grid-template-columns:28px minmax(0,1fr) auto 14px;gap:10px;align-items:center;width:calc(100% + 16px);margin:0 -8px;padding:8px;border-radius:12px;text-align:left;font-size:14.5px}
+.rq-pb .ini{width:28px;height:28px;font-size:13px}.rq-pb b{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rq-pb .chev,.rq-ant .chev{width:14px;height:14px;color:var(--t65);transition:transform .25s var(--ease)}
+@media (hover:hover){.rq-pb:hover .chev{transform:translateX(3px)}}
+.rq-ant[aria-expanded="true"] .chev{transform:rotate(180deg)}
+@media (hover:hover){.rq-pb:hover{background:color-mix(in srgb,var(--tinta) 5%,transparent)}}
+.rq-m{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 0;border-top:1px solid color-mix(in srgb,var(--tinta) 6%,transparent)}
+.rq-m:first-child{border-top:0}
+.rq-m .tx{min-width:0}.rq-m b{display:block;font-size:14px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rq-m small{display:block;font-size:12.5px;color:var(--t65)}.rq-m small em{font-style:normal;color:var(--ambar);font-weight:600}
+.rq-m .num{flex:none;font-size:14px}.rq-m .num.mas{color:var(--verde)}
+.rq-ant{display:inline-flex;align-items:center;gap:6px;margin-top:8px;font-size:13px;font-weight:600;color:var(--t80);width:fit-content}
+@container disp (max-width:1380px){.rq-quien{grid-template-columns:repeat(auto-fill,minmax(17rem,1fr));gap:2px 24px;align-items:start}}
+
+.mdl{position:absolute;inset:0;z-index:9;display:flex;justify-content:center;align-items:flex-start;padding:90px 16px 24px;pointer-events:none;visibility:hidden}
+.mdl.abierto{pointer-events:auto;visibility:visible}
+.mdl-velo{position:absolute;inset:0;opacity:0;transition:opacity .3s var(--ease);background:color-mix(in srgb,var(--sombra) 25%,transparent);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px)}
+[data-tema="oscuro"] .mdl-velo{background:color-mix(in srgb,var(--sombra) 55%,transparent)}
+.mdl.abierto .mdl-velo{opacity:1}
+.mdl-hoja{position:relative;width:576px;max-width:100%;max-height:100%;overflow:auto;padding:24px 24px 20px;border-radius:32px;opacity:0;transform:translateY(18px) scale(.985);transition:opacity .3s var(--ease),transform .38s var(--ease);
+  background:color-mix(in srgb,var(--vidrio) 86%,transparent);border:1px solid color-mix(in srgb,var(--vidrio) 70%,transparent);box-shadow:inset 0 1px 0 var(--vidrio),0 40px 80px -30px color-mix(in srgb,var(--sombra) 55%,transparent);scrollbar-width:thin}
+[data-tema="oscuro"] .mdl-hoja{background:color-mix(in srgb,var(--vidrio) 96%,transparent);border-color:color-mix(in srgb,var(--tinta) 12%,transparent)}
+.mdl.abierto .mdl-hoja{opacity:1;transform:none}
+.mdl-cab{display:flex;align-items:center;gap:12px}.mdl-cab .ini{width:40px;height:40px;font-size:17px}.mdl-cab .tx{flex:1;min-width:0}
+.mdl-cab h2{font-family:'EB Garamond',serif;font-weight:500;font-size:27px;line-height:1.1}
+.mdl-cab small{display:block;font-size:13.5px;color:var(--t65);margin-top:2px}
+/* La respuesta primero */
+.vd{margin-top:18px;padding:16px 18px;border-radius:18px;background:color-mix(in srgb,var(--tinta) 4.5%,transparent)}
+.vd b{display:block;font-size:34px;line-height:1.1;margin-top:4px}.vd p{font-size:14.5px;color:var(--t80);margin-top:4px}
+.vd-bar{display:block;height:8px;margin-top:12px;border-radius:999px;overflow:hidden;background:var(--tinta)}.vd-bar i{display:block;height:100%;background:var(--pizarra)}
+.vd-ley{display:flex;justify-content:space-between;gap:10px;margin-top:6px;font-size:13px;color:var(--t65)}.vd-ley span{display:inline-flex;align-items:center;gap:6px}
+.vd-ley i{width:8px;height:8px;border-radius:2px;background:var(--pizarra)}.vd-ley i.q{background:var(--tinta)}
+/* La libreta: qué pasó y cuánto le queda después de cada cosa */
+.mdl-sub{display:flex;align-items:center;gap:6px;margin:22px 0 6px;font-size:11px;letter-spacing:.12em;text-transform:uppercase;font-weight:600;color:var(--t65)}.mdl-sub .ok{color:var(--verde);letter-spacing:.06em}
+.mdl-sub .glb{margin-left:2px}
+.lt-cab,.lt-f{display:grid;grid-template-columns:3.5rem minmax(0,1fr) 6.5rem 6.5rem;gap:10px;align-items:center}
+.lt-cab{padding:0 0 6px;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--t65);border-bottom:1px solid color-mix(in srgb,var(--tinta) 10%,transparent)}
+.lt-cab span:nth-child(n+3){text-align:right}
+.lt-f{padding:10px 0;border-bottom:1px solid color-mix(in srgb,var(--tinta) 6%,transparent)}
+.lt-f .fe{font-size:13.5px;color:var(--t65);font-variant-numeric:tabular-nums}
+.lt-f .que{display:flex;align-items:center;gap:10px;min-width:0}.lt-f .que>span:last-child{min-width:0}
+.lt-f .n{flex:none;display:grid;place-items:center;width:30px;height:30px;border-radius:50%;color:var(--c);background:color-mix(in srgb,var(--c) 14%,transparent)}.lt-f .n svg{width:15px;height:15px}
+.lt-f b{display:block;font-size:14.5px;font-weight:600;line-height:1.3}.lt-f small{display:block;font-size:13px;color:var(--t65);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.lt-f .mo,.lt-f .sa{text-align:right;font-size:14.5px}.lt-f .mo.mas{color:var(--verde)}.lt-f .sa{font-weight:600}
+/* Lo que falta: cada cosa con su verbo, y un toque la abre */
+.ft{display:grid;gap:6px}
+.ft-f{display:grid;grid-template-columns:10px minmax(0,1fr) 16px;gap:12px;align-items:center;padding:11px 14px;border-radius:14px;text-align:left;font-size:14.5px;
+  background:color-mix(in srgb,var(--ambar) 8%,transparent);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--ambar) 22%,transparent)}
+@media (hover:hover){.ft-f:hover{background:color-mix(in srgb,var(--ambar) 13%,transparent)}.ft-f:hover svg{transform:translateX(3px)}}
+.ft-f .pt{width:8px;height:8px;border-radius:50%;background:var(--ambar);align-self:start;margin-top:7px}
+.ft-f b{display:block;font-weight:600}.ft-f small{display:block;font-size:13px;color:var(--t65);margin-top:1px}.ft-f svg{width:16px;height:16px;color:var(--t80);transition:transform .2s var(--ease)}
+.ft-ok{margin-top:18px;font-size:14px;color:var(--verde)}
+.mdl .rq-ant{margin-top:18px}
+.vd-acc{margin-top:14px}.vd-acc .btn{height:36px;padding:0 14px;font-size:13.5px}
+/* «Entregar plata»: a quién, cuánto, cómo y de qué cuenta sale (lo último se pide aquí porque ya no se confirma después) */
+.en-ic{display:grid;place-items:center}.en-ic svg{width:18px;height:18px}
+.en-campo{margin-top:18px}.en-campo>.t{display:block;font-size:11px;letter-spacing:.12em;text-transform:uppercase;font-weight:600;color:var(--t65);margin-bottom:8px}
+.en-ops{display:grid;grid-template-columns:repeat(auto-fill,minmax(15rem,1fr));gap:8px}
+.en-op{display:flex;align-items:center;gap:12px;min-height:56px;padding:10px 14px;border-radius:16px;text-align:left;box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--tinta) 14%,transparent);background:color-mix(in srgb,var(--vidrio) 40%,transparent);transition:box-shadow .2s var(--ease),background .2s var(--ease)}
+@media (hover:hover){.en-op:hover{background:color-mix(in srgb,var(--tinta) 5%,transparent)}}
+.en-op[aria-pressed="true"]{box-shadow:inset 0 0 0 2px var(--tinta);background:color-mix(in srgb,var(--vidrio) 78%,transparent)}
+.en-op .ini{flex:none}.en-op .tx{flex:1;min-width:0}.en-op b{display:block;font-size:14.5px;font-weight:600}
+.en-op small{display:block;font-size:13px;color:var(--t65)}.en-op small em{font-style:normal;color:var(--ambar);font-weight:600}
+.en-op .ok{flex:none;width:18px;height:18px;border-radius:50%;box-shadow:inset 0 0 0 1.5px var(--borde);transition:box-shadow .2s var(--ease)}.en-op[aria-pressed="true"] .ok{box-shadow:inset 0 0 0 5px var(--tinta)}
+.en-medios{display:flex;gap:8px;flex-wrap:wrap}
+.en-monto{display:flex;align-items:center;gap:8px;height:48px;max-width:16rem;padding:0 16px;border-radius:14px;border:1px solid color-mix(in srgb,var(--borde) 70%,transparent);
+  background:color-mix(in srgb,var(--tinta) 4%,transparent);box-shadow:inset 0 1.5px 3px color-mix(in srgb,var(--sombra) 10%,transparent)}
+.en-monto:focus-within{border-color:var(--tinta);background:color-mix(in srgb,var(--vidrio) 80%,transparent)}
+.en-monto span{color:var(--t65);font-size:16px}.en-monto input{flex:1;min-width:0;border:0;background:transparent;font:inherit;font-size:20px;font-variant-numeric:tabular-nums;color:var(--tinta);outline:none}
+.en-vacio{font-size:14px;color:var(--t65)}
+.en-err{display:block;margin-top:6px;font-size:13px;font-weight:600;color:var(--rojo)}
+.en-res{margin-top:18px;padding:12px 16px;border-radius:14px;font-size:14.5px;color:var(--t80);background:color-mix(in srgb,var(--verde) 9%,transparent)}.en-res b{color:var(--tinta)}
+.en-pie{display:flex;justify-content:flex-end;gap:10px;margin-top:20px;padding-top:14px;border-top:1px solid color-mix(in srgb,var(--tinta) 8%,transparent)}
+.en-listo{display:grid;justify-items:start;gap:8px;margin-top:18px}
+.en-listo .c{display:grid;place-items:center;width:48px;height:48px;border-radius:50%;color:var(--verde);background:color-mix(in srgb,var(--verde) 14%,transparent)}.en-listo .c svg{width:22px;height:22px}
+.en-listo b{font-family:'EB Garamond',serif;font-weight:500;font-size:24px;line-height:1.15}.en-listo p{font-size:14.5px;color:var(--t80)}
+@container disp (max-width:520px){.en-pie .btn{flex:1}.en-monto{max-width:none}}
+@container disp (max-width:520px){
+  .mdl{align-items:flex-end;padding:0}
+  .mdl-hoja{width:100%;max-height:86%;border-radius:28px 28px 0 0;padding-top:28px;transform:translateY(40px)}
+  .lt-cab{display:none}.lt-f{grid-template-columns:minmax(0,1fr) auto;gap:2px 10px}.lt-f .fe{display:none}.lt-f .que{grid-row:span 2}
+  .lt-f .sa{font-size:12.5px;font-weight:500;color:var(--t65)}.lt-f .sa::before{content:"le queda "}
+  .mdl-hoja::before{content:"";position:absolute;top:9px;left:50%;width:40px;height:5px;margin-left:-20px;border-radius:9px;background:var(--t25)}
+}
+
+/* ---------- los anchos ---------- */
+/* Bajo 1380 (un portátil): el resumen deja el costado y sube como una banda de tres partes, más baja. */
+@container disp (max-width:1380px){
+  .lb-cuerpo{grid-template-columns:minmax(0,1fr);grid-template-areas:"lado" "main"}
+  .lb-lado{position:static}
+  .lb-ano{grid-template-columns:minmax(13rem,.85fr) minmax(16rem,1.3fr) minmax(15rem,1fr)}
+  .lb-ano>section+section{border-top:0;border-left:1px solid color-mix(in srgb,var(--tinta) 8%,transparent)}
+  .lb-barras .cols{height:76px}
+}
+@container disp (max-width:1100px){
+  .lb-ano{grid-template-columns:minmax(13rem,.8fr) minmax(16rem,1.2fr)}
+  .lb-ano .lb-pend{grid-column:1/-1;border-left:0!important;border-top:1px solid color-mix(in srgb,var(--tinta) 8%,transparent);flex-direction:row;flex-wrap:wrap;align-items:stretch}
+  .lb-ano .lb-pend h3{width:100%}.lb-ano .lb-pend a{flex:1 1 15rem}
+  .pv-col{display:none}.pv-f{grid-template-columns:minmax(0,1fr) auto;gap:6px 12px}.pv-f>*{grid-column:1}.pv-f .n.t{grid-column:2;grid-row:1}.pv-f .n:not(.t),.pv-f .chev{display:none}
+}
+@container disp (max-width:900px){
+  .lb-col{display:none}
+  .lb-f{grid-template-columns:4rem minmax(0,1fr) 7.5rem;grid-template-areas:"fe cp tot" "fe va tot"}.lb-f .fe{align-self:start}.lb-f .chev{display:none}
+}
+@container disp (max-width:820px){
+  .lb-ano{grid-template-columns:1fr}.lb-ano>section+section{border-left:0!important;border-top:1px solid color-mix(in srgb,var(--tinta) 8%,transparent)}
+}
+@container disp (max-width:620px){
+  .lb-f{grid-template-columns:minmax(0,1fr) auto;grid-template-areas:"cp tot" "va va";padding-left:16px;padding-right:16px;gap:10px 12px}
+  .lb-f .fe{display:none}.fecha-m{display:inline}
+  .lb-mesg{padding-left:16px;padding-right:16px}
+  .va{display:flex;align-items:center;gap:12px}.va .tr{flex:none;width:88px}.va p{margin-top:0}.va .ps{min-width:0}
+  .lb-mes b{font-size:32px}
+  .lb-pie{padding:12px 16px}.lb-pie span:last-child{display:none}
+}
+@container disp (min-width:621px){.fecha-m{display:none}}
+@container disp (max-width:520px){
+  .ah-cifras{grid-template-columns:1fr 1fr}
+  /* En el teléfono el resumen se encoge a lo que se lee de un vistazo: la cifra del mes y los dos atajos lado a lado. Las barras se
+     quedan en el escritorio: aquí la lista ya va partida por mes. */
+  .lb-ano>section{padding:14px 16px}
+  .lb-barras,.lb-mes p.tenue,.lb-pend h3,.lb-pend a .fl,.lb-pend a .ic-p{display:none}
+  .lb-mes b{font-size:30px;margin-top:4px}.lb-mes p{font-size:13.5px;margin-top:4px}
+  .lb-ano .lb-pend{flex-wrap:nowrap;gap:8px}.lb-ano .lb-pend a{flex:1 1 0;min-width:0;padding:10px 12px}
+  .lb-pend a b{font-size:15px}
+  .lb-herr2 .modo{margin-left:0}
+  .lb-pills{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;width:calc(100% + 32px);margin:0 -16px;padding:0 16px}
+  .lb-cajon{top:56px;left:0;right:0;bottom:0;width:auto;max-width:none;border-radius:28px 28px 0 0;transform:translateY(105%)}
+  .lb-cajon::before{content:"";position:absolute;top:8px;left:50%;width:40px;height:5px;margin-left:-20px;border-radius:9px;background:var(--t25)}
+  .cj-cab{padding-top:24px}.cj-pie .btn{flex:1}.cj-pie .nav{display:none}
+}
+
+@container disp (max-width:1180px){.pp-cifras,.rv-cifras{grid-template-columns:repeat(2,minmax(0,1fr))}.pp-dos,.rv-cuerpo{grid-template-columns:minmax(0,1fr)}}
+@container disp (max-width:900px){
+  .pp-col{display:none}
+  .pp-f{grid-template-columns:2rem minmax(0,1fr) auto;grid-template-areas:"ca pr sa" "ca ve pa" "ca pg pg"}
+  .pp-f>:nth-child(1){grid-area:ca;align-self:start}.pp-f>:nth-child(2){grid-area:pr}.pp-f>:nth-child(3){grid-area:ve}.pp-f>:nth-child(4){grid-area:pg;text-align:left}.pp-f>:nth-child(5){grid-area:sa}.pp-f>:nth-child(6){grid-area:pa}
+  .pp-herr .der{margin-left:0}.rv-campos{grid-template-columns:1fr}
+}
+@container disp (max-width:520px){.pp-ley{grid-template-columns:1fr 1fr}.pp-cif b,.rv-cif b{font-size:24px}.pp-f,.pp-col{padding-left:14px;padding-right:14px}.pp-g{padding-left:14px;padding-right:14px}.pp-sem{gap:6px}.pp-eje{gap:6px}.rv-det{padding:18px}}
+
+@container disp (max-width:900px){
+  .lb-col.pl-col{display:none}
+  .lb-f.pl-f{grid-template-columns:1.5rem minmax(0,1fr) auto;grid-template-areas:"ca cp tot" "ca va va" "ca pa pa"}.pl-f .pa{justify-self:start}
+  .rq-f{grid-template-columns:2.25rem minmax(0,1fr) auto;grid-template-areas:"n tx m" "n es hacer"}.rq-f .n{grid-area:n;align-self:start}.rq-f .tx{grid-area:tx}.rq-f .es{grid-area:es}.rq-f .m{grid-area:m}.rq-f .hacer{grid-area:hacer}
+}
+/* En el teléfono, en Por pagar y en Revisar, la lista va primero y el resumen después: lo que se hace manda. */
+@container disp (max-width:620px){.lb-cuerpo.lado-abajo{grid-template-areas:"main" "lado"}.lb-f.pl-f{padding-left:14px;padding-right:14px}.rq-f,.rq-g{padding-left:14px;padding-right:14px}.lb-lado .pl-sem{display:grid}}
+@container disp (max-width:520px){.lb-lado .lb-ano>section:not(.lb-mes),.pl-lado>section:not(.lb-mes){display:block}.rq-pills{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;margin:0 -16px;padding:0 16px}}
+</style>
+</head>
+<body>
+
+<div class="spk">
+  <span class="titulo">Compras ▸ Historial de compras (Historial · Revisar compras · Por pagar): auditoría y propuesta</span>
+  <span class="tag">Pantalla</span><div class="seg-m" data-ctl="vista"><button data-v="ahora">Como ahora</button><button data-v="propuesta">Propuesta · El libro</button></div>
+  <span class="tag">Tema</span><div class="seg-m" data-ctl="tema"><button data-v="claro">Claro</button><button data-v="oscuro">Oscuro</button></div>
+  <span class="tag">Ancho</span><div class="seg-m" data-ctl="ancho"><button data-v="movil">375</button><button data-v="tablet">Tableta 768</button><button data-v="w1024">1024</button><button data-v="w1280">1280</button><button data-v="w1440">1440</button><button data-v="w1920">1920</button><button data-v="escritorio">Tu ventana</button></div>
+</div>
+
+<div class="escena"><div class="disp" id="disp" data-ancho="escritorio">
+  <div class="lienzo" aria-hidden="true"><i></i><i></i><i></i></div>
+  <aside class="lat" id="lat" aria-label="Menú principal"></aside>
+  <button class="plegar-flota" id="plegar-flota" data-acc="plegar" aria-controls="lat"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg></button>
+  <header class="cab" id="cab"></header>
+  <main class="cont" id="cont"></main>
+  <aside class="lb-cajon" id="cajon" aria-label="Detalle de la compra" aria-hidden="true"></aside>
+  <div class="mdl" id="modal" aria-hidden="true"><div class="mdl-velo" data-hc="mdl-cerrar"></div><div class="mdl-hoja" role="dialog" aria-modal="true" aria-labelledby="mdl-titulo"></div></div>
+  <div class="flotante" id="flotante"></div>
+</div></div>
+
+<div class="analisis">
+  <section>
+    <h2>Historial: lo que hay hoy</h2>
+    <p>Medido en local el 2026-11-13 sobre <code>/compras</code> (cuenta líder, 1440 × 900 y 375 px) y leído en <code>app/(app)/compras/page.tsx</code>,
+      <code>lib/comprobantes-lista-reglas.ts</code> y el detalle <code>compras/factura/[compraId]</code>. Cada hallazgo dice si se <b>midió</b>, se <b>observó</b> o es <b>opinión</b>.</p>
+    <h3>Lo que está bien y se queda</h3>
+    <ul>
+      <li><b>El trayecto del detalle</b> (Registrado → Mercadería → Pago) es lo mejor de la pantalla: en una mirada dice dónde está cada compra. Hoy solo se ve al abrirla.</li>
+      <li><b>La lista se resuelve en la base</b> (<code>listar_compras</code>, cursor, 50 filas): sirve igual con 30 compras que con 30 000. La propuesta no lo toca.</li>
+      <li><b>Las cifras llevan a donde se actúa</b> (Por pagar → la lista de deuda; Por recibir → Recibir). La propuesta conserva esos dos atajos.</li>
+    </ul>
+    <h3>Los hallazgos, de mayor a menor impacto</h3>
+    <table>
+      <tr><th>#</th><th>Hallazgo</th><th>Evidencia</th></tr>
+      <tr><td>1</td><td><b>17 controles antes de la primera compra.</b> 3 pestañas, Descargar, 4 tarjetas, 5 píldoras, el buscador, Filtros y 2 de orden. A 1440 × 900 la primera fila empieza a los 650 px: se ven 2 o 3 compras. A 375, la primera aparece tras casi una pantalla y media de desplazamiento.</td><td><span class="ev">Medido</span></td></tr>
+      <tr><td>2</td><td><b>«Por pagar» sale tres veces y lleva a dos lugares distintos</b>: la pestaña (otra pantalla), la tarjeta (otra pantalla, a veces filtrada) y la píldora (filtra esta lista). «Por recibir», dos veces. La pantalla repite a su pestaña vecina en vez de contar su historia.</td><td><span class="ev">Medido</span></td></tr>
+      <tr><td>3</td><td><b>Tres capas de filtro que se pisan.</b> Las 5 píldoras, los 8 filtros del panel y el orden: «Vencidos» = filtro «Vencimiento»; «Por recibir» = «Recepción»; «Pagados» = «Pago». La persona no sabe cuál usar ni por qué dos dan lo mismo.</td><td><span class="ev">Observado</span></td></tr>
+      <tr><td>4</td><td><b>La fila no dice qué se compró.</b> Trae razón social, RUC, número y tipo de papel, pero no «Vestido Antonella · 90 u.». Para quien compra, la memoria es la prenda y la marca, no el F002-001045. Para saberlo hay que abrir cada compra.</td><td><span class="ev">Observado</span></td></tr>
+      <tr><td>5</td><td><b>Cada fila carga hasta 14 piezas</b>: fecha y condición, marca, razón social, RUC, número, tipo, dos insignias con la misma forma, dos subtextos, dos barras y el total. Las dos insignias compiten y ninguna gana.</td><td><span class="ev">Medido</span></td></tr>
+      <tr><td>6</td><td><b>Un historial sin tiempo.</b> Fechas «19/10» sin año ni corte por mes; sin total por mes ni tendencia. La única cifra histórica, «Compras de noviembre», compara un mes a medias contra un mes entero («S/ 0 · Octubre: S/ 45,949»): siempre parece que se compró menos.</td><td><span class="ev">Observado</span></td></tr>
+      <tr><td>7</td><td><b>Dos de las cuatro cifras son de deuda</b> (eso ya es la pestaña Por pagar) y una es del contador («IGV del mes», que vive en Impuestos y en el Excel que se descarga).</td><td><span class="ev">Observado</span></td></tr>
+      <tr><td>8</td><td><b>«Ordenar por vencimiento» es una pregunta de Por pagar</b>, no de un historial; ocupa un control fijo junto a la búsqueda.</td><td><span class="ev">Opinión</span></td></tr>
+      <tr><td>9</td><td><b>El total va sin «S/»</b> («8,496.00») y lejos del proveedor; el RUC se repite en cada fila aunque casi nadie lo lee (se puede buscar igual).</td><td><span class="ev">Medido</span></td></tr>
+      <tr><td>10</td><td><b>El detalle tapa la lista.</b> Para revisar cinco compras seguidas hay que abrir y cerrar cinco hojas; ↑ ↓ (j/k) viven en la lista, no en la hoja.</td><td><span class="ev">Observado</span></td></tr>
+    </table>
+  </section>
+  <section>
+    <h2>Historial: «El libro de compras»</h2>
+    <p>La pantalla se ordena alrededor de tres preguntas, en ese orden: <b>¿cuánto compré?</b> → <b>¿qué y a quién?</b> → <b>¿qué quedó pendiente de cada compra?</b> La deuda y lo que falta llegar dejan de ser cuatro tarjetas y cinco píldoras: quedan como dos atajos a sus pantallas.</p>
+    <table>
+      <tr><th>Cambio</th><th>Lo que gana</th><th>Lo que cuesta</th><th>Resuelve</th></tr>
+      <tr><td><b>1 · El resumen al costado</b>: la cifra del mes contra <i>la misma altura</i> del mes anterior y barras de 6 meses que filtran la lista al tocarlas, en una columna a la derecha (bajo 1380 px sube como banda; en el teléfono, solo la cifra y los dos atajos).</td><td>Responde «¿cuánto compré?» sin trampa de mes a medias, y la lista sube: el resumen ya no la empuja hacia abajo.</td><td>Pide a la base el total por mes (una lectura nueva, sin escritura).</td><td>#6, #7</td></tr>
+      <tr><td><b>2 · «Quedó pendiente»</b>: dos atajos (por llegar → Recibir; por pagar → Por pagar), en vez de 2 tarjetas + 2 píldoras + la pestaña.</td><td>Una sola puerta por tema; la pestaña Por pagar deja de estar repetida.</td><td>Nada.</td><td>#2</td></tr>
+      <tr><td><b>3 · Tres estados</b> (Todas · Falta que llegue · Falta pagar) y un panel de 4 filtros (Proveedor, Tienda, Papel, Fechas). Sale el orden por vencimiento.</td><td>De 17 controles a 11 antes de la primera compra; nada se pisa.</td><td>«Vencidas» pasa a verse en la fila (rojo) y en «Quedó pendiente», no como píldora.</td><td>#1, #3, #8</td></tr>
+      <tr><td><b>4 · La búsqueda encuentra por prenda</b> («Antonella»), además de marca, proveedor, RUC y número.</td><td>Se busca como se recuerda.</td><td>La lectura de la lista suma los nombres de sus prendas.</td><td>#4</td></tr>
+      <tr><td><b>5 · El libro por mes</b>: cada mes con su total; cada compra en 4 columnas: fecha y tienda · <b>qué compraste y a quién</b> (el color de sus prendas, la marca, el proveedor y los modelos) · <b>cómo va</b> (el trayecto chico y lo que urge, en una frase) · total con S/ y prendas.</td><td>Una mirada por fila, y la fila mide la mitad.</td><td>El RUC, el número y el tipo de papel bajan al detalle (se siguen buscando).</td><td>#4, #5, #9</td></tr>
+      <tr><td><b>6 · El detalle en el cajón lateral</b> (<code>&lt;Cajon&gt;</code>): la lista sigue viva detrás, ↑ ↓ pasan de compra, y el pie trae lo que se hace: Recibir lo que falta, Pagar y «Más» (Reasignar, Cerrar con faltante, Anular).</td><td>Revisar cinco compras es bajar con la flecha. En el celular es la hoja que sube.</td><td>Cambia la hoja al centro (ruta interceptada) por el cajón: es una decisión tuya (abajo).</td><td>#10</td></tr>
+    </table>
+    <h3>Medido en la maqueta (mismos datos, «Como ahora» contra «Propuesta»)</h3>
+    <table>
+      <tr><th>Medida</th><th>Hoy</th><th>Propuesta</th></tr>
+      <tr><td>Controles antes de la primera compra</td><td>17</td><td><b>11</b></td></tr>
+      <tr><td>Dónde empieza la primera compra, a 1440 × 900</td><td>650 px (pantalla real)</td><td><b>454 px</b></td></tr>
+      <tr><td>Alto de una compra, a 1440</td><td>≈ 100 px</td><td>88 px, con lo que se compró a la vista</td></tr>
+      <tr><td>Alto de una compra, a 375</td><td>227–290 px</td><td><b>102–158 px</b></td></tr>
+      <tr><td>Dónde empieza la primera compra, a 375</td><td>838 px</td><td>795 px (el teléfono no es prioridad en Compras; ganarle más pide sacar «Descargar el mes» de la cabecera)</td></tr>
+      <tr><td>Revisar cinco compras seguidas</td><td>abrir y cerrar 5 hojas</td><td>abrir 1 y bajar con ↓</td></tr>
+    </table>
+    <h3>Lo que no cambia</h3>
+    <p>Las rutas, los tres módulos de la fila y sus pestañas (ADR-0504), quién ve qué, «Descargar el mes», lo que guarda cada acción del detalle (pagar, recibir, reasignar, anular) y la lista resuelta en la base con su cursor.</p>
+    <h3>Lo que la base tendría que dar (solo lectura)</h3>
+    <ul>
+      <li>El total comprado por mes de los últimos 6 meses y lo comprado hasta el mismo día del mes anterior (una función de lectura nueva, o un agregado en <code>resumen_compras_extra</code>).</li>
+      <li>Por cada compra de la página, hasta 3 prendas con su color y la suma de unidades (de <code>compra_items</code>), y que <code>listar_compras</code> busque también por nombre de prenda.</li>
+    </ul>
+    <h3>Lo que decides tú</h3>
+    <ul>
+      <li><b>¿El detalle pasa al cajón lateral?</b> Recomiendo que sí: es la pieza decidida para «abrir un registro de una lista» y deja revisar seguido.</li>
+      <li><b>¿«IGV del mes» se va de esta pantalla?</b> Recomiendo moverlo a una línea bajo la cifra del mes (como en la maqueta) y que su lugar sea Impuestos.</li>
+      <li><b>¿Sale «ordenar por vencimiento»?</b> Recomiendo que sí: vive en Por pagar, que ya ordena por urgencia.</li>
+      <li><b>¿Sirve la vista «Por proveedor»?</b> Cuánto le compraste a cada uno y qué le debes, sin salir del historial. Si no se usa, se quita sin tocar lo demás.</li>
+    </ul>
+    <h3>Antes de construir</h3>
+    <p>Pasa por <code>/milimetro diseñar</code> (medidas y letra), <code>/guia</code> (la guía de <code>/compras</code> y su huella cambian) y, al terminar, <code>/formidable</code>. Ninguna pieza nueva: todas son del sistema.</p>
+  </section>
+  <section>
+    <h2>Por pagar: «¿Te alcanza?»</h2>
+    <p>Medido en local sobre <code>/compras/por-pagar</code> (1440 × 900) y leído en <code>por-pagar/page.tsx</code> y <code>components/PorPagarLista.tsx</code>.</p>
+    <h3>Los hallazgos</h3>
+    <table>
+      <tr><th>#</th><th>Hallazgo</th><th>Evidencia</th></tr>
+      <tr><td>1</td><td><b>La primera deuda queda bajo el borde.</b> Empieza a los 914 px de una pantalla de 900, y antes hay 26 controles: 4 tarjetas, 2 gráficos, la caja, la búsqueda, «Solo vencidas», el orden y Filtros.</td><td><span class="ev">Medido</span></td></tr>
+      <tr><td>2</td><td><b>Lo vencido se escribe 6 veces</b>: en la tarjeta, en el tramo con su %, en la barra de salidas, en la cabecera del grupo y en la fila.</td><td><span class="ev">Medido</span></td></tr>
+      <tr><td>3</td><td><b>Dos gráficos responden lo mismo con dos relojes distintos</b>: «Deuda por vencimiento» corta en 0–7, 8–30 y más de 30 días, y «Salidas de caja» corta por semana.</td><td><span class="ev">Observado</span></td></tr>
+      <tr><td>4</td><td><b>La pregunta de verdad está escondida.</b> «¿Me alcanza?» es un campito «Tengo S/» en la esquina de un gráfico, y su respuesta es una línea gris.</td><td><span class="ev">Observado</span></td></tr>
+      <tr><td>5</td><td><b>La fila no dice si la mercadería llegó.</b> Se puede pagar una compra vencida de la que no llegó nada (en los datos de ejemplo: 0 de 70 prendas, 63 días tarde) sin que la pantalla lo diga.</td><td><span class="ev">Observado</span></td></tr>
+      <tr><td>6</td><td><b>«Mayor deuda 74 %» es un porcentaje sin acción.</b> «A quién le debes», con su monto, lleva a negociar o a pagar.</td><td><span class="ev">Opinión</span></td></tr>
+      <tr><td>7</td><td><b>«Pagar» es un enlace rojo en versalitas en cada fila</b>: con 4 deudas, son 4 rojos más en una pantalla que ya tiene los de lo vencido.</td><td><span class="ev">Observado</span></td></tr>
+    </table>
+    <h3>La propuesta</h3>
+    <ul>
+      <li><b>Al costado, la pregunta que manda:</b> «Debes S/ 45,702.00 · S/ 7,682.40 ya vencido», «¿Te alcanza?» con la caja grande y la respuesta en una frase («Alcanza solo para lo vencido; lo que sigue necesita S/ 38,019.60 más»), <b>semana a semana</b> como única escala de tiempo (cada semana dice ✓ o ✕ y filtra la lista) y <b>a quién le debes</b> (filtra por proveedor).</li>
+      <li><b>La lista es la del Historial:</b> qué se compró, el trayecto (¿llegó?, ¿se pagó?), lo que debes y «Pagar» como botón secundario. Tocar una deuda abre el mismo cajón, con «Pagar S/ …» como acción principal y ↑ ↓ para pasar.</li>
+      <li><b>Se quedan</b> las casillas y «Pagar juntos» (del mismo proveedor), los grupos Vencidas / Esta semana / Más adelante y la vista por proveedor.</li>
+      <li><b>Lo decides tú (es dinero):</b> ¿la pantalla solo avisa que no llegó nada, o pide confirmar antes de pagar esa compra? La maqueta solo lo muestra.</li>
+    </ul>
+  </section>
+  <section>
+    <h2>Revisar compras: una sola cola, por ronda</h2>
+    <p>Leído en <code>compras/fondos/page.tsx</code>, <code>components/mi-plata/BandejaRevisar.tsx</code> y sus detalles (en la base local no había nada por revisar: la réplica usa datos inventados).</p>
+    <h3>Los hallazgos</h3>
+    <table>
+      <tr><th>#</th><th>Hallazgo</th><th>Evidencia</th></tr>
+      <tr><td>1</td><td><b>Cuatro bandejas que se abren de a una.</b> Para ver las 7 cosas pendientes hay que tocar las 4 cifras; con «Plata» abierta no se ve que hay 3 compras esperando.</td><td><span class="ev">Observado</span></td></tr>
+      <tr><td>2</td><td><b>Las cifras son sustantivos sin verbo</b> («Plata 2», «Rondas 1»): en 5 segundos no se sabe si toca confirmar, pagar o solo mirar.</td><td><span class="ev">Observado</span></td></tr>
+      <tr><td>3</td><td><b>Lo que se revisa junto está separado.</b> La plata, las compras, los gastos y el cierre de UNA ronda viven en cuatro bandejas, aunque tienen un orden: hoy la base no deja recibir lo que devuelve sin confirmar antes su plata, y eso se descubre con un aviso dentro del detalle.</td><td><span class="ev">Observado</span></td></tr>
+      <tr><td>4</td><td><b>«Quién tiene plata», el control contra el fraude, está escondido</b> detrás de un botón que abre una hoja. En pantalla solo queda «Rondas abiertas», abajo.</td><td><span class="ev">Observado</span></td></tr>
+      <tr><td>5</td><td><b>No se puede ver la plata de una persona</b> (lo encontró Felipe). «Entregas y devoluciones» lista solo entregas y devoluciones por día, de todas mezcladas. Lo que esa persona compró y gastó con esa plata vive en otras bandejas, y lo de rondas anteriores no se ve en ningún lado.</td><td><span class="ev">Observado</span></td></tr>
+      <tr><td>6</td><td><b>El nombre no dice lo que hay.</b> La pestaña dice «Revisar compras», pero la mitad es plata y gastos.</td><td><span class="ev">Opinión</span></td></tr>
+    </table>
+    <h3>La propuesta</h3>
+    <ul>
+      <li><b>Una sola cola, agrupada por ronda</b> (la compradora y su viaje) y en el orden en que se revisa: compras → gastos → lo que devuelve. Primero van las rondas cerradas, que son las que esperan a la oficina.</li>
+      <li><b>La plata entregada no se confirma</b> (Felipe, 2026-11-13: «no es necesario confirmar que recibió una cantidad de dinero»): sale de la cola, y recibir lo que devuelve ya no espera a nada. Hoy esa confirmación es donde se elige <b>de qué cuenta salió</b> la plata cuando la anotó la compradora; desde ahora <b>se pide al entregarla</b> (Felipe: «Sí, al entregarla»).</li>
+      <li><b>«Entregar plata» pregunta de qué cuenta sale</b>: a quién (con lo que ya tiene), cuánto, cómo (efectivo, Yape o transferencia) y de qué cuenta, con lo que hay en cada una y un «no alcanza» si no llega. La cuenta se sugiere según lo elegido: en efectivo, la caja de la sede de quien recibe; con Yape, la única que hay. Al entregar, la plata entra a su libreta sin confirmar nada después. Desde la hoja de una persona con su viaje abierto, «Darle más plata» abre la misma hoja con ella elegida.</li>
+      <li><b>«Completar» pasa a «Registrar»</b>, y cada pendiente dice para qué: «Registrar la nota de venta de Puesto 214 · copia de la foto la serie, el número y el monto, para que la compra entre al Historial».</li>
+      <li><b>Cada fila dice qué hacer:</b> Registrar o Recibir. Los filtros quedan cortos (Todo, Compras, Gastos, Rondas) para quien quiere ver una sola cosa.</li>
+      <li><b>Al costado, «Quién tiene plata»</b>, a la vista: el total y, por persona, cuánto tiene.</li>
+      <li><b>La plata de cada persona, a un toque:</b> «Quién tiene plata» es solo el nombre y el monto. Al tocar a la persona se abre una hoja (<code>&lt;Modal&gt;</code> mediana, solo se lee: se cierra con la ×) que se lee como una libreta: <b>primero la respuesta</b> («Tiene que devolver S/ 180.00 · le dieron S/ 500.00 el 10 nov y gastó S/ 320.00», con su barra); después <b>qué hizo con la plata</b>, contado desde su lado (recibió, compró en…, gastó en…, devolvió), con <b>lo que le queda</b> tras cada movimiento; y al final <b>lo que falta para cerrar su cuenta</b>, cada cosa con su verbo («Registrar la nota de venta de Puesto 214», con una línea que dice para qué), que al tocarla abre ese pendiente en la cola. Sin estados de oficina ni signos sueltos: los viajes anteriores, a un toque, dicen si cuadraron.</li>
+      <li><b>El detalle es el mismo cajón de las otras dos pestañas:</b> al confirmar pasa a lo siguiente de la cola, y una compra completada avisa que pasa al Historial.</li>
+      <li><b>No cambia</b> qué pide y qué guarda cada detalle ni quién puede confirmar. Lo que sí cambia en la base, si se construye: la entrega guarda su cuenta y ya no espera una confirmación (eso es de Felipe, por ser dinero).</li>
+      <li><b>Lo decides tú:</b> ¿agrupar por ronda?, ¿«Quién tiene plata» deja de ser una hoja?, ¿renombrar la pestaña (por ejemplo, «Por revisar»)? Recomiendo sí, sí y esperar con el nombre.</li>
+    </ul>
+  </section>
+  <section>
+    <h2>Las tres pestañas, medidas</h2>
+    <p>Mismos datos inventados en «Como ahora» y «Propuesta». Por pagar a 1440 se midió en la pantalla real.</p>
+    <table>
+      <tr><th>Pestaña</th><th>Medida</th><th>Hoy</th><th>Propuesta</th></tr>
+      <tr><td>Historial</td><td>Primera compra a 1440 · controles antes</td><td>650 px · 17</td><td><b>454 px · 11</b></td></tr>
+      <tr><td>Por pagar</td><td>Primera deuda a 1440 · controles antes</td><td>914 px · 26</td><td><b>406 px · 5</b></td></tr>
+      <tr><td>Por pagar</td><td>Veces que se escribe lo vencido</td><td>6</td><td><b>3</b></td></tr>
+      <tr><td>Por pagar</td><td>Primera deuda a 375</td><td>1336 px</td><td><b>375 px</b></td></tr>
+      <tr><td>Revisar compras</td><td>Pendientes a la vista sin tocar nada</td><td>2 de 7</td><td><b>todos (5: la plata ya no se confirma)</b></td></tr>
+      <tr><td>Revisar compras</td><td>Primera cosa por revisar a 375</td><td>649 px</td><td><b>468 px</b></td></tr>
+      <tr><td>Las tres</td><td>Formas de abrir un detalle</td><td>3 (hoja al centro, panel al lado, hoja de pago)</td><td><b>1: el cajón lateral, con ↑ ↓</b></td></tr>
+    </table>
+  </section>
+</div>
+
+<script src="../vidrio-base-2026-10/marco.js"></script>
+<!-- marco.js deja sus nombres en el ámbito global (estado, activa, abiertos, $, $$, sv, encabezado…); esta maqueta vive en su propia función. -->
+<script>
+(() => {
+  // ---------- los datos (inventados) ----------
+  const HOY = '2026-11-13';
+  const MESES = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+  const PROV = {
+    lua: { marca: 'Lúa', razon: 'Confecciones del Sur EIRL', ruc: '20498765432' },
+    ambar: { marca: 'Ámbar', razon: 'Textiles Andina SAC', ruc: '20512345678' },
+    nativa: { marca: 'Nativa', razon: 'Hilados del Norte SAC', ruc: '20601122334' },
+    brisa: { marca: 'Brisa', razon: 'Moda Gamarra EIRL', ruc: '20555443322' },
+    galeria: { marca: '', razon: 'Puesto 214 · Galería Central', ruc: '' },
+    cielo: { marca: 'Cielo', razon: 'Tejidos Pacífico SAC', ruc: '20609988776' },
+  };
+  const C = { emma: ['Blusa Emma', '#7a2e2a'], nube: ['Top Nube', '#d8cbb3'], rayas: ['Polo Rayas', '#2f4a3a'], ara: ['Vestido Ara', '#3f5a48'], lino: ['Falda Lino', '#c9a27e'],
+    antonella: ['Vestido Antonella', '#5b3a4a'], ximena: ['Casaca Ximena', '#3d4f5c'], clara: ['Blusa Clara', '#e3d6c4'], luciana: ['Casaca Luciana', '#8a6a4f'],
+    sol: ['Body Sol', '#c98a5a'], andes: ['Chompa Andes', '#805c4c'], polonube: ['Polo Nube', '#cfd6d9'], lia: ['Casaca Lía', '#b59a7a'] };
+  // [id, fecha, proveedor, papel, número, condición, vence, tienda, [[prenda, cant, costo, recibidas]], pagado, esperada, recepciones]
+  const CRUDO = [
+    [1, '2026-11-08', 'ambar', 'Factura', 'F001-000231', 'credito', '2026-12-08', 'Lima', [['emma', 60, 38, 0], ['nube', 60, 24, 0]], 0, '2026-11-15'],
+    [2, '2026-11-05', 'galeria', 'Nota de venta', 'NV-0412', 'contado', null, 'Trujillo', [['rayas', 24, 18, 24]], 'todo'],
+    [3, '2026-11-03', 'brisa', 'Boleta', 'B002-001877', 'contado', null, 'Arequipa', [['ara', 30, 45, 30], ['lino', 20, 35, 20]], 'todo'],
+    [4, '2026-10-19', 'lua', 'Factura', 'F002-001045', 'credito', '2026-11-18', 'Taller', [['antonella', 90, 50, 45], ['ximena', 180, 72, 90], ['clara', 180, 40, 90], ['luciana', 60, 64, 30]], 0, '2026-10-26'],
+    [5, '2026-10-19', 'ambar', 'Factura', 'F001-000210', 'contado', null, 'Lima', [['emma', 120, 30, 120], ['sol', 120, 30, 120]], 'todo'],
+    [6, '2026-10-11', 'nativa', 'Factura', 'F003-000077', 'credito', '2026-11-10', 'Trujillo', [['andes', 40, 55, 40]], 0],
+    [7, '2026-10-04', 'cielo', 'Factura', 'F001-001290', 'contado', null, 'Arequipa', [['polonube', 100, 12, 100], ['nube', 50, 15, 50]], 'todo'],
+    [8, '2026-09-22', 'brisa', 'Boleta', 'B002-001640', 'contado', null, 'Lima', [['lino', 40, 35, 40]], 'todo'],
+    [9, '2026-09-04', 'ambar', 'Factura', 'F001-000198', 'credito', '2026-10-04', 'Lima', [['lia', 70, 64, 0]], 200, '2026-09-11'],
+    [10, '2026-08-28', 'lua', 'Factura', 'F002-000988', 'credito', '2026-09-27', 'Taller', [['antonella', 120, 48, 120]], 'todo'],
+    [11, '2026-08-12', 'galeria', 'Sin comprobante', '—', 'contado', null, 'Trujillo', [['rayas', 36, 18, 36]], 'todo'],
+    [12, '2026-07-25', 'nativa', 'Factura', 'F003-000051', 'contado', null, 'Arequipa', [['andes', 80, 52, 80]], 'todo'],
+    [13, '2026-06-30', 'cielo', 'Factura', 'F001-001102', 'contado', null, 'Lima', [['polonube', 200, 11, 200]], 'todo'],
+    [14, '2026-06-14', 'ambar', 'Factura', 'F001-000150', 'contado', null, 'Lima', [['emma', 100, 30, 100]], 'todo'],
+  ];
+  const r2 = (n) => Math.round(n * 100) / 100;
+  const COMPRAS = CRUDO.map(([id, fecha, p, papel, num, cond, vence, tienda, items, pag, esperada]) => {
+    const prendas = items.map(([k, cant, costo, rec]) => ({ nombre: C[k][0], color: C[k][1], cant, costo, rec }));
+    const sub = prendas.reduce((s, x) => s + x.cant * x.costo, 0);
+    const igv = papel === 'Factura' ? r2(sub * 0.18) : 0;
+    const total = r2(sub + igv);
+    const uds = prendas.reduce((s, x) => s + x.cant, 0), rec = prendas.reduce((s, x) => s + x.rec, 0);
+    return { id, fecha, ...PROV[p], prov: p, papel, num, cond, vence, tienda, prendas, sub, igv, total, uds, rec, pagado: pag === 'todo' ? total : pag, esperada: esperada || fecha };
+  });
+
+  // ---------- ayudas ----------
+  const soles = (n) => 'S/ ' + n.toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const solesCortos = (n) => 'S/ ' + (n >= 1000 ? (n / 1000).toLocaleString('es-PE', { maximumFractionDigits: 1 }) + ' mil' : Math.round(n).toLocaleString('es-PE'));
+  const dias = (a, b) => Math.round((Date.parse(b) - Date.parse(a)) / 86400000);
+  const corta = (iso) => `${Number(iso.slice(8))} ${MESES[Number(iso.slice(5, 7)) - 1].slice(0, 3)}`;
+  const dm = (iso) => `${iso.slice(8)}/${iso.slice(5, 7)}`;
+  const mesDe = (iso) => iso.slice(0, 7);
+  const nombreMes = (m) => MESES[Number(m.slice(5)) - 1];
+  const Mayus = (t) => t[0].toUpperCase() + t.slice(1);
+  const iniciales = (c) => (c.marca || c.razon).replace(/[^A-Za-zÁÉÍÓÚÑáéíóúñ ]/g, '').split(' ').filter(Boolean).slice(0, 2).map((w) => w[0]).join('').toUpperCase();
+  const sinTildes = (t) => t.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+  const P = { check: 'M20 6 9 17l-5-5', chev: 'M9 6l6 6-6 6', flecha: 'M5 12h14M13 6l6 6-6 6', caja: T.recibir, pagar: T.porPagar, buscar: 'M10.5 18a7.5 7.5 0 100-15 7.5 7.5 0 000 15zM21 21l-4.8-4.8',
+    filtros: 'M4 6h16M7 12h10M10 18h4', x: 'M18 6 6 18M6 6l12 12', arriba: 'M18 15l-6-6-6 6', abajo: 'M6 9l6 6 6-6', mas: 'M5 12h.01M12 12h.01M19 12h.01', clip: 'M21.44 11.05l-9.19 9.19a6 6 0 01-8.49-8.49l9.19-9.19a4 4 0 015.66 5.66l-9.2 9.19a2 2 0 01-2.83-2.83l8.49-8.48',
+    camion: T.traslados, prov: T.proveedores, lupax: 'M10.5 18a7.5 7.5 0 100-15 7.5 7.5 0 000 15zM21 21l-4.8-4.8M8 8l5 5M13 8l-5 5', descargar: 'M12 3v12M7 10l5 5 5-5M5 21h14' };
+  const ic = (d, c = 'ic') => `<svg class="${c}" viewBox="0 0 24 24" aria-hidden="true"><path d="${d}"/></svg>`;
+
+  // El estado de cada compra: lo mismo que deciden celdaRecepcion y celdaPago, dicho en frases.
+  function como(c) {
+    const saldo = r2(c.total - c.pagado), falta = c.uds - c.rec;
+    const llego = falta === 0 ? 'todo' : c.rec > 0 ? 'parte' : 'nada';
+    const atraso = falta > 0 ? Math.max(0, dias(c.esperada, HOY)) : 0;
+    const pagada = saldo <= 0 ? 'todo' : c.pagado > 0 ? 'parte' : 'nada';
+    const venceEn = c.vence ? dias(HOY, c.vence) : null;
+    const vencida = saldo > 0 && venceEn !== null && venceEn < 0;
+    return { saldo, falta, llego, atraso, pagada, venceEn, vencida };
+  }
+  function frases(c) {
+    const e = como(c), out = [];
+    if (e.falta > 0) {
+      const t = e.llego === 'parte' ? `Llegaron ${c.rec} de ${c.uds}` : `Por llegar ${c.uds}`;
+      out.push(e.atraso > 0 ? ['ambar', `${t} · ${e.atraso} días tarde`] : ['', `${t} · llega el ${corta(c.esperada)}`]);
+    }
+    if (e.saldo > 0) {
+      // El pago: primero cuándo (lo que decide si urge), después cuánto falta.
+      out.push(e.vencida ? ['rojo', `Vencida hace ${-e.venceEn} días · ${soles(e.saldo)}`]
+        : e.venceEn <= 7 ? ['ambar', `Vence ${e.venceEn === 0 ? 'hoy' : `en ${e.venceEn} días`} · ${soles(e.saldo)}`]
+        : ['', `Vence el ${corta(c.vence)} · ${soles(e.saldo)}`]);
+    }
+    if (!out.length) out.push(['ok', 'Llegó todo y está pagada']);
+    // Lo que urge va primero: rojo, ámbar, lo demás.
+    const peso = { rojo: 0, ambar: 1, '': 2, ok: 3 };
+    return out.sort((a, b) => peso[a[0]] - peso[b[0]]);
+  }
+  function trayecto(c) {
+    const e = como(c);
+    const nodo = (est, alerta) => `<i class="${est === 'todo' ? 'hecho' : est === 'parte' ? 'parte' : ''}${alerta ? ' ' + alerta : ''}">${est === 'todo' ? `<svg viewBox="0 0 24 24"><path d="${P.check}"/></svg>` : ''}</i>`;
+    const aLlego = e.atraso > 0 ? 'ambar' : '', aPago = e.vencida ? 'rojo' : e.saldo > 0 && e.venceEn <= 7 ? 'ambar' : '';
+    const label = `Comprada; ${e.llego === 'todo' ? 'llegó todo' : e.llego === 'parte' ? 'llegó una parte' : 'no llega aún'}; ${e.pagada === 'todo' ? 'pagada' : e.pagada === 'parte' ? 'pagada en parte' : 'sin pagar'}`;
+    return `<span class="tr" role="img" aria-label="${label}" title="${label}">${nodo('todo')}<b class="hecho"></b>${nodo(e.llego, aLlego)}<b class="${e.llego === 'todo' ? 'hecho' : ''}"></b>${nodo(e.pagada, aPago)}</span>`;
+  }
+  const queCompraste = (c) => {
+    const n = c.prendas.map((p) => p.nombre);
+    return n.length <= 2 ? n.join(' y ') : `${n[0]}, ${n[1]} y ${n.length - 2} más`;
+  };
+
+  // ---------- el estado de la propuesta ----------
+  const st = { tab: 'historial', filtro: 'todas', mes: null, q: '', modo: 'compra', abierta: null, panel: false };
+  function base() {
+    const q = sinTildes(st.q.trim());
+    return COMPRAS.filter((c) => (!st.mes || mesDe(c.fecha) === st.mes) && (!q || sinTildes([c.marca, c.razon, c.ruc, c.num, c.tienda, ...c.prendas.map((p) => p.nombre)].join(' ')).includes(q)));
+  }
+  const filtra = (lista) => lista.filter((c) => { const e = como(c); return st.filtro === 'todas' || (st.filtro === 'llegar' ? e.falta > 0 : e.saldo > 0); });
+  const visibles = () => filtra(base());
+
+  // ---------- COMO AHORA ----------
+  function ahora() {
+    const pend = COMPRAS.filter((c) => como(c).saldo > 0), venc = pend.filter((c) => como(c).vencida), porRec = COMPRAS.filter((c) => como(c).falta > 0), atr = porRec.filter((c) => como(c).atraso > 0);
+    const deuda = pend.reduce((s, c) => s + como(c).saldo, 0), vencido = venc.reduce((s, c) => s + como(c).saldo, 0);
+    const mes = COMPRAS.filter((c) => mesDe(c.fecha) === '2026-11'), ant = COMPRAS.filter((c) => mesDe(c.fecha) === '2026-10');
+    const igv = mes.reduce((s, c) => s + c.igv, 0);
+    const chipR = (c) => { const e = como(c); return e.llego === 'todo' ? ['', 'Recibida', `${c.rec} u.`, null] : e.atraso > 0 ? ['ambar', `Atrasada ${e.atraso} días`, e.llego === 'parte' ? `${c.rec} de ${c.uds} u.` : `Esperada el ${dm(c.esperada)}`, e.llego === 'parte' ? c.rec / c.uds : null] : e.llego === 'parte' ? ['ambar', 'Parcial', `${c.rec} de ${c.uds} u.`, c.rec / c.uds] : ['neutro', 'Sin recibir', `Esperada el ${dm(c.esperada)}`, null]; };
+    const chipP = (c) => { const e = como(c); return e.saldo <= 0 ? ['', 'Pagada', '', null] : e.vencida ? ['rojo', 'Vencida', `Faltan ${soles(e.saldo)}`, c.pagado ? c.pagado / c.total : null] : e.venceEn <= 7 ? ['ambar', `Vence en ${e.venceEn} días`, `Faltan ${soles(e.saldo)}`, null] : ['neutro', 'Pendiente', `Faltan ${soles(e.saldo)}`, null]; };
+    const filas = COMPRAS.map((c) => {
+      const [tr, xr, sr, pr] = chipR(c), [tp, xp, sp] = chipP(c);
+      return `<div class="ah-f"><span class="num">${dm(c.fecha)}<small>${c.cond === 'contado' ? 'Contado' : (como(c).vencida ? 'Venció ' : 'Vence ') + dm(c.vence)}</small></span>
+        <span>${c.marca ? `<b style="font-weight:500">${c.marca}</b><small>${c.razon}</small>` : c.razon}${c.ruc ? `<small class="num">RUC ${c.ruc}</small>` : ''}</span>
+        <span class="num">${c.num}<small>${c.papel}</small></span>
+        <span><span class="chip ${tr}">${xr}</span><small style="margin-top:2px">${sr}</small>${pr ? `<span class="bar"><i style="width:${pr * 100}%"></i></span>` : ''}</span>
+        <span><span class="chip ${tp}">${xp}</span>${sp ? `<small style="margin-top:2px">${sp}</small>` : ''}</span>
+        <span class="tot num">${c.total.toLocaleString('es-PE', { minimumFractionDigits: 2 })}</span><span class="fl tenue">›</span></div>`;
+    }).join('');
+    $('#cont').innerHTML = `${encabezado({ sede: 'Todas las tiendas', fecha: 'viernes, 13 de noviembre · 10:14', titulo: 'Historial de compras' })}
+      ${pestanas('historial', `<button class="btn sec">${ic(P.descargar)}Descargar el mes</button>`)}
+      <div class="ah-cifras">
+        <div class="placa ah-cif"><span class="vs"><i></i>Por pagar</span><b class="num">${soles(deuda)}</b><small class="r">${venc.length} vencidas · ${soles(vencido)}</small><span class="barra"><i style="width:${(vencido / deuda) * 100}%;background:var(--rojo)"></i></span></div>
+        <div class="placa ah-cif"><span class="vs"><i></i>Por recibir</span><b>${porRec.length} <span style="font-size:16px;font-family:'DM Sans'">compras</span></b><small>${atr.length} atrasadas</small><span class="barra"><i style="width:${(atr.length / porRec.length) * 100}%;background:var(--ambar)"></i></span></div>
+        <div class="placa ah-cif"><span class="vs">Compras de noviembre</span><b class="num">${soles(mes.reduce((s, c) => s + c.total, 0))}</b><small>Octubre: ${soles(ant.reduce((s, c) => s + c.total, 0))}</small></div>
+        <div class="placa ah-cif"><span class="vs"><i style="background:var(--verde)"></i>IGV del mes</span><b class="num">${soles(igv)}</b><small>Solo facturas</small></div>
+      </div>
+      <div class="ah-pills"><button class="fp" aria-pressed="true">${ic(P.check)}Todos <span class="glb">${COMPRAS.length}</span></button><button class="fp">Por pagar <span class="glb">${pend.length}</span></button><button class="fp">Por recibir <span class="glb">${porRec.length}</span></button><button class="fp">Vencidos <span class="glb">${venc.length}</span></button><button class="fp">Pagados <span class="glb">${COMPRAS.length - pend.length}</span></button></div>
+      <div class="ah-herr"><label class="pozo-b">${ic(P.buscar)}<input placeholder="Proveedor o número de documento" disabled><kbd>/</kbd></label><button class="fp">${ic(P.filtros)}Filtros</button>
+        <span class="modo"><button aria-pressed="true">Emisión</button><button>Vencimiento</button></span></div>
+      <section class="placa ah-tabla"><div class="ah-col"><span>Emisión</span><span>Marca y proveedor</span><span>N.° documento</span><span>Recepción</span><span>Pago</span><span>Total</span><span></span></div>${filas}</section>
+      <p class="ah-nota">${COMPRAS.length} facturas en esta página · «Como ahora» solo muestra: los controles no hacen nada. Pasa a «Propuesta» arriba.</p>`;
+  }
+
+  // ---------- PROPUESTA ----------
+  function propuesta() {
+    // Lo comprado mes a mes (6 meses) y la cifra del mes contra la MISMA altura del mes anterior.
+    const meses = ['2026-06', '2026-07', '2026-08', '2026-09', '2026-10', '2026-11'];
+    const porMes = Object.fromEntries(meses.map((m) => [m, COMPRAS.filter((c) => mesDe(c.fecha) === m).reduce((s, c) => s + c.total, 0)]));
+    const max = Math.max(...Object.values(porMes));
+    const esteMes = porMes['2026-11'];
+    const alaAltura = COMPRAS.filter((c) => mesDe(c.fecha) === '2026-10' && Number(c.fecha.slice(8)) <= 13).reduce((s, c) => s + c.total, 0);
+    const igvMes = COMPRAS.filter((c) => mesDe(c.fecha) === '2026-11').reduce((s, c) => s + c.igv, 0);
+    const dif = esteMes - alaAltura;
+    const porLlegar = COMPRAS.filter((c) => como(c).falta > 0), atrasadas = porLlegar.filter((c) => como(c).atraso > 0);
+    const porPagar = COMPRAS.filter((c) => como(c).saldo > 0), vencidas = porPagar.filter((c) => como(c).vencida);
+    const sum = (l, f) => l.reduce((s, c) => s + f(c), 0);
+    const barras = meses.map((m) => `<button data-hc="mes" data-m="${m}" aria-pressed="${st.mes === m}" class="${m === '2026-11' ? 'hoy' : ''}" title="${Mayus(nombreMes(m))}: ${soles(porMes[m])}${m === '2026-11' ? ' (va el mes)' : ''}">
+        <em${m === (st.mes || '2026-11') ? '' : ' class="calla"'}>${solesCortos(porMes[m])}</em><i style="height:${Math.max(4, (porMes[m] / max) * 64)}px"></i></button>`).join('');
+    const eje = meses.map((m) => `<span class="${st.mes === m ? 'on' : ''}">${nombreMes(m).slice(0, 3)}</span>`).join('');
+
+    $('#cont').innerHTML = `${encabezado({ sede: 'Todas las tiendas', fecha: 'viernes, 13 de noviembre · 10:14', titulo: 'Historial de compras' })}
+      ${pestanas('historial', `<button class="btn sec">${ic(P.descargar)}Descargar el mes</button>`)}
+
+      <div class="lb-cuerpo">
+      <aside class="lb-lado placa lb-ano" aria-label="Resumen de tus compras">
+        <section class="lb-mes"><span class="vs">Comprado en noviembre</span><b class="serif-n">${soles(esteMes)}</b>
+          <p>${dif >= 0 ? `<span class="sube">${soles(dif)} más</span>` : `<span>${soles(-dif)} menos</span>`} que al 13 de octubre (${soles(alaAltura)}).</p>
+          <p class="tenue">IGV de las facturas del mes: ${soles(igvMes)}</p></section>
+        <section class="lb-barras"><h3>Lo comprado mes a mes</h3><div class="cols" role="group" aria-label="Lo comprado por mes; toca uno para ver solo sus compras">${barras}</div><div class="eje">${eje}</div>
+          <p class="pista">${st.mes ? `Viendo solo ${nombreMes(st.mes)}. Tócalo de nuevo para ver todo.` : 'Toca un mes para ver solo sus compras.'}</p></section>
+        <section class="lb-pend"><h3>Quedó pendiente</h3>
+          <a href="#" data-hc="ir" title="Lleva a Inventario ▸ Recibir mercadería"><span class="ic-p">${ic(P.caja)}</span><span class="tx"><small>Por llegar</small><b>${porLlegar.length} compras</b><small>${atrasadas.length} atrasadas · ${sum(porLlegar, (c) => como(c).falta)} prendas</small></span>${ic(P.flecha, 'ic fl')}</a>
+          <a href="#" data-hc="tab" data-v="pagar" style="--c:var(--rojo-p)" title="Lleva a la pestaña Por pagar"><span class="ic-p">${ic(P.pagar)}</span><span class="tx"><small>Por pagar</small><b>${soles(sum(porPagar, (c) => como(c).saldo))}</b><small class="r">${vencidas.length} vencidas · ${soles(sum(vencidas, (c) => como(c).saldo))}</small></span>${ic(P.flecha, 'ic fl')}</a>
+        </section>
+      </aside>
+
+      <div class="lb-main">
+      <div class="lb-herr">
+        <label class="pozo-b">${ic(P.buscar)}<input id="lb-q" placeholder="Marca, proveedor, prenda o número" value="${st.q.replace(/"/g, '&quot;')}" autocomplete="off">${st.q ? `<button class="borrar" data-hc="borrarq" aria-label="Borrar la búsqueda">${ic(P.x)}</button>` : '<kbd>/</kbd>'}</label>
+        <button class="fp" data-hc="panel" aria-expanded="${st.panel}">${ic(P.filtros)}Filtros</button>
+      </div>
+      <div class="lb-herr2"><span class="lb-pills" id="lb-pills"></span>
+        <span class="modo" role="group" aria-label="Ver la lista"><button data-hc="modo" data-v="compra" aria-pressed="${st.modo === 'compra'}">Por compra</button><button data-hc="modo" data-v="proveedor" aria-pressed="${st.modo === 'proveedor'}">Por proveedor</button></span></div>
+      ${st.panel ? `<div class="lb-filtros"><button class="fp">${ic(P.prov)}Proveedor ${ic(P.abajo)}</button><button class="fp">${ic(P.camion)}Tienda ${ic(P.abajo)}</button><button class="fp">Papel ${ic(P.abajo)}</button><button class="fp">Fechas ${ic(P.abajo)}</button>
+        <p class="nota-f">Cuatro filtros en vez de ocho: «Pago», «Recepción», «Condición» y «Vencidas» ya los responden los tres estados. (En la maqueta no filtran.)</p></div>` : ''}
+      <div class="lb-puestos" id="lb-puestos"></div>
+      <section class="placa lb-lista" id="lb-lista" data-resultados></section>
+      </div></div>`;
+    // Al escribir solo se rehace la lista; al pasar de vacío a algo (o al revés) se rehace la caja para mostrar su ✕.
+    $('#lb-q').addEventListener('input', (e) => { const antes = !!st.q; st.q = e.target.value; if (antes !== !!st.q) { propuesta(); const i = $('#lb-q'); i.focus(); i.setSelectionRange(i.value.length, i.value.length); } else lista(); });
+    lista();
+  }
+
+  function lista() {
+    const b = base(), l = filtra(b);
+    const n = { todas: b.length, llegar: b.filter((c) => como(c).falta > 0).length, pagar: b.filter((c) => como(c).saldo > 0).length };
+    $('#lb-pills').innerHTML = [['todas', 'Todas'], ['llegar', 'Falta que llegue'], ['pagar', 'Falta pagar']].map(([k, t]) =>
+      `<button class="fp" data-hc="filtro" data-v="${k}" aria-pressed="${st.filtro === k}">${st.filtro === k ? ic(P.check) : ''}${t}<span class="glb${k !== 'todas' && n[k] && st.filtro !== k ? ' pide' : ''}">${n[k]}</span></button>`).join('');
+    $('#lb-puestos').innerHTML = st.mes ? `<button class="fp puesto" data-hc="mes" data-m="${st.mes}">${Mayus(nombreMes(st.mes))} 2026 ${ic(P.x)}</button>` : '';
+    const caja = $('#lb-lista');
+    if (!l.length) {
+      caja.innerHTML = `<div class="lb-vacio">${ic(P.lupax)}<h3>${st.q ? `No hay compras con «${st.q}»` : 'Nada en este filtro'}</h3><p>${st.q ? 'Prueba con la marca, el proveedor o el nombre de una prenda.' : 'Todo lo de este período llegó y está pagado.'}</p>
+        <button class="btn sec" data-hc="limpiar">${st.q ? 'Borrar la búsqueda' : 'Ver todas'}</button></div>`;
+      return;
+    }
+    if (st.modo === 'proveedor') { caja.innerHTML = porProveedor(l); return; }
+    const grupos = [];
+    for (const c of l) { const m = mesDe(c.fecha); let g = grupos.find((x) => x.m === m); if (!g) grupos.push(g = { m, c: [] }); g.c.push(c); }
+    caja.innerHTML = `<div class="lb-col"><span>Fecha</span><span>Qué compraste y a quién</span><span>Cómo va</span><span>Total</span><span></span></div>` +
+      grupos.map((g) => `<div class="lb-mesg"><h3>${Mayus(nombreMes(g.m))} ${g.m.slice(0, 4)}</h3><span>${g.c.length} ${g.c.length === 1 ? 'compra' : 'compras'} · <b class="num">${soles(g.c.reduce((s, c) => s + c.total, 0))}</b></span></div>` +
+        g.c.map(fila).join('')).join('') +
+      `<div class="lb-pie"><span>${l.length} ${l.length === 1 ? 'compra' : 'compras'}${st.filtro !== 'todas' || st.mes || st.q ? ` de ${COMPRAS.length}` : ''}</span><span>Toca una para ver su detalle · ↑ ↓ para pasar</span></div>`;
+  }
+  function fila(c) {
+    const fr = frases(c);
+    return `<button class="lb-f" data-hc="abrir" data-id="${c.id}" aria-current="${st.abierta === c.id}">
+      <span class="fe"><b>${corta(c.fecha)}</b><small>${c.tienda}</small></span>
+      <span class="cp"><span class="mos" data-color-dato aria-hidden="true">${c.prendas.slice(0, 3).map((p) => `<i style="background:${p.color}"></i>`).join('')}</span>
+        <span><span class="l1"><b>${c.marca || 'Sin marca'}</b> · ${c.razon}<span class="fecha-m"> · ${corta(c.fecha)}</span></span>
+        <span class="l2">${queCompraste(c)}</span></span></span>
+      <span class="va">${trayecto(c)}<span class="ps">${fr.slice(0, 2).map(([t, x]) => `<p class="${t}">${x}</p>`).join('')}</span></span>
+      <span class="tot"><b class="serif-n">${soles(c.total)}</b><small>${c.uds} prendas</small></span>
+      ${ic(P.chev, 'ic chev')}</button>`;
+  }
+  function porProveedor(l) {
+    const g = {};
+    for (const c of l) { const x = g[c.prov] || (g[c.prov] = { c, n: 0, total: 0, ultima: c.fecha, llegar: 0, saldo: 0, venc: 0 }); x.n++; x.total += c.total; if (c.fecha > x.ultima) x.ultima = c.fecha; const e = como(c); if (e.falta > 0) x.llegar++; x.saldo += Math.max(0, e.saldo); if (e.vencida) x.venc++; }
+    const filas = Object.values(g).sort((a, b) => b.total - a.total);
+    return `<div class="pv-col"><span>Proveedor</span><span>Compras</span><span>Comprado</span><span>Última</span><span>Pendiente</span><span></span></div>` +
+      filas.map((x) => `<button class="pv-f" data-hc="prov" data-q="${x.c.marca || x.c.razon}">
+        <span class="pr"><span class="ini" aria-hidden="true">${iniciales(x.c)}</span><span><b>${x.c.marca || x.c.razon}</b><small>${x.c.marca ? x.c.razon : 'Sin marca'}</small></span></span>
+        <span class="n num">${x.n}</span><span class="n t num"><b class="serif-n" style="font-size:18px">${soles(x.total)}</b></span><span class="tenue">${corta(x.ultima)}</span>
+        <span class="pend">${x.llegar ? `<span class="chip ambar">${x.llegar} por llegar</span>` : ''}${x.saldo ? `<span class="chip ${x.venc ? 'rojo' : 'neutro'}">Debes ${soles(x.saldo)}</span>` : ''}${!x.llegar && !x.saldo ? '<span class="chip">Al día</span>' : ''}</span>
+        ${ic(P.chev, 'ic chev')}</button>`).join('') +
+      `<div class="lb-pie"><span>${filas.length} proveedores</span><span>Toca uno para ver sus compras</span></div>`;
+  }
+
+
+  // ---------- las pestañas de la fila (ADR-0504): las tres pantallas, con la misma cabecera ----------
+  // Felipe (2026-11-13): «no es necesario confirmar que recibió una cantidad de dinero». En la propuesta la plata entregada no espera a nadie.
+  const sinPlata = () => estado.vista !== 'ahora';
+  const enRevisar = () => RV.filter((x) => !x.hecho && !(sinPlata() && x.tipo === 'plata')).length;
+  function pestanas(activa, acciones) {
+    const n = COMPRAS.filter((c) => como(c).saldo > 0).length;
+    const t = [['historial', 'Historial'], ['revisar', 'Revisar compras', enRevisar(), true], ['pagar', 'Por pagar', n, true]];
+    return `<div class="fila-tabs"><nav class="pest" aria-label="Secciones de Historial de compras">${t.map(([k, x, g, pide]) =>
+      `<a href="#" data-hc="tab" data-v="${k}" ${activa === k ? 'aria-current="page"' : ''}>${x}${g ? `<span class="glb${pide ? ' pide' : ''}">${g}</span>` : ''}</a>`).join('')}</nav>
+      <span class="acc">${acciones || ''}</span></div>`;
+  }
+  const cabecera = () => encabezado({ sede: 'Todas las tiendas', fecha: 'viernes, 13 de noviembre · 10:14', titulo: 'Historial de compras' });
+  const notaHoy = (que) => `<p class="nota-maq">${que} se muestra como es hoy: la auditoría fue de Historial y esta pestaña no cambia en la propuesta.</p>`;
+
+  // ---------- POR PAGAR (como hoy: app/(app)/compras/por-pagar/page.tsx) ----------
+  const pp = { soloVencidas: false, agrupar: 'urgencia', marcadas: new Set(), caja: '', q: '', resaltar: null };
+  function porPagar() {
+    const deben = COMPRAS.filter((c) => como(c).saldo > 0);
+    const saldo = (c) => como(c).saldo, sum = (l) => l.reduce((s, c) => s + saldo(c), 0);
+    const venc = deben.filter((c) => como(c).vencida), semana = deben.filter((c) => !como(c).vencida && como(c).venceEn <= 7), despues = deben.filter((c) => !como(c).vencida && como(c).venceEn > 7);
+    const deuda = sum(deben);
+    const porProv = {}; deben.forEach((c) => { porProv[c.razon] = (porProv[c.razon] || 0) + saldo(c); });
+    const [mayorProv, mayor] = Object.entries(porProv).sort((a, b) => b[1] - a[1])[0];
+    const tramos = [['Vencida', venc, 'var(--rojo)'], ['0–7 días', semana, 'var(--ambar)'], ['8–30 días', deben.filter((c) => !como(c).vencida && como(c).venceEn > 7 && como(c).venceEn <= 30), 'var(--taupe)'], ['Más de 30', deben.filter((c) => !como(c).vencida && como(c).venceEn > 30), 'var(--sand)']];
+    // Las salidas de caja de los próximos 30 días, por semana (lo vencido va primero: ya debió salir).
+    const semanas = [['Vencido', -9999, -1], ['13–19 nov', 0, 6], ['20–26 nov', 7, 13], ['27 nov–3 dic', 14, 20], ['4–10 dic', 21, 27], ['Después', 28, 9999]]
+      .map(([t, a, b], i) => ({ t, v: i === 0, m: deben.filter((c) => como(c).venceEn >= a && como(c).venceEn <= b).reduce((s, c) => s + saldo(c), 0) }));
+    const maxS = Math.max(...semanas.map((s) => s.m), 1);
+    const tengo = parseFloat(String(pp.caja).replace(/[^\d.]/g, '')) || 0;
+    let acum = 0, hasta = -1; semanas.forEach((s, i) => { acum += s.m; if (tengo > 0 && acum <= tengo) hasta = i; });
+    const dice = !tengo ? 'Escribe tu caja y verás hasta dónde alcanza.' : hasta < 0 ? `<b>No alcanza ni para lo vencido</b> (${soles(semanas[0].m)}).` : hasta === semanas.length - 1 ? '<b>Alcanza para todo lo que se debe.</b>' : hasta === 0 ? '<b>Alcanza solo para lo vencido</b>; lo de esta semana ya no.' : `<b>Alcanza hasta la semana del ${semanas[hasta].t}</b>; lo que sigue ya no.`;
+    $('#cont').innerHTML = `${cabecera()}${pestanas('pagar')}
+      <div class="pp-cifras">
+        <div class="placa pp-cif"><span class="vs"><i style="--c:var(--ambar)"></i>Deuda total</span><b>${soles(deuda)}</b><small>${deben.length} comprobantes</small></div>
+        <div class="placa pp-cif r"><span class="vs"><i style="--c:var(--rojo)"></i>Vencido</span><b>${soles(sum(venc))}</b><small>${venc.length} comprobantes</small></div>
+        <div class="placa pp-cif"><span class="vs"><i style="--c:var(--ambar)"></i>Vence esta semana</span><b>${soles(sum(semana))}</b><small>${semana.length} comprobante · hasta el 20/11</small></div>
+        <div class="placa pp-cif"><span class="vs">Mayor deuda</span><b>${Math.round((mayor / deuda) * 100)} %</b><small>${mayorProv}</small><span class="pp-bar"><i style="width:${(mayor / deuda) * 100}%"></i></span></div>
+      </div>
+      <div class="pp-dos">
+        <section class="placa"><h3>Deuda por vencimiento</h3>
+          <div class="pp-tramos">${tramos.map(([, l, c]) => sum(l) ? `<i style="width:${(sum(l) / deuda) * 100}%;background:${c}"></i>` : '').join('')}</div>
+          <div class="pp-ley">${tramos.map(([t, l, c]) => `<div><span><i style="background:${c}"></i>${t}</span><b>${soles(sum(l))}</b><small>${Math.round((sum(l) / deuda) * 100)} %</small></div>`).join('')}</div></section>
+        <section class="placa"><h3>Salidas de caja · próximos 30 días <label class="pp-caja">Tengo S/ <input id="pp-caja" inputmode="decimal" placeholder="caja" value="${pp.caja}"></label></h3>
+          <div class="pp-sem">${semanas.map((s, i) => `<span class="${s.v ? 'v' : ''} ${tengo ? (i <= hasta ? 'si' : 'no') : ''}"><em>${s.m ? solesCortos(s.m) : '0'}</em><i style="height:${Math.max(3, (s.m / maxS) * 80)}px"></i></span>`).join('')}</div>
+          <div class="pp-eje">${semanas.map((s) => `<span>${s.t}</span>`).join('')}</div><p class="pp-dice" id="pp-dice">${dice}</p></section>
+      </div>
+      <div class="pp-herr"><label class="pozo-b">${ic(P.buscar)}<input id="pp-q" placeholder="Proveedor o número de documento" value="${pp.q}"><kbd>/</kbd></label>
+        <button class="fp" data-hc="pp-venc" aria-pressed="${pp.soloVencidas}">Solo vencidas <span class="glb${pp.soloVencidas ? '' : ' pide'}">${venc.length}</span></button>
+        <span class="der"><span class="modo"><button data-hc="pp-agr" data-v="urgencia" aria-pressed="${pp.agrupar === 'urgencia'}">Por urgencia</button><button data-hc="pp-agr" data-v="proveedor" aria-pressed="${pp.agrupar === 'proveedor'}">Por proveedor</button></span>
+        <button class="fp">${ic(P.filtros)}Filtros</button></span></div>
+      <div id="pp-lista"></div>`;
+    $('#pp-caja').addEventListener('input', (e) => { pp.caja = e.target.value; const pos = e.target.selectionStart; porPagar(); const i = $('#pp-caja'); i.focus(); i.setSelectionRange(pos, pos); });
+    $('#pp-q').addEventListener('input', (e) => { pp.q = e.target.value; listaPorPagar(); });
+    listaPorPagar();
+  }
+  function listaPorPagar() {
+    const q = sinTildes(pp.q.trim());
+    const deben = COMPRAS.filter((c) => como(c).saldo > 0 && (!pp.soloVencidas || como(c).vencida) && (!q || sinTildes([c.razon, c.num, c.marca].join(' ')).includes(q)))
+      .sort((a, b) => como(a).venceEn - como(b).venceEn);
+    const saldo = (c) => como(c).saldo, sum = (l) => l.reduce((s, c) => s + saldo(c), 0);
+    let grupos;
+    if (pp.agrupar === 'proveedor') {
+      const g = {}; deben.forEach((c) => (g[c.razon] = g[c.razon] || []).push(c));
+      grupos = Object.entries(g).map(([t, l]) => [t, l, '']);
+    } else {
+      grupos = [['Vencidas', deben.filter((c) => como(c).vencida), 'var(--rojo-p)'], ['Vencen esta semana', deben.filter((c) => !como(c).vencida && como(c).venceEn <= 7), 'var(--ambar)'], ['Más adelante', deben.filter((c) => !como(c).vencida && como(c).venceEn > 7), '']].filter(([, l]) => l.length);
+    }
+    const fila = (c) => {
+      const e = como(c), tono = e.vencida ? 'var(--rojo-p)' : e.venceEn <= 7 ? 'var(--ambar)' : '';
+      const ven = e.vencida ? `Venció hace ${-e.venceEn > 30 ? Math.round(-e.venceEn / 30) + (Math.round(-e.venceEn / 30) === 1 ? ' mes' : ' meses') : -e.venceEn + ' días'}` : e.venceEn <= 7 ? `Vence en ${e.venceEn} días` : `Vence el ${corta(c.vence)}`;
+      const avance = Math.min(1, Math.max(0.08, 1 - e.venceEn / 30));
+      return `<div class="pp-f${pp.marcadas.has(c.id) || pp.resaltar === c.id ? ' marcada' : ''}" data-pp="${c.id}"><button class="cas" role="checkbox" aria-checked="${pp.marcadas.has(c.id)}" data-hc="pp-marcar" data-id="${c.id}" aria-label="Elegir ${c.num} para pagar"><svg viewBox="0 0 24 24"><path d="${P.check}"/></svg></button>
+        <span>${c.razon}<span class="doc">${c.num}</span><small>Emitida ${dm(c.fecha)}</small></span>
+        <span class="ven" style="--c:${tono}">${ven}<small>${dm(c.vence)}</small><span class="mini"><i style="width:${avance * 100}%"></i></span></span>
+        <span class="der">${c.pagado ? `${soles(c.pagado)}<small>de ${soles(c.total)}</small>` : '<span class="tenue">Sin pagos</span>'}</span>
+        <span class="der sal">${soles(e.saldo)}</span><button class="pagar" title="En la maqueta no se paga">Pagar</button></div>`;
+    };
+    const marcadas = COMPRAS.filter((c) => pp.marcadas.has(c.id));
+    $('#pp-lista').innerHTML = `<p class="pp-total"><b>${deben.length}</b> comprobantes con saldo · <b>${soles(sum(deben))}</b> por pagar</p>
+      <section class="placa pp-lista"><div class="pp-col"><span></span><span>Proveedor · Comprobante</span><span>Vence</span><span>Pagado</span><span>Saldo</span><span></span></div>
+      ${grupos.map(([t, l, c]) => `<div class="pp-g" style="${c ? `--c:${c}` : ''}"><span>${t} · ${l.length} ${l.length === 1 ? 'comprobante' : 'comprobantes'}</span><b>${soles(sum(l))}</b></div>${l.map(fila).join('')}`).join('') || '<p class="rv-vacio"><b>Nada por pagar aquí</b>Prueba sin «Solo vencidas» o con otra búsqueda.</p>'}</section>
+      ${marcadas.length ? `<div class="pp-juntos"><span><b>${soles(sum(marcadas))}</b><small>${marcadas.length} ${marcadas.length === 1 ? 'comprobante' : 'comprobantes'} · ${[...new Set(marcadas.map((c) => c.razon))].length > 1 ? 'de varios proveedores: se pagan por separado' : marcadas[0].razon}</small></span><button class="btn" title="En la maqueta no se paga">Pagar juntos</button></div>` : ''}`;
+    if (pp.resaltar) { $(`[data-pp="${pp.resaltar}"]`)?.scrollIntoView({ block: 'center' }); }
+  }
+
+  // ---------- REVISAR COMPRAS (como hoy: la bandeja de components/mi-plata/BandejaRevisar.tsx) ----------
+  // Lo que anotaron las compradoras y espera a la oficina. Cada cosa es de una RONDA (un viaje de compra): así se revisa en la vida real.
+  const RONDAS = {
+    'RC-000030': { quien: 'Maribel', cerrada: true, desde: 'lun 10 nov', cerro: '12 nov', sede: 'Lima', entregado: 500, gasto: 320 },
+    'RC-000031': { quien: 'Rosa', cerrada: false, desde: 'lun 10 nov', sede: 'Trujillo', entregado: 1500, gasto: 1246 },
+  };
+  const RV = [
+    { id: 'p2', tipo: 'plata', ronda: 'RC-000030', titulo: 'Yape · sin foto', quien: 'Maribel', cuando: '10 nov', monto: 500, chip: ['ambar', 'Por confirmar'] },
+    { id: 'c2', tipo: 'papel', ronda: 'RC-000030', titulo: 'Puesto 214 · Nota de venta', quien: 'Maribel', cuando: '11 nov · RC-000030', monto: 320, chip: ['pizarra', 'En camino'] },
+    { id: 'r1', tipo: 'cierre', ronda: 'RC-000030', titulo: 'Devuelve en caja', quien: 'Maribel', cuando: '12 nov · RC-000030', monto: 180, chip: ['pizarra', 'Lo devuelve'] },
+    { id: 'p1', tipo: 'plata', ronda: 'RC-000031', titulo: 'Transferencia · con foto', quien: 'Rosa', cuando: '10 nov', monto: 1500, chip: ['ambar', 'Por confirmar'] },
+    { id: 'c3', tipo: 'papel', ronda: 'RC-000031', titulo: 'Moda Gamarra · Boleta', marca: 'Brisa', quien: 'Rosa', cuando: '11 nov · RC-000031', monto: 742, chip: ['', 'Llegó todo'] },
+    { id: 'c1', tipo: 'papel', ronda: 'RC-000031', titulo: 'Hilados del Norte · Boleta', marca: 'Nativa', quien: 'Rosa', cuando: '12 nov · RC-000031', monto: 486, chip: ['ambar', 'Faltaron 2'] },
+    { id: 'g1', tipo: 'gasto', ronda: 'RC-000031', titulo: 'Taxi a Gamarra · sin papel', quien: 'Rosa', cuando: '11 nov · RC-000031', monto: 18, chip: ['ambar', 'Por revisar'] },
+  ];
+  const bandeja = (t) => RV.filter((x) => x.tipo === t && !x.hecho);
+  const TIPOS = { plata: ['Plata', 'Por confirmar', T.dinero], papel: ['Compras', 'Por completar', T.facturas], gasto: ['Gastos', 'Por revisar', T.gastos], cierre: ['Rondas', 'Por recibir', P.caja] };
+  const rv = { tipo: 'plata', elegido: 'p2', hecho: null };
+  function revisar() {
+    const lista = bandeja(rv.tipo), el = lista.find((x) => x.id === rv.elegido) || lista[0];
+    $('#cont').innerHTML = `${cabecera()}${pestanas('revisar', `<button class="btn sec">${ic(T.fondos)}Quién tiene plata</button><button class="btn pri">${ic('M12 5v14M5 12h14')}Entregar plata</button>`)}
+      <div class="rv-cifras">${Object.entries(TIPOS).map(([k, [t]]) => `<button class="placa rv-cif" data-hc="rv-tipo" data-v="${k}" aria-pressed="${rv.tipo === k}"><span class="vs">${t}</span><b>${bandeja(k).length}</b><small>${soles(bandeja(k).reduce((s, x) => s + x.monto, 0))}</small></button>`).join('')}</div>
+      <div class="rv-cuerpo">
+        <div><section class="placa rv-lista"><div class="rv-cab">${TIPOS[rv.tipo][1]}<span class="glb">${lista.length}</span></div>
+          ${lista.length ? lista.map((x) => `<button class="rv-f" data-hc="rv-el" data-id="${x.id}" aria-current="${el && x.id === el.id}"><span class="rv-mini">${ic(TIPOS[rv.tipo][2])}</span><b>${x.titulo}</b><span class="m">${soles(x.monto)}</span><small>${x.marca ? x.marca + ' · ' : ''}${x.quien} · ${x.cuando}</small><span class="chip ${x.chip[0]}">${x.chip[1]}</span></button>`).join('')
+            : `<p class="rv-vacio"><b>Nada por revisar aquí</b>${rv.hecho ? 'Lo hiciste todo. ' : ''}Prueba con otra cifra de arriba.</p>`}</section>
+          <section class="placa rv-rondas"><h3>Rondas abiertas</h3><p><span class="ini">R</span><span>Rosa está comprando<small>Ronda desde el lun 10 · tiene S/ 254.00</small></span></p></section></div>
+        <section class="placa rv-det">${el ? detalleRevisar(rv.tipo, el) : '<p class="rv-vacio"><b>Todo al día</b>Cuando una compradora anote algo, aparece aquí.</p>'}</section>
+      </div>`;
+  }
+  const VERBO = { plata: (x) => `Confirmar ${soles(x.monto)}`, papel: () => 'Guardar', gasto: () => 'Pasar a gastos del viaje', cierre: (x) => `Recibir ${soles(x.monto)}` };
+  const QUE = { plata: 'Plata por confirmar', papel: 'Compra por registrar', gasto: 'Gasto por registrar', cierre: 'Ronda cerrada' };
+  const tituloRevisar = (tipo, x) => tipo === 'plata' ? x.quien : tipo === 'papel' ? x.titulo.split(' · ')[0] : tipo === 'gasto' ? 'Taxi a Gamarra' : `${x.quien} cerró su ronda`;
+  const subRevisar = (tipo, x) => tipo === 'plata' ? `${x.titulo.split(' · ')[0]} · ${x.cuando}` : tipo === 'papel' ? `${x.titulo.split(' · ')[1]} · ${x.quien} · ${x.cuando}` : `${x.quien === undefined ? '' : x.quien + ' · '}${x.cuando}`;
+  function cuerpoRevisar(tipo, x) {
+    const campo = (t, v, combo) => `<label class="rv-campo"><span>${t}</span><div>${v}${combo ? ic(P.abajo) : ''}</div></label>`;
+    if (tipo === 'plata') return `<div class="rv-foto">${ic(T.fondos)}Foto del voucher</div>
+      <div class="rv-campos">${campo('¿Cuánto llegó?', soles(x.monto))}${campo('¿De qué cuenta salió?', 'BCP Soles · CAYLA', 1)}${campo('Quién confirma', 'Lucía Ramos', 1)}</div>`;
+    if (tipo === 'papel') return `<div class="rv-foto">${ic(T.facturas)}Foto de la boleta</div>
+      <div class="rv-bloque" style="--c:var(--verde)"><span class="c">${ic(P.check)}</span><span><b>Cuadra</b><small>Papel ${soles(x.monto)} = anotó ${soles(x.monto)}</small></span></div>
+      <div class="rv-bloque" style="--c:${x.chip[0] === 'ambar' ? 'var(--ambar)' : x.chip[0] === 'pizarra' ? 'var(--pizarra)' : 'var(--verde)'}"><span class="c">${ic(P.caja)}</span><span><b>${x.chip[1]}</b><small>${x.chip[1] === 'Faltaron 2' ? 'Llegaron 22 de 24 a Trujillo' : x.chip[1] === 'En camino' ? 'Va a Lima: la tienda todavía no la recibe' : 'Llegaron las 18 a Arequipa'}</small></span></div>
+      <div class="rv-campos">${campo('Serie', 'B004')}${campo('Número', '000118')}${campo('Lo que dice el papel', soles(x.monto))}${campo('Quién registra', 'Lucía Ramos', 1)}</div>`;
+    if (tipo === 'gasto') return `<p class="nota-maq" style="margin:0">No pasó solo a los gastos del viaje: dime qué papel le dieron.</p>
+      <div><span class="vs" style="display:block;margin-bottom:8px">¿Qué papel le dieron?</span><div class="rv-chips"><button class="fp" aria-pressed="true">Ninguno</button><button class="fp">Boleta</button><button class="fp">Factura</button></div></div>
+      <div class="rv-campos">${campo('Monto', soles(x.monto))}${campo('Quién revisa', 'Lucía Ramos', 1)}</div>`;
+    const r = RONDAS[x.ronda];
+    return `<div class="rv-bloque" style="--c:var(--pizarra)"><span class="c">${ic(T.fondos)}</span><span><b>Devuelve ${soles(x.monto)}</b><small>Le dieron ${soles(r.entregado)} y compró ${soles(r.gasto)}</small></span></div>
+      <div class="rv-campos">${campo('¿Dónde entra?', `Caja de ${r.sede}`, 1)}${campo('¿Cuánto trajo?', soles(x.monto))}${campo('Quién recibe', 'Lucía Ramos', 1)}</div>`;
+  }
+  function detalleRevisar(tipo, x) {
+    const pie = `<div class="rv-pie">${tipo === 'papel' ? '<button class="btn sec" data-hc="rv-luego">Más tarde</button>' : ''}<button class="btn pri" data-hc="rv-hecho">${ic(P.check)}${VERBO[tipo](x)}</button></div><p class="rv-listo">En la maqueta no se guarda nada: el registro sale de la lista y vuelve al recargar.</p>`;
+    return `<div><span class="vs">${QUE[tipo]}</span><h2>${tituloRevisar(tipo, x)}</h2><p class="sub">${subRevisar(tipo, x)}</p></div>${cuerpoRevisar(tipo, x)}${pie}`;
+  }
+
+  // ---------- POR PAGAR · PROPUESTA: «¿Te alcanza?» al costado, la deuda por semana, cada una con lo que se compró y si llegó ----------
+  const SEMANAS = [['Vencido', -9999, -1], ['13–19 nov', 0, 6], ['20–26 nov', 7, 13], ['27 nov–3 dic', 14, 20], ['4–10 dic', 21, 27], ['Más adelante', 28, 9999]];
+  const pl = { semana: null, q: '', caja: '', prov: null };
+  const semanaDe = (c) => SEMANAS.findIndex(([, a, b]) => como(c).venceEn >= a && como(c).venceEn <= b);
+  const deben = () => COMPRAS.filter((c) => como(c).saldo > 0).sort((a, b) => como(a).venceEn - como(b).venceEn);
+  function debenLibro() {
+    const q = sinTildes(pl.q.trim());
+    return deben().filter((c) => (pl.semana === null || semanaDe(c) === pl.semana) && (!pl.prov || c.prov === pl.prov)
+      && (!q || sinTildes([c.marca, c.razon, c.num, ...c.prendas.map((x) => x.nombre)].join(' ')).includes(q)));
+  }
+  function porPagarLibro() {
+    const todas = deben(), saldo = (c) => como(c).saldo, sum = (l) => l.reduce((s, c) => s + saldo(c), 0);
+    const venc = todas.filter((c) => como(c).vencida);
+    $('#cont').innerHTML = `${cabecera()}${pestanas('pagar')}
+      <div class="lb-cuerpo lado-abajo">
+      <aside class="lb-lado placa lb-ano pl-lado" aria-label="Lo que debes">
+        <section class="lb-mes"><span class="vs">Debes</span><b class="serif-n">${soles(sum(todas))}</b>
+          <p><span class="rojo-t">${soles(sum(venc))} ya vencido</span> en ${venc.length} ${venc.length === 1 ? 'comprobante' : 'comprobantes'}.</p></section>
+        <section><h3>¿Te alcanza?</h3><label class="pp-caja grande">Tengo S/ <input id="pl-caja" inputmode="decimal" placeholder="lo que hay en caja y banco" value="${pl.caja}"></label><p class="pl-dice" id="pl-dice"></p>
+          <div class="pl-sem" id="pl-sem" role="group" aria-label="Lo que vence, semana a semana; toca una para ver solo esa"></div></section>
+        <section><h3>A quién le debes</h3><div class="pl-prov" id="pl-prov"></div></section>
+      </aside>
+      <div class="lb-main">
+        <div class="lb-herr"><label class="pozo-b">${ic(P.buscar)}<input id="pl-q" placeholder="Marca, proveedor, prenda o número" value="${pl.q}" autocomplete="off"><kbd>/</kbd></label><button class="fp">${ic(P.filtros)}Filtros</button></div>
+        <div class="lb-puestos" id="pl-puestos"></div>
+        <section class="placa lb-lista" id="pl-lista" data-resultados></section>
+        <div id="pl-juntos"></div>
+      </div></div>`;
+    $('#pl-caja').addEventListener('input', (e) => { pl.caja = e.target.value; ladoPorPagar(); });
+    $('#pl-q').addEventListener('input', (e) => { pl.q = e.target.value; listaPorPagarLibro(); });
+    ladoPorPagar(); listaPorPagarLibro();
+  }
+  function ladoPorPagar() {
+    const todas = deben(), saldo = (c) => como(c).saldo;
+    const sem = SEMANAS.map(([t], i) => ({ t, i, m: todas.filter((c) => semanaDe(c) === i).reduce((s, c) => s + saldo(c), 0) }));
+    const max = Math.max(...sem.map((s) => s.m), 1);
+    const tengo = parseFloat(String(pl.caja).replace(/[^\d.]/g, '')) || 0;
+    let acum = 0, hasta = -1; sem.forEach((s) => { acum += s.m; if (tengo > 0 && acum <= tengo) hasta = s.i; });
+    const falta = sem[0].m - tengo;
+    $('#pl-dice').innerHTML = !tengo ? 'Escribe cuánto tienes y te digo hasta qué semana llegas.'
+      : hasta < 0 ? `<b>No alcanza ni para lo vencido:</b> te faltan ${soles(falta)}.`
+      : hasta === sem.length - 1 ? '<b>Alcanza para todo.</b>'
+      : `<b>Alcanza ${hasta === 0 ? 'solo para lo vencido' : `hasta la semana del ${sem[hasta].t}`}.</b> Lo que sigue necesita ${soles(sem.slice(hasta + 1).reduce((s, x) => s + x.m, 0))} más.`;
+    $('#pl-sem').innerHTML = sem.map((s) => `<button data-hc="pl-sem" data-i="${s.i}" aria-pressed="${pl.semana === s.i}" ${s.m ? '' : 'disabled'}>
+        <span>${s.t}</span><span class="bar"><i style="width:${(s.m / max) * 100}%;--c:${s.i === 0 ? 'var(--rojo)' : s.i === 1 ? 'var(--ambar)' : 'var(--taupe)'}"></i></span><b>${s.m ? soles(s.m) : '—'}</b>
+        <span class="ok${tengo && s.m && s.i > hasta ? ' no' : ''}">${tengo && s.m ? ic(s.i <= hasta ? P.check : P.x) : ''}</span></button>`).join('');
+    const prov = {}; todas.forEach((c) => { const k = c.prov; prov[k] = prov[k] || { c, m: 0 }; prov[k].m += saldo(c); });
+    const filas = Object.values(prov).sort((a, b) => b.m - a.m), maxP = filas[0]?.m || 1;
+    $('#pl-prov').innerHTML = filas.map(({ c, m }) => `<button data-hc="pl-prov" data-v="${c.prov}" aria-pressed="${pl.prov === c.prov}"><span><b>${c.marca || c.razon}</b> <small>${c.marca ? c.razon : ''}</small></span><b class="num">${soles(m)}</b><span class="bar"><i style="width:${(m / maxP) * 100}%"></i></span></button>`).join('');
+  }
+  function listaPorPagarLibro() {
+    const l = debenLibro(), saldo = (c) => como(c).saldo, sum = (x) => x.reduce((s, c) => s + saldo(c), 0);
+    const puestos = [];
+    if (pl.semana !== null) puestos.push(`<button class="fp puesto" data-hc="pl-sem" data-i="${pl.semana}">${SEMANAS[pl.semana][0]} ${ic(P.x)}</button>`);
+    if (pl.prov) puestos.push(`<button class="fp puesto" data-hc="pl-prov" data-v="${pl.prov}">${PROV[pl.prov].marca || PROV[pl.prov].razon} ${ic(P.x)}</button>`);
+    $('#pl-puestos').innerHTML = puestos.join('');
+    if (!l.length) { $('#pl-lista').innerHTML = `<div class="lb-vacio">${ic(P.lupax)}<h3>Nada por pagar aquí</h3><p>Prueba con otra semana, otro proveedor o sin búsqueda.</p><button class="btn sec" data-hc="pl-limpiar">Ver todo</button></div>`; $('#pl-juntos').innerHTML = ''; return; }
+    const grupos = [['Vencidas', l.filter((c) => como(c).vencida), 'var(--rojo-p)'], ['Esta semana · hasta el 19 nov', l.filter((c) => !como(c).vencida && como(c).venceEn <= 6), 'var(--ambar)'], ['Más adelante', l.filter((c) => como(c).venceEn > 6), '']].filter(([, x]) => x.length);
+    $('#pl-lista').innerHTML = `<div class="lb-col pl-col"><span></span><span>Qué compraste y a quién</span><span>Cómo va</span><span>Debes</span><span></span></div>` +
+      grupos.map(([t, x, c]) => `<div class="lb-mesg pl-g" style="${c ? `--c:${c}` : ''}"><h3>${t}</h3><span>${x.length} · <b class="num">${soles(sum(x))}</b></span></div>${x.map(filaPagar).join('')}`).join('') +
+      `<div class="lb-pie"><span>${l.length} ${l.length === 1 ? 'comprobante' : 'comprobantes'} con saldo</span><span>Toca uno para ver su detalle · marca varios del mismo proveedor para pagarlos juntos</span></div>`;
+    const m = COMPRAS.filter((c) => pp.marcadas.has(c.id)), provs = [...new Set(m.map((c) => c.prov))];
+    $('#pl-juntos').innerHTML = m.length ? `<div class="pp-juntos"><span><b>${soles(sum(m))}</b><small>${m.length} ${m.length === 1 ? 'comprobante' : 'comprobantes'} · ${provs.length > 1 ? 'de varios proveedores: se pagan por separado' : PROV[provs[0]].razon}</small></span><button class="btn" title="En la maqueta no se paga">${provs.length > 1 ? 'Pagar uno por uno' : 'Pagar juntos'}</button></div>` : '';
+  }
+  function filaPagar(c) {
+    const e = como(c), fr = frases(c);
+    return `<div class="lb-f pl-f" data-hc="abrir" data-id="${c.id}" aria-current="${st.abierta === c.id}" role="button" tabindex="0">
+      <button class="cas ca" role="checkbox" aria-checked="${pp.marcadas.has(c.id)}" data-hc="pp-marcar" data-id="${c.id}" aria-label="Elegir ${c.num} para pagar"><svg viewBox="0 0 24 24"><path d="${P.check}"/></svg></button>
+      <span class="cp"><span class="mos" data-color-dato aria-hidden="true">${c.prendas.slice(0, 3).map((x) => `<i style="background:${x.color}"></i>`).join('')}</span>
+        <span><span class="l1"><b>${c.marca || 'Sin marca'}</b> · ${c.razon}</span><span class="l2">${queCompraste(c)} · ${c.papel.toLowerCase()} ${c.num}</span></span></span>
+      <span class="va">${trayecto(c)}<span class="ps">${fr.filter(([t]) => t !== 'ok').slice(0, 2).map(([t, x]) => `<p class="${t}">${x.replace(/ · S\/\u00a0[\d,.]+$/, '')}</p>`).join('')}</span></span>
+      <span class="tot"><b class="serif-n">${soles(e.saldo)}</b><small>${c.pagado ? `pagaste ${soles(c.pagado)}` : `de ${soles(c.total)}`}</small></span>
+      <button class="btn sec pa" title="En la maqueta no se paga">Pagar</button></div>`;
+  }
+
+  // ---------- REVISAR COMPRAS · PROPUESTA: una sola cola, por ronda, en el orden en que se revisa ----------
+  const ORDEN_TIPO = { plata: 0, papel: 1, gasto: 2, cierre: 3 };
+  const COLOR_TIPO = { plata: 'var(--verde)', papel: 'var(--pizarra)', gasto: 'var(--ambar)', cierre: 'var(--taupe)' };
+  const ICONO_TIPO = { plata: T.fondos, papel: T.facturas, gasto: T.gastos, cierre: P.caja };
+  const HACER = { plata: 'Confirmar', papel: 'Registrar', gasto: 'Registrar', cierre: 'Recibir' };
+  // Filtros cortos: el verbo («Confirmar», «Completar»…) lo dice cada fila.
+  const PILDORA = { plata: 'Plata', papel: 'Compras', gasto: 'Gastos', cierre: 'Rondas' };
+  const rq = { tipo: null, abierto: null, persona: null, ant: false, entregar: null };
+  const ordenRondas = Object.keys(RONDAS).sort((a, b) => Number(RONDAS[b].cerrada) - Number(RONDAS[a].cerrada));
+  const cola = () => RV.filter((x) => !x.hecho && x.tipo !== 'plata' && (!rq.tipo || x.tipo === rq.tipo)).sort((a, b) => ordenRondas.indexOf(a.ronda) - ordenRondas.indexOf(b.ronda) || ORDEN_TIPO[a.tipo] - ORDEN_TIPO[b.tipo]);
+  // Recibir lo que devuelve una ronda espera a que su plata esté confirmada (la base lo pide igual: «Primero confirma su plata»).
+  const espera = () => false; // sin confirmar la plata, nada espera a otra cosa
+  function revisarMesa() {
+    const pend = RV.filter((x) => !x.hecho && x.tipo !== 'plata');
+    $('#cont').innerHTML = `${cabecera()}${pestanas('revisar', `<button class="btn pri" data-hc="en-abrir" aria-haspopup="dialog">${ic('M12 5v14M5 12h14')}Entregar plata</button>`)}
+      <div class="lb-cuerpo lado-abajo">
+      <aside class="lb-lado placa lb-ano rq-lado" aria-label="Quién tiene plata"><section id="rq-quien"></section>
+      </aside>
+      <div class="lb-main">
+        <div class="rq-pills">${[[null, 'Todo', pend.length], ...Object.keys(ORDEN_TIPO).filter((t) => t !== 'plata').map((t) => [t, PILDORA[t], pend.filter((x) => x.tipo === t).length])].map(([t, x, n]) =>
+          `<button class="fp" data-hc="rq-tipo" data-v="${t || ''}" aria-pressed="${rq.tipo === t}">${rq.tipo === t ? ic(P.check) : ''}${x}<span class="glb${t && n ? ' pide' : ''}">${n}</span></button>`).join('')}</div>
+        <section class="placa lb-lista rq-lista" id="rq-lista"></section>
+      </div></div>`;
+    listaRevisar(); ladoRevisar();
+  }
+
+  // ---------- «Quién tiene plata»: nombre y monto; al tocar, se despliegan sus movimientos ----------
+  function ladoRevisar() {
+    const personas = Object.entries(RONDAS).map(([k, r]) => ({ k, r, tiene: r.entregado - r.gasto }));
+    $('#rq-quien').innerHTML = `<h3 class="rq-titulo"><span>Quién tiene plata</span><b class="num">${soles(personas.reduce((s, x) => s + x.tiene, 0))}</b></h3>
+      <div class="rq-quien">${personas.map(({ r, tiene }) => `<button class="rq-pb" data-hc="rq-persona" data-v="${r.quien}" aria-haspopup="dialog" title="Ver los movimientos de ${r.quien}"><span class="ini" aria-hidden="true">${r.quien[0]}</span><b>${r.quien}</b><b class="num">${soles(tiene)}</b>${ic(P.chev, 'ic chev')}</button>`).join('')}</div>`;
+  }
+  // ---------- La hoja «La plata de Rosa»: lo que le dieron y lo que hizo con eso ----------
+  // La hoja se lee como una libreta: primero la respuesta («Tiene que devolver S/ 180»), después qué pasó con la plata, con lo que le
+  // queda tras cada movimiento, y al final lo que falta para cerrar su cuenta, cada cosa con su verbo y un toque que lleva a hacerla.
+  function modalPersona() {
+    const el = $('#modal'), quien = rq.persona, abierto = !!(quien || rq.entregar);
+    el.classList.toggle('abierto', abierto); el.setAttribute('aria-hidden', String(!abierto));
+    if (rq.entregar) { hojaEntregar(); return; }
+    if (!quien) return;
+    const [k, r] = Object.entries(RONDAS).find(([, x]) => x.quien === quien), tiene = r.entregado - r.gasto;
+    const pendiente = (m) => estadoMov(m)[0] === 'ambar';
+    const papel = (m) => m.concepto.split(' · ')[1]?.toLowerCase() || 'papel';
+    const tienda = (m) => (m.detalle.match(/a (\w+)$/) || [])[1];
+    // Lo que pasó, del lado de la compradora. Una devolución entra a la libreta recién cuando la caja la recibe.
+    const hecho = (m) => m.tipo === 'entrega' ? ['Recibió plata', m.detalle.replace(' · ', ', ')]
+      : m.tipo === 'compra' ? [`Compró en ${m.concepto.split(' · ')[0]}`, `${(m.detalle.match(/(\d+) prendas/) || [])[1] || ''} prendas${tienda(m) ? ` para ${tienda(m)}` : ''}`]
+      : m.tipo === 'gasto' ? [`Gastó en ${m.concepto.charAt(0).toLowerCase() + m.concepto.slice(1)}`, m.detalle]
+      : ['Devolvió lo que le sobró', m.detalle];
+    const libreta = (lista) => { let saldo = 0;
+      return `<div class="lt" role="table" aria-label="Movimientos de su plata"><div class="lt-cab" role="row"><span>Fecha</span><span>Qué pasó</span><span>Monto</span><span>Le queda</span></div>${lista.map((m) => {
+        saldo += m.monto; const [que, det] = hecho(m), ic2 = { entrega: T.fondos, compra: T.venta, gasto: T.gastos, devolucion: P.caja }[m.tipo];
+        return `<div class="lt-f" role="row"><span class="fe">${corta(m.fecha)}</span><span class="que"><span class="n" style="--c:${m.monto > 0 ? 'var(--verde)' : 'var(--taupe)'}">${ic(ic2)}</span><span><b>${que}</b><small><span class="fecha-m">${corta(m.fecha)} · </span>${det}</small></span></span>
+          <span class="mo num${m.monto > 0 ? ' mas' : ''}">${m.monto > 0 ? '+' : '−'} ${soles(Math.abs(m.monto))}</span><span class="sa num">${soles(saldo)}</span></div>`; }).join('')}</div>`; };
+    const ahora = MOVS.filter((m) => m.ronda === k && !(m.tipo === 'devolucion' && pendiente(m))).sort((a, b) => a.fecha.localeCompare(b.fecha));
+    const nEnt = ahora.filter((m) => m.tipo === 'entrega').length;
+    const falta = MOVS.filter((m) => m.ronda === k && pendiente(m)).sort((a, b) => ({ entrega: 0, compra: 1, gasto: 2, devolucion: 3 })[a.tipo] - ({ entrega: 0, compra: 1, gasto: 2, devolucion: 3 })[b.tipo]);
+    // [qué hacer, para qué]: la segunda línea dice el porqué, sin palabras de oficina.
+    const tarea = (m) => m.tipo === 'compra' ? [`Registrar la ${papel(m)} de ${m.concepto.split(' · ')[0]}`, 'Copia de la foto la serie, el número y el monto, para que la compra entre al Historial.']
+      : m.tipo === 'gasto' ? [`Registrar el gasto «${m.concepto}» (${soles(Math.abs(m.monto))})`, 'Di si le dieron boleta o factura, para sumarlo a los gastos del viaje.']
+      : [`Recibir en caja los ${soles(Math.abs(m.monto))} que devuelve`, `Cuéntalos y anótalos en la caja de ${r.sede}.`];
+    const antes = MOVS.filter((m) => m.quien === quien && RONDAS_ANTES[m.ronda]);
+    const fechas = (l) => { const a = l[0].fecha, b = l[l.length - 1].fecha; return a === b ? corta(a) : a.slice(0, 7) === b.slice(0, 7) ? `${Number(a.slice(8))} al ${corta(b)}` : `${corta(a)} al ${corta(b)}`; };
+    $('.mdl-hoja', el).innerHTML = `<header class="mdl-cab"><span class="ini" aria-hidden="true">${quien[0]}</span><span class="tx"><h2 id="mdl-titulo">${quien}</h2><small>Compradora · ${r.sede}</small></span>
+        <button class="cj-x" data-hc="mdl-cerrar" aria-label="Cerrar">${ic(P.x)}</button></header>
+      <section class="vd"><span class="vs">${r.cerrada ? 'Tiene que devolver' : 'Tiene ahora'}</span><b class="serif-n">${soles(tiene)}</b>
+        <p>Le dieron ${soles(r.entregado)} ${nEnt > 1 ? `en ${nEnt} entregas` : `el ${corta(ahora[0].fecha)}`} y ${r.cerrada ? 'gastó' : 'lleva gastado'} ${soles(r.gasto)}.${r.cerrada ? '' : ' Sigue comprando.'}</p>
+        <span class="vd-bar" aria-hidden="true"><i style="width:${(r.gasto / r.entregado) * 100}%"></i></span>
+        <span class="vd-ley"><span><i></i>Gastó ${soles(r.gasto)}</span><span><i class="q"></i>${r.cerrada ? 'Le sobró' : 'Le queda'} ${soles(tiene)}</span></span>
+        ${r.cerrada ? '' : `<div class="vd-acc"><button class="btn sec" data-hc="en-abrir" data-v="${quien}">${ic('M12 5v14M5 12h14')}Darle más plata</button></div>`}</section>
+      <h3 class="mdl-sub">Qué hizo con la plata · ${fechas(ahora)}</h3>${libreta(ahora)}
+      ${falta.length ? `<h3 class="mdl-sub">Falta para cerrar su cuenta <span class="glb pide">${falta.length}</span></h3><div class="ft">${falta.map((m) => `<button class="ft-f" data-hc="mdl-ir" data-id="${m.rv}"><span class="pt" aria-hidden="true"></span><span><b>${tarea(m)[0]}</b><small>${tarea(m)[1]}</small></span>${ic(P.chev)}</button>`).join('')}</div>`
+        : '<p class="ft-ok">Su cuenta está al día: no falta nada.</p>'}
+      ${antes.length ? `<button class="rq-ant" data-hc="rq-ant" aria-expanded="${rq.ant}">Viajes anteriores ${ic(P.abajo, 'ic chev')}</button>
+        ${rq.ant ? [...new Set(antes.map((m) => m.ronda))].map((rk) => { const l = antes.filter((m) => m.ronda === rk).sort((a, b) => a.fecha.localeCompare(b.fecha));
+          return `<h3 class="mdl-sub">Viaje del ${fechas(l)} · <span class="ok">cuadró, quedó en S/ 0.00</span></h3>${libreta(l)}`; }).join('') : ''}` : ''}`;
+  }
+  // ---------- «Entregar plata» (Felipe 2026-11-13: la cuenta de origen se pide «al entregarla») ----------
+  // Como la plata entregada ya no se confirma después, este es el único momento en que se dice de qué cuenta sale: sin eso,
+  // Finanzas no sabría a qué cuenta descontarla. Las cuentas y lo que hay en cada una son inventados.
+  const CUENTAS = {
+    efectivo: [['caja-Trujillo', 'Caja de Trujillo', 2140], ['caja-Lima', 'Caja de Lima', 1310], ['caja-Arequipa', 'Caja de Arequipa', 980]],
+    yape: [['yape', 'Yape CAYLA', 640]],
+    transferencia: [['bcp', 'BCP Soles', 18450], ['ibk', 'Interbank Soles', 6200]],
+  };
+  const MEDIO = { efectivo: 'Efectivo', yape: 'Yape', transferencia: 'Transferencia' };
+  const cuentaDe = (id) => Object.values(CUENTAS).flat().find((c) => c[0] === id);
+  // La cuenta que se sugiere sigue lo elegido: en efectivo, la caja de la sede de quien recibe; con una sola cuenta, esa.
+  const cuentaSugerida = (e) => { if (!e.medio) return null; const r = e.quien && Object.values(RONDAS).find((x) => x.quien === e.quien);
+    return e.medio === 'efectivo' ? (r ? `caja-${r.sede}` : null) : CUENTAS[e.medio].length === 1 ? CUENTAS[e.medio][0][0] : null; };
+  const faltaEntregar = (e) => ({ quien: !e.quien, monto: !(e.monto > 0), medio: !e.medio, cuenta: !!e.medio && !e.cuenta });
+  function hojaEntregar() {
+    const e = rq.entregar, hoja = $('#modal .mdl-hoja'), r = e.quien && Object.values(RONDAS).find((x) => x.quien === e.quien);
+    const c = e.cuenta && cuentaDe(e.cuenta), f = faltaEntregar(e);
+    const cab = (t, s) => `<header class="mdl-cab"><span class="ini en-ic" aria-hidden="true">${ic(T.fondos)}</span><span class="tx"><h2 id="mdl-titulo">${t}</h2><small>${s}</small></span>
+      <button class="cj-x" data-hc="mdl-cerrar" aria-label="Cerrar">${ic(P.x)}</button></header>`;
+    if (e.listo) {
+      hoja.innerHTML = `${cab('Listo', 'Plata entregada')}<div class="en-listo"><span class="c">${ic(P.check)}</span>
+        <b>Le entregaste ${soles(e.monto)} a ${e.quien}</b>
+        <p>Salió de ${c[1]} (${MEDIO[e.medio].toLowerCase()}). ${r.cerrada ? 'Empieza un viaje nuevo.' : 'Ya está en su libreta'}: no hay que confirmarla después.</p></div>
+        <div class="en-pie">${r.cerrada ? '' : `<button class="btn sec" data-hc="en-ver">Ver la plata de ${e.quien}</button>`}<button class="btn pri" data-hc="mdl-cerrar">Listo</button></div>`;
+      return;
+    }
+    const err = (k, t) => e.intento && f[k] ? `<small class="en-err">${t}</small>` : '';
+    const personas = Object.values(RONDAS).map((x) => `<button class="en-op" data-hc="en-quien" data-v="${x.quien}" aria-pressed="${e.quien === x.quien}"><span class="ini" aria-hidden="true">${x.quien[0]}</span>
+      <span class="tx"><b>${x.quien}</b><small>${x.cerrada ? 'Su viaje cerró: empieza uno nuevo' : `Tiene ${soles(x.entregado - x.gasto)} · se suma a su viaje`}</small></span><span class="ok" aria-hidden="true"></span></button>`).join('');
+    const cuentas = e.medio ? CUENTAS[e.medio].map(([id, n, hay]) => `<button class="en-op" data-hc="en-cuenta" data-v="${id}" aria-pressed="${e.cuenta === id}">
+      <span class="tx"><b>${n}</b><small>Hay ${soles(hay)}${e.monto > hay ? ' · <em>no alcanza</em>' : ''}</small></span><span class="ok" aria-hidden="true"></span></button>`).join('') : '';
+    hoja.innerHTML = `${cab('Entregar plata', 'Para que una compradora salga a comprar')}
+      <div class="en-campo" data-campo="quien"><span class="t">¿A quién?</span><div class="en-ops">${personas}</div>${err('quien', 'Elige a quién le das la plata.')}</div>
+      <div class="en-campo" data-campo="monto"><label class="t" for="en-monto">¿Cuánto?</label><div class="en-monto"><span>S/</span><input id="en-monto" inputmode="decimal" autocomplete="off" placeholder="0.00" value="${e.texto || ''}"></div>${err('monto', 'Escribe cuánto le das.')}</div>
+      <div class="en-campo" data-campo="medio"><span class="t">¿Cómo se la das?</span><div class="en-medios">${Object.entries(MEDIO).map(([k, n]) => `<button class="fp" data-hc="en-medio" data-v="${k}" aria-pressed="${e.medio === k}">${e.medio === k ? ic(P.check) : ''}${n}</button>`).join('')}</div>${err('medio', 'Elige si es en efectivo, por Yape o por transferencia.')}</div>
+      <div class="en-campo" data-campo="cuenta"><span class="t">¿De qué cuenta sale?</span>${e.medio ? `<div class="en-ops">${cuentas}</div>` : '<p class="en-vacio">Elige primero cómo se la das.</p>'}${err('cuenta', 'Elige de qué cuenta sale.')}</div>
+      <div class="en-campo"><span class="t">Quién la entrega</span><div class="rv-campo"><div>Lucía Ramos${ic(P.abajo)}</div></div></div>
+      ${!Object.values(f).some(Boolean) ? `<p class="en-res">Sale de <b>${c[1]}</b> y pasa a <b>${e.quien}</b>. No hay que confirmarla después.</p>` : ''}
+      <div class="en-pie"><button class="btn sec" data-hc="mdl-cerrar">Cancelar</button><button class="btn pri" data-hc="en-ok">${e.monto > 0 ? `Entregar ${soles(e.monto)}` : 'Entregar'}</button></div>`;
+  }
+  function entregar() {
+    const e = rq.entregar, f = faltaEntregar(e);
+    if (Object.values(f).some(Boolean)) { e.intento = true; hojaEntregar(); const p = Object.keys(f).find((k) => f[k]); $(`#modal [data-campo="${p}"]`)?.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); if (p === 'monto') $('#en-monto').focus(); return; }
+    const [k, r] = Object.entries(RONDAS).find(([, x]) => x.quien === e.quien);
+    // En la maqueta solo se suma a un viaje abierto; armar el viaje nuevo de quien ya cerró queda fuera.
+    if (!r.cerrada) { r.entregado += e.monto; MOVS.push({ quien: e.quien, ronda: k, fecha: '2026-11-13', tipo: 'entrega', concepto: 'Le entregaron plata', detalle: `${MEDIO[e.medio]} · de ${cuentaDe(e.cuenta)[1]}`, monto: e.monto }); }
+    e.listo = true; hojaEntregar(); if ($('#rq-quien')) ladoRevisar(); $('#modal .btn.pri')?.focus();
+  }
+  function listaRevisar() {
+    const l = cola();
+    if (!l.length) { $('#rq-lista').innerHTML = `<div class="lb-vacio">${ic(P.check)}<h3>Todo al día</h3><p>Cuando una compradora anote algo, aparece aquí, en su ronda.</p></div>`; return; }
+    const porRonda = ordenRondas.map((k) => [k, l.filter((x) => x.ronda === k)]).filter(([, x]) => x.length);
+    $('#rq-lista').innerHTML = porRonda.map(([k, x]) => { const r = RONDAS[k];
+      return `<div class="rq-g"><span class="ini" aria-hidden="true">${r.quien[0]}</span><span class="tx"><b>${r.quien} · ronda ${k}</b><small>${r.cerrada ? `Cerró el ${r.cerro}` : `Abierta desde el ${r.desde}`} · ${r.sede} · le dieron ${soles(r.entregado)}</small></span>
+        <span class="der">${x.length} por revisar</span></div>` + x.map((y, i) => filaRevisar(y, i + 1)).join(''); }).join('') +
+      `<div class="lb-pie"><span>${l.length} por revisar</span><span>Se revisa en orden: primero lo que compró, después los gastos y al final lo que devuelve</span></div>`;
+  }
+  function filaRevisar(x, n) {
+    const e = espera(x);
+    return `<button class="rq-f${e ? ' espera' : ''}" data-hc="rq-abrir" data-id="${x.id}" aria-current="${rq.abierto === x.id}" style="--c:${COLOR_TIPO[x.tipo]}">
+      <span class="n">${ic(ICONO_TIPO[x.tipo])}</span>
+      <span class="tx"><b>${x.tipo === 'plata' ? `Le dieron plata · ${x.titulo.split(' · ')[0]}` : x.tipo === 'cierre' ? `${x.titulo}` : x.titulo}</b><small>${QUE[x.tipo]} · ${x.cuando.split(' · ')[0]}${x.marca ? ' · ' + x.marca : ''}</small></span>
+      <span class="es">${x.tipo === 'papel' ? `<span class="chip ${x.chip[0]}">${x.chip[1]}</span>` : ''}</span>
+      <b class="m serif-n">${soles(x.monto)}</b>
+      <span class="hacer">${e ? 'Primero su plata' : `${HACER[x.tipo]} ${ic(P.chev)}`}</span></button>`;
+  }
+
+  // ---------- LA PLATA DE UNA PERSONA: todo lo que le entregaron y lo que hizo con eso, ronda por ronda ----------
+  // `rv` liga el movimiento con lo que espera en la cola: al confirmarlo allá, aquí cambia su estado.
+  const MOVS = [
+    { quien: 'Rosa', ronda: 'RC-000031', fecha: '2026-11-10', tipo: 'entrega', concepto: 'Le entregaron plata', detalle: 'Transferencia · de BCP Soles', monto: 1500, rv: 'p1' },
+    { quien: 'Rosa', ronda: 'RC-000031', fecha: '2026-11-11', tipo: 'compra', concepto: 'Moda Gamarra · Boleta', detalle: 'Brisa · 18 prendas a Arequipa', monto: -742, rv: 'c3' },
+    { quien: 'Rosa', ronda: 'RC-000031', fecha: '2026-11-11', tipo: 'gasto', concepto: 'Taxi a Gamarra', detalle: 'Sin papel', monto: -18, rv: 'g1' },
+    { quien: 'Rosa', ronda: 'RC-000031', fecha: '2026-11-12', tipo: 'compra', concepto: 'Hilados del Norte · Boleta', detalle: 'Nativa · 24 prendas a Trujillo', monto: -486, rv: 'c1' },
+    { quien: 'Rosa', ronda: 'RC-000027', fecha: '2026-10-27', tipo: 'entrega', concepto: 'Le entregaron plata', detalle: 'Efectivo · caja de Trujillo', monto: 1200 },
+    { quien: 'Rosa', ronda: 'RC-000027', fecha: '2026-10-28', tipo: 'compra', concepto: 'Textiles Andina · Factura', detalle: 'Ámbar · 40 prendas a Trujillo', monto: -1050 },
+    { quien: 'Rosa', ronda: 'RC-000027', fecha: '2026-11-03', tipo: 'devolucion', concepto: 'Devolvió lo que sobró', detalle: 'En caja de Trujillo · recibió Lucía', monto: -150 },
+    { quien: 'Maribel', ronda: 'RC-000030', fecha: '2026-11-10', tipo: 'entrega', concepto: 'Le entregaron plata', detalle: 'Yape · de Yape CAYLA', monto: 500, rv: 'p2' },
+    { quien: 'Maribel', ronda: 'RC-000030', fecha: '2026-11-11', tipo: 'compra', concepto: 'Puesto 214 · Nota de venta', detalle: 'Sin marca · 24 prendas a Lima', monto: -320, rv: 'c2' },
+    { quien: 'Maribel', ronda: 'RC-000030', fecha: '2026-11-12', tipo: 'devolucion', concepto: 'Devuelve lo que sobró', detalle: 'En caja de Lima', monto: -180, rv: 'r1' },
+    { quien: 'Maribel', ronda: 'RC-000025', fecha: '2026-10-20', tipo: 'entrega', concepto: 'Le entregaron plata', detalle: 'Efectivo · caja de Lima', monto: 800 },
+    { quien: 'Maribel', ronda: 'RC-000025', fecha: '2026-10-21', tipo: 'compra', concepto: 'Moda Gamarra · Boleta', detalle: 'Brisa · 20 prendas a Lima', monto: -800 },
+  ];
+  const RONDAS_ANTES = { 'RC-000027': { quien: 'Rosa', cerro: '3 nov', cuadro: true }, 'RC-000025': { quien: 'Maribel', cerro: '22 oct', cuadro: true } };
+  const ESPERA = { entrega: 'Por confirmar', compra: 'Por completar', gasto: 'Por revisar', devolucion: 'Por recibir' };
+  const LISTO = { entrega: 'Confirmada', compra: 'Completada', gasto: 'Revisado', devolucion: 'Recibida' };
+  const estadoMov = (m) => { if (m.tipo === 'entrega') return ['', 'Entregada']; const y = m.rv && RV.find((x) => x.id === m.rv); return y && !y.hecho ? ['ambar', ESPERA[m.tipo]] : ['', LISTO[m.tipo]]; };
+  function cajonRevisar() {
+    const el = $('#cajon'), x = RV.find((y) => y.id === rq.abierto && !y.hecho);
+    el.classList.toggle('abierto', !!x); el.setAttribute('aria-hidden', String(!x));
+    $$('.rq-f').forEach((f) => f.setAttribute('aria-current', String(f.dataset.id === rq.abierto)));
+    if (!x) return;
+    const l = cola(), i = l.findIndex((y) => y.id === x.id), e = espera(x);
+    const plata = RV.find((y) => y.ronda === x.ronda && y.tipo === 'plata' && !y.hecho);
+    el.innerHTML = `<header class="cj-cab"><span class="ini" style="background:color-mix(in srgb,${COLOR_TIPO[x.tipo]} 16%,transparent);color:${COLOR_TIPO[x.tipo]}" aria-hidden="true">${ic(ICONO_TIPO[x.tipo])}</span><span class="tx"><span class="vs">${QUE[x.tipo]} · ${x.ronda}</span><h2>${tituloRevisar(x.tipo, x)}</h2>
+        <small>${subRevisar(x.tipo, x)}</small></span><button class="cj-x" data-hc="rq-cerrar" aria-label="Cerrar">${ic(P.x)}</button></header>
+      <div class="cj-cuerpo">${e ? `<p class="nota-maq" style="margin:0">Primero confirma su plata (${soles(plata.monto)}): sin eso no se sabe cuánto debe devolver.</p>` : ''}${cuerpoRevisar(x.tipo, x)}
+        ${x.tipo === 'papel' ? '<p class="rv-listo" style="text-align:left">Al guardar, esta compra pasa al Historial con su papel.</p>' : ''}</div>
+      <footer class="cj-pie"><span class="nav"><button data-hc="rq-nav" data-d="-1" aria-label="Anterior" ${i <= 0 ? 'disabled' : ''}>${ic(P.arriba)}</button><button data-hc="rq-nav" data-d="1" aria-label="Siguiente" ${i >= l.length - 1 ? 'disabled' : ''}>${ic(P.abajo)}</button><span class="num">${i + 1} de ${l.length}</span></span>
+        ${e ? `<button class="btn pri" data-hc="rq-ir" data-id="${plata.id}">Ir a su plata</button>` : `<button class="btn sec" data-hc="rq-luego">Más tarde</button><button class="btn pri" data-hc="rq-hecho">${ic(P.check)}${VERBO[x.tipo](x)}</button>`}</footer>`;
+  }
+  function pantalla() {
+    const hoy = estado.vista === 'ahora';
+    if (st.tab === 'revisar') hoy ? revisar() : revisarMesa();
+    else if (st.tab === 'pagar') hoy ? porPagar() : porPagarLibro();
+    else hoy ? ahora() : propuesta();
+  }
+
+  // ---------- el cajón ----------
+  const listaCajon = () => st.tab === 'pagar' ? debenLibro() : visibles();
+  function cajon() {
+    if (st.tab === 'revisar' && estado.vista !== 'ahora') return cajonRevisar();
+    const el = $('#cajon');
+    const c = COMPRAS.find((x) => x.id === st.abierta);
+    el.classList.toggle('abierto', !!c); el.setAttribute('aria-hidden', String(!c));
+    $$('.lb-f').forEach((f) => f.setAttribute('aria-current', String(Number(f.dataset.id) === st.abierta)));
+    if (!c) return;
+    const e = como(c), l = listaCajon(), i = l.findIndex((x) => x.id === c.id);
+    const paso = (est, alerta, vs, b, s, sTono) => `<div class="${est === 'todo' ? 'hecho' : ''}"><span class="p ${est === 'todo' ? 'hecho' : est === 'parte' ? 'parte' : ''} ${alerta || ''}">${est === 'todo' ? `<svg viewBox="0 0 24 24"><path d="${P.check}"/></svg>` : ''}</span>
+      <span class="vs">${vs}</span><b>${b}</b><small class="${sTono || ''}">${s}</small></div>`;
+    const condicion = c.cond === 'contado' ? 'al contado' : `a crédito: ${e.vencida ? 'venció' : 'vence'} el ${corta(c.vence)}`;
+    el.innerHTML = `<header class="cj-cab"><span class="ini" aria-hidden="true">${iniciales(c)}</span><span class="tx"><span class="vs">${c.papel}${c.num !== '—' ? ` · ${c.num}` : ''}</span><h2>${c.marca || c.razon}</h2>
+        <small>${c.marca ? c.razon : 'Sin marca'}${c.ruc ? ` · RUC ${c.ruc}` : ''}</small></span><button class="cj-x" data-hc="cerrar" aria-label="Cerrar">${ic(P.x)}</button></header>
+      <div class="cj-cuerpo">
+        <div class="cj-total"><b class="serif-n">${soles(c.total)}</b><span class="chs">${frases(c)[0][0] === 'ok' ? '<span class="chip">Al día</span>' : ''}${e.atraso > 0 ? `<span class="chip ambar">Atrasada ${e.atraso} días</span>` : ''}${e.vencida ? '<span class="chip rojo">Vencida</span>' : ''}</span></div>
+        <p class="cj-frase">Compra del ${corta(c.fecha)} para <b>${c.tienda}</b>, ${condicion}.</p>
+        <div class="cj-tray">
+          ${paso('todo', '', 'Comprada', corta(c.fecha), `${c.uds} prendas`)}
+          ${paso(e.llego, e.atraso > 0 ? 'ambar' : '', 'Llegó', e.llego === 'todo' ? 'Todo' : e.llego === 'nada' ? 'Aún no' : `${c.rec} de ${c.uds}`, e.falta ? (e.atraso ? `atrasada ${e.atraso} días` : `llega el ${corta(c.esperada)}`) : 'completo', e.atraso ? 'ambar' : '')}
+          ${paso(e.pagada, e.vencida ? 'rojo' : '', 'Pagada', e.pagada === 'todo' ? 'Todo' : e.pagada === 'nada' ? 'Aún no' : soles(c.pagado), e.saldo > 0 ? `faltan ${soles(e.saldo)}` : c.cond === 'contado' ? 'al contado' : 'saldada', e.vencida ? 'rojo' : '')}
+        </div>
+        <section class="cj-sec"><h3><span>Qué compraste<span class="glb">${c.prendas.length}</span></span></h3><div class="cj-placa">
+          ${c.prendas.map((p) => `<div class="cj-pr"><span class="sw" data-color-dato style="background:${p.color}"></span><b>${p.nombre}</b><span class="st num">${soles(p.cant * p.costo)}</span>
+            <small>${p.cant} × ${soles(p.costo)} · ${p.rec === p.cant ? 'llegaron todas' : `llegaron ${p.rec} de ${p.cant}`}</small>${p.rec < p.cant ? `<span class="bar"><i style="width:${(p.rec / p.cant) * 100}%"></i></span>` : ''}</div>`).join('')}
+          <div class="cj-sumas">${c.igv ? `<p><span>Subtotal</span><span class="num">${soles(c.sub)}</span></p><p><span>IGV 18 %</span><span class="num">${soles(c.igv)}</span></p>` : ''}<p class="t"><span>Total</span><span class="num">${soles(c.total)}</span></p></div></div></section>
+        <section class="cj-sec"><h3>Pagos</h3><div class="cj-placa">${c.pagado > 0
+          ? `<div class="cj-linea">${ic(P.pagar)}<span class="tx">${soles(c.pagado)}<small>${c.cond === 'contado' ? `${corta(c.fecha)} · al contado` : 'abono a cuenta'}</small></span></div>`
+          : `<div class="cj-linea">${ic(P.pagar)}<span class="tx">Aún no hay pagos<small>Saldo ${soles(e.saldo)}${c.vence ? ` · ${e.vencida ? 'venció' : 'vence'} el ${corta(c.vence)}` : ''}</small></span></div>`}</div></section>
+        <section class="cj-sec"><h3>Llegadas</h3><div class="cj-placa">${c.rec > 0
+          ? `<div class="cj-linea">${ic(P.caja)}<span class="tx">${c.rec} prendas a ${c.tienda}<small>Guía GUIA-0${c.id}4-2026 · ${corta(c.esperada > c.fecha ? c.esperada : c.fecha)}</small></span></div>`
+          : `<div class="cj-linea">${ic(P.caja)}<span class="tx">Todavía no llega nada<small>Se esperaba el ${corta(c.esperada)}</small></span></div>`}</div></section>
+        <section class="cj-sec"><h3>Papeles</h3><div class="cj-placa"><div class="cj-linea">${ic(P.clip)}<span class="tx">${c.id % 3 ? 'Foto del comprobante' : 'Sin foto del comprobante'}<small>${c.id % 3 ? 'subida el ' + corta(c.fecha) : 'Súbela para el contador'}</small></span><a class="enl" href="#">${c.id % 3 ? 'Ver' : 'Adjuntar'}</a></div></div></section>
+      </div>
+      <footer class="cj-pie"><span class="nav"><button data-hc="nav" data-d="-1" aria-label="Compra anterior" ${i <= 0 ? 'disabled' : ''}>${ic(P.arriba)}</button><button data-hc="nav" data-d="1" aria-label="Compra siguiente" ${i >= l.length - 1 ? 'disabled' : ''}>${ic(P.abajo)}</button><span class="num">${i + 1} de ${l.length}</span></span>
+        <button class="cj-mas" title="Más: Reasignar entre tiendas, Cerrar con faltante, Anular" aria-label="Más acciones">${ic(P.mas)}</button>
+        ${st.tab === 'pagar' ? `<button class="btn pri" title="En la maqueta no se paga">Pagar ${soles(e.saldo)}</button>` : `${e.saldo > 0 ? `<button class="btn ${e.falta > 0 ? 'sec' : 'pri'}" data-hc="a-pagar" title="Lleva a Por pagar, con esta compra marcada">Pagar</button>` : ''}${e.falta > 0 ? `<button class="btn pri">Recibir lo que falta</button>` : ''}`}${!e.saldo && !e.falta ? '<button class="btn sec" data-hc="cerrar">Listo</button>' : ''}</footer>`;
+  }
+
+  // ---------- los clics y las teclas ----------
+  $('#disp').addEventListener('click', (ev) => {
+    const a = ev.target.closest('[data-hc]');
+    if (ev.target.closest('#cont a, #cajon a')) ev.preventDefault();
+    if (!a) return;
+    const k = a.dataset.hc;
+    if (k === 'filtro') { st.filtro = a.dataset.v; lista(); cajon(); }
+    if (k === 'mes') { st.mes = st.mes === a.dataset.m ? null : a.dataset.m; propuesta(); cajon(); }
+    if (k === 'modo') { st.modo = a.dataset.v; st.abierta = null; propuesta(); cajon(); }
+    if (k === 'panel') { st.panel = !st.panel; propuesta(); }
+    if (k === 'borrarq') { st.q = ''; propuesta(); $('#lb-q').focus(); }
+    if (k === 'limpiar') { st.q = ''; st.filtro = 'todas'; st.mes = null; propuesta(); }
+    if (k === 'prov') { st.q = a.dataset.q; st.modo = 'compra'; propuesta(); }
+    if (k === 'abrir') { st.abierta = Number(a.dataset.id); cajon(); }
+    if (k === 'cerrar') { st.abierta = null; cajon(); }
+    if (k === 'nav') mover(Number(a.dataset.d));
+    if (k === 'tab') { st.tab = a.dataset.v; st.abierta = null; rq.abierto = null; rq.persona = null; rq.entregar = null; modalPersona(); pp.resaltar = null; $('#cont').scrollTop = 0; pantalla(); cajon(); }
+    if (k === 'a-pagar') { st.tab = 'pagar'; pp.resaltar = st.abierta; if (estado.vista === 'ahora') st.abierta = null; $('#cont').scrollTop = 0; pantalla(); cajon(); }
+    if (k === 'pp-venc') { pp.soloVencidas = !pp.soloVencidas; porPagar(); }
+    if (k === 'pp-agr') { pp.agrupar = a.dataset.v; porPagar(); }
+    if (k === 'pp-marcar') { const id = Number(a.dataset.id); pp.marcadas.has(id) ? pp.marcadas.delete(id) : pp.marcadas.add(id); pp.resaltar = null; estado.vista === 'ahora' ? listaPorPagar() : listaPorPagarLibro(); }
+    if (k === 'pl-sem') { const i = Number(a.dataset.i); pl.semana = pl.semana === i ? null : i; ladoPorPagar(); listaPorPagarLibro(); cajon(); }
+    if (k === 'pl-prov') { pl.prov = pl.prov === a.dataset.v ? null : a.dataset.v; ladoPorPagar(); listaPorPagarLibro(); cajon(); }
+    if (k === 'pl-limpiar') { pl.semana = null; pl.prov = null; pl.q = ''; porPagarLibro(); }
+    if (k === 'rq-tipo') { rq.tipo = a.dataset.v || null; revisarMesa(); cajon(); }
+    if (k === 'rq-abrir') { rq.abierto = a.dataset.id; cajon(); }
+    if (k === 'rq-ir') { rq.tipo = null; rq.abierto = a.dataset.id; revisarMesa(); cajon(); }
+    if (k === 'rq-cerrar') { rq.abierto = null; cajon(); }
+    if (k === 'rq-persona') { rq.persona = a.dataset.v; rq.ant = false; modalPersona(); $('.mdl-hoja .cj-x').focus(); }
+    if (k === 'rq-ant') { rq.ant = !rq.ant; modalPersona(); }
+    if (k === 'mdl-ir') { rq.persona = null; modalPersona(); rq.tipo = null; rq.abierto = a.dataset.id; revisarMesa(); cajon(); }
+    if (k === 'mdl-cerrar') { const v = rq.persona; rq.persona = null; rq.entregar = null; modalPersona(); $(`.rq-pb[data-v="${v}"]`)?.focus(); }
+    if (k === 'en-abrir') { rq.persona = null; rq.entregar = { quien: a.dataset.v || null, monto: 0, texto: '', medio: null, cuenta: null, intento: false, listo: false }; modalPersona(); $('#modal .mdl-hoja').scrollTop = 0; (a.dataset.v ? $('#en-monto') : $('#modal .en-op'))?.focus(); }
+    if (k === 'en-quien') { const e = rq.entregar; e.quien = a.dataset.v; if (e.medio === 'efectivo') e.cuenta = cuentaSugerida(e); hojaEntregar(); $(`#modal [data-hc="en-quien"][data-v="${e.quien}"]`)?.focus(); }
+    if (k === 'en-medio') { const e = rq.entregar; e.medio = a.dataset.v; e.cuenta = cuentaSugerida(e); hojaEntregar(); $(`#modal [data-hc="en-medio"][data-v="${e.medio}"]`)?.focus(); }
+    if (k === 'en-cuenta') { rq.entregar.cuenta = a.dataset.v; hojaEntregar(); $(`#modal [data-hc="en-cuenta"][data-v="${a.dataset.v}"]`)?.focus(); }
+    if (k === 'en-ok') entregar();
+    if (k === 'en-ver') { rq.persona = rq.entregar.quien; rq.entregar = null; rq.ant = false; modalPersona(); $('#modal .cj-x').focus(); }
+    if (k === 'rq-nav' || k === 'rq-luego') moverRevisar(k === 'rq-nav' ? Number(a.dataset.d) : 1);
+    if (k === 'rq-hecho') { const l = cola(), i = l.findIndex((x) => x.id === rq.abierto); RV.find((x) => x.id === rq.abierto).hecho = true; const n = cola(); rq.abierto = (n[i] || n[i - 1])?.id || null; revisarMesa(); cajon(); }
+    if (k === 'rv-tipo') { rv.tipo = a.dataset.v; rv.elegido = bandeja(rv.tipo)[0]?.id; revisar(); }
+    if (k === 'rv-el') { rv.elegido = a.dataset.id; revisar(); }
+    if (k === 'rv-luego' || k === 'rv-hecho') {
+      const antes = bandeja(rv.tipo), i = antes.findIndex((x) => x.id === rv.elegido);
+      if (k === 'rv-hecho' && i >= 0) { antes[i].hecho = true; rv.hecho = true; }
+      const l = bandeja(rv.tipo); rv.elegido = (k === 'rv-luego' ? l[i + 1] || l[0] : l[i] || l[i - 1] || l[0])?.id; revisar();
+    }
+  });
+  function moverRevisar(d) {
+    const l = cola(), i = l.findIndex((x) => x.id === rq.abierto), n = l[i + d] || (d > 0 ? l[0] : null);
+    if (!n) return;
+    rq.abierto = n.id; cajon();
+    $(`.rq-f[data-id="${n.id}"]`)?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+  }
+  function mover(d) {
+    const l = listaCajon(), i = l.findIndex((x) => x.id === st.abierta), n = l[i + d];
+    if (!n) return;
+    st.abierta = n.id; cajon();
+    $(`.lb-f[data-id="${n.id}"]`)?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+  }
+  // Lo que se escribe en «¿Cuánto?» se lee al vuelo: el botón dice el monto y cada cuenta dice si alcanza.
+  $('#disp').addEventListener('input', (ev) => {
+    if (ev.target.id !== 'en-monto') return;
+    const e = rq.entregar, pos = ev.target.selectionStart; e.texto = ev.target.value; e.monto = Number(e.texto.replace(/,/g, '.').replace(/[^\d.]/g, '')) || 0;
+    hojaEntregar(); const i = $('#en-monto'); i.focus(); i.setSelectionRange(pos, pos);
+  });
+  document.addEventListener('keydown', (ev) => {
+    if (ev.key === 'Escape' && (rq.persona || rq.entregar)) { const v = rq.persona; rq.persona = null; rq.entregar = null; modalPersona(); $(`.rq-pb[data-v="${v}"]`)?.focus(); return; }
+    if (ev.key === 'Enter' && ev.target.id === 'en-monto') { ev.preventDefault(); entregar(); return; }
+    if (estado.vista === 'ahora') return;
+    const enCampo = ev.target instanceof Element && ev.target.matches('input,textarea');
+    if (st.tab === 'revisar') {
+      if (rq.abierto && !enCampo && (ev.key === 'ArrowDown' || ev.key === 'ArrowUp')) { ev.preventDefault(); moverRevisar(ev.key === 'ArrowDown' ? 1 : -1); }
+      if (ev.key === 'Escape' && rq.abierto) { rq.abierto = null; cajon(); }
+      return;
+    }
+    if (ev.key === '/' && !enCampo) { ev.preventDefault(); ($('#lb-q') || $('#pl-q'))?.focus(); }
+    if (st.abierta && !enCampo && (ev.key === 'ArrowDown' || ev.key === 'ArrowUp')) { ev.preventDefault(); mover(ev.key === 'ArrowDown' ? 1 : -1); }
+    if (ev.key === 'Escape' && st.abierta) { st.abierta = null; cajon(); }
+  });
+
+  // Cambiar entre «Como ahora» y «Propuesta» se queda en la misma pestaña: así se compara cada una.
+  // El menú abierto en Compras ▸ Historial de compras.
+  activa = 'compras.comprobantes'; abiertos.clear(); abiertos.add('compras');
+  Marco.iniciar({ estado: { vista: 'propuesta' }, alPintar: () => { st.abierta = null; rq.abierto = null; rq.persona = null; rq.entregar = null; $('#cont').scrollTop = 0; pantalla(); cajon(); modalPersona(); } });
+})();
+</script>
+</body>
+</html>
