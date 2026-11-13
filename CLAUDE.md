@@ -58,7 +58,9 @@ CAYLA sea el único tenant y el esquema no lo modele explícitamente con `tenant
    «Vigía de Vercel» de Actions mira el último commit de `main` y, sin marca de Vercel a los 3 min,
    lo pide al Deploy Hook y deja un aviso «Producción atrás de main»); y la
    base misma (ADR-0450: si no responde, el ERP no confunde eso con «sin acceso» ni «sin sesión»: manda a `/sin-base`, que espera y vuelve sola; `GET /api/salud`
-   corre una consulta de verdad en Postgres y un vigía de GitHub la pregunta cada 5 min; el usuario de la tienda tiene tope de conexiones); el
+   corre una consulta de verdad en Postgres y un vigía de GitHub la pregunta cada 5 min; el usuario de la tienda tiene tope de conexiones); y
+   OpenAI, la foto de catálogo con IA (ADR-0659, `POST /api/fotos/catalogo`: sin `OPENAI_API_KEY` la opción no se dibuja; si no responde, se
+   sube la foto real y se avisa; la llave vive solo en el servidor); el
    sistema se degrada con gracia, nunca pierde datos. Culqi y Shopify se investigaron pero no se integraron
    (docs/investigacion/2026-09-23-tarjeta-pos-y-canal-online.md).
 10. **Ergonomía = potencia** — un colaborador de sede sin formación técnica debe
