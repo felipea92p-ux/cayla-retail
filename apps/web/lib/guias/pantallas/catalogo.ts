@@ -331,6 +331,13 @@ export const GUIA_PRODUCTOS: Guia = {
       texto: "Solo aparece lo que no coincide: el nombre, la categoría, el precio… Cada dato va bajo su ficha y tocas el que se queda. Lo que no aparece es igual en las fichas.",
     },
     {
+      id: "fusionar-vacias",
+      ancla: "fusionar.vacias",
+      opcional: true,
+      titulo: "Tallas sin prendas",
+      texto: "Las tallas y colores que no tienen ni una prenda (o nunca la tuvieron). Si no las quieres en la ficha final, quítales la marca: dejan de venderse, pero sus ventas no se pierden.",
+    },
+    {
       id: "fusionar-fotos",
       ancla: "fusionar.fotos",
       opcional: true,

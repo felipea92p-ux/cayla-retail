@@ -32,7 +32,7 @@ const producto = (id: string, extra: Partial<ProductoPlan> = {}): ProductoPlan =
   tejido: { id: null, nombre: null },
   patron: { id: null, nombre: null },
   unidadesVendidas: 0,
-  ventas: 0,
+  tickets: 0,
   ultimaVenta: null,
   stock: 0,
   variantes: 0,
@@ -176,6 +176,12 @@ describe("la matriz de la ficha final (decisión 7)", () => {
       detalle,
     );
     expect(celdaDe(dos, "ROJ", "M")).toEqual({ estado: "pasa", antes: 0, llega: 3 });
+  });
+
+  it("una talla que sale de la venta no se dibuja, ni lo que se le junta (20261113175000)", () => {
+    const sin = matrizFinal(plan, "blusa", detalle, new Set(["b-neg-m"]));
+    expect(celdaDe(sin, "NEG", "M")).toBeNull();
+    expect(celdaDe(sin, "NEG", "L")).toEqual({ estado: "junta", antes: 2, llega: 1 });
   });
 
   it("la frase dice cuántas pasan y cuántas se juntan, en palabras de tienda", () => {

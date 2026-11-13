@@ -2,7 +2,7 @@
   "guia": "productos",
   "ruta": "/productos",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 114,
+  "total": 116,
   "controles": {
     "app/(app)/productos/page.tsx": [
       "Link «Existencias»",
@@ -107,6 +107,8 @@
       "Volver «→() => setVista(\"armar\")»",
       "Boton «Cancelar» #2",
       "Boton «{guiaRevisar.frase ?? responsable.motivo ?? undefined}»",
+      "Casilla «{`Dejar ${nombre}»",
+      "button «Sacar las»",
       "button «{p.referencia}»"
     ],
     "components/fusionar-productos/PosiblesDuplicados.tsx": [
