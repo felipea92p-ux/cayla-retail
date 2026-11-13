@@ -32,7 +32,7 @@ const producto = (id: string, extra: Partial<ProductoPlan> = {}): ProductoPlan =
   tejido: { id: null, nombre: null },
   patron: { id: null, nombre: null },
   unidadesVendidas: 0,
-  ventas: 0,
+  tickets: 0,
   ultimaVenta: null,
   stock: 0,
   variantes: 0,

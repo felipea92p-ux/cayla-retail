@@ -66,8 +66,8 @@ export function CompararFichas({
                 <dl>
                   <dt className="text-taupe">Vendidas</dt>
                   <dd>{p.unidadesVendidas === 0 ? textoVentas(p) : enteros(p.unidadesVendidas)}</dd>
-                  <dt className="text-taupe">Total vendido</dt>
-                  <dd>{p.ventas > 0 ? soles(p.ventas) : "—"}</dd>
+                  <dt className="text-taupe">En ventas</dt>
+                  <dd>{p.tickets > 0 ? enteros(p.tickets) : "—"}</dd>
                   <dt className="text-taupe">Última venta</dt>
                   <dd>{fechaCorta(p.ultimaVenta)}</dd>
                 </dl>

@@ -52,6 +52,8 @@ describe("leerPlan", () => {
     expect(p.ok).toBe(true);
     expect(p.productos.map((x) => [x.id, x.queda, x.unidadesVendidas, x.stock])).toEqual([["A", true, 4, 20], ["B", false, 1, 5]]);
     expect(p.variantes.map((v) => v.trato)).toEqual(["junta", "muda"]);
+    // `ventas` de la base es en cuántas ventas aparece, no soles (Felipe 2026-11-13 lo vio como «S/ 1.00» en Comparar).
+    expect(p.productos.map((x) => x.tickets)).toEqual([3, 1]);
     expect(p.resumen).toEqual({ mudan: 1, juntan: 1, unidadesJuntadas: 3, unidadesQueLlegan: 5, fotosDuplicados: 1 });
     expect(p.productos[1].costo).toBeNull();
   });

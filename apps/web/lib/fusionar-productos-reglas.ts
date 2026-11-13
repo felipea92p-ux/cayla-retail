@@ -26,7 +26,8 @@ export type ProductoPlan = {
   tejido: Nombrado;
   patron: Nombrado;
   unidadesVendidas: number;
-  ventas: number;
+  /** En cuántas ventas (tickets) aparece: la base lo llama `ventas`, pero es un conteo, no soles (Felipe 2026-11-13 lo vio como «S/ 1.00»). */
+  tickets: number;
   ultimaVenta: string | null;
   stock: number;
   variantes: number;
@@ -101,7 +102,7 @@ export function leerPlan(json: unknown): PlanFusion {
         tejido: nombrado(p.tejido),
         patron: nombrado(p.patron),
         unidadesVendidas: Number(p.unidades_vendidas ?? 0),
-        ventas: Number(p.ventas ?? 0),
+        tickets: Number(p.ventas ?? 0),
         ultimaVenta: texto(p.ultima_venta),
         stock: Number(p.stock ?? 0),
         variantes: Number(p.variantes ?? 0),

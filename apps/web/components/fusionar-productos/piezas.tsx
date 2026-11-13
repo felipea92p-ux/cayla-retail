@@ -237,7 +237,8 @@ function TextoCelda({ estado, antes, llega, grande }: { estado: "ya" | "pasa" | 
   return (
     <span>
       {enteros(antes)}
-      <small>+{enteros(llega)}</small>
+      {/* «+0» no dice nada: la talla se junta pero no trae prendas; lo dicen el borde verde y la leyenda. */}
+      {llega > 0 && <small>+{enteros(llega)}</small>}
     </span>
   );
 }
@@ -272,7 +273,7 @@ export function MatrizTallas({
               <span className="sr-only">Color</span>
             </th>
             {m.tallas.map((t) => (
-              <th key={t} scope="col" className="label-cayla">
+              <th key={t} scope="col" className="label-cayla fus-talla" title={t}>
                 {t}
               </th>
             ))}
