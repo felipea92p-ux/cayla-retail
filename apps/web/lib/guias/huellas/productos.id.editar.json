@@ -2,7 +2,7 @@
   "guia": "productos.id.editar",
   "ruta": "/productos/[id]/editar",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 167,
+  "total": 168,
   "controles": {
     "app/(app)/productos/[id]/editar/page.tsx": [
       "Volver «{volverA}»"
@@ -157,6 +157,7 @@
       "Boton «Guardar»"
     ],
     "components/ficha-producto/PanelDelTaller.tsx": [
+      "button «{alternativa.texto}»",
       "button «{propia ? \"Cambiar foto\" : \"+ Agregar foto\"}»",
       "input «(sin nombre)»",
       "button «{n.color(c)}»",

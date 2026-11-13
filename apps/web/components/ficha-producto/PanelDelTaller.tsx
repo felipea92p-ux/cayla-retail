@@ -4,11 +4,12 @@ import { useRef, useState } from "react";
 import { Lock } from "lucide-react";
 import { FichaDeConsumoHoja } from "@/components/orden-produccion/FichaDeConsumoHoja";
 import { BarraAvance } from "@/components/ui/BarraAvance";
-import { Boton } from "@/components/ui/campos";
+import { Boton, HiloEnEspera } from "@/components/ui/campos";
 import { ImagenDePrenda } from "@/components/ui/ImagenDePrenda";
 import { PasoCantidad } from "@/components/ui/PasoCantidad";
 import { Punto } from "@/components/alta-producto/ElegirColores";
 import { tonosDeMezcla } from "@/lib/color-combinado";
+import { esFotoIA } from "@/lib/foto-catalogo-reglas";
 import { vistaDeFotos, type FotoLocal } from "@/lib/fotos-por-color-reglas";
 import { compararTallas } from "@/lib/tallas";
 import type { FilaFicha } from "@/lib/variantes-ficha-reglas";
@@ -83,6 +84,10 @@ export function PanelDelTaller({
   const tarjeta = vista.tarjetas.find((t) => t.codigo === colorMostrado);
   const propia = tarjeta?.fotos[0] ?? null;
   const foto = propia ?? vista.general.fotos[0] ?? null;
+  // «Catálogo con IA» en el panel (formidable, 2026-11-13): la persona trabaja aquí, así que aquí se ve la foto que se prepara y aquí se
+  // vuelve a la suya. Antes el panel decía «Sin foto todavía» mientras la IA trabajaba y «Usar mi foto» vivía solo en la sección «Fotos».
+  const preparandoAqui = catalogo.preparandoDe(colorMostrado);
+  const alternativa = propia && !preparandoAqui ? catalogo.alternativa(propia) : null;
   const sinFoto = (c: string) => vista.tarjetas.find((t) => t.codigo === c)?.estado === "sin-foto";
   const color = (c: string | null) => ctx.colores.find((x) => x.codigo === c);
   // Una mezcla («Negro con crudo», ADR-0643) parte su muestra con los tonos de sus colores, la base a la izquierda.
@@ -110,14 +115,29 @@ export function PanelDelTaller({
     <aside aria-label="Identidad y stock de la prenda" className="taller-panel min-w-0 @min-[50rem]:sticky @min-[50rem]:top-6">
       <div data-guia="editar.foto" className="taller-panel-foto">
         <div className="taller-foto-grande">
-          {foto ? (
+          {preparandoAqui ? (
+            // La foto que se prepara, atenuada con el hilo de espera: lo mismo que su tarjeta en «Fotos».
+            <div aria-busy className="absolute inset-0">
+              {/* eslint-disable-next-line @next/next/no-img-element -- vista local (blob:), no pasa por el optimizador */}
+              <img src={preparandoAqui} alt="" className="absolute inset-0 h-full w-full object-cover opacity-40 grayscale-[.4]" />
+              <span className="absolute inset-0 grid place-content-center justify-items-center gap-2 text-sm font-medium text-tinta">
+                <span className="relative block h-[2px] w-28">
+                  <HiloEnEspera />
+                </span>
+                Preparando…
+              </span>
+            </div>
+          ) : foto ? (
             <ImagenDePrenda key={foto.url} src={foto.url} alt="" fill sizes="340px" className="taller-foto-img object-cover" fallback={null} />
           ) : (
             <div className="taller-foto-vacia">{colorMostrado ? `Sin foto de ${n.color(colorMostrado)} todavía` : "Sin fotos todavía"}</div>
           )}
-          {catalogo.preparandoDe(colorMostrado) && (
-            <span className="absolute inset-x-3 top-3 z-[1] flex justify-center" aria-busy>
-              <Chip tono="pizarra">Preparando…</Chip>
+          {alternativa && (
+            <span className="absolute left-3 top-3 z-[2] flex items-center gap-2 rounded-full bg-papel/95 py-1 pl-1.5 pr-3">
+              {propia && esFotoIA(propia.url) && <Chip tono="pizarra">Con IA</Chip>}
+              <button type="button" disabled={deshabilitado} onClick={alternativa.usar} className="btn-cayla btn-enlace text-sm">
+                {alternativa.texto}
+              </button>
             </span>
           )}
           {colorMostrado && (
@@ -134,7 +154,7 @@ export function PanelDelTaller({
             type="button"
             className="taller-btn-foto"
             data-sin-foto={!propia || undefined}
-            disabled={deshabilitado || ocupado}
+            disabled={deshabilitado || ocupado || Boolean(preparandoAqui)}
             onClick={() => archivo.current?.click()}
           >
             {propia ? "Cambiar foto" : "+ Agregar foto"}

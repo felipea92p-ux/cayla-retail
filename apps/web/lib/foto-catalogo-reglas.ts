@@ -63,5 +63,6 @@ export function moldeDeLaPrenda(colores: readonly string[], fotos: readonly { ur
     const ia = fotos.find((f) => f.colorCodigo === c && esFotoIA(f.url));
     if (ia) return ia.url;
   }
-  return fotos.find((f) => esFotoIA(f.url))?.url ?? null;
+  // La foto «para todos los colores» (sin color) nunca es molde: puede mostrar la prenda en otra forma (formidable, 2026-11-13).
+  return fotos.find((f) => f.colorCodigo !== null && esFotoIA(f.url))?.url ?? null;
 }

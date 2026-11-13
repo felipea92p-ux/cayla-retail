@@ -821,10 +821,14 @@ export function ProductoForm({
           puedeTocar: (id) => preciosSede.tiendas.some((t) => t.id === id),
         })
       : null;
-  const hayCambios = !guardado && totalCambios > 0;
+  // Una foto de catálogo que la IA está preparando cuenta como cambio: salir a mitad la perdería, y ya se pagó (formidable, 2026-11-13).
+  const hayCambios = (!guardado && totalCambios > 0) || catalogo.preparandoAlgo;
   // «¿Salir sin guardar?» (Felipe, 2026-09-28: «preguntar antes de perder»): el aviso de Compras y Recibir, con esta frase.
   // Cubre enlaces, Atrás y cerrar la pestaña; ver `useSalidaSinGuardar`.
-  const salida = useSalidaSinGuardar(hayCambios, textoDeSalidaDeFicha(totalCambios, producto?.referencia ?? referencia));
+  const salida = useSalidaSinGuardar(
+    hayCambios,
+    textoDeSalidaDeFicha(guardado ? 0 : totalCambios, producto?.referencia ?? referencia, catalogo.preparandoAlgo),
+  );
 
   function recargar() {
     // Recargar es justamente descartar lo escrito (otra persona guardó antes): sin el aviso nativo encima.
@@ -844,6 +848,8 @@ export function ProductoForm({
     if (frenoCantidades.current?.()) return;
     if (!producto) return void avisar.error("Esta pantalla solo edita productos. Para crear uno usa Nuevo producto.");
     if (!hayCambios) return;
+    // Una foto de catálogo en camino: guardar espera a que llegue (Enter en un campo no pasa por el botón apagado).
+    if (catalogo.preparandoAlgo) return;
     if (versionCambiada) {
       return void avisar.error("Otra persona cambió esta prenda: recárgala para poder guardar.", { accion: { texto: "Recargar", onClick: recargar } });
     }
@@ -2187,7 +2193,8 @@ export function ProductoForm({
 
       {/* Lo pendiente, siempre a la vista: la única forma de guardar (ADR-0257). Va dentro del formulario para que «Revisar y guardar» lo envíe. */}
       <BarraDeCambios
-        cantidad={hayCambios ? totalCambios : 0}
+        cantidad={!guardado && totalCambios > 0 ? totalCambios : 0}
+        preparandoFoto={catalogo.preparandoAlgo}
         versionCambiada={versionCambiada}
         sinLeerVariantes={hayQueRecargar}
         yaSeGuardoLoDemas={seGuardoParte}

@@ -1717,7 +1717,7 @@ export const GUIA_NUEVO_PRODUCTO: Guia = {
       // Solo está con una categoría elegida (la tabla de la prenda) y si el servidor tiene la llave de la IA.
       opcional: true,
       titulo: "Catálogo con IA",
-      texto: "Encendido, la foto de cada color sale como foto de catálogo: la prenda en un maniquí invisible, de frente y sin fondo. El primer color hace de molde y los demás salen con su misma forma. «Usar mi foto» vuelve a la tuya.",
+      texto: "Encendido, la foto de cada color sale como foto de catálogo: la prenda en un maniquí invisible, de frente y sin fondo. El primer color hace de molde y los demás salen con su misma forma. Toca su miniatura para verla en grande; «Usar mi foto» vuelve a la tuya.",
     },
     {
       id: "punto-4",

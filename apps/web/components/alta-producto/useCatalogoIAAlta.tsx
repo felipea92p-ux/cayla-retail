@@ -64,7 +64,8 @@ export function useCatalogoIAAlta({
       const f = lista.find((x) => x.colorCodigo === c && x.ia?.usar);
       if (f) return f;
     }
-    return lista.find((x) => x.ia?.usar) ?? null;
+    // La foto «para todos los colores» no es molde (formidable, 2026-11-13).
+    return lista.find((x) => x.colorCodigo !== null && x.ia?.usar) ?? null;
   }
 
   async function preparar(p: PedidoCatalogo) {
@@ -77,7 +78,9 @@ export function useCatalogoIAAlta({
     const esMolde: { soltar: ((b: Blob | null) => void) | null } = { soltar: null };
     let molde: Blob | null = null;
     const hecho = moldeHecho(fotosRef.current);
-    if (hecho?.ia) molde = hecho.ia.png;
+    // La foto «para todos los colores» no usa molde ni lo es: puede mostrar la prenda en otra forma.
+    if (p.color === null) molde = null;
+    else if (hecho?.ia) molde = hecho.ia.png;
     else if (moldeEnCurso.current) molde = await moldeEnCurso.current;
     else {
       moldeEnCurso.current = new Promise<Blob | null>((resolver) => (esMolde.soltar = resolver));
@@ -128,9 +131,9 @@ export function useCatalogoIAAlta({
     },
     hoja: hoja ? (
       <HojaCatalogoIA
-        nombreColor={nombreColor(hoja.color)}
+        nombreColor={hoja.color === null ? "Todos los colores" : nombreColor(hoja.color)}
         inicial={hoja}
-        molde={colorDelMolde !== undefined && colorDelMolde !== hoja.color ? { url: hecho?.ia?.vistaIA ?? null, nombreColor: nombreColor(colorDelMolde) } : null}
+        molde={hoja.color !== null && colorDelMolde !== undefined && colorDelMolde !== hoja.color ? { url: hecho?.ia?.vistaIA ?? null, nombreColor: nombreColor(colorDelMolde) } : null}
         onPreparar={(p) => {
           setHoja(null);
           const promesa = preparar(p).finally(() => enCurso.current.delete(promesa));

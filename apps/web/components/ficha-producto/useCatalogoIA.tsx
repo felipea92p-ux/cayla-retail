@@ -34,6 +34,8 @@ export type CatalogoIA = {
   abrir: (archivos: File[], color: string | null) => void;
   /** La vista local (blob:) de la foto que se está preparando para ese color, o `null`. */
   preparandoDe: (color: string | null) => string | null;
+  /** ¿Hay alguna foto preparándose? Cuenta como cambio sin guardar: salir a mitad perdería una foto ya pagada (formidable, 2026-11-13). */
+  preparandoAlgo: boolean;
   /** «Usar mi foto» en una de IA, o «Usar la de IA» en una real que se preparó en esta sesión. `null` si no aplica. */
   alternativa: (foto: FotoLocal) => { texto: string; usar: () => void } | null;
   /** La hoja de ángulos, para dibujarla una vez en la ficha. */
@@ -114,6 +116,9 @@ export function useCatalogoIA({
   const [colorMoldeEnCurso, setColorMoldeEnCurso] = useState<string | null | undefined>(undefined);
 
   const claveDe = (color: string | null) => color ?? "";
+  // La foto sin color es la «para todos los colores»: así se nombra, nunca «Sin color» (formidable, 2026-11-13).
+  const nombreDe = (color: string | null) => (color === null ? "Todos los colores" : nombreColor(color));
+  const deQue = (color: string | null) => (color === null ? "para todos los colores" : `de ${nombreColor(color)}`);
   const urlMolde = moldeDeLaPrenda(colores, fotos);
   const colorDelMolde = urlMolde ? (fotos.find((f) => f.url === urlMolde)?.colorCodigo ?? null) : (colorMoldeEnCurso ?? null);
   const hayMolde = Boolean(urlMolde) || colorMoldeEnCurso !== undefined;
@@ -126,7 +131,9 @@ export function useCatalogoIA({
       // Si este color resulta ser el molde, `soltar` le avisa a los que lo esperan (con su foto, o `null` si la IA falló).
       const esMolde: { soltar: ((b: Blob | null) => void) | null } = { soltar: null };
       const url = moldeDeLaPrenda(colores, fotosRef.current);
-      if (url) molde = await fetch(url).then((r) => (r.ok ? r.blob() : null)).catch(() => null);
+      // La foto «para todos los colores» no usa molde ni lo es: puede mostrar la prenda en otra forma.
+      if (p.color === null) molde = null;
+      else if (url) molde = await fetch(url).then((r) => (r.ok ? r.blob() : null)).catch(() => null);
       else if (moldeEnCurso.current) molde = await moldeEnCurso.current.promesa;
       else {
         // Este color es el molde de los que vengan detrás mientras se prepara.
@@ -150,12 +157,12 @@ export function useCatalogoIA({
         moldeEnCurso.current = null;
         setColorMoldeEnCurso(undefined);
       }
-      if ("error" in subida) avisar.error(`La foto de ${nombreColor(p.color)} no subió`, { detalle: subida.error });
+      if ("error" in subida) avisar.error(`La foto ${deQue(p.color)} no subió`, { detalle: subida.error });
       else {
         onLista([{ url: subida.url, colorCodigo: p.color }]);
         // Se avisa al FINAL, con la foto ya subida: un aviso que se muestra y enseguida queda tapado por la subida no vuelve (ADR-0146,
         // `lib/espera-estado.ts`), y la persona no se enteraba de que su foto quedó sin IA (encontrado con /chaos, 2026-11-13).
-        if ("error" in r) avisar.aviso(`La IA no respondió: quedó tu foto de ${nombreColor(p.color)}.`, { detalle: r.error });
+        if ("error" in r) avisar.aviso(`La IA no respondió: quedó tu foto ${deQue(p.color)}.`, { detalle: r.error });
       }
     } finally {
       setPreparando((m) => {
@@ -198,12 +205,13 @@ export function useCatalogoIA({
       if (frente) setHoja({ color, frente, espalda: archivos[1] ?? null, detalle: archivos[2] ?? null });
     },
     preparandoDe: (color) => preparando.get(claveDe(color)) ?? null,
+    preparandoAlgo: preparando.size > 0,
     alternativa,
     hoja: hoja ? (
       <HojaCatalogoIA
-        nombreColor={nombreColor(hoja.color)}
+        nombreColor={nombreDe(hoja.color)}
         inicial={hoja}
-        molde={hayMolde && colorDelMolde !== hoja.color ? { url: urlMolde, nombreColor: nombreColor(colorDelMolde) } : null}
+        molde={hoja.color !== null && hayMolde && colorDelMolde !== hoja.color ? { url: urlMolde, nombreColor: nombreColor(colorDelMolde) } : null}
         onPreparar={(p) => {
           setHoja(null);
           void preparar(p);

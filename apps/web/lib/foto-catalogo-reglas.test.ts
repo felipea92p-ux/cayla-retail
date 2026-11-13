@@ -76,6 +76,11 @@ describe("moldeDeLaPrenda", () => {
     expect(moldeDeLaPrenda(["VER", "ROS"], [{ url: real("verde"), colorCodigo: "VER" }, { url: ia("rosa"), colorCodigo: "ROS" }])).toBe(ia("rosa"));
   });
 
+  it("la foto «para todos los colores» no es molde", () => {
+    expect(moldeDeLaPrenda(["VER"], [{ url: ia("general"), colorCodigo: null }])).toBeNull();
+    expect(moldeDeLaPrenda(["VER"], [{ url: ia("general"), colorCodigo: null }, { url: ia("verde"), colorCodigo: "VER" }])).toBe(ia("verde"));
+  });
+
   it("sin ninguna de IA no hay molde", () => {
     expect(moldeDeLaPrenda(["VER"], [{ url: real("verde"), colorCodigo: "VER" }])).toBeNull();
     expect(moldeDeLaPrenda([], [])).toBeNull();

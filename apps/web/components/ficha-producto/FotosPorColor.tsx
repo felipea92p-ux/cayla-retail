@@ -117,7 +117,7 @@ export function FotosPorColor({
     <div className="space-y-3">
       <TituloSeccion
         dato={cuenta || undefined}
-        ayuda={catalogo.disponible ? "Catálogo con IA: maniquí invisible, sin fondo. Unos 25 s y 0,05 USD por foto." : undefined}
+        ayuda={catalogo.disponible ? "Catálogo con IA: maniquí invisible, sin fondo." : undefined}
         accion={
           catalogo.disponible ? (
             <span data-guia="editar.catalogo-ia-interruptor">
@@ -220,7 +220,12 @@ export function FotosPorColor({
         </Aviso>
       )}
 
-      <p className="text-sm text-tinta/45">JPG, PNG o WebP, hasta 5 MB. Se sube tal cual la entregas. Un PNG con fondo transparente además entra al armador de looks.</p>
+      {/* Con la IA encendida la foto no se sube «tal cual» (formidable, 2026-11-13): se dice solo el formato. */}
+      <p className="text-sm text-tinta/45">
+        {catalogo.encendido
+          ? "JPG, PNG o WebP, hasta 5 MB."
+          : "JPG, PNG o WebP, hasta 5 MB. Se sube tal cual la entregas. Un PNG con fondo transparente además entra al armador de looks."}
+      </p>
 
       {viendo !== undefined && (
         <HojaDeFotos
@@ -358,7 +363,9 @@ function Tarjeta({
         {punto}
         <span className="min-w-0 truncate">{titulo}</span>
         {(!general || fotos.length > 0) && (
-          <small className={`ml-auto shrink-0 text-sm font-normal ${estado === "sin-foto" ? "font-medium text-ambar-profundo" : "text-taupe"}`}>{textoEstadoColor(estado, fotos.length)}</small>
+          <small className={`ml-auto shrink-0 text-sm font-normal ${estado === "sin-foto" && !preparando ? "font-medium text-ambar-profundo" : "text-taupe"}`}>
+            {preparando ? "Preparando…" : textoEstadoColor(estado, fotos.length)}
+          </small>
         )}
       </div>
       {alternativa && !preparando && (
