@@ -1,7 +1,7 @@
 # ADR-0652 — Cuadrar con el banco: el saldo de hoy se corta en el momento de anotarlo
 
 - **Fecha:** 2026-11-13 · **Estado:** construido en la rama `claude/cuadre-retiro-error-c18c68`. La migración `20261113170000_cuadre_se_corta_al_anotar.sql`
-  **no está en producción**: espera el OK de Felipe para pegarla. Su vuelta: `pegar-en-produccion-vuelta-cuadre-se-corta-al-anotar-2026-11-13.sql`.
+  **está en producción desde el 2026-11-13** (la pegó Felipe; corrió sin error). Su vuelta: `pegar-en-produccion-vuelta-cuadre-se-corta-al-anotar-2026-11-13.sql`.
 - **Nace de:** Felipe (2026-11-13), en Finanzas ▸ Cuentas y dinero ▸ Cuadrar con el banco: «cuadré, pero luego hice un retiro y me sale “No cuadra”;
   no entiende que el retiro se hizo después». BCP Empresa: anotó que el banco decía S/ 1,480.39 (coincidía), registró un retiro de S/ 280.39 con fecha
   de ese mismo día y el cuadre pasó a «No cuadra: hay S/ 280.39 de diferencia», con 0 líneas por revisar que lo explicaran.
