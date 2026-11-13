@@ -11,8 +11,18 @@ import { MosaicoPrenda } from "@/components/MosaicoPrenda";
 import { Chip } from "@/components/ui/Chip";
 import { TituloGrupo } from "@/components/ui/TituloSeccion";
 import { CapsulaColor } from "@/components/ui/MuestraColor";
-import { celdaDe, fraseDeLaMatriz, type FichaFinal, type MatrizFinal } from "@/lib/fusionar-productos-ficha";
-import { fechaDeAlta, motivoSugerido, nombreDeCampo, type ProductoPlan } from "@/lib/fusionar-productos-reglas";
+import {
+  celdaDe,
+  fraseDeLaMatriz,
+  type FichaFinal,
+  type MatrizFinal,
+} from "@/lib/fusionar-productos-ficha";
+import {
+  fechaDeAlta,
+  motivoSugerido,
+  nombreDeCampo,
+  type ProductoPlan,
+} from "@/lib/fusionar-productos-reglas";
 
 const enteros = (n: number) => n.toLocaleString("es-PE");
 
@@ -33,12 +43,30 @@ export function FotoFicha({
 }) {
   const sinFoto = (
     <div className="absolute inset-0">
-      <MosaicoPrenda forma="relleno" conNombre prefijo={categoria.prefijo} familia={categoria.familia} categoria={categoria.nombre} className="h-full w-full !rounded-none" />
+      <MosaicoPrenda
+        forma="relleno"
+        conNombre
+        prefijo={categoria.prefijo}
+        familia={categoria.familia}
+        categoria={categoria.nombre}
+        className="h-full w-full !rounded-none"
+      />
     </div>
   );
   return (
     <div className={`fus-foto ${className}`}>
-      {url ? <ImagenDePrenda src={url} alt={alt} fill sizes="340px" className="object-cover" fallback={sinFoto} /> : sinFoto}
+      {url ? (
+        <ImagenDePrenda
+          src={url}
+          alt={alt}
+          fill
+          sizes="340px"
+          className="object-cover"
+          fallback={sinFoto}
+        />
+      ) : (
+        sinFoto
+      )}
       {children}
     </div>
   );
@@ -48,7 +76,8 @@ export function FotoFicha({
 export function Visto() {
   return (
     <span className="fus-visto" aria-hidden>
-      <Check strokeWidth={3} /> {/* unificar-fijo: la marca sobre un punto lleno lleva trazo 3 (fila «icono») */}
+      {/* prettier-ignore */}
+      <Check /* unificar-fijo: la marca sobre un punto lleno lleva trazo 3 (fila «icono») */ strokeWidth={3} />
     </span>
   );
 }
@@ -79,11 +108,15 @@ export function ColumnaFicha({
   refRadio: (el: HTMLButtonElement | null) => void;
   onTecla: (e: React.KeyboardEvent<HTMLButtonElement>) => void;
 }) {
-  const foto = p.fotos.find((f) => f.esPrincipal)?.url ?? p.fotos[0]?.url ?? null;
+  const foto =
+    p.fotos.find((f) => f.esPrincipal)?.url ?? p.fotos[0]?.url ?? null;
   const motivo = motivoSugerido(productos, p.id);
   const idCifras = `fus-cifras-${p.id}`;
   return (
-    <li className="fus-columna-caja" style={{ "--fus-i": indice } as React.CSSProperties}>
+    <li
+      className="fus-columna-caja"
+      style={{ "--fus-i": indice } as React.CSSProperties}
+    >
       <button
         ref={refRadio}
         type="button"
@@ -107,19 +140,25 @@ export function ColumnaFicha({
             </span>
           )}
         </span>
-        <span className="texto-detalle mt-0.5 block text-sm text-taupe">{[p.codigo, p.categoria.nombre].filter(Boolean).join(" · ")}</span>
+        <span className="texto-detalle mt-0.5 block text-sm text-taupe">
+          {[p.codigo, p.categoria.nombre].filter(Boolean).join(" · ")}
+        </span>
         <span className="fus-cifras block" id={idCifras}>
           <dl>
             <div>
               <dd>{enteros(p.unidadesVendidas)}</dd>
-              <dt className="label-cayla">{p.unidadesVendidas === 1 ? "vendida" : "vendidas"}</dt>
+              <dt className="label-cayla">
+                {p.unidadesVendidas === 1 ? "vendida" : "vendidas"}
+              </dt>
             </div>
             <div>
               <dd>{enteros(p.stock)}</dd>
               <dt className="label-cayla">en stock</dt>
             </div>
           </dl>
-          <span className="texto-detalle mt-2 block text-sm text-taupe">{fechaDeAlta(p.creadoEn)}</span>
+          <span className="texto-detalle mt-2 block text-sm text-taupe">
+            {fechaDeAlta(p.creadoEn)}
+          </span>
         </span>
         {motivo && (
           <span className="mt-2.5 block">
@@ -179,7 +218,12 @@ export function FilaDistinta({
   const refs = useRef<(HTMLButtonElement | null)[]>([]);
   const lista = opciones.map((o) => o.productoId);
   const tecla = (e: React.KeyboardEvent<HTMLButtonElement>, i: number) => {
-    const paso = e.key === "ArrowRight" || e.key === "ArrowDown" ? 1 : e.key === "ArrowLeft" || e.key === "ArrowUp" ? -1 : 0;
+    const paso =
+      e.key === "ArrowRight" || e.key === "ArrowDown"
+        ? 1
+        : e.key === "ArrowLeft" || e.key === "ArrowUp"
+          ? -1
+          : 0;
     if (!paso) return;
     e.preventDefault();
     const j = (i + paso + lista.length) % lista.length;
@@ -187,7 +231,17 @@ export function FilaDistinta({
     refs.current[j]?.focus();
   };
   return (
-    <div className="fus-fila" role="radiogroup" aria-label={nombre} style={{ "--fus-n": productos.length, "--fus-k": indice } as React.CSSProperties}>
+    <div
+      className="fus-fila"
+      role="radiogroup"
+      aria-label={nombre}
+      style={
+        {
+          "--fus-n": productos.length,
+          "--fus-k": indice,
+        } as React.CSSProperties
+      }
+    >
       <span className="campo-etiqueta">{nombre}</span>
       {productos.map((p) => {
         const i = lista.indexOf(p.id);
@@ -225,7 +279,17 @@ export function FilaDistinta({
 }
 
 /** Lo que dice cada celda: la cifra y, en grande, qué le pasa. */
-function TextoCelda({ estado, antes, llega, grande }: { estado: "ya" | "pasa" | "junta"; antes: number; llega: number; grande: boolean }) {
+function TextoCelda({
+  estado,
+  antes,
+  llega,
+  grande,
+}: {
+  estado: "ya" | "pasa" | "junta";
+  antes: number;
+  llega: number;
+  grande: boolean;
+}) {
   if (estado === "ya") return <span>{enteros(antes)}</span>;
   if (estado === "pasa")
     return (
@@ -237,12 +301,17 @@ function TextoCelda({ estado, antes, llega, grande }: { estado: "ya" | "pasa" | 
   return (
     <span>
       {enteros(antes)}
-      <small>+{enteros(llega)}</small>
+      {/* «+0» no dice nada: la talla se junta pero no trae prendas; lo dicen el borde verde y la leyenda. */}
+      {llega > 0 && <small>+{enteros(llega)}</small>}
     </span>
   );
 }
 
-const NOMBRE_ESTADO = { ya: "ya estaba", pasa: "pasa de la otra ficha", junta: "se junta" } as const;
+const NOMBRE_ESTADO = {
+  ya: "ya estaba",
+  pasa: "pasa de la otra ficha",
+  junta: "se junta",
+} as const;
 
 /** La matriz color × talla de la ficha final (decisión 7): «ya estaba», «pasa» (contorno punteado) y «se junta» (+N). El color de
  *  cada fila es dato (la cápsula de la prenda); el estado se dice con forma y texto, no solo con color. */
@@ -264,56 +333,76 @@ export function MatrizTallas({
   let k = 0;
   return (
     <div className="space-y-2">
-      <table /* unificar-fijo: matriz de tallas, aparte de <Tabla> como MatrizIngreso (Propuesta 3 de la ficha) */ className={`fus-matriz ${grande ? "fus-matriz-grande" : ""}`} aria-busy={leyendo || undefined}>
-        <caption className="sr-only">Tallas y colores de la ficha final</caption>
-        <thead>
-          <tr>
-            <th scope="col" className="label-cayla text-left">
-              <span className="sr-only">Color</span>
-            </th>
-            {m.tallas.map((t) => (
-              <th key={t} scope="col" className="label-cayla">
-                {t}
+      {/* Con muchas tallas (8, 10…) la matriz no aprieta los números: cada columna tiene su mínimo y la matriz corre de lado dentro de su
+          caja (Felipe 2026-11-13: «pueden haber más de 5 tallas y tiene que quedar bien»). */}
+      <div className="fus-matriz-caja scroll-cayla">
+        {/* prettier-ignore */}
+        <table /* unificar-fijo: matriz de tallas, aparte de <Tabla> como MatrizIngreso (Propuesta 3 de la ficha) */ className={`fus-matriz ${grande ? "fus-matriz-grande" : ""}`} style={{ "--fus-t": m.tallas.length } as React.CSSProperties} aria-busy={leyendo || undefined}>
+          <caption className="sr-only">
+            Tallas y colores de la ficha final
+          </caption>
+          <thead>
+            <tr>
+              <th scope="col" className="label-cayla text-left">
+                <span className="sr-only">Color</span>
               </th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {m.colores.map((c) => (
-            <tr key={c.clave}>
-              <th scope="row">
-                <span className="flex min-w-0 items-center gap-2">
-                  <CapsulaColor fondo={c.colorHex} compacta />
-                  <span className="truncate" title={c.color}>{c.color}</span>
-                </span>
-              </th>
-              {m.tallas.map((t) => {
-                const celda = celdaDe(m, c.clave, t);
-                if (!celda)
+              {m.tallas.map((t) => (
+                <th
+                  key={t}
+                  scope="col"
+                  className="label-cayla fus-talla"
+                  title={t}
+                >
+                  {t}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {m.colores.map((c) => (
+              <tr key={c.clave}>
+                <th scope="row">
+                  <span className="flex min-w-0 items-center gap-2">
+                    <CapsulaColor fondo={c.colorHex} compacta />
+                    <span className="truncate" title={c.color}>
+                      {c.color}
+                    </span>
+                  </span>
+                </th>
+                {m.tallas.map((t) => {
+                  const celda = celdaDe(m, c.clave, t);
+                  if (!celda)
+                    return (
+                      <td key={t} className="fus-celda fus-celda-nada">
+                        —
+                        <span className="sr-only">{`${c.color} ${t}: no existe`}</span>
+                      </td>
+                    );
+                  const kk = Math.min(k++, 12);
                   return (
-                    <td key={t} className="fus-celda fus-celda-nada">
-                      —<span className="sr-only">{`${c.color} ${t}: no existe`}</span>
+                    <td
+                      key={t}
+                      className="fus-celda"
+                      data-estado={celda.estado}
+                      style={{ "--fus-k": kk } as React.CSSProperties}
+                      title={`${c.color} ${t}: ${NOMBRE_ESTADO[celda.estado]}`}
+                    >
+                      <TextoCelda {...celda} grande={grande} />
+                      <span className="sr-only">{`, ${NOMBRE_ESTADO[celda.estado]}`}</span>
                     </td>
                   );
-                const kk = Math.min(k++, 12);
-                return (
-                  <td
-                    key={t}
-                    className="fus-celda"
-                    data-estado={celda.estado}
-                    style={{ "--fus-k": kk } as React.CSSProperties}
-                    title={`${c.color} ${t}: ${NOMBRE_ESTADO[celda.estado]}`}
-                  >
-                    <TextoCelda {...celda} grande={grande} />
-                    <span className="sr-only">{`, ${NOMBRE_ESTADO[celda.estado]}`}</span>
-                  </td>
-                );
-              })}
-            </tr>
-          ))}
-        </tbody>
-      </table>
-      <p className="flex flex-wrap gap-x-4 gap-y-1.5 text-xs text-taupe" aria-hidden> {/* unificar-fijo: leyenda de un gráfico, fuera del piso de 14 px */}
+                })}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <p
+        className="flex flex-wrap gap-x-4 gap-y-1.5 text-xs text-taupe"
+        aria-hidden
+      >
+        {" "}
+        {/* unificar-fijo: leyenda de un gráfico, fuera del piso de 14 px */}
         <span className="inline-flex items-center gap-1.5">
           <i className="fus-leyenda-muestra fus-celda" data-estado="ya" />
           Ya estaba
@@ -327,7 +416,9 @@ export function MatrizTallas({
           Se junta y suma
         </span>
       </p>
-      {conFrase && fraseDeLaMatriz(m) && <p className="text-sm text-tinta">{fraseDeLaMatriz(m)}</p>}
+      {conFrase && fraseDeLaMatriz(m) && (
+        <p className="text-sm text-tinta">{fraseDeLaMatriz(m)}</p>
+      )}
     </div>
   );
 }
@@ -341,7 +432,13 @@ function Volteable({ valor }: { valor: string }) {
     setPrevio(valor);
     setCambios(cambios + 1);
   }
-  return cambios === 0 ? <span>{valor}</span> : <span key={cambios} className="fus-voltea">{valor}</span>;
+  return cambios === 0 ? (
+    <span>{valor}</span>
+  ) : (
+    <span key={cambios} className="fus-voltea">
+      {valor}
+    </span>
+  );
 }
 
 /** «Así va a quedar»: la ficha final, que se arma con cada elección. Lo que viene de otra ficha lleva su marca. */
@@ -365,15 +462,30 @@ export function PlacaFinal({
   pegada?: boolean;
   conMatriz?: boolean;
 }) {
-  const datos = ficha.datos.filter((d) => d.campo === "categoria" || d.campo === "precio" || d.deOtra);
+  const datos = ficha.datos.filter(
+    (d) => d.campo === "categoria" || d.campo === "precio" || d.deOtra,
+  );
   return (
-    <section className={`fus-final ${pegada ? "fus-final-pegada" : ""}`} aria-busy={leyendo || undefined} aria-label="Así va a quedar" data-guia="fusionar.final">
+    <section
+      className={`fus-final ${pegada ? "fus-final-pegada" : ""}`}
+      aria-busy={leyendo || undefined}
+      aria-label="Así va a quedar"
+      data-guia="fusionar.final"
+    >
       <TituloGrupo>Así va a quedar</TituloGrupo>
-      <FotoFicha url={ficha.fotoUrl} categoria={ficha.categoria} className="mt-2.5" />
+      <FotoFicha
+        url={ficha.fotoUrl}
+        categoria={ficha.categoria}
+        className="mt-2.5"
+      />
       <p className="fus-final-nombre" aria-live="polite">
         <Volteable valor={ficha.referencia} />
       </p>
-      {ficha.codigo && <p className="texto-detalle mt-0.5 text-sm text-taupe">{ficha.codigo}</p>}
+      {ficha.codigo && (
+        <p className="texto-detalle mt-0.5 text-sm text-taupe">
+          {ficha.codigo}
+        </p>
+      )}
       <dl aria-live="polite">
         {datos.map((d) => (
           <div key={d.campo} className="contents">
@@ -394,7 +506,11 @@ export function PlacaFinal({
       </dl>
       {conMatriz && (
         <div className="mt-3 border-t border-tinta/10 pt-3">
-          {matriz ? <MatrizTallas m={matriz} leyendo={leyendo} varias={varias} /> : <p className="text-sm text-taupe">{avisoMatriz}</p>}
+          {matriz ? (
+            <MatrizTallas m={matriz} leyendo={leyendo} varias={varias} />
+          ) : (
+            <p className="text-sm text-taupe">{avisoMatriz}</p>
+          )}
         </div>
       )}
     </section>
