@@ -31,6 +31,8 @@ export const RUTAS_DE_CRON = [
   "/api/sire/propuesta",
   // ADR-0632: el vigía de invariantes (los estados imposibles de /chaos, mirados en producción), cada madrugada (3:30 de Lima).
   "/api/salud/invariantes",
+  // ADR-0656: el vigía de rendimiento (una foto de pg_stat_statements: cuánto costó cada función de retail), cada hora a los 7 minutos.
+  "/api/salud/rendimiento",
   // ADR-0633: la foto del diario por mes. Cada 5 minutos rehace las vencidas y las que faltan; cada madrugada (4:00 de Lima), todas.
   "/api/finanzas/foto-diario",
   "/api/finanzas/foto-diario/todas",
