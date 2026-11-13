@@ -929,6 +929,11 @@ export const PRUEBAS = [
   // sí aparece; un ticket mixto cuenta solo la línea de CAYLA; sin el parche de 6d sí contaba). Cada caso: ROLLBACK.
   "pruebas:claure-motores-con-cifra",
 
+  // CLAURE de una pasada (ADR-0658): fn_lineas_de_claure marca las mismas líneas que fn_item_es_de_claure (seis ventanas, por sede, el borde del arranque;
+  // dueño por producto y por la salida del libro; devolución, cambio, anotada y regularizada, venta anulada), y el plan del piso y el plan de compra
+  // salen con el mismo md5 con el cambio y sin él (control: sin CLAURE ligada, la salida cambia). La web no la llama; la migración se repega. Cada caso: ROLLBACK.
+  "pruebas:lineas-de-claure",
+
   // Los cambios con prendas de CLAURE (ADR-0560, actividad 13): la plata sigue a la prenda que se lleva la clienta (CLAURE→CAYLA baja lo que se le debe, CAYLA→CLAURE sube con la diferencia, CLAURE→CLAURE solo la diferencia; el
   // efectivo y CAYLA con CAYLA no mueven nada); la pestaña, la proyección y el aviso del cierre dicen lo mismo; el Diario lo mueve entre 7011 y 479, cuadrado por cambio; la migración se repega y aborta con un texto distinto. Cada caso: ROLLBACK.
   "pruebas:claure-cambios",
