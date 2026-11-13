@@ -40,6 +40,7 @@ import {
 import {
   GUIA_ATRIBUTOS,
   GUIA_SELLOS,
+  GUIA_CAMPANAS,
   GUIA_CATEGORIAS,
   GUIA_EDITAR_PRODUCTO,
   GUIA_FAMILIAS,
@@ -180,6 +181,7 @@ export const GUIAS: readonly Guia[] = [
   GUIA_HISTORIAL_PRENDA,
   GUIA_ATRIBUTOS,
   GUIA_SELLOS,
+  GUIA_CAMPANAS,
   GUIA_CATEGORIAS,
   GUIA_FAMILIAS,
   GUIA_MARCAS,
@@ -404,6 +406,7 @@ export const PANTALLAS: Record<string, PantallaConGuia> = {
   "/productos/categorias": { estado: "aplicada", guia: GUIA_CATEGORIAS.id },
   "/productos/familias": { estado: "aplicada", guia: GUIA_FAMILIAS.id },
   "/productos/insignias": { estado: "aplicada", guia: GUIA_SELLOS.id },
+  "/productos/campanas": { estado: "aplicada", guia: GUIA_CAMPANAS.id },
   "/productos/marcas": { estado: "aplicada", guia: GUIA_MARCAS.id },
   "/productos/nuevo": { estado: "aplicada", guia: GUIA_NUEVO_PRODUCTO.id },
   "/productos/por-revisar": { estado: "aplicada", guia: GUIA_POR_REVISAR.id },

@@ -2,7 +2,7 @@
   "guia": "productos.sellos",
   "ruta": "/productos/insignias",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 143,
+  "total": 145,
   "controles": {
     "components/ConfirmarConResponsable.tsx": [
       "ComboResponsable «{control}»",
@@ -154,14 +154,15 @@
     ],
     "components/sellos/SellosPantalla.tsx": [
       "button «→(ev) => abrir(e.id, ev.currentTarget)»",
-      "BotonEditar «→() => setEditandoId(e.id)»",
+      "BotonEditar «Corregir el nombre o cambiar el ícono de la insignia»",
       "button «{conGuia ? \"sellos.prendas\" : undefined}»",
       "button «{conGuia ? \"sellos.configurar\" : undefined}»",
       "BotonImprimir «(sin nombre)»",
-      "BotonVer «Diseño web»",
       "button «{cambiandoId === e.id ? \"Desactivando…\" : \"Desactivar\"}»",
+      "Boton «{conGuia ? \"sellos.preparar\" : undefined}»",
       "button «→() => setEtiquetando(e)»",
       "Boton «+ Elegir prendas»",
+      "button «sellos.mapa»",
       "BotonVer «Cómo se ven en la web»",
       "Boton «sellos.nuevo»",
       "Pestanas «→cambiarVista»",
@@ -171,7 +172,8 @@
       "Boton «→() => aprobar(aprobandoEtiqueta)»",
       "CampoTexto «Motivo (opcional)»",
       "Boton «Cancelar» #2",
-      "Boton «Confirmar rechazo»"
+      "Boton «Confirmar rechazo»",
+      "button «{x.clave === \"oferta\" ? \"sellos.pregunta-oferta\" : undefined}»"
     ]
   }
 }

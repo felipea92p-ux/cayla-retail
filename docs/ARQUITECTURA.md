@@ -891,7 +891,8 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
   `retail.color_combinado` (busca o crea la mezcla; nombre y código los arma la base). La pantalla la arma con `ArmarMezcla`
   («+ acompañante» de `ElegirColores`, prop `conMezclas`: Nuevo producto y `recepcion-envio/HojaPrenda`); la lógica pura vive en
   `lib/color-combinado.ts` (nombre, componentes, punto partido). La carta y Atributos agrupan las mezclas en «Combinados» con `familiaEnCarta`.
-- `/productos/insignias` (Catálogo ▸ Insignias —se llamó «Sellos» hasta el 2026-10-23—, ADR-0481; lo abren los módulos `etiquetas` o `campanas`; en el código sigue llamándose `sellos`) → `page.tsx` lee con
+- `/productos/campanas` (Catálogo ▸ Campañas y ofertas, ADR-0655; lo abren los módulos `campanas` o `etiquetas`) → la misma `SellosPantalla` con `modo="campanas"` y la misma lectura de abajo (`cargarEtiquetasPantalla({ modo: "campanas" })`); cada campaña dice sus tres preguntas (`preguntasDeCampana`) y el «?» abre `MapaCampanas`.
+- `/productos/insignias` (Catálogo ▸ Insignias —se llamó «Sellos» hasta el 2026-10-23—, ADR-0481; desde ADR-0655 solo Rotación, Artesanal y General y solo con el módulo `etiquetas`; `?vista=campanas` y quien solo tiene `campanas` van a `/productos/campanas`; en el código sigue llamándose `sellos`) → `page.tsx` lee con
   `lib/etiquetas-pantalla-datos.ts` (`cargarEtiquetasPantalla({ modo: "todas", conVitrina: true })`: todas las filas de `etiquetas`, las
   prendas a la venta con su modelo, color, categoría y foto —`colores`, `categorias`, `producto_fotos`— y, para quien puede analizar, la
   lectura de Rotación de `lib/etiqueta-rotacion-datos.ts`: `fn_analisis_sede` por tienda, unidades y vendidas en 30 días por talla) →
