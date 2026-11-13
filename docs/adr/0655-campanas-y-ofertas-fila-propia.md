@@ -91,7 +91,11 @@ En la base (`20261113223000_una_oferta_por_prenda_tienda_y_dia.sql`, **sin pegar
 En la web, «¿Cuándo y dónde?» y «Revisa y activa» muestran cada choque («Choca con «Polos 3x2» (de Fiestas Patrias) en Lima y Trujillo · 6
 prendas…») con su salida: «Que «X» ceda» si es una oferta, o «retíralo» si es un descuento de siempre. Hasta resolverlo se puede guardar como
 borrador, pero «Activar» (y «Guardar cambios» de una que ya rige) lleva al choque en vez de guardar. Reemplaza los avisos de «se cruza» y
-«gana el mayor». Prueba: `pnpm pruebas:campana-reglas` (106 de 106, con «Una oferta por prenda, tienda y día»).
+«gana el mayor». Prueba: `pnpm pruebas:campana-reglas` (107 de 107, con «Una oferta por prenda, tienda y día»).
+
+`20261113223000` está **en producción desde el 2026-11-13**. Ahí la búsqueda de choques tardó 2,9 s: preguntaba prenda por prenda (3.920 prendas ×
+las otras ofertas). `20261113230000_choques_de_oferta_de_una_vez.sql` la cambia por cruces de conjuntos (`fn_variantes_de_oferta`, la misma
+regla; la prueba exige que coincidan): la misma consulta así tardó 64 ms en producción.
 
 **No vigila** lo que cambia el alcance desde fuera de la oferta (marcar una prenda a mano en otra campaña, sumarle una categoría a una campaña,
 ponerle descuento a una insignia): el candado mira las ofertas al guardarlas o activarlas, que es «al configurar». Si hiciera falta, ese es el

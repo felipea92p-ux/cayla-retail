@@ -41,6 +41,7 @@ const BASE = iBase > 0 ? process.argv[iBase + 1] : "postgres";
 const MIGRACION = "supabase/migrations/20261023232000_campana_reglas_de_precio.sql";
 const MIGRACION_PRODUCTOS = "supabase/migrations/20261113210000_oferta_prenda_por_prenda.sql";
 const MIGRACION_CESIONES = "supabase/migrations/20261113223000_una_oferta_por_prenda_tienda_y_dia.sql";
+const MIGRACION_DE_UNA_VEZ = "supabase/migrations/20261113230000_choques_de_oferta_de_una_vez.sql";
 const APLICAR_ANTES = process.env.APLICAR_ANTES ? readFileSync(process.env.APLICAR_ANTES, "utf8") : "";
 const FELIPE = "22222222-2222-4222-8222-000000000001"; // líder — opera cualquier ubicación
 const MICAELA = "22222222-2222-4222-8222-000000000003"; // integrante de Tienda Trujillo (seed): no es líder
@@ -583,9 +584,10 @@ select count(*) from retail.campana_regla_productos rp join retail.campana_regla
     const sinFusion = correr("select to_regprocedure('retail.fusionar_productos(uuid, uuid[], jsonb, jsonb)') is null;").salida === "t";
     const sinProductos = correr("select to_regclass('retail.campana_regla_productos') is null;").salida === "t";
     const sinCesiones = correr("select to_regclass('retail.campana_regla_cesiones') is null;").salida === "t";
+    const sinDeUnaVez = correr("select to_regprocedure('retail.fn_variantes_de_oferta(uuid, uuid[], uuid[], uuid[], boolean)') is null;").salida === "t";
     const FUSION = ["20261112204000_fusionar_productos_base", "20261112205000_fusionar_productos_previsualizar", "20261112210000_fusionar_productos",
       "20261112211000_fusionar_productos_lecturas", "20261113175000_fusionar_productos_tallas_vacias"].map((n) => readFileSync(`supabase/migrations/${n}.sql`, "utf8")).join("\n");
-    const ANTES = `${sinProductos && sinFusion ? `${FUSION}\n` : ""}${sinProductos ? `${readFileSync(MIGRACION_PRODUCTOS, "utf8")}\n` : ""}${sinCesiones ? `${readFileSync(MIGRACION_CESIONES, "utf8")}\n` : ""}`;
+    const ANTES = `${sinProductos && sinFusion ? `${FUSION}\n` : ""}${sinProductos ? `${readFileSync(MIGRACION_PRODUCTOS, "utf8")}\n` : ""}${sinCesiones ? `${readFileSync(MIGRACION_CESIONES, "utf8")}\n` : ""}${sinDeUnaVez ? `${readFileSync(MIGRACION_DE_UNA_VEZ, "utf8")}\n` : ""}`;
     const C = `${PREPARAR}${ANTES}set local request.jwt.claim.sub = '${FELIPE}';
 insert into retail.etiquetas (nombre, estilo) values ('ZZ Otra campaña (prueba)', 'campana') returning id as camp2 \\gset
 select retail.actualizar_campana_etiqueta(:'camp2', null, ${HOY} - 1, ${HOY} + 10, '{}'::uuid[]);
@@ -685,9 +687,23 @@ ${YA}select estado || '|' || (select ceden = array[:'r']::uuid[] from retail.cam
 )::text, ',' order by x.d) from (values (:'a'::uuid, ${HOY}), (:'b'::uuid, ${HOY} + 4), (:'c'::uuid, ${HOY} + 6)) x(id, d);\nrollback;`),
       "true,true,true",
     );
+    esperarValor(
+      "fn_variantes_de_oferta (de una vez) dice las mismas prendas que fn_oferta_alcanza_variante (una por una), con y sin categorías, modelos, «dejar fuera» y Claurè",
+      correr(`${C}select string_agg((
+  (select coalesce(array_agg(x.variante_id order by x.variante_id), '{}') from retail.fn_variantes_de_oferta(:'camp', a.solo, a.fuera, a.prod, a.claure) x)
+  = (select coalesce(array_agg(v.id order by v.id), '{}') from retail.variantes v where v.activo and retail.fn_oferta_alcanza_variante(:'camp', a.solo, a.fuera, a.prod, a.claure, v.id))
+)::text, ',') from (values
+  ('{}'::uuid[], '{}'::uuid[], '{}'::uuid[], false),
+  ('{}'::uuid[], '{}'::uuid[], '{}'::uuid[], true),
+  (array[:'cat']::uuid[], '{}'::uuid[], '{}'::uuid[], false),
+  ('{}'::uuid[], array[:'cat']::uuid[], '{}'::uuid[], false),
+  (array[:'cat_otra']::uuid[], '{}'::uuid[], array[:'prod1']::uuid[], false)
+) a(solo, fuera, prod, claure);\nrollback;`),
+      "true,true,true,true,true",
+    );
     esperar(
       "la migración de una oferta por prenda se puede pegar dos veces",
-      correr(`begin;\n${ANTES}${readFileSync(MIGRACION_CESIONES, "utf8")}\n${readFileSync(MIGRACION_CESIONES, "utf8")}\nrollback;`).ok,
+      correr(`begin;\n${ANTES}${readFileSync(MIGRACION_CESIONES, "utf8")}\n${readFileSync(MIGRACION_CESIONES, "utf8")}\n${readFileSync(MIGRACION_DE_UNA_VEZ, "utf8")}\n${readFileSync(MIGRACION_DE_UNA_VEZ, "utf8")}\nrollback;`).ok,
     );
   }
 
