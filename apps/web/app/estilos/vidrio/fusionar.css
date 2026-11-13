@@ -535,6 +535,13 @@
   .fus-listo-texto,
   .fus-comparar > *,
   .fus-galeria-grande img {
-    animation: none;
+    animation: none !important;
+  }
+  .fus-opcion,
+  .fus-celda,
+  .fus-final,
+  .fus-sobre-foto,
+  .fus-miniatura {
+    transition: none !important;
   }
 }
