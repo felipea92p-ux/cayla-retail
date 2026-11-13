@@ -15,6 +15,8 @@ import {
 import { esperaOcupada, suscribirEspera } from "@/lib/espera-estado";
 import { velocidad, type Muestra } from "@/lib/hoja-gesto";
 import { prefiereQuieto } from "@/lib/movimiento-cliente";
+import { useQuieto } from "@/lib/useQuieto";
+import { useCuentaAtrasQuieta } from "@/components/ui/useCuentaAtrasQuieta";
 
 /* ====================================================================
    Avisos · una sola voz, arriba a la derecha (2026-09-14)
@@ -449,6 +451,13 @@ function Tarjeta({ aviso }: { aviso: Aviso }) {
 
   // Con botón («Deshacer») no baja de 7 s: hay que leer y decidir. Quien pide `duracion` decide (lib/avisos-reglas.ts).
   const ms = duracionDe(aviso.tono, { accion: aviso.accion, duracion: aviso.duracion });
+  // Con las animaciones apagadas el anillo no corre (movimiento.css): el tiempo lo cuenta un temporizador con la misma pausa, y el
+  // aviso cuenta como visto apenas aparece (no hay arranque del reloj que lo marque). Ver useCuentaAtrasQuieta.
+  const quieto = useQuieto();
+  useCuentaAtrasQuieta(ref, quieto ? ms : null, quitar, { clave: aviso.version });
+  useEffect(() => {
+    if (quieto && aviso.tono !== "proceso") marcarVisto(aviso.id);
+  }, [quieto, aviso.id, aviso.tono, aviso.version]);
   const estilo = { "--ms": `${ms ?? 0}ms`, ...(aviso.progreso !== undefined ? { "--p": aviso.progreso } : {}) } as React.CSSProperties;
   return (
     <div
