@@ -1327,12 +1327,20 @@ export const GUIA_CAMPANAS: Guia = {
       texto: "Marca las tiendas donde rige la oferta; si quieres todas, márcalas todas. En las que no marques se cobra el precio normal. Es lo único que no viene puesto, y nunca puede salirse de las tiendas de su campaña.",
     },
     {
+      id: "oferta-choques",
+      ancla: "sellos.oferta-choques",
+      opcional: true,
+      preparar: [{ tipo: "clic", ancla: "sellos.oferta-paso-3" }],
+      titulo: "Una oferta por prenda",
+      texto: "Una prenda tiene una sola oferta por tienda y por día. Si esta pisa a otra, aquí sale con cuál, en qué tiendas y en cuántas prendas. Elige «que la otra ceda» o cambia tiendas, fechas o prendas: hasta resolverlo se puede guardar como borrador, pero no activar.",
+    },
+    {
       id: "oferta-revision",
       ancla: "sellos.oferta-revision",
       opcional: true,
       preparar: [{ tipo: "clic", ancla: "sellos.oferta-paso-4" }],
       titulo: "Revisa y guarda",
-      texto: "La oferta dicha en una frase. Solo si hace falta salen avisos: si deja una prenda bajo su costo, si se cruza con otra oferta (gana la que deja el mejor precio) o si el papel colgado no puede cambiar cada día.",
+      texto: "La oferta dicha en una frase. Solo si hace falta salen avisos: si deja una prenda bajo su costo, si choca con otra oferta (y si ya cede una de las dos) o si el papel colgado no puede cambiar cada día.",
     },
     {
       id: "oferta-activar",
