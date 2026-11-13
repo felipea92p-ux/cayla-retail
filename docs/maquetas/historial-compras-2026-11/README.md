@@ -10,7 +10,7 @@ Maqueta navegable de Compras ▸ Historial de compras (`/compras`, `app/(app)/co
   compra → llegó → pagada en cada fila y dos atajos a Recibir y Por pagar). El detalle se abre en el cajón lateral y ↑ ↓ pasan de compra.
 
 **Las otras dos pestañas de la fila también tienen su «Como ahora» y su propuesta:**
-- **Por pagar · «¿Te alcanza?»**: al costado, lo que debes, la caja grande con su respuesta en una frase, semana a semana (filtra) y
+- **Por pagar · «Lo que debes»**: al costado, lo que debes, cuándo vence semana a semana (filtra) y
   a quién le debes (filtra). La lista es la misma fila del Historial, que dice si la mercadería llegó, y «Pagar» abre el mismo cajón.
 - **Revisar compras · una sola cola**: todo lo que anotaron las compradoras, agrupado por ronda y en el orden en que se revisa
   (compras → gastos → lo que devuelve; la plata entregada ya no se confirma, decisión de Felipe del 2026-11-13), con el verbo en cada fila; al costado, «Quién tiene plata». El

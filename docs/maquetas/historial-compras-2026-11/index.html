@@ -326,18 +326,16 @@
 /* =========================== POR PAGAR · PROPUESTA =========================== */
 .pl-lado h3,.lb-lado section>h3{font-size:11px;letter-spacing:.12em;text-transform:uppercase;font-weight:600;color:var(--t65)}
 .rojo-t{color:var(--rojo-p);font-weight:600}[data-tema="oscuro"] .rojo-t{color:var(--rojo)}
-.pp-caja.grande{display:flex;width:100%;height:42px;margin-top:10px;font-size:14px}.pp-caja.grande input{flex:1;min-width:0;width:auto;font-size:15px}
-.pl-dice{font-size:13.5px;color:var(--t80);margin-top:8px;line-height:1.4}.pl-dice b{color:var(--tinta)}
+
 .pl-sem{display:grid;gap:2px;margin-top:10px}
 .pl-sem button,.pl-prov button{width:calc(100% + 16px);margin:0 -8px;padding:7px 8px;border-radius:10px;text-align:left;font-size:13.5px}
-.pl-sem button{display:grid;grid-template-columns:5.75rem minmax(0,1fr) auto 1rem;align-items:center;gap:8px}
+.pl-sem button{display:grid;grid-template-columns:5.75rem minmax(0,1fr) auto;align-items:center;gap:8px}
 .pl-sem button:disabled{opacity:.5;cursor:default}
 .pl-sem button[aria-pressed="true"],.pl-prov button[aria-pressed="true"]{background:color-mix(in srgb,var(--tinta) 8%,transparent)}
 @media (hover:hover){.pl-sem button:not(:disabled):hover,.pl-prov button:hover{background:color-mix(in srgb,var(--tinta) 5%,transparent)}}
 .pl-sem .bar,.pl-prov .bar{display:block;height:6px;border-radius:9px;background:color-mix(in srgb,var(--tinta) 8%,transparent);overflow:hidden}
 .pl-sem .bar i{display:block;height:100%;background:var(--c)}.pl-prov .bar i{display:block;height:100%;background:var(--tinta)}
 .pl-sem b{font-weight:600;font-variant-numeric:tabular-nums}
-.pl-sem .ok{display:grid;place-items:center;color:var(--verde)}.pl-sem .ok.no{color:var(--ambar)}.pl-sem .ok svg{width:14px;height:14px;stroke-width:3}
 .pl-prov{display:grid;gap:2px;margin-top:10px}
 .pl-prov button{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:6px 10px;align-items:center}
 .pl-prov button>span:first-child{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.pl-prov small{color:var(--t65)}
@@ -606,7 +604,7 @@
     <p>Pasa por <code>/milimetro diseñar</code> (medidas y letra), <code>/guia</code> (la guía de <code>/compras</code> y su huella cambian) y, al terminar, <code>/formidable</code>. Ninguna pieza nueva: todas son del sistema.</p>
   </section>
   <section>
-    <h2>Por pagar: «¿Te alcanza?»</h2>
+    <h2>Por pagar: «Lo que debes»</h2>
     <p>Medido en local sobre <code>/compras/por-pagar</code> (1440 × 900) y leído en <code>por-pagar/page.tsx</code> y <code>components/PorPagarLista.tsx</code>.</p>
     <h3>Los hallazgos</h3>
     <table>
@@ -621,7 +619,8 @@
     </table>
     <h3>La propuesta</h3>
     <ul>
-      <li><b>Al costado, la pregunta que manda:</b> «Debes S/ 45,702.00 · S/ 7,682.40 ya vencido», «¿Te alcanza?» con la caja grande y la respuesta en una frase («Alcanza solo para lo vencido; lo que sigue necesita S/ 38,019.60 más»), <b>semana a semana</b> como única escala de tiempo (cada semana dice ✓ o ✕ y filtra la lista) y <b>a quién le debes</b> (filtra por proveedor).</li>
+      <li><b>Al costado, lo que debes:</b> «Debes S/ 45,702.00 · S/ 7,682.40 ya vencido», <b>cuándo vence</b>, semana a semana como única escala de tiempo (cada semana filtra la lista), y <b>a quién le debes</b> (filtra por proveedor).</li>
+      <li><b>Sin «¿Te alcanza?»</b> (Felipe, 2026-11-13: «Hay que quitar el "¿Te alcanza?"»): se van la caja «Tengo S/», su respuesta y los ✓ o ✕ de cada semana. Hoy la pantalla tiene ese campito en «Salidas de caja»; la propuesta no lo trae (por eso el hallazgo 4 ya no se resuelve aquí).</li>
       <li><b>La lista es la del Historial:</b> qué se compró, el trayecto (¿llegó?, ¿se pagó?), lo que debes y «Pagar» como botón secundario. Tocar una deuda abre el mismo cajón, con «Pagar S/ …» como acción principal y ↑ ↓ para pasar.</li>
       <li><b>Se quedan</b> las casillas y «Pagar juntos» (del mismo proveedor), los grupos Vencidas / Esta semana / Más adelante y la vista por proveedor.</li>
       <li><b>Lo decides tú (es dinero):</b> ¿la pantalla solo avisa que no llegó nada, o pide confirmar antes de pagar esa compra? La maqueta solo lo muestra.</li>
@@ -1045,9 +1044,10 @@
     return `<div><span class="vs">${QUE[tipo]}</span><h2>${tituloRevisar(tipo, x)}</h2><p class="sub">${subRevisar(tipo, x)}</p></div>${cuerpoRevisar(tipo, x)}${pie}`;
   }
 
-  // ---------- POR PAGAR · PROPUESTA: «¿Te alcanza?» al costado, la deuda por semana, cada una con lo que se compró y si llegó ----------
+  // ---------- POR PAGAR · PROPUESTA: lo que debes al costado (cuándo vence y a quién), la lista con lo que se compró y si llegó ----------
+  // Felipe (2026-11-13): «Hay que quitar el "¿Te alcanza?"». Se fueron la caja «Tengo S/», su frase y los ✓/✕ de cada semana.
   const SEMANAS = [['Vencido', -9999, -1], ['13–19 nov', 0, 6], ['20–26 nov', 7, 13], ['27 nov–3 dic', 14, 20], ['4–10 dic', 21, 27], ['Más adelante', 28, 9999]];
-  const pl = { semana: null, q: '', caja: '', prov: null };
+  const pl = { semana: null, q: '', prov: null };
   const semanaDe = (c) => SEMANAS.findIndex(([, a, b]) => como(c).venceEn >= a && como(c).venceEn <= b);
   const deben = () => COMPRAS.filter((c) => como(c).saldo > 0).sort((a, b) => como(a).venceEn - como(b).venceEn);
   function debenLibro() {
@@ -1063,7 +1063,7 @@
       <aside class="lb-lado placa lb-ano pl-lado" aria-label="Lo que debes">
         <section class="lb-mes"><span class="vs">Debes</span><b class="serif-n">${soles(sum(todas))}</b>
           <p><span class="rojo-t">${soles(sum(venc))} ya vencido</span> en ${venc.length} ${venc.length === 1 ? 'comprobante' : 'comprobantes'}.</p></section>
-        <section><h3>¿Te alcanza?</h3><label class="pp-caja grande">Tengo S/ <input id="pl-caja" inputmode="decimal" placeholder="lo que hay en caja y banco" value="${pl.caja}"></label><p class="pl-dice" id="pl-dice"></p>
+        <section><h3>Cuándo vence</h3>
           <div class="pl-sem" id="pl-sem" role="group" aria-label="Lo que vence, semana a semana; toca una para ver solo esa"></div></section>
         <section><h3>A quién le debes</h3><div class="pl-prov" id="pl-prov"></div></section>
       </aside>
@@ -1073,7 +1073,6 @@
         <section class="placa lb-lista" id="pl-lista" data-resultados></section>
         <div id="pl-juntos"></div>
       </div></div>`;
-    $('#pl-caja').addEventListener('input', (e) => { pl.caja = e.target.value; ladoPorPagar(); });
     $('#pl-q').addEventListener('input', (e) => { pl.q = e.target.value; listaPorPagarLibro(); });
     ladoPorPagar(); listaPorPagarLibro();
   }
@@ -1081,16 +1080,8 @@
     const todas = deben(), saldo = (c) => como(c).saldo;
     const sem = SEMANAS.map(([t], i) => ({ t, i, m: todas.filter((c) => semanaDe(c) === i).reduce((s, c) => s + saldo(c), 0) }));
     const max = Math.max(...sem.map((s) => s.m), 1);
-    const tengo = parseFloat(String(pl.caja).replace(/[^\d.]/g, '')) || 0;
-    let acum = 0, hasta = -1; sem.forEach((s) => { acum += s.m; if (tengo > 0 && acum <= tengo) hasta = s.i; });
-    const falta = sem[0].m - tengo;
-    $('#pl-dice').innerHTML = !tengo ? 'Escribe cuánto tienes y te digo hasta qué semana llegas.'
-      : hasta < 0 ? `<b>No alcanza ni para lo vencido:</b> te faltan ${soles(falta)}.`
-      : hasta === sem.length - 1 ? '<b>Alcanza para todo.</b>'
-      : `<b>Alcanza ${hasta === 0 ? 'solo para lo vencido' : `hasta la semana del ${sem[hasta].t}`}.</b> Lo que sigue necesita ${soles(sem.slice(hasta + 1).reduce((s, x) => s + x.m, 0))} más.`;
     $('#pl-sem').innerHTML = sem.map((s) => `<button data-hc="pl-sem" data-i="${s.i}" aria-pressed="${pl.semana === s.i}" ${s.m ? '' : 'disabled'}>
-        <span>${s.t}</span><span class="bar"><i style="width:${(s.m / max) * 100}%;--c:${s.i === 0 ? 'var(--rojo)' : s.i === 1 ? 'var(--ambar)' : 'var(--taupe)'}"></i></span><b>${s.m ? soles(s.m) : '—'}</b>
-        <span class="ok${tengo && s.m && s.i > hasta ? ' no' : ''}">${tengo && s.m ? ic(s.i <= hasta ? P.check : P.x) : ''}</span></button>`).join('');
+        <span>${s.t}</span><span class="bar"><i style="width:${(s.m / max) * 100}%;--c:${s.i === 0 ? 'var(--rojo)' : s.i === 1 ? 'var(--ambar)' : 'var(--taupe)'}"></i></span><b>${s.m ? soles(s.m) : '—'}</b></button>`).join('');
     const prov = {}; todas.forEach((c) => { const k = c.prov; prov[k] = prov[k] || { c, m: 0 }; prov[k].m += saldo(c); });
     const filas = Object.values(prov).sort((a, b) => b.m - a.m), maxP = filas[0]?.m || 1;
     $('#pl-prov').innerHTML = filas.map(({ c, m }) => `<button data-hc="pl-prov" data-v="${c.prov}" aria-pressed="${pl.prov === c.prov}"><span><b>${c.marca || c.razon}</b> <small>${c.marca ? c.razon : ''}</small></span><b class="num">${soles(m)}</b><span class="bar"><i style="width:${(m / maxP) * 100}%"></i></span></button>`).join('');
