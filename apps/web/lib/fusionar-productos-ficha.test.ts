@@ -178,6 +178,12 @@ describe("la matriz de la ficha final (decisión 7)", () => {
     expect(celdaDe(dos, "ROJ", "M")).toEqual({ estado: "pasa", antes: 0, llega: 3 });
   });
 
+  it("una talla que sale de la venta no se dibuja, ni lo que se le junta (20261113175000)", () => {
+    const sin = matrizFinal(plan, "blusa", detalle, new Set(["b-neg-m"]));
+    expect(celdaDe(sin, "NEG", "M")).toBeNull();
+    expect(celdaDe(sin, "NEG", "L")).toEqual({ estado: "junta", antes: 2, llega: 1 });
+  });
+
   it("la frase dice cuántas pasan y cuántas se juntan, en palabras de tienda", () => {
     expect(fraseDeLaMatriz(m)).toBe("1 talla pasa tal cual · 2 tallas se juntan (+3 prendas).");
     expect(fraseDeLaMatriz(matrizFinal({ variantes: [] }, "blusa", detalle))).toBeNull();

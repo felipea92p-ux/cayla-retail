@@ -107,6 +107,29 @@ DESCARTÉ:
 - **Una pieza nueva en `components/ui/` para «elegir en tarjeta»:** vive en `components/fusionar-productos/` hasta que Felipe la elija para
   todo el ERP por `/unificar` (Propuesta 1 de la ficha al milímetro).
 
+## Actualización 2026-11-13 (b): sacar de la venta las tallas vacías
+
+Felipe, probando con fichas reales: «si no tienen ninguna unidad en alguna talla o de plano nunca se ingresó ninguna prenda en esa talla,
+que te permita eliminarla de la fusión». Migración `20261113175000_fusionar_productos_tallas_vacias.sql` (reemplazos anclados de
+`fn_fusion_productos_plan` y `fusionar_productos`; **no está en producción** hasta el OK de Felipe).
+
+DECIDÍ:
+
+1. **«Sacar» no borra:** la talla se muda o se junta como siempre y queda apagada (`activo = false`, como una talla retirada). Sus ventas
+   siguen contando en la que queda (la regla de la decisión 14 y del repo: nunca se borra algo con historia).
+2. **Solo lo vacío de verdad:** un color × talla de la ficha final (la variante que absorbe y todas las que se le juntan) con 0 prendas y 0
+   apartadas en toda la red, y nada en curso (traslado, pedido web, producción o conteo). El plan lo devuelve en `vacias`, con `nunca_tuvo`
+   (sin ningún movimiento). Una elegida que ya no está vacía frena (`retirar_no_vacia`).
+3. **Las elegidas cuentan como apagadas para el resto del plan:** sacar una talla vacía que la categoría final no tiene, o una «Sin color»
+   vacía, destraba la fusión.
+4. **En la hoja:** «Tallas sin prendas», cada una con su casilla (de fábrica, a la venta) y «Sacar las N que nunca tuvieron prendas»; la
+   matriz deja de dibujarlas y «Revisar» las nombra. La web manda `retirar` solo si hay alguna: con la base de antes no cambia nada.
+
+DESCARTÉ: dejarlas en la ficha archivada (sus ventas dejarían de contar en la que queda, decisión ya descartada arriba) y apagarlas
+después a mano en la ficha (Felipe quería hacerlo en la misma fusión).
+
+Pruebas: `pnpm pruebas:fusionar-productos`, casos 25 a 28 (28/28 en una base limpia).
+
 ## Pendiente
 
 - «Esta no es repetida»: hoy un par sugerido que no es la misma prenda sigue en la lista. Si molesta, una tabla de pares descartados.

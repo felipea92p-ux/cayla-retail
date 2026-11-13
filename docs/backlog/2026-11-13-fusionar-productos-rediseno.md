@@ -55,3 +55,12 @@ Para mostrarle a Felipe: «Fotos que quedan» no estaba en la maqueta B; va como
 - [x] En «Ver ficha», tocar la foto la abre sola y entera (`FotoAmpliada`, el visor de Existencias y la vista rápida).
 - [x] Lo elegido (ficha y opción) con un tinte verde sobre la gota, borde y ✓ verdes, e insignia «Queda» verde.
 - [x] Los botones del pie al medio de la barra: 16 px arriba y 16 abajo.
+
+## Tercera ronda (2026-11-13)
+
+- [x] «En ventas» fuera de Comparar (Vendidas ya lo dice; en producción eran iguales en los 7 pares).
+- [x] La matriz con 6 tallas o más: mínimo por columna y corre de lado dentro de su caja; probado con 6 (26 a 36).
+- [x] Sacar de la venta las tallas vacías al fusionar: migración `20261113175000`, casos 25–28, bloque «Tallas sin prendas».
+- [ ] **`20261113175000` no está en producción:** pegarla con el OK de Felipe (`supabase db query --linked -f`), ensayo antes con `begin; … rollback;`.
+      Sin ella la web no ofrece sacar tallas (no rompe nada).
+- [ ] «Así va a quedar» con muchos colores (12–13 en producción): mostrar solo los que cambian. Espera la respuesta de Felipe.

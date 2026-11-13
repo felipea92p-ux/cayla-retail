@@ -55,6 +55,19 @@ export type VariantePlan = {
 
 export type AvisoPlan = { codigo: string; mensaje: string };
 
+/** Un color × talla de la ficha final sin ninguna prenda ni nada en curso (20261113175000): se puede sacar de la venta al fusionar.
+ *  `varianteId` es la que absorbe ese color × talla (la de la que queda, o la que se muda). */
+export type VaciaPlan = {
+  varianteId: string;
+  productoId: string;
+  color: string;
+  colorCodigo: string | null;
+  colorHex: string | null;
+  talla: string | null;
+  nuncaTuvo: boolean;
+  retirada: boolean;
+};
+
 export type PlanFusion = {
   ok: boolean;
   productos: ProductoPlan[];
@@ -64,6 +77,8 @@ export type PlanFusion = {
   diferencias: string[];
   bloqueos: AvisoPlan[];
   avisos: AvisoPlan[];
+  /** Vacío con la base de antes de 20261113175000: la hoja no ofrece sacar tallas. */
+  vacias: VaciaPlan[];
 };
 
 type Json = Record<string, unknown>;
@@ -141,6 +156,19 @@ export function leerPlan(json: unknown): PlanFusion {
     diferencias: Array.isArray(o.diferencias) ? o.diferencias.map(String) : [],
     bloqueos: avisos(o.bloqueos),
     avisos: avisos(o.avisos),
+    vacias: (Array.isArray(o.vacias) ? o.vacias : []).map((x) => {
+      const v = x as Json;
+      return {
+        varianteId: String(v.variante_id),
+        productoId: String(v.producto_id),
+        color: String(v.color ?? "Sin color"),
+        colorCodigo: texto(v.color_codigo),
+        colorHex: texto(v.color_hex),
+        talla: texto(v.talla),
+        nuncaTuvo: v.nunca_tuvo === true,
+        retirada: v.retirada === true,
+      };
+    }),
   };
 }
 
@@ -232,9 +260,11 @@ export type Elecciones = {
   costoDe: string | null;
   /** Las fotos que quedan, en orden. Null: todavía no se tocó y se mandan todas. */
   fotos: string[] | null;
+  /** Los colores × talla vacíos que salen de la venta (la variante que absorbe cada uno; 20261113175000). */
+  retirar: string[];
 };
 
-export const ELECCIONES_VACIAS: Elecciones = { campos: {}, precioDe: null, costoDe: null, fotos: null };
+export const ELECCIONES_VACIAS: Elecciones = { campos: {}, precioDe: null, costoDe: null, fotos: null, retirar: [] };
 
 /** De qué producto sale el precio o el costo: lo elegido, o —si difieren y nadie tocó— el del que queda (decisiones 6 y 7:
  *  por defecto, el del que queda). Si no difieren, nada: cada talla conserva el suyo. */
@@ -260,6 +290,8 @@ export function eleccionesParaLaBase(
   const costoDe = fuenteDe(e.costoDe, "costo", diferencias, queda);
   if (costoDe && ids.has(costoDe)) salida.costo_de = costoDe;
   if (e.fotos) salida.fotos = e.fotos.filter((id) => productos.some((p) => p.fotos.some((f) => f.id === id)));
+  // Solo si hay: con la base de antes de 20261113175000 la clave sobra, y la base valida que cada una siga vacía.
+  if (e.retirar.length > 0) salida.retirar = e.retirar;
   return salida;
 }
 
@@ -274,9 +306,12 @@ export function fotosEnOrden(productos: ProductoPlan[]): FotoPlan[] {
 const plural = (n: number, una: string, varias: string) => `${n.toLocaleString("es-PE")} ${n === 1 ? una : varias}`;
 
 /** Las líneas de «Qué va a pasar», en palabras de tienda (ley 4 de Formidable): nada de «variante» ni «mudar». */
-export function frasesDelResumen(plan: Pick<PlanFusion, "resumen" | "productos">, fotosQueQuedan: number): string[] {
-  const { mudan, juntan, unidadesJuntadas, unidadesQueLlegan } = plan.resumen;
+export function frasesDelResumen(plan: Pick<PlanFusion, "resumen" | "productos"> & { vacias?: PlanFusion["vacias"] }, fotosQueQuedan: number): string[] {
+  const { juntan, unidadesJuntadas, unidadesQueLlegan } = plan.resumen;
   const duplicados = plan.productos.filter((p) => !p.queda);
+  // Las tallas vacías de una repetida que salen de la venta también se mudan, pero no «pasan tal cual»: las nombra su propia frase.
+  const salenDeRepetidas = (plan.vacias ?? []).filter((v) => v.retirada && duplicados.some((d) => d.id === v.productoId)).length;
+  const mudan = Math.max(0, plan.resumen.mudan - salenDeRepetidas);
   const vendidas = duplicados.reduce((s, p) => s + p.unidadesVendidas, 0);
   const frases: string[] = [];
   if (mudan > 0) frases.push(`${plural(mudan, "talla y color pasa", "tallas y colores pasan")} tal cual, con su stock y sus ventas.`);
@@ -349,4 +384,13 @@ export function yaFusionadas(filas: { id: string; fusionadoEnId: string | null }
  *  Con la respuesta perdida no se sabe, y la frase de `traducirError` ya pide revisar antes de repetir. */
 export function mensajeAlNoFusionar(frase: string, incierta: boolean): string {
   return incierta ? frase : `${frase} Las fichas siguen como estaban.`;
+}
+
+/** La frase de «Revisar» para las tallas vacías que salen de la venta: «Salen de la venta 2 tallas sin prendas: Negro XS y Blanco XL.
+ *  Sus ventas no se pierden.» Null si no sale ninguna. */
+export function fraseTallasQueSalen(vacias: Pick<VaciaPlan, "color" | "talla" | "retirada">[]): string | null {
+  const salen = vacias.filter((v) => v.retirada).map((v) => [v.color, v.talla].filter(Boolean).join(" "));
+  if (salen.length === 0) return null;
+  const lista = salen.length === 1 ? salen[0] : `${salen.slice(0, -1).join(", ")} y ${salen[salen.length - 1]}`;
+  return `${salen.length === 1 ? "Sale de la venta 1 talla sin prendas" : `Salen de la venta ${salen.length} tallas sin prendas`}: ${lista}. Sus ventas no se pierden.`;
 }

@@ -6,6 +6,7 @@ import {
   mensajeAlNoFusionar,
   yaFusionadas,
   eleccionesParaLaBase,
+  fraseTallasQueSalen,
   fechaDeAlta,
   fotosEnOrden,
   frasesDelResumen,
@@ -111,7 +112,7 @@ describe("lo que se manda a la base", () => {
     expect(eleccionesParaLaBase(ELECCIONES_VACIAS, plan.productos, plan.diferencias, "A")).toEqual({ campos: {}, precio: 79.9 });
   });
   it("lo elegido: nombre y categoría del duplicado, su precio, y las fotos en orden", () => {
-    const e = { campos: { referencia: "B", categoria: "B" }, precioDe: "B", costoDe: null, fotos: ["f3", "f1", "zz"] };
+    const e = { campos: { referencia: "B", categoria: "B" }, precioDe: "B", costoDe: null, fotos: ["f3", "f1", "zz"], retirar: [] };
     expect(eleccionesParaLaBase(e, plan.productos, plan.diferencias, "A")).toEqual({
       campos: { referencia: "B", categoria: "B" },
       precio: 89,
@@ -188,5 +189,33 @@ describe("la guía con una sola ficha", () => {
   it("«Cuál queda» no está hecho sin una ficha repetida", () => {
     const c = camposDeLaGuia({ duplicados: 0, queda: "A", hayDiferencias: false, responsableListo: true, vista: "armar" });
     expect(c.find((x) => x.id === "queda")?.hecho).toBe(false);
+  });
+});
+
+// 20261113175000: sacar de la venta las tallas vacías al fusionar.
+describe("tallas vacías", () => {
+  it("lee las vacías del plan; sin la clave (base de antes), ninguna", () => {
+    const conVacias = leerPlan({ ...PLAN, vacias: [{ variante_id: "v1", producto_id: "B", color: "Negro", color_codigo: "NEG", talla: "XS", nunca_tuvo: true, retirada: false }] });
+    expect(conVacias.vacias).toEqual([{ varianteId: "v1", productoId: "B", color: "Negro", colorCodigo: "NEG", colorHex: null, talla: "XS", nuncaTuvo: true, retirada: false }]);
+    expect(leerPlan(PLAN).vacias).toEqual([]);
+  });
+  it("manda `retirar` solo si hay alguna", () => {
+    const plan = leerPlan(PLAN);
+    expect(eleccionesParaLaBase(ELECCIONES_VACIAS, plan.productos)).not.toHaveProperty("retirar");
+    expect(eleccionesParaLaBase({ ...ELECCIONES_VACIAS, retirar: ["v1"] }, plan.productos)).toMatchObject({ retirar: ["v1"] });
+  });
+  it("las que salen de la venta no cuentan como «pasan tal cual»", () => {
+    const plan = leerPlan(PLAN);
+    const conSalida = { ...plan, vacias: [{ varianteId: "v1", productoId: "B", color: "Negro", colorCodigo: "NEG", colorHex: null, talla: "XL", nuncaTuvo: true, retirada: true }] };
+    expect(frasesDelResumen(plan, 0)[0]).toMatch(/^1 talla y color pasa tal cual/);
+    expect(frasesDelResumen(conSalida, 0).some((f) => /pasa(n)? tal cual/.test(f))).toBe(false);
+  });
+  it("la frase de Revisar nombra las que salen y dice que sus ventas no se pierden", () => {
+    const v = (color: string, talla: string, retirada: boolean) => ({ color, talla, retirada });
+    expect(fraseTallasQueSalen([v("Negro", "XS", false)])).toBeNull();
+    expect(fraseTallasQueSalen([v("Negro", "XS", true)])).toBe("Sale de la venta 1 talla sin prendas: Negro XS. Sus ventas no se pierden.");
+    expect(fraseTallasQueSalen([v("Negro", "XS", true), v("Blanco", "XL", true), v("Rojo", "S", true)])).toBe(
+      "Salen de la venta 3 tallas sin prendas: Negro XS, Blanco XL y Rojo S. Sus ventas no se pierden.",
+    );
   });
 });

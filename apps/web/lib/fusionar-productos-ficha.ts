@@ -141,7 +141,13 @@ export function celdaDe(m: MatrizFinal, colorClave: string, talla: string): Celd
  * del plan, que dice si cada una se muda («pasa») o se junta con otra («se junta», +N). Una talla retirada se muda igual, pero
  * no se dibuja: no se vende. El stock que llega es el del plan (el mismo número que mueve la fusión).
  */
-export function matrizFinal(plan: Pick<PlanFusion, "variantes">, quedaId: string, detalle: DetalleFusion): MatrizFinal {
+export function matrizFinal(
+  plan: Pick<PlanFusion, "variantes">,
+  quedaId: string,
+  detalle: DetalleFusion,
+  /** Las que salen de la venta al fusionar (20261113175000): ni ellas ni lo que se les junta se dibujan. */
+  retiradas: ReadonlySet<string> = new Set(),
+): MatrizFinal {
   const fisicoDe = new Map<string, number>();
   for (const e of detalle.existencias) fisicoDe.set(e.varianteId, (fisicoDe.get(e.varianteId) ?? 0) + e.fisico);
 
@@ -156,13 +162,13 @@ export function matrizFinal(plan: Pick<PlanFusion, "variantes">, quedaId: string
   };
 
   for (const v of detalle.variantes) {
-    if (v.productoId !== quedaId || !v.vigente) continue;
+    if (v.productoId !== quedaId || !v.vigente || retiradas.has(v.varianteId)) continue;
     const k = anotar(v.colorCodigo, v.color, v.colorHex, v.talla);
     const c = celdas[k] ?? { estado: "ya", antes: 0, llega: 0 };
     celdas[k] = { ...c, antes: c.antes + (fisicoDe.get(v.varianteId) ?? 0) };
   }
   for (const v of plan.variantes) {
-    if (!v.activa || v.productoId === quedaId) continue;
+    if (!v.activa || v.productoId === quedaId || retiradas.has(v.varianteId) || (v.conVarianteId && retiradas.has(v.conVarianteId))) continue;
     const k = anotar(v.colorCodigo, v.color, v.colorHex, v.talla);
     const c = celdas[k];
     if (!c) celdas[k] = { estado: "pasa", antes: 0, llega: v.stock };
