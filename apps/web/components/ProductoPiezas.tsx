@@ -4,6 +4,7 @@ import { ImagenDePrenda } from "@/components/ui/ImagenDePrenda";
 import { MosaicoPrenda } from "@/components/MosaicoPrenda";
 import type { CategoriaDePrenda } from "@/lib/categoria-de-prenda";
 import type { ColorDisponible } from "@/lib/productos-vista";
+import { fondoDelPunto } from "@/lib/color-combinado";
 
 /* ====================================================================
    Piezas de Productos que comparten la Grilla y la Tabla (ADR-0077,
@@ -80,9 +81,9 @@ export function SwatchesColor({
                   c.nombre === activo ? "ring-2 ring-tinta ring-offset-1 ring-offset-papel" : "ring-1 ring-tinta/20"
                 }`
           }
-          style={forma === "punto" ? undefined : { background: c.hex }}
+          style={forma === "punto" ? undefined : { background: fondoDelPunto(c.hex, c.tonos) }}
         >
-          {forma === "punto" && <i data-color-dato style={{ background: c.hex }} />}
+          {forma === "punto" && <i data-color-dato style={{ background: fondoDelPunto(c.hex, c.tonos) }} />}
         </button>
       ))}
       {resto > 0 &&

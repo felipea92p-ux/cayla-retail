@@ -41,6 +41,9 @@ export type VarianteCatalogo = {
   /** `variantes.color_codigo`: la llave para cruzar con el vocabulario de colores (si es estampado) en Vender.
    *  Opcional: un catálogo guardado antes de este cambio no lo trae, y entonces no se marca, nunca un error. */
   colorCodigo?: string | null;
+  /** Si su color es una mezcla («Hueso con azul», ADR-0643): los tonos para partir su punto, la base primero (`tonosDeLasMezclas`).
+   *  Lo pone la pantalla que tiene la carta (Catálogo ▸ Productos, Vender); ausente, el punto va liso con `colorHex`. */
+  colorTonos?: readonly string[] | null;
   /** `variantes.talla_id` y `productos.categoria_id`: con `colorCodigo`, la llave para que «Prenda sin registrar» ofrezca la prenda
    *  del catálogo que coincide con lo que caja eligió («¿Es alguna de estas?», A2 de la auditoría 2026-10-14), por id y nunca por
    *  el nombre visible. Opcionales: un catálogo guardado antes de este cambio no los trae, y entonces no se ofrece nada. */
