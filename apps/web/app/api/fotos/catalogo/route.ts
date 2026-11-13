@@ -37,6 +37,30 @@ function error(texto: string, status: number) {
   return Response.json({ error: texto }, { status });
 }
 
+/**
+ * GET: lo que esta cuenta puede hacer con las fotos de una prenda nueva fuera de Productos (Recibir ▸ «Crear la prenda que llegó»): `fotos`, si
+ * puede guardarlas (la misma regla que `producto_fotos`: `fn_puede_editar_catalogo`), e `ia`, si además puede pedir la de catálogo (la llave
+ * está puesta y ve Productos, como el POST). No gasta nada. Sin sesión o sin respuesta de la base: las dos en falso.
+ */
+export async function GET() {
+  const nada = Response.json({ fotos: false, ia: false });
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return nada;
+  const [catalogo, productos] = await Promise.all([
+    supabase.rpc("fn_puede_editar_catalogo" as never),
+    supabase.rpc("fn_ve_modulo", { p_clave: "productos" }),
+  ]);
+  if (catalogo.error) {
+    capturarError("fotos/catalogo: no se pudo revisar el permiso de fotos", catalogo.error);
+    return nada;
+  }
+  const fotos = catalogo.data === true;
+  return Response.json({ fotos, ia: fotos && fotoCatalogoDisponible() && productos.data === true });
+}
+
 export async function POST(request: Request) {
   if (!fotoCatalogoDisponible()) return error("La foto de catálogo no está disponible ahora. Avísale a tu líder.", 503);
 

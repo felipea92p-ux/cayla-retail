@@ -73,3 +73,17 @@ sin molde, además, la etiqueta del cuello cambió de «L» a «M».
   los dos pares; «Usar mi foto» subió la real.
 - `/chaos`: doble clic (una llamada) e IA caída (la real queda y avisa), dos hallazgos cerrados el mismo día. `/milimetro`: 0 fallas de contraste en claro y
   oscuro. Guías: Nuevo producto en verde a 1440 y 375; Editar, el paso nuevo en verde (queda en rojo «Revisar y guardar», de antes).
+
+## Actualización 2026-11-13 (b) — /formidable, /chaos y Recibir
+
+- **/formidable** (`docs/formidable/catalogo-con-ia.md`): el panel grande de Editar muestra la foto que se prepara y «Con IA · Usar mi foto»;
+  una foto que se prepara cuenta como cambio sin guardar (salir pregunta; «Revisar y guardar» y «Descartar» esperan); la foto «para todos los
+  colores» no usa molde ni lo es; en Nuevo la miniatura de IA abre la vista grande.
+- **/chaos** (semilla 1113, IA simulada): resiste. Tres hallazgos de gravedad 4 abiertos (el foco no vuelve al cerrar la hoja de ángulos, la ruta
+  no rechaza un archivo que no es imagen antes de llamar a OpenAI, el aviso de Nuevo no nombra el color).
+- **Recibir ▸ «Crear la prenda que llegó»** (Felipe: «que crear producto desde recibir mercadería también pida fotos y allí también esté lo de
+  la IA»): en «Tallas y colores», una fila por color con su foto y «Catálogo con IA» (`FotosDeLaPrenda`, en `components/alta-producto/FotosDeColores.tsx`,
+  la misma pieza que la tabla de Nuevo producto). Revierte la decisión del 2026-11-03 de dejar las fotos para Productos, **solo para quien puede
+  guardarlas**: la regla es la de `producto_fotos` (`fn_puede_editar_catalogo`), que la hoja pregunta a `GET /api/fotos/catalogo` (`{ fotos, ia }`;
+  `ia` además exige la llave y el módulo Productos, como el POST). Quien recibe sin editar el catálogo crea la prenda como antes. **Ningún permiso
+  cambió.** Las fotos suben después de crear la prenda y esperando a la IA, como en Nuevo; una que falle no deshace la prenda y se avisa.

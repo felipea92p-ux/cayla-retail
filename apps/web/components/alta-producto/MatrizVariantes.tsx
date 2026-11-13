@@ -1,15 +1,11 @@
 "use client";
 
 import { useState } from "react";
-import { Globito } from "@/components/ui/Globito";
-import { Camera, Sparkles } from "lucide-react";
-import { HiloEnEspera, Interruptor } from "@/components/ui/campos";
-import { Chip } from "@/components/ui/Chip";
 import type { CatalogoIAAlta } from "@/components/alta-producto/useCatalogoIAAlta";
-import { Modal } from "@/components/ui/Modal";
+import { EstadoFotosDeFila, FotosDeFila, HojaFotosDeColor, InterruptorCatalogoIA } from "@/components/alta-producto/FotosDeColores";
 import { Punto } from "@/components/alta-producto/ElegirColores";
 import { RAYADO_FUERA } from "@/components/alta-producto/rayado";
-import { BotonFoto, BotonQuitarFoto, useFotosPendientes, type FotoPendiente } from "@/components/alta-producto/FotosAlta";
+import { useFotosPendientes, type FotoPendiente } from "@/components/alta-producto/FotosAlta";
 import type { CeldaAlta } from "@/lib/alta-producto";
 import { leyendaVariantes, textoFotosDeFila } from "@/lib/tabla-alta-reglas";
 
@@ -94,16 +90,7 @@ export function MatrizVariantes({
     <div className="space-y-2">
       {catalogo.disponible && (
         <div className="flex justify-end" data-guia="nuevo.catalogo-ia">
-          <Interruptor
-            activo={catalogo.encendido}
-            onActivo={catalogo.cambiarEncendido}
-            etiqueta={
-              <span className="inline-flex items-center gap-1.5 font-medium text-tinta">
-                <Sparkles aria-hidden className="h-3.5 w-3.5" />
-                Catálogo con IA
-              </span>
-            }
-          />
+          <InterruptorCatalogoIA catalogo={catalogo} />
         </div>
       )}
       <p className="text-[13px] leading-snug">
@@ -156,29 +143,15 @@ export function MatrizVariantes({
                           {c && <Punto hex={c.hex} familia={c.familiaColor} tipo={c.tipo} />}
                           {nombre}
                         </span>
-                        {catalogo.preparando(color) ? (
-                          <small className="text-sm font-normal text-taupe">Preparando…</small>
-                        ) : suyas[suyas.length - 1]?.ia ? (
-                          <span className="flex items-center gap-1.5">
-                            {suyas[suyas.length - 1].ia!.usar && (
-                              <Chip tono="pizarra">Con IA</Chip>
-                            )}
-                            <button type="button" disabled={disabled} onClick={() => catalogo.alternar(suyas[suyas.length - 1].clave)} className="btn-enlace w-fit text-left text-sm font-normal">
-                              {suyas[suyas.length - 1].ia!.usar ? "Usar mi foto" : "Usar la de IA"}
-                            </button>
-                          </span>
-                        ) : suyas.length > 0 ? (
-                          <button
-                            type="button"
-                            onClick={() => setViendo(color)}
-                            aria-label={`Ver o quitar las fotos de ${nombreDe(color)}`}
-                            className="btn-enlace w-fit text-left text-sm font-normal"
-                          >
-                            {textoFotosDeFila(suyas.length, false)}
-                          </button>
-                        ) : (
-                          <small className="text-sm font-normal text-taupe">{textoFotosDeFila(0, color !== null && generales.length > 0)}</small>
-                        )}
+                        <EstadoFotosDeFila
+                          suyas={suyas}
+                          nombre={nombreDe(color)}
+                          preparando={catalogo.preparando(color)}
+                          disabled={disabled}
+                          catalogo={catalogo}
+                          onVer={() => setViendo(color)}
+                          usaLaGeneral={color !== null && generales.length > 0}
+                        />
                       </div>
                     </div>
                   </th>
@@ -246,142 +219,17 @@ export function MatrizVariantes({
       </p>
 
       {viendo !== undefined && (
-        <Modal
-          titulo={`Fotos de ${nombreDe(viendo)}`}
-          // En una fila con foto de IA, tocar la miniatura abre esta hoja (no agrega otra): ahí no se promete lo que no hace.
-          subtitulo={
-            fotos.some((f) => f.colorCodigo === viendo && f.ia)
-              ? "Se suben al crear el producto."
-              : "Se suben al crear el producto. Para agregar otra, toca la foto en la tabla."
-          }
+        <HojaFotosDeColor
+          nombre={nombreDe(viendo)}
+          fotos={fotos.filter((f) => f.colorCodigo === viendo)}
+          cuando="al crear el producto"
+          dondeAgregar="en la tabla"
+          disabled={disabled}
+          catalogo={catalogo}
+          onQuitar={quitar}
           onClose={() => setViendo(undefined)}
-        >
-          {(cerrar) => {
-            const estas = fotos.filter((f) => f.colorCodigo === viendo);
-            return (
-              <div className="space-y-4">
-                {estas.length === 0 ? (
-                  <p className="text-sm text-taupe">Ya no quedan fotos de {nombreDe(viendo)}.</p>
-                ) : (
-                  // Una sola foto se ve grande: es donde se juzga la de IA antes de decidir «Usar mi foto» (formidable, 2026-11-13).
-                  <div className={estas.length === 1 ? "mx-auto grid max-w-[260px] grid-cols-1" : "grid grid-cols-3 gap-2.5"}>
-                    {estas.map((f, i) => (
-                      <div key={f.clave} className="space-y-1.5">
-                        <div className="aspect-[4/5] overflow-hidden rounded-md border border-sand bg-hueso">
-                          {/* eslint-disable-next-line @next/next/no-img-element -- vista previa local (blob:), next/image no la optimiza */}
-                          <img src={f.vista} alt={`Foto ${i + 1} de ${nombreDe(viendo)}`} className="h-full w-full object-contain" />
-                        </div>
-                        {f.ia && (
-                          <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1">
-                            {f.ia.usar && <Chip tono="pizarra">Con IA</Chip>}
-                            <button type="button" disabled={disabled} onClick={() => catalogo.alternar(f.clave)} className="btn-cayla btn-enlace text-sm">
-                              {f.ia.usar ? "Usar mi foto" : "Usar la de IA"}
-                            </button>
-                          </div>
-                        )}
-                        <button type="button" onClick={() => quitar(f.clave)} disabled={disabled} className="btn-cayla btn-sutil btn-chico w-full">
-                          Quitar
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                )}
-                <div className="flex justify-end">
-                  <button type="button" onClick={cerrar} className="btn-cayla btn-primario">
-                    Listo
-                  </button>
-                </div>
-              </div>
-            );
-          }}
-        </Modal>
+        />
       )}
     </div>
-  );
-}
-
-/** La foto de una fila: la miniatura (con el número si tiene varias; tocarla agrega otra) con su × para quitarla, o, si no tiene, la cámara. */
-function FotosDeFila({
-  suyas,
-  nombre,
-  disabled,
-  preparando,
-  onVer,
-  onArchivos,
-  onQuitar,
-}: {
-  suyas: FotoPendiente[];
-  nombre: string;
-  disabled: boolean;
-  /** La IA está preparando la foto de esta fila: la propia, atenuada, con el hilo de espera. */
-  preparando: boolean;
-  /** Ver las fotos de la fila en grande: la miniatura de una foto de IA lleva ahí (su resultado se juzga grande, no a 34 px). */
-  onVer: () => void;
-  onArchivos: (a: File[]) => void;
-  onQuitar: () => void;
-}) {
-  if (preparando && suyas.length > 0) {
-    const ultima = suyas[suyas.length - 1];
-    return (
-      <span aria-busy className="relative block h-[42px] w-[34px] shrink-0 overflow-hidden rounded-[5px] border border-sand bg-hueso">
-        {/* eslint-disable-next-line @next/next/no-img-element -- vista previa local (blob:), next/image no la optimiza */}
-        <img src={ultima.vista} alt="" className="h-full w-full object-cover opacity-40" />
-        <HiloEnEspera />
-      </span>
-    );
-  }
-  if (suyas.length === 0) {
-    return (
-      <BotonFoto
-        onArchivos={onArchivos}
-        disabled={disabled}
-        etiqueta={`Agregar foto de ${nombre}`}
-        className="grid h-[42px] w-[34px] shrink-0 place-items-center rounded-[5px] border border-dashed border-tinta/25 text-taupe transition-colors hover:border-tinta/45 hover:text-tinta disabled:opacity-40"
-      >
-        <Camera aria-hidden className="h-4 w-4" />
-      </BotonFoto>
-    );
-  }
-  if (suyas.some((f) => f.ia)) {
-    return (
-      <span className="relative shrink-0">
-        <button
-          type="button"
-          onClick={onVer}
-          aria-label={`Ver en grande la foto de ${nombre}`}
-          className="relative block h-[42px] w-[34px] rounded-[5px] border border-sand bg-hueso transition-colors hover:border-tinta/45"
-        >
-          {/* eslint-disable-next-line @next/next/no-img-element -- vista previa local (blob:), next/image no la optimiza */}
-          <img src={suyas[0].vista} alt="" className="h-full w-full rounded-[4px] object-cover" />
-          {suyas.length > 1 && <Globito n={suyas.length} esquina etiqueta="fotos" className="absolute -right-1.5 -top-1.5" />}
-        </button>
-        <BotonQuitarFoto
-          onClick={onQuitar}
-          disabled={disabled}
-          etiqueta={suyas.length === 1 ? `Quitar la foto de ${nombre}` : `Ver o quitar las ${suyas.length} fotos de ${nombre}`}
-          className="-left-1.5 -top-1.5"
-        />
-      </span>
-    );
-  }
-  return (
-    <span className="relative shrink-0">
-      <BotonFoto
-        onArchivos={onArchivos}
-        disabled={disabled}
-        etiqueta={`${suyas.length} foto${suyas.length === 1 ? "" : "s"} de ${nombre} · toca para agregar otra`}
-        className="relative block h-[42px] w-[34px] rounded-[5px] border border-sand bg-hueso disabled:opacity-40"
-      >
-        {/* eslint-disable-next-line @next/next/no-img-element -- vista previa local (blob:), next/image no la optimiza */}
-        <img src={suyas[0].vista} alt="" className="h-full w-full rounded-[4px] object-cover" />
-        {suyas.length > 1 && <Globito n={suyas.length} esquina etiqueta="fotos" className="absolute -right-1.5 -top-1.5" />}
-      </BotonFoto>
-      <BotonQuitarFoto
-        onClick={onQuitar}
-        disabled={disabled}
-        etiqueta={suyas.length === 1 ? `Quitar la foto de ${nombre}` : `Ver o quitar las ${suyas.length} fotos de ${nombre}`}
-        className="-left-1.5 -top-1.5"
-      />
-    </span>
   );
 }

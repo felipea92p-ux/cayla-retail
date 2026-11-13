@@ -52,3 +52,22 @@ export async function pedirFotoDeCatalogo(fotos: FotosDeCatalogo): Promise<Resul
     return { error: "No se pudo conectar. Revisa el internet y prueba de nuevo." };
   }
 }
+
+/** Lo que la cuenta puede hacer con las fotos de una prenda nueva: guardarlas y pedir la de catálogo con IA. */
+export type PermisoDeFotos = { fotos: boolean; ia: boolean };
+
+/**
+ * Pregunta al servidor (`GET /api/fotos/catalogo`) si esta cuenta puede guardar fotos de una prenda y pedir la de IA. Lo usan las pantallas
+ * que crean una prenda fuera de Productos («Crear la prenda que llegó», Recibir), que no reciben ese permiso de su página. Sin respuesta: nada,
+ * y la prenda se crea sin fotos como antes (principio 9).
+ */
+export async function leerPermisoDeFotos(): Promise<PermisoDeFotos> {
+  try {
+    const r = await fetch("/api/fotos/catalogo", { headers: { "x-espera": "no" }, cache: "no-store" });
+    if (!r.ok) return { fotos: false, ia: false };
+    const j = (await r.json()) as Partial<PermisoDeFotos>;
+    return { fotos: j.fotos === true, ia: j.fotos === true && j.ia === true };
+  } catch {
+    return { fotos: false, ia: false };
+  }
+}
