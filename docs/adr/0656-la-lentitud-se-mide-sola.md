@@ -1,7 +1,7 @@
 # ADR-0656 — La lentitud se mide sola: el vigía de rendimiento en la base y el presupuesto de bloques en el CI
 
-- **Fecha:** 2026-11-13 · **Estado:** construido en la rama `claude/vigia-y-presupuesto-rendimiento`. La migración
-  `20261113194000_vigia_de_rendimiento.sql` **no está pegada** en producción.
+- **Fecha:** 2026-11-13 · **Estado:** PR #1821. `20261113194000_vigia_de_rendimiento.sql` **pegada en producción el 2026-11-13**
+  (con la orden de Felipe) y verificada: el md5 de las dos funciones es el de la rama, y la primera foto dio `"ok": true`.
 - **Nace de:** `/innovar` sobre «Cambiar de módulo tarda en cargar» (`docs/innovacion/2026-11-13-cambiar-de-modulo.md`), propuestas
   **cambiar-de-modulo#5** («Vigía de rendimiento en la base») y **cambiar-de-modulo#14** («Presupuesto de rendimiento en el CI»).
   Felipe las aprobó el 2026-11-13.
