@@ -186,8 +186,24 @@ otra vez, medir. Las 18 cifras quedaron iguales, con una diferencia máxima de 0
 situación: `fn_productos_facetas` pasó de 62.085 a 117.131 (el síntoma del CI) y `fn_resumen_finanzas` de 220 mil a 66 mil. Las cifras
 del presupuesto cambian con este arreglo (la base queda en otro estado al medir) y se vuelven a aceptar desde el CI.
 
+## Actualización 2026-11-13 (c): el cron no podía tomar la foto
 
-## Actualización 2026-11-13 (c): lo que la actualización (b) no alcanzaba, y por qué `fn_mi_sesion` leía 41 y después 62
+**Lo que pasó.** La primera foto, tomada a mano desde el SQL Editor, salió bien. Pero cada corrida del cron (22:07 y 23:07 UTC)
+falló con «DELETE requires a WHERE clause» (21000), y no quedó historia. `fn_foto_rendimiento()` vaciaba su memoria de trabajo con un
+`delete from retail.rendimiento_estado` sin `where`. Las sesiones de PostgREST cargan `safeupdate` (`authenticator` lo trae en
+`session_preload_libraries`), que rechaza todo DELETE o UPDATE sin WHERE. El SQL Editor y psql no lo cargan, y por eso ni la prueba ni
+el pegado lo vieron.
+
+**El arreglo.** `20261113233000`: la misma función, con `delete … where true`. La prueba suma el caso H: la función se llama con
+`safeupdate` cargado y la llave de servicio, como el cron, dos veces seguidas. El control es la versión anterior, que ahí falla con el
+mismo error de producción.
+
+**Pegada en producción el 2026-11-13 a las 23:32 UTC** (md5 de la función verificado).
+
+**Lección para la próxima función que llame un cron o la web:** probarla también con `load 'safeupdate'`. Solo `supabase_admin`
+puede cargar esa librería; `postgres` no.
+
+## Actualización 2026-11-13 (d): lo que la actualización (b) no alcanzaba, y por qué `fn_mi_sesion` leía 41 y después 62
 
 **`fn_mi_sesion@colaboradora`, 41 contra 62: no era la función.** `fn_terminal_actual` es una función SQL `security definer`, así que
 Postgres vuelve a planificar su consulta en cada llamada. Al planificar, mira la altura de cada índice de `terminales`. Si el índice
@@ -210,3 +226,5 @@ de 30 días (un CTE `materialized`) y después busca su prenda. Devuelve lo mism
 pruebas:productos-facetas-demanda`, con control), y lee 54 mil bloques en las seis bases. La tienda real también salía ganando: podía
 caer en el camino caro el día que se movieran sus estadísticas. `fn_productos_listado` no cambia: su demanda es de las 20 prendas de la
 página, y ahí recorrer sus variantes es lo barato.
+
+**Pegada en producción el 2026-11-13** (md5 de `fn_productos_facetas` verificado: `745b6016a3efc3648dbae85f723038be`).

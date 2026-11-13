@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Prueba de `20261113225000_productos_facetas_ventas_de_una_vez.sql` (ADR-0656, act. c): los conteos de los filtros de Catálogo ▸
+ * Prueba de `20261113225000_productos_facetas_ventas_de_una_vez.sql` (ADR-0656, act. d): los conteos de los filtros de Catálogo ▸
  * Productos toman las ventas de 30 días primero y después buscan su prenda. Es solo un cambio de CAMINO: lo que devuelve
  * `fn_productos_facetas` tiene que ser idéntico, carácter por carácter.
  *

@@ -2281,7 +2281,7 @@ export const PRUEBAS = [
   // que la lista; quien no ve el dinero de Compras no encuentra nada; las faltas de antes no cambian. Con control. ROLLBACK.
   "pruebas:productos-sin-costo",
 
-  // Los conteos de Productos leen las ventas de 30 días UNA vez (20261113225000, ADR-0656 act. c): sobre el volumen del presupuesto y con
+  // Los conteos de Productos leen las ventas de 30 días UNA vez (20261113225000, ADR-0656 act. d): sobre el volumen del presupuesto y con
   // poco stock, lo que devuelve fn_productos_facetas es idéntico al de antes (siete combinaciones de filtros, líder e integrante); con la
   // demanda rota a propósito, cambia (control); se pega dos veces; con otra «demanda», no toca nada. ROLLBACK.
   "pruebas:productos-facetas-demanda",

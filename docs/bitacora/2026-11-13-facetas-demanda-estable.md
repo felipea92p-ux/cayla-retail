@@ -1,5 +1,5 @@
-## 2026-11-13 — Los conteos de Productos leen las ventas de 30 días una vez, y el presupuesto deja de saltar (ADR-0656, act. c)
+## 2026-11-13 — Los conteos de Productos leen las ventas de 30 días una vez, y el presupuesto deja de saltar (ADR-0656, act. d)
 
 - **Qué hice:** `fn_productos_facetas` toma primero las ventas de 30 días y después busca su prenda (migración `20261113225000`, reemplazo anclado). Además, quedó explicado por qué `fn_mi_sesion@colaboradora` leía 41 o 62: los índices vacíos de `terminales`.
 - **Por qué así:** el plan de `demanda` estaba en el filo: 55 mil o 112 mil bloques según los identificadores al azar de la semilla (cinco de seis bases nuevas daban 112 mil). Con `vacuum (analyze)` y `reindex` cada base daba siempre lo mismo, pero dos bases distintas no. Subir el presupuesto a 112 mil dejaba pasar sin aviso que se doblara el camino bueno.
-- **Cómo se verifica:** `pnpm pruebas:productos-facetas-demanda` (6/6; la mutación de 30 a 31 días la tumba); las de Productos (`facetas` 17/17, `empresa` 9/9, `sin-costo` 9/9, `listado` 34/34) sobre una base con la migración; el presupuesto da 54 mil bloques en las seis bases. Falta pegar la migración en producción.
+- **Cómo se verifica:** `pnpm pruebas:productos-facetas-demanda` (6/6; la mutación de 30 a 31 días la tumba); las de Productos (`facetas` 17/17, `empresa` 9/9, `sin-costo` 9/9, `listado` 34/34) sobre una base con la migración; el presupuesto da 54 mil bloques en las seis bases. La migración quedó pegada en producción el mismo día, con la huella verificada.

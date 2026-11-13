@@ -1,6 +1,6 @@
 {
   "_": "ADR-0656. Bloques de 8 kB que lee cada función de entrada de módulo sobre el volumen de presupuesto-volumen.sql. No se edita a mano: pnpm rendimiento:aceptar.",
-  "origen": "CI, corrida 43517420718; fn_productos_facetas@lider de la corrida 43523159516 (ADR-0656 act. c)",
+  "origen": "CI, corrida 43517420718; fn_productos_facetas@lider de la corrida 43523159516 (ADR-0656 act. d)",
   "bloques": {
     "fn_es_admin@colaboradora": 10,
     "fn_es_admin@lider": 11,
