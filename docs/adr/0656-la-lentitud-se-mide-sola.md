@@ -186,3 +186,27 @@ otra vez, medir. Las 18 cifras quedaron iguales, con una diferencia máxima de 0
 situación: `fn_productos_facetas` pasó de 62.085 a 117.131 (el síntoma del CI) y `fn_resumen_finanzas` de 220 mil a 66 mil. Las cifras
 del presupuesto cambian con este arreglo (la base queda en otro estado al medir) y se vuelven a aceptar desde el CI.
 
+
+## Actualización 2026-11-13 (c): lo que la actualización (b) no alcanzaba, y por qué `fn_mi_sesion` leía 41 y después 62
+
+**`fn_mi_sesion@colaboradora`, 41 contra 62: no era la función.** `fn_terminal_actual` es una función SQL `security definer`, así que
+Postgres vuelve a planificar su consulta en cada llamada. Al planificar, mira la altura de cada índice de `terminales`. Si el índice
+nunca tuvo una raíz (la tabla nace vacía en la semilla y nadie le insertó nada), Postgres lee su primera página cada vez y no la
+guarda: son 3 bloques por llamada, uno por índice. Basta que una prueba anterior de la tanda intente crear una terminal, aunque se
+deshaga, para que los índices tengan raíz y esos 3 bloques desaparezcan. El 41 salió de una tanda así; el 62, de una que no. Comprobado
+en una base local nueva: con un solo intento de insertar en `terminales`, las 14 medidas del marco vuelven bloque a bloque a las de la
+corrida 43515131464 (41, 27, 0, 1…). La tienda real tiene terminales: allí son 0. Con el `reindex` de la actualización (b), los índices
+de una tabla vacía quedan siempre sin raíz, así que la cifra queda fija (74 con estadísticas).
+
+**`fn_productos_facetas`, 55 mil contra 112 mil: un plan en el filo, no la base sucia.** Seis bases locales nuevas, medidas con el
+script de la actualización (b): cinco dan 112 mil bloques y una da 55 mil. Cada base da siempre la misma cifra, por eso la prueba de
+(b) (una sola copia, hinchada y vuelta a medir) salía estable. Y las dos corridas de su CI tuvieron las mismas 15 pruebas antes. La
+causa está en `demanda` (las ventas de 30 días de cada prenda). Postgres calcula 40 a 54 ventas recientes y son 3.119, así que ve casi
+del mismo costo dos caminos: tomar las ventas por fecha (~10 mil bloques) o recorrer todas las variantes (~66 mil). Lo que lo voltea
+es un índice de 292 o 299 páginas y una correlación de 0,083 u 0,088, que cambian con los identificadores al azar de la semilla.
+
+**El arreglo está en la función, no en la medida:** `20261113225000_productos_facetas_ventas_de_una_vez.sql` toma primero las ventas
+de 30 días (un CTE `materialized`) y después busca su prenda. Devuelve lo mismo, carácter por carácter (`pnpm
+pruebas:productos-facetas-demanda`, con control), y lee 54 mil bloques en las seis bases. La tienda real también salía ganando: podía
+caer en el camino caro el día que se movieran sus estadísticas. `fn_productos_listado` no cambia: su demanda es de las 20 prendas de la
+página, y ahí recorrer sus variantes es lo barato.
