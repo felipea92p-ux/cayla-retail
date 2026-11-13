@@ -31,8 +31,9 @@
 
 import { execFileSync, spawnSync } from "node:child_process";
 import { appendFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { rutaDeGit } from "./ruta-de-git.mjs";
 
 const RAIZ = join(fileURLToPath(new URL(".", import.meta.url)), "..", "..");
 const CONTENEDOR_LOCAL = "supabase_db_cayla-retail";
@@ -247,7 +248,9 @@ function actualizar(flags) {
     git("checkout", fuente, "--", ...DE_LA_SKILL);
     git("commit", "-q", "-m", `chore(plataforma): trae la skill /flujo-de-negocio a la rama de corrida\n\nCopia de «${fuente}». La rama de corrida es desechable: la skill se edita en su rama de origen.\n\nCo-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>`);
   }
-  const excluir = join(RAIZ, git("rev-parse", "--git-path", "info/exclude"));
+  // En un worktree git contesta con una ruta ABSOLUTA (la de la carpeta principal): ver `ruta-de-git.mjs`.
+  const excluir = rutaDeGit(RAIZ, git("rev-parse", "--git-path", "info/exclude"));
+  mkdirSync(dirname(excluir), { recursive: true });
   if (!existsSync(excluir) || !readFileSync(excluir, "utf8").includes(".flujo-de-negocio/")) appendFileSync(excluir, "\n.flujo-de-negocio/\n");
   guardarFoto({
     registrada: new Date().toISOString(), base_sha: base, rama_corrida: rama, fuente: yaEnMain ? "main" : fuente,
