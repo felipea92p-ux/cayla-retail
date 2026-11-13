@@ -208,21 +208,27 @@ export function HojaPrenda({
     setVisitados((v) => new Set([...v, numero]));
   }
 
-  // La propuesta de precio se pide al salir de «Cómo es» (Felipe 2026-11-13): el nombre, el tejido y el detalle ya están, y el costo y la
-  // categoría vienen de la línea. Mientras se marcan tallas y colores la IA ya calcula, y al llegar al precio está lista (o casi). Solo al
-  // entrar al paso 2: pedirla con cada cambio gastaría una consulta por tecla.
+  // La propuesta de precio se pide apenas se abre la hoja (Felipe 2026-11-13: «lo pudo haber hecho desde que empecé a crear el producto»):
+  // la categoría y el costo vienen de la línea, y el nombre casi siempre de lo contado. La IA tarda 4 a 7 s (medido en producción), así que
+  // al llegar al precio ya está. Si se elige otro tejido, se vuelve a pedir con él (es lo único de «Cómo es» que cambia la respuesta); la
+  // espera corta junta varios clics seguidos en una sola consulta. Lo de igual clave no se repite: ni lo respondido ni lo que va en camino.
   useEffect(() => {
-    if (!nueva || paso !== 2) return;
-    adelantarPropuestaDePrecio({
-      origen: "recepcion",
-      categoriaId: destino.categoriaId,
-      tejidoId: borrador.tejidoId,
-      referencia: borrador.nombre,
-      descripcion: borrador.descripcion,
-      costoBase: costo.trim().replace(",", "."),
-    });
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- se pide al entrar al paso, con lo que había; no en cada cambio
-  }, [paso]);
+    if (!nueva || paso > 2) return;
+    const espera = window.setTimeout(
+      () =>
+        adelantarPropuestaDePrecio({
+          origen: "recepcion",
+          categoriaId: destino.categoriaId,
+          tejidoId: borrador.tejidoId,
+          referencia: borrador.nombre,
+          descripcion: borrador.descripcion,
+          costoBase: costo.trim().replace(",", "."),
+        }),
+      400,
+    );
+    return () => window.clearTimeout(espera);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- al abrir y al cambiar el tejido; no con cada letra del nombre o del detalle
+  }, [paso, borrador.tejidoId]);
 
   // Cada paso abre desde arriba. Es otra vista y no un bloque que se acortó: sin soltar la reserva de la página, un paso más corto aparece corrido y con aire debajo (ADR-0185).
   const pasoPintado = useRef(paso);
@@ -547,7 +553,7 @@ export function HojaPrenda({
                       <div className="grid gap-4 sm:grid-cols-2">
                         <CampoMonto
                           etiqueta="Costo"
-                          pie={destino.costoUnitario != null ? "El de esta compra. Corrígelo si hace falta." : "Opcional. Con él, la propuesta usa el costo real."}
+                          pie={destino.costoUnitario != null ? "El de esta compra." : "Opcional. Afina la propuesta."}
                           inputMode="decimal"
                           placeholder="0.00"
                           value={costo}
@@ -556,7 +562,7 @@ export function HojaPrenda({
                         <CampoGuiado id="prenda-precio" guia={guia}>
                           <CampoMonto
                             etiqueta={guia.etiqueta("prenda-precio", "Precio de venta")}
-                            pie={destino.precioSugerido != null && destino.precioSugerido > 0 ? "Lo sugirió quien hizo la compra. Corrígelo si hace falta." : "El precio al que se va a vender en la tienda."}
+                            pie={destino.precioSugerido != null && destino.precioSugerido > 0 ? "Lo sugirió quien compró." : "Al que se vende en tienda."}
                             inputMode="decimal"
                             placeholder="0.00"
                             value={borrador.precio}
@@ -584,7 +590,7 @@ export function HojaPrenda({
                         }}
                         onDejar={() => setTocados((x) => ({ ...x, precio: true }))}
                       />
-                      <p className="nota-cayla">Lo que falte, como las fotos, se completa después en Productos. No sale en la tienda web hasta que alguien la publique.</p>
+                      <p className="nota-cayla">Las fotos y lo demás, después en Productos. No sale en la web hasta publicarla.</p>
                     </>
                   )}
                 </div>

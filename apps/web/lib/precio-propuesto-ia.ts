@@ -35,7 +35,7 @@ export type ContextoPrecio = {
 
 export const RespuestaPrecioIA = z.object({
   precio: z.number().describe("Precio de etiqueta propuesto en soles, terminado en .90."),
-  razon: z.string().describe("Por qué ese precio, en 1 o 2 frases cortas para una encargada de tienda."),
+  razon: z.string().describe("Por qué ese precio: UNA frase directa de 12 palabras o menos, sin nombrar prendas."),
   parecidas: z
     .array(z.object({ referencia: z.string(), precio: z.number() }))
     .describe("Las 1 a 3 prendas parecidas (de la lista) que más pesaron, con su precio."),
@@ -53,7 +53,7 @@ Cómo decidir:
 - Si el costo es "estimado" (es el promedio de la categoría, no el de esta prenda), propón igual pero dilo en la razón.
 - Si te dan el precio actual de la prenda (revisión), di si conviene subirlo, bajarlo o dejarlo igual, y propón el que pondrías. Dejarlo igual es una respuesta válida.
 
-La razón: 1 o 2 frases cortas, de tú, en español neutro peruano, como se lo dirías a la encargada de la tienda. Nombra 1 a 3 parecidas. Sin porcentajes de estadística ni palabras técnicas. Nunca inventes una prenda que no esté en la lista.`;
+La razón: UNA sola frase de 12 palabras o menos, directa, de tú, en español neutro peruano: solo el motivo principal. No repitas el precio ni nombres prendas: las parecidas que más pesaron van en su lista aparte (1 a 3, y nunca una que no esté en la lista). Si lo dejaste en el piso o el costo es estimado, dilo en esa misma frase. Sin porcentajes de estadística ni palabras técnicas.`;
 
 /** Lo que va en el mensaje: la prenda y sus parecidas, como datos. Nada de clientes, personas ni sedes. */
 export function mensajePrecio(p: {
