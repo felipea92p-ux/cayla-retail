@@ -9,8 +9,8 @@
 // respuesta ya pedida con los mismos datos se recuerda mientras la pantalla está abierta: ir y volver de paso no vuelve a gastar.
 //
 // En Recibir se pide ANTES de llegar (Felipe 2026-11-13: «lo pudo haber hecho desde que empecé a crear el producto»): la hoja la adelanta al
-// salir de «Cómo es» con `adelantarPropuestaDePrecio`, cuando ya están el nombre, el tejido y el detalle que la IA lee. Al llegar al precio,
-// la pieza toma esa misma consulta (lista o a medio camino) en vez de pedir otra: una sola consulta, y menos espera.
+// abrirse con `adelantarPropuestaDePrecio`, y otra vez solo si cambia el tejido. Al llegar al precio, la pieza toma esa misma consulta
+// (lista o a medio camino) en vez de pedir otra.
 
 import { Sparkles } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
@@ -64,11 +64,11 @@ async function pedirAlServidor(d: DatosPropuesta): Promise<Final> {
       }),
     });
     const datos = (await r.json().catch(() => null)) as (RespuestaProponer & { error?: string }) | null;
-    if (!r.ok || !datos || datos.error) return { tipo: "error", texto: datos?.error ?? "No se pudo calcular ahora. Prueba de nuevo en un momento." };
+    if (!r.ok || !datos || datos.error) return { tipo: "error", texto: datos?.error ?? "No respondió. Prueba de nuevo o ponlo tú." };
     if ("propuesta" in datos) YA_RESPONDIDO.set(claveDe(d), datos);
     return { tipo: "listo", respuesta: datos };
   } catch {
-    return { tipo: "error", texto: "Sin conexión: no se pudo calcular. Prueba de nuevo." };
+    return { tipo: "error", texto: "Sin conexión. Prueba de nuevo." };
   }
 }
 
@@ -159,7 +159,7 @@ export function PropuestaDePrecio({
               {estado.tipo === "error" || (estado.tipo === "listo" && "sinPropuesta" in estado.respuesta) ? "Proponer de nuevo" : "Proponer precio"}
             </span>
           </Boton>
-          <p className="text-sm text-taupe">Mira el costo y las prendas parecidas. Nunca deja menos de 30 % de margen.</p>
+          <p className="text-sm text-taupe">Nunca baja de 30 % de margen.</p>
         </div>
       )}
 
@@ -191,7 +191,7 @@ export function PropuestaDePrecio({
           </div>
           <p className="text-sm">{propuesta.razon}</p>
           {propuesta.subidoAlPiso && (
-            <p className="text-sm text-taupe">Lo subí a {soles(propuesta.piso)}: es lo mínimo para no ganar menos de 30 % con este costo.</p>
+            <p className="text-sm text-taupe">Es el mínimo para ganar 30 % con este costo.</p>
           )}
           {propuesta.parecidas.length > 0 && (
             <p className="text-sm text-taupe">
