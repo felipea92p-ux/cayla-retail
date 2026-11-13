@@ -63,6 +63,8 @@ export const MEDIDAS = [
     { clave: `fn_mi_persona_id@${quien}`, quien, sql: "'select retail.fn_mi_persona_id()'" },
     { clave: `fn_es_admin@${quien}`, quien, sql: "'select retail.fn_es_admin()'" },
     { clave: `fn_mi_pantalla_principal@${quien}`, quien, sql: "'select retail.fn_mi_pantalla_principal()'" },
+    // ADR-0657: las seis en un viaje, lo que la web pide desde 20261113200000 (las seis siguen midiéndose: son su respaldo).
+    { clave: `fn_mi_sesion@${quien}`, quien, sql: "'select retail.fn_mi_sesion()'" },
   ]),
   // Catálogo ▸ Productos: los conteos de los filtros y la primera página, sin filtros (como se entra).
   { clave: "fn_productos_facetas@lider", quien: "lider", sql: "'select retail.fn_productos_facetas()'" },
