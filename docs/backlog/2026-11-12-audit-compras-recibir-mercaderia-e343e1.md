@@ -10,7 +10,7 @@ Informe con capturas: https://claude.ai/artifact/Gr61aHqN8dNmtPgkk7PLbW
 ### Decisiones de Felipe (plata, stock o base) — sin hacer a propósito
 
 - [x] **A · Reabrir un envío de Mis compras** — resuelto el 2026-11-13 (Felipe: se deshace solo mientras va «En camino», lo anula quien compró en Mis envíos; recibido, ya no). ADR-0574 act. 2026-11-13, rama `claude/mis-compras-anular-envio-en-camino`.
-- [ ] **B · «¿Con qué pagaste?» viene con Yape elegido** (`PAGO_DE_FABRICA`, `lib/compra-rapida-reglas.ts`) y la guía lo da por hecho. ¿Sin valor de fábrica, o el medio de la última plata?
+- [x] **B · «¿Con qué pagaste?» viene con Yape elegido** — resuelto el 2026-11-13 (Felipe: «sin elegir»; la guía lo pide y no se guarda hasta tocar uno). Rama `claude/mis-compras-medio-sin-elegir`.
 - [x] **C · La billetera de la ronda** — resuelto el 2026-11-13 (Felipe: la plata que llega antes de abrir la ronda es de la ronda que se abre; «Te dieron» ya sumaba lo confirmado desde `20261027231000`). Migración `20261113162000`, **no está en producción**: la pega Felipe y después se refresca el volcado. Rama `claude/mis-compras-billetera-ronda`.
 - [ ] **D · Dos guardados del mismo conteo en vuelo** (`RecibirContando.tsx:224-266`): con mala señal puede salir «X había puesto 5» con tu propio nombre, o el número volver atrás; y salir antes de 0,7 s pierde el último número.
 - [ ] **E · `/recibir?vista=recibidas`** mezcla la sede de la cabecera con todas las sedes para un líder (cifras y lista sin filtro de sede). Lleva migración o un rótulo «todas las sedes».

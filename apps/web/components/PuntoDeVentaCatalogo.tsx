@@ -15,6 +15,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { TarjetaPrenda } from "@/components/punto-de-venta/TarjetaPrenda";
 import { etiquetaPrecioDeSede } from "@/lib/precio-sede-reglas";
 import { Interruptor } from "@/components/ui/campos";
+import { fondoDelPunto } from "@/lib/color-combinado";
 
 /**
  * Cuántas tarjetas se pintan de entrada y cuántas se suman cada vez que el centinela del fondo entra a la
@@ -281,7 +282,7 @@ export function PuntoDeVentaCatalogo({
                             {v.talla && <span className="shrink-0 rounded-md border border-sand bg-crema px-1.5 py-px font-semibold text-tinta">{v.talla}</span>}
                             {v.color && (
                               <span className="flex min-w-0 items-center gap-1.5">
-                                <span aria-hidden className="h-2.5 w-2.5 shrink-0 rounded-full border border-tinta/25" style={{ backgroundColor: estiloMosaicoColor(v.colorHex)?.fondo ?? "transparent" }} />
+                                <span aria-hidden className="h-2.5 w-2.5 shrink-0 rounded-full border border-tinta/25" style={{ background: fondoDelPunto(estiloMosaicoColor(v.colorHex)?.fondo, v.colorTonos) ?? "transparent" }} />
                                 <span className="truncate">{v.color}</span>
                               </span>
                             )}

@@ -1,0 +1,4 @@
+## 2026-11-13 (Fusionar productos: la hoja «La ficha que se arma», ADR-0650 act.)
+Qué hice: rehíce la hoja de fusión con la dirección B que eligió Felipe: las fichas lado a lado en vidrio, la que queda en gota con su ✓ y sin cambiar de lugar; «Así va a quedar» a la derecha con la matriz color × talla (ya estaba, pasa, se junta +N); «Ver ficha» abre una hoja para comparar (galería, ventas, stock por sede, tallas, precio y alta); «Revisar y fusionar» y el sello «Fusionado». Sin migraciones: el stock por sede sale de `fn_existencias(null, ids)`.
+Por qué así: Felipe vio que lo elegido era un bloque sólido que desentonaba y que las tarjetas se movían al elegir; decidió 10 preguntas y eligió B mirando la maqueta. La lógica nueva es pura y probada (`lib/fusionar-productos-ficha.ts`).
+Felipe se lleva: probar la hoja en local con un par real; mirar dónde quedó «Fotos que quedan» (no estaba en la maqueta B).

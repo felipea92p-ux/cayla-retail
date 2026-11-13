@@ -44,6 +44,7 @@ import { preciosDeTiendaPorProducto } from "@/lib/precio-sede-reglas";
 import { variantesQueSeVenden } from "@/lib/productos-vista";
 import { campanasQueCobra } from "@/lib/etiquetas-precio";
 import { hoyLima } from "@/lib/fechas-lima";
+import { tonosDeLasMezclas } from "@/lib/color-combinado";
 
 // Fase UI 1 (2026-09-11): pantalla nueva, no una migración de
 // `inventario/producto` (V1) — esa ruta es un formulario de alta que depende
@@ -134,7 +135,9 @@ async function ListaDeProductos({ searchParams }: { searchParams: Promise<Params
     // Cuántas hay en cada opción, el rango real del precio y sus tramos (ADR-0308). `null` si falla: opciones sin número.
     getFacetasProductos(filtros),
     supabase.from("categorias").select("id, nombre, prefijo, familia").eq("activo", true).order("nombre"),
-    supabase.from("colores").select("codigo, nombre, hex, familia_color, tipo").eq("activo", true).order("nombre"),
+    // La carta entera, también la desactivada: un color apagado sigue siendo el acompañante de una mezcla y su punto se parte con él
+    // (ADR-0643). El filtro de colores ofrece solo los activos.
+    supabase.from("colores").select("codigo, nombre, hex, familia_color, tipo, componentes, activo").order("nombre"),
     // Marcas y proveedores activos, para los filtros (ADR-0109).
     supabase.from("marcas").select("id, nombre").eq("activo", true).order("nombre"),
     supabase.from("proveedores").select("id, nombre").eq("activo", true).order("nombre"),
@@ -200,13 +203,17 @@ async function ListaDeProductos({ searchParams }: { searchParams: Promise<Params
   // Cada producto lleva el prefijo y la familia de su categoría (de la misma lectura de arriba, sin otra consulta): de ahí sale el
   // ícono de su miniatura cuando no tiene foto (ADR-0333). Una categoría desactivada no está en la lectura: esa prenda dibuja la percha.
   const categoriaPorId = new Map(categoriasLeidas.map((c) => [c.id, c] as const));
+  const coloresLeidos = exigir(colores, "los colores");
+  const tonosPorNombre = tonosDeLasMezclas(coloresLeidos, "nombre");
   // Y la insignia de su empresa donde conviven dos (ADR-0505): «CLAURE» en Lima y en Global; nada en Trujillo ni para CAYLA.
   const productos = resultado.productos.map((p) => {
     const c = p.categoriaId ? categoriaPorId.get(p.categoriaId) : undefined;
     const empresa = insigniaDeEmpresa(p.empresaId, empresasAqui);
-    return { ...p, ...(c ? { categoriaPrefijo: c.prefijo, categoriaFamilia: c.familia } : {}), empresa };
+    // Una mezcla («Hueso con azul») lleva sus tonos: la grilla, la tabla y la vista rápida parten su punto (ADR-0643).
+    const variantes = p.variantes.map((v) => (v.color && tonosPorNombre[v.color] ? { ...v, colorTonos: tonosPorNombre[v.color] } : v));
+    return { ...p, variantes, ...(c ? { categoriaPrefijo: c.prefijo, categoriaFamilia: c.familia } : {}), empresa };
   });
-  const coloresOpciones = exigir(colores, "los colores").map((c) => ({ id: c.codigo, nombre: c.nombre, hex: c.hex, familia: c.familia_color, tipo: c.tipo }));
+  const coloresOpciones = coloresLeidos.filter((c) => c.activo).map((c) => ({ id: c.codigo, nombre: c.nombre, hex: c.hex, familia: c.familia_color, tipo: c.tipo, tonos: tonosPorNombre[c.nombre] ?? null }));
   // En su orden de curva (S · M · L, 28 · 30 · 32), no alfabético (L, M, S).
   const tallasOpciones = exigir(resTallas, "las tallas")
     .map((t) => ({ id: t.id, nombre: t.valor }))

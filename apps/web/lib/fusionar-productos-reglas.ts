@@ -42,8 +42,11 @@ export type VariantePlan = {
   varianteId: string;
   productoId: string;
   talla: string | null;
+  colorCodigo: string | null;
   color: string;
   colorHex: string | null;
+  /** Una talla retirada (`activo = false`) también se muda, pero no se dibuja en la matriz: no se vende. */
+  activa: boolean;
   stock: number;
   trato: "muda" | "junta";
   conVarianteId: string | null;
@@ -118,8 +121,10 @@ export function leerPlan(json: unknown): PlanFusion {
         varianteId: String(v.variante_id),
         productoId: String(v.producto_id),
         talla: texto(v.talla),
+        colorCodigo: texto(v.color_codigo),
         color: String(v.color ?? "Sin color"),
         colorHex: texto(v.color_hex),
+        activa: v.activo !== false,
         stock: Number(v.stock ?? 0),
         trato: v.trato === "junta" ? "junta" : "muda",
         conVarianteId: texto(v.con_variante_id),
@@ -307,19 +312,40 @@ export function textoVentas(p: Pick<ProductoPlan, "unidadesVendidas">): string {
 }
 
 /** La guía de foco de la hoja (ADR-0284): lo que la base exige para fusionar, sin reglas nuevas. Elegir los campos que
- *  difieren y las fotos ya viene armado (el del que queda), así que son «sugerido», nunca un candado. */
+ *  difieren y las fotos ya viene armado (el del que queda), así que son «sugerido», nunca un candado. La hoja tiene dos pasos
+ *  (rediseño 2026-11-13): en `armar` se eligen las fichas y lo que queda; en `revisar`, quien firma («Sí, fusionar»). Sin vista,
+ *  todo junto. */
 export function camposDeLaGuia(estado: {
   duplicados: number;
   queda: string | null;
   hayDiferencias: boolean;
   responsableListo: boolean;
+  vista?: "armar" | "revisar";
 }): CampoDeGuia[] {
-  return [
+  const armar: CampoDeGuia[] = [
     { id: "duplicados", nombre: "Ficha repetida", requerido: true, hecho: estado.duplicados > 0, pendiente: "Busca la otra ficha de esta misma prenda." },
-    { id: "queda", nombre: "Cuál queda", requerido: true, hecho: estado.queda !== null, pendiente: "Elige la ficha que se queda." },
+    // Con una sola ficha no hay con qué compararla: «Cuál queda» espera a la repetida (/chaos 2026-11-13, ENT-01).
+    { id: "queda", nombre: "Cuál queda", requerido: true, hecho: estado.queda !== null && estado.duplicados > 0, pendiente: "Elige la ficha que se queda." },
     ...(estado.hayDiferencias
       ? [{ id: "diferencias", nombre: "Lo que es distinto", requerido: false, sugerido: true, hecho: true, pendiente: "Revisa con qué dato se queda." }]
       : []),
+  ];
+  const revisar: CampoDeGuia[] = [
     { id: "responsable", nombre: "Responsable", requerido: true, hecho: estado.responsableListo, pendiente: "Elige quién hace la fusión." },
   ];
+  if (estado.vista === "armar") return armar;
+  if (estado.vista === "revisar") return revisar;
+  return [...armar, ...revisar];
+}
+
+/** ¿Las repetidas ya quedaron fusionadas en la que queda? Se pregunta después de una respuesta que no llegó o de una versión que cambió
+ *  (/chaos 2026-11-13, RS-03 y NAV-05): la base pudo fusionar (o alguien más lo hizo) y la hoja no debe decir que nada cambió. */
+export function yaFusionadas(filas: { id: string; fusionadoEnId: string | null }[], queda: string, duplicados: string[]): boolean {
+  return duplicados.length > 0 && duplicados.every((d) => filas.find((f) => f.id === d)?.fusionadoEnId === queda);
+}
+
+/** El aviso cuando no se pudo fusionar: «Las fichas siguen como estaban» solo si la base respondió que no (su transacción se deshizo).
+ *  Con la respuesta perdida no se sabe, y la frase de `traducirError` ya pide revisar antes de repetir. */
+export function mensajeAlNoFusionar(frase: string, incierta: boolean): string {
+  return incierta ? frase : `${frase} Las fichas siguen como estaban.`;
 }

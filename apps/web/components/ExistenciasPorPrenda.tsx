@@ -203,7 +203,7 @@ export function ExistenciasPorPrenda({
                     {mostrarMarca && p.marca && <span className="font-normal text-taupe"> · {p.marca}</span>}
                   </span>
                   <span className="mt-0.5 flex items-center gap-2 text-sm text-taupe">
-                    {p.color ? <MuestraColor nombre={p.color} hex={p.colorHex} compacta /> : <span>Sin color</span>}
+                    {p.color ? <MuestraColor nombre={p.color} hex={p.colorHex} tonos={p.colorTonos} compacta /> : <span>Sin color</span>}
                     <span className="hidden whitespace-nowrap sm:inline">
                       {p.tallas.length} {p.tallas.length === 1 ? "talla" : "tallas"}
                     </span>
