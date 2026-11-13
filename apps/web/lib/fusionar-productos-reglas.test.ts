@@ -150,6 +150,11 @@ describe("guía de foco (ADR-0284)", () => {
     expect(c.filter((x) => x.requerido && !x.hecho).map((x) => x.id)).toEqual(["duplicados", "responsable"]);
     expect(c.find((x) => x.id === "diferencias")).toMatchObject({ requerido: false, sugerido: true });
   });
+  it("en dos pasos: armar pide las fichas y cuál queda; revisar, solo quién firma", () => {
+    const base = { duplicados: 1, queda: "A", hayDiferencias: true, responsableListo: false };
+    expect(camposDeLaGuia({ ...base, vista: "armar" }).map((x) => x.id)).toEqual(["duplicados", "queda", "diferencias"]);
+    expect(camposDeLaGuia({ ...base, vista: "revisar" }).map((x) => x.id)).toEqual(["responsable"]);
+  });
   it("sin diferencias no hay paso de diferencias", () => {
     expect(camposDeLaGuia({ duplicados: 1, queda: "A", hayDiferencias: false, responsableListo: true }).map((x) => x.id)).toEqual([
       "duplicados", "queda", "responsable",
