@@ -10,7 +10,7 @@ vi.mock("./compartido-servidor", () => ({
   db: () => {
     throw new Error("la prueba no abre la base");
   },
-  lecturaCompartida: () => (...args: unknown[]) => lectura(...args),
+  lecturaPorHuella: () => (...args: unknown[]) => lectura(...args),
 }));
 vi.mock("./catalogo-servidor", () => ({ SEGUNDOS_DEL_CATALOGO: 30 }));
 vi.mock("./tiendas-servidor", () => ({ leerSedes: async () => [] }));
