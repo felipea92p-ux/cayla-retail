@@ -26,6 +26,11 @@ export type FotoPendiente = {
   /** URL local (blob:) solo para mostrarla; se libera al quitarla o al salir. */
   vista: string;
   colorCodigo: string | null;
+  /**
+   * «Catálogo con IA» (2026-11-13): la versión de catálogo de esta foto, ya preparada en el navegador. `usar` dice cuál queda: con la de IA,
+   * `vista` es la suya y al crear el producto se sube el par (`subirParDeCatalogo`); con «Usar mi foto», `vista` vuelve a `vistaReal`.
+   */
+  ia?: { png: Blob; vistaIA: string; vistaReal: string; usar: boolean };
 };
 
 /** Agregar y quitar fotos pendientes, compartido por esta grilla y por la tabla de la prenda (`MatrizVariantes`, spike

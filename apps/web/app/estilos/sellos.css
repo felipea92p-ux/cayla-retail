@@ -251,6 +251,33 @@
   .sl-listo-marca path { stroke-dasharray: 24; stroke-dashoffset: 24; animation: sl-traza 600ms var(--ease-cayla) forwards; animation-delay: calc(var(--i, 0) * 120ms + 300ms); }
   .sl-listo-detalle { margin-left: auto; font-size: 14px; color: var(--color-tinta-60); }
 
+  /* Las tres preguntas de una campaña (ADR-0655): la misma fila, tocable. La que sigue lleva el hilo de la guía de foco (`--hilo-guia`, ADR-0284),
+     nunca rojo; al pasar el mouse, el ahumado de una fila de lista. */
+  .sl-pregunta { position: relative; width: 100%; text-align: left; background: none; border-inline: 0; border-top: 0; cursor: pointer; padding-inline: 10px; border-radius: 10px; transition: background-color var(--t-resp) var(--ease-cayla); }
+  .sl-pregunta { display: grid; grid-template-columns: 22px auto minmax(0, 1fr) auto; column-gap: 12px; row-gap: 2px; }
+  .sl-pregunta > .font-medium { white-space: nowrap; }
+  .sl-pregunta .sl-listo-detalle { margin-left: 0; justify-self: end; text-align: right; }
+  .sl-pregunta-ir { display: inline-flex; flex: none; align-items: center; gap: 6px; color: var(--color-tinta-60); }
+  /* En el celular la explicación baja a su renglón, bajo el nombre: el nombre no se parte en tres líneas. */
+  @media (max-width: 639px) {
+    .sl-pregunta { grid-template-columns: 22px minmax(0, 1fr) auto; }
+    .sl-pregunta .sl-listo-detalle { grid-column: 2; grid-row: 2; justify-self: start; text-align: left; }
+    .sl-pregunta .sl-pregunta-ir { grid-column: 3; grid-row: 1 / span 2; }
+  }
+  .sl-pregunta-sigue::before { content: ""; position: absolute; left: 0; top: 10px; bottom: 10px; width: 2.5px; border-radius: 2px; background: var(--hilo-guia); }
+  .sl-pregunta:focus-visible { outline: var(--foco-ancho, 2px) solid var(--foco-color, var(--color-tinta)); outline-offset: var(--foco-separacion, 2px); }
+  @media (hover: hover) {
+    .sl-pregunta:hover { background: color-mix(in srgb, var(--color-tinta) 4%, transparent); }
+  }
+
+  /* El mapa «¿Insignia, campaña u oferta?» (ADR-0655): tres placas dentro de una hoja (la placa explica, ADR-0596) y la lista de tareas. */
+  .mapa-placa { border: 1px solid var(--placa-borde); background: var(--placa-fondo); box-shadow: var(--placa-luz); border-radius: 18px; padding: 16px; }
+  .mapa-icono { display: grid; place-items: center; width: 40px; height: 40px; border-radius: 12px; background: var(--color-hueso); color: var(--color-tinta); }
+  .mapa-donde { margin-top: 12px; padding-top: 8px; border-top: 1px dashed var(--color-sand); font-size: 14px; color: var(--color-taupe); }
+  .mapa-tareas { list-style: none; margin: 0; padding: 0; }
+  .mapa-tareas li { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 4px 16px; padding: 9px 0; border-bottom: 1px solid var(--color-sand); font-size: 14px; }
+  .mapa-tareas b { font-weight: 600; }
+
   @keyframes sl-entra {
     from { opacity: 0; transform: translateY(10px); }
     to { opacity: 1; transform: none; }

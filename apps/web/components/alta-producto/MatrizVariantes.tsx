@@ -2,7 +2,10 @@
 
 import { useState } from "react";
 import { Globito } from "@/components/ui/Globito";
-import { Camera } from "lucide-react";
+import { Camera, Sparkles } from "lucide-react";
+import { HiloEnEspera, Interruptor } from "@/components/ui/campos";
+import { Chip } from "@/components/ui/Chip";
+import type { CatalogoIAAlta } from "@/components/alta-producto/useCatalogoIAAlta";
 import { Modal } from "@/components/ui/Modal";
 import { Punto } from "@/components/alta-producto/ElegirColores";
 import { RAYADO_FUERA } from "@/components/alta-producto/rayado";
@@ -38,6 +41,7 @@ export function MatrizVariantes({
   fotos,
   onFotos,
   disabled = false,
+  catalogo,
 }: {
   celdas: CeldaAlta[];
   /** Las tallas elegidas, ya ordenadas. Vacío = el producto no tiene talla (una sola columna). */
@@ -48,6 +52,8 @@ export function MatrizVariantes({
   fotos: FotoPendiente[];
   onFotos: (f: FotoPendiente[]) => void;
   disabled?: boolean;
+  /** «Catálogo con IA» (`useCatalogoIAAlta`): el interruptor sobre la tabla, la hoja de ángulos y lo que se prepara en cada fila. */
+  catalogo: CatalogoIAAlta;
 }) {
   const filas: (string | null)[] = colores.length ? colores.map((c) => c.codigo) : [null];
   const columnas: (string | null)[] = tallas.length ? tallas.map((t) => t.id) : [null];
@@ -81,8 +87,25 @@ export function MatrizVariantes({
     onExcluidas(copia);
   }
 
+  // Con «Catálogo con IA» encendido, la foto de una fila abre la hoja de ángulos; apagado, queda tal cual (ADR-0442).
+  const agregarA = (archivos: File[], color: string | null) => (catalogo.encendido ? catalogo.abrir(archivos, color) : agregar(archivos, color));
+
   return (
     <div className="space-y-2">
+      {catalogo.disponible && (
+        <div className="flex justify-end" data-guia="nuevo.catalogo-ia">
+          <Interruptor
+            activo={catalogo.encendido}
+            onActivo={catalogo.cambiarEncendido}
+            etiqueta={
+              <span className="inline-flex items-center gap-1.5 font-medium text-tinta">
+                <Sparkles aria-hidden className="h-3.5 w-3.5" />
+                Catálogo con IA
+              </span>
+            }
+          />
+        </div>
+      )}
       <p className="text-[13px] leading-snug">
         <b className="text-[15px] tabular-nums text-tinta">{incluidas}</b>{" "}
         <span className="text-taupe">
@@ -119,23 +142,42 @@ export function MatrizVariantes({
                 <tr key={color ?? "sin-color"}>
                   <th scope="row" className="sticky left-0 z-[1] whitespace-nowrap border-r border-t border-sand bg-papel py-1.5 pl-2 pr-2 text-left font-medium text-tinta sm:py-2 sm:pl-3 sm:pr-2.5">
                     <div className="flex items-center gap-1.5 sm:gap-2.5">
-                      <FotosDeFila suyas={suyas} nombre={nombreDe(color)} disabled={disabled} onArchivos={(a) => agregar(a, color)} onQuitar={() => quitarDe(suyas, color)} />
+                      <FotosDeFila
+                        suyas={suyas}
+                        nombre={nombreDe(color)}
+                        disabled={disabled}
+                        preparando={catalogo.preparando(color)}
+                        onVer={() => setViendo(color)}
+                        onArchivos={(a) => agregarA(a, color)}
+                        onQuitar={() => quitarDe(suyas, color)}
+                      />
                       <div className="flex min-w-0 flex-col leading-tight">
                         <span className="flex items-center gap-1.5 text-[12.5px] font-semibold sm:text-[13.5px]">
                           {c && <Punto hex={c.hex} familia={c.familiaColor} tipo={c.tipo} />}
                           {nombre}
                         </span>
-                        {suyas.length > 0 ? (
+                        {catalogo.preparando(color) ? (
+                          <small className="text-sm font-normal text-taupe">Preparando…</small>
+                        ) : suyas[suyas.length - 1]?.ia ? (
+                          <span className="flex items-center gap-1.5">
+                            {suyas[suyas.length - 1].ia!.usar && (
+                              <Chip tono="pizarra">Con IA</Chip>
+                            )}
+                            <button type="button" disabled={disabled} onClick={() => catalogo.alternar(suyas[suyas.length - 1].clave)} className="btn-enlace w-fit text-left text-sm font-normal">
+                              {suyas[suyas.length - 1].ia!.usar ? "Usar mi foto" : "Usar la de IA"}
+                            </button>
+                          </span>
+                        ) : suyas.length > 0 ? (
                           <button
                             type="button"
                             onClick={() => setViendo(color)}
                             aria-label={`Ver o quitar las fotos de ${nombreDe(color)}`}
-                            className="btn-enlace w-fit text-left text-[11px] font-normal"
+                            className="btn-enlace w-fit text-left text-sm font-normal"
                           >
                             {textoFotosDeFila(suyas.length, false)}
                           </button>
                         ) : (
-                          <small className="text-[11px] font-normal text-taupe">{textoFotosDeFila(0, color !== null && generales.length > 0)}</small>
+                          <small className="text-sm font-normal text-taupe">{textoFotosDeFila(0, color !== null && generales.length > 0)}</small>
                         )}
                       </div>
                     </div>
@@ -181,7 +223,15 @@ export function MatrizVariantes({
       {colores.length > 0 && (
         <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1.5 text-[12.5px] text-tinta">
           <span className="font-medium">Una foto para todos los colores:</span>
-          <FotosDeFila suyas={generales} nombre="todos los colores" disabled={disabled} onArchivos={(a) => agregar(a, null)} onQuitar={() => quitarDe(generales, null)} />
+          <FotosDeFila
+            suyas={generales}
+            nombre="todos los colores"
+            disabled={disabled}
+            preparando={catalogo.preparando(null)}
+            onVer={() => setViendo(null)}
+            onArchivos={(a) => agregarA(a, null)}
+            onQuitar={() => quitarDe(generales, null)}
+          />
           {generales.length > 0 && (
             <button type="button" onClick={() => setViendo(null)} aria-label="Ver o quitar las fotos de todos los colores" className="btn-cayla btn-enlace text-xs">
               {textoFotosDeFila(generales.length, false)}
@@ -198,7 +248,12 @@ export function MatrizVariantes({
       {viendo !== undefined && (
         <Modal
           titulo={`Fotos de ${nombreDe(viendo)}`}
-          subtitulo="Se suben al crear el producto. Para agregar otra, toca la foto en la tabla."
+          // En una fila con foto de IA, tocar la miniatura abre esta hoja (no agrega otra): ahí no se promete lo que no hace.
+          subtitulo={
+            fotos.some((f) => f.colorCodigo === viendo && f.ia)
+              ? "Se suben al crear el producto."
+              : "Se suben al crear el producto. Para agregar otra, toca la foto en la tabla."
+          }
           onClose={() => setViendo(undefined)}
         >
           {(cerrar) => {
@@ -208,13 +263,22 @@ export function MatrizVariantes({
                 {estas.length === 0 ? (
                   <p className="text-sm text-taupe">Ya no quedan fotos de {nombreDe(viendo)}.</p>
                 ) : (
-                  <div className="grid grid-cols-3 gap-2.5">
+                  // Una sola foto se ve grande: es donde se juzga la de IA antes de decidir «Usar mi foto» (formidable, 2026-11-13).
+                  <div className={estas.length === 1 ? "mx-auto grid max-w-[260px] grid-cols-1" : "grid grid-cols-3 gap-2.5"}>
                     {estas.map((f, i) => (
                       <div key={f.clave} className="space-y-1.5">
                         <div className="aspect-[4/5] overflow-hidden rounded-md border border-sand bg-hueso">
                           {/* eslint-disable-next-line @next/next/no-img-element -- vista previa local (blob:), next/image no la optimiza */}
-                          <img src={f.vista} alt={`Foto ${i + 1} de ${nombreDe(viendo)}`} className="h-full w-full object-cover" />
+                          <img src={f.vista} alt={`Foto ${i + 1} de ${nombreDe(viendo)}`} className="h-full w-full object-contain" />
                         </div>
+                        {f.ia && (
+                          <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1">
+                            {f.ia.usar && <Chip tono="pizarra">Con IA</Chip>}
+                            <button type="button" disabled={disabled} onClick={() => catalogo.alternar(f.clave)} className="btn-cayla btn-enlace text-sm">
+                              {f.ia.usar ? "Usar mi foto" : "Usar la de IA"}
+                            </button>
+                          </div>
+                        )}
                         <button type="button" onClick={() => quitar(f.clave)} disabled={disabled} className="btn-cayla btn-sutil btn-chico w-full">
                           Quitar
                         </button>
@@ -241,15 +305,31 @@ function FotosDeFila({
   suyas,
   nombre,
   disabled,
+  preparando,
+  onVer,
   onArchivos,
   onQuitar,
 }: {
   suyas: FotoPendiente[];
   nombre: string;
   disabled: boolean;
+  /** La IA está preparando la foto de esta fila: la propia, atenuada, con el hilo de espera. */
+  preparando: boolean;
+  /** Ver las fotos de la fila en grande: la miniatura de una foto de IA lleva ahí (su resultado se juzga grande, no a 34 px). */
+  onVer: () => void;
   onArchivos: (a: File[]) => void;
   onQuitar: () => void;
 }) {
+  if (preparando && suyas.length > 0) {
+    const ultima = suyas[suyas.length - 1];
+    return (
+      <span aria-busy className="relative block h-[42px] w-[34px] shrink-0 overflow-hidden rounded-[5px] border border-sand bg-hueso">
+        {/* eslint-disable-next-line @next/next/no-img-element -- vista previa local (blob:), next/image no la optimiza */}
+        <img src={ultima.vista} alt="" className="h-full w-full object-cover opacity-40" />
+        <HiloEnEspera />
+      </span>
+    );
+  }
   if (suyas.length === 0) {
     return (
       <BotonFoto
@@ -260,6 +340,28 @@ function FotosDeFila({
       >
         <Camera aria-hidden className="h-4 w-4" />
       </BotonFoto>
+    );
+  }
+  if (suyas.some((f) => f.ia)) {
+    return (
+      <span className="relative shrink-0">
+        <button
+          type="button"
+          onClick={onVer}
+          aria-label={`Ver en grande la foto de ${nombre}`}
+          className="relative block h-[42px] w-[34px] rounded-[5px] border border-sand bg-hueso transition-colors hover:border-tinta/45"
+        >
+          {/* eslint-disable-next-line @next/next/no-img-element -- vista previa local (blob:), next/image no la optimiza */}
+          <img src={suyas[0].vista} alt="" className="h-full w-full rounded-[4px] object-cover" />
+          {suyas.length > 1 && <Globito n={suyas.length} esquina etiqueta="fotos" className="absolute -right-1.5 -top-1.5" />}
+        </button>
+        <BotonQuitarFoto
+          onClick={onQuitar}
+          disabled={disabled}
+          etiqueta={suyas.length === 1 ? `Quitar la foto de ${nombre}` : `Ver o quitar las ${suyas.length} fotos de ${nombre}`}
+          className="-left-1.5 -top-1.5"
+        />
+      </span>
     );
   }
   return (
