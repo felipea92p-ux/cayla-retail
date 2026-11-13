@@ -120,9 +120,34 @@ pantalla: leer el plan del piso aparte con `<Suspense>` en Existencias.
    - Termina con «QUEDÓ BIEN».
    - Si el candado dice «tiene otro cuerpo en esta base», producción tiene otra versión de esa función: no se pega y se regenera desde la definición
      real.
-2. **Verificación de solo lectura después de pegar** (no pide sesión de líder): en una ventana de 90 días, las líneas que marca `fn_item_es_de_claure`
-   y las que devuelve `retail.fn_lineas_de_claure(now() - interval '90 days', now())` tienen que ser las mismas. Es la consulta `DIFERENCIA` de
-   `scripts/pruebas/lineas_de_claure.mjs`, que tiene que dar 0.
+   **Antes de pegar (solo lectura, opcional):** dice si el candado va a pasar. Tiene que dar `e573216a8ea3c47ee8fabd97d5c46619 | ff74d5a95a47e6858862666261812198 | true`:
+   ```sql
+   set transaction read only;
+   select
+     (select md5(prosrc) from pg_proc where oid = 'retail.fn_piso_plan_lectura(uuid)'::regprocedure) as piso_md5,
+     (select md5(prosrc) from pg_proc where oid = 'retail.fn_plan_compra(uuid)'::regprocedure) as plan_md5,
+     to_regprocedure('retail.fn_lineas_de_claure(timestamptz, timestamptz, uuid)') is null as ayudante_no_existe;
+   ```
+2. **Verificación de solo lectura después de pegar.** No pide sesión de líder. En una ventana de 90 días, las líneas que marca `fn_item_es_de_claure`
+   y las que devuelve el ayudante tienen que ser las mismas. Tiene que dar `true | true | true | 0 | <cuántas líneas de CLAURE hubo en 90 días>`:
+   ```sql
+   set transaction read only;
+   select
+     (select md5(prosrc) from pg_proc where oid = 'retail.fn_piso_plan_lectura(uuid)'::regprocedure) = '9d9c96979c6a92f2b34f57e3563ffc66' as piso_ok,
+     (select md5(prosrc) from pg_proc where oid = 'retail.fn_plan_compra(uuid)'::regprocedure) = 'b43d6631b4b0ff469ddf371d498772d2' as plan_ok,
+     not has_function_privilege('authenticated', 'retail.fn_lineas_de_claure(timestamptz, timestamptz, uuid)', 'execute') as web_sin_permiso,
+     (select count(*) from (
+        (select vi.id from retail.ventas v join retail.venta_items vi on vi.venta_id = v.id
+          where v.created_at >= now() - interval '90 days' and v.created_at < now()
+            and retail.fn_item_es_de_claure(vi.id, v.ubicacion_id, v.created_at)
+         except select l from retail.fn_lineas_de_claure(now() - interval '90 days', now()) l)
+        union all
+        (select l from retail.fn_lineas_de_claure(now() - interval '90 days', now()) l
+         except select vi.id from retail.ventas v join retail.venta_items vi on vi.venta_id = v.id
+          where v.created_at >= now() - interval '90 days' and v.created_at < now()
+            and retail.fn_item_es_de_claure(vi.id, v.ubicacion_id, v.created_at))) x) as lineas_distintas,
+     (select count(*) from retail.fn_lineas_de_claure(now() - interval '90 days', now())) as lineas_de_claure_90_dias;
+   ```
 3. Un día después, `pg_stat_statements`: la media de `fn_plan_compra` y de `fn_piso_plan_lectura` contra las de 2026-11-13 (2,3 s y 908 ms).
 4. **Para volver atrás:** `node -e "import('./scripts/pruebas/_deshacer_claure.mjs').then(m => console.log(m.sqlDeshacer('20261113201000_claure_de_una_pasada_en_los_motores.sql', ['retail.fn_piso_plan_lectura(uuid)', 'retail.fn_plan_compra(uuid)'])))"`
    imprime el SQL que aplica los 7 reemplazos al revés. El ayudante puede quedarse: sin uso no cuesta nada.
