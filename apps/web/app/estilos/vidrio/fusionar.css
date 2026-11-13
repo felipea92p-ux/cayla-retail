@@ -30,6 +30,8 @@
 
 /* ---------- la opción en tarjeta: vidrio claro sin elegir, gota elegida (la columna y la opción de una fila) ---------- */
 .fus-opcion {
+  /* Al llegar con Tab, que el pie pegado de la hoja no tape la opción (WCAG 2.4.11, auditoría 2026-11-13). */
+  scroll-margin-bottom: 120px;
   position: relative;
   border: 1px solid var(--color-borde-control);
   background: var(--vidrio-claro-fondo);
@@ -364,7 +366,7 @@
 }
 .fus-celda[data-estado="pasa"] {
   background: color-mix(in srgb, var(--color-pizarra) 12%, transparent);
-  outline: 1px dashed color-mix(in srgb, var(--color-pizarra) 55%, transparent);
+  outline: 1px dashed var(--color-pizarra); /* pleno: al 55 % medía 2,69:1 en claro (WCAG 1.4.11 pide 3) */
   outline-offset: -1px;
 }
 .fus-celda[data-estado="pasa"] small {
@@ -488,6 +490,10 @@
 }
 .fus-miniatura:active {
   scale: 0.97;
+}
+/* En Comparar, la ficha cuyo «Ver ficha» se tocó: no solo `aria-current`, también se ve (WCAG 1.4.1). */
+.fus-comparar > [aria-current="true"] .fus-galeria-grande {
+  box-shadow: 0 0 0 2px var(--color-tinta);
 }
 .fus-miniatura[aria-pressed="true"] {
   border-color: var(--color-tinta);

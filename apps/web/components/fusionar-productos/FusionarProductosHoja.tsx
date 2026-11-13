@@ -327,7 +327,7 @@ export function FusionarProductosHoja({
                   {/* ---------- 2. Lo que es distinto (decisión 8): cada valor bajo la columna de su ficha ---------- */}
                   {plan && elegibles.length > 0 && (
                     <CampoGuiado id="diferencias" guia={guiaArmar} titulo="Lo que es distinto" ayuda="Toca el dato con el que se queda. Lo que no está aquí es igual en las fichas.">
-                      <div className="space-y-2" data-guia="fusionar.diferencias">
+                      <div className="space-y-4" data-guia="fusionar.diferencias">
                         {elegibles.map((campo, k) => {
                           const elegido =
                             campo === "precio"
@@ -383,8 +383,18 @@ export function FusionarProductosHoja({
                           const de = productos.find((p) => p.fotos.some((x) => x.id === f.id));
                           return (
                             <li key={f.id} className="relative">
+                              {/* Toda la foto marca o desmarca (con el dedo, la casilla sola mide 20 px): el control para el teclado y el lector sigue
+                                  siendo la casilla, así que la foto no se anuncia ni se enfoca. */}
                               <div
-                                className={`relative overflow-hidden rounded-lg border transition-opacity ease-cayla ${marcada ? "border-tinta" : "border-sand opacity-60"}`}
+                                aria-hidden
+                                onClick={() =>
+                                  !guardando &&
+                                  setElecciones((e) => {
+                                    const actuales = e.fotos ?? fotos.map((x) => x.id);
+                                    return { ...e, fotos: marcada ? actuales.filter((x) => x !== f.id) : [...actuales, f.id] };
+                                  })
+                                }
+                                className={`relative cursor-pointer overflow-hidden rounded-lg border transition-opacity ease-cayla ${marcada ? "border-tinta" : "border-sand opacity-60"}`}
                                 style={{ aspectRatio: "3 / 4" }}
                               >
                                 <ImagenDePrenda src={f.url} alt={`Foto de ${de?.referencia ?? "la prenda"}`} fill sizes="120px" className="object-cover" fallback={null} />
