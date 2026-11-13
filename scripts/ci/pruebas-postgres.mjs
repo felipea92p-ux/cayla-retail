@@ -1849,6 +1849,9 @@ export const PRUEBAS = [
   // Compras simple (ADR-0480, actividad 3): «Compré ropa» es un papel por completar y una orden por tienda, sin mover plata en los libros;
   // los habituales del proveedor (lo comprado aquí y su catálogo) y el reintento que no duplica.
   "pruebas:compras-simple-compra",
+  // ADR-0660: «Por definir» en Mis compras: la prenda se anota sin categoría o sin precio, lo vacío se dice, el aviso, definir (y su reintento), lo
+  // definido no vuelve, y Recibir no cuenta ni cierra una línea sin categoría.
+  "pruebas:mis-compras-por-definir",
   // Compras simple (ADR-0480, actividad 5): «Gasté en otra cosa» por completar y sin mover plata; «Mandar a la tienda» arma el envío de
   // todo lo que va a esa tienda, con sus fardos y sin repetirse; «Terminé de comprar hoy» guarda lo que tenía y qué hace con eso.
   "pruebas:compras-simple-dia",
