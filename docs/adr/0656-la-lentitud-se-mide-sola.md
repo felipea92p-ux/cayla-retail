@@ -160,5 +160,29 @@ select * from retail.fn_rendimiento_antes_despues('2026-11-14 22:00-05');
 ## Lo que queda
 
 - La lente «se volvió lenta» y «el vigía no corre» en el Observatorio del Admin (con `/milimetro` y las demás reglas de interfaz).
-- Entender por qué `fn_resumen_finanzas` lee en el CI unas 5 veces lo que lee en la base local (el presupuesto se aceptó del CI, corrida 43508089266).
+- ~~Entender por qué `fn_resumen_finanzas` lee en el CI unas 5 veces lo que lee en la base local~~: eran las estadísticas y los índices hinchados (ver la actualización b).
 - Compactar las fotos de más de 90 días cuando pasen de un año.
+
+## Actualización 2026-11-13 (b): la medida se volvió estable
+
+**Lo que pasó.** Con #1821 ya fusionado, main salió en rojo con #1827, que no tocaba nada de esto: `fn_productos_facetas` midió 111.909
+bloques contra su presupuesto de 55.049. Las corridas del CI mostraban dos estados, no ruido. `fn_productos_facetas` daba unos 55 mil o
+unos 112 mil, y en las mismas corridas `fn_resumen_finanzas` se movía al revés (unos 219 mil o unos 191 mil). Cuál salía dependía de qué
+pruebas corrieron antes en la tanda.
+
+**La causa, medida en copias de la base local recién creadas** (que nacen sin estadísticas, como la del CI):
+1. Una tabla sin estadísticas cambia el plan. Recién creada, sin estadísticas en 198 de 333 tablas, `fn_resumen_finanzas` daba 219 mil.
+   Cuando el autovacuum ya había analizado, daba 65 mil. Una tabla de menos de 50 filas no la analiza nunca el autovacuum.
+2. Un índice hinchado también cambia el plan. Con todas las estadísticas, la primera corrida daba 194 mil y las siguientes 39 mil. El
+   ROLLBACK de la corrida anterior deja vacías las páginas del índice, el vacuum no las devuelve, y el planificador ve un índice más
+   grande.
+
+**El arreglo.** Antes de medir, `presupuesto.mjs` pasa `vacuum (analyze)` a toda la base y `reindex schema concurrently retail` (más
+`public.sedes`). Las dos cosas van fuera de la transacción y tardan ~1,3 s en local. `concurrently` es para no frenar a nadie en la base
+local compartida. No se tocó la tolerancia.
+
+**La prueba.** En una copia nueva: medir, cargar y deshacer el volumen dos veces (como las pruebas vecinas), medir, cargar y deshacer
+otra vez, medir. Las 18 cifras quedaron iguales, con una diferencia máxima de 0,03 %. El control fue el script anterior en la misma
+situación: `fn_productos_facetas` pasó de 62.085 a 117.131 (el síntoma del CI) y `fn_resumen_finanzas` de 220 mil a 66 mil. Las cifras
+del presupuesto cambian con este arreglo (la base queda en otro estado al medir) y se vuelven a aceptar desde el CI.
+
