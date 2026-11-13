@@ -379,6 +379,16 @@ export const PRUEBAS = [
   // «error» u «omitida», nunca «limpia»; solo la llave de servicio o el SQL Editor lo corren. ROLLBACK.
   "pruebas:vigia-invariantes",
 
+  // El vigía de rendimiento (ADR-0656): las restas contra la foto anterior de pg_stat_statements son exactas; tras un reinicio, o con
+  // una consulta que se tiró y volvió, cuenta entero y nunca resta; `ms_max` es un récord; solo nombres y números (ni el texto de
+  // una consulta); lo de postgres y lo de adentro de un `do` no cuenta; solo la llave de servicio o el SQL Editor la toman. ROLLBACK.
+  "pruebas:vigia-rendimiento",
+
+  // El presupuesto de rendimiento (ADR-0656): sobre un volumen fijo (3 tiendas, 12.000 variantes, ~3.000 ventas) cargado en una
+  // transacción que se deshace, cuántos bloques lee cada función de entrada de módulo (las seis del marco, Productos, el plan del
+  // piso, el ritmo de venta, el stock por sede, el resumen de Finanzas). Frena si una lee más del 25 % sobre `presupuesto.json`.
+  "pruebas:presupuesto-rendimiento",
+
   // Descuento de campaña EXACTO, al céntimo (ADR-0302; reemplaza el .90 de ADR-0182): la base da lo mismo que la caja,
   // registrar_venta y separar_prendas aceptan el descuento exacto y rechazan el del .90, y la migración se puede pegar
   // dos veces. ROLLBACK.

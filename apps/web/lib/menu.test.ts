@@ -606,11 +606,13 @@ describe("reglas de menuPara", () => {
     expect(ids([])).toEqual([]);
   });
 
-  it("Catálogo ▸ Insignias sigue abriéndose con Campañas sola: el alterno de antes no cambió", () => {
+  it("Catálogo ▸ Campañas y ofertas abre con Campañas o con Insignias; Insignias, solo con su módulo (ADR-0655): nadie gana ni pierde acceso", () => {
     // Con una sola hija, el grupo sale como fila suelta con el nombre del grupo: se mira el destino, no el id.
     const destinos = (modulos: ClaveModulo[]) => menuPara({ permisos: LIDER, ubicacionTipo: "tienda", modulos }).riel.flatMap(hojasDe).map((h) => h.href);
-    expect(destinos(["campanas"])).toContain("/productos/insignias");
-    expect(destinos(["etiquetas"])).toContain("/productos/insignias");
+    expect(destinos(["campanas"])).toContain("/productos/campanas");
+    expect(destinos(["campanas"])).not.toContain("/productos/insignias");
+    expect(destinos(["etiquetas"])).toEqual(expect.arrayContaining(["/productos/campanas", "/productos/insignias"]));
+    expect(destinos(["existencias"])).not.toContain("/productos/campanas");
     expect(destinos(["existencias"])).not.toContain("/productos/insignias");
   });
 
