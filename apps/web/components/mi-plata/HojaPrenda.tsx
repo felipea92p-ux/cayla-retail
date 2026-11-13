@@ -30,6 +30,8 @@ import {
   leerCantidad,
   leerPrecio,
   marcaEscrita,
+  TEXTO_POR_DEFINIR,
+  TEXTO_PRECIO_EN_ESPERA,
   nombreCortoTienda,
   textoAgregarPrenda,
   type BorradorNuevo,
@@ -108,7 +110,11 @@ export function HojaPrenda({
   const admiteCero = n ? nueva?.categorias.find((c) => c.id === n.categoriaId)?.admitePrecioCero === true : admitePrecioCero;
   const parecido = nueva && n ? habitualParecido(n.nombre, nueva.habituales, n.descartadas) : null;
   const guia = useGuiaCampos(n ? camposPrendaNueva(n, parecido !== null, b, admiteCero) : camposPrenda(b, admiteCero));
-  const poner = (campo: "costo" | "venta") => (v: string) => cambiar({ [campo]: v });
+  // Escribir un precio de venta quita «a la espera» (ADR-0660): lo último que se hizo manda.
+  const poner = (campo: "costo" | "venta") => (v: string) => cambiar(campo === "venta" ? { venta: v, ventaPorDefinir: false } : { costo: v });
+  // «A la espera de precio sugerido» solo en una prenda que no es del catálogo: la del catálogo ya tiene su precio (la base lo exige igual).
+  const puedeEsperarPrecio = h.productoId === null;
+  const esperaPrecio = puedeEsperarPrecio && b.ventaPorDefinir === true;
   // Cambiar cuántas rehace el reparto parejo entre las tiendas, salvo que se haya repartido a mano.
   const ponerCantidad = (v: string) => cambiar(conCantidad(b, v));
   const repartidas = b.destinos.length >= 2;
@@ -198,17 +204,31 @@ export function HojaPrenda({
                 sinPie
                 inputMode="decimal"
                 autoComplete="off"
-                value={b.venta}
+                value={esperaPrecio ? "" : b.venta}
+                disabled={esperaPrecio}
                 data-guia="compra.venta"
                 onChange={(e) => poner("venta")(e.target.value)}
               />
               {h.venta != null && (
-                <Atajo elegido={leerPrecio(b.venta) === h.venta} onClick={() => poner("venta")(h.venta!.toFixed(2))} titulo={soles(h.venta)}>
+                <Atajo elegido={!esperaPrecio && leerPrecio(b.venta) === h.venta} onClick={() => poner("venta")(h.venta!.toFixed(2))} titulo={soles(h.venta)}>
                   Del catálogo
                 </Atajo>
               )}
             </CampoGuiado>
           </div>
+          {/* ADR-0660 (Felipe 2026-11-13): «crear opción a la espera de precio sugerido». Se anota sin precio y lo pone alguien después. En su
+              propia fila, alineada con «Se vende a»: en la columna no cabía la frase entera. */}
+          {puedeEsperarPrecio && (
+            <div className="-mt-2 flex justify-end">
+              <Atajo
+                elegido={esperaPrecio}
+                onClick={() => cambiar(esperaPrecio ? { ventaPorDefinir: false } : { ventaPorDefinir: true, venta: "" })}
+                guia="compra.venta-espera"
+              >
+                {TEXTO_PRECIO_EN_ESPERA}
+              </Atajo>
+            </div>
+          )}
 
           {ganancia != null && (
             <p
@@ -330,7 +350,8 @@ function DescribirNueva({
   guia: GuiaCampos;
 }) {
   const categoria = nueva.categorias.find((c) => c.id === n.categoriaId) ?? null;
-  const ejemplo = categoria ? sugerirNombre(categoria) : null;
+  // Por definir, el ejemplo del nombre no promete una categoría: el texto neutro (ADR-0290).
+  const ejemplo = categoria ? sugerirNombre(categoria) : n.porDefinir ? sugerirNombre(null) : null;
   const escribeMarca = n.marcaNueva !== null;
   // Si lo escrito ya es una marca de la lista, no se crea otra: se usa esa (y se dice cuál).
   const escrita = escribeMarca ? marcaEscrita(n.marcaNueva ?? "", nueva.marcas) : undefined;
@@ -348,10 +369,23 @@ function DescribirNueva({
             marcadorSinChips="Elige una categoría"
             todas={nueva.categorias}
             habituales={[...nueva.suyas].filter((id) => nueva.categorias.some((c) => c.id === id))}
-            valor={n.categoriaId}
-            onValor={(v) => nueva.cambiar({ categoriaId: v || null })}
+            valor={n.porDefinir ? null : n.categoriaId}
+            onValor={(v) => nueva.cambiar({ categoriaId: v || null, porDefinir: false })}
             opciones={opcionesCategoriaNueva(nueva.categorias, nueva.suyas)}
+            alFinal={
+              // ADR-0660 (Felipe 2026-11-13): «Hay que crear esa opción de por definir». La compra se guarda y lo dice alguien después.
+              <button
+                type="button"
+                aria-pressed={n.porDefinir}
+                className="pildora-cayla"
+                data-guia="compra.por-definir"
+                onClick={() => nueva.cambiar(n.porDefinir ? { porDefinir: false } : { porDefinir: true, categoriaId: null })}
+              >
+                {TEXTO_POR_DEFINIR}
+              </button>
+            }
           />
+          {n.porDefinir && <p className="mt-1.5 text-sm text-taupe">Lo dices tú o Compras después; si nadie lo hace, la tienda lo dice al recibirla.</p>}
         </CampoGuiado>
         {/* «· opcional» se calla mientras hay una marca empezada a escribir: esa sí hay que terminarla (o cerrar la caja con la ×). */}
         <CampoGuiado id="marca" guia={guia} titulo="¿De qué marca?" ayuda={n.marcaNueva?.trim() ? undefined : "· opcional"}>

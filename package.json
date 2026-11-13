@@ -378,6 +378,7 @@
     "pruebas:fondos-entradas": "node scripts/pruebas/fondos_entradas.mjs",
     "pruebas:compras-simple-plata": "node scripts/pruebas/compras_simple_plata.mjs",
     "pruebas:compras-simple-compra": "node scripts/pruebas/compras_simple_compra.mjs",
+    "pruebas:mis-compras-por-definir": "node scripts/pruebas/mis_compras_por_definir.mjs",
     "pruebas:compras-simple-dia": "node scripts/pruebas/compras_simple_dia.mjs",
     "pruebas:compras-simple-recibir": "node scripts/pruebas/compras_simple_recibir.mjs",
     "pruebas:costo-sin-igv": "node scripts/pruebas/costo_sin_igv.mjs",
