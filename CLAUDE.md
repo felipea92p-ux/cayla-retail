@@ -58,7 +58,9 @@ CAYLA sea el único tenant y el esquema no lo modele explícitamente con `tenant
    «Vigía de Vercel» de Actions mira el último commit de `main` y, sin marca de Vercel a los 3 min,
    lo pide al Deploy Hook y deja un aviso «Producción atrás de main»); y la
    base misma (ADR-0450: si no responde, el ERP no confunde eso con «sin acceso» ni «sin sesión»: manda a `/sin-base`, que espera y vuelve sola; `GET /api/salud`
-   corre una consulta de verdad en Postgres y un vigía de GitHub la pregunta cada 5 min; el usuario de la tienda tiene tope de conexiones); el
+   corre una consulta de verdad en Postgres y un vigía de GitHub la pregunta cada 5 min; el usuario de la tienda tiene tope de conexiones); y
+   OpenAI, la foto de catálogo con IA (ADR-0659, `POST /api/fotos/catalogo`: sin `OPENAI_API_KEY` la opción no se dibuja; si no responde, se
+   sube la foto real y se avisa; la llave vive solo en el servidor); el
    sistema se degrada con gracia, nunca pierde datos. Culqi y Shopify se investigaron pero no se integraron
    (docs/investigacion/2026-09-23-tarjeta-pos-y-canal-online.md).
 10. **Ergonomía = potencia** — un colaborador de sede sin formación técnica debe
@@ -613,6 +615,19 @@ siempre el OK de Felipe**. Respeta los tokens (ADR-0169), el movimiento sin rebo
 `/sugerir` y `/multi-view-responsive` sin duplicarlas. **Es obligatoria con tablero, todavía sin prueba en el CI:** al terminar una pantalla o un
 modal, corre `/formidable`; el avance módulo por módulo vive en `docs/formidable/README.md` (piloto: Inventario ▸ Frescura del piso). Detalle:
 `docs/adr/0350-formidable-el-iphone-llevado-al-erp.md` y `.claude/skills/formidable/`.
+
+## Poco texto a la vista (regla — Felipe 2026-11-13)
+
+**Felipe: «hay demasiado texto, hay que evitar esto».** Nació de una opción que decía en tres frases lo que su nombre ya decía. Vale para toda
+pantalla, hoja o pieza nueva o editada:
+1. **Una opción, un botón o un bloque: su nombre y, como mucho, UNA línea de 8 palabras o menos.** Nada más a la vista.
+2. **Lo que explica** (cómo funciona, cuánto cuesta o tarda, las excepciones) **no va a la vista**: va detrás del «?» (`<Ayuda>`) o aparece recién
+   donde se usa (en la hoja que se abre, junto al botón que lo gasta).
+3. **Un estado lo dice el control** (el interruptor prendido, un `<Chip>`), nunca una frase debajo («Apagado: las fotos se suben tal cual»).
+4. **No se repite:** si el título lo dice, la línea no lo vuelve a decir; si la pieza ya lo muestra, no se escribe.
+
+Ejemplo: «Foto de catálogo con IA» + «Maniquí invisible, sin fondo.» + el interruptor; el tiempo y el costo van en el pie de la hoja que se abre.
+Lo revisan `/textos` y `/formidable` (ley 8, «quitar antes de agregar»).
 
 ## La tienda y el ERP no comparten estilos (regla — ADR-0616, Felipe 2026-11-06)
 

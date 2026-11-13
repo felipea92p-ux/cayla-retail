@@ -202,7 +202,10 @@ flowchart TB
   pregunta por permiso (`puede`/`exigirPermiso` en `lib/persona-actual.ts`, `permisosDe(rol, terminal)` y `terminales` por nodo
   en `lib/menu.ts`); `persona.terminal` distinto de null = la sesión es un APARATO (pie del lateral con el aparato, sin «Mi perfil»).
   La sesión de una terminal entra por el mismo `requirePersonaActualV2` (su fila viene de `fn_persona_actual_resumen`,
-  que ahora tiene rama de terminal); una terminal desactivada ve su propio aviso en `/login`. `desactivar_terminal` corta
+  que ahora tiene rama de terminal); una terminal desactivada ve su propio aviso en `/login`. **Desde ADR-0657 (20261113200000)
+  `requirePersonaActualV2` pide las seis respuestas de identidad en UN viaje** (`fn_mi_sesion()` ↔ `lib/mi-sesion-reglas.ts`, que las
+  traduce a las seis de siempre) y vuelve a las seis RPC si la base aún no la tiene (PGRST202); `fn_mis_modulos` y `fn_mi_sesion`
+  comparten la regla `fn_modulos_de` (capa 2 «regla por fila», sin `security definer`, vigilada por `pnpm pruebas:reglas-por-fila`). `desactivar_terminal` corta
   la sesión en el acto (`fn_terminal_actual` deja de devolverla). Alta y clave: `pnpm terminales:crear` (lo corre Felipe con
   la llave de servicio; muestra la clave una sola vez; partes puras probadas con `pnpm terminales:probar`).
   **D-70 (ADR-0157): el alta de un colaborador (persona) no queda operativa sola.** `colaboradores.estado`
@@ -2432,6 +2435,12 @@ cuando hace falta hablar con algo que no es Postgres, o devolver un archivo.
   archivo, no el esquema. Si Lucode no responde, el comprobante se queda en su
   estado real (`pendiente`/`rechazado`) y el botón sigue a la vista: nunca se
   le inventa un estado ni se reintenta solo. ADR-0009.
+- `/api/fotos/catalogo` → `POST` multipart (`frente`, y opcionales `espalda`, `detalle`, `molde`): la foto de catálogo con IA de una prenda
+  (ADR-0659). Pide sesión y el módulo Productos, 12 por persona por minuto; llama a OpenAI (`lib/openai-imagen-reglas.ts`, llave en
+  `lib/foto-catalogo.ts`, solo servidor) y devuelve el PNG transparente 1024×1280 con `x-costo-usd`. Sin llave, 503. No guarda nada: la
+  pantalla sube el par (`subirParDeCatalogo`, `lib/producto-fotos.ts`: la real en `fotos/<id>.<ext>`, la de IA en `….ia.png`). La llaman
+  `components/ficha-producto/useCatalogoIA.tsx` (Editar) y `components/alta-producto/useCatalogoIAAlta.tsx` (Nuevo) vía
+  `lib/foto-catalogo-cliente.ts`, que achica las fotos a 1.600 px. `/api/fotos/laboratorio` es su banco de pruebas, solo fuera de producción.
 - `/api/conteo/prendas` → `GET`, solo lectura: las prendas con stock en la sede de quien pregunta (la sede sale de la
   sesión) para el buscador «Por prenda» de «Abrir un conteo». Una fila por variante con nombre, códigos, foto y *dónde*
   hay stock (piso/almacén/ubicación), **sin cantidades**. Se llama al tocar la opción, no al abrir el inicio. Si la base

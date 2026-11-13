@@ -531,9 +531,12 @@ export function agruparCambios(cambios: readonly Cambio[]): GrupoCambios[] {
 /* ====================== para «¿Salir sin guardar?» ====================== */
 
 /** Lo que dice el aviso de salida de la ficha (el de Compras y Recibir, `useSalidaSinGuardar`): cuántos cambios se pierden y de qué prenda. */
-export function textoDeSalidaDeFicha(cantidad: number, nombre: string): string {
+export function textoDeSalidaDeFicha(cantidad: number, nombre: string, preparandoFoto = false): string {
+  // Una foto de catálogo que la IA está preparando también se pierde al salir, y ya se pagó (formidable, 2026-11-13).
+  if (cantidad === 0 && preparandoFoto) return `Se está preparando una foto de catálogo de «${nombre}». Si sales ahora, se pierde.`;
   const cuantos = cantidad === 1 ? "1 cambio sin guardar" : `${cantidad} cambios sin guardar`;
-  return `Tienes ${cuantos} en «${nombre}». Si sales ahora, se pierden.`;
+  const foto = preparandoFoto ? " y una foto que se está preparando" : "";
+  return `Tienes ${cuantos}${foto} en «${nombre}». Si sales ahora, se pierden.`;
 }
 
 /** El cambio de un dato de la prenda (nombre, stock mínimo…), si lo hay: para la línea «antes: …» bajo su campo. */
