@@ -47,3 +47,11 @@ Para mostrarle a Felipe: «Fotos que quedan» no estaba en la maqueta B; va como
 - [x] Las leves de `/milimetro` que son de la hoja.
 - [x] (Felipe dijo que sí, 2026-11-13: «Yes, the whole ERP») Heredado de piezas del sistema (cambia todas las hojas del ERP: decisión de Felipe): letra de lectura < 14 px en la bajada de `<Modal>`
       (13,5), la ayuda de `<CampoGuiado>` (12–13) y la cuenta de `<TituloGrupo>` (10,5–11); y el hilo de `<Buscador>` que corre invisible en bucle.
+
+## Segunda ronda de Felipe, probando en producción (2026-11-13)
+
+- [x] La búsqueda ya no alarga la hoja: la lista se topa en 4 filas y asoma la 5.ª; con una sola ficha, una fila corta; «¿Es alguna de estas?» hasta 6.
+- [x] La matriz de tallas sin la lámina sólida que la hoja Serena pone detrás de toda tabla.
+- [x] En «Ver ficha», tocar la foto la abre sola y entera (`FotoAmpliada`, el visor de Existencias y la vista rápida).
+- [x] Lo elegido (ficha y opción) con un tinte verde sobre la gota, borde y ✓ verdes, e insignia «Queda» verde.
+- [x] Los botones del pie al medio de la barra: 16 px arriba y 16 abajo.

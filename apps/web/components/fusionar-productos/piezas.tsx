@@ -103,7 +103,7 @@ export function ColumnaFicha({
           {p.referencia}
           {elegida && (
             <span className="ml-1.5 inline-block align-[2px]">
-              <Chip tono="tinta">Queda</Chip>
+              <Chip tono="verde">Queda</Chip>
             </span>
           )}
         </span>
