@@ -324,7 +324,8 @@ export function camposDeLaGuia(estado: {
 }): CampoDeGuia[] {
   const armar: CampoDeGuia[] = [
     { id: "duplicados", nombre: "Ficha repetida", requerido: true, hecho: estado.duplicados > 0, pendiente: "Busca la otra ficha de esta misma prenda." },
-    { id: "queda", nombre: "Cuál queda", requerido: true, hecho: estado.queda !== null, pendiente: "Elige la ficha que se queda." },
+    // Con una sola ficha no hay con qué compararla: «Cuál queda» espera a la repetida (/chaos 2026-11-13, ENT-01).
+    { id: "queda", nombre: "Cuál queda", requerido: true, hecho: estado.queda !== null && estado.duplicados > 0, pendiente: "Elige la ficha que se queda." },
     ...(estado.hayDiferencias
       ? [{ id: "diferencias", nombre: "Lo que es distinto", requerido: false, sugerido: true, hecho: true, pendiente: "Revisa con qué dato se queda." }]
       : []),
@@ -335,4 +336,16 @@ export function camposDeLaGuia(estado: {
   if (estado.vista === "armar") return armar;
   if (estado.vista === "revisar") return revisar;
   return [...armar, ...revisar];
+}
+
+/** ¿Las repetidas ya quedaron fusionadas en la que queda? Se pregunta después de una respuesta que no llegó o de una versión que cambió
+ *  (/chaos 2026-11-13, RS-03 y NAV-05): la base pudo fusionar (o alguien más lo hizo) y la hoja no debe decir que nada cambió. */
+export function yaFusionadas(filas: { id: string; fusionadoEnId: string | null }[], queda: string, duplicados: string[]): boolean {
+  return duplicados.length > 0 && duplicados.every((d) => filas.find((f) => f.id === d)?.fusionadoEnId === queda);
+}
+
+/** El aviso cuando no se pudo fusionar: «Las fichas siguen como estaban» solo si la base respondió que no (su transacción se deshizo).
+ *  Con la respuesta perdida no se sabe, y la frase de `traducirError` ya pide revisar antes de repetir. */
+export function mensajeAlNoFusionar(frase: string, incierta: boolean): string {
+  return incierta ? frase : `${frase} Las fichas siguen como estaban.`;
 }
