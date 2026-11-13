@@ -71,6 +71,8 @@ import {
   tiendaAnterior,
   tiendasDeLineas,
   totalDeLineas,
+  TEXTO_POR_DEFINIR,
+  fraseGanancia,
   type LineaCompra,
 } from "./compra-rapida-reglas";
 
@@ -148,7 +150,7 @@ describe("habituales", () => {
     expect(piezasDeFila(null, [])).toEqual([]);
   });
   it("una prenda que ya va en la compra dice lo que se anotó, sin «antes»", () => {
-    const l = { clave: "a", productoId: "p1", categoriaId: "blusas", marcaId: null, nombre: "Blusa", categoria: "Blusas", marca: null, costo: 38, venta: 69.9, cantidad: 2, destinoId: "tru" };
+    const l = { clave: "a", productoId: "p1", categoriaId: "blusas", marcaId: null, nombre: "Blusa", categoria: "Blusas", marca: null, costo: 38, venta: 69.9, precioPorDefinir: false, cantidad: 2, destinoId: "tru" };
     expect(piezasDeFila(HABITUALES[0], [l]).map((x) => plano(`${x.etiqueta} ${x.valor}`))).toEqual(["Te costó S/ 38.00", "vendes S/ 69.90"]);
     expect(piezasDeFila(HABITUALES[0], [{ ...l, venta: null }]).map((x) => x.etiqueta)).toEqual(["Te costó"]);
   });
@@ -263,6 +265,7 @@ const L = (o: Partial<LineaCompra>): LineaCompra => ({
   cantidad: 12,
   costo: 17.5,
   venta: 39.9,
+  precioPorDefinir: false,
   destinoId: "tru",
   ...o,
 });
@@ -392,7 +395,7 @@ describe("algo nuevo de este proveedor", () => {
     expect(chipsDeLoHabitual(todas, [], "c")).toEqual({ chips: [], fuera: "c" });
   });
   it("«¿Está bien así?»: una prenda repartida entre dos tiendas es UNA fila, con cuántas va a cada una", () => {
-    const base = { productoId: null, categoriaId: "c", marcaId: null, categoria: "Blusas", marca: null, venta: 60 };
+    const base = { productoId: null, categoriaId: "c", marcaId: null, categoria: "Blusas", marca: null, venta: 60, precioPorDefinir: false };
     const lineas = [
       { ...base, clave: "a", nombre: "Blusa Aurora", cantidad: 2, costo: 14, destinoId: "tru" },
       { ...base, clave: "b", nombre: "Polo Tito", cantidad: 1, costo: 10, destinoId: "lim" },
@@ -473,7 +476,7 @@ describe("algo nuevo de este proveedor", () => {
     expect(marcasConProvisionales(base, [])).toEqual(base);
     // Al armar la prenda con esa marca provisional se encuentra (antes, «Moda Sol» elegida otra vez no armaba la prenda).
     const categorias = [{ id: "polos", nombre: "Polos", prefijo: "POL", familia: null }];
-    const n = { categoriaId: "polos", marcaId: "nueva:moda sol", marcaNueva: null, nombre: "Polo Venus", descartadas: new Set<string>() };
+    const n = { categoriaId: "polos", marcaId: "nueva:moda sol", marcaNueva: null, nombre: "Polo Venus", porDefinir: false, descartadas: new Set<string>() };
     expect(habitualDeNuevo("nuevo:1", n, categorias, marcasConProvisionales(base, compra))?.marcaId).toBe("nueva:moda sol");
     expect(habitualDeNuevo("nuevo:1", n, categorias, base)).toBeNull();
   });
@@ -501,14 +504,14 @@ describe("algo nuevo de este proveedor", () => {
       ["marca", false, false],
       ["nombre", false, true],
     ]);
-    const n = { categoriaId: "jeans", marcaId: "m1", marcaNueva: null, nombre: "Jean mom", descartadas: new Set<string>() };
+    const n = { categoriaId: "jeans", marcaId: "m1", marcaNueva: null, nombre: "Jean mom", porDefinir: false, descartadas: new Set<string>() };
     expect(camposPrendaNueva(n, false, b).slice(0, 3).every((c) => c.hecho)).toBe(true);
     const conParecido = camposPrendaNueva(n, true, b)[2];
     expect(conParecido).toMatchObject({ hecho: false, pendiente: "Dinos si es la misma prenda." });
   });
   it("la prenda nueva es solo una referencia: un habitual sin producto del catálogo y sin precios de antes", () => {
     const marcas = [{ id: "m1", nombre: "CAYLA" }];
-    const n = { categoriaId: "blusas", marcaId: "m1", marcaNueva: null, nombre: "  Casaca   corta ", descartadas: new Set<string>() };
+    const n = { categoriaId: "blusas", marcaId: "m1", marcaNueva: null, nombre: "  Casaca   corta ", porDefinir: false, descartadas: new Set<string>() };
     const h = habitualDeNuevo("nuevo:1", n, CATS, marcas);
     expect(h).toMatchObject({ clave: "nuevo:1", productoId: null, nombre: "Casaca corta", categoriaId: "blusas", marcaId: "m1", veces: 0, costo: null, venta: null });
     expect(piezasDeFila(h!, [])).toEqual([]);
@@ -532,7 +535,7 @@ describe("la marca nueva de «Algo nuevo»", () => {
   });
   it("la caja abierta y vacía no frena; empezada a escribir, la guía pide terminarla; la prenda se arma con ella", () => {
     const b = { cantidad: "", costo: "", venta: "", destinos: [], reparto: {} };
-    const n = { categoriaId: "blusas", marcaId: null, marcaNueva: "", nombre: "Casaca corta", descartadas: new Set<string>() };
+    const n = { categoriaId: "blusas", marcaId: null, marcaNueva: "", nombre: "Casaca corta", porDefinir: false, descartadas: new Set<string>() };
     expect(camposPrendaNueva(n, false, b)[1]).toMatchObject({ requerido: false });
     expect(camposPrendaNueva({ ...n, marcaNueva: "A" }, false, b)[1]).toMatchObject({ requerido: true, hecho: false, pendiente: "Escribe la marca, como dice su etiqueta." });
     expect(habitualDeNuevo("x", { ...n, marcaNueva: "A" }, [{ id: "blusas", nombre: "Camisas y Blusas", prefijo: "CMS", familia: "indumentaria" }], marcas)).toBeNull();
@@ -628,8 +631,11 @@ describe("la hoja de la prenda (rediseño)", () => {
 
 describe("revisar y el papel (rediseño)", () => {
   it("si se vende todo: lo que se vende y lo que se gana, solo con las prendas que tienen precio de venta", () => {
-    expect(gananciaDeCompra([{ cantidad: 12, costo: 17.5, venta: 39.9 }, { cantidad: 20, costo: 9, venta: 24.9 }])).toEqual({ vendes: 976.8, ganas: 586.8 });
-    expect(gananciaDeCompra([{ cantidad: 2, costo: 10, venta: null }, { cantidad: 1, costo: 5, venta: 8 }])).toEqual({ vendes: 8, ganas: 3 });
+    expect(gananciaDeCompra([{ cantidad: 12, costo: 17.5, venta: 39.9 }, { cantidad: 20, costo: 9, venta: 24.9 }])).toEqual({ vendes: 976.8, ganas: 586.8, completa: true });
+    expect(gananciaDeCompra([{ cantidad: 2, costo: 10, venta: null }, { cantidad: 1, costo: 5, venta: 8 }])).toEqual({ vendes: 8, ganas: 3, completa: false });
+    // Si una espera su precio (ADR-0660), la frase no promete «todo».
+    expect(fraseGanancia({ completa: false })).toBe("Si se vende lo que tiene precio, ganas");
+    expect(fraseGanancia({ completa: true })).toBe("Si se vende todo, ganas");
     expect(gananciaDeCompra([{ cantidad: 2, costo: 10, venta: null }])).toBeNull();
   });
   it("el papel cuadra o no con lo anotado; si no, manda el papel", () => {
@@ -709,5 +715,55 @@ describe("repartir una prenda entre varias tiendas (Felipe 2026-10-23)", () => {
     expect(plano(textoPrendaEnCompra(lineas.slice(0, 1), nombres))).toBe("6 × S/ 20.00 · Lima");
     expect(nombreCortoTienda("Tienda Arequipa")).toBe("Arequipa");
     expect(nombreCortoTienda("Taller")).toBe("Taller");
+  });
+});
+
+// ADR-0660 (Felipe 2026-11-13): «Por definir» y «A la espera de precio sugerido» en «Algo nuevo». Lo vacío se dice: nunca un vacío solo.
+describe("por definir", () => {
+  const categorias = [{ id: "polos", nombre: "Polos", prefijo: "POL", familia: null }];
+  const borrador = { cantidad: "12", costo: "25", venta: "", destinos: ["tru"], reparto: {} as Record<string, string> };
+  const nuevo = { ...nuevoVacio([]), nombre: "Modelo Nela" };
+
+  it("«¿Qué es?» queda contestado con una categoría o con «por definir»; sin ninguna de las dos, falta", () => {
+    const qe = (n: typeof nuevo) => camposPrendaNueva(n, false, { ...borrador, venta: "49.90" }).find((c) => c.id === "categoria")?.hecho;
+    expect(qe(nuevo)).toBe(false);
+    expect(qe({ ...nuevo, porDefinir: true })).toBe(true);
+    expect(qe({ ...nuevo, categoriaId: "polos" })).toBe(true);
+  });
+
+  it("la prenda por definir sale sin categoría (y la dice «Por definir»); sin nombre, todavía no sale", () => {
+    const h = habitualDeNuevo("nuevo:1", { ...nuevo, porDefinir: true }, categorias, []);
+    expect([h?.categoriaId, h?.categoria, h?.productoId]).toEqual([null, TEXTO_POR_DEFINIR, null]);
+    expect(habitualDeNuevo("nuevo:1", nuevo, categorias, [])).toBeNull();
+    expect(habitualDeNuevo("nuevo:1", { ...nuevo, porDefinir: true, nombre: "" }, categorias, [])).toBeNull();
+  });
+
+  it("«A la espera de precio» cuenta como respuesta, no gana nada y deja la línea sin precio; en una del catálogo no vale", () => {
+    const espera = { ...borrador, ventaPorDefinir: true };
+    expect(camposPrenda(espera).find((c) => c.id === "venta")?.hecho).toBe(true);
+    expect(camposPrenda(borrador).find((c) => c.id === "venta")?.hecho).toBe(false);
+    expect(gananciaPorPrenda({ costo: "25", venta: "49.90", ventaPorDefinir: true })).toBeNull();
+    const h = habitualDeNuevo("nuevo:1", { ...nuevo, porDefinir: true }, categorias, [])!;
+    const [l] = lineasDeBorrador(h, espera);
+    expect([l.venta, l.precioPorDefinir, l.categoriaId]).toEqual([null, true, null]);
+    // Una prenda del catálogo ya tiene su precio: la espera no la deja pasar sin uno.
+    expect(lineasDeBorrador({ ...h, productoId: "p1", categoriaId: "polos" }, espera)).toEqual([]);
+  });
+
+  it("a la base va dicho: `categoria_por_definir` y `precio_por_definir` solo cuando faltan, nunca en una del catálogo", () => {
+    const h = habitualDeNuevo("nuevo:1", { ...nuevo, porDefinir: true }, categorias, [])!;
+    const [l] = lineasDeBorrador(h, { ...borrador, ventaPorDefinir: true });
+    expect(lineasParaBase([l])[0]).toMatchObject({ categoria_id: null, categoria_por_definir: true, precio_venta: null, precio_por_definir: true });
+    const [conTodo] = lineasDeBorrador(habitualDeNuevo("nuevo:2", { ...nuevo, categoriaId: "polos" }, categorias, [])!, { ...borrador, venta: "49.90" });
+    const base = lineasParaBase([conTodo])[0];
+    expect("categoria_por_definir" in base || "precio_por_definir" in base).toBe(false);
+  });
+
+  it("corregir una que espera su precio vuelve a abrirse esperando; la fila lo dice y las categorías de la compra no cuentan el vacío", () => {
+    const h = habitualDeNuevo("nuevo:1", { ...nuevo, porDefinir: true }, categorias, [])!;
+    const lineas = lineasDeBorrador(h, { ...borrador, ventaPorDefinir: true });
+    expect(borradorDeLineas(lineas)).toMatchObject({ venta: "", ventaPorDefinir: true });
+    expect(piezasDeFila(null, lineas).map((p) => `${p.etiqueta} ${p.valor}`)).toContain("vendes a la espera");
+    expect(categoriasDeLasLineas([...lineas, { categoriaId: "polos" }])).toEqual(["polos"]);
   });
 });
