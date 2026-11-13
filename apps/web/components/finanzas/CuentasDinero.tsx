@@ -91,7 +91,7 @@ import {
 import { Volver } from "@/components/ui/Volver";
 import { CampoGuiado, PieGuia } from "@/components/guia-de-foco/CampoGuiado";
 import { useGuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
-import { avanceDeLineas, bancosParaCuadrar, cabeceraDeBancos, camposDeAnotarSaldo, estadoDeBanco, estadoPar, filtrarLineas, inicialesDeBanco, respuestaCuadre, textoDespuesDeAnotar, textoLadoBanco, textoMarcarRevisadas, textoPeriodo, textoQueSaldoAnotar, textoUltimaVez, type FiltroLineas } from "@/lib/cuadrar-reglas";
+import { avanceDeLineas, bancosParaCuadrar, cabeceraDeBancos, camposDeAnotarSaldo, estadoDeBanco, estadoPar, filtrarLineas, inicialesDeBanco, respuestaCuadre, textoBancoContraSistema, textoDespuesDeAnotar, textoLadoBanco, textoMarcarRevisadas, textoPeriodo, textoQueSaldoAnotar, textoUltimaVez, type FiltroLineas } from "@/lib/cuadrar-reglas";
 import { BarraAvance } from "@/components/ui/BarraAvance";
 import { SegmentoDeslizante } from "@/components/ui/SegmentoDeslizante";
 import { TituloSeccion } from "@/components/ui/TituloSeccion";
@@ -450,7 +450,7 @@ export function ConciliacionPanel({
               <span className="label-cayla">El banco dijo</span>
               <b className="din-cuad-cifra din-cuad-cifra-chica">{soles(k.saldoBanco)}</b>
               <p className="din-cuad-tenue">
-                {cuadra(k.diferencia) ? "Coincide con el sistema." : `Diferencia de ${soles(Math.abs(k.diferencia))} con el sistema.`} Anotado al {fechaCorta(actual.hasta)}
+                {textoBancoContraSistema(k.diferencia, k.despues)} Anotado al {fechaCorta(actual.hasta)}
                 {k.registradoPor ? ` por ${k.registradoPor}` : ""}.
                 {despuesDeAnotar ? ` ${despuesDeAnotar}` : ""}
               </p>

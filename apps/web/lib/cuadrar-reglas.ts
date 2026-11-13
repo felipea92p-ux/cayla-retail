@@ -79,6 +79,16 @@ export function textoQueSaldoAnotar(fecha: string, hoy: string): string {
     : "Lo que mostraba la banca por internet al cierre de ese día; se compara con el día entero del sistema.";
 }
 
+/**
+ * Cómo dijo el banco frente al sistema. Si algo se registró después de anotarlo, el número grande de «el sistema dice» ya no es el que
+ * se comparó: decir «coincide» junto a dos cifras distintas confunde, así que se dice que coincidía cuando se anotó.
+ */
+export function textoBancoContraSistema(diferencia: number, despues: number | null): string {
+  const cambioDespues = textoDespuesDeAnotar(despues) !== null;
+  if (cuadra(diferencia)) return cambioDespues ? "Coincidía con el sistema cuando se anotó." : "Coincide con el sistema.";
+  return `Diferencia de ${soles(Math.abs(diferencia))} con ${cambioDespues ? "lo que el sistema decía cuando se anotó" : "el sistema"}.`;
+}
+
 /** Lo que se registró con fecha de ese día después de anotar el saldo, en una frase; nulo si no hubo nada (o si se anotó un día pasado). */
 export function textoDespuesDeAnotar(despues: number | null): string | null {
   if (despues === null || cuadra(despues)) return null;

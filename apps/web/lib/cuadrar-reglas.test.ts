@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { AlertaPos, ConciliacionCuenta, LineaConciliacion, LotePendiente } from "./cuentas-dinero-reglas";
-import { cabeceraDeBancos, coincidenciasConBanco, textoMarcarRevisadas, deudaDeMaquinas, tieneExtracto, avanceDeLineas, bancosParaCuadrar, camposDeAnotarSaldo, estadoDeBanco, estadoPar, filtrarLineas, inicialesDeBanco, textoUltimaVez, hastaDeLaUrl, respuestaCuadre, textoDespuesDeAnotar, textoLadoBanco, textoPeriodo, textoQueSaldoAnotar } from "./cuadrar-reglas";
+import { cabeceraDeBancos, coincidenciasConBanco, textoMarcarRevisadas, deudaDeMaquinas, tieneExtracto, avanceDeLineas, bancosParaCuadrar, camposDeAnotarSaldo, estadoDeBanco, estadoPar, filtrarLineas, inicialesDeBanco, textoUltimaVez, hastaDeLaUrl, respuestaCuadre, textoBancoContraSistema, textoDespuesDeAnotar, textoLadoBanco, textoPeriodo, textoQueSaldoAnotar } from "./cuadrar-reglas";
 import { sePuedeConfirmar } from "./guia-campos";
 import { leerMontoPlata } from "./monto-plata-reglas";
 
@@ -230,6 +230,13 @@ describe("el saldo de hoy se corta al anotarlo (ADR-0652)", () => {
     expect(textoDespuesDeAnotar(0)).toBeNull();
     expect(textoDespuesDeAnotar(0.004)).toBeNull();
     expect(textoDespuesDeAnotar(null)).toBeNull();
+  });
+  it("si algo cambió después de anotar, dice que coincidía (o la diferencia) cuando se anotó, no ahora", () => {
+    expect(textoBancoContraSistema(0, null)).toBe("Coincide con el sistema.");
+    expect(textoBancoContraSistema(0, 0)).toBe("Coincide con el sistema.");
+    expect(textoBancoContraSistema(0, -280.39)).toBe("Coincidía con el sistema cuando se anotó.");
+    expect(plano(textoBancoContraSistema(-50, null))).toBe("Diferencia de S/ 50.00 con el sistema.");
+    expect(plano(textoBancoContraSistema(-50, 20))).toBe("Diferencia de S/ 50.00 con lo que el sistema decía cuando se anotó.");
   });
   it("hoy se anota lo que dice el banco ahora; un día pasado, lo del cierre", () => {
     expect(textoQueSaldoAnotar("2026-11-13", "2026-11-13")).toContain("ahora");
