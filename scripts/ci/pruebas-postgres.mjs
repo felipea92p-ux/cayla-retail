@@ -1871,6 +1871,8 @@ export const PRUEBAS = [
   "pruebas:compras-simple-cuenta-devolucion",
   // «Compras solo ve historial» (ADR-0574): la serie y el número que la compradora escribe al comprar (con las reglas de completar), sin duplicados, y los gastos que pasan solos al cerrar la ronda.
   "pruebas:compras-simple-historial",
+  // La plata que Compras manda antes de abrir la ronda es de la ronda que se abre (Felipe 2026-11-13): la adopta al abrirla, nada más. ROLLBACK.
+  "pruebas:compras-simple-ronda-adopta",
 
   // La orden con sus fases, quién hace cada una y su tela (ADR-0400, actividad 1): la espina obligatoria, el servicio con
   // proveedor y tarifa congelados, la tela por color con su plan, el estado derivado, cambiar quién solo antes de empezar,
