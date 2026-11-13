@@ -114,6 +114,7 @@
 @import "./estilos/tabla-corte.css"; /* la tabla mira su ancho, no el de la ventana */
 @import "./estilos/vidrio/tabla-viva.css"; /* La tabla con superpoderes (TablaViva) */
 @import "./estilos/vidrio/hoja.css";
+@import "./estilos/barra-de-scroll.css"; /* La barra de scroll: una píldora que no pisa la esquina de la hoja (2026-11-13) */
 @import "./estilos/vidrio/campos-y-botones.css";
 @import "./estilos/vidrio/notas-avisos-combos.css";
 @import "./estilos/vidrio/graficos-y-pasos.css";
@@ -1605,18 +1606,7 @@ html[data-buscando] [data-resultados] {
   }
 }
 
-/* La barra de scroll nativa de Windows es gris cromo y aparece justo en el
-   borde del modal, que es el único lugar donde el sistema no puede permitirse
-   un cuarto color. */
-@layer components {
-  .scroll-cayla {
-    scrollbar-width: thin;
-    scrollbar-color: var(--color-sand) transparent;
-  }
-  .scroll-cayla::-webkit-scrollbar { width: 6px; height: 6px; }
-  .scroll-cayla::-webkit-scrollbar-track { background: transparent; }
-  .scroll-cayla::-webkit-scrollbar-thumb { background: var(--color-sand); }
-}
+/* `.scroll-cayla` (y todo lo que corre dentro de una hoja) usa LA barra de scroll del sistema: estilos/barra-de-scroll.css. */
 
 /* ---- Salidas (2026-09-08) --------------------------------------------
    Antes lo que se cerraba desaparecía de golpe: el modal se desmontaba y
