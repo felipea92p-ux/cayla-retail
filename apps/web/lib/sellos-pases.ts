@@ -286,6 +286,42 @@ function prendasYDeDonde(prendas: number, aMano: number, categorias: readonly st
   return `${n}: ${prendas - aMano} de ${cats} y ${marcadas}`;
 }
 
+export type PreguntaCampana = { clave: "oferta" | "prendas" | "cuando"; nombre: string; hecho: boolean; detalle: string };
+
+/**
+ * Las tres preguntas de una campaña en Catálogo ▸ Campañas y ofertas (ADR-0655, Felipe 2026-11-13): qué le das al cliente, en qué prendas y
+ * cuándo y dónde. Reemplazan a «Lo que ya tiene» y a los cuatro botones del pase: cada una dice si está respondida y lleva a donde se responde.
+ * Una oferta en borrador no cuenta como respondida: todavía no baja nada en la caja. «Cuándo y dónde» siempre está respondida: sin fechas, la
+ * campaña rige siempre (Felipe 2026-10-28) y sin tiendas elegidas rige en todas (ADR-0486). Sale de lo que la pantalla ya decide: no agrega reglas.
+ */
+export function preguntasDeCampana(
+  f: FilaSello,
+  prendas: number,
+  categorias: readonly string[],
+  hoy: string,
+  aMano: number,
+  ofertas: { activas: number; borradores: number },
+  dondeRige: string | null,
+): PreguntaCampana[] {
+  const llega = prendas > 0 || categorias.length > 0;
+  const pct = f.descuentoPct !== null ? f.descuentoPct.toLocaleString("es-PE", { maximumFractionDigits: 2 }) : null;
+  const porActivar = ofertas.borradores > 0 ? ` · ${plural(ofertas.borradores, "por activar", "por activar")}` : "";
+  const oferta =
+    ofertas.activas > 0
+      ? `${plural(ofertas.activas, "oferta activa", "ofertas activas")}${porActivar}`
+      : pct !== null
+        ? `${pct} % en todas sus prendas${porActivar}`
+        : ofertas.borradores > 0
+          ? `${plural(ofertas.borradores, "oferta sin activar", "ofertas sin activar")}: todavía no baja nada`
+          : "Ninguna: sin oferta, la campaña solo pone su insignia";
+  const cuando = rangoCorto(f.vigenteDesde, f.vigenteHasta, hoy) ?? "Sin fechas: rige siempre";
+  return [
+    { clave: "oferta", nombre: "Qué le das", hecho: ofertas.activas > 0 || pct !== null, detalle: oferta },
+    { clave: "prendas", nombre: "En qué prendas", hecho: llega, detalle: llega ? prendasYDeDonde(prendas, aMano, categorias) : "Ninguna todavía" },
+    { clave: "cuando", nombre: "Cuándo y dónde", hecho: true, detalle: `${cuando} · ${dondeRige ?? "en todas las tiendas"}` },
+  ];
+}
+
 export type ItemListo = { clave: "fechas" | "prendas" | "ofertas" | "promociones"; nombre: string; hecho: boolean; opcional: boolean; detalle: string };
 
 /** Lo que ya tiene una campaña. Fechas y prendas son lo que la hace funcionar; las ofertas y promociones son opcionales (una campaña puede
