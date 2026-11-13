@@ -446,6 +446,10 @@ export const GUIA_EDITAR_PRODUCTO: Guia = {
     {
       id: "catalogo-ia",
       ancla: "editar.catalogo-ia-interruptor",
+      // Vive dentro de «Fotos», que la demo encuentra plegada: se abre aquí y la cierra el paso que sigue. Opcional: sin la llave de la IA en el
+      // servidor no se dibuja.
+      preparar: [{ tipo: "clic", ancla: "editar.seccion-fotos" }],
+      prepararSoloAlAvanzar: true,
       opcional: true,
       titulo: "Catálogo con IA",
       texto: "Encendido, cada foto que subas sale como foto de catálogo: la prenda en un maniquí invisible, de frente y sin fondo. El primer color hace de molde y los demás salen con su misma forma. Si no te convence, «Usar mi foto» vuelve a la tuya.",
@@ -453,6 +457,9 @@ export const GUIA_EDITAR_PRODUCTO: Guia = {
     {
       id: "variantes",
       ancla: "editar.seccion-variantes",
+      // Cierra «Fotos», que abrió el paso anterior.
+      preparar: [{ tipo: "clic", ancla: "editar.seccion-fotos" }],
+      prepararSoloAlAvanzar: true,
       titulo: "4 · Variantes y precios",
       texto: "Una fila por color y una columna por talla. En «Unidades» ves cuántas hay, con su candado: tócalo para ajustar el stock en Existencias. Una raya es una talla que no existe. El lápiz corrige un color o una talla; el tacho deja de vender ese color. Abajo, «Agregar color» y «Agregar talla».",
     },
