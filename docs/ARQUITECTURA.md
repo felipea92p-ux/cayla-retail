@@ -904,12 +904,8 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
   `campanas_web`). `/productos/campanas`, `/productos/etiquetas` y `/productos/atributos?tipo=etiquetas` redirigen aquí
   (`next.config.ts`). La tarjeta de UNA campaña (`TarjetaDeCampana`, en `components/EtiquetasLista.tsx`) sigue en la pestaña «Datos y
   prendas» de `/tienda-web/campanas/[id]`. Una campaña es una fila de `retail.etiquetas` con estilo `campana`; un sello, todo lo demás.
-- `/productos/liquidacion` (Catálogo ▸ Liquidación, módulo `liquidacion`, ADR-0379) → `page.tsx` lee `fn_piezas_liquidacion` y
-  `categorias` → `LiquidacionPantalla.tsx` (cifras, buscador que lee una etiqueta LQ con `fn_pieza_liquidacion`, lista) +
-  `EtiquetarPiezaModal.tsx` (`crear_pieza_liquidacion`) + `PiezaLiquidacionModal.tsx` (`cambiar_precio_pieza_liquidacion`,
-  `retirar_pieza_liquidacion`) + `PrecioMinimoLiquidacion.tsx` (`guardar_precio_minimo_liquidacion`); la etiqueta de papel es
-  `EtiquetaLiquidacion.tsx` y se imprime con `useImprimirLiquidacion` (la misma hoja de la Brother). Vender
-  (`PuntoDeVenta.tsx:agregarPiezaLiquidacion`) manda la línea con `pieza_liquidacion_codigo` a `registrar_venta`.
+- ~~`/productos/liquidacion` (Catálogo ▸ Liquidación, ADR-0379)~~ — **retirada el 2026-11-13 (ADR-0653)**: sin pantalla ni módulo,
+  y Vender ya no lee una etiqueta `LQ`. Las tablas y funciones quedan en la base, sin permiso para la web.
 - **Tienda web** (ADR-0430, Felipe 2026-10-16): el grupo del lateral que junta lo de la tienda online. `/tienda-web/layout.tsx` deja
   entrar a quien ve alguno de sus módulos (`pedidos_web`, `vitrina_web`, `recomendaciones`, `configuracion`) y cada pantalla repite la
   puerta del suyo. Las direcciones de antes (`/vender/pedidos-web`, `/productos/vitrina…`, `/clientas/recomendaciones`,

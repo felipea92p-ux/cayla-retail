@@ -67,8 +67,6 @@ export type ItemRegistrarVenta = {
   /** Solo en una «Prenda sin registrar»: por qué se anotó a mano (20261106233000) y, con «otro», su texto. */
   motivo_sin_registrar?: string;
   motivo_sin_registrar_detalle?: string;
-  /** Solo en una pieza de liquidación (ADR-0379): el código de su etiqueta vigente. */
-  pieza_liquidacion_codigo?: string;
 };
 
 /** El payload de `registrar_venta` que manda la caja (`p_cliente_id` se sumó en la tanda 1a del club, ADR-0288; el cupón del Club
