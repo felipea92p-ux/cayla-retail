@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type RefObject } from "react";
 import { Camera, Sparkles } from "lucide-react";
 import { Modal } from "@/components/ui/Modal";
 import { PieAcciones } from "@/components/ui/PieAcciones";
@@ -29,6 +29,7 @@ export function HojaCatalogoIA({
   molde,
   onPreparar,
   onClose,
+  volverA,
 }: {
   nombreColor: string;
   inicial: PedidoCatalogo;
@@ -36,6 +37,8 @@ export function HojaCatalogoIA({
   molde: { url: string | null; nombreColor: string } | null;
   onPreparar: (p: PedidoCatalogo) => void;
   onClose: () => void;
+  /** El botón que abrió la hoja: el foco vuelve ahí al cerrarla (sin esto caía en la página, /chaos 2026-11-13). */
+  volverA?: RefObject<HTMLElement | null>;
 }) {
   const [pedido, setPedido] = useState<PedidoCatalogo>(inicial);
   // La hoja tarda en irse (su animación de salida): un doble clic en «Preparar foto» la prepararía dos veces, con doble gasto y doble foto.
@@ -69,7 +72,7 @@ export function HojaCatalogoIA({
   const costo = molde || pedido.espalda || pedido.detalle ? "0,06" : "0,05";
 
   return (
-    <Modal titulo={`Foto de catálogo · ${nombreColor}`} subtitulo="Más ángulos, más parecida a la real." tamano="ancha" onClose={onClose}>
+    <Modal titulo={`Foto de catálogo · ${nombreColor}`} subtitulo="Más ángulos, más parecida a la real." tamano="ancha" onClose={onClose} alCerrarEnfocar={volverA}>
       {(cerrar) => (
         <div className="space-y-5">
           {molde && (

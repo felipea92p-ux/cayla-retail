@@ -202,7 +202,10 @@ flowchart TB
   pregunta por permiso (`puede`/`exigirPermiso` en `lib/persona-actual.ts`, `permisosDe(rol, terminal)` y `terminales` por nodo
   en `lib/menu.ts`); `persona.terminal` distinto de null = la sesión es un APARATO (pie del lateral con el aparato, sin «Mi perfil»).
   La sesión de una terminal entra por el mismo `requirePersonaActualV2` (su fila viene de `fn_persona_actual_resumen`,
-  que ahora tiene rama de terminal); una terminal desactivada ve su propio aviso en `/login`. `desactivar_terminal` corta
+  que ahora tiene rama de terminal); una terminal desactivada ve su propio aviso en `/login`. **Desde ADR-0657 (20261113200000)
+  `requirePersonaActualV2` pide las seis respuestas de identidad en UN viaje** (`fn_mi_sesion()` ↔ `lib/mi-sesion-reglas.ts`, que las
+  traduce a las seis de siempre) y vuelve a las seis RPC si la base aún no la tiene (PGRST202); `fn_mis_modulos` y `fn_mi_sesion`
+  comparten la regla `fn_modulos_de` (capa 2 «regla por fila», sin `security definer`, vigilada por `pnpm pruebas:reglas-por-fila`). `desactivar_terminal` corta
   la sesión en el acto (`fn_terminal_actual` deja de devolverla). Alta y clave: `pnpm terminales:crear` (lo corre Felipe con
   la llave de servicio; muestra la clave una sola vez; partes puras probadas con `pnpm terminales:probar`).
   **D-70 (ADR-0157): el alta de un colaborador (persona) no queda operativa sola.** `colaboradores.estado`
@@ -2438,6 +2441,9 @@ cuando hace falta hablar con algo que no es Postgres, o devolver un archivo.
   pantalla sube el par (`subirParDeCatalogo`, `lib/producto-fotos.ts`: la real en `fotos/<id>.<ext>`, la de IA en `….ia.png`). La llaman
   `components/ficha-producto/useCatalogoIA.tsx` (Editar) y `components/alta-producto/useCatalogoIAAlta.tsx` (Nuevo) vía
   `lib/foto-catalogo-cliente.ts`, que achica las fotos a 1.600 px. `/api/fotos/laboratorio` es su banco de pruebas, solo fuera de producción.
+  **`GET`** (2026-11-13) responde `{ fotos, ia }`: si la cuenta puede guardar fotos de una prenda (`fn_puede_editar_catalogo`, la regla de
+  `producto_fotos`) y pedir la de IA; lo pregunta Recibir ▸ «Crear la prenda que llegó» (`recepcion-envio/HojaPrenda.tsx`, vía
+  `leerPermisoDeFotos`) para mostrar sus fotos por color (`alta-producto/FotosDeColores.tsx`, la misma pieza de la tabla de Nuevo producto).
 - `/api/conteo/prendas` → `GET`, solo lectura: las prendas con stock en la sede de quien pregunta (la sede sale de la
   sesión) para el buscador «Por prenda» de «Abrir un conteo». Una fila por variante con nombre, códigos, foto y *dónde*
   hay stock (piso/almacén/ubicación), **sin cantidades**. Se llama al tocar la opción, no al abrir el inicio. Si la base
