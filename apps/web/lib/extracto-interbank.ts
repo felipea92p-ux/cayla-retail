@@ -323,8 +323,22 @@ export function leerExtracto(texto: string): ExtractoLeido {
   }
   const desde = lineas[0]?.fecha ?? null;
   const hasta = lineas[lineas.length - 1]?.fecha ?? null;
-  // Un hueco en el primer o el último día del extracto suele ser lo de un día vecino que el banco procesó junto: se dice distinto.
-  for (const h of huecos) h.enElBorde = h.antesDe.fecha === hasta || h.despuesDe.fecha === desde;
+  // Un hueco en el primer o el último día del extracto suele ser lo de un día vecino que el banco procesó junto: se dice distinto. El banco
+  // filtra el archivo por fecha de OPERACIÓN, pero procesa por lotes: el sábado 31-oct se procesó el lunes 2-nov con correlativos
+  // intercalados, y un archivo que empieza el 1-nov trae el lote del 2-nov sin esas líneas. Los huecos que deja caen dentro de ese
+  // primer lote (y en su empalme con el día siguiente), aunque sus líneas digan 2-nov: también son el borde. Lo mismo al final con el
+  // último lote firme, si se procesó después del último día que trae el archivo.
+  const procesoPrimero = lineas[0]?.firme ? lineas[0].fechaProceso : null;
+  const firmes = lineas.filter((l) => l.firme);
+  const procesoUltimo = firmes[firmes.length - 1]?.fechaProceso ?? null;
+  const loteFinalCortado = procesoUltimo !== null && hasta !== null && procesoUltimo > hasta;
+  for (const h of huecos) {
+    h.enElBorde =
+      h.antesDe.fecha === hasta ||
+      h.despuesDe.fecha === desde ||
+      (procesoPrimero !== null && h.despuesDe.firme && h.despuesDe.fechaProceso === procesoPrimero) ||
+      (loteFinalCortado && h.antesDe.firme && h.antesDe.fechaProceso === procesoUltimo);
+  }
   return { lineas, ignoradas, huecos, desde, hasta, cuentas };
 }
 
