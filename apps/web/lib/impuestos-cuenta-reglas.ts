@@ -88,7 +88,8 @@ export function cuentaImpuestos(p: PanelImpuestos, opciones: { enCurso: boolean;
   const chip = opciones.enCurso ? "Va a la fecha" : pulso.estado === "a_pagar" ? `Se paga en ${siguiente}` : `IGV a favor ${solesRedondo(pulso.aFavor)} → ${siguiente}`;
   const pago = p.pagos?.find((x) => x.mes === pulso.mes);
   const pagado = pago ? r2(pago.igv + pago.renta) : 0;
-  const pagadoTodo = pagado > 0 && pagado >= pagas - 0.005;
+  // `pagas` ya viene en soles enteros (lo que SUNAT cobra): un pago de S/ 1,123 cubre un 1 % que al céntimo era S/ 1,123.08.
+  const pagadoTodo = pagado > 0 && pagado >= pagas;
   const sinLeerPagos = p.pagosFalla === true;
   // Sin nada que pagar no hay pago que pueda faltar descontar: se queda lo que el mes sí dice (el IGV a favor), como `estadoMes`.
   const dichoDelPago = sinLeerPagos && pagas > 0
@@ -112,7 +113,7 @@ export function cuentaImpuestos(p: PanelImpuestos, opciones: { enCurso: boolean;
     igvCompras: b.cuenta.compras,
     lineasCompras,
     saldoAnterior: b.cuenta.saldoAnterior,
-    renta: { monto: p.renta.monto === null ? null : r2(p.renta.monto), base: p.renta.base, tasa: p.renta.tasa === null ? null : tasaEnTexto(p.renta.tasa), provisional: p.parametros.renta?.provisional === true },
+    renta: { monto: pulso.renta, base: p.renta.base, tasa: p.renta.tasa === null ? null : tasaEnTexto(p.renta.tasa), provisional: p.parametros.renta?.provisional === true },
     aFavor: pulso.aFavor,
   };
 }

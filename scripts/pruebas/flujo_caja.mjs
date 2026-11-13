@@ -608,7 +608,7 @@ select retail.fn_flujo_caja_proyeccion(6) as antes \\gset
 select pg_temp.comp(:'tru', 'boleta', 'B982', 1, 1180000, 'aceptado', 'produccion', (${MES_ANT})) as b1 \\gset
 select retail.fn_flujo_caja_proyeccion(6) as p \\gset
 select pg_temp.salidas(:'p', 'impuesto', 'igv:' || ${ID_ANT})
-     = (select m.a_pagar from retail.fn_impuestos_igv_meses(date_trunc('month', (${MES_ANT}))::date, date_trunc('month', (${MES_ANT}))::date) m)
+     = (select round(m.a_pagar) from retail.fn_impuestos_igv_meses(date_trunc('month', (${MES_ANT}))::date, date_trunc('month', (${MES_ANT}))::date) m)
    and pg_temp.salidas(:'p', 'impuesto', 'igv:' || ${ID_ANT}) > 0;
 select pg_temp.salidas(:'p', 'impuesto', 'renta:' || ${ID_ANT}) - pg_temp.salidas(:'antes', 'impuesto', 'renta:' || ${ID_ANT});
 select (select (s->>'fecha')::date from jsonb_array_elements(:'p'::jsonb->'salidas') s where s->>'id' = 'igv:' || ${ID_ANT})
@@ -617,7 +617,7 @@ select retail.registrar_movimiento_dinero('pago_sunat', 500, :'bcp', null, null,
 select retail.fn_flujo_caja_proyeccion(6) as tras_pago \\gset
 select pg_temp.salidas(:'p', 'impuesto', 'igv:' || ${ID_ANT}) - pg_temp.salidas(:'tras_pago', 'impuesto', 'igv:' || ${ID_ANT});`);
   const [igv, renta, fecha, baja] = lineas(r);
-  esperar("el IGV del mes anterior sale en la proyección, con lo que dice Impuestos", r.ok && igv === "t", r);
+  esperar("el IGV del mes anterior sale en la proyección, con lo que dice Impuestos en soles enteros (20261113220000)", r.ok && igv === "t", r);
   esperar("el pago a cuenta de renta del mes anterior suma el 1 % de lo vendido sin IGV: S/ 10,000", r.ok && Number(renta) === 10000, r);
   esperar("cae el día 15 de este mes o, si ya pasó, mañana: nunca fuera de lo que viene", r.ok && fecha === "t", r);
   esperar("un pago a SUNAT de S/ 500 hecho este mes baja la línea en S/ 500", r.ok && Number(baja) === 500, r);
@@ -638,6 +638,44 @@ select retail.fn_flujo_caja_proyeccion(6) as tras_pago \\gset
 select pg_temp.salidas(:'tras_pago', 'impuesto', 'igv:' || ${ID_ANT}) + pg_temp.salidas(:'tras_pago', 'impuesto', 'renta:' || ${ID_ANT});`);
   const [resto] = lineas(r);
   esperar("con todo pagado este mes, el mes anterior ya no sale en lo que viene", r.ok && Number(resto) === 0, r);
+}
+
+// 10g. SUNAT cobra en soles enteros (20261113220000). El caso real de octubre de 2026: venta sin IGV S/ 112,307.93, 1 % = S/ 1,123.08, y la constancia de
+// SUNAT y el banco dicen S/ 1,123. Antes, con el pago registrado, la proyección dejaba «Pago a cuenta de renta · S/ 0.08», atrasada desde el día 23.
+{
+  const MES_ANT = `date_trunc('month', :'hoy'::date)::date - 1`;
+  const PRIMERO_ANT = `date_trunc('month', (${MES_ANT}))::date`;
+  const ID_ANT = `to_char((${MES_ANT}), 'YYYY-MM')`;
+  const r = correr(`${ESCENA}
+${COMPROBANTE}
+select coalesce((select m.base_ventas from retail.fn_impuestos_igv_meses(${PRIMERO_ANT}, ${PRIMERO_ANT}) m where m.mes = ${PRIMERO_ANT}), 0) as base0 \\gset
+select round((112307.93 - mod(:'base0'::numeric, 100)) * 1.18, 2) as total \\gset
+select pg_temp.comp(:'tru', 'boleta', 'B984', 1, :'total'::numeric, 'aceptado', 'produccion', (${MES_ANT})) as b1 \\gset
+select m.base_ventas as base, m.a_pagar as igv_centimos from retail.fn_impuestos_igv_meses(${PRIMERO_ANT}, ${PRIMERO_ANT}) m where m.mes = ${PRIMERO_ANT} \\gset
+select round(round(:'base'::numeric) * 0.01) as cobra_sunat \\gset
+select retail.fn_flujo_caja_proyeccion(6) as p \\gset
+select pg_temp.salidas(:'p', 'impuesto', 'renta:' || ${ID_ANT}) as renta \\gset
+select pg_temp.salidas(:'p', 'impuesto', 'igv:' || ${ID_ANT}) as igv \\gset
+select mod(:'base'::numeric, 100) = 7.93 and round(:'base'::numeric * 0.01, 2) - :'cobra_sunat'::numeric = 0.08;
+select :'renta'::numeric = :'cobra_sunat'::numeric and :'renta'::numeric > 0;
+select :'igv'::numeric = round(:'igv_centimos'::numeric);
+select :'renta'::numeric = (retail.fn_impuestos_panel(${PRIMERO_ANT}) -> 'renta' ->> 'monto')::numeric;
+select retail.registrar_pago_sunat(:'bcp', :'hoy'::date, jsonb_build_array(jsonb_build_object('mes', ${PRIMERO_ANT}, 'concepto', 'renta', 'monto', :'cobra_sunat'::numeric)), 'Renta de prueba 10g') as m1 \\gset
+select retail.fn_flujo_caja_proyeccion(6) as tras_pago \\gset
+select pg_temp.salidas(:'tras_pago', 'impuesto', 'renta:' || ${ID_ANT});
+select (select count(*) from jsonb_array_elements(:'tras_pago'::jsonb -> 'salidas') s where s ->> 'id' = 'renta:' || ${ID_ANT});
+select retail.fn_redondeo_sunat(1123.08), retail.fn_redondeo_sunat(446.87), retail.fn_redondeo_sunat(9230.49), retail.fn_redondeo_sunat(9230.50), retail.fn_renta_a_cuenta(112307.93, 0.01), retail.fn_renta_a_cuenta(99.60, 0.015);
+select has_function_privilege('anon', 'retail.fn_redondeo_sunat(numeric)', 'execute') or has_function_privilege('authenticated', 'retail.fn_redondeo_sunat(numeric)', 'execute')
+    or has_function_privilege('anon', 'retail.fn_renta_a_cuenta(numeric, numeric)', 'execute') or has_function_privilege('authenticated', 'retail.fn_renta_a_cuenta(numeric, numeric)', 'execute');`);
+  const [conCentimos, rentaEntera, igvEntero, igualAlPanel, resto, filas, regla, abierta] = lineas(r);
+  esperar("la escena es la de octubre: la venta sin IGV termina en 7.93 y el 1 % al céntimo deja 8 céntimos sobre lo que cobra SUNAT (si no, este caso no prueba nada)", r.ok && conCentimos === "t", r);
+  esperar("la renta del mes anterior sale como la cobra SUNAT: la base en soles enteros por el 1 %, en soles enteros", r.ok && rentaEntera === "t", r);
+  esperar("el IGV del mes anterior sale en soles enteros", r.ok && igvEntero === "t", r);
+  esperar("y es la misma renta que dice Impuestos: una sola regla para las dos pantallas", r.ok && igualAlPanel === "t", r);
+  esperar("pagado lo que cobra SUNAT (no lo que diga la proyección), no queda ni un céntimo por salir", r.ok && Number(resto) === 0, r);
+  esperar("y la línea desaparece de lo que viene: no queda un «S/ 0» que desde el día 23 saldría atrasado", r.ok && Number(filas) === 0, r);
+  esperar("la regla: 1,123.08 → 1,123 · 446.87 → 447 · 9,230.49 → 9,230 · 9,230.50 → 9,231; el 1 % de 112,307.93 es 1,123; el 1.5 % de 99.60 es 2 (100 × 1.5 %), como el formulario", r.ok && regla === "1123|447|9230|9231|1123|2", r);
+  esperar("las dos funciones nuevas no se llaman desde afuera", r.ok && abierta === "f", r);
 }
 
 
