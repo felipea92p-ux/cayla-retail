@@ -290,7 +290,6 @@ const FUERA_DE_P10: Record<string, string> = {
   ".marco-cajon-grupo": "el marco: grupo del menú en el celular",
   ".marco-yo": "el marco: la placa de quien entró",
   ".mc-accion": "una gota grande que se aprieta: es un botón, no una tarjeta",
-  ".liq-previa": "un pozo: es hundido, no una tarjeta",
   ".obs .o-tj": "diseño propio: el Observatorio",
   ".obs .o-hpanel": "diseño propio: el Observatorio",
   ".o-tj": "diseño propio: el Observatorio",

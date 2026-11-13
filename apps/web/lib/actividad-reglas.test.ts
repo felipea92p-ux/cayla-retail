@@ -99,9 +99,9 @@ describe("los módulos que ya anotan su actividad", () => {
   });
 
   it("todo módulo que la base anota está en la lista (si no, el panel dice «todavía no anota» y no muestra nada)", () => {
-    // Un módulo retirado del catálogo (ADR-0480: «Notas de crédito») ya no tiene panel: sus funciones viejas siguen anotándolo, pero
+    // Un módulo retirado del catálogo (ADR-0480: «Notas de crédito»; ADR-0653: «Liquidación») ya no tiene panel: sus funciones viejas siguen anotándolo, pero
     // nadie llega a ellas desde la web (y la base ya no tiene su fila en `modulos`).
-    const RETIRADOS = ["notas_credito"];
+    const RETIRADOS = ["notas_credito", "liquidacion"];
     expect([...ANOTADOS_EN_LA_BASE].filter((m) => !MODULOS_CON_ACTIVIDAD.includes(m as never) && !RETIRADOS.includes(m)).sort()).toEqual([]);
   });
 

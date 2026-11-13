@@ -1032,7 +1032,7 @@ export const GUIA_SELLOS: Guia = {
   id: "productos.sellos",
   ruta: "/productos/insignias",
   titulo: "Insignias",
-  resumen: "Lo que se le marca a una prenda: las campañas del año, como San Valentín o Navidad, y las insignias como Nuevo o Hecho a mano.",
+  resumen: "Lo que se le marca a una prenda: las campañas del año, como San Valentín o Navidad, y las insignias como Nuevo, Hecho a mano o Para liquidar.",
   pasos: [
     {
       id: "bienvenida",
@@ -1940,109 +1940,4 @@ export const GUIA_ROTULOS: Guia = {
     { tipo: "clic", ancla: "rotulos.por-modelo", siEsta: true },
     { tipo: "clic", ancla: "rotulos.de-prendas", siEsta: true },
   ],
-};
-
-// Catálogo ▸ Liquidación (ADR-0379): las prendas sueltas que la sede liquida sin entrar al catálogo. La demo abre «Etiquetar una prenda»
-// y la ficha de una prenda para mostrarlas, y escribe una búsqueda sacada de la lista; nunca crea una etiqueta, ni imprime, ni baja un
-// precio, ni retira una prenda: eso se explica con la pieza encendida.
-export const GUIA_LIQUIDACION: Guia = {
-  id: "productos.liquidacion",
-  ruta: "/productos/liquidacion",
-  titulo: "Liquidación",
-  resumen: "Las prendas sueltas que se liquidan con su etiqueta, sin entrar al catálogo.",
-  pasos: [
-    {
-      id: "bienvenida",
-      ancla: null,
-      titulo: "Liquidar prendas sueltas",
-      texto: "Para las prendas de una sola unidad que llevan tiempo en el almacén: no se registran en el catálogo, solo llevan una etiqueta con su categoría, su precio y un código. La caja la cobra escaneándola. Es una demo: no se guarda nada.",
-    },
-    {
-      id: "cifras",
-      ancla: "liquidacion.cifras",
-      opcional: true,
-      titulo: "Cómo va la liquidación",
-      texto: "Cuántas prendas hay a la venta (y cuánto suman si se venden todas), cuántas bajaron de precio y cuántas se vendieron este mes. Tocar una tarjeta deja la lista solo con esas.",
-    },
-    {
-      id: "cifras-chicas",
-      ancla: "liquidacion.cifras-chicas",
-      opcional: true,
-      titulo: "Cómo va la liquidación",
-      texto: "Cuántas hay a la venta, cuántas bajaron de precio y cuántas se vendieron. Toca una cifra y la lista se queda solo con esas.",
-    },
-    {
-      id: "buscador",
-      ancla: "liquidacion.buscador",
-      opcional: true,
-      titulo: "Escanea o busca",
-      texto: "Pasa la pistola por una etiqueta y se abre esa prenda, aunque sea una etiqueta vieja (te dice cuál vale). También buscas por categoría, código o precio. Mira, buscamos una de la lista.",
-      demostrar: [{ tipo: "escribir", ancla: "liquidacion.buscador", texto: { palabraDe: "liquidacion.prenda" } }],
-    },
-    {
-      id: "filtros",
-      ancla: "liquidacion.filtros",
-      preparar: [{ tipo: "vaciar", ancla: "liquidacion.buscador" }],
-      titulo: "Qué prendas ver",
-      texto: "«A la venta», las que tienen precio bajado, las vendidas y las retiradas, cada una con cuántas hay. Las vendidas y retiradas se ven hasta 120 días atrás.",
-    },
-    {
-      id: "etiquetar",
-      ancla: "liquidacion.etiquetar",
-      titulo: "Etiquetar una prenda",
-      texto: "Lo primero con una prenda suelta: le das su etiqueta. Se abre una ventana corta (te la abrimos).",
-    },
-    {
-      id: "etiquetar-campos",
-      ancla: "liquidacion-etiquetar.campos",
-      opcional: true,
-      preparar: [{ tipo: "clic", ancla: "liquidacion.etiquetar" }],
-      titulo: "Solo tres datos",
-      texto: "Qué prenda es (su categoría), algo para reconocerla si quieres (sale en la etiqueta y en la boleta) y su precio, que no baja del mínimo. «Crear etiqueta» le da su código y la deja lista para imprimir. En la demo cerramos sin crearla.",
-    },
-    {
-      id: "lista",
-      ancla: "liquidacion.lista",
-      opcional: true,
-      preparar: [{ tipo: "escape" }],
-      titulo: "Una fila por prenda",
-      texto: "Cada prenda con su código, el precio que cobra la caja (si se rebajó, debajo el de antes tachado), cuánto lleva a la venta y su estado.",
-    },
-    {
-      id: "fila",
-      ancla: "liquidacion.fila",
-      opcional: true,
-      titulo: "Abrir una prenda",
-      texto: "Toca una prenda para ver su etiqueta y lo que puedes hacer con ella (te la abrimos).",
-    },
-    {
-      id: "prenda-etiqueta",
-      ancla: "liquidacion-prenda.etiqueta",
-      opcional: true,
-      preparar: [{ tipo: "clic", ancla: "liquidacion.fila" }],
-      titulo: "Su etiqueta",
-      texto: "Así sale la etiqueta que va en la prenda: su categoría, su precio y el código que escanea la caja.",
-    },
-    {
-      id: "prenda-acciones",
-      ancla: "liquidacion-prenda.acciones",
-      opcional: true,
-      titulo: "Imprimir, bajar o retirar",
-      texto: "«Imprimir etiqueta» la vuelve a sacar. «Bajar el precio» saca una etiqueta nueva y la vieja deja de valer. «Retirar» la saca de la venta con un motivo; no se borra, queda en «Retiradas». En la demo no tocamos ninguno.",
-    },
-    {
-      id: "nota",
-      ancla: "liquidacion.nota",
-      preparar: [{ tipo: "escape" }],
-      titulo: "Venta final y precio mínimo",
-      texto: "La caja la cobra al precio de la etiqueta, sin descuentos, y no tiene cambio ni devolución. Debajo del precio mínimo solo etiqueta un líder, que también lo cambia con «Cambiarlo».",
-    },
-    {
-      id: "fin",
-      ancla: null,
-      titulo: "¡Listo!",
-      texto: "Ya sabes etiquetar, encontrar y rebajar una prenda de liquidación. Para repasarlo: Mi perfil ▸ Demo ▸ Liquidación.",
-    },
-  ],
-  alSalir: [{ tipo: "escape" }, { tipo: "vaciar", ancla: "liquidacion.buscador" }],
 };

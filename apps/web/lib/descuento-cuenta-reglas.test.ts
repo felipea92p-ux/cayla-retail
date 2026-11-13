@@ -80,13 +80,6 @@ describe("cuentaDelDescuento — lo que el apartado «Descuento» dice de lo que
     expect(cuentaDelDescuento(vacio, [], null).todasLasPrendas).toBe(false);
   });
 
-  it("una pieza de liquidación no recibe descuento aunque esté marcada (ADR-0379)", () => {
-    const conLiquidacion = [linea("a", 100), linea("l", 200, { liquidacion: { codigo: "LIQ-1" } })];
-    const c = cuentaDelDescuento({ ...vacio, pct: "10", razon: "cerrar_venta" }, conLiquidacion, null);
-    expect(c.alcanzadas.map((l) => l.claveLinea)).toEqual(["a"]);
-    expect(c.totalConDescuento).toBe(290);
-  });
-
   it("«Quitar descuento» solo se ofrece si hay uno puesto a mano en lo alcanzado, no el de campaña", () => {
     expect(cuentaDelDescuento(vacio, ticket, null).hayDescuentoEnAlcance).toBe(false);
     const manual = [linea("a", 100, { descuentoUnitario: 10, razonDescuento: "cerrar_venta" })];
