@@ -98,12 +98,12 @@ describe("el tope del mes", () => {
 });
 
 describe("textoSinPropuesta", () => {
-  it("cada motivo dice qué pasó y qué hacer, en una frase", () => {
+  it("cada motivo dice qué pasó y qué hacer, en una frase corta", () => {
     const motivos: MotivoSinPropuesta[] = ["sin_clave", "sin_costo", "tope", "sin_respuesta", "rechazo", "respuesta_invalida"];
     for (const m of motivos) {
       const t = textoSinPropuesta(m);
       expect(t.length).toBeGreaterThan(20);
-      expect(t.length).toBeLessThanOrEqual(110);
+      expect(t.length).toBeLessThanOrEqual(50);
     }
   });
 });

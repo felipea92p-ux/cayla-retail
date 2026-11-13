@@ -202,7 +202,10 @@ flowchart TB
   pregunta por permiso (`puede`/`exigirPermiso` en `lib/persona-actual.ts`, `permisosDe(rol, terminal)` y `terminales` por nodo
   en `lib/menu.ts`); `persona.terminal` distinto de null = la sesión es un APARATO (pie del lateral con el aparato, sin «Mi perfil»).
   La sesión de una terminal entra por el mismo `requirePersonaActualV2` (su fila viene de `fn_persona_actual_resumen`,
-  que ahora tiene rama de terminal); una terminal desactivada ve su propio aviso en `/login`. `desactivar_terminal` corta
+  que ahora tiene rama de terminal); una terminal desactivada ve su propio aviso en `/login`. **Desde ADR-0657 (20261113200000)
+  `requirePersonaActualV2` pide las seis respuestas de identidad en UN viaje** (`fn_mi_sesion()` ↔ `lib/mi-sesion-reglas.ts`, que las
+  traduce a las seis de siempre) y vuelve a las seis RPC si la base aún no la tiene (PGRST202); `fn_mis_modulos` y `fn_mi_sesion`
+  comparten la regla `fn_modulos_de` (capa 2 «regla por fila», sin `security definer`, vigilada por `pnpm pruebas:reglas-por-fila`). `desactivar_terminal` corta
   la sesión en el acto (`fn_terminal_actual` deja de devolverla). Alta y clave: `pnpm terminales:crear` (lo corre Felipe con
   la llave de servicio; muestra la clave una sola vez; partes puras probadas con `pnpm terminales:probar`).
   **D-70 (ADR-0157): el alta de un colaborador (persona) no queda operativa sola.** `colaboradores.estado`
@@ -2110,6 +2113,9 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
     (`fn_piso_plan_lectura`, `fn_demanda_sede`, `fn_motor_demanda_preparacion`, `fn_frescura_decisiones`), `fn_rentabilidad`, `fn_calidad`, `fn_costo_estimado_resumen` (el costo que estima el Resumen de Finanzas: la actividad 5 lo había dejado
     pasar) y lo más vendido de la tienda web (`fn_vitrina_probador`, `fn_vitrina_recortes`). NO cambian los que miran el libro de movimientos o el stock por dueño (Frescura del piso, `fn_resumen_*`, Pérdidas, calidad de dañadas,
     reparto por proveedor, capacidad del Plan del piso): quedan como pendiente de Felipe. Prueba: `pnpm pruebas:claure-analisis-y-motores`.
+    **De una pasada (ADR-0658, 20261113201000):** `fn_piso_plan_lectura` y las seis lecturas de `fn_plan_compra` ya no preguntan línea por línea: hacen
+    `vi.id not in (select … retail.fn_lineas_de_claure(<ventana>[, sede]))`. El ayudante junta las líneas de las sedes de CLAURE desde su arranque y solo a esas
+    les pide el dueño (`fn_dueno_de_la_linea`). Prueba de que marca lo mismo que `fn_item_es_de_claure`: `pnpm pruebas:lineas-de-claure`.
     **Apartados y pedidos web con prendas de CLAURE (actividad 7, 20261029043000):** al entregar un apartado (`entregar_separacion`) o despachar un pedido web (`fn_pedido_web_vender`), el adelanto queda en la venta como un
     pago de medio `anticipo` SIN cuenta, así que `fn_claure_filas` (A1) no lo veía. Ahora suma también, por la parte de CLAURE de la venta, los abonos de `separacion_pagos` (no efectivo) y los pagos `aprobado` y no anulados de
     `pedido_web_pagos`, en la cuenta donde cayó cada uno y fechados el día de la venta: se le debe a Claudia desde que la prenda sale, no desde el abono. Mientras no hay venta no se debe nada. Lo leen la pantalla CLAURE,
@@ -2429,6 +2435,15 @@ cuando hace falta hablar con algo que no es Postgres, o devolver un archivo.
   archivo, no el esquema. Si Lucode no responde, el comprobante se queda en su
   estado real (`pendiente`/`rechazado`) y el botón sigue a la vista: nunca se
   le inventa un estado ni se reintenta solo. ADR-0009.
+- `/api/fotos/catalogo` → `POST` multipart (`frente`, y opcionales `espalda`, `detalle`, `molde`): la foto de catálogo con IA de una prenda
+  (ADR-0659). Pide sesión y el módulo Productos, 12 por persona por minuto; llama a OpenAI (`lib/openai-imagen-reglas.ts`, llave en
+  `lib/foto-catalogo.ts`, solo servidor) y devuelve el PNG transparente 1024×1280 con `x-costo-usd`. Sin llave, 503. No guarda nada: la
+  pantalla sube el par (`subirParDeCatalogo`, `lib/producto-fotos.ts`: la real en `fotos/<id>.<ext>`, la de IA en `….ia.png`). La llaman
+  `components/ficha-producto/useCatalogoIA.tsx` (Editar) y `components/alta-producto/useCatalogoIAAlta.tsx` (Nuevo) vía
+  `lib/foto-catalogo-cliente.ts`, que achica las fotos a 1.600 px. `/api/fotos/laboratorio` es su banco de pruebas, solo fuera de producción.
+  **`GET`** (2026-11-13) responde `{ fotos, ia }`: si la cuenta puede guardar fotos de una prenda (`fn_puede_editar_catalogo`, la regla de
+  `producto_fotos`) y pedir la de IA; lo pregunta Recibir ▸ «Crear la prenda que llegó» (`recepcion-envio/HojaPrenda.tsx`, vía
+  `leerPermisoDeFotos`) para mostrar sus fotos por color (`alta-producto/FotosDeColores.tsx`, la misma pieza de la tabla de Nuevo producto).
 - `/api/conteo/prendas` → `GET`, solo lectura: las prendas con stock en la sede de quien pregunta (la sede sale de la
   sesión) para el buscador «Por prenda» de «Abrir un conteo». Una fila por variante con nombre, códigos, foto y *dónde*
   hay stock (piso/almacén/ubicación), **sin cantidades**. Se llama al tocar la opción, no al abrir el inicio. Si la base
@@ -2487,6 +2502,10 @@ cuando hace falta hablar con algo que no es Postgres, o devolver un archivo.
   `retail.fn_salud()` (`select true`, migración 20261017225000) por la llave pública con tope de 4 s y la respuesta guardada 10 s por instancia
   (`lib/salud-reglas.ts`); el motivo es de una lista fija, nunca un mensaje de la base. La repite `/sin-base` y el vigía de GitHub. La tienda tiene la suya
   (`apps/tienda/app/api/salud`, `select 1` por `base()`). ADR-0450.
+- `/api/salud/rendimiento` → `GET`, solo el cron (`CRON_SECRET`, `lib/rutas-cron.ts`), cada hora a los 7 minutos: llama a `retail.fn_foto_rendimiento()` con la llave
+  de servicio, que guarda en `retail.rendimiento_fotos` lo que costó cada función o tabla de retail en esa hora (diferencias contra la foto anterior de
+  `pg_stat_statements`; nunca la reinicia). La respuesta la lee `lib/vigia-rendimiento-reglas.ts`; si la base falla, 500 y Sentry. El antes y el después de
+  un pegado: `retail.fn_rendimiento_antes_despues(desde, nombre, ventana)`, desde el SQL Editor. ADR-0656.
 - `/sin-base?desde=<ruta>` → pantalla pública (`app/sin-base/page.tsx`, `components/SinBase.tsx`): «No logramos conectar con el sistema. Tu sesión sigue abierta».
   A ella va, en vez de al login, quien tiene la sesión abierta cuando la base no responde: `requirePersonaActualV2` (`esFalloDeLaBase`, `lib/base-caida-reglas.ts`) y
   `proxy.ts` (`noSePudoComprobar`: Auth sin responder al renovar la sesión; una API recibe 503, una acción de servidor sigue de largo). El proxy anota la pantalla
