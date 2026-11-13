@@ -2446,6 +2446,9 @@ cuando hace falta hablar con algo que no es Postgres, o devolver un archivo.
   pantalla sube el par (`subirParDeCatalogo`, `lib/producto-fotos.ts`: la real en `fotos/<id>.<ext>`, la de IA en `….ia.png`). La llaman
   `components/ficha-producto/useCatalogoIA.tsx` (Editar) y `components/alta-producto/useCatalogoIAAlta.tsx` (Nuevo) vía
   `lib/foto-catalogo-cliente.ts`, que achica las fotos a 1.600 px. `/api/fotos/laboratorio` es su banco de pruebas, solo fuera de producción.
+  **`GET`** (2026-11-13) responde `{ fotos, ia }`: si la cuenta puede guardar fotos de una prenda (`fn_puede_editar_catalogo`, la regla de
+  `producto_fotos`) y pedir la de IA; lo pregunta Recibir ▸ «Crear la prenda que llegó» (`recepcion-envio/HojaPrenda.tsx`, vía
+  `leerPermisoDeFotos`) para mostrar sus fotos por color (`alta-producto/FotosDeColores.tsx`, la misma pieza de la tabla de Nuevo producto).
 - `/api/conteo/prendas` → `GET`, solo lectura: las prendas con stock en la sede de quien pregunta (la sede sale de la
   sesión) para el buscador «Por prenda» de «Abrir un conteo». Una fila por variante con nombre, códigos, foto y *dónde*
   hay stock (piso/almacén/ubicación), **sin cantidades**. Se llama al tocar la opción, no al abrir el inicio. Si la base
