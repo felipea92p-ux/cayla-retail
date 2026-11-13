@@ -161,6 +161,11 @@ $f$;
 `;
 const MANANA = `select set_config('prueba.hoy', ((now() at time zone 'America/Lima')::date + 1)::text, true) as _hoy \\gset\n`;
 
+/** Una orden del Taller propia de la prueba (en proceso, de Emma): la base del CI puede no tener ninguna. Se arma ANTES de la foto. */
+const ORDEN_DEL_TALLER = `select id as taller from retail.ubicaciones where tipo = 'taller' order by nombre limit 1 \\gset
+insert into retail.producciones (ubicacion_id, producto_id, estado, cantidad_plan) values (:'taller', :'emma', 'en_proceso', 12) returning id as orden \\gset
+`;
+
 const FOTO_PROBADOR = `
 update retail.vitrina_productos set largo_cm = 62 where producto_id = :'emma';
 insert into retail.producto_fotos (producto_id, url, color_codigo, es_principal, orden)
@@ -248,9 +253,9 @@ esperarValor(
 );
 esperarValor(
   "una orden del Taller cambia de estado: cambia la huella (la etapa de la prenda depende de ella)",
-  correr(`${preparar()}${FOTO}update retail.producciones set estado = 'anulada' where id = (select id from retail.producciones where estado = 'en_proceso' order by id limit 1);
-    select retail.tienda_catalogo_version() <> :'h0';\nrollback;`),
-  "t",
+  correr(`${preparar()}${ORDEN_DEL_TALLER}${FOTO}update retail.producciones set estado = 'anulada' where id = :'orden';
+    select concat_ws('|', (select count(*) from retail.producciones where id = :'orden' and estado = 'anulada'), retail.tienda_catalogo_version() <> :'h0');\nrollback;`),
+  "1|t",
 );
 esperarValor(
   "una función de las lecturas se reemplaza (una migración que cambia una regla): cambia la huella",
@@ -261,14 +266,14 @@ esperarValor(
 
 // ---------------------------------------------------------------- 4. Lo que la tienda no muestra no la mueve
 esperarValor(
-  "una caja que se cierra y se abre, un cliente nuevo y el AVANCE de una orden del Taller (su nota) no mueven la huella",
-  correr(`${preparar()}${FOTO}
+  "una caja que se cierra y se abre, un cliente nuevo y el AVANCE de una orden del Taller (su nota, su costo) no mueven la huella",
+  correr(`${preparar()}${ORDEN_DEL_TALLER}${FOTO}
     select (select count(*) from (select retail.cerrar_caja(id, 0) from retail.cajas where ubicacion_id = :'lim' and estado = 'abierta') c) as _cerro \\gset
     select retail.abrir_caja(:'lim', 100.00, 'prueba de la huella de la tienda') as _caja \\gset
     insert into retail.clientas (documento_tipo, documento_numero, nombre) values ('dni', '49999991', 'ZZ Cliente de la huella');
-    update retail.producciones set nota = 'avance de prueba de la huella' where id = (select id from retail.producciones order by id limit 1);
-    select retail.tienda_catalogo_version() = :'h0';\nrollback;`),
-  "t",
+    update retail.producciones set nota = 'avance de prueba de la huella', costo_maquila = costo_maquila + 1 where id = :'orden';
+    select concat_ws('|', (select count(*) from retail.producciones where id = :'orden' and nota is not null), retail.tienda_catalogo_version() = :'h0');\nrollback;`),
+  "1|t",
 );
 
 // ---------------------------------------------------------------- 5. Cobertura: nada de lo que leen las lecturas queda fuera de la huella
