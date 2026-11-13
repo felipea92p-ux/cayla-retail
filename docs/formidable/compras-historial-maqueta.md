@@ -1,5 +1,19 @@
 # Formidable · Compras ▸ Historial de compras, Por pagar y Revisar compras — la MAQUETA   (`docs/maquetas/historial-compras-2026-11/`)
 
+## Tercera vuelta · 2026-11-13 — la pestaña se llama «Compradoras» (decisión de Felipe) y la ciega repetida
+
+| Medida | Revisar compras (2.ª vuelta) | Compradoras (3.ª vuelta) |
+|---|---|---|
+| Lectura de 5 s | falla: «no vi nada de plata entregada a compradoras» | **pasa a medias**: «sospeché que "Compradoras" era donde estaría ella, pero no estaba segura» |
+| Primer toque | el buscador de Historial | **la pestaña «Compradoras»** |
+| Toques hasta la cuenta de Maribel | 3 | **2** |
+| Toques en toda la tarea | 13 | **9** |
+| Dudas nuevas | — | «Ver su cuenta»: «pensé que era una cuenta bancaria»; el botón «Darle S/ 300.00» quedaba bajo el borde de la hoja y tuvo que bajar |
+
+**Notas:** ley 1 de 7 a **8** (el tope sin colaboradora real) · **leyes 7,2** · oficio sin cambios (4).
+
+**Dos arreglos chicos que esta vuelta destapó (esperan el OK de Felipe):** «Ver su cuenta» → «Ver su plata» (no se confunde con una cuenta del banco), y el pie de «Darle plata» y de la hoja de pago pegado abajo (`pie-hoja-fijo`, la regla del repo para hojas largas) para que el botón se vea sin bajar.
+
 ## Segunda vuelta · 2026-11-13 — los 3 cambios, hechos con el OK de Felipe («Sí, los 3»), y la ciega repetida
 
 ### Medido (antes → después)
@@ -37,7 +51,7 @@
 | **Oficio** | 4 | 4 (sin repetir la medición completa) | las casillas de 18 px, el foco del buscador y los radios siguen (lista aparte; la pantalla real usaría las piezas del sistema) |
 
 ### Lo que queda
-- **El nombre de la pestaña: decidido.** Felipe eligió «Compradoras» (2026-11-13) y ya está en la maqueta; falta repetir la ciega para ver si la lectura de 5 s pasa.
+- **El nombre de la pestaña: decidido.** Felipe eligió «Compradoras» (2026-11-13); la ciega de la tercera vuelta la tocó primero.
 - **Tu regla para pagar una compra que no llegó**: la hoja avisa («Revisa antes de pagar»), no frena.
 - La lista aparte de la primera vuelta (la hoja que crece, «Qué compraste2», las casillas, el foco del buscador).
 
@@ -137,4 +151,5 @@ sabía si era dar o recibir plata» · «"HISTORIAL" contra "REVISAR COMPRAS". D
 | Fecha | SHA | Leyes | Oficio | Cambios cerrados |
 |---|---|---|---|---|
 | 2026-11-13 | 4ba55d0ca | 6,4 | 4 | — (los 3 esperan el OK de Felipe) |
-| 2026-11-13 | (este commit) | 7,1 | 4 | los 3, con el OK de Felipe; ciega repetida en Por pagar y Revisar compras |
+| 2026-11-13 | 0b376d43f | 7,1 | 4 | los 3, con el OK de Felipe; ciega repetida en Por pagar y Revisar compras |
+| 2026-11-13 | (este commit) | 7,2 | 4 | la pestaña «Compradoras»; ciega repetida: 2 toques hasta Maribel |
