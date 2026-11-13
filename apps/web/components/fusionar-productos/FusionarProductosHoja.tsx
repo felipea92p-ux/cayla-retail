@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
-import { Check, Merge, SearchX, X } from "lucide-react";
+import { ArrowRight, Check, Merge, SearchX } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { traducirError } from "@/lib/error-escritura";
 import { firmar } from "@/lib/responsable-reglas";
@@ -13,23 +13,22 @@ import {
   camposAElegir,
   camposDeLaGuia,
   eleccionesParaLaBase,
-  fechaDeAlta,
   fotosEnOrden,
   frasesDelResumen,
   fuenteDe,
   leerPlan,
-  motivoSugerido,
-  nombreDeCampo,
   opcionesDeCampo,
   quedaSugerido,
-  textoVentas,
   type CampoFusion,
   type Elecciones,
   type PlanFusion,
 } from "@/lib/fusionar-productos-reglas";
-import { avisar } from "@/components/ui/Avisos";
+import { fichaFinal, matrizFinal, ordenFijo, type DetalleFusion } from "@/lib/fusionar-productos-ficha";
+import { leerDetalleFusion } from "@/lib/fusionar-productos-detalle";
 import { Modal } from "@/components/ui/Modal";
 import { Boton } from "@/components/ui/campos";
+import { BotonVer } from "@/components/ui/BotonDescargar";
+import { Volver } from "@/components/ui/Volver";
 import { Buscador } from "@/components/ui/Buscador";
 import { ListaSugerencias, ariaDelBuscador, type Sugerencia } from "@/components/ui/ListaSugerencias";
 import { MiniaturaPrenda } from "@/components/ui/PrendaCelda";
@@ -42,6 +41,8 @@ import { Vacio } from "@/components/ui/Vacio";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { CampoGuiado, PieGuia } from "@/components/guia-de-foco/CampoGuiado";
 import { useGuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
+import { ColumnaFicha, FilaDistinta, MatrizTallas, PlacaFinal } from "./piezas";
+import { CompararFichas } from "./CompararFichas";
 
 /** Lo que la hoja necesita de cada ficha con la que se abre. */
 export type FichaParaFusionar = { productoId: string; referencia: string };
@@ -57,14 +58,22 @@ type Encontrado = {
 /** Cuánto espera la búsqueda a que la persona deje de escribir. */
 const ESPERA_BUSQUEDA_MS = 250;
 
+/** Hasta cuántas fichas se juntan de una vez en la hoja (la mesa de columnas está pensada para tres). */
+const TOPE_FICHAS = 3;
+
+type Vista = "armar" | "revisar" | "listo";
+
+const nombres = (xs: string[]) => (xs.length <= 1 ? (xs[0] ?? "") : `${xs.slice(0, -1).join(", ")} y ${xs[xs.length - 1]}`);
+
 /**
  * «Fusionar productos repetidos» (ADR-0650, Felipe 2026-11-12): junta dos o más fichas de la misma prenda en una sola, sin perder
  * ventas, fotos ni stock. Todo lo que muestra lo calcula la base (`previsualizar_fusion_productos`) y lo que guarda lo hace una sola
  * función (`fusionar_productos`), con el mismo cálculo: lo que se ve es lo que pasa.
  *
- * Se abre desde la vista rápida («Fusionar») con una ficha, o desde la Tabla con las fichas marcadas. Las 15 decisiones de Felipe
- * están en `docs/adr/0650-fusionar-productos-duplicados.md`: elige la persona cuál queda (viendo sus ventas y su fecha de alta),
- * campo por campo lo que difiere, las fotos que quedan; no se deshace.
+ * Rediseño del 2026-11-13, dirección B «La ficha que se arma» (maqueta `docs/maquetas/fusionar-productos-2026-11/`, ficha al
+ * milímetro `docs/milimetro/fusionar-productos.md`): las fichas lado a lado en vidrio, la que queda en gota con su ✓ y sin cambiar
+ * de lugar; a la derecha, «Así va a quedar», que cambia con cada elección; «Ver ficha» abre una hoja para compararlas; y antes de
+ * guardar, «Revisar y fusionar», un último vistazo con «Sí, fusionar».
  */
 export function FusionarProductosHoja({
   inicial,
@@ -82,7 +91,17 @@ export function FusionarProductosHoja({
   const [elecciones, setElecciones] = useState<Elecciones>(ELECCIONES_VACIAS);
   // La última lectura de la base, con la clave de lo que se le preguntó: mientras llega la siguiente se sigue viendo la anterior.
   const [lectura, setLectura] = useState<{ clave: string; plan: PlanFusion | null; error: string | null } | null>(null);
+  const [detalle, setDetalle] = useState<{ clave: string; datos: DetalleFusion | null; error: boolean } | null>(null);
+  const [vista, setVista] = useState<Vista>("armar");
+  const [comparando, setComparando] = useState<string | null>(null);
   const [guardando, setGuardando] = useState(false);
+  const [errorGuardar, setErrorGuardar] = useState<string | null>(null);
+  const [hecho, setHecho] = useState<{ referencia: string; vendidas: number; stock: number; repetidas: number } | null>(null);
+  const cuerpo = useRef<HTMLDivElement>(null);
+  const radios = useRef<Record<string, HTMLButtonElement | null>>({});
+  // Dos clics en el mismo instante ven `guardando` en falso los dos: el candado de la ref no espera a React. (La base igual frena el
+  // segundo por la versión de las fichas, `p_versiones`; esto evita siquiera pedirlo.)
+  const enviando = useRef(false);
 
   const quedaEfectiva = queda ?? ids[0] ?? null;
   const duplicados = ids.filter((id) => id !== quedaEfectiva);
@@ -93,7 +112,8 @@ export function FusionarProductosHoja({
   const leyendo = hayFusion && lectura?.clave !== clavePlan;
   const plan = hayFusion ? (lectura?.plan ?? null) : null;
   const errorLectura = hayFusion && lectura?.clave === clavePlan ? lectura.error : null;
-  const productos = useMemo(() => plan?.productos ?? [], [plan]);
+  // Orden fijo (decisión 3 del rediseño): como se agregaron, no como los devuelve el plan (que pone primero al que queda).
+  const productos = useMemo(() => ordenFijo(ids, plan?.productos ?? []), [ids, plan]);
 
   useEffect(() => {
     if (!hayFusion || !quedaEfectiva) return;
@@ -121,28 +141,64 @@ export function FusionarProductosHoja({
     // eslint-disable-next-line react-hooks/exhaustive-deps -- `clavePlan` resume las dependencias que cambian la lectura
   }, [clavePlan]);
 
-  // ---------- La guía de foco (ADR-0284) ----------
-  const campos = camposDeLaGuia({
+  // ---------- El detalle para comparar y para la matriz: tallas y stock por sede de cada ficha ----------
+  const claveDetalle = [...ids].sort().join(",");
+  useEffect(() => {
+    if (ids.length < 2) return;
+    let vigente = true;
+    leerDetalleFusion(ids).then(
+      (datos) => vigente && setDetalle({ clave: claveDetalle, datos, error: false }),
+      () => vigente && setDetalle({ clave: claveDetalle, datos: null, error: true }),
+    );
+    return () => {
+      vigente = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- `claveDetalle` resume `ids`
+  }, [claveDetalle]);
+  const detalleListo = detalle?.clave === claveDetalle ? detalle.datos : null;
+  const errorDetalle = detalle?.clave === claveDetalle && detalle.error;
+
+  // ---------- La guía de foco (ADR-0284), una por paso ----------
+  const estadoGuia = {
     duplicados: duplicados.length,
     queda: quedaEfectiva,
     hayDiferencias: camposAElegir(plan?.diferencias ?? []).length > 0,
     responsableListo: responsable.listo,
-  });
-  const guia = useGuiaCampos(campos);
+  };
+  const camposArmar = camposDeLaGuia({ ...estadoGuia, vista: "armar" });
+  const camposRevisar = camposDeLaGuia({ ...estadoGuia, vista: "revisar" });
+  const guiaArmar = useGuiaCampos(camposArmar);
+  const guiaRevisar = useGuiaCampos(camposRevisar);
 
-  const fotos = useMemo(() => fotosEnOrden(productos), [productos]);
+  const fotos = useMemo(() => fotosEnOrden(plan?.productos ?? []), [plan]);
   const fotosQueQuedan = elecciones.fotos ?? fotos.map((f) => f.id);
   // Un bloqueo es lo que la base dijo que frena; sin duplicado todavía no hay plan, y eso lo pide la guía, no un bloqueo.
   const bloqueado = Boolean(plan && !plan.ok);
-  // ADR-0611: el botón no se apaga por lo que falta llenar (lo hace `confirma={guia}`: al tocarlo, la guía lleva a lo que falta). Solo
-  // se apaga lo que no se arregla aquí: guardando, leyendo el plan o un bloqueo de la base, cuyo aviso queda a la vista.
-  const apagado = guardando || leyendo || bloqueado;
+  const elegibles = camposAElegir(plan?.diferencias ?? []);
+  const ficha = plan && quedaEfectiva ? fichaFinal(plan, quedaEfectiva, elecciones, fotosQueQuedan) : null;
+  // La matriz se arma con el que queda según el plan que llegó (el plan no manda las tallas del que queda): mientras llega el
+  // siguiente, se ve la anterior, atenuada.
+  const quedaDelPlan = plan?.productos.find((p) => p.queda)?.id ?? null;
+  // Sin el detalle no se dibuja: sin las tallas del que queda, todo parecería «pasa» y lo que se junta no se vería.
+  const matriz = plan && quedaDelPlan && detalleListo ? matrizFinal(plan, quedaDelPlan, detalleListo) : null;
+  const avisoMatriz = errorDetalle ? "No se pudieron leer las tallas. La fusión hace lo mismo; vuelve a abrir la hoja para verlas." : "Leyendo las tallas…";
+  const varias = duplicados.length > 1;
+
+  // Cambiar de vista lleva la hoja arriba: el título nuevo a la vista (ADR-0185, «un clic que cambia de vista»).
+  useEffect(() => {
+    for (let el = cuerpo.current?.parentElement; el; el = el.parentElement) {
+      if (el.scrollTop > 0) el.scrollTop = 0;
+      if (el.getAttribute("role") === "dialog") break;
+    }
+  }, [vista]);
 
   async function fusionar() {
-    if (apagado || !plan || !quedaEfectiva || !sePuedeConfirmar(campos)) return;
+    if (enviando.current || guardando || leyendo || bloqueado || !plan || !quedaEfectiva || !sePuedeConfirmar(camposRevisar)) return;
+    enviando.current = true;
     setGuardando(true);
+    setErrorGuardar(null);
     const versiones = Object.fromEntries(plan.productos.map((p) => [p.id, p.version]));
-    const { data, error } = await firmar(
+    const { error } = await firmar(
       createClient().rpc("fusionar_productos", {
         p_queda: quedaEfectiva,
         p_duplicados: duplicados,
@@ -151,339 +207,362 @@ export function FusionarProductosHoja({
       }),
       responsable.firma(),
     );
+    enviando.current = false;
     setGuardando(false);
     responsable.despues(error);
     if (error) {
-      avisar.error(traducirError(error, "fusionar los productos"));
+      setErrorGuardar(traducirError(error, "fusionar los productos"));
       return;
     }
-    const nombre = (data as { producto_id?: string } | null)?.producto_id ? plan.productos.find((p) => p.id === quedaEfectiva)?.referencia : null;
-    avisar.exito("Productos fusionados", {
-      detalle: `${duplicados.length === 1 ? "La ficha repetida quedó" : `Las ${duplicados.length} fichas repetidas quedaron`} dentro de «${nombre ?? "la que queda"}», con su stock, sus ventas y sus fotos.`,
+    setHecho({
+      referencia: ficha?.referencia ?? plan.productos.find((p) => p.id === quedaEfectiva)?.referencia ?? "La ficha",
+      vendidas: ficha?.unidadesVendidas ?? 0,
+      stock: ficha?.stock ?? 0,
+      repetidas: duplicados.length,
     });
+    setVista("listo");
     onHecho?.(quedaEfectiva);
-    onClose();
     router.refresh();
   }
 
+  const elegirQueda = (id: string) => {
+    if (id === quedaEfectiva) return;
+    setQueda(id);
+    setElecciones(ELECCIONES_VACIAS);
+  };
   const quitar = (id: string) => {
+    // El foco pasa a la columna de al lado: nunca se pierde.
+    const i = ids.indexOf(id);
+    const vecino = ids[i + 1] ?? ids[i - 1];
     setIds((xs) => xs.filter((x) => x !== id));
     if (queda === id) setQueda(null);
     setElecciones(ELECCIONES_VACIAS);
+    window.requestAnimationFrame(() => vecino && radios.current[vecino]?.focus());
   };
   const agregar = (id: string) => {
     setIds((xs) => (xs.includes(id) ? xs : [...xs, id]));
     setElecciones(ELECCIONES_VACIAS);
   };
+  // El grupo de radios de «¿Cuál se queda?» (patrón de APG): las flechas pasan a la de al lado y la eligen.
+  const teclaColumna = (e: React.KeyboardEvent<HTMLButtonElement>, id: string) => {
+    const paso = e.key === "ArrowRight" || e.key === "ArrowDown" ? 1 : e.key === "ArrowLeft" || e.key === "ArrowUp" ? -1 : 0;
+    if (!paso || productos.length < 2) return;
+    e.preventDefault();
+    const i = productos.findIndex((p) => p.id === id);
+    const otra = productos[(i + paso + productos.length) % productos.length];
+    elegirQueda(otra.id);
+    radios.current[otra.id]?.focus();
+  };
 
   const nombreInicial = inicial[0]?.referencia ?? "esta prenda";
-  const elegibles = camposAElegir(plan?.diferencias ?? []);
+  const nombreQueda = productos.find((p) => p.id === quedaEfectiva)?.referencia ?? nombreInicial;
+  const nombresRepetidas = productos.filter((p) => p.id !== quedaEfectiva).map((p) => p.referencia);
+  const titulo = vista === "revisar" ? "Revisa y fusiona" : vista === "listo" ? "Productos fusionados" : "Fusionar productos repetidos";
+  const subtitulo =
+    vista === "revisar"
+      ? `${nombres(nombresRepetidas)} ${nombresRepetidas.length > 1 ? "pasan" : "pasa"} a ${nombreQueda}.`
+      : vista === "listo"
+        ? undefined
+        : "Junta las fichas de una misma prenda en una sola. Las ventas, las fotos y el stock no se pierden.";
 
   return (
-    <Modal
-      variante="hoja"
-      tamano="ancha"
-      bloqueado={guardando}
-      titulo="Fusionar productos repetidos"
-      subtitulo="Junta las fichas de una misma prenda en una sola. Las ventas, las fotos y el stock no se pierden."
-      onClose={onClose}
-    >
-      {(cerrar) => (
-        <div className="space-y-6">
-          {/* ---------- 1. Las fichas ---------- */}
-          <CampoGuiado id="duplicados" guia={guia} titulo="Las fichas de esta prenda">
-            <div className="space-y-3" data-guia="fusionar.fichas">
-              <ul className="divide-y divide-sand rounded-xl border border-sand">
-                {ids.map((id) => {
-                  const p = productos.find((x) => x.id === id);
-                  const nombre = p?.referencia ?? inicial.find((f) => f.productoId === id)?.referencia ?? "…";
-                  return (
-                    <li key={id} className="flex items-center gap-3 px-3 py-2.5">
-                      <MiniaturaPrenda
-                        fotoUrl={p?.fotos.find((f) => f.esPrincipal)?.url ?? p?.fotos[0]?.url ?? null}
-                        prefijo={p?.categoria.prefijo}
-                        familia={p?.categoria.familia}
-                        categoria={p?.categoria.nombre}
-                      />
-                      <span className="min-w-0 flex-1">
-                        <span className="block truncate text-[15px] text-tinta">{nombre}</span>
-                        <span className="block truncate text-sm text-taupe">
-                          {[p?.codigo, p?.categoria.nombre].filter(Boolean).join(" · ") || " "}
-                        </span>
-                      </span>
-                      {ids.length > 1 && (
-                        <button
-                          type="button"
-                          onClick={() => quitar(id)}
-                          disabled={guardando}
-                          className="btn-cayla btn-sutil btn-chico"
-                          aria-label={`Quitar «${nombre}» de la fusión`}
-                        >
-                          <X aria-hidden className="h-4 w-4" />
-                        </button>
-                      )}
-                    </li>
-                  );
-                })}
-              </ul>
-              <BuscarFicha excluir={ids} nombre={nombreInicial} alElegir={agregar} deshabilitado={guardando} sinDuplicado={duplicados.length === 0} />
-            </div>
-          </CampoGuiado>
-
-          {errorLectura && <Aviso tono="error" titulo="No se pudieron leer las fichas">{errorLectura}</Aviso>}
-
-          {plan && productos.length > 1 && (
-            <>
-              {/* ---------- 2. Cuál queda (decisión 1) ---------- */}
-              <CampoGuiado id="queda" guia={guia} titulo="¿Cuál se queda?" ayuda="Las demás pasan a esta. Mira cuál vendió más y cuál se creó primero.">
-                <div role="radiogroup" aria-label="La ficha que se queda" className="grid gap-2 sm:grid-cols-2" data-guia="fusionar.queda">
-                  {productos.map((p) => {
-                    const elegido = p.id === quedaEfectiva;
-                    const motivo = motivoSugerido(productos, p.id);
-                    return (
-                      <button
-                        key={p.id}
-                        type="button"
-                        role="radio"
-                        aria-checked={elegido}
-                        disabled={guardando}
-                        onClick={() => {
-                          setQueda(p.id);
-                          setElecciones(ELECCIONES_VACIAS);
-                        }}
-                        className={`flex gap-3 rounded-xl border px-3 py-3 text-left transition-colors ease-cayla ${
-                          elegido ? "border-tinta bg-hueso" : "border-borde-control bg-papel hover:border-tinta/40"
-                        }`}
+    <>
+      <Modal /* unificar-fijo: la ficha que se arma es de diseño propio (dirección B, Felipe 2026-11-13): 1080 px */ variante="hoja" ancho="max-w-[67.5rem]" bloqueado={guardando} conCerrar={vista === "listo"} titulo={titulo} subtitulo={subtitulo} onClose={onClose}>
+        {(cerrar) => (
+          <div ref={cuerpo} className="fus-cuerpo" key={vista}>
+            {vista === "armar" && (
+              <div className="fus-dos">
+                <div className="min-w-0 space-y-6">
+                  {/* ---------- 1. Cuál queda (decisión 1), con las fichas lado a lado y en su sitio ---------- */}
+                  <CampoGuiado id="queda" guia={guiaArmar} titulo="¿Cuál se queda?" ayuda="Toca la ficha que queda. Las demás pasan a esa; ninguna cambia de lugar.">
+                    {productos.length > 1 ? (
+                      <ul
+                        role="radiogroup"
+                        aria-label="La ficha que se queda"
+                        className="fus-mesa"
+                        style={{ "--fus-n": productos.length } as React.CSSProperties}
+                        data-guia="fusionar.queda"
                       >
-                        <MiniaturaPrenda
-                          tamano="xl"
-                          fotoUrl={p.fotos.find((f) => f.esPrincipal)?.url ?? p.fotos[0]?.url ?? null}
-                          prefijo={p.categoria.prefijo}
-                          familia={p.categoria.familia}
-                          categoria={p.categoria.nombre}
-                        />
-                        <span className="min-w-0 flex-1 space-y-1">
-                          <span className="flex flex-wrap items-center gap-1.5">
-                            <span className="truncate text-[15px] font-medium text-tinta">{p.referencia}</span>
-                            {elegido && <Chip tono="tinta">Queda</Chip>}
-                          </span>
-                          <span className="block text-sm text-taupe">{[p.codigo, p.categoria.nombre].filter(Boolean).join(" · ")}</span>
-                          <span className="block text-sm text-tinta">
-                            {textoVentas(p)} · {p.stock.toLocaleString("es-PE")} en stock
-                          </span>
-                          <span className="block text-sm text-taupe">{fechaDeAlta(p.creadoEn)}</span>
-                          {motivo && (
-                            <Chip tono="pizarra" versalitas={false}>
-                              {motivo}
-                            </Chip>
-                          )}
-                        </span>
-                      </button>
-                    );
-                  })}
-                </div>
-              </CampoGuiado>
-
-              {/* ---------- 3. Lo que es distinto (decisión 8) ---------- */}
-              {elegibles.length > 0 && (
-                <CampoGuiado id="diferencias" guia={guia} titulo="Lo que es distinto" ayuda="Elige con qué dato se queda. Lo que no aparece aquí es igual en las fichas.">
-                  <div className="space-y-4" data-guia="fusionar.diferencias">
-                    {elegibles.map((campo) => (
-                      <ElegirCampo
-                        key={campo}
-                        campo={campo}
-                        plan={plan}
-                        elegido={
-                          campo === "precio"
-                            ? fuenteDe(elecciones.precioDe, "precio", plan.diferencias, quedaEfectiva)
-                            : campo === "costo"
-                              ? fuenteDe(elecciones.costoDe, "costo", plan.diferencias, quedaEfectiva)
-                              : (elecciones.campos[campo as CampoFusion] ?? quedaEfectiva)
-                        }
-                        deshabilitado={guardando}
-                        onElegir={(productoId) =>
-                          setElecciones((e) =>
-                            campo === "precio"
-                              ? { ...e, precioDe: productoId }
-                              : campo === "costo"
-                                ? { ...e, costoDe: productoId }
-                                : { ...e, campos: { ...e.campos, [campo]: productoId } },
-                          )
-                        }
-                      />
-                    ))}
-                    {elegibles.includes("costo") && (
-                      <p className="nota-cayla">El costo que ya sale de las compras no cambia: el elegido va solo en las tallas que todavía no tienen compras.</p>
+                        {productos.map((p, i) => (
+                          <ColumnaFicha
+                            key={p.id}
+                            p={p}
+                            productos={productos}
+                            elegida={p.id === quedaEfectiva}
+                            indice={i}
+                            deshabilitada={guardando}
+                            quitable={productos.length > 2}
+                            onElegir={() => elegirQueda(p.id)}
+                            onVer={() => setComparando(p.id)}
+                            onQuitar={() => quitar(p.id)}
+                            refRadio={(el) => {
+                              radios.current[p.id] = el;
+                            }}
+                            onTecla={(e) => teclaColumna(e, p.id)}
+                          />
+                        ))}
+                      </ul>
+                    ) : (
+                      <ul className="fus-mesa" style={{ "--fus-n": Math.max(ids.length, 1) } as React.CSSProperties} data-guia="fusionar.queda">
+                        {ids.map((id) => (
+                          <li key={id} className="fus-opcion fus-columna" style={{ borderRadius: 22 }}>
+                            <span className="fus-columna-nombre block">{inicial.find((f) => f.productoId === id)?.referencia ?? "…"}</span>
+                            <span className="mt-1 block text-sm text-taupe">{hayFusion ? "Leyendo las fichas…" : "Busca abajo la otra ficha de esta prenda para compararlas."}</span>
+                          </li>
+                        ))}
+                      </ul>
                     )}
-                  </div>
-                </CampoGuiado>
-              )}
+                  </CampoGuiado>
 
-              {/* ---------- 4. Fotos (decisión 9) ---------- */}
-              {fotos.length > 0 && (
-                <section className="space-y-3" data-guia="fusionar.fotos">
-                  <TituloGrupo cuenta={fotosQueQuedan.length} nota="las que no marques se guardan en la ficha repetida">
-                    Fotos que quedan
-                  </TituloGrupo>
-                  <ul className="grid grid-cols-3 gap-2 sm:grid-cols-5">
-                    {fotos.map((f) => {
-                      const marcada = fotosQueQuedan.includes(f.id);
-                      const principal = fotosQueQuedan[0] === f.id;
-                      const de = productos.find((p) => p.fotos.some((x) => x.id === f.id));
-                      return (
-                        <li key={f.id} className="relative">
-                          <div
-                            className={`relative overflow-hidden rounded-lg border bg-hueso ${marcada ? "border-tinta" : "border-sand opacity-60"}`}
-                            style={{ aspectRatio: "3 / 4" }}
-                          >
-                            <ImagenDePrenda src={f.url} alt={`Foto de ${de?.referencia ?? "la prenda"}`} fill sizes="120px" className="object-cover" fallback={null} />
-                          </div>
-                          <div className="absolute left-1.5 top-1.5">
-                            <Casilla
+                  {ids.length < TOPE_FICHAS && (
+                    <CampoGuiado id="duplicados" guia={guiaArmar}>
+                      <div data-guia="fusionar.fichas">
+                        <BuscarFicha excluir={ids} nombre={nombreInicial} alElegir={agregar} deshabilitado={guardando} sinDuplicado={duplicados.length === 0} />
+                      </div>
+                    </CampoGuiado>
+                  )}
+
+                  {errorLectura && <Aviso tono="error" titulo="No se pudieron leer las fichas">{errorLectura}</Aviso>}
+
+                  {/* ---------- 2. Lo que es distinto (decisión 8): cada valor bajo la columna de su ficha ---------- */}
+                  {plan && elegibles.length > 0 && (
+                    <CampoGuiado id="diferencias" guia={guiaArmar} titulo="Lo que es distinto" ayuda="Toca el dato con el que se queda. Lo que no está aquí es igual en las fichas.">
+                      <div className="space-y-4" data-guia="fusionar.diferencias">
+                        {elegibles.map((campo, k) => {
+                          const elegido =
+                            campo === "precio"
+                              ? fuenteDe(elecciones.precioDe, "precio", plan.diferencias, quedaEfectiva)
+                              : campo === "costo"
+                                ? fuenteDe(elecciones.costoDe, "costo", plan.diferencias, quedaEfectiva)
+                                : (elecciones.campos[campo as CampoFusion] ?? quedaEfectiva);
+                          const opciones = opcionesDeCampo(productos, campo);
+                          // Dos fichas con el mismo valor se dibujan una vez: la elegida es la del producto o la de su mismo valor.
+                          const valorElegido = productos.find((p) => p.id === elegido);
+                          const marcada =
+                            opciones.find((o) => o.productoId === elegido)?.productoId ??
+                            opciones.find((o) => valorElegido && o.valor === opcionesDeCampo([valorElegido], campo)[0]?.valor)?.productoId ??
+                            null;
+                          return (
+                            <FilaDistinta
+                              key={campo}
+                              campo={campo}
+                              productos={productos}
+                              opciones={opciones}
                               marcada={marcada}
-                              disabled={guardando}
-                              etiqueta={`Quedarse con esta foto de ${de?.referencia ?? "la prenda"}`}
-                              onCambio={() =>
-                                setElecciones((e) => {
-                                  const actuales = e.fotos ?? fotos.map((x) => x.id);
-                                  return { ...e, fotos: marcada ? actuales.filter((x) => x !== f.id) : [...actuales, f.id] };
-                                })
+                              indice={Math.min(k, 7)}
+                              deshabilitada={guardando}
+                              onElegir={(productoId) =>
+                                setElecciones((e) =>
+                                  campo === "precio"
+                                    ? { ...e, precioDe: productoId }
+                                    : campo === "costo"
+                                      ? { ...e, costoDe: productoId }
+                                      : { ...e, campos: { ...e.campos, [campo]: productoId } },
+                                )
                               }
                             />
-                          </div>
-                          {principal && (
-                            <span className="absolute bottom-1.5 left-1.5">
-                              <Chip tono="tinta">Principal</Chip>
-                            </span>
-                          )}
-                        </li>
-                      );
-                    })}
-                  </ul>
-                </section>
-              )}
+                          );
+                        })}
+                        {elegibles.includes("costo") && (
+                          <p className="nota-cayla">El costo que ya sale de las compras no cambia: el elegido va solo en las tallas que todavía no tienen compras.</p>
+                        )}
+                      </div>
+                    </CampoGuiado>
+                  )}
 
-              {/* ---------- 5. Qué va a pasar (decisión 14: el resumen antes de confirmar) ---------- */}
-              <section className="space-y-3" data-guia="fusionar.resumen">
-                <TituloGrupo>Qué va a pasar</TituloGrupo>
-                <ul className="space-y-1.5 text-[15px] text-tinta">
-                  {frasesDelResumen(plan, fotosQueQuedan.length).map((f) => (
-                    <li key={f} className="flex gap-2">
-                      <Merge aria-hidden className="mt-0.5 h-4 w-4 shrink-0 text-taupe" />
-                      <span>{f}</span>
-                    </li>
-                  ))}
-                </ul>
-                {plan.variantes.some((v) => v.trato === "junta") && (
-                  <ul className="flex flex-wrap gap-1.5" aria-label="Tallas y colores que se juntan">
-                    {plan.variantes
-                      .filter((v) => v.trato === "junta")
-                      .map((v) => (
-                        <li key={v.varianteId}>
-                          <Chip tono="neutro" versalitas={false}>
-                            {[v.color, v.talla].filter(Boolean).join(" ")}
-                            {v.stock > 0 ? ` · +${v.stock}` : ""}
-                          </Chip>
+                  {/* ---------- 3. Fotos (decisión 9) ---------- */}
+                  {plan && fotos.length > 0 && (
+                    <section className="space-y-3" data-guia="fusionar.fotos">
+                      <TituloGrupo cuenta={fotosQueQuedan.length} nota="las que no marques se guardan en la ficha repetida">
+                        Fotos que quedan
+                      </TituloGrupo>
+                      <ul className="grid grid-cols-3 gap-2 sm:grid-cols-6">
+                        {fotos.map((f) => {
+                          const marcada = fotosQueQuedan.includes(f.id);
+                          const principal = fotosQueQuedan[0] === f.id;
+                          const de = productos.find((p) => p.fotos.some((x) => x.id === f.id));
+                          return (
+                            <li key={f.id} className="relative">
+                              {/* Toda la foto marca o desmarca (con el dedo, la casilla sola mide 20 px): el control para el teclado y el lector sigue
+                                  siendo la casilla, así que la foto no se anuncia ni se enfoca. */}
+                              <div
+                                aria-hidden
+                                onClick={() =>
+                                  !guardando &&
+                                  setElecciones((e) => {
+                                    const actuales = e.fotos ?? fotos.map((x) => x.id);
+                                    return { ...e, fotos: marcada ? actuales.filter((x) => x !== f.id) : [...actuales, f.id] };
+                                  })
+                                }
+                                className={`relative cursor-pointer overflow-hidden rounded-lg border transition-opacity ease-cayla ${marcada ? "border-tinta" : "border-sand opacity-60"}`}
+                                style={{ aspectRatio: "3 / 4" }}
+                              >
+                                <ImagenDePrenda src={f.url} alt={`Foto de ${de?.referencia ?? "la prenda"}`} fill sizes="120px" className="object-cover" fallback={null} />
+                              </div>
+                              <div className="absolute left-1.5 top-1.5">
+                                <Casilla
+                                  marcada={marcada}
+                                  disabled={guardando}
+                                  etiqueta={`Quedarse con esta foto de ${de?.referencia ?? "la prenda"}`}
+                                  onCambio={() =>
+                                    setElecciones((e) => {
+                                      const actuales = e.fotos ?? fotos.map((x) => x.id);
+                                      return { ...e, fotos: marcada ? actuales.filter((x) => x !== f.id) : [...actuales, f.id] };
+                                    })
+                                  }
+                                />
+                              </div>
+                              {principal && (
+                                <span className="absolute bottom-1.5 left-1.5">
+                                  <Chip tono="tinta">Principal</Chip>
+                                </span>
+                              )}
+                            </li>
+                          );
+                        })}
+                      </ul>
+                    </section>
+                  )}
+
+                  {plan && plan.bloqueos.length > 0 && (
+                    <Aviso id="fusionar-bloqueos" tono="atencion" titulo="Todavía no se puede fusionar" guia="fusionar.bloqueos">
+                      <ul className="mt-1 list-disc space-y-1 pl-4">
+                        {plan.bloqueos.map((b) => (
+                          <li key={b.codigo + b.mensaje}>{b.mensaje}</li>
+                        ))}
+                      </ul>
+                    </Aviso>
+                  )}
+                </div>
+
+                {/* ---------- «Así va a quedar», pegada a la derecha ---------- */}
+                {ficha && <PlacaFinal ficha={ficha} matriz={matriz} avisoMatriz={avisoMatriz} fotos={fotosQueQuedan.length} leyendo={leyendo} varias={varias} />}
+              </div>
+            )}
+
+            {vista === "revisar" && plan && ficha && (
+              <div className="fus-revisar" data-guia="fusionar.resumen">
+                <PlacaFinal ficha={ficha} matriz={null} fotos={fotosQueQuedan.length} leyendo={leyendo} varias={varias} pegada={false} conMatriz={false} />
+                <div className="min-w-0 space-y-5">
+                  <section className="space-y-2">
+                    <TituloGrupo>Qué va a pasar</TituloGrupo>
+                    <ul className="fus-lista-revisar max-w-prose space-y-2 text-[15px] leading-relaxed text-tinta">
+                      {[...frasesDelResumen(plan, fotosQueQuedan.length), "La ficha repetida queda archivada con su historia; nunca se borra."].map((f, k) => (
+                        <li key={f} className="flex gap-2.5" style={{ "--fus-k": Math.min(k, 7) } as React.CSSProperties}>
+                          <Check aria-hidden className="mt-1 h-4 w-4 shrink-0 text-verde" />
+                          <span>{f}</span>
                         </li>
                       ))}
-                  </ul>
-                )}
-              </section>
+                    </ul>
+                  </section>
+                  <section className="space-y-2">
+                    <TituloGrupo>Tallas y colores</TituloGrupo>
+                    {matriz ? <MatrizTallas m={matriz} grande leyendo={leyendo} varias={varias} conFrase={false} /> : <p className="text-sm text-taupe">{avisoMatriz}</p>}
+                  </section>
+                  <CampoGuiado id="responsable" guia={guiaRevisar}>
+                    <ComboResponsable control={responsable} deshabilitado={guardando} />
+                  </CampoGuiado>
+                </div>
+              </div>
+            )}
 
-              {plan.bloqueos.length > 0 && (
-                <Aviso id="fusionar-bloqueos" tono="atencion" titulo="Todavía no se puede fusionar" guia="fusionar.bloqueos">
-                  <ul className="mt-1 list-disc space-y-1 pl-4">
-                    {plan.bloqueos.map((b) => (
-                      <li key={b.codigo + b.mensaje}>{b.mensaje}</li>
-                    ))}
-                  </ul>
-                </Aviso>
-              )}
-            </>
-          )}
-
-          <CampoGuiado id="responsable" guia={guia}>
-            <ComboResponsable control={responsable} deshabilitado={guardando} />
-          </CampoGuiado>
-
-          <div className="pie-hoja-fijo space-y-3">
-            <AvisoNoSeDeshace />
-            <PieGuia guia={guia} listo={bloqueado ? "Revisa lo que falta arriba." : "Todo listo para fusionar."} />
-            <div className="pie-acciones" data-guia="fusionar.botones">
-              <Boton peso="fantasma" type="button" onClick={cerrar} disabled={guardando}>
-                Cancelar
-              </Boton>
-              <Boton
-                peso="primario"
-                type="button"
-                cargando={guardando}
-                textoCargando="Fusionando…"
-                disabled={apagado}
-                confirma={guia}
-                title={guia.frase ?? responsable.motivo ?? undefined}
-                className={guia.claseConfirmar}
-                aria-describedby={plan && plan.bloqueos.length > 0 ? "fusionar-bloqueos" : undefined}
-                onClick={() => void fusionar()}
-              >
-                <span className="inline-flex items-center gap-2">
-                  <Merge aria-hidden className="h-4 w-4" />
-                  {duplicados.length > 1 ? `Fusionar ${ids.length} fichas` : "Fusionar"}
+            {vista === "listo" && hecho && (
+              <div className="fus-listo" role="status">
+                <span className="fus-sello" aria-hidden>
+                  Fusionado
                 </span>
-              </Boton>
-            </div>
-          </div>
-        </div>
-      )}
-    </Modal>
-  );
-}
+                <h3 className="fus-listo-texto mt-5 font-serif text-[27px] font-semibold leading-tight text-tinta" style={{ "--fus-k": 0 } as React.CSSProperties}>
+                  {hecho.referencia} es ahora una sola ficha
+                </h3>
+                <p className="fus-listo-texto mt-1.5 max-w-[46ch] text-[15px] leading-relaxed text-taupe" style={{ "--fus-k": 1 } as React.CSSProperties}>
+                  Lleva {hecho.vendidas.toLocaleString("es-PE")} {hecho.vendidas === 1 ? "prenda vendida" : "prendas vendidas"} y{" "}
+                  {hecho.stock.toLocaleString("es-PE")} en stock. {hecho.repetidas === 1 ? "La ficha repetida quedó archivada." : "Las fichas repetidas quedaron archivadas."}
+                </p>
+                <div className="fus-listo-texto mt-5" style={{ "--fus-k": 2 } as React.CSSProperties}>
+                  {quedaEfectiva && (
+                    <BotonVer href={`/productos/${quedaEfectiva}`} alNavegar={cerrar}>
+                      Ver la ficha
+                    </BotonVer>
+                  )}
+                </div>
+              </div>
+            )}
 
-/** Una pregunta de «Lo que es distinto»: las opciones son el valor de cada ficha (las iguales, una sola vez). */
-function ElegirCampo({
-  campo,
-  plan,
-  elegido,
-  deshabilitado,
-  onElegir,
-}: {
-  campo: CampoFusion | "precio" | "costo";
-  plan: PlanFusion;
-  elegido: string | null;
-  deshabilitado: boolean;
-  onElegir: (productoId: string) => void;
-}) {
-  const opciones = opcionesDeCampo(plan.productos, campo);
-  // La opción elegida es la del producto elegido, o la del producto cuyo valor es igual al suyo (se dibujó una sola vez).
-  const valorElegido = plan.productos.find((p) => p.id === elegido);
-  const marcada = opciones.find((o) => o.productoId === elegido) ?? opciones.find((o) => valorElegido && o.valor === opcionesDeCampo([valorElegido], campo)[0]?.valor);
-  return (
-    <div className="space-y-1.5">
-      <span className="campo-etiqueta">{nombreDeCampo(campo)}</span>
-      <div role="radiogroup" aria-label={nombreDeCampo(campo)} className="grid gap-2 sm:grid-cols-2">
-        {opciones.map((o) => {
-          const si = marcada?.productoId === o.productoId;
-          return (
-            <button
-              key={o.productoId}
-              type="button"
-              role="radio"
-              aria-checked={si}
-              disabled={deshabilitado}
-              onClick={() => onElegir(o.productoId)}
-              className={`rounded-md border px-3.5 py-2.5 text-left text-sm transition-colors ease-cayla ${
-                si ? "border-tinta bg-hueso text-tinta" : "border-borde-control bg-papel text-tinta/80 hover:border-tinta/40"
-              }`}
-            >
-              <span className="flex items-start justify-between gap-2">
-                <span>{o.valor}</span>
-                {/* Lo elegido se ve por su forma, no solo por el color (WCAG 1.4.1): el ✓. */}
-                {si && <Check aria-hidden className="mt-0.5 h-4 w-4 shrink-0 text-tinta" />}
-              </span>
-            </button>
-          );
-        })}
-      </div>
-    </div>
+            {/* ---------- El pie de cada paso ---------- */}
+            {vista === "armar" && (
+              <div className="pie-hoja-fijo mt-6 space-y-3">
+                <PieGuia guia={guiaArmar} listo={bloqueado ? "Revisa lo que falta arriba." : "Todo listo para revisar."} />
+                <div className="pie-acciones" data-guia="fusionar.botones">
+                  <Boton peso="fantasma" type="button" onClick={cerrar}>
+                    Cancelar
+                  </Boton>
+                  <Boton
+                    peso="primario"
+                    type="button"
+                    disabled={leyendo || bloqueado}
+                    confirma={guiaArmar}
+                    title={leyendo ? "Leyendo las fichas…" : bloqueado ? "Todavía no se puede fusionar: mira el aviso." : (guiaArmar.frase ?? undefined)}
+                    className={guiaArmar.claseConfirmar}
+                    aria-describedby={plan && plan.bloqueos.length > 0 ? "fusionar-bloqueos" : undefined}
+                    onClick={() => plan && ficha && setVista("revisar")}
+                  >
+                    <span className="inline-flex items-center gap-2">
+                      Revisar y fusionar
+                      <ArrowRight aria-hidden className="h-4 w-4" />
+                    </span>
+                  </Boton>
+                </div>
+              </div>
+            )}
+            {vista === "revisar" && (
+              <div className="pie-hoja-fijo mt-6 space-y-3">
+                {errorGuardar && (
+                  <Aviso tono="error" titulo="No se pudo fusionar">
+                    {errorGuardar} Las fichas siguen como estaban.
+                  </Aviso>
+                )}
+                <AvisoNoSeDeshace />
+                <PieGuia guia={guiaRevisar} listo="Todo listo para fusionar." />
+                <div className="pie-acciones" data-guia="fusionar.confirmar">
+                  <span className="mr-auto">
+                    <Volver onClick={() => setVista("armar")} a="Volver a elegir" />
+                  </span>
+                  <Boton peso="fantasma" type="button" onClick={cerrar} disabled={guardando}>
+                    Cancelar
+                  </Boton>
+                  <Boton
+                    peso="primario"
+                    type="button"
+                    cargando={guardando}
+                    textoCargando="Fusionando…"
+                    disabled={leyendo || bloqueado}
+                    confirma={guiaRevisar}
+                    title={guiaRevisar.frase ?? responsable.motivo ?? undefined}
+                    className={guiaRevisar.claseConfirmar}
+                    onClick={() => void fusionar()}
+                  >
+                    <span className="inline-flex items-center gap-2">
+                      <Merge aria-hidden className="h-4 w-4" />
+                      Sí, fusionar
+                    </span>
+                  </Boton>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+      </Modal>
+      {comparando && (
+        <CompararFichas
+          productos={productos}
+          quedaId={quedaEfectiva}
+          detalle={detalleListo}
+          errorDetalle={errorDetalle}
+          enfocar={comparando}
+          onClose={() => setComparando(null)}
+        />
+      )}
+    </>
   );
 }
 
