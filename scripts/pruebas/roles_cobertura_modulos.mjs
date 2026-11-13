@@ -186,13 +186,14 @@ const SOLO_LIDER_GRUPOS = [
       "se muestra solo al líder (`esLider` en BalancePanel.tsx), y fn_exigir_lider_balance lo dice: «Los saldos de arranque los registra el líder».",
   },
   {
-    modulo: "liquidacion",
+    // ADR-0653 (Felipe 2026-11-13): el módulo Liquidación se retiró. Sus funciones siguen en la base (no se borra lo construido),
+    // pero sin pantalla y sin permiso para `authenticated`: nadie llega a ellas. Siguen llamando a fn_exigir_precio_liquidacion.
+    modulo: null,
     funciones: ["crear_pieza_liquidacion", "cambiar_precio_pieza_liquidacion"],
     razon:
-      "Liquidación (ADR-0379, Felipe 2026-10-10): las dos piden el módulo (fn_exigir_modulo('liquidacion')) y solo exigen líder en UNA rama, " +
-      "un precio bajo el mínimo (fn_exigir_precio_liquidacion, `parametros_liquidacion.precio_minimo`, S/ 10). Quien ve el módulo etiqueta y " +
-      "rebaja; bajo el mínimo la hoja dice «Desde S/ 10» y la guía no deja confirmar (lib/liquidacion-guia.ts, problemaDePrecio), y si igual " +
-      "llega, la base responde «Ese precio necesita un líder».",
+      "Liquidación se retiró (ADR-0653, Felipe 2026-11-13: «nunca se ha usado y solo causa confusión»). No hay pantalla ni módulo, y la " +
+      "migración 20261113174000 le quitó a `authenticated` el permiso de ejecutarlas: quedan quietas en la base, con su rama de solo líder " +
+      "(un precio bajo el mínimo, fn_exigir_precio_liquidacion) tal como estaba.",
   },
 ];
 const SOLO_LIDER = {};

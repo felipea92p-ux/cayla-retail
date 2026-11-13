@@ -114,7 +114,7 @@ export function LineaDelTicket({ linea, detalle, bloqueado, onQuitar, onCantidad
 
         {/* El importe abre el descuento de esta prenda (el ex «Desc.»): el «%» chico lo anuncia y, con descuento, se
             tiñe como la nota de abajo. Es el blanco más grande de la fila y queda lejos del basurero. */}
-{f.conDescuento && !soloLectura ? (
+{!soloLectura ? (
                   <button
             type="button"
             onClick={() => onDescuento(linea.claveLinea)}

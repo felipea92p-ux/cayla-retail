@@ -88,6 +88,11 @@ const nextConfig: NextConfig = {
     // si dibujan una copia (`lib/copia-de-pagina.ts`; ADR-0393 y ADR-0239, act. 2026-11-11), como el Conteo de inventario; quitar
     // `staleTimes` no lo arreglaría.
     staleTimes: { dynamic: 30 },
+
+    // El cronómetro del clic (ADR-0654): con esto Next le pasa a `onRouterTransitionStart` (`instrumentation-client.ts`) la hora exacta
+    // en que empezó cada navegación, con su id. Existe desde Next 16.3; si algún día se va, el gancho sigue llamándose sin el evento y el
+    // cronómetro toma la hora de la llamada, que es el mismo instante.
+    instrumentationClientRouterTransitionEvents: true,
   },
 
   async redirects() {
