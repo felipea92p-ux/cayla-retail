@@ -2109,6 +2109,9 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
     (`fn_piso_plan_lectura`, `fn_demanda_sede`, `fn_motor_demanda_preparacion`, `fn_frescura_decisiones`), `fn_rentabilidad`, `fn_calidad`, `fn_costo_estimado_resumen` (el costo que estima el Resumen de Finanzas: la actividad 5 lo había dejado
     pasar) y lo más vendido de la tienda web (`fn_vitrina_probador`, `fn_vitrina_recortes`). NO cambian los que miran el libro de movimientos o el stock por dueño (Frescura del piso, `fn_resumen_*`, Pérdidas, calidad de dañadas,
     reparto por proveedor, capacidad del Plan del piso): quedan como pendiente de Felipe. Prueba: `pnpm pruebas:claure-analisis-y-motores`.
+    **De una pasada (ADR-0658, 20261113201000):** `fn_piso_plan_lectura` y las seis lecturas de `fn_plan_compra` ya no preguntan línea por línea: hacen
+    `vi.id not in (select … retail.fn_lineas_de_claure(<ventana>[, sede]))`. El ayudante junta las líneas de las sedes de CLAURE desde su arranque y solo a esas
+    les pide el dueño (`fn_dueno_de_la_linea`). Prueba de que marca lo mismo que `fn_item_es_de_claure`: `pnpm pruebas:lineas-de-claure`.
     **Apartados y pedidos web con prendas de CLAURE (actividad 7, 20261029043000):** al entregar un apartado (`entregar_separacion`) o despachar un pedido web (`fn_pedido_web_vender`), el adelanto queda en la venta como un
     pago de medio `anticipo` SIN cuenta, así que `fn_claure_filas` (A1) no lo veía. Ahora suma también, por la parte de CLAURE de la venta, los abonos de `separacion_pagos` (no efectivo) y los pagos `aprobado` y no anulados de
     `pedido_web_pagos`, en la cuenta donde cayó cada uno y fechados el día de la venta: se le debe a Claudia desde que la prenda sale, no desde el abono. Mientras no hay venta no se debe nada. Lo leen la pantalla CLAURE,
