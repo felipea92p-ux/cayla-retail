@@ -12,7 +12,7 @@ import { getCatalogo } from "@/lib/catalogo-v2";
 import { opcional } from "@/lib/resultado";
 import { coloresDeModelos, presentacionesDeModelos } from "@/lib/produccion-presentacion";
 import { hojaDelModelo, materialesDelModelo, ordenesDelModelo, prendasPorFabricar } from "@/lib/produccion-hoja-modelo";
-import { getFichasDeColor, getFichasDeModelos } from "@/lib/produccion-ficha-modelo";
+import { getFichasDeModelos } from "@/lib/produccion-ficha-modelo";
 import { hoyLima } from "@/lib/fechas-lima";
 import { cifrasResumen, resumenDeDecisiones, demandaDelTaller, filasDeTela, filasPorModelo, type InsumoParaDecidir, type OrdenParaDecidir } from "@/lib/produccion-decisiones";
 import { getTelaDelTaller } from "@/lib/tela-del-taller";
@@ -50,11 +50,10 @@ export default async function ProduccionPage() {
     getListaDeOrdenes(taller.id, hoy),
   ]);
   const presentaciones = presentacionesDeModelos(catalogo ?? []);
-  // Las fichas (marca, proveedor, material, patrón y la de cada color) son datos SECUNDARIOS, como las fotos: si no se leen, la hoja «Ver el modelo» lo dice y lo demás sigue en pie.
-  const [decision, fichasDeModelos, fichasDeColor] = await Promise.all([
+  // Las fichas (marca, proveedor, material, patrón) son datos SECUNDARIOS, como las fotos: si no se leen, la hoja «Ver el modelo» lo dice y lo demás sigue en pie.
+  const [decision, fichasDeModelos] = await Promise.all([
     getDecisionProduccion({ modelos, ordenes, insumos: datosInsumos.insumos, consumosPorOrden: datosInsumos.consumosPorOrden, lineasPorRecibir: lineas, conSedes: true }),
     opcional(getFichasDeModelos(modelos.map((m) => m.productoId)), "la ficha de los modelos"),
-    opcional(getFichasDeColor(), "la ficha de los colores"),
   ]);
 
   const ordenesParaDecidir: (OrdenParaDecidir & { costoTela: number; costoAvios: number })[] = ordenes.map((o) => ({
@@ -111,7 +110,7 @@ export default async function ProduccionPage() {
 
   return (
     <div className="space-y-6">
-      <ResumenProduccionPanel sede={persona.ubicacionEtiqueta} presentaciones={presentaciones} decisiones={resumen.decisiones} ocultas={resumen.ocultas} totalAsuntos={resumen.total} cifras={cifras} modelos={filasModelo} hojas={hojas} fichasDeColor={fichasDeColor ?? []} telas={telas} hoyEnElTaller={hoyEnElTaller} falloRed={decision.fallo} notaDeHistoria={notaDeHistoria(hoy)} />
+      <ResumenProduccionPanel sede={persona.ubicacionEtiqueta} presentaciones={presentaciones} decisiones={resumen.decisiones} ocultas={resumen.ocultas} totalAsuntos={resumen.total} cifras={cifras} modelos={filasModelo} hojas={hojas} telas={telas} hoyEnElTaller={hoyEnElTaller} falloRed={decision.fallo} notaDeHistoria={notaDeHistoria(hoy)} />
     </div>
   );
 }

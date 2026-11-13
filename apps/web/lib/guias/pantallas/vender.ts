@@ -135,14 +135,6 @@ export const GUIA_PUNTO_DE_VENTA: Guia = {
       texto: "Un color por fila, con cada talla y cuántas hay en el piso o en el almacén. Tocar una talla la agrega al ticket y la ventana sigue abierta, por si lleva otra; «Quitar» la saca. Si aquí no hay, te dice qué otra tienda la tiene.",
     },
     {
-      id: "combina",
-      ancla: "vender.combina",
-      opcional: true,
-      ...CAJA_ABIERTA,
-      titulo: "Combina bien con",
-      texto: "Ideas para completar el look: prendas de otra categoría que van con este color y hay aquí. Toca un color para ver hasta tres, y una talla para sumarla al ticket. «¿Por qué?» te dice en una frase por qué combinan.",
-    },
-    {
       id: "prenda-pie",
       ancla: "vender.prenda-pie",
       opcional: true,

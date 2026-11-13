@@ -53,7 +53,7 @@ export default async function EditarProductoPage({
     // Con familia y sinónimos, como el alta (lib/alta-producto-datos.ts): «Agregar color» busca «plomo» y encuentra Gris.
     exigir(
       // Y con Pantone y su ficha (ADR-0316): «Agregar colores» reutiliza la carta del alta y su pie dice lo mismo que allá.
-      await supabase.from("colores").select("codigo, nombre, hex, familia_color, tipo, sinonimos, pantone_tcx, descripcion, combina_con").eq("activo", true).order("orden").order("nombre"),
+      await supabase.from("colores").select("codigo, nombre, hex, familia_color, tipo, sinonimos, pantone_tcx, descripcion").eq("activo", true).order("orden").order("nombre"),
       "los colores del vocabulario"
     ),
     getEjesPorCategoria(),
@@ -197,7 +197,6 @@ export default async function EditarProductoPage({
           sinonimos: c.sinonimos ?? [],
           pantoneTcx: c.pantone_tcx ?? null,
           descripcion: c.descripcion ?? null,
-          combinaCon: c.combina_con ?? [],
         }))}
         ejes={ejes}
         imagenes={imagenes}
