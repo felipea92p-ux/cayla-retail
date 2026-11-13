@@ -48,8 +48,8 @@
 --          to_regprocedure('retail.definir_prenda_de_compra(uuid[],uuid,numeric,uuid)') is not null,
 --          position('ADR-0660' in pg_get_functiondef('retail.guardar_conteo_envio(uuid,uuid,integer,jsonb,integer,integer,uuid,uuid,uuid)'::regprocedure)) > 0,
 --          position('ADR-0660' in pg_get_functiondef('retail.fn_orden_compra_validar(uuid,uuid,date,text,jsonb,jsonb)'::regprocedure)) > 0;
--- CÓMO SE DESHACE: los reemplazos al revés y `drop function` de las tres nuevas. Las columnas vuelven a `not null` solo si ninguna línea
--- quedó sin categoría.
+-- CÓMO SE DESHACE: `pegar-en-produccion-deshacer-mis-compras-por-definir-2026-11-13.sql` (en esta carpeta, ensayado): los 23 reemplazos al revés, las tres
+-- funciones nuevas fuera y `not null` de vuelta; se detiene si queda alguna línea por definir.
 -- ============================================================================
 
 set lock_timeout = '3s';

@@ -67,6 +67,9 @@ la plata de la compra se anota igual que antes.
 ## Cómo se pega en producción
 
 Una sola parte, re-ejecutable, con `lock_timeout`. Hace dos `alter column … drop not null`, agrega una columna con su valor de fábrica (119 líneas el 2026-11-13),
-dos `check`, dos disparadores (`create or replace trigger`) y funciones, con 19 reemplazos anclados que frenan sin cambiar nada si el texto vivo no es el esperado.
+dos `check`, dos disparadores (`create or replace trigger`) y funciones, con 23 reemplazos anclados en 18 funciones, que frenan sin cambiar nada si el texto vivo no es el esperado.
+El 2026-11-13, una consulta de solo lectura en producción dio el mismo md5 que en `main` para 17 de las 18 funciones; en la otra (`fn_comprobante_orden_resultado`) el ancla está una vez.
 No crea políticas (ADR-0195) y no usa `select … into` dentro de textos (ADR-0288). La consulta de verificación está en la cabecera de la migración. Se pega
 **antes** de publicar la web: con la web nueva y la base vieja, guardar «Por definir» da «La línea 1 necesita una categoría activa» y no queda nada a medias.
+
+**El camino de vuelta**, escrito y ensayado antes de pegar: `supabase/migrations/pegar-en-produccion-deshacer-mis-compras-por-definir-2026-11-13.sql`. Por defecto solo ensaya (termina en «ENSAYO_OK»), se detiene si queda alguna línea por definir y no usa `drop trigger`. En local, aplicado dos veces, dejó las 18 funciones con el mismo md5 que una base sin la migración, y la migración volvió a entrar después.
