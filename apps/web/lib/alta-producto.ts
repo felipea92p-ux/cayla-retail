@@ -115,9 +115,8 @@ export type ColorAlta = {
   tipo?: string | null;
   sinonimos?: readonly string[];
   pantoneTcx?: string | null;
-  /** La ficha del color (ADR-0316): qué transmite y con qué se combina (códigos). Ausentes = la pantalla no la pidió o el color no la tiene. */
+  /** Qué transmite el color (ADR-0316). Ausente = la pantalla no la pidió o el color no la tiene. */
   descripcion?: string | null;
-  combinaCon?: readonly string[];
   /** Si es una mezcla («Hueso con azul», ADR-0643): la base primero y sus acompañantes. Ausente o nulo = un solo tono. */
   componentes?: readonly string[] | null;
 };

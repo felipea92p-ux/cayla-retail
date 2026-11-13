@@ -1,11 +1,11 @@
 "use client";
 
 import { useEffect, useState, type CSSProperties, type ReactNode, type RefObject } from "react";
-import { Trash2, ChevronDown } from "lucide-react";
+import { Trash2 } from "lucide-react";
 import { Modal, botonPrimario } from "@/components/ui/Modal";
 import { MosaicoPrenda } from "@/components/MosaicoPrenda";
 import { Chip } from "@/components/ui/Chip";
-import { money, type ItemCarrito, type OrigenDeLinea, type VarianteBusqueda } from "@/components/PuntoDeVenta";
+import { money, type ItemCarrito, type VarianteBusqueda } from "@/components/PuntoDeVenta";
 import { colorInicial, resumenDePrenda, type GrupoCatalogo, type PrendaCatalogo } from "@/lib/catalogo-grupos";
 import { ImagenDePrenda } from "@/components/ui/ImagenDePrenda";
 import { precargarMiniaturas } from "@/components/ui/precargar-miniaturas";
@@ -15,22 +15,8 @@ import { motivoNoCobrable } from "@/lib/vender-stock-local";
 import { estiloMosaicoColor } from "@/lib/color-prenda-reglas";
 import { fotoQueDistingue } from "@/lib/color-estampado-reglas";
 import { CuadroEstampado } from "@/components/ui/MuestraEstampado";
-import { ETIQUETA_COMBINA, FichaDelColor } from "@/components/ui/FichaDelColor";
-import type { FichaDelColor as FichaDelColorTipo } from "@/lib/ficha-del-color";
-import { MiniaturaPrenda } from "@/components/ui/PrendaCelda";
-import { categoriaDe } from "@/lib/categoria-de-prenda";
-import { chipDeTarjeta, type AnclaLook, type SugerenciaLook } from "@/lib/combinar-reglas";
 
 type Color = GrupoCatalogo<VarianteBusqueda>;
-
-/** Lo que «Combina bien con» dice de un color de la prenda: la frase (en reposo) y las prendas concretas (al fijar). */
-export type CombinaDeColor = { frase: string | null; sugerencias: SugerenciaLook<Color>[] };
-
-/** La prenda en un color, como ancla de la regla: su modelo, su categoría y su color. */
-function anclaDe(prenda: PrendaCatalogo<VarianteBusqueda>, c: Color): AnclaLook {
-  const v = c.tallas[0]?.variante;
-  return { productoId: v?.productoId ?? prenda.referencia, categoriaPrefijo: v?.categoriaPrefijo ?? null, colorCodigo: v?.colorCodigo ?? null };
-}
 
 type Props = {
   prenda: PrendaCatalogo<VarianteBusqueda>;
@@ -38,8 +24,7 @@ type Props = {
   colorClave?: string;
   ubicacionEtiqueta: string;
   carrito: ItemCarrito[];
-  /** `origen`: la línea nació de «Combina bien con» (queda marcada en la venta). */
-  onAgregar: (v: VarianteBusqueda, opciones?: { origen?: OrigenDeLinea }) => void;
+  onAgregar: (v: VarianteBusqueda) => void;
   /** Quitar del ticket una línea que entró desde aquí (Formidable 2026-10-10, cambio 1): el mismo quitar del ticket, sin
    *  confirmación (sumar al ticket es estado local, no dinero ni stock). Ausente = la hoja no ofrece quitar. */
   onQuitar?: (claveLinea: string) => void;
@@ -47,11 +32,6 @@ type Props = {
   alCerrarEnfocar: RefObject<HTMLElement | null>;
   /** Debajo de los colores, para el color que se está viendo: lo que el Punto de venta agrega (hoy, «Anotar que no había»). */
   pie?: (color: Color) => ReactNode;
-  /** La ficha del color que se mira (ADR-0316; Felipe 2026-10-10): con qué se combina, con lo que cuelga aquí primero, y por qué.
-   *  Ausente o `null` = la hoja no dice nada del color. */
-  fichaDelColorDe?: (colorCodigo: string | null | undefined) => FichaDelColorTipo | null;
-  /** «Combina bien con» (Felipe 2026-10-10): la frase para el color que se mira y, al fijarlo, hasta 3 prendas con stock aquí. */
-  combinaDe?: (ancla: AnclaLook) => CombinaDeColor;
 };
 
 /** Primero lo que se cobra aquí, después lo del almacén, al final lo que no está: el orden en que se le ofrece al cliente. */
@@ -69,7 +49,7 @@ function rango(c: Color): number {
  * casilla dibuja un visto y la fila cuenta cuántas lleva. Una talla del almacén cierra la ventana: el aviso de la caja
  * ofrece registrar la bajada (ADR-0321) y no debe quedar tapado. Reemplaza a `ElegirTallaModal` (un color a la vez).
  */
-export function OpcionesDePrendaModal({ prenda, colorClave, ubicacionEtiqueta, carrito, onAgregar, onQuitar, onClose, alCerrarEnfocar, pie, fichaDelColorDe, combinaDe }: Props) {
+export function OpcionesDePrendaModal({ prenda, colorClave, ubicacionEtiqueta, carrito, onAgregar, onQuitar, onClose, alCerrarEnfocar, pie }: Props) {
   const inicial = prenda.colores.find((c) => c.clave === colorClave) ?? colorInicial(prenda);
   const [fijo, setFijo] = useState(inicial?.clave);
   const [vistaPrevia, setVistaPrevia] = useState<string | null>(null);
@@ -86,9 +66,6 @@ export function OpcionesDePrendaModal({ prenda, colorClave, ubicacionEtiqueta, c
   const varMostrada = mostrado.tallas[0]?.variante;
   const sinFotoMostrada = <MosaicoPrenda colorHex={varMostrada?.colorHex} prefijo={varMostrada?.categoriaPrefijo} familia={varMostrada?.categoriaFamilia ?? null} categoria={varMostrada?.categoria} forma="grilla" className="h-full w-full !rounded-none" />;
   const llevaMostrado = mostrado.tallas.reduce((a, t) => a + enTicket(t.variante.varianteId), 0);
-  // La frase sigue al color que se MIRA (pasar por una fila la cambia); las prendas concretas, solo al FIJAR (Felipe 2026-10-10).
-  const combinaMostrado = combinaDe?.(anclaDe(prenda, mostrado)) ?? null;
-  const combinaFijo = mostrado.clave === elegido.clave ? combinaMostrado : (combinaDe?.(anclaDe(prenda, elegido)) ?? null);
 
   return (
     <Modal
@@ -98,8 +75,7 @@ export function OpcionesDePrendaModal({ prenda, colorClave, ubicacionEtiqueta, c
       tamano="ancha"
       onClose={onClose}
       alCerrarEnfocar={alCerrarEnfocar}
-      // El foco inicial en la hoja, no en el primer control (Formidable 2026-10-10): Radix enfocaba el primer círculo de «Combina bien
-      // con» y lo encendía solo («Negro · hay en el piso» sin que nadie lo tocara).
+      // El foco inicial en la hoja, no en el primer control (Formidable 2026-10-10): Radix encendía solo el primer control de la hoja.
       focoEnLaHoja
     >
       {(cerrar) => (
@@ -206,25 +182,6 @@ export function OpcionesDePrendaModal({ prenda, colorClave, ubicacionEtiqueta, c
                 );
               })}
             </ul>
-            {(combinaDe || fichaDelColorDe) && (
-              <CombinaBienCon
-                key={elegido.clave}
-                fraseMostrada={combinaMostrado?.frase ?? null}
-                mirandoElFijo={mostrado.clave === elegido.clave}
-                combinaFijo={combinaFijo}
-                ficha={fichaDelColorDe?.(varMostrada?.colorCodigo) ?? null}
-                claveColor={mostrado.clave}
-                colorFijo={elegido.color}
-                enTicket={enTicket}
-                onTocar={(t, bajable) => {
-                  onAgregar(t.variante, { origen: "combina_bien_con" });
-                  if (bajable) cerrar();
-                  else setRecien((r) => ({ id: t.variante.varianteId, pulso: (r?.pulso ?? 0) + 1 }));
-                }}
-                onQuitar={onQuitar && ((id) => { onQuitar(id); setRecien((r) => (r?.id === id ? null : r)); })}
-                recien={recien}
-              />
-            )}
             </div>
           </div>
 
@@ -237,144 +194,6 @@ export function OpcionesDePrendaModal({ prenda, colorClave, ubicacionEtiqueta, c
         </>
       )}
     </Modal>
-  );
-}
-
-/**
- * «Combina bien con», UN solo bloque bajo la lista de colores (Felipe 2026-10-10; Formidable 2026-10-10: antes había dos «Combina bien
- * con» en la hoja, uno de colores y otro de prendas, y el ciego no supo cuál era «la prenda que el sistema dice»). En reposo, la frase
- * del color que se mira («Combina bien con una blusa») y, debajo, «En estos colores:» con los círculos de la ficha (el nombre al pasar o
- * tocar; «hay en el piso» / «no hay aquí»); las dos líneas tienen alto fijo, así pasar por las filas no mueve nada. Con el color FIJADO,
- * hasta 3 prendas que cuelgan aquí, una por papel (`lib/combinar-reglas.ts`): miniatura, nombre, color y cuántas; tocar la fila despliega
- * sus tallas —las mismas casillas de la lista— y tocar la talla la suma al ticket. «¿Por qué?» a un toque dice el papel y el color en
- * español de tienda («Una blusa va arriba de la falda · El negro combina con el beige»). Sin frase ni colores ni prendas, nada: nunca
- * un cartel de «no hay». Si no hay frase pero sí ficha, los círculos llevan la etiqueta de siempre («Combina bien con»).
- *
- * La tarjeta SE QUEDA cuando su prenda entra al ticket (Formidable 2026-10-10, cambio 1, Felipe): antes desaparecía —lo que hace
- * Shopify, y lo que sus comerciantes reportan como problema—, y la vendedora veía «se fue», no «entró». La regla «lo que ya está en el
- * ticket no se sugiere» se evalúa al ABRIR la hoja y al FIJAR un color (este bloque va con `key` por color y congela `combinaFijo` al
- * montarse), no en cada toque. La señal vive donde se tocó: la casilla dibuja el visto mientras lleve unidades, el chip pasa de «2 aquí»
- * a «1 en el ticket · 1 aquí» (`chipDeTarjeta`) y un «Quitar» —la misma pieza que la fila de colores y la línea del ticket— deshace sin
- * preguntar. Otra talla se suma tocando otra casilla. Sin aviso en la esquina: la hoja la tapa y nada hay que esperar (no hay red).
- */
-function CombinaBienCon({
-  fraseMostrada,
-  mirandoElFijo,
-  combinaFijo,
-  ficha,
-  claveColor,
-  colorFijo,
-  enTicket,
-  onTocar,
-  onQuitar,
-  recien,
-}: {
-  /** La frase del color que se MIRA (pasar por una fila la cambia): se usa cuando no es el fijado. */
-  fraseMostrada: string | null;
-  mirandoElFijo: boolean;
-  /** La frase y las prendas del color FIJADO en el momento de montarse: se congelan aquí (ver arriba). */
-  combinaFijo: CombinaDeColor | null;
-  /** La ficha del color que se mira (sus compañeros); `null` sin ficha. */
-  ficha: FichaDelColorTipo | null;
-  /** La clave del color que se mira: remonta los círculos al cambiar de color (su nombre señalado no se arrastra). */
-  claveColor: string;
-  colorFijo: string | null;
-  enTicket: (id: string) => number;
-  onTocar: (t: Color["tallas"][number], bajable: boolean) => void;
-  onQuitar?: (claveLinea: string) => void;
-  recien: { id: string; pulso: number } | null;
-}) {
-  const [abierta, setAbierta] = useState<string | null>(null);
-  const [porQueDe, setPorQueDe] = useState<string | null>(null);
-  // Congelado al montarse (el bloque lleva `key` por color fijado): lo que entra al ticket después no cambia la lista.
-  const [fijo] = useState(combinaFijo);
-  const frase = mirandoElFijo ? (fijo?.frase ?? null) : fraseMostrada;
-  const sugerencias = fijo?.sugerencias ?? [];
-  const hayCirculos = (ficha?.companeros.length ?? 0) > 0;
-  if (!frase && !hayCirculos && sugerencias.length === 0) return null;
-  return (
-    <section className="mt-4" aria-label="Combina bien con" data-guia="vender.combina">
-      {frase && <p className="min-h-5 truncate text-[13px] text-tinta">{frase}</p>}
-      {hayCirculos && <FichaDelColor key={`circulos-${claveColor}`} ficha={ficha} forma="circulos" etiqueta={frase ? "En estos colores:" : ETIQUETA_COMBINA} />}
-      {sugerencias.length > 0 && (
-        <ul className="@container mt-2 divide-y divide-sand rounded-xl border border-sand bg-papel" aria-label={`Prendas que combinan con ${colorFijo ?? "este color"}`}>
-          {sugerencias.map((s, i) => {
-            const t = s.tarjeta;
-            const g = t.origen;
-            const clave = `${t.productoId}|${t.colorCodigo ?? ""}`;
-            const v = g?.tallas[0]?.variante;
-            const lleva = g ? g.tallas.reduce((a, talla) => a + enTicket(talla.variante.varianteId), 0) : 0;
-            const chip = chipDeTarjeta(s.unidadesAqui, lleva);
-            return (
-              <li key={clave} className="anim-entra px-3 py-2" style={{ "--i": i } as CSSProperties}>
-                {/* `flex-wrap` + `basis-full`: en una lista angosta (el celular) el chip, el tacho y «¿Por qué?» bajan debajo del nombre,
-                    alineados con el texto (`pl-14`), en vez de cortarlo a «B…» (visto a 375 px, Formidable 2026-10-10). */}
-                <div className="flex flex-wrap items-stretch gap-x-3 gap-y-1">
-                  {/* La fila entera despliega las tallas y lo dice («Ver tallas ›»): el ciego tocó el nombre «buscando cómo agregarla» y
-                      nada avisaba que se abre. Mínimo 44 px de alto: la hoja es de celular (PL-105). */}
-                  <button
-                    type="button"
-                    onClick={() => setAbierta((a) => (a === clave ? null : clave))}
-                    aria-expanded={abierta === clave}
-                    className="flex min-h-11 min-w-0 flex-1 items-center gap-3 rounded-lg text-left"
-                  >
-                    <MiniaturaPrenda fotoUrl={t.fotoUrl} colorHex={t.colorHex} tamano="md" {...categoriaDe(v)} />
-                    <span className="min-w-0 flex-1">
-                      <span className="block truncate text-[15px] font-semibold text-tinta">{t.referencia}</span>
-                      <span className="block truncate text-sm text-tinta/70">
-                        {t.colorNombre ?? "Sin color"}
-                        <span className="inline-flex items-center gap-0.5 text-taupe">
-                          {" · "}
-                          {abierta === clave ? "Ocultar tallas" : "Ver tallas"}
-                          <ChevronDown aria-hidden className={`h-3 w-3 transition-transform duration-300 ease-cayla motion-reduce:transition-none ${abierta === clave ? "rotate-180" : ""}`} />
-                        </span>
-                      </span>
-                    </span>
-                  </button>
-                  <span className="flex basis-full shrink-0 items-center gap-2 pl-14 @sm:basis-auto @sm:pl-0">
-                    <span key={chip.texto} className={chip.enTicket ? "anim-pop inline-flex items-center gap-1.5" : "inline-flex items-center"}>
-                      <Chip tono={chip.enTicket ? "verde" : "pizarra"} tachado={false}>
-                        {chip.texto}
-                      </Chip>
-                      {chip.enTicket && onQuitar && g && (
-                        <QuitarDelTicket
-                          nombre={`${t.referencia} ${t.colorNombre ?? ""}`.trim()}
-                          onClick={() => g.tallas.forEach((talla) => enTicket(talla.variante.varianteId) > 0 && onQuitar(talla.variante.varianteId))}
-                        />
-                      )}
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() => setPorQueDe((p) => (p === clave ? null : clave))}
-                      aria-expanded={porQueDe === clave}
-                      className="btn-cayla btn-enlace inline-flex min-h-7 items-center !px-0 text-[12px] pointer-coarse:min-h-11"
-                    >
-                      {porQueDe === clave ? "Cerrar" : "¿Por qué?"}
-                    </button>
-                  </span>
-                </div>
-                {porQueDe === clave && <p className="anim-revelar mt-1.5 pl-14 text-sm text-tinta/70">{s.porQue.join(" · ")}</p>}
-                {abierta === clave && g && (
-                  <div className="mt-2 grid grid-cols-[repeat(auto-fill,minmax(5rem,1fr))] gap-1.5 pl-14 @sm:grid-cols-[repeat(auto-fill,minmax(6.75rem,1fr))]" role="group" aria-label={`Tallas de ${t.referencia} ${t.colorNombre ?? ""}`}>
-                    {g.tallas.map((talla) => (
-                      <Casilla
-                        key={talla.variante.varianteId}
-                        t={talla}
-                        color={g}
-                        precioBase={g.precioMin}
-                        enTicket={enTicket(talla.variante.varianteId)}
-                        recien={recien?.id === talla.variante.varianteId ? recien.pulso : null}
-                        onTocar={(bajable) => onTocar(talla, bajable)}
-                      />
-                    ))}
-                  </div>
-                )}
-              </li>
-            );
-          })}
-        </ul>
-      )}
-    </section>
   );
 }
 

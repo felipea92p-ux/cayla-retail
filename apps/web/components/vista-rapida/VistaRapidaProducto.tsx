@@ -32,16 +32,11 @@ import { FotoVistaRapida } from "./FotoVistaRapida";
 import { MatrizUnidades } from "./MatrizUnidades";
 import { HistorialPrenda } from "@/components/historial-prenda/HistorialPrenda";
 import { useHistorialPrenda } from "@/components/historial-prenda/useHistorialPrenda";
-import { FichaDelColor } from "@/components/ui/FichaDelColor";
-import { fichaDelColor, type ColorConFicha } from "@/lib/ficha-del-color";
-import { categoriasQueCombinan, fraseCombina, indiceDeColores, type TarjetaLook } from "@/lib/combinar-reglas";
 import { BotonVer } from "@/components/ui/BotonDescargar";
 import { prefiereQuieto } from "@/lib/movimiento-cliente";
 
-const SIN_COLORES: ColorConFicha[] = [];
-const SIN_TARJETAS: TarjetaLook[] = [];
-
-const BOTON = "btn-cayla btn-secundario min-h-10 text-[12.5px]";
+// Todos los botones del pie con la misma medida (40 px, la letra de una hoja): con letras distintas la fila se veía descuadrada (Felipe 2026-11-13).
+const BOTON = "btn-cayla btn-secundario min-h-10";
 // El botón que cambia el estado vive junto al chip de estado, en el encabezado (Felipe 2026-10-09: al fondo a la derecha «es difícil de ver»).
 // Compacto, para que la línea de datos no crezca: 32 px con mouse y 44 con el dedo (ADR-0350).
 const BOTON_ESTADO = "btn-cayla min-h-8 px-3 py-1 text-[12px] max-sm:min-h-11";
@@ -83,8 +78,6 @@ export function VistaRapidaProducto({
   onFusionar,
   preciosAqui,
   campanasHoy,
-  colores = SIN_COLORES,
-  tarjetasLook = SIN_TARJETAS,
 }: {
   producto: ProductoListado;
   /** Precio propio de esta sede por variante (ADR-0370): la matriz muestra el que cobra su caja. */
@@ -92,11 +85,6 @@ export function VistaRapidaProducto({
   /** La campaña que cobra la caja hoy por variante (ADR-0472): la cabecera tacha el precio de lista y dice el de la caja, la campaña y
    *  hasta cuándo. La matriz sigue con el precio de lista de cada talla. Ausente = no se pudo leer: el precio de siempre. */
   campanasHoy?: Record<string, CampanaDeVariante>;
-  /** La ficha de cada color activo (ADR-0316; Felipe 2026-10-10): bajo la foto, con qué se combina el color que está en ella. Vacío = nada. */
-  colores?: ColorConFicha[];
-  /** El catálogo de la sede como tarjetas prenda×color con su piso (`tarjetasDesdeVariantes`): la frase «Combina bien con un jean o una
-   *  cartera» del color de la foto. Vacío = sin frase. */
-  tarjetasLook?: TarjetaLook[];
   stock: StockDeModelo;
   /** Las mismas unidades repartidas por lugar dentro de la sede (`useStockEnSede().lugaresDe`). Sin esto, la ficha no ofrece «Dónde». */
   lugares?: LugaresDeModelo;
@@ -154,22 +142,6 @@ export function VistaRapidaProducto({
   const fotosDeLosColores = useMemo(() => matriz.filas.map((f) => f.fotoUrl), [matriz.filas]);
   const claveEnFoto = vista ?? fijado;
   const filaEnFoto = matriz.filas.find((f) => f.clave === claveEnFoto) ?? matriz.filas[0];
-  // La ficha del color que está en la foto: la fila de la matriz lleva el NOMBRE del color (único en el vocabulario, `colores_clave_unica`),
-  // y por él se llega al código y a su ficha. Sin stock del catálogo entero a mano, los compañeros no dicen cuántos cuelgan aquí.
-  const vocabularioColores = useMemo(() => {
-    const porCodigo = new Map(colores.map((c) => [c.codigo, c]));
-    const codigoPorNombre = new Map(colores.map((c) => [c.nombre, c.codigo]));
-    return { porCodigo, codigoPorNombre };
-  }, [colores]);
-  const fichaEnFoto = filaEnFoto ? fichaDelColor(vocabularioColores.codigoPorNombre.get(filaEnFoto.nombre), vocabularioColores.porCodigo) : null;
-  // «Combina bien con un jean o una cartera» (Felipe 2026-10-10): qué categorías pareja tienen piso aquí en un color aprobado por la ficha
-  // del color de la foto. Una línea de alto fijo; las prendas concretas (con su talla) viven en Vender, donde se cobran.
-  const indiceColores = useMemo(() => indiceDeColores(colores), [colores]);
-  const fraseEnFoto = useMemo(() => {
-    if (!filaEnFoto || tarjetasLook.length === 0) return null;
-    const ancla = { productoId: producto.productoId, categoriaPrefijo: producto.categoriaPrefijo ?? null, colorCodigo: vocabularioColores.codigoPorNombre.get(filaEnFoto.nombre) ?? null };
-    return fraseCombina(categoriasQueCombinan(ancla, tarjetasLook, indiceColores));
-  }, [filaEnFoto, tarjetasLook, producto.productoId, producto.categoriaPrefijo, vocabularioColores, indiceColores]);
   const etiquetas = etiquetasDeLaSeleccion(matriz, elegidas, producto.referencia);
   const idsTodos = producto.variantes.map((v) => v.varianteId);
   const elegidasIds = matriz.celdas.filter((c) => elegidas.has(c.varianteId)).map((c) => c.varianteId);
@@ -237,7 +209,10 @@ export function VistaRapidaProducto({
               {descontinuado ? "Descontinuado" : "Activo"}
             </Chip>
             {puedeEditar && (
-              <button type="button" onClick={onCambiarEstado} className={`${BOTON_ESTADO} ${descontinuado ? "btn-secundario" : "btn-peligro"}`} data-cambiar-estado>
+              <button type="button" onClick={onCambiarEstado} className={`${BOTON_ESTADO} ${descontinuado ? "btn-secundario" : "btn-peligro"}`}
+                title={descontinuado ? "Vuelve a venderse" : "Deja de venderse; sus ventas y su historia quedan"}
+                data-cambiar-estado
+              >
                 {descontinuado ? <PlayCircle aria-hidden className="h-3.5 w-3.5" /> : <PauseCircle aria-hidden className="h-3.5 w-3.5" />}
                 {descontinuado ? "Reactivar" : "Desactivar"}
               </button>
@@ -291,15 +266,8 @@ export function VistaRapidaProducto({
               </span>
               <span className="vr-est">{vista !== null && vista !== fijado ? "vista previa" : "fijado"}</span>
             </div>
-            {/* Sin la instrucción «Pasa el mouse por un color…» (ronda 19): «vista previa» y «fijado», junto al color, ya lo dicen. */}
-            {/* Con qué se combina el color de la foto (ADR-0316; Felipe 2026-10-10): sigue a la foto (vista previa al pasar, fijado al clic),
-                en una caja de alto fijo para que la hoja no cambie de tamaño bajo el mouse (ADR-0185); la frase, tras «¿Por qué?». */}
-            {fichaEnFoto && (
-              <div className="vr-color-ficha">
-                <FichaDelColor key={filaEnFoto?.clave} ficha={fichaEnFoto} forma="bloque" />
-                {fraseEnFoto && <p className="vr-combina">{fraseEnFoto}</p>}
-              </div>
-            )}
+            {/* Sin la instrucción «Pasa el mouse por un color…» (ronda 19): «vista previa» y «fijado», junto al color, ya lo dicen. «Combina bien
+                con» salió de todo el ERP (Felipe 2026-11-13, ADR-0316 act.): bajo la foto solo queda el color que se mira. */}
           </div>
           {/* Lo que se escribió en «Descripción» al crear o editar la prenda. Sin descripción no se dibuja nada: el campo es opcional. */}
           {producto.descripcion && (
@@ -340,6 +308,33 @@ export function VistaRapidaProducto({
               </div>
             ))}
           </dl>
+          {/* Lo que arregla la FICHA misma —una repetida o una creada por error—, con la pregunta que dice cuándo se usa (Felipe 2026-11-13: «Eliminar»
+              junto a «Desactivar» no decía para qué servía cada uno). Va bajo la ficha corta y no en el pie fijo:
+              es raro, y en el celular el pie ya ocupa lo suyo.
+              «Desactivar», en el encabezado, es otra cosa: la prenda deja de venderse y su historia queda. */}
+          {((puedeEditar && onFusionar) || puedeEliminar) && (
+            <div className="vr-ficha-arreglo">
+              <p className="vr-ficha-arreglo-pregunta">¿Ficha repetida o creada por error?</p>
+              <div className="vr-ficha-arreglo-botones">
+                {/* ADR-0650: esta ficha y otra de la misma prenda pasan a ser una sola, sin perder ventas, fotos ni stock. Antes de «Eliminar»:
+                    para una ficha repetida, fusionar es lo que conviene (borrar perdería su historia). */}
+                {puedeEditar && onFusionar && (
+                  <button type="button" onClick={onFusionar} className={BOTON} data-guia="vista-rapida.fusionar">
+                    <Merge aria-hidden className="h-4 w-4" />
+                    Fusionar
+                  </button>
+                )}
+                {/* Abre una ventana que pregunta a la base qué se puede borrar; con ventas, compras o traslados explica por qué no y ofrece
+                    desactivarla. La gota con letra roja (ADR-0358, `accion.eliminar`): abre una confirmación, no borra al toque. */}
+                {puedeEliminar && (
+                  <button type="button" onClick={onEliminar} className="btn-cayla btn-peligro min-h-10">
+                    <Trash2 aria-hidden className="h-4 w-4" />
+                    Eliminar
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
@@ -355,6 +350,8 @@ export function VistaRapidaProducto({
             </span>
           </p>
         )}
+        {/* Lo de todos los días con la prenda, en una fila pareja (Felipe 2026-11-13: con siete botones de letras distintas la fila se partía
+            y «Eliminar» quedaba suelto). */}
         <div data-guia="vista-rapida.botones" className="vr-botones">
           {puedeEditar && (
             <Link href={conDesde(`/productos/${producto.productoId}/editar`, pantalla)} className={BOTON}>
@@ -374,7 +371,7 @@ export function VistaRapidaProducto({
             varias={etiquetas.varias}
             sede={sede}
             data-sin-unidades={etiquetas.sinUnidades || undefined}
-            className={(negado) => (negado ? "btn-cayla min-h-10 bg-rojo text-[12.5px] text-crema hover:bg-rojo-profundo" : BOTON)}
+            className={(negado) => (negado ? "btn-cayla min-h-10 bg-rojo text-crema hover:bg-rojo-profundo" : BOTON)}
           >
             <Tag aria-hidden className="h-4 w-4" />
             <span key={etiquetas.texto + etiquetas.cantidad} className="vr-texto">
@@ -395,25 +392,9 @@ export function VistaRapidaProducto({
           </button>
           {hrefExistencias && (
             // Lleva a otra pantalla: el botón secundario con la flecha que avanza (ADR-0358, ronda 10), nunca el negro.
-            <BotonVer href={hrefExistencias} className="min-h-10 text-sm">
+            <BotonVer href={hrefExistencias} className="min-h-10">
               Ver en Existencias
             </BotonVer>
-          )}
-          {/* ADR-0650: esta ficha y otra de la misma prenda pasan a ser una sola, sin perder ventas, fotos ni stock. Antes de «Eliminar»:
-              para una ficha repetida, fusionar es lo que conviene (borrar perdería su historia). */}
-          {puedeEditar && onFusionar && (
-            <button type="button" onClick={onFusionar} className={BOTON} data-guia="vista-rapida.fusionar">
-              <Merge aria-hidden className="h-4 w-4" />
-              Fusionar
-            </button>
-          )}
-          {/* Quien edita el catálogo. Abre una ventana que pregunta a la base qué se puede borrar; con ventas, compras o traslados explica por
-              qué no y ofrece desactivarla (el botón «Desactivar» del encabezado hace lo mismo sin pasar por aquí). */}
-          {puedeEliminar && (
-            <button type="button" onClick={onEliminar} className="btn-cayla btn-peligro vr-eliminar min-h-10 text-[12.5px]">
-              <Trash2 aria-hidden className="h-4 w-4" />
-              Eliminar
-            </button>
           )}
         </div>
       </div>
