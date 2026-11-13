@@ -2,7 +2,7 @@
   "guia": "productos",
   "ruta": "/productos",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 113,
+  "total": 114,
   "controles": {
     "app/(app)/productos/page.tsx": [
       "Link «Existencias»",
@@ -94,6 +94,7 @@
       "button «Descartar el aviso de etiquetas pendientes»"
     ],
     "components/fusionar-productos/CompararFichas.tsx": [
+      "button «{`Ver la foto de ${p.referencia}»",
       "button «{`Foto ${i + 1}»"
     ],
     "components/fusionar-productos/FusionarProductosHoja.tsx": [
