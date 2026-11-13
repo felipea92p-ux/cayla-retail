@@ -1,7 +1,7 @@
 /**
- * Las redes de CAYLA, en un solo lugar (Felipe 2026-11-12, propuesta C de docs/maquetas/tienda-redes-2026-11): el pie de todas las páginas,
- * el final del menú del celular y «¡Listo, lo separaste!» las dibujan desde aquí (`components/Redes.tsx`). Una red nueva o un enlace que
- * cambia se toca aquí y llega a los tres lugares.
+ * Las redes de CAYLA, en un solo lugar (Felipe 2026-11-13, propuesta A de docs/maquetas/tienda-redes-2026-11): el pie de todas las
+ * páginas y el final del menú del celular las dibujan desde aquí (`components/Redes.tsx`). Una red nueva o un enlace que cambia se toca
+ * aquí y llega a los dos lugares.
  *
  * Nunca van arriba ni junto al botón de comprar: llevan a la persona fuera de la tienda, así que salen donde ya terminó lo que vino a hacer.
  * Los enlaces van limpios, sin `?locale=` ni `?hl=`: cada red abre en el idioma de quien la mira.
