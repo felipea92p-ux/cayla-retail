@@ -35,6 +35,7 @@ import {
   siguienteDelRecorrido,
 } from "@/lib/existencias-ajuste-modelo";
 import { nombreDeCelda, type AjusteGuardado, type ControlAjuste, type LineaDelLote } from "./useAjusteDelModelo";
+import { fondoDelPunto } from "@/lib/color-combinado";
 
 /* ====================================================================
    «Ajustar stock» dentro del modal de la prenda (ADR-0494, Felipe 2026-10-23, ronda 3 de
@@ -275,7 +276,7 @@ export function PlanillaDelAjuste({
   );
   const columnaColor = (color: string | null, hex: string | null, extra?: ReactNode) => (
     <th scope="row" className="ajuste-col-color">
-      <span aria-hidden data-color-dato className="ajuste-franja" style={{ background: hex ?? "var(--color-sand)" }} />
+      <span aria-hidden data-color-dato className="ajuste-franja" style={{ background: fondoDelPunto(hex, control.modelo?.colores.find((c) => c.color === color)?.tonos) ?? "var(--color-sand)" }} />
       <span className="ajuste-color">
         {fotoDelEstampado?.(color) && <CuadroEstampado fotoUrl={fotoDelEstampado(color)!} hex={hex} className="h-7 w-7" />}
         <b>{color ?? "Sin color"}</b>
@@ -733,7 +734,8 @@ export function TalonDelAjuste({ control, guardadas, sellado = false }: { contro
               </li>
             )}
             {lineas.map((l) => {
-              const hex = control.modelo?.colores.find((c) => c.color === l.variante.color)?.hex ?? null;
+              const delColor = control.modelo?.colores.find((c) => c.color === l.variante.color);
+              const hex = fondoDelPunto(delColor?.hex, delColor?.tonos) ?? null;
               return (
                 <li key={l.variante.varianteId} className="ajuste-ticket">
                   <span aria-hidden data-color-dato className="ajuste-ticket-muestra" style={{ background: hex ?? "var(--color-hueso)" }} />
@@ -840,12 +842,15 @@ export function ListoDelAjuste({
   guardado,
   prenda,
   hexDe,
+  tonosDe,
   precioDe,
   onMasTarde,
 }: {
   guardado: AjusteGuardado;
   prenda: string;
   hexDe: (color: string | null) => string | null;
+  /** Una mezcla (ADR-0643): sus tonos, para partir el punto de su etiqueta. */
+  tonosDe?: (color: string | null) => readonly string[] | null;
   precioDe: (color: string | null) => number | null;
   onMasTarde: () => void;
 }) {
@@ -871,7 +876,7 @@ export function ListoDelAjuste({
           papeles={entraron.map((l) => ({
             clave: l.variante.varianteId,
             color: l.variante.color ?? "Sin color",
-            punto: <Punto hex={hexDe(l.variante.color)} />,
+            punto: <Punto hex={hexDe(l.variante.color)} tonos={tonosDe?.(l.variante.color)} />,
             talla: l.variante.talla ?? "Única",
             precio: precioDe(l.variante.color),
             unidades: l.delta,

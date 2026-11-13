@@ -2,7 +2,7 @@
   "guia": "productos",
   "ruta": "/productos",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 112,
+  "total": 114,
   "controles": {
     "app/(app)/productos/page.tsx": [
       "Link «Existencias»",
@@ -94,9 +94,11 @@
       "button «Descartar el aviso de etiquetas pendientes»"
     ],
     "components/fusionar-productos/CompararFichas.tsx": [
+      "button «{`Ver la foto de ${p.referencia}»",
       "button «{`Foto ${i + 1}»"
     ],
     "components/fusionar-productos/FusionarProductosHoja.tsx": [
+      "Boton «Leer de nuevo»",
       "Casilla «{`Quedarse con esta foto de ${de?.referencia ?? \"la prenda\"}»",
       "ComboResponsable «{responsable}»",
       "BotonVer «Ver la ficha»",
@@ -153,12 +155,12 @@
     ],
     "components/vista-rapida/VistaRapidaProducto.tsx": [
       "button «→onCambiarEstado»",
+      "button «vista-rapida.fusionar»",
+      "button «Eliminar»",
       "Link «Editar»",
       "Link «Rótulo»",
       "button «vista-rapida.historial»",
-      "BotonVer «Ver en Existencias»",
-      "button «vista-rapida.fusionar»",
-      "button «Eliminar»"
+      "BotonVer «Ver en Existencias»"
     ]
   }
 }

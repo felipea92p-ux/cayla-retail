@@ -103,7 +103,7 @@ export function ColumnaFicha({
           {p.referencia}
           {elegida && (
             <span className="ml-1.5 inline-block align-[2px]">
-              <Chip tono="tinta">Queda</Chip>
+              <Chip tono="verde">Queda</Chip>
             </span>
           )}
         </span>
@@ -284,7 +284,7 @@ export function MatrizTallas({
               <th scope="row">
                 <span className="flex min-w-0 items-center gap-2">
                   <CapsulaColor fondo={c.colorHex} compacta />
-                  <span className="truncate">{c.color}</span>
+                  <span className="truncate" title={c.color}>{c.color}</span>
                 </span>
               </th>
               {m.tallas.map((t) => {

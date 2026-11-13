@@ -100,7 +100,8 @@ export function lugarInicial(talla: { piso: number | null; almacen: number | nul
 /** Lo que la lectura trae de cada variante además del stock: el color en #hex y si se sigue vendiendo. */
 export type ExtraDeVariante = { hex: string | null; activa: boolean };
 
-export type ColorDelModelo = { color: string | null; hex: string | null };
+/** `tonos`: si el color es una mezcla («Hueso con azul», ADR-0643), los tonos con que se parte su muestra. Los pone `useAjusteDelModelo`. */
+export type ColorDelModelo = { color: string | null; hex: string | null; tonos?: readonly string[] | null };
 
 export type ModeloDeAjuste = {
   colores: ColorDelModelo[];

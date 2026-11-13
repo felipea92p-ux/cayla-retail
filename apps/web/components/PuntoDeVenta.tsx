@@ -210,6 +210,9 @@ export type VarianteBusqueda = PrendaBuscableV2 & {
   empresa?: string | null;
   /** `#rrggbb` del color de la variante (`colores.hex`): el fondo del ícono en la grilla y en el buscador. Ausente = el tono de su familia. */
   colorHex?: string | null;
+  /** Si el color es una mezcla («Hueso con azul», ADR-0643): sus tonos, la base primero. El punto de la tarjeta y del buscador se parte;
+   *  el ícono de la prenda sin foto se sigue tiñendo con `colorHex` (el de la base). Ausente = un color de un tono. */
+  colorTonos?: readonly string[] | null;
   /** El color es un estampado (ADR-0634): se reconoce por su foto, no por un punto. Ausente = se dibuja como cualquier color. */
   colorEstampado?: boolean;
   /** `variantes.color_codigo`: cruza con la ficha del color (ADR-0316) en «Todo de la prenda». Ausente = sin ficha. */

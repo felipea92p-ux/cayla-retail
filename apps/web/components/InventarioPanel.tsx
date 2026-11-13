@@ -413,7 +413,7 @@ export function InventarioPanel({
     const hexDeFila = new Map(stock.map((f) => [f.color, f.colorHex]));
     return colores.map((nombre) => {
       const c = deCatalogo.get(nombre);
-      return { id: nombre, nombre, hex: c?.hex ?? hexDeFila.get(nombre) ?? null, familia: c?.familia ?? null, tipo: c?.tipo ?? null };
+      return { id: nombre, nombre, hex: c?.hex ?? hexDeFila.get(nombre) ?? null, familia: c?.familia ?? null, tipo: c?.tipo ?? null, tonos: c?.tonos ?? null };
     });
   }, [colores, coloresCatalogo, stock]);
   const tallasElegidas = useMemo(() => valoresOfrecidos(filtros.tallas, tallas), [filtros.tallas, tallas]);
@@ -1259,14 +1259,14 @@ export function InventarioPanel({
                       <span className="mt-0.5 block truncate text-[11px] tracking-wide text-taupe/80">{f.sku}</span>
                       {/* Solo celular: el color y la talla, que en escritorio tienen su propia columna. */}
                       <span className="mt-0.5 flex items-center gap-2 text-sm text-taupe sm:hidden">
-                        {f.color && <MuestraColor nombre={f.color} hex={f.colorHex} compacta />}
+                        {f.color && <MuestraColor nombre={f.color} hex={f.colorHex} tonos={f.colorTonos} compacta />}
                         {f.talla}
                       </span>
                     </span>
                   </span>
                 </div>
                 <span className="hidden items-center gap-2 overflow-visible whitespace-nowrap text-sm text-tinta/65 sm:flex">
-                  {f.color && <MuestraColor nombre={f.color} hex={f.colorHex} compacta />}
+                  {f.color && <MuestraColor nombre={f.color} hex={f.colorHex} tonos={f.colorTonos} compacta />}
                   {f.talla}
                 </span>
                 {/* Las cifras (Stock actual, Cobertura piso, Ritmo reciente, En camino) amontonadas y pegadas a la izquierda

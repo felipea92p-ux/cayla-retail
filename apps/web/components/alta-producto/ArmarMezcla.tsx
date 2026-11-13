@@ -40,6 +40,7 @@ export function ArmarMezcla({
   onQuitar,
   onLista,
   onCerrar,
+  desde = "carta",
 }: {
   base: ColorAlta;
   /** Todos los colores (también las mezclas guardadas): de aquí se reconoce una mezcla que ya existe, aunque la carta ya no las ofrezca. */
@@ -50,6 +51,9 @@ export function ArmarMezcla({
   /** La mezcla (nueva o la que ya existía): quien la recibe la elige en vez de la base. */
   onLista: (mezcla: ColorAlta) => void;
   onCerrar: () => void;
+  /** De dónde salen los acompañantes: la carta (Nuevo producto, Recibir, Agregar colores) o el buscador de al lado (Corregir color, que no
+   *  tiene carta). Solo cambia lo que dice la pista. */
+  desde?: "carta" | "buscador";
 }) {
   const [guardando, setGuardando] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -66,7 +70,7 @@ export function ArmarMezcla({
   const tonos = tonosDeMezcla({ componentes }, porCodigo) ?? [];
   const deLaBase = base.nombre.toLocaleLowerCase("es");
 
-  const falta = acompanantes.length === 0 ? `Toca en la carta el color que acompaña al ${deLaBase}.` : null;
+  const falta = acompanantes.length === 0 ? (desde === "carta" ? `Toca en la carta el color que acompaña al ${deLaBase}.` : `Busca el color que acompaña al ${deLaBase}.`) : null;
   const bloqueo = !enLinea ? "Armar una mezcla necesita internet. Cuando vuelva la conexión, vuelve a tocar «Usar la mezcla»." : falta;
 
   async function usar() {
@@ -129,7 +133,7 @@ export function ArmarMezcla({
                   onClick={() => onQuitar(c.codigo)}
                   disabled={guardando}
                   aria-label={`Quitar ${c.nombre}`}
-                  className="grid h-6 w-6 place-items-center rounded-full text-[15px] leading-none text-tinta/60 hover:bg-tinta/[0.07] hover:text-tinta"
+                  className="area-dedo grid h-6 w-6 place-items-center rounded-full text-[15px] leading-none text-tinta/60 hover:bg-tinta/[0.07] hover:text-tinta"
                 >
                   ×
                 </button>
@@ -137,7 +141,7 @@ export function ArmarMezcla({
             ))}
           </div>
           <p className="text-sm text-taupe">
-            {acompanantes.length === 0 ? "Elige en la carta de 1 a 3 colores que lo acompañan." : yaExiste ? "Ya existe: se elige esa." : "Se crea al usarla."}
+            {acompanantes.length === 0 ? `Elige ${desde === "carta" ? "en la carta" : "arriba"} de 1 a 3 colores que lo acompañan.` : yaExiste ? "Ya existe: se elige esa." : "Se crea al usarla."}
           </p>
         </div>
       </div>

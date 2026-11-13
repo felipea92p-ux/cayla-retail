@@ -23,6 +23,7 @@ import type { ContextoFicha } from "./piezas";
 import type { StockFicha } from "./useStockFicha";
 import { PasoCantidad } from "@/components/ui/PasoCantidad";
 import { prefiereQuieto } from "@/lib/movimiento-cliente";
+import { tonosDeMezcla } from "@/lib/color-combinado";
 
 // La matriz color × talla de Editar producto, con el diseño de «Unidades de hoy» de Nuevo producto (`MatrizCantidades`, Felipe
 // 2026-10-02 noche): la misma tabla con cabecera, franja y punto del color, filas alternadas y la fila «Total» fija abajo.
@@ -422,7 +423,7 @@ export function MatrizStockFicha({
                       onMouseLeave={() => onVerColor(undefined)}
                       className="-ml-1 flex min-w-0 items-center gap-1.5 rounded-md px-1 py-0.5 text-left transition-colors hover:bg-hueso aria-pressed:bg-hueso"
                     >
-                      {color ? <Punto hex={color.hex} familia={color.familiaColor} tipo={color.tipo} /> : <Punto hex={null} />}
+                      {color ? <Punto hex={color.hex} familia={color.familiaColor} tipo={color.tipo} tonos={tonosDeMezcla(color, new Map(ctx.colores.map((x) => [x.codigo, x])))} /> : <Punto hex={null} />}
                       {/* «nueva» va DEBAJO del nombre: al lado le quitaba espacio y «Azul eléctrico» salía cortado. */}
                       <span className="flex min-w-0 flex-col leading-tight">
                         <span className="truncate" title={nombreColor}>

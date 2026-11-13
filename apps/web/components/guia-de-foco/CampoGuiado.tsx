@@ -78,11 +78,11 @@ export function CampoGuiado({
     >
       {titulo && (
         <>
-          <p className={`${ayuda && ayudaAbajo ? "" : "mb-1.5 "}flex flex-wrap items-baseline gap-x-2 text-[13px] font-semibold text-tinta`}>
+          <p className={`${ayuda && ayudaAbajo ? "" : "mb-1.5 "}flex flex-wrap items-baseline gap-x-2 text-sm font-semibold text-tinta`}>
             {guia.etiqueta(id, titulo)}
-            {ayuda && !ayudaAbajo && <span className="text-[12px] font-normal text-taupe">{ayuda}</span>}
+            {ayuda && !ayudaAbajo && <span className="text-sm font-normal text-taupe">{ayuda}</span>}
           </p>
-          {ayuda && ayudaAbajo && <p className="mb-1.5 mt-0.5 text-[12px] font-normal text-taupe">{ayuda}</p>}
+          {ayuda && ayudaAbajo && <p className="mb-1.5 mt-0.5 text-sm font-normal text-taupe">{ayuda}</p>}
         </>
       )}
       {children}

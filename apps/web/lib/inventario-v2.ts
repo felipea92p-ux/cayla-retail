@@ -265,6 +265,8 @@ export type FilaExistencias = FilaStock & {
   /** La familia del color (`colores.familia_color`), para el filtro «Color» agrupado por familia (2026-10-03). La pone la
    *  página con `conFamiliaDeColor`, de una lectura aparte y tolerante. Ausente o null = sin familia o no se pudo leer. */
   colorFamilia?: string | null;
+  /** Si el color es una mezcla («Hueso con azul», ADR-0643): sus tonos para partir el punto (`fondoDelPunto`). Lo pone `conFamiliaDeColor`. */
+  colorTonos?: readonly string[] | null;
   /** De quién son las unidades de esta talla en esta sede (ADR-0542), solo donde conviven dos empresas y solo si alguien que no es la casa
    *  tiene unidades. La pone la página con `conDuenos`, de una lectura aparte y tolerante. Ausente = nada que decir, o no se pudo leer. */
   duenos?: DuenoDeStock[];

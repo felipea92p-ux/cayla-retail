@@ -14,6 +14,7 @@ import { bordeDeMuestra, textoDeFamilia } from "@/lib/colores-familias";
 import { useEnLinea } from "@/lib/useEnLinea";
 import { Boton } from "@/components/ui/campos";
 import { Aviso } from "@/components/ui/Aviso";
+import { PieAcciones } from "@/components/ui/PieAcciones";
 import { Punto } from "@/components/alta-producto/Punto";
 import { ChipOpcion } from "@/components/alta-producto/piezas";
 import { esEstampado, GRUPO_ESTAMPADOS } from "@/lib/color-estampado-reglas";
@@ -50,6 +51,7 @@ export function ElegirColores({
   sinElegidos = false,
   enfocarBuscador = false,
   conMezclas = false,
+  todos,
 }: {
   colores: ColorAlta[];
   grupos: { familia: string; texto: string; colores: ColorAlta[] }[];
@@ -66,6 +68,9 @@ export function ElegirColores({
   enfocarBuscador?: boolean;
   /** Cada color elegido trae «+ acompañante»: lo vuelve una mezcla («Hueso con azul», ADR-0643) que se elige en su lugar. Nuevo producto y Recibir. */
   conMezclas?: boolean;
+  /** La carta ENTERA, cuando `colores` es solo lo que se puede elegir aquí (Agregar colores de la ficha no ofrece los que la prenda ya
+   *  vende): armando una mezcla, sus acompañantes salen de esta, porque «Azul con crudo» se arma aunque la prenda ya venda Crudo. */
+  todos?: { colores: ColorAlta[]; grupos: { familia: string; texto: string; colores: ColorAlta[] }[] };
 }) {
   const [carta, setCarta] = useState(cartaAbierta);
   // Crear un color nuevo sí remonta el buscador (queda vacío mientras la hoja de «Nuevo color» está abierta); elegir uno de la lista NO: el buscador se vacía solo (`varios`) y la lista
@@ -81,15 +86,25 @@ export function ElegirColores({
   // en vez de elegir colores (Felipe 2026-11-12: sin otra hoja encima; `ArmarMezcla` es el panel sobre la carta).
   const [mezclaDe, setMezclaDe] = useState<ColorAlta | null>(null);
   const [acompanantes, setAcompanantes] = useState<string[]>([]);
+  // «+ Color combinado» (Felipe 2026-11-13): antes de armar, se elige la BASE en la carta entera —también un color que esta pantalla no
+  // ofrece para elegir, como uno que la prenda ya vende en «Agregar colores»—. El siguiente toque es la base, no un color elegido.
+  const [eligiendoBase, setEligiendoBase] = useState(false);
   const enLinea = useEnLinea();
 
-  const porCodigo = new Map(colores.map((c) => [c.codigo, c]));
+  // Con la carta entera (`todos`) si la hay: los tonos de una mezcla y sus acompañantes pueden ser colores que aquí no se eligen.
+  const porCodigo = new Map([...(todos?.colores ?? []), ...colores].map((c) => [c.codigo, c]));
   // Las mezclas guardadas («Celeste con blanco») no se ofrecen en la carta ni en el buscador (Felipe 2026-11-12: son una referencia de esa
   // prenda, casi nunca se repiten y nadie recuerda que existen; «mejor se ingresa siempre nuevamente viendo la prenda»). Si se arma una que
   // ya existe, `ArmarMezcla` la reusa. Las ya elegidas en esta prenda siguen a la vista en la fila de elegidos.
   const ofrecibles = colores.filter((c) => !esCombinado(c));
+  // Armando una mezcla, la carta y el buscador ofrecen los acompañantes de la carta entera.
+  const ofreciblesMezcla = todos ? todos.colores.filter((c) => !esCombinado(c)) : ofrecibles;
+  const gruposCarta = (mezclaDe || eligiendoBase) && todos ? todos.grupos : grupos;
+  // Lo que la carta marca con su ✓: los acompañantes mientras se arma; nada mientras se busca la base; si no, lo elegido.
+  const marcados = mezclaDe ? acompanantes : eligiendoBase ? [] : elegidos;
 
   function abrirMezcla(base: ColorAlta) {
+    setEligiendoBase(false);
     setMezclaDe(base);
     setAcompanantes([]);
     setCarta(true);
@@ -100,6 +115,11 @@ export function ElegirColores({
   }
   /** Un toque en la carta (o una opción del buscador): elige el color, o, armando una mezcla, lo suma o lo quita como acompañante. */
   function tocar(codigo: string) {
+    if (eligiendoBase) {
+      const base = porCodigo.get(codigo);
+      if (base && !esCombinado(base)) abrirMezcla(base);
+      return;
+    }
     if (!mezclaDe) {
       onAlternar(codigo);
       return;
@@ -155,7 +175,7 @@ export function ElegirColores({
                 type="button"
                 onClick={() => onAlternar(c.codigo)}
                 aria-label={`Quitar ${c.nombre}`}
-                className="grid h-6 w-6 place-items-center rounded-full text-[15px] leading-none text-tinta/60 hover:bg-tinta/[0.07] hover:text-tinta"
+                className="area-dedo grid h-6 w-6 place-items-center rounded-full text-[15px] leading-none text-tinta/60 hover:bg-tinta/[0.07] hover:text-tinta"
               >
                 ×
               </button>
@@ -170,19 +190,19 @@ export function ElegirColores({
           key={vuelta}
           caja
           className="min-w-[13rem] flex-1"
-          etiquetaAccesible={mezclaDe ? `Buscar un color que acompaña al ${mezclaDe.nombre.toLocaleLowerCase("es")}` : "Buscar un color"}
+          etiquetaAccesible={mezclaDe ? `Buscar un color que acompaña al ${mezclaDe.nombre.toLocaleLowerCase("es")}` : eligiendoBase ? "Buscar el color base de la mezcla" : "Buscar un color"}
           autoFocus={enfocarBuscador}
-          marcador={mezclaDe ? `Busca el color que acompaña al ${mezclaDe.nombre.toLocaleLowerCase("es")}` : `Busca entre los ${ofrecibles.length} colores: petróleo, coral…`}
+          marcador={mezclaDe ? `Busca el color que acompaña al ${mezclaDe.nombre.toLocaleLowerCase("es")}` : eligiendoBase ? "Busca el color base" : `Busca entre los ${ofrecibles.length} colores: petróleo, coral…`}
           valor=""
           varios
           onValor={(cod) => {
-            if (mezclaDe) tocar(cod);
+            if (mezclaDe || eligiendoBase) tocar(cod);
             else if (!elegidos.includes(cod)) onAlternar(cod);
           }}
-          opciones={(mezclaDe ? ofrecibles.filter((c) => puedeAcompanar(c, mezclaDe.codigo)) : ofrecibles).map((c) => ({
+          opciones={(mezclaDe ? ofreciblesMezcla.filter((c) => puedeAcompanar(c, mezclaDe.codigo)) : eligiendoBase ? ofreciblesMezcla : ofrecibles).map((c) => ({
             valor: c.codigo,
             texto: c.nombre,
-            detalle: (mezclaDe ? acompanantes : elegidos).includes(c.codigo) ? "elegido" : undefined,
+            detalle: marcados.includes(c.codigo) ? "elegido" : undefined,
             claves: c.sinonimos,
             icono: <Punto hex={c.hex} familia={c.familiaColor} tipo={c.tipo} tonos={tonosDeMezcla(c, porCodigo)} />,
           }))}
@@ -201,7 +221,34 @@ export function ElegirColores({
         <Boton type="button" onClick={() => abrirNuevo("", false)} aria-expanded={nuevo !== null} title={enLinea ? undefined : "Crear un color necesita internet"}>
           + Nuevo color
         </Boton>
+        {conMezclas && !eligiendoBase && !mezclaDe && (
+          // La entrada a la vista para una prenda de dos o más colores (hueso con azul): el «+ acompañante» de cada píldora no se encontraba.
+          <Boton
+            type="button"
+            onClick={() => {
+              cerrarMezcla();
+              setEligiendoBase(true);
+              setCarta(true);
+            }}
+            title="Para una prenda de dos o más colores: hueso con azul"
+          >
+            + Color combinado
+          </Boton>
+        )}
       </div>
+
+      {/* «+ Color combinado», primer paso: la base. El panel de la mezcla (abajo) toma la posta al tocarla. */}
+      {eligiendoBase && (
+        <section aria-label="Color combinado" aria-live="polite" className="space-y-2 rounded-xl border border-tinta/25 bg-papel p-3">
+          <p className="text-base text-tinta">¿Qué color se ve más en la prenda?</p>
+          <p className="text-sm text-taupe">Tócalo en la carta o búscalo arriba: es la base. Después eliges de 1 a 3 colores que lo acompañan.</p>
+          <PieAcciones>
+            <Boton peso="fantasma" type="button" onClick={() => setEligiendoBase(false)}>
+              Cancelar
+            </Boton>
+          </PieAcciones>
+        </section>
+      )}
 
       {pidioSinRed && !enLinea && nuevo === null && (
         <Aviso tono="atencion" chico>
@@ -240,13 +287,13 @@ export function ElegirColores({
       {mezclaDe && (
         <ArmarMezcla
           base={mezclaDe}
-          colores={colores}
+          colores={todos?.colores ?? colores}
           acompanantes={acompanantes}
           onQuitar={tocar}
           onCerrar={cerrarMezcla}
           onLista={(mezcla) => {
-            // La prenda es UNA: la mezcla reemplaza a la base entre los elegidos.
-            onAlternar(mezclaDe.codigo);
+            // La prenda es UNA: la mezcla reemplaza a la base entre los elegidos (si la base estaba elegida; desde «+ Color combinado» no lo está).
+            if (elegidos.includes(mezclaDe.codigo)) onAlternar(mezclaDe.codigo);
             if (!elegidos.includes(mezcla.codigo)) onCreado(mezcla);
             cerrarMezcla();
           }}
@@ -264,7 +311,7 @@ export function ElegirColores({
         // se señalan a su vez); al salir de la carta, el pie vuelve a su pista.
         <div className="@container anim-revelar rounded-xl border border-sand bg-crema px-3 py-1.5" onMouseLeave={() => setSenalado(null)}>
           <div className="grid @4xl:grid-cols-2 @4xl:gap-x-6">
-            {grupos.filter((g) => g.familia !== GRUPO_COMBINADOS).map((g, i) => (
+            {gruposCarta.filter((g) => g.familia !== GRUPO_COMBINADOS).map((g, i) => (
               <div
                 key={g.familia}
                 className={`grid gap-1 py-1.5 @md:grid-cols-[5rem_minmax(0,1fr)] @md:items-start @md:gap-2.5 ${
@@ -278,7 +325,7 @@ export function ElegirColores({
                   // Una mezcla también (ADR-0643): «Hueso con azul» y «Hueso con celeste» se distinguen por su nombre, no por medio círculo.
                   <div className="flex flex-wrap gap-1.5">
                     {g.colores.map((c) => (
-                      <ChipOpcion key={c.codigo} elegido={(mezclaDe ? acompanantes : elegidos).includes(c.codigo)} onClick={() => { tocar(c.codigo); setSenalado(c); }}>
+                      <ChipOpcion key={c.codigo} elegido={marcados.includes(c.codigo)} onClick={() => { tocar(c.codigo); setSenalado(c); }}>
                         <span className="inline-flex items-center gap-1.5">
                           <Punto hex={c.hex} familia={c.familiaColor} tipo={c.tipo} tonos={tonosDeMezcla(c, porCodigo)} />
                           {c.nombre}
@@ -290,7 +337,7 @@ export function ElegirColores({
                 <div className="flex flex-wrap gap-1.5">
                       {filaDeLaFamilia(g.colores).map((c) => {
                         // Armando una mezcla, la marca es de acompañante y la base no se toca (no se acompaña a sí misma).
-                        const elegido = (mezclaDe ? acompanantes : elegidos).includes(c.codigo);
+                        const elegido = marcados.includes(c.codigo);
                         const esLaBase = mezclaDe?.codigo === c.codigo;
                         return (
                           <button

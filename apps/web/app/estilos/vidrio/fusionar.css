@@ -8,6 +8,11 @@
    «Animaciones» apagado (movimiento.css) o con prefers-reduced-motion.
    ===================================================================================================================== */
 
+/* La hoja se ensancha al sumar la segunda ficha (de 576 a 1080 px) y vuelve a angostarse en «Fusionado»: de a poco, no de golpe. */
+.hoja-serena:has(> * .fus-cuerpo, > .fus-cuerpo) {
+  transition: max-width var(--t-hoja) var(--ease-cayla);
+}
+
 /* ---------- el cuerpo: dos columnas, una sola bajo 880 px de ancho de la hoja ---------- */
 .fus-cuerpo {
   container-type: inline-size;
@@ -52,10 +57,18 @@
 .fus-opcion:not(:disabled):active {
   scale: 0.985;
 }
+/* Lo elegido: la gota teñida de verde, con su borde y su ✓ en verde (Felipe 2026-11-13: «que se resalte en un color, tal vez un verde»).
+   Un tinte sobre el vidrio, nunca un relleno sólido (lo primero que pidió fue que lo elegido no desentonara con el vidrio). */
 .fus-opcion[aria-checked="true"] {
-  border-color: var(--color-tinta);
-  background: var(--gota-marca);
-  box-shadow: var(--gota-luz);
+  border-color: var(--color-verde);
+  background:
+    linear-gradient(color-mix(in srgb, var(--color-verde) 12%, transparent), color-mix(in srgb, var(--color-verde) 12%, transparent)),
+    var(--gota-marca);
+  box-shadow: var(--gota-luz), 0 0 0 1px var(--color-verde);
+}
+.fus-opcion[aria-checked="true"] .fus-visto {
+  background: var(--color-verde);
+  color: var(--color-crema-fija);
 }
 .fus-opcion:disabled {
   cursor: default;
@@ -213,6 +226,27 @@
   }
 }
 
+/* El pie de la hoja: los botones al medio de la barra, 16 px arriba y 16 abajo (Felipe 2026-11-13; el pie del sistema deja 24 abajo y
+   nada arriba). El margen negativo sigue llevándolo hasta el borde de la hoja. */
+.fus-cuerpo > .pie-hoja-fijo {
+  padding-top: 16px;
+  padding-bottom: calc(1rem + var(--borde-abajo, 0px));
+}
+
+/* Con una sola ficha, antes de tener con qué compararla: una fila corta, no una tarjeta alta y vacía. */
+.fus-ficha-sola {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 12px;
+  border-radius: var(--radius-campo, 14px);
+  padding: 12px 16px;
+}
+/* La lista de lo que se encuentra: cuatro filas de 56 px y asoma la quinta; el resto corre adentro. */
+.fus-lista-buscar {
+  max-height: 260px;
+}
+
 /* La foto de la ficha en 4:3 (la de la prenda es 3:4: en una columna de 328 px mediría 437 px solo de foto). */
 .fus-foto {
   position: relative;
@@ -226,7 +260,8 @@
 .fus-fila {
   display: grid;
   grid-template-columns: repeat(var(--fus-n, 2), minmax(0, 1fr));
-  gap: 12px;
+  /* El rótulo, más cerca de sus opciones (8) que de la fila de arriba (16, el `space-y-4` de afuera): proximidad. */
+  gap: 8px 12px;
   animation: fus-sube var(--t-hoja) var(--ease-cayla) both;
   animation-delay: calc(200ms + var(--fus-k, 0) * 18ms);
 }
@@ -304,6 +339,11 @@
 }
 
 /* ---------- la matriz color × talla ---------- */
+/* Sin la lámina que la hoja Serena pone detrás de toda tabla (casi papel, sólida: desentonaba). Las celdas llevan su propio tinte y
+   el texto se lee igual sobre la placa (Felipe 2026-11-13). Más específica que `.hoja-serena :is(table)` para ganarle. */
+.hoja-serena .fus-matriz {
+  background: transparent;
+}
 .fus-matriz {
   width: 100%;
   border-collapse: separate;
@@ -318,8 +358,9 @@
   padding-bottom: 2px;
   text-align: center;
 }
-.fus-matriz tbody th {
-  width: 72px;
+.fus-matriz tbody th,
+.fus-matriz thead th:first-child {
+  width: 80px;
   text-align: left;
   font-size: 14px;
   font-weight: 500;
@@ -347,7 +388,8 @@
   border-spacing: 8px;
   margin: -8px;
 }
-.fus-matriz-grande tbody th {
+.fus-matriz-grande tbody th,
+.fus-matriz-grande thead th:first-child {
   width: 112px;
 }
 .fus-celda small {
@@ -380,7 +422,7 @@
   color: var(--color-verde);
 }
 .fus-celda-nada {
-  color: color-mix(in srgb, var(--color-tinta) 30%, transparent); /* contraste: no aplica — la raya de una celda vacía es decorativa, no un dato */
+  color: color-mix(in srgb, var(--color-tinta) 45%, transparent); /* contraste: no aplica — la raya de una celda vacía es decorativa, no un dato */
   font-weight: 400;
 }
 .fus-matriz[aria-busy="true"] .fus-celda {
@@ -532,6 +574,11 @@
   .fus-comparar > * {
     scroll-snap-align: start;
   }
+  /* Con una sola ficha no hay nada que deslizar: ocupa toda la fila. */
+  .fus-mesa:not(:has(> :nth-child(2))) {
+    grid-auto-columns: 100%;
+    overflow-x: visible;
+  }
   .fus-fila {
     grid-template-columns: minmax(0, 1fr);
     gap: 8px;
@@ -581,6 +628,7 @@
   .fus-galeria-grande img {
     animation: none !important;
   }
+  .hoja-serena:has(> * .fus-cuerpo, > .fus-cuerpo),
   .fus-opcion,
   .fus-celda,
   .fus-final,
