@@ -4,7 +4,7 @@ import { EsperaPantalla } from "@/components/ui/Espera";
 import { getPendientesDeLaSede } from "@/lib/recepcion-conteo";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-import { BadgePercent, ChevronDown, LayoutGrid, Rows3, SignpostBig } from "lucide-react";
+import { BadgePercent, LayoutGrid, Rows3, SignpostBig } from "lucide-react";
 import { exigirModulo, puede, veModulo } from "@/lib/persona-actual";
 import { createClient } from "@/lib/supabase/server";
 import { exigir } from "@/lib/resultado";
@@ -14,7 +14,6 @@ import {
   paginaProductosDesdeParams,
   listarProductos,
   getExistenciasProductos,
-  getSinTemporadaResumen,
   getFacetasProductos,
   getTemporadasCatalogo,
   type ParamsProductosListado,
@@ -126,11 +125,7 @@ async function ListaDeProductos({ searchParams }: { searchParams: Promise<Params
   const editaCatalogo = puede(persona, "editarCatalogo");
   // «Eliminar» en la tarjeta y en la tabla (ADR-0252, act. 2026-10-03): quien edita el catálogo, igual que la base
   // (`fn_puede_editar_catalogo`). Antes, solo Líder: la cuenta de almacén creaba productos y no podía deshacer un error.
-  // ADR-0246 + ADR-0161: el aviso «N prendas sin temporada · Completar» lleva a Atributos ▸ Temporadas, que se abre con el
-  // módulo «Categorías, marcas y atributos». `editarCatalogo` también sale de ver Productos completo, así que el permiso
-  // solo no basta: sin el módulo, «Completar» caería en «Sin acceso». A quien no puede completarlas no se le muestra.
-  const completaTemporadas = editaCatalogo && veModulo(persona, "atributos");
-  const [resultado, facetas, categorias, colores, resMarcas, resProveedores, sinTemporada, resTallas, temporadas, porRevisar, recibidoPorCrear, posiblesDuplicados] = await Promise.all([
+  const [resultado, facetas, categorias, colores, resMarcas, resProveedores, resTallas, temporadas, porRevisar, recibidoPorCrear, posiblesDuplicados] = await Promise.all([
     listarProductos(filtros, pagina),
     // Cuántas hay en cada opción, el rango real del precio y sus tramos (ADR-0308). `null` si falla: opciones sin número.
     getFacetasProductos(filtros),
@@ -141,8 +136,6 @@ async function ListaDeProductos({ searchParams }: { searchParams: Promise<Params
     // Marcas y proveedores activos, para los filtros (ADR-0109).
     supabase.from("marcas").select("id, nombre").eq("activo", true).order("nombre"),
     supabase.from("proveedores").select("id, nombre").eq("activo", true).order("nombre"),
-    // ADR-0246: solo a quien puede completarlas en la pestaña. `null` si no se pudo saber (SQL sin pegar): no se muestra nada.
-    completaTemporadas ? getSinTemporadaResumen() : Promise.resolve(null),
     supabase.from("tallas").select("id, valor").eq("activo", true),
     // La lista cerrada de temporadas, para su filtro. `null` si no se pudo: la píldora no aparece, el resto sigue.
     getTemporadasCatalogo().catch(() => null),
@@ -321,30 +314,9 @@ async function ListaDeProductos({ searchParams }: { searchParams: Promise<Params
         </Aviso>
       )}
 
-      {sinTemporada && sinTemporada.prendas > 0 && (
-        // ADR-0246: discreto (nota en hueso, no borde rojo): es trabajo de carga, no algo del mostrador. El porqué va
-        // plegado; «Completar» queda fuera del <summary> para no anidar un enlace dentro de un botón.
-        <div data-guia="productos.sin-temporada" className="nota-cayla flex flex-wrap items-start justify-between gap-x-4 gap-y-1">
-          <details className="group min-w-0 flex-1">
-            <summary className="flex cursor-pointer list-none items-center gap-2 [&::-webkit-details-marker]:hidden">
-              <strong>
-                {sinTemporada.prendas.toLocaleString("es-PE")} {sinTemporada.prendas === 1 ? "prenda sin temporada" : "prendas sin temporada"}
-              </strong>
-              <ChevronDown aria-hidden className="h-4 w-4 shrink-0 transition-transform group-open:rotate-180" />
-            </summary>
-            <p className="mt-1">
-              Sin temporada, Frescura no las compara con las de su misma estación ni avisa cuando pasan a temporada pasada. En Atributos ▸
-              Temporadas se completan de a varias; y si le pones temporada a su categoría, la heredan todas las que no tienen la suya.
-            </p>
-          </details>
-          {/* `desde=productos`: la vista de destino muestra «← Productos» (Atributos está en el menú y no la lleva siempre). */}
-          <Link href="/productos/atributos?tipo=temporadas&vista=completar&desde=productos" className="btn-cayla btn-enlace text-[13px]">
-            Completar
-          </Link>
-        </div>
-      )}
-
-
+      {/* Las prendas sin temporada ya no tienen aviso propio (Felipe 2026-11-13: ocupaba mucho para lo que decía): se filtran
+          con «Por completar ▸ Sin temporada», junto a lo demás que le falta a la ficha. Se completan de a varias en Atributos ▸
+          Temporadas ▸ Por completar. */}
       <FiltrosProductos
         categorias={categoriasOpciones}
         colores={coloresOpciones}

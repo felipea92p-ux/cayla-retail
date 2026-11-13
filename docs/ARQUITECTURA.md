@@ -891,7 +891,8 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
   `retail.color_combinado` (busca o crea la mezcla; nombre y código los arma la base). La pantalla la arma con `ArmarMezcla`
   («+ acompañante» de `ElegirColores`, prop `conMezclas`: Nuevo producto y `recepcion-envio/HojaPrenda`); la lógica pura vive en
   `lib/color-combinado.ts` (nombre, componentes, punto partido). La carta y Atributos agrupan las mezclas en «Combinados» con `familiaEnCarta`.
-- `/productos/insignias` (Catálogo ▸ Insignias —se llamó «Sellos» hasta el 2026-10-23—, ADR-0481; lo abren los módulos `etiquetas` o `campanas`; en el código sigue llamándose `sellos`) → `page.tsx` lee con
+- `/productos/campanas` (Catálogo ▸ Campañas y ofertas, ADR-0655; lo abren los módulos `campanas` o `etiquetas`) → la misma `SellosPantalla` con `modo="campanas"` y la misma lectura de abajo (`cargarEtiquetasPantalla({ modo: "campanas" })`); cada campaña dice sus tres preguntas (`preguntasDeCampana`) y el «?» abre `MapaCampanas`.
+- `/productos/insignias` (Catálogo ▸ Insignias —se llamó «Sellos» hasta el 2026-10-23—, ADR-0481; desde ADR-0655 solo Rotación, Artesanal y General y solo con el módulo `etiquetas`; `?vista=campanas` y quien solo tiene `campanas` van a `/productos/campanas`; en el código sigue llamándose `sellos`) → `page.tsx` lee con
   `lib/etiquetas-pantalla-datos.ts` (`cargarEtiquetasPantalla({ modo: "todas", conVitrina: true })`: todas las filas de `etiquetas`, las
   prendas a la venta con su modelo, color, categoría y foto —`colores`, `categorias`, `producto_fotos`— y, para quien puede analizar, la
   lectura de Rotación de `lib/etiqueta-rotacion-datos.ts`: `fn_analisis_sede` por tienda, unidades y vendidas en 30 días por talla) →
@@ -2495,6 +2496,12 @@ cuando hace falta hablar con algo que no es Postgres, o devolver un archivo.
   montado una vez en `app/(app)/layout.tsx`, reglas en `lib/version-nueva-reglas.ts`) cada 5 min con la pestaña a la vista: si la de producción es
   otra que la de la pestaña, sale «Hay una versión nueva de CAYLA» con «Actualizar» / «Más tarde». No es pública y su `fetch` no lleva `?dpl=` (la
   protección de versiones de Vercel, 12 h, lo atendería en la versión vieja). `Cache-Control: no-store`. ADR-0422.
+- `/api/tiempos` → `POST`, con sesión, 204 siempre: el cronómetro del clic (ADR-0654). `onRouterTransitionStart` (`instrumentation-client.ts`,
+  con `experimental.instrumentationClientRouterTransitionEvents`) arranca la medición en `lib/tiempos-de-pantalla-cliente.ts`; termina en el
+  primer cuadro sin `[data-esqueleto-pantalla]` con la ruta nueva ya anotada por `<CronometroDelClic sedeId>` (`components/CronometroDelClic.tsx`,
+  montado una vez en `app/(app)/layout.tsx`: ruta, `useParams()`, envío cada 30 s y al ocultar la pestaña por `sendBeacon`). La ruta valida el
+  lote (`leerLote`, `lib/tiempos-de-pantalla-reglas.ts`) y escribe una línea `tiempo_de_pantalla` por medición (patrón de ruta, ms, sede,
+  `sin_esqueleto`, versión). Sin base. Se lee con `vercel logs --query tiempo_de_pantalla` (p75 por módulo y sede: el ADR).
 
 - `/api/clientas/acceso-web` → `POST` desde la ficha de un cliente, «Restablecer acceso» a la tienda online (2026-10-15,
   `20261015132000`): `restablecer_acceso_tienda_web` (con la firma del Responsable) deja pedido el cambio del correo de entrada y

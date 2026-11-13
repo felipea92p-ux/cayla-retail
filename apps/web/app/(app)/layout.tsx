@@ -12,6 +12,7 @@ import { RefrescoTrasCorte } from "@/components/RefrescoTrasCorte";
 import { ContextoDeErrores } from "@/components/ContextoDeErrores";
 import { SinConexion } from "@/components/SinConexion";
 import { VersionNueva } from "@/components/VersionNueva";
+import { CronometroDelClic } from "@/components/CronometroDelClic";
 import { RecordatorioCierreCaja } from "@/components/RecordatorioCierreCaja";
 import { EsperaAlVelo } from "@/components/login/EntradaColibri";
 import { getRecordatorioCierre, recibeRecordatorioCierre } from "@/lib/recordatorio-cierre";
@@ -89,6 +90,8 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         <SinConexion cuenta={persona.personaId ?? `terminal:${persona.nombre}`} generadoEn={new Date().toISOString()} />
         {/* «Hay una versión nueva de CAYLA» (ADR-0422): quien tiene el ERP abierto desde antes de la última publicación lo sabe y actualiza cuando termina. */}
         <VersionNueva />
+        {/* El cronómetro del clic (ADR-0654): cuánto tarda en llegar cada pantalla, por sede, a los registros del servidor. No dibuja nada. */}
+        <CronometroDelClic sedeId={persona.vista === "global" ? "global" : persona.ubicacionId} />
         {children}
         {/* Sube lo guardado sin conexión (ADR-0210) desde cualquier pantalla. */}
         <ColasSinConexion />
