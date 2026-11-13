@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowRight, Check, Merge, SearchX } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
-import { traducirError } from "@/lib/error-escritura";
+import { esRespuestaIncierta, esVersionCambiada, traducirError } from "@/lib/error-escritura";
 import { firmar } from "@/lib/responsable-reglas";
 import { useResponsable } from "@/lib/useResponsable";
 import { sePuedeConfirmar } from "@/lib/guia-campos";
@@ -17,8 +17,10 @@ import {
   frasesDelResumen,
   fuenteDe,
   leerPlan,
+  mensajeAlNoFusionar,
   opcionesDeCampo,
   quedaSugerido,
+  yaFusionadas,
   type CampoFusion,
   type Elecciones,
   type PlanFusion,
@@ -58,6 +60,13 @@ type Encontrado = {
 /** Cuánto espera la búsqueda a que la persona deje de escribir. */
 const ESPERA_BUSQUEDA_MS = 250;
 
+/** El ancho de la hoja: mediana (576 px, el de `tamano="mediana"`) mientras no hay con qué comparar; 1080 px para las fichas lado a lado. */
+const ANCHO_UNA_FICHA = "max-w-xl";
+const ANCHO_COMPARAR = "max-w-[67.5rem]";
+
+/** Cuántas «¿Es alguna de estas?» se ofrecen de un toque: más alargan la hoja; las demás se encuentran escribiendo. */
+const MAX_SUGERIDOS = 6;
+
 /** Hasta cuántas fichas se juntan de una vez en la hoja (la mesa de columnas está pensada para tres). */
 const TOPE_FICHAS = 3;
 
@@ -91,12 +100,14 @@ export function FusionarProductosHoja({
   const [elecciones, setElecciones] = useState<Elecciones>(ELECCIONES_VACIAS);
   // La última lectura de la base, con la clave de lo que se le preguntó: mientras llega la siguiente se sigue viendo la anterior.
   const [lectura, setLectura] = useState<{ clave: string; plan: PlanFusion | null; error: string | null } | null>(null);
+  // «Leer de nuevo» tras un error de lectura: cambia la clave y la lectura corre de nuevo (/chaos 2026-11-13, RS-08).
+  const [intento, setIntento] = useState(0);
   const [detalle, setDetalle] = useState<{ clave: string; datos: DetalleFusion | null; error: boolean } | null>(null);
   const [vista, setVista] = useState<Vista>("armar");
   const [comparando, setComparando] = useState<string | null>(null);
   const [guardando, setGuardando] = useState(false);
   const [errorGuardar, setErrorGuardar] = useState<string | null>(null);
-  const [hecho, setHecho] = useState<{ referencia: string; vendidas: number; stock: number; repetidas: number } | null>(null);
+  const [hecho, setHecho] = useState<{ referencia: string; vendidas: number; stock: number; repetidas: number; porOtra: boolean } | null>(null);
   const cuerpo = useRef<HTMLDivElement>(null);
   const radios = useRef<Record<string, HTMLButtonElement | null>>({});
   // Dos clics en el mismo instante ven `guardando` en falso los dos: el candado de la ref no espera a React. (La base igual frena el
@@ -108,7 +119,7 @@ export function FusionarProductosHoja({
   const hayFusion = Boolean(quedaEfectiva) && duplicados.length > 0;
 
   // ---------- Leer el plan: cada vez que cambian las fichas, cuál queda o un dato que decide un bloqueo ----------
-  const clavePlan = JSON.stringify({ quedaEfectiva, duplicados, campos: elecciones.campos });
+  const clavePlan = JSON.stringify({ quedaEfectiva, duplicados, campos: elecciones.campos, intento });
   const leyendo = hayFusion && lectura?.clave !== clavePlan;
   const plan = hayFusion ? (lectura?.plan ?? null) : null;
   const errorLectura = hayFusion && lectura?.clave === clavePlan ? lectura.error : null;
@@ -211,14 +222,31 @@ export function FusionarProductosHoja({
     setGuardando(false);
     responsable.despues(error);
     if (error) {
-      setErrorGuardar(traducirError(error, "fusionar los productos"));
+      // La respuesta no llegó o alguien cambió las fichas: la base pudo haber fusionado (o alguien más). Se le pregunta antes de decir
+      // nada (/chaos 2026-11-13, RS-03 y NAV-05). Si no responde, el aviso no afirma lo que no sabe.
+      const incierta = esRespuestaIncierta(error);
+      if (incierta || esVersionCambiada(error)) {
+        const { data: filas } = await createClient().from("productos").select("id, fusionado_en_id").in("id", duplicados);
+        const ya = yaFusionadas((filas ?? []).map((f) => ({ id: f.id, fusionadoEnId: f.fusionado_en_id })), quedaEfectiva, duplicados);
+        if (ya) {
+          terminar(!incierta);
+          return;
+        }
+      }
+      setErrorGuardar(mensajeAlNoFusionar(traducirError(error, "fusionar los productos"), incierta));
       return;
     }
+    terminar(false);
+  }
+
+  function terminar(porOtra: boolean) {
+    if (!plan || !quedaEfectiva) return;
     setHecho({
       referencia: ficha?.referencia ?? plan.productos.find((p) => p.id === quedaEfectiva)?.referencia ?? "La ficha",
       vendidas: ficha?.unidadesVendidas ?? 0,
       stock: ficha?.stock ?? 0,
       repetidas: duplicados.length,
+      porOtra,
     });
     setVista("listo");
     onHecho?.(quedaEfectiva);
@@ -257,6 +285,9 @@ export function FusionarProductosHoja({
   const nombreInicial = inicial[0]?.referencia ?? "esta prenda";
   const nombreQueda = productos.find((p) => p.id === quedaEfectiva)?.referencia ?? nombreInicial;
   const nombresRepetidas = productos.filter((p) => p.id !== quedaEfectiva).map((p) => p.referencia);
+  // Con una sola ficha no hay nada que comparar ni «Así va a quedar»: la hoja es mediana y se ensancha al sumar la segunda. El «Fusionado»
+  // también va mediano (Felipe 2026-11-13: «sigue espacio innecesario a la derecha»).
+  const anchoHoja = vista === "listo" || (vista === "armar" && ids.length < 2) ? ANCHO_UNA_FICHA : ANCHO_COMPARAR;
   const titulo = vista === "revisar" ? "Revisa y fusiona" : vista === "listo" ? "Productos fusionados" : "Fusionar productos repetidos";
   const subtitulo =
     vista === "revisar"
@@ -267,7 +298,7 @@ export function FusionarProductosHoja({
 
   return (
     <>
-      <Modal /* unificar-fijo: la ficha que se arma es de diseño propio (dirección B, Felipe 2026-11-13): 1080 px */ variante="hoja" ancho="max-w-[67.5rem]" bloqueado={guardando} conCerrar={vista === "listo"} titulo={titulo} subtitulo={subtitulo} onClose={onClose}>
+      <Modal /* unificar-fijo: la ficha que se arma es de diseño propio (dirección B, Felipe 2026-11-13): 1080 px con dos fichas o más */ variante="hoja" ancho={anchoHoja} bloqueado={guardando} conCerrar={vista === "listo"} titulo={titulo} subtitulo={subtitulo} onClose={onClose}>
         {(cerrar) => (
           <div ref={cuerpo} className="fus-cuerpo" key={vista}>
             {vista === "armar" && (
@@ -305,9 +336,10 @@ export function FusionarProductosHoja({
                     ) : (
                       <ul className="fus-mesa" style={{ "--fus-n": Math.max(ids.length, 1) } as React.CSSProperties} data-guia="fusionar.queda">
                         {ids.map((id) => (
-                          <li key={id} className="fus-opcion fus-columna" style={{ borderRadius: 22 }}>
-                            <span className="fus-columna-nombre block">{inicial.find((f) => f.productoId === id)?.referencia ?? "…"}</span>
-                            <span className="mt-1 block text-sm text-taupe">{hayFusion ? "Leyendo las fichas…" : "Busca abajo la otra ficha de esta prenda para compararlas."}</span>
+                          // Sin plan todavía, una fila corta: el nombre y en qué está (Felipe 2026-11-13: «está demasiado largo»).
+                          <li key={id} className="fus-opcion fus-ficha-sola">
+                            <span className="font-semibold">{inicial.find((f) => f.productoId === id)?.referencia ?? "…"}</span>
+                            <span className="text-sm text-taupe">{errorLectura ? "No se pudo leer esta ficha." : hayFusion ? "Leyendo las fichas…" : "Busca abajo la otra ficha"}</span>
                           </li>
                         ))}
                       </ul>
@@ -322,7 +354,19 @@ export function FusionarProductosHoja({
                     </CampoGuiado>
                   )}
 
-                  {errorLectura && <Aviso tono="error" titulo="No se pudieron leer las fichas">{errorLectura}</Aviso>}
+                  {errorLectura && (
+                    <Aviso
+                      tono="error"
+                      titulo="No se pudieron leer las fichas"
+                      accion={
+                        <Boton peso="fantasma" type="button" className="btn-chico" onClick={() => setIntento((n) => n + 1)}>
+                          Leer de nuevo
+                        </Boton>
+                      }
+                    >
+                      {errorLectura}
+                    </Aviso>
+                  )}
 
                   {/* ---------- 2. Lo que es distinto (decisión 8): cada valor bajo la columna de su ficha ---------- */}
                   {plan && elegibles.length > 0 && (
@@ -448,7 +492,7 @@ export function FusionarProductosHoja({
                     <TituloGrupo>Qué va a pasar</TituloGrupo>
                     <ul className="fus-lista-revisar max-w-prose space-y-2 text-[15px] leading-relaxed text-tinta">
                       {[...frasesDelResumen(plan, fotosQueQuedan.length), "La ficha repetida queda archivada con su historia; nunca se borra."].map((f, k) => (
-                        <li key={f} className="flex gap-2.5" style={{ "--fus-k": Math.min(k, 7) } as React.CSSProperties}>
+                        <li key={f} className="flex gap-3" style={{ "--fus-k": Math.min(k, 7) } as React.CSSProperties}>
                           <Check aria-hidden className="mt-1 h-4 w-4 shrink-0 text-verde" />
                           <span>{f}</span>
                         </li>
@@ -476,7 +520,12 @@ export function FusionarProductosHoja({
                 </h3>
                 <p className="fus-listo-texto mt-1.5 max-w-[46ch] text-[15px] leading-relaxed text-taupe" style={{ "--fus-k": 1 } as React.CSSProperties}>
                   Lleva {hecho.vendidas.toLocaleString("es-PE")} {hecho.vendidas === 1 ? "prenda vendida" : "prendas vendidas"} y{" "}
-                  {hecho.stock.toLocaleString("es-PE")} en stock. {hecho.repetidas === 1 ? "La ficha repetida quedó archivada." : "Las fichas repetidas quedaron archivadas."}
+                  {hecho.stock.toLocaleString("es-PE")} en stock.{" "}
+                  {hecho.porOtra
+                    ? "Alguien más la fusionó mientras la revisabas: ya está hecha."
+                    : hecho.repetidas === 1
+                      ? "La ficha repetida quedó archivada."
+                      : "Las fichas repetidas quedaron archivadas."}
                 </p>
                 <div className="fus-listo-texto mt-5" style={{ "--fus-k": 2 } as React.CSSProperties}>
                   {quedaEfectiva && (
@@ -490,9 +539,16 @@ export function FusionarProductosHoja({
 
             {/* ---------- El pie de cada paso ---------- */}
             {vista === "armar" && (
-              <div className="pie-hoja-fijo mt-6 space-y-3">
-                <PieGuia guia={guiaArmar} listo={bloqueado ? "Revisa lo que falta arriba." : "Todo listo para revisar."} />
+              // Una sola fila (Felipe 2026-11-13: «la parte de abajo ocupa mucho espacio»): lo que dice la guía a la izquierda, los botones a
+              // la derecha; en el celular la frase toma su propia fila.
+              <div className="pie-hoja-fijo mt-4">
                 <div className="pie-acciones" data-guia="fusionar.botones">
+                  <div className="min-w-0 flex-1 max-sm:order-first max-sm:basis-full">
+                    <PieGuia
+                      guia={guiaArmar}
+                      listo={errorLectura ? "No se pudieron leer las fichas." : leyendo || !plan ? "Leyendo las fichas…" : bloqueado ? "Revisa lo que falta arriba." : "Todo listo para revisar."}
+                    />
+                  </div>
                   <Boton peso="fantasma" type="button" onClick={cerrar}>
                     Cancelar
                   </Boton>
@@ -515,18 +571,18 @@ export function FusionarProductosHoja({
               </div>
             )}
             {vista === "revisar" && (
-              <div className="pie-hoja-fijo mt-6 space-y-3">
+              <div className="pie-hoja-fijo mt-4 space-y-3">
                 {errorGuardar && (
                   <Aviso tono="error" titulo="No se pudo fusionar">
                     {errorGuardar} Las fichas siguen como estaban.
                   </Aviso>
                 )}
                 <AvisoNoSeDeshace />
-                <PieGuia guia={guiaRevisar} listo="Todo listo para fusionar." />
                 <div className="pie-acciones" data-guia="fusionar.confirmar">
-                  <span className="mr-auto">
-                    <Volver onClick={() => setVista("armar")} a="Volver a elegir" />
-                  </span>
+                  <Volver onClick={() => setVista("armar")} a="Volver a elegir" />
+                  <div className="min-w-0 flex-1 max-sm:order-first max-sm:basis-full">
+                    <PieGuia guia={guiaRevisar} listo="Todo listo para fusionar." />
+                  </div>
                   <Boton peso="fantasma" type="button" onClick={cerrar} disabled={guardando}>
                     Cancelar
                   </Boton>
@@ -678,6 +734,8 @@ function BuscarFicha({
           onActiva={setActiva}
           onElegir={elegir}
           enLinea
+          // Cuatro filas y asoma la quinta; las demás corren adentro: con muchas prendas la hoja ya no se alarga (Felipe 2026-11-13).
+          className="fus-lista-buscar"
         >
           {!buscando && (
             <Vacio tamano="chico" icono={<SearchX />} titulo={`No hay otra ficha con «${texto.trim()}»`}>
@@ -699,7 +757,7 @@ function SugeridosEnLinea({ parecidos, alElegir, deshabilitado }: { parecidos: E
     <div className="space-y-1.5">
       <p className="text-sm text-taupe">¿Es alguna de estas?</p>
       <ul className="flex flex-wrap gap-2">
-        {parecidos.map((p) => (
+        {parecidos.slice(0, MAX_SUGERIDOS).map((p) => (
           <li key={p.id}>
             <button type="button" disabled={deshabilitado} onClick={() => alElegir(p.id)} className="btn-cayla btn-secundario btn-chico">
               {p.referencia}

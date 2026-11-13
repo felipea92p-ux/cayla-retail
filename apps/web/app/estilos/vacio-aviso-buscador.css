@@ -191,7 +191,9 @@
     letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-rojo); opacity: 0; transition: opacity var(--t-cambio) var(--ease-cayla);
   }
   .buscador-hilo { position: absolute; left: 0; right: 0; bottom: 0; height: 2px; overflow: hidden; pointer-events: none; opacity: 0; transition: opacity var(--t-cambio); }
-  .buscador-hilo::before { content: ""; display: block; height: 100%; width: 33%; border-radius: 999px; background: var(--color-rojo); animation: cayla-hilo-barrido 1.1s linear infinite; }
+  .buscador-hilo::before { content: ""; display: block; height: 100%; width: 33%; border-radius: 999px; background: var(--color-rojo); }
+  /* El hilo corre solo mientras busca: antes barría en bucle aunque estuviera invisible (/milimetro 2026-11-13), repintando la pantalla. */
+  .buscador[data-buscando] .buscador-hilo::before { animation: cayla-hilo-barrido 1.1s linear infinite; }
   .buscador[data-buscando] .buscador-senal, .buscador[data-buscando] .buscador-hilo { opacity: 1; }
   .buscador[data-buscando] .buscador-atajo { opacity: 0; }
   .buscador-conteo { margin-top: 6px; min-height: 18px; font-size: 12px; color: var(--color-taupe); animation: cayla-vacio-sube 260ms var(--ease-cayla) backwards; }
