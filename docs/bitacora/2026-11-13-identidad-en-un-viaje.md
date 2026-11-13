@@ -1,0 +1,5 @@
+## 2026-11-13 — «Quién eres» en un viaje y las reglas por fila (ADR-0657; innovar «cambiar de módulo» #15 paso 1 y #9)
+
+- **Qué:** `retail.fn_mi_sesion()` devuelve en un jsonb las seis respuestas de identidad del marco y la web la pide en un solo viaje (`lib/mi-sesion-reglas.ts`; si la base no la tiene, las seis de siempre). `fn_mis_modulos` calcula la identidad una vez en un CTE y le pregunta a la regla nueva `fn_modulos_de` (sin `security definer`), que comparten las dos. Convención puerta/regla por fila en el ADR y su vigía en el CI (`pnpm pruebas:reglas-por-fila`).
+- **Por qué:** cada render pagaba 6 RPC (`fn_mis_modulos` 34 ms en producción) y `fn_mis_modulos` llamaba a `fn_mi_rol_id()` fila por fila (75 veces para una integrante; local 3,2 ms → 0,26 ms).
+- **Cómo se verifica:** `pnpm pruebas:mi-sesion` (37/37: 17 cuentas, fn_mi_sesion = las seis y fn_mis_modulos = la regla de antes, con controles), `pnpm pruebas:reglas-por-fila` (10/10, con controles), roles 70/70, roles-cobertura 32/32, md5 de las 17 cuentas idéntico antes y después. Migraciones `20261113195000` y `20261113200000` SIN pegar en producción.

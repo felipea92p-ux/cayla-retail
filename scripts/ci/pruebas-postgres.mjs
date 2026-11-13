@@ -2044,6 +2044,16 @@ export const PRUEBAS = [
   // que las recree desde un archivo viejo del repo les devolvería el candado sin que nada más avise. ROLLBACK siempre.
   "pruebas:roles-lider-editable",
 
+  // ADR-0657: «quién eres» en un viaje. `fn_mi_sesion()` da, cuenta por cuenta, lo mismo que las seis preguntas del marco (admin,
+  // integrante, terminales, rol propio y once casos raros: líder sin admin, terminal desactivada, cuenta sin fila, sin sesión…), y
+  // `fn_mis_modulos()` lo mismo que su regla de antes escrita como consulta. ROLLBACK siempre.
+  "pruebas:mi-sesion",
+
+  // ADR-0657: el vigía de las reglas por fila. Toda función de `retail` marcada «[regla por fila]» sigue sin security definer ni set
+  // search_path (sql, no volatile, no strict, sin leer personas, con nombres calificados), y las marcadas a la fecha siguen marcadas.
+  // Con controles que muerden (reglas falsas con cada ajuste prohibido). ROLLBACK siempre.
+  "pruebas:reglas-por-fila",
+
   // ADR-0275: CAYLA Global (la vista de toda la empresa) nace SOLO para el Admin. Vigila el «módulo del Admin» (el Admin
   // lo conserva aunque se le quite al Líder de equipo; con Caja, en cambio, lo pierde como decidió el ADR-0253), que un
   // líder que no es Admin no la dé ni la asigne («solo das lo que ves»), que no vaya a una terminal y el candado de
