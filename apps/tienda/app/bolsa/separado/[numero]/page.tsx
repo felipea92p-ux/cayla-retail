@@ -7,7 +7,6 @@ import { PrendaDelPedido } from "@/components/bolsa/PrendaDelPedido";
 import { MarcoCuenta } from "@/components/cuenta/MarcoCuenta";
 import { TarjetaInstalar } from "@/components/instalar/TarjetaInstalar";
 import { Icono } from "@/components/Icono";
-import { Redes } from "@/components/Redes";
 import { soles } from "@/lib/catalogo";
 import { codigoDeLaUrl, enlaceDelPedido, nombreTienda, vivas } from "@/lib/pedidos";
 import { leerPedido } from "@/lib/pedidos-servidor";
@@ -130,14 +129,6 @@ export default async function Separado({ params }: { params: Promise<{ numero: s
           </Link>
           {/* El momento justo para ofrecer instalar CAYLA (ADR-0431): ya separó, y va debajo de lo que importa. */}
           <TarjetaInstalar />
-          {/* Las redes al final (propuesta C, Felipe 2026-11-12): ya separó y espera a la tienda. Van solas y chicas, sin competir con WhatsApp. */}
-          <section className="t-separado-redes" aria-labelledby="separado-redes">
-            <h2 id="separado-redes">
-              Mientras te confirman, <em>míralo puesto</em>
-            </h2>
-            <p>En nuestras redes salen las prendas en movimiento y las ideas para combinarlas.</p>
-            <Redes donde="separado" />
-          </section>
         </div>
       </div>
     </MarcoCuenta>

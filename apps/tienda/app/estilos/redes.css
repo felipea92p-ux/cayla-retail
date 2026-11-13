@@ -1,8 +1,9 @@
 /* =====================================================================================================
-   TIENDA ONLINE CAYLA · Las redes de CAYLA (`components/Redes.tsx`, `lib/redes.ts`; Felipe 2026-11-12, propuesta C de
-   docs/maquetas/tienda-redes-2026-11): el pie de todas las páginas, el final del menú del celular y «¡Listo, lo separaste!».
+   TIENDA ONLINE CAYLA · Las redes de CAYLA (`components/Redes.tsx`, `lib/redes.ts`; Felipe 2026-11-13, propuesta A de
+   docs/maquetas/tienda-redes-2026-11 con el efecto de la B): el pie de todas las páginas y el final del menú del celular.
    Quietos, los íconos van en la tinta de la tienda: el color de la página es el de las prendas y el rojo de CAYLA. Al pasar el puntero,
-   cada uno se pinta con el color de su red y su filo también; con el dedo no hay puntero, así que en el celular se quedan quietos.
+   solo el ícono se pinta con el color de su red y crece un poco; la casilla no cambia. Con el dedo no hay puntero, así que en el
+   celular se quedan quietos.
    Los selectores llevan `ul`, `li` y `a`: el pie pone sus enlaces en línea y sin borde (`.t-pie .t-pie-in li a`) y esto tiene que ganarle.
    ===================================================================================================== */
 
@@ -29,18 +30,18 @@ div.redes > ul.redes-fila { display: flex; flex-wrap: wrap; gap: 6px; margin: 0;
 .redes .redes-fila > li > a.red {
   position: relative; display: grid; place-items: center; width: 44px; height: 44px; min-height: 0; padding: 0;
   border: 1px solid var(--dn-borde-control, var(--sand)); border-radius: var(--dn-r-p, 999px); background: transparent; color: var(--tinta);
-  text-decoration: none; transition: color .25s var(--ease), border-color .25s var(--ease), background-color .25s var(--ease);
+  text-decoration: none;
 }
-.redes .red svg { width: 18px; height: 18px; fill: currentColor; transition: transform .25s var(--ease), filter .25s var(--ease); }
-.redes .red .red-degradado { opacity: 0; transition: opacity .25s var(--ease); }
+.redes .red svg { width: 18px; height: 18px; fill: currentColor; transition: color .3s var(--ease), transform .3s var(--ease), filter .3s var(--ease); }
+.redes .red .red-degradado { opacity: 0; transition: opacity .3s var(--ease); }
 .red-instagram { --marca: var(--red-instagram); } .red-tiktok { --marca: var(--red-tiktok); } .red-facebook { --marca: var(--red-facebook); }
 .red-pinterest { --marca: var(--red-pinterest); } .red-youtube { --marca: var(--red-youtube); } .red-spotify { --marca: var(--red-spotify); }
 
-/* Al pasar el puntero, o al llegar con el teclado: el color de la red en el ícono y su filo, y un fondo suave del mismo tono. */
-.redes .redes-fila > li > a.red:focus-visible { color: var(--marca); border-color: var(--marca); outline: 2px solid var(--marca); outline-offset: 3px; }
+/* Al pasar el puntero, o al llegar con el teclado: solo el ícono toma el color de su red (el efecto de la banda B de la maqueta). */
+.redes .redes-fila > li > a.red:focus-visible { outline: 2px solid var(--tinta); outline-offset: 3px; }
+.redes .red:focus-visible svg { color: var(--marca); }
 @media (hover: hover) {
-  .redes .redes-fila > li > a.red:hover { color: var(--marca); border-color: var(--marca); background: color-mix(in srgb, var(--marca) 10%, transparent); }
-  .redes .red:hover svg { transform: scale(1.1); }
+  .redes .red:hover svg { color: var(--marca); transform: scale(1.08); }
   .redes .red-instagram:hover .red-degradado { opacity: 1; }
   /* TikTok es negro: su color se reconoce por el eco celeste y rojo de su nota. */
   .redes .red-tiktok:hover svg { filter: drop-shadow(1.2px 1.2px 0 #fe2c55) drop-shadow(-1.2px -1.2px 0 #25f4ee); }
@@ -66,8 +67,3 @@ div.redes > ul.redes-fila { display: flex; flex-wrap: wrap; gap: 6px; margin: 0;
 .t-menu-redes { display: grid; gap: var(--e-2, 8px); margin-top: var(--e-3, 12px); padding-top: var(--e-4, 16px); border-top: 1px solid var(--sand); }
 .t-menu-redes .dn-menu-tit { margin: 0; }
 
-/* ---- Al final de «¡Listo, lo separaste!»: mientras la tienda confirma ---- */
-.t-separado-redes { display: grid; gap: var(--e-3, 12px); padding-top: var(--e-5, 24px); border-top: 1px solid var(--sand); }
-.t-separado-redes h2 { margin: 0; font-family: var(--display); font-size: 24px; font-weight: 400; line-height: 1.15; color: var(--dn-titulo, var(--tinta)); }
-.t-separado-redes h2 em { font-style: italic; }
-.t-separado-redes > p { margin: 0; font-size: 14.5px; line-height: 1.5; color: var(--taupe); }
