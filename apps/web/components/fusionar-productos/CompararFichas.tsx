@@ -82,7 +82,7 @@ export function CompararFichas({
                 ) : sedes.length === 0 ? (
                   <p className="text-sm text-taupe">Sin stock en ninguna sede.</p> // unificar-fijo: es el dato de la ficha (no tiene stock), no una lista vacía
                 ) : (
-                  <ul className="space-y-2.5">
+                  <ul className="space-y-3">
                     {stock[i].map((s) => (
                       <li key={s.ubicacionId} className="space-y-1">
                         <div className="flex items-baseline justify-between gap-3 text-sm">
