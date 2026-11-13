@@ -1317,6 +1317,14 @@ export const GUIA_CAMPANAS: Guia = {
       texto: "Viene lo de la campaña. Marca categorías para que rija solo en ellas, aunque la campaña no las tenga: la grilla va por familia, con cuántas prendas trae cada una y un buscador. Toca el nombre de una familia para abrirla o plegarla; la casilla marca toda la familia. Lo que marques se ve al instante en la etiqueta.",
     },
     {
+      id: "oferta-una-por-una",
+      ancla: "sellos.oferta-una-por-una",
+      opcional: true,
+      preparar: [{ tipo: "clic", ancla: "sellos.oferta-paso-2" }],
+      titulo: "Por categoría o prenda por prenda",
+      texto: "Elige categorías enteras o, en «Prenda por prenda», busca y marca modelos sueltos: cada uno entra con todas sus tallas y colores. Se pueden sumar las dos cosas; al elegir prendas sueltas, la oferta rige solo en lo que marques.",
+    },
+    {
       id: "oferta-dias",
       ancla: "sellos.oferta-dias",
       opcional: true,
@@ -1333,12 +1341,20 @@ export const GUIA_CAMPANAS: Guia = {
       texto: "Marca las tiendas donde rige la oferta; si quieres todas, márcalas todas. En las que no marques se cobra el precio normal. Es lo único que no viene puesto, y nunca puede salirse de las tiendas de su campaña.",
     },
     {
+      id: "oferta-choques",
+      ancla: "sellos.oferta-choques",
+      opcional: true,
+      preparar: [{ tipo: "clic", ancla: "sellos.oferta-paso-3" }],
+      titulo: "Una oferta por prenda",
+      texto: "Una prenda tiene una sola oferta por tienda y por día. Si esta pisa a otra, aquí sale con cuál, en qué tiendas y en cuántas prendas. Elige «que la otra ceda» o cambia tiendas, fechas o prendas: hasta resolverlo se puede guardar como borrador, pero no activar.",
+    },
+    {
       id: "oferta-revision",
       ancla: "sellos.oferta-revision",
       opcional: true,
       preparar: [{ tipo: "clic", ancla: "sellos.oferta-paso-4" }],
       titulo: "Revisa y guarda",
-      texto: "La oferta dicha en una frase. Solo si hace falta salen avisos: si deja una prenda bajo su costo, si se cruza con otra oferta (gana la que deja el mejor precio) o si el papel colgado no puede cambiar cada día.",
+      texto: "La oferta dicha en una frase. Solo si hace falta salen avisos: si deja una prenda bajo su costo, si choca con otra oferta (y si ya cede una de las dos) o si el papel colgado no puede cambiar cada día.",
     },
     {
       id: "oferta-activar",
