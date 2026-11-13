@@ -74,3 +74,10 @@ Sonnet, sobre 8 capturas, sin repo.
 | Fecha | SHA | Leyes | Oficio | Cambios cerrados |
 |---|---|---|---|---|
 | 2026-11-13 | 470d746d7 | 6,0 | 8 | — (3 propuestos, esperan OK) |
+| 2026-11-13 | 93caeb648 + bajada | 7,0 (provisional: ciega sin repetir, ley 1 sigue en 5) | 8 | **los 3 cerrados** con el OK de Felipe: el panel muestra «Preparando…» y «Con IA · Usar mi foto» (2→7, 3→8, 5→7, 7→8); salir a mitad pregunta y guardar/descartar esperan, la foto general sin molde y con su nombre (4→7, 9→7); en Nuevo la miniatura de IA abre la vista grande con «Usar mi foto» y la fila va a 14 px. Además: pie sin «tal cual» con la IA encendida y el «?» sin costo. Verificado en local a 1440 px con dos fotos reales (~0,10 USD) |
+
+### Antes y después (1440 px, mismo color)
+- Antes, mientras prepara: el panel decía «Sin foto de Blanco todavía» con un chip arriba; al terminar, el panel no ofrecía cómo volver.
+- Después, mientras prepara: la foto atenuada con el hilo y «Preparando…» en el panel; la barra dice «Preparando la foto de catálogo · Guardar espera a que llegue la foto» con «Descartar» y «Preparando foto…» apagados; «Volver» pregunta «Se está preparando una foto de catálogo de «Blusa Valentina». Si sales ahora, se pierde.»
+- Después, al terminar: «Con IA · Usar mi foto» sobre la foto del panel (tinta sobre papel, 27 px de alto); «Usar mi foto» pasa a «Usar la de IA».
+- Nuevo: tocar la miniatura de «Verde agua» abre «Fotos de Verde agua» con la foto a 260 px de ancho, «Con IA · Usar mi foto» debajo.

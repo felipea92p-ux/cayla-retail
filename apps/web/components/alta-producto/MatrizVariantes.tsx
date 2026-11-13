@@ -248,7 +248,12 @@ export function MatrizVariantes({
       {viendo !== undefined && (
         <Modal
           titulo={`Fotos de ${nombreDe(viendo)}`}
-          subtitulo="Se suben al crear el producto. Para agregar otra, toca la foto en la tabla."
+          // En una fila con foto de IA, tocar la miniatura abre esta hoja (no agrega otra): ahí no se promete lo que no hace.
+          subtitulo={
+            fotos.some((f) => f.colorCodigo === viendo && f.ia)
+              ? "Se suben al crear el producto."
+              : "Se suben al crear el producto. Para agregar otra, toca la foto en la tabla."
+          }
           onClose={() => setViendo(undefined)}
         >
           {(cerrar) => {
