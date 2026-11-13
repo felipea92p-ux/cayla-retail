@@ -4,7 +4,11 @@ import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowRight, Check, Merge, SearchX } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
-import { esRespuestaIncierta, esVersionCambiada, traducirError } from "@/lib/error-escritura";
+import {
+  esRespuestaIncierta,
+  esVersionCambiada,
+  traducirError,
+} from "@/lib/error-escritura";
 import { firmar } from "@/lib/responsable-reglas";
 import { useResponsable } from "@/lib/useResponsable";
 import { sePuedeConfirmar } from "@/lib/guia-campos";
@@ -14,6 +18,7 @@ import {
   camposDeLaGuia,
   eleccionesParaLaBase,
   fotosEnOrden,
+  fraseTallasQueSalen,
   frasesDelResumen,
   fuenteDe,
   leerPlan,
@@ -24,15 +29,25 @@ import {
   type CampoFusion,
   type Elecciones,
   type PlanFusion,
+  type VaciaPlan,
 } from "@/lib/fusionar-productos-reglas";
-import { fichaFinal, matrizFinal, ordenFijo, type DetalleFusion } from "@/lib/fusionar-productos-ficha";
+import {
+  fichaFinal,
+  matrizFinal,
+  ordenFijo,
+  type DetalleFusion,
+} from "@/lib/fusionar-productos-ficha";
 import { leerDetalleFusion } from "@/lib/fusionar-productos-detalle";
 import { Modal } from "@/components/ui/Modal";
 import { Boton } from "@/components/ui/campos";
 import { BotonVer } from "@/components/ui/BotonDescargar";
 import { Volver } from "@/components/ui/Volver";
 import { Buscador } from "@/components/ui/Buscador";
-import { ListaSugerencias, ariaDelBuscador, type Sugerencia } from "@/components/ui/ListaSugerencias";
+import {
+  ListaSugerencias,
+  ariaDelBuscador,
+  type Sugerencia,
+} from "@/components/ui/ListaSugerencias";
 import { MiniaturaPrenda } from "@/components/ui/PrendaCelda";
 import { ImagenDePrenda } from "@/components/ui/ImagenDePrenda";
 import { Casilla } from "@/components/ui/Casilla";
@@ -44,6 +59,7 @@ import { ComboResponsable } from "@/components/ComboResponsable";
 import { CampoGuiado, PieGuia } from "@/components/guia-de-foco/CampoGuiado";
 import { useGuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
 import { ColumnaFicha, FilaDistinta, MatrizTallas, PlacaFinal } from "./piezas";
+import { CapsulaColor } from "@/components/ui/MuestraColor";
 import { CompararFichas } from "./CompararFichas";
 
 /** Lo que la hoja necesita de cada ficha con la que se abre. */
@@ -53,7 +69,11 @@ type Encontrado = {
   id: string;
   referencia: string;
   codigo: string | null;
-  categoria: { nombre: string | null; prefijo: string | null; familia: string | null } | null;
+  categoria: {
+    nombre: string | null;
+    prefijo: string | null;
+    familia: string | null;
+  } | null;
   fotoUrl: string | null;
 };
 
@@ -72,7 +92,10 @@ const TOPE_FICHAS = 3;
 
 type Vista = "armar" | "revisar" | "listo";
 
-const nombres = (xs: string[]) => (xs.length <= 1 ? (xs[0] ?? "") : `${xs.slice(0, -1).join(", ")} y ${xs[xs.length - 1]}`);
+const nombres = (xs: string[]) =>
+  xs.length <= 1
+    ? (xs[0] ?? "")
+    : `${xs.slice(0, -1).join(", ")} y ${xs[xs.length - 1]}`;
 
 /**
  * «Fusionar productos repetidos» (ADR-0650, Felipe 2026-11-12): junta dos o más fichas de la misma prenda en una sola, sin perder
@@ -95,19 +118,35 @@ export function FusionarProductosHoja({
 }) {
   const router = useRouter();
   const responsable = useResponsable();
-  const [ids, setIds] = useState<string[]>(() => [...new Set(inicial.map((f) => f.productoId))]);
+  const [ids, setIds] = useState<string[]>(() => [
+    ...new Set(inicial.map((f) => f.productoId)),
+  ]);
   const [queda, setQueda] = useState<string | null>(null);
   const [elecciones, setElecciones] = useState<Elecciones>(ELECCIONES_VACIAS);
   // La última lectura de la base, con la clave de lo que se le preguntó: mientras llega la siguiente se sigue viendo la anterior.
-  const [lectura, setLectura] = useState<{ clave: string; plan: PlanFusion | null; error: string | null } | null>(null);
+  const [lectura, setLectura] = useState<{
+    clave: string;
+    plan: PlanFusion | null;
+    error: string | null;
+  } | null>(null);
   // «Leer de nuevo» tras un error de lectura: cambia la clave y la lectura corre de nuevo (/chaos 2026-11-13, RS-08).
   const [intento, setIntento] = useState(0);
-  const [detalle, setDetalle] = useState<{ clave: string; datos: DetalleFusion | null; error: boolean } | null>(null);
+  const [detalle, setDetalle] = useState<{
+    clave: string;
+    datos: DetalleFusion | null;
+    error: boolean;
+  } | null>(null);
   const [vista, setVista] = useState<Vista>("armar");
   const [comparando, setComparando] = useState<string | null>(null);
   const [guardando, setGuardando] = useState(false);
   const [errorGuardar, setErrorGuardar] = useState<string | null>(null);
-  const [hecho, setHecho] = useState<{ referencia: string; vendidas: number; stock: number; repetidas: number; porOtra: boolean } | null>(null);
+  const [hecho, setHecho] = useState<{
+    referencia: string;
+    vendidas: number;
+    stock: number;
+    repetidas: number;
+    porOtra: boolean;
+  } | null>(null);
   const cuerpo = useRef<HTMLDivElement>(null);
   const radios = useRef<Record<string, HTMLButtonElement | null>>({});
   // Dos clics en el mismo instante ven `guardando` en falso los dos: el candado de la ref no espera a React. (La base igual frena el
@@ -119,31 +158,53 @@ export function FusionarProductosHoja({
   const hayFusion = Boolean(quedaEfectiva) && duplicados.length > 0;
 
   // ---------- Leer el plan: cada vez que cambian las fichas, cuál queda o un dato que decide un bloqueo ----------
-  const clavePlan = JSON.stringify({ quedaEfectiva, duplicados, campos: elecciones.campos, intento });
+  const clavePlan = JSON.stringify({
+    quedaEfectiva,
+    duplicados,
+    campos: elecciones.campos,
+    retirar: elecciones.retirar,
+    intento,
+  });
   const leyendo = hayFusion && lectura?.clave !== clavePlan;
   const plan = hayFusion ? (lectura?.plan ?? null) : null;
-  const errorLectura = hayFusion && lectura?.clave === clavePlan ? lectura.error : null;
+  const errorLectura =
+    hayFusion && lectura?.clave === clavePlan ? lectura.error : null;
   // Orden fijo (decisión 3 del rediseño): como se agregaron, no como los devuelve el plan (que pone primero al que queda).
-  const productos = useMemo(() => ordenFijo(ids, plan?.productos ?? []), [ids, plan]);
+  const productos = useMemo(
+    () => ordenFijo(ids, plan?.productos ?? []),
+    [ids, plan],
+  );
 
   useEffect(() => {
     if (!hayFusion || !quedaEfectiva) return;
     let vigente = true;
     const t = window.setTimeout(async () => {
-      const { data, error } = await createClient().rpc("previsualizar_fusion_productos", {
-        p_queda: quedaEfectiva,
-        p_duplicados: duplicados,
-        p_elecciones: { campos: elecciones.campos },
-      });
+      const { data, error } = await createClient().rpc(
+        "previsualizar_fusion_productos",
+        {
+          p_queda: quedaEfectiva,
+          p_duplicados: duplicados,
+          // `retirar` solo si hay: con la base de antes de 20261113175000 la clave sobra.
+          p_elecciones:
+            elecciones.retirar.length > 0
+              ? { campos: elecciones.campos, retirar: elecciones.retirar }
+              : { campos: elecciones.campos },
+        },
+      );
       if (!vigente) return;
       if (error) {
-        setLectura((l) => ({ clave: clavePlan, plan: l?.plan ?? null, error: traducirError(error, "leer las fichas", { lectura: true }) }));
+        setLectura((l) => ({
+          clave: clavePlan,
+          plan: l?.plan ?? null,
+          error: traducirError(error, "leer las fichas", { lectura: true }),
+        }));
         return;
       }
       const nuevo = leerPlan(data);
       setLectura({ clave: clavePlan, plan: nuevo, error: null });
       // La primera vez, la ficha que se propone que quede (decisión 1): la que más vendió, o la más antigua.
-      if (queda === null && nuevo.productos.length > 0) setQueda(quedaSugerido(nuevo.productos));
+      if (queda === null && nuevo.productos.length > 0)
+        setQueda(quedaSugerido(nuevo.productos));
     }, 120);
     return () => {
       vigente = false;
@@ -158,8 +219,11 @@ export function FusionarProductosHoja({
     if (ids.length < 2) return;
     let vigente = true;
     leerDetalleFusion(ids).then(
-      (datos) => vigente && setDetalle({ clave: claveDetalle, datos, error: false }),
-      () => vigente && setDetalle({ clave: claveDetalle, datos: null, error: true }),
+      (datos) =>
+        vigente && setDetalle({ clave: claveDetalle, datos, error: false }),
+      () =>
+        vigente &&
+        setDetalle({ clave: claveDetalle, datos: null, error: true }),
     );
     return () => {
       vigente = false;
@@ -186,13 +250,29 @@ export function FusionarProductosHoja({
   // Un bloqueo es lo que la base dijo que frena; sin duplicado todavía no hay plan, y eso lo pide la guía, no un bloqueo.
   const bloqueado = Boolean(plan && !plan.ok);
   const elegibles = camposAElegir(plan?.diferencias ?? []);
-  const ficha = plan && quedaEfectiva ? fichaFinal(plan, quedaEfectiva, elecciones, fotosQueQuedan) : null;
+  const ficha =
+    plan && quedaEfectiva
+      ? fichaFinal(plan, quedaEfectiva, elecciones, fotosQueQuedan)
+      : null;
   // La matriz se arma con el que queda según el plan que llegó (el plan no manda las tallas del que queda): mientras llega el
   // siguiente, se ve la anterior, atenuada.
   const quedaDelPlan = plan?.productos.find((p) => p.queda)?.id ?? null;
   // Sin el detalle no se dibuja: sin las tallas del que queda, todo parecería «pasa» y lo que se junta no se vería.
-  const matriz = plan && quedaDelPlan && detalleListo ? matrizFinal(plan, quedaDelPlan, detalleListo) : null;
-  const avisoMatriz = errorDetalle ? "No se pudieron leer las tallas. La fusión hace lo mismo; vuelve a abrir la hoja para verlas." : "Leyendo las tallas…";
+  // Las tallas vacías que salen de la venta (20261113175000): las que la base aceptó como vacías y la persona sacó.
+  const retiradas = useMemo(
+    () =>
+      new Set(
+        (plan?.vacias ?? []).filter((v) => v.retirada).map((v) => v.varianteId),
+      ),
+    [plan],
+  );
+  const matriz =
+    plan && quedaDelPlan && detalleListo
+      ? matrizFinal(plan, quedaDelPlan, detalleListo, retiradas)
+      : null;
+  const avisoMatriz = errorDetalle
+    ? "No se pudieron leer las tallas. La fusión hace lo mismo; vuelve a abrir la hoja para verlas."
+    : "Leyendo las tallas…";
   const varias = duplicados.length > 1;
 
   // Cambiar de vista lleva la hoja arriba: el título nuevo a la vista (ADR-0185, «un clic que cambia de vista»).
@@ -204,16 +284,32 @@ export function FusionarProductosHoja({
   }, [vista]);
 
   async function fusionar() {
-    if (enviando.current || guardando || leyendo || bloqueado || !plan || !quedaEfectiva || !sePuedeConfirmar(camposRevisar)) return;
+    if (
+      enviando.current ||
+      guardando ||
+      leyendo ||
+      bloqueado ||
+      !plan ||
+      !quedaEfectiva ||
+      !sePuedeConfirmar(camposRevisar)
+    )
+      return;
     enviando.current = true;
     setGuardando(true);
     setErrorGuardar(null);
-    const versiones = Object.fromEntries(plan.productos.map((p) => [p.id, p.version]));
+    const versiones = Object.fromEntries(
+      plan.productos.map((p) => [p.id, p.version]),
+    );
     const { error } = await firmar(
       createClient().rpc("fusionar_productos", {
         p_queda: quedaEfectiva,
         p_duplicados: duplicados,
-        p_elecciones: eleccionesParaLaBase(elecciones, plan.productos, plan.diferencias, quedaEfectiva) as never,
+        p_elecciones: eleccionesParaLaBase(
+          elecciones,
+          plan.productos,
+          plan.diferencias,
+          quedaEfectiva,
+        ) as never,
         p_versiones: versiones,
       }),
       responsable.firma(),
@@ -226,14 +322,29 @@ export function FusionarProductosHoja({
       // nada (/chaos 2026-11-13, RS-03 y NAV-05). Si no responde, el aviso no afirma lo que no sabe.
       const incierta = esRespuestaIncierta(error);
       if (incierta || esVersionCambiada(error)) {
-        const { data: filas } = await createClient().from("productos").select("id, fusionado_en_id").in("id", duplicados);
-        const ya = yaFusionadas((filas ?? []).map((f) => ({ id: f.id, fusionadoEnId: f.fusionado_en_id })), quedaEfectiva, duplicados);
+        const { data: filas } = await createClient()
+          .from("productos")
+          .select("id, fusionado_en_id")
+          .in("id", duplicados);
+        const ya = yaFusionadas(
+          (filas ?? []).map((f) => ({
+            id: f.id,
+            fusionadoEnId: f.fusionado_en_id,
+          })),
+          quedaEfectiva,
+          duplicados,
+        );
         if (ya) {
           terminar(!incierta);
           return;
         }
       }
-      setErrorGuardar(mensajeAlNoFusionar(traducirError(error, "fusionar los productos"), incierta));
+      setErrorGuardar(
+        mensajeAlNoFusionar(
+          traducirError(error, "fusionar los productos"),
+          incierta,
+        ),
+      );
       return;
     }
     terminar(false);
@@ -242,7 +353,10 @@ export function FusionarProductosHoja({
   function terminar(porOtra: boolean) {
     if (!plan || !quedaEfectiva) return;
     setHecho({
-      referencia: ficha?.referencia ?? plan.productos.find((p) => p.id === quedaEfectiva)?.referencia ?? "La ficha",
+      referencia:
+        ficha?.referencia ??
+        plan.productos.find((p) => p.id === quedaEfectiva)?.referencia ??
+        "La ficha",
       vendidas: ficha?.unidadesVendidas ?? 0,
       stock: ficha?.stock ?? 0,
       repetidas: duplicados.length,
@@ -265,15 +379,25 @@ export function FusionarProductosHoja({
     setIds((xs) => xs.filter((x) => x !== id));
     if (queda === id) setQueda(null);
     setElecciones(ELECCIONES_VACIAS);
-    window.requestAnimationFrame(() => vecino && radios.current[vecino]?.focus());
+    window.requestAnimationFrame(
+      () => vecino && radios.current[vecino]?.focus(),
+    );
   };
   const agregar = (id: string) => {
     setIds((xs) => (xs.includes(id) ? xs : [...xs, id]));
     setElecciones(ELECCIONES_VACIAS);
   };
   // El grupo de radios de «¿Cuál se queda?» (patrón de APG): las flechas pasan a la de al lado y la eligen.
-  const teclaColumna = (e: React.KeyboardEvent<HTMLButtonElement>, id: string) => {
-    const paso = e.key === "ArrowRight" || e.key === "ArrowDown" ? 1 : e.key === "ArrowLeft" || e.key === "ArrowUp" ? -1 : 0;
+  const teclaColumna = (
+    e: React.KeyboardEvent<HTMLButtonElement>,
+    id: string,
+  ) => {
+    const paso =
+      e.key === "ArrowRight" || e.key === "ArrowDown"
+        ? 1
+        : e.key === "ArrowLeft" || e.key === "ArrowUp"
+          ? -1
+          : 0;
     if (!paso || productos.length < 2) return;
     e.preventDefault();
     const i = productos.findIndex((p) => p.id === id);
@@ -283,12 +407,23 @@ export function FusionarProductosHoja({
   };
 
   const nombreInicial = inicial[0]?.referencia ?? "esta prenda";
-  const nombreQueda = productos.find((p) => p.id === quedaEfectiva)?.referencia ?? nombreInicial;
-  const nombresRepetidas = productos.filter((p) => p.id !== quedaEfectiva).map((p) => p.referencia);
+  const nombreQueda =
+    productos.find((p) => p.id === quedaEfectiva)?.referencia ?? nombreInicial;
+  const nombresRepetidas = productos
+    .filter((p) => p.id !== quedaEfectiva)
+    .map((p) => p.referencia);
   // Con una sola ficha no hay nada que comparar ni «Así va a quedar»: la hoja es mediana y se ensancha al sumar la segunda. El «Fusionado»
   // también va mediano (Felipe 2026-11-13: «sigue espacio innecesario a la derecha»).
-  const anchoHoja = vista === "listo" || (vista === "armar" && ids.length < 2) ? ANCHO_UNA_FICHA : ANCHO_COMPARAR;
-  const titulo = vista === "revisar" ? "Revisa y fusiona" : vista === "listo" ? "Productos fusionados" : "Fusionar productos repetidos";
+  const anchoHoja =
+    vista === "listo" || (vista === "armar" && ids.length < 2)
+      ? ANCHO_UNA_FICHA
+      : ANCHO_COMPARAR;
+  const titulo =
+    vista === "revisar"
+      ? "Revisa y fusiona"
+      : vista === "listo"
+        ? "Productos fusionados"
+        : "Fusionar productos repetidos";
   const subtitulo =
     vista === "revisar"
       ? `${nombres(nombresRepetidas)} ${nombresRepetidas.length > 1 ? "pasan" : "pasa"} a ${nombreQueda}.`
@@ -298,20 +433,35 @@ export function FusionarProductosHoja({
 
   return (
     <>
-      <Modal /* unificar-fijo: la ficha que se arma es de diseño propio (dirección B, Felipe 2026-11-13): 1080 px con dos fichas o más */ variante="hoja" ancho={anchoHoja} bloqueado={guardando} conCerrar={vista === "listo"} titulo={titulo} subtitulo={subtitulo} onClose={onClose}>
+      <Modal
+        /* unificar-fijo: la ficha que se arma es de diseño propio (dirección B, Felipe 2026-11-13): 1080 px con dos fichas o más */ variante="hoja"
+        ancho={anchoHoja}
+        bloqueado={guardando}
+        conCerrar={vista === "listo"}
+        titulo={titulo}
+        subtitulo={subtitulo}
+        onClose={onClose}
+      >
         {(cerrar) => (
           <div ref={cuerpo} className="fus-cuerpo" key={vista}>
             {vista === "armar" && (
               <div className="fus-dos">
                 <div className="min-w-0 space-y-6">
                   {/* ---------- 1. Cuál queda (decisión 1), con las fichas lado a lado y en su sitio ---------- */}
-                  <CampoGuiado id="queda" guia={guiaArmar} titulo="¿Cuál se queda?" ayuda="Toca la ficha que queda. Las demás pasan a esa; ninguna cambia de lugar.">
+                  <CampoGuiado
+                    id="queda"
+                    guia={guiaArmar}
+                    titulo="¿Cuál se queda?"
+                    ayuda="Toca la ficha que queda. Las demás pasan a esa; ninguna cambia de lugar."
+                  >
                     {productos.length > 1 ? (
                       <ul
                         role="radiogroup"
                         aria-label="La ficha que se queda"
                         className="fus-mesa"
-                        style={{ "--fus-n": productos.length } as React.CSSProperties}
+                        style={
+                          { "--fus-n": productos.length } as React.CSSProperties
+                        }
                         data-guia="fusionar.queda"
                       >
                         {productos.map((p, i) => (
@@ -334,12 +484,29 @@ export function FusionarProductosHoja({
                         ))}
                       </ul>
                     ) : (
-                      <ul className="fus-mesa" style={{ "--fus-n": Math.max(ids.length, 1) } as React.CSSProperties} data-guia="fusionar.queda">
+                      <ul
+                        className="fus-mesa"
+                        style={
+                          {
+                            "--fus-n": Math.max(ids.length, 1),
+                          } as React.CSSProperties
+                        }
+                        data-guia="fusionar.queda"
+                      >
                         {ids.map((id) => (
                           // Sin plan todavía, una fila corta: el nombre y en qué está (Felipe 2026-11-13: «está demasiado largo»).
                           <li key={id} className="fus-opcion fus-ficha-sola">
-                            <span className="font-semibold">{inicial.find((f) => f.productoId === id)?.referencia ?? "…"}</span>
-                            <span className="text-sm text-taupe">{errorLectura ? "No se pudo leer esta ficha." : hayFusion ? "Leyendo las fichas…" : "Busca abajo la otra ficha"}</span>
+                            <span className="font-semibold">
+                              {inicial.find((f) => f.productoId === id)
+                                ?.referencia ?? "…"}
+                            </span>
+                            <span className="text-sm text-taupe">
+                              {errorLectura
+                                ? "No se pudo leer esta ficha."
+                                : hayFusion
+                                  ? "Leyendo las fichas…"
+                                  : "Busca abajo la otra ficha"}
+                            </span>
                           </li>
                         ))}
                       </ul>
@@ -349,7 +516,13 @@ export function FusionarProductosHoja({
                   {ids.length < TOPE_FICHAS && (
                     <CampoGuiado id="duplicados" guia={guiaArmar}>
                       <div data-guia="fusionar.fichas">
-                        <BuscarFicha excluir={ids} nombre={nombreInicial} alElegir={agregar} deshabilitado={guardando} sinDuplicado={duplicados.length === 0} />
+                        <BuscarFicha
+                          excluir={ids}
+                          nombre={nombreInicial}
+                          alElegir={agregar}
+                          deshabilitado={guardando}
+                          sinDuplicado={duplicados.length === 0}
+                        />
                       </div>
                     </CampoGuiado>
                   )}
@@ -359,7 +532,12 @@ export function FusionarProductosHoja({
                       tono="error"
                       titulo="No se pudieron leer las fichas"
                       accion={
-                        <Boton peso="fantasma" type="button" className="btn-chico" onClick={() => setIntento((n) => n + 1)}>
+                        <Boton
+                          peso="fantasma"
+                          type="button"
+                          className="btn-chico"
+                          onClick={() => setIntento((n) => n + 1)}
+                        >
                           Leer de nuevo
                         </Boton>
                       }
@@ -370,21 +548,49 @@ export function FusionarProductosHoja({
 
                   {/* ---------- 2. Lo que es distinto (decisión 8): cada valor bajo la columna de su ficha ---------- */}
                   {plan && elegibles.length > 0 && (
-                    <CampoGuiado id="diferencias" guia={guiaArmar} titulo="Lo que es distinto" ayuda="Toca el dato con el que se queda. Lo que no está aquí es igual en las fichas.">
-                      <div className="space-y-4" data-guia="fusionar.diferencias">
+                    <CampoGuiado
+                      id="diferencias"
+                      guia={guiaArmar}
+                      titulo="Lo que es distinto"
+                      ayuda="Toca el dato con el que se queda. Lo que no está aquí es igual en las fichas."
+                    >
+                      <div
+                        className="space-y-4"
+                        data-guia="fusionar.diferencias"
+                      >
                         {elegibles.map((campo, k) => {
                           const elegido =
                             campo === "precio"
-                              ? fuenteDe(elecciones.precioDe, "precio", plan.diferencias, quedaEfectiva)
+                              ? fuenteDe(
+                                  elecciones.precioDe,
+                                  "precio",
+                                  plan.diferencias,
+                                  quedaEfectiva,
+                                )
                               : campo === "costo"
-                                ? fuenteDe(elecciones.costoDe, "costo", plan.diferencias, quedaEfectiva)
-                                : (elecciones.campos[campo as CampoFusion] ?? quedaEfectiva);
+                                ? fuenteDe(
+                                    elecciones.costoDe,
+                                    "costo",
+                                    plan.diferencias,
+                                    quedaEfectiva,
+                                  )
+                                : (elecciones.campos[campo as CampoFusion] ??
+                                  quedaEfectiva);
                           const opciones = opcionesDeCampo(productos, campo);
                           // Dos fichas con el mismo valor se dibujan una vez: la elegida es la del producto o la de su mismo valor.
-                          const valorElegido = productos.find((p) => p.id === elegido);
+                          const valorElegido = productos.find(
+                            (p) => p.id === elegido,
+                          );
                           const marcada =
-                            opciones.find((o) => o.productoId === elegido)?.productoId ??
-                            opciones.find((o) => valorElegido && o.valor === opcionesDeCampo([valorElegido], campo)[0]?.valor)?.productoId ??
+                            opciones.find((o) => o.productoId === elegido)
+                              ?.productoId ??
+                            opciones.find(
+                              (o) =>
+                                valorElegido &&
+                                o.valor ===
+                                  opcionesDeCampo([valorElegido], campo)[0]
+                                    ?.valor,
+                            )?.productoId ??
                             null;
                           return (
                             <FilaDistinta
@@ -401,30 +607,57 @@ export function FusionarProductosHoja({
                                     ? { ...e, precioDe: productoId }
                                     : campo === "costo"
                                       ? { ...e, costoDe: productoId }
-                                      : { ...e, campos: { ...e.campos, [campo]: productoId } },
+                                      : {
+                                          ...e,
+                                          campos: {
+                                            ...e.campos,
+                                            [campo]: productoId,
+                                          },
+                                        },
                                 )
                               }
                             />
                           );
                         })}
                         {elegibles.includes("costo") && (
-                          <p className="nota-cayla">El costo que ya sale de las compras no cambia: el elegido va solo en las tallas que todavía no tienen compras.</p>
+                          <p className="nota-cayla">
+                            El costo que ya sale de las compras no cambia: el
+                            elegido va solo en las tallas que todavía no tienen
+                            compras.
+                          </p>
                         )}
                       </div>
                     </CampoGuiado>
                   )}
 
+                  {/* ---------- Tallas sin prendas: se pueden sacar de la venta (Felipe 2026-11-13; 20261113175000) ---------- */}
+                  {plan && plan.vacias.length > 0 && (
+                    <TallasVacias
+                      vacias={plan.vacias}
+                      retirar={elecciones.retirar}
+                      deshabilitado={guardando}
+                      onCambiar={(retirar) =>
+                        setElecciones((e) => ({ ...e, retirar }))
+                      }
+                    />
+                  )}
+
                   {/* ---------- 3. Fotos (decisión 9) ---------- */}
                   {plan && fotos.length > 0 && (
                     <section className="space-y-3" data-guia="fusionar.fotos">
-                      <TituloGrupo cuenta={fotosQueQuedan.length} nota="las que no marques se guardan en la ficha repetida">
+                      <TituloGrupo
+                        cuenta={fotosQueQuedan.length}
+                        nota="las que no marques se guardan en la ficha repetida"
+                      >
                         Fotos que quedan
                       </TituloGrupo>
                       <ul className="grid grid-cols-3 gap-2 sm:grid-cols-6">
                         {fotos.map((f) => {
                           const marcada = fotosQueQuedan.includes(f.id);
                           const principal = fotosQueQuedan[0] === f.id;
-                          const de = productos.find((p) => p.fotos.some((x) => x.id === f.id));
+                          const de = productos.find((p) =>
+                            p.fotos.some((x) => x.id === f.id),
+                          );
                           return (
                             <li key={f.id} className="relative">
                               {/* Toda la foto marca o desmarca (con el dedo, la casilla sola mide 20 px): el control para el teclado y el lector sigue
@@ -434,14 +667,27 @@ export function FusionarProductosHoja({
                                 onClick={() =>
                                   !guardando &&
                                   setElecciones((e) => {
-                                    const actuales = e.fotos ?? fotos.map((x) => x.id);
-                                    return { ...e, fotos: marcada ? actuales.filter((x) => x !== f.id) : [...actuales, f.id] };
+                                    const actuales =
+                                      e.fotos ?? fotos.map((x) => x.id);
+                                    return {
+                                      ...e,
+                                      fotos: marcada
+                                        ? actuales.filter((x) => x !== f.id)
+                                        : [...actuales, f.id],
+                                    };
                                   })
                                 }
                                 className={`relative cursor-pointer overflow-hidden rounded-lg border transition-opacity ease-cayla ${marcada ? "border-tinta" : "border-sand opacity-60"}`}
                                 style={{ aspectRatio: "3 / 4" }}
                               >
-                                <ImagenDePrenda src={f.url} alt={`Foto de ${de?.referencia ?? "la prenda"}`} fill sizes="120px" className="object-cover" fallback={null} />
+                                <ImagenDePrenda
+                                  src={f.url}
+                                  alt={`Foto de ${de?.referencia ?? "la prenda"}`}
+                                  fill
+                                  sizes="120px"
+                                  className="object-cover"
+                                  fallback={null}
+                                />
                               </div>
                               <div className="absolute left-1.5 top-1.5">
                                 <Casilla
@@ -450,8 +696,14 @@ export function FusionarProductosHoja({
                                   etiqueta={`Quedarse con esta foto de ${de?.referencia ?? "la prenda"}`}
                                   onCambio={() =>
                                     setElecciones((e) => {
-                                      const actuales = e.fotos ?? fotos.map((x) => x.id);
-                                      return { ...e, fotos: marcada ? actuales.filter((x) => x !== f.id) : [...actuales, f.id] };
+                                      const actuales =
+                                        e.fotos ?? fotos.map((x) => x.id);
+                                      return {
+                                        ...e,
+                                        fotos: marcada
+                                          ? actuales.filter((x) => x !== f.id)
+                                          : [...actuales, f.id],
+                                      };
                                     })
                                   }
                                 />
@@ -469,7 +721,12 @@ export function FusionarProductosHoja({
                   )}
 
                   {plan && plan.bloqueos.length > 0 && (
-                    <Aviso id="fusionar-bloqueos" tono="atencion" titulo="Todavía no se puede fusionar" guia="fusionar.bloqueos">
+                    <Aviso
+                      id="fusionar-bloqueos"
+                      tono="atencion"
+                      titulo="Todavía no se puede fusionar"
+                      guia="fusionar.bloqueos"
+                    >
                       <ul className="mt-1 list-disc space-y-1 pl-4">
                         {plan.bloqueos.map((b) => (
                           <li key={b.codigo + b.mensaje}>{b.mensaje}</li>
@@ -480,31 +737,78 @@ export function FusionarProductosHoja({
                 </div>
 
                 {/* ---------- «Así va a quedar», pegada a la derecha ---------- */}
-                {ficha && <PlacaFinal ficha={ficha} matriz={matriz} avisoMatriz={avisoMatriz} fotos={fotosQueQuedan.length} leyendo={leyendo} varias={varias} />}
+                {ficha && (
+                  <PlacaFinal
+                    ficha={ficha}
+                    matriz={matriz}
+                    avisoMatriz={avisoMatriz}
+                    fotos={fotosQueQuedan.length}
+                    leyendo={leyendo}
+                    varias={varias}
+                  />
+                )}
               </div>
             )}
 
             {vista === "revisar" && plan && ficha && (
               <div className="fus-revisar" data-guia="fusionar.resumen">
-                <PlacaFinal ficha={ficha} matriz={null} fotos={fotosQueQuedan.length} leyendo={leyendo} varias={varias} pegada={false} conMatriz={false} />
+                <PlacaFinal
+                  ficha={ficha}
+                  matriz={null}
+                  fotos={fotosQueQuedan.length}
+                  leyendo={leyendo}
+                  varias={varias}
+                  pegada={false}
+                  conMatriz={false}
+                />
                 <div className="min-w-0 space-y-5">
                   <section className="space-y-2">
                     <TituloGrupo>Qué va a pasar</TituloGrupo>
                     <ul className="fus-lista-revisar max-w-prose space-y-2 text-[15px] leading-relaxed text-tinta">
-                      {[...frasesDelResumen(plan, fotosQueQuedan.length), "La ficha repetida queda archivada con su historia; nunca se borra."].map((f, k) => (
-                        <li key={f} className="flex gap-3" style={{ "--fus-k": Math.min(k, 7) } as React.CSSProperties}>
-                          <Check aria-hidden className="mt-1 h-4 w-4 shrink-0 text-verde" />
-                          <span>{f}</span>
-                        </li>
-                      ))}
+                      {[
+                        ...frasesDelResumen(plan, fotosQueQuedan.length),
+                        fraseTallasQueSalen(plan.vacias),
+                        "La ficha repetida queda archivada con su historia; nunca se borra.",
+                      ]
+                        .filter((f): f is string => Boolean(f))
+                        .map((f, k) => (
+                          <li
+                            key={f}
+                            className="flex gap-3"
+                            style={
+                              {
+                                "--fus-k": Math.min(k, 7),
+                              } as React.CSSProperties
+                            }
+                          >
+                            <Check
+                              aria-hidden
+                              className="mt-1 h-4 w-4 shrink-0 text-verde"
+                            />
+                            <span>{f}</span>
+                          </li>
+                        ))}
                     </ul>
                   </section>
                   <section className="space-y-2">
                     <TituloGrupo>Tallas y colores</TituloGrupo>
-                    {matriz ? <MatrizTallas m={matriz} grande leyendo={leyendo} varias={varias} conFrase={false} /> : <p className="text-sm text-taupe">{avisoMatriz}</p>}
+                    {matriz ? (
+                      <MatrizTallas
+                        m={matriz}
+                        grande
+                        leyendo={leyendo}
+                        varias={varias}
+                        conFrase={false}
+                      />
+                    ) : (
+                      <p className="text-sm text-taupe">{avisoMatriz}</p>
+                    )}
                   </section>
                   <CampoGuiado id="responsable" guia={guiaRevisar}>
-                    <ComboResponsable control={responsable} deshabilitado={guardando} />
+                    <ComboResponsable
+                      control={responsable}
+                      deshabilitado={guardando}
+                    />
                   </CampoGuiado>
                 </div>
               </div>
@@ -515,21 +819,34 @@ export function FusionarProductosHoja({
                 <span className="fus-sello" aria-hidden>
                   Fusionado
                 </span>
-                <h3 className="fus-listo-texto mt-5 font-serif text-[27px] font-semibold leading-tight text-tinta" style={{ "--fus-k": 0 } as React.CSSProperties}>
+                <h3
+                  className="fus-listo-texto mt-5 font-serif text-[27px] font-semibold leading-tight text-tinta"
+                  style={{ "--fus-k": 0 } as React.CSSProperties}
+                >
                   {hecho.referencia} es ahora una sola ficha
                 </h3>
-                <p className="fus-listo-texto mt-1.5 max-w-[46ch] text-[15px] leading-relaxed text-taupe" style={{ "--fus-k": 1 } as React.CSSProperties}>
-                  Lleva {hecho.vendidas.toLocaleString("es-PE")} {hecho.vendidas === 1 ? "prenda vendida" : "prendas vendidas"} y{" "}
-                  {hecho.stock.toLocaleString("es-PE")} en stock.{" "}
+                <p
+                  className="fus-listo-texto mt-1.5 max-w-[46ch] text-[15px] leading-relaxed text-taupe"
+                  style={{ "--fus-k": 1 } as React.CSSProperties}
+                >
+                  Lleva {hecho.vendidas.toLocaleString("es-PE")}{" "}
+                  {hecho.vendidas === 1 ? "prenda vendida" : "prendas vendidas"}{" "}
+                  y {hecho.stock.toLocaleString("es-PE")} en stock.{" "}
                   {hecho.porOtra
                     ? "Alguien más la fusionó mientras la revisabas: ya está hecha."
                     : hecho.repetidas === 1
                       ? "La ficha repetida quedó archivada."
                       : "Las fichas repetidas quedaron archivadas."}
                 </p>
-                <div className="fus-listo-texto mt-5" style={{ "--fus-k": 2 } as React.CSSProperties}>
+                <div
+                  className="fus-listo-texto mt-5"
+                  style={{ "--fus-k": 2 } as React.CSSProperties}
+                >
                   {quedaEfectiva && (
-                    <BotonVer href={`/productos/${quedaEfectiva}`} alNavegar={cerrar}>
+                    <BotonVer
+                      href={`/productos/${quedaEfectiva}`}
+                      alNavegar={cerrar}
+                    >
                       Ver la ficha
                     </BotonVer>
                   )}
@@ -546,7 +863,15 @@ export function FusionarProductosHoja({
                   <div className="min-w-0 flex-1 max-sm:order-first max-sm:basis-full">
                     <PieGuia
                       guia={guiaArmar}
-                      listo={errorLectura ? "No se pudieron leer las fichas." : leyendo || !plan ? "Leyendo las fichas…" : bloqueado ? "Revisa lo que falta arriba." : "Todo listo para revisar."}
+                      listo={
+                        errorLectura
+                          ? "No se pudieron leer las fichas."
+                          : leyendo || !plan
+                            ? "Leyendo las fichas…"
+                            : bloqueado
+                              ? "Revisa lo que falta arriba."
+                              : "Todo listo para revisar."
+                      }
                     />
                   </div>
                   <Boton peso="fantasma" type="button" onClick={cerrar}>
@@ -557,9 +882,19 @@ export function FusionarProductosHoja({
                     type="button"
                     disabled={leyendo || bloqueado}
                     confirma={guiaArmar}
-                    title={leyendo ? "Leyendo las fichas…" : bloqueado ? "Todavía no se puede fusionar: mira el aviso." : (guiaArmar.frase ?? undefined)}
+                    title={
+                      leyendo
+                        ? "Leyendo las fichas…"
+                        : bloqueado
+                          ? "Todavía no se puede fusionar: mira el aviso."
+                          : (guiaArmar.frase ?? undefined)
+                    }
                     className={guiaArmar.claseConfirmar}
-                    aria-describedby={plan && plan.bloqueos.length > 0 ? "fusionar-bloqueos" : undefined}
+                    aria-describedby={
+                      plan && plan.bloqueos.length > 0
+                        ? "fusionar-bloqueos"
+                        : undefined
+                    }
                     onClick={() => plan && ficha && setVista("revisar")}
                   >
                     <span className="inline-flex items-center gap-2">
@@ -579,11 +914,22 @@ export function FusionarProductosHoja({
                 )}
                 <AvisoNoSeDeshace />
                 <div className="pie-acciones" data-guia="fusionar.confirmar">
-                  <Volver onClick={() => setVista("armar")} a="Volver a elegir" />
+                  <Volver
+                    onClick={() => setVista("armar")}
+                    a="Volver a elegir"
+                  />
                   <div className="min-w-0 flex-1 max-sm:order-first max-sm:basis-full">
-                    <PieGuia guia={guiaRevisar} listo="Todo listo para fusionar." />
+                    <PieGuia
+                      guia={guiaRevisar}
+                      listo="Todo listo para fusionar."
+                    />
                   </div>
-                  <Boton peso="fantasma" type="button" onClick={cerrar} disabled={guardando}>
+                  <Boton
+                    peso="fantasma"
+                    type="button"
+                    onClick={cerrar}
+                    disabled={guardando}
+                  >
                     Cancelar
                   </Boton>
                   <Boton
@@ -622,6 +968,88 @@ export function FusionarProductosHoja({
   );
 }
 
+/** Los colores × talla de la ficha final sin ninguna prenda (ni nada en curso): de fábrica quedan a la venta; quitar la marca los saca
+ *  al fusionar. Salir de la venta no borra: la talla queda apagada y sus ventas siguen contando (20261113175000). */
+function TallasVacias({
+  vacias,
+  retirar,
+  deshabilitado,
+  onCambiar,
+}: {
+  vacias: VaciaPlan[];
+  retirar: string[];
+  deshabilitado: boolean;
+  onCambiar: (retirar: string[]) => void;
+}) {
+  const sale = (id: string) => retirar.includes(id);
+  const alternar = (id: string) =>
+    onCambiar(sale(id) ? retirar.filter((x) => x !== id) : [...retirar, id]);
+  const nunca = vacias.filter((v) => v.nuncaTuvo && !sale(v.varianteId));
+  return (
+    <section className="space-y-3" data-guia="fusionar.vacias">
+      <div className="space-y-1">
+        <TituloGrupo>Tallas sin prendas</TituloGrupo>
+        <p className="text-sm text-taupe">
+          Quita la marca a las que no quieres en la ficha final: dejan de
+          venderse y sus ventas no se pierden.
+        </p>
+      </div>
+      <ul className="grid gap-2 sm:grid-cols-2">
+        {vacias.map((v) => {
+          const nombre = [v.color, v.talla].filter(Boolean).join(" ");
+          const fuera = sale(v.varianteId);
+          return (
+            <li
+              key={v.varianteId}
+              className="fus-vacia"
+              data-sale={fuera ? "" : undefined}
+            >
+              <Casilla
+                marcada={!fuera}
+                disabled={deshabilitado}
+                etiqueta={`Dejar ${nombre} a la venta`}
+                onCambio={() => alternar(v.varianteId)}
+              />
+              {/* El texto también marca o desmarca (con el dedo, la casilla sola es chica); para el teclado y el lector, la casilla. */}
+              <span
+                aria-hidden
+                className="flex min-w-0 flex-1 cursor-pointer items-center gap-2"
+                onClick={() => !deshabilitado && alternar(v.varianteId)}
+              >
+                <CapsulaColor fondo={v.colorHex} compacta />
+                <span className="min-w-0">
+                  <span className="block truncate text-[15px] text-tinta">
+                    {nombre}
+                  </span>
+                  <span className="block text-sm text-taupe">
+                    {fuera
+                      ? "Sale de la venta"
+                      : v.nuncaTuvo
+                        ? "Nunca tuvo prendas"
+                        : "Sin prendas hoy"}
+                  </span>
+                </span>
+              </span>
+            </li>
+          );
+        })}
+      </ul>
+      {nunca.length > 1 && (
+        <button
+          type="button"
+          disabled={deshabilitado}
+          className="btn-cayla btn-sutil btn-chico"
+          onClick={() =>
+            onCambiar([...retirar, ...nunca.map((v) => v.varianteId)])
+          }
+        >
+          Sacar las {nunca.length} que nunca tuvieron prendas
+        </button>
+      )}
+    </section>
+  );
+}
+
 /** Buscar la otra ficha de la misma prenda: mientras se escribe, por nombre (sin la que ya está ni las fusionadas); sin escribir, las
  *  que la base cree parecidas a esta (decisión 3: el sistema sugiere, la persona elige). */
 function BuscarFicha({
@@ -640,7 +1068,10 @@ function BuscarFicha({
   const [texto, setTexto] = useState("");
   const [abierta, setAbierta] = useState(false);
   const [activa, setActiva] = useState(0);
-  const [resultado, setResultado] = useState<{ q: string; filas: Encontrado[] }>({ q: "", filas: [] });
+  const [resultado, setResultado] = useState<{
+    q: string;
+    filas: Encontrado[];
+  }>({ q: "", filas: [] });
   const [parecidos, setParecidos] = useState<Encontrado[]>([]);
   const claveExcluir = excluir.join(",");
 
@@ -649,8 +1080,12 @@ function BuscarFicha({
     let vigente = true;
     void (async () => {
       const supabase = createClient();
-      const { data } = await supabase.rpc("buscar_productos_parecidos", { p_referencia: nombre });
-      const ids = (data ?? []).map((p: { id: string }) => p.id).filter((id: string) => !excluir.includes(id));
+      const { data } = await supabase.rpc("buscar_productos_parecidos", {
+        p_referencia: nombre,
+      });
+      const ids = (data ?? [])
+        .map((p: { id: string }) => p.id)
+        .filter((id: string) => !excluir.includes(id));
       const filas = ids.length > 0 ? await leerFichas(ids) : [];
       if (vigente) setParecidos(filas);
     })();
@@ -682,7 +1117,14 @@ function BuscarFicha({
   const lista = texto.trim().length >= 2 ? encontrados : parecidos;
   const sugerencias: Sugerencia[] = lista.map((p) => ({
     clave: p.id,
-    miniatura: <MiniaturaPrenda fotoUrl={p.fotoUrl} prefijo={p.categoria?.prefijo} familia={p.categoria?.familia} categoria={p.categoria?.nombre} />,
+    miniatura: (
+      <MiniaturaPrenda
+        fotoUrl={p.fotoUrl}
+        prefijo={p.categoria?.prefijo}
+        familia={p.categoria?.familia}
+        categoria={p.categoria?.nombre}
+      />
+    ),
     titulo: p.referencia,
     detalle: [p.codigo, p.categoria?.nombre].filter(Boolean).join(" · "),
   }));
@@ -711,7 +1153,9 @@ function BuscarFicha({
         onKeyDown={(e) => {
           if (e.key === "ArrowDown") {
             e.preventDefault();
-            setActiva((a) => Math.min(a + 1, Math.max(sugerencias.length - 1, 0)));
+            setActiva((a) =>
+              Math.min(a + 1, Math.max(sugerencias.length - 1, 0)),
+            );
           } else if (e.key === "ArrowUp") {
             e.preventDefault();
             setActiva((a) => Math.max(a - 1, 0));
@@ -723,12 +1167,20 @@ function BuscarFicha({
             setAbierta(false);
           }
         }}
-        {...ariaDelBuscador("fusionar-sugerencias", abierta, sugerencias.length > 0 ? activa : null)}
+        {...ariaDelBuscador(
+          "fusionar-sugerencias",
+          abierta,
+          sugerencias.length > 0 ? activa : null,
+        )}
       />
       {abierta && (texto.trim().length >= 2 || parecidos.length > 0) && (
         <ListaSugerencias
           id="fusionar-sugerencias"
-          etiqueta={texto.trim().length >= 2 ? "Fichas encontradas" : "Fichas que parecen la misma prenda"}
+          etiqueta={
+            texto.trim().length >= 2
+              ? "Fichas encontradas"
+              : "Fichas que parecen la misma prenda"
+          }
           sugerencias={sugerencias}
           activa={activa}
           onActiva={setActiva}
@@ -738,30 +1190,54 @@ function BuscarFicha({
           className="fus-lista-buscar"
         >
           {!buscando && (
-            <Vacio tamano="chico" icono={<SearchX />} titulo={`No hay otra ficha con «${texto.trim()}»`}>
-              No hay otra ficha con «{texto.trim()}». Prueba con otra parte del nombre o con su código.
+            <Vacio
+              tamano="chico"
+              icono={<SearchX />}
+              titulo={`No hay otra ficha con «${texto.trim()}»`}
+            >
+              No hay otra ficha con «{texto.trim()}». Prueba con otra parte del
+              nombre o con su código.
             </Vacio>
           )}
         </ListaSugerencias>
       )}
       {sinDuplicado && !abierta && parecidos.length > 0 && (
-        <SugeridosEnLinea parecidos={parecidos} alElegir={alElegir} deshabilitado={deshabilitado} />
+        <SugeridosEnLinea
+          parecidos={parecidos}
+          alElegir={alElegir}
+          deshabilitado={deshabilitado}
+        />
       )}
     </div>
   );
 }
 
 /** Sin escribir nada: «¿Es alguna de estas?», las fichas que la base cree la misma prenda, de un toque. */
-function SugeridosEnLinea({ parecidos, alElegir, deshabilitado }: { parecidos: Encontrado[]; alElegir: (id: string) => void; deshabilitado: boolean }): ReactNode {
+function SugeridosEnLinea({
+  parecidos,
+  alElegir,
+  deshabilitado,
+}: {
+  parecidos: Encontrado[];
+  alElegir: (id: string) => void;
+  deshabilitado: boolean;
+}): ReactNode {
   return (
     <div className="space-y-1.5">
       <p className="text-sm text-taupe">¿Es alguna de estas?</p>
       <ul className="flex flex-wrap gap-2">
         {parecidos.slice(0, MAX_SUGERIDOS).map((p) => (
           <li key={p.id}>
-            <button type="button" disabled={deshabilitado} onClick={() => alElegir(p.id)} className="btn-cayla btn-secundario btn-chico">
+            <button
+              type="button"
+              disabled={deshabilitado}
+              onClick={() => alElegir(p.id)}
+              className="btn-cayla btn-secundario btn-chico"
+            >
               {p.referencia}
-              {p.codigo ? <span className="text-taupe"> · {p.codigo}</span> : null}
+              {p.codigo ? (
+                <span className="text-taupe"> · {p.codigo}</span>
+              ) : null}
             </button>
           </li>
         ))}
@@ -773,12 +1249,18 @@ function SugeridosEnLinea({ parecidos, alElegir, deshabilitado }: { parecidos: E
 /** Las fichas, con lo que la hoja muestra de cada una. Por ids (los parecidos) o por nombre o código (lo que se escribe; dos consultas
  *  y no un `.or()`, que interpolaría el texto de la persona dentro del filtro, como en `ventas-v2.ts`). Sin las fusionadas ni las
  *  rechazadas: no se pueden fusionar. */
-async function leerFichas(ids: string[] | null, q?: string, excluir: string[] = []): Promise<Encontrado[]> {
+async function leerFichas(
+  ids: string[] | null,
+  q?: string,
+  excluir: string[] = [],
+): Promise<Encontrado[]> {
   const supabase = createClient();
   const base = () => {
     let c = supabase
       .from("productos")
-      .select("id, referencia, codigo, categoria:categorias ( nombre, prefijo, familia ), producto_fotos ( url, es_principal )")
+      .select(
+        "id, referencia, codigo, categoria:categorias ( nombre, prefijo, familia ), producto_fotos ( url, es_principal )",
+      )
       .is("fusionado_en_id", null)
       .neq("estado_alta", "rechazado")
       .limit(8);
@@ -788,20 +1270,27 @@ async function leerFichas(ids: string[] | null, q?: string, excluir: string[] = 
   const literal = (q ?? "").replace(/[\\%_]/g, (x) => `\\${x}`);
   const respuestas = ids
     ? [await base().in("id", ids)]
-    : await Promise.all([base().ilike("referencia", `%${literal}%`).order("referencia"), base().ilike("codigo", `%${literal}%`).order("referencia")]);
+    : await Promise.all([
+        base().ilike("referencia", `%${literal}%`).order("referencia"),
+        base().ilike("codigo", `%${literal}%`).order("referencia"),
+      ]);
   const vistos = new Set<string>();
   return respuestas
     .flatMap((r) => r.data ?? [])
     .filter((p) => (vistos.has(p.id) ? false : (vistos.add(p.id), true)))
     .slice(0, 8)
     .map((p) => {
-      const fotos = (p.producto_fotos ?? []) as { url: string; es_principal: boolean }[];
+      const fotos = (p.producto_fotos ?? []) as {
+        url: string;
+        es_principal: boolean;
+      }[];
       return {
         id: p.id,
         referencia: p.referencia,
         codigo: p.codigo,
         categoria: p.categoria as unknown as Encontrado["categoria"],
-        fotoUrl: fotos.find((f) => f.es_principal)?.url ?? fotos[0]?.url ?? null,
+        fotoUrl:
+          fotos.find((f) => f.es_principal)?.url ?? fotos[0]?.url ?? null,
       };
     });
 }

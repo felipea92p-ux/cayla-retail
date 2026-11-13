@@ -610,7 +610,7 @@ caso("21 · DERIVA: toda llave a productos y a variantes tiene su trato al fusio
 
 caso("23 · ningún UPDATE ni DELETE sin WHERE en las funciones de la fusión (la API carga `safeupdate` y lo rechaza; psql no)", () => {
   const sin = [];
-  for (const archivo of ["20261112205000_fusionar_productos_previsualizar.sql", "20261112210000_fusionar_productos.sql"]) {
+  for (const archivo of ["20261112205000_fusionar_productos_previsualizar.sql", "20261112210000_fusionar_productos.sql", "20261113175000_fusionar_productos_tallas_vacias.sql"]) {
     const sql = readFileSync(new URL(`../../supabase/migrations/${archivo}`, import.meta.url), "utf8").replace(/--[^\n]*/g, "");
     for (const m of sql.matchAll(/\b(update|delete from)\s+(retail|pg_temp)\.[\s\S]*?;/gi)) {
       if (!/\bwhere\b/i.test(m[0])) sin.push(`${archivo}: ${m[0].replace(/\s+/g, " ").slice(0, 90)}`);
@@ -618,6 +618,76 @@ caso("23 · ningún UPDATE ni DELETE sin WHERE en las funciones de la fusión (l
   }
   return sin.length ? sin.join("\n") : null;
 });
+
+
+// ---------------------------------------------------------------------------------------------- tallas vacías (20261113175000)
+
+caso("25 · tallas vacías: el plan ofrece solo el color × talla sin prendas ni nada en curso, y dice si nunca tuvo prendas", () =>
+  espera(
+    correr(`${COMO_POSTGRES}
+select pg_temp.duplicado('ZZ Emma vacia', '[{"color":"NEG","talla":"XS","stock":0},{"color":"NEG","talla":"M","stock":2}]') as d \\gset
+${sesion(FELIPE)}
+select 'x', p->>'ok',
+       (select string_agg(e->>'talla' || ':' || (e->>'nunca_tuvo') || ':' || (e->>'retirada'), ',' order by e->>'talla')
+          from jsonb_array_elements(p->'vacias') e where (e->>'producto_id')::uuid = :'d'),
+       (select count(*) from jsonb_array_elements(p->'vacias') e where e->>'talla' = 'M' and e->>'color_codigo' = 'NEG')
+  from (select retail.previsualizar_fusion_productos('${EMMA}', array[:'d']::uuid[]) p) t;`),
+    "true|XS:true:false|0"
+  )
+);
+
+caso("26 · sacar de la venta una talla vacía: se muda con su historia y queda apagada; el stock y las ventas no cambian", () =>
+  espera(
+    correr(`${COMO_POSTGRES}
+select pg_temp.duplicado('ZZ Emma vacia', '[{"color":"NEG","talla":"XS","stock":0},{"color":"NEG","talla":"XL","stock":2}]') as d \\gset
+select pg_temp.variante(:'d', 'NEG', 'XS') as xs, pg_temp.variante(:'d', 'NEG', 'XL') as xl \\gset
+select pg_temp.totales(array['${EMMA}', :'d']::uuid[]) as antes, pg_temp.descuadres(array['${EMMA}', :'d']::uuid[]) as desc_antes \\gset
+${sesion(FELIPE)}
+select (select v->>'activo' from jsonb_array_elements(p->'variantes') v where (v->>'variante_id')::uuid = :'xs') as en_plan
+  from (select retail.previsualizar_fusion_productos('${EMMA}', array[:'d']::uuid[], jsonb_build_object('retirar', jsonb_build_array(:'xs'))) p) t \\gset
+select retail.fusionar_productos('${EMMA}', array[:'d']::uuid[], jsonb_build_object('retirar', jsonb_build_array(:'xs'))) is not null as hecho \\gset
+${COMO_POSTGRES}
+select 'x', :'en_plan', :'hecho',
+  (select producto_id = '${EMMA}' and not activo from retail.variantes where id = :'xs'),
+  (select producto_id = '${EMMA}' and activo from retail.variantes where id = :'xl'),
+  pg_temp.totales(array['${EMMA}']::uuid[]) = :'antes',
+  pg_temp.descuadres(array['${EMMA}', :'d']::uuid[]) = :'desc_antes';`),
+    "false|t|t|t|t|t"
+  )
+);
+
+caso("27 · una talla con prendas no se puede sacar: el plan frena con su frase y la fusión no escribe nada", () =>
+  espera(
+    correr(`${COMO_POSTGRES}
+select pg_temp.duplicado('ZZ Emma llena', '[{"color":"NEG","talla":"XL","stock":2}]') as d \\gset
+select pg_temp.variante(:'d', 'NEG', 'XL') as xl \\gset
+${sesion(FELIPE)}
+select pg_temp.bloqueos(retail.previsualizar_fusion_productos('${EMMA}', array[:'d']::uuid[], jsonb_build_object('retirar', jsonb_build_array(:'xl')))) as b \\gset
+select split_part(pg_temp.intento(format('select retail.fusionar_productos(%L, array[%L]::uuid[], %L)', '${EMMA}', :'d',
+         jsonb_build_object('retirar', jsonb_build_array(:'xl')))), '|', 2) as hint \\gset
+${COMO_POSTGRES}
+select 'x', :'b', :'hint', (select fusionado_en_id is null from retail.productos where id = :'d'),
+  (select activo from retail.variantes where id = :'xl');`),
+    "retirar_no_vacia|fusion_retirar_no_vacia|t|t"
+  )
+);
+
+caso("28 · sacar una talla vacía que la categoría final no tiene destraba la fusión", () =>
+  espera(
+    correr(`${COMO_POSTGRES}
+select t.valor as fuera from retail.tallas t
+ where not exists (select 1 from retail.categoria_tallas ct where ct.talla_id = t.id
+                    and ct.categoria_id = (select categoria_id from retail.productos where id = '${EMMA}'))
+ order by t.valor limit 1 \\gset
+select pg_temp.duplicado('ZZ Emma fuera', jsonb_build_array(jsonb_build_object('color', 'NEG', 'talla', :'fuera', 'stock', 0))) as d \\gset
+select pg_temp.variante(:'d', 'NEG', :'fuera') as f \\gset
+${sesion(FELIPE)}
+select 'x',
+  pg_temp.bloqueos(retail.previsualizar_fusion_productos('${EMMA}', array[:'d']::uuid[])),
+  retail.previsualizar_fusion_productos('${EMMA}', array[:'d']::uuid[], jsonb_build_object('retirar', jsonb_build_array(:'f'))) ->> 'ok';`),
+    "talla_fuera_de_categoria|true"
+  )
+);
 
 // ---------------------------------------------------------------------------------------------- correr
 

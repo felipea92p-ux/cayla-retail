@@ -750,8 +750,8 @@ function TablaGastos({
 
 /**
  * El detalle de un gasto en el cajón lateral (la 01 del benchmark visual, Felipe 2026-10-31; antes, una hoja al centro que tapaba la lista):
- * `<Cajon>` sin velo, como Movimientos, así la lista sigue viva detrás —tocar otra fila cambia el gasto— y la fila abierta queda marcada;
- * «3 de 12» con ↑ ↓ en el orden de la lista. Corregir, el comprobante, «no tendrá» y anular siguen abriendo su hoja en el lugar de este.
+ * `<Cajon>` con velo, como todo cajón del sistema (Felipe 2026-11-13: lo de atrás se desenfoca; antes iba sin velo para tocar otra fila);
+ * se pasa de un gasto a otro con «3 de 12» y ↑ ↓, en el orden de la lista. Corregir, el comprobante, «no tendrá» y anular siguen abriendo su hoja en el lugar de este.
  */
 function GastoDetalle({
   gasto: g,
@@ -881,7 +881,6 @@ function GastoDetalle({
     <Cajon
       onCerrar={onCerrar}
       clave={g.id}
-      velo={false}
       marca={<IconoCategoriaGasto codigo={g.categoria} tamano={40} />}
       sobre={`${g.categoriaNombre} · cuenta ${g.cuenta}`}
       titulo={g.descripcion}

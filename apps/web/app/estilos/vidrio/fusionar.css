@@ -247,6 +247,23 @@
   max-height: 260px;
 }
 
+/* «Tallas sin prendas»: una fila por color × talla vacío. La que sale de la venta se apaga y lo dice («Sale de la venta»). */
+.fus-vacia {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 48px;
+  border: 1px solid var(--color-borde-control);
+  border-radius: var(--radius-campo, 14px);
+  padding: 8px 12px;
+  background: var(--vidrio-claro-fondo);
+  transition: opacity var(--t-cambio) var(--ease-cayla);
+}
+.fus-vacia[data-sale] {
+  border-style: dashed;
+  opacity: 0.7;
+}
+
 /* La foto de la ficha en 4:3 (la de la prenda es 3:4: en una columna de 328 px mediría 437 px solo de foto). */
 .fus-foto {
   position: relative;
@@ -344,8 +361,14 @@
 .hoja-serena .fus-matriz {
   background: transparent;
 }
+.fus-matriz-caja {
+  overflow-x: auto;
+  padding: 4px;
+  margin: -4px;
+}
 .fus-matriz {
-  width: 100%;
+  /* La columna del color y, por talla, 36 px como mínimo (56 en la grande): con más tallas que eso, corre de lado. */
+  width: max(100%, calc(80px + var(--fus-t, 4) * 36px));
   border-collapse: separate;
   border-spacing: 4px;
   margin: -4px;
@@ -357,6 +380,14 @@
 .fus-matriz thead th {
   padding-bottom: 2px;
   text-align: center;
+}
+/* Una talla larga («Estándar», «Única») no se sale de su columna: sin el espaciado de las versalitas y, si igual no cabe, con «…» y el
+   nombre entero al pasar el mouse (Felipe 2026-11-13). */
+.fus-matriz thead th.fus-talla {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  letter-spacing: 0.02em;
 }
 .fus-matriz tbody th,
 .fus-matriz thead th:first-child {
@@ -385,6 +416,7 @@
   font-size: 15px;
 }
 .fus-matriz-grande {
+  width: max(100%, calc(112px + var(--fus-t, 4) * 56px));
   border-spacing: 8px;
   margin: -8px;
 }
@@ -629,6 +661,7 @@
     animation: none !important;
   }
   .hoja-serena:has(> * .fus-cuerpo, > .fus-cuerpo),
+  .fus-vacia,
   .fus-opcion,
   .fus-celda,
   .fus-final,
