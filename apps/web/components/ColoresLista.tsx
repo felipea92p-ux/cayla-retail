@@ -10,7 +10,7 @@ import { vistaDeCoincidencias } from "@/lib/atributo-parecido";
 import { claveTexto } from "@/lib/nombres-parecidos";
 import { ExisteTambien, faltaPorExistente, useExisteTambien } from "@/components/ui/ExisteTambien";
 import { MAX_DESCRIPCION, normalizarPantone, normalizarSinonimos } from "@/lib/color-referencias";
-import { CombinaConCampo, DescripcionColorCampo } from "@/components/CombinaConCampo";
+import { DescripcionColorCampo } from "@/components/DescripcionColorCampo";
 import { useEffect, useMemo, useState } from "react";
 import { avisar } from "@/components/ui/Avisos";
 import { ComboResponsable } from "@/components/ComboResponsable";
@@ -76,8 +76,6 @@ type Color = {
   sinonimos: string[];
   /** Qué transmite y dónde funciona (hasta 300 caracteres): lo que la asesora le dice a la cliente. Null = sin escribir. */
   descripcion: string | null;
-  /** Códigos de los colores con los que se lleva bien (hasta 8). La base rechaza uno que no exista. */
-  combinaCon: string[];
   /** Si es una mezcla («Hueso con azul», ADR-0643): la base y sus acompañantes. Su tono y su familia los pone la base. */
   componentes: string[] | null;
 };
@@ -129,8 +127,6 @@ function Muestra({ hex, familia, tipo, tonos, className = "aspect-[3/1] w-full" 
 
 /** Bajo el nombre: el código de 3 letras (va en el código de barras) y el Pantone para pedir la tela. */
 function DetalleColor({ c, porCodigo }: { c: Color; porCodigo: ReadonlyMap<string, Color> }) {
-  // Solo se ofrecen como compañeros colores que siguen activos: uno desactivado no se recomienda.
-  const companeros = c.combinaCon.map((cod) => porCodigo.get(cod)).filter((x): x is Color => !!x && x.activo);
   const deLaMezcla = (c.componentes ?? []).map((cod) => porCodigo.get(cod)?.nombre ?? cod);
   return (
     <div className="space-y-1.5">
@@ -150,21 +146,6 @@ function DetalleColor({ c, porCodigo }: { c: Color; porCodigo: ReadonlyMap<strin
       {c.descripcion && (
         <p className="line-clamp-4 text-sm leading-snug text-tinta/75" title={c.descripcion}>
           {c.descripcion}
-        </p>
-      )}
-      {companeros.length > 0 && (
-        <p className="flex flex-wrap items-center gap-x-1.5 gap-y-1 text-sm text-tinta/60">
-          <span className="whitespace-nowrap">Combina con</span>
-          <span className="flex flex-wrap items-center gap-1" aria-label={companeros.map((x) => x.nombre).join(", ")}>
-            {companeros.map((x) => (
-              <span
-                key={x.codigo}
-                title={x.nombre}
-                className="inline-block h-3 w-3 rounded-full border border-tinta/15"
-                style={{ background: fondoDeColor(x.hex, x.familiaColor, x.tipo), borderColor: bordeDeMuestra(x.hex) }}
-              />
-            ))}
-          </span>
         </p>
       )}
     </div>
@@ -213,7 +194,6 @@ export function ColoresLista({ coloresIniciales, puedeEditar }: { coloresInicial
   const [pantone, setPantone] = useState("");
   const [sinonimos, setSinonimos] = useState("");
   const [descripcion, setDescripcion] = useState("");
-  const [combinaCon, setCombinaCon] = useState<string[]>([]);
 
   const activos = colores.filter((c) => c.activo);
   const porCodigo = useMemo(() => new Map(colores.map((c) => [c.codigo, c])), [colores]);
@@ -286,7 +266,6 @@ export function ColoresLista({ coloresIniciales, puedeEditar }: { coloresInicial
     setPantone("");
     setSinonimos("");
     setDescripcion("");
-    setCombinaCon([]);
   }
 
   async function guardar() {
@@ -295,7 +274,7 @@ export function ColoresLista({ coloresIniciales, puedeEditar }: { coloresInicial
       const res = await fetch("/api/productos/colores", {
         method: "POST",
         headers: { "Content-Type": "application/json", ...responsable.encabezados() },
-        body: JSON.stringify({ nombre, codigo, familiaColor, hex, notas, pantoneTcx: pantone, sinonimos: normalizarSinonimos(sinonimos, nombre), descripcion, combinaCon }),
+        body: JSON.stringify({ nombre, codigo, familiaColor, hex, notas, pantoneTcx: pantone, sinonimos: normalizarSinonimos(sinonimos, nombre), descripcion }),
       });
       const datos = await res.json();
       if (!res.ok) {
@@ -318,7 +297,6 @@ export function ColoresLista({ coloresIniciales, puedeEditar }: { coloresInicial
             pantoneTcx: datos.color.pantone_tcx ?? null,
             sinonimos: datos.color.sinonimos ?? [],
             descripcion: datos.color.descripcion ?? null,
-            combinaCon: datos.color.combina_con ?? [],
             componentes: null,
           },
         ])
@@ -571,7 +549,6 @@ export function ColoresLista({ coloresIniciales, puedeEditar }: { coloresInicial
                   placeholder="plomo, gris medio"
                 />
                 <DescripcionColorCampo valor={descripcion} onValor={setDescripcion} />
-                <CombinaConCampo colores={activos} valor={combinaCon} onValor={setCombinaCon} propio={codigo} />
               </div>
               <CampoGuiado id="color" guia={guia}>
                 <SelectorColor hex={hex} onHex={setHex} etiqueta={guia.etiqueta("color", "Color")} />
@@ -732,7 +709,6 @@ function ColorEditarModal({
   const [pantone, setPantone] = useState(color.pantoneTcx ?? "");
   const [sinonimos, setSinonimos] = useState(color.sinonimos.join(", "));
   const [descripcion, setDescripcion] = useState(color.descripcion ?? "");
-  const [combinaCon, setCombinaCon] = useState<string[]>(color.combinaCon);
   // Los códigos Pantone de los OTROS colores: el propio no cuenta como ocupado.
   const vocabularioPantone = new Map(vocabulario.filter((c) => c.codigo !== color.codigo && c.pantoneTcx).map((c) => [c.pantoneTcx!, c.nombre]));
   const [guardando, setGuardando] = useState(false);
@@ -776,7 +752,7 @@ function ColorEditarModal({
       const res = await fetch("/api/productos/colores", {
         method: "PATCH",
         headers: { "Content-Type": "application/json", ...responsable.encabezados() },
-        body: JSON.stringify({ codigo: color.codigo, nombre, ...(esVarios || esMezcla ? {} : { familiaColor, hex }), notas, pantoneTcx: pantone, sinonimos: normalizarSinonimos(sinonimos, nombre), descripcion, combinaCon }),
+        body: JSON.stringify({ codigo: color.codigo, nombre, ...(esVarios || esMezcla ? {} : { familiaColor, hex }), notas, pantoneTcx: pantone, sinonimos: normalizarSinonimos(sinonimos, nombre), descripcion }),
       });
       const datos = await res.json();
       if (!res.ok) {
@@ -798,7 +774,6 @@ function ColorEditarModal({
         pantoneTcx: datos.color.pantone_tcx ?? null,
         sinonimos: datos.color.sinonimos ?? [],
         descripcion: datos.color.descripcion ?? null,
-        combinaCon: datos.color.combina_con ?? [],
         componentes: color.componentes,
       });
     } catch {
@@ -880,7 +855,6 @@ function ColorEditarModal({
           </div>
 
           <DescripcionColorCampo valor={descripcion} onValor={setDescripcion} />
-          <CombinaConCampo colores={vocabulario} valor={combinaCon} onValor={setCombinaCon} propio={color.codigo} />
 
           {esMezcla ? (
             <div>

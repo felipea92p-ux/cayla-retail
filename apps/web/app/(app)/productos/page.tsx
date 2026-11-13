@@ -8,7 +8,6 @@ import { BadgePercent, ChevronDown, LayoutGrid, Rows3, SignpostBig } from "lucid
 import { exigirModulo, puede, veModulo } from "@/lib/persona-actual";
 import { createClient } from "@/lib/supabase/server";
 import { exigir } from "@/lib/resultado";
-import type { ColorConFicha } from "@/lib/ficha-del-color";
 import {
   filtrosProductosDesdeParams,
   conSede,
@@ -18,14 +17,10 @@ import {
   getSinTemporadaResumen,
   getFacetasProductos,
   getTemporadasCatalogo,
-  getCatalogo,
   type ParamsProductosListado,
 } from "@/lib/catalogo-v2";
 import { getEmpresasAqui } from "@/lib/empresas-de-sede";
-import { empresaDelListado, insigniaDeEmpresa, opcionesDeEmpresa, soloLasDeAqui } from "@/lib/empresas-de-sede-reglas";
-import { getDisponibleEnSede } from "@/lib/inventario-v2";
-import { cantidadCobrable } from "@/lib/vender-stock-local";
-import { tarjetasDesdeVariantes } from "@/lib/combinar-reglas";
+import { empresaDelListado, insigniaDeEmpresa, opcionesDeEmpresa } from "@/lib/empresas-de-sede-reglas";
 import { ProductosTabla } from "@/components/ProductosTabla";
 import { ProductosGrilla } from "@/components/ProductosGrilla";
 import { SelectorTamanoGrilla } from "@/components/SelectorTamanoGrilla";
@@ -139,8 +134,7 @@ async function ListaDeProductos({ searchParams }: { searchParams: Promise<Params
     // Cuántas hay en cada opción, el rango real del precio y sus tramos (ADR-0308). `null` si falla: opciones sin número.
     getFacetasProductos(filtros),
     supabase.from("categorias").select("id, nombre, prefijo, familia").eq("activo", true).order("nombre"),
-    // Con su ficha (descripción y «combina con», ADR-0316): la vista rápida la lee bajo la foto del color que se mira (Felipe 2026-10-10).
-    supabase.from("colores").select("codigo, nombre, hex, familia_color, tipo, descripcion, combina_con").eq("activo", true).order("nombre"),
+    supabase.from("colores").select("codigo, nombre, hex, familia_color, tipo").eq("activo", true).order("nombre"),
     // Marcas y proveedores activos, para los filtros (ADR-0109).
     supabase.from("marcas").select("id, nombre").eq("activo", true).order("nombre"),
     supabase.from("proveedores").select("id, nombre").eq("activo", true).order("nombre"),
@@ -175,24 +169,18 @@ async function ListaDeProductos({ searchParams }: { searchParams: Promise<Params
   // filtros puestos). Sin conteos, no se avisa.
   const descontinuadas =
     resultado.totalProductos === 0 && filtros.estado === "activo" ? (facetas?.facetas.estado?.descontinuado ?? 0) : 0;
-  const [existencias, preciosTiendas, catalogoSede, pisoSede, campanas] = await Promise.all([
+  const [existencias, preciosTiendas, campanas] = await Promise.all([
     getExistenciasProductos(
       resultado.productos.map((p) => p.productoId),
       persona.ubicacionId
     ),
     // «2 precios» (Felipe 2026-10-09): qué tiendas venden cada prenda a otro precio. Si no se puede leer, no hay insignia.
     getPreciosDeLasTiendas(),
-    // «Combina bien con un jean o una cartera» en la vista rápida (Felipe 2026-10-10): el catálogo entero (la copia guardada que ya
-    // leen Vender y siete pantallas) y el piso cobrable de esta sede. Secundarios: si alguno falla, la hoja no dice la frase.
-    getCatalogo().catch(() => null),
-    getDisponibleEnSede(persona.ubicacionId).catch(() => null),
     // Lo que cobra la caja HOY con su campaña (ADR-0472, Felipe 2026-10-21): la misma lectura que la etiqueta de papel. Si no responde,
     // las tarjetas muestran el precio de lista, como antes de esto: la lista no se cae por una campaña.
     campanasQueCobra(supabase, hoyLima(), resultado.productos.flatMap((p) => p.variantes.map((v) => v.varianteId))).catch(() => null),
   ]);
   const campanasHoy = campanas ? Object.fromEntries(campanas) : undefined;
-  // «Combina bien con» tampoco sugiere una prenda de CLAURE fuera de Lima (ADR-0505).
-  const tarjetasLook = catalogoSede && pisoSede ? tarjetasDesdeVariantes(soloLasDeAqui(catalogoSede, empresasAqui), (id) => cantidadCobrable(pisoSede.get(id))) : [];
   // El precio de cada prenda en CADA tienda (para «2 precios»: cuenta precios distintos, no tiendas), y el de la tienda elegida arriba
   // para el precio grande de la tarjeta y la fila (Felipe 2026-10-10: en TRU, FAL-0008 decía S/ 79.90 y la caja cobraba 69.90). En
   // CAYLA Global no hay tienda: el de la prenda.
@@ -219,15 +207,6 @@ async function ListaDeProductos({ searchParams }: { searchParams: Promise<Params
     return { ...p, ...(c ? { categoriaPrefijo: c.prefijo, categoriaFamilia: c.familia } : {}), empresa };
   });
   const coloresOpciones = exigir(colores, "los colores").map((c) => ({ id: c.codigo, nombre: c.nombre, hex: c.hex, familia: c.familia_color, tipo: c.tipo }));
-  const fichasDeColor: ColorConFicha[] = exigir(colores, "los colores").map((c) => ({
-    codigo: c.codigo,
-    nombre: c.nombre,
-    hex: c.hex,
-    familiaColor: c.familia_color ?? "",
-    tipo: c.tipo,
-    descripcion: c.descripcion ?? null,
-    combinaCon: c.combina_con ?? [],
-  }));
   // En su orden de curva (S · M · L, 28 · 30 · 32), no alfabético (L, M, S).
   const tallasOpciones = exigir(resTallas, "las tallas")
     .map((t) => ({ id: t.id, nombre: t.valor }))
@@ -397,8 +376,6 @@ async function ListaDeProductos({ searchParams }: { searchParams: Promise<Params
             preciosTienda={preciosTienda}
             preciosAqui={preciosAqui}
             campanasHoy={campanasHoy}
-            colores={fichasDeColor}
-            tarjetasLook={tarjetasLook}
           />
         ) : (
           <ProductosTabla

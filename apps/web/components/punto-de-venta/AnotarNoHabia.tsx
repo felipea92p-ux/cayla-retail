@@ -63,9 +63,10 @@ export function AnotarNoHabia({
 
   return (
     <div className="mt-4">
-      <div className="flex flex-wrap items-center gap-x-3 gap-y-2 rounded-xl bg-hueso px-3 py-2.5 text-sm text-tinta/75">
+      {/* La placa del vidrio «Serena» (ADR-0596: lo que explica es plano), no hueso macizo; el botón a 40 px, el alto de «Listo» a su lado. */}
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-2 rounded-xl border px-3 py-2.5 text-sm text-tinta/75 [background:var(--placa-fondo)] [border-color:var(--placa-borde)] [box-shadow:var(--placa-luz)]">
         <Flag className="h-4 w-4 shrink-0" aria-hidden />
-        <span className="min-w-[12rem] flex-1">
+        <span className="min-w-[12rem] flex-1 leading-5">
           {estado === "anotado" ? "Anotado. Compras ya lo ve." : "¿La talla que pidió no está y no le sirve esperar? Anótalo para Compras."}
         </span>
         <Boton
@@ -74,7 +75,7 @@ export function AnotarNoHabia({
           textoCargando="Anotando…"
           onClick={anotar}
           disabled={estado !== "listo" || !responsable.listo || (tallas.length > 1 && !talla)}
-          className="btn-chico ml-auto shrink-0"
+          className="ml-auto min-h-10 shrink-0"
         >
           <span className="flex items-center gap-1.5">
             {estado === "anotado" && <Check className="-my-1 h-3.5 w-3.5" aria-hidden />}

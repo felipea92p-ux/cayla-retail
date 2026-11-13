@@ -173,7 +173,7 @@ export const GUIA_PRODUCTOS: Guia = {
       ancla: "vista-rapida.botones",
       opcional: true,
       titulo: "Lo que haces con ella",
-      texto: "«Editar» abre su ficha. «Etiquetas» imprime las de lo elegido y «Rótulo», su cartel de anaquel. «Ver en Existencias» te lleva a su stock. «Fusionar» junta dos fichas de la misma prenda. «Eliminar» solo borra si nunca se vendió; arriba, «Desactivar» la descontinúa. En la demo no tocamos ninguno.",
+      texto: "«Editar» abre su ficha, «Etiquetas» y «Rótulo» imprimen, «Ver en Existencias» lleva a su stock. Bajo su ficha, para una ficha repetida o creada por error: «Fusionar» junta dos fichas y «Eliminar» borra la que nunca se vendió. Si solo dejó de venderse, es «Desactivar», arriba. En la demo no tocamos ninguno.",
     },
     {
       id: "vr-historial",
@@ -840,7 +840,7 @@ export const GUIA_ATRIBUTOS: Guia = {
       ancla: "vocabulario.tarjeta",
       opcional: true,
       titulo: "Cada color",
-      texto: "Su muestra, su nombre, su código y, si lo tiene, el Pantone para pedir la tela; también con qué otros colores combina. Uno que quedó pendiente de antes dice «Pendiente» hasta que se aprueba o se rechaza. «Editar» abre su ficha (te la abrimos).",
+      texto: "Su muestra, su nombre, su código y, si lo tiene, el Pantone para pedir la tela; también su descripción. Uno que quedó pendiente de antes dice «Pendiente» hasta que se aprueba o se rechaza. «Editar» abre su ficha (te la abrimos).",
     },
     {
       id: "color-form",
@@ -848,7 +848,7 @@ export const GUIA_ATRIBUTOS: Guia = {
       opcional: true,
       preparar: [{ tipo: "clic", ancla: "atributos.color-editar" }],
       titulo: "La ficha de un color",
-      texto: "Nombre, familia, notas internas, Pantone y sinónimos (cómo le dicen en tienda: «plomo» por gris). Más abajo, su descripción, con qué combina y el tono exacto. Cambiar el nombre lo cambia en todas las pantallas, sin tocar ventas pasadas.",
+      texto: "Nombre, familia, notas internas, Pantone y sinónimos (cómo le dicen en tienda: «plomo» por gris). Más abajo, su descripción y el tono exacto. Cambiar el nombre lo cambia en todas las pantallas, sin tocar ventas pasadas.",
     },
     {
       id: "color-pie",

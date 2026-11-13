@@ -1,6 +1,5 @@
 import { describe, expect, it } from "vitest";
 import {
-  alternarCombinaCon,
   MAX_COMBINA_CON,
   MAX_DESCRIPCION,
   MAX_SINONIMOS,
@@ -89,25 +88,6 @@ describe("normalizarCombinaCon", () => {
   it("los repetidos y el propio no cuentan para el tope", () => {
     const con = ["AAA", "BBB", "CCC", "DDD", "EEE", "FFF", "GGG", "HHH", "AAA", "PPP"];
     expect(normalizarCombinaCon(con, "PPP")).toHaveLength(8);
-  });
-});
-
-describe("alternarCombinaCon", () => {
-  it("suma al final y quita, sin tocar el orden de los demás", () => {
-    expect(alternarCombinaCon(["NEG", "BLA"], "CAM")).toEqual(["NEG", "BLA", "CAM"]);
-    expect(alternarCombinaCon(["NEG", "BLA", "CAM"], "BLA")).toEqual(["NEG", "CAM"]);
-  });
-
-  it("con la lista llena, sumar no hace nada; quitar siempre se puede", () => {
-    const llena = ["AAA", "BBB", "CCC", "DDD", "EEE", "FFF", "GGG", "HHH"];
-    expect(alternarCombinaCon(llena, "ZZZ")).toEqual(llena);
-    expect(alternarCombinaCon(llena, "AAA")).toHaveLength(MAX_COMBINA_CON - 1);
-  });
-
-  it("no modifica la lista que recibe", () => {
-    const original = ["NEG"];
-    alternarCombinaCon(original, "BLA");
-    expect(original).toEqual(["NEG"]);
   });
 });
 

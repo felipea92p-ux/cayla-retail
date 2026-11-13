@@ -93,9 +93,8 @@ export function colorDeRespuesta(datos: unknown): { color: ColorAlta } | null {
       tipo: typeof c.tipo === "string" ? c.tipo : undefined,
       sinonimos: Array.isArray(c.sinonimos) ? c.sinonimos.filter((s): s is string => typeof s === "string") : [],
       pantoneTcx: typeof c.pantone_tcx === "string" ? c.pantone_tcx : null,
-      // La ficha (ADR-0316) también llega en la respuesta: un color recién creado se señala en la carta como cualquier otro.
+      // Su descripción (ADR-0316) también llega en la respuesta.
       descripcion: typeof c.descripcion === "string" ? c.descripcion : null,
-      combinaCon: Array.isArray(c.combina_con) ? c.combina_con.filter((s): s is string => typeof s === "string") : [],
       componentes: Array.isArray(c.componentes) ? c.componentes.filter((s): s is string => typeof s === "string") : null,
     },
   };

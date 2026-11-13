@@ -11,8 +11,6 @@ import { esColorClaro, filaDeLaFamilia } from "@/lib/color-escala";
 import { coloresParecidos } from "@/lib/color-parecido";
 import { fondoDeColor } from "@/components/ui/MuestraColor";
 import { bordeDeMuestra, textoDeFamilia } from "@/lib/colores-familias";
-import { fichaDelColor } from "@/lib/ficha-del-color";
-import { FichaDelColor } from "@/components/ui/FichaDelColor";
 import { useEnLinea } from "@/lib/useEnLinea";
 import { Boton } from "@/components/ui/campos";
 import { Aviso } from "@/components/ui/Aviso";
@@ -337,16 +335,14 @@ export function ElegirColores({
 /**
  * Lo que dice la carta del color señalado, en dos renglones de alto fijo. Arriba: su muestra grande, el nombre, la familia y el
  * código Pantone —la referencia real de la tela: el círculo es una aproximación en pantalla— y, si lo hay, con qué otro color se
- * confunde (ΔE2000 < 8, `color-parecido.ts`), para que nadie elija el «Perla» creyendo que es distinto del «Crudo». Abajo, su ficha
- * (ADR-0316; Felipe 2026-10-10): con qué se combina, como círculos que dicen su nombre al pasar o tocar, y la primera frase de lo que
- * transmite. Un color sin ficha deja el segundo renglón vacío: nunca un «sin datos».
+ * confunde (ΔE2000 < 8, `color-parecido.ts`), para que nadie elija el «Perla» creyendo que es distinto del «Crudo». «Combina bien con»
+ * salió de todo el ERP (Felipe 2026-11-13): el renglón de su ficha ya no se dibuja.
  */
 function PieDeLaCarta({ senalado, elegido, colores, porCodigo }: { senalado: ColorAlta | null; elegido: boolean; colores: ColorAlta[]; porCodigo: ReadonlyMap<string, ColorAlta> }) {
   // Un estampado lleva el tono de su color dominante (ADR-0634): ni «se confunde» con otros ni otros con él.
   // Una mezcla guarda el hex de su base (ADR-0643): tampoco se confunde con nada, ni nada con ella.
   const lisos = (c: ColorAlta) => !esEstampado(c) && !esCombinado(c);
   const parecidos = senalado && lisos(senalado) ? coloresParecidos(senalado.hex, senalado.familiaColor, colores.filter(lisos), { excluir: senalado.codigo }).slice(0, 2) : [];
-  const ficha = senalado ? fichaDelColor(senalado.codigo, porCodigo) : null;
   return (
     // En el celular y la tablet de Nuevo producto, pegado abajo sobre la barra de la ficha mientras se recorre la carta (Felipe, 2026-10-09):
     // el pie quedaba al final de 14 familias y el color tocado se sumaba ARRIBA, a la fila de elegidos; quien tocaba un círculo no veía ni
@@ -370,9 +366,6 @@ function PieDeLaCarta({ senalado, elegido, colores, porCodigo }: { senalado: Col
               </span>
               {parecidos.length > 0 && <span className="text-ambar-profundo"> · se confunde con {parecidos.map((p) => p.color.nombre).join(" y ")}</span>}
             </span>
-          </p>
-          <p className="flex min-w-0 items-center">
-            <FichaDelColor ficha={ficha} forma="linea" />
           </p>
           </div>
         </>

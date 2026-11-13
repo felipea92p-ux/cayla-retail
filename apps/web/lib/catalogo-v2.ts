@@ -38,8 +38,8 @@ export type VarianteCatalogo = {
   talla: string | null;
   color: string | null;
   colorHex: string | null;
-  /** `variantes.color_codigo`: la llave para cruzar con la ficha del color (`colores.combina_con`, ADR-0316) en Vender.
-   *  Opcional: un catálogo guardado antes de este cambio no lo trae, y entonces no hay ficha, nunca un error. */
+  /** `variantes.color_codigo`: la llave para cruzar con el vocabulario de colores (si es estampado) en Vender.
+   *  Opcional: un catálogo guardado antes de este cambio no lo trae, y entonces no se marca, nunca un error. */
   colorCodigo?: string | null;
   /** `variantes.talla_id` y `productos.categoria_id`: con `colorCodigo`, la llave para que «Prenda sin registrar» ofrezca la prenda
    *  del catálogo que coincide con lo que caja eligió («¿Es alguna de estas?», A2 de la auditoría 2026-10-14), por id y nunca por
