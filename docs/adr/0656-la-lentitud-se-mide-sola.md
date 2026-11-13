@@ -198,6 +198,8 @@ el pegado lo vieron.
 `safeupdate` cargado y la llave de servicio, como el cron, dos veces seguidas. El control es la versión anterior, que ahí falla con el
 mismo error de producción.
 
+**Pegada en producción el 2026-11-13 a las 23:32 UTC** (md5 de la función verificado).
+
 **Lección para la próxima función que llame un cron o la web:** probarla también con `load 'safeupdate'`. Solo `supabase_admin`
 puede cargar esa librería; `postgres` no.
 
