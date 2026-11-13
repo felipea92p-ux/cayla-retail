@@ -627,7 +627,8 @@ describe("«Hacer ahora», reabrir y el aviso de la sede", () => {
 
   it("por qué no se reabre, en palabras de tienda", () => {
     expect(textoNoSeReabre("reabrir_deuda_resuelta")).toMatch(/Compras ya resolvió/);
-    expect(textoNoSeReabre("reabrir_papel_completado")).toMatch(/Compras ya completó el papel/);
+    expect(textoNoSeReabre("reabrir_papel_completado")).toMatch(/pasó a los libros al cerrar el conteo/);
+    expect(textoNoSeReabre("reabrir_papel_completado")).not.toMatch(/Compras ya completó/);
     expect(textoNoSeReabre("reabrir_reposicion_saldo")).toMatch(/saldó/);
     expect(textoNoSeReabre(null)).toBe("Ya no se puede reabrir");
   });

@@ -25,7 +25,8 @@ import { MandarATienda } from "./MandarATienda";
 // Mis compras ▸ Mis envíos (ADR-0480, maqueta docs/maquetas/mis-compras-envios-2026-10/, Felipe 2026-10-26): los envíos que mandó la
 // compradora, con su código. Dos vistas: «Esta ronda» (los de la ronda abierta, y la franja de lo que falta mandar) y «Rondas anteriores»
 // (una tarjeta por ronda cerrada, plegada, con cómo quedó). Buscar un código, una tienda o una ronda mira TODAS las rondas: así se
-// encuentra un código viejo sin saber en cuál salió. Los filtros (todos · sin recibir · recibidos) valen en las dos vistas. Solo se lee.
+// encuentra un código viejo sin saber en cuál salió. Los filtros (todos · sin recibir · recibidos) valen en las dos vistas. Lo único que se hace, en el detalle
+// de un envío en camino, es anularlo (`HojaEnvio`).
 
 type Alcance = "esta" | "anteriores";
 
