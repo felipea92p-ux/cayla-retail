@@ -60,6 +60,9 @@ type Encontrado = {
 /** Cuánto espera la búsqueda a que la persona deje de escribir. */
 const ESPERA_BUSQUEDA_MS = 250;
 
+/** Cuántas «¿Es alguna de estas?» se ofrecen de un toque: más alargan la hoja; las demás se encuentran escribiendo. */
+const MAX_SUGERIDOS = 6;
+
 /** Hasta cuántas fichas se juntan de una vez en la hoja (la mesa de columnas está pensada para tres). */
 const TOPE_FICHAS = 3;
 
@@ -326,9 +329,10 @@ export function FusionarProductosHoja({
                     ) : (
                       <ul className="fus-mesa" style={{ "--fus-n": Math.max(ids.length, 1) } as React.CSSProperties} data-guia="fusionar.queda">
                         {ids.map((id) => (
-                          <li key={id} className="fus-opcion fus-columna" style={{ borderRadius: 22 }}>
-                            <span className="fus-columna-nombre block">{inicial.find((f) => f.productoId === id)?.referencia ?? "…"}</span>
-                            <span className="mt-1 block text-sm text-taupe">{errorLectura ? "No se pudo leer esta ficha." : hayFusion ? "Leyendo las fichas…" : "Busca abajo la otra ficha de esta prenda para compararlas."}</span>
+                          // Sin plan todavía, una fila corta: el nombre y en qué está (Felipe 2026-11-13: «está demasiado largo»).
+                          <li key={id} className="fus-opcion fus-ficha-sola">
+                            <span className="font-semibold">{inicial.find((f) => f.productoId === id)?.referencia ?? "…"}</span>
+                            <span className="text-sm text-taupe">{errorLectura ? "No se pudo leer esta ficha." : hayFusion ? "Leyendo las fichas…" : "Busca abajo la otra ficha"}</span>
                           </li>
                         ))}
                       </ul>
@@ -723,6 +727,8 @@ function BuscarFicha({
           onActiva={setActiva}
           onElegir={elegir}
           enLinea
+          // Cuatro filas y asoma la quinta; las demás corren adentro: con muchas prendas la hoja ya no se alarga (Felipe 2026-11-13).
+          className="fus-lista-buscar"
         >
           {!buscando && (
             <Vacio tamano="chico" icono={<SearchX />} titulo={`No hay otra ficha con «${texto.trim()}»`}>
@@ -744,7 +750,7 @@ function SugeridosEnLinea({ parecidos, alElegir, deshabilitado }: { parecidos: E
     <div className="space-y-1.5">
       <p className="text-sm text-taupe">¿Es alguna de estas?</p>
       <ul className="flex flex-wrap gap-2">
-        {parecidos.map((p) => (
+        {parecidos.slice(0, MAX_SUGERIDOS).map((p) => (
           <li key={p.id}>
             <button type="button" disabled={deshabilitado} onClick={() => alElegir(p.id)} className="btn-cayla btn-secundario btn-chico">
               {p.referencia}
