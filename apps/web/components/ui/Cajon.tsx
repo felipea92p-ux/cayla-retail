@@ -7,8 +7,10 @@ import { alejarFondo, devolverFondo, moverFondo } from "@/components/ui/fondoDeL
 import { useEscapeLibre } from "@/components/ui/useEscapeLibre";
 import { useFlechasDelCajon } from "@/components/ui/useFlechasDelCajon";
 import { useHojaArrastre } from "@/components/ui/useHojaArrastre";
+import { useAtrasCierraLaHoja } from "@/components/ui/useAtrasCierraLaHoja";
 import { CELULAR, useEnCelular } from "@/components/ui/useEnCelular";
 import { decidirLado, goma, pasoDeLado, velocidad, type Muestra } from "@/lib/hoja-gesto";
+import { prefiereQuieto } from "@/lib/movimiento-cliente";
 
 /** Debe coincidir con `.anim-cajon-salida` en globals.css. */
 const MS_SALIDA = 240;
@@ -36,6 +38,7 @@ const MS_ENTRADA_CELULAR = 460;
    En el celular (ADR-0479, actividad 5) el cajón es la misma hoja que `Modal`: alta (92 %), llega desde abajo con su asa, se baja
    con el dedo, aleja lo de atrás y SIEMPRE lleva velo (la lista de atrás queda tapada, no sirve tocarla). Con `navegacion`, se
    desliza a los lados para pasar de registro: el dedo a la izquierda es el siguiente, y el registro nuevo entra desde ese lado.
+   Y «atrás» (el botón o el gesto desde el borde) lo cierra sin salir de la pantalla, como a toda hoja (ADR-0528).
    ==================================================================== */
 
 /** ¿Celular? En el servidor «no»; el cajón se abre después de un toque, así que ya en el navegador responde de verdad. */
@@ -216,19 +219,22 @@ export function Cajon({
   const cerrar = useCallback(() => setCerrando(true), []);
   useEffect(() => {
     if (!cerrando) return;
-    const reducido = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+    const reducido = prefiereQuieto();
     const ms = msSalidaPropia.current ?? (window.matchMedia?.(CELULAR).matches ? MS_SALIDA_CELULAR : MS_SALIDA);
     devolverFondo(fondo.current, reducido ? 0 : ms);
     const t = setTimeout(onCerrar, reducido ? 0 : ms);
     return () => clearTimeout(t);
   }, [cerrando, onCerrar]);
   const alEscape = useEscapeLibre(cerrar);
+  // En el teléfono «atrás» cierra el cajón, no la pantalla (ADR-0528); sale de la pila apenas empieza a cerrarse.
+  const [conAtras] = useState(() => typeof window !== "undefined" && window.matchMedia?.(CELULAR).matches === true);
+  useAtrasCierraLaHoja(conAtras && !cerrando, cerrar);
   const sinNavegar = useCallback(() => {}, []);
   const alFlecha = useFlechasDelCajon(navegacion?.onNavegar ?? sinNavegar);
 
   // Lo de atrás se aleja mientras el cajón está abierto en el celular (como con `Modal`).
   useEffect(() => {
-    if (!window.matchMedia?.(CELULAR).matches || window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return;
+    if (!window.matchMedia?.(CELULAR).matches || prefiereQuieto()) return;
     const llave = alejarFondo(MS_ENTRADA_CELULAR);
     fondo.current = llave;
     return () => {
@@ -288,7 +294,7 @@ export function Cajon({
           onInteractOutside={conVelo ? undefined : (e) => e.preventDefault()}
           onOpenAutoFocus={sinFocoInicial ? (e) => e.preventDefault() : undefined}
           // En el celular: una hoja alta que llega desde abajo (`cajon-hoja`, globals.css «HOJA DEL CELULAR»).
-          className={`cajon-hoja fixed inset-y-0 right-0 z-50 flex w-full ${ancho === "ancho" ? "max-w-[34rem]" : "max-w-[28.5rem]"} flex-col border-l border-sand bg-papel outline-none max-sm:inset-x-0 max-sm:top-auto max-sm:h-[min(92dvh,92%)] max-sm:pb-[env(safe-area-inset-bottom)] max-sm:max-w-none max-sm:rounded-t-2xl max-sm:border-l-0 max-sm:border-t ${
+          className={`cajon-hoja fixed inset-y-0 right-0 z-50 flex w-full ${ancho === "ancho" ? "max-w-[34rem]" : "max-w-[28.5rem]"} flex-col cajon-serena outline-none max-sm:inset-x-0 max-sm:top-auto max-sm:h-[min(92dvh,92%)] max-sm:pb-[env(safe-area-inset-bottom)] max-sm:max-w-none max-sm:rounded-t-2xl max-sm:border-l-0 max-sm:border-t ${
             cerrando ? (salidaPropia ? "" : "anim-cajon-salida") : "anim-cajon"
           }`}
         >
@@ -317,7 +323,7 @@ export function Cajon({
                 type="button"
                 onClick={cerrar}
                 aria-label={etiquetaCerrar}
-                className="-mr-1 shrink-0 rounded-full p-1.5 text-tinta/55 transition-colors hover:bg-tinta/[0.04] hover:text-rojo"
+                className="cerrar-hoja -mr-1 shrink-0 rounded-full p-1.5 text-tinta/55 transition-colors hover:bg-tinta/[0.04] hover:text-rojo"
               >
                 <X aria-hidden className="h-4 w-4" />
               </button>

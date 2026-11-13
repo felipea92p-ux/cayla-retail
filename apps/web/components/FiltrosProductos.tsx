@@ -4,12 +4,14 @@ import { useEffect, useRef, useState, useSyncExternalStore, type ReactNode } fro
 import { BotonCopiar } from "@/components/ui/BotonCopiar";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { ArrowUpDown, Banknote, CalendarRange, CircleCheck, ClipboardList, PackageSearch, Palette, Ruler, Shirt, Store, Tag, Truck } from "lucide-react";
-import { bordeDeMuestra, FAMILIAS_COLOR, fondoDeMuestra, textoDeFamilia } from "@/lib/colores-familias";
+import { fondoDeColor } from "@/components/ui/MuestraColor";
+import { bordeDeMuestra, FAMILIAS_COLOR, textoDeFamilia } from "@/lib/colores-familias";
 import { Slider } from "radix-ui";
 import { BotonFiltros, DesplegablePildora, FilaPildoras, PanelPildoras, TODOS } from "@/components/ui/FiltrosPildora";
 import { Modal } from "@/components/ui/Modal";
 import { guardarPanelFiltros, type EstadoPanelFiltros } from "@/lib/panel-filtros";
 import { avisar } from "@/components/ui/Avisos";
+import { PAUSA_BUSQUEDA_MS } from "@cayla-retail/shared/busqueda";
 import { useBusquedaEnUrl } from "@/components/ui/BusquedaEnUrl";
 import { opcionesConConteo, textoTramo, tramoActivo, type FacetaClave, type FacetasProductos, type TramoPrecio } from "@/lib/productos-facetas";
 import { montoParaCaja, pasoDePrecio, posicionEnControl, rangoDesdeControl, solesFiltro, type LimitesPrecio } from "@/lib/productos-filtro-precio";
@@ -22,7 +24,7 @@ import {
   marcadosDeColor,
   opcionesDeColor,
   separarColor,
-  FALTAS,
+  faltasVisibles,
   ROTULO_FALTA,
   SIN_TEMPORADA,
   faltaDeUrl,
@@ -51,13 +53,14 @@ import {
 import { SIN_EN_URL } from "@/lib/marcas";
 import { Buscador } from "@/components/ui/Buscador";
 import { BotonLimpiar, FiltroPuesto } from "@/components/ui/FiltrosPuestos";
+import { fondoDelPunto } from "@/lib/color-combinado";
 
 // Filtros de /productos. Mismo patrón que `FiltrosMovimientos.tsx`: viven en
 // la URL, la página es un Server Component que filtra en Postgres
 // (fn_productos_listado y fn_productos_facetas, ADR-0308), y cambiar un filtro vuelve a la
 // página 1 — un filtro nuevo sobre "página 7" case casi siempre en vacío.
 type Opcion = { id: string; nombre: string };
-type OpcionColor = Opcion & { hex: string | null; familia: string | null; /** `solido` | `textura` | `estampado`: una textura (Gris melange) se pinta jaspeada. */ tipo?: string | null };
+type OpcionColor = Opcion & { hex: string | null; familia: string | null; /** `solido` | `textura` | `estampado`: una textura (Gris melange) se pinta jaspeada. */ tipo?: string | null; /** Una mezcla (ADR-0643): su punto se parte. */ tonos?: readonly string[] | null };
 
 
 /** Una sola forma desde el 2026-09-28 (ADR-0254, pedido de Felipe): buscador + botón «Filtros» que despliega el panel
@@ -77,6 +80,7 @@ export function FiltrosProductos({
   temporadas,
   empresas,
   facetas,
+  veCosto = false,
   junto,
 }: {
   categorias: Opcion[];
@@ -100,6 +104,8 @@ export function FiltrosProductos({
   empresas: Opcion[] | null;
   /** Cuántas prendas hay en cada opción y los tramos de precio (`fn_productos_facetas`); `null` = no se pudo saber. */
   facetas: FacetasProductos | null;
+  /** Si esta cuenta ve el costo (el dinero de Compras): solo entonces «Por completar» ofrece «Sin costo». */
+  veCosto?: boolean;
   /** Lo que va a la derecha del conteo, al final de su fila: el tamaño de las tarjetas en la Grilla (2026-10-09). */
   junto?: ReactNode;
 }) {
@@ -218,7 +224,7 @@ export function FiltrosProductos({
       if (ajena.current && Date.now() - ajena.current < 3000) return; // espera a que llegue el enlace: lo rearma su URL
       const cambios = cambiosTipeados(consultaVigente(), tipeado);
       if (Object.keys(cambios).length > 0) aplicar(cambios, { teclado: true });
-    }, 350);
+    }, PAUSA_BUSQUEDA_MS);
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tipeado, consultaUrl]);
@@ -399,7 +405,7 @@ export function FiltrosProductos({
                       <span
                         aria-hidden
                         className="inline-block h-3.5 w-3.5 shrink-0 rounded-full border border-tinta/15 bg-hueso align-middle"
-                        style={{ background: fondoDeMuestra(o.color.hex, o.color.familia, o.color.tipo), borderColor: bordeDeMuestra(o.color.hex) }}
+                        style={{ background: o.color.tonos ? fondoDelPunto(o.color.hex, o.color.tonos) : fondoDeColor(o.color.hex, o.color.familia, o.color.tipo), borderColor: bordeDeMuestra(o.color.hex) }}
                       />
                     ),
                   },
@@ -507,7 +513,7 @@ export function FiltrosProductos({
           etiqueta="Por completar"
           valor={falta ?? TODOS}
           onValor={(v) => aplicar({ falta: v === TODOS ? "" : v })}
-          opciones={[{ valor: TODOS, texto: "Cualquiera" }, ...contar(FALTAS.map((f) => ({ valor: f as string, texto: ROTULO_FALTA[f] })), "falta", [falta ?? null])]}
+          opciones={[{ valor: TODOS, texto: "Cualquiera" }, ...contar(faltasVisibles(veCosto).map((f) => ({ valor: f as string, texto: ROTULO_FALTA[f] })), "falta", [falta ?? null])]}
         />
       </FilaPildoras>
     </PanelPildoras>
@@ -547,7 +553,7 @@ export function FiltrosProductos({
       {panelAbierto && !hojaAbierta && <div data-guia="productos.panel" className="hidden md:block">{panel}</div>}
 
       {hojaAbierta && (
-        <Modal titulo="Filtros" subtitulo="Cada cambio se aplica al momento." onClose={() => setHojaAbierta(false)} tamano="mediana" mediaAltura>
+        <Modal titulo="Filtros" subtitulo="Cada cambio se aplica al momento." onClose={() => setHojaAbierta(false)} tamano="mediana">
           {panel}
           <div className="pie-hoja-fijo pie-acciones mt-4">
             {activos > 0 && (
@@ -659,7 +665,7 @@ function BloquePrecio({
                 type="button"
                 aria-pressed={activo}
                 onClick={() => onTramo(t)}
-                className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[11.5px] transition-colors ${
+                className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-sm transition-colors ${
                   activo ? "border-tinta bg-tinta text-crema" : "border-tinta/15 text-tinta/75 hover:border-tinta/35 hover:text-tinta"
                 }`}
               >
@@ -693,7 +699,7 @@ function CajaMonto({
 }) {
   return (
     <label className="caja-cayla caja-campo caja-campo-baja h-7 min-h-7 w-[4.75rem] shrink-0 gap-1 px-2">
-      <span aria-hidden className="text-[11px] text-tinta/45">
+      <span aria-hidden className="text-sm text-tinta/45">
         S/
       </span>
       <input
@@ -705,7 +711,7 @@ function CajaMonto({
         inputMode="decimal"
         autoComplete="off"
         aria-label={etiqueta}
-        className="self-stretch py-0 text-[12px] tabular-nums"
+        className="self-stretch py-0 text-sm tabular-nums"
       />
     </label>
   );

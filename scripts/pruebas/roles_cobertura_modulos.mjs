@@ -141,7 +141,7 @@ const SOLO_PANTALLA = {
     "usan Caja e Historial.",
   cambios: "registrar_cambio solo mira la sede; cambios_select deja leer a líder o a quien opera esa sede.",
   // devoluciones salió el 2026-10-09: anular_venta la exige (fn_ve_modulo, 20261009182413_anular_venta_quien_ve_devoluciones).
-  facturacion: "emitir_comprobante solo comprueba la sede; comprobantes_select deja leer a líder o a la sede.",
+  // facturacion salió el 2026-10-27: anular_comprobante y marcar_comprobante_no_emitido la exigen (ADR-0534, 20261027164000).
   // Una decisión, no una deuda (ADR-0430, 2026-10-16): el Resumen no guarda nada ni lee nada propio.
   tienda_web:
     "es un tablero, no un candado (ADR-0430): el Resumen de la tienda web no guarda nada y no tiene lectura propia. Cada " +
@@ -175,29 +175,25 @@ const SOLO_LIDER_GRUPOS = [
   // entra cada cobro, conciliar, la plata del dueño, lo pasado sin cuenta— dejaron de ser «solo líder» y salieron de aquí.
   // Deuda que queda (BACKLOG): Cuentas y dinero sigue mostrándolas solo si la cuenta es líder (`esLider`), aunque la
   // base ya las deja a quien tiene Configuración.
+  // ADR-0585 (Felipe 2026-10-30, «puede ver todo del módulo quien lo tenga»): el Balance de CAYLA entera, su comprobación, la lectura
+  // de los saldos de arranque y el flujo con su proyección pasaron a `fn_exigir_estados_financieros_de_todo()` (el líder o quien tiene
+  // el módulo, salvo una terminal) y salieron de aquí. Queda solo ESCRIBIR los saldos de arranque.
   {
     modulo: "reportes_financieros",
-    funciones: ["fn_balance_general", "fn_conciliacion_contable", "fn_saldos_iniciales", "fn_saldos_iniciales_propuesta", "registrar_saldo_inicial"],
+    funciones: ["registrar_saldo_inicial"],
     razon:
-      "Balance de CAYLA entera y saldos de arranque (app/(app)/finanzas/reportes/balance, BalancePanel.tsx, SaldosArranqueModal.tsx). El mensaje " +
-      "de fn_exigir_lider_balance lo dice a propósito: lo ve el líder y con «Reportes financieros» se ve lo de la tienda; la página solo pide " +
-      "estas funciones cuando la cuenta es líder (`esLider`) y a quien no lo es le muestra el balance de su tienda.",
+      "Registrar los saldos de arranque (SaldosArranqueModal.tsx, desde app/(app)/finanzas/reportes/balance): el botón «Saldos de arranque» " +
+      "se muestra solo al líder (`esLider` en BalancePanel.tsx), y fn_exigir_lider_balance lo dice: «Los saldos de arranque los registra el líder».",
   },
   {
-    modulo: "reportes_financieros",
-    funciones: ["fn_flujo_caja_real", "fn_flujo_caja_proyeccion"],
-    razon:
-      "Flujo de caja y Escenarios (app/(app)/finanzas/reportes/flujo y /escenarios): quien no es líder ve <SoloLiderFlujo> en lugar de la " +
-      "pantalla. El mensaje de fn_flujo_exigir_lider dice «por ahora lo ve el líder»: es una decisión provisional, no un olvido.",
-  },
-  {
-    modulo: "liquidacion",
+    // ADR-0653 (Felipe 2026-11-13): el módulo Liquidación se retiró. Sus funciones siguen en la base (no se borra lo construido),
+    // pero sin pantalla y sin permiso para `authenticated`: nadie llega a ellas. Siguen llamando a fn_exigir_precio_liquidacion.
+    modulo: null,
     funciones: ["crear_pieza_liquidacion", "cambiar_precio_pieza_liquidacion"],
     razon:
-      "Liquidación (ADR-0379, Felipe 2026-10-10): las dos piden el módulo (fn_exigir_modulo('liquidacion')) y solo exigen líder en UNA rama, " +
-      "un precio bajo el mínimo (fn_exigir_precio_liquidacion, `parametros_liquidacion.precio_minimo`, S/ 10). Quien ve el módulo etiqueta y " +
-      "rebaja; bajo el mínimo la hoja dice «Desde S/ 10» y la guía no deja confirmar (lib/liquidacion-guia.ts, problemaDePrecio), y si igual " +
-      "llega, la base responde «Ese precio necesita un líder».",
+      "Liquidación se retiró (ADR-0653, Felipe 2026-11-13: «nunca se ha usado y solo causa confusión»). No hay pantalla ni módulo, y la " +
+      "migración 20261113174000 le quitó a `authenticated` el permiso de ejecutarlas: quedan quietas en la base, con su rama de solo líder " +
+      "(un precio bajo el mínimo, fn_exigir_precio_liquidacion) tal como estaba.",
   },
 ];
 const SOLO_LIDER = {};

@@ -11,9 +11,12 @@ import { SIZES_OPCIONES_VENDER, SIZES_TARJETA_VENDER as SIZES_FOTO } from "@/lib
 import { textoOtrasSedes } from "@/lib/stock-por-sede";
 import { motivoNoCobrable, tooltipTallaSinPiso } from "@/lib/vender-stock-local";
 import { estiloMosaicoColor } from "@/lib/color-prenda-reglas";
+import { fotoQueDistingue, inicialDeEstampado } from "@/lib/color-estampado-reglas";
+import { MuestraEstampado } from "@/components/ui/MuestraEstampado";
 import { MosaicoPrenda } from "@/components/MosaicoPrenda";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { InsigniaEmpresa } from "@/components/InsigniaEmpresa";
+import { fondoDelPunto } from "@/lib/color-combinado";
 
 /** Cuántos puntos de color entran en la tarjeta más angosta (un celular de 320 px, dos columnas): con más, «+N». */
 const PUNTOS_A_LA_VISTA = 5;
@@ -105,7 +108,7 @@ export function TarjetaPrenda({ prenda, bloqueado, carrito, indice, pulsoTope, o
           sinFoto
         )}
         {c.color && (
-          <span className="vg-capa-nombre absolute bottom-2 left-2 max-w-[calc(100%-1rem)] truncate rounded-full bg-papel/90 px-2 py-0.5 text-[11px] font-semibold text-tinta">
+          <span className="vg-capa-nombre absolute bottom-2 left-2 max-w-[calc(100%-1rem)] truncate rounded-full bg-papel/90 px-2 py-0.5 text-sm font-semibold text-tinta">
             {c.color}
           </span>
         )}
@@ -127,9 +130,9 @@ export function TarjetaPrenda({ prenda, bloqueado, carrito, indice, pulsoTope, o
         precargarMiniaturas([elegido?.fotoUrl], SIZES_OPCIONES_VENDER);
         precargarMiniaturas(prenda.colores.map((c) => c.fotoUrl), SIZES_FOTO);
       }}
-      className={`anim-entra group relative flex h-full flex-col gap-2 rounded-xl border p-2.5 ${
-        soloEnAlmacen ? "border-ambar/60 bg-crema" : sinStock ? "border-rojo-profundo/40 bg-crema opacity-55" : "alza-cayla border-sand bg-papel"
-      }`}
+      // «B · Foto al aire» (vender-vidrio-2026-11): sin tarjeta; la foto es la pieza y lo demás va plano debajo (vidrio/vender.css).
+      data-estado={soloEnAlmacen ? "almacen" : sinStock ? "agotada" : undefined}
+      className={`pv-prenda anim-entra group relative flex h-full flex-col gap-2 ${sinStock && !soloEnAlmacen ? "opacity-55" : ""}`}
     >
       {/* Toda la tarjeta abre «Todo de la prenda». Botón superpuesto (no `<article onClick>`) para teclado y lectores de
           pantalla; los puntos, las tallas y «Agregar» van por encima (`z-10`). */}
@@ -139,9 +142,9 @@ export function TarjetaPrenda({ prenda, bloqueado, carrito, indice, pulsoTope, o
         disabled={bloqueado}
         aria-label={`Ver todos los colores y tallas de ${nombre}`}
         data-guia="vender.prenda-abrir"
-        className="absolute inset-0 cursor-pointer rounded-xl disabled:cursor-default"
+        className="pv-prenda-abrir absolute inset-0 cursor-pointer disabled:cursor-default"
       />
-      <div className={`pointer-events-none relative aspect-square overflow-hidden rounded-lg bg-sand/40 ${soloEnAlmacen ? "opacity-55" : ""}`}>
+      <div className={`pv-prenda-foto pointer-events-none relative aspect-square overflow-hidden bg-sand/40 ${soloEnAlmacen ? "opacity-55" : ""}`}>
         {saliente && buscar(saliente) && capa(buscar(saliente)!, false)}
         {capa(mostrado, true)}
       </div>
@@ -149,7 +152,7 @@ export function TarjetaPrenda({ prenda, bloqueado, carrito, indice, pulsoTope, o
       <div className="pointer-events-none">
         {/* Dos líneas: en un celular de 320 la tarjeta mide ~140 px y una sola dejaba «Pantalón…» sin decir cuál. */}
         <p className="line-clamp-2 text-sm leading-snug font-semibold text-tinta">{nombre}</p>
-        <p className="mt-0.5 text-[11.5px] text-tinta/55">{resumenDePrenda(prenda)}</p>
+        <p className="mt-0.5 text-sm text-tinta/55">{resumenDePrenda(prenda)}</p>
         {/* ADR-0505: en Lima, «CLAURE» bajo el nombre, para no venderla como la blusa de CAYLA que se le parece. */}
         <InsigniaEmpresa nombre={elegido.tallas[0]?.variante.empresa} className="mt-1" />
       </div>
@@ -160,6 +163,8 @@ export function TarjetaPrenda({ prenda, bloqueado, carrito, indice, pulsoTope, o
             const estado = c.stockTotal > 0 ? "piso" : c.almacenTotal > 0 ? "almacen" : "agotado";
             const activo = c.clave === elegido.clave;
             const detalle = estado === "almacen" ? ", solo en el almacén" : estado === "agotado" ? ", sin stock aquí" : "";
+            const variante = c.tallas[0]?.variante;
+            const fotoEstampado = variante?.colorEstampado ? fotoQueDistingue(c.fotoUrl, prenda.colores.map((x) => x.fotoUrl)) : null;
             return (
               <button
                 key={c.clave}
@@ -176,7 +181,17 @@ export function TarjetaPrenda({ prenda, bloqueado, carrito, indice, pulsoTope, o
                 aria-label={`${c.color ?? "Sin color"}${detalle}`}
                 className="vg-punto"
               >
-                <i style={{ backgroundColor: estiloMosaicoColor(c.tallas[0]?.variante.colorHex)?.fondo ?? "var(--color-hueso)" }} />
+                {fotoEstampado ? (
+                  <i className="vg-punto-foto"><MuestraEstampado fotoUrl={fotoEstampado} hex={variante?.colorHex} /></i>
+                ) : variante?.colorEstampado && inicialDeEstampado(c.color) ? (
+                  // Sin foto que lo distinga, dos estampados del mismo color serían dos puntos iguales (ADR-0634): la letra los separa.
+                  <i aria-hidden data-color-dato className="vg-punto-inicial" style={{ backgroundColor: estiloMosaicoColor(variante.colorHex)?.fondo ?? "var(--color-hueso)", color: estiloMosaicoColor(variante.colorHex)?.trazo ?? "var(--color-tinta-fija)" }}>
+                    {inicialDeEstampado(c.color)}
+                  </i>
+                ) : (
+                  // Una mezcla («Hueso con azul», ADR-0643) parte su punto: la base a la izquierda.
+                  <i style={{ background: fondoDelPunto(estiloMosaicoColor(variante?.colorHex)?.fondo, variante?.colorTonos) ?? "var(--color-hueso)" }} />
+                )}
               </button>
             );
           })}
@@ -186,7 +201,7 @@ export function TarjetaPrenda({ prenda, bloqueado, carrito, indice, pulsoTope, o
               onClick={() => onAbrir(prenda.clave, elegido.clave)}
               disabled={bloqueado}
               aria-label={`Ver los ${prenda.colores.length} colores de ${nombre}`}
-              className="h-[1.625rem] min-w-[1.875rem] rounded-full border border-sand bg-crema px-1.5 text-[11px] font-semibold tabular-nums text-tinta/70 transition-colors duration-200 hover:bg-hueso"
+              className="pv-talla h-[1.625rem] min-w-[1.875rem] px-1.5 text-[11px] font-semibold tabular-nums text-tinta/70"
             >
               +{resto}
             </button>
@@ -214,11 +229,11 @@ export function TarjetaPrenda({ prenda, bloqueado, carrito, indice, pulsoTope, o
           </span>
           {/* Para la colaboradora, no para el cliente: este precio es el de su tienda, distinto del de las demás. */}
           {elegido.tallas.some((t) => t.variante.precioDeSede) && (
-            <span className="whitespace-nowrap text-[10.5px] font-semibold text-ambar-profundo">{etiquetaPrecioSede}</span>
+            <span className="whitespace-nowrap text-sm font-semibold text-ambar-profundo">{etiquetaPrecioSede}</span>
           )}
         </span>
         {/* En una tienda es solo el PISO del color elegido; en el Taller (sin almacén) es todo lo de la sede. */}
-        <span className={`whitespace-nowrap text-[11px] tabular-nums ${piso === 0 && almacen > 0 ? "text-ambar-profundo" : piso === 0 ? "text-rojo-profundo" : "text-tinta/60"}`}>
+        <span className={`whitespace-nowrap text-sm tabular-nums ${piso === 0 && almacen > 0 ? "text-ambar-profundo" : piso === 0 ? "text-rojo-profundo" : "text-tinta/60"}`}>
           {piso > 0
             ? `${piso} ${elegido.separaPiso ? "en piso" : "en sede"}${almacen > 0 ? ` · ${almacen} alm.` : ""}`
             : almacen > 0
@@ -233,7 +248,7 @@ export function TarjetaPrenda({ prenda, bloqueado, carrito, indice, pulsoTope, o
         <span
           key={`tope-${pulsoTope}`}
           aria-hidden
-          className="anim-tope pointer-events-none absolute inset-0 z-20 overflow-hidden rounded-xl bg-rojo/[0.06] shadow-lg shadow-rojo/25 ring-1 ring-inset ring-rojo/50"
+          className="anim-tope pv-prenda-tope pointer-events-none absolute inset-0 z-20 overflow-hidden bg-rojo/[0.06] shadow-lg shadow-rojo/25 ring-1 ring-inset ring-rojo/50"
         >
           <span className="anim-tope-barrido absolute inset-y-0 left-0 w-1/3 bg-gradient-to-r from-transparent via-rojo/15 to-transparent" />
           <span className="label-cayla absolute top-3 left-3 rounded-full bg-papel/90 px-2 py-0.5 text-[10px] text-rojo-profundo">Máximo alcanzado</span>
@@ -252,7 +267,7 @@ function BotonAgregar({ color, bloqueado, onAgregar }: { color: Color; bloqueado
   if (!t) return null;
   const motivo = motivoNoCobrable(t.variante);
   const base =
-    "vg-entra label-cayla flex h-8 min-w-0 flex-1 items-center justify-center gap-1.5 rounded-lg border px-2 text-[10.5px] transition-[background-color,border-color,color,transform] duration-200 ease-[var(--ease-cayla)] active:translate-y-px";
+    "pv-talla vg-entra label-cayla flex h-8 min-w-0 flex-1 items-center justify-center gap-1.5 px-2 text-[10.5px] active:translate-y-px";
   if (motivo === "cobrable")
     return (
       <button
@@ -260,7 +275,8 @@ function BotonAgregar({ color, bloqueado, onAgregar }: { color: Color; bloqueado
         onClick={() => onAgregar(t.variante)}
         disabled={bloqueado}
         aria-label={`Agregar ${t.variante.referencia} ${color.color ?? ""}`.trim()}
-        className={`${base} border-sand bg-crema text-tinta hover:border-tinta hover:bg-tinta hover:text-crema`}
+        data-talla="piso"
+        className={`${base} text-tinta hover:text-crema`}
       >
         <Plus aria-hidden className="h-3.5 w-3.5 shrink-0" />
         <span className="truncate">{color.color ? `Agregar · ${color.color}` : "Agregar"}</span>
@@ -274,13 +290,14 @@ function BotonAgregar({ color, bloqueado, onAgregar }: { color: Color; bloqueado
         onClick={() => onAgregar(t.variante)}
         disabled={bloqueado}
         aria-label={`${t.variante.referencia} ${color.color ?? ""}: ${t.almacenAqui} en el almacén`.trim()}
-        className={`${base} border-dashed border-ambar/60 text-ambar-profundo hover:bg-ambar/10`}
+        data-talla="almacen"
+        className={`${base} text-ambar-profundo`}
       >
         <span className="truncate">{t.almacenAqui} en el almacén</span>
       </button>
     );
   return (
-    <span className={`${base} cursor-default border-dashed ${motivo === "apartada" ? "border-pizarra/50 text-pizarra" : "border-sand text-tinta/40"}`}>
+    <span data-talla={motivo === "apartada" ? "apartada" : "agotada"} className={`${base} cursor-default ${motivo === "apartada" ? "text-pizarra" : "text-tinta/40"}`}>
       <span className="truncate">{motivo === "apartada" ? "Apartada" : "Sin stock aquí"}</span>
     </span>
   );
@@ -307,7 +324,8 @@ function CasillaTalla({
   onAgregar: (v: VarianteBusqueda) => void;
 }) {
   const estilo = { "--i": i } as CSSProperties;
-  const base = "vg-entra label-cayla flex h-8 min-w-8 items-center justify-center rounded-lg border px-2 text-[11px]";
+  // Cada talla es una gota, como las píldoras de filtro (vidrio/vender.css): `data-talla` dice cuál es su cara.
+  const base = "pv-talla vg-entra label-cayla flex h-8 min-w-8 items-center justify-center px-2 text-[11px]";
   if (t.stockAqui <= 0 && t.almacenAqui > 0)
     return (
       <Tooltip>
@@ -318,7 +336,8 @@ function CasillaTalla({
             onClick={() => onAgregar(t.variante)}
             disabled={bloqueado}
             aria-label={`Talla ${t.talla} de ${nombre}: ${t.almacenAqui} en el almacén`}
-            className={`${base} border-dashed border-ambar/60 text-ambar-profundo transition-[background-color,transform] duration-200 ease-[var(--ease-cayla)] hover:bg-ambar/10 active:translate-y-px`}
+            data-talla="almacen"
+            className={`${base} text-ambar-profundo active:translate-y-px`}
           >
             {t.talla}
           </button>
@@ -336,7 +355,8 @@ function CasillaTalla({
             onClick={() => onAgregar(t.variante)}
             disabled={bloqueado}
             aria-label={`Agregar ${nombre} talla ${t.talla}`}
-            className={`${base} border-sand bg-crema text-tinta transition-[background-color,border-color,color,transform] duration-200 ease-[var(--ease-cayla)] hover:border-tinta hover:bg-tinta hover:text-crema active:translate-y-px`}
+            data-talla="piso"
+            className={`${base} text-tinta hover:text-crema active:translate-y-px`}
           >
             {t.talla}
           </button>
@@ -354,9 +374,10 @@ function CasillaTalla({
           tabIndex={0}
           style={estilo}
           aria-label={`Talla ${t.talla} ${motivoNoCobrable(t.variante) === "apartada" ? "apartada para un cliente" : "sin stock aquí"}`}
-          className={`${base} border-dashed outline-none focus-visible:border-rojo/60 ${
+          data-talla={motivoNoCobrable(t.variante) === "apartada" ? "apartada" : "agotada"}
+          className={`${base} outline-none ${
             // Agotada: tachada. Apartada para un cliente: SIN tachar y en el token informativo.
-            motivoNoCobrable(t.variante) === "apartada" ? "border-pizarra/50 text-pizarra" : "border-sand text-tinta/35 line-through"
+            motivoNoCobrable(t.variante) === "apartada" ? "text-pizarra" : "text-tinta/35 line-through"
           }`}
         >
           {t.talla}

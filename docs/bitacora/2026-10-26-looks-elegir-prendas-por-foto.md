@@ -1,0 +1,4 @@
+## 2026-10-26 (Vitrina ▸ Looks: «Nuevo look» se arma mirando las fotos, con ideas de nombre y frase)
+Qué hice: la hoja de un look es más grande y las prendas se eligen en una grilla de fotos con categorías y buscador (antes, un combo por nombre); con dos prendas elegidas sugiere nombres y frases que no se parecen a los de otros looks. «¿Qué precio ve el cliente?» de Modelos va a la derecha de las pestañas.
+Por qué así: elegir una blusa entre 300 por su nombre obliga a recordarla; verla la hace obvia. Las ideas salen de una tabla curada y estable (la misma elección, las mismas ideas) y no de un servicio de afuera que puede caer.
+Felipe se lleva: nada va a producción de la base (sin migraciones). Queda por decidir si quieres las ideas también para «Editar look» sin cambiar lo que ya escribiste (hoy aparecen igual, pero no pisan nada hasta que tocas una).

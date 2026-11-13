@@ -8,8 +8,9 @@ import { leerUrlMuestra } from "@/lib/muestra-atributo-reglas";
 
 // POST/PATCH /api/productos/patrones → vocabulario cerrado de patrones
 // (ADR-0095/0096), mismo mecanismo y misma forma que
-// /api/productos/tejidos: cualquiera con sesión propone (nace 'pendiente'
-// y usable al instante, salvo `fn_es_lider()`), un Líder aprueba/rechaza.
+// /api/productos/tejidos: cualquiera con sesión agrega y nace 'aprobado'
+// (ADR-0534); lo que quedó pendiente de antes lo aprueba o rechaza quien
+// tiene el módulo de catálogo (PATCH).
 export async function POST(request: Request) {
   await requirePersonaActualV2();
 
@@ -39,7 +40,7 @@ export async function POST(request: Request) {
 export async function PATCH(request: Request) {
   const persona = await requirePersonaActualV2();
   if (!puede(persona, "editarCatalogo")) {
-    return Response.json({ error: "Solo un Líder puede editar el vocabulario de patrones." }, { status: 403 });
+    return Response.json({ error: "Editar el vocabulario de patrones necesita el módulo Productos o Atributos en tu rol." }, { status: 403 });
   }
 
   const cuerpo = await request.json().catch(() => null);

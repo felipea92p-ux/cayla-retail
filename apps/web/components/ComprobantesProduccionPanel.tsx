@@ -13,6 +13,7 @@ import { ComprobanteProduccionForm } from "@/components/ComprobanteProduccionFor
 import { estadoVisible, etiquetaTipo, filtrarComprobantes, resumenComprobantes, type ComprobanteProduccion, type FiltroEstado } from "@/lib/comprobantes-produccion-reglas";
 import type { InsumoParaComprobante } from "@/lib/comprobantes-produccion";
 import type { ProveedorProduccion } from "@/lib/proveedores-produccion-reglas";
+import type { OrdenInsumoPorRecibir } from "@/lib/recepcion-orden-insumo-reglas";
 import { Buscador } from "@/components/ui/Buscador";
 import { Vacio } from "@/components/ui/Vacio";
 import { DesplegablePildora } from "@/components/ui/FiltrosPildora";
@@ -34,6 +35,7 @@ export function ComprobantesProduccionPanel({
   hoy,
   tallerId,
   sede,
+  pedidosPorRecibir,
 }: {
   comprobantes: ComprobanteProduccion[];
   proveedores: ProveedorProduccion[];
@@ -43,6 +45,8 @@ export function ComprobantesProduccionPanel({
   tallerId: string | null;
   /** La sede de la línea de arriba de la cabecera (el Taller). */
   sede: string;
+  /** Los pedidos de insumos con algo por recibir: «Nueva factura» pregunta si la factura es de uno (ADR-0587). */
+  pedidosPorRecibir: OrdenInsumoPorRecibir[];
 }) {
   const [estado, setEstado] = useState<FiltroEstado>("todos");
   const [proveedorId, setProveedorId] = useState("");
@@ -61,7 +65,7 @@ export function ComprobantesProduccionPanel({
       <EncabezadoPagina
         sede={sede}
         titulo="Facturas de insumos"
-        subtitulo="La factura de quien le vende al Taller: qué se compró, a qué precio y cuánto falta pagar. Es un libro aparte del de Compras."
+        subtitulo="Las facturas de quien le vende al Taller: qué se compró, a qué precio y cuánto falta pagar."
         acciones={
           <Boton peso="primario" data-guia="prod-facturas.nueva" onClick={() => setNuevo(true)}>
             + Nueva factura
@@ -211,16 +215,16 @@ export function ComprobantesProduccionPanel({
                         onClick={() => setAbierto(c.id)}
                         className="grid w-full grid-cols-[minmax(0,1fr)_auto] items-center gap-x-4 gap-y-1 px-4 py-3 text-left outline-none transition-colors hover:bg-sand/40 focus-visible:bg-sand/40 sm:grid-cols-[4rem_minmax(0,1.6fr)_7rem_7rem_11rem]"
                       >
-                        <span className="hidden text-[13px] tabular-nums text-tinta/75 sm:block">{diaMes(c.fechaEmision)}</span>
+                        <span className="hidden text-sm tabular-nums text-tinta/75 sm:block">{diaMes(c.fechaEmision)}</span>
                         <span className="min-w-0">
                           <span data-guia="prod-facturas.proveedor-fila" className={`block truncate text-[14px] ${c.estado === "anulada" ? "text-tinta/55 line-through" : "text-tinta"}`}>{c.proveedor}</span>
-                          <span className="block text-xs text-tinta/65">
+                          <span className="block text-sm text-tinta/65">
                             {etiquetaTipo(c.tipo, true)} {c.serie}-{c.numero} · {plural(c.lineas, "línea", "líneas")}
                             <span className="sm:hidden"> · {diaMes(c.fechaEmision)}</span>
                           </span>
                         </span>
-                        <span className="text-right text-[13px] tabular-nums text-tinta">{soles(c.total)}</span>
-                        <span className="hidden text-right text-[13px] tabular-nums text-tinta sm:block">{c.saldo > 0 ? soles(c.saldo) : <span className="text-tinta/45">—</span>}</span>
+                        <span className="text-right text-sm tabular-nums text-tinta">{soles(c.total)}</span>
+                        <span className="hidden text-right text-sm tabular-nums text-tinta sm:block">{c.saldo > 0 ? soles(c.saldo) : <span className="text-tinta/45">—</span>}</span>
                         <span className="col-span-2 sm:col-span-1">
                           <Chip tono={est.tono}>{est.texto}</Chip>
                         </span>
@@ -231,11 +235,11 @@ export function ComprobantesProduccionPanel({
               </ul>
             </div>
           )}
-          <p className="text-xs text-tinta/65">Una factura dice qué se compró, no qué llegó: la mercadería se recibe en Recibir, donde cada línea abre su lote. El pago posterior de un crédito se registra en Por pagar.</p>
+          <p className="text-sm text-tinta/65">Una factura dice qué se compró, no qué llegó: lo que llega se anota en Recibir, y un crédito se paga en Por pagar.</p>
         </div>
       )}
 
-      {nuevo && <ComprobanteProduccionForm proveedores={proveedores} insumos={insumos} hoy={hoy} proveedorInicialId={proveedorId || null} onClose={() => setNuevo(false)} />}
+      {nuevo && <ComprobanteProduccionForm proveedores={proveedores} insumos={insumos} hoy={hoy} proveedorInicialId={proveedorId || null} pedidosPorRecibir={pedidosPorRecibir} onClose={() => setNuevo(false)} />}
       {detalle && <ComprobanteProduccionDetalle comprobante={detalle} hoy={hoy} tallerId={tallerId} onClose={() => setAbierto(null)} />}
     </div>
   );

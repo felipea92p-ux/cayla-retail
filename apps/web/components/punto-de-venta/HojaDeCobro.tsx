@@ -5,12 +5,14 @@ import { Check, FileText, Receipt, StickyNote } from "lucide-react";
 import type { MetodoPagoVenta } from "@cayla-retail/shared";
 import { ETIQUETA_TIPO, type TipoComprobante } from "@/lib/comprobantes-reglas";
 import { lecturaDelRecibido, type MaquinaDeCobro, maquinasPara, montosSugeridos, nombreMaquina, type PagoAplicado, preguntaMaquina } from "@/lib/vender-reglas";
+import type { NumeroQueDar } from "@/lib/cobro-por-dueno-reglas";
 import { LEY_REDONDEO, NOMBRE_METODO, TEXTO_REDONDEO } from "@/lib/recibo-reglas";
-import { CLASE_MONTO_ILEGIBLE, CampoMonto, atributosMontoTexto } from "@/components/ui/CampoMonto";
+import { CLASE_MONTO_ILEGIBLE, EntradaMonto, atributosMontoTexto } from "@/components/ui/CampoMonto";
 import { iconoMetodo } from "@/components/PuntoDeVentaTicket";
 import { money } from "@/components/PuntoDeVenta";
-import { Volver } from "@/components/ui/Volver";
+import { CerrarHoja } from "@/components/punto-de-venta/CerrarHoja";
 import { montoIlegible, numeroDeMonto } from "@/lib/monto-plata-reglas";
+import { prefiereQuieto } from "@/lib/movimiento-cliente";
 
 type TipoVenta = Extract<TipoComprobante, "boleta" | "factura" | "nota_venta">;
 
@@ -71,6 +73,7 @@ export function HojaDeCobro({
   onTocarMedio,
   maquinas = SIN_MAQUINAS,
   onMaquina,
+  numeroADar = null,
   onMontoPago,
   onRecibido,
   tipoComprobante,
@@ -102,6 +105,8 @@ export function HojaDeCobro({
   maquinas?: readonly MaquinaDeCobro[];
   /** La cajera marcó la otra máquina para ese pago. */
   onMaquina?: (indice: number, cuentaId: string) => void;
+  /** A qué número paga, donde conviven dos empresas (`numeroQueDar`). `null` = no hay nada que decir y la hoja queda como siempre. */
+  numeroADar?: NumeroQueDar | null;
   onMontoPago: (indice: number, monto: number) => void;
   onRecibido: (monto: number | null) => void;
   tipoComprobante: TipoVenta | null;
@@ -126,14 +131,16 @@ export function HojaDeCobro({
   // «Otro»: lo escrito se guarda como texto mientras se edita (con coma y todo) y se lee con la regla de plata (ADR-0419): convertirlo en
   // cada tecla borraba la coma de «2,» a mitad de escribir. Lo que no se entiende no cuenta como recibido y queda en rojo.
   const [otroTexto, setOtroTexto] = useState<string | null>(null);
-  // Al elegir el comprobante aparece el documento del cliente; en una hoja baja puede quedar bajo el pliegue. Entonces el cuerpo
-  // baja lo justo para mostrarlo (`block: "nearest"`: si ya se ve entero, no se mueve). Lo disparó un toque en un botón, nunca
-  // una tecla en un campo de texto de la hoja (guía de foco, regla 6), y sin movimiento con `prefers-reduced-motion`.
+  // Al elegir el comprobante aparece el documento del cliente; en una hoja baja puede quedar bajo el pliegue. Entonces la vista baja
+  // hasta mostrarlo: en el celular (`compacta`) lo deja al CENTRO (es lo que se acaba de abrir y lo que toca llenar); en escritorio, el
+  // cuerpo baja lo justo (`block: "nearest"`: si ya se ve entero, no se mueve). Lo disparó un toque en un botón, nunca una tecla en un
+  // campo de texto de la hoja (guía de foco, regla 6), y sin movimiento con `prefers-reduced-motion`.
   useEffect(() => {
-    if (compacta || !tipoComprobante) return;
+    if (!tipoComprobante) return;
     const fotograma = requestAnimationFrame(() => {
-      const reducido = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-      cuerpoRef.current?.querySelector("[data-documento-cobro]")?.scrollIntoView({ block: "nearest", behavior: reducido ? "auto" : "smooth" });
+      const reducido = prefiereQuieto();
+      const raiz = compacta ? document : cuerpoRef.current;
+      raiz?.querySelector("[data-documento-cobro]")?.scrollIntoView({ block: compacta ? "center" : "nearest", behavior: reducido ? "auto" : "smooth" });
     });
     return () => cancelAnimationFrame(fotograma);
   }, [tipoComprobante, compacta]);
@@ -146,19 +153,6 @@ export function HojaDeCobro({
     .filter((x) => preguntaMaquina(maquinas, x.pago.metodo));
   const maquinaDelPos = pagos.length === 1 && pagos[0] ? nombreMaquina(maquinas, pagos[0]) : null;
   const pagoOk = pagos.length > 0 && restante === 0 && !pagos.some((p) => varios && p.monto <= 0);
-  // En el celular (`compacta`) el comprobante queda bajo el pliegue de la hoja: en cuanto el pago queda cubierto y falta elegirlo,
-  // la hoja baja lo justo para mostrarlo. Lo dispara un toque (un medio, un monto sugerido), nunca una tecla en un campo de texto
-  // (guía de foco, regla 6), y sin movimiento con `prefers-reduced-motion`.
-  useEffect(() => {
-    if (!compacta || !pagoOk || tipoComprobante) return;
-    const fotograma = requestAnimationFrame(() => {
-      const activo = document.activeElement;
-      if (activo instanceof HTMLInputElement || activo instanceof HTMLTextAreaElement) return;
-      const reducido = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-      cuerpoRef.current?.querySelector("[data-paso-comprobante]")?.scrollIntoView({ block: "center", behavior: reducido ? "auto" : "smooth" });
-    });
-    return () => cancelAnimationFrame(fotograma);
-  }, [compacta, pagoOk, tipoComprobante]);
   const comprobanteOk = tipoComprobante !== null && faltaDocumento === null;
   // El que no se escribió a mano se queda con el resto: con dos medios, el otro del editado; con más, el primero libre.
   const libre = varios ? pagos.findIndex((p) => !p.fijo) : -1;
@@ -168,6 +162,29 @@ export function HojaDeCobro({
   const aCobrar = cobroEfectivo?.aCobrar ?? efectivo?.monto ?? 0;
   const redondeo = cobroEfectivo?.redondeo ?? 0;
   const sugeridos = efectivo ? montosSugeridos(aCobrar) : [];
+  // En el celular (`compacta`) la hoja del ticket scrollea y lo que se abre queda bajo el pliegue. La vista va, en este orden, a lo
+  // que toca ahora (Felipe 2026-11-02: «si abro una opción, mándame a lo que abre, centrado»): (1) al elegir un medio, a lo que ese
+  // medio pide (con cuánto paga, con qué máquina); (2) con el pago cubierto y sin comprobante, al comprobante. En efectivo el paso (2) espera
+  // a que se diga con cuánto paga, para no pasar de largo los billetes. Lo dispara un toque (un medio, un monto), nunca una tecla en un
+  // campo de texto (guía de foco, regla 6), y sin movimiento con `prefers-reduced-motion`.
+  const mediosPrevios = useRef("");
+  const faltaDecirConCuantoPaga = efectivo !== undefined && aCobrar > 0 && efectivo.recibido == null;
+  useEffect(() => {
+    const clave = pagos.map((p) => p.metodo).join(",");
+    const cambioElMedio = clave !== mediosPrevios.current;
+    mediosPrevios.current = clave;
+    if (!compacta) return;
+    const fotograma = requestAnimationFrame(() => {
+      const activo = document.activeElement;
+      if (activo instanceof HTMLInputElement || activo instanceof HTMLTextAreaElement) return;
+      const reducido = prefiereQuieto();
+      const ir = (el: Element | null | undefined) => el?.scrollIntoView({ block: "center", behavior: reducido ? "auto" : "smooth" });
+      const extra = cuerpoRef.current?.querySelector(".hoja-cobro-extra");
+      if (cambioElMedio && clave && extra && (extra.textContent ?? "").trim() !== "") return ir(extra);
+      if (pagoOk && !tipoComprobante && !faltaDecirConCuantoPaga) ir(cuerpoRef.current?.querySelector("[data-paso-comprobante]"));
+    });
+    return () => cancelAnimationFrame(fotograma);
+  }, [compacta, pagos, pagoOk, tipoComprobante, faltaDecirConCuantoPaga]);
   const recibido = efectivo?.recibido;
   const enSugeridos = recibido !== undefined && (recibido === aCobrar || sugeridos.includes(recibido));
   const lectura = lecturaDelRecibido(recibido, aCobrar, vuelto);
@@ -193,9 +210,9 @@ export function HojaDeCobro({
               {money(total)}
             </span>
           </p>
-          {/* El «Volver» del cobro es la flecha redonda de todo el ERP (ADR-0358, Felipe 2026-10-07: «volver solo es una flecha»).
-              Con el dedo, su zona llega a 44 px sin que el círculo crezca. */}
-          <Volver onClick={onVolver} a="Volver al ticket" />
+          {/* Una hoja sobre el catálogo se cierra con la ×, no con una flecha de «Volver» (que se leía como el «atrás» del navegador;
+              Felipe 2026-11-02). Vuelve al ticket tal cual estaba: no cobra nada. */}
+          <CerrarHoja onCerrar={onVolver} />
         </div>
       )}
 
@@ -204,9 +221,9 @@ export function HojaDeCobro({
       <div ref={cuerpoRef} className={compacta ? "contents" : "hoja-cobro-cuerpo scroll-cayla"}>
         {/* 1 · Pago */}
         <section className={`hoja-cobro-paso ${pagoOk ? "es-hecho" : "sigue-aqui"}`}>
-          <CabezaPaso numero={1} titulo="Pago" hecho={pagoOk} pista={pagoOk ? null : "Sigue aquí"} estado={estadoPago} />
+          <CabezaPaso numero={1} titulo="Pago" hecho={pagoOk} pista={pagoOk ? null : "Sigue"} estado={estadoPago} />
           <div className="hoja-cobro-pago grid">
-            <div className={`hoja-cobro-medios grid ${varios ? "con-montos" : ""}`}>
+            <div data-guia="vender.cobro-medio" className={`hoja-cobro-medios grid ${varios ? "con-montos" : ""}`}>
               {medios.map((m, iAtajo) => {
                 const indice = pagos.findIndex((p) => p.metodo === m);
                 const pago = indice === -1 ? null : pagos[indice];
@@ -250,8 +267,8 @@ export function HojaDeCobro({
                     </span>
                     {varios && pago && (
                       <label className="hoja-cobro-monto">
-                        <span className="text-[11px] opacity-85">S/</span>
-                        <CampoMonto
+                        <span className="text-sm opacity-85">S/</span>
+                        <EntradaMonto
                           aria-label={`Monto en ${NOMBRE_METODO[m]}`}
                           data-monto-medio={m}
                           valor={pago.monto}
@@ -269,6 +286,12 @@ export function HojaDeCobro({
             {/* A la derecha, solo lo que el medio pide: con efectivo, los billetes y el vuelto; sin efectivo, una pista. Y, donde la
                 tienda tiene dos máquinas para la tarjeta o el QR, con cuál se cobró (ADR-0429), con la de defecto ya marcada. */}
             <div className="hoja-cobro-extra min-w-0">
+              {numeroADar && (
+                <p data-guia="vender.cobro-numero" role="status" className="nota-cayla sin-i anim-revelar mb-3">
+                  <b>{numeroADar.titulo}</b>
+                  <span className="block">{numeroADar.detalle}</span>
+                </p>
+              )}
               {preguntasMaquina.length > 0 && (
                 <div className="hoja-cobro-maquinas anim-revelar" data-maquinas>
                   {preguntasMaquina.map(({ pago, indice, opciones }) => (
@@ -301,11 +324,11 @@ export function HojaDeCobro({
                   Escribe cuánto paga <br />en efectivo.
                 </p>
               ) : efectivo ? (
-                <div className="hoja-cobro-efectivo anim-revelar">
+                <div data-guia="vender.cobro-recibe" className="hoja-cobro-efectivo anim-revelar">
                   {redondeo > 0 && aCobrar > 0 && (
                     <p className="hoja-cobro-nota rounded-lg bg-hueso text-tinta/80" data-redondeo>
                       Cobra <b className="font-semibold text-tinta tabular-nums">{money(aCobrar)}</b> en efectivo
-                      <span className="block text-[12px] text-tinta/60">
+                      <span className="block text-sm text-tinta/60">
                         {TEXTO_REDONDEO} −{money(redondeo)} · {LEY_REDONDEO}
                       </span>
                     </p>
@@ -335,7 +358,7 @@ export function HojaDeCobro({
                           </button>
                         ))}
                         <label className={`hoja-cobro-billete es-otro ${recibido !== undefined && !enSugeridos ? "es-escrito" : ""}`}>
-                          <span className="text-xs text-tinta/50">S/</span>
+                          <span className="text-sm text-tinta/50">S/</span>
                           <input // unificar-fijo: el billete «Otro» es una baldosa más de la hoja de cobro (hoja-cobro-billete)
                             aria-label="Otro monto recibido"
                             {...atributosMontoTexto(otroTexto ?? "")}
@@ -386,11 +409,11 @@ export function HojaDeCobro({
             numero={2}
             titulo="Comprobante"
             hecho={comprobanteOk}
-            pista={tipoComprobante ? (comprobanteOk || !pagoOk ? null : "Sigue aquí") : "Elige uno"}
+            pista={tipoComprobante ? (comprobanteOk || !pagoOk ? null : "Sigue") : "Elige uno"}
             pistaFuerte={pagoOk && !comprobanteOk}
             estado={!tipoComprobante ? null : comprobanteOk ? { ok: true, texto: ETIQUETA_TIPO[tipoComprobante] } : { ok: false, texto: faltaDocumento ?? "" }}
           />
-          <div className="grid grid-cols-3 gap-2.5">
+          <div data-guia="vender.cobro-comprobante" className="grid grid-cols-3 gap-2.5">
             {TIPOS.filter((t) => tipos.includes(t.tipo)).map(({ tipo, icono }) => (
               <button
                 key={tipo}
@@ -405,7 +428,7 @@ export function HojaDeCobro({
               </button>
             ))}
           </div>
-          {tipoComprobante && <div data-documento-cobro className="hoja-cobro-doc anim-revelar">{documento}</div>}
+          {tipoComprobante && <div data-documento-cobro data-guia="vender.cobro-documento" className="hoja-cobro-doc anim-revelar">{documento}</div>}
         </section>
       </div>
 
@@ -414,8 +437,9 @@ export function HojaDeCobro({
           <button
             type="submit"
             form={formId}
+            data-guia="vender.cobro-confirmar"
             disabled={apagado}
-            className="hoja-cobro-confirmar flex w-full items-center rounded-2xl bg-tinta text-crema transition-[background-color,transform] duration-200 hover:-translate-y-px disabled:cursor-not-allowed disabled:bg-hueso disabled:text-tinta/60 disabled:hover:translate-y-0"
+            className="btn-cayla btn-primario hoja-cobro-confirmar flex w-full items-center"
           >
             {!apagado && <Check className="h-5 w-5 shrink-0" aria-hidden />}
             <span className="hoja-cobro-confirmar-rotulo label-cayla flex-1 truncate text-left">
@@ -432,8 +456,9 @@ export function HojaDeCobro({
   );
 }
 
-/** El título de un paso: número (✓ al completarlo), nombre, la pastilla de «Sigue aquí»/«Elige uno» y su estado a la derecha. */
-function CabezaPaso({
+/** El título de un paso: número (✓ al completarlo), nombre, la palabra «Sigue» o «Elige uno» y su estado a la derecha. También lo usa
+ *  la hoja del descuento (`PanelDescuento`): los dos pasos a paso de Vender se ven igual. */
+export function CabezaPaso({
   numero,
   titulo,
   hecho,
@@ -452,14 +477,14 @@ function CabezaPaso({
     <div className="hoja-cobro-cabeza-paso flex items-center gap-2.5">
       <span
         className={`hoja-cobro-numero grid shrink-0 place-items-center rounded-full border-[1.5px] font-bold transition-colors ${
-          hecho ? "border-verde bg-verde text-crema" : "border-rojo text-rojo-profundo"
+          hecho ? "border-verde bg-verde text-crema" : "border-tinta text-tinta"
         }`}
       >
         {hecho ? <Check /* unificar-fijo: la marca sobre un punto lleno lleva trazo 3, como la casilla (ronda 15) */ className="h-3.5 w-3.5" strokeWidth={3} aria-hidden /> : numero}
       </span>
       <h3 className="label-cayla whitespace-nowrap text-[15px] font-bold text-tinta">{/* unificar-fijo: la cabeza numerada de un paso del cobro, con su pista y su estado */}{titulo}</h3>
       {pista && (
-        <span className={`anim-revelar whitespace-nowrap rounded-full px-2.5 py-0.5 text-xs font-semibold ${pistaFuerte ? "bg-rojo/10 text-rojo-profundo" : "bg-hueso text-tinta"}`}>
+        <span className={`hilo-etiqueta ${pistaFuerte ? "" : "!text-taupe"}`}>
           {pista}
         </span>
       )}

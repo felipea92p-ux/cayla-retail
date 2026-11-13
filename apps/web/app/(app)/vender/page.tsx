@@ -1,7 +1,8 @@
 import { Suspense } from "react";
 import { exigirModulo, puede } from "@/lib/persona-actual";
 import { accesosVisibles } from "@/lib/vender-accesos";
-import { getCatalogoDeLaSede } from "@/lib/catalogo-v2";
+import { getCatalogoParaOfrecer } from "@/lib/catalogo-v2";
+import { esEstampado } from "@/lib/color-estampado-reglas";
 import { leerPreciosEnSede } from "@/lib/precio-sede-reglas";
 import { getCajaAbierta, getUltimoCierre } from "@/lib/caja";
 import { getUbicaciones } from "@/lib/ubicaciones";
@@ -11,7 +12,6 @@ import { createClient } from "@/lib/supabase/server";
 import { exigir, tolerar } from "@/lib/resultado";
 import { leerCampanasVigentes } from "@/lib/campanas-vigentes";
 import { leerPreciosPropiosDeSede } from "@/lib/precios-propios-de-sede";
-import type { ColorConFicha } from "@/lib/ficha-del-color";
 import { PuntoDeVenta, type ProformaEnCobro } from "@/components/PuntoDeVenta";
 import { TicketPorSede } from "@/components/punto-de-venta/TicketPorSede";
 import { claveDelPuntoDeVenta } from "@/lib/vender-cambio-de-sede";
@@ -28,6 +28,9 @@ import { armarListasPrendaLibre, leerListasPrendaLibre } from "@/lib/prenda-sin-
 import { clubDeLaCaja } from "@/lib/club-caja-reglas";
 import { sedesParaPedir } from "@/lib/pedidos-entre-sedes-reglas";
 import { getPedidosConCliente } from "@/lib/pedidos-entre-sedes";
+import { getEmpresasAqui } from "@/lib/empresas-de-sede";
+import { getStockPorDueno } from "@/lib/stock-por-dueno";
+import { tonosDeLasMezclas } from "@/lib/color-combinado";
 
 /**
  * Vender: la caja del día de la ubicación — abrir, vender, cerrar, y ver lo vendido hoy.
@@ -63,9 +66,13 @@ async function Caja({ proformaId, repetirVentaId }: { proformaId: string | null;
   //   acceso a retail, sin ampliar esa policy. Sumadas por sede (piso + almacén: para un
   //   traslado importa lo que la otra tienda tiene, no lo que exhibe — decisión de Felipe,
   //   2026-09-14). Ver `lib/stock-por-sede.ts`.
-  const [variantes, caja, resStock, ubicaciones, stockAqui, resCampanas, listasLeidas, resVentasHoy, resTextosClub, resWhatsappTienda, resQr, resRedondeo, resOpcionesApartados, pedidosConCliente, resPreciosSede, resColores, resFamiliasApagadas, resSeries, resMaquinas] = await Promise.all([
+  // Lo que antes se esperaba EN FILA después de este lote (cuatro idas más a la base en cada apertura) ahora corre dentro de él:
+  // de quién es el stock aquí (empresas → reparto), la proforma o la venta que se quiere cobrar otra vez, y el último cierre
+  // cuando no hay caja (`getCajaAbierta` tiene `cache()`: es la misma lectura de la caja, no otra). Mismos datos, mismas reglas.
+  const ahora = new Date();
+  const [variantes, caja, resStock, ubicaciones, stockAqui, resCampanas, listasLeidas, resVentasHoy, resTextosClub, resWhatsappTienda, resQr, resRedondeo, resOpcionesApartados, pedidosConCliente, resPreciosSede, resColores, resFamiliasApagadas, resSeries, resMaquinas, repartoDeStock, proformaLeida, resRepetir, ultimoCierre] = await Promise.all([
     // Lo que se puede vender AQUÍ (ADR-0505): sin las prendas de CLAURE fuera de Lima, y en Lima con su insignia.
-    getCatalogoDeLaSede(persona.ubicacionId),
+    getCatalogoParaOfrecer(persona.ubicacionId),
     getCajaAbierta(persona.ubicacionId),
     leerStockDeLasSedes(),
     getUbicaciones(),
@@ -100,9 +107,10 @@ async function Caja({ proformaId, repetirVentaId }: { proformaId: string | null;
     // Precio propio de esta tienda (Felipe 2026-10-09): las prendas que aquí se venden a otro precio. Si la lectura falla, se
     // muestra el general y `registrar_venta` rechaza el cobro («el precio cambió») antes de cobrar mal: nunca un cobro equivocado.
     leerPreciosPropiosDeSede(supabase, persona.ubicacionId),
-    // La ficha de cada color (ADR-0316; Felipe 2026-10-10): qué transmite y con qué se combina, para «Todo de la prenda». Secundario y
-    // chico (~90 filas): si falla, la hoja no dice nada del color y se vende igual. La lee cualquier sesión (`colores_select`).
-    supabase.from("colores").select("codigo, nombre, hex, familia_color, tipo, descripcion, combina_con").eq("activo", true),
+    // Los colores, para saber cuáles son estampados (la tarjeta lo dibuja con su foto) y cuáles son mezclas («Hueso con azul», ADR-0643:
+    // su punto se parte). Toda la carta, también lo desactivado: un color apagado sigue siendo el acompañante de una mezcla. Secundario
+    // y chico (~100 filas): si falla, ningún color se marca y se vende igual. La lee cualquier sesión (`colores_select`).
+    supabase.from("colores").select("codigo, nombre, tipo, hex, componentes, activo"),
     // Las familias fuera de los motores: de ahí salen las bolsas de «Agregar bolsa» (Bolsas de despacho, 2026-10-10). Pocas filas.
     supabase.from("familias").select("codigo").eq("entra_a_motores", false),
     // Las series activas de esta sede: la hoja de cobro solo ofrece los comprobantes que la sede puede emitir (/chaos 2026-10-13,
@@ -112,16 +120,29 @@ async function Caja({ proformaId, repetirVentaId }: { proformaId: string | null;
     // (Vendemás e Izipay para la tarjeta en TRU y AQP), la hoja deja cambiarla con un toque. Si la función no existe todavía o falla,
     // la hoja no pregunta y la base sella la máquina por defecto sola.
     supabase.rpc("fn_pos_maquinas_de_sede" as never, { p_ubicacion_id: persona.ubicacionId } as never),
+    // De quién son las unidades de cada prenda aquí (ADR-0542): solo donde conviven dos empresas (Lima). La cajera elige de cuál sale cuando hay
+    // de las dos. Dato secundario: si la base no responde por las empresas, no se pregunta y la base decide (rechaza si de verdad hay duda).
+    getEmpresasAqui(persona.ubicacionId)
+      .catch(() => null)
+      .then((empresasAqui) => getStockPorDueno(persona.ubicacionId, empresasAqui)),
+    proformaId ? getProformaParaCobrar(proformaId, ahora.getTime()) : Promise.resolve(null),
+    repetirVentaId
+      ? supabase
+          .from("ventas")
+          .select(
+            `created_at, venta_items ( variante_id, cantidad, variante:variantes ( talla:tallas ( valor ), color:colores ( nombre ), producto:productos ( referencia ) ) ),
+         comprobantes ( tipo, serie, numero, estado, created_at )`
+          )
+          .eq("id", repetirVentaId)
+          .maybeSingle()
+      : Promise.resolve(null),
+    // Sin caja (ADR-0186): lo que dejó el último cierre, para que el modal «Abrir caja» pida contar el cajón.
+    getCajaAbierta(persona.ubicacionId).then((c) => (c ? null : getUltimoCierre(persona.ubicacionId))),
   ]);
-  const coloresConFicha: ColorConFicha[] = (tolerar(resColores, "las fichas de color").datos ?? []).map((c) => ({
-    codigo: c.codigo,
-    nombre: c.nombre,
-    hex: c.hex,
-    familiaColor: c.familia_color ?? "",
-    tipo: c.tipo,
-    descripcion: c.descripcion ?? null,
-    combinaCon: c.combina_con ?? [],
-  }));
+  const coloresLeidos = tolerar(resColores, "los colores").datos ?? [];
+  const coloresActivos = coloresLeidos.filter((c) => c.activo).map((c) => ({ codigo: c.codigo, tipo: c.tipo }));
+  const tonosPorCodigo = tonosDeLasMezclas(coloresLeidos, "codigo");
+  const estampados = new Set(coloresActivos.filter(esEstampado).map((c) => c.codigo));
   const preciosDeEstaSede = leerPreciosEnSede(resPreciosSede.data);
   const campanasNoCargaron = resCampanas.error !== null && resCampanas.error.code !== "PGRST202";
   const campanaPorVariante = new Map<string, CampanaLinea>(
@@ -138,6 +159,7 @@ async function Caja({ proformaId, repetirVentaId }: { proformaId: string | null;
   const familiasFueraDeMotores = new Set(
     resFamiliasApagadas.error ? [] : (resFamiliasApagadas.data ?? []).map((f) => f.codigo),
   );
+  const duenosPorVariante = repartoDeStock ? Object.fromEntries(repartoDeStock) : null;
   const variantesParaVenta = variantes
     .filter((v) => v.activo)
     .map((v) => ({
@@ -149,7 +171,12 @@ async function Caja({ proformaId, repetirVentaId }: { proformaId: string | null;
       talla: v.talla,
       color: v.color,
       colorHex: v.colorHex ?? null,
+      colorEstampado: v.colorCodigo ? estampados.has(v.colorCodigo) : false,
       colorCodigo: v.colorCodigo ?? null,
+      ...(v.colorCodigo && tonosPorCodigo[v.colorCodigo] ? { colorTonos: tonosPorCodigo[v.colorCodigo] } : {}),
+      // Con el color, la llave de «¿Es alguna de estas?» en Prenda sin registrar (`prendasPosibles`).
+      tallaId: v.tallaId ?? null,
+      categoriaId: v.categoriaId ?? null,
       categoria: v.categoria,
       categoriaPrefijo: v.categoriaPrefijo ?? null,
       categoriaFamilia: v.categoriaFamilia ?? null,
@@ -175,8 +202,7 @@ async function Caja({ proformaId, repetirVentaId }: { proformaId: string | null;
   let proformaEnCobro: ProformaEnCobro | null = null;
   let avisoProforma: string | null = null;
   if (proformaId) {
-    const ahora = new Date();
-    const p = await getProformaParaCobrar(proformaId, ahora.getTime());
+    const p = proformaLeida;
     if (!p) avisoProforma = "No se encontró esa proforma.";
     else if (p.estado !== "vigente") avisoProforma = `${numeroDeProforma(p.numero)} ya no está vigente (está ${p.estado}).`;
     else if (p.ubicacion_id !== persona.ubicacionId) avisoProforma = `${numeroDeProforma(p.numero)} es de otra tienda: cóbrala desde esa sede.`;
@@ -201,14 +227,7 @@ async function Caja({ proformaId, repetirVentaId }: { proformaId: string | null;
   let repeticion: RepeticionDeVenta | null = null;
   let avisoRepeticion: string | null = null;
   if (repetirVentaId) {
-    const res = await supabase
-      .from("ventas")
-      .select(
-        `created_at, venta_items ( variante_id, cantidad, variante:variantes ( talla:tallas ( valor ), color:colores ( nombre ), producto:productos ( referencia ) ) ),
-         comprobantes ( tipo, serie, numero, estado, created_at )`
-      )
-      .eq("id", repetirVentaId)
-      .maybeSingle();
+    const res = resRepetir!;
     if (res.error || !res.data) avisoRepeticion = "No se encontró esa venta para volver a venderla.";
     else {
       const v = res.data as unknown as {
@@ -227,9 +246,7 @@ async function Caja({ proformaId, repetirVentaId }: { proformaId: string | null;
     }
   }
 
-  // Sin caja (ADR-0186): lo que dejó el último cierre, para que el modal «Abrir caja» pida contar el cajón.
-  // El mismo cierre le dice al cartel «Cerrado» desde cuándo y quién cerró (ADR-0301).
-  const ultimoCierre = caja ? null : await getUltimoCierre(persona.ubicacionId);
+  // El último cierre (leído en el lote, solo sin caja) le dice al cartel «Cerrado» desde cuándo y quién cerró (ADR-0301).
   const fondoUltimoCierre = ultimoCierre?.montoFondo ?? null;
   // «Prenda sin registrar» (ADR-0179): listas cerradas del modal. El uso de colores por categoría sale del mismo
   // catálogo que ya carga la caja (sin otra consulta): los usados en esa categoría se ofrecen primero.
@@ -261,7 +278,7 @@ async function Caja({ proformaId, repetirVentaId }: { proformaId: string | null;
         fondoUltimoCierre={fondoUltimoCierre}
         cierreAnterior={ultimoCierre ? { cerradaEn: ultimoCierre.cerradaEn, cerradaPorNombre: ultimoCierre.cerradaPorNombre, montoFondo: ultimoCierre.montoFondo } : null}
         variantes={variantesParaVenta}
-        colores={coloresConFicha}
+        duenosPorVariante={duenosPorVariante}
         listasPrendaLibre={listasPrendaLibre}
         campanasNoCargaron={campanasNoCargaron}
         ventasHoy={{ inicial: ventasHoy.datos ?? [], fallo: ventasHoy.fallo }}
@@ -271,6 +288,8 @@ async function Caja({ proformaId, repetirVentaId }: { proformaId: string | null;
         puedeApartar={modulos.includes("apartados") && persona.ubicacionTipo === "tienda"}
         // La libreta de clientas es del módulo «Clientas» (ADR-0249, 2026-09-28): sin él, el ticket no ofrece buscarla.
         puedeBuscarClienta={modulos.includes("clientas")}
+        // A5 (auditoría 2026-10-14): el enlace a la mesa de Ventas sin registrar, que vive en Existencias (ADR-0306).
+        verMesaRegularizar={modulos.includes("existencias")}
         club={club}
         qrDisponible={resQr.data === true}
         maquinasCobro={leerMaquinasDeCobro(resMaquinas.error ? [] : ((resMaquinas.data ?? []) as Record<string, unknown>[]))}

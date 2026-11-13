@@ -2,11 +2,11 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { execFileSync, spawnSync } from "node:child_process";
-import { copyFileSync, mkdirSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { copyFileSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { asuntosDesde, decidir, traeMain } from "./vercel-ignorar.mjs";
+import { asuntosDesde, cambiadasDesde, decidir, RUTAS_DEL_ERP, tocaElErp, traeMain } from "./vercel-ignorar.mjs";
 
 const RAIZ = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
 const SCRIPT = join(RAIZ, "scripts/ci/vercel-ignorar.mjs");
@@ -54,8 +54,43 @@ test("vista previa: se salta solo si TODO lo sumado desde la última versión co
   assert.equal(vistaPrevia([TRAEN_ALGO_PROPIO[0]]), true);
 });
 
-test("producción se construye siempre, aunque solo traiga main", () => {
-  assert.equal(decidir({ entorno: "production", asuntos: [TRAEN_MAIN[0]] }).construir, true);
+const produccion = (cambiadas) => decidir({ entorno: "production", asuntos: null, cambiadas }).construir;
+
+test("producción se salta solo si nada de lo que cambió es de la web (ADR-0648)", () => {
+  // Las fusiones reales que no tocaban la web (7 días al 2026-11-12): bitácora, ADR, migraciones, scripts, skills.
+  assert.equal(produccion(["docs/bitacora/2026-11-12-x.md", "docs/adr/0648-x.md"]), false);
+  assert.equal(produccion(["supabase/migrations/20261112000000_x.sql", "scripts/ci/alcance.mjs", ".claude/skills/x/SKILL.md"]), false);
+  assert.equal(produccion(["apps/tienda/app/page.tsx"]), false, "la tienda tiene su propio proyecto");
+  // Lo que sí compila la web.
+  for (const archivo of [
+    "apps/web/app/page.tsx",
+    "apps/web/vercel.json",
+    "packages/shared/src/index.ts",
+    "packages/database/types.ts",
+    "pnpm-lock.yaml",
+    "pnpm-workspace.yaml",
+    "package.json",
+    "turbo.json",
+    ".nvmrc",
+  ]) {
+    assert.equal(produccion(["docs/x.md", archivo]), true, archivo);
+  }
+  // Un nombre que solo empieza igual no es la carpeta.
+  assert.equal(tocaElErp(["apps/webhooks/x.ts", "packages-viejos/x", "package.json.bak"]), false);
+});
+
+test("producción, ante la duda, se construye: sin versión anterior, git que falla o la misma versión", () => {
+  assert.equal(produccion(null), true);
+  assert.equal(produccion(undefined), true);
+  assert.equal(produccion([]), true);
+});
+
+test("RUTAS_DEL_ERP es lo mismo que el CI considera «compila la web», sin ci.yml", async () => {
+  const { compilaLaWeb } = await import("./alcance.mjs");
+  for (const ruta of RUTAS_DEL_ERP) {
+    const archivo = ruta.includes(".") ? ruta : `${ruta}/x.ts`;
+    assert.equal(compilaLaWeb([archivo]), true, `el CI no compila la web por ${archivo}, pero Vercel sí construiría`);
+  }
 });
 
 test("ante la duda se construye: entorno sin dato, sin versión anterior, misma versión", () => {
@@ -128,7 +163,8 @@ test("código de salida en un repo de verdad", (t) => {
   assert.equal(preview(r.head), 1, "repetir la misma versión");
   assert.equal(preview(""), 1, "primera versión de la rama");
   assert.equal(preview("0123456789abcdef0123456789abcdef01234567"), 1, "versión anterior fuera del clon");
-  assert.equal(salida(r.dir, { VERCEL_ENV: "production", VERCEL_GIT_PREVIOUS_SHA: r.codigo }), 1, "producción");
+  // Los commits de este repo no cambian archivos: producción no sabe qué cambió y construye.
+  assert.equal(salida(r.dir, { VERCEL_ENV: "production", VERCEL_GIT_PREVIOUS_SHA: r.codigo }), 1, "producción sin archivos cambiados");
   assert.equal(salida(r.dir, {}), 1, "sin variables de Vercel");
 });
 
@@ -145,7 +181,46 @@ test("la orden de apps/web/vercel.json encuentra el script desde apps/web y desd
     const correr = (env) => spawnSync("sh", ["-c", ignoreCommand], { cwd, env: { PATH: process.env.PATH, ...env }, encoding: "utf8" });
     const salta = correr({ VERCEL_ENV: "preview", VERCEL_GIT_PREVIOUS_SHA: r.codigo });
     assert.equal(salta.status, 0, `${cwd}: ${salta.stdout}${salta.stderr}`);
-    assert.match(salta.stdout, /No se construye: .*\(ADR-0383\)/);
+    assert.match(salta.stdout, /No se construye: .*\(ADR-0383/);
     assert.equal(correr({ VERCEL_ENV: "production", VERCEL_GIT_PREVIOUS_SHA: r.codigo }).status, 1, cwd);
   }
+});
+
+test("la rama de la cola de fusión no construye vista previa (la prueba el CI y producción construye main)", () => {
+  const cola = decidir({ entorno: "preview", asuntos: null, rama: "gh-readonly-queue/main/pr-1696-abc123" });
+  assert.equal(cola.construir, false);
+  assert.match(cola.motivo, /cola de fusión/);
+  // Una rama cualquiera sin historia sigue construyéndose, y producción siempre.
+  assert.equal(decidir({ entorno: "preview", asuntos: null, rama: "claude/algo" }).construir, true);
+  assert.equal(decidir({ entorno: "production", asuntos: null, rama: "gh-readonly-queue/main/pr-1" }).construir, true);
+});
+
+test("producción en un repo de verdad: una fusión de documentos se salta, una de la web se construye", (t) => {
+  const dir = mkdtempSync(join(tmpdir(), "vercel-ignorar-prod-"));
+  t.after(() => rmSync(dir, { recursive: true, force: true }));
+  const g = (...args) =>
+    execFileSync("git", ["-c", "user.name=Prueba", "-c", "user.email=prueba@cayla.test", "-c", "commit.gpgsign=false", ...args], {
+      cwd: dir,
+      encoding: "utf8",
+    }).trim();
+  const escribir = (ruta, texto) => {
+    mkdirSync(dirname(join(dir, ruta)), { recursive: true });
+    writeFileSync(join(dir, ruta), texto);
+    g("add", ruta);
+    g("commit", "-q", "-m", `cambia ${ruta}`);
+    return g("rev-parse", "HEAD");
+  };
+  g("init", "-q", "-b", "main");
+  const publicada = escribir("apps/web/app/page.tsx", "uno");
+  escribir("docs/bitacora/2026-11-12-x.md", "nota");
+  const soloDocs = g("rev-parse", "HEAD");
+  assert.deepEqual(cambiadasDesde(publicada, dir), ["docs/bitacora/2026-11-12-x.md"]);
+  const prod = (anterior) => salida(dir, { VERCEL_ENV: "production", VERCEL_GIT_PREVIOUS_SHA: anterior });
+  assert.equal(prod(publicada), 0, "solo cambió la bitácora desde lo publicado");
+  escribir("apps/web/app/page.tsx", "dos");
+  assert.equal(prod(publicada), 1, "la web cambió desde lo publicado");
+  assert.equal(prod(soloDocs), 1, "la web cambió desde la última versión construida");
+  assert.equal(prod("0123456789abcdef0123456789abcdef01234567"), 1, "versión anterior fuera del clon");
+  assert.equal(prod(""), 1, "primera versión");
+  assert.equal(cambiadasDesde("", dir), null);
 });

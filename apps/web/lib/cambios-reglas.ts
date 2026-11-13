@@ -150,8 +150,8 @@ export function estadoPlazoVenta(creadoEn: string, ahora: Date): EstadoVisual {
 
 /** En este orden: una venta anulada no cuenta; una prenda ya cambiada o devuelta dice
  *  eso (más útil que "fuera de plazo"); después, el plazo — y ahí sí, a diferencia de
- *  Devoluciones, fuera de plazo bloquea: Cambios no tiene aprobación de un líder que
- *  decida después. */
+ *  Devoluciones, fuera de plazo bloquea: Cambios no tiene una aprobación posterior
+ *  que lo decida. */
 export function estadoPrendaVendida(
   linea: { cantidad: number; yaCambiado: number; yaDevuelto: number; anulada: boolean; creadoEn: string },
   ahora: Date
@@ -239,7 +239,7 @@ export type Validacion = {
   clave: string;
   /** `ok` ✓ · `alerta` frena (algo está mal) · `pendiente` frena (falta un dato) ·
    *  `aviso` NO frena: lo que conviene saber antes de seguir (ej. fuera de plazo en una
-   *  devolución, que igual decide un líder). */
+   *  devolución, que igual se decide al aprobarla). */
   estado: "ok" | "alerta" | "pendiente" | "aviso";
   /** `rojo` pinta el ícono en rojo aunque el estado no frene: el plazo vencido se ve rojo
    *  en las dos pantallas, sea una alerta (Cambios) o un aviso (Devoluciones). */

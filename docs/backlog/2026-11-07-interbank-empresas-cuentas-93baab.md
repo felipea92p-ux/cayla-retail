@@ -1,0 +1,7 @@
+## Cuadre de las máquinas con el extracto (2026-11-07, ADR-0629 Fase B)
+
+- [ ] **Pegar `20261108023000_depositos_de_maquina_pago_por_pago.sql`** en producción (una parte; con el OK de Felipe) y verificar con un `select`. Hasta entonces, la sección de Izipay de «Subir extracto» dice que no pudo leer los pagos; Vendemás funciona sin ella.
+- [ ] **`/chaos` de la hoja «El extracto de Interbank»** (guarda dinero): doble clic y token ya probados en el navegador y en `pruebas:pos-pagos`; falta el recorrido completo de la skill.
+- [ ] **Las pruebas de dinero con `debeFallar` que se traga su propio aviso:** `comision_estimada`, `gasto_fecha_pago`, `pago_planilla_y_sunat`, `planilla_conceptos`, `planilla_salidas` y `puente_residuo` lanzan «tendría que haber fallado» con P0001 y lo atrapan como si fuera el freno esperado: un freno P0001 que no frena pasa en verde. Arreglo: el aviso con su propio código (`XX999`), como en `scripts/pruebas/pos_pagos.mjs`, y correr cada una con el freno quitado.
+- [ ] **`fn_pos_comision_lote` y `fn_pos_comision_pago` repiten la fórmula** (comisión e IGV redondeados por separado): que la del lote sume la del pago, en una migración que toque el diario con su prueba.
+- [ ] **El código de comercio de cada tienda** no vive en la base: un «PAGO IZIPAY» se asigna a la tienda cuya tarjeta suma lo mismo. Si dos tiendas suman igual en la misma ventana, gana la primera; guardar el código en `pos_maquinas_sedes` lo resolvería.

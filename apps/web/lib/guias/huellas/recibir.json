@@ -2,17 +2,19 @@
   "guia": "recibir",
   "ruta": "/recibir",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 128,
+  "total": 152,
   "controles": {
     "app/(app)/recibir/page.tsx": [
       "Volver «/recibir»",
+      "Link «Seguir recibiendo»",
       "BotonEnlace «Limpiar filtros»",
       "Link «recíbela sin factura»",
       "Link «recíbela sin factura» #2"
     ],
     "components/AvisoCostoAtipico.tsx": [
+      "CampoTexto «Por qué es correcto este costo · obligatorio»",
       "Boton «{textoCorregir}»",
-      "Boton «{motivoNoListo ?? undefined}»"
+      "Boton «{problemaMotivo ?? motivoNoListo ?? undefined}»"
     ],
     "components/AvisoTrasladosEnCamino.tsx": [
       "Link «{uno ? `Abrir el Traslado ${traslados[0].numero}»"
@@ -141,23 +143,45 @@
       "Volver «→cerrar»",
       "Boton «Confirmar y recibir»"
     ],
+    "components/alta-producto/piezas.tsx": [
+      "button «→onClick»",
+      "button «›»"
+    ],
     "components/recepcion-conteo/LlegoSinAviso.tsx": [
+      "ComboResponsable «{responsable}»",
+      "Link «Recibir ese envío»",
+      "Link «Recibir ese envío» #2",
       "button «→() => setProveedorId(p.id)»",
-      "button «No sé de quién es»",
       "button «+ Agregar proveedor»",
       "Link «Sí, viene con la»",
       "CampoTexto «{campos.etiqueta(\"sin-aviso-guia\", \"Número de guía (opcional)\")}»",
-      "ComboResponsable «{responsable}»",
+      "ComboResponsable «{responsable}» #2",
       "Boton «{campos.frase ?? undefined}»"
     ],
     "components/recepcion-conteo/PendientesDeRecibir.tsx": [
       "Link «{e.numero ?? \"Envío\"}»"
     ],
+    "components/recepcion-conteo/ProveedorNuevoRecepcion.tsx": [
+      "CampoTexto «{guia.etiqueta(\"razon-social\", \"Razón social\")}»",
+      "CampoTexto «11 dígitos»",
+      "Boton «Cancelar»",
+      "Boton «{guia.frase ?? undefined}»"
+    ],
+    "components/recepcion-conteo/RecibidoEnLaSede.tsx": [
+      "SegmentoDeslizante «Qué ver de lo recibido»",
+      "BotonEnlace «{`Terminar ${e.numero ?? \"el envío\"}»"
+    ],
+    "components/recepcion-conteo/RecibidoPorEnvio.tsx": [
+      "button «recibir.reciente»",
+      "BotonEnlace «Seguir recibiendo»",
+      "button «{nombreMarca(m)}»",
+      "button «recibir.desplegar»"
+    ],
     "components/recepcion-conteo/SinAvisoContexto.tsx": [
-      "Boton «Sin Aviso»"
+      "Boton «Sin aviso»"
     ],
     "components/recepcion-envio/DetalleEnvioPorRecibir.tsx": [
-      "Boton «{`Ver el detalle de ${envio.numero}»",
+      "Boton «{`Recibir ${envio.numero}»",
       "ComboResponsable «{responsable}»",
       "Boton «Recargar»",
       "Boton «Cerrar»",
@@ -167,6 +191,16 @@
     "components/recepcion-envio/EnviosParaRecibir.tsx": [
       "Link «{`/recibir/envio/${e.id}»",
       "BotonEnlace «{`Seguir recibiendo ${e.numero}»"
+    ],
+    "components/recepcion-envio/FiltrosDeEnvios.tsx": [
+      "DesplegablePildora «Estado»",
+      "DesplegablePildora «Proveedor»",
+      "BotonLimpiar «Limpiar todo»",
+      "button «{activa ? `Fechas: ${texto}»",
+      "button «{p.etiqueta}»",
+      "CampoFecha «Desde»",
+      "CampoFecha «Hasta»",
+      "button «Quitar fechas»"
     ],
     "components/recepcion-envio/RecibirSinGuia.tsx": [
       "Boton «Llegó esta orden»",

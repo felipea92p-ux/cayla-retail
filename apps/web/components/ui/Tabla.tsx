@@ -1,5 +1,7 @@
 import type { CSSProperties, ReactNode } from "react";
-import { ArrowDown } from "lucide-react";
+import { ArrowDown, ArrowUpDown } from "lucide-react";
+// Ruta relativa a propósito: `lib/perdidas-vista.test.ts` carga este archivo sin el alias `@/`.
+import { corteDePlantilla } from "../../lib/tabla-corte-reglas";
 
 /* ====================================================================
    Tabla · listados con encabezado (2026-09-12, módulo de Compras)
@@ -55,7 +57,7 @@ const ALINEAR: Record<Alineacion, string> = { izq: "text-left", der: "text-right
 // Guía oficial (2026-09-22, ADR-0169): cabecera en sand con los títulos en taupe, peso normal y SIN
 // versalitas (una tabla se lee, no se grita); divisiones en sand; zebra en hueso (`fila-cayla`, globals.css).
 export const TABLA = {
-  contenedor: "card-cayla divide-y divide-sand overflow-x-auto",
+  contenedor: "tabla-cayla card-cayla divide-y divide-sand overflow-x-auto",
   encabezado: "encabezado-tabla-cayla gap-x-4 px-5 py-2",
   titulo: "text-xs font-normal text-taupe",
   fila: "fila-cayla gap-x-4 gap-y-1 px-5 py-3",
@@ -70,6 +72,9 @@ export const TABLA = {
 // en vez de desbordar. Con `overflow-x-auto` acá (una vez, para las tres
 // tablas que usan este componente) la fila se desborda hacia un scroll
 // horizontal de la tarjeta — nunca una columna que desaparece sin avisar.
+// Desde el 2026-11-05 lo normal es que no llegue a correr de lado: bajo lo que piden sus columnas, la fila
+// pasa a su forma de celular (`corteDePlantilla`, app/estilos/tabla-corte.css). El scroll queda para lo que
+// no tiene otra forma, como una matriz (`siempre`).
 export function Tabla({ children, className = "", style, guia }: { children: ReactNode; className?: string; style?: CSSProperties; /** Ancla de la guía (ADR-0389). */ guia?: string }) {
   return (
     <div data-guia={guia} className={`${TABLA.contenedor} ${className}`} style={style}>
@@ -106,26 +111,28 @@ export function Encabezado({
   grande?: boolean;
 }) {
   return (
-    <div className={`${siempre ? "grid items-end" : visible} ${grande ? "encabezado-tabla-cayla items-center gap-x-4 px-5 py-[11px]" : TABLA.encabezado} ${plantilla}`} role="row">
+    <div className={`${siempre ? "grid items-end" : `${visible} ${corteDePlantilla(plantilla)}`} ${grande ? "encabezado-tabla-cayla items-center gap-x-4 px-5 py-[11px]" : TABLA.encabezado} ${plantilla}`} role="row">
       {columnas.map((c, i) => (
         <span
           key={i}
           title={c.ayuda}
           className={`${grande ? "text-xs font-normal leading-snug text-taupe" : TABLA.titulo} ${siempre ? "block min-w-0" : ""} ${ALINEAR[c.alinear ?? "izq"]} ${c.desdeLg ? "hidden lg:block" : ""} ${c.desdeXl ? "hidden xl:block" : ""} ${c.clase ?? ""}`}
           role="columnheader"
+          aria-sort={c.campo && onOrden ? (orden?.campo === c.campo ? (orden.dir === "desc" ? "descending" : "ascending") : "none") : undefined}
         >
           {c.campo && onOrden ? (
             <button
               type="button"
               onClick={() => onOrden(c.campo!)}
-              aria-sort={orden?.campo === c.campo ? (orden.dir === "desc" ? "descending" : "ascending") : "none"}
               className={`inline-flex max-w-full items-center gap-1 transition-colors hover:text-rojo ${orden?.campo === c.campo ? "text-tinta" : ""} ${c.alinear === "der" ? "flex-row-reverse" : ""}`}
             >
               <span className="truncate">{c.titulo}</span>
-              <ArrowDown
-                aria-hidden
-                className={`h-3 w-3 shrink-0 transition-[opacity,transform] duration-300 ease-cayla ${orden?.campo === c.campo ? "opacity-100" : "opacity-35"} ${orden?.campo === c.campo && orden.dir === "asc" ? "rotate-180" : ""}`}
-              />
+              {/* La misma flecha de TablaViva: ↕ si se puede ordenar por aquí, ↓ o ↑ si ya está ordenada. */}
+              {orden?.campo === c.campo ? (
+                <ArrowDown aria-hidden className={`h-3 w-3 shrink-0 transition-transform duration-300 ease-cayla ${orden.dir === "asc" ? "rotate-180" : ""}`} />
+              ) : (
+                <ArrowUpDown aria-hidden className="h-3 w-3 shrink-0 opacity-50" />
+              )}
             </button>
           ) : (
             c.titulo
@@ -139,7 +146,7 @@ export function Encabezado({
 
 /** Clases para una fila de datos con la misma plantilla que el encabezado. */
 export function fila(plantilla: string, extra = ""): string {
-  return `grid ${TABLA.fila} sm:items-baseline ${plantilla} ${extra}`;
+  return `grid ${TABLA.fila} sm:items-baseline ${corteDePlantilla(plantilla)} ${plantilla} ${extra}`;
 }
 
 /** Clases para una celda: alineación en escritorio; en celular todo va a la izquierda.

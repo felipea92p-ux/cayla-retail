@@ -14,7 +14,8 @@ import { TEXTO_HOY, TIPOS_HOY } from "@/lib/existencias-hoy";
 import type { ConteoDeLista } from "@/lib/existencias-tarjetas";
 import { opcionesConConteo } from "@/lib/productos-facetas";
 import { alternarColor, estadoDeColor, listaParaUrl, opcionesDeColor, separarColor } from "@/lib/productos-filtros";
-import { bordeDeMuestra, FAMILIAS_COLOR, fondoDeMuestra } from "@/lib/colores-familias";
+import { fondoDeColor } from "@/components/ui/MuestraColor";
+import { bordeDeMuestra, FAMILIAS_COLOR } from "@/lib/colores-familias";
 import {
   chipsDeFiltros,
   CONDICIONES,
@@ -28,6 +29,7 @@ import {
 import { atajoElegido } from "@/lib/existencias-rapidos";
 import { Buscador } from "@/components/ui/Buscador";
 import { BotonLimpiar, FiltroPuesto } from "@/components/ui/FiltrosPuestos";
+import { fondoDelPunto } from "@/lib/color-combinado";
 
 /* ====================================================================
    La barra de filtros de Existencias (2026-10-03): la MISMA estructura que la de Productos (ADR-0308) —buscador con «/»,
@@ -45,7 +47,7 @@ const MEDIA_ESCRITORIO = "(min-width: 768px)";
 
 /** Un color de la sede, con lo que la lista necesita para agruparlo por familia y pintar su muestra. `id` es su nombre (único
  *  en la base): es lo que va en la URL. */
-export type ColorBarra = { id: string; nombre: string; hex: string | null; familia: string | null; tipo: string | null };
+export type ColorBarra = { id: string; nombre: string; hex: string | null; familia: string | null; tipo: string | null; /** Una mezcla (ADR-0643): su punto se parte. */ tonos?: readonly string[] | null };
 
 /** Cómo se ve la lista: tarjetas (de entrada), la tabla por prenda o la tabla con una fila por talla. */
 export type VistaLista = "tarjetas" | "tabla" | "talla";
@@ -216,7 +218,7 @@ export function FiltrosExistencias({
                       <span
                         aria-hidden
                         className="inline-block h-3.5 w-3.5 shrink-0 rounded-full border border-tinta/15 bg-hueso align-middle"
-                        style={{ background: fondoDeMuestra(o.color.hex, o.color.familia, o.color.tipo), borderColor: bordeDeMuestra(o.color.hex) }}
+                        style={{ background: o.color.tonos ? fondoDelPunto(o.color.hex, o.color.tonos) : fondoDeColor(o.color.hex, o.color.familia, o.color.tipo), borderColor: bordeDeMuestra(o.color.hex) }}
                       />
                     ),
                   }
@@ -398,7 +400,7 @@ export function FiltrosExistencias({
         </div>
 
         {/* La cifra: cuántas tarjetas trae la lista (y, con «Hoy», cuántas tallas). Sin frase de ayuda: ocupaba una línea entera. */}
-        <p className="order-3 min-w-0 flex-1 text-[13px] text-tinta/70 xl:order-2 xl:flex-none">
+        <p className="order-3 min-w-0 flex-1 text-sm text-tinta/70 xl:order-2 xl:flex-none">
           <span aria-live="polite">
             <strong className="font-semibold text-tinta">{conteo.total.toLocaleString("es-PE")}</strong>{" "}
             {conteo.total === 1 ? conteo.unidad.uno : conteo.unidad.varios}
@@ -452,7 +454,7 @@ export function FiltrosExistencias({
       {panelAbierto && !hojaAbierta && <div className="hidden md:block">{panel}</div>}
 
       {hojaAbierta && (
-        <Modal titulo="Filtros" subtitulo="Cada cambio se aplica al momento." onClose={() => setHojaAbierta(false)} tamano="mediana" mediaAltura>
+        <Modal titulo="Filtros" subtitulo="Cada cambio se aplica al momento." onClose={() => setHojaAbierta(false)} tamano="mediana">
           {panel}
           <div className="pie-hoja-fijo pie-acciones mt-4">
             {activos > 0 && (

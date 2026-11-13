@@ -1,7 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
   ANCHO_ESTANDAR_DE_LA_UNION,
-  ANCHO_PARA_MEDIR,
   AJUSTE_MAXIMO_DE_ARRIBA,
   ANCHO_MAXIMO_DE_ABAJO_SOBRE_ARRIBA,
   anchoDelBajo,
@@ -10,8 +9,10 @@ import {
   BAJO_CREIBLE_MAXIMO,
   BAJO_CREIBLE_MINIMO,
   cajaDeArribaAjustada,
+  cajaDeAbajoSinMedida,
   cajaDeAbajoUnida,
-  direccionParaMedir,
+  direccionDeLaMedida,
+  esNombreDeRecorte,
   FACTOR_MAXIMO_DEL_TORSO,
   FACTOR_MINIMO_DEL_TORSO,
   factorDelTorso,
@@ -25,13 +26,17 @@ import {
   MARGEN_DEL_HILO,
   MEDIDAS_QUE_SE_RECUERDAN,
   MS_DEL_LISTO,
+  PRETINA_MINIMA_DE_LA_FALDA,
   type MedidaDelRecorte,
+  medidaDesdeDato,
   medidasATexto,
   medidasDesdeTexto,
   medirRecorte,
   siguienteFase,
   SIN_MEDIDA,
   SOLAPE_DE_LA_UNION,
+  urlDelRecorte,
+  VERSION_DE_LA_MEDIDA,
 } from "./union-prendas";
 import { ESCENA, PX_POR_CM } from "./probador";
 
@@ -307,22 +312,47 @@ describe("cajaDeAbajoUnida: la pretina sigue al borde del torso, dentro de la ci
   });
 
   it("una falda acampanada no se ve mucho más ancha que su blusa, aunque la blusa tenga vuelo abajo (FAL-0011 con CMS-0026, 2026-10-22)", () => {
-    // La blusa mide 125 px de ancho y su bajo con vuelo, 120: antes llevaba la pretina al máximo (103,5 px) y la falda salía de 148 px (×1,18).
+    // La blusa mide 125 px de ancho y su bajo con vuelo, 120: sin tope la pretina llega al máximo (103,5 px) y la falda sale de 148 px (×1,18).
     const blusa = { caja: { x: 66, y: 44, w: 125, h: 170 }, medida: { filaDelBorde: 0.9, borde: 0.95, pretina: null, bajo: null, anchoBajo: 0.95 }, metida: false };
-    const acampanada = { proporcion: 1.2824, medida: { filaDelBorde: 0.1, borde: 0.9, pretina: 0.698, bajo: null, anchoBajo: null } };
+    const acampanada = { proporcion: 1.2824, medida: { filaDelBorde: 0.1, borde: 0.9, pretina: 0.698, bajo: null, anchoBajo: null }, falda: true };
     const c = cajaDeAbajoUnida(blusa, acampanada)!;
-    expect(c.w).toBeLessThanOrEqual(Math.ceil(125 * ANCHO_MAXIMO_DE_ABAJO_SOBRE_ARRIBA));
-    // Su cintura queda en la estándar, no en el máximo de la holgura.
-    expect(c.w * 0.698).toBeGreaterThanOrEqual(ESTANDAR * (1 - HOLGURA_DE_LA_UNION) - 1);
-    expect(c.w * 0.698).toBeLessThan(ESTANDAR * (1 + HOLGURA_DE_LA_UNION) - 5);
+    const sinTope = cajaDeAbajoUnida(blusa, { ...acampanada, falda: false })!;
+    expect(c.w).toBeLessThan(sinTope.w);
+    // El tope la encoge, pero su pretina no baja del 92 % de lo que pedía el bajo (Felipe, 2026-11-09: el escalón se notaba).
+    const pedida = ESTANDAR * (1 + HOLGURA_DE_LA_UNION);
+    expect(c.w * 0.698).toBeGreaterThanOrEqual(pedida * PRETINA_MINIMA_DE_LA_FALDA - 1);
+    expect(c.w * 0.698).toBeLessThan(pedida - 5);
   });
 
-  it("el tope de ancho nunca baja la pretina de la cintura mínima: una falda de mucho vuelo sigue siendo más ancha que su blusa", () => {
+  it("el tope de una falda nunca baja la pretina de la cintura mínima ni del 92 % del bajo: una falda de mucho vuelo sigue siendo más ancha que su blusa", () => {
     const blusa = { caja: { x: 66, y: 44, w: 100, h: 150 }, medida: { filaDelBorde: 0.9, borde: 0.9, pretina: null, bajo: null, anchoBajo: null }, metida: false };
-    const vuelo = { proporcion: 0.9, medida: { filaDelBorde: 0.1, borde: 0.9, pretina: 0.5, bajo: null, anchoBajo: null } };
+    const vuelo = { proporcion: 0.9, medida: { filaDelBorde: 0.1, borde: 0.9, pretina: 0.5, bajo: null, anchoBajo: null }, falda: true };
     const c = cajaDeAbajoUnida(blusa, vuelo)!;
-    expect(c.w * 0.5).toBeCloseTo(ESTANDAR * (1 - HOLGURA_DE_LA_UNION), 0);
+    // El bajo pide 90 px: el tope (52,5 px) la encogería a la cintura mínima, pero se queda en el 92 % del bajo.
+    expect(c.w * 0.5).toBeCloseTo(90 * PRETINA_MINIMA_DE_LA_FALDA, 0);
+    expect(c.w * 0.5).toBeGreaterThanOrEqual(ESTANDAR * (1 - HOLGURA_DE_LA_UNION));
     expect(c.w).toBeGreaterThan(100 * ANCHO_MAXIMO_DE_ABAJO_SOBRE_ARRIBA);
+  });
+
+  it("un short, un jean o un pantalón calza su pretina con el bajo de la blusa, aunque se abra en las piernas (Felipe, 2026-11-09)", () => {
+    // Polo Corazón con Short Sohanna, medidos en la tienda: caja de 112 px, bajo de 103 px; el short tiene la pretina al 69 % de su ancho.
+    const polo = { caja: { x: 139, y: 44, w: 112, h: 131 }, medida: { filaDelBorde: 0.98, borde: 0.92, pretina: null, bajo: null, anchoBajo: 0.92 }, metida: false };
+    const short = { proporcion: 1.391, medida: { filaDelBorde: 0.1, borde: 0.9, pretina: 0.69, bajo: null, anchoBajo: null } };
+    const c = cajaDeAbajoUnida(polo, short)!;
+    // Con el tope de las faldas la pretina caía a 83 px (33 cm), 20 px más angosta que el bajo: ahora mide lo que el bajo.
+    expect(Math.abs(c.w * 0.69 - 112 * 0.92)).toBeLessThan(1.5);
+    expect(c.w).toBeGreaterThan(112 * ANCHO_MAXIMO_DE_ABAJO_SOBRE_ARRIBA);
+    // Y sigue centrado bajo la blusa.
+    expect(Math.abs(c.x + c.w / 2 - ESCENA.ancho / 2)).toBeLessThanOrEqual(1);
+  });
+
+  it("solo la falda lleva el tope: con la misma blusa, la misma prenda sale más ancha como short que como falda", () => {
+    const blusa = { caja: { x: 66, y: 44, w: 100, h: 150 }, medida: { filaDelBorde: 0.9, borde: 0.9, pretina: null, bajo: null, anchoBajo: null }, metida: false };
+    const prenda = { proporcion: 0.9, medida: { filaDelBorde: 0.1, borde: 0.9, pretina: 0.5, bajo: null, anchoBajo: null } };
+    const comoShort = cajaDeAbajoUnida(blusa, prenda)!;
+    const comoFalda = cajaDeAbajoUnida(blusa, { ...prenda, falda: true })!;
+    expect(comoShort.w * 0.5).toBeCloseTo(90, 0);
+    expect(comoFalda.w).toBeLessThan(comoShort.w);
   });
 
   it("la misma falda varía poco de largo al cambiar de blusa (nunca más de ±15 %)", () => {
@@ -396,15 +426,65 @@ describe("cajaDeAbajoUnida: la pretina sigue al borde del torso, dentro de la ci
   });
 });
 
-describe("direccionParaMedir: se mide una copia chica, no el PNG entero", () => {
-  it("una foto del almacén pasa por el optimizador, al ancho que ya sirve", () => {
-    const d = direccionParaMedir({ url: "https://x.supabase.co/storage/v1/object/public/retail-productos-fotos/a b.png", optimizar: true });
-    expect(d.startsWith("/_next/image?url=")).toBe(true);
-    expect(d).toContain(`w=${ANCHO_PARA_MEDIR}`);
-    expect(d).toContain(encodeURIComponent("a b.png"));
+describe("cajaDeAbajoSinMedida: sin medidas, lo de abajo arranca en el bajo de la blusa, no en la cintura fija", () => {
+  // Polo Kristell Cuello Alto con Short Saskia sin medir (Felipe, 2026-11-10): el polo llega a 194 px y el short arrancaba en 152, detrás del polo.
+  const polo = { caja: { x: 129, y: 44, w: 134, h: 150 }, medida: null, metida: false };
+  const short = { x: 145, y: 152, w: 100, h: 88 };
+
+  it("sin medir la blusa, usa su bajo estimado; el tamaño y el lado no cambian", () => {
+    const c = cajaDeAbajoSinMedida(polo, short)!;
+    expect(c.y).toBe(Math.round(44 + 150 * FILA_ESTIMADA_DEL_BORDE - SOLAPE_DE_LA_UNION));
+    expect(c.y).toBeGreaterThan(short.y + 20);
+    expect({ x: c.x, w: c.w, h: c.h }).toEqual({ x: short.x, w: short.w, h: short.h });
   });
-  it("cualquier otra foto se baja tal cual", () => {
-    expect(direccionParaMedir({ url: "https://otro.com/a.png", optimizar: false })).toBe("https://otro.com/a.png");
+
+  it("con la blusa ya medida, usa su bajo medido (es donde corre el hilo)", () => {
+    const medida = { filaDelBorde: 0.8, borde: 0.9, pretina: null, bajo: null, anchoBajo: null };
+    const c = cajaDeAbajoSinMedida({ ...polo, medida }, short)!;
+    expect(c.y).toBe(Math.round(44 + 150 * 0.8 - SOLAPE_DE_LA_UNION));
+    expect(c.y).toBe(hiloDeLaEspera({ caja: polo.caja, medida }).y - SOLAPE_DE_LA_UNION);
+  });
+
+  it("un body metido o una caja rara no se mueven", () => {
+    expect(cajaDeAbajoSinMedida({ ...polo, metida: true }, short)).toBeNull();
+    expect(cajaDeAbajoSinMedida({ ...polo, caja: { x: 0, y: 0, w: 0, h: 0 } }, short)).toBeNull();
+    expect(cajaDeAbajoSinMedida(polo, { ...short, h: 0 })).toBeNull();
+  });
+});
+
+describe("la medida la saca la tienda: dónde se pide (Safari 26 le mete ruido a la lectura de píxeles, 2026-11-10)", () => {
+  const RECORTE = "b5595d2a-3d69-41ed-9d0c-d73355d476fb-7ee8fc70.png";
+  const url = `https://x.supabase.co/storage/v1/object/public/retail-productos-fotos/recortes/${RECORTE}`;
+
+  it("un recorte del almacén se pide a la ruta de la tienda, con su versión", () => {
+    expect(direccionDeLaMedida(url)).toBe(`/api/medida/${RECORTE}?v=${VERSION_DE_LA_MEDIDA}`);
+  });
+
+  it("una foto que no es un recorte del almacén no tiene medida (ni otra carpeta ni otro nombre)", () => {
+    expect(direccionDeLaMedida("https://otro.com/a.png")).toBeNull();
+    expect(direccionDeLaMedida(url.replace("/recortes/", "/fotos/"))).toBeNull();
+    expect(direccionDeLaMedida(url.replace(RECORTE, "../secreto.png"))).toBeNull();
+    expect(direccionDeLaMedida(url.replace(RECORTE, `x/${RECORTE}`))).toBeNull();
+  });
+
+  it("la ruta solo acepta nombres de recortes: nada de carpetas, rutas relativas ni otros archivos", () => {
+    expect(esNombreDeRecorte(RECORTE)).toBe(true);
+    expect(esNombreDeRecorte("b5595d2a-3d69-41ed-9d0c-d73355d476fb.webp")).toBe(true);
+    for (const malo of ["../b5595d2a-3d69-41ed-9d0c-d73355d476fb.png", "b5595d2a-3d69-41ed-9d0c-d73355d476fb.svg", "a.png", "", `${RECORTE}?x=1`, `carpeta/${RECORTE}`]) {
+      expect(esNombreDeRecorte(malo)).toBe(false);
+    }
+  });
+
+  it("la ruta baja el recorte del almacén de la tienda, sin importar de qué host llegó el nombre", () => {
+    expect(urlDelRecorte("https://tienda.supabase.co/", RECORTE)).toBe(`https://tienda.supabase.co/storage/v1/object/public/retail-productos-fotos/recortes/${RECORTE}`);
+  });
+
+  it("solo se usa una respuesta bien formada; lo demás es «sin medida»", () => {
+    const buena = { filaDelBorde: 0.8, borde: 0.4, pretina: null, bajo: null, anchoBajo: 0.5 };
+    expect(medidaDesdeDato(buena)).toEqual(buena);
+    for (const mala of [null, 5, "x", [], { filaDelBorde: 2, borde: 0.4, pretina: null }, { borde: 0.4 }, { ...buena, bajo: [0.5] }]) {
+      expect(medidaDesdeDato(mala)).toBeNull();
+    }
   });
 });
 

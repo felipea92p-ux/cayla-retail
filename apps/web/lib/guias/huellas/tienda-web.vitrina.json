@@ -4,6 +4,9 @@
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
   "total": 36,
   "controles": {
+    "components/vitrina/ReglaDelPrecio.tsx": [
+      "BotonVerMas «vitrina.nota»"
+    ],
     "components/vitrina/VitrinaLoteHoja.tsx": [
       "ComboResponsable «{responsable}»",
       "Boton «Cancelar»",
@@ -17,7 +20,6 @@
       "Boton «{guia.frase ?? undefined}»"
     ],
     "components/vitrina/VitrinaPantalla.tsx": [
-      "BotonVerMas «vitrina.nota»",
       "BotonLimpiar «Limpiar filtros»",
       "DesplegablePildora «Estado»",
       "DesplegablePildora «Categoría»",

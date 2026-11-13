@@ -58,21 +58,21 @@ export function DetalleOrdenCompra({ orden: d, gastos = null }: { orden: Detalle
 
       <dl data-guia="orden.datos" className="grid gap-x-6 gap-y-3 text-sm @min-[28rem]:grid-cols-2 @min-[48rem]:grid-cols-4">
         <div>
-          <dt className="text-xs text-taupe">Proveedor</dt>
+          <dt className="text-sm text-taupe">Proveedor</dt>
           <dd className="font-medium text-tinta">{d.proveedor.nombre}</dd>
-          {d.proveedor.ruc && <dd className="text-xs tabular-nums text-taupe">RUC {d.proveedor.ruc}</dd>}
+          {d.proveedor.ruc && <dd className="text-sm tabular-nums text-taupe">RUC {d.proveedor.ruc}</dd>}
         </div>
         <div>
           {/* El lugar, no la frase: «Destino: Llega a Tienda TRU» lo decía dos veces (Formidable, 2026-10-10). */}
-          <dt className="text-xs text-taupe">Llega a</dt>
+          <dt className="text-sm text-taupe">Llega a</dt>
           <dd className="text-tinta">{lugarDeLlegada(d.destino?.nombre ?? null)}</dd>
         </div>
         <div>
-          <dt className="text-xs text-taupe">Emitida</dt>
+          <dt className="text-sm text-taupe">Emitida</dt>
           <dd className="tabular-nums text-tinta">{fechaCorta(d.fechaEmision)}</dd>
         </div>
         <div>
-          <dt className="text-xs text-taupe">Entrega estimada</dt>
+          <dt className="text-sm text-taupe">Entrega estimada</dt>
           <dd className="tabular-nums text-tinta">{d.fechaEntregaEstimada ? fechaCorta(d.fechaEntregaEstimada) : "Sin fecha"}</dd>
         </div>
       </dl>
@@ -94,19 +94,19 @@ export function DetalleOrdenCompra({ orden: d, gastos = null }: { orden: Detalle
         </div>
         {d.lineas.map((l) => (
           <div key={l.posicion} className={fila(PLANTILLA)}>
-            <span className={celda("izq", `${EN_COLUMNAS} text-xs tabular-nums text-taupe`)}>{l.posicion}</span>
+            <span className={celda("izq", `${EN_COLUMNAS} text-sm tabular-nums text-taupe`)}>{l.posicion}</span>
             <span className={celda("izq", "whitespace-normal")}>
               <span className="block text-tinta">
                 {l.categoria} · {l.marca}
               </span>
-              {l.descripcion && <span className="block text-xs text-taupe">{l.descripcion}</span>}
+              {l.descripcion && <span className="block text-sm text-taupe">{l.descripcion}</span>}
               {conPapel && textoPapelDeLinea(l) && (
-                <span data-guia="orden.papel-linea" className={`mt-0.5 block text-xs tabular-nums ${(l.facturado ?? 0) > l.cantidad ? "text-ambar" : (l.facturado ?? 0) >= l.cantidad ? "text-verde-profundo" : "text-taupe"}`}>
+                <span data-guia="orden.papel-linea" className={`mt-0.5 block text-sm tabular-nums ${(l.facturado ?? 0) > l.cantidad ? "text-ambar" : (l.facturado ?? 0) >= l.cantidad ? "text-verde-profundo" : "text-taupe"}`}>
                   Llegó en papel: {textoPapelDeLinea(l)}
                 </span>
               )}
               {conEnvio && textoEnvioDeLinea(l) && (
-                <span data-guia="orden.envio-linea" className={`mt-0.5 block text-xs tabular-nums ${(l.porEnviar ?? 1) === 0 ? "text-verde-profundo" : "text-taupe"}`}>
+                <span data-guia="orden.envio-linea" className={`mt-0.5 block text-sm tabular-nums ${(l.porEnviar ?? 1) === 0 ? "text-verde-profundo" : "text-taupe"}`}>
                   Enviado: {textoEnvioDeLinea(l)}
                 </span>
               )}
@@ -123,7 +123,7 @@ export function DetalleOrdenCompra({ orden: d, gastos = null }: { orden: Detalle
               {l.descuento > 0 ? (
                 <>
                   −{soles(l.descuento)}
-                  {l.descuentoPct != null && <span className="block text-xs text-taupe">{porcentaje(l.descuentoPct)}</span>}
+                  {l.descuentoPct != null && <span className="block text-sm text-taupe">{porcentaje(l.descuentoPct)}</span>}
                 </>
               ) : (
                 <span className="text-taupe">—</span>
@@ -155,7 +155,7 @@ export function DetalleOrdenCompra({ orden: d, gastos = null }: { orden: Detalle
         </p>
       )}
 
-      <p data-guia="orden.pie" className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-taupe">
+      <p data-guia="orden.pie" className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-taupe">
         <Chip tono={estado.tono}>{estado.texto}</Chip>
         {conPapel && <Chip tono={d.papel === "completa" ? "verde" : "ambar"}>{d.papel === "completa" ? "Papel completo" : "Papel en parte"}</Chip>}
         {conEnvio && <Chip tono={envioDeLaOrden === "completo" ? "verde" : "ambar"}>{envioDeLaOrden === "completo" ? "Todo enviado" : "Enviado en parte"}</Chip>}

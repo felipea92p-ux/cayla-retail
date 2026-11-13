@@ -10,7 +10,8 @@
  *   · LA LECTURA. Pide el MÓDULO «Plan del piso» (20261010171845, ADR-0161): el líder lo ve siempre; una colaboradora o una terminal
  *     leen solo si su rol lo recibe (sin él, 42501 con la pista `plan_piso_sin_modulo`, no cero filas); una cuenta de afuera recibe
  *     42501 aunque se le diera el módulo a algún rol; por la vía de PostgREST funciona y las tablas directo no se leen.
- *   · LA ESCRITURA. Solo el líder, TODO O NADA: confirmar las 42 de una vez (una fila de historial con 42 cambios, firma de la
+ *   · LA ESCRITURA. Quien ve Plan del piso (ADR-0534, 2026-10-27; antes, solo el líder): sin el módulo, 42501 con la pista
+ *     `grupos_mix_sin_modulo` y nada cambia; con el módulo en su rol, una colaboradora guarda y firma ella. TODO O NADA: confirmar las 42 de una vez (una fila de historial con 42 cambios, firma de la
  *     persona, versión +1), cambiar una de grupo (antes y después en el historial), reenviar lo mismo es `sin_cambios` sin
  *     escribir, una versión vieja da PT409 y NO se guarda ninguna del lote, una categoría sin grupo se fija con versión 0.
  *     Valida lote vacío o enorme, categoría repetida, inexistente o desactivada, grupo inexistente y elementos mal escritos.
@@ -233,10 +234,20 @@ caso(
 // ===========================================================================
 
 caso(
-  "la COLABORADORA y la TERMINAL no guardan: 42501 «solo del líder» y nada cambia",
+  "SIN el módulo Plan del piso, la COLABORADORA y la TERMINAL no guardan: 42501 «grupos_mix_sin_modulo» y nada cambia",
   como(MICAELA) + intentar(lote(["VES", "vestidos_conjuntos", 1])) + "\n" + como(T_VENTAS_TRU) + intentar(lote(["VES", "vestidos_conjuntos", 1])) + "\n" +
     COMO_POSTGRES + `select count(*) from retail.categoria_grupo_mix where confirmada_por is not null;`,
-  "42501|grupos_mix_solo_lider\n42501|grupos_mix_solo_lider\n0"
+  "42501|grupos_mix_sin_modulo\n42501|grupos_mix_sin_modulo\n0"
+);
+caso(
+  "CON el módulo en su rol, la COLABORADORA guarda sin ser líder (ADR-0534): la categoría queda confirmada y firmada por ella",
+  DAR_EL_MODULO("integrante") + como(MICAELA) + fijar(lote(["VES", "vestidos_conjuntos", 1])) + "\n" + COMO_POSTGRES +
+    `select (confirmada_por = (select id from public.personas where auth_user_id = '${MICAELA}'))::text
+       from retail.categoria_grupo_mix where categoria_id = :'c_ves';`,
+  (s) => {
+    const [respuesta, firma] = s.split("\n");
+    return respuesta.startsWith("{") && !respuesta.includes("|") && firma === "true";
+  }
 );
 caso(
   "el LÍDER confirma las 42 de una vez: una sola fila de historial con 42 cambios, la firma de Felipe y la versión sube",

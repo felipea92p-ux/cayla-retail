@@ -22,6 +22,7 @@ import {
   precioDeLaFicha,
   promesasDeCompra,
   tallaDelPrecio,
+  tallaInicial,
   tallasDelColor,
   tallasRapidas,
   type Ficha,
@@ -129,6 +130,29 @@ describe("interpretarFicha", () => {
     expect(esIdDePrenda("3f0e8a8e-2f1b-4c3e-9a55-111111111111")).toBe(true);
     expect(esIdDePrenda("blusa-emma")).toBe(false);
     expect(esIdDePrenda("3f0e8a8e-2f1b-4c3e-9a55-11111111111")).toBe(false);
+  });
+});
+
+describe("al abrir con lo que se eligió en los filtros", () => {
+  it("la talla pedida abre elegida solo si ese color la tiene; si no, ninguna (la persona elige)", () => {
+    expect(tallaInicial(ficha, "M", "NEG")).toBe(T.M);
+    expect(tallaInicial(ficha, "S", "BEI")).toBe(T.S);
+    expect(tallaInicial(ficha, "L", "NEG")).toBe(T.L); // el negro tiene la L, aunque sin unidades: la ficha lo dirá
+    expect(tallaInicial(ficha, "L", "BEI")).toBeNull(); // el beige no tiene L
+    expect(tallaInicial(ficha, "XL", "NEG")).toBeNull();
+    expect(tallaInicial(ficha, null, "NEG")).toBeNull();
+    expect(tallaInicial(ficha, undefined, "NEG")).toBeNull();
+    expect(tallaInicial(ficha, "m", "NEG")).toBe(T.M); // en mayúsculas o no
+  });
+
+  it("«Estándar» y «Única» son la misma talla; «S/M» cuenta como S y como M", () => {
+    const unica = { ...ficha, tallas: [{ id: "u1", nombre: "Única" }], variantes: [{ ...ficha.variantes[0], color: "NEG", talla: "u1" }] };
+    expect(tallaInicial(unica, "UNICA", "NEG")).toBe("u1");
+    expect(tallaInicial(unica, "Estándar", "NEG")).toBe("u1");
+    const doble = { ...ficha, tallas: [{ id: "sm", nombre: "S/M" }], variantes: [{ ...ficha.variantes[0], color: "NEG", talla: "sm" }] };
+    expect(tallaInicial(doble, "S", "NEG")).toBe("sm");
+    expect(tallaInicial(doble, "M", "NEG")).toBe("sm");
+    expect(tallaInicial(doble, "L", "NEG")).toBeNull();
   });
 });
 
@@ -448,7 +472,7 @@ describe("lo que la ficha conecta: el botón, la propuesta k, «Agregar» de la 
   it("«Combínalo con»: el PRIMER look que la lleva y sus otras prendas, como las trae el catálogo; sin look, nada", () => {
     const prenda = (id: string) => ({ id, nombre: `Prenda ${id.slice(-1)}` }) as Prenda;
     const pieza = (id: string, posicion: number) => ({ posicion, prenda: { id } });
-    const look = (id: string, ids: string[]) => ({ id, nombre: `Look ${id}`, piezas: ids.map(pieza) }) as unknown as Look;
+    const look = (id: string, ids: string[]) => ({ id, nombre: `Outfit ${id}`, piezas: ids.map(pieza) }) as unknown as Look;
     const [A, B, C, D] = ["a", "b", "c", "d"].map((x) => `00000000-0000-4000-8000-00000000000${x}`);
     const catalogo = [prenda(A), prenda(B), prenda(C)];
     const looks = [look("1", [B, C]), look("2", [A, B, D]), look("3", [A, C])];

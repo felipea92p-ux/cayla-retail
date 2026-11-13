@@ -12,7 +12,10 @@ import { useResponsable } from "@/lib/useResponsable";
 import { firmar } from "@/lib/responsable-reglas";
 import { TrasladoEnviado } from "@/components/TrasladoEnviado";
 import { etiquetaDePrenda, type PrendaEnviada } from "@/lib/traslados-reglas";
-import { juntarPorPrenda, prendasNoDisponibles } from "@/lib/traslado-lineas-reglas";
+import { limpiarCantidad } from "@/lib/alta-producto";
+import { enteroEscrito } from "@/lib/cantidad-escrita-reglas";
+import { cantidadAlSalirDeLaLinea, juntarPorPrenda, prendasNoDisponibles, problemaDeCantidadDeLinea } from "@/lib/traslado-lineas-reglas";
+import { CLASE_MONTO_ILEGIBLE } from "@/components/ui/CampoMonto";
 import { Package } from "lucide-react";
 import { Aviso } from "@/components/ui/Aviso";
 import { Vacio } from "@/components/ui/Vacio";
@@ -197,7 +200,7 @@ export function MoverMercaderiaFormV2({
   // misma: queda como red, para que sus cantidades sumadas no pasen del stock.
   function topeDeLinea(actual: Linea[], i: number, varianteId: string): number {
     const usadoEnOtras = actual.reduce(
-      (acc, otra, m) => (m !== i && otra.varianteId === varianteId ? acc + (Number(otra.cantidad) || 0) : acc),
+      (acc, otra, m) => (m !== i && otra.varianteId === varianteId ? acc + (enteroEscrito(otra.cantidad) ?? 0) : acc),
       0
     );
     return Math.max(0, stockDe(varianteId) - usadoEnOtras);
@@ -220,9 +223,7 @@ export function MoverMercaderiaFormV2({
         // Cambiar la PRENDA sí revalida al toque: el tope cambia con ella,
         // y una cantidad que ya no cabe se recorta antes de mostrarla.
         if (!("varianteId" in cambio)) return siguiente;
-        const tope = topeDeLinea(actual, i, siguiente.varianteId);
-        const actualN = Math.trunc(Number(siguiente.cantidad)) || 1;
-        return { ...siguiente, cantidad: String(Math.max(1, Math.min(actualN, tope || 1))) };
+        return { ...siguiente, cantidad: cantidadAlSalirDeLaLinea(siguiente.cantidad, topeDeLinea(actual, i, siguiente.varianteId)) };
       })
     );
   }
@@ -234,9 +235,7 @@ export function MoverMercaderiaFormV2({
     setLineas((actual) =>
       actual.map((l, n) => {
         if (n !== i) return l;
-        const tope = topeDeLinea(actual, i, l.varianteId);
-        const num = Math.trunc(Number(l.cantidad)) || 1;
-        return { ...l, cantidad: String(Math.max(1, Math.min(num, tope || 1))) };
+        return { ...l, cantidad: cantidadAlSalirDeLaLinea(l.cantidad, topeDeLinea(actual, i, l.varianteId)) };
       })
     );
   }
@@ -249,10 +248,10 @@ export function MoverMercaderiaFormV2({
     if (!destinoId) nuevos.destino = "Elige a qué sede va el traslado.";
     if (!etaLocal) nuevos.eta = "Indica cuándo esperas que llegue.";
     else if (etaLocal.slice(0, 10) < hoyLima()) nuevos.eta = "La llegada no puede ser antes de hoy.";
-    const conCantidad = lineas.map((l) => ({ ...l, cantidadNum: Math.trunc(Number(l.cantidad)) }));
+    const conCantidad = lineas.map((l) => ({ ...l, cantidadNum: enteroEscrito(l.cantidad) ?? 0 }));
     conCantidad.forEach((l, i) => {
       if (!l.varianteId) nuevos.lineas[i] = "Elige la prenda, o quita esta línea.";
-      else if (!(l.cantidadNum > 0)) nuevos.lineas[i] = "Escribe cuántas envías.";
+      else if (!(l.cantidadNum > 0)) nuevos.lineas[i] = problemaDeCantidadDeLinea(l.cantidad) ?? "Escribe cuántas envías.";
     });
     const primeraLineaMala = Object.keys(nuevos.lineas).map(Number).sort((a, b) => a - b)[0];
     const primerError = nuevos.destino ? "mover-destino" : nuevos.eta ? "mover-eta" : primeraLineaMala !== undefined ? idLinea(primeraLineaMala) : null;
@@ -345,7 +344,7 @@ export function MoverMercaderiaFormV2({
       return;
     }
     // Salió: lo que se ve es lo que estaba en el formulario (congelado desde el envío, así que es lo mismo que se guardó).
-    const items = juntarPorPrenda(lineas.map((l) => ({ ...l, cantidadNum: Math.trunc(Number(l.cantidad)) })));
+    const items = juntarPorPrenda(lineas.map((l) => ({ ...l, cantidadNum: enteroEscrito(l.cantidad) ?? 0 })));
     const sedeDestino = destinos.find((d) => d.id === destinoId);
     const unidades = typeof res.datos.prendas === "number" ? res.datos.prendas : items.reduce((acc, it) => acc + it.cantidad, 0);
     await mostrarEnviado(typeof res.datos.transferencia_id === "string" ? res.datos.transferencia_id : null, items, sedeDestino?.nombre ?? "", sedeDestino?.whatsapp ?? null, unidades);
@@ -446,7 +445,8 @@ export function MoverMercaderiaFormV2({
         <p className={campoEtiqueta}>Prendas que envías</p>
         {lineas.map((l, i) => {
           const tope = stockDe(l.varianteId);
-          const error = errores.lineas[i];
+          const malEscrita = problemaDeCantidadDeLinea(l.cantidad);
+          const error = errores.lineas[i] ?? malEscrita;
           // Una prenda va una sola vez por traslado: la que ya está en otra línea se ve, con su motivo, pero no se elige.
           const yaElegidas = prendasNoDisponibles(lineas, i);
           return (
@@ -472,18 +472,18 @@ export function MoverMercaderiaFormV2({
                 />
               </div>
               <input
-                type="number"
-                min={1}
-                max={l.varianteId ? tope : undefined}
+                inputMode="numeric"
+                autoComplete="off"
                 aria-label="Cantidad"
+                aria-invalid={malEscrita ? true : undefined}
                 value={l.cantidad}
-                onChange={(e) => actualizarLinea(i, { cantidad: e.target.value })}
+                onChange={(e) => actualizarLinea(i, { cantidad: limpiarCantidad(e.target.value) })}
                 onBlur={() => normalizarCantidad(i)}
-                className="caja-campo-input w-20 text-center"
+                className={`caja-campo-input w-20 text-center ${CLASE_MONTO_ILEGIBLE}`}
               />
-              {l.varianteId && <span className="text-xs text-tinta/65">de {tope}</span>}
+              {l.varianteId && <span className="text-sm text-tinta/65">de {tope}</span>}
               {lineas.length > 1 && (
-                <button type="button" onClick={() => quitarLinea(i)} className="text-xs text-rojo">
+                <button type="button" onClick={() => quitarLinea(i)} className="text-sm text-rojo">
                   Quitar
                 </button>
               )}

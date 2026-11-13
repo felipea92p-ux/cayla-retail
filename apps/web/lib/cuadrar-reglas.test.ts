@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import type { ConciliacionCuenta, LineaConciliacion } from "./cuentas-dinero-reglas";
-import { bancosParaCuadrar, camposDeAnotarSaldo, estadoPar, hastaDeLaUrl, respuestaCuadre, textoLadoBanco, textoPeriodo } from "./cuadrar-reglas";
+import type { AlertaPos, ConciliacionCuenta, LineaConciliacion, LotePendiente } from "./cuentas-dinero-reglas";
+import { cabeceraDeBancos, coincidenciasConBanco, textoMarcarRevisadas, deudaDeMaquinas, tieneExtracto, avanceDeLineas, bancosParaCuadrar, camposDeAnotarSaldo, estadoDeBanco, estadoPar, filtrarLineas, inicialesDeBanco, textoUltimaVez, hastaDeLaUrl, respuestaCuadre, textoLadoBanco, textoPeriodo } from "./cuadrar-reglas";
 import { sePuedeConfirmar } from "./guia-campos";
 import { leerMontoPlata } from "./monto-plata-reglas";
 
@@ -14,21 +14,51 @@ describe("estadoPar y su lado del banco", () => {
     expect(estadoPar(linea({}))).toBe("pendiente");
   });
   it("dice quién la revisó, cuánto era antes o la pregunta", () => {
-    expect(textoLadoBanco(linea({ revisado: true, revisadoPor: "Felipe" }))).toBe("Está en el extracto · la revisó Felipe");
-    expect(textoLadoBanco(linea({ revisado: true }))).toBe("Está en el extracto");
+    expect(textoLadoBanco(linea({ revisado: true, revisadoPor: "Felipe" }))).toBe("La revisó Felipe");
+    expect(textoLadoBanco(linea({ revisado: true }))).toBe("Revisada");
     expect(plano(textoLadoBanco(linea({ montoRevisado: 90 })))).toBe("Cambió desde que se revisó (era S/ 90.00): mírala otra vez");
     expect(textoLadoBanco(linea({}))).toBe("¿Está en el extracto del banco?");
   });
 });
 
+describe("el botón que marca varias dice lo que hace", () => {
+  it("da por revisadas, sin afirmar nada del banco", () => {
+    expect(textoMarcarRevisadas(1)).toBe("Dar por revisada la que falta");
+    expect(textoMarcarRevisadas(33)).toBe("Dar por revisadas las 33");
+    expect(textoMarcarRevisadas(33)).not.toMatch(/extracto|banco|cuadra/i);
+  });
+});
+
+describe("cuántas cuentas coinciden con el banco", () => {
+  type C = Pick<ConciliacionCuenta, "tipo" | "pendientes" | "ultimaFecha" | "ultimaDiferencia">;
+  const c = (p: Partial<C>): C => ({ tipo: "banco", pendientes: 0, ultimaFecha: null, ultimaDiferencia: null, ...p });
+  const si = { ultimaFecha: "2026-11-07", ultimaDiferencia: 0 };
+  const no = { ultimaFecha: "2026-11-07", ultimaDiferencia: -60 };
+
+  it("coincide solo la que tiene saldo anotado y sin diferencia", () => {
+    expect(coincidenciasConBanco([c(si), c(no), c({})])).toMatchObject({ coinciden: 1, total: 3, noCuadran: 1, pendientes: 0, todoCuadra: false });
+  });
+  it("todo cuadra solo con saldo anotado, sin diferencia y sin pendientes en todas", () => {
+    expect(coincidenciasConBanco([c(si), c(si)]).todoCuadra).toBe(true);
+    expect(coincidenciasConBanco([c(si), c({ ...si, pendientes: 3 })]).todoCuadra).toBe(false);
+    expect(coincidenciasConBanco([c({}), c({})]).todoCuadra).toBe(false);
+    expect(coincidenciasConBanco([]).todoCuadra).toBe(false);
+  });
+  it("cuenta la tarjeta de crédito, y no las puentes de las máquinas", () => {
+    expect(coincidenciasConBanco([c(si), c({ ...si, tipo: "tarjeta_credito" }), c({ tipo: "por_abonar", pendientes: 2 })])).toMatchObject({ coinciden: 2, total: 2, pendientes: 0 });
+  });
+  it("la cabecera de «Tus bancos» nunca dice «Todo revisado» sin saber si coincide", () => {
+    expect(cabeceraDeBancos([c({}), c({})])).toBe("0 de 2 coinciden con el banco.");
+    expect(cabeceraDeBancos([c(si), c(no)])).toBe("1 de 2 coincide con el banco.");
+    expect(cabeceraDeBancos([c({ ...si, pendientes: 1 }), c({ pendientes: 4 })])).toBe("5 líneas por revisar · 1 de 2 coincide con el banco.");
+    expect(cabeceraDeBancos([c({ pendientes: 1 })])).toBe("1 línea por revisar · 0 de 1 coinciden con el banco.");
+  });
+});
+
 describe("bancosParaCuadrar", () => {
   const c = (id: string, nombre: string, tipo: ConciliacionCuenta["tipo"], pendientes = 0): ConciliacionCuenta => ({ id, nombre, tipo, saldoHoy: 0, ultimaFecha: null, ultimoSaldoBanco: null, ultimaDiferencia: null, pendientes });
-  it("los bancos primero, por nombre, con sus pendientes y cuál está elegido", () => {
-    expect(bancosParaCuadrar([c("pos", "Por depositar Izipay", "por_abonar", 2), c("ibk", "Interbank", "banco", 4), c("bcp", "BCP", "banco", 1)], "ibk")).toEqual([
-      { id: "bcp", nombre: "BCP", pendientes: 1, elegida: false },
-      { id: "ibk", nombre: "Interbank", pendientes: 4, elegida: true },
-      { id: "pos", nombre: "Por depositar Izipay", pendientes: 2, elegida: false },
-    ]);
+  it("los bancos primero y por nombre", () => {
+    expect(bancosParaCuadrar([c("pos", "Por depositar Izipay", "por_abonar", 2), c("ibk", "Interbank", "banco", 4), c("bcp", "BCP", "banco", 1)]).map((x) => x.id)).toEqual(["bcp", "ibk", "pos"]);
   });
 });
 
@@ -110,5 +140,85 @@ describe("textoPeriodo", () => {
     expect(textoPeriodo("2026-10-16", "2026-10-23", HOY)).toBe("del 16 oct al 23 oct");
     expect(textoPeriodo("1899-12-02", "1900-01-01", HOY)).toBe("del 2 dic 1899 al 1 ene 1900");
     expect(textoPeriodo("2025-12-15", "2026-01-14", HOY)).toBe("del 15 dic 2025 al 14 ene 2026");
+  });
+});
+
+describe("la lista de bancos (B · Lista y detalle)", () => {
+  const b = (c: Partial<Pick<ConciliacionCuenta, "pendientes" | "ultimaFecha" | "ultimaDiferencia">>) => ({ pendientes: 0, ultimaFecha: null, ultimaDiferencia: null, ...c });
+  it("lo que falta revisar manda sobre cómo cerró la última vez", () => {
+    expect(estadoDeBanco(b({ pendientes: 3, ultimaFecha: "2026-10-23", ultimaDiferencia: 0 }))).toEqual({ texto: "3 por revisar", tono: "ambar" });
+  });
+  it("«No cuadra» manda sobre lo que falta revisar, solo si hay un saldo anotado que no coincide", () => {
+    expect(estadoDeBanco(b({ pendientes: 3, ultimaFecha: "2026-10-23", ultimaDiferencia: -60 }))).toEqual({ texto: "No cuadra", tono: "ambar" });
+    expect(estadoDeBanco(b({ pendientes: 3 }))).toEqual({ texto: "3 por revisar", tono: "ambar" });
+  });
+  it("sin saldo anotado nunca: falta el saldo; con él: cuadra o no cuadra", () => {
+    expect(estadoDeBanco(b({}))).toEqual({ texto: "Falta el saldo", tono: "pizarra" });
+    expect(estadoDeBanco(b({ ultimaFecha: "2026-10-23", ultimaDiferencia: 0 }))).toEqual({ texto: "Cuadra", tono: "verde" });
+    expect(estadoDeBanco(b({ ultimaFecha: "2026-10-23", ultimaDiferencia: -60 }))).toEqual({ texto: "No cuadra", tono: "ambar" });
+  });
+  it("la última vez se dice con el día de Lima, o «Nunca se cuadró»", () => {
+    expect(textoUltimaVez(null)).toBe("Nunca se cuadró");
+    expect(textoUltimaVez("2026-10-23")).toMatch(/^Última vez: 23 oct/);
+  });
+  it("las iniciales: dos palabras toman la primera de cada una; una sola, sus dos primeras letras", () => {
+    expect(inicialesDeBanco("BCP Soles")).toBe("BS");
+    expect(inicialesDeBanco("BBVA")).toBe("BB");
+    expect(inicialesDeBanco("  ")).toBe("");
+  });
+  it("el avance y el filtro: «por revisar» incluye las que cambiaron desde que se revisaron", () => {
+    const ls = [linea({ clave: "a", revisado: true }), linea({ clave: "b" }), linea({ clave: "c", montoRevisado: 90 })];
+    expect(avanceDeLineas(ls)).toEqual({ total: 3, revisadas: 1, faltan: 2, pct: 33 });
+    expect(filtrarLineas(ls, "pendientes").map((l) => l.clave)).toEqual(["b", "c"]);
+    expect(filtrarLineas(ls, "revisadas").map((l) => l.clave)).toEqual(["a"]);
+    expect(filtrarLineas(ls, "todas")).toHaveLength(3);
+    expect(avanceDeLineas([]).pct).toBe(0);
+  });
+});
+
+// ---- ADR-0629, Fase B: la puente no se cuadra contra un extracto -----------------------------------------------------------------
+
+describe("tieneExtracto", () => {
+  it("la puente de una máquina no tiene extracto; un banco y una tarjeta sí", () => {
+    expect(tieneExtracto("por_abonar")).toBe(false);
+    expect(tieneExtracto("banco")).toBe(true);
+    expect(tieneExtracto("tarjeta_credito")).toBe(true);
+  });
+});
+
+const alerta = (p: Partial<AlertaPos>): AlertaPos => ({ maquinaId: "m", nombre: "Izipay", cuentaId: "c-izi", pendientes: 0, montoPendiente: 0, esperado: null, atrasados: 0, montoAtrasado: 0, diasHabilesMasViejo: 0, diasAbono: 0, sinTarifa: false, ...p });
+const lote = (p: Partial<LotePendiente>): LotePendiente => ({ clave: "k", fecha: "2026-11-06", ubicacionId: "u", ubicacionNombre: "Tienda TRU", medio: "qr", bruto: 100, dias: 1, nPagos: 1, esperado: 0, diasHabiles: 1, atrasado: true, yaDepositado: 0, ...p });
+
+describe("deudaDeMaquinas", () => {
+  it("separa lo atrasado de lo que todavía no le toca, del día más viejo al más nuevo", () => {
+    const [m] = deudaDeMaquinas(
+      [alerta({})],
+      new Map([["c-izi", [lote({ clave: "b", fecha: "2026-11-06", bruto: 185.7, yaDepositado: 641.2 }), lote({ clave: "a", fecha: "2026-11-04", ubicacionNombre: "Tienda AQP", bruto: 401.2 }), lote({ clave: "h", fecha: "2026-11-07", bruto: 950.2, atrasado: false })]]]),
+    );
+    expect(m.total).toBe(1537.1);
+    expect(m.atrasados.map((d) => d.clave)).toEqual(["a", "b"]);
+    expect(m.atrasados[0].titulo).toContain("Tienda AQP · QR");
+    expect(m.atrasados[1].nota).toContain("Ya llegaron");
+    expect(m.atrasados[0].nota).toBeNull();
+    expect(m.estado.tono).toBe("ambar");
+    expect(m.enCamino).toContain("950.20");
+  });
+
+  it("sin nada atrasado está al día, y sin nada pendiente no debe nada", () => {
+    const [a, b] = deudaDeMaquinas(
+      [alerta({ nombre: "Vendemás", cuentaId: "c-ven" }), alerta({ nombre: "Izipay", cuentaId: "c-izi" })],
+      new Map([["c-izi", [lote({ atrasado: false })]]]),
+    );
+    expect(a.nombre).toBe("Izipay");
+    expect(a.estado).toEqual({ texto: "Al día", tono: "verde" });
+    expect(a.atrasados).toEqual([]);
+    expect(b.estado.texto).toBe("No debe nada");
+    expect(b.enCamino).toBeNull();
+  });
+
+  it("un residuo negativo o en cero no es deuda", () => {
+    const [m] = deudaDeMaquinas([alerta({})], new Map([["c-izi", [lote({ bruto: 0 }), lote({ clave: "z", bruto: -20 })]]]));
+    expect(m.total).toBe(0);
+    expect(m.atrasados).toEqual([]);
   });
 });

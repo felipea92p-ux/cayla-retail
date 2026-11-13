@@ -6,7 +6,8 @@
    el mismo índice que el buscador de Existencias (`indiceDeExistencias`: nombre, código, códigos de barras, color, talla, marca y
    categoría), así que encuentra lo mismo. Lógica pura, con su prueba.
 
-   Hoy lista lo que esta sede tiene (o tuvo): una prenda que la tienda nunca tuvo es la actividad 2.
+   Lo que esta sede tiene (o tuvo) sale de aquí; una prenda que nunca movió (sin ninguna fila de `stock`) sale del catálogo
+   (`sinStockQueCoincide`, en el componente) y su línea se escribe con `detalleSinStock`.
    ==================================================================== */
 
 import { clavePercha } from "./inventario-reglas";
@@ -77,4 +78,21 @@ export function detalleDelModelo(m: Pick<ModeloParaAjustar<unknown>, "colores" |
   const colores = `${m.colores} ${m.colores === 1 ? "color" : "colores"}`;
   if (m.piso === null || m.almacen === null) return `${colores} · ${m.disponible} en la sede`;
   return `${colores} · ${m.piso} en piso · ${m.almacen} en almacén`;
+}
+
+/** Dónde más tiene stock un producto que esta sede nunca movió: `undefined` mientras no se sabe (la lectura no ha vuelto o falló). */
+export type DondeHay = readonly { sede: string; disponible: number }[];
+
+/** Cuántas sedes se nombran en la línea; el resto va como «y N más». */
+export const TOPE_SEDES_EN_LINEA = 2;
+
+/** La línea de un producto que esta sede nunca movió: dice que aquí no hay nada y, si se sabe, dónde SÍ hay («Hay en Tienda AQP · 14»). */
+export function detalleSinStock(p: { marca: string | null; categoria: string | null }, dondeHay?: DondeHay): string {
+  const de = [p.categoria, p.marca].filter((x): x is string => !!x).join(" · ");
+  const base = `${de ? `${de} · ` : ""}Sin stock aquí todavía`;
+  if (!dondeHay) return base;
+  if (dondeHay.length === 0) return `${base} · Sin stock en otras tiendas`;
+  const nombradas = dondeHay.slice(0, TOPE_SEDES_EN_LINEA).map((d) => `${d.sede} ${d.disponible}`);
+  const mas = dondeHay.length - TOPE_SEDES_EN_LINEA;
+  return `${base} · Hay en ${nombradas.join(", ")}${mas > 0 ? ` y ${mas} más` : ""}`;
 }

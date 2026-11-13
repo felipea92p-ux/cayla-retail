@@ -52,6 +52,9 @@ describe("el viaje de ida: Nueva orden → Nuevo producto", () => {
     expect(hrefAltaDesdeProduccion("produccion")).toBe("/productos/nuevo?desde=produccion&tipo=produccion");
     expect(hrefAltaDesdeProduccion("muestra")).toBe("/productos/nuevo?desde=produccion&tipo=muestra");
   });
+  it("sin tipo elegido no inventa uno: el enlace no lleva `tipo` (ADR-0396, act. 2026-10-30)", () => {
+    expect(hrefAltaDesdeProduccion(null)).toBe("/productos/nuevo?desde=produccion");
+  });
   it("lo que se manda es lo que la pantalla de destino entiende (ida y lectura son inversas)", () => {
     for (const tipo of TIPOS) {
       const q = new URL(hrefAltaDesdeProduccion(tipo), "http://x").searchParams;

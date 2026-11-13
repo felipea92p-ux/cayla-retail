@@ -2,15 +2,54 @@
   "guia": "finanzas.reportes.flujo",
   "ruta": "/finanzas/reportes/flujo",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 9,
+  "total": 34,
   "controles": {
+    "components/finanzas/EscenariosPanel.tsx": [
+      "BotonDescargar «Descargar Excel»",
+      "button «fin-escenarios.volver»",
+      "input «(sin nombre)»",
+      "input «→(e) => cambiar({ cerrarTienda: e.target.checked»",
+      "input «(sin nombre)» #2",
+      "Link «Plan de campaña»",
+      "input «{id}»"
+    ],
     "components/finanzas/FaltanProyeccion.tsx": [
       "Link «Ir a cargarlo»"
     ],
-    "components/finanzas/FlujoCajaPanel.tsx": [
-      "BotonDescargar «Descargar Excel»",
-      "Link «Configuración ▸ Tiendas y caja»",
-      "Link «Configuración ▸ Caja y avisos»"
+    "components/finanzas/estados/CabeceraEstados.tsx": [
+      "Pestanas «(sin nombre)»"
+    ],
+    "components/finanzas/estados/DescargarContador.tsx": [
+      "BotonDescargar «Descargar Excel»"
+    ],
+    "components/finanzas/estados/InformeEstado.tsx": [
+      "button «{guiaContador}»",
+      "button «{texto}»"
+    ],
+    "components/finanzas/estados/MasDelEstado.tsx": [
+      "BotonVerMas «{guia}»"
+    ],
+    "components/finanzas/estados/PlataPanel.tsx": [
+      "BotonVerMas «fin-plata.y-si»",
+      "Link «Configuración ▸ Metas»",
+      "Link «Configuración ▸ Dinero»"
+    ],
+    "components/finanzas/estados/Recomendaciones.tsx": [
+      "BotonVer «{r.accion.texto}»"
+    ],
+    "components/finanzas/estados/SelectorPeriodo.tsx": [
+      "button «{`Ver el ${queSeMira}»",
+      "button «{una ? p.al : p.titulo}»",
+      "button «{`Ver el ${queSeMira}» #2",
+      "CampoTexto «Desde»",
+      "CampoTexto «{una ? \"Fecha\" : \"Hasta\"}»",
+      "Boton «Ver»",
+      "button «Cerrar»",
+      "button «{a.titulo}»",
+      "button «{dicho}»",
+      "button «Meses anteriores»",
+      "button «Meses siguientes»",
+      "button «{fechaLarga(d.iso)}»"
     ],
     "components/finanzas/telar/MesaDeMando.tsx": [
       "button «Todas»",

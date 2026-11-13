@@ -1,6 +1,8 @@
 import { createClient } from "@/lib/supabase/server";
 import { leerTodas, tolerar } from "@/lib/resultado";
+import { fotoPrincipal } from "@/lib/inventario-reglas";
 import type { ProductoDeCatalogo } from "@/lib/existencias-catalogo-reglas";
+import { tonosDeLasMezclas } from "./color-combinado";
 
 // Lectura ligera de `productos` para Existencias: la marca, la categoría (y su familia) de cada producto y qué productos activos
 // tiene el catálogo (los puros, en `existencias-catalogo-reglas.ts`). Son ~13 filas hoy y unas 500-600 a 3 años.
@@ -27,9 +29,13 @@ export async function getCatalogoParaExistencias(): Promise<{ productos: Product
     (desde, hasta) =>
       supabase
         .from("productos")
-        .select("id, referencia, descripcion, estado, estado_alta, es_prueba, empresa_id, marca:marcas ( nombre ), categoria:categorias ( nombre, familia ), variantes ( id )")
+        .select("id, referencia, descripcion, estado, estado_alta, es_prueba, empresa_id, marca:marcas ( nombre ), categoria:categorias ( nombre, familia ), variantes ( id ), producto_fotos ( url, orden, es_principal )")
         .eq("variantes.activo", true)
         .limit(1, { referencedTable: "variantes" })
+        // Solo UNA foto por producto (la principal; si ninguna lo está, la primera): la lectura sigue siendo ligera.
+        .order("es_principal", { ascending: false, referencedTable: "producto_fotos" })
+        .order("orden", { ascending: true, referencedTable: "producto_fotos" })
+        .limit(1, { referencedTable: "producto_fotos" })
         .order("id")
         .range(desde, hasta),
     // Casi siempre cabe en una página: en serie, la segunda solo se pide si la primera vino llena (ADR-0192).
@@ -49,12 +55,14 @@ export async function getCatalogoParaExistencias(): Promise<{ productos: Product
     esPrueba: p.es_prueba,
     conVariantesActivas: (p.variantes ?? []).length > 0,
     empresaId: p.empresa_id,
+    fotoUrl: fotoPrincipal(p.producto_fotos),
   }));
   return { productos, fallo };
 }
 
 /** Un color del catálogo, con lo que la barra de Existencias necesita para agruparlo y pintarlo como en Productos. */
-export type ColorDeCatalogo = { nombre: string; hex: string | null; familia: string | null; tipo: string | null };
+/** `tonos`: si es una mezcla («Hueso con azul», ADR-0643), los tonos con que se parte su punto, la base primero. */
+export type ColorDeCatalogo = { nombre: string; hex: string | null; familia: string | null; tipo: string | null; tonos?: string[] | null };
 
 // La familia de cada color (`colores.familia_color`) para el filtro «Color» agrupado por familia (2026-10-03, como Productos).
 // Aparte del `select` de `stock` por la misma razón que la marca: ese lo comparten Vender, Cambios y Traslados. Se leen TODOS los
@@ -62,8 +70,9 @@ export type ColorDeCatalogo = { nombre: string; hex: string | null; familia: str
 // Dato SECUNDARIO: si falla, el filtro de color sigue, como lista plana sin familias, y no se avisa (nada se deja de ver).
 export async function getColoresParaExistencias(): Promise<ColorDeCatalogo[]> {
   const supabase = await createClient();
-  const respuesta = await supabase.from("colores").select("nombre, hex, familia_color, tipo");
+  const respuesta = await supabase.from("colores").select("codigo, nombre, hex, familia_color, tipo, componentes");
   if (respuesta.error) console.error("Existencias: no se pudo leer la familia de los colores:", respuesta.error);
   const { datos } = tolerar(respuesta, "la familia de los colores");
-  return (datos ?? []).map((c) => ({ nombre: c.nombre, hex: c.hex, familia: c.familia_color, tipo: c.tipo }));
+  const tonos = tonosDeLasMezclas(datos ?? [], "nombre");
+  return (datos ?? []).map((c) => ({ nombre: c.nombre, hex: c.hex, familia: c.familia_color, tipo: c.tipo, tonos: tonos[c.nombre] ?? null }));
 }

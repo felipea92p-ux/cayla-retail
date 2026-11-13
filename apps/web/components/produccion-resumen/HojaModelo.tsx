@@ -4,7 +4,6 @@ import { useMemo, useRef, useState, type RefObject } from "react";
 import { Chip } from "@/components/ui/Chip";
 import { Modal } from "@/components/ui/Modal";
 import { BotonEnlace } from "@/components/ui/campos";
-import { FichaDelColor } from "@/components/ui/FichaDelColor";
 import { FotoAmpliada } from "@/components/existencias/FotoAmpliada";
 import { FotoVistaRapida } from "@/components/vista-rapida/FotoVistaRapida";
 import { DIAS_RITMO_RECIENTE, UMBRAL_POCA_BASE_VENTAS } from "@/lib/inventario-reglas";
@@ -13,7 +12,6 @@ import { aclaracionDeLaBase, fraseDeLaFalta, hrefVerEnExistencias, matrizDeLaHoj
 import type { PresentacionDeModelo } from "@/lib/produccion-presentacion";
 import { rangoSoles } from "@/lib/productos-vista";
 import { Dato } from "./CifrasDeLaHoja";
-import { useFichaDeColor } from "./FichasDeColor";
 import { FichaDelModelo } from "./FichaDelModelo";
 import { MatrizDelModelo } from "./MatrizDelModelo";
 import { OrdenesDelModelo, TelaDelModelo } from "./OrdenesYTelaDelModelo";
@@ -23,7 +21,7 @@ import { TONO_ESTADO_MODELO } from "./estado-modelo";
 // «Ver el modelo» (Resumen de Producción, tarea #8 del análisis docs/pantallas/produccion.md): la hoja que se abre al tocar un modelo de «¿Qué producir?».
 //
 // Es la ficha COMPLETA del modelo, con el mismo diseño que la vista rápida de Catálogo ▸ Productos (Felipe 2026-10-13: «tiene que dejarme ver todo: proveedor, marca, qué tienda lo vende…
-// son datos que ya existen»): a la izquierda la foto grande, que sigue al color que se mira, con su ficha de color y la descripción; a la derecha, lo que hay y lo que falta, la ficha (marca, proveedor, material, patrón), QUÉ TIENDA lo
+// son datos que ya existen»): a la izquierda la foto grande, que sigue al color que se mira, con la descripción; a la derecha, lo que hay y lo que falta, la ficha (marca, proveedor, material, patrón), QUÉ TIENDA lo
 // vende (y qué le queda a cada una), la matriz color × talla de toda la red o de una tienda, las órdenes abiertas del modelo y la tela y los
 // avíos que lleva contra su saldo. Es de solo lectura: lo que decide —abrir la orden, trasladar— sale de aquí, no se guarda nada. Todo el movimiento es el de `<Modal>` (ADR-0136) y el de
 // la foto de la vista rápida (su excepción escrita); esta hoja no agrega ninguno. Lo que cuenta cada cifra vive en `lib/produccion-hoja-modelo.ts` y `lib/produccion-decisiones.ts`.
@@ -42,12 +40,10 @@ export function HojaModelo({ hoja, presentacion, onClose, alCerrarEnfocar }: { h
   const [tiendaId, setTiendaId] = useState<string | null>(null);
   const [fotoGrande, setFotoGrande] = useState<{ fotoUrl: string; color: string } | null>(null);
   const botonAmpliar = useRef<HTMLButtonElement>(null);
-  const fichaDeColor = useFichaDeColor();
 
   const matriz = useMemo(() => matrizDeLaHoja(hoja, tiendaId), [hoja, tiendaId]);
   const enFoto = vista ?? fijado;
   const colorEnFoto = hoja.colores.find((c) => c.nombre === enFoto) ?? hoja.colores[0];
-  const fichaEnFoto = colorEnFoto ? fichaDeColor(colorEnFoto.nombre) : null;
   const fotosDeLosColores = useMemo(() => hoja.colores.map((c) => c.fotoUrl), [hoja.colores]);
   const aLaFoto = colorEnFoto ? { clave: colorEnFoto.nombre, nombre: colorEnFoto.nombre, hex: colorEnFoto.hex, fotoUrl: colorEnFoto.fotoUrl } : undefined;
   const prenda = { referencia: hoja.referencia, categoria: presentacion?.categoria, categoriaPrefijo: presentacion?.categoriaPrefijo, categoriaFamilia: presentacion?.categoriaFamilia };
@@ -105,12 +101,6 @@ export function HojaModelo({ hoja, presentacion, onClose, alCerrarEnfocar }: { h
                 <span className="vr-est">{vista !== null && vista !== fijado ? "vista previa" : "fijado"}</span>
               </div>
               <p className="vr-pista">Pasa el mouse por un color de la tabla y la foto lo muestra. Un clic lo deja fijo.</p>
-              {/* Qué transmite el color de la foto y con qué se combina (ADR-0316): la misma ficha de color de Catálogo y Vender, en una caja de alto fijo para que no se mueva nada bajo el mouse (ADR-0185). */}
-              {fichaEnFoto && (
-                <div className="vr-color-ficha">
-                  <FichaDelColor key={colorEnFoto?.nombre} ficha={fichaEnFoto} forma="bloque" />
-                </div>
-              )}
             </div>
             {/* Lo que se escribió en «Descripción» al crear o editar la prenda. Sin descripción no se dibuja nada: el campo es opcional. */}
             {ficha?.descripcion && (
@@ -129,7 +119,7 @@ export function HojaModelo({ hoja, presentacion, onClose, alCerrarEnfocar }: { h
                 <Dato etiqueta="En camino" valor={hoja.enCamino} nota={hoja.enCamino > 0 ? "a las tiendas" : undefined} />
                 <Dato etiqueta="En producción" valor={hoja.enProduccion} nota={hoja.enProduccion > 0 ? "en órdenes abiertas" : undefined} />
               </dl>
-              {falta && <p className="mt-3 text-[13.5px] leading-relaxed text-tinta">{falta}</p>}
+              {falta && <p className="mt-3 text-[15px] leading-relaxed text-tinta">{falta}</p>}
             </div>
 
             {/* De quién es y quién lo trae, ARRIBA: lo primero que se pregunta al decidir una corrida (Felipe 2026-10-15). Abajo de la matriz quedaba bajo el pliegue y la hoja parecía no decirlo. */}

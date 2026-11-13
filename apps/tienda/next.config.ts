@@ -1,5 +1,6 @@
 import path from "node:path";
 import type { NextConfig } from "next";
+import { REDIRECCIONES_DE_SHOPIFY } from "./lib/redirecciones-shopify";
 
 // La tienda online (ADR-0408) es una app aparte del ERP: se publica sola, con su dominio. No comparte llaves ni código con
 // apps/web; habla con la base del ERP solo por las funciones `retail.tienda_*` (lib/base.ts).
@@ -29,7 +30,9 @@ const origen = origenDeFotos();
 // - `nosniff`: el navegador no adivina el tipo de un archivo (un texto no se ejecuta como script).
 // - `Referrer-Policy`: a otro sitio (WhatsApp, Instagram) solo viaja el dominio, nunca la dirección completa (que puede llevar el
 //   número de un pedido).
-// - `Permissions-Policy`: la tienda no usa cámara, micrófono, ubicación ni pagos del navegador; nadie que se cuele en ella tampoco.
+// - `Permissions-Policy`: la tienda no usa cámara, micrófono ni pagos del navegador; nadie que se cuele en ella tampoco. La ubicación sí, y
+//   solo el propio sitio: con ella se elige la tienda más cercana al entrar (`SelectorTienda`). Con `geolocation=()` el navegador la negaba
+//   sin preguntar y esa función nunca corrió en producción (auditoría 2026-11-06).
 // - `base-uri` y `object-src`: sin `<base>` ajeno ni plugins.
 // No hay una lista de orígenes para scripts (`script-src`): Next mete scripts en línea y una lista mal hecha deja la tienda en blanco;
 // queda para cuando se pruebe en el navegador con la cuenta de clientes. HSTS lo pone Vercel en todo dominio con https.
@@ -38,7 +41,7 @@ const CABECERAS_DE_SEGURIDAD = [
   { key: "X-Frame-Options", value: "DENY" },
   { key: "X-Content-Type-Options", value: "nosniff" },
   { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
-  { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=(), payment=(), usb=()" },
+  { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=(self), payment=(), usb=()" },
 ];
 
 // Los íconos y el colibrí de `public/` (2026-10-16): Vercel los sirve con `max-age=0, must-revalidate`, así que el navegador volvía a
@@ -56,10 +59,16 @@ const nextConfig: NextConfig = {
   partialPrefetching: true,
   // Sin «X-Powered-By: Next.js»: no se anuncia con qué está hecha la tienda.
   poweredByHeader: false,
+  // Los enlaces viejos de la tienda de Shopify que vivía en cayla.pe (ADR-0595).
+  async redirects() {
+    return REDIRECCIONES_DE_SHOPIFY;
+  },
   async headers() {
     return [
       { source: "/:path*", headers: CABECERAS_DE_SEGURIDAD },
       { source: "/:archivo(cayla-[^/]+\\.png)", headers: [{ key: "Cache-Control", value: CACHE_DE_IMAGENES_FIJAS }] },
+      // Los escudos de las ciudades de la cabecera (2026-10-26): salen en todas las páginas, así que el mismo trato que los íconos.
+      { source: "/escudos/:archivo", headers: [{ key: "Cache-Control", value: CACHE_DE_IMAGENES_FIJAS }] },
     ];
   },
   // La raíz del monorepo, como en apps/web: sin esto Next la adivina buscando lockfiles hacia arriba y, en un worktree

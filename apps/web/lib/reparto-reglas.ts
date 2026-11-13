@@ -32,13 +32,6 @@ export function estadoDeMiTienda(c: CifrasDeTienda): "sin_recibir" | "parcial" |
   return entero(c.recibido) + entero(c.cerrado) === 0 ? "sin_recibir" : "parcial";
 }
 
-/** «Te toca 12 · Recibidas aquí 4 · Faltan 8» (y «· Cerradas 2» si hubo faltante cerrado). */
-export function textoTeToca(c: CifrasDeTienda): string {
-  const partes = [`Te toca ${entero(c.asignado)}`, `Recibidas aquí ${entero(c.recibido)}`, `Faltan ${pendienteDeMiTienda(c)}`];
-  if (entero(c.cerrado) > 0) partes.push(`Cerradas ${entero(c.cerrado)}`);
-  return partes.join(" · ");
-}
-
 /**
  * Para un líder: cómo va el resto de las tiendas en una línea. Solo cuentan las que aún tienen algo pendiente;
  * si ninguna, se dice que las demás ya recibieron lo suyo.
@@ -51,6 +44,14 @@ export function textoOtrasTiendas(otras: TiendaEnLinea[] | undefined): string | 
 }
 
 /** «Tienda Trujillo · Taller» — los destinos de un comprobante, con nombre (los ids sin nombre se descartan). */
+/** Los destinos de una fila de lista: sin la palabra «Tienda», que se repite en cada uno. */
+export function destinosCortos(ubicacionesDestino: string[], nombrePorId: Record<string, string>): string {
+  return ubicacionesDestino
+    .map((id) => nombrePorId[id]?.replace(/^Tienda\s+/i, ""))
+    .filter(Boolean)
+    .join(" · ");
+}
+
 export function nombresDeDestinos(ubicacionesDestino: string[], nombrePorId: Record<string, string>): string {
   return ubicacionesDestino
     .map((id) => nombrePorId[id])

@@ -20,7 +20,7 @@ import { leerMontoPlata } from "@/lib/monto-plata-reglas";
 import { soles } from "@/lib/compras-reglas";
 import { diaMes } from "@/lib/fechas-lima";
 import { primerNombre, type CuentaOpcion } from "@/lib/fondos-reglas";
-import { cuentaSugerida } from "@/lib/mi-plata-reglas";
+import { cuentaAlConfirmar, cuentaSugerida, textoCuentaDevuelta } from "@/lib/mi-plata-reglas";
 import { recibirCierre } from "@/lib/revisar-compras-acciones";
 import { botonCierre, camposCierre, renglonesCuaderno, type CierrePorRecibir } from "@/lib/revisar-compras-reglas";
 import { PanelDetalle } from "./PanelDetalle";
@@ -41,7 +41,8 @@ type Rechazo = { titulo: string; texto: string; tono: "error" | "atencion" };
 export function DetalleCierre({ cierre, cuentas, alTerminar }: { cierre: CierrePorRecibir; cuentas: CuentaOpcion[]; alTerminar: () => void }) {
   const router = useRouter();
   const devuelve = cierre.decision === "devuelve";
-  const [cuentaId, setCuentaId] = useState(cuentaSugerida(cuentas) ?? "");
+  // La cuenta que indicó la compradora llega elegida si sigue entre las que se pueden recibir; si no, la de siempre. Compras la puede cambiar.
+  const [cuentaId, setCuentaId] = useState(devuelve ? cuentaAlConfirmar(cierre, cuentas) : (cuentaSugerida(cuentas) ?? ""));
   const [monto, setMonto] = useState(cierre.monto.toFixed(2));
   const [guardando, setGuardando] = useState(false);
   const [rechazo, setRechazo] = useState<Rechazo | null>(null);
@@ -93,7 +94,7 @@ export function DetalleCierre({ cierre, cuentas, alTerminar }: { cierre: CierreP
     >
       {/* El cuaderno de la ronda (20261023210000): lo que tenía al abrirla, le dieron, compró y gastó, y el renglón final. Un cierre de antes
           de las rondas no trae cuaderno: queda solo el renglón final. */}
-      <div className="rounded-[20px] bg-hueso p-2">
+      <div className="rounded-tarjeta bg-hueso p-2">
         {cierre.cuaderno && (
           <ul className="flex flex-col rounded-t-2xl bg-papel px-5 pt-2" data-guia="fondos.cierre-cuaderno">
             {renglonesCuaderno(cierre).map((r) => {
@@ -116,12 +117,13 @@ export function DetalleCierre({ cierre, cuentas, alTerminar }: { cierre: CierreP
             })}
           </ul>
         )}
-        <div className={`flex items-center gap-4 bg-papel px-5 py-4 ${cierre.cuaderno ? "rounded-b-2xl" : "rounded-2xl"}`}>
+        <div className={`flex flex-wrap items-center gap-x-4 gap-y-1 bg-papel px-5 py-4 ${cierre.cuaderno ? "rounded-b-2xl" : "rounded-2xl"}`}>
           <span aria-hidden className={`grid h-9 w-9 shrink-0 place-items-center rounded-full ${devuelve ? "bg-verde/10 text-verde" : "bg-ambar/10 text-ambar-profundo"}`}>
             <IconoFinal className="h-4 w-4" />
           </span>
-          <span className="min-w-0 flex-1 text-[15px] font-semibold text-tinta">{devuelve ? "Devuelve" : "Le debemos"}</span>
-          <span className="whitespace-nowrap font-serif text-[40px] leading-none tabular-nums text-tinta">{soles(cierre.monto)}</span>
+          <span className="min-w-0 flex-1 basis-24 text-[15px] font-semibold text-tinta">{devuelve ? "Devuelve" : "Le debemos"}</span>
+          {/* Con S/ 10,000 o más, a 375 px el monto no cabe junto al nombre: baja a su renglón (a la derecha) en vez de salirse de la tarjeta. */}
+          <span className="ml-auto whitespace-nowrap font-serif text-[clamp(1.75rem,9vw,2.5rem)] leading-none tabular-nums text-tinta">{soles(cierre.monto)}</span>
         </div>
       </div>
       {cierre.esMia ? (
@@ -152,6 +154,7 @@ export function DetalleCierre({ cierre, cuentas, alTerminar }: { cierre: CierreP
               }}
               deshabilitado={guardando}
             />
+            {devuelve && textoCuentaDevuelta(nombre, cierre.cuentaIndicada) && <p className="mt-1.5 text-sm text-taupe">{textoCuentaDevuelta(nombre, cierre.cuentaIndicada)}</p>}
           </CampoGuiado>
           <CampoGuiado id="monto" guia={guia} titulo={devuelve ? "¿Cuánto trajo?" : "¿Cuánto le pagas?"} ayuda={devuelve ? "Cuéntala antes" : undefined} className="max-w-xs">
             <CampoMonto
@@ -166,7 +169,7 @@ export function DetalleCierre({ cierre, cuentas, alTerminar }: { cierre: CierreP
                 setMonto(e.target.value);
               }}
             />
-            {otroMonto && devuelve && <p className="mt-1.5 text-xs text-taupe">Lo que no trajo sigue en su plata.</p>}
+            {otroMonto && devuelve && <p className="mt-1.5 text-sm text-taupe">Lo que no trajo sigue en su plata.</p>}
           </CampoGuiado>
           {!esPersona && (
             <CampoGuiado id="responsable" guia={guia} titulo={devuelve ? "Quién recibe" : "Quién paga"}>
@@ -185,7 +188,7 @@ export function DetalleCierre({ cierre, cuentas, alTerminar }: { cierre: CierreP
               peso="primario"
               cargando={guardando}
               textoCargando="Guardando…"
-              disabled={!guia.puedeConfirmar}
+              confirma={guia}
               title={guia.frase ?? undefined}
               className={guia.claseConfirmar}
               data-guia="fondos.cierre-recibir"

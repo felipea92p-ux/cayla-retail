@@ -15,7 +15,9 @@
  * `problemas` y las líneas siguen yendo por `varianteId` y la llamada a la base sigue siendo UNA, todo o nada.
  */
 
+import { limpiarCantidad } from "./alta-producto";
 import type { LineaBajada } from "./bajada-reglas";
+import { reglaDeEntero } from "./cantidad-escrita-reglas";
 import { hoyDeTalla } from "./existencias-hoy";
 import type { FilaPrenda } from "./existencias-prendas";
 import type { AccionPiso } from "./piso-plan";
@@ -76,10 +78,13 @@ export function acotarCantidad(n: number, tope: number): number {
   return Math.min(Math.max(0, Math.trunc(n)), Math.max(0, Math.trunc(tope)));
 }
 
-/** Lo que la persona teclea en la cajita del número: lo que no es número cuenta como cero, y nunca pasa del tope. */
-export function leerCantidadTecleada(texto: string, tope: number): number {
-  const solo = texto.replace(/\D/g, "");
-  return solo === "" ? 0 : acotarCantidad(Number(solo), tope);
+/** La cajita del número: cualquier entero, y lo que pasa del tope se recorta (`leerCantidadTecleada`). Lo demás no es una cantidad: `useCantidadEscrita` lo deja a la vista en la cajita y no le llega a la tabla. */
+export const REGLA_CAJITA = reglaDeEntero();
+
+/** El número que deja lo tecleado en la cajita: vacío es cero, y nunca pasa del tope. `null` si no es una cantidad («2,5», «-2»): nunca se vuelve otro número. */
+export function leerCantidadTecleada(texto: string, tope: number): number | null {
+  const n = REGLA_CAJITA.leer(limpiarCantidad(texto));
+  return n === null ? null : acotarCantidad(n, tope);
 }
 
 /** Las líneas que viajan a la base: solo las tallas con algo elegido, en el orden de la curva, recortadas al tope del lugar
@@ -158,9 +163,6 @@ export function coloresParaMover(prendas: readonly PrendaParaReponer[]): ColorPa
     tallas: tallasParaReponer(p.tallas),
   }));
 }
-
-/** Lo máximo que se mueve de esta celda: lo libre del lugar de donde salen las prendas. */
-export const topeDeTalla = (t: Pick<TallaParaReponer, "piso" | "almacen">, rumbo: Rumbo): number => (rumbo === "bajar" ? t.almacen : t.piso);
 
 /** Lo que se movió, para el aviso de éxito: «S 1 · M 2» con un solo color; «Azul S 2, M 3 · Blanco S 2» con varios. */
 export function detalleDeLoMovido(colores: readonly ColorParaMover[], lineas: readonly LineaBajada[]): string {

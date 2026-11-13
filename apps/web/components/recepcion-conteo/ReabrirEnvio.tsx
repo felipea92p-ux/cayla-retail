@@ -77,7 +77,7 @@ export function ReabrirEnvio({
             />
           </CampoGuiado>
           <CampoGuiado id="reabrir-quien" guia={guia}>
-            <p className="mb-1.5 text-[13px] font-semibold text-tinta">{guia.etiqueta("reabrir-quien", "Quién lo reabre")}</p>
+            <p className="mb-1.5 text-sm font-semibold text-tinta">{guia.etiqueta("reabrir-quien", "Quién lo reabre")}</p>
             <ComboResponsable control={responsable} />
           </CampoGuiado>
           {error && <Aviso tono="error" titulo="No se pudo reabrir">{error}</Aviso>}
@@ -86,7 +86,7 @@ export function ReabrirEnvio({
             <Boton type="button" onClick={cerrar} disabled={guardando}>
               Cancelar
             </Boton>
-            <Boton type="submit" peso="primario" cargando={guardando} textoCargando="Reabriendo…" disabled={!listo} title={guia.frase ?? undefined} className={guia.claseConfirmar}>
+            <Boton type="submit" peso="primario" cargando={guardando} textoCargando="Reabriendo…" confirma={guia} title={guia.frase ?? undefined} className={guia.claseConfirmar}>
               Reabrir el conteo
             </Boton>
           </div>

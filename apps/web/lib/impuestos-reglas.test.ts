@@ -1,5 +1,7 @@
+import { leerIgvCambiado, textoIgvCambiado } from "./impuestos-reglas";
+import { solesRedondo } from "./gastos-reglas";
 import { describe, expect, it } from "vitest";
-import {
+import { leerPagosSunat,
   ALCANCE_DEL_AVISO,
   COLUMNAS_COMPRAS,
   COLUMNAS_VENTAS,
@@ -11,6 +13,7 @@ import {
   delAnio,
   diaDelRegistro,
   estadoMes,
+  TEXTO_ESTADO_MES,
   fechaPle,
   leerFilaCompras,
   leerFilaVentas,
@@ -50,6 +53,32 @@ describe("el estado de cada mes", () => {
     expect(estadoMes(mesIgv("2026-06", 800), "2026-09")).toBe("sin_pago");
     expect(estadoMes(mesIgv("2026-06", 0, 120), "2026-09")).toBe("a_favor");
     expect(estadoMes(mesIgv("2026-06"), "2026-09")).toBe("sin_movimiento");
+  });
+});
+
+describe("lo pagado a SUNAT", () => {
+  it("se junta por mes y separa IGV de renta", () => {
+    expect(leerPagosSunat([
+      { mes: "2026-10-01", concepto: "igv", monto: 300 },
+      { mes: "2026-10-01", concepto: "renta", monto: "100.50" },
+      { mes: "2026-09-01", concepto: "igv", monto: 50 },
+    ])).toEqual([{ mes: "2026-10", igv: 300, renta: 100.5 }, { mes: "2026-09", igv: 50, renta: 0 }]);
+    expect(leerPagosSunat(null)).toEqual([]);
+  });
+  it("si no se pudo leer lo pagado, un mes con IGV a pagar no afirma «por declarar» ni «sin pago»", () => {
+    expect(estadoMes(mesIgv("2026-08", 500), "2026-09", undefined, true)).toBe("sin_leer");
+    expect(estadoMes(mesIgv("2026-06", 800), "2026-09", undefined, true)).toBe("sin_leer");
+    expect(TEXTO_ESTADO_MES.sin_leer.texto).toBe("pago sin leer");
+    // Lo que no depende de un pago sigue igual.
+    expect(estadoMes(mesIgv("2026-09", 500), "2026-09", undefined, true)).toBe("en_curso");
+    expect(estadoMes(mesIgv("2026-06", 0, 120), "2026-09", undefined, true)).toBe("a_favor");
+    expect(estadoMes(mesIgv("2026-06"), "2026-09", undefined, true)).toBe("sin_movimiento");
+  });
+  it("el mes queda pagado solo si su IGV está cubierto, y el mes en curso sigue en curso", () => {
+    expect(estadoMes(mesIgv("2026-08", 500), "2026-09", { mes: "2026-08", igv: 500, renta: 0 })).toBe("pagado");
+    expect(estadoMes(mesIgv("2026-08", 500), "2026-09", { mes: "2026-08", igv: 499, renta: 0 })).toBe("por_declarar");
+    expect(estadoMes(mesIgv("2026-08", 500), "2026-09", { mes: "2026-08", igv: 0, renta: 500 })).toBe("por_declarar");
+    expect(estadoMes(mesIgv("2026-09", 500), "2026-09", { mes: "2026-09", igv: 500, renta: 0 })).toBe("en_curso");
   });
 });
 
@@ -206,20 +235,20 @@ describe("el aviso anticipado del límite (parámetro)", () => {
     const a = avisoUmbral(panel({ ventas_anio_erp: 1_400_000, ventas_anio: 1_400_000, aviso_alcanzado: true }));
     expect(a.nivel).toBe("aviso");
     expect(a.faltaSoles).toBe(250_000);
-    expect(a.titulo).toBe("Llevas S/\u00a01,400,000 vendidos este año, a S/\u00a0250,000 de las 300 UIT: habla con tu contador.");
+    expect(a.titulo).toBe("Llevas S/\u00a01,400,000 vendidos este año, sin IGV, a S/\u00a0250,000 de las 300 UIT: habla con tu contador.");
     // La tasa del pago a cuenta sale del parámetro de la renta; el código no la sabe.
     expect(a.detalle).toBe("Pasadas las 300 UIT, el pago a cuenta de renta deja de ser el 1 % de lo vendido. Mejor verlo antes de que pase.");
   });
 
   it("si cambian los parámetros, cambian las palabras: otro límite, otra tasa, sin tocar el código", () => {
     const a = avisoUmbral(panel({ ventas_anio_erp: 1_000_000, ventas_anio: 1_000_000, umbral_soles: 1_100_000, aviso_alcanzado: true }, { umbral_uit: { valor: 200, provisional: false }, renta: { valor: 0.015, provisional: false } }));
-    expect(a.titulo).toBe("Llevas S/\u00a01,000,000 vendidos este año, a S/\u00a0100,000 de las 200 UIT: habla con tu contador.");
+    expect(a.titulo).toBe("Llevas S/\u00a01,000,000 vendidos este año, sin IGV, a S/\u00a0100,000 de las 200 UIT: habla con tu contador.");
     expect(a.detalle).toContain("el 1.5 % de lo vendido");
   });
 
   it("sin la tasa del pago a cuenta ni el límite en UIT, igual se entiende", () => {
     const a = avisoUmbral(panel({ ventas_anio_erp: 1_400_000, ventas_anio: 1_400_000, aviso_alcanzado: true }, { umbral_uit: null, renta: null }));
-    expect(a.titulo).toBe("Llevas S/\u00a01,400,000 vendidos este año, a S/\u00a0250,000 del límite del régimen: habla con tu contador.");
+    expect(a.titulo).toBe("Llevas S/\u00a01,400,000 vendidos este año, sin IGV, a S/\u00a0250,000 del límite del régimen: habla con tu contador.");
     expect(a.detalle).toBe("Pasado el límite del régimen, el pago a cuenta de renta deja de ser el de ahora. Mejor verlo antes de que pase.");
   });
 
@@ -227,8 +256,8 @@ describe("el aviso anticipado del límite (parámetro)", () => {
     const a = avisoUmbral(panel({ ventas_anio_erp: 1_700_000, ventas_anio: 1_700_000, cruzado: true }));
     expect(a.nivel).toBe("cruzado");
     expect(a.faltaSoles).toBe(0);
-    expect(a.titulo).toBe("Pasaste las 300 UIT este año: llevas S/\u00a01,700,000 vendidos. Habla con tu contador.");
-    expect(a.detalle).toContain("desde qué mes cambia el pago a cuenta de renta");
+    expect(a.titulo).toBe("Pasaste las 300 UIT este año: llevas S/\u00a01,700,000 vendidos, sin IGV. Hay obligaciones nuevas que coordinar con tu contador.");
+    expect(a.detalle).toContain("Cambian el pago a cuenta de renta, desde el mes en que pasaste el límite");
   });
 
   it("siempre dice qué cuenta —lo registrado en el sistema— y que puede quedar por debajo, empiece cuando empiece el sistema", () => {
@@ -273,6 +302,17 @@ describe("parámetros (Configuración ▸ Impuestos)", () => {
     expect(parsearParametro("ventas_previas_erp", "10000001").ok).toBe(false);
     expect(parsearParametro("ventas_previas_erp", "").ok).toBe(false);
     expect(parsearParametro("ventas_previas_erp", "casi un millón").ok).toBe(false);
+  });
+
+  it("lo de antes del sistema para la renta del año (ADR-0598): soles con céntimos; la utilidad puede ser pérdida, lo demás no", () => {
+    expect(parsearParametro("renta_utilidad_previa", "-12,500.50")).toEqual({ ok: true, valor: -12500.5 });
+    expect(parsearParametro("renta_utilidad_previa", "S/ 84,300")).toEqual({ ok: true, valor: 84300 });
+    expect(parsearParametro("renta_sin_papel_previo", "95000,5")).toEqual({ ok: true, valor: 95000.5 });
+    expect(parsearParametro("renta_pagada_previa", "0")).toEqual({ ok: true, valor: 0 });
+    expect(parsearParametro("renta_sin_papel_previo", "-1").ok).toBe(false);
+    expect(parsearParametro("renta_pagada_previa", "100000001").ok).toBe(false);
+    expect(parsearParametro("renta_utilidad_previa", "-100000001").ok).toBe(false);
+    expect(valorEnCasilla(fila("renta_utilidad_previa", "2026-01-01", -12500.5))).toBe("-12500.50");
   });
 
   it("el aviso va en UIT, no en soles", () => {
@@ -459,5 +499,21 @@ describe("el paquete .zip para el contador", () => {
     expect(dv.getUint32(offsetIndice, true)).toBe(0x02014b50);
     const segunda = 30 + "registro-ventas-2024-01.csv".length + 8;
     expect(dv.getUint32(segunda, true)).toBe(0x04034b50);
+  });
+});
+
+describe("el IGV de un mes cerrado que cambió (tarea 19)", () => {
+  const c = (o: object) => leerIgvCambiado({ mes: "2026-10-01", a_pagar_foto: 500, a_pagar_hoy: 320, a_favor_foto: 0, a_favor_hoy: 0, ...o });
+  it("dice cuánto daba y cuánto da, y manda al contador sin decidir por él", () => {
+    const t = textoIgvCambiado(c({}));
+    expect(t.titulo).toContain("octubre");
+    expect(t.texto).toContain(`Al cerrar daba ${solesRedondo(500)} a pagar y hoy da ${solesRedondo(320)} a pagar`);
+    expect(t.texto).toContain("revísalo con el contador");
+  });
+  it("habla de saldo a favor cuando lo hay", () => {
+    expect(textoIgvCambiado(c({ a_pagar_hoy: 0, a_favor_hoy: 40 })).texto).toContain(`hoy da ${solesRedondo(40)} a favor`);
+  });
+  it("si el resultado es igual pero cambió lo que lo compone, no dice que nada cambió", () => {
+    expect(textoIgvCambiado(c({ a_pagar_hoy: 500 })).texto).toContain("cambió lo que lo compone");
   });
 });

@@ -5,7 +5,7 @@ import { puede, requirePersonaActualV2 } from "@/lib/persona-actual";
 import { encontrarPorTipo, getSububicaciones } from "@/lib/sububicaciones";
 import { createClient } from "@/lib/supabase/server";
 import { exigir } from "@/lib/resultado";
-import { getProducto, getEjesPorCategoria, getImagenesMuestra } from "@/lib/catalogo-v2";
+import { getCostoEnLaFicha, getProducto, getEjesPorCategoria, getImagenesMuestra } from "@/lib/catalogo-v2";
 import { getCatalogoMarcas } from "@/lib/marcas-datos";
 import { leerEstadoVariantes } from "@/lib/variantes-ficha-reglas";
 import { esFuncionAusente } from "@/lib/compras-reglas";
@@ -17,6 +17,8 @@ import { precioUnico } from "@/lib/precio-sede-reglas";
 import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 import { esUuid } from "@/lib/club-registro-reglas";
 import { hoyLima } from "@/lib/fechas-lima";
+import { getPuertaDeLaFicha } from "@/lib/ficha-consumo-datos";
+import { irAlQueQuedoSiSeFusiono } from "@/lib/producto-fusionado";
 import type { CampanaDelVocabulario } from "@/lib/precio-de-hoy";
 
 
@@ -38,9 +40,11 @@ export default async function EditarProductoPage({
   const volverA = vueltaAProductos(desdeDeParams((await searchParams).desde));
   const persona = await requirePersonaActualV2();
   if (!puede(persona, "editarCatalogo")) redirect("/productos");
+  // Un producto fusionado no tiene ficha propia: el enlace viejo lleva al que quedó (ADR-0650).
+  await irAlQueQuedoSiSeFusiono(id, "editar");
 
   const supabase = await createClient();
-  const [producto, categorias, colores, ejes, resEtiquetas, marcas, familias, imagenes, resEstado, resTiendas, resSedesCampanas] = await Promise.all([
+  const [producto, categorias, colores, ejes, resEtiquetas, marcas, familias, imagenes, resEstado, resTiendas, resSedesCampanas, puertaDeLaFicha, resNombreProveedor, costoEnLaFicha] = await Promise.all([
     getProducto(id),
     exigir(
       await supabase.from("categorias").select("id, nombre, prefijo, familia").eq("activo", true).order("familia").order("nombre"),
@@ -49,7 +53,7 @@ export default async function EditarProductoPage({
     // Con familia y sinónimos, como el alta (lib/alta-producto-datos.ts): «Agregar color» busca «plomo» y encuentra Gris.
     exigir(
       // Y con Pantone y su ficha (ADR-0316): «Agregar colores» reutiliza la carta del alta y su pie dice lo mismo que allá.
-      await supabase.from("colores").select("codigo, nombre, hex, familia_color, tipo, sinonimos, pantone_tcx, descripcion, combina_con").eq("activo", true).order("orden").order("nombre"),
+      await supabase.from("colores").select("codigo, nombre, hex, familia_color, tipo, sinonimos, pantone_tcx, descripcion, componentes").eq("activo", true).order("orden").order("nombre"),
       "los colores del vocabulario"
     ),
     getEjesPorCategoria(),
@@ -73,6 +77,13 @@ export default async function EditarProductoPage({
     // Las tiendas donde rige cada campaña (ADR-0486; sin filas = todas): el aviso de reimprimir dice en cuáles cambió el precio en caja.
     // Tolerante: si falla (la base sin la migración), todas rigen en todas las sedes, como antes.
     supabase.rpc("campanas_sedes"),
+    // La ficha de consumo del modelo (ADR-0513): el Taller y los avíos para su hoja. Tolerante: si falla, la tarjeta no se dibuja.
+    getPuertaDeLaFicha(),
+    // Cómo lo llama el proveedor (ADR-0556). Tolerante: sin la columna (la web llega antes que la migración) la fila no se dibuja.
+    supabase.from("productos").select("nombre_proveedor").eq("id", id).maybeSingle(),
+    // Costos (ADR-0631): cuánto cuesta hoy cada prenda y la última compra de cada talla gris. Tolerante: sin permiso de dinero, o sin la
+    // función nueva, esa parte no se dibuja.
+    getCostoEnLaFicha(id),
   ]);
   // Qué familias exigen tejido y patrón (Indumentaria): la edición hereda la misma regla que el alta.
   const filasFamilias = exigir(familias, "las familias del catálogo");
@@ -173,6 +184,7 @@ export default async function EditarProductoPage({
           id: c.id,
           nombre: c.nombre,
           prefijo: c.prefijo,
+          familia: c.familia,
           exigeTejidoPatron: c.familia !== null && exigen.has(c.familia),
           admitePrecioCero: c.familia !== null && admitenPrecioCero.has(c.familia),
         }))}
@@ -185,7 +197,8 @@ export default async function EditarProductoPage({
           sinonimos: c.sinonimos ?? [],
           pantoneTcx: c.pantone_tcx ?? null,
           descripcion: c.descripcion ?? null,
-          combinaCon: c.combina_con ?? [],
+          // Una mezcla («Hueso con azul», ADR-0643): con sus componentes, la ficha parte su punto y «+ acompañante» reusa la que ya existe.
+          componentes: c.componentes ?? null,
         }))}
         ejes={ejes}
         imagenes={imagenes}
@@ -195,6 +208,7 @@ export default async function EditarProductoPage({
         estadoVariantes={resEstado.error ? null : leerEstadoVariantes(resEstado.data)}
         esLider={esLider}
         puedeCorregir={puedeCorregir}
+        fichaConsumo={puertaDeLaFicha}
         ajusteStock={ajusteStock}
         lecturaStock={{ ubicacionId: persona.ubicacionId, sububicaciones }}
         preciosSede={{
@@ -203,8 +217,12 @@ export default async function EditarProductoPage({
           general: precioPrenda,
           ubicacionId: persona.ubicacionId,
           sede: persona.ubicacionEtiqueta,
+          // Una terminal está fija en su tienda: el bloque habla solo de ella (Felipe 2026-10-26).
+          soloAqui: persona.terminal,
         }}
         producto={producto}
+        costoEnLaFicha={costoEnLaFicha}
+        nombreProveedor={resNombreProveedor.error ? undefined : (resNombreProveedor.data?.nombre_proveedor ?? null)}
         volverA={volverA}
       />
     </div>

@@ -8,6 +8,8 @@
  *   · 3 apartados, 4 cambios: igual, solos;
  *   · 9 devolución a una clienta y 10 devolución del adelanto: «Sale de» (la elegida) o la de la tienda;
  *   · 6 reembolso de un proveedor: «Entra a»; al cajón, con su ingreso de caja;
+ *   · 11b (ADR-0553) pagos del Taller por transferencia SIN cuenta elegida: se sellan en el banco que el líder dejó para el Taller,
+ *     desde hoy; el efectivo, el Yape, lo anterior a la vigencia y lo elegido a mano no cambian;
  *   · 11 pagos de Compras y Por pagar, 12 pagos de Producción: «Sale de»; del cajón crea su egreso y resta del cierre;
  *   · 13 gastos y activos: «Salió de» (cajón con su egreso, caja fuerte sin egreso, tarjeta de crédito);
  *   · 19 cierre de caja: «¿A qué banco?»;
@@ -20,11 +22,20 @@
  *
  * USO
  *   pnpm pruebas:cuenta-sellada    → con las migraciones ya aplicadas en el local
+ *   pnpm pruebas:cuenta-sellada -- --con-migracion supabase/migrations/<archivo>.sql [--contenedor <nombre>]
+ *                                  → prueba una migración que el local aún no tiene, dentro de cada transacción (se deshace)
  */
 
 import { execFileSync } from "node:child_process";
+import { readFileSync } from "node:fs";
 
-const CONTENEDOR_LOCAL = "supabase_db_cayla-retail";
+// `--con-migracion <archivo>`: para probar una migración que la base de prueba todavía no tiene, sin escribir nada en ella: el
+// archivo se aplica DENTRO de la transacción de cada escenario y se deshace con su ROLLBACK (como en `cuentas_dinero.mjs`, ADR-0548).
+// El caso 15 pega la migración vieja por su cuenta, en su propia transacción: no lo usa.
+const ARG_MIGRACION = process.argv.indexOf("--con-migracion");
+const MIGRACION_EN_LA_TRANSACCION = ARG_MIGRACION > 0 ? readFileSync(process.argv[ARG_MIGRACION + 1], "utf8") : "";
+const ARG_CONTENEDOR = process.argv.indexOf("--contenedor");
+const CONTENEDOR_LOCAL = ARG_CONTENEDOR > 0 ? process.argv[ARG_CONTENEDOR + 1] : "supabase_db_cayla-retail";
 const FELIPE = "22222222-2222-4222-8222-000000000001"; // líder
 const MICAELA = "22222222-2222-4222-8222-000000000003"; // colaboradora — Tienda Trujillo
 
@@ -70,6 +81,7 @@ $f$;
  *  configuró nada. La caja de Trujillo abierta con S/ 1,000, stock de sobra y una variante `:v` a precio `:precio`. */
 const ESCENA = `
 begin;
+${MIGRACION_EN_LA_TRANSACCION}
 ${INTENTO}
 ${AYUDAS}
 ${cambiaA(FELIPE)}
@@ -425,6 +437,44 @@ select detalle from retail.fn_dinero_libro(retail.fn_hoy_lima()) where clave lik
   esperar("y el del cajón resta del cierre de esa tienda", r.ok && cierre === "50.00", r);
   esperar("al contado, al registrar el comprobante, también", r.ok && contado === "Caja fuerte · Tienda Trujillo", r);
   esperar("el libro de saldos ya ve los pagos del Taller", r.ok && libro?.startsWith("Pago del Taller a Textiles Prueba F3b SAC"), r);
+}
+
+// 11b. Pagos del Taller SIN cuenta elegida (ADR-0553): el banco que el líder dejó para las transferencias del Taller.
+{
+  const r = correr(`${ESCENA}
+select retail.guardar_proveedor_produccion(null, 'Textiles Prueba F3b SAC', 'tela') as pprov \\gset
+insert into retail.insumos (codigo, nombre, tipo, unidad_medida) values ('T-F3B-LINO', 'Lino F3b', 'tela', 'metro') returning id as ins \\gset
+select retail.registrar_comprobante_produccion(:'pprov', 'F001', '910', 'credito',
+  jsonb_build_array(jsonb_build_object('insumo_id', :'ins', 'cantidad', 10, 'costo_unitario', 30)),
+  p_fecha_emision => retail.fn_hoy_lima() - 10, p_fecha_vencimiento => current_date + 30) as cid \\gset
+select retail.registrar_pago_comprobante_produccion(:'cid', jsonb_build_array(jsonb_build_object('metodo', 'transferencia', 'monto', 20))) is not null;
+select string_agg(pg_temp.cta(cuenta_dinero_id), ',') from retail.comprobantes_produccion_pagos where comprobante_id = :'cid';
+select retail.guardar_medio_de_cobro(:'taller', 'transferencia', :'ibk') is null;
+select coalesce((select 'transferencia' = any(propuesta_para) from retail.fn_cuentas_para_elegir('pago', :'taller') where id = :'ibk'), false)::text
+  || ',' || coalesce((select 'efectivo' = any(propuesta_para) from retail.fn_cuentas_para_elegir('pago', :'taller') where id = :'ibk'), false)::text
+  || ',' || coalesce((select 'transferencia' = any(propuesta_para) from retail.fn_cuentas_para_elegir('pago', null) where id = :'ibk'), false)::text;
+select pg_temp.saldo(:'ibk') as i0 \\gset
+select retail.registrar_pago_comprobante_produccion(:'cid', jsonb_build_array(jsonb_build_object('metodo', 'transferencia', 'monto', 20))) is not null;
+select pg_temp.saldo(:'ibk') - :i0;
+select retail.registrar_pago_comprobante_produccion(:'cid', jsonb_build_array(jsonb_build_object('metodo', 'transferencia', 'monto', 15)), retail.fn_hoy_lima() - 3) is not null;
+select retail.registrar_pago_comprobante_produccion(:'cid', jsonb_build_array(jsonb_build_object('metodo', 'efectivo', 'monto', 10), jsonb_build_object('metodo', 'yape', 'monto', 10))) is not null;
+select retail.registrar_pago_comprobante_produccion(:'cid', jsonb_build_array(jsonb_build_object('metodo', 'transferencia', 'monto', 10, 'cuenta_id', :'bcp'))) is not null;
+select string_agg(metodo || '/' || monto || ':' || pg_temp.cta(cuenta_dinero_id), ',' order by fecha, metodo, monto, cuenta_dinero_id nulls first) from retail.comprobantes_produccion_pagos where comprobante_id = :'cid';
+select count(*) from retail.fn_dinero_libro(retail.fn_hoy_lima()) where clave like 'pagoprod:%' and cuenta_id = :'ibk';
+select pg_temp.intento(format('select retail.guardar_medio_de_cobro(%L, ''yape'', %L)', :'taller', :'bcp'));`);
+  const [_p0, antes, _g, propuesta, _p1, baja, _p2, _p3, _p4, todos, libro, rechazo] = lineas(r);
+  void _p0; void _g; void _p1; void _p2; void _p3; void _p4;
+  const lista = (texto) => (texto ?? "").split(",").sort().join(",");
+  esperar("antes de configurar al Taller, un pago por transferencia sin cuenta queda «sin cuenta», como siempre", r.ok && antes === "-", r);
+  esperar("configurado el banco del Taller, el pago por transferencia sin cuenta lo baja", r.ok && baja === "-20.00", r);
+  esperar("cada pago se sella con su regla: el anterior a la vigencia, el efectivo y el Yape quedan sin cuenta; la elegida gana",
+    r.ok && lista(todos) === lista("transferencia/20.00:-,transferencia/15.00:-,efectivo/10.00:-,transferencia/10.00:BCP prueba F3b,transferencia/20.00:Interbank prueba F3b,yape/10.00:-"), r);
+  esperar("el libro de saldos ve el pago del Taller en el banco que se le dejó", r.ok && libro === "1", r);
+  // Lo que lee la web («Sale de»): pedida con la sede del Taller, la cuenta de sus transferencias sale PROPUESTA para la transferencia,
+  // no para el efectivo (decisión: solo transferencia) y, pedida con sede vacía, sigue sin propuesta (el comportamiento de antes).
+  esperar("«Sale de» propone la cuenta del Taller para la transferencia, no para el efectivo, y sin sede no propone nada",
+    r.ok && propuesta === "true,false,false", r);
+  esperar("y el Yape del Taller no se puede dejar como cuenta por defecto", r.ok && rechazo.includes("El Taller solo guarda"), r);
 }
 
 // 12. Cierre de caja (19): «¿A qué banco?».

@@ -1,16 +1,16 @@
 // Crear un color sin salir de «Nuevo producto» (spike producto-nuevo-v2, Felipe 2026-09-28).
 //
-// PROMETE: lógica pura del formulario corto de `NuevoColorAlta`: el nombre como se guarda, si ya existe un
-//   color con ese nombre (o sinónimo), qué familia sugerir para el tono elegido, qué falta para poder crearlo y
-//   cómo se lee la respuesta de `POST /api/productos/colores`.
+// PROMETE: lógica pura del formulario corto de `NuevoColorAlta` y de Atributos ▸ Colores: el nombre como se guarda, qué
+//   colores ya existen y se parecen al que se va a crear (por nombre y por tono: `coloresQueYaExisten`), qué familia
+//   sugerir para el tono elegido, qué falta para poder crearlo y cómo se lee la respuesta de `POST /api/productos/colores`.
 // ASUME: `colores` es la lista que ya tiene la pantalla (los activos); el candado real está en la base
 //   (`colores_pkey` para el código, `colores_clave_unica` para el nombre) y la API traduce sus rechazos.
 // NO HACE: no decide por la persona. La familia y el código son sugerencias que ella puede cambiar; un color
 //   que se ve casi igual a otro se avisa, no se bloquea (Blanco y Crudo se parecen y son dos colores).
 
 import type { ColorAlta } from "./alta-producto";
-import { clave } from "./buscar-prenda-v2";
-import { distanciaEntreHex, esHexValido } from "./color-parecido";
+import { atributosParecidos, type MotivoVisto } from "./atributo-parecido";
+import { coloresParecidos, distanciaEntreHex, esHexValido } from "./color-parecido";
 import { FAMILIAS_COLOR } from "./colores-familias";
 
 /** El nombre como se guarda: sin espacios de más y con la primera letra en mayúscula («palo de rosa» → «Palo de rosa»). */
@@ -19,14 +19,31 @@ export function nombreDeColor(texto: string): string {
   return limpio ? limpio[0].toLocaleUpperCase("es") + limpio.slice(1) : "";
 }
 
+type ColorConNombres = { codigo: string; nombre: string; hex: string | null; familiaColor: string | null; sinonimos?: readonly string[]; activo?: boolean; tipo?: string | null; componentes?: readonly string[] | null };
+
+export type CoincidenciaDeColor<C> = { item: C; por: MotivoVisto; con: string | null };
+
 /**
- * El color de la lista que ya se llama así (por su nombre o por un sinónimo), sin tildes ni mayúsculas. Sirve para
- * ofrecer «elígelo» en vez de dejar que la base rechace el duplicado después de llenar todo.
+ * Todo lo que «ya existe» frente a un color que se va a crear o a renombrar (ADR-0576): primero por NOMBRE —el mismo, un sinónimo,
+ * o casi igual como «Verde Olivo» frente a «Verde oliva»— y después por TONO (ΔE2000 < 8, `color-parecido.ts`). Es una sola lista,
+ * porque para quien crea es una sola pregunta: «¿esto ya lo tengo?». `excluir` es el código del color que se está editando. Por NOMBRE
+ * entran también los desactivados (la base rechaza un nombre que ya tuvo un color); por TONO solo los que se pueden elegir.
  */
-export function colorConEseNombre(texto: string, colores: readonly ColorAlta[]): ColorAlta | undefined {
-  const k = clave(nombreDeColor(texto));
-  if (!k) return undefined;
-  return colores.find((c) => clave(c.nombre) === k) ?? colores.find((c) => (c.sinonimos ?? []).some((s) => clave(s) === k));
+export function coloresQueYaExisten<C extends ColorConNombres>(
+  nombre: string,
+  hex: string | null,
+  familiaColor: string | null,
+  colores: readonly C[],
+  { excluir }: { excluir?: string } = {}
+): CoincidenciaDeColor<C>[] {
+  const porNombre: CoincidenciaDeColor<C>[] = atributosParecidos(nombre, colores, { excluir: (c) => c.codigo === excluir });
+  const vistos = new Set(porNombre.map((c) => c.item.codigo));
+  // Un estampado lleva el tono de su color dominante (ADR-0634) y una mezcla el de su base (ADR-0643): no son colores parecidos, son otra cosa.
+  const porTono = coloresParecidos(hex, familiaColor, colores.filter((c) => c.tipo !== "estampado" && (c.componentes?.length ?? 0) < 2), { excluir })
+    .filter((p) => !vistos.has(p.color.codigo) && p.color.activo !== false)
+    .slice(0, 3)
+    .map((p) => ({ item: p.color, por: "tono" as const, con: null }));
+  return [...porNombre, ...porTono];
 }
 
 // Un tono plano rara vez es metálico: esa familia no se sugiere por cercanía (una muestra plana de «Plata vieja» siempre
@@ -62,9 +79,9 @@ export function faltaParaCrear(b: BorradorColor): string | null {
 
 /**
  * Lo que devuelve `POST /api/productos/colores` (`{ color: { codigo, nombre, familia_color, hex, estado, sinonimos, pantone_tcx } }`)
- * como lo usa el alta. `pendiente`: lo creó alguien que no es Líder; ya se puede usar, falta que un Líder lo apruebe.
+ * como lo usa el alta. Desde ADR-0534 todo color nace aprobado, lo cree quien lo cree: el estado ya no se lee.
  */
-export function colorDeRespuesta(datos: unknown): { color: ColorAlta; pendiente: boolean } | null {
+export function colorDeRespuesta(datos: unknown): { color: ColorAlta } | null {
   const c = (datos as { color?: Record<string, unknown> } | null)?.color;
   if (!c || typeof c.codigo !== "string" || typeof c.nombre !== "string") return null;
   return {
@@ -76,10 +93,9 @@ export function colorDeRespuesta(datos: unknown): { color: ColorAlta; pendiente:
       tipo: typeof c.tipo === "string" ? c.tipo : undefined,
       sinonimos: Array.isArray(c.sinonimos) ? c.sinonimos.filter((s): s is string => typeof s === "string") : [],
       pantoneTcx: typeof c.pantone_tcx === "string" ? c.pantone_tcx : null,
-      // La ficha (ADR-0316) también llega en la respuesta: un color recién creado se señala en la carta como cualquier otro.
+      // Su descripción (ADR-0316) también llega en la respuesta.
       descripcion: typeof c.descripcion === "string" ? c.descripcion : null,
-      combinaCon: Array.isArray(c.combina_con) ? c.combina_con.filter((s): s is string => typeof s === "string") : [],
+      componentes: Array.isArray(c.componentes) ? c.componentes.filter((s): s is string => typeof s === "string") : null,
     },
-    pendiente: c.estado === "pendiente",
   };
 }

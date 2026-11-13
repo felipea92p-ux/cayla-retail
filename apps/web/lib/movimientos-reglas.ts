@@ -71,13 +71,17 @@ export const FILTROS_TIPO: { valor: CategoriaMovimiento; etiqueta: string }[] = 
  *  gesto (contar y corregir) pero sin abrir un conteo de verdad. Un motivo
  *  que no esté acá se muestra tal cual — nunca rompe la pantalla.
  *
- *  `cuarentena_*` (2026-09-17, "Dañado"): la SALIDA de cuarentena cuando un
- *  líder resuelve una prenda dañada — `resolver_prenda_danada`, una por
+ *  `cuarentena_*` (2026-09-17, "Dañado"): la SALIDA de cuarentena cuando se
+ *  resuelve una prenda dañada — `resolver_prenda_danada`, una por
  *  cada uno de los 3 estados de salida. La ENTRADA a cuarentena sigue
  *  usando el motivo `devolucion` de siempre (mismo gesto que una devolución
  *  vendible, solo cambia la sububicación destino). */
 export const ETIQUETA_PROCESO: Record<string, string> = {
   recepcion: "Recepción",
+  // ADR-0608: se deshizo una tanda que salió al stock antes de cerrar el envío.
+  correccion_recepcion: "Recepción corregida",
+  // ADR-0650: dos fichas de la misma prenda se fusionaron y la talla repetida pasó sus unidades a la que quedó.
+  fusion_producto: "Fusión de productos",
   venta: "Venta",
   // Modelo anterior (una sola fila que sale de una sede y entra a otra): la dirección la
   // dice `etiquetaMovimiento`, que mira hacia dónde va el stock de la sede que se mira.
@@ -130,8 +134,8 @@ export const ETIQUETA_PROCESO: Record<string, string> = {
  *  acá se sigue filtrando por URL (`?proc=`); solo no tiene botón. */
 export const PROCESOS_POR_CATEGORIA: Record<CategoriaFiltro, string[]> = {
   // Desde la tienda (ADR-0234): el traslado recibido es una entrada y el enviado, una salida — y los dos siguen en «Traslados».
-  entrada: ["traslado_entrada", "traslado_anulado", "recepcion", "devolucion", "cambio", "anulacion_venta", "produccion", "carga_inicial", "ingreso_regularizado"],
-  salida: ["venta", "traslado_salida", "cambio", "cuarentena_liquidada", "cuarentena_se_boto", "cuarentena_donada", "cuarentena_devuelta_proveedor"],
+  entrada: ["traslado_entrada", "traslado_anulado", "recepcion", "devolucion", "cambio", "anulacion_venta", "produccion", "carga_inicial", "ingreso_regularizado", "fusion_producto"],
+  salida: ["venta", "traslado_salida", "cambio", "correccion_recepcion", "fusion_producto", "cuarentena_liquidada", "cuarentena_se_boto", "cuarentena_donada", "cuarentena_devuelta_proveedor"],
   interno: ["movimiento_interno", "activacion_piso_almacen"],
   transferencia: ["traslado_entrada", "traslado_salida", "traslado_anulado"],
   ajuste: ["conteo", "conteo_arranque", "conteo_fisico", "hallazgo_conteo", "merma", "reposicion", "otro"],
@@ -470,6 +474,8 @@ export type FiltrosMovimientos = {
   categoria?: CategoriaFiltro;
   motivo?: string;
   sububicacionId?: string;
+  /** Solo lo de esta empresa EN LA SEDE que se mira (ADR-0532: en Lima, marca CAYLA → CAYLA; lo demás, CLAURE). */
+  empresaId?: string;
 };
 
 /** Parámetros de URL de la pantalla. `mov` es el movimiento abierto en el detalle. */
@@ -484,6 +490,8 @@ export type ParamsMovimientos = {
   cursor?: string;
   ubicacion?: string;
   mov?: string;
+  /** La clave de la empresa (`cayla`, `claure`), ADR-0532. */
+  emp?: string;
 };
 
 export type FiltrosResueltos = FiltrosMovimientos & {
@@ -520,6 +528,8 @@ export function filtrosDesdeParams(
     sububicaciones?: { id: string; tipo: string | null }[];
     /** Qué período rige sin nada en la URL: «hoy» en el celular, 30 días en lo demás (ADR-0241). */
     porDefecto?: "hoy" | "30";
+    /** Las empresas de la sede (ADR-0532), para pasar `?emp=claure` a su id. Con una sola, el filtro no existe. */
+    empresas?: { id: string; clave: string }[] | null;
   } = {}
 ): FiltrosResueltos {
   const hoy = contexto.hoy ?? hoyLima();
@@ -558,6 +568,7 @@ export function filtrosDesdeParams(
     categoria: CATEGORIAS_FILTRO.find((c) => c === p.cat),
     motivo: esMotivo(p.proc) ? p.proc : undefined,
     sububicacionId: sububicacion?.id,
+    empresaId: (contexto.empresas?.length ?? 0) > 1 ? contexto.empresas?.find((e) => e.clave === p.emp)?.id : undefined,
     periodo,
     sub,
   };
@@ -812,6 +823,8 @@ export function leerResumenTienda(
  *  la fila y su « · » partía el desglose en dos («+1 por ajuste · encontrada tras un conteo», 2026-10-03). Los ajustes no
  *  están: van por respaldo (`desgloseAjustes`). */
 export const FRASE_PROCESO: Record<string, string | readonly [string, string]> = {
+  correccion_recepcion: "por corregir una recepción",
+  fusion_producto: "por fusionar productos repetidos",
   traslado_entrada: "por traslado",
   traslado_salida: "por traslado",
   // Una fila del modelo anterior (salía de una sede y entraba a otra): `fn_movimientos_resumen_procesos` ya la parte en
@@ -902,11 +915,6 @@ export function desgloseAjustes(g: CifrasGrupo): { faltaron: string | null; apar
     );
   };
   return { faltaron: cara("salen"), aparecieron: cara("entran") };
-}
-
-/** «unidad» o «unidades», según la cifra. */
-export function unidades(cifra: number): string {
-  return Math.abs(cifra) === 1 ? "unidad" : "unidades";
 }
 
 // ---------------------------------------------------------------------------

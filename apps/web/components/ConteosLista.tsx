@@ -92,34 +92,34 @@ export function ConteosLista({ grupos, hoy }: { grupos: GrupoDia[]; hoy: string 
                     <span className="flex min-w-0 items-center gap-2.5">
                       <FichaDeLugar tipo={c.sububicacionTipo} />
                       <span className="min-w-0">
-                        <span className="block truncate text-[13.5px] font-semibold text-tinta">Conteo {c.numero}</span>
+                        <span className="block truncate text-[15px] font-semibold text-tinta">Conteo {c.numero}</span>
                         {/* En celular no hay columna de hora: va delante, y el detalle envuelve en vez de cortarse («Solo Cami…» no dice qué se contó). */}
-                        <span className="block break-words text-xs leading-snug tabular-nums text-taupe sm:hidden">
+                        <span className="block break-words text-sm leading-snug tabular-nums text-taupe sm:hidden">
                           {hora} · {detalle}
                         </span>
                         {/* Envuelve en vez de cortarse: aquí «Solo Pantalones» es lo que se vino a leer. */}
-                        <span className="hidden break-words text-xs leading-snug text-taupe sm:block">{detalle}</span>
+                        <span className="hidden break-words text-sm leading-snug text-taupe sm:block">{detalle}</span>
                       </span>
                     </span>
 
                     {/* Resultado y quién. En celular bajan a un segundo renglón bajo la ficha; desde sm cada uno tiene su columna. */}
                     <span className="col-span-2 col-start-2 row-start-2 flex min-w-0 flex-wrap items-baseline gap-x-3 gap-y-0.5 sm:contents">
                       <span className="min-w-0 sm:col-start-4 sm:row-start-1">
-                        <span className="block break-words text-[13px] leading-snug text-tinta">{textoResultadoConteo(c)}</span>
-                        {apoyo && <span className="hidden break-words text-xs leading-snug text-taupe sm:block">{apoyo}</span>}
+                        <span className="block break-words text-sm leading-snug text-tinta">{textoResultadoConteo(c)}</span>
+                        {apoyo && <span className="hidden break-words text-sm leading-snug text-taupe sm:block">{apoyo}</span>}
                       </span>
                       <span className="min-w-0 sm:col-start-5 sm:row-start-1">
-                        <span className="block truncate text-[13px] text-tinta">{abrio ?? "Sin responsable"}</span>
-                        {cerro && <span className="block truncate text-xs text-taupe">Cerró {cerro}</span>}
+                        <span className="block truncate text-sm text-tinta">{abrio ?? "Sin responsable"}</span>
+                        {cerro && <span className="block truncate text-sm text-taupe">Cerró {cerro}</span>}
                       </span>
                     </span>
 
-                    <span className="col-start-3 row-start-1 flex items-center justify-end gap-1 text-right text-[13.5px] font-bold tabular-nums sm:col-start-6">
+                    <span className="col-start-3 row-start-1 flex items-center justify-end gap-1 text-right text-[15px] font-bold tabular-nums sm:col-start-6">
                       <span className="flex flex-col items-end leading-tight">
                         {cifra ? (
                           <>
                             <span>{cifra.cifra}</span>
-                            <span className="mt-0.5 whitespace-nowrap text-[11px] font-normal text-taupe">{cifra.unidad}</span>
+                            <span className="mt-0.5 whitespace-nowrap text-sm font-normal text-taupe">{cifra.unidad}</span>
                           </>
                         ) : (
                           <span aria-hidden className="font-normal text-taupe/60">

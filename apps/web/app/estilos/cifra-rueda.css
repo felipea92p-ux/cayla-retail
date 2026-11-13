@@ -1,0 +1,13 @@
+/* La cifra que rueda (`<CifraAnimada>`, ADR-0136 act. 2026-10-31): cada dígito es una ventana de una línea sobre la tira del 0 al 9, que se
+   corre hasta su valor. Mide lo mismo que el texto de siempre: el ancho de un dígito (`1ch`, con números tabulares) y el alto de la línea
+   de quien la contiene (`1lh`), así que la cifra no cambia de tamaño ni empuja nada. Una vez, 700 ms con --ease-cayla, sin rebote. */
+@layer components {
+  .cifra-rueda { display: inline-flex; white-space: pre; font-variant-numeric: tabular-nums lining-nums; }
+  .cifra-rueda-col { display: inline-block; width: 1ch; height: 1lh; overflow: hidden; text-align: center; }
+  /* La tira del 0 al 9 se escribe con CSS, no con texto: así no aparece al copiar la cifra ni en lo que lee una prueba (`innerText`). */
+  .cifra-rueda-tira { display: block; transition: transform 700ms var(--ease-cayla); }
+  .cifra-rueda-tira::before { content: "0\A 1\A 2\A 3\A 4\A 5\A 6\A 7\A 8\A 9"; display: block; white-space: pre; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .cifra-rueda-tira { transition: none; }
+}

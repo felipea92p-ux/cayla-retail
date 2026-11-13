@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/client";
 import { firmar, type Firma } from "@/lib/responsable-reglas";
 import type { FirmaOmitida } from "@/lib/responsable-omitido";
 import type { ErrorDeBase } from "@/lib/ordenes-compra-acciones";
+import { leerEnvioSalido, type EnvioSalido } from "@/lib/mis-envios-reglas";
 import { leerErrorStorage, objecionArchivo, tipoDeArchivo } from "@/lib/adjuntos-compra";
 import { BUCKET_FOTOS_GASTO_VIAJE } from "@/lib/rendicion-reglas";
 import {
@@ -13,6 +14,7 @@ import {
   RPC_MANDAR_A_TIENDA,
   RPC_TERMINAR_DIA,
   RPC_ABRIR_RONDA,
+  RPC_REABRIR_RONDA,
   type ConceptoGasto,
   type DecisionCierre,
   type MedioPlata,
@@ -51,8 +53,9 @@ async function subirFoto(archivo: File, carpeta: string): Promise<{ ruta: string
 }
 
 export function anotarPlata(
-  // `p_cuenta_indicada_id` solo viaja con una transferencia: sin él la llamada es la de siempre (la web puede publicarse antes que la base).
-  args: { p_medio: MedioPlata; p_monto: number; p_foto_ruta: string | null; p_cuenta_indicada_id?: string },
+  // `p_cuenta_indicada_id` solo viaja con una transferencia, y `p_fecha` (20261110025000) solo si la plata llegó otro día que hoy: sin ellos la
+  // llamada es la de siempre (la web puede publicarse antes que la base).
+  args: { p_medio: MedioPlata; p_monto: number; p_foto_ruta: string | null; p_cuenta_indicada_id?: string; p_fecha?: string },
   firma: Firma | FirmaOmitida | null,
   token: string,
   senal: AbortSignal,
@@ -72,7 +75,8 @@ export async function confirmarPlata(
 // del envío (`crear_envio` la reconoce). Terminar el día se puede repetir: el mismo día reemplaza el cierre anterior.
 
 export async function registrarGastoRapido(
-  args: { p_id: string; p_concepto: ConceptoGasto; p_nota: string | null; p_monto: number; p_foto_ruta: string | null },
+  // `p_papel` y `p_ruc` (20261029195000) solo viajan si los dijo: una base de antes no los conoce.
+  args: { p_id: string; p_concepto: ConceptoGasto; p_nota: string | null; p_monto: number; p_foto_ruta: string | null; p_papel?: string; p_ruc?: string },
   firma: Firma | FirmaOmitida | null,
 ): Promise<{ error: ErrorDeBase }> {
   const { error } = await firmar(createClient().rpc(RPC_GASTO_RAPIDO as never, args as never), firma);
@@ -82,9 +86,10 @@ export async function registrarGastoRapido(
 export async function mandarATienda(
   args: { p_destino_id: string; p_bultos: number; p_token: string },
   firma: Firma | FirmaOmitida | null,
-): Promise<{ error: ErrorDeBase }> {
-  const { error } = await firmar(createClient().rpc(RPC_MANDAR_A_TIENDA as never, args as never), firma);
-  return { error: error ?? null };
+): Promise<{ error: ErrorDeBase; envio: EnvioSalido | null }> {
+  const { data, error } = await firmar(createClient().rpc(RPC_MANDAR_A_TIENDA as never, args as never), firma);
+  // Lo que salió (su código) sirve para mostrarlo apenas sale; un envío repetido por un corte de red devuelve el mismo.
+  return { error: error ?? null, envio: error ? null : leerEnvioSalido(data) };
 }
 
 /** Abre la ronda de compras de quien la toca (o devuelve la que ya tenía abierta: dos toques no abren dos). */
@@ -93,8 +98,17 @@ export async function abrirRonda(firma: Firma | FirmaOmitida | null): Promise<{ 
   return { error: error ?? null };
 }
 
+/**
+ * Vuelve a abrir la última ronda cerrada (ADR-0569): con ella abierta se anota lo que se olvidó y se cierra otra vez eligiendo de nuevo qué hacer
+ * con lo que queda. Dos toques no la reabren dos veces (la base devuelve la misma).
+ */
+export async function reabrirRonda(firma: Firma | FirmaOmitida | null): Promise<{ error: ErrorDeBase }> {
+  const { error } = await firmar(createClient().rpc(RPC_REABRIR_RONDA as never), firma);
+  return { error: error ?? null };
+}
+
 export async function terminarDia(
-  args: { p_decision: DecisionCierre | null },
+  args: { p_decision: DecisionCierre | null; p_cuenta_indicada_id?: string | null },
   firma: Firma | FirmaOmitida | null,
 ): Promise<{ error: ErrorDeBase }> {
   const { error } = await firmar(createClient().rpc(RPC_TERMINAR_DIA as never, args as never), firma);

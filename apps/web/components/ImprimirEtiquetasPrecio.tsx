@@ -30,6 +30,8 @@ import {
   type EtiquetaPrecio as DatosEtiqueta,
 } from "@/lib/etiqueta-precio-reglas";
 import { BotonImprimir } from "@/components/ui/BotonImprimir";
+import { useCantidadEscrita, type CantidadEscrita } from "@/components/alta-producto/useCantidadEscrita";
+import { reglaDeEntero, textoEnLaCaja } from "@/lib/cantidad-escrita-reglas";
 
 // Una fila por color y talla, juntas bajo el nombre de su prenda (Felipe, 2026-10-09: «que no se haga tan cansado de ver tantas
 // cosas»): el nombre se dice una vez por grupo y cada fila dice solo lo que cambia —el color con su cápsula, la talla, el precio— y
@@ -48,6 +50,7 @@ const columnasDe = (sinElDescuento: boolean): Columna[] => [
   },
   { titulo: "Imprimir", alinear: "der", ayuda: "Cuántas etiquetas de esta prenda. Si alguna ya tiene la suya, baja el número; el tacho la saca de la lista." },
 ];
+const CUANTAS_ETIQUETAS = reglaDeEntero();
 /** Lo que dura la fila en irse (`.etq-fila[data-saliendo]`, etiquetas-precio.css): después se quita de verdad. */
 const SALIDA_MS = 320;
 
@@ -106,6 +109,7 @@ export function ImprimirEtiquetasPrecio({
   sede: string;
 }) {
   const [cantidades, setCantidades] = useState<Record<string, string>>(() => Object.fromEntries(delServidor.map((e) => [e.varianteId, String(e.cantidad)])));
+  const escrita = useCantidadEscrita(CUANTAS_ETIQUETAS);
   // «Imprimir sin el descuento» (Felipe, 2026-10-23): en una campaña de todo el catálogo (el aniversario) el papel que sale hoy tiene
   // que servir mañana. Siempre empieza apagado —por defecto el papel dice lo que la caja cobra— y no se recuerda: una campaña de
   // liquidación SÍ tiene que verse en el papel, y un interruptor olvidado de ayer la escondería sin que nadie lo note. Es solo del
@@ -209,7 +213,18 @@ export function ImprimirEtiquetasPrecio({
   const imprimir = (
     <div className="flex flex-wrap items-center gap-2">
       <BotonGuiaImpresion />
-      <BotonImprimir peso="primario" disabled={total === 0 || enviando} onClick={mandar}>
+      <BotonImprimir
+        peso="primario"
+        disabled={total === 0 || enviando}
+        onClick={() => {
+          // Lo escrito en una fila no valió. El botón está arriba y la lista puede ser larga: el porqué sale también aquí.
+          if (escrita.frenar()) {
+            if (escrita.problema) avisar.aviso(escrita.problema);
+            return;
+          }
+          mandar();
+        }}
+      >
         {total === 0 ? (
           "Nada que imprimir"
         ) : enviando ? (
@@ -332,6 +347,7 @@ export function ImprimirEtiquetasPrecio({
                     columnaCantidad={encabezado.columnaCantidad}
                     saliendo={saliendo.has(e.varianteId)}
                     estilo={cascada()}
+                    escrita={escrita}
                     onTexto={(t) => cambiar(e.varianteId, t)}
                     onQuitar={(cuando) => quitar([e], cuando)}
                   />
@@ -351,6 +367,11 @@ export function ImprimirEtiquetasPrecio({
               )}
             </div>
           </Tabla>
+          {escrita.problema && (
+            <Aviso tono="error" chico>
+              {escrita.problema}
+            </Aviso>
+          )}
 
           {/* Una columna: la vista previa va aquí, justo después de la tabla. Dos columnas: a la derecha. */}
           {vistaPrevia && <div className="xl:hidden">{vistaPrevia}</div>}
@@ -443,6 +464,7 @@ function FilaEtiqueta({
   columnaCantidad,
   saliendo,
   estilo,
+  escrita,
   onTexto,
   onQuitar,
 }: {
@@ -452,6 +474,8 @@ function FilaEtiqueta({
   columnaCantidad: string;
   saliendo: boolean;
   estilo?: CSSProperties;
+  /** El borrador de lo que se teclea: vive en la pantalla, que dice por qué no valió y frena «Imprimir». */
+  escrita: CantidadEscrita;
   onTexto: (t: string) => void;
   onQuitar: (cuando: number) => void;
 }) {
@@ -512,23 +536,32 @@ function FilaEtiqueta({
               tabIndex={cambiado ? 0 : -1}
               aria-hidden={!cambiado}
               title={`${columnaCantidad}: ${e.cantidad}. Toca para volver a ese número.`}
-              onClick={() => onTexto(String(e.cantidad))}
+              onClick={() => {
+                escrita.olvidar();
+                onTexto(String(e.cantidad));
+              }}
             >
               de {e.cantidad}
             </button>
             <PasoCantidad
-              menos={{ onClick: () => onTexto(String(numero - 1)), deshabilitado: numero <= 0, etiqueta: `Una etiqueta menos de ${nombre}` }}
-              mas={{ onClick: () => onTexto(String(numero + 1)), deshabilitado: numero >= MAX_POR_PRENDA, etiqueta: `Una etiqueta más de ${nombre}` }}
-              campo={{
-                type: "number",
-                inputMode: "numeric",
-                min: 0,
-                max: MAX_POR_PRENDA,
-                value: texto,
-                onChange: (ev) => onTexto(ev.target.value),
-                onFocus: (ev) => ev.currentTarget.select(),
-                "aria-label": `Etiquetas de ${nombre}`,
+              tono={escrita.invalida(e.varianteId) ? "error" : undefined}
+              menos={{
+                onClick: () => {
+                  escrita.olvidar();
+                  onTexto(String(numero - 1));
+                },
+                deshabilitado: numero <= 0,
+                etiqueta: `Una etiqueta menos de ${nombre}`,
               }}
+              mas={{
+                onClick: () => {
+                  escrita.olvidar();
+                  onTexto(String(numero + 1));
+                },
+                deshabilitado: numero >= MAX_POR_PRENDA,
+                etiqueta: `Una etiqueta más de ${nombre}`,
+              }}
+              campo={{ ...escrita.campo(e.varianteId, texto, (t) => onTexto(textoEnLaCaja(t, MAX_POR_PRENDA)), MAX_POR_PRENDA), "aria-label": `Etiquetas de ${nombre}` }}
             />
             <button type="button" className="etq-tacho" aria-label={`Quitar ${nombre}`} title="Quitar esta fila" onClick={(ev) => onQuitar(ev.timeStamp)}>
               <Trash2 aria-hidden />

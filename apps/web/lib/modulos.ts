@@ -12,11 +12,11 @@ import { PERMISOS, type Permiso } from "./menu";
 
 export const CLAVES_MODULO = [
   "inicio",
-  "vender", "apartados", "caja", "cambios", "devoluciones", "historial", "facturacion",
-  "tienda_web", "pedidos_web", "vitrina_web", "campanas_web", "recomendaciones", "ajustes_web",
+  "vender", "apartados", "caja", "cambios", "devoluciones", "historial", "reportes_ventas", "facturacion",
+  "tienda_web", "trafico", "pedidos_web", "vitrina_web", "campanas_web", "recomendaciones", "ajustes_web",
   "clientas", "avisos_club", "beneficios_club",
   "existencias", "conteos", "traslados", "movimientos", "recibir",
-  "productos", "atributos", "etiquetas", "campanas", "liquidacion",
+  "productos", "atributos", "etiquetas", "campanas",
   "ordenes_compra", "facturas_compra", "por_pagar", "fondos", "proveedores", "plan_compra",
   "produccion", "ordenes_insumos",
   "analisis", "frescura", "plan_piso", "colaboradores", "roles",
@@ -25,6 +25,7 @@ export const CLAVES_MODULO = [
   "actividad",
   "cayla_global",
   "rendimiento",
+  "preguntas_equipo",
 ] as const;
 export type ClaveModulo = (typeof CLAVES_MODULO)[number];
 
@@ -59,12 +60,18 @@ export const MODULOS: readonly Modulo[] = [
   { clave: "cambios", grupo: "Ventas", nombre: "Cambios", incluye: "Registrar cambios de prenda" },
   { clave: "devoluciones", grupo: "Ventas", nombre: "Devoluciones", incluye: "Solicitar devoluciones" },
   { clave: "historial", grupo: "Ventas", nombre: "Historial de ventas", incluye: "Consultar, reimprimir, exportar y corregir el pago mientras la caja siga abierta" },
+  // Ventas ▸ Reportes (Felipe 2026-11-03, 20261103224000): el reporte de ventas del mes y el ranking de prendas. Nace sin rol: solo el líder.
+  { clave: "reportes_ventas", grupo: "Ventas", nombre: "Reportes de ventas", incluye: "Ver cuánto se vendió cada mes, por tienda y por categoría, y qué prendas se venden más con sus filtros; descargar los reportes" },
   { clave: "facturacion", grupo: "Ventas", nombre: "Facturación", incluye: "Emitir boletas, facturas y notas; reenviar a SUNAT" },
   // Tienda web (ADR-0430, Felipe 2026-10-16; 20261016174000): el grupo de lo de la tienda online, justo después de Ventas (el mismo
   // lugar que en el lateral). Su Resumen nace SIN rol (solo el líder) y delegable; no trae funciones propias: lee con las lecturas de las
   // otras tres pantallas, y cada una pide SU módulo. Pedidos web, Vitrina web y Recomendaciones llegaron de Ventas, Catálogo y Clientes
   // sin cambiar quién los ve. Su quinta pantalla, Ajustes («Datos y plazos»), tiene su módulo desde 20261016223000 (abajo): antes la abría Configuración.
   { clave: "tienda_web", grupo: "Tienda web", nombre: "Resumen de la tienda web", incluye: "Ver de un vistazo lo que la tienda online pide hoy: los pedidos por atender de su tienda, las recomendaciones sin responder, quién espera una talla, qué modelos no se ven en la web y qué le falta a cada tienda para mostrarse (cada cosa, solo si también tiene su pantalla)" },
+  // Tráfico (ADR-0495, Felipe 2026-10-23; 20261023231000): cuánta gente entra a la tienda online, qué mira y dónde se va, contado por
+  // persona anónima. Nace SIN rol (solo el líder) y delegable: su lectura pide este módulo. Orden 63, junto al Resumen (en el menú va
+  // entre Recomendaciones y Conf. Tienda: entre sus órdenes no había lugar).
+  { clave: "trafico", grupo: "Tienda web", nombre: "Tráfico de la tienda web", incluye: "Ver cuánta gente entra a la tienda online, por dónde llega, desde qué ciudad y a qué hora, qué prendas mira y en qué paso del recorrido se va (sin datos de ninguna persona)" },
   // Pedidos web (ADR-0408, actividad 8; 20261015010000): lo que los clientes separan en la tienda online para esta tienda. Nace SIN rol
   // (solo el líder) y delegable: sus funciones piden este módulo (`fn_pedido_web_exigir`) y la tienda que se opera. Quien lo tiene ve
   // del cliente solo lo necesario para coordinar por WhatsApp (nombre, celular, el DNI a medias y si es del club), tenga o no «Clientes».
@@ -112,9 +119,6 @@ export const MODULOS: readonly Modulo[] = [
   // o Insignias (`fn_puede_campanas`). Desde esa misma tarde no tiene fila propia: abre Catálogo ▸ Insignias, donde las campañas son
   // la primera vista (la fila Insignias la declara en sus `modulosAlternos`). Sigue siendo un módulo aparte en Roles y accesos.
   { clave: "campanas", grupo: "Catálogo", nombre: "Campañas", incluye: "Crear y archivar campañas (San Valentín, Halloween, Navidad…), elegir sus fechas, su descuento, sus prendas y las categorías donde rige, repetirlas el año siguiente e imprimir sus etiquetas de precio" },
-  // ADR-0379 (Felipe 2026-10-10): las prendas sueltas que se liquidan sin entrar al catálogo. Nace sin rol (20261010195000);
-  // el líder se lo da después a las terminales de almacén y caja.
-  { clave: "liquidacion", grupo: "Catálogo", nombre: "Liquidación", incluye: "Etiquetar las prendas sueltas que se liquidan sin registrarlas en el catálogo, bajarles el precio con una etiqueta nueva y retirarlas" },
   // Órdenes de compra (ADR-0362, 20261010214500): lo que se le pide a cada proveedor antes de la factura. Nace SIN rol (solo el
   // líder) y delegable: sus funciones piden este módulo. Quien lo tiene ve las órdenes de TODAS las sedes con sus precios
   // (decisiones 34 y 37): no pasa por la regla de Compras por tienda (ADR-0184).
@@ -163,7 +167,7 @@ export const MODULOS: readonly Modulo[] = [
   // Cuentas y dinero y Reportes son delegables (con el módulo, su tienda). Impuestos y Cierre de mes nacieron del líder y
   // se abrieron con el ADR-0253 (20260928220000): son de CAYLA entera, así que quien los tiene los ve como el líder.
   { clave: "cuentas_dinero", grupo: "Finanzas", nombre: "Cuentas y dinero", incluye: "Ver las cuentas y el efectivo de su tienda; registrar depósitos del cajón al banco, abonos de tarjeta y movimientos entre cuentas; ver lo que se debe y cuándo vence" },
-  { clave: "reportes_financieros", grupo: "Finanzas", nombre: "Reportes financieros", incluye: "Ver el resumen, el estado de resultados, el flujo de caja y el balance de su tienda; cómo rindieron las campañas" },
+  { clave: "reportes_financieros", grupo: "Finanzas", nombre: "Resumen y estados financieros", incluye: "Ver el resumen y los estados financieros de CAYLA entera: lo que se ganó, dónde está la plata, cuánto vale y cuánto creció lo tuyo; el presupuesto y cómo rindieron las campañas" },
   { clave: "impuestos", grupo: "Finanzas", nombre: "Impuestos", incluye: "Ver el IGV del mes de CAYLA entera (ventas contra compras), la alerta del límite de ventas del régimen y bajar el reporte para el contador" },
   { clave: "cierre_mes", grupo: "Finanzas", nombre: "Cierre de mes", incluye: "Cerrar el mes de cada tienda y de la empresa, y reabrirlo con motivo, viendo los números de todas las tiendas" },
   // ADR-0207 (20260926090000): el historial de cada módulo. No es una pantalla del lateral: se abre desde la cabecera
@@ -179,6 +183,10 @@ export const MODULOS: readonly Modulo[] = [
   // el líder hasta que Felipe se la da al rol de las encargadas. Solo para personas (`MODULOS_SOLO_PERSONAS`):
   // una terminal compartida no revisa el desempeño de nadie.
   { clave: "rendimiento", grupo: "Gestión", nombre: "Rendimiento", incluye: "Ver las ventas de cada persona del equipo en el mes: quién vende más por hora trabajada y quién cierra más ventas, y la ficha de cada quien" },
+  // ADR-0536 (actividad 9, 20261027182000): lo que el equipo le pregunta a «Pregúntale a CAYLA», con quién preguntó (Felipe
+  // 2026-10-27). Nace sin rol (ADR-0161): solo la ve el líder. Solo para personas (`MODULOS_SOLO_PERSONAS`), como Rendimiento: una
+  // terminal compartida no revisa lo que preguntan las demás.
+  { clave: "preguntas_equipo", grupo: "Gestión", nombre: "Preguntas del equipo", incluye: "Ver lo que el equipo le pregunta a «Pregúntale a CAYLA»: quién preguntó qué, en qué sede y pantalla, qué se resolvió, qué no se encontró, qué accesos piden y si les sirvió" },
 ];
 
 /** Lo que sigue siendo del líder aunque el rol vea el módulo: decisiones ya tomadas (ADR-0161 B2b), no nuevas.
@@ -187,10 +195,10 @@ export const MODULOS: readonly Modulo[] = [
  *  una prenda» SALIÓ el 2026-09-30 (Felipe, ADR-0293): quien crea la prenda la etiqueta como quiera y quien tiene Etiquetas
  *  configura el descuento (migración 20261001130000). */
 export const SIEMPRE_SOLO_LIDER: readonly { que: string; origen: string }[] = [
-  { que: "Anular una venta o un comprobante, y las series de SUNAT", origen: "ADR-0150, decisión 4" },
+  // SALIERON el 2026-10-27 (Felipe, ADR-0534: la líder valida en persona): anular un comprobante y liberar uno no emitido
+  // (Facturación), aprobar o rechazar devoluciones (Devoluciones) y decidir los grupos del plan del piso (Plan del piso).
+  { que: "Anular una venta, y las series de SUNAT", origen: "ADR-0150, decisión 4" },
   { que: "Autorizar un descuento por encima del tope (a una persona; la terminal no tiene tope)", origen: "D-67" },
-  { que: "Aprobar o rechazar devoluciones", origen: "ADR-0160" },
-  { que: "Decidir a qué grupo del plan del piso va cada categoría (el módulo Plan del piso solo deja ver la propuesta)", origen: "ADR-0329, decisión 4" },
   // Colaboradores, y Roles y accesos, SALIERON de esta lista el 2026-09-22 (Felipe, 20260923131000). Lo que queda del
   // líder dentro de ellos son las protecciones mínimas de esa migración («decisión de arquitectura, revisable»):
   // ADR-0178 (Felipe, 2026-09-23): entre líderes manda el ADMIN, que se lee de Dynamic (admin allá + Líder aquí).
@@ -215,7 +223,7 @@ export const NACEN_QUITADOS_AL_LIDER: readonly ClaveModulo[] = ["cayla_global"];
  *  `fn_exigir_rol_de_terminal`, migración 20260923140000): un aparato compartido de mostrador no da ni quita accesos.
  *  «Actividad» se sumó con el ADR-0207 (20260926090000): tampoco revisa lo que hacen las demás. «CAYLA Global», con el
  *  ADR-0275 (20260929140000): un aparato fijo a una tienda no mira la empresa entera. */
-export const MODULOS_SOLO_PERSONAS: readonly ClaveModulo[] = ["colaboradores", "roles", "actividad", "cayla_global", "rendimiento"];
+export const MODULOS_SOLO_PERSONAS: readonly ClaveModulo[] = ["colaboradores", "roles", "actividad", "cayla_global", "rendimiento", "preguntas_equipo"];
 
 export function esClaveModulo(x: string): x is ClaveModulo {
   return (CLAVES_MODULO as readonly string[]).includes(x);
@@ -347,6 +355,16 @@ export const MODULOS_QUE_VEN_TODO_FINANZAS: readonly ClaveModulo[] = ["configura
  */
 export function veFinanzasDeTodo(rol: "lider" | "integrante", modulos: readonly ModuloDeCuenta[]): boolean {
   return rol === "lider" || modulos.some((m) => m.completo && MODULOS_QUE_VEN_TODO_FINANZAS.includes(m.clave));
+}
+
+/**
+ * ¿Esta cuenta ve los Estados financieros de CAYLA entera (todas las sedes, la empresa, el flujo y el Balance entero)? ESPEJA
+ * `retail.fn_ve_estados_financieros_de_todo()` (ADR-0585, Felipe 2026-10-30: «puede ver todo del módulo quien lo tenga»): el líder, o
+ * quien tiene el módulo completo y no es una terminal (el aparato del mostrador sigue viendo solo su tienda, ADR-0161 P6). Es solo
+ * MIRAR: registrar gastos sigue en `veFinanzasDeTodo`.
+ */
+export function veEstadosFinancierosDeTodo(rol: "lider" | "integrante", modulos: readonly ModuloDeCuenta[], terminal: boolean): boolean {
+  return rol === "lider" || (!terminal && modulos.some((m) => m.completo && m.clave === "reportes_financieros"));
 }
 
 /** Qué hace cada cuenta con un comprobante de compra (ADR-0161 P1): cada acción es de UN módulo. */

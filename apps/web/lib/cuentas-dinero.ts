@@ -7,6 +7,7 @@ import {
   leerConciliacion,
   leerConciliacionCuenta,
   leerCuenta,
+  leerLotePendiente,
   leerEfectivo,
   leerMedio,
   leerMovimiento,
@@ -19,13 +20,19 @@ import {
   type CuentaDinero,
   type EfectivoFila,
   type FilaMedio,
+  type LotePendiente,
   type MaquinaPos,
   type MovimientoDinero,
   type MovimientoDueno,
   type SinCuenta,
 } from "@/lib/cuentas-dinero-reglas";
 import { deudaConDueno } from "@/lib/cuentas-dinero-reglas";
+import { deudaDeMaquinas, tieneExtracto, type DeudaDeMaquina } from "@/lib/cuadrar-reglas";
+import { leerCuadreBanco, type CuadreBanco } from "@/lib/banco-lineas";
 import { leerVer, type UbicacionGastos, type Ver } from "@/lib/gastos-reglas";
+import { leerCuentaPlanilla, leerTramo, planillaParaElInicio, type CuentaPlanilla, type PlanillaParaElInicio, type TramoPlanilla } from "@/lib/planilla-salidas-reglas";
+import { esFuncionAusente } from "@/lib/compras-reglas";
+import { leerRpcPorPaginas } from "@/lib/rpc-por-paginas";
 
 // Finanzas ▸ Cuentas y dinero (ADR-0195 F3, 20260925110000). Todo sale de funciones que ya miran solo lo que la cuenta ve
 // (`fn_cuentas_dinero_ubicaciones`: el líder, todas; con el módulo, su sede). Los saldos los SUMA la base. Si una lectura
@@ -55,19 +62,30 @@ export async function getSaldos(ubicacionId: string | null = null): Promise<Lect
   return { datos: ((data ?? []) as Fila[]).map(leerCuenta), falla: null };
 }
 
+/** Tope que se le pasa a `fn_movimientos_dinero` (la función exige uno): más de lo que CAYLA moverá nunca. */
+const SIN_TOPE = 1_000_000;
+
+/** Los movimientos entre cuentas, TODOS. Antes eran los últimos 150, y de esta lista salen «Puso / Sacó» de la plata del dueño y los días sin depositar de
+ *  cada caja fuerte: con el corte, «Sacó» mostraba un tercio de lo real y una caja cuyo último depósito quedaba fuera dejaba de avisar. Por páginas y en serie
+ *  (ADR-0192): PostgREST corta en 1.000 filas sin error, y casi siempre basta la primera llamada. */
 export async function getMovimientos(ubicacionId: string | null): Promise<Lectura<MovimientoDinero[]>> {
   const supabase = await createClient();
-  const { data, error } = await supabase.rpc("fn_movimientos_dinero" as never, { p_ubicacion_id: ubicacionId, p_limite: 150 } as never);
+  const [{ data, error }, estimados] = await Promise.all([
+    leerRpcPorPaginas(supabase, "fn_movimientos_dinero", { p_ubicacion_id: ubicacionId, p_limite: SIN_TOPE }, ["fecha desc", "creado_en desc", "id"], { enParalelo: 1 }),
+    // Solo el líder los lee; para los demás, o si no responde, ningún depósito lleva la insignia.
+    supabase.rpc("fn_depositos_estimados" as never),
+  ]);
   if (error) return { datos: [], falla: falla("los movimientos", error) };
-  return { datos: ((data ?? []) as Fila[]).map(leerMovimiento), falla: null };
+  const marcados = new Set(estimados.error ? [] : ((estimados.data ?? []) as { movimiento_id: string }[]).map((e) => e.movimiento_id));
+  return { datos: ((data ?? []) as Fila[]).map(leerMovimiento).map((m) => (marcados.has(m.id) ? { ...m, estimado: true } : m)), falla: null };
 }
 
 /** Solo el líder: aportes, préstamos, retiros y devoluciones. */
-export async function getPlataDelDueno(): Promise<MovimientoDueno[]> {
+export async function getPlataDelDueno(): Promise<Lectura<MovimientoDueno[]>> {
   const supabase = await createClient();
   const { data, error } = await supabase.rpc("fn_plata_del_dueno" as never);
-  if (error) return [];
-  return ((data ?? []) as Fila[]).map(leerMovimientoDueno);
+  if (error) return { datos: [], falla: falla("la plata del dueño", error) };
+  return { datos: ((data ?? []) as Fila[]).map(leerMovimientoDueno), falla: null };
 }
 
 /** Solo el líder: a qué cuenta entra hoy cada medio en cada tienda. */
@@ -83,26 +101,85 @@ export async function getMediosDeCobro(): Promise<Lectura<FilaMedio[]>> {
  *  nada más cambia. */
 export async function getMaquinasPos(): Promise<MaquinaPos[] | null> {
   const supabase = await createClient();
-  const { data, error } = await supabase.rpc("fn_pos_maquinas" as never);
+  const [{ data, error }, bancos] = await Promise.all([supabase.rpc("fn_pos_maquinas" as never), supabase.rpc("fn_pos_bancos_de_maquinas" as never)]);
   if (error) return null;
-  return agruparMaquinas((data ?? []) as Fila[]);
+  // Sin el banco (la base todavía no tiene la función, o no respondió) la máquina se ve igual: solo no trae propuesta.
+  const bancoDe = new Map(((bancos.data ?? []) as Fila[]).map((f) => [String(f.maquina_id), f.banco_id ? String(f.banco_id) : null]));
+  return agruparMaquinas((data ?? []) as Fila[]).map((m) => ({ ...m, bancoId: bancoDe.get(m.id) ?? null }));
 }
 
-/** Solo el líder: por máquina de cobro, cuánto espera depósito y cuánto ya está atrasado (ADR-0429, act. 4). Vacío si la base todavía
- *  no lo sabe (falta la migración 20261016191000) o la lectura falla: la pantalla no avisa nada y sigue igual. */
-export async function getAlertasPos(): Promise<AlertaPos[]> {
+/** Solo el líder: por máquina de cobro, cuánto espera depósito y cuánto ya está atrasado (ADR-0429, act. 4). Vacío y sin falla si la base
+ *  todavía no lo sabe (falta la migración 20261016191000); si no responde, lo dice: el aviso no sale y la campana no puede decir que todo está en orden. */
+export async function getAlertasPos(): Promise<Lectura<AlertaPos[]>> {
   const supabase = await createClient();
   const { data, error } = await supabase.rpc("fn_pos_alertas" as never);
-  if (error) return [];
-  return ((data ?? []) as Fila[]).map(leerAlertaPos);
+  if (error) return { datos: [], falla: esFuncionAusente(error) ? null : falla("las máquinas atrasadas", error) };
+  return { datos: ((data ?? []) as Fila[]).map(leerAlertaPos), falla: null };
+}
+
+/** La planilla que Dynamic marcó pagada y todavía no dice de qué banco salió (ADR-0567): `undefined` si la base todavía no tiene la función
+ *  (falta pegar 20261029052000); si no responde, lanza. Solo el líder que ve la planilla en Dynamic recibe filas. */
+async function leerTramosPlanilla(): Promise<TramoPlanilla[] | undefined> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("fn_planilla_salidas_por_registrar" as never);
+  if (error) {
+    if (esFuncionAusente(error)) return undefined;
+    throw new Error(`No se pudo leer la planilla por registrar: ${error.message}`);
+  }
+  return ((data ?? []) as Fila[]).map(leerTramo);
+}
+
+/** Para Cuentas y dinero: si la base no tiene la función, no hay aviso; si no responde, la pantalla sigue y lo dice. */
+export async function getPlanillaPorRegistrar(): Promise<Lectura<TramoPlanilla[]>> {
+  try {
+    return { datos: (await leerTramosPlanilla()) ?? [], falla: null };
+  } catch (e) {
+    return { datos: [], falla: e instanceof Error ? e.message : "No se pudo leer la planilla por registrar." };
+  }
+}
+
+/** Las liquidaciones de Dynamic sin salida de banco, por mes (tarea 12). Si no se puede leer, lanza: el cajón dice que está incompleto. */
+export async function getLiquidacionesPorRegistrar(): Promise<{ mes: string; falta: number }[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("fn_liquidaciones_por_registrar" as never);
+  if (error) {
+    if (esFuncionAusente(error)) return [];
+    throw new Error(`No se pudieron leer las liquidaciones: ${error.message}`);
+  }
+  return ((data ?? []) as { mes: string; total: number; registrado: number }[]).map((f) => ({
+    mes: String(f.mes).slice(0, 7),
+    falta: Math.round((Number(f.total) - Number(f.registrado)) * 100) / 100,
+  }));
+}
+
+/** El aviso del Inicio del líder: `undefined` si no hay nada que registrar o la base no tiene la función (el aviso no existe); si la base
+ *  no responde, lanza y `tolerarLectura` lo vuelve «no se pudo leer». */
+export async function getPlanillaParaElInicio(): Promise<PlanillaParaElInicio | undefined> {
+  const tramos = await leerTramosPlanilla();
+  return tramos ? (planillaParaElInicio(tramos) ?? undefined) : undefined;
+}
+
+/** El aviso del Observatorio del Admin: los tramos y la cuenta de cada banco; `undefined` si la base no tiene la función; lanza si no responde. */
+export async function getPlanillaParaElObservatorio(): Promise<{ tramos: TramoPlanilla[]; cuentas: CuentaPlanilla[] } | undefined> {
+  const [tramos, cuentas] = await Promise.all([leerTramosPlanilla(), getPlanillaCuentas()]);
+  return tramos ? { tramos, cuentas: cuentas ?? [] } : undefined;
+}
+
+/** De qué cuenta sale la planilla de quienes cobran en BCP y en Interbank (ADR-0567). Nulo = la base todavía no lo sabe (falta pegar
+ *  20261029053000): Configuración no dibuja la tarjeta y el aviso no propone cuenta. */
+export async function getPlanillaCuentas(): Promise<CuentaPlanilla[] | null> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("fn_planilla_cuentas" as never);
+  if (error) return null;
+  return ((data ?? []) as Fila[]).map(leerCuentaPlanilla);
 }
 
 /** Solo el líder: lo que movió plata este mes y todavía no dice de qué cuenta. */
-export async function getSinCuenta(): Promise<SinCuenta[]> {
+export async function getSinCuenta(): Promise<Lectura<SinCuenta[]>> {
   const supabase = await createClient();
   const { data, error } = await supabase.rpc("fn_dinero_sin_cuenta" as never, { p_desde: null, p_hasta: null } as never);
-  if (error) return [];
-  return ((data ?? []) as Fila[]).map(leerSinCuenta).filter((s) => Math.abs(s.monto) >= 0.01);
+  if (error) return { datos: [], falla: falla("lo que movió plata sin decir de qué cuenta", error) };
+  return { datos: ((data ?? []) as Fila[]).map(leerSinCuenta).filter((s) => Math.abs(s.monto) >= 0.01), falla: null };
 }
 
 export async function getEfectivo(ubicacionId: string | null): Promise<Lectura<EfectivoFila[]>> {
@@ -112,11 +189,11 @@ export async function getEfectivo(ubicacionId: string | null): Promise<Lectura<E
   return { datos: ((data ?? []) as Fila[]).map(leerEfectivo), falla: null };
 }
 
-export async function getCierresConDiferencia(ubicacionId: string | null): Promise<CierreConDiferencia[]> {
+export async function getCierresConDiferencia(ubicacionId: string | null): Promise<Lectura<CierreConDiferencia[]>> {
   const supabase = await createClient();
   const { data, error } = await supabase.rpc("fn_cierres_con_diferencia" as never, { p_ubicacion_id: ubicacionId, p_dias: 14 } as never);
-  if (error) return [];
-  return ((data ?? []) as Fila[]).map(leerCierre);
+  if (error) return { datos: [], falla: falla("los cierres con diferencia", error) };
+  return { datos: ((data ?? []) as Fila[]).map(leerCierre), falla: null };
 }
 
 /** Solo el líder: las cuentas que se concilian, con su última conciliación y lo pendiente. */
@@ -124,7 +201,20 @@ export async function getConciliacionCuentas(): Promise<Lectura<ConciliacionCuen
   const supabase = await createClient();
   const { data, error } = await supabase.rpc("fn_conciliacion_cuentas" as never);
   if (error) return { datos: [], falla: falla("las cuentas por conciliar", error) };
-  return { datos: ((data ?? []) as Fila[]).map(leerConciliacionCuenta), falla: null };
+  return { datos: ((data ?? []) as Fila[]).map(leerConciliacionCuenta).filter((c) => tieneExtracto(c.tipo)), falla: null };
+}
+
+/** Solo el líder: por máquina, lo que cobró y todavía no llegó, con los días atrasados (ADR-0629, Fase B). Si la base no responde, lo dice. */
+export async function getDeudaDeMaquinas(): Promise<Lectura<DeudaDeMaquina[]>> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("fn_pos_alertas" as never);
+  if (error) return { datos: [], falla: falla("lo que deben las máquinas", error) };
+  const alertas = ((data ?? []) as Fila[]).map(leerAlertaPos);
+  const lecturas = await Promise.all(alertas.map((a) => supabase.rpc("fn_pos_pendientes" as never, { p_cuenta_id: a.cuentaId } as never)));
+  const caida = lecturas.find((l) => l.error);
+  if (caida?.error) return { datos: [], falla: falla("lo que deben las máquinas", caida.error) };
+  const lotes = new Map<string, LotePendiente[]>(alertas.map((a, i) => [a.cuentaId, ((lecturas[i].data ?? []) as Fila[]).map(leerLotePendiente)]));
+  return { datos: deudaDeMaquinas(alertas, lotes), falla: null };
 }
 
 export async function getConciliacion(cuentaId: string, hasta: string | null): Promise<Lectura<Conciliacion | null>> {
@@ -132,6 +222,20 @@ export async function getConciliacion(cuentaId: string, hasta: string | null): P
   const { data, error } = await supabase.rpc("fn_conciliacion" as never, { p_cuenta_id: cuentaId, p_hasta: hasta } as never);
   if (error) return { datos: null, falla: falla("la conciliación", error) };
   return { datos: leerConciliacion(data), falla: null };
+}
+
+/**
+ * Solo el líder: lo que dice el banco de una cuenta según las líneas de su extracto ya guardadas, al lado de lo que suma el ERP al mismo
+ * día (ADR-0637, `fn_banco_cuadre`). Los dos saldos y la diferencia los calcula la base. `null` si la base todavía no conoce la función
+ * (la web salió antes que la migración 20261109232000): la pantalla sigue como estaba, sin el bloque ni el botón de guardar. Si no
+ * responde, lo dice.
+ */
+export async function getCuadreBanco(cuentaId: string): Promise<Lectura<CuadreBanco | null> | null> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("fn_banco_cuadre" as never, { p_cuenta_id: cuentaId } as never);
+  if (error) return esFuncionAusente(error) ? null : { datos: null, falla: falla("lo que dice el banco", error) };
+  const datos = leerCuadreBanco(data);
+  return { datos, falla: datos ? null : "No se pudo leer lo que dice el banco: la respuesta llegó incompleta." };
 }
 
 /** Lo que comparten las tres pestañas: las sedes, qué se mira, las cuentas para el modal «+ Registrar movimiento», lo que
@@ -146,19 +250,23 @@ export async function getContextoDinero(
   esLider: boolean;
   cuentas: Lectura<CuentaDinero[]>;
   plata: MovimientoDueno[];
+  /** No se pudo leer la plata del dueño: `deuda` sale 0 sin serlo, y la pantalla tiene que decirlo. */
+  plataFalla: string | null;
   deuda: number;
   conciliacion: Lectura<ConciliacionCuenta[]>;
 }> {
   const esLider = persona.rol === "lider";
-  const { ubicaciones, talleres } = await getUbicacionesDinero();
-  // «Ver» aquí es una sede o todas: la empresa no tiene cajón.
-  const ver = leerVer(verParam === "empresa" ? undefined : verParam, ubicaciones, esLider, persona.ubicacionId);
-  const [cuentas, plata, conciliacion] = await Promise.all([
+  // Las sedes y los saldos se leen a la vez (ADR-0583): los saldos no dependen de la sede que se mira.
+  const [{ ubicaciones, talleres }, cuentas, plata, conciliacion] = await Promise.all([
+    getUbicacionesDinero(),
     getSaldos(null),
-    esLider ? getPlataDelDueno() : Promise.resolve([]),
+    esLider ? getPlataDelDueno() : Promise.resolve({ datos: [], falla: null }),
     esLider ? getConciliacionCuentas() : Promise.resolve({ datos: [], falla: null }),
   ]);
-  return { ubicaciones, talleres, ver, esLider, cuentas, plata, deuda: deudaConDueno(plata).deuda, conciliacion };
+  // «Ver» es una sede, todas o la empresa (`ver.soloEmpresa`: los bancos y lo que no es de ninguna sede). La empresa no tiene cajón, pero
+  // sí cuentas: leerla como «todas» (lo que se hacía hasta el 2026-10-28) le mostraba a Felipe las cajas de las tiendas en «Empresa».
+  const ver = leerVer(verParam, ubicaciones, esLider, persona.ubicacionId);
+  return { ubicaciones, talleres, ver, esLider, cuentas, plata: plata.datos, plataFalla: plata.falla, deuda: deudaConDueno(plata.datos).deuda, conciliacion };
 }
 
 /** La píldora de Conciliación: las líneas de los bancos que faltan revisar. */

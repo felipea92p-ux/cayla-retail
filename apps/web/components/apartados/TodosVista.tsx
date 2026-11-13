@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
-import { Archive, Bell, Check, MessageCircle, Printer, SearchX, SlidersHorizontal } from "lucide-react";
+import { Archive, Bell, Check, MessageCircle, Printer, SearchX, SlidersHorizontal, Store } from "lucide-react";
 import { money, type VarianteBusqueda } from "@/components/PuntoDeVenta";
 import type { ResumenApartados } from "@/lib/separaciones";
 import {
@@ -25,6 +25,8 @@ import {
 } from "@/lib/separaciones-reglas";
 import { diaLima } from "@/lib/fechas-lima";
 import { BarraPlazo, EstadoChip, FotoPrenda, fechaCorta } from "@/components/apartados/piezas";
+import { CanalChip, useCanalesDeApartados } from "@/components/apartados/CanalChip";
+import { DesplegablePildora, TODOS } from "@/components/ui/FiltrosPildora";
 import { CancelarPedidoModal, DevolverModal, EnviarPedidoModal, LiberarModal, RecordarModal, ReimprimirApartadoModal } from "@/components/apartados/ModalesApartado";
 import { DetalleApartadoModal, type ModoDetalle } from "@/components/apartados/DetalleApartado";
 import type { PrendaApartable } from "@/components/apartados/ApartarVista";
@@ -128,6 +130,10 @@ export function TodosVista({
 }) {
   const porVariante = useMemo(() => new Map(prendas.map((p) => [p.varianteId, p])), [prendas]);
   const [filtro, setFiltro] = useState<Filtro>("todos");
+  // ADR-0607: con más de un canal a la vista, el Historial se puede acotar a uno. Con solo la tienda no hay nada que elegir.
+  const canales = useCanalesDeApartados();
+  const [canalFiltro, setCanalFiltro] = useState<string>(TODOS);
+  const conFiltroDeCanal = canales.length >= 2;
   const [texto, setTexto] = useState(buscarInicial);
   // Período (Felipe 2026-10-10): acota SOLO lo cerrado, por el día en que se hizo el apartado; lo que espera algo sale
   // siempre (`buscar_separaciones`, 20261010180000). La página ya trajo los últimos 30 días: otro período se lee aquí,
@@ -220,6 +226,7 @@ export function TodosVista({
   const conEstado = fuente.map((a) => ({ a, e: estadoVisible(a, hoy) }));
   const lista = conEstado
     .filter(({ a }) => coincide(a, texto))
+    .filter(({ a }) => !conFiltroDeCanal || canalFiltro === TODOS || a.canal === canalFiltro)
     .filter(({ a, e }) =>
       filtro === "hoy" ? ["porvencer", "vencida", "devolver"].includes(e.clave) : filtro === "abiertos" ? a.estado === "abierta" : filtro === "cerrados" ? e.clave === "cerrada" : true,
     )
@@ -233,17 +240,18 @@ export function TodosVista({
   ];
 
   return (
-    <div className="space-y-5 p-5 sm:p-6">
-      <div data-guia="apartados.cifras" className="grid overflow-hidden rounded-2xl border border-sand sm:grid-cols-2 lg:grid-cols-4">
+    <div className="ap-cuerpo space-y-5 p-5 sm:p-6">
+      <div data-guia="apartados.cifras" className="ap-cifras grid overflow-hidden rounded-2xl border border-sand sm:grid-cols-2 lg:grid-cols-4">
         {cifras.map((c, i) => (
           <div
             key={c.etiqueta}
             style={{ ["--i" as string]: i }}
-            className={`anim-sube border-sand px-5 py-4 max-lg:[&:nth-child(n+3)]:border-t sm:[&:nth-child(even)]:border-l lg:[&:not(:first-child)]:border-l ${c.custodia ? "bg-[repeating-linear-gradient(135deg,transparent_0_9px,color-mix(in_srgb,var(--color-sand)_35%,transparent)_9px_10px)]" : ""} max-sm:[&:not(:first-child)]:border-t`}
+            data-custodia={c.custodia || undefined}
+            className={`ap-cifra anim-sube border-sand px-5 py-4 max-lg:[&:nth-child(n+3)]:border-t sm:[&:nth-child(even)]:border-l lg:[&:not(:first-child)]:border-l ${c.custodia ? "bg-[repeating-linear-gradient(135deg,transparent_0_9px,color-mix(in_srgb,var(--color-sand)_35%,transparent)_9px_10px)]" : ""} max-sm:[&:not(:first-child)]:border-t`}
           >
             <p className={`label-cayla text-[11px] ${c.alerta ? "text-rojo-profundo" : "text-tinta/60"}`}>{c.etiqueta}</p>
             <p className={`font-display mt-1 text-3xl leading-tight tabular-nums ${c.alerta ? "text-rojo-profundo" : "text-tinta"}`}>{c.valor}</p>
-            <p className="text-xs text-tinta/60">{c.pie}</p>
+            <p className="text-sm text-tinta/60">{c.pie}</p>
           </div>
         ))}
       </div>
@@ -251,7 +259,7 @@ export function TodosVista({
       {conLote && porAvisar.length + avisadasHoy.length > 0 && (
         <div className={`anim-revelar flex flex-wrap items-center gap-x-4 gap-y-3 rounded-2xl px-4 py-3.5 ${porAvisar.length ? "bg-ambar/10 text-ambar-profundo" : "bg-verde/10 text-verde-profundo"}`}>
           {porAvisar.length ? <Bell className="h-5 w-5 shrink-0" aria-hidden /> : <Check className="h-5 w-5 shrink-0" aria-hidden />}
-          <div className="min-w-0 flex-1 text-[13px]">
+          <div className="min-w-0 flex-1 text-sm">
             <p className="font-semibold">
               {porAvisar.length
                 ? `${porAvisar.length} ${porAvisar.length === 1 ? "cliente por avisar" : "clientes por avisar"} hoy`
@@ -269,7 +277,7 @@ export function TodosVista({
       )}
 
       {conOtraSede && pedidos.length > 0 && (
-        <section data-guia="apartados.pedidos" className="rounded-2xl border border-sand">
+        <section data-guia="apartados.pedidos" className="ap-placa rounded-2xl border border-sand">
           <TituloSeccion nivel={3} cuenta={pedidos.length} className="border-b border-sand px-5 py-3">
             Pedidos entre tiendas
           </TituloSeccion>
@@ -286,14 +294,14 @@ export function TodosVista({
                     <p className="truncate text-sm font-semibold">
                       {pr?.referencia ?? "Prenda"} <span className="font-normal text-tinta/60">{[pr?.color, pr?.talla].filter(Boolean).join(" · ")}</span>
                     </p>
-                    <p className="text-xs text-tinta/60">
+                    <p className="text-sm text-tinta/60">
                       {paraQuienPedido(pe)}
                       {pe.guardadaHasta && ` · guardada hasta el ${fechaCorta(pe.guardadaHasta)}`}
                       {pe.trasladoNumero != null && ` · traslado N.º ${pe.trasladoNumero}`}
                       {pe.estado === "cancelado" && pe.canceladoMotivo && ` · ${pe.canceladoMotivo}`}
                     </p>
                   </div>
-                  <span className={`rounded-full px-2.5 py-0.5 text-[11.5px] ${pe.estado === "llego" ? "bg-verde/10 text-verde-profundo" : pe.estado === "cancelado" ? "bg-hueso text-tinta/60" : "bg-pizarra/10 text-pizarra"}`}>
+                  <span className={`rounded-full px-2.5 py-0.5 text-sm ${pe.estado === "llego" ? "bg-verde/10 text-verde-profundo" : pe.estado === "cancelado" ? "bg-hueso text-tinta/60" : "bg-pizarra/10 text-pizarra"}`}>
                     {textoEstadoPedido(pe)}
                   </span>
                   <div className="flex flex-wrap gap-1.5">
@@ -334,6 +342,15 @@ export function TodosVista({
             {f.etiqueta}
           </button>
         ))}
+        {conFiltroDeCanal && (
+          <DesplegablePildora
+            icono={Store}
+            etiqueta="Canal"
+            valor={canalFiltro}
+            onValor={setCanalFiltro}
+            opciones={[{ valor: TODOS, texto: "Todos" }, ...canales.map((c) => ({ valor: c.clave, texto: c.nombre }))]}
+          />
+        )}
         <div className="relative flex w-full items-center gap-2 sm:ml-auto sm:w-auto">
         <Buscador valor={texto} onCambio={setTexto} placeholder="Nombre, DNI, celular, APT- o B004-" etiqueta="Buscar en los apartados" className="min-w-0 flex-1 sm:w-80 sm:flex-none" />
         <button type="button" onClick={() => setVerAbierto((v) => !v)} aria-expanded={verAbierto} className={`${BOTON_CHICO} inline-flex h-10 items-center gap-1.5`}>
@@ -343,10 +360,10 @@ export function TodosVista({
           <div className="anim-revelar absolute top-12 right-0 z-30 w-64 rounded-xl border border-sand bg-papel p-2 shadow-lg">
             <p className="label-cayla px-2 pt-1 pb-1.5 text-[10px] text-tinta/55">Qué ver en cada apartado</p>
             {COLUMNAS_TODOS.filter((c) => c.id !== "estante" || conEstante).map((c) => (
-              <label key={c.id} className="flex cursor-pointer items-center gap-2.5 rounded-lg px-2 py-1.5 text-[13px] hover:bg-crema">
+              <label key={c.id} className="flex cursor-pointer items-center gap-2.5 rounded-lg px-2 py-1.5 text-sm hover:bg-crema">
                 <Casilla marcada={ver[c.id]} onCambio={() => cambiarVer({ ...ver, [c.id]: !ver[c.id] })} etiqueta={`Ver ${c.etiqueta}`} className="shrink-0" />
                 <span className="flex-1">{c.etiqueta}</span>
-                {COLUMNAS_DE_FABRICA[c.id] && <span className="text-[10.5px] text-tinta/45">de fábrica</span>}
+                {COLUMNAS_DE_FABRICA[c.id] && <span className="text-sm text-tinta/45">de fábrica</span>}
               </label>
             ))}
             <div className="mt-1 flex items-center justify-between border-t border-sand px-2 pt-2">
@@ -376,7 +393,7 @@ export function TodosVista({
                 </button>
               ))}
             </div>
-            <p className="text-[12px] text-tinta/60" aria-live="polite">
+            <p className="text-sm text-tinta/60" aria-live="polite">
               Cerrados {textoDelPeriodo(periodo, rango)} · los que siguen abiertos se ven siempre{cargandoRango ? " · Buscando…" : ""}
             </p>
           </div>
@@ -469,7 +486,7 @@ export function TodosVista({
               <TituloSeccion nivel={3} cuenta={filas.length} className="mb-2.5">
                 {g.titulo}
               </TituloSeccion>
-              <ul className="divide-y divide-sand overflow-hidden rounded-2xl border border-sand">
+              <ul className="ap-placa divide-y divide-sand overflow-hidden rounded-2xl border border-sand">
                 {filas.map(({ a, e }, i) => (
                   <li
                     key={a.id}
@@ -495,13 +512,13 @@ export function TodosVista({
                         >
                           {a.nombres} {a.apellidos}
                         </button>
-                        <p className="text-xs text-tinta/60 tabular-nums">
+                        <p className="text-sm text-tinta/60 tabular-nums">
                           {ver.celular && a.celular && `${formatoCelular(a.celular)} · `}<span className="font-mono">{a.codigo}</span>
                           {ver.estante && conEstante && a.estante && (
                             <span className="ml-1.5 inline-flex items-center gap-0.5 rounded bg-hueso px-1.5 font-mono text-[10.5px] text-tinta/80"><Archive className="h-3 w-3" aria-hidden />{a.estante}</span>
                           )}
                         </p>
-                        {ver.asesora && a.asesora && <p className="text-[11.5px] text-tinta/55">atendió {a.asesora}</p>}
+                        {ver.asesora && a.asesora && <p className="text-sm text-tinta/55">atendió {a.asesora}</p>}
                       </div>
                     </div>
                     <div className={`flex min-w-0 items-center gap-2 max-md:hidden ${ver.prendas ? "" : "invisible"}`}>
@@ -510,19 +527,22 @@ export function TodosVista({
                           <FotoPrenda key={pr.varianteId} fotoUrl={porVariante.get(pr.varianteId)?.fotoUrl} referencia={pr.referencia} colorHex={porVariante.get(pr.varianteId)?.colorHex} categoria={porVariante.get(pr.varianteId)?.categoria} categoriaPrefijo={porVariante.get(pr.varianteId)?.categoriaPrefijo} categoriaFamilia={porVariante.get(pr.varianteId)?.categoriaFamilia} ancho={32} className={`w-8 border border-papel ${j ? "-ml-3.5" : ""}`} />
                         ))}
                       </span>
-                      <span className="truncate text-[12.5px] text-tinta/60">{a.prendas.map((pr) => pr.referencia.split(" ")[0]).join(", ")}</span>
+                      <span className="truncate text-sm text-tinta/60">{a.prendas.map((pr) => pr.referencia.split(" ")[0]).join(", ")}</span>
                     </div>
                     <div className={`text-sm tabular-nums max-md:hidden ${ver.pagado ? "" : "invisible"}`}>
-                      <b className="font-semibold">{money(a.adelanto)}</b> <span className="text-xs text-tinta/55">de {money(a.total)}</span>
-                      <p className="text-xs text-tinta/60">
+                      <b className="font-semibold">{money(a.adelanto)}</b> <span className="text-sm text-tinta/55">de {money(a.total)}</span>
+                      <p className="text-sm text-tinta/60">
                         {a.estado === "liberada" ? `por ${textoDevolucion(a)}` : a.estado === "abierta" ? `saldo ${money(a.saldo)}` : "cerrado"}
                         {textoPagosDeFila(a.pagos) && <span className="text-verde-profundo"> · {textoPagosDeFila(a.pagos)}</span>}
                       </p>
                     </div>
                     <div className="space-y-1">
-                      <EstadoChip {...e} />
+                      <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                        <EstadoChip {...e} />
+                        <CanalChip a={a} className="max-w-full" />
+                      </div>
                       {a.estado === "abierta" && <BarraPlazo creadaEl={diaLima(a.creadaEn)} hoy={hoy} />}
-                      <p className="text-[11.5px] text-tinta/60">
+                      <p className="text-sm text-tinta/60">
                         {a.estado === "abierta" ? `vence ${fechaCorta(a.venceEl)}${a.extensiones ? " · extendido" : ""}` : a.estado === "liberada" ? (a.liberadaSola ? "se liberó solo" : "liberado") : a.estado === "entregada" ? `boleta ${a.comprobanteFinal ?? a.comprobanteAnticipo ?? ""}` : a.notaCredito ? `NC ${a.notaCredito}` : "devuelto"}
                       </p>
                     </div>
@@ -556,12 +576,13 @@ export function TodosVista({
                           );
                         })()}
                       {e.clave === "vencida" && puedeGestionar && (
-                        <>
-                          <button type="button" disabled={a.extensiones >= EXTENSIONES_MAX} title={a.extensiones >= EXTENSIONES_MAX ? `Ya se aplazó ${EXTENSIONES_MAX} veces` : "Aplazar el vencimiento"} onClick={() => setDetalle({ id: a.id, modo: "aplazar" })} className={BOTON_CHICO}>
-                            Aplazar
-                          </button>
-                          <button type="button" onClick={() => setLiberar(a)} className={BOTON_CHICO}>Liberar</button>
-                        </>
+                        <button type="button" disabled={a.extensiones >= EXTENSIONES_MAX} title={a.extensiones >= EXTENSIONES_MAX ? `Ya se aplazó ${EXTENSIONES_MAX} veces` : "Aplazar el vencimiento"} onClick={() => setDetalle({ id: a.id, modo: "aplazar" })} className={BOTON_CHICO}>
+                          Aplazar
+                        </button>
+                      )}
+                      {/* ADR-0599: liberar lo hace quien ve Apartados (no solo quien gestiona la caja). */}
+                      {e.clave === "vencida" && (
+                        <button type="button" onClick={() => setLiberar(a)} className={BOTON_CHICO}>Liberar</button>
                       )}
                       {a.estado === "abierta" && (
                         <button type="button" onClick={() => irAEntregar(a.id)} className={BOTON_CHICO_NEGRO}>Entregar</button>
@@ -570,7 +591,7 @@ export function TodosVista({
                         (puedeGestionar ? (
                           <button type="button" onClick={() => setDevolver(a)} className={BOTON_CHICO_NEGRO}>Devolver {money(a.adelanto)}</button>
                         ) : (
-                          <span className="text-[11px] text-tinta/55">Lo devuelve la líder</span>
+                          <span className="text-sm text-tinta/55">Lo devuelve la líder</span>
                         ))}
                     </div>
                   </li>

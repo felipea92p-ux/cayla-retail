@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { gruposPorProveedor, leerFichaParaRecibir, tallasYColoresDe } from "./recepcion-envio-reglas";
 import {
   argsPrepararPrenda,
   argsRecibirDespacho,
@@ -7,7 +8,13 @@ import {
   borradorInicial,
   buenasDeRecibidos,
   buenasPorVariante,
+  camposDelPaso,
   camposDePrenda,
+  nombreDeLaHoja,
+  nombreInicialDeLaHoja,
+  PASOS_PRENDA,
+  pasoAbrible,
+  primerPasoConFalta,
   camposDeRecepcion,
   combinacionesDeLaHoja,
   confirmadasDe,
@@ -25,6 +32,7 @@ import {
   leerDetalleEnvio,
   leerEnviosPorAbrir,
   leerOrdenesDirectas,
+  textoMarcas,
   leerPrecioVenta,
   leerPrendaPreparada,
   leerPrendasParaRecibir,
@@ -154,8 +162,31 @@ describe("leer lo que está por recibir en la sede", () => {
       { id: "e1", numero: "ENV-000061", numero_guia: null, unidades: 32, lineas: 2, ordenes: ["OC-000129"], proveedores: ["Textiles Andina"] },
     ]);
     expect(filas).toEqual([
-      { id: "e1", numero: "ENV-000061", numeroGuia: null, estado: "en_camino", unidades: 32, lineas: 2, ordenes: ["OC-000129"], proveedores: ["Textiles Andina"], creadoPorMi: false },
+      { id: "e1", numero: "ENV-000061", numeroGuia: null, estado: "en_camino", despachadoEn: null, unidades: 32, lineas: 2, ordenes: ["OC-000129"], proveedores: ["Textiles Andina"], marcas: [], creadoPorMi: false },
     ]);
+  });
+
+  it("lee las marcas que trae cada envío y cada orden: sin repetir, en orden alfabético, `[]` si la base no las manda", () => {
+    const [e] = leerEnviosPorAbrir([{ id: "e1", numero: "ENV-000061", marcas: ["Zoe", "Anqori", "Zoe", "", null, { id: "m", nombre: "Bruma" }] }]);
+    expect(e.marcas).toEqual(["Anqori", "Bruma", "Zoe"]);
+    const [o] = leerOrdenesDirectas([{ orden_id: "o1", numero: "OC-000465", unidades_por_enviar: 2, marcas: ["Élite", "Anqori"] }]);
+    expect(o.marcas).toEqual(["Anqori", "Élite"]);
+    expect(leerOrdenesDirectas([{ orden_id: "o1", numero: "OC-000465", unidades_por_enviar: 2 }])[0].marcas).toEqual([]);
+  });
+
+  it("la línea de la marca: hasta tres separadas por «·», con más las dos primeras y «y N más», nada sin marca", () => {
+    expect(textoMarcas([])).toBeNull();
+    expect(textoMarcas(["Anqori"])).toBe("Anqori");
+    expect(textoMarcas(["A", "B", "C"])).toBe("A · B · C");
+    expect(textoMarcas(["A", "B", "C", "D", "E"])).toBe("A · B y 3 más");
+  });
+
+  it("lee cuándo salió el envío (`despachado_en`) tal como lo manda la base, y null si no lo manda", () => {
+    const filas = leerEnviosPorAbrir([
+      { id: "e1", numero: "ENV-000061", despachado_en: "2026-10-14T01:00:00+00:00" },
+      { id: "e2", numero: "ENV-000062", despachado_en: "" },
+    ]);
+    expect(filas.map((f) => f.despachadoEn)).toEqual(["2026-10-14T01:00:00+00:00", null]);
   });
 
   it("lee la forma de la fase 4 y descarta lo que no se puede recibir (cerrado, anulado, sin id o sin número)", () => {
@@ -186,8 +217,8 @@ describe("leer lo que está por recibir en la sede", () => {
       { numero: 468, unidades_por_enviar: 4 },
     ]);
     expect(filas).toEqual([
-      { ordenId: "o1", numero: "OC-000465", proveedor: "Textiles Andina", unidadesPorEnviar: 12, creadaPorMi: false },
-      { ordenId: "o2", numero: "OC-000466", proveedor: "Sur", unidadesPorEnviar: 3, creadaPorMi: true },
+      { ordenId: "o1", numero: "OC-000465", proveedor: "Textiles Andina", marcas: [], unidadesPorEnviar: 12, creadaPorMi: false },
+      { ordenId: "o2", numero: "OC-000466", proveedor: "Sur", marcas: [], unidadesPorEnviar: 3, creadaPorMi: true },
     ]);
   });
 });
@@ -230,6 +261,15 @@ describe("leer un envío por dentro (fn_envio_detalle)", () => {
     expect(d.lotes).toEqual([]);
   });
 
+  it("lee cuántos fardos vienen (`bultos`); sin dato, o con un dato que no es un conteo, es «no se sabe» y nunca un cero", () => {
+    expect(leerDetalleEnvio({ ...DETALLE_FASE4, bultos: 3 })!.bultos).toBe(3);
+    expect(leerDetalleEnvio({ ...DETALLE_FASE4, bultos: "2" })!.bultos).toBe(2);
+    // La base de antes (sin la clave) y un envío armado en el escritorio (null): la pantalla no muestra nada.
+    expect(detalle.bultos).toBeNull();
+    expect(leerDetalleEnvio({ ...DETALLE_FASE4, bultos: null })!.bultos).toBeNull();
+    for (const raro of [0, -1, 1.5, "", "dos", true, {}, []]) expect(leerDetalleEnvio({ ...DETALLE_FASE4, bultos: raro })!.bultos).toBeNull();
+  });
+
   it("un envío cerrado trae cómo se cerró; una fila rara se descarta", () => {
     const d = leerDetalleEnvio({
       ...DETALLE_FASE4,
@@ -255,6 +295,16 @@ describe("leer un envío por dentro (fn_envio_detalle)", () => {
     expect(d.recibidos![0]).toMatchObject({ varianteId: "v-m-ne", prenda: "Chompa Aurora", cantidad: 10, danadas: 2, costoUnitario: 25 });
     expect(d.recibidos![1]).toMatchObject({ prenda: "Bolso", costoUnitario: 30, danadas: 0 });
     expect(d.diferencias).toEqual([{ despachoItemId: "di-1", extra: null, tipo: "faltante", causa: "no_vino", cantidad: 2, categoria: null, marca: null }]);
+  });
+
+  it("ADR-0517: lee si quien mira compró (aunque pueda recibirlo) y si lo cerró quien compró; una base sin las claves dice null", () => {
+    const d = leerDetalleEnvio({ ...DETALLE_FASE4, creado_por_mi: false, compro_quien_mira: true, recibio_quien_compro: true })!;
+    expect(d.creadoPorMi).toBe(false);
+    expect(d.comproQuienMira).toBe(true);
+    expect(d.recibioQuienCompro).toBe(true);
+    const sin = leerDetalleEnvio({ ...DETALLE_FASE4, compro_quien_mira: undefined, recibio_quien_compro: "si" })!;
+    expect(sin.comproQuienMira).toBeNull();
+    expect(sin.recibioQuienCompro).toBeNull();
   });
 
   it("sin envío (no existe o la respuesta no se entiende) es null", () => {
@@ -716,6 +766,8 @@ describe("después de recibir", () => {
     expect(despuesDeRecibirEnvio({ lotes: ["l"], buenas: [], unidades: 2, unidadesBuenas: 0, veExistencias: true }).map((a) => a.clave)).toEqual(["etiquetas"]);
     // Un envío ya cerrado, sin saber las variantes: «Bajar al piso» abre la pantalla sin nada marcado.
     expect(despuesDeRecibirEnvio({ lotes: [], buenas: [], unidades: 4, unidadesBuenas: 4, veExistencias: true })[0]!.href).toBe("/inventario/bajar");
+    // Las etiquetas llevan el envío, para que «Volver» regrese a él y no a la lista de Recibir (Felipe 2026-11-07).
+    expect(despuesDeRecibirEnvio({ lotes: ["l"], envioId: "e1", buenas: [], unidades: 2, unidadesBuenas: 0, veExistencias: true })[0]!.href).toBe("/etiquetas-de-precio?lotes=l&envio=e1");
   });
 
   it("lo bueno de un envío cerrado sale de «cómo se cerró» si la base manda la variante", () => {
@@ -763,12 +815,62 @@ describe("la hoja «Es nueva»", () => {
     expect(camposDePrenda(listo, { ...CTX_NUEVA, tallas: [] }).some((c) => c.id === "prenda-tallas")).toBe(false);
   });
 
-  it("si la familia los pide, tejido y patrón de la categoría; sin ellos habilitados, lo dice", () => {
+  it("tejido y patrón se preguntan pero nunca frenan, aunque la familia los exija (Felipe 2026-11-03)", () => {
     const ctx: ContextoPrenda = { ...CTX_NUEVA, exigeTejidoPatron: true, tejidos: [{ id: "tj", texto: "Algodón" }], patrones: [] };
-    const b = { ...borradorDePrenda(ctx), nombre: "Chompa", tallaIds: ["t-m"], precio: "50", tejidoId: "tj" };
-    const pendientes = camposDePrenda(b, ctx).filter((c) => c.requerido && !c.hecho);
-    expect(pendientes.map((c) => c.id)).toEqual(["prenda-patron"]);
-    expect(pendientes[0]!.pendiente).toMatch(/no tiene patrones habilitados/);
+    const b = { ...borradorDePrenda(ctx), nombre: "Chompa", tallaIds: ["t-m"], precio: "50" };
+    const campos = camposDePrenda(b, ctx);
+    expect(campos.filter((c) => c.requerido && !c.hecho)).toEqual([]);
+    expect(campos.find((c) => c.id === "prenda-tejido")).toMatchObject({ requerido: false, hecho: false });
+    expect(campos.find((c) => c.id === "prenda-patron")).toMatchObject({ requerido: false, hecho: false });
+    expect(camposDePrenda({ ...b, tejidoId: "tj" }, ctx).find((c) => c.id === "prenda-tejido")?.hecho).toBe(true);
+    // Sin que la familia los pida ni la categoría los ofrezca, no se preguntan.
+    expect(camposDePrenda(b, CTX_NUEVA).some((c) => c.id === "prenda-tejido" || c.id === "prenda-patron")).toBe(false);
+    // Lo que la categoría ofrece se pregunta aunque la familia no lo exija.
+    expect(camposDePrenda(b, { ...CTX_NUEVA, tejidos: [{ id: "tj", texto: "Algodón" }] }).some((c) => c.id === "prenda-tejido")).toBe(true);
+  });
+
+  it("lo elegido se manda aunque la familia no lo exija; lo no elegido va vacío", () => {
+    const base = { despachoId: "e", despachoItemId: "di", categoriaId: "c", marcaId: "m", productoId: null, confirmoDistinto: false, token: "t" };
+    const b = { ...borradorDePrenda(CTX_NUEVA), nombre: "Chompa", tallaIds: ["t-m"], precio: "50" };
+    expect(argsPrepararPrenda({ ...b, tejidoId: "tj", patronId: "pt" }, CTX_NUEVA, base)).toMatchObject({ p_tejido_id: "tj", p_patron_id: "pt" });
+    expect(argsPrepararPrenda(b, { ...CTX_NUEVA, exigeTejidoPatron: true }, base)).toMatchObject({ p_tejido_id: null, p_patron_id: null });
+  });
+
+  it("va por los pasos de Nuevo producto: cómo es, tallas y colores, precio", () => {
+    const ctx: ContextoPrenda = { ...CTX_NUEVA, exigeTejidoPatron: true };
+    const campos = camposDePrenda(borradorDePrenda(ctx), ctx);
+    expect(camposDelPaso(campos, 1).map((c) => c.id)).toEqual(["prenda-tejido", "prenda-patron", "prenda-descripcion", "prenda-nombre"]);
+    expect(camposDelPaso(campos, 2).map((c) => c.id)).toEqual(["prenda-tallas", "prenda-colores"]);
+    expect(camposDelPaso(campos, 3).map((c) => c.id)).toEqual(["prenda-precio"]);
+    // Ningún campo se queda fuera de un paso.
+    expect(PASOS_PRENDA.flatMap((p) => camposDelPaso(campos, p.numero)).length).toBe(campos.length);
+  });
+
+  it("cada paso sabe lo que le falta, y solo se abre si los anteriores no tienen nada pendiente", () => {
+    const vacio = camposDePrenda(borradorDePrenda(CTX_NUEVA), CTX_NUEVA);
+    expect(primerPasoConFalta(vacio)).toBe(1);
+    expect(pasoAbrible(vacio, 1)).toBe(true);
+    expect(pasoAbrible(vacio, 2)).toBe(false);
+    const conNombre = camposDePrenda({ ...borradorDePrenda(CTX_NUEVA), nombre: "Chompa" }, CTX_NUEVA);
+    expect(primerPasoConFalta(conNombre)).toBe(2);
+    expect(pasoAbrible(conNombre, 2)).toBe(true);
+    expect(pasoAbrible(conNombre, 3)).toBe(false);
+    const todo = camposDePrenda({ ...borradorDePrenda(CTX_NUEVA), nombre: "Chompa", tallaIds: ["t-m"], precio: "50" }, CTX_NUEVA);
+    expect(primerPasoConFalta(todo)).toBeNull();
+    // El precio sugerido por quien compró no bloquea: la luz pasa por él, nada más.
+    expect(primerPasoConFalta(camposDePrenda({ ...borradorDePrenda(CTX_NUEVA, { precioSugerido: 59.9 }), nombre: "Chompa", tallaIds: ["t-m"] }, CTX_NUEVA))).toBeNull();
+  });
+
+  it("lo escrito al contar arranca la caja del nombre, partido en el tipo y lo demás", () => {
+    expect(nombreInicialDeLaHoja("Polo a rayas", ["Polo"])).toEqual({ tipo: "Polo", propio: "a rayas" });
+    expect(nombreDeLaHoja("Polo", "a rayas")).toBe("Polo a Rayas");
+    // Lo que no empieza con un tipo de la categoría va a mano, entero.
+    expect(nombreInicialDeLaHoja("Evaluna", ["Polo"])).toEqual({ tipo: "", propio: "Evaluna" });
+    expect(nombreDeLaHoja("", "Evaluna")).toBe("Evaluna");
+    // Sin nada escrito, la caja arranca con el primer tipo y no hay nombre todavía.
+    expect(nombreInicialDeLaHoja(null, ["Blusa", "Camisa"])).toEqual({ tipo: "Blusa", propio: "" });
+    expect(nombreDeLaHoja("Blusa", "  ")).toBe("");
+    expect(nombreInicialDeLaHoja("  ", [])).toEqual({ tipo: "", propio: "" });
   });
 
   it("el precio de venta: obligatorio y mayor que 0 al crear; opcional al sumar tallas o colores", () => {
@@ -844,6 +946,23 @@ describe("la hoja «+ talla o color» de una prenda que ya existe", () => {
     const pendientes = camposDePrenda(b, ctx).filter((c) => c.requerido && !c.hecho);
     expect(pendientes.map((c) => c.id)).toEqual(["prenda-nuevas"]);
     expect(camposDePrenda(b, ctx).some((c) => c.id === "prenda-nombre" || c.id === "prenda-precio")).toBe(false);
+  });
+
+  it("abierta desde la tabla de tallas, arranca con lo que la tabla muestra y no exige crear nada (ADR-0645)", () => {
+    // La tabla muestra S y M en negro; la chompa también tiene L y blanco, escondidos.
+    const deTabla: ContextoPrenda = { ...ctx, enTabla: { tallaIds: ["t-s", "t-m"], colorCodigos: ["NE"] } };
+    const b = borradorDePrenda(deTabla, { prenda: CHOMPA });
+    expect(b.tallaIds).toEqual(["t-s", "t-m"]);
+    expect(b.colorCodigos).toEqual(["NE"]);
+    // Tal cual, no crea nada y no falta nada: se puede volver a la tabla.
+    expect(combinacionesDeLaHoja(b, deTabla)).toEqual([]);
+    expect(camposDePrenda(b, deTabla).filter((c) => c.requerido && !c.hecho)).toEqual([]);
+    // Volver a mostrar L, que la prenda ya tiene en negro, tampoco crea nada.
+    expect(combinacionesDeLaHoja({ ...b, tallaIds: ["t-s", "t-m", "t-l"] }, deTabla)).toEqual([]);
+    // Marcar blanco crea solo lo que falta ENTRE lo marcado: S en blanco (M en blanco ya existe; L no está marcada).
+    expect(combinacionesDeLaHoja({ ...b, colorCodigos: ["NE", "BL"] }, deTabla)).toEqual([{ talla_id: "t-s", color_codigo: "BL" }]);
+    // Sin ninguna talla marcada, sí falta.
+    expect(camposDePrenda({ ...b, tallaIds: [] }, deTabla).filter((c) => c.requerido && !c.hecho).map((c) => c.id)).toEqual(["prenda-tallas"]);
   });
 
   it("manda la prenda que existe, sin nombre ni precio", () => {
@@ -1038,7 +1157,7 @@ describe("la reposición de lo que faltó en la recepción", () => {
       if (l.sobrante_causa !== "reposicion_faltante") continue;
       const linea = d.lineas.find((x) => x.id === l.despacho_item_id)!;
       const deMas = l.variantes.reduce((a, v) => a + v.cantidad, 0) - linea.enviado;
-      if (!tomar(`${linea.proveedor?.id}|${linea.categoria.id}|${linea.marca.id}`, deMas)) return "reposicion_faltante";
+      if (!tomar(`${linea.proveedor?.id}|${linea.categoria.id}|${linea.marca?.id}`, deMas)) return "reposicion_faltante";
     }
     for (const e of args.p_extras) {
       if (e.sobrante_causa !== "reposicion_faltante") continue;
@@ -1095,5 +1214,46 @@ describe("lo comprado desde el celular (ADR-0480, actividad 6): el papel con su 
   it("un envío del escritorio (la base sin papeles) se lee igual: sin papeles ni prenda elegida", () => {
     expect(detalle.papeles).toEqual([]);
     expect(detalle.lineas.every((l) => l.prendaElegida === null)).toBe(true);
+  });
+});
+
+describe("la ficha para reconocer una prenda al recibir (Felipe 2026-11-06)", () => {
+  it("lee los nombres de sus tablas, y lo vacío queda sin registrar", () => {
+    expect(leerFichaParaRecibir({ descripcion: " Top de lino ", tejido: { nombre: "Lino" }, patron: null, marca: { nombre: "Miramhe" }, categoria: [{ nombre: "Tops" }] })).toEqual({
+      descripcion: "Top de lino",
+      material: "Lino",
+      patron: null,
+      marca: "Miramhe",
+      categoria: "Tops",
+    });
+    expect(leerFichaParaRecibir({ descripcion: "  " })).toEqual({ descripcion: null, material: null, patron: null, marca: null, categoria: null });
+    expect(leerFichaParaRecibir(null)).toBeNull();
+  });
+
+  it("junta tallas y colores sin repetir; sin talla o color lo dice", () => {
+    const v = (talla: string | null, color: string | null) => ({ id: `${talla}${color}`, tallaId: null, talla, colorCodigo: null, color, codigo: null, costo: null, precio: null });
+    expect(tallasYColoresDe({ variantes: [v("S", "Negro"), v("M", "Negro"), v(null, null)] })).toEqual({ tallas: ["S", "M", "Única"], colores: ["Negro", "Sin color"] });
+  });
+});
+
+// «Lo que trae» antes de empezar a recibir, agrupado por proveedor (Felipe 2026-11-12, al recibir ENV-001660).
+describe("gruposPorProveedor", () => {
+  const linea = (id: string, proveedor: { id: string; nombre: string } | null, marca: string | null, enviado: number) =>
+    ({ id, proveedor, marca: marca ? { id: `m-${marca}`, nombre: marca } : null, enviado }) as unknown as import("./recepcion-envio-reglas").LineaEnvio;
+  const cayla = { id: "p1", nombre: "CAYLA SAC" };
+  const andina = { id: "p2", nombre: "Textiles Andina SAC" };
+
+  it("junta por proveedor en el orden en que aparecen, suma lo que trajo y no repite marcas", () => {
+    const g = gruposPorProveedor([linea("a", cayla, "CAYLA", 8), linea("b", andina, null, 10), linea("c", cayla, "CAYLA", 6), linea("d", andina, null, 18)]);
+    expect(g.map((x) => [x.proveedor, x.marcas, x.lineas.map((l) => l.id), x.prendas])).toEqual([
+      ["CAYLA SAC", ["CAYLA"], ["a", "c"], 14],
+      ["Textiles Andina SAC", [], ["b", "d"], 28],
+    ]);
+  });
+  it("una línea sin proveedor va en «Sin proveedor», y ninguna se pierde", () => {
+    const entrada = [linea("a", null, null, 2), linea("b", cayla, "CAYLA", 1)];
+    const g = gruposPorProveedor(entrada);
+    expect(g[0].proveedor).toBe("Sin proveedor");
+    expect(g.flatMap((x) => x.lineas).length).toBe(entrada.length);
   });
 });

@@ -1,6 +1,9 @@
 "use client";
 
-import type { ReactNode, RefObject } from "react";
+import type { ReactNode, Ref, RefObject } from "react";
+import { useCantidadEscrita } from "@/components/alta-producto/useCantidadEscrita";
+import { CLASE_MONTO_ILEGIBLE } from "@/components/ui/CampoMonto";
+import { reglaDeEntero } from "@/lib/cantidad-escrita-reglas";
 import Link from "next/link";
 import { Plus, ScanLine, X } from "lucide-react";
 import { ComboBuscable, type OpcionCombo } from "@/components/ui/ComboBuscable";
@@ -16,8 +19,10 @@ import type { LineaVentaReciente } from "@/lib/ventas-v2";
 import { unidadesDisponibles, metodosDiferencia, MOTIVOS_CAMBIO, type MetodoDiferencia } from "@/lib/cambios-reglas";
 import { MAX_PRENDAS_EXTRA, extrasDe, textoPagoConDescuento, type PrendaExtra, type Reemplazo, type Seleccion, type TotalesDelCambio } from "@/lib/cambio-reemplazo-reglas";
 
-/** Talla que no queda en esta sede: se puede tocar igual — así se ve dónde más hay. */
-const OPCION_SIN_STOCK = `${OPCION} border-dashed border-tinta/35 bg-transparent text-tinta/65 hover:border-tinta/55`;
+/** Talla que no queda en esta sede: se puede tocar igual — así se ve dónde más hay. Es el hueco punteado del vidrio
+ *  (`posv-opcion-hueco`, vidrio/posventa.css), lo mismo que una talla agotada en Vender. */
+const CANTIDAD_A_CAMBIAR = reglaDeEntero();
+const OPCION_SIN_STOCK = `${OPCION} posv-opcion posv-opcion-hueco`;
 
 function Pregunta({ children, id }: { children: ReactNode; id?: string }) {
   return (
@@ -36,7 +41,7 @@ function ElegirTallaYColor({ r, linea, onCambio }: { r: Reemplazo; linea: LineaV
     <>
   {r.tallas.length > 1 && (
     <fieldset className="mt-6">
-      <legend className="text-xs font-semibold text-tinta/70">
+      <legend className="text-sm font-semibold text-tinta/70">
         Talla{r.esLaMisma && linea.talla ? ` · compró ${linea.talla}` : ""}
       </legend>
       <div className="mt-2 flex flex-wrap gap-2">
@@ -53,7 +58,7 @@ function ElegirTallaYColor({ r, linea, onCambio }: { r: Reemplazo; linea: LineaV
               onClick={() => onCambio({ talla: t })}
             >
               {t}
-              <span className="block text-[11.5px] font-normal opacity-70 dark:opacity-85">{subtitulo}</span>
+              <span className="block text-sm font-normal opacity-70 dark:opacity-85">{subtitulo}</span>
             </button>
           );
         })}
@@ -63,7 +68,7 @@ function ElegirTallaYColor({ r, linea, onCambio }: { r: Reemplazo; linea: LineaV
 
   {r.colores.length > 1 && (
     <fieldset className="mt-5">
-      <legend className="text-xs font-semibold text-tinta/70">
+      <legend className="text-sm font-semibold text-tinta/70">
         Color{r.esLaMisma && linea.color ? ` · compró ${linea.color}` : ""}
       </legend>
       <div className="mt-2 flex flex-wrap items-center gap-2.5">
@@ -108,6 +113,8 @@ export function CambioReemplazo({
   refPrenda,
   refMetodo,
   onCambio,
+  frenoCantidad,
+  refCantidad,
   salidas,
   campoPrenda,
   onEscanear,
@@ -130,6 +137,9 @@ export function CambioReemplazo({
   refPrenda: RefObject<HTMLDivElement | null>;
   refMetodo: RefObject<HTMLButtonElement | null>;
   onCambio: (cambio: Partial<Seleccion>) => void;
+  /** Para el botón que sigue: `true` = todavía no, lo escrito en «¿Cuántas cambia?» no valió y hay que leer por qué. */
+  frenoCantidad: Ref<() => boolean>;
+  refCantidad: RefObject<HTMLInputElement | null>;
   /** Lo que necesitan las salidas cuando la talla no está aquí (`CambioSalidas`). */
   salidas: { sedes: SedeConId[]; ubicacionId: string; sede: string; esLider: boolean; responsable: ControlResponsable };
   /** El input del combo de prenda: lo que la pistola escribe ahí es una lectura, no una búsqueda. */
@@ -152,6 +162,7 @@ export function CambioReemplazo({
   onAgregarExtra: () => void;
   onQuitarExtra: (id: string) => void;
 }) {
+  const escrita = useCantidadEscrita(CANTIDAD_A_CAMBIAR, frenoCantidad);
   const disponible = unidadesDisponibles(linea);
   const idBase = `cambio-${linea.ventaItemId}`;
   const extras = extrasDe(s);
@@ -209,7 +220,7 @@ export function CambioReemplazo({
           </Aviso>
         ) : (
           esperandoPistola && (
-            <p className="anim-revelar mt-2 text-xs text-tinta/70" role="status">
+            <p className="anim-revelar mt-2 text-sm text-tinta/70" role="status">
               Listo para escanear: apunta la pistola a la etiqueta. La prenda, la talla y el color se eligen solos.
             </p>
           )
@@ -293,7 +304,7 @@ export function CambioReemplazo({
           {(
             [
               { valor: "vendible", titulo: "Impecable", detalle: "Vuelve al piso de venta." },
-              { valor: "no_vendible", titulo: "Con defecto o uso", detalle: "Va a cuarentena: un líder decide si se repara, se dona o vuelve al proveedor." },
+              { valor: "no_vendible", titulo: "Con defecto o uso", detalle: "Va a cuarentena: ahí se decide si se repara, se dona o vuelve al proveedor." },
             ] as const
           ).map((o) => {
             const activa = r.condicion === o.valor;
@@ -304,17 +315,16 @@ export function CambioReemplazo({
                 aria-pressed={activa}
                 disabled={r.condicionFija !== null && o.valor !== r.condicionFija}
                 onClick={() => onCambio({ condicionElegida: o.valor })}
-                className={`rounded-2xl border px-[18px] py-4 text-left transition-colors duration-300 disabled:cursor-not-allowed disabled:opacity-40 ${
-                  activa ? "border-tinta bg-tinta text-crema" : "border-tinta/15 bg-papel text-tinta hover:border-tinta/40"
-                }`}
+                // La tarjeta de opción es una gota; la elegida lleva el filo de tinta (`posv-tarjeta-opcion`, vidrio/posventa.css).
+                className="posv-tarjeta-opcion rounded-2xl border px-[18px] py-4 text-left text-tinta transition-colors duration-300 disabled:cursor-not-allowed disabled:opacity-40"
               >
                 <span className="block text-sm font-semibold">{o.titulo}</span>
-                <span className={`mt-0.5 block text-xs ${activa ? "text-crema/85" : "text-tinta/70"}`}>{o.detalle}</span>
+                <span className="mt-0.5 block text-sm text-tinta/70">{o.detalle}</span>
               </button>
             );
           })}
         </div>
-        {r.condicionFija && <p className="mt-2 text-xs text-tinta/70">Una prenda con defecto no puede volver al piso: va a cuarentena sí o sí.</p>}
+        {r.condicionFija && <p className="mt-2 text-sm text-tinta/70">Una prenda con defecto no puede volver al piso: va a cuarentena sí o sí.</p>}
       </fieldset>
 
       {disponible > 1 && (
@@ -322,16 +332,18 @@ export function CambioReemplazo({
           <label htmlFor={`${idBase}-cantidad`} className="text-[15px] font-semibold text-tinta">
             ¿Cuántas cambia?
           </label>
-          <p className="text-xs text-tinta/70">Compró {linea.cantidad}; quedan {disponible} por cambiar.</p>
+          <p className="text-sm text-tinta/70">Compró {linea.cantidad}; quedan {disponible} por cambiar.</p>
           <input
             id={`${idBase}-cantidad`}
-            type="number"
-            min={1}
-            max={disponible}
-            value={s.cantidad}
-            onChange={(e) => onCambio({ cantidad: Math.max(1, Math.min(disponible, Number(e.target.value) || 1)) })}
-            className="caja-campo-input mt-2 w-24 text-sm"
+            ref={refCantidad}
+            {...escrita.campo("cantidad", String(s.cantidad), (v) => onCambio({ cantidad: Math.max(1, Math.min(disponible, Number(v) || 1)) }), disponible)}
+            className={`caja-campo-input mt-2 w-24 text-sm ${CLASE_MONTO_ILEGIBLE}`}
           />
+          {escrita.problema && (
+            <Aviso tono="error" chico className="mt-2">
+              {escrita.problema}
+            </Aviso>
+          )}
         </div>
       )}
 

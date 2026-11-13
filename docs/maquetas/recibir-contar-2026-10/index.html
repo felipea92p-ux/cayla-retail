@@ -1,0 +1,389 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Recibir ▸ Contar — 3 propuestas</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=EB+Garamond:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --rojo:#b8412d; --crema:#f5f0e8; --tinta:#1a1a18; --sand:#e8e0d0; --taupe:#805c4c; --papel:#fbf8f2; --hueso:#eae1d2;
+  --verde:#48603f; --ambar:#74501a; --borde-control:#a99683;
+  --font-sans:'DM Sans',system-ui,sans-serif; --font-serif:'EB Garamond',Georgia,serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#d9d2c4;font-family:var(--font-sans);color:var(--tinta);padding:32px;display:flex;flex-direction:column;gap:40px;align-items:center}
+svg.i{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0}
+svg.i.g{width:20px;height:20px}
+svg.i.s{width:13px;height:13px}
+
+/* ---------- lámina ---------- */
+.lamina{width:1600px;background:var(--crema);position:relative;overflow:hidden}
+.banda{display:flex;align-items:baseline;gap:14px;padding:16px 28px;border-bottom:1px solid var(--sand);background:var(--papel)}
+.banda b{font-family:var(--font-serif);font-size:26px;font-weight:500}
+.banda span{font-size:13.5px;color:var(--taupe)}
+.banda .tag{margin-left:auto;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--taupe)}
+.lienzo{padding:20px 28px 22px}
+.pie{display:grid;grid-template-columns:repeat(3,1fr);gap:0;border-top:1px solid var(--sand);background:var(--papel)}
+.pie div{padding:14px 28px 16px;font-size:13px;line-height:1.45;color:var(--tinta)}
+.pie div+div{border-left:1px solid var(--sand)}
+.pie b{display:block;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--verde);margin-bottom:3px}
+
+/* ---------- piezas del sistema ---------- */
+.label{font-size:11px;letter-spacing:.14em;text-transform:uppercase;font-weight:600;color:var(--taupe)}
+.card{background:var(--papel);border:1px solid var(--sand);border-radius:16px}
+.serif{font-family:var(--font-serif)}
+.chip{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:3px 10px;font-size:12px;font-weight:500;background:color-mix(in srgb,var(--verde) 12%,transparent);color:#44583a}
+.chip::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor}
+.chip.nada::before{display:none}
+.chip.neutro{background:var(--hueso);color:var(--tinta)}
+.chip.ambar{background:color-mix(in srgb,var(--ambar) 12%,transparent);color:var(--ambar)}
+.btn{white-space:nowrap;display:inline-flex;align-items:center;gap:8px;height:40px;padding:0 18px;border-radius:999px;border:1px solid var(--borde-control);background:transparent;color:var(--tinta);font:500 13.5px var(--font-sans)}
+.btn.p{background:var(--tinta);border-color:var(--tinta);color:var(--crema)}
+.btn.chico{height:32px;padding:0 12px;font-size:12.5px}
+.btn.dis{opacity:.45}
+.caja{display:flex;align-items:center;gap:10px;height:44px;border-radius:12px;background:var(--hueso);border:1px solid var(--sand);padding:0 14px;font-size:14px;color:var(--taupe)}
+.mosaico{width:40px;height:40px;border-radius:12px;background:var(--hueso);display:grid;place-items:center;color:var(--taupe);flex-shrink:0}
+.mosaico.m{width:34px;height:34px;border-radius:10px}
+.mosaico.g{width:46px;height:46px}
+.paso{display:inline-flex;align-items:center;height:44px;border:1px solid var(--borde-control);border-radius:12px;background:var(--papel)}
+.paso i{width:40px;height:100%;display:grid;place-items:center;color:var(--tinta);font-style:normal}
+.paso b{min-width:46px;text-align:center;font-size:17px;font-weight:600}
+.paso.s{height:36px}.paso.s i{width:34px}.paso.s b{min-width:38px;font-size:15px}
+.num{font-family:var(--font-serif);font-weight:500;line-height:.9}
+.barra{height:10px;border-radius:999px;background:var(--sand);overflow:hidden}
+.barra i{display:block;height:100%;background:var(--verde);border-radius:999px}
+.marca{width:22px;height:22px;border-radius:50%;background:var(--verde);color:var(--crema);display:grid;place-items:center;flex-shrink:0}
+.marca .i{width:13px;height:13px;stroke-width:3}
+.pildora{display:inline-flex;align-items:center;gap:6px;height:30px;padding:0 13px;border-radius:999px;border:1px solid var(--borde-control);font-size:12.5px;font-weight:500;background:var(--papel)}
+.pildora.on{background:var(--tinta);color:var(--crema);border-color:var(--tinta)}
+
+/* ---------- el stepper ---------- */
+.stepper{display:flex;align-items:flex-start;justify-content:center;gap:0;margin:0 auto 18px;width:760px}
+.stepper .p{display:flex;flex-direction:column;align-items:center;gap:6px;width:200px}
+.stepper .p .c{width:38px;height:38px;border-radius:50%;display:grid;place-items:center;font-weight:600;font-size:14px;border:2px solid var(--sand);background:var(--papel);color:var(--taupe)}
+.stepper .p.on .c{background:var(--tinta);border-color:var(--tinta);color:var(--crema);box-shadow:0 0 0 4px color-mix(in srgb,var(--tinta) 12%,transparent)}
+.stepper .p b{font-size:14px;font-weight:600}
+.stepper .p small{font-size:11.5px;color:var(--taupe)}
+.stepper .r{flex:1;height:2px;background:var(--sand);margin-top:18px}
+
+/* ---------- el papel (foto de la factura dibujada) ---------- */
+.foto{border-radius:12px;background:#fff;border:1px solid var(--sand);padding:14px 16px;position:relative;overflow:hidden}
+.foto .l{height:7px;border-radius:3px;background:#e9e4da;margin:7px 0}
+.foto .l.t{height:10px;width:46%;background:#cfc7b8;margin-bottom:12px}
+.foto .fila{display:flex;gap:10px}
+.foto .fila .l{flex:1}
+.foto .sello{position:absolute;right:14px;bottom:12px;border:2px solid color-mix(in srgb,var(--rojo) 55%,transparent);color:color-mix(in srgb,var(--rojo) 70%,transparent);font-size:11px;font-weight:700;letter-spacing:.12em;padding:2px 8px;border-radius:4px;transform:rotate(-8deg)}
+.nota{font-size:12.5px;color:var(--taupe);line-height:1.45}
+.fila-prenda{display:flex;align-items:center;gap:12px;padding:10px 0}
+.fila-prenda+.fila-prenda{border-top:1px solid var(--sand)}
+.fila-prenda b{display:block;font-size:14px;font-weight:600}
+.fila-prenda small{display:block;font-size:12px;color:var(--taupe)}
+.fila-prenda .chip{margin-left:auto}
+
+/* ---------- identificar ---------- */
+.ident{display:flex;align-items:center;gap:14px;padding:12px 16px;border-radius:14px;background:var(--papel);border:1px solid var(--sand)}
+.ident+.ident{margin-top:8px}
+.ident .t b{display:block;font-size:14.5px;font-weight:600}
+.ident .t small{display:block;font-size:12px;color:var(--taupe)}
+.ident .acc{margin-left:auto;display:flex;align-items:center;gap:12px;font-size:12.5px;color:var(--taupe)}
+.x{color:var(--taupe);display:grid;place-items:center;width:32px;height:32px}
+.barra-fija{display:flex;align-items:center;gap:18px;padding:12px 18px;border-radius:16px;background:var(--papel);border:1px solid var(--sand)}
+</style>
+</head>
+<body>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <symbol id="check" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></symbol>
+    <symbol id="plus" viewBox="0 0 24 24"><path d="M5 12h14M12 5v14"/></symbol>
+    <symbol id="minus" viewBox="0 0 24 24"><path d="M5 12h14"/></symbol>
+    <symbol id="chev" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></symbol>
+    <symbol id="chev-up" viewBox="0 0 24 24"><path d="m18 15-6-6-6 6"/></symbol>
+    <symbol id="camera" viewBox="0 0 24 24"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3z"/><circle cx="12" cy="13" r="3"/></symbol>
+    <symbol id="search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></symbol>
+    <symbol id="arr-r" viewBox="0 0 24 24"><path d="M5 12h14m-7-7 7 7-7 7"/></symbol>
+    <symbol id="arr-l" viewBox="0 0 24 24"><path d="M19 12H5m7-7-7 7 7 7"/></symbol>
+    <symbol id="shirt" viewBox="0 0 24 24"><path d="M20.38 3.46 16 2a4 4 0 0 1-8 0L3.62 3.46a2 2 0 0 0-1.34 2.23l.58 3.47a1 1 0 0 0 .99.84H6v10c0 1.1.9 2 2 2h8a2 2 0 0 0 2-2V10h2.15a1 1 0 0 0 .99-.84l.58-3.47a2 2 0 0 0-1.34-2.23z"/></symbol>
+    <symbol id="aretes" viewBox="0 0 24 24"><circle cx="8" cy="16.5" r="3"/><circle cx="16" cy="16.5" r="3"/><path d="M8 3v10.5M16 3v10.5"/></symbol>
+    <symbol id="shield" viewBox="0 0 24 24"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/></symbol>
+    <symbol id="nota" viewBox="0 0 24 24"><path d="M22 17a2 2 0 0 1-2 2H6.828a2 2 0 0 0-1.414.586l-2.202 2.202A.71.71 0 0 1 2 21.286V5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2z"/><path d="M12 8v6M9 11h6"/></symbol>
+    <symbol id="x" viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></symbol>
+    <symbol id="tallas" viewBox="0 0 24 24"><path d="m3 17 2 2 4-4M3 7l2 2 4-4M13 6h8M13 12h8M13 18h8"/></symbol>
+    <symbol id="papel" viewBox="0 0 24 24"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7z"/><path d="M14 2v4a2 2 0 0 0 2 2h4M10 9H8M16 13H8M16 17H8"/></symbol>
+    <symbol id="info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></symbol>
+    <symbol id="user" viewBox="0 0 24 24"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></symbol>
+  </defs>
+</svg>
+
+<!-- ================================================================== OPCIÓN A -->
+<section class="lamina" id="a">
+  <div class="banda"><b>Opción A · Mesa de trabajo</b><span>Categorías arriba, una sola columna de trabajo y el papel siempre a la vista a la derecha</span><span class="tag">Contar</span></div>
+  <div class="lienzo">
+    <div class="stepper">
+      <div class="p on"><div class="c">1</div><b>Contar</b><small>11 contadas · 11 para después</small></div>
+      <div class="r"></div>
+      <div class="p"><div class="c">2</div><b>Cerrar</b><small>Lo que no cuadró y quién cerró</small></div>
+    </div>
+
+    <!-- barra de categorías + quién cuenta -->
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px">
+      <span class="label" style="margin-right:6px">Categorías del envío</span>
+      <div class="card" style="display:flex;align-items:center;gap:10px;padding:6px 14px 6px 6px;border-color:var(--tinta);border-width:1.5px;border-radius:999px">
+        <span class="mosaico m" style="border-radius:50%"><svg class="i"><use href="#shirt"/></svg></span>
+        <b style="font-size:14px">Casacas</b><span style="font-size:15px"><b>9</b><span style="color:var(--taupe);font-size:12px">/9</span></span>
+        <span class="marca"><svg class="i"><use href="#check"/></svg></span>
+      </div>
+      <div class="card" style="display:flex;align-items:center;gap:10px;padding:6px 14px 6px 6px;border-radius:999px">
+        <span class="mosaico m" style="border-radius:50%"><svg class="i"><use href="#aretes"/></svg></span>
+        <b style="font-size:14px">Aretes</b><span style="font-size:15px"><b>2</b></span>
+        <span class="marca"><svg class="i"><use href="#check"/></svg></span>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;height:48px;padding:0 16px;border:1.5px dashed var(--borde-control);border-radius:999px;font-size:13.5px;color:var(--taupe)"><svg class="i"><use href="#plus"/></svg>Agregar categoría</div>
+      <div style="margin-left:auto;display:flex;align-items:center;gap:10px">
+        <span class="label">Cuenta</span>
+        <span class="chip neutro nada" style="height:34px;padding:0 14px 0 10px;gap:8px;font-size:13px"><svg class="i s"><use href="#user"/></svg>Felipe Alvarez · Admin<svg class="i s"><use href="#chev"/></svg></span>
+        <svg class="i" style="color:var(--taupe)"><use href="#info"/></svg>
+      </div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:minmax(0,1fr) 400px;gap:20px;align-items:start">
+      <!-- columna de trabajo -->
+      <div style="display:flex;flex-direction:column;gap:16px">
+        <div class="card" style="padding:22px 26px">
+          <div style="display:flex;align-items:center;gap:14px">
+            <span class="mosaico g"><svg class="i g"><use href="#shirt"/></svg></span>
+            <div><div class="serif" style="font-size:26px;line-height:1">Casacas</div><div style="font-size:13px;color:var(--taupe);margin-top:3px">CAYLA · CAYLA SAC · Casaca Luciana, Casaca Ximena · Dijeron <b style="color:var(--tinta)">9</b></div></div>
+            <div style="margin-left:auto;font-size:12.5px;color:var(--taupe)">Contó Felipe Alvarez</div>
+          </div>
+          <div style="display:flex;align-items:center;gap:28px;margin-top:20px">
+            <div style="display:flex;align-items:center;gap:16px">
+              <span class="paso" style="height:52px;border-radius:16px;opacity:.5"><i><svg class="i g"><use href="#minus"/></svg></i></span>
+              <span class="num" style="font-size:84px;min-width:70px;text-align:center">9</span>
+              <span class="paso" style="height:52px;border-radius:16px"><i><svg class="i g"><use href="#plus"/></svg></i></span>
+            </div>
+            <div style="display:flex;gap:8px"><span class="pildora">+5</span><span class="pildora">+10</span><span class="pildora">Llegaron las 9</span></div>
+            <div style="flex:1;min-width:0">
+              <div class="barra"><i style="width:100%"></i></div>
+              <div style="margin-top:8px;display:flex;justify-content:space-between;align-items:center"><span class="chip">Cuadra: llegaron las 9</span><span style="font-size:12.5px;color:var(--taupe)">Si no coincide con lo que dijeron, no pasa nada: al cerrar dirás por qué.</span></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card" style="padding:20px 26px">
+          <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px">
+            <span class="label">¿Qué casacas son?</span><span class="nota">identifica todas las que contaste</span>
+            <span class="chip" style="margin-left:auto">Todas identificadas · 9 de 9</span>
+            <span class="btn chico"><svg class="i s"><use href="#nota"/></svg>Anotar observación</span>
+          </div>
+          <div class="caja" style="margin-bottom:10px"><svg class="i"><use href="#search"/></svg>Busca una prenda conocida por su nombre (Ej. Casaca Río)</div>
+          <div class="ident"><span class="mosaico m"><svg class="i"><use href="#shirt"/></svg></span><div class="t"><b>Casaca Luciana</b><small>CAYLA · sin tallas: queda por detallar si no las pones</small></div><div class="acc"><span class="btn chico"><svg class="i s"><use href="#tallas"/></svg>Tallas y colores ahora</span>o queda pendiente<span class="paso s"><i><svg class="i s"><use href="#minus"/></svg></i><b>4</b><i><svg class="i s"><use href="#plus"/></svg></i></span><span class="x"><svg class="i"><use href="#x"/></svg></span></div></div>
+          <div class="ident"><span class="mosaico m"><svg class="i"><use href="#shirt"/></svg></span><div class="t"><b>Casaca Ximena</b><small>CAYLA · sin tallas: queda por detallar si no las pones</small></div><div class="acc"><span class="btn chico"><svg class="i s"><use href="#tallas"/></svg>Tallas y colores ahora</span>o queda pendiente<span class="paso s"><i><svg class="i s"><use href="#minus"/></svg></i><b>5</b><i><svg class="i s"><use href="#plus"/></svg></i></span><span class="x"><svg class="i"><use href="#x"/></svg></span></div></div>
+        </div>
+      </div>
+
+      <!-- el papel, pegado a la vista -->
+      <div class="card" style="padding:18px 20px;display:flex;flex-direction:column;gap:12px">
+        <div style="display:flex;align-items:center;gap:10px"><svg class="i g" style="color:var(--taupe)"><use href="#papel"/></svg><div class="serif" style="font-size:22px">El papel de la compra</div></div>
+        <div class="foto" style="height:150px">
+          <div class="l t"></div><div class="fila"><div class="l"></div><div class="l" style="max-width:60px"></div></div><div class="fila"><div class="l"></div><div class="l" style="max-width:60px"></div></div><div class="fila"><div class="l"></div><div class="l" style="max-width:60px"></div></div><div class="l" style="width:70%"></div>
+          <span class="sello">CAYLA SAC</span>
+        </div>
+        <div class="nota">Factura de CAYLA SAC · compró Felipe · el 26/10</div>
+        <div>
+          <div class="label" style="margin-bottom:2px">Lo que anotó Felipe</div>
+          <div class="fila-prenda"><span class="mosaico m"><svg class="i"><use href="#shirt"/></svg></span><div><b>4 · Casaca Luciana</b><small>Casacas</small></div><span class="chip">Contada</span></div>
+          <div class="fila-prenda"><span class="mosaico m"><svg class="i"><use href="#shirt"/></svg></span><div><b>5 · Casaca Ximena</b><small>Casacas</small></div><span class="chip">Contada</span></div>
+          <div class="fila-prenda" style="opacity:.8"><span class="mosaico m"><svg class="i"><use href="#aretes"/></svg></span><div><b>2 · Aretes</b><small>Aretes</small></div><span class="chip">Contada</span></div>
+        </div>
+        <div class="nota" style="border-top:1px solid var(--sand);padding-top:10px">Cuenta mirando el papel: lo que dice es lo que se pagó.</div>
+      </div>
+    </div>
+
+    <!-- barra de cierre fija -->
+    <div class="barra-fija" style="margin-top:16px">
+      <span class="btn dis"><svg class="i"><use href="#arr-l"/></svg>Anterior</span>
+      <div style="display:flex;align-items:center;gap:22px;margin:0 auto;font-size:14px">
+        <span><span class="label" style="margin-right:8px">Dijeron</span><b style="font-size:18px">11</b></span>
+        <span style="color:var(--sand)">|</span>
+        <span><span class="label" style="margin-right:8px">Contadas</span><b style="font-size:18px">11</b></span>
+        <span class="chip">Cuadra todo el envío</span>
+      </div>
+      <span class="btn p">Pasar a cerrar<svg class="i"><use href="#arr-r"/></svg></span>
+    </div>
+  </div>
+  <div class="pie">
+    <div><b>Se acaba el vacío</b>El contador pasa de una columna alta a una franja de 150 px: el número, los atajos y la barra se leen de un vistazo.</div>
+    <div><b>Todo en una pantalla</b>Contar e identificar quedan uno bajo el otro, sin bajar; el papel acompaña a la derecha mientras cuentas.</div>
+    <div><b>Menos ruido</b>«Quién cuenta» es un chip con su ⓘ; las categorías son píldoras con su marca ✓; la balanza y «Pasar a cerrar» viven en una sola barra.</div>
+  </div>
+</section>
+
+<!-- ================================================================== OPCIÓN B -->
+<section class="lamina" id="b">
+  <div class="banda"><b>Opción B · Planilla del envío</b><span>Todas las categorías en una tabla: cuentas en la fila y abres solo la que necesitas para identificar</span><span class="tag">Contar</span></div>
+  <div class="lienzo">
+    <div class="stepper">
+      <div class="p on"><div class="c">1</div><b>Contar</b><small>11 contadas · 11 para después</small></div>
+      <div class="r"></div>
+      <div class="p"><div class="c">2</div><b>Cerrar</b><small>Lo que no cuadró y quién cerró</small></div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:minmax(0,1fr) 380px;gap:20px;align-items:start">
+      <div style="display:flex;flex-direction:column;gap:14px">
+        <!-- cifras -->
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px">
+          <div class="card" style="padding:14px 18px"><div class="label">Categorías</div><div class="serif" style="font-size:34px;margin-top:4px">2 <span style="font-size:15px;color:var(--taupe);font-family:var(--font-sans)">de 2 contadas</span></div></div>
+          <div class="card" style="padding:14px 18px"><div class="label">Dijeron</div><div class="serif" style="font-size:34px;margin-top:4px">11</div></div>
+          <div class="card" style="padding:14px 18px"><div class="label">Contadas</div><div class="serif" style="font-size:34px;margin-top:4px">11</div></div>
+          <div class="card" style="padding:14px 18px"><div class="label">Para identificar</div><div style="margin-top:10px;display:flex;align-items:center;gap:10px"><span class="chip" style="font-size:13px">Todo identificado</span></div><div class="barra" style="margin-top:12px"><i style="width:100%"></i></div></div>
+        </div>
+
+        <!-- tabla -->
+        <div class="card" style="overflow:hidden">
+          <div style="display:grid;grid-template-columns:minmax(0,1.5fr) 90px 190px 190px 130px;gap:16px;padding:10px 22px;background:var(--sand);font-size:12px;color:var(--taupe)">
+            <span>Categoría</span><span style="text-align:right">Dijeron</span><span style="text-align:center">Contaste</span><span>Identificadas</span><span style="text-align:right">Observaciones</span>
+          </div>
+          <!-- fila abierta -->
+          <div style="border-bottom:1px solid var(--sand)">
+            <div style="display:grid;grid-template-columns:minmax(0,1.5fr) 90px 190px 190px 130px;gap:16px;align-items:center;padding:14px 22px;background:color-mix(in srgb,var(--hueso) 55%,transparent)">
+              <div style="display:flex;align-items:center;gap:12px"><span class="mosaico"><svg class="i g"><use href="#shirt"/></svg></span><div><b style="font-size:15px">Casacas</b><div style="font-size:12px;color:var(--taupe)">Contó Felipe Alvarez</div></div><svg class="i" style="margin-left:6px;color:var(--taupe)"><use href="#chev-up"/></svg></div>
+              <div style="text-align:right;font-size:15px;font-weight:600">9</div>
+              <div style="display:flex;justify-content:center"><span class="paso"><i><svg class="i"><use href="#minus"/></svg></i><b>9</b><i><svg class="i"><use href="#plus"/></svg></i></span></div>
+              <div style="display:flex;align-items:center;gap:8px"><span class="marca"><svg class="i"><use href="#check"/></svg></span><b style="font-size:14px">9 / 9</b><span style="font-size:12px;color:var(--taupe)">todas</span></div>
+              <div style="text-align:right"><span class="btn chico"><svg class="i s"><use href="#nota"/></svg>Anotar</span></div>
+            </div>
+            <div style="padding:6px 22px 18px 74px;background:color-mix(in srgb,var(--hueso) 55%,transparent)">
+              <div style="display:flex;align-items:center;gap:12px;margin-bottom:10px"><span class="label">¿Qué casacas son?</span><div class="caja" style="height:36px;flex:1;max-width:520px;font-size:13px"><svg class="i"><use href="#search"/></svg>Busca una prenda conocida por su nombre</div></div>
+              <div class="ident"><span class="mosaico m"><svg class="i"><use href="#shirt"/></svg></span><div class="t"><b>Casaca Luciana</b><small>CAYLA · sin tallas: queda por detallar</small></div><div class="acc"><span class="btn chico"><svg class="i s"><use href="#tallas"/></svg>Tallas y colores ahora</span>o pendiente<span class="paso s"><i><svg class="i s"><use href="#minus"/></svg></i><b>4</b><i><svg class="i s"><use href="#plus"/></svg></i></span><span class="x"><svg class="i"><use href="#x"/></svg></span></div></div>
+              <div class="ident"><span class="mosaico m"><svg class="i"><use href="#shirt"/></svg></span><div class="t"><b>Casaca Ximena</b><small>CAYLA · sin tallas: queda por detallar</small></div><div class="acc"><span class="btn chico"><svg class="i s"><use href="#tallas"/></svg>Tallas y colores ahora</span>o pendiente<span class="paso s"><i><svg class="i s"><use href="#minus"/></svg></i><b>5</b><i><svg class="i s"><use href="#plus"/></svg></i></span><span class="x"><svg class="i"><use href="#x"/></svg></span></div></div>
+            </div>
+          </div>
+          <!-- fila cerrada -->
+          <div style="display:grid;grid-template-columns:minmax(0,1.5fr) 90px 190px 190px 130px;gap:16px;align-items:center;padding:14px 22px;border-bottom:1px solid var(--sand)">
+            <div style="display:flex;align-items:center;gap:12px"><span class="mosaico"><svg class="i g"><use href="#aretes"/></svg></span><div><b style="font-size:15px">Aretes</b><div style="font-size:12px;color:var(--taupe)">Contó Felipe Alvarez</div></div><svg class="i" style="margin-left:6px;color:var(--taupe)"><use href="#chev"/></svg></div>
+            <div style="text-align:right;font-size:15px;font-weight:600">2</div>
+            <div style="display:flex;justify-content:center"><span class="paso"><i><svg class="i"><use href="#minus"/></svg></i><b>2</b><i><svg class="i"><use href="#plus"/></svg></i></span></div>
+            <div style="display:flex;align-items:center;gap:8px"><span class="marca"><svg class="i"><use href="#check"/></svg></span><b style="font-size:14px">2 / 2</b><span style="font-size:12px;color:var(--taupe)">todas</span></div>
+            <div style="text-align:right"><span class="btn chico"><svg class="i s"><use href="#nota"/></svg>Anotar</span></div>
+          </div>
+          <div style="display:flex;align-items:center;gap:10px;padding:14px 22px;color:var(--taupe);font-size:13.5px"><svg class="i"><use href="#plus"/></svg>Agregar categoría <span style="font-size:12px">· no venía en el envío</span></div>
+        </div>
+
+        <div class="barra-fija" style="justify-content:space-between">
+          <div style="display:flex;align-items:center;gap:10px"><span class="label">Cuenta</span><span class="chip neutro nada" style="height:34px;padding:0 14px 0 10px;gap:8px;font-size:13px"><svg class="i s"><use href="#user"/></svg>Felipe Alvarez · Admin<svg class="i s"><use href="#chev"/></svg></span><span class="nota">Cada categoría guarda quién la contó.</span></div>
+          <span class="btn p">Pasar a cerrar<svg class="i"><use href="#arr-r"/></svg></span>
+        </div>
+      </div>
+
+      <!-- papel -->
+      <div class="card" style="padding:18px 20px;display:flex;flex-direction:column;gap:12px">
+        <div style="display:flex;align-items:center;gap:10px"><svg class="i g" style="color:var(--taupe)"><use href="#papel"/></svg><div class="serif" style="font-size:22px">El papel de la compra</div></div>
+        <div class="foto" style="height:230px">
+          <div class="l t"></div><div class="fila"><div class="l"></div><div class="l" style="max-width:60px"></div></div><div class="fila"><div class="l"></div><div class="l" style="max-width:60px"></div></div><div class="fila"><div class="l"></div><div class="l" style="max-width:60px"></div></div><div class="fila"><div class="l"></div><div class="l" style="max-width:60px"></div></div><div class="fila"><div class="l"></div><div class="l" style="max-width:60px"></div></div><div class="l" style="width:70%"></div><div class="l" style="width:50%"></div>
+          <span class="sello">CAYLA SAC</span>
+        </div>
+        <div class="nota">Factura de CAYLA SAC · compró Felipe · el 26/10</div><span class="btn chico" style="align-self:flex-start"><svg class="i s"><use href="#camera"/></svg>Cambiar foto</span>
+        <div>
+          <div class="label" style="margin-bottom:2px">Lo que anotó Felipe</div>
+          <div class="fila-prenda"><span class="mosaico m"><svg class="i"><use href="#shirt"/></svg></span><div><b>4 · Casaca Luciana</b><small>Casacas</small></div><span class="chip">Contada</span></div>
+          <div class="fila-prenda"><span class="mosaico m"><svg class="i"><use href="#shirt"/></svg></span><div><b>5 · Casaca Ximena</b><small>Casacas</small></div><span class="chip">Contada</span></div>
+          <div class="fila-prenda"><span class="mosaico m"><svg class="i"><use href="#aretes"/></svg></span><div><b>2 · Aretes</b><small>Aretes</small></div><span class="chip">Contada</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="pie">
+    <div><b>Se ve todo el envío</b>Cuatro cifras arriba y una fila por categoría: sabes qué falta sin ir y volver por una lista lateral.</div>
+    <div><b>Cuentas donde lees</b>El número, lo que dijeron y si cuadra comparten fila; el − / + queda junto a su «Dijeron», sin pantalla gigante.</div>
+    <div><b>Identificas solo una</b>La fila que abres muestra «¿Qué casacas son?» debajo de sí misma; las demás quedan cerradas con su ✓.</div>
+  </div>
+</section>
+
+<!-- ================================================================== OPCIÓN C -->
+<section class="lamina" id="c">
+  <div class="banda"><b>Opción C · Dos tarjetas lado a lado</b><span>El papel como franja arriba, las categorías como riel y, al centro, contar → identificar sin bajar</span><span class="tag">Contar</span></div>
+  <div class="lienzo">
+    <div class="stepper">
+      <div class="p on"><div class="c">1</div><b>Contar</b><small>11 contadas · 11 para después</small></div>
+      <div class="r"></div>
+      <div class="p"><div class="c">2</div><b>Cerrar</b><small>Lo que no cuadró y quién cerró</small></div>
+    </div>
+
+    <!-- franja del papel -->
+    <div class="card" style="display:flex;align-items:center;gap:18px;padding:12px 18px;margin-bottom:16px">
+      <div class="foto" style="width:78px;height:64px;padding:8px 9px;flex-shrink:0"><div class="l t" style="height:6px;margin:0 0 6px"></div><div class="l" style="height:4px;margin:4px 0"></div><div class="l" style="height:4px;margin:4px 0"></div><div class="l" style="height:4px;margin:4px 0;width:60%"></div></div>
+      <div><div class="serif" style="font-size:21px;line-height:1.1">El papel de la compra</div><div class="nota">Factura de CAYLA SAC · compró Felipe · el 26/10</div></div>
+      <div style="display:flex;gap:10px;margin-left:24px;flex:1">
+        <div style="display:flex;align-items:center;gap:10px;padding:6px 12px 6px 6px;border-radius:14px;background:var(--hueso)"><span class="mosaico m" style="background:var(--papel)"><svg class="i"><use href="#shirt"/></svg></span><div><b style="font-size:13.5px">4 · Casaca Luciana</b></div><span class="marca" style="width:18px;height:18px"><svg class="i" style="width:11px;height:11px"><use href="#check"/></svg></span></div>
+        <div style="display:flex;align-items:center;gap:10px;padding:6px 12px 6px 6px;border-radius:14px;background:var(--hueso)"><span class="mosaico m" style="background:var(--papel)"><svg class="i"><use href="#shirt"/></svg></span><div><b style="font-size:13.5px">5 · Casaca Ximena</b></div><span class="marca" style="width:18px;height:18px"><svg class="i" style="width:11px;height:11px"><use href="#check"/></svg></span></div>
+        <div style="display:flex;align-items:center;gap:10px;padding:6px 12px 6px 6px;border-radius:14px;background:var(--hueso)"><span class="mosaico m" style="background:var(--papel)"><svg class="i"><use href="#aretes"/></svg></span><div><b style="font-size:13.5px">2 · Aretes</b></div><span class="marca" style="width:18px;height:18px"><svg class="i" style="width:11px;height:11px"><use href="#check"/></svg></span></div>
+      </div>
+      <span class="btn chico"><svg class="i s"><use href="#camera"/></svg>Ver / subir foto</span>
+    </div>
+
+    <div style="display:grid;grid-template-columns:270px minmax(0,1fr);gap:18px;align-items:start">
+      <!-- riel -->
+      <div style="display:flex;flex-direction:column;gap:14px">
+        <div class="card" style="padding:14px 14px 10px">
+          <div class="label" style="padding:0 4px 8px">Categorías del envío</div>
+          <div style="display:flex;align-items:center;gap:10px;padding:10px;border-radius:12px;background:var(--hueso);border:1.5px solid var(--tinta)"><span class="mosaico m" style="background:var(--papel)"><svg class="i"><use href="#shirt"/></svg></span><div style="flex:1"><b style="font-size:14px">Casacas</b><div style="font-size:11.5px;color:var(--taupe)">9 de 9 identificadas</div></div><b style="font-size:17px">9</b></div>
+          <div style="display:flex;align-items:center;gap:10px;padding:10px;margin-top:6px"><span class="mosaico m"><svg class="i"><use href="#aretes"/></svg></span><div style="flex:1"><b style="font-size:14px">Aretes</b><div style="font-size:11.5px;color:var(--taupe)">2 de 2 identificadas</div></div><b style="font-size:17px">2</b></div>
+          <div style="display:flex;align-items:center;gap:8px;margin:8px 4px 2px;padding:10px;border:1.5px dashed var(--borde-control);border-radius:12px;font-size:13px;color:var(--taupe)"><svg class="i"><use href="#plus"/></svg>Agregar categoría</div>
+        </div>
+        <div class="card" style="padding:14px 16px;display:flex;flex-direction:column;gap:8px">
+          <div class="label">Quién cuenta</div>
+          <span class="chip neutro nada" style="height:34px;padding:0 12px 0 10px;gap:8px;font-size:13px;width:fit-content"><svg class="i s"><use href="#shield"/></svg>Felipe Alvarez · Admin</span>
+          <div class="nota">Varias personas pueden contar a la vez; firma quien cierra.</div>
+        </div>
+        <div class="card" style="padding:14px 16px">
+          <div class="label" style="margin-bottom:8px">Todo el envío</div>
+          <div style="display:flex;justify-content:space-between;font-size:14px;margin-bottom:6px"><span style="color:var(--taupe)">Dijeron</span><b>11</b></div>
+          <div style="display:flex;justify-content:space-between;font-size:14px;margin-bottom:10px"><span style="color:var(--taupe)">Contadas</span><b>11</b></div>
+          <div class="barra"><i style="width:100%"></i></div>
+          <div style="margin-top:10px"><span class="chip">Cuadra todo el envío</span></div>
+        </div>
+      </div>
+
+      <!-- centro: dos tarjetas lado a lado -->
+      <div style="display:flex;flex-direction:column;gap:14px">
+        <div style="display:flex;align-items:center;gap:14px;padding:0 4px">
+          <span class="mosaico g"><svg class="i g"><use href="#shirt"/></svg></span>
+          <div><div class="serif" style="font-size:28px;line-height:1">Casacas</div><div style="font-size:13px;color:var(--taupe);margin-top:3px">CAYLA · CAYLA SAC · Dijeron <b style="color:var(--tinta)">9</b> · Contó Felipe Alvarez</div></div>
+          <span class="btn chico" style="margin-left:auto"><svg class="i s"><use href="#nota"/></svg>Anotar observación</span>
+        </div>
+        <div style="display:grid;grid-template-columns:420px minmax(0,1fr);gap:16px;align-items:stretch">
+          <div class="card" style="padding:20px 22px;display:flex;flex-direction:column;align-items:center;gap:14px">
+            <div class="label" style="align-self:flex-start"><span style="display:inline-grid;place-items:center;width:20px;height:20px;border-radius:50%;background:var(--tinta);color:var(--crema);margin-right:8px;font-size:11px">1</span>Cuenta</div>
+            <div style="display:flex;align-items:center;gap:16px;margin-top:6px">
+              <span class="paso" style="height:50px;border-radius:16px;opacity:.5"><i><svg class="i g"><use href="#minus"/></svg></i></span>
+              <span class="num" style="font-size:96px;min-width:70px;text-align:center">9</span>
+              <span class="paso" style="height:50px;border-radius:16px"><i><svg class="i g"><use href="#plus"/></svg></i></span>
+            </div>
+            <div style="display:flex;gap:8px"><span class="pildora">+5</span><span class="pildora">+10</span><span class="pildora">Llegaron las 9</span></div>
+            <div style="width:100%"><div class="barra"><i style="width:100%"></i></div><div style="text-align:center;margin-top:10px"><span class="chip">Cuadra: llegaron las 9</span></div></div>
+            <div class="nota" style="text-align:center">Si no coincide con lo que dijeron, no pasa nada: al cerrar dirás por qué.</div>
+          </div>
+          <div class="card" style="padding:20px 22px">
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px"><div class="label"><span style="display:inline-grid;place-items:center;width:20px;height:20px;border-radius:50%;background:var(--tinta);color:var(--crema);margin-right:8px;font-size:11px">2</span>¿Qué casacas son?</div><span class="chip" style="margin-left:auto">Todas identificadas · 9 de 9</span></div>
+            <div class="caja" style="margin-bottom:10px"><svg class="i"><use href="#search"/></svg>Busca una prenda conocida por su nombre</div>
+            <div class="ident" style="flex-wrap:wrap;row-gap:10px"><span class="mosaico m"><svg class="i"><use href="#shirt"/></svg></span><div class="t"><b>Casaca Luciana</b><small>CAYLA · sin tallas: queda por detallar</small></div><div class="acc"><span class="paso s"><i><svg class="i s"><use href="#minus"/></svg></i><b>4</b><i><svg class="i s"><use href="#plus"/></svg></i></span><span class="x"><svg class="i"><use href="#x"/></svg></span></div><div style="width:100%;padding-left:48px"><span class="btn chico"><svg class="i s"><use href="#tallas"/></svg>Tallas y colores ahora</span> <span class="nota" style="margin-left:6px">o queda pendiente</span></div></div>
+            <div class="ident" style="flex-wrap:wrap;row-gap:10px"><span class="mosaico m"><svg class="i"><use href="#shirt"/></svg></span><div class="t"><b>Casaca Ximena</b><small>CAYLA · sin tallas: queda por detallar</small></div><div class="acc"><span class="paso s"><i><svg class="i s"><use href="#minus"/></svg></i><b>5</b><i><svg class="i s"><use href="#plus"/></svg></i></span><span class="x"><svg class="i"><use href="#x"/></svg></span></div><div style="width:100%;padding-left:48px"><span class="btn chico"><svg class="i s"><use href="#tallas"/></svg>Tallas y colores ahora</span> <span class="nota" style="margin-left:6px">o queda pendiente</span></div></div>
+          </div>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <span class="btn dis"><svg class="i"><use href="#arr-l"/></svg>Anterior</span>
+          <span class="btn p">Listo, sigue Aretes<svg class="i"><use href="#arr-r"/></svg></span>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="pie">
+    <div><b>El papel deja de ocupar una columna</b>Pasa a una franja con sus líneas y sus ✓: se lee antes de contar y libera todo el alto de la pantalla.</div>
+    <div><b>Contar → identificar, de izquierda a derecha</b>Dos tarjetas numeradas 1 y 2 al mismo nivel: el orden del trabajo se ve sin explicarlo, y las dos caben sin bajar.</div>
+    <div><b>Un riel que resume</b>Las categorías, quién cuenta y la balanza del envío quedan juntas en un solo carril angosto y siempre completo.</div>
+  </div>
+</section>
+
+</body>
+</html>

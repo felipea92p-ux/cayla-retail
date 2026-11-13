@@ -1,9 +1,9 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { MessageSquarePlus } from "lucide-react";
 import { Aviso } from "@/components/ui/Aviso";
 import { avisar } from "@/components/ui/Avisos";
+import { MessageSquarePlus } from "lucide-react";
 import { Boton } from "@/components/ui/campos";
 import { Chip } from "@/components/ui/Chip";
 import { Modal } from "@/components/ui/Modal";
@@ -23,16 +23,16 @@ import {
   type TipoObservacion,
 } from "@/lib/observaciones-envio-reglas";
 
-// Observaciones de una categoría al contar (ADR-0507): lo que se vio al abrir la caja —una prenda rota, una que faltó— con su mensaje. El
-// botón abre una hoja con los tipos más comunes y un mensaje; lo anotado queda en el envío, a nombre de quien cuenta, y se ve aquí mismo.
+// Observaciones de lo que se cuenta (ADR-0507): lo que se vio al abrir la caja —una prenda rota, una que faltó— con su mensaje. El enlace
+// abre una hoja con los tipos más comunes y un mensaje; lo anotado queda en el envío, a nombre de quien cuenta, y se ve en la placa.
 // Anotar no cambia lo contado ni mueve stock: es un texto para las personas (Compras lo lee para reclamar). No se borra ni se edita: si
 // hubo un error, se anota otra.
 
-export function ObservacionesDeLinea({
+/** «Anotar algo», uno de los tres botones de «¿Pasó algo con esta prenda?» (ADR-0645; antes era un enlace en la cabecera): abre la hoja de la observación. */
+export function AnotarObservacion({
   despachoId,
   lineaId,
   nombre,
-  observaciones,
   responsable,
   onAnotada,
 }: {
@@ -41,43 +41,41 @@ export function ObservacionesDeLinea({
   lineaId: string | null;
   /** Cómo se llama lo que se cuenta («vestidos»), para el título de la hoja. */
   nombre: string;
-  /** Las de esta línea, de la más vieja a la más nueva. */
-  observaciones: readonly ObservacionDeEnvio[];
   responsable: ControlResponsable;
   onAnotada: (o: ObservacionDeEnvio) => void;
 }) {
   const [abierta, setAbierta] = useState(false);
   return (
-    <section data-guia="recepcion.observaciones" className="space-y-2.5 border-t border-sand pt-4" aria-label="Observaciones">
-      <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
-        <p className="label-cayla text-[11px] text-taupe">
-          Observaciones{observaciones.length > 0 ? ` · ${observaciones.length}` : ""} <span className="normal-case tracking-normal">· lo que viste al abrir la caja</span>
-        </p>
-        <Boton type="button" peso="fantasma" onClick={() => setAbierta(true)}>
-          <span className="inline-flex items-center gap-2">
-            <MessageSquarePlus aria-hidden className="h-4 w-4" />
-            Anotar observación
-          </span>
-        </Boton>
-      </div>
-      {observaciones.length > 0 && (
-        <ul className="space-y-1.5" aria-label="Observaciones anotadas">
-          {observaciones.map((o) => {
-            const cuando = o.creadoEn ? diaYHoraLima(o.creadoEn) : null;
-            return (
-              <li key={o.id} className="flex flex-wrap items-baseline gap-x-2.5 gap-y-1 rounded-xl bg-crema px-3 py-2">
-                <Chip tono="ambar" versalitas={false}>
-                  {nombreDeTipo(o.tipo)}
-                </Chip>
-                <span className="min-w-0 flex-1 basis-56 text-[14px] text-tinta">{o.mensaje}</span>
-                <span className="text-xs text-taupe">{[o.creadoPor, cuando ? `${cuando.dia} ${cuando.hora}` : null].filter(Boolean).join(" · ")}</span>
-              </li>
-            );
-          })}
-        </ul>
-      )}
+    <>
+      <Boton type="button" peso="fantasma" onClick={() => setAbierta(true)} data-guia="recepcion.observaciones" aria-label="Anotar una observación">
+        <span className="inline-flex items-center gap-2">
+          <MessageSquarePlus aria-hidden className="h-4 w-4 shrink-0" />
+          Anotar algo
+        </span>
+      </Boton>
       {abierta && <HojaObservacion despachoId={despachoId} lineaId={lineaId} nombre={nombre} responsable={responsable} onAnotada={onAnotada} onCerrar={() => setAbierta(false)} />}
-    </section>
+    </>
+  );
+}
+
+/** Lo ya anotado de lo que se cuenta, de la más vieja a la más nueva. */
+export function ObservacionesAnotadas({ observaciones }: { observaciones: readonly ObservacionDeEnvio[] }) {
+  if (observaciones.length === 0) return null;
+  return (
+    <ul className="rc-placa-observaciones space-y-1.5" aria-label="Observaciones anotadas">
+      {observaciones.map((o) => {
+        const cuando = o.creadoEn ? diaYHoraLima(o.creadoEn) : null;
+        return (
+          <li key={o.id} className="flex flex-wrap items-baseline gap-x-2.5 gap-y-1 rounded-xl bg-crema px-3 py-2">
+            <Chip tono="ambar" versalitas={false}>
+              {nombreDeTipo(o.tipo)}
+            </Chip>
+            <span className="min-w-0 flex-1 basis-56 text-[14px] text-tinta">{o.mensaje}</span>
+            <span className="text-sm text-taupe">{[o.creadoPor, cuando ? `${cuando.dia} ${cuando.hora}` : null].filter(Boolean).join(" · ")}</span>
+          </li>
+        );
+      })}
+    </ul>
   );
 }
 
@@ -107,7 +105,7 @@ function HojaObservacion({
     { id: "obs-tipo", nombre: "Qué pasó", requerido: true, hecho: tipo !== null, pendiente: "Elige qué pasó." },
     { id: "obs-mensaje", nombre: "Mensaje", requerido: true, hecho: mensaje.trim() !== "", pendiente: "Escribe qué viste." },
   ]);
-  const problema = problemaDeObservacion(tipo, mensaje) ?? (responsable.listo ? null : (responsable.motivo ?? "Elige quién cuenta, a la izquierda."));
+  const problema = problemaDeObservacion(tipo, mensaje) ?? (responsable.listo ? null : (responsable.motivo ?? "Elige quién cuenta, en el resumen."));
 
   async function guardar() {
     if (guardando || enVuelo.current || !tipo) return;
@@ -166,7 +164,7 @@ function HojaObservacion({
                   className={`rounded-2xl border px-3 py-2 text-left transition-colors ${tipo === t.valor ? "border-tinta bg-papel" : "border-sand bg-papel/70 hover:border-tinta/40"}`}
                 >
                   <b className="block text-[14px] text-tinta">{t.nombre}</b>
-                  <small className="block text-[12.5px] text-taupe">{t.ayuda}</small>
+                  <small className="block text-sm text-taupe">{t.ayuda}</small>
                 </button>
               ))}
             </div>

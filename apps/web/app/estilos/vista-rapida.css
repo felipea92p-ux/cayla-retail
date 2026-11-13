@@ -47,7 +47,7 @@
     flex-wrap: wrap;
     align-items: center;
     gap: 6px 10px;
-    font-size: 13px;
+    font-size: 14px;
     color: var(--color-taupe);
   }
   .vr-meta .vr-dato {
@@ -62,7 +62,7 @@
   }
   .vr-meta .vr-cod {
     font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-    font-size: 12.5px;
+    font-size: 14px;
     color: var(--vr-t60, var(--color-tinta));
   }
   .vr-meta .vr-sep {
@@ -192,12 +192,12 @@
     font-weight: 600;
   }
   .vr-pie-foto .vr-est {
-    font-size: 11.5px;
+    font-size: 14px;
     color: var(--color-taupe);
   }
   .vr-pista {
     margin-top: 6px;
-    font-size: 12px;
+    font-size: 14px;
     line-height: 1.45;
     color: var(--vr-t60, var(--color-tinta));
   }
@@ -205,23 +205,6 @@
     .vr-pista {
       display: none;
     }
-  }
-  /* La ficha del color de la foto (ADR-0316): dos renglones de alto reservado —seis círculos no siempre caben en uno en el aside de 260 px—
-     para que pasar de un color a otro no cambie el alto de la hoja bajo el mouse (ADR-0185). */
-  .vr-color-ficha {
-    margin-top: 8px;
-    min-height: 56px;
-  }
-  /* La frase de prendas («Combina bien con un jean o una cartera»): una línea, misma altura siempre. */
-  .vr-combina {
-    margin-top: 6px;
-    font-size: 12.5px;
-    line-height: 20px;
-    height: 20px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    color: var(--color-tinta);
   }
   /* La descripción de la prenda, bajo la foto (Felipe, 2026-10-06: no se veía en ninguna parte). Es de la prenda y no del color: una línea
      la separa del pie de la foto. */
@@ -232,17 +215,19 @@
     grid-template-columns: repeat(4, minmax(0, 1fr));
     gap: 12px 16px;
     padding: 12px 16px;
-    border: 1px solid var(--color-sand);
-    border-radius: 12px;
+    background: var(--placa-fondo);
+    border: 1px solid var(--placa-borde);
+    box-shadow: var(--placa-luz);
+    border-radius: 18px;
   }
   .vr-ficha .vr-rotulo {
     display: block;
-    font-size: 10.5px;
+    font-size: 12px;
     color: var(--vr-t60, var(--color-tinta));
   }
   .vr-ficha dd {
     margin-top: 2px;
-    font-size: 13px;
+    font-size: 14px;
     line-height: 1.4;
     color: var(--color-tinta);
     overflow-wrap: anywhere;
@@ -258,12 +243,12 @@
   }
   .vr-desc .vr-rotulo {
     display: block;
-    font-size: 10.5px;
+    font-size: 12px;
     color: var(--vr-t60, var(--color-tinta));
   }
   .vr-desc p {
     margin-top: 4px;
-    font-size: 13px;
+    font-size: 14px;
     line-height: 1.5;
     color: var(--color-tinta);
     overflow-wrap: anywhere;
@@ -271,12 +256,16 @@
   }
 
   /* ---- La matriz ---- */
+  /* La matriz, la ficha corta y el aviso son PLACAS del vidrio «Serena» (ADR-0596: lo que explica es plano), no papel sólido: sobre la
+     hoja de vidrio, un bloque macizo desencajaba (Felipe 2026-11-13). Las celdas, muchas e iguales, son vidrio claro (sin desenfoque,
+     ADR-0623). Las recetas viven en vidrio/recetas.css y ya traen su oscuro y su versión maciza (`aguanta.css`). */
   .vr-mx {
     position: relative;
     isolation: isolate;
-    background: var(--color-papel);
-    border: 1px solid var(--color-sand);
-    border-radius: var(--radius-xl);
+    background: var(--placa-fondo);
+    border: 1px solid var(--placa-borde);
+    box-shadow: var(--placa-luz);
+    border-radius: 18px;
     padding: 14px 14px 10px;
     animation: vr-sube 560ms var(--ease-cayla) 200ms backwards;
   }
@@ -302,13 +291,13 @@
   }
   .vr-mx-cab .vr-rotulo {
     display: block;
-    font-size: 10.5px;
+    font-size: 12px;
     color: var(--vr-t60, var(--color-tinta));
   }
   .vr-estado {
     display: block;
     min-height: 22px;
-    font-size: 13px;
+    font-size: 14px;
     line-height: 22px;
     color: var(--color-taupe);
   }
@@ -318,10 +307,11 @@
   }
   .vr-estado .vr-cod {
     border-radius: 6px;
-    background: var(--color-hueso);
+    background: var(--placa-fondo);
+    box-shadow: inset 0 0 0 1px var(--placa-borde);
     padding: 2px 8px;
     font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-    font-size: 12px;
+    font-size: 14px;
     color: var(--vr-t80, var(--color-tinta));
   }
   .vr-estado .vr-fl {
@@ -354,17 +344,19 @@
   .vr-gran .vr-gran-txt {
     display: flex;
     flex-direction: column;
-    font-size: 12px;
+    font-size: 14px;
     line-height: 1.25;
     text-align: left;
     color: var(--vr-t60);
   }
   .vr-aviso {
     margin: 0 0 10px;
-    border-radius: var(--radius-lg);
-    background: var(--color-hueso);
+    border-radius: 14px;
+    background: var(--placa-fondo);
+    border: 1px solid var(--placa-borde);
+    box-shadow: var(--placa-luz);
     padding: 8px 14px;
-    font-size: 13px;
+    font-size: 14px;
     color: var(--vr-t80);
   }
   .vr-aviso b {
@@ -381,7 +373,7 @@
   }
   /* Taupe y no `--vr-t60`: sobre el papel de la matriz, t60 rinde 4,45:1 (bajo el 4,5 de WCAG AA); taupe, 5,6:1 (medido 2026-10-12). */
   .vr-donde-nota {
-    font-size: 12px;
+    font-size: 14px;
     color: var(--color-taupe);
   }
   .vr-lugar {
@@ -476,7 +468,7 @@
   .vr-rcolor .vr-s {
     display: block;
     overflow: hidden;
-    font-size: 11px;
+    font-size: 13px;
     font-weight: 400;
     white-space: nowrap;
     text-overflow: ellipsis;
@@ -486,7 +478,7 @@
     border-radius: 8px;
     padding: 4px 0;
     text-align: center;
-    font-size: 10.5px;
+    font-size: 12px;
     font-weight: 700;
     letter-spacing: 0.1em;
     text-transform: uppercase;
@@ -507,7 +499,7 @@
   }
   .vr-ct small {
     display: block;
-    font-size: 10.5px;
+    font-size: 12px;
     font-weight: 500;
     letter-spacing: 0;
     line-height: 1.1;
@@ -529,9 +521,10 @@
     align-items: center;
     justify-content: center;
     gap: 4px;
-    border: 1px solid var(--color-sand);
+    border: 1px solid var(--vidrio-claro-borde);
     border-radius: 10px;
-    background: var(--color-papel);
+    background: var(--vidrio-claro-fondo);
+    box-shadow: var(--vidrio-claro-filo);
     transition: border-color 220ms var(--ease-cayla), background-color 220ms var(--ease-cayla), box-shadow 220ms var(--ease-cayla), transform 220ms var(--ease-cayla), opacity 260ms var(--ease-cayla);
     /* La OLA: cada celda entra según su distancia a la esquina de arriba a la izquierda (`--vr-i` = fila + columna). */
     animation: vr-celda-entra 520ms var(--ease-cayla) backwards;
@@ -584,6 +577,7 @@
   }
   .vr-cel[data-cero="true"] {
     background: transparent;
+    box-shadow: none;
   }
   .vr-cel[data-cero="true"] .vr-v {
     color: var(--vr-t35);
@@ -617,7 +611,7 @@
     color: var(--color-ambar);
   }
   .vr-cel[aria-pressed="true"] {
-    background: color-mix(in srgb, var(--color-rojo) 7%, var(--color-papel));
+    background: linear-gradient(color-mix(in srgb, var(--color-rojo) 7%, transparent), color-mix(in srgb, var(--color-rojo) 7%, transparent)), var(--vidrio-claro-fondo);
     box-shadow: inset 0 0 0 1.5px var(--color-tinta);
   }
   .vr-cel .vr-ok {
@@ -663,14 +657,14 @@
   .vr-tot {
     display: grid;
     place-items: center;
-    font-size: 13px;
+    font-size: 14px;
     font-weight: 600;
     color: var(--color-taupe);
   }
   .vr-ayuda-sede {
     margin-top: 8px;
     padding: 0 4px;
-    font-size: 12px;
+    font-size: 14px;
     color: var(--vr-t60);
   }
 
@@ -685,7 +679,7 @@
     align-items: center;
     gap: 8px;
     margin-bottom: 8px;
-    font-size: 12.5px;
+    font-size: 14px;
     color: var(--vr-t60);
     animation: vr-dato-entra 260ms var(--ease-cayla) backwards;
   }
@@ -701,9 +695,25 @@
     align-items: center;
     gap: 8px;
   }
-  /* «Eliminar» va solo, a la derecha de la fila: si la fila no cabe y baja, sigue a la derecha. */
-  .vr-botones .vr-eliminar {
-    margin-left: auto;
+  /* Lo que arregla la FICHA (Fusionar, Eliminar), bajo la ficha corta y FUERA del pie fijo, con la pregunta que dice cuándo se usa
+     (Felipe 2026-11-13: «Eliminar» suelto junto a «Desactivar» no decía para qué servía cada uno). Entra con la columna. */
+  .vr-ficha-arreglo {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px 16px;
+    margin-top: 12px;
+    padding: 0 4px;
+  }
+  .vr-ficha-arreglo-pregunta {
+    font-size: 14px;
+    color: var(--color-taupe);
+  }
+  .vr-ficha-arreglo-botones {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
   }
   .vr-botones [data-sin-unidades="true"] {
     opacity: 0.6;
@@ -722,7 +732,7 @@
     border-radius: 999px;
     background: var(--color-tinta);
     padding: 0 6px;
-    font-size: 11px;
+    font-size: 13px;
     letter-spacing: 0;
     color: var(--color-crema);
     animation: vr-pop 220ms var(--ease-cayla) backwards;
@@ -835,9 +845,10 @@
       display: grid;
       grid-template-columns: 1fr 1fr;
     }
-    /* En celular los botones son celdas de la grilla de dos columnas: «Eliminar» entra como una celda más, sin empujarse a la derecha. */
-    .vr-botones .vr-eliminar {
-      margin-left: 0;
+    .vr-ficha-arreglo-botones {
+      display: grid;
+      width: 100%;
+      grid-template-columns: 1fr 1fr;
     }
   }
 }

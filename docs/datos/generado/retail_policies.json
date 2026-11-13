@@ -27,6 +27,33 @@
   "with_check": null
  },
  {
+  "cmd": "INSERT",
+  "policyname": "avio_clases_insert_autenticado",
+  "qual": null,
+  "roles": "{public}",
+  "schemaname": "retail",
+  "tablename": "avio_clases",
+  "with_check": "(auth.role() = 'authenticated'::text)"
+ },
+ {
+  "cmd": "SELECT",
+  "policyname": "avio_clases_select",
+  "qual": "(auth.role() = 'authenticated'::text)",
+  "roles": "{public}",
+  "schemaname": "retail",
+  "tablename": "avio_clases",
+  "with_check": null
+ },
+ {
+  "cmd": "UPDATE",
+  "policyname": "avio_clases_update_lider",
+  "qual": "retail.fn_es_lider()",
+  "roles": "{public}",
+  "schemaname": "retail",
+  "tablename": "avio_clases",
+  "with_check": "retail.fn_es_lider()"
+ },
+ {
   "cmd": "SELECT",
   "policyname": "caja_movimientos_select",
   "qual": "(EXISTS ( SELECT 1\n   FROM retail.cajas c\n  WHERE ((c.id = caja_movimientos.caja_id) AND COALESCE((( SELECT retail.fn_es_lider() AS fn_es_lider) OR (c.ubicacion_id = ( SELECT retail.fn_ubicacion_actual_persona() AS fn_ubicacion_actual_persona))), false))))",
@@ -450,15 +477,6 @@
   "with_check": "COALESCE((( SELECT retail.fn_es_lider() AS fn_es_lider) OR (ubicacion_id = ( SELECT retail.fn_ubicacion_actual_persona() AS fn_ubicacion_actual_persona))), false)"
  },
  {
-  "cmd": "SELECT",
-  "policyname": "costo_historial_select",
-  "qual": "(EXISTS ( SELECT 1\n   FROM retail.movimientos m\n  WHERE ((m.id = costo_historial.movimiento_id) AND COALESCE((( SELECT retail.fn_es_lider() AS fn_es_lider) OR (m.ubicacion_id = ( SELECT retail.fn_ubicacion_actual_persona() AS fn_ubicacion_actual_persona))), false))))",
-  "roles": "{public}",
-  "schemaname": "retail",
-  "tablename": "costo_historial",
-  "with_check": null
- },
- {
   "cmd": "INSERT",
   "policyname": "cotizaciones_maquila_insert",
   "qual": null,
@@ -709,6 +727,15 @@
   "schemaname": "retail",
   "tablename": "marcas",
   "with_check": "( SELECT retail.fn_puede_editar_catalogo() AS fn_puede_editar_catalogo)"
+ },
+ {
+  "cmd": "SELECT",
+  "policyname": "materiales_select_autenticado",
+  "qual": "( SELECT retail.fn_tiene_acceso_retail() AS fn_tiene_acceso_retail)",
+  "roles": "{public}",
+  "schemaname": "retail",
+  "tablename": "materiales",
+  "with_check": null
  },
  {
   "cmd": "SELECT",

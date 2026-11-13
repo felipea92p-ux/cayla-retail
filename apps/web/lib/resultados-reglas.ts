@@ -42,7 +42,26 @@ export type FilaER = {
   planillaAlCierre: number;
   /** Personas en las boletas de esa estimación (suma de las sedes de la columna). */
   planillaPersonas: number;
+  /**
+   * De esa estimación, lo que aporta cada sede de Dynamic a la columna. Solo se llena en «De la empresa», que junta la central (CCO) y la
+   * Oficina Trujillo (OTRU): sin esto, quien no ve a OTRU en ninguna columna supone que está dentro de la tienda de Trujillo. Vacío si no hay estimación.
+   */
+  planillaPorSede: PlanillaDeSede[];
+  /**
+   * El IGV que traen las ventas de esta columna según `fn_igv_de_las_ventas` (ADR-0624, «regla pareja»): es de SUNAT y el resultado no lo cuenta. Solo sirve para PRESENTAR
+   * lo cobrado arriba de «Lo que vendiste» (`ventas + igvCobrado`); no cambia ninguna cifra. No es `igvVentas`, que suma también los adelantos. Sin esto (no se pidió o no se
+   * pudo leer), la pantalla no dibuja esas filas.
+   */
+  igvCobrado?: number;
+  /**
+   * Lo vendido de CLAURE en esta columna, sin IGV (Felipe 2026-11-09). Se cobró en la tienda y su IGV va en `igvCobrado`, pero no es ingreso de CAYLA: `ventas` no lo trae. Solo sirve para
+   * PRESENTAR lo cobrado (`ventas + igvCobrado + claureSinIgv`). Llega junto con `igvCobrado`.
+   */
+  claureSinIgv?: number;
 };
+
+/** Lo que una sede de Dynamic aporta a la planilla provisionada de una columna. Nunca una persona: solo cuántas y cuánto. */
+export type PlanillaDeSede = { sedeCodigo: string; nombre: string; personas: number; devengado: number };
 
 type Fila = Record<string, unknown>;
 const n = (v: unknown): number => (v == null ? 0 : Number(v));
@@ -84,6 +103,7 @@ export function leerFilaER(r: Fila): FilaER {
     planillaEstimada: 0,
     planillaAlCierre: 0,
     planillaPersonas: 0,
+    planillaPorSede: [],
   };
 }
 
@@ -332,6 +352,24 @@ export function avisosER(columnas: readonly FilaER[], enCurso: boolean): AvisoER
   return out;
 }
 
+/** ¿Esta cuenta ve la planilla en Dynamic? `null` si no se sabe (la lectura falló o no hay filas): no se afirma ni una cosa ni la otra. */
+export function veLaPlanilla(lectura: { datos: readonly Pick<FilaER, "planillaVisible">[]; falla: string | null }): boolean | null {
+  if (lectura.falla || !lectura.datos.length) return null;
+  return lectura.datos.some((f) => f.planillaVisible);
+}
+
+/** Lo mismo en la pantalla y en la primera línea de cada archivo (tarea 23; ocultar la planilla es a propósito, ADR-0133; callarlo, no). */
+export const AVISO_SIN_SUELDOS = "Sin sueldos: esta cuenta no ve la planilla en Dynamic, así que estas cifras no la restan.";
+/** La lectura de los sueldos se cayó (tarea 43): no es culpa de la cuenta, y las cifras se siguen viendo. */
+export const AVISO_SUELDOS_SIN_LEER = "No se pudieron leer los sueldos: estas cifras no los restan.";
+
+/** Lo que un archivo del contador dice en su primera línea sobre los sueldos. */
+export function primerasLineasDeSueldos(lectura: { datos: readonly Pick<FilaER, "planillaVisible">[]; falla: string | null; sueldosSinLeer?: boolean }): string[] {
+  if (lectura.sueldosSinLeer) return [AVISO_SUELDOS_SIN_LEER];
+  const ve = veLaPlanilla(lectura);
+  return ve === false ? [AVISO_SIN_SUELDOS] : ve === null ? ["No se pudo comprobar si estas cifras llevan sueldos."] : [];
+}
+
 // ---- De dónde sale cada cifra ---------------------------------------------------------------------------------------------
 
 export type LineaDiario = {
@@ -399,6 +437,16 @@ export const TEXTO_REGLA: Record<string, string> = {
   merma_cuarentena: "Prendas dañadas botadas o donadas",
   merma_conteo: "Faltantes de conteo",
   merma_traslado: "Faltó en un traslado (en la sede que lo envió)",
+  // ADR-0560: lo cobrado de prendas de CLAURE no es ingreso de CAYLA: se reclasifica a lo que se le debe a Claudia (cuenta 479). Manda sobre el ADR-0558.
+  claure_venta: "Ventas de CLAURE (se le debe a Claudia lo cobrado, sin IGV)",
+  claure_anulacion: "Ventas anuladas de CLAURE",
+  claure_devolucion: "Devoluciones de CLAURE",
+  claure_cambio: "Cambios con prendas de CLAURE (la plata sigue a la prenda que se lleva el cliente)",
+  claure_gasto: "Gastos de CLAURE que pagó CAYLA (su parte)",
+  pago_claure: "Pagos a CLAURE",
+  traslado_claudia: "Efectivo del cajón que se quedó con Claudia",
+  // Un mes cerrado antes del ADR-0560 conserva lo que congeló con el ADR-0558 (mercadería de CLAURE a su costo, cuenta 4699).
+  claure_merma: "Pérdidas de mercadería de CLAURE (las responde CAYLA)",
   anticipo: "Adelantos de separaciones",
   anticipo_devuelto: "Adelantos devueltos",
   // ADR-0408 act. 10: lo que un cliente paga por su pedido web antes de que sea una venta (y lo que se anula).

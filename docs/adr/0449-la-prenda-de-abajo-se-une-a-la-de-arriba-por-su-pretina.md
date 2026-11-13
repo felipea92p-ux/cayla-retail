@@ -175,3 +175,66 @@ medida al generar el recorte (sigue siendo la migración pendiente de arriba) y 
 
 **Prueba.** `union-prendas.test.ts` (10 casos nuevos: topes, banda muerta, monotonía, forma de la caja, lo que no se toca). `tsc` limpio.
 **Pendiente.** Verlo con la tienda local sobre blusas reales (cambian de tamaño ~80 % de las blusas, poco cada una): conviene mirar un par de looks antes de fusionar.
+
+## Actualización 2026-11-09 — el tope de ×1,05 solo para faldas, y suave
+
+**Qué pasó.** Felipe mandó cinco looks con «descuadres de la unión»: un polo floreado con un pantalón de pierna ancha, un polo con un jean palazzo, y tres tops con shorts.
+Medido en `cayla.pe` (Trujillo, 109 prendas de arriba y 32 de abajo, copiando la regla en la página y comprobando que daba la misma caja que la tienda): en todos, la pretina
+quedaba en la cintura mínima (30,6 a 33 cm) mientras el bajo de la blusa medía 38,8 a 41,6 cm, unos 4 cm de escalón por lado. La culpa era el tope de la actualización del
+2026-10-22: compara el ancho ENTERO de la prenda de abajo con la caja de la blusa, y un short o un pantalón se abre en las piernas (su pretina mide el 50–70 % de su ancho), así
+que el tope encogía la pretina aunque la blusa no tuviera vuelo. El centrado (menos de 3,6 px de desfase en las 32 de abajo) y la proporción de los recortes estaban bien.
+
+**Lo que no sirvió.** Separar el peplum por la forma de la blusa: su vuelo (bajo contra cintura, medido a 20 y 25 % del alto sobre el bajo) da 1,11 y 1,21, el mismo rango que
+blusas ajustadas sin vuelo (Polo Kristell 1,22 y 1,34). Ninguna medida simple de la foto los separa.
+
+**Decisión (Felipe, 2026-11-09, eligió mirando la lámina con las tres maneras sobre la tienda real).** Para pantalones, shorts y jeans, la pretina sigue al bajo sin tope («B»).
+Para faldas (`FAL`, `PrendaDelProbador.falda`), el tope de ×1,05 sigue, pero no puede bajar la pretina del 92 % del bajo (`PRETINA_MINIMA_DE_LA_FALDA`, «C»): con el tope entero
+la falda del peplum quedaba 11 cm más angosta que el bajo, y sin tope se veía muy grande. Blusa Catalina con Falda Sastre Cayla: la pretina pasa de 30,6 a 38,1 cm.
+
+**Prueba.** `union-prendas.test.ts`: los dos casos de falda con su valor nuevo, y dos nuevos (el short del look de Felipe calza con el bajo; la misma prenda sale más ancha como
+short que como falda). 1071 pruebas de la tienda, `tsc`, `eslint` (sin avisos en estos archivos), `pnpm knip` y `knip:produccion` en verde.
+**No verificado:** la tienda local con este código (no hay base local con recortes); lo que se vio es la misma regla dibujada sobre la tienda de producción, a 375 px.
+
+## Actualización 2026-11-10 — la medida que llega tarde se aplica, y sin medida lo de abajo arranca en el bajo
+
+**Qué pasó.** Felipe mandó dos looks desde el celular (Polo Kristell Cuello Alto con Short Saskia negro, y un top marrón con caída con un short crudo) con el short
+escondido detrás del polo y asomando por los costados de la cintura. Es el dibujo de antes de la unión: cada prenda a su largo típico y la de abajo en la cintura fija
+de la figura (152 px), sin importar cuán larga sea la de arriba. La unión no se había aplicado. La causa probable: el límite de 4 s por recorte corre desde que se pide la
+imagen, y en la primera visita del celular la página pide decenas de imágenes a la vez (la tira, las vecinas); si una de las dos no llegaba a tiempo quedaba `null` toda la
+visita, sin reintento, y como no se guarda, volvía a pasar en la siguiente. **No se reprodujo en el celular de Felipe**: aquí el panel del navegador estaba oculto y la página
+no se hidrataba, así que es la causa más probable, no una medida.
+
+**Decisión.** Dos cosas, sin cambiar la regla de la unión:
+- El límite de 4 s solo deja de esperar (la figura sale de «Ajustando»): si la imagen llega después, su medida se aplica igual y se guarda (`useUnionDeLaFigura`, `medir`).
+- Mientras no hay unión (todavía no llega, o no se pudo leer), lo de abajo arranca en el bajo de la prenda de arriba, el medido o el estimado (`FILA_ESTIMADA_DEL_BORDE`),
+  donde ya corre el hilo, y no en la cintura fija (`cajaDeAbajoSinMedida`). Su tamaño sigue siendo el de siempre.
+
+**Prueba.** `union-prendas.test.ts`: tres casos de `cajaDeAbajoSinMedida`. `tsc` y `eslint` limpios. **No verificado** en el navegador ni en el celular.
+
+## Actualización 2026-11-10 (b) — la medida la saca la tienda, no el navegador
+
+**Qué pasó.** Felipe siguió viendo outfits sin unir (Polo Corazón con Pantalón Cayla Clásico, una camisa crop con jean, un top de encaje con short, un corset
+de encaje con falda y con pantalón), desde **Safari en su Mac**, ya con los arreglos de la mañana publicados. En Chrome las mismas combinaciones se unían bien
+(medido: bajo 41,9 cm, pretina 41,3 cm). La causa: **Safari 26 (macOS e iOS) trae encendida para toda la navegación su protección contra la huella digital, que
+le mete ruido a lo que una página lee de un lienzo** (`getImageData`), y esa lectura era la medida de la unión. No es un caso raro: es todo iPhone con iOS 26 y
+todo Mac con Safari 26. Fuentes: WebKit/Apple sobre «Advanced Fingerprinting Protection» por defecto en Safari 26.
+
+**Decisión (Felipe pidió «la mejor manera, que también resuelva errores futuros»).** El navegador ya no lee píxeles. La medida de cada recorte la saca la tienda
+en el servidor, con la MISMA función (`medirRecorte`) sobre los píxeles que entrega `sharp`: `GET /api/medida/<recorte>?v=1` (`app/api/medida/[archivo]/route.ts`,
+`lib/medida-del-recorte.ts`), con el mismo molde que `/api/recorte` (ADR-0613): solo acepta nombres de recortes del almacén, baja el recorte del almacén de la
+tienda (`TIENDA_FOTOS_ORIGEN`, nunca una dirección que llegue en la petición), no pasa por `proxy.ts`, y como el nombre de un recorte no se repite, la respuesta
+se guarda un año: cada recorte se mide una vez en total, no una vez por cliente. Si cambia cómo se mide, se sube `VERSION_DE_LA_MEDIDA`. La figura pide ese JSON
+(`useUnionDeLaFigura`), y lo recordado en el navegador sube a `cayla-union-v4` para que las medidas que Safari ya guardó arruinadas no vuelvan.
+
+**Por qué cierra la familia de errores, no solo este.** Todo navegador recibe el mismo número; ninguna protección de privacidad, extensión ni lienzo raro lo
+toca; y la medida es la de siempre (comprobada: sobre el Polo Kristell y el Short Saskia, la de la ruta y la del lienzo de Chrome coinciden en las tres cifras,
+salvo 0,4 % de redondeo en una). Un fallo de la ruta queda en el registro de Vercel (`tienda_medida_fallo`).
+
+**Descarté.** (a) Seguir midiendo en el navegador y «limpiar» el ruido: es una carrera contra cada versión de Safari. (b) Guardar la medida en la base al
+generar el recorte: es mejor a futuro (sin ninguna petición), pero pide una migración, cambiar el generador del ERP y rellenar los recortes que ya existen;
+queda como siguiente paso si la petición por recorte llegara a pesar.
+
+**Prueba.** `lib/medida-del-recorte.test.ts` (con PNG de verdad hechos con `sharp`: misma medida que `medirRecorte`, la pretina de un short que se abre, una
+imagen grande da la misma fracción, lo que no es imagen lanza) y los casos de la dirección y de la respuesta en `union-prendas.test.ts`. 1081 pruebas de la
+tienda, `tsc`, `eslint`, `knip` y `knip:produccion` en verde. La ruta se probó con la tienda corriendo en local contra el almacén de producción.
+**No verificado:** la figura completa en Safari (la tienda local no tiene base); conviene mirarla en el Mac de Felipe y en un iPhone al publicarse.

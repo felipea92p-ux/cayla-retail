@@ -2,10 +2,21 @@
   "guia": "productos.atributos",
   "ruta": "/productos/atributos",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 126,
+  "total": 120,
   "controles": {
     "components/AtributosHub.tsx": [
       "Pestanas «(sin nombre)»"
+    ],
+    "components/AvioClasesLista.tsx": [
+      "Boton «+ Nueva clase»",
+      "Boton «Crear la primera»",
+      "BotonEditar «→() => setEditando(c)»",
+      "CampoTexto «{guia.etiqueta(\"nombre\", \"Nombre\")}»",
+      "CampoSelect «Qué es»",
+      "CampoSelect «Se cuenta en (lo que se propone)»",
+      "ComboResponsable «{responsable}»",
+      "Boton «Cancelar»",
+      "Boton «{guia.frase ?? undefined}»"
     ],
     "components/ColoresLista.tsx": [
       "BotonFiltro «Todos»",
@@ -19,7 +30,7 @@
       "CampoTexto «Sinónimos»",
       "ComboResponsable «{responsable}»",
       "Boton «Cancelar»",
-      "Boton «{responsable.motivo ?? guia.frase ?? undefined}»",
+      "Boton «{responsable.motivo ?? faltaExiste ?? guia.frase ?? undefined}»",
       "CampoTexto «Motivo (opcional)»",
       "Boton «Cancelar» #2",
       "Boton «Confirmar rechazo»",
@@ -32,17 +43,15 @@
       "ComboResponsable «{responsable}» #2",
       "Boton «{responsable.motivo ?? undefined}»",
       "Boton «Cancelar» #3",
-      "Boton «{responsable.motivo ?? guia.frase ?? undefined}» #2"
-    ],
-    "components/CombinaConCampo.tsx": [
-      "button «{`Quitar ${nombre}»",
-      "ComboBuscable «{opciones}»",
-      "textarea «Descripción del color»"
+      "Boton «{responsable.motivo ?? faltaExiste ?? guia.frase ?? undefined}» #2"
     ],
     "components/ConfirmarConResponsable.tsx": [
       "ComboResponsable «{control}»",
       "Boton «Cancelar»",
       "Boton «{control?.motivo ?? undefined}»"
+    ],
+    "components/DescripcionColorCampo.tsx": [
+      "textarea «Descripción del color»"
     ],
     "components/DetalleMuestraModal.tsx": [
       "Boton «Subir foto»",
@@ -71,7 +80,7 @@
       "CampoTexto «{guia.etiqueta(\"descripcion\", \"Cómo se ve (opcional)\")}»",
       "ComboResponsable «{responsable}»",
       "Boton «Cancelar» #2",
-      "Boton «{responsable.motivo ?? guia.frase ?? undefined}»"
+      "Boton «{responsable.motivo ?? faltaExiste ?? guia.frase ?? undefined}»"
     ],
     "components/SelectorColor.tsx": [
       "input «Elegir color con el selector»",
@@ -89,7 +98,7 @@
       "CampoTexto «{guia.etiqueta(\"valor\", \"Valor de la talla\")}»",
       "ComboResponsable «{responsable}»",
       "Boton «Cancelar» #3",
-      "Boton «{responsable.motivo ?? guia.frase ?? undefined}»"
+      "Boton «{responsable.motivo ?? faltaExiste ?? guia.frase ?? undefined}»"
     ],
     "components/TejidosLista.tsx": [
       "BotonFiltro «Todos»",
@@ -101,7 +110,7 @@
       "CampoTexto «{guia.etiqueta(\"descripcion\", \"Cómo se ve (opcional)\")}»",
       "ComboResponsable «{responsable}»",
       "Boton «Cancelar» #2",
-      "Boton «{responsable.motivo ?? guia.frase ?? undefined}»"
+      "Boton «{responsable.motivo ?? faltaExiste ?? guia.frase ?? undefined}»"
     ],
     "components/TemporadasLista.tsx": [
       "button «{guia}»",
@@ -129,25 +138,6 @@
       "button «{eleccion ? undefined : \"Elige primero la temporada.\"}»",
       "Link «{p.nombre}»",
       "Casilla «{`Marcar ${p.nombre}»"
-    ],
-    "components/alta-producto/ElegirColores.tsx": [
-      "button «{`Quitar ${c.nombre}»",
-      "ComboBuscable «(sin nombre)»",
-      "button «{carta ? \"Ocultar la carta\" : `Ver los ${colores.length}»",
-      "Boton «{enLinea ? undefined : \"Crear un color necesita internet\"}»",
-      "button «{c.nombre}»"
-    ],
-    "components/alta-producto/IdentidadAlta.tsx": [
-      "ComboResponsable «{control}»",
-      "button «Ir a elegir»"
-    ],
-    "components/alta-producto/NuevoColorAlta.tsx": [
-      "CampoTexto «Nombre del color»",
-      "Desplegable «{familia}»",
-      "CampoTexto «Código»",
-      "Boton «{(!enLinea || mismoNombre ? bloqueo : firma.motivo) ?? undefined}»",
-      "button «Cancelar»",
-      "button «Elegir»"
     ],
     "components/atributos/kit.tsx": [
       "Boton «vocabulario.agregar»",

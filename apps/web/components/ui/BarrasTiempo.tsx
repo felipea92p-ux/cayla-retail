@@ -15,13 +15,16 @@ import type { CSSProperties, ReactNode } from "react";
    Sin JavaScript propio: sirve en un Server Component. Registro: docs/unificar/grafico.barras.md. Nunca una fila de barras a mano.
    ==================================================================== */
 
-export type TonoBarraTiempo = "tinta" | "rojo" | "ambar" | "verde";
+/** `arena-fuerte`: la arena un tono más oscura, para marcar un grupo de barras (el fin de semana en «Ventas por día»). */
+export type TonoBarraTiempo = "tinta" | "rojo" | "ambar" | "verde" | "arena-fuerte";
 
 export type BarraTiempo = {
   clave: string;
   valor: number;
   /** Lo que dice bajo la barra («6», «Lun», «15–21 oct»); vacío, nada. */
   etiqueta?: string;
+  /** La etiqueta se esconde en pantallas angostas (bajo 640 px) para que las demás quepan; en escritorio se ve. */
+  opcional?: boolean;
   /** La etiqueta en negrita (hoy). */
   fuerte?: boolean;
   /** El globito al pasar el mouse (y lo que oye el lector si la barra es un botón). */
@@ -55,6 +58,7 @@ export function BarrasTiempo({
   destacada = null,
   cifras = "destacada",
   referencia = null,
+  ejes,
   alto = 140,
   max,
   respuesta,
@@ -69,6 +73,8 @@ export function BarrasTiempo({
   cifras?: "destacada" | "todas" | "ninguna";
   /** Una sola referencia para todas: una raya taupe punteada de lado a lado. */
   referencia?: { valor: number; texto?: string } | null;
+  /** Los montos del eje de la izquierda: tres rayas (el cero, la mitad y el tope) con lo que vale cada una. Pásale `max` redondo (el tope del eje). */
+  ejes?: (valor: number) => string;
   /** El alto de la zona de las barras, en px (de fábrica 140). */
   alto?: number;
   /** El tope del eje (de fábrica, la mayor barra o meta). */
@@ -103,8 +109,14 @@ export function BarrasTiempo({
   const raiz = decorativa ? { "aria-hidden": true as const } : responde ? { role: "group" as const, "aria-label": etiqueta } : { role: "img" as const, "aria-label": etiqueta };
 
   return (
-    <div {...raiz} className={`barras-tiempo ${className}`}>
+    <div {...raiz} className={`barras-tiempo ${className}`} style={ejes ? { paddingLeft: "3.25rem" } : undefined}>
       <div className="barras-tiempo-zona" style={{ height: alto }}>
+        {ejes &&
+          [0, 0.5, 1].map((f) => (
+            <span key={f} aria-hidden className="barras-tiempo-eje-y" data-cero={f === 0 || undefined} style={{ bottom: Math.round(util * f) }}>
+              <span>{ejes(tope * f)}</span>
+            </span>
+          ))}
         {divergente && <span aria-hidden className="barras-tiempo-cero" style={{ bottom: cero }} />}
         {referencia && (
           <span aria-hidden className="barras-tiempo-ref" style={{ bottom: cero + px(referencia.valor) }}>
@@ -116,7 +128,6 @@ export function BarrasTiempo({
             const h = px(b.valor);
             const baja = b.valor < 0;
             const tono = b.tono ?? (b.clave === destacada ? "tinta" : undefined);
-            const lado = i < 2 ? "izq" : i > n - 3 ? "der" : undefined;
             const cuerpo = (
               <>
                 <span
@@ -134,7 +145,7 @@ export function BarrasTiempo({
                   </span>
                 )}
                 {b.tip && (
-                  <span aria-hidden className="barra-t-globo" data-lado={lado} style={{ bottom: cero + (baja ? 0 : h) + 8 }}>
+                  <span aria-hidden className="barra-t-globo" style={{ bottom: cero + (baja ? 0 : h) + 8, ["--x" as string]: (i + 0.5) / n }}>
                     {b.tip}
                   </span>
                 )}
@@ -180,7 +191,7 @@ export function BarrasTiempo({
       {barras.some((b) => b.etiqueta) && (
         <div aria-hidden className="barras-tiempo-eje" style={columnas}>
           {barras.map((b) => (
-            <span key={b.clave} className={b.fuerte || b.clave === destacada ? "barras-tiempo-eje-fuerte" : undefined}>
+            <span key={b.clave} data-opcional={b.opcional || undefined} className={b.fuerte || b.clave === destacada ? "barras-tiempo-eje-fuerte" : undefined}>
               {b.etiqueta ?? ""}
             </span>
           ))}

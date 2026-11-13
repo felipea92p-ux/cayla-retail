@@ -129,7 +129,7 @@ export function ClientasPanel({
       <EncabezadoPagina
         sede="Todas las sedes"
         titulo="Fichas"
-        subtitulo="Aquí están los clientes que la tienda recuerda. Toca uno para ver su historia y sus beneficios."
+        subtitulo="Los clientes que la tienda recuerda. Toca uno para ver su historia y sus beneficios."
         acciones={
           // A 375 px los botones van con `px-3`, «Descargar» a secas y «Cartel» sin su «del club» ni su ícono: «Descargar» y «Cartel»
           // caben en una fila y «+ Nuevo cliente» baja a la suya (con el «Más» de antes cabían los tres). La fila se parte sola.
@@ -203,7 +203,7 @@ export function ClientasPanel({
                 {vacio}
               </Vacio>
             ) : (
-              <ul className="grid gap-2.5 p-4">
+              <ul className="clientas-filas">
                 {filas.map((c, i) => (
                   <li key={c.id}>
                     <FilaClienta c={c} hoy={hoy} verCompleto={verCompleto} onAbrir={() => setFichaAbiertaId(c.id)} guiaPrimera={i === 0} />
@@ -224,8 +224,7 @@ export function ClientasPanel({
       </div>
 
       <p className="nota-cayla anim-sube" style={{ "--i": 3 } as React.CSSProperties} data-guia="clientas.nota">
-        La <b>sede</b> de cada cliente es donde más compró en los últimos 12 meses: se calcula al leer, nunca se escribe. «No reciben novedades» son
-        miembros que todavía no pidieron novedades y rebajas por WhatsApp: reciben solo los avisos informativos.
+        La <b>sede</b> de cada cliente es donde más compró en 12 meses. «No reciben novedades»: miembros que aún no las pidieron por WhatsApp; solo les llegan los avisos informativos.
       </p>
 
       {abriendoAlta && (
@@ -265,10 +264,12 @@ function FilaClienta({ c, hoy, verCompleto, onAbrir, guiaPrimera }: { c: Clienta
     <button
       type="button"
       onClick={onAbrir}
-      className={`card-cayla grid w-full cursor-pointer grid-cols-[auto_minmax(0,1fr)] items-center gap-x-4 gap-y-2 px-4 py-3 text-left transition-[border-color,transform] duration-200 hover:-translate-y-0.5 hover:border-taupe motion-reduce:transition-none motion-reduce:hover:translate-y-0 sm:grid-cols-[auto_minmax(0,1fr)_auto] ${c.archivadaEn ? "opacity-60" : ""}`}
+      // Una fila en la placa de la tabla (vidrio, «A · Filas en la placa», Felipe 2026-11-02): sin tarjeta propia; al pasar el mouse, la gota
+      // clara (vidrio/clientes.css). Lo que dice la fila no cambia (el plan de Clientas es de Dany).
+      className={`clientas-fila grid w-full cursor-pointer grid-cols-[auto_minmax(0,1fr)] items-center gap-x-4 gap-y-2 px-4 py-3 text-left sm:grid-cols-[auto_minmax(0,1fr)_auto] ${c.archivadaEn ? "opacity-60" : ""}`}
       data-guia={guiaPrimera ? "clientas.fila" : undefined}
     >
-      <AvatarPersona personaId={null} nombre={c.nombre ?? ""} tamano={40} />
+      <AvatarPersona personaId={null} nombre={c.nombre ?? ""} tamano={40} className="clientas-avatar" />
       <span className="min-w-0">
         <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
           <span className="font-display text-[19px] leading-tight text-tinta" data-guia={guiaPrimera && nombreDeEjemplo ? "clientas.nombre" : undefined}>
@@ -280,9 +281,9 @@ function FilaClienta({ c, hoy, verCompleto, onAbrir, guiaPrimera }: { c: Clienta
             </Chip>
           )}
         </span>
-        <span className="block text-[13px] text-tinta/70">{fraseDeLaFila(c)}</span>
+        <span className="block text-sm text-tinta/70">{fraseDeLaFila(c)}</span>
       </span>
-      <span className="col-span-2 grid gap-0.5 text-xs text-tinta/65 sm:col-span-1 sm:justify-items-end sm:text-right">
+      <span className="col-span-2 grid gap-0.5 text-sm text-tinta/65 sm:col-span-1 sm:justify-items-end sm:text-right">
         {ultima ? (
           <span>
             Última compra <b className="font-medium text-tinta">{ultima.hace}</b>

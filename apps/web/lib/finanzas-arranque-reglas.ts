@@ -1,5 +1,5 @@
 // Finanzas cuenta DESDE una fecha (ADR-0332; `20261004190000_finanzas_cuenta_desde.sql`). Lógica pura: la usan el Resumen,
-// Configuración ▸ Caja y avisos, el Cierre de mes y sus pruebas.
+// Configuración ▸ Dinero, el Cierre de mes y sus pruebas.
 //
 // Qué NO hace este archivo: cortar nada. El corte lo hace la base (`fn_asientos` y `fn_estado_resultados` no devuelven lo
 // anterior); aquí solo se LEE la fecha y se dice, con palabras, qué significa. Así una pantalla que muestra un mes anterior
@@ -51,13 +51,31 @@ export const corteParaBase = (elegido: string): string | null => (/^\d{4}-\d{2}-
 export function opcionesCorte(hoy: string, inicio: string | null): { valor: string; texto: string }[] {
   const meses = mesesRecientes(hoy, 12);
   if (inicio && !meses.includes(mesDelCorte(inicio))) meses.push(mesDelCorte(inicio));
-  return [{ valor: SIN_CORTE, texto: "Sin corte: cuenta todo" }, ...meses.map((m) => ({ valor: `${m}-01`, texto: `Desde ${mesTitulo(m)}` }))];
+  return [{ valor: SIN_CORTE, texto: "Desde el principio" }, ...meses.map((m) => ({ valor: `${m}-01`, texto: `Desde ${mesTitulo(m)}` }))];
 }
 
 /** Qué cambia con ese corte, dicho para quien no sabe de contabilidad. */
 export function consecuenciaCorte(inicio: string | null): string {
   if (!inicio) return "Hoy Finanzas cuenta todo lo registrado, también lo de antes de que el sistema empezara a usarse.";
   return `Resultados, Resumen, Balance y Cierre de mes cuentan desde el ${fechaDelCorte(inicio)}. Lo anterior no se borra: solo deja de contarse. La caja de las próximas semanas, los impuestos y el costo del Taller siguen mirando todo.`;
+}
+
+/** «Finanzas empezó a contar en octubre»: para lo que no alcanza a medirse (la comparación de octubre, que no es anterior al corte pero no tiene mes de antes). */
+export const empezoAContar = (inicio: string): string => `Finanzas empezó a contar en ${mesNombre(mesDelCorte(inicio))}`;
+
+/**
+ * @internal La prueba la cruza con las migraciones. Desde qué día las pérdidas y los sobrantes de inventario cuentan en Ganancias y pérdidas (`parametros_finanzas.mermas_asientan_desde` y
+ * `sobrantes_asientan_desde`). Va aquí porque `fn_parametros_finanzas` no la devuelve y leerla pediría tocar la base.
+ */
+export const CONTEOS_CUENTAN_DESDE = "2026-11-01";
+
+/**
+ * Lo que se dice si alguna de las fechas que se miran o se comparan (`desdes`) empieza antes de ese corte: esos meses se leen sin faltantes ni sobrantes, y sin esto parece que no se perdió nada.
+ * Sin montos: el repositorio es público y una cifra viva pide una lectura nueva en la base (la decide Felipe). `null` si nada es anterior.
+ */
+export function avisoConteosAntesDelCorte(desdes: readonly string[]): string | null {
+  if (!desdes.some((d) => d < CONTEOS_CUENTAN_DESDE)) return null;
+  return `Antes del ${fechaDelCorte(CONTEOS_CUENTAN_DESDE)} las pérdidas y los sobrantes de inventario no cuentan aquí: fue la etapa de arranque. Los conteos sí hallaron faltantes y sobrantes, y están en Inventario ▸ Movimientos ▸ Pérdidas: el margen de esas fechas se lee sin ellos.`;
 }
 
 /** Lo que dice una pantalla cuando el mes que mira es anterior al corte. */

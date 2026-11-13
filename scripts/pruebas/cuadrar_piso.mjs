@@ -13,9 +13,10 @@
  *      afuera; las tablas con RLS y sin políticas ni privilegios; las migraciones sin políticas ni `drop trigger` (la de
  *      tablas sin `alter` de tablas viejas; las otras dos sin ningún `alter table`); y el MISMO filtro en las dos: la
  *      previsualización y el cuadre llaman a fn_cuadre_piso_vista una vez cada una, y la vista a fn_cuadre_piso_calculo.
- *   C2 permisos: solo un líder confirma (integrante con Existencias y terminal Almacén con Existencias: cuadre_solo_lider,
- *      nada se escribe); revisar sí lo puede quien ve Existencias en su sede, no sin el módulo ni en otra sede; anon no; el
- *      Taller (sin piso ni almacén) no se cuadra.
+ *   C2 permisos: confirma quien ve Existencias en su sede, sin cuenta de líder (ADR-0534: la integrante con Existencias y
+ *      la terminal Almacén con Existencias SÍ confirman, y firma quien lo hizo); sin el módulo, cuadre_sin_modulo, y en otra
+ *      sede, cuadre_sin_tienda, sin escribir nada; revisar sí lo puede quien ve Existencias en su sede, no sin el módulo ni
+ *      en otra sede; anon no; el Taller (sin piso ni almacén) no se cuadra.
  *   C3 firma: con responsable presente firma ella (cabecera y cada fila del libro); con uno ausente, 42501 y nada se escribe.
  *   C4 la cuenta y todo o nada: el escenario completo (bajan, suben, no cargadas, apartadas, cuarentena, archivada, producto
  *      de prueba, la «Prenda sin registrar»); la previsualización dice EXACTAMENTE lo que el cuadre aplica; si una línea
@@ -91,8 +92,9 @@ const comoLiteral = (sql) => `${"$"}m$${sql.replace(/\\/g, "\\\\")}${"$"}m$`;
 
 /** Deshace el reemplazo anclado de una migración (sus anclas, leídas del archivo, en orden inverso): deja los cuerpos de
  *  antes, los de producción. Para probar la migración «desde producción» dentro de un caso. */
-const deshacer = (migracion) =>
+const deshacer = (migracion, soloFirma = () => true) =>
   [...leerMigracion(migracion).matchAll(/reemplazar_anclado\(\s*'([^']+)',\s*\$v\$([\s\S]*?)\$v\$,\s*\$n\$([\s\S]*?)\$n\$\s*\)/g)]
+    .filter(([, firma]) => soloFirma(firma))
     .reverse()
     .map(([, firma, viejo, nuevo]) => `do $dd$ begin execute replace(pg_get_functiondef('${firma}'::regprocedure), $nn$${nuevo}$nn$, $vv$${viejo}$vv$); end $dd$;`)
     .join("\n");
@@ -106,6 +108,10 @@ const MIGRACION_VARA_CAYLA = "20261008120000_frescura_vara_cayla.sql";
 // Bolsas de despacho (2026-10-10, 20261010233000): fn_frescura_sede deja fuera las familias apagadas. Es el parche más nuevo: se deshace PRIMERO.
 const MIGRACION_FAMILIAS_APAGADAS = "20261010233000_analisis_y_frescura_ignoran_familias_apagadas.sql";
 const DESHACER_POSTERIORES = [deshacer(MIGRACION_FAMILIAS_APAGADAS), deshacer(MIGRACION_VARA_CAYLA)].join("\n");
+// ADR-0534 (20261027164000) parcha el candado de `cuadrar_piso` con un reemplazo anclado: para comparar la parte de funciones
+// pegada otra vez contra lo que había, primero se deja `cuadrar_piso` como antes de ese parche (solo esa función).
+const MIGRACION_SIN_LIDER = "20261027164000_quitar_validaciones_del_lider.sql";
+const DESHACER_SIN_LIDER = deshacer(MIGRACION_SIN_LIDER, (firma) => firma.startsWith("retail.cuadrar_piso("));
 
 const PRELUDIO = `
 begin;
@@ -324,16 +330,44 @@ caso(
 // ===========================================================================
 
 caso(
-  "C2 · integrante CON Existencias en su sede → cuadre_solo_lider, y nada se escribe",
-  `${soloModulos("integrante", ["existencias"])}select ${CONTADORES} as antes \\gset
+  "C2 · integrante SIN Existencias (solo Vender) → cuadre_sin_modulo (42501), y nada se escribe",
+  `${soloModulos("integrante", ["vender"])}select ${CONTADORES} as antes \\gset
 ${sesion(MICAELA)}${COMO_API}select ${cuadrar(lista(["va", 1]), { ubic: "tru" })};
 ${COMO_POSTGRES}select ${CONTADORES} = :'antes';`,
-  (l) => error(l.at(-2), "cuadre_solo_lider") && json(l.at(-2)).msg.startsWith("Solo un líder confirma el cuadre del piso.") && l.at(-1) === "t"
+  (l) =>
+    error(l.at(-2), "cuadre_sin_modulo", "42501") &&
+    json(l.at(-2)).msg.startsWith("Confirmar el cuadre del piso necesita el módulo Existencias") &&
+    l.at(-1) === "t"
 );
 caso(
-  "C2 · terminal Almacén de TRU con Existencias y responsable presente → cuadre_solo_lider (confirmar es de la cuenta de un líder)",
-  `${TERMINAL_CON_EXISTENCIAS}${sesion(T_ALMACEN, { resp: "rosa" })}${COMO_API}select ${cuadrar(lista(["va", 1]), { ubic: "tru" })};`,
-  (l) => error(l.at(-1), "cuadre_solo_lider")
+  "C2 · integrante CON Existencias pero en OTRA sede (la de la prueba no es la suya) → cuadre_sin_tienda, y nada se escribe",
+  `${soloModulos("integrante", ["existencias"])}select ${CONTADORES} as antes \\gset
+${sesion(MICAELA)}${COMO_API}select ${cuadrar(lista(["va", 1]))};
+${COMO_POSTGRES}select ${CONTADORES} = :'antes';`,
+  (l) => error(l.at(-2), "cuadre_sin_tienda") && l.at(-1) === "t"
+);
+caso(
+  "C2 · integrante CON Existencias en su sede SÍ confirma, sin cuenta de líder (ADR-0534), y el cuadre queda firmado por ella",
+  `${soloModulos("integrante", ["existencias"])}update retail.colaboradores set ubicacion_asignada_id = :'cua'
+  where persona_id = (select id from public.personas where auth_user_id = '${MICAELA}');
+${sesion(MICAELA)}${COMO_API}select (${cuadrar(lista(["va", 1]))}) ->> 'ok';
+${COMO_POSTGRES}select (select persona_id from retail.cuadres_piso where token_cliente = :'tok1')
+  = (select id from public.personas where auth_user_id = '${MICAELA}');`,
+  (l) => l.at(-2) === "true" && l.at(-1) === "t"
+);
+caso(
+  "C2 · terminal Almacén con Existencias y responsable presente SÍ confirma en su tienda (ADR-0534: ya no pide que entre un líder), firmado por la responsable",
+  `${TERMINAL_CON_EXISTENCIAS}update retail.terminales set ubicacion_id = :'cua' where id = :'t_almacen';
+${sesion(T_ALMACEN, { resp: "rosa" })}${COMO_API}select (${cuadrar(lista(["va", 1]))}) ->> 'ok';
+${COMO_POSTGRES}select persona_id = :'rosa' from retail.cuadres_piso where token_cliente = :'tok1';`,
+  (l) => l.at(-2) === "true" && l.at(-1) === "t"
+);
+caso(
+  "C2 · la terminal SIN Existencias → cuadre_sin_modulo, aunque la responsable esté presente",
+  `${COMO_POSTGRES}delete from retail.rol_modulos where rol_id = retail.fn_rol_por_clave('terminal_administrativa') and modulo = 'existencias';
+update retail.terminales set ubicacion_id = :'cua' where id = :'t_almacen';
+${sesion(T_ALMACEN, { resp: "rosa" })}${COMO_API}select ${cuadrar(lista(["va", 1]))};`,
+  (l) => error(l.at(-1), "cuadre_sin_modulo", "42501")
 );
 caso(
   "C2 · revisar: la integrante con Existencias sí en su sede; sin el módulo o en otra sede, cuadre_sin_permiso; la terminal con Existencias, sí",
@@ -785,7 +819,8 @@ select ${MD5_DOS} = :'hoy';`,
     where pronamespace = 'retail'::regnamespace and proname in ('cuadrar_piso', 'previsualizar_cuadre_piso', 'fn_cuadre_piso_estado'))`;
   caso(
     "C12 · el orden de pegado: tablas → Frescura → Eliminar → funciones; sin la protección de Frescura o de Eliminar, la parte de funciones aborta y no toca nada; con las dos, entra",
-    `select ${FUNCIONES} as antes \\gset
+    `${DESHACER_SIN_LIDER}
+select ${FUNCIONES} as antes \\gset
 ${DESHACER_POSTERIORES}
 ${DESHACER_FRESCURA}
 select pg_temp.intento(${comoLiteral(leerMigracion(MIGRACION_FUNCIONES))}) ->> 'msg' like 'Frescura todavía no conoce el cuadre del piso: pega antes ${MIGRACION_FRESCURA}%';

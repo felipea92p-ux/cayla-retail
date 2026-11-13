@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { firmaDeEncabezados } from "@/lib/responsable-reglas";
 import { traducirError, type ErrorEscritura } from "@/lib/error-escritura";
 import { normalizarCombinaCon, normalizarDescripcion, normalizarPantone, normalizarSinonimos } from "@/lib/color-referencias";
+import { ERROR_COMPONENTES, normalizarComponentes } from "@/lib/color-combinado";
 import { esFamiliaDeColor } from "@/lib/colores-familias";
 
 // Un código Pantone no puede estar en dos colores (índice único `colores_pantone_tcx_unico`, 20260926180000).
@@ -28,12 +29,11 @@ const ERROR_COMBINA_CON = "«Combina con» son hasta 8 colores, cada uno con su 
 // PROMETE: el color queda disponible de inmediato para cualquier prenda
 //   nueva o existente — es la misma tabla que ya usa `getCatalogo()`
 //   (lib/catalogo-v2.ts) para la pantalla de Productos.
-// ASUME: sesión válida (cualquier persona activa, no solo Líder — decisión
-//   2026-09-16: "cualquiera propone, un Líder aprueba"). Quién propone no se
-//   valida acá: el estado real (`pendiente`/`aprobado`) lo decide un trigger
-//   en la base (`retail.fn_colores_estado_trigger`,
-//   `20260916220000_colores_proponer_aprobar.sql`) mirando si quien llama es
-//   Líder — nunca lo que mande este endpoint.
+// ASUME: sesión válida (cualquier persona activa — decisión 2026-09-16:
+//   "cualquiera propone"). Quién agrega no se valida acá: el estado lo pone un
+//   trigger en la base (`retail.fn_colores_estado_trigger`), que desde
+//   ADR-0534 (2026-10-27) lo deja `aprobado` lo cree quien lo cree — nunca lo
+//   que mande este endpoint.
 // NO HACE: no normaliza duplicados por su cuenta. Si "Azul marino" ya
 //   existe, `colores_clave_unica` lo rechaza y el mensaje se lo dice a la
 //   persona — no se le oculta silenciosamente ni se fusiona con el existente.
@@ -41,11 +41,28 @@ const ERROR_COMBINA_CON = "«Combina con» son hasta 8 colores, cada uno con su 
 //   imposible que dos colores equivalentes convivan como filas distintas.
 export async function POST(request: Request) {
   // Sin `requirePersonaActualV2()` guardando la puerta, esta ruta sería
-  // alcanzable sin sesión — sigue siendo la puerta de entrada, solo dejó de
-  // exigir Líder. El resultado (`estado`) no lo elige nadie de acá.
+  // alcanzable sin sesión — sigue siendo la puerta de entrada. El resultado
+  // (`estado`) no lo elige nadie de acá.
   await requirePersonaActualV2();
 
   const cuerpo = await request.json().catch(() => null);
+
+  // Una mezcla («Hueso con azul», ADR-0643): llegan solo los códigos —la base primero y de 1 a 3 acompañantes—, y la base arma
+  // el nombre, el código, la familia y el hex (`retail.color_combinado`). Si la mezcla ya existe, devuelve esa.
+  if (cuerpo?.componentes !== undefined) {
+    const componentes = normalizarComponentes(cuerpo.componentes);
+    if (!componentes) {
+      return Response.json({ error: ERROR_COMPONENTES }, { status: 400 });
+    }
+    const supabase = await createClient({ firma: firmaDeEncabezados(request.headers) });
+    const { data, error } = await supabase.rpc("color_combinado", { p_componentes: componentes });
+    if (error) {
+      // Los errores de la función ya hablan en español y nombran el color («El color ZZZ no existe.»).
+      return Response.json({ error: error.code === "P0001" ? error.message : mensajeDeError(error, "armar la mezcla") }, { status: 400 });
+    }
+    return Response.json({ color: data, creado: (data as { creado?: boolean } | null)?.creado === true });
+  }
+
   const nombre = typeof cuerpo?.nombre === "string" ? cuerpo.nombre.trim() : "";
   const codigo = typeof cuerpo?.codigo === "string" ? cuerpo.codigo.trim().toUpperCase() : "";
   const familiaColor = typeof cuerpo?.familiaColor === "string" ? cuerpo.familiaColor : "";
@@ -55,7 +72,12 @@ export async function POST(request: Request) {
   const sinonimos = normalizarSinonimos(Array.isArray(cuerpo?.sinonimos) || typeof cuerpo?.sinonimos === "string" ? cuerpo.sinonimos : null, nombre);
   const descripcion = normalizarDescripcion(typeof cuerpo?.descripcion === "string" ? cuerpo.descripcion : null);
   const combinaCon = normalizarCombinaCon(cuerpo?.combinaCon, codigo);
+  // Un estampado es un color con nombre propio (ADR-0634). «textura» no se elige desde aquí; lo que no se manda queda «solido», el valor de la columna.
+  const tipo = cuerpo?.tipo === "estampado" ? "estampado" : "solido";
 
+  if (cuerpo?.tipo !== undefined && cuerpo.tipo !== "estampado" && cuerpo.tipo !== "solido") {
+    return Response.json({ error: "El color es liso o estampado." }, { status: 400 });
+  }
   if (!nombre) {
     return Response.json({ error: "Falta el nombre del color." }, { status: 400 });
   }
@@ -86,7 +108,7 @@ export async function POST(request: Request) {
   // (`lib/color-escala.ts`, ADR-0312), así que el nuevo cae en su lugar solo, por su familia y su claridad.
   const { data, error } = await supabase
     .from("colores")
-    .insert({ codigo, nombre, familia_color: familiaColor, hex, orden: 2000, notas, pantone_tcx: pantoneTcx, sinonimos, descripcion, combina_con: combinaCon })
+    .insert({ codigo, nombre, familia_color: familiaColor, tipo, hex, orden: 2000, notas, pantone_tcx: pantoneTcx, sinonimos, descripcion, combina_con: combinaCon })
     .select("codigo, nombre, familia_color, tipo, hex, notas, estado, pantone_tcx, sinonimos, descripcion, combina_con")
     .single();
 
@@ -108,7 +130,7 @@ export async function POST(request: Request) {
 export async function PATCH(request: Request) {
   const persona = await requirePersonaActualV2();
   if (!puede(persona, "editarCatalogo")) {
-    return Response.json({ error: "Solo un Líder puede editar el vocabulario de colores." }, { status: 403 });
+    return Response.json({ error: "Editar el vocabulario de colores necesita el módulo Productos o Atributos en tu rol." }, { status: 403 });
   }
 
   const cuerpo = await request.json().catch(() => null);

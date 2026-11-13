@@ -1,4 +1,4 @@
-// «Pregúntale a CAYLA» (ADR-0529, actividad 7; tensión 3 del ADR): las REGLAS DE TIENDA que el asistente puede contestar.
+// «Pregúntale a CAYLA» (ADR-0536, actividad 7; tensión 3 del ADR): las REGLAS DE TIENDA que el asistente puede contestar.
 //
 // Para responder «¿cuántos días tiene un cliente para cambiar una prenda?» la IA tiene que leer la regla en algún lado. Repartida entre
 // `docs/datos/15-COMO-OPERA-CAYLA.md`, los ADR y el código, mezclaría lo decidido con lo viejo. Por eso viven aquí, cortas y con su fuente,
@@ -100,6 +100,14 @@ export const REGLAS_DE_TIENDA: readonly ReglaDeTienda[] = [
     respuesta: "Una proforma es una cotización: guarda el precio los días que elijas al hacerla, pero no es comprobante ni separa la prenda. Para separarla, se aparta.",
     fuente: "Guía de Proformas («no es comprobante de pago ni mueve stock»)",
     estado: "aprobada",
+  },
+  {
+    id: "nombre-prenda",
+    pregunta: "cómo le pongo nombre a una prenda nueva nombrar bautizar flor qué nombre le doy",
+    respuesta: "El nombre es el tipo de prenda más una flor de la lista, como «Blusa Dalia»: el color y la talla nunca van en el nombre. Si es la misma prenda en otro color, no se crea otra: se abre la que ya existe y se le agrega el color.",
+    fuente: "ADR-0556 (estándar de nombres, Felipe 2026-10-28); lib/nombre-de-prenda.ts",
+    // Borrador: entra a la IA cuando Felipe la apruebe.
+    estado: "borrador",
   },
 ];
 

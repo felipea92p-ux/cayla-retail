@@ -6,6 +6,14 @@
 
 - [ ] Si toca Vender, Cambios o Devoluciones (`/vender`, `/vender/apartados`, `/cambios`, `/devoluciones`, o los componentes `PuntoDeVenta*`, `Cambio*`/`Cambios*`, `Devoluciones*`): **probado a 375 px de ancho, con captura** adjunta aquí. Caja y Almacén siguen siendo de escritorio (PL-105).
 
+- [ ] Si cambia la cara del ERP (un `.tsx` de `apps/web/components/` o `apps/web/app/`, o un `.css` de `apps/web/app/`): **pasó por `/milimetro`**
+  (CLAUDE.md «Al milímetro», obligatoria): `/milimetro diseñar <pieza>` si es nueva o `/milimetro auditar <ruta>` si cambia algo que
+  existe, sin hallazgos graves abiertos, y lo que choca con una regla del repo anotado en `docs/milimetro/propuestas.md`. Escribe aquí
+  la ruta auditada y qué arreglaste.
+- [ ] **Al milímetro no aplica:** toca esos archivos pero no cambia nada que se vea (un tipo, un import, un nombre); el cuerpo dice por qué.
+
+<!-- El check «Al milímetro» sale rojo si el PR cambia un archivo visual del ERP y no marcó ninguna de las dos casillas. -->
+
 - [ ] Si agrega o cambia una pantalla, un modal o una pieza visual: **se ve y se lee en modo oscuro** (CLAUDE.md «Modo oscuro», ADR-0336):
   solo tokens (nada de hex, `rgba()` ni `bg-white`), velos y sombras con `--color-sombra`, papel físico con `.papel-fijo`, y corrida
   `pnpm --filter web tema:auditar` con 0 hallazgos «solo en oscuro» y capturas mirando el estado nuevo; o el cuerpo dice por qué no aplica.
@@ -25,6 +33,9 @@
 - [ ] Si agrega, quita o cambia un botón, un campo o una pestaña de una pantalla: **su guía interactiva está al día** (`/guia`; CLAUDE.md
   «Guías interactivas», ADR-0389): explica lo nuevo con su `data-guia`, ya no menciona lo que se fue, `guias:recorrer` en verde (la demo
   no escribe en la base) y recién ahí la huella aceptada (`guias:huella <id>`). Una pantalla nueva trae su guía o dice por qué no aplica.
+- [ ] Si toca `apps/web/app/estilos/vidrio/`, `apps/web/components/ui/` o `docs/familia/contrato.json`: **el cuerpo dice qué le cambia a Dynamic**
+  (CLAUDE.md «Los dos sistemas», ADR-0516): «llega solo» (`recetas.css`, `contrato.json`) o «queda como tarea allá» (lo demás), con las piezas,
+  y qué tendrá que hacerse a mano si cambia cómo funciona una pieza. Se le dijo a Felipe.
 
 ## SQL para producción
 

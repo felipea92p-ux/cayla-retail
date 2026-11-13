@@ -12,10 +12,11 @@
  *       mesa (ADR-0360; `lib/por-regularizar-deduccion.ts`: el sistema no tenía ninguna a la hora de la venta ⇒ llegó nueva; tenía y
  *       después no llegó nada ⇒ ya estaba registrada) es la que cuadra en los dos. Los casos R7 prueban el saldo a la venta y el cambio
  *       posterior que trae la lectura (una prenda que se agotó y volvió a llegar).
- *   C · Nadie regulariza su propia venta, salvo el líder firmando él mismo (20261004204000): ni con su cuenta, ni eligiéndose en
- *       la terminal, ni nombrando a otra persona desde su propia cuenta, ni elegida en el combo con la sesión de un líder abierta
- *       (R1); otra integrante sí; el líder sí, la suya; desde una terminal hay que elegir quién firma (la clave
- *       'regularizar_prenda' ya no está en `acciones_sin_responsable`).
+ *   C · Quien vendió SÍ regulariza su propia venta (ADR-0534, 20261027164000: sale la regla «nadie regulariza su propia venta,
+ *       salvo el líder» de 20261004204000; en una terminal compartida es la misma persona y la líder la valida en persona): con
+ *       su cuenta, eligiéndose en la terminal, nombrando a otra persona desde su cuenta o elegida en el combo con la sesión de
+ *       un líder abierta, y firma quien quedó como responsable; otra integrante también; el líder, la suya; desde una terminal
+ *       hay que elegir quién firma (la clave 'regularizar_prenda' ya no está en `acciones_sin_responsable`).
  *   R · Lo que encontró la revisión adversarial: «ya estaba registrada» descuenta de lo DISPONIBLE (ni Cuarentena ni apartadas,
  *       R2/R3) y una prenda sin ningún movimiento en la sede no se regulariza (R6). El aviso dice la salida que sigue abierta en
  *       ESA sede (ajuste del 2026-10-04): con la carga inicial abierta, «primero cárgala con su stock inicial»; cerrada (el cierre
@@ -31,11 +32,13 @@
  *       prueba o una venta con más de 20 posibles (el tope de la segunda: esas quedan sin respuesta deducida).
  *   L · El lote «Identificar con sugerencias» (#800, `regularizar_prendas_sugeridas`) encima de la regla de C (D3, 2026-10-05): con
  *       el interruptor encendido, la cuenta de un líder sin admin y el encabezado `x-responsable-omitido: cola_arranque_identificar`
- *       (el que manda la web), cada `regularizar_prenda` anidada firma con el líder, también su propia venta; sin ese encabezado, con
+ *       (el que manda la web), cada `regularizar_prenda` anidada firma con el líder, también su propia venta (desde ADR-0534 ya no hay
+ *       regla de «propia venta» que esquivar, pero el camino de la firma sigue siendo el mismo); sin ese encabezado, con
  *       una clave inventada o con la vieja 'regularizar_prenda', pide el combo y no aplica ninguna.
  *   P · La migración 20261004204000 se aplica sobre el cuerpo ORIGINAL de `regularizar_prenda` (20260923162300, lo que producción
  *       tiene antes de pegar) y se puede volver a pegar; la sonda de solo lectura que se corre en producción antes de pegar
- *       encuentra cada ancla UNA vez. `node scripts/pruebas/ventas_sin_registrar.mjs --sonda` imprime esa sonda.
+ *       encuentra cada ancla UNA vez. (Es la prueba de ESA migración, histórica: la regla de «propia venta» que deja la quita
+ *       después 20261027164000; que el cuerpo vivo ya no la tenga lo mira C0.) `node scripts/pruebas/ventas_sin_registrar.mjs --sonda` imprime esa sonda.
  *
  * CÓMO. Mismo patrón que `responsable_omitido.mjs`: cada caso en su transacción con ROLLBACK, como Felipe (líder) o Micaela
  * (integrante de Tienda Trujillo) con `request.jwt.claim(s)`. Las prendas son nuevas (`ZZ VSR …`), con su historia sembrada
@@ -374,7 +377,7 @@ select :'venta_antes' || '/' || pg_temp.stock(:'vl', tru) from ids;`,
   "false/3",
 );
 
-// ---------------- C · nadie regulariza su propia venta, salvo el líder ----------------
+// ---------------- C · quien vendió también regulariza (ADR-0534; antes, «nadie regulariza su propia venta, salvo el líder») ----------------
 // Lucía (con cuenta) y Rosa (sin cuenta) son de Trujillo; la terminal de ventas de Trujillo; Rosa, Lucía y Micaela con la
 // jornada abierta hoy (presentes para el combo «Responsable»). Una prenda de la tienda con 2 unidades para descontar.
 const EQUIPO = `
@@ -404,11 +407,21 @@ const conEncabezados = (obj) => `select set_config('request.headers', '${JSON.st
 const VENDE_MICAELA = `${como(MICAELA)}select pg_temp.vender_libre(tru, talla_m, 'NEG', now() - interval '1 day') as pp from ids \\gset\n`;
 const regulariza = `select pg_temp.intento(format('select retail.regularizar_prenda(%L, %L, %L)', :'pp', :'vm', 'ya_registrada'));`;
 const firmo = `select coalesce((select regularizado_por::text from retail.prendas_por_regularizar where id = :'pp'), 'NADIE');`;
+/** Regulariza :pp y devuelve «resultado/¿firmó quien?» (quien: una expresión SQL que da el id de la persona). */
+const regularizaYFirma = (quien) =>
+  `${regulariza.slice(0, -1)} as r \\gset
+select :'r' || '/' || coalesce((select (regularizado_por = ${quien})::text from retail.prendas_por_regularizar where id = :'pp'), 'nadie');`;
 
 caso(
-  "C1 · Micaela, con su cuenta, no regulariza la prenda que ella vendió",
-  `${EQUIPO}${VENDE_MICAELA}${regulariza}`,
-  "42501|regularizar_propia_venta",
+  "C0 · ADR-0534: el cuerpo vivo de regularizar_prenda ya no trae la regla «regularizar_propia_venta» ni llama a fn_es_lider()",
+  `select (position('regularizar_propia_venta' in prosrc) = 0 and position('fn_es_lider()' in prosrc) = 0)::text
+     from pg_proc where oid = 'retail.regularizar_prenda(uuid, uuid, text)'::regprocedure;`,
+  "true",
+);
+caso(
+  "C1 · Micaela, con su cuenta, SÍ regulariza la prenda que ella vendió (ADR-0534), y firma ella",
+  `${EQUIPO}${VENDE_MICAELA}${regularizaYFirma("(select micaela from ids)")}`,
+  "SIN_ERROR/true",
 );
 caso(
   "C2 · otra integrante de la tienda (Lucía, con su cuenta) sí la regulariza, y firma ella",
@@ -423,10 +436,10 @@ select :'suya' || '/' || pg_temp.intento(format('select retail.regularizar_prend
   "true/SIN_ERROR",
 );
 caso(
-  "C4 · desde la terminal, eligiéndose a sí misma en el combo, Micaela tampoco puede",
+  "C4 · desde la terminal, eligiéndose a sí misma en el combo, Micaela SÍ regulariza su venta (ADR-0534), y firma ella",
   `${EQUIPO}${VENDE_MICAELA}${como(T_VENTAS_AUTH)}select set_config('request.headers', json_build_object('x-responsable', micaela)::text, true) from ids \\g /dev/null
-${regulariza}`,
-  "42501|regularizar_propia_venta",
+${regularizaYFirma("(select micaela from ids)")}`,
+  "SIN_ERROR/true",
 );
 caso(
   "C5 · desde la terminal, con Rosa (presente) en el combo, se regulariza y queda firmado por Rosa",
@@ -439,12 +452,13 @@ caso(
   "42501|responsable_requerido",
 );
 caso(
-  "C7 · con su propia cuenta, nombrar a Lucía en el combo no le sirve a Micaela: la venta sigue siendo suya",
+  "C7 · con su propia cuenta, Micaela nombra a Lucía en el combo: se regulariza (ADR-0534) y firma Lucía, la responsable elegida",
   `${EQUIPO}${VENDE_MICAELA}insert into retail.configuracion_empresa (id, ruc, razon_social, exige_responsable) values (true, '20000000001', 'Prueba', true)
   on conflict (id) do update set exige_responsable = true;
 select set_config('request.headers', json_build_object('x-responsable', '${LUCIA}', 'x-ubicacion', tru)::text, true) from ids \\g /dev/null
-select (retail.fn_actor_persona_id(true) = '${LUCIA}'::uuid)::text || '/' || ${regulariza.slice(7, -1)};`,
-  "true/42501|regularizar_propia_venta",
+select (retail.fn_actor_persona_id(true) = '${LUCIA}'::uuid)::text as actor \\gset
+${regularizaYFirma(`'${LUCIA}'::uuid`).replace("select :'r' || '/'", "select :'actor' || '/' || :'r' || '/'")}`,
+  "true/SIN_ERROR/true",
 );
 caso(
   "C8 · una venta sin asesora registrada (no hay con quién comparar) la regulariza cualquiera de la tienda",
@@ -464,16 +478,18 @@ caso(
 ${como(T_VENTAS_AUTH)}${conEncabezados({ "x-responsable-omitido": "regularizar_prenda" })}select (retail.fn_actor_persona_id() is null)::text || '/' || ${"select pg_temp.intento(format('select retail.regularizar_prenda(%L, %L, %L)', :'pp', :'vm', 'ya_registrada'));".slice(7, -1)};`,
   "true/42501|responsable_requerido",
 );
-// R1 (revisión adversarial): la excepción del líder es el líder FIRMANDO ÉL MISMO, no la cuenta. Las líderes de equipo cobran
-// en caja con su cuenta (15-COMO-OPERA-CAYLA R-23): con esa sesión abierta, la asesora que vendió se elegía en el combo.
+// R1 (revisión adversarial, 2026-10-04) cerraba la excepción del líder a «el líder FIRMANDO ÉL MISMO, no la cuenta». Desde ADR-0534
+// ya no hay excepción que cerrar: con la sesión de un líder abierta, la asesora que vendió elegida en el combo regulariza y firma ella.
 const EXIGE_RESPONSABLE = `insert into retail.configuracion_empresa (id, ruc, razon_social, exige_responsable) values (true, '20000000001', 'Prueba', true)
   on conflict (id) do update set exige_responsable = true;\n`;
 caso(
-  "C12 · R1 · con la cuenta de un líder abierta, Micaela (la que vendió) elegida en el combo NO regulariza su propia venta",
+  "C12 · con la cuenta de un líder abierta, Micaela (la que vendió) elegida en el combo SÍ regulariza su venta (ADR-0534) y firma ella",
   `${EQUIPO}${VENDE_MICAELA}${como(FELIPE)}${EXIGE_RESPONSABLE}select set_config('request.headers', json_build_object('x-responsable', micaela, 'x-ubicacion', tru)::text, true) from ids \\g /dev/null
-select (retail.fn_actor_persona_id(true) = (select micaela from ids))::text || '/' || ${regulariza.slice(7, -1)} || '/' ||
-       (select estado from retail.prendas_por_regularizar where id = :'pp');`,
-  "true/42501|regularizar_propia_venta/pendiente",
+select (retail.fn_actor_persona_id(true) = (select micaela from ids))::text as actor \\gset
+${regulariza.slice(0, -1)} as r \\gset
+select :'actor' || '/' || :'r' || '/' ||
+       (select estado || ':' || (regularizado_por = (select micaela from ids))::text from retail.prendas_por_regularizar where id = :'pp');`,
+  "true/SIN_ERROR/regularizada:true",
 );
 caso(
   "C13 · el líder que vendió, desde su cuenta, sí puede nombrar a Lucía como responsable (y firma ella)",
@@ -484,13 +500,14 @@ ${firmo}`,
   LUCIA,
 );
 caso(
-  "C14 · desde la terminal, elegir el nombre del líder que vendió (presente) no presta la excepción",
+  "C14 · desde la terminal, elegir el nombre del líder que vendió (presente) regulariza su venta (ADR-0534: ya no hay excepción que prestar) y firma él",
   `${EQUIPO}insert into public.jornadas (persona_id, sede_id, fecha, estado)
   select ids.felipe, u.sede_dynamic_id, (now() at time zone 'America/Lima')::date, 'abierta' from ids join retail.ubicaciones u on u.id = ids.tru;
 select pg_temp.vender_libre(tru, talla_m, 'NEG', now() - interval '1 day') as pp from ids \\gset
 ${como(T_VENTAS_AUTH)}select set_config('request.headers', json_build_object('x-responsable', felipe)::text, true) from ids \\g /dev/null
-select (retail.fn_actor_persona_id(true) = (select felipe from ids))::text || '/' || ${regulariza.slice(7, -1)};`,
-  "true/42501|regularizar_propia_venta",
+select (retail.fn_actor_persona_id(true) = (select felipe from ids))::text as actor \\gset
+${regularizaYFirma("(select felipe from ids)").replace("select :'r' || '/'", "select :'actor' || '/' || :'r' || '/'")}`,
+  "true/SIN_ERROR/true",
 );
 caso(
   "C10 · lo de siempre sigue: la segunda regularización de la misma venta se rechaza",
@@ -865,7 +882,7 @@ select (select count(*) from retail.fn_candidatas_de_venta((select tru from ids)
   "22/20/0",
 );
 
-// ---------------- L · el lote del líder (#800) encima de la regla «nadie regulariza su propia venta» (D3, 2026-10-05) ----------------
+// ---------------- L · el lote del líder (#800) encima de la regla «nadie regulariza su propia venta» (D3, 2026-10-05; la regla salió con ADR-0534) ----------------
 // `regularizar_prendas_sugeridas` (20261005120000) llama a `regularizar_prenda` por dentro, una vez por pareja, con la cuenta del líder
 // y sin combo. La firma la decide `fn_actor_persona_id(true)` leyendo los encabezados de la PETICIÓN (uno para toda la cadena): la web
 // del lote manda `x-responsable-omitido: cola_arranque_identificar` (SugerenciasColaModal → `firmaOmitida`), esa clave está en

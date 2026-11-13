@@ -1,8 +1,10 @@
 "use client";
 
-import { useSyncExternalStore } from "react";
+import { useRef, useSyncExternalStore } from "react";
 import { Modal } from "@/components/ui/Modal";
 import { esperaOcupada, suscribirEspera } from "@/lib/espera-estado";
+import { useQuieto } from "@/lib/useQuieto";
+import { useCuentaAtrasQuieta } from "@/components/ui/useCuentaAtrasQuieta";
 
 /* ====================================================================
    Aviso destacado · la confirmación que no se puede pasar por alto (2026-10-08)
@@ -84,16 +86,29 @@ function Hoja({ d }: { d: Destacado }) {
             {d.nota && <p className="mt-1 text-[13px] leading-snug text-taupe">{d.nota}</p>}
           </div>
           {/* La cuenta atrás: al vaciarse cierra la hoja. Con el mouse encima se pausa (`.destacado-reloj`, avisos.css). */}
-          <div aria-hidden className="mt-5 h-1 overflow-hidden rounded-full bg-sand/60">
-            <div
-              className="destacado-reloj h-full rounded-full bg-verde"
-              onAnimationEnd={(e) => {
-                if (e.animationName === "cayla-destacado-reloj") cerrar();
-              }}
-            />
-          </div>
+          <RelojBarra alTerminar={cerrar} />
         </>
       )}
     </Modal>
+  );
+}
+
+/** La barra que se vacía y cierra la hoja. Con las animaciones apagadas no se mueve y el tiempo lo cuenta un temporizador que se
+ *  pausa con el mouse sobre la hoja, como la barra (`useCuentaAtrasQuieta`). */
+const MS_DESTACADO = 4500;
+function RelojBarra({ alTerminar }: { alTerminar: () => void }) {
+  const barra = useRef<HTMLDivElement>(null);
+  const quieto = useQuieto();
+  useCuentaAtrasQuieta(barra, quieto ? MS_DESTACADO : null, alTerminar, { zona: (el) => el.closest<HTMLElement>('[role="dialog"]') });
+  return (
+    <div aria-hidden className="mt-5 h-1 overflow-hidden rounded-full bg-sand/60">
+      <div
+        ref={barra}
+        className="destacado-reloj h-full rounded-full bg-verde"
+        onAnimationEnd={(e) => {
+          if (e.animationName === "cayla-destacado-reloj") alTerminar();
+        }}
+      />
+    </div>
   );
 }

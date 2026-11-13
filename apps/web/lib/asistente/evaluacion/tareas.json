@@ -1,0 +1,27 @@
+{
+  "nota": "Pedidos que piden hacer algo, de varias pantallas (ADR-0536, «Acompañar una tarea»). `recorrer-tareas.mjs` los recorre en el navegador como una persona hasta el primer paso que guarda, sin tocarlo. `escribe`: lo que la persona escribiría en un buscador si CAYLA no lo escribió; `asistencia`: necesita a alguien de turno en la tienda (Cobrar se apaga sin eso); `receta`: la receta que debería elegir la IA (`recetas.ts`); `padron`: necesita el padrón de SUNAT, que en local no responde (se informa aparte).",
+  "tareas": [
+    { "id": "vender", "receta": "vender", "cuenta": "admin", "inicio": "/vender", "pregunta": "kiero bender una blusa emma color negro talla m, me paga con yape y quiere boleta", "escribe": "blusa emma", "asistencia": true },
+    { "id": "agregar-color", "receta": "agregar-color", "cuenta": "admin", "inicio": "/", "pregunta": "quiero agregar un color a la blusa catalina siete", "escribe": "catalina siete" },
+    { "id": "agregar-talla", "receta": "agregar-talla", "cuenta": "admin", "inicio": "/", "pregunta": "agregar la talla xl a la blusa catalina siete", "escribe": "catalina siete" },
+    { "id": "cambiar-precio", "receta": "cambiar-precio", "cuenta": "admin", "inicio": "/", "pregunta": "cambiar el precio de la blusa emma a 99 soles", "escribe": "blusa emma" },
+    { "id": "gasto", "cuenta": "admin", "inicio": "/", "pregunta": "registrar un gasto de 15 soles de taxi" },
+    { "id": "ingreso", "receta": "ingreso-caja", "cuenta": "admin", "inicio": "/caja", "pregunta": "registrar un ingreso de 50 soles en caja" },
+    { "id": "cliente", "receta": "cliente-nuevo", "padron": true, "cuenta": "admin", "inicio": "/", "pregunta": "crear un cliente nuevo con su dni" },
+    { "id": "cambio", "receta": "cambio", "cuenta": "admin", "inicio": "/", "pregunta": "hacer un cambio de talla de una blusa", "escribe": "blusa" },
+    { "id": "devolucion", "receta": "devolucion", "cuenta": "admin", "inicio": "/", "pregunta": "una clienta devuelve un short, quiere su plata", "escribe": "short" },
+    { "id": "traslado", "receta": "traslado", "cuenta": "admin", "inicio": "/", "pregunta": "mandar 3 blusas a la tienda de trujillo" },
+    { "id": "apartar", "cuenta": "admin", "inicio": "/", "pregunta": "apartar una blusa emma para una clienta", "escribe": "blusa emma" },
+    { "id": "prenda-nueva", "cuenta": "admin", "inicio": "/", "pregunta": "crear una prenda nueva en el catálogo" },
+    { "id": "conteo", "cuenta": "admin", "inicio": "/", "pregunta": "empezar un conteo de inventario" },
+    { "id": "ajustar-stock", "cuenta": "admin", "inicio": "/", "pregunta": "ajustar el stock de la blusa emma", "escribe": "blusa emma" },
+    { "id": "categoria", "cuenta": "admin", "inicio": "/", "pregunta": "crear una categoría nueva de prendas" },
+    { "id": "marca", "cuenta": "admin", "inicio": "/", "pregunta": "registrar una marca nueva" },
+    { "id": "liquidacion", "cuenta": "admin", "inicio": "/", "pregunta": "poner la blusa emma en liquidación", "escribe": "blusa emma" },
+    { "id": "proveedor", "cuenta": "admin", "inicio": "/", "pregunta": "registrar un proveedor nuevo" },
+    { "id": "etiquetas", "cuenta": "admin", "inicio": "/", "pregunta": "imprimir las etiquetas de la blusa emma", "escribe": "blusa emma" },
+    { "id": "campana", "cuenta": "admin", "inicio": "/", "pregunta": "crear una campaña de descuento" },
+    { "id": "cerrar-caja", "cuenta": "admin", "inicio": "/", "pregunta": "cerrar la caja de hoy" },
+    { "id": "terminal-cliente", "receta": "cliente-nuevo", "padron": true, "cuenta": "terminal-ventas", "inicio": "/vender", "pregunta": "registrar a una clienta nueva" }
+  ]
+}

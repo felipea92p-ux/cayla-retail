@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { chipLlegada, cierresElegidos, diasDeAtraso, estadoLinea, etiquetaConfirmar, faltanteDeLinea, fechaEsperada, montoDeCierres, notasPorReclamar, sinDecidir, ordenarPorUrgencia, resumenConteo, tasaIgv, textoEsperada, valorPorLlegar } from "./recepciones-reglas";
+import { chipLlegada, cierresElegidos, diasDeAtraso, estadoLinea, etiquetaConfirmar, faltanteDeLinea, fechaEsperada, montoDeCierres, notasPorReclamar, sinDecidir, ordenarPorUrgencia, tasaIgv, textoEsperada, valorPorLlegar } from "./recepciones-reglas";
 
 // Hoy en Lima = 2026-09-18 (a las 19:30 de Lima en UTC ya es 09-19).
 const AHORA = new Date("2026-09-19T00:30:00Z");
@@ -27,23 +27,6 @@ describe("faltanteDeLinea", () => {
     expect(faltanteDeLinea(20, 24)).toBe(4);
     expect(faltanteDeLinea(24, 24)).toBe(0);
     expect(faltanteDeLinea(30, 24)).toBe(0);
-  });
-});
-
-describe("resumenConteo", () => {
-  it("cuenta líneas contadas (incluida la que llegó en 0), unidades y excedidas", () => {
-    const r = resumenConteo([
-      { llego: 24, pendiente: 24 },
-      { llego: 36, pendiente: 36 },
-      { llego: null, pendiente: 30 },
-      { llego: 20, pendiente: 24 },
-      { llego: null, pendiente: 60 },
-      { llego: 0, pendiente: 66 },
-    ]);
-    expect(r).toEqual({ total: 6, contadas: 4, sinContar: 2, unidades: 80, excedidas: 0 });
-  });
-  it("cuenta las excedidas", () => {
-    expect(resumenConteo([{ llego: 25, pendiente: 24 }, { llego: null, pendiente: 5 }]).excedidas).toBe(1);
   });
 });
 

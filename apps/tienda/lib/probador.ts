@@ -107,6 +107,9 @@ const PREFIJOS_METIDOS: readonly string[] = ["BOD"];
 /** Las prendas de arriba que se dibujan por su propio torso (ADR-0449 act. c): blusas, camisas, polos y tops. Las de abrigo (casacas, chalecos, blazers) quedan con la regla de siempre. */
 const PREFIJOS_POR_TORSO: readonly string[] = ["CMS", "BLU", "TOP", "POL", "COR"];
 
+/** Las prendas de abajo que se miden también contra el ancho de la blusa al unirse (ADR-0449 act. 2026-11-09): las faldas. Pantalones, shorts y jeans no. */
+const PREFIJOS_FALDA: readonly string[] = ["FAL"];
+
 /** La zona de una categoría, por su prefijo (nunca por el nombre visible, que se renombra). null: no entra al probador. La regla vive
  *  en `packages/shared` (`zonaDelProbador`): el ERP cuenta con la misma qué prendas preparar (Tienda web ▸ Vitrina ▸ Probador). */
 export function zonaDe(categoria: Prenda["categoria"]): Zona | null {
@@ -155,23 +158,12 @@ export type PrendaDelProbador = {
   metida: boolean;
   /** Se dibuja por el ancho de su propio torso (blusa, camisa, polo, top) y no solo por el largo típico de su categoría. */
   porTorso?: boolean;
+  /** Es una falda: al unirse a la blusa, no se ve más de ×1,05 su ancho (sin que su pretina baje del 92 % del bajo). */
+  falda?: boolean;
   largo: number;
   /** Los colores que se ofrecen, en el orden del catálogo. Al menos uno. */
   colores: ColorDelProbador[];
 };
-
-/**
- * Lo que dice cada color de su stock: la misma nota de la tarjeta del catálogo (`notaDeStock`) y, donde la tarjeta calla porque hay de
- * sobra, dónde hay («Hay en todas las tiendas», «Hay en 2 tiendas»): en el probador cada color dice siempre cuánto hay.
- */
-export function notaDelColor(stock: StockModelo | null, elegida: Tienda | null, tiendas: readonly Tienda[]): NotaStock | null {
-  const nota = notaDeStock(stock, elegida, tiendas);
-  if (nota || !stock || tiendas.length === 0) return nota;
-  const con = tiendas.filter((t) => hayAlgo(stock.sedes[t.id]));
-  if (con.length === 0) return null;
-  if (tiendas.length === 1) return { texto: `Hay en ${tiendas[0].nombre}`, tono: "ok" };
-  return { texto: con.length === tiendas.length ? "Hay en todas las tiendas" : `Hay en ${con.length} tiendas`, tono: "ok" };
-}
 
 /** ¿Hay de este color en la tienda elegida (con «Todas», en alguna)? Sin el dato, sí. */
 export function hayDelColor(stock: StockModelo | null, elegida: Tienda | null): boolean {
@@ -234,7 +226,7 @@ export function armarProbador(
           desde: leido.desde,
           pct: leido.campana && leido.precioFinal < leido.precio ? leido.campana.pct : null,
           hay: hayDelColor(leido.stock, elegida),
-          nota: notaDelColor(leido.stock, elegida, tiendas),
+          nota: notaDeStock(leido.stock, elegida, tiendas),
           solo: conTiendas.length === 1 ? conTiendas[0].nombre : null,
           foto: { ...foto, optimizar: optimizable(foto.url) },
         },
@@ -251,6 +243,7 @@ export function armarProbador(
         zona,
         metida: clave !== null && PREFIJOS_METIDOS.includes(clave),
         porTorso: zona === "arriba" && clave !== null && PREFIJOS_POR_TORSO.includes(clave),
+        falda: zona === "abajo" && clave !== null && PREFIJOS_FALDA.includes(clave),
         largo: extra.largo,
         colores,
       },

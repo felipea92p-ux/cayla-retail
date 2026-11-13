@@ -1,5 +1,6 @@
 "use client";
 
+import { enterNoGuarda } from "@/components/ui/enterNoGuarda";
 import { useEffect, useEffectEvent, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { BotonDeshacer } from "@/components/ui/BotonDeshacer";
 import { Anillo } from "@/components/ui/Anillo";
@@ -27,6 +28,9 @@ import { Chip, type TonoChip } from "@/components/ui/Chip";
 import { Modal } from "@/components/ui/Modal";
 import { EnvioRecibido, type ResultadoEnvio as Resultado } from "@/components/EnvioRecibido";
 import { ResumenPrevioEnvio } from "@/components/ResumenPrevioEnvio";
+import { conDueno, faltaElegirDueno, hayQueElegirDueno } from "@/lib/dueno-reglas";
+import { useEmpresasDeSede } from "@/lib/useEmpresasDeSede";
+import { ElegirDueno } from "@/components/existencias/ElegirDueno";
 import { useResponsable } from "@/lib/useResponsable";
 import { firmar } from "@/lib/responsable-reglas";
 import { CifraQueCuenta } from "@/components/ui/CifraQueCuenta";
@@ -82,8 +86,11 @@ import { MiniaturaPrenda, categoriaDe } from "@/components/ui/PrendaCelda";
 import type { FilaConCategoria } from "@/lib/categoria-de-prenda";
 import { TituloSeccion } from "@/components/ui/TituloSeccion";
 import { CLASE_MONTO_ILEGIBLE, atributosMontoTexto } from "@/components/ui/CampoMonto";
+import { useCantidadEscrita, type CantidadEscrita } from "@/components/alta-producto/useCantidadEscrita";
+import { reglaDeEntero } from "@/lib/cantidad-escrita-reglas";
 import { MONTO_ILEGIBLE, montoIlegible } from "@/lib/monto-plata-reglas";
 import { PasoCantidad } from "@/components/ui/PasoCantidad";
+import { prefiereQuieto } from "@/lib/movimiento-cliente";
 
 // Recibir mercadería POR ENVÍO (ADR-0113). Lo que llega a la puerta es un envío —una agencia, una guía,
 // varios bultos— y puede traer comprobantes de VARIOS proveedores y prendas que ningún comprobante lista. Todo se
@@ -153,6 +160,7 @@ const PLANTILLA_LINEA = "@[46rem]:grid-cols-[1fr_4rem_6.5rem_3rem_9rem] @[60rem]
 
 /** La marca de los campos «Llegó»: Enter salta al siguiente campo marcado (y, tras el último, al escáner). */
 const MARCA_CONTEO = { "data-conteo": true };
+const CANTIDAD_QUE_LLEGO = reglaDeEntero();
 
 const CHIP_ESTADO: Record<EstadoLinea, TonoChip> = { sin_contar: "neutro", completa: "verde", faltan: "ambar", excede: "rojo" };
 const ETIQUETA_ESTADO: Record<EstadoLinea, (faltan: number) => string> = {
@@ -272,6 +280,7 @@ export function RecepcionEnvio({
   const [saliendoExtra, setSaliendoExtra] = useState<number | null>(null);
   const [verSugerencias, setVerSugerencias] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+  const escrita = useCantidadEscrita(CANTIDAD_QUE_LLEGO);
   // El resumen previo a recibir: el pedido ya armado y validado, a la espera del «Confirmar».
   const [pedidoListo, setPedidoListo] = useState<{ pedido: PedidoEnvio; movimientos: MovimientoDelEnvio[] } | null>(null);
   // Costo atípico (20260930124000): los extras (fuera de comprobante) cuyo costo la base marcó y que hay que confirmar (quien ve los
@@ -345,6 +354,11 @@ export function RecepcionEnvio({
   // Quién recibe (ADR-0161/0162): `recibir_envio` firma con esa persona, elegida entre quienes están de turno en la
   // ubicación a la que ENTRA la mercadería (la que se elige arriba), no en la sede de la cabecera.
   const responsable = useResponsable(ubicacionId ? { ubicacionId, etiqueta: ubicacionNombre || "esta ubicación" } : undefined);
+  // ADR-0542: en una sede donde operan dos empresas (Lima), quien recibe dice de quién es lo que entra. Sin respuesta de fábrica.
+  const empresasDeLaSede = useEmpresasDeSede(ubicacionId);
+  const preguntaDueno = hayQueElegirDueno(empresasDeLaSede);
+  const [duenoId, setDuenoId] = useState("");
+  const faltaDueno = faltaElegirDueno(empresasDeLaSede, duenoId);
   const proveedorPorDefecto = proveedoresEnvio[0]?.id ?? proveedores[0]?.id ?? "";
 
   // ---- la lista de la izquierda -------------------------------------------------------------------
@@ -477,7 +491,7 @@ export function RecepcionEnvio({
   function quitarConSalida(c: CompraResumen) {
     if (tieneCantidades(c.id)) return alternar(c);
     setSaliendoChip(c.id);
-    const reducido = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const reducido = prefiereQuieto();
     setTimeout(() => {
       setSaliendoChip(null);
       alternar(c);
@@ -507,7 +521,7 @@ export function RecepcionEnvio({
   // (hay que repartirlas mirando la caja), salvo «Nada llegó», que es lo mismo para todas.
   function marcarTodas(compraId: string, que: "todo" | "nada" | "vaciar") {
     // «Todo llegó» se llena fila por fila (50 ms entre una y otra): se ve DÓNDE se anotó. Con movimiento reducido, de golpe.
-    if (que === "todo" && !window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+    if (que === "todo" && !prefiereQuieto()) {
       lineas
         .filter((x) => x.compraId === compraId && x.pendiente > 0 && x.varianteId)
         .forEach((l, i) => setTimeout(() => setReparto((r) => ({ ...r, [l.id]: { [l.varianteId!]: l.pendiente } })), i * 50));
@@ -590,7 +604,7 @@ export function RecepcionEnvio({
   const agregarExtra = () => setExtras((a) => [...a, { productoId: "", varianteId: "", cantidad: 1, costoUnitario: "", proveedorId: proveedorPorDefecto, esRegalo: false }]);
   const quitarExtra = (i: number) => {
     setSaliendoExtra(i);
-    const reducido = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const reducido = prefiereQuieto();
     setTimeout(() => {
       setSaliendoExtra(null);
       setExtras((a) => a.filter((_, n) => n !== i));
@@ -651,6 +665,8 @@ export function RecepcionEnvio({
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (loading) return;
+    // Lo escrito en una cantidad no valió: antes de recibir lo que quedó, se lee por qué (`useCantidadEscrita`).
+    if (escrita.frenar()) return;
     if (seleccionadas.length === 0) return void avisar.error("Marca al menos un comprobante.", { enfocar: "recibir-buscar" });
     if (porDecidir.length > 0) {
       const primera = lineas.find((l) => l.id === porDecidir[0].lineaId);
@@ -669,6 +685,7 @@ export function RecepcionEnvio({
     const excedida = lineasActivas.find((l) => cantidadLinea(l) > l.pendiente);
     if (excedida) return void avisar.error(`${excedida.referencia}: se intenta recibir ${cantidadLinea(excedida)} pero solo faltan ${excedida.pendiente}.`, { enfocar: `recibir-linea-${excedida.id}` });
     if (!ubicacionId) return void avisar.error("Elige a qué ubicación entra la mercadería.", { enfocar: "recibir-ubicacion" });
+    if (faltaDueno) return void avisar.error("Elige de quién es la mercadería: CAYLA o CLAURE.", { enfocar: "recibir-dueno" });
     // Un costo que no se entiende no viaja adivinado (ADR-0419): se dice y se lleva al campo.
     const extraIlegible = extras.findIndex((x) => !x.esRegalo && montoIlegible(x.costoUnitario));
     if (extraIlegible >= 0) {
@@ -727,7 +744,7 @@ export function RecepcionEnvio({
     // UNA sola llamada, UNA transacción: todos los proveedores, lo fuera de comprobante y los cierres se registran
     // juntos o no se registra nada. Con el mismo token, reintentar no duplica.
     const firma = responsable.firma();
-    const { data, error, status } = await firmar(supabase.rpc("recibir_envio", pedido), firma);
+    const { data, error, status } = await firmar(conDueno(supabase.rpc("recibir_envio", pedido), preguntaDueno ? duenoId : null), firma);
     cerrarProceso();
     setLoading(false);
     // Sin red (ADR-0210): el conteo no se pierde. El pedido entero —mismo token, hora de ahora— queda en este
@@ -740,6 +757,7 @@ export function RecepcionEnvio({
         rpc: "recibir_envio",
         params: pedido,
         firma,
+        dueno: preguntaDueno ? duenoId : null,
         resumen: [`Envío de ${que}`, documentos, ubicacionNombre].filter(Boolean).join(" · "),
       });
       setPedidoListo(null);
@@ -848,37 +866,44 @@ export function RecepcionEnvio({
               <Miniatura variante={variantePorId.get(l.varianteId)} />
               <span className="min-w-0 text-sm text-tinta">
                 <span className="block truncate font-medium @[46rem]:font-normal">{l.referencia}</span>
-                <span className="block truncate text-xs text-tinta/55">
+                <span className="block truncate text-sm text-tinta/55">
                   {[l.talla, l.color].filter(Boolean).join(" · ") || l.descripcion}
                   <span className="@[46rem]:hidden"> · pendiente {l.pendiente}</span>
                 </span>
                 {/* ADR-0139: una línea repartida entre tiendas dice cuánto le toca a ESTA (y, al líder, dónde más falta). */}
-                {textoDeLaParte(l) && <span className="block text-[11px] leading-snug text-ambar-profundo">{textoDeLaParte(l)}</span>}
+                {textoDeLaParte(l) && <span className="block text-sm leading-snug text-ambar-profundo">{textoDeLaParte(l)}</span>}
               </span>
             </span>
-            <span className="hidden truncate text-[12.5px] tabular-nums text-tinta/65 @[60rem]:block">{l.sku ?? "—"}</span>
+            <span className="hidden truncate text-sm tabular-nums text-tinta/65 @[60rem]:block">{l.sku ?? "—"}</span>
             <span className="hidden text-center text-sm tabular-nums text-tinta/65 @[46rem]:block">{l.pendiente}</span>
             <span className="text-left @[46rem]:text-center">
               <PasoCantidad
                 key={destello?.id === l.id ? destello.n : 0}
                 className={destello?.id === l.id ? "anim-pop" : ""}
                 // El borde y el número dicen lo que llegó: se pasó, está completo, falta.
-                tono={excede ? "error" : completa ? "exito" : estado === "faltan" ? "atencion" : undefined}
+                tono={excede || escrita.invalida(`${l.id}:${l.varianteId}`) ? "error" : completa ? "exito" : estado === "faltan" ? "atencion" : undefined}
                 sinTab
                 // En tabla (panel ancho) el − / + se esconde hasta pasar el mouse por la fila o enfocarla; en tarjeta se ve siempre.
                 claseBotones="overflow-hidden transition-[width,background-color,color,transform] duration-200 ease-cayla @[46rem]:w-0 @[46rem]:group-focus-within:w-6 @[46rem]:group-hover:w-6"
-                menos={{ onClick: () => fijar(l.id, l.varianteId!, Math.max(0, (llego ?? 0) - 1)), etiqueta: "Una unidad menos" }}
-                mas={{ onClick: () => fijar(l.id, l.varianteId!, (llego ?? 0) + 1), etiqueta: "Una unidad más" }}
+                menos={{
+                  onClick: () => {
+                    escrita.olvidar();
+                    fijar(l.id, l.varianteId!, Math.max(0, (llego ?? 0) - 1));
+                  },
+                  etiqueta: "Una unidad menos",
+                }}
+                mas={{
+                  onClick: () => {
+                    escrita.olvidar();
+                    fijar(l.id, l.varianteId!, (llego ?? 0) + 1);
+                  },
+                  etiqueta: "Una unidad más",
+                }}
                 campo={{
-                  type: "number",
-                  min: 0,
-                  max: l.pendiente,
                   ...MARCA_CONTEO,
                   "aria-label": `Llegó de ${l.referencia} ${[l.talla, l.color].filter(Boolean).join(" ")}`,
-                  value: reparto[l.id]?.[l.varianteId] ?? "",
                   placeholder: "—",
-                  onChange: (e) => fijar(l.id, l.varianteId!, e.target.value === "" ? null : Number(e.target.value)),
-                  onFocus: (e) => e.target.select(),
+                  ...escrita.campo(`${l.id}:${l.varianteId}`, String(reparto[l.id]?.[l.varianteId] ?? ""), (v) => fijar(l.id, l.varianteId!, v === "" ? null : Number(v))),
                   onKeyDown: (e) => {
                     if (e.key !== "Enter") return;
                     e.preventDefault();
@@ -922,8 +947,8 @@ export function RecepcionEnvio({
         {destello?.id === l.id && <span key={destello.n} aria-hidden className="anim-destello-lectura pointer-events-none absolute inset-0" />}
         <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1">
           <span className="min-w-0 text-sm text-tinta">
-            {l.referencia} <span className="text-xs text-tinta/55">· {textoDeLaParte(l) ? `a esta tienda le tocan ${l.pendiente}` : `el comprobante dice ${l.pendiente}`} sin talla ni color — anota lo que llegó de cada una</span>
-            {l.descripcion && <span className="block text-xs text-tinta/55">{l.descripcion}</span>}
+            {l.referencia} <span className="text-sm text-tinta/55">· {textoDeLaParte(l) ? `a esta tienda le tocan ${l.pendiente}` : `el comprobante dice ${l.pendiente}`} sin talla ni color — anota lo que llegó de cada una</span>
+            {l.descripcion && <span className="block text-sm text-tinta/55">{l.descripcion}</span>}
           </span>
           <span className="flex flex-col items-end gap-1">
             <Chip tono={CHIP_ESTADO[estado]}>{estado === "sin_contar" ? "Sin contar" : `${recibiendoLinea} de ${l.pendiente}`}</Chip>
@@ -940,7 +965,7 @@ export function RecepcionEnvio({
             Este producto no tiene variantes activas en el catálogo — no se puede recibir hasta crearlas.
           </Aviso>
         ) : (
-          <CurvaVariantes referencia={l.referencia} variantes={opciones} valores={reparto[l.id] ?? {}} excede={excede} onFijar={(varianteId, n) => fijar(l.id, varianteId, n)} />
+          <CurvaVariantes lineaId={l.id} escrita={escrita} referencia={l.referencia} variantes={opciones} valores={reparto[l.id] ?? {}} excede={excede} onFijar={(varianteId, n) => fijar(l.id, varianteId, n)} />
         )}
         {estado === "faltan" && (
           <div className={`grid transition-[grid-template-rows] duration-[320ms] ease-cayla ${mostrarEditor(l.id) ? "grid-rows-[1fr]" : "grid-rows-[0fr]"}`} inert={!mostrarEditor(l.id)}>
@@ -969,7 +994,7 @@ export function RecepcionEnvio({
   return (
     <>
       <ColaOfflineAviso cola={colaOffline.cola} onDescartar={colaOffline.descartar} uno="recepción" varias="recepciones" className="mb-6" />
-      <form onSubmit={onSubmit} className={`grid gap-6 lg:grid-cols-[minmax(19rem,23rem)_1fr] lg:items-start ${hayEnvio ? "pb-32 sm:pb-28" : ""}`}>
+      <form onSubmit={onSubmit} onKeyDown={enterNoGuarda} className={`grid gap-6 lg:grid-cols-[minmax(19rem,23rem)_1fr] lg:items-start ${hayEnvio ? "pb-32 sm:pb-28" : ""}`}>
         {/* ================= izquierda: lo que falta llegar ================= */}
         <aside className="card-cayla anim-entra overflow-hidden lg:sticky lg:top-24" style={{ "--i": 3 } as CSSProperties}>
           <TituloSeccion
@@ -1018,7 +1043,7 @@ export function RecepcionEnvio({
               </button>
             ))}
           </div>
-          <p className="flex flex-wrap items-center justify-between gap-x-2 gap-y-0.5 px-4 py-2 text-xs text-tinta/55">
+          <p className="flex flex-wrap items-center justify-between gap-x-2 gap-y-0.5 px-4 py-2 text-sm text-tinta/55">
             <span>Por urgencia: lo atrasado primero</span>
             {hayEnvio ? (
               <span>
@@ -1057,10 +1082,10 @@ export function RecepcionEnvio({
                   <span className="block truncate text-[14.5px] font-semibold text-tinta">
                     <Resaltado texto={c.proveedorNombre} busqueda={busqueda} />
                   </span>
-                  <span className="block text-[13px] tabular-nums text-tinta/75">
+                  <span className="block text-sm tabular-nums text-tinta/75">
                     <Resaltado texto={c.documento} busqueda={busqueda} />
                   </span>
-                  <span className="block text-xs text-tinta/65">
+                  <span className="block text-sm text-tinta/65">
                     {textoEsperada(c, ahora)} · {c.recibidoCantidad} de {c.facturadoCantidad} u.{c.facturadoTotal != null && c.facturadoTotal > c.facturadoCantidad ? " · tu parte" : ""}
                   </span>
                   <BarraAvance pct={c.facturadoCantidad ? (c.recibidoCantidad / c.facturadoCantidad) * 100 : 0} alto="fina" decorativa className="mt-1.5" />
@@ -1068,16 +1093,16 @@ export function RecepcionEnvio({
                 <span className="shrink-0 text-right">
                   <Chip tono={llegada.tono}>{llegada.texto}</Chip>
                   {verMontos && (
-                    <span className="mt-1 block text-[13px] tabular-nums text-tinta">
+                    <span className="mt-1 block text-sm tabular-nums text-tinta">
                       {enMedio ? soles(valorPorLlegar(c)) : soles(c.total)}
-                      {enMedio && <small className="block text-[11px] text-tinta/55">por llegar</small>}
+                      {enMedio && <small className="block text-sm text-tinta/55">por llegar</small>}
                     </span>
                   )}
                 </span>
               </button>
             );
           })}
-          <p className="border-t border-tinta/10 px-4 py-3 text-xs text-tinta/55">
+          <p className="border-t border-tinta/10 px-4 py-3 text-sm text-tinta/55">
             Un envío puede traer comprobantes de varios proveedores: marca los que vienen en él. Si quitas uno con cantidades ya anotadas, te pregunta antes de descartarlas.
           </p>
           </div>
@@ -1116,7 +1141,7 @@ export function RecepcionEnvio({
                   </span>
                   <div className="min-w-0">
                     <p className="font-display text-[21px] leading-tight text-tinta">{tituloEnvio}</p>
-                    <p className="mt-2 flex flex-wrap items-center text-xs text-tinta/65">
+                    <p className="mt-2 flex flex-wrap items-center text-sm text-tinta/65">
                       {proveedoresEnvio.map((p) => (
                         <Ini key={p.id} nombre={p.nombre} chico apilada />
                       ))}
@@ -1148,6 +1173,12 @@ export function RecepcionEnvio({
                   ) : (
                     <CampoTexto etiqueta="Entra al almacén de" value={ubicacionNombre} readOnly />
                   )}
+                  {preguntaDueno && empresasDeLaSede && (
+                    <div id="recibir-dueno" className="space-y-1.5">
+                      <p className="campo-etiqueta">¿De quién es la mercadería?</p>
+                      <ElegirDueno empresas={empresasDeLaSede} duenoId={duenoId} onElegir={setDuenoId} deshabilitado={loading} guia="recibir.envio-dueno" />
+                    </div>
+                  )}
                 </div>
                 <div className="flex items-center gap-4 border-t border-tinta/10 p-5 @xl:col-span-2 @[44rem]:col-span-1 @[44rem]:border-l @[44rem]:border-t-0">
                   {/* Cuánto llevas contado del envío (el anillo del sistema, ronda 13): en tinta mientras falta, verde al 100 %. */}
@@ -1157,7 +1188,7 @@ export function RecepcionEnvio({
                   <div>
                     <p className="label-cayla text-[10.5px] text-tinta/55">Estado de recepción</p>
                     <p key={estadoDelEnvio} className="anim-asentar font-display text-2xl leading-tight text-tinta">{estadoDelEnvio}</p>
-                    <p className="text-xs text-tinta/65">
+                    <p className="text-sm text-tinta/65">
                       {totales.contadas.toLocaleString("es-PE")} de {totales.esperadas.toLocaleString("es-PE")} unidades contadas
                     </p>
                   </div>
@@ -1190,7 +1221,7 @@ export function RecepcionEnvio({
                               >
                                 <span className="min-w-0 text-sm">
                                   <b className="block truncate font-semibold text-tinta">{c.proveedorNombre}</b>
-                                  <span className="block text-xs text-tinta/55">
+                                  <span className="block text-sm text-tinta/55">
                                     {c.documento} · {textoEsperada(c, ahora)}
                                   </span>
                                 </span>
@@ -1205,7 +1236,7 @@ export function RecepcionEnvio({
                 </div>
                 <div className="flex flex-wrap gap-2.5">
                   {bloques.map(({ compra: c }) => (
-                    <span key={c.id} className={`${saliendoChip === c.id ? "anim-sale" : "anim-asentar"} inline-flex items-center gap-2.5 rounded-[10px] border border-sand bg-crema px-3 py-1.5 text-[13px]`}>
+                    <span key={c.id} className={`${saliendoChip === c.id ? "anim-sale" : "anim-asentar"} inline-flex items-center gap-2.5 rounded-[10px] border border-sand bg-crema px-3 py-1.5 text-sm`}>
                       <Ini nombre={c.proveedorNombre} chico />
                       <span className="text-tinta/65">{c.proveedorNombre}</span>
                       <b className="font-semibold tabular-nums text-tinta">{c.documento}</b>
@@ -1282,14 +1313,14 @@ export function RecepcionEnvio({
                 </div>
 
                 {ultimaLectura && (
-                  <p role="status" className={`flex items-center gap-2 border-b border-tinta/10 px-5 py-2 text-xs ${ultimaLectura.bueno ? "text-verde-profundo" : "text-ambar-profundo"}`}>
+                  <p role="status" className={`flex items-center gap-2 border-b border-tinta/10 px-5 py-2 text-sm ${ultimaLectura.bueno ? "text-verde-profundo" : "text-ambar-profundo"}`}>
                     {ultimaLectura.bueno ? <Check aria-hidden className="check-trazo h-3.5 w-3.5 shrink-0" style={{ "--d": "0ms" } as CSSProperties} /> : <Info aria-hidden className="h-3.5 w-3.5 shrink-0" />}
                     <span>
                       {ultimaLectura.bueno ? "Última lectura: " : ""}
                       {ultimaLectura.texto}
                     </span>
                     {ultimaLectura.deshacer && (
-                      <BotonDeshacer onClick={deshacerLectura} className="text-xs" />
+                      <BotonDeshacer onClick={deshacerLectura} className="text-sm" />
                     )}
                     {ultimaLectura.agregar && (
                       <button type="button" onClick={agregarYReleer} className="btn-cayla btn-sutil btn-chico">
@@ -1303,11 +1334,11 @@ export function RecepcionEnvio({
                 {pestana === "prendas" && (
                   <div>
                     <div className="flex flex-wrap items-center gap-x-4 gap-y-1 border-b border-tinta/10 px-5 py-2.5">
-                      <span className="whitespace-nowrap text-xs text-tinta/65">
+                      <span className="whitespace-nowrap text-sm text-tinta/65">
                         {totales.lineasContadas} de {totales.lineasTotal} {totales.lineasTotal === 1 ? "línea contada" : "líneas contadas"}
                       </span>
                       <BarraAvance pct={totales.lineasTotal ? (totales.lineasContadas / totales.lineasTotal) * 100 : 0} etiqueta="Líneas contadas" texto={`${totales.lineasContadas} de ${totales.lineasTotal}`} className="min-w-24 flex-1" />
-                      {totales.lineasTotal - totales.lineasContadas > 0 && <span className="text-xs text-tinta/55">{totales.lineasTotal - totales.lineasContadas} sin contar: siguen pendientes</span>}
+                      {totales.lineasTotal - totales.lineasContadas > 0 && <span className="text-sm text-tinta/55">{totales.lineasTotal - totales.lineasContadas} sin contar: siguen pendientes</span>}
                     </div>
 
                     <div className={`hidden gap-x-3 border-b border-tinta/10 px-5 py-2 @[46rem]:grid ${PLANTILLA_LINEA}`}>
@@ -1338,14 +1369,14 @@ export function RecepcionEnvio({
                                   {c.proveedorNombre}
                                   <Chip tono={llegada.tono}>{llegada.texto}</Chip>
                                 </span>
-                                <span className="block text-xs text-tinta/65">
+                                <span className="block text-sm text-tinta/65">
                                   {ETIQUETA_TIPO_DOCUMENTO[c.tipo]} {c.documento} · emitida {diaMes(c.fechaEmision)} · {textoEsperada(c, ahora).toLowerCase()}
                                 </span>
                               </span>
                             </button>
                             <div className="flex w-full flex-wrap items-center gap-x-5 gap-y-1 pl-[3.25rem] @xl:w-auto @xl:pl-0">
                               <span className="w-40">
-                                <span className="flex justify-between text-xs tabular-nums text-tinta/65">
+                                <span className="flex justify-between text-sm tabular-nums text-tinta/65">
                                   <span>
                                     {unidadesC} de {pendienteTotal} u.
                                   </span>
@@ -1403,7 +1434,7 @@ export function RecepcionEnvio({
                               <p className="text-sm font-semibold text-tinta">
                                 Nota de crédito por reclamar · <span className="tabular-nums">{soles(r.monto)}</span>
                               </p>
-                              <p className="text-xs leading-relaxed text-tinta/65">
+                              <p className="text-sm leading-relaxed text-tinta/65">
                                 {r.documento} · {r.proveedorNombre} ·{" "}
                                 {r.cerrandoAhora > 0
                                   ? `al confirmar, ${r.cerrandoAhora === 1 ? "la unidad que cierras queda anotada" : `las ${r.cerrandoAhora} unidades que cierras quedan anotadas`} como nota pendiente. El documento del proveedor no se registra acá.`
@@ -1426,7 +1457,7 @@ export function RecepcionEnvio({
                     <div className="space-y-3">
                       <div>
                         <p className="font-display text-lg text-tinta">¿Llegó algo de un proveedor que no está en ningún comprobante?</p>
-                        <p className="mt-1 text-xs text-tinta/65">
+                        <p className="mt-1 text-sm text-tinta/65">
                           Una prenda de más, o un comprobante que llega incompleto. Se recibe igual, en este mismo envío, y queda anotado de qué proveedor viene. No cuenta contra ninguna deuda. Un regalo entra al stock sin costo y sin tocar el costo promedio.
                         </p>
                       </div>
@@ -1457,13 +1488,9 @@ export function RecepcionEnvio({
                               />
                             </div>
                             <input
-                              type="number"
-                              min={1}
                               aria-label="Cantidad"
-                              value={ex.cantidad}
-                              onChange={(e) => actualizarExtra(i, { cantidad: Math.max(1, Number(e.target.value) || 1) })}
-                              onFocus={(e) => e.target.select()}
-                              className="caja-campo-input w-16 shrink-0 text-center tabular-nums"
+                              {...escrita.campo(`extra:${i}`, String(ex.cantidad), (v) => actualizarExtra(i, { cantidad: Math.max(1, Number(v) || 1) }))}
+                              className={`caja-campo-input w-16 shrink-0 text-center tabular-nums ${CLASE_MONTO_ILEGIBLE}`}
                             />
                             <div className="w-48 shrink-0">
                               <Desplegable
@@ -1499,7 +1526,7 @@ export function RecepcionEnvio({
                             <button type="button" onClick={() => quitarExtra(i)} className="label-cayla shrink-0 pb-2 text-[10px] text-tinta/55 hover:text-rojo">
                               Quitar
                             </button>
-                            {ex.varianteId && !extraCompleto(ex) && <p className="w-full text-xs text-ambar-profundo">Elige de qué proveedor viene esta prenda.</p>}
+                            {ex.varianteId && !extraCompleto(ex) && <p className="w-full text-sm text-ambar-profundo">Elige de qué proveedor viene esta prenda.</p>}
                           </div>
                         );
                       })}
@@ -1512,7 +1539,7 @@ export function RecepcionEnvio({
                         (ahí se elige piso o almacén). El aviso de arriba de la pantalla dice cuáles vienen en camino. */}
                     <div className="space-y-1 border-t border-tinta/10 pt-5">
                       <p className="font-display text-lg text-tinta">¿Vino algo de otra sede de CAYLA?</p>
-                      <p className="text-xs text-tinta/65">
+                      <p className="text-sm text-tinta/65">
                         Eso no se recibe en este envío: se cuenta y se confirma en{" "}
                         {veTraslados ? (
                           <Link href="/inventario/traslados" className="btn-enlace">
@@ -1548,13 +1575,13 @@ export function RecepcionEnvio({
                           key={f}
                           type="button"
                           onClick={() => setNota((n) => (n.trim() ? `${n.trim()}. ${f}` : f))}
-                          className="rounded-full border border-tinta/15 px-3 py-1 text-[12.5px] text-tinta/75 transition-colors hover:border-rojo hover:text-rojo"
+                          className="rounded-full border border-tinta/15 px-3 py-1 text-sm text-tinta/75 transition-colors hover:border-rojo hover:text-rojo"
                         >
                           {f}
                         </button>
                       ))}
                     </div>
-                    <p className="flex justify-between gap-3 pt-1 text-xs text-tinta/55">
+                    <p className="flex justify-between gap-3 pt-1 text-sm text-tinta/55">
                       <span>Queda en cada lote del envío, para quien lo revise después.</span>
                       <span className="tabular-nums">
                         {nota.length} {nota.length === 1 ? "carácter" : "caracteres"}
@@ -1581,13 +1608,18 @@ export function RecepcionEnvio({
             aviso={(
               <>
                 {/* un solo aviso a la vez, el más urgente; entra suave cuando cambia */}
-                {totales.excedidas > 0 ? (
-                  <span key="exc" className="anim-revelar flex items-center gap-2 text-xs text-rojo">
+                {escrita.problema ? (
+                  <span key="esc" className="anim-revelar flex items-center gap-2 text-sm text-rojo">
+                    <Info aria-hidden className="h-3.5 w-3.5 shrink-0" />
+                    {escrita.problema}
+                  </span>
+                ) : totales.excedidas > 0 ? (
+                  <span key="exc" className="anim-revelar flex items-center gap-2 text-sm text-rojo">
                     <Info aria-hidden className="h-3.5 w-3.5 shrink-0" />
                     {totales.excedidas === 1 ? "1 línea supera" : `${totales.excedidas} líneas superan`} lo pendiente: revisa el conteo.
                   </span>
                 ) : porDecidir.length > 0 ? (
-                  <span key="dec" className="anim-revelar flex flex-wrap items-center gap-x-2 text-xs text-ambar-profundo">
+                  <span key="dec" className="anim-revelar flex flex-wrap items-center gap-x-2 text-sm text-ambar-profundo">
                     <Info aria-hidden className="h-3.5 w-3.5 shrink-0" />
                     {porDecidir.length === 1 ? "1 fila llegó con faltante y falta decidir qué pasó" : `${porDecidir.length} filas llegaron con faltante y falta decidir qué pasó`}.
                     <button type="button" onClick={esperarTodas} className="btn-cayla btn-sutil btn-chico">
@@ -1595,12 +1627,12 @@ export function RecepcionEnvio({
                     </button>
                   </span>
                 ) : sinComprobanteContado ? (
-                  <span key="sin" className="anim-revelar flex items-center gap-2 text-xs text-ambar-profundo">
+                  <span key="sin" className="anim-revelar flex items-center gap-2 text-sm text-ambar-profundo">
                     <Info aria-hidden className="h-3.5 w-3.5 shrink-0" />
                     Lo de fuera de comprobante necesita al menos una línea de comprobante contada.
                   </span>
                 ) : extras.some((e) => (e.productoId || e.varianteId) && !extraCompleto(e)) ? (
-                  <span key="ext" className="anim-revelar flex flex-wrap items-center gap-x-2 text-xs text-ambar-profundo">
+                  <span key="ext" className="anim-revelar flex flex-wrap items-center gap-x-2 text-sm text-ambar-profundo">
                     <Info aria-hidden className="h-3.5 w-3.5 shrink-0" />
                     Elige de qué proveedor viene cada prenda fuera de comprobante.
                     <button type="button" onClick={() => setPestana("fuera")} className="btn-cayla btn-enlace text-xs">
@@ -1608,7 +1640,7 @@ export function RecepcionEnvio({
                     </button>
                   </span>
                 ) : cierres.length > 0 ? (
-                  <span key="cie" className="anim-revelar block text-xs text-tinta/55">
+                  <span key="cie" className="anim-revelar block text-sm text-tinta/55">
                     Se {cierres.length === 1 ? "cierra 1 faltante" : `cierran ${cierres.length} faltantes`} al confirmar ({cierres.reduce((a, c) => a + c.faltan, 0)} u.). Lo demás sigue pendiente.
                   </span>
                 ) : null}
@@ -1617,7 +1649,7 @@ export function RecepcionEnvio({
             resumen={
               <div className="space-y-1">
                 <div className="grid auto-cols-fr grid-flow-col items-end gap-x-1 sm:flex sm:flex-wrap sm:gap-x-6 sm:gap-y-1">
-                  <span className="hidden text-xs text-tinta/65 min-[1460px]:block">
+                  <span className="hidden text-sm text-tinta/65 min-[1460px]:block">
                     <span className="font-display text-base text-tinta">Totales del envío</span>
                     <span className="block">
                       entran al almacén de <b className="font-semibold text-tinta">{ubicacionNombre}</b>
@@ -1762,12 +1794,17 @@ const CELDA =
   "h-9 rounded-md border bg-transparent px-1 text-center text-sm tabular-nums outline-none transition-colors focus:border-rojo focus:ring-1 focus:ring-rojo/40 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none";
 
 function CurvaVariantes({
+  lineaId,
+  escrita,
   referencia,
   variantes,
   valores,
   excede,
   onFijar,
 }: {
+  lineaId: string;
+  /** El borrador de lo que se teclea: vive en la pantalla, que dice por qué no valió y frena «Recibir». */
+  escrita: CantidadEscrita;
   referencia: string;
   variantes: Variante[];
   valores: Record<string, number>;
@@ -1783,15 +1820,10 @@ function CurvaVariantes({
     const n = valores[v.varianteId];
     return (
       <input /* unificar-fijo: la celda de una matriz de tallas y colores, no un campo de formulario */
-        type="number"
-        min={0}
-        inputMode="numeric"
         aria-label={`${referencia} ${etiqueta}`}
-        value={n ?? ""}
         placeholder="—"
-        onChange={(e) => onFijar(v.varianteId, e.target.value === "" ? null : Number(e.target.value))}
-        onFocus={(e) => e.target.select()}
-        className={`${CELDA} ${ancho} ${
+        {...escrita.campo(`${lineaId}:${v.varianteId}`, String(n ?? ""), (t) => onFijar(v.varianteId, t === "" ? null : Number(t)))}
+        className={`${CELDA} ${ancho} ${CLASE_MONTO_ILEGIBLE} ${
           n === undefined ? "border-tinta/15 text-tinta/45" : n > 0 ? (excede ? "border-rojo bg-rojo/[0.06] text-rojo" : "border-tinta/60 bg-tinta/[0.05] text-tinta") : "border-ambar/60 bg-ambar/[0.06] text-ambar-profundo"
         }`}
       />
@@ -1803,7 +1835,7 @@ function CurvaVariantes({
       <div className="flex flex-wrap gap-2">
         {variantes.map((v) => (
           <label key={v.varianteId} className="flex items-center gap-2 rounded-md border border-tinta/15 px-2.5 py-1.5">
-            <span className="text-xs text-tinta/75">{v.sku}</span>
+            <span className="text-sm text-tinta/75">{v.sku}</span>
             {celda(v, v.sku, "w-14")}
           </label>
         ))}
@@ -1837,7 +1869,7 @@ function CurvaVariantes({
                 {!unaFila && <th className="max-w-[4.5rem] truncate pr-1 text-left text-sm font-normal text-tinta/75 sm:max-w-none sm:pr-2">{color === SIN ? "Sin color" : color}</th>}
                 {fila.map((v, i) => (
                   <td key={tallas[i]} className="text-center">
-                    {v ? celda(v, [tallas[i], color].filter((x) => x !== SIN).join(" ")) : <span className="block w-14 text-center text-xs text-tinta/30 sm:w-16">·</span>}
+                    {v ? celda(v, [tallas[i], color].filter((x) => x !== SIN).join(" ")) : <span className="block w-14 text-center text-sm text-tinta/30 sm:w-16">·</span>}
                   </td>
                 ))}
                 {!unaFila && <td className={`pl-2 text-right text-sm tabular-nums ${total > 0 ? "text-tinta" : "text-tinta/45"}`}>{total}</td>}

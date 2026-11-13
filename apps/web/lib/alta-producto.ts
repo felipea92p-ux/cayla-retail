@@ -15,9 +15,11 @@
 
 import { enEscala } from "./color-escala";
 import { agruparPorFamilia } from "./colores-familias";
+import { familiaEnCarta } from "./color-estampado-reglas";
 import { FRASE_COSTO_CON_TOPE, FRASE_PRECIO_CON_TOPE, MAX_PRECIO_PRENDA } from "./catalogo-topes";
+import { sinBlancosDeMiles } from "./numero-escrito";
 
-const CONECTORES = ["de", "del", "la", "las", "el", "los", "con", "y", "e", "o", "en", "al", "para", "por", "sin"];
+const CONECTORES = ["a", "de", "del", "la", "las", "el", "los", "con", "y", "e", "o", "en", "al", "para", "por", "sin"];
 
 /** Espejo de `retail.fn_titulo_referencia`: "  blusa  CAMILA " → "Blusa Camila". */
 export function tituloReferencia(texto: string): string {
@@ -25,7 +27,8 @@ export function tituloReferencia(texto: string): string {
   return palabras
     .map((p, i) => {
       const w = p.toLocaleLowerCase("es");
-      if (i > 0 && CONECTORES.includes(w)) return w;
+      // «a» solo si le sigue otra palabra: «Polo a Rayas», y «Blusa A» sigue igual.
+      if (i > 0 && CONECTORES.includes(w) && (w !== "a" || i < palabras.length - 1)) return w;
       return w.charAt(0).toLocaleUpperCase("es") + w.slice(1);
     })
     .join(" ");
@@ -100,12 +103,6 @@ export function codigoVariantePrevisto(base: string, colorCodigo: string | null,
   return base + (colorCodigo ? `-${colorCodigo}` : "") + `-${tokenTalla(tallaValor)}`;
 }
 
-/** Posiciones cuyo código ya apareció antes en la lista (la primera aparición no cuenta: es la que se queda). `null` =
- *  código todavía desconocido, nunca repetido. Dos variantes con el mismo código no caben (`variantes_codigo_unico`). */
-export function codigosRepetidos(codigos: readonly (string | null)[]): number[] {
-  return codigos.flatMap((c, i) => (c !== null && codigos.indexOf(c) !== i ? [i] : []));
-}
-
 /** `sinonimos`: otras palabras con que se busca el color («plomo» → Gris). Vacío si no tiene. `pantoneTcx`: el código para pedir la tela
  *  («19-2039 TCX»); el círculo es una aproximación en pantalla y el código es la referencia real. Null en los metálicos.
  *  `tipo`: `colores.tipo` («solido» | «textura» | «estampado»); `fondoDeMuestra` lo usa para que «Gris melange» no se pinte como «Gris».
@@ -118,9 +115,10 @@ export type ColorAlta = {
   tipo?: string | null;
   sinonimos?: readonly string[];
   pantoneTcx?: string | null;
-  /** La ficha del color (ADR-0316): qué transmite y con qué se combina (códigos). Ausentes = la pantalla no la pidió o el color no la tiene. */
+  /** Qué transmite el color (ADR-0316). Ausente = la pantalla no la pidió o el color no la tiene. */
   descripcion?: string | null;
-  combinaCon?: readonly string[];
+  /** Si es una mezcla («Hueso con azul», ADR-0643): la base primero y sus acompañantes. Ausente o nulo = un solo tono. */
+  componentes?: readonly string[] | null;
 };
 
 // El orden de cada familia de la carta lo da `color-escala.ts` (gama y claridad, calculadas del hex): ya no se confía en `colores.orden`,
@@ -138,8 +136,8 @@ export function ordenarColores(
     .sort((a, b) => (usoEnCategoria[b.codigo] ?? 0) - (usoEnCategoria[a.codigo] ?? 0) || a.nombre.localeCompare(b.nombre, "es"))
     .slice(0, max);
   // Un solo agrupador para las tres pantallas de colores (`agruparPorFamilia`): una familia que el código aún no conoce sale con su propio
-  // nombre y un color sin familia como «Sin familia»; ninguno desaparece.
-  const grupos = agruparPorFamilia(colores, (c) => c.familiaColor, familias).map((g) => ({ ...g, colores: [...g.colores].sort(enEscala) }));
+  // nombre y un color sin familia como «Varios colores»; ninguno desaparece.
+  const grupos = agruparPorFamilia(colores, familiaEnCarta, familias).map((g) => ({ ...g, colores: [...g.colores].sort(enEscala) }));
   return { frecuentes, grupos };
 }
 
@@ -210,6 +208,11 @@ export type EstadoAlta = {
    *  (Felipe 2026-10-04, ADR-0328). Con «almacén» marcado de antemano, TRU se cargó casi entera como guardada estando colgada:
    *  el sistema veía 138 en el piso y había 600–750, la caja no dejaba cobrar lo colgado y «Reponer» marcaba todas las tallas. */
   lugarCarga: LugarCarga | null;
+  /** La carga inicial de la sede ya se cerró (ADR-0328 act. 2026-10-28): lo que se escribe entra como una LLEGADA del proveedor
+   *  (`crear_producto_con_llegada`), al almacén de entrada. Sin la pregunta de piso o almacén y con el proveedor obligatorio. */
+  llegada?: boolean;
+  /** Hay proveedor elegido (paso 2). Solo cuenta con `llegada`: la llegada entra a su nombre (`lotes.proveedor_id`). */
+  proveedorElegido?: boolean;
 };
 
 export type LugarCarga = "piso" | "almacen";
@@ -217,9 +220,23 @@ export type LugarCarga = "piso" | "almacen";
 /** Lo que falta cuando hay unidades en una tienda que separa piso y almacén y nadie dijo dónde están. */
 export const TEXTO_FALTA_LUGAR = "Di si están colgadas en el piso o guardadas en el almacén.";
 
-/** Hay unidades que cargar y la tienda separa piso y almacén, pero la persona todavía no dijo dónde están. */
-export function faltaLugarCarga(e: Pick<EstadoAlta, "stockTotal" | "stockInvalidas" | "separaPiso" | "lugarCarga">): boolean {
-  return e.stockInvalidas === 0 && e.stockTotal > 0 && e.separaPiso && e.lugarCarga === null;
+/** Hay unidades que cargar y la tienda separa piso y almacén, pero la persona todavía no dijo dónde están. Una llegada no lo pregunta:
+ *  entra al almacén, como todo lo que llega de un proveedor («se cuenta allí y luego se cuelga», ADR-0328). */
+export function faltaLugarCarga(e: Pick<EstadoAlta, "stockTotal" | "stockInvalidas" | "separaPiso" | "lugarCarga" | "llegada">): boolean {
+  return !e.llegada && e.stockInvalidas === 0 && e.stockTotal > 0 && e.separaPiso && e.lugarCarga === null;
+}
+
+/** Lo que falta cuando llegaron unidades y no hay proveedor: la llegada entra a su nombre (ADR-0328 act. 2026-10-28). */
+export const TEXTO_FALTA_PROVEEDOR_LLEGADA = "Elige el proveedor en «¿Cómo es?»: lo que llegó entra a su nombre.";
+
+/** Escribió unidades que llegaron, pero todavía no eligió de qué proveedor. */
+export function faltaProveedorLlegada(e: Pick<EstadoAlta, "stockTotal" | "stockInvalidas" | "llegada" | "proveedorElegido">): boolean {
+  return !!e.llegada && e.stockInvalidas === 0 && e.stockTotal > 0 && !e.proveedorElegido;
+}
+
+/** Lo que falta cuando no se escribió ninguna cantidad ni se dijo que no hay: la frase cambia con la carga cerrada. */
+export function textoFaltaStock(e: Pick<EstadoAlta, "llegada">): string {
+  return e.llegada ? "Escribe cuántas llegaron, o marca que todavía no tienes." : "Escribe cuántas tienes hoy, o marca que todavía no tienes.";
 }
 
 /** El bloque de cada problema dice a qué pregunta del alta pertenece (ver `pasoDeProblema`). `tela` = tejido y patrón: describen
@@ -270,8 +287,9 @@ export function problemasAlta(e: EstadoAlta): Problema[] {
   // Decidir el stock es obligatorio, no llenarlo: «ninguna» es una respuesta válida, pero tiene que darse. Sin esto, un
   // producto creado con prisa quedaba en 0 y su stock se metía después como «Reposición», sin rastro de que era la carga.
   if (e.stockInvalidas > 0) p.push({ bloque: "stock", texto: "Las cantidades son números enteros, de 0 a 9999." });
-  else if (e.stockTotal === 0 && !e.sinStock) p.push({ bloque: "stock", texto: "Escribe cuántas tienes hoy, o marca que todavía no tienes." });
+  else if (e.stockTotal === 0 && !e.sinStock) p.push({ bloque: "stock", texto: textoFaltaStock(e) });
   else if (faltaLugarCarga(e)) p.push({ bloque: "stock", texto: TEXTO_FALTA_LUGAR });
+  else if (faltaProveedorLlegada(e)) p.push({ bloque: "stock", texto: TEXTO_FALTA_PROVEEDOR_LLEGADA });
   return p;
 }
 
@@ -288,9 +306,18 @@ export function leerCantidad(texto: string): number | null {
   return Number(t);
 }
 
-/** Lo que admite una celda mientras se tipea: solo dígitos, hasta 4. Así una cantidad imposible ni se puede escribir. */
+/** Lo que queda en una celda de cantidad al teclear o pegar. Los miles se juntan («1,200», «1.200» y «1 200» son 1200). Todo lo demás se queda como se escribió, para que se vea y `leerCantidad` diga
+ *  que no es una cantidad: «2,5», «-3», «12 u.», «12345» o dos celdas pegadas de una hoja de cálculo («12 34»). Antes se borraba lo que no era un dígito, y como la caja se vuelve a dibujar en cada tecla, el 5
+ *  de «2,5» caía junto al 2 y se guardaba 25 sin que nadie lo notara (/chaos 2026-10-28; tecleándolo, Felipe 2026-11-03). Para leerla en una pantalla: `useCantidadEscrita`. */
 export function limpiarCantidad(texto: string): string {
-  return texto.replace(/\D/g, "").slice(0, 4);
+  const t = sinBlancosDeMiles(texto) ?? texto.trim();
+  return /^\d{1,3}([.,]\d{3})+$/.test(t) ? t.replace(/[.,]/g, "") : t;
+}
+
+/** Lo que se dice de lo escrito en una celda que no es una cantidad: mientras se escribe, o después de salir de ella, cuando ya volvió su número. `rango`: hasta dónde llega la celda; vacío, si no tiene tope. */
+export function textoCantidadRechazada(escrito: string, alSalir: boolean, rango = ", de 0 a 9999"): string {
+  const corto = escrito.length > 12 ? `${escrito.slice(0, 12)}…` : escrito;
+  return alSalir ? `«${corto}» no se guardó: las cantidades son números enteros${rango}.` : `«${corto}» no es una cantidad: escribe un número entero${rango}.`;
 }
 
 export type StockAlta = { total: number; invalidas: number; celdasConStock: number };
@@ -320,23 +347,6 @@ export function textoDestinoStock(etiquetaSede: string, lugar: LugarCarga | null
   if (!separaPiso) return etiquetaSede;
   if (lugar === null) return `${etiquetaSede} · falta decir si están colgadas o guardadas`;
   return `${lugar === "piso" ? "piso de venta" : "almacén"} de ${etiquetaSede}`;
-}
-
-export type Desbloqueos = { marca: boolean; nombre: boolean; atributos: boolean; colores: boolean; precio: boolean };
-
-/** Cada bloque se abre al resolver el anterior; los cerrados se ven atenuados, no ocultos (la persona ve el camino completo). */
-export function desbloqueos(e: EstadoAlta): Desbloqueos {
-  const marca = Boolean(e.categoriaId);
-  // La marca y el proveedor son opcionales (ADR-0283): ya no traban el nombre.
-  const nombre = marca;
-  const nombreResuelto = nombre && e.referencia.trim() !== "" && !e.nombreBloqueado && !e.nombreSinConfirmar && !e.comprobandoNombre;
-  const atributos = nombreResuelto;
-  const atributosResueltos =
-    atributos &&
-    !e.categoriaSinTallas &&
-    e.tallasElegidas > 0 &&
-    (!e.exigeTejidoPatron || (e.hayTejidosEnCategoria && e.hayPatronesEnCategoria && Boolean(e.tejidoId) && Boolean(e.patronId)));
-  return { marca, nombre, atributos, colores: atributosResueltos, precio: atributosResueltos };
 }
 
 // ---------------------------------------------------------------------------
@@ -382,12 +392,6 @@ export function faltaDelPaso(problemas: Problema[], paso: PasoAlta): string | nu
 /** Un paso está hecho cuando ni él ni ninguno anterior tiene problemas: sin categoría, «¿En qué tallas y colores?» no puede estar listo. */
 export function pasoHecho(problemas: Problema[], paso: PasoAlta): boolean {
   return !problemas.some((p) => pasoDeProblema(p) <= paso);
-}
-
-/** El paso más lejano al que se puede entrar: el primero que todavía tiene algo pendiente. */
-export function pasoAlcanzable(problemas: Problema[]): PasoAlta {
-  const primero = problemas[0];
-  return primero ? pasoDeProblema(primero) : 4;
 }
 
 /** Se puede abrir un paso (desde la lista «Avance» de la ficha) cuando los anteriores están contestados. El 1 siempre. */
@@ -479,13 +483,21 @@ export function estadoSubidaSinConexion(o: {
 }
 
 /** La frase del stock en la pantalla de éxito: nunca dice «ya aparecen en Existencias» de algo que todavía no entró. */
-export function fraseStockCreado(stock: { unidades: number; donde: string }, sinConexion: boolean, subida: SubidaSinConexion | undefined): string {
+export function fraseStockCreado(
+  stock: { unidades: number; donde: string; llegadaDe?: string | null },
+  sinConexion: boolean,
+  subida: SubidaSinConexion | undefined
+): string {
   const n = stock.unidades;
   const u = `${n} unidad${n === 1 ? "" : "es"}`;
+  // ADR-0328 act. 2026-10-28: con la carga cerrada, lo escrito entró como una llegada del proveedor, no como stock inicial.
+  if (stock.llegadaDe && !(sinConexion && subida !== "subio")) {
+    return `${u} recibida${n === 1 ? "" : "s"} de ${stock.llegadaDe} (${stock.donde}) como una llegada de hoy: ya aparecen en Existencias, donde desde ahora se ajustan.`;
+  }
   if (sinConexion && subida === "descartada") return `${u}: no se cargaron, se descartaron junto con el producto.`;
   if (sinConexion && subida === "rechazada") return `${u}: todavía no entraron, porque la base no aceptó el alta (mira el aviso rojo).`;
   if (sinConexion && subida !== "subio") return `${u}: van al inventario (${stock.donde}) junto con el producto, cuando suba.`;
-  return `${u} cargada${n === 1 ? "" : "s"} al inventario (${stock.donde}): ya aparecen en Existencias.`;
+  return `${u} cargada${n === 1 ? "" : "s"} al inventario (${stock.donde}) como stock inicial: ya aparecen en Existencias, donde desde ahora se ajustan.`;
 }
 
 /** Lee el `hint` estable que pone `crear_producto_con_variantes` (20260918230100). Cualquier otro error va por `traducirError`. */

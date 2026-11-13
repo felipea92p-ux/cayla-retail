@@ -1,6 +1,8 @@
 "use client";
 
+import Link from "next/link";
 import { useMemo, useState, type CSSProperties, type ReactNode } from "react";
+import { Aviso } from "@/components/ui/Aviso";
 import { Chip } from "@/components/ui/Chip";
 import { CabeceraReportes } from "@/components/finanzas/CabeceraReportes";
 import { CabeceraBloque, InputFin, RadiosFin, SelectFin, Superficie } from "@/components/finanzas/kit";
@@ -11,16 +13,19 @@ import { fechaCorta, parsearMonto, textoMes } from "@/lib/gastos-reglas";
 import type { FilaER } from "@/lib/resultados-reglas";
 import {
   PALANCAS_INICIALES,
-  alquilerDe,
-  alquilerDeFijos,
+  SIN_COMPRA_DE_CAMPANA,
+  alquilerDePartida,
+  cajaDiaria,
   conclusiones,
   csvEscenario,
+  etiquetaMesBase,
   etiquetaSemana,
   etiquetasEje,
   hayCambios,
   proyectar,
   soles,
   tiendaInicial,
+  textoSinAlquiler,
   tiendasDeLaProyeccion,
   utilidadConCambios,
   type Palancas,
@@ -47,15 +52,16 @@ export function EscenariosPanel({
   proyeccion,
   resultados,
   mesBase,
-  fallas,
   hoy,
+  vePlan = false,
 }: {
   proyeccion: Proyeccion | null;
   /** El estado de resultados del último mes completo (F5). `null` si no se pudo leer. */
   resultados: FilaER[] | null;
   mesBase: string;
-  fallas: string[];
   hoy: string;
+  /** La cuenta ve el Plan de campaña (módulo `plan_compra`): la línea de la compra planeada lleva su enlace. */
+  vePlan?: boolean;
 }) {
   const tiendas = useMemo(() => {
     const deProy = proyeccion ? tiendasDeLaProyeccion(proyeccion).map((t) => ({ id: t.id, nombre: t.nombre })) : [];
@@ -69,9 +75,10 @@ export function EscenariosPanel({
 
   const nombreTienda = tiendas.find((t) => t.id === p.tienda)?.nombre ?? null;
   const filaTienda = (resultados ?? []).find((f) => f.ubicacionId === p.tienda);
-  const alquilerER = filaTienda ? alquilerDe(filaTienda) : 0;
-  const alquilerActual = alquilerER > 0 ? alquilerER : proyeccion ? alquilerDeFijos(proyeccion.salidas, p.tienda) : null;
-  const utilidad = resultados && resultados.length ? utilidadConCambios(resultados, p) : null;
+  // La tabla y la caja restan contra el MISMO alquiler del que parte el deslizador (tarea 11).
+  const partida = alquilerDePartida(filaTienda, proyeccion?.salidas, p.tienda);
+  const alquilerActual = partida.monto;
+  const utilidad = resultados && resultados.length ? utilidadConCambios(resultados, p, alquilerActual) : null;
   const base = proyeccion ? proyectar(proyeccion) : [];
   const nuevo = proyeccion ? proyectar(proyeccion, p, alquilerActual) : [];
   const pagos = (proyeccion?.salidas ?? []).filter((s) => s.tipo === "vencimiento").sort((a, b) => b.monto - a.monto);
@@ -82,12 +89,15 @@ export function EscenariosPanel({
       ? { titulo: pago.titulo, monto: pago.monto, de: pago.fecha, a: nuevaFecha > proyeccion.hasta ? null : nuevaFecha < proyeccion.desde ? proyeccion.desde : nuevaFecha }
       : null;
   const frases = proyeccion
-    ? conclusiones({ utilidad, palancas: p, nombreTienda, semanasBase: base, semanasNuevas: nuevo, minimo: proyeccion.minimoCaja, pagoMovido })
+    ? conclusiones({ utilidad, palancas: p, nombreTienda, cajaBase: cajaDiaria(proyeccion), cajaNueva: cajaDiaria(proyeccion, p, alquilerActual), semanas: proyeccion.semanas.length, minimo: proyeccion.minimoCaja, pagoMovido })
     : [];
   const movido = hayCambios(p, alquilerActual);
+  // La utilidad de la tabla es la del último mes completo; lo de hoy es solo la caja.
+  const enMesBase = etiquetaMesBase(mesBase);
+  const mesEnFrase = enMesBase.slice(3);
 
   const descargar = () => {
-    descargarBlob(`escenario-${hoy}.csv`, new Blob([csvEscenario(base, nuevo, utilidad)], { type: "text/csv;charset=utf-8" }));
+    descargarBlob(`escenario-${hoy}.csv`, new Blob([csvEscenario(base, nuevo, utilidad, mesBase)], { type: "text/csv;charset=utf-8" }));
   };
   const volver = () => {
     setP(inicial);
@@ -97,9 +107,8 @@ export function EscenariosPanel({
   return (
     <div className="space-y-6">
       <CabeceraReportes
-        pestana="escenarios"
         titulo="¿Qué pasa si…?"
-        bajada="Mueve los valores y mira qué pasa con la utilidad de cada tienda y con tu caja. No se guarda nada: es para pensar antes de decidir."
+        bajada="Mueve los valores y mira qué pasa con la utilidad y con tu caja. No se guarda nada."
         acciones={
           <>
             <Chip versalitas={false}>CAYLA entera</Chip>
@@ -110,11 +119,6 @@ export function EscenariosPanel({
         }
       />
 
-      {fallas.map((f) => (
-        <p key={f} className="card-cayla border-dashed px-5 py-4 text-sm text-tinta/75">
-          {f}
-        </p>
-      ))}
 
       <section className="fin-dos-col fin-esc">
         <div {...entra(1)} data-guia="fin-escenarios.valores">
@@ -150,6 +154,11 @@ export function EscenariosPanel({
                 deshabilitado={p.cerrarTienda}
                 onValor={(v) => cambiar({ alquilerTienda: v })}
               />
+            )}
+            {nombreTienda && partida.sinEnResultado && alquilerActual !== null && (
+              <Aviso tono="info" chico className="mb-4">
+                {textoSinAlquiler(mesBase, nombreTienda, alquilerActual)}
+              </Aviso>
             )}
             {nombreTienda && (
               <Deslizador
@@ -237,7 +246,7 @@ export function EscenariosPanel({
                 />
                 <span>
                   <b>Un gasto nuevo</b>
-                  <small>Contratar a alguien, una máquina, un local más: cuánto y desde cuándo.</small>
+                  <small>Contratar a alguien, una máquina, comprar mercadería, un local más: cuánto y desde cuándo.</small>
                 </span>
               </label>
               {p.gastoNuevo && proyeccion && (
@@ -281,7 +290,7 @@ export function EscenariosPanel({
         <div className="fin-columna">
           <div {...entra(2)} data-guia="fin-escenarios.que-pasaria">
             <Superficie pad>
-              <CabeceraBloque titulo="Qué pasaría" bajada="Comparado con cómo está hoy." />
+              <CabeceraBloque titulo="Qué pasaría" bajada={`Comparado con ${mesEnFrase} y con tu caja de hoy.`} />
               {frases.length ? (
                 <ul className="fin-conclusiones" aria-live="polite">
                   {frases.map((f, i) => (
@@ -301,11 +310,11 @@ export function EscenariosPanel({
               <Superficie>
                 <div className="fin-tabla-wrap">
                   <table className="fin-tabla fin-tabla-utilidad">
-                    <caption className="sr-only">Utilidad al mes de cada unidad, hoy y con el cambio</caption>
+                    <caption className="sr-only">Utilidad al mes de cada unidad, en {mesEnFrase} y con el cambio</caption>
                     <thead>
                       <tr>
                         <th>Utilidad al mes</th>
-                        <th className="fin-num">Hoy</th>
+                        <th className="fin-num">{enMesBase}</th>
                         <th className="fin-num">Con el cambio</th>
                         <th className="fin-num">Diferencia</th>
                       </tr>
@@ -317,7 +326,7 @@ export function EscenariosPanel({
                         return (
                           <tr key={u.ubicacionId ?? u.nombre} className={total ? "fin-total-t" : undefined}>
                             <td data-l="Unidad">{total ? <b>CAYLA</b> : u.nombre}</td>
-                            <td className="fin-num" data-l="Hoy">
+                            <td className="fin-num" data-l={enMesBase}>
                               {soles(u.antes)}
                             </td>
                             <td className="fin-num" data-l="Con el cambio">
@@ -335,7 +344,7 @@ export function EscenariosPanel({
               </Superficie>
             ) : (
               <div className="nota-cayla">
-                <b>La utilidad sale del estado de resultados de {textoMes(mesBase)}</b> (Reportes ▸ Estado de resultados) y todavía no se pudo leer: por
+                <b>La utilidad sale de Ganancias y pérdidas de {textoMes(mesBase)}</b> (Estados financieros) y todavía no se pudo leer: por
                 ahora el escenario solo mueve tu caja.
               </div>
             )}
@@ -344,7 +353,7 @@ export function EscenariosPanel({
           {proyeccion && (
             <div {...entra(4)} data-guia="fin-escenarios.caja">
               <Superficie pad>
-                <CabeceraBloque titulo="Tu caja con el cambio" bajada={`Próximas ${proyeccion.semanas.length} semanas.`} />
+                <CabeceraBloque titulo="Tu caja con el cambio" bajada={`Próximas ${proyeccion.semanas.length} semanas. Cada barra es cómo cierra la semana: dentro de ella puede bajar más.`} />
                 <GraficoSemanas
                   etiqueta={`Tu caja con el cambio, contra tu mínimo de ${soles(proyeccion.minimoCaja)}`}
                   alto={190}
@@ -364,6 +373,20 @@ export function EscenariosPanel({
                     };
                   })}
                 />
+                <p className="mt-3 text-sm text-taupe" data-guia="fin-escenarios.sin-compra">
+                  {SIN_COMPRA_DE_CAMPANA}{" "}
+                  {vePlan ? (
+                    <>
+                      Lo que falta pedir y cuánto aguanta tu caja lo ves en el{" "}
+                      <Link href="/compras/plan" className="btn-enlace">
+                        Plan de campaña
+                      </Link>
+                      ; para probarla aquí, márcala como «Un gasto nuevo».
+                    </>
+                  ) : (
+                    "Para probarla aquí, márcala como «Un gasto nuevo»."
+                  )}
+                </p>
               </Superficie>
             </div>
           )}

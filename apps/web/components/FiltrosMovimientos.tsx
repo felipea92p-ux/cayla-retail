@@ -1,11 +1,11 @@
 "use client";
 
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useRef, useState, type ReactNode } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Camera, X } from "lucide-react";
 import { CampoFecha } from "@/components/ui/CampoFecha";
 import { Modal } from "@/components/ui/Modal";
-import { useBusquedaEnUrl } from "@/components/ui/BusquedaEnUrl";
+import { useBuscarAlEscribir } from "@/components/ui/BusquedaEnUrl";
 import { Buscador } from "@/components/ui/Buscador";
 import { EscanerBusqueda } from "@/components/EscanerBusqueda";
 import {
@@ -87,7 +87,7 @@ function Pastilla({
       disabled={!activa && cuenta === 0}
       className={
         sutil
-          ? `inline-flex shrink-0 items-center whitespace-nowrap rounded-full border px-3 py-1 text-[12.5px] font-medium transition-colors ${
+          ? `inline-flex shrink-0 items-center whitespace-nowrap rounded-full border px-3 py-1 text-sm font-medium transition-colors ${
               activa ? "border-taupe bg-hueso text-tinta" : "border-sand text-taupe hover:bg-sand/40 hover:text-tinta"
             }`
           : // La píldora de filtro del sistema (ADR-0358): el foco es el anillo común y el conteo, del color del texto.
@@ -110,6 +110,7 @@ export function FiltrosMovimientos({
   desde,
   hasta,
   resumen,
+  empresas = null,
 }: {
   /** Las de la ubicación que se mira. Si no tiene ninguna de las tres que se filtran (el Taller), el control no se muestra. */
   sububicaciones: Sububicacion[];
@@ -126,19 +127,25 @@ export function FiltrosMovimientos({
   /** Las cifras con los demás filtros puestos (no el tipo ni el proceso): la de cada píldora de tipo y de proceso. Null si la
    *  base no las pudo dar: las píldoras van sin cifra. */
   resumen: ResumenTienda | null;
+  /** Las empresas de esta sede, solo donde conviven dos (Lima, ADR-0532): «Tienda · Todas · CAYLA · CLAURE». `null` = sin el filtro. */
+  empresas?: { clave: string; nombre: string }[] | null;
 }) {
   const router = useRouter();
   const pathname = usePathname();
   const params = useSearchParams();
-  const [busqueda, setBusqueda] = useState(params.get("q") ?? "");
-  const primera = useRef(true);
-  const { buscando, buscar } = useBusquedaEnUrl();
+  // Si lo escrito es el nombre de un proceso, se vuelve su filtro y la caja queda en blanco.
+  const { texto: busqueda, setTexto: setBusqueda, buscando, fijar } = useBuscarAlEscribir(params.get("q") ?? "", (q) => {
+    const filtro = filtroDePalabra(q);
+    return filtro ? { href: hrefCon({ q: "", cat: filtro.cat ?? "", proc: filtro.proc ?? "" }), vaciar: true } : hrefCon({ q });
+  });
   const entrada = useRef<HTMLInputElement>(null);
   // Celular (ADR-0241): los filtros viven en una hoja y la cámara lee una etiqueta.
   const [hoja, setHoja] = useState(false);
   const [camara, setCamara] = useState(false);
 
   const proc = params.get("proc") || null;
+  // ADR-0532: de qué tienda es lo que se mira (en Lima, la marca CAYLA es de CAYLA y lo demás de CLAURE). Solo cuenta si es una de aquí.
+  const emp = empresas?.find((e) => e.clave === params.get("emp"))?.clave ?? null;
   // Un enlace con solo `?proc=conteo` (el de Conteo) aprieta igual «Ajustes»: el tipo se deduce.
   const cat: CategoriaFiltro | null = CATEGORIAS_FILTRO.find((c) => c === params.get("cat")) ?? categoriaDeProceso(proc);
   // «Personalizado» se abre con un toque aunque todavía no haya fechas en la URL.
@@ -146,8 +153,7 @@ export function FiltrosMovimientos({
   const enPersonalizado = periodo === "personalizado" || periodo === "todo";
   const mostrarFechas = enPersonalizado || personalizadoAbierto;
 
-  /** `tipeado`: viene del buscador (se escribió): navega sin el loader, con «Buscando…». */
-  function aplicar(cambios: Record<string, string>, { tipeado = false } = {}) {
+  function hrefCon(cambios: Record<string, string>) {
     const p = new URLSearchParams(params.toString());
     for (const [k, v] of Object.entries(cambios)) {
       if (v) p.set(k, v);
@@ -156,35 +162,17 @@ export function FiltrosMovimientos({
     p.delete("cursor");
     p.delete("mov");
     const qs = p.toString();
-    const href = qs ? `${pathname}?${qs}` : pathname;
-    if (tipeado) buscar(href);
-    else router.push(href);
+    return qs ? `${pathname}?${qs}` : pathname;
   }
 
-  // La búsqueda se manda sola al dejar de tipear (350 ms): sin botón, pero
-  // sin una consulta por tecla. Si lo escrito es el nombre de un proceso, se vuelve su filtro.
-  useEffect(() => {
-    if (primera.current) {
-      primera.current = false;
-      return;
-    }
-    const t = setTimeout(() => {
-      const filtro = filtroDePalabra(busqueda);
-      if (filtro) {
-        setBusqueda("");
-        aplicar({ q: "", cat: filtro.cat ?? "", proc: filtro.proc ?? "" }, { tipeado: true });
-        return;
-      }
-      if ((params.get("q") ?? "") !== busqueda.trim()) aplicar({ q: busqueda.trim() }, { tipeado: true });
-    }, 350);
-    return () => clearTimeout(t);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [busqueda]);
+  function aplicar(cambios: Record<string, string>) {
+    router.push(hrefCon(cambios));
+  }
 
   const subDisponibles = FILTROS_SUBUBICACION.filter((f) => sububicaciones.some((s) => s.tipo === f.tipo));
-  const hayFiltros = !!(params.get("q") || cat || sub || proc || periodo !== periodoPorDefecto);
+  const hayFiltros = !!(params.get("q") || cat || sub || proc || emp || periodo !== periodoPorDefecto);
   // Cuántos filtros hay puestos, para el botón «Filtros · n» del celular (la búsqueda se ve sola: no cuenta).
-  const cuantosFiltros = [cat, proc, sub, periodo !== periodoPorDefecto].filter(Boolean).length;
+  const cuantosFiltros = [cat, proc, sub, emp, periodo !== periodoPorDefecto].filter(Boolean).length;
   // Los procesos que se ofrecen bajo el tipo elegido: los que tuvieron algo en el período (en su orden), y el elegido
   // aunque esté en cero. Sin cifras (la base no respondió), todos los del tipo.
   const procesosDelTipo = cat
@@ -210,7 +198,7 @@ export function FiltrosMovimientos({
   const hayProcesos = procesosDelTipo.length >= 2 || (!!proc && procesosDelTipo.length >= 1);
 
   function limpiar() {
-    setBusqueda("");
+    fijar("");
     setPersonalizadoAbierto(false);
     router.push(pathname);
   }
@@ -218,7 +206,7 @@ export function FiltrosMovimientos({
   function alLeerCodigo(codigo: string) {
     setCamara(false);
     const texto = codigo.trim();
-    setBusqueda(texto);
+    fijar(texto);
     aplicar({ q: texto });
   }
 
@@ -277,6 +265,22 @@ export function FiltrosMovimientos({
         {[{ token: null as TokenSububicacion | null, etiqueta: "Todas" }, ...subDisponibles].map((f) => (
           <button key={f.token ?? "todo"} type="button" aria-pressed={sub === f.token} onClick={() => aplicar({ sub: f.token ?? "" })} className="pildora-cayla shrink-0">
             {f.etiqueta}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+
+  // «Tienda» (ADR-0532, Felipe 2026-10-26): ver por separado lo de CAYLA y lo de CLAURE en Lima. Con «Ventas» elegido, sus ventas.
+  const tienda = empresas && empresas.length > 1 && (
+    <div data-guia="movimientos.tienda" className="flex max-w-full shrink-0 items-center gap-2">
+      <span className="label-cayla text-[10px] font-bold text-taupe" aria-hidden>
+        Tienda
+      </span>
+      <div role="group" aria-label="De qué tienda es la prenda" className="pildoras-desliza gap-1.5 sm:flex-wrap">
+        {[{ clave: null as string | null, nombre: "Todas" }, ...empresas].map((e) => (
+          <button key={e.clave ?? "todas"} type="button" aria-pressed={emp === e.clave} onClick={() => aplicar({ emp: e.clave ?? "" })} className="pildora-cayla shrink-0">
+            {e.nombre}
           </button>
         ))}
       </div>
@@ -351,6 +355,7 @@ export function FiltrosMovimientos({
         <div className="flex flex-wrap items-center gap-x-4 gap-y-2.5">
           {procesoSueltoPildora}
           {zona}
+          {tienda}
           {hayFiltros && (
             <BotonLimpiar onClick={limpiar} guia="movimientos.limpiar">
               Limpiar filtros
@@ -377,6 +382,7 @@ export function FiltrosMovimientos({
                 </section>
               )}
               {zona && <section className="space-y-2">{zona}</section>}
+              {tienda && <section className="space-y-2">{tienda}</section>}
               {hrefExportar && (
                 <BotonDescargar href={hrefExportar} chico className="self-start">
                   Descargar Excel con estos filtros

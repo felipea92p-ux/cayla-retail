@@ -12,6 +12,7 @@
  */
 
 import { useEffect, useId, useRef } from "react";
+import { LogoCayla } from "@/components/ui/LogoCayla";
 import {
   COLA_DEL_AVE,
   LINEA_DE_TIEMPO,
@@ -25,6 +26,7 @@ import {
   trazoDelVuelo,
   type Punto,
 } from "@/lib/login-vuelo";
+import { prefiereQuieto } from "@/lib/movimiento-cliente";
 
 // Las tres sedes, en el orden en que el hilo las cose. El login se ve antes de entrar: no puede leer `ubicaciones`.
 const SEDES = [
@@ -125,7 +127,7 @@ export function PanelVuelo() {
     const alCambiarTamano = () => terminar();
     window.addEventListener("resize", alCambiarTamano);
 
-    const quieto = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const quieto = prefiereQuieto();
     // Si el login aparece bajo la salida con el colibrí (`data-entrando`, components/login/EntradaColibri.tsx), el ave ya viene volando de vuelta:
     // el login se pone terminado, con el ave en su lugar, y la capa aterriza sobre ella (hoy el ave se esconde con `html[data-entrando]`).
     const llegaSaliendo = document.documentElement.hasAttribute("data-entrando");
@@ -176,7 +178,7 @@ export function PanelVuelo() {
   return (
     <div ref={panelRef} className="login-panel" aria-hidden>
       <p className="login-panel-marca">
-        <span>CAYLA</span>
+        <LogoCayla tinta="actual" className="login-panel-logo" />
         <small>Retail</small>
       </p>
 
@@ -189,7 +191,7 @@ export function PanelVuelo() {
         <path ref={hiloRef} className="login-hilo-trazo" mask={`url(#${mascaraId})`} />
       </svg>
 
-      {/* El colibrí de la marca (los trazos de IsotipoCayla); el ala son los dos primeros y aletea. */}
+      {/* El colibrí de la marca (los trazos del colibrí de antes del logo oficial); el ala son los dos primeros y aletea. */}
       <svg ref={aveRef} className="login-ave" viewBox="0 0 223 150">
         <path ref={alaRef} d={TRAZOS_DEL_AVE[0]} pathLength={1} />
         <path ref={alaBajoRef} d={TRAZOS_DEL_AVE[1]} pathLength={1} />

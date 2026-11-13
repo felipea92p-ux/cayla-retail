@@ -5,6 +5,7 @@ import { Boton } from "@/components/ui/campos";
 import { ElegirColores } from "@/components/alta-producto/ElegirColores";
 import type { ColorAlta } from "@/lib/alta-producto";
 import { agruparPorFamilia } from "@/lib/colores-familias";
+import { familiaEnCarta } from "@/lib/color-estampado-reglas";
 
 // Los colores de un MODELO NUEVO dentro de «Nueva orden de producción» (ADR-0396, A2). Antes los colores se elegían arriba, en el bloque de «Modelo nuevo», y las cantidades se
 // escribían mucho más abajo: quien cambiaba de idea tenía que subir, quitar y volver a bajar. Ahora cada color elegido es una FILA de la tabla de cantidades (con su «×» para
@@ -50,7 +51,7 @@ export function AgregarColor({
   useEffect(() => {
     recorrio.current = false;
   }, [elegidos]);
-  const grupos = useMemo(() => agruparPorFamilia(colores, (c) => c.familiaColor), [colores]);
+  const grupos = useMemo(() => agruparPorFamilia(colores, familiaEnCarta), [colores]);
 
   /** Antes que el buscador (captura): con la lista abierta, la primera fila ya viene resaltada aunque no se haya escrito nada, y un Enter «de costumbre» agregaba el primer color
    *  (Blanco) sin que nadie lo pidiera. Sin escribir ni recorrer la lista, Enter no elige a ciegas (como el buscador de modelos de A1). */
@@ -89,7 +90,7 @@ export function AgregarColor({
         <Boton type="button" peso="fantasma" aria-expanded={abierto} onClick={() => setAbierto((v) => !v)}>
           {abierto ? "Listo con los colores" : "+ Agregar color"}
         </Boton>
-        {elegidos.length === 0 && <span className="text-[12.5px] text-tinta/70">Opcional: si no tiene color, déjalo así.</span>}
+        {elegidos.length === 0 && <span className="text-sm text-tinta/70">Opcional: si no tiene color, déjalo así.</span>}
       </div>
       {/* Sin marco propio: la carta de colores ya trae el suyo, y dos marcos iguales uno dentro del otro se veían como un error. */}
       {abierto && <ElegirColores colores={colores} grupos={grupos} elegidos={elegidos} onAlternar={onAlternar} onCreado={onCreado} cartaAbierta={false} sinElegidos enfocarBuscador />}

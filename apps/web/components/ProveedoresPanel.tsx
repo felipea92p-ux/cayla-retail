@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } fro
 import { BarraApilada } from "@/components/ui/BarraApilada";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { ChevronRight, FunnelX, SearchX, Truck } from "lucide-react";
+import { ChevronRight, CreditCard, FunnelX, Gauge, SearchX, Tags, Truck } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import type { Proveedor, ResumenProveedores } from "@/lib/proveedores";
 import { ProveedorModal, BORRADOR_VACIO, type Borrador } from "@/components/ProveedorModal";
@@ -20,7 +20,7 @@ import { RITMOS, alternarComparar, porqueDelRitmo, contarPorRitmo, filasDelRanki
 import type { RendimientoProveedor } from "@/lib/proveedor-prendas-reglas";
 import { soles } from "@/lib/compras-reglas";
 import { clave } from "@/lib/buscar-prenda-v2";
-import { ETIQUETA_TIPO_PROVEEDOR, chipEntregas, haceCuanto, marcasParaMostrar, ordenarProveedores, repartoDeuda, rubrosConConteo, siguienteOrden, resumenSoloMercaderia, sinDatosDePago, textoBuscableProveedor, tieneRubro, type CampoOrden, type MarcasDeProveedor, type Orden, type TipoProveedor } from "@/lib/proveedores-reglas";
+import { ETIQUETA_TIPO_PROVEEDOR, chipEntregas, haceCuanto, ordenarProveedores, tituloDeMarcas, repartoDeuda, rubrosConConteo, siguienteOrden, resumenSoloMercaderia, sinDatosDePago, textoBuscableProveedor, tieneRubro, type CampoOrden, type MarcasDeProveedor, type Orden, type TipoProveedor } from "@/lib/proveedores-reglas";
 import { useFlip } from "@/lib/useFlip";
 import { Boton } from "@/components/ui/campos";
 import { Chip } from "@/components/ui/Chip";
@@ -30,10 +30,13 @@ import { Tabla, Encabezado, fila, celda, type Columna } from "@/components/ui/Ta
 import { traducirError } from "@/lib/error-escritura";
 import { avisar } from "@/components/ui/Avisos";
 import { Buscador } from "@/components/ui/Buscador";
+import { DesplegablePildora, TODOS } from "@/components/ui/FiltrosPildora";
+import { BotonLimpiar } from "@/components/ui/FiltrosPuestos";
 import { Pestanas } from "@/components/ui/Pestanas";
 import { Vacio } from "@/components/ui/Vacio";
 import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 import { TituloSeccion } from "@/components/ui/TituloSeccion";
+import { prefiereQuieto } from "@/lib/movimiento-cliente";
 
 // La tabla de líder gana columnas según el ANCHO DE LA TABLA, no el de la ventana (container queries de
 // Tailwind: `@3xl`, `@5xl`, `@7xl` miden el contenedor `@container` de <Tabla>). Con el menú lateral abierto
@@ -250,7 +253,7 @@ export function ProveedoresPanel({
     const el = document.querySelector(`[data-proveedor-id="${id}"]`);
     if (!el) return;
     pendienteScroll.current = null;
-    el.scrollIntoView({ block: "center", behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
+    el.scrollIntoView({ block: "center", behavior: prefiereQuieto() ? "auto" : "smooth" });
   }, [proveedores]);
 
   async function onCambiarEstado(p: Proveedor, esDeshacer = false) {
@@ -334,40 +337,41 @@ export function ProveedoresPanel({
                 proveedores={proveedores.filter((p) => p.activo && p.tipo === "mercaderia")}
                 resumen={resumen ? resumenSoloMercaderia(resumen, proveedores) : null}
                 filas={ranking.filas}
-                medida={medida}
                 hallazgos={hallazgos ?? []}
                 onAbrir={setAbiertoId}
+                onFiltrar={setFiltroRitmo}
                 soloHoy={comparados.length > 0}
               />
             </div>
           ) : null
         }
       >
-      {/* Buscador + filtro por rubro con conteo. Una sola línea: el buscador a la izquierda, los rubros
-          a la derecha; en celular los rubros bajan y se desplazan en horizontal. */}
+      {/* Dos líneas sobre la lista, nada más (Felipe 2026-10-26: los filtros en tres filas y las dos tarjetas grandes empujaban a los
+          proveedores fuera de la pantalla). Arriba, las pestañas y «Ordenar por»; abajo, el buscador y los filtros que se abren
+          (`DesplegablePildora`, ADR-0358), con su cuenta adentro. En celular, los filtros bajan bajo el buscador. */}
       {hayProveedores && (
-        <Pestanas
-          guia="proveedores.tipos"
-          idIndicador="proveedores-tipo"
-          etiquetaAccesible="Tipo de proveedor"
-          activa={tipo}
-          onCambio={(c) => {
-            setTipo(c as TipoProveedor);
-            setRubro(null);
-          }}
-          items={[
-            { clave: "mercaderia", etiqueta: ETIQUETA_TIPO_PROVEEDOR.mercaderia, conteo: nDeTipo.mercaderia, tono: "neutro", pide: "activos", ayuda: "Ropa y lo que se revende: a ellos se les compra y se les recibe" },
-            { clave: "servicios", etiqueta: ETIQUETA_TIPO_PROVEEDOR.servicios, conteo: nDeTipo.servicios, tono: "neutro", pide: "activos", ayuda: "Telefonía, luz, agua, alquiler: a ellos se les paga" },
-          ]}
-        />
-      )}
-      {hayProveedores && enRanking && ranking && ranking.filas.length > 0 && (
-        <div className="anim-entra" style={{ ["--i" as string]: 5 }}>
-          <MedidaDelRanking medida={medida} onMedida={cambiarMedida} prendas={totales.prendas} gasto={totales.gasto} cargaPct={totales.cargaPct} proveedores={ranking.filas.length} />
+        <div className="anim-entra flex flex-wrap items-center justify-between gap-x-6 gap-y-3" style={{ ["--i" as string]: 5 }}>
+          <Pestanas
+            guia="proveedores.tipos"
+            idIndicador="proveedores-tipo"
+            etiquetaAccesible="Tipo de proveedor"
+            activa={tipo}
+            onCambio={(c) => {
+              setTipo(c as TipoProveedor);
+              setRubro(null);
+            }}
+            items={[
+              { clave: "mercaderia", etiqueta: ETIQUETA_TIPO_PROVEEDOR.mercaderia, conteo: nDeTipo.mercaderia, tono: "neutro", pide: "activos", ayuda: "Ropa y lo que se revende: a ellos se les compra y se les recibe" },
+              { clave: "servicios", etiqueta: ETIQUETA_TIPO_PROVEEDOR.servicios, conteo: nDeTipo.servicios, tono: "neutro", pide: "activos", ayuda: "Telefonía, luz, agua, alquiler: a ellos se les paga" },
+            ]}
+          />
+          {enRanking && ranking && ranking.filas.length > 0 && (
+            <MedidaDelRanking medida={medida} onMedida={cambiarMedida} prendas={totales.prendas} gasto={totales.gasto} cargaPct={totales.cargaPct} proveedores={ranking.filas.length} />
+          )}
         </div>
       )}
       {hayProveedores && (
-        <div className="anim-entra flex flex-wrap items-center gap-x-4 gap-y-3" style={{ ["--i" as string]: 6 }}>
+        <div className="anim-entra flex flex-wrap items-center gap-x-3 gap-y-3" style={{ ["--i" as string]: 6 }}>
           <Buscador guia="proveedores.buscador"
             id="proveedores-buscar"
             valor={busqueda}
@@ -378,40 +382,58 @@ export function ProveedoresPanel({
             conteo={filtrandoTodo ? `${nVisibles} de ${k ? proveedores.length : delTipo.length}` : undefined}
             className="min-w-[14rem] flex-1"
           />
-          {rubros.length > 0 && (
-            // El rubro deja menos proveedores en la misma lista: la píldora de filtro del sistema (ADR-0358).
-            <div role="group" aria-label="Filtrar por rubro" data-guia="proveedores.rubros" className="flex flex-wrap items-center gap-2">
-              {[{ clave: "", etiqueta: "Todos", conteo: totalActivos }, ...rubros.map((r) => ({ clave: r.clave, etiqueta: r.etiqueta, conteo: r.conteo }))].map((o) => (
-                <button key={o.clave || "todos"} type="button" aria-pressed={(rubro ?? "") === o.clave} onClick={() => setRubro(o.clave || null)} className="pildora-cayla">
-                  {o.etiqueta} <span className="pildora-cayla__n">{o.conteo}</span>
-                </button>
-              ))}
-            </div>
-          )}
-          {nSinPago > 0 && (
-            <button
-              type="button"
-              aria-pressed={filtrarSinPago}
-              data-guia="proveedores.sin-pago"
-              onClick={() => setSoloSinPago((v) => !v)}
-              className={`anim-revelar rounded-full border px-3 py-1 text-xs tabular-nums transition-colors duration-200 ${
-                filtrarSinPago ? "border-tinta bg-tinta text-crema" : "border-ambar/40 bg-ambar/10 text-ambar-profundo hover:border-ambar-profundo"
-              }`}
-            >
-              Sin datos de pago · {nSinPago}
-            </button>
-          )}
-        </div>
-      )}
-
-      {hayProveedores && enRanking && ranking && ranking.filas.length > 0 && (
-        // El ritmo deja menos proveedores en la misma lista: la píldora de filtro del sistema (ADR-0358), con su cuenta.
-        <div role="group" aria-label="Filtrar por ritmo de venta" data-guia="proveedores.ritmo" className="anim-entra -mt-3 flex flex-wrap items-center gap-2" style={{ ["--i" as string]: 6 }}>
-          {opcionesRitmo.map((o) => (
-            <button key={o.c ?? "todos"} type="button" aria-pressed={filtroRitmo === o.c} title={o.ayuda} onClick={() => setFiltroRitmo(filtroRitmo === o.c ? null : o.c)} className="pildora-cayla">
-              {o.texto} <span className="pildora-cayla__n">{o.n}</span>
-            </button>
-          ))}
+          <div className="flex flex-wrap items-center gap-2">
+            {rubros.length > 0 && (
+              <span data-guia="proveedores.rubros" className="inline-flex">
+                <DesplegablePildora
+                  icono={Tags}
+                  etiqueta="Rubro"
+                  valor={rubro ?? TODOS}
+                  onValor={(v) => setRubro(v === TODOS ? null : v)}
+                  rotuloCantidad="Proveedores · uno con varios rubros cuenta en cada uno"
+                  opciones={[{ valor: TODOS, texto: "Todos", cantidad: totalActivos }, ...rubros.map((r) => ({ valor: r.clave, texto: r.etiqueta, cantidad: r.conteo }))]}
+                />
+              </span>
+            )}
+            {enRanking && ranking && ranking.filas.length > 0 && (
+              <span data-guia="proveedores.ritmo" className="inline-flex">
+                <DesplegablePildora
+                  icono={Gauge}
+                  etiqueta="Ritmo"
+                  valor={filtroRitmo ?? TODOS}
+                  onValor={(v) => setFiltroRitmo(v === TODOS ? null : (v as FiltroRanking))}
+                  rotuloCantidad="Proveedores"
+                  opciones={opcionesRitmo.map((o) => ({ valor: o.c ?? TODOS, texto: o.texto, cantidad: o.n }))}
+                />
+              </span>
+            )}
+            {nSinPago > 0 && (
+              <span data-guia="proveedores.sin-pago" className="inline-flex">
+                <DesplegablePildora
+                  icono={CreditCard}
+                  etiqueta="Datos de pago"
+                  valor={filtrarSinPago ? "sin" : TODOS}
+                  onValor={(v) => setSoloSinPago(v === "sin")}
+                  rotuloCantidad="Proveedores"
+                  opciones={[
+                    { valor: TODOS, texto: "Todos", cantidad: totalActivos },
+                    { valor: "sin", texto: "Sin datos de pago", cantidad: nSinPago },
+                  ]}
+                />
+              </span>
+            )}
+            {(rubro || filtrarSinPago || (enRanking && filtroRitmo)) && (
+              <BotonLimpiar
+                onClick={() => {
+                  setRubro(null);
+                  setSoloSinPago(false);
+                  setFiltroRitmo(null);
+                }}
+              >
+                Limpiar filtros
+              </BotonLimpiar>
+            )}
+          </div>
         </div>
       )}
 
@@ -501,6 +523,7 @@ export function ProveedoresPanel({
             <ProveedoresRanking
               filas={filasRanking}
               proveedores={porId}
+              marcasDe={marcasDe}
               maxValor={Math.max(1, ...ranking.filas.map((f) => valorDe(f, medida)))}
               medida={medida}
               antes={puestosAntes}
@@ -617,7 +640,7 @@ export function ProveedoresPanel({
             <button
               type="button"
               className="btn-cayla btn-primario"
-              onClick={() => document.getElementById("proveedores-comparacion")?.scrollIntoView({ behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "start" })}
+              onClick={() => document.getElementById("proveedores-comparacion")?.scrollIntoView({ behavior: prefiereQuieto() ? "auto" : "smooth", block: "start" })}
             >
               Ver la comparación
             </button>
@@ -691,6 +714,8 @@ type PropsFila = {
 };
 
 const MONOGRAMA = "font-display grid h-[34px] w-[34px] shrink-0 place-items-center rounded-full bg-sand text-base text-tinta transition-colors duration-300 group-hover:bg-tinta group-hover:text-crema";
+// El de una marca (ADR-0644): la inicial de su primera marca, en tinta, como en Mis compras.
+const MONOGRAMA_MARCA = "font-display grid h-[34px] w-[34px] shrink-0 place-items-center rounded-[10px] bg-tinta text-base text-crema";
 
 function iniciales(nombre: string): string {
   return nombre
@@ -704,9 +729,9 @@ function iniciales(nombre: string): string {
 
 // Nombre/contacto/rubro/plazo: para cualquiera. El resto de la fila (RUC en adelante) cambia de
 // contenido Y de significado entre líder y colaborador, no solo de estilo.
-// Cuántas etiquetas de marca caben en la fila antes de resumir el resto en «+N».
-const MARCAS_POR_FILA = 3;
-
+// La marca primero (ADR-0644, Felipe 2026-11-11): el título de la fila son sus marcas («Kero, Lolita y Mia Rose») y la razón social baja a la
+// línea de abajo, junto al contacto. Antes las marcas iban en etiquetas chicas bajo la razón social (ADR-0140). Sin marcas (servicios,
+// gastos), la razón social sigue de título.
 function NombreCelda({
   p,
   busqueda,
@@ -720,44 +745,32 @@ function NombreCelda({
   marcarSinPago?: boolean;
 }) {
   const sinPago = marcarSinPago && p.activo && sinDatosDePago(p);
-  const { visibles, ocultas } = marcasParaMostrar(marcas, busqueda, MARCAS_POR_FILA);
+  const titulo = tituloDeMarcas(marcas, busqueda);
   return (
     <span className="flex min-w-0 items-center gap-3">
-      <span aria-hidden className={MONOGRAMA}>
-        {iniciales(p.nombre)}
+      <span aria-hidden className={titulo ? MONOGRAMA_MARCA : MONOGRAMA}>
+        {titulo ? titulo.trim().charAt(0).toUpperCase() : iniciales(p.nombre)}
       </span>
       <span className="min-w-0">
-        <span className="block truncate text-sm text-tinta">
-          <Resaltado texto={p.nombre} busqueda={busqueda} />
+        <span className="block truncate text-sm font-medium text-tinta" title={titulo ? marcas.join(", ") : undefined}>
+          <Resaltado texto={titulo ?? p.nombre} busqueda={busqueda} />
         </span>
-        <span className="block truncate text-xs text-tinta/65">
+        <span className="block truncate text-sm text-tinta/65">
+          {titulo && (
+            <>
+              <Resaltado texto={p.nombre} busqueda={busqueda} />
+              {" · "}
+            </>
+          )}
           {p.contacto ? <Resaltado texto={p.contacto} busqueda={busqueda} /> : "Sin contacto"}
           {p.rubros.length > 0 && ` · ${p.rubros.join(", ")}`}
           {p.plazo_credito_dias != null && ` · Crédito ${p.plazo_credito_dias} d`}
         </span>
-        {/* Debajo, no al lado: junto al nombre le quitaba ancho y lo cortaba («Confecciones d…»). Las marcas van en la
-            misma línea que el aviso de pago para no alargar la fila (ADR-0140). */}
-        {(sinPago || visibles.length > 0) && (
+        {sinPago && (
           <span className="mt-1 flex flex-wrap items-center gap-1">
-            {sinPago && (
-              <Chip tono="ambar" versalitas={false}>
-                Sin datos de pago
-              </Chip>
-            )}
-            {visibles.map((m) => (
-              // Un solo hijo dentro del chip: es flex con `gap`, y cada tramo del resaltado (<span>, <mark>, <span>) sería un
-              // ítem aparte con un hueco DENTRO de la palabra. El `truncate` corta una marca más ancha que la columna.
-              <Chip key={m} versalitas={false} className="min-w-0 max-w-full">
-                <span className="truncate">
-                  <Resaltado texto={m} busqueda={busqueda} />
-                </span>
-              </Chip>
-            ))}
-            {ocultas > 0 && (
-              <span className="text-[11px] text-tinta/55" title={marcas.filter((m) => !visibles.includes(m)).join(", ")}>
-                +{ocultas}
-              </span>
-            )}
+            <Chip tono="ambar" versalitas={false}>
+              Sin datos de pago
+            </Chip>
           </span>
         )}
       </span>
@@ -854,14 +867,14 @@ function FilaLider({ p, indice, busqueda, marcas, serie, maxSaldo, cambiando, re
           <span className="text-tinta/45">—</span>
         )}
       </span>
-      <span className="hidden justify-end overflow-visible text-xs @5xl:flex">{entregas ? <Chip tono={entregas.tono}>{entregas.texto}</Chip> : <span className="text-tinta/45">—</span>}</span>
+      <span className="hidden justify-end overflow-visible text-sm @5xl:flex">{entregas ? <Chip tono={entregas.tono}>{entregas.texto}</Chip> : <span className="text-tinta/45">—</span>}</span>
       <span className={`hidden whitespace-nowrap text-right text-sm @7xl:block ${dormido ? "text-ambar-profundo" : "text-tinta/65"}`} title={p.ultima_compra ?? undefined}>
         {haceCuanto(dias)}
       </span>
       <span className="hidden items-center justify-end gap-2 overflow-visible @3xl:flex">
         {/* «+ Comprobante» se fue con el registro a mano (2026-10-23): la compra nace en «Mis compras». */}
         {!p.activo && (
-          <Boton textoCargando="Reactivando…" type="button" peso="discreto" cargando={cambiando} onClick={onReactivar} className="relative px-2.5 py-1.5 text-[11px]">
+          <Boton textoCargando="Reactivando…" type="button" peso="discreto" cargando={cambiando} onClick={onReactivar} className="relative px-2.5 py-1.5 text-sm">
             Reactivar
           </Boton>
         )}

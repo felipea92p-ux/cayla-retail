@@ -6,6 +6,7 @@ import { Chip } from "@/components/ui/Chip";
 import { MiniaturaPrenda } from "@/components/ui/PrendaCelda";
 import { categoriaDe } from "@/lib/categoria-de-prenda";
 import type { FilaDeLista } from "@/lib/ordenes-lista-reglas";
+import { prefiereQuieto } from "@/lib/movimiento-cliente";
 
 // Una orden en la lista (ADR-0400, actividad 5; vista A de la lámina): la prenda, de qué es y cuántas; dónde está y QUIÉN la tiene; cuánto lleva ahí y para cuándo; y, si pide algo, por qué.
 // Toda la fila es un enlace a la página de la orden (un enlace que la cubre; adentro solo hay un botón, «¿Por qué?», que abre la explicación en una línea y no navega). Las columnas se
@@ -21,23 +22,19 @@ export const PLANTILLA_LISTA =
 const SOLO_ANCHA = "hidden @min-[900px]:block";
 const DESDE_MEDIA = "hidden @min-[620px]:block";
 
-export function FilaDeOrden({ f, primera = false, guiaPorque = false, recien = false, onAbrirCajon }: { f: FilaDeLista; primera?: boolean; /** La guía interactiva enciende el «¿Por qué?» de la primera fila que lo tenga. */ guiaPorque?: boolean; /** La orden que se acaba de abrir (ADR-0509): respira en verde una vez (`data-recien`) y se lleva a la vista. */ recien?: boolean; /** Una orden de antes de las fases no tiene página: se sigue desde el cajón de siempre. */ onAbrirCajon?: () => void }) {
+export function FilaDeOrden({ f, primera = false, guiaPorque = false, recien = false }: { f: FilaDeLista; primera?: boolean; /** La guía interactiva enciende el «¿Por qué?» de la primera fila que lo tenga. */ guiaPorque?: boolean; /** La orden que se acaba de abrir (ADR-0509): respira en verde una vez (`data-recien`) y se lleva a la vista. */ recien?: boolean; /** Una orden de antes de las fases no tiene página: se sigue desde el cajón de siempre. */ onAbrirCajon?: () => void }) {
   const [abierta, setAbierta] = useState(false);
   const idPorque = useId();
   const raiz = useRef<HTMLDivElement>(null);
   useEffect(() => {
-    if (recien) raiz.current?.scrollIntoView({ block: "nearest", behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
+    if (recien) raiz.current?.scrollIntoView({ block: "nearest", behavior: prefiereQuieto() ? "auto" : "smooth" });
   }, [recien]);
   const prenda = categoriaDe({ categoria: f.categoria?.nombre, categoriaPrefijo: f.categoria?.prefijo, categoriaFamilia: f.categoria?.familia });
   const enProceso = f.estado === "en_proceso";
   const entregaEnLinea = f.entrega.fecha ? `Entrega ${f.entrega.texto}${f.entrega.relativo ? ` · ${f.entrega.relativo}` : ""}` : "Sin fecha de entrega";
   return (
     <div ref={raiz} className="fila-cayla ol-fila cursor-pointer px-5 py-3 pr-8" data-guia={primera ? "prod-ordenes.fila" : undefined} data-recien={recien ? "" : undefined}>
-      {f.legado && onAbrirCajon ? (
-        <button type="button" className="ol-enlace" aria-haspopup="dialog" aria-label={`Abrir ${f.numeroTexto}, ${f.referencia}`} onClick={onAbrirCajon} />
-      ) : (
-        <Link href={f.href} className="ol-enlace" aria-label={`Abrir ${f.numeroTexto}, ${f.referencia}`} />
-      )}
+      <Link href={f.href} className="ol-enlace" aria-label={`Abrir ${f.numeroTexto}, ${f.referencia}`} />
       <div className={`ol-celdas grid items-center gap-x-4 gap-y-2 ${PLANTILLA_LISTA}`}>
         <span className="flex min-w-0 items-center gap-3">
           <MiniaturaPrenda fotoUrl={null} colorHex={f.colorHex} tamano="lg" {...prenda} />
@@ -45,8 +42,9 @@ export function FilaDeOrden({ f, primera = false, guiaPorque = false, recien = f
             <span className="flex min-w-0 items-center gap-2">
               <span className="truncate text-sm font-medium text-tinta">{f.referencia}</span>
               {f.esMuestra && <Chip tono="tinta">Muestra</Chip>}
+              {f.urgente && <Chip tono="ambar">Urgente</Chip>}
             </span>
-            <span className="block break-words text-xs text-tinta/65 @min-[620px]:truncate">
+            <span className="block break-words text-sm text-tinta/65 @min-[620px]:truncate">
               {f.numeroTexto}
               {f.colores ? ` · ${f.colores}` : ""}
               <span className="@min-[900px]:hidden"> · {f.cuantas} {f.cuantas === 1 ? "prenda" : "prendas"}</span>
@@ -58,14 +56,14 @@ export function FilaDeOrden({ f, primera = false, guiaPorque = false, recien = f
 
         <span className="block min-w-0 space-y-1">
           <Chip tono={f.chip.tono}>{f.chip.texto}</Chip>
-          {f.quien && <span className="block text-xs text-tinta/65 @min-[620px]:truncate">{f.quien}</span>}
-          {enProceso && <span className="block text-xs text-tinta/65 @min-[900px]:hidden">{entregaEnLinea}</span>}
+          {f.quien && <span className="block text-sm text-tinta/65 @min-[620px]:truncate">{f.quien}</span>}
+          {enProceso && <span className="block text-sm text-tinta/65 @min-[900px]:hidden">{entregaEnLinea}</span>}
         </span>
 
         <span className={`${SOLO_ANCHA} min-w-0 text-sm tabular-nums text-tinta`}>
           {f.dias ? (
             <>
-              {f.dias.n} d<small className="block text-xs text-tinta/65">{f.dias.desde}</small>
+              {f.dias.n} d<small className="block text-sm text-tinta/65">{f.dias.desde}</small>
             </>
           ) : (
             <span className="text-tinta/50">—</span>
@@ -76,7 +74,7 @@ export function FilaDeOrden({ f, primera = false, guiaPorque = false, recien = f
           {f.entrega.fecha ? (
             <>
               {f.entrega.texto}
-              {f.entrega.relativo && <small className={`block text-xs ${f.entrega.atrasada ? "text-rojo-profundo" : "text-tinta/65"}`}>{f.entrega.relativo}</small>}
+              {f.entrega.relativo && <small className={`block text-sm ${f.entrega.atrasada ? "text-rojo-profundo" : "text-tinta/65"}`}>{f.entrega.relativo}</small>}
             </>
           ) : (
             <span className="text-tinta/65">Sin fecha</span>

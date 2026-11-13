@@ -1,5 +1,6 @@
 "use client";
 
+import { enterNoGuarda } from "@/components/ui/enterNoGuarda";
 import { useEffect, useMemo, useRef, useState, type Dispatch, type ReactNode, type SetStateAction } from "react";
 import { Aviso } from "@/components/ui/Aviso";
 import { avisar } from "@/components/ui/Avisos";
@@ -8,6 +9,9 @@ import { AvisoCostoAtipico } from "@/components/AvisoCostoAtipico";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { CampoGuiado, PieGuia } from "@/components/guia-de-foco/CampoGuiado";
 import { useGuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
+import { faltaElegirDueno, hayQueElegirDueno } from "@/lib/dueno-reglas";
+import { useEmpresasDeSede } from "@/lib/useEmpresasDeSede";
+import { ElegirDueno } from "@/components/existencias/ElegirDueno";
 import { ConMarca } from "@/components/ficha-producto/TiraFicha";
 import { esFalloDeRed, esVersionCambiada, traducirError } from "@/lib/error-escritura";
 import type { EstadoCampo } from "@/lib/guia-campos";
@@ -113,7 +117,17 @@ export function FormularioRecepcion({
     }),
     [detalle.lineas, detalle.deudas, proveedores, catalogo],
   );
-  const campos = camposDeRecepcion(borrador, ctx, { listo: responsable.listo, motivo: responsable.motivo });
+  // ADR-0542: en una sede donde operan dos empresas (Lima), quien recibe dice de quién es lo que entra. Sin respuesta de fábrica.
+  const empresasDeLaSede = useEmpresasDeSede(detalle.sede?.id);
+  const preguntaDueno = hayQueElegirDueno(empresasDeLaSede);
+  const [duenoId, setDuenoId] = useState("");
+  const faltaDueno = faltaElegirDueno(empresasDeLaSede, duenoId);
+  const camposBase = camposDeRecepcion(borrador, ctx, { listo: responsable.listo, motivo: responsable.motivo });
+  const campos = preguntaDueno
+    ? camposBase.flatMap((c) =>
+        c.id === "responsable" ? [{ id: "dueno", nombre: "De quién es", requerido: true, hecho: !faltaDueno, pendiente: "Elige si lo que llegó es de CAYLA o de CLAURE." }, c] : [c],
+      )
+    : camposBase;
   // Cuántas cubre cada reposición elegida y si la base la aceptaría (la pregunta lo dice en su lugar; la guía, en «Falta»).
   const reposiciones = reposicionesDe(borrador, ctx);
   const guia = useGuiaCampos(campos, { enModal: false });
@@ -165,8 +179,8 @@ export function FormularioRecepcion({
           despachoId: detalle.id,
           despachoItemId: l.id,
           categoriaId: l.categoria.id,
-          marcaId: l.marca.id,
-          marcaNombre: l.marca.nombre,
+          marcaId: l.marca?.id ?? null,
+          marcaNombre: l.marca?.nombre ?? "Sin marca",
           descripcionOrden: l.descripcion,
           precioSugerido: l.precioVentaSugerido,
           costoUnitario: l.costoUnitario,
@@ -227,7 +241,7 @@ export function FormularioRecepcion({
   function nombrarLinea(c: CostoAtipicoRecepcion): string | null {
     if (c.despachoItemId) {
       const l = detalle.lineas.find((x) => x.id === c.despachoItemId);
-      return l ? (lineaDelBorrador(borrador, l).prenda?.nombre ?? [l.categoria.nombre, l.marca.nombre].join(" · ")) : null;
+      return l ? (lineaDelBorrador(borrador, l).prenda?.nombre ?? [l.categoria.nombre, l.marca?.nombre ?? "Sin marca"].join(" · ")) : null;
     }
     const e = c.extra != null ? borrador.extras[c.extra - 1] : borrador.extras.find((x) => x.prenda?.variantes.some((v) => v.id === c.varianteId));
     return e?.prenda ? `${e.prenda.nombre} (no estaba en la guía)` : null;
@@ -244,7 +258,7 @@ export function FormularioRecepcion({
       if (v) return `${p.nombre} · ${nombreDeVariante(v)}`;
     }
     const l = despachoItemId ? detalle.lineas.find((x) => x.id === despachoItemId) : null;
-    return l ? (lineaDelBorrador(borrador, l).prenda?.nombre ?? [l.categoria.nombre, l.marca.nombre].join(" · ")) : null;
+    return l ? (lineaDelBorrador(borrador, l).prenda?.nombre ?? [l.categoria.nombre, l.marca?.nombre ?? "Sin marca"].join(" · ")) : null;
   }
 
   async function recibir(confirmadas: Confirmadas = SIN_CONFIRMAR) {
@@ -265,7 +279,7 @@ export function FormularioRecepcion({
     try {
       setError(null);
       setGuardando(true);
-      const { resultado, error: falla } = await recibirDespacho(argsRecibirDespacho(detalle, borrador, ctx, { version, token, confirmadas }), responsable.firma());
+      const { resultado, error: falla } = await recibirDespacho(argsRecibirDespacho(detalle, borrador, ctx, { version, token, confirmadas }), responsable.firma(), preguntaDueno ? duenoId : null);
       responsable.despues(falla);
       if (falla) {
         setGuardando(false);
@@ -317,9 +331,7 @@ export function FormularioRecepcion({
           void recibir();
         }}
         noValidate
-        onKeyDown={(e) => {
-          if (e.key === "Enter" && (e.target as HTMLElement).tagName === "INPUT") e.preventDefault();
-        }}
+        onKeyDown={enterNoGuarda}
         className="space-y-5"
       >
         {!catalogo && (
@@ -335,7 +347,7 @@ export function FormularioRecepcion({
             indice={i}
             borrador={lineaDelBorrador(borrador, l)}
             conProveedor={variosProveedores}
-            opcionesDeMas={opcionesSobrante(ctx, { proveedorId: l.proveedor?.id ?? null, categoriaId: l.categoria.id, marcaId: l.marca.id, categoria: l.categoria.nombre, marca: l.marca.nombre })}
+            opcionesDeMas={opcionesSobrante(ctx, { proveedorId: l.proveedor?.id ?? null, categoriaId: l.categoria.id, marcaId: l.marca?.id ?? "", categoria: l.categoria.nombre, marca: l.marca?.nombre ?? "Sin marca" })}
             problemaDeMas={reposiciones.get(idGuia.sobrante(l.id))?.problema ?? null}
             onCambio={(cambios) => cambiarLinea(l.id, cambios)}
             guia={guia}
@@ -374,18 +386,23 @@ export function FormularioRecepcion({
           ))}
           <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
             <BotonAgregarExtra onAgregar={agregarExtra} deshabilitado={!catalogo} />
-            <p className="text-xs text-taupe">¿Llegó algo que no está en ninguna línea? Agrégalo con su categoría y su marca.</p>
+            <p className="text-sm text-taupe">¿Llegó algo que no está en ninguna línea? Agrégalo con su categoría y su marca.</p>
           </div>
         </section>
 
         <section data-guia="recepcion.pie" className="space-y-3 border-t border-sand pt-5" aria-label="Recibir">
           <CampoGuiado id="nota" guia={guia} className="max-w-2xl">
-            <p className="mb-1.5 flex items-center gap-x-2 text-[13px] font-semibold text-tinta">
+            <p className="mb-1.5 flex items-center gap-x-2 text-sm font-semibold text-tinta">
               {etiqueta("nota", "Nota")}
-              <span className="text-[12px] font-normal text-taupe">opcional</span>
+              <span className="text-sm font-normal text-taupe">opcional</span>
             </p>
             <CampoTexto id="recepcion-nota" caja etiqueta="Nota de la recepción" maxLength={TOPES_RECEPCION.nota} value={borrador.nota} onChange={(e) => cambiar((b) => ({ ...b, nota: e.target.value }))} />
           </CampoGuiado>
+          {preguntaDueno && empresasDeLaSede && (
+            <CampoGuiado id="dueno" guia={guia} titulo="¿De quién es la mercadería?" ayuda="CAYLA o CLAURE: lo marcas tú, no la marca de la prenda" retiene="fila">
+              <ElegirDueno empresas={empresasDeLaSede} duenoId={duenoId} onElegir={setDuenoId} deshabilitado={guardando} guia="recepcion.dueno" />
+            </CampoGuiado>
+          )}
           <CampoGuiado id="responsable" guia={guia} titulo="Quién recibe" className="max-w-sm">
             <ComboResponsable control={responsable} deshabilitado={guardando} />
           </CampoGuiado>
@@ -419,7 +436,7 @@ export function FormularioRecepcion({
             data-pegada
             className="barra-abajo z-20 justify-end gap-2.5 px-4 py-3 sm:static sm:rounded-none sm:border-0 sm:bg-transparent sm:p-0 sm:shadow-none sm:animate-none"
           >
-            <span className="mr-auto text-[13px] tabular-nums text-taupe" aria-live="polite">
+            <span className="mr-auto text-sm tabular-nums text-taupe" aria-live="polite">
               {totales.contado.toLocaleString("es-PE")} de {totales.enviado.toLocaleString("es-PE")} contadas
             </span>
             {/* En el celular la vuelta es la flecha de arriba: la barra fija deja lugar al botón principal. */}
@@ -440,6 +457,7 @@ export function FormularioRecepcion({
           destino={hoja.destino}
           categoria={catalogo?.categorias.find((c) => c.id === hoja.destino.categoriaId) ?? null}
           colores={colores}
+          vocabulario={catalogo?.vocabulario ?? null}
           responsable={responsable}
           onListo={(prenda) => {
             const { objetivo, destino } = hoja;

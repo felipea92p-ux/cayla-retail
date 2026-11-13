@@ -205,3 +205,7 @@ criterio 1 de la prioridad queda solo con «acabado: metálico».
   **Orden: primero la web, después la migración.** Entre una y otra, la web degrada con gracia (verificado en local: las 3 filas salen en
   una píldora «Estampado», sin errores).
 - **Deshacer:** las cuatro líneas están al final del encabezado de la migración.
+
+## Actualización 2026-11-12 (ADR-0649)
+
+La carta ya no se parte en gamas: una fila por familia, de lo más claro a lo más oscuro (Felipe, al recibir ENV-001660). Ver ADR-0649, decisión 5.

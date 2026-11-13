@@ -1,6 +1,6 @@
 import { soles } from "./compras-reglas";
 import { TIPOS_PAPEL, type MedioPagoCompra, type TipoPapel } from "./compra-rapida-reglas";
-import { campoResponsable, primerNombre, problemaDeMonto, type CuentaOpcion } from "./fondos-reglas";
+import { MONTO_MAXIMO_PLATA, campoResponsable, primerNombre, problemaDeMonto, type CuentaOpcion } from "./fondos-reglas";
 import { CONCEPTOS_GASTO, MEDIOS_PLATA, nombreGasto, type ConceptoGasto, type PlataPorConfirmar } from "./mi-plata-reglas";
 import { diaMes } from "./fechas-lima";
 import type { CampoDeGuia } from "./guia-campos";
@@ -28,6 +28,8 @@ export const CAUSAS_FALTANTE: Record<CausaFaltante, string> = {
 export type LineaPapel = {
   id: string;
   nombre: string;
+  /** La marca de la prenda (20261106154000). Nula si la web se publicó antes que la migración. */
+  marca: string | null;
   cantidad: number;
   costo: number;
   subtotal: number;
@@ -37,7 +39,8 @@ export type LineaPapel = {
   sobran: number;
 };
 
-export type EnvioPapel = { id: string; numero: number; estado: "en_camino" | "abierto" | "cerrado" };
+/** `recibioQuienCompro` (ADR-0517): el envío está cerrado y lo cerró quien hizo alguna de sus órdenes: un Admin recibió lo que él mismo compró. */
+export type EnvioPapel = { id: string; numero: number; estado: "en_camino" | "abierto" | "cerrado"; recibioQuienCompro: boolean };
 
 export type PapelPorCompletar = {
   id: string;
@@ -58,6 +61,11 @@ export type PapelPorCompletar = {
   lineas: LineaPapel[];
   envios: EnvioPapel[];
   llego: boolean;
+  /** La serie y el número que la compradora escribió al comprar (20261029193000): Compras solo los corrige. De antes, nulos: los copia de la foto. */
+  serie: string | null;
+  numero: string | null;
+  /** Por qué NO pasó sola a los libros al cerrar la tienda el conteo (20261029194000); nulo si es de antes o si todavía no le tocaba. */
+  noPasoPor: string | null;
 };
 
 export type CierrePorRecibir = {
@@ -75,6 +83,9 @@ export type CierrePorRecibir = {
   tienda: string | null;
   /** Lo que pasó en su ronda (20261023210000). Un cierre de antes de las rondas no lo trae. */
   cuaderno: CuadernoRonda | null;
+  /** La cuenta de CAYLA a la que la compradora dijo que devolvió (20261029170000): una indicación, Compras elige la de verdad al recibir. */
+  cuentaIndicadaId: string | null;
+  cuentaIndicada: string | null;
 };
 
 /** Lo que pasó en una ronda de compras (`fn_ronda_compras_cuenta`): le dieron, compró (lo pagado de su plata), gastó. */
@@ -100,6 +111,11 @@ export type GastoPorRevisar = {
   ronda: string | null;
   /** Sin ninguna compra de quien gastó, la base no lo deja pasar: un gasto del viaje va siempre a una compra (decisión 75). */
   tieneCompra: boolean;
+  /** El papel y el RUC que la compradora dijo al anotar (20261029195000); de antes, nulos: Compras los elige. */
+  papel: PapelGasto | null;
+  ruc: string | null;
+  /** Por qué NO pasó solo a los gastos del viaje al cerrar su ronda; nulo si es de antes o si todavía no le tocaba. */
+  noPasoPor: string | null;
 };
 
 export type RevisarCompras = {
@@ -131,6 +147,7 @@ function leerLinea(x: unknown): LineaPapel | null {
   return {
     id,
     nombre: texto(o.nombre) ?? "Prenda",
+    marca: texto(o.marca),
     cantidad,
     costo,
     subtotal: numero(o.subtotal) ?? cantidad * costo,
@@ -170,9 +187,12 @@ function leerPapel(x: unknown): PapelPorCompletar | null {
       const eid = texto(eo?.id);
       const n = numero(eo?.numero);
       const estado = ESTADOS_ENVIO.find((s) => s === eo?.estado);
-      return eid && n != null && estado ? [{ id: eid, numero: n, estado }] : [];
+      return eid && n != null && estado ? [{ id: eid, numero: n, estado, recibioQuienCompro: eo?.recibio_quien_compro === true }] : [];
     }),
     llego: o.llego === true,
+    serie: texto(o.serie),
+    numero: texto(o.numero),
+    noPasoPor: texto(o.pasa_sola_error),
   };
 }
 
@@ -211,6 +231,9 @@ function leerGasto(x: unknown): GastoPorRevisar | null {
     fecha: texto(o.fecha) ?? "",
     ronda: texto(o.ronda),
     tieneCompra: o.tiene_compra !== false,
+    papel: PAPELES_VALIDOS.find((p) => p === o.papel) ?? null,
+    ruc: texto(o.ruc),
+    noPasoPor: texto(o.pasa_sola_error),
   };
 }
 
@@ -231,6 +254,8 @@ function leerCierre(x: unknown): CierrePorRecibir | null {
     plataPorConfirmar: numero(o.plata_por_confirmar) ?? 0,
     tienda: texto(o.tienda),
     cuaderno: leerCuaderno(o.cuaderno),
+    cuentaIndicadaId: texto(o.cuenta_indicada_id),
+    cuentaIndicada: texto(o.cuenta_indicada),
   };
 }
 
@@ -357,6 +382,18 @@ export function subtituloPapel(p: Pick<PapelPorCompletar, "persona" | "fecha" | 
   return [p.persona, p.fecha ? diaMes(p.fecha) : null, prendas === 1 ? "1 prenda" : `${prendas} prendas`].filter(Boolean).join(" · ");
 }
 
+/** Las marcas del papel, sin repetir y en el orden en que se anotaron (Felipe 2026-11-06: la razón social sola no dice qué mercadería es). */
+export function marcasDePapel(p: Pick<PapelPorCompletar, "lineas">): string[] {
+  return [...new Set(p.lineas.flatMap((l) => (l.marca ? [l.marca] : [])))];
+}
+
+/** Bajo la razón social, en el detalle: «Marca: Kiara» o «Marcas: Kiara · Moda Mia». Sin marcas (web antes de la migración), nada. */
+export function lineaMarcas(p: Pick<PapelPorCompletar, "lineas">): string | undefined {
+  const marcas = marcasDePapel(p);
+  if (marcas.length === 0) return undefined;
+  return `${marcas.length === 1 ? "Marca" : "Marcas"}: ${marcas.join(" · ")}`;
+}
+
 /** A qué tienda iban las prendas, sin repetir: «Tienda Lima», «Tienda Lima · Tienda AQP». */
 export function destinosDePapel(p: Pick<PapelPorCompletar, "lineas">): string {
   return [...new Set(p.lineas.map((l) => l.destino))].join(" · ");
@@ -370,6 +407,11 @@ export function textoLlegada(p: Pick<PapelPorCompletar, "llego" | "lineas" | "en
   return "En camino a la tienda";
 }
 
+/** ¿Algún envío de esta compra lo cerró quien la compró? (ADR-0517: un Admin recibe lo suyo; quien revisa lo ve en la ficha.) */
+export function recibioQuienCompro(p: Pick<PapelPorCompletar, "envios">): boolean {
+  return p.envios.some((e) => e.recibioQuienCompro);
+}
+
 /** Qué dijo la tienda de lo que faltó en una línea: «2 no vino: está en «Nos debe» del proveedor». */
 export function textoFaltan(l: Pick<LineaPapel, "faltan">): string | null {
   if (l.faltan.length === 0) return null;
@@ -378,28 +420,9 @@ export function textoFaltan(l: Pick<LineaPapel, "faltan">): string | null {
 
 // ---------- Completar el papel: lo que falta (lo mismo que rechaza la base) ----------
 
-/** ¿Este papel pide serie y número? Factura y boleta, sí; nota de venta, solo el número y si lo tiene; sin papel, nada. */
-export function pideSerie(tipo: TipoPapel): boolean {
-  return tipo === "factura" || tipo === "boleta";
-}
-
-export function problemaSerie(serie: string): string | null {
-  const s = serie.trim().toUpperCase();
-  if (!s) return "Copia la serie como está en el papel.";
-  return /^[A-Z0-9]{1,8}$/.test(s) ? null : "La serie lleva letras y números, hasta 8 (F001, B002…).";
-}
-
-export function problemaNumero(numeroPapel: string, tipo: TipoPapel): string | null {
-  const n = numeroPapel.trim();
-  if (tipo === "nota_venta") return !n || /^[0-9A-Za-z-]{1,20}$/.test(n) ? null : "El número lleva letras, números o guiones, hasta 20.";
-  if (!n) return "Copia el número como está en el papel.";
-  return /^[0-9]{1,12}$/.test(n) ? null : "El número lleva solo números, hasta 12.";
-}
-
-/** La serie de ejemplo sigue al papel: «F001» en una factura, «B001» en una boleta (ADR-0290). */
-export function ejemploSerie(tipo: TipoPapel): string {
-  return tipo === "factura" ? "Ej. F001" : "Ej. B001";
-}
+// La serie y el número (reglas, errores y ejemplo) viven en `compra-rapida-reglas`: la compradora los escribe al comprar (ADR-0574) y Compras los corrige aquí.
+export { ejemploSerie, pideSerie } from "./compra-rapida-reglas";
+import { pideSerie, problemaNumero, problemaSerie } from "./compra-rapida-reglas";
 
 type Responsable = { esPersona: boolean; listo: boolean; motivo: string | null };
 
@@ -420,7 +443,7 @@ export function camposCompletar(
     campos.push({ id: "numero", nombre: "Número", requerido: n !== null, hecho: n === null && v.numero.trim() !== "", pendiente: n ?? "" });
   }
   if (v.cambiaMonto) {
-    const m = problemaDeMonto(v.monto);
+    const m = problemaDeMonto(v.monto, undefined, MONTO_MAXIMO_PLATA);
     campos.push({ id: "monto", nombre: "Lo que dice el papel", requerido: true, hecho: m === null, pendiente: m ?? "" });
   }
   return [...campos, ...campoResponsable({ ...r, quien: "Quién completa" })];
@@ -459,6 +482,7 @@ export function camposCierre(v: { cuentaId: string; monto: string }, decision: C
 
 /** Qué papel le dieron por un gasto, como lo pide un gasto del viaje. Sin papel, una planilla de movilidad. */
 export type PapelGasto = "boleta" | "factura" | "ticket" | "planilla_movilidad";
+const PAPELES_VALIDOS: readonly PapelGasto[] = ["boleta", "factura", "ticket", "planilla_movilidad"];
 export const PAPELES_GASTO: Record<PapelGasto, { nombre: string; ayuda: string }> = {
   boleta: { nombre: "Boleta", ayuda: "Con número" },
   factura: { nombre: "Factura", ayuda: "Con RUC: separa el IGV" },
@@ -485,6 +509,30 @@ export function ejemploSerieNumero(papel: PapelGasto | null): string {
 export function problemaRuc(ruc: string): string | null {
   const r = ruc.trim();
   return !r || /^[0-9]{11}$/.test(r) ? null : "El RUC tiene 11 números.";
+}
+
+/**
+ * El papel que se propone al anotar un gasto (ADR-0574): sin foto, un taxi o un cargador van sin papel (la planilla de movilidad); lo demás lo dice
+ * quien anota, que es quien tiene el papel en la mano. La compradora puede cambiarlo; sin elegir ninguno, el gasto lo revisa Compras como siempre.
+ */
+export function papelAlAnotar(concepto: ConceptoGasto | null, conFoto: boolean): PapelGasto | null {
+  return concepto !== null && !conFoto && papelesParaGasto(concepto).includes("planilla_movilidad") ? "planilla_movilidad" : null;
+}
+
+/**
+ * Los campos del papel de un gasto al anotarlo: el papel mismo (sugerido: sin decirlo, lo revisa Compras) y el RUC con una factura (opcional: con él
+ * se separa el IGV; si lo escribe mal, frena). Van después de la foto, en el orden de la hoja.
+ */
+export function camposPapelAlAnotar(v: { concepto: ConceptoGasto | null; papel: PapelGasto | null; ruc: string }): CampoDeGuia[] {
+  if (v.concepto === null) return [];
+  const papelOk = v.papel !== null && papelesParaGasto(v.concepto).includes(v.papel);
+  const ruc = problemaRuc(v.ruc);
+  return [
+    { id: "papel", nombre: "Qué papel te dieron", requerido: false, sugerido: true, hecho: papelOk, pendiente: "Di qué papel te dieron: así el gasto pasa solo a los libros." },
+    ...(v.papel === "factura"
+      ? [{ id: "ruc", nombre: "El RUC de la factura", requerido: ruc !== null, sugerido: ruc === null, hecho: v.ruc.trim() !== "" && ruc === null, pendiente: ruc ?? "Con el RUC de la factura se separa el IGV." }]
+      : []),
+  ];
 }
 
 /** Los campos de «Revisar el gasto»: el papel (obligatorio); la serie y el número y el RUC, opcionales (el RUC separa el IGV). */
@@ -534,7 +582,7 @@ export function diaYRonda(fecha: string, ronda: string | null): string {
   return [fecha ? diaMes(fecha) : null, ronda].filter(Boolean).join(" · ");
 }
 
-export type FilaBandeja = { id: string; titulo: string; quien: string; cuando: string; monto: number; chip: { tono: "ambar" | "verde" | "pizarra"; texto: string } };
+export type FilaBandeja = { id: string; titulo: string; /** Solo las compras: la marca, bajo la razón social. */ marca?: string; quien: string; cuando: string; monto: number; chip: { tono: "ambar" | "verde" | "pizarra"; texto: string } };
 
 /** Lo que llegó a la tienda de una compra ya recibida: «35 de 35». Antes de llegar, nada. */
 export function llegadaDePapel(p: Pick<PapelPorCompletar, "llego" | "lineas">): { llegaron: number; total: number; completa: boolean } | null {
@@ -556,10 +604,10 @@ export function chipPapel(p: Pick<PapelPorCompletar, "llego" | "lineas" | "envio
   return faltan === 0 ? { tono: "verde", texto: "Llegó todo" } : { tono: "ambar", texto: faltan === 1 ? "Faltó 1" : `Faltaron ${faltan}` };
 }
 
-export function filaPlata(f: Pick<PlataPorConfirmar, "id" | "persona" | "medio" | "monto" | "fecha" | "fotoRuta">): FilaBandeja {
+export function filaPlata(f: Pick<PlataPorConfirmar, "id" | "persona" | "medio" | "monto" | "fecha" | "fotoRuta"> & { fotoNoAbrio?: boolean }): FilaBandeja {
   return {
     id: f.id,
-    titulo: f.medio === "ya_tenia" ? "Ya tenía de antes" : `${MEDIOS_PLATA[f.medio].nombre}${f.fotoRuta ? " · con foto" : " · sin foto"}`,
+    titulo: f.medio === "ya_tenia" ? "Ya tenía de antes" : `${MEDIOS_PLATA[f.medio].nombre}${f.fotoRuta ? (f.fotoNoAbrio ? " · no se pudo abrir la foto" : " · con foto") : " · sin foto"}`,
     quien: f.persona,
     cuando: f.fecha ? diaMes(f.fecha) : "",
     monto: f.monto,
@@ -571,6 +619,7 @@ export function filaPapel(p: Pick<PapelPorCompletar, "id" | "persona" | "proveed
   return {
     id: p.id,
     titulo: `${p.proveedor} · ${TIPOS_PAPEL[p.tipo].nombre}`,
+    marca: marcasDePapel(p).join(" · ") || undefined,
     quien: p.persona,
     cuando: diaYRonda(p.fecha, p.ronda),
     monto: p.monto,
@@ -578,10 +627,12 @@ export function filaPapel(p: Pick<PapelPorCompletar, "id" | "persona" | "proveed
   };
 }
 
-export function filaGasto(g: Pick<GastoPorRevisar, "id" | "persona" | "concepto" | "nota" | "monto" | "fecha" | "ronda" | "fotoRuta">): FilaBandeja {
+export function filaGasto(g: Pick<GastoPorRevisar, "id" | "persona" | "concepto" | "nota" | "monto" | "fecha" | "ronda" | "fotoRuta"> & { papel?: PapelGasto | null }): FilaBandeja {
+  // Lo que dijo la compradora al anotar (ADR-0574) manda; de antes, solo se sabe si hay foto.
+  const papel = g.papel ? PAPELES_GASTO[g.papel].nombre : g.fotoRuta ? "con foto" : "sin papel";
   return {
     id: g.id,
-    titulo: `${nombreGasto(g)} · ${g.fotoRuta ? "con foto" : "sin papel"}`,
+    titulo: `${nombreGasto(g)} · ${papel}`,
     quien: g.persona,
     cuando: diaYRonda(g.fecha, g.ronda),
     monto: g.monto,

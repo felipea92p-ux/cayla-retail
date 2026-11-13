@@ -26,7 +26,7 @@ import { MatrizRecepcion } from "./MatrizRecepcion";
 // color y si tienen arreglo (decisiones 23 y 27: las dañadas no se venden, entran a la cuarentena de la sede). Lo usan las líneas de la guía y
 // lo que no estaba en ella. No guarda nada: cambia el borrador de la pantalla, que es la dueña de todo.
 
-const TITULO = "mb-1.5 flex flex-wrap items-baseline gap-x-2 text-[13px] font-semibold text-tinta";
+const TITULO = "mb-1.5 flex flex-wrap items-baseline gap-x-2 text-sm font-semibold text-tinta";
 
 export function BloquePrenda({
   ids,
@@ -40,12 +40,15 @@ export function BloquePrenda({
   enviado,
   preguntaPrenda = "¿Qué prenda es?",
   extraAntes,
+  antesDelConteo,
   sinPrendaAbajo,
   listo = true,
   motivoNoListo,
   onPrenda,
   onConteo,
   onAbrirHoja,
+  quitables,
+  onQuitar,
 }: {
   ids: { prenda: string; conteo: string; danadas: string; arreglo: string };
   guia: GuiaCampos;
@@ -61,6 +64,8 @@ export function BloquePrenda({
   preguntaPrenda?: string;
   /** Algo más dentro del bloque de la prenda, antes de elegirla («No llegó nada de esto»). */
   extraAntes?: ReactNode;
+  /** Va entre «¿Qué prenda es?» y «¿Cuántas llegaron?» (en «Para después», de quién es la mercadería). */
+  antesDelConteo?: ReactNode;
   /** Lo que se dibuja en lugar de las dos salidas cuando ya no hace falta una prenda (la línea que no llegó). */
   sinPrendaAbajo?: ReactNode;
   /** Se puede elegir la prenda: en lo que no estaba en la guía, primero van la categoría y la marca. */
@@ -69,6 +74,9 @@ export function BloquePrenda({
   onPrenda: (prenda: PrendaRecepcion | null) => void;
   onConteo: (cambios: Partial<Conteo>) => void;
   onAbrirHoja: (modo: "nueva" | "agregar") => void;
+  /** Lo agregado por error en este envío (ver `MatrizRecepcion`). */
+  quitables?: { colores: ReadonlyMap<string, string[]>; tallas: ReadonlyMap<string, string[]> };
+  onQuitar?: (tipo: "talla" | "color", ids: string[], nombre: string) => void;
 }) {
   const [buscando, setBuscando] = useState(false);
   const s = sumasDe(conteo, prenda);
@@ -91,18 +99,18 @@ export function BloquePrenda({
                   {prenda.nombre}
                   {prenda.nueva && <Chip tono="verde">Nueva</Chip>}
                 </p>
-                <p className="text-xs text-taupe">
+                <p className="text-sm text-taupe">
                   {[prenda.codigo, `${prenda.variantes.length} ${prenda.variantes.length === 1 ? "combinación" : "combinaciones"} de talla y color`].filter(Boolean).join(" · ")}
                 </p>
               </div>
               <div className="flex flex-wrap gap-2">
-                <Boton type="button" peso="discreto" className="px-3 py-1.5 text-[12px]" onClick={() => onAbrirHoja("agregar")}>
+                <Boton type="button" peso="fantasma" className="btn-chico" onClick={() => onAbrirHoja("agregar")}>
                   + talla o color
                 </Boton>
                 <Boton
                   type="button"
-                  peso="discreto"
-                  className="px-3 py-1.5 text-[12px]"
+                  peso="fantasma"
+                  className="btn-chico"
                   onClick={() => {
                     setBuscando(false);
                     onPrenda(null);
@@ -113,7 +121,7 @@ export function BloquePrenda({
               </div>
             </div>
           ) : !listo ? (
-            <p className="text-[13px] text-taupe">{motivoNoListo}</p>
+            <p className="text-sm text-taupe">{motivoNoListo}</p>
           ) : (
             <div className="space-y-2.5">
               <div className="flex flex-wrap items-center gap-2">
@@ -146,7 +154,7 @@ export function BloquePrenda({
                   }}
                 />
               )}
-              <p className="text-xs text-taupe">«Es nueva» la crea en el catálogo con las tallas y los colores que llegaron; «Ya la tengo» la busca entre las de {categoria.nombre} · {marca.nombre}.</p>
+              <p className="text-sm text-taupe">«Es nueva» la crea en el catálogo con las tallas y los colores que llegaron; «Ya la tengo» la busca entre las de {categoria.nombre} · {marca.nombre}.</p>
             </div>
           )}
         </div>
@@ -154,17 +162,26 @@ export function BloquePrenda({
 
       {prenda && !sinPrendaAbajo && (
         <>
+          {antesDelConteo}
           <CampoGuiado id={ids.conteo} guia={guia} retiene="fila">
             <div data-guia="recepcion.matriz" className="space-y-2">
               <p className={TITULO}>
                 {etiqueta(ids.conteo, "¿Cuántas llegaron?")}
-                <span className="text-[12px] font-normal tabular-nums text-taupe" aria-live="polite">
+                <span className="text-sm font-normal tabular-nums text-taupe" aria-live="polite">
                   {enviado != null ? `Contaste ${s.contado.toLocaleString("es-PE")} de ${enviado.toLocaleString("es-PE")}` : `Contaste ${s.contado.toLocaleString("es-PE")}`}
                 </span>
               </p>
-              <MatrizRecepcion prenda={prenda} colores={colores} valores={conteo.cantidades} onValor={(id, texto) => onConteo({ cantidades: { ...conteo.cantidades, [id]: texto } })} modo="cantidades" />
-              {s.invalidas > 0 && <p className="text-xs text-ambar">Las cantidades son números enteros, de 0 a 9999.</p>}
-              <p className="text-xs text-taupe">Buenas y dañadas juntas. Lo que no llegó, déjalo vacío. «—» = esa combinación no existe en la prenda.</p>
+              <MatrizRecepcion
+                prenda={prenda}
+                colores={colores}
+                valores={conteo.cantidades}
+                onValor={(id, texto) => onConteo({ cantidades: { ...conteo.cantidades, [id]: texto } })}
+                modo="cantidades"
+                quitables={quitables}
+                onQuitar={onQuitar}
+              />
+              {s.invalidas > 0 && <p className="text-sm text-ambar">Las cantidades son números enteros, de 0 a 9999.</p>}
+              <p className="text-sm text-taupe">Buenas y dañadas juntas. Lo que no llegó, déjalo vacío. «—» = esa combinación no existe en la prenda.</p>
             </div>
           </CampoGuiado>
 
@@ -173,7 +190,7 @@ export function BloquePrenda({
               type="button"
               aria-expanded={conteo.conDanadas}
               onClick={() => onConteo(conteo.conDanadas ? { conDanadas: false, danadas: {}, arreglo: null } : { conDanadas: true })}
-              className="flex items-center gap-1.5 text-[13px] font-semibold text-tinta hover:text-rojo-profundo"
+              className="flex items-center gap-1.5 text-sm font-semibold text-tinta hover:text-rojo-profundo"
             >
               <ChevronDown aria-hidden className={`h-4 w-4 transition-transform duration-200 ease-cayla motion-reduce:transition-none ${conteo.conDanadas ? "rotate-180" : ""}`} />
               {conteo.conDanadas ? "Llegó algo dañado" : "¿Llegó algo dañado?"}
@@ -184,7 +201,7 @@ export function BloquePrenda({
                 <CampoGuiado id={ids.danadas} guia={guia} retiene="fila">
                   <p className={TITULO}>
                     {etiqueta(ids.danadas, "¿Cuántas llegaron dañadas?")}
-                    <span className="text-[12px] font-normal text-taupe">de las que contaste arriba, en su talla y color</span>
+                    <span className="text-sm font-normal text-taupe">de las que contaste arriba, en su talla y color</span>
                   </p>
                   <MatrizRecepcion
                     prenda={prenda}
@@ -194,7 +211,7 @@ export function BloquePrenda({
                     modo="danadas"
                     topes={topes}
                   />
-                  {s.danadasDeMas.length > 0 && <p className="mt-1.5 text-xs text-ambar">No puede haber más dañadas que las que llegaron de esa talla y color.</p>}
+                  {s.danadasDeMas.length > 0 && <p className="mt-1.5 text-sm text-ambar">No puede haber más dañadas que las que llegaron de esa talla y color.</p>}
                 </CampoGuiado>
                 {s.danadas > 0 && (
                   <CampoGuiado id={ids.arreglo} guia={guia} retiene="fila">
@@ -205,7 +222,7 @@ export function BloquePrenda({
                       valor={conteo.arreglo}
                       onValor={(arreglo) => onConteo({ arreglo: arreglo as SolucionDanada })}
                     />
-                    <p className="mt-1.5 text-xs text-taupe">
+                    <p className="mt-1.5 text-sm text-taupe">
                       {conteo.arreglo
                         ? SOLUCIONES_DANADA.find((o) => o.valor === conteo.arreglo)?.ayuda
                         : "Las dañadas no se venden: entran a la cuarentena de la sede. Desde Existencias se arreglan, liquidan, regalan, desechan o devuelven."}

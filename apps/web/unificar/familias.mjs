@@ -295,7 +295,7 @@ const BASE = [
     grupo: "Textos",
     nombre: "Títulos de pantalla",
     funcion: "El nombre grande de la pantalla, arriba.",
-    pieza: "`<EncabezadoPagina>` en todo el ERP; `<CabeceraPantalla>` solo en Finanzas (decidido el 2026-10-14)",
+    pieza: "`<EncabezadoPagina>` en todo el ERP, Finanzas incluida (decidido el 2026-10-14; Cierre de mes, la última en pasar, el 2026-11-08)",
     gobierna: ["ADR-0220", "ADR-0195", "ADR-0254"],
   },
   {
@@ -305,6 +305,14 @@ const BASE = [
     funcion: "El título de un bloque dentro de una pantalla o de una hoja.",
     pieza: null,
     gobierna: [],
+  },
+  {
+    id: "texto",
+    grupo: "Textos",
+    nombre: "La letra de lectura y su «?»",
+    funcion: "Lo que se lee en una pantalla u hoja fuera de títulos y botones: la frase bajo un título, el detalle de una fila, una nota, y el «?» que guarda lo que explica.",
+    pieza: "`.texto-bajada` y `.texto-detalle` (app/estilos/titulos.css), `<Ayuda>` y `<TituloSeccion ayuda>`",
+    gobierna: ["ADR-0169", "ADR-0195"],
   },
   {
     id: "vacio",
@@ -497,7 +505,7 @@ export const DECISIONES = {
     "fecha": "2026-10-07",
     "adr": "docs/adr/0358-unificar-una-funcion-una-pieza.md",
     "registro": "docs/unificar/boton.md",
-    "elegida": "A · rojo desde el principio (btn-peligro, <Boton peso=\"peligro\">, fila-alerta en la barra de vidrio), elegida mirando el 2026-10-07",
+    "elegida": "La principal de una confirmación, negra con AvisoNoSeDeshace si no se deshace; lo demás, gota con letra roja (btn-peligro, <Boton peso=\"peligro\">, fila-alerta en la barra de vidrio). Elegida mirando el 2026-10-07; cambiada el 2026-11-05",
     "pieza": "components/ui/campos.tsx",
     "tambien": ["app/globals.css"],
     "firmas": [
@@ -594,7 +602,9 @@ export const DECISIONES = {
       // Las dos piezas que existían a mano.
       "^\\s*(?:export\\s+)?function\\s+(?:AvisoInline|AvisoDeError)\\b",
       // Un párrafo rojo suelto (el error va bajo su campo o en <Aviso tono=\"error\">).
-      "<p\\b[^>]*className=\\{?[\"'`][^\"'`]*\\btext-(?:xs|sm|\\[1[23](?:\\.5)?px\\]) text-rojo(?:-profundo)?\\b"
+      "<p\\b[^>]*className=\\{?[\"'`][^\"'`]*\\btext-(?:xs|sm|\\[1[23](?:\\.5)?px\\]) text-rojo(?:-profundo)?\\b",
+      // La caja gris punteada que hacía de aviso de una lectura caída y se confundía con una nota (tarea 144).
+      "\\bcard-cayla border-dashed\\b"
     ],
     "deuda": [
 
@@ -717,7 +727,8 @@ export const DECISIONES = {
     "registro": "docs/unificar/tabla.md",
     "elegida": "P1 · <Tabla> de hoy con movimiento: banda arena, títulos taupe, zebra hueso; las filas entran en cascada, la que lleva a su detalle muestra el hilo rojo de canto y la «›» al pasar el mouse, la abierta se queda marcada, la recién guardada respira en verde; elegida tocándola el 2026-10-13",
     "pieza": "components/ui/Tabla.tsx",
-    "tambien": ["app/globals.css"],
+    // La tabla con superpoderes (ADR-0596, «A · Globo desde la cabecera», Felipe 2026-10-31): la otra pieza elegida, para las tablas cuyas filas ya están en el navegador.
+    "tambien": ["app/globals.css", "components/ui/TablaViva.tsx"],
     "firmas": [
       // Una tabla de registros dibujada a mano con <table> (la pieza es <Tabla> + `fila()` + `celda()`).
       "<table\\b",
@@ -727,28 +738,26 @@ export const DECISIONES = {
     "deuda": [],
     "excepciones": [
       { "archivo": "app/estilos/finanzas.css", "motivo": "ADR-0195: el CSS del kit de Finanzas (su comentario nombra la tabla del spike)" },
-      { "archivo": "components/ConfiguracionCargaInicial.tsx", "motivo": "ADR-0195: la tabla del kit de Finanzas (fin-tabla), decidida a propósito; Felipe no la unió en la ronda 7" },
-      { "archivo": "components/ConfiguracionImpuestos.tsx", "motivo": "ADR-0195: la tabla del kit de Finanzas (fin-tabla), decidida a propósito; Felipe no la unió en la ronda 7" },
-      { "archivo": "components/ConfiguracionTiendas.tsx", "motivo": "ADR-0195: la tabla del kit de Finanzas (fin-tabla), decidida a propósito; Felipe no la unió en la ronda 7" },
-      { "archivo": "components/ConfiguracionMetasMes.tsx", "motivo": "ADR-0195/ADR-0435: las tarjetas de metas por mes y por fecha son de Configuración ▸ Tiendas y caja y usan la tabla del kit de Finanzas (fin-tabla), como sus vecinas" },
+      { "archivo": "components/finanzas/estados/InformeEstado.tsx", "motivo": "Estados financieros, camino «A · El informe» (Felipe 2026-11-06): un estado contable con sus columnas comparadas y sus subtotales, no un listado de registros" },
+      { "archivo": "components/vistas-config/VistaMetas.tsx", "motivo": "ADR-0195/ADR-0435: las tarjetas de metas por mes y por fecha son de Configuración ▸ Metas y usan la tabla del kit de Finanzas (fin-tabla), como sus vecinas" },
       { "archivo": "components/GastosFijosYActivos.tsx", "motivo": "ADR-0195: la tabla del kit de Finanzas (fin-tabla), decidida a propósito; Felipe no la unió en la ronda 7" },
       { "archivo": "components/GastosPanel.tsx", "motivo": "ADR-0195: la tabla del kit de Finanzas (fin-tabla), decidida a propósito; Felipe no la unió en la ronda 7" },
       { "archivo": "components/ImpuestosPanel.tsx", "motivo": "ADR-0195: la tabla del kit de Finanzas (fin-tabla), decidida a propósito; Felipe no la unió en la ronda 7" },
       { "archivo": "components/finanzas/BalancePanel.tsx", "motivo": "ADR-0195: la tabla del kit de Finanzas (fin-tabla), decidida a propósito; Felipe no la unió en la ronda 7" },
       { "archivo": "components/finanzas/CampanasPanel.tsx", "motivo": "ADR-0195: la tabla del kit de Finanzas (fin-tabla), decidida a propósito; Felipe no la unió en la ronda 7" },
-      { "archivo": "components/finanzas/ConfiguracionCuentas.tsx", "motivo": "ADR-0195: la tabla del kit de Finanzas (fin-tabla), decidida a propósito; Felipe no la unió en la ronda 7" },
-      { "archivo": "components/finanzas/ConfiguracionPresupuesto.tsx", "motivo": "ADR-0195: la tabla del kit de Finanzas (fin-tabla), decidida a propósito; Felipe no la unió en la ronda 7" },
+      { "archivo": "components/vistas-config/TopesDeGasto.tsx", "motivo": "ADR-0195: la tabla del kit de Finanzas (fin-tabla) en la hoja de la propuesta, decidida a propósito; Felipe no la unió en la ronda 7" },
       { "archivo": "components/finanzas/CuentasDinero.tsx", "motivo": "ADR-0195: la tabla del kit de Finanzas (fin-tabla), decidida a propósito; Felipe no la unió en la ronda 7" },
       { "archivo": "components/finanzas/EscenariosPanel.tsx", "motivo": "ADR-0195: la tabla del kit de Finanzas (fin-tabla), decidida a propósito; Felipe no la unió en la ronda 7" },
       { "archivo": "components/finanzas/EstadoResultadosPanel.tsx", "motivo": "ADR-0195: la tabla del kit de Finanzas (fin-tabla), decidida a propósito; Felipe no la unió en la ronda 7" },
-      { "archivo": "components/finanzas/FlujoCajaPanel.tsx", "motivo": "ADR-0195: la tabla del kit de Finanzas (fin-tabla), decidida a propósito; Felipe no la unió en la ronda 7" },
+      { "archivo": "components/finanzas/estados/PlataPanel.tsx", "motivo": "ADR-0195: la tabla del kit de Finanzas (fin-tabla), decidida a propósito; Felipe no la unió en la ronda 7 (antes en FlujoCajaPanel; ADR-0585 la llevó al formato formal de ¿Dónde está la plata?)" },
+      { "archivo": "components/finanzas/estados/PatrimonioPanel.tsx", "motivo": "ADR-0195: la tabla del kit de Finanzas (fin-tabla), como el formato formal de sus vecinas; ADR-0585 la usa para el estado de cambios en el patrimonio" },
+      { "archivo": "components/finanzas/estados/SaldosPanel.tsx", "motivo": "ADR-0195: la tabla del kit de Finanzas (fin-tabla), como los cuadros formales de sus vecinas; ADR-0585 la usa para los saldos por cuenta" },
+      { "archivo": "components/finanzas/estados/DiarioPanel.tsx", "motivo": "ADR-0195: la tabla del kit de Finanzas (fin-tabla), como los cuadros formales de sus vecinas; ADR-0585 la usa para el libro diario" },
       { "archivo": "components/finanzas/PorPagarConsolidado.tsx", "motivo": "ADR-0195: la tabla del kit de Finanzas (fin-tabla), decidida a propósito; Felipe no la unió en la ronda 7" },
-      { "archivo": "components/finanzas/PresupuestoPanel.tsx", "motivo": "ADR-0195: la tabla del kit de Finanzas (fin-tabla), decidida a propósito; Felipe no la unió en la ronda 7" },
       { "archivo": "components/BoletaA4.tsx", "motivo": "papel físico (ADR-0336): se imprime tal cual, fuera del censo" },
       { "archivo": "components/ProformaA4.tsx", "motivo": "papel físico (ADR-0336): se imprime tal cual, fuera del censo" },
       { "archivo": "components/ordenes-compra/HojaOrdenCompra.tsx", "motivo": "papel físico (ADR-0336): se imprime tal cual, fuera del censo" },
       { "archivo": "components/plan-compra/ExportarPlan.tsx", "motivo": "papel físico (ADR-0336): se imprime tal cual, fuera del censo" },
-      { "archivo": "components/MatrizOrden.tsx", "motivo": "una matriz de tallas y colores (o de tiendas): otra función, no una lista de registros" },
       { "archivo": "components/alta-producto/MatrizCantidades.tsx", "motivo": "una matriz de tallas y colores (o de tiendas): otra función, no una lista de registros" },
       { "archivo": "components/alta-producto/MatrizVariantes.tsx", "motivo": "una matriz de tallas y colores (o de tiendas): otra función, no una lista de registros" },
       { "archivo": "components/existencias/FlujoTalla.tsx", "motivo": "una matriz de tallas y colores (o de tiendas): otra función, no una lista de registros" },
@@ -761,6 +770,92 @@ export const DECISIONES = {
       { "archivo": "components/plan-compra/RepartoTiendas.tsx", "motivo": "una matriz de tallas y colores (o de tiendas): otra función, no una lista de registros" },
       { "archivo": "components/ProductosTabla.tsx", "motivo": "ADR-0254: la tabla de Catálogo ▸ Productos tiene su diseño aprobado; Felipe no la unió en la ronda 7" },
       { "archivo": "components/analisis/FichaPrenda.tsx", "motivo": "ADR-0357: Análisis tiene su movimiento y su diseño por decisión" }
+    ]
+  },
+  "texto": {
+    "fecha": "2026-10-30",
+    "adr": "docs/adr/0358-unificar-una-funcion-una-pieza.md",
+    "registro": "docs/unificar/texto.md",
+    "elegida": "Ronda 19 (2026-10-30, mirando): F1 · una línea a la vista y lo que explica detrás del «?», que es el de la cabecera en chico, arriba a la derecha de la última palabra; A1 · el mismo «?» de vidrio en todo el ERP (<Ayuda> y <TituloSeccion ayuda>; el «!» queda solo para «falta algo»). El tamaño lo dejó para después de condensar «texto por texto»: lo que se lee va a 14 px como mínimo (la bajada a 15, el título de una fila a 15), aplicado módulo por módulo del 2026-10-30 al 2026-10-31",
+    "pieza": "app/estilos/titulos.css",
+    "tambien": ["components/Ayuda.tsx", "components/ui/AyudaCabecera.tsx", "components/ui/TituloSeccion.tsx"],
+    "firmas": [
+      // Un párrafo de lectura dibujado a mano bajo 14 px (10–13,5 px o `text-xs`). Las versalitas, las letras espaciadas y la mono no
+      // son texto de lectura: no cuentan. Un `sm:text-xs` (cambio por ancho) tampoco.
+      "<p\\b[^>]*className=\\{?[\"'`](?![^\"'`]*(?:\\buppercase\\b|\\blabel-cayla\\b|\\btracking-|\\bfont-mono\\b))[^\"'`]*(?<![\\w:-])text-(?:xs|\\[1[0-3](?:\\.5)?px\\])(?![\\w-])"
+    ],
+    "deuda": [
+      "app/(app)/buscar/page.tsx",
+      "app/(app)/error.tsx",
+      "app/(app)/vender/comprobantes/error.tsx",
+      "app/login/page.tsx",
+      "components/AbrirConteo.tsx",
+      "components/AjustarInventarioModal.tsx",
+      "components/AperturasPorRevisar.tsx",
+      "components/AvisoCostoAtipico.tsx",
+      "components/CajaAbiertaPanel.tsx",
+      "components/CajaGraficos.tsx",
+      "components/CajaTablero.tsx",
+      "components/CerrarCajaModalV2.tsx",
+      "components/CierreCajaDetalle.tsx",
+      "components/ComboResponsable.tsx",
+      "components/CompraDetallePanel.tsx",
+      "components/ConsultaDocumento.tsx",
+      "components/CuentasProveedor.tsx",
+      "components/EscanerBusqueda.tsx",
+      "components/EscanerCamara.tsx",
+      "components/EtiquetasLista.tsx",
+      "components/GastoRapidoModal.tsx",
+      "components/GraficoCierresDelMes.tsx",
+      "components/GuiaImpresion.tsx",
+      "components/HistorialCierresModal.tsx",
+      "components/ImprimirEtiquetasPrecio.tsx",
+      "components/ImprimirRotulos.tsx",
+      "components/LineasPago.tsx",
+      "components/LlegoMercaderia.tsx",
+      "components/MisPartesDeCompras.tsx",
+      "components/PanelCalidadVista.tsx",
+      "components/PanelComercialVista.tsx",
+      "components/PedidoClienteModales.tsx",
+      "components/PedirAOtraSedeModal.tsx",
+      "components/PerfilModal.tsx",
+      "components/PrendaSinRegistrarModal.tsx",
+      "components/ProveedorModal.tsx",
+      "components/SalidasDeCaja.tsx",
+      "components/actividad/BotonActividad.tsx",
+      "components/actividad/ListaActividad.tsx",
+      "components/alta-producto/ElegirColores.tsx",
+      "components/alta-producto/ElegirMarcaProveedor.tsx",
+      "components/alta-producto/IdentidadAlta.tsx",
+      "components/alta-producto/MatrizVariantes.tsx",
+      "components/alta-producto/piezas.tsx",
+      "components/asistente/Acompanante.tsx",
+      "components/asistente/CajonAsistente.tsx",
+      "components/clientas/PaginaLegalClub.tsx",
+      "components/clientas/club-piezas.tsx",
+      "components/ficha-producto/ImprimirLoQueEntro.tsx",
+      "components/guia-de-foco/CampoGuiado.tsx",
+      "components/guias/GuiaInteractiva.tsx",
+      "components/guias/MotorGuias.tsx",
+      "components/impresion/useImpresionBrother.tsx",
+      "components/motor-demanda/PreparacionMotor.tsx",
+      "components/orden-produccion/FichaDeConsumoHoja.tsx",
+      "components/ui/AvisoDestacado.tsx",
+      "components/ui/AvisoRepetida.tsx",
+      "components/ui/Espera.tsx",
+      "components/ui/FiltrosPildora.tsx",
+      "components/ui/campos.tsx",
+      "components/vitrina/VitrinaModeloHoja.tsx"
+    ],
+    "excepciones": [
+      { "archivo": "components/AppShell.tsx", "motivo": "El marco (lateral y cabecera) queda fuera del censo: ya es uno solo (ADR-0358)." },
+      { "archivo": "components/ingresos/HojaIngresos.tsx", "motivo": "Papel impreso (data-papel): su letra la decide la hoja, no la pantalla (ADR-0336)." },
+      { "archivo": "components/campana-hoja/EtiquetaDeCampana.tsx", "motivo": "La etiqueta de una campaña se ve como saldrá impresa (ADR-0488)." },
+      { "archivo": "components/campanas-web/PreviewCampana.tsx", "motivo": "Imita la tienda online, que tiene su propia identidad (CLAUDE.md, skills de diseño, punto 3)." },
+      { "archivo": "components/existencias/AjusteDelModelo.tsx", "motivo": "La planilla de «Ajustar stock» es densa a propósito (ADR-0494, ronda 19 la deja igual)." },
+      { "archivo": "components/ficha-producto/EtiquetasDeLaMatriz.tsx", "motivo": "Matriz de tallas densa: 14 px no cabe en la celda (ronda 19 la deja igual)." },
+      { "archivo": "components/ficha-producto/MatrizStockFicha.tsx", "motivo": "Matriz de stock por talla densa: 14 px no cabe en la celda (ronda 19 la deja igual)." },
+      { "archivo": "components/recepcion-conteo/HojaTallas.tsx", "motivo": "Matriz de tallas del conteo, densa a propósito (ronda 19 la deja igual)." }
     ]
   },
   "titulo-seccion": {
@@ -811,14 +906,12 @@ export const DECISIONES = {
       { "archivo": "components/GastoRapidoModal.tsx", "motivo": "ADR-0368: el monto del gasto rápido de Caja (gr-monto) tiene su diseño y su movimiento por decisión" },
       { "archivo": "components/IngresoRapidoModal.tsx", "motivo": "ADR-0375: el monto de Registrar ingreso es el del gasto rápido (gr-monto), por decisión" },
       { "archivo": "components/finanzas/kit.tsx", "motivo": "ADR-0195: el kit de Finanzas (fin-control, SelectFin) queda como está; con la caja de la ronda 6 está a 4 px de ser igual y Felipe dice si se une" },
-      { "archivo": "components/finanzas/ConfiguracionPresupuesto.tsx", "motivo": "ADR-0195: el kit de Finanzas (fin-control, SelectFin) queda como está; con la caja de la ronda 6 está a 4 px de ser igual y Felipe dice si se une" },
-      { "archivo": "components/ConfiguracionImpuestos.tsx", "motivo": "ADR-0195: el kit de Finanzas (fin-control, SelectFin) queda como está; con la caja de la ronda 6 está a 4 px de ser igual y Felipe dice si se une" },
-      { "archivo": "components/ConfiguracionTiendas.tsx", "motivo": "ADR-0195: el kit de Finanzas (fin-control, SelectFin) queda como está; con la caja de la ronda 6 está a 4 px de ser igual y Felipe dice si se une" },
-      { "archivo": "components/ConfiguracionCasilla.tsx", "motivo": "ADR-0195: la casilla de Configuración ▸ Tiendas y caja (fin-control), sacada de ConfiguracionTiendas para compartirla con las metas por mes y por fecha (ADR-0435); queda con el kit de Finanzas" },
-      { "archivo": "components/ConfiguracionMetasMes.tsx", "motivo": "ADR-0195/ADR-0435: las metas por mes y por fecha usan el kit de Finanzas (fin-control, SelectFin) como el resto de Tiendas y caja" },
+      { "archivo": "components/vistas-config/NuevaVigenciaModal.tsx", "motivo": "ADR-0195: el kit de Finanzas (fin-control, SelectFin) queda como está; con la caja de la ronda 6 está a 4 px de ser igual y Felipe dice si se une" },
+      { "archivo": "components/ConfiguracionCasilla.tsx", "motivo": "ADR-0195: la casilla de Configuración ▸ Metas (fin-control), sacada de ConfiguracionTiendas para compartirla con las metas por mes y por fecha (ADR-0435); queda con el kit de Finanzas" },
+      { "archivo": "components/vitrinas-sedes/VistaEmpresaTiendas.tsx", "motivo": "el dato de una vitrina se escribe en la misma casilla de Configuración (MarcoCasilla, fin-control): se guarda solo al salir" },
+      { "archivo": "components/vistas-config/VistaMetas.tsx", "motivo": "ADR-0195/ADR-0435: las metas por mes y por fecha usan el kit de Finanzas (fin-control, SelectFin) como el resto de Metas" },
       { "archivo": "app/estilos/alta-guia.css", "motivo": "la guía de foco (ADR-0284) busca los controles por su rol o su etiqueta: no dibuja ninguno" },
       { "archivo": "components/alta-producto/MatrizCantidades.tsx", "motivo": "las celdas de una matriz de tallas y colores: otra función, no un campo de formulario" },
-      { "archivo": "components/MatrizOrden.tsx", "motivo": "las celdas de una matriz de tallas y colores: otra función, no un campo de formulario" },
       { "archivo": "components/ficha-producto/MatrizStockFicha.tsx", "motivo": "las celdas de una matriz de tallas y colores: otra función, no un campo de formulario" },
       { "archivo": "components/ficha-producto/piezas.tsx", "motivo": "las celdas de una matriz de tallas y colores: otra función, no un campo de formulario" },
       { "archivo": "components/existencias/FlujoTalla.tsx", "motivo": "las celdas de una matriz de tallas y colores: otra función, no un campo de formulario" },
@@ -835,7 +928,8 @@ export const DECISIONES = {
     "registro": "docs/unificar/campo-combo.md",
     "elegida": "P1 · el combo es la misma caja que se enciende (el chevron gira y se pone rojo, el valor elegido entra subiendo); P1 · una lista para todo combo: la elegida con el hilo rojo de canto y su ✓ que se dibuja, cascada hasta 8, buscador fijo con su lupa; elegidas tocándolas el 2026-10-13",
     "pieza": "components/ui/campos.tsx",
-    "tambien": ["app/globals.css", "components/ui/ComboBuscable.tsx", "components/ComboResponsable.tsx", "components/ui/FiltrosPildora.tsx", "components/ui/FiltrosFlotantes.tsx", "components/ui/useCombo.ts", "app/estilos/campos-y-casillas.css", "components/ui/ListaSugerencias.tsx"],
+    // MenuAcciones y SelectorMes usan la lista de los combos por decisión (vidrio, Felipe 2026-11-01), y el calendario de CampoFecha desde el 2026-11-05: no la dibujan a mano.
+    "tambien": ["components/ui/CampoFecha.tsx", "app/estilos/vidrio/notas-avisos-combos.css", "app/globals.css", "components/ui/ComboBuscable.tsx", "components/ComboResponsable.tsx", "components/ui/FiltrosPildora.tsx", "components/ui/FiltrosFlotantes.tsx", "components/ui/useCombo.ts", "app/estilos/campos-y-casillas.css", "components/ui/ListaSugerencias.tsx", "components/ui/MenuAcciones.tsx", "components/ui/SelectorMes.tsx", "app/estilos/vidrio/campos-y-botones.css"],
     "firmas": [
       // Un combo o una lista desplegable hecha a mano (la regla de combos ya era una, ADR-0209; ahora también su cara).
       "role=\"combobox\"",
@@ -999,23 +1093,17 @@ export const DECISIONES = {
     "fecha": "2026-10-14",
     "adr": "docs/adr/0358-unificar-una-funcion-una-pieza.md",
     "registro": "docs/unificar/titulo-pagina.md",
-    "elegida": "P1 · la cabecera de Inventario (<EncabezadoPagina>) en todas las pantallas menos Finanzas: arriba la sede y la fecha con su hilo, el nombre del menú en 46 px, la frase y los botones a la derecha; la vuelta es la flecha a la izquierda de la línea de la sede y lo que dice de dónde se llegó va tras la fecha (`detalle`); Finanzas conserva la de su spike (<CabeceraPantalla>, ADR-0195); elegida mirando las fotos de cada pantalla el 2026-10-14",
+    "elegida": "P1 · la cabecera de Inventario (<EncabezadoPagina>) en todas las pantallas, Finanzas incluida: arriba la sede y la fecha con su hilo, el nombre del menú en 46 px, la frase y los botones a la derecha; la vuelta es la flecha a la izquierda de la línea de la sede y lo que dice de dónde se llegó va tras la fecha (`detalle`); elegida mirando las fotos de cada pantalla el 2026-10-14. Ronda 18 (2026-10-30, mirando: P2 + D2 + V1): la frase ya no se ve; vive, con lo que explicaba un «!» junto al título (`ayuda`), en el globo de vidrio que abre el «?» junto al título (<AyudaCabecera>), también la que dice un dato",
     "pieza": "components/ui/EncabezadoPagina.tsx",
-    "tambien": ["components/ui/CabeceraPantalla.tsx"],
+    "tambien": ["components/ui/AyudaCabecera.tsx"],
     "firmas": [
       // El título de una pantalla dibujado a mano en la serif de la casa (con su sobretítulo en versalitas al lado): es <EncabezadoPagina>.
       "<h1\\b(?:[^>]|=>)*\\bfont-display\\b",
-      // La cabecera de Finanzas fuera de Finanzas.
-      "<CabeceraPantalla\\b"
+      // El «!» metido a mano dentro del título con la letra de la frase (Marcas, Productos, Categorías… hasta la ronda 18): va en `ayuda`.
+      "inline-block align-middle font-sans text-\\[15px\\] leading-normal tracking-normal"
     ],
     "deuda": [],
     "excepciones": [
-      { "archivo": "components/GastosPanel.tsx", "motivo": "Finanzas conserva la cabecera de su spike (ADR-0195)" },
-      { "archivo": "components/ImpuestosPanel.tsx", "motivo": "Finanzas conserva la cabecera de su spike (ADR-0195)" },
-      { "archivo": "components/finanzas/ResumenFinanzas.tsx", "motivo": "Finanzas conserva la cabecera de su spike (ADR-0195)" },
-      { "archivo": "components/finanzas/CierreMes.tsx", "motivo": "Finanzas conserva la cabecera de su spike (ADR-0195)" },
-      { "archivo": "components/finanzas/CabeceraDinero.tsx", "motivo": "Finanzas conserva la cabecera de su spike (ADR-0195)" },
-      { "archivo": "components/finanzas/CabeceraReportes.tsx", "motivo": "Finanzas conserva la cabecera de su spike (ADR-0195)" },
       { "archivo": "app/(app)/productos/[id]/historial/page.tsx", "motivo": "la página «Historial» de la vista rápida es decidida a propósito (ADR-0354, ADR-0136 act. 2026-10-05)" },
       { "archivo": "components/PantallaNoEncontrada.tsx", "motivo": "un estado (la pantalla que no existe), no la cabecera de una pantalla del menú" },
       { "archivo": "components/ProduccionSoloEnTaller.tsx", "motivo": "un estado (Producción solo se ve parado en el Taller), no la cabecera de una pantalla" },
@@ -1257,8 +1345,8 @@ export const DECISIONES = {
     ],
     "deuda": [],
     "excepciones": [
+      { "archivo": "app/estilos/centro-avisos.css", "motivo": "el centro de avisos del Plan se ve como su maqueta, con la campana de 18 px y el ícono de cada aviso de 22 px (Felipe 2026-10-26: «tal cual»)" },
       { "archivo": "components/guias/BotonDemo.tsx", "motivo": "el botón «Demo» de la cabecera es del marco, que se queda en trazo 1,5 (Felipe, ronda 16, P2)" },
-      { "archivo": "components/colaboradores/IconoModulo.tsx", "motivo": "dibuja el ícono del menú de cada módulo con el juego del marco (1,7 a 16 px, para que su línea se vea como la del lateral)" },
       { "archivo": "components/traslados-pases/PasePedido.tsx", "motivo": "los pases de Traslados tienen su dibujo propio (ADR-0355)" },
       { "archivo": "components/traslados-pases/PaseTraslado.tsx", "motivo": "los pases de Traslados tienen su dibujo propio (ADR-0355)" },
       { "archivo": "components/traslados-pases/ReversoPase.tsx", "motivo": "los pases de Traslados tienen su dibujo propio (ADR-0355)" },
@@ -1354,7 +1442,7 @@ export const DECISIONES = {
     "deuda": [],
     "excepciones": [
       { "archivo": "components/EscanerConteo.tsx", "motivo": "las teclas grandes de contar (56 px, el número enorme): un teclado de contar, aparte por decisión de Felipe (ronda 17)" },
-      { "archivo": "components/recepcion-conteo/ContarEnvio.tsx", "motivo": "las teclas grandes de Contar el envío (56 px, el número de 84): un teclado de contar, aparte por decisión de Felipe (ronda 17)" },
+      { "archivo": "components/recepcion-conteo/Dial.tsx", "motivo": "el Dial de Recibir (teclas de 56 px alrededor del aro y el número de 78 que se toca para escribirlo): un teclado de contar, aparte por decisión de Felipe (ronda 17; rediseño «B» del 2026-10-29)" },
       { "archivo": "components/existencias/FlujoTalla.tsx", "motivo": "el paso a paso táctil de Existencias (`Stepper`, teclas de 56 px y el número serif): la misma anatomía de las teclas grandes de contar; sus celdas de matriz sí usan la pieza (ronda 17)" },
       { "archivo": "components/traslados-pases/ReversoPase.tsx", "motivo": "ADR-0355: los pases de Traslados tienen su diseño por decisión (`tp-contador`)" }
     ]

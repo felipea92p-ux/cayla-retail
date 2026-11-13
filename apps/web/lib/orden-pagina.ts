@@ -1,9 +1,11 @@
 import "server-only";
 import { createClient } from "@/lib/supabase/server";
 import { getInsumosDelTaller } from "@/lib/insumos";
+import { RPC_PROCESOS } from "@/lib/orden-fases-reglas";
 import { RPC_ORDEN_PRODUCCION, RPC_TELA_PENDIENTE, leerOrdenPagina, numeroDeOrdenEnUrl, type OrdenPagina } from "@/lib/orden-pagina-reglas";
 import { armarEdicionDeTela, type DatosEditarTela } from "@/lib/orden-tela-editar-reglas";
 import type { OpcionesNuevaOrden } from "@/lib/produccion";
+import { unstable_rethrow } from "next/navigation";
 
 // La página de una orden de producción (ADR-0400, actividad 3): lectura del servidor. Dos pasos: el número de la URL (`OP-000067`) se resuelve al id de la orden y `fn_orden_produccion`
 // trae TODO lo que la página dibuja (orden, fases, tela, costos, línea de tiempo y permisos) en una sola lectura. Si algo falla lo dice (principio 9): nunca una orden "vacía" que
@@ -42,7 +44,12 @@ export async function getOrdenProduccionPagina(segmento: string): Promise<{ orde
   const pendiente = await (supabase.rpc(RPC_TELA_PENDIENTE as never, { p_produccion_id: fila.id } as never) as unknown as Respuesta);
   const telaPendiente = pendiente.error ? null : pendiente.data;
   if (pendiente.error) console.error(`${RPC_TELA_PENDIENTE}: ${pendiente.error.message}`);
-  const orden = leerOrdenPagina(typeof data === "object" && data !== null ? { ...(data as Record<string, unknown>), tela_pendiente: telaPendiente } : data);
+  // El catálogo de procesos (ADR-0570, actividad 5): sin él, la página usa el de respaldo (los de siempre) y no ofrece los procesos propios.
+  const catalogo = await (supabase.rpc(RPC_PROCESOS as never) as unknown as Respuesta);
+  if (catalogo.error) console.error(`${RPC_PROCESOS}: ${catalogo.error.message}`);
+  const orden = leerOrdenPagina(
+    typeof data === "object" && data !== null ? { ...(data as Record<string, unknown>), tela_pendiente: telaPendiente, procesos: catalogo.error ? null : catalogo.data } : data
+  );
   // Una respuesta que no se parece a una orden es una falla de lectura, no una orden inexistente: decir «no existe» escondería un problema.
   return orden ? { orden, falla: null } : { orden: null, falla: FALLA };
 }
@@ -79,6 +86,7 @@ export async function getEdicionDeTela(orden: OrdenPagina, opciones: OpcionesNue
       falla: false,
     };
   } catch (e) {
+    unstable_rethrow(e);
     console.error(`editar tela de ${orden.orden.numeroTexto}: ${e instanceof Error ? e.message : String(e)}`);
     return { datos: null, falla: true };
   }

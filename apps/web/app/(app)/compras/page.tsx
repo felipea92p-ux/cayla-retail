@@ -3,12 +3,14 @@ import { redirect } from "next/navigation";
 import { BarraAvance } from "@/components/ui/BarraAvance";
 import { exigirModulo, veModulo } from "@/lib/persona-actual";
 import { entradaDeCompras } from "@/lib/compras-pestanas-reglas";
+import { getMarcasDeCompras } from "@/lib/marcas-de-compras";
+import { tituloDeCompra } from "@/lib/marcas-de-compras-reglas";
 import { listarCompras, getResumenCompras, filtrosDesdeParams, getProveedoresActivos, ETIQUETA_TIPO_DOCUMENTO, soles, type ParamsCompras } from "@/lib/compras";
 import { getNotasPendientes, getResumenComprasExtra } from "@/lib/compras-indicadores";
 import { celdaPago, celdaRecepcion, nombreDelMes, subEmision, vistaActiva, type VistaComprobantes } from "@/lib/comprobantes-lista-reglas";
 import { diaMes, hoyLima, sumarDias } from "@/lib/fechas-lima";
 import { idsConFaltanteCerrado } from "@/lib/nota-pendiente-reglas";
-import { nombresDeDestinos } from "@/lib/reparto-reglas";
+import { destinosCortos } from "@/lib/reparto-reglas";
 import { getUbicaciones } from "@/lib/ubicaciones";
 import { Tabla, Encabezado, fila, celda } from "@/components/ui/Tabla";
 import { Chip } from "@/components/ui/Chip";
@@ -50,7 +52,7 @@ import { CabeceraHistorialCompras } from "@/components/compras/CabeceraHistorial
 // La fila entera es un enlace que abre el detalle como modal encima de esta lista (ruta interceptada
 // `@modal/(.)factura/[compraId]`): la lista no se desmonta y al cerrar se vuelve exactamente donde se
 // estaba, con scroll y filtros intactos. La flecha «›» es la señal de que se puede abrir.
-const PLANTILLA = "sm:grid-cols-[8rem_1fr_7.5rem_10.75rem_11rem_7.25rem_1rem]";
+const PLANTILLA = "sm:grid-cols-[6.5rem_1fr_7.5rem_10rem_9.5rem_6.5rem_1rem]";
 
 const PARAMS_DE_VISTA = ["saldo", "porrecibir", "vencidas", "pago"];
 
@@ -71,8 +73,12 @@ export default async function ComprasPage({ searchParams }: { searchParams: Prom
   // Qué comprobantes esperan su nota de crédito por faltante depende de los ids de la página, así que se
   // pide ENCADENADA a la lista (y solo si algún comprobante de la página tiene algo cerrado): sigue corriendo
   // en paralelo con las demás consultas de la pantalla.
-  const [{ pagina: { filas: compras, siguiente }, notas }, resumen, extra, proveedores, ubicaciones] = await Promise.all([
-    listarCompras(filtros, { cursor, orden }).then(async (pagina) => ({ pagina, notas: await getNotasPendientes(idsConFaltanteCerrado(pagina.filas)) })),
+  const [{ pagina: { filas: compras, siguiente }, notas, marcas }, resumen, extra, proveedores, ubicaciones] = await Promise.all([
+    // La marca primero (ADR-0644): las marcas de cada comprobante de la página, encadenadas a la lista como las notas pendientes.
+    listarCompras(filtros, { cursor, orden }).then(async (pagina) => {
+      const [notas, marcas] = await Promise.all([getNotasPendientes(idsConFaltanteCerrado(pagina.filas)), getMarcasDeCompras({ compras: pagina.filas.map((c) => c.id) })]);
+      return { pagina, notas, marcas };
+    }),
     getResumenCompras(),
     getResumenComprasExtra(),
     getProveedoresActivos(),
@@ -127,58 +133,61 @@ export default async function ComprasPage({ searchParams }: { searchParams: Prom
 
       {/* Cada cifra lleva a donde se actúa sobre ella: «Por pagar» a la lista de deuda (y si hay vencidas,
           directo a las vencidas), «Por recibir» a la pantalla de recepción. La flecha la pone TarjetaCifra (ADR-0358). */}
-      <div data-guia="compras.cifras" className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <TarjetaCifra
-          viva
-          className="anim-entra"
-          style={{ ["--i" as string]: 1 }}
-          punto="ambar"
-          detalleTono={resumen.vencidas > 0 ? "text-rojo" : undefined}
-          etiqueta="Por pagar"
-          valor={<CifraQueCuenta valor={resumen.deuda} formato="soles" alMontar />}
-          href={vePorPagar ? (resumen.vencidas > 0 ? "/compras/por-pagar?vencidas=1" : "/compras/por-pagar") : undefined}
-          reparto={{ fraccion: resumen.deuda > 0 ? resumen.vencido / resumen.deuda : 0, tono: "rojo" }}
-        >
-          {resumen.vencidas > 0 ? `${cifra(resumen.vencidas, "vencida", "vencidas")} · ${soles(resumen.vencido)}` : "Sin vencidas"}
-        </TarjetaCifra>
-        <TarjetaCifra
-          viva
-          className="anim-entra"
-          style={{ ["--i" as string]: 2 }}
-          punto={resumen.porRecibir > 0 ? "ambar" : "verde"}
-          detalleTono={resumen.porRecibirAtrasadas > 0 ? "text-ambar-profundo" : undefined}
-          etiqueta="Por recibir"
-          valor={<CifraQueCuenta valor={resumen.porRecibir} alMontar />}
-          unidad={resumen.porRecibir === 1 ? "compra" : "compras"}
-          href={resumen.porRecibir > 0 ? "/compras/recibir" : undefined}
-          reparto={{ fraccion: resumen.porRecibir > 0 ? resumen.porRecibirAtrasadas / resumen.porRecibir : 0, tono: "ambar" }}
-        >
-          {resumen.porRecibir === 0 ? (
-            "Nada por recibir"
-          ) : (
-            <>
-              {resumen.porRecibirAtrasadas > 0 ? `${cifra(resumen.porRecibirAtrasadas, "atrasada", "atrasadas")} · ` : ""}
-              {soles(extra.valorPorRecibir)} por llegar
-            </>
-          )}
-        </TarjetaCifra>
-        <TarjetaCifra
-          className="anim-entra"
-          style={{ ["--i" as string]: 3 }}
-          etiqueta={`Compras de ${mesActual}`}
-          valor={<CifraQueCuenta valor={extra.comprasMes} formato="soles" alMontar />}
-        >
-          {extra.comprasMesAnterior > 0 ? `${mesAnterior[0].toUpperCase()}${mesAnterior.slice(1)} completo: ${soles(extra.comprasMesAnterior)}` : `Sin compras en ${mesAnterior}`}
-        </TarjetaCifra>
-        <TarjetaCifra
-          className="anim-entra"
-          style={{ ["--i" as string]: 4 }}
-          punto="verde"
-          etiqueta="IGV del mes"
-          valor={<CifraQueCuenta valor={extra.igvMes} formato="soles" alMontar />}
-        >
-          Crédito fiscal · solo facturas
-        </TarjetaCifra>
+      {/* Cuatro en fila solo si cada una tiene con qué: mira el ancho que deja el lateral, no el de la ventana (a 640 px serían 68 px cada una). */}
+      <div className="@container">
+        <div data-guia="compras.cifras" className="grid grid-cols-2 gap-3 @[36rem]:grid-cols-4">
+          <TarjetaCifra
+            viva
+            className="anim-entra"
+            style={{ ["--i" as string]: 1 }}
+            punto="ambar"
+            detalleTono={resumen.vencidas > 0 ? "text-rojo" : undefined}
+            etiqueta="Por pagar"
+            valor={<CifraQueCuenta valor={resumen.deuda} formato="soles" alMontar />}
+            href={vePorPagar ? (resumen.vencidas > 0 ? "/compras/por-pagar?vencidas=1" : "/compras/por-pagar") : undefined}
+            reparto={{ fraccion: resumen.deuda > 0 ? resumen.vencido / resumen.deuda : 0, tono: "rojo" }}
+          >
+            {resumen.vencidas > 0 ? `${cifra(resumen.vencidas, "vencida", "vencidas")} · ${soles(resumen.vencido)}` : "Sin vencidas"}
+          </TarjetaCifra>
+          <TarjetaCifra
+            viva
+            className="anim-entra"
+            style={{ ["--i" as string]: 2 }}
+            punto={resumen.porRecibir > 0 ? "ambar" : "verde"}
+            detalleTono={resumen.porRecibirAtrasadas > 0 ? "text-ambar-profundo" : undefined}
+            etiqueta="Por recibir"
+            valor={<CifraQueCuenta valor={resumen.porRecibir} alMontar />}
+            unidad={resumen.porRecibir === 1 ? "compra" : "compras"}
+            href={resumen.porRecibir > 0 ? "/compras/recibir" : undefined}
+            reparto={{ fraccion: resumen.porRecibir > 0 ? resumen.porRecibirAtrasadas / resumen.porRecibir : 0, tono: "ambar" }}
+          >
+            {resumen.porRecibir === 0 ? (
+              "Nada por recibir"
+            ) : (
+              <>
+                {resumen.porRecibirAtrasadas > 0 ? `${cifra(resumen.porRecibirAtrasadas, "atrasada", "atrasadas")} · ` : ""}
+                {soles(extra.valorPorRecibir)}
+              </>
+            )}
+          </TarjetaCifra>
+          <TarjetaCifra
+            className="anim-entra"
+            style={{ ["--i" as string]: 3 }}
+            etiqueta={`Compras de ${mesActual}`}
+            valor={<CifraQueCuenta valor={extra.comprasMes} formato="soles" alMontar />}
+          >
+            {extra.comprasMesAnterior > 0 ? `${mesAnterior[0].toUpperCase()}${mesAnterior.slice(1)}: ${soles(extra.comprasMesAnterior)}` : `Sin compras en ${mesAnterior}`}
+          </TarjetaCifra>
+          <TarjetaCifra
+            className="anim-entra"
+            style={{ ["--i" as string]: 4 }}
+            punto="verde"
+            etiqueta="IGV del mes"
+            valor={<CifraQueCuenta valor={extra.igvMes} formato="soles" alMontar />}
+          >
+            Solo facturas
+          </TarjetaCifra>
+        </div>
       </div>
 
       {/* Los estados dejan menos facturas en la MISMA lista (mismas columnas, mismas acciones): son un filtro de un valor y van
@@ -230,7 +239,7 @@ export default async function ComprasPage({ searchParams }: { searchParams: Prom
               plantilla={PLANTILLA}
               columnas={[
                 { titulo: "Emisión" },
-                { titulo: "Proveedor" },
+                { titulo: "Marca y proveedor" },
                 { titulo: "N.° documento" },
                 { titulo: "Recepción" },
                 { titulo: "Pago" },
@@ -250,47 +259,67 @@ export default async function ComprasPage({ searchParams }: { searchParams: Prom
                     style={{ ["--k" as string]: Math.min(i, 8) }}
                     className={fila(PLANTILLA, "cmp-fila")}
                   >
-                    <span className={celda("izq", "whitespace-normal text-sm tabular-nums text-tinta")}>
+                    <span className={celda("izq", "cmp-c-emision whitespace-normal text-sm tabular-nums text-tinta")}>
                       <span className="block">{diaMes(c.fechaEmision)}</span>
-                      <span className={`block text-xs ${c.vencida && c.estadoPago !== "pagada" ? "text-rojo" : "text-tinta/70"}`}>{subEmision(c)}</span>
+                      {/* «Venció dd/mm» va en tinta, como «Contado»: el chip «Vencida» de la columna Pago ya lo avisa en rojo y late, y
+                          cada vencida gastaba dos rojos (auditoría al milímetro 2026-11-12; presupuesto, MAX_ROJO_POR_PANTALLA). */}
+                      <span className="block text-sm text-tinta/70">{subEmision(c)}</span>
                     </span>
-                    <span className={celda()} data-guia="compras.proveedor">
-                      <span className={`block text-sm ${c.estado === "anulada" ? "text-tinta/40 line-through" : "text-tinta"}`}>
-                        <Resaltado texto={c.proveedorNombre} busqueda={busqueda} />
-                      </span>
+                    <span className={celda("izq", "cmp-c-proveedor")}>
+                      {/* La marca primero (ADR-0644): con marcas, son el título y la razón social baja con su RUC; sin ellas, como antes.
+                          `compras.proveedor` va siempre en la razón social: la demo de la guía escribe una palabra de ahí en el buscador. */}
+                      {tituloDeCompra(marcas.get(c.id)) ? (
+                        <>
+                          <span className={`block text-sm font-medium ${c.estado === "anulada" ? "text-tinta/40 line-through" : "text-tinta"}`}>{tituloDeCompra(marcas.get(c.id))}</span>
+                          <span className="block text-sm text-tinta/70" data-guia="compras.proveedor">
+                            <Resaltado texto={c.proveedorNombre} busqueda={busqueda} />
+                          </span>
+                        </>
+                      ) : (
+                        <span className={`block text-sm ${c.estado === "anulada" ? "text-tinta/40 line-through" : "text-tinta"}`} data-guia="compras.proveedor">
+                          <Resaltado texto={c.proveedorNombre} busqueda={busqueda} />
+                        </span>
+                      )}
                       {c.proveedorRuc && (
-                        <span className="block text-xs tabular-nums text-tinta/70">
+                        <span className="block text-sm tabular-nums text-tinta/70">
                           RUC <Resaltado texto={c.proveedorRuc} busqueda={busqueda} />
                         </span>
                       )}
                     </span>
-                    <span className={celda("izq", "whitespace-normal text-sm tabular-nums text-tinta")}>
+                    <span className={celda("izq", "cmp-c-documento whitespace-normal text-sm tabular-nums text-tinta")}>
                       <span className="block">
                         <Resaltado texto={c.documento} busqueda={busqueda} />
                       </span>
-                      <span className="block text-xs text-tinta/70">{ETIQUETA_TIPO_DOCUMENTO[c.tipo]}</span>
+                      <span className="block text-sm text-tinta/70">{ETIQUETA_TIPO_DOCUMENTO[c.tipo]}</span>
                     </span>
-                    <span className={celda("izq", "overflow-visible whitespace-normal")} data-guia="compras.recepcion">
+                    <span className={celda("izq", "cmp-c-recepcion overflow-visible whitespace-normal")} data-guia="compras.recepcion">
                       <Chip tono={recepcion.tono}>{recepcion.texto}</Chip>
-                      <span className="mt-0.5 block text-xs text-tinta/70">{recepcion.sub}</span>
+                      {c.estado !== "anulada" && <span className="mt-0.5 block text-sm text-tinta/70">{recepcion.sub}</span>}
                       {/* Repartido entre varias tiendas (ADR-0139): a cuáles va. Un comprobante de una sola tienda no lo repite acá. */}
                       {c.ubicacionesDestino.length > 1 && (
-                        <span className="mt-0.5 block text-xs text-tinta/70">Repartida: {nombresDeDestinos(c.ubicacionesDestino, nombrePorUbicacion)}</span>
+                        <span className="mt-0.5 block text-sm text-tinta/70">{destinosCortos(c.ubicacionesDestino, nombrePorUbicacion)}</span>
                       )}
                       {/* Avance real de lo recibido: solo si hay recepción parcial (`pct` es null si no). */}
                       <AvanceFino pct={recepcion.pct} />
                     </span>
-                    <span className={celda("izq", "overflow-visible whitespace-normal")} data-guia="compras.pago">
+                    <span className={celda("izq", "cmp-c-pago overflow-visible whitespace-normal")} data-guia="compras.pago">
+                      {/* Una anulada ya lo dice en Recepción, y una pagada no necesita más que su chip: «Contado» o «Vence» van bajo la emisión. */}
                       {/* Solo lo vencido late: es lo único de la lista que pide actuar hoy. */}
-                      <Chip tono={pago.tono} vivo={pago.tono === "rojo"}>
-                        {pago.texto}
-                      </Chip>
-                      <span className="mt-0.5 block text-xs tabular-nums text-tinta/70">{pago.sub}</span>
+                      {c.estado !== "anulada" && (
+                        <Chip tono={pago.tono} vivo={pago.tono === "rojo"}>
+                          {pago.texto}
+                        </Chip>
+                      )}
+                      {c.estado !== "anulada" && c.estadoPago !== "pagada" && <span className="mt-0.5 block text-sm tabular-nums text-tinta/70">{pago.sub}</span>}
                       <AvanceFino pct={pago.pct} />
                       {/* Junto al saldo: lo que el proveedor todavía debe acreditar por un faltante cerrado. */}
                       <ChipNotaPendiente nota={notas[c.id]} saldo={c.saldo} className="mt-1" />
                     </span>
-                    <span className={celda("der", "cmp-total text-sm tabular-nums text-tinta")}>{c.total.toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                    {/* «Total» solo se ve (y se lee) en la fila apilada, donde la cabecera de la tabla ya no está: comprobantes-lista.css. */}
+                    <span className={celda("der", "cmp-total text-sm tabular-nums text-tinta")}>
+                      <span className="cmp-total-titulo hidden text-xs font-normal text-taupe">Total</span>
+                      {c.total.toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </span>
                     <span aria-hidden className="cmp-flecha-fila hidden text-right text-base leading-none sm:block">
                       ›
                     </span>

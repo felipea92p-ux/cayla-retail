@@ -32,7 +32,7 @@ export async function POST(request: Request) {
 export async function PATCH(request: Request) {
   const persona = await requirePersonaActualV2();
   if (!puede(persona, "editarCatalogo")) {
-    return Response.json({ error: "Solo un Líder puede editar el vocabulario de tallas." }, { status: 403 });
+    return Response.json({ error: "Editar el vocabulario de tallas necesita el módulo Productos o Atributos en tu rol." }, { status: 403 });
   }
 
   const cuerpo = await request.json().catch(() => null);

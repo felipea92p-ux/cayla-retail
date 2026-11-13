@@ -1,20 +1,25 @@
 "use client";
 
 import { Punto } from "@/components/alta-producto/ElegirColores";
+import { CuadroEstampado } from "@/components/ui/MuestraEstampado";
+import { useFotosDeEstampados } from "@/components/recepcion-envio/useFotosDeEstampados";
+import { esEstampado } from "@/lib/color-estampado-reglas";
 import { RAYADO_FUERA } from "@/components/alta-producto/MatrizVariantes";
 import { limpiarCantidad, leerCantidad, type ColorAlta } from "@/lib/alta-producto";
 import { fondoDeMuestra } from "@/lib/colores-familias";
 import { pasoCantidad } from "@/lib/tabla-alta-reglas";
 import { matrizDe, nombreDeVariante, type PrendaRecepcion } from "@/lib/recepcion-envio-reglas";
 import { PasoCantidad } from "@/components/ui/PasoCantidad";
+import { X } from "lucide-react";
 
 // La matriz de lo que llegó de UNA prenda (ADR-0362, fase 4): una fila por color, una columna por talla, como la tabla de Nuevo producto
 // (`MatrizCantidades`) — la misma forma a propósito: quien ya armó una prenda reconoce cada celda sin leerla otra vez. Cada celda es una
 // talla y un color que la prenda tiene (una variante); la que no existe sale rayada con «—» (se crea con «+ talla o color»).
 //
 // Dos usos: `modo="cantidades"` (cuántas llegaron, buenas y dañadas juntas) y `modo="danadas"` (cuántas de esas vinieron dañadas: una celda
-// con más dañadas que las que llegaron se pinta en ámbar y la guía lo dice). Vacío es cero; solo dígitos, hasta 4 (una cantidad imposible ni
-// se tipea). Total por color, por talla y general, solo donde dicen algo.
+// con más dañadas que las que llegaron se pinta en ámbar y la guía lo dice). Vacío es cero; lo que no es una cantidad se queda como se escribió, se
+// pinta en ámbar y no deja guardar (`s.invalidas`). Total por color, por talla y general, solo donde dicen algo.
+// Una talla o un color que se agregó por error en este envío lleva su × (`quitables`, Felipe 2026-11-07); lo que la prenda ya tenía, no.
 
 export function MatrizRecepcion({
   prenda,
@@ -24,6 +29,8 @@ export function MatrizRecepcion({
   modo,
   topes,
   deshabilitada = false,
+  quitables,
+  onQuitar,
 }: {
   prenda: PrendaRecepcion;
   /** El vocabulario de colores: el orden de las filas y el punto de cada color. */
@@ -35,9 +42,13 @@ export function MatrizRecepcion({
   /** En «dañadas»: lo que llegó de cada variante (una celda que pasa su tope se marca). */
   topes?: Readonly<Record<string, number>>;
   deshabilitada?: boolean;
+  /** Los colores (por código) y las tallas (por id; «» = sin color / única) que nacieron en este envío y se pueden quitar, con sus combinaciones. */
+  quitables?: { colores: ReadonlyMap<string, string[]>; tallas: ReadonlyMap<string, string[]> };
+  onQuitar?: (tipo: "talla" | "color", ids: string[], nombre: string) => void;
 }) {
   const matriz = matrizDe(prenda, colores.map((c) => c.codigo));
   const porCodigo = new Map(colores.map((c) => [c.codigo, c]));
+  const fotosEstampado = useFotosDeEstampados(prenda.productoId, matriz.colores.flatMap((c) => { const color = c.codigo ? porCodigo.get(c.codigo) : undefined; return c.codigo && color && esEstampado(color) ? [c.codigo] : []; }));
   const numero = (varianteId: string) => leerCantidad(valores[varianteId] ?? "") ?? 0;
 
   const totalFila = (colorCodigo: string | null) =>
@@ -54,6 +65,19 @@ export function MatrizRecepcion({
   const conColumnaTotal = matriz.tallas.length > 1;
   const conFilaTotal = matriz.colores.length > 1;
   const pregunta = modo === "cantidades" ? "Cuántas llegaron de" : "Cuántas llegaron dañadas de";
+  const quitar = (tipo: "talla" | "color", ids: string[] | undefined, nombre: string) =>
+    ids && onQuitar ? (
+      <button
+        type="button"
+        className="icono-fila area-dedo grid h-6 w-6 shrink-0 place-items-center"
+        aria-label={tipo === "talla" ? `Quitar la talla ${nombre}: la agregaste en este envío` : `Quitar ${nombre}: lo agregaste en este envío`}
+        title={tipo === "talla" ? `Quitar la talla ${nombre} (la agregaste ahora)` : `Quitar ${nombre} (lo agregaste ahora)`}
+        disabled={deshabilitada}
+        onClick={() => onQuitar(tipo, ids, nombre)}
+      >
+        <X aria-hidden className="h-3.5 w-3.5" />
+      </button>
+    ) : null;
 
   return (
     <div className="max-h-[520px] overflow-auto overscroll-x-contain rounded-xl border border-sand bg-papel">
@@ -67,7 +91,10 @@ export function MatrizRecepcion({
             </th>
             {matriz.tallas.map((t) => (
               <th key={t.id ?? "unica"} scope="col" className="sticky top-0 z-[2] whitespace-nowrap bg-hueso px-1 py-2 text-center text-xs font-semibold tabular-nums text-tinta sm:px-1.5">
-                {t.texto}
+                <span className="inline-flex items-center gap-0.5">
+                  {t.texto}
+                  {quitar("talla", quitables?.tallas.get(t.id ?? ""), t.texto)}
+                </span>
               </th>
             ))}
             {conColumnaTotal && (
@@ -97,8 +124,9 @@ export function MatrizRecepcion({
                     style={{ background: franja }}
                   />
                   <span className="flex items-center gap-1.5">
-                    {color && <Punto hex={color.hex} familia={color.familiaColor} tipo={color.tipo} />}
+                    {c.codigo && fotosEstampado.get(c.codigo) ? <CuadroEstampado fotoUrl={fotosEstampado.get(c.codigo)!} hex={color?.hex} className="h-8 w-8" /> : color && <Punto hex={color.hex} familia={color.familiaColor} tipo={color.tipo} />}
                     {c.nombre}
+                    {quitar("color", quitables?.colores.get(c.codigo ?? ""), c.nombre)}
                   </span>
                 </th>
                 {matriz.tallas.map((t) => {
@@ -124,7 +152,7 @@ export function MatrizRecepcion({
                           tamano="celda"
                           sinTab
                           // Más dañadas que las que llegaron: la celda se pinta en ámbar (y la guía lo dice).
-                          tono={deMas ? "atencion" : undefined}
+                          tono={deMas || leerCantidad(texto) === null ? "atencion" : undefined}
                           className={sinNada ? "opacity-40" : ""}
                           menos={{ onClick: () => onValor(v.id, pasoCantidad(texto, -1)), deshabilitado: deshabilitada || sinNada || texto === "", etiqueta: `Restar a ${nombre}` }}
                           mas={{ onClick: () => onValor(v.id, pasoCantidad(texto, 1)), deshabilitado: deshabilitada || sinNada, etiqueta: `Sumar a ${nombre}` }}
@@ -132,10 +160,10 @@ export function MatrizRecepcion({
                             type: "text",
                             inputMode: "numeric",
                             pattern: "[0-9]*",
-                            maxLength: 4,
+                            maxLength: 7,
                             autoComplete: "off",
                             "aria-label": `${pregunta} ${nombre}`,
-                            "aria-invalid": deMas || undefined,
+                            "aria-invalid": deMas || leerCantidad(texto) === null || undefined,
                             placeholder: "0",
                             value: texto,
                             disabled: deshabilitada || sinNada,

@@ -22,6 +22,7 @@ import {
   type MotivoAjuste,
   type VarianteAjuste,
 } from "./ajuste-reglas";
+import { leerEscrito, reglaDeEntero } from "./cantidad-escrita-reglas";
 import { conPaso, type Pendientes } from "./matriz-ficha-reglas";
 import { compararTallas } from "./tallas";
 
@@ -99,7 +100,8 @@ export function lugarInicial(talla: { piso: number | null; almacen: number | nul
 /** Lo que la lectura trae de cada variante además del stock: el color en #hex y si se sigue vendiendo. */
 export type ExtraDeVariante = { hex: string | null; activa: boolean };
 
-export type ColorDelModelo = { color: string | null; hex: string | null };
+/** `tonos`: si el color es una mezcla («Hueso con azul», ADR-0643), los tonos con que se parte su muestra. Los pone `useAjusteDelModelo`. */
+export type ColorDelModelo = { color: string | null; hex: string | null; tonos?: readonly string[] | null };
 
 export type ModeloDeAjuste = {
   colores: ColorDelModelo[];
@@ -334,6 +336,12 @@ export function siguienteDelRecorrido(orden: readonly string[], actual: string):
   const i = orden.indexOf(actual);
   return i === -1 ? null : (orden[i + 1] ?? null);
 }
+
+/** Una cantidad de la planilla: de 0 a 999, como siempre. */
+export const REGLA_CELDA_PLANILLA = reglaDeEntero(3);
+
+/** Qué hacer con lo escrito en una cantidad al salir de ella o con Enter. Lo que no es una cantidad nunca se vuelve otro número (`Number("1e3")` es 1000). */
+export const leerEscritoDeCelda = (escrito: string, hay: number) => leerEscrito(escrito, hay, REGLA_CELDA_PLANILLA);
 
 /** El aviso de la carga inicial nombra el motivo de la ventana completa de Ajustar («Encontré prendas»); en la planilla ese botón se llama
  *  «Encontré unidades» (`MOTIVOS_PLANILLA`): se nombra el botón que la persona tiene delante. */

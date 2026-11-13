@@ -1,5 +1,5 @@
 import type { CuentaDinero } from "./cuentas-dinero-reglas";
-import { queFaltaEnLaProyeccion, soles, type FaltaProy, type Proyeccion, type SalidaProy } from "./flujo-caja-reglas";
+import { cajaDiaria, conLoRegistrado, fechaEnPalabras, fraseBajoMinimo, queFaltaEnLaProyeccion, soles, type FaltaProy, type Proyeccion, type SalidaProy } from "./flujo-caja-reglas";
 import { ordenarAvisos, ORDEN_AVISO_CAJA, type Aviso, type VerResumen } from "./resumen-finanzas-reglas";
 
 // Finanzas ▸ Resumen, «Tu caja en las próximas dos semanas» (Felipe 2026-10-24, spike 1 de docs/maquetas/finanzas-v3-2026-10/resumen-siguiente).
@@ -16,6 +16,15 @@ import { ordenarAvisos, ORDEN_AVISO_CAJA, type Aviso, type VerResumen } from "./
 
 /** El horizonte de la pieza: dos bloques de 7 días desde mañana. */
 export const DIAS_CAJA_PROXIMA = 14;
+
+/**
+ * Lo que la proyección deja fuera (tarea 30): solo trae lo que ya tiene fecha. La mercadería ya facturada sí entra por Por pagar; la que aún no tiene factura y el gasto de cada día, no,
+ * y sin decirlo la caja se lee como completa. Con la compra de campaña ya contada, hablar de mercadería chocaría con su chip «Incluye inversión en mercadería».
+ */
+export const loQueNoIncluye = (conInversion: boolean): string =>
+  conInversion ? "No incluye los gastos del día a día." : "No incluye la mercadería que aún no tiene factura ni los gastos del día a día.";
+/** Para «¿Me alcanza?»: habla de las semanas, porque sus «días de caja» sí llevan el gasto normal de los últimos 30 días. */
+export const NO_INCLUYE_SEMANAS = "Las semanas no incluyen la mercadería que aún no tiene factura ni los gastos del día a día.";
 
 /** Un día de la línea: el saldo al terminar ese día y lo que pasó ese día (en un bloque entero si `porSemana`); `principal` es la salida más grande. */
 export type PuntoCaja = { dia: number; fecha: string; saldo: number; entra: number; sale: number; principal: string | null };
@@ -38,6 +47,10 @@ export type CajaCayla = {
   /** El último día que cuenta (hoy + 14, o antes si la proyección es más corta). */
   hasta: string;
   saldoHoy: number;
+  /** Lo que es de Claudia y ya no cuenta en `saldoHoy` (0 si no hay). */
+  deClaudia: number;
+  /** Lo que las compradoras tienen para comprar y ya no cuenta en `saldoHoy` (0 si no hay; ADR-0621). */
+  porVolver: number;
   minimo: number;
   entra: number;
   sale: number;
@@ -88,21 +101,15 @@ export type CajaSede = {
 
 export type CajaProxima = CajaCayla | CajaSede | { tipo: "oculta" } | { tipo: "falla"; mensaje: string };
 
-/**
- * El estado de la caja en dos o tres palabras, el mismo en «Tu caja en las próximas dos semanas» y en la respuesta «¿Cuánto tienes?»
- * (una sola fuente: las dos dicen lo mismo con las mismas palabras). Sale de lo que pasa, no del color: el ámbar es «bajo tu mínimo»
- * (dentro del horizonte) y también «ojo después». `null`: sin mínimo puesto y sin caída, no hay nada que decir.
- */
-export function estadoDeCaja(c: CajaCayla): { texto: string; tono: TonoCaja } | null {
-  if (c.sinPlata) return { texto: "Sin plata", tono: c.tono };
-  if (c.bajaDelMinimo) return { texto: "Bajo tu mínimo", tono: c.tono };
-  if (c.luego) return { texto: "Ojo después", tono: c.tono };
-  if (c.tono === "verde") return { texto: "Te alcanza", tono: "verde" };
-  return null;
-}
+export { fechaEnPalabras };
 
-const MESES = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"];
 const r2 = (n: number) => Math.round(n * 100) / 100;
+
+/** Lo que hay de verdad en las cuentas: `saldoHoy` ya viene sin lo de Claudia (ADR-0560) ni lo por volver de compras (ADR-0621), así que para
+ *  comparar con los saldos o repartirlo se les devuelve. */
+export function loQueHayEnCuentas(c: Pick<CajaCayla, "saldoHoy" | "deClaudia" | "porVolver">): number {
+  return r2(c.saldoHoy + c.deClaudia + c.porVolver);
+}
 
 /** `iso` + `n` días. */
 export function sumarDias(iso: string, n: number): string {
@@ -117,11 +124,6 @@ export function diasEntre(desde: string, hasta: string): number {
     return Date.UTC(a, m - 1, d);
   };
   return Math.round((t(hasta) - t(desde)) / 86_400_000);
-}
-
-/** «31 de octubre». */
-export function fechaEnPalabras(iso: string): string {
-  return `${Number(iso.slice(8, 10))} de ${MESES[Number(iso.slice(5, 7)) - 1]}`;
 }
 
 function nombreDeSalida(s: SalidaProy): string {
@@ -151,14 +153,6 @@ function movimientoHasta(p: Proyeccion, fecha: string, sede?: (ubicacionId: stri
   for (const c of p.cobros) if (c.fecha >= p.desde && c.fecha <= fecha && ok(c.ubicacionId)) entra += c.monto;
   for (const s of p.salidas) if (s.fecha >= p.desde && s.fecha <= fecha && ok(s.ubicacionId)) sale += s.monto;
   return { entra: r2(entra), sale: r2(sale) };
-}
-
-/** ¿El saldo día por día cuadra con el de cada bloque que dice la base? (±1 sol de redondeo.) */
-function cuadraConLosBloques(p: Proyeccion): boolean {
-  return p.semanas.every((s) => {
-    const m = movimientoHasta(p, s.hasta);
-    return Math.abs(p.saldoHoy + m.entra - m.sale - s.saldo) <= 1;
-  });
 }
 
 /** Lo que se espera cobrar y lo que sale EN ese día, y qué salida pesa más. */
@@ -234,16 +228,16 @@ export function cajaProxima({ flujo, cuentas, ver, inversion }: Entrada): CajaPr
   }
 
   // CAYLA entera: el saldo de cada día, o el de cada bloque si no cuadra con lo que dice la base.
-  const cuadra = cuadraConLosBloques(p);
+  const diaria = cajaDiaria(p);
+  const cuadra = !diaria.porSemana;
   const puntos: PuntoCaja[] = [{ dia: 0, fecha: p.hoy, saldo: r2(p.saldoHoy), entra: 0, sale: 0, principal: null }];
   let entra: number;
   let sale: number;
   let queda: number;
   if (cuadra) {
     for (let d = 1; d <= dias; d++) {
-      const fecha = sumarDias(p.hoy, d);
-      const m = movimientoHasta(p, fecha);
-      puntos.push({ dia: d, fecha, saldo: r2(p.saldoHoy + m.entra - m.sale), ...delDia(p, fecha) });
+      const { fecha, saldo } = diaria.puntos[d]!;
+      puntos.push({ dia: d, fecha, saldo, ...delDia(p, fecha) });
     }
     const m = movimientoHasta(p, hasta);
     entra = m.entra;
@@ -291,18 +285,9 @@ export function cajaProxima({ flujo, cuentas, ver, inversion }: Entrada): CajaPr
   const ventana = ventanaEnPalabras(dias);
   let titular: string;
   let tono: TonoCaja;
-  if (masBajo && sinPlata) {
-    titular = `Tu caja se queda sin plata: el ${fechaEnPalabras(masBajo.fecha)} llegas a ${soles(masBajo.saldo)}.`;
-    tono = "rojo";
-  } else if (masBajo && bajaDelMinimo && bajaDelMinimo.fecha === p.hoy) {
-    titular =
-      masBajo.fecha === p.hoy
-        ? `Hoy tu caja ya está bajo tu mínimo: tienes ${soles(masBajo.saldo)} y tu mínimo es ${soles(minimo)}.`
-        : `Hoy tu caja ya está bajo tu mínimo (tienes ${soles(p.saldoHoy)}): el ${fechaEnPalabras(masBajo.fecha)} llegas a ${soles(masBajo.saldo)} y tu mínimo es ${soles(minimo)}.`;
-    tono = "ambar";
-  } else if (masBajo) {
-    titular = `Tu caja baja de tu mínimo: el ${fechaEnPalabras(masBajo.fecha)} llegas a ${soles(masBajo.saldo)} y tu mínimo es ${soles(minimo)}.`;
-    tono = "ambar";
+  if (masBajo && bajaDelMinimo) {
+    titular = fraseBajoMinimo({ hoy: p.hoy, masBajo, bajaDesde: bajaDelMinimo.fecha, sinPlata: !!sinPlata, minimo });
+    tono = sinPlata ? "rojo" : "ambar";
   } else if (luego) {
     titular = `Las próximas ${ventana} estás bien: te quedan ${soles(queda)}. Después baja de tu mínimo la semana que termina el ${fechaEnPalabras(luego.fecha)}.`;
     tono = "ambar";
@@ -317,12 +302,14 @@ export function cajaProxima({ flujo, cuentas, ver, inversion }: Entrada): CajaPr
   // ADR-0417: un veredicto firme solo con datos firmes. Con la proyección provisional (faltan saldos de arranque, facturas o historia) el titular
   // lo dice, como el de la respuesta: «Con lo que hay registrado, tu caja…».
   const falta = queFaltaEnLaProyeccion(p);
-  if (falta.provisional && (tono === "rojo" || tono === "ambar")) titular = `Con lo que hay registrado, ${titular.charAt(0).toLowerCase()}${titular.slice(1)}`;
+  if (falta.provisional && (tono === "rojo" || tono === "ambar")) titular = conLoRegistrado(titular);
   return {
     tipo: "cayla",
     hoy: p.hoy,
     hasta,
     saldoHoy: r2(p.saldoHoy),
+    deClaudia: r2(p.deClaudia ?? 0),
+    porVolver: r2(p.porVolverCompras ?? 0),
     minimo,
     entra,
     sale,

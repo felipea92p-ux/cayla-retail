@@ -11,15 +11,10 @@ import {
   rangoDePeriodo,
   resultadoDesdeParam,
   textoFechas,
-  textoProveedor,
 } from "./recibidas-filtros-reglas";
 
 const HOY = "2026-09-18";
 const PROV = "6f1c2f0e-8a3b-4c56-9d7e-1a2b3c4d5e6f";
-const proveedores = [
-  { id: PROV, nombre: "Avíos Gamarra" },
-  { id: "11111111-2222-4333-8444-555555555555", nombre: "Tejidos Rímac SAC" },
-];
 
 describe("rangoDePeriodo", () => {
   it("este mes: del 1 al último día, aunque hoy sea 18", () => {
@@ -99,18 +94,6 @@ describe("textoFechas", () => {
   });
   it("una fecha de otro año lleva el año, para no confundir diciembre con diciembre", () => {
     expect(textoFechas("2025-12-20", "2026-01-10", HOY)).toBe("20/12/2025 – 10/01");
-  });
-});
-
-describe("textoProveedor", () => {
-  it("sin filtro: «Proveedor: Todos», como la maqueta", () => {
-    expect(textoProveedor(undefined, proveedores)).toBe("Proveedor: Todos");
-  });
-  it("con filtro: el nombre del proveedor", () => {
-    expect(textoProveedor(PROV, proveedores)).toBe("Proveedor: Avíos Gamarra");
-  });
-  it("un id que no está entre los activos no se disfraza de «Todos»", () => {
-    expect(textoProveedor("99999999-2222-4333-8444-555555555555", proveedores)).toBe("Proveedor: Otro");
   });
 });
 

@@ -2,13 +2,14 @@
   "guia": "compras.ordenes.ver.id",
   "ruta": "/compras/ordenes/ver/[id]",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 42,
+  "total": 43,
   "controles": {
     "app/(app)/compras/ordenes/ver/[id]/page.tsx": [
       "Volver «/compras/ordenes»",
       "BotonEnlace «Ver las órdenes de compra»"
     ],
     "components/finanzas/CampoCuenta.tsx": [
+      "button «Volver a intentar»",
       "CampoSelect «{etiqueta}»"
     ],
     "components/ordenes-compra/AccionesOrden.tsx": [
@@ -18,6 +19,13 @@
       "Boton «Anular orden»",
       "CampoTexto «Por qué se anula»",
       "ComboResponsable «{responsable}»",
+      "Boton «Cancelar»",
+      "Boton «{guia.frase ?? undefined}»"
+    ],
+    "components/ordenes-compra/AnularEnvioModal.tsx": [
+      "CampoTexto «Por qué se anula»",
+      "ComboResponsable «{responsable}»",
+      "Boton «Recargar»",
       "Boton «Cancelar»",
       "Boton «{guia.frase ?? undefined}»"
     ],
@@ -32,12 +40,7 @@
       "Boton «{guia.frase ?? undefined}»"
     ],
     "components/ordenes-compra/EnviosDeOrden.tsx": [
-      "Boton «orden.anular-envio»",
-      "CampoTexto «Por qué se anula»",
-      "ComboResponsable «{responsable}»",
-      "Boton «Recargar»",
-      "Boton «Cancelar»",
-      "Boton «{guia.frase ?? undefined}»"
+      "Boton «orden.anular-envio»"
     ],
     "components/ordenes-compra/GastoDelViaje.tsx": [
       "Boton «{guia}»",

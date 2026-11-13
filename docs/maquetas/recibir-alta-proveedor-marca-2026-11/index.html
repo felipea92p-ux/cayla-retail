@@ -1,0 +1,334 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Proveedor y marca nuevos al recibir</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=EB+Garamond:wght@500;600&display=swap" rel="stylesheet">
+<style>
+/* ====================================================================
+   MAQUETA · Recibir ▸ Contar ▸ «Algo que no estaba en la guía» (components/recepcion-conteo/NuevoModelo.tsx)
+   La hoja TAL CUAL se ve hoy (captura de Felipe, 2026-11-09) y lo único nuevo: crear un proveedor y una marca sin salir.
+     · «De qué proveedor»: la lista suma el directorio y, al final, «+ Agregar …» → la hoja de Proveedores (useAltaDeProveedor, la
+       misma de Llegó mercadería y de ¿Llegó algo sin aviso?).
+     · «La marca»: «+ Marca nueva «…»» arriba de la lista → el formulario de marca de Nuevo producto (NuevaMarcaForm), con el
+       proveedor ya puesto.
+     · Sin el permiso: la fila de crear no se elige; dice a quién pedírselo.
+   Solo tokens (copiados de docs/maquetas/vidrio-base-2026-10/marco.css). Datos inventados (el repo es público). Sin movimiento.
+   ==================================================================== */
+:root{--rojo:#b8412d;--crema:#f5f0e8;--tinta:#1a1a18;--sand:#e8e0d0;--papel:#fbf8f2;--hueso:#eae1d2;--taupe:#805c4c;
+--verde:#48603f;--ambar:#74501a;--borde:#96786a;--sombra:#1a1a18;--vidrio:#ffffff;--lienzo:#ddd5c6;
+--t80:color-mix(in srgb,var(--tinta) 80%,transparent);--t65:color-mix(in srgb,var(--tinta) 66%,transparent);
+--t50:color-mix(in srgb,var(--tinta) 56%,transparent);--t12:color-mix(in srgb,var(--tinta) 12%,transparent);--t06:color-mix(in srgb,var(--tinta) 6%,transparent)}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'DM Sans',system-ui,sans-serif;color:var(--tinta);font-size:14px;line-height:1.5;-webkit-font-smoothing:antialiased;
+  background:var(--lienzo);padding:32px 16px 64px}
+.serif{font-family:'EB Garamond',Georgia,serif;font-weight:500}
+svg.ic{width:16px;height:16px;flex:none;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+
+/* ---------- la lámina ---------- */
+.cab{max-width:1240px;margin:0 auto 28px}
+.cab h1{font-size:34px;line-height:1.1}
+.cab p{max-width:760px;margin-top:8px;font-size:15px;color:var(--t80)}
+.grilla{max-width:1240px;margin:0 auto;display:grid;grid-template-columns:repeat(auto-fit,minmax(575px,1fr));gap:40px 32px}
+@media (max-width:640px){.grilla{grid-template-columns:1fr}}
+.paso h2{display:flex;gap:10px;align-items:baseline;font-size:21px;margin-bottom:4px}
+.paso h2 b{font-family:'DM Sans';font-size:12px;letter-spacing:.12em;color:var(--rojo)}
+.paso .que{font-size:14px;color:var(--t80);margin-bottom:14px;max-width:575px}
+.nuevo-tag{display:inline-block;font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;font-weight:700;color:var(--rojo);
+  border:1px solid color-mix(in srgb,var(--rojo) 45%,transparent);border-radius:999px;padding:1px 8px;margin-left:6px;vertical-align:2px}
+
+/* ---------- lo de atrás (la pantalla de Contar, desenfocada) ---------- */
+.escena{position:relative;width:min(575px,100%);border-radius:34px;overflow:visible;padding:0}
+.atras{position:absolute;inset:-14px;border-radius:40px;overflow:hidden;
+  background:radial-gradient(60% 50% at 20% 20%,color-mix(in srgb,var(--rojo) 14%,transparent),transparent),
+             radial-gradient(50% 60% at 85% 70%,color-mix(in srgb,var(--verde) 16%,transparent),transparent),var(--crema)}
+.atras i{position:absolute;left:40px;right:40px;height:22px;border-radius:8px;background:var(--t06);filter:blur(3px)}
+
+/* ---------- la hoja «Serena» ---------- */
+.hoja{position:relative;border-radius:32px;padding:30px 28px 22px;
+  background:color-mix(in srgb,var(--vidrio) 72%,transparent);border:1px solid color-mix(in srgb,var(--vidrio) 80%,transparent);
+  box-shadow:0 30px 60px -28px color-mix(in srgb,var(--sombra) 45%,transparent),inset 0 1px 0 var(--vidrio);backdrop-filter:blur(18px)}
+.hoja.encima{margin:46px 18px 0 30px}
+.hoja .tit{font-family:'EB Garamond',serif;font-size:27px;line-height:1.15;font-weight:500}
+.hoja .baj{font-size:14px;color:var(--taupe);margin-top:4px;margin-bottom:20px}
+.x{position:absolute;top:22px;right:22px;width:32px;height:32px;border-radius:999px;display:grid;place-items:center;color:var(--t65);
+  background:color-mix(in srgb,var(--vidrio) 70%,transparent);border:1px solid var(--t12)}
+
+/* el campo con su guía */
+.campo{position:relative;margin-bottom:20px}
+.etq{display:flex;align-items:center;gap:8px;font-size:11px;letter-spacing:.14em;text-transform:uppercase;font-weight:600;color:var(--t65);margin-bottom:8px}
+.etq .op{font-weight:400;letter-spacing:0;text-transform:none;color:var(--taupe)}
+.marca-g{width:18px;height:18px;border-radius:999px;border:1.5px solid var(--t50);display:grid;place-items:center;flex:none}
+.marca-g.sigue{border-color:var(--tinta)}.marca-g.sigue::after{content:"";width:8px;height:8px;border-radius:999px;background:var(--tinta)}
+.marca-g.hecho{background:var(--verde);border-color:var(--verde);color:var(--crema)}
+.marca-g.hecho svg{width:11px;height:11px;stroke-width:3}
+.campo.sigue::before{content:"";position:absolute;left:-10px;top:-2px;bottom:-14px;width:2px;border-radius:2px;background:var(--tinta)}
+.sigue-p{margin-left:auto;font-size:12.5px;font-weight:700;letter-spacing:0;text-transform:none;color:var(--tinta)}
+
+.caja{display:flex;align-items:center;gap:10px;height:40px;padding:0 6px 0 13px;border-radius:14px;font-size:14px;color:var(--t65);
+  background:color-mix(in srgb,var(--hueso) 55%,transparent);border:1px solid var(--borde);
+  box-shadow:inset 0 1.5px 3px color-mix(in srgb,var(--sombra) 10%,transparent)}
+.caja.llena{color:var(--tinta)}
+.caja.abierta{background:var(--papel);border-color:var(--tinta);box-shadow:0 0 0 4px color-mix(in srgb,var(--tinta) 8%,transparent)}
+.caja .txt{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.caja .cursor{display:inline-block;width:1.5px;height:17px;background:var(--tinta);vertical-align:-3px;margin-left:1px}
+.chev{width:28px;height:28px;border-radius:999px;display:grid;place-items:center;border:1px solid var(--t12);background:color-mix(in srgb,var(--vidrio) 70%,transparent);color:var(--t65)}
+.chev svg{width:14px;height:14px}
+.chip-n{font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;font-weight:700;color:var(--verde);background:color-mix(in srgb,var(--verde) 12%,transparent);
+  border-radius:999px;padding:2px 8px;flex:none}
+.pie-c{font-size:13.5px;color:var(--taupe);margin-top:6px}
+
+/* la lista del combo */
+.lista{position:relative;z-index:5;margin-top:6px;border-radius:18px;overflow:hidden;background:var(--papel);border:1px solid var(--sand);
+  box-shadow:0 22px 44px -18px color-mix(in srgb,var(--sombra) 40%,transparent)}
+.lista .bus{display:flex;align-items:center;gap:8px;padding:10px 12px;border-bottom:1px solid var(--sand);color:var(--t65);font-size:14px}
+.lista .bus b{color:var(--tinta);font-weight:500}
+.lista .grp{padding:9px 14px 3px;font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;font-weight:600;color:var(--t50)}
+.lista .op{display:flex;align-items:center;gap:10px;padding:9px 14px;font-size:14px}
+.lista .op small{margin-left:auto;font-size:12.5px;color:var(--taupe)}
+.lista .op.act{background:color-mix(in srgb,var(--rojo) 7%,var(--papel));box-shadow:inset 2px 0 0 var(--rojo)}
+.lista .crear{display:flex;align-items:center;gap:8px;padding:11px 14px;font-size:14px;font-weight:600;color:var(--tinta)}
+.lista .crear.abajo{border-top:1px solid var(--sand)}
+.lista .crear.arriba{border-bottom:1px solid var(--sand)}
+.lista .crear.act{background:color-mix(in srgb,var(--rojo) 7%,var(--papel));box-shadow:inset 2px 0 0 var(--rojo)}
+.lista .pista{padding:11px 14px;font-size:13.5px;color:var(--taupe);border-top:1px solid var(--sand)}
+.lista .vacio{padding:10px 14px;font-size:13.5px;color:var(--taupe)}
+.enter{margin-left:auto;font-size:11px;font-weight:600;color:var(--t50);border:1px solid var(--t12);border-radius:6px;padding:0 6px}
+
+/* «Es nueva / Ya la tenemos» */
+.opciones{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:20px}
+.opcion{display:flex;gap:10px;padding:11px 12px;border-radius:16px;border:1px solid var(--t12);background:color-mix(in srgb,var(--vidrio) 55%,transparent)}
+.opcion.on{border-color:var(--tinta);background:var(--papel)}
+.opcion .r{width:16px;height:16px;border-radius:999px;border:1.5px solid var(--t50);margin-top:2px;flex:none}
+.opcion.on .r{border:5px solid var(--tinta)}
+.opcion b{display:block;font-size:14px}.opcion small{display:block;font-size:12.5px;color:var(--taupe);line-height:1.35}
+
+/* elegido dentro del formulario de marca */
+.elegida{display:flex;align-items:center;gap:10px;padding:10px 13px;border-radius:14px;background:var(--papel);border:1px solid var(--sand);font-size:14px}
+.elegida .enl{margin-left:auto;font-size:12.5px;color:var(--tinta);text-decoration:underline;text-decoration-color:var(--t50);text-underline-offset:3px}
+.elegida span{color:var(--taupe)}
+.nota{display:flex;gap:10px;padding:11px 13px;border-radius:14px;background:color-mix(in srgb,var(--hueso) 60%,transparent);font-size:13.5px;color:var(--t80)}
+.nota svg{color:var(--taupe);margin-top:2px}
+.dos{display:grid;grid-template-columns:1.4fr 1fr;gap:12px}
+
+/* el pie */
+.pie{padding-top:6px}
+.pie .guia{font-size:14px;color:var(--taupe);margin-bottom:12px}
+.pie .guia u{color:var(--tinta);font-weight:600;text-decoration-color:var(--t50);text-underline-offset:4px}
+.pie .guia.listo{color:var(--verde);font-weight:600}
+.acc{display:flex;justify-content:flex-end;gap:10px}
+.btn{height:40px;padding:0 18px;border-radius:999px;font-size:14px;font-weight:500;display:inline-flex;align-items:center;gap:8px;border:1px solid var(--borde);background:color-mix(in srgb,var(--vidrio) 70%,transparent)}
+.btn.prim{border:0;color:var(--crema);background:linear-gradient(180deg,color-mix(in srgb,var(--tinta) 82%,var(--vidrio)),var(--tinta));
+  box-shadow:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 30%,transparent),0 10px 20px -12px color-mix(in srgb,var(--sombra) 60%,transparent)}
+.btn svg{width:15px;height:15px}
+.recortada{max-height:520px;overflow:hidden;-webkit-mask-image:linear-gradient(180deg,#000 85%,transparent);mask-image:linear-gradient(180deg,#000 85%,transparent)} /* tema-fijo: máscara, no color */
+.decide{max-width:1240px;margin:44px auto 0;padding:20px 22px;border-radius:22px;background:color-mix(in srgb,var(--vidrio) 60%,transparent);border:1px solid var(--t12)}
+.decide h2{font-size:22px;margin-bottom:8px}
+.decide li{margin:6px 0 0 20px;font-size:14.5px;color:var(--t80)}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="chev" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></symbol>
+  <symbol id="lupa" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></symbol>
+  <symbol id="ok" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></symbol>
+  <symbol id="mas" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+  <symbol id="x" viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></symbol>
+  <symbol id="info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 16v-4M12 8h.01"/></symbol>
+  <symbol id="candado" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></symbol>
+</svg>
+
+<header class="cab">
+  <p class="vs" style="font-size:11px;letter-spacing:.14em;text-transform:uppercase;font-weight:600;color:var(--t65)">Maqueta · Recibir ▸ Contar · datos inventados</p>
+  <h1 class="serif">Crear proveedor y marca sin salir de «Algo que no estaba en la guía»</h1>
+  <p>Es la misma hoja de hoy: los mismos campos, en el mismo orden y con la misma guía. Lo único nuevo son las filas para agregar lo que no está en la lista. Cada una abre una hoja corta encima, y la puede usar cualquiera que reciba mercadería.</p>
+</header>
+
+<div class="grilla">
+
+<!-- ============ 1 · la lista abierta ============ -->
+<section class="paso">
+  <h2 class="serif"><b>1</b> Abres la lista de proveedores</h2>
+  <p class="que">Arriba van los que vienen en este envío, que son los más probables. Debajo, los demás proveedores registrados, por si llegó algo de otro. Al final está la fila para agregar uno nuevo.<span class="nuevo-tag">Nuevo</span></p>
+  <div class="escena"><div class="atras"><i style="top:60px"></i><i style="top:110px;right:180px"></i><i style="top:160px"></i><i style="top:260px;right:120px"></i></div>
+  <div class="hoja">
+    <div class="x"><svg class="ic"><use href="#x"/></svg></div>
+    <div class="tit">Algo que no estaba en la guía</div>
+    <div class="baj">Se cuenta como lo demás; al cerrar dirás qué pasa con lo que vino de más.</div>
+    <div class="campo sigue">
+      <div class="etq"><span class="marca-g sigue"></span>De qué proveedor<span class="sigue-p">Sigue</span></div>
+      <div class="caja abierta"><span class="txt">Busca o elige el proveedor<span class="cursor"></span></span><span class="chev"><svg class="ic"><use href="#chev"/></svg></span></div>
+      <div class="lista">
+        <div class="grp">Vienen en este envío</div>
+        <div class="op act">Confecciones Rímac EIRL</div>
+        <div class="op">Textil Andina SAC</div>
+        <div class="grp">Otros proveedores</div>
+        <div class="op">Algodones del Norte SAC</div>
+        <div class="op">Tejidos Arequipa EIRL</div>
+        <div class="op">Moda Chiclayo SAC</div>
+        <div class="crear abajo"><svg class="ic"><use href="#mas"/></svg>Agregar proveedor</div>
+      </div>
+    </div>
+    <div class="campo" style="opacity:.55">
+      <div class="etq"><span class="marca-g"></span>Qué llegó</div>
+      <div class="caja"><span class="txt">Elige la categoría</span><span class="chev"><svg class="ic"><use href="#chev"/></svg></span></div>
+    </div>
+  </div></div>
+</section>
+
+<!-- ============ 2 · proveedor que no está ============ -->
+<section class="paso">
+  <h2 class="serif"><b>2</b> El proveedor no está en la lista</h2>
+  <p class="que">Si lo que escribes no coincide con ningún proveedor, sale una sola línea que lo dice y, debajo, la fila para agregarlo.<span class="nuevo-tag">Nuevo</span></p>
+  <div class="escena"><div class="atras"><i style="top:60px"></i><i style="top:110px;right:180px"></i><i style="top:160px"></i><i style="top:260px;right:120px"></i></div>
+  <div class="hoja">
+    <div class="x"><svg class="ic"><use href="#x"/></svg></div>
+    <div class="tit">Algo que no estaba en la guía</div>
+    <div class="baj">Se cuenta como lo demás; al cerrar dirás qué pasa con lo que vino de más.</div>
+    <div class="campo sigue">
+      <div class="etq"><span class="marca-g sigue"></span>De qué proveedor<span class="sigue-p">Sigue</span></div>
+      <div class="caja abierta llena"><span class="txt">Hilos del<span class="cursor"></span></span><span class="chev"><svg class="ic"><use href="#chev"/></svg></span></div>
+      <div class="lista">
+        <div class="vacio">Ningún proveedor se llama «Hilos del».</div>
+        <div class="crear abajo act"><svg class="ic"><use href="#mas"/></svg>Agregar «Hilos del» como proveedor nuevo<span class="enter">Enter</span></div>
+      </div>
+    </div>
+    <div class="campo" style="opacity:.55">
+      <div class="etq"><span class="marca-g"></span>Qué llegó</div>
+      <div class="caja"><span class="txt">Elige la categoría</span><span class="chev"><svg class="ic"><use href="#chev"/></svg></span></div>
+    </div>
+  </div></div>
+</section>
+
+<!-- ============ 2 · proveedor nuevo: solo razón social y RUC ============ -->
+<section class="paso">
+  <h2 class="serif"><b>3</b> Proveedor nuevo: solo razón social y RUC</h2>
+  <p class="que">Una hoja corta encima, con lo que escribiste ya puesto. Al tocar «Registrar y elegir», vuelves a la hoja de abajo con el proveedor elegido.<span class="nuevo-tag">Nuevo</span></p>
+  <div class="escena"><div class="atras"><i style="top:60px"></i><i style="top:160px"></i></div>
+  <div class="hoja" style="opacity:.5;filter:blur(1.5px)">
+    <div class="tit">Algo que no estaba en la guía</div>
+    <div class="baj">Se cuenta como lo demás; al cerrar dirás qué pasa con lo que vino de más.</div>
+    <div class="campo"><div class="etq">De qué proveedor</div><div class="caja"><span class="txt">Elige el proveedor</span></div></div>
+    <div class="campo"><div class="etq">Qué llegó</div><div class="caja"><span class="txt">Elige la categoría</span></div></div>
+  </div>
+  <div class="hoja" style="position:absolute;inset:0;bottom:auto;margin:52px 0 0 26px">
+    <div class="x"><svg class="ic"><use href="#x"/></svg></div>
+    <div class="tit">Proveedor nuevo</div>
+    <div class="baj">Con esto alcanza para seguir contando.</div>
+    <div class="campo">
+      <div class="etq"><span class="marca-g hecho"><svg class="ic"><use href="#ok"/></svg></span>Razón social</div>
+      <div class="caja abierta llena"><span class="txt">Hilos del Sur SAC<span class="cursor"></span></span></div>
+    </div>
+    <div class="campo">
+      <div class="etq">RUC <span class="op">· opcional</span></div>
+      <div class="caja"><span class="txt">11 dígitos</span></div>
+      <div class="pie-c">Si lo tienes a mano, mejor: así no se registra dos veces.</div>
+    </div>
+    <div class="pie"><div class="guia listo">Todo listo.</div>
+      <div class="acc"><span class="btn">Cancelar</span><span class="btn prim">Registrar y elegir</span></div></div>
+  </div>
+  <div style="height:400px"></div>
+  </div>
+</section>
+
+<!-- ============ 3 · marca nueva ============ -->
+<section class="paso">
+  <h2 class="serif"><b>4</b> La marca tampoco existe</h2>
+  <p class="que">Igual que en Nuevo producto: lo que escribes se busca entre las marcas y, si no está, la primera fila lo agrega.<span class="nuevo-tag">Nuevo</span></p>
+  <div class="escena"><div class="atras"><i style="top:60px"></i><i style="top:210px;right:150px"></i><i style="top:330px"></i></div>
+  <div class="hoja">
+    <div class="x"><svg class="ic"><use href="#x"/></svg></div>
+    <div class="tit">Algo que no estaba en la guía</div>
+    <div class="baj">Se cuenta como lo demás; al cerrar dirás qué pasa con lo que vino de más.</div>
+    <div class="campo"><div class="etq"><span class="marca-g hecho"><svg class="ic"><use href="#ok"/></svg></span>De qué proveedor</div>
+      <div class="caja llena"><span class="txt">Hilos del Sur SAC</span><span class="chip-n">Nuevo</span><span class="chev"><svg class="ic"><use href="#chev"/></svg></span></div></div>
+    <div class="campo"><div class="etq"><span class="marca-g hecho"><svg class="ic"><use href="#ok"/></svg></span>Qué llegó</div>
+      <div class="caja llena"><span class="txt">Blusas</span><span class="chev"><svg class="ic"><use href="#chev"/></svg></span></div></div>
+    <div class="opciones">
+      <div class="opcion on"><span class="r"></span><span><b>Es nueva</b><small>No está en el catálogo: la describes y se crea después.</small></span></div>
+      <div class="opcion"><span class="r"></span><span><b>Ya la tenemos</b><small>Es una reposición: la eliges por su foto.</small></span></div>
+    </div>
+    <div class="campo"><div class="etq">El nombre</div>
+      <div class="caja llena"><span class="txt">Blusa Valeria</span></div></div>
+    <div class="campo"><div class="etq">La marca</div>
+      <div class="caja abierta llena"><span class="txt">Mora<span class="cursor"></span></span><span class="chev"><svg class="ic"><use href="#chev"/></svg></span></div>
+      <div class="lista">
+        <div class="crear arriba act"><svg class="ic"><use href="#mas"/></svg>Marca nueva «Mora»<span class="enter">Enter</span></div>
+        <div class="grp">Parecidas</div>
+        <div class="op">Moré<small>la trae Textil Andina SAC</small></div>
+      </div>
+    </div>
+  </div></div>
+</section>
+
+<!-- ============ 4 · el formulario de marca ============ -->
+<section class="paso">
+  <h2 class="serif"><b>5</b> Registrar la marca, con su proveedor ya puesto</h2>
+  <p class="que">Es el formulario de marca de Nuevo producto y de Catálogo ▸ Marcas. El proveedor llega puesto desde el paso 3, y si el nombre se parece a una marca que ya existe, pregunta antes de crearla.</p>
+  <div class="escena"><div class="atras"><i style="top:60px"></i><i style="top:160px"></i></div>
+  <div class="hoja" style="opacity:.5;filter:blur(1.5px)">
+    <div class="tit">Algo que no estaba en la guía</div>
+    <div class="baj">Se cuenta como lo demás; al cerrar dirás qué pasa con lo que vino de más.</div>
+    <div class="campo"><div class="etq">De qué proveedor</div><div class="caja llena"><span class="txt">Hilos del Sur SAC</span></div></div>
+    <div class="campo"><div class="etq">Qué llegó</div><div class="caja llena"><span class="txt">Blusas</span></div></div>
+  </div>
+  <div class="hoja" style="position:absolute;inset:0;margin:52px 0 0 26px;bottom:auto">
+    <div class="x"><svg class="ic"><use href="#x"/></svg></div>
+    <div class="tit">Marca nueva</div>
+    <div class="baj">Sirve para una marca nueva o para sumarle un proveedor a una marca que ya tienes.</div>
+    <div class="campo"><div class="etq"><span class="marca-g hecho"><svg class="ic"><use href="#ok"/></svg></span>Marca</div>
+      <div class="elegida"><b>Mora</b><span>· marca nueva</span><span class="enl">Cambiar</span></div></div>
+    <div class="nota" style="margin:-6px 0 18px"><svg class="ic"><use href="#info"/></svg><span>Se parece a <b>Moré</b>, que trae Textil Andina SAC. <u>Sí, es Moré</u> · <u>No, «Mora» es otra marca</u></span></div>
+    <div class="campo"><div class="etq"><span class="marca-g hecho"><svg class="ic"><use href="#ok"/></svg></span>¿Quién te la trae?</div>
+      <div class="elegida"><b>Hilos del Sur SAC</b><span>· el de esta hoja</span><span class="enl">Cambiar</span></div></div>
+    <div class="pie"><div class="guia listo">Todo listo.</div>
+      <div class="acc"><span class="btn">Cancelar</span><span class="btn prim">Registrar y elegir</span></div></div>
+  </div>
+  <div style="height:440px"></div>
+  </div>
+</section>
+
+<!-- ============ 5 · vuelve con todo puesto ============ -->
+<section class="paso">
+  <h2 class="serif"><b>6</b> Vuelves a la hoja con todo puesto</h2>
+  <p class="que">El proveedor y la marca nuevos quedan elegidos, cada uno con su «Nuevo». Lo que habías escrito sigue ahí, y la guía sigue con lo que falta.</p>
+  <div class="escena"><div class="atras"><i style="top:60px"></i><i style="top:210px;right:150px"></i><i style="top:330px"></i></div>
+  <div class="hoja">
+    <div class="x"><svg class="ic"><use href="#x"/></svg></div>
+    <div class="tit">Algo que no estaba en la guía</div>
+    <div class="baj">Se cuenta como lo demás; al cerrar dirás qué pasa con lo que vino de más.</div>
+    <div class="campo"><div class="etq"><span class="marca-g hecho"><svg class="ic"><use href="#ok"/></svg></span>De qué proveedor</div>
+      <div class="caja llena"><span class="txt">Hilos del Sur SAC</span><span class="chip-n">Nuevo</span><span class="chev"><svg class="ic"><use href="#chev"/></svg></span></div></div>
+    <div class="campo"><div class="etq"><span class="marca-g hecho"><svg class="ic"><use href="#ok"/></svg></span>Qué llegó</div>
+      <div class="caja llena"><span class="txt">Blusas</span><span class="chev"><svg class="ic"><use href="#chev"/></svg></span></div></div>
+    <div class="opciones">
+      <div class="opcion on"><span class="r"></span><span><b>Es nueva</b><small>No está en el catálogo: la describes y se crea después.</small></span></div>
+      <div class="opcion"><span class="r"></span><span><b>Ya la tenemos</b><small>Es una reposición: la eliges por su foto.</small></span></div>
+    </div>
+    <div class="campo"><div class="etq"><span class="marca-g hecho"><svg class="ic"><use href="#ok"/></svg></span>El nombre</div>
+      <div class="caja llena"><span class="txt">Blusa Valeria</span></div></div>
+    <div class="campo"><div class="etq"><span class="marca-g hecho"><svg class="ic"><use href="#ok"/></svg></span>La marca</div>
+      <div class="caja llena"><span class="txt">Mora</span><span class="chip-n">Nueva</span><span class="chev"><svg class="ic"><use href="#chev"/></svg></span></div></div>
+    <div class="campo"><div class="etq">La descripción (para no confundirlo con otro)</div>
+      <div class="caja"><span class="txt">Ej. Manga globo, cuello redondo</span></div></div>
+    <div class="pie"><div class="guia listo">Todo listo.</div>
+      <div class="acc"><span class="btn">Cancelar</span><span class="btn prim"><svg class="ic"><use href="#mas"/></svg>Agregar y contar</span></div></div>
+  </div></div>
+</section>
+
+
+</div>
+
+<section class="decide">
+  <h2 class="serif">Lo que decidiste (2026-11-09) y lo que falta construir</h2>
+  <ul>
+    <li><b>Quién puede crear:</b> todos los que ven Recibir mercadería. No hace falta tener los módulos Proveedores ni Catálogo.</li>
+    <li><b>El proveedor nuevo pide poco:</b> la razón social y, si se tiene, el RUC. Si se parece a uno que ya existe, la hoja pregunta antes de crearlo.</li>
+    <li><b>En la base:</b> dos funciones propias de Recibir, una para el proveedor y otra para la marca, con el permiso de Recibir escrito en cada una. Así se hizo con la marca nueva de Mis compras. Las de Proveedores y Catálogo no se tocan.</li>
+    <li><b>Falta verificar:</b> si la base acepta en este envío una prenda de un proveedor que no venía en la guía. También, que el campo «De qué proveedor» salga aunque la guía traiga un solo proveedor.</li>
+  </ul>
+</section>
+</body>
+</html>

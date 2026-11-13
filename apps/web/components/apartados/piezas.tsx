@@ -2,12 +2,14 @@
 
 import { useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
+import { LogoCayla } from "@/components/ui/LogoCayla";
 import { EMISOR } from "@/lib/emisor";
 import { LEY_REDONDEO_TICKET, TEXTO_REDONDEO } from "@/lib/recibo-reglas";
 import { money } from "@/components/PuntoDeVenta";
-import { esConstancia, tramosDelPlazo, textoDevolucion, type Apartado, type ClaveEstado } from "@/lib/separaciones-reglas";
+import { descuentoDePrenda, esConstancia, tramosDelPlazo, textoDevolucion, type Apartado, type ClaveEstado, type PrendaApartada } from "@/lib/separaciones-reglas";
 import { hoyLima } from "@/lib/fechas-lima";
 import { BarraDeAbajo } from "@/components/ui/BarraDeAbajo";
+import { Chip } from "@/components/ui/Chip";
 
 export { FotoPrenda } from "@/components/ui/FotoPrenda";
 
@@ -22,9 +24,49 @@ const TONO_ESTADO: Record<ClaveEstado, string> = {
 /** El estado con su punto de color. El punto de «vencido» late: es una señal que pide acción (ADR-0136). */
 export function EstadoChip({ clave, texto }: { clave: ClaveEstado; texto: string }) {
   return (
-    <span className={`inline-flex items-center gap-1.5 whitespace-nowrap text-[11.5px] font-semibold ${TONO_ESTADO[clave]}`}>
+    <span className={`inline-flex items-center gap-1.5 whitespace-nowrap text-sm font-semibold ${TONO_ESTADO[clave]}`}>
       <span aria-hidden className={`h-1.5 w-1.5 rounded-full bg-current ${clave === "vencida" ? "animate-pulse motion-reduce:animate-none" : ""}`} />
       {texto}
+    </span>
+  );
+}
+
+/** El descuento de una prenda ya apartada (ADR-0584), con la cara del chip de Apartar: la campaña en pizarra, el descuento a mano en
+ *  ámbar con su motivo («Otro» dice su texto). El argumento, si lo hubo, lo muestra quien lo pide con `conArgumento`. Va en su
+ *  propia línea bajo la prenda, a todo el ancho de la fila: en la columna del nombre, a 375 px, el motivo se partía en dos. */
+export function DescuentoDePrenda({ prenda, conArgumento = false, className = "" }: { prenda: PrendaApartada; conArgumento?: boolean; className?: string }) {
+  const d = descuentoDePrenda(prenda);
+  if (!d) return null;
+  return (
+    <span className={`flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 ${className}`}>
+      {d.campana ? (
+        <Chip tono="pizarra" versalitas={false}>
+          {d.motivo} · −{d.pct} %
+        </Chip>
+      ) : (
+        <Chip tono="ambar" versalitas={false} className="max-w-full" title={d.argumento ? `${d.motivo} · ${d.argumento}` : d.motivo}>
+          {/* El motivo es lo que importa: en una columna angosta (375 px) o con un «Otro» largo, baja de línea en vez de cortarse. */}
+          <span className="min-w-0 whitespace-normal">
+            −{money(prenda.descuentoUnitario)} c/u · {d.motivo}
+          </span>
+        </Chip>
+      )}
+      {conArgumento && d.argumento && <span className="text-[12px] text-tinta/60">Argumento: {d.argumento}</span>}
+    </span>
+  );
+}
+
+/** El importe de una prenda apartada: lo que se cobra y, si lleva descuento, el de etiqueta tachado debajo (como la fila del ticket). */
+export function ImporteDePrenda({ prenda, className = "" }: { prenda: PrendaApartada; className?: string }) {
+  const importe = (prenda.precioUnitario - prenda.descuentoUnitario) * prenda.cantidad;
+  return (
+    <span className={`flex shrink-0 flex-col items-end text-sm tabular-nums ${className}`}>
+      <span>{money(importe)}</span>
+      {prenda.descuentoUnitario > 0 && (
+        <s className="text-[11.5px] font-normal text-tinta/55" aria-label={`Precio de etiqueta ${money(prenda.precioUnitario * prenda.cantidad)}`}>
+          {money(prenda.precioUnitario * prenda.cantidad)}
+        </s>
+      )}
     </span>
   );
 }
@@ -74,7 +116,8 @@ export function ReciboApartado({ apartado, tipo, sede, pagadoHoy, redondeo = 0, 
   const cuerpo = (
     <div id="comprobante-print">
       <header className="rt-centro">
-        <p className="rt-marca">{EMISOR.nombreComercial}</p>
+        <LogoCayla tinta="negro" className="rt-logo" />
+        <p className="sr-only">{EMISOR.nombreComercial}</p>
         <p className="rt-negrita">
           {EMISOR.razonSocial} · RUC {EMISOR.ruc}
         </p>
@@ -112,12 +155,24 @@ export function ReciboApartado({ apartado, tipo, sede, pagadoHoy, redondeo = 0, 
           </>
         )}
       </dl>
-      {a.prendas.map((p) => (
-        <p key={p.varianteId} className="rt-fila">
-          <span>{p.cantidad} {p.referencia} {p.sku}</span>
-          <span>{money((p.precioUnitario - p.descuentoUnitario) * p.cantidad)}</span>
-        </p>
-      ))}
+      {a.prendas.map((p) => {
+        // ADR-0584: con descuento, el papel dice el precio de etiqueta, el descuento y el precio acordado (el motivo y el argumento
+        // son de la tienda, como en el ticket de una venta, y no se imprimen).
+        const d = descuentoDePrenda(p);
+        return (
+          <div key={p.varianteId}>
+            <p className="rt-fila">
+              <span>{p.cantidad} {p.referencia} {p.sku}</span>
+              <span>{money((p.precioUnitario - p.descuentoUnitario) * p.cantidad)}</span>
+            </p>
+            {d && (
+              <p className="rt-detalle">
+                P.U. {p.precioUnitario.toFixed(2)} · Dscto. -{p.descuentoUnitario.toFixed(2)} c/u · Precio acordado {d.precioAcordado.toFixed(2)} c/u
+              </p>
+            )}
+          </div>
+        );
+      })}
       <p className="rt-fila rt-negrita"><span>Total de las prendas</span><span>{money(a.total)}</span></p>
       {tipo === "anticipo" ? (
         <>
@@ -161,9 +216,14 @@ export function ReciboApartado({ apartado, tipo, sede, pagadoHoy, redondeo = 0, 
   return typeof document === "undefined" ? null : createPortal(cuerpo, document.body);
 }
 
-/** Alto de las pestañas de abajo en el celular (`ApartadosPanel`): la barra de acción se apoya encima. Un solo número
- *  para las dos piezas, o la barra taparía las pestañas o dejaría una rendija. */
+/** Alto de las pestañas de abajo en el celular de Comprobantes (`PestanasComprobantesMovil`), las que nacieron de las de Apartados.
+ *  Apartados ya no lo usa: sus pestañas son la isla (ver `SOBRE_ISLA_PESTANAS`). */
 export const ALTO_PESTANAS_MOVIL = "4rem";
+
+/** Desde «A · Isla de pestañas» (Felipe 2026-11-02, vidrio/vender.css) las pestañas de Apartados flotan: 62 px de isla más 10 de aire
+ *  hasta la barra negra. Las dos islas van a 12 px del borde, así que la barra se apoya sobre esto (no sobre `ALTO_PESTANAS_MOVIL`,
+ *  que sigue siendo el alto de las pestañas de Comprobantes). Si cambia el alto de la isla en el CSS, cambia aquí. */
+const SOBRE_ISLA_PESTANAS = "4.5rem";
 
 /** Monta lo fijo del celular en `document.body` (ADR-0211): la hoja de Apartados entra con un `transform`
  *  (`anim-sube`) y, mientras dura, un `position: fixed` adentro se pegaría a la hoja y no a la pantalla. */
@@ -198,7 +258,7 @@ export function BarraMovil({
   return (
     <EnCuerpo>
     {/* La isla oscura de lo que llevas elegido, apoyada en las pestañas (ADR-0479, actividad 12, `barra-abajo`). */}
-    <BarraDeAbajo tono="tinta" sobre={ALTO_PESTANAS_MOVIL} className="z-20 flex-nowrap justify-between gap-3 py-2.5 pl-5 pr-2.5 sm:left-[calc(var(--spacing-lateral)+0.75rem)] lg:hidden">
+    <BarraDeAbajo tono="tinta" sobre={SOBRE_ISLA_PESTANAS} className="z-20 flex-nowrap justify-between gap-3 py-2.5 pl-5 pr-2.5 sm:left-[calc(var(--spacing-lateral)+0.75rem)] lg:hidden">
       <div className="min-w-0">
         <p className="label-cayla truncate text-[10px] text-crema/60 dark:text-crema/75">{etiqueta}</p>
         <p className="font-display text-2xl leading-tight tabular-nums">{money(monto)}</p>

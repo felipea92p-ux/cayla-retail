@@ -4,7 +4,7 @@ import type { RolVista } from "./roles-reglas";
 import { CLAVES_MODULO } from "./modulos";
 
 const R = (id: string, nombre: string, modulos: RolVista["modulos"], extra: Partial<RolVista> = {}): RolVista => ({
-  id, clave: null, nombre, descripcion: null, esSistema: false, fijo: false, limitadoComoHoy: false, archivado: false, modulos, version: 1, pantallaPrincipal: null, ...extra,
+  id, clave: null, nombre, descripcion: null, esSistema: false, fijo: false, limitadoComoHoy: false, archivado: false, modulos, canales: ["tienda"], version: 1, pantallaPrincipal: null, ...extra,
 });
 const ROLES = [
   R("l", "Líder", [...CLAVES_MODULO], { clave: "lider", fijo: true }),

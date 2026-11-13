@@ -4,7 +4,7 @@ import { Suspense, useEffect, useId, useRef, useState, useSyncExternalStore, use
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { salir } from "@/app/acciones/cuenta";
-import { buscarEn, leerRespuestaDelBuscador, resaltar, type RespuestaBuscador } from "@/lib/buscador";
+import { buscarEn, leerRespuestaDelBuscador, recienLlegadas, resaltar, type ItemBusqueda, type RespuestaBuscador } from "@/lib/buscador";
 import { hrefConVolver } from "@/lib/entrada";
 import { seccionDeLaRuta, type SeccionActual } from "@/lib/esqueleto";
 import type { DatosCabecera, FotoChica, MenuCabecera } from "@/lib/inicio";
@@ -20,7 +20,12 @@ import { claveMasCercana, debePedirUbicacion } from "@/lib/sede-cercana";
 import { ahoraMs, debeCubrir, esperaHastaElTope, esperaParaSalir, EVENTO_CAMBIAR_TIENDA, VELO_SALE_MS } from "@/lib/sede-velo";
 import { Icono } from "./Icono";
 import { Logo } from "./Marca";
+import { Redes } from "./Redes";
+import { EscudoDeFila } from "./MarcaDeTienda";
+import { BotonDeTema } from "./BotonDeTema";
+import { marcarViaje, useRayaDelNav, viajaHacia } from "./useRayaDelNav";
 import { NombreQueRueda, VeloDeSede } from "./VeloDeSede";
+import { escudoDe } from "@/lib/escudo-de-tienda";
 // El globo rojo de la bolsa y del corazón (`.t-globo`).
 import "@/app/estilos/bolsa.css";
 
@@ -158,6 +163,7 @@ export function CabeceraConCuenta({
 
   function abrir(cual: "menu" | "buscar", boton: HTMLButtonElement) {
     disparador.current = boton;
+    if (cual === "buscar") prepararBuscador();
     setHoja(cual);
   }
   function cerrar() {
@@ -200,6 +206,9 @@ export function CabeceraConCuenta({
   const camino = useCamino();
   const marcada = camino ? seccionDeLaRuta(camino.ruta, new URLSearchParams(camino.buscar)) : actual;
   const marca = (seccion: SeccionActual) => (marcada === seccion ? "page" : undefined);
+  // La raya que viaja (ADR-0524): una sola, bajo la pestaña marcada; corre de la de antes a la que se tocó mientras llega la página.
+  const nav = useRef<HTMLElement>(null);
+  useRayaDelNav(nav, marcada);
 
   return (
     <>
@@ -211,7 +220,8 @@ export function CabeceraConCuenta({
           <Link className="t-logo" href={datos.inicio} aria-label="CAYLA, ir al inicio">
             <Logo />
           </Link>
-          <nav className="t-nav" aria-label="Secciones">
+          {/* Al tocar una pestaña se apunta hacia dónde va el recorrido (a la derecha o a la izquierda): la página entra de lado en ese sentido (`vistas.css`). */}
+          <nav className="t-nav" aria-label="Secciones" ref={nav} onClickCapture={(e) => marcarViaje(nav.current, (e.target as Element).closest(".t-nav-b"))}>
             <Link className="t-nav-b" href={datos.nuevo.href} aria-current={marca("nuevo")}>
               Lo nuevo
             </Link>
@@ -219,15 +229,22 @@ export function CabeceraConCuenta({
               <MenuGrande key={m.clave} menu={m} hrefNuevo={datos.nuevo.href} />
             ))}
             <Link className="t-nav-b" href={datos.looks} aria-current={marca("looks")}>
-              Looks
+              Outfits
             </Link>
             <Link className="t-nav-b" href={datos.ofertas.href} aria-current={marca("ofertas")}>
               Ofertas
             </Link>
+            <span className="t-raya" aria-hidden="true" />
           </nav>
+          {/* El buscador a la vista, en la cabecera (ADR-0615). Abre el mismo buscador de siempre. */}
+          <button type="button" className="dn-buscar-cab" aria-label="Buscar" onClick={(e) => abrir("buscar", e.currentTarget)}>
+            <Icono nombre="lupa" />
+            <span>Busca blusas, jeans…</span>
+          </button>
           <span className="t-esp" />
           {tiendas && <SelectorTienda opciones={tiendas} prendasEnBolsa={prendasEnBolsa} />}
           {/* La bolsa antes y la cuenta al final (Felipe 2026-10-19): la cuenta, con su menú, queda en la esquina. */}
+          <BotonDeTema />
           {bolsa}
           {!visitante && campanita}
           <MenuDeLaCuenta
@@ -241,7 +258,7 @@ export function CabeceraConCuenta({
       </header>
 
       {hoja && <div className="t-velo" aria-hidden="true" onClick={cerrar} />}
-      {hoja === "menu" && <HojaMenu datos={datos} cerrar={cerrar} visitante={visitante} />}
+      {hoja === "menu" && <HojaMenu datos={datos} cerrar={cerrar} visitante={visitante} actual={actual} tiendas={tiendas} prendasEnBolsa={prendasEnBolsa} />}
       {hoja === "buscar" && <HojaBuscar datos={datos} indice={indiceDeEstaTienda} reintentar={prepararBuscador} cerrar={cerrar} />}
     </>
   );
@@ -384,6 +401,8 @@ function SelectorTienda({ opciones, prendasEnBolsa }: { opciones: OpcionTienda[]
     return () => window.clearTimeout(t);
   }, [velo]);
   const elegida = opciones.find((o) => o.actual) ?? opciones[0];
+  // Si alguna tienda de la lista tiene escudo, las demás guardan su lugar: los nombres quedan alineados.
+  const hayEscudos = opciones.some((o) => escudoDe(o.nombre) !== null);
   // Elegir una tienda: se recuerda en la cookie, se cubre con el velo y se navega dentro de una transición (`cambiando` dura hasta que la
   // página nueva llega). Con prendas en la bolsa, antes se vacía (la persona ya lo confirmó).
   const ir = (o: OpcionTienda, vaciar: boolean) => {
@@ -476,6 +495,10 @@ function SelectorTienda({ opciones, prendasEnBolsa }: { opciones: OpcionTienda[]
         }}
       >
         <NombreQueRueda nombre={elegida.nombre} /> <span aria-hidden="true">▾</span>
+        {/* El nombre en letras aparece al pasar el mouse o con el teclado (solo si lo que se ve es el escudo; ver `.t-sel-nombre`). */}
+        <span className="t-sel-nombre" aria-hidden="true">
+          {elegida.nombre}
+        </span>
       </button>
       {velo && <VeloDeSede nombre={velo.nombre} fase={velo.fase} arriba={velo.arriba} />}
       {abierto && (
@@ -514,6 +537,7 @@ function SelectorTienda({ opciones, prendasEnBolsa }: { opciones: OpcionTienda[]
                   else ir(o, false);
                 }}
               >
+                <EscudoDeFila nombre={o.nombre} hueco={hayEscudos} />
                 {o.nombre}
               </Link>
             ))
@@ -631,13 +655,20 @@ function HojaMenu({
   datos,
   cerrar,
   visitante,
+  actual,
+  tiendas,
+  prendasEnBolsa,
 }: {
   datos: DatosCabecera;
+  actual: SeccionActual;
+  tiendas: OpcionTienda[] | null;
+  prendasEnBolsa: number;
   cerrar: () => void;
   visitante: boolean;
 }) {
   return (
-    <div className="t-menu" role="dialog" aria-modal="true" aria-label="Menú">
+    // En el celular no hay raya: al tocar una sección del menú, la página entra de lado hacia la derecha (ADR-0524).
+    <div className="t-menu" role="dialog" aria-modal="true" aria-label="Menú" onClickCapture={(e) => ((e.target as Element).closest("a") ? viajaHacia(1) : undefined)}>
       <div className="t-menu-cab">
         <span className="t-logo">
           <Logo />
@@ -647,7 +678,7 @@ function HojaMenu({
         </button>
       </div>
       <nav className="t-menu-grandes" aria-label="Secciones">
-        <Link href={datos.nuevo.href} onClick={cerrar}>
+        <Link href={datos.nuevo.href} onClick={cerrar} aria-current={actual === "nuevo" ? "page" : undefined}>
           Lo nuevo
         </Link>
         {datos.menus.map((m) => (
@@ -672,14 +703,21 @@ function HojaMenu({
             </div>
           </details>
         ))}
-        <Link href={datos.looks} onClick={cerrar}>
-          Looks
+        <Link href={datos.looks} onClick={cerrar} aria-current={actual === "looks" ? "page" : undefined}>
+          Outfits
         </Link>
-        <Link href={datos.ofertas.href} onClick={cerrar}>
+        <Link href={datos.ofertas.href} onClick={cerrar} aria-current={actual === "ofertas" ? "page" : undefined}>
           Ofertas
         </Link>
       </nav>
       <div className="t-menu-pie">
+        <p className="dn-menu-tit">Tu cuenta y servicios</p>
+        {tiendas && (
+          <div className="dn-menu-tienda">
+            <span>Tu tienda</span>
+            <SelectorTienda opciones={tiendas} prendasEnBolsa={prendasEnBolsa} />
+          </div>
+        )}
         <Link href={visitante ? hrefDeEntrada("/entrar") : "/cuenta"} onClick={cerrar}>
           {visitante ? "Entrar" : "Mi perfil"}
         </Link>
@@ -692,12 +730,18 @@ function HojaMenu({
         <Link href="/tiendas" onClick={cerrar}>
           Tiendas
         </Link>
+        <BotonDeTema forma="fila" />
         {/* Lo que el cliente le quiera recomendar a CAYLA (Felipe 2026-10-15), con su nombre: solo con cuenta. */}
         {!visitante && (
           <Link href="/recomendaciones" onClick={cerrar}>
             Recomendaciones
           </Link>
         )}
+        {/* En el celular el pie queda muy abajo: las redes cierran el menú (Felipe 2026-11-12). Se abren aparte, así que no cierran la hoja. */}
+        <div className="t-menu-redes">
+          <p className="dn-menu-tit">Síguenos</p>
+          <Redes donde="menu" />
+        </div>
       </div>
     </div>
   );
@@ -722,7 +766,10 @@ function HojaBuscar({
   const [q, setQ] = useState("");
   const lista = indice?.estado === "ok" ? indice.indice : null;
   const encontradas = lista ? buscarEn(lista, q) : [];
+  // La hoja muestra hasta 8: el conteo dice de cuántas, para no hacer creer que solo hay esas.
+  const total = lista ? buscarEn(lista, q, Number.POSITIVE_INFINITY).length : 0;
   const corto = q.trim().length < 2;
+  const nuevas = lista ? recienLlegadas(lista) : [];
   const router = useRouter();
   return (
     <div className="t-buscador" role="dialog" aria-modal="true" aria-label="Buscar en la tienda">
@@ -734,7 +781,7 @@ function HojaBuscar({
             type="search"
             value={q}
             onChange={(e) => setQ(e.target.value)}
-            placeholder="Busca por nombre, prenda o color"
+            placeholder="Busca blusas, jeans…"
             autoComplete="off"
             enterKeyHint="search"
             autoFocus
@@ -764,6 +811,19 @@ function HojaBuscar({
                   </button>
                 ))}
               </div>
+              {/* Sin escribir, también lo recién llegado a la tienda elegida (rediseño Premium): la hoja no abre vacía. */}
+              {nuevas.length > 0 && (
+                <>
+                  <span className="t-ceja t-resultados-cuenta">Recién llegado</span>
+                  <ul className="t-resultados">
+                    {nuevas.map((i) => (
+                      <li key={i.id}>
+                        <ResultadoBuscador item={i} partes={null} cerrar={cerrar} />
+                      </li>
+                    ))}
+                  </ul>
+                </>
+              )}
             </>
           )
         ) : indice === null ? (
@@ -811,52 +871,49 @@ function HojaBuscar({
         ) : (
           <>
             <span className="t-ceja t-resultados-cuenta">
-              {encontradas.length} {encontradas.length === 1 ? "prenda" : "prendas"}
+              {encontradas.length < total ? `${encontradas.length} de ${total}` : encontradas.length} {total === 1 ? "prenda" : "prendas"}
             </span>
             <ul className="t-resultados">
-              {encontradas.map((i) => {
-                const partes = resaltar(i.nombre, q);
-                return (
-                  <li key={i.id}>
-                    <Link className="t-resultado" href={i.href} onClick={cerrar}>
-                      <FotoTarjeta
-                        foto={i.foto}
-                        segunda={null}
-                        optimizar={[i.optimizar, false]}
-                        nombre=""
-                        forma={i.forma}
-                        color={i.color}
-                        tamanos="52px"
-                      />
-                      <span>
-                        {/* El nombre en su propia caja: suelto, cada trozo sería una línea de la columna. */}
-                        <span className="t-resultado-nom">
-                          {partes ? (
-                            <>
-                              {partes[0]}
-                              <mark>{partes[1]}</mark>
-                              {partes[2]}
-                            </>
-                          ) : (
-                            i.nombre
-                          )}
-                        </span>
-                        <small>
-                          {i.categoria ?? "CAYLA"}
-                          {i.oferta ? ` · ${i.oferta}` : ""}
-                        </small>
-                      </span>
-                      <b className="num" data-oferta={i.oferta ? "" : undefined}>
-                        {i.precio}
-                      </b>
-                    </Link>
-                  </li>
-                );
-              })}
+              {encontradas.map((i) => (
+                <li key={i.id}>
+                  <ResultadoBuscador item={i} partes={resaltar(i.nombre, q)} cerrar={cerrar} />
+                </li>
+              ))}
             </ul>
           </>
         )}
       </div>
     </div>
+  );
+}
+
+/** Una prenda encontrada (o recién llegada): foto, nombre con lo escrito subrayado, categoría, cuánto hay y precio. */
+function ResultadoBuscador({ item: i, partes, cerrar }: { item: ItemBusqueda; partes: [string, string, string] | null; cerrar: () => void }) {
+  return (
+    <Link className="t-resultado" href={i.href} onClick={cerrar}>
+      <FotoTarjeta foto={i.foto} segunda={null} optimizar={[i.optimizar, false]} nombre="" forma={i.forma} color={i.color} tamanos="52px" />
+      <span>
+        {/* El nombre en su propia caja: suelto, cada trozo sería una línea de la columna. */}
+        <span className="t-resultado-nom">
+          {partes ? (
+            <>
+              {partes[0]}
+              <mark>{partes[1]}</mark>
+              {partes[2]}
+            </>
+          ) : (
+            i.nombre
+          )}
+        </span>
+        <small>
+          {i.categoria ?? "CAYLA"}
+          {i.oferta ? ` · ${i.oferta}` : ""}
+        </small>
+        {i.nota && <span className={`t-card-nota ${i.nota.tono}`}>{i.nota.texto}</span>}
+      </span>
+      <b className="num" data-oferta={i.oferta ? "" : undefined}>
+        {i.precio}
+      </b>
+    </Link>
   );
 }

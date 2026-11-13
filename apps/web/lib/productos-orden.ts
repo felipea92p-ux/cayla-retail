@@ -45,9 +45,3 @@ export function ordenParaBase(orden: OrdenListado): OrdenProductos | undefined {
 export function leerOrdenProductos(valor: string | null | undefined): OrdenProductos | undefined {
   return ordenParaBase(ordenDeUrl(valor));
 }
-
-/** Las de ventas piden a la base sumar movimientos; las demás salen de columnas del producto. Sirve a quien quiera avisar
- *  «esto tarda un poco más» o medir. */
-export function ordenPorVentas(orden: OrdenProductos | undefined): boolean {
-  return orden === "vendidos_desc" || orden === "vendidos_asc";
-}

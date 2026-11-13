@@ -38,7 +38,7 @@ Configuración, Cierre de mes o CAYLA Global. Esa persona veía «Tienda Lima» 
    - la cabecera única (`<EncabezadoPagina>`, ADR-0220) con `<RespuestaTelar>` a la derecha: la pregunta del submódulo y la cifra grande;
      `valor={null}` dice que no se pudo leer;
    - el **orillo** (`<Orillo>`): la tira que reparte la cifra entre las sedes, donde cada tramo elige su sede;
-   - el **dock** (`<DockTelar>`, solo escritorio): hasta cuatro acciones con su tecla. En el celular, lo de abajo sigue siendo la Isla.
+   - el **dock** (`<DockTelar>`, solo escritorio): hasta cuatro acciones con su tecla. En el celular no hay dock ni barra de abajo: las acciones están en la página (corregido el 2026-11-10; decía que ahí iba la Isla, y ninguna pantalla de Finanzas la usa).
 
    **Finanzas deja `<CabeceraPantalla>` y usa la misma cabecera que el resto del ERP:** este ADR actualiza ADR-0195 y la regla
    «La cabecera de una pantalla» de ADR-0358.
@@ -158,3 +158,262 @@ Felipe, mirando las cinco pantallas a ~2000 px: «que todos usen la pantalla al 
 **DECIDÍ:** sacar Finanzas entera de la lista de deuda de ancho en vez de mantener la excepción del Resumen y revisar las cinco pantallas «una por una». **DESCARTÉ:** la excepción por pantalla (`data-ancho-completo` en cada una), que dejaba a la persona
 viendo la barra cambiar de ancho cada vez que cambiaba de submódulo y obligaba a cada pantalla nueva de Finanzas a acordarse de pedirlo. **SE ROMPE SI:** una pantalla de Finanzas trae un bloque que no se llena a 1920 px y deja un hueco grande
 (se ve en la captura a lo ancho, no en la prueba), o si una pieza nueva se suma a la fila de la barra sin sumar su ancho a los 1038 px de arriba (volvería a dos filas a 1280 px).
+
+**Corrección 2026-11-09 (tareas 88 y 61 de la revisión de Finanzas):** la suma de arriba omitía el ícono «Qué se ve»: la cuenta real da 1162 px, 1178 en el peor caso. La barra ya no se parte: va en una fila de 61 px, medida en el ERP a 1024, 1280, 1440 y 1920 px. Los cortes viven en `app/estilos/telar.css` (`@container mesa`: la frase se esconde bajo 1340, y bajo 1200 y 1090 se recogen «Registrar gasto» y «Te toca»), y las sedes tapadas se deslizan. Lo que explica por qué una sede no aplica ya no depende de esa frase: lo dice el rótulo («Toda CAYLA», «Aquí, de a una»), que no se quita por falta de lugar, y el `title` del control apagado.
+
+## Actualización 2026-10-30 — «En qué se va» de Gastos deja el retazo por los hilos, con su desglose (Felipe, eligiendo mirando)
+
+Felipe, sobre una captura de Gastos: «ese gráfico inicial es horrible y muestra todo de mala manera, no se entiende». Se armaron siete maquetas
+en `docs/maquetas/gastos-grafico-2026-10/` (ronda 1: A · Hilos, Anillo, Río de días; ronda 2: A2 · Hilos con memoria, A3 · Lo que pesa,
+A4 · Mosaico de 100) y eligió **la A2 con el desglose de la A3**, y para elegir la sede dentro del desglose, **la 3 · Columna** (entre
+píldoras, el hilo en grande y columna). Lo que quedó (`components/finanzas/gastos/HilosGastos.tsx`, reglas en `lib/gastos-hilos-reglas.ts`):
+
+1. **Un ranking que se lee de arriba abajo.** Cada categoría es una fila: su hilo partido por sede (`<BarraApilada>`, a la escala de la mayor,
+   con los colores de sede de este ADR), la rayita de dónde estaba el mes anterior, la píldora de cuánto subió (ámbar) o bajó (verde), el
+   monto y su línea de los últimos meses (`<Sparkline>`). Junto al título, la frase de lo que más subió y lo que más bajó (solo entre las
+   categorías que pesan el 4 % o más). La cifra grande de la cabecera suma su chip «▲ 15 % vs septiembre».
+2. **Los meses de antes se leen con el resumen que ya existe** (`fn_gastos_panel`, uno por mes, en paralelo, `page.tsx`): sin migración. Solo
+   se piden los meses que empiezan desde el inicio de Finanzas (ADR-0332), y **un mes sin un solo gasto no se compara**: es un mes que no se
+   registró, no uno barato (sin esa regla, septiembre de 2026 hacía decir «nuevo» a todo y la línea partía de cero). La línea se dibuja con
+   tres meses seguidos o más; un hueco la corta. Si un mes no responde, el aviso de arriba lo dice y el gráfico sale sin comparar.
+3. **Tocar una fila abre su desglose debajo** (tocar un color del hilo la abre ya en esa sede): a la izquierda, las sedes en columna con su monto
+   y su parte, y la hoja clara con el hilo rojo que se desliza a la elegida; a la derecha, cada gasto (día, en qué, a quién, sede, monto) del
+   más grande al más chico, con las filas de `<Tabla>` (`fila-cayla`, su hilo y su «›»), seis a la vista y «Ver N más». Un gasto abre su hoja;
+   «Ver en la tabla» deja la lista de abajo con esa categoría **y esa sede** (filtro nuevo `sede` en `FiltrosLista`, con su píldora).
+4. **Movimiento** (el gráfico propio del telar, en la excepción de arriba): las filas entran en cascada, el hilo crece tramo a tramo, al
+   cambiar de sede las filas se deslizan a su nuevo puesto (FLIP) y los hilos se reacomodan desde donde estaban; el desglose se despliega y
+   la marca de la sede se desliza. Una vez, sin rebote ni bucle; quieto con `prefers-reduced-motion`.
+
+**DECIDÍ:** la columna de sedes como **botones que quedan presionados** (`aria-pressed`), no como pestañas: filtra la lista de al lado, no
+cambia de sección. Es la forma que Felipe eligió mirando, aparte de la píldora de filtro (`pildora-cayla`) que /unificar fija para filtrar:
+queda como excepción decidida de esta pieza, no como una forma nueva para el resto del ERP. **DESCARTÉ:** las tarjetas de sede de la
+primera versión del desglose (no le gustaron), las píldoras y «el hilo en grande» (opciones 1 y 2), atenuar las demás filas al pasar el
+mouse (bajaba su texto por debajo de 4.5:1) y una RPC nueva por mes (el resumen de siempre ya trae lo sumado por categoría). **SE ROMPE SI:**
+la lista del mes deja de traer todos los gastos (el desglose y el hilo salen de ella, `fn_gastos_lista` sin tope) o si `fn_gastos_panel`
+deja de devolver `por_categoria` (se pierde la comparación, sin caerse).
+
+## Actualización 2026-10-30 (b) — «Cuándo» de Gastos deja el calendario por el ritmo del mes (Felipe, eligiendo mirando)
+
+Felipe pidió lo mismo para «Cuándo». Cuatro propuestas en `docs/maquetas/gastos-cuando-2026-10/` (C1 · Calendario fino, C2 · El ritmo del
+mes, C3 · Día por día, C4 · La lluvia), sobre lo que hacen Copilot Money, Tiller y otras apps de finanzas (el mes contra el anterior el mismo
+día, y hacia dónde va). Eligió **la C2, «pero que se lea mejor el texto, ya que en distintos tamaños se llega a tapar por la línea»**. Lo que
+quedó (`components/finanzas/gastos/RitmoGastos.tsx`, reglas en `lib/gastos-ritmo-reglas.ts`), a todo el ancho bajo «En qué se va»:
+
+1. **El ritmo con `<Linea>`, la pieza única** (ADR-0358): lo gastado sumado día a día en tinta; el mes anterior **a la misma altura** en taupe
+   punteado (sus gastos uno por uno, `getGastos` del mes anterior en `page.tsx`, con la misma regla de los hilos: solo desde el inicio de
+   Finanzas, y un mes sin gastos no se compara); desde hoy, el «si sigue así». Junto al título, «A hoy llevas S/ X: S/ Y más que septiembre a
+   esta altura»; en un mes cerrado, el mes entero contra el anterior.
+2. **«Si sigue así» = un día normal cada día que falta + lo que ya se sabe que viene.** Un día normal es lo gastado sin los gastos que vienen
+   de un fijo ni los saltos, repartido en los días que pasaron (un alquiler no hace creer que cada día se gastan miles). Lo que viene: los
+   fijos del mes sin registrar en su fecha (el atrasado, mañana), en puntos huecos sobre la línea, y un gasto anotado con fecha de más
+   adelante, en su día.
+3. **Los saltos grandes con su nombre** («Alquileres · 3 al 5 oct S/ 6,600»): los gastos de 6 % o más de lo más alto del mes, juntos si son de
+   la misma categoría en días cercanos, tres como mucho.
+4. **Tocar un día** (o una nota, o con ← → y Enter: la línea es un deslizador) **abre debajo lo que se gastó ese día**, gasto por gasto y del
+   más grande al más chico, como el desglose de «En qué se va» (seis a la vista y «Ver N más»); en un día que no llega, el fijo que falta.
+   «Ver en la tabla» deja la lista de abajo con ese día (el filtro `dia` que ya existía).
+
+**Lo que se lee mejor (el pedido de Felipe), en `<Linea>` y para todas sus pantallas** (`lib/linea-textos-reglas.ts`, con pruebas que recorren
+200 casos al azar): las notas van en una **franja sobre el gráfico**, con un hilo punteado hasta su punto, nunca encima de un trazo (se prueban
+todas las combinaciones de fila y lado; si no caben en dos filas, todas pasan a su nombre corto); **la cifra del último punto** se queda en su
+lugar de siempre salvo que choque con un trazo, y entonces busca el primer hueco alrededor; **las cifras del final se separan** si caen juntas;
+y **todo texto sobre el dibujo lleva un borde del color del fondo** (`--linea-fondo`, papel de fábrica) que corta la línea que pase detrás.
+Medido en la maqueta: en las seis vistas de sede y once anchos (300 a 1920 px), ningún texto toca una línea desde 350 px de gráfico.
+
+**DECIDÍ:** que la mejora de lectura viva en `<Linea>` y no en Gastos: es la pieza única de la línea, y Caja, Rendimiento, el plan de campaña y
+las demás la reciben sin cambiar nada donde hoy no hay choque (comprobado en Finanzas ▸ Resumen: su cifra se queda donde estaba). Y que la
+línea comparada sea **el mes anterior a la misma altura**, no su promedio: es la pregunta que se contesta de un vistazo. **DESCARTÉ:** la C1
+(el calendario arreglado, en la columna angosta: no dice si se va más rápido que el mes pasado), la C3 (barras por día) y la C4 (gotas por
+gasto), que Felipe vio y no eligió; la mediana de un día como ritmo (en un mes con pocos gastos da cero y no proyecta nada); y una RPC que sume
+por día (la lista del mes ya trae cada gasto). **SE ROMPE SI:** `fn_gastos_lista` del mes anterior deja de responder (se calla la comparación,
+sin caerse: el aviso de arriba lo dice) o `fn_gastos_fijos_mes` deja de traer `fecha_esperada` (los fijos caerían mañana).
+
+## Actualización 2026-10-30 (c) — Gastos compara a la misma altura, dice de qué está hecho el «si sigue así» y acorta «En qué se va» (Felipe, los 3 cambios de /formidable)
+
+`/formidable` midió las dos secciones nuevas (`docs/formidable/finanzas-gastos.md`) y una prueba ciega las recorrió. Felipe aprobó sus tres
+cambios («Sí, los 3»):
+
+1. **En el mes en curso, todo compara a la misma altura.** El chip de la cifra grande, la píldora ▲/▼ y la rayita de cada categoría y la frase
+   de «En qué se va» comparaban lo gastado hasta hoy contra el mes anterior **entero**, mientras «Cuándo» comparaba al mismo día: el 10 de
+   octubre, con los datos de ejemplo, el chip decía «▼ 28 %» y «Cuándo», «S/ 157 menos a esta altura», y «Transporte ▼ 51 %» cuando a la
+   misma altura había subido 75 %. Ahora, en el mes en curso, todos usan lo que el mes anterior llevaba al mismo día (`mesAEstaAltura`, sobre la
+   lista del mes anterior que «Cuándo» ya lee) y lo dicen («▲ 6 % vs septiembre a esta altura», «dónde iba septiembre a esta altura»); en un mes
+   cerrado, el mes entero, como antes. La línea de meses de cada categoría llega hasta el mes anterior (el mes a medias era un punto que
+   siempre bajaba) y necesita tres meses cerrados.
+2. **El «si sigue así» dice de qué está hecho**, a todo ancho bajo el gráfico (antes solo en el angosto): «un día normal (S/ 186) por cada día
+   que falta, más S/ 210 de 2 fijos por confirmar» (el nombre del chip de la cifra grande: la segunda ciega encontró tres nombres para lo mismo) y, si hay, lo ya anotado para después. La ciega no sabía si el cierre contaba los fijos.
+3. **«En qué se va» muestra las 6 categorías más grandes** y «Ver N más» (`<FilasDeMas>`, en una segunda lista; con 7 u 8 se ven todas), su
+   frase dice «entre lo que más pesa» (la de «▲ 75 %» a la vista, de una categoría chica, la contradecía) y una categoría que redondea a cero dice
+   «menos de 1 %». «Cuándo» sube ~193 px a 1440 y ~254 px a 375, medido.
+
+En el mismo análisis se arreglaron tres defectos de lo construido ese día: «Cuándo» de un mes sin gastos, el globito que saltaba a «hoy» al tocar
+el gráfico (en el teléfono quedaba pegado) y las lecturas para comparar, que esperaban a las del mes.
+
+**DECIDÍ:** sacar el mes a medias de la línea de meses en vez de marcarlo «a hoy»: `<Sparkline>` no sabe dibujar un punto distinto, y una marca no
+evita que la línea baje. **DESCARTÉ:** quitar el chip de la cifra grande (ya no contradice a «Cuándo» y la ciega lo usó a los 5 segundos) y
+abreviar «a esta altura» (a 1024 px el chip pasa a una segunda fila, +30 px; se acepta). **SE ROMPE SI:** la lista del mes anterior no se lee:
+en el mes en curso ya no hay contra qué comparar y el chip, las píldoras y la rayita se callan (no vuelven a comparar contra el mes entero).
+
+## Actualización 2026-10-30 (d) — La lista de Gastos va por día, como el extracto del banco (Felipe, eligiendo mirando)
+
+**Qué cambió.** Felipe miró cuatro propuestas para la lista de la pestaña «Gastos» (`docs/maquetas/gastos-lista-2026-10/`: L1 por día, L2
+primero lo que pide algo, L3 la tabla depurada, L4 por tamaño) y eligió **L1 · Por día**. La tabla de 8 columnas (fecha, gasto, categoría ·
+cuenta, sede, comprobante, cómo se pagó, monto, estado) se va; queda `ExtractoGastos` (`components/finanzas/gastos/`, reglas en
+`lib/gastos-extracto-reglas.ts`):
+
+1. **Por día, del más nuevo al más viejo**, cada día con `<SeparadorDia>` (la pieza decidida, ADR-0358): «Hoy · viernes 30 de octubre» y, a la
+   derecha, lo que se fue y en cuántos gastos, sin los anulados. Se pega bajo la mesa de mando al bajar (la mesa también va pegada y cambia de
+   alto: `ExtractoGastos` la mide y se lo pasa en `--separador-tope`). La tarjeta recorta con `overflow: clip` y no `hidden`, que rompería el pegado.
+2. **Cada fila dice qué fue** (y el proveedor) y debajo **en qué, cómo se pagó y su comprobante**; la sede, con su color, solo cuando se ven varias.
+   El IGV y el «perdido» siguen bajo el monto, como decidió Felipe el 2026-10-14. La cuenta contable sale de la fila: sigue en la hoja del gasto.
+3. **Solo se marca lo que no es normal**, una marca por fila: anulado; lo que falta pagar (vencido en rojo, como en Por pagar; ámbar si vence en
+   7 días o menos; pizarra si hay tiempo); y **sin comprobante desde S/ 300** (`UMBRAL_SIN_COMPROBANTE`, regla de dinero de Felipe, 2026-10-30): por
+   debajo están el mototaxi, el baño y los útiles, que nunca traen factura, y marcarlos haría que la marca deje de verse. La marca dice su porqué
+   (el IGV que se recuperaría, cuánto falta y cuándo vence) al lector y al pasar el mouse.
+4. **Lo chico que se repite el mismo día** (mismo nombre, sede, categoría y forma de pago; cada uno bajo S/ 50 y sin marca) va en una fila con el
+   globito de cuántas veces y lo que sumó, y se abre en su lugar (`<FilasDeMas>`).
+5. **Se ven los últimos 5 días**; el resto, con «Ver los N días de antes» (`<BotonVerMas>`). Con cualquier filtro puesto (buscar, un día, una categoría, una sede o el comprobante) se ven todos; si los de
+   antes serían uno solo, también.
+
+Buscador, filtros, píldoras de lo filtrado, pie y la hoja del gasto no cambian: migrar cambió cómo se ve, no qué hace.
+
+**DECIDÍ:** el separador decidido (versalitas de 11 px) en vez del serif de la maqueta, porque `<SeparadorDia>` es la única pieza del día en el ERP. Y el porqué de la marca va en el `title` y en el texto del lector, no en una frase a la vista. **Corregido el mismo día (/formidable):** decía que la frase estaba en la hoja del gasto, a un toque, y no está; ponerla ahí es uno de los 3 cambios que esperan el OK de Felipe. **DESCARTÉ:** juntar
+lo repetido por nombre solamente (un «Baño» del cajón y otro por Yape se leerían como pagados igual) y esconder los anulados (un gasto nunca se
+borra de la vista). **SE ROMPE SI:** la mesa de mando deja de llamarse `.mesa-telar`: el separador se pega bajo la cabecera y queda tapado por la mesa.
+
+## Actualización 2026-10-30 (e) — Lo que pide algo no se esconde, y «sin comprobante» es un solo número (Felipe, los 3 cambios de /formidable)
+
+`/formidable` de la lista por día (`docs/formidable/finanzas-gastos.md`): la primera prueba ciega no lo logró al primer intento porque la única
+factura vencida estaba tras «Ver los días de antes»; el porqué de cada marca solo se veía con el mouse; y arriba se avisaba «21 sin comprobante»
+mientras la lista marcaba 1. Felipe aprobó los tres cambios (el tercero toca cómo se avisa del IGV, una regla de dinero):
+
+1. **«Ver los días de antes» dice lo que esconde** que pide algo, con el tono de su marca: «1 vencida» (rojo, con su punto que late, la
+   excepción de ADR-0136 para «Vencida»), «N vencen esta semana» y «N sin comprobante» (ámbar). Una factura vencida es vieja por definición:
+   casi siempre cae en los días de antes.
+2. **La hoja del gasto abre con la marca de la fila y su porqué** (`avisoDelGasto`, el mismo texto de la fila en un `<Aviso>`), con «Ir a Por
+   pagar» si la cuenta tiene el módulo `por_pagar`, y «Pago» en pasado si ya venció (`pagoACredito`). En el celular la acción baja bajo el
+   texto, como el aviso de Plan del piso (la pieza `Aviso` no cambia).
+3. **«Sin comprobante» se cuenta igual en todas partes:** el chip de la cifra, la bandeja y «Te toca» cuentan lo de S/ 300 o más
+   (`sinComprobanteGrande` sobre `pideComprobante`, la misma regla de la marca) y dicen el IGV que se recuperaría con factura; lo chico sin
+   papel (el mototaxi, el baño) ya no es una alarma. «Ver cuáles» pone el filtro nuevo «Sin comprobante, de S/ 300 o más»; «Sin comprobante» a
+   secas sigue en el filtro. «Te toca» lee la lista del mes junto al panel, en la misma vuelta.
+
+La segunda ciega lo logró al primer intento (leyes 6,4 → 7,6).
+
+**DECIDÍ:** contar lo grande sin papel con la lista del mes que la pantalla ya lee, y no con `fn_gastos_panel`, para no partir la regla de los
+S/ 300 entre el código y la base sin una migración. **DESCARTÉ:** poner «· 1 ya venció» en la tarjeta «Por pagar de gastos» contando con la lista
+del mes (la tarjeta suma la deuda de todos los meses: el número saldría falso con una vencida de un mes anterior) y leerlo de
+`fn_por_pagar_consolidado` (exige el módulo Cuentas y dinero). Queda pendiente de una migración que haga que `fn_gastos_panel` devuelva las vencidas.
+**SE ROMPE SI:** la lista del mes no responde: el chip y la bandeja no avisan lo sin comprobante (la pantalla ya dice que una parte no
+respondió) y «Te toca» se marca incompleto.
+
+## Actualización 2026-10-31 — la bandeja de Gastos es una pila (Felipe, la 03 del benchmark visual)
+
+Felipe miró las 8 propuestas de `docs/maquetas/gastos-benchmark-2026-10/` y pidió aplicar todas menos la 02 y la 07. Esta es la 03:
+
+1. **La bandeja de «lo que falta revisar» es una pila** (`components/finanzas/GastosPulso.tsx`, reglas en `lib/gastos-pila-reglas.ts`).
+   Arriba, la cosa más vieja, y bajo ella asoman una o dos capas (las que siguen). Una salida de caja se resuelve en la tarjeta misma:
+   el sistema ya propone qué fue (`sugerenciaParaEgreso`); si es un gasto, se elige la categoría (y «qué se pagó» llega con la nota del
+   cajón); quién lo hace va en la tarjeta; y «Listo». Un activo, o un gasto con boleta o factura, abre el registro completo. Un gasto fijo
+   sigue con su botón «Registrar», que abre la hoja ya armada.
+2. **«Listo» es al instante** (excepción de ADR-0149, act. 2026-10-31): la tarjeta se va 56 px a la izquierda y se apaga (360 ms), la
+   siguiente sube desde atrás (360 ms), el número de «Te faltan N» rueda (`CifraAnimada`) y la barra se llena; si la base dice que no,
+   la tarjeta vuelve con lo elegido. Al vaciarla, «Todo revisado» con el visto que se dibuja (`<Vacio>`). Una vez, sin rebote ni bucle.
+3. **Una sola regla para clasificar una salida** (`lib/clasificar-egreso.ts`): la pila y la hoja «¿Qué fue esta salida?» guardan con la
+   misma validación y la misma función de la base; la guía de foco de la tarjeta sale de esa misma regla y una prueba exige que coincidan
+   en todos los casos (`lib/gastos-pila-reglas.test.ts`).
+4. **La pila no se reordena bajo el dedo** (Copilot lo corrigió en marzo de 2026): va por fecha, la salida más vieja primero.
+5. **Un gasto va con su marca** (`useIntento("registrar_gasto")`, en la pila y en la hoja de siempre): si se corta la red, la tarjeta vuelve
+   con «No sabemos si se guardó», «Revisar si se guardó» y «Volver a intentar», que manda la MISMA marca (la base no lo duplica). Con eso
+   `GastosPanel` salió de la deuda de `lib/intento-reglas.test.ts`. Mientras un gasto de la pila va en camino, «Listo» espera (una marca
+   por vez): un doble clic manda una sola llamada.
+
+**DECIDÍ:** la tarjeta de arriba en papel con su línea (los campos y las píldoras en hueso con borde se ven encima) y las capas de atrás
+en hueso; un solo combo de responsable por tarjeta, que conserva lo elegido de una tarjeta a la otra. **DESCARTÉ:** sugerir la categoría
+(es la propuesta 6 de la pasada funcional, aparte) y resolver un gasto fijo en la tarjeta (pide medio de pago y comprobante: la hoja).
+**SE ROMPE SI:** `sugerenciaParaEgreso` deja de proponer, o la bandeja recibe las cosas en otro orden (la pila se reordenaría).
+
+## Actualización 2026-10-31 (b) — El detalle al costado, el gasto que aterriza y el ícono de su categoría (Felipe, las 01, 05 y 06 del benchmark)
+
+Después de juntar «corregir sin anular» y el comprobante (ADR-0588) con la pila, en un solo PR como pidió Felipe:
+
+1. **01 · El detalle del gasto va en el cajón lateral** (`<Cajon>` sin velo, como Movimientos; antes, una hoja al centro que tapaba la
+   lista). La lista sigue viva detrás: tocar otra fila cambia el gasto, la fila abierta queda marcada (`aria-current`) y «3 de 12» con ↑ ↓
+   pasa al siguiente en el orden de la lista (`ordenDelExtracto`, que entra a los «×N»). Con el foco en la lista, ↑ ↓ (o J y K) hacen lo
+   mismo y el foco sigue a la fila; si el gasto está dentro de un «×N» cerrado o en los días de antes, eso se abre solo mientras se lo
+   muestra (`dondeEstaEnElExtracto`). Arriba van el ícono de su categoría, el total en grande y «Ver los de …», que deja la lista con su
+   categoría sin cerrar el cajón. Corregir, «Llegó el comprobante», «No tendrá comprobante» y anular siguen abriendo su hoja en el lugar de
+   este. En el celular, la hoja desde abajo de siempre (ADR-0479).
+2. **05 · Al registrar, el gasto aterriza en su día.** La hoja avisa el id que devuelve `registrar_gasto` y el aviso dice dónde quedó
+   («Quedó en el martes 28 de octubre.», `textoDondeQuedo`). La lista lo busca cuando llega con el refresco **y el loader ya se fue**, lo trae
+   al centro y la fila respira en verde una vez (`data-recien`, la pieza de `<Tabla>`); si nunca llega (otro mes, un filtro), la marca se
+   suelta sola a los 15 s. **Sin «Deshacer»** (Felipe): un error se arregla con «Corregir».
+3. **06 · Cada fila lleva el ícono de su categoría** (`IconoCategoriaGasto`, reglas en `lib/icono-categoria-gasto.ts`): lucide sobre su
+   cuadrito de hueso, por el código de la categoría y nunca por su nombre; la que se cree sin deploy cae al recibo. Una prueba exige que
+   toda categoría que crean las migraciones tenga el suyo y que no se repitan.
+4. **De paso:** el extracto ya no se raya. La zebra de `fila-cayla` contaba solo hermanos y los «×N» van envueltos, así que caía en una fila
+   cualquiera y se leía como «esta está marcada» (visto el 2026-10-31; el día ya agrupa).
+
+**DECIDÍ:** el cajón sin velo (la lista detrás es la que se usa para pasar de uno a otro) y que ↑ ↓ desde la lista sigan el orden del
+cajón aunque el foco esté en una fila «×N». **DESCARTÉ:** la miniatura del comprobante en la fila (la propuesta 06 la traía): la lista
+del mes no sabe qué gasto tiene foto sin una lectura más de la base; queda para cuando `fn_gastos_lista` lo diga. **SE ROMPE SI:**
+`registrar_gasto` deja de devolver el id (no aterriza, sin caerse) o la lista deja de marcar sus filas con `data-id`.
+
+## Actualización 2026-11-09 — El Resumen pasa al camino «A · Bolsillos» (Felipe lo eligió mirando)
+
+Felipe miró las tres maquetas de punta a punta (`docs/maquetas/finanzas-resumen-de-punta-a-punta-2026-11/`) y eligió **A · Bolsillos**, con **el
+fondo del resto del ERP** (ninguno propio para Finanzas) y **el calendario de Estados financieros** (`SelectorPeriodo`, ADR-0611) en lugar del mes
+de la barra. Decidió también las dos reglas de dinero nuevas y pidió las hojas de detalle:
+
+1. **«Libre para usar»** («Todo lo que tiene dueño»): lo que hay en bancos y cajas − lo de CLAURE − el fondo de compras − lo que se paga en 14 días −
+   el IGV que se va juntando este mes − la planilla que Dynamic ya pagó y aquí no bajó del banco. No cuenta lo que se va a vender. Regla pura en
+   `lib/bolsillos-reglas.ts`, sobre la misma proyección de caja (`fn_flujo_caja_proyeccion`); una prueba exige que los bolsillos sumen `tienes − libre`.
+2. **«Te deja» del mes en curso es un estimado con rango**: lo de hasta hoy + el margen de lo que falta vender al ritmo de hoy − los gastos del mes que
+   faltan registrar; el rango, ±(4 % + 16 % × lo que falta del mes) sobre ese margen. Sale del mismo ritmo y los mismos gastos que «¿Ya pagaste el
+   mes?» (`lib/te-deja-mes-reglas.ts`; una prueba exige que coincidan). Sin lo que falta del mes, no estima.
+3. **Las hojas de detalle** (Libre, lo que te deja, lo vendido, los gastos, lo que viene, SUNAT y la ropa a costo) se abren desde los bolsillos, las
+   preguntas y las cifras del mes, se recorren con «Siguiente» y terminan en la pantalla que lo resuelve (`components/finanzas/bolsillos/HojasResumen.tsx`).
+
+Lo que cambió en la pantalla: «Libre para usar» con sus bolsillos reemplaza a «¿Cuánto tienes?» (lo que decía de qué está hecho lo que tienes pasó a
+la primera línea de su cuenta); «Noviembre va así» reemplaza a «¿Cuánto te deja?» y a «¿Ya pagaste el mes?» (que vive dentro, con la rayita de hoy);
+«Próximos» con el día más justo reemplaza a «Tu caja, dos semanas» y a «¿Cuánto debes pagar pronto?» (la compra de campaña que se cuenta en la
+inversión entra a su lista); «Movimientos» es nuevo, de `fn_flujo_caja_real` un día a la vez y en su propio `Suspense`. Se quedan, porque ya estaban
+decididos: «Hoy te toca», lo vendido por sede con la confianza (ADR-0417), «Cada sede, junta», «A dónde va la plata», lo que más se movió y la
+inversión en mercadería al final (2026-10-29).
+
+**DECIDÍ:** las dos columnas de la maqueta (la plata a la izquierda, el mes a la derecha) y, en una sola columna, el orden de importancia con `order`;
+que los bolsillos, «Próximos» y «Libre» salgan de los mismos pagos, para que nunca den tres totales distintos; que el día más justo use la caja con la
+compra de campaña (como lo hacía «Tu caja») cortada a 14 días. **DESCARTÉ:** los fondos Rejilla y Clima (Felipe: «el fondo como el resto del sistema»);
+la comparación con el año pasado y el puente «¿por qué tengo menos plata?», que eran del camino C; el inventario, el sankey y el calendario del camino B.
+**SE ROMPE SI:** `fn_flujo_caja_proyeccion` cambia el id de su fila de IGV (`igv:<mes>`, de ahí sale lo que se junta), o deja de restar CLAURE y el
+fondo de compras de `saldo_hoy` (`loQueHayEnCuentas` los vuelve a sumar). La fecha de SUNAT sigue siendo el día 15 hasta que se cargue el RUC.
+
+## Actualización 2026-11-09 (b) — El Resumen, más cerca de la maqueta (Felipe: «no se parece mucho»)
+
+Felipe comparó la pantalla con la maqueta y pidió acercarla en el espacio, el celular y los íconos. Se hizo, sin cambiar ninguna cuenta:
+la respuesta va a la vista bajo la cabecera (`lib/frase-resumen-reglas.ts`: cuánto tienes, cuánto puedes usar y cuánto te deja el mes; el subtítulo
+sigue en su «?»); el Resumen pasa a **`pantalla-en-vidrio`** (ADR-0596: el vidrio claro que ya esperaba el rediseño) y sus cifras a **Inter con la «S/»
+chica**, la letra de las cifras de Estados financieros (ADR-0611); los bolsillos son tarjetitas con su ícono en un cuadrito de su color; los movimientos
+llevan el ícono de su categoría; el cambio contra el mes pasado es texto con su flecha; las columnas van 7 a 5 desde 1100 px, como la maqueta; y
+«A dónde va la plata» ya no guarda su lugar cuando no tiene qué dibujar. En oscuro, el rojo de «Ver …» se aclara un poco sobre el vidrio (4.1:1 → pasa).
+**DESCARTÉ:** mover la barra de sede y mes bajo el título como en la maqueta (es la mesa común de Finanzas, ADR-0493) y achicar el título (es la
+cabecera única del ERP, ADR-0220).
+
+## Actualización 2026-11-09 (c) — El Resumen por filas, no por columnas (Felipe: «optimiza el espacio, todo bien ubicado»)
+
+Con dos pilas sueltas, la que tenía menos datos terminaba antes y dejaba media pantalla vacía al pie (a 1440 px, 470 px: la izquierda acababa en
+1291 y la derecha en 1758). El Resumen pasa a filas de dos (7 a 5): lo libre con el mes, las preguntas a lo ancho, «Hoy te toca» con «Próximos» y
+«Movimientos» con las tiendas; las dos tarjetas de una fila miden lo mismo. Una pieza sin pareja (sin ventas por sede, o sin el flujo) toma la fila
+entera, y «Movimientos» reparte sus días en dos columnas. El último par («A dónde va la plata» y lo que más se movió) sigue la misma regla, 1 a 1,2.
+«Flujo de caja» sale de «Próximos» (flotaba suelto; «Movimientos» ya lleva al Flujo de efectivo). En el celular, el orden del código.
+**DESCARTÉ:** acomodar las piezas con JavaScript según su alto (masonry): saltaría al cargar los datos y cambiaría de lugar entre un mes y otro.
+
+## Actualización 2026-11-09 (d) — Cada hoja del Resumen abre con su gráfico (Felipe: «varios modales no tienen gráficos»)
+
+Las hojas eran listas. Ahora cada una abre con un gráfico de las piezas decididas del ERP (ADR-0358), con lo que la página ya leyó: «Libre» y la ropa,
+la barra apilada (lo libre y sus bolsillos; la ropa por sede, con el color de dato de cada sede); «Lo que te deja», de cada S/ 100 vendidos (ropa,
+gastos y lo que quedó) y la barra de «¿Ya pagaste el mes?» con la rayita de hoy; lo vendido, el reparto por tienda y las barras por día (`BarrasTiempo`,
+si la cuenta ve Rendimiento); los gastos, la barra por rubro (los cuatro mayores y «Otros»); lo que viene, la línea de la caja de 14 días contra tu
+mínimo (`Linea`, la misma caja de «Próximos»); SUNAT, lo que vence ahora contra lo que se junta. Los renglones llevan la muestra del color de su tramo
+(antes, una barrita gris que repetía el gráfico), una barra de un solo tramo no se dibuja, las hojas pasan a 768 px y las cifras a Inter con la «S/»
+chica también dentro del portal. Lógica en `lib/hojas-resumen-reglas.ts` (`deCadaCien`, `rubrosEnBarra`, `ventasDiaADia`, `colorDeSede`), con su prueba.

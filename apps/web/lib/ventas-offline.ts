@@ -45,6 +45,8 @@ export type ItemVentaEncolada = { varianteId: string; cantidad: number };
 /** Un ítem de `p_items`, tal cual lo arma `cobrar()` hoy en `PuntoDeVenta.tsx`. */
 export type ItemRegistrarVenta = {
   variante_id: string;
+  /** ADR-0542: de qué empresa sale esta prenda (solo si en la sede hay de las dos). `registrar_venta` la ignora: viaja en `x-dueno-lineas`. */
+  empresa_id?: string;
   cantidad: number;
   precio_unitario: number;
   descuento_unitario: number;
@@ -62,8 +64,9 @@ export type ItemRegistrarVenta = {
   categoria_id?: string;
   talla_id?: string;
   color_codigo?: string;
-  /** Solo en una pieza de liquidación (ADR-0379): el código de su etiqueta vigente. */
-  pieza_liquidacion_codigo?: string;
+  /** Solo en una «Prenda sin registrar»: por qué se anotó a mano (20261106233000) y, con «otro», su texto. */
+  motivo_sin_registrar?: string;
+  motivo_sin_registrar_detalle?: string;
 };
 
 /** El payload de `registrar_venta` que manda la caja (`p_cliente_id` se sumó en la tanda 1a del club, ADR-0288; el cupón del Club

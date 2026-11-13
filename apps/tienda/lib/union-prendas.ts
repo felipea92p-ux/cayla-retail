@@ -162,10 +162,14 @@ export const HOLGURA_DE_LA_UNION = 0.15;
 /** El largo más corto y el más largo (cm) que se le deja a una prenda de abajo al igualarla con la de arriba: una foto rara no dibuja un pantalón de 20 cm. */
 export const LARGO_MINIMO_DE_ABAJO = 20;
 export const LARGO_MAXIMO_DE_ABAJO = 120;
-/** Cuánto más ancha que la prenda de arriba puede verse la de abajo (×1,05). Una blusa con vuelo abajo (un peplum) lleva la pretina al máximo de
- *  la holgura, y una falda acampanada se abría hasta verse 20 % más ancha que la blusa (FAL-0011 con CMS-0026, 2026-10-22). La pretina nunca baja de la
- *  cintura mínima (`HOLGURA_DE_LA_UNION`): una falda de mucho vuelo sigue siendo más ancha que su blusa, como en una persona. */
+/** Cuánto más ancha que la prenda de arriba puede verse una FALDA (×1,05). Una blusa con vuelo abajo (un peplum) lleva la pretina al máximo de
+ *  la holgura, y una falda acampanada se abría hasta verse 20 % más ancha que la blusa (FAL-0011 con CMS-0026, 2026-10-22). Solo vale para faldas
+ *  (Felipe, 2026-11-09): un pantalón, un short o un jean se abre en las piernas, y medirlo contra la blusa encogía su pretina hasta 8 cm por debajo
+ *  del bajo de la blusa. */
 export const ANCHO_MAXIMO_DE_ABAJO_SOBRE_ARRIBA = 1.05;
+/** Hasta dónde puede ese tope encoger la pretina de una falda: nunca por debajo del 92 % del bajo de la blusa (Felipe eligió mirando, 2026-11-09:
+ *  sin tope la falda del peplum se ve muy grande; con el tope entero, la pretina queda 11 cm más angosta que el bajo y se ve el escalón). */
+export const PRETINA_MINIMA_DE_LA_FALDA = 0.92;
 /** Cuánto entra la pretina bajo el borde del torso (px de la escena), para que no quede una línea de aire entre las dos. */
 export const SOLAPE_DE_LA_UNION = 3;
 /** Cuánto puede crecer, a lo más, una prenda de arriba que se dibuja con el bajo demasiado angosto (×1,3). Nunca se encoge: una prenda ancha es ancha a propósito. */
@@ -228,13 +232,13 @@ export function cajaDeArribaAjustada(arriba: { caja: Caja; medida: MedidaDelReco
 
 /**
  * Dónde va la prenda de abajo para que su pretina siga al borde de abajo de la de arriba (dentro de ±15 % de la cintura estándar). `null` si no se puede (sin medidas, o
- * la prenda de arriba va metida —un body—): entonces se queda la caja de siempre, por su largo en cm. Es la misma regla para una falda, un
- * short y un pantalón: lo que se fija es la pretina; el largo sale de la forma de la foto, entre `LARGO_MINIMO_DE_ABAJO` y
- * `LARGO_MAXIMO_DE_ABAJO`.
+ * la prenda de arriba va metida —un body—): entonces se queda la caja de siempre, por su largo en cm. Lo que se fija es la pretina; el largo sale de la forma
+ * de la foto, entre `LARGO_MINIMO_DE_ABAJO` y `LARGO_MAXIMO_DE_ABAJO`. Un pantalón, un short o un jean calza su pretina con el bajo de la blusa; una falda
+ * (`falda`) además no se ve más de ×1,05 el ancho de la blusa, sin que su pretina baje del 92 % de ese bajo.
  */
 export function cajaDeAbajoUnida(
   arriba: { caja: Caja; medida: MedidaDelRecorte | null | undefined; metida: boolean },
-  abajo: { proporcion: number; medida: MedidaDelRecorte | null | undefined },
+  abajo: { proporcion: number; medida: MedidaDelRecorte | null | undefined; falda?: boolean },
 ): Caja | null {
   const a = arriba.medida;
   const b = abajo.medida;
@@ -245,8 +249,13 @@ export function cajaDeAbajoUnida(
   const bordeAncho = Math.max(a.borde, anchoDelBajo(a) ?? 0);
   const pretinaMinima = estandar * (1 - HOLGURA_DE_LA_UNION);
   const pretinaSegunElBorde = Math.min(Math.max(arriba.caja.w * bordeAncho, pretinaMinima), estandar * (1 + HOLGURA_DE_LA_UNION));
-  // Y que toda la prenda de abajo no se vea mucho más ancha que la de arriba (sin bajar de la cintura mínima).
-  const pretinaPx = Math.max(pretinaMinima, Math.min(pretinaSegunElBorde, arriba.caja.w * ANCHO_MAXIMO_DE_ABAJO_SOBRE_ARRIBA * b.pretina));
+  // Una falda, además, no se ve mucho más ancha que la blusa: el tope la encoge, pero su pretina no baja del 92 % del bajo (ni de la cintura mínima).
+  const pretinaPx = abajo.falda
+    ? Math.max(
+        pretinaMinima,
+        Math.min(pretinaSegunElBorde, Math.max(arriba.caja.w * ANCHO_MAXIMO_DE_ABAJO_SOBRE_ARRIBA * b.pretina, pretinaSegunElBorde * PRETINA_MINIMA_DE_LA_FALDA)),
+      )
+    : pretinaSegunElBorde;
   // El bajo de la prenda de arriba no siempre es recto: la pretina arranca donde el bajo está más ALTO dentro de su ancho (sin aire en ese lado)
   // y la parte del bajo que cuelga más abajo la tapa. Sin perfil medido, el punto más bajo de siempre.
   const franja = Math.min(Math.max(pretinaPx / arriba.caja.w, FRANJA_MINIMA_DE_LA_UNION), FRANJA_MAXIMA_DE_LA_UNION);
@@ -265,6 +274,18 @@ export function cajaDeAbajoUnida(
 
 /** En qué parte del alto de la prenda de arriba se supone su borde de abajo mientras todavía no se midió su recorte. */
 export const FILA_ESTIMADA_DEL_BORDE = 0.9;
+/**
+ * Dónde va la prenda de abajo mientras la unión no tiene sus medidas (todavía no llegan, o no se pudieron leer): con su tamaño de siempre, pero
+ * arrancando en el bajo de la prenda de arriba (el medido si ya se midió; si no, `FILA_ESTIMADA_DEL_BORDE`), donde corre el hilo. Antes se quedaba en la
+ * cintura fija de la figura: con una blusa larga, la falda quedaba escondida detrás y asomaba por los costados de la cintura (Felipe, 2026-11-10).
+ * `null`: no hay nada que mover (la de arriba va metida, o la caja es rara).
+ */
+export function cajaDeAbajoSinMedida(arriba: { caja: Caja; medida: MedidaDelRecorte | null | undefined; metida: boolean }, abajo: Caja): Caja | null {
+  if (arriba.metida || !(arriba.caja.h > 0) || !(abajo.h > 0)) return null;
+  const fila = arriba.medida?.filaDelBorde ?? FILA_ESTIMADA_DEL_BORDE;
+  return { ...abajo, y: Math.round(arriba.caja.y + arriba.caja.h * fila - SOLAPE_DE_LA_UNION) };
+}
+
 /** Cuánto sobresale el hilo por cada lado de la cintura estándar (px de la escena). */
 export const MARGEN_DEL_HILO = 14;
 
@@ -295,23 +316,52 @@ export function siguienteFase(fase: FaseDelAjuste, ajustando: boolean): FaseDelA
   return fase === "espera" ? "listo" : fase;
 }
 
-/* ======================== Para medir rápido: qué se baja, y lo que se recuerda entre visitas ======================== */
+/* ======================== Para medir rápido: a qué ancho se mide, y lo que se recuerda entre visitas ======================== */
 
-/** El ancho (px) al que se baja un recorte para medirlo: uno de los anchos que el optimizador de imágenes de la tienda ya sirve (`imageSizes`). */
+/** El ancho (px) al que la ruta baja un recorte para medirlo. Las medidas son fracciones de la imagen, así que no cambian por bajarla más chica. */
 export const ANCHO_PARA_MEDIR = 256;
 /** Cuántos recortes medidos se recuerdan en el navegador (los más nuevos): son tres números por prenda. */
 export const MEDIDAS_QUE_SE_RECUERDAN = 300;
 
-/**
- * De dónde se baja un recorte para medirlo. Una foto del almacén de CAYLA pasa por el optimizador (misma dirección que ya usa la figura, 256 px
- * de ancho): pesa una fracción del PNG entero, sale de la caché del CDN y es del mismo origen, sin pedir permisos de lectura. Cualquier otra se
- * baja tal cual. Las medidas son fracciones de la imagen, así que no cambian por bajarla más chica.
- */
-export function direccionParaMedir(foto: { url: string; optimizar: boolean }): string {
-  return foto.optimizar ? `/_next/image?url=${encodeURIComponent(foto.url)}&w=${ANCHO_PARA_MEDIR}&q=75` : foto.url;
+/* ======================== La medida la saca la tienda, no el navegador (2026-11-10) ======================== */
+
+// Safari 26 (macOS y iOS) trae encendida para toda la navegación su protección contra la huella digital: le mete ruido a lo que una página lee de
+// un lienzo (`getImageData`). Esa lectura era la medida de la unión, así que en Safari la blusa y el pantalón quedaban sin unir o mal unidos, y en
+// Chrome no (Felipe, 2026-11-10, desde Safari en su Mac). La medida ahora la saca el servidor de la tienda con la MISMA función (`medirRecorte`),
+// una vez por recorte: `app/api/medida/[archivo]/route.ts`. Todo navegador recibe el mismo número, y ninguna protección de privacidad lo toca.
+
+const CARPETA_DE_RECORTES = "/storage/v1/object/public/retail-productos-fotos/recortes/";
+/** El nombre de un recorte del almacén: el id de la foto y un sufijo (b5595d2a-…-d73355d476fb-7ee8fc70.png). Es lo único que acepta la ruta. */
+const NOMBRE_DE_RECORTE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}(?:-[0-9a-f]{1,32})?\.(?:png|webp)$/i;
+/** La medida se guarda un año por su dirección: si cambia cómo se mide (`medirRecorte`), se sube este número para que se vuelva a calcular. */
+export const VERSION_DE_LA_MEDIDA = 1;
+
+/** ¿Es el nombre de un recorte del almacén? Nada de carpetas ni de otras direcciones. */
+export const esNombreDeRecorte = (archivo: string): boolean => NOMBRE_DE_RECORTE.test(archivo);
+
+/** La dirección del recorte en el almacén de la tienda (`origen`, el de `TIENDA_FOTOS_ORIGEN`). */
+export const urlDelRecorte = (origen: string, archivo: string): string => `${origen.replace(/\/$/, "")}${CARPETA_DE_RECORTES}${archivo}`;
+
+/** Dónde pide el navegador la medida de un recorte; `null` si la foto no es un recorte del almacén (entonces no hay unión: queda la caja de siempre). */
+export function direccionDeLaMedida(url: string): string | null {
+  const i = url.indexOf(CARPETA_DE_RECORTES);
+  if (i < 0) return null;
+  const archivo = url.slice(i + CARPETA_DE_RECORTES.length);
+  return esNombreDeRecorte(archivo) ? `/api/medida/${archivo}?v=${VERSION_DE_LA_MEDIDA}` : null;
 }
 
 const esFraccion = (v: unknown): v is number | null => v === null || (typeof v === "number" && Number.isFinite(v) && v >= 0 && v <= 1);
+
+/** Una medida bien formada (la que responde la ruta o la que se recordó), o `null` si no lo es: un dato roto o de otra versión no rompe nada. */
+export function medidaDesdeDato(m: unknown): MedidaDelRecorte | null {
+  if (!m || typeof m !== "object" || Array.isArray(m)) return null;
+  const { filaDelBorde, borde, pretina, bajo, anchoBajo } = m as Record<string, unknown>;
+  const perfil = Array.isArray(bajo) && bajo.length === FRANJAS_DEL_BAJO && bajo.every(esFraccion) ? (bajo as (number | null)[]) : null;
+  if (esFraccion(filaDelBorde) && esFraccion(borde) && esFraccion(pretina) && (bajo == null || perfil) && (anchoBajo == null || esFraccion(anchoBajo))) {
+    return { filaDelBorde, borde, pretina, bajo: perfil, anchoBajo: anchoBajo ?? null };
+  }
+  return null;
+}
 
 /** Lo que se recordó de visitas anteriores: solo lo bien formado (un texto roto o de otra versión no rompe nada). */
 export function medidasDesdeTexto(texto: string | null): Map<string, MedidaDelRecorte> {
@@ -321,12 +371,8 @@ export function medidasDesdeTexto(texto: string | null): Map<string, MedidaDelRe
     const dato: unknown = JSON.parse(texto);
     if (!dato || typeof dato !== "object" || Array.isArray(dato)) return salida;
     for (const [url, m] of Object.entries(dato)) {
-      if (!m || typeof m !== "object") continue;
-      const { filaDelBorde, borde, pretina, bajo, anchoBajo } = m as Record<string, unknown>;
-      const perfil = Array.isArray(bajo) && bajo.length === FRANJAS_DEL_BAJO && bajo.every(esFraccion) ? (bajo as (number | null)[]) : null;
-      if (esFraccion(filaDelBorde) && esFraccion(borde) && esFraccion(pretina) && (bajo == null || perfil) && (anchoBajo == null || esFraccion(anchoBajo))) {
-        salida.set(url, { filaDelBorde, borde, pretina, bajo: perfil, anchoBajo: anchoBajo ?? null });
-      }
+      const medida = medidaDesdeDato(m);
+      if (medida) salida.set(url, medida);
     }
   } catch {
     // Un texto que no es JSON se ignora: se vuelve a medir.

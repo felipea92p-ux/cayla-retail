@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
+  AVISO_SIN_SUELDOS,
+  AVISO_SUELDOS_SIN_LEER,
+  primerasLineasDeSueldos,
   avisosER,
   clavesCerradas,
   columnasER,
@@ -55,7 +58,7 @@ const fila = (p: Partial<FilaER> & Pick<FilaER, "unidad" | "nombre">): FilaER =>
   planillaNota: null,
   planillaEstimada: 0,
   planillaAlCierre: 0,
-  planillaPersonas: 0,
+  planillaPersonas: 0, planillaPorSede: [],
   ...p,
 });
 
@@ -478,5 +481,23 @@ describe("unidades cerradas de un mes", () => {
   it("la nota promete lo que hace el sistema: lo congelado no cambia y se corrige reabriendo", () => {
     expect(NOTA_MES_CERRADO).toMatch(/no cambian/);
     expect(NOTA_MES_CERRADO).toMatch(/Cierre de mes/);
+  });
+});
+
+// Tarea 43: los archivos del contador dicen en su primera línea lo que les falta, y una lectura caída no se confunde con una cuenta que no ve la planilla.
+describe("primerasLineasDeSueldos", () => {
+  const visible = [{ planillaVisible: true }];
+  it("con todo leído no agrega nada", () => {
+    expect(primerasLineasDeSueldos({ datos: visible, falla: null })).toEqual([]);
+  });
+  it("si no se pudieron leer los sueldos, lo dice sin culpar a la cuenta", () => {
+    expect(primerasLineasDeSueldos({ datos: visible, falla: null, sueldosSinLeer: true })).toEqual([AVISO_SUELDOS_SIN_LEER]);
+    expect(AVISO_SUELDOS_SIN_LEER).toBe("No se pudieron leer los sueldos: estas cifras no los restan.");
+  });
+  it("quien no ve la planilla sigue con su aviso", () => {
+    expect(primerasLineasDeSueldos({ datos: [{ planillaVisible: false }], falla: null })).toEqual([AVISO_SIN_SUELDOS]);
+  });
+  it("si no se puede saber, lo dice", () => {
+    expect(primerasLineasDeSueldos({ datos: [], falla: "x" })).toEqual(["No se pudo comprobar si estas cifras llevan sueldos."]);
   });
 });

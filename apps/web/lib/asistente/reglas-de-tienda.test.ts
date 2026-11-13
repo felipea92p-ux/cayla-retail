@@ -7,7 +7,7 @@ import { REGLAS_DE_TIENDA, reglasAprobadas, type ReglaDeTienda } from "./reglas-
 
 const regla = (id: string) => REGLAS_DE_TIENDA.find((r) => r.id === id)!;
 
-describe("las reglas de tienda (ADR-0529, actividad 7)", () => {
+describe("las reglas de tienda (ADR-0536, actividad 7)", () => {
   it("cada id es único y cada regla tiene su fuente", () => {
     expect(new Set(REGLAS_DE_TIENDA.map((r) => r.id)).size).toBe(REGLAS_DE_TIENDA.length);
     for (const r of REGLAS_DE_TIENDA) expect(r.fuente.length, r.id).toBeGreaterThan(5);

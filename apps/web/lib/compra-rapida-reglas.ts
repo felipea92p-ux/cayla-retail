@@ -1,6 +1,6 @@
 import { soles } from "./compras-reglas";
 import { leerMontoPlata } from "./monto-plata-reglas";
-import { problemaDeMonto } from "./fondos-reglas";
+import { MONTO_MAXIMO_PLATA, problemaDeMonto } from "./fondos-reglas";
 import type { CampoDeGuia } from "./guia-campos";
 import { nombresParecidos } from "./nombres-parecidos";
 import { diasEntreFechas } from "./fechas-lima";
@@ -48,7 +48,8 @@ const numero = (v: unknown): number | null => {
 const texto = (v: unknown): string | null => (typeof v === "string" && v.trim() !== "" ? v : null);
 const normalizar = (s: string) => s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().trim();
 
-export type ProveedorParaComprar = { id: string; nombre: string; ruc: string | null; categorias: string[]; compras: number; ultima: string | null };
+/** `marcas`: con las que se conoce al proveedor (ADR-0140); el nombre es su razón social y el equipo lo busca por «Kero». Vacía si no hay o no se pudieron leer. */
+export type ProveedorParaComprar = { id: string; nombre: string; ruc: string | null; categorias: string[]; compras: number; ultima: string | null; marcas: string[] };
 
 /** Lo que manda `fn_proveedores_para_comprar`: el más comprado primero, como viene. */
 export function leerProveedoresParaComprar(data: unknown): ProveedorParaComprar[] {
@@ -67,15 +68,147 @@ export function leerProveedoresParaComprar(data: unknown): ProveedorParaComprar[
         categorias: Array.isArray(o.categorias) ? o.categorias.filter((c): c is string => typeof c === "string") : [],
         compras: Math.max(0, Math.trunc(numero(o.compras) ?? 0)),
         ultima: texto(o.ultima),
+        marcas: [],
       };
     })
     .filter((x): x is ProveedorParaComprar => x !== null);
 }
 
-/** Buscar un proveedor: por su nombre (sin tildes ni mayúsculas) y, si se eligió una categoría, solo los que la venden. */
+/** Suma a cada proveedor sus marcas (`marcasPorProveedor`, por id). Sin mapa (la lectura falló) la lista queda como vino. */
+export function conMarcas(lista: readonly ProveedorParaComprar[], marcas: Readonly<Record<string, readonly string[]>> | null): ProveedorParaComprar[] {
+  return lista.map((p) => ({ ...p, marcas: [...(marcas?.[p.id] ?? [])] }));
+}
+
+/** Buscar un proveedor: por su nombre o por alguna de sus marcas (sin tildes ni mayúsculas) y, si se eligió una categoría, solo los que la venden. */
 export function filtrarProveedores(lista: readonly ProveedorParaComprar[], q: string, categoriaId: string | null): ProveedorParaComprar[] {
   const n = normalizar(q);
-  return lista.filter((p) => (!n || normalizar(p.nombre).includes(n)) && (!categoriaId || p.categorias.includes(categoriaId)));
+  return lista.filter((p) => (!n || normalizar(p.nombre).includes(n) || p.marcas.some((m) => normalizar(m).includes(n))) && (!categoriaId || p.categorias.includes(categoriaId)));
+}
+
+// ---------- La marca primero (ADR-0644, Felipe 2026-11-11) ----------
+// «Muchas veces no se conoce al proveedor sino la marca»: el paso 1 pregunta «¿Qué marca compraste?» y el proveedor sale de la marca. Lo que se
+// guarda no cambia (la compra, la deuda y el pago siguen siendo con la razón social): cambia por dónde se entra. Una marca con un solo proveedor
+// (110 de 115 al 2026-11-11) lo pone sola; con dos o más, se pregunta de quién. Solo con lo que ya se lee (`marcas` + `marca_proveedores`).
+
+/** Una marca y los proveedores que la traen, por id: lo que arma el servidor (se serializa a la pantalla). */
+export type MarcaConProveedores = { id: string; nombre: string; proveedorIds: string[] };
+
+/** La marca ya con sus proveedores de esta lista (solo los que se pueden elegir para comprar). */
+export type MarcaParaComprar = { id: string; nombre: string; proveedores: ProveedorParaComprar[] };
+
+/** Las marcas con sus vínculos: `{ marca_id, proveedor_id }` de `marca_proveedores`, sin repetir, en orden alfabético. */
+export function marcasConProveedores(
+  marcas: readonly { id: string; nombre: string }[],
+  vinculos: readonly { marca_id: string; proveedor_id: string }[],
+): MarcaConProveedores[] {
+  const de = new Map<string, Set<string>>();
+  for (const v of vinculos) {
+    const s = de.get(v.marca_id) ?? new Set<string>();
+    s.add(v.proveedor_id);
+    de.set(v.marca_id, s);
+  }
+  return marcas
+    .map((m) => ({ id: m.id, nombre: m.nombre, proveedorIds: [...(de.get(m.id) ?? [])] }))
+    .sort((a, b) => a.nombre.localeCompare(b.nombre, "es"));
+}
+
+/** Lo más reciente que se le compró a alguno de sus proveedores (`null` si a ninguno). */
+function ultimaDeMarca(m: Pick<MarcaParaComprar, "proveedores">): string | null {
+  return m.proveedores.reduce<string | null>((max, p) => (p.compras > 0 && p.ultima && (!max || p.ultima > max) ? p.ultima : max), null);
+}
+
+/** Más reciente primero; sin fecha, al final; empate o sin fecha, por nombre. */
+function porReciente(a: { ultima: string | null; nombre: string }, b: { ultima: string | null; nombre: string }): number {
+  if (a.ultima && b.ultima && a.ultima !== b.ultima) return a.ultima < b.ultima ? 1 : -1;
+  if (a.ultima && !b.ultima) return -1;
+  if (!a.ultima && b.ultima) return 1;
+  return a.nombre.localeCompare(b.nombre, "es");
+}
+
+/**
+ * Cada marca con los proveedores de la lista que la traen. Una marca sin ninguno elegible no sale (no se podría comprar). Primero las de los
+ * proveedores a los que se les compró más reciente; después el resto, en orden alfabético.
+ */
+export function marcasParaComprar(marcas: readonly MarcaConProveedores[], proveedores: readonly ProveedorParaComprar[]): MarcaParaComprar[] {
+  const porId = new Map(proveedores.map((p) => [p.id, p]));
+  return marcas
+    .map((m) => ({ id: m.id, nombre: m.nombre, proveedores: m.proveedorIds.flatMap((id) => (porId.has(id) ? [porId.get(id)!] : [])) }))
+    .filter((m) => m.proveedores.length > 0)
+    .map((m) => ({ m, ultima: ultimaDeMarca(m), nombre: m.nombre }))
+    .sort(porReciente)
+    .map(({ m }) => m);
+}
+
+/** «La compraste hace poco»: las marcas de proveedores a los que ya se les compró, la más reciente primero. */
+export function marcasRecientes(lista: readonly MarcaParaComprar[], maximo = 5): MarcaParaComprar[] {
+  return lista
+    .filter((m) => ultimaDeMarca(m) !== null)
+    .map((m) => ({ m, ultima: ultimaDeMarca(m), nombre: m.nombre }))
+    .sort(porReciente)
+    .slice(0, maximo)
+    .map(({ m }) => m);
+}
+
+/** Buscar una marca: por su nombre o por el de alguno de sus proveedores; con una categoría, solo las que trae un proveedor que la vende. */
+export function filtrarMarcas(lista: readonly MarcaParaComprar[], q: string, categoriaId: string | null): MarcaParaComprar[] {
+  const n = normalizar(q);
+  return lista.filter(
+    (m) =>
+      (!n || normalizar(m.nombre).includes(n) || m.proveedores.some((p) => normalizar(p.nombre).includes(n))) &&
+      (!categoriaId || m.proveedores.some((p) => p.categorias.includes(categoriaId))),
+  );
+}
+
+/** Los proveedores que no tienen ninguna marca registrada: no salen en la lista por marca, así que buscando se ofrecen aparte. */
+export function proveedoresSinMarca(proveedores: readonly ProveedorParaComprar[], marcas: readonly MarcaConProveedores[]): ProveedorParaComprar[] {
+  const conMarca = new Set(marcas.flatMap((m) => m.proveedorIds));
+  return proveedores.filter((p) => !conMarca.has(p.id));
+}
+
+/** La razón social sin «SAC», «EIRL», «SRL»: como se lee bajo la marca y en la cabecera de la compra. */
+export function nombreSinSociedad(nombre: string): string {
+  return nombre.replace(/\s+(s\.?a\.?c\.?|e\.?i\.?r\.?l\.?|s\.?r\.?l\.?)$/i, "");
+}
+
+/** Lo que se lee bajo cada marca: de quién es y cuándo se le compró a ese proveedor. Con varios, que se va a preguntar de quién. */
+export function detalleMarca(m: MarcaParaComprar, hoy: string): { deQuien: string; cuando: string; preguntaDeQuien: boolean } {
+  if (m.proveedores.length === 1) {
+    const p = m.proveedores[0];
+    return { deQuien: `De ${p.nombre}`, cuando: detalleProveedor(p, hoy), preguntaDeQuien: false };
+  }
+  const ultima = ultimaDeMarca(m);
+  return {
+    deQuien: `De ${m.proveedores.length} proveedores`,
+    cuando: ultima ? `Le compraste a uno ${haceCuanto(diasEntreFechas(ultima, hoy))}` : "Todavía no le compras",
+    preguntaDeQuien: true,
+  };
+}
+
+/** Los proveedores de una marca para «¿Quién te la trajo?»: al que se le compró más reciente primero, después por nombre. */
+export function proveedoresDeLaMarca(m: MarcaParaComprar): ProveedorParaComprar[] {
+  return [...m.proveedores]
+    .map((p) => ({ p, ultima: p.compras > 0 ? p.ultima : null, nombre: p.nombre }))
+    .sort(porReciente)
+    .map(({ p }) => p);
+}
+
+/** Las marcas que trae un proveedor (para «también te trae» del paso 2), en el orden de la lista. */
+export function marcasDelProveedorElegido(lista: readonly MarcaParaComprar[], proveedorId: string): { id: string; nombre: string }[] {
+  return lista.filter((m) => m.proveedores.some((p) => p.id === proveedorId)).map((m) => ({ id: m.id, nombre: m.nombre }));
+}
+
+/**
+ * Las píldoras de marca del paso 2: cada marca del proveedor con cuántas prendas suyas hay. Solo si trae dos o más (con una sola no hay nada que
+ * elegir). La marca por la que se entró va primero.
+ */
+export function pildorasDeMarca(
+  marcasDelProveedor: readonly { id: string; nombre: string }[],
+  habituales: readonly Pick<Habitual, "marcaId">[],
+  primera: string | null,
+): { id: string; nombre: string; cuantos: number }[] {
+  if (marcasDelProveedor.length < 2) return [];
+  const con = marcasDelProveedor.map((m) => ({ ...m, cuantos: habituales.filter((h) => h.marcaId === m.id).length }));
+  return primera ? [...con.filter((m) => m.id === primera), ...con.filter((m) => m.id !== primera)] : con;
 }
 
 /**
@@ -140,6 +273,19 @@ export type Habitual = {
   venta: number | null;
 };
 
+/**
+ * La frase sobre la lista de «¿Qué le compraste?». «Viene con lo de la vez pasada» solo si de verdad hubo una vez pasada (alguna con `veces`
+ * > 0); si la lista es solo su catálogo, viene con el precio del catálogo. Antes decía «la vez pasada» también con una marca que dice «Todavía
+ * no le compras» (auditoría 2026-11-12).
+ */
+export function ayudaDeHabituales(habituales: readonly Pick<Habitual, "veces">[] | null): string {
+  // Mientras se lee (o si no se pudo leer): un texto que no promete nada sobre la vez pasada.
+  if (habituales === null) return "Toca una prenda de la lista. Si es otra, usa «Algo nuevo».";
+  if (habituales.length === 0) return "Todavía no le compraste nada: descríbelo con «Algo nuevo».";
+  if (habituales.some((h) => h.veces > 0)) return "Toca una prenda de las suyas: viene con lo de la vez pasada. Si es otra, usa «Algo nuevo».";
+  return "Toca una prenda de su catálogo: viene con su costo y su precio. Si es otra, usa «Algo nuevo».";
+}
+
 /** Lo que manda `fn_habituales_proveedor`: lo más comprado primero, como viene. */
 export function leerHabituales(data: unknown): Habitual[] {
   if (!Array.isArray(data)) return [];
@@ -180,13 +326,81 @@ export function categoriasDeHabituales(lista: readonly Habitual[]): { id: string
   return porId.size > 1 ? [...porId.values()] : [];
 }
 
-/** La línea chica de una tarjeta de habitual: lo de la vez pasada, o lo que dice el catálogo si nunca se le compró aquí. */
-export function textoHabitual(h: Habitual): string | null {
-  if (h.veces > 0 && h.ultimaCantidad != null && h.costo != null) {
-    return `La vez pasada: ${h.ultimaCantidad} a ${soles(h.costo)}${h.venta != null ? ` · se vendió a ${soles(h.venta)}` : ""}`;
+/**
+ * Lo que dice cada fila de «¿Qué le compraste?» (Felipe 2026-10-28): «Te costó S/ 20.00 · vendes S/ 35.90 · antes: 5». Cada pieza es una
+ * etiqueta y su valor, para dibujar el valor en negrita. Una prenda que ya va en la compra dice lo que se anotó (sin «antes»); una que
+ * nunca se le compró aquí dice solo el precio del catálogo; sin ninguno, vacío (la fila pone su categoría y su marca).
+ */
+export function piezasDeFila(h: Habitual | null, suyas: readonly LineaCompra[]): { etiqueta: string; valor: string }[] {
+  const primera = suyas[0];
+  if (primera) {
+    return [
+      { etiqueta: "Te costó", valor: soles(primera.costo) },
+      ...(primera.venta != null ? [{ etiqueta: "vendes", valor: soles(primera.venta) }] : []),
+    ];
   }
-  if (h.venta != null) return `En el catálogo: se vende a ${soles(h.venta)}`;
-  return null;
+  if (!h) return [];
+  const antes = cantidadDeAtajo(h);
+  if (antes != null && h.costo != null) {
+    return [
+      { etiqueta: "Te costó", valor: soles(h.costo) },
+      ...(h.venta != null ? [{ etiqueta: "vendes", valor: soles(h.venta) }] : []),
+      { etiqueta: "antes:", valor: String(antes) },
+    ];
+  }
+  return h.venta != null ? [{ etiqueta: "Se vende a", valor: soles(h.venta) }] : [];
+}
+
+/**
+ * Agrega una prenda a la compra, y nunca dos veces: si su clave ya va, la compra queda como estaba. Se usa dentro de `setLineas((ls) => …)`,
+ * que ve la compra de ese momento: cinco toques en el mismo instante en «+ 9» dejaban 45 unidades porque cada uno veía la compra de antes del
+ * primero (/chaos 2026-10-28). Corregir una prenda que ya va es otra cosa (la hoja reemplaza sus líneas).
+ */
+export function conPrendaAgregada(lineas: readonly LineaCompra[], nuevas: readonly LineaCompra[]): LineaCompra[] {
+  if (nuevas.length === 0 || lineas.some((l) => l.clave === nuevas[0].clave)) return [...lineas];
+  return [...lineas, ...nuevas];
+}
+
+/**
+ * El candado de un envío (/chaos 2026-10-29): cinco clics en «Guardar» en el mismo instante mandaban cinco pedidos iguales, porque la guardia
+ * `if (guardando)` leía el estado de antes del primero. Este candado vive fuera del estado de React: `tomar()` es verdadero solo la primera vez
+ * y hasta que `soltar()` (al terminar el envío, bien o mal) vuelve a dejar pasar un clic. La base ya devolvía lo mismo por el identificador de la
+ * compra; esto evita además los pedidos de más.
+ */
+export function candadoDeEnvio() {
+  let tomado = false;
+  return {
+    tomar(): boolean {
+      if (tomado) return false;
+      tomado = true;
+      return true;
+    },
+    soltar(): void {
+      tomado = false;
+    },
+  };
+}
+
+/** Cuántas se le compraron la vez pasada: lo que ofrece el botón «+ 9 como la vez pasada». Sin compras de antes, no hay atajo. */
+export function cantidadDeAtajo(h: Pick<Habitual, "veces" | "ultimaCantidad">): number | null {
+  return h.veces > 0 && h.ultimaCantidad != null && h.ultimaCantidad > 0 ? h.ultimaCantidad : null;
+}
+
+/**
+ * El borrador del botón «+ 9 como la vez pasada»: la cantidad de la vez pasada con su costo y su venta, a la tienda de la prenda anterior.
+ * `null` si no hay vez pasada. Puede quedar incompleto (sin costo, venta o tienda): quien lo usa lo prueba con `lineasDeBorrador` y, si
+ * no alcanza para agregarla, abre la hoja con esto ya escrito en vez de adivinar.
+ */
+export function borradorDeAtajo(h: Habitual, destinoId: string | null): BorradorPrenda | null {
+  const cantidad = cantidadDeAtajo(h);
+  if (cantidad == null) return null;
+  return {
+    cantidad: String(cantidad),
+    costo: h.costo != null ? h.costo.toFixed(2) : "",
+    venta: h.venta != null ? h.venta.toFixed(2) : "",
+    destinos: destinoId ? [destinoId] : [],
+    reparto: {},
+  };
 }
 
 export type LineaCompra = {
@@ -225,10 +439,28 @@ export function leerPrecio(t: string): number | null {
   return n;
 }
 
+/**
+ * El precio al que se VENDE la prenda: la base lo guarda como «precio de venta sugerido» de la línea y lo acota más que al costo — de S/ 0 a S/ 5 000
+ * (`orden_compra_items.precio_venta_sugerido`, 20261022080000; `fn_orden_compra_validar_sugerido`), y el 0 solo en una categoría que lo admite (bolsas,
+ * cajas y empaque: `fn_categoria_admite_precio_cero`, ADR-0384). Sin saberlo aquí, «Se vende a 6 000» se veía bien y la base lo rechazaba recién al guardar
+ * los tres pasos. `admitePrecioCero` sale de la categoría (`CategoriaParaComprar.admitePrecioCero`); sin decirlo, el cero se acepta como siempre.
+ */
+export const PRECIO_VENTA_MAXIMO = 5000;
+
+export function leerPrecioVenta(t: string, admitePrecioCero = true): number | null {
+  const n = leerPrecio(t);
+  if (n == null || n > PRECIO_VENTA_MAXIMO) return null;
+  return n === 0 && !admitePrecioCero ? null : n;
+}
+
 /** Lo que dice bajo el botón gris de un paso de la prenda (la maqueta: el botón dice qué falta). */
-export function faltaEnPaso(paso: "cantidad" | "costo" | "venta", t: string): string | null {
-  if (paso === "cantidad") return leerCantidad(t) == null ? "Escribe cuántas compraste" : null;
-  return leerPrecio(t) == null ? "Escribe el precio" : null;
+export function faltaEnPaso(paso: "cantidad" | "costo" | "venta", t: string, admitePrecioCero = true): string | null {
+  if (paso === "cantidad") return leerCantidad(t) == null ? "Escribe cuántas unidades compraste" : null;
+  if (paso === "costo") return leerPrecio(t) == null ? "Escribe el precio" : null;
+  if (leerPrecioVenta(t, admitePrecioCero) !== null) return null;
+  const n = leerPrecio(t);
+  if (n == null) return "Escribe el precio";
+  return n > PRECIO_VENTA_MAXIMO ? `El precio de venta llega hasta ${soles(PRECIO_VENTA_MAXIMO)}` : "Escribe un precio mayor que 0: solo las bolsas, cajas y empaque se regalan";
 }
 
 // ---------- La hoja de la prenda (rediseño, maqueta compras-formidable-2026-10, Felipe 2026-10-23) ----------
@@ -272,7 +504,7 @@ export function conCantidad(b: BorradorPrenda, cantidad: string): Pick<BorradorP
 export function problemaReparto(b: Pick<BorradorPrenda, "cantidad" | "destinos" | "reparto">): string | null {
   if (b.destinos.length < 2) return null;
   const total = leerCantidad(b.cantidad);
-  if (total == null) return "Primero escribe cuántas compraste.";
+  if (total == null) return "Primero escribe cuántas unidades compraste.";
   const partes = b.destinos.map((d) => leerCantidad(b.reparto[d] ?? ""));
   if (partes.some((n) => n == null)) return "Cada tienda lleva al menos 1: si no va a una, apágala.";
   const suma = partes.reduce<number>((s, n) => s + (n ?? 0), 0);
@@ -281,11 +513,11 @@ export function problemaReparto(b: Pick<BorradorPrenda, "cantidad" | "destinos" 
 }
 
 /** Los campos de la hoja, en su orden, para la guía de foco. */
-export function camposPrenda(b: BorradorPrenda): CampoDeGuia[] {
+export function camposPrenda(b: BorradorPrenda, admitePrecioCero = true): CampoDeGuia[] {
   return [
-    { id: "cantidad", nombre: "Cuántas", requerido: true, hecho: faltaEnPaso("cantidad", b.cantidad) === null, pendiente: "Escribe cuántas compraste." },
+    { id: "cantidad", nombre: "Cuántas unidades", requerido: true, hecho: faltaEnPaso("cantidad", b.cantidad) === null, pendiente: "Escribe cuántas unidades compraste." },
     { id: "costo", nombre: "Costo", requerido: true, hecho: faltaEnPaso("costo", b.costo) === null, pendiente: "Escribe cuánto te costó cada una." },
-    { id: "venta", nombre: "Venta", requerido: true, hecho: faltaEnPaso("venta", b.venta) === null, pendiente: "Escribe a cuánto se vende." },
+    { id: "venta", nombre: "Venta", requerido: true, hecho: faltaEnPaso("venta", b.venta, admitePrecioCero) === null, pendiente: faltaEnPaso("venta", b.venta, admitePrecioCero) ?? "Escribe a cuánto se vende." },
     { id: "tienda", nombre: "Tienda", requerido: true, hecho: b.destinos.length > 0, pendiente: "Elige a qué tienda va." },
     ...(b.destinos.length >= 2
       ? [{ id: "reparto", nombre: "Reparto", requerido: true, hecho: problemaReparto(b) === null, pendiente: problemaReparto(b) ?? "" }]
@@ -294,9 +526,9 @@ export function camposPrenda(b: BorradorPrenda): CampoDeGuia[] {
 }
 
 /** «Por cada una ganas S/ 22.40»: la venta menos el costo, si los dos se leen. */
-export function gananciaPorPrenda(b: Pick<BorradorPrenda, "costo" | "venta">): number | null {
+export function gananciaPorPrenda(b: Pick<BorradorPrenda, "costo" | "venta">, admitePrecioCero = true): number | null {
   const costo = leerPrecio(b.costo);
-  const venta = leerPrecio(b.venta);
+  const venta = leerPrecioVenta(b.venta, admitePrecioCero);
   return costo == null || venta == null ? null : Math.round((venta - costo) * 100) / 100;
 }
 
@@ -312,10 +544,10 @@ export function textoAgregarPrenda(b: Pick<BorradorPrenda, "cantidad" | "costo">
  * Las líneas que entran a la compra desde la hoja: una por tienda, con su parte (la base arma una orden por tienda). Vacío si falta algo
  * (el botón ya está apagado).
  */
-export function lineasDeBorrador(h: Pick<Habitual, "clave" | "productoId" | "categoriaId" | "marcaId" | "nombre" | "categoria" | "marca">, b: BorradorPrenda): LineaCompra[] {
+export function lineasDeBorrador(h: Pick<Habitual, "clave" | "productoId" | "categoriaId" | "marcaId" | "nombre" | "categoria" | "marca">, b: BorradorPrenda, admitePrecioCero = true): LineaCompra[] {
   const cantidad = leerCantidad(b.cantidad);
   const costo = leerPrecio(b.costo);
-  const venta = leerPrecio(b.venta);
+  const venta = leerPrecioVenta(b.venta, admitePrecioCero);
   if (cantidad == null || costo == null || venta == null || b.destinos.length === 0 || problemaReparto(b) !== null) return [];
   const comun = { clave: h.clave, productoId: h.productoId, categoriaId: h.categoriaId, marcaId: h.marcaId, nombre: h.nombre, categoria: h.categoria, marca: h.marca, costo, venta };
   if (b.destinos.length === 1) return [{ ...comun, cantidad, destinoId: b.destinos[0] }];
@@ -462,14 +694,19 @@ type Responsable = { esPersona: boolean; listo: boolean; motivo: string | null }
  * Los campos del paso del papel. La foto es opcional (Felipe 2026-10-23, 20261023180000): con un papel (factura, boleta o nota) se SUGIERE —sin
  * ella, Compras copia la serie y el número del papel en la mano—, nunca frena el guardado. Sin papel, ni se ofrece.
  */
-export function camposPapel(v: { tipo: TipoPapel | null; conFoto: boolean; monto: string; pago?: PagoCompra }, r: Responsable): CampoDeGuia[] {
-  const monto = problemaDeMonto(v.monto);
+export function camposPapel(
+  v: { tipo: TipoPapel | null; conFoto: boolean; monto: string; pago?: PagoCompra; serie?: string; numero?: string },
+  r: Responsable,
+): CampoDeGuia[] {
+  const monto = problemaDeMonto(v.monto, undefined, MONTO_MAXIMO_PLATA);
   const conPapel = v.tipo !== null && v.tipo !== "sin_comprobante";
   // Sin `pago` (las pantallas que no lo preguntan) no entran sus campos.
   const pago = v.pago;
   const pagado = pago?.forma === "ahora" ? problemaPagado(pago.pagado, v.monto) : null;
   return [
     { id: "tipo", nombre: "Qué te dieron", requerido: true, hecho: v.tipo !== null, pendiente: "Elige qué papel te dio el proveedor." },
+    // La serie y el número van antes que la foto: son lo que la compra necesita para pasar sola a los libros; la foto es de respaldo.
+    ...camposSerieNumero(v),
     ...(conPapel ? [{ id: "foto", nombre: "La foto", requerido: false, sugerido: true, hecho: v.conFoto, pendiente: "Si puedes, tómale una foto al papel." }] : []),
     { id: "monto", nombre: "Cuánto dice el papel", requerido: true, hecho: monto === null, pendiente: monto ?? "" },
     ...(pago?.forma === "ahora"
@@ -482,23 +719,49 @@ export function camposPapel(v: { tipo: TipoPapel | null; conFoto: boolean; monto
   ];
 }
 
+/**
+ * La serie y el número que la compradora copia del papel (ADR-0574). Lo mismo que rechaza la base: factura y boleta piden los dos; una nota de
+ * venta, solo el número y si lo tiene (no cuenta como «falta»). Una pantalla que no los pregunta (`serie` sin definir) no los trae.
+ */
+function camposSerieNumero(v: { tipo: TipoPapel | null; serie?: string; numero?: string }): CampoDeGuia[] {
+  if (v.tipo === null || v.serie === undefined || v.numero === undefined) return [];
+  if (pideSerie(v.tipo)) {
+    const s = problemaSerie(v.serie);
+    const n = problemaNumero(v.numero, v.tipo);
+    return [
+      { id: "serie", nombre: "La serie del papel", requerido: true, hecho: s === null, pendiente: s ?? "" },
+      { id: "numero", nombre: "El número del papel", requerido: true, hecho: n === null, pendiente: n ?? "" },
+    ];
+  }
+  if (v.tipo === "nota_venta") {
+    const n = problemaNumero(v.numero, v.tipo);
+    return [{ id: "numero", nombre: "El número del papel", requerido: n !== null, sugerido: n === null, hecho: n === null && v.numero.trim() !== "", pendiente: n ?? "Si el papel trae número, cópialo." }];
+  }
+  return [];
+}
+
 // ---------- Pagar ahora o después (20261023181000; Felipe 2026-10-23) ----------
-// «Pagar ahora» (de fábrica, con todo lo del papel y por Yape) baja lo pagado de su plata para compras; se puede bajar el monto y lo que
+// «Pagar ahora» (de fábrica, con todo lo del papel) baja lo pagado de su plata para compras; se puede bajar el monto y lo que
 // falta queda en Por pagar. «Pagar después»: no baja nada y Compras le paga al proveedor desde Por pagar. Los tres métodos salen de su
 // plata para compras: el método solo dice cómo le pagó.
 
 export type MedioPagoCompra = "yape" | "efectivo" | "transferencia";
 export type PagoCompra = { forma: "ahora" | "despues"; pagado: string; medio: MedioPagoCompra | null };
 
-/** Las fichas, en el orden de la pantalla: Yape primero, que es lo de fábrica. Las mismas fichas de color de Vender. */
+/** Las fichas, en el orden de la pantalla. Las mismas fichas de color de Vender. */
 export const MEDIOS_PAGO_COMPRA: readonly { clave: MedioPagoCompra; etiqueta: string; corta?: string }[] = [
   { clave: "yape", etiqueta: "Yape" },
   { clave: "efectivo", etiqueta: "Efectivo" },
   { clave: "transferencia", etiqueta: "Transferencia", corta: "Transf." },
 ];
 
-/** Cómo llega el paso: pagar ahora, por Yape; lo pagado lo pone la pantalla con lo que dice el papel. */
-export const PAGO_DE_FABRICA: PagoCompra = { forma: "ahora", pagado: "", medio: "yape" };
+/**
+ * Cómo llega el paso: pagar ahora, SIN medio elegido; lo pagado lo pone la pantalla con lo que dice el papel. Venía en Yape y la guía lo
+ * daba por hecho: quien pagó en efectivo y no lo miraba dejaba anotado Yape (auditoría 2026-11-12, punto B). Felipe 2026-11-13 eligió
+ * «sin elegir»: la guía lo pide («Sigue: con qué pagaste») y nada se guarda hasta tocar uno. El medio no cambia la plata (los tres salen de
+ * la plata para compras): solo deja anotado cómo se le pagó al proveedor, y por eso tiene que ser el de verdad.
+ */
+export const PAGO_DE_FABRICA: PagoCompra = { forma: "ahora", pagado: "", medio: null };
 
 /** Lo que pagas ahora: más que cero y no más que lo que dice el papel (lo mismo que rechaza la base con `compra_rapida_pagado`). */
 export function problemaPagado(pagado: string, monto: string): string | null {
@@ -543,10 +806,10 @@ export function faseDePaso(p: PasoCompra): 1 | 2 | 3 {
 }
 export function textoAvance(p: PasoCompra): string {
   const fase = faseDePaso(p);
-  return `Paso ${fase} de 3 · ${fase === 1 ? "el proveedor" : fase === 2 ? "las prendas" : "el papel"}`;
+  return `Paso ${fase} de 3 · ${fase === 1 ? "la marca" : fase === 2 ? "las prendas" : "el papel"}`;
 }
-/** Los tres tramos de la barra, con nombre (maqueta mis-compras-rediseno-2026-10, Felipe 2026-10-24). */
-export const PASOS_DE_LA_COMPRA = ["El proveedor", "Las prendas", "Papel y pago"] as const;
+/** Los tres tramos de la barra, con nombre (maqueta mis-compras-rediseno-2026-10, Felipe 2026-10-24). El primero es la marca desde ADR-0644. */
+export const PASOS_DE_LA_COMPRA = ["La marca", "Las prendas", "Papel y pago"] as const;
 /** La línea chica bajo «Compré ropa» en la cabecera compacta: «Paso 1 de 3» y, ya elegido el proveedor, «CAYLA · paso 2 de 3». */
 export function lineaDeAvance(p: PasoCompra, proveedor: string | null): string {
   return proveedor ? `${proveedor} · paso ${faseDePaso(p)} de 3` : `Paso ${faseDePaso(p)} de 3`;
@@ -559,7 +822,14 @@ export function lineaDeAvance(p: PasoCompra, proveedor: string | null): string {
 // cuando la tienda la recibe (Recibir), que es donde se cuentan el color y las tallas. La próxima vez sale entre sus habituales por su nombre.
 // ---------------------------------------------------------------------------------------------------------------------
 
-export type CategoriaParaComprar = { id: string; nombre: string; prefijo: string | null; familia: string | null };
+export type CategoriaParaComprar = {
+  id: string;
+  nombre: string;
+  prefijo: string | null;
+  familia: string | null;
+  /** ¿Se puede vender a S/ 0 (bolsas, cajas, empaque)? La familia fuera de los motores de decisión (ADR-0377, ADR-0384). Sin dato, no. */
+  admitePrecioCero?: boolean;
+};
 
 /** Una opción del combo, con su grupo (la `Opcion` de `Desplegable`). */
 type OpcionConGrupo = { valor: string; texto: string; grupo?: string };
@@ -652,10 +922,42 @@ export function marcasDeHabituales(habituales: readonly Habitual[]): { id: strin
   return [...porId.values()].sort((a, b) => b.n - a.n || a.nombre.localeCompare(b.nombre, "es")).map(({ id, nombre }) => ({ id, nombre }));
 }
 
+/**
+ * Lo que ya se anotó en ESTA compra, para «Algo nuevo» (Felipe 2026-10-28: «si ya registro una prenda con una marca y categoría para ese proveedor,
+ * en la próxima debe aparecerme lo anterior como opciones»). Un proveedor recién creado, o una prenda nueva que todavía no se guarda, no está en
+ * el catálogo ni en compras de antes: lo único que la hoja sabe es lo que se acaba de anotar. Va primero lo último anotado.
+ */
+export function categoriasDeLasLineas(lineas: readonly Pick<LineaCompra, "categoriaId">[]): string[] {
+  return [...new Set([...lineas].reverse().map((l) => l.categoriaId))];
+}
+
+/** Las marcas de las prendas de esta compra (también las escritas con «+», con su id provisional), la última anotada primero. */
+export function marcasDeLasLineas(lineas: readonly Pick<LineaCompra, "marcaId" | "marca">[]): { id: string; nombre: string }[] {
+  const vistas = new Map<string, string>();
+  for (const l of [...lineas].reverse()) if (l.marcaId && l.marca && !vistas.has(l.marcaId)) vistas.set(l.marcaId, l.marca);
+  return [...vistas].map(([id, nombre]) => ({ id, nombre }));
+}
+
+/** Las marcas que se ofrecen como habituales en «Algo nuevo»: primero las de esta compra, después las que ya trae el proveedor, sin repetir. */
+export function marcasParaNueva(
+  deLaCompra: readonly { id: string; nombre: string }[],
+  delProveedor: readonly { id: string; nombre: string }[],
+): { id: string; nombre: string }[] {
+  return [...deLaCompra, ...delProveedor.filter((m) => !deLaCompra.some((x) => x.id === m.id))];
+}
+
+/** La lista de marcas con las provisionales de esta compra (`nueva:…`, todavía sin crear en la base): así se pueden volver a elegir y se encuentran al armar la prenda. */
+export function marcasConProvisionales(
+  marcas: readonly { id: string; nombre: string }[],
+  deLaCompra: readonly { id: string; nombre: string }[],
+): { id: string; nombre: string }[] {
+  return [...marcas, ...deLaCompra.filter((m) => m.id.startsWith(MARCA_NUEVA_PREFIJO) && !marcas.some((x) => x.id === m.id))];
+}
+
 /** La prenda nueva, con la forma de un habitual (sin compras ni precios de antes): así sigue por los mismos pasos que las de siempre. */
 function habitualNuevo(
   clave: string,
-  v: { nombre: string; categoria: CategoriaParaComprar; marca: { id: string; nombre: string } },
+  v: { nombre: string; categoria: CategoriaParaComprar; marca: { id: string; nombre: string } | null | undefined },
 ): Habitual {
   return {
     clave,
@@ -663,8 +965,8 @@ function habitualNuevo(
     nombre: v.nombre.trim().replace(/\s+/g, " "),
     categoriaId: v.categoria.id,
     categoria: v.categoria.nombre,
-    marcaId: v.marca.id,
-    marca: v.marca.nombre,
+    marcaId: v.marca?.id ?? null,
+    marca: v.marca?.nombre ?? null,
     veces: 0,
     ultimaFecha: null,
     ultimaCantidad: null,
@@ -674,19 +976,20 @@ function habitualNuevo(
 }
 
 /** Los campos de la hoja de una prenda nueva, en su orden: lo que la describe y después lo de siempre. */
-export function camposPrendaNueva(n: BorradorNuevo, hayParecido: boolean, b: BorradorPrenda): CampoDeGuia[] {
+export function camposPrendaNueva(n: BorradorNuevo, hayParecido: boolean, b: BorradorPrenda, admitePrecioCero = true): CampoDeGuia[] {
   const nombre = faltaNombreNuevo(n.nombre);
   return [
     { id: "categoria", nombre: "Qué es", requerido: true, hecho: n.categoriaId !== null, pendiente: "Elige qué es." },
-    n.marcaNueva !== null
+    // La marca es opcional (Felipe 2026-11-11): quien recibe la pone si falta. Solo frena una marca empezada a escribir que no se entiende.
+    n.marcaNueva !== null && n.marcaNueva.trim() !== ""
       ? { id: "marca", nombre: "Marca", requerido: true, hecho: faltaMarcaNueva(n.marcaNueva) === null, pendiente: "Escribe la marca, como dice su etiqueta." }
-      : { id: "marca", nombre: "Marca", requerido: true, hecho: n.marcaId !== null, pendiente: "Elige la marca, como dice su etiqueta." },
+      : { id: "marca", nombre: "Marca", requerido: false, hecho: n.marcaId !== null && n.marcaNueva === null, pendiente: "" },
     { id: "nombre", nombre: "Nombre", requerido: true, hecho: nombre === null && !hayParecido, pendiente: nombre ? "Escribe cómo se llama." : "Dinos si es la misma prenda." },
-    ...camposPrenda(b),
+    ...camposPrenda(b, admitePrecioCero),
   ];
 }
 
-/** La prenda nueva ya descrita, con la forma de un habitual; `null` si falta qué es, la marca o el nombre. */
+/** La prenda nueva ya descrita, con la forma de un habitual; `null` si falta qué es o el nombre, o si la marca escrita no se entiende. Sin marca, va sin marca. */
 export function habitualDeNuevo(
   clave: string,
   n: BorradorNuevo,
@@ -694,8 +997,11 @@ export function habitualDeNuevo(
   marcas: readonly { id: string; nombre: string }[],
 ): Habitual | null {
   const categoria = categorias.find((c) => c.id === n.categoriaId);
-  const marca = n.marcaNueva !== null ? marcaEscrita(n.marcaNueva, marcas) : marcas.find((m) => m.id === n.marcaId);
-  if (!categoria || !marca || faltaNombreNuevo(n.nombre)) return null;
+  const escribe = n.marcaNueva !== null && n.marcaNueva.trim() !== "";
+  const eligio = n.marcaNueva === null && n.marcaId !== null;
+  const marca = escribe ? marcaEscrita(n.marcaNueva ?? "", marcas) : eligio ? marcas.find((m) => m.id === n.marcaId) : null;
+  // Una marca escrita que no se entiende, o una elegida que ya no está en la lista, no se vuelve «sin marca» en silencio.
+  if (!categoria || ((escribe || eligio) && !marca) || faltaNombreNuevo(n.nombre)) return null;
   return habitualNuevo(clave, { nombre: n.nombre, categoria, marca });
 }
 
@@ -742,4 +1048,43 @@ export function marcasPorCrear(lineas: readonly Pick<LineaCompra, "marcaId" | "m
 /** Las prendas con el id de verdad de cada marca recién creada. */
 export function conMarcasCreadas<T extends Pick<LineaCompra, "marcaId">>(lineas: readonly T[], creadas: ReadonlyMap<string, string>): T[] {
   return lineas.map((l) => (l.marcaId && creadas.has(l.marcaId) ? { ...l, marcaId: creadas.get(l.marcaId)! } : l));
+}
+
+/**
+ * La serie y el número tal como los pide la base al registrar la compra: factura y boleta, los dos (la serie en mayúsculas); nota de venta, solo
+ * su número si lo escribió; sin papel, ninguno. Lo que no se manda no viaja: una base de antes no los conoce (y se registra sin ellos).
+ */
+export function serieYNumeroParaBase(tipo: TipoPapel, serie: string, numero: string): { p_serie?: string; p_numero?: string } {
+  const s = serie.trim().toUpperCase();
+  const n = numero.trim();
+  if (pideSerie(tipo)) return { p_serie: s, p_numero: n };
+  if (tipo === "nota_venta" && n) return { p_numero: n };
+  return {};
+}
+
+// ---------- La serie y el número del papel (ADR-0574; antes vivían en `revisar-compras-reglas`) ----------
+// La compradora los escribe al comprar y, si algo no cuadra, Compras los corrige al completar. Son las mismas reglas que exige la base
+// (`registrar_compra_rapida` y `completar_papel_compra`).
+
+/** ¿Este papel pide serie y número? Factura y boleta, sí; nota de venta, solo el número y si lo tiene; sin papel, nada. */
+export function pideSerie(tipo: TipoPapel): boolean {
+  return tipo === "factura" || tipo === "boleta";
+}
+
+export function problemaSerie(serie: string): string | null {
+  const s = serie.trim().toUpperCase();
+  if (!s) return "Copia la serie como está en el papel.";
+  return /^[A-Z0-9]{1,8}$/.test(s) ? null : "La serie lleva letras y números, hasta 8 (F001, B002…).";
+}
+
+export function problemaNumero(numeroPapel: string, tipo: TipoPapel): string | null {
+  const n = numeroPapel.trim();
+  if (tipo === "nota_venta") return !n || /^[0-9A-Za-z-]{1,20}$/.test(n) ? null : "El número lleva letras, números o guiones, hasta 20.";
+  if (!n) return "Copia el número como está en el papel.";
+  return /^[0-9]{1,12}$/.test(n) ? null : "El número lleva solo números, hasta 12.";
+}
+
+/** La serie de ejemplo sigue al papel: «F001» en una factura, «B001» en una boleta (ADR-0290). */
+export function ejemploSerie(tipo: TipoPapel): string {
+  return tipo === "factura" ? "Ej. F001" : "Ej. B001";
 }

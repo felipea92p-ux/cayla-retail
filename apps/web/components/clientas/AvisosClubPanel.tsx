@@ -268,7 +268,7 @@ export function AvisosClubPanel({
       <EncabezadoPagina
         sede={sede.nombre}
         titulo="Avisos"
-        subtitulo="Los mensajes que hoy le tocan a cada miembro del club, listos para mandar desde el WhatsApp de esta tienda."
+        subtitulo="Los mensajes de hoy para cada miembro del club, listos para mandar desde el WhatsApp de esta tienda."
         acciones={
           textos && (
             <BotonEditar onClick={() => setEditando(true)} title={`Cambia lo que dice cada aviso de ${sede.nombre}`} guia="avisos.editar">
@@ -289,7 +289,7 @@ export function AvisosClubPanel({
 
       {!esTienda ? (
         <Vacio guia="avisos.sin-tienda" icono={<Store />} titulo="Elige una tienda">
-          Los avisos los manda cada tienda desde su número de WhatsApp. Elige una tienda en el selector de sede.
+          Cada tienda manda sus avisos desde su WhatsApp. Elige una en el selector de sede.
         </Vacio>
       ) : falla ? (
         <Aviso tono="error">{falla}</Aviso>
@@ -301,7 +301,7 @@ export function AvisosClubPanel({
             data-guia="avisos.avance"
           >
             <div className="min-w-60 flex-1">
-              <div className="mb-1.5 flex items-baseline justify-between gap-3 text-[13px]">
+              <div className="mb-1.5 flex items-baseline justify-between gap-3 text-sm">
                 <b className="font-semibold text-tinta">Hoy en {sede.nombre}</b>
                 <span className="tabular-nums text-tinta/70">
                   {fila.length === 0 ? "Nada por mandar" : `${enviados} de ${fila.length} enviados`}
@@ -350,7 +350,7 @@ export function AvisosClubPanel({
 
               <aside className="rounded-xl border border-sand bg-papel p-4 lg:sticky lg:top-24" aria-label="La fila de hoy" data-guia="avisos.fila">
                 <p className="font-serif text-[21px] leading-tight text-tinta">La fila de hoy</p>
-                <p className="mb-1 text-xs text-taupe">Toca a alguien para ir a su mensaje.</p>
+                <p className="mb-1 text-sm text-taupe">Toca a alguien para ir a su mensaje.</p>
                 {grupos.map((g) => (
                   <div key={g.tipo} className="mt-3">
                     <TituloGrupo cuenta={g.avisos.filter((a) => !envios[a.clave]).length} className="px-2">
@@ -374,9 +374,9 @@ export function AvisosClubPanel({
                               ) : (
                                 <AvatarPersona personaId={null} nombre={a.nombre} tamano={32} />
                               )}
-                              <span className="min-w-0 flex-1 text-[13px]">
+                              <span className="min-w-0 flex-1 text-sm">
                                 <span className="block truncate">{a.nombre}</span>
-                                <span className="block truncate text-[11.5px] text-taupe">{hecho ? "Enviado" : (a.detalle ?? INFO_TIPO_AVISO[a.tipo].chip)}</span>
+                                <span className="block truncate text-sm text-taupe">{hecho ? "Enviado" : (a.detalle ?? INFO_TIPO_AVISO[a.tipo].chip)}</span>
                               </span>
                             </button>
                           </li>
@@ -393,10 +393,7 @@ export function AvisosClubPanel({
 
       {esTienda && (
         <p className="nota-cayla anim-sube" style={{ "--i": 3 } as CSSProperties} data-guia="avisos.reglas">
-          Abre WhatsApp Web con el número de esta tienda. «Enviar» abre el chat con el mensaje escrito: allá solo aprietas Enter y vuelves
-          aquí. La lista la arma la base: solo miembros que pidieron novedades por WhatsApp de esta tienda; <b>máximo 2 promociones al mes</b>{" "}
-          por miembro (cumpleaños y puntos por vencer no cuentan), y 1 de cada 5 miembros no recibe novedades ni rebajas para medir si los
-          avisos sirven. Si un miembro responde <b>BAJA</b>, márcalo con «Pidió BAJA»: deja de recibir mensajes del club desde hoy, en las 3 tiendas.
+          «Enviar» abre WhatsApp Web con el mensaje escrito: aprietas Enter y vuelves. <b>Máximo 2 promociones al mes</b> por miembro, y 1 de cada 5 no las recibe, para medir si sirven. Si alguien responde <b>BAJA</b>, márcalo con «Pidió BAJA».
         </p>
       )}
 
@@ -473,14 +470,14 @@ function Foco({
           )}
           <div className="min-w-0">
             <p className="truncate font-serif text-[28px] leading-tight text-tinta">{a.nombre}</p>
-            {a.detalle && <p className="text-[13px] text-taupe">{a.detalle}</p>}
+            {a.detalle && <p className="text-sm text-taupe">{a.detalle}</p>}
           </div>
         </div>
         <Chip tono={TONO[a.tipo]}>{info.chip}</Chip>
       </div>
 
       <div className="my-5 rounded-xl border border-sand bg-crema p-4" data-guia="avisos.texto">
-        <div className="mb-2.5 flex flex-wrap justify-between gap-x-4 gap-y-1 text-xs text-taupe">
+        <div className="mb-2.5 flex flex-wrap justify-between gap-x-4 gap-y-1 text-sm text-taupe">
           <span title="El número completo va solo en el enlace de WhatsApp">
             Para {celularAMedias(a.telefono)} · desde el WhatsApp de {sede}
           </span>
@@ -489,8 +486,8 @@ function Foco({
         <BurbujaAviso texto={texto} cierre={cierre} className="max-w-[520px]" />
       </div>
 
-      {problema && <p className="mb-3 text-xs text-ambar-profundo">{problema}</p>}
-      {sinAnotar && !envio && <p className="mb-3 text-xs text-ambar-profundo">WhatsApp se abrió, pero el envío todavía no quedó anotado.</p>}
+      {problema && <p className="mb-3 text-sm text-ambar-profundo">{problema}</p>}
+      {sinAnotar && !envio && <p className="mb-3 text-sm text-ambar-profundo">WhatsApp se abrió, pero el envío todavía no quedó anotado.</p>}
 
       <div className="flex flex-wrap items-center gap-2.5" data-guia="avisos.acciones">
         {envio ? (
@@ -510,7 +507,7 @@ function Foco({
                 </span>
               </Boton>
             ) : (
-              <span className="inline-flex items-center gap-1.5 text-[13px] text-verde" role="status">
+              <span className="inline-flex items-center gap-1.5 text-sm text-verde" role="status">
                 <PartyPopper className="h-4 w-4" aria-hidden />
                 Listo: no queda nadie por hoy.
               </span>

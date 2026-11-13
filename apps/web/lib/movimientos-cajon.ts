@@ -196,6 +196,13 @@ export function fraseDeMovimiento(m: Movimiento, n: number): string {
       return `${prenda} ${una ? "se cargó" : "se cargaron"} como stock inicial`;
     case "traslado_entrada":
       return `${prenda} ${una ? "llegó" : "llegaron"} desde ${origen}`;
+    case "correccion_recepcion":
+      return `${prenda} ${una ? "salió" : "salieron"} del almacén: se corrigió lo que entró`;
+    // ADR-0650: la prenda no se movió; cambió de ficha porque dos productos repetidos se fusionaron.
+    case "fusion_producto":
+      return m.delta > 0
+        ? `${prenda} ${una ? "pasó" : "pasaron"} a esta ficha: se fusionaron productos repetidos`
+        : `${prenda} ${una ? "pasó" : "pasaron"} a otra ficha: se fusionaron productos repetidos`;
     case "traslado_salida":
       return `${prenda} ${una ? "salió" : "salieron"} hacia ${destino ?? "otra tienda"}`;
     case "traslado_anulado":

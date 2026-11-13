@@ -10,8 +10,9 @@ import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 import { ResumenSede } from "@/components/ui/ResumenSede";
 
 // Devoluciones (rediseño 2026-09-18, mismo modelo que Cambios, ADR-0125/0122). Una devolución
-// tiene dos tiempos: una colaboradora la registra (`crear_devolucion`) y un líder la aprueba
-// (`aprobar_devolucion`); la pantalla, en DevolucionesPanel.
+// tiene dos tiempos: se registra (`crear_devolucion`) y, al revisarla, se aprueba (`aprobar_devolucion`).
+// Desde ADR-0534 aprueba quien ve Devoluciones en la tienda (la líder la valida en persona); la pantalla,
+// en DevolucionesPanel.
 //
 // 2026-09-26 (spike `docs/maquetas/devoluciones-2026-09`, ADR-0232): la cifra «Por aprobar» abre su
 // pestaña, hay una pestaña «Resueltas» y avisos que llevan a las pantallas vecinas (Inventario por la
@@ -62,7 +63,6 @@ export default async function DevolucionesPage({ searchParams }: { searchParams:
           busqueda={q?.trim() ?? ""}
           todasLasSedes={todasLasSedes}
           puedeVerTodas={esLider}
-          esLider={esLider}
           sede={persona.ubicacionEtiqueta}
           ubicacionId={persona.ubicacionId}
           colaboradora={persona.nombre}

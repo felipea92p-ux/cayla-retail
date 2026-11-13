@@ -14,6 +14,7 @@ import { PorQue } from "./PorQue";
 import { LineaCorregida } from "./LineaCorregida";
 import { estaEscribiendo } from "@/components/alta-producto/useGuiaAlta";
 import { Boton } from "@/components/ui/campos";
+import { prefiereQuieto } from "@/lib/movimiento-cliente";
 
 /** Un rótulo pegado a una marca de la regla no se sale de ella: cerca de un borde se alinea hacia adentro. */
 const alinear = (pos: number): "ini" | "fin" | undefined => (pos < 24 ? "ini" : pos > 76 ? "fin" : undefined);
@@ -41,7 +42,6 @@ export function PuenteUnion({
   prenda,
   disponible,
   notaStock = null,
-  propiaVenta = null,
   deducida = null,
   forma,
   onForma,
@@ -60,9 +60,6 @@ export function PuenteUnion({
   /** La nota en ámbar de una prenda sin unidades libres (`notaSinUnidades`): si nunca entró a la tienda, la MISMA frase con que la base
    *  la va a rechazar (20261004204000); `null` = nada que decir. */
   notaStock?: string | null;
-  /** Nadie regulariza su propia venta, salvo el líder firmando él mismo (`motivoPropiaVenta`, 20261004204000): se dice bajo el
-   *  «Responsable», antes del botón. Solo avisa: la guía y el botón no cambian. */
-  propiaVenta?: string | null;
   /** Lo que dice el libro de esta prenda a la hora de la venta (ADR-0328 act. 5): la respuesta sugerida y su porqué, o `null` si no hay
    *  nada que decir. Solo SUGIERE: no elige ni cambia qué se puede confirmar. */
   deducida?: FormaDeducida | null;
@@ -93,7 +90,7 @@ export function PuenteUnion({
   const refDeduce = useRef<HTMLParagraphElement>(null);
   useEffect(() => {
     if ((!aviso && !porque) || estaEscribiendo()) return;
-    const quieto = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+    const quieto = prefiereQuieto();
     let segundo = 0;
     const primero = requestAnimationFrame(() => {
       segundo = requestAnimationFrame(() => {
@@ -120,6 +117,8 @@ export function PuenteUnion({
           <b>{venta.descripcion}</b>
           {anotadoPorCaja(venta) && <small className="vsr-sl-anotado">{anotadoPorCaja(venta)}</small>}
           <small>{venta.vendidoPor}</small>
+          {/* Por qué la anotó a mano (20261106233000): las de antes no lo tienen y no dicen nada. */}
+          {venta.motivo && <small data-motivo-sin-registrar>Por qué a mano: {venta.motivo}</small>}
           <LineaCorregida fila={venta} />
           <span className="vsr-sl-pr">{soles(venta.precioCobrado)} cobrado</span>
           {/* Caja anota a ojo (ADR-0369): si la categoría, la talla o el color no eran, se corrigen aquí, antes de buscar la prenda. */}
@@ -244,11 +243,6 @@ export function PuenteUnion({
           <CampoGuiado id="responsable" guia={guia}>
             <ComboResponsable control={responsable} deshabilitado={guardando || hecho} compacto />
           </CampoGuiado>
-          {propiaVenta && (
-            <p className="vsr-aviso-stock" role="note">
-              {propiaVenta}
-            </p>
-          )}
 
           <div className="vsr-pu-fin" data-guia="regularizar.guardar">
             <PieGuia guia={guia} />

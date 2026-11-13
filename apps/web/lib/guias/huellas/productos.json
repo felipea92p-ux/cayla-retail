@@ -2,19 +2,21 @@
   "guia": "productos",
   "ruta": "/productos",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 91,
+  "total": 115,
   "controles": {
     "app/(app)/productos/page.tsx": [
       "Link «Existencias»",
       "SegmentoEnlaces «(sin nombre)»",
       "BotonEnlace «productos.rotulos»",
+      "BotonEnlace «productos.revisar-precios»",
       "BotonEnlace «productos.nuevo»",
       "Link «Revisar»",
       "Link «Crear desde Recibir»"
     ],
     "components/AvisoCostoAtipico.tsx": [
+      "CampoTexto «Por qué es correcto este costo · obligatorio»",
       "Boton «{textoCorregir}»",
-      "Boton «{motivoNoListo ?? undefined}»"
+      "Boton «{problemaMotivo ?? motivoNoListo ?? undefined}»"
     ],
     "components/CambiarEstadoProductosHoja.tsx": [
       "ComboResponsable «{responsable}»",
@@ -79,6 +81,7 @@
       "button «Eliminar»",
       "button «Descontinuar»",
       "button «Reactivar»",
+      "button «{n < 2 ? \"Marca dos o más fichas de la misma prenda\" : undefined}»",
       "Link «Rótulo»",
       "button «Quitar la marca»"
     ],
@@ -88,6 +91,34 @@
     "components/ficha-producto/RecordatorioEtiquetas.tsx": [
       "BotonImprimir «Imprimir etiquetas»",
       "button «Descartar el aviso de etiquetas pendientes»"
+    ],
+    "components/fusionar-productos/CompararFichas.tsx": [
+      "button «{`Ver la foto de ${p.referencia}»",
+      "button «{`Foto ${i + 1}»"
+    ],
+    "components/fusionar-productos/FusionarProductosHoja.tsx": [
+      "Boton «Leer de nuevo»",
+      "Casilla «{`Quedarse con esta foto de ${de?.referencia ?? \"la prenda\"}»",
+      "ComboResponsable «{responsable}»",
+      "BotonVer «Ver la ficha»",
+      "Boton «Cancelar»",
+      "Boton «Revisar y fusionar»",
+      "Volver «→() => setVista(\"armar\")»",
+      "Boton «Cancelar» #2",
+      "Boton «{guiaRevisar.frase ?? responsable.motivo ?? undefined}»",
+      "Casilla «{`Dejar ${nombre}»",
+      "button «Sacar las»",
+      "button «{p.referencia}»"
+    ],
+    "components/fusionar-productos/PosiblesDuplicados.tsx": [
+      "button «Revisar»",
+      "button «Revisar y fusionar»"
+    ],
+    "components/fusionar-productos/piezas.tsx": [
+      "button «{[p.referencia, p.codigo].filter(Boolean).join(\", \")}»",
+      "button «{indice === 0 ? \"fusionar.ver-ficha\" : undefined}»",
+      "button «{`Quitar «${p.referencia}»",
+      "button «{o.valor}»"
     ],
     "components/historial-prenda/CorregirCostoModal.tsx": [
       "CampoMonto «{guia.etiqueta(\"costo\", \"Costo correcto de lo que llegó\")}»",
@@ -125,11 +156,12 @@
     ],
     "components/vista-rapida/VistaRapidaProducto.tsx": [
       "button «→onCambiarEstado»",
+      "button «vista-rapida.fusionar»",
+      "button «Eliminar»",
       "Link «Editar»",
       "Link «Rótulo»",
       "button «vista-rapida.historial»",
-      "BotonVer «Ver en Existencias»",
-      "button «Eliminar»"
+      "BotonVer «Ver en Existencias»"
     ]
   }
 }

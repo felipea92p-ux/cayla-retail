@@ -1,19 +1,21 @@
 import { describe, expect, it } from "vitest";
 import { tramoValido, type SemanaDeTienda } from "@cayla-retail/shared/horario-de-tienda";
 import {
-  RANGO_DE_FABRICA, cierresDeSerializados, cierresVigentes, conAperturaEn, conCierre, objecionAlCierre, serializarCierres, sinCierre, conCierreEn, conTecla, corridoPor, minutoDeLaPista, porcentajeDeMinuto, rangoVisible, semanaComoElLunes, tramoPintado, tramoParaAbrir,
+  RANGO_DE_FABRICA, cierresDeSerializados, cierresVigentes, conAperturaEn, conCierre, objecionAlCierre, serializarCierres, sinCierre, conCierreEn, conTecla, corridoPor, minutoDeLaPista, porcentajeDeMinuto, rangoVisible, lunesALosDiasAbiertos, tramoAlAbrirDia, tramoParaAbrir,
 } from "./horario-edicion-reglas";
 
 const R = RANGO_DE_FABRICA; // 7 a. m. a 11 p. m. (420 a 1380)
 const h = (horas: number) => horas * 60;
 
 describe("de un punto de la pista a una hora", () => {
-  it("cae de media en media hora y dentro del rango", () => {
+  it("cae de a 15 minutos y dentro del rango", () => {
     expect(minutoDeLaPista(0, R)).toBe(h(7));
     expect(minutoDeLaPista(1, R)).toBe(h(23));
     expect(minutoDeLaPista(0.5, R)).toBe(h(15));
-    expect(minutoDeLaPista(0.02, R)).toBe(h(7) + 30); // 19 minutos de 960 → redondea a la media hora más cercana
-    expect(minutoDeLaPista(0.01, R)).toBe(h(7)); // 10 minutos → a la hora
+    expect(minutoDeLaPista(0.02, R)).toBe(h(7) + 15); // 19 minutos de 960 → al cuarto de hora más cercano
+    expect(minutoDeLaPista(0.01, R)).toBe(h(7) + 15); // 9,6 minutos → 15
+    expect(minutoDeLaPista(0.005, R)).toBe(h(7)); // 4,8 minutos → a la hora
+    expect(minutoDeLaPista(0.1, R)).toBe(h(8) + 30); // 96 minutos → 8:30 (96 está más cerca de 90 que de 105)
   });
   it("un gesto que se sale de la pista, o un número raro, no rompe nada", () => {
     expect(minutoDeLaPista(-3, R)).toBe(h(7));
@@ -36,17 +38,6 @@ describe("el rango que se dibuja", () => {
   });
 });
 
-describe("pintar sobre un hueco", () => {
-  it("va del punto donde se empezó al punto donde se está, en el orden que sea", () => {
-    expect(tramoPintado(h(10), h(14), R)).toEqual({ abre: h(10), cierra: h(14) });
-    expect(tramoPintado(h(14), h(10), R)).toEqual({ abre: h(10), cierra: h(14) });
-  });
-  it("con un solo punto queda de media hora, y en el borde derecho crece hacia la izquierda", () => {
-    expect(tramoPintado(h(10), h(10), R)).toEqual({ abre: h(10), cierra: h(10) + 30 });
-    expect(tramoPintado(h(23), h(23), R)).toEqual({ abre: h(22) + 30, cierra: h(23) });
-  });
-});
-
 describe("estirar un borde y mover la barra", () => {
   const t = { abre: h(10), cierra: h(21) };
   it("estirar la apertura o el cierre; ninguno pasa al otro, queda siempre media hora", () => {
@@ -54,6 +45,13 @@ describe("estirar un borde y mover la barra", () => {
     expect(conAperturaEn(t, h(22), R)).toEqual({ abre: h(20) + 30, cierra: h(21) });
     expect(conCierreEn(t, h(22), R)).toEqual({ abre: h(10), cierra: h(22) });
     expect(conCierreEn(t, h(8), R)).toEqual({ abre: h(10), cierra: h(10) + 30 });
+  });
+  it("se puede poner 8:15: el borde cae al cuarto de hora, y la barra nunca queda a menos de media hora", () => {
+    expect(conAperturaEn(t, h(8) + 15, R)).toEqual({ abre: h(8) + 15, cierra: h(21) });
+    expect(conCierreEn(t, h(21) + 45, R)).toEqual({ abre: h(10), cierra: h(21) + 45 });
+    expect(conAperturaEn(t, h(21) - 10, R)).toEqual({ abre: h(20) + 30, cierra: h(21) });
+    expect(conCierreEn(t, h(10) + 15, R)).toEqual({ abre: h(10), cierra: h(10) + 30 });
+    expect(corridoPor(t, 15, R)).toEqual({ abre: h(10) + 15, cierra: h(21) + 15 });
   });
   it("mover la barra la corre entera sin cambiar cuánto dura y sin salirse", () => {
     expect(corridoPor(t, 60, R)).toEqual({ abre: h(11), cierra: h(22) });
@@ -63,9 +61,7 @@ describe("estirar un borde y mover la barra", () => {
   it("lo que sale de un gesto cualquiera siempre es un tramo que la base acepta", () => {
     for (let a = 0; a <= 1000; a += 37) {
       for (let b = 0; b <= 1000; b += 53) {
-        const x = (a / 1000) * 1.3 - 0.15;
         const y = (b / 1000) * 1.3 - 0.15;
-        expect(tramoValido(tramoPintado(minutoDeLaPista(x, R), minutoDeLaPista(y, R), R))).toBe(true);
         expect(tramoValido(conAperturaEn(t, minutoDeLaPista(y, R), R))).toBe(true);
         expect(tramoValido(conCierreEn(t, minutoDeLaPista(y, R), R))).toBe(true);
         expect(tramoValido(corridoPor(t, (a - 500) * 3, R))).toBe(true);
@@ -80,22 +76,30 @@ describe("abrir un día cerrado y copiar el lunes", () => {
     expect(tramoParaAbrir({ desde: h(7), hasta: h(18) })).toEqual({ abre: h(10), cierra: h(18) });
     expect(tramoParaAbrir({ desde: h(7), hasta: h(9) })).toEqual({ abre: h(7), cierra: h(7) + 30 });
   });
-  it("«Copiar lunes a todos» da a cada día el horario del lunes; sin lunes abierto, deja todo cerrado", () => {
-    const s: SemanaDeTienda = [{ abre: h(9), cierra: h(18) }, null, null, null, null, null, { abre: h(11), cierra: h(14) }];
-    const c = semanaComoElLunes(s);
-    expect(c.every((d) => d?.abre === h(9) && d.cierra === h(18))).toBe(true);
-    expect(c[1]).not.toBe(c[2]); // cada día es suyo: cambiar uno no cambia los demás
-    expect(semanaComoElLunes([null, ...s.slice(1)]).every((d) => d === null)).toBe(true);
+  it("«Copiar lunes a los abiertos» da el horario del lunes solo a los días que ya abren; el domingo cerrado sigue cerrado", () => {
+    const s: SemanaDeTienda = [{ abre: h(9), cierra: h(18) }, { abre: h(14), cierra: h(22) }, null, { abre: h(10), cierra: h(20) }, null, null, null];
+    const c = lunesALosDiasAbiertos(s);
+    expect(c.map((d) => d !== null)).toEqual([true, true, false, true, false, false, false]);
+    expect(c.filter((d) => d !== null).every((d) => d?.abre === h(9) && d.cierra === h(18))).toBe(true);
+    expect(c[1]).not.toBe(c[3]); // cada día es suyo: cambiar uno no cambia los demás
+    expect(lunesALosDiasAbiertos([null, ...s.slice(1)])).toEqual([null, ...s.slice(1)]); // sin lunes abierto no cambia nada
+  });
+  it("un día que se abre toma el horario del día abierto de antes (el domingo, el del sábado), o el de fábrica si no hay ninguno", () => {
+    const s: SemanaDeTienda = [{ abre: h(14), cierra: h(22) }, null, null, null, null, { abre: h(10), cierra: h(20) }, null];
+    expect(tramoAlAbrirDia(s, 1, R)).toEqual({ abre: h(14), cierra: h(22) });
+    expect(tramoAlAbrirDia(s, 6, R)).toEqual({ abre: h(10), cierra: h(20) });
+    expect(tramoAlAbrirDia([null, null, null, null, null, null, null], 3, R)).toEqual(tramoParaAbrir(R));
+    expect(tramoAlAbrirDia(s, 0, R)).toEqual({ abre: h(10), cierra: h(20) }); // el lunes cerrado mira hacia atrás: domingo cerrado, sábado abierto
   });
 });
 
 describe("el teclado sobre una barra", () => {
   const t = { abre: h(10), cierra: h(21) };
   it("las flechas la corren; Mayús mueve el cierre; Alt, la apertura; Suprimir cierra el día", () => {
-    expect(conTecla(t, "ArrowRight", { mayus: false, alt: false }, R)).toEqual({ abre: h(10) + 30, cierra: h(21) + 30 });
-    expect(conTecla(t, "ArrowLeft", { mayus: false, alt: false }, R)).toEqual({ abre: h(9) + 30, cierra: h(20) + 30 });
-    expect(conTecla(t, "ArrowRight", { mayus: true, alt: false }, R)).toEqual({ abre: h(10), cierra: h(21) + 30 });
-    expect(conTecla(t, "ArrowLeft", { mayus: false, alt: true }, R)).toEqual({ abre: h(9) + 30, cierra: h(21) });
+    expect(conTecla(t, "ArrowRight", { mayus: false, alt: false }, R)).toEqual({ abre: h(10) + 15, cierra: h(21) + 15 });
+    expect(conTecla(t, "ArrowLeft", { mayus: false, alt: false }, R)).toEqual({ abre: h(9) + 45, cierra: h(20) + 45 });
+    expect(conTecla(t, "ArrowRight", { mayus: true, alt: false }, R)).toEqual({ abre: h(10), cierra: h(21) + 15 });
+    expect(conTecla(t, "ArrowLeft", { mayus: false, alt: true }, R)).toEqual({ abre: h(9) + 45, cierra: h(21) });
     expect(conTecla(t, "Delete", { mayus: false, alt: false }, R)).toBe("cerrar");
     expect(conTecla(t, "Backspace", { mayus: false, alt: false }, R)).toBe("cerrar");
   });

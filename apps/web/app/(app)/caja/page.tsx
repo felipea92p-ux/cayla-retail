@@ -1,20 +1,22 @@
-import type { CSSProperties } from "react";
 import { puede, requirePersonaActualV2, veModulo, type PersonaActualV2 } from "@/lib/persona-actual";
+import { tickets, vendidoHasta } from "@/lib/caja-comparativa-reglas";
 import { getCajaAbierta, getTableroCaja, getMovimientosCaja, getHistorialCierres, getPagosDelDia, diaAnterior } from "@/lib/caja";
 import { getContextoTableroCaja } from "@/lib/caja-tablero";
 import { getCategoriasGasto, getContextoGastos, getGastosDeCaja, getProveedoresParaGasto } from "@/lib/gastos";
 import { DIAS_FRECUENCIA, ordenarPorFrecuencia } from "@/lib/gasto-rapido-reglas";
 import { diaYHoraLima } from "@/lib/fechas-lima";
 import { getUbicaciones } from "@/lib/ubicaciones";
+import { horaCierreDeLaCaja } from "@/lib/recordatorio-cierre";
+import { getEmpresasAqui } from "@/lib/empresas-de-sede";
+import { getVendidoPorEmpresaDeCajas } from "@/lib/vendido-por-empresa";
+import { repartoDeEmpresas } from "@/lib/vendido-por-empresa-reglas";
 import { getParametrosCaja } from "@/lib/configuracion";
 import { hoyLima } from "@/lib/fechas-lima";
 import { createClient } from "@/lib/supabase/server";
 import { tolerar } from "@/lib/resultado";
-import { History } from "lucide-react";
 import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
-import { BotonEnlace } from "@/components/ui/campos";
-import { AbrirCajaFormV2 } from "@/components/AbrirCajaFormV2";
-import { UltimoCierreCaja } from "@/components/UltimoCierreCaja";
+import { BotonHistorialCierres } from "@/components/caja/BotonHistorialCierres";
+import { AbrirCajaPantalla } from "@/components/caja/AbrirCajaPantalla";
 import { CajaAbiertaPanel, type VentaDelDia } from "@/components/CajaAbiertaPanel";
 
 // Prioridad 1 (2026-09-12): Caja/POS. Sin caja abierta, la única acción
@@ -27,25 +29,35 @@ export default async function CajaPage({ searchParams }: { searchParams: Promise
   const caja = await getCajaAbierta(persona.ubicacionId);
   // Sin caja (ADR-0186): el último cierre de la sede da el contexto y el monto que debería estar en el cajón.
   // Con los últimos 7 de la sede se dibuja además la racha de «Último cierre» (2026-10-08).
-  const cierresRecientesSede = caja ? [] : await getHistorialCierres(7, false, persona.ubicacionId);
+  // Con la caja cerrada también se ve lo que ayuda a abrir bien (maqueta «2 · Hoja con resumen», 2026-11-03): lo vendido ayer, la meta de hoy
+  // y la hora de cierre. Cada lectura puede fallar sola (principio 9): lo que no llegue, no se dibuja. Las cuatro van a la vez (antes, los
+  // cierres primero y el resto después: una ida a la base más al abrir Caja).
+  const hoyAbrir = hoyLima();
+  const [cierresRecientesSede, pagosAyer, parametrosAbrir, ubicacionesAbrir] = caja
+    ? [[], null, null, []]
+    : await Promise.all([
+        getHistorialCierres(7, false, persona.ubicacionId),
+        getPagosDelDia(persona.ubicacionId, diaAnterior(hoyAbrir)),
+        getParametrosCaja(persona.ubicacionId, hoyAbrir),
+        getUbicaciones(),
+      ]);
   const ultimoCierre = cierresRecientesSede[0] ?? null;
+  const sedeAbrir = ubicacionesAbrir.find((u) => u.id === persona.ubicacionId) ?? null;
 
   return (
-    // `/caja` va a todo el ancho (AppShell), pero solo el tablero de la caja abierta: sin caja, lo que hay
-    // es un formulario de un campo, que conserva la columna de lectura de siempre en vez de estirarse.
-    <div className={caja ? "space-y-6" : "mx-auto max-w-5xl space-y-6"}>
+    // `/caja` va a todo el ancho (AppShell), con la caja abierta y también cerrada: «Abrir caja» llena la pantalla (2026-11-03).
+    <div className="space-y-6">
       {/* Sin caja: la misma cabecera de Cambios (`EncabezadoPagina`), con «Historial de cierres» como su acción (un botón a la
-          vista desde el 2026-10-08: el enlace gris no se notaba). Con caja, la cabecera la trae el propio tablero (necesita el estado de sus modales). */}
+          vista desde el 2026-10-08: el enlace gris no se notaba). Abre el MISMO modal por mes que con la caja abierta (Felipe
+          2026-11-08); los últimos 7 cierres de la sede lo dibujan al instante mientras llega el mes. Con caja, la cabecera la trae
+          el propio tablero (necesita el estado de sus modales). */}
       {!caja && (
         <EncabezadoPagina
           sede={persona.ubicacionEtiqueta}
           titulo="Caja"
-          subtitulo="Abre la caja para empezar a vender."
+          subtitulo="Cuenta el cajón y abre la caja para vender."
           acciones={
-            <BotonEnlace href="/caja/historial" data-guia="caja.historial-todas">
-              <History className="h-4 w-4" aria-hidden />
-              Historial de cierres
-            </BotonEnlace>
+            <BotonHistorialCierres cierres={cierresRecientesSede} ubicacionId={persona.ubicacionId} ubicacionNombre={persona.ubicacionEtiqueta} />
           }
         />
       )}
@@ -54,17 +66,16 @@ export default async function CajaPage({ searchParams }: { searchParams: Promise
           React ya lo remonta solo — `anim-sube` no necesita `key` para retriggerse,
           entra de nuevo cada vez que este `router.refresh()` cambia de rama. */}
       {!caja ? (
-        <div
-          className={`anim-sube grid items-start gap-4 ${ultimoCierre ? "md:grid-cols-[1.1fr_1fr]" : ""}`}
-          style={{ "--i": 1 } as CSSProperties}
-        >
-          {ultimoCierre && <UltimoCierreCaja cierre={ultimoCierre} recientes={cierresRecientesSede} />}
-          <AbrirCajaFormV2
-            ubicacionId={persona.ubicacionId}
-            ubicacionEtiqueta={persona.ubicacionEtiqueta}
-            esperado={ultimoCierre?.montoFondo ?? null}
-          />
-        </div>
+        <AbrirCajaPantalla
+          ubicacionId={persona.ubicacionId}
+          ubicacionEtiqueta={persona.ubicacionEtiqueta}
+          ultimo={ultimoCierre}
+          recientes={cierresRecientesSede}
+          ayer={pagosAyer ? { total: vendidoHasta(pagosAyer, null), ventas: tickets(pagosAyer) } : null}
+          meta={parametrosAbrir ? parametrosAbrir.meta : (sedeAbrir?.metaVentaDiaria ?? null)}
+          horaCierre={sedeAbrir?.horaCierre ?? null}
+          puedeVender={veModulo(persona, "vender")}
+        />
       ) : (
         <CajaConDatos caja={caja} persona={persona} abrirCierre={abrirCierre} />
       )}
@@ -89,7 +100,7 @@ async function CajaConDatos({
   // `fn_puede_registrar_gasto`.
   const gastoDesdeCaja = registraGastos || puedeCerrar;
   const hoy = hoyLima();
-  const [{ resumen, series, esperado }, movimientos, ubicaciones, historial, resVentasHoy, parametros, datosGasto, pagosHoy, pagosAyer] = await Promise.all([
+  const [{ resumen, series, esperado }, movimientos, ubicaciones, historial, resVentasHoy, parametros, datosGasto, pagosHoy, pagosAyer, empresasAqui, vendidoPorCaja] = await Promise.all([
     getTableroCaja(caja.id),
     getMovimientosCaja(caja.id),
     getUbicaciones(),
@@ -117,7 +128,12 @@ async function CajaConDatos({
     // Hoy contra ayer (ADR-0319): los pagos de los dos días. Si la base no tiene la lectura, `null` y Caja se ve como antes.
     getPagosDelDia(caja.ubicacionId, hoy),
     getPagosDelDia(caja.ubicacionId, diaAnterior(hoy)),
+    // De quién es lo vendido del turno (ADR-0532): solo donde conviven CAYLA y CLAURE (Lima). Si la base no responde, Caja sale como antes.
+    // Solo depende de la caja: va en este mismo lote (antes, una tanda aparte después).
+    getEmpresasAqui(caja.ubicacionId),
+    getVendidoPorEmpresaDeCajas([caja.id]),
   ]);
+  const repartoEmpresas = repartoDeEmpresas(vendidoPorCaja ? (vendidoPorCaja.get(caja.id) ?? []) : null, empresasAqui);
 
   const { datos: filasVentas, fallo } = tolerar(resVentasHoy, "las ventas de hoy");
   const filas = fallo ? [] : (filasVentas ?? []);
@@ -150,7 +166,9 @@ async function CajaConDatos({
   });
 
   const metaVentaDiaria = parametros ? parametros.meta : (ubicaciones.find((u) => u.id === caja.ubicacionId)?.metaVentaDiaria ?? null);
-  const horaCierre = ubicaciones.find((u) => u.id === caja.ubicacionId)?.horaCierre ?? null;
+  // El cierre del día en que se abrió esta caja, el mismo que usa el Marcador (nunca deben discrepar). Si no se puede leer, el de hoy: la pantalla no se cae por un horario.
+  const horaHoy = ubicaciones.find((u) => u.id === caja.ubicacionId)?.horaCierre ?? null;
+  const horaCierre = await horaCierreDeLaCaja(caja.ubicacionId, horaHoy, caja.abiertaEn).catch(() => horaHoy);
 
   return (
     <CajaAbiertaPanel
@@ -171,6 +189,7 @@ async function CajaConDatos({
       cierresRecientes={historial}
       contexto={contexto}
       comparativa={pagosHoy && pagosAyer ? { hoy: pagosHoy, ayer: pagosAyer } : null}
+      repartoEmpresas={repartoEmpresas}
       accesos={{
         vender: veModulo(persona, "vender"),
         cambios: veModulo(persona, "cambios"),

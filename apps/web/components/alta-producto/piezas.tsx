@@ -36,7 +36,7 @@ export function ChipOpcion({
       onClick={onClick}
       aria-pressed={elegido}
       disabled={disabled}
-      className={`flex items-center gap-1.5 rounded-md border transition-colors disabled:opacity-40 ${chico ? "min-h-8 px-2 py-1 text-[13px]" : "min-h-9 px-2.5 py-1.5 text-sm"} ${
+      className={`relative flex items-center gap-1.5 rounded-md border transition-colors disabled:opacity-40 ${chico ? "min-h-8 px-2 py-1 text-[13px]" : "min-h-9 px-4 py-1.5 text-sm"} ${
         elegido
           ? chico
             ? "border-tinta bg-tinta text-crema"
@@ -45,9 +45,9 @@ export function ChipOpcion({
       } ${className}`}
     >
       {/* La chica marca lo elegido rellenándose (como la maqueta de Recibir), sin el ✓: el ✓ la ensanchaba y empujaba a sus vecinas a
-          otra línea en una celda angosta. */}
+          otra línea en una celda angosta. En la normal, el ✓ va en el margen que ya tiene: elegir una talla no mueve a las demás. */}
       {elegido && !chico && (
-        <span aria-hidden className="text-[11px] leading-none">
+        <span aria-hidden className="absolute left-1 top-1/2 -translate-y-1/2 text-[11px] leading-none">
           ✓
         </span>
       )}
@@ -154,7 +154,7 @@ export function FilaAlta({
   const retener = useRetenerLuz(campo, useContext(RetencionLuzContexto), retiene);
   const titulo = (
     <div className="mb-2 flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
-      {campo && estado && (
+      {campo && estado && estado !== "opcional" && (
         <span className="self-center">
           <MarcaCampo estado={estado} />
         </span>
@@ -163,7 +163,7 @@ export function FilaAlta({
         {estado && <VozDelEstado estado={estado} />}
         {etiqueta}
       </span>
-      {estado === "ahora" && <EtiquetaAhora />}
+      {estado === "ahora" && <EtiquetaAhora flota />}
       {ayuda && <span className="text-[12px] leading-snug text-taupe">{ayuda}</span>}
       {accion && <span className="ml-auto">{accion}</span>}
     </div>

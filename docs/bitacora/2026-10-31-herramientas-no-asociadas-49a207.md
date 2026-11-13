@@ -1,0 +1,6 @@
+## 2026-10-31 (Los consumibles del Taller dejaron de ser «avíos» y un activo fijo empieza en ¼ de la UIT — ADR-0594)
+
+Qué hice: las agujas, el hilo general y el aceite del Taller tienen ahora su lugar como gasto de la sede Taller («Consumibles del Taller», cuenta 656), con su ícono, y «Nuevo avío» ya dice que ahí no van. Registrar un activo que cuesta ¼ de la UIT o menos (S/ 1,375 hoy) avisa que puede llevarse a gasto, sin bloquear. Y quedó listo, ensayado, el SQL que pasa 10 equipos (S/ 8,388.16) a gasto y elimina las 2 entradas del 31-oct que eran consumibles.
+Por qué así: el consumible es costo propio del Taller, que se mide como unidad aparte (P-31, ADR-0547). Sumarle un monto fijo a cada prenda habría contado el mismo dinero dos veces: al comprar y al vender. El umbral se calcula de la UIT que ya estaba guardada, así que no hizo falta migración para esa parte.
+Qué se rompería sin esto: las agujas seguirían entrando como avío sin forma honesta de salir, el Balance seguiría depreciando durante años parlantes y celulares de S/ 700 a S/ 1,300, y el costo de cada blusa habría quedado inflado.
+Felipe se lleva: la migración `20261031195000` y el SQL de limpieza están SIN pegar en producción. El SQL corre primero en modo ensayo y se deshace solo; cuando diga «10 equipos por S/ 8388.16», se cambia una palabra y se pega de nuevo.

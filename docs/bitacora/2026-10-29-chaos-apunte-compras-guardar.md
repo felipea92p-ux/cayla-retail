@@ -1,0 +1,5 @@
+# 2026-10-29 · /chaos de Apunte de compras ▸ «Guardar la compra» (rama chaos-apunte-compras-guardar)
+
+- **Qué quedó:** la base local puesta al día con `/actualizar-flujo` (132 migraciones, con respaldo) y «Guardar la compra» atacada en la base (44 ataques a la función, 0 hallazgos) y en el navegador (red cortada, respuesta perdida, recarga al guardar: resisten, una sola compra y ninguna a medias). Un hallazgo de gravedad 4, arreglado con su prueba: cinco clics en el mismo instante mandaban cinco pedidos iguales; ahora `candadoDeEnvio` deja pasar solo el primero y lo suelta al terminar, bien o mal.
+- **Verificado:** `vitest` (prueba en rojo antes, verde después), `tsc`, eslint, guías; el mismo ataque repetido (1 pedido en vez de 5; con la red cortada, 1 pedido, y al volver la red un clic guarda); 24 invariantes en verde; base restaurada a su foto (289 tablas, mismas huellas).
+- **No cubierto:** papel con foto y «Pagué solo una parte», dos pestañas y sesión vencida; `compras_simple_revisar` falla al preparar (falta `sandra@cayla.local` en el seed local). Una vez la página saltó al Inicio y no se reprodujo.

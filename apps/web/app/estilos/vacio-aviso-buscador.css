@@ -48,7 +48,7 @@
   .vacio-filtro {
     display: inline-flex; align-items: center; gap: 6px; height: 28px; padding: 0 6px 0 12px; border-radius: 999px;
     font-size: 12.5px; font-weight: 500; background: var(--color-tinta); color: var(--color-crema); cursor: pointer;
-    transition: transform 200ms var(--ease-cayla), opacity 200ms, background-color 200ms;
+    transition: transform var(--t-cambio) var(--ease-cayla), opacity var(--t-cambio), background-color var(--t-cambio);
   }
   @media (hover: hover) {
     .vacio-filtro:hover { background: var(--color-rojo-profundo); }
@@ -60,7 +60,7 @@
   .vacio-filtro:active { transform: scale(0.94); }
   /* «Limpiar todo» al final de los filtros puestos (ronda 11, <BotonLimpiar>): una píldora más, punteada, con el embudo tachado; el borde
      se calienta al pasar el mouse y se encoge al presionarla, como la del filtro puesto. */
-  .pildora-limpiar { border-style: dashed; gap: 6px; font-weight: 500; color: var(--color-taupe); transition: border-color 200ms, color 200ms, transform 200ms var(--ease-cayla); }
+  .pildora-limpiar { border-style: dashed; gap: 6px; font-weight: 500; color: var(--color-taupe); transition: border-color var(--t-cambio), color var(--t-cambio), transform var(--t-cambio) var(--ease-cayla); }
   @media (hover: hover) {
     .pildora-limpiar:hover { border-color: var(--color-taupe); color: var(--color-tinta); }
   }
@@ -68,7 +68,7 @@
   .pildora-limpiar svg { width: 14px; height: 14px; flex-shrink: 0; }
 
   /* ---------- <Vacio tamano="chico">: una línea dentro de una tabla, una hoja o una lista ---------- */
-  .vacio-chico { display: flex; align-items: center; justify-content: center; gap: 10px; padding: 12px 14px; font-size: 13.5px; color: var(--color-taupe); animation: cayla-vacio-sube 300ms var(--ease-cayla) backwards; }
+  .vacio-chico { display: flex; align-items: center; justify-content: center; gap: 10px; padding: 12px 14px; font-size: 14px; color: var(--color-taupe); animation: cayla-vacio-sube 300ms var(--ease-cayla) backwards; }
   .vacio-chico.a-la-izquierda { justify-content: flex-start; }
   .vacio-chico .vacio-ic { width: 28px; height: 28px; flex-shrink: 0; }
   .vacio-chico .vacio-ic svg { width: 15px; height: 15px; stroke-width: 1.75; }
@@ -76,9 +76,9 @@
   .vacio-chico .vacio-txt { min-width: 0; text-align: left; }
   .vacio-chico .vacio-txt b, .vacio-chico .vacio-txt strong { color: var(--color-tinta); font-weight: 600; }
   .vacio-chico-accion {
-    flex-shrink: 0; font: 500 13px/1 var(--font-sans); color: var(--color-tinta); padding: 6px 8px; border-radius: 8px; cursor: pointer;
+    flex-shrink: 0; font: 500 14px/1 var(--font-sans); color: var(--color-tinta); padding: 6px 8px; border-radius: 8px; cursor: pointer;
     text-decoration: underline; text-decoration-color: color-mix(in srgb, var(--color-tinta) 30%, transparent); text-underline-offset: 3px;
-    transition: background-color 200ms, text-decoration-color 200ms;
+    transition: background-color var(--t-cambio), text-decoration-color var(--t-cambio);
   }
   @media (hover: hover) {
     .vacio-chico-accion:hover { background: color-mix(in srgb, var(--color-sand) 55%, transparent); text-decoration-color: currentColor; }
@@ -102,14 +102,14 @@
   }
   .aviso-linea-ic { grid-column: 1; grid-row: 1 / span 2; display: grid; place-items: center; width: 18px; height: 22px; color: var(--cp); --trazo-ms: 520ms; --trazo-espera: 220ms; }
   .aviso-linea-ic svg { width: 16px; height: 16px; stroke-width: 2.2; }
-  .aviso-linea-tit { grid-column: 2; grid-row: 1; margin: 1px 0 0; font-size: 14px; font-weight: 600; line-height: 1.4; color: var(--cp); }
-  .aviso-linea-det { grid-column: 2; margin: 0; font-size: 13.5px; line-height: 1.5; color: color-mix(in srgb, var(--color-tinta) 78%, transparent); }
+  .aviso-linea-tit { overflow-wrap: anywhere; grid-column: 2; grid-row: 1; margin: 1px 0 0; font-size: 14px; font-weight: 600; line-height: 1.4; color: var(--cp); }
+  .aviso-linea-det { overflow-wrap: anywhere; grid-column: 2; margin: 0; font-size: 14px; /* ronda 19 */ line-height: 1.5; color: color-mix(in srgb, var(--color-tinta) 78%, transparent); }
   .aviso-linea-det.solo { grid-row: 1 / span 2; align-self: center; }
   .aviso-linea-acc { grid-column: 3; grid-row: 1 / span 2; align-self: center; }
   .aviso-linea-acc :is(a, button) {
     font: 500 13px/1 var(--font-sans); color: var(--cp); padding: 7px 10px; border-radius: 8px; white-space: nowrap; cursor: pointer;
     text-decoration: underline; text-decoration-color: color-mix(in srgb, var(--cp) 35%, transparent); text-underline-offset: 3px;
-    transition: background-color 200ms;
+    transition: background-color var(--t-cambio);
   }
   @media (hover: hover) {
     .aviso-linea-acc :is(a, button):hover { background: color-mix(in srgb, var(--c) 12%, transparent); }
@@ -117,7 +117,7 @@
   .aviso-linea.chico { align-items: center; padding: 8px 10px 8px 10px; border-radius: 4px 12px 12px 4px; }
   .aviso-linea.chico .aviso-linea-ic { grid-row: 1; height: 18px; }
   .aviso-linea.chico .aviso-linea-ic svg { width: 14px; height: 14px; }
-  .aviso-linea.chico .aviso-linea-tit { margin: 0; font-size: 13px; }
+  .aviso-linea.chico .aviso-linea-tit { margin: 0; font-size: 14px; }
   .aviso-linea.chico .aviso-linea-tit span { font-weight: 400; color: color-mix(in srgb, var(--color-tinta) 78%, transparent); }
   .aviso-linea.chico .aviso-linea-acc { grid-row: 1; }
 
@@ -142,14 +142,14 @@
   .buscador {
     position: relative; display: flex; align-items: center; gap: 8px; height: 40px; padding: 0 6px 0 12px; border-radius: 10px;
     background: var(--color-hueso); border: 1px solid var(--color-borde-control); overflow: hidden; /* P2 de la familia: se escribe en él, lleva el borde de control (3:1) */
-    transition: background-color 200ms var(--ease-cayla), border-color 200ms var(--ease-cayla);
+    transition: background-color var(--t-cambio) var(--ease-cayla), border-color var(--t-cambio) var(--ease-cayla);
   }
   @media (hover: hover) {
     .buscador:hover { border-color: color-mix(in srgb, var(--color-tinta) 65%, var(--color-papel)); }
   }
   .buscador:focus-within { background: var(--color-papel); border-color: color-mix(in srgb, var(--color-tinta) 65%, var(--color-papel)); }
   .buscador:has(input:focus-visible) { outline: var(--foco-ancho) solid var(--foco-color); outline-offset: var(--foco-separacion); }
-  /* «Lo escribió CAYLA» (ADR-0529, actividad 6): el asistente escribió aquí lo que la persona dijo. La marca va dentro de la caja, a la
+  /* «Lo escribió CAYLA» (ADR-0536, actividad 6): el asistente escribió aquí lo que la persona dijo. La marca va dentro de la caja, a la
      derecha, hasta que la persona la toca o escribe (`marcarLoEscribioCayla`, components/guias/piloto.ts). */
   .buscador[data-lo-escribio-cayla] { border-color: var(--color-taupe); }
   .buscador[data-lo-escribio-cayla]::after {
@@ -166,7 +166,7 @@
   }
   .buscador-sombra i { font-style: normal; visibility: hidden; }
   .buscador:focus-within .buscador-sombra { display: flex; }
-  .buscador-icono { width: 16px; height: 16px; flex-shrink: 0; color: color-mix(in srgb, var(--color-tinta) 50%, transparent); transition: color 200ms, transform 300ms var(--ease-cayla); } /* contraste: gráfico sobre hueso, papel */
+  .buscador-icono { width: 16px; height: 16px; flex-shrink: 0; color: color-mix(in srgb, var(--color-tinta) 50%, transparent); transition: color var(--t-cambio), transform var(--t-cambio) var(--ease-cayla); } /* contraste: gráfico sobre hueso, papel */
   .buscador:focus-within .buscador-icono { color: var(--color-tinta); transform: scale(1.08); }
   .buscador input { flex: 1; min-width: 0; height: 100%; border: 0; outline: 0; background: transparent; font-size: 14px; color: var(--color-tinta); }
   .buscador input::placeholder { color: color-mix(in srgb, var(--color-tinta) 64%, transparent); } /* contraste: texto sobre hueso, papel */
@@ -174,12 +174,12 @@
   .buscador-atajo {
     pointer-events: none; margin-right: 6px; border-radius: 5px; border: 1px solid color-mix(in srgb, var(--color-tinta) 15%, transparent);
     padding: 0 6px; font-size: 10.5px; line-height: 18px; font-weight: 600; color: color-mix(in srgb, var(--color-tinta) 64%, transparent); /* contraste: texto sobre hueso, papel */
-    transition: opacity 200ms;
+    transition: opacity var(--t-cambio);
   }
   .buscador:focus-within .buscador-atajo, .buscador[data-con-texto] .buscador-atajo { opacity: 0; }
   .buscador-borrar {
     display: grid; place-items: center; width: 28px; height: 28px; flex-shrink: 0; border-radius: 999px; cursor: pointer;
-    color: color-mix(in srgb, var(--color-tinta) 55%, transparent); transition: background-color 200ms, color 200ms; /* contraste: gráfico sobre hueso, papel */
+    color: color-mix(in srgb, var(--color-tinta) 55%, transparent); transition: background-color var(--t-cambio), color var(--t-cambio); /* contraste: gráfico sobre hueso, papel */
     animation: cayla-revelar 240ms var(--ease-cayla) both;
   }
   .buscador-borrar svg { width: 14px; height: 14px; }
@@ -188,10 +188,12 @@
   }
   .buscador-senal {
     position: absolute; right: 44px; pointer-events: none; white-space: nowrap; font-size: 10.5px; font-weight: 600;
-    letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-rojo); opacity: 0; transition: opacity 200ms var(--ease-cayla);
+    letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-rojo); opacity: 0; transition: opacity var(--t-cambio) var(--ease-cayla);
   }
-  .buscador-hilo { position: absolute; left: 0; right: 0; bottom: 0; height: 2px; overflow: hidden; pointer-events: none; opacity: 0; transition: opacity 200ms; }
-  .buscador-hilo::before { content: ""; display: block; height: 100%; width: 33%; border-radius: 999px; background: var(--color-rojo); animation: cayla-hilo-barrido 1.1s linear infinite; }
+  .buscador-hilo { position: absolute; left: 0; right: 0; bottom: 0; height: 2px; overflow: hidden; pointer-events: none; opacity: 0; transition: opacity var(--t-cambio); }
+  .buscador-hilo::before { content: ""; display: block; height: 100%; width: 33%; border-radius: 999px; background: var(--color-rojo); }
+  /* El hilo corre solo mientras busca: antes barría en bucle aunque estuviera invisible (/milimetro 2026-11-13), repintando la pantalla. */
+  .buscador[data-buscando] .buscador-hilo::before { animation: cayla-hilo-barrido 1.1s linear infinite; }
   .buscador[data-buscando] .buscador-senal, .buscador[data-buscando] .buscador-hilo { opacity: 1; }
   .buscador[data-buscando] .buscador-atajo { opacity: 0; }
   .buscador-conteo { margin-top: 6px; min-height: 18px; font-size: 12px; color: var(--color-taupe); animation: cayla-vacio-sube 260ms var(--ease-cayla) backwards; }
@@ -200,7 +202,7 @@
   .buscador.mostrador {
     height: 60px; gap: 12px; padding: 0 8px 0 18px; border-radius: 14px; border: 0; background: var(--color-papel);
     box-shadow: 0 20px 42px -28px color-mix(in srgb, var(--color-sombra) 50%, transparent), 0 0 0 1px color-mix(in srgb, var(--color-tinta) 10%, transparent);
-    transition: box-shadow 300ms var(--ease-cayla), transform 300ms var(--ease-cayla);
+    transition: box-shadow var(--t-cambio) var(--ease-cayla), transform var(--t-cambio) var(--ease-cayla);
   }
   .buscador.mostrador:focus-within {
     transform: translateY(-1px); background: var(--color-papel);

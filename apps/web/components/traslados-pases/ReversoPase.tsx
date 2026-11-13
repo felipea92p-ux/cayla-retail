@@ -15,6 +15,7 @@ import { SelloPase } from "@/components/traslados-pases/SelloPase";
 import { usePase } from "@/components/traslados-pases/PaseTraslado";
 import { rutaDelPase } from "@/components/traslados-pases/Billetera";
 import { useRecepcion, type VarianteBusqueda } from "@/components/traslados-pases/useRecepcion";
+import { useTrasladoAlDia } from "@/components/traslados-pases/useTrasladoAlDia";
 import { codigoPrenda } from "@/lib/prenda-reglas";
 import { ejemploNotaCierre } from "@/lib/sugerencias-traslados";
 import { enlaceWhatsAppA } from "@/lib/facturacion-comprobantes-reglas";
@@ -56,6 +57,7 @@ import { Volver } from "@/components/ui/Volver";
 import { BotonImprimir } from "@/components/ui/BotonImprimir";
 import { Boton } from "@/components/ui/campos";
 import { SobrantesPase } from "@/components/traslados-pases/SobrantesPase";
+import { AvisoNoSeDeshace } from "@/components/ui/Aviso";
 
 // El reverso del pase (ADR-0355, maqueta D): lo que se hace con la caja al darle vuelta.
 //  · Te llega: cuentas a ciegas (− / +, la pistola o la cámara; lo contado se guarda solo). «Terminé de contar» destapa lo que
@@ -79,7 +81,8 @@ const LUGARES: Record<"piso_venta" | "almacen_tienda", { texto: string; icono: R
 
 export function ReversoPase({
   vista,
-  traslado: t,
+  traslado: trasladoDeLaPagina,
+  carga,
   esDestino,
   esOrigen,
   esLider,
@@ -92,6 +95,8 @@ export function ReversoPase({
 }: {
   vista: VistaPase;
   traslado: TrasladoDetalle;
+  /** Un texto distinto por cada vez que el servidor armó la página: si se repite, lo que se dibuja es una copia guardada por el router. */
+  carga: string;
   esDestino: boolean;
   esOrigen: boolean;
   esLider: boolean;
@@ -105,6 +110,8 @@ export function ReversoPase({
   whatsappDestino: string | null;
 }) {
   const pase = usePase();
+  // Al volver con «atrás», lo que esta pestaña ya guardó va encima de la copia del router, y la página se pide de nuevo (2026-11-11).
+  const t = useTrasladoAlDia(trasladoDeLaPagina, carga);
   const r = useRecepcion({
     traslado: t,
     esDestino,
@@ -297,7 +304,7 @@ export function ReversoPase({
                           · {[l.talla, l.color].filter(Boolean).join(" · ")} · {codigoPrenda(l)}
                         </span>
                       </span>
-                      <span className="shrink-0 text-xs text-taupe">+1</span>
+                      <span className="shrink-0 text-sm text-taupe">+1</span>
                     </button>
                   </li>
                 ))}
@@ -498,11 +505,12 @@ export function ReversoPase({
         ) : modo === "envio" && esOrigen && anulando ? (
           <>
             <PieGuia guia={guiaAnular} listo="Listo: ya puedes anularla." />
+            <AvisoNoSeDeshace />
             <div className="tp-fila">
               <button type="button" onClick={() => setAnulando(false)} disabled={ocupado} className="btn-cayla btn-secundario">
                 No anular
               </button>
-              <Boton peso="peligro" cargando={anulandoAhora} textoCargando="Anulando…"
+              <Boton peso="primario" cargando={anulandoAhora} textoCargando="Anulando…"
                 type="button"
                 onClick={() => void alAnular()}
                 disabled={ocupado || !textoObligatorioValido(motivo) || !responsable.listo}

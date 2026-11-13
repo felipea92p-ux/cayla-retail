@@ -92,3 +92,40 @@ escala y sus flechas, el campo del mapa; y **la foto**: una JPG de 2,8 MB se red
 gestos con el mouse real y con el dedo: se probaron despachando eventos de puntero, y fue ahí donde apareció un fallo real (soltar el mouse antes de que React
 pintara dejaba el arrastre sin confirmar), ya corregido; falta ver el celular de verdad (arrastrar el horario, los dos botones de orden); (c) `pnpm guias:recorrer`
 de la guía nueva (pide la base local al día y una cuenta); (d) la migración contra producción; (e) `/formidable` y `/chaos`, que Felipe quiso al final.
+
+## Actualización 2026-10-26 (b) — el taller, compacto como la maqueta
+
+Felipe vio la pantalla construida y preguntó por qué no estaba compacta: **tenía razón, me aparté de la maqueta aprobada sin decirlo.** La construcción dejó los campos
+en una sola columna, cada uno con su párrafo de ayuda (heredados de la pantalla anterior), cuando la maqueta los ponía en dos columnas y casi sin texto. Se corrige:
+**nombre | WhatsApp** y **(dirección + mapa) | foto** van en dos columnas (una en el celular), el mapa se explica con su placeholder y su chip, y los párrafos bajo
+nombre, WhatsApp, dirección, mapa, foto, horario y cierres desaparecen (el horario conserva su chip «Arrastra los bordes o la barra»); también sale el párrafo de
+arriba del todo. Lo único que se queda dicho es lo que la pantalla de abajo ya repite en su nota. Solo cambia cómo se ve: ni la base ni lo que se guarda. Lección: una
+maqueta aprobada se compara con la pantalla construida, imagen contra imagen, ANTES de darla por terminada (ya lo pide CLAUDE.md para Finanzas; aquí no se hizo).
+
+## Actualización 2026-10-26 (c) — el horario va de a 15 minutos
+
+Felipe: «si quiero colocar 8:15 no se puede». La construcción dejó el horario de a media hora, y ese límite estaba también **en la base** (el CHECK
+`ubicacion_horario_web_horas` y la validación de `guardar_horario_tienda_web`, ambos «múltiplo de 30»), así que no era solo de pantalla. Migración nueva
+**`20261026205000_tienda_web_horario_de_a_15_minutos.sql`** (la de `162000` ya está pegada en producción y no se edita): el CHECK pasa a «múltiplo de 15» y la función
+valida de a 15 con la frase «de a 15 minutos» (mismo cuerpo, misma firma, mismo permiso). Lo que ya está guardado de a 30 sigue valiendo (lo prueba
+`pruebas:tienda-web-conf`, que pega la migración nueva SOBRE filas viejas). En código, `PASO_DE_HORA` pasa de 30 a 15 en `packages/shared` y el borde, la barra y las flechas
+caen al cuarto de hora; **una barra sigue sin poder quedar a menos de media hora** (`MINIMO_DE_TRAMO`): la base aceptaría 15 minutos, pero una barra de 15 es un error
+de dedo. En el celular cada cuarto de hora mide ~4 px: con el dedo cuesta clavarlo y las flechas del teclado (←/→, 15 minutos) son la salida; si hace falta, se agranda la pista.
+**Orden de publicación: primero pegar esta migración, después publicar la web** (con la web nueva y la base vieja, guardar un 8:15 falla con la frase vieja).
+
+## Actualización 2026-10-26 (d) — la fila de «Cierres», alineada y dicha en palabras
+
+Felipe: «esto no está alineado y no es muy entendible lo que hace». La fila tenía «Cerrar hoy» (botón chico) al lado de un campo `dd/mm/aaaa` con un calendario, sin decir qué
+hacía el campo, y el botón quedaba más arriba que la caja (el campo de fecha reserva un renglón vacío bajo ella para un error). Ahora: el botón y la caja miden lo mismo (40 px) y
+quedan a la misma altura (se oculta el renglón vacío cuando no hay error); entre los dos dice «u otro día»; el título lleva el chip «Un día que no abre: feriado, inventario»;
+«u otro día» y su caja bajan **juntas** si la fila no cabe; y tras agregar una fecha la caja vuelve a quedar vacía (antes se quedaba mostrando la fecha ya agregada). Solo
+cambia cómo se ve y cómo se siente.
+
+## Actualización 2026-10-26 (e) — los 3 cambios de `/formidable` y el candado de doble clic
+
+Felipe aprobó los tres cambios de `docs/formidable/tienda-web-conf-tienda.md` y el candado de `/chaos`. Solo web, sin migración ni RPC; no cambia qué guarda cada botón.
+1. **No perder lo escrito.** La pantalla usa `useSalidaSinGuardar` (el «¿Salir sin guardar?» de las demás): vigila las tiendas y los plazos (`Plazos` avisa su «sucio» al padre). Esc en un plazo revierte solo esa caja, no los cuatro.
+2. **Cómo se maneja.** El chip del horario sigue pidiendo arrastrar y agrega «la letra cierra el día»; la letra de cada día lleva su `title` («Cerrar el lunes»). El atajo del orden («Arrastra para ordenar, o Alt + ← →») pasa del agarre (que no recibe el puntero, así que su tooltip nunca salía) a la tarjeta.
+3. **Un solo nombre por dato:** «Nombre», «WhatsApp», «Dirección», «Horario» en la etiqueta, la puerta, «Faltan:» y el teléfono (`NOMBRE_DATO`, `PALABRA_FALTA`). El WhatsApp incompleto avisa bajo su caja al salir de ella («Son 9 dígitos y empieza en 9»), no mientras se escribe; el aviso flotante de «Guardar» queda de respaldo.
+4. **Candado de re-entrada** (`/chaos`): `guardarTarjeta` y `guardarPlazos` ignoran un segundo clic que llega antes de que el botón se apague. La base ya resistía (idempotente y con `pg_advisory_xact_lock`); solo evita los dos avisos «guardado».
+Verificado en el navegador local con la ruta temporal (guardia con una tienda y con solo los plazos; Esc por caja; aviso del WhatsApp; títulos). **Sin verificar:** el candado de doble clic (la ruta de prueba no tiene sesión y no llega a guardar).

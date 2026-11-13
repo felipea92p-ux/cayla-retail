@@ -1,0 +1,4 @@
+## 2026-11-04 (Ventas ▸ Reportes: la raya es el promedio del mes que se mira)
+Qué hice: la raya punteada de «Ventas por día» ahora es el promedio diario del mes que se mira: en un mes cerrado (octubre), todo el mes; en el mes en curso (noviembre, 4 días), del día 1 a hoy. Antes era el de los mismos días del mes pasado y se rotulaba «Octubre: S/ 3,664 al día», como si fuera todo octubre. Rótulos: «Promedio de octubre: S/ X al día» y «Promedio del 1 al 4: S/ X al día».
+Por qué así: Felipe vio la raya de noviembre muy por encima de las barras y pidió que fuera el promedio del propio mes. La comparación con el mes pasado, con los mismos N días, sigue en las tarjetas de arriba. Se borró `promedioDiarioAnterior`: ya no lo usa ninguna pantalla.
+Felipe se lleva: una raya que significa lo que dice y que siempre se ve. Probado con pruebas de la regla; el texto nuevo de la raya no se miró en pantalla, y no se probó con los datos reales de producción.

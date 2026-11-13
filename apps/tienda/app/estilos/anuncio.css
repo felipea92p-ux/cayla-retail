@@ -1,28 +1,25 @@
-/* =====================================================================================================
-   TIENDA ONLINE CAYLA (ADR-0408) · La franja de anuncios de arriba (`components/Anuncio.tsx`).
-   La franja misma (fondo oscuro, versalitas) es la de globals.css (`.t-anuncio`); aquí, cómo se turnan sus frases. Todas viven
-   apiladas en la misma celda: la franja toma el alto de la más larga, así que ninguna se corta con «…» en un celular angosto (a 320 px
-   la de la campaña baja a dos líneas con su descuento y su fecha enteros) y la franja no salta al cambiar de frase. La que sale sube y
-   se apaga; la nueva entra desde abajo un instante después. Sin rebote ni bucle de adorno; con «reducir movimiento» no rota.
-   ===================================================================================================== */
-.t-anuncio.t-anuncio-pila { height: auto; min-height: 30px; padding-block: 8px; line-height: 1.35; white-space: normal; }
-.t-anuncio-pila > .t-anuncio-frase {
-  grid-area: 1 / 1;
-  display: block;
-  max-width: 100%;
-  overflow: visible;
-  text-overflow: clip;
-  white-space: normal;
-  text-wrap: balance;
-  opacity: 0;
-  visibility: hidden;
-}
-.t-anuncio-pila > .t-anuncio-frase[data-estado="fija"],
-.t-anuncio-pila > .t-anuncio-frase[data-estado="entra"] { opacity: 1; visibility: visible; }
-.t-anuncio-pila > .t-anuncio-frase[data-estado="entra"] { animation: t-anuncio-entra .55s var(--ease) .18s both; }
-.t-anuncio-pila > .t-anuncio-frase[data-estado="sale"] { animation: t-anuncio-sale .4s var(--ease) both; }
-@keyframes t-anuncio-entra { from { opacity: 0; transform: translateY(8px); } }
+/* La franja de arriba (`components/Anuncio.tsx`, ADR-0615): un mensaje al centro, que pasan solos. Los mensajes viven
+   apilados en la misma celda: la franja toma el alto del más largo, ninguno se corta y nada salta al cambiar. Sin gradientes, sombras ni adornos. */
+.t-anuncio.t-anuncio-pila { display: grid; grid-template-columns: minmax(0, 1fr); justify-items: center; align-items: center; height: auto; min-height: 44px; padding: 0 var(--e-1, 4px); font-size: 13px; font-weight: 500; line-height: 1.3; letter-spacing: .01em; text-transform: none; white-space: normal; }
+.t-anuncio-frase a:focus-visible { outline: 2px solid currentColor; outline-offset: -4px; }
+.t-anuncio-frases { display: grid; align-items: center; justify-items: center; min-width: 0; }
+.t-anuncio-frase { grid-area: 1 / 1; display: block; max-width: 100%; opacity: 0; visibility: hidden; text-align: center; text-wrap: balance; }
+.t-anuncio-frase :is(a, .t-anuncio-sin-enlace) { display: inline-flex; align-items: center; gap: 8px; padding-block: 6px; color: inherit; }
+.t-anuncio-frase .ic { width: 15px; height: 15px; flex: none; opacity: .85; }
+.t-anuncio-frase[data-estado="fija"], .t-anuncio-frase[data-estado="entra"] { opacity: 1; visibility: visible; }
+/* Entra cuando el anterior ya salió: los dos textos no se enciman. */
+.t-anuncio-frase[data-estado="entra"] { animation: t-anuncio-entra .32s var(--ease) .22s both; }
+.t-anuncio-frase[data-estado="sale"] { animation: t-anuncio-sale .22s var(--ease) both; }
+.t-anuncio-frases { --t-anuncio-desde: 12px; --t-anuncio-hacia: -12px; }
+@keyframes t-anuncio-entra { from { opacity: 0; transform: translateX(var(--t-anuncio-desde)); } }
 @keyframes t-anuncio-sale {
   from { opacity: 1; visibility: visible; transform: none; }
-  to { opacity: 0; visibility: hidden; transform: translateY(-6px); }
+  to { opacity: 0; visibility: hidden; transform: translateX(var(--t-anuncio-hacia)); }
+}
+@media (hover: hover) {
+  .t-anuncio-frase a { background: linear-gradient(currentColor, currentColor) 50% calc(100% - 4px) / 0 1px no-repeat; transition: background-size .3s var(--ease); }
+  .t-anuncio-frase a:hover { background-size: 100% 1px; }
+}
+@container tienda (min-width: 960px) {
+  .t-anuncio.t-anuncio-pila { min-height: 40px; }
 }

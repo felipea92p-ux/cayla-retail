@@ -93,7 +93,7 @@ export function ElegirMuestra({ tipo, deLaCategoria, universo, imagenes, elegido
       </GrillaMuestras>
 
       {elegido && ayudaElegido && (
-        <p role="status" className="mt-2 text-xs text-taupe [@media(hover:hover)]:hidden">
+        <p role="status" className="mt-2 text-sm text-taupe [@media(hover:hover)]:hidden">
           <strong className="text-tinta">{elegido.texto}:</strong> {ayudaElegido.queEs} {datosEnTexto(ayudaElegido)}
         </p>
       )}
@@ -190,7 +190,7 @@ function TarjetaMuestra({
       <Muestra nombre={valor.texto} imagenUrl={imagenUrl ?? null} className="h-10 w-full" />
       <span className={`px-0.5 ${enHoja ? "break-words leading-tight" : "truncate"}`}>
         {elegido && (
-          <span aria-hidden className="text-[11px]">
+          <span aria-hidden className="text-sm">
             ✓{" "}
           </span>
         )}
@@ -285,7 +285,7 @@ function HojaMuestras({
       </div>
 
       <div className="scroll-cayla -mx-1 mt-3 max-h-[52vh] overflow-y-auto px-1 pb-1">
-        {propias.length === 0 && delCatalogo.length === 0 && <p className="py-4 text-[13px] text-taupe">{t.ninguno}</p>}
+        {propias.length === 0 && delCatalogo.length === 0 && <p className="py-4 text-sm text-taupe">{t.ninguno}</p>}
 
         {propias.length > 0 && (
           <section>

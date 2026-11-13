@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
- * Prueba de «Pregúntale a CAYLA»: cada pregunta queda anotada (ADR-0529, actividad 5; migración
- * `20261026235000_asistente_preguntas.sql`).
+ * Prueba de «Pregúntale a CAYLA»: cada pregunta queda anotada (ADR-0536, actividad 5; migración
+ * `20261027181000_asistente_preguntas.sql`).
  *
  * Vigila: una pregunta se anota con la cuenta y la persona; sin sesión no; el costo de una fila tiene techo (nadie infla el tope
  * del mes); el gasto del mes suma; «¿Te sirvió?» solo lo contesta la cuenta que preguntó, una vez (repetir lo mismo no falla,
@@ -19,7 +19,7 @@ import { fileURLToPath } from "node:url";
 
 const CONTENEDOR_LOCAL = "supabase_db_cayla-retail";
 const RAIZ = join(fileURLToPath(new URL(".", import.meta.url)), "..", "..");
-const MIGRACION = readFileSync(join(RAIZ, "supabase/migrations/20261026235000_asistente_preguntas.sql"), "utf8");
+const MIGRACION = readFileSync(join(RAIZ, "supabase/migrations/20261027181000_asistente_preguntas.sql"), "utf8");
 const FELIPE = "22222222-2222-4222-8222-000000000001"; // líder del seed (cuenta)
 const MICAELA = "22222222-2222-4222-8222-000000000003"; // integrante de Trujillo (cuenta)
 

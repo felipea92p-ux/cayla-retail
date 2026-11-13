@@ -9,6 +9,8 @@ import { iconoDeEtiqueta } from "@/lib/etiqueta-visual";
 import { precioEtiqueta } from "@/lib/etiqueta-precio-reglas";
 import type { LineaParaImprimir } from "@/lib/matriz-ficha-reglas";
 import { BotonImprimir } from "@/components/ui/BotonImprimir";
+import { prefiereQuieto } from "@/lib/movimiento-cliente";
+import { tonosDeMezcla } from "@/lib/color-combinado";
 
 // «Etiquetas de lo que entró» (Felipe 2026-10-03: «cuando agregues stock, o agregues un color con stock, debe salirte grande lo de
 // imprimir etiquetas solo de eso agregado»). Sale al terminar «Revisar y guardar» si entraron unidades, en vez del botón chico del
@@ -27,7 +29,7 @@ const MAX_ESCALONES = 10;
 /** La cifra que cuenta de 0 al total (una sola vez). Sin movimiento, llega directo. */
 function useCifraQueCuenta(total: number, ms: number, retraso: number): number {
   // La hoja solo existe en el navegador (se abre al terminar un guardado): se puede preguntar por el movimiento al nacer.
-  const [quieto] = useState(() => window.matchMedia("(prefers-reduced-motion: reduce)").matches);
+  const [quieto] = useState(() => prefiereQuieto());
   const [valor, setValor] = useState(() => (quieto ? total : 0));
   useEffect(() => {
     if (quieto) return;
@@ -106,7 +108,7 @@ export function ImprimirLoQueEntro({
               return {
                 clave: l.varianteId,
                 color: l.color,
-                punto: color ? <Punto hex={color.hex} familia={color.familiaColor} tipo={color.tipo} /> : <Punto hex={null} />,
+                punto: color ? <Punto hex={color.hex} familia={color.familiaColor} tipo={color.tipo} tonos={tonosDeMezcla(color, new Map(colores.map((x) => [x.codigo, x])))} /> : <Punto hex={null} />,
                 talla: l.talla,
                 precio: l.precio,
                 unidades: l.unidades,

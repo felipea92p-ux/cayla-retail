@@ -64,7 +64,7 @@ function Regla({ regla }: { regla: ReglaVista }) {
   return (
     <div className="relative mt-3.5 pt-7" role="img" aria-label={`Dónde cae entre las demás de su categoría: ${regla.ella.texto}`}>
       <span
-        className={`absolute top-0 flex flex-col text-[12px] font-semibold ${TRASLADO[alinearElla]} ${alinearElla === "medio" ? "items-center" : alinearElla === "fin" ? "items-end" : "items-start"}`}
+        className={`absolute top-0 flex flex-col text-sm font-semibold ${TRASLADO[alinearElla]} ${alinearElla === "medio" ? "items-center" : alinearElla === "fin" ? "items-end" : "items-start"}`}
         style={{ left: `${regla.ella.pos}%` } as CSSProperties}
       >
         <span className="whitespace-nowrap">{regla.ella.texto}</span>
@@ -75,7 +75,7 @@ function Regla({ regla }: { regla: ReglaVista }) {
           <span
             key={`${z.clave}-${i}`}
             title={z.nombre}
-            className={`flex h-full min-w-0 items-center overflow-hidden px-1.5 text-[12px] text-tinta ${ZONA[z.clave]} ${i > 0 ? "border-l border-taupe" : ""}`}
+            className={`flex h-full min-w-0 items-center overflow-hidden px-1.5 text-sm text-tinta ${ZONA[z.clave]} ${i > 0 ? "border-l border-taupe" : ""}`}
             style={{ width: `${z.ancho}%` }}
           >
             {cabeElNombre(z.nombre, z.ancho, px) && <span className="truncate">{z.nombre}</span>}
@@ -86,7 +86,7 @@ function Regla({ regla }: { regla: ReglaVista }) {
         {regla.marcas.map((m, i) => (
           <span
             key={i}
-            className={`absolute top-1.5 whitespace-nowrap text-center text-[12px] leading-tight text-taupe ${TRASLADO[m.alinear]}`}
+            className={`absolute top-1.5 whitespace-nowrap text-center text-sm leading-tight text-taupe ${TRASLADO[m.alinear]}`}
             style={{ left: `${m.pos}%` }}
           >
             {m.arriba}
@@ -100,7 +100,7 @@ function Regla({ regla }: { regla: ReglaVista }) {
         ))}
       </div>
       {sinLugar.length > 0 && (
-        <ul aria-hidden className="mt-1 flex flex-wrap gap-x-3 gap-y-0.5 text-[12px] text-taupe">
+        <ul aria-hidden className="mt-1 flex flex-wrap gap-x-3 gap-y-0.5 text-sm text-taupe">
           {sinLugar.map((z, i) => (
             <li key={`${z.clave}-${i}`} className="flex items-center gap-1.5">
               <MuestraTramo clase={ZONA[z.clave]} />
@@ -136,7 +136,7 @@ function BarraDias({ dia, de }: { dia: number; de: number }) {
   return (
     <div className="mt-2.5 flex items-center gap-2.5">
       <BarraAvance pct={(dia / de) * 100} etiqueta={`Día ${dia} de ${de}`} className="min-w-0 flex-1" />
-      <span className="text-[12px] tabular-nums text-taupe">
+      <span className="text-sm tabular-nums text-taupe">
         día {dia} de {de}
       </span>
     </div>
@@ -185,17 +185,17 @@ export function FrescuraDetalle({
   const temporada =
     detalle.temporada?.tipo === "pasada" ? (
       <>
-        <Chip tono="ambar" className="!px-2 !text-[12.5px] !leading-[18px]">
+        <Chip tono="ambar" className="!px-2 !text-sm !leading-[18px]">
           Temporada pasada
         </Chip>{" "}
-        <span className="text-[12.5px]">{detalle.temporada.texto}</span>
+        <span className="text-sm">{detalle.temporada.texto}</span>
       </>
     ) : detalle.temporada?.tipo === "sin" ? (
-      <Chip tono="neutro" className="!px-2 !text-[12px] !leading-[18px]">
+      <Chip tono="neutro" className="!px-2 !text-sm !leading-[18px]">
         ¿De qué temporada es? Complétala
       </Chip>
     ) : detalle.temporada?.tipo === "tiene" ? (
-      <span className="text-[12.5px]">{detalle.temporada.nombre}</span>
+      <span className="text-sm">{detalle.temporada.nombre}</span>
     ) : null;
 
   return (
@@ -234,7 +234,7 @@ export function FrescuraDetalle({
               {detalle.dias !== null && (
                 <span className="font-display text-[30px] font-semibold leading-none tabular-nums">
                   {detalle.dias}
-                  <small className="ml-1 font-sans text-[13px] font-medium text-taupe">
+                  <small className="ml-1 font-sans text-sm font-medium text-taupe">
                     {palabraDias(detalle.dias)} en el piso{detalle.quizaMas ? ` ${QUIZA_MAS}` : ""}
                     {detalle.pausa ? " · parado: está apartada" : ""}
                   </small>
@@ -247,7 +247,7 @@ export function FrescuraDetalle({
             </p>
             {detalle.regla && <Regla regla={detalle.regla} />}
             {detalle.sinContarla && (
-              <div className="mt-2.5 flex items-start gap-2 rounded-xl bg-hueso/85 px-3 py-2.5 text-[13px] leading-normal text-taupe">
+              <div className="mt-2.5 flex items-start gap-2 rounded-xl bg-hueso/85 px-3 py-2.5 text-sm leading-normal text-taupe">
                 <Info aria-hidden className="mt-0.5 h-4 w-4 shrink-0" />
                 <span>
                   <b className="font-semibold text-tinta">{FRASE_SIN_ELLA}</b> <TextoConNegritas texto={detalle.sinContarla} />
@@ -268,11 +268,11 @@ export function FrescuraDetalle({
                 <p className="text-sm leading-relaxed">{bloque.linea}</p>
                 {bloque.revisa && <p className="text-sm font-semibold">{bloque.revisa}</p>}
                 {bloque.progreso && <BarraDias dia={bloque.progreso.dia} de={bloque.progreso.de} />}
-                {bloque.nota && <p className="rounded-lg bg-hueso px-3 py-2 text-[13px] leading-snug">«{bloque.nota}»</p>}
+                {bloque.nota && <p className="rounded-lg bg-hueso px-3 py-2 text-sm leading-snug">«{bloque.nota}»</p>}
                 {bloque.resultado && (
-                  <p className="flex flex-wrap items-start gap-x-2 gap-y-1 text-[13.5px] leading-relaxed">
+                  <p className="flex flex-wrap items-start gap-x-2 gap-y-1 text-[15px] leading-relaxed">
                     {bloque.resultado.chip && (
-                      <Chip tono={bloque.resultado.chip.tono} className="!px-2 !text-[12px] !leading-[18px]">
+                      <Chip tono={bloque.resultado.chip.tono} className="!px-2 !text-sm !leading-[18px]">
                         {bloque.resultado.chip.texto}
                       </Chip>
                     )}
@@ -306,7 +306,7 @@ export function FrescuraDetalle({
                   </button>
                 )}
                 {!decision.lecturaOk && (
-                  <span className="text-[12.5px] text-taupe">
+                  <span className="text-sm text-taupe">
                     No se pudo leer lo ya decidido: por ahora no se puede anotar.{" "}
                     <button type="button" className="btn-cayla btn-enlace text-[12.5px]" onClick={() => router.refresh()}>
                       Volver a intentar
@@ -318,7 +318,7 @@ export function FrescuraDetalle({
             {bloque.historial.length > 0 && (
               <div className="mt-4 border-t border-sand pt-3">
                 <span className="label-cayla mb-2 block text-[12px] text-taupe">Lo que se decidió antes</span>
-                <ul className="space-y-1.5 text-[13px] leading-snug">
+                <ul className="space-y-1.5 text-sm leading-snug">
                   {bloque.historial.map((h) => (
                     <li key={h.id}>
                       <span className="tabular-nums text-taupe">{h.cuando}</span> · {h.texto}
@@ -328,7 +328,7 @@ export function FrescuraDetalle({
                           <b className="font-semibold">{h.chip.texto}</b>
                         </>
                       )}
-                      {h.resultado && <span className="block text-[12.5px] text-taupe">{h.resultado}</span>}
+                      {h.resultado && <span className="block text-sm text-taupe">{h.resultado}</span>}
                     </li>
                   ))}
                 </ul>
@@ -347,14 +347,14 @@ export function FrescuraDetalle({
                 <TextoConNegritas texto={detalle.recientes} />
               </p>
             )}
-            {!detalle.rapidez && !detalle.recientes && <p className="text-[13px] text-taupe">No se mide.</p>}
+            {!detalle.rapidez && !detalle.recientes && <p className="text-sm text-taupe">No se mide.</p>}
           </Bloque>
 
           <Bloque titulo={`Tallas en ${sede}`}>
             <div data-guia="frescura.detalle-tallas" className="grid grid-cols-[repeat(auto-fill,minmax(88px,1fr))] gap-1.5">
               {detalle.tallas.map((t) => (
-                <div key={t.varianteId} className="rounded-[10px] bg-hueso px-2.5 py-2 text-[12.5px] leading-normal">
-                  <b className="block text-[13px] font-semibold">{t.talla}</b>
+                <div key={t.varianteId} className="rounded-[10px] bg-hueso px-2.5 py-2 text-sm leading-normal">
+                  <b className="block text-sm font-semibold">{t.talla}</b>
                   <span className="text-taupe">Piso</span> {t.piso}
                   <br />
                   <span className="text-taupe">Almacén</span> {t.almacen}
@@ -381,7 +381,7 @@ export function FrescuraDetalle({
                           <Icono aria-hidden className="mt-0.5 h-4 w-4 shrink-0 text-taupe" />
                           <span>{a.titulo}</span>
                         </div>
-                        <p className="mt-1 text-[13px] leading-relaxed text-tinta/70">{a.texto}</p>
+                        <p className="mt-1 text-sm leading-relaxed text-tinta/70">{a.texto}</p>
                         {a.botones.length > 0 && (
                           <div className="mt-2 flex flex-wrap gap-2">
                             {a.botones.map((b) => (
@@ -395,7 +395,7 @@ export function FrescuraDetalle({
                     );
                   })}
                 </div>
-                <p className="mt-2.5 text-[13px] text-taupe">Son preguntas, no órdenes: la decisión es tuya. Aquí no se rebaja nada; lo que decidas se anota con «Anotar lo que hice».</p>
+                <p className="mt-2.5 text-sm text-taupe">Son preguntas, no órdenes: la decisión es tuya. Aquí no se rebaja nada; lo que decidas se anota con «Anotar lo que hice».</p>
               </>
             ) : (
               <p className="text-sm">{detalle.sinAcciones}</p>
@@ -403,7 +403,7 @@ export function FrescuraDetalle({
           </Bloque>
 
           <Bloque titulo="Datos de apoyo">
-            <dl className="grid grid-cols-[auto_1fr] gap-x-3.5 gap-y-1.5 text-[13px]">
+            <dl className="grid grid-cols-[auto_1fr] gap-x-3.5 gap-y-1.5 text-sm">
               {detalle.apoyo.map((d) => (
                 <div key={d.que} className="contents">
                   <dt className="text-taupe">{d.que}</dt>

@@ -54,7 +54,7 @@ export function AjustesResumen({ campanas, ajustes, onCambiar }: { campanas: rea
         lugar,
       )}
       {abierta && (
-        <Modal titulo="Qué se ve en el Resumen" subtitulo="Solo para esta pantalla. Esconder no borra nada: la campaña sigue en el Plan de campaña y en Compras." onClose={() => setAbierta(false)} conCerrar tamano="angosta">
+        <Modal titulo="Qué se ve en el Resumen" subtitulo="Solo para esta pantalla: esconder no borra nada." onClose={() => setAbierta(false)} conCerrar tamano="angosta">
           <div className="space-y-4">
             <Interruptor
               activo={ajustes.global}
@@ -77,7 +77,7 @@ export function AjustesResumen({ campanas, ajustes, onCambiar }: { campanas: rea
             <Interruptor
               activo={ajustes.enCaja}
               onActivo={(v) => onCambiar({ ...ajustes, enCaja: v })}
-              etiqueta="Contar la compra en «Tu caja»"
+              etiqueta="Contar la compra en «Próximos»"
               pie="Muestra cómo cambia tu caja con lo que falta pedir. Es una proyección, no un pago."
             />
             <Interruptor activo={ajustes.conIgv} onActivo={(v) => onCambiar({ ...ajustes, conIgv: v })} etiqueta="Contar el IGV (18 %)" pie="De caja sale con IGV; ese IGV vuelve como crédito fiscal en la declaración siguiente." />

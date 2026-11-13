@@ -1,0 +1,57 @@
+/* ====================================================================
+   Compras ▸ Proveedores con vidrio (Felipe 2026-11-02, docs/maquetas/proveedores-vidrio-2026-11/; tablero docs/vidrio/README.md).
+   Lo eligió mirando: «Qué hacer» A · Placa con filas y «Comparar» A · Placa con columnas (las recomendadas). El ranking ya era la tabla
+   B · Placa Serena (pantalla.css). Solo cambia el material: qué tareas salen, qué filtra cada una, qué dato va en cada fila de «Comparar» y
+   hasta cuántos se comparan no cambian (components/ProveedoresLoQueNoSeVe.tsx, components/ProveedoresComparar.tsx).
+   ==================================================================== */
+
+/* ---------- La columna derecha («Qué hacer», «Para hoy», «Comparar»): la placa Serena, la misma de la tabla ---------- */
+.prov-lado {
+  border-radius: var(--radius-tarjeta);
+  border-color: var(--serena-borde);
+  background: var(--serena-fondo);
+  -webkit-backdrop-filter: var(--serena-filtro);
+  backdrop-filter: var(--serena-filtro);
+  box-shadow: var(--serena-sombra);
+}
+
+/* ---------- «Qué hacer»: cada tarea, una fila de la lista ----------
+   Entre filas, el hilo de las tablas; al pasar el mouse, la fila se aclara con la gota clara de las listas (en oscuro, tinta al 9 %), en vez
+   del hueso de antes. La urgente lleva su ícono en una gota roja de 28 px, con el ícono en crema fija (es una señal: en los dos temas igual). */
+.prov-filas > * + * {
+  border-top: 1px solid var(--hilo-fila);
+}
+@media (hover: hover) {
+  :is(a, button).prov-tarea:hover {
+    background: var(--gota-chica-fondo);
+  }
+}
+.prov-gota-roja {
+  width: 28px;
+  height: 28px;
+  margin-left: -2px;
+  border-radius: 999px;
+  color: var(--color-crema-fija);
+  background: var(--gota-roja-fondo);
+  box-shadow: var(--gota-roja-luz);
+}
+.prov-gota-roja svg {
+  width: 14px;
+  height: 14px;
+}
+
+/* ---------- «Comparar»: cada dato en su fila, con el hilo de las tablas; la × de cada proveedor, una gota clara con su filo ---------- */
+.prov-comp-fila {
+  border-top-color: var(--hilo-fila);
+}
+.prov-quitar {
+  border: 1px solid var(--color-borde-control);
+  background: var(--gota-chica-fondo);
+  box-shadow: var(--gota-chica-luz);
+  transition: background 200ms var(--ease-cayla);
+}
+@media (hover: hover) {
+  .prov-quitar:hover {
+    background: var(--gota-fondo-encima);
+  }
+}

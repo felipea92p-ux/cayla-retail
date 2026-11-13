@@ -1,6 +1,7 @@
 # ADR-0466 — La tienda: el velo al cambiar de tienda y el título que se cuelga al cambiar de pestaña
 
 **Estado:** aceptada · **Fecha:** 2026-10-20 · **Decidió:** Felipe (eligió mirando la maqueta: «velo y cuelga»)
+**Actualización 2026-10-26 (ADR-0524):** «El título se cuelga» (cambio de pestaña) fue reemplazado por «La raya que viaja»: Felipe cambió de opinión al ver la Pasarela. El velo (cambio de tienda) se queda, re-vestido por los tokens de la Pasarela. Lo que dice abajo del título que se cuelga ya no está en el código.
 **Relacionados:** ADR-0445 (esqueletos fieles y paso suave entre vistas), ADR-0455 (la tienda minimalista y siempre una tienda), ADR-0430 y
 ADR-0136 (movimiento: «ricas, una vez, sin rebote ni bucle»), ADR-0432 (cáscara armada por adelantado). Maqueta con las seis opciones:
 `docs/maquetas/tienda-cambio-de-sede-y-pestana-2026-10/`.

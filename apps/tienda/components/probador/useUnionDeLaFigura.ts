@@ -3,24 +3,27 @@
 import { useEffect, useState, useSyncExternalStore } from "react";
 import type { Caja, FotoDelColor, Zona } from "@/lib/probador";
 import {
-  ANCHO_PARA_MEDIR,
+  cajaDeAbajoSinMedida,
   cajaDeAbajoUnida,
   cajaDeArribaAjustada,
-  direccionParaMedir,
+  direccionDeLaMedida,
   hiloDeLaEspera,
   type HiloDeLaEspera,
+  medidaDesdeDato,
   medidasATexto,
   medidasDesdeTexto,
-  medirRecorte,
   type MedidaDelRecorte,
 } from "@/lib/union-prendas";
 
-// La unión de lo de arriba con lo de abajo en la figura (ADR-0449): mide en el navegador el recorte de cada una y le da a la prenda de abajo la caja
-// que hace coincidir su pretina con el borde de abajo de la de arriba (`cajaDeAbajoUnida`, con sus límites). Sin esa medida —todavía no llegó, o la
-// imagen no se pudo leer— se queda la caja de siempre, por su largo en cm.
+// La unión de lo de arriba con lo de abajo en la figura (ADR-0449): pide la medida del recorte de cada una y le da a la prenda de abajo la caja
+// que hace coincidir su pretina con el borde de abajo de la de arriba (`cajaDeAbajoUnida`, con sus límites). Sin esa medida —todavía no llegó, o no
+// se pudo sacar— lo de abajo arranca en el bajo estimado de la de arriba (`cajaDeAbajoSinMedida`).
+//
+// La medida la saca la tienda, no el navegador (2026-11-10, `app/api/medida/[archivo]/route.ts`): Safari 26 le mete ruido a la lectura de píxeles
+// de un lienzo, y la unión salía mal en todo iPhone y Mac con Safari. Aquí NO se leen píxeles: llega un JSON chico, igual para todo navegador.
 //
 // Para que se sienta inmediata (Felipe, 2026-10-18):
-// - se mide una copia chica del recorte (la que ya sirve el optimizador, 256 px), no el PNG entero;
+// - la medida de un recorte se calcula una vez en el servidor y se guarda un año (sale de la caché, es un JSON de pocos bytes);
 // - lo medido se recuerda entre visitas (`localStorage`), así que una prenda ya vista se une al instante;
 // - mientras se ve la figura, se miden en segundo plano las prendas vecinas (las que se pasan con la flecha o deslizando);
 // - si aun así hay que esperar, la figura lo dice (el hilo, el velo y «Ajustando tu look…»; `ajustando` e `hilo`, ADR-0449 act. 2026-10-22) en vez de mover la prenda sin avisar.
@@ -29,8 +32,8 @@ import {
 const ESPERA_ANTES_DE_AVISAR_MS = 180;
 /** Una imagen que no responde en tanto se da por no medible: se queda la caja de siempre y el aviso se va. */
 const LIMITE_POR_RECORTE_MS = 4000;
-// v3: las medidas traen el perfil del bajo y su ancho por filas; lo recordado en v1 y v2 se vuelve a medir.
-const CLAVE_GUARDADA = "cayla-union-v3";
+// v4: las medidas vienen de la tienda. Lo recordado antes lo midió el navegador, y en Safari 26 puede estar arruinado por el ruido: se vuelve a pedir.
+const CLAVE_GUARDADA = "cayla-union-v4";
 
 /** Lo que se midió de cada recorte (por su dirección); `null`: no se pudo. Dura lo que dura la pestaña, más lo recordado de otras visitas. */
 const medidas = new Map<string, MedidaDelRecorte | null>();
@@ -80,16 +83,19 @@ function guardarRecordadas() {
   }, 600);
 }
 
-type Foto = { url: string; optimizar: boolean };
+type Foto = { url: string };
 
-/** Baja el recorte y lo mide. Nunca falla: un recorte que no se puede medir (o que tarda demasiado) queda `null`. */
+/**
+ * Pide la medida del recorte a la tienda. Nunca falla: un recorte que no se puede medir queda `null`. Uno que tarda más de `LIMITE_POR_RECORTE_MS`
+ * también queda `null` por ahora (la figura deja de esperar), pero si la respuesta llega después, se aplica igual.
+ */
 function medir(foto: Foto): Promise<void> {
   const clave = foto.url;
   const pendiente = enCurso.get(clave);
   if (pendiente) return pendiente;
   const tarea = new Promise<void>((resolver) => {
-    const img = new Image();
     let listo = false;
+    let vencido = false;
     const terminar = (m: MedidaDelRecorte | null) => {
       if (listo) return;
       listo = true;
@@ -97,36 +103,31 @@ function medir(foto: Foto): Promise<void> {
       medidas.set(clave, m);
       if (m) guardarRecordadas();
       notificar();
+      if (!vencido) resolver();
+    };
+    const reloj = window.setTimeout(() => {
+      // Deja de esperar, pero no da la medida por perdida: si llega, `terminar` todavía la aplica.
+      vencido = true;
+      medidas.set(clave, null);
+      notificar();
       resolver();
-    };
-    const reloj = window.setTimeout(() => terminar(null), LIMITE_POR_RECORTE_MS);
-    // Misma procedencia: la copia chica sale de la tienda y no pide permiso; la foto suelta del almacén sí (tiene CORS abierto).
-    if (!foto.optimizar) img.crossOrigin = "anonymous";
-    img.decoding = "async";
-    img.onload = () => {
-      try {
-        const ancho = Math.min(ANCHO_PARA_MEDIR, img.naturalWidth);
-        const alto = Math.max(1, Math.round((img.naturalHeight * ancho) / Math.max(1, img.naturalWidth)));
-        const lienzo = document.createElement("canvas");
-        lienzo.width = ancho;
-        lienzo.height = alto;
-        const g = lienzo.getContext("2d", { willReadFrequently: true });
-        if (!g) throw new Error("sin canvas");
-        g.drawImage(img, 0, 0, ancho, alto);
-        terminar(medirRecorte(g.getImageData(0, 0, ancho, alto).data, ancho, alto));
-      } catch {
-        terminar(null);
-      }
-    };
-    img.onerror = () => terminar(null);
-    img.src = direccionParaMedir(foto);
+    }, LIMITE_POR_RECORTE_MS);
+    const direccion = direccionDeLaMedida(foto.url);
+    if (!direccion) {
+      terminar(null);
+      return;
+    }
+    fetch(direccion)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((dato: unknown) => terminar(medidaDesdeDato(dato)))
+      .catch(() => terminar(null));
   }).finally(() => enCurso.delete(clave));
   enCurso.set(clave, tarea);
   return tarea;
 }
 
 /** Lo que la unión lee de cada pieza: su zona, si va metida, su recorte y su caja (la figura interactiva manda más; la quieta, solo esto). */
-export type PiezaDeLaFigura = { z: Zona; p: { metida: boolean; porTorso?: boolean }; c: { foto: FotoDelColor }; caja: Caja };
+export type PiezaDeLaFigura = { z: Zona; p: { metida: boolean; porTorso?: boolean; falda?: boolean }; c: { foto: FotoDelColor }; caja: Caja };
 
 /**
  * Las piezas de la figura con la de abajo unida a la de arriba. Con las dos zonas puestas pide medir sus recortes y, cuando están, devuelve las
@@ -147,9 +148,7 @@ export function useUnionDeLaFigura<T extends PiezaDeLaFigura>(
   const fotoAbajo = abajo?.c.foto ?? null;
   const urlArriba = fotoArriba?.url ?? null;
   const urlAbajo = fotoAbajo?.url ?? null;
-  const optimizarArriba = fotoArriba?.optimizar ?? false;
-  const optimizarAbajo = fotoAbajo?.optimizar ?? false;
-  const clavesCercanas = cercanas.map((f) => `${f.optimizar ? 1 : 0}${f.url}`).join("\n");
+  const clavesCercanas = cercanas.map((f) => f.url).join("\n");
 
   // Lo recordado de otras visitas, apenas monta (no en la primera pintura: tiene que coincidir con la del servidor).
   useEffect(() => {
@@ -160,17 +159,17 @@ export function useUnionDeLaFigura<T extends PiezaDeLaFigura>(
   useEffect(() => {
     if (!urlArriba) return;
     const faltan = [
-      { url: urlArriba, optimizar: optimizarArriba },
-      ...(urlAbajo ? [{ url: urlAbajo, optimizar: optimizarAbajo }] : []),
+      { url: urlArriba },
+      ...(urlAbajo ? [{ url: urlAbajo }] : []),
     ].filter((f) => !medidas.has(f.url));
     if (faltan.length === 0) return;
     void Promise.all(faltan.map(medir));
-  }, [urlArriba, urlAbajo, optimizarArriba, optimizarAbajo]);
+  }, [urlArriba, urlAbajo]);
 
   // Las vecinas, cuando el navegador está libre y de a una: no le quitan el turno a lo que se está viendo.
   useEffect(() => {
     if (!clavesCercanas) return;
-    const fotos = clavesCercanas.split("\n").map((k) => ({ optimizar: k[0] === "1", url: k.slice(1) }));
+    const fotos = clavesCercanas.split("\n").map((url) => ({ url }));
     let vivo = true;
     const pedir = window.requestIdleCallback ?? ((f: () => void) => window.setTimeout(f, 300));
     const quitar = window.cancelIdleCallback ?? window.clearTimeout;
@@ -207,13 +206,19 @@ export function useUnionDeLaFigura<T extends PiezaDeLaFigura>(
     arribaFinal && abajo && urlArriba && urlAbajo && completa
       ? cajaDeAbajoUnida(
           { caja: arribaFinal.caja, medida: medidas.get(urlArriba), metida: arribaFinal.p.metida },
-          { proporcion: abajo.c.foto.proporcion, medida: medidas.get(urlAbajo) },
+          { proporcion: abajo.c.foto.proporcion, medida: medidas.get(urlAbajo), falda: abajo.p.falda },
         )
       : null;
+  // Sin la unión (la medida no llegó o no se pudo leer), la de abajo arranca al menos en el bajo de la de arriba, no en la cintura fija.
+  const cajaAbajo =
+    unida ??
+    (arribaFinal && abajo && urlArriba
+      ? cajaDeAbajoSinMedida({ caja: arribaFinal.caja, medida: medidas.get(urlArriba), metida: arribaFinal.p.metida }, abajo.caja)
+      : null);
   // El hilo de la espera corre por el borde de abajo de la prenda de arriba (con su fila medida si ya se midió); solo hay hilo si hay algo de abajo que unir.
   const hilo = arribaFinal && abajo ? hiloDeLaEspera({ caja: arribaFinal.caja, medida: urlArriba ? medidas.get(urlArriba) : null }) : null;
   return {
-    piezas: piezas.map((x) => (x === arriba && arribaFinal ? arribaFinal : x === abajo && unida ? { ...x, caja: unida } : x)),
+    piezas: piezas.map((x) => (x === arriba && arribaFinal ? arribaFinal : x === abajo && cajaAbajo ? { ...x, caja: cajaAbajo } : x)),
     ajustando,
     hilo,
   };

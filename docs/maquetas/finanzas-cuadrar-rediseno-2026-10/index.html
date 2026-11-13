@@ -1,0 +1,196 @@
+<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Cuadrar con el banco · rediseño</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600&family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400&display=swap">
+<link rel="stylesheet" href="base.css?v=1">
+<style>
+/* Cuadrar con el banco · rediseño visual (solo estética y orden; ninguna función cambia). Solo var(--…) de base.css. */
+.pagina{max-width:none;margin:0;padding:22px clamp(16px,3vw,40px) 90px;display:flex;flex-direction:column;gap:20px}
+.mq-nota{max-width:none;padding-inline:clamp(16px,3vw,40px)}
+.cab{display:flex;justify-content:space-between;align-items:flex-end;gap:18px 28px;flex-wrap:wrap}
+.cab .linea{display:flex;align-items:center;gap:10px}.cab .linea::after{content:"";width:72px;height:1px;background:var(--taupe);opacity:.55}
+.cab h1{font-size:clamp(34px,5vw,46px);line-height:1.02;margin-top:4px}.cab .frase{max-width:60ch;font-size:15px;margin-top:6px}
+.pest{display:inline-flex;padding:4px;border-radius:999px;background:var(--hueso);gap:2px;flex-wrap:wrap;align-self:flex-start}
+.pest button{border:0;background:transparent;padding:8px 14px;border-radius:999px;font-size:11.5px;letter-spacing:.1em;text-transform:uppercase;font-weight:600;cursor:pointer;color:color-mix(in srgb,var(--tinta) 66%,transparent)}
+.pest button[aria-pressed="true"]{background:var(--tinta);color:var(--crema)}
+.pest .g{display:inline-grid;place-items:center;min-width:18px;height:18px;border-radius:9px;background:var(--ambar);color:var(--crema);font-size:10.5px;margin-left:6px;padding:0 5px}
+.pil{display:flex;flex-wrap:wrap;gap:8px}
+.pil button{display:inline-flex;align-items:center;gap:8px;border:1px solid var(--sand);background:var(--papel);border-radius:999px;padding:7px 14px;font-size:13.5px;cursor:pointer;transition:all .2s var(--ease-cayla)}
+.pil button[aria-pressed="true"]{background:var(--tinta);color:var(--crema);border-color:var(--tinta)}
+.glob{display:inline-grid;place-items:center;min-width:20px;height:20px;border-radius:10px;background:color-mix(in srgb,var(--ambar) 18%,transparent);color:var(--ambar);font-size:11.5px;font-weight:600;padding:0 6px}
+.pil button[aria-pressed="true"] .glob{background:color-mix(in srgb,var(--crema) 22%,transparent);color:var(--crema)}
+.tarj{background:var(--papel);border:1px solid var(--sand);border-radius:var(--radio)}
+.tarj>header{display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap;padding:16px 20px 12px}
+.tarj>header h2{font-size:21px}.tarj>header small{font-size:12.5px;color:color-mix(in srgb,var(--tinta) 66%,transparent)}
+.btn{height:auto}.btn.primario{height:40px}.btn.chico{height:32px}
+.am{--c:var(--ambar)}.rj{--c:var(--rojo-p)}.vd{--c:var(--verde)}
+.ent{animation:ent .5s var(--ease-cayla) backwards;animation-delay:calc(var(--i,0)*45ms)}
+@keyframes ent{from{opacity:0;transform:translateY(8px)}}
+.pista{height:6px}.pista>i{animation:crece .9s var(--ease-cayla) backwards}@keyframes crece{from{width:0}}
+.neg{color:var(--rojo-p)}.pos{color:var(--verde)}
+.sec{display:none;flex-direction:column;gap:20px}.sec.on{display:flex}
+
+/* --- el par: lo que anotó CAYLA ↔ el extracto (como la pantalla real, con hilo) --- */
+.par{display:grid;grid-template-columns:minmax(0,1fr) 70px minmax(0,1fr) auto;align-items:center;gap:12px;padding:10px 14px;border:1px solid var(--sand);border-radius:12px;background:var(--papel)}
+.par[data-e="ok"]{background:color-mix(in srgb,var(--verde) 7%,var(--papel));border-color:color-mix(in srgb,var(--verde) 30%,var(--sand))}
+.par[data-e="cambio"]{border-color:color-mix(in srgb,var(--ambar) 45%,var(--sand))}
+.par .m{font-family:var(--serif);font-size:18px;font-variant-numeric:tabular-nums}
+.par .l{display:flex;flex-direction:column;gap:2px;min-width:0;font-size:13px;color:var(--taupe)}
+.par .b{color:var(--tinta)}.par[data-e="cambio"] .b{color:var(--ambar)}
+.par svg{width:70px;height:24px;overflow:visible}.par svg path{fill:none;stroke:var(--sand);stroke-width:2;stroke-dasharray:.04 .04}
+.par[data-e="ok"] svg path{stroke:var(--verde);stroke-dasharray:1;animation:hilo .6s var(--ease-cayla) backwards}@keyframes hilo{from{stroke-dashoffset:1}}
+.pares{display:flex;flex-direction:column;gap:8px;padding:4px 14px 14px}
+@media(max-width:640px){.par{grid-template-columns:minmax(0,1fr) auto}.par svg{display:none}.par .l:nth-of-type(2){grid-column:1/-1;grid-row:2}}
+.seg{display:inline-flex;padding:3px;border-radius:999px;background:var(--hueso);gap:2px}
+.seg button{border:0;background:transparent;padding:6px 12px;border-radius:999px;font-size:12.5px;font-weight:600;cursor:pointer;color:color-mix(in srgb,var(--tinta) 66%,transparent)}
+.seg button[aria-pressed="true"]{background:var(--tinta);color:var(--crema)}
+.campo{display:flex;flex-direction:column;gap:4px}.campo label{font-size:11px;letter-spacing:.1em;text-transform:uppercase;font-weight:600;color:var(--taupe)}
+.campo input{height:44px;border-radius:12px;border:1px solid var(--sand);background:var(--hueso);padding:0 14px;font:inherit;font-size:20px;font-family:var(--serif);font-variant-numeric:tabular-nums;color:var(--tinta);width:100%}
+.campo input:focus{background:var(--papel);outline:none;border-color:var(--rojo);box-shadow:0 0 0 3px color-mix(in srgb,var(--rojo) 18%,transparent)}
+.hist{list-style:none;margin:0;padding:0 8px 8px}.hist li{display:flex;justify-content:space-between;gap:10px;padding:10px 12px;font-size:13px;align-items:center}.hist li+li{border-top:1px solid var(--sand)}
+.hist button{border:0;background:none;padding:0;cursor:pointer;color:var(--tinta);text-align:left;text-decoration:underline;text-decoration-color:var(--sand);text-underline-offset:3px;font-size:13px}
+
+/* ===== A · La balanza ===== */
+.a-bal{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr) auto minmax(0,1fr);align-items:stretch;gap:0;padding:0;overflow:hidden}
+.a-bal>div{padding:18px 22px;display:flex;flex-direction:column;gap:6px;justify-content:center;min-width:0}
+.a-bal .sep{width:1px;background:var(--sand);padding:0}
+.a-bal .v{font-family:var(--serif);font-size:clamp(30px,3.6vw,40px);line-height:1.05;font-variant-numeric:tabular-nums}
+.a-bal .dif{background:color-mix(in srgb,var(--c) 9%,var(--papel))}
+.a-bal .dif .v{color:var(--c)}
+.a-av{display:flex;flex-direction:column;gap:8px;padding:0 20px 18px}
+.a-cols{display:grid;grid-template-columns:minmax(0,1.7fr) minmax(0,1fr);gap:20px;align-items:start}
+@media(max-width:1000px){.a-cols{grid-template-columns:1fr}.a-bal{grid-template-columns:1fr}.a-bal .sep{width:auto;height:1px}}
+
+/* ===== B · Lista y detalle ===== */
+.b-lib{display:grid;grid-template-columns:minmax(300px,400px) minmax(0,1fr);gap:20px;align-items:start}
+.b-lista{padding:6px 8px 12px;position:sticky;top:76px}
+.b-it{display:grid;grid-template-columns:auto 1fr auto;gap:12px;width:100%;border:0;background:transparent;text-align:left;font:inherit;color:inherit;align-items:center;padding:11px 12px;border-radius:10px;cursor:pointer;transition:background .2s}
+.b-it .pt{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;font-size:11px;font-weight:700;color:var(--crema-fija);background:var(--c)}
+.b-it b{display:block;font-weight:600;font-size:14px}.b-it small{font-size:12px;color:color-mix(in srgb,var(--tinta) 62%,transparent)}
+.b-it .v{font-variant-numeric:tabular-nums;font-weight:600;text-align:right}
+.b-it[aria-pressed="true"]{background:var(--hueso)}
+@media(hover:hover){.b-it:hover{background:color-mix(in srgb,var(--hueso) 60%,transparent)}}
+.b-det{display:flex;flex-direction:column;gap:20px;min-width:0}
+.b-hero{padding:22px 24px;display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr);gap:20px;align-items:center}
+.b-hero .v{font-family:var(--serif);font-size:clamp(40px,5vw,56px);line-height:1;font-variant-numeric:tabular-nums}
+.b-form{display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap}.b-form .campo{flex:1;min-width:150px}
+@media(max-width:980px){.b-lib,.b-hero{grid-template-columns:1fr}.b-lista{position:static}}
+
+/* ===== C · Paso a paso ===== */
+.c-pasos{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.c-paso{padding:14px 18px;display:flex;gap:12px;align-items:center;cursor:pointer;text-align:left;font:inherit;color:inherit;position:relative;overflow:hidden;transition:transform .25s var(--ease-cayla),border-color .2s}
+.c-paso::before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--sand)}
+.c-paso[data-e="hecho"]::before{background:var(--verde)}.c-paso[data-e="ahora"]::before{background:var(--tinta)}
+.c-paso .n{width:30px;height:30px;border-radius:50%;display:grid;place-items:center;background:var(--hueso);font-weight:700;font-size:13px;flex:none}
+.c-paso[data-e="hecho"] .n{background:var(--verde);color:var(--crema-fija)}.c-paso[data-e="ahora"] .n{background:var(--tinta);color:var(--crema)}
+.c-paso b{display:block;font-size:14px}.c-paso small{font-size:12.5px;color:color-mix(in srgb,var(--tinta) 66%,transparent)}
+@media(hover:hover){.c-paso:hover{transform:translateY(-2px)}}
+.c-res{padding:30px;display:flex;flex-direction:column;gap:14px;align-items:flex-start}
+.c-res .v{font-family:var(--serif);font-size:clamp(44px,6vw,64px);line-height:1;font-variant-numeric:tabular-nums}
+.c-pie{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:0 20px 18px;align-items:center}
+@media(max-width:760px){.c-pasos{grid-template-columns:1fr}}
+.mq-pie{max-width:none;padding-inline:clamp(16px,3vw,40px);font-size:13px}
+</style></head><body>
+<header class="mq-barra"><a class="mq-volver" href="../" aria-label="Volver a las maquetas"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M10 3L5 8l5 5"/></svg></a>
+<div class="mq-titulo"><span class="versalita">Finanzas · rediseño visual</span><b>Cuadrar con el banco</b></div><span class="mq-espacio"></span>
+<div class="mq-selector" role="group" aria-label="Dirección"><span class="mq-pildora"></span><button data-ver="a">A · La balanza</button><button data-ver="b">B · Lista y detalle</button><button data-ver="c">C · Paso a paso</button></div>
+<span class="mq-ejemplo">Cifras de ejemplo</span><button class="mq-tema" type="button">Oscuro</button></header>
+<p class="mq-nota tenue"><b>Tres formas de ordenar lo mismo.</b> Mismas funciones, mismos datos: «Sí, está» marca la línea; «Anotar» guarda el saldo del banco; «Anular» lo deshace. Cambia qué se ve primero. A responde «¿cuadra?» de un vistazo, B «¿qué bancos me faltan?», C «¿qué hago ahora?». Toca todo; nada se guarda.</p>
+<main class="pagina" id="app"></main>
+<script>
+const $=(s,r=document)=>r.querySelector(s),$$=(s,r=document)=>[...r.querySelectorAll(s)];
+const f=n=>(n<0?"−":"")+"S/ "+Math.abs(n).toLocaleString("en-US",{minimumFractionDigits:2,maximumFractionDigits:2});
+// Datos de ejemplo: cada banco con las líneas que anotó CAYLA en el período. e: 'ok' revisada · 'cambio' cambió desde que se revisó · 'pen' pendiente.
+const BANCOS=[
+ {id:"bcp",n:"BCP Soles",ini:"BC",c:"var(--pizarra)",sis:38420.5,banco:null,al:"2026-10-30",ult:"vie 23 oct",anota:null,desde:"24 oct",
+  hist:[{f:"23 oct",b:36110,s:36110},{f:"16 oct",b:34980.4,s:35040.4},{f:"9 oct",b:30210,s:30210}],
+  lin:[["30 oct","Depósito del cajón · TRU",1850,"ok"],["30 oct","Abono tarjeta · POS Izipay",1240.8,"ok"],["29 oct","Pago a proveedor · Tejidos Andinos",-3200,"ok"],["29 oct","Depósito de caja fuerte · AQP",2600,"pen"],["28 oct","Transferencia Yape → BCP",412.5,"pen"],["27 oct","Alquiler tienda LIM",-4800,"cambio",4600],["26 oct","Abono tarjeta · POS Niubiz",980.2,"ok"],["25 oct","Comisión mantenimiento",-18,"pen"]]},
+ {id:"bbva",n:"BBVA",ini:"BB",c:"var(--m-plin)",sis:12880,banco:12880,al:"2026-10-30",ult:"vie 30 oct",anota:12880,desde:"24 oct",
+  hist:[{f:"30 oct",b:12880,s:12880},{f:"23 oct",b:11200,s:11200}],
+  lin:[["30 oct","Depósito del cajón · LIM",1500,"ok"],["28 oct","Pago luz y agua",-640,"ok"],["27 oct","Depósito de caja fuerte · TRU",2200,"ok"]]},
+ {id:"ibk",n:"Interbank",ini:"IB",c:"var(--m-qr)",sis:5140.3,banco:null,al:"2026-10-30",ult:"vie 2 oct",anota:null,desde:"3 oct",
+  hist:[{f:"2 oct",b:4020,s:4020}],
+  lin:[["29 oct","Abono QR · semana",1120.3,"pen"],["22 oct","Pago planilla taller",-2400,"pen"],["15 oct","Depósito del cajón · AQP",900,"ok"],["9 oct","Transferencia a BCP",-300,"pen"]]},
+ {id:"pos",n:"POS Izipay",ini:"PI",c:"var(--m-tarjeta)",sis:1240.8,banco:null,al:"2026-10-30",ult:"nunca",anota:null,desde:"1 oct",hist:[],
+  lin:[["30 oct","Ventas con tarjeta del día",1240.8,"pen"]]}
+];
+const st={ver:(location.hash||"#a").slice(1).replace(/[^abc]/g,"")||"a",sel:"bcp",filtro:"pen",paso:1,tipeo:{}};
+const B=()=>BANCOS.find(b=>b.id===st.sel);
+const pen=b=>b.lin.filter(l=>l[3]!=="ok").length;
+const dif=b=>b.banco==null?null:Math.round((b.banco-b.sis)*100)/100;
+const cuadra=b=>dif(b)===0;
+function estado(b){ // la respuesta de la cara: ¿cuadra esta cuenta?
+ const d=dif(b),p=pen(b);
+ if(d===0)return p===0?{t:`${b.n} cuadra con el banco al ${b.al.slice(8)} oct.`,c:"c-verde"}:{t:`El saldo coincide; faltan revisar ${p} ${p===1?"línea":"líneas"}.`,c:"c-ambar"};
+ if(d!==null)return {t:`No cuadra: hay ${f(Math.abs(d))} de diferencia con el banco.`,c:"c-ambar"};
+ return p===0?{t:"Todo revisado: anota el saldo del banco para saber si cuadra.",c:"c-pizarra"}:{t:`Faltan revisar ${p} ${p===1?"línea":"líneas"} y anotar el saldo del banco.`,c:"c-pizarra"};}
+const cab=()=>`<div class="cab"><div><div class="linea"><span class="versalita">CAYLA entera · hoy 31 oct</span></div><h1>Cuentas y dinero</h1><p class="frase tenue">Compara lo que anotó CAYLA con lo que dice el banco. Lo ideal es hacerlo cada viernes.</p></div></div>
+<div class="pest" role="group" aria-label="Secciones"><button>Dónde está</button><button aria-pressed="true">Cuadrar con el banco<span class="g">${BANCOS.reduce((a,b)=>a+pen(b),0)}</span></button><button>CLAURE</button></div>`;
+const pares=(b,fl)=>{const ls=b.lin.map((l,i)=>({l,i})).filter(({l})=>fl==="todas"||(fl==="pen"?l[3]!=="ok":l[3]==="ok"));
+ if(!ls.length)return `<div style="padding:30px 20px;text-align:center" class="tenue">${fl==="pen"?"No queda nada por revisar. ✓":"Todavía no hay líneas revisadas."}</div>`;
+ return `<div class="pares">`+ls.map(({l,i},k)=>{const e=l[3],t=e==="ok"?"Está en el extracto · la revisó Carla":e==="cambio"?`Cambió desde que se revisó (era ${f(l[4])}): mírala otra vez`:"¿Está en el extracto del banco?";
+ return `<div class="par ent" data-e="${e}" style="--i:${Math.min(k,12)}"><div class="l"><b class="m ${l[2]<0?"neg":""}">${l[2]<0?"−":"+"}${f(Math.abs(l[2]))}</b><span>${l[0]} · ${l[1]}</span></div><svg viewBox="0 0 90 24" preserveAspectRatio="none"><path d="M0 12 C30 2, 60 22, 90 12" pathLength="1"/></svg><div class="l"><span class="b">${t}</span></div><div>${e==="ok"?`<button class="btn chico sutil" data-des="${i}"><span class="chip c-verde">revisada</span></button>`:`<button class="btn chico" data-ok="${i}">Sí, está</button>`}</div></div>`}).join("")+`</div>`};
+const hist=b=>b.hist.length?`<div class="tarj"><header><h2>Conciliaciones de ${b.n}</h2></header><ul class="hist">${b.hist.map(h=>`<li><button>${h.f} · banco ${f(h.b)}</button><span class="chip ${h.b===h.s?"c-verde":"c-ambar"}">${h.b===h.s?"coincide":"diferencia "+f(Math.abs(h.b-h.s))}</span></li>`).join("")}</ul></div>`:"";
+const anotarForm=(b,ch="")=>`<div class="b-form"><div class="campo"><label for="sb">Saldo del banco</label><input id="sb" inputmode="decimal" placeholder="38,420.00" value="${st.tipeo[b.id]??""}"></div><div class="campo" style="max-width:170px"><label for="fb">Al</label><input id="fb" type="date" value="2026-10-30" style="font-size:15px;font-family:var(--sans)"></div><button class="btn primario" data-anotar>Anotar</button></div>`;
+const pilBancos=()=>`<div class="pil" role="group" aria-label="Qué cuenta cuadrar">${BANCOS.map(b=>`<button aria-pressed="${b.id===st.sel}" data-b="${b.id}">${b.n}${pen(b)?`<span class="glob">${pen(b)}</span>`:""}</button>`).join("")}</div>`;
+const nota=`<p class="nota">Si el banco no deja descargar el extracto, se escribe el saldo que muestra la banca por internet y el sistema dice si coincide. Subir el extracto (Excel o CSV) para que el sistema proponga cada pareja queda para después.</p>`;
+const seg=()=>{const b=B(),r=b.lin.filter(l=>l[3]==="ok").length;return `<div class="seg" role="group" aria-label="Qué líneas ver">${[["pen",`Por revisar ${b.lin.length-r}`],["ok",`Revisadas ${r}`],["todas","Todas"]].map(([k,t])=>`<button data-fl="${k}" aria-pressed="${st.filtro===k}">${t}</button>`).join("")}</div>`};
+const avance=b=>{const r=b.lin.filter(l=>l[3]==="ok").length,p=b.lin.length?r/b.lin.length*100:0;return `<div class="pista" style="width:140px"><i style="--w:${p}%;width:${p}%;background:${p===100?"var(--verde)":"var(--tinta)"}"></i></div>`};
+
+/* ---------- A · La balanza ---------- */
+function vA(){const b=B(),d=dif(b),e=estado(b),r=b.lin.filter(l=>l[3]==="ok").length;
+ const cDif=d==null?"var(--pizarra)":d===0?"var(--verde)":"var(--ambar)";
+ return `${cab()}${pilBancos()}
+ <section class="tarj a-bal ent" aria-label="Balanza de ${b.n}">
+  <div><span class="versalita">El sistema dice</span><span class="v">${f(b.sis)}</span><span class="tenue" style="font-size:12.5px">Lo que suman las líneas de ${b.n} al ${b.al.slice(8)} oct</span></div><div class="sep"></div>
+  <div><span class="versalita">El banco dice</span>${b.banco!=null?`<span class="v">${f(b.banco)}</span><span class="tenue" style="font-size:12.5px">Anotado por Carla · <button class="btn-enlace" data-anular style="border:0;background:none;padding:0;color:var(--rojo-p);cursor:pointer;text-decoration:underline">Anular este saldo…</button></span>`:anotarForm(b)}</div><div class="sep"></div>
+  <div class="dif" style="--c:${cDif}"><span class="versalita">Diferencia</span><span class="v">${d==null?"—":d===0?"Cuadra":f(d)}</span><span class="chip ${e.c}" style="align-self:flex-start;white-space:normal">${e.t}</span></div>
+ </section>
+ <div class="a-cols">
+  <section class="tarj ent" style="--i:1"><header><div><h2>${b.n} · movimientos del ${b.desde} al ${b.al.slice(8)} oct</h2><small>A la izquierda, lo que anotó CAYLA; a la derecha, si está en el extracto.</small></div>${seg()}</header>
+   <div style="display:flex;gap:14px;align-items:center;padding:0 20px 8px;flex-wrap:wrap">${avance(b)}<span class="tenue" style="font-size:12.5px">${r} de ${b.lin.length} revisadas</span>${b.lin.length-r>0?`<button class="btn chico primario" data-todas>Marcar las ${b.lin.length-r} como revisadas</button>`:""}</div>
+   ${pares(b,st.filtro)}</section>
+  <div style="display:flex;flex-direction:column;gap:20px">${hist(b)}${nota}</div>
+ </div>`}
+
+/* ---------- B · Lista y detalle ---------- */
+function vB(){const b=B(),d=dif(b),e=estado(b),r=b.lin.filter(l=>l[3]==="ok").length;
+ const lista=BANCOS.map(x=>{const dd=dif(x),ee=estado(x);return `<button class="b-it" style="--c:${x.c}" aria-pressed="${x.id===st.sel}" data-b="${x.id}"><span class="pt">${x.ini}</span><span><b>${x.n}</b><small>Última vez: ${x.ult}</small></span><span class="v">${f(x.sis)}<br>${dd===0&&pen(x)===0?'<span class="chip c-verde">cuadra</span>':pen(x)?`<span class="glob">${pen(x)} por revisar</span>`:dd!=null?'<span class="chip c-ambar">no cuadra</span>':'<span class="chip c-pizarra">falta saldo</span>'}</span></button>`}).join("");
+ return `${cab()}
+ <div class="b-lib"><aside class="tarj b-lista ent"><header style="padding:16px 12px 8px"><h2>Tus bancos</h2><small>${BANCOS.reduce((a,x)=>a+pen(x),0)} líneas por revisar</small></header>${lista}</aside>
+ <div class="b-det">
+  <section class="tarj b-hero ent" style="--i:1"><div><span class="versalita">${b.n} · el sistema dice</span><div class="v">${f(b.sis)}</div><span class="chip ${e.c}" style="margin-top:8px;white-space:normal">${e.t}</span></div>
+   <div>${b.banco!=null?`<span class="versalita">El banco dijo</span><div class="serif num" style="font-size:30px">${f(b.banco)}</div><button data-anular style="border:0;background:none;padding:0;color:var(--rojo-p);cursor:pointer;text-decoration:underline;font-size:13px">Anular este saldo…</button>`:`<span class="versalita" style="display:block;margin-bottom:6px">¿Qué saldo dice el banco?</span>${anotarForm(b)}`}</div></section>
+  <section class="tarj ent" style="--i:2"><header><div><h2>Movimientos del ${b.desde} al ${b.al.slice(8)} oct</h2><small>${r} de ${b.lin.length} revisadas</small></div><div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">${seg()}${b.lin.length-r>0?`<button class="btn chico primario" data-todas>Marcar las ${b.lin.length-r}</button>`:""}</div></header>${pares(b,st.filtro)}</section>
+  ${hist(b)}${nota}</div></div>`}
+
+/* ---------- C · Paso a paso ---------- */
+function vC(){const b=B(),d=dif(b),e=estado(b),r=b.lin.filter(l=>l[3]==="ok").length,todas=pen(b)===0;
+ const e1=todas?"hecho":st.paso===1?"ahora":"",e2=b.banco!=null?"hecho":st.paso===2?"ahora":"",e3=st.paso===3?"ahora":"";
+ const pasos=`<div class="c-pasos"><button class="tarj c-paso" data-e="${st.paso===1?"ahora":e1}" data-p="1"><span class="n">${e1==="hecho"&&st.paso!==1?"✓":"1"}</span><span><b>Revisa las líneas</b><small>${r} de ${b.lin.length} están en el extracto</small></span></button>
+  <button class="tarj c-paso" data-e="${st.paso===2?"ahora":e2}" data-p="2"><span class="n">${e2==="hecho"&&st.paso!==2?"✓":"2"}</span><span><b>Anota el saldo del banco</b><small>${b.banco!=null?f(b.banco):"Lo que dice la banca por internet"}</small></span></button>
+  <button class="tarj c-paso" data-e="${e3}" data-p="3"><span class="n">3</span><span><b>¿Cuadra?</b><small>${d==null?"Después del paso 2":d===0?"Sí, cuadra":"Hay "+f(Math.abs(d))+" de diferencia"}</small></span></button></div>`;
+ let cuerpo="";
+ if(st.paso===1)cuerpo=`<section class="tarj ent"><header><div><h2>${b.n} · movimientos del ${b.desde} al ${b.al.slice(8)} oct</h2><small>Marca los que ya viste en el extracto del banco.</small></div>${seg()}</header>${pares(b,st.filtro)}
+  <div class="c-pie"><span class="tenue" style="font-size:13px">${avance(b)}</span><div style="display:flex;gap:10px">${b.lin.length-r>0?`<button class="btn chico" data-todas>Marcar las ${b.lin.length-r}</button>`:""}<button class="btn primario" data-p="2">Siguiente: el saldo →</button></div></div></section>`;
+ else if(st.paso===2)cuerpo=`<section class="tarj ent" style="padding:28px"><h2>¿Qué saldo dice el banco?</h2><p class="tenue" style="margin:4px 0 18px;max-width:60ch">Lo que muestra la banca por internet al cierre del día. Se compara con los <b>${f(b.sis)}</b> que suma el sistema.</p>${b.banco!=null?`<div class="serif num" style="font-size:44px">${f(b.banco)}</div><p><button data-anular style="border:0;background:none;padding:0;color:var(--rojo-p);cursor:pointer;text-decoration:underline">Anular este saldo…</button></p>`:anotarForm(b)}<div class="c-pie" style="padding:18px 0 0"><button class="btn sutil" data-p="1">← Volver a las líneas</button>${b.banco!=null?`<button class="btn primario" data-p="3">Ver el resultado →</button>`:""}</div></section>`;
+ else cuerpo=`<section class="tarj c-res ent"><span class="versalita">${b.n} al ${b.al.slice(8)} oct</span>${d==null?`<div class="v">Falta el saldo</div><p class="tenue">Anota lo que dice el banco para saber si cuadra.</p><button class="btn primario" data-p="2">Anotar el saldo</button>`:`<div class="v" style="color:${d===0?"var(--verde)":"var(--ambar)"}">${d===0?"Cuadra":f(d)}</div><span class="chip ${e.c}" style="white-space:normal">${e.t}</span>
+  <div class="rejilla r3" style="width:100%;margin-top:6px"><div class="cifra"><span class="versalita">El sistema dice</span><span class="valor">${f(b.sis)}</span></div><div class="cifra"><span class="versalita">El banco dice</span><span class="valor">${f(b.banco)}</span></div><div class="cifra"><span class="versalita">Líneas sin revisar</span><span class="valor">${pen(b)}</span><span class="pie">${pen(b)?"Busca ahí lo que falta registrar":"Todo revisado"}</span></div></div>`}</section>${hist(b)}`;
+ return `${cab()}${pilBancos()}${pasos}${cuerpo}`}
+
+function pintar(){const v={a:vA,b:vB,c:vC}[st.ver];$("#app").innerHTML=v();$$(".mq-selector button").forEach(x=>x.setAttribute("aria-pressed",x.dataset.ver===st.ver));const p=$(".mq-pildora"),a=$(`.mq-selector button[data-ver="${st.ver}"]`);if(p&&a){p.style.left=a.offsetLeft+"px";p.style.width=a.offsetWidth+"px"}}
+document.addEventListener("click",ev=>{const t=ev.target.closest("[data-ver],[data-b],[data-ok],[data-des],[data-todas],[data-fl],[data-anotar],[data-anular],[data-p],.mq-tema");if(!t)return;const b=B();
+ if(t.matches(".mq-tema")){const o=document.documentElement.dataset.theme==="dark";document.documentElement.dataset.theme=o?"light":"dark";t.textContent=o?"Oscuro":"Claro";return}
+ if(t.dataset.ver){st.ver=t.dataset.ver;history.replaceState(null,"","#"+st.ver)}
+ else if(t.dataset.b){st.sel=t.dataset.b;st.paso=1;st.filtro="pen"}
+ else if(t.dataset.ok!=null)b.lin[+t.dataset.ok][3]="ok";
+ else if(t.dataset.des!=null)b.lin[+t.dataset.des][3]="pen";
+ else if("todas" in t.dataset)b.lin.forEach(l=>l[3]="ok");
+ else if(t.dataset.fl)st.filtro=t.dataset.fl;
+ else if("anotar" in t.dataset){const v=parseFloat(($("#sb").value||"").replace(/,/g,""));if(isNaN(v))return $("#sb").focus();b.banco=v;b.hist.unshift({f:"30 oct",b:v,s:b.sis});if(st.ver==="c")st.paso=3}
+ else if("anular" in t.dataset){b.banco=null;b.hist.shift()}
+ else if(t.dataset.p)st.paso=+t.dataset.p;
+ pintar()});
+document.addEventListener("input",ev=>{if(ev.target.id==="sb")st.tipeo[st.sel]=ev.target.value});
+window.addEventListener("resize",pintar);document.fonts&&document.fonts.ready.then(pintar);pintar();
+</script></body></html>

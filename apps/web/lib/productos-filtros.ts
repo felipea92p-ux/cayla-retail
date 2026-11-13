@@ -1,3 +1,4 @@
+import { terminoParaBuscar } from "@cayla-retail/shared/busqueda";
 import { enEscala } from "./color-escala";
 import { agruparPorFamilia } from "./colores-familias";
 import { alternarEnLista, type EstadoCasilla } from "./pildora-reglas";
@@ -52,7 +53,8 @@ export function valorDeCaja(tipeado: Tipeado, caja: CajaTipeada, consulta: strin
 /** Lo que una caja manda a la URL. El precio se normaliza («39,90» → «39.9»: la URL solo acepta el punto y con la coma
  *  ignoraba el filtro en silencio); a medio escribir («39,») devuelve `null` y se espera, en vez de borrar el filtro. */
 function valorParaUrl(caja: CajaTipeada, texto: string): string | null {
-  if (caja === "q" || texto.trim() === "") return texto.trim();
+  if (caja === "q") return terminoParaBuscar(texto);
+  if (texto.trim() === "") return "";
   const n = leerMonto(texto);
   return n == null ? null : String(n);
 }
@@ -180,10 +182,22 @@ export function empresaDeUrl(valor: string | null | undefined): string | undefin
   return valor && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(valor) ? valor : undefined;
 }
 
-/** Lo que le falta a la ficha: el filtro de quien carga el catálogo (76 de 86 prendas sin foto el 2026-10-02). */
-export const FALTAS = ["foto", "temporada", "marca", "proveedor"] as const;
+/** Lo que le falta a la ficha: el filtro de quien carga el catálogo (76 de 86 prendas sin foto el 2026-10-02). «Sin costo»
+ *  (Felipe 2026-11-12, 20261112155000) es una variante con el costo en 0 o vacío, y solo lo ve quien ve el dinero de Compras. */
+export const FALTAS = ["foto", "temporada", "marca", "proveedor", "costo"] as const;
 export type Falta = (typeof FALTAS)[number];
-export const ROTULO_FALTA: Record<Falta, string> = { foto: "Sin foto", temporada: "Sin temporada", marca: "Sin marca", proveedor: "Sin proveedor" };
+export const ROTULO_FALTA: Record<Falta, string> = {
+  foto: "Sin foto",
+  temporada: "Sin temporada",
+  marca: "Sin marca",
+  proveedor: "Sin proveedor",
+  costo: "Sin costo",
+};
+
+/** Las faltas que esta cuenta puede elegir: «Sin costo» solo si ve el costo (la base, además, no le encuentra nada a quien no). */
+export function faltasVisibles(veCosto: boolean): Falta[] {
+  return FALTAS.filter((f) => f !== "costo" || veCosto);
+}
 
 export function faltaDeUrl(valor: string | null | undefined): Falta | undefined {
   return (FALTAS as readonly string[]).includes(valor ?? "") ? (valor as Falta) : undefined;

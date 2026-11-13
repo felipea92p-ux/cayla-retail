@@ -1,7 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { exigir, leerTodas } from "@/lib/resultado";
 import type { FichaDeModelo } from "@/lib/produccion-hoja-modelo";
-import type { ColorConFicha } from "@/lib/ficha-del-color";
 
 // La ficha de cada modelo del Resumen de Producción: lo que Catálogo ▸ Productos dice en la suya (código, marca, proveedor, material, patrón, descripción, temporada).
 // Es un dato SECUNDARIO: quien llama la envuelve en `opcional(...)`, y si no se pudo leer la hoja «Ver el modelo» lo dice en vez de escribir «sin registrar». Son columnas de
@@ -40,14 +39,4 @@ export async function getFichasDeModelos(productoIds: readonly string[]): Promis
     };
   }
   return salida;
-}
-
-/**
- * El vocabulario de colores con su ficha (qué transmite cada uno y con qué se combina, ADR-0316): la hoja la muestra bajo la foto del color que se mira, como Catálogo ▸ Productos.
- * Solo los activos: un color desactivado no se recomienda. Misma lectura, mismas columnas y mismo permiso que las otras pantallas que la usan (Productos, Vender).
- */
-export async function getFichasDeColor(): Promise<ColorConFicha[]> {
-  const supabase = await createClient();
-  const colores = exigir(await supabase.from("colores").select("codigo, nombre, hex, familia_color, tipo, descripcion, combina_con").eq("activo", true).order("nombre"), "los colores");
-  return colores.map((c) => ({ codigo: c.codigo, nombre: c.nombre, hex: c.hex, familiaColor: c.familia_color ?? "", tipo: c.tipo, descripcion: c.descripcion ?? null, combinaCon: c.combina_con ?? [] }));
 }

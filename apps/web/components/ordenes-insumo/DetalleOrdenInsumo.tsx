@@ -80,22 +80,22 @@ export function DetalleOrdenInsumo({ orden: d }: { orden: Detalle }) {
 
       <dl data-guia="oi.datos" className="grid gap-x-6 gap-y-3 text-sm @min-[28rem]:grid-cols-2 @min-[48rem]:grid-cols-4">
         <div>
-          <dt className="text-xs text-taupe">Proveedor</dt>
+          <dt className="text-sm text-taupe">Proveedor</dt>
           <dd className="font-medium text-tinta">{d.proveedor.nombre}</dd>
-          <dd className="text-xs tabular-nums text-taupe">
+          <dd className="text-sm tabular-nums text-taupe">
             {[d.proveedor.ruc ? `RUC ${d.proveedor.ruc}` : null, d.proveedor.rubro ? etiquetaRubro(d.proveedor.rubro) : null].filter(Boolean).join(" · ")}
           </dd>
         </div>
         <div>
-          <dt className="text-xs text-taupe">Llega a</dt>
+          <dt className="text-sm text-taupe">Llega a</dt>
           <dd className="text-tinta">{d.destino.nombre}</dd>
         </div>
         <div>
-          <dt className="text-xs text-taupe">Emitida</dt>
+          <dt className="text-sm text-taupe">Emitida</dt>
           <dd className="tabular-nums text-tinta">{fechaCorta(d.fechaEmision)}</dd>
         </div>
         <div>
-          <dt className="text-xs text-taupe">Entrega estimada</dt>
+          <dt className="text-sm text-taupe">Entrega estimada</dt>
           <dd className="tabular-nums text-tinta">{d.fechaEntregaEstimada ? fechaCorta(d.fechaEntregaEstimada) : "Sin fecha"}</dd>
         </div>
       </dl>
@@ -157,7 +157,7 @@ export function DetalleOrdenInsumo({ orden: d }: { orden: Detalle }) {
 
       {/* Lo que la orden decía antes de cada edición (`orden_insumo_versiones`): no se pierde, y se lee aquí sin abrir nada más. */}
       {d.versiones.length > 0 && (
-        <details data-guia="oi.versiones" className="text-[13px] text-tinta/80">
+        <details data-guia="oi.versiones" className="text-sm text-tinta/80">
           {/* Sin anillo propio: el foco de teclado es el anillo común de globals.css (ADR-0351). */}
           <summary className="label-cayla cursor-pointer list-none text-[11px] text-tinta/65 hover:text-tinta [&::-webkit-details-marker]:hidden">
             Lo que decía antes · {d.versiones.length === 1 ? "1 versión" : `${d.versiones.length} versiones`} ›
@@ -171,10 +171,10 @@ export function DetalleOrdenInsumo({ orden: d }: { orden: Detalle }) {
                     <b className="font-medium">Versión {v.version}</b>
                     {cuando && ` · la cambió ${v.reemplazadaPor ?? "alguien"} el ${cuando.dia} a las ${cuando.hora}`}
                   </p>
-                  <p className="text-xs text-taupe">
+                  <p className="text-sm text-taupe">
                     {[v.proveedor, v.fechaEntregaEstimada ? `entrega ${fechaCorta(v.fechaEntregaEstimada)}` : "sin fecha de entrega", soles(v.total)].filter(Boolean).join(" · ")}
                   </p>
-                  <ul className="mt-1 space-y-0.5 text-xs tabular-nums text-tinta/75">
+                  <ul className="mt-1 space-y-0.5 text-sm tabular-nums text-tinta/75">
                     {v.lineas.map((l) => (
                       <li key={l.posicion}>
                         {cantidadConUnidad(l.cantidad, l.unidadMedida)} de {l.insumo} a {precioUnitarioTexto(l.precioUnitario)}
@@ -189,7 +189,7 @@ export function DetalleOrdenInsumo({ orden: d }: { orden: Detalle }) {
         </details>
       )}
 
-      <p data-guia="oi.pie" className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-taupe">
+      <p data-guia="oi.pie" className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-taupe">
         <Chip tono={estado.tono}>{estado.texto}</Chip>
         {papel && <Chip tono={papel === "completa" ? "verde" : "ambar"}>{papel === "completa" ? "Papel completo" : "Papel en parte"}</Chip>}
         {recepcion && (
@@ -212,16 +212,16 @@ function LineaDetalle({ l, conPapel, conRecepcion, noLlego }: { l: PedidaInsumo;
   const unidadCambio = l.unidadActual != null && l.unidadActual !== l.unidadMedida;
   return (
     <div className={fila(PLANTILLA)}>
-      <span className={celda("izq", `${EN_COLUMNAS} text-xs tabular-nums text-taupe`)}>{l.posicion}</span>
+      <span className={celda("izq", `${EN_COLUMNAS} text-sm tabular-nums text-taupe`)}>{l.posicion}</span>
       <span className={celda("izq", "whitespace-normal")}>
         <span className="block text-tinta">{l.insumo}</span>
-        <span className="block text-xs text-taupe">{[l.codigo, l.descripcion].filter(Boolean).join(" · ")}</span>
+        <span className="block text-sm text-taupe">{[l.codigo, l.descripcion].filter(Boolean).join(" · ")}</span>
         {/* La orden guarda la unidad del día en que se hizo; si el catálogo la cambió después, se avisa (editarla pide la nueva). */}
-        {unidadCambio && <span className="block text-xs text-ambar">Hoy este insumo se pide en {nombreUnidad(l.unidadActual!)}</span>}
+        {unidadCambio && <span className="block text-sm text-ambar">Hoy este insumo se pide en {nombreUnidad(l.unidadActual!)}</span>}
         {conPapel && (
           <span
             data-guia="oi.papel-linea"
-            className={`mt-0.5 block text-xs tabular-nums ${l.facturado > l.cantidad ? "text-ambar" : l.facturado >= l.cantidad ? "text-verde-profundo" : "text-taupe"}`}
+            className={`mt-0.5 block text-sm tabular-nums ${l.facturado > l.cantidad ? "text-ambar" : l.facturado >= l.cantidad ? "text-verde-profundo" : "text-taupe"}`}
           >
             Llegó en papel: {textoPapelDeLineaInsumo(l)}
           </span>
@@ -229,13 +229,13 @@ function LineaDetalle({ l, conPapel, conRecepcion, noLlego }: { l: PedidaInsumo;
         {conRecepcion && (
           <span
             data-guia="oi.recibido-linea"
-            className={`mt-0.5 block text-xs tabular-nums ${l.recibido >= Math.max(l.cantidad, l.facturado) ? "text-verde-profundo" : "text-taupe"}`}
+            className={`mt-0.5 block text-sm tabular-nums ${l.recibido >= Math.max(l.cantidad, l.facturado) ? "text-verde-profundo" : "text-taupe"}`}
           >
             Llegó al Taller: {textoRecibidoDeLineaInsumo(l)}
           </span>
         )}
         {cerrado > 0 && (
-          <span data-guia="oi.no-llego-linea" className="mt-0.5 block text-xs tabular-nums text-ambar">
+          <span data-guia="oi.no-llego-linea" className="mt-0.5 block text-sm tabular-nums text-ambar">
             No llegó: {cantidadConUnidad(cerrado, l.unidadMedida)}
           </span>
         )}
@@ -261,7 +261,7 @@ function LineaDetalle({ l, conPapel, conRecepcion, noLlego }: { l: PedidaInsumo;
         {l.descuento > 0 ? (
           <>
             −{soles(l.descuento)}
-            {l.descuentoPct != null && <span className="block text-xs text-taupe">{porcentaje(l.descuentoPct)}</span>}
+            {l.descuentoPct != null && <span className="block text-sm text-taupe">{porcentaje(l.descuentoPct)}</span>}
           </>
         ) : (
           <span className="text-taupe">—</span>
@@ -284,11 +284,11 @@ function FueraDeLaOrden({ fuera }: { fuera: FueraDeOrdenInsumo[] }) {
           <li key={f.itemId} className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 px-4 py-2.5 text-sm">
             <span className="min-w-0 text-tinta">
               {f.insumo} <span className="whitespace-nowrap tabular-nums">· {cantidadConUnidad(f.facturado, f.unidad)}</span>
-              <span className={`block text-xs tabular-nums ${f.queda > 0 ? "text-taupe" : f.cerrado > 0 ? "text-ambar" : "text-verde-profundo"}`}>
+              <span className={`block text-sm tabular-nums ${f.queda > 0 ? "text-taupe" : f.cerrado > 0 ? "text-ambar" : "text-verde-profundo"}`}>
                 {textoDeFueraDeOrden(f)}
               </span>
             </span>
-            <span className="whitespace-nowrap text-xs tabular-nums text-taupe">
+            <span className="whitespace-nowrap text-sm tabular-nums text-taupe">
               {f.documento} · {soles(importeCentimos(Math.round(f.facturado * 1000), Math.round(f.costoUnitario * 10_000)) / 100)}
             </span>
           </li>
@@ -329,7 +329,7 @@ function ComprobantesDeOrdenInsumo({ orden: d }: { orden: Detalle }) {
               {textoDeTipo(c.tipo as TipoComprobante)}
               {c.condicion === "credito" ? " · Crédito" : c.condicion === "contado" ? " · Contado" : ""}
               {/* Sin columnas: lo demás en un renglón, con su contexto. */}
-              <span className="mt-0.5 block text-xs tabular-nums text-taupe @min-[40rem]:hidden">
+              <span className="mt-0.5 block text-sm tabular-nums text-taupe @min-[40rem]:hidden">
                 {c.fechaEmision ? `${fechaCorta(c.fechaEmision)} · ` : ""}
                 {c.fechaVencimiento ? `vence ${fechaCorta(c.fechaVencimiento)} · ` : ""}
                 <span className="whitespace-nowrap">{soles(c.total)}</span>
@@ -373,7 +373,7 @@ function LoQueNoLlego({ cierres, nosDebe }: { cierres: CierreDeOrdenInsumo[]; no
             <li key={c.id} className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 px-4 py-2.5 text-sm">
               <span className="min-w-0 text-tinta">
                 {c.insumo} <span className="whitespace-nowrap tabular-nums">· {cantidadConUnidad(c.cantidad, c.unidad)}</span>
-                <span className="block text-xs text-taupe">
+                <span className="block text-sm text-taupe">
                   {MOTIVO[c.motivo]}
                   {c.nota ? ` · «${c.nota}»` : ""}
                   {cuando ? ` · ${c.por ?? "alguien"} lo anotó el ${cuando.dia}` : ""}

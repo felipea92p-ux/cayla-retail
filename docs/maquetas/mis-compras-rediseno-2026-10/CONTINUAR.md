@@ -37,7 +37,7 @@ de hoy; sin migraciones ni cambios de negocio. Usa /construir con una actividad 
 | Inicio · billetera | La cifra grande y, debajo, la cuenta en 3 columnas: «Te dieron · Compraste · Gastaste». Si es negativa, la nota «Pusiste S/ X de tu bolsillo…». La plata por confirmar, en una nota. Reemplaza la barra apilada. | `components/mi-plata/Billetera.tsx` |
 | Inicio · acciones | «Compré ropa» a todo el ancho y en tinta; «Me dieron plata» y «Gasté en otra cosa» como dos tarjetas con su ícono, nombre en serif y ejemplo. | `AccionDelDia.tsx`, `AnotarPlata.tsx`, `AnotarGasto.tsx` |
 | Inicio · por mandar | Franja ámbar tocable: «Falta mandar N prendas · Lima 6 · Trujillo 4 · Mandar →». | `MandarATienda.tsx` |
-| Inicio · en esta ronda | Cada fila con hora, detalle y su estado como `<Chip>` (Por confirmar / Por revisar / Confirmada); al tocarla, una hoja dice qué hará Compras. | `ListaDelDia.tsx` |
+| Inicio · en esta ronda | Cada fila con hora, detalle y su estado como `<Chip>` (en el código: «Compras la confirma» / «Compras la revisa» / «En los libros», que viene de /formidable 2026-10-23: dice quién hace lo que falta; la maqueta decía «Por confirmar / Por revisar / Confirmada»); al tocarla, una hoja dice qué hará Compras. | `ListaDelDia.tsx` |
 | Inicio · cerrar y anteriores | «Cerrar mi ronda RC-…» al final; «Rondas anteriores» plegadas con «Ver N». | `TerminarDia.tsx`, `ListaDelDia.tsx` |
 | Sin ronda | Una tarjeta «¿Sales a comprar?» con «Abrir mi ronda»; «Me dieron plata» sigue disponible. | `AbrirRonda.tsx` |
 | Compra · barra de pasos | 3 tramos con nombre (El proveedor · Las prendas · Papel y pago), como el camino del inicio. | `RegistrarCompra.tsx` |

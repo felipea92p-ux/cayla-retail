@@ -2,7 +2,7 @@
   "guia": "productos.nuevo",
   "ruta": "/productos/nuevo",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 115,
+  "total": 134,
   "controles": {
     "app/(app)/productos/nuevo/page.tsx": [
       "Volver «{RUTA_ORDENES}»",
@@ -18,10 +18,11 @@
       "Volver «→() => irAPaso((n - 1) as NumeroPaso)»",
       "button «Seguir»",
       "button «{responsable.motivo ?? undefined}»",
-      "CampoTexto «Nombre»",
-      "CampoTexto «Descripción»",
+      "CampoTexto «Cómo lo llama el proveedor»",
+      "CampoTexto «Detalle»",
       "CampoMonto «Precio de venta»",
       "CampoMonto «Costo»",
+      "button «Elegir proveedor»",
       "button «{quienRegistra ? \"Cambiar\" : \"Elegir\"}»"
     ],
     "components/SelectorColor.tsx": [
@@ -40,6 +41,11 @@
       "button «→alternarVerMas»",
       "button «nuevo.categoria»"
     ],
+    "components/alta-producto/ArmarMezcla.tsx": [
+      "button «{`Quitar ${c.nombre}»",
+      "Boton «Cancelar»",
+      "Boton «{(bloqueo ?? firma.motivo) ?? undefined}»"
+    ],
     "components/alta-producto/AvisoParecidos.tsx": [
       "Link «Abrir»",
       "Link «{p.referencia}»",
@@ -50,10 +56,13 @@
       "Boton «{firma.motivo ?? undefined}»"
     ],
     "components/alta-producto/ElegirColores.tsx": [
+      "button «{`Agregar un color que acompaña al ${c.nombre.toLocaleLowerCase(\"es\")}»",
       "button «{`Quitar ${c.nombre}»",
       "ComboBuscable «(sin nombre)»",
-      "button «{carta ? \"Ocultar la carta\" : `Ver los ${colores.length}»",
+      "button «{carta ? \"Ocultar la carta\" : `Ver los ${ofrecibles.length}»",
       "Boton «{enLinea ? undefined : \"Crear un color necesita internet\"}»",
+      "Boton «Para una prenda de dos o más colores: hueso con azul»",
+      "Boton «Cancelar»",
       "button «{c.nombre}»"
     ],
     "components/alta-producto/ElegirEtiquetas.tsx": [
@@ -103,6 +112,7 @@
     ],
     "components/alta-producto/IdentidadAlta.tsx": [
       "ComboResponsable «{control}»",
+      "ComboResponsable «{control}» #2",
       "button «Ir a elegir»"
     ],
     "components/alta-producto/MatrizCantidades.tsx": [
@@ -118,6 +128,10 @@
       "button «Quitar»",
       "button «Listo»"
     ],
+    "components/alta-producto/NombreDePrenda.tsx": [
+      "button «{libre ? `Volver a «${tipos[0]}»",
+      "CampoTexto «{libre ? \"Nombre\" : `Nombre de la ${tipo.toLocaleLowerCase(\"es\")}»"
+    ],
     "components/alta-producto/NuevaMarcaForm.tsx": [
       "button «Cambiar»",
       "ComboBuscable «nm-marca»",
@@ -131,12 +145,14 @@
       "Boton «{firma.motivo ?? guia.frase ?? undefined}»"
     ],
     "components/alta-producto/NuevoColorAlta.tsx": [
-      "CampoTexto «Nombre del color»",
+      "SegmentoDeslizante «¿Es de un solo color o tiene dibujo?»",
+      "Desplegable «{patronId}»",
+      "ComboBuscable «{`${id}»",
+      "CampoTexto «{guia.etiqueta(\"nombre\", esForma ? \"Nombre del estampado\" : \"Nombre del color\")}»",
       "Desplegable «{familia}»",
       "CampoTexto «Código»",
-      "Boton «{(!enLinea || mismoNombre ? bloqueo : firma.motivo) ?? undefined}»",
-      "button «Cancelar»",
-      "button «Elegir»"
+      "Boton «{(!enLinea || existe.bloquea ? bloqueo : firma.motivo) ?? undefined}»",
+      "button «Cancelar»"
     ],
     "components/alta-producto/ParecidasDelAlta.tsx": [
       "button «{TEXTO.verYComparar}»",
@@ -155,8 +171,14 @@
     "components/alta-producto/ProponerValor.tsx": [
       "button «{t.boton}»",
       "CampoTexto «{`Nombre ${tipo === \"tallas\" ? \"de la\" : \"del\"}»",
-      "Boton «{firma.motivo ?? undefined}»",
+      "Boton «{firma.motivo ?? faltaExiste ?? undefined}»",
       "button «Cancelar»"
+    ],
+    "components/alta-producto/PropuestaDePrecio.tsx": [
+      "Boton «→proponer»",
+      "Boton «{yaUsada ? \"Precio puesto\" : `Usar ${soles(propuesta.precio)}»",
+      "Boton «{seQuedo ? `Se queda ${soles(precioPuesto)}»",
+      "button «Proponer otro»"
     ],
     "components/alta-producto/PuntosAvance.tsx": [
       "button «{`${paso.nombre}»"
@@ -170,6 +192,11 @@
     "components/alta-producto/TiraParecidas.tsx": [
       "Link «{interior}»",
       "button «{interior}»"
+    ],
+    "components/alta-producto/YaExiste.tsx": [
+      "button «{`Ver ${c.referencia}»",
+      "button «Cambiar»",
+      "button «Ninguna, es un diseño nuevo»"
     ],
     "components/alta-producto/piezas.tsx": [
       "button «→onClick»",

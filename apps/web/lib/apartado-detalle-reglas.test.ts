@@ -6,7 +6,7 @@ const apartado = (extra: Partial<Apartado> = {}): Apartado => ({
   id: "s1", codigo: "APT-TRU-0007", estado: "abierta", nombres: "Ana", apellidos: "Lozano Vera", celular: "987111222", dni: null,
   asesora: null, total: 89.9, adelanto: 60, saldo: 29.9, venceEl: "2026-09-29", extensiones: 0, creadaEn: "2026-09-22T15:00:00Z",
   devolucionMedio: "yape", devolucionNumero: "987111222", devolucionCciFinal: null, liberadaSola: false,
-  comprobanteAnticipo: null, comprobanteFinal: null, notaCredito: null, prendas: [], estante: null,
+  comprobanteAnticipo: null, comprobanteFinal: null, notaCredito: null, prendas: [], estante: null, canal: "tienda", modoEntrega: "recojo", direccionEnvio: null, enviadoEn: null, guiaEnvio: null,
   pagos: [
     { metodo: "yape", monto: 40, fecha: "2026-09-22T15:00:00Z", abono: false },
     { metodo: "efectivo", monto: 20, fecha: "2026-09-25T21:34:00Z", abono: true },

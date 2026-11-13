@@ -12,19 +12,21 @@ import type {
   Terminal,
 } from "@/lib/colaboradores";
 import { accionesSupabase, type AccionesColaboradores, type ResultadoAccion } from "@/lib/colaboradores-acciones";
-import { avisoTerminal, plural, vistaDe, type SeccionColaboradores, type VistaColaboradores } from "@/lib/colaboradores-reglas";
+import { avisoTerminal, vistaDe, type SeccionColaboradores, type VistaColaboradores } from "@/lib/colaboradores-reglas";
 import { armarEquipo, type FiltroEquipo, type PersonaEquipo } from "@/lib/equipo-reglas";
 import type { Ubicacion } from "@/lib/ubicaciones";
 import { traducirError } from "@/lib/error-escritura";
 import { avisar } from "@/components/ui/Avisos";
 import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
+import { ComboResponsable } from "@/components/ComboResponsable";
+import { Pestanas } from "@/components/ui/Pestanas";
 import { History } from "lucide-react";
 import { AlternarTerminalModal } from "@/components/ColaboradoresModales";
 import { DarAccesoModal } from "@/components/colaboradores/DarAccesoModal";
 import { avisoDarAcceso } from "@/lib/dar-acceso-reglas";
 import { AsignarRolModal } from "@/components/RolesModales";
 import { accionesRolesSupabase, type AccionesRoles } from "@/lib/roles-acciones";
-import { avisoDelRol, cuentasDelRol, fueraDeLoMio, rolesAsignables, type CuentaConRol, type RolVista } from "@/lib/roles-reglas";
+import { avisoDelRol, cuentasDelRol, fueraDeLoMio, rolesAsignables, type CanalVenta, type CuentaConRol, type RolVista } from "@/lib/roles-reglas";
 import type { ClaveModulo } from "@/lib/modulos";
 import { RolesPanel } from "@/components/RolesPanel";
 import { ActividadEquipo } from "@/components/colaboradores/ActividadEquipo";
@@ -45,24 +47,6 @@ import { Aviso } from "@/components/ui/Aviso";
 // trabaja ahí. `?pestana=` de antes sigue funcionando (`vistaDe`).
 // `acciones` y `alActualizar` existen para poder mostrar la pantalla con datos de ejemplo: por defecto escriben en la base
 // y recargan los datos del servidor.
-
-/** Una de las dos secciones: título y, debajo, su resumen (con lo que pide atención en ámbar). */
-function BotonSeccion({ activa, onClick, titulo, guia, children }: { activa: boolean; onClick: () => void; titulo: string; /** Ancla de la guía interactiva (ADR-0389). */ guia?: string; children: React.ReactNode }) {
-  return (
-    <button
-      type="button"
-      aria-pressed={activa}
-      data-guia={guia}
-      onClick={onClick}
-      className={`rounded-xl border px-4 py-3 text-left transition-[background-color,border-color,box-shadow] duration-200 ease-cayla ${
-        activa ? "border-taupe bg-papel shadow-[inset_0_-2px_0_var(--color-rojo)]" : "border-tinta/10 hover:border-tinta/30 hover:bg-papel/60"
-      }`}
-    >
-      <span className="block text-[15px] font-semibold text-tinta">{titulo}</span>
-      <span className="mt-0.5 block text-[12.5px] text-tinta/65">{children}</span>
-    </button>
-  );
-}
 
 type ModalPanel =
   | { tipo: "agregar" }
@@ -99,6 +83,8 @@ export function ColaboradoresPanel({
   admins = [],
   fueraDeAlcance = [],
   misModulos = null,
+  canales = undefined,
+  misCanales = null,
   acciones = accionesSupabase,
   accionesRoles = accionesRolesSupabase,
   accionesTerminales = accionesTerminalesServidor,
@@ -137,6 +123,9 @@ export function ColaboradoresPanel({
   fueraDeAlcance?: readonly string[];
   /** ADR-0178 «solo das lo que tienes»: los módulos que ve quien mira, o `null` si es líder (da todo). */
   misModulos?: readonly ClaveModulo[] | null;
+  /** ADR-0607: el catálogo de canales de venta y los que opera quien mira (`null` = líder). Para Roles y accesos. */
+  canales?: readonly CanalVenta[];
+  misCanales?: readonly string[] | null;
   acciones?: AccionesColaboradores;
   accionesRoles?: AccionesRoles;
   /** Crear terminal y cambiar su clave. Por defecto, las Server Actions de `app/actions/terminales.ts`. */
@@ -232,7 +221,7 @@ export function ColaboradoresPanel({
   }
 
   const ve = (x: SeccionColaboradores) => !secciones || secciones.includes(x);
-  const terminalesActivas = terminales?.filter((t) => t.activo).length ?? 0;
+  const responsableArriba = responsable.estado === "admin" && ve("cuentas") && ve("roles");
   const rolesVigentes = roles?.filter((r) => !r.archivado) ?? [];
   const rolesSinModulos = cuentas ? rolesVigentes.filter((r) => avisoDelRol(r, cuentasDelRol(cuentas, r.id).length) === "sin_modulos").length : 0;
   const nombreSede = (id: string) => ubicaciones.find((u) => u.id === id)?.nombre ?? "la nueva sede";
@@ -282,7 +271,6 @@ export function ColaboradoresPanel({
       <EncabezadoPagina
         sede="Toda CAYLA"
         titulo="Colaboradores"
-        subtitulo="Quién entra a retail, en qué sede y con qué rol."
         acciones={
           ve("cuentas") && (
             <>
@@ -309,20 +297,34 @@ export function ColaboradoresPanel({
       />
 
       {ve("cuentas") && ve("roles") && (
-        <nav aria-label="Secciones de colaboradores" className="grid gap-2.5 sm:grid-cols-2 xl:max-w-3xl" data-guia="colaboradores.secciones">
-          <BotonSeccion activa={seccion === "cuentas"} onClick={() => setSeccion("cuentas")} titulo="Equipo" guia="colaboradores.sec-equipo">
-            {plural(colaboradores.length, "persona", "personas")} · {plural(terminalesActivas, "terminal", "terminales")}
-            {pendientes.length > 0 && <strong className="font-semibold text-ambar-profundo"> · {pendientes.length} por aprobar</strong>}
-          </BotonSeccion>
-          <BotonSeccion activa={seccion === "roles"} onClick={() => setSeccion("roles")} titulo="Roles y accesos" guia="colaboradores.sec-roles">
-            {plural(rolesVigentes.length, "rol", "roles")}
-            {rolesSinModulos > 0 ? (
-              <strong className="font-semibold text-ambar-profundo"> · {rolesSinModulos === 1 ? "1 deja" : `${rolesSinModulos} dejan`} cuentas sin ningún módulo</strong>
-            ) : (
-              " · qué ve cada cuenta"
-            )}
-          </BotonSeccion>
-        </nav>
+        // Dos pestañas con su número (Felipe 2026-10-27, «palabras clave, compacto»): lo que pide atención (altas por aprobar,
+        // roles que dejan cuentas sin módulo) lo dice la franja «Esperan tu ok» y el conteo en ámbar de Roles.
+        // A la derecha, el aviso del Admin como chip de una línea (Felipe 2026-10-30): el recuadro ocupaba una fila entera
+        // bajo las pestañas. Quien no es Admin conserva el combo «Responsable» dentro de Roles.
+        <div className="flex flex-wrap items-center justify-between gap-3">
+        <Pestanas
+          items={[
+            { clave: "cuentas", etiqueta: "Equipo", conteo: colaboradores.length, guia: "colaboradores.sec-equipo" },
+            {
+              clave: "roles",
+              etiqueta: "Roles",
+              conteo: rolesVigentes.length,
+              ...(rolesSinModulos > 0 ? { pide: rolesSinModulos === 1 ? "1 deja cuentas sin módulos" : `${rolesSinModulos} dejan cuentas sin módulos` } : {}),
+              guia: "colaboradores.sec-roles",
+            },
+          ]}
+          activa={seccion}
+          onCambio={(c) => setSeccion(c === "roles" ? "roles" : "cuentas")}
+          etiquetaAccesible="Secciones de colaboradores"
+          idIndicador="colaboradores"
+          guia="colaboradores.secciones"
+        />
+        {responsableArriba && (
+          <div data-guia={seccion === "roles" ? "roles.responsable" : undefined}>
+            <ComboResponsable control={responsable} compacto />
+          </div>
+        )}
+        </div>
       )}
 
       {seccion === "cuentas" && ve("cuentas") && (
@@ -400,10 +402,13 @@ export function ColaboradoresPanel({
               rolInicialId={rolElegidoId}
               soyAdmin={soyAdmin}
               misModulos={misModulos}
+              canales={canales}
+              misCanales={misCanales}
               fueraDeAlcance={fueraDeAlcance}
               admins={admins}
               acciones={accionesRoles}
               responsable={responsable}
+              responsableArriba={responsableArriba}
             />
           )}
         </section>

@@ -1,0 +1,203 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>⑥ Modelos · Plan de campaña (spike)</title>
+<link rel="stylesheet" href="base.css?v=13">
+<style>
+.ctl{display:flex;gap:22px;flex-wrap:wrap;margin-bottom:18px;border:1px dashed var(--taupe);border-radius:14px;padding:12px 18px;background:var(--papel);align-items:flex-start}
+.ctl h4{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--t60);margin-bottom:6px}
+.ctl p{font-size:12.5px;color:var(--t60);margin-top:6px;max-width:46ch}
+.cab-cat{display:flex;gap:18px;flex-wrap:wrap;align-items:center;padding:14px 18px}
+.cab-cat .g{font:600 26px var(--serif)} .cab-cat small{display:block;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--t60);font-family:var(--sans);font-weight:400}
+.repite{display:flex;gap:12px;align-items:center;flex-wrap:wrap;border-left:1px solid var(--sand);padding-left:18px}
+.honesto{display:flex;gap:12px;align-items:flex-start;background:color-mix(in srgb,var(--ambar) 9%,var(--papel));border:1px solid color-mix(in srgb,var(--ambar) 40%,transparent);border-radius:12px;padding:10px 14px;font-size:13px;margin:12px 0}
+.honesto .med{display:flex;gap:4px;margin-top:6px} .honesto .med i{width:22px;height:6px;border-radius:99px;background:var(--sand)} .honesto .med i.on{background:var(--ambar)}
+tr.marca td{background:var(--hueso);font-weight:650;border-top:1px solid var(--sand)}
+tr.marca{cursor:pointer}
+tr.mod td:first-child{padding-left:34px}
+tr.mod{cursor:pointer}
+@media (hover:hover){tr.mod:hover td{background:color-mix(in srgb,var(--hueso) 55%,transparent)}}
+tr.det td{background:var(--crema);padding:10px 14px 14px 34px}
+tr.nuevo td{background:color-mix(in srgb,var(--verde) 7%,var(--papel));border-top:2px solid color-mix(in srgb,var(--verde) 40%,transparent)}
+.car{display:inline-block;transition:transform .2s var(--ease);margin-right:8px;color:var(--t60)} .abierto .car{transform:rotate(90deg)}
+.sw-col{display:inline-block;width:14px;height:14px;border-radius:50%;border:1px solid color-mix(in srgb,var(--tinta) 25%,transparent);vertical-align:-2px;margin-right:8px}
+.alcanza{font-size:12.5px;color:var(--t60);white-space:nowrap} .alcanza.mal{color:var(--ambar);font-weight:600}
+.sub-t{width:100%;border-collapse:collapse;font-size:13px}
+.sub-t th{padding:6px 10px;font-size:10.5px} .sub-t td{padding:7px 10px;border-top:1px solid var(--sand)}
+.talla-l{display:flex;gap:6px;flex-wrap:wrap}
+.talla-l span{min-width:42px;text-align:center;border-radius:8px;padding:2px 6px;font-size:12px;background:var(--hueso);color:var(--t60);font-variant-numeric:tabular-nums}
+.talla-l span.s{background:color-mix(in srgb,var(--tinta) 10%,transparent);color:var(--tinta);font-weight:650}
+.guia{display:flex;gap:8px;flex-wrap:wrap;margin-top:6px}
+.cuadre{display:flex;gap:14px;align-items:center;margin-top:14px;flex-wrap:wrap}
+.cuadre .barra{flex:1;min-width:180px;margin:0}
+.mini{font-size:12.5px;color:var(--t60);margin-top:8px}
+.top3{font-size:12.5px;color:var(--t60)}
+.avT{display:flex;gap:10px;align-items:flex-start;font-size:12.5px;line-height:1.4;border-left:4px solid var(--ambar);background:color-mix(in srgb,var(--ambar) 9%,var(--papel));border-radius:8px;padding:7px 10px;animation:entra .3s var(--ease)}
+.avT button{margin-left:auto;border:0;background:transparent;font-size:18px;line-height:1;color:var(--t60);padding:0 4px}
+.paso.xs button{width:24px;height:30px;font-size:15px}.paso.xs input{width:36px;font-size:13px}
+.sub-t td,.sub-t th{white-space:nowrap}
+</style>
+</head>
+<body>
+<div id="chrome"></div>
+
+<div class="ctl">
+  <div><h4>Cómo se ven</h4><p style="margin-top:0"><b>Ranking de modelos</b> (lo que elegiste): todos juntos, del que más vendió al que menos, con su marca debajo del nombre. Dentro de cada modelo, sus colores y tallas, que se editan ahí mismo.</p></div>
+  <div><h4>Dónde va</h4><p style="margin-top:0">Es el <b>paso 2</b> de una categoría (③): arriba el total del paso 1; aquí abajo, <b>qué modelos</b>, y dentro de cada modelo sus colores y tallas.</p></div>
+</div>
+
+<div class="card" id="cat"></div>
+<div id="honesto"></div>
+<div class="card scroll-x" id="lista" style="margin-top:12px"></div>
+<div id="pie"></div>
+
+<script src="app.js?v=13"></script>
+<script>
+const { $, $$, nES, sES, leer, guardar } = PC;
+const COL = [["Negro", "#1f1f1d"], ["Blanco", "#f4f1ea"], ["Beige / arena", "#d9c8a9"], ["Azul / denim", "#3f5f86"], ["Rojo / vino", "#8e2f2f"], ["Verde", "#5d7a52"], ["Rosa", "#d89aa3"], ["Gris", "#8b8b87"]];
+const TALLAS = ["XS", "S", "M", "L", "XL"];
+// Los modelos de «Polos» (nombres y marcas de ejemplo). vendió = lo que vendió ese modelo con su prenda identificada; el resto (anotadas sin registrar) no tiene modelo.
+const MARCAS = [["pima", "Pima Norte"], ["andino", "Algodón Andino"], ["lino", "Lino & Co"], ["taller", "Taller CAYLA"], ["sin", "Sin marca"]];
+const M = [
+  ["m1", "pima", "Polo básico cuello redondo", 38, 70, [0, 1, 2, 3], [.06, .26, .34, .24, .10]],
+  ["m2", "pima", "Polo cuello V", 27, 40, [0, 3, 1], [.05, .30, .32, .23, .10]],
+  ["m3", "pima", "Polo manga larga", 19, 25, [0, 5, 7], [.04, .24, .36, .26, .10]],
+  ["m4", "pima", "Polo acanalado", 14, 30, [2, 6, 1], [.10, .34, .30, .18, .08]],
+  ["m5", "andino", "Polo rayado marino", 24, 34, [3, 1, 4], [.06, .27, .33, .23, .11]],
+  ["m6", "andino", "Polo estampado flor", 21, 18, [6, 1, 5], [.08, .32, .32, .20, .08]],
+  ["m7", "andino", "Polo con bolsillo", 15, 22, [5, 0, 2], [.05, .24, .34, .25, .12]],
+  ["m8", "andino", "Polo oversize", 11, 28, [7, 0], [.02, .18, .30, .30, .20]],
+  ["m9", "lino", "Polo de lino con botones", 22, 20, [2, 1, 5], [.04, .24, .34, .26, .12]],
+  ["m10", "lino", "Polo de lino cuello Mao", 14, 25, [2, 7], [.03, .22, .34, .27, .14]],
+  ["m11", "lino", "Polo de lino liso", 8, 24, [1, 2], [.04, .26, .34, .25, .11]],
+  ["m12", "taller", "Polo cropped tejido", 14, 14, [6, 0], [.12, .36, .30, .16, .06]],
+  ["m13", "taller", "Polo Navidad bordado", 10, 4, [4, 5], [.06, .26, .34, .24, .10]],
+  ["s1", "sin", "Polo liso (sin marca)", 9, 18, [0, 3], [.05, .26, .34, .24, .11]],
+  ["s2", "sin", "Polo estampado (sin marca)", 8, 16, [4, 1], [.06, .28, .32, .23, .11]],
+  ["s3", "sin", "Polo rayado (sin marca)", 6, 15, [3, 2], [.05, .26, .34, .24, .11]],
+  ["s4", "sin", "Polo manga larga (sin marca)", 5, 14, [0, 7], [.04, .24, .36, .26, .10]],
+  ["s5", "sin", "Polo cuello V (sin marca)", 4, 13, [7, 3], [.05, .28, .32, .24, .11]],
+  ["s6", "sin", "Polo oversize (sin marca)", 3, 15, [5], [.03, .20, .32, .28, .17]],
+  ["s7", "sin", "Polo cropped (sin marca)", 3, 13, [6], [.10, .34, .30, .18, .08]],
+].map(([id, marca, n, sold, hay, cols, tal]) => ({ id, marca, n, sold, hay, cols, tal, elig: sold >= 5 }));
+const GUIA = [[3, 117], [4, 84], [5, 80], [6, 70], [7, 26], [0, 20], [2, 17]];   // la guía de colores para modelos nuevos: lo que propuso el paso 2 por familia de color
+const CURVA = [.08, .28, .32, .22, .10];
+const DIAS = 31, DIAS_ERP = 26, N = 366;
+
+function rep(total, pesos) {
+  const sum = pesos.reduce((a, b) => a + b, 0); if (sum <= 0 || total <= 0) return pesos.map(() => 0);
+  const raw = pesos.map((p) => (p / sum) * total), base = raw.map(Math.floor); let r = total - base.reduce((a, b) => a + b, 0);
+  raw.map((x, i) => [x - Math.floor(x), i]).sort((a, b) => b[0] - a[0] || a[1] - b[1]).forEach(([, i]) => { if (r-- > 0) base[i]++; });
+  return base;
+}
+const add = (a, b) => a + b;
+// Lo que la persona movió: ed = prendas de un modelo · edC = prendas de un color de ese modelo · edT = prendas por talla de un color. Todo sube por la cadena
+// talla → color → modelo → total: el color es la suma de sus tallas, el modelo la suma de sus colores y «modelos nuevos» absorbe lo que sobra del total.
+let repPct = null, ed = {}, edC = {}, edT = {}, fijoC = {}, totalEd = null, avTot = null, tAv = null;   // fijoC: lo ya elegido que se congela al subir el total, para que otros modelos no se muevan solos
+let abierto = new Set(["m1"]);
+const f = () => PC.planActual().filas.find((x) => x.id === "polos");
+
+function colores(m) {
+  const w = m.cols.map((_, i) => 1 / (i + 1)), sw = w.reduce(add, 0), pesos = w.map((x) => x / sw);
+  const sold = rep(m.sold, pesos), hay = rep(m.hay, pesos.map((x, i) => x * (1 + ((i * 3) % 4) / 5)));
+  const need = sold.map((s, i) => Math.max(0, (s / m.sold) * m.target - hay[i]));
+  const base = rep(m.uBase, need.some((x) => x > 0) ? need : pesos);
+  const cols = m.cols.map((ci, i) => {
+    const t = edT[m.id] && edT[m.id][i], c = edC[m.id] && edC[m.id][i], fz = fijoC[m.id] && fijoC[m.id][i];
+    const tal = t !== undefined ? t : rep(c !== undefined ? c : fz !== undefined ? fz : base[i], m.tal);
+    return { ci, sold: sold[i], hay: hay[i], base: base[i], tal, units: tal.reduce(add, 0), toca: t !== undefined || c !== undefined };
+  });
+  return { cols, u: cols.reduce((a, c) => a + c.units, 0), tocado: cols.some((c) => c.toca) };
+}
+function calcular() {
+  const F = f(), Tbase = F.comprar, T = totalEd !== null ? totalEd : Tbase, obj = F.objetivo;
+  const ms = M.map((m) => ({ ...m, target: (m.sold / N) * obj }));
+  ms.forEach((m) => { m.need = Math.max(0, m.target - m.hay); });
+  const needEl = ms.reduce((a, m) => a + (m.elig ? m.need : 0), 0), needNo = ms.reduce((a, m) => a + (m.elig ? 0 : m.need), 0);
+  const sinModelo = ((N - ms.reduce((a, m) => a + m.sold, 0)) / N) * obj;            // lo vendido sin prenda: no tiene modelo, se compra «nuevo»
+  const defecto = Math.min(80, Math.max(20, Math.round((100 * needEl / (needEl + needNo + sinModelo)) / 5) * 5));
+  if (repPct === null) repPct = defecto;
+  const R = Math.round((T * repPct) / 100);
+  const sug = rep(R, ms.map((m) => (m.elig ? m.need : 0)));
+  ms.forEach((m, i) => { m.prop = sug[i]; m.uBase = ed[m.id] !== undefined ? ed[m.id] : m.prop; m.det = colores(m); m.u = m.det.u; m.editado = ed[m.id] !== undefined || m.det.tocado; });
+  const suma = ms.reduce((a, m) => a + m.u, 0);
+  return { F, T, Tbase, ms, suma, nuevos: Math.max(0, T - suma), falta: T - suma, defecto, sinModelo: N - ms.reduce((a, m) => a + m.sold, 0) };
+}
+const conf = (m) => (m.sold >= 10 ? ["Con base", "verde"] : m.sold >= 5 ? ["Poco dato", "ambar"] : ["Pocas ventas: no se repite", "taupe"]);
+const alcanza = (m) => Math.round((m.hay / m.sold) * DIAS_ERP);
+/** Un contador − número + que se escribe. `clave` = tipo|modelo|color|talla (m = modelo, c = color, t = talla). */
+const sp = (tipo, mid, i, j, val, lab, cls = "") => `<span class="paso ${cls}" data-no><button data-k="${tipo}|${mid}|${i}|${j}|-1" aria-label="Menos ${lab}">−</button><input data-in="${tipo}|${mid}|${i}|${j}" value="${val}" inputmode="numeric" aria-label="${lab}"><button data-k="${tipo}|${mid}|${i}|${j}|1" aria-label="Más ${lab}">+</button></span>`;
+
+function detalle(m) {
+  const filas = m.det.cols.map((c, i) => `<tr><td><span class="sw-col" style="background:${COL[c.ci][1]}" data-color-dato></span><b>${COL[c.ci][0]}</b></td><td class="n">${c.sold}</td><td class="n">${c.hay}</td>
+    <td class="n">${sp("c", m.id, i, 0, c.units, "prendas de " + COL[c.ci][0], "xs")}</td>${c.tal.map((x, j) => `<td class="n">${sp("t", m.id, i, j, x, TALLAS[j] + " de " + COL[c.ci][0], "xs")}</td>`).join("")}</tr>`).join("");
+  return `<div class="top3">Los colores que más vendió «${m.n}». Cambia las prendas de cada talla o de cada color: el color suma sus tallas, el modelo suma sus colores y el total del paso 1 se ajusta.</div>
+    <div class="scroll-x"><table class="sub-t"><thead><tr><th>Color</th><th class="n">Vendió</th><th class="n">Hay hoy</th><th class="n">Comprar</th>${TALLAS.map((t) => `<th class="n">${t}</th>`).join("")}</tr></thead><tbody>${filas}
+      <tr><td colspan="3"><b>El modelo suma</b></td><td class="n"><b>${m.u}</b></td>${TALLAS.map((_, j) => `<td class="n"><b>${m.det.cols.reduce((a, c) => a + c.tal[j], 0)}</b></td>`).join("")}</tr></tbody></table></div>
+    ${m.editado ? `<div style="margin-top:8px;display:flex;gap:10px;align-items:center;flex-wrap:wrap"><span class="chip ambar">Lo cambiaste: el sistema proponía ${m.prop}</span><button class="btn ch" data-reset="${m.id}">Volver a lo que propone</button></div>` : ""}`;
+}
+function filaModelo(m, conMarca) {
+  const [t, tono] = conf(m), al = alcanza(m), ab = abierto.has(m.id);
+  return `<tr class="mod ${ab ? "abierto" : ""}" data-m="${m.id}"><td><span class="car">›</span><b>${m.n}</b>${m.editado ? ' <span class="chip sp ambar">editado</span>' : ""}${conMarca ? `<small style="display:block;color:var(--t60);margin-left:20px">${MARCAS.find((x) => x[0] === m.marca)[1]}</small>` : ""}</td><td class="n">${m.sold}</td><td class="n">${m.hay}<br><span class="alcanza ${al < DIAS ? "mal" : ""}">alcanza ${al} días</span></td><td class="n"><b>${m.prop}</b></td>
+    <td class="n">${sp("m", m.id, 0, 0, m.u, "prendas de " + m.n)}</td><td><span class="chip ${tono}">${t}</span></td></tr>` + (ab ? `<tr class="det"><td colspan="6">${detalle(m)}</td></tr>` : "");
+}
+function filaNuevos(c) {
+  const pesos = GUIA.map((g) => g[1]), u = rep(c.nuevos, pesos), tal = rep(c.nuevos, CURVA);
+  return `<tr class="nuevo"><td colspan="3"><b>Modelos nuevos por elegir</b><small style="display:block;color:var(--t60)">No hay un modelo que nombrar: los eliges con tu proveedor o en el Taller</small></td><td class="n"><b>${c.nuevos}</b></td><td colspan="2"><span class="chip verde">${c.T ? Math.round((100 * c.nuevos) / c.T) : 0} % del total</span></td></tr>
+  <tr class="nuevo det"><td colspan="6" style="padding-left:14px"><div class="top3"><b>Colores y tallas que conviene buscar</b> (de lo que más vende la categoría, restando lo que ya hay):</div>
+    <div class="guia">${GUIA.map((g, i) => `<span class="chip sp" style="--c:var(--tinta);background:var(--hueso)"><span class="sw-col" style="background:${COL[g[0]][1]};margin-right:6px" data-color-dato></span>${COL[g[0]][0]} · ${u[i]}</span>`).join("")}</div>
+    <div class="talla-l" style="margin-top:8px">${TALLAS.map((tl, j) => `<span class="s">${tl} ${tal[j]}</span>`).join("")}</div></td></tr>`;
+}
+
+function pintar() {
+  PC.chrome({ activa: "plan", frase: "Navidad 2026 · Polos: qué modelos comprar, y de cada uno sus colores y tallas." });
+  const c = calcular(), F = c.F;
+  $("#cat").innerHTML = `<div class="cab-cat"><div><small>Polos · paso 1</small><div class="g">Comprar ${nES(c.T)}</div>${c.T !== c.Tbase ? `<span class="chip ambar">antes ${nES(c.Tbase)}</span>` : ""}</div><div><small>Cuesta</small><div class="g">${sES(c.T * F.costo)}</div></div>
+    <div class="repite"><div><small>Repetir lo que ya vendió</small><span class="paso"><button data-rp="-5" aria-label="5 % menos">−</button><input id="rp" value="${repPct}" inputmode="numeric" aria-label="Porcentaje a repetir"><button data-rp="5" aria-label="5 % más">+</button></span> <span class="mini" style="margin:0 0 0 6px">% · el sistema propone ${c.defecto} %</span></div>
+    <div><small>Quedan para modelos nuevos</small><div class="g" style="font-size:22px">${nES(c.nuevos)} prendas</div></div></div></div>
+    ${avTot ? `<div style="padding:0 18px 14px"><div class="avT" role="status"><span>${avTot}</span><button type="button" id="xAv" aria-label="Cerrar el aviso">×</button></div></div>` : ""}`;
+  const ident = c.ms.reduce((a, m) => a + m.sold, 0);
+  $("#honesto").innerHTML = `<div class="honesto"><span class="med" aria-hidden="true"><i class="on"></i><i></i><i></i></span><div><b>Por modelo sí hay señal; por color y talla, poca.</b> De los ${c.ms.length} modelos de Polos que vendieron, ${c.ms.filter((m) => m.sold >= 5).length} vendieron 5 o más en ${DIAS_ERP} días: esos son los candidatos a repetir. ${nES(c.sinModelo)} ventas se anotaron sin prenda y no tienen modelo (van a «nuevos»). El ERP lleva ${DIAS_ERP} de 90 días y ninguna campaña completa: las cifras orientan, tú decides.</div></div>`;
+  let h = `<table><thead><tr><th>Modelo · marca</th><th class="n">Vendió</th><th class="n">Hay hoy</th><th class="n">El sistema propone</th><th class="n">Tú compras</th><th>Dato</th></tr></thead><tbody>`;
+  [...c.ms].sort((a, b) => b.sold - a.sold).forEach((m) => (h += filaModelo(m, true)));
+  h += filaNuevos(c) + `</tbody></table>`;
+  $("#lista").innerHTML = h;
+  const pct = Math.min(100, (c.suma / Math.max(1, c.T)) * 100);
+  $("#pie").innerHTML = `<div class="cuadre"><div style="min-width:240px"><b>Modelos elegidos ${nES(c.suma)} de ${nES(c.T)}</b><div class="barra"><i style="width:${pct}%;background:${c.falta >= 0 ? "var(--verde)" : "var(--ambar)"}"></i></div></div>
+    ${c.falta >= 0 ? `<span class="chip verde">El resto (${nES(c.nuevos)}) queda para modelos nuevos</span>` : `<span class="chip ambar">Te pasaste ${nES(-c.falta)}</span><button class="btn ch" id="subir">Subir el total a ${nES(c.suma)}</button>`}<span style="flex:1"></span><button class="btn ch" id="pareja">Volver a lo que propone</button><button class="btn pri" id="guardar">Guardar el paso 2</button></div>
+    <p class="mini">Toca una marca o un modelo para ver sus colores y tallas, y cámbialas ahí mismo. Lo que no elijas para un modelo queda como «modelos nuevos por elegir»: así el total siempre cuadra con el paso 1.</p>`;
+  ligar(c);
+}
+function aplicar(c, tipo, mid, i, j, valor) {
+  const m = c.ms.find((x) => x.id === mid), v = Math.max(0, Math.round(valor));
+  if (tipo === "m") { ed[mid] = v; delete edC[mid]; delete edT[mid]; delete fijoC[mid]; }
+  else if (tipo === "c") { (edC[mid] = edC[mid] || {})[i] = v; if (edT[mid]) delete edT[mid][i]; }
+  else { const arr = m.det.cols[i].tal.slice(); arr[j] = v; (edT[mid] = edT[mid] || {})[i] = arr; if (edC[mid]) delete edC[mid][i]; }
+}
+function ligar(c) {
+  $$("[data-rp]").forEach((b) => (b.onclick = () => { repPct = Math.min(100, Math.max(0, repPct + Number(b.dataset.rp))); ed = {}; edC = {}; edT = {}; fijoC = {}; pintar(); }));
+  $("#rp").onchange = (e) => { repPct = Math.min(100, Math.max(0, Number(e.target.value) || 0)); ed = {}; edC = {}; edT = {}; fijoC = {}; pintar(); };
+  $$("tr.mod").forEach((tr) => (tr.onclick = () => { const id = tr.dataset.m; abierto.has(id) ? abierto.delete(id) : abierto.add(id); pintar(); }));
+  $$("[data-no]").forEach((x) => (x.onclick = (e) => e.stopPropagation()));
+  const actual = (tipo, mid, i, j) => { const m = c.ms.find((x) => x.id === mid); return tipo === "m" ? m.u : tipo === "c" ? m.det.cols[i].units : m.det.cols[i].tal[j]; };
+  $$("[data-k]").forEach((b) => (b.onclick = (e) => { e.stopPropagation(); const [t, mid, i, j, d] = b.dataset.k.split("|"); aplicar(c, t, mid, Number(i), Number(j), actual(t, mid, Number(i), Number(j)) + Number(d)); pintar(); }));
+  $$("[data-in]").forEach((x) => { x.onclick = (e) => e.stopPropagation(); x.onchange = () => { const [t, mid, i, j] = x.dataset.in.split("|"); aplicar(c, t, mid, Number(i), Number(j), Number(x.value) || 0); pintar(); }; });
+  $$("[data-reset]").forEach((b) => (b.onclick = (e) => { e.stopPropagation(); const id = b.dataset.reset; delete ed[id]; delete edC[id]; delete edT[id]; delete fijoC[id]; pintar(); }));
+  $("#pareja").onclick = () => { ed = {}; edC = {}; edT = {}; fijoC = {}; repPct = c.defecto; totalEd = null; avTot = null; pintar(); };
+  $("#guardar").onclick = () => { toast(`Paso 2 de Polos guardado: ${nES(c.suma)} en modelos y ${nES(c.nuevos)} para modelos nuevos`); };
+  if ($("#subir")) $("#subir").onclick = () => {
+    const antes = c.T, di = (c.suma - antes) * c.F.costo; totalEd = c.suma;
+    c.ms.forEach((m) => { fijoC[m.id] = {}; m.det.cols.forEach((col, i) => { fijoC[m.id][i] = col.units; }); });   // congelar: subir el total no debe mover a los demás modelos
+    avTot = `Cambiaste el total de Polos de <b>${nES(antes)}</b> a <b>${nES(c.suma)}</b>. También cambia en el paso 1: la inversión sube <b>${sES(di)}</b>.`;
+    clearTimeout(tAv); tAv = setTimeout(() => { avTot = null; pintar(); }, 9000); pintar();
+  };
+  if ($("#xAv")) $("#xAv").onclick = () => { clearTimeout(tAv); avTot = null; pintar(); };
+}
+function toast(t) { const e = document.createElement("div"); e.style.cssText = "position:fixed;left:50%;bottom:22px;transform:translateX(-50%);background:var(--tinta);color:var(--crema);padding:10px 18px;border-radius:99px;font-size:13px;z-index:80;max-width:90vw"; e.textContent = t; document.body.appendChild(e); setTimeout(() => e.remove(), 3200); }
+
+pintar();
+</script>
+</body>
+</html>

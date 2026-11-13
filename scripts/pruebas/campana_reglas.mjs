@@ -12,7 +12,8 @@
  *   · la tolerancia de las ventas sin conexión (3 días) también cuenta los días de la semana;
  *   · `registrar_venta` de punta a punta: exige el descuento de la oferta (`venta_campana_omitida`), lo acepta con su monto, rechaza un
  *     % que no es y NO lo exige un día en que la oferta no rige;
- *   · permisos: quien solo tiene la llave de las campañas guarda borradores; activar, cambiar una que ya rige y retirarla es de un líder;
+ *   · permisos: sin la llave de las campañas no se guarda, activa ni retira nada; con la llave (sin ser líder) se guarda un borrador, se
+ *     activa, se cambia una que ya rige y se retira (ADR-0534, 20261027164000: antes, activar, cambiar y retirar eran de un líder);
  *   · validaciones: %, fechas (hoy o después, dentro de la campaña), días (al menos uno, y que alguno caiga en las fechas), categorías;
  *   · el historial, `campana_reglas()` para la pantalla, las tablas que no se leen directo y la migración re-ejecutable.
  *
@@ -374,21 +375,35 @@ ${OFERTA({ pct: 30 })}${DESCUENTO(30)}${venta("lima", ":d", "campana", ":cobro")
     correr(`${PREPARAR}${MODULO_A_INTEGRANTE}${COMO_MICAELA}${OFERTA({ activar: "false" })}select estado || '|' || (select count(*) from retail.fn_campanas_en_sede(${HOY}, 0, array[:'v1']::uuid[], null) where etiqueta_id = :'camp') from retail.campana_reglas where id = :'r';\nrollback;`),
     "borrador|0",
   );
-  esperarError("con Insignias no puede ACTIVAR al guardar (solo un líder)", correr(`${PREPARAR}${MODULO_A_INTEGRANTE}${COMO_MICAELA}${OFERTA({ activar: "true" })}\nrollback;`), "Solo un líder activa");
-  esperarError(
-    "con Insignias no activa un borrador (activar_campana_regla)",
-    correr(`${PREPARAR}${OFERTA({ activar: "false" })}${MODULO_A_INTEGRANTE}${COMO_MICAELA}select retail.activar_campana_regla(:'r');\nrollback;`),
-    "Solo un líder activa",
+  esperarValor(
+    "con Insignias ACTIVA al guardar sin ser líder (ADR-0534) y la caja ya la cobra",
+    correr(`${PREPARAR}${MODULO_A_INTEGRANTE}${COMO_MICAELA}${OFERTA({ activar: "true" })}select estado || '|' || ${VE()} from retail.campana_reglas where id = :'r';\nrollback;`),
+    "activa|1|30.00",
+  );
+  esperarValor(
+    "con Insignias activa un borrador (activar_campana_regla) sin ser líder (ADR-0534)",
+    correr(`${PREPARAR}${OFERTA({ activar: "false" })}${MODULO_A_INTEGRANTE}${COMO_MICAELA}select retail.activar_campana_regla(:'r');\nselect estado from retail.campana_reglas where id = :'r';\nrollback;`),
+    "activa",
+  );
+  esperarValor(
+    "con Insignias cambia una oferta que ya rige sin ser líder (ADR-0534)",
+    correr(`${PREPARAR}${OFERTA()}${MODULO_A_INTEGRANTE}${COMO_MICAELA}select retail.guardar_campana_regla(:'r', :'camp', 'ZZ cambio', 10, ${HOY}, ${HOY} + 3, null, '{}'::uuid[], '{}'::uuid[], false, '{}'::uuid[], false);\nselect nombre || '|' || porcentaje from retail.campana_reglas where id = :'r';\nrollback;`),
+    "ZZ cambio|10.00",
+  );
+  esperarValor(
+    "con Insignias retira una oferta que ya rige sin ser líder (ADR-0534)",
+    correr(`${PREPARAR}${OFERTA()}${MODULO_A_INTEGRANTE}${COMO_MICAELA}select retail.retirar_campana_regla(:'r');\nselect estado from retail.campana_reglas where id = :'r';\nrollback;`),
+    "desactivada",
   );
   esperarError(
-    "con Insignias no cambia una oferta que ya rige",
-    correr(`${PREPARAR}${OFERTA()}${MODULO_A_INTEGRANTE}${COMO_MICAELA}select retail.guardar_campana_regla(:'r', :'camp', 'ZZ cambio', 10, ${HOY}, ${HOY} + 3, null, '{}'::uuid[], '{}'::uuid[], false, '{}'::uuid[], false);\nrollback;`),
-    "Solo un líder cambia",
+    "sin la llave de las campañas no activa un borrador (integrante sin módulo)",
+    correr(`${PREPARAR}${OFERTA({ activar: "false" })}${COMO_MICAELA}select retail.activar_campana_regla(:'r');\nrollback;`),
+    "módulo «Campañas»",
   );
   esperarError(
-    "con Insignias no retira una oferta que ya rige",
-    correr(`${PREPARAR}${OFERTA()}${MODULO_A_INTEGRANTE}${COMO_MICAELA}select retail.retirar_campana_regla(:'r');\nrollback;`),
-    "Solo un líder retira",
+    "sin la llave de las campañas no retira una oferta que ya rige (integrante sin módulo)",
+    correr(`${PREPARAR}${OFERTA()}${COMO_MICAELA}select retail.retirar_campana_regla(:'r');\nrollback;`),
+    "módulo «Campañas»",
   );
   esperarValor(
     "con Insignias descarta su propio borrador",

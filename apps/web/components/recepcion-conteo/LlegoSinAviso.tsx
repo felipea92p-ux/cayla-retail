@@ -3,32 +3,31 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowRight, Check, CircleHelp, PackageOpen, SearchX, Store } from "lucide-react";
-import { TituloSeccion } from "@/components/ui/TituloSeccion";
+import { ArrowRight, Check, PackageOpen, SearchX, Store } from "lucide-react";
 import { Aviso } from "@/components/ui/Aviso";
-import { Boton, CampoTexto } from "@/components/ui/campos";
+import { Boton, CampoTexto, Interruptor } from "@/components/ui/campos";
 import { Buscador } from "@/components/ui/Buscador";
 import { Vacio } from "@/components/ui/Vacio";
-import { CajaFardo } from "./piezas";
+import { Modal } from "@/components/ui/Modal";
 import { BotonSinAviso, useSinAviso } from "./SinAvisoContexto";
 import { ComboResponsable } from "@/components/ComboResponsable";
-import { useAltaDeProveedor } from "@/components/useAltaDeProveedor";
+import { ProveedorNuevoRecepcion } from "@/components/recepcion-conteo/ProveedorNuevoRecepcion";
 import { CampoGuiado, PieGuia } from "@/components/guia-de-foco/CampoGuiado";
 import { useGuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
 import { diaMes } from "@/lib/fechas-lima";
 import { proveedoresParaPedir } from "@/lib/proveedores-reglas";
 import { urlContraFactura } from "@/lib/llegada-reglas";
 import { useResponsable } from "@/lib/useResponsable";
+import { claveResponsableRecepcion, recordarResponsableGuardar } from "@/lib/responsable-conteo";
 import { TOPES_CONTEO, mensajeAlGuardar } from "@/lib/recepcion-conteo-reglas";
 import { abrirEnvioSinAviso } from "@/lib/recepcion-conteo-acciones";
+import { COMPRAS_A_LA_VISTA, comprasQueAvisar, lineaDeLaCompra, porEnvio, tituloDelAviso, type CompraPagada } from "@/lib/compras-pagadas-reglas";
 
 // «Llegó mercadería sin aviso» (ADR-0393, decisiones 2 y 10): lo que llega sin que Compras lo haya despachado se recibe con el MISMO conteo
-// que un envío —por categoría, lo demás para después—. La puerta pregunta lo de siempre (ADR-0330): ¿de quién es? Si ese proveedor tiene una
-// factura por recibir en esta sede, ofrece recibir contra ella. Si no, abre un envío sin guía y lleva a contarlo. El costo llega con la
-// factura (solo quien ve el dinero de Compras lo pone al cerrar).
-
-/** «No sé de quién es» (Felipe 2026-10-14): a veces Compras manda sin decir de quién es. Se cuenta igual y el proveedor se pone al cerrar. */
-const SIN_PROVEEDOR = "sin-proveedor";
+// que un envío —por categoría, lo demás para después—. Lo que llega sin aviso casi nunca es de un solo proveedor (Felipe 2026-11-07): la puerta ya no
+// pregunta «¿de quién es?». Cada categoría y marca que se cuenta es del proveedor de su marca, y lo que no se puede saber se elige al cerrar
+// (20261107192000). Si todo es de uno, se puede decir aquí («Todo es de un solo proveedor») y, si ese proveedor tiene una factura por recibir en esta
+// sede, se ofrece recibir contra ella. El costo llega con la factura (solo quien ve el dinero de Compras lo pone al cerrar).
 
 /** Un proveedor de la puerta. `rubros`: quien es solo de gastos no se ofrece (`proveedoresParaPedir`); los recién agregados no los traen. */
 export type ProveedorDeLaPuerta = { id: string; nombre: string; ruc?: string | null; rubros?: readonly string[]; marcas?: readonly string[] };
@@ -39,26 +38,25 @@ export function LlegoSinAviso({
   ubicacionId,
   ubicacionEtiqueta,
   proveedores,
-  rubrosEnUso,
-  puedeAgregarProveedor,
   facturas,
+  comprasPagadas = [],
   hayListaArriba = false,
 }: {
   ubicacionId: string;
   ubicacionEtiqueta: string;
   /** Con sus marcas (se leen en la puerta): se ven bajo cada proveedor y sirven para encontrarlo. */
   proveedores: readonly ProveedorDeLaPuerta[];
-  /** Los rubros que ya usa el directorio: los botones del formulario de «Agregar proveedor». */
-  rubrosEnUso: readonly string[];
-  /** La cuenta tiene el módulo Proveedores (lo que exige `registrar_proveedor`): puede dar de alta uno desde aquí. */
-  puedeAgregarProveedor: boolean;
   facturas: readonly FacturaPorRecibir[];
+  /** ADR-0636: las compras ya pagadas que vienen a esta sede (sin montos). Si lo que llegó es una de ellas, no se recibe por aquí. */
+  comprasPagadas?: readonly CompraPagada[];
   /** Arriba hay envíos u órdenes de Compras para esta sede: esta tarjeta es para lo que NO está en esa lista (formidable, 2026-10-14). */
   hayListaArriba?: boolean;
 }) {
   const router = useRouter();
   const responsable = useResponsable();
   const [proveedorId, setProveedorId] = useState("");
+  // «Todo es de un solo proveedor»: apagado (lo normal), el envío se abre sin proveedor y cada marca dice el suyo.
+  const [deUnoSolo, setDeUnoSolo] = useState(false);
   const [guia, setGuia] = useState("");
   const [buscar, setBuscar] = useState("");
   const [token] = useState(() => crypto.randomUUID());
@@ -74,35 +72,28 @@ export function LlegoSinAviso({
     const segunLaDireccion = () => {
       if (window.location.hash !== "#sin-aviso") return;
       setAbierto(true);
-      requestAnimationFrame(() => document.getElementById("sin-aviso")?.scrollIntoView({ block: "start" }));
     };
     segunLaDireccion();
     window.addEventListener("hashchange", segunLaDireccion);
     return () => window.removeEventListener("hashchange", segunLaDireccion);
   }, [setAbierto]);
-  const susFacturas = facturas.filter((f) => f.proveedorId === proveedorId && f.pendientes > 0);
+  // Con un proveedor elegido, solo sus compras; sin elegir (lo normal), todas las que vienen a la sede.
+  const pagadas = comprasQueAvisar(comprasPagadas, deUnoSolo && proveedorId ? proveedorId : null);
+  const susFacturas = deUnoSolo ? facturas.filter((f) => f.proveedorId === proveedorId && f.pendientes > 0) : [];
   // «¿No está? + Agregar proveedor»: lo que llega sin aviso a veces es de un proveedor que todavía no está en el directorio. El recién
   // guardado se suma a la lista y queda elegido, sin esperar a que la página relea el directorio.
   const [agregados, setAgregados] = useState<ProveedorDeLaPuerta[]>([]);
   const todos = [...proveedores, ...agregados.filter((a) => !proveedores.some((p) => p.id === a.id))];
-  const alta = useAltaDeProveedor({
-    habilitado: puedeAgregarProveedor,
-    rubrosEnUso,
-    existentes: todos.map((p) => ({ id: p.id, nombre: p.nombre, ruc: p.ruc ?? null })),
-    alGuardar: (p) => {
-      setAgregados((a) => [...a, { id: p.id, nombre: p.nombre, ruc: p.ruc, marcas: [] }]);
-      setProveedorId(p.id);
-      setBuscar("");
-    },
-  });
+  // ADR-0635 (Felipe 2026-11-09): lo agrega quien recibe, sin el módulo Proveedores, con su razón social y su RUC si lo tiene.
+  const [agregando, setAgregando] = useState<string | null>(null);
 
+  const sinTurno = responsable.estado === "nadie" || responsable.estado === "sin_lectura";
   const campos = useGuiaCampos(
     [
-      { id: "sin-aviso-proveedor", nombre: "De quién es", requerido: true, hecho: proveedorId !== "", pendiente: "Elige de qué proveedor es, o «No sé de quién es»." },
+      ...(deUnoSolo ? [{ id: "sin-aviso-proveedor", nombre: "De qué proveedor", requerido: true, hecho: proveedorId !== "", pendiente: "Elige el proveedor, o apaga «Todo es de un solo proveedor»." }] : []),
       { id: "sin-aviso-guia", nombre: "Número de guía", requerido: false, hecho: guia.trim() !== "", pendiente: "Si vino con guía, escribe su número." },
       { id: "sin-aviso-quien", nombre: "Quién recibe", requerido: true, hecho: responsable.listo, pendiente: "Elige quién recibe." },
     ],
-    { enModal: false },
   );
 
   async function abrir() {
@@ -110,7 +101,7 @@ export function LlegoSinAviso({
     setAbriendo(true);
     setError(null);
     const { abierto, error: e } = await abrirEnvioSinAviso(
-      { p_ubicacion_id: ubicacionId, p_proveedor_id: proveedorId === SIN_PROVEEDOR ? null : proveedorId, p_numero_guia: guia.trim() || null, p_nota: null, p_token: token },
+      { p_ubicacion_id: ubicacionId, p_proveedor_id: deUnoSolo && proveedorId ? proveedorId : null, p_numero_guia: guia.trim() || null, p_nota: null, p_token: token },
       responsable.firma(),
     );
     responsable.despues(e);
@@ -119,6 +110,8 @@ export function LlegoSinAviso({
       setError(mensajeAlGuardar(e, "abrir el envío"));
       return;
     }
+    // Quien abrió el envío es quien lo cuenta: se recuerda para Contar, que si no lo vuelve a pedir sin que nadie lo vea.
+    if (responsable.elegidoId) recordarResponsableGuardar(claveResponsableRecepcion(abierto.despachoId), responsable.elegidoId);
     router.push(`/recibir/envio/${abierto.despachoId}`);
   }
 
@@ -140,15 +133,20 @@ export function LlegoSinAviso({
     {!hayListaArriba && (
       <div className="flex flex-wrap items-center gap-3">
         <BotonSinAviso abierto={abierto} onCambiar={() => setAbierto((a) => !a)} />
-        {!abierto && <p className="text-[13.5px] text-taupe">¿Llegó algo que nadie despachó desde el sistema? Ábrelo aquí.</p>}
+        {!abierto && <p className="text-[15px] text-taupe">¿Llegó algo sin aviso? Ábrelo aquí.</p>}
       </div>
     )}
     {abierto && (
-    <div id="sin-aviso-formulario" className="grid items-start gap-4 lg:grid-cols-[minmax(0,1fr)_300px]">
-      <section className="card-cayla grid gap-6 overflow-hidden p-5 sm:grid-cols-[200px_minmax(0,1fr)] sm:p-6" aria-label="Llegó sin aviso">
-        <div className="grid place-items-start justify-center pt-1.5">
-          <CajaFardo />
-        </div>
+      <Modal
+        titulo={hayListaArriba ? "¿Llegó algo que no está en la lista?" : "¿Llegó algo sin aviso?"}
+        subtitulo={hayListaArriba
+          ? "Lo de arriba lo despachó Compras. Lo que llegó además se cuenta igual, modelo por modelo, solo que sin con qué comparar. De quién es cada cosa lo dice su marca."
+          : "Nadie lo despachó desde el sistema. Se cuenta igual, modelo por modelo, solo que sin con qué comparar. De quién es cada cosa lo dice su marca."}
+        tamano="mediana"
+        onClose={() => setAbierto(false)}
+        bloqueado={abriendo}
+      >
+        <div id="sin-aviso-formulario">
         <form
           noValidate
           onSubmit={(e) => {
@@ -157,18 +155,64 @@ export function LlegoSinAviso({
           }}
           className="min-w-0 space-y-4"
         >
-          <div>
-            <p className="label-cayla text-[11px] text-taupe">Sin aviso de Compras</p> {/* unificar-fijo: la ceja de la tarjeta (de dónde viene el paquete), no un vacío */}
-            <TituloSeccion>{hayListaArriba ? "¿Llegó algo que no está en la lista?" : "¿Llegó algo sin aviso?"}</TituloSeccion>
-            <p className="mt-1 text-[15px] text-taupe">
-              {hayListaArriba
-                ? "Lo de arriba lo despachó Compras. Si llegó algo más, que nadie despachó desde el sistema, dime de quién es y se cuenta igual, por categoría: solo que sin con qué comparar."
-                : "Nadie lo despachó desde el sistema. Dime de quién es y se cuenta igual, por categoría: solo que sin con qué comparar."}
-            </p>
+          {/* Sin nadie que firme no se abre nada: se dice antes de llenar la hoja, no después (prueba ciega, 2026-11-03). */}
+          {sinTurno && <ComboResponsable control={responsable} />}
+          {/* ADR-0636: lo ya pagado que viene para acá. Recibirlo «sin aviso» lo metería al stock por otra puerta y después entraría otra vez. */}
+          {pagadas.length > 0 && (
+            <Aviso tono="atencion" titulo={tituloDelAviso(pagadas, ubicacionEtiqueta)}>
+              <p>Si lo que llegó es una de estas, no la recibas por aquí: entraría dos veces.</p>
+              {deUnoSolo && proveedorId ? (
+                <ul className="mt-2 space-y-1.5">
+                  {pagadas.slice(0, COMPRAS_A_LA_VISTA).map((c) => (
+                    <li key={c.papelId} className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                      <span>
+                        {lineaDeLaCompra(c, false)}
+                        {c.fecha ? ` · comprada el ${diaMes(c.fecha)}` : ""}
+                      </span>
+                      {c.envios[0] ? (
+                        <Link href={`/recibir/envio/${c.envios[0].id}`} className="btn-cayla btn-enlace">
+                          Recibir ese envío
+                        </Link>
+                      ) : (
+                        <span className="text-taupe">Pídele que la mande y recíbela en su envío.</span>
+                      )}
+                    </li>
+                  ))}
+                  {pagadas.length > COMPRAS_A_LA_VISTA && <li className="text-taupe">Y {pagadas.length - COMPRAS_A_LA_VISTA} más de este proveedor.</li>}
+                </ul>
+              ) : (
+                // Sin proveedor elegido pueden ser decenas: se dicen por envío, que es lo que la tienda puede abrir.
+                <ul className="mt-2 space-y-1.5">
+                  {porEnvio(pagadas).map((g) => (
+                    <li key={g.clave} className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                      <span>{g.texto}</span>
+                      {g.envioId ? (
+                        <Link href={`/recibir/envio/${g.envioId}`} className="btn-cayla btn-enlace">
+                          Recibir ese envío
+                        </Link>
+                      ) : (
+                        <span className="text-taupe">Pídele a quien compró que las mande.</span>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </Aviso>
+          )}
+          <div className="space-y-2">
+            <Interruptor
+              etiqueta="Todo es de un solo proveedor"
+              activo={deUnoSolo}
+              onActivo={(v) => {
+                setDeUnoSolo(v);
+                if (!v) setProveedorId("");
+              }}
+              pie={deUnoSolo ? undefined : "Casi siempre llega de varios: no hace falta elegir. Cada marca dice de quién es, y lo que no, lo eliges al cerrar."}
+            />
           </div>
-
+          {deUnoSolo && (
           <CampoGuiado id="sin-aviso-proveedor" guia={campos}>
-            <p className="mb-1.5 text-[13px] font-semibold text-tinta">{campos.etiqueta("sin-aviso-proveedor", "¿De quién es?")}</p>
+            <p className="mb-1.5 text-sm font-semibold text-tinta">{campos.etiqueta("sin-aviso-proveedor", "¿De qué proveedor?")}</p>
             <Buscador valor={buscar} onCambio={setBuscar} placeholder="Busca el proveedor por nombre, marca o RUC" etiqueta="Buscar el proveedor" />
             <ul className="mt-2 space-y-1.5" role="radiogroup" aria-label="Proveedor">
               {aLaVista.map((p) => (
@@ -187,7 +231,7 @@ export function LlegoSinAviso({
                     </span>
                     <span className="min-w-0 flex-1">
                       <b className="block truncate text-[14.5px] text-tinta">{p.nombre}</b>
-                      {(p.marcas ?? []).length > 0 && <small className="block truncate text-[12.5px] text-taupe">{(p.marcas ?? []).join(" · ")}</small>}
+                      {(p.marcas ?? []).length > 0 && <small className="block truncate text-sm text-taupe">{(p.marcas ?? []).join(" · ")}</small>}
                     </span>
                     {p.id === proveedorId && <Check aria-hidden className="h-4 w-4 text-verde" />}
                   </button>
@@ -200,40 +244,16 @@ export function LlegoSinAviso({
                   </Vacio>
                 </li>
               )}
-              {coinciden.length > primeros.length && <li className="px-1 text-xs text-taupe">Escribe para encontrar a los demás ({coinciden.length - primeros.length} más).</li>}
-              {/* Siempre a la vista, al final: no depende de lo que se busque. */}
-              <li>
-                <button
-                  type="button"
-                  role="radio"
-                  aria-checked={proveedorId === SIN_PROVEEDOR}
-                  onClick={() => setProveedorId(SIN_PROVEEDOR)}
-                  className={`flex w-full items-center gap-3 rounded-2xl border border-dashed px-3 py-2.5 text-left transition-colors ${
-                    proveedorId === SIN_PROVEEDOR ? "border-tinta bg-papel" : "border-tinta/25 hover:border-tinta/40"
-                  }`}
-                >
-                  <span className="rc-cat-ic" data-tamano="chico" aria-hidden>
-                    <CircleHelp className="h-4 w-4" />
-                  </span>
-                  <span className="min-w-0 flex-1">
-                    <b className="block text-[14.5px] text-tinta">No sé de quién es</b>
-                    <small className="block text-[12.5px] text-taupe">Se cuenta igual. Antes de cerrar, pregúntale a Compras y elígelo.</small>
-                  </span>
-                  {proveedorId === SIN_PROVEEDOR && <Check aria-hidden className="h-4 w-4 text-verde" />}
-                </button>
-              </li>
+              {coinciden.length > primeros.length && <li className="px-1 text-sm text-taupe">Escribe para encontrar a los demás ({coinciden.length - primeros.length} más).</li>}
             </ul>
-            {puedeAgregarProveedor ? (
-              <p className="mt-2 text-xs text-taupe">
-                ¿No está?{" "}
-                <button type="button" onClick={() => alta.abrir(buscar)} className="btn-cayla btn-enlace whitespace-normal text-left text-xs">
-                  + Agregar proveedor
-                </button>
-              </p>
-            ) : (
-              <p className="mt-2 text-xs text-taupe">¿No está? Pídele a quien administra Proveedores que lo agregue, o elige «No sé de quién es».</p>
-            )}
+            <p className="mt-2 text-sm text-taupe">
+              ¿No está?{" "}
+              <button type="button" onClick={() => setAgregando(buscar)} className="btn-cayla btn-enlace whitespace-normal text-left text-xs">
+                + Agregar proveedor
+              </button>
+            </p>
           </CampoGuiado>
+          )}
 
           {susFacturas.length > 0 && (
             <div className="nota-cayla space-y-2.5">
@@ -266,10 +286,12 @@ export function LlegoSinAviso({
                 placeholder="Ej. T001-000342"
               />
             </CampoGuiado>
-            <CampoGuiado id="sin-aviso-quien" guia={campos}>
-              <p className="mb-1.5 text-[13px] font-semibold text-tinta">{campos.etiqueta("sin-aviso-quien", "Quién recibe")}</p>
-              <ComboResponsable control={responsable} compacto />
-            </CampoGuiado>
+            {!sinTurno && (
+              <CampoGuiado id="sin-aviso-quien" guia={campos}>
+                <p className="mb-1.5 text-sm font-semibold text-tinta">{campos.etiqueta("sin-aviso-quien", "Quién recibe")}</p>
+                <ComboResponsable control={responsable} compacto />
+              </CampoGuiado>
+            )}
           </div>
 
           {error && (
@@ -278,27 +300,37 @@ export function LlegoSinAviso({
             </Aviso>
           )}
           <PieGuia guia={campos} listo="Todo listo: ábrelo y cuenta." />
-          <Boton type="submit" peso="primario" cargando={abriendo} textoCargando="Abriendo…" disabled={!campos.puedeConfirmar} title={campos.frase ?? undefined} className={campos.claseConfirmar}>
+          <Boton type="submit" peso="primario" cargando={abriendo} textoCargando="Abriendo…" confirma={campos} title={campos.frase ?? undefined} className={campos.claseConfirmar}>
             <span className="inline-flex items-center gap-2">
               <PackageOpen aria-hidden className="h-4 w-4" />
               {susFacturas.length > 0 ? "No, recibir sin factura y contar" : "Empezar a contar"}
               <ArrowRight aria-hidden className="h-4 w-4" />
             </span>
           </Boton>
+
+          <p className="nota-cayla text-[15px]">
+            Cuando Compras lo despache, el envío aparecerá arriba con lo que dijeron por categoría y marca, y la pantalla comparará sola. Lo que manda otra sede de CAYLA no entra por aquí: se recibe en <b className="text-tinta">Traslados</b>.
+          </p>
         </form>
-      </section>
-      <aside className="card-cayla space-y-2 p-5">
-        <TituloSeccion nivel={3}>Cuando Compras lo despache</TituloSeccion>
-        <p className="text-[13.5px] text-taupe">
-          El envío aparecerá arriba con lo que dijeron por categoría y marca, y la pantalla comparará sola. Lo que manda otra sede de CAYLA no entra
-          por aquí: se recibe en <b className="text-tinta">Traslados</b>.
-        </p>
-      </aside>
-    </div>
+        </div>
+      </Modal>
     )}
     </div>
     {/* Fuera del <form> (ADR-0128): un `submit` del alta no debe llegar a «Empezar a contar». */}
-    {alta.modal}
+    {agregando !== null && (
+      <ProveedorNuevoRecepcion
+        proveedores={todos}
+        tipeado={agregando}
+        responsable={responsable}
+        onRegistrado={(p) => {
+          setAgregados((a) => (a.some((x) => x.id === p.id) ? a : [...a, { id: p.id, nombre: p.nombre, ruc: p.ruc, marcas: [] }]));
+          setProveedorId(p.id);
+          setBuscar("");
+          setAgregando(null);
+        }}
+        onCerrar={() => setAgregando(null)}
+      />
+    )}
     </>
   );
 }

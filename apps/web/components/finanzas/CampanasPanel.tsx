@@ -2,7 +2,9 @@
 
 import Link from "next/link";
 import type { CSSProperties } from "react";
+import { Aviso } from "@/components/ui/Aviso";
 import { Chip } from "@/components/ui/Chip";
+import { fallaLegible } from "@/lib/gastos-telar-reglas";
 import { CabeceraReportes } from "@/components/finanzas/CabeceraReportes";
 import { BarrasFin, CabeceraBloque, Herramientas, PieTabla, Superficie } from "@/components/finanzas/kit";
 import { fechaCorta } from "@/lib/gastos-reglas";
@@ -19,6 +21,7 @@ import {
   type CampanaFila,
 } from "@/lib/resultados-reglas";
 import { BotonDescargar } from "@/components/ui/BotonDescargar";
+import { metaConIgv } from "@/lib/igv-ventas-reglas";
 import { Megaphone } from "lucide-react";
 import { Vacio } from "@/components/ui/Vacio";
 
@@ -42,12 +45,16 @@ const lift = (c: CampanaFila) => (c.normal ? (c.ventas ?? 0) / c.normal - 1 : nu
 export function CampanasPanel({
   campanas,
   esLider,
+  veTodo,
   tiendaNombre,
   hoy,
   fallas,
 }: {
   campanas: CampanaFila[];
+  /** Lleva a Configuración ▸ Metas (hoy, el líder). */
   esLider: boolean;
+  /** Mira las campañas de CAYLA entera (ADR-0585: el líder o quien tiene Estados financieros). */
+  veTodo: boolean;
   tiendaNombre: string;
   hoy: string;
   fallas: string[];
@@ -74,12 +81,11 @@ export function CampanasPanel({
   return (
     <div className="space-y-6">
       <CabeceraReportes
-        pestana="campanas"
         titulo="¿Valen la pena las campañas?"
-        bajada="Cada campaña contra lo que la tienda vende en días normales: cuánto más vendió, cuánto se descontó y si al final dejó más o menos margen."
+        bajada="Cada campaña contra un día normal: cuánto más vendió, cuánto se descontó y si dejó más margen."
         acciones={
           <>
-            <Chip versalitas={false}>{esLider ? "CAYLA entera" : tiendaNombre}</Chip>
+            <Chip versalitas={false}>{veTodo ? "CAYLA entera" : tiendaNombre}</Chip>
             <BotonDescargar onClick={descargar} guia="fin-reportes.excel">
               Descargar Excel
             </BotonDescargar>
@@ -88,9 +94,9 @@ export function CampanasPanel({
       />
 
       {fallas.map((f) => (
-        <p key={f} className="card-cayla border-dashed px-5 py-4 text-sm text-tinta/75">
-          {f}
-        </p>
+        <Aviso key={f} tono="error">
+          {fallaLegible(f)}
+        </Aviso>
       ))}
 
       <section className="fin-dos-col fin-der">
@@ -108,7 +114,7 @@ export function CampanasPanel({
                   valor: c.margenExtra ?? 0,
                   mala: (c.margenExtra ?? 0) < 0,
                   malaTexto: "no se pagó",
-                  detalle: `${c.nombre}: vendió ${solesER(c.ventas ?? 0)} (normal ${solesER(c.normal ?? 0)}) · descuento ${solesER(c.descuento)} · margen ${pct(c.margenPct)}`,
+                  detalle: `${c.nombre}: vendió ${solesER(c.ventas ?? 0)} sin IGV (normal ${solesER(c.normal ?? 0)}) · descuento ${solesER(c.descuento)} · margen ${pct(c.margenPct)}`,
                 }))}
               />
             ) : (
@@ -116,7 +122,7 @@ export function CampanasPanel({
                 Todavía no terminó ninguna campaña con ventas y días normales para comparar.
               </Vacio>
             )}
-            {malas && <p className="mt-2.5 text-[13px] text-taupe">{malas}</p>}
+            {malas && <p className="mt-2.5 text-sm text-taupe">{malas}</p>}
           </Superficie>
         </div>
 
@@ -127,7 +133,7 @@ export function CampanasPanel({
                 <thead>
                   <tr>
                     <th>Campaña</th>
-                    <th className="fin-num">Vendió</th>
+                    <th className="fin-num">Vendió, sin IGV</th>
                     <th className="fin-num">vs normal</th>
                     <th className="fin-num">Descuento</th>
                     <th className="fin-num">Margen extra</th>
@@ -142,7 +148,7 @@ export function CampanasPanel({
                           {fechaCorta(c.desde)} – {fechaCorta(c.hasta)} · {c.prendas ?? 0} prendas
                         </span>
                       </td>
-                      <td className="fin-num" data-l="Vendió">
+                      <td className="fin-num" data-l="Vendió, sin IGV">
                         {solesER(c.ventas ?? 0)}
                       </td>
                       <td className="fin-num" data-l="vs normal">
@@ -166,7 +172,7 @@ export function CampanasPanel({
                   {!pasadas.length && (
                     <tr>
                       <td colSpan={5} className="fin-tenue">
-                        Ninguna campaña del último año tuvo ventas en {esLider ? "las tiendas" : "tu tienda"}.
+                        Ninguna campaña del último año tuvo ventas en {veTodo ? "las tiendas" : "tu tienda"}.
                       </td>
                     </tr>
                   )}
@@ -184,7 +190,7 @@ export function CampanasPanel({
         <Superficie>
           <Herramientas>
             <b className="text-[14px]">Las que vienen</b>
-            <span className="text-[12.5px] text-taupe">
+            <span className="text-sm text-taupe">
               Antes de lanzarla: con ese descuento, ¿cuánto más hay que vender para ganar lo mismo que un día normal?
             </span>
           </Herramientas>
@@ -196,7 +202,7 @@ export function CampanasPanel({
                   <th className="fin-num">Descuento</th>
                   <th className="fin-num">Para ganar lo mismo, vender</th>
                   <th className="fin-num">La meta sube</th>
-                  <th className="fin-num">Meta de la campaña</th>
+                  <th className="fin-num">Meta de la campaña, con IGV</th>
                   <th>Qué dice el sistema</th>
                 </tr>
               </thead>
@@ -231,11 +237,11 @@ export function CampanasPanel({
                       <td className="fin-num" data-l="Meta sube">
                         {c.conEfecto && c.metaPct != null ? `+${c.metaPct} %` : <span className="fin-tenue">sin efecto en caja</span>}
                       </td>
-                      <td className="fin-num" data-l="Meta">
+                      <td className="fin-num" data-l="Meta con IGV">
                         {c.conEfecto && c.metaCampana != null ? (
                           <>
-                            {solesER(c.metaCampana)}
-                            <span className="fin-sub">normal {solesER(c.metaNormal ?? 0)}</span>
+                            {solesER(metaConIgv(c.metaCampana))}
+                            <span className="fin-sub">normal {solesER(metaConIgv(c.metaNormal ?? 0))}</span>
                           </>
                         ) : (
                           "—"
@@ -271,15 +277,14 @@ export function CampanasPanel({
       </div>
 
       <div {...entra(4, "nota-cayla")} data-guia="fin-campanas.nota">
-        Una campaña también puede valer por otras cosas (clientes nuevos, sacar mercadería que no rota). El sistema no decide por ti: te
-        dice <b>cuánto cuesta</b> en margen, para que la decisión sea a sabiendas. Las fechas, el descuento y las categorías se cambian en
+        Una campaña también vale por otras cosas (clientes nuevos, sacar lo que no rota): aquí ves <b>cuánto cuesta</b> en margen. Las fechas, el descuento y las categorías se cambian en
         Catálogo ▸ Insignias; la meta y el fondo, en{" "}
         {esLider ? (
-          <Link href="/configuracion?tab=tiendas" className="underline underline-offset-2">
-            Configuración ▸ Tiendas y caja
+          <Link href="/configuracion?tab=metas" className="underline underline-offset-2">
+            Configuración ▸ Metas
           </Link>
         ) : (
-          "Configuración ▸ Tiendas y caja"
+          "Configuración ▸ Metas"
         )}
         .
       </div>

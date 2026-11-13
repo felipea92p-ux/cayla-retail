@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { BarraAvance } from "@/components/ui/BarraAvance";
-import { soles } from "@/lib/compras-reglas";
 import { cantidadTexto } from "@/lib/insumos-reglas";
 import { DIAS_RITMO_RECIENTE } from "@/lib/inventario-reglas";
 import { Chip } from "@/components/ui/Chip";
@@ -18,23 +17,19 @@ import { EnlaceVer } from "@/components/ui/EnlaceVer";
 import { CircleCheck } from "lucide-react";
 import { Vacio } from "@/components/ui/Vacio";
 import { TituloSeccion } from "@/components/ui/TituloSeccion";
-import { FotoPrenda } from "@/components/ui/FotoPrenda";
 import { lineaDeOrigen, type HojaDeModelo } from "@/lib/produccion-hoja-modelo";
 import type { PresentacionDeModelo } from "@/lib/produccion-presentacion";
 import { FilaQueAbreLaHoja } from "@/components/produccion-resumen/FilaQueAbreLaHoja";
-import { ProveedorFichasDeColor } from "@/components/produccion-resumen/FichasDeColor";
-import type { ColorConFicha } from "@/lib/ficha-del-color";
+import { FotoModelo } from "@/components/produccion-resumen/FotoModelo";
+import { ListaQueFabricarPrimero } from "@/components/produccion-resumen/ListaQueFabricarPrimero";
+import { queFabricarPrimero } from "@/lib/produccion-primero";
+import { textosDeCifras } from "@/lib/produccion-cifras-textos";
 import { TONO_ESTADO_MODELO } from "@/components/produccion-resumen/estado-modelo";
 import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 
 // Resumen de Producción (ADR-0133, F6): «¿qué necesita mi decisión hoy?». Cada tarjeta nace de datos que ya existen y lleva su evidencia; desaparece sola
 // cuando el dato cambia. Solo hechos y cuentas sobre datos medidos. El rojo de la pantalla (máximo 2) lo lleva únicamente la cifra de «Por pagar» cuando hay algo
 // vencido; las tarjetas usan ámbar y tinta. Es un componente de servidor: no tiene estado, solo enlaces a la pantalla donde se resuelve cada cosa.
-
-const plural = (n: number, uno: string, varios: string) => `${n} ${n === 1 ? uno : varios}`;
-
-/** ¿Alguna tarjeta anterior ya lleva su «¿Por qué?»? Solo la primera lleva el ancla de la guía. */
-const hayPorQueAntes = (ds: readonly Decision[], i: number) => ds.slice(0, i).some((d) => d.porque);
 
 /** Lo que viene a una tela, en una línea: «155 m en camino · 40 m facturados por recibir · 35 m atrasados (no los cuento)», o «nada por recibir». */
 function loQueViene(t: FilaTela): string {
@@ -59,16 +54,6 @@ const ICONO: Record<Decision["tipo"], string> = {
   minimo: "M21 8l-9-5-9 5v8l9 5 9-5V8zM3 8l9 5 9-5M12 13v8",
 };
 
-/** La foto de un modelo (o, sin foto, el ícono de su categoría sobre su color). Decorativa: el nombre ya está escrito al lado, así que no se lee dos veces. */
-function FotoModelo({ productoId, presentaciones, ancho, className }: { productoId: string; presentaciones: Record<string, PresentacionDeModelo>; ancho: number; className: string }) {
-  const p = presentaciones[productoId];
-  return (
-    <span aria-hidden className="block shrink-0">
-      <FotoPrenda fotoUrl={p?.fotoUrl} referencia="" ancho={ancho} colorHex={p?.colorHex} categoria={p?.categoria} categoriaPrefijo={p?.categoriaPrefijo} categoriaFamilia={p?.categoriaFamilia} className={className} />
-    </span>
-  );
-}
-
 export function ResumenProduccionPanel({
   sede,
   presentaciones,
@@ -78,10 +63,10 @@ export function ResumenProduccionPanel({
   cifras,
   modelos,
   hojas,
-  fichasDeColor,
   telas,
   hoyEnElTaller,
   falloRed,
+  notaDeHistoria,
 }: {
   /** Cómo se dibuja cada modelo (foto, o color y categoría): por `productoId`. Vacío si el catálogo no se pudo leer: se dibuja la percha. */
   presentaciones: Record<string, PresentacionDeModelo>;
@@ -94,19 +79,22 @@ export function ResumenProduccionPanel({
   modelos: FilaModelo[];
   /** La hoja «Ver el modelo» de cada modelo (por `productoId`): lo vendido por color y talla y los enlaces a la orden y al traslado. Se arma en el servidor con lo que ya se leyó. */
   hojas: Record<string, HojaDeModelo>;
-  /** El vocabulario de colores con su ficha (qué transmite y con qué se combina): la hoja de cada modelo la usa bajo su foto. Una sola vez para todo el panel. Vacío si no se pudo leer: la hoja no dice nada del color. */
-  fichasDeColor: ColorConFicha[];
   telas: FilaTela[];
   /** Dónde está cada orden abierta (una tarjeta por fase) y su frase. `null`: la lectura falló (se dice y se manda a Órdenes). */
   hoyEnElTaller: { cifras: CifraDeFase[]; dato: string } | null;
   falloRed: string | null;
+  /** «El sistema lleva 4 semanas de ventas…»: avisa que las cantidades son una guía mientras haya poca historia. `null` cuando ya hay suficiente. */
+  notaDeHistoria: string | null;
   /** La sede de la línea de arriba de la cabecera (el Taller). */
   sede: string;
 }) {
   const maxDias = 60; // la escala de la barra: hasta el techo de «alta cobertura» de Inventario
+  // Los de «Producir ya» ya están arriba, en «¿Qué fabrico primero?»: esta tabla es el resto del catálogo (traslados, vigilar, alcanza, sobrestock, sin ritmo).
+  const resto = modelos.filter((m) => m.estado !== "producir_ya");
+  // Lo que dice cada cifra: si el dato no se cargó, no es un cero sino «aún no hay» (Formidable, 2026-10-27).
+  const textos = textosDeCifras(cifras);
 
   return (
-    <ProveedorFichasDeColor fichas={fichasDeColor}>
     <div className="space-y-6">
       {/* La cabecera de todo el ERP menos Finanzas (ADR-0358, Felipe 2026-10-14): el título es el del menú («Resumen») y la pregunta
           que responde pasa a la frase. */}
@@ -138,51 +126,53 @@ export function ResumenProduccionPanel({
 
       <div data-guia="prod-resumen.cifras" className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <TarjetaCifra
-          punto={cifras.insumosBajoMinimo > 0 ? "ambar" : "verde"}
+          punto={textos.capital.sinDato ? "neutro" : cifras.insumosBajoMinimo > 0 ? "ambar" : "verde"}
           etiqueta="Capital en insumos"
           className="anim-entra"
           style={{ ["--i" as string]: 0 }}
-          valor={cifras.capitalInsumos === null ? null : <CifraQueCuenta valor={cifras.capitalInsumos} formato="soles" alMontar />}
+          valor={textos.capital.sinDato || cifras.capitalInsumos === null ? null : <CifraQueCuenta valor={cifras.capitalInsumos} formato="soles" alMontar />}
           detalleTono={cifras.insumosBajoMinimo > 0 ? "text-ambar-profundo" : undefined}
         >
-          {cifras.insumosBajoMinimo > 0 ? `${plural(cifras.insumosBajoMinimo, "insumo bajo el mínimo", "insumos bajo el mínimo")}` : "a costo de cada lote"}
+          {textos.capital.contexto}
         </TarjetaCifra>
         <TarjetaCifra
-          punto="verde"
+          punto={textos.valorEnProceso.sinDato ? "neutro" : "verde"}
           etiqueta="Valor en proceso"
           className="anim-entra"
           style={{ ["--i" as string]: 1 }}
-          valor={<CifraQueCuenta valor={cifras.valorEnProceso} formato="soles" alMontar />}
+          valor={textos.valorEnProceso.sinDato ? null : <CifraQueCuenta valor={cifras.valorEnProceso} formato="soles" alMontar />}
         >
-          tela y avíos de {plural(cifras.ordenesEnProceso, "orden abierta", "órdenes abiertas")}
+          {textos.valorEnProceso.contexto}
         </TarjetaCifra>
         <TarjetaCifra
-          punto={cifras.vencido > 0 ? "rojo" : cifras.porPagar > 0 ? "ambar" : "verde"}
+          punto={textos.porPagar.sinDato ? "neutro" : cifras.vencido > 0 ? "rojo" : cifras.porPagar > 0 ? "ambar" : "verde"}
           etiqueta="Por pagar a proveedores"
           className="anim-entra"
           style={{ ["--i" as string]: 2 }}
-          valor={<CifraQueCuenta valor={cifras.porPagar} formato="soles" alMontar />}
+          valor={textos.porPagar.sinDato ? null : <CifraQueCuenta valor={cifras.porPagar} formato="soles" alMontar />}
           detalleTono={cifras.vencido > 0 ? "text-rojo-profundo" : undefined}
         >
-          {cifras.vencido > 0 ? `${soles(cifras.vencido)} ya vencidos` : cifras.porPagar > 0 ? "nada vencido" : "no se debe nada"}
+          {textos.porPagar.contexto}
         </TarjetaCifra>
         <TarjetaCifra
-          punto={cifras.entregasEnRiesgo > 0 ? "ambar" : "verde"}
+          punto={textos.entregas.sinDato ? "neutro" : cifras.entregasEnRiesgo > 0 ? "ambar" : "verde"}
           etiqueta="Entregas por atender"
           className="anim-entra"
           style={{ ["--i" as string]: 3 }}
-          valor={<CifraQueCuenta valor={cifras.entregasEnRiesgo} alMontar />}
+          valor={textos.entregas.sinDato ? null : <CifraQueCuenta valor={cifras.entregasEnRiesgo} alMontar />}
         >
-          {cifras.entregasEnRiesgo > 0 ? "vencidas o por vencer en 2 días" : "ninguna vencida ni por vencer"}
+          {textos.entregas.contexto}
         </TarjetaCifra>
       </div>
+
+      <ListaQueFabricarPrimero datos={queFabricarPrimero(modelos)} falloRed={falloRed} nota={notaDeHistoria} presentaciones={presentaciones} hojas={hojas} />
 
       <section data-guia="prod-resumen.decidir" aria-label="Para decidir" className="space-y-3">
         {/* Cuántos asuntos hay de verdad, en el globito (ADR-0358, ronda 9); a la derecha, solo lo que el número no dice: que se ven
             menos de los que hay, o que no hay nada. */}
         <TituloSeccion
           cuenta={totalAsuntos > 0 ? totalAsuntos : undefined}
-          dato={totalAsuntos === 0 ? "nada por ahora" : totalAsuntos > decisiones.length ? `se ven ${decisiones.length}` : undefined}
+          dato={totalAsuntos === 0 ? "nada por ahora" : `lo demás que pide tu decisión${totalAsuntos > decisiones.length ? ` · se ven ${decisiones.length}` : ""}`}
         >
           Para decidir
         </TituloSeccion>
@@ -209,8 +199,8 @@ export function ResumenProduccionPanel({
                 )}
                 <div className="min-w-0">
                   <h3 className="text-[14.5px] font-medium text-tinta">{/* unificar-fijo: el nombre de un asunto de la lista, un dato y no el título de una sección */}{d.titulo}</h3>
-                  <p className="mt-0.5 text-[13px] text-tinta/70">{d.detalle}</p>
-                  <PorQue texto={d.porque} guia={d.porque && !hayPorQueAntes(decisiones, i) ? "prod-resumen.porque" : undefined} />
+                  <p className="mt-0.5 text-sm text-tinta/70">{d.detalle}</p>
+                  <PorQue texto={d.porque} />
                 </div>
                 <Link
                   href={d.accion.href}
@@ -223,7 +213,7 @@ export function ResumenProduccionPanel({
           </ul>
         )}
         {ocultas.length > 0 && (
-          <p data-guia="prod-resumen.mas" className="px-1 text-[13px] text-tinta/70">
+          <p data-guia="prod-resumen.mas" className="px-1 text-sm text-tinta/70">
             Y{" "}
             {ocultas.map((o, i) => (
               <span key={o.tipo}>
@@ -238,9 +228,9 @@ export function ResumenProduccionPanel({
         )}
       </section>
 
-      <section data-guia="prod-resumen.hoy" aria-label="Hoy en el Taller" className="space-y-3">
+      <section data-guia="prod-resumen.hoy" aria-label="Lo que ya se está fabricando" className="space-y-3">
         <TituloSeccion dato={hoyEnElTaller?.dato} accion={<EnlaceVer href="/produccion/ordenes">Ver las órdenes</EnlaceVer>}>
-          Hoy en el Taller
+          Lo que ya se está fabricando
         </TituloSeccion>
         {hoyEnElTaller === null ? (
           <Aviso tono="atencion" titulo="No pudimos leer dónde está cada orden">
@@ -252,9 +242,9 @@ export function ResumenProduccionPanel({
               <TarjetaCifra
                 key={c.clave}
                 etiqueta={c.titulo}
-                punto={c.lotes === 0 ? "neutro" : c.atencion ? "ambar" : "verde"}
-                valor={<CifraQueCuenta valor={c.lotes} alMontar />}
-                unidad={c.lotes === 1 ? "lote" : "lotes"}
+                punto={c.ordenes === 0 ? "neutro" : c.atencion ? "ambar" : "verde"}
+                valor={<CifraQueCuenta valor={c.ordenes} alMontar />}
+                unidad={c.unidad}
                 href="/produccion/ordenes"
                 className="anim-entra"
                 style={{ ["--i" as string]: i }}
@@ -266,12 +256,11 @@ export function ResumenProduccionPanel({
         )}
       </section>
 
-      <section data-guia="prod-resumen.que-producir" id="produce" aria-label="Qué producir" className="space-y-2.5">
-        <TituloSeccion dato="días que dura el stock de las tiendas al ritmo medido · marcas en 7 y 30 días">¿Qué producir?</TituloSeccion>
-        {falloRed && <p className="rounded-md bg-sand/60 px-3 py-2 text-xs text-tinta/75">{falloRed}</p>}
-        {modelos.length === 0 ? (
-          // Si la red no se pudo leer, el aviso de arriba ya lo dice: «no hay modelos» sería falso (los hay; lo que falló fue el cálculo).
-          falloRed ? null : <p className="card-cayla p-5 text-sm text-tinta/70">No hay modelos para producir ahora. No se ofrecen los descontinuados, los pendientes de aprobación, los de prueba ni los de familias fuera de los motores (como Empaque).</p>
+      {(resto.length > 0 || (modelos.length === 0 && !falloRed)) && (
+      <section id="produce" aria-label="Los demás modelos" className="space-y-2.5">
+        <TituloSeccion dato="los que hoy no piden fabricar · días que dura el stock de las tiendas · marcas en 7 y 30 días">Los demás modelos</TituloSeccion>
+        {resto.length === 0 ? (
+          <p className="card-cayla p-5 text-sm text-tinta/70">No hay modelos para producir ahora.</p>
         ) : (
           <div className="card-cayla overflow-hidden">
             <div className="hidden grid-cols-[minmax(0,1.6fr)_3rem_6rem_minmax(6.5rem,1.2fr)_9rem] gap-x-3 border-b border-tinta/10 px-4 py-2.5 lg:grid xl:grid-cols-[minmax(0,1.5fr)_3.5rem_6rem_minmax(7rem,1.2fr)_4rem_9rem]">
@@ -283,7 +272,7 @@ export function ResumenProduccionPanel({
               <span className="label-cayla text-[11px] text-tinta/65">Sugerencia</span>
             </div>
             <ul>
-              {modelos.map((m, i) => {
+              {resto.map((m) => {
                 const pct = m.diasRed === null ? 0 : Math.min(100, (m.diasRed / maxDias) * 100);
                 const agotadas = textoAgotadas(agotadasQueSeVendian(m));
                 const origen = lineaDeOrigen(hojas[m.productoId]?.ficha ?? null);
@@ -292,7 +281,6 @@ export function ResumenProduccionPanel({
                     <FilaQueAbreLaHoja
                       hoja={hojas[m.productoId]}
                       presentacion={presentaciones[m.productoId]}
-                      guia={i === 0 ? "prod-resumen.modelo" : undefined}
                       className="grid w-full cursor-pointer text-left grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-1.5 px-4 py-3 transition-colors hover:bg-sand/40 focus-visible:-outline-offset-2 lg:grid-cols-[minmax(0,1.6fr)_3rem_6rem_minmax(6.5rem,1.2fr)_9rem] xl:grid-cols-[minmax(0,1.5fr)_3.5rem_6rem_minmax(7rem,1.2fr)_4rem_9rem]"
                     >
                       <span className="flex min-w-0 items-center gap-3">
@@ -301,27 +289,27 @@ export function ResumenProduccionPanel({
                           <span className="line-clamp-2 break-words text-[14px] leading-snug text-tinta">{m.referencia}</span>
                           {/* De quién es y a quién se le compra: a la vista en la lista, sin abrir la hoja (Felipe 2026-10-15). */}
                           {origen && (
-                            <span data-origen className="line-clamp-2 break-words text-xs text-tinta/65">
+                            <span data-origen className="line-clamp-2 break-words text-sm text-tinta/65">
                               {origen}
                             </span>
                           )}
-                          <span className="block text-xs text-tinta/65 lg:hidden">
+                          <span className="block text-sm text-tinta/65 lg:hidden">
                             stock {m.stockRed} · {m.ritmoDia ? `${(Math.round(m.ritmoDia * 7 * 10) / 10).toLocaleString("es-PE")}/sem. · ${baseDelRitmo(m.ventasBase).corto}` : "sin ritmo"}
                           </span>
                           {agotadas && (
-                            <span className="mt-0.5 flex items-start gap-1.5 text-xs leading-snug text-ambar">
+                            <span className="mt-0.5 flex items-start gap-1.5 text-sm leading-snug text-ambar">
                               <span aria-hidden className="mt-[5px] size-1.5 shrink-0 rounded-full bg-ambar" />
                               <span className="min-w-0">{agotadas}</span>
                             </span>
                           )}
                         </span>
                       </span>
-                      <span className="hidden text-right text-[13px] tabular-nums text-tinta lg:block">{m.stockRed}</span>
-                      <span className="hidden text-right text-[13px] tabular-nums text-tinta lg:block">
+                      <span className="hidden text-right text-sm tabular-nums text-tinta lg:block">{m.stockRed}</span>
+                      <span className="hidden text-right text-sm tabular-nums text-tinta lg:block">
                         {m.ritmoDia ? (
                           <>
                             {(Math.round(m.ritmoDia * 7 * 10) / 10).toLocaleString("es-PE")}
-                            <span className="mt-0.5 block text-[11px] leading-tight text-tinta/65">
+                            <span className="mt-0.5 block text-sm leading-tight text-tinta/65">
                               {baseDelRitmo(m.ventasBase).pocaBase ? <Chip tono="pizarra">Poca base</Chip> : `${m.ventasBase} en ${DIAS_RITMO_RECIENTE} d`}
                             </span>
                           </>
@@ -331,7 +319,7 @@ export function ResumenProduccionPanel({
                       </span>
                       <span className="col-span-2 lg:col-span-1">
                         {m.diasRed === null ? (
-                          <span className="text-xs text-tinta/65">Sin ventas medidas</span>
+                          <span className="text-sm text-tinta/65">Sin ventas medidas</span>
                         ) : (
                           <>
                             {/* Días de stock en las tiendas, con las rayitas de 7 y 30 días: una medida, no un avance (nunca pasa a verde). */}
@@ -341,13 +329,13 @@ export function ResumenProduccionPanel({
                               marca={[(7 / maxDias) * 100, (30 / maxDias) * 100]}
                               etiqueta={m.stockRed <= 0 ? "Agotado en las tiendas" : `${textoDiasDeStock(m.stockRed, m.diasRed)} de stock`}
                             />
-                            <span className="mt-1 block text-xs tabular-nums text-tinta/65">
+                            <span className="mt-1 block text-sm tabular-nums text-tinta/65">
                               {textoDiasDeStock(m.stockRed, m.diasRed)}{m.stockTaller > 0 ? ` · +${m.stockTaller} en el Taller` : ""}
                             </span>
                           </>
                         )}
                       </span>
-                      <span className="hidden text-right text-[13px] tabular-nums text-tinta xl:block">{m.enProduccion || <span className="text-tinta/65">—</span>}</span>
+                      <span className="hidden text-right text-sm tabular-nums text-tinta xl:block">{m.enProduccion || <span className="text-tinta/65">—</span>}</span>
                       <span className="col-span-2 lg:col-span-1">
                         <Chip tono={TONO_ESTADO_MODELO[m.estado]}>{ETIQUETA_ESTADO_MODELO[m.estado]}</Chip>
                       </span>
@@ -359,6 +347,7 @@ export function ResumenProduccionPanel({
           </div>
         )}
       </section>
+      )}
 
       <section data-guia="prod-resumen.tela" aria-label="Alcanza la tela" className="space-y-2.5">
         <TituloSeccion dato="lo que hay y lo que viene en camino, contra lo que las órdenes abiertas todavía necesitan">¿Alcanza la tela?</TituloSeccion>
@@ -376,17 +365,17 @@ export function ResumenProduccionPanel({
               <li key={t.insumoId} className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-4 gap-y-1 border-b border-tinta/10 px-4 py-3 last:border-b-0 sm:grid-cols-[minmax(0,1.5fr)_8rem_11rem]">
                 <span className="min-w-0">
                   <span className="block truncate text-[14px] text-tinta">{t.nombre}</span>
-                  <span className="block text-xs text-tinta/65">
+                  <span className="block text-sm text-tinta/65">
                     hay {cantidadTexto(t.saldo, t.unidad)} · {loQueViene(t)}
                   </span>
                   {t.pedidos.length > 0 && (
-                    <span className="block text-xs text-tinta/65">
+                    <span className="block text-sm text-tinta/65">
                       En camino: {t.pedidos.slice(0, 2).map(textoDePedido).join("; ")}
                       {t.pedidos.length > 2 ? ` y ${t.pedidos.length - 2} más` : ""}
                     </span>
                   )}
                 </span>
-                <span className="hidden text-right text-[13px] tabular-nums text-tinta sm:block">{t.piden > 0 ? `piden ${cantidadTexto(t.piden, t.unidad)}` : <span className="text-tinta/65">—</span>}</span>
+                <span className="hidden text-right text-sm tabular-nums text-tinta sm:block">{t.piden > 0 ? `piden ${cantidadTexto(t.piden, t.unidad)}` : <span className="text-tinta/65">—</span>}</span>
                 <span className="sm:justify-self-end">
                   {t.estado === "sin_demanda" ? (
                     <Chip tono="neutro">Sin demanda</Chip>
@@ -421,6 +410,5 @@ export function ResumenProduccionPanel({
         />
       </section>
     </div>
-    </ProveedorFichasDeColor>
   );
 }

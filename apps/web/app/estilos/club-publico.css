@@ -215,23 +215,8 @@
   align-items: center;
   gap: 10px;
 }
-.club-marca-colibri {
-  flex: none;
-  width: 36px;
-  height: auto;
-  aspect-ratio: 223 / 150;
-  color: var(--color-rojo);
-}
-.club-marca-texto {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  line-height: 1;
-}
-.club-marca-cayla {
-  font-size: 14px;
-  font-weight: 600;
-  letter-spacing: 0.34em;
+.club-marca-logo {
+  height: 30px;
 }
 .club-marca-club {
   font-size: 9px;

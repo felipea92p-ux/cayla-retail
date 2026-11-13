@@ -1,8 +1,13 @@
 import { describe, expect, it } from "vitest";
 import type { Proyeccion } from "./flujo-caja-reglas";
 import {
+  vacioDeInversion,
   avisoDeInversion,
+  categoriasPlaneadas,
+  estadoDeLaCompra,
+  faltaPedirDeLaBarra,
   formaEfectiva,
+  mezclaParaMostrar,
   pagosDeLaCompra,
   cajaConCompra,
   cambioSugerido,
@@ -15,6 +20,7 @@ import {
   formasDePago,
   leerInversion,
   seVeEnElResumen,
+  sinContarPagos,
   mejorMezcla,
   pagosPendientesDelPlan,
   pendienteDeCaja,
@@ -32,7 +38,7 @@ import {
 const HOY = "2026-10-26";
 const camp = (extra: Partial<CampanaInversion> = {}): CampanaInversion => ({
   id: "nav", nombre: "Navidad", desde: "2026-12-01", hasta: "2026-12-24", planSinIgv: 18400, igv: 3312, tope: 20000, pedido: 9200, pagado: 3000,
-  fechaLimite: "2026-11-12", pagos: [], visible: true, hrefPlan: "/compras/plan", historia: null, costos: null, ...extra,
+  fechaLimite: "2026-11-12", pagos: [], visible: true, hrefPlan: "/compras/plan", historia: null, costos: null, planeadas: null, ...extra,
 });
 const sem = (hasta: string, saldo: number) => ({ desde: hasta, hasta, entra: 0, sale: 0, saldo, bajoMinimo: false });
 const proy = (extra: Partial<Proyeccion> = {}): Proyeccion =>
@@ -65,6 +71,21 @@ describe("leerInversion", () => {
     const [c] = leerInversion([{ ...bueno, tope: undefined, visible: false }]);
     expect(c!.tope).toBeNull();
     expect(c!.visible).toBe(false);
+  });
+});
+
+describe("cuántas categorías tienen plan", () => {
+  const base = { id: "a", nombre: "A", desde: "2026-12-01", hasta: "2026-12-24", plan_sin_igv: 0, igv: 0 };
+
+  it("se lee lo que manda el Plan", () => {
+    expect(leerInversion([{ ...base, categorias_con_plan: 1, categorias_total: 46 }])[0]!.planeadas).toEqual({ conPlan: 1, total: 46 });
+  });
+
+  it("lo que falta o no cuadra no se vuelve un dato: null, nunca un 0 de 0", () => {
+    expect(leerInversion([base])[0]!.planeadas).toBeNull();
+    expect(leerInversion([{ ...base, categorias_con_plan: 3, categorias_total: 2 }])[0]!.planeadas).toBeNull();
+    expect(leerInversion([{ ...base, categorias_con_plan: 0, categorias_total: 0 }])[0]!.planeadas).toBeNull();
+    expect(leerInversion([{ ...base, categorias_con_plan: "1", categorias_total: 46 }])[0]!.planeadas).toBeNull();
   });
 });
 
@@ -118,6 +139,63 @@ describe("las etapas del plan no se pisan", () => {
     expect(saleDeCajaDelPlan(camp(), false)).toBe(18400);
     expect(razonIgv(camp({ igv: 0 }))).toBe(0);
     expect(razonIgv(camp({ planSinIgv: 0, igv: 0 }))).toBe(0);
+  });
+});
+
+describe("en qué estado está la compra de la campaña", () => {
+  const sinNada = { planSinIgv: 0, igv: 0, pedido: 0, pagado: 0 };
+
+  it("Diciembre 2026 hoy: 1 de 46 categorías con plan, sin órdenes y sin nada por pedir NO es «todo pedido»", () => {
+    const c = camp({ ...sinNada, planeadas: { conPlan: 1, total: 46 } });
+    expect(estadoDeLaCompra(c, true)).toBe("sin-planear");
+    expect(categoriasPlaneadas(c)).toBe("1 de 46 categorías planeadas: faltan 45 por planear.");
+  });
+
+  it("con todo planeado y el stock cubriéndolo no hace falta comprar: no hubo pedido", () => {
+    expect(estadoDeLaCompra(camp({ ...sinNada, planeadas: { conPlan: 46, total: 46 } }), true)).toBe("no-hace-falta");
+  });
+
+  it("«todo pedido» exige órdenes y que no falte nada", () => {
+    expect(estadoDeLaCompra(camp({ pedido: 18400, planeadas: { conPlan: 46, total: 46 } }), true)).toBe("todo-pedido");
+  });
+
+  it("lo que falta planear manda aunque lo planeado ya esté pedido: la campaña no está resuelta", () => {
+    expect(estadoDeLaCompra(camp({ pedido: 18400, planeadas: { conPlan: 3, total: 46 } }), true)).toBe("sin-planear");
+  });
+
+  it("si hay algo por pedir, es «por pedir» con o sin el IGV", () => {
+    expect(estadoDeLaCompra(camp({ planeadas: { conPlan: 1, total: 46 } }), true)).toBe("por-pedir");
+    expect(estadoDeLaCompra(camp({ planeadas: { conPlan: 46, total: 46 } }), false)).toBe("por-pedir");
+  });
+
+  it("sin saber cuántas categorías hay, solo las órdenes dicen «todo pedido»", () => {
+    expect(estadoDeLaCompra(camp({ ...sinNada }), true)).toBe("no-hace-falta");
+    expect(estadoDeLaCompra(camp({ pedido: 18400 }), true)).toBe("todo-pedido");
+  });
+
+  it("con todas planeadas, o sin el dato, no se habla de categorías", () => {
+    expect(categoriasPlaneadas(camp({ planeadas: { conPlan: 46, total: 46 } }))).toBeNull();
+    expect(categoriasPlaneadas(camp())).toBeNull();
+    expect(categoriasPlaneadas(camp({ planeadas: { conPlan: 45, total: 46 } }))).toBe("45 de 46 categorías planeadas: falta 1 por planear.");
+    expect(categoriasPlaneadas(camp({ planeadas: { conPlan: 0, total: 1 } }))).toBe("0 de 1 categoría planeada: falta 1 por planear.");
+  });
+});
+
+describe("la barra de la compra dice su unidad", () => {
+  const plano = (t: string) => t.replace(/\s/g, " ");
+
+  it("va sin IGV y lo dice, con el interruptor apagado", () => {
+    expect(plano(faltaPedirDeLaBarra(camp(), false))).toBe("Falta pedir S/ 9,200 sin IGV");
+  });
+
+  it("con el interruptor prendido suma lo que saldría con IGV, y no cambia la cifra de la barra", () => {
+    expect(plano(faltaPedirDeLaBarra(camp(), true))).toBe("Falta pedir S/ 9,200 sin IGV · S/ 10,856 con IGV");
+    expect(repartoDeLaCompra(camp()).faltaPedir).toBe(9200);
+  });
+
+  it("sin IGV que sumar, o sin nada por pedir, no repite la cifra", () => {
+    expect(plano(faltaPedirDeLaBarra(camp({ igv: 0 }), true))).toBe("Falta pedir S/ 9,200 sin IGV");
+    expect(plano(faltaPedirDeLaBarra(camp({ pedido: 18400 }), true))).toBe("Falta pedir S/ 0 sin IGV");
   });
 });
 
@@ -246,14 +324,70 @@ describe("la mejor mezcla", () => {
   });
 });
 
+describe("«la mejor mezcla» solo se marca si la caja vio todos sus pagos", () => {
+  // Caja plana de S/ 12,000 que se ve hasta el 20 de diciembre; hoy, 8 de noviembre (el caso real del Resumen, con 6 semanas).
+  const hoy = "2026-11-08";
+  const plana = proy({
+    hoy, desde: hoy, hasta: "2026-12-20", saldoHoy: 12000, minimoCaja: 5000,
+    semanas: [sem("2026-11-15", 12000), sem("2026-11-22", 12000), sem("2026-11-29", 12000), sem("2026-12-06", 12000), sem("2026-12-13", 12000), sem("2026-12-20", 12000)],
+  });
+  const compra = (planSinIgv: number, fechaLimite: string) => camp({ pedido: 0, pagado: 0, planSinIgv, igv: 0, fechaLimite, tope: null });
+  const evaluadas = (c: CampanaInversion) => evaluarFormas(plana, formasDePago(c, hoy, true));
+
+  it("con todos los pagos fuera de lo visto, no marca ninguna y dice que aún está muy lejos", () => {
+    const ev = evaluadas(compra(59000, "2027-01-17"));
+    expect(mejorMezcla(ev)).toBe("junto");
+    expect(mezclaParaMostrar(ev)).toEqual({ clave: null, muyLejos: true });
+  });
+
+  it("con un solo pago fuera tampoco, aunque otro entre", () => {
+    const ev = evaluadas(compra(14000, "2026-12-10"));
+    expect(mejorMezcla(ev)).toBe("tandas");
+    expect(ev.find((f) => f.clave === "tandas")!.caja!.fueraDelHorizonte).toHaveLength(1);
+    expect(mezclaParaMostrar(ev)).toEqual({ clave: null, muyLejos: true });
+  });
+
+  it("si la caja vio todos los pagos de la mejor, se marca como siempre", () => {
+    const ev = evaluadas(compra(5000, "2026-11-20"));
+    expect(mezclaParaMostrar(ev)).toEqual({ clave: mejorMezcla(ev), muyLejos: false });
+    expect(mezclaParaMostrar(ev).clave).not.toBeNull();
+  });
+
+  it("si ninguna cumple, no hay nada que marcar y tampoco se dice que esté lejos", () => {
+    expect(mezclaParaMostrar(evaluadas(compra(90000, "2026-11-20")))).toEqual({ clave: null, muyLejos: false });
+  });
+
+  it("«Tu caja más baja» dice qué pagos no cuenta", () => {
+    const parcial = evaluadas(compra(14000, "2026-12-10")).find((f) => f.clave === "tandas")!;
+    expect(sinContarPagos(parcial)).toBe("sin contar 1 de sus 2 pagos, que cae más adelante");
+    const lejos = evaluadas(compra(59000, "2027-01-17"));
+    expect(sinContarPagos(lejos.find((f) => f.clave === "junto")!)).toBe("sin contar su pago, que cae más adelante");
+    expect(sinContarPagos(lejos.find((f) => f.clave === "tandas")!)).toBe("sin contar sus pagos, que caen más adelante");
+    const dos = evaluadas(compra(14000, "2026-11-20")).find((f) => f.clave === "plazo")!;
+    expect(sinContarPagos(dos)).toBe("sin contar 1 de sus 3 pagos, que cae más adelante");
+    expect(sinContarPagos(evaluadas(compra(5000, "2026-11-20")).find((f) => f.clave === "junto")!)).toBeNull();
+  });
+
+  it("los pagos que cuenta «Tu caja» no cambian: la regla de la etiqueta no toca la forma efectiva", () => {
+    const c = compra(14000, "2026-12-10");
+    const ev = evaluadas(c);
+    expect(formaEfectiva(ev, undefined)!.clave).toBe("tandas");
+    expect(pagosDeLaCompra([c], plana, true, {})).toEqual(ev.find((f) => f.clave === "tandas")!.pagos);
+  });
+});
+
 describe("el aviso de «te falta pedir»", () => {
   it("nace con lo que falta pedir (con IGV si se cuenta) y cuántos días quedan", () => {
     const a = avisoDeInversion(camp(), HOY, true)!;
     expect(a.clave).toBe("inversion:nav");
-    expect(a.titulo.replace(/ /g, " ")).toBe("Inversión en mercadería · Navidad: te falta pedir S/ 10,856");
+    expect(a.titulo.replace(/ /g, " ")).toBe("Inversión en mercadería · Navidad: te falta pedir S/ 10,856 con IGV");
     expect(a.detalle).toMatch(/12 de noviembre \(faltan 17 días\)/);
     expect(a.tono).toBe("pizarra");
     expect(a.href).toBe("/compras/plan");
+  });
+
+  it("con el interruptor apagado dice que va sin IGV: cada cifra lleva su unidad", () => {
+    expect(avisoDeInversion(camp(), HOY, false)!.titulo.replace(/\s/g, " ")).toBe("Inversión en mercadería · Navidad: te falta pedir S/ 9,200 sin IGV");
   });
 
   it("a 7 días o menos, o con la fecha ya pasada, sube a ámbar y lo dice", () => {
@@ -344,5 +478,22 @@ describe("la historia y el costo de la campaña (opcionales)", () => {
     expect(cuantoDejaLaCampana(c!.costos!)).toBe(27600);
     expect(leerInversion([{ ...base, costos: { por_categoria: [], ventas_esperadas: 1 } }])[0]!.costos).toBeNull();
     expect(leerInversion([{ ...base, costos: { por_categoria: [{ nombre: "A", monto: 1 }] } }])[0]!.costos).toBeNull();
+  });
+});
+
+describe("por qué la inversión en mercadería está vacía", () => {
+  const base = { leida: true, todas: true, ocultasAqui: false };
+  it("«Sin campañas» solo si se leyó CAYLA entera y de verdad no hay", () => {
+    expect(vacioDeInversion(base)).toBe("sin-campanas");
+  });
+  it("mirando una sede o Empresa no se afirma que no haya: es de toda CAYLA", () => {
+    expect(vacioDeInversion({ ...base, todas: false })).toBe("de-toda-cayla");
+  });
+  it("si no se pudo leer, o la cuenta no ve el Plan, no se sabe: no se dice nada, tampoco en una sede", () => {
+    expect(vacioDeInversion({ ...base, leida: false })).toBe("no-se-sabe");
+    expect(vacioDeInversion({ ...base, leida: false, todas: false })).toBe("no-se-sabe");
+  });
+  it("escondidas por quien mira: se dice dónde volver a mostrarlas", () => {
+    expect(vacioDeInversion({ ...base, ocultasAqui: true })).toBe("ocultas");
   });
 });

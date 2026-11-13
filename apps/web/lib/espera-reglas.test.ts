@@ -64,6 +64,9 @@ describe("clasificarPeticion — guardado", () => {
   });
   it("el refresco de token de sesión no cuenta", () => {
     expect(clasificarPeticion(pet(`https://${SUPA}/auth/v1/token?grant_type=refresh_token`, "POST"))).toBeNull();
+    // Firmar el enlace de un archivo es leer (ADR-0588); subirlo sí es guardar.
+    expect(clasificarPeticion(pet(`https://${SUPA}/storage/v1/object/sign/retail-compras-adjuntos`, "POST"))).toBeNull();
+    expect(clasificarPeticion(pet(`https://${SUPA}/storage/v1/object/retail-compras-adjuntos/x/foto.png`, "POST"))).toEqual({ tipo: "guardado" });
   });
 });
 

@@ -1,9 +1,12 @@
+import { getEtapasOcultas } from "@/lib/etapa-prenda";
+import { soloLasQueLlegaron } from "@/lib/etapa-prenda-reglas";
 import { filtroDeMarcaOProveedor } from "@/lib/marcas";
 import { unstable_cache } from "next/cache";
 import { createClient as crearClienteSupabase, type SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@cayla-retail/database";
 import { createClient } from "@/lib/supabase/server";
-import { exigir, leerTodas } from "@/lib/resultado";
+import { exigir, FILAS_POR_PAGINA, leerTodas } from "@/lib/resultado";
+import { leerPorCursor } from "@/lib/catalogo-copia-reglas";
 import { getEmpresasAqui } from "@/lib/empresas-de-sede";
 import { insigniaDeEmpresa, soloLasDeAqui } from "@/lib/empresas-de-sede-reglas";
 import { leerExistenciasProductos, type ExistenciasProducto } from "@/lib/productos-stock";
@@ -15,6 +18,8 @@ import { FAMILIAS_COLOR } from "@/lib/colores-familias";
 import { leerMonto } from "@/lib/productos-filtro-precio";
 import { leerFacetas, type FacetasProductos } from "@/lib/productos-facetas";
 import { leerOrdenProductos, type OrdenProductos } from "@/lib/productos-orden";
+import { leerCostoPrenda } from "@/lib/costo-prenda-reglas";
+import { leerCostoDeLasTallas, resumenCostoPrenda, type CostoEnLaFicha } from "@/lib/costo-tallas-reglas";
 
 // Catálogo V2: `productos` + `variantes` + `categorias` + `colores` +
 // `codigos_barras`. No es una edición de `catalogo.ts` (V1) — ese archivo
@@ -33,9 +38,17 @@ export type VarianteCatalogo = {
   talla: string | null;
   color: string | null;
   colorHex: string | null;
-  /** `variantes.color_codigo`: la llave para cruzar con la ficha del color (`colores.combina_con`, ADR-0316) en Vender.
-   *  Opcional: un catálogo guardado antes de este cambio no lo trae, y entonces no hay ficha, nunca un error. */
+  /** `variantes.color_codigo`: la llave para cruzar con el vocabulario de colores (si es estampado) en Vender.
+   *  Opcional: un catálogo guardado antes de este cambio no lo trae, y entonces no se marca, nunca un error. */
   colorCodigo?: string | null;
+  /** Si su color es una mezcla («Hueso con azul», ADR-0643): los tonos para partir su punto, la base primero (`tonosDeLasMezclas`).
+   *  Lo pone la pantalla que tiene la carta (Catálogo ▸ Productos, Vender); ausente, el punto va liso con `colorHex`. */
+  colorTonos?: readonly string[] | null;
+  /** `variantes.talla_id` y `productos.categoria_id`: con `colorCodigo`, la llave para que «Prenda sin registrar» ofrezca la prenda
+   *  del catálogo que coincide con lo que caja eligió («¿Es alguna de estas?», A2 de la auditoría 2026-10-14), por id y nunca por
+   *  el nombre visible. Opcionales: un catálogo guardado antes de este cambio no los trae, y entonces no se ofrece nada. */
+  tallaId?: string | null;
+  categoriaId?: string | null;
   /** Foto de ESTA variante, por su color (20260917190000) — null si ese
    *  color todavía no tiene foto. El cliente cae a un tinte del color (o
    *  al dibujo de su categoría, en Vender) cuando falta, nunca a un ícono de "sin foto". */
@@ -51,6 +64,9 @@ export type VarianteCatalogo = {
   categoriaFamilia?: string | null;
   /** De qué marca es (ADR-0109). Opcional: la caja la usa solo para BUSCAR («adidas»); un catálogo guardado antes de este cambio no la trae. */
   marca?: string | null;
+  /** El id de su marca (ADR-0532): en Lima, la marca CAYLA es de CAYLA y cualquier otra, de CLAURE. `null` = sin marca; ausente = un
+   *  catálogo guardado antes de este cambio (entonces manda `empresaId`). */
+  marcaId?: string | null;
   /** De qué empresa es la prenda (`productos.empresa_id`, CAYLA o CLAURE; ADR-0463). Decide en qué sedes se ve (ADR-0505). Opcional: un
    *  catálogo guardado antes de este cambio no la trae, y entonces la prenda se ve en todas, como antes. */
   empresaId?: string | null;
@@ -77,14 +93,18 @@ export async function getCatalogo(): Promise<VarianteCatalogo[]> {
   const [{ data: version, error }, { data: sesion }] = await Promise.all([supabase.rpc("fn_catalogo_version"), supabase.auth.getSession()]);
   const token = sesion.session?.access_token;
   // Sin versión (la migración aún no está, o falló la lectura) se lee en vivo: más lento, nunca viejo.
-  if (error || version === null || !token) return leerCatalogo(supabase);
+  if (error || version === null || !token) return leerCatalogo(supabase, enVivo);
   // La copia no puede leer cookies: la consulta que la llena usa el token de esta sesión (PostgREST lo valida igual).
-  return unstable_cache(() => leerCatalogo(clienteConToken(token)), ["catalogo-v2", String(version), process.env.VERCEL_GIT_COMMIT_SHA ?? "local"], {
-    // ponytail: la copia vive en la caché de datos de Vercel (tope ~2 MB por entrada; hoy ~0,5 MB con 1.295 variantes).
-    // Pasadas ~5.000 variantes ya no entra y se lee en vivo en cada visita: entonces, adelgazar lo que se guarda.
-    revalidate: 3600,
-  })();
+  // POR PARTES (2026-11-09, `lib/catalogo-copia-reglas.ts`): una entrada por página de 1.000 variantes y otra para las marcas. En una sola
+  // entrada pasaba el tope de 2 MB de la caché de Vercel y no se guardaba nunca: cada visita leía el catálogo entero en vivo.
+  const clave = ["catalogo-v2", String(version), process.env.VERCEL_GIT_COMMIT_SHA ?? "local"];
+  const guardar: Guardar = (partes, leer) => unstable_cache(leer, [...clave, ...partes], { revalidate: 3600 })();
+  return leerCatalogo(clienteConToken(token), guardar);
 }
+
+/** Cómo se guarda una parte del catálogo entre visitas: en la caché de Vercel, o nada (`enVivo`). Lo que lanza un error no se guarda. */
+type Guardar = <T>(partes: string[], leer: () => Promise<T>) => Promise<T>;
+const enVivo: Guardar = (_partes, leer) => leer();
 
 /** Una variante del listado de /productos: la del catálogo más su costo, que `fn_productos` entrega vacío (null) a quien
  *  no tiene permiso de ver el dinero (20260923193700). */
@@ -116,6 +136,27 @@ async function getVariantesConCostoOficial(ids: string[]): Promise<Set<string> |
   return new Set(data as string[]);
 }
 
+/**
+ * Lo que la pestaña «Costos» de la ficha dice además de cada celda (ADR-0631): cuánto cuesta hoy cada prenda —la misma cifra del
+ * Historial ▸ Costo (`fn_costo_de_la_prenda`)—, la última compra de cada talla gris y qué tallas sin stock toman el costo de la última
+ * compra (`fn_costo_de_las_tallas`, 20261107232000).
+ * Tolerante, parte por parte: sin permiso de dinero, sin la función nueva o con un error, esa parte es `null` y la ficha sigue igual.
+ * Los tipos generados todavía no traen las dos funciones: las llamadas van con `as never`, como en `historial-prenda.ts`.
+ */
+export async function getCostoEnLaFicha(productoId: string): Promise<CostoEnLaFicha> {
+  const supabase = await createClient();
+  const [prenda, tallas] = await Promise.all([
+    supabase.rpc("fn_costo_de_la_prenda" as never, { p_producto_id: productoId } as never),
+    supabase.rpc("fn_costo_de_las_tallas" as never, { p_producto_id: productoId } as never),
+  ]);
+  const deLasTallas = tallas.error ? null : leerCostoDeLasTallas(tallas.data);
+  return {
+    prenda: prenda.error ? null : resumenCostoPrenda(leerCostoPrenda(prenda.data)),
+    tallas: deLasTallas?.tallas ?? null,
+    igualar: deLasTallas?.igualar ?? null,
+  };
+}
+
 /** Un cliente sin cookies para usar dentro de la copia guardada, con la sesión de quien la llena. */
 function clienteConToken(token: string) {
   return crearClienteSupabase<Database, "retail">(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!, {
@@ -125,38 +166,24 @@ function clienteConToken(token: string) {
   });
 }
 
-async function leerCatalogo(supabase: SupabaseClient<Database, "retail">): Promise<VarianteCatalogo[]> {
-  const [resVariantes, resMarcas] = await Promise.all([
-    // Más de 1.000 variantes desde sep-2026: se lee por páginas (`leerTodas`). `id` desempata el
-    // orden — `sku` está vacío en casi todas, y sin desempate las páginas se pisan.
-    leerTodas((desde, hasta) =>
-      supabase
-        .from("variantes")
-        .select(
-          `id, sku, codigo, color_codigo, precio, activo,
-           talla:tallas ( valor ),
-           producto:productos ( id, referencia, empresa_id, categoria:categorias ( nombre, prefijo, familia ), producto_fotos ( url, color_codigo, orden, es_principal ) ),
-           color:colores ( nombre, hex ),
-           codigos_barras ( codigo )`
-        )
-        .order("sku")
-        .order("id")
-        .range(desde, hasta)
-    ),
-    // La marca va en una consulta APARTE y tolerante, no anidada arriba: `getCatalogo()` lo
-    // leen la caja, cambios, buscar, compras, recepción, conteo y traslados. Un embed que la
-    // base todavía no conoce (el SQL de marcas, 20260918231000, aún sin pegar en producción)
-    // haría fallar TODA esa consulta y con ella siete pantallas. Sin la marca, la caja
-    // sigue vendiendo: solo deja de encontrar por «adidas» hasta que el SQL entre.
-    leerTodas((desde, hasta) => supabase.from("productos").select("id, marca:marcas ( nombre )").order("id").range(desde, hasta)),
-  ]);
-  const filas = exigir(resVariantes, "el catálogo");
-  const marcaPorProducto = new Map<string, string>();
-  for (const p of resMarcas.error ? [] : (resMarcas.data ?? [])) {
-    if (p.marca?.nombre) marcaPorProducto.set(p.id, p.marca.nombre);
-  }
+/** Una variante del catálogo sin su marca: así se guarda cada página (la marca llega aparte, ver abajo). */
+type VarianteSinMarca = Omit<VarianteCatalogo, "marca" | "marcaId">;
 
-  return filas.map((v) => ({
+/** Una página de variantes, las que siguen a `despuesDe` en el orden de la llave: el índice de `id`, sin ordenar ni saltar filas. */
+async function paginaDeVariantes(supabase: SupabaseClient<Database, "retail">, despuesDe: string | null): Promise<VarianteSinMarca[]> {
+  let consulta = supabase
+    .from("variantes")
+    .select(
+      `id, sku, codigo, color_codigo, talla_id, precio, activo,
+       talla:tallas ( valor ),
+       producto:productos ( id, referencia, categoria_id, empresa_id, categoria:categorias ( nombre, prefijo, familia ), producto_fotos ( url, color_codigo, orden, es_principal ) ),
+       color:colores ( nombre, hex ),
+       codigos_barras ( codigo )`
+    )
+    .order("id")
+    .limit(FILAS_POR_PAGINA);
+  if (despuesDe) consulta = consulta.gt("id", despuesDe);
+  return exigir(await consulta, "el catálogo").map((v) => ({
     varianteId: v.id,
     sku: v.sku ?? "",
     codigo: v.codigo,
@@ -164,6 +191,8 @@ async function leerCatalogo(supabase: SupabaseClient<Database, "retail">): Promi
     color: v.color?.nombre ?? null,
     colorHex: v.color?.hex ?? null,
     colorCodigo: v.color_codigo ?? null,
+    tallaId: v.talla_id ?? null,
+    categoriaId: v.producto?.categoria_id ?? null,
     // La foto de su color y, si ese color no tiene, la GENERAL de la prenda (sin color). Nunca la de otro color. Una
     // foto General alcanza para todos los colores: así se decidió con Felipe el 2026-09-26 («una foto por prenda y
     // luego elegir la gama de colores»). Misma regla que Traslados (`fotoDeVariante`) y que `listarProductos`.
@@ -175,10 +204,34 @@ async function leerCatalogo(supabase: SupabaseClient<Database, "retail">): Promi
     categoria: v.producto?.categoria?.nombre ?? null,
     categoriaPrefijo: v.producto?.categoria?.prefijo ?? null,
     categoriaFamilia: v.producto?.categoria?.familia ?? null,
-    marca: marcaPorProducto.get(v.producto?.id ?? "") ?? null,
     empresaId: v.producto?.empresa_id ?? null,
     codigosBarras: (v.codigos_barras ?? []).map((c) => c.codigo),
   }));
+}
+
+async function leerCatalogo(supabase: SupabaseClient<Database, "retail">, guardar: Guardar): Promise<VarianteCatalogo[]> {
+  const [variantes, marcas] = await Promise.all([
+    leerPorCursor((despuesDe) => guardar(["variantes", despuesDe ?? "inicio"], () => paginaDeVariantes(supabase, despuesDe)), (v) => v.varianteId, FILAS_POR_PAGINA),
+    // La marca va en una consulta APARTE y tolerante, no anidada arriba: `getCatalogo()` lo
+    // leen la caja, cambios, buscar, compras, recepción, conteo y traslados. Un embed que la
+    // base todavía no conoce (el SQL de marcas, 20260918231000, aún sin pegar en producción)
+    // haría fallar TODA esa consulta y con ella siete pantallas. Sin la marca, la caja
+    // sigue vendiendo: solo deja de encontrar por «adidas» hasta que el SQL entre. Si falla, lanza DENTRO de `guardar` (no se guarda
+    // una lista vacía como si fuera la buena) y aquí se sigue sin marcas.
+    guardar(["marcas"], async () => {
+      const { data, error } = await leerTodas((desde, hasta) => supabase.from("productos").select("id, marca_id, marca:marcas ( nombre )").order("id").range(desde, hasta));
+      if (error || !data) throw new Error(`No se pudieron leer las marcas: ${error?.message ?? "sin datos"}`);
+      return data.map((p) => [p.id, p.marca_id ?? null, p.marca?.nombre ?? null] as const);
+    }).catch(() => null),
+  ]);
+  const marcaPorProducto = new Map<string, string>();
+  // El id de la marca decide, en Lima, si la prenda es de CAYLA o de CLAURE (ADR-0532). Sin la consulta, queda ausente (no «sin marca»).
+  const marcaIdPorProducto = new Map<string, string | null>();
+  for (const [productoId, marcaId, marca] of marcas ?? []) {
+    if (marca) marcaPorProducto.set(productoId, marca);
+    marcaIdPorProducto.set(productoId, marcaId);
+  }
+  return variantes.map((v) => ({ ...v, marca: marcaPorProducto.get(v.productoId) ?? null, marcaId: marcaIdPorProducto.get(v.productoId) }));
 }
 
 /**
@@ -192,7 +245,18 @@ async function leerCatalogo(supabase: SupabaseClient<Database, "retail">): Promi
  */
 export async function getCatalogoDeLaSede(sedeId: string): Promise<VarianteCatalogo[]> {
   const [catalogo, empresas] = await Promise.all([getCatalogo(), getEmpresasAqui(sedeId).catch(() => null)]);
+  // La insignia es la de la FICHA (ADR-0505): una prenda dada de alta como de CLAURE lleva «CLAURE». De quién son las UNIDADES de una prenda
+  // que tiene de las dos lo dice el reparto (ADR-0542, `lib/stock-por-dueno.ts`): Vender pregunta de cuál sale cuando hay duda.
   return soloLasDeAqui(catalogo, empresas).map((v) => ({ ...v, empresa: insigniaDeEmpresa(v.empresaId, empresas) }));
+}
+
+/**
+ * Lo que se le OFRECE a un cliente en esta sede (Vender, Apartados, Cambios, Buscar): el catálogo de la sede sin lo del Taller que todavía no
+ * llega a una tienda (ADR-0614, actividad 14). Recibir y Conteos siguen con `getCatalogoDeLaSede`: tienen que ver lo que hay.
+ */
+export async function getCatalogoParaOfrecer(sedeId: string): Promise<VarianteCatalogo[]> {
+  const [catalogo, etapas] = await Promise.all([getCatalogoDeLaSede(sedeId), getEtapasOcultas().catch(() => null)]);
+  return soloLasQueLlegaron(catalogo, etapas);
 }
 
 // ============================================================================

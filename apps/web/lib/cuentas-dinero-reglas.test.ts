@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest";
 import {
   agruparMaquinas,
+  avisoFechaAntesDelInicio,
   avisosDeMaquinas,
+  salidasDelCajon,
   cuadra,
   cuentaParaConciliar,
   cuentasPara,
@@ -13,12 +15,15 @@ import {
   saldoConCentimos,
   tituloDelMovimiento,
   explicacionCuenta,
+  idsSoloTransferencia,
   insigniaCuenta,
   leerConciliacion,
   leerCuenta,
   leerEgresoParaMovimiento,
   leerLotePendiente,
   lotesPorDefecto,
+  netoEsperado,
+  revisarComision,
   mediosDeMaquina,
   resumenAbono,
   resumenConciliacion,
@@ -34,6 +39,15 @@ import {
   tipoDeMovimiento,
   tiposParaMedio,
   validarMovimiento,
+  validarPagoSunat,
+  leerFilaCuadre,
+  textoDespuesDelDeposito,
+  textoResiduoCuadre,
+  sePuedeCuadrar,
+  validarPagoPlanilla,
+  mesesDePlanilla,
+  totalPagoSunat,
+  mesesParaPagarSunat,
   OPCIONES_QUE_PASO,
   type BorradorMovimiento,
   type ConciliacionCuenta,
@@ -44,6 +58,47 @@ import {
 
 // Finanzas ▸ Cuentas y dinero (ADR-0195 F3): las reglas puras de la pantalla. Los saldos los suma la base
 // (scripts/pruebas/cuentas_dinero.mjs); aquí se prueba cómo se agrupan, se explican y se valida el formulario.
+
+describe("avisoFechaAntesDelInicio: la cuenta que no se moverá", () => {
+  const banco = { id: "b", nombre: "BCP Operativa", saldoDesde: "2026-10-28" };
+  const otro = { id: "i", nombre: "Interbank", saldoDesde: "2026-10-28T00:00:00" };
+  const fondo = { id: "f", nombre: "Fondo Felipe", saldoDesde: null };
+
+  it("nombra solo la cuenta que no se mueve: en una entrega a fondo, el banco", () => {
+    expect(avisoFechaAntesDelInicio("2026-10-27", [banco, fondo])).toBe("BCP Operativa empieza el 28 oct: este movimiento no cambiará su saldo.");
+  });
+  it("si son dos, las nombra a las dos", () => {
+    expect(avisoFechaAntesDelInicio("2026-10-27", [banco, otro])).toBe("BCP Operativa empieza el 28 oct: este movimiento no cambiará su saldo. Interbank empieza el 28 oct: este movimiento no cambiará su saldo.");
+  });
+  it("el mismo día del inicio o después sí mueve el saldo: calla", () => {
+    expect(avisoFechaAntesDelInicio("2026-10-28", [banco])).toBeNull();
+    expect(avisoFechaAntesDelInicio("2026-11-02", [banco])).toBeNull();
+  });
+  it("calla si la cuenta no tiene inicio, si no hay cuenta o si no hay fecha", () => {
+    expect(avisoFechaAntesDelInicio("2026-10-27", [fondo, null, undefined])).toBeNull();
+    expect(avisoFechaAntesDelInicio("", [banco])).toBeNull();
+  });
+  it("una cuenta repetida se dice una vez", () => {
+    expect(avisoFechaAntesDelInicio("2026-10-27", [banco, banco])).toBe("BCP Operativa empieza el 28 oct: este movimiento no cambiará su saldo.");
+  });
+});
+
+describe("salidasDelCajon: lo leído va con su cajón", () => {
+  const e: EgresoParaMovimiento = { id: "e", cajaId: "c", monto: 50, motivo: "Depósito", nota: null, creadoEn: "2026-11-07T10:00:00Z", marca: null };
+  it("sin respuesta todavía: leyendo, nunca «no hay»", () => {
+    expect(salidasDelCajon(null, "tru")).toEqual({ estado: "leyendo", egresos: [] });
+  });
+  it("la lista de otro cajón no se muestra mientras llega la nueva", () => {
+    expect(salidasDelCajon({ ubicacionId: "aqp", egresos: [e], falla: false }, "tru")).toEqual({ estado: "leyendo", egresos: [] });
+  });
+  it("si falló, lo dice y no entrega salidas", () => {
+    expect(salidasDelCajon({ ubicacionId: "tru", egresos: [], falla: true }, "tru")).toEqual({ estado: "falla", egresos: [] });
+  });
+  it("leída: la lista, aunque venga vacía", () => {
+    expect(salidasDelCajon({ ubicacionId: "tru", egresos: [e], falla: false }, "tru")).toEqual({ estado: "lista", egresos: [e] });
+    expect(salidasDelCajon({ ubicacionId: "tru", egresos: [], falla: false }, "tru")).toEqual({ estado: "lista", egresos: [] });
+  });
+});
 
 const TRU = "u-tru";
 const LIM = "u-lim";
@@ -127,6 +182,35 @@ describe("de dónde le llega la plata a cada cuenta, en palabras", () => {
   });
 });
 
+describe("el Taller solo guarda la cuenta de sus transferencias", () => {
+  const TALLER = "taller-1";
+  const fila = (ubicacionId: string, ubicacionNombre: string, medio: FilaMedio["medio"], cuentaId: string | null): FilaMedio => ({ ubicacionId, ubicacionNombre, medio, cuentaId, cuentaNombre: cuentaId, vigenteDesde: null });
+  // Las 2 tiendas de siempre más el Taller, que la base lista solo con «transferencia».
+  const conTaller: FilaMedio[] = [...medios, fila(TALLER, "Taller", "transferencia", "ibk")];
+  const conQr: FilaMedio[] = [...conTaller, fila(TRU, "Tienda TRU", "qr", "pos"), fila(LIM, "Tienda LIM", "qr", "pos")];
+
+  it("reconoce al Taller por lo que la base le lista, y a ninguna tienda", () => {
+    expect([...idsSoloTransferencia(conTaller)]).toEqual([TALLER]);
+    expect(idsSoloTransferencia(medios).size).toBe(0);
+  });
+  it("«Plin de las 2 tiendas» sigue diciendo 2: el Taller no cuenta como tienda", () => {
+    expect(textoRecibe(ibk, conTaller)).toBe("Plin de las 2 tiendas · Yape de LIM · pagos de Taller");
+    expect(textoRecibe(pos, conQr)).toBe("Tarjeta de las 2 tiendas · QR de las 2 tiendas");
+  });
+  it("si todas las sedes usan la misma cuenta, las transferencias de las tiendas no repiten sedes y lo del Taller se dice como pagos", () => {
+    const todas = conTaller.map((m) => (m.medio === "transferencia" ? { ...m, cuentaId: "bcp" } : m));
+    expect(textoRecibe(bcp, todas)).toBe("Yape de TRU · transferencias · pagos de Taller");
+  });
+  it("si el Taller usa otra cuenta, la de las tiendas no lo menciona y la del Taller dice que de ahí paga", () => {
+    expect(textoRecibe(bcp, conTaller)).toBe("Yape de TRU · transferencias");
+    expect(textoRecibe(cuenta({ id: "solo", tipo: "banco" }), [...medios, fila(TALLER, "Taller", "transferencia", "solo")])).toBe("Pagos de Taller");
+  });
+  it("sin la migración (la base no lista al Taller) todo se ve exactamente como antes", () => {
+    expect(textoRecibe(bcp, medios)).toBe("Yape de TRU · transferencias");
+    expect(textoRecibe(ibk, medios)).toBe("Plin de las 2 tiendas · Yape de LIM");
+  });
+});
+
 describe("las máquinas de cobro (ADR-0429)", () => {
   const filas = [
     { maquina_id: "izi", nombre: "Izipay", cuenta_id: "pdi", cuenta_nombre: "Por depositar Izipay", archivada: false, ubicacion_id: TRU, ubicacion_nombre: "Tienda TRU", medio: "tarjeta", por_defecto: false },
@@ -195,6 +279,65 @@ describe("el formulario «Registrar movimiento»", () => {
   const base: BorradorMovimiento = { que: "deposito", clase: "aporte", origen: "cTRU", destino: "bcp", monto: "1,500", referencia: " Voucher 1 ", comision: "", fecha: hoy, fuente: "caja", egresoId: "" };
   const ctx = { cuentas: TODAS, egresos, deuda: 6000, hoy };
 
+  it("una máquina se cuadra solo con su banco, su tarifa y algo que depositar (tarea 14)", () => {
+    const f = leerFilaCuadre({ cuenta_id: "p", maquina: "Vendemás", banco: "Interbank", dias: 2, bruto: "133.33", comision: "3.62", neto: "129.71", claves: ["a", "b"], desde: "2026-10-29", hasta: "2026-10-30", falta: null });
+    expect(f).toMatchObject({ cuentaId: "p", bruto: 133.33, neto: 129.71, claves: ["a", "b"], falta: null });
+    expect(sePuedeCuadrar(f)).toBe(true);
+    expect(sePuedeCuadrar({ ...f, falta: "banco" })).toBe(false);
+    expect(sePuedeCuadrar({ ...f, falta: "tarifa" })).toBe(false);
+    expect(sePuedeCuadrar({ ...f, neto: 0 })).toBe(false);
+    expect(leerFilaCuadre({ falta: "otra", claves: null }).falta).toBeNull();
+  });
+
+  it("dice cuánto de lo propuesto se cobró después de un depósito ya registrado (ADR-0629)", () => {
+    expect(leerFilaCuadre({ residuo: "33.33" }).residuo).toBe(33.33);
+    expect(leerFilaCuadre({}).residuo).toBe(0);
+    expect(textoResiduoCuadre({ residuo: 33.33 })).toContain("33.33");
+    expect(textoResiduoCuadre({ residuo: 0 })).toBeNull();
+  });
+
+  it("pagar a SUNAT dice de qué mes es y separa IGV de renta (tarea 10)", () => {
+    const b = { origen: "bcp", referencia: "", fecha: hoy };
+    const c = { cuentas: TODAS, hoy };
+    expect(validarPagoSunat(b, { mes: "2026-08", igv: "1,200", renta: "300.50" }, c)).toEqual({
+      ok: true,
+      valor: {
+        p_cuenta_id: "bcp",
+        p_fecha: hoy,
+        p_lineas: [{ mes: "2026-08-01", concepto: "igv", monto: 1200 }, { mes: "2026-08-01", concepto: "renta", monto: 300.5 }],
+        p_referencia: "IGV y Renta de agosto 2026",
+      },
+    });
+    // Solo renta: el IGV a favor no se paga.
+    expect(validarPagoSunat({ ...b, referencia: " OP-1 " }, { mes: "2026-08", igv: "", renta: "80" }, c)).toMatchObject({ ok: true, valor: { p_lineas: [{ concepto: "renta", monto: 80 }], p_referencia: "OP-1" } });
+    expect(validarPagoSunat(b, { mes: "2026-08", igv: "", renta: "" }, c)).toEqual({ ok: false, error: "Escribe cuánto pagaste de IGV o de renta." });
+    expect(validarPagoSunat(b, { mes: "2026-08", igv: "0", renta: "" }, c).ok).toBe(false);
+    expect(validarPagoSunat(b, { mes: "2026-08", igv: "abc", renta: "" }, c).ok).toBe(false);
+    expect(validarPagoSunat({ ...b, origen: "cTRU" }, { mes: "2026-08", igv: "10", renta: "" }, c)).toEqual({ ok: false, error: "Elige de qué banco salió el pago." });
+    expect(validarPagoSunat(b, { mes: "", igv: "10", renta: "" }, c)).toEqual({ ok: false, error: "Elige de qué mes es el pago." });
+    expect(validarPagoSunat({ ...b, fecha: "2026-09-25" }, { mes: "2026-08", igv: "10", renta: "" }, c)).toEqual({ ok: false, error: "La fecha no puede ser futura." });
+    expect(validarPagoSunat({ ...b, fecha: "2026-07-20" }, { mes: "2026-08", igv: "10", renta: "" }, c).ok).toBe(false);
+    expect(totalPagoSunat({ igv: "1,200", renta: "300.50" })).toBe(1500.5);
+    expect(totalPagoSunat({ igv: "abc", renta: "" })).toBe(0);
+    expect(mesesParaPagarSunat(hoy)[0]).toEqual({ valor: "2026-08", texto: "agosto 2026" });
+    expect(mesesParaPagarSunat(hoy)).toHaveLength(12);
+  });
+
+  it("pagar una parte de la planilla dice qué parte y de qué mes (tarea 12)", () => {
+    const b = { origen: "bcp", referencia: "", fecha: hoy, monto: "1,500" };
+    const c = { cuentas: TODAS, hoy };
+    expect(validarPagoPlanilla(b, { concepto: "aportes", mes: "2026-08" }, c)).toEqual({
+      ok: true,
+      valor: { p_cuenta_id: "bcp", p_fecha: hoy, p_monto: 1500, p_concepto: "aportes", p_mes: "2026-08-01", p_referencia: "AFP, EsSalud y retenciones de agosto 2026" },
+    });
+    expect(validarPagoPlanilla({ ...b, referencia: " OP-9 " }, { concepto: "cts", mes: "2026-09" }, c)).toMatchObject({ ok: true, valor: { p_concepto: "cts", p_referencia: "OP-9" } });
+    expect(validarPagoPlanilla({ ...b, origen: "cTRU" }, { concepto: "cts", mes: "2026-09" }, c)).toEqual({ ok: false, error: "Elige de qué banco salió el pago." });
+    expect(validarPagoPlanilla({ ...b, monto: "" }, { concepto: "cts", mes: "2026-09" }, c).ok).toBe(false);
+    expect(validarPagoPlanilla(b, { concepto: "cts", mes: "" }, c)).toEqual({ ok: false, error: "Elige de qué mes es el pago." });
+    expect(validarPagoPlanilla({ ...b, fecha: "2026-08-20" }, { concepto: "cts", mes: "2026-09" }, c).ok).toBe(false);
+    expect(mesesDePlanilla(hoy)[0]).toEqual({ valor: "2026-09", texto: "septiembre 2026" });
+  });
+
   it("pagar la planilla y pagar a SUNAT salen de un banco y no llegan a ninguna cuenta (ADR-0417, situaciones 15 y 16)", () => {
     const r = validarMovimiento({ ...base, que: "pago_planilla", origen: "bcp", destino: "", monto: "25,400", referencia: "Planilla de octubre" }, ctx);
     expect(r).toEqual({
@@ -202,10 +345,16 @@ describe("el formulario «Registrar movimiento»", () => {
       valor: { p_tipo: "pago_planilla", p_monto: 25400, p_cuenta_origen_id: "bcp", p_cuenta_destino_id: null, p_fecha: hoy, p_referencia: "Planilla de octubre", p_comision: 0, p_caja_id: null, p_caja_movimiento_id: null },
     });
     expect(validarMovimiento({ ...base, que: "pago_sunat", origen: "bcp", destino: "", monto: "9,290" }, ctx)).toMatchObject({ ok: true, valor: { p_tipo: "pago_sunat", p_monto: 9290, p_cuenta_destino_id: null } });
+    // El pago a CLAURE (ADR-0560) es de la misma familia: sale de un banco, sin destino, con su n.º de operación.
+    expect(validarMovimiento({ ...base, que: "pago_claure", origen: "bcp", destino: "", monto: "234.34", referencia: "OP-12345" }, ctx)).toMatchObject({
+      ok: true,
+      valor: { p_tipo: "pago_claure", p_monto: 234.34, p_cuenta_origen_id: "bcp", p_cuenta_destino_id: null, p_referencia: "OP-12345" },
+    });
+    expect(validarMovimiento({ ...base, que: "pago_claure", origen: "cTRU", destino: "" }, ctx)).toEqual({ ok: false, error: "Esa cuenta no sirve de origen para este movimiento." });
     // Desde el cajón o la caja fuerte no: solo un banco.
     expect(validarMovimiento({ ...base, que: "pago_sunat", origen: "cTRU", destino: "" }, ctx)).toEqual({ ok: false, error: "Esa cuenta no sirve de origen para este movimiento." });
     // Y son solo del líder.
-    expect(OPCIONES_QUE_PASO.filter((o) => o.valor === "pago_planilla" || o.valor === "pago_sunat").every((o) => o.soloLider && o.destino === null)).toBe(true);
+    expect(OPCIONES_QUE_PASO.filter((o) => o.valor === "pago_planilla" || o.valor === "pago_sunat" || o.valor === "pago_claure").every((o) => o.soloLider && o.destino === null)).toBe(true);
   });
 
   it("depósito del cajón con la caja abierta: sale de esa caja (su egreso lo crea la base), sin fecha (es hoy)", () => {
@@ -345,7 +494,7 @@ describe("el monto de un movimiento tiene tope", () => {
 
 describe("el depósito de la máquina se cruza contra los días pendientes (ADR-0429)", () => {
   const izipay = cuenta({ id: "pdi", nombre: "Por depositar Izipay", tipo: "por_abonar" });
-  const sinTarifa = { nPagos: 1, esperado: null, diasHabiles: 1, atrasado: false };
+  const sinTarifa = { nPagos: 1, esperado: null, diasHabiles: 1, atrasado: false, yaDepositado: 0 };
   const lotes: LotePendiente[] = [
     { clave: "cobros:2026-10-14:u-tru:tarjeta", fecha: "2026-10-14", ubicacionId: TRU, ubicacionNombre: "Tienda TRU", medio: "tarjeta", bruto: 1200, dias: 2, ...sinTarifa },
     { clave: "cobros:2026-10-14:u-tru:qr", fecha: "2026-10-14", ubicacionId: TRU, ubicacionNombre: "Tienda TRU", medio: "qr", bruto: 300, dias: 2, ...sinTarifa },
@@ -355,9 +504,35 @@ describe("el depósito de la máquina se cruza contra los días pendientes (ADR-
   const ctx = { cuentas: [...TODAS, izipay], hoy: "2026-10-16" };
   const base = { origen: "pdi", destino: "ibk", monto: "", referencia: " Liq. 15-oct ", fecha: "2026-10-15" };
 
+  // Los tres días que cubre el depósito del 16-oct en los casos de abajo (la tarjeta del 15 ya se cerró).
+  const hasta15 = ["cobros:2026-10-14:u-tru:tarjeta", "cobros:2026-10-14:u-tru:qr", "cobros:2026-10-15:u-lim:tarjeta"];
+
   it("de entrada vienen marcados los días hasta la fecha del depósito, no los de después", () => {
-    expect(lotesPorDefecto(lotes, "2026-10-15")).toEqual(["cobros:2026-10-14:u-tru:tarjeta", "cobros:2026-10-14:u-tru:qr", "cobros:2026-10-15:u-lim:tarjeta"]);
+    expect(lotesPorDefecto(lotes, "2026-10-16")).toEqual(hasta15);
     expect(lotesPorDefecto(lotes, "2026-10-13")).toEqual([]);
+  });
+
+  it("la tarjeta del mismo día del depósito no viene marcada (el lote llega después); el QR sí", () => {
+    // Control: un día antes, la tarjeta del 15 sí entra.
+    expect(lotesPorDefecto(lotes, "2026-10-16")).toContain("cobros:2026-10-15:u-lim:tarjeta");
+    expect(lotesPorDefecto(lotes, "2026-10-15")).toEqual(["cobros:2026-10-14:u-tru:tarjeta", "cobros:2026-10-14:u-tru:qr"]);
+    const qrDeHoy: LotePendiente = { ...lotes[1]!, clave: "cobros:2026-10-15:u-tru:qr", fecha: "2026-10-15" };
+    expect(lotesPorDefecto([...lotes, qrDeHoy], "2026-10-15")).toContain("cobros:2026-10-15:u-tru:qr");
+  });
+
+  it("el caso real de Vendemás del 10-nov-2026: lo del 9 cuadra con lo que llegó y lo de hoy queda para mañana", () => {
+    const v = (clave: string, fecha: string, bruto: number): LotePendiente => ({ clave, fecha, ubicacionId: TRU, ubicacionNombre: "Tienda TRU", medio: "tarjeta", bruto, dias: 1, ...sinTarifa });
+    const pend = [v("9-a", "2026-11-09", 580.3), v("9-b", "2026-11-09", 215.6), v("10-a", "2026-11-10", 230.7)];
+    const marcados = lotesPorDefecto(pend, "2026-11-10");
+    expect(marcados).toEqual(["9-a", "9-b"]);
+    expect(resumenAbono(pend, marcados, "774.30").comision).toBe(21.6);
+  });
+
+  it("un día que ya tuvo depósito y siguió vendiendo dice que lo que queda se cobró después (ADR-0629)", () => {
+    expect(leerLotePendiente({ clave: "x", fecha: "2026-11-06", ubicacion_id: TRU, medio: "qr", bruto: "33.33", ya_depositado: "100" }).yaDepositado).toBe(100);
+    expect(leerLotePendiente({ clave: "x", fecha: "2026-11-06", ubicacion_id: TRU, medio: "qr", bruto: "33.33" }).yaDepositado).toBe(0);
+    expect(textoDespuesDelDeposito({ yaDepositado: 100 })).toContain("100.00");
+    expect(textoDespuesDelDeposito({ yaDepositado: 0 })).toBeNull();
   });
 
   it("cada día se lee en palabras de tienda", () => {
@@ -366,14 +541,14 @@ describe("el depósito de la máquina se cruza contra los días pendientes (ADR-
   });
 
   it("la cuenta que se ve mientras se marca: lo cobrado, lo que llegó y la comisión como diferencia", () => {
-    const marcados = lotesPorDefecto(lotes, "2026-10-15");
+    const marcados = hasta15;
     expect(resumenAbono(lotes, marcados, "")).toEqual({ dias: 3, bruto: 2000.5, neto: null, comision: null, esperado: null });
     expect(resumenAbono(lotes, marcados, "1,950.50")).toEqual({ dias: 3, bruto: 2000.5, neto: 1950.5, comision: 50, esperado: null });
     expect(resumenAbono(lotes, marcados, "2,100").comision).toBe(-99.5);
   });
 
   it("lo que viaja a registrar_abono_pos: la máquina, el banco, la fecha, el neto y las claves marcadas", () => {
-    const v = validarAbonoPos({ ...base, monto: "1,950.50" }, lotes, lotesPorDefecto(lotes, "2026-10-15"), ctx);
+    const v = validarAbonoPos({ ...base, monto: "1,950.50" }, lotes, hasta15, ctx);
     expect(v).toEqual({
       ok: true,
       valor: { p_cuenta_id: "pdi", p_banco_id: "ibk", p_fecha: "2026-10-15", p_neto: 1950.5, p_claves: ["cobros:2026-10-14:u-tru:tarjeta", "cobros:2026-10-14:u-tru:qr", "cobros:2026-10-15:u-lim:tarjeta"], p_referencia: "Liq. 15-oct" },
@@ -381,7 +556,7 @@ describe("el depósito de la máquina se cruza contra los días pendientes (ADR-
   });
 
   it("lo que la base rechazaría se dice antes: sin máquina o banco, sin días, neto mayor que lo cobrado, fecha anterior al último día o futura", () => {
-    const marcados = lotesPorDefecto(lotes, "2026-10-15");
+    const marcados = hasta15;
     expect(validarAbonoPos({ ...base, origen: "ibk", monto: "10" }, lotes, marcados, ctx)).toMatchObject({ ok: false, error: "Elige la máquina que depositó." });
     expect(validarAbonoPos({ ...base, destino: "pos", monto: "10" }, lotes, marcados, ctx)).toMatchObject({ ok: false, error: "Elige a qué banco llegó." });
     expect(validarAbonoPos({ ...base, monto: "10" }, lotes, [], ctx)).toMatchObject({ ok: false, error: "Marca qué días cubre este depósito." });
@@ -423,7 +598,7 @@ describe("la tarifa de cada máquina solo estima y avisa (ADR-0429, act. 4)", ()
   });
 
   it("la comisión esperada de los días marcados solo se suma si TODOS tienen tarifa", () => {
-    const base = { ubicacionId: TRU, ubicacionNombre: "Tienda TRU", medio: "tarjeta" as const, dias: 1, nPagos: 2, diasHabiles: 1, atrasado: false };
+    const base = { ubicacionId: TRU, ubicacionNombre: "Tienda TRU", medio: "tarjeta" as const, dias: 1, nPagos: 2, diasHabiles: 1, atrasado: false, yaDepositado: 0 };
     const conTarifa: LotePendiente[] = [
       { ...base, clave: "a", fecha: "2026-10-15", bruto: 100, esperado: 4.53 },
       { ...base, clave: "b", fecha: "2026-10-15", bruto: 50, esperado: 2.27 },
@@ -472,5 +647,36 @@ describe("el depósito de una máquina se explica solo (/formidable, ADR-0429)",
   it("solo «Por depositar» se ve con céntimos", () => {
     expect(saldoConCentimos("por_abonar")).toBe(true);
     for (const t of ["cajon", "caja_fuerte", "por_rendir", "banco", "tarjeta_credito"] as const) expect(saldoConCentimos(t)).toBe(false);
+  });
+});
+
+describe("revisarComision (tarea 3)", () => {
+  const b = 17277;
+  it("dentro de 1 punto de la tarifa no pregunta; a más de 1 punto, sí", () => {
+    const esperado = (b * 2.7) / 100;
+    expect(revisarComision({ bruto: b, comision: (b * 2.7) / 100, esperado })).toBeNull();
+    expect(revisarComision({ bruto: b, comision: (b * 3.6) / 100, esperado })).toBeNull();
+    expect(revisarComision({ bruto: b, comision: (b * 1.8) / 100, esperado })).toBeNull();
+    expect(revisarComision({ bruto: b, comision: (b * 3.8) / 100, esperado })).toContain("3.8 %");
+    expect(revisarComision({ bruto: b, comision: 5, esperado })).toContain("la tarifa espera 2.7 %");
+  });
+  it("los abonos del 31 de octubre: S/ 0 sin tarifa también pregunta; una comisión normal sin tarifa, no", () => {
+    expect(revisarComision({ bruto: b, comision: 0, esperado: null })).toContain("no tiene tarifa");
+    expect(revisarComision({ bruto: b, comision: (b * 2.6) / 100, esperado: null })).toBeNull();
+  });
+  it("sin lo que llegó, sin bruto o con comisión negativa (ya tiene su propio aviso), nada", () => {
+    expect(revisarComision({ bruto: b, comision: null, esperado: 100 })).toBeNull();
+    expect(revisarComision({ bruto: 0, comision: 0, esperado: 0 })).toBeNull();
+    expect(revisarComision({ bruto: b, comision: -1, esperado: 100 })).toBeNull();
+  });
+  it("propone lo que debería llegar solo si tiene con qué", () => {
+    expect(netoEsperado({ dias: 2, bruto: 1000, esperado: 27 })).toBe(973);
+    expect(netoEsperado({ dias: 0, bruto: 0, esperado: 0 })).toBeNull();
+    expect(netoEsperado({ dias: 1, bruto: 1000, esperado: null })).toBeNull();
+  });
+  it("lo anterior al arranque de la cuenta no viene marcado", () => {
+    const l = (fecha: string) => ({ clave: fecha, fecha } as unknown as Parameters<typeof lotesPorDefecto>[0][number]);
+    expect(lotesPorDefecto([l("2026-10-20"), l("2026-10-30")], "2026-10-31", "2026-10-28")).toEqual(["2026-10-30"]);
+    expect(lotesPorDefecto([l("2026-10-20")], "2026-10-31")).toEqual(["2026-10-20"]);
   });
 });

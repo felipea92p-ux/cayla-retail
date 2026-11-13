@@ -17,38 +17,40 @@ punto 3) y **no entra en esta familia**; solo el logo se comparte.
 
 El contrato completo, legible por una máquina, es [`contrato.json`](contrato.json). **Es el mismo archivo en los dos repositorios.**
 
+**Desde la versión 4 (Felipe, 2026-11-05), Retail manda en diseño:** lo que cambie de aspecto en Retail llega a Dynamic, y Dynamic no propone valores de marca por su cuenta. No cubre lo que no es
+diseño: qué hace cada pantalla, ni el vocabulario (P4). El vidrio viaja: Dynamic trae [`recetas.css`](../../apps/web/app/estilos/vidrio/recetas.css) de este repositorio con un vigilante (`scripts/familia/vigilante.mjs`
+allá), que hoy solo avisa. Por eso este repositorio tiene que seguir público, y ni `recetas.css` ni `contrato.json` se mueven de lugar.
+
 ## Lo que hoy es igual (verificado)
 
-Comparado el 2026-10-25 contra los artifacts «CAYLA Retail» y «CAYLA Dynamic», valor por valor:
+Comparado el 2026-10-25 contra los artifacts «CAYLA Retail» y «CAYLA Dynamic», valor por valor, salvo lo que la versión 4 agregó (`vidrio`, `sombra` y los radios por pieza), que Retail ya tiene y Dynamic aplica con su Etapa 1:
 
-- **Los colores de los DOS temas.** Claro (13 colores), al hex: `crema #f5f0e8`, `papel #fbf8f2`, `hueso #eae1d2`, `sand #e8e0d0`, `tinta #1a1a18`, `taupe #805c4c`,
+- **Los colores de los DOS temas.** Claro, al hex: `crema #f5f0e8`, `papel #fbf8f2`, `hueso #eae1d2`, `sand #e8e0d0`, `tinta #1a1a18`, `taupe #805c4c`,
   `rojo #b8412d`, `rojo-profundo #8b2a1f`, `verde #48603f`, `ámbar #74501a`, `pizarra #4c5d6e`, y los dos fijos (`tinta-fija`, `crema-fija`).
+  **Dos colores de la versión 4, que solo existen como luz y sombra (S1):** `vidrio` (`#ffffff` en claro, `#33302a` en oscuro) y `sombra` (`#1a1a18` en claro, `#000000` en oscuro). Las recetas los consumen; casi siempre van mezclados con transparente, nunca como un hex suelto.
   **Oscuro (decidido el 2026-10-26, P1 opción C: «gris cálido»):** `crema #1c1a17`, `papel #26241f`, `hueso #33302a`, `sand #403b34`, y el texto, el rojo y el
   semáforo de Retail (`tinta #f5f0e8`, `taupe #c4a898`, `rojo #e8806a`, `rojo-profundo #f29a86`, `verde #9ccb8d`, `ámbar #e4b968`, `pizarra #a2b8cd`). Retail ya lo aplica; **Dynamic
   todavía no** (ver abajo).
 - **Las letras:** DM Sans (el sistema) y EB Garamond (el alma), las dos de Google Fonts.
-- **Los radios:** 8 px (control), 16 px (superficie), 20 px (flotante) y píldora.
+- **Los radios, uno por pieza:** botón `radius-boton` 999 px, campo `radius-campo` 14 px, tarjeta `radius-tarjeta` 22 px, cajón `radius-cajon` 28 px y hoja `radius-hoja` 32 px (en el celular, cajón y hoja van a 26 px). Son los tokens de `globals.css`. Los de la versión 3 (8, 16 y 20 px) quedan en `radios_anteriores`: Retail los conserva para lo que aún no es vidrio y Dynamic los pinta hasta su Etapa 1.
 - **El tema:** el atributo `data-tema` con los valores `claro` y `oscuro`.
 - **El gobierno:** «una sola forma por pieza» — aquí es `/unificar` con `lib/unificar.test.ts`; en Dynamic, el ADR 0004 con un freno en el push.
 
 ## Lo que hoy NO es igual y falta decidir
 
-Siete pendientes (P1, el oscuro, y P2, el borde de un control, se decidieron el 2026-10-26), cada uno con lo que dice cada aplicación y cómo decidirlo (están en `contrato.json`, `pendientes`):
+Quedan tres pendientes abiertos, cada uno con lo que dice cada aplicación y cómo decidirlo (en `contrato.json`, `pendientes`):
 
 | | Tema | Retail | Dynamic |
 |---|---|---|---|
-| **P3** | Anillo de foco | tinta | rojo |
 | **P4** | Vocabulario | «cliente», «encargado de sede» | «clienta», nunca «encargada» |
-| **P5** | Número de una cifra | se puede pintar | siempre tinta; el significado va en un punto y la etiqueta |
-| **P6** | Peso de la serif | 600 | 500 y 400 |
-| **P7** | Estado vacío | ícono de lo que falta | colibrí quieto |
 | **P8** | «¡» y mayúsculas | «¡» en el recibo y las guías | sin exclamación, mayúscula solo al inicio |
 | **P9** | Tokens de capas (z-index) | z-50 y z-[60] sueltos | `z-sticky` 10, `z-overlay` 40, `z-toast` 60 |
 
-P2 se decidió con una lámina (`docs/maquetas/familia-borde-control-2026-10/index.html`: tres bordes, controles tocables, claro y oscuro, con las medidas) y P6 también pedirá la suya.
-
 Mientras uno de estos siga abierto, cada aplicación conserva su valor y nadie lo cambia sin decidirlo; al decidirlo, el pendiente pasa a `decidido`, el valor
 sube a la capa «marca» (como pasó con el oscuro) y lo que falte aplicar en la otra aplicación queda anotado en `aplicacion_pendiente`.
+
+**Lo que se cerró el 2026-11-05, al decidir Felipe que Dynamic sea como Retail:** el anillo de foco en tinta (P3), el número de una cifra puede llevar color (P5), la serif en 600 (P6), el estado vacío con el ícono de lo que
+falta (P7), y **una sola esquina de tarjeta, 22 px, en los dos sistemas (P10)**: Retail tenía tres (20, 22 y 24 px), sin que nadie las hubiera elegido como jerarquía. También quedó decidido que las diferencias D2, D3 y D4 (títulos, movimiento y con qué tema arranca) se cierran hacia Retail.
 
 ## Qué prueba qué
 
@@ -56,8 +58,39 @@ sube a la capa «marca» (como pasó con el oscuro) y lo que falte aplicar en la
 |---|---|---|
 | Que el código de Retail diga lo que el contrato dice (los colores de los dos temas, los radios, las letras, el atributo del tema) | `apps/web/lib/familia.test.ts` | En cada PR, con `pnpm test` |
 | Que el propio detector no esté ciego | la misma prueba, con `scripts/familia/comparar.mjs --autoprueba` | En cada PR |
+| Que `recetas.css` pueda viajar: solo variables, en sus tres formas, sin `--color-*` ni `--radius-*` propios | `apps/web/lib/familia.test.ts` | En cada PR |
 | Que los dos repositorios guarden **el mismo contrato** | `pnpm familia:comparar contrato <ruta al contrato de Dynamic>` | A mano, cuando se toca la marca (ningún CI de un solo repo ve el otro) |
-| Que el `tokens.json` de un artifact «Design System» cumpla el contrato | `pnpm familia:comparar tokens <tokens.json> --como retail\|dynamic` | A mano, tras publicar o sincronizar un artifact |
+| Que el `tokens.json` de un artifact «Design System» cumpla el contrato | `pnpm familia:comparar tokens <tokens.json> --como retail\|dynamic` | A mano, tras publicar o sincronizar un artifact. Lo que `aplicacion_pendiente` declara se avisa, no falla |
+| Que Dynamic se entere de lo que cambió aquí | el vigilante de Dynamic (`scripts/familia/vigilante.mjs` allá) | Cada hora, en el minuto 17. Comparado el 2026-11-07: los dos contratos son idénticos (sha256 `34b7a7c4…`) |
+
+## Lo que `recetas.css` puede tener
+
+Solo variables, en estas tres formas, porque es lo que Dynamic sabe colgar de su interruptor:
+
+- `:root { … }`
+- `@media screen { :root[data-tema="oscuro"] { … } }`
+- `@media (prefers-reduced-transparency: reduce) { :root, :root[data-tema="oscuro"] { … } }`
+
+Una regla de clase apunta al HTML de Retail, y un `@keyframes` o un `@layer` pisaría los de Dynamic: van en otro archivo de `vidrio/`. Así vive `vidrio/aguanta.css`, la versión maciza para quien pidió más contraste. Un `--color-*` nuevo que una receta consuma entra antes al contrato; renombrar o quitar una variable de una receta abre una tarea en Dynamic. `--vidrio-hoja-radio` vive en las recetas y no lee `--radius-hoja`, porque Dynamic todavía no tiene ese token: una prueba exige que valga lo mismo.
+
+## Qué llega solo a Dynamic, qué queda como tarea, y quién avisa
+
+Felipe lo decidió el 2026-11-05: «Que se publique solo pero que hay que se cuidadosos y hacerle saber al usuario que es necesario actualizar el diseño en dynamic».
+La lista vive en Dynamic (`docs/familia/compartidos.json`, con la huella de lo último que tomó) y la usa su vigilante (`scripts/familia/vigilante.mjs`), que mira este repositorio
+cada hora, en el minuto 17:
+
+| De aquí | Qué pasa allá |
+|---|---|
+| `apps/web/app/estilos/vidrio/recetas.css` y `docs/familia/contrato.json` (**viajan**) | Prepara el cambio, corre sus pruebas y lo cuenta en su aviso (un solo issue). Lo publica solo si todo se cumple: `FAMILIA_PUBLICAR = si`, tocó únicamente esos archivos, las pruebas dieron verde, no hay freno y es entre las 22:00 y las 05:00 de Perú. Las recetas no se copian tal cual: `envolver-recetas.mjs` las cuelga de `data-vidrio` y se niega si encuentra algo que no sea variables. |
+| El resto de `apps/web/app/estilos/vidrio/` y `apps/web/components/ui/` (**se miran**) | No se copia. El aviso abre una tarea con los archivos que cambiaron, y alguien la hace a mano. |
+| `globals.css`, `tema.css` y lo demás | Fuera de la lista: un valor de marca llega por el contrato. |
+
+**El freno de mano es de Dynamic:** si `FAMILIA_PUBLICAR` no vale `si`, no publica; con `FAMILIA_VIGILANTE = apagado` ni siquiera mira. El 2026-11-07 la publicación está apagada.
+El README de la familia en Dynamic dice qué falta decidir antes de encenderla, y esa decisión es de Felipe, allá.
+
+**Lo que hace una sesión de aquí:** si toca uno de esos archivos, se lo dice a Felipe en el cierre y lo escribe en el PR («Esto cambia el diseño de Dynamic: llega solo» o «queda como
+tarea allá», con las piezas). Si cambia cómo funciona una pieza, también dice qué tendrá que hacerse a mano. Lo pide `CLAUDE.md` («Los dos sistemas») y una casilla de la plantilla del PR.
+Nunca escribe en el repositorio de Dynamic.
 
 ## Lo que falta aplicar en Dynamic (P1 = C)
 
@@ -101,13 +134,13 @@ decorativo y lo que lleva un texto que lo identifica (Filtro, BotónÍcono, Bot�
 1. Se decide **mirando** (la regla de `/unificar`: Felipe elige viendo, no por una descripción).
 2. Se cambia el valor en `docs/familia/contrato.json` y se sube su `version`.
 3. Se cambia en el código de Retail (`apps/web/app/globals.css` o `estilos/tema.css`); `pnpm --filter web test` debe quedar en verde.
-4. **El mismo día** se copia el contrato a Dynamic y se cambia su código; allí corre su propia prueba, que es esta misma con su ruta de `globals.css`.
+4. El vigilante de Dynamic lo ve y abre su tarea: ya no se copia a mano. Dynamic aplica su parte con su propia prueba; lo que falte queda en `aplicacion_pendiente`.
 5. `pnpm familia:comparar contrato <el contrato de Dynamic>` debe decir «los dos repositorios guardan el mismo contrato».
 6. Se republican los dos artifacts de «Design System» y se corre `pnpm familia:comparar tokens … --como retail` y `… --como dynamic`.
 
 Si un paso queda a medias, el siguiente `pnpm familia:comparar contrato` lo dice. Eso es todo el mecanismo, a propósito: dos copias de un
-archivo y una prueba en cada repositorio. Un paquete compartido de marca (opción B, descartada por ahora) pasaría a valer la pena si
-aparece una tercera aplicación estable, o si el paso 4 se olvida más de una vez.
+archivo, un vigilante y una prueba en cada repositorio. Un paquete compartido de marca (opción B, descartada por ahora) pasaría a valer la pena si
+aparece una tercera aplicación estable.
 
 ## Lo que esto NO cubre
 

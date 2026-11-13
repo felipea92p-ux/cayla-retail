@@ -1,0 +1,5 @@
+# 2026-11-10 · Depósito de la máquina: se marca pago por pago, no solo por días (ADR-0629, Fase B)
+
+- **Qué:** la hoja «Depósito de la máquina» abre cada día en sus pagos («3 pagos»), deja marcar solo los que llegaron y, si el monto escrito calza con el neto de un pago, ofrece «Marcar solo ese pago». Con los pagos a la vista registra por `registrar_abono_pos_pagos` (también un día entero, para que no quede «sin detalle»); lo que no tiene pagos a la vista sigue por `registrar_abono_pos`. Lógica en `lib/deposito-pago-por-pago.ts`.
+- **Por qué:** Izipay abona el QR suelto (206 «Abono QR IBK» del 1 al 10-nov en el extracto de Interbank); la hoja solo dejaba marcar el día entero y un QR de S/ 21 salía con S/ 2,136.80 de «comisión». La base ya lo sabía hacer desde el 8-nov; faltaba la hoja.
+- **Verificado:** pruebas nuevas y de `cuentas-dinero-reglas`, guías (huellas aceptadas), tema, unificar, sugerir, `tsc`, `eslint`, Knip; revisión adversaria de 3 lentes (6 hallazgos, corregidos). **No verificado:** en el navegador (la base local estaba apagada).

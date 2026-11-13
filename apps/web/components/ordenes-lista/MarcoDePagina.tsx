@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, type ReactNode } from "react";
 import { TituloSeccion } from "@/components/ui/TituloSeccion";
+import { prefiereQuieto } from "@/lib/movimiento-cliente";
 
 // El marco de «Nueva orden» sobre la lista de Órdenes (ADR-0509): la orden se arma en la propia página, con la lista a la vista debajo, y no en una hoja que la tapa.
 //
@@ -16,7 +17,7 @@ export function MarcoDePagina({ children }: { children: ReactNode }) {
   useEffect(() => {
     const el = raiz.current;
     if (!el) return;
-    const sinMovimiento = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const sinMovimiento = prefiereQuieto();
     el.scrollIntoView({ block: "start", behavior: sinMovimiento ? "auto" : "smooth" });
     // Si el formulario ya puso el cursor en un campo (un modelo que llega elegido desde el Resumen), no se lo quita.
     if (!el.contains(document.activeElement)) el.querySelector<HTMLElement>("input:not([disabled])")?.focus({ preventScroll: true });

@@ -42,10 +42,10 @@ const CONTENEDOR_LOCAL = "supabase_db_cayla-retail";
 // Otra base del mismo Postgres (p. ej. una copia desechable con las migraciones de esta rama): `PRUEBAS_BASE=mi_copia node …`.
 const BASE = process.env.PRUEBAS_BASE ?? "postgres";
 const FELIPE = "22222222-2222-4222-8222-000000000001";
-// Segunda líder (seed.sql), usada solo para aprobar — desde
-// 20260922235000_candado_dinero_caja_cambios_devoluciones.sql quien registra una devolución
-// ya no puede aprobarla ella misma, y este archivo prueba OTRO candado (caja/efectivo), no
-// ese: la persona que aprueba tiene que ser distinta de quien la registró.
+// Segunda líder (seed.sql), usada para aprobar. Nació porque 20260922235000 prohibía que quien
+// registró una devolución la aprobara; ADR-0534 (20261027164000) quitó esa regla, así que hoy
+// Felipe también podría aprobarla. Se conserva otra cuenta a propósito: este archivo prueba OTRO
+// candado (caja/efectivo), y que apruebe alguien distinto de quien registró sigue siendo un camino real.
 const SANDRA = "22222222-2222-4222-8222-000000000005";
 
 function psql(sql) {
@@ -104,9 +104,10 @@ const ITEMS_DEVOLUCION = `jsonb_build_array(jsonb_build_object('venta_item_id', 
 
 /**
  * La base + una devolución pendiente + la caja cerrada (ninguna abierta en Lima). Termina la
- * sesión en SANDRA (no Felipe, que la registró) — el candado de auto-aprobación de
- * 20260922235000 no es lo que este archivo prueba, así que se lo saca del camino aquí, una
- * sola vez, en vez de repetirlo en cada escenario.
+ * sesión en SANDRA (no Felipe, que la registró). Hasta ADR-0534 era para sacar del camino el
+ * candado de auto-aprobación de 20260922235000 (ya no existe: la misma persona puede aprobar,
+ * lo prueba candado_dinero_caja_cambios_devoluciones.mjs); se deja así porque no cambia lo que
+ * este archivo prueba (caja/efectivo).
  */
 const FIXTURE_VENTA = `${FIXTURE_BASE}
 select retail.crear_devolucion(:'venta_id', :'ubic', ${ITEMS_DEVOLUCION}, 'prueba automatizada', 'otro') as devolucion_id \\gset
@@ -345,7 +346,7 @@ select id as item_a from retail.venta_items where venta_id = :'venta_nota' and v
 select id as item_b from retail.venta_items where venta_id = :'venta_nota' and variante_id = :'v_b' \\gset
 `;
 
-  // Devuelve `lineas` (pares venta_item / cantidad), la aprueba otra líder y lee la nota: motivo | n.º de ítems | lo que dicen
+  // Devuelve `lineas` (pares venta_item / cantidad), la aprueba Sandra (otra cuenta con el módulo) y lee la nota: motivo | n.º de ítems | lo que dicen
   // los ítems (variante:cantidad:descuento, ordenado) | ¿Σ (precio − descuento) × cantidad de los ítems = total de la nota?
   const NOTA_LEIDA = `
 select n.motivo, jsonb_array_length(n.items),

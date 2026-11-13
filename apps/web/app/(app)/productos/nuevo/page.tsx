@@ -74,7 +74,8 @@ export default async function NuevoProductoPage({ searchParams }: { searchParams
           contexto={contexto}
           destino={destino}
           cargaInicial={cargaInicialDe(carga, persona.ubicacionId)}
-          puedeAprobarEtiquetas={puede(persona, "editarEtiquetas")}
+          // ADR-0641 act. 2026-11-11: proponer queda abierto a quien crea la prenda (Felipe eligió abrir los costos ajenos).
+          proponePrecio
         />
       )}
     </div>

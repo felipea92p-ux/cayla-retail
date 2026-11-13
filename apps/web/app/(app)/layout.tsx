@@ -12,9 +12,11 @@ import { RefrescoTrasCorte } from "@/components/RefrescoTrasCorte";
 import { ContextoDeErrores } from "@/components/ContextoDeErrores";
 import { SinConexion } from "@/components/SinConexion";
 import { VersionNueva } from "@/components/VersionNueva";
+import { CronometroDelClic } from "@/components/CronometroDelClic";
 import { RecordatorioCierreCaja } from "@/components/RecordatorioCierreCaja";
 import { EsperaAlVelo } from "@/components/login/EntradaColibri";
 import { getRecordatorioCierre, recibeRecordatorioCierre } from "@/lib/recordatorio-cierre";
+import { getAsistenteEncendido } from "@/lib/asistente/sedes-servidor";
 
 // Fase UI 1 (2026-09-11): usa la persona V2 (`ubicacion_id`), no la V1
 // (`sede_id`). Fase 2 (2026-09-13): el selector de ubicación del líder ya
@@ -31,11 +33,14 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   // «Pedidos web N» (ADR-0408, act. 8): los que esperan confirmación en la tienda activa. Solo a quien ve el módulo y parado en una
   // tienda (la función igual responde nada sin el módulo); total como el de Traslados.
   const vePedidosWeb = persona.ubicacionTipo === "tienda" && persona.modulos.some((m) => m.clave === "pedidos_web");
-  const [todasLasUbicaciones, trasladosPorAtender, recordatorioCierre, pedidosWebPorConfirmar] = await Promise.all([
+  // «Pregúntale a CAYLA» (ADR-0536, act. 8): el botón sale solo en las sedes con el asistente encendido (en CAYLA Global, si alguna lo
+  // tiene). Total como el contador: sin respuesta, sale apagado.
+  const [todasLasUbicaciones, trasladosPorAtender, recordatorioCierre, pedidosWebPorConfirmar, asistenteEncendido] = await Promise.all([
     persona.puedeCambiarUbicacion || persona.puedeVerGlobal ? getUbicaciones() : Promise.resolve([]),
     getNumeroDelMenuTraslados(persona.ubicacionId, puede(persona, "ajustarInventario")),
     recibeRecordatorio ? getRecordatorioCierre(persona) : Promise.resolve(null),
     vePedidosWeb ? getPedidosWebPorConfirmar(persona.ubicacionId) : Promise.resolve(null),
+    getAsistenteEncendido(persona.vista === "global" ? null : persona.ubicacionId),
   ]);
 
   const ubicaciones = persona.puedeCambiarUbicacion ? todasLasUbicaciones : todasLasUbicaciones.filter((u) => u.id === persona.ubicacionId);
@@ -63,6 +68,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       ubicaciones={ubicaciones}
       trasladosPorAtender={trasladosPorAtender}
       pedidosWebPorConfirmar={pedidosWebPorConfirmar}
+      asistenteEncendido={asistenteEncendido}
       lateralPlegado={lateralPlegado}
     >
       {/* Recién iniciada la sesión, la app espera a que el velo del colibrí tape la pantalla para mostrarse (Felipe 2026-10-13, «se ve el inicio»).
@@ -84,6 +90,8 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         <SinConexion cuenta={persona.personaId ?? `terminal:${persona.nombre}`} generadoEn={new Date().toISOString()} />
         {/* «Hay una versión nueva de CAYLA» (ADR-0422): quien tiene el ERP abierto desde antes de la última publicación lo sabe y actualiza cuando termina. */}
         <VersionNueva />
+        {/* El cronómetro del clic (ADR-0654): cuánto tarda en llegar cada pantalla, por sede, a los registros del servidor. No dibuja nada. */}
+        <CronometroDelClic sedeId={persona.vista === "global" ? "global" : persona.ubicacionId} />
         {children}
         {/* Sube lo guardado sin conexión (ADR-0210) desde cualquier pantalla. */}
         <ColasSinConexion />

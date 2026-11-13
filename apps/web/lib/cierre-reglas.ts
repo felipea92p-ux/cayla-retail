@@ -21,8 +21,16 @@ export type ClaveChequeo =
   | "conteos_abiertos"
   | "sobrantes_traslado"
   | "facturas_sin_recibir"
+  // Tarea 7 de «Las 36» (Felipe 2026-11-05): los dos primeros frenan como los pendientes por sede; los otros tres solo avisan, en «De la empresa».
+  | "envios_abiertos"
+  | "comprobantes_sin_aceptar"
+  | "papeles_por_completar"
+  | "gastos_por_revisar"
+  | "arranque"
   | "diario"
-  | "huella";
+  | "huella"
+  // La propuesta del SIRE contra el ERP (ADR-0601): la arma la web con el cruce de «Comparar con SUNAT», no la base. Solo avisa.
+  | "sire";
 
 /** Un chequeo tal como lo mide la base: si pasa, si bloquea el cierre y los datos para decir qué falta. */
 export type Chequeo = { clave: ClaveChequeo | string; ok: boolean; bloquea: boolean; datos: Record<string, unknown> };
@@ -68,6 +76,8 @@ export type EventoCierre = {
   reabiertoEn: string | null;
   reabiertoPor: string | null;
   motivoReapertura: string | null;
+  /** Con qué avisos se cerró esta versión (`periodo_cierres.avisos`). */
+  avisos: Chequeo[];
 };
 
 export type MesCierre = { mes: string; cerradas: number; consolidado: boolean };
@@ -153,6 +163,7 @@ export function leerPanelCierre(data: unknown): PanelCierre | null {
           reabiertoEn: textoONulo(h.reabierto_en),
           reabiertoPor: textoONulo(h.reabierto_por),
           motivoReapertura: textoONulo(h.motivo_reapertura),
+          avisos: Array.isArray(h.avisos) ? (h.avisos as Fila[]).map(leerChequeo) : [],
         }))
       : [],
     meses: Array.isArray(d.meses) ? (d.meses as Fila[]).map((m) => ({ mes: texto(m.mes), cerradas: numero(m.cerradas), consolidado: m.consolidado === true })) : [],
@@ -163,13 +174,6 @@ export function leerPanelCierre(data: unknown): PanelCierre | null {
 
 /** «agosto» de «2026-08». */
 export const nombreMes = (mes: string): string => textoMes(mes).split(" ")[0] ?? mes;
-/** «Cerrar agosto 2026». */
-export const tituloPantalla = (mes: string): string => `Cerrar ${textoMes(mes)}`;
-/** «Agosto 2026», para el selector. */
-export const mesEnSelector = (mes: string): string => {
-  const t = textoMes(mes);
-  return t.charAt(0).toUpperCase() + t.slice(1);
-};
 /** «19ce…40ab»: la huella corta, como el spike. */
 export const huellaCorta = (h: string | null | undefined): string => (h && h.length > 8 ? `${h.slice(0, 4)}…${h.slice(-4)}` : h ?? "");
 /** «Felipe» de «Felipe Alvarez». */
@@ -233,8 +237,14 @@ const TITULOS: Record<ClaveChequeo, string> = {
   conteos_abiertos: "Conteos de inventario cerrados",
   sobrantes_traslado: "Prendas de más de traslados revisadas",
   facturas_sin_recibir: "Mercadería facturada ya recibida",
+  envios_abiertos: "Envíos del mes cerrados",
+  comprobantes_sin_aceptar: "Comprobantes del mes aceptados por SUNAT",
+  papeles_por_completar: "Compras con su papel completo",
+  gastos_por_revisar: "Gastos de compra revisados",
+  arranque: "Saldos de arranque cargados",
   diario: "El diario de la unidad cuadra",
   huella: "Lo congelado sigue igual al diario de hoy",
+  sire: "La propuesta de SUNAT cuadra con el ERP",
 };
 
 /**
@@ -255,8 +265,14 @@ const NOMBRE_DE_AVISO: Record<ClaveChequeo, string> = {
   conteos_abiertos: "conteos de inventario sin cerrar",
   sobrantes_traslado: "prendas de más de traslados sin revisar",
   facturas_sin_recibir: "mercadería facturada sin recibir",
+  envios_abiertos: "envíos sin cerrar",
+  comprobantes_sin_aceptar: "comprobantes sin aceptar por SUNAT",
+  papeles_por_completar: "compras por completar",
+  gastos_por_revisar: "gastos de compra por revisar",
+  arranque: "sin saldos de arranque",
   diario: "diario que no cuadra",
   huella: "diario que ya no coincide con lo congelado",
+  sire: "diferencias con la propuesta de SUNAT",
 };
 
 /** El chequeo, dicho por lo que le falta: «envíos recibidos con faltantes por resolver». */
@@ -330,7 +346,7 @@ export function textoChequeo(c: Chequeo, mes: string, u?: UnidadDeFrase | null):
     case "planilla": {
       if (d.visible === false) return { titulo, detalle: "Tu cuenta no ve la planilla en Dynamic: ciérralo con una cuenta que la vea, o el mes quedaría sin sueldos" };
       if (c.ok) return { titulo, detalle: `Del ${fechaCorta(textoONulo(d.ini))} al ${fechaCorta(textoONulo(d.fin))}${d.personas != null ? ` · ${plural(numero(d.personas), "persona", "personas")}` : ""}` };
-      return { titulo, detalle: `Dynamic todavía no tiene pagada la planilla que termina en ${m}: si se paga después, el mes cerrado no la tendrá` };
+      return { titulo, detalle: `Dynamic todavía no tiene pagada la planilla que termina en ${m}: hasta que la pague no se puede cerrar (un Admin puede saltarlo con un motivo)` };
     }
     case "sin_costo": {
       const n = numero(d.n);
@@ -364,6 +380,35 @@ export function textoChequeo(c: Chequeo, mes: string, u?: UnidadDeFrase | null):
       const cual = n === 1 && d.numero != null ? `El conteo n.º ${numero(d.numero)} de inventario${sede} sigue abierto` : `${plural(n, "conteo de inventario sigue abierto", "conteos de inventario siguen abiertos")}${sede}`;
       return { titulo, detalle: `${cual}${desde ? ` desde el ${fechaCorta(desde)}` : ""}${cola("Termínalo o anúlalo en Conteo")}` };
     }
+    case "envios_abiertos": {
+      if (c.ok) return { titulo, detalle: "Ningún envío quedó abierto" };
+      const n = numero(d.n);
+      return { titulo, detalle: `${plural(n, "envío", "envíos")}${sede} ${n === 1 ? "sigue" : "siguen"} sin cerrar: si se cierra el mes, su comprobante rebota${cola("Termínalos en Recibir")}` };
+    }
+    case "comprobantes_sin_aceptar": {
+      if (c.ok) return { titulo, detalle: "SUNAT aceptó todos los comprobantes del mes" };
+      const n = numero(d.n);
+      return { titulo, detalle: `${plural(n, "comprobante", "comprobantes")}${sede} ${n === 1 ? "espera" : "esperan"} que SUNAT los acepte${cola("Reintenta o corrígelos en Comprobantes")}` };
+    }
+    case "papeles_por_completar": {
+      if (c.ok) return { titulo, detalle: "Ninguna compra espera su papel" };
+      const n = numero(d.n);
+      // `monto` nulo: esta cuenta no ve la plata de proveedores. ADR-0636: el papel de un mes cerrado no puede entrar al libro, y se dice.
+      const cuanto = hayCifra(d.monto) ? ` por ${soles(numero(d.monto))}` : "";
+      return {
+        titulo,
+        detalle: `${plural(n, "compra pagada", "compras pagadas")}${cuanto} todavía no ${n === 1 ? "entra" : "entran"} al libro. Puedes cerrar igual, pero no ${n === 1 ? "entrará" : "entrarán"} hasta reabrir ${m}`,
+      };
+    }
+    case "gastos_por_revisar": {
+      if (c.ok) return { titulo, detalle: "Ningún gasto de compra espera revisión" };
+      const n = numero(d.n);
+      return { titulo, detalle: `${plural(n, "gasto de compra espera", "gastos de compra esperan")} revisión. Puedes cerrar igual` };
+    }
+    case "arranque": {
+      if (c.ok) return { titulo, detalle: "CAYLA ya tiene sus saldos de arranque" };
+      return { titulo, detalle: "Sin saldos de arranque no hay Balance. Puedes cerrar igual, pero el mes queda sin esa comprobación" };
+    }
     case "sobrantes_traslado": {
       if (c.ok) return { titulo, detalle: "Ninguna prenda de más de un traslado espera revisión" };
       const n = numero(d.n);
@@ -383,6 +428,20 @@ export function textoChequeo(c: Chequeo, mes: string, u?: UnidadDeFrase | null):
         detalle: `${plural(n, "factura de mercadería", "facturas de mercadería")}${sede} ${n === 1 ? "tiene" : "tienen"} prendas sin recibir: ${plural(numero(d.unidades), "prenda", "prendas")} por llegar${total}${cola("Recíbelas en Recibir mercadería")}`,
       };
     }
+    case "sire": {
+      // No lleva la `cola` de siempre: este aviso lo arma la web y no queda guardado en el cierre.
+      const resueltas = numero(d.resueltas);
+      const porMirar = numero(d.por_mirar);
+      // `ventas_subida` es null si no se pudo leer: entonces se habla solo de compras, como antes.
+      const faltaVentas = d.ventas_subida === false;
+      if (c.ok) {
+        if (resueltas > 0) return { titulo, detalle: `Cuadra, con ${plural(resueltas, "diferencia resuelta", "diferencias resueltas")}` };
+        return { titulo, detalle: d.ventas_subida === true ? `Las propuestas de compras y ventas de ${m} cuadran con lo registrado` : `La propuesta de compras de ${m} cuadra con lo registrado` };
+      }
+      if (d.subida !== true) return { titulo, detalle: faltaVentas ? `Todavía no se compararon las propuestas de compras y ventas de ${m}. Puedes cerrar igual` : `Todavía no se comparó la propuesta de compras de ${m}. Puedes cerrar igual` };
+      if (porMirar === 0) return { titulo, detalle: `Todavía no se comparó la propuesta de ventas de ${m}. Puedes cerrar igual` };
+      return { titulo, detalle: `${plural(porMirar, "diferencia", "diferencias")} sin resolver${faltaVentas ? ", y falta comparar la propuesta de ventas" : ""}. Puedes cerrar igual, pero el contador aceptaría la propuesta con ellas` };
+    }
     case "diario": {
       const asientos = numero(d.asientos);
       const lineas = plural(numero(d.lineas), "línea", "líneas");
@@ -392,7 +451,7 @@ export function textoChequeo(c: Chequeo, mes: string, u?: UnidadDeFrase | null):
           detalle: asientos > 1 ? `Debe = haber en los ${asientos} asientos (${lineas})` : asientos === 1 ? `Debe = haber en su único asiento (${lineas})` : `Sin movimientos en ${m}`,
         };
       const n = numero(d.descuadrados);
-      return { titulo, detalle: `${plural(n, "asiento descuadrado", "asientos descuadrados")}: una fuente no suma lo que debe (míralo en Reportes)` };
+      return { titulo, detalle: `${plural(n, "asiento descuadrado", "asientos descuadrados")}: una fuente no suma lo que debe (míralo en Estados financieros)` };
     }
     case "huella":
       return c.ok
@@ -427,6 +486,11 @@ export function enlaceChequeo(c: Chequeo, u: Pick<Unidad, "alcance" | "ubicacion
       return `/finanzas/gastos?tab=fijos&mes=${mes}&ver=${ver}`;
     case "conciliacion":
       return "/finanzas/dinero/conciliacion";
+    case "sire": {
+      // Compras ya se comparó y no hay nada que resolver: lo único que falta es la pestaña de ventas.
+      const soloFaltaVentas = c.datos.subida === true && c.datos.ventas_subida === false && numero(c.datos.por_mirar) === 0;
+      return `/finanzas/impuestos/sire?mes=${mes}${soloFaltaVentas ? "&registro=ventas" : ""}`;
+    }
     // Los cuatro pendientes por sede: cada uno, a la pantalla donde se resuelve («Nos debe» vive en la ficha de cada proveedor).
     case "envios_con_diferencia":
       return "/compras/proveedores";
@@ -436,6 +500,15 @@ export function enlaceChequeo(c: Chequeo, u: Pick<Unidad, "alcance" | "ubicacion
       return "/inventario/traslados";
     case "facturas_sin_recibir":
       return "/compras?porrecibir=1";
+    case "envios_abiertos":
+      return "/recibir";
+    case "comprobantes_sin_aceptar":
+      return "/vender/comprobantes/por-reintentar";
+    case "papeles_por_completar":
+    case "gastos_por_revisar":
+      return "/compras/fondos";
+    case "arranque":
+      return `/finanzas/reportes/balance?mes=${mes}`;
     case "sin_costo":
     case "diario":
       return `/finanzas/reportes?mes=${mes}${u.alcance === "ubicacion" && u.ubicacionId ? `&ver=${u.ubicacionId}` : ""}`;
@@ -458,6 +531,23 @@ export function estadoTarjeta(u: Unidad): { texto: string; tono: TonoEstado } {
 /** Se puede cerrar: abierta (o reabierta) y ningún chequeo que bloquee. */
 export const puedeCerrar = (u: Unidad): boolean => u.estado !== "cerrado" && u.bloqueantes === 0;
 
+/**
+ * Lo único que frena el cierre es la planilla de Dynamic sin pagar (que la cuenta sí ve): el caso en que un Admin puede cerrar igual, con motivo
+ * (tarea 18 de «Las 36 de Finanzas»; `cerrar_periodo_saltando_planilla`). Si frena otra cosa, no hay atajo.
+ */
+export function soloFaltaPlanilla(u: Unidad): boolean {
+  if (u.estado === "cerrado" || u.bloqueantes === 0) return false;
+  const frenan = u.chequeos.filter((c) => c.bloquea && !c.ok);
+  return frenan.length > 0 && frenan.every((c) => c.clave === "planilla" && c.datos.visible !== false);
+}
+
+/** Lo que el modal dice de los avisos. La comparación con SUNAT la arma la web y no queda guardada en el cierre, así que no se promete. */
+export function promesaDeAvisos(avisos: readonly Pick<Chequeo, "clave">[]): string {
+  const guardados = avisos.filter((a) => a.clave !== "sire");
+  if (guardados.length === avisos.length) return "Quedan guardados en la historia del cierre.";
+  return guardados.length ? "Quedan guardados en la historia del cierre, menos el de SUNAT." : "Este aviso no queda guardado en la historia del cierre.";
+}
+
 /** Los avisos que quedarían guardados al cerrar (chequeos que no pasan pero no bloquean; la huella no aplica a una abierta). */
 export const avisosPendientes = (u: Unidad): Chequeo[] => u.chequeos.filter((c) => !c.ok && !c.bloquea && c.clave !== "huella");
 
@@ -479,23 +569,26 @@ export function validarMotivo(motivo: string): string | null {
   return motivo.trim().length >= 5 ? null : "Escribe el motivo (al menos 5 letras): queda en la historia.";
 }
 
-/** Lo que dice una opción del selector de mes: «Agosto 2026 · CAYLA cerrada», «· 2 cerradas». */
-export function textoOpcionMes(m: MesCierre): string {
-  const base = mesEnSelector(m.mes);
-  if (m.consolidado) return `${base} · cerrado`;
-  if (m.cerradas > 0) return `${base} · ${plural(m.cerradas, "cerrada", "cerradas")}`;
-  return base;
-}
-
 /** La historia de una unidad (o del consolidado) en el mes, en líneas: «3 sep · Felipe cerró (19ce…40ab)», «5 sep · Felipe
  *  reabrió: «llegó una factura tarde»». Del más viejo al más nuevo. */
 export function historiaDe(p: Pick<PanelCierre, "historia">, u: Pick<Unidad, "alcance" | "ubicacionId">): string[] {
   const lineas: { cuando: string; texto: string }[] = [];
   for (const e of p.historia) {
     if (e.alcance !== u.alcance || e.ubicacionId !== u.ubicacionId) continue;
-    lineas.push({ cuando: e.cerradoEn, texto: `${fechaCorta(diaLima(e.cerradoEn))} · ${primerNombre(e.cerradoPor)} cerró${e.version > 1 ? ` (versión ${e.version})` : ""} · ${huellaCorta(e.huella)}` });
+    lineas.push({ cuando: e.cerradoEn, texto: `${fechaCorta(diaLima(e.cerradoEn))} · ${primerNombre(e.cerradoPor)} cerró${e.version > 1 ? ` (versión ${e.version})` : ""} · ${huellaCorta(e.huella)}${e.avisos.length ? ` · con ${resumenAvisos(e.avisos).cuenta}: ${resumenAvisos(e.avisos).lista}` : ""}` });
     if (e.reabiertoEn)
       lineas.push({ cuando: e.reabiertoEn, texto: `${fechaCorta(diaLima(e.reabiertoEn))} · ${primerNombre(e.reabiertoPor ?? "—")} reabrió: «${e.motivoReapertura ?? ""}»` });
   }
   return lineas.sort((a, b) => a.cuando.localeCompare(b.cuando)).map((l) => l.texto);
+}
+
+/** Suma el aviso de la comparación con SUNAT (ADR-0601) a la unidad «empresa», que es la del RUC entero. Si no hay aviso, el panel sigue igual. */
+export function conChequeoSire(p: PanelCierre, chequeo: Chequeo | null): PanelCierre {
+  if (!chequeo) return p;
+  return {
+    ...p,
+    unidades: p.unidades.map((u) =>
+      u.alcance !== "empresa" ? u : { ...u, chequeos: [...u.chequeos, chequeo], avisos: u.avisos + (chequeo.ok || u.estado === "cerrado" ? 0 : 1) },
+    ),
+  };
 }

@@ -1,8 +1,10 @@
+import { idDeCarga } from "@/lib/copia-de-pagina";
 import { PackageX } from "lucide-react";
 import { puede, requirePersonaActualV2, veModulo } from "@/lib/persona-actual";
 import { getCatalogoParaRecibir, getDatosRecepcionEnvio } from "@/lib/recepcion-envio";
 import { getConteosDelEnvio } from "@/lib/recepcion-conteo";
 import { getProveedoresActivos } from "@/lib/compras";
+import { proveedoresParaPedir } from "@/lib/proveedores-reglas";
 import { necesitaCatalogoAlCerrar } from "@/lib/recepcion-conteo-reglas";
 import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 import { Volver } from "@/components/ui/Volver";
@@ -65,7 +67,7 @@ export default async function RecibirEnvioPage({ params }: { params: Promise<{ i
           <EncabezadoPagina
             sede={persona.ubicacionEtiqueta}
             titulo={`Recibir ${datos.detalle.numero}`}
-            subtitulo="Lo que llegó, contado por categoría."
+            subtitulo="Lo que llegó, contado modelo por modelo."
             volver={<Volver href="/recibir" a="Recibir mercadería" />}
           />
           <Aviso tono="error" titulo="No se pudo leer lo contado">
@@ -76,19 +78,24 @@ export default async function RecibirEnvioPage({ params }: { params: Promise<{ i
     }
     // Cerrado con pendientes: «Hacer ahora» pone tallas o crea la prenda, y necesita el vocabulario (el cargador solo lo lee por recibir).
     const catalogo = datos.catalogo ?? (necesitaCatalogoAlCerrar(conteos.conteos) ? await getCatalogoParaRecibir() : null);
-    // Llegó sin aviso y sin saber de quién (Felipe 2026-10-14): al cerrar se elige el proveedor. Solo entonces se leen.
-    const proveedoresParaElegir = conteos.conteos?.proveedorPorConfirmar ? (await getProveedoresActivos()).map((p) => ({ id: p.id, nombre: p.nombre })) : [];
+    // Llegó sin aviso (Felipe 2026-10-14): al cerrar se elige el proveedor de cada marca, y una marca nueva dice quién la trae (ADR-0635: con el RUC,
+    // para no registrar dos veces al mismo). A quién se le RECIBE mercadería: sin quien es solo de gastos (ADR-0452).
+    const paraElegir = conteos.conteos?.proveedorPorConfirmar || conteos.conteos?.origen === "sin_aviso";
+    const proveedoresParaElegir = paraElegir ? proveedoresParaPedir(await getProveedoresActivos(), "").map((p) => ({ id: p.id, nombre: p.nombre, ruc: p.ruc })) : [];
     return (
       <RecibirContando
         key={datos.detalle.id}
         detalle={datos.detalle}
         conteos={conteos.conteos}
+        carga={idDeCarga()}
         sedeActual={{ id: persona.ubicacionId, etiqueta: persona.ubicacionEtiqueta }}
         creadoPorMi={datos.creadoPorMi}
         catalogo={catalogo}
         lotes={datos.lotes}
         veExistencias={veModulo(persona, "existencias")}
         veDinero={puede(persona, "verDineroCompras")}
+        // Una terminal cambia el precio de venta solo en su sede (Felipe 2026-10-26; la base lo exige: 20261026224000).
+        soloSede={persona.terminal}
         proveedoresParaElegir={proveedoresParaElegir}
         papeles={datos.papeles}
       />

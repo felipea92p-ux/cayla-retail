@@ -158,6 +158,7 @@ describe("los botones: corazón y «Avísame»", () => {
     expect(etiquetaBotonAvisame("M", null)).toBe("Avísame cuando llegue la M");
     expect(textoAvisoAnotado("M", null)).toBe("Te avisaremos en tu cuenta cuando llegue la talla M.");
     expect(textoAvisoAnotado("Estándar", "Lima")).toBe("Te avisaremos en tu cuenta cuando llegue a Lima.");
+    expect(textoAvisoAnotado("M", null, true)).toBe("Te avisaremos en tu cuenta cuando llegue la talla M y también por WhatsApp.");
   });
 
   it("ya pedido, el mismo botón lo quita: el lector oye qué aviso se quita y el aviso de abajo dice que se puede volver a pedir", () => {
@@ -176,9 +177,10 @@ describe("los botones: corazón y «Avísame»", () => {
     expect(leerRespuestaFavorito({ estado: "guardado" })).toBe("guardado");
     expect(leerRespuestaFavorito({ estado: "sin_cuenta" })).toBe("sin_respuesta");
     expect(leerRespuestaFavorito(null)).toBe("sin_respuesta");
-    expect(leerRespuestaAviso({ estado: "anotada", id: ID(9), sede: null, nueva: true })).toEqual({ estado: "anotada", esperaId: ID(9) });
-    expect(leerRespuestaAviso({ estado: "anotada" })).toEqual({ estado: "sin_respuesta", esperaId: null });
-    expect(leerRespuestaAviso({ estado: "hay", sede: null })).toEqual({ estado: "hay", esperaId: null });
+    expect(leerRespuestaAviso({ estado: "anotada", id: ID(9), sede: null, nueva: true })).toEqual({ estado: "anotada", esperaId: ID(9), whatsapp: false });
+    expect(leerRespuestaAviso({ estado: "anotada", id: ID(9), whatsapp: true })).toEqual({ estado: "anotada", esperaId: ID(9), whatsapp: true });
+    expect(leerRespuestaAviso({ estado: "anotada" })).toEqual({ estado: "sin_respuesta", esperaId: null, whatsapp: false });
+    expect(leerRespuestaAviso({ estado: "hay", sede: null })).toEqual({ estado: "hay", esperaId: null, whatsapp: false });
     expect(leerRespuestaQuitar({ estado: "no_esta" })).toBe("no_esta");
     expect(leerRespuestaQuitar({ estado: "invalido" })).toBe("sin_respuesta");
   });

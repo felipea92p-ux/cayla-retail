@@ -1,6 +1,7 @@
 import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
 import type { EmpresaDeSede } from "@/lib/pedidos-web-reglas";
+import { unstable_rethrow } from "next/navigation";
 
 /**
  * El número del menú «Tienda web ▸ Pedidos» (ADR-0408, act. 8): los pedidos que esperan confirmación en esta tienda y todavía están a
@@ -18,6 +19,7 @@ export const getPedidosWebPorConfirmar = cache(async (ubicacionId: string): Prom
     }
     return typeof data === "number" ? data : null;
   } catch (e) {
+    unstable_rethrow(e);
     console.error("Contador de pedidos web:", e);
     return null;
   }
@@ -33,7 +35,8 @@ export const getEmpresasDeLaSede = cache(async (ubicacionId: string): Promise<Em
     const { data, error } = await supabase.rpc("fn_empresas_de_sede", { p_sede_id: ubicacionId });
     if (error || !Array.isArray(data) || data.length < 2) return [];
     return data.map((e) => ({ id: e.id, clave: e.clave, nombre: e.nombre }));
-  } catch {
+  } catch (e) {
+    unstable_rethrow(e);
     return [];
   }
 });
@@ -47,7 +50,8 @@ export async function getEmpresaDeProductos(productoIds: string[]): Promise<Map<
     const { data, error } = await supabase.from("productos").select("id, empresa_id").in("id", ids);
     if (error || !data) return new Map();
     return new Map(data.map((p) => [p.id, p.empresa_id]));
-  } catch {
+  } catch (e) {
+    unstable_rethrow(e);
     return new Map();
   }
 }

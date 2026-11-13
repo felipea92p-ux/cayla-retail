@@ -278,7 +278,7 @@ export function Figura({
     <div className="pb-estado" role="status" aria-live="polite">
       {fase === "espera" && (
         <span className="pb-etq">
-          Ajustando tu look
+          Ajustando tu outfit
           <i>.</i>
           <i>.</i>
           <i>.</i>

@@ -1,3 +1,4 @@
+import { idDeCarga } from "@/lib/copia-de-pagina";
 import { notFound } from "next/navigation";
 import { puede, requirePersonaActualV2, veModulo } from "@/lib/persona-actual";
 import { getFirmaRecepcion, getTrasladoDetalle, getWhatsappDeSedes } from "@/lib/traslados";
@@ -100,6 +101,7 @@ export async function EscenarioPase({ id, volverA }: { id: string; volverA?: { h
         <ReversoPase
           vista={vista}
           traslado={traslado}
+          carga={idDeCarga()}
           esDestino={esDestino}
           esOrigen={esOrigen}
           esLider={persona.rol === "lider"}

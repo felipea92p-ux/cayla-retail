@@ -108,7 +108,7 @@ export function AnularSalidaOVueltaModal({ datos, entrada, onClose }: { datos: O
             <Boton type="button" onClick={() => avisoSalida.pedirAccion(onClose)}>
               Cancelar
             </Boton>
-            <Boton type="submit" peso="peligro" cargando={cargando} textoCargando="Anulando…" disabled={!guia.puedeConfirmar} title={guia.frase ?? responsable.motivo ?? undefined} className={guia.claseConfirmar}>
+            <Boton type="submit" peso="primario" cargando={cargando} textoCargando="Anulando…" confirma={guia} title={guia.frase ?? responsable.motivo ?? undefined} className={guia.claseConfirmar}>
               Anular {que}
             </Boton>
           </div>

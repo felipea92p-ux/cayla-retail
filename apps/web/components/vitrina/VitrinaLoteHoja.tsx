@@ -80,7 +80,7 @@ export function VitrinaLoteHoja({
     <Modal titulo={titulo} subtitulo={subtitulo} onClose={onClose} variante="hoja" tamano="angosta" bloqueado={guardando} conCerrar>
       <form onSubmit={aplicar} className="space-y-5">
         {aviso && <Aviso tono="atencion" titulo={aviso.titulo}>{aviso.texto}</Aviso>}
-        <ul className="max-h-72 divide-y divide-sand overflow-y-auto rounded-xl border border-sand bg-papel text-[13px]" data-guia="vitrina-lote.lista">
+        <ul className="card-cayla max-h-72 divide-y divide-sand overflow-y-auto text-[13px]" data-guia="vitrina-lote.lista">
           {quePasa.map((q) => (
             <li key={q.m.id} className="flex items-baseline justify-between gap-3 px-3.5 py-2">
               <span className={`min-w-0 truncate ${q.cambia ? "text-tinta" : "text-taupe"}`}>{q.m.nombre}</span>
@@ -103,7 +103,7 @@ export function VitrinaLoteHoja({
               type="submit"
               peso="primario"
               cargando={guardando}
-              disabled={!guia.puedeConfirmar || cambian === 0}
+              disabled={cambian === 0} confirma={guia}
               title={guia.frase ?? (cambian === 0 ? "Ninguno de los elegidos cambia." : undefined)}
               className={guia.claseConfirmar}
             >

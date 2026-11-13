@@ -216,4 +216,7 @@ export const EJEMPLOS = {
   "/ordenes-insumos/ver/[id]": { cuenta: "admin-taller", sinDatos: SIN_ORDEN_INSUMO, url: () => `/ordenes-insumos/ver/${id(ORDEN_INSUMO_QUE_ENSENA)}` },
   "/ordenes-insumos/editar/[id]": { cuenta: "admin-taller", sinDatos: SIN_ORDEN_INSUMO, url: () => `/ordenes-insumos/editar/${id(ORDEN_INSUMO_QUE_ENSENA)}` },
   "/ordenes-insumos/comprobante/[id]": { cuenta: "admin-taller", sinDatos: SIN_PAPEL_OI, url: () => `/ordenes-insumos/comprobante/${id(ORDEN_INSUMO_PARA_PAPEL)}` },
+  // Tráfico de la tienda web: lo anota la tienda online desde que se publica la medición (ADR-0495). Sin ninguna visita en la base local,
+  // la pantalla muestra su vacío y la guía recorre solo ese camino: no se inventan visitas para una demo.
+  "/tienda-web/trafico": { sinDatos: "select 'la base local no tiene visitas de la tienda online' where not exists (select 1 from retail.trafico_web)" },
 };

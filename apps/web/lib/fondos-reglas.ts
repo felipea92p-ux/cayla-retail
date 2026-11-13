@@ -327,9 +327,13 @@ export function accionTuFondo(c: Pick<CaraTuFondo, "puedeRendir" | "rendicionAbi
   return c.puedeRendir ? "Rendir" : null;
 }
 
-/** A dónde lleva la tarjeta del Inicio cuando no hay nada que rendir: a donde se compra y se paga desde el fondo, si la persona ve esa pantalla. */
+/**
+ * A dónde lleva la tarjeta del Inicio cuando no hay nada que rendir: a donde se compra y se paga desde el fondo, si la persona ve esa pantalla.
+ * Desde ADR-0480 la clave `ordenes_compra` es «Mis compras» (`/compras/mi-plata`, la entrada del menú); `/compras/ordenes` ya no tiene fila
+ * en el menú, así que la tarjeta no debe llevar a la pantalla vieja.
+ */
 export function hrefTuFondo(ve: (modulo: "ordenes_compra" | "por_pagar") => boolean): string | undefined {
-  if (ve("ordenes_compra")) return "/compras/ordenes";
+  if (ve("ordenes_compra")) return "/compras/mi-plata";
   if (ve("por_pagar")) return "/compras/por-pagar";
   return undefined;
 }
@@ -451,11 +455,20 @@ export function subtituloDevolver(tope: TopeDevolucion): string {
     : `Tiene ${soles(tope.monto)} en su fondo.`;
 }
 
-/** El monto escrito. `tope`, en la devolución: lo que la persona tiene (un número, o el tope con su rendición por aprobar). */
-export function problemaDeMonto(textoMonto: string, tope?: number | TopeDevolucion): string | null {
+/**
+ * Los topes que la base de Mis compras ya impone a un monto (si la web no los dijera, el error salía recién al guardar, en la hoja, y no en el
+ * campo): la plata que te dan y el papel de una compra, hasta S/ 1 000 000 (`fondo_plata_anotada.monto`, `compra_papeles.monto`; 20261022235000 y
+ * 20261023005000); un gasto de otra cosa, hasta S/ 100 000 (`compra_gastos.monto`, 20261023114000).
+ */
+export const MONTO_MAXIMO_PLATA = 1_000_000;
+export const MONTO_MAXIMO_GASTO = 100_000;
+
+/** El monto escrito. `tope`, en la devolución: lo que la persona tiene (un número, o el tope con su rendición por aprobar). `maximo`: el más alto que la base acepta. */
+export function problemaDeMonto(textoMonto: string, tope?: number | TopeDevolucion, maximo?: number): string | null {
   const m = leerMontoPlata(textoMonto);
   if (m == null) return textoMonto.trim() ? MONTO_ILEGIBLE : "Escribe cuánto.";
   if (m <= 0) return "El monto tiene que ser mayor que cero.";
+  if (maximo !== undefined && m > maximo) return `El monto no puede pasar de ${soles(maximo)}.`;
   const t = typeof tope === "number" ? topeDevolucion(tope) : tope;
   if (t != null && m > t.monto + CENTAVO / 10) {
     return t.porRendicion

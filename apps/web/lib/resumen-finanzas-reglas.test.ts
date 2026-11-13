@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
 import fixture from "./resumen-finanzas.fixture.json";
+import type { FilaER } from "./resultados-reglas";
+import type { ResumenFinanzas } from "./resumen-finanzas-reglas";
 import {
   avisosParaDecidir,
   claveVer,
@@ -7,6 +9,8 @@ import {
   deUnidad,
   diasDelMes,
   equilibrio,
+  estadoDelMesYaLeido,
+  flujoDelResumen,
   explicarFallaLectura,
   leerResumen,
   leerVerResumen,
@@ -113,9 +117,28 @@ describe("Para decidir hoy", () => {
       origen: "Cuentas y dinero ▸ Por pagar",
     });
     expect(as[0]!.href).toMatch(/^\/finanzas\/dinero\/por-pagar\?ver=todas&pagar=/);
-    expect(as[1]).toMatchObject({ tono: "ambar", titulo: "La semana del 12 – 18 oct quedas bajo tu mínimo de caja", impacto: "faltan S/\u00a0490", href: "/finanzas/reportes/escenarios" });
+    expect(as[1]).toMatchObject({ tono: "ambar", titulo: "La semana del 12 – 18 oct quedas bajo tu mínimo de caja", impacto: "faltan S/\u00a0490", href: "/finanzas/reportes/flujo#y-si" });
     expect(as[1]!.detalle).toContain("Distribuidora Norte S/\u00a015,300");
-    expect(as[3]).toMatchObject({ titulo: "LIM perdió S/\u00a02,484 en agosto", detalle: "Necesita vender S/\u00a024,763 al mes y vendió S/\u00a019,800." });
+    expect(as[3]).toMatchObject({ titulo: "LIM perdió S/\u00a02,484 en agosto", detalle: "Necesita vender S/\u00a024,763 al mes y vendió S/\u00a019,800, sin IGV." });
+  });
+
+  // Tarea 19: el mes pasado también se dice con IGV y es lo de CAYLA.
+  const conAnterior = (cambio: Partial<FilaER>) => {
+    const r = todas();
+    if (r.resultadosAnterior.estado !== "ok") throw new Error("fixture");
+    return { ...r, resultadosAnterior: { estado: "ok" as const, datos: r.resultadosAnterior.datos.map((f) => (f.unidad === "tienda" && f.resultado < 0 ? { ...f, ...cambio } : f)) } };
+  };
+  const pierde = (r: ResumenFinanzas) => avisosParaDecidir(r, LIDER).find((a) => a.clave.startsWith("pierde:"))!;
+  it("la tienda que perdió: lo que necesita y lo que vendió, los dos con IGV", () => {
+    expect(pierde(conAnterior({ igvCobrado: 3_564, claureSinIgv: 0 })).detalle).toBe("Necesita vender S/\u00a029,220 al mes y vendió S/\u00a023,364, con IGV.");
+  });
+  it("con CLAURE no se infla: la tasa sale de lo vendido con CLAURE", () => {
+    const a = pierde(conAnterior({ igvCobrado: 3_564 + 180, claureSinIgv: 1_000 }));
+    expect(a.detalle).toBe("Necesita vender S/\u00a029,220 al mes y vendió S/\u00a023,364, con IGV y sin lo de CLAURE.");
+  });
+  it("sin equilibrio calculable, lo vendido lleva su rótulo junto a los gastos", () => {
+    expect(pierde(conAnterior({ margen: -10, igvCobrado: 3_564, claureSinIgv: 0 })).detalle).toMatch(/^Vendió S\/\u00a023,364 con IGV; sus gastos fueron /);
+    expect(pierde(conAnterior({ margen: -10 })).detalle).toMatch(/^Vendió S\/\u00a019,800 sin IGV; sus gastos fueron /);
   });
 
   it("cada aviso dice de dónde sale y a dónde ir", () => {
@@ -159,12 +182,12 @@ describe("Para decidir hoy", () => {
       expect(claves(avisosParaDecidir(todas(), LIDER))).not.toContain("umbral_aviso");
     });
 
-    it("al llegar al aviso sale «Llevas S/ X vendidos este año, a S/ Y de las 300 UIT: habla con tu contador» y REEMPLAZA al «Vas al X %»", () => {
+    it("al llegar al aviso sale «Llevas S/ X vendidos este año, sin IGV, a S/ Y de las 300 UIT: habla con tu contador» y REEMPLAZA al «Vas al X %»", () => {
       const as = avisosParaDecidir(conAviso({}), LIDER);
       const a = as.find((x) => x.clave === "umbral_aviso")!;
       expect(a).toMatchObject({
         tono: "ambar",
-        titulo: "Llevas S/\u00a01,400,000 vendidos este año, a S/\u00a0250,000 de las 300 UIT: habla con tu contador.",
+        titulo: "Llevas S/\u00a01,400,000 vendidos este año, sin IGV, a S/\u00a0250,000 de las 300 UIT: habla con tu contador.",
         href: "/finanzas/impuestos",
         origen: "Impuestos",
       });
@@ -342,5 +365,63 @@ describe("que el número diga la verdad (auditoría v3 del Resumen, 2026-10-23)"
     expect(explicarFallaLectura({ code: "42501", message: "permission denied" }, "leer el resumen")).toMatch(/permiso/);
     expect(explicarFallaLectura({ message: "TypeError: fetch failed" }, "leer el resumen")).toMatch(/conexión/);
     expect(explicarFallaLectura({ code: "XX000", message: "boom" }, "leer el resumen")).toBe("No se pudo leer el resumen. Vuelve a cargar la página; si sigue igual, avisa a Felipe.");
+  });
+});
+
+describe("el estado de resultados del mes que el resumen ya armó (2026-11-09, el pico de memoria)", () => {
+  // `fn_resumen_finanzas` lo arma del 1 a hoy; la página lo pedía otra vez aparte. Se reusa solo si es EXACTAMENTE el mismo.
+  const conRango = (caso: Record<string, unknown>, desde = "2026-09-01", hasta = "2026-09-24") =>
+    leerResumen({ ...caso, resultados_mes: { ...(caso.resultados_mes as object), desde, hasta } });
+  const MES = { desde: "2026-09-01", hasta: "2026-09-24" };
+
+  it("todas las sedes y el mismo rango: devuelve las filas del resumen, las mismas que mostraría", () => {
+    const r = conRango(fixture.todas);
+    expect(r.rangoMes).toEqual(MES);
+    const filas = estadoDelMesYaLeido(r, MES);
+    expect(filas).not.toBeNull();
+    expect(filas).toBe(r.resultadosMes.estado === "ok" ? r.resultadosMes.datos : null);
+    expect(filas).toHaveLength(6);
+  });
+
+  it("otro rango (un mes entero, otro día, otro mes): null, la página lo pide como antes", () => {
+    const r = conRango(fixture.todas);
+    expect(estadoDelMesYaLeido(r, { desde: "2026-09-01", hasta: "2026-09-30" })).toBeNull();
+    expect(estadoDelMesYaLeido(r, { desde: "2026-09-01", hasta: "2026-09-23" })).toBeNull();
+    expect(estadoDelMesYaLeido(r, { desde: "2026-08-01", hasta: "2026-08-31" })).toBeNull();
+  });
+
+  it("una sede, el Taller o «de la empresa»: null (el resumen mira solo eso; la página, todas las sedes)", () => {
+    for (const caso of [fixture.tru, fixture.taller, fixture.empresa, fixture.colaboradora]) {
+      expect(estadoDelMesYaLeido(conRango(caso), MES)).toBeNull();
+    }
+  });
+
+  it("sin rango (un resumen de antes), sin resumen o con su estado de resultados caído: null", () => {
+    expect(estadoDelMesYaLeido(todas(), MES)).toBeNull();
+    expect(estadoDelMesYaLeido(null, MES)).toBeNull();
+    const caido = leerResumen({ ...fixture.todas, resultados_mes: { falla: "se cortó por tiempo", desde: "2026-09-01", hasta: "2026-09-24" } });
+    expect(estadoDelMesYaLeido(caido, MES)).toBeNull();
+  });
+});
+
+describe("el flujo de caja que el resumen ya trae entero (20261109175000)", () => {
+  // La página lo pedía aparte porque el resumen le quitaba los cobros. Desde la migración vienen; sin ella, la página lo pide como antes.
+  const conFlujo = (flujo: unknown) => leerResumen({ ...fixture.todas, flujo });
+  const PROYECCION = { ...(fixture.todas.flujo as object), cobros: [] };
+
+  it("con los cobros: es la proyección entera, y la página la usa", () => {
+    const r = conFlujo(PROYECCION);
+    expect(r.flujoConCobros).toBe(true);
+    const f = flujoDelResumen(r);
+    expect(f?.estado).toBe("ok");
+    expect(f && f.estado === "ok" && r.flujo.estado === "ok" ? f.datos : null).toBe(r.flujo.estado === "ok" ? r.flujo.datos : undefined);
+  });
+
+  it("sin los cobros (una base sin la migración), sin permiso, caído o mirando una sola sede: null, la página la pide aparte", () => {
+    expect(flujoDelResumen(todas())).toBeNull();
+    expect(flujoDelResumen(conFlujo({ sin_permiso: "no ves el flujo" }))).toBeNull();
+    expect(flujoDelResumen(conFlujo({ falla: "se cortó por tiempo" }))).toBeNull();
+    expect(flujoDelResumen(tru())).toBeNull();
+    expect(flujoDelResumen(null)).toBeNull();
   });
 });

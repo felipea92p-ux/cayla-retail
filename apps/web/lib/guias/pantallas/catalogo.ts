@@ -39,11 +39,27 @@ export const GUIA_PRODUCTOS: Guia = {
       texto: "Los carteles de anaquel con el nombre y el precio de la prenda. Abre su pantalla para buscar las prendas e imprimirlos; «Volver» te regresa aquí. Si marcas prendas en la lista, la barra de abajo las lleva ya elegidas.",
     },
     {
+      // ADR-0641: lo ve quien edita el catálogo.
+      id: "revisar-precios",
+      ancla: "productos.revisar-precios",
+      opcional: true,
+      titulo: "Revisar precios",
+      texto: "Las prendas cuyo precio conviene mirar: las que pierden dinero, ganan poco o están muy lejos del precio de sus parecidas. Tiene su propia demo.",
+    },
+    {
       id: "por-revisar",
       ancla: "productos.por-revisar",
       opcional: true,
       titulo: "Prendas por revisar",
       texto: "Las que alguien propuso en un conteo o desde el Taller esperan que quien edita el catálogo las apruebe o las rechace. Mientras tanto se pueden vender, si tienen precio. «Revisar» te lleva a la lista.",
+    },
+    {
+      // ADR-0650 (decisión 3): sale solo si hay fichas activas con el nombre igual o casi igual.
+      id: "posibles-duplicados",
+      ancla: "productos.posibles-duplicados",
+      opcional: true,
+      titulo: "Fichas que parecen repetidas",
+      texto: "Si dos fichas tienen el nombre igual o casi igual, el sistema te las muestra aquí. «Revisar» abre la lista: si son la misma prenda, las fusionas en una y no se pierden ventas, fotos ni stock. Si no, las dejas como están.",
     },
     {
       // ADR-0393 (decisión 4): sale solo si lo recibido en la sede tiene prendas nuevas por crear.
@@ -92,14 +108,14 @@ export const GUIA_PRODUCTOS: Guia = {
       ancla: "productos.tarjeta",
       opcional: true,
       titulo: "Cada prenda",
-      texto: "La foto del color elegido (o su dibujo si aún no tiene foto), el nombre, el código, la categoría y de qué marca es. Toca la foto y se abre la vista rápida (te la abrimos en un momento).",
+      texto: "La foto del color elegido (o su dibujo si aún no tiene foto) y, debajo, el nombre con su precio, qué es y de qué color. Toca la foto y se abre la vista rápida, con el código y la marca (te la abrimos en un momento).",
     },
     {
       id: "precio-stock",
       ancla: "productos.precio-stock",
       opcional: true,
-      titulo: "Precio y cuántas hay aquí",
-      texto: "A la izquierda, lo que cobra la caja en la tienda elegida arriba (si una campaña la rebaja hoy, con el de lista tachado y su «−20 %»); «2 precios» si otra tienda la vende a otro. A la derecha, cuántas puedes vender aquí y, debajo, en otras sedes, el taller o en camino. «Sin stock»: no queda en ninguna.",
+      titulo: "Precio y cuántas hay",
+      texto: "Junto al nombre, lo que cobra la caja en la tienda elegida arriba (si una campaña la rebaja hoy, con el de lista tachado y su «−20 %» sobre la foto). Abajo, cuántas hay en la empresa («Quedan 8», «Sin stock») y en qué sede están: Trujillo, Arequipa, Lima y el Taller.",
     },
     {
       id: "colores",
@@ -150,7 +166,7 @@ export const GUIA_PRODUCTOS: Guia = {
       ancla: "vista-rapida.botones",
       opcional: true,
       titulo: "Lo que haces con ella",
-      texto: "«Editar» abre su ficha completa. «Etiquetas» imprime las de lo elegido (o de toda la prenda) y «Rótulo», su cartel de anaquel. «Ver en Existencias» te lleva a su stock. «Eliminar» solo borra si nunca se vendió; arriba, junto a su estado, «Desactivar» la descontinúa. En la demo no tocamos ninguno.",
+      texto: "«Editar» abre su ficha, «Etiquetas» y «Rótulo» imprimen, «Ver en Existencias» lleva a su stock. Bajo su ficha, para una ficha repetida o creada por error: «Fusionar» junta dos fichas y «Eliminar» borra la que nunca se vendió. Si solo dejó de venderse, es «Desactivar», arriba. En la demo no tocamos ninguno.",
     },
     {
       id: "vr-historial",
@@ -263,6 +279,100 @@ export const GUIA_PRODUCTOS: Guia = {
       texto: "La hoja vuelve a la página de antes, tal como la dejaste. Para cerrarla, la ✕ de arriba o Escape (la cerramos nosotros).",
     },
     {
+      id: "vr-fusionar",
+      ancla: "vista-rapida.fusionar",
+      opcional: true,
+      titulo: "Una prenda con dos fichas",
+      texto: "Si la misma prenda se registró dos veces (una capa que entró como blusa, por ejemplo), «Fusionar» junta las dos fichas en una sola. Las ventas, las fotos y el stock pasan a la que elijas: no se pierde nada. Te la abrimos.",
+    },
+    {
+      id: "fusionar-fichas",
+      ancla: "fusionar.fichas",
+      opcional: true,
+      preparar: [{ tipo: "clic", ancla: "vista-rapida.fusionar" }],
+      titulo: "Busca la otra ficha",
+      texto: "Escribe el nombre o el código de la otra ficha de esta prenda y elígela; si el sistema cree que hay una parecida, te la ofrece de un toque. Puedes juntar hasta tres.",
+    },
+    {
+      id: "fusionar-queda",
+      ancla: "fusionar.queda",
+      opcional: true,
+      titulo: "¿Cuál se queda?",
+      texto: "Las fichas, una al lado de la otra, con sus ventas, su stock y cuándo se crearon. Te proponemos la que más vendió; tocas otra si prefieres. La elegida lleva su ✓ y nada cambia de lugar.",
+    },
+    {
+      id: "fusionar-ver-ficha",
+      ancla: "fusionar.ver-ficha",
+      opcional: true,
+      titulo: "Ver ficha",
+      texto: "Sobre cada foto, «Ver ficha» abre las fichas en grande para compararlas: sus fotos, ventas, stock por sede, tallas y precio. Te la abrimos.",
+    },
+    {
+      id: "fusionar-comparar",
+      ancla: "fusionar.comparar",
+      opcional: true,
+      preparar: [{ tipo: "clic", ancla: "fusionar.ver-ficha" }],
+      titulo: "Para comparar",
+      texto: "Cada columna es una ficha, en el mismo orden. El mismo bloque queda a la misma altura, para leerlas de lado a lado. Solo se mira: la cerramos con la ✕.",
+    },
+    {
+      id: "fusionar-diferencias",
+      ancla: "fusionar.diferencias",
+      opcional: true,
+      preparar: [{ tipo: "escape" }],
+      titulo: "Lo que es distinto",
+      texto: "Solo aparece lo que no coincide: el nombre, la categoría, el precio… Cada dato va bajo su ficha y tocas el que se queda. Lo que no aparece es igual en las fichas.",
+    },
+    {
+      id: "fusionar-vacias",
+      ancla: "fusionar.vacias",
+      opcional: true,
+      titulo: "Tallas sin prendas",
+      texto: "Las tallas y colores que no tienen ni una prenda (o nunca la tuvieron). Si no las quieres en la ficha final, quítales la marca: dejan de venderse, pero sus ventas no se pierden.",
+    },
+    {
+      id: "fusionar-fotos",
+      ancla: "fusionar.fotos",
+      opcional: true,
+      titulo: "Las fotos que quedan",
+      texto: "Marca las fotos que quieres en la ficha final; la primera es la principal. Las que no marques no se borran: se guardan en la ficha repetida.",
+    },
+    {
+      id: "fusionar-final",
+      ancla: "fusionar.final",
+      opcional: true,
+      titulo: "Así va a quedar",
+      texto: "La ficha final se arma con cada cosa que eliges. Abajo, sus tallas y colores: lo que ya estaba, lo que pasa de la otra ficha (borde punteado) y lo que se junta y suma (+3).",
+    },
+    {
+      id: "fusionar-bloqueos",
+      ancla: "fusionar.bloqueos",
+      opcional: true,
+      titulo: "Lo que falta cerrar",
+      texto: "Si una talla repetida tiene algo en curso (un apartado, un traslado en camino, un pedido web), aquí te dice cuál cerrar primero y dónde.",
+    },
+    {
+      id: "fusionar-botones",
+      ancla: "fusionar.botones",
+      opcional: true,
+      titulo: "Revisar y fusionar",
+      texto: "Cuando todo está como quieres, «Revisar y fusionar» te muestra un último vistazo antes de guardar. En la demo no seguimos: cerramos sin guardar.",
+    },
+    {
+      id: "fusionar-resumen",
+      ancla: "fusionar.resumen",
+      opcional: true,
+      titulo: "El último vistazo",
+      texto: "Qué tallas pasan tal cual, cuáles se juntan con la misma talla y color (su stock se suma) y que las etiquetas ya impresas siguen sirviendo.",
+    },
+    {
+      id: "fusionar-confirmar",
+      ancla: "fusionar.confirmar",
+      opcional: true,
+      titulo: "Sí, fusionar",
+      texto: "Eliges quién la hace y tocas «Sí, fusionar». No se puede deshacer: por eso todo se ve antes. La flecha te devuelve a elegir sin perder nada.",
+    },
+    {
       id: "paginacion",
       ancla: "productos.paginacion",
       opcional: true,
@@ -276,7 +386,7 @@ export const GUIA_PRODUCTOS: Guia = {
       opcional: true,
       preparar: [{ tipo: "escape" }, { tipo: "clic", ancla: "productos.vista-tabla" }],
       titulo: "La vista en Tabla",
-      texto: "Pasamos a «Tabla». Aquí marcas prendas con su casilla (o toda la página) y abajo aparece una barra para descontinuarlas o reactivarlas juntas. Siempre te pide confirmar antes.",
+      texto: "Pasamos a «Tabla». Aquí marcas prendas con su casilla (o toda la página) y abajo aparece una barra para descontinuarlas o reactivarlas juntas, o fusionar dos fichas de la misma prenda. Siempre te pide confirmar antes.",
     },
     {
       id: "tabla",
@@ -323,13 +433,13 @@ export const GUIA_EDITAR_PRODUCTO: Guia = {
   id: "productos.id.editar",
   ruta: "/productos/[id]/editar",
   titulo: "Editar producto",
-  resumen: "La ficha completa de una prenda: datos, fotos, colores, tallas, precios y stock.",
+  resumen: "La ficha completa de una prenda: datos, fotos, colores, tallas, precios y costos. El stock se ve aquí y se ajusta en Existencias.",
   pasos: [
     {
       id: "bienvenida",
       ancla: null,
       titulo: "La ficha de una prenda",
-      texto: "Aquí corriges todo de una prenda que ya existe: su nombre y categoría, el tejido, las fotos, los colores y tallas, los precios y el stock de hoy. Nada se guarda hasta que tocas «Revisar y guardar». Es una demo: no se cambia nada.",
+      texto: "Aquí corriges todo de una prenda que ya existe: su nombre y categoría, el tejido, las fotos, los colores y tallas, los precios y los costos. El stock de hoy se ve aquí, con candado: se ajusta en Existencias. Nada se guarda hasta que tocas «Revisar y guardar». Es una demo: no se cambia nada.",
     },
     {
       id: "cabecera",
@@ -341,14 +451,14 @@ export const GUIA_EDITAR_PRODUCTO: Guia = {
       id: "producto",
       ancla: "editar.seccion-producto",
       titulo: "1 · Producto",
-      texto: "Nombre, categoría, marca, proveedor y descripción. Cada sección dice arriba lo que tiene y lleva ✓ cuando está completa. Tócala para abrirla (te la abrimos).",
+      texto: "Nombre, categoría, marca, proveedor, cómo llama el proveedor a la prenda (para volver a pedirla) y descripción. Cada sección dice arriba lo que tiene y lleva ✓ cuando está completa. Tócala para abrirla (te la abrimos).",
     },
     {
       id: "producto-abierta",
       ancla: "editar.seccion-producto",
       preparar: [{ tipo: "clic", ancla: "editar.seccion-producto" }],
       titulo: "Cada campo dice su estado",
-      texto: "Como en Nuevo producto, cada campo te dice si está listo, si falta o si es opcional, y «Sigue aquí» marca el que conviene llenar. Lo que cambias se pinta en ámbar hasta que guardas. La cerramos de nuevo.",
+      texto: "Como en Nuevo producto, cada campo te dice si está listo, si falta o si es opcional, y «Sigue» marca el que conviene llenar. Lo que cambias se pinta en ámbar hasta que guardas. La cerramos de nuevo.",
     },
     {
       id: "tejido",
@@ -367,12 +477,12 @@ export const GUIA_EDITAR_PRODUCTO: Guia = {
       id: "variantes",
       ancla: "editar.seccion-variantes",
       titulo: "4 · Variantes y precios",
-      texto: "Una fila por color y una columna por talla. En «Stock de hoy» corriges cuántas hay con − y +; una raya es una talla que no existe en ese color. El lápiz corrige un color o una talla mal registrados y el tacho deja de vender ese color. Abajo, «Agregar color» y «Agregar talla».",
+      texto: "Una fila por color y una columna por talla. En «Unidades» ves cuántas hay, con su candado: tócalo para ajustar el stock en Existencias. Una raya es una talla que no existe. El lápiz corrige un color o una talla; el tacho deja de vender ese color. Abajo, «Agregar color» y «Agregar talla».",
     },
     {
       id: "vistas",
       ancla: "editar.vistas",
-      titulo: "Stock, precios, costos, etiquetas",
+      titulo: "Unidades, precios, costos, insignias",
       texto: "La misma tabla con otro dato a la vista. Mira: pasamos a «Precios», donde escribes el precio de cada talla o cambias varias de una vez.",
       demostrar: [{ tipo: "clic", ancla: "editar.vista-precio" }],
     },
@@ -384,18 +494,34 @@ export const GUIA_EDITAR_PRODUCTO: Guia = {
       texto: "Elige a cuáles variantes (todas, un color o una talla), escribe el precio nuevo y «Aplicar» lo pone en la tabla. También puedes escribirlo celda por celda. Lo cambiado se pinta en ámbar y recién se guarda con «Revisar y guardar».",
     },
     {
+      id: "costo-prenda",
+      ancla: "editar.costo-prenda",
+      opcional: true,
+      preparar: [{ tipo: "clic", ancla: "editar.vista-costo" }],
+      titulo: "Cuánto te cuesta cada prenda",
+      texto: "En «Costos», arriba: lo que te cuesta hoy cada prenda (el promedio de las que tienes) y la última compra, la misma cifra del Historial. Cada talla lleva su propio promedio: las grises ya entraron por compra y su «?» dice de dónde sale su costo.",
+    },
+    {
+      id: "sugerencia-costo",
+      ancla: "editar.sugerencia-costo",
+      opcional: true,
+      preparar: [{ tipo: "clic", ancla: "editar.vista-costo" }],
+      titulo: "Las tallas que aún no llegan",
+      texto: "Las tallas que todavía no entraron por compra siguen con el costo que se escribió a mano. Este botón les pone el de la última compra a las que no tienen prendas; las grises y las que tienen stock no se tocan. Se guarda con «Revisar y guardar». En la demo no lo tocamos.",
+    },
+    {
       id: "vistas-vuelta",
       ancla: "editar.vistas",
       preparar: [{ tipo: "clic", ancla: "editar.vista-unidades" }],
-      titulo: "Costos, insignias y campañas",
-      texto: "«Costos» muestra lo que te cuesta cada talla y su margen. «Insignias y campañas» marca cuáles llevan Nuevo, Para liquidar o una campaña. Volvimos a «Stock de hoy».",
+      titulo: "Costos e insignias",
+      texto: "«Costos» muestra lo que te cuesta cada talla y su margen. «Insignias» marca cuáles llevan Nuevo, Para liquidar o una campaña. Volvimos a «Unidades».",
     },
     {
       id: "precio-tienda",
       ancla: "editar.precio-tienda",
       opcional: true,
       titulo: "Precio por tienda",
-      texto: "Si todas las tiendas venden igual, lo dice en una línea. Una tienda puede tener su propio precio, con desde cuándo, por qué y quién lo puso; «Cambiar» y «Quitar» lo ajustan. Esto se guarda aparte, al momento, no con «Revisar y guardar». En la demo no lo tocamos.",
+      texto: "Si todas las tiendas venden igual, lo dice en una línea. Una tienda puede tener su precio, y una talla otro: se dice talla por talla, con desde cuándo, por qué y quién; «Cambiar» y «Quitar» lo ajustan. En una terminal no sale: su precio va en la tabla de «Precios». En la demo no lo tocamos.",
     },
     {
       id: "corregir-talla",
@@ -418,7 +544,7 @@ export const GUIA_EDITAR_PRODUCTO: Guia = {
       opcional: true,
       preparar: [{ tipo: "escape" }],
       titulo: "Llegó un color o una talla nueva",
-      texto: "«Agregar color» suma una fila con sus tallas; «Agregar talla», una columna en cada color. Las nuevas nacen en cero: el stock entra con el mismo − y + de la tabla. Te abrimos «Agregar color».",
+      texto: "«Agregar color» suma una fila con sus tallas; «Agregar talla», una columna en cada color. Las nuevas nacen con las unidades que les pongas, solo esa vez: después el stock se ajusta en Existencias. Te abrimos «Agregar color».",
     },
     {
       id: "agregar-color",
@@ -426,7 +552,21 @@ export const GUIA_EDITAR_PRODUCTO: Guia = {
       opcional: true,
       preparar: [{ tipo: "clic", ancla: "editar.agregar-color" }],
       titulo: "Los colores que llegaron",
-      texto: "Elige uno o varios de la lista de colores, o búscalo por nombre. Al elegir, aparecen su foto (opcional), en qué tallas viene y la tabla de las variantes que van a nacer, con su precio.",
+      texto: "Elige uno o varios de la lista de colores, o búscalo por nombre. Si la prenda trae dos colores (hueso con azul), «+ Color combinado» arma la mezcla, aunque la base ya se venda. Al elegir, aparecen su foto (opcional), en qué tallas viene y las variantes que van a nacer, con su precio.",
+    },
+    {
+      id: "agregar-color-unidades",
+      ancla: "agregar-color.unidades",
+      opcional: true,
+      titulo: "¿Con cuántas unidades nacen?",
+      texto: "Pon cuántas hay de cada talla nueva, o déjalas en 0. Es la única vez que se escribe stock aquí: al guardar, el número se sella con su candado y después solo se ajusta en Existencias.",
+    },
+    {
+      id: "agregar-color-vista",
+      ancla: "agregar-color.vista-previa",
+      opcional: true,
+      titulo: "Así quedará en la tabla",
+      texto: "Lo que ya hay, atenuado, y lo que nace, en ámbar con sus unidades. Míralo antes de sumarlas a la ficha.",
     },
     {
       id: "agregar-color-pie",
@@ -445,6 +585,29 @@ export const GUIA_EDITAR_PRODUCTO: Guia = {
       texto: "Marca las tallas nuevas: cada una nace en los colores que ya vende la prenda. Toca una celda para quitar una combinación que no llegó y pon su precio. Solo ofrece las tallas de su categoría. Cerramos sin agregar.",
     },
     {
+      id: "agregar-talla-unidades",
+      ancla: "agregar-talla.unidades",
+      opcional: true,
+      titulo: "¿Con cuántas unidades nacen?",
+      texto: "Pon cuántas hay de la talla nueva en cada color, o déjalas en 0. Es la única vez que se escribe stock aquí: al guardar se sella y después solo se ajusta en Existencias.",
+    },
+    {
+      id: "agregar-talla-vista",
+      ancla: "agregar-talla.vista-previa",
+      opcional: true,
+      titulo: "Así quedará en la tabla",
+      texto: "La columna nueva, en ámbar y con sus unidades, junto a lo que ya hay. Míralo antes de sumarla a la ficha.",
+    },
+    {
+      // El pie de «Agregar talla», como el de «Agregar color»: el asistente que acompaña una talla nueva lo enciende; la demo cierra la
+      // hoja antes, así que se salta (opcional).
+      id: "agregar-talla-pie",
+      ancla: "agregar-talla.pie",
+      opcional: true,
+      titulo: "Sumarlas a la ficha",
+      texto: "El botón de la derecha suma esas tallas a la tabla de la ficha, todavía sin guardar; «Cancelar» cierra sin tocar nada.",
+    },
+    {
       id: "foto",
       ancla: "editar.foto",
       opcional: true,
@@ -457,7 +620,14 @@ export const GUIA_EDITAR_PRODUCTO: Guia = {
       ancla: "editar.stock-talla",
       opcional: true,
       titulo: "Stock por talla",
-      texto: "Cuántas hay de cada talla del color elegido, con una barra para ver de un vistazo cuál se está acabando. Con − y + lo corriges aquí mismo; se guarda con «Revisar y guardar».",
+      texto: "Cuántas hay de cada talla del color elegido, con una barra para ver de un vistazo cuál se está acabando. Cada número tiene candado: tócalo y «Ajustar stock» te lleva a esa talla en Existencias.",
+    },
+    {
+      id: "ficha-consumo",
+      ancla: "editar.ficha-consumo",
+      opcional: true,
+      titulo: "La ficha de consumo",
+      texto: "Cuánta tela lleva una prenda de este modelo (por talla si hace falta) y qué avíos: botones, hilo, etiquetas. «Abrir la ficha» la muestra, con las órdenes cerradas; la edita el Taller. Con 3 órdenes manda lo que se gastó de verdad, y «Volver a Audaces» lo deshace.",
     },
     {
       id: "precio",
@@ -472,6 +642,15 @@ export const GUIA_EDITAR_PRODUCTO: Guia = {
       opcional: true,
       titulo: "Lo que le falta a la ficha",
       texto: "Te dice qué le falta para quedar completa, como las fotos de algunos colores. Tócalo y te lleva directo a ese campo. No impide guardar: es un recordatorio.",
+    },
+    {
+      // La barra que aparece al cambiar algo: aquí guarda la persona. El asistente que acompaña una tarea la enciende; la demo no cambia
+      // nada, así que no la ve y se salta (opcional).
+      id: "barra-guardar",
+      ancla: "editar.barra-guardar",
+      opcional: true,
+      titulo: "Revisar y guardar",
+      texto: "Te muestra la lista de lo que cambiaste antes de guardar; ahí confirmas. «Descartar» deja la ficha como estaba.",
     },
     {
       id: "guardar",
@@ -633,8 +812,8 @@ export const GUIA_ATRIBUTOS: Guia = {
     {
       id: "cabecera",
       ancla: "atributos.cabecera",
-      titulo: "Atributos y su «!»",
-      texto: "El «!» junto al título cuenta la regla de estas listas: cualquiera con sesión propone un valor nuevo y ya lo puede usar; después un líder lo aprueba o lo rechaza. La temporada es distinta: una lista fija de nueve.",
+      titulo: "Atributos y su «?»",
+      texto: "El «?» junto al título cuenta la regla de estas listas: cualquiera con sesión agrega un valor nuevo y ya lo puede usar. La temporada es distinta: una lista fija de nueve.",
     },
     {
       id: "pestanas",
@@ -646,7 +825,7 @@ export const GUIA_ATRIBUTOS: Guia = {
       id: "ayuda",
       ancla: "atributos.ayuda",
       titulo: "Para qué sirve esta lista",
-      texto: "Una línea que explica la lista que tienes abierta. En Colores: quién propone uno nuevo y quién lo aprueba.",
+      texto: "Una línea que explica la lista que tienes abierta. En Colores: quién agrega uno nuevo y qué pasa con lo que quedó pendiente.",
     },
     {
       id: "filtros",
@@ -669,7 +848,7 @@ export const GUIA_ATRIBUTOS: Guia = {
       opcional: true,
       preparar: [{ tipo: "vaciar", ancla: "vocabulario.buscador" }],
       titulo: "Agregar uno nuevo",
-      texto: "Abre una ventana para sumar un valor a la lista. Antes de crear uno, busca si ya existe con otro nombre: dos nombres para lo mismo ensucian el catálogo. En la demo no lo tocamos.",
+      texto: "Abre una ventana para sumar un valor a la lista. Mientras escribes el nombre, el sistema te muestra si ya existe uno igual o parecido (plural, femenino, una letra de diferencia): si es el mismo, úsalo. En la demo no lo tocamos.",
     },
     {
       id: "tarjeta",
@@ -684,14 +863,14 @@ export const GUIA_ATRIBUTOS: Guia = {
       opcional: true,
       preparar: [{ tipo: "vaciar", ancla: "vocabulario.buscador" }, { tipo: "clic", ancla: "atributos.pestana-colores" }],
       titulo: "Colores, por familia",
-      texto: "Las píldoras dejan ver una familia de color (Neutro, Tierra, Azul…). El buscador entiende el nombre, el código y cómo le dicen en tienda. «+ Agregar color» propone uno nuevo: avisa si se parece mucho a otro que ya existe.",
+      texto: "Las píldoras dejan ver una familia de color (Neutro, Tierra, Azul…). El buscador entiende el nombre, el código y cómo le dicen en tienda. «+ Agregar color» agrega uno nuevo; si ya existe uno igual o casi igual («Verde Olivo» y «Verde oliva») o de tono muy parecido, te lo muestra antes de guardar.",
     },
     {
       id: "color-tarjeta",
       ancla: "vocabulario.tarjeta",
       opcional: true,
       titulo: "Cada color",
-      texto: "Su muestra, su nombre, su código y, si lo tiene, el Pantone para pedir la tela; también con qué otros colores combina. Uno propuesto dice «Pendiente» hasta que un líder lo aprueba o lo rechaza. «Editar» abre su ficha (te la abrimos).",
+      texto: "Su muestra, su nombre, su código y, si lo tiene, el Pantone para pedir la tela; también su descripción. Uno que quedó pendiente de antes dice «Pendiente» hasta que se aprueba o se rechaza. «Editar» abre su ficha (te la abrimos).",
     },
     {
       id: "color-form",
@@ -699,7 +878,7 @@ export const GUIA_ATRIBUTOS: Guia = {
       opcional: true,
       preparar: [{ tipo: "clic", ancla: "atributos.color-editar" }],
       titulo: "La ficha de un color",
-      texto: "Nombre, familia, notas internas, Pantone y sinónimos (cómo le dicen en tienda: «plomo» por gris). Más abajo, su descripción, con qué combina y el tono exacto. Cambiar el nombre lo cambia en todas las pantallas, sin tocar ventas pasadas.",
+      texto: "Nombre, familia, notas internas, Pantone y sinónimos (cómo le dicen en tienda: «plomo» por gris). Más abajo, su descripción y el tono exacto. Cambiar el nombre lo cambia en todas las pantallas, sin tocar ventas pasadas.",
     },
     {
       id: "color-pie",
@@ -714,7 +893,7 @@ export const GUIA_ATRIBUTOS: Guia = {
       opcional: true,
       preparar: [{ tipo: "escape" }, { tipo: "clic", ancla: "atributos.pestana-tallas" }],
       titulo: "Tallas, por tipo",
-      texto: "Pasamos a Tallas: letras (S, M, L), numeración (26, 38), única y estándar, y otras. Se ordenan como la curva, no por abecedario. «+ Agregar talla» propone una nueva.",
+      texto: "Pasamos a Tallas: letras (S, M, L), numeración (26, 38), única y estándar, y otras. Se ordenan como la curva, no por abecedario. «+ Agregar talla» agrega una nueva.",
     },
     {
       id: "talla-tarjeta",
@@ -729,7 +908,7 @@ export const GUIA_ATRIBUTOS: Guia = {
       opcional: true,
       preparar: [{ tipo: "clic", ancla: "atributos.pestana-tejidos" }],
       titulo: "Tejidos: en uso o sin prendas",
-      texto: "Pasamos a Tejidos, la tela de la prenda. «En uso» deja los que tienen prendas; «Sin prendas», los que nadie usa todavía. Se buscan por nombre y se proponen con «+ Agregar tejido».",
+      texto: "Pasamos a Tejidos, la tela de la prenda. «En uso» deja los que tienen prendas; «Sin prendas», los que nadie usa todavía. Se buscan por nombre y se agregan con «+ Agregar tejido».",
     },
     {
       id: "tejido-tarjeta",
@@ -769,10 +948,18 @@ export const GUIA_ATRIBUTOS: Guia = {
       texto: "Pasamos a Patrones, el estampado de la prenda: liso, rayas, flores… Funciona igual que Tejidos: en uso o sin prendas, un buscador, «+ Agregar patrón», y cada tarjeta abre su dibujo y las prendas que lo llevan.",
     },
     {
+      id: "avios",
+      ancla: "atributos.clases-de-avio",
+      opcional: true,
+      preparar: [{ tipo: "escape" }, { tipo: "clic", ancla: "atributos.pestana-avios" }],
+      titulo: "Las clases de avío",
+      texto: "Botón, cierre, hilo, etiqueta, elástico, pretina. Son del Taller, no de la prenda, y deciden tres cosas al crear un avío: en qué se cuenta (el hilo en conos), si lleva color y qué medida se le pide. Se corrigen aquí para no tener que esperar una publicación.",
+    },
+    {
       id: "temporadas-filtros",
       ancla: "atributos.barra-temporadas",
       opcional: true,
-      preparar: [{ tipo: "clic", ancla: "atributos.pestana-temporadas" }],
+      preparar: [{ tipo: "escape" }, { tipo: "clic", ancla: "atributos.pestana-temporadas" }],
       titulo: "Temporadas, por cuánto duran",
       texto: "Pasamos a Temporadas. Las píldoras separan las de una estación, las de dos y las clásicas, que valen todo el año. Aquí no hay buscador ni «Agregar»: son nueve fijas y no se proponen nuevas.",
     },
@@ -845,7 +1032,7 @@ export const GUIA_SELLOS: Guia = {
   id: "productos.sellos",
   ruta: "/productos/insignias",
   titulo: "Insignias",
-  resumen: "Lo que se le marca a una prenda: las campañas del año, como San Valentín o Navidad, y las insignias como Nuevo o Hecho a mano.",
+  resumen: "Lo que se le marca a una prenda: las campañas del año, como San Valentín o Navidad, y las insignias como Nuevo, Hecho a mano o Para liquidar.",
   pasos: [
     {
       id: "bienvenida",
@@ -871,7 +1058,7 @@ export const GUIA_SELLOS: Guia = {
       ancla: "sellos.nuevo",
       opcional: true,
       titulo: "Una nueva",
-      texto: "Abre una ventana para crearla con su nombre y, si quieres, su dibujo o tu propia imagen; nace en la pestaña donde estás. Después le pones sus fechas, su descuento y sus prendas. Antes mira si ya existe: una campaña que ya pasó se repite, no se crea de nuevo. En la demo no lo tocamos.",
+      texto: "Abre una ventana para crearla con su nombre y, si quieres, su dibujo o tu propia imagen y sus fechas de inicio y fin; nace en la pestaña donde estás. Después le pones sus ofertas y sus prendas. Antes mira si ya existe: una campaña que ya pasó se repite, no se crea de nuevo. En la demo no lo tocamos.",
     },
     {
       id: "pestanas",
@@ -920,7 +1107,7 @@ export const GUIA_SELLOS: Guia = {
       ancla: "sellos.ofertas-registradas",
       opcional: true,
       titulo: "Las que ya están",
-      texto: "Cada oferta dice su estado: Borrador espera a un líder, Programada empieza después, Vigente ya baja el precio. Toca una para editarla: vale desde ese momento, lo que ya se vendió no cambia y queda su historial. El «descuento de siempre» de una campaña antigua sale aquí con «Retirar».",
+      texto: "Cada oferta dice su estado: Borrador todavía no se activó, Programada empieza después, Vigente ya baja el precio. Toca una para editarla: vale desde ese momento, lo que ya se vendió no cambia y queda su historial. El «descuento de siempre» de una campaña antigua sale aquí con «Retirar».",
     },
     {
       id: "oferta-pasos",
@@ -994,21 +1181,21 @@ export const GUIA_SELLOS: Guia = {
       ancla: "sellos.oferta-activar",
       opcional: true,
       titulo: "Guardar o activar",
-      texto: "Quien no es líder la deja como borrador. Un líder también puede activarla: desde ese momento la caja y la tienda web bajan el precio. En la demo no lo tocamos.",
+      texto: "Puedes dejarla como borrador o activarla: desde que la activas, la caja y la tienda web bajan el precio. En la demo no lo tocamos.",
     },
     {
       id: "ofertas-campana",
       ancla: "sellos.ofertas-campana",
       opcional: true,
       titulo: "Las fechas de la campaña",
-      texto: "La franja de arriba dice cuándo rige la campaña y cuántas prendas tiene. «Cambiar fechas» las mueve aquí mismo, y las ofertas tienen que caber dentro. Una campaña que ya pasó se repite con un toque: «Repetir».",
+      texto: "La franja de arriba dice cuándo rige la campaña y cuántas prendas tiene. Las fechas se cambian desde «Editar», en su pase, y las ofertas tienen que caber dentro. Una campaña que ya pasó se repite ahí mismo, con «Repetir en» el año que viene.",
     },
     {
-      id: "dibujo",
-      ancla: "sellos.dibujo",
+      id: "editar",
+      ancla: "sellos.editar",
       opcional: true,
-      titulo: "Su dibujo",
-      texto: "Cambia el dibujo de su sello: la calabaza, el pastel, el gato… o sube tu propia imagen; si es de un solo color, píntala con el color del sello y se verá bien también en modo oscuro. Quien compra ve lo mismo en la ficha de la prenda. En la demo no lo tocamos.",
+      titulo: "Corregir nombre, ícono y fechas",
+      texto: "«Editar», a la derecha del estado, corrige el nombre, cambia las fechas de una campaña y el ícono de su sello: la calabaza, el pastel, el gato… o tu propia imagen (si es de un solo color, píntala con el color del sello y se verá bien en modo oscuro). En la demo no lo tocamos.",
     },
     {
       id: "campana-form",
@@ -1058,7 +1245,7 @@ export const GUIA_SELLOS: Guia = {
       ancla: "sellos.listo",
       opcional: true,
       titulo: "Lo que ya tiene",
-      texto: "Fechas y prendas hacen que la campaña funcione; el descuento es opcional. Lo que falta sale en ámbar: así sabes qué preparar antes de que empiece.",
+      texto: "Fechas y prendas hacen que la campaña funcione; las ofertas y promociones son opcionales (el descuento se arma con ellas). Lo que falta sale en ámbar: así sabes qué preparar antes de que empiece.",
     },
     {
       id: "rotacion",
@@ -1095,7 +1282,7 @@ export const GUIA_CATEGORIAS: Guia = {
       id: "resumen",
       ancla: "categorias.cabecera",
       titulo: "Cuántas hay",
-      texto: "Cuántas categorías están activas y cuántas prendas tienen una. El «!» junto al título explica cómo se ordena todo: las familias y las marcas tienen su propia pantalla, y una categoría puede tener subcategorías.",
+      texto: "El «?» junto al título dice cuántas categorías están activas y cuántas prendas tienen una, y explica cómo se ordena todo: las familias y las marcas tienen su propia pantalla, y una categoría puede tener subcategorías.",
     },
     {
       id: "filtros",
@@ -1159,7 +1346,7 @@ export const GUIA_CATEGORIAS: Guia = {
       opcional: true,
       preparar: [{ tipo: "clic", ancla: "categorias.vista-editar" }],
       titulo: "Nombre, código y familia",
-      texto: "El nombre que ve todo el mundo, sus tres letras y su familia, y una nota interna. Las tres letras quedan fijas cuando ya hay prendas creadas con ellas: cambiarlas rompería sus códigos.",
+      texto: "El nombre que ve todo el mundo (si ya hay una parecida, como «Blusa» y «Blusas», te avisa), sus tres letras y su familia, y una nota interna. Las tres letras quedan fijas cuando ya hay prendas creadas con ellas: cambiarlas rompería sus códigos.",
     },
     {
       id: "form-subcategorias",
@@ -1217,7 +1404,7 @@ export const GUIA_FAMILIAS: Guia = {
       id: "cabecera",
       ancla: "familias.cabecera",
       titulo: "Viene de Categorías",
-      texto: "La flecha te regresa a Categorías, donde se usan estas familias. El «!» explica la regla completa.",
+      texto: "La flecha te regresa a Categorías, donde se usan estas familias. El «?» junto al título explica la regla completa.",
     },
     {
       id: "agregar",
@@ -1245,7 +1432,7 @@ export const GUIA_FAMILIAS: Guia = {
       opcional: true,
       preparar: [{ tipo: "clic", ancla: "familias.editar" }],
       titulo: "El nombre y si cuenta",
-      texto: "El nombre, y si cuenta en Análisis, Frescura y el plan del piso: lo normal es que sí; apágalo solo para bolsas, cajas o empaques, que se venden pero no se piden al Taller ni a Compras. Debajo eliges quién registra el cambio.",
+      texto: "El nombre, y si cuenta en Análisis, Frescura y el plan del piso: lo normal es que sí; apágalo solo para bolsas, cajas o empaques, que se venden pero no se piden al Taller ni a Compras. Si el nombre se parece a otra familia, te lo avisa. Debajo eliges quién registra el cambio.",
     },
     {
       id: "form-pie",
@@ -1289,7 +1476,7 @@ export const GUIA_MARCAS: Guia = {
       id: "cabecera",
       ancla: "marcas.cabecera",
       titulo: "La regla de las marcas",
-      texto: "El «!» junto al título la explica: todo producto tiene una marca y un proveedor que la trae, y la tienda no deja guardar otra pareja. Una marca puede llegar por más de un proveedor.",
+      texto: "El «?» junto al título la explica: todo producto tiene una marca y un proveedor que la trae, y la tienda no deja guardar otra pareja. Una marca puede llegar por más de un proveedor.",
     },
     {
       id: "nueva",
@@ -1410,19 +1597,19 @@ export const GUIA_NUEVO_PRODUCTO: Guia = {
       id: "punto-2",
       ancla: "nuevo.punto-2",
       titulo: "2 · Cómo es",
-      texto: "Cuando eliges la categoría, pasas aquí: el nombre, la marca y quién la trae, la descripción, el tejido, el patrón y la temporada. Si ya hay prendas parecidas, te las muestra para que no crees la misma dos veces.",
+      texto: "Al elegir la categoría pasas aquí. Primero miras si ya existe: si es una de esas en otro color, no la creas, la abres y le agregas el color. Luego el tejido, el patrón y un detalle, y al final el nombre: el tipo lo pone la categoría y tú le sumas una flor de la lista, como «Blusa Dalia».",
     },
     {
       id: "punto-3",
       ancla: "nuevo.punto-3",
       titulo: "3 · Tallas y colores",
-      texto: "Las tallas vienen marcadas con la curva de siempre de la categoría; eliges los colores que llegaron y una foto por color. Abajo ves la tabla de variantes que van a nacer: toca una celda para quitar la que no llegó.",
+      texto: "Las tallas vienen con la curva de siempre de la categoría; eliges los colores que llegaron. Si la prenda trae dos colores (hueso con azul), toca «+ Color combinado»: eliges la base y lo que la acompaña, y queda como un solo color. Abajo, la tabla de variantes que van a nacer: toca una celda para quitar la que no llegó.",
     },
     {
       id: "punto-4",
       ancla: "nuevo.punto-4",
       titulo: "4 · Precio y cantidad",
-      texto: "El precio de venta y el costo (con el costo sugerido de la categoría), las insignias y campañas, y cuántas unidades llegaron de cada variante. Ahí mismo está «Crear producto». Para ver estos pasos de verdad hay que elegir una categoría, y la demo no empieza ninguna prenda.",
+      texto: "El precio y el costo («Proponer precio» te sugiere uno con el costo y las prendas parecidas, nunca con menos de 30 % de margen), las insignias y cuántas llegaron de cada variante, a nombre del proveedor. Ahí está «Crear producto». Para verlo hay que elegir una categoría, y la demo no empieza ninguna prenda.",
     },
     {
       id: "quien",
@@ -1445,7 +1632,7 @@ export const GUIA_NUEVO_PRODUCTO: Guia = {
       // La demo elige la tienda si hace falta: sin ella la familia espera y no se puede tocar.
       preparar: [{ tipo: "clic", ancla: "nuevo.empresa-elegir", siEsta: true }],
       titulo: "Empieza por la familia",
-      texto: "«Sigue aquí» te marca lo que toca ahora. Elige la familia de la prenda: ropa, calzado, accesorios… (te abrimos la primera).",
+      texto: "«Sigue» te marca lo que toca ahora. Elige la familia de la prenda: ropa, calzado, accesorios… (te abrimos la primera).",
     },
     {
       id: "categorias",
@@ -1497,6 +1684,77 @@ export const GUIA_NUEVO_PRODUCTO: Guia = {
     },
   ],
   alSalir: [{ tipo: "vaciar", ancla: "nuevo.buscar-categoria" }],
+};
+
+// Revisar precios (ADR-0641): la lista de prendas cuyo precio conviene mirar, hecha con una cuenta fija. La demo explica las cifras
+// sin tocarlas: filtrar navega a otra URL y la demo no sale de la pantalla en que empezó.
+export const GUIA_REVISAR_PRECIOS: Guia = {
+  id: "productos.revisar-precios",
+  ruta: "/productos/revisar-precios",
+  titulo: "Revisar precios",
+  resumen: "Las prendas que pierden dinero, ganan poco o están lejos del precio de sus parecidas.",
+  pasos: [
+    {
+      id: "bienvenida",
+      ancla: null,
+      titulo: "Precios que conviene mirar",
+      texto: "Aquí ves las prendas cuyo precio conviene revisar, con su costo y el precio de sus parecidas. La lista sale de una cuenta fija, siempre igual. Es una demo: no se cambia ningún precio.",
+    },
+    {
+      id: "sin-funcion",
+      ancla: "revisar-precios.sin-funcion",
+      opcional: true,
+      titulo: "Todavía no está activa",
+      texto: "Si ves este aviso, la revisión de precios aún no se encendió en el sistema. Los precios siguen como están.",
+    },
+    {
+      id: "cifras",
+      ancla: "revisar-precios.cifras",
+      opcional: true,
+      titulo: "Cuatro razones",
+      texto: "Pierden dinero (el precio no cubre el costo), margen bajo (ganan menos de 30 %), lejos de su categoría (35 % más caras o más baratas que sus parecidas) y sin costo propio. Toca una para ver solo esas; tócala otra vez para ver todas.",
+    },
+    {
+      id: "vacio",
+      ancla: "revisar-precios.vacio",
+      opcional: true,
+      titulo: "Nada que revisar",
+      texto: "Ninguna prenda tiene un precio que mirar, o ninguna con el filtro que elegiste. El botón te lleva de vuelta.",
+    },
+    {
+      id: "tabla",
+      ancla: "revisar-precios.tabla",
+      opcional: true,
+      titulo: "Cada prenda",
+      texto: "Su precio, su costo (dice «estimado» si es el promedio de su categoría), cuánto gana y el precio del medio de su categoría. A la derecha, por qué está en la lista. Primero van las que pierden dinero.",
+    },
+    {
+      id: "proponer",
+      ancla: "revisar-precios.proponer",
+      opcional: true,
+      titulo: "Proponer un precio",
+      texto: "«Proponer» le pide a la IA un precio para esa prenda, mirando su costo y sus parecidas. Nunca baja de 30 % de margen. Si te convence, «Cambiar a S/\u00a0…» abre una hoja donde eliges quién lo hace y confirmas. La demo no lo pide.",
+    },
+    {
+      id: "paginas",
+      ancla: "revisar-precios.paginas",
+      opcional: true,
+      titulo: "Más páginas",
+      texto: "Si son muchas, pasan a la página siguiente. Aquí ves cuántas son en total.",
+    },
+    {
+      id: "nota",
+      ancla: "revisar-precios.nota",
+      titulo: "Con el costo real",
+      texto: "«Pierde dinero» y «margen bajo» solo se miden con el costo real de la prenda. Si una prenda no tiene costo, cárgalo en su ficha para saber cuánto gana.",
+    },
+    {
+      id: "listo",
+      ancla: null,
+      titulo: "¡Listo!",
+      texto: "Ya sabes leer la lista de precios a revisar. La flecha de arriba te devuelve a Productos. Para repasarlo: Mi perfil ▸ Demo ▸ Revisar precios.",
+    },
+  ],
 };
 
 // Por revisar (ADR-0371): la cola de prendas que alguien propuso en un conteo o desde el Taller. Aprobar y Rechazar abren una hoja que
@@ -1592,8 +1850,23 @@ export const GUIA_ROTULOS: Guia = {
       texto: "Aquí armas el rótulo que va en el canto del anaquel o en el frente de una bolsa: dice qué prenda hay ahí, su marca y sus tallas, para encontrarla de lejos. Sale en la Brother, en el mismo papel de las etiquetas.",
     },
     {
+      id: "que",
+      ancla: "rotulos.que",
+      titulo: "Prendas o marcas",
+      texto: "Elige qué rótulo armas: el de una prenda (su nombre, su marca y sus tallas) o el de una marca, que lleva solo su nombre, lo más grande que entra en el papel.",
+      demostrar: [{ tipo: "clic", ancla: "rotulos.de-marcas" }],
+    },
+    {
+      id: "marcas",
+      ancla: "rotulos.marcas",
+      opcional: true,
+      titulo: "Las marcas",
+      texto: "Busca la marca por su nombre y elígela: sale un rótulo por marca. La ✕ la saca de la tira.",
+    },
+    {
       id: "vacio",
       ancla: "rotulos.vacio",
+      preparar: [{ tipo: "clic", ancla: "rotulos.de-prendas", siEsta: true }],
       opcional: true,
       titulo: "Elige las prendas",
       texto: "Todavía no hay ninguna prenda: a la derecha, la Brother muestra en gris cómo saldrá. Búscalas aquí por nombre o código. También puedes marcarlas en Productos o en Existencias y tocar «Rótulo»: llegan ya elegidas.",
@@ -1663,110 +1936,8 @@ export const GUIA_ROTULOS: Guia = {
       texto: "Ya sabes armar e imprimir un rótulo. La flecha de arriba te devuelve a donde estabas. Para repasarlo: Mi perfil ▸ Demo ▸ Rótulos de anaquel.",
     },
   ],
-  alSalir: [{ tipo: "clic", ancla: "rotulos.por-modelo", siEsta: true }],
-};
-
-// Catálogo ▸ Liquidación (ADR-0379): las prendas sueltas que la sede liquida sin entrar al catálogo. La demo abre «Etiquetar una prenda»
-// y la ficha de una prenda para mostrarlas, y escribe una búsqueda sacada de la lista; nunca crea una etiqueta, ni imprime, ni baja un
-// precio, ni retira una prenda: eso se explica con la pieza encendida.
-export const GUIA_LIQUIDACION: Guia = {
-  id: "productos.liquidacion",
-  ruta: "/productos/liquidacion",
-  titulo: "Liquidación",
-  resumen: "Las prendas sueltas que se liquidan con su etiqueta, sin entrar al catálogo.",
-  pasos: [
-    {
-      id: "bienvenida",
-      ancla: null,
-      titulo: "Liquidar prendas sueltas",
-      texto: "Para las prendas de una sola unidad que llevan tiempo en el almacén: no se registran en el catálogo, solo llevan una etiqueta con su categoría, su precio y un código. La caja la cobra escaneándola. Es una demo: no se guarda nada.",
-    },
-    {
-      id: "cifras",
-      ancla: "liquidacion.cifras",
-      opcional: true,
-      titulo: "Cómo va la liquidación",
-      texto: "Cuántas prendas hay a la venta (y cuánto suman si se venden todas), cuántas bajaron de precio y cuántas se vendieron este mes. Tocar una tarjeta deja la lista solo con esas.",
-    },
-    {
-      id: "cifras-chicas",
-      ancla: "liquidacion.cifras-chicas",
-      opcional: true,
-      titulo: "Cómo va la liquidación",
-      texto: "Cuántas hay a la venta, cuántas bajaron de precio y cuántas se vendieron. Toca una cifra y la lista se queda solo con esas.",
-    },
-    {
-      id: "buscador",
-      ancla: "liquidacion.buscador",
-      opcional: true,
-      titulo: "Escanea o busca",
-      texto: "Pasa la pistola por una etiqueta y se abre esa prenda, aunque sea una etiqueta vieja (te dice cuál vale). También buscas por categoría, código o precio. Mira, buscamos una de la lista.",
-      demostrar: [{ tipo: "escribir", ancla: "liquidacion.buscador", texto: { palabraDe: "liquidacion.prenda" } }],
-    },
-    {
-      id: "filtros",
-      ancla: "liquidacion.filtros",
-      preparar: [{ tipo: "vaciar", ancla: "liquidacion.buscador" }],
-      titulo: "Qué prendas ver",
-      texto: "«A la venta», las que tienen precio bajado, las vendidas y las retiradas, cada una con cuántas hay. Las vendidas y retiradas se ven hasta 120 días atrás.",
-    },
-    {
-      id: "etiquetar",
-      ancla: "liquidacion.etiquetar",
-      titulo: "Etiquetar una prenda",
-      texto: "Lo primero con una prenda suelta: le das su etiqueta. Se abre una ventana corta (te la abrimos).",
-    },
-    {
-      id: "etiquetar-campos",
-      ancla: "liquidacion-etiquetar.campos",
-      opcional: true,
-      preparar: [{ tipo: "clic", ancla: "liquidacion.etiquetar" }],
-      titulo: "Solo tres datos",
-      texto: "Qué prenda es (su categoría), algo para reconocerla si quieres (sale en la etiqueta y en la boleta) y su precio, que no baja del mínimo. «Crear etiqueta» le da su código y la deja lista para imprimir. En la demo cerramos sin crearla.",
-    },
-    {
-      id: "lista",
-      ancla: "liquidacion.lista",
-      opcional: true,
-      preparar: [{ tipo: "escape" }],
-      titulo: "Una fila por prenda",
-      texto: "Cada prenda con su código, el precio que cobra la caja (si se rebajó, debajo el de antes tachado), cuánto lleva a la venta y su estado.",
-    },
-    {
-      id: "fila",
-      ancla: "liquidacion.fila",
-      opcional: true,
-      titulo: "Abrir una prenda",
-      texto: "Toca una prenda para ver su etiqueta y lo que puedes hacer con ella (te la abrimos).",
-    },
-    {
-      id: "prenda-etiqueta",
-      ancla: "liquidacion-prenda.etiqueta",
-      opcional: true,
-      preparar: [{ tipo: "clic", ancla: "liquidacion.fila" }],
-      titulo: "Su etiqueta",
-      texto: "Así sale la etiqueta que va en la prenda: su categoría, su precio y el código que escanea la caja.",
-    },
-    {
-      id: "prenda-acciones",
-      ancla: "liquidacion-prenda.acciones",
-      opcional: true,
-      titulo: "Imprimir, bajar o retirar",
-      texto: "«Imprimir etiqueta» la vuelve a sacar. «Bajar el precio» saca una etiqueta nueva y la vieja deja de valer. «Retirar» la saca de la venta con un motivo; no se borra, queda en «Retiradas». En la demo no tocamos ninguno.",
-    },
-    {
-      id: "nota",
-      ancla: "liquidacion.nota",
-      preparar: [{ tipo: "escape" }],
-      titulo: "Venta final y precio mínimo",
-      texto: "La caja la cobra al precio de la etiqueta, sin descuentos, y no tiene cambio ni devolución. Debajo del precio mínimo solo etiqueta un líder, que también lo cambia con «Cambiarlo».",
-    },
-    {
-      id: "fin",
-      ancla: null,
-      titulo: "¡Listo!",
-      texto: "Ya sabes etiquetar, encontrar y rebajar una prenda de liquidación. Para repasarlo: Mi perfil ▸ Demo ▸ Liquidación.",
-    },
+  alSalir: [
+    { tipo: "clic", ancla: "rotulos.por-modelo", siEsta: true },
+    { tipo: "clic", ancla: "rotulos.de-prendas", siEsta: true },
   ],
-  alSalir: [{ tipo: "escape" }, { tipo: "vaciar", ancla: "liquidacion.buscador" }],
 };

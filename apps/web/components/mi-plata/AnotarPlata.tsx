@@ -9,6 +9,7 @@ import { Modal } from "@/components/ui/Modal";
 import { Aviso } from "@/components/ui/Aviso";
 import { Boton, CampoMonto } from "@/components/ui/campos";
 import { Casilla } from "@/components/ui/Casilla";
+import { CampoFecha } from "@/components/ui/CampoFecha";
 import { FichasMedio } from "@/components/ui/FichasMedio";
 import { avisar } from "@/components/ui/Avisos";
 import { useSalidaSinGuardar } from "@/components/ui/useSalidaSinGuardar";
@@ -23,9 +24,10 @@ import { AvisoIntentoIncierto, avisarCongelado } from "@/components/ui/AvisoInte
 import { firmaOmitida } from "@/lib/responsable-omitido";
 import { esFalloDeRed, traducirError } from "@/lib/error-escritura";
 import { leerMontoPlata } from "@/lib/monto-plata-reglas";
+import { diaMes, hoyLima } from "@/lib/fechas-lima";
 import { soles } from "@/lib/compras-reglas";
 import { anotarPlata, subirVoucher } from "@/lib/mi-plata-acciones";
-import { MEDIOS_PLATA, bancoSugerido, camposAnotar, fraseAnotar, type MedioPlata } from "@/lib/mi-plata-reglas";
+import { MEDIOS_PLATA, bancoSugerido, camposAnotar, detalleAlAnotarPlata, diaDeLlegadaAMandar, fraseAnotar, limitesDeLlegada, type MedioPlata } from "@/lib/mi-plata-reglas";
 import type { CuentaOpcion } from "@/lib/fondos-reglas";
 import { FichasCuenta } from "@/components/fondos/FichasCuenta";
 
@@ -78,6 +80,11 @@ function AnotarPlataModal({ puedeYaTenia, bancos, onClose, volverA }: { puedeYaT
   // «¿De qué banco salió?»: solo con una transferencia; llega elegido el BCP (Felipe 2026-10-26) y se cambia de un toque.
   const [banco, setBanco] = useState<string | null>(null);
   const [monto, setMonto] = useState("");
+  // «¿Qué día te llegó?» (20261110025000): llega «hoy»; se cambia si la plata ya había salido del banco antes (una compra anterior), para que el
+  // saldo de esa cuenta no la reste otra vez hoy. Solo viaja si es otro día.
+  const hoy = hoyLima();
+  const [otroDia, setOtroDia] = useState(false);
+  const [dia, setDia] = useState(hoy);
   const [archivo, setArchivo] = useState<File | null>(null);
   // La ruta de la foto ya subida, junto al archivo del que salió: si se elige otra foto, se vuelve a subir.
   const [subida, setSubida] = useState<{ archivo: File; ruta: string } | null>(null);
@@ -114,6 +121,7 @@ function AnotarPlataModal({ puedeYaTenia, bancos, onClose, volverA }: { puedeYaT
       return;
     }
     setRechazo(null);
+    if (otroDia && !yaTenia && !dia) return setRechazo({ titulo: "Falta el día", texto: "Elige el día en que te llegó la plata, o vuelve a «hoy».", tono: "atencion" });
     let ruta: string | null = null;
     if (archivo) {
       if (subida?.archivo === archivo) {
@@ -129,7 +137,14 @@ function AnotarPlataModal({ puedeYaTenia, bancos, onClose, volverA }: { puedeYaT
     }
     const firma = esPersona ? firmaOmitida("plata_anotar") : responsable.firma();
     const conBanco = medio === "transferencia" && bancos.length > 0 && banco !== null;
-    const args = { p_medio: medio!, p_monto: montoLeido ?? 0, p_foto_ruta: ruta, ...(conBanco ? { p_cuenta_indicada_id: banco } : {}) };
+    const diaAMandar = yaTenia ? undefined : diaDeLlegadaAMandar(dia, hoy);
+    const args = {
+      p_medio: medio!,
+      p_monto: montoLeido ?? 0,
+      p_foto_ruta: ruta,
+      ...(conBanco ? { p_cuenta_indicada_id: banco } : {}),
+      ...(diaAMandar ? { p_fecha: diaAMandar } : {}),
+    };
     const r = await intento.enviar(huellaDe(args), (token, senal) => anotarPlata(args, firma, token, senal));
     if (r.tipo === "ocupado") return;
     if (r.tipo === "congelado") return avisarCongelado(avisar);
@@ -147,7 +162,7 @@ function AnotarPlataModal({ puedeYaTenia, bancos, onClose, volverA }: { puedeYaT
 
   // Lo que se anuncia es lo que se mandó: con la hoja congelada mientras estuvo en duda, es lo mismo que guardó la base.
   function anotada() {
-    avisar.exito(`Anotaste ${soles(montoLeido ?? 0)}`, { detalle: "Ya está en tu plata y la puedes usar. Compras la revisa." });
+    avisar.exito(`Anotaste ${soles(montoLeido ?? 0)}`, { detalle: detalleAlAnotarPlata(medio, medio === "transferencia" && bancos.length > 0 && banco !== null) });
     // La guardia del «atrás» se retira antes de refrescar: los dos a la vez pueden recargar la página entera (useSalidaSinGuardar).
     void salida.retirarYa().then(() => router.refresh());
     onClose();
@@ -168,6 +183,8 @@ function AnotarPlataModal({ puedeYaTenia, bancos, onClose, volverA }: { puedeYaT
       subtitulo="La puedes usar de una vez. Compras la confirma después."
       onClose={onClose}
       variante="hoja"
+      // En PC la hoja se ensancha para llevar dos columnas (Felipe 2026-10-26, «A», docs/maquetas/mis-compras-envios-pc-2026-10/): el celular y la tablet siguen igual.
+      ancho="max-w-md lg:max-w-3xl" // unificar-fijo: hoja de dos columnas solo desde 1024 px; bajo eso es la hoja angosta de siempre
       alCerrarEnfocar={volverA}
       bloqueado={guardando || congelada}
       antesDeCerrar={salida.pedirAccion}
@@ -180,11 +197,18 @@ function AnotarPlataModal({ puedeYaTenia, bancos, onClose, volverA }: { puedeYaT
           }}
           className="space-y-5"
         >
-          <fieldset disabled={congelada} className="campos-congelables min-w-0 space-y-5">
-            <CampoGuiado id="medio" guia={guia} titulo="¿Cómo te llegó?">
+          <fieldset disabled={congelada} className="campos-congelables min-w-0">
+            {/* En PC: cómo te llegó y de qué banco, a la izquierda; cuánto y la foto, a la derecha. En el celular las cajas «desaparecen» (`contents`). */}
+            <div className="flex flex-col gap-5 lg:grid lg:grid-cols-2 lg:items-start lg:gap-x-8">
+            <div className="contents lg:flex lg:flex-col lg:gap-5">
+            {/* Con «Ya tenía de antes» no hay cómo te llegó (no hay fichas): el título lo dice en vez de preguntar algo que ya no se contesta. */}
+            <CampoGuiado id="medio" guia={guia} titulo={yaTenia ? "Plata de antes" : "¿Cómo te llegó?"}>
               {!yaTenia && (
                 <FichasMedio<Ficha>
                   etiqueta="¿Cómo te llegó?"
+                  // En PC la columna de la izquierda mide ~340 px: tres fichas lado a lado quedaban de 108 px, paradas y con el nombre a 9 px
+                  // (y recortado si la hoja se angostaba). Una debajo de otra van acostadas, con el nombre entero y legible.
+                  className="grid grid-cols-3 gap-2 lg:grid-cols-1"
                   opciones={FICHAS}
                   valor={medio ? (A_FICHA[medio] ?? null) : null}
                   onValor={(f) => {
@@ -206,7 +230,7 @@ function AnotarPlataModal({ puedeYaTenia, bancos, onClose, volverA }: { puedeYaT
                   />
                   <span>
                     {MEDIOS_PLATA.ya_tenia.nombre} de antes
-                    <span className="block text-xs text-taupe">{MEDIOS_PLATA.ya_tenia.ejemplo}. Solo esta primera vez.</span>
+                    <span className="block text-sm text-taupe">{MEDIOS_PLATA.ya_tenia.ejemplo}. Solo esta primera vez.</span>
                   </span>
                 </label>
               )}
@@ -214,9 +238,11 @@ function AnotarPlataModal({ puedeYaTenia, bancos, onClose, volverA }: { puedeYaT
             {medio === "transferencia" && bancos.length > 0 && (
               <CampoGuiado id="banco" guia={guia} titulo="¿De qué banco salió?">
                 <FichasCuenta etiqueta="¿De qué banco salió?" cuentas={bancos} valor={banco ?? ""} onValor={limpiar(setBanco)} deshabilitado={guardando} guia="mi-plata.banco" />
-                <p className="mt-1.5 text-xs text-taupe">La cuenta de la empresa de donde salió la plata: así queda en Finanzas. Compras la confirma.</p>
+                <p className="mt-1.5 text-sm text-taupe">La cuenta de la empresa de donde salió la plata: así queda en Finanzas. Compras la confirma.</p>
               </CampoGuiado>
             )}
+            </div>
+            <div className="contents lg:flex lg:flex-col lg:gap-5">
             <CampoGuiado id="monto" guia={guia} titulo={yaTenia ? "¿Cuánto tenías?" : "¿Cuánto te dieron?"}>
               <CampoMonto
                 etiqueta={yaTenia ? "¿Cuánto tenías?" : "¿Cuánto te dieron?"}
@@ -229,6 +255,45 @@ function AnotarPlataModal({ puedeYaTenia, bancos, onClose, volverA }: { puedeYaT
                 onChange={(e) => limpiar(setMonto)(e.target.value)}
               />
             </CampoGuiado>
+            {!yaTenia && medio && (
+              <div data-guia="mi-plata.dia">
+                {otroDia ? (
+                  <div className="flex flex-col gap-1">
+                    <CampoFecha
+                      etiqueta="¿Qué día te llegó?"
+                      valor={dia}
+                      onValor={limpiar(setDia)}
+                      {...limitesDeLlegada(hoy)}
+                      motivoMax="No puede ser un día que todavía no llega."
+                      motivoMin="Ese día es de hace más de 120 días."
+                      pie="Si la plata ya había salido del banco antes, pon ese día: así el saldo del banco no la descuenta otra vez hoy."
+                      disabled={guardando}
+                    />
+                    {/* La vuelta a «hoy» que promete el aviso de «Falta el día»: antes, una vez tocado «Cambiar el día», no había forma de volver
+                        (auditoría 2026-11-12). */}
+                    <button
+                      type="button"
+                      className="btn-cayla btn-enlace self-start"
+                      onClick={() => {
+                        setRechazo(null);
+                        setOtroDia(false);
+                        setDia(hoy);
+                      }}
+                      disabled={guardando}
+                    >
+                      Llegó hoy
+                    </button>
+                  </div>
+                ) : (
+                  <p className="flex flex-wrap items-center gap-x-2 text-sm text-taupe">
+                    Llegó hoy, {diaMes(hoy)}
+                    <button type="button" className="btn-cayla btn-enlace" onClick={() => setOtroDia(true)} disabled={guardando}>
+                      Cambiar el día
+                    </button>
+                  </p>
+                )}
+              </div>
+            )}
             {!yaTenia && (
               <CampoGuiado id="foto" guia={guia} titulo="Foto del voucher" ayuda="· opcional">
                 <TarjetaFoto
@@ -250,6 +315,8 @@ function AnotarPlataModal({ puedeYaTenia, bancos, onClose, volverA }: { puedeYaT
                 <ComboResponsable control={responsable} deshabilitado={guardando} />
               </CampoGuiado>
             )}
+            </div>
+            </div>
           </fieldset>
           {congelada ? (
             <AvisoIntentoIncierto onRevisar={() => void revisar()} revisando={revisando} />
@@ -270,7 +337,7 @@ function AnotarPlataModal({ puedeYaTenia, bancos, onClose, volverA }: { puedeYaT
               type="submit"
               peso="primario"
               cargando={guardando}
-              disabled={!congelada && !guia.puedeConfirmar}
+              confirma={congelada ? undefined : guia}
               title={guia.frase ?? undefined}
               className={guia.claseConfirmar}
             >

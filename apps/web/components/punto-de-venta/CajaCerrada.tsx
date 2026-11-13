@@ -5,6 +5,7 @@ import { createPortal } from "react-dom";
 import { ArrowRight, LockOpen } from "lucide-react";
 import { bajadaDelCartel, lineaUltimoCierre, TIEMPOS_SALIDA, type CierreAnterior } from "@/lib/caja-cerrada-reglas";
 import { esperaOcupada, suscribirEspera } from "@/lib/espera-estado";
+import { prefiereQuieto } from "@/lib/movimiento-cliente";
 
 /** `por-abrir`: la caja ya abrió, pero el loader general sigue a la vista; el cartel espera para girar donde se vea. */
 type Fase = "oculta" | "cerrada" | "por-abrir" | "girando" | "subiendo";
@@ -26,7 +27,7 @@ type Props = {
 const sinSuscripcion = () => () => {};
 
 function sinMovimiento(): boolean {
-  return typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches === true;
+  return typeof window !== "undefined" && prefiereQuieto() === true;
 }
 
 /**

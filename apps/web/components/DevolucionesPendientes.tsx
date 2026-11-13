@@ -10,7 +10,7 @@ import { Chip } from "@/components/ui/Chip";
 import { CampoSelect } from "@/components/ui/campos";
 import { MiniaturaPrenda } from "@/components/ui/PrendaCelda";
 import { formatearHora } from "@/components/ComprasAgrupadas";
-import { BotonPrincipal, BotonRojo, BotonSecundario } from "@/components/FlujoGuiado";
+import { BotonPrincipal, BotonSecundario } from "@/components/FlujoGuiado";
 import type { DevolucionPendiente } from "@/lib/devoluciones";
 import { DIAS_PLAZO_CAMBIO, METODOS_DIFERENCIA, estadoPlazoCambio, etiquetaDia, varianteLegible } from "@/lib/cambios-reglas";
 import { etiquetaCondicion, medioSugeridoReembolso, revisarAprobacion } from "@/lib/devoluciones-reglas";
@@ -28,29 +28,28 @@ import { CLASE_MONTO_ILEGIBLE, atributosMontoTexto } from "@/components/ui/Campo
 import { numeroDeMonto } from "@/lib/monto-plata-reglas";
 
 /**
- * «Por aprobar» (2026-09-18): las devoluciones que una colaboradora registró y un líder
- * todavía no resolvió. Un líder ve las acciones; quien no lo es ve que están esperando —
- * `aprobar_devolucion` y `rechazar_devolucion` exigen líder y lo vuelven a validar.
+ * «Por aprobar» (2026-09-18): las devoluciones registradas que todavía nadie resolvió. Desde
+ * ADR-0534 (2026-10-27) las aprueba o rechaza cualquiera que ve Devoluciones en la tienda —en
+ * una terminal compartida, la líder la valida en persona, no con su cuenta—, también quien la
+ * registró; `aprobar_devolucion` y `rechazar_devolucion` lo vuelven a validar en la base.
  *
  * Aprobar es lo que mueve las cosas (stock, nota de crédito, reembolso), así que la
- * tarjeta le pone delante al líder lo que necesita para decidir: qué prendas y en qué estado
- * vuelven, cuánto pagó la clienta, y si la compra ya venció el plazo (que no bloquea: lo
- * decide él). El reembolso es opcional y es la última opción (R-37).
+ * tarjeta pone delante lo que se necesita para decidir: qué prendas y en qué estado
+ * vuelven, cuánto pagó el cliente, y si la compra ya venció el plazo (que no bloquea: lo
+ * decide quien la revisa). El reembolso es opcional y es la última opción (R-37).
  *
- * Aprobar y rechazar firman con el combo «Responsable» (ADR-0161): el permiso sigue siendo del líder (lo pregunta
- * la base a la cuenta), el combo solo dice quién de turno lo hizo. El combo vive en el panel que se abre al tocar
+ * Aprobar y rechazar firman con el combo «Responsable» (ADR-0161): el permiso lo pregunta la base a la cuenta
+ * (módulo y sede), el combo solo dice quién de turno lo hizo. El combo vive en el panel que se abre al tocar
  * Aprobar/Rechazar, no en cada tarjeta, para no leer la asistencia una vez por devolución pendiente.
  */
 export function DevolucionesPendientes({
   pendientes,
-  esLider,
   cajaAbierta,
   ahora,
   ubicacionId,
   sede,
 }: {
   pendientes: DevolucionPendiente[];
-  esLider: boolean;
   cajaAbierta: boolean;
   ahora: Date;
   /** La tienda de estas devoluciones: la lista de «De turno» del combo es la de aquí. */
@@ -63,7 +62,7 @@ export function DevolucionesPendientes({
     return (
       <div className="card-cayla">
         <Vacio icono={<Check />} titulo="No hay devoluciones esperando">
-          Las que se registren aparecen aquí hasta que un líder las apruebe o las rechace.
+          Las que se registren aparecen aquí hasta que alguien las revise y las apruebe o las rechace.
         </Vacio>
       </div>
     );
@@ -71,7 +70,7 @@ export function DevolucionesPendientes({
   return (
     <div data-guia="devoluciones.pendientes" className="space-y-3">
       {pendientes.map((d) => (
-        <TarjetaPendiente key={d.id} devolucion={d} esLider={esLider} cajaAbierta={cajaAbierta} ahora={ahora} ubicacion={{ ubicacionId, etiqueta: sede }} />
+        <TarjetaPendiente key={d.id} devolucion={d} cajaAbierta={cajaAbierta} ahora={ahora} ubicacion={{ ubicacionId, etiqueta: sede }} />
       ))}
     </div>
   );
@@ -81,13 +80,11 @@ type Ubicacion = { ubicacionId: string; etiqueta: string };
 
 function TarjetaPendiente({
   devolucion: d,
-  esLider,
   cajaAbierta,
   ahora,
   ubicacion,
 }: {
   devolucion: DevolucionPendiente;
-  esLider: boolean;
   cajaAbierta: boolean;
   ahora: Date;
   ubicacion: Ubicacion;
@@ -100,7 +97,7 @@ function TarjetaPendiente({
     // tarjeta de una devolución que sigue pendiente tras un `router.refresh()` (no reanima) y
     // solo monte —y por lo tanto anime— la que recién se registró.
     <article className="anim-revelar rounded-xl bg-papel ring-1 ring-tinta/[0.07]">
-      <header className="flex flex-wrap items-center gap-x-3 gap-y-1.5 px-5 pt-4 text-[13px] text-tinta/70">
+      <header className="flex flex-wrap items-center gap-x-3 gap-y-1.5 px-5 pt-4 text-sm text-tinta/70">
         <span className="font-semibold text-tinta">{d.comprobante ?? "Venta sin comprobante"}</span>
         <span>
           Pidió {d.solicitadoPorNombre} · {etiquetaDia(d.creadoEn, ahora).toLowerCase()} {formatearHora(d.creadoEn)}
@@ -136,7 +133,7 @@ function TarjetaPendiente({
                 {i.referencia} <span className="font-normal text-tinta/70">× {i.cantidad}</span>
               </p>
               <p className="text-sm text-tinta/75">{varianteLegible(i)}</p>
-              <p className="mt-0.5 text-xs text-tinta/70">
+              <p className="mt-0.5 text-sm text-tinta/70">
                 <span className="font-mono">{codigoPrenda(i)}</span> · {soles(i.valorPagado)}
               </p>
             </div>
@@ -151,7 +148,7 @@ function TarjetaPendiente({
         <p className="text-tinta/80">
           <span className="font-semibold text-tinta">Motivo:</span> {d.motivo}
         </p>
-        <p className="text-xs text-tinta/70">
+        <p className="text-sm text-tinta/70">
           El cliente pagó {soles(d.valorPagado)} por esto.
           {d.comprobanteAceptado && " Al aprobarla se emite la nota de crédito."}
         </p>
@@ -159,24 +156,15 @@ function TarjetaPendiente({
 
       {!resolviendo && (
         <footer className="flex flex-wrap items-center justify-between gap-3 border-t border-tinta/[0.07] px-5 py-3.5">
-          {esLider ? (
-            <>
-              <p className="text-xs text-tinta/70">
-                {d.sinAceptar
-                  ? "Se aprueba cuando SUNAT acepte la boleta: así sale su nota de crédito."
-                  : "Al aprobarla, las prendas vuelven al piso o entran a cuarentena."}
-              </p>
-              <div className="flex items-center gap-2">
-                <BotonSecundario onClick={() => setResolviendo("rechazar")}>Rechazar</BotonSecundario>
-                <BotonPrincipal onClick={() => setResolviendo("aprobar")}>Aprobar</BotonPrincipal>
-              </div>
-            </>
-          ) : (
-            <Chip tono="ambar" versalitas={false}>
-              <Clock className="h-3.5 w-3.5" aria-hidden />
-              Esperando aprobación de un líder
-            </Chip>
-          )}
+          <p className="text-sm text-tinta/70">
+            {d.sinAceptar
+              ? "Se aprueba cuando SUNAT acepte la boleta: así sale su nota de crédito."
+              : "Al aprobarla, las prendas vuelven al piso o entran a cuarentena."}
+          </p>
+          <div className="flex items-center gap-2">
+            <BotonSecundario onClick={() => setResolviendo("rechazar")}>Rechazar</BotonSecundario>
+            <BotonPrincipal onClick={() => setResolviendo("aprobar")}>Aprobar</BotonPrincipal>
+          </div>
         </footer>
       )}
 
@@ -306,7 +294,7 @@ function PanelResolver({
         <div className="anim-revelar space-y-4 border-t border-tinta/[0.07] px-5 py-4">
           <div>
             <TituloGrupo>¿Se le reembolsa algo?</TituloGrupo>
-            <p className="mt-0.5 text-xs text-tinta/70">
+            <p className="mt-0.5 text-sm text-tinta/70">
               Opcional, y es la última opción: primero un cambio, después una nota de crédito. Déjalo vacío si no hay reembolso.
             </p>
           </div>
@@ -360,7 +348,7 @@ function PanelResolver({
             )}
           </div>
           {hayReembolso && (
-            <p className="-mt-2 text-xs text-tinta/70">
+            <p className="-mt-2 text-sm text-tinta/70">
               {!conCuenta
                 ? "En efectivo sale del cajón y resta del cierre, como siempre."
                 : hayCuentas
@@ -390,10 +378,10 @@ function PanelResolver({
             <BotonSecundario onClick={cancelar} disabled={cargando}>
               Cancelar
             </BotonSecundario>
-            <BotonRojo onClick={aprobar} cargando={cargando} textoCargando="Aprobando…" disabled={!!revision.bloqueo || !responsable.listo}>
+            <BotonPrincipal onClick={aprobar} cargando={cargando} textoCargando="Aprobando…" disabled={!!revision.bloqueo || !responsable.listo}>
               <Check className="h-4 w-4" aria-hidden />
               Aprobar devolución
-            </BotonRojo>
+            </BotonPrincipal>
           </div>
         </div>
       )}
@@ -404,7 +392,7 @@ function PanelResolver({
             <label htmlFor={`rechazo-${d.id}`} className="campo-etiqueta">
               ¿Por qué se rechaza?
             </label>
-            <p className="mt-0.5 text-xs text-tinta/70">Queda escrito en la devolución. El stock no cambia.</p>
+            <p className="mt-0.5 text-sm text-tinta/70">Queda escrito en la devolución. El stock no cambia.</p>
             <input
               id={`rechazo-${d.id}`}
               type="text"

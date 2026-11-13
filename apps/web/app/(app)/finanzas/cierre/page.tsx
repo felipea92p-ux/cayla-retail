@@ -1,27 +1,43 @@
 import { exigirModulo } from "@/lib/persona-actual";
-import { esMes, mesDe } from "@/lib/gastos-reglas";
 import { getPanelCierre } from "@/lib/cierre";
+import { getIgvCambiado } from "@/lib/impuestos";
+import { AvisoIgvCambiado } from "@/components/finanzas/AvisoIgvCambiado";
 import { getParametrosFinanzas } from "@/lib/configuracion";
 import { hoyLima } from "@/lib/fechas-lima";
 import { avisoAntesDelCorte, mesAntesDelCorte } from "@/lib/finanzas-arranque-reglas";
-import { mesAnterior } from "@/lib/resultados-reglas";
+import { mesDeLaRuta, mesDelDia, RUTA_CIERRE, sedesDeLaUrl } from "@/lib/finanzas-telar-reglas";
 import { CierreMes } from "@/components/finanzas/CierreMes";
+import { getEstadoSire } from "@/lib/sire";
+import { chequeoSire } from "@/lib/sire-estado-reglas";
+import { conChequeoSire } from "@/lib/cierre-reglas";
 
 // Finanzas ▸ Cierre de mes (ADR-0195 F9, ADR-0198). Lee en el servidor, en una sola función (`fn_cierre_panel`), y deja a
-// una pieza cliente cerrar y reabrir. `?mes=2026-08` elige el mes (por defecto, el anterior: el mes en curso nunca se
-// cierra); `?u=` abre una unidad (el id de la tienda o «empresa»).
+// una pieza cliente cerrar y reabrir. El mes y la sede los elige la barra común de Finanzas (`MesaDeMando`), igual que en los
+// demás submódulos: `?mes=2026-08` es el mes que se cierra (por defecto, el anterior: el mes en curso nunca se cierra, y la
+// barra lo sabe por `mesDeLaRuta`); `?sede=<id>` (o el viejo `?u=`) abre esa unidad: la clave de una sede de la barra es la
+// misma que la de una unidad del cierre (el id de la tienda o «empresa»).
 //
-// ADR-0332: si Finanzas cuenta desde un día posterior al mes que se pide (por defecto, el anterior), no hay nada que cerrar
-// todavía: se dice desde cuándo se mide, en vez de abrir un mes vacío. La fecha se lee con `fn_parametros_finanzas`; quien
-// entra solo con el módulo Cierre y no puede leerla ve el comportamiento de siempre (la base igual no cuenta lo anterior).
-export default async function CierrePage({ searchParams }: { searchParams: Promise<{ mes?: string; u?: string }> }) {
-  await exigirModulo("cierre_mes");
+// ADR-0332: si Finanzas cuenta desde un día posterior al mes que se pide, no hay nada que cerrar todavía: se dice desde
+// cuándo se mide, en vez de abrir un mes vacío. La fecha se lee con `fn_parametros_finanzas`; quien entra solo con el módulo
+// Cierre y no puede leerla ve el comportamiento de siempre (la base igual no cuenta lo anterior).
+export default async function CierrePage({ searchParams }: { searchParams: Promise<{ mes?: string; u?: string; sede?: string }> }) {
+  const persona = await exigirModulo("cierre_mes");
   const sp = await searchParams;
   const inicio = (await getParametrosFinanzas())?.inicioFinanzas ?? null;
-  const pedido = esMes(sp.mes) ? sp.mes : mesAnterior(mesDe(hoyLima()));
-  if (inicio && mesAntesDelCorte(pedido, inicio)) {
+  const mes = mesDeLaRuta(RUTA_CIERRE, sp.mes, mesDelDia(hoyLima()));
+  if (inicio && mesAntesDelCorte(mes, inicio)) {
     return <CierreMes panel={null} falla={null} unidadPedida={null} avisoCorte={avisoAntesDelCorte(inicio)} />;
   }
-  const panel = await getPanelCierre(esMes(sp.mes) ? sp.mes : undefined);
-  return <CierreMes panel={panel.datos} falla={panel.falla} unidadPedida={sp.u ?? null} inicioFinanzas={inicio} />;
+  const sedes = sedesDeLaUrl({ sede: sp.sede });
+  const unidadPedida = sp.u ?? (sedes.length === 1 ? sedes[0]! : null);
+  // El aviso de la comparación con SUNAT (ADR-0601) lo arma la web con el mismo cruce de «Comparar con SUNAT»: solo avisa. Sin el módulo
+  // Impuestos no se lee y el cierre se ve como siempre.
+  const [panel, sire, igvCambiado] = await Promise.all([getPanelCierre(mes), getEstadoSire(mes), getIgvCambiado()]);
+  // La `key` vuelve a abrir la unidad pedida cuando la barra cambia de mes o de sede (la tarjeta elegida vive en la pieza cliente).
+  return (
+    <>
+      <AvisoIgvCambiado cambios={igvCambiado} />
+      <CierreMes key={`${mes}|${unidadPedida ?? ""}`} panel={panel.datos ? conChequeoSire(panel.datos, chequeoSire(sire)) : null} falla={panel.falla} unidadPedida={unidadPedida} esAdmin={persona.esAdmin} />
+    </>
+  );
 }

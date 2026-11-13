@@ -1,0 +1,221 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cerrar mi ronda — opciones</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=EB+Garamond:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  /* Maqueta de «Cerrar mi ronda» (Felipe 2026-10-29: «hay mucho texto, se explican cosas que no son necesarias»).
+     Colores: los tokens de apps/web/app/globals.css. Se ve una a la vez con #actual, #a, #b, #c1, #c2; sin hash, todas. */
+  :root {
+    --rojo: #b8412d; --rojo-profundo: #8b2a1f; --crema: #f5f0e8; --tinta: #1a1a18; --sand: #e8e0d0; --taupe: #805c4c;
+    --papel: #fbf8f2; --hueso: #eae1d2; --pizarra: #4c5d6e; --verde: #48603f; --borde-control: #9a8472;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: #d9d2c6; font-family: "DM Sans", system-ui, sans-serif; color: var(--tinta); font-size: 14px; }
+  .lienzo { display: flex; flex-wrap: wrap; gap: 28px; padding: 28px; justify-content: center; align-items: flex-start; }
+  .caja { display: flex; flex-direction: column; gap: 10px; }
+  .rotulo { font-size: 11px; letter-spacing: .12em; text-transform: uppercase; color: #3a332c; font-weight: 600; }
+  .rotulo b { background: var(--tinta); color: var(--crema); padding: 2px 7px; border-radius: 99px; margin-right: 6px; }
+  .modal { width: 452px; background: var(--papel); border: 1px solid var(--sand); border-radius: 22px; padding: 26px 26px 22px; }
+  h1 { font: 400 27px/1.15 "EB Garamond", Georgia, serif; margin: 0; }
+  .sub { color: var(--taupe); font-size: 13.5px; margin: 6px 0 0; }
+  h3 { font: 400 21px/1.2 "EB Garamond", Georgia, serif; margin: 0; }
+  .cuerpo { display: flex; flex-direction: column; gap: 20px; margin-top: 18px; }
+  .cuaderno { list-style: none; margin: 0; padding: 0; border: 1px solid var(--sand); border-radius: 16px; background: var(--papel); }
+  .cuaderno li { display: flex; justify-content: space-between; gap: 12px; padding: 12px 18px; border-bottom: 1px solid var(--sand); font-size: 14.5px; }
+  .cuaderno li small { color: var(--taupe); font-size: inherit; }
+  .cuaderno li.fin { border-bottom: 0; padding: 16px 18px; font: 400 25px/1 "EB Garamond", Georgia, serif; align-items: baseline; }
+  .tab { font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .chip { display: inline-flex; align-items: center; gap: 6px; border-radius: 99px; padding: 3px 10px; font-size: 12px; background: #e3e5e8; color: var(--pizarra); white-space: nowrap; }
+  .chip::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+  .chip.num { background: var(--sand); color: var(--tinta); }
+  .chip.num::before { display: none; }
+  .envios .cab { display: flex; align-items: center; gap: 8px; }
+  .envios .fila { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 12px 0 4px; }
+  .envios .fila small { color: var(--taupe); display: block; font-size: 12.5px; margin-top: 2px; }
+  .nota { color: var(--taupe); font-size: 12.5px; margin: 0; }
+  .opcion { display: grid; grid-template-columns: 22px 1fr; gap: 12px; padding: 14px; border: 1px solid var(--sand); border-radius: 16px; background: var(--papel); text-align: left; }
+  .opcion .radio { width: 22px; height: 22px; border-radius: 50%; border: 1.5px solid var(--borde-control); margin-top: 1px; }
+  .opcion.on { border-color: var(--tinta); box-shadow: inset 0 0 0 1px var(--tinta); }
+  .opcion.on .radio { border: 7px solid var(--tinta); }
+  .opcion b { font-weight: 500; font-size: 15px; display: block; }
+  .opcion span { color: var(--taupe); font-size: 12.5px; display: block; }
+  .opcion.corta { padding: 12px 14px; align-items: center; }
+  .opcion.corta .radio { margin-top: 0; }
+  .lista { display: flex; flex-direction: column; gap: 8px; }
+  .fichas { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
+  .fichas.tres { grid-template-columns: repeat(3, 1fr); }
+  .ficha { border: 1px solid var(--sand); background: var(--papel); border-radius: 14px; padding: 12px 8px; text-align: center; font-size: 13.5px; min-height: 52px; display: flex; flex-direction: column; justify-content: center; gap: 2px; }
+  .ficha small { color: var(--taupe); font-size: 11.5px; }
+  .ficha.on { border-color: var(--tinta); box-shadow: inset 0 0 0 1px var(--tinta); font-weight: 500; }
+  .pie { display: flex; justify-content: flex-end; gap: 10px; margin-top: 4px; }
+  .btn { font: 500 14px "DM Sans", sans-serif; border-radius: 12px; padding: 11px 20px; border: 1px solid var(--taupe); background: transparent; color: var(--tinta); }
+  .btn.pri { background: var(--rojo-profundo); border-color: var(--rojo-profundo); color: var(--crema); }
+  .btn.neg { background: var(--tinta); border-color: var(--tinta); color: var(--crema); }
+  .btn.off { opacity: .45; }
+  .izq { margin-right: auto; }
+  .heroe { background: var(--hueso); border-radius: 16px; padding: 18px 20px; display: flex; flex-direction: column; gap: 4px; }
+  .heroe .et { font-size: 11px; letter-spacing: .12em; text-transform: uppercase; color: var(--taupe); font-weight: 600; }
+  .heroe .num { font: 400 44px/1 "EB Garamond", Georgia, serif; font-variant-numeric: tabular-nums; }
+  .heroe .res { color: var(--taupe); font-size: 13px; margin-top: 6px; }
+  .enlace { color: var(--rojo-profundo); font-size: 12px; letter-spacing: .08em; text-transform: uppercase; font-weight: 600; }
+  .seg { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .seg .op { border: 1px solid var(--sand); background: var(--papel); border-radius: 14px; padding: 16px 12px; text-align: center; font-weight: 500; font-size: 15px; }
+  .seg .op.on { border-color: var(--tinta); box-shadow: inset 0 0 0 1px var(--tinta); background: var(--papel); }
+  .pregunta { font: 400 21px/1.2 "EB Garamond", Georgia, serif; }
+  .paso { display: flex; gap: 6px; }
+  .paso i { height: 3px; flex: 1; border-radius: 3px; background: var(--sand); }
+  .paso i.on { background: var(--tinta); }
+  .linea { display: flex; justify-content: space-between; align-items: center; gap: 10px; border: 1px solid var(--sand); border-radius: 14px; padding: 12px 14px; }
+  /* Una a la vez cuando hay hash */
+  .caja { display: none; }
+  body:not(:has(:target)) .caja { display: flex; }
+  .caja:target { display: flex; }
+  .caja:target .rotulo { display: none; }
+</style>
+</head>
+<body>
+<div class="lienzo">
+
+<!-- ACTUAL (con la cuenta nueva) -->
+<section class="caja" id="actual">
+  <div class="rotulo"><b>Hoy</b>Con la pregunta de la cuenta sumada</div>
+  <div class="modal">
+    <h1>Cerrar mi ronda RC-000004</h1>
+    <p class="sub">Revisa tu plata y di qué haces con lo que te queda.</p>
+    <div class="cuerpo">
+      <ul class="cuaderno">
+        <li><span>Te dieron</span><span class="tab">+ S/ 5,700.00</span></li>
+        <li><span>Compraste <small>(6 compras)</small></span><span class="tab">− S/ 4,293.00</span></li>
+        <li><span>Gastaste en otras cosas</span><span class="tab">− S/ 7.00</span></li>
+        <li class="fin"><span>Te queda</span><span class="tab">S/ 1,400.00</span></li>
+      </ul>
+      <div class="envios">
+        <div class="cab"><h3>Tus envíos de la ronda</h3><span class="chip num">1</span><span class="chip" style="margin-left:auto">1 sin recibir</span></div>
+        <div class="fila"><div><b style="font-weight:500">ENV-000002 · TRU</b><small>Ayer 19:19 · 163 prendas · 1 fardo</small></div><span class="chip">En camino</span></div>
+        <p class="nota" style="margin-top:10px">Los que sigan «en camino» los puedes seguir viendo en Mis envíos después de cerrar.</p>
+      </div>
+      <div class="lista">
+        <h3>¿Qué haces con lo que te queda?</h3>
+        <div class="opcion"><span class="radio"></span><div><b>Me lo quedo para mi próxima ronda</b><span>Sigue siendo plata de CAYLA para comprar</span></div></div>
+        <div class="opcion on"><span class="radio"></span><div><b>Lo devuelvo al cerrar</b><span>Lo entregas en caja y Compras lo recibe</span></div></div>
+      </div>
+      <div class="lista">
+        <h3>¿A qué cuenta de CAYLA lo devuelves?</h3>
+        <div class="fichas">
+          <div class="ficha on">BCP</div><div class="ficha">Interbank</div>
+          <div class="ficha">Caja fuerte Trujillo</div><div class="ficha">Caja fuerte Lima</div>
+        </div>
+        <p class="nota">Compras la mira y confirma al recibir la plata.</p>
+      </div>
+      <div class="pie"><button class="btn">Cancelar</button><button class="btn pri">Cerrar la ronda</button></div>
+    </div>
+  </div>
+</section>
+
+<!-- OPCIÓN A: lo mismo, sin explicaciones -->
+<section class="caja" id="a">
+  <div class="rotulo"><b>A</b>Lo mismo, sin las explicaciones</div>
+  <div class="modal">
+    <h1>Cerrar mi ronda RC-000004</h1>
+    <div class="cuerpo" style="margin-top:16px">
+      <ul class="cuaderno">
+        <li><span>Te dieron</span><span class="tab">+ S/ 5,700.00</span></li>
+        <li><span>Compraste <small>(6 compras)</small></span><span class="tab">− S/ 4,293.00</span></li>
+        <li><span>Gastaste en otras cosas</span><span class="tab">− S/ 7.00</span></li>
+        <li class="fin"><span>Te queda</span><span class="tab">S/ 1,400.00</span></li>
+      </ul>
+      <div class="linea"><span><b style="font-weight:500">1 envío</b> <span style="color:var(--taupe)">· ENV-000002 TRU · 163 prendas</span></span><span class="chip">En camino</span></div>
+      <div class="lista">
+        <h3>¿Qué haces con lo que te queda?</h3>
+        <div class="seg">
+          <div class="op">Me lo quedo</div>
+          <div class="op on">Lo devuelvo</div>
+        </div>
+      </div>
+      <div class="lista">
+        <h3>¿A qué cuenta?</h3>
+        <div class="fichas">
+          <div class="ficha on">BCP</div><div class="ficha">Interbank</div>
+          <div class="ficha">Caja fuerte Trujillo</div><div class="ficha">Caja fuerte Lima</div>
+        </div>
+      </div>
+      <div class="pie"><button class="btn">Cancelar</button><button class="btn pri">Cerrar la ronda</button></div>
+    </div>
+  </div>
+</section>
+
+<!-- OPCIÓN B: el número primero, el detalle a un toque -->
+<section class="caja" id="b">
+  <div class="rotulo"><b>B</b>El número primero, el detalle a un toque</div>
+  <div class="modal">
+    <h1>Cerrar mi ronda RC-000004</h1>
+    <div class="cuerpo" style="margin-top:16px">
+      <div class="heroe">
+        <span class="et">Te queda</span>
+        <span class="num">S/ 1,400.00</span>
+        <span class="res">Te dieron 5,700.00 · compraste 4,293.00 · gastaste 7.00</span>
+      </div>
+      <div class="linea"><span><b style="font-weight:500">1 envío</b> <span style="color:var(--taupe)">sin recibir</span></span><span class="enlace">Ver ›</span></div>
+      <div class="lista">
+        <div class="seg">
+          <div class="op">Me lo quedo<br><span style="font-weight:400;color:var(--taupe);font-size:12.5px">para mi próxima ronda</span></div>
+          <div class="op on">Lo devuelvo<br><span style="font-weight:400;color:var(--taupe);font-size:12.5px">a una cuenta de CAYLA</span></div>
+        </div>
+      </div>
+      <div class="fichas">
+        <div class="ficha on">BCP</div><div class="ficha">Interbank</div>
+        <div class="ficha">Caja fuerte Trujillo</div><div class="ficha">Caja fuerte Lima</div>
+      </div>
+      <div class="pie"><button class="btn">Cancelar</button><button class="btn pri">Cerrar la ronda</button></div>
+    </div>
+  </div>
+</section>
+
+<!-- OPCIÓN C: dos pasos -->
+<section class="caja" id="c1">
+  <div class="rotulo"><b>C</b>Dos pasos · 1 de 2: revisa</div>
+  <div class="modal">
+    <div class="paso"><i class="on"></i><i></i></div>
+    <h1 style="margin-top:16px">Revisa tu ronda RC-000004</h1>
+    <div class="cuerpo" style="margin-top:16px">
+      <ul class="cuaderno">
+        <li><span>Te dieron</span><span class="tab">+ S/ 5,700.00</span></li>
+        <li><span>Compraste <small>(6 compras)</small></span><span class="tab">− S/ 4,293.00</span></li>
+        <li><span>Gastaste en otras cosas</span><span class="tab">− S/ 7.00</span></li>
+        <li class="fin"><span>Te queda</span><span class="tab">S/ 1,400.00</span></li>
+      </ul>
+      <div class="linea"><span><b style="font-weight:500">1 envío</b> <span style="color:var(--taupe)">· ENV-000002 TRU · 163 prendas</span></span><span class="chip">En camino</span></div>
+      <div class="pie"><button class="btn">Cancelar</button><button class="btn neg">Siguiente →</button></div>
+    </div>
+  </div>
+</section>
+
+<section class="caja" id="c2">
+  <div class="rotulo"><b>C</b>Dos pasos · 2 de 2: decide</div>
+  <div class="modal">
+    <div class="paso"><i class="on"></i><i class="on"></i></div>
+    <h1 style="margin-top:16px">Te quedan S/ 1,400.00</h1>
+    <div class="cuerpo" style="margin-top:18px">
+      <div class="lista">
+        <div class="opcion corta"><span class="radio"></span><div><b>Me lo quedo para mi próxima ronda</b></div></div>
+        <div class="opcion corta on"><span class="radio"></span><div><b>Lo devuelvo al cerrar</b></div></div>
+      </div>
+      <div class="lista">
+        <h3>¿A qué cuenta de CAYLA?</h3>
+        <div class="fichas">
+          <div class="ficha on">BCP</div><div class="ficha">Interbank</div>
+          <div class="ficha">Caja fuerte Trujillo</div><div class="ficha">Caja fuerte Lima</div>
+        </div>
+      </div>
+      <div class="pie"><button class="btn izq">← Volver</button><button class="btn pri">Cerrar la ronda</button></div>
+    </div>
+  </div>
+</section>
+
+</div>
+</body>
+</html>

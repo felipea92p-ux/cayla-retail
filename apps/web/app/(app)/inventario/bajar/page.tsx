@@ -6,6 +6,7 @@ import { aPrendasBajables, lineasIniciales } from "@/lib/bajada-reglas";
 import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 import { BajarAlPisoForm } from "@/components/BajarAlPisoForm";
 import { parsearLineasPrellenadas } from "@/lib/produccion-reglas";
+import { idsDeParam } from "@/lib/etiqueta-precio-reglas";
 
 // «Bajar prendas al piso» (ADR-0208, paso 1): Frescura del piso solo mide algo si la bajada se registra al colgar la
 // prenda, no al cobrarla. La tienda es siempre la sede activa (quien baja está parada ahí); la lista se arma en el
@@ -15,13 +16,15 @@ import { parsearLineasPrellenadas } from "@/lib/produccion-reglas";
 // «Mover mercadería». Solo entra lo que esta tienda puede bajar, y llega «por escanear» (en 0): se baja lo que se lea al
 // colgarlo, no lo que se marcó (ADR-0237, actualización 2026-09-26).
 // `?camara=1` («Colgar en tandas» del Inicio de Almacén, 2026-10-09): en un celular la cámara se abre al llegar.
-export default async function BajarAlPisoPage({ searchParams }: { searchParams: Promise<{ lineas?: string; camara?: string }> }) {
+// `?envio=<id>` («Bajar al piso» tras llevar una tanda al stock en Recibir, Felipe 2026-11-12): la flecha vuelve a ese envío, no a Existencias.
+export default async function BajarAlPisoPage({ searchParams }: { searchParams: Promise<{ lineas?: string; camara?: string; envio?: string }> }) {
   // Se repite la puerta del layout: un layout no vuelve a correr al navegar entre sus hijas.
   const persona = await exigirModulo("existencias");
   const sede = persona.ubicacionEtiqueta;
   // En paralelo: casi siempre es una tienda que separa piso y almacén, y así no se espera dos viajes a la base.
   const [sububicaciones, filas, params] = await Promise.all([getSububicaciones(persona.ubicacionId), getStockPorUbicacion(persona.ubicacionId), searchParams]);
   const prendas = aPrendasBajables(filas);
+  const [envio] = idsDeParam(params.envio);
   const separaPisoYAlmacen = encontrarPorTipo(sububicaciones, "piso_venta") !== null && encontrarPorTipo(sububicaciones, "almacen_tienda") !== null;
 
   return (
@@ -32,7 +35,7 @@ export default async function BajarAlPisoPage({ searchParams }: { searchParams: 
         subtitulo="Escanea cada prenda que vas a colgar. Al final confirmas y queda registrado de una vez."
         // La vuelta común (`Volver`), la flecha junto a la sede, como en Traslados y Conteo (ADR-0220, act. 2026-10-06). Siempre: el layout de
         // esta ruta ya exige el módulo «existencias», así que quien llega aquí puede volver a Existencias (Felipe 2026-10-07).
-        volver={<Volver href="/inventario" a="Existencias" />}
+        volver={envio ? <Volver href={`/recibir/envio/${envio}`} a="Envío" /> : <Volver href="/inventario" a="Existencias" />}
       />
 
       {separaPisoYAlmacen ? (

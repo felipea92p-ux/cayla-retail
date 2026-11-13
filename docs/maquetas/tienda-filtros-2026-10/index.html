@@ -1,0 +1,178 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Filtros de color y talla · dos maneras</title>
+<style>
+/* Página para comparar (no es parte de ningún diseño): letra del sistema y grises neutros a propósito. */
+:root { --fondo: #f2f2f0; --texto: #1b1b1a; --tenue: #5d5d59; --linea: #d9d9d5; }
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--fondo); color: var(--texto); font: 15px/1.55 -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif; }
+main { max-width: 1320px; margin: 0 auto; padding: 48px 24px 88px; }
+h1 { margin: 0; font-size: 34px; letter-spacing: -.02em; }
+h2 { margin: 56px 0 6px; font-size: 22px; }
+.bajada { max-width: 78ch; color: var(--tenue); margin: 12px 0 0; }
+.caja { margin: 24px 0 0; padding: 18px 22px; border: 1px solid var(--linea); border-radius: 10px; background: #fff; }
+.caja b { font-weight: 600; }
+.cifras { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; margin: 20px 0 0; }
+.cifra { padding: 14px 16px; border: 1px solid var(--linea); border-radius: 10px; background: #fff; }
+.cifra b { display: block; font-size: 26px; letter-spacing: -.02em; line-height: 1.1; }
+.cifra span { font-size: 13px; color: var(--tenue); }
+.dos { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-top: 24px; }
+.op { display: flex; flex-direction: column; border: 1px solid var(--linea); border-radius: 14px; background: #fff; overflow: hidden; }
+.vistas { display: grid; grid-template-columns: minmax(0, 1fr) 118px; gap: 12px; padding: 14px; background: #e7e7e3; border-bottom: 1px solid var(--linea); align-items: start; }
+.esc { position: relative; aspect-ratio: 1440 / 900; overflow: hidden; border-radius: 6px; background: #ddd; box-shadow: 0 1px 0 #0002; }
+.cel { position: relative; aspect-ratio: 390 / 844; overflow: hidden; border-radius: 12px; background: #ddd; box-shadow: 0 1px 0 #0002; }
+.vistas iframe { position: absolute; top: 0; left: 0; border: 0; transform-origin: 0 0; pointer-events: none; }
+.esc iframe { width: 1440px; height: 900px; }
+.cel iframe { width: 390px; height: 844px; }
+.cuerpo { display: flex; flex-direction: column; gap: 14px; padding: 20px 22px 22px; flex: 1; }
+.cuerpo h3 { margin: 0; font-size: 22px; }
+.cuerpo p { margin: 0; }
+.cuerpo h4 { margin: 4px 0 0; font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--tenue); }
+.cuerpo ul { margin: 6px 0 0; padding-left: 18px; display: grid; gap: 6px; }
+.abrir { display: flex; flex-wrap: wrap; gap: 8px; margin-top: auto; padding-top: 6px; }
+.abrir a { display: inline-flex; align-items: center; height: 38px; padding: 0 14px; border-radius: 8px; border: 1px solid var(--texto); color: var(--texto); text-decoration: none; font-weight: 500; }
+.abrir a:first-child { background: var(--texto); color: #fff; }
+.abrir a:focus-visible { outline: 2px solid #3b6fd8; outline-offset: 2px; }
+table { width: 100%; border-collapse: collapse; margin-top: 16px; background: #fff; border: 1px solid var(--linea); border-radius: 10px; overflow: hidden; font-size: 14px; }
+th, td { padding: 10px 14px; text-align: left; border-bottom: 1px solid var(--linea); vertical-align: top; }
+th { background: #ececE8; font-weight: 600; }
+tr:last-child td { border-bottom: 0; }
+td.n { text-align: right; font-variant-numeric: tabular-nums; }
+.tabla { overflow-x: auto; }
+.tabla table { min-width: 560px; }
+.dos > *, .cifras > * { min-width: 0; }
+code { overflow-wrap: anywhere; }
+ol.dec { margin: 14px 0 0; padding-left: 22px; display: grid; gap: 12px; max-width: 92ch; }
+ol.dec li b { font-weight: 600; }
+.nota { color: var(--tenue); font-size: 13.5px; }
+@media (max-width: 1000px) { .dos { grid-template-columns: 1fr; } .cifras { grid-template-columns: repeat(2, 1fr); } }
+</style>
+</head>
+<body>
+<main>
+  <h1>Filtros de color y talla: dos maneras</h1>
+  <p class="bajada">Hoy la lista de la tienda solo filtra por categoría y orden. Aquí hay dos maneras de agregar color y talla, hechas sobre <b>la misma lista de hoy, los mismos datos reales de Trujillo y la misma lógica</b>: lo único que cambia es cómo se ve y se toca. Ábrelas, elige un color, una talla, quita, cambia de categoría y mira qué pasa. <b>Una maqueta no cambia la tienda:</b> nada de esto existe todavía en <code>apps/tienda</code> ni en la base.</p>
+
+  <div class="cifras" aria-label="Lo que dicen tus datos">
+    <div class="cifra"><b>232</b><span>prendas con unidades en Trujillo (el listado dice 235: 3 no tienen ninguna)</span></div>
+    <div class="cifra"><b>80 → 13</b><span>colores distintos agrupados en 13 familias pensadas para quien compra</span></div>
+    <div class="cifra"><b>71 %</b><span>de las prendas vienen en 2 o más colores</span></div>
+    <div class="cifra"><b>70 %</b><span>tienen una sola talla; 130 son «Estándar / única»</span></div>
+    <div class="cifra"><b>177</b><span>prendas de más saldrían si se filtrara color y talla por separado (negro en S y beige en M no es «negro en M»)</span></div>
+  </div>
+
+  <h2>Las dos, para elegir mirando</h2>
+  <p class="bajada" style="margin-top:4px">Las vistas previas muestran «Negro y talla M» ya elegidos, en escritorio y en celular. La barra negra de arriba de cada una cambia de opción y entre escritorio y celular; no es parte del diseño.</p>
+  <div class="dos">
+    <article class="op">
+      <div class="vistas">
+        <a class="esc" href="opcion-1.html#c=negro&t=M" tabindex="-1" aria-hidden="true"><iframe src="opcion-1.html?previa#c=negro&t=M" title="Vista previa de la opción 1 en escritorio" loading="lazy"></iframe></a>
+        <a class="cel" href="opcion-1.html?vista=celular#c=negro&t=M" tabindex="-1" aria-hidden="true"><iframe src="opcion-1.html?previa#c=negro&t=M" title="Vista previa de la opción 1 en celular" loading="lazy"></iframe></a>
+      </div>
+      <div class="cuerpo">
+        <h3>Opción 1 · Filtros que se abren</h3>
+        <p>Color y talla viven detrás de dos palabras de la barra («COLOR», «TALLA»). Se abre un panel con las muestras o las tallas y la lista cambia en vivo. En el celular, un botón «Filtros» abre una hoja desde abajo con «Ver 10 prendas». Lo elegido queda en fichas pequeñas que se quitan con un toque.</p>
+        <h4>Ganas</h4>
+        <ul>
+          <li>La lista queda limpia: nada ocupa lugar hasta que se usa.</li>
+          <li>Escala: con 25 colores o más tallas el panel y la hoja siguen sirviendo.</li>
+          <li>Una opción apagada se explica sola («En gris: sin prendas en talla M») y lo elegido siempre se ve y se quita con un toque.</li>
+          <li>En celular es el modelo que ya conocen (la hoja con «Ver N prendas»).</li>
+        </ul>
+        <h4>Pagas</h4>
+        <ul>
+          <li>Un toque más: para «negro y M» son 4 clics en escritorio (COLOR, Negro, TALLA, M).</li>
+          <li>Los colores no se ven hasta abrir el panel, y el panel tapa la primera columna de prendas mientras está abierto.</li>
+          <li>Más piezas que construir y mantener (panel flotante, hoja que se arrastra, foco atrapado, bloqueo del scroll): unas 860 líneas contra unas 590.</li>
+        </ul>
+        <h4>Se rompe si…</h4>
+        <ul>
+          <li>Alguien elige 6 colores y 3 tallas: las fichas pasan a tres renglones y empujan la lista. Ya con «Negro y M» en celular, la primera prenda baja de 388 a 550 px.</li>
+          <li>Cada cambio en vivo tarda más de un segundo en la tienda real: la lista saltaría con cada toque (habría que esperar unos 300 ms).</li>
+        </ul>
+        <div class="abrir"><a href="opcion-1.html">Abrir en escritorio</a><a href="opcion-1.html?vista=celular">En celular</a><a href="opcion-1.html#c=negro&t=M">Con Negro y M</a></div>
+      </div>
+    </article>
+
+    <article class="op">
+      <div class="vistas">
+        <a class="esc" href="opcion-2.html#c=negro&t=M" tabindex="-1" aria-hidden="true"><iframe src="opcion-2.html?previa#c=negro&t=M" title="Vista previa de la opción 2 en escritorio" loading="lazy"></iframe></a>
+        <a class="cel" href="opcion-2.html?vista=celular#c=negro&t=M" tabindex="-1" aria-hidden="true"><iframe src="opcion-2.html?previa#c=negro&t=M" title="Vista previa de la opción 2 en celular" loading="lazy"></iframe></a>
+      </div>
+      <div class="cuerpo">
+        <h3>Opción 2 · La paleta a la vista</h3>
+        <p>En moda se elige con los ojos: los 13 colores están siempre a la vista como muestras y las tallas, en una fila de cajitas. Nada se abre: cada filtro es un toque y lo elegido se marca donde lo elegiste. En pantalla ancha (desde 1400 px) todo va en una sola fila pegada arriba; en celular, sobre la lista, con una línea al pie que recuerda lo elegido.</p>
+        <h4>Ganas</h4>
+        <ul>
+          <li>Cada filtro a un toque, sin abrir nada: «negro y M» son 2 toques en escritorio y en celular.</li>
+          <li>El color se elige mirándolo, como se elige la ropa; lo elegido se ve en el mismo lugar donde se elige.</li>
+          <li>Menos piezas, menos que fallar (unas 590 líneas contra unas 860) y un teclado simple: una parada por fila.</li>
+          <li>Con 1400 px o más la paleta nunca sale de la vista.</li>
+        </ul>
+        <h4>Pagas</h4>
+        <ul>
+          <li><b>Ocupa lugar siempre, y en el celular es mucho:</b> en una pantalla de 844 px la primera prenda empieza a 749 px, es decir, la lista casi queda bajo el pliegue (en la opción 1 empieza a 388 px).</li>
+          <li>No escala: la fila única tiene 27 px de holgura a 1400; una 14.ª familia de color o un conteo de tres dígitos la rompen.</li>
+          <li>Bajo 1400 px (incluye los portátiles de 1366) la paleta no queda pegada: va sobre la lista.</li>
+          <li>El nombre del color no va escrito bajo cada muestra (tooltip y línea): Beige y Marrón, o Celeste y Azul, pueden confundirse con el dedo.</li>
+        </ul>
+        <h4>Se rompe si…</h4>
+        <ul>
+          <li>La tienda real tiene su propia barra fija abajo (bolsa, cookies) o Safari muestra la suya: se apilan con la línea al pie.</li>
+          <li>Tus fotos no cambian con el color y la persona espera ver «negro» en la tarjeta (esto pasa igual en la opción 1; ver abajo).</li>
+        </ul>
+        <div class="abrir"><a href="opcion-2.html">Abrir en escritorio</a><a href="opcion-2.html?vista=celular">En celular</a><a href="opcion-2.html#c=negro&t=M">Con Negro y M</a></div>
+      </div>
+    </article>
+  </div>
+
+  <div class="caja"><b>Lo que no cambia en ninguna.</b> La lista de hoy (cabecera, categorías, orden, tarjetas con foto, colores, «Hay / Quedan 2 / Última en Trujillo»); las 232 prendas reales de Trujillo con sus colores y tallas reales; que «negro y M» exige UNA variante negra en M; que lo que daría cero no se puede elegir y se ve apagado; que la talla solo se pide donde hay tallas de verdad (no en bolsos ni bisutería); y que al cambiar de categoría lo que ya no existe se suelta y se avisa con «Deshacer». <b>Precios, tallas y colores son los de hoy; el −10 % de Aniversario (termina el 25-oct) no se muestra.</b></div>
+
+  <h2>Lo que descubrieron las pruebas</h2>
+  <p class="bajada" style="margin-top:4px">La lógica se probó contra un cálculo independiente (51.439 comprobaciones). Cada opción la revisaron dos verificadores aparte: uno midió el contrato con clics reales y otro simuló a una persona sin contexto (<b>simulada: no son clientes reales</b>). Después cada autor corrigió lo que pudo reproducir.</p>
+  <div class="tabla"><table>
+    <thead><tr><th></th><th>Opción 1</th><th>Opción 2</th></tr></thead>
+    <tbody>
+      <tr><td>Hallazgos del verificador de contrato (alta / media / baja)</td><td class="n">0 / 2 / 12</td><td class="n">0 / 4 / 8</td></tr>
+      <tr><td>Hallazgos de la persona simulada (alta / media / baja)</td><td class="n">3 / 4 / 4</td><td class="n">0 / 7 / 7</td></tr>
+      <tr><td>Corregidos por el autor</td><td class="n">24 de 25</td><td class="n">18 de 26</td></tr>
+      <tr><td>Tareas que la persona simulada logró (8)</td><td class="n">8 de 8 en celular y escritorio</td><td class="n">8 de 8 en celular y escritorio</td></tr>
+      <tr><td>Estados imposibles hallados con clics reales (lista vacía, opción apagada que responde, total que no coincide)</td><td class="n">0 en 1.550 acciones</td><td class="n">0 en 1.230 acciones</td></tr>
+    </tbody>
+  </table></div>
+  <p class="nota" style="margin-top:10px"><b>No se probó:</b> iPhone ni Safari reales, lector de pantalla real (VoiceOver, NVDA), ni con colaboradoras o clientes de verdad. Todo es Chrome sin ventana con toque simulado.</p>
+
+  <h2>Dos hallazgos que valen más que elegir entre una y otra</h2>
+  <ol class="dec">
+    <li><b>La foto de la tarjeta no cambia con el color y hoy casi nunca se sabe de qué color es.</b> De las 200 prendas con foto en la tarjeta, 137 no tienen anotado el color de esa foto. Entre las que sí, la foto coincide con el color filtrado en 50 de 162 casos (31 %). Quien filtra «Negro» y ve un corsé rojo piensa que el filtro falló: las personas simuladas de las dos opciones lo marcaron (como alto en la 1 y medio en la 2). Esto no lo arregla ninguna opción: pide anotar el color de cada foto (la tabla <code>producto_fotos</code> ya tiene la columna <code>color_codigo</code>) y que la tarjeta use la foto del color elegido. Mientras tanto, las dos dicen «En Negro · talla M» bajo el nombre y la maqueta lo avisa.</li>
+    <li><b>En el celular las categorías quedan encajonadas desde antes de los filtros.</b> Con el orden a su lado, la fila de grupos mide unos 205 px de 358: para llegar a «Bolsos» hacen falta 6 deslizamientos y «Faldas» y «Shorts» no se ven. Pasa en tu tienda de hoy (la maqueta lo replica); aquí la base lo resuelve bajando el orden a su línea.</li>
+  </ol>
+
+  <h2>Lo que necesito de ti</h2>
+  <ol class="dec">
+    <li><b>¿Una u otra?</b> <i>Mi opinión, no un dato:</i> la <b>1</b>. En el celular deja ver prendas desde el primer vistazo (la 2 las esconde) y escala si crecen los colores; lo que pagas es un toque más en escritorio. La <b>2</b> es la mejor en escritorio ancho (dos toques y la paleta siempre a la vista), pero para llevarla al celular habría que rediseñarla (por ejemplo, la paleta en una sola fila que se desliza, que tiene su propio costo: se esconden colores). Mezclarlas (la 2 en escritorio y la 1 en celular) resuelve cada pantalla, pero deja dos maneras de hacer lo mismo en una sola tienda, y eso también se paga. Tú ves el negocio; yo no sé cuántos clientes entran por celular.</li>
+    <li><b>Las 13 familias de color</b> (Negro, Blanco y crudo, Gris, Beige y arena, Marrón y café, Rosado, Rojo y vino, Naranja y terracota, Amarillo y dorado, Verde, Celeste, Azul, Morado y lila). La base ya tiene <code>familia_color</code> pero mete negro, blanco y gris en «neutro»; para quien compra eso es demasiado grueso. Propongo una columna nueva para la tienda, sin tocar la del ERP.</li>
+    <li><b>«Estándar» y «Única» como una sola opción</b> («Estándar / única» en la 1, «Única» en la 2). Hoy son dos tallas distintas en la base (116 y 14 prendas).</li>
+    <li><b>¿La categoría cuenta como filtro?</b> Hoy «Quitar color y talla» no la toca. Si «quitar todo» debe también volver a «Toda la tienda», es un cambio de tres líneas.</li>
+    <li><b>¿«Atrás» debe deshacer un filtro?</b> Hoy los filtros no apilan historial: «Atrás» sale de la lista.</li>
+    <li><b>Los números de cada opción:</b> «Blanco 87» con Negro puesto cuenta cuántas prendas vienen en blanco, no lo que sumas (la lista pasaría de 76 a 121). Se puede mostrar «+45» en vez de 87.</li>
+    <li><b>En vivo o con botón.</b> Las dos cambian la lista al tocar. Con la tienda real (cada consulta va a la base) hay que medir si conviene esperar unos 300 ms o aplicar al cerrar.</li>
+  </ol>
+</main>
+<script>
+// Escala cada vista previa al ancho de su caja.
+function escalar() {
+  document.querySelectorAll(".esc, .cel").forEach(function (caja) {
+    var f = caja.querySelector("iframe");
+    f.style.transform = "scale(" + (caja.clientWidth / f.offsetWidth) + ")";
+  });
+}
+addEventListener("resize", escalar);
+addEventListener("DOMContentLoaded", escalar);
+addEventListener("load", escalar);
+</script>
+</body>
+</html>

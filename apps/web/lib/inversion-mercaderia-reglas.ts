@@ -59,6 +59,8 @@ export type CampanaInversion = {
   historia: HistoriaCampana | null;
   /** Cuánto cuesta y cuánto deja; `null` si el Plan no lo entrega. */
   costos: CostosCampana | null;
+  /** Cuántas categorías tienen plan, de las que entran a los motores; `null` si el Plan no lo dice. */
+  planeadas: { conPlan: number; total: number } | null;
 };
 
 const r2 = (n: number) => Math.round(n * 100) / 100;
@@ -95,6 +97,12 @@ function leerCostos(v: unknown): CostosCampana | null {
   const ventas = num(c.ventas_esperadas, NaN);
   if (!porCategoria.length || !Number.isFinite(ventas)) return null;
   return { porCategoria, ventasEsperadas: ventas, costoDeLoVendido: noNegativo(num(c.costo_de_lo_vendido)), publicidad: noNegativo(num(c.publicidad)), comision: noNegativo(num(c.comision)) };
+}
+
+/** Solo si vienen los dos y cuadran: un dato a medias no se vuelve un «0 de 0». */
+function leerPlaneadas(f: Record<string, unknown>): CampanaInversion["planeadas"] {
+  const [conPlan, total] = [num(f.categorias_con_plan, NaN), num(f.categorias_total, NaN)];
+  return Number.isInteger(conPlan) && Number.isInteger(total) && conPlan >= 0 && total > 0 && conPlan <= total ? { conPlan, total } : null;
 }
 
 /** Qué parte de lo comprado se vendió (0–100, tope 100); `null` si no se compró nada (no hay con qué comparar). */
@@ -171,6 +179,7 @@ export function leerInversion(data: unknown): CampanaInversion[] {
         hrefPlan: typeof f.href_plan === "string" ? f.href_plan : null,
         historia: leerHistoria(f.historia),
         costos: leerCostos(f.costos),
+        planeadas: leerPlaneadas(f),
       },
     ];
   });
@@ -210,6 +219,37 @@ export function saleDeCajaDelPlan(c: CampanaInversion, conIgv: boolean): number 
  */
 export function pendienteDeCaja(c: CampanaInversion, conIgv: boolean): number {
   return r2(repartoDeLaCompra(c).faltaPedir * (1 + (conIgv ? razonIgv(c) : 0)));
+}
+
+/** En qué está la compra: no es lo mismo que no falte nada porque ya se pidió, porque el stock lo cubre o porque casi nada se planeó. */
+export type EstadoCompra = "por-pedir" | "sin-planear" | "no-hace-falta" | "todo-pedido";
+
+/**
+ * «Todo pedido» exige órdenes: un plan en cero sin una sola orden no está pedido. Lo que falta planear manda sobre lo ya pedido, porque esa campaña sigue sin resolverse.
+ * Sin el dato de categorías (`planeadas: null`) solo las órdenes deciden.
+ */
+export function estadoDeLaCompra(c: CampanaInversion, conIgv: boolean): EstadoCompra {
+  if (pendienteDeCaja(c, conIgv) > 0) return "por-pedir";
+  if (c.planeadas && c.planeadas.conPlan < c.planeadas.total) return "sin-planear";
+  return c.pedido > 0 ? "todo-pedido" : "no-hace-falta";
+}
+
+/** «1 de 46 categorías planeadas: faltan 45 por planear.»; `null` si todas tienen plan o no se sabe. */
+export function categoriasPlaneadas(c: CampanaInversion): string | null {
+  if (!c.planeadas || c.planeadas.conPlan >= c.planeadas.total) return null;
+  const { conPlan, total } = c.planeadas;
+  const faltan = total - conPlan;
+  return `${conPlan} de ${total} ${total === 1 ? "categoría planeada" : "categorías planeadas"}: ${faltan === 1 ? "falta 1" : `faltan ${faltan}`} por planear.`;
+}
+
+/**
+ * La leyenda de «Falta pedir» en la barra. La barra va SIN IGV porque su escala y su tope lo están (ADR-0527) y coincide con el Plan; con el interruptor prendido se dice además
+ * lo que saldría con IGV, que es la cifra de «Hoy te toca», para poder pasar de una a otra.
+ */
+export function faltaPedirDeLaBarra(c: CampanaInversion, conIgv: boolean): string {
+  const sinIgv = repartoDeLaCompra(c).faltaPedir;
+  const conElIgv = pendienteDeCaja(c, true);
+  return `Falta pedir ${soles(sinIgv)} sin IGV${conIgv && conElIgv > sinIgv ? ` · ${soles(conElIgv)} con IGV` : ""}`;
 }
 
 // ---- Cuándo pagar: las formas de hacerlo -----------------------------------------------------------------------------------------------
@@ -367,6 +407,24 @@ export function mejorMezcla(formas: readonly FormaEvaluada[]): FormaEvaluada["cl
   return [...candidatas].sort((a, b) => a.caja!.diasBajoMinimo - b.caja!.diasBajoMinimo || b.llegaAbrir - a.llegaAbrir)[0]!.clave;
 }
 
+/**
+ * Qué forma lleva la etiqueta «la mejor mezcla» en pantalla. La regla que elige (`mejorMezcla`) no se toca porque también decide qué pagos cuenta «Tu caja» (`formaEfectiva`); aquí solo se
+ * calla la etiqueta si la caja no alcanzó a ver alguno de los pagos de esa forma: un pago sin restar la hace parecer mejor de lo que es. `muyLejos` dice por qué no hay etiqueta.
+ */
+export function mezclaParaMostrar(formas: readonly FormaEvaluada[]): { clave: FormaEvaluada["clave"] | null; muyLejos: boolean } {
+  const clave = mejorMezcla(formas);
+  const muyLejos = (formas.find((f) => f.clave === clave)?.caja?.fueraDelHorizonte.length ?? 0) > 0;
+  return { clave: muyLejos ? null : clave, muyLejos };
+}
+
+/** Lo que «Tu caja más baja» de una forma no incluye: «sin contar 1 de sus 2 pagos, que cae más adelante»; `null` si la caja los vio todos. */
+export function sinContarPagos(f: Pick<FormaEvaluada, "pagos" | "caja">): string | null {
+  const fuera = f.caja?.fueraDelHorizonte.length ?? 0;
+  if (fuera === 0) return null;
+  if (fuera === f.pagos.length) return fuera === 1 ? "sin contar su pago, que cae más adelante" : "sin contar sus pagos, que caen más adelante";
+  return `sin contar ${fuera} de sus ${f.pagos.length} pagos, que ${fuera === 1 ? "cae" : "caen"} más adelante`;
+}
+
 /** Cuántos días faltan para pedir, o `null` si no hay fecha. Negativo: ya pasó. */
 export function diasParaPedir(c: CampanaInversion, hoy: string): number | null {
   return c.fechaLimite ? diasEntre(hoy, c.fechaLimite) : null;
@@ -389,7 +447,7 @@ export function avisoDeInversion(c: CampanaInversion, hoy: string, conIgv: boole
   return {
     clave: `inversion:${c.id}`,
     tono: dias <= 7 ? "ambar" : "pizarra",
-    titulo: `Inversión en mercadería · ${c.nombre}: te falta pedir ${soles(falta)}`,
+    titulo: `Inversión en mercadería · ${c.nombre}: te falta pedir ${soles(falta)} ${conIgv ? "con IGV" : "sin IGV"}`,
     detalle,
     impacto: `${soles(falta)} sin pedir`,
     href: c.hrefPlan,
@@ -421,4 +479,16 @@ export function pagosDeLaCompra(campanas: readonly CampanaInversion[], p: Proyec
   return campanas
     .flatMap((c) => formaEfectiva(evaluarFormas(p, formasDePago(c, p.hoy, conIgv)), elegidas[c.id])?.pagos ?? [])
     .sort((a, b) => a.fecha.localeCompare(b.fecha));
+}
+
+export type VacioInversion = "sin-campanas" | "de-toda-cayla" | "no-se-sabe" | "ocultas";
+
+/**
+ * Por qué no hay ninguna campaña que dibujar. Solo «sin-campanas» afirma que no las hay: mirando una sede la inversión no se reparte, y si la lectura falló (o la cuenta no ve el Plan) no se sabe.
+ * `leida`: el Plan entregó su lista. `todas`: se mira CAYLA entera. `ocultasAqui`: hay campañas y las escondió quien mira.
+ */
+export function vacioDeInversion(o: { leida: boolean; todas: boolean; ocultasAqui: boolean }): VacioInversion {
+  if (!o.leida) return "no-se-sabe";
+  if (!o.todas) return "de-toda-cayla";
+  return o.ocultasAqui ? "ocultas" : "sin-campanas";
 }

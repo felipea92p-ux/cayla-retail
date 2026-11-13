@@ -26,8 +26,6 @@ export type LineaParaFila = {
   razonDescuento: string;
   razonDescuentoOtro: string;
   campana?: CampanaLinea | null;
-  /** Una pieza de liquidación (ADR-0379): su etiqueta. */
-  liquidacion?: { codigo: string } | null;
 };
 
 /** Color y talla de la variante, tal como los trae el catálogo de la caja. La línea del carrito no los guarda:
@@ -53,8 +51,6 @@ export type FilaDelTicket = {
   alTope: boolean;
   /** El «− 1 +». Una prenda sin registrar no lo lleva: la base exige cantidad 1 y el paso no tendría nada que hacer. */
   conPaso: boolean;
-  /** El importe abre el descuento de la prenda. Una pieza de liquidación no lo lleva: su precio es final (ADR-0379). */
-  conDescuento: boolean;
   /** El % de la línea: con campaña, el de SU campaña, no la cuenta monto ÷ precio. */
   pct: number;
   /** «−25 % · Black Friday» o «−20 % · Prenda con desperfecto»; null sin descuento. */
@@ -71,8 +67,9 @@ export function porcentajeVisible(l: LineaParaFila): number {
 }
 
 /** El porqué del descuento, en palabras de la tienda: el nombre de la campaña, el texto de «Otro» (una proforma
- *  deja ahí «Precio de la proforma P-…») o la etiqueta del motivo de la lista cerrada (R-45). */
-export function motivoDeLaLinea(l: LineaParaFila): string {
+ *  deja ahí «Precio de la proforma P-…») o la etiqueta del motivo de la lista cerrada (R-45). También la usa la prenda de un
+ *  apartado ya hecho (`descuentoDePrenda`, ADR-0584). */
+export function motivoDeLaLinea(l: Pick<LineaParaFila, "descuentoUnitario" | "razonDescuento" | "razonDescuentoOtro" | "campana">): string {
   if (esDescuentoDeCampana(l)) return l.campana?.nombre.trim() || "Campaña";
   if (l.razonDescuento === "otro") return l.razonDescuentoOtro.trim() || "Otro";
   return RAZONES_DESCUENTO.find((r) => r.valor === l.razonDescuento)?.etiqueta ?? "Descuento";
@@ -90,16 +87,11 @@ export function filaDelTicket(l: LineaParaFila, detalle?: DetalleVariante | null
   const colorYTalla = [detalle?.color?.trim(), detalle?.talla?.trim() ? `Talla ${detalle.talla.trim()}` : null].filter(Boolean).join(" · ");
   return {
     sinRegistrar,
-    detalle: l.liquidacion
-      ? `Venta final · etiqueta ${l.liquidacion.codigo}`
-      : sinRegistrar
-        ? "Prenda sin registrar · almacén la regulariza después"
-        : colorYTalla || codigoPrenda(l),
+    detalle: sinRegistrar ? "Prenda sin registrar · almacén la regulariza después" : colorYTalla || codigoPrenda(l),
     titulo: sinRegistrar ? l.referencia : `${l.referencia} · ${codigoPrenda(l)}`,
     stock: sinRegistrar ? null : { cantidad: l.stockAqui, tono: tonoDelStock(l.cantidad, l.stockAqui) },
     alTope: l.cantidad >= l.stockAqui,
     conPaso: !sinRegistrar,
-    conDescuento: !l.liquidacion,
     pct,
     nota: pct > 0 ? `−${pct} % · ${motivoDeLaLinea(l)}` : null,
     importe: l.cantidad * neto,

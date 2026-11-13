@@ -226,14 +226,11 @@ describe("descuentosPedidos — en S/ el monto es del total de lo elegido y se r
   });
 });
 
-describe("entraAlDescuento — lo elegido, menos las piezas de liquidación (ADR-0379)", () => {
+describe("entraAlDescuento — lo elegido", () => {
   it("todo el ticket (null o vacío) alcanza a todas; con claves, solo a esas", () => {
     expect(entraAlDescuento({ claveLinea: "a" }, null)).toBe(true);
     expect(entraAlDescuento({ claveLinea: "a" }, [])).toBe(true);
     expect(entraAlDescuento({ claveLinea: "a" }, ["b"])).toBe(false);
-  });
-  it("una pieza de liquidación nunca entra", () => {
-    expect(entraAlDescuento({ claveLinea: "a", liquidacion: { codigo: "LQ1" } }, null)).toBe(false);
   });
 });
 
@@ -282,10 +279,6 @@ describe("aplicarDescuentoMonto — un monto en S/ para todo lo alcanzado, repar
   });
   it("con claves, el monto entero va a las elegidas y las demás quedan como estaban", () => {
     expect(aplicarDescuentoMonto(carrito, 60, ["a"], cumpleanos).map((l) => l.descuentoUnitario)).toEqual([60, 0]);
-  });
-  it("una pieza de liquidación no recibe parte: todo va a las demás", () => {
-    const conLiquidacion = [...carrito, { ...linea("c", 30), cantidad: 1, liquidacion: { codigo: "LQ1" } }];
-    expect(aplicarDescuentoMonto(conLiquidacion, 100, [], cumpleanos).map((l) => l.descuentoUnitario)).toEqual([57.15, 42.85, 0]);
   });
   it("guarda el motivo igual que la versión por %", () => {
     expect(aplicarDescuentoMonto(carrito, 10, ["a"], cumpleanos)[0].razonDescuento).toBe("cumpleanos_clienta_top");

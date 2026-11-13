@@ -54,10 +54,9 @@ describe("la mesa: «¿Cómo estaba?» se SUGIERE, nunca se elige sola", () => {
     expect(PUENTE).toContain("onClick={() => onForma(f)}");
   });
 
-  it("los avisos de antes del botón (prenda sin cargar, venta propia) solo avisan: no cambian cuándo se puede regularizar", () => {
+  it("el aviso de antes del botón (prenda sin cargar) solo avisa: no cambia cuándo se puede regularizar", () => {
     expect(PUENTE).toContain("const puedeGuardar = Boolean(prenda && forma && responsable.listo && !guardando && !hecho);");
     expect(MESA).toContain("notaStock={notaStock}");
-    expect(MESA).toContain("propiaVenta={propiaVenta}");
   });
 
   it("el libro viaja de la página a la mesa (desconectarlo dejaría la mesa sin sugerencia sin que nada avise)", () => {

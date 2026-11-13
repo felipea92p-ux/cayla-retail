@@ -1,7 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-import { useBusquedaEnUrl } from "@/components/ui/BusquedaEnUrl";
+import { useBuscarAlEscribir } from "@/components/ui/BusquedaEnUrl";
 import { hrefLista, MAX_TERMINO, type ParamsLista } from "@/lib/clientas-lista-reglas";
 import { Buscador } from "@/components/ui/Buscador";
 
@@ -11,30 +10,8 @@ import { Buscador } from "@/components/ui/Buscador";
 // Va por `useBusquedaEnUrl` (CLAUDE.md, ADR-0149): lo tipeado no abre el loader; el campo dice «Buscando…» y la lista se
 // atenúa (`data-resultados`) mientras la base responde.
 
-const PAUSA_MS = 350;
-
 export function BuscadorClientas({ params }: { params: ParamsLista }) {
-  const [texto, setTexto] = useState(params.termino);
-  const ultimoEnviado = useRef(params.termino);
-  const { buscando, buscar } = useBusquedaEnUrl();
-
-  // Si la URL cambia desde afuera (atrás del navegador, «Ficha de la clienta» desde Historial), el campo la sigue.
-  useEffect(() => {
-    if (params.termino !== ultimoEnviado.current) {
-      ultimoEnviado.current = params.termino;
-      setTexto(params.termino);
-    }
-  }, [params.termino]);
-
-  useEffect(() => {
-    const limpio = texto.trim().slice(0, MAX_TERMINO);
-    if (limpio === ultimoEnviado.current) return;
-    const t = window.setTimeout(() => {
-      ultimoEnviado.current = limpio;
-      buscar(hrefLista(params, { termino: limpio }), { reemplazar: true });
-    }, PAUSA_MS);
-    return () => window.clearTimeout(t);
-  }, [texto, params, buscar]);
+  const { texto, setTexto, buscando } = useBuscarAlEscribir(params.termino, (termino) => hrefLista(params, { termino }), { largoMaximo: MAX_TERMINO });
 
   // La pieza única (ADR-0358 ronda 5): el «×» y Escape vacían el texto (y no cierran la hoja de alrededor), «Buscando…» sale
   // solo si la base tarda.

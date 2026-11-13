@@ -97,7 +97,7 @@ export function TiraDeOpciones({
         data-prenda={p.id}
         aria-pressed={esPuesta}
         aria-disabled={sinStock || undefined}
-        aria-label={`${p.nombre}, ${c.nombre}, ${precio}${p.colores.length > 1 ? `, ${p.colores.length} colores` : ""}${sinStock ? ", agotada" : esPuesta ? ", está en tu look" : ""}`}
+        aria-label={`${p.nombre}, ${c.nombre}, ${precio}${p.colores.length > 1 ? `, ${p.colores.length} colores` : ""}${sinStock ? ", agotada" : esPuesta ? ", está en tu outfit" : ""}`}
         onClick={() => {
           if (!sinStock) onPoner(p);
         }}
