@@ -71,25 +71,25 @@ describe("script antes de pintar", () => {
 });
 
 // 2026-11-12: con las animaciones apagadas, el reloj de un aviso duraba 0,01 ms y el aviso se cerraba al salir (en Vender se perdía
-// «Agregar y registrar la bajada»). Todo componente que se cierra en el `animationend` de una cuenta atrás tiene que tener su reloj de
-// vuelta en `movimiento.css`, con su duración.
-describe("los relojes siguen contando con las animaciones apagadas", () => {
+// «Agregar y registrar la bajada»). 2026-11-13: devolverle su animación dejó el anillo como lo único que se movía en una pantalla
+// quieta, dentro de un vidrio desenfocado, y en las Mac de las tiendas la pantalla quedó lavada y con el texto doble. La regla: quieto,
+// el reloj NO se anima (movimiento.css) y el componente cuenta el tiempo con `useCuentaAtrasQuieta`.
+describe("los relojes con las animaciones apagadas: quietos, y el tiempo lo cuenta un temporizador", () => {
   const raiz = join(__dirname, "..");
   const css = readFileSync(join(raiz, "app/estilos/movimiento.css"), "utf8");
   const RELOJES = [
-    { archivo: "components/ui/Avisos.tsx", clase: "aviso-reloj", animacion: "cayla-aviso-reloj", duracion: "var(--ms)" },
-    { archivo: "components/ui/AvisoDestacado.tsx", clase: "destacado-reloj", animacion: "cayla-destacado-reloj", duracion: "4500ms" },
+    { archivo: "components/ui/Avisos.tsx", clase: "aviso-reloj", animacion: "cayla-aviso-reloj" },
+    { archivo: "components/ui/AvisoDestacado.tsx", clase: "destacado-reloj", animacion: "cayla-destacado-reloj" },
   ];
 
-  it.each(RELOJES)("$clase: el componente se cierra con su reloj y movimiento.css le devuelve el tiempo", ({ archivo, clase, animacion, duracion }) => {
+  it.each(RELOJES)("$clase: quieto no se anima y el componente cuenta su tiempo", ({ archivo, clase, animacion }) => {
     const fuente = readFileSync(join(raiz, archivo), "utf8");
     expect(fuente).toContain(clase);
     expect(fuente).toMatch(new RegExp(`animationName === "${animacion}"`));
-    const regla = css.match(new RegExp(`:root\\[data-movimiento="quieto"\\][^{]*\\.${clase}\\s*\\{([^}]*)\\}`));
+    expect(fuente, `${archivo} cuenta el tiempo con useCuentaAtrasQuieta cuando está quieto`).toMatch(/useCuentaAtrasQuieta\([^)]*quieto \?/);
+    const regla = css.match(new RegExp(`:root\\[data-movimiento="quieto"\\] \\.${clase}[^{]*\\{([^}]*)\\}`));
     expect(regla, `${clase} necesita su regla en movimiento.css`).not.toBeNull();
-    expect(regla![1]).toContain(`animation-duration: ${duracion} !important`);
-    // El atajo `animation` pisaría el `paused` que lo detiene con el mouse encima.
-    expect(regla![1]).not.toMatch(/(^|\s)animation:/);
+    expect(regla![1]).toContain("animation: none !important");
   });
 
   function componentesDe(dir: string): string[] {

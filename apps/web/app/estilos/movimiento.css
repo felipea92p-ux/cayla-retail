@@ -37,20 +37,15 @@
   animation-duration: 900ms !important;
   animation-iteration-count: infinite !important;
 }
-/* LOS RELOJES (2026-11-12): una cuenta atrás que, al terminar, CIERRA algo es función, no adorno. El aviso de la esquina y el aviso
-   destacado se cierran en el `animationend` de su reloj; con la regla de arriba ese reloj duraba 0,01 ms y el aviso se iba apenas salía.
-   En Vender eso escondía el botón «Agregar y registrar la bajada» (ADR-0321): desde el 2026-11-07 nadie pudo bajar una prenda desde la
-   caja. Se le devuelve solo su tiempo (sin la entrada de 520 ms, que sí es adorno), con propiedades sueltas y no con el atajo
-   `animation`, para no pisar el `animation-play-state: paused` que lo detiene con el mouse encima. Es lo mismo que ya hacía
-   `prefers-reduced-motion` en `avisos.css`. Un reloj nuevo que cierre algo se suma aquí; lo vigila `lib/movimiento-reglas.test.ts`. */
-:root[data-movimiento="quieto"] .aviso-tarjeta:not([data-tono="proceso"]) .aviso-reloj {
-  animation-name: cayla-aviso-reloj !important;
-  animation-duration: var(--ms) !important;
-  animation-timing-function: linear !important;
-  animation-fill-mode: forwards !important;
-}
-:root[data-movimiento="quieto"] [role="dialog"] .destacado-reloj {
-  animation-duration: 4500ms !important;
+/* LOS RELOJES (2026-11-12 y 2026-11-13): el aviso de la esquina y el aviso destacado se cierran en el `animationend` de su reloj (el
+   anillo, la barra). Con la regla de arriba ese reloj duraba 0,01 ms y el aviso se iba apenas salía: en Vender escondía «Agregar y
+   registrar la bajada» (ADR-0321). El 2026-11-12 se le devolvió su tiempo aquí, pero entonces el anillo era lo único que se movía en una
+   pantalla quieta, repintándose 15 s dentro de un vidrio desenfocado, y en las Mac de las tiendas la pantalla de Vender quedó lavada y
+   con el texto doble mientras el aviso estaba a la vista. Quieto es quieto: el reloj no se anima (queda lleno) y el tiempo lo cuenta
+   `useCuentaAtrasQuieta`, con la misma pausa. Un reloj nuevo que cierre algo hace lo mismo; lo vigila `lib/movimiento-reglas.test.ts`. */
+:root[data-movimiento="quieto"] .aviso-reloj,
+:root[data-movimiento="quieto"] .destacado-reloj {
+  animation: none !important;
 }
 /* La transición entre temas (claro ↔ oscuro) es un fundido de la página entera: quieto, cambia de golpe. */
 :root[data-movimiento="quieto"]::view-transition-group(*),
