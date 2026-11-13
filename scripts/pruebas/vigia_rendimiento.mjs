@@ -20,6 +20,9 @@
  *      costo, y la ventana va de 1 hora a 90 días.
  *   G. Solo nombres y números: las únicas columnas de texto son nombres, tipos, roles y la llave de la consulta; un texto con
  *      espacios no entra como nombre, y `postgres` no entra como rol. Volver a pegar la migración es inocuo.
+ *   H. Como la llama el cron: por PostgREST, cuyas sesiones cargan `safeupdate` (rechaza un DELETE o UPDATE sin WHERE). Dos fotos
+ *      seguidas con la llave de servicio, y el control: la versión de 20261113194000 falla ahí con «DELETE requires a WHERE clause»,
+ *      como falló cada hora en producción el 2026-11-13.
  *
  * CÓMO. Cada caso en su transacción con ROLLBACK, con la migración pegada antes (en local la prueba aunque no esté aplicada; en el CI,
  * donde ya está, prueba además que se puede volver a pegar). Las llamadas medidas son a funciones y tablas `zz_vigia_*_<sufijo>` que nacen
@@ -37,7 +40,9 @@ import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const RAIZ = join(fileURLToPath(new URL(".", import.meta.url)), "..", "..");
-const MIGRACION = readFileSync(join(RAIZ, "supabase", "migrations", "20261113194000_vigia_de_rendimiento.sql"), "utf8");
+// Las dos, en su orden: la segunda deja la función sin DELETE a secas (safeupdate, caso H).
+const MIGRACION_ORIGINAL = readFileSync(join(RAIZ, "supabase", "migrations", "20261113194000_vigia_de_rendimiento.sql"), "utf8");
+const MIGRACION = [MIGRACION_ORIGINAL, readFileSync(join(RAIZ, "supabase", "migrations", "20261113233000_vigia_rendimiento_sin_delete_a_secas.sql"), "utf8")].join("\n");
 const CONTENEDOR_LOCAL = process.env.RETAIL_CONTENEDOR_PG ?? "supabase_db_cayla-retail";
 const FELIPE = "22222222-2222-4222-8222-000000000001"; // líder y Admin (seed)
 const MICAELA = "22222222-2222-4222-8222-000000000003"; // colaboradora — Tienda Trujillo (seed)
@@ -268,6 +273,28 @@ select pg_temp.intento(format($q$insert into retail.rendimiento_fotos (corrida_i
       + "rendimiento_fotos.nombre,rendimiento_fotos.rol,rendimiento_fotos.tipo", r);
   esperar("…un texto con espacios no entra como nombre, y `postgres` no entra como rol", /check/.test(rechazos?.split("|")[0] ?? "") && /check/.test(rechazos?.split("|")[1] ?? ""), rechazos);
   esperar("volver a pegar la migración es inocuo", r.ok && corrida === "ok", r);
+}
+
+// H. Como la llama el cron: por PostgREST, que carga `safeupdate`. `postgres` no puede cargar la librería; `supabase_admin` sí.
+{
+  const comoElCron = (migracion) => {
+    const sql = `begin;\nload 'safeupdate';\n${migracion}\nreset search_path;\nreset lock_timeout;\n${comoServicio}
+select 'foto|' || (retail.fn_foto_rendimiento() ->> 'ok');
+select 'foto|' || (retail.fn_foto_rendimiento() ->> 'ok');
+rollback;\n`;
+    try {
+      const salida = execFileSync("docker", argsPsql.map((a, i) => (i === argsPsql.indexOf("-U") + 1 ? "supabase_admin" : a)), {
+        input: sql, encoding: "utf8", maxBuffer: 16 * 1024 * 1024, stdio: ["pipe", "pipe", "pipe"],
+      });
+      return salida.trim().split("\n").filter((x) => x.startsWith("foto|"));
+    } catch (e) {
+      return [`error|${e.stderr ?? e.message}`];
+    }
+  };
+  const ahora = comoElCron(MIGRACION);
+  esperar("con safeupdate cargado (como el cron por PostgREST), dos fotos seguidas salen bien", ahora.join(",") === "foto|true,foto|true", ahora);
+  const antes = comoElCron(MIGRACION_ORIGINAL);
+  esperar("control: la versión de 20261113194000 falla ahí con «DELETE requires a WHERE clause»", /DELETE requires a WHERE clause/.test(antes.join(",")), antes);
 }
 
 console.log(fallos ? `\n${fallos} caso(s) fallaron` : "\nTodo en verde");
