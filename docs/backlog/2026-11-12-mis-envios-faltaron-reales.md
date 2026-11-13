@@ -5,8 +5,10 @@ Caso: `docs/flujos/recibir/con-aviso-de-compras.md` (aprobado por Felipe el 2026
 
 - [x] **«Mis envíos» decía «faltaron 10» con 1 faltante.** `fn_mis_envios` lee lo que faltó y sobró de `despacho_diferencias_vigentes` y «contadas» es
   todo lo contado (migración `20261112154000`); la pantalla dice «faltó 1 · 2 de más».
-- [ ] **POR PEGAR (2026-11-12): `20261112154000` no está en producción.** Una parte: solo `create or replace function` y sus permisos. Compatible en los dos
-  órdenes de publicación: sin ella, Mis envíos cae a la resta de antes. Se pega con el OK de Felipe, después de fusionar.
+- [x] **PEGADA (2026-11-12): `20261112154000` está en producción.** Con el OK de Felipe, después de fusionar el PR #1793: el archivo subido al SQL
+  Editor con su huella SHA-256 comprobada (39acfeec…), «Success». Verificado en solo lectura: la función lee `faltaron`, `sobraron` y `despacho_conteos`,
+  sigue `security definer`, la ejecutan `authenticated` y no `anon`. Hoy ningún envío recibido de producción contó más de lo que entró al stock: la
+  corrección rige para los próximos.
 
 ### Decisiones de Felipe (reglas de negocio)
 

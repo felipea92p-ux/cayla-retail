@@ -1,7 +1,7 @@
 # ADR-0649 — Recibir mercadería: lo que Felipe anotó al recibir un envío grande
 
 - **Fecha:** 2026-11-12 · **Estado:** construido en la rama `claude/mis-envios-faltaron-reales`. Sin migración propia: lo único de base de la rama es
-  `20261112154000` («faltaron» de Mis envíos, en la bitácora del día), que **no está en producción** y espera el OK de Felipe.
+  `20261112154000` («faltaron» de Mis envíos, en la bitácora del día), pegada en producción el 2026-11-12 con el OK de Felipe.
 - **Nace de:** Felipe recibió él mismo ENV-001660 (119 prendas, 13 modelos, 4 proveedores, un fardo para Trujillo) y fue anotando 11 notas. Aprobó la lista
   de 13 actividades «en ese orden», eligió «mezclas ocultas de las listas» y «la carta en todo el ERP», y acomodó el contador en una mesa para arrastrar
   piezas (`docs/maquetas/recibir-contador-mesa-2026-11/`).

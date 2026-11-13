@@ -12,7 +12,7 @@
 - **Verificado:** `compras_simple_dia.mjs` falla sin la migración («contadas 0») y pasa con ella (24/24). `mis-envios-reglas.test.ts` 28/28; tsc, Knip
   y Knip producción en verde. En el navegador, el mismo cierre muestra «Recibido · faltó 1 · 2 de más» y «La tienda contó 16 de 15 · Faltó 1 y
   llegaron 2 de más». La base local quedó como estaba (datos y función).
-- **Falta:** pegar `20261112154000` en producción (una parte, solo la función: con el OK de Felipe) y que decida los hallazgos 2–11.
+- **Falta:** que Felipe decida los hallazgos 2–11. (`20261112154000` quedó pegada en producción el 2026-11-12, con su OK.)
 
 # 2026-11-12 · Recibir un envío grande: las 11 notas de Felipe, subsanadas (ADR-0649)
 
@@ -27,4 +27,4 @@
   la base (comparada con su foto): el cierre no cierra con cosas pendientes y lleva a lo primero que falta, «Contarla» lleva al modelo, «Llenar todas con»
   llena y vuelve atrás, Vender a 375 px abre el cobro sin registrar la venta. `/milimetro`: 0 graves, 0 medias
   (`docs/milimetro/auditorias/2026-11-12-recibir-envio.md`).
-- **Falta:** pegar `20261112154000` en producción (con el OK de Felipe); en Dynamic, la tarea de `Modal`/`HojasAlCentro`.
+- **Falta:** en Dynamic, la tarea de `Modal`/`HojasAlCentro`. (`20261112154000` quedó pegada en producción el 2026-11-12, con el OK de Felipe.)
