@@ -8,6 +8,7 @@ import {
   diasEntre,
   fechaLarga,
   loQueTiene,
+  preguntasDeCampana,
   lookbookVisible,
   marcaDelPase,
   paseInicial,
@@ -220,3 +221,27 @@ describe("cuántas columnas caben (la cuenta de `auto-fill`)", () => {
   });
 });
 
+describe("las tres preguntas de una campaña (ADR-0655)", () => {
+  const sin = { activas: 0, borradores: 0 };
+  it("una campaña sin nada: falta qué le das y en qué prendas; cuándo y dónde siempre está respondida", () => {
+    expect(preguntasDeCampana(FILAS[3]!, 0, [], HOY, 0, sin, null).map((x) => [x.clave, x.hecho])).toEqual([
+      ["oferta", false],
+      ["prendas", false],
+      ["cuando", true],
+    ]);
+    expect(preguntasDeCampana(FILAS[3]!, 0, [], HOY, 0, sin, null)[0]!.detalle).toBe("Ninguna: sin oferta, la campaña solo pone su insignia");
+    expect(preguntasDeCampana(FILAS[3]!, 0, [], HOY, 0, sin, null)[2]!.detalle).toBe("9 nov – 30 nov · en todas las tiendas");
+  });
+  it("una oferta en borrador no cuenta: todavía no baja nada en la caja", () => {
+    const p = preguntasDeCampana(FILAS[3]!, 0, [], HOY, 0, { activas: 0, borradores: 2 }, null)[0]!;
+    expect(p).toMatchObject({ hecho: false, detalle: "2 ofertas sin activar: todavía no baja nada" });
+  });
+  it("con ofertas activas o con el descuento de siempre, qué le das está respondida", () => {
+    expect(preguntasDeCampana(FILAS[3]!, 0, [], HOY, 0, { activas: 1, borradores: 1 }, null)[0]).toMatchObject({ hecho: true, detalle: "1 oferta activa · 1 por activar" });
+    expect(preguntasDeCampana(FILAS[0]!, 0, [], HOY, 0, sin, null)[0]).toMatchObject({ hecho: true, detalle: "10 % en todas sus prendas" });
+  });
+  it("las prendas se dicen como en el pase; sin fechas rige siempre; las tiendas, como la campaña", () => {
+    expect(preguntasDeCampana(FILAS[1]!, 47, ["Maquillaje"], HOY, 7, sin, null)[1]).toMatchObject({ hecho: true, detalle: "47 prendas: 40 de Maquillaje y 7 marcadas a mano" });
+    expect(preguntasDeCampana(FILAS[5]!, 0, [], HOY, 0, sin, "Solo Trujillo")[2]!.detalle).toBe("Sin fechas: rige siempre · Solo Trujillo");
+  });
+});

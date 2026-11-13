@@ -425,7 +425,10 @@ export const ARBOL: readonly Nodo[] = [
       { id: "catalogo.categorias", modulo: "atributos", etiqueta: "Categorías", estado: "viva", ruta: "/productos/categorias", icono: "categorias", pajaro: "02 Loro" },
       { id: "catalogo.marcas", modulo: "atributos", etiqueta: "Marcas", estado: "viva", ruta: "/productos/marcas", icono: "marcas", pajaro: "02 Loro" },
       { id: "catalogo.atributos", modulo: "atributos", etiqueta: "Atributos", estado: "viva", ruta: "/productos/atributos", icono: "atributos", pajaro: "02 Loro" },
-      { id: "catalogo.insignias", modulo: "etiquetas", modulosAlternos: ["campanas"], etiqueta: "Insignias", estado: "viva", ruta: "/productos/insignias", icono: "insignias", pajaro: "02 Loro" },
+      // Campañas y ofertas (ADR-0655, Felipe 2026-11-13): las campañas y lo que el cliente paga de menos en ellas salen de Insignias, donde
+      // Felipe no encontraba los descuentos. Abre con Campañas o con Insignias (los dos que las abrían ahí): nadie gana ni pierde acceso.
+      { id: "catalogo.campanas", modulo: "campanas", modulosAlternos: ["etiquetas"], etiqueta: "Campañas y ofertas", estado: "viva", ruta: "/productos/campanas", icono: "calendarioCampana", pajaro: "02 Loro" },
+      { id: "catalogo.insignias", modulo: "etiquetas", etiqueta: "Insignias", estado: "viva", ruta: "/productos/insignias", icono: "insignias", pajaro: "02 Loro" },
     ],
   },
 

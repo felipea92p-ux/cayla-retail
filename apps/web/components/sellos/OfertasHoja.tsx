@@ -64,7 +64,8 @@ import {
    «Tres preguntas» · las OFERTAS de una campaña (Felipe 2026-10-23, elegida entre cinco: docs/maquetas/ofertas-promociones-2026-10/formulario/)
 
    PROMETE: una hoja con tres cosas — las ofertas ya registradas de la campaña (a la izquierda), un asistente de UNA pregunta por
-   pantalla (¿Qué le das al cliente? · ¿Cuándo? · ¿En qué prendas y tiendas?) y, a la derecha, la etiqueta de la campaña que se arma con
+   pantalla (¿Qué le das al cliente? · ¿En qué prendas? · ¿Cuándo y dónde? · Revisa y activa; en ese orden desde ADR-0655, porque qué
+   prendas preguntar depende de la oferta) y, a la derecha, la etiqueta de la campaña que se arma con
    cada respuesta (la misma de la hoja de la campaña, ADR-0488, con el resumen de la oferta). El cuándo y las prendas ya vienen contestados
    con lo más común; las tiendas no (se marcan una por una); quien ya sabe usa el atajo de la pregunta 1.
    ASUME: hoy solo existe «Un % menos» (los otros 14 tipos de la maqueta cambian dinero en la caja y llegan después: se ven apagados con
@@ -74,7 +75,7 @@ import {
    NO HACE: no cambia precios por su cuenta ni toca el descuento «de siempre» de la campaña (solo se retira desde «Ya registradas»).
    ==================================================================== */
 
-type Paso = 1 | 2 | 3;
+type Paso = 1 | 2 | 3 | 4;
 type Guardando = "borrador" | "activar" | "cambios" | null;
 
 const GRUPOS: { k: string; titulo: string; corto: string; texto: string; icono: ReactNode; activo: boolean }[] = [
@@ -166,7 +167,7 @@ export function OfertasHoja({
   // ---- El asistente ---------------------------------------------------------------------------------------------------------------
   const [paso, setPaso] = useState<Paso>(1);
   const [elegido, setElegido] = useState(false);
-  const [visitado, setVisitado] = useState<Record<Paso, boolean>>({ 1: false, 2: false, 3: false });
+  const [visitado, setVisitado] = useState<Record<Paso, boolean>>({ 1: false, 2: false, 3: false, 4: false });
   const [navego, setNavego] = useState(false);
   // La categoría recién marcada: su casilla vuela a su pieza en la etiqueta (`EtiquetaDeCampana`).
   const vuelo = useRef<string | null>(null);
@@ -235,7 +236,7 @@ export function OfertasHoja({
     setO(nuevaOferta());
     setElegido(false);
     setPaso(1);
-    setVisitado({ 1: false, 2: false, 3: false });
+    setVisitado({ 1: false, 2: false, 3: false, 4: false });
     setTocoCats(false);
     setMasQ3(false);
     setSoloAlgunosDias(false);
@@ -245,7 +246,7 @@ export function OfertasHoja({
     setElegido(true);
     setPaso(1);
     setNavego(true);
-    setVisitado({ 1: false, 2: false, 3: false });
+    setVisitado({ 1: false, 2: false, 3: false, 4: false });
     setTocoCats(false);
     setMasQ3(false);
     setSoloAlgunosDias(r.dias.length < 7);
@@ -282,20 +283,20 @@ export function OfertasHoja({
   const nombreManual = o.nombre.trim() !== "";
 
   const faltan: CampoDeGuia[] = [];
-  // En el orden de las etapas: qué le das, cuándo, y al final prendas y tiendas.
+  // En el orden de los pasos (ADR-0655): qué le das, en qué prendas, y cuándo y dónde.
   if (!elegido) faltan.push({ id: "que", nombre: "Elegir qué le das al cliente", requerido: true, hecho: false, pendiente: "Elige qué le das al cliente." });
+  else if (categoriasPendientes) faltan.push({ id: "categorias", nombre: "Elegir las categorías", requerido: true, hecho: false, pendiente: "Marca al menos una categoría." });
   else if (problemas.length > 0) {
     const sinDias = /al menos un día de la semana/.test(problemas[0]);
     faltan.push({ id: "cuando", nombre: sinDias ? "Elegir al menos un día de la semana" : "Corregir lo de «¿Cuándo?»", requerido: true, hecho: false, pendiente: problemas[0] });
   } else if (tiendasPendientes) faltan.push({ id: "tiendas", nombre: "Elegir en qué tiendas rige", requerido: true, hecho: false, pendiente: "Marca al menos una tienda." });
-  else if (categoriasPendientes) faltan.push({ id: "categorias", nombre: "Elegir las categorías", requerido: true, hecho: false, pendiente: "Marca al menos una categoría." });
   const puedeGuardar = elegido && !tiendasPendientes && !categoriasPendientes && problemas.length === 0 && !terminada;
 
   // Lo que se ve como botón siempre contesta: «Falta: …» y los botones que avanzan o guardan LLEVAN a la pieza que falta (la dejan a la vista, la
   // destellan y, si es una lista de opciones, le dan el foco) en vez de quedarse apagados sin decir por qué (ADR-0284; `Boton confirma`, ADR-0611).
   function llevarA(c: CampoDeGuia | undefined) {
     if (!c) return;
-    const destino: Paso = c.id === "que" ? 1 : c.id === "cuando" || c.id === "tiendas" ? 2 : 3;
+    const destino: Paso = c.id === "que" ? 1 : c.id === "categorias" ? 2 : 3;
     const mover = () => {
       irAlIdCampo(`oferta-${c.id}`, { enModal: true });
       if (c.id === "que") document.querySelector<HTMLElement>('[data-campo="oferta-que"] button:not([aria-disabled="true"])')?.focus({ preventScroll: true });
@@ -647,7 +648,6 @@ export function OfertasHoja({
   const distintaDeLaCampana = o.categoriasSolo.length > 0 || tocoCats;
 
   function preguntaPrendas() {
-    const oracion = fraseDeOferta(oDicha, nombreCategoria, nombreSede);
     return (
       <>
         <h2>¿En qué prendas?</h2>
@@ -690,8 +690,18 @@ export function OfertasHoja({
           )}
         </div>
 
+      </>
+    );
+  }
+
+  // ---- Paso 4 · Revisa y activa (ADR-0655: un paso propio, no el pie de las prendas) ------------------------------------------------
+  function preguntaRevisar() {
+    const oracion = fraseDeOferta(oDicha, nombreCategoria, nombreSede);
+    return (
+      <>
+        <h2>Revisa y activa</h2>
+        <p className="of-baj">Así la cobrará la caja. La etiqueta muestra el precio de prendas de verdad.</p>
         <div className="of-rev" data-guia="sellos.oferta-revision">
-          <span className="of-lbl">Revisa y guarda</span>
           <p className="of-oracion">{oracion}</p>
           {rige && diasSueltos && rige.rige > 0 && (
             <p className="of-pequeno">
@@ -826,7 +836,7 @@ export function OfertasHoja({
   function pasos() {
     const d = (n: Paso, texto: string) => {
       const apagado = !elegido && n > 1;
-      const hecho = visitado[n] && elegido && (n !== 2 || !tiendasPendientes) && (n !== 3 || !categoriasPendientes);
+      const hecho = n < 4 && visitado[n] && elegido && (n !== 2 || !categoriasPendientes) && (n !== 3 || (!tiendasPendientes && problemas.length === 0));
       return (
         <button
           key={n}
@@ -835,7 +845,7 @@ export function OfertasHoja({
           aria-current={paso === n ? "step" : undefined}
           aria-disabled={apagado || undefined}
           data-hecho={hecho ? "" : undefined}
-          data-guia={n === 3 ? "sellos.oferta-paso-3" : n === 2 ? "sellos.oferta-paso-2" : undefined}
+          data-guia={n === 2 ? "sellos.oferta-paso-2" : n === 3 ? "sellos.oferta-paso-3" : n === 4 ? "sellos.oferta-paso-4" : undefined}
           onClick={() => !apagado && ir(n)}
         >
           <i>{hecho ? <Check aria-hidden strokeWidth={3} /* unificar-fijo: la marca sobre un punto lleno lleva trazo 3 */ /> : n}</i>
@@ -846,8 +856,9 @@ export function OfertasHoja({
     return (
       <nav className="of-pasos" aria-label="Pasos" data-guia="sellos.oferta-pasos">
         {d(1, "Qué le das")}
-        {d(2, "Cuándo y dónde")}
-        {d(3, "Prendas")}
+        {d(2, "En qué prendas")}
+        {d(3, "Cuándo y dónde")}
+        {d(4, "Revisar")}
       </nav>
     );
   }
@@ -867,7 +878,7 @@ export function OfertasHoja({
       if (faltan.length === 0) {
         falta = (
           <span className="of-falta">
-            {edita ? "Cambia lo que quieras: vale desde ahora y lo que ya se vendió no cambia." : "Prendas, tiendas y fechas ya vienen contestadas. El atajo la guarda como borrador."}
+            {edita ? "Cambia lo que quieras: vale desde ahora y lo que ya se vendió no cambia." : "Prendas y fechas ya vienen contestadas. El atajo la guarda como borrador."}
           </span>
         );
       }
@@ -885,9 +896,17 @@ export function OfertasHoja({
         </>
       );
     } else if (paso === 2) {
+      if (faltan.length === 0) falta = <span className="of-falta">Ya viene lo de la campaña: si te sirve, sigue.</span>;
+      derecha = (
+        <Boton peso="primario" className="of-siguiente" confirma={confirmaPaso(!categoriasPendientes)} onClick={() => ir(3)}>
+          Siguiente
+          <ChevronRight aria-hidden className="ml-1 inline h-4 w-4" />
+        </Boton>
+      );
+    } else if (paso === 3) {
       if (faltan.length === 0) falta = <span className="of-falta">Lo de fábrica sirve casi siempre: rige toda la campaña, todos los días.</span>;
       derecha = (
-        <Boton peso="primario" className="of-siguiente" confirma={confirmaPaso(problemas.length === 0 && !tiendasPendientes)} onClick={() => ir(3)}>
+        <Boton peso="primario" className="of-siguiente" confirma={confirmaPaso(problemas.length === 0 && !tiendasPendientes)} onClick={() => ir(4)}>
           Siguiente
           <ChevronRight aria-hidden className="ml-1 inline h-4 w-4" />
         </Boton>
@@ -1109,7 +1128,7 @@ export function OfertasHoja({
                 )}
                 <div className="of-cols mt-2">
                   <div className="of-q" key={paso} data-entra={navego ? "" : undefined} id="oferta-pregunta">
-                    {paso === 1 ? pregunta1() : paso === 2 ? preguntaCuando() : preguntaPrendas()}
+                    {paso === 1 ? pregunta1() : paso === 2 ? preguntaPrendas() : paso === 3 ? preguntaCuando() : preguntaRevisar()}
                   </div>
                   {etiquetaViva()}
                 </div>
