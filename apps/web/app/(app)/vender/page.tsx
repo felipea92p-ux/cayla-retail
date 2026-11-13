@@ -30,6 +30,7 @@ import { sedesParaPedir } from "@/lib/pedidos-entre-sedes-reglas";
 import { getPedidosConCliente } from "@/lib/pedidos-entre-sedes";
 import { getEmpresasAqui } from "@/lib/empresas-de-sede";
 import { getStockPorDueno } from "@/lib/stock-por-dueno";
+import { tonosDeLasMezclas } from "@/lib/color-combinado";
 
 /**
  * Vender: la caja del día de la ubicación — abrir, vender, cerrar, y ver lo vendido hoy.
@@ -106,9 +107,10 @@ async function Caja({ proformaId, repetirVentaId }: { proformaId: string | null;
     // Precio propio de esta tienda (Felipe 2026-10-09): las prendas que aquí se venden a otro precio. Si la lectura falla, se
     // muestra el general y `registrar_venta` rechaza el cobro («el precio cambió») antes de cobrar mal: nunca un cobro equivocado.
     leerPreciosPropiosDeSede(supabase, persona.ubicacionId),
-    // Los colores activos, para saber cuáles son estampados (la tarjeta lo dibuja con su foto). Secundario y chico (~90 filas): si
-    // falla, ningún color se marca estampado y se vende igual. La lee cualquier sesión (`colores_select`).
-    supabase.from("colores").select("codigo, tipo").eq("activo", true),
+    // Los colores, para saber cuáles son estampados (la tarjeta lo dibuja con su foto) y cuáles son mezclas («Hueso con azul», ADR-0643:
+    // su punto se parte). Toda la carta, también lo desactivado: un color apagado sigue siendo el acompañante de una mezcla. Secundario
+    // y chico (~100 filas): si falla, ningún color se marca y se vende igual. La lee cualquier sesión (`colores_select`).
+    supabase.from("colores").select("codigo, nombre, tipo, hex, componentes, activo"),
     // Las familias fuera de los motores: de ahí salen las bolsas de «Agregar bolsa» (Bolsas de despacho, 2026-10-10). Pocas filas.
     supabase.from("familias").select("codigo").eq("entra_a_motores", false),
     // Las series activas de esta sede: la hoja de cobro solo ofrece los comprobantes que la sede puede emitir (/chaos 2026-10-13,
@@ -137,7 +139,9 @@ async function Caja({ proformaId, repetirVentaId }: { proformaId: string | null;
     // Sin caja (ADR-0186): lo que dejó el último cierre, para que el modal «Abrir caja» pida contar el cajón.
     getCajaAbierta(persona.ubicacionId).then((c) => (c ? null : getUltimoCierre(persona.ubicacionId))),
   ]);
-  const coloresActivos = (tolerar(resColores, "los colores").datos ?? []).map((c) => ({ codigo: c.codigo, tipo: c.tipo }));
+  const coloresLeidos = tolerar(resColores, "los colores").datos ?? [];
+  const coloresActivos = coloresLeidos.filter((c) => c.activo).map((c) => ({ codigo: c.codigo, tipo: c.tipo }));
+  const tonosPorCodigo = tonosDeLasMezclas(coloresLeidos, "codigo");
   const estampados = new Set(coloresActivos.filter(esEstampado).map((c) => c.codigo));
   const preciosDeEstaSede = leerPreciosEnSede(resPreciosSede.data);
   const campanasNoCargaron = resCampanas.error !== null && resCampanas.error.code !== "PGRST202";
@@ -169,6 +173,7 @@ async function Caja({ proformaId, repetirVentaId }: { proformaId: string | null;
       colorHex: v.colorHex ?? null,
       colorEstampado: v.colorCodigo ? estampados.has(v.colorCodigo) : false,
       colorCodigo: v.colorCodigo ?? null,
+      ...(v.colorCodigo && tonosPorCodigo[v.colorCodigo] ? { colorTonos: tonosPorCodigo[v.colorCodigo] } : {}),
       // Con el color, la llave de «¿Es alguna de estas?» en Prenda sin registrar (`prendasPosibles`).
       tallaId: v.tallaId ?? null,
       categoriaId: v.categoriaId ?? null,

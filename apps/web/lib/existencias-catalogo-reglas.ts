@@ -80,8 +80,12 @@ export function marcasDeLaSede(filas: readonly { marca?: string | null }[]): str
  *  falló o es nuevo) queda con `colorFamilia: null`: se filtra solo por su nombre, nunca se pierde. */
 export function conFamiliaDeColor<T extends { color: string | null }>(
   filas: readonly T[],
-  colores: readonly { nombre: string; familia: string | null }[]
-): (T & { colorFamilia: string | null })[] {
-  const familiaDe = new Map(colores.map((c) => [c.nombre, c.familia]));
-  return filas.map((f) => ({ ...f, colorFamilia: (f.color && familiaDe.get(f.color)) || null }));
+  colores: readonly { nombre: string; familia: string | null; tonos?: readonly string[] | null }[]
+): (T & { colorFamilia: string | null; colorTonos?: readonly string[] })[] {
+  const deColor = new Map(colores.map((c) => [c.nombre, c]));
+  // Y, si el color es una mezcla («Hueso con azul», ADR-0643), sus tonos: las tarjetas, la tabla y el panel parten su punto.
+  return filas.map((f) => {
+    const c = f.color ? deColor.get(f.color) : undefined;
+    return { ...f, colorFamilia: c?.familia || null, ...(c?.tonos ? { colorTonos: c.tonos } : {}) };
+  });
 }

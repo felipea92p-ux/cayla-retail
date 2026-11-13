@@ -8,6 +8,7 @@ import { Boton } from "@/components/ui/campos";
 import { ImagenDePrenda } from "@/components/ui/ImagenDePrenda";
 import { PasoCantidad } from "@/components/ui/PasoCantidad";
 import { Punto } from "@/components/alta-producto/ElegirColores";
+import { tonosDeMezcla } from "@/lib/color-combinado";
 import { vistaDeFotos, type FotoLocal } from "@/lib/fotos-por-color-reglas";
 import { compararTallas } from "@/lib/tallas";
 import type { FilaFicha } from "@/lib/variantes-ficha-reglas";
@@ -79,6 +80,12 @@ export function PanelDelTaller({
   const foto = propia ?? vista.general.fotos[0] ?? null;
   const sinFoto = (c: string) => vista.tarjetas.find((t) => t.codigo === c)?.estado === "sin-foto";
   const color = (c: string | null) => ctx.colores.find((x) => x.codigo === c);
+  // Una mezcla («Negro con crudo», ADR-0643) parte su muestra con los tonos de sus colores, la base a la izquierda.
+  const porCodigo = new Map(ctx.colores.map((x) => [x.codigo, x] as const));
+  const tonos = (c: string | null) => {
+    const col = color(c);
+    return col ? tonosDeMezcla(col, porCodigo) : null;
+  };
 
   const delColor = filas
     .filter((f) => f.activo && f.colorCodigo === colorMostrado)
@@ -107,7 +114,7 @@ export function PanelDelTaller({
             <span className="taller-tagcolor">
               <span className="grid h-[9px] w-[9px] place-items-center overflow-hidden rounded-full">
                 <span className="block scale-[1.1]">
-                  <Punto hex={color(colorMostrado)?.hex ?? null} familia={color(colorMostrado)?.familiaColor} />
+                  <Punto hex={color(colorMostrado)?.hex ?? null} familia={color(colorMostrado)?.familiaColor} tonos={tonos(colorMostrado)} />
                 </span>
               </span>
               {n.color(colorMostrado)}
@@ -152,7 +159,7 @@ export function PanelDelTaller({
                 >
                   <span className="absolute inset-0 grid place-items-center overflow-hidden rounded-full">
                     <span className="block scale-[2.9]">
-                      <Punto hex={col?.hex ?? null} familia={col?.familiaColor} />
+                      <Punto hex={col?.hex ?? null} familia={col?.familiaColor} tonos={tonos(c)} />
                     </span>
                   </span>
                 </button>

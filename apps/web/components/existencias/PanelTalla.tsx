@@ -42,6 +42,7 @@ import { urlRotulos } from "@/lib/rotulos-reglas";
 import type { FilaExistencias } from "@/lib/inventario-v2";
 import { FOTO_PANEL_TALLA } from "@/lib/fotos-tamanos";
 import { prefiereQuieto } from "@/lib/movimiento-cliente";
+import { fondoDelPunto } from "@/lib/color-combinado";
 
 type Vista = "talla" | "todas";
 type Prenda = PrendaAgrupada<FilaExistencias>;
@@ -263,6 +264,7 @@ export function PanelTalla({
     sububicacionAlmacenId,
     puedeBajarAlPiso: puedeReponer,
     ordenColores: colores.map((c) => c.color),
+    tonosDe: (color) => colores.find((c) => c.color === color)?.colorTonos,
     ubicadoInicial: lugarInicial({ piso: filaDeAhora?.piso ?? 0, almacen: filaDeAhora?.almacen ?? 0 }, separa),
   });
   // La última versión del ajuste, para lo que corre después de guardar (el cambio de lugar de «Guardar y pasar a almacén»): la del render
@@ -793,7 +795,7 @@ export function PanelTalla({
                 ) : flujo ? (
                   // En un paso, el color y la talla no se cambian: el chip dice sobre cuál se está trabajando.
                   <span className="inline-flex w-fit items-center gap-2 rounded-full bg-hueso px-3 py-1.5 text-sm text-taupe">
-                    <i aria-hidden className="h-3.5 w-3.5 rounded-full shadow-[0_0_0_1px_var(--color-sand)]" style={{ background: prenda.colorHex ?? "var(--color-hueso)" }} />
+                    <i aria-hidden className="h-3.5 w-3.5 rounded-full shadow-[0_0_0_1px_var(--color-sand)]" style={{ background: fondoDelPunto(prenda.colorHex, prenda.colorTonos) ?? "var(--color-hueso)" }} />
                     {prenda.color ?? "Sin color"} · Talla {fila.talla ?? "Única"}
                   </span>
                 ) : (
@@ -829,7 +831,7 @@ export function PanelTalla({
                             aria-label={`${c.color ?? "Sin color"}${dice ? `: ${dice}` : ""}`}
                             title={`${c.color ?? "Sin color"}${dice ? ` · ${dice}` : ""}`}
                             onClick={() => elegirColor(c)}
-                            style={{ background: c.colorHex ?? "var(--color-hueso)" }}
+                            style={{ background: fondoDelPunto(c.colorHex, c.colorTonos) ?? "var(--color-hueso)" }}
                             className="relative h-[30px] w-[30px] rounded-full border-2 border-papel shadow-[0_0_0_1px_var(--color-sand)] aria-checked:shadow-[0_0_0_2px_var(--color-tinta)]"
                           >
                             {c.colorEstampado && fotoQueDistingue(c.fotoUrl, colores.map((x) => x.fotoUrl)) && (
@@ -902,6 +904,7 @@ export function PanelTalla({
                     guardado={listoAjuste}
                     prenda={prenda.referencia}
                     hexDe={(c) => ajuste.modelo?.colores.find((x) => x.color === c)?.hex ?? null}
+                    tonosDe={(c) => ajuste.modelo?.colores.find((x) => x.color === c)?.tonos ?? null}
                     precioDe={(c) => colores.find((x) => x.color === c)?.precio ?? prenda.precio ?? null}
                     onMasTarde={() => {
                       setListoAjuste(null);
@@ -1227,7 +1230,7 @@ export function PanelTalla({
                                 return (
                                   <tr key={c.clave} className={vacioEnCapa ? "opacity-40" : ""}>
                                     <th scope="row" className={`truncate rounded-lg pl-1.5 pr-1.5 text-left text-sm font-semibold text-tinta ${colorAbierto ? "bg-hueso" : ""}`}>
-                                      <span aria-hidden className="mr-1.5 inline-block h-3 w-3 rounded-full align-[-1px] shadow-[0_0_0_1px_var(--color-sand)]" style={{ background: c.colorHex ?? "var(--color-hueso)" }} />
+                                      <span aria-hidden className="mr-1.5 inline-block h-3 w-3 rounded-full align-[-1px] shadow-[0_0_0_1px_var(--color-sand)]" style={{ background: fondoDelPunto(c.colorHex, c.colorTonos) ?? "var(--color-hueso)" }} />
                                       {c.color ?? "Sin color"}
                                     </th>
                                     {tallasDeTodos.map((t) => {

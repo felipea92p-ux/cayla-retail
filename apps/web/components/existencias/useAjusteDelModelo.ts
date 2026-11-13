@@ -154,6 +154,7 @@ export function useAjusteDelModelo({
   puedeBajarAlPiso,
   ordenColores,
   ubicadoInicial,
+  tonosDe,
 }: {
   activo: boolean;
   productoId: string;
@@ -167,6 +168,8 @@ export function useAjusteDelModelo({
   ordenColores: readonly (string | null)[];
   /** Donde la talla elegida tiene más unidades (`lugarInicial`). */
   ubicadoInicial: "piso" | "almacen";
+  /** Los tonos de un color que es una mezcla (ADR-0643), de las filas que ya tiene Existencias: la planilla parte su muestra. */
+  tonosDe?: (color: string | null) => readonly string[] | null | undefined;
 }): ControlAjuste {
   const responsable = useResponsable();
   const [variantes, setVariantes] = useState<VarianteAjuste[] | null>(null);
@@ -242,7 +245,17 @@ export function useAjusteDelModelo({
     };
   }, [activo, lectura, productoId, ubicacionId, sububicacionPisoId, sububicacionAlmacenId]);
 
-  const modelo = variantes ? armarModelo(variantes, extras, ordenColores) : null;
+  const armado = variantes ? armarModelo(variantes, extras, ordenColores) : null;
+  const modelo =
+    armado && tonosDe
+      ? {
+          ...armado,
+          colores: armado.colores.map((c) => {
+            const tonos = tonosDe(c.color);
+            return tonos ? { ...c, tonos } : c;
+          }),
+        }
+      : armado;
   const nombre = (v: VarianteAjuste) => nombreDeCelda(v, modelo);
   const pendiente = (id: string) => pendientes[id] ?? 0;
   const hoy = (v: VarianteAjuste) => stockEn(v, lugar);
