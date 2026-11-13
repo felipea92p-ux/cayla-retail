@@ -10,6 +10,7 @@ import { getCatalogoMarcas } from "@/lib/marcas-datos";
 import { leerEstadoVariantes } from "@/lib/variantes-ficha-reglas";
 import { esFuncionAusente } from "@/lib/compras-reglas";
 import { ProductoForm } from "@/components/ProductoForm";
+import { fotoCatalogoDisponible } from "@/lib/foto-catalogo";
 import { desdeDeParams, vueltaAProductos } from "@/lib/vuelta-productos";
 import { Volver } from "@/components/ui/Volver";
 import { Chip } from "@/components/ui/Chip";
@@ -180,6 +181,7 @@ export default async function EditarProductoPage({
       </div>
 
       <ProductoForm
+        catalogoIADisponible={fotoCatalogoDisponible()}
         categorias={categorias.map((c) => ({
           id: c.id,
           nombre: c.nombre,

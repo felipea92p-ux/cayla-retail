@@ -2,7 +2,7 @@
   "guia": "productos.id.editar",
   "ruta": "/productos/[id]/editar",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 162,
+  "total": 163,
   "controles": {
     "app/(app)/productos/[id]/editar/page.tsx": [
       "Volver «{volverA}»"
@@ -124,6 +124,7 @@
       "Desplegable «{opcionesPasar(f.colorCodigo)}»",
       "button «Quitar»",
       "button «{`Ver o cambiar las fotos de ${titulo}»",
+      "button «{alternativa.texto}»",
       "button «Principal»",
       "button «Quitar» #2",
       "button «Ponerla primera»",

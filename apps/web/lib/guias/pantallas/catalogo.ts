@@ -444,6 +444,13 @@ export const GUIA_EDITAR_PRODUCTO: Guia = {
       texto: "Una foto por color. Aquí las ves todas, las ordenas o quitas; la que le falta a un color se sube sobre la foto grande, en el panel de la prenda.",
     },
     {
+      id: "catalogo-ia",
+      ancla: "editar.catalogo-ia-interruptor",
+      opcional: true,
+      titulo: "Catálogo con IA",
+      texto: "Encendido, cada foto que subas sale como foto de catálogo: la prenda en un maniquí invisible, de frente y sin fondo. El primer color hace de molde y los demás salen con su misma forma. Si no te convence, «Usar mi foto» vuelve a la tuya.",
+    },
+    {
       id: "variantes",
       ancla: "editar.seccion-variantes",
       titulo: "4 · Variantes y precios",

@@ -1,5 +1,15 @@
 import { describe, expect, it } from "vitest";
-import { contarPedido, LADO_MAXIMO_IA, MAX_BYTES_POR_FOTO_IA, medidasParaIA, TOPE_POR_MINUTO } from "./foto-catalogo-reglas";
+import {
+  contarPedido,
+  esFotoIA,
+  LADO_MAXIMO_IA,
+  MAX_BYTES_POR_FOTO_IA,
+  medidasParaIA,
+  moldeDeLaPrenda,
+  originalDeLaFotoIA,
+  rutaDeLaFotoIA,
+  TOPE_POR_MINUTO,
+} from "./foto-catalogo-reglas";
 
 describe("medidasParaIA", () => {
   it("achica el lado mayor al máximo y conserva la proporción", () => {
@@ -31,5 +41,43 @@ describe("contarPedido", () => {
 
   it("pasado el minuto, vuelve a contar desde cero", () => {
     expect(contarPedido({ desde: 0, usos: 99 }, 60_001)).toEqual({ ventana: { desde: 60_001, usos: 1 }, excede: false });
+  });
+});
+
+describe("el par: la foto real y su versión de catálogo", () => {
+  const base = "https://x.supabase.co/storage/v1/object/public/retail-productos-fotos/fotos/abc.jpg";
+
+  it("la de IA vive junto a la real, con el mismo nombre", () => {
+    expect(rutaDeLaFotoIA("fotos/abc.jpg")).toBe("fotos/abc.jpg.ia.png");
+    expect(esFotoIA(`${base}.ia.png`)).toBe(true);
+    expect(esFotoIA(base)).toBe(false);
+    expect(esFotoIA(`${base}.ia.png?v=2`)).toBe(true);
+  });
+
+  it("desde la de IA se llega a la real; desde la real, a nada", () => {
+    expect(originalDeLaFotoIA(`${base}.ia.png`)).toBe(base);
+    expect(originalDeLaFotoIA(base)).toBeNull();
+  });
+});
+
+describe("moldeDeLaPrenda", () => {
+  const ia = (n: string) => `https://x/fotos/${n}.jpg.ia.png`;
+  const real = (n: string) => `https://x/fotos/${n}.jpg`;
+
+  it("es la de IA del primer color en el orden de las variantes", () => {
+    const fotos = [
+      { url: ia("rosa"), colorCodigo: "ROS" },
+      { url: ia("verde"), colorCodigo: "VER" },
+    ];
+    expect(moldeDeLaPrenda(["VER", "ROS"], fotos)).toBe(ia("verde"));
+  });
+
+  it("salta los colores sin foto de IA", () => {
+    expect(moldeDeLaPrenda(["VER", "ROS"], [{ url: real("verde"), colorCodigo: "VER" }, { url: ia("rosa"), colorCodigo: "ROS" }])).toBe(ia("rosa"));
+  });
+
+  it("sin ninguna de IA no hay molde", () => {
+    expect(moldeDeLaPrenda(["VER"], [{ url: real("verde"), colorCodigo: "VER" }])).toBeNull();
+    expect(moldeDeLaPrenda([], [])).toBeNull();
   });
 });

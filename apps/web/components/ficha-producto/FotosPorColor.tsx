@@ -2,9 +2,12 @@
 
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { ImagenDePrenda } from "@/components/ui/ImagenDePrenda";
-import { Camera } from "lucide-react";
+import { Camera, Sparkles } from "lucide-react";
 import { Modal } from "@/components/ui/Modal";
-import { Desplegable, type Opcion } from "@/components/ui/campos";
+import { Desplegable, HiloEnEspera, Interruptor, type Opcion } from "@/components/ui/campos";
+import { Chip } from "@/components/ui/Chip";
+import { esFotoIA } from "@/lib/foto-catalogo-reglas";
+import type { CatalogoIA } from "./useCatalogoIA";
 import { TituloSeccion } from "@/components/ui/TituloSeccion";
 import { BotonFoto, BotonQuitarFoto } from "@/components/alta-producto/FotosAlta";
 import type { ColorAlta } from "@/lib/alta-producto";
@@ -55,6 +58,7 @@ export function FotosPorColor({
   colores,
   vocabulario,
   nombreColor,
+  catalogo,
   disabled = false,
 }: {
   /** Las fotos como se ven (cada una en el color que le toca tras las correcciones pendientes). */
@@ -67,6 +71,8 @@ export function FotosPorColor({
   /** El vocabulario de colores (nombre, muestra): para pintar cada punto. */
   vocabulario: readonly ColorAlta[];
   nombreColor: (codigo: string | null) => string;
+  /** «Catálogo con IA» (`useCatalogoIA`): la opción del título, la hoja de ángulos y lo que se está preparando. */
+  catalogo: CatalogoIA;
   disabled?: boolean;
 }) {
   // La subida termina después de un `await`: sin esto, las fotos que se agregaran entre medio se perderían al pisar la lista.
@@ -104,10 +110,33 @@ export function FotosPorColor({
   // La × de la tarjeta: con una sola foto la quita (se guarda con «Guardar», como cualquier cambio de la ficha); con varias abre la hoja para elegir cuál.
   const quitarDe = (delColor: FotoLocal[], hoja: string | null) => (delColor.length === 1 ? onFotos(sinLaFoto(fotos, delColor[0].clientKey)) : setViendo(hoja));
   const pasar = (clientKey: string, destino: string) => onFotos(pasadaAColor(fotos, clientKey, destino === TODOS ? null : destino));
+  // Con «Catálogo con IA» encendido, elegir la foto de un color abre la hoja de ángulos; apagado, sube tal cual (ADR-0442).
+  const agregarA = (archivos: File[], color: string | null) => (catalogo.encendido ? catalogo.abrir(archivos, color) : elegir(archivos, color));
 
   return (
     <div className="space-y-3">
-      <TituloSeccion dato={cuenta || undefined}>Fotos por color</TituloSeccion>
+      <TituloSeccion
+        dato={cuenta || undefined}
+        ayuda={catalogo.disponible ? "Catálogo con IA: maniquí invisible, sin fondo. Unos 25 s y 0,05 USD por foto." : undefined}
+        accion={
+          catalogo.disponible ? (
+            <span data-guia="editar.catalogo-ia-interruptor">
+              <Interruptor
+                activo={catalogo.encendido}
+                onActivo={catalogo.cambiarEncendido}
+                etiqueta={
+                  <span className="inline-flex items-center gap-1.5 font-medium text-tinta">
+                    <Sparkles aria-hidden className="h-3.5 w-3.5" />
+                    Catálogo con IA
+                  </span>
+                }
+              />
+            </span>
+          ) : undefined
+        }
+      >
+        Fotos por color
+      </TituloSeccion>
       <p className="max-w-[72ch] text-sm text-taupe">
         {vista.general.sinColores ? (
           <>Toca el rectángulo para <b className="font-semibold text-tinta">agregar la foto de la prenda</b>, o para ver, cambiar o quitar las que ya tiene.</>
@@ -133,7 +162,9 @@ export function FotosPorColor({
               bloqueado={bloqueado}
               onAbrir={() => setViendo(t.codigo)}
               onQuitar={() => quitarDe(t.fotos, t.codigo)}
-              onElegir={(archivos) => elegir(archivos, t.codigo)}
+              onElegir={(archivos) => agregarA(archivos, t.codigo)}
+              preparando={catalogo.preparandoDe(t.codigo)}
+              alternativa={t.fotos[0] ? catalogo.alternativa(t.fotos[0]) : null}
             />
           </li>
         ))}
@@ -151,7 +182,9 @@ export function FotosPorColor({
               bloqueado={bloqueado}
               onAbrir={() => setViendo(null)}
               onQuitar={() => quitarDe(vista.general.fotos, null)}
-              onElegir={(archivos) => elegir(archivos, null)}
+              onElegir={(archivos) => agregarA(archivos, null)}
+              preparando={catalogo.preparandoDe(null)}
+              alternativa={vista.general.fotos[0] ? catalogo.alternativa(vista.general.fotos[0]) : null}
             />
           </li>
         )}
@@ -201,7 +234,10 @@ export function FotosPorColor({
           opcionesPasar={opcionesPasar(viendo)}
           onFotos={onFotos}
           onPasar={pasar}
-          onElegir={(archivos) => elegir(archivos, viendo)}
+          onElegir={(archivos) => {
+            if (catalogo.encendido) setViendo(undefined);
+            agregarA(archivos, viendo);
+          }}
           onClose={() => setViendo(undefined)}
         />
       )}
@@ -242,6 +278,8 @@ function Tarjeta({
   onAbrir,
   onQuitar,
   onElegir,
+  preparando,
+  alternativa,
 }: {
   titulo: string;
   punto: ReactNode;
@@ -258,11 +296,27 @@ function Tarjeta({
   /** La × sobre la portada: quita la foto si es una sola; con varias, abre la hoja. */
   onQuitar: () => void;
   onElegir: (archivos: File[]) => void;
+  /** La vista local de la foto que la IA está preparando para este color (`useCatalogoIA`), o `null`. */
+  preparando: string | null;
+  /** «Usar mi foto» / «Usar la de IA» bajo la tarjeta, o `null`. */
+  alternativa: { texto: string; usar: () => void } | null;
 }) {
   const portada = fotos[0];
   return (
     <div className="space-y-2">
-      {portada ? (
+      {preparando ? (
+        // La foto se prepara en su cuadro: la propia, atenuada, con el hilo de espera (sigue con las animaciones apagadas, ADR-0625).
+        <div aria-busy className="relative aspect-[4/5] w-full overflow-hidden rounded-xl border border-sand bg-papel">
+          {/* eslint-disable-next-line @next/next/no-img-element -- vista local (blob:), no pasa por el optimizador */}
+          <img src={preparando} alt="" className="absolute inset-0 h-full w-full object-cover opacity-40 grayscale-[.4]" />
+          <span className="absolute inset-x-0 bottom-0 grid justify-items-center gap-2 px-3 pb-3 text-sm font-medium text-tinta">
+            <span className="relative block h-[2px] w-2/3">
+              <HiloEnEspera />
+            </span>
+            Preparando…
+          </span>
+        </div>
+      ) : portada ? (
         <div className="relative">
           <button
             type="button"
@@ -307,6 +361,14 @@ function Tarjeta({
           <small className={`ml-auto shrink-0 text-sm font-normal ${estado === "sin-foto" ? "font-medium text-ambar-profundo" : "text-taupe"}`}>{textoEstadoColor(estado, fotos.length)}</small>
         )}
       </div>
+      {alternativa && !preparando && (
+        <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1">
+          {portada && esFotoIA(portada.url) && <Chip tono="pizarra">Con IA</Chip>}
+          <button type="button" disabled={bloqueado} onClick={alternativa.usar} className="btn-cayla btn-enlace text-sm">
+            {alternativa.texto}
+          </button>
+        </div>
+      )}
     </div>
   );
 }

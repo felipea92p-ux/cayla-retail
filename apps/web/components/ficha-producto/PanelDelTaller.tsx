@@ -14,6 +14,8 @@ import type { FilaFicha } from "@/lib/variantes-ficha-reglas";
 import type { PendienteFicha } from "@/lib/producto-ficha-guia";
 import { rangoDePrecios, tonoDeBarra } from "@/lib/matriz-ficha-reglas";
 import { useSubirFotos, type FotoSubida } from "./useSubirFotos";
+import type { CatalogoIA } from "./useCatalogoIA";
+import { Chip } from "@/components/ui/Chip";
 import type { ContextoFicha } from "./piezas";
 import type { StockFicha } from "./useStockFicha";
 import { numeroDeMonto } from "@/lib/monto-plata-reglas";
@@ -44,6 +46,7 @@ export function PanelDelTaller({
   campana = null,
   fichaConsumo = null,
   deshabilitado,
+  catalogo,
 }: {
   ctx: ContextoFicha;
   filas: readonly FilaFicha[];
@@ -67,6 +70,8 @@ export function PanelDelTaller({
   /** La puerta de la ficha de consumo (ADR-0513): con ella se dibuja la tarjeta que abre su hoja. `null` = sin tarjeta. */
   fichaConsumo?: (PuertaDeLaFicha & { productoId: string; referencia: string }) | null;
   deshabilitado: boolean;
+  /** «Catálogo con IA»: encendido, «Cambiar foto» abre la hoja de ángulos en vez de subir tal cual. */
+  catalogo: CatalogoIA;
 }) {
   const n = ctx.nombres;
   const [fichaAbierta, setFichaAbierta] = useState(false);
@@ -103,6 +108,11 @@ export function PanelDelTaller({
           ) : (
             <div className="taller-foto-vacia">{colorMostrado ? `Sin foto de ${n.color(colorMostrado)} todavía` : "Sin fotos todavía"}</div>
           )}
+          {catalogo.preparandoDe(colorMostrado) && (
+            <span className="absolute inset-x-3 top-3 z-[1] flex justify-center" aria-busy>
+              <Chip tono="pizarra">Preparando…</Chip>
+            </span>
+          )}
           {colorMostrado && (
             <span className="taller-tagcolor">
               <span className="grid h-[9px] w-[9px] place-items-center overflow-hidden rounded-full">
@@ -131,7 +141,9 @@ export function PanelDelTaller({
             onChange={(e) => {
               const archivos = [...(e.target.files ?? [])];
               e.target.value = "";
-              if (archivos.length > 0) elegir(archivos, colorMostrado);
+              if (archivos.length === 0) return;
+              if (catalogo.encendido) catalogo.abrir(archivos, colorMostrado);
+              else elegir(archivos, colorMostrado);
             }}
           />
         </div>

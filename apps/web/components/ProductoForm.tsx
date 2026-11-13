@@ -92,6 +92,7 @@ import {
   type TemporadaElegida,
 } from "@/lib/variantes-ficha-reglas";
 import { PanelDelTaller } from "@/components/ficha-producto/PanelDelTaller";
+import { useCatalogoIA } from "@/components/ficha-producto/useCatalogoIA";
 import type { PuertaDeLaFicha } from "@/lib/ficha-consumo-datos";
 import type { CostoEnLaFicha } from "@/lib/costo-tallas-reglas";
 import { SeccionFicha } from "@/components/ficha-producto/SeccionFicha";
@@ -316,7 +317,10 @@ export function ProductoForm({
   volverA = "/productos",
   nombreProveedor,
   costoEnLaFicha,
+  catalogoIADisponible = false,
 }: {
+  /** El servidor tiene la llave de OpenAI: se ofrece «Catálogo con IA» en las fotos (`fotoCatalogoDisponible`). */
+  catalogoIADisponible?: boolean;
   categorias: Categoria[];
   /** Vocabulario de colores activo, con familia y sinónimos (lo mismo que ve el alta). */
   colores: ColorAlta[];
@@ -434,6 +438,10 @@ export function ProductoForm({
   const temporadaUbicada = useMemo(() => ubicarTemporadas(temporadaEditada, mudanzas, porColorBase), [temporadaEditada, mudanzas, porColorBase]);
   const temporadaColor = useMemo(() => ({ ...porColorGuardado, ...temporadaUbicada }), [porColorGuardado, temporadaUbicada]);
   const fotosVista = useMemo(() => fotosComoSeVen(fotos, mudanzas), [fotos, mudanzas]);
+  const fotosVistaRef = useRef(fotosVista);
+  useEffect(() => {
+    fotosVistaRef.current = fotosVista;
+  }, [fotosVista]);
   // La subida de una foto termina después de un `await`: se ancla con las filas de ESE momento, no con las de cuando empezó.
   const filasRef = useRef(filas);
   const frenoCantidades = useRef<() => boolean>(null);
@@ -517,6 +525,15 @@ export function ProductoForm({
   // ofrece el desplegable (diría «Igual que su prenda» sin saberlo) ni se manda nada por él; se avisa.
   const coloresInciertos = coloresSinTemporadaConocida(producto?.variantes ?? [], coloresFicha);
   const coloresConTemporada = coloresFicha.filter((c) => !coloresInciertos.includes(c));
+  // «Catálogo con IA» (2026-11-13): el interruptor de las fotos, la hoja de ángulos y lo que se prepara. La foto lista entra como la de «Cambiar foto».
+  const catalogo = useCatalogoIA({
+    disponible: catalogoIADisponible,
+    fotos: fotosVista,
+    colores: coloresFicha,
+    nombreColor: nombres.color,
+    onLista: fotosDesdePanel,
+    onFotos: cambiarFotos,
+  });
   // Sin saber qué excepciones hay guardadas (`porColor` null) no se ofrece: mostraría «Igual que su prenda» sobre una
   // excepción que sí existe. Con un solo color, se ofrece igual si ese color ya tiene la suya (o no se sabe).
   const ofreceTemporadaPorColor = !!temporadas?.porColor && ofrecerTemporadaPorColor(coloresFicha, porColorGuardado, coloresInciertos);
@@ -1421,12 +1438,14 @@ export function ProductoForm({
     );
   }
 
-  /** «Cambiar foto» del panel: la foto subida entra en su color y pasa a ser la que se ve en él (la principal, si la de antes lo era). */
+  /** «Cambiar foto» del panel: la foto subida entra en su color y pasa a ser la que se ve en él (la principal, si la de antes lo era). También la
+   *  usa «Catálogo con IA» cuando su foto está lista, ~25 s después: por eso lee las fotos de AHORA (`fotosVistaRef`), no las de cuando se pidió. */
   function fotosDesdePanel(nuevas: FotoSubida[]) {
     if (nuevas.length === 0) return;
+    const actuales = fotosVistaRef.current;
     const conClave = nuevas.map((n) => ({ clientKey: crypto.randomUUID(), id: null, url: n.url, esPrincipal: false, colorCodigo: n.colorCodigo }));
-    let siguientes: FotoLocal[] = conFotosNuevas(fotosVista, conClave);
-    const portadaAntes = fotosDelColor(fotosVista, conClave[0].colorCodigo)[0];
+    let siguientes: FotoLocal[] = conFotosNuevas(actuales, conClave);
+    const portadaAntes = fotosDelColor(actuales, conClave[0].colorCodigo)[0];
     siguientes = portadaAntes?.esPrincipal ? comoPrincipal(siguientes, conClave[0].clientKey) : primeraEnSuColor(siguientes, conClave[0].clientKey);
     cambiarFotos(siguientes);
   }
@@ -1848,6 +1867,7 @@ export function ProductoForm({
                 colores={coloresFicha}
                 vocabulario={colores}
                 nombreColor={nombres.color}
+                catalogo={catalogo}
                 disabled={loading}
               />
             </div>
@@ -2069,9 +2089,11 @@ export function ProductoForm({
           campana={fraseCampana}
           fichaConsumo={producto && fichaConsumo ? { ...fichaConsumo, productoId: producto.id, referencia: producto.referencia } : null}
           deshabilitado={loading}
+          catalogo={catalogo}
         />
       </div>
       </div>
+      {catalogo.hoja}
 
       {agregandoColor && (
         <AgregarColoresModal
