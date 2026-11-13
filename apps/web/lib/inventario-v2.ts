@@ -9,6 +9,8 @@ import type { DuenoDeStock } from "@/lib/stock-por-dueno-reglas";
 import { codigoDeEtiqueta } from "@/lib/prenda-reglas";
 import { COLUMNAS_FILA_EN_CERO, filaEnCero } from "@/lib/existencias-fila-en-cero";
 import { getPreciosPorSede } from "@/lib/precios-sede-datos";
+import { getCatalogo } from "@/lib/catalogo-v2";
+import { armarFilasStock, detallesDesdeCatalogo, type DetalleDeFila } from "@/lib/stock-de-sede-reglas";
 import { precioEnLaSede } from "@/lib/precio-sede-reglas";
 import { leerEnArreglo, type EnArreglo, type NoSePudo } from "@/lib/danadas-arreglo";
 import { BUCKET_FOTOS_DANADAS, leerRutasDeFotos, RPC_FOTOS_DE_DANADAS } from "@/lib/danadas-foto";
@@ -92,7 +94,32 @@ export type ResumenInventario = {
 // `42703` = undefined_column: PostgREST lo devuelve cuando el `select` nombra una columna que la base no tiene.
 const COLUMNA_INEXISTENTE = "42703";
 
-/** Lo que trae la lectura de `getStockPorUbicacion`: una prenda con sus filas de `stock` en la ubicación. */
+/**
+ * El stock de una sede, fila por prenda, con lo que la fila dice de la prenda (foto, talla, color, códigos, precio). Lo usan Existencias,
+ * Traslados ▸ Nuevo, Bajar al piso, Cuadrar y el conteo.
+ *
+ * En dos lecturas que corren juntas (2026-11-13, `docs/innovacion/2026-11-13-cambiar-de-modulo.md` #4): las cantidades, frescas y
+ * delgadas, y la copia guardada del catálogo para el detalle. Antes se pedía todo embebido en la lectura del stock: 716 ms de media en
+ * producción, lo más pesado de Existencias. Si alguna prenda con stock no está en la copia, se hace la lectura completa de antes: nunca
+ * falta una fila (una prenda que no sale parece sin stock).
+ */
+export async function getStockPorUbicacion(ubicacionId: string): Promise<FilaStock[]> {
+  const supabase = await createClient();
+  const [filas, catalogo, precios] = await Promise.all([
+    leerCantidadesDeSede(supabase, ubicacionId),
+    getCatalogo(),
+    // El precio de ESTA sede (precio propio, Felipe 2026-10-09). Si no se puede leer, el general: nunca se cae por esto.
+    getPreciosPorSede([ubicacionId]),
+  ]);
+  const { detalles, faltan } = detallesDesdeCatalogo(filas, catalogo, precios[ubicacionId] ?? {});
+  if (faltan.length > 0) {
+    console.warn(JSON.stringify({ evento: "stock_sede_fuera_de_la_copia", ubicacionId, faltan: faltan.length }));
+    return getStockPorUbicacionCompleto(ubicacionId);
+  }
+  return armarFilasStock(filas, detalles);
+}
+
+/** Lo que trae la lectura de respaldo: una prenda con sus filas de `stock` en la ubicación. */
 type PrendaConStock = {
   id: string;
   sku: string | null;
@@ -105,20 +132,20 @@ type PrendaConStock = {
   stock: { cantidad: number; cantidad_apartada?: number; sububicacion: { tipo: string | null } | null }[];
 };
 
-export async function getStockPorUbicacion(ubicacionId: string): Promise<FilaStock[]> {
+/**
+ * El respaldo de `getStockPorUbicacion` cuando una prenda no está en la copia del catálogo: la lee de la base, con su detalle.
+ *
+ * UNA fila por prenda, con sus filas de `stock` adentro, y las fotos una vez por producto en una lectura aparte (2026-11-13). Antes se leía
+ * `stock` primero y cada fila traía la prenda entera: en una tienda la prenda viajaba dos veces (piso y almacén) y, con ella, TODAS las fotos
+ * de su producto, repetidas en cada talla. En TRU eran 3.477 filas y 3,8 MB, 1,7 MB de ellos enlaces de fotos repetidos (medido en producción
+ * el 2026-11-13: los picos de «Network out» de la base). Así son ~1,25 MB, con la misma salida.
+ */
+async function getStockPorUbicacionCompleto(ubicacionId: string): Promise<FilaStock[]> {
   const supabase = await createClient();
 
-  // UNA fila por prenda, con sus filas de `stock` adentro (2026-11-13). Antes se leía `stock` primero y cada fila traía
-  // la prenda entera: en una tienda la prenda viajaba dos veces (piso y almacén) y, con ella, TODAS las fotos de su
-  // producto, que se repetían en cada talla. En TRU eran 3.477 filas y 3,8 MB por cada vez que se abría Existencias, y
-  // 1,7 MB eran enlaces de fotos repetidos (medido en producción el 2026-11-13: los picos de «Network out» de la base).
-  // Ahora la prenda viaja una vez y las fotos una vez por producto, en una lectura aparte: ~1,25 MB, mismas cifras.
-  //
   // Pide también `cantidad_apartada` (ADR-0141). TEMPORAL — mientras `20260920160000_apartar_stock.sql` no esté
-  // pegada en producción: esta misma lectura alimenta Cambios y Traslados, y una web que sale antes que el SQL no
-  // puede tumbarlas («nunca perder una venta»). Sin la columna se reintenta sin ella y todo queda como antes
-  // (apartado = 0): la base seguiría rechazando lo no disponible. Retirar el reintento cuando la migración esté
-  // aplicada (BACKLOG).
+  // pegada en producción: sin la columna se reintenta sin ella y todo queda como antes (apartado = 0); la base
+  // seguiría rechazando lo no disponible. Retirar el reintento cuando la migración esté aplicada (BACKLOG).
   // Por páginas (`leerTodas`): TRU pasa de 1.900 prendas y PostgREST corta en 1.000 (las filas de `stock` de adentro
   // no cuentan para ese tope). `id` desempata: una fila por prenda.
   const leerPrendas = (conApartada: boolean) =>
@@ -134,15 +161,10 @@ export async function getStockPorUbicacion(ubicacionId: string): Promise<FilaSto
       // `!inner` + este filtro: solo las prendas con alguna fila de `stock` en ESTA ubicación, y adentro solo esas
       // filas (una fila en 0 también cuenta: es el SIN STOCK que una tienda quiere ver).
       .eq("stock.ubicacion_id", ubicacionId)
-      // La variante centinela del «Monto manual» tiene 999.999 unidades por
-      // ubicación: sin esto, «Total tienda» mostraba 1.000.422 (visto en
-      // producción el 2026-09-15). Ver `lib/cargo-especial.ts`.
+      // La variante centinela del «Monto manual» tiene 999.999 unidades por ubicación (`lib/cargo-especial.ts`).
       .neq("id", ID_CARGO_ESPECIAL)
-      // Una variante descontinuada (`variantes.activo = false`, el mismo
-      // flag que ya la oculta de caja/catálogo/conteo) no debe reaparecer
-      // acá con stock: 6 productos de prueba archivados el 2026-09-16
-      // dejaron ~1.600 unidades fantasma en este reporte hasta que un
-      // ajuste manual las llevó a 0 (BACKLOG).
+      // Una variante descontinuada no reaparece con stock (6 productos de prueba archivados el 2026-09-16 dejaron
+      // ~1.600 unidades fantasma).
       .eq("activo", true)
       .order("id")
       .range(desde, hasta));
@@ -154,11 +176,10 @@ export async function getStockPorUbicacion(ubicacionId: string): Promise<FilaSto
       : exigir(conColumna, "el inventario de esta ubicación")
   ) as unknown as PrendaConStock[];
 
-  // Las filas de `stock` sueltas, como las espera la regla única de cantidades (`sumarCantidades`).
+  // Las filas de `stock` sueltas, como las espera la regla única de cantidades.
   const filas: FilaCantidadCruda[] = prendas.flatMap((p) =>
     p.stock.map((s) => ({ variante_id: p.id, cantidad: s.cantidad, cantidad_apartada: s.cantidad_apartada ?? 0, sububicacion: s.sububicacion }))
   );
-  const cantidades = sumarCantidades(filas);
 
   const productoIds = [...new Set(prendas.map((p) => p.producto?.id).filter((id): id is string => !!id))];
   const [fotosRes, preciosPorSede] = await Promise.all([
@@ -179,7 +200,7 @@ export async function getStockPorUbicacion(ubicacionId: string): Promise<FilaSto
   }
   const propios = preciosPorSede[ubicacionId] ?? {};
 
-  const porVariante = new Map<string, Omit<FilaStock, keyof Cantidades>>();
+  const porVariante = new Map<string, DetalleDeFila>();
   for (const p of prendas) {
     porVariante.set(p.id, {
       varianteId: p.id,
@@ -199,14 +220,7 @@ export async function getStockPorUbicacion(ubicacionId: string): Promise<FilaSto
       ...(propios[p.id] !== undefined ? { precioDeSede: true } : {}),
     });
   }
-  const separaPisoAlmacen = [...cantidades.values()].some((c) => c.piso !== null);
-
-  return Array.from(porVariante.values(), (detalle) => ({ ...detalle, ...cantidades.get(detalle.varianteId)! }))
-    // Taller conserva su comportamiento de siempre (solo lo que tiene
-    // stock); una tienda muestra también lo que llegó a 0 — es justo el
-    // estado SIN STOCK que el pedido quiere ver, no un vacío silencioso.
-    .filter((f) => separaPisoAlmacen || f.total > 0)
-    .sort((a, b) => a.referencia.localeCompare(b.referencia, "es") || (a.sku ?? "").localeCompare(b.sku ?? "", "es"));
+  return armarFilasStock(filas, porVariante);
 }
 
 /**
@@ -215,8 +229,13 @@ export async function getStockPorUbicacion(ubicacionId: string): Promise<FilaSto
  * filas) baja de ~0,9 s a ~0,2 s (medido 2026-09-23). Mismas reglas: `sumarCantidades`.
  */
 export async function getDisponibleEnSede(ubicacionId: string): Promise<Map<string, Cantidades>> {
-  const supabase = await createClient();
-  const filas = exigir(
+  return sumarCantidades(await leerCantidadesDeSede(await createClient(), ubicacionId));
+}
+
+/** Las filas de stock de una sede, solo con sus cantidades: lo que leen la caja (`getDisponibleEnSede`) y `getStockPorUbicacion`. Sin la
+ *  variante centinela del «Monto manual» ni las variantes descontinuadas; por páginas, en el orden de la fila (variante, sububicación). */
+async function leerCantidadesDeSede(supabase: Awaited<ReturnType<typeof createClient>>, ubicacionId: string) {
+  return exigir(
     await leerTodas((desde, hasta) =>
       supabase
         .from("stock")
@@ -230,7 +249,6 @@ export async function getDisponibleEnSede(ubicacionId: string): Promise<Map<stri
     ),
     "el stock de esta ubicación"
   );
-  return sumarCantidades(filas);
 }
 
 export function resumirInventario(filas: FilaStock[]): ResumenInventario {

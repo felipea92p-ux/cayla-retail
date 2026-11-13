@@ -24,6 +24,7 @@
  *   pnpm rendimiento:aceptar                                → mide y reescribe presupuesto.json (después de entender por qué cambió)
  *   pnpm rendimiento:aceptar -- --desde-ci <id>             → toma las medidas de una corrida del CI (`gh run list`)
  *   RETAIL_CONTENEDOR_PG=<otra pila> pnpm pruebas:presupuesto-rendimiento
+ *   PRESUPUESTO_BASE=<copia> node scripts/rendimiento/presupuesto.mjs   → contra otra base del contenedor (una copia, para probar)
  */
 import { execFileSync } from "node:child_process";
 import { readFileSync, writeFileSync } from "node:fs";
@@ -34,6 +35,8 @@ const AQUI = dirname(fileURLToPath(import.meta.url));
 const RAIZ = join(AQUI, "..", "..");
 const PRESUPUESTO = join(AQUI, "presupuesto.json");
 const CONTENEDOR = process.env.RETAIL_CONTENEDOR_PG ?? "supabase_db_cayla-retail";
+/** La base dentro del contenedor: `postgres` (la del CI y la compartida en local) u otra copia para probar sin tocarla. */
+const BASE = process.env.PRESUPUESTO_BASE ?? "postgres";
 
 /** Cuánto más puede leer una función sobre su presupuesto antes de frenar el PR, y el mínimo absoluto que cuenta. */
 export const TOLERANCIA = 0.25;
@@ -184,23 +187,31 @@ function escribirPresupuesto(bloques, origen) {
 }
 
 /**
- * Antes de medir, `vacuum` de toda la base (fuera de la transacción: no se puede dentro; 0,35 s en local). Un ROLLBACK no borra las
- * filas que insertó: quedan muertas hasta el próximo vacuum, y la medida las leería también. Medido el 2026-11-13 en local: tres
- * corridas seguidas sin vacuum daban 145 mil, 208 mil y 230 mil bloques para la misma función; y `fn_mis_modulos`, que no toca el
- * volumen, iba de 78 a 118 por las filas muertas que otras pruebas dejan en `rol_modulos`. En el CI pasa igual: las pruebas de la
- * misma tanda que corrieron antes dejan filas muertas, y cuáles son cambia con el reparto.
+ * Antes de medir, la base se deja como si nadie la hubiera usado (fuera de la transacción: nada de esto se puede dentro):
+ *   1. `vacuum (analyze)` de toda la base (0,4 s en local). Un ROLLBACK no borra las filas que insertó: quedan muertas hasta el próximo
+ *      vacuum y la medida las leería. Y una tabla recién creada no tiene estadísticas hasta que el autovacuum pasa (en una tabla de
+ *      menos de 50 filas, nunca): con o sin ellas, el plan cambia.
+ *   2. `reindex schema concurrently retail` (0,9 s en local): el vacuum quita las entradas muertas de un índice pero no lo achica, y
+ *      con un índice más grande el planificador elige otro plan.
+ * Medido el 2026-11-13 en una copia de la base local, recién creada:
+ *   - Sin vacuum, tres corridas seguidas daban 145 mil, 208 mil y 230 mil bloques para `fn_productos_facetas`.
+ *   - Con vacuum y sin estadísticas, `fn_resumen_finanzas` daba 219 mil y, cuando el autovacuum ya había analizado, 65 mil.
+ *   - Con todas las estadísticas pero sin reconstruir índices, 194 mil en la primera corrida y 39 mil en las siguientes.
+ *   - Con los dos pasos, 193.675, 193.762 y 193.687, aunque cada corrida hinche los índices de la siguiente.
+ * En el CI pasaba lo mismo con las pruebas que corrieron antes en la tanda: `fn_productos_facetas` daba 55 mil o 112 mil según el reparto
+ * (main en rojo con #1827, que no tocaba nada de esto). `concurrently` para no frenar a nadie en la base local compartida.
  */
 function psqlAdmin(sql) {
   return execFileSync(
     "docker",
-    ["exec", "-i", CONTENEDOR, "psql", "-q", "-U", "supabase_admin", "-d", "postgres", "-v", "ON_ERROR_STOP=1", "-t", "-A", "-f", "-"],
+    ["exec", "-i", CONTENEDOR, "psql", "-q", "-U", "supabase_admin", "-d", BASE, "-v", "ON_ERROR_STOP=1", "-t", "-A", "-f", "-"],
     { input: sql, encoding: "utf8", maxBuffer: 64 * 1024 * 1024, stdio: ["pipe", "pipe", "pipe"] },
   );
 }
 
 function medir() {
   const volumen = readFileSync(join(AQUI, "presupuesto-volumen.sql"), "utf8");
-  psqlAdmin("vacuum;\n");
+  psqlAdmin("vacuum (analyze);\nreindex schema concurrently retail;\nreindex table concurrently public.sedes;\n");
   return leerSalida(psqlAdmin(armarScript(volumen)));
 }
 
