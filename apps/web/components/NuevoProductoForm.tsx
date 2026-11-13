@@ -57,7 +57,8 @@ import { useResponsable } from "@/lib/useResponsable";
 import { firmar } from "@/lib/responsable-reglas";
 import { compararTallas } from "@/lib/tallas";
 import { textoLoQueFalta } from "@/lib/marca-proveedor-reglas";
-import { subirFotoProducto } from "@/lib/producto-fotos";
+import { subirFotoProducto, subirParDeCatalogo } from "@/lib/producto-fotos";
+import { useCatalogoIAAlta } from "@/components/alta-producto/useCatalogoIAAlta";
 import { debeEncolarse } from "@/lib/error-escritura";
 import { nombreEnCola, nuevaOperacion } from "@/lib/cola-offline";
 import { useColaProductos } from "@/lib/useColaProductos";
@@ -168,7 +169,10 @@ export function NuevoProductoForm({
   destino,
   cargaInicial = null,
   proponePrecio = false,
+  catalogoIADisponible = false,
 }: {
+  /** El servidor tiene la llave de OpenAI: se ofrece «Catálogo con IA» en las fotos (`fotoCatalogoDisponible`). */
+  catalogoIADisponible?: boolean;
   contexto: ContextoAlta;
   destino: DestinoStock;
   /** La carga inicial de la sede del stock (ADR-0328): su fecha de cierre y el «hoy» de la base. `null` = no se sabe (no se avisa). */
@@ -599,6 +603,19 @@ export function NuevoProductoForm({
   const nombresEtiquetas = etiquetasAManda.map((id) => vocabEtiquetas.find((e) => e.id === id)?.nombre).filter((n): n is string => Boolean(n));
 
   const fotosOrdenadas = ordenarFotosAlta(fotos, coloresElegidos);
+  // «Catálogo con IA» (2026-11-13): la foto de catálogo de cada color se prepara en su fila mientras se sigue; al crear, se espera.
+  const catalogo = useCatalogoIAAlta({
+    disponible: catalogoIADisponible,
+    fotos,
+    setFotos,
+    colores: coloresElegidos,
+    nombreColor: (c) => (c === null ? "todos los colores" : (colorPorCodigo(c)?.nombre ?? c)),
+  });
+  // Al crear se lee la lista de DESPUÉS de esperar a la IA, no la de cuando se tocó «Crear».
+  const fotosRef = useRef(fotos);
+  useEffect(() => {
+    fotosRef.current = fotos;
+  }, [fotos]);
 
   // ---------- guardar ----------
   // Un segundo clic (o Enter) mientras el alta viaja no la manda otra vez: con el mismo token la base devuelve el mismo producto y no
@@ -787,14 +804,16 @@ export function NuevoProductoForm({
       if (errorProveedor) avisar.aviso("La prenda se creó, pero no se guardó cómo la llama el proveedor.", { detalle: "Agrégalo en Editar producto." });
     }
 
-    // Recién ahora suben las fotos: una que falle no deshace nada, se dice en la pantalla de éxito.
+    // Recién ahora suben las fotos: una que falle no deshace nada, se dice en la pantalla de éxito. Antes se espera a la IA: si una foto de
+    // catálogo venía en camino, se sube ella (con su real al lado) y no la real sola.
+    const paraSubir = ordenarFotosAlta(await catalogo.esperar(fotosRef.current), coloresElegidos);
     const fallidas: string[] = [];
     const conFoto = new Set<string>();
     let subidas = 0;
-    if (fotosOrdenadas.length > 0) {
+    if (paraSubir.length > 0) {
       const filas: { producto_id: string; url: string; orden: number; es_principal: boolean; color_codigo: string | null }[] = [];
-      for (const f of fotosOrdenadas) {
-        const r = await subirFotoProducto(supabase, f.archivo);
+      for (const f of paraSubir) {
+        const r = f.ia?.usar ? await subirParDeCatalogo(supabase, f.archivo, f.ia.png) : await subirFotoProducto(supabase, f.archivo);
         if ("error" in r) {
           fallidas.push(`${f.archivo.name}: ${r.error}`);
           continue;
@@ -1244,8 +1263,10 @@ export function NuevoProductoForm({
                 fotos={fotos}
                 onFotos={setFotos}
                 disabled={cargando}
+                catalogo={catalogo}
               />
             )}
+            {catalogo.hoja}
           </div>
         </div>
       );
