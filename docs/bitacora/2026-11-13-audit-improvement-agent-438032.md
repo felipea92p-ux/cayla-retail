@@ -1,0 +1,4 @@
+## 2026-11-13 (Nace `/innovar`: cada pieza se compara con lo mejor y lo más nuevo del mundo)
+Qué hice: la skill `/innovar` (ADR-0651) con sus cuatro miradas, el escéptico y la plantilla; el primer radar (`docs/radar/`: lo último del stack y lo que hacen los mejores en retail y en software, cada cosa con su fuente y su anillo) y el tablero vacío `docs/innovacion/README.md`.
+Por qué así: Felipe eligió en 10 preguntas una skill que corre a mano, que solo aporta innovación (lo demás lo deriva), que lee un radar curado y busca en la web solo lo que falta, y que entrega todas las propuestas en «Ahora» y «Visión» con las 3 primeras al frente; solo propone y construye con su OK.
+Felipe se lleva: `/innovar <pantalla o módulo>` cuando termine algo o quiera auditar lo hecho, y `/innovar radar` para poner al día «lo último»; la rutina semanal (cada lunes, 9:00 de Lima, Opus 5.5) lo refresca sola y abre un PR solo si algo cambió.
