@@ -195,7 +195,8 @@ caso(
 // Y una más: corregir una compra ya anotada (`compra_corregir`, 20261029012000; ADR-0561).
 // Y una más: reabrir la última ronda de compras (`compra_ronda_reabrir`, 20261029150000; ADR-0569).
 // Y una más: corregir un gasto de «otra cosa» ya anotado (`gasto_corregir`, 20261029171000; ADR-0572).
-const TOTAL = EN_SECO ? "28" : "67";
+// Y una más: definir la categoría o el precio de una prenda de Mis compras que quedó «por definir» (`compra_definir`, 20261113211000; ADR-0660).
+const TOTAL = EN_SECO ? "28" : "68";
 caso(`la lista tiene las ${TOTAL} acciones soltadas`, `select count(*) from retail.acciones_sin_responsable;`, TOTAL);
 // El gasto del viaje es la excepción con motivo: se anota en Gamarra, donde nadie marca entrada (ADR-0362 fase 6, provisional). Sumarle
 // la foto de su papel no mueve plata: es evidencia, como el adjunto de una factura (`compra_adjunto_subir`). Su reemplazo en Compras simple,

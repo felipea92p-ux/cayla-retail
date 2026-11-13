@@ -234,6 +234,14 @@ export const TEXTO_LO_RECIBIO_QUIEN_COMPRO = "Lo recibió quien hizo la compra";
 
 export type CategoriaDeLinea = { id: string; nombre: string; prefijo: string | null; familia: string | null };
 
+/**
+ * ADR-0660 (Felipe 2026-11-13): una prenda de «Mis compras» anotada «por definir» llega sin categoría y la tienda dice qué es antes de contarla
+ * (`corregir_linea_al_contar`; la base no deja contarla ni cerrar el envío sin eso). En pantalla se dibuja como «Por definir»: su `id` vacío no es
+ * una categoría y la base lo rechaza si alguien lo manda.
+ */
+export const CATEGORIA_POR_DEFINIR: CategoriaDeLinea = { id: "", nombre: "Por definir", prefijo: null, familia: null };
+export const esCategoriaPorDefinir = (c: Pick<CategoriaDeLinea, "id">): boolean => c.id === "";
+
 /** Una línea del envío: lo que se pidió y salió hacia la sede, con su precio congelado (quien recibe lo ve y lo corrige, decisión 18). */
 export type LineaEnvio = {
   /** El id de la línea del envío (`despacho_items.id`): lo que `p_lineas` nombra. */
@@ -357,7 +365,8 @@ function leerLineaEnvio(f: unknown): LineaEnvio | null {
   const r = objeto(f);
   if (!r) return null;
   const id = texto(r.id) ?? texto(r.despacho_item_id);
-  const categoria = leerCategoria(r);
+  // Sin categoría a propósito (la línea no trae ni el objeto ni su id): «por definir» (ADR-0660). Una categoría a medias sigue sin entenderse.
+  const categoria = leerCategoria(r) ?? (r.categoria == null && r.categoria_id == null ? CATEGORIA_POR_DEFINIR : null);
   const marca = leerMarca(r);
   const enviado = cifra(r.cantidad) ?? cifra(r.enviado);
   // Sin marca la línea igual se recibe (una compra de «Algo nuevo» puede venir sin ella).

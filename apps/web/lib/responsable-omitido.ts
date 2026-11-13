@@ -103,6 +103,8 @@ export const ACCIONES_SIN_RESPONSABLE = {
   compra_rapida: "Registrar una compra desde el celular (con la cuenta de una persona firma ella, desde una terminal se elige quién)",
   // Corregir una compra ya anotada (ADR-0561; migración 20261029012000): lo hace quien la anotó, mientras Compras no la complete.
   compra_corregir: "Corregir una compra que anotaste desde el celular (con la cuenta de una persona firma ella, desde una terminal se elige quién)",
+  // «Por definir» (ADR-0660; migración 20261113211000): la categoría o el precio que una prenda de Mis compras dejó para después.
+  compra_definir: "Definir la categoría o el precio de una prenda de Mis compras (con la cuenta de una persona firma ella, desde una terminal se elige quién)",
   // El resto del día de compras (ADR-0480, actividad 5; migración 20261023114000).
   gasto_rapido: "Anotar un gasto que no es ropa desde el celular (con la cuenta de una persona firma ella, desde una terminal se elige quién)",
   compra_mandar: "Mandar a una tienda lo que compraste para ella (con la cuenta de una persona firma ella, desde una terminal se elige quién)",

@@ -30,6 +30,8 @@ import {
   leerCosto,
   leerCostoAtipicoRecepcion,
   leerDetalleEnvio,
+  CATEGORIA_POR_DEFINIR,
+  esCategoriaPorDefinir,
   leerEnviosPorAbrir,
   leerOrdenesDirectas,
   textoMarcas,
@@ -259,6 +261,23 @@ describe("leer un envío por dentro (fn_envio_detalle)", () => {
     expect(d.recibidos).toBeNull();
     expect(d.diferencias).toBeNull();
     expect(d.lotes).toEqual([]);
+  });
+
+  it("una prenda «por definir» de Mis compras (ADR-0660) llega sin categoría: se lee como «Por definir», nunca se pierde; una categoría a medias sí se descarta", () => {
+    const d = leerDetalleEnvio({
+      id: "env-3",
+      numero: "ENV-000063",
+      estado: "abierto",
+      sede: { id: "tru", nombre: "Tienda Trujillo" },
+      version: 2,
+      lineas: [
+        { id: "di-1", orden: { id: "oc-1", numero: "OC-000001" }, posicion: 1, proveedor: PROV_A, categoria_id: null, categoria: null, marca_id: null, marca: null, descripcion: "Modelo Nela", cantidad: 6, precio_unitario: 25 },
+        { id: "di-2", orden: { id: "oc-1", numero: "OC-000001" }, posicion: 2, proveedor: PROV_A, categoria_id: "c", categoria: null, cantidad: 2, precio_unitario: 10 },
+      ],
+    })!;
+    expect(d.lineas).toHaveLength(1);
+    expect(d.lineas[0]).toMatchObject({ id: "di-1", categoria: CATEGORIA_POR_DEFINIR, descripcion: "Modelo Nela", enviado: 6 });
+    expect(esCategoriaPorDefinir(d.lineas[0]!.categoria)).toBe(true);
   });
 
   it("lee cuántos fardos vienen (`bultos`); sin dato, o con un dato que no es un conteo, es «no se sabe» y nunca un cero", () => {

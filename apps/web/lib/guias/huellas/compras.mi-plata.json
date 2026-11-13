@@ -2,7 +2,7 @@
   "guia": "compras.mi-plata",
   "ruta": "/compras/mi-plata",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 69,
+  "total": 75,
   "controles": {
     "app/(app)/compras/mi-plata/page.tsx": [
       "BotonVer «Mis envíos»"
@@ -95,6 +95,14 @@
     ],
     "components/mi-plata/ParaMandar.tsx": [
       "Boton «mi-plata.mandar»"
+    ],
+    "components/mi-plata/PorDefinir.tsx": [
+      "Boton «Definir»",
+      "CampoSelect «¿Qué es?»",
+      "CampoMonto «Se vende a»",
+      "ComboResponsable «{responsable}»",
+      "Boton «Cancelar»",
+      "Boton «Guardar»"
     ],
     "components/mi-plata/ReabrirRonda.tsx": [
       "Boton «Reabrir»"
