@@ -511,7 +511,11 @@ rollback;`),
   {
     // Si la base todavía no la tiene, se aplica dentro de cada escenario (y se deshace con él).
     const tiene = correr("select to_regclass('retail.campana_regla_productos') is not null;").salida === "t";
-    const conProductos = tiene ? "" : `${readFileSync(MIGRACION_PRODUCTOS, "utf8")}\n`;
+    // La migración también toca `fusionar_productos` (20261112210000…): una base local que todavía no la tiene la recibe dentro del escenario.
+    const sinFusion = correr("select to_regprocedure('retail.fusionar_productos(uuid, uuid[], jsonb, jsonb)') is null;").salida === "t";
+    const FUSION = ["20261112204000_fusionar_productos_base", "20261112205000_fusionar_productos_previsualizar", "20261112210000_fusionar_productos",
+      "20261112211000_fusionar_productos_lecturas", "20261113175000_fusionar_productos_tallas_vacias"].map((n) => readFileSync(`supabase/migrations/${n}.sql`, "utf8")).join("\n");
+    const conProductos = tiene ? "" : `${sinFusion ? `${FUSION}\n` : ""}${readFileSync(MIGRACION_PRODUCTOS, "utf8")}\n`;
     const P = `${PREPARAR}${conProductos}set local request.jwt.claim.sub = '${FELIPE}';
 select p.id as prod2 from retail.variantes v join retail.productos p on p.id = v.producto_id where v.id = :'v2' \\gset
 `;
@@ -565,7 +569,7 @@ select count(*) from retail.campana_regla_productos rp join retail.campana_regla
     );
     esperar(
       "la migración de prenda por prenda se puede pegar dos veces",
-      correr(`begin;\n${readFileSync(MIGRACION_PRODUCTOS, "utf8")}\n${readFileSync(MIGRACION_PRODUCTOS, "utf8")}\nrollback;`).ok,
+      correr(`begin;\n${sinFusion ? `${FUSION}\n` : ""}${readFileSync(MIGRACION_PRODUCTOS, "utf8")}\n${readFileSync(MIGRACION_PRODUCTOS, "utf8")}\nrollback;`).ok,
     );
   }
 

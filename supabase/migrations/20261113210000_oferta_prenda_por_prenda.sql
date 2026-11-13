@@ -12,6 +12,8 @@
 --      condición por reemplazo anclado: una oferta con categorías «solo» O con modelos elegidos alcanza a las prendas de ESAS categorías
 --      Y de ESOS modelos; sin ninguna de las dos, a las de su campaña (como siempre). «Dejar fuera», las tiendas y Claurè siguen igual.
 --   3. `campana_reglas()` (la lee la pantalla) devuelve también `productos_solo`.
+--   5. `fusionar_productos` (ADR-0650): al juntar un duplicado con el que queda, una oferta que eligió el duplicado pasa al que queda (si no lo
+--      tenía ya), como los looks de la tienda web. Sin esto, la oferta dejaría de cobrar esas prendas, que se mudan al que queda.
 --   4. `guardar_oferta(...)`: la misma firma de `guardar_campana_regla` más `p_producto_ids`. Llama a `guardar_campana_regla` (que sigue
 --      siendo la que valida y firma) y, en la MISMA transacción, deja los modelos de la oferta. Si algo falla, no queda ni la oferta ni sus
 --      prendas a medias. Si la oferta ya existía y sus modelos cambian, el historial suma una fila con los de antes (solo se agrega).
@@ -29,7 +31,7 @@
 -- ESTADOS QUE NUNCA DEBEN EXISTIR (los cierra el esquema): un modelo repetido en la misma oferta (clave primaria); un modelo que no existe
 --   (llave foránea); una oferta borrada que deja modelos sueltos (`on delete cascade`, aunque una oferta nunca se borra: se retira).
 --
--- SE ROMPE SI: alguien cambia el bloque de categorías de `fn_campanas_en_sede` antes de pegar esto: el ancla no aparece y la migración se
+-- SE ROMPE SI: alguien cambia el bloque de categorías de `fn_campanas_en_sede` o el de `look_web_piezas` de `fusionar_productos` antes de pegar esto: el ancla no aparece y la migración se
 --   detiene sin tocar nada (`pg_temp.reemplazar_anclado`). Y si `campana_reglas()` cambió desde 20261023232000: la guarda de md5 se detiene.
 --
 -- CÓMO SE PEGA. Una sola parte, idempotente, `lock_timeout` 3 s: una tabla NUEVA (nadie la usa todavía), RLS encendido sin políticas (solo la
@@ -65,7 +67,9 @@ $$;
 
 create table if not exists retail.campana_regla_productos (
   regla_id uuid not null references retail.campana_reglas (id) on delete cascade,
-  producto_id uuid not null references retail.productos (id),
+  -- Elegir un modelo es configuración de la oferta, como sus categorías: si el producto se elimina (solo se puede sin historia), se va de la
+  -- oferta con él (`pruebas:eliminar-producto` la cuenta entre las SUYAS). Al fusionar dos productos, pasa al que queda (sección 5).
+  producto_id uuid not null references retail.productos (id) on delete cascade,
   primary key (regla_id, producto_id)
 );
 
@@ -217,3 +221,30 @@ comment on function retail.guardar_oferta(uuid, uuid, text, numeric, date, date,
 
 revoke all on function retail.guardar_oferta(uuid, uuid, text, numeric, date, date, smallint[], uuid[], uuid[], boolean, uuid[], uuid[], boolean) from public, anon;
 grant execute on function retail.guardar_oferta(uuid, uuid, text, numeric, date, date, smallint[], uuid[], uuid[], boolean, uuid[], uuid[], boolean) to authenticated;
+
+-- 5. Fusionar productos: la oferta sigue al producto que queda ------------------------------------------------------------------------
+
+do $$
+begin
+  if to_regprocedure('retail.fusionar_productos(uuid, uuid[], jsonb, jsonb)') is null then
+    raise exception 'retail.fusionar_productos no existe: esta migración va después de 20261112210000 (fusionar productos). No se aplicó nada.';
+  end if;
+end;
+$$;
+
+select pg_temp.reemplazar_anclado(
+  'retail.fusionar_productos(uuid, uuid[], jsonb, jsonb)',
+  $v$  update retail.look_web_piezas f set producto_id = p_queda
+   where f.producto_id = any (v_dups)
+     and not exists (select 1 from retail.look_web_piezas o where o.look_id = f.look_id and o.producto_id = p_queda);
+$v$,
+  $n$  update retail.look_web_piezas f set producto_id = p_queda
+   where f.producto_id = any (v_dups)
+     and not exists (select 1 from retail.look_web_piezas o where o.look_id = f.look_id and o.producto_id = p_queda);
+  -- ADR-0655: una oferta que eligió el duplicado prenda por prenda pasa al que queda, si no lo tenía ya (lo que no pasa queda en el
+  -- duplicado, que ya no tiene prendas a la venta: no cobra nada).
+  update retail.campana_regla_productos f set producto_id = p_queda
+   where f.producto_id = any (v_dups)
+     and not exists (select 1 from retail.campana_regla_productos o where o.regla_id = f.regla_id and o.producto_id = p_queda);
+$n$
+);
