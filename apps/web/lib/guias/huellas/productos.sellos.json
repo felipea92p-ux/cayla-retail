@@ -2,7 +2,7 @@
   "guia": "productos.sellos",
   "ruta": "/productos/insignias",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 146,
+  "total": 149,
   "controles": {
     "components/ConfirmarConResponsable.tsx": [
       "ComboResponsable «{control}»",
@@ -90,6 +90,9 @@
       "BotonImprimir «Imprimir etiquetas»",
       "button «Descartar el aviso de etiquetas pendientes»"
     ],
+    "components/sellos/ChoquesDeOferta.tsx": [
+      "button «Que «»"
+    ],
     "components/sellos/EditarEtiquetaModal.tsx": [
       "CampoTexto «{`Nombre ${delUno}»",
       "button «{`Repetir en ${repeticion.anio}»",
@@ -124,6 +127,8 @@
       "button «{a.texto}»",
       "CampoFecha «Desde»",
       "CampoFecha «Hasta»",
+      "SegmentoDeslizante «Cómo eliges las prendas»",
+      "Casilla «{m.nombre}»",
       "button «Elegir todas»",
       "button «Quitar todas»",
       "button «Incluir las de Claurè»",

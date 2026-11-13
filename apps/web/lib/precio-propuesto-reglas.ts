@@ -86,20 +86,20 @@ export function seLlegoAlTopePrecios(gastado: number | null): boolean {
 /** Por qué no hay propuesta, como lo guarda la base. */
 export type MotivoSinPropuesta = "sin_clave" | "sin_costo" | "tope" | "sin_respuesta" | "rechazo" | "respuesta_invalida";
 
-/** Lo que se le dice a la persona cuando no hay propuesta: qué pasó y qué hacer, en una frase. */
+/** Lo que se le dice a la persona cuando no hay propuesta: qué pasó y qué hacer, en una frase corta (Felipe 2026-11-13: «super breve y directo»). */
 export function textoSinPropuesta(motivo: MotivoSinPropuesta): string {
   switch (motivo) {
     case "sin_costo":
-      return "Escribe el costo para proponerte un precio: ni esta prenda ni su categoría tienen uno.";
+      return "Escribe el costo y te propongo un precio.";
     case "tope":
-      return "Ya se usó lo de este mes para proponer precios. Vuelve el día 1, o ponlo tú.";
+      return "Se acabó lo de este mes. Ponlo tú.";
     case "sin_clave":
-      return "La propuesta de precio no está encendida todavía. Pon el precio tú.";
+      return "La propuesta está apagada. Ponlo tú.";
     case "sin_respuesta":
-      return "No se pudo calcular ahora. Prueba de nuevo en un momento, o ponlo tú.";
+      return "No respondió. Prueba de nuevo o ponlo tú.";
     case "rechazo":
     case "respuesta_invalida":
-      return "Esta vez no salió una propuesta que se pueda usar. Prueba de nuevo, o ponlo tú.";
+      return "No salió una propuesta útil. Prueba de nuevo.";
   }
 }
 

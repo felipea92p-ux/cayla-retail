@@ -9,7 +9,13 @@ import {
   nombresDeTiendas,
   algunDiaCae,
   atajosDeFechas,
-  reglasQueSeCruzan,
+  choquesDeFilas,
+  choqueResuelto,
+  choquesSinResolver,
+  cesionesQueQuedan,
+  tituloDeChoque,
+  fraseDeChoque,
+  type FilaChoque,
   resumenAntes,
   cuentaDias,
   DIAS_SEMANA,
@@ -18,6 +24,8 @@ import {
   esNombreAutomatico,
   fraseDeOferta,
   leerCuerpoOferta,
+  alcanceDicho,
+  MAX_PRODUCTOS_SOLO,
   nombreAutomatico,
   nombreDeOferta,
   ofertaDesdeRegla,
@@ -281,6 +289,14 @@ describe("el cuerpo que manda la hoja a la API", () => {
   ])("lo malo se rechaza: %s", (_nombre, cuerpo) => {
     expect(leerCuerpoOferta(cuerpo).ok).toBe(false);
   });
+  it("los modelos elegidos uno por uno viajan sin repetir y con su tope (ADR-0655)", () => {
+    const r = leerCuerpoOferta({ ...bueno, productosSolo: [ID, ID, CAMPANA], teniaModelos: true });
+    expect(r.ok && r.valor.productosSolo).toEqual([ID, CAMPANA]);
+    expect(r.ok && r.valor.teniaModelos).toBe(true);
+    expect(leerCuerpoOferta(bueno).ok && (leerCuerpoOferta(bueno) as { valor: { productosSolo: string[]; teniaModelos: boolean } }).valor).toMatchObject({ productosSolo: [], teniaModelos: false });
+    expect(leerCuerpoOferta({ ...bueno, productosSolo: ["polo"] }).ok).toBe(false);
+    expect(leerCuerpoOferta({ ...bueno, productosSolo: Array.from({ length: MAX_PRODUCTOS_SOLO + 1 }, (_, i) => `00000000-0000-4000-8000-${String(i).padStart(12, "0")}`) }).ok).toBe(false);
+  });
   it("con id y sin categorías es una edición", () => {
     const r = leerCuerpoOferta({ ...bueno, id: ID, categoriasSolo: undefined });
     expect(r.ok && r.valor.id).toBe(ID);
@@ -332,24 +348,41 @@ describe("atajos de fechas", () => {
   });
 });
 
-describe("cruces entre ofertas", () => {
-  const base = (r: Partial<ReglaCampana>): ReglaCampana => ({ ...reglaDeFila({ id: "r", etiqueta_id: "e", nombre: "x", tipo: "pct", porcentaje: 10, desde: "2026-10-26", hasta: "2026-10-31", dias_semana: [1, 2, 3, 4, 5, 6, 7], incluye_claure: false, estado: "activa", categorias_solo: [], categorias_fuera: [], creada_en: "2026-10-23", activada_en: null, cambios: 0, ultimo_cambio: null }), ...r });
-  const o = { id: null, desde: "2026-10-27", hasta: "2026-10-30", dias: [2, 4], categoriasSolo: [] as string[], sedeIds: [] as string[] };
-  it("se cruza con una que pisa fechas, días y prendas", () => {
-    expect(reglasQueSeCruzan(o, [base({ id: "a" })], "2026-10-23").map((r) => r.id)).toEqual(["a"]);
+describe("una prenda, una oferta por tienda y por día", () => {
+  const fila = (f: Partial<FilaChoque>): FilaChoque => ({ otra_tipo: "oferta", otra_id: "o1", otra_nombre: "Polos 3x2", campana_nombre: "Verano", ubicacion_id: "t", ubicacion_nombre: "Tienda Trujillo", prendas: 4, cedida: false, ...f });
+  it("junta las tiendas de la misma oferta, sin «Tienda» y en orden", () => {
+    const c = choquesDeFilas([fila({}), fila({ ubicacion_id: "l", ubicacion_nombre: "Tienda Lima" })], []);
+    expect(c).toHaveLength(1);
+    expect(c[0]).toMatchObject({ tipo: "oferta", tiendas: ["Lima", "Trujillo"], prendas: 4, deCampana: "Verano", estaCede: false });
+    expect(tituloDeChoque(c[0])).toBe("Choca con «Polos 3x2» (de Verano) en Lima y Trujillo");
   });
-  it("no se cruza si no comparten ningún día de la semana", () => {
-    expect(reglasQueSeCruzan(o, [base({ id: "a", dias: [6, 7] })], "2026-10-23")).toEqual([]);
+  it("el descuento de siempre va primero y no se resuelve cediendo", () => {
+    const c = choquesDeFilas([fila({}), fila({ otra_tipo: "descuento", otra_id: "i1", otra_nombre: "Rotación", campana_nombre: "Rotación" })], []);
+    expect(c.map((x) => x.tipo)).toEqual(["descuento", "oferta"]);
+    expect(c[0].deCampana).toBeNull();
+    expect(choqueResuelto(c[0], ["i1"])).toBe(false);
+    expect(fraseDeChoque(c[0])).toContain("Retíralo");
   });
-  it("no se cruza si las fechas no se tocan, ni con una retirada o terminada", () => {
-    expect(reglasQueSeCruzan(o, [base({ id: "a", desde: "2026-11-02", hasta: "2026-11-05" })], "2026-10-23")).toEqual([]);
-    expect(reglasQueSeCruzan(o, [base({ id: "a", estado: "desactivada" })], "2026-10-23")).toEqual([]);
-    expect(reglasQueSeCruzan(o, [base({ id: "a", desde: "2026-10-01", hasta: "2026-10-05" })], "2026-10-23")).toEqual([]);
+  it("«que la otra ceda» lo resuelve; sin elegirlo, sigue faltando", () => {
+    const c = choquesDeFilas([fila({})], []);
+    expect(choquesSinResolver(c, [])).toHaveLength(1);
+    expect(choquesSinResolver(c, ["o1"])).toHaveLength(0);
   });
-  it("categorías distintas no se cruzan; «toda la campaña» se cruza con todo; ella misma no cuenta", () => {
-    expect(reglasQueSeCruzan({ ...o, categoriasSolo: ["blusas"] }, [base({ id: "a", categoriasSolo: ["polos"] })], "2026-10-23")).toEqual([]);
-    expect(reglasQueSeCruzan({ ...o, categoriasSolo: ["blusas"] }, [base({ id: "a" })], "2026-10-23")).toHaveLength(1);
-    expect(reglasQueSeCruzan({ ...o, id: "a" }, [base({ id: "a" })], "2026-10-23")).toEqual([]);
+  it("una cesión guardada se lee en su sentido: si la otra le cedía a esta, es una elección que se puede quitar; si esta le cede, ya está resuelto", () => {
+    const leCedian = choquesDeFilas([fila({ cedida: true })], ["o1"]);
+    expect(leCedian[0]).toMatchObject({ cedidaGuardada: true, estaCede: false });
+    expect(choquesSinResolver(leCedian, [])).toHaveLength(1);
+    const estaCede = choquesDeFilas([fila({ cedida: true })], []);
+    expect(estaCede[0].estaCede).toBe(true);
+    expect(choquesSinResolver(estaCede, [])).toHaveLength(0);
+    expect(fraseDeChoque(estaCede[0])).toContain("vale «Polos 3x2»");
+  });
+  it("al guardar solo viajan las cesiones que siguen haciendo falta", () => {
+    const c = choquesDeFilas([fila({})], []);
+    expect(cesionesQueQuedan(c, ["o1", "ya-no-choca"])).toEqual(["o1"]);
+  });
+  it("una prenda o varias se dice bien", () => {
+    expect(fraseDeChoque(choquesDeFilas([fila({ prendas: 1 })], [])[0])).toMatch(/^1 prenda tendría/);
   });
 });
 
@@ -400,13 +433,6 @@ describe("las tiendas de una oferta", () => {
     expect(leerCuerpoOferta({ ...bueno, sedeIds: undefined })).toMatchObject({ ok: true, valor: { sedeIds: [] } });
     expect(leerCuerpoOferta({ ...bueno, sedeIds: ["no"] }).ok).toBe(false);
   });
-  it("dos ofertas de tiendas distintas no se cruzan; sin tiendas se cruzan con todas", () => {
-    const otra = regla({ id: "o1", sedes: ["l"] });
-    const mia = { id: null, desde: otra.desde, hasta: otra.hasta, dias: [...otra.dias], categoriasSolo: [] as string[], sedeIds: ["t"] };
-    expect(reglasQueSeCruzan(mia, [otra], "2026-10-23")).toEqual([]);
-    expect(reglasQueSeCruzan({ ...mia, sedeIds: [] }, [otra], "2026-10-23")).toHaveLength(1);
-    expect(reglasQueSeCruzan({ ...mia, sedeIds: ["l"] }, [otra], "2026-10-23")).toHaveLength(1);
-  });
 });
 
 describe("cuántas prendas alcanza una oferta", () => {
@@ -437,6 +463,21 @@ describe("cuántas prendas alcanza una oferta", () => {
     expect(prendasQueAlcanza(campana, catalogo, todas).map((p) => p.id)).toEqual(["1"]);
     expect(prendasQueAlcanza(campana, catalogo, { ...todas, categoriasSolo: ["casacas"] }).map((p) => p.id)).toEqual(["9", "10"]);
     expect(prendasQueAlcanza(campana, catalogo, { ...todas, categoriasSolo: ["casacas", "blusas"] }).map((p) => p.id)).toEqual(["1", "9", "10"]);
+  });
+  it("prenda por prenda: los modelos elegidos se suman a «solo estas categorías» y ya no rige en toda la campaña (como fn_campanas_en_sede)", () => {
+    const campana = [{ id: "1", categoriaId: "blusas", productoId: "emma" }];
+    const catalogo = [...campana, { id: "9", categoriaId: "casacas", productoId: "nube" }, { id: "10", categoriaId: "polos", productoId: "brisa" }];
+    expect(prendasQueAlcanza(campana, catalogo, { ...todas, productosSolo: ["nube"] }).map((p) => p.id)).toEqual(["9"]);
+    expect(prendasQueAlcanza(campana, catalogo, { ...todas, categoriasSolo: ["blusas"], productosSolo: ["brisa"] }).map((p) => p.id)).toEqual(["1", "10"]);
+    expect(prendasQueAlcanza(campana, catalogo, { ...todas, productosSolo: ["nube"], categoriasFuera: ["casacas"] }).map((p) => p.id)).toEqual([]);
+  });
+  it("dónde rige, dicho una vez: categorías, prendas elegidas, las dos o toda la campaña", () => {
+    const nom = (id: string) => ({ blusas: "Blusas", polos: "Polos" })[id] ?? "";
+    expect(alcanceDicho({ categoriasSolo: [], productosSolo: [] }, nom)).toBeNull();
+    expect(alcanceDicho({ categoriasSolo: ["blusas"] }, nom)).toBe("Blusas");
+    expect(alcanceDicho({ categoriasSolo: [], productosSolo: ["a"] }, nom)).toBe("1 prenda elegida");
+    expect(alcanceDicho({ categoriasSolo: ["polos"], productosSolo: ["a", "b"] }, nom)).toBe("Polos y 2 prendas elegidas");
+    expect(alcanceDicho({ categoriasSolo: ["polos", "blusas"], productosSolo: ["a"] }, nom)).toBe("Blusas, Polos y 1 prenda elegida");
   });
   it("el conteo de cada categoría y el de «solo esa categoría» dicen lo mismo", () => {
     const cuenta = contarPorCategoria(prendas, false);

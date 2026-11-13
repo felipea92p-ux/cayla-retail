@@ -53,6 +53,60 @@ grupo?»), y el repaso —la frase, los avisos, el nombre y los botones de guard
 la guía interactiva siguen ese orden. No cambia qué se guarda ni cómo cobra la caja. El ticket de varias prendas de la maqueta («Así cobra
 la caja») llega con el 3x2 (actividad 6): para una rebaja, la etiqueta viva ya muestra el cobro de prendas reales.
 
+## Actividad 3 (2026-11-13): prenda por prenda dentro de una oferta
+
+Felipe: «Me pide por categoría, pero si quiero seleccionar las prendas, ¿cómo hago?». En «¿En qué prendas?» la hoja suma un segmento
+**Por categoría | Prenda por prenda**: un buscador (sin tildes) y la lista de modelos del catálogo a la venta, cada uno con todas sus tallas y
+colores (Felipe mide por modelo). Lo que entra por una categoría marcada lo dice («Entra por Polos») y no se marca dos veces.
+
+En la base (`20261113210000_oferta_prenda_por_prenda.sql`, **sin pegar en producción**): la tabla `campana_regla_productos`; `fn_campanas_en_sede`
+suma, por reemplazo anclado, que una oferta con categorías «solo» **o** modelos elegidos alcanza a esas categorías y esos modelos (sin ninguno
+de los dos, a su campaña, como siempre); `campana_reglas()` devuelve `productos_solo`; y `guardar_oferta` envuelve a `guardar_campana_regla` y
+deja los modelos en la misma transacción (el historial, que solo se agrega, suma una fila con los modelos de antes). La web llama a
+`guardar_oferta` solo si la oferta trae o traía modelos: sin ellos sigue usando la función de siempre, así que publicar la web antes que la
+migración no rompe nada salvo elegir prendas sueltas. Al elegir el primer modelo sin haber tocado las categorías, la hoja fija las categorías
+que se veían: la oferta deja de ser «toda la campaña» y lo dice («rige solo en lo que marques»), porque la base no suma «toda la campaña» con
+modelos sueltos. Prueba: `pnpm pruebas:campana-reglas` (83 de 83, con escenarios «Prenda por prenda»).
+
+## Actividad 4 (2026-11-13): una prenda, una oferta por tienda y por día
+
+Felipe: «No deberían sumarse dos ofertas de la misma prenda», «debe salir una alerta para el usuario que intente aplicar doble oferta a un
+producto [y] no le permita»; y el 3x2 de polos en Trujillo con un −20 % de polos en Arequipa sí conviven (otra tienda). Hasta aquí la caja
+cobraba la de mayor % y la hoja solo avisaba «se cruza; gana el mejor precio».
+
+En la base (`20261113223000_una_oferta_por_prenda_tienda_y_dia.sql`, **sin pegar en producción**):
+- **El candado es un disparador diferido** (`campana_reglas_sin_choques`, `deferrable initially deferred`) sobre `campana_reglas`: al cerrar la
+  transacción, toda oferta que queda **activa** no puede compartir prenda, tienda y día con otra oferta activa (de cualquier campaña) ni con el
+  descuento de siempre de una campaña o insignia, salvo una cesión. Diferido porque `guardar_oferta` agrega los modelos después de guardar la
+  oferta. Vale para guardar activando, para «Activar» y para cualquier camino. Un borrador no se mira (no rige).
+- **«Que la otra ceda»** es `campana_regla_cesiones (cede, gana)`: donde las dos rigen, vale la que gana; `fn_campanas_en_sede` calla a la que
+  cede solo ahí (reemplazo anclado), y en lo demás sigue igual. No copia fechas ni prendas: se evalúa en la caja con lo que cada una tiene ese día.
+  `ceder_ofertas` reemplaza el conjunto, deja historia y vuelve a exigir el candado (quitar una cesión no puede dejar un choque); `guardar_oferta_y_ceder`
+  hace las dos cosas en una transacción (lo que llama la hoja).
+- **`fn_choques_de_oferta`** dice, tienda por tienda, con qué chocaría una oferta —guardada o todavía en la hoja— y en cuántas prendas. Usa
+  `fn_oferta_alcanza_variante`, la misma regla de alcance de la caja (la prueba exige que coincidan).
+- Producción al 2026-11-13: 0 ofertas activas, 0 campañas con descuento de siempre, 4 insignias con descuento (la actividad 5 las pasa a
+  campañas). Nada existente queda bloqueado.
+
+En la web, «¿Cuándo y dónde?» y «Revisa y activa» muestran cada choque («Choca con «Polos 3x2» (de Fiestas Patrias) en Lima y Trujillo · 6
+prendas…») con su salida: «Que «X» ceda» si es una oferta, o «retíralo» si es un descuento de siempre. Hasta resolverlo se puede guardar como
+borrador, pero «Activar» (y «Guardar cambios» de una que ya rige) lleva al choque en vez de guardar. Reemplaza los avisos de «se cruza» y
+«gana el mayor». Prueba: `pnpm pruebas:campana-reglas` (107 de 107, con «Una oferta por prenda, tienda y día»).
+
+`20261113223000` está **en producción desde el 2026-11-13**. Ahí la búsqueda de choques tardó 2,9 s: preguntaba prenda por prenda (3.920 prendas ×
+las otras ofertas). `20261113230000_choques_de_oferta_de_una_vez.sql` la cambia por cruces de conjuntos (`fn_variantes_de_oferta`, la misma
+regla; la prueba exige que coincidan): la misma consulta así tardó 64 ms en producción.
+
+**La tienda web también tiene que enterarse.** `tienda_catalogo_version()` (20261113202000, de main) le dice a la tienda cuándo rearmar el
+catálogo con un hash de cada tabla chica que leen sus lecturas. No conocía `campana_regla_productos` ni `campana_regla_cesiones`: cambiar
+solo los modelos de una oferta, o que una ceda, cambiaba el precio en la caja y no en la web. `20261113232000_huella_tienda_con_ofertas.sql`
+las suma (y `fn_regla_alcanza_variante` y `fn_oferta_alcanza_variante` a su lista de funciones). Lo vigila la «cobertura» de
+`pruebas:tienda-catalogo-version`, que ahora lee las listas de la última migración de la huella; sin el arreglo, falla en esas dos tablas.
+
+**No vigila** lo que cambia el alcance desde fuera de la oferta (marcar una prenda a mano en otra campaña, sumarle una categoría a una campaña,
+ponerle descuento a una insignia): el candado mira las ofertas al guardarlas o activarlas, que es «al configurar». Si hiciera falta, ese es el
+lugar del próximo paso.
+
 ## Alternativas descartadas
 
 - **Dentro de Insignias, renombrado «Insignias y ofertas».** No mueve nada, pero sigue mezclando dos preguntas en una pantalla y el nombre
