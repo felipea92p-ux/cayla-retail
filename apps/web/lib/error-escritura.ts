@@ -460,6 +460,11 @@ const HUELLAS: Huella[] = [
       "Ya existe un color muy parecido en el vocabulario (mayúsculas, tildes o espacios de más no cuentan como distinto). Revisa la lista antes de crear uno nuevo.",
   },
   {
+    // 20261113234000_insignias_sin_descuento.sql (ADR-0655, Felipe 2026-11-13): una insignia describe la prenda y nunca baja su precio.
+    marca: "etiquetas_descuento_solo_campana",
+    frase: "Una insignia no baja el precio. Para un descuento, arma una campaña en Catálogo ▸ Campañas y ofertas.",
+  },
+  {
     // 20260917100200_etiquetas_catalogo.sql — «Nueva colección» y «nueva coleccion» son la misma etiqueta para
     // fn_clave_texto. El índice cuenta TAMBIÉN las pendientes, las rechazadas y las desactivadas: puede saltar aunque la
     // lista de la pantalla (solo aprobadas y activas) no muestre ninguna igual — por eso la frase lo dice.

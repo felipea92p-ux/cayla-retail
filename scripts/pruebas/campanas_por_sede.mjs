@@ -78,8 +78,8 @@ insert into retail.movimientos (variante_id, ubicacion_id, sububicacion_id, tipo
 select retail.fn_aplicar_movimiento(:'mov_${u}') as _d_${u} \\gset
 `;
 const CAMPANA = (sedes) => `
-insert into retail.etiquetas (nombre, estado, activo, descuento_pct, vigente_desde, vigente_hasta)
-  values ('ZZ Campaña por sede (prueba)', 'aprobado', true, 20, retail.fn_hoy_lima() - 1, retail.fn_hoy_lima() + 5)
+insert into retail.etiquetas (nombre, estilo, estado, activo, descuento_pct, vigente_desde, vigente_hasta)
+  values ('ZZ Campaña por sede (prueba)', 'campana', 'aprobado', true, 20, retail.fn_hoy_lima() - 1, retail.fn_hoy_lima() + 5)
   returning id as etq \\gset
 insert into retail.variante_etiquetas (variante_id, etiqueta_id) values (:'v1', :'etq');
 ${sedes === null ? "" : `select retail.actualizar_campana_etiqueta_con_sedes(:'etq', 20, retail.fn_hoy_lima() - 1, retail.fn_hoy_lima() + 5, '{}'::uuid[], ${sedes});`}
