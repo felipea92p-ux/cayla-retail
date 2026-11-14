@@ -1262,6 +1262,7 @@ export function NuevoProductoForm({
               onCambiarColor={cambiarColor}
               disabled={cargando}
               guia="nuevo.fotos-colores"
+              catalogo={catalogo}
             />
           </FilaAlta>
 

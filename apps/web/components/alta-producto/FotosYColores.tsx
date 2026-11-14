@@ -11,6 +11,7 @@ import { Punto } from "@/components/alta-producto/Punto";
 import { NuevoColorAlta } from "@/components/alta-producto/NuevoColorAlta";
 import { BotonFoto, BotonQuitarFoto, type FotoPendiente } from "@/components/alta-producto/FotosAlta";
 import { useFirmaDeMitad } from "@/components/alta-producto/IdentidadAlta";
+import type { CatalogoIAAlta } from "@/components/alta-producto/useCatalogoIAAlta";
 import { pixelesDeLaFoto } from "@/components/alta-producto/pixelesDeLaFoto";
 import type { ColorAlta } from "@/lib/alta-producto";
 import { colorDeRespuesta } from "@/lib/color-alta-reglas";
@@ -33,7 +34,9 @@ type Pendiente = {
   clave: string;
   archivo: File;
   vista: string;
-  estado: "leyendo" | "pregunta" | "armando";
+  estado: "ia" | "leyendo" | "pregunta" | "armando";
+  /** La versión de catálogo, si «Catálogo con IA» está encendido y respondió: la foto que se ve, se lee y se sube (con la real). */
+  ia?: NonNullable<FotoPendiente["ia"]>;
   lectura?: Lectura<ColorAlta>;
   /** El color de cada parte, la base primero; `null` = la parte que hay que preguntar. */
   eleccion?: (string | null)[];
@@ -94,6 +97,7 @@ export function FotosYColores({
   onCambiarColor,
   disabled = false,
   guia,
+  catalogo,
 }: {
   /** Toda la carta, también las mezclas guardadas (de ahí se reconoce una mezcla que ya existe). */
   carta: ColorAlta[];
@@ -113,6 +117,8 @@ export function FotosYColores({
   disabled?: boolean;
   /** El `data-guia` del bloque (la guía interactiva de la pantalla). */
   guia?: string;
+  /** «Catálogo con IA»: encendido, cada foto pasa primero por la IA y el color se lee de su PNG sin fondo (sale más exacto). */
+  catalogo?: CatalogoIAAlta;
 }) {
   const [pendientes, setPendientes] = useState<Pendiente[]>([]);
   const [porQue, setPorQue] = useState<string | null>(null);
@@ -144,8 +150,9 @@ export function FotosYColores({
   /** La foto queda en su color: entra al formulario y sale de las pendientes. */
   function asentar(p: Pendiente, codigo: string) {
     onAgregarColor(codigo);
-    onFotos((fs) => [...fs, { clave: p.clave, archivo: p.archivo, vista: p.vista, colorCodigo: codigo, lectura: p.lectura }]);
+    onFotos((fs) => [...fs, { clave: p.clave, archivo: p.archivo, vista: p.ia?.vistaIA ?? p.vista, colorCodigo: codigo, lectura: p.lectura, ia: p.ia }]);
     vistas.current.delete(p.vista);
+    if (p.ia) vistas.current.delete(p.ia.vistaIA);
     cambiar(p.clave, null);
   }
 
@@ -183,13 +190,24 @@ export function FotosYColores({
     }
   }
 
+  // Las fotos se preparan y se leen en paralelo; solo se ASIENTAN de a una (`cola`), para no pedir dos veces la misma mezcla nueva.
   async function leer(p: Pendiente) {
     try {
-      const lectura = leerColores(await pixelesDeLaFoto(p.archivo), cartaRef.current);
+      let conIA = p;
+      if (catalogo?.encendido) {
+        const png = await catalogo.prepararFoto(p.archivo);
+        if (png) {
+          const vistaIA = URL.createObjectURL(png);
+          vistas.current.add(vistaIA);
+          conIA = { ...p, ia: { png, vistaIA, vistaReal: p.vista, usar: true } };
+        }
+        cambiar(p.clave, { estado: "leyendo", ia: conIA.ia });
+      }
+      const lectura = leerColores(await pixelesDeLaFoto(conIA.ia?.png ?? p.archivo), cartaRef.current);
       const eleccion = propuestaInicial(lectura);
-      const conTodo = { ...p, lectura, eleccion };
-      if (eleccion.length && eleccion.every((c): c is string => c !== null)) await resolver(conTodo, eleccion);
-      else cambiar(p.clave, { estado: "pregunta", lectura, eleccion });
+      const conTodo = { ...conIA, lectura, eleccion };
+      if (eleccion.length && eleccion.every((c): c is string => c !== null)) cola.current = cola.current.then(() => resolver(conTodo, eleccion));
+      else cambiar(p.clave, { estado: "pregunta", lectura, eleccion, ia: conIA.ia });
     } catch {
       cambiar(p.clave, { estado: "pregunta", motivo: "No se pudo leer esta foto." });
     }
@@ -205,13 +223,13 @@ export function FotosYColores({
       else {
         const vista = URL.createObjectURL(archivo);
         vistas.current.add(vista);
-        nuevas.push({ clave: crypto.randomUUID(), archivo, vista, estado: "leyendo" });
+        nuevas.push({ clave: crypto.randomUUID(), archivo, vista, estado: catalogo?.encendido ? "ia" : "leyendo" });
       }
     }
     if (malas.length) avisar.error(malas.length === 1 ? "Una foto no se puede usar" : `${malas.length} fotos no se pueden usar`, { detalle: malas.join(" · ") });
     if (!nuevas.length) return;
     setPendientes((ps) => [...ps, ...nuevas]);
-    for (const p of nuevas) cola.current = cola.current.then(() => leer(p));
+    for (const p of nuevas) void leer(p);
   }
 
   function soltar(e: DragEvent) {
@@ -350,21 +368,25 @@ export function FotosYColores({
                 <li key={p.clave} className="relative flex flex-col overflow-hidden rounded-2xl border border-[color:var(--vidrio-claro-borde)] bg-[var(--vidrio-claro-fondo)]">
                   <div className="relative aspect-[4/5] bg-hueso/60">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={p.vista} alt="Foto de la prenda" className="h-full w-full object-contain" />
+                    <img src={p.ia?.vistaIA ?? p.vista} alt="Foto de la prenda" className="h-full w-full object-contain" />
                     <BotonQuitarFoto
                       grande
                       etiqueta="Quitar esta foto"
-                      disabled={disabled || p.estado === "armando"}
+                      disabled={disabled || p.estado === "armando" || p.estado === "ia"}
                       onClick={() => {
                         URL.revokeObjectURL(p.vista);
                         vistas.current.delete(p.vista);
+                        if (p.ia) {
+                          URL.revokeObjectURL(p.ia.vistaIA);
+                          vistas.current.delete(p.ia.vistaIA);
+                        }
                         cambiar(p.clave, null);
                       }}
                       className="absolute right-2 top-2"
                     />
                     {p.estado !== "pregunta" && (
                       <span className="absolute inset-x-0 bottom-0 bg-papel/90 px-3 py-2 text-sm" role="status">
-                        {p.estado === "leyendo" ? "Leyendo los colores…" : "Armando la mezcla…"}
+                        {p.estado === "ia" ? "Arreglando la foto con IA…" : p.estado === "leyendo" ? "Leyendo los colores…" : "Armando la mezcla…"}
                         <HiloEnEspera />
                       </span>
                     )}

@@ -27,6 +27,11 @@ export type CatalogoIAAlta = {
    * estado de la pantalla: la última en llegar todavía no se ha dibujado cuando la espera termina, y se subiría la real sola.
    */
   esperar: (lista: readonly FotoPendiente[]) => Promise<FotoPendiente[]>;
+  /**
+   * «Fotos y colores» (ADR-0663): la foto se prepara ANTES de saber su color (el color sale de la foto, mejor sin fondo). Usa el mismo
+   * molde que las demás (la primera de IA lo es). Devuelve el PNG, o `null` si la IA no respondió (ya avisado): queda la foto real.
+   */
+  prepararFoto: (frente: File) => Promise<Blob | null>;
   hoja: ReactNode;
 };
 
@@ -110,6 +115,23 @@ export function useCatalogoIAAlta({
     });
   }
 
+  async function prepararFoto(frente: File): Promise<Blob | null> {
+    const esMolde: { soltar: ((b: Blob | null) => void) | null } = { soltar: null };
+    let molde: Blob | null = null;
+    const listo = moldeHecho(fotosRef.current);
+    if (listo?.ia) molde = listo.ia.png;
+    else if (moldeEnCurso.current) molde = await moldeEnCurso.current;
+    else moldeEnCurso.current = new Promise<Blob | null>((resolver) => (esMolde.soltar = resolver));
+    const r = await pedirFotoDeCatalogo({ frente, espalda: null, detalle: null, molde });
+    const png = "png" in r ? r.png : null;
+    if (esMolde.soltar) {
+      esMolde.soltar(png);
+      moldeEnCurso.current = null;
+    }
+    if (!png) avisar.aviso(avisoIANoRespondio("tal cual"), { detalle: "error" in r ? r.error : undefined });
+    return png;
+  }
+
   const hecho = moldeHecho(fotos);
   const colorDelMolde = hecho ? hecho.colorCodigo : colorMoldeEnCurso;
 
@@ -132,6 +154,12 @@ export function useCatalogoIAAlta({
       await Promise.all([...enCurso.current]);
       // La que ya tenía su `ia` en la lista la conserva (pudo pasar por «Usar mi foto»); la que llegó recién, la toma de `listas`.
       return lista.map((f) => (f.ia || !listas.current.has(f.clave) ? f : { ...f, ia: listas.current.get(f.clave)! }));
+    },
+    prepararFoto: (frente) => {
+      const promesa = prepararFoto(frente);
+      const enLista = promesa.then(() => undefined).finally(() => enCurso.current.delete(enLista));
+      enCurso.current.add(enLista);
+      return promesa;
     },
     hoja: hoja ? (
       <HojaCatalogoIA
