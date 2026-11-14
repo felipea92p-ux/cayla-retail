@@ -39,7 +39,8 @@ const FECHAS = `
  * Cada pieza: dónde vive, su nombre, la llamada (con `f.hoy`, `f.mes`… de FECHAS) y, si no se llama como el líder, «dueno»: las `fn_bal_*` no
  * se dan a `authenticated` (las llama `fn_balance_por_tienda`, que es `security definer`), así que se miden como su dueño, como corren por dentro.
  */
-const PIEZAS = [
+const SOLO = process.env.SOLO; // «pagina»: mide solo esas
+const PIEZAS_TODAS = [
   ["resumen", "(entera)", "select retail.fn_resumen_finanzas(null, false) from f"],
   ["resumen", "resultados_mes", "select count(*) from f, retail.fn_estado_resultados(f.mes, f.hoy, null)"],
   ["resumen", "resultados_anterior", "select count(*) from f, retail.fn_estado_resultados(f.mes_ant, f.fin_ant, null)"],
@@ -60,7 +61,14 @@ const PIEZAS = [
   ["balance", "fn_bal_stock", "select count(*) from f, retail.fn_bal_stock(f.hoy)", "dueno"],
   ["balance", "fn_bal_activos", "select count(*) from f, retail.fn_bal_activos(f.hoy)", "dueno"],
   ["balance", "fn_bal_facturas_de_tienda", "select count(*) from f, retail.fn_bal_facturas_de_tienda(f.hoy)", "dueno"],
+  // Lo que pide la página, junto (2026-11-14, «bajar el trabajo»): antes y después de 20261114005000 y 20261114010000. Una pieza cuya función
+  // todavía no existe en la base sale «no existe» y no frena el resto.
+  ["pagina", "movimientos: 6 días, uno por uno", "select sum(length(x.r::text)) from f, generate_series(0, 5) i, lateral (select retail.fn_flujo_caja_real(f.hoy - i, f.hoy - i) as r) x"],
+  ["pagina", "movimientos: 6 días, una lectura", "select length(retail.fn_flujo_caja_real_dias(array(select f.hoy - i from generate_series(0, 5) i))::text) from f"],
+  ["pagina", "mes del Resumen: mes, presupuesto y balance por separado", "select retail.fn_resumen_finanzas_partes(null, false, array['resultados_mes']), retail.fn_resumen_finanzas_partes(null, false, array['presupuesto']), (select count(*) from retail.fn_balance_por_tienda(f.hoy)) from f"],
+  ["pagina", "mes del Resumen: mes, presupuesto y balance en una lectura", "select retail.fn_resumen_finanzas_partes(null, false, array['resultados_mes', 'presupuesto', 'balance']) from f"],
 ];
+const PIEZAS = SOLO ? PIEZAS_TODAS.filter(([donde]) => donde === SOLO) : PIEZAS_TODAS;
 
 function psql(sql) {
   return execFileSync("docker", ["exec", "-i", CONTENEDOR, "psql", "-U", "supabase_admin", "-d", BASE, "-v", "ON_ERROR_STOP=1", "-q", "-At", "-f", "-"], {
@@ -95,14 +103,23 @@ const mediana = (xs) => [...xs].sort((a, b) => a - b)[Math.floor(xs.length / 2)]
 
 const filas = [];
 for (const [donde, pieza, llamada, rol] of PIEZAS) {
-  medir(llamada, rol); // calentar
+  try {
+    medir(llamada, rol); // calentar
+  } catch (e) {
+    filas.push({ donde, pieza, ms: null, bloques: null, corridas: `no existe o falla: ${String(e.stderr ?? e.message).split("\n")[0].slice(0, 80)}` });
+    continue;
+  }
   const corridas = Array.from({ length: CORRIDAS }, () => medir(llamada, rol));
   const ms = mediana(corridas.map((c) => c.ms));
   const bloques = corridas.find((c) => c.ms === ms)?.bloques ?? corridas[0].bloques;
   filas.push({ donde, pieza, ms, bloques, corridas: corridas.map((c) => c.ms).join(" / ") });
 }
 
-const orden = (a, b) => (a.donde === b.donde ? (a.pieza === "(entera)" ? -1 : b.pieza === "(entera)" ? 1 : b.ms - a.ms) : a.donde.localeCompare(b.donde) * -1);
+const ORDEN_DONDE = ["resumen", "balance", "pagina"];
+const orden = (a, b) =>
+  a.donde === b.donde
+    ? a.donde === "pagina" ? 0 : a.pieza === "(entera)" ? -1 : b.pieza === "(entera)" ? 1 : (b.ms ?? 0) - (a.ms ?? 0)
+    : ORDEN_DONDE.indexOf(a.donde) - ORDEN_DONDE.indexOf(b.donde);
 filas.sort(orden);
 if (process.argv.includes("--json")) console.log(JSON.stringify(filas, null, 2));
 else {

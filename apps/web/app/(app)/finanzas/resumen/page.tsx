@@ -6,7 +6,7 @@ import { hoyLima } from "@/lib/fechas-lima";
 import { anotarBloques, anotarTiempos, relojDelResumen, conIgvDelMesAnterior, conSueldosEstimados, getConfianzaFinanzas, lectorDelResumen, resumenJunto } from "@/lib/resumen-finanzas";
 import { estadoDelMesYaLeido, flujoDelResumen, leerVerResumen } from "@/lib/resumen-finanzas-reglas";
 import { crearCupos } from "@/lib/cupos";
-import { getBalancePorTienda } from "@/lib/balance";
+import { getBalancePorTienda, getBalancePorTiendaDeFilas } from "@/lib/balance";
 import { getEstadoResultados, getFaltaDelMes } from "@/lib/resultados";
 import { conIgvDeLasVentasDe } from "@/lib/igv-ventas";
 import { getSedesDelTelar } from "@/lib/finanzas-telar";
@@ -28,8 +28,9 @@ import { mesAnterior } from "@/lib/resultados-reglas";
 // Finanzas ▸ Resumen en El telar (ADR-0195 F10; ADR-0493, Felipe 2026-10-23). La sede la elige la barra común (`?sede=`; mientras dure el cambio,
 // `?ver=` gana). Las fechas, desde el camino «A · Bolsillos» (Felipe 2026-11-09), con el calendario de Estados financieros (`SelectorPeriodo`): un mes
 // entero (`?mes=`, el mismo que viaja al resto de Finanzas) o cualquier tramo (`?desde=&hasta=`). Lecturas, todas de solo lectura y a la vez cuando no dependen una de otra:
-//   - el Resumen (`fn_resumen_finanzas_partes`, ADR-0661) en TRES lecturas: lo rápido (saldos, deudas, la caja que viene, IGV, campañas…), el mes y el
-//     anterior con el presupuesto; los avisos de «Hoy te toca», la confianza y las unidades (de HOY: es lo que toca decidir ahora);
+//   - el Resumen (`fn_resumen_finanzas_partes`, ADR-0661) en TRES lecturas: lo rápido (saldos, deudas, la caja que viene, IGV, campañas…), el mes
+//     con el presupuesto (y, mirando CAYLA entera del 1 a hoy, el balance de cada sede: los tres con UN estado de resultados) y el anterior; los
+//     avisos de «Hoy te toca», la confianza y las unidades (de HOY: es lo que toca decidir ahora);
 //   - `fn_estado_resultados` del mes elegido (al día de hoy si es el mes en curso) y del tramo con que se compara: la respuesta de
 //     la cabecera, el orillo y el recorrido salen de aquí, así que el mes de la barra filtra de verdad (auditoría v3);
 //   - `fn_rendimiento_serie` de cada tienda, si la cuenta ve Rendimiento: la línea de ventas contra la meta (pedida a la vez que el resto, ADR-0583);
@@ -83,8 +84,11 @@ export default async function ResumenFinanzasPage({ searchParams }: { searchPara
   const puerta = rapidoP.then(() => undefined);
   const trasLoRapido = <T,>(f: () => Promise<T>): Promise<T> => puerta.then(f);
 
-  // Las tres lecturas del Resumen. El mes entra primero al turnero (es lo que sigue en la pantalla); el anterior y el presupuesto, tras la puerta.
-  const delMesP0 = pesada(() => leer("mes"));
+  // Las tres lecturas del Resumen. El mes (con el presupuesto, que usa su mismo estado de resultados) entra primero al turnero; el anterior, tras
+  // la puerta. Mirando CAYLA entera del 1 a hoy, el mes trae además el balance de cada sede («Cada sede, junta») armado con ESE estado de
+  // resultados (20261114005000): una carga lo arma una vez y no tres.
+  const mismoQueElResumen = pedido.ubicacionId === null && !pedido.soloEmpresa && tramo.desde === `${mesDeHoy}-01` && tramo.hasta === hoy;
+  const delMesP0 = pesada(() => leer("mes", { conBalance: veTodo && mismoQueElResumen }));
   // Los sueldos estimados (ADR-0583): el mes es el de hoy en Lima, el mismo que usa la base; si justo a medianoche no coinciden, `conSueldosEstimados`
   // los pide otra vez. Los dos grupos que los usan los esperan después de su propia lectura.
   const provisionP = trasLoRapido(() => getProvisionPlanilla(rangoMes(mesAnterior(mesDeHoy)).desde, rangoMes(mesDeHoy).hasta, pedido.ubicacionId)).then((p) => ({ mes: mesDeHoy, ...p }));
@@ -110,7 +114,6 @@ export default async function ResumenFinanzasPage({ searchParams }: { searchPara
   // El estado de resultados del mes elegido. Si se mira CAYLA entera del 1 a hoy, el grupo del mes ya lo arma IGUAL y se espera ese; si no, se pide
   // tras la puerta, sin esperar al resumen. Si la apuesta falla (la base resolvió otra sede), `estadoDelMesYaLeido` da null y se pide aparte, como antes.
   // Con el IGV de las ventas (ADR-0624) para que «Cada sede, junta» diga lo vendido con IGV; si no se puede leer, la tabla sale sin IGV y lo dice.
-  const mismoQueElResumen = pedido.ubicacionId === null && !pedido.soloEmpresa && tramo.desde === `${mesDeHoy}-01` && tramo.hasta === hoy;
   const erMesP = (mismoQueElResumen ? delMesP : puerta.then(() => null)).then(async (l) => {
     const yaLeido = l ? estadoDelMesYaLeido(l.datos, tramo) : null;
     const lectura = yaLeido ? { datos: yaLeido, falla: null } : await pesada(() => getEstadoResultados(tramo.desde, tramo.hasta));
@@ -137,9 +140,17 @@ export default async function ResumenFinanzasPage({ searchParams }: { searchPara
         const tiendas = datos ? tiendasDeLaLinea(datos) : [];
         return mismasTiendas(adelantadas.ids, tiendas) ? adelantadas.ventas : pesada(() => getVentasPorDia(tiendas, tramo.desde, tramo.hasta));
       });
-  // «Cada sede, junta» (tarea 27): la caja de cada sede a la misma fecha que las cifras del mes. Solo quien ve todas las sedes. Último en el turnero:
-  // es la tabla de abajo.
-  const cajasPorSedeP = veTodo ? Promise.all([minimoP, puerta, activasP]).then(() => pesada(() => getBalancePorTienda(tramo.hasta))) : Promise.resolve(null);
+  // «Cada sede, junta» (tarea 27): la caja de cada sede a la misma fecha que las cifras del mes. Solo quien ve todas las sedes. Si la lectura del
+  // mes ya lo trajo (mismas fechas), se usa ese; si no (otro mes, una base sin 20261114005000), aparte y último en el turnero: es la tabla de abajo.
+  const cajasPorSedeP = !veTodo
+    ? Promise.resolve(null)
+    : mismoQueElResumen
+      ? delMesP0.then((l) =>
+          l.balance && l.balance.corte === tramo.hasta
+            ? getBalancePorTiendaDeFilas(tramo.hasta, l.balance.filas)
+            : Promise.all([minimoP, puerta, activasP]).then(() => pesada(() => getBalancePorTienda(tramo.hasta))),
+        )
+      : Promise.all([minimoP, puerta, activasP]).then(() => pesada(() => getBalancePorTienda(tramo.hasta)));
 
   // Las livianas, fuera del turnero y tras la puerta (la confianza y el costo estimado de cada sede no son tan livianas: ~0,7 s y ~0,3 s por sede).
   const confianzaP = trasLoRapido(() => getConfianzaFinanzas(pedido, mes));

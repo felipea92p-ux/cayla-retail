@@ -2236,6 +2236,10 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
     le llegó viven en `lib/resumen-bloques.ts` (`armarCaja`, `armarMes`). Una «puerta» deja correr primero la rápida y el mes. Los logs:
     `finanzas_resumen_ms` (las 13 partes) y `finanzas_resumen_bloque` (cuándo pudo dibujarse cada bloque). Sin la función por partes, lee la entera
     una vez y la reparte.
+    **Desde 2026-11-14 (ADR-0661, actualización):** el grupo del mes trae el presupuesto y, mirando CAYLA entera del 1 a hoy, la parte `balance`, los
+    tres con UN estado de resultados (`fn_presupuesto_vs_real_de` / `fn_balance_por_tienda_de` lo aceptan ya armado; migración `20261114005000`;
+    `getBalancePorTiendaDeFilas`, `lib/balance.ts`). «Movimientos» pide sus días con `fn_flujo_caja_real_dias` (`getFlujoRealDias`,
+    `lib/flujo-caja.ts`; migración `20261114010000`), que lee los saldos una vez por fecha; sin ella, día por día como antes.
   - `/finanzas/resumen` → **desde 2026-11-09, camino «A · Bolsillos» (ADR-0493, actualización 2026-11-09)**: las fechas con `SelectorPeriodo`
     (`leerPeriodo`/`periodoAnterior`, `lib/estados-periodo.ts`); «Libre para usar» y sus bolsillos (`lib/bolsillos-reglas.ts` →
     `components/finanzas/bolsillos/SaldoLibre.tsx`); «Noviembre va así» (`lib/te-deja-mes-reglas.ts` + `equilibrioMes` → `TarjetaMes.tsx`);

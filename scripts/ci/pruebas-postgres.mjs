@@ -210,6 +210,10 @@ export const PRUEBAS = [
   // error; permisos iguales; `fn_resumen_finanzas` es el envoltorio. ROLLBACK.
   "pruebas:resumen-por-partes",
 
+  // Movimientos en una sola lectura (ADR-0661 act. 2026-11-14): cada día de `fn_flujo_caja_real_dias` es `fn_flujo_caja_real(d, d)` al byte (31
+  // días, sueltos y repetidos), con control; lo que no se puede es error; mismos permisos; la «…_de» no la llama nadie de afuera. ROLLBACK.
+  "pruebas:flujo-real-dias",
+
   // Finanzas cuenta desde una fecha (ADR-0332): sin corte nada cambia; con corte el diario y el Estado de resultados no
   // miran lo anterior, el Flujo deja de listar esa planilla y la PROYECCIÓN de caja la sigue contando; las reglas de
   // guardar_inicio_finanzas (día 1, no futuro, sin meses cerrados, permiso) y pegar la migración dos veces. ROLLBACK.

@@ -1,7 +1,7 @@
 import "server-only";
 import { createClient } from "@/lib/supabase/server";
 import { explicarFallaLectura, leerResumen, type ResumenFinanzas } from "@/lib/resumen-finanzas-reglas";
-import { GRUPOS_DEL_RESUMEN, juntarResumen, type GrupoDelResumen } from "@/lib/resumen-finanzas-partes";
+import { GRUPOS_DEL_RESUMEN, juntarResumen, PARTE_BALANCE, type GrupoDelResumen } from "@/lib/resumen-finanzas-partes";
 import { capturarError } from "@/lib/errores";
 import { contarPrendasPorRegistrar } from "@/lib/costo-estimado";
 import { calcularConfianza, leerHechosConfianza, type Confianza } from "@/lib/finanzas-confianza";
@@ -19,8 +19,13 @@ import type { FilaProvision } from "@/lib/planilla-provision-reglas";
 
 export type Lectura<T> = { datos: T; falla: string | null; sueldosSinLeer?: boolean };
 
-/** Lee un grupo del Resumen: `ResumenFinanzas` con sus partes (las de los otros grupos llegan como «la base no mandó esta parte»). */
-export type LectorDelResumen = (grupo: GrupoDelResumen) => Promise<Lectura<ResumenFinanzas | null>>;
+/**
+ * Lee un grupo del Resumen: `ResumenFinanzas` con sus partes (las de los otros grupos llegan como «la base no mandó esta parte»). Con
+ * `conBalance`, el grupo trae además el balance de cada sede a hoy (`balance`: las filas de `fn_balance_por_tienda`), armado con el mismo
+ * estado de resultados; `undefined` si la base todavía no lo arma (entonces la página lo pide aparte, como antes).
+ */
+export type LecturaDelGrupo = Lectura<ResumenFinanzas | null> & { balance?: { corte: string; filas: Record<string, unknown>[] } };
+export type LectorDelResumen = (grupo: GrupoDelResumen, opciones?: { conBalance?: boolean }) => Promise<LecturaDelGrupo>;
 
 /** La base todavía no tiene la función por partes (la migración 20261113235000 no está pegada): se lee la entera. */
 const sinPorPartes = (error: { code?: string | null; message?: string | null }) =>
@@ -38,16 +43,26 @@ export function lectorDelResumen(pedido: { ubicacionId: string | null; soloEmpre
     const supabase = await createClient();
     return supabase.rpc("fn_resumen_finanzas" as never, args as never);
   }
-  return async (grupo) => {
+  return async (grupo, opciones = {}) => {
     const supabase = await createClient();
-    let { data, error } = await supabase.rpc("fn_resumen_finanzas_partes" as never, { ...args, p_partes: GRUPOS_DEL_RESUMEN[grupo] } as never);
+    const partes: string[] = [...GRUPOS_DEL_RESUMEN[grupo], ...(opciones.conBalance ? [PARTE_BALANCE] : [])];
+    let { data, error } = await supabase.rpc("fn_resumen_finanzas_partes" as never, { ...args, p_partes: partes } as never);
+    // Una base sin 20261114005000 no conoce la parte `balance` (22023): se pide el grupo sin ella y la página pide el balance aparte.
+    if (error?.code === "22023" && opciones.conBalance) ({ data, error } = await supabase.rpc("fn_resumen_finanzas_partes" as never, { ...args, p_partes: GRUPOS_DEL_RESUMEN[grupo] } as never));
     if (error && sinPorPartes(error)) ({ data, error } = await (entera ??= leerEntera()));
     if (error) {
       capturarError("finanzas.resumen", error, { grupo });
       return { datos: null, falla: explicarFallaLectura(error, "leer el resumen") };
     }
-    return { datos: leerResumen(data), falla: null };
+    return { datos: leerResumen(data), falla: null, balance: balanceDelGrupo(data) };
   };
+}
+
+/** La parte `balance` de una respuesta, si vino bien (las filas tal como las devuelve `fn_balance_por_tienda`); si no vino o falló, `undefined`. */
+function balanceDelGrupo(data: unknown): LecturaDelGrupo["balance"] {
+  const b = (data as { balance?: { corte?: unknown; filas?: unknown } } | null)?.balance;
+  if (!b || typeof b.corte !== "string" || !Array.isArray(b.filas)) return undefined;
+  return { corte: b.corte.slice(0, 10), filas: b.filas as Record<string, unknown>[] };
 }
 
 /**
@@ -117,12 +132,12 @@ export function anotarBloques(reloj: () => number, todas: Promise<boolean>, bloq
  * mes (D-35). Sin estimación (Dynamic no la ve esta cuenta, no abrió el período, o la lectura falló), el grupo queda como la base lo dijo. «Sin leer»
  * solo lo dice el mes, como antes de partir la lectura (con el mes caído, tampoco: `faltanSueldosPorFalla` de nada es falso).
  */
-export async function conSueldosEstimados(
-  lectura: Lectura<ResumenFinanzas | null>,
+export async function conSueldosEstimados<L extends Lectura<ResumenFinanzas | null>>(
+  lectura: L,
   parte: "resultadosMes" | "resultadosAnterior",
   ubicacionId: string | null,
   leida: { mes: string; filas: FilaProvision[]; sinLeer: boolean },
-): Promise<Lectura<ResumenFinanzas | null>> {
+): Promise<L> {
   const r = lectura.datos;
   const er = r?.[parte];
   if (!r || er?.estado !== "ok") return { ...lectura, sueldosSinLeer: false };
@@ -130,7 +145,7 @@ export async function conSueldosEstimados(
   const sueldosSinLeer = parte === "resultadosMes" && faltanSueldosPorFalla(caida, er.datos);
   if (!prov.length) return { ...lectura, sueldosSinLeer };
   const mes = parte === "resultadosMes" ? r.mes : r.mesAnterior;
-  return { datos: { ...r, [parte]: { estado: "ok", datos: aplicarProvision(er.datos, delMes(prov, mes)) } }, falla: null, sueldosSinLeer };
+  return { ...lectura, datos: { ...r, [parte]: { estado: "ok", datos: aplicarProvision(er.datos, delMes(prov, mes)) } }, falla: null, sueldosSinLeer };
 }
 
 // El medidor de confianza (ADR-0417): los hechos salen de `fn_finanzas_confianza` (20261015235000) y la calificación la pone
