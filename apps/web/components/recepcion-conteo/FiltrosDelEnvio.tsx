@@ -25,8 +25,10 @@ const ESTADOS: readonly { clave: EstadoDelResumen; texto: string; soloConAviso?:
   { clave: "por-contar", texto: "Por contar" },
   { clave: "diferencia", texto: "Con diferencia", soloConAviso: true },
   { clave: "cuadran", texto: "Cuadran", soloConAviso: true },
-  // Todo lo contado sin tallas, lo haya dejado la persona para después o no: la lista de la segunda pasada (tarea 10 de las 30 de Recibir, 2026-11-14).
-  { clave: "sin-tallas", texto: "Faltan tallas" },
+  // Lo que lleva el aviso ámbar «Faltan tallas» (se pidió repartir ahora y no se terminó): la segunda pasada (tarea 10 de las 30 de Recibir, 2026-11-14). Va junto al de
+  // «Tallas para después», que se queda como estaba: entre los dos reparten lo contado sin tallas y ninguno pisa al otro.
+  { clave: "faltan-tallas", texto: "Faltan tallas" },
+  { clave: "despues", texto: "Tallas para después" },
   { clave: "llevar", texto: "Por llevar al stock" },
 ];
 const TIPOS: readonly { clave: TipoDeModelo; texto: string; puesto: string }[] = [
