@@ -463,6 +463,9 @@ export const PRUEBAS = [
   // «Gastar un monto y ahorrar» con escalones (ADR-0655, actividad 8, parte 1): el escalón alcanzado repartido al céntimo, toda la compra o
   // la campaña, lo que ya tiene otra oferta no cuenta, los choques, los dos arreglos de las cesiones y la tolerancia, la caja y un apartado. ROLLBACK.
   "pruebas:monto-con-escalones",
+  // Ofertas por insignia (ADR-0655): una oferta que alcanza las prendas de unas insignias (a mano o por categoría), sumadas a sus categorías y
+  // modelos; la caja, los grupos y el monto con ellas; los choques con la forma; guardarlas, su tope y su historia. ROLLBACK.
+  "pruebas:ofertas-por-insignia",
   // Una campaña que solo tiene OFERTAS también sale en la Tienda web (ADR-0496, «Lo que NO cubre»): la lista, la portada y el diseño leen las
   // ofertas activas (la portada, solo las que rigen hoy, con el mayor %), un borrador no cuenta y, sin ofertas, todo queda idéntico. ROLLBACK.
   "pruebas:campana-con-ofertas",
