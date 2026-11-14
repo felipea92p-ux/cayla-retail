@@ -2,7 +2,7 @@
 
 import { PropuestaDePrecio } from "@/components/alta-producto/PropuestaDePrecio";
 import { pideRevisarAlRecibir, precioUnicoAlCerrar, textoRevisarAlRecibir } from "@/lib/precio-propuesto-reglas";
-import { LineaMargen } from "@/components/ui/LineaMargen";
+import { LineaMargen, useFacturaDelMargen } from "@/components/ui/LineaMargen";
 import { useState, type KeyboardEvent } from "react";
 import { ChevronRight } from "lucide-react";
 import { Aviso } from "@/components/ui/Aviso";
@@ -89,6 +89,8 @@ export function PrendaConCombinaciones({
   /** La prenda (ya existe): con ella se ofrece la propuesta de precio de la IA cuando el costo deja poco margen (ADR-0641 act. 2026-11-11). */
   productoId?: string;
 }) {
+  // La misma cuenta del margen que la línea viva (sin IGV, con o sin factura): la propuesta se ofrece cuando la línea se pone ámbar.
+  const conFactura = useFacturaDelMargen();
   const cuenta = (n: number, uno: string, varios: string) => `${n} ${n === 1 ? uno : varios}`;
   const colores = new Set(combinaciones.map((c) => (c.color ?? "").trim().toLowerCase())).size;
   const tallas = new Set(combinaciones.map((c) => (c.talla ?? "").trim().toUpperCase())).size;
@@ -105,7 +107,7 @@ export function PrendaConCombinaciones({
     return costos.size === 1 && typeof k === "number" && k > 0 ? k : null;
   })();
   const precioUnico = precioUnicoAlCerrar(combinaciones, cambiosPrecio);
-  const revisar = productoId && puedeCosto ? pideRevisarAlRecibir({ precio: precioUnico, costo: costoUnico, costoAntes: combinaciones[0]?.costoHeredado ?? null }) : null;
+  const revisar = productoId && puedeCosto ? pideRevisarAlRecibir({ conFactura, precio: precioUnico, costo: costoUnico, costoAntes: combinaciones[0]?.costoHeredado ?? null }) : null;
 
   return (
     <div className="rc-vitrina" data-prenda-comb={nombre}>

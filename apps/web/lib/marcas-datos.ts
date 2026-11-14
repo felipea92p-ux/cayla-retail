@@ -27,7 +27,7 @@ export async function getCatalogoMarcas(): Promise<CatalogoMarcas> {
   const supabase = await createClient();
   const [resMarcas, resProveedores, resVinculos, resProductos] = await Promise.all([
     supabase.from("marcas").select("id, nombre").eq("activo", true).order("nombre"),
-    supabase.from("proveedores").select("id, nombre, rubros").eq("activo", true).order("nombre"),
+    supabase.from("proveedores").select("id, nombre, ruc, rubros").eq("activo", true).order("nombre"),
     supabase.from("marca_proveedores").select("marca_id, proveedor_id"),
     supabase
       .from("productos")
@@ -51,7 +51,7 @@ export async function getCatalogoMarcas(): Promise<CatalogoMarcas> {
   // tiene su vínculo (la llave compuesta de `productos`), así que mirar los vínculos alcanza y no depende de la ventana de productos;
   // al editar uno, su proveedor actual se conserva aparte (`conservarProv` de ElegirMarcaProveedor).
   const enUso = new Set<string>(vinculos.map((v) => v.proveedorId));
-  const proveedores: ProveedorOpcion[] = proveedoresParaPedir(activos, enUso).map((p) => ({ id: p.id, nombre: p.nombre }));
+  const proveedores: ProveedorOpcion[] = proveedoresParaPedir(activos, enUso).map((p) => ({ id: p.id, nombre: p.nombre, ruc: p.ruc }));
 
   return {
     marcas,
