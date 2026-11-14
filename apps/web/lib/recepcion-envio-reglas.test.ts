@@ -358,7 +358,7 @@ describe("leer las prendas para «Ya la tengo» y lo que crea la hoja", () => {
     ]);
     expect(prendas).toHaveLength(1);
     expect(prendas[0]).toMatchObject({ productoId: "p1", nombre: "Chompa Aurora", codigo: "CH-0012", fotoUrl: "https://x/foto.jpg", nueva: false, estadoAlta: null });
-    expect(prendas[0]!.variantes).toEqual([{ id: "v1", tallaId: "t-m", talla: "M", colorCodigo: "NE", color: "Negro", codigo: "CH-0012-NE-M", costo: 24.5, precio: 59.9 }]);
+    expect(prendas[0]!.variantes).toEqual([{ id: "v1", tallaId: "t-m", talla: "M", colorCodigo: "NE", color: "Negro", colorHex: null, codigo: "CH-0012-NE-M", costo: 24.5, precio: 59.9 }]);
   });
 
   it("una prenda nueva sale «nueva»; «+ talla o color» junta las variantes de antes con las que devuelve la base", () => {

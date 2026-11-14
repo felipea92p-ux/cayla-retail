@@ -1,4 +1,5 @@
 import { RPC_DETALLE_ENVIO } from "@/lib/ordenes-compra-reglas";
+import { RPC_RECIBIDAS_DEL_PROVEEDOR, leerRecibidasDelProveedor } from "@/lib/recepcion-galeria-reglas";
 import { leerPrendasCreadas, type PrendaCreada } from "@/lib/recepcion-igual-que-anterior";
 import { createClient } from "@/lib/supabase/client";
 import { firmar, type Firma } from "@/lib/responsable-reglas";
@@ -85,6 +86,14 @@ export async function leerFichaDePrenda(productoId: string): Promise<FichaParaRe
     .eq("id", productoId)
     .maybeSingle();
   return error ? null : leerFichaParaRecibir(data);
+}
+
+/** La última vez que llegó cada prenda de la categoría desde esos proveedores (`fn_recibidas_del_proveedor`): la galería pone eso primero.
+ *  Es lectura y puede faltar: sin respuesta, la galería ordena sin ella. */
+export async function leerRecibidasDelProveedorEnLaBase(categoriaId: string, proveedorIds: readonly string[]): Promise<Map<string, string>> {
+  if (proveedorIds.length === 0) return new Map();
+  const { data, error } = (await createClient().rpc(RPC_RECIBIDAS_DEL_PROVEEDOR as never, { p_categoria_id: categoriaId, p_proveedor_ids: proveedorIds } as never)) as unknown as Respuesta;
+  return error ? new Map() : leerRecibidasDelProveedor(data);
 }
 
 /**
