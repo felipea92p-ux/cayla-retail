@@ -80,6 +80,10 @@ const ANTES = [
   sinCaja ? readFileSync(MIGRACION, "utf8") : "",
   // Parte 4 (20261114032000): la cuenta de los grupos pasó a `fn_repartir_grupos`; la caja tiene que cobrar lo mismo con ella.
   falta("select to_regprocedure('retail.fn_repartir_grupos(jsonb)') is null;") ? leer("20261114032000_apartados_con_ofertas_de_grupo") : "",
+  // Auditoría final (20261114064000): Finanzas ▸ Campañas suma lo que regaló la oferta de grupo a su campaña.
+  falta("select position('oferta_grupo_id' in pg_get_functiondef('retail.fn_campanas_reporte(uuid)'::regprocedure)) = 0;")
+    ? leer("20261114064000_finanzas_campanas_con_ofertas_de_grupo")
+    : "",
 ].filter(Boolean).join("\n");
 
 const HOY = "retail.fn_hoy_lima()";
@@ -193,6 +197,18 @@ esperarValor(
   correr(`${PARTIDA()}select concat_ws('|', (select tipo || lleva || 'x' || paga from retail.ofertas_de_grupo_vigentes(:'u') where variante_id = :'a1'),
   (select count(*) from retail.ofertas_de_grupo_vigentes(:'u') where variante_id = :'fuera'));\nrollback;`),
   "nxm3x2|0",
+);
+
+console.log("\n— Finanzas ▸ Campañas —");
+esperarValor(
+  "lo que regaló el 3x2 se le carga a su campaña: el descuento del informe es la prenda más barata, sin IGV",
+  correr(`${PARTIDA()}${venta(TRES, COBRO)}select (select descuento from retail.fn_campanas_reporte(null) where etiqueta_id = :'camp')
+    = round(least(:'p1'::numeric, :'p2'::numeric, :'p3'::numeric) / (1 + retail.fn_tasa_igv(${HOY})), 2);\nrollback;`),
+  "t",
+);
+esperar(
+  "la migración del informe se puede pegar dos veces",
+  correr(`begin;\n${ANTES}\n${leer("20261114064000_finanzas_campanas_con_ofertas_de_grupo")}\n${leer("20261114064000_finanzas_campanas_con_ofertas_de_grupo")}\nrollback;`).ok,
 );
 
 console.log("\n— La migración —");
