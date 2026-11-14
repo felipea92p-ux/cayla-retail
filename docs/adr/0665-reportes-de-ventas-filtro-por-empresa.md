@@ -1,6 +1,6 @@
 # ADR-0665 — Reportes de ventas: el filtro «Empresa» (CAYLA / CLAURE) donde conviven dos
 
-- **Fecha:** 2026-11-14 · **Estado:** construido y probado en local (27 casos de Postgres nuevos, las pruebas del reporte de siempre —46 y 28— en verde, el recorrido en el navegador en escritorio y a 375 px). La migración `20261114215000` **está sin pegar en producción**: la pega Felipe; hasta entonces el reporte sigue como siempre y elegir una empresa dice «No se pudo leer el reporte».
+- **Fecha:** 2026-11-14 · **Estado:** construido y probado en local (27 casos de Postgres nuevos, las pruebas del reporte de siempre —46 y 28— en verde, el recorrido en el navegador en escritorio y a 375 px). La migración `20261114215000` **está pegada en producción desde el 2026-11-14** (la pegó Felipe; la consulta de verificación dio las 4 funciones con `p_empresa`, INVOKER y los md5 esperados).
 - **Pidió:** Felipe, 2026-11-14: «en el reporte de ventas, cuando sea Lima, debe existir un filtro adicional de CAYLA y Claure».
 - **Sigue a:** ADR-0606 (los reportes), ADR-0542 (de quién es cada línea en Lima), ADR-0532 (cómo se reparte el dinero entre las dos empresas), ADR-0505 (CLAURE solo existe en Lima).
 
@@ -42,7 +42,7 @@ SE ROMPE SI: `fn_dueno_de_la_linea` cambia su regla y nadie cambia `fn_empresa_d
 2. **La devolución mixta se parte por valor.** Es la única estimación del cambio; una devolución de una sola empresa va entera. Hoy hay ~2 devoluciones en total.
 3. **La etiqueta es «Empresa».** Es una etiqueta (`FiltrosReporteMes`, `FiltrosRanking`).
 
-## Cómo se pega en producción (primero la migración, después la web)
+## Cómo se pegó en producción (primero la migración, después la web)
 
 Una sola parte, con el prefijo `retail.` y un candado que compara el cuerpo vivo de las cuatro lecturas con el de `main`: si alguien las parchó en vivo, aborta y lo dice. Se puede pegar dos veces. No toma locks de `auth` ni `storage` (hay `drop function`, no hay políticas ni `drop trigger`). Depende de `fn_dueno_de_la_linea` (20261028153000), `fn_stock_por_dueno` (20261027222000) y `fn_empresas_de_sede`, ya en producción. Después, de solo lectura: las cuatro funciones de `fn_reporte_ventas%` deben salir con `p_empresa` y ser INVOKER.
 
@@ -54,7 +54,8 @@ La web manda `p_empresa` **solo** cuando hay una empresa elegida: sin ella la ll
 - `pnpm pruebas:reporte-ventas-mes` (46) y `pruebas:reporte-ventas-ranking` (28): las de siempre, con la migración nueva pegada después de las viejas.
 - Web: `lib/reportes-empresa-reglas.test.ts` y las de URL, pie y descarga; guías (paso nuevo en las dos pantallas, huella aceptada); tipos.
 - Navegador (local, con ventas inventadas que se borraron al terminar): con «Todas las tiendas» no hay píldora; con Lima, sí. CLAURE: S/ 90 en 2 ventas y 4 prendas; CAYLA: S/ 140 en 2 y 3; suman los S/ 230 del mes. El pie dice «· CLAURE», «Cómo se pagó» explica por qué no se parte, «Stock de CLAURE», y las dos descargas traen el nombre `…-lima-claure.csv`. `?emp=` con «todas las tiendas» o con una clave que no existe se ignora. A 375 px la píldora baja a su fila.
-- **No verificado:** la migración en producción; con la base de producción, el tiempo de las lecturas con empresa (por línea, sobre un mes de Lima; las lecturas sin empresa no cambian).
+- **Verificado en producción (2026-11-14, solo lectura, por Felipe):** las cuatro `fn_reporte_ventas%` con `p_empresa`, INVOKER y los md5 de este archivo.
+- **No verificado:** con la base de producción, el tiempo de las lecturas con empresa (por línea, sobre un mes de Lima; las lecturas sin empresa no cambian).
 
 ## Lo que cambia en Dynamic
 
