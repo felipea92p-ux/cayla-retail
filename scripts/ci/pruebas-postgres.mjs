@@ -460,6 +460,9 @@ export const PRUEBAS = [
   // La tienda web con «Llevar varias» (ADR-0655, actividad 7): la bolsa, «Separar» con lo que mostró, la parte que no cambia, la prenda que la
   // tienda quita al confirmar (las demás conservan su precio) y la venta al pagarse. ROLLBACK.
   "pruebas:tienda-ofertas-de-grupo",
+  // «Gastar un monto y ahorrar» con escalones (ADR-0655, actividad 8, parte 1): el escalón alcanzado repartido al céntimo, toda la compra o
+  // la campaña, lo que ya tiene otra oferta no cuenta, los choques, los dos arreglos de las cesiones y la tolerancia, la caja y un apartado. ROLLBACK.
+  "pruebas:monto-con-escalones",
   // Una campaña que solo tiene OFERTAS también sale en la Tienda web (ADR-0496, «Lo que NO cubre»): la lista, la portada y el diseño leen las
   // ofertas activas (la portada, solo las que rigen hoy, con el mayor %), un borrador no cuenta y, sin ofertas, todo queda idéntico. ROLLBACK.
   "pruebas:campana-con-ofertas",
