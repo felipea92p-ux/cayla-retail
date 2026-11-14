@@ -20,6 +20,7 @@
  *   pnpm pruebas:caja-ofertas-de-grupo
  */
 
+import { DESHACER_DIA_VENTA } from "./registrar-venta-antes-de-precio-sede.mjs";
 import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 
@@ -84,6 +85,8 @@ const ANTES = [
   falta("select position('oferta_grupo_id' in pg_get_functiondef('retail.fn_campanas_reporte(uuid)'::regprocedure)) = 0;")
     ? leer("20261114064000_finanzas_campanas_con_ofertas_de_grupo")
     : "",
+  // Felipe 2026-11-14 (20261114132000): una venta sin conexión se mide con las ofertas de la hora en que se hizo.
+  falta("select to_regprocedure('retail.fn_dia_de_la_venta()') is null;") ? leer("20261114132000_venta_sin_conexion_con_las_ofertas_de_su_hora") : "",
   // Felipe 2026-11-14 (20261114131000): Frescura cuenta la parte del 3x2, del monto y del Club como campaña, no como liquidación.
   falta("select position('descuento_grupo_unitario' in pg_get_functiondef('retail.fn_frescura_decisiones(uuid, integer)'::regprocedure)) = 0;")
     ? leer("20261114131000_frescura_ofertas_y_club_como_campana")
@@ -213,6 +216,50 @@ esperarValor(
 esperar(
   "la migración del informe se puede pegar dos veces",
   correr(`begin;\n${ANTES}\n${leer("20261114064000_finanzas_campanas_con_ofertas_de_grupo")}\n${leer("20261114064000_finanzas_campanas_con_ofertas_de_grupo")}\nrollback;`).ok,
+);
+
+console.log("\n— Una venta sin conexión (20261114132000) —");
+// El 3x2 empieza HOY. Una venta hecha sin red AYER (la cola manda su hora en `x-momento`) que no lo dio entra; la misma sin hora, se rechaza.
+const HORA = (intervalo) =>
+  `select set_config('request.headers', json_build_object('x-momento', to_char(now() - interval '${intervalo}', 'YYYY-MM-DD"T"HH24:MI:SSOF'))::text, true) as _h \\gset\n`;
+const SIN_3X2 = [linea("a1", "p1", "0"), linea("a2", "p2", "0"), linea("a3", "p3", "0")].join(", ");
+const COBRO_SIN = "(:'p1'::numeric + :'p2'::numeric + :'p3'::numeric)";
+esperarValor(
+  "hecha ayer sin red, sin el 3x2 que empezó hoy: entra con lo que se cobró",
+  correr(`${PARTIDA()}${HORA("1 day")}${venta(SIN_3X2, COBRO_SIN)}select count(*) from retail.venta_items where venta_id = :'venta';\nrollback;`),
+  "3",
+);
+esperarError(
+  "con una hora de hace más de 3 días se mide con hoy, y se rechaza como una venta en línea",
+  correr(`${PARTIDA()}${HORA("4 days")}${venta(SIN_3X2, COBRO_SIN)}rollback;`),
+  "venta_grupo_omitido",
+);
+// Lo mismo con el % de siempre: una campaña de −20 % en la categoría de «fuera» que empieza hoy.
+const CAMPANA_DE_HOY = `select p.categoria_id as cat_fuera from retail.variantes v join retail.productos p on p.id = v.producto_id where v.id = :'fuera' \\gset
+select retail.fn_precio_en_sede(:'fuera', :'u') as pf \\gset
+insert into retail.etiquetas (nombre, estilo) values ('ZZ Campaña de hoy (prueba)', 'campana') returning id as camp2 \\gset
+select retail.actualizar_campana_etiqueta(:'camp2', 20, ${HOY}, ${HOY} + 10, array[:'cat_fuera']::uuid[]);
+`;
+const SIN_RABAJA = `select retail.registrar_venta(:'u', jsonb_build_array(jsonb_build_object('variante_id', :'fuera', 'cantidad', 1, 'precio_unitario', :'pf'::numeric,
+  'descuento_unitario', 0)), jsonb_build_array(jsonb_build_object('metodo', 'efectivo', 'monto', :'pf'::numeric)), null, gen_random_uuid()) as venta \\gset\n`;
+esperarValor(
+  "y con la campaña de siempre: hecha ayer sin red, sin el −20 % que empezó hoy, entra",
+  correr(`${PARTIDA()}${CAMPANA_DE_HOY}${HORA("1 day")}${SIN_RABAJA}select count(*) from retail.venta_items where venta_id = :'venta';\nrollback;`),
+  "1",
+);
+esperarError(
+  "…y en línea, sin hora, la misma venta se rechaza (la caja tenía que darlo)",
+  correr(`${PARTIDA()}${CAMPANA_DE_HOY}${SIN_RABAJA}rollback;`),
+  "venta_campana_omitida",
+);
+esperarError(
+  "CONTROL: sin la migración, la venta de ayer sin red se rechaza: la prueba ve la diferencia",
+  correr(`${PARTIDA()}${DESHACER_DIA_VENTA}\n${HORA("1 day")}${venta(SIN_3X2, COBRO_SIN)}rollback;`),
+  "venta_grupo_omitido",
+);
+esperar(
+  "la migración de la venta sin conexión se puede pegar dos veces",
+  correr(`begin;\n${ANTES}\n${leer("20261114132000_venta_sin_conexion_con_las_ofertas_de_su_hora")}\n${leer("20261114132000_venta_sin_conexion_con_las_ofertas_de_su_hora")}\nrollback;`).ok,
 );
 
 console.log("\n— Frescura (20261114131000) —");
