@@ -1,22 +1,19 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
 import { Camera, Sparkles } from "lucide-react";
 import { Globito } from "@/components/ui/Globito";
 import { HiloEnEspera, Interruptor } from "@/components/ui/campos";
 import { Chip } from "@/components/ui/Chip";
 import { Modal } from "@/components/ui/Modal";
-import { Punto } from "@/components/alta-producto/ElegirColores";
-import { BotonFoto, BotonQuitarFoto, useFotosPendientes, type FotoPendiente } from "@/components/alta-producto/FotosAlta";
+import { BotonFoto, BotonQuitarFoto, type FotoPendiente } from "@/components/alta-producto/FotosAlta";
 import type { CatalogoIAAlta } from "@/components/alta-producto/useCatalogoIAAlta";
 import { textoFotosDeFila } from "@/lib/tabla-alta-reglas";
 
 // Las fotos por color de una prenda que TODAVÍA no existe (2026-11-13): la miniatura de cada color con su estado («Preparando…», «Con IA ·
-// Usar mi foto», «1 foto», «agrega su foto»), la hoja que las muestra en grande y la opción «Catálogo con IA». Las usan la tabla de Nuevo
-// producto (`MatrizVariantes`) y «Crear la prenda que llegó» de Recibir (`HojaPrenda`, con `FotosDeLaPrenda`): una sola pieza para lo mismo
-// (ADR-0358). Las fotos viven en el navegador hasta que la prenda se crea; quien la crea las sube (`subirParDeCatalogo`, `subirFotoProducto`).
-
-type ColorDeFila = { codigo: string; nombre: string; hex: string | null; familiaColor?: string | null; tipo?: string | null };
+// Usar mi foto», «1 foto», «agrega su foto»), la hoja que las muestra en grande y la opción «Catálogo con IA». Las usa la tabla de Nuevo
+// producto (`MatrizVariantes`); «Crear la prenda que llegó» de Recibir (`HojaPrenda`) usa solo el interruptor, porque sus fotos van en «Fotos
+// y colores» (`FotosYColores`, ADR-0663) y la lista por color que tenía (`FotosDeLaPrenda`) repetía esas tarjetas. Las fotos viven en el
+// navegador hasta que la prenda se crea; quien la crea las sube (`subirParDeCatalogo`, `subirFotoProducto`).
 
 /** La opción «Catálogo con IA»: apagada de fábrica y recordada en el aparato (`useInterruptorIA`). */
 export function InterruptorCatalogoIA({ catalogo }: { catalogo: CatalogoIAAlta }) {
@@ -140,99 +137,6 @@ export function HojaFotosDeColor({
         </div>
       )}
     </Modal>
-  );
-}
-
-/**
- * Las fotos de la prenda en una lista, una fila por color elegido (sin colores, una sola: la de la prenda), con la opción «Catálogo con IA»
- * arriba. Es la forma de «Crear la prenda que llegó» (Recibir), donde no hay tabla de variantes en la que colgarlas.
- */
-export function FotosDeLaPrenda({
-  colores,
-  fotos,
-  onFotos,
-  catalogo,
-  disabled,
-  guia,
-  titulo,
-}: {
-  /** Los colores elegidos, en orden. Vacío = la prenda no tiene color: una sola fila. */
-  colores: ColorDeFila[];
-  fotos: FotoPendiente[];
-  onFotos: (f: FotoPendiente[]) => void;
-  catalogo: CatalogoIAAlta;
-  disabled: boolean;
-  /** El `data-guia` del interruptor, para la guía interactiva de la pantalla. */
-  guia?: string;
-  /** El título de la sección, a la izquierda del interruptor. */
-  titulo?: ReactNode;
-}) {
-  const { agregar, quitar } = useFotosPendientes({ fotos, onFotos });
-  const [viendo, setViendo] = useState<string | null | undefined>(undefined);
-  const filas: (string | null)[] = colores.length ? colores.map((c) => c.codigo) : [null];
-  const nombreDe = (codigo: string | null) => (codigo === null ? "la prenda" : (colores.find((c) => c.codigo === codigo)?.nombre ?? codigo));
-  const agregarA = (archivos: File[], color: string | null) => (catalogo.encendido ? catalogo.abrir(archivos, color) : agregar(archivos, color));
-  const quitarDe = (suyas: FotoPendiente[], color: string | null) => (suyas.length === 1 ? quitar(suyas[0].clave) : setViendo(color));
-
-  return (
-    <div className="space-y-2.5">
-      {(titulo || catalogo.disponible) && (
-        <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
-          {titulo}
-          {catalogo.disponible && (
-            <span data-guia={guia}>
-              <InterruptorCatalogoIA catalogo={catalogo} />
-            </span>
-          )}
-        </div>
-      )}
-      <ul className="grid gap-2 sm:grid-cols-2">
-        {filas.map((color) => {
-          const c = colores.find((x) => x.codigo === color);
-          const suyas = fotos.filter((f) => f.colorCodigo === color);
-          return (
-            <li key={color ?? "sin-color"} className="flex items-center gap-2.5 rounded-xl border border-sand bg-papel px-2.5 py-2">
-              <FotosDeFila
-                suyas={suyas}
-                nombre={nombreDe(color)}
-                disabled={disabled}
-                preparando={catalogo.preparando(color)}
-                onVer={() => setViendo(color)}
-                onArchivos={(a) => agregarA(a, color)}
-                onQuitar={() => quitarDe(suyas, color)}
-              />
-              <div className="flex min-w-0 flex-col leading-tight">
-                <span className="flex items-center gap-1.5 text-[15px] font-medium text-tinta">
-                  {c && <Punto hex={c.hex} familia={c.familiaColor} tipo={c.tipo} />}
-                  <span className="truncate">{c?.nombre ?? "La prenda"}</span>
-                </span>
-                <EstadoFotosDeFila
-                  suyas={suyas}
-                  nombre={nombreDe(color)}
-                  preparando={catalogo.preparando(color)}
-                  disabled={disabled}
-                  catalogo={catalogo}
-                  onVer={() => setViendo(color)}
-                  usaLaGeneral={false}
-                />
-              </div>
-            </li>
-          );
-        })}
-      </ul>
-      {viendo !== undefined && (
-        <HojaFotosDeColor
-          nombre={nombreDe(viendo)}
-          fotos={fotos.filter((f) => f.colorCodigo === viendo)}
-          cuando="al crear la prenda"
-          dondeAgregar="en su fila"
-          disabled={disabled}
-          catalogo={catalogo}
-          onQuitar={quitar}
-          onClose={() => setViendo(undefined)}
-        />
-      )}
-    </div>
   );
 }
 

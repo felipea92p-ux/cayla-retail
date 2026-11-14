@@ -19,7 +19,8 @@ import { NombreDePrenda } from "@/components/alta-producto/NombreDePrenda";
 import { PuntosAvance } from "@/components/alta-producto/PuntosAvance";
 import { PropuestaDePrecio, adelantarPropuestaDePrecio } from "@/components/alta-producto/PropuestaDePrecio";
 import { ComboResponsable } from "@/components/ComboResponsable";
-import { FotosDeLaPrenda } from "@/components/alta-producto/FotosDeColores";
+import { InterruptorCatalogoIA } from "@/components/alta-producto/FotosDeColores";
+import { FotosYColores } from "@/components/alta-producto/FotosYColores";
 import type { FotoPendiente } from "@/components/alta-producto/FotosAlta";
 import { useCatalogoIAAlta } from "@/components/alta-producto/useCatalogoIAAlta";
 import { createClient } from "@/lib/supabase/client";
@@ -27,7 +28,7 @@ import { subirFotoProducto, subirParDeCatalogo } from "@/lib/producto-fotos";
 import { leerPermisoDeFotos, type PermisoDeFotos } from "@/lib/foto-catalogo-cliente";
 import { CampoGuiado, PieGuia } from "@/components/guia-de-foco/CampoGuiado";
 import { useGuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
-import { claveCelda, leerErrorAlta, ordenarFotosAlta, type ColorAlta } from "@/lib/alta-producto";
+import { claveCelda, leerErrorAlta, ordenarFotosAlta, textoFotosSinColor, type ColorAlta } from "@/lib/alta-producto";
 import type { ValorVocabulario } from "@/lib/catalogo-v2";
 import { agruparPorFamilia } from "@/lib/colores-familias";
 import { familiaEnCarta } from "@/lib/color-estampado-reglas";
@@ -73,10 +74,11 @@ import {
 // para contarla son obligatorios: tejido y patrón no (20261104003000). Lo creado aquí no sale solo en la tienda web.
 //
 // FOTOS (Felipe 2026-11-13: «que crear producto desde recibir mercadería también pida fotos y allí también esté lo de la IA»): en «Tallas y
-// colores», una fila por color elegido con su foto y «Catálogo con IA», las mismas piezas de Nuevo producto (`FotosDeLaPrenda`). Son opcionales
-// y solo se ofrecen a quien puede guardarlas (`fn_puede_editar_catalogo`, la regla de `producto_fotos`; se pregunta a `GET /api/fotos/catalogo`):
-// quien recibe sin editar el catálogo crea la prenda como antes y las fotos se ponen después en Productos. Se suben al crear, después de la
-// prenda y esperando a la IA, como en Nuevo producto; una que falle no deshace la prenda.
+// colores», los colores salen de las fotos (ADR-0663): «Fotos y colores», la misma pieza de Nuevo producto (`FotosYColores`), con «Catálogo
+// con IA» al lado. Solo se ofrece a quien puede guardar las fotos (`fn_puede_editar_catalogo`, la regla de `producto_fotos`; se pregunta a
+// `GET /api/fotos/catalogo`): quien recibe sin editar el catálogo elige los colores en la carta, como antes, y las fotos se ponen después en
+// Productos (una foto que no se puede guardar no se pide). Se suben al crear, después de la prenda y esperando a la IA, como en Nuevo
+// producto; una que falle no deshace la prenda. Al sumar a una prenda que ya existe no se suben fotos: ahí sigue la carta.
 //
 // Los ejemplos de la caja siguen a la categoría (ADR-0290). La guía de foco enciende lo que sigue dentro del paso (ADR-0284). Un token por hoja:
 // un doble clic o un reintento no crea dos prendas.
@@ -216,7 +218,11 @@ export function HojaPrenda({
   const enVuelo = useRef(false);
   const avisoError = useRef<HTMLDivElement>(null);
 
-  const camposPrenda = camposDePrenda(borrador, ctx, tocados);
+  // Fotos de «Fotos y colores» que todavía no tienen color: frenan crear la prenda, o se perderían (ADR-0663, como en Nuevo producto).
+  const [fotosSinColor, setFotosSinColor] = useState(0);
+  const camposPrenda = camposDePrenda(borrador, ctx, tocados).map((c) =>
+    c.id === "prenda-colores" && fotosSinColor ? { ...c, requerido: true, hecho: false, pendiente: textoFotosSinColor(fotosSinColor) } : c,
+  );
   const nuevas = combinacionesDeLaHoja(borrador, ctx).length;
   // Desde la tabla de tallas, sin nada que crear, solo cambia lo que la tabla muestra: no se escribe en la base y no hace falta decir quién.
   const soloMostrar = !!destino.enTabla && !!destino.prenda && nuevas === 0;
@@ -452,6 +458,43 @@ export function HojaPrenda({
     </CampoGuiado>
   );
 
+  /** Quitar un color se lleva sus fotos: una foto de un color que la prenda no tiene no se sube. */
+  function quitarColor(codigo: string) {
+    fotos.filter((f) => f.colorCodigo === codigo).forEach((f) => URL.revokeObjectURL(f.vista));
+    setFotos((fs) => fs.filter((f) => f.colorCodigo !== codigo));
+    setBorrador((b) => ({ ...b, colorCodigos: b.colorCodigos.filter((c) => c !== codigo) }));
+  }
+
+  // «Fotos y colores» (ADR-0663): el color sale de cada foto; la carta queda para «Cambiar» y «Elegir sin foto». Solo con permiso de fotos.
+  const fotosYColores = (
+    <CampoGuiado id="prenda-colores" guia={guia} retiene="fila" titulo="Fotos y colores" ayuda={borrador.colorCodigos.length > 0 ? `${borrador.colorCodigos.length} ${borrador.colorCodigos.length === 1 ? "color" : "colores"}` : "Una foto por color"}>
+      {catalogo.disponible && (
+        <div className="mb-2 flex justify-end">
+          <InterruptorCatalogoIA catalogo={catalogo} />
+        </div>
+      )}
+      <FotosYColores
+        carta={colores}
+        grupos={grupos}
+        elegidos={borrador.colorCodigos}
+        fotos={fotos}
+        onFotos={setFotos}
+        onColorNuevo={(color) => setColoresCreados((cs) => (cs.some((c) => c.codigo === color.codigo) ? cs : [...cs, color]))}
+        onAgregarColor={(codigo) => setBorrador((b) => (b.colorCodigos.includes(codigo) ? b : { ...b, colorCodigos: [...b.colorCodigos, codigo] }))}
+        onQuitarColor={quitarColor}
+        // «Cambiar» en una tarjeta: el color cambia en su lugar y sus fotos lo siguen; si el otro ya estaba, las dos tarjetas se juntan.
+        onCambiarColor={(de, a) => {
+          setBorrador((b) => ({ ...b, colorCodigos: b.colorCodigos.includes(a) ? b.colorCodigos.filter((x) => x !== de) : b.colorCodigos.map((x) => (x === de ? a : x)) }));
+          setFotos((fs) => fs.map((f) => (f.colorCodigo === de ? { ...f, colorCodigo: a } : f)));
+        }}
+        disabled={guardando}
+        guia="recepcion.fotos-colores"
+        catalogo={catalogo}
+        onPendientes={setFotosSinColor}
+      />
+    </CampoGuiado>
+  );
+
   const quienRecibe = !responsable.listo && (
     <div id={ID_QUIEN_REGISTRA}>
       <CampoGuiado id="prenda-responsable" guia={guia} titulo="Quién recibe">
@@ -604,23 +647,9 @@ export function HojaPrenda({
                   {paso === 2 && (
                     <>
                       {elegirTallas}
-                      {elegirColores}
+                      {permisoFotos.fotos ? fotosYColores : elegirColores}
                       {/* Reserva su línea: lo que se crea aparece con la primera talla y no empuja el pie. */}
                       <p className="nota-cayla sin-i min-h-11">{queSeCrea ?? "Marca las tallas que llegaron y aquí se ve lo que se va a crear."}</p>
-                      {permisoFotos.fotos && (
-                        <FotosDeLaPrenda
-                          titulo={
-                            <span className="campo-etiqueta">
-                              Fotos<span className="font-normal normal-case tracking-normal text-taupe"> · opcional</span>
-                            </span>
-                          }
-                          colores={borrador.colorCodigos.flatMap((codigo) => colores.filter((c) => c.codigo === codigo))}
-                          fotos={fotos}
-                          onFotos={setFotos}
-                          catalogo={catalogo}
-                          disabled={guardando}
-                        />
-                      )}
                     </>
                   )}
 
