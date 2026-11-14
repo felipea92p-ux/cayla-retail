@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { crearMedidor, lineaDeTramos, tamanoJson, type Tramo } from "./medir-tramos";
+import { crearMedidor, lineaDeTramos, SIN_CRONOMETRO, tamanoJson, type Tramo } from "./medir-tramos";
 
 /** Un reloj que se mueve a mano: así cada prueba dice exactamente cuántos ms pasaron. */
 function relojManual(inicio = 1000) {
@@ -72,6 +72,32 @@ describe("crearMedidor", () => {
     ]);
   });
 
+  it("mide un trabajo de un tirón (un cálculo, no una espera) y devuelve lo que devuelve; si lanza, queda marcado y lanza igual", () => {
+    const { reloj, avanzar } = relojManual();
+    const m = crearMedidor(reloj);
+    avanzar(10);
+    expect(m.medirAhora("plan_motor", () => (avanzar(40), 7))).toBe(7);
+    expect(() => m.medirAhora("ritmo_calculo", () => { avanzar(5); throw new Error("x"); })).toThrow("x");
+    expect(m.foto().tramos).toEqual([
+      { nombre: "plan_motor", desde: 10, hasta: 50, fallo: false },
+      { nombre: "ritmo_calculo", desde: 50, hasta: 55, fallo: true },
+    ]);
+  });
+
+  it("guarda una respuesta para pesarla al final, sin calcular nada mientras tanto", () => {
+    const m = crearMedidor(relojManual().reloj);
+    const respuesta = { tallas: [1, 2, 3] };
+    m.pesar("plan_rpc", respuesta);
+    expect(m.pesados()).toEqual({ plan_rpc: respuesta });
+    expect(m.pesados().plan_rpc).toBe(respuesta);
+  });
+
+  it("sin medidor (`SIN_CRONOMETRO`) hace lo mismo y no anota nada", async () => {
+    await expect(SIN_CRONOMETRO.medir("x", Promise.resolve(3))).resolves.toBe(3);
+    expect(SIN_CRONOMETRO.medirAhora("x", () => 4)).toBe(4);
+    expect(() => SIN_CRONOMETRO.pesar("x", 1)).not.toThrow();
+  });
+
   it("marca un momento con nombre", () => {
     const { reloj, avanzar } = relojManual();
     const m = crearMedidor(reloj);
@@ -108,6 +134,13 @@ describe("lineaDeTramos", () => {
     const linea = lineaDeTramos("existencias_tramos", { sedeId: "sede-1", tramos, marcas: { lista: 400 }, ahora: 900, bytes: { panel: 1 } });
     expect(Object.keys(linea).sort()).toEqual(["bytes", "evento", "lista_ms", "sede_id", "total_ms", "tramos"]);
     for (const t of Object.values(linea.tramos)) expect(Object.keys(t).sort()).toEqual(["fin", "ms"]);
+  });
+
+  it("dice cuánto se trabó el servidor, entero y solo si se midió", () => {
+    const con = lineaDeTramos("x", { sedeId: null, tramos, marcas: {}, ahora: 900, bucle: { maxMs: 812.4, p99Ms: 640.6 } });
+    expect(con.bucle).toEqual({ max_ms: 812, p99_ms: 641 });
+    expect(Object.keys(con).sort()).toEqual(["bucle", "bytes", "evento", "lista_ms", "sede_id", "total_ms", "tramos"]);
+    expect("bucle" in lineaDeTramos("x", { sedeId: null, tramos, marcas: {}, ahora: 900, bucle: null })).toBe(false);
   });
 
   it("dice qué lecturas fallaron, y solo si alguna falló", () => {

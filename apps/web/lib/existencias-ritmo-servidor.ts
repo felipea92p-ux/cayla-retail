@@ -11,6 +11,7 @@ import {
 } from "@/lib/existencias-ritmo";
 import { politicaDe } from "@/lib/politica-operativa-inventario";
 import { unstable_rethrow } from "next/navigation";
+import { SIN_CRONOMETRO, type Cronometro } from "@/lib/medir-tramos";
 
 // La parte que LEE de Postgres para «Ritmo reciente»/«Cobertura piso» de Existencias
 // (2026-09-25). Todo lo que decide qué significan los eventos vive en `existencias-ritmo.ts`
@@ -31,7 +32,10 @@ export async function getRitmoRecientePorVariante(
   ubicacionId: string,
   varianteIds: readonly string[],
   pisoPorVariante: ReadonlyMap<string, number>,
-  ahora: Date = new Date()
+  ahora: Date = new Date(),
+  // Quién mide sus dos pedazos (Existencias, `existencias_tramos`): `ritmo_rpc` (la base, el viaje y el JSON) y `ritmo_calculo` (las
+  // jornadas de cada talla, en el servidor). Sin él, no se anota nada.
+  cronometro: Cronometro = SIN_CRONOMETRO
 ): Promise<Tolerado<RitmoRecientePorVariante>> {
   if (varianteIds.length === 0) return { datos: { ritmo: new Map(), cobertura: new Map() }, fallo: null };
   try {
@@ -39,24 +43,30 @@ export async function getRitmoRecientePorVariante(
     const desde = new Date(ahora.getTime() - VENTANA_RITMO_RECIENTE_DIAS * 24 * 60 * 60 * 1000);
     const { minDiasExposicionRitmo } = politicaDe(ubicacionId);
     const crudo = exigir(
-      await supabase.rpc("fn_ritmo_reciente_json", {
-        p_ubicacion_id: ubicacionId,
-        p_desde: desde.toISOString(),
-        p_variante_ids: [...varianteIds],
-      }),
+      await cronometro.medir(
+        "ritmo_rpc",
+        supabase.rpc("fn_ritmo_reciente_json", {
+          p_ubicacion_id: ubicacionId,
+          p_desde: desde.toISOString(),
+          p_variante_ids: [...varianteIds],
+        })
+      ),
       "el ritmo reciente de esta ubicación"
     ) as unknown as Record<string, unknown>;
+    cronometro.pesar("ritmo_rpc", crudo);
 
-    const ritmo = new Map<string, RitmoReciente>();
-    const cobertura = new Map<string, CoberturaPiso>();
-    for (const varianteId of varianteIds) {
-      const eventos = leerEventosPiso(crudo[varianteId] ?? []);
-      const dias = diasExposicionComercial(eventos, desde, ahora);
-      const r = calcularRitmoReciente(dias, minDiasExposicionRitmo);
-      ritmo.set(varianteId, r);
-      cobertura.set(varianteId, calcularCoberturaPiso(pisoPorVariante.get(varianteId) ?? 0, r));
-    }
-    return { datos: { ritmo, cobertura }, fallo: null };
+    return cronometro.medirAhora("ritmo_calculo", () => {
+      const ritmo = new Map<string, RitmoReciente>();
+      const cobertura = new Map<string, CoberturaPiso>();
+      for (const varianteId of varianteIds) {
+        const eventos = leerEventosPiso(crudo[varianteId] ?? []);
+        const dias = diasExposicionComercial(eventos, desde, ahora);
+        const r = calcularRitmoReciente(dias, minDiasExposicionRitmo);
+        ritmo.set(varianteId, r);
+        cobertura.set(varianteId, calcularCoberturaPiso(pisoPorVariante.get(varianteId) ?? 0, r));
+      }
+      return { datos: { ritmo, cobertura }, fallo: null };
+    });
   } catch (e) {
     unstable_rethrow(e);
     return { datos: null, fallo: "No se pudo calcular el ritmo reciente. Lo demás de esta pantalla sí está al día." };

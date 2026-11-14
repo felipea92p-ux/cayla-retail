@@ -18,15 +18,32 @@ export type Reloj = () => number;
 /** Una lectura medida, contada desde que empezó la pantalla. `hasta` es `null` mientras no termina. */
 export type Tramo = { nombre: string; desde: number; hasta: number | null; fallo: boolean };
 
-export type Medidor = {
+/** Lo que una lectura de adentro necesita para partir su tramo en pedazos (el plan: su RPC, su lectura y su motor). Sin medidor, `SIN_CRONOMETRO`:
+ *  hace lo mismo y no anota nada. */
+export type Cronometro = {
   /** Mide una lectura que YA empezó (se llama con la promesa recién creada). Devuelve una promesa que responde lo mismo, o falla igual. */
   medir<T>(nombre: string, lectura: PromiseLike<T>): Promise<T>;
+  /** Mide un trabajo que corre de un tirón en el servidor (un cálculo, no una espera) y devuelve lo que devuelve. */
+  medirAhora<T>(nombre: string, trabajo: () => T): T;
+  /** Guarda una respuesta para pesarla al final (`bytes`), sin costo mientras la pantalla se arma: el peso se calcula después de responder. */
+  pesar(nombre: string, valor: unknown): void;
+};
+
+export const SIN_CRONOMETRO: Cronometro = {
+  medir: <T>(_nombre: string, lectura: PromiseLike<T>) => Promise.resolve(lectura),
+  medirAhora: <T>(_nombre: string, trabajo: () => T) => trabajo(),
+  pesar: () => {},
+};
+
+export type Medidor = Cronometro & {
   /** Marca un momento con nombre (p. ej. «lista»: lo que se dibuja primero ya está). */
   marcar(nombre: string): void;
   /** Espera a que terminen todas las lecturas medidas, también las que arrancaron mientras se esperaba y las que fallan. Nunca lanza. */
   todas(): Promise<void>;
   /** Lo medido hasta ahora: los tramos y las marcas, en ms desde el origen. */
   foto(): { tramos: Tramo[]; marcas: Record<string, number>; ahora: number };
+  /** Lo guardado con `pesar`, para calcular su peso al final. */
+  pesados(): Record<string, unknown>;
 };
 
 export function crearMedidor(reloj: Reloj = () => performance.now()): Medidor {
@@ -34,6 +51,7 @@ export function crearMedidor(reloj: Reloj = () => performance.now()): Medidor {
   const tramos: Tramo[] = [];
   const marcas: Record<string, number> = {};
   const pendientes: Promise<void>[] = [];
+  const guardados: Record<string, unknown> = {};
   const desdeOrigen = () => reloj() - origen;
 
   return {
@@ -54,6 +72,21 @@ export function crearMedidor(reloj: Reloj = () => performance.now()): Medidor {
       pendientes.push(medida.then(nada, nada));
       return medida;
     },
+    medirAhora<T>(nombre: string, trabajo: () => T): T {
+      const tramo: Tramo = { nombre, desde: desdeOrigen(), hasta: null, fallo: false };
+      tramos.push(tramo);
+      try {
+        return trabajo();
+      } catch (error) {
+        tramo.fallo = true;
+        throw error;
+      } finally {
+        tramo.hasta = desdeOrigen();
+      }
+    },
+    pesar(nombre: string, valor: unknown) {
+      guardados[nombre] = valor;
+    },
     marcar(nombre: string) {
       marcas[nombre] = desdeOrigen();
     },
@@ -68,6 +101,9 @@ export function crearMedidor(reloj: Reloj = () => performance.now()): Medidor {
     },
     foto() {
       return { tramos: tramos.map((t) => ({ ...t })), marcas: { ...marcas }, ahora: desdeOrigen() };
+    },
+    pesados() {
+      return { ...guardados };
     },
   };
 }
@@ -86,8 +122,11 @@ export type LineaTramos = {
   /** Cuándo terminó la última lectura: el total del servidor. */
   total_ms: number;
   tramos: Record<string, TramoEnLinea>;
-  /** Cuántos bytes viajan al navegador, por pieza (aproximado: el largo del JSON en UTF-8). */
+  /** Cuántos bytes pesa cada pieza: lo que viaja al navegador y lo que respondió la base (aproximado: el largo del JSON en UTF-8). */
   bytes: Record<string, number | null>;
+  /** Cuánto llegó a estar trabado el servidor mientras armaba la pantalla (`monitorEventLoopDelay`): si una respuesta de la base ya llegó
+   *  pero el servidor estaba ocupado calculando otra cosa, su tramo crece aunque la base haya sido rápida. Solo si se midió. */
+  bucle?: { max_ms: number; p99_ms: number };
   /** Las lecturas que fallaron, por nombre. Solo si alguna falló. */
   fallaron?: string[];
 };
@@ -100,7 +139,14 @@ const entero = (n: number | null) => (n === null ? null : Math.round(n));
  */
 export function lineaDeTramos(
   evento: string,
-  m: { sedeId: string | null; tramos: readonly Tramo[]; marcas: Readonly<Record<string, number>>; ahora: number; bytes?: Readonly<Record<string, number | null>> }
+  m: {
+    sedeId: string | null;
+    tramos: readonly Tramo[];
+    marcas: Readonly<Record<string, number>>;
+    ahora: number;
+    bytes?: Readonly<Record<string, number | null>>;
+    bucle?: { maxMs: number; p99Ms: number } | null;
+  }
 ): LineaTramos {
   const tramos: Record<string, TramoEnLinea> = {};
   const fallaron: string[] = [];
@@ -119,6 +165,7 @@ export function lineaDeTramos(
     total_ms: entero(algunoAbierto ? m.ahora : Math.max(ultimo, m.marcas.lista ?? 0)) ?? 0,
     tramos,
     bytes: { ...(m.bytes ?? {}) },
+    ...(m.bucle ? { bucle: { max_ms: entero(m.bucle.maxMs) ?? 0, p99_ms: entero(m.bucle.p99Ms) ?? 0 } } : {}),
     ...(fallaron.length ? { fallaron } : {}),
   };
 }
