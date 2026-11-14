@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { fichaDeLaAnterior, loQueLlena, marcaDelAnterior, recordarPrenda, textoDeTallas, type PrendaAnterior } from "./recepcion-igual-que-anterior";
+import { anteriorDeLaCategoria, fichaDeLaAnterior, leerPrendasCreadas, loQueLlena, marcaDelAnterior, recordarPrenda, textoDeTallas, type PrendaAnterior } from "./recepcion-igual-que-anterior";
 
 const curva = [
   { id: "l", valor: "L" },
@@ -103,5 +103,38 @@ describe("marcaDelAnterior", () => {
     expect(marcaDelAnterior({ id: "z", nombre: "Zara" }, "m", marcas)).toBeNull();
     expect(marcaDelAnterior(null, "", marcas)).toBeNull();
     expect(marcaDelAnterior({ id: "x", nombre: "Otra" }, "", marcas)).toBeNull();
+  });
+});
+
+describe("leerPrendasCreadas y anteriorDeLaCategoria (la anterior sale de la base)", () => {
+  const fila = (o: Record<string, unknown>) => ({
+    id: "p1",
+    nombre: "Blusa Dalia",
+    categoria_id: "blusas",
+    created_at: "2026-11-14T15:00:00Z",
+    tejido: { id: "alg", nombre: "Algodón" },
+    patron: null,
+    variantes: [{ talla: { id: "s", valor: "S" } }, { talla: { id: "s", valor: "S" } }, { talla: { id: "m", valor: "M" } }],
+    ...o,
+  });
+  it("lee tejido, patrón y las tallas sin repetir", () => {
+    expect(leerPrendasCreadas([fila({})], null)).toEqual([
+      { categoriaId: "blusas", nombre: "Blusa Dalia", tejido: { id: "alg", texto: "Algodón" }, patron: null, tallas: [{ id: "s", valor: "S" }, { id: "m", valor: "M" }], creadaEn: "2026-11-14T15:00:00Z" },
+    ]);
+  });
+  it("solo las creadas desde que se abrió el envío; lo ilegible se salta", () => {
+    const filas = [fila({ id: "vieja", created_at: "2026-10-01T00:00:00Z" }), fila({ id: "nueva" }), { id: "x" }, null];
+    expect(leerPrendasCreadas(filas, "2026-11-14T14:00:00Z").map((f) => f.nombre)).toEqual(["Blusa Dalia"]);
+    expect(leerPrendasCreadas("no", null)).toEqual([]);
+  });
+  it("la anterior es la más reciente de esa categoría", () => {
+    const creadas = leerPrendasCreadas(
+      [fila({ nombre: "Blusa Uno", created_at: "2026-11-14T15:00:00Z" }), fila({ nombre: "Blusa Dos", created_at: "2026-11-14T16:00:00Z" }), fila({ nombre: "Casaca", categoria_id: "casacas", created_at: "2026-11-14T17:00:00Z" })],
+      null,
+    );
+    expect(anteriorDeLaCategoria(creadas, "blusas")?.nombre).toBe("Blusa Dos");
+    expect(anteriorDeLaCategoria(creadas, "casacas")?.nombre).toBe("Casaca");
+    expect(anteriorDeLaCategoria(creadas, "faldas")).toBeNull();
+    expect(anteriorDeLaCategoria(creadas, "blusas")).not.toHaveProperty("creadaEn");
   });
 });

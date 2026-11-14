@@ -119,3 +119,49 @@ export function marcaDelAnterior(
   const viva = marcas.find((m) => m.id === anterior.id);
   return viva ? { id: viva.id, nombre: viva.nombre } : null;
 }
+
+/** Una prenda creada al recibir, con cuándo se creó: de la base (sobrevive a recargar) o recién creada en esta pantalla. */
+export type PrendaCreada = PrendaAnterior & { creadaEn: string };
+
+/**
+ * «La anterior» sale de la base (innovar `recibir-crear-prenda#1`, Felipe 2026-11-14): sin esto, recargar la pantalla a mitad de un envío
+ * borraba la ficha. Se leen las prendas del conteo de este envío creadas DESPUÉS de abrirlo (las que nacieron al recibir) y se ordenan por
+ * fecha. Lee lo que devuelve `productos` con su tejido, patrón y las tallas de sus variantes; una fila que no se entiende se salta.
+ */
+export function leerPrendasCreadas(data: unknown, desde: string | null): PrendaCreada[] {
+  if (!Array.isArray(data)) return [];
+  const limite = desde ? Date.parse(desde) : Number.NEGATIVE_INFINITY;
+  const uno = (v: unknown) => (Array.isArray(v) ? v[0] : v) as Record<string, unknown> | null | undefined;
+  const valor = (v: unknown) => {
+    const r = uno(v);
+    return r && typeof r.id === "string" && typeof r.nombre === "string" ? { id: r.id, texto: r.nombre } : null;
+  };
+  const filas: PrendaCreada[] = [];
+  for (const f of data as Record<string, unknown>[]) {
+    if (!f || typeof f.id !== "string" || typeof f.nombre !== "string" || typeof f.categoria_id !== "string" || typeof f.created_at !== "string") continue;
+    if (!(Date.parse(f.created_at) >= limite)) continue;
+    const tallas = new Map<string, string>();
+    for (const v of Array.isArray(f.variantes) ? (f.variantes as Record<string, unknown>[]) : []) {
+      const t = uno(v?.talla);
+      if (t && typeof t.id === "string" && typeof t.valor === "string") tallas.set(t.id, t.valor);
+    }
+    filas.push({
+      categoriaId: f.categoria_id,
+      nombre: f.nombre,
+      tejido: valor(f.tejido),
+      patron: valor(f.patron),
+      tallas: [...tallas].map(([id, v]) => ({ id, valor: v })),
+      creadaEn: f.created_at,
+    });
+  }
+  return filas;
+}
+
+/** La prenda creada más reciente de la categoría, o `null`. Lo creado en la pantalla y lo leído de la base se juntan sin repetir. */
+export function anteriorDeLaCategoria(creadas: readonly PrendaCreada[], categoriaId: string): PrendaAnterior | null {
+  let ultima: PrendaCreada | null = null;
+  for (const c of creadas) if (c.categoriaId === categoriaId && (!ultima || Date.parse(c.creadaEn) >= Date.parse(ultima.creadaEn))) ultima = c;
+  if (!ultima) return null;
+  const { creadaEn: _, ...anterior } = ultima;
+  return anterior;
+}
