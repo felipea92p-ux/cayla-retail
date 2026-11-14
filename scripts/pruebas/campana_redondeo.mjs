@@ -78,8 +78,8 @@ select retail.fn_sububicacion_por_defecto(:'ubic', 'venta') as sub_piso \\gset
 insert into retail.movimientos (variante_id, ubicacion_id, sububicacion_id, tipo, cantidad, motivo)
   values (:'v1', :'ubic', :'sub_piso', 'entrada', 1000, 'colchón de prueba') returning id as mov1 \\gset
 select retail.fn_aplicar_movimiento(:'mov1') as _d1 \\gset
-insert into retail.etiquetas (nombre, estado, activo, descuento_pct, vigente_desde, vigente_hasta)
-  values ('ZZ Descuento exacto (prueba)', 'aprobado', true, 20, retail.fn_hoy_lima() - 1, retail.fn_hoy_lima() + 5)
+insert into retail.etiquetas (nombre, estilo, estado, activo, descuento_pct, vigente_desde, vigente_hasta)
+  values ('ZZ Descuento exacto (prueba)', 'campana', 'aprobado', true, 20, retail.fn_hoy_lima() - 1, retail.fn_hoy_lima() + 5)
   returning id as etq \\gset
 insert into retail.variante_etiquetas (variante_id, etiqueta_id) values (:'v1', :'etq');
 -- Si otra campaña de mayor % rige hoy sobre esta prenda, el escenario no prueba lo que dice: se corta aquí.

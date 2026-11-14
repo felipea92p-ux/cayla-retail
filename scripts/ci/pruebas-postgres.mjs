@@ -440,6 +440,9 @@ export const PRUEBAS = [
   // sin sede nunca aparece una campaña limitada; el guardián falla si una de las cinco funciones deja de preguntar por la sede. ROLLBACK.
   "pruebas:campanas-por-sede",
   "pruebas:campana-reglas",
+  // Una insignia nunca baja el precio (ADR-0655, actividad 5): las que lo bajaban pasan a campañas con todo igual y el candado
+  // `etiquetas_descuento_solo_campana` rechaza un descuento en una insignia por cualquier camino. ROLLBACK.
+  "pruebas:insignias-sin-descuento",
   // Una campaña que solo tiene OFERTAS también sale en la Tienda web (ADR-0496, «Lo que NO cubre»): la lista, la portada y el diseño leen las
   // ofertas activas (la portada, solo las que rigen hoy, con el mayor %), un borrador no cuenta y, sin ofertas, todo queda idéntico. ROLLBACK.
   "pruebas:campana-con-ofertas",
