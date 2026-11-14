@@ -80,6 +80,12 @@
   background: color-mix(in srgb, var(--color-taupe) 24%, transparent); /* contraste: no aplica — es un fondo; las cifras siguen en tinta */
   color: var(--color-tinta);
 }
+/* Con «más contraste» o colores forzados, el número abierto sí lleva el anillo común del ERP (ADR-0351). Sin caja, su foco es el cursor y la selección suave, que contra
+   el papel miden 1,39:1 en claro y 1,62:1 en oscuro, y el anillo pide 3:1. Quien lo pidió en su aparato lo ve; el aspecto que Felipe aprobó el 2026-11-14 no cambia. Ponerle
+   una señal más fuerte a todos es decisión suya: lo vigila `lib/recepcion-dial-foco.test.ts`. */
+@media (forced-colors: active), (prefers-contrast: more) {
+  .rc-dial-caja:focus-visible { outline: var(--foco-ancho) solid var(--foco-color); outline-offset: var(--foco-separacion); border-radius: 12px; }
+}
 
 .rc-dial-visto { position: absolute; top: 26px; right: 26px; display: grid; place-items: center; width: 40px; height: 40px; border-radius: 50%; background: var(--color-verde); color: var(--color-crema-fija); transform: scale(0) rotate(-30deg); transition: transform 450ms var(--ease-cayla); }
 .rc-dial--cuadra .rc-dial-visto { transform: none; }
