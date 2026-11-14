@@ -131,7 +131,8 @@ insert into retail.ordenes_compra (proveedor_id, ubicacion_destino_id, fecha_ent
   values (:'prov', :'tru', retail.fn_hoy_lima() + 7, :'felipe_p') returning id as o1 \\gset
 insert into retail.orden_compra_items (orden_compra_id, posicion, categoria_id, marca_id, descripcion, cantidad, precio_unitario)
   values (:'o1', 1, :'cat', :'marca', 'Pantalón lino', 10, 30) returning id as l1 \\gset
--- La prenda que nació «Sin color» (sus variantes las pone cada caso).
+-- La prenda que nació «Sin color» (sus variantes las pone cada caso). Su pareja marca–proveedor va antes: la exige productos_marca_proveedor_fk.
+insert into retail.marca_proveedores (marca_id, proveedor_id) values (:'marca', :'prov');
 insert into retail.productos (categoria_id, referencia, marca_id, proveedor_id) values (:'cat', 'Pantalón Sin Color Prueba', :'marca', :'prov')
   returning id as prod \\gset
 select set_config('request.jwt.claim.sub', '', true) \\g /dev/null
