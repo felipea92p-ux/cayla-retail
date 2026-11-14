@@ -9,7 +9,7 @@ vale la fecha de consulta. Lo marcado «sin fuente» no se pudo confirmar.
 | # | Qué | Decisión (Felipe, 2026-11-14) | Migración |
 |---|---|---|---|
 | 1 | Cambio de talla de una prenda con descuento | El mismo modelo no paga nada; solo lo que la talla nueva cuesta de más | `20261114125000` |
-| 2 | Una prenda con dos ofertas | Avisar a quien configura para que elija; ver Shopify | pendiente |
+| 2 | Una prenda con dos ofertas | Avisar a quien configura para que elija; mientras tanto, la que más ahorra (como Shopify) | `20261114155000`; falta el aviso |
 | 3 | Oferta sobre una insignia desactivada | Deja de rebajar | `20261114130000` |
 | 4 | «Prenda sin registrar» en un monto de toda la compra | Se queda como está: cuenta | — |
 | 5 | Venta sin conexión que sube después de que empezó una oferta | Vale la hora de la venta | `20261114132000` |
@@ -69,8 +69,9 @@ El único cruce que suma las dos es **rebaja + 3x2**.
 - Salesforce B2C: por exclusividad y rango, y al final la mejor para el comprador.
 - Oracle RPM: bloquea al aprobar la promoción, como CAYLA.
 
-**Decisión de Felipe:** avisarle a quien configura qué prendas tienen varias ofertas, para que elija con cuál se queda. Sigue abierto qué
-cobra la caja mientras nadie elige.
+**Decisión de Felipe:** avisarle a quien configura qué prendas tienen varias ofertas, para que elija con cuál se queda. Mientras nadie
+elige, «Como Shopify: la mejor»: la caja cobra la que más le ahorra al cliente en esa compra, nunca las dos. Construido en `20261114155000`
+(la base) y en la caja, Apartar y la bolsa web; el aviso en Campañas va aparte.
 
 ## 3. Una oferta sobre una insignia desactivada
 
