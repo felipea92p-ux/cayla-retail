@@ -138,16 +138,30 @@ function Reparto({
       requestAnimationFrame(() => el.querySelector('[data-guia="recepcion.danadas-contar"]')?.scrollIntoView({ block: "nearest" }));
       return;
     }
-    if (window.matchMedia("(pointer: fine)").matches) el.querySelector<HTMLInputElement>("input.rc-celda:not(:disabled)")?.focus({ preventScroll: true });
+    // Por su `data-variante`, no por una clase: desde que cada casilla es un `PasoCantidad` (2026-11-12) ya ninguna lleva `rc-celda`, y el cursor se quedaba en la × de la hoja.
+    if (window.matchMedia("(pointer: fine)").matches) el.querySelector<HTMLInputElement>("input[data-variante]:not(:disabled)")?.focus({ preventScroll: true });
     // Una sola vez, al llegar la tabla.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  /** Enter en la última casilla: el cursor sale de la tabla hacia lo que sigue. Si la hoja ya ofrece qué hacer con lo repartido (llevarlo al stock), va a ese botón; si no, a «Agregar talla o color». */
+  /**
+   * Enter en la última casilla: el cursor sale de la tabla hacia lo que sigue, el botón del pie de la hoja (llevar lo repartido al stock). Recién repartido, ese botón espera
+   * apagado a que lo escrito se guarde: se le da hasta 3 s para encenderse, mientras el cursor siga en la casilla. Si la hoja no tiene pie, va a «Agregar talla o color».
+   */
   function salirDeLaTabla() {
     const el = raiz.current;
+    const casilla = document.activeElement;
     if (!el) return;
-    (el.parentElement?.querySelector<HTMLElement>("[data-pie-repartir] button:not(:disabled)") ?? el.querySelector<HTMLElement>("[data-pie-tabla] button"))?.focus();
+    const pie = () => el.parentElement?.querySelector<HTMLElement>("[data-pie-repartir]") ?? null;
+    const intentar = (quedan: number) => {
+      // La persona ya llevó el cursor a otra parte (o la hoja se cerró): no se le quita.
+      if (document.activeElement !== casilla) return;
+      const boton = pie()?.querySelector<HTMLElement>("button:not(:disabled)");
+      if (boton) return boton.focus();
+      if (!pie()?.querySelector("button")) return void el.querySelector<HTMLElement>("[data-pie-tabla] button")?.focus();
+      if (quedan > 0) window.setTimeout(() => intentar(quedan - 1), 150);
+    };
+    intentar(20);
   }
 
   function quitar(tipo: "talla" | "color", eje: Eje) {
