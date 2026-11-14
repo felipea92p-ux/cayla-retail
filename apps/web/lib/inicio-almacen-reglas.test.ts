@@ -636,7 +636,9 @@ describe("las tres cifras de «por colgar» —«Hoy», «Para hoy» y el Inicio
     const pagina = fuente("app/(app)/inventario/page.tsx");
     expect(pagina).toMatch(/planDelPanel\(plan, filas\)/);
     expect(pagina).toMatch(/plan=\{planParaPanel\}/);
-    expect(panel).toMatch(/usePlanDelPiso\(plan, stockSinPlan\)/);
+    // El plan va encima de las filas con su Ritmo reciente (que también llega aparte, 2026-11-13), que salen del stock de la página.
+    expect(panel).toMatch(/useRitmoReciente\(ritmo, stockSinPlan\)/);
+    expect(panel).toMatch(/usePlanDelPiso\(plan, ritmoReciente\.filas\)/);
     expect(panel).toMatch(/const listaDelDia = planDelPiso\.listaDelDia/);
     const reglaDelPlan = fuente("lib/existencias-plan-panel.ts");
     expect(reglaDelPlan).toMatch(/planPiso: plan\.porTalla\[f\.varianteId\]/);

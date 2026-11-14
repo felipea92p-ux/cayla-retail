@@ -43,6 +43,7 @@ import type { FilaExistencias } from "@/lib/inventario-v2";
 import { FOTO_PANEL_TALLA } from "@/lib/fotos-tamanos";
 import { prefiereQuieto } from "@/lib/movimiento-cliente";
 import { fondoDelPunto } from "@/lib/color-combinado";
+import { Calculando } from "@/components/Esqueleto";
 
 type Vista = "talla" | "todas";
 type Prenda = PrendaAgrupada<FilaExistencias>;
@@ -90,6 +91,7 @@ const solesDe = (n: number | null | undefined) => (n == null ? null : `S/\u00a0$
 const TONO_PUNTO = { ambar: "bg-ambar", pizarra: "bg-pizarra", tinta: "bg-tinta" } as const;
 const TONO_INSIGNIA = { ambar: "text-ambar", pizarra: "text-pizarra", tinta: "text-tinta" } as const;
 const SIN_FALTA: ReadonlySet<string> = new Set();
+const SIN_CALCULAR: ReadonlySet<string> = new Set();
 const escribiendo = (el: Element | null) => !!el && (el.tagName === "INPUT" || el.tagName === "TEXTAREA" || (el as HTMLElement).isContentEditable);
 /** Los cuatro botones de la prenda, la misma cara que en la vista rápida de Catálogo (una función, una pieza). */
 const BOTON_PRENDA = "btn-cayla btn-secundario min-h-10 gap-1.5 text-[12.5px]";
@@ -147,6 +149,7 @@ export function PanelTalla({
   enSedeActiva,
   puedeReportarDanada = false,
   lugarDanadas = null,
+  ritmoCalculando = SIN_CALCULAR,
   hrefCatalogo,
   fotoDesde = null,
   onAjustarCompleto,
@@ -190,6 +193,9 @@ export function PanelTalla({
   puedeReportarDanada?: boolean;
   /** Dónde deja la tienda las prendas dañadas (ADR-0564): «Reportar dañada» lo repite. */
   lugarDanadas?: string | null;
+  /** Las tallas cuyo Ritmo reciente viene en camino (llega después que la lista, `lib/existencias-ritmo-panel.ts`): «¿Cómo se vende?» dice
+   *  «calculando» mientras alguna talla del color lo espera, en vez de no decir nada y aparecer de golpe. */
+  ritmoCalculando?: ReadonlySet<string>;
   /** El enlace a Catálogo ▸ Productos con esta prenda, solo si el rol ve Productos. */
   hrefCatalogo?: (referencia: string) => string;
   /** La miniatura de la tarjeta desde la que se abrió: la foto cruza desde ahí hasta el modal. `null`: entra sin cruzar. */
@@ -408,6 +414,7 @@ export function PanelTalla({
   // regla de Felipe para decir una tasa (3, 2026-09-25), y el panel quedaba en «Poco tiempo…». De la talla va debajo un hecho, no una
   // tasa: cuántas se vendieron en la ventana del ritmo.
   const ritmoColor = ritmoDePrenda(prenda);
+  const calculandoRitmo = prenda.tallas.some((t) => ritmoCalculando.has(t.varianteId));
   const ritmo = textoDeRitmo(ritmoColor);
   const vendidasTalla = vendidasDeLaTalla(fila.ritmoReciente);
   const precio = solesDe(prenda.precio);
@@ -1103,7 +1110,12 @@ export function PanelTalla({
                         </div>
 
                         {/* ¿Cómo se vende? A la vista (antes plegado bajo «¿Cómo se vende?»). */}
-                        {(ritmo || vendidasTalla !== null) && (
+                        {calculandoRitmo ? (
+                          // El alto del bloque de abajo (aro de 40 px + dos líneas), para que nada salte cuando llega.
+                          <div className="rounded-xl bg-hueso px-3 py-2.5">
+                            <Calculando className="h-10 w-full rounded-lg" />
+                          </div>
+                        ) : (ritmo || vendidasTalla !== null) && (
                           <div data-guia="existencias.cajon-ritmo" className="flex items-center gap-3 rounded-xl bg-hueso px-3 py-2.5 text-sm text-tinta/85">
                             {ritmo && <AroSemanas ritmo={ritmoColor} />}
                             <div className="min-w-0">
