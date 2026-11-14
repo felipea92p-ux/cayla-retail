@@ -361,7 +361,7 @@ export const GUIA_FIN_GASTOS: Guia = {
       opcional: true,
       preparar: [{ tipo: "clic", ancla: "fin-gastos.registrar" }],
       titulo: "Cinco toques",
-      texto: "Cuánto, para qué sede, en qué, qué fue y si tiene comprobante. La parte que sigue se ilumina sola. Si eliges factura, boleta o recibo, aparecen el RUC (que se busca solo en SUNAT) y la serie. Con el QR del papel se llena solo. Si el IGV no es el 18 % o salió del banco otro día, lo dices.",
+      texto: "Cuánto, para qué sede, en qué, qué fue y si tiene comprobante. Lo que sigue se ilumina solo. Con factura, boleta o recibo aparecen el RUC (se busca en SUNAT) y la serie; el QR del papel los llena. Al final eliges de qué cuenta salió y, si es un banco, si fue Yape, Plin o transferencia.",
     },
     {
       id: "hoja-repetir",
