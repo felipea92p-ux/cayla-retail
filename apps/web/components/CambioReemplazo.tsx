@@ -358,8 +358,10 @@ export function CambioReemplazo({
                   color: r.varianteNueva.color,
                   colorHex: r.varianteNueva.colorHex,
                   fotoUrl: r.varianteNueva.fotoUrl,
-                  // El precio con que se calcula la diferencia (`precioParaCambio`): la misma prenda vale lo de la tienda donde se compró.
+                  // El precio con que se calcula la diferencia: la misma prenda vale lo que pagó por la devuelta (ADR-0655); otra, su
+                  // precio de cambio (`precioParaCambio`).
                   precio: r.precioNueva ?? r.varianteNueva.precio,
+                  detalle: r.detalleNueva,
                 }
               : null
           }

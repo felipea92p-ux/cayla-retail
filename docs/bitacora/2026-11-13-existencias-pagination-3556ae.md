@@ -1,0 +1,5 @@
+## 2026-11-13 — El Ritmo reciente de Existencias llega después que la lista (ADR-0662 act. b)
+
+- **Qué:** la lista de `/inventario` ya no espera al Ritmo reciente. La página le pasa al panel su promesa (`ritmoDelPanel`) y el panel lo pone en cada fila al llegar (`useRitmoReciente` → `aplicarRitmo`), calculando ahí la cobertura con el piso de la fila; mientras tanto, «Cobertura piso», «Ritmo reciente» y «¿Cómo se vende?» dicen «calculando». `existencias_tramos` suma `bytes.ritmo`.
+- **Por qué:** se analizó si Existencias tarda por paginar en el navegador (sí trae las 1.953 tallas de TRU y ~2 MB). Pero en producción el tramo más largo antes de la lista era el ritmo: 0,9–1,5 s después de las prendas, solo para dos columnas secundarias. Paginar en el servidor se descartó: cada filtro y cada letra del buscador costaría un viaje (≥0,5 s desde Perú).
+- **Cómo se verifica:** `vitest` de la web (906 archivos), `tsc` y `knip` en verde; en el navegador local con el ritmo demorado a propósito: lista e hidratación a los ~0,7 s, bandas «calculando» hasta que llega, sin mover lo de arriba. En producción: `lista_ms` de `existencias_tramos` (antes 1,5–2,4 s en TRU).

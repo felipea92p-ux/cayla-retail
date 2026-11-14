@@ -199,24 +199,31 @@ describe("«Salió de» (chaos 2026-10-23, hallazgo 1: proponía un banco y camb
   });
   const CUENTAS = [c("interbank", "banco", null, true, ["transferencia"]), c("fuerte-lima", "caja_fuerte", "lima"), c("cajon-lima", "cajon", "lima"), c("cajon-tru", "cajon", "tru", false)];
 
-  it("sin comprobante y con la caja de esa sede abierta, propone el cajón (no un banco)", () => {
-    expect(salidaDeLaHoja(CUENTAS, { sede: "lima", comprobante: "sin_comprobante" }, "", false)).toBe("cajon-lima");
-    expect(salidaDeLaHoja(CUENTAS, { sede: "lima", comprobante: "" }, "", false)).toBe("cajon-lima");
-  });
-
-  it("con comprobante, o con la caja cerrada, propone lo de siempre", () => {
-    expect(salidaDeLaHoja(CUENTAS, { sede: "lima", comprobante: "factura" }, "", false)).toBe("interbank");
-    expect(salidaDeLaHoja(CUENTAS, { sede: "tru", comprobante: "sin_comprobante" }, "", false)).toBe("interbank");
+  it("no propone ninguna cuenta: ni el cajón sin comprobante ni un banco con comprobante (Felipe 2026-11-13)", () => {
+    expect(salidaDeLaHoja(CUENTAS, "")).toBeNull();
   });
 
   it("lo que la persona eligió se queda mientras sirva", () => {
-    expect(salidaDeLaHoja(CUENTAS, { sede: "lima", comprobante: "sin_comprobante" }, "fuerte-lima", false)).toBe("fuerte-lima");
+    expect(salidaDeLaHoja(CUENTAS, "fuerte-lima")).toBe("fuerte-lima");
+    expect(salidaDeLaHoja(CUENTAS, "interbank")).toBe("interbank");
   });
 
   it("al cambiar de sede, si la cuenta ya no sirve, queda por elegir; si sirve (un banco), se queda", () => {
     const sinCajonDeLima = CUENTAS.filter((x) => x.id !== "cajon-lima");
-    expect(salidaDeLaHoja(sinCajonDeLima, { sede: "tru", comprobante: "sin_comprobante" }, "cajon-lima", true)).toBeNull();
-    expect(salidaDeLaHoja(sinCajonDeLima, { sede: "tru", comprobante: "sin_comprobante" }, "interbank", true)).toBe("interbank");
+    expect(salidaDeLaHoja(sinCajonDeLima, "cajon-lima")).toBeNull();
+    expect(salidaDeLaHoja(sinCajonDeLima, "interbank")).toBe("interbank");
+  });
+
+  it("el cajón de una caja cerrada no se puede usar", () => {
+    expect(salidaDeLaHoja(CUENTAS, "cajon-tru")).toBeNull();
+  });
+
+  it("de un banco sin decir cómo, no guarda y pide el camino", () => {
+    const h = { ...hojaVacia("2026-11-13", "lima"), monto: "51.97", categoria: "tributos", descripcion: "Licencia", comprobante: "sin_comprobante" as const };
+    const r = validarHoja(h, "", { medio: "", cuentaId: "interbank", cajaId: "", referencia: "", banco: true }, "2026-11-13");
+    expect(r).toMatchObject({ ok: false, campo: "salida", error: "Di cómo salió del banco: transferencia, Yape o Plin." });
+    const conYape = validarHoja(h, "", { medio: "yape", cuentaId: "interbank", cajaId: "", referencia: "", banco: true }, "2026-11-13");
+    expect(conYape.ok && conYape.valor.p_medio_pago).toBe("yape");
   });
 });
 

@@ -400,7 +400,10 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
   ADR-0328 decisión 5—; solo para quien opera esa sede; vía `lib/piso-plan-servidor.ts`, que se la pasa al motor puro
   `lib/piso-plan.ts`: «Hoy» de cada talla —por colgar · sin stock atrás · mantener, más «En pausa»—, la lista del
   día y «se vendió rápido y falta»; la
-  decisión viaja en `FilaExistencias.planPiso` y la leen la tabla, el filtro, la tarjeta, el cajón y «Subir prenda»; ningún
+  decisión viaja en `FilaExistencias.planPiso` —desde el 2026-11-13 (ADR-0662) en dos tiempos: la página no espera al plan, le pasa al
+  panel su PROMESA recortada a las tallas de la sede (`lib/existencias-plan-panel.ts:planDelPanel`) y el panel la pone en cada fila al
+  llegar (`components/existencias/usePlanDelPiso.ts` → `aplicarPlan`); mientras tanto, «calculando»— y la leen la tabla, el filtro, la
+  tarjeta, el cajón y «Subir prenda»; cada carga deja la línea `existencias_tramos` en el registro (`lib/medir-tramos.ts`); ningún
   umbral de piso vive fuera de ese archivo, `lib/piso-plan-umbral.test.ts`; cuántas tallas hay «por colgar» o «en pausa» lo
   cuenta solo `porColgarDeLaSede`, `lib/existencias-para-hoy.ts`, con el orden de la lista del día) →
   `InventarioPanel.tsx` (tres tarjetas, filtros en memoria —el buscador es el Filtro de búsqueda especial,
@@ -673,7 +676,12 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
   `TilePrenda` (`MosaicoPrenda` con el ícono de la categoría, ADR-0333).
   · **Existencias** (`/inventario`) tiene su propio ritmo y cobertura: `getRitmoRecientePorVariante`
   (`lib/existencias-ritmo-servidor.ts`, RPC `fn_ritmo_reciente_json`), dato secundario que degrada a «N/D» (nunca tumba la
-  pantalla). El `getCoberturaPorVariante` de `resumen-inventario.ts` ya no lo llamaba nadie y se borró el 2026-10-06.
+  pantalla). Desde el 2026-11-14 arranca con las cantidades delgadas de la sede (`getCantidadesDeSede` + `pisoDeCadaTalla`,
+  `lib/stock-de-sede-reglas.ts`), que la lista reutiliza (`getExistencias(…, { cantidades })`): ya no espera a la lista entera. Y la lista
+  tampoco lo espera a él (ADR-0662, act. b): la página le pasa al panel su promesa (`lib/existencias-ritmo-panel.ts:ritmoDelPanel`) y el
+  panel lo pone en cada fila al llegar (`components/existencias/useRitmoReciente.ts` → `aplicarRitmo`, que calcula ahí la cobertura con el
+  piso de la fila); mientras tanto, sus dos columnas y «¿Cómo se vende?» dicen «calculando».
+  El `getCoberturaPorVariante` de `resumen-inventario.ts` ya no lo llamaba nadie y se borró el 2026-10-06.
 - `/inventario/recibir` (sin factura) **ya no existe como pantalla** (ADR-0330, 2026-10-04): se fundió en la puerta «Llegó
   mercadería» de `/recibir` y la ruta es un redirect de `next.config.ts`.
 - **«Agregar proveedor» desde `/recibir`** (2026-10-10): `LlegoMercaderia.tsx` abre el mismo `ProveedorModal` de Compras ▸
@@ -1597,6 +1605,11 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
   `components/mi-plata/HojaCorregirGasto.tsx` (los campos de «Gasté en otra cosa», que son la pieza `CamposDelGasto.tsx`, con lo anotado puesto) →
   `lib/corregir-gasto-acciones.ts` (`fn_gasto_para_corregir`, `corregir_gasto_rapido`, firma `gasto_corregir`) + `lib/corregir-gasto-reglas.ts` (puro). Solo con el gasto `por_completar`
   y su ronda abierta (una cerrada se reabre antes, ADR-0569). El rastro (`compra_gasto_correcciones`, `fn_gasto_correcciones`) se ve con `CorreccionesDeCompra gastoId`.
+  «Por definir» (ADR-0660, migración `20261113211000`): «Algo nuevo» (`HojaPrenda.tsx`) anota la categoría «Por definir» y el precio «A la espera de precio
+  sugerido» (`lineasParaBase` manda `categoria_por_definir` / `precio_por_definir` a `registrar_compra_rapida`). La sección y la hoja «Definir»
+  (`components/mi-plata/PorDefinir.tsx`, en `/compras/fondos` y `/compras/mi-plata`) leen `fn_compras_por_definir` (`lib/por-definir.ts`) y guardan con
+  `definir_prenda_de_compra` (firma `compra_definir`); reglas puras en `lib/por-definir-reglas.ts`. «Te toca» suma `porDefinir` (`lib/inicio.ts` →
+  `lib/inicio-avisos.ts`). En Recibir la línea llega con `CATEGORIA_POR_DEFINIR` (`lib/recepcion-envio-reglas.ts`) y se define con `corregir_linea_al_contar`.
 - ~~**Notas de crédito**~~ (retirada el 2026-10-22, ADR-0480: la pantalla, sus modales y `lib/notas-credito*.ts` se borraron;
   `/compras/notas-credito` redirige a `/compras`; las tablas y RPC de abajo siguen en la base). Lo que era (2026-09-19, ADR-0142): `/compras/notas-credito` (quien tiene Notas de crédito: ADR-0161 y ADR-0387; nació solo del líder) → `lib/notas-credito.ts`
   (lectura) + `lib/notas-credito-reglas.ts` (puro: urgencia a 14 días, FIFO para deducir «Aplicada», las tres
@@ -2220,6 +2233,18 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
     Tablas `periodos`, `periodo_cierres`, `diario_cerrado` (con hash); disparadores de bloqueo por fecha en gastos, compras
     y sus pagos y notas, reembolsos, activos, movimientos de dinero, ventas de prueba y costo de lo vendido.
   - `/finanzas/resumen` → también «Cada sede, junta» (tarea 27 de «Las 36», 2026-11-06): `getEstadoResultados` + `getBalancePorTienda` → `lib/sedes-juntas-reglas.ts` → `components/finanzas/SedesJuntas.tsx`. Los sueldos estimados de un tramo se piden en un solo lugar (`hastaDeLaProvision`, `lib/planilla-provision-reglas.ts`).
+  - `/finanzas/resumen` → **desde 2026-11-13, por bloques (ADR-0661)**: el Resumen se lee en TRES lecturas a la vez de
+    `fn_resumen_finanzas_partes` (`lectorDelResumen`, `lib/resumen-finanzas.ts`; los grupos y cómo se juntan en `lib/resumen-finanzas-partes.ts`;
+    `fn_resumen_finanzas` es su envoltorio con todas las partes, migración `20261113235000`). La página espera solo la rápida (`rapido`) y le pasa
+    lo demás al panel como promesas (`LecturasDelResumen`); cada bloque de `components/finanzas/ResumenFinanzas.tsx` hace `use()` de lo suyo dentro
+    de su `Suspense`, con `EsperaBloque` (`components/finanzas/bolsillos/EsperaBloque.tsx`) en su lugar. Las cuentas que cada bloque arma con lo que
+    le llegó viven en `lib/resumen-bloques.ts` (`armarCaja`, `armarMes`). Una «puerta» deja correr primero la rápida y el mes. Los logs:
+    `finanzas_resumen_ms` (las 13 partes) y `finanzas_resumen_bloque` (cuándo pudo dibujarse cada bloque). Sin la función por partes, lee la entera
+    una vez y la reparte.
+    **Desde 2026-11-14 (ADR-0661, actualización):** el grupo del mes trae el presupuesto y, mirando CAYLA entera del 1 a hoy, la parte `balance`, los
+    tres con UN estado de resultados (`fn_presupuesto_vs_real_de` / `fn_balance_por_tienda_de` lo aceptan ya armado; migración `20261114005000`;
+    `getBalancePorTiendaDeFilas`, `lib/balance.ts`). «Movimientos» pide sus días con `fn_flujo_caja_real_dias` (`getFlujoRealDias`,
+    `lib/flujo-caja.ts`; migración `20261114010000`), que lee los saldos una vez por fecha; sin ella, día por día como antes.
   - `/finanzas/resumen` → **desde 2026-11-09, camino «A · Bolsillos» (ADR-0493, actualización 2026-11-09)**: las fechas con `SelectorPeriodo`
     (`leerPeriodo`/`periodoAnterior`, `lib/estados-periodo.ts`); «Libre para usar» y sus bolsillos (`lib/bolsillos-reglas.ts` →
     `components/finanzas/bolsillos/SaldoLibre.tsx`); «Noviembre va así» (`lib/te-deja-mes-reglas.ts` + `equilibrioMes` → `TarjetaMes.tsx`);

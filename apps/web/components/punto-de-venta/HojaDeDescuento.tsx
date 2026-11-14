@@ -29,6 +29,7 @@ export function HojaDeDescuento({
   onAplicar,
   onQuitar,
   onVolver,
+  conOfertas,
 }: {
   descuento: DescuentoForm;
   onDescuento: (cambio: Partial<DescuentoForm>) => void;
@@ -39,8 +40,10 @@ export function HojaDeDescuento({
   onAplicar: () => void;
   onQuitar: () => void;
   onVolver: () => void;
+  /** El carrito con sus ofertas de grupo y su monto, como se cobra (ADR-0655): «Quedaría en» dice el total de verdad. */
+  conOfertas?: (lineas: ItemCarrito[]) => ItemCarrito[];
 }) {
-  const cuenta = cuentaDelDescuento(descuento, carrito, vale);
+  const cuenta = cuentaDelDescuento(descuento, carrito, vale, conOfertas);
   const { porMonto, pct, monto, valorValido, elegidasCuenta, todasLasPrendas, motivoDescuento, hayDescuentoEnAlcance } = cuenta;
   const verQuedaria = valorValido && elegidasCuenta > 0;
   const texto = !valorValido ? "—" : porMonto ? `−${money(monto)}` : `−${pct}%`;

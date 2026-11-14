@@ -38,7 +38,7 @@ import { ExistenciasVacio } from "@/components/ExistenciasVacio";
 import { ParaHoy, type AccionTarea } from "@/components/existencias/ParaHoy";
 import { entradaPorColgar, porColgarDeLaSede, tareasParaHoy, type TipoTareaHoy } from "@/lib/existencias-para-hoy";
 import { ExistenciasPorPrenda } from "@/components/ExistenciasPorPrenda";
-import { ExistenciasTarjetas } from "@/components/ExistenciasTarjetas";
+import { ALTO_TARJETA, ExistenciasTarjetas, REJILLA_TARJETAS } from "@/components/ExistenciasTarjetas";
 import { conteoDeLista, opcionesOrden, ordenarModelos, tarjetasDeExistencias, type OrdenPrendas } from "@/lib/existencias-tarjetas";
 import { PanelTalla, type FlujoPedido, type MarcaDelFiltro } from "@/components/existencias/PanelTalla";
 import { AnilloMision } from "@/components/existencias/AnilloMision";
@@ -72,6 +72,11 @@ import type { Sububicacion } from "@/lib/sububicaciones";
 import { BotonDescargar } from "@/components/ui/BotonDescargar";
 import { BarraDeAbajo } from "@/components/ui/BarraDeAbajo";
 import { prefiereQuieto } from "@/lib/movimiento-cliente";
+import { Calculando, EsqueletoTabla } from "@/components/Esqueleto";
+import { listaQueOrdena, TEXTO_PLAN_FALLO, type PlanDelPanel } from "@/lib/existencias-plan-panel";
+import { TEXTO_RITMO_FALLO, type RitmoDelPanel } from "@/lib/existencias-ritmo-panel";
+import { usePlanDelPiso } from "@/components/existencias/usePlanDelPiso";
+import { useRitmoReciente } from "@/components/existencias/useRitmoReciente";
 
 const TODAS = "__todas__";
 
@@ -84,7 +89,9 @@ const PUNTO_HOY = { ambar: "bg-ambar", verde: "bg-verde", pizarra: "bg-pizarra" 
 /** El caso de «Hoy» de UNA talla (columna de la tabla «Por talla»): las mismas palabras y el mismo tono que el filtro, la tarjeta y
  *  el cajón. «Por colgar» dice cuántas se pueden bajar; «Sin stock atrás», si viene algo en camino; «En pausa», que espera el
  *  cuadre del piso. «N/D» solo cuando no se sabe (el motor no respondió). */
-function ChipHoy({ f }: { f: FilaExistencias }) {
+function ChipHoy({ f, calculando }: { f: FilaExistencias; calculando: boolean }) {
+  // El plan del piso viene en camino (Existencias en dos tiempos): el lugar del chip. «N/D» queda para cuando no respondió.
+  if (calculando) return <Calculando />;
   const h = estadoHoyDeTalla(f);
   if (!h) return <span className="text-sm text-tinta/40">N/D</span>;
   if (h === "por_colgar") {
@@ -109,6 +116,29 @@ function ChipHoy({ f }: { f: FilaExistencias }) {
     </>
   );
 }
+/** El piso nunca cuadrado, sobre las tarjetas (ADR-0391). Lo usan la lista y el lugar que la guarda mientras llega el plan: así no aparece
+ *  de golpe sobre las prendas cuando el plan llega (Existencias en dos tiempos). */
+function AvisoPisoSinCuadrar() {
+  return (
+    <Aviso
+      tono="atencion"
+      guia="existencias.aviso-cuadre"
+      className="mb-3"
+      titulo="El piso de esta tienda nunca se ha cuadrado"
+      accion={
+        <Link href="/inventario/cuadrar" className="btn-cayla btn-secundario btn-chico whitespace-nowrap">
+          Cuadrar el piso
+        </Link>
+      }
+    >
+      {/* En el teléfono el título basta: la explicación empujaba la primera prenda bajo el pliegue (verificado a 375 px, 2026-11-02). */}
+      <span className="max-sm:hidden">
+        Lo que dice «en almacén» puede estar colgado: los números del almacén no están verificados hasta el primer cuadre.
+      </span>
+    </Aviso>
+  );
+}
+
 /** El buscador, para devolverle el foco cuando un botón del estado vacío (que se desmonta al volver las filas) lo tenía. */
 function enfocarBuscador() {
   requestAnimationFrame(() => document.getElementById(ID_BUSCADOR_EXISTENCIAS)?.focus());
@@ -140,7 +170,9 @@ function textoMostrando(p: { desde: number; hasta: number; totalPaginas: number 
  *  Diseño aprobado (2026-09-28): la cifra va en una etiqueta suave. Rojo cuando ya no queda piso («0 d»), ámbar mientras
  *  «Acción hoy» pide reponer; sin acción, texto llano. El color sigue a «Acción hoy» (única fuente de verdad) y a la
  *  cobertura solo para el «0 d»: la cobertura nunca decide nada, solo informa. */
-function CeldaCoberturaPiso({ f }: { f: FilaExistencias }) {
+function CeldaCoberturaPiso({ f, calculando }: { f: FilaExistencias; calculando: boolean }) {
+  // El Ritmo reciente viene en camino (llega después que la lista): el lugar de la cifra. «N/D» queda para cuando no respondió.
+  if (calculando) return <Calculando className="h-6 w-12 rounded-lg" />;
   const c = f.coberturaPiso;
   if (!c) {
     return (
@@ -189,7 +221,7 @@ function CeldaCoberturaPiso({ f }: { f: FilaExistencias }) {
 // (lo libre en piso / almacén), Cobertura piso, Ritmo reciente, En camino, Acción hoy y En la red.
 export function InventarioPanel({
   ubicacionId,
-  stock,
+  stock: stockSinPlan,
   resumen,
   enCamino,
   sububicaciones,
@@ -207,8 +239,8 @@ export function InventarioPanel({
   apartados,
   editaCatalogo = false,
   puedeAjustar,
-  coberturaFallo = null,
-  planFallo = null,
+  ritmo = null,
+  plan = null,
   sedeNombre,
   sinStock,
   marcaFallo = null,
@@ -221,10 +253,9 @@ export function InventarioPanel({
   panelFiltros = "abierto",
   coloresCatalogo = [],
   sinRegistrar = null,
-  pisoSinCuadrar = false,
+  pisoSinCuadrarAntes = false,
   destinosParaEnviar = [],
   sedesParaPedir = [],
-  listaDelDia = SIN_LISTA,
 }: {
   ubicacionId: string;
   stock: FilaExistencias[];
@@ -260,10 +291,14 @@ export function InventarioPanel({
   editaCatalogo?: boolean;
   /** ¿Puede ajustar stock fuera de una venta? Un líder o la terminal administrativa (ADR-0160). */
   puedeAjustar: boolean;
-  /** Si la cobertura no se pudo calcular: el aviso (las filas quedan en «N/D»); null = todo bien. */
-  coberturaFallo?: string | null;
-  /** El motor del piso no respondió (`fn_piso_plan_lectura`): «Hoy» queda en N/D y la pantalla lo dice, en vez de callar. */
-  planFallo?: string | null;
+  /** El Ritmo reciente (`fn_ritmo_reciente_json`), que llega DESPUÉS que la lista (2026-11-13, `lib/existencias-ritmo-panel.ts`): la
+   *  promesa que pasa la página. Responde `null` si no se pudo calcular: «Cobertura piso» y «Ritmo reciente» dicen N/D y la pantalla lo
+   *  avisa. `null` en vez de promesa donde no se pide (el Taller). Mientras llega, esas dos columnas y «¿Cómo se vende?» dicen «calculando». */
+  ritmo?: PromiseLike<RitmoDelPanel | null> | null;
+  /** El plan del piso (`fn_piso_plan_lectura`), que llega DESPUÉS que la lista (Existencias en dos tiempos, 2026-11-13): la promesa que
+   *  pasa la página, recortada a las tallas de la sede (`planDelPanel`). Responde `null` si el motor no respondió: «Hoy» queda en N/D y la
+   *  pantalla lo dice. `null` en vez de promesa donde no se pide (el Taller). Mientras llega, lo que depende de él dice «calculando». */
+  plan?: PromiseLike<PlanDelPanel | null> | null;
   /** El nombre de la sede que se mira, para decir «Tienda TRU no lo ha recibido» en el estado vacío. */
   sedeNombre: string;
   /** Los productos ACTIVOS del catálogo que esta sede no tiene (ni una fila de stock): la pantalla nace de `stock`, así que
@@ -292,17 +327,30 @@ export function InventarioPanel({
   coloresCatalogo?: ColorDeCatalogo[];
   /** Ventas sin registrar de esta sede (ADR-0330, viven en Existencias): pendientes y vencidas. `null` = no es una tienda; «fallo» = no se pudo leer. */
   sinRegistrar?: { pendientes: number; vencidas: number } | "fallo" | null;
-  /** La sede separa piso y almacén y NUNCA cuadró su piso (`plan.enPausa`, ADR-0328 d.5): el aviso sobre las tarjetas dice que lo
-   *  «guardado» puede estar colgado, con el camino a Cuadrar. `false` también cuando el plan no respondió (eso lo dice `planFallo`). */
-  pisoSinCuadrar?: boolean;
+  /** La sede separa piso y almacén y NUNCA cuadró su piso, según la capacidad (`fn_capacidad_piso.cuadrado_en`), que llega con la lista:
+   *  el aviso sobre las tarjetas sale desde el principio, sin esperar al plan. Cuando el plan llega, manda su `enPausa` (ADR-0328 d.5). */
+  pisoSinCuadrarAntes?: boolean;
   /** A qué sedes se puede mandar lo que se sube «para enviar» (ADR-0328 act. 17). Vacío: «Subir prenda» no ofrece enviar. */
   destinosParaEnviar?: readonly { id: string; nombre: string }[];
   /** Las otras tiendas a las que esta sede puede pedir (`sedesParaPedir`): «Pedir a otra sede» del panel de la talla. */
   sedesParaPedir?: readonly { id: string; nombre: string }[];
-  /** La lista del día del motor del piso (`PlanDelPiso.listaDelDia`): las tallas para colgar hoy, en orden (lo vendido
-   *  ayer primero). La tarjeta «Reponer a piso hoy» y el orden sin búsqueda la siguen, como el Inicio de almacén. */
-  listaDelDia?: readonly string[];
 }) {
+  // Existencias en dos tiempos (2026-11-13, `lib/existencias-plan-panel.ts`): la lista llega con la página y el plan del piso un momento
+  // después. `stock` es la lista con la decisión de «Hoy» de cada talla ya puesta (`aplicarPlan`): todo lo de abajo la lee igual que antes.
+  // Mientras el plan llega (`planCalculando`), lo que depende de él dice «calculando»; si no respondió, «Hoy» dice N/D (`planFallo`).
+  // El Ritmo reciente llega igual, aparte (`useRitmoReciente`): se pone primero en cada fila, y el plan encima.
+  const ritmoReciente = useRitmoReciente(ritmo, stockSinPlan);
+  const ritmoCalculando = ritmoReciente.calculando;
+  const coberturaFallo = ritmoReciente.estado === "fallo" ? TEXTO_RITMO_FALLO : null;
+  const planDelPiso = usePlanDelPiso(plan, ritmoReciente.filas);
+  const stock = planDelPiso.filas;
+  const planCalculando = planDelPiso.estado === "calculando";
+  const planFallo = esTienda && planDelPiso.estado === "fallo" ? TEXTO_PLAN_FALLO : null;
+  // La lista del día del motor (lo vendido ayer primero): «Para hoy» empieza por ella y el orden sin búsqueda la sigue, como el Inicio de
+  // almacén. Sin plan, o con el piso en pausa, está vacía.
+  const listaDelDia = planDelPiso.listaDelDia;
+  // El piso nunca cuadrado (ADR-0328 d.5): lo adelanta la capacidad, que llega con la lista; cuando el plan llega, manda el plan.
+  const pisoSinCuadrar = planDelPiso.enPausa !== null ? esTienda && resumen.separaPisoAlmacen && planDelPiso.enPausa : pisoSinCuadrarAntes;
   // Los filtros viven en la URL (2026-10-03, misma estructura que Productos): recargar, volver de «Bajar al piso» o abrir un
   // enlace copiado los trae puestos. Cambiar uno reescribe la URL sin volver a pedir la página (`useFiltrosExistencias`).
   const { filtros, busqueda, aplicar, limpiar, teclear, fijarBusqueda, soltarBusqueda } = useFiltrosExistencias(resumen.separaPisoAlmacen);
@@ -470,9 +518,27 @@ export function InventarioPanel({
   const [pagina, setPagina] = useState(1);
   const firmaFiltros = [busqueda, categoria, marcaEfectiva, tallasElegidas.join(","), coloresElegidos.join(","), familiasElegidas.join(","), filtros.hoy ?? "", filtros.condicion ?? "", orden].join("\u0000");
   const [firmaPrevia, setFirmaPrevia] = useState(firmaFiltros);
-  if (firmaFiltros !== firmaPrevia) {
+  const cambiaLaVista = firmaFiltros !== firmaPrevia;
+  if (cambiaLaVista) {
     setFirmaPrevia(firmaFiltros);
     setPagina(1);
+  }
+  // El ORDEN de la lista del día llega con el plan, después que las tarjetas. La primera vez solo reordena si la persona todavía no tocó
+  // la lista, o cuando cambia de vista (un filtro, una página): reordenar bajo el dedo le cambiaría la tarjeta que iba a tocar (ADR-0185,
+  // `listaQueOrdena`). Los refrescos siguientes ordenan como siempre.
+  const [tocada, setTocada] = useState(false);
+  const [ordenDelDia, setOrdenDelDia] = useState<readonly string[] | null>(null);
+  const listaDelPlan = planDelPiso.estado === "listo" ? listaDelDia : null;
+  const ordenSiguiente = listaQueOrdena({ aplicada: ordenDelDia, delPlan: listaDelPlan, tocada, cambiaLaVista });
+  if (ordenSiguiente !== ordenDelDia) setOrdenDelDia(ordenSiguiente);
+  const listaQueOrdenaLaVista = ordenSiguiente ?? SIN_LISTA;
+  /** Una vista nueva (otra página, tarjetas ↔ tabla): si la primera lista del día quedó esperando, entra ahora. */
+  function ordenarConElPlanSiEspera() {
+    if (ordenDelDia === null && listaDelPlan !== null) setOrdenDelDia(listaDelPlan);
+  }
+  /** La persona empezó a usar la lista (tocó, desplazó o tecleó). Solo importa mientras la primera lista del día no llega. */
+  function marcarTocada() {
+    if (!tocada && ordenDelDia === null) setTocada(true);
   }
   // «Por colgar» va ordenada por percha: la página se estira hasta terminar la percha en curso, para que
   // la S y la M de una casaca no queden en la página 1 y su L en la 2.
@@ -484,8 +550,8 @@ export function InventarioPanel({
   const sinTexto = busqueda.trim() === "";
   const prendas = useMemo(() => {
     const agrupadas = agruparPorPrenda(filtradas);
-    return sinTexto ? ordenarPorListaDelDia(agrupadas, listaDelDia) : agrupadas;
-  }, [filtradas, sinTexto, listaDelDia]);
+    return sinTexto ? ordenarPorListaDelDia(agrupadas, listaQueOrdenaLaVista) : agrupadas;
+  }, [filtradas, sinTexto, listaQueOrdenaLaVista]);
   const paginaPrendas = paginar(prendas, pagina, FILAS_POR_PAGINA);
   // Las tarjetas: una por MODELO (sus colores van en la misma tarjeta), lo ya filtrado, en el orden elegido; con un caso de «Hoy», una
   // por PRENDA, para que sus pastillas sumen la cifra de «Para hoy» (`tarjetasDeExistencias`, ADR-0331 act. c). Sin `orden` (o con uno
@@ -508,6 +574,7 @@ export function InventarioPanel({
   const tarjetaTablaRef = useRef<HTMLDivElement>(null);
   function irAPagina(n: number) {
     setPagina(n);
+    ordenarConElPlanSiEspera();
     // El paginador está al pie: al cambiar de página, que la tabla empiece a leerse desde arriba.
     // Después de dibujar: una última página corta dejaba la vista abajo, en blanco (prueba ciega, 2026-11-03).
     requestAnimationFrame(() =>
@@ -698,8 +765,9 @@ export function InventarioPanel({
       tareasParaHoy({
         separa,
         porColgar: entradaPorColgar(cuentaPorColgar),
-        // Con el piso sin cuadrar, o con el motor caído, «por colgar» queda en 0: sin esto «Para hoy» decía «Todo al día».
-        piso: { enPausa: cuentaPorColgar.enPausa, fallo: planFallo !== null },
+        // Con el piso sin cuadrar, o con el motor caído, «por colgar» queda en 0: sin esto «Para hoy» decía «Todo al día». Mientras el plan
+        // llega, lo dice («Calculando qué colgar hoy»).
+        piso: { enPausa: cuentaPorColgar.enPausa, fallo: planFallo !== null, calculando: planCalculando },
         // Lo que ya viene en camino no se pide de nuevo (revisión 2026-10-04: una talla nueva que LIM le envía a TRU salía a la vez en
         // «en camino» y en «pídela a otra sede»).
         sinStockAtras: { tallas: stock.filter((f) => hoyDeTalla(f) === "sin_stock_atras" && f.enTransito === 0).length },
@@ -711,7 +779,7 @@ export function InventarioPanel({
         apartados: { vencidos: resumenApartados.vencidos },
         enCamino,
       }),
-    [separa, cuentaPorColgar, planFallo, stock, sinRegistrar, danadosPendientes.length, danadasViejas, enSedeActiva, resumenApartados.vencidos, enCamino]
+    [separa, cuentaPorColgar, planFallo, planCalculando, stock, sinRegistrar, danadosPendientes.length, danadasViejas, enSedeActiva, resumenApartados.vencidos, enCamino]
   );
   function verHoy(tipo: "por_colgar" | "sin_stock_atras") {
     aplicar({ hoy: tipo });
@@ -762,8 +830,9 @@ export function InventarioPanel({
         fila.push(
           f.piso ?? "—",
           f.almacen ?? "—",
-          f.coberturaPiso ? textoCoberturaPiso(f.coberturaPiso) : "—",
-          f.ritmoReciente ? textoRitmoReciente(f.ritmoReciente) : "—",
+          // Si se descarga antes de que llegue el ritmo, la celda lo dice: un «—» se leería como «no hay dato».
+          ritmoCalculando.has(f.varianteId) ? "Calculando" : f.coberturaPiso ? textoCoberturaPiso(f.coberturaPiso) : "—",
+          ritmoCalculando.has(f.varianteId) ? "Calculando" : f.ritmoReciente ? textoRitmoReciente(f.ritmoReciente) : "—",
           ((h) => (h ? TEXTO_HOY[h] : "—"))(estadoHoyDeTalla(f))
         );
       }
@@ -852,7 +921,13 @@ export function InventarioPanel({
 
   return (
     // En el celular, aire al final para que el botón fijo «Escanear» no tape la última prenda.
-    <div className="space-y-6 max-sm:space-y-4 max-sm:pb-24">
+    <div
+      className="space-y-6 max-sm:space-y-4 max-sm:pb-24"
+      // Mientras la primera lista del día no llega: si la persona ya usa la lista, el orden espera a su próximo cambio de vista.
+      onPointerDownCapture={marcarTocada}
+      onKeyDownCapture={marcarTocada}
+      onWheelCapture={marcarTocada}
+    >
       {/* «Para hoy» ya no ocupa la primera pantalla (Felipe, 2026-10-05: «como en la maqueta», que arranca con la barra y las tarjetas). Sus tareas
           —cuadrar el piso, ventas sin registrar, dañadas, apartados vencidos— siguen a un toque, en el botón «Pendientes» de la barra (ventana
           `viendoPendientes`, más abajo): sin ella, «Regularizar» y «Decidir» no tendrían entrada desde Existencias (ADR-0330 sacó «Regularizar» de la cabecera). */}
@@ -895,6 +970,7 @@ export function InventarioPanel({
             // El piso sin cuadrar ya no es una franja de texto sobre las tarjetas: va en el atajo «Por colgar» (pausa + su explicación).
             enPausa={separa && !planFallo ? tallasEnPausa : 0}
             avisoPausa={avisoPausaDelPiso(sedeNombre, tallasEnPausa)}
+            calculando={separa && planCalculando}
             panelInicial={panelFiltros}
             onEscanear={() => setCamara(true)}
             // `orden` solo ordena las tarjetas: la tabla conserva su orden.
@@ -907,7 +983,7 @@ export function InventarioPanel({
             // (cuadrar el piso, ventas sin registrar, dañadas…). En el Taller, que no tiene piso que colgar, el botón de siempre.
             alLadoDeFiltros={
               esTienda ? (
-                <AnilloMision ubicacionId={ubicacionId} filas={stock} tiendas={tiendasParaPedir} pendientes={tareasHoy.length} onAbrir={() => setViendoPendientes(true)} />
+                <AnilloMision ubicacionId={ubicacionId} filas={stock} tiendas={tiendasParaPedir} pendientes={tareasHoy.length} onAbrir={() => setViendoPendientes(true)} calculando={planCalculando} />
               ) : (
                 <button
                   type="button"
@@ -935,6 +1011,7 @@ export function InventarioPanel({
                   setVista(v === "tabla" ? "prenda" : "talla");
                 }
                 setPagina(1);
+                ordenarConElPlanSiEspera();
               },
             }}
             nota={
@@ -993,6 +1070,32 @@ export function InventarioPanel({
       )}
       {stock.length === 0 ? (
         <p className={`p-5 text-sm text-taupe ${verDetalle ? "" : "card-cayla"}`}>Esta ubicación no tiene stock todavía.</p>
+      ) : filtros.hoy && planCalculando ? (
+        // Con un caso de «Hoy» puesto (un atajo, o un enlace del Inicio con `?hoy=`), la lista ES el plan: mientras llega, su lugar, nunca
+        // «Nada por colgar». Lo escrito y los filtros siguen en la URL; al llegar el plan, la lista ocupa este lugar.
+        <div role="status" className={verDetalle ? "" : "mt-3.5"}>
+          <span className="sr-only">Calculando qué toca hoy</span>
+          {verDetalle ? (
+            <EsqueletoTabla filas={4} className="border-t border-sand" />
+          ) : (
+            <>
+              {pisoSinCuadrar && <AvisoPisoSinCuadrar />}
+              {/* La sombra de una fila de tarjetas, con su rejilla y su alto: las reales caen en su lugar. */}
+              <div aria-hidden className={REJILLA_TARJETAS}>
+                {[0, 1, 2].map((i) => (
+                  <div key={i} className={`card-cayla flex gap-3 p-2.5 ${ALTO_TARJETA}`}>
+                    <div className="h-[151px] w-[104px] shrink-0 animate-pulse rounded-xl bg-tinta/10" />
+                    <div className="flex min-w-0 flex-1 flex-col gap-3 pt-2">
+                      <div className="h-4 w-3/4 animate-pulse rounded bg-tinta/10" />
+                      <div className="h-4 w-1/3 animate-pulse rounded bg-tinta/10" />
+                      <div className="mt-1 h-20 animate-pulse rounded-xl bg-tinta/10" />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
+        </div>
       ) : filtradas.length === 0 ? (
         // «para vender», no «colgada»: la regla mira lo disponible, y lo colgado pero apartado no cuenta. Dice CUÁLES tallas piden
         // piso (las del centro y lo vendido): una talla extrema guardada sin ventas no es «por colgar».
@@ -1038,24 +1141,7 @@ export function InventarioPanel({
           {/* El piso nunca cuadrado (ADR-0391, medido el 2026-10-12: 0 cuadres en las tres tiendas; TRU con 881 «guardadas» contra 403
               «colgadas»): el motor del piso ya está en pausa por eso (ADR-0328 d.5) y la cifra de arriba dice «por cuadrar», pero la tarjeta
               decía «+3 guardadas» como si fuera verdad. Hasta el primer cuadre de la sede, se dice aquí, con el camino. */}
-          {pisoSinCuadrar && (
-            <Aviso
-              tono="atencion"
-              guia="existencias.aviso-cuadre"
-              className="mb-3"
-              titulo="El piso de esta tienda nunca se ha cuadrado"
-              accion={
-                <Link href="/inventario/cuadrar" className="btn-cayla btn-secundario btn-chico whitespace-nowrap">
-                  Cuadrar el piso
-                </Link>
-              }
-            >
-              {/* En el teléfono el título basta: la explicación empujaba la primera prenda bajo el pliegue (verificado a 375 px, 2026-11-02). */}
-              <span className="max-sm:hidden">
-                Lo que dice «en almacén» puede estar colgado: los números del almacén no están verificados hasta el primer cuadre.
-              </span>
-            </Aviso>
-          )}
+          {pisoSinCuadrar && <AvisoPisoSinCuadrar />}
           <ExistenciasTarjetas
             modelos={paginaTarjetas.filas}
             separa={separa}
@@ -1137,6 +1223,7 @@ export function InventarioPanel({
             onAlternarTodas={(pagina) => alternarVarias(pagina.flatMap((p) => p.tallas.map((f) => f.varianteId)))}
             abiertaClave={abierta?.clave ?? null}
             onAbrir={abrirPrenda}
+            calculando={planDelPiso.calculando}
           />
           <div data-guia="existencias.tabla-pie" className="flex flex-wrap items-center justify-between gap-2 px-5 py-3 text-sm text-taupe">
             <span className="flex flex-wrap items-center gap-3">
@@ -1306,7 +1393,7 @@ export function InventarioPanel({
                   {separa && (
                     <span className={celda("centro", "rounded-lg bg-hueso/60 px-2 py-1.5 sm:rounded-none sm:bg-transparent sm:px-0 sm:py-0")}>
                       <span className="label-cayla mb-0.5 block text-[10px] text-tinta/45 sm:hidden">Cobertura piso</span>
-                      <CeldaCoberturaPiso f={f} />
+                      <CeldaCoberturaPiso f={f} calculando={ritmoCalculando.has(f.varianteId)} />
                     </span>
                   )}
                   {separa && (
@@ -1316,7 +1403,11 @@ export function InventarioPanel({
                       className={celda("centro", "rounded-lg bg-hueso/60 px-2 py-1.5 sm:rounded-none sm:bg-transparent sm:px-0 sm:py-0 overflow-visible")}
                     >
                       <span className="label-cayla mb-0.5 block text-[10px] text-tinta/45 sm:hidden">Ritmo reciente</span>
-                      <RitmoRecientePopover ritmo={f.ritmoReciente ?? null} referencia={f.referencia} sku={f.sku} minDiasExposicionRitmo={politica.minDiasExposicionRitmo} />
+                      {ritmoCalculando.has(f.varianteId) ? (
+                        <Calculando className="h-6 w-14 rounded-lg" />
+                      ) : (
+                        <RitmoRecientePopover ritmo={f.ritmoReciente ?? null} referencia={f.referencia} sku={f.sku} minDiasExposicionRitmo={politica.minDiasExposicionRitmo} />
+                      )}
                     </span>
                   )}
                   <span className={celda("centro", "rounded-lg bg-hueso/60 px-2 py-1.5 sm:rounded-none sm:bg-transparent sm:px-0 sm:py-0 text-sm tabular-nums text-tinta")}>
@@ -1334,7 +1425,7 @@ export function InventarioPanel({
                         {/* Solo el diagnóstico, nunca un botón (diseño aprobado), con las MISMAS palabras del filtro «Hoy» y de la
                             tarjeta (`lib/existencias-hoy.ts`, Felipe 2026-10-03). En «Por colgar», lo que se puede bajar (disponible, neto
                             de apartados): la suma de estos chips es la del resumen de arriba. En «Sin stock atrás», si viene algo en camino. */}
-                        <ChipHoy f={f} />
+                        <ChipHoy f={f} calculando={planDelPiso.calculando.has(f.varianteId)} />
                         {/* Independiente de «Acción hoy»: una prenda puede no pedir nada y tener unidades dañadas en cuarentena al
                             mismo tiempo — no son el mismo eje. Solo informa; resolverlas vive en la tarjeta «Incidencias». */}
                         {!!f.danado && (
@@ -1510,6 +1601,7 @@ export function InventarioPanel({
           enSedeActiva={permisos.etiquetasEHistorial}
           puedeReportarDanada={permisos.reportarDanada}
           lugarDanadas={lugarDanadas}
+          ritmoCalculando={ritmoCalculando}
           onAjustarCompleto={(f) => {
             setAbierta(null);
             setAjustando(f);

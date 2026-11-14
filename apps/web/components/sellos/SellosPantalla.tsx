@@ -42,7 +42,7 @@ import { textoRango, vigenciaDe } from "@/lib/etiqueta-vigencia";
 import { urlEtiquetasDePrecio } from "@/lib/etiqueta-precio-reglas";
 import { notaSinRegistrar, type LecturaRotacion } from "@/lib/etiqueta-rotacion";
 import { hoyLima } from "@/lib/fechas-lima";
-import { reglasDeCampana, reglasVivas, vigenciaDeRegla, type ReglaCampana } from "@/lib/campana-reglas";
+import { bajadaDesactivarInsignia, reglasDeCampana, reglasVivas, vigenciaDeRegla, type InsigniaDeOferta, type ReglaCampana } from "@/lib/campana-reglas";
 import { tramoDeCampana, TEXTOS_MODO } from "@/lib/sellos-campanas";
 import {
   ESTILO_DE_VISTA,
@@ -109,6 +109,8 @@ export function SellosPantalla({
   disenoWeb,
   reglas: reglasIniciales,
   reglasDisponibles,
+  insignias = [],
+  nombresDeCampanas = {},
 }: {
   /** Qué fila del menú dibuja (ADR-0655): «Campañas y ofertas» o «Insignias». */
   modo: "campanas" | "insignias";
@@ -138,6 +140,10 @@ export function SellosPantalla({
   reglas: ReglaCampana[];
   /** La base responde por las ofertas: si no, «Configurar» abre la hoja de siempre. */
   reglasDisponibles: boolean;
+  /** Las insignias que una oferta puede elegir (ADR-0655, por insignia); vacío en Catálogo ▸ Insignias, que no edita ofertas. */
+  insignias?: InsigniaDeOferta[];
+  /** El nombre de cada campaña: al desactivar una insignia, la confirmación nombra las ofertas que la usan con su campaña (ADR-0655). */
+  nombresDeCampanas?: Record<string, string>;
 }) {
   const hoy = hoyLima();
   const router = useRouter();
@@ -435,6 +441,22 @@ export function SellosPantalla({
         setEtiquetas((actual) => actual.map((x) => (x.id === e.id ? { ...x, vigenteDesde: desde, vigenteHasta: hasta } : x)));
         detalleFechas = textoRango(desde, hasta) ? `Ahora rige ${textoRango(desde, hasta)}.` : "Ahora rige sin fechas.";
       }
+      // «Anunciar en la portada» (ADR-0655): su propia puerta, después de lo demás.
+      let detalleAnuncio: string | undefined;
+      if (cambios.anunciar !== null) {
+        const res = await fetch("/api/productos/etiquetas", {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json", ...responsable.encabezados() },
+          body: JSON.stringify({ id: e.id, anunciarEnPortada: cambios.anunciar }),
+        });
+        const datos = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          avisar.error(datos.error ?? "No se pudo cambiar si la campaña se anuncia en la portada.");
+          return;
+        }
+        setEtiquetas((actual) => actual.map((x) => (x.id === e.id ? { ...x, anunciarEnPortada: cambios.anunciar as boolean } : x)));
+        detalleAnuncio = cambios.anunciar ? "La portada de la tienda online puede anunciarla." : "Ya no sale en la portada de la tienda online.";
+      }
       responsable.despues(null);
       const detalleDibujo =
         nuevo?.tipo === "dibujo" ? `Ahora lleva: ${NOMBRE_DEL_DIBUJO[nuevo.clave]}.` : nuevo?.tipo === "imagen" && nuevo.silueta ? "Ahora lleva tu imagen, pintada del color del sello." : nuevo?.tipo === "imagen" ? "Ahora lleva tu imagen." : undefined;
@@ -443,8 +465,10 @@ export function SellosPantalla({
           ? `${que === "la campaña" ? "Campaña" : "Insignia"} ahora se llama ${nombreFinal}`
           : nuevo === null && cambios.fechas !== null
             ? `Fechas de ${nombreFinal} guardadas`
-            : `Ícono de ${nombreFinal} cambiado`;
-      const detalle = [detalleDibujo, detalleFechas, reimprimir?.detalle].filter(Boolean).join(" ");
+            : nuevo === null && cambios.anunciar !== null
+              ? `${nombreFinal}: ${cambios.anunciar ? "se anuncia en la portada" : "no se anuncia en la portada"}`
+              : `Ícono de ${nombreFinal} cambiado`;
+      const detalle = [detalleDibujo, detalleFechas, detalleAnuncio, reimprimir?.detalle].filter(Boolean).join(" ");
       avisar.exito(titulo, {
         ...(detalle ? { detalle } : {}),
         ...(destino && reimprimir?.boton ? { accion: { texto: reimprimir.boton, onClick: () => router.push(destino as string) } } : {}),
@@ -529,12 +553,17 @@ export function SellosPantalla({
           <div>
             <div className="sl-perfo" />
             <div className="sl-dentro">
-              {(chip || e.estado !== "aprobado" || porActivar > 0 || (puedeEditarEste && e.estilo !== "campana")) && (
+              {(chip || e.estado !== "aprobado" || porActivar > 0 || (puedeEditarEste && e.estilo !== "campana") || (e.estilo === "campana" && e.anunciarEnPortada === false)) && (
                 <div className="flex flex-wrap items-center gap-1.5" style={{ "--i": 0 } as CSSProperties}>
                   {e.estado === "pendiente" && <Chip tono="ambar">Por aprobar</Chip>}
                   {e.estado === "rechazado" && <Chip tono="apagado" tachado={false}>Rechazado</Chip>}
                   {chip && <Chip tono={chip.tono} title={chip.title}>{chip.texto}</Chip>}
                   {chip?.alerta && <Chip tono="ambar" title={chip.title}>{chip.alerta}</Chip>}
+                  {e.estilo === "campana" && e.anunciarEnPortada === false && (
+                    <Chip tono="pizarra" versalitas={false} title="La portada de la tienda online no la anuncia. Se cambia en «Más ▸ Cambiar nombre, ícono o fechas».">
+                      No sale en la portada
+                    </Chip>
+                  )}
                   {porActivar > 0 && (
                     <Chip tono="ambar" title="Hay ofertas guardadas como borrador: falta activarlas para que bajen el precio.">
                       {porActivar === 1 ? "1 oferta por activar" : `${porActivar} ofertas por activar`}
@@ -581,11 +610,11 @@ export function SellosPantalla({
                     <strong>{ofertasVivas.length}</strong>
                     {ofertasVivas.length === 1 ? "oferta o promoción" : "ofertas y promociones"}
                   </div>
-                ) : (
+                ) : e.estilo === "campana" ? (
                   <div>
                     <strong>{e.descuentoPct !== null ? `${e.descuentoPct.toLocaleString("es-PE", { maximumFractionDigits: 2 })} %` : "—"}</strong>descuento
                   </div>
-                )}
+                ) : null /* Una insignia nunca baja el precio (ADR-0655): no hay descuento que contar. */}
               </div>
               {dondeRige && (
                 <div style={{ "--i": 3 } as CSSProperties}>
@@ -655,7 +684,17 @@ export function SellosPantalla({
         <button
           type="button"
           disabled={cambiandoId === e.id}
-          onClick={() => setConfirmando(confirmacionCatalogo("desactivar", e.nombre, () => cambiarActivo(e, false)))}
+          onClick={() =>
+            setConfirmando(
+              confirmacionCatalogo(
+                "desactivar",
+                e.nombre,
+                () => cambiarActivo(e, false),
+                // ADR-0655: las ofertas que eligen esta insignia dejan de llegar a sus prendas; la confirmación las nombra.
+                bajadaDesactivarInsignia(reglas, e.id, hoy, (id) => nombresDeCampanas[id] ?? "su campaña") ?? undefined,
+              ),
+            )
+          }
           className="btn-cayla btn-peligro btn-chico ml-auto"
         >
           {cambiandoId === e.id ? "Desactivando…" : "Desactivar"}
@@ -671,7 +710,9 @@ export function SellosPantalla({
     const p = prendasDe(e);
     const vivas = reglasDisponibles ? reglasVivas(reglasDeCampana(reglas, e.id), hoy) : [];
     const borradores = vivas.filter((r) => vigenciaDeRegla(r, hoy) === "borrador").length;
-    return preguntasDeCampana(e, p.modelos.length, categoriasDe(e), hoy, p.aMano, { activas: vivas.length - borradores, borradores }, textoSedesDeCampana(e.sedeIds, tiendas));
+    // Una oferta que elige sus propias prendas (categorías, modelos, insignias o toda la compra) responde «En qué prendas» (ADR-0655).
+    const eligen = vivas.some((r) => r.categoriasSolo.length > 0 || r.productosSolo.length > 0 || r.insigniasSolo.length > 0 || (r.tipo === "monto" && r.cuenta !== "campana"));
+    return preguntasDeCampana(e, p.modelos.length, categoriasDe(e), hoy, p.aMano, { activas: vivas.length - borradores, borradores }, textoSedesDeCampana(e.sedeIds, tiendas), eligen);
   }
   function responder(e: Etiqueta, clave: "oferta" | "prendas" | "cuando") {
     if (clave === "oferta") return reglasDisponibles ? setOfertandoId(e.id) : setConfigurando(e);
@@ -962,6 +1003,7 @@ export function SellosPantalla({
           esDelNombre={!editando.icono && !esRutaDeImagenDeInsignia(editando.imagen)}
           esCampana={editando.estilo === "campana"}
           fechas={editando.estilo === "campana" ? { desde: editando.vigenteDesde, hasta: editando.vigenteHasta } : undefined}
+          anunciar={editando.estilo === "campana" ? editando.anunciarEnPortada !== false : undefined}
           hoy={hoy}
           responsable={responsable}
           guardando={guardandoEdicion}
@@ -1012,6 +1054,7 @@ export function SellosPantalla({
           sedeActualId={sedeActualId}
           prendasConCosto={prendasConCosto}
           variantesManuales={manuales[ofertando.id] ?? []}
+          insignias={insignias}
           hoy={hoy}
           puedeDarDescuento={puedeEditar(ofertando)}
           alGuardarCampana={(cambios) => setEtiquetas((actual) => ordenarEtiquetas(actual.map((x) => (x.id === ofertando.id ? { ...x, ...cambios } : x))))}

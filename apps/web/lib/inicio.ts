@@ -19,6 +19,7 @@ import { resumenParaElInicio } from "@/lib/pedidos-con-cliente-reglas";
 import { getCuentasBancariasCambiadas } from "@/lib/proveedores";
 import { getIgvEnEspera } from "@/lib/igv-en-espera";
 import { getPlanillaParaElInicio } from "@/lib/cuentas-dinero";
+import { RPC_COMPRAS_POR_DEFINIR, leerPorDefinir, type ModeloPorDefinir } from "@/lib/por-definir-reglas";
 
 // Lecturas del bloque «Hoy» del Inicio. La líder reutiliza las MISMAS fuentes que Caja (`fn_ventas_del_dia`,
 // `getVentasMismaHoraSemanaAnterior`, `fn_parametros_caja` — antes `ubicaciones.meta_venta_diaria`) para que las dos pantallas nunca
@@ -140,11 +141,11 @@ export async function contar(que: string, consulta: PromiseLike<{ count: number 
 
 export async function getFuentesAvisos(
   cuenta: { ubicacionId: string; sedePropiaId: string | null; esLider: boolean; esTerminal: boolean; ve: (m: ClaveModulo) => boolean; pagaCompras: boolean },
-  base: Omit<FuentesAvisos, "apartados" | "devoluciones" | "pedidos" | "conteoAbierto" | "porPagar" | "perdidas" | "danadasViejas" | "pedidosSinRespuesta" | "pedidosCliente" | "paraEnviar" | "recibidoPorTerminar" | "prendasSinLlegar" | "planillaSalidas">
+  base: Omit<FuentesAvisos, "apartados" | "devoluciones" | "pedidos" | "conteoAbierto" | "porPagar" | "perdidas" | "danadasViejas" | "pedidosSinRespuesta" | "pedidosCliente" | "paraEnviar" | "recibidoPorTerminar" | "prendasSinLlegar" | "planillaSalidas" | "porDefinir">
 ): Promise<FuentesAvisos> {
   const supabase: Supabase = await createClient();
   const { ubicacionId, ve } = cuenta;
-  const [apartados, devoluciones, pedidos, conteoAbierto, porPagar, perdidas, danadasViejas, pedidosSinRespuestaLeidos, pedidosCliente, paraEnviar, cuentasBancarias, recibidoPorTerminar, igv, planillaLeida] = await Promise.all([
+  const [apartados, devoluciones, pedidos, conteoAbierto, porPagar, perdidas, danadasViejas, pedidosSinRespuestaLeidos, pedidosCliente, paraEnviar, cuentasBancarias, recibidoPorTerminar, igv, planillaLeida, porDefinir] = await Promise.all([
     ve("apartados")
       ? tolerarLectura("los apartados", async () => resumirApartados(await getApartadosAbiertos(ubicacionId, { esTerminal: cuenta.esTerminal }), hoyLima()))
       : undefined,
@@ -198,6 +199,9 @@ export async function getFuentesAvisos(
     // ADR-0567: la planilla que Dynamic pagó y no dice de qué banco salió, para el líder que ve Cuentas y dinero. Sin nada que registrar (o sin
     // la función en la base), el aviso no existe.
     cuenta.esLider && ve("cuentas_dinero") ? tolerarLectura("la planilla por registrar", () => getPlanillaParaElInicio()) : undefined,
+    // ADR-0660: lo que espera su categoría o su precio, para quien lo define en «Revisar compras». Sin la función (la base sin su migración),
+    // el aviso no existe; si no responde, «no se pudo leer».
+    ve("fondos") ? leerPorDefinirParaElInicio(supabase) : undefined,
   ]);
   const planillaSalidas = planillaLeida === null ? null : (planillaLeida ?? undefined);
   const prendasSinLlegar =
@@ -206,7 +210,18 @@ export async function getFuentesAvisos(
         : igv.faltantes
           ? { prendas: igv.faltantes.prendas, facturas: igv.faltantes.facturas, igv: igv.faltantes.igv, proveedores: igv.faltantes.proveedores, proveedorId: igv.faltantes.proveedorId }
           : undefined;
-  return { ...base, apartados, devoluciones, pedidos, conteoAbierto, porPagar, perdidas, danadasViejas, pedidosSinRespuesta: pedidosSinRespuestaLeidos, pedidosCliente, paraEnviar, cuentasBancarias, recibidoPorTerminar, prendasSinLlegar, planillaSalidas };
+  return { ...base, apartados, devoluciones, pedidos, conteoAbierto, porPagar, perdidas, danadasViejas, pedidosSinRespuesta: pedidosSinRespuestaLeidos, pedidosCliente, paraEnviar, cuentasBancarias, recibidoPorTerminar, prendasSinLlegar, planillaSalidas, porDefinir };
+}
+
+/** ADR-0660: `fn_compras_por_definir`, para el aviso. `undefined` si la base todavía no tiene la función; `null` si no respondió. */
+async function leerPorDefinirParaElInicio(supabase: Supabase): Promise<ModeloPorDefinir[] | null | undefined> {
+  const { data, error } = (await supabase.rpc(RPC_COMPRAS_POR_DEFINIR as never)) as unknown as { data: unknown; error: { code?: string; message: string } | null };
+  if (error) {
+    if (error.code === "PGRST202") return undefined;
+    console.error(`Inicio · no se pudo leer lo que espera definirse: ${error.message}`);
+    return null;
+  }
+  return leerPorDefinir(data);
 }
 
 /**

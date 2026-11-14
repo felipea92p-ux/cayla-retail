@@ -59,6 +59,10 @@ export type ItemRegistrarVenta = {
    *  `p_codigo_descuento`; reparto de `ticketConVale`, la base lo recalcula y rechaza si no coincide, `cupon_descuento_distinto`). Se
    *  arma con `descuentosParaRegistrar` de `lib/club-cupon-reparto-reglas.ts`. */
   descuento_club_unitario?: number;
+  /** La parte de `descuento_unitario` que es de una oferta de grupo (3x2, N por S/, la N.ª al X %; ADR-0655) y de cuál. La base vuelve a
+   *  armar los grupos y la rechaza si no coincide (`venta_grupo_omitido`, `venta_grupo_no_coincide`). Cada prenda de un grupo va en su línea. */
+  descuento_grupo_unitario?: number;
+  oferta_grupo_id?: string;
   /** Solo en una «Prenda sin registrar» (ADR-0179): lo que almacén necesita para regularizarla. */
   descripcion_libre?: string;
   categoria_id?: string;

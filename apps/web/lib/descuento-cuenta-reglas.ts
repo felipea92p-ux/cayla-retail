@@ -18,7 +18,14 @@ import {
  * NO agrega reglas de negocio: es la misma cuenta de antes (el % deja cada prenda sin céntimos sueltos, el S/ se reparte según el precio,
  * la campaña gana si da igual o más, una pieza de liquidación no recibe descuento). El candado de verdad sigue en `registrar_venta`.
  */
-export function cuentaDelDescuento(descuento: DescuentoForm, carrito: readonly ItemCarrito[], vale: { vale: number } | null) {
+export function cuentaDelDescuento(
+  descuento: DescuentoForm,
+  carrito: readonly ItemCarrito[],
+  vale: { vale: number } | null,
+  /** El carrito con sus ofertas de grupo y su monto (ADR-0655, `carritoConGrupos`), como se cobra: sin esto, «Quedaría en» decía el total sin
+   *  el 3x2 (S/ 135 donde el ticket iba a quedar en S/ 85). Ausente = sin ofertas. */
+  conOfertas: (lineas: ItemCarrito[]) => ItemCarrito[] = (lineas) => lineas,
+) {
   const porMonto = descuento.modo === "monto";
   const pct = numeroDeMonto(descuento.pct);
   const pctValido = Number.isFinite(pct) && pct > 0 && pct <= 100;
@@ -43,7 +50,7 @@ export function cuentaDelDescuento(descuento: DescuentoForm, carrito: readonly I
   const descuentoUnitarioAplicando = (it: ItemCarrito) => (!recibeDescuento(it) ? it.descuentoUnitario : descuentoResultante(it, montoPedido(it)).monto);
   // Lo que va a quedar en «Total» si se aplica ahora. Con un cupón del Club puesto, también sin su parte (el cupón se reparte sobre lo
   // que quedará): el mismo número que quedará en el Total.
-  const conDescuento = carrito.map((it) => ({ ...it, descuentoUnitario: descuentoUnitarioAplicando(it) }));
+  const conDescuento = conOfertas(carrito.map((it) => ({ ...it, descuentoUnitario: descuentoUnitarioAplicando(it) })));
   const totalConDescuento = vale ? ticketConVale(conDescuento, vale.vale).total : totalDeLineas(conDescuento);
   // «Quitar descuento» solo tiene sentido para lo puesto a mano: el de campaña no se quita.
   const hayDescuentoEnAlcance = hayDescuentoManual(carrito.filter((it) => alcanza(it.claveLinea)));

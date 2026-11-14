@@ -285,7 +285,67 @@ end $deshacer$;
  *  nada si el texto nuevo ya está). */
 export const REHACER_MOTIVO_SIN_REGISTRAR = MOTIVO_SIN_REGISTRAR;
 
+/** Inverso de 20261114011000 (la caja cobra las ofertas de grupo, ADR-0655): seis reemplazos anclados —declarar `v_grupo`, llamar a la regla
+ *  antes del bucle, restar la parte del grupo de lo que se mide como campaña o a mano, el total y las dos columnas del insert—, leídos del
+ *  archivo y deshechos del último al primero. Si la base no lo tiene, `replace` no cambia nada. */
+const GRUPO = readFileSync("supabase/migrations/20261114011000_caja_cobra_ofertas_de_grupo.sql", "utf8");
+const REEMPLAZOS_GRUPO = [...GRUPO.matchAll(/\$v\$([\s\S]*?)\$v\$,\s*\$n\$([\s\S]*?)\$n\$,\s*1\);/g)].map((m) => [m[1], m[2]]);
+if (REEMPLAZOS_GRUPO.length !== 6) throw new Error(`registrar-venta-antes-de-precio-sede: esperaba 6 reemplazos de las ofertas de grupo y hay ${REEMPLAZOS_GRUPO.length}`);
+export const DESHACER_GRUPO = `do $deshacer$
+declare
+  v_firma text := ${FIRMA};
+begin
+${[...REEMPLAZOS_GRUPO].reverse().map(([viejo, nuevo]) => `  execute replace(pg_get_functiondef(v_firma::regprocedure), $q$${nuevo}$q$, $q$${viejo}$q$);`).join("\n")}
+end $deshacer$;
+`;
+/** Rehacerlo son los mismos seis reemplazos, en su orden, y solo donde la base tiene la migración (sus columnas): en una base local que todavía
+ *  no la tiene, deshacer no cambió nada y rehacer tampoco (pegar la migración entera ahí se frena: le falta 20261114003000). Cada uno no hace
+ *  nada si el texto nuevo ya está. */
+export const REHACER_GRUPO = `do $rehacer_grupo$
+declare
+  v_firma text := ${FIRMA};
+  v_def text;
+begin
+  if exists (select 1 from information_schema.columns
+              where table_schema = 'retail' and table_name = 'venta_items' and column_name = 'descuento_grupo_unitario') then
+${REEMPLAZOS_GRUPO.map(([viejo, nuevo]) => `    v_def := pg_get_functiondef(v_firma::regprocedure);
+    if position($q$${nuevo}$q$ in v_def) = 0 then
+      execute replace(v_def, $q$${viejo}$q$, $q$${nuevo}$q$);
+    end if;`).join("\n")}
+  end if;
+end $rehacer_grupo$;
+`;
+
+/** Inverso de 20261114132000 (la venta sin conexión se mide con las ofertas de su hora, ADR-0655): cuatro reemplazos anclados —declarar
+ *  `v_dia_venta` y usarlo en la regla de las ofertas de grupo y en las dos lecturas de campañas—, leídos del archivo y deshechos del último al
+ *  primero. Va ANTES de deshacer las ofertas de grupo: cambia la línea que esa migración agregó. Si la base no lo tiene, `replace` no cambia nada. */
+const DIA_VENTA = readFileSync("supabase/migrations/20261114132000_venta_sin_conexion_con_las_ofertas_de_su_hora.sql", "utf8");
+const REEMPLAZOS_DIA_VENTA = [...DIA_VENTA.matchAll(/\$v\$([\s\S]*?)\$v\$,\s*\$n\$([\s\S]*?)\$n\$,\s*1\);/g)].map((m) => [m[1], m[2]]);
+if (REEMPLAZOS_DIA_VENTA.length !== 4) throw new Error(`registrar-venta-antes-de-precio-sede: esperaba 4 reemplazos del día de la venta y hay ${REEMPLAZOS_DIA_VENTA.length}`);
+export const DESHACER_DIA_VENTA = `do $deshacer$
+declare
+  v_firma text := ${FIRMA};
+begin
+${[...REEMPLAZOS_DIA_VENTA].reverse().map(([viejo, nuevo]) => `  execute replace(pg_get_functiondef(v_firma::regprocedure), $q$${nuevo}$q$, $q$${viejo}$q$);`).join("\n")}
+end $deshacer$;
+`;
+/** Rehacerlo son los mismos cuatro reemplazos, en su orden, y solo donde la base tiene la migración (`fn_dia_de_la_venta`): en una base local
+ *  que todavía no la tiene, deshacer no cambió nada y rehacer tampoco. Cada uno no hace nada si el texto nuevo ya está. */
+export const REHACER_DIA_VENTA = `do $rehacer_dia_venta$
+declare
+  v_firma text := ${FIRMA};
+  v_def text;
+begin
+  if to_regprocedure('retail.fn_dia_de_la_venta()') is not null then
+${REEMPLAZOS_DIA_VENTA.map(([viejo, nuevo]) => `    v_def := pg_get_functiondef(v_firma::regprocedure);
+    if position($q$${nuevo}$q$ in v_def) = 0 then
+      execute replace(v_def, $q$${viejo}$q$, $q$${nuevo}$q$);
+    end if;`).join("\n")}
+  end if;
+end $rehacer_dia_venta$;
+`;
+
 /** Todos los parches posteriores al redondeo, deshechos del más nuevo al más viejo. */
-export const DESHACER_POSTERIORES = `${DESHACER_MOTIVO_SIN_REGISTRAR}\n${DESHACER_CAMPANAS_SEDE}\n${DESHACER_CLUB_PUNTOS}\n${DESHACER_MAQUINA}\n${DESHACER_CUMPLE_SIN_CENTIMOS}\n${DESHACER_DESCUENTO_SIN_CENTIMOS}\n${DESHACER_TOKEN}\n${DESHACER_PRECIO_CERO}\n${DESHACER_ORIGEN_SUGERENCIA}\n${DESHACER_LIQUIDACION}\n${DESHACER_PRECIO_SEDE}`;
+export const DESHACER_POSTERIORES = `${DESHACER_DIA_VENTA}\n${DESHACER_GRUPO}\n${DESHACER_MOTIVO_SIN_REGISTRAR}\n${DESHACER_CAMPANAS_SEDE}\n${DESHACER_CLUB_PUNTOS}\n${DESHACER_MAQUINA}\n${DESHACER_CUMPLE_SIN_CENTIMOS}\n${DESHACER_DESCUENTO_SIN_CENTIMOS}\n${DESHACER_TOKEN}\n${DESHACER_PRECIO_CERO}\n${DESHACER_ORIGEN_SUGERENCIA}\n${DESHACER_LIQUIDACION}\n${DESHACER_PRECIO_SEDE}`;
 /** Y rehechos en su orden. */
-export const REHACER_POSTERIORES = `${REHACER_PRECIO_SEDE}\n${REHACER_LIQUIDACION}\n${REHACER_ORIGEN_SUGERENCIA}\n${REHACER_PRECIO_CERO}\n${REHACER_TOKEN}\n${REHACER_DESCUENTO_SIN_CENTIMOS}\n${REHACER_CUMPLE_SIN_CENTIMOS}\n${REHACER_MAQUINA}\n${REHACER_CLUB_PUNTOS}\n${REHACER_CAMPANAS_SEDE}\n${REHACER_MOTIVO_SIN_REGISTRAR}`;
+export const REHACER_POSTERIORES = `${REHACER_PRECIO_SEDE}\n${REHACER_LIQUIDACION}\n${REHACER_ORIGEN_SUGERENCIA}\n${REHACER_PRECIO_CERO}\n${REHACER_TOKEN}\n${REHACER_DESCUENTO_SIN_CENTIMOS}\n${REHACER_CUMPLE_SIN_CENTIMOS}\n${REHACER_MAQUINA}\n${REHACER_CLUB_PUNTOS}\n${REHACER_CAMPANAS_SEDE}\n${REHACER_MOTIVO_SIN_REGISTRAR}\n${REHACER_GRUPO}\n${REHACER_DIA_VENTA}`;

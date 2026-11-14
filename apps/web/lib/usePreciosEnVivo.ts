@@ -3,9 +3,10 @@
 import { useEffect, useRef } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { leerTodas } from "@/lib/resultado";
-import { leerCampanasVigentes } from "@/lib/campanas-vigentes";
+import { leerCampanasVigentes, leerOfertasDeGrupoVigentes, leerOfertasDeMontoVigentes } from "@/lib/campanas-vigentes";
 import { leerPreciosPropiosDeSede } from "@/lib/precios-propios-de-sede";
-import { mismosPrecios, type PreciosReleidos } from "@/lib/precios-en-vivo-reglas";
+import { firmaDeOfertas, mismosPrecios, type OfertasReleidas, type PreciosReleidos } from "@/lib/precios-en-vivo-reglas";
+import { ofertasDeGrupoDeFilas } from "@/lib/ofertas-de-grupo";
 import { registrarPreciosPropios } from "@/lib/precios-en-vivo-registro";
 import { conPreciosDeSede, leerPreciosEnSede } from "@/lib/precio-sede-reglas";
 import type { CampanaLinea } from "@/lib/vender-reglas";
@@ -41,6 +42,19 @@ async function leerCampanas(ubicacionId: string): Promise<Map<string, CampanaLin
   // Igual que al cargar la pantalla: si la función no existe en esa base (PGRST202) no hay campañas que aplicar.
   if (error) return error.code === "PGRST202" ? new Map() : null;
   return new Map((data ?? []).map((c) => [c.variante_id, { etiquetaId: c.etiqueta_id, nombre: c.etiqueta_nombre, pct: Number(c.descuento_pct) }]));
+}
+
+// Las ofertas de grupo (3x2, N por S/, la N.ª al X %) y los montos de hoy (ADR-0655), en cada vuelta como las campañas: activar o retirar
+// una no toca `variantes`. Sin releerlas, una caja abierta antes de activar un 3x2 lo omitía y la base rechazaba el cobro
+// (`venta_grupo_omitido`) hasta recargar la página. Sin la función (PGRST202) no hay ofertas; si una lectura falla, `null`: se conservan.
+async function leerOfertas(ubicacionId: string): Promise<OfertasReleidas | null> {
+  const supabase = createClient();
+  const [g, m] = await Promise.all([leerOfertasDeGrupoVigentes(supabase, ubicacionId), leerOfertasDeMontoVigentes(supabase, ubicacionId)]);
+  const falta = (e: { code?: string } | null) => e !== null && e.code !== "PGRST202";
+  if (falta(g.error) || falta(m.error)) return null;
+  const grupo = ofertasDeGrupoDeFilas(g.error ? [] : g.data);
+  const monto = m.error ? [] : (m.data ?? []);
+  return { grupo, monto, firma: firmaDeOfertas(grupo, monto) };
 }
 
 // Los precios propios de esta tienda (Felipe 2026-10-09). Se leen en CADA vuelta: poner o quitar uno no toca `variantes`, así
@@ -99,10 +113,11 @@ export function usePreciosEnVivo(
         const version = await leerVersion();
         const hayPrecios = generalesRef.current !== null;
         const releerPrecios = !hayPrecios || version === null || version !== versionRef.current;
-        const [generales, campanas, propios] = await Promise.all([
+        const [generales, campanas, propios, ofertas] = await Promise.all([
           releerPrecios ? leerPrecios(new Set(conocidosRef.current)) : Promise.resolve(generalesRef.current),
           leerCampanas(ubicacionId),
           leerPropios(ubicacionId),
+          leerOfertas(ubicacionId),
         ]);
         if (cancelado || !generales) return;
         versionRef.current = version;
@@ -113,6 +128,7 @@ export function usePreciosEnVivo(
           precios: conPreciosDeSede(generales, propiosRef.current),
           campanas: campanas ?? ultimoRef.current?.campanas ?? null,
           propios: new Set(propiosRef.current.keys()),
+          ofertas: ofertas ?? ultimoRef.current?.ofertas ?? null,
         };
         if (ultimoRef.current && mismosPrecios(ultimoRef.current, releido)) return;
         ultimoRef.current = releido;

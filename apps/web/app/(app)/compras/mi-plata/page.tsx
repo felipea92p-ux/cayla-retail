@@ -19,6 +19,8 @@ import { UltimaRonda } from "@/components/mi-plata/UltimaRonda";
 import { MandarATienda } from "@/components/mi-plata/MandarATienda";
 import { ParaMandar } from "@/components/mi-plata/ParaMandar";
 import { MesaDeLaRonda } from "@/components/mi-plata/MesaDeLaRonda";
+import { PorDefinir } from "@/components/mi-plata/PorDefinir";
+import { getPorDefinir } from "@/lib/por-definir";
 
 // Compras ▸ Mis compras (ADR-0480, Compras simple): la pantalla de quien compra. Todo pasa dentro de una RONDA DE COMPRAS (20261023183000,
 // Felipe 2026-10-23): sin una abierta, la pantalla pide abrirla (y cuenta cómo terminó la última) y solo deja anotar la plata que le dieron.
@@ -28,7 +30,16 @@ import { MesaDeLaRonda } from "@/components/mi-plata/MesaDeLaRonda";
 // (principio 9): nunca «tienes S/ 0» inventado. Una terminal no tiene «tu plata». `?mandar=1` (desde «Compra guardada») abre «Mandar a la tienda».
 export default async function MiPlataPage({ searchParams }: { searchParams: Promise<{ mandar?: string }> }) {
   const persona = await exigirModulo("ordenes_compra");
-  const [plata, bancos, cuentasDevolver, envios, { mandar }] = await Promise.all([getMiPlata(), getBancosParaPlata(), getCuentasParaDevolver(), getMisEnvios(), searchParams]);
+  const [plata, bancos, cuentasDevolver, envios, porDefinir, { mandar }] = await Promise.all([
+    getMiPlata(),
+    getBancosParaPlata(),
+    getCuentasParaDevolver(),
+    getMisEnvios(),
+    getPorDefinir(),
+    searchParams,
+  ]);
+  // ADR-0660: aquí solo lo suyo (quien además ve «Revisar compras» define lo de todas allá).
+  const misPorDefinir = porDefinir?.modelos.filter((m) => m.mia) ?? [];
   // Arriba lo de la ronda abierta; lo anterior, agrupado por ronda (Felipe 2026-10-23). Cada compra ya mandada dice el código de su envío
   // (Felipe 2026-10-26); si «Mis envíos» no se pudo leer, Mis compras sigue sin ellos.
   // La marca primero (ADR-0644): cada compra dice sus marcas como título; si no se pudieron leer, «Compra a …» como antes.
@@ -60,6 +71,11 @@ export default async function MiPlataPage({ searchParams }: { searchParams: Prom
           ) : undefined
         }
       />
+
+      {/* ADR-0660: lo que anotó «por definir» (qué es o a cuánto se vende): lo define ella misma cuando lo sepa. */}
+      {plata?.persona && porDefinir && misPorDefinir.length > 0 && (
+        <PorDefinir modelos={misPorDefinir} categorias={porDefinir.categorias} guia="mi-plata.por-definir" />
+      )}
 
       {plata === null ? (
         <Aviso tono="error" titulo="No se pudo leer tu plata">

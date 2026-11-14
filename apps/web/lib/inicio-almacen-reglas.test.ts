@@ -631,10 +631,18 @@ describe("las tres cifras de «por colgar» —«Hoy», «Para hoy» y el Inicio
     expect(panel).toMatch(/porColgarDeLaSede\(stock, listaDelDia\)/);
     expect(panel).toMatch(/porColgar: entradaPorColgar\(cuentaPorColgar\)/);
     expect(panel).toMatch(/enPausa: cuentaPorColgar\.enPausa/);
-    // La página pone en cada fila la decisión del motor y le pasa al panel la lista del día del MISMO plan.
+    // La página le pasa al panel el MISMO plan (en dos tiempos desde el 2026-11-13: la promesa, recortada a las tallas de la sede), y el
+    // panel pone en cada fila la decisión del motor y toma la lista del día de ese plan (`aplicarPlan`).
     const pagina = fuente("app/(app)/inventario/page.tsx");
-    expect(pagina).toMatch(/planPiso: planPiso\.get\(f\.varianteId\)/);
-    expect(pagina).toMatch(/listaDelDia=\{plan\?\.listaDelDia\}/);
+    expect(pagina).toMatch(/planDelPanel\(plan, filas\)/);
+    expect(pagina).toMatch(/plan=\{planParaPanel\}/);
+    // El plan va encima de las filas con su Ritmo reciente (que también llega aparte, 2026-11-13), que salen del stock de la página.
+    expect(panel).toMatch(/useRitmoReciente\(ritmo, stockSinPlan\)/);
+    expect(panel).toMatch(/usePlanDelPiso\(plan, ritmoReciente\.filas\)/);
+    expect(panel).toMatch(/const listaDelDia = planDelPiso\.listaDelDia/);
+    const reglaDelPlan = fuente("lib/existencias-plan-panel.ts");
+    expect(reglaDelPlan).toMatch(/planPiso: plan\.porTalla\[f\.varianteId\]/);
+    expect(reglaDelPlan).toMatch(/listaDelDia: plan\.listaDelDia/);
     // El filtro «Hoy» y la cuenta preguntan lo mismo a cada talla (`hoyDeTalla`: la decisión del motor dicha en palabras).
     expect(fuente("lib/existencias-filtros.ts")).toMatch(/hoyDeTalla\(f\) !== elegidos\.hoy/);
     expect(fuente("lib/existencias-para-hoy.ts")).toMatch(/stock\.filter\(\(f\) => hoyDeTalla\(f\) === "por_colgar"\)/);

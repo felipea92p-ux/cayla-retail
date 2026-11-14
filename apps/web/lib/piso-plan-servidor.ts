@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { lecturaDesdeJson, planDelPiso, type LecturaDelPiso, type OpcionesPlan, type PlanDelPiso } from "@/lib/piso-plan";
 import { unstable_rethrow } from "next/navigation";
+import { SIN_CRONOMETRO, type Cronometro } from "@/lib/medir-tramos";
 
 /* ====================================================================
    piso-plan-servidor · la ÚNICA puerta de la web al motor del piso (ADR-0328 act. 7)
@@ -12,17 +13,19 @@ import { unstable_rethrow } from "next/navigation";
    está al día» sin saberlo.
    ==================================================================== */
 
-/** La lectura cruda de una sede, o `null` si no se pudo leer (ver contrato). */
-export async function leerLecturaDelPiso(ubicacionId: string): Promise<LecturaDelPiso | null> {
+/** La lectura cruda de una sede, o `null` si no se pudo leer (ver contrato). `cronometro`: quién mide sus pedazos (Existencias, la línea
+ *  `existencias_tramos`): `plan_rpc` (la base, el viaje y el JSON) y `plan_lectura` (pasarlo a la forma del motor). Sin él, no se anota nada. */
+export async function leerLecturaDelPiso(ubicacionId: string, cronometro: Cronometro = SIN_CRONOMETRO): Promise<LecturaDelPiso | null> {
   try {
     const supabase = await createClient();
     // La función es de la migración 20261004213000: su tipo todavía no está en los tipos generados de la base.
-    const res = await supabase.rpc("fn_piso_plan_lectura" as never, { p_ubicacion_id: ubicacionId } as never);
+    const res = await cronometro.medir("plan_rpc", supabase.rpc("fn_piso_plan_lectura" as never, { p_ubicacion_id: ubicacionId } as never));
     if (res.error) {
       console.error("Motor del piso: no se pudo leer fn_piso_plan_lectura:", res.error.message);
       return null;
     }
-    const lectura = lecturaDesdeJson(res.data);
+    cronometro.pesar("plan_rpc", res.data);
+    const lectura = cronometro.medirAhora("plan_lectura", () => lecturaDesdeJson(res.data));
     if (!lectura) console.error("Motor del piso: fn_piso_plan_lectura respondió vacío o con una forma que no se entiende.");
     return lectura;
   } catch (e) {
@@ -32,8 +35,9 @@ export async function leerLecturaDelPiso(ubicacionId: string): Promise<LecturaDe
   }
 }
 
-/** El plan del piso de una sede (decisión por talla, lista del día y «se vendió rápido y falta»), o `null` si no se pudo leer. */
-export async function leerPlanDelPiso(ubicacionId: string, opciones: OpcionesPlan = {}): Promise<PlanDelPiso | null> {
-  const lectura = await leerLecturaDelPiso(ubicacionId);
-  return lectura ? planDelPiso(lectura, opciones) : null;
+/** El plan del piso de una sede (decisión por talla, lista del día y «se vendió rápido y falta»), o `null` si no se pudo leer. Con
+ *  `cronometro`, además de los pedazos de la lectura, mide el motor (`plan_motor`). */
+export async function leerPlanDelPiso(ubicacionId: string, opciones: OpcionesPlan = {}, cronometro: Cronometro = SIN_CRONOMETRO): Promise<PlanDelPiso | null> {
+  const lectura = await leerLecturaDelPiso(ubicacionId, cronometro);
+  return lectura ? cronometro.medirAhora("plan_motor", () => planDelPiso(lectura, opciones)) : null;
 }

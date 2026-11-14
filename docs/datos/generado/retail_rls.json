@@ -129,7 +129,22 @@
   "relkind": "r",
   "rls": true
  },
+ "campana_regla_cesiones": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
  "campana_regla_historial": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "campana_regla_insignias": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "campana_regla_productos": {
   "forzado": false,
   "relkind": "r",
   "rls": true
@@ -1424,6 +1439,21 @@
   "relkind": "r",
   "rls": true
  },
+ "rendimiento_corridas": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "rendimiento_estado": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "rendimiento_fotos": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
  "respaldo_b001_f001_renumeradas_20261007": {
   "forzado": false,
   "relkind": "r",
@@ -1490,6 +1520,11 @@
   "rls": true
  },
  "separacion_items_retirados": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "separacion_ofertas_grupo": {
   "forzado": false,
   "relkind": "r",
   "rls": true

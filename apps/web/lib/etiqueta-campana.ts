@@ -65,6 +65,8 @@ export type PrendaConCosto = {
   /** El producto (el modelo con todas sus tallas y colores) y su nombre: lo que se elige «prenda por prenda» en una oferta (ADR-0655). */
   productoId?: string;
   referencia?: string;
+  /** Las insignias que lleva (marcada a mano o por una categoría de la insignia): lo que alcanza una oferta «por insignia» (ADR-0655). */
+  insignias?: string[];
 };
 
 /** Cómo se nombra una prenda en el aviso: «Falda Emma (FAL-0008-NEG-M) · precio más bajo: S/ 69.90 en Trujillo» si el precio más bajo

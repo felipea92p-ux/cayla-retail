@@ -114,6 +114,8 @@ export type Etiqueta = {
   categoriaIds: string[];
   /** Las tiendas donde rige el descuento (ADR-0486). Vacío = todas las sedes. */
   sedeIds: string[];
+  /** Solo una campaña: si la portada de la tienda online puede anunciarla (ADR-0655). Sin dato (una base sin la migración), sí. */
+  anunciarEnPortada?: boolean;
 };
 
 export type CategoriaOpcion = {
@@ -145,7 +147,7 @@ export const botonCampana = (e: Etiqueta, hoy: string) => {
   const r = repetirTemporada(e.vigenteDesde, e.vigenteHasta, hoy);
   return r
     ? { texto: "Repetir", title: `Repetir en ${r.anio}: abre la campaña con las fechas de ${r.anio}` }
-    : { texto: "Configurar", title: "Su descuento, sus fechas y sus categorías" };
+    : { texto: "Configurar", title: e.estilo === "campana" ? "Su descuento, sus fechas y sus categorías" : "Sus fechas y sus categorías" };
 };
 
 function TarjetaEtiqueta({
@@ -384,14 +386,17 @@ export function CampanaModal({
   // Si su temporada ya pasó, la hoja abre para repetirla: las mismas fechas, un año después (se guardan solo con «Guardar»).
   const T = TEXTOS_MODO[modo];
   const [repetir] = useState(() => repetirTemporada(etiqueta.vigenteDesde, etiqueta.vigenteHasta, hoyLima()));
-  const [descuento, setDescuento] = useState(etiqueta.descuentoPct === null ? "" : String(etiqueta.descuentoPct));
+  // Una insignia nunca baja el precio (ADR-0655, Felipe 2026-11-13; en la base, `etiquetas_descuento_solo_campana`): su hoja no tiene descuento
+  // ni «dónde rige», y guarda sin descuento. Lo que cambia lo que paga el cliente vive en Catálogo ▸ Campañas y ofertas.
+  const conDescuento = etiqueta.estilo === "campana";
+  const [descuento, setDescuento] = useState(etiqueta.descuentoPct === null || !conDescuento ? "" : String(etiqueta.descuentoPct));
   const [desde, setDesde] = useState((repetir ? repetir.desde : etiqueta.vigenteDesde) ?? "");
   const [hasta, setHasta] = useState((repetir ? repetir.hasta : etiqueta.vigenteHasta) ?? "");
   const avisoDia = repetir ? avisoDiaDeSemana(repetir, { desde, hasta }) : null;
   const [elegidas, setElegidas] = useState(() => new Set(etiqueta.categoriaIds));
   // Dónde rige el descuento (ADR-0486): vacío = todas las sedes. Solo se ofrece con dos tiendas o más.
   const [sedesElegidas, setSedesElegidas] = useState(() => new Set(etiqueta.sedeIds));
-  const ofreceSedes = tiendas.length > 1;
+  const ofreceSedes = conDescuento && tiendas.length > 1;
   const [guardando, setGuardando] = useState(false);
   // Tres clics en el mismo instante mandaban tres pedidos iguales (/chaos 2026-10-23): el candado deja pasar solo el primero.
   const [unaVez] = useState(unSoloEnvio);
@@ -431,7 +436,7 @@ export function CampanaModal({
   // Guía de foco: sale de la misma regla que apaga «Guardar» (`campanaValida`, y su prueba exige que coincidan); todo es opcional,
   // así que solo «sigue» lo mal escrito.
   const guia = useGuiaCampos(
-    camposDeCampana({ descuento, desde, hasta, categorias: elegidas.size, puedeDarDescuento, sedes: ofreceSedes ? sedesElegidas.size : undefined, alcance: alcance.total }),
+    camposDeCampana({ descuento, desde, hasta, categorias: elegidas.size, puedeDarDescuento: puedeDarDescuento && conDescuento, sedes: ofreceSedes ? sedesElegidas.size : undefined, alcance: alcance.total }),
   );
 
   const pct = parsearDescuento(descuento);
@@ -530,8 +535,10 @@ export function CampanaModal({
       titulo={repetir ? `Repetir «${etiqueta.nombre}» en ${repetir.anio}` : `Configuración «${etiqueta.nombre}»`}
       subtitulo={
         repetir
-          ? `Las fechas son las de ${etiqueta.vigenteHasta?.slice(0, 4)}, pasadas a ${repetir.anio}. Revisa el descuento y las categorías, y guarda.`
-          : "Cuánto baja, cuándo rige y en qué categorías."
+          ? `Las fechas son las de ${etiqueta.vigenteHasta?.slice(0, 4)}, pasadas a ${repetir.anio}. Revisa ${conDescuento ? "el descuento y " : ""}las categorías, y guarda.`
+          : conDescuento
+            ? "Cuánto baja, cuándo rige y en qué categorías."
+            : "Cuándo rige y en qué categorías. Una insignia no cambia el precio."
       }
       ancho="max-w-[69rem]" /* unificar-fijo: la etiqueta viva es de diseño propio, como «Prendas» (la II de la maqueta, elegida por Felipe 2026-10-23, ADR-0488) */
       onClose={onClose}
@@ -543,6 +550,7 @@ export function CampanaModal({
           {/* Una columna: cuánto, cuándo, dónde y las categorías, de arriba abajo (al lado va la etiqueta). */}
           <div className="space-y-6">
             <div className="space-y-5">
+              {conDescuento && (
               <CampoGuiado id="descuento" guia={guia}>
                 <Campo
                   etiqueta={guia.etiqueta("descuento", "Cuánto baja")}
@@ -615,6 +623,7 @@ export function CampanaModal({
                   </div>
                 </Campo>
               </CampoGuiado>
+              )}
 
               {/* El título del grupo va FUERA de la grilla: dentro, ocupaba la primera celda y partía Desde y Hasta en dos filas. */}
               {/* «Opcional: sin fechas…» solo con las fechas vacías: con fechas puestas, junto al ✓ invitaba a borrarlas (/formidable 2026-10-23). */}
@@ -747,7 +756,9 @@ export function CampanaModal({
           </div>
 
           <p className="nota-cayla text-xs">
-            {DESCUENTO_YA_SE_APLICA
+            {!conDescuento
+              ? "Una insignia dice algo de la prenda y no cambia su precio. Para bajar un precio, arma una campaña en Catálogo ▸ Campañas y ofertas."
+              : DESCUENTO_YA_SE_APLICA
               ? `En Vender, las prendas con est${T.o === "o" ? "e" : "a"} ${T.uno} llevan el descuento solas, dentro de las fechas. Si una prenda tiene varias campañas, se aplica solo la de mayor descuento.`
               : "Esto guarda la configuración. Todavía no cambia el precio en Vender."}
           </p>

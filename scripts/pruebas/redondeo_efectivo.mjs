@@ -612,11 +612,22 @@ rollback;`);
   // EL PEGADO EN EL SQL EDITOR DE SUPABASE (2026-10-02): Felipe pegó `registrar_venta` y le llegó el texto CORTADO en la línea 96: «unterminated
   // dollar-quoted string». Peor es el corte que cae entre dos instrucciones: Postgres lo acepta, el editor dice «Success» y no se aplicó nada
   // (le pasó a la parte del diario: quedó la cuenta 6598 y la función sin parchar). Por eso cada archivo termina con una fila «QUEDÓ BIEN».
-  // El editor manda todo el texto como UNA sola consulta (se analiza entero antes de ejecutar nada): `psql -c` hace lo mismo.
+  // El editor manda todo el texto como UNA sola consulta (se analiza entero antes de ejecutar nada): `\gexec` hace lo mismo con el texto que
+  // le llega entre `$editor$ … $editor$`. Antes iba como argumento de `psql -c`, pero Linux topa un argumento en 128 KB (MAX_ARG_STRLEN) y el
+  // pegado de registrar_venta, con todo lo que deshace y rehace, ya lo pasaba («argument list too long», 2026-11-14).
   // =====================================================================================================================
   const pegarComoEditor = (texto) => {
+    let marca = "editor";
+    while (texto.includes(`$${marca}$`)) marca += "_";
     try {
-      return { ok: true, salida: execFileSync("docker", ["exec", "-i", CONTENEDOR_LOCAL, "psql", "-q", "-U", "postgres", "-d", "postgres", "-v", "ON_ERROR_STOP=1", "-t", "-A", "-F", "|", "-c", texto], { encoding: "utf8", maxBuffer: 16 * 1024 * 1024 }).trim() };
+      return {
+        ok: true,
+        salida: execFileSync("docker", ["exec", "-i", CONTENEDOR_LOCAL, "psql", "-q", "-U", "postgres", "-d", "postgres", "-v", "ON_ERROR_STOP=1", "-t", "-A", "-F", "|", "-f", "-"], {
+          input: `select $${marca}$${texto}$${marca}$ \\gexec\n`,
+          encoding: "utf8",
+          maxBuffer: 16 * 1024 * 1024,
+        }).trim(),
+      };
     } catch (e) {
       return { ok: false, mensaje: `${e.stderr ?? ""}${e.message ?? ""}` };
     }
