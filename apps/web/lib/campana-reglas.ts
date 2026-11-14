@@ -16,14 +16,29 @@ export type Resultado<T> = { ok: true; valor: T } | { ok: false; error: string }
 
 export type EstadoRegla = "borrador" | "activa" | "desactivada";
 
+/** Las formas de una oferta (ADR-0655): «un % menos», y las de «Llevar varias y pagar menos» (actividad 6): el 3x2 («lleva N, paga M»),
+ *  «N por S/ X» y «la N.ª al X %». */
+export type TipoOferta = "pct" | "nxm" | "n_por_monto" | "nesima_pct";
+export const TIPOS_DE_GRUPO: readonly TipoOferta[] = ["nxm", "n_por_monto", "nesima_pct"];
+export const esDeGrupo = (tipo: TipoOferta) => tipo !== "pct";
+
+/** La forma de una oferta: el % (de «un % menos» o de la N.ª), cuántas lleva el grupo, cuántas paga, cuánto cuesta y con qué se arma. */
+export type FormaDeOferta = {
+  tipo: TipoOferta;
+  /** De «un % menos» o de «la N.ª al X %»; 0 en las demás. */
+  porcentaje: number;
+  lleva: number;
+  paga: number;
+  monto: number;
+  /** El grupo se arma con cualquier prenda de la oferta o solo con prendas del mismo modelo. */
+  agrupa: "campana" | "modelo";
+};
+
 /** Una oferta tal como la ve la pantalla. */
-export type ReglaCampana = {
+export type ReglaCampana = FormaDeOferta & {
   id: string;
   etiquetaId: string;
   nombre: string;
-  /** Hoy solo «un % menos». */
-  tipo: "pct";
-  porcentaje: number;
   desde: string;
   hasta: string;
   /** Días de la semana en que rige, ordenados: 1 = lunes … 7 = domingo. */
@@ -52,7 +67,7 @@ export type FilaRegla = {
   etiqueta_id: string;
   nombre: string;
   tipo: string;
-  porcentaje: number | string;
+  porcentaje: number | string | null;
   desde: string;
   hasta: string;
   dias_semana: number[];
@@ -65,6 +80,11 @@ export type FilaRegla = {
   productos_solo?: string[] | null;
   /** Desde 20261113223000; sin esa migración la base no lo manda. */
   ceden?: string[] | null;
+  /** Desde 20261114003000 (la forma de una oferta de grupo); sin esa migración la base no los manda. */
+  lleva?: number | null;
+  paga?: number | null;
+  monto?: number | string | null;
+  agrupa?: string | null;
   creada_en: string;
   activada_en: string | null;
   cambios: number | null;
@@ -73,13 +93,19 @@ export type FilaRegla = {
 
 const ESTADOS: readonly EstadoRegla[] = ["borrador", "activa", "desactivada"];
 
+const TIPOS: readonly TipoOferta[] = ["pct", ...TIPOS_DE_GRUPO];
+
 export function reglaDeFila(f: FilaRegla): ReglaCampana {
   return {
     id: f.id,
     etiquetaId: f.etiqueta_id,
     nombre: f.nombre,
-    tipo: "pct",
-    porcentaje: Number(f.porcentaje),
+    tipo: TIPOS.includes(f.tipo as TipoOferta) ? (f.tipo as TipoOferta) : "pct",
+    porcentaje: Number(f.porcentaje ?? 0),
+    lleva: Number(f.lleva ?? 3),
+    paga: Number(f.paga ?? 2),
+    monto: Number(f.monto ?? 0),
+    agrupa: f.agrupa === "modelo" ? "modelo" : "campana",
     desde: f.desde,
     hasta: f.hasta,
     dias: [...(f.dias_semana ?? DIAS_SEMANA)].sort((a, b) => a - b),
@@ -207,10 +233,9 @@ export function ordenarReglas(reglas: readonly ReglaCampana[], hoy: string): Reg
 // ---- Lo que escribe la persona --------------------------------------------------------------------------------------------
 
 /** Lo que la hoja arma mientras se contestan las tres preguntas. */
-export type OfertaEnEdicion = {
+export type OfertaEnEdicion = FormaDeOferta & {
   /** `null` mientras es nueva. */
   id: string | null;
-  porcentaje: number;
   desde: string;
   hasta: string;
   dias: number[];
@@ -227,9 +252,18 @@ export type OfertaEnEdicion = {
   cedeA: string[];
 };
 
+/** La forma de fábrica de cada tipo: lo que la hoja propone al elegirlo, lo mismo que dice su botón (3 x 2, «2 por S/ 59.90», «la 2.ª al 50 %»). */
+export const FORMA_DE_FABRICA: Record<TipoOferta, Omit<FormaDeOferta, "agrupa">> = {
+  pct: { tipo: "pct", porcentaje: PORCENTAJE_DE_FABRICA, lleva: 3, paga: 2, monto: 0 },
+  nxm: { tipo: "nxm", porcentaje: 0, lleva: 3, paga: 2, monto: 0 },
+  n_por_monto: { tipo: "n_por_monto", porcentaje: 0, lleva: 2, paga: 1, monto: 59.9 },
+  nesima_pct: { tipo: "nesima_pct", porcentaje: 50, lleva: 2, paga: 1, monto: 0 },
+};
+
 export const ofertaNueva = (desde: string, hasta: string): OfertaEnEdicion => ({
   id: null,
-  porcentaje: PORCENTAJE_DE_FABRICA,
+  ...FORMA_DE_FABRICA.pct,
+  agrupa: "campana",
   desde,
   hasta,
   dias: [...DIAS_SEMANA],
@@ -244,7 +278,12 @@ export const ofertaNueva = (desde: string, hasta: string): OfertaEnEdicion => ({
 
 export const ofertaDesdeRegla = (r: ReglaCampana, nombreAutomatico: boolean): OfertaEnEdicion => ({
   id: r.id,
+  tipo: r.tipo,
   porcentaje: r.porcentaje,
+  lleva: r.lleva,
+  paga: r.paga,
+  monto: r.monto,
+  agrupa: r.agrupa,
   desde: r.desde,
   hasta: r.hasta,
   dias: [...r.dias],
@@ -286,16 +325,29 @@ export function alcanceDicho(o: Pick<OfertaEnEdicion, "categoriasSolo"> & { prod
   return partes.length ? lista(partes) : null;
 }
 
-/** «Toda la campaña · −20 % · mar y jue» · «Blusas y Faldas · −20 % · Trujillo». */
+const soles = (n: number) => `S/\u00a0${n.toFixed(2)}`;
+
+/** Lo que da la oferta, en grande y en pocas letras: «−20 %», «3 x 2», «3 por S/ 100.00», «La 2.ª al 50 %». */
+export function titularDeOferta(f: Pick<FormaDeOferta, "tipo" | "porcentaje" | "lleva" | "paga" | "monto">): string {
+  const pctTxt = String(f.porcentaje).replace(".", ",");
+  if (f.tipo === "nxm") return `${f.lleva} x ${f.paga}`;
+  if (f.tipo === "n_por_monto") return `${f.lleva} por ${soles(f.monto)}`;
+  if (f.tipo === "nesima_pct") return `La ${f.lleva}.ª al ${pctTxt} %`;
+  return `−${pctTxt} %`;
+}
+
+/** «Toda la campaña · −20 % · mar y jue» · «Blusas y Faldas · −20 % · Trujillo» · «Polos · 3 x 2». */
 export function nombreAutomatico(
-  o: Pick<OfertaEnEdicion, "porcentaje" | "dias" | "categoriasSolo"> & { sedeIds?: readonly string[]; productosSolo?: readonly string[] },
+  o: Pick<OfertaEnEdicion, "porcentaje" | "dias" | "categoriasSolo"> &
+    Partial<Pick<FormaDeOferta, "tipo" | "lleva" | "paga" | "monto">> & { sedeIds?: readonly string[]; productosSolo?: readonly string[] },
   nombreCategoria: (id: string) => string,
   nombreSede: (id: string) => string = () => "",
 ): string {
   const donde = alcanceDicho(o, nombreCategoria) ?? "Toda la campaña";
   const dias = textoDiasCorto(o.dias);
   const tiendas = lista(nombresDeTiendas(o.sedeIds ?? [], nombreSede));
-  const t = `${donde} · −${String(o.porcentaje).replace(".", ",")} %${dias ? ` · ${dias}` : ""}${tiendas ? ` · ${tiendas}` : ""}`;
+  const titular = titularDeOferta({ tipo: o.tipo ?? "pct", porcentaje: o.porcentaje, lleva: o.lleva ?? 3, paga: o.paga ?? 2, monto: o.monto ?? 0 });
+  const t = `${donde} · ${titular}${dias ? ` · ${dias}` : ""}${tiendas ? ` · ${tiendas}` : ""}`;
   return t.length > MAX_NOMBRE ? `${t.slice(0, MAX_NOMBRE - 1)}…` : t;
 }
 
@@ -304,7 +356,12 @@ export const nombreDeOferta = (o: OfertaEnEdicion, nombreCategoria: (id: string)
 
 /** Si el nombre guardado es el que habría salido solo (para no tratar de «a mano» uno automático). */
 export const esNombreAutomatico = (r: ReglaCampana, nombreCategoria: (id: string) => string, nombreSede: (id: string) => string = () => ""): boolean =>
-  r.nombre === nombreAutomatico({ porcentaje: r.porcentaje, dias: r.dias, categoriasSolo: r.categoriasSolo, productosSolo: r.productosSolo, sedeIds: r.sedeIds }, nombreCategoria, nombreSede);
+  r.nombre ===
+  nombreAutomatico(
+    { tipo: r.tipo, porcentaje: r.porcentaje, lleva: r.lleva, paga: r.paga, monto: r.monto, dias: r.dias, categoriasSolo: r.categoriasSolo, productosSolo: r.productosSolo, sedeIds: r.sedeIds },
+    nombreCategoria,
+    nombreSede,
+  );
 
 /** «del 26 oct al 31 oct» · «el 26 oct». */
 export const textoFechas = (desde: string, hasta: string): string => {
@@ -319,6 +376,17 @@ export function fraseDeOferta(o: OfertaEnEdicion, nombreCategoria: (id: string) 
   const fuera = o.categoriasFuera.length ? ` (menos ${lista(nombresOrdenados(o.categoriasFuera, nombreCategoria).map((n) => n.toLowerCase()))})` : "";
   const dias = textoDias(o.dias);
   const tiendas = lista(nombresDeTiendas(o.sedeIds, nombreSede));
+  if (esDeGrupo(o.tipo)) {
+    // «Quien lleva 3 prendas de Polos (se pueden mezclar) paga 2: la más barata va gratis, …» (la frase de la maqueta).
+    const de = `${alcance ? ` de ${alcance}` : " de la campaña"}${fuera}${o.agrupa === "modelo" ? " del mismo modelo" : " (se pueden mezclar)"}`;
+    const que =
+      o.tipo === "nxm"
+        ? `Quien lleva ${o.lleva} prendas${de} paga ${o.paga}: ${o.lleva - o.paga === 1 ? "la más barata va" : `las ${o.lleva - o.paga} más baratas van`} gratis`
+        : o.tipo === "n_por_monto"
+          ? `${o.lleva} prendas${de} cuestan ${soles(o.monto)}`
+          : `Cada ${o.lleva} prendas${de}, la más barata tiene ${String(o.porcentaje).replace(".", ",")} % menos`;
+    return `${que}${o.incluyeClaure ? ", con las prendas de Claurè" : ""}${tiendas ? `, solo en ${tiendas}` : ""}${dias ? `, ${dias}` : ""}, ${textoFechas(o.desde, o.hasta)}.`;
+  }
   return `${String(o.porcentaje).replace(".", ",")} % menos ${donde}${fuera}${o.incluyeClaure ? ", con las prendas de Claurè" : ""}${tiendas ? `, solo en ${tiendas}` : ""}${dias ? `, ${dias}` : ""}, ${textoFechas(o.desde, o.hasta)}.`;
 }
 
@@ -336,7 +404,7 @@ export type ContextoOferta = {
 /** Lo que impide guardar, dicho en una frase cada cosa. Vacío = se puede guardar. */
 export function problemasDeOferta(o: OfertaEnEdicion, c: ContextoOferta): string[] {
   const p: string[] = [];
-  if (!Number.isFinite(o.porcentaje) || o.porcentaje <= 0 || o.porcentaje > PORCENTAJE_MAX) p.push(`El descuento tiene que ir de 1 a ${PORCENTAJE_MAX} %.`);
+  p.push(...problemasDeForma(o));
   if (!o.desde || !o.hasta) {
     p.push("Pon cuándo empieza y cuándo termina.");
     return p;
@@ -360,6 +428,23 @@ export function problemasDeOferta(o: OfertaEnEdicion, c: ContextoOferta): string
   return p;
 }
 
+/** Lo que impide guardar la forma de la oferta (los mismos límites que `guardar_oferta_completa` y el candado `campana_reglas_forma`). */
+export function problemasDeForma(f: Pick<FormaDeOferta, "tipo" | "porcentaje" | "lleva" | "paga" | "monto">): string[] {
+  const entero = (n: number) => Number.isInteger(n);
+  if (f.tipo === "pct") {
+    return !Number.isFinite(f.porcentaje) || f.porcentaje <= 0 || f.porcentaje > PORCENTAJE_MAX ? [`El descuento tiene que ir de 1 a ${PORCENTAJE_MAX} %.`] : [];
+  }
+  if (!entero(f.lleva) || f.lleva < LLEVA_MIN || f.lleva > LLEVA_MAX) return [`Un grupo se arma con ${LLEVA_MIN} a ${LLEVA_MAX} prendas.`];
+  if (f.tipo === "nxm" && (!entero(f.paga) || f.paga < 1 || f.paga >= f.lleva)) return [`Si lleva ${f.lleva}, paga de 1 a ${f.lleva - 1}.`];
+  if (f.tipo === "n_por_monto" && (!Number.isFinite(f.monto) || f.monto <= 0)) return ["Pon cuánto cuesta el grupo."];
+  if (f.tipo === "nesima_pct" && (!Number.isFinite(f.porcentaje) || f.porcentaje <= 0 || f.porcentaje > 100)) return [`El descuento de la ${f.lleva}.ª va de 1 a 100 %.`];
+  return [];
+}
+
+/** Cuántas prendas puede tener un grupo (la base exige lo mismo). */
+export const LLEVA_MIN = 2;
+export const LLEVA_MAX = 10;
+
 function diasEntreFechas(desde: string, hasta: string): number {
   return Math.round((Date.parse(`${hasta}T00:00:00Z`) - Date.parse(`${desde}T00:00:00Z`)) / 86_400_000);
 }
@@ -372,6 +457,10 @@ export type CuerpoGuardarOferta = {
   etiquetaId: string;
   nombre: string;
   porcentaje: number;
+  /** La forma (ADR-0655, actividad 6). Sin ella, «un % menos». Con una de grupo, la ruta llama a `guardar_oferta_completa`. */
+  forma: Omit<FormaDeOferta, "porcentaje">;
+  /** La oferta que se edita era de grupo: aunque vuelva a «un % menos», va por `guardar_oferta_completa` para guardar su forma nueva. */
+  eraDeGrupo: boolean;
   desde: string;
   hasta: string;
   dias: number[];
@@ -420,6 +509,12 @@ export function leerCuerpoOferta(cuerpo: unknown): Resultado<CuerpoGuardarOferta
   const cede = lista(c.cedeA);
   if (!cede.every(esTextoUuid)) return { ok: false, error: "Una de las ofertas que cede no es válida." };
   if (c.id != null && cede.includes(c.id)) return { ok: false, error: "Una oferta no puede cederse a sí misma." };
+  const f = (typeof c.forma === "object" && c.forma !== null ? c.forma : {}) as Record<string, unknown>;
+  const tipo: TipoOferta = TIPOS.includes(f.tipo as TipoOferta) ? (f.tipo as TipoOferta) : "pct";
+  const num = (v: unknown, de: number) => (typeof v === "number" && Number.isFinite(v) ? v : de);
+  const forma: Omit<FormaDeOferta, "porcentaje"> = { tipo, lleva: num(f.lleva, 3), paga: num(f.paga, 2), monto: num(f.monto, 0), agrupa: f.agrupa === "modelo" ? "modelo" : "campana" };
+  const problemaForma = problemasDeForma({ ...forma, porcentaje: c.porcentaje })[0];
+  if (problemaForma) return { ok: false, error: problemaForma };
   return {
     ok: true,
     valor: {
@@ -427,6 +522,8 @@ export function leerCuerpoOferta(cuerpo: unknown): Resultado<CuerpoGuardarOferta
       etiquetaId: c.etiquetaId,
       nombre: c.nombre.trim(),
       porcentaje: c.porcentaje,
+      forma,
+      eraDeGrupo: c.eraDeGrupo === true,
       desde: c.desde,
       hasta: c.hasta,
       dias: ordenados(c.dias as number[]),
@@ -563,11 +660,14 @@ export function fraseDeChoque(c: Choque): string {
 export function resumenAntes(antes: Record<string, unknown> | null): string {
   if (!antes) return "";
   const pct = Number(antes.porcentaje);
+  const tipo = typeof antes.tipo === "string" && TIPOS.includes(antes.tipo as TipoOferta) ? (antes.tipo as TipoOferta) : "pct";
   const desde = typeof antes.desde === "string" ? antes.desde : "";
   const hasta = typeof antes.hasta === "string" ? antes.hasta : "";
   const dias = Array.isArray(antes.dias_semana) ? (antes.dias_semana as unknown[]).filter((d): d is number => typeof d === "number") : [];
   const partes = [
-    Number.isFinite(pct) ? `−${String(pct).replace(".", ",")} %` : "",
+    tipo !== "pct"
+      ? titularDeOferta({ tipo, porcentaje: pct, lleva: Number(antes.lleva ?? 0), paga: Number(antes.paga ?? 0), monto: Number(antes.monto ?? 0) })
+      : Number.isFinite(pct) ? `−${String(pct).replace(".", ",")} %` : "",
     desde && hasta ? `${fechaCorta(desde).replace(/\.$/, "")} – ${fechaCorta(hasta).replace(/\.$/, "")}` : "",
     dias.length && dias.length < 7 ? textoDiasCorto(dias) : "",
   ];

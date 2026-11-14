@@ -2,7 +2,7 @@
   "guia": "productos.campanas",
   "ruta": "/productos/campanas",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 149,
+  "total": 153,
   "controles": {
     "components/ConfirmarConResponsable.tsx": [
       "ComboResponsable «{control}»",
@@ -112,12 +112,14 @@
       "Casilla «Pintar con el color del sello»"
     ],
     "components/sellos/OfertasHoja.tsx": [
-      "button «{g.activo ? \"sellos.oferta-rebaja\" : undefined}»",
+      "button «{g.icono}»",
       "button «{g.activo ? undefined : \"Llega pronto\"}»",
       "button «Un % menos»",
       "button «Llega pronto»",
       "button «Llega pronto» #2",
       "button «{v}»",
+      "button «{f.texto}»",
+      "CampoMonto «Precio del grupo»",
       "button «{t.nombre}»",
       "button «Todos los días»",
       "button «Solo algunos días»",
@@ -127,6 +129,8 @@
       "button «{a.texto}»",
       "CampoFecha «Desde»",
       "CampoFecha «Hasta»",
+      "button «Sí, cualquiera de estas»",
+      "button «Solo del mismo modelo»",
       "SegmentoDeslizante «Cómo eliges las prendas»",
       "Casilla «{m.nombre}»",
       "button «Elegir todas»",
