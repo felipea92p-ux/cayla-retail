@@ -11,3 +11,8 @@
 **Sin medir:** el anillo de foco del enlace nuevo (el medidor pide que el navegador esté en modo teclado con una tecla real); 375 × 812 (Recibir es de escritorio; el número no se abre solo con el dedo, a propósito); el modo quieto (no hay movimiento nuevo).
 
 **Anotado, no tocado:** el aviso «Toca el número para escribirlo» sigue a la vista con el número ya abierto. Va al backlog de la rama para `/textos`.
+
+**Actualización (14-nov, más tarde):** «Faltan tallas» quedó como una píldora MÁS del panel de filtros, junto a «Tallas para después», no como el nuevo nombre de esa
+píldora (Felipe: «no quites funcionalidades ni filtros»): lo de arriba sobre «el nombre de una píldora» describe la primera versión. Y las dos reglas de hoy (Enter ya no
+abre un modelo con cantidad; tocar la fila del modelo que se cuenta no corta la cifra) no cambian nada que se vea: ni medidas, ni color, ni texto fijo de la pantalla.
+Cambian adónde va el cursor. El único texto que cambió es el de la guía interactiva de `recibir.envio.id`.
