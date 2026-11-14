@@ -400,7 +400,10 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
   ADR-0328 decisión 5—; solo para quien opera esa sede; vía `lib/piso-plan-servidor.ts`, que se la pasa al motor puro
   `lib/piso-plan.ts`: «Hoy» de cada talla —por colgar · sin stock atrás · mantener, más «En pausa»—, la lista del
   día y «se vendió rápido y falta»; la
-  decisión viaja en `FilaExistencias.planPiso` y la leen la tabla, el filtro, la tarjeta, el cajón y «Subir prenda»; ningún
+  decisión viaja en `FilaExistencias.planPiso` —desde el 2026-11-13 (ADR-0662) en dos tiempos: la página no espera al plan, le pasa al
+  panel su PROMESA recortada a las tallas de la sede (`lib/existencias-plan-panel.ts:planDelPanel`) y el panel la pone en cada fila al
+  llegar (`components/existencias/usePlanDelPiso.ts` → `aplicarPlan`); mientras tanto, «calculando»— y la leen la tabla, el filtro, la
+  tarjeta, el cajón y «Subir prenda»; cada carga deja la línea `existencias_tramos` en el registro (`lib/medir-tramos.ts`); ningún
   umbral de piso vive fuera de ese archivo, `lib/piso-plan-umbral.test.ts`; cuántas tallas hay «por colgar» o «en pausa» lo
   cuenta solo `porColgarDeLaSede`, `lib/existencias-para-hoy.ts`, con el orden de la lista del día) →
   `InventarioPanel.tsx` (tres tarjetas, filtros en memoria —el buscador es el Filtro de búsqueda especial,

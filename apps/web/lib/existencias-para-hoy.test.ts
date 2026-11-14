@@ -95,6 +95,16 @@ describe("el motor del piso en «Para hoy» (integración de la ola 1, 2026-10-0
     expect(tareasParaHoy({ ...vacia, piso: { enPausa: 1, fallo: false } })[0].texto).toBe("talla espera el cuadre del piso");
   });
 
+  it("mientras el plan llega dice que se calcula: ni «no se pudo» ni «Todo al día» (Existencias en dos tiempos)", () => {
+    const tareas = tareasParaHoy({ ...vacia, piso: { enPausa: 0, fallo: false, calculando: true } });
+    expect(tareas.map((t) => t.tipo)).toEqual(["piso_calculando"]);
+    expect(tareas[0].cifra).toBeNull();
+    // Gana a «fallo»: el que falló era el plan de antes, el de ahora todavía puede llegar.
+    expect(tareasParaHoy({ ...vacia, piso: { enPausa: 3, fallo: true, calculando: true } }).map((t) => t.tipo)).toEqual(["piso_calculando"]);
+    // En el Taller (no separa piso y almacén) no hay nada que calcular.
+    expect(tareasParaHoy({ ...vacia, separa: false, piso: { enPausa: 0, fallo: false, calculando: true } })).toEqual([]);
+  });
+
   it("si el motor no respondió, lo dice sin número (no lo calla ni inventa un «al día»)", () => {
     const tareas = tareasParaHoy({ ...vacia, piso: { enPausa: 0, fallo: true } });
     expect(tareas).toHaveLength(1);
