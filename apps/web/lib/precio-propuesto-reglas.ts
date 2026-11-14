@@ -118,12 +118,12 @@ export function pideRevisarAlRecibir(p: { precio: number | null; costo: number |
   return null;
 }
 
-/** La línea que lo dice, antes de pedir nada a la IA. */
-export function textoRevisarAlRecibir(precio: number, costo: number, r: RevisionAlRecibir): string {
-  const s = (n: number) => `S/ ${n.toFixed(2)}`;
-  return r.motivo === "margen_bajo"
-    ? `Con ${s(costo)} de costo, a ${s(precio)} ganas ${Math.round(r.margen)} %: menos de 30 %.`
-    : `Cambió el costo: con ${s(costo)}, a ${s(precio)} ganas ${Math.round(r.margen)} %.`;
+/**
+ * Por qué conviene mirar el precio, antes de pedir nada a la IA. Sin la cifra: el margen lo dice una sola vez la línea viva de al lado
+ * (`<LineaMargen>`, tarea 8 de Recibir), y repetirlo aquí lo decía dos veces en la misma hoja.
+ */
+export function textoRevisarAlRecibir(r: RevisionAlRecibir): string {
+  return r.motivo === "margen_bajo" ? "Menos de 30 %: revisa el precio." : "Cambió el costo: revisa el precio.";
 }
 
 /** El precio que va a quedar en todas las tallas de una prenda al cerrar (lo escrito o el de hoy en la sede), si es uno solo; `null` si no. */

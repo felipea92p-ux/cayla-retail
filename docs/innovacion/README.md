@@ -47,6 +47,12 @@ Las ideas que se descartaron en una corrida (ya existían, sin fuente, moda, no 
 | recibir-galeria#4 | Recibir | El código de la etiqueta del proveedor se aprende al recibir | Visión | 4 / L | propuesta | [informe](2026-11-14-recibir-galeria.md) | 2026-11-14 |
 | recibir-galeria#5 | Recibir | Una foto de la prenda en la mano ordena la galería por parecido | Visión | 4 / L | propuesta | [informe](2026-11-14-recibir-galeria.md) | 2026-11-14 |
 | recibir-galeria#6 | Recibir | La foto del papel de la compra propone los modelos y su prenda | Visión | 5 / XL | propuesta | [informe](2026-11-14-recibir-galeria.md) | 2026-11-14 |
+| recibir-margen#1 | Compras ▸ Recibir | Un solo margen en todo el ERP: Recibir y Nuevo producto con la cuenta de Compras (sin IGV) | Ahora | 4 / M | aceptada (Felipe, 2026-11-14) | [informe](2026-11-14-recibir-margen.md) | 2026-11-14 |
+| recibir-margen#2 | Compras ▸ Recibir | «¿Y con la rebaja?»: lo que queda con 30 % de campaña, en el «?» de la línea | Ahora | 3 / S | propuesta | [informe](2026-11-14-recibir-margen.md) | 2026-11-14 |
+| recibir-margen#3 | Compras ▸ Recibir | El cierre dice cuánto deja el envío entero | Ahora | 3 / S | propuesta | [informe](2026-11-14-recibir-margen.md) | 2026-11-14 |
+| recibir-margen#4 | Compras ▸ Recibir | El costo llega solo desde el XML de la factura del proveedor | Visión | 4 / L | propuesta | [informe](2026-11-14-recibir-margen.md) | 2026-11-14 |
+| recibir-margen#5 | Compras ▸ Recibir | La IA propone subir el precio de lo que rota rápido al reponerlo | Visión | 3 / M | propuesta | [informe](2026-11-14-recibir-margen.md) | 2026-11-14 |
+| recibir-margen#6 | Compras ▸ Recibir | Margen prometido contra margen logrado, por envío | Visión | 4 / L | propuesta | [informe](2026-11-14-recibir-margen.md) | 2026-11-14 |
 | recibir-crear-prenda#1 | Inventario ▸ Recibir | «La anterior» sale de la base: sobrevive a recargar y llega a «Crear ahora» | Ahora | 3 / M | hecha (PR #1860: Contar y «Crear ahora» de Para después) | [informe](2026-11-14-recibir-crear-prenda.md) | 2026-11-14 |
 | recibir-crear-prenda#2 | Inventario ▸ Recibir | La etiqueta del proveedor reconoce la reposición | Ahora | 4 / M | propuesta | [informe](2026-11-14-recibir-crear-prenda.md) | 2026-11-14 |
 | recibir-crear-prenda#3 | Inventario ▸ Recibir | Crear los nuevos del envío en una planilla | Ahora | 5 / L | propuesta | [informe](2026-11-14-recibir-crear-prenda.md) | 2026-11-14 |
