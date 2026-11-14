@@ -2,9 +2,11 @@ import Link from "next/link";
 import { exigirModulo } from "@/lib/persona-actual";
 import { armarHistoria } from "@/lib/espacio-piso";
 import { hoyLima } from "@/lib/fechas-lima";
+import { getCapacidadPisoConEstado } from "@/lib/capacidad-piso-servidor";
 import { getFotosDelEspacio, getGruposDelMix, getPropuestaDelMix } from "@/lib/plan-piso-servidor";
 import { resumir } from "@/lib/plan-piso-grupos";
 import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
+import { ConfigurarPiso, type DatosDelPiso } from "@/components/plan-piso/ConfigurarPiso";
 import { GruposDelMix } from "@/components/plan-piso/GruposDelMix";
 import { HistoriaDelEspacio } from "@/components/plan-piso/HistoriaDelEspacio";
 import { PlanDelPisoPestanas } from "@/components/plan-piso/PlanDelPisoPestanas";
@@ -28,6 +30,21 @@ export default async function PlanDelPisoPage() {
         getFotosDelEspacio(persona.ubicacionId),
       ])
     : [null, null];
+  // «Configurar el piso» (ADR-0329): solo el líder cambia la capacidad (la base también lo exige) y solo una tienda tiene piso de venta.
+  // Se lee aparte, con la versión: la propuesta usa la capacidad pero no la devuelve. Si la base no responde, el botón sale apagado.
+  const puedeConfigurar = persona.rol === "lider" && persona.ubicacionTipo === "tienda";
+  const capacidadEditable = puedeConfigurar ? await getCapacidadPisoConEstado(persona.ubicacionId) : null;
+  const datosDelPiso: DatosDelPiso | null =
+    capacidadEditable === null || capacidadEditable.estado === "fallo"
+      ? null
+      : {
+          ubicacionId: persona.ubicacionId,
+          sede: persona.ubicacionEtiqueta,
+          capacidad: capacidadEditable.estado === "ok" ? capacidadEditable.capacidad : null,
+          colgadas: propuesta?.ok ? propuesta.propuesta.colgadasEnElRiel : null,
+          cuadrado: propuesta?.ok ? propuesta.propuesta.cuadrado : false,
+          hoy: hoyLima(),
+        };
   const resumen = lectura.ok ? resumir(lectura.categorias) : null;
   const porRevisar = resumen ? resumen.porRevisar + resumen.sinGrupo : 0;
 
@@ -37,6 +54,7 @@ export default async function PlanDelPisoPage() {
         sede={persona.ubicacionEtiqueta}
         titulo="Plan del piso"
         subtitulo="Cuánto lugar tiene cada grupo de prendas en el riel, y a qué grupo pertenece cada categoría."
+        acciones={puedeConfigurar ? <ConfigurarPiso datos={datosDelPiso} /> : undefined}
       />
       {lectura.ok && propuesta && fotos ? (
         <PlanDelPisoPestanas

@@ -3,6 +3,8 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import {
   borradorDeLaCapacidad,
+  camposDelPiso,
+  capacidadDelBorrador,
   capacidadDe,
   CONTEO_DESDE,
   DENSIDAD_MAXIMA,
@@ -135,6 +137,51 @@ describe("las cajas parten de lo guardado, y guardar lo mismo no hace nada", () 
     expect(diferenciaDeCapacidad(TRU, 384)).toBe(-96);
     expect(diferenciaDeCapacidad(TRU, 480)).toBeNull();
     expect(diferenciaDeCapacidad(null, 480)).toBeNull();
+  });
+});
+
+describe("la capacidad se ve apenas están los m² y las prendas por m², con o sin día de conteo", () => {
+  it("la fecha vacía, rota o futura no la esconde", () => {
+    for (const contadaEl of ["", "x", "2099-01-01"]) expect(capacidadDelBorrador({ ...base, contadaEl })).toBe(480);
+    expect(capacidadDelBorrador({ ...base, sinContar: true })).toBe(480);
+  });
+
+  it("sin m² o sin prendas por m² legibles, nada (nunca un número inventado)", () => {
+    expect(capacidadDelBorrador({ ...base, m2: "" })).toBeNull();
+    expect(capacidadDelBorrador({ ...base, densidad: "abc" })).toBeNull();
+    expect(capacidadDelBorrador({ ...base, m2: "0" })).toBeNull();
+    expect(capacidadDelBorrador({ ...base, m2: "0,01", densidad: "1" })).toBeNull();
+  });
+});
+
+describe("la guía de foco cuenta lo mismo que bloquea el guardado", () => {
+  const faltan = (b: Partial<BorradorDelPiso>, responsableListo = true) => {
+    const bb = { ...base, ...b };
+    return camposDelPiso(leerDelPiso(bb, HOY), bb, { listo: responsableListo }).filter((c) => c.requerido && !c.hecho).map((c) => c.id);
+  };
+
+  it("todo bien: no falta nada", () => {
+    expect(faltan({})).toEqual([]);
+  });
+
+  it("cada campo mal o vacío es lo que falta, y sin responsable también", () => {
+    expect(faltan({ m2: "" })).toEqual(["m2"]);
+    expect(faltan({ densidad: "x" })).toEqual(["densidad"]);
+    expect(faltan({ contadaEl: "" })).toEqual(["contadaEl"]);
+    expect(faltan({}, false)).toEqual(["responsable"]);
+    expect(faltan({ m2: "", densidad: "", contadaEl: "" }, false)).toEqual(["m2", "densidad", "contadaEl", "responsable"]);
+  });
+
+  it("«Aún no lo conté» saca el día de lo que falta", () => {
+    expect(faltan({ contadaEl: "", sinContar: true })).toEqual([]);
+  });
+
+  it("coincide con leerDelPiso: hay algo que falta si y solo si la lectura no sale (para cada caso de la tabla)", () => {
+    const casos: Partial<BorradorDelPiso>[] = [{}, { m2: "" }, { m2: "0" }, { m2: "2001" }, { densidad: "151" }, { m2: "0,01", densidad: "1" }, { contadaEl: "2027-01-01" }, { contadaEl: "2025-01-01" }, { sinContar: true, contadaEl: "x" }];
+    for (const caso of casos) {
+      const bb = { ...base, ...caso };
+      expect(faltan(caso).length > 0, JSON.stringify(caso)).toBe(!leerDelPiso(bb, HOY).ok);
+    }
   });
 });
 

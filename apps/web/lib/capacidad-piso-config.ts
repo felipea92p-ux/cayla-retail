@@ -13,6 +13,7 @@
 import { esFechaQueExiste } from "./fechas-lima";
 import { sinBlancosDeMiles } from "./numero-escrito";
 import type { CapacidadPiso } from "./capacidad-piso";
+import type { CampoDeGuia } from "./guia-campos";
 
 /** Los topes de `fijar_capacidad_piso` y de los candados de `capacidad_piso` (migración 20261005103000). */
 export const M2_MAXIMO = 2000;
@@ -81,6 +82,15 @@ export function leerDelPiso(b: BorradorDelPiso, hoy: string): LecturaDelPiso {
   return { ok: true, m2, densidad, capacidad: capacidadDe(m2, densidad), contadaEl };
 }
 
+/**
+ * Cuántas prendas caben con lo que hay en las dos primeras cajas, o null si alguna no se lee. NO mira el día del conteo: la capacidad no
+ * depende de él, y la hoja la muestra apenas están los m² y las prendas por m², sin esperar a que se elija la fecha.
+ */
+export function capacidadDelBorrador(b: BorradorDelPiso): number | null {
+  const l = leerDelPiso({ ...b, sinContar: true }, "");
+  return l.ok ? l.capacidad : null;
+}
+
 /** Lo que ya está guardado, puesto en las cajas. Sin capacidad todavía: cajas vacías y «Aún no lo conté» apagado (se pide el día). */
 export function borradorDeLaCapacidad(c: CapacidadPiso | null): BorradorDelPiso {
   if (!c) return { m2: "", densidad: "", contadaEl: "", sinContar: false };
@@ -100,4 +110,24 @@ export function esLoMismo(c: CapacidadPiso | null, l: Extract<LecturaDelPiso, { 
 export function diferenciaDeCapacidad(c: CapacidadPiso | null, nueva: number): number | null {
   if (!c || c.capacidad === nueva) return null;
   return nueva - c.capacidad;
+}
+
+/**
+ * Lo que la guía de foco de la hoja cuenta como «falta» (CLAUDE.md «Guía de foco», ADR-0284): los m², las prendas por m², el día del conteo
+ * (salvo «Aún no lo conté») y quién hace el cambio. No agrega reglas: sale de `leerDelPiso`, la misma lectura que decide si se guarda.
+ */
+export function camposDelPiso(l: LecturaDelPiso, b: BorradorDelPiso, responsable: { listo: boolean }): CampoDeGuia[] {
+  const p: Partial<Record<CampoDelPiso, string>> = l.ok ? {} : l.problemas;
+  return [
+    { id: "m2", nombre: "Metros cuadrados", requerido: true, hecho: !p.m2, pendiente: p.m2 ?? "Escribe los m² de la sala." },
+    { id: "densidad", nombre: "Prendas por m²", requerido: true, hecho: !p.densidad, pendiente: p.densidad ?? "Escribe cuántas prendas caben por m²." },
+    {
+      id: "contadaEl",
+      nombre: "Día del conteo",
+      requerido: !b.sinContar,
+      hecho: b.sinContar || !p.contadaEl,
+      pendiente: p.contadaEl ?? "Elige el día del conteo, o marca «Aún no lo conté».",
+    },
+    { id: "responsable", nombre: "Quién hace el cambio", requerido: true, hecho: responsable.listo, pendiente: "Elige quién hace esta operación." },
+  ];
 }
