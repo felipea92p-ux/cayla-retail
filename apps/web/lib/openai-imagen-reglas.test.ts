@@ -9,6 +9,7 @@ import {
   PROMPT_CATALOGO,
   PROMPT_CON_MOLDE,
 } from "./openai-imagen-reglas";
+import { fichaParaIA } from "./ficha-foto-ia";
 
 describe("camposOpenAI", () => {
   it("pide 4:5, transparente y en PNG, con el modelo que se le pasa", () => {
@@ -143,6 +144,52 @@ describe("pedidoDeCatalogo: qué fotos van y qué se le dice a la IA", () => {
       expect(p).toMatch(/Fondo transparente/);
       expect(p).not.toMatch(/arrugas|luz pareja/i);
     }
+  });
+});
+
+describe("pedidoDeCatalogo con la ficha de la prenda (lo ya elegido, 2026-11-14)", () => {
+  const lino = fichaParaIA({ prefijo: "PAN", tejido: "Lino", patron: "Liso" });
+  const blusa = fichaParaIA({ prefijo: "CMS", tipo: "Blusa", tejido: "Seda" });
+
+  it("sin ficha (null), el pedido es el medido, palabra por palabra", () => {
+    expect(pedidoDeCatalogo({}, null)).toEqual({ orden: ["frente"], prompt: PROMPT_CATALOGO });
+    expect(pedidoDeCatalogo({ molde: true }, null)).toEqual({ orden: ["frente", "molde"], prompt: PROMPT_CON_MOLDE });
+  });
+
+  it("un pantalón (cuelga de la cintura) habla de pretina y basta, no de cuello, hombros ni pecho", () => {
+    const { prompt } = pedidoDeCatalogo({}, lino);
+    expect(prompt).toMatch(/interior de la pretina/);
+    expect(prompt).toMatch(/de la cintura a la basta/);
+    expect(prompt).toMatch(/no agregues elástico, puños ni cordón donde la foto no los muestra/);
+    expect(prompt).toMatch(/si es ancha y recta, sigue ancha y recta/);
+    // «la del cuello» sí aparece, pero en la lista de etiquetas que se quitan (`SIN_ETIQUETAS`), que es común a toda prenda.
+    expect(prompt).not.toMatch(/interior del cuello|hombros|pecho|MANGAS/);
+    // Lo que no depende de la zona sigue igual.
+    for (const regla of ["MANIQUÍ INVISIBLE", "No cambies el color", "Fondo transparente", "QUITA todas las etiquetas"]) expect(prompt).toContain(regla);
+  });
+
+  it("la ficha va al final de los tres pedidos: solo frente, con molde y con varias fotos", () => {
+    for (const extras of [{}, { molde: true }, { espalda: true, detalle: true }, { detalle: true, molde: true }]) {
+      const { prompt } = pedidoDeCatalogo(extras, lino);
+      expect(prompt.endsWith(lino!.texto), JSON.stringify(extras)).toBe(true);
+    }
+  });
+
+  it("con varias fotos y sin molde, un pantalón tampoco habla de cuello", () => {
+    const { prompt } = pedidoDeCatalogo({ espalda: true, detalle: true }, lino);
+    expect(prompt).toMatch(/interior de la pretina/);
+    expect(prompt).not.toMatch(/interior del cuello/);
+    // Ni el escote ni «en un gancho» («gancho» solo sí aparece: «ningún … gancho ni perchero»).
+    expect(prompt).not.toMatch(/en un gancho|escote/);
+    expect(prompt).toMatch(/para la pretina, los bolsillos y la caída de atrás/);
+  });
+
+  it("una blusa (cuelga de los hombros) conserva el pedido medido y solo suma su ficha", () => {
+    expect(pedidoDeCatalogo({}, blusa).prompt).toBe(`${PROMPT_CATALOGO} ${blusa!.texto}`);
+  });
+
+  it("con la ficha, ningún pedido pide quitar arrugas ni emparejar la luz (lo que redibujaba la prenda)", () => {
+    for (const extras of [{}, { molde: true }, { espalda: true }]) expect(pedidoDeCatalogo(extras, lino).prompt).not.toMatch(/arrugas|luz pareja/i);
   });
 });
 

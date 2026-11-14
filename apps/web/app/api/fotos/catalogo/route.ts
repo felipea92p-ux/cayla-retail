@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { capturarError } from "@/lib/errores";
 import { contarPedido, firmaDeImagen, MAX_BYTES_POR_FOTO_IA } from "@/lib/foto-catalogo-reglas";
 import { fotoCatalogoDisponible, llaveOpenAI, modeloOpenAI } from "@/lib/foto-catalogo";
+import { fichaParaIA } from "@/lib/ficha-foto-ia";
 import {
   OPENAI_TOPE_MS,
   OPENAI_URL_EDITAR,
@@ -19,7 +20,9 @@ import {
 // CONTRATO
 //   PROMETE: con la foto de frente de UN color (y, si vienen, su espalda, un detalle de la tela y el MOLDE —la foto de catálogo de otro color de
 //            la misma prenda—), devuelve el PNG transparente de la foto de catálogo: la prenda en un maniquí invisible, de frente, y con molde, la
-//            misma estructura que el molde (99 % de la silueta, medido). Lo que costó va en `x-costo-usd`.
+//            misma estructura que el molde (99 % de la silueta, medido). Lo que costó va en `x-costo-usd`. Si vienen `prefijo`, `tipo`, `tejido` y
+//            `patron` (lo ya elegido de la prenda), el pedido suma esa ficha y, para lo que cuelga de la cintura, habla de pretina y basta
+//            (`lib/ficha-foto-ia.ts`, ADR-0659 act. 2026-11-14 b).
 //   ASUME:   sesión válida (el proxy ya responde 401 sin ella) y que la cuenta ve el módulo Productos: es quien sube fotos.
 //   NO HACE: no guarda nada. Quien llama sube la imagen y la original (`lib/producto-fotos.ts`) y la anota al guardar la ficha.
 //
@@ -98,7 +101,14 @@ export async function POST(request: Request) {
   }
   if (!fotos.frente) return error("Falta la foto de frente.", 400);
 
-  const pedido = pedidoDeCatalogo({ espalda: Boolean(fotos.espalda), detalle: Boolean(fotos.detalle), molde: Boolean(fotos.molde) });
+  // Lo que la persona ya eligió de la prenda (categoría, tejido, patrón): la IA deja de adivinar «lino» o «buzo» de cómo cuelga. Llega como texto del
+  // navegador; `fichaParaIA` lo limpia antes de que entre a un pedido que se paga. Sin nada, el pedido es el de siempre.
+  const texto = (campo: string) => {
+    const v = formulario.get(campo);
+    return typeof v === "string" ? v : null;
+  };
+  const ficha = fichaParaIA({ prefijo: texto("prefijo"), tipo: texto("tipo"), tejido: texto("tejido"), patron: texto("patron") });
+  const pedido = pedidoDeCatalogo({ espalda: Boolean(fotos.espalda), detalle: Boolean(fotos.detalle), molde: Boolean(fotos.molde) }, ficha);
   const envio = new FormData();
   // El orden importa: el pedido nombra cada foto por su número (IMAGEN 1 es el frente; el molde, la última).
   if (pedido.orden.length === 1) envio.set("image", fotos.frente, "frente.jpg");

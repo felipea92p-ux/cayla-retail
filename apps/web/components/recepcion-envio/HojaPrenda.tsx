@@ -274,6 +274,14 @@ export function HojaPrenda({
     setFotos,
     colores: borrador.colorCodigos,
     nombreColor: (codigo) => (codigo === null ? "la prenda" : (colores.find((c) => c.codigo === codigo)?.nombre ?? codigo)),
+    // Categoría, tipo, tejido y patrón de «Cómo es» se eligen antes que las fotos: la IA recibe qué es la prenda y no lo adivina de cómo cuelga.
+    // Al SUMAR un color a una prenda que ya existe, la hoja no trae su tejido ni su patrón: viajan solo la categoría y el tipo (y el molde).
+    prenda: {
+      prefijo: categoria?.prefijo,
+      tipo: tipo || null,
+      tejido: ctx.tejidos.find((t) => t.id === borrador.tejidoId)?.texto,
+      patron: ctx.patrones.find((t) => t.id === borrador.patronId)?.texto,
+    },
   });
 
   /** Sube las fotos de la prenda recién creada, o las que se SUMAN a una que ya existe (las de los colores que quedaron elegidos), esperando a
