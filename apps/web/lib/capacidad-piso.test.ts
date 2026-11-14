@@ -19,8 +19,8 @@ const CUADRE = "2026-10-12T15:30:00.123456+00:00";
 
 describe("leer la capacidad que manda la base", () => {
   it("una fila contada y una provisional, las dos sin cuadrar (así están hoy las tres tiendas)", () => {
-    expect(leerCapacidadPiso([TRU])).toEqual({ m2Sala: 20, densidad: 30, capacidad: 600, provisional: false, cuadradoEn: null });
-    expect(leerCapacidadPiso([AQP])).toEqual({ m2Sala: 60, densidad: 30, capacidad: 1800, provisional: true, cuadradoEn: null });
+    expect(leerCapacidadPiso([TRU])).toEqual({ m2Sala: 20, densidad: 30, capacidad: 600, provisional: false, contadaEl: "2026-09-30", version: 1, cuadradoEn: null });
+    expect(leerCapacidadPiso([AQP])).toEqual({ m2Sala: 60, densidad: 30, capacidad: 1800, provisional: true, contadaEl: null, version: 1, cuadradoEn: null });
   });
 
   it("con la fecha del último cuadre, la sede queda cuadrada", () => {
@@ -31,7 +31,24 @@ describe("leer la capacidad que manda la base", () => {
     const sinColumna: Record<string, unknown> = { ...TRU };
     delete sinColumna.cuadrado_en;
     for (const fila of [sinColumna, { ...TRU, cuadrado_en: "" }, { ...TRU, cuadrado_en: "ayer" }, { ...TRU, cuadrado_en: 20261012 }]) {
-      expect(leerCapacidadPiso([fila])).toEqual({ m2Sala: 20, densidad: 30, capacidad: 600, provisional: false, cuadradoEn: null });
+      expect(leerCapacidadPiso([fila])).toEqual({ m2Sala: 20, densidad: 30, capacidad: 600, provisional: false, contadaEl: "2026-09-30", version: 1, cuadradoEn: null });
+    }
+  });
+
+  it("la versión y la fecha del conteo viajan con la capacidad (la hoja «Configurar el piso» las devuelve al guardar)", () => {
+    const c = leerCapacidadPiso([{ ...TRU, version: 7 }]);
+    expect(c?.version).toBe(7);
+    expect(c?.contadaEl).toBe("2026-09-30");
+  });
+
+  it("una versión que falta o viene rara no tira la capacidad: queda en null y la hoja no deja guardar; una fecha rara es «sin contar»", () => {
+    for (const version of [null, undefined, 0, -1, 1.5, "2", "x"]) {
+      const c = leerCapacidadPiso([{ ...TRU, version }]);
+      expect(c?.capacidad).toBe(600);
+      expect(c?.version).toBeNull();
+    }
+    for (const contada_el of [null, "", "ayer", 20260930]) {
+      expect(leerCapacidadPiso([{ ...TRU, contada_el }])?.contadaEl).toBeNull();
     }
   });
 
@@ -41,6 +58,8 @@ describe("leer la capacidad que manda la base", () => {
       densidad: 30,
       capacidad: 375,
       provisional: false,
+      contadaEl: "2026-09-30",
+      version: 1,
       cuadradoEn: null,
     });
   });
@@ -63,8 +82,8 @@ describe("leer la capacidad que manda la base", () => {
 });
 
 describe("la nota de «Colgadas en el piso»", () => {
-  const contada: CapacidadPiso = { m2Sala: 20, densidad: 30, capacidad: 600, provisional: false, cuadradoEn: CUADRE };
-  const provisional: CapacidadPiso = { m2Sala: 60, densidad: 30, capacidad: 1800, provisional: true, cuadradoEn: CUADRE };
+  const contada: CapacidadPiso = { m2Sala: 20, densidad: 30, capacidad: 600, provisional: false, contadaEl: "2026-09-30", version: 1, cuadradoEn: CUADRE };
+  const provisional: CapacidadPiso = { m2Sala: 60, densidad: 30, capacidad: 1800, provisional: true, contadaEl: null, version: 1, cuadradoEn: CUADRE };
   const sinCuadrar = (c: CapacidadPiso): CapacidadPiso => ({ ...c, cuadradoEn: null });
 
   it("dice cuántas caben: «de 600» (lo que acordó la sesión de UI/UX, ADR-0331) cuando la sede ya cuadró su piso", () => {
@@ -221,7 +240,7 @@ describe("la tarjeta «Colgadas en el piso»", () => {
     { productoId: "cartera", pisoDisponible: 3 },
     { productoId: "sandalia", pisoDisponible: 2 },
   ];
-  const tru: CapacidadPiso = { m2Sala: 20, densidad: 30, capacidad: 600, provisional: false, cuadradoEn: null };
+  const tru: CapacidadPiso = { m2Sala: 20, densidad: 30, capacidad: 600, provisional: false, contadaEl: "2026-09-30", version: 1, cuadradoEn: null };
 
   it("TRU: el número es la ropa («40 de 600 · por cuadrar») y los accesorios van aparte en la misma tarjeta («+ 17 accesorios»)", () => {
     const cifra = cifraColgadasEnElPiso({ filas, productos, catalogoFallo: false, capacidad: tru });
@@ -255,7 +274,7 @@ describe("la tarjeta «Colgadas en el piso»", () => {
   });
 
   it("LIM sigue «(provisional)»: «de 180 (provisional) · por cuadrar»", () => {
-    const lim: CapacidadPiso = { m2Sala: 6, densidad: 30, capacidad: 180, provisional: true, cuadradoEn: null };
+    const lim: CapacidadPiso = { m2Sala: 6, densidad: 30, capacidad: 180, provisional: true, contadaEl: null, version: 1, cuadradoEn: null };
     const cifra = cifraColgadasEnElPiso({ filas, productos, catalogoFallo: false, capacidad: lim });
     expect(cifra.nota).toBe("de 180 (provisional) · por cuadrar");
     expect(cifra.titulo).toContain("Provisional: esta sede todavía no contó las prendas de su piso.");
