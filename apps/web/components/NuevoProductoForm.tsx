@@ -1,6 +1,7 @@
 "use client";
 
 import { LineaMargen } from "@/components/ui/LineaMargen";
+import { facturaDelEnvio, margenALaVista } from "@/lib/margen-a-la-vista";
 import { enterNoGuarda } from "@/components/ui/enterNoGuarda";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -77,8 +78,6 @@ import {
   faltaDelPaso as faltaDelPasoProblema,
   leerCantidad,
   leerErrorAlta,
-  margenPorcentaje,
-  nivelMargen,
   ordenarColores,
   ordenarFotosAlta,
   pasoAbrible,
@@ -581,8 +580,12 @@ export function NuevoProductoForm({
 
   const precioNum = Number(precioBase);
   const costoNum = Number(costoBase);
-  const margen = costoBase.trim() === "" ? null : margenPorcentaje(precioNum, costoNum);
-  const nivel = nivelMargen(margen);
+  // El margen con la cuenta de Compras (sin IGV; `recibir-margen#1`, Felipe 2026-11-14): la cifra grande, su línea en soles y la ficha dicen lo
+  // mismo que Compras y Recibir. Con un proveedor con RUC se supone factura, como Compras al armar la orden; sin proveedor, «sin factura».
+  const conFacturaAlta = facturaDelEnvio([], [listasMarca.proveedores.find((p) => p.id === proveedorId)?.ruc]);
+  const margenVivo = costoBase.trim() === "" ? null : margenALaVista(costoBase, precioBase, conFacturaAlta);
+  const margen = margenVivo?.pct ?? null;
+  const nivel = margenVivo ? (margenVivo.tono === "pierdes" ? "negativo" : margenVivo.tono) : null;
   const sugerido = categoriaId ? contexto.costoSugerido[categoriaId] : undefined;
 
   // Sin fila de «más usados» (Felipe, 2026-09-28): los colores se eligen buscándolos o en la carta por familia.
@@ -1328,7 +1331,7 @@ export function NuevoProductoForm({
                 {margen === null ? "—" : `${margen.toFixed(0)} %`}
               </p>
               {/* Tarea 8 de Recibir: el margen también en soles, con la misma cuenta y los mismos colores que la línea de Recibir. */}
-              {margen !== null && <LineaMargen costo={costoBase} precio={precioBase} soloSoles className="mt-1" />}
+              {margen !== null && <LineaMargen costo={costoBase} precio={precioBase} conFactura={conFacturaAlta} soloSoles className="mt-1" />}
               <p className="mt-1 text-sm text-taupe">{margen === null ? "Con el costo, se calcula" : nivel ? etiquetaNivel[nivel] : ""}</p>
             </div>
           </div>

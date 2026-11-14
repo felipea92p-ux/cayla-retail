@@ -14,7 +14,8 @@ import { nombresParecidos, type MotivoParecido } from "./nombres-parecidos";
 export type MarcaOpcion = { id: string; nombre: string };
 /** Una marca con los nombres de quienes la traen: lo que el formulario de nueva marca muestra al preguntar «¿no es esta?». */
 export type MarcaConProveedores = MarcaOpcion & { proveedores: readonly string[] };
-export type ProveedorOpcion = { id: string; nombre: string };
+/** `ruc`: para la línea del margen de Nuevo producto (con RUC se supone factura, como Compras; `recibir-margen#1`). */
+export type ProveedorOpcion = { id: string; nombre: string; ruc?: string | null };
 export type Vinculo = { marcaId: string; proveedorId: string };
 /** Cuántas veces se usó una pareja en productos recientes de una categoría. */
 export type ParejaUso = { marcaId: string; proveedorId: string; usos: number };

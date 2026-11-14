@@ -40,7 +40,7 @@ describe("los proveedores solo de gastos no se ofrecen para comprar ni recibir m
   it("las listas que alimentan esas pantallas traen los rubros (sin ellos el filtro no ve a nadie)", () => {
     expect(leer("lib/compras.ts")).toMatch(/from\("proveedores"\)\.select\("id, nombre, ruc, rubros"\)/);
     expect(leer("lib/ordenes-compra.ts")).toMatch(/from\("proveedores"\)\.select\("id, nombre, ruc, rubros[,"]/);
-    expect(leer("lib/marcas-datos.ts")).toMatch(/from\("proveedores"\)\.select\("id, nombre, rubros"\)/);
+    expect(leer("lib/marcas-datos.ts")).toMatch(/from\("proveedores"\)\.select\("id, nombre, ruc, rubros"\)/);
     expect(leer("app/(app)/productos/marcas/page.tsx")).toMatch(/from\("proveedores"\)\.select\("id, nombre, rubros"\)/);
   });
 

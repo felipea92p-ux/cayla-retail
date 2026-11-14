@@ -5,7 +5,7 @@ import { CircleAlert } from "lucide-react";
 import { CampoTexto } from "@/components/ui/campos";
 import { PropuestaDePrecio } from "@/components/alta-producto/PropuestaDePrecio";
 import { pideRevisarAlRecibir, textoRevisarAlRecibir } from "@/lib/precio-propuesto-reglas";
-import { LineaMargen } from "@/components/ui/LineaMargen";
+import { LineaMargen, useFacturaDelMargen } from "@/components/ui/LineaMargen";
 import { ElegirOpcion } from "@/components/recepcion-envio/BloquePrenda";
 import { ALCANCE_DE_FABRICA, cambioDePrecioDeVenta, hoyDelPrecio, leerCostoCierre, leerPrecioNuevo, type PrecioEditado, type PrendaSeparada, type RangoDePrecio } from "@/lib/recepcion-conteo-reglas";
 import { leerPreciosDePrenda } from "@/lib/recepcion-conteo-acciones";
@@ -92,6 +92,8 @@ export function PrecioDePrenda({
   /** La hoja ya dice de qué prenda es (la de «Tallas y colores» de una sola): no se repite su nombre, solo el precio de hoy, y los campos van en una línea. */
   sinNombre?: boolean;
 }) {
+  // La misma cuenta del margen que la línea viva (sin IGV, con o sin factura): la propuesta se ofrece cuando la línea se pone ámbar.
+  const conFactura = useFacturaDelMargen();
   const nombre = prenda.nombre ?? prenda.codigo ?? "la prenda";
   const alcance = editado?.alcance ?? ALCANCE_DE_FABRICA;
   const lectura = leerPrecioNuevo(editado?.valor ?? "");
@@ -129,7 +131,7 @@ export function PrecioDePrenda({
   const precioHoy = hoyDelPrecio({ actual: editado?.actual, actualSede: editado?.actualSede, alcance });
   const precioQueQueda = lectura.valor ?? (precioHoy && precioHoy.desde === precioHoy.hasta ? precioHoy.desde : null);
   const costoQueQueda = conCosto ? (nuevoCosto?.problema === null ? nuevoCosto.valor : null) : null;
-  const revisar = conCosto ? pideRevisarAlRecibir({ precio: precioQueQueda, costo: costoQueQueda, costoAntes: leerCostoCierre(costo.antes).valor }) : null;
+  const revisar = conCosto ? pideRevisarAlRecibir({ conFactura, precio: precioQueQueda, costo: costoQueQueda, costoAntes: leerCostoCierre(costo.antes).valor }) : null;
   return (
     <div
       className={
