@@ -12,7 +12,7 @@
  *     Control: con un grupo de menos NO coincide (la comparación no es vacía).
  *   · CADA PARTE SOLA = ESA PARTE EN LA ENTERA, y su `ms` trae solo lo pedido.
  *   · LOS GRUPOS SON UNA PARTICIÓN de las 13 partes (ni una de menos ni una repetida). Los grupos de aquí son los de la web
- *     (`GRUPOS_DEL_RESUMEN`, `lib/resumen-finanzas-partes.ts`); `lib/resumen-finanzas-partes.test.ts` exige que coincidan con esta lista.
+ *     (`GRUPOS_DEL_RESUMEN`, en `lib/resumen-finanzas-partes.ts` de la web); su prueba de vitest exige que coincidan con esta lista.
  *   · `fn_resumen_finanzas` ES EL ENVOLTORIO: llama a la función por partes con todas (`p_partes` null).
  *   · UNA PARTE QUE NO EXISTE ES UN ERROR (22023), y un nulo en la lista también: nunca una respuesta a medias en silencio.
  *   · PERMISOS IGUALES: sin el módulo, 42501 también por partes; `anon` no llama a ninguna; las dos son STABLE y security definer.
@@ -29,7 +29,7 @@ const BASE = i > 0 ? process.argv[i + 1] : "postgres";
 const FELIPE = "22222222-2222-4222-8222-000000000001"; // líder (seed)
 const MICAELA = "22222222-2222-4222-8222-000000000003"; // integrante — Tienda Trujillo (seed)
 
-// Los mismos grupos que pide la web (`GRUPOS_DEL_RESUMEN` en apps/web/lib/resumen-finanzas-partes.ts).
+// Los mismos grupos que pide la web (`GRUPOS_DEL_RESUMEN`, en `lib/resumen-finanzas-partes.ts` de la web). Sin importar nada de ella: esta prueba solo mira la base.
 const GRUPOS = {
   rapido: ["cuentas", "por_pagar", "flujo", "igv", "campanas", "egresos", "fijos", "raros", "cierre", "sin_cuenta"],
   mes: ["resultados_mes"],
