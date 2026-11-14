@@ -1532,7 +1532,7 @@ export function OfertasHoja({
     const v = vigenciaDeRegla(r, hoy);
     const chip = CHIP_ESTADO[v];
     const viva = r.estado !== "desactivada" && v !== "terminada";
-    const antes = r.cambios > 0 ? resumenAntes(r.ultimoCambio) : "";
+    const antes = r.cambios > 0 ? resumenAntes(r.ultimoCambio, r) : "";
     const datos = [titularDeOferta(r), `${sinPunto(fechaCorta(r.desde))} – ${sinPunto(fechaCorta(r.hasta))}`, textoDiasCorto(r.dias)].filter(Boolean).join(" · ");
     const confirmando = retirando === r.id;
     return (

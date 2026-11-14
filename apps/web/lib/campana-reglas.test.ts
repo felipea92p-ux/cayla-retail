@@ -402,6 +402,13 @@ describe("antes: …", () => {
     expect(resumenAntes(null)).toBe("");
     expect(resumenAntes({})).toBe("");
   });
+  it("una oferta que no es «% menos» no dice «−0 %» (ADR-0655)", () => {
+    const fila = { porcentaje: null, desde: "2026-10-24", hasta: "2026-10-31", dias_semana: [1, 2, 3, 4, 5, 6, 7] };
+    expect(resumenAntes(fila, { tipo: "nxm", lleva: 3 })).toBe("24 oct – 31 oct");
+    expect(resumenAntes(fila, { tipo: "monto", lleva: 3 })).toBe("24 oct – 31 oct");
+    expect(resumenAntes({ ...fila, porcentaje: 50 }, { tipo: "nesima_pct", lleva: 2 })).toBe("La 2.ª al 50 % · 24 oct – 31 oct");
+    expect(resumenAntes({ ...fila, porcentaje: 20 })).toBe("−20 % · 24 oct – 31 oct");
+  });
 });
 
 describe("el orden en que se eligen las categorías no cambia el nombre", () => {
