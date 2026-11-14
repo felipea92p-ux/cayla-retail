@@ -83,6 +83,7 @@ import {
   paradaEnFoco,
   paradasDelGrupo,
   siguientePendiente,
+  siguienteSinTallas,
   repartirModeloCon,
   repartirOtroCambio,
   SIN_FILTRO,
@@ -311,8 +312,7 @@ export function ContarEnvio({
   }
   // El modo de cada modelo viene contestado por lo que es (ADR-0645): lo del catálogo se reparte ahora; lo nuevo sin crear, después. Lo que la persona eligió manda.
   const modoDe = (p: ParadaDelConteo): ModoDeTallas => modoDeTallas(modos[p.clave], !!p.modelo?.conTallas, !!p.modelo?.productoId);
-  const enAhora = new Set(paradasDelEnvio.filter((p) => p.modelo && modoDe(p) === "ahora").map((p) => p.clave));
-  const categoriasDelConteo = categoriasEnOrden(categoriasDelFiltro(grupos, filtro, parada?.clave ?? null, enAhora), orden);
+  const categoriasDelConteo = categoriasEnOrden(categoriasDelFiltro(grupos, filtro, parada?.clave ?? null), orden);
   const paradas = categoriasDelConteo.flatMap((c) => c.paradas);
   const { siguiente } = vecinosDeLaParada(paradas, parada?.clave ?? null);
   // En el último modelo, lo que sigue es lo que quedó sin contar en todo el envío: Enter no cierra, lleva a lo pendiente.
@@ -320,7 +320,7 @@ export function ContarEnvio({
   // El pie del contador dice siempre cuál es el próximo sin contar del envío (sin «Siguiente», es lo único que lleva a otro modelo desde ahí).
   const faltaContar = parada ? siguientePendiente(paradasDelEnvio, parada.clave) : null;
   const opciones = opcionesDelFiltro(grupos, filtro);
-  const cifras = cifrasDelResumen(todas, enAhora);
+  const cifras = cifrasDelResumen(todas);
   // En una terminal hay que elegir quién cuenta antes de guardar: es lo primero que falta, y se elige ahí mismo.
   const faltaQuien = responsable.estado === "falta";
   const guiaBase = useGuiaCampos(
@@ -420,7 +420,7 @@ export function ContarEnvio({
     setFiltro(f);
     setAlternadas(new Set());
     if (f.texto !== filtro.texto) return;
-    const nuevo = focoTrasElFiltro(categoriasEnOrden(categoriasDelFiltro(grupos, f, null, enAhora), orden), parada?.clave ?? null);
+    const nuevo = focoTrasElFiltro(categoriasEnOrden(categoriasDelFiltro(grupos, f, null), orden), parada?.clave ?? null);
     if (nuevo !== (parada?.clave ?? null)) {
       setFoco(nuevo);
       setEscribirEn(null);
@@ -698,6 +698,8 @@ export function ContarEnvio({
 
   // «Revisar y cerrar» pasa a ser el botón principal recién cuando ya no queda nada por contar: hasta ahí lo principal es «Listo, siguiente».
   const todoContado = cifras.estados["por-contar"] === 0 && puedeCerrar;
+  // La segunda pasada (tarea 10 de las 30 de Recibir, 2026-11-14): con todo contado, el pie del contador lleva al siguiente modelo que quedó sin tallas. Es una sugerencia: no frena el cierre.
+  const faltanTallasEn = todoContado && parada ? siguienteSinTallas(paradasDelEnvio, parada.clave) : null;
   const faltaFotoDeFactura = papeles.some((p) => !p.fotoRuta);
   const sepDeLaParada = parada ? prendaSeparada(parada) : undefined;
   const prendaDeLaParada = parada?.modelo?.productoId ? (prendas.get(parada.modelo.productoId) ?? null) : null;
@@ -945,6 +947,8 @@ export function ContarEnvio({
               pasoTallas={!tarjeta || tarjeta === "espera" ? "falta" : tarjeta === "lista" || tarjeta === "en-stock" ? "hecha" : tocaRepartir(tarjeta) ? "toca" : "falta"}
               abrirNumero={escribirEn === parada.clave}
               pendiente={faltaContar}
+              sinTallasEn={faltanTallasEn}
+              onSinTallas={(e) => pasarA(faltanTallasEn, e.timeStamp)}
               hayFiltroPuesto={hayFiltro(filtro)}
               todoContado={todoContado}
               filaSeguir={filaSeguir}

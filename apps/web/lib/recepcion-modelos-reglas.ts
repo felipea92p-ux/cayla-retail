@@ -530,20 +530,24 @@ export function claveTrasCorregir(p: Pick<ParadaDelConteo, "grupo" | "modelo" | 
 }
 
 /**
- * Los estados por los que se filtra la lista. Los tres primeros reparten todas las paradas; «despues» (lo que ya se contó y aún no tiene tallas) y «llevar» (lo repartido que
+ * Los estados por los que se filtra la lista. Los tres primeros reparten todas las paradas; «sin-tallas» (lo que ya se contó y aún no tiene tallas) y «llevar» (lo repartido que
  * todavía no entró al stock, ADR-0645) se miran aparte.
  */
-export type EstadoDelResumen = "cuadran" | "diferencia" | "por-contar" | "despues" | "llevar";
+export type EstadoDelResumen = "cuadran" | "diferencia" | "por-contar" | "sin-tallas" | "llevar";
 
-export function estadoDeParada(p: ParadaDelConteo): Exclude<EstadoDelResumen, "despues"> {
+export function estadoDeParada(p: ParadaDelConteo): Exclude<EstadoDelResumen, "sin-tallas"> {
   if (p.modelo?.estado === "contado") return p.grupo.dijeron === p.grupo.contadas ? "cuadran" : "diferencia";
   if (p.modelo) return p.modelo.estado === "por-contar" ? "por-contar" : p.modelo.estado === "cuadra" ? "cuadran" : "diferencia";
   if (!paradaContada(p)) return "por-contar";
   return p.grupo.dijeron == null || p.grupo.dijeron === p.grupo.contadas ? "cuadran" : "diferencia";
 }
 
-/** Lo contado que queda sin tallas. Lo que la persona pidió hacer ahora (`enAhora`) no es «para después»: ese dice «Faltan tallas». */
-export const tallasParaDespues = (p: ParadaDelConteo, enAhora?: ReadonlySet<string>): boolean => !!p.modelo && p.modelo.contadas > 0 && !p.modelo.conTallas && !enAhora?.has(p.clave);
+/**
+ * Lo contado que todavía no tiene sus tallas y colores, lo haya dejado la persona «para después» o no (tarea 10 de las 30 de Recibir, 2026-11-14). Es lo que junta el filtro
+ * «Faltan tallas» y lo que recorre la segunda pasada: primero las cantidades, después el detalle. Hasta ese día el filtro era «Tallas para después» y dejaba fuera lo que la
+ * persona pidió repartir ahora y no terminó: esa fila llevaba su chip ámbar, pero ningún filtro la juntaba. Las tallas no frenan el cierre: esto ordena, no obliga.
+ */
+export const sinTallas = (p: ParadaDelConteo): boolean => !!p.modelo && p.modelo.contadas > 0 && !p.modelo.conTallas;
 
 /**
  * Lo que ya tiene sus tallas y colores y todavía no entró al stock (ADR-0645, Felipe 2026-11-11: casi siempre llevan la prenda al stock desde el conteo, para venderla ya). Entra al
@@ -551,17 +555,17 @@ export const tallasParaDespues = (p: ParadaDelConteo, enAhora?: ReadonlySet<stri
  */
 export const porLlevarAlStock = (p: ParadaDelConteo): boolean => !!p.modelo && !!p.modelo.productoId && p.modelo.conTallas && p.modelo.contadas > p.modelo.enStock;
 
-/** ¿La parada está en ese estado? «despues» y «llevar» se miran aparte de los tres que reparten la lista. */
-const enEstado = (p: ParadaDelConteo, estado: EstadoDelResumen, enAhora?: ReadonlySet<string>): boolean =>
-  estado === "despues" ? tallasParaDespues(p, enAhora) : estado === "llevar" ? porLlevarAlStock(p) : estadoDeParada(p) === estado;
+/** ¿La parada está en ese estado? «sin-tallas» y «llevar» se miran aparte de los tres que reparten la lista. */
+const enEstado = (p: ParadaDelConteo, estado: EstadoDelResumen): boolean =>
+  estado === "sin-tallas" ? sinTallas(p) : estado === "llevar" ? porLlevarAlStock(p) : estadoDeParada(p) === estado;
 
 const sinTildes = (t: string): string => t.normalize("NFD").replace(/\p{M}/gu, "");
 
-const pasaLaParada = (p: ParadaDelConteo, f: FiltroDelConteo, retener: string | null, enAhora?: ReadonlySet<string>): boolean => {
+const pasaLaParada = (p: ParadaDelConteo, f: FiltroDelConteo, retener: string | null): boolean => {
   // Lo que se está contando no se va de la lista bajo el dedo: con «Por contar» puesto, sumarle una lo sacaría del filtro. Se va al pasar al siguiente.
   if (p.clave !== retener) {
     if (f.tipo && tipoDeParada(p) !== f.tipo) return false;
-    if (f.estado && !enEstado(p, f.estado, enAhora)) return false;
+    if (f.estado && !enEstado(p, f.estado)) return false;
   }
   const texto = sinTildes(f.texto).trim().toLocaleLowerCase("es");
   if (!texto) return true;
@@ -593,10 +597,10 @@ function conSoloEstas(c: CategoriaDelEnvio, paradas: ParadaDelConteo[]): Categor
 }
 
 /** Lo que se ve en la lista: por proveedor y marca se filtran los grupos; por tipo, estado y búsqueda, las paradas de adentro. Una categoría sin nada que mostrar no sale. */
-export function categoriasDelFiltro(grupos: readonly GrupoDeLineas[], f: FiltroDelConteo, retener: string | null = null, enAhora?: ReadonlySet<string>): CategoriaDelEnvio[] {
+export function categoriasDelFiltro(grupos: readonly GrupoDeLineas[], f: FiltroDelConteo, retener: string | null = null): CategoriaDelEnvio[] {
   const categorias = categoriasDelEnvio(gruposDelFiltro(grupos, f));
   if (!f.tipo && !f.estado && !f.texto.trim()) return categorias;
-  return categorias.map((c) => conSoloEstas(c, c.paradas.filter((p) => pasaLaParada(p, f, retener, enAhora)))).filter((c) => c.paradas.length > 0);
+  return categorias.map((c) => conSoloEstas(c, c.paradas.filter((p) => pasaLaParada(p, f, retener)))).filter((c) => c.paradas.length > 0);
 }
 
 /** Lo que el filtro deja cuando la persona lo cambia: si lo que se contaba ya no se ve, se pasa a lo primero sin contar de lo que se ve. Sin nada a la vista, se queda donde está. La búsqueda no pasa por aquí: lo que se cuenta no cambia mientras se teclea. */
@@ -614,6 +618,16 @@ export function siguientePendiente(paradas: readonly ParadaDelConteo[], clave: s
   const i = paradas.findIndex((p) => p.clave === clave);
   const enOrden = i < 0 ? paradas : [...paradas.slice(i + 1), ...paradas.slice(0, i)];
   return enOrden.find((p) => !paradaContada(p)) ?? null;
+}
+
+/**
+ * Con todo contado, a qué modelo lleva «Faltan tallas» en el pie del contador (tarea 10 de las 30 de Recibir, 2026-11-14): el siguiente sin tallas desde lo que se mira, dando la
+ * vuelta, igual que `siguientePendiente`. Lo que se está mirando no cuenta: su tarjeta de tallas ya lo dice. `null` si no queda ninguno.
+ */
+export function siguienteSinTallas(paradas: readonly ParadaDelConteo[], clave: string | null): ParadaDelConteo | null {
+  const i = paradas.findIndex((p) => p.clave === clave);
+  const enOrden = i < 0 ? paradas : [...paradas.slice(i + 1), ...paradas.slice(0, i)];
+  return enOrden.find(sinTallas) ?? null;
 }
 
 /**
@@ -650,16 +664,16 @@ export type CifrasDelResumen = {
 };
 
 /** Lo que dice el resumen de la derecha, de TODO el envío: los filtros solo deciden qué se ve a la izquierda. */
-export function cifrasDelResumen(categorias: readonly CategoriaDelEnvio[], enAhora?: ReadonlySet<string>): CifrasDelResumen {
+export function cifrasDelResumen(categorias: readonly CategoriaDelEnvio[]): CifrasDelResumen {
   const paradas = categorias.flatMap((c) => c.paradas);
   const grupos = categorias.flatMap((c) => c.grupos);
   const dijeron = grupos.every((g) => g.dijeron == null) ? null : grupos.reduce((a, g) => a + (g.dijeron ?? 0), 0);
   const contadas = grupos.reduce((a, g) => a + g.contadas, 0);
-  const estados: Record<EstadoDelResumen, number> = { cuadran: 0, diferencia: 0, "por-contar": 0, despues: 0, llevar: 0 };
+  const estados: Record<EstadoDelResumen, number> = { cuadran: 0, diferencia: 0, "por-contar": 0, "sin-tallas": 0, llevar: 0 };
   const tipos: CifrasDelResumen["tipos"] = { restock: { modelos: 0, contados: 0 }, nuevo: { modelos: 0, contados: 0 } };
   for (const p of paradas) {
     estados[estadoDeParada(p)] += 1;
-    if (tallasParaDespues(p, enAhora)) estados.despues += 1;
+    if (sinTallas(p)) estados["sin-tallas"] += 1;
     if (porLlevarAlStock(p)) estados.llevar += 1;
     const tipo = tipoDeParada(p);
     if (!tipo) continue;

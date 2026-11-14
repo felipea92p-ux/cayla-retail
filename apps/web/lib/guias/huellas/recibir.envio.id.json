@@ -2,7 +2,7 @@
   "guia": "recibir.envio.id",
   "ruta": "/recibir/envio/[id]",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 297,
+  "total": 299,
   "controles": {
     "app/(app)/recibir/envio/[id]/page.tsx": [
       "Volver «/recibir»",
@@ -295,6 +295,7 @@
       "Boton «Llegó dañada»",
       "Boton «Es otra prenda»",
       "button «{`Ir a ${nombreDeParada(pendiente)}»",
+      "button «{`Ir a ${nombreDeParada(sinTallasEn)}»",
       "button «Ver todos»"
     ],
     "components/recepcion-conteo/PrecioDePrenda.tsx": [

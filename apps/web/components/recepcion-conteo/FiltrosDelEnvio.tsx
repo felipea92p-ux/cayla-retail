@@ -25,7 +25,8 @@ const ESTADOS: readonly { clave: EstadoDelResumen; texto: string; soloConAviso?:
   { clave: "por-contar", texto: "Por contar" },
   { clave: "diferencia", texto: "Con diferencia", soloConAviso: true },
   { clave: "cuadran", texto: "Cuadran", soloConAviso: true },
-  { clave: "despues", texto: "Tallas para después" },
+  // Todo lo contado sin tallas, lo haya dejado la persona para después o no: la lista de la segunda pasada (tarea 10 de las 30 de Recibir, 2026-11-14).
+  { clave: "sin-tallas", texto: "Faltan tallas" },
   { clave: "llevar", texto: "Por llevar al stock" },
 ];
 const TIPOS: readonly { clave: TipoDeModelo; texto: string; puesto: string }[] = [

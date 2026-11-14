@@ -18,7 +18,8 @@ import {
   filtrosPuestos,
   fraseDelAvance,
   etiquetaDelAvance,
-  tallasParaDespues,
+  sinTallas,
+  siguienteSinTallas,
   porLlevarAlStock,
   tipoDeParada,
   vecinosDeLaParada,
@@ -579,10 +580,10 @@ describe("Re stock, Producto nuevo y los estados del resumen", () => {
     expect(porNombre.get("Vestido Lima")).toBe("por-contar");
   });
 
-  it("tallas para después: lo contado que todavía no tiene tallas y colores", () => {
+  it("faltan tallas: lo contado que todavía no tiene tallas y colores", () => {
     const conTallas = [{ variante_id: "v1", cantidad: 5, danadas: 0, danada_solucion: null, talla: "S", color: "Negro", codigo: null }];
     const [c] = categoriasDelEnvio(agruparLineas([deLaGuia(sofia(), { contadas: 5, separado: { prendas: [prendaSep("p-sofia", "Vestido Sofía", 5, conTallas)], nuevas: [] } }), deLaGuia(antonella(), { contadas: 3, separado: { prendas: [prendaSep("p-anto", "Vestido Antonella", 3)], nuevas: [] } }), deLaGuia(lima())]));
-    const porNombre = new Map(c.paradas.map((p) => [nombreDeParada(p), tallasParaDespues(p)]));
+    const porNombre = new Map(c.paradas.map((p) => [nombreDeParada(p), sinTallas(p)]));
     expect(porNombre.get("Vestido Sofía")).toBe(false);
     expect(porNombre.get("Vestido Antonella")).toBe(true);
     expect(porNombre.get("Vestido Lima")).toBe(false);
@@ -603,13 +604,41 @@ describe("Re stock, Producto nuevo y los estados del resumen", () => {
     expect(filtradas.flatMap((x) => x.paradas).map(nombreDeParada)).toEqual(["Vestido Sofía"]);
   });
 
-  it("lo que se pidió hacer ahora no se cuenta «para después»", () => {
-    const [c] = categoriasDelEnvio(agruparLineas([deLaGuia(antonella(), { contadas: 3, separado: { prendas: [prendaSep("p-anto", "Vestido Antonella", 3)], nuevas: [] } })]));
-    const p = c.paradas[0];
-    expect(tallasParaDespues(p)).toBe(true);
-    expect(tallasParaDespues(p, new Set([p.clave]))).toBe(false);
-    expect(cifrasDelResumen([c], new Set([p.clave])).estados.despues).toBe(0);
-    expect(categoriasDelFiltro(agruparLineas(c.grupos.flatMap((g) => g.lineas)), { ...SIN_FILTRO, estado: "despues" }, null, new Set([p.clave]))).toEqual([]);
+  it("el filtro «Faltan tallas» junta todo lo contado sin tallas, lo haya dejado la persona para después o no (tarea 10)", () => {
+    // Antonella y Sofía se contaron y ninguna tiene tallas: da igual cuál se pidió repartir «ahora», las dos son de la segunda pasada. Lima no se contó: no entra.
+    const lineas = [
+      deLaGuia(sofia(), { contadas: 5, separado: { prendas: [prendaSep("p-sofia", "Vestido Sofía", 5)], nuevas: [] } }),
+      deLaGuia(antonella(), { contadas: 3, separado: { prendas: [prendaSep("p-anto", "Vestido Antonella", 3)], nuevas: [] } }),
+      deLaGuia(lima()),
+    ];
+    const categorias = categoriasDelEnvio(agruparLineas(lineas));
+    expect(cifrasDelResumen(categorias).estados["sin-tallas"]).toBe(2);
+    const filtradas = categoriasDelFiltro(agruparLineas(lineas), { ...SIN_FILTRO, estado: "sin-tallas" });
+    expect(filtradas.flatMap((x) => x.paradas).map(nombreDeParada).sort()).toEqual(["Vestido Antonella", "Vestido Sofía"]);
+  });
+
+  it("el pie lleva al siguiente sin tallas, da la vuelta y no cuenta el que se está mirando (tarea 10)", () => {
+    const conTallas = [{ variante_id: "v1", cantidad: 4, danadas: 0, danada_solucion: null, talla: "S", color: "Negro", codigo: null }];
+    const lineas = [
+      deLaGuia(sofia(), { contadas: 5, separado: { prendas: [prendaSep("p-sofia", "Vestido Sofía", 5)], nuevas: [] } }),
+      deLaGuia(antonella(), { contadas: 3, separado: { prendas: [prendaSep("p-anto", "Vestido Antonella", 3)], nuevas: [] } }),
+      deLaGuia(lima(), { contadas: 4, separado: { prendas: [prendaSep("p-lima", "Vestido Lima", 4, conTallas)], nuevas: [] } }),
+    ];
+    const paradas = categoriasDelEnvio(agruparLineas(lineas)).flatMap((c) => c.paradas);
+    const clave = (nombre: string) => paradas.find((p) => nombreDeParada(p) === nombre)!.clave;
+    const lleva = (desde: string | null) => { const p = siguienteSinTallas(paradas, desde); return p ? nombreDeParada(p) : null; };
+    const sinTallasEnOrden = paradas.filter(sinTallas).map(nombreDeParada);
+    expect(sinTallasEnOrden).toHaveLength(2);
+    // Desde Lima (repartida, la última que se contó) lleva al primero sin tallas de la lista.
+    expect(lleva(clave("Vestido Lima"))).toBe(sinTallasEnOrden[0]);
+    // Desde uno sin tallas lleva al otro, nunca a sí mismo.
+    expect(lleva(clave(sinTallasEnOrden[0]))).toBe(sinTallasEnOrden[1]);
+    expect(lleva(clave(sinTallasEnOrden[1]))).toBe(sinTallasEnOrden[0]);
+    // Sin nada elegido, el primero.
+    expect(lleva(null)).toBe(sinTallasEnOrden[0]);
+    // Con un solo modelo sin tallas, y es el que se mira, no hay a dónde ir: el pie vuelve a «Todo contado».
+    const solo = paradas.filter((p) => nombreDeParada(p) !== sinTallasEnOrden[1]);
+    expect(siguienteSinTallas(solo, clave(sinTallasEnOrden[0]))).toBeNull();
   });
 
   it("las cifras del resumen son las de TODO el envío", () => {
@@ -618,7 +647,7 @@ describe("Re stock, Producto nuevo y los estados del resumen", () => {
     expect(r.contadas).toBe(5);
     expect(r.diferencia).toBe(0);
     expect(Math.round(r.avance ?? 0)).toBe(33);
-    expect(r.estados).toEqual({ cuadran: 1, diferencia: 0, "por-contar": 2, despues: 1, llevar: 0 });
+    expect(r.estados).toEqual({ cuadran: 1, diferencia: 0, "por-contar": 2, "sin-tallas": 1, llevar: 0 });
     expect(r.tipos).toEqual({ restock: { modelos: 2, contados: 1 }, nuevo: { modelos: 1, contados: 0 } });
   });
 
@@ -642,11 +671,11 @@ describe("Re stock, Producto nuevo y los estados del resumen", () => {
     const falta = categoriasDelEnvio(agruparLineas([deLaGuia(sofia(), { contadas: 3, separado: { prendas: [prendaSep("p-sofia", "Vestido Sofía", 3)], nuevas: [] } })]));
     expect(etiquetaDelAvance(cifrasDelResumen(falta), false)).toEqual({ antes: "Llegaron", despues: "de 5" });
     // Sin aviso no hay «de N».
-    expect(etiquetaDelAvance({ contadas: 1, dijeron: null, estados: { cuadran: 0, diferencia: 0, "por-contar": 1, despues: 0, llevar: 0 } }, true).despues).toBe("prenda contada");
-    expect(etiquetaDelAvance({ contadas: 4, dijeron: null, estados: { cuadran: 1, diferencia: 0, "por-contar": 0, despues: 0, llevar: 0 } }, true)).toEqual({ antes: "Llegaron", despues: "prendas" });
+    expect(etiquetaDelAvance({ contadas: 1, dijeron: null, estados: { cuadran: 0, diferencia: 0, "por-contar": 1, "sin-tallas": 0, llevar: 0 } }, true).despues).toBe("prenda contada");
+    expect(etiquetaDelAvance({ contadas: 4, dijeron: null, estados: { cuadran: 1, diferencia: 0, "por-contar": 0, "sin-tallas": 0, llevar: 0 } }, true)).toEqual({ antes: "Llegaron", despues: "prendas" });
     // Una sola prenda que se esperaba y llegó.
-    expect(etiquetaDelAvance({ contadas: 1, dijeron: 1, estados: { cuadran: 1, diferencia: 0, "por-contar": 0, despues: 0, llevar: 0 } }, false)).toEqual({ antes: "Llegó", despues: "de 1" });
-    expect(etiquetaDelAvance({ contadas: 0, dijeron: 1, estados: { cuadran: 0, diferencia: 0, "por-contar": 1, despues: 0, llevar: 0 } }, false).despues).toBe("de 1 prenda contada");
+    expect(etiquetaDelAvance({ contadas: 1, dijeron: 1, estados: { cuadran: 1, diferencia: 0, "por-contar": 0, "sin-tallas": 0, llevar: 0 } }, false)).toEqual({ antes: "Llegó", despues: "de 1" });
+    expect(etiquetaDelAvance({ contadas: 0, dijeron: 1, estados: { cuadran: 0, diferencia: 0, "por-contar": 1, "sin-tallas": 0, llevar: 0 } }, false).despues).toBe("de 1 prenda contada");
   });
 
   it("sin aviso, todo contado es verde aunque no haya con qué comparar", () => {
@@ -732,7 +761,7 @@ describe("Re stock, Producto nuevo y los estados del resumen", () => {
       expect(filtrosPuestos(SIN_FILTRO)).toBe(0);
       expect(filtrosPuestos({ ...SIN_FILTRO, texto: "sofia" })).toBe(0);
       expect(filtrosPuestos({ ...SIN_FILTRO, tipo: "nuevo", estado: "por-contar" })).toBe(2);
-      expect(filtrosPuestos({ proveedorId: SUR.id, marcaId: CAYLA.id, tipo: "restock", estado: "despues", texto: "" })).toBe(4);
+      expect(filtrosPuestos({ proveedorId: SUR.id, marcaId: CAYLA.id, tipo: "restock", estado: "sin-tallas", texto: "" })).toBe(4);
     });
   });
 

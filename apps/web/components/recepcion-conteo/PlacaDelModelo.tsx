@@ -37,12 +37,14 @@ export function PlacaDelModelo({
   pasoTallas,
   abrirNumero,
   pendiente,
+  sinTallasEn,
   hayFiltroPuesto,
   todoContado,
   filaSeguir,
   onPoner,
   onDeUnToque,
   onPendiente,
+  onSinTallas,
   cierre,
   onQuitarFiltro,
   onEnter,
@@ -80,6 +82,9 @@ export function PlacaDelModelo({
   /** «Llegaron las N» o «Poner en cero»: pisan lo contado de un toque, y se pueden deshacer. */
   onDeUnToque: (n: number) => void;
   onPendiente: (e: MouseEvent) => void;
+  /** Con todo contado: el siguiente modelo que quedó sin tallas (la segunda pasada). Es una sugerencia, no frena el cierre. */
+  sinTallasEn: ParadaDelConteo | null;
+  onSinTallas: (e: MouseEvent) => void;
   /** «Revisar y cerrar» (`BotonCerrarConteo`), a la derecha del pie del contador: el único de la pantalla en escritorio. */
   cierre?: ReactNode;
   onQuitarFiltro: () => void;
@@ -392,6 +397,13 @@ export function PlacaDelModelo({
               Falta contar:{" "}
               <button type="button" className="btn-cayla btn-enlace" title={`Ir a ${nombreDeParada(pendiente)}`} onClick={onPendiente}>
                 {nombreDeParada(pendiente)}
+              </button>
+            </>
+          ) : sinTallasEn ? (
+            <>
+              Faltan tallas:{" "}
+              <button type="button" className="btn-cayla btn-enlace" title={`Ir a ${nombreDeParada(sinTallasEn)}`} onClick={onSinTallas}>
+                {nombreDeParada(sinTallasEn)}
               </button>
             </>
           ) : hayFiltroPuesto ? (
