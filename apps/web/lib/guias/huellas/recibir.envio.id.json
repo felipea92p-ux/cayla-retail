@@ -2,7 +2,7 @@
   "guia": "recibir.envio.id",
   "ruta": "/recibir/envio/[id]",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 309,
+  "total": 314,
   "controles": {
     "app/(app)/recibir/envio/[id]/page.tsx": [
       "Volver «/recibir»",
@@ -106,6 +106,10 @@
     "components/alta-producto/piezas.tsx": [
       "button «→onClick»",
       "button «›»"
+    ],
+    "components/impresion/useImpresionBrother.tsx": [
+      "button «{abierto ? \"Ocultar\" : \"Ver cómo\"}»",
+      "BotonCopiar «la línea»"
     ],
     "components/recepcion-conteo/AvanceDelEnvio.tsx": [
       "button «Ir al primero que falta contar»"
@@ -236,15 +240,18 @@
       "Boton «{parcial ? `Llevar ${unidades.toLocaleString(\"es-PE\")}»",
       "ComboResponsable «{responsable}»",
       "Boton «Cancelar»",
-      "Boton «{guia.frase ?? undefined}»",
-      "BotonEnlace «(sin nombre)»",
+      "Boton «{guia.frase ?? \"Entra al stock sin imprimir las etiquetas\"}»",
+      "Boton «{guia.frase ?? \"Entra al stock y manda sus etiquetas a la impresora\"}»",
+      "button «Reintentar»",
+      "BotonImprimir «→() => setPedida(true)»",
       "BotonEnlace «Bajar al piso»",
       "Boton «Seguir contando»",
+      "Link «Ajustar antes de imprimir»",
       "CampoTexto «{guia.etiqueta(\"corregir-motivo\", \"¿Por qué se corrige?\")}»",
       "ComboResponsable «{responsable}» #2",
       "BotonEnlace «Ir a Ajustar stock»",
       "Boton «Cancelar» #2",
-      "Boton «{guia.frase ?? undefined}» #2"
+      "Boton «{guia.frase ?? undefined}»"
     ],
     "components/recepcion-conteo/LoQueEntro.tsx": [
       "Casilla «{`Etiquetas de ${p.nombre}»",

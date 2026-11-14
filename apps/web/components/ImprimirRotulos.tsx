@@ -13,6 +13,7 @@ import { TiraBrother } from "@/components/rotulos/TiraBrother";
 import { useMedirNombre } from "@/components/rotulos/useMedirNombre";
 import { BotonGuiaImpresion } from "@/components/GuiaImpresion";
 import { AvisoAyudanteMac, useImpresionBrother } from "@/components/impresion/useImpresionBrother";
+import { modoDeEtiquetasGuardado } from "@/components/impresion/HojaEtiquetasPrecio";
 import {
   armarRotulos,
   copiasDeTexto,
@@ -90,7 +91,7 @@ export function ImprimirRotulos({
     // El mismo papel que la etiqueta (62 × 40,1): en la Mac va derecho, sin pedirle otra medida al ayudante.
     prepararCopia: (copia) => copia.setAttribute("data-modo", "girada"),
   });
-  const modo = montado ? modoDeEtiquetas() : "girada";
+  const modo = montado ? modoDeEtiquetasGuardado() : "girada";
 
   // La lista de prendas: se cambia aquí y la URL la sigue sin navegar (`replaceState` no le pide nada al servidor).
   const actuales = useRef(modelos);
@@ -396,13 +397,4 @@ export function ImprimirRotulos({
         )}
     </div>
   );
-}
-
-/** La forma con que esta computadora manda las etiquetas a la Brother (`cayla.etiquetas.modo`, se elige en Etiquetas de precio). */
-function modoDeEtiquetas(): "girada" | "derecha" {
-  try {
-    return localStorage.getItem("cayla.etiquetas.modo") === "derecha" ? "derecha" : "girada";
-  } catch {
-    return "girada";
-  }
 }

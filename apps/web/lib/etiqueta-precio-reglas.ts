@@ -47,6 +47,8 @@ export type VarianteEtiqueta = {
   marca?: string | null;
   /** De qué empresa es (`productos.empresa_id`). Ausente = la de la casa, CAYLA. */
   empresa?: EmpresaEtiqueta | null;
+  /** El nombre de su categoría («Blusas»): solo ordena el rollo (`ordenDePilas`), el papel no la dice. Ausente = va al final. */
+  categoria?: string | null;
 };
 
 /** Otra talla del mismo modelo: de aquí sale la fila «Tallas del modelo». */
@@ -278,6 +280,21 @@ export function esTallaUnica(talla: string): boolean {
 
 const describir = (v: VarianteEtiqueta) => [v.prenda, v.color, v.talla].filter(Boolean).join(" · ");
 
+/** El orden del rollo (Felipe 2026-11-14, tarea 6 de Recibir): como las pilas de la mesa. Primero la categoría, después el modelo, el color y
+ *  la talla de la chica a la grande, para pegar cada etiqueta sin buscar su prenda. Antes salía por nombre de modelo y un «Abrigo» caía entre
+ *  dos blusas. Vale para TODO lo que arma etiquetas (un envío, una campaña, lo marcado en Existencias): el rollo sale igual venga de donde venga.
+ *  Lo que no tiene categoría va al final, sin romper a nadie. */
+function ordenDePilas(a: VarianteEtiqueta, b: VarianteEtiqueta): number {
+  const [ca, cb] = [a.categoria?.trim() ?? "", b.categoria?.trim() ?? ""];
+  return (
+    Number(ca === "") - Number(cb === "") ||
+    ca.localeCompare(cb, "es") ||
+    a.prenda.localeCompare(b.prenda, "es") ||
+    (a.color ?? "").localeCompare(b.color ?? "", "es") ||
+    ordenTalla(a.talla ?? "", b.talla ?? "")
+  );
+}
+
 export function armarEtiquetas(
   entradas: Map<string, number>,
   variantes: VarianteEtiqueta[],
@@ -289,7 +306,8 @@ export function armarEtiquetas(
 ): { etiquetas: EtiquetaPrecio[]; sinCodigo: string[] } {
   const etiquetas: EtiquetaPrecio[] = [];
   const sinCodigo: string[] = [];
-  for (const v of variantes) {
+  // Salen agrupadas como se pegan: en el orden de las pilas.
+  for (const v of [...variantes].sort(ordenDePilas)) {
     const cantidad = entradas.get(v.id) ?? 0;
     if (cantidad <= 0) continue;
     // Sin nada que la pistola pueda leer, una etiqueta con precio igual se vería bien… y en la caja no se encontraría.
@@ -318,10 +336,6 @@ export function armarEtiquetas(
       cantidad,
     });
   }
-  // Salen agrupadas como se pegan: por modelo, color y talla.
-  etiquetas.sort(
-    (a, b) => a.prenda.localeCompare(b.prenda, "es") || (a.color ?? "").localeCompare(b.color ?? "", "es") || ordenTalla(a.talla ?? "", b.talla ?? ""),
-  );
   return { etiquetas, sinCodigo };
 }
 
