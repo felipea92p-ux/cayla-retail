@@ -362,10 +362,16 @@ Felipe decidió cinco el 2026-11-14:
 1. **Cambio de talla en un 3x2: el mismo modelo no paga nada** (`20261114125000`). Solo paga lo que la talla nueva cuesta de más hoy en la
    tienda de la compra, y nunca se le devuelve. Vale para todo descuento: 3x2, campaña, Club, a mano. Otro modelo sigue a lista contra lo
    pagado (ADR-0380, actualización 2026-11-14). La pantalla dice «Misma prenda: conserva su descuento».
-2. **Una prenda con dos ofertas por marcar una insignia (u otra puerta de fuera): PENDIENTE.** Felipe pidió avisarle a quien configura qué
-   prendas tienen varias ofertas, para que elija con cuál se queda, y ver cómo lo hace Shopify. Shopify no avisa: aplica en la caja la mejor
-   para el cliente. La app «Price Rules» avisa al publicar y deja elegir prenda por prenda. Falta decidir qué cobra la caja mientras nadie
-   elige; hoy rebaja + 3x2 suman.
+2. **Una prenda con una rebaja y un 3x2 por una puerta de fuera (marcar una insignia, mover un modelo, reactivar una campaña): la que más
+   le ahorra al cliente en esa compra, nunca las dos** (`20261114155000`, Felipe: «Como Shopify: la mejor»). Por cada oferta se comparan dos
+   cuentas: A, todas sus prendas van con la oferta (la que no completa un grupo conserva su rebaja); B, las rebajadas se quedan con su rebaja
+   y no entran. Gana la que más ahorra; si empatan, B. Con un polo a −20 %, su −20 %; con tres, el 3x2; con cuatro, tres en el 3x2 y la
+   cuarta con su −20 %. Una prenda con parte del grupo nunca lleva su rebaja: `registrar_venta` rechaza las dos (`venta_dos_ofertas`), el
+   apartado guarda la rebaja del día (`separacion_items.rebaja_unitaria`) y se la devuelve si la prenda deja su grupo, y el pedido web nace
+   con la parte sola. Un descuento a mano se sigue sumando (Felipe 2026-11-13). La misma cuenta, al céntimo, en `lib/ofertas-de-grupo.ts`
+   (caja y Apartar) y en la bolsa de la tienda web (`deja_rebaja`). Descarté elegir prenda por prenda la mejor combinación (2^n cuentas que
+   nadie podría explicar en la caja) y «gana la rebaja» siempre (con tres polos el cliente no recibía el 3x2). **Falta la otra mitad que pidió
+   Felipe:** el aviso en Campañas, «N prendas tienen dos ofertas», con una hoja para elegir cuál queda; va en su propio PR.
 3. **Una oferta sobre una insignia desactivada deja de rebajar** (`20261114130000`). Lo mismo una sin aprobar; reactivada, vuelve. Una oferta
    que eligió solo insignias no pasa a rebajar las prendas de su campaña. Al desactivar una insignia, la confirmación nombra las ofertas que
    dejan de rebajar.

@@ -1,5 +1,6 @@
 "use client";
 
+import { usePrendasCreadas } from "@/components/recepcion-envio/usePrendasCreadas";
 import { useEffect, useLayoutEffect, useRef, useState, type ComponentProps, type Dispatch, type SetStateAction } from "react";
 import { PackageOpen } from "lucide-react";
 import { ComboResponsable } from "@/components/ComboResponsable";
@@ -325,6 +326,11 @@ export function ContarEnvio({
     { enModal: false },
   );
   const [hoja, setHoja] = useState<Hoja>(null);
+  // «Igual que la anterior» (tarea 7 de Recibir): lo último que se agregó y se creó en este envío, para ofrecerlo de un toque en el siguiente.
+  // La marca vive mientras la pantalla está abierta. Las prendas creadas salen de la base (innovar `recibir-crear-prenda#1`): las del conteo
+  // creadas desde que se abrió el envío, así la ficha sobrevive a recargar; lo que se crea aquí se suma sin esperar a releer.
+  const [marcaAnterior, setMarcaAnterior] = useState<{ id: string; nombre: string } | null>(null);
+  const creadas = usePrendasCreadas([...new Set(grupos.flatMap((g) => g.separado.prendas.map((p) => p.productoId)))].sort(), detalle.abiertoEn);
   // En el celular la lista vive en una hoja que se abre desde la isla de abajo. Al abrirse otra hoja (agregar un modelo, quitar), esta se cierra.
   const [listaEnHoja, setListaEnHoja] = useState(false);
   const [hojaVista, setHojaVista] = useState<Hoja>(null);
@@ -595,6 +601,8 @@ export function ContarEnvio({
     }
     setFiltro(SIN_FILTRO);
     setErrorHoja(null);
+    const marca = m.marcaId ? catalogo?.marcas.find((x) => x.id === m.marcaId) : null;
+    if (marca) setMarcaAnterior({ id: marca.id, nombre: marca.nombre });
     return null;
   }
 
@@ -1070,6 +1078,7 @@ export function ContarEnvio({
           onMarcaNueva={onMarcaNueva}
           errorDelGuardado={errores["extra:0"] ?? null}
           onCrear={crearModelo}
+          marcaAnterior={marcaAnterior}
           onIrA={elegir}
           onCerrar={() => setHoja(null)}
         />
@@ -1160,6 +1169,8 @@ export function ContarEnvio({
           vocabulario={catalogo?.vocabulario ?? null}
           responsable={responsable}
           onListo={(prenda) => prendaDeLaNueva(grupoDeHoja, hoja.parada, hoja.nueva.descripcion, prenda)}
+          anterior={creadas.anteriorDe(grupoDeHoja.principal.categoria.id)}
+          onRecordar={creadas.recordar}
           onCostoEscrito={(productoId, costoTexto) => onCostoDePrenda?.(lineaDeHoja.clave, productoId, costoTexto)}
           onUsarExistente={async (productoId, nombre) => {
             if (!grupoDeHoja.principal.categoria) return false;

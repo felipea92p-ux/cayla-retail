@@ -2177,7 +2177,7 @@ export const GUIA_RECIBIR_ENVIO: Guia = {
       requiere: ["recepcion.pie"],
       preparar: [{ tipo: "clic", ancla: "recepcion.es-nueva", siEsta: true }],
       titulo: "Crear la prenda que llegó",
-      texto: "El nombre, las tallas que llegaron, la foto de cada color (el color sale solo de la foto) y el precio de venta: si quien compró sugirió uno, ya viene puesto. «Crear y contar» la crea y abre su conteo. En la demo no la creamos.",
+      texto: "El nombre, las tallas que llegaron, la foto de cada color (el color sale solo de la foto) y el precio de venta. Si ya creaste otra del envío, «Igual que…» llena su tela y sus tallas de un toque. «Crear y contar» la crea y abre su conteo. En la demo no la creamos.",
     },
     {
       // Solo en el paso 2 de la hoja («¿En qué tallas y colores?») y si la cuenta puede guardar fotos; si no, ahí está la carta de colores.
