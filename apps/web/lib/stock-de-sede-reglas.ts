@@ -81,3 +81,13 @@ export function armarFilasStock(filas: FilaCantidadCruda[], detalles: ReadonlyMa
     .filter((f) => separaPisoAlmacen || f.total > 0)
     .sort((a, b) => a.referencia.localeCompare(b.referencia, "es") || (a.sku ?? "").localeCompare(b.sku ?? "", "es"));
 }
+
+/**
+ * Lo mínimo que pide el ritmo reciente de Existencias (2026-11-14): qué tallas tiene la sede y cuántas cuelgan en el piso de cada una,
+ * con la MISMA suma que las filas de la lista (`sumarCantidades`, que también usa `armarFilasStock`). Sale de las cantidades delgadas,
+ * sin esperar al detalle de la prenda, la red de las otras sedes ni lo que viene en camino. Una talla de un producto de prueba puede
+ * venir aquí y no en la lista: su ritmo se calcula y nadie lo lee.
+ */
+export function pisoDeCadaTalla(filas: FilaCantidadCruda[]): Map<string, number> {
+  return new Map(Array.from(sumarCantidades(filas), ([varianteId, c]) => [varianteId, c.piso ?? 0] as const));
+}
