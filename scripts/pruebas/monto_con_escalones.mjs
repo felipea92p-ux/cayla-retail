@@ -28,6 +28,7 @@ import { readFileSync } from "node:fs";
 const ARG_CONTENEDOR = process.argv.indexOf("--contenedor");
 const CONTENEDOR_LOCAL = ARG_CONTENEDOR > 0 ? process.argv[ARG_CONTENEDOR + 1] : "supabase_db_cayla-retail";
 const MIGRACION = "supabase/migrations/20261114044000_monto_con_escalones.sql";
+const UNA_FIRMA = "supabase/migrations/20261114054000_choques_con_forma_una_sola_firma.sql";
 const FELIPE = "22222222-2222-4222-8222-000000000001"; // líder
 
 function psql(sql) {
@@ -81,6 +82,10 @@ const ANTES = [
   falta("select to_regprocedure('retail.fn_repartir_grupos(jsonb)') is null;") ? leer("20261114032000_apartados_con_ofertas_de_grupo") : "",
   falta("select to_regprocedure('retail.tienda_bolsa_grupos(jsonb, uuid)') is null;") ? leer("20261114041000_tienda_web_ofertas_de_grupo") : "",
   falta("select to_regprocedure('retail.fn_escalones_validos(jsonb, text)') is null;") ? readFileSync(MIGRACION, "utf8") : "",
+  // Los choques con la forma, con su propio nombre (una sola firma por función).
+  falta("select to_regprocedure('retail.fn_choques_de_oferta_con_forma(uuid, uuid, date, date, smallint[], uuid[], uuid[], uuid[], boolean, uuid[], text, text, boolean)') is null;")
+    ? readFileSync(UNA_FIRMA, "utf8")
+    : "",
 ].filter(Boolean).join("\n");
 
 const HOY = "retail.fn_hoy_lima()";
@@ -236,16 +241,16 @@ esperarError(
   "choca",
 );
 esperarValor(
-  "fn_choques_de_oferta con la forma: un monto de toda la compra ve la rebaja; si cede a las otras, no ve nada",
+  "fn_choques_de_oferta_con_forma: un monto de toda la compra ve la rebaja; si cede a las otras, no ve nada",
   caso(`${PCT}select concat_ws('|',
-  (select count(distinct c.otra_id) from retail.fn_choques_de_oferta(null, :'camp', ${HOY}, ${HOY} + 3, array[1,2,3,4,5,6,7]::smallint[], '{}'::uuid[], '{}'::uuid[], '{}'::uuid[], false, '{}'::uuid[], 'monto', 'compra', false) c where c.otra_id = :'pct'),
-  (select count(*) from retail.fn_choques_de_oferta(null, :'camp', ${HOY}, ${HOY} + 3, array[1,2,3,4,5,6,7]::smallint[], '{}'::uuid[], '{}'::uuid[], '{}'::uuid[], false, '{}'::uuid[], 'monto', 'compra', true) c));\n`),
+  (select count(distinct c.otra_id) from retail.fn_choques_de_oferta_con_forma(null, :'camp', ${HOY}, ${HOY} + 3, array[1,2,3,4,5,6,7]::smallint[], '{}'::uuid[], '{}'::uuid[], '{}'::uuid[], false, '{}'::uuid[], 'monto', 'compra', false) c where c.otra_id = :'pct'),
+  (select count(*) from retail.fn_choques_de_oferta_con_forma(null, :'camp', ${HOY}, ${HOY} + 3, array[1,2,3,4,5,6,7]::smallint[], '{}'::uuid[], '{}'::uuid[], '{}'::uuid[], false, '{}'::uuid[], 'monto', 'compra', true) c));\n`),
   "1|0",
 );
 esperarValor(
   "…y dice si la otra es un monto y cuántas prendas alcanza esta (la rebaja de la categoría no las tiene todas)",
   caso(`${PCT}select concat_ws('|', bool_and(not c.otra_es_monto), bool_and(c.mias > c.prendas))
-  from retail.fn_choques_de_oferta(null, :'camp', ${HOY}, ${HOY} + 3, array[1,2,3,4,5,6,7]::smallint[], '{}'::uuid[], '{}'::uuid[], '{}'::uuid[], false, '{}'::uuid[], 'monto', 'compra', false) c
+  from retail.fn_choques_de_oferta_con_forma(null, :'camp', ${HOY}, ${HOY} + 3, array[1,2,3,4,5,6,7]::smallint[], '{}'::uuid[], '{}'::uuid[], '{}'::uuid[], false, '{}'::uuid[], 'monto', 'compra', false) c
   where c.otra_id = :'pct';\n`),
   "t|t",
 );
@@ -343,7 +348,7 @@ const separar = `select retail.separar_prendas(
     p_ubicacion_id => :'u', p_items => jsonb_build_array(
       jsonb_build_object('variante_id', :'a1', 'cantidad', 1, 'precio_unitario', :'p1'::numeric, 'descuento_unitario', 0, 'descuento_grupo', :'g1'::numeric),
       jsonb_build_object('variante_id', :'fuera', 'cantidad', 1, 'precio_unitario', :'pf'::numeric, 'descuento_unitario', 0, 'descuento_grupo', :'gf'::numeric)),
-    p_pagos => jsonb_build_array(jsonb_build_object('metodo', 'yape', 'monto', round((:'p1'::numeric + :'pf'::numeric) / 2, 1))),
+    p_pagos => jsonb_build_array(jsonb_build_object('metodo', 'yape', 'monto', ceil((:'p1'::numeric + :'pf'::numeric) * 0.35))),
     p_clienta_nombres => 'Ana', p_clienta_apellidos => 'Prueba Monto', p_clienta_celular => '955065501',
     p_devolucion_medio => 'yape') as sep \\gset
 `;
@@ -354,8 +359,8 @@ esperarValor(
   "monto:1:compra|10.00",
 );
 esperarValor(
-  "quitar una prenda lo deja bajo el monto: la otra vuelve a su precio (con el trato guardado)",
-  caso(`${MONTO_JUSTO}${separar}select id as quita from retail.separacion_items where separacion_id = :'sep' and variante_id = :'a1' \\gset
+  "quitar la más barata lo deja bajo el monto: la otra vuelve a su precio (con el trato guardado)",
+  caso(`${MONTO_JUSTO}${separar}select id as quita from retail.separacion_items where separacion_id = :'sep' order by precio_unitario, id limit 1 \\gset
 select retail.previsualizar_edicion_separacion(:'sep', array[:'quita']::uuid[], '[]'::jsonb) as pv \\gset
 select retail.editar_separacion_con_total(:'sep', array[:'quita']::uuid[], '[]'::jsonb, gen_random_uuid(), (:'pv'::jsonb ->> 'total')::numeric);
 select concat_ws('|', count(*), sum(descuento_grupo_unitario), (select count(*) from retail.fn_verificar_separaciones()))
@@ -398,6 +403,15 @@ esperarValor(
   "la migración se puede pegar dos veces",
   correr(`begin;\n${ANTES}\n${readFileSync(MIGRACION, "utf8")}\n${readFileSync(MIGRACION, "utf8")}\nselect count(*) from pg_constraint where conrelid = 'retail.campana_reglas'::regclass and conname in ('campana_reglas_forma', 'campana_reglas_solo_el_monto');\nrollback;`),
   "2",
+);
+
+esperarValor(
+  "la de una sola firma también se pega dos veces, y cada función de choques queda con una firma",
+  correr(`begin;\n${ANTES}\n${readFileSync(UNA_FIRMA, "utf8")}\n${readFileSync(UNA_FIRMA, "utf8")}\nselect string_agg(proname || ':' || n, ',' order by proname) from (
+  select p.proname, count(*) as n from pg_proc p where p.pronamespace = 'retail'::regnamespace
+   and p.proname in ('fn_choques_de_oferta', 'fn_choques_de_oferta_sin_llave', 'fn_choques_de_oferta_con_forma', 'fn_choques_de_oferta_con_forma_sin_llave')
+  group by p.proname) x;\nrollback;`),
+  "fn_choques_de_oferta:1,fn_choques_de_oferta_con_forma:1,fn_choques_de_oferta_con_forma_sin_llave:1,fn_choques_de_oferta_sin_llave:1",
 );
 
 console.log(`\n${total - fallos} de ${total} en verde.`);

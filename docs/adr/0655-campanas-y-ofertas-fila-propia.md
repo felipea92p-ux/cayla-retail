@@ -279,7 +279,9 @@ la tienda web, y al final la hoja.
   diga `fn_campanas_en_sede`, ya sin las que cedieron) o con una oferta de grupo no cuenta para el monto. Las de grupo van antes que el monto.
 - **DECIDÍ:** «que esas prendas no cuenten» es una propiedad del monto (`cede_a_otras`), no un juego de cesiones: un monto de toda la compra tendría
   que ceder a cada oferta que se cree después, y a un descuento de siempre no se le puede ceder. Con ella, el monto no choca con ninguna oferta;
-  dos montos sí chocan siempre (nunca se reparten una prenda). `fn_choques_de_oferta` ganó la forma (13 datos); la de 10 sigue para la pantalla de antes.
+  dos montos sí chocan siempre (nunca se reparten una prenda). La lectura con la forma (13 datos) se llama `fn_choques_de_oferta_con_forma`; la de
+  10 sigue con su nombre. Primero fue una segunda firma de `fn_choques_de_oferta`, y el CI la frenó: el repo exige una sola firma por función
+  (`pruebas:una-sola-firma`), y con valores por defecto la llamada de 10 datos quedaba ambigua. `20261114054000` la pasó a su nombre, también en producción.
 - **Dos arreglos que el monto necesitaba** (ninguno cambia un cobro de hoy: en producción no hay ninguna regla guardada, consultado el 2026-11-14):
   una oferta de grupo que cedió a un «% menos» se callaba solo ante otras de grupo, y con las dos activas la prenda llevaba las dos (la cesión
   decía lo contrario): ahora la base y `ofertas_de_grupo_vigentes` miran todas las ofertas. Y con la tolerancia de una venta sin conexión, una
