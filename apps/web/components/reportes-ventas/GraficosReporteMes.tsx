@@ -19,6 +19,7 @@ import {
   type SeriesMes,
 } from "@/lib/reportes-ventas-reglas";
 import { nombreDelMes } from "@/lib/historial-cierres-reglas";
+import { NOTA_PAGOS_SIN_PARTIR } from "@/lib/reportes-empresa-reglas";
 import { MesAMes } from "@/components/reportes-ventas/MesAMes";
 
 // Los tres gráficos de «Ventas del mes» (maqueta docs/maquetas/reportes-ventas-2026-11/): ventas por día contra el promedio diario del mes que se mira,
@@ -27,7 +28,9 @@ import { MesAMes } from "@/components/reportes-ventas/MesAMes";
 const PORCENTAJE = new Intl.NumberFormat("es-PE", { maximumFractionDigits: 0 });
 const bloque = "anim-sube rounded-tarjeta bg-papel p-5 ring-1 ring-tinta/[0.07]";
 
-export function GraficosReporteMes({ r, s, tiendaId, corte }: { r: ReporteMes; s: SeriesMes; tiendaId: string | null; corte: string | null }) {
+// Con una empresa elegida (`empresaClave`, ADR-0665) los dos primeros gráficos cuentan solo sus líneas, pero «cómo se pagó» NO se parte: una caja y una boleta son
+// una sola (decisión de ADR-0532); en su lugar dice por qué.
+export function GraficosReporteMes({ r, s, tiendaId, empresaClave, corte }: { r: ReporteMes; s: SeriesMes; tiendaId: string | null; empresaClave: string | null; corte: string | null }) {
   const mes = { anio: Number(s.mes.slice(0, 4)), mes: Number(s.mes.slice(5, 7)) };
   const nombre = nombreDelMes(mes);
   const mejor = mejorDia(s);
@@ -97,7 +100,7 @@ export function GraficosReporteMes({ r, s, tiendaId, corte }: { r: ReporteMes; s
           <p className="mt-0.5 text-sm text-tinta/60">En soles. Toca un mes para verlo.</p>
           <div className="mt-4">
             {meses.length > 1 ? (
-              <MesAMes barras={meses} elegida={s.mes.slice(0, 7)} tiendaId={tiendaId} corte={corte} max={maxMes} etiqueta={`Ventas de cada mes: ${meses.map((m) => m.tip).join("; ")}`} />
+              <MesAMes barras={meses} elegida={s.mes.slice(0, 7)} tiendaId={tiendaId} empresaClave={empresaClave} corte={corte} max={maxMes} etiqueta={`Ventas de cada mes: ${meses.map((m) => m.tip).join("; ")}`} />
             ) : (
               <p className="rounded-xl border border-dashed border-tinta/15 px-3 py-5 text-center text-sm text-tinta/65">
                 Todavía hay un solo mes con ventas: cuando haya más, los verás aquí uno al lado del otro.
@@ -107,9 +110,11 @@ export function GraficosReporteMes({ r, s, tiendaId, corte }: { r: ReporteMes; s
         </section>
 
         <section aria-label="Cómo se pagó" data-guia="reportes.pagos" className={bloque} style={{ "--i": 7 } as CSSProperties}>
-          <TituloSeccion dato={total > 0 ? <b className="font-semibold text-tinta">{soles(total)}</b> : undefined}>Cómo se pagó</TituloSeccion>
-          <p className="mt-0.5 text-sm text-tinta/60">{nombre} · lo cobrado, por medio de pago</p>
-          {tramos.length === 0 ? (
+          <TituloSeccion dato={total > 0 && !empresaClave ? <b className="font-semibold text-tinta">{soles(total)}</b> : undefined}>Cómo se pagó</TituloSeccion>
+          {!empresaClave && <p className="mt-0.5 text-sm text-tinta/60">{nombre} · lo cobrado, por medio de pago</p>}
+          {empresaClave ? (
+            <Vacio tamano="chico" icono={<Wallet />}>{NOTA_PAGOS_SIN_PARTIR}</Vacio>
+          ) : tramos.length === 0 ? (
             <Vacio tamano="chico" icono={<Wallet />}>No hay cobros en este tramo.</Vacio>
           ) : (
             <>

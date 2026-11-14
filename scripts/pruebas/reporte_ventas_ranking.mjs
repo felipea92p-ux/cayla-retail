@@ -30,7 +30,7 @@ import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const RAIZ = join(fileURLToPath(new URL(".", import.meta.url)), "..", "..");
-const MIGRACIONES = ["20261103224000_reportes_ventas_modulo.sql", "20261103230000_reporte_ventas_mes.sql", "20261103235000_reporte_ventas_ranking.sql"].map((m) =>
+const MIGRACIONES = ["20261103224000_reportes_ventas_modulo.sql", "20261103230000_reporte_ventas_mes.sql", "20261103235000_reporte_ventas_ranking.sql", "20261114215000_reportes_ventas_por_empresa.sql"].map((m) =>
   readFileSync(join(RAIZ, "supabase", "migrations", m), "utf8"),
 );
 const CONTENEDOR_LOCAL = "supabase_db_cayla-retail";
@@ -267,7 +267,7 @@ select 'G4 anon no ejecuta (permiso denegado)' || '|' || (pg_temp.codigo($q$sele
 reset role;
 select 'H1 es INVOKER (lee con las reglas de fila), estable y sin search_path propio' || '|' ||
   (select (not p.prosecdef and p.provolatile = 's' and p.proconfig is null)
-   from pg_proc p where p.oid = 'retail.fn_reporte_ventas_ranking(date,date,uuid,uuid,uuid,uuid,text,text,text,text,integer,integer)'::regprocedure)::text;
+   from pg_proc p where p.oid = 'retail.fn_reporte_ventas_ranking(date,date,uuid,uuid,uuid,uuid,text,text,text,text,integer,integer,uuid)'::regprocedure)::text;
 rollback;
 `;
 
