@@ -1105,7 +1105,7 @@ export const GUIA_SELLOS: Guia = {
       ancla: "sellos.configurar",
       opcional: true,
       titulo: "Configurar",
-      texto: "Abre la hoja de la insignia: su descuento, si lo tiene, y sus categorías (te la abrimos).",
+      texto: "Abre la hoja de la insignia: cuándo rige y sus categorías (te la abrimos). Una insignia no cambia el precio: los descuentos van en Campañas y ofertas.",
     },
     {
       id: "editar",
@@ -1119,15 +1119,15 @@ export const GUIA_SELLOS: Guia = {
       ancla: "atributos.campana-form",
       opcional: true,
       preparar: [{ tipo: "clic", ancla: "sellos.configurar" }],
-      titulo: "Descuento, fechas y categorías",
-      texto: "El descuento: − y + lo mueven de 5 en 5, los de siempre van a un toque, o escribe otro. Luego cuándo rige (el calendario pinta la temporada entera) y las categorías por familia: la casilla de la familia las marca todas y el buscador encuentra una.",
+      titulo: "Fechas y categorías",
+      texto: "Cuándo rige (el calendario pinta la temporada entera) y las categorías por familia: la casilla de la familia las marca todas y el buscador encuentra una. No hay descuento: una insignia dice algo de la prenda y no cambia su precio.",
     },
     {
       id: "campana-etiqueta",
       ancla: "atributos.campana-etiqueta",
       opcional: true,
       titulo: "La etiqueta, viva",
-      texto: "Mientras eliges, la etiqueta dice cómo queda: el descuento, las fechas y a cuántas prendas llega. En una pantalla ancha, además, sus categorías y cuánto cobra la caja por una prenda de verdad (con ‹ › ves otras).",
+      texto: "Mientras eliges, la etiqueta dice cómo queda: las fechas y a cuántas prendas llega. En una pantalla ancha, además, sus categorías y prendas de verdad con su precio, que la insignia no cambia (con ‹ › ves otras).",
     },
     {
       id: "campana-sedes",

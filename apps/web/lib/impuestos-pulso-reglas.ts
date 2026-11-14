@@ -3,7 +3,7 @@
 // hacer antes de declarar vive en `impuestos-antes-reglas.ts` (una sola lista). Lógica pura sobre lo que `fn_impuestos_panel` ya trae; no repite ninguna regla tributaria.
 
 import { soles } from "./flujo-caja-reglas";
-import { nombreMes, sumarMeses, type PanelImpuestos } from "./impuestos-reglas";
+import { nombreMes, redondeoSunat, sumarMeses, type PanelImpuestos } from "./impuestos-reglas";
 
 const r2 = (n: number) => Math.round(n * 100) / 100;
 const plural = (n: number, uno: string, varios: string) => `${n} ${n === 1 ? uno : varios}`;
@@ -33,10 +33,11 @@ export function pulsoImpuestos(p: PanelImpuestos): PulsoImpuestos {
   const f = p.foco;
   if (!f) return { estado: "sin_mes", mes: p.mes, frase: `Todavía no hay comprobantes de ${mes}.` };
   const tasa = p.parametros.igv ? Math.round(p.parametros.igv.valor * 100) : 18;
-  const renta = p.renta.monto !== null ? r2(p.renta.monto) : null;
-  const igv = r2(f.aPagar);
+  // Lo que se paga va en soles enteros, impuesto por impuesto, como lo cobra SUNAT; el total es su suma. El saldo a favor sigue al céntimo: no es un pago.
+  const renta = p.renta.monto !== null ? redondeoSunat(p.renta.monto) : null;
+  const igv = redondeoSunat(f.aPagar);
   const aFavor = r2(f.saldoAFavor);
-  const total = r2(igv + (renta ?? 0));
+  const total = igv + (renta ?? 0);
   // Un mes sin ventas ni compras con factura (ni saldo que arrastre) no queda «a favor S/ 0»: no hay nada que contar.
   if (igv === 0 && aFavor === 0 && f.debito === 0 && f.credito === 0)
     return { estado: "sin_mes", mes: p.mes, frase: `En ${mes} no hubo ventas ni compras con factura en el sistema: no hay IGV que pagar ni saldo a favor.` };

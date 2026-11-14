@@ -143,6 +143,18 @@ export async function PATCH(request: Request) {
     return Response.json({ ok: true });
   }
 
+  // «Anunciar en la portada» de una campaña (ADR-0655): por su función (`fijar_anuncio_campana`), que pide la llave de las campañas y
+  // rechaza una insignia. Solo ese cambio: nada más viaja en el mismo pedido.
+  if ("anunciarEnPortada" in cuerpoObj) {
+    if (typeof cuerpoObj.anunciarEnPortada !== "boolean") return Response.json({ error: "Di si la campaña se anuncia en la portada o no." }, { status: 400 });
+    const supabase = await createClient({ firma: firmaDeEncabezados(request.headers) });
+    const r = (await supabase.rpc("fijar_anuncio_campana" as never, { p_etiqueta_id: id, p_anunciar: cuerpoObj.anunciarEnPortada } as never)) as unknown as {
+      error: { code?: string; message: string } | null;
+    };
+    if (r.error) return Response.json({ error: traducirError(r.error, "guardar si la campaña se anuncia") }, { status: 400 });
+    return Response.json({ ok: true });
+  }
+
   // El dibujo (ADR-0490) se cambia por su función (`fijar_icono_etiqueta`): la llave es la de cada etiqueta (una campaña, la de las
   // campañas; otra insignia, Insignias) y la fila se toma primero. Un dibujo de la lista (`icono`) o una imagen propia ya subida al almacén
   // (`imagen`, su ruta); nunca los dos, y fijar uno borra el otro. La imagen puede pintarse como silueta (`silueta`, ADR-0490 act. b): el archivo es un

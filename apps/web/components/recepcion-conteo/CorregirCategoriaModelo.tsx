@@ -10,7 +10,7 @@ import { ComboResponsable } from "@/components/ComboResponsable";
 import { CampoGuiado, PieGuia } from "@/components/guia-de-foco/CampoGuiado";
 import { useGuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
 import type { ControlResponsable } from "@/lib/useResponsable";
-import type { CatalogoParaRecibir } from "@/lib/recepcion-envio-reglas";
+import { esCategoriaPorDefinir, type CatalogoParaRecibir } from "@/lib/recepcion-envio-reglas";
 import { mensajeAlGuardar } from "@/lib/recepcion-conteo-reglas";
 import { corregirLineaAlContar } from "@/lib/recepcion-conteo-acciones";
 
@@ -47,6 +47,7 @@ export function CorregirCategoriaModelo({
   onCorregido: (cambio: { categoriaId: string; marcaId: string }) => void;
   onCerrar: () => void;
 }) {
+  const porDefinir = esCategoriaPorDefinir(categoriaActual);
   const [categoriaId, setCategoriaId] = useState(categoriaActual.id);
   const [marcaId, setMarcaId] = useState(marcaActual.id ?? "");
   const [guardando, setGuardando] = useState(false);
@@ -88,7 +89,14 @@ export function CorregirCategoriaModelo({
   }
 
   return (
-    <Modal titulo={`Corregir ${nombre}`} subtitulo="Lo que se anotó en la compra no es lo que llegó. Lo contado no cambia." tamano="mediana" bloqueado={guardando} onClose={onCerrar}>
+    <Modal
+      // ADR-0660: una prenda que llegó «por definir» no se corrige: se dice qué es por primera vez.
+      titulo={porDefinir ? `¿Qué es ${nombre}?` : `Corregir ${nombre}`}
+      subtitulo={porDefinir ? "Llegó por definir: elige su categoría y su marca. Lo contado no cambia." : "Lo que se anotó en la compra no es lo que llegó. Lo contado no cambia."}
+      tamano="mediana"
+      bloqueado={guardando}
+      onClose={onCerrar}
+    >
       {(cerrar) => (
         <form
           noValidate

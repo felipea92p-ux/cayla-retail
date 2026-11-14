@@ -25,6 +25,13 @@ const PANEL: PanelImpuestos = {
 };
 
 describe("pulsoImpuestos", () => {
+  it("lo que se le paga a SUNAT va en soles enteros, impuesto por impuesto, y el total es su suma", () => {
+    const p = pulsoImpuestos({ ...PANEL, foco: mes({ aPagar: 8400.49 }), renta: { base: 89000.4, tasa: 0.01, monto: 890.5 } });
+    if (p.estado !== "a_pagar") throw new Error("a pagar");
+    expect([p.igv, p.renta, p.total]).toEqual([8400, 891, 9291]);
+    expect(p.cuenta.filter((t) => ["igv", "renta", "total"].includes(t.clave)).map((t) => t.monto)).toEqual([8400, 891, 9291]);
+  });
+
   it("a pagar: la cifra grande es IGV + renta, con la cuenta que la explica y lo que falta hacer", () => {
     const p = pulsoImpuestos(PANEL);
     expect(p.estado).toBe("a_pagar");

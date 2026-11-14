@@ -170,6 +170,13 @@ function ColumnasTallas({
   );
 }
 
+/** La rejilla de las tarjetas: tantas columnas como caben (cada tarjeta pide 20 rem). La usa también el lugar que guarda la lista mientras el
+ *  plan del piso llega (Existencias en dos tiempos), para que las tarjetas reales caigan donde estaba su sombra. */
+export const REJILLA_TARJETAS = "grid gap-3.5 [grid-template-columns:repeat(auto-fill,minmax(min(100%,20rem),1fr))]";
+
+/** El alto de una tarjeta con su pie (foto de 151 px, nombre y botones), medido a 1440 px: el de su sombra mientras llega el plan. */
+export const ALTO_TARJETA = "h-[13.75rem]";
+
 export function ExistenciasTarjetas({
   modelos,
   separa,
@@ -238,7 +245,7 @@ export function ExistenciasTarjetas({
   return (
     // Tantas columnas como caben (cada tarjeta pide 20 rem: la foto de 104 px y la tira al lado), dos en un laptop de 1024 px, tres o
     // cuatro en una computadora, una en el celular.
-    <div className="grid gap-3.5 [grid-template-columns:repeat(auto-fill,minmax(min(100%,20rem),1fr))]">
+    <div className={REJILLA_TARJETAS}>
       {modelos.map((m) => {
         const faltanModelo = tallasQueFaltan(m.colores);
         // Sin elegir, el color que importa (`colorDeEntrada`), no el primero: uno agotado dejaba la tarjeta vacía.

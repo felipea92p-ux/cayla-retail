@@ -61,6 +61,38 @@ describe("cuentaImpuestos", () => {
     expect(otro).toMatchObject({ etiqueta: "Pagas a SUNAT", pagas: 9230, registrarPago: "/finanzas/dinero?registrar=pago_sunat&mes=2026-09" });
   });
 
+  it("octubre de 2026: con saldo a favor solo se paga la renta, y los S/ 1,123 que cobró SUNAT dejan el mes pagado", () => {
+    // El caso real: ventas sin IGV S/ 112,307.93, 1 % = S/ 1,123.08; SUNAT declara y cobra en soles enteros (NPS de S/ 1,123).
+    const octubre: PanelImpuestos = {
+      ...PANEL, hoy: "2026-11-13", mes: "2026-10", mesActual: "2026-11",
+      foco: mes({ mes: "2026-10", baseVentas: 112307.93, debito: 20215.43, credito: 59, saldoAnterior: 62035, aPagar: 0, saldoAFavor: 41878.57 }),
+      renta: { base: 112307.93, tasa: 0.01, monto: 1123.08 },
+    };
+    const sinPago = cuentaImpuestos(octubre, { enCurso: false, pendientes: 0 });
+    if (sinPago.estado !== "a_favor") throw new Error("a favor");
+    expect(sinPago).toMatchObject({ etiqueta: "Pagas a SUNAT", pagas: 1123, pagadoTodo: false, puedeRegistrarPago: true });
+    expect(sinPago.renta.monto).toBe(1123);
+
+    const pagado = cuentaImpuestos({ ...octubre, pagos: [{ mes: "2026-10", igv: 0, renta: 1123 }] }, { enCurso: false, pendientes: 0 });
+    if (pagado.estado !== "a_favor") throw new Error("a favor");
+    expect(pagado).toMatchObject({ etiqueta: "Ya pagaste a SUNAT", pagas: 1123, pagadoTodo: true, chip: "Pagado", puedeRegistrarPago: false });
+
+    // Un sol menos sí es deuda: SUNAT cobró 1,123.
+    const corto = cuentaImpuestos({ ...octubre, pagos: [{ mes: "2026-10", igv: 0, renta: 1122 }] }, { enCurso: false, pendientes: 0 });
+    if (corto.estado !== "a_favor") throw new Error("a favor");
+    expect(corto).toMatchObject({ etiqueta: "Te falta pagar a SUNAT", pagas: 1, pagadoTodo: false });
+  });
+
+  it("con IGV y renta: cada impuesto va en soles enteros y el total es su suma, como en la constancia de SUNAT", () => {
+    const conCentimos: PanelImpuestos = { ...PANEL, foco: mes({ aPagar: 7400.49 }), renta: { base: 122000.4, tasa: 0.015, monto: 1830.01 } };
+    const c = cuentaImpuestos(conCentimos, { enCurso: false, pendientes: 0 });
+    if (c.estado !== "a_pagar") throw new Error("a pagar");
+    expect(c.pagas).toBe(9230); // 7,400 + 1,830: no 9,230.50, que SUNAT nunca cobra
+    const todo = cuentaImpuestos({ ...conCentimos, pagos: [{ mes: "2026-09", igv: 7400, renta: 1830 }] }, { enCurso: false, pendientes: 0 });
+    if (todo.estado !== "a_pagar") throw new Error("a pagar");
+    expect(todo).toMatchObject({ etiqueta: "Ya pagaste a SUNAT", pagas: 9230, pagadoTodo: true });
+  });
+
   it("si no se pudo leer lo pagado: no dice «Pagas a SUNAT» ni deja registrar un pago que puede estar hecho", () => {
     const c = cuentaImpuestos({ ...PANEL, pagosFalla: true }, { enCurso: false, pendientes: 2 });
     if (c.estado !== "a_pagar") throw new Error("a pagar");

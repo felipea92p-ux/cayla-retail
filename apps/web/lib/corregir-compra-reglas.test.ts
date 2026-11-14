@@ -222,6 +222,24 @@ describe("nombre, categoría y marca (solo de «Algo nuevo»)", () => {
     expect(prendaConProblema(nueva, b)).toBe(false);
   });
 
+  it("una prenda que se anotó «por definir» (ADR-0660) o sin marca se corrige igual: corregir otra cosa no obliga a definirla", () => {
+    const porDefinir = { ...nueva, categoriaId: "", categoria: "Por definir", marcaId: "", marca: "" };
+    const b = { ...borradorDe(porDefinir), cantidad: String(porDefinir.cantidad + 1) };
+    expect(problemasDePrenda(porDefinir, b)).toMatchObject({ categoria: null, marca: null });
+    expect(cambiosDePrenda(porDefinir, b)).toEqual({ cantidad: porDefinir.cantidad + 1 });
+    // Y si la define aquí, la categoría se manda.
+    expect(cambiosDePrenda(porDefinir, { ...b, categoriaId: "c2" }).categoriaId).toBe("c2");
+  });
+
+  it("lo que llega sin categoría se lee «Por definir»", () => {
+    const leida = leerCompraParaCorregir({
+      papel: { id: "p", monto: 10, pagado: 10 },
+      total_prendas: 10,
+      lineas: [{ id: "l", cantidad: 1, costo: 10, descripcion: "Modelo Nela", categoria_id: null, categoria: null }],
+    });
+    expect(leida?.prendas[0]).toMatchObject({ categoriaId: "", categoria: "Por definir" });
+  });
+
   it("un nombre vacío no cuenta como cambio (no se manda nada)", () => {
     expect(cambiosDePrenda(nueva, { ...borradorDe(nueva), nombre: "" })).toEqual({});
   });

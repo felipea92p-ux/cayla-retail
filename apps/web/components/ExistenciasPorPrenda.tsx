@@ -4,6 +4,7 @@ import { AlertTriangle, ChevronRight } from "lucide-react";
 import { Encabezado, celda } from "@/components/ui/Tabla";
 import { Chip } from "@/components/ui/Chip";
 import { Casilla } from "@/components/ui/Casilla";
+import { Calculando } from "@/components/Esqueleto";
 import { ChipAlerta, ChipMantener } from "@/components/ExistenciasChips";
 import { MiniaturaPrenda, categoriaDe } from "@/components/ui/PrendaCelda";
 import { MuestraColor } from "@/components/ui/MuestraColor";
@@ -76,10 +77,12 @@ export function CurvaTallas({
 }
 
 /** Lo que la prenda pide hoy, en una línea y SIN botón: el diagnóstico (`queHacerPrenda`), o «Mantener». */
-function QueHacer({ prenda, separa }: { prenda: PrendaAgrupada<FilaExistencias>; separa: boolean }) {
-  const q = separa ? queHacerPrenda(prenda.tallas) : null;
+function QueHacer({ prenda, separa, calculando }: { prenda: PrendaAgrupada<FilaExistencias>; separa: boolean; calculando: boolean }) {
+  const q = separa && !calculando ? queHacerPrenda(prenda.tallas) : null;
   return (
     <span className="flex flex-wrap items-center gap-1.5">
+      {/* El plan del piso viene en camino (Existencias en dos tiempos): el lugar del chip, no un «Mantener» que no se sabe. */}
+      {separa && calculando && <Calculando />}
       {/* Las mismas palabras y el mismo tono del filtro «Hoy» y de la tarjeta (`lib/existencias-hoy.ts`). */}
       {q?.tipo === "por_colgar" && <ChipAlerta titulo={AYUDA_HOY.por_colgar}>{textoHoyDePrenda(q.tipo, q.n)}</ChipAlerta>}
       {q?.tipo === "sin_stock_atras" && (
@@ -99,6 +102,8 @@ function QueHacer({ prenda, separa }: { prenda: PrendaAgrupada<FilaExistencias>;
   );
 }
 
+const SIN_CALCULAR: ReadonlySet<string> = new Set();
+
 export function ExistenciasPorPrenda({
   prendas,
   separa,
@@ -109,6 +114,7 @@ export function ExistenciasPorPrenda({
   onAlternarTodas,
   abiertaClave,
   onAbrir,
+  calculando = SIN_CALCULAR,
 }: {
   prendas: PrendaAgrupada<FilaExistencias>[];
   separa: boolean;
@@ -123,6 +129,8 @@ export function ExistenciasPorPrenda({
   abiertaClave: string | null;
   /** Abre el cajón de la prenda; con `varianteId`, parado en esa talla. */
   onAbrir: (prenda: PrendaAgrupada<FilaExistencias>, varianteId?: string) => void;
+  /** Las tallas cuya decisión de «Hoy» viene en camino (`aplicarPlan`): su prenda dice «calculando» en «Qué hacer». */
+  calculando?: ReadonlySet<string>;
 }) {
   // Casilla | Prenda | Tallas | Piso | Almacén | Qué hacer | ›. Donde no se separa piso y almacén (Taller), Disponible.
   const plantilla = separa
@@ -245,7 +253,7 @@ export function ExistenciasPorPrenda({
               <span className={celda("centro", "hidden text-sm font-semibold tabular-nums sm:block")}>{p.disponible}</span>
             )}
             <span className="min-w-0 sm:pl-10">
-              <QueHacer prenda={p} separa={separa} />
+              <QueHacer prenda={p} separa={separa} calculando={p.tallas.some((f) => calculando.has(f.varianteId))} />
             </span>
             <span aria-hidden className="hidden justify-center text-taupe/60 sm:flex">
               <ChevronRight className="h-4 w-4" />
