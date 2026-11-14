@@ -2177,7 +2177,15 @@ export const GUIA_RECIBIR_ENVIO: Guia = {
       requiere: ["recepcion.pie"],
       preparar: [{ tipo: "clic", ancla: "recepcion.es-nueva", siEsta: true }],
       titulo: "Crear la prenda que llegó",
-      texto: "El nombre, las tallas y los colores que llegaron, la foto de cada color (con «Catálogo con IA») y el precio de venta. Si ya creaste otra del envío, «Igual que…» llena su tela y sus tallas de un toque. «Crear y contar» la crea y abre su conteo. En la demo no la creamos.",
+      texto: "El nombre, las tallas que llegaron, la foto de cada color (el color sale solo de la foto) y el precio de venta. Si ya creaste otra del envío, «Igual que…» llena su tela y sus tallas de un toque. «Crear y contar» la crea y abre su conteo. En la demo no la creamos.",
+    },
+    {
+      // Solo en el paso 2 de la hoja («¿En qué tallas y colores?») y si la cuenta puede guardar fotos; si no, ahí está la carta de colores.
+      id: "fotos-colores",
+      ancla: "recepcion.fotos-colores",
+      opcional: true,
+      titulo: "Fotos y colores",
+      texto: "Sube una foto por color y el color sale solo: uno liso, o una mezcla si trae varios. Sirve también para sumar un color a una prenda que ya existe. Si un color no está creado, te pregunta. «Cambiar» lo corrige. Con «Catálogo con IA», la foto sale de catálogo.",
     },
     {
       id: "agregar-extra",

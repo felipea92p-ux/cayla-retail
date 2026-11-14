@@ -2,7 +2,7 @@
   "guia": "recibir.envio.id",
   "ruta": "/recibir/envio/[id]",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 301,
+  "total": 309,
   "controles": {
     "app/(app)/recibir/envio/[id]/page.tsx": [
       "Volver «/recibir»",
@@ -49,13 +49,20 @@
       "input «(sin nombre)»",
       "button «{etiqueta}» #2"
     ],
-    "components/alta-producto/FotosDeColores.tsx": [
-      "button «{ultima.ia.usar ? \"Usar mi foto\" : \"Usar la de IA\"}»",
-      "button «{`Ver o quitar las fotos de ${nombre}»",
-      "button «{f.ia.usar ? \"Usar mi foto\" : \"Usar la de IA\"}»",
-      "button «Quitar»",
-      "button «Listo»",
-      "button «{`Ver en grande la foto de ${nombre}»"
+    "components/alta-producto/FotosYColores.tsx": [
+      "button «Elegir sin foto»",
+      "Boton «Es una mezcla»",
+      "Boton «{segundaOpcionDelDibujo(carta)}»",
+      "Boton «Multicolor»",
+      "Boton «Elegir otro color»",
+      "Boton «Usar»",
+      "Boton «Crear este color»",
+      "Boton «Volver a intentar»",
+      "Boton «Elegir el color»",
+      "button «Cambiar»",
+      "button «{suyas[0].ia.usar ? \"Usar mi foto\" : \"Usar la de IA\"}»",
+      "button «{porQue === codigo ? \"Ocultar\" : \"¿Por qué?\"}»",
+      "button «Elegir sin foto» #2"
     ],
     "components/alta-producto/GrillaMuestras.tsx": [
       "button «{title}»",
@@ -75,10 +82,11 @@
       "Desplegable «{patronId}»",
       "ComboBuscable «{`${id}»",
       "CampoTexto «{guia.etiqueta(\"nombre\", esForma ? \"Nombre del estampado\" : \"Nombre del color\")}»",
+      "button «Usar el tono de la foto»",
       "Desplegable «{familia}»",
       "CampoTexto «Código»",
-      "Boton «{(!enLinea || existe.bloquea ? bloqueo : firma.motivo) ?? undefined}»",
-      "button «Cancelar»"
+      "Boton «Cancelar»",
+      "Boton «{(!enLinea || existe.bloquea ? bloqueo : firma.motivo) ?? undefined}»"
     ],
     "components/alta-producto/ProponerValor.tsx": [
       "button «{t.boton}»",

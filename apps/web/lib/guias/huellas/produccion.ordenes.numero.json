@@ -2,7 +2,7 @@
   "guia": "produccion.ordenes.numero",
   "ruta": "/produccion/ordenes/[numero]",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 230,
+  "total": 231,
   "controles": {
     "app/(app)/produccion/ordenes/[numero]/page.tsx": [
       "Volver «/produccion/ordenes»",
@@ -51,10 +51,11 @@
       "Desplegable «{patronId}»",
       "ComboBuscable «{`${id}»",
       "CampoTexto «{guia.etiqueta(\"nombre\", esForma ? \"Nombre del estampado\" : \"Nombre del color\")}»",
+      "button «Usar el tono de la foto»",
       "Desplegable «{familia}»",
       "CampoTexto «Código»",
-      "Boton «{(!enLinea || existe.bloquea ? bloqueo : firma.motivo) ?? undefined}»",
-      "button «Cancelar»"
+      "Boton «Cancelar»",
+      "Boton «{(!enLinea || existe.bloquea ? bloqueo : firma.motivo) ?? undefined}»"
     ],
     "components/alta-producto/piezas.tsx": [
       "button «→onClick»",
