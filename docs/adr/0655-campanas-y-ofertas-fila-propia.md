@@ -234,6 +234,30 @@ Prueba: `pnpm pruebas:apartados-ofertas-de-grupo` (15 de 15; con su control: sin
 Las suites de los apartados y del redondeo que vuelven a pegar migraciones viejas siguen en verde con esta encima (sus inversos están en
 `entregar-antes-de-apartados-sin-anticipo.mjs`).
 
+### Actividad 7: la tienda web (`20261114041000_tienda_web_ofertas_de_grupo.sql`)
+
+Un pedido web nace con el precio de ESE día y no se rearma: «la prenda de un pedido web y su precio no se cambian» (`fn_pedido_web_linea_reglas`,
+ADR-0408), y en la web la clienta no edita su pedido: la única que quita una prenda es la tienda, al confirmar, cuando no la tiene.
+
+- **DECIDÍ:** la parte del grupo se congela al separar, DENTRO del `descuento` de cada línea del pedido (así el `precio` calculado, el total, el
+  cupón del Club y `fn_pedido_web_verificar` ya la cuentan sin tocarlos), con su oferta (`oferta_grupo_id`); un disparador nuevo hace que no
+  cambie después. Si la tienda quita una prenda al confirmar, **las demás conservan su precio**: la tienda no le cobra más a la clienta por lo
+  que la tienda no tuvo.
+- **DESCARTÉ:** rearmar el grupo al quitar (le cobraría más a la clienta por una falta de la tienda y rompería la regla de que el precio de una
+  línea no cambia); que la tienda calcule los grupos (el precio lo decide la base).
+- **La bolsa** pide `tienda_bolsa_grupos` en la misma conexión que `tienda_bolsa` (que no se toca): bajo cada prenda dice «3 x 2 · Verano:
+  ahorras S/ 23.30» o «lleva 1 más», y el resumen suma la fila «Ahorras llevando varias». Si esa lectura falla, la bolsa se ve como siempre y
+  la base cobra igual. **«Separar»** manda lo que la bolsa mostró (`ahorro_grupo` de cada línea): si la oferta cambió mientras miraba,
+  `tienda_separar` no separa («el precio de una prenda de tu bolsa cambió»). Una tienda vieja que no lo manda separa igual, con el 3x2.
+- **La venta** (`fn_pedido_web_vender`) lleva la parte sin motivo y con su oferta, como la caja; el cupón se sigue repartiendo con lo que
+  cuesta cada prenda, ya con el grupo.
+- Los reemplazos no parten el texto que dejaron 20261019224000 (el cupón del Club en la venta) ni la huella que exige 20261017175000
+  (`tienda_cuenta_simple.mjs` suma la nueva en memoria): el barrido de las migraciones viejas pegadas encima pasa con y sin esta.
+- La hoja de la oferta ya no avisa nada: la cobran la caja, los apartados y la tienda web.
+
+Prueba: `pnpm pruebas:tienda-ofertas-de-grupo` (9 de 9; con su control: sin poner la parte en cada prenda, fallan 5). Las suites de la tienda y
+de los pedidos web (bolsa, cuenta simple, separadas, cobrar, anular, entregar, puntos, motor y ERP) siguen en verde.
+
 ## Alternativas descartadas
 
 - **Dentro de Insignias, renombrado «Insignias y ofertas».** No mueve nada, pero sigue mezclando dos preguntas en una pantalla y el nombre

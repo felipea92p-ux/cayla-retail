@@ -457,6 +457,9 @@ export const PRUEBAS = [
   // Los apartados con «Llevar varias» (ADR-0655, actividad 6, parte 4): apartar, quitar y sumar con un 3x2 (el trato guardado de ese día), la
   // vista previa y el total exigido, entregar, y que las migraciones viejas de los apartados se sigan pegando encima. ROLLBACK.
   "pruebas:apartados-ofertas-de-grupo",
+  // La tienda web con «Llevar varias» (ADR-0655, actividad 7): la bolsa, «Separar» con lo que mostró, la parte que no cambia, la prenda que la
+  // tienda quita al confirmar (las demás conservan su precio) y la venta al pagarse. ROLLBACK.
+  "pruebas:tienda-ofertas-de-grupo",
   // Una campaña que solo tiene OFERTAS también sale en la Tienda web (ADR-0496, «Lo que NO cubre»): la lista, la portada y el diseño leen las
   // ofertas activas (la portada, solo las que rigen hoy, con el mayor %), un borrador no cuenta y, sin ofertas, todo queda idéntico. ROLLBACK.
   "pruebas:campana-con-ofertas",

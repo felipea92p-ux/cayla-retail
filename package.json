@@ -209,6 +209,7 @@
     "pruebas:ofertas-de-grupo": "node scripts/pruebas/ofertas_de_grupo.mjs",
     "pruebas:caja-ofertas-de-grupo": "node scripts/pruebas/caja_ofertas_de_grupo.mjs",
     "pruebas:apartados-ofertas-de-grupo": "node scripts/pruebas/apartados_ofertas_de_grupo.mjs",
+    "pruebas:tienda-ofertas-de-grupo": "node scripts/pruebas/tienda_ofertas_de_grupo.mjs",
     "pruebas:campana-con-ofertas": "node scripts/pruebas/campana_con_ofertas.mjs",
     "pruebas:tienda-ficha": "node scripts/pruebas/tienda_ficha.mjs",
     "pruebas:tienda-filtros": "node scripts/pruebas/tienda_filtros.mjs",

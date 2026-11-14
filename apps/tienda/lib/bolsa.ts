@@ -185,7 +185,43 @@ export type PrendaEnLaBolsa = {
 /** Una prenda que ya no se puede separar: la base no dice ni su nombre (puede no estar publicada). */
 export type PrendaQueYaNoEsta = { varianteId: string; cantidad: number; noEsta: true };
 export type LineaEnBase = PrendaEnLaBolsa | PrendaQueYaNoEsta;
-export type BolsaEnBase = { sedeId: string | null; sedes: Sede[]; lineas: LineaEnBase[] };
+/** «Llevar varias y pagar menos» (ADR-0655, actividad 7): lo que ahorra una prenda de la bolsa con su oferta de grupo en la tienda elegida
+ *  (`retail.tienda_bolsa_grupos`): la oferta dicha como en la caja («3 x 2»), su campaña, lo que ahorra la línea y cuántas le faltan al grupo. */
+export type GrupoDeLaBolsa = { titular: string; campana: string; ahorro: number; faltan: number };
+export type GruposDeLaBolsa = { ahorro: number; porVariante: Record<string, GrupoDeLaBolsa> };
+/** `grupos`: lo que ahorra la bolsa con las ofertas de grupo; `null` (o ausente) si la base no lo dijo: la bolsa se ve sin ellas y «Separar»
+ *  no manda lo que mostró (la base las cobra igual). */
+export type BolsaEnBase = { sedeId: string | null; sedes: Sede[]; lineas: LineaEnBase[]; grupos?: GruposDeLaBolsa | null };
+
+/** «3 x 2», «2 por S/ 59.90», «La 2.ª al 50 %»: la oferta dicha como en la caja y en la hoja del ERP. */
+export function titularDeGrupo(f: { tipo: "nxm" | "n_por_monto" | "nesima_pct"; lleva: number; paga: number | null; monto: number | null; porcentaje: number | null }): string {
+  if (f.tipo === "nxm") return `${f.lleva} x ${f.paga ?? 0}`;
+  if (f.tipo === "n_por_monto") return `${f.lleva} por S/ ${(f.monto ?? 0).toFixed(2)}`;
+  return `La ${f.lleva}.ª al ${String(f.porcentaje ?? 0).replace(".", ",")} %`;
+}
+
+const esquemaGrupo = z.object({
+  ahorro: z.coerce.number().nonnegative(),
+  faltan: z.coerce.number().int().nonnegative(),
+  campana: z.string().nullable().catch(null),
+  tipo: z.enum(["nxm", "n_por_monto", "nesima_pct"]),
+  lleva: z.coerce.number().int().min(2),
+  paga: z.coerce.number().nullable().catch(null),
+  monto: z.coerce.number().nullable().catch(null),
+  porcentaje: z.coerce.number().nullable().catch(null),
+});
+
+/** Lo que dice `retail.tienda_bolsa_grupos`; `null` si no tiene esa forma. Una línea rara se ignora (se ve sin su oferta). */
+export function interpretarGruposDeLaBolsa(dato: unknown): GruposDeLaBolsa | null {
+  const r = z.object({ ahorro: z.coerce.number().nonnegative(), lineas: z.record(z.string(), z.unknown()) }).safeParse(dato);
+  if (!r.success) return null;
+  const porVariante: Record<string, GrupoDeLaBolsa> = {};
+  for (const [id, crudo] of Object.entries(r.data.lineas)) {
+    const g = esquemaGrupo.safeParse(crudo);
+    if (g.success) porVariante[id] = { titular: titularDeGrupo(g.data), campana: g.data.campana ?? "", ahorro: redondear(g.data.ahorro), faltan: g.data.faltan };
+  }
+  return { ahorro: redondear(r.data.ahorro), porVariante };
+}
 
 export const yaNoEsta = (l: LineaEnBase): l is PrendaQueYaNoEsta => "noEsta" in l;
 
@@ -280,8 +316,9 @@ export function textoDeLaMarca(m: MarcaDeLinea): string | null {
 export type OpcionDeTienda = { sede: Sede; elegida: boolean; texto: string | null };
 
 export type VistaBolsa = {
-  /** `importe`: precio × cuántas; `antes`: lo mismo a precio de lista, solo si una campaña lo baja (se ve tachado al lado). */
-  lineas: { linea: LineaEnBase; marca: MarcaDeLinea; importe: number | null; antes: number | null }[];
+  /** `importe`: precio × cuántas; `antes`: lo mismo a precio de lista, solo si una campaña lo baja (se ve tachado al lado); `grupo`: su
+   *  oferta de grupo (ADR-0655), que se dice debajo. */
+  lineas: { linea: LineaEnBase; marca: MarcaDeLinea; importe: number | null; antes: number | null; grupo: GrupoDeLaBolsa | null }[];
   /** La tienda elegida para recoger (una de la web), o null. */
   sede: Sede | null;
   tiendas: OpcionDeTienda[];
@@ -291,6 +328,8 @@ export type VistaBolsa = {
   subtotal: number;
   total: number;
   ahorro: number;
+  /** Lo que ahorra llevando varias (las ofertas de grupo, ADR-0655): va en su propia fila del resumen y ya está restado de `total`. */
+  ahorroGrupo: number;
   /** Lo que se dice sobre el botón; `destacado` va en negrita (maqueta: «Falta: <b>elegir la tienda</b>»). */
   nota: { antes: string; destacado: string; despues: string };
   boton: string;
@@ -298,8 +337,9 @@ export type VistaBolsa = {
   /** Si lo ÚNICO que falta para separar es elegir la tienda: el botón lleva a «¿En qué tienda lo recoges?» en vez de quedar apagado
    *  (en el celular, con varias prendas, esa pregunta queda abajo, fuera de la vista; un botón apagado ahí era un callejón). */
   faltaTienda: boolean;
-  /** Lo que viaja con «Separar»: lo que el cliente VE (la base lo vuelve a calcular y lo compara). */
-  paraSeparar: { variante_id: string; cantidad: number; precio: number }[];
+  /** Lo que viaja con «Separar»: lo que el cliente VE (la base lo vuelve a calcular y lo compara), con lo que ahorra cada línea con su
+   *  oferta de grupo si la base lo dijo. */
+  paraSeparar: { variante_id: string; cantidad: number; precio: number; ahorro_grupo?: number }[];
 };
 
 export function vistaBolsa(b: BolsaEnBase): VistaBolsa {
@@ -308,7 +348,7 @@ export function vistaBolsa(b: BolsaEnBase): VistaBolsa {
   const disponibles = b.lineas.filter((l): l is PrendaEnLaBolsa => !yaNoEsta(l));
 
   const lineas = b.lineas.map((linea) => {
-    if (yaNoEsta(linea)) return { linea, marca: { tipo: "no_esta" } as MarcaDeLinea, importe: null, antes: null };
+    if (yaNoEsta(linea)) return { linea, marca: { tipo: "no_esta" } as MarcaDeLinea, importe: null, antes: null, grupo: null };
     let marca: MarcaDeLinea = { tipo: "nada" };
     const ahi = sede ? linea.enSedes[sede.id] : undefined;
     if (sede && ahi) {
@@ -320,7 +360,7 @@ export function vistaBolsa(b: BolsaEnBase): VistaBolsa {
       marca = Object.values(linea.enSedes).some((s) => s.hay) ? { tipo: "no_alcanza", sede: null } : { tipo: "agotada", sede: null };
     }
     const antes = linea.precioLista > linea.precio ? redondear(linea.precioLista * linea.cantidad) : null;
-    return { linea, marca, importe: redondear(linea.precio * linea.cantidad), antes };
+    return { linea, marca, importe: redondear(linea.precio * linea.cantidad), antes, grupo: b.grupos?.porVariante[linea.varianteId] ?? null };
   });
 
   // «Tiene todo lo que elegiste» o «Tiene 1 de 2» (maqueta, `cobertura`: cuenta filas). Cada tienda maneja lo suyo: lo que ahí no hay
@@ -337,7 +377,9 @@ export function vistaBolsa(b: BolsaEnBase): VistaBolsa {
 
   const marcas = lineas.map((l) => l.marca.tipo);
   const subtotal = redondear(disponibles.reduce((n, l) => n + l.precioLista * l.cantidad, 0));
-  const total = redondear(disponibles.reduce((n, l) => n + l.precio * l.cantidad, 0));
+  // ADR-0655: lo que ahorra llevando varias, de las prendas que siguen en la bolsa (lo cobra `tienda_separar` con la misma cuenta).
+  const ahorroGrupo = redondear(disponibles.reduce((n, l) => n + (b.grupos?.porVariante[l.varianteId]?.ahorro ?? 0), 0));
+  const total = redondear(disponibles.reduce((n, l) => n + l.precio * l.cantidad, 0) - ahorroGrupo);
   const ahorro = redondear(disponibles.reduce((n, l) => n + (l.precioLista - l.precio) * l.cantidad, 0));
   let nota: VistaBolsa["nota"];
   if (sedes.length === 0)
@@ -363,11 +405,17 @@ export function vistaBolsa(b: BolsaEnBase): VistaBolsa {
     subtotal,
     total,
     ahorro,
+    ahorroGrupo,
     nota,
     boton: sede ? `Separar en ${sede.nombre}` : "Separar",
     listo: Boolean(sede) && !bloqueada && disponibles.length > 0,
     faltaTienda: sedes.length > 0 && !sede && !bloqueada && disponibles.length > 0,
-    paraSeparar: disponibles.map((l) => ({ variante_id: l.varianteId, cantidad: l.cantidad, precio: l.precio })),
+    paraSeparar: disponibles.map((l) => ({
+      variante_id: l.varianteId,
+      cantidad: l.cantidad,
+      precio: l.precio,
+      ...(b.grupos ? { ahorro_grupo: b.grupos.porVariante[l.varianteId]?.ahorro ?? 0 } : {}),
+    })),
   };
 }
 

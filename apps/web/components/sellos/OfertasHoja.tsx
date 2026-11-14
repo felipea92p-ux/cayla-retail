@@ -1013,11 +1013,6 @@ export function OfertasHoja({
                 {bajoPorModelo.length > 2 ? "…" : ""}. No se bloquea, pero pierdes plata en cada una: avísale al contador.
               </Aviso>
             )}
-            {grupo && (
-              <Aviso tono="info" chico titulo="La cobran la caja y los apartados">
-                En la tienda web todavía se cobra el precio normal: llega en la próxima entrega.
-              </Aviso>
-            )}
             {o.incluyeClaure && (
               <Aviso tono="atencion" chico titulo="Entran las prendas de Claurè">
                 Es otra empresa: confirma con su dueña que acepta el descuento.
