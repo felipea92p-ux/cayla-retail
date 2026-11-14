@@ -80,15 +80,17 @@ import {
   primeroPorContar,
   lineasDeLaParada,
   costoDeLaParada,
+  destinoDelEnter,
   opcionesDelFiltro,
   paradaContada,
   paradaEnFoco,
   paradasDelGrupo,
   siguientePendiente,
+  siguienteFaltanTallas,
+  faltanTallas,
   repartirModeloCon,
   repartirOtroCambio,
   SIN_FILTRO,
-  vecinosDeLaParada,
   type CategoriaDelEnvio,
   type FiltroDelConteo,
   type OrdenDelConteo,
@@ -99,6 +101,7 @@ import {
   lineasParaCorregir,
   claveTrasCorregir,
 } from "@/lib/recepcion-modelos-reglas";
+import { abreAlElegir } from "@/lib/recepcion-dial-reglas";
 import { borradorDeTallas, botonPrincipal, estadoDeLaTarjeta, marcasDeLaTabla, mismasVariantes, modoDeTallas, modosAlCambiar, tablaConLoMarcado, tablaParaElNumero, tallasListas, tocaRepartir, type BorradorTallas, type MarcasDeLaTabla, type ModoDeTallas } from "@/lib/recepcion-tallas-reglas";
 import { EditarModelo } from "./EditarModelo";
 import { CorregirCategoriaModelo } from "./CorregirCategoriaModelo";
@@ -132,6 +135,9 @@ import { TarjetaDeTallas } from "./TarjetaDeTallas";
 // tiene modelo (un envío sin aviso, una compra que no anotó qué prendas eran) se cuenta como un total y después se identifica.
 
 const ID_CAMPO_QUIEN = "rc-quien-cuenta";
+
+/** Con mouse y teclado, un modelo sin contar llega con su número listo para escribir. Con el dedo no: abriría el teclado encima del contador antes de verlo. */
+const conMouse = (): boolean => typeof window !== "undefined" && window.matchMedia("(pointer: fine)").matches;
 
 type Hoja =
   // «Cambiar de prenda»: la hoja de tallas, donde se elige otra.
@@ -279,8 +285,11 @@ export function ContarEnvio({
   const [orden, setOrden] = useState<OrdenDelConteo>(null);
   // Las categorías que la persona abrió o plegó a mano, que no cambian lo que se cuenta. Al pasar a contar otra cosa, la de antes y la de ahora vuelven a lo suyo; al filtrar, todas.
   const [alternadas, setAlternadas] = useState<ReadonlySet<string>>(new Set());
-  // Lo que llega con su número listo para escribir: viene de apretar Enter en lo anterior.
-  const [escribirEn, setEscribirEn] = useState<string | null>(null);
+  // Lo que llega con su número listo para escribir: viene de apretar Enter en lo anterior, de elegir en la lista algo sin contar o de agregarlo desde su hoja. Cada pedido lleva su
+  // propio número (`vez`): pedir otra vez el mismo modelo es un pedido nuevo, y el Dial lo vuelve a abrir aunque se haya cerrado (`esPedidoNuevo`).
+  const [escribirEn, setEscribirEn] = useState<{ clave: string; vez: number } | null>(null);
+  const pedidosDeAbrir = useRef(0);
+  const pedirAbrir = (clave: string) => ({ clave, vez: ++pedidosDeAbrir.current });
   const [fotos, setFotos] = useState<ReadonlyMap<string, string | null>>(() => new Map());
   const filaSeguir = useRef<HTMLDivElement>(null);
   const ultimoPaso = useRef(Number.NEGATIVE_INFINITY);
@@ -314,9 +323,6 @@ export function ContarEnvio({
   const enAhora = new Set(paradasDelEnvio.filter((p) => p.modelo && modoDe(p) === "ahora").map((p) => p.clave));
   const categoriasDelConteo = categoriasEnOrden(categoriasDelFiltro(grupos, filtro, parada?.clave ?? null, enAhora), orden);
   const paradas = categoriasDelConteo.flatMap((c) => c.paradas);
-  const { siguiente } = vecinosDeLaParada(paradas, parada?.clave ?? null);
-  // En el último modelo, lo que sigue es lo que quedó sin contar en todo el envío: Enter no cierra, lleva a lo pendiente.
-  const pendiente = siguiente || !parada ? null : siguientePendiente(paradasDelEnvio, parada.clave);
   // El pie del contador dice siempre cuál es el próximo sin contar del envío (sin «Siguiente», es lo único que lleva a otro modelo desde ahí).
   const faltaContar = parada ? siguientePendiente(paradasDelEnvio, parada.clave) : null;
   const opciones = opcionesDelFiltro(grupos, filtro);
@@ -340,6 +346,17 @@ export function ContarEnvio({
     setHojaVista(hoja);
     if (hoja) setListaEnHoja(false);
   }
+  // Agregar un modelo (o ir a uno desde esa hoja) también deja su número listo para escribir (tarea 4 de las 30 de Recibir, 2026-11-14). Con la hoja abierta el cursor es suyo, y al
+  // cerrarse la hoja lo devuelve a donde estaba en un `setTimeout(0)`: el número se abre en otro, puesto después de ese. Abierto antes, perdería el cursor al instante y se cerraría solo.
+  const [escribirAlCerrar, setEscribirAlCerrar] = useState<string | null>(null);
+  useEffect(() => {
+    if (hoja || !escribirAlCerrar) return;
+    const t = window.setTimeout(() => {
+      setEscribirEn(pedirAbrir(escribirAlCerrar));
+      setEscribirAlCerrar(null);
+    }, 0);
+    return () => window.clearTimeout(t);
+  }, [hoja, escribirAlCerrar]);
   // Las observaciones de todo el envío (ADR-0507), leídas una vez; cada modelo muestra las suyas.
   const [observaciones, setObservaciones] = useState<readonly ObservacionDeEnvio[]>([]);
   useEffect(() => {
@@ -387,20 +404,22 @@ export function ContarEnvio({
     const suya = claveDeCategoria(p.grupo);
     setAlternadas((a) => new Set([...a].filter((k) => k !== suya)));
     setErrorHoja(null);
-    setEscribirEn(escribir ? p.clave : null);
+    setEscribirEn(escribir ? pedirAbrir(p.clave) : null);
     setFoco(p.clave);
   }
 
   /** Elegir en la lista de la pantalla. Apiladas (una pantalla angosta), el contador queda bajo la lista: la vista baja hasta él, o el toque parecería no hacer nada. */
   function elegirEnLaLista(p: ParadaDelConteo, escribir = false) {
-    elegir(p, escribir);
+    // Lo que todavía no se contó llega con su número listo para escribir (tarea 4 de las 30 de Recibir, 2026-11-14): sin aviso todo se escribe a mano, y era un clic más por modelo.
+    // Lo ya contado no: se eligió para mirarlo o repartirlo. Vale también para el que ya está en el contador: su número se vuelve a abrir.
+    elegir(p, abreAlElegir({ pidio: escribir, contada: paradaContada(p), conMouse: conMouse() }));
     requestAnimationFrame(() => {
       const placa = mesa.current?.querySelector<HTMLElement>(".rc-placa");
       if (placa && placa.getBoundingClientRect().top > window.innerHeight / 2) placa.scrollIntoView({ block: "start", behavior: prefiereQuieto() ? "auto" : "smooth" });
     });
   }
 
-  /** «Anterior» o «Listo, siguiente». */
+  /** Los enlaces del pie del contador: «Falta contar: …» y «Faltan tallas: …». */
   function pasarA(p: ParadaDelConteo | null, ahora: number) {
     if (!p || esToqueRepetido(ultimoPaso.current, ahora)) return;
     ultimoPaso.current = ahora;
@@ -426,7 +445,8 @@ export function ContarEnvio({
     for (const c of r.cambios) onEscribir(c.linea, { contadas: c.contadas, separado: c.separado });
   }
 
-  const faltanTallas = (p: ParadaDelConteo): boolean => !!p.modelo && p.modelo.contadas > 0 && !p.modelo.conTallas && modoDe(p) === "ahora";
+  // El aviso ámbar de la fila y del contador usa la misma regla que el filtro «Faltan tallas» y el pie. Una fila lleva UN solo aviso (`EstadoModelo`): si le toca otro, el modelo está igual en el filtro y en el pie.
+  const conFaltanTallas = (p: ParadaDelConteo): boolean => faltanTallas(p, enAhora);
   const coloresOrden = (catalogo?.colores ?? []).map((c) => c.codigo);
   const tallasDeLaCategoria = (g: GrupoDeLineas) => catalogo?.categorias.find((c) => c.id === g.principal.categoria?.id)?.tallas ?? [];
   const prendaSeparada = (p: ParadaDelConteo): PrendaSeparada | undefined => (p.modelo?.productoId ? p.grupo.separado.prendas.find((x) => x.productoId === p.modelo?.productoId) : undefined);
@@ -595,11 +615,13 @@ export function ContarEnvio({
     if (destino.tipo === "dentro") {
       escribirSeparado(destino.grupo, conModelo(destino.grupo.separado));
       setFoco(claveDeParada(destino.grupo, llave));
+      if (conMouse()) setEscribirAlCerrar(claveDeParada(destino.grupo, llave));
     } else {
       const clave = await onAgregar({ proveedorId: m.proveedorId, categoriaId, marcaId: m.marcaId, separado: conModelo(SEPARADO_VACIO) });
       if (!clave) return "No se pudo agregar. Revisa la conexión y vuelve a intentar.";
       setAgregados((a) => new Set([...a, clave]));
       setFoco(`${clave}::${llave}`);
+      if (conMouse()) setEscribirAlCerrar(`${clave}::${llave}`);
     }
     setFiltro(SIN_FILTRO);
     setErrorHoja(null);
@@ -698,6 +720,9 @@ export function ContarEnvio({
 
   // «Revisar y cerrar» pasa a ser el botón principal recién cuando ya no queda nada por contar: hasta ahí lo principal es «Listo, siguiente».
   const todoContado = cifras.estados["por-contar"] === 0 && puedeCerrar;
+  // La segunda pasada (tarea 10 de las 30 de Recibir, 2026-11-14): con todo contado, el pie del contador lleva al siguiente modelo del filtro «Faltan tallas». Con un filtro o una
+  // búsqueda puestos, solo entre lo que la lista muestra. Es una sugerencia: no frena el cierre.
+  const faltanTallasEn = todoContado && parada ? siguienteFaltanTallas(paradasDelEnvio, parada.clave, enAhora, hayFiltro(filtro) ? paradas : null) : null;
   const faltaFotoDeFactura = papeles.some((p) => !p.fotoRuta);
   const sepDeLaParada = parada ? prendaSeparada(parada) : undefined;
   const prendaDeLaParada = parada?.modelo?.productoId ? (prendas.get(parada.modelo.productoId) ?? null) : null;
@@ -813,7 +838,7 @@ export function ContarEnvio({
       modelosTotales={paradasDelEnvio.filter((p) => p.modelo).length}
       orden={orden}
       fotos={fotos}
-      faltanTallas={faltanTallas}
+      faltanTallas={conFaltanTallas}
       onFiltro={cambiarFiltro}
       onOrden={setOrden}
       onAlternar={(clave) =>
@@ -933,7 +958,7 @@ export function ContarEnvio({
               parada={parada}
               sinAviso={sinAviso}
               foto={parada.modelo?.productoId ? (fotos.get(parada.modelo.productoId) ?? prendaDeLaParada?.fotoUrl ?? null) : null}
-              faltanTallas={faltanTallas(parada)}
+              faltanTallas={conFaltanTallas(parada)}
               guardado={estadoDelGrupo(lineasDeEsto, guardados)}
               error={grupo.lineas.map((l) => errores[l.clave]).find(Boolean) ?? errorHoja}
               onReintentar={() => {
@@ -943,8 +968,10 @@ export function ContarEnvio({
               onQuitarFiltro={() => cambiarFiltro(SIN_FILTRO)}
               onDeUnToque={(n) => ponerDeUnToque(parada, n)}
               pasoTallas={!tarjeta || tarjeta === "espera" ? "falta" : tarjeta === "lista" || tarjeta === "en-stock" ? "hecha" : tocaRepartir(tarjeta) ? "toca" : "falta"}
-              abrirNumero={escribirEn === parada.clave}
+              abrirNumero={escribirEn?.clave === parada.clave ? escribirEn.vez : 0}
               pendiente={faltaContar}
+              sinTallasEn={faltanTallasEn}
+              onSinTallas={(e) => pasarA(faltanTallasEn, e.timeStamp)}
               hayFiltroPuesto={hayFiltro(filtro)}
               todoContado={todoContado}
               filaSeguir={filaSeguir}
@@ -952,10 +979,14 @@ export function ContarEnvio({
               onPendiente={(e) => pasarA(faltaContar, e.timeStamp)}
               cierre={botonCerrar}
               onEnter={() => {
-                // Enter pasa al siguiente con su número listo para escribir; en el último, a lo que quedó sin contar; y con todo contado, el cursor va a «Revisar y cerrar».
-                const destino = siguiente ?? (hayFiltro(filtro) ? null : pendiente);
-                if (destino) elegir(destino, true);
-                else requestAnimationFrame(() => (mesa.current?.querySelector<HTMLButtonElement>('[data-guia="recepcion.pasar-a-cerrar"]') ?? filaSeguir.current?.querySelector<HTMLButtonElement>("button:not(:disabled)"))?.focus());
+                // Enter pasa al siguiente modelo EN CERO de lo que la lista muestra, con su número listo para escribir: nunca abre uno que ya tiene cantidad (Felipe
+                // 2026-11-14; quien dictaba hacia abajo sin mirar pisaba un conteo hecho). Sin destino el número se cierra y el cursor va a lo que sigue en el pie: su
+                // enlace («Falta contar», «Faltan tallas», «Ver todos») o, si no hay, «Revisar y cerrar». Nunca al número, o el próximo Enter lo volvería a abrir.
+                const destino = destinoDelEnter(paradas, parada.clave);
+                if (destino) return elegir(destino, true);
+                requestAnimationFrame(() =>
+                  (filaSeguir.current?.querySelector<HTMLElement>(".rc-pie-sigue button, .rc-pie-sigue a") ?? mesa.current?.querySelector<HTMLElement>('[data-guia="recepcion.pasar-a-cerrar"]'))?.focus(),
+                );
               }}
               observacion={
                 <AnotarObservacion
@@ -1091,7 +1122,10 @@ export function ContarEnvio({
           errorDelGuardado={errores["extra:0"] ?? null}
           onCrear={crearModelo}
           marcaAnterior={marcaAnterior}
-          onIrA={elegir}
+          onIrA={(p) => {
+            elegir(p);
+            if (!paradaContada(p) && conMouse()) setEscribirAlCerrar(p.clave);
+          }}
           onCerrar={() => setHoja(null)}
         />
       )}

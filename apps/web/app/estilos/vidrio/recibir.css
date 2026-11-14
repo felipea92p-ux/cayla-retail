@@ -32,17 +32,8 @@
   background: var(--pozo-fondo);
   box-shadow: var(--pozo-sombra);
 }
-/* El número del Dial: al pasar el mouse se hunde (antes, hueso); al escribirlo, el pozo encendido de un campo, con su raya roja. */
-@media (hover: hover) {
-  .rc-dial-numero:hover {
-    background: var(--pozo-fondo);
-    box-shadow: var(--pozo-sombra), inset 0 -3px 0 var(--color-borde-control);
-  }
-}
-.rc-dial-caja {
-  background: var(--pozo-encendido-fondo);
-  box-shadow: var(--pozo-encendido-sombra), inset 0 -3px 0 var(--color-rojo);
-}
+/* El número del Dial no lleva vidrio: ni pozo al pasar el mouse ni pozo encendido al escribirlo. Es el mismo número, con su cursor
+   (recepcion-viva.css, «El número de siempre, vivo», Felipe 2026-11-14). */
 
 /* ---------- Los botones del Dial: el «−» es la gota clara y el «+», la gota ahumada ---------- */
 .rc-dial-boton {

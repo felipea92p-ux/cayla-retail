@@ -530,20 +530,32 @@ export function claveTrasCorregir(p: Pick<ParadaDelConteo, "grupo" | "modelo" | 
 }
 
 /**
- * Los estados por los que se filtra la lista. Los tres primeros reparten todas las paradas; «despues» (lo que ya se contó y aún no tiene tallas) y «llevar» (lo repartido que
- * todavía no entró al stock, ADR-0645) se miran aparte.
+ * Los estados por los que se filtra la lista. Los tres primeros reparten todas las paradas; «faltan-tallas» y «despues» (lo que ya se contó y aún no tiene tallas, según la persona
+ * pidió repartirlo ahora o dejarlo para después) y «llevar» (lo repartido que todavía no entró al stock, ADR-0645) se miran aparte.
  */
-export type EstadoDelResumen = "cuadran" | "diferencia" | "por-contar" | "despues" | "llevar";
+export type EstadoDelResumen = "cuadran" | "diferencia" | "por-contar" | "faltan-tallas" | "despues" | "llevar";
 
-export function estadoDeParada(p: ParadaDelConteo): Exclude<EstadoDelResumen, "despues"> {
+export function estadoDeParada(p: ParadaDelConteo): Exclude<EstadoDelResumen, "faltan-tallas" | "despues" | "llevar"> {
   if (p.modelo?.estado === "contado") return p.grupo.dijeron === p.grupo.contadas ? "cuadran" : "diferencia";
   if (p.modelo) return p.modelo.estado === "por-contar" ? "por-contar" : p.modelo.estado === "cuadra" ? "cuadran" : "diferencia";
   if (!paradaContada(p)) return "por-contar";
   return p.grupo.dijeron == null || p.grupo.dijeron === p.grupo.contadas ? "cuadran" : "diferencia";
 }
 
+/** Lo contado que todavía no tiene sus tallas y colores. Lo reparten entre sí «Faltan tallas» y «Tallas para después», según lo que la persona pidió para ese modelo. */
+const contadoSinTallas = (p: ParadaDelConteo): boolean => !!p.modelo && p.modelo.contadas > 0 && !p.modelo.conTallas;
+
 /** Lo contado que queda sin tallas. Lo que la persona pidió hacer ahora (`enAhora`) no es «para después»: ese dice «Faltan tallas». */
-export const tallasParaDespues = (p: ParadaDelConteo, enAhora?: ReadonlySet<string>): boolean => !!p.modelo && p.modelo.contadas > 0 && !p.modelo.conTallas && !enAhora?.has(p.clave);
+export const tallasParaDespues = (p: ParadaDelConteo, enAhora?: ReadonlySet<string>): boolean => contadoSinTallas(p) && !enAhora?.has(p.clave);
+
+/**
+ * Lo contado sin tallas que la persona pidió repartir ahora (`enAhora`): la regla del filtro «Faltan tallas», de su número en la píldora y del pie «Faltan tallas: <modelo>» (tarea 10 de las
+ * 30 de Recibir, 2026-11-14), y también la del aviso ámbar de la fila y del contador. Pero la fila muestra UN solo aviso, el más urgente (`EstadoModelo`): antes del ámbar van «Falta su
+ * nombre» y, en un envío con aviso, «Sobran N» y «Faltan N». Un modelo con uno de esos avisos está igual en el filtro, en la píldora y en el pie: si el filtro se limitara a las filas con el
+ * ámbar, un modelo contado y sin tallas no entraría en ninguno de los dos filtros de tallas. Con «Tallas para después» se reparten lo contado sin tallas: ningún modelo está en los dos.
+ * Las tallas no frenan el cierre: esto ordena, no obliga.
+ */
+export const faltanTallas = (p: ParadaDelConteo, enAhora?: ReadonlySet<string>): boolean => contadoSinTallas(p) && !!enAhora?.has(p.clave);
 
 /**
  * Lo que ya tiene sus tallas y colores y todavía no entró al stock (ADR-0645, Felipe 2026-11-11: casi siempre llevan la prenda al stock desde el conteo, para venderla ya). Entra al
@@ -551,9 +563,15 @@ export const tallasParaDespues = (p: ParadaDelConteo, enAhora?: ReadonlySet<stri
  */
 export const porLlevarAlStock = (p: ParadaDelConteo): boolean => !!p.modelo && !!p.modelo.productoId && p.modelo.conTallas && p.modelo.contadas > p.modelo.enStock;
 
-/** ¿La parada está en ese estado? «despues» y «llevar» se miran aparte de los tres que reparten la lista. */
+/** ¿La parada está en ese estado? «faltan-tallas», «despues» y «llevar» se miran aparte de los tres que reparten la lista. */
 const enEstado = (p: ParadaDelConteo, estado: EstadoDelResumen, enAhora?: ReadonlySet<string>): boolean =>
-  estado === "despues" ? tallasParaDespues(p, enAhora) : estado === "llevar" ? porLlevarAlStock(p) : estadoDeParada(p) === estado;
+  estado === "faltan-tallas"
+    ? faltanTallas(p, enAhora)
+    : estado === "despues"
+      ? tallasParaDespues(p, enAhora)
+      : estado === "llevar"
+        ? porLlevarAlStock(p)
+        : estadoDeParada(p) === estado;
 
 const sinTildes = (t: string): string => t.normalize("NFD").replace(/\p{M}/gu, "");
 
@@ -617,6 +635,23 @@ export function siguientePendiente(paradas: readonly ParadaDelConteo[], clave: s
 }
 
 /**
+ * Con todo contado, a qué modelo lleva «Faltan tallas» en el pie del contador (tarea 10 de las 30 de Recibir, 2026-11-14): el siguiente del filtro del mismo nombre (`faltanTallas`) desde lo
+ * que se mira, dando la vuelta, igual que `siguientePendiente`. Lo que se está mirando no cuenta: ya está en el contador. Con un filtro o una búsqueda puestos se busca solo en lo que la
+ * lista muestra (`aLaVista`): el pie no lleva a algo que el filtro esconde, y sin nada ahí dice «Es el último de lo que filtraste». `null` si no queda ninguno.
+ */
+export function siguienteFaltanTallas(
+  paradas: readonly ParadaDelConteo[],
+  clave: string | null,
+  enAhora: ReadonlySet<string>,
+  aLaVista: readonly ParadaDelConteo[] | null = null,
+): ParadaDelConteo | null {
+  const lista = aLaVista ?? paradas;
+  const i = lista.findIndex((p) => p.clave === clave);
+  const enOrden = i < 0 ? lista : [...lista.slice(i + 1), ...lista.slice(0, i)];
+  return enOrden.find((p) => p.clave !== clave && faltanTallas(p, enAhora)) ?? null;
+}
+
+/**
  * Adónde lleva «Faltan N por contar», la frase de arriba de la lista (ADR-0645, cambio 3 de /formidable; Felipe 2026-11-11): al modelo que se está mirando si todavía
  * no se contó; si no, al primero sin contar desde ahí, dando la vuelta. `null` con todo contado.
  */
@@ -625,14 +660,26 @@ export function primeroPorContar(paradas: readonly ParadaDelConteo[], clave: str
   return actual && !paradaContada(actual) ? actual : siguientePendiente(paradas, clave);
 }
 
-/** Un doble clic en «Listo, siguiente» saltaba un modelo sin que nadie lo notara (chaos DC-01, 2026-11-02): el segundo toque, tan seguido, no cuenta. */
+/** Un doble clic en un enlace del pie («Falta contar: …», «Faltan tallas: …») saltaba un modelo sin que nadie lo notara (chaos DC-01, 2026-11-02, cuando era «Listo, siguiente»): el segundo toque, tan seguido, no cuenta. */
 export const esToqueRepetido = (anterior: number, ahora: number): boolean => ahora - anterior < 350;
 
-/** Quién va antes y después en la lista que se ve. Si lo que se cuenta salió de la lista, lo que sigue es lo primero que queda. */
-export function vecinosDeLaParada(paradas: readonly ParadaDelConteo[], clave: string | null): { anterior: ParadaDelConteo | null; siguiente: ParadaDelConteo | null } {
-  const i = paradas.findIndex((p) => p.clave === clave);
-  if (i < 0) return { anterior: null, siguiente: paradas[0] ?? null };
-  return { anterior: paradas[i - 1] ?? null, siguiente: paradas[i + 1] ?? null };
+/** Lo que muestra el contador de una parada: lo contado del modelo, con lo que ya entró al stock; sin modelo, lo contado de antes que todavía no es de ninguno. */
+export const contadorDeParada = (p: ParadaDelConteo): number => (p.modelo ? p.modelo.contadas : sinIdentificarDelGrupo(p.grupo));
+
+/**
+ * Adónde lleva Enter después de guardar el número (Felipe 2026-11-14): al siguiente de lo que la lista muestra (`aLaVista`, ya filtrada y ordenada) cuyo contador está en
+ * CERO, nunca a uno que ya tiene cantidad. Quien dicta cantidades hacia abajo sin mirar pisaba un conteo hecho: el número se abría con su cifra seleccionada y la próxima
+ * tecla la reemplazaba. Hacia adelante vale cualquier cero, también un «No llegó» (un anotado puede quedar así sin que nadie lo toque, y saltárselo escondería esa falla);
+ * al dar la vuelta, solo lo que falta contar, para que la vuelta termine. `null` si no hay adónde ir: el número se cierra y el cursor va al pie del contador.
+ */
+export function destinoDelEnter(aLaVista: readonly ParadaDelConteo[], actual: string | null): ParadaDelConteo | null {
+  const i = aLaVista.findIndex((p) => p.clave === actual);
+  // El modelo que se cuenta nunca es destino: los cortes de abajo lo dejan fuera, y si no está en la lista no hay nada que excluir.
+  const enCero = (p: ParadaDelConteo): boolean => contadorDeParada(p) === 0;
+  // Si lo que se cuenta no se ve (el buscador lo dejó fuera), toda la lista está adelante.
+  const adelante = i < 0 ? aLaVista : aLaVista.slice(i + 1);
+  const antes = i < 0 ? [] : aLaVista.slice(0, i);
+  return adelante.find(enCero) ?? antes.find((p) => enCero(p) && !paradaContada(p)) ?? null;
 }
 
 export type CifrasDelResumen = {
@@ -655,10 +702,11 @@ export function cifrasDelResumen(categorias: readonly CategoriaDelEnvio[], enAho
   const grupos = categorias.flatMap((c) => c.grupos);
   const dijeron = grupos.every((g) => g.dijeron == null) ? null : grupos.reduce((a, g) => a + (g.dijeron ?? 0), 0);
   const contadas = grupos.reduce((a, g) => a + g.contadas, 0);
-  const estados: Record<EstadoDelResumen, number> = { cuadran: 0, diferencia: 0, "por-contar": 0, despues: 0, llevar: 0 };
+  const estados: Record<EstadoDelResumen, number> = { cuadran: 0, diferencia: 0, "por-contar": 0, "faltan-tallas": 0, despues: 0, llevar: 0 };
   const tipos: CifrasDelResumen["tipos"] = { restock: { modelos: 0, contados: 0 }, nuevo: { modelos: 0, contados: 0 } };
   for (const p of paradas) {
     estados[estadoDeParada(p)] += 1;
+    if (faltanTallas(p, enAhora)) estados["faltan-tallas"] += 1;
     if (tallasParaDespues(p, enAhora)) estados.despues += 1;
     if (porLlevarAlStock(p)) estados.llevar += 1;
     const tipo = tipoDeParada(p);
