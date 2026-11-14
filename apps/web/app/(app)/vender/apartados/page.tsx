@@ -11,11 +11,12 @@ import { getCanalesDeLaCuenta } from "@/lib/canales-venta";
 import { hoyLima } from "@/lib/fechas-lima";
 import { PERIODO_DE_FABRICA, rangoDelPeriodo } from "@/lib/historial-apartados-reglas";
 import { createClient } from "@/lib/supabase/server";
-import { leerCampanasVigentes } from "@/lib/campanas-vigentes";
+import { leerCampanasVigentes, leerOfertasDeGrupoVigentes, leerOfertasDeMontoVigentes } from "@/lib/campanas-vigentes";
 import { ApartadosPanel } from "@/components/apartados/ApartadosPanel";
 import { TrabajoPorSede } from "@/components/ui/TrabajoPorSede";
 import type { PrendaApartable } from "@/components/apartados/ApartarVista";
 import { leerPrendasDeUrl } from "@/lib/apartar-desde-ticket";
+import { ofertasDeGrupoDeFilas } from "@/lib/ofertas-de-grupo";
 
 /**
  * Apartados (ADR-0166): la clienta aparta prendas con un adelanto, las recoge pagando el saldo, o vencen y se le
@@ -44,7 +45,12 @@ async function Apartados({ desdeTicket, abrir }: { desdeTicket: string | null; a
   }
 
   const supabase = await createClient();
-  const [datos, variantes, caja, stockAqui, resCampanas, resStockSedes, ubicaciones, resRedondeo, preciosSede, canales] = await Promise.all([
+  // «Llevar varias y pagar menos» (ADR-0655, parte 4): la oferta de grupo de hoy por prenda, como en la caja. Secundaria como las campañas:
+  // si no carga (o la función todavía no está), se aparta sin grupos y `separar_prendas` exige lo que corresponda.
+  const cargaOfertasGrupo = leerOfertasDeGrupoVigentes(supabase, persona.ubicacionId);
+  // «Gastar un monto y ahorrar» (actividad 8): los montos de hoy, con sus escalones. Igual de secundarios.
+  const cargaOfertasMonto = leerOfertasDeMontoVigentes(supabase, persona.ubicacionId);
+  const [datos, variantes, caja, stockAqui, resCampanas, resStockSedes, ubicaciones, resRedondeo, preciosSede, canales, resOfertasGrupo, resOfertasMonto] = await Promise.all([
     // El Historial abre en los últimos 30 días de lo cerrado (Felipe 2026-10-10); lo abierto sale siempre.
     getApartadosDeTienda(persona.ubicacionId, { desde: rangoDelPeriodo(PERIODO_DE_FABRICA, hoyLima()).desde ?? undefined, abrir }),
     // Lo que se ofrece AQUÍ (ADR-0505): sin las prendas de CLAURE fuera de Lima.
@@ -63,8 +69,12 @@ async function Apartados({ desdeTicket, abrir }: { desdeTicket: string | null; a
     getPreciosPorSede([persona.ubicacionId]),
     // ADR-0607: los canales que opera esta cuenta; con solo la tienda, Apartar queda como siempre.
     getCanalesDeLaCuenta(),
+    cargaOfertasGrupo,
+    cargaOfertasMonto,
   ]);
   const preciosAqui = preciosSede[persona.ubicacionId] ?? {};
+  const ofertasGrupo = resOfertasGrupo.error ? {} : ofertasDeGrupoDeFilas(resOfertasGrupo.data);
+  const filasMonto = resOfertasMonto.error ? [] : (resOfertasMonto.data ?? []);
 
   if (!datos.instalado) {
     return (
@@ -99,6 +109,7 @@ async function Apartados({ desdeTicket, abrir }: { desdeTicket: string | null; a
       marca: v.marca,
       precio: preciosAqui[v.varianteId] ?? v.precio,
       campana: campana.get(v.varianteId) ?? null,
+      ofertaGrupo: ofertasGrupo[v.varianteId] ?? null,
       fotoUrl: v.fotoUrl,
       codigosBarras: v.codigosBarras,
       stockAqui: piso.get(v.varianteId) ?? 0,
@@ -119,6 +130,7 @@ async function Apartados({ desdeTicket, abrir }: { desdeTicket: string | null; a
         cajaAbierta={caja !== null}
         puedeGestionar={puede(persona, "gestionarCaja")}
         prendas={prendas}
+        filasMonto={filasMonto}
         apartados={datos.apartados}
         resumen={datos.resumen}
         liberadosAhora={datos.liberadosAhora}

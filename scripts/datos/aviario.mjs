@@ -101,6 +101,9 @@ export const AVIARIO = [
       // algunas categorías o sedes) y cómo estaban antes de cada cambio. Se manejan desde la hoja «Configuración» de Catálogo ▸ Insignias, junto
       // a la etiqueta y su diseño, que son de Loro. Asignadas en el refresco del volcado del 2026-10-26.
       "campana_reglas", "campana_regla_categorias", "campana_regla_sedes", "campana_regla_historial",
+      // ADR-0655 (Campañas y ofertas): los modelos elegidos uno por uno, las ofertas que le ceden a otra y las insignias que elige una oferta.
+      // Se manejan desde la misma hoja de la oferta. Asignadas en el refresco del volcado del 2026-11-14.
+      "campana_regla_productos", "campana_regla_cesiones", "campana_regla_insignias",
       // ADR-0463: la empresa a la que pertenece cada prenda (CAYLA o CLAURE) y en qué sedes opera cada una. La empresa es un dato del producto,
       // no de la marca ni de la factura (que sale siempre con el RUC de CAYLA): lo maneja quien responde por el catálogo. En producción desde
       // el 2026-10-20; las asignó el refresco del volcado del 2026-10-21.
@@ -197,6 +200,8 @@ export const AVIARIO = [
       "clientas_fusiones",
       // Separaciones (apartar prendas con adelanto) y lo que la clienta pidió y no había: nacen en el mostrador.
       "apartados", "separaciones", "separacion_items", "separacion_pagos", "separacion_correlativos",
+      // ADR-0655: el trato de una oferta de grupo o de un monto que guardó cada apartado («así como está ese día»). Refresco del 2026-11-14.
+      "separacion_ofertas_grupo",
       "pedidos_no_atendidos",
       // Refresco del volcado del 2026-09-23: a dónde fue el efectivo al cerrar (ADR-0186) y las prendas vendidas sin
       // registrar (ADR-0179) — las dos nacen en la caja; almacén regulariza las segundas, pero el hecho es la venta.
@@ -445,7 +450,10 @@ export const AVIARIO = [
   // ADR-0251: la llave de la revisión diaria de deriva (`huellas_catalogo`); no es dato del negocio. Refresco del 2026-09-28.
   { n: "14", pajaro: "Gorrión", modulo: "Plataforma y esquema", tablas: ["huellas_llave",
     // Las invariantes que vigila /chaos y sus corridas: no son dato del negocio. Asignadas en el refresco del volcado del 2026-11-12 (ADR-0650): ya estaban en producción, venían de otras ramas.
-    "invariantes", "invariantes_conocidas", "invariantes_corridas"] },
+    "invariantes", "invariantes_conocidas", "invariantes_corridas",
+    // El vigía de rendimiento (ADR-0656, 20261113194000): fotos de `pg_stat_statements`, no dato del negocio. Asignadas en el refresco del
+    // volcado del 2026-11-14: ya estaban en producción, venían de otra rama.
+    "rendimiento_corridas", "rendimiento_fotos", "rendimiento_estado"] },
 ];
 
 /**

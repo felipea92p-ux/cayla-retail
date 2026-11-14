@@ -39,7 +39,13 @@ export function DescuentoDePrenda({ prenda, conArgumento = false, className = ""
   if (!d) return null;
   return (
     <span className={`flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 ${className}`}>
-      {d.campana ? (
+      {/* ADR-0655: la parte de una oferta de grupo, con el trato con que entró al apartado. */}
+      {d.grupo && (
+        <Chip tono="pizarra" versalitas={false}>
+          {d.grupo.titular} · {d.grupo.nombre} · −{money(d.grupo.ahorro)}
+        </Chip>
+      )}
+      {d.resto <= 0 ? null : d.campana ? (
         <Chip tono="pizarra" versalitas={false}>
           {d.motivo} · −{d.pct} %
         </Chip>
@@ -47,7 +53,7 @@ export function DescuentoDePrenda({ prenda, conArgumento = false, className = ""
         <Chip tono="ambar" versalitas={false} className="max-w-full" title={d.argumento ? `${d.motivo} · ${d.argumento}` : d.motivo}>
           {/* El motivo es lo que importa: en una columna angosta (375 px) o con un «Otro» largo, baja de línea en vez de cortarse. */}
           <span className="min-w-0 whitespace-normal">
-            −{money(prenda.descuentoUnitario)} c/u · {d.motivo}
+            −{money(d.resto)} c/u · {d.motivo}
           </span>
         </Chip>
       )}
@@ -160,14 +166,14 @@ export function ReciboApartado({ apartado, tipo, sede, pagadoHoy, redondeo = 0, 
         // son de la tienda, como en el ticket de una venta, y no se imprimen).
         const d = descuentoDePrenda(p);
         return (
-          <div key={p.varianteId}>
+          <div key={p.itemId || p.varianteId}>
             <p className="rt-fila">
               <span>{p.cantidad} {p.referencia} {p.sku}</span>
               <span>{money((p.precioUnitario - p.descuentoUnitario) * p.cantidad)}</span>
             </p>
             {d && (
               <p className="rt-detalle">
-                P.U. {p.precioUnitario.toFixed(2)} · Dscto. -{p.descuentoUnitario.toFixed(2)} c/u · Precio acordado {d.precioAcordado.toFixed(2)} c/u
+                P.U. {p.precioUnitario.toFixed(2)} · Dscto. -{p.descuentoUnitario.toFixed(2)} c/u{d.grupo ? ` (${d.grupo.titular})` : ""} · Precio acordado {d.precioAcordado.toFixed(2)} c/u
               </p>
             )}
           </div>

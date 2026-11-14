@@ -232,6 +232,10 @@ describe("las tres preguntas de una campaña (ADR-0655)", () => {
     expect(preguntasDeCampana(FILAS[3]!, 0, [], HOY, 0, sin, null)[0]!.detalle).toBe("Ninguna: sin oferta, la campaña solo pone su insignia");
     expect(preguntasDeCampana(FILAS[3]!, 0, [], HOY, 0, sin, null)[2]!.detalle).toBe("9 nov – 30 nov · en todas las tiendas");
   });
+  it("una oferta que elige sus propias prendas (por insignia, modelos o toda la compra) responde «En qué prendas»", () => {
+    expect(preguntasDeCampana(FILAS[3]!, 0, [], HOY, 0, { activas: 1, borradores: 0 }, null, true)[1]).toMatchObject({ hecho: true, detalle: "Las eligen sus ofertas" });
+    expect(preguntasDeCampana(FILAS[3]!, 0, [], HOY, 0, { activas: 1, borradores: 0 }, null, false)[1]).toMatchObject({ hecho: false, detalle: "Ninguna todavía" });
+  });
   it("una oferta en borrador no cuenta: todavía no baja nada en la caja", () => {
     const p = preguntasDeCampana(FILAS[3]!, 0, [], HOY, 0, { activas: 0, borradores: 2 }, null)[0]!;
     expect(p).toMatchObject({ hecho: false, detalle: "2 ofertas sin activar: todavía no baja nada" });

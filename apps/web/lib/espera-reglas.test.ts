@@ -55,6 +55,9 @@ describe("clasificarPeticion — guardado", () => {
     expect(clasificarPeticion(pet(`https://${SUPA}/rest/v1/rpc/fn_stock_por_sede`, "POST"))).toBeNull();
     expect(clasificarPeticion(pet(`https://${SUPA}/rest/v1/rpc/previsualizar_cierre_conteo`, "POST"))).toBeNull();
     expect(clasificarPeticion(pet(`https://${SUPA}/rest/v1/rpc/campanas_vigentes`, "POST"))).toBeNull();
+    // ADR-0655: las ofertas de grupo y los montos de hoy, que la caja relee cada 10 s, no abren el loader.
+    expect(clasificarPeticion(pet(`https://${SUPA}/rest/v1/rpc/ofertas_de_grupo_vigentes`, "POST"))).toBeNull();
+    expect(clasificarPeticion(pet(`https://${SUPA}/rest/v1/rpc/ofertas_de_monto_vigentes`, "POST"))).toBeNull();
   });
   it("insertar, actualizar y subir archivos son guardado; leer una tabla no", () => {
     expect(clasificarPeticion(pet(`https://${SUPA}/rest/v1/productos`, "POST"))?.tipo).toBe("guardado");
@@ -86,6 +89,8 @@ describe("piezas", () => {
   });
   it("lectura por prefijo", () => {
     expect(esRpcDeLectura("fn_mi_perfil")).toBe(true);
+    // El Resumen por bloques (ADR-0661): la lectura por partes es de solo lectura; si algún día se pide desde el navegador, no tapa la pantalla.
+    expect(esRpcDeLectura("fn_resumen_finanzas_partes")).toBe(true);
     expect(esRpcDeLectura("registrar_compra")).toBe(false);
   });
 });

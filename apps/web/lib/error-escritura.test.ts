@@ -245,6 +245,16 @@ describe("un cambio o un apartado con una prenda sin precio (ADR-0385) se dice e
   });
 });
 
+describe("las ofertas de grupo (ADR-0655) se dicen en palabras de tienda, no con su código", () => {
+  it.each([
+    ["venta_grupo_omitido", "registrar la venta", "La oferta de grupo de Blusa Emma (BLU-EMMA-BEI-S) cambió mientras cobrabas: vuelve a abrir el cobro para ver el precio de ahora."],
+    ["venta_grupo_no_coincide", "registrar la venta", "La oferta de grupo de Blusa Emma (BLU-EMMA-BEI-S) ya no da lo que dice el ticket: vuelve a abrir el cobro para ver el precio de ahora."],
+    ["separacion_grupo_no_coincide", "apartar", "La oferta de grupo de Blusa Emma (BLU-EMMA-BEI-S) cambió mientras apartabas: recarga la pantalla para ver el precio de ahora."],
+  ])("%s", (codigo, contexto, frase) => {
+    expect(traducirError({ message: codigo, details: "Blusa Emma (BLU-EMMA-BEI-S)", hint: "La oferta…", code: "P0001" }, contexto)).toBe(frase);
+  });
+});
+
 describe("traduce los candados de la venta con el dato que trae el detalle", () => {
   it("precio cambiado: nombra la prenda y dice qué hacer", () => {
     const salida = traducirError(

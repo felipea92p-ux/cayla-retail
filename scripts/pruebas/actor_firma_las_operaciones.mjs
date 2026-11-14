@@ -233,8 +233,9 @@ caso(
      -- —«nadie regulariza su propia venta»—: un permiso, como fn_alcanzo_a.
      count(*) filter (where (length(d) - length(replace(d, 'fn_actor_persona_id(', ''))) / length('fn_actor_persona_id(') > 1
                         -- suspender: permiso (cuenta) + firma (responsable). guardar_proveedor_produccion (20260923240000): una
-                        -- firma en el alta y otra en la edición, caminos excluyentes.
-                        and d !~ 'FUNCTION retail\\.(suspender_colaborador|guardar_proveedor_produccion|regularizar_prenda)\\('))
+                        -- firma en el alta y otra en la edición, caminos excluyentes. guardar_oferta_completa (20261114060000, ADR-0655):
+                        -- las dos con el responsable (true), una en la historia de las insignias y otra en la de la forma.
+                        and d !~ 'FUNCTION retail\\.(suspender_colaborador|guardar_proveedor_produccion|regularizar_prenda|guardar_oferta_completa)\\('))
    from (select pg_get_functiondef(oid) d from pg_proc where pronamespace = 'retail'::regnamespace and proname <> 'fn_actor_persona_id' and ${SIN_ROLES}) x;`,
   // Pisos, no números exactos: el total depende de qué migraciones tiene la base (local 41/29 con Apartados y series;
   // CI desde cero 41/28). Que cada función calce con SU lista lo prueban la re-ejecución y la falla cerrada de abajo.
