@@ -1,5 +1,6 @@
 "use client";
 
+import { LineaMargen } from "@/components/ui/LineaMargen";
 import { enterNoGuarda } from "@/components/ui/enterNoGuarda";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -20,7 +21,8 @@ import { ConfigurarCategoria } from "@/components/alta-producto/ConfigurarCatego
 import { ProductoCreado, type ResumenCreado } from "@/components/alta-producto/ProductoCreado";
 import { ChipOpcion, FilaAlta, PasoAlta, PlegableAlta } from "@/components/alta-producto/piezas";
 import { PropuestaDePrecio } from "@/components/alta-producto/PropuestaDePrecio";
-import { ElegirColores } from "@/components/alta-producto/ElegirColores";
+import { FotosYColores, useFotosEnCurso } from "@/components/alta-producto/FotosYColores";
+import { InterruptorCatalogoIA } from "@/components/alta-producto/FotosDeColores";
 import type { FotoPendiente } from "@/components/alta-producto/FotosAlta";
 import { MatrizVariantes } from "@/components/alta-producto/MatrizVariantes";
 import { MatrizCantidades } from "@/components/alta-producto/MatrizCantidades";
@@ -109,8 +111,8 @@ import { prefiereQuieto } from "@/lib/movimiento-cliente";
 // "Nuevo producto" en 4 PREGUNTAS (spike v2 2026-09-28, docs/maquetas/producto-nuevo-v2-2026-09; antes 5 pasos, spike
 // 2026-09-24, y antes 7 bloques, ADR-0109):
 //   1 ¿A qué categoría pertenece? (familia → categoría) · 2 ¿Cómo es? (nombre, descripción, marca y proveedor, tejido,
-//   patrón; temporada y etiquetas plegadas) · 3 ¿En qué tallas y colores? (tallas, colores y la tabla talla × color, con
-//   la foto en la fila de su color) · 4 ¿Cuánto cuesta y cuántas hay? (precio, costo, la MISMA tabla con cantidades
+//   patrón; temporada y etiquetas plegadas) · 3 ¿En qué tallas y colores? (tallas, «Fotos y colores» —los colores salen
+//   de la foto, ADR-0663— y la tabla talla × color) · 4 ¿Cuánto cuesta y cuántas hay? (precio, costo, la MISMA tabla con cantidades
 //   —ADR-0212: la carga inicial de lo que ya está en tienda, en la misma transacción que el producto— y quién lo registra).
 // Por qué así (README del spike v2): el paso «Cómo se hace» había crecido a 7 campos; cada color aparecía 4 veces (chips,
 // casillas de fotos, tabla de variantes, tabla de stock); había tres marcadores de avance a la vez (barra de 5 segmentos,
@@ -135,8 +137,8 @@ import { prefiereQuieto } from "@/lib/movimiento-cliente";
 //     («Opcional · …») y el rojo queda para los errores.
 //
 // El alta es UNA transacción (`crear_producto_con_stock_inicial`, que envuelve a `crear_producto_con_variantes`): producto,
-// variantes, etiquetas y el stock de hoy entran juntos o no entra nada. Las FOTOS se eligen en la tabla del paso 3 (en la
-// fila de su color) pero se guardan en el navegador y se suben DESPUÉS de que la base creó el producto (ver `FotosAlta`):
+// variantes, etiquetas y el stock de hoy entran juntos o no entra nada. Las FOTOS se suben en «Fotos y colores» del paso 3
+// (una por color) pero se guardan en el navegador y se suben DESPUÉS de que la base creó el producto (ver `FotosAlta`):
 // cancelar no deja archivos huérfanos, y si una foto no sube, el producto ya existe y la pantalla de éxito dice cuál
 // falta. Las filas de `producto_fotos` se escriben directo: su política `producto_fotos_write_lider`
 // (fn_puede_editar_catalogo) es la misma que exige esta pantalla.
@@ -245,6 +247,11 @@ export function NuevoProductoForm({
   const [temporada, setTemporada] = useState(SIN_PROPIA);
   const [coloresElegidos, setColoresElegidos] = useState<string[]>([]);
   const [fotos, setFotos] = useState<FotoPendiente[]>([]);
+  // Fotos de «Fotos y colores» que todavía no tienen color (se leen o esperan una respuesta): bloquean crear, o se perderían (ADR-0663).
+  // Las fotos que «Fotos y colores» todavía lee o pregunta: las guarda la pantalla, no el paso, para que no se pierdan al cambiar de paso
+  // mientras la IA las prepara (Felipe 2026-11-14). Mientras haya alguna, no se crea: se perdería.
+  const fotosEnCurso = useFotosEnCurso();
+  const fotosSinColor = fotosEnCurso.pendientes.length;
   const [precioBase, setPrecioBase] = useState("");
   const [costoBase, setCostoBase] = useState("");
   const [costoTocado, setCostoTocado] = useState(false);
@@ -432,12 +439,13 @@ export function NuevoProductoForm({
     }
   }
 
-  // «+ Nuevo color» desde el alta (spike v2): antes había que ir a Catálogo → Atributos en otra pestaña y volver a
-  // «actualizar los colores». El color creado entra a la lista y queda elegido.
-  function colorCreado(color: ColorAlta) {
-    setColoresNuevos((prev) => (prev.some((c) => c.codigo === color.codigo) ? prev : [...prev, color]));
-    setColoresElegidos((prev) => (prev.includes(color.codigo) ? prev : [...prev, color.codigo]));
+  // «Cambiar» en una tarjeta de «Fotos y colores» (ADR-0663): el color cambia en su lugar y sus fotos lo siguen. Si el nuevo ya estaba
+  // elegido, las dos tarjetas se juntan (es la misma prenda vista dos veces).
+  function cambiarColor(de: string, a: string) {
+    setColoresElegidos((prev) => (prev.includes(a) ? prev.filter((x) => x !== de) : prev.map((x) => (x === de ? a : x))));
+    setFotos((prev) => prev.map((f) => (f.colorCodigo === de ? { ...f, colorCodigo: a } : f)));
   }
+
 
   // ---------- al configurar una categoría o proponer un valor sin salir del alta ----------
   // Es el `onOfrecido` de ElegirTallas y ElegirMuestra: el valor ya quedó ofrecido en la categoría (desde su hoja «Ver
@@ -505,6 +513,7 @@ export function NuevoProductoForm({
     precioBase,
     costoBase,
     celdaSinPrecio: nombreCeldaEnCero,
+    fotosSinColor,
     stockTotal: stock.total,
     stockInvalidas: stock.invalidas,
     sinStock,
@@ -1240,16 +1249,38 @@ export function NuevoProductoForm({
           </FilaAlta>
 
           <FilaAlta
-            etiqueta="Colores"
+            etiqueta="Fotos y colores"
             campo="colores"
             estado={est.colores}
             retiene="fila"
-            ayuda={coloresElegidos.length ? plural(coloresElegidos.length, "elegido", "elegidos") : "Si no tiene color (un llavero, un cuaderno), déjalo vacío"}
+            ayuda={coloresElegidos.length ? plural(coloresElegidos.length, "color", "colores") : "Una foto por color"}
           >
-            <ElegirColores colores={colores} grupos={grupos} elegidos={coloresElegidos} onAlternar={alternarColor} onCreado={colorCreado} conMezclas />
+            {/* Los colores salen de las fotos (ADR-0663): la carta queda para «Cambiar» y «Elegir sin foto». Es el único lugar de las fotos. */}
+            {catalogo.disponible && (
+              <div className="mb-2 flex justify-end" data-guia="nuevo.catalogo-ia">
+                <InterruptorCatalogoIA catalogo={catalogo} />
+              </div>
+            )}
+            <FotosYColores
+              carta={colores}
+              grupos={grupos}
+              elegidos={coloresElegidos}
+              fotos={fotos}
+              onFotos={setFotos}
+              onColorNuevo={(color) => setColoresNuevos((prev) => (prev.some((c) => c.codigo === color.codigo) ? prev : [...prev, color]))}
+              onAgregarColor={(codigo) => setColoresElegidos((prev) => (prev.includes(codigo) ? prev : [...prev, codigo]))}
+              onQuitarColor={(codigo) => {
+                if (coloresElegidos.includes(codigo)) alternarColor(codigo);
+              }}
+              onCambiarColor={cambiarColor}
+              disabled={cargando}
+              guia="nuevo.fotos-colores"
+              catalogo={catalogo}
+              enCurso={fotosEnCurso}
+            />
           </FilaAlta>
 
-          {/* La prenda: una fila por color (con su foto) y una columna por talla. En el paso 4 es la MISMA tabla, con números. */}
+          {/* La prenda: una fila por color y una columna por talla. En el paso 4 es la MISMA tabla, con números. */}
           <div className="border-t border-sand pt-3.5">
             {tallasCategoria.length > 0 && tallasElegidas.length === 0 ? (
               <Aviso tono="info">Elige al menos una talla y aquí aparece la prenda: una fila por color, una columna por talla.</Aviso>
@@ -1260,10 +1291,7 @@ export function NuevoProductoForm({
                 colores={coloresDatos}
                 excluidas={excluidas}
                 onExcluidas={setExcluidas}
-                fotos={fotos}
-                onFotos={setFotos}
                 disabled={cargando}
-                catalogo={catalogo}
               />
             )}
             {catalogo.hoja}
@@ -1271,13 +1299,12 @@ export function NuevoProductoForm({
         </div>
       );
     }
-    // Paso 4: tres filas guiadas (ADR-0284) —precio y costo, las unidades de hoy, quién lo registra—. Antes eran tres bloques
+    // Paso 4: tres filas guiadas (ADR-0284) —costo y precio (en ese orden y con el margen al final, tarea 8 de Recibir), las unidades de hoy, quién lo registra—. Antes eran tres bloques
     // sueltos y nada decía que «cuántas hay hoy» (o «todavía no tengo») era una decisión obligatoria.
     return (
       <div>
-        <FilaAlta etiqueta="Precio y costo" ayuda="El costo es opcional" campo="precio" estado={est.precio}>
+        <FilaAlta etiqueta="Costo y precio" ayuda="El costo es opcional" campo="precio" estado={est.precio}>
           <div className="grid gap-4 sm:grid-cols-3">
-            <CampoMonto etiqueta="Precio de venta" pie="Para todas las tallas y colores" inputMode="decimal" placeholder="0.00" value={precioBase} onChange={(e) => setPrecioBase(limpiarPrecio(e.target.value))} />
             <CampoMonto
               etiqueta="Costo"
               pie={sugerido && !costoTocado ? `Sugerido: el último en ${categoria?.nombre} (${sugerido.referencia})` : "Opcional"}
@@ -1290,6 +1317,7 @@ export function NuevoProductoForm({
                 setCostoBase(limpiarPrecio(e.target.value));
               }}
             />
+            <CampoMonto etiqueta="Precio de venta" pie="Para todas las tallas y colores" inputMode="decimal" placeholder="0.00" value={precioBase} onChange={(e) => setPrecioBase(limpiarPrecio(e.target.value))} />
             <div>
               <p className="label-cayla text-[11px] text-tinta/65">Margen</p>
               <p
@@ -1299,6 +1327,8 @@ export function NuevoProductoForm({
               >
                 {margen === null ? "—" : `${margen.toFixed(0)} %`}
               </p>
+              {/* Tarea 8 de Recibir: el margen también en soles, con la misma cuenta y los mismos colores que la línea de Recibir. */}
+              {margen !== null && <LineaMargen costo={costoBase} precio={precioBase} soloSoles className="mt-1" />}
               <p className="mt-1 text-sm text-taupe">{margen === null ? "Con el costo, se calcula" : nivel ? etiquetaNivel[nivel] : ""}</p>
             </div>
           </div>

@@ -1779,21 +1779,29 @@ export const GUIA_NUEVO_PRODUCTO: Guia = {
       id: "punto-3",
       ancla: "nuevo.punto-3",
       titulo: "3 · Tallas y colores",
-      texto: "Las tallas vienen con la curva de siempre de la categoría; eliges los colores que llegaron. Si la prenda trae dos colores (hueso con azul), toca «+ Color combinado»: eliges la base y lo que la acompaña, y queda como un solo color. Abajo, la tabla de variantes que van a nacer: toca una celda para quitar la que no llegó.",
+      texto: "Las tallas vienen con la curva de siempre de la categoría. Los colores salen de las fotos: subes una por color y abajo, la tabla de variantes que van a nacer; toca una celda para quitar la que no llegó.",
+    },
+    {
+      id: "fotos-colores",
+      ancla: "nuevo.fotos-colores",
+      // Solo está en el paso 3, con una categoría elegida.
+      opcional: true,
+      titulo: "Fotos y colores",
+      texto: "Sube la foto de cada color y el color sale solo: uno liso, o una mezcla si la prenda trae varios (hueso con azul). La espalda se junta con su color. Si un color no está creado, te pregunta: usas el más parecido o lo creas. «Cambiar» lo corrige.",
     },
     {
       id: "catalogo-ia",
       ancla: "nuevo.catalogo-ia",
-      // Solo está con una categoría elegida (la tabla de la prenda) y si el servidor tiene la llave de la IA.
+      // Solo está en el paso 3, junto a «Fotos y colores», y si el servidor tiene la llave de la IA.
       opcional: true,
       titulo: "Catálogo con IA",
-      texto: "Encendido, la foto de cada color sale como foto de catálogo: la prenda en un maniquí invisible, de frente y sin fondo. El primer color hace de molde y los demás salen con su misma forma. Toca su miniatura para verla en grande; «Usar mi foto» vuelve a la tuya.",
+      texto: "Encendido, cada foto que subes sale como foto de catálogo: la prenda en un maniquí invisible, de frente y sin fondo, y el color se lee de esa foto. El primer color hace de molde y los demás salen con su misma forma. «Usar mi foto» vuelve a la tuya.",
     },
     {
       id: "punto-4",
       ancla: "nuevo.punto-4",
       titulo: "4 · Precio y cantidad",
-      texto: "El precio y el costo («Proponer precio» te sugiere uno con el costo y las prendas parecidas, nunca con menos de 30 % de margen), las insignias y cuántas llegaron de cada variante, a nombre del proveedor. Ahí está «Crear producto». Para verlo hay que elegir una categoría, y la demo no empieza ninguna prenda.",
+      texto: "El costo y el precio («Proponer precio» te sugiere uno con el costo y las prendas parecidas, nunca con menos de 30 % de margen), las insignias y cuántas llegaron de cada variante, a nombre del proveedor. Ahí está «Crear producto». Para verlo hay que elegir una categoría, y la demo no empieza ninguna prenda.",
     },
     {
       id: "quien",

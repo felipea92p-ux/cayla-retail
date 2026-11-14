@@ -16,7 +16,6 @@ import {
   precioDistinto,
   precioPropioInvalido,
   textoCostoBase,
-  textoFotosDeFila,
   textoPrecioBase,
   totalesCantidades,
   vaciarTodas,
@@ -186,15 +185,6 @@ describe("montoDeCelda", () => {
 
   it("un texto que no es número no se vuelve el de todas: da NaN para que el formulario lo frene", () => {
     expect(montoDeCelda(".", 1.2)).toBeNaN();
-  });
-});
-
-describe("textoFotosDeFila", () => {
-  it("cuenta las suyas, o dice si usa la de todos los colores", () => {
-    expect(textoFotosDeFila(0, false)).toBe("agrega su foto");
-    expect(textoFotosDeFila(0, true)).toBe("usa la de todos");
-    expect(textoFotosDeFila(1, true)).toBe("1 foto");
-    expect(textoFotosDeFila(3, false)).toBe("3 fotos");
   });
 });
 

@@ -15,7 +15,7 @@
 
 export const UMBRAL_PARECIDO = 8;
 
-type Lab = readonly [number, number, number];
+export type Lab = readonly [number, number, number];
 
 export function esHexValido(hex: string | null | undefined): hex is string {
   return typeof hex === "string" && /^#[0-9a-f]{6}$/i.test(hex);
@@ -36,8 +36,11 @@ export function hexALab(hex: string): Lab {
   return [116 * fy - 16, 500 * (fx - fy), 200 * (fy - fz)];
 }
 
-/** CIEDE2000 (Sharma, Wu y Dalal, 2005), con kL = kC = kH = 1. */
-export function deltaE2000([L1, a1, b1]: Lab, [L2, a2, b2]: Lab): number {
+/**
+ * CIEDE2000 (Sharma, Wu y Dalal, 2005), con kC = kH = 1. `kL` (1 de fábrica) pesa la diferencia de luz: con 2, como la regla CMC 2:1
+ * con que la industria textil acepta un lote, la sombra y el brillo de una misma tela cuentan la mitad (lo usa `colores-de-la-foto.ts`).
+ */
+export function deltaE2000([L1, a1, b1]: Lab, [L2, a2, b2]: Lab, kL = 1): number {
   const rad = Math.PI / 180;
   const C1 = Math.hypot(a1, b1);
   const C2 = Math.hypot(a2, b2);
@@ -84,7 +87,7 @@ export function deltaE2000([L1, a1, b1]: Lab, [L2, a2, b2]: Lab): number {
   const SC = 1 + 0.045 * Cpm;
   const SH = 1 + 0.015 * Cpm * T;
   const RT = -Math.sin(2 * dTheta * rad) * RC;
-  return Math.sqrt((dL / SL) ** 2 + (dC / SC) ** 2 + (dH / SH) ** 2 + RT * (dC / SC) * (dH / SH));
+  return Math.sqrt((dL / (kL * SL)) ** 2 + (dC / SC) ** 2 + (dH / SH) ** 2 + RT * (dC / SC) * (dH / SH));
 }
 
 export function distanciaEntreHex(a: string, b: string): number {
