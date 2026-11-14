@@ -193,7 +193,7 @@ async function main() {
   );
   esperarValor(
     "solo entran las campañas aprobadas, activas y con descuento (no «urgencia», ni inactivas, ni sin %)",
-    correr(`${PREPARAR}${campana("ZZ Buena", 20, { hasta: "5" })}${campana("ZZ Urgencia", 20, { estilo: "urgencia", hasta: "5" })}${campana("ZZ Inactiva", 20, { hasta: "5", activo: false })}${campana("ZZ SinPct", "null", { hasta: "5" })}
+    correr(`${PREPARAR}${campana("ZZ Buena", 20, { hasta: "5" })}${campana("ZZ Urgencia", "null", { estilo: "urgencia", hasta: "5" })}${campana("ZZ Inactiva", 20, { hasta: "5", activo: false })}${campana("ZZ SinPct", "null", { hasta: "5" })}
       select string_agg(c ->> 'nombre', ',') from jsonb_array_elements(${LISTA}) c;
       rollback;`),
     "ZZ Buena",
@@ -383,7 +383,7 @@ async function main() {
   );
   esperarError(
     "una etiqueta que no es campaña (urgencia) no se diseña",
-    correr(`${PREPARAR}${campana("ZZ Urg", 20, { estilo: "urgencia", hasta: "5" })}${guardar(AMBIENTE)};\nrollback;`),
+    correr(`${PREPARAR}${campana("ZZ Urg", "null", { estilo: "urgencia", hasta: "5" })}${guardar(AMBIENTE)};\nrollback;`),
     "campana_no_existe",
   );
   esperarError(

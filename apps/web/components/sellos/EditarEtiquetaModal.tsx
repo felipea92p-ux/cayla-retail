@@ -8,7 +8,7 @@ import { Aviso } from "@/components/ui/Aviso";
 import { BotonDeshacer } from "@/components/ui/BotonDeshacer";
 import { CampoFecha } from "@/components/ui/CampoFecha";
 import { Modal } from "@/components/ui/Modal";
-import { Boton, Campo, CampoTexto } from "@/components/ui/campos";
+import { Boton, Campo, CampoTexto, Interruptor } from "@/components/ui/campos";
 import { ElegirDibujoDeInsignia } from "@/components/sellos/ElegirDibujoDeInsignia";
 import { cambioDeDibujo, type EleccionDeDibujo } from "@/lib/eleccion-de-dibujo";
 import { cambioDeNombre } from "@/lib/editar-etiqueta";
@@ -20,7 +20,7 @@ import type { ControlResponsable } from "@/lib/useResponsable";
 type FechasDeCampana = { desde: string | null; hasta: string | null };
 
 /** Lo que se guarda al editar: cada parte es `null` si no cambió (así la hoja solo escribe lo que la persona tocó). */
-export type CambiosDeEtiqueta = { nombre: string | null; dibujo: EleccionDeDibujo | null; fechas: FechasDeCampana | null };
+export type CambiosDeEtiqueta = { nombre: string | null; dibujo: EleccionDeDibujo | null; fechas: FechasDeCampana | null; anunciar: boolean | null };
 
 /**
  * «Editar» en el pase de una insignia o campaña que ya existe (ADR-0490, ampliado el 2026-10-27): corrige su nombre —un error de ortografía al
@@ -36,6 +36,7 @@ export function EditarEtiquetaModal({
   esDelNombre,
   esCampana,
   fechas,
+  anunciar,
   hoy,
   responsable,
   guardando,
@@ -51,6 +52,8 @@ export function EditarEtiquetaModal({
   esCampana: boolean;
   /** Solo una campaña: las fechas que lleva hoy. Sin ellas (una insignia) la hoja no pregunta cuándo rige. */
   fechas?: FechasDeCampana;
+  /** Solo una campaña: si la portada de la tienda online puede anunciarla (ADR-0655). Sin él, la hoja no lo pregunta. */
+  anunciar?: boolean;
   /** Hoy en Lima (`AAAA-MM-DD`): dice si la temporada ya pasó y se puede repetir. */
   hoy: string;
   responsable: ControlResponsable;
@@ -65,6 +68,7 @@ export function EditarEtiquetaModal({
   const [repitio, setRepitio] = useState(false);
   const [fDesde, setFDesde] = useState(fechas?.desde ?? "");
   const [fHasta, setFHasta] = useState(fechas?.hasta ?? "");
+  const [anunciarNuevo, setAnunciarNuevo] = useState(anunciar ?? true);
   const repetir = () => {
     setFDesde(repeticion?.desde ?? "");
     setFHasta(repeticion?.hasta ?? "");
@@ -86,7 +90,8 @@ export function EditarEtiquetaModal({
   const fechasBien = pDesde.ok && pHasta.ok && !objecion;
   const rango = { desde: pDesde.ok ? pDesde.valor : null, hasta: pHasta.ok ? pHasta.valor : null };
   const fechasCambio = fechas !== undefined && (fDesde !== (fechas.desde ?? "") || fHasta !== (fechas.hasta ?? ""));
-  const hayCambio = nombreCambio || dibujoCambio || fechasCambio;
+  const anunciarCambio = anunciar !== undefined && anunciarNuevo !== anunciar;
+  const hayCambio = nombreCambio || dibujoCambio || fechasCambio || anunciarCambio;
   const avisoDia = repeticion && repitio ? avisoDiaDeSemana(repeticion, { desde: fDesde, hasta: fHasta }) : null;
   const delUno = esCampana ? "de la campaña" : "de la insignia";
   // Nombre, dibujo y fechas son UN solo campo para la guía: basta con cambiar uno. Las fechas, además, piden corregirse si quedan en desorden.
@@ -96,7 +101,7 @@ export function EditarEtiquetaModal({
       nombre: fechas ? "Nombre, ícono o fechas" : "Nombre o ícono",
       requerido: true,
       hecho: hayCambio && !nombreVacio,
-      pendiente: nombreVacio ? `Escribe el nombre ${delUno}.` : fechas ? "Corrige el nombre, elige otro ícono o cambia las fechas." : "Corrige el nombre o elige otro ícono.",
+      pendiente: nombreVacio ? `Escribe el nombre ${delUno}.` : fechas ? "Corrige el nombre, elige otro ícono, cambia las fechas o si se anuncia." : "Corrige el nombre o elige otro ícono.",
     },
     ...(fechas
       ? [{ id: "vigencia", nombre: "Fechas", requerido: Boolean(fDesde || fHasta), hecho: Boolean(fDesde || fHasta) && fechasBien, pendiente: "Corrige las fechas: «Hasta» no puede ser antes que «Desde»." }]
@@ -180,6 +185,15 @@ export function EditarEtiquetaModal({
               )}
             </CampoGuiado>
           )}
+          {anunciar !== undefined && (
+            <Interruptor
+              activo={anunciarNuevo}
+              onActivo={setAnunciarNuevo}
+              disabled={guardando}
+              etiqueta="Anunciarla en la portada de la tienda online"
+              pie={anunciarNuevo ? "Si hay varias, la portada anuncia la que termina primero." : "No sale en la portada; sus precios igual bajan en la tienda online y en la caja."}
+            />
+          )}
           <CampoGuiado id="responsable" guia={guia}>
             <ComboResponsable control={responsable} deshabilitado={guardando} />
           </CampoGuiado>
@@ -195,6 +209,7 @@ export function EditarEtiquetaModal({
                   nombre: nombreCambio ? nombreNuevo.trim() : null,
                   dibujo: dibujoCambio ? eleccion : null,
                   fechas: fechasCambio ? { desde: fDesde.trim() || null, hasta: fHasta.trim() || null } : null,
+                  anunciar: anunciarCambio ? anunciarNuevo : null,
                 })
               }
               cargando={guardando}

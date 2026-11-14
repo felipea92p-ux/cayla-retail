@@ -107,6 +107,31 @@ las suma (y `fn_regla_alcanza_variante` y `fn_oferta_alcanza_variante` a su list
 ponerle descuento a una insignia): el candado mira las ofertas al guardarlas o activarlas, que es «al configurar». Si hiciera falta, ese es el
 lugar del próximo paso.
 
+## Actividad 5 (2026-11-13): una insignia nunca baja el precio
+
+La regla de la maqueta: «¿cambia lo que paga el cliente? → Campañas y ofertas. ¿Solo dice algo de la prenda? → Insignias». En producción
+cuatro insignias tenían descuento de siempre: «Para liquidar» (−15 %, 1.251 prendas, una tienda, hasta el 31 dic), «Top ventas» (−20 %,
+3, hasta el 31 dic), «Prendas de 10%» (−10 %, 37 tallas, una tienda, hasta el 12 dic) y «Sorteo» (−100 %, 1, sin fechas). Felipe decidió
+(2026-11-13) que **las cuatro pasan a campañas** y que «Para liquidar» **conserva su fin del 31 dic** (sin fecha de fin habría seguido con
+−15 % desde el 1 de enero): el cliente paga exactamente lo mismo.
+
+- **Base** (`20261113234000_insignias_sin_descuento.sql`, sin pegar): toda etiqueta con descuento que no era campaña pasa a `estilo =
+  'campana'` con todo igual (%, fechas, prendas, categorías, tiendas), y el candado `etiquetas_descuento_solo_campana` rechaza un descuento en
+  una insignia por cualquier camino. Se queda como descuento de siempre de la campaña, no como oferta: una oferta necesita fecha de fin y
+  «Sorteo» no tiene; la caja lo cobra igual.
+- **Campañas sin fecha de fin:** la base y «Cambiar nombre, ícono o fechas» ya las aceptaban (las fechas son opcionales); «Sorteo» es la primera.
+- **Pantalla:** la hoja «Configurar» de una insignia queda con «Cuándo rige» y «Categorías», sin descuento ni «Dónde rige», y lo dice
+  («Una insignia no cambia el precio»); su pase ya no muestra «— descuento»; la guía de Insignias y el error de la base lo dicen igual.
+- **«Anunciar en la portada»** (Felipe 2026-11-13): la portada de la tienda online anuncia la campaña que termina primero y dejaba fuera a
+  estas cuatro por ser insignias; como campañas entrarían («Prendas de 10%» apenas se pegue, «Sorteo» −100 % desde enero si queda sola). Cada
+  campaña lleva ahora `anunciar_en_portada` (`fn_campana_portada` lo pregunta): las cuatro nacen apagadas y las demás encendidas, así la portada
+  queda como hoy. Se cambia con un interruptor en «Cambiar nombre, ícono o fechas» (`fijar_anuncio_campana`), y el pase dice «No sale en la
+  portada». La pantalla lo lee en una lectura aparte: sin la columna, todas se anuncian, como antes.
+- **De paso:** las tres con fechas cuentan como campañas donde se listan campañas con fechas (Finanzas y el plan de compra) y en Tienda web ▸
+  Campañas. Las pruebas de base que usaban una insignia con descuento (12 archivos) pasan a una campaña, o a una campaña sin anunciar.
+
+Prueba: `pnpm pruebas:insignias-sin-descuento` (12 de 12); con el candado puesto en la base local, las 33 pruebas que tocan descuentos en verde.
+
 ## Alternativas descartadas
 
 - **Dentro de Insignias, renombrado «Insignias y ofertas».** No mueve nada, pero sigue mezclando dos preguntas en una pantalla y el nombre
