@@ -155,6 +155,7 @@
     "pruebas:productos-facetas": "node scripts/pruebas/productos_facetas.mjs",
     "pruebas:productos-empresa": "node scripts/pruebas/productos_filtro_por_empresa.mjs",
     "pruebas:productos-sin-costo": "node scripts/pruebas/productos_sin_costo.mjs",
+    "pruebas:productos-facetas-demanda": "node scripts/pruebas/productos_facetas_demanda.mjs",
     "pruebas:talla-con-prendas": "node scripts/pruebas/talla_con_prendas_no_se_retira.mjs",
     "pruebas:bajada-al-piso-concurrencia": "node scripts/pruebas/bajada_al_piso_concurrencia.mjs",
     "pruebas:alta-con-stock-inicial": "node scripts/pruebas/alta_con_stock_inicial.mjs",

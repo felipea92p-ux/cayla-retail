@@ -2287,6 +2287,11 @@ export const PRUEBAS = [
   // que la lista; quien no ve el dinero de Compras no encuentra nada; las faltas de antes no cambian. Con control. ROLLBACK.
   "pruebas:productos-sin-costo",
 
+  // Los conteos de Productos leen las ventas de 30 días UNA vez (20261113225000, ADR-0656 act. d): sobre el volumen del presupuesto y con
+  // poco stock, lo que devuelve fn_productos_facetas es idéntico al de antes (siete combinaciones de filtros, líder e integrante); con la
+  // demanda rota a propósito, cambia (control); se pega dos veces; con otra «demanda», no toca nada. ROLLBACK.
+  "pruebas:productos-facetas-demanda",
+
   // Una talla con prendas no se retira (20260929030000, ADR-0270 decisión 13): con prendas en cualquier sede (Cuarentena
   // incluida) o en camino, pasar `variantes.activo` a false se rechaza diciendo dónde están; en 0 se retira; reactivar
   // siempre se puede; una talla ya retirada con prendas (datos viejos) no bloquea otros cambios. Con control.
