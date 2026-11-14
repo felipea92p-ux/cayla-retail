@@ -1600,6 +1600,11 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
   `components/mi-plata/HojaCorregirGasto.tsx` (los campos de «Gasté en otra cosa», que son la pieza `CamposDelGasto.tsx`, con lo anotado puesto) →
   `lib/corregir-gasto-acciones.ts` (`fn_gasto_para_corregir`, `corregir_gasto_rapido`, firma `gasto_corregir`) + `lib/corregir-gasto-reglas.ts` (puro). Solo con el gasto `por_completar`
   y su ronda abierta (una cerrada se reabre antes, ADR-0569). El rastro (`compra_gasto_correcciones`, `fn_gasto_correcciones`) se ve con `CorreccionesDeCompra gastoId`.
+  «Por definir» (ADR-0660, migración `20261113211000`): «Algo nuevo» (`HojaPrenda.tsx`) anota la categoría «Por definir» y el precio «A la espera de precio
+  sugerido» (`lineasParaBase` manda `categoria_por_definir` / `precio_por_definir` a `registrar_compra_rapida`). La sección y la hoja «Definir»
+  (`components/mi-plata/PorDefinir.tsx`, en `/compras/fondos` y `/compras/mi-plata`) leen `fn_compras_por_definir` (`lib/por-definir.ts`) y guardan con
+  `definir_prenda_de_compra` (firma `compra_definir`); reglas puras en `lib/por-definir-reglas.ts`. «Te toca» suma `porDefinir` (`lib/inicio.ts` →
+  `lib/inicio-avisos.ts`). En Recibir la línea llega con `CATEGORIA_POR_DEFINIR` (`lib/recepcion-envio-reglas.ts`) y se define con `corregir_linea_al_contar`.
 - ~~**Notas de crédito**~~ (retirada el 2026-10-22, ADR-0480: la pantalla, sus modales y `lib/notas-credito*.ts` se borraron;
   `/compras/notas-credito` redirige a `/compras`; las tablas y RPC de abajo siguen en la base). Lo que era (2026-09-19, ADR-0142): `/compras/notas-credito` (quien tiene Notas de crédito: ADR-0161 y ADR-0387; nació solo del líder) → `lib/notas-credito.ts`
   (lectura) + `lib/notas-credito-reglas.ts` (puro: urgencia a 14 días, FIFO para deducir «Aplicada», las tres

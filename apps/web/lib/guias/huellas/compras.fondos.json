@@ -2,7 +2,7 @@
   "guia": "compras.fondos",
   "ruta": "/compras/fondos",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 71,
+  "total": 77,
   "controles": {
     "components/compras/CabeceraDeCompras.tsx": [
       "Pestanas «{items.map(({ clave, etiqueta, href, conteo, pide, tono}»"
@@ -100,6 +100,14 @@
       "CampoMonto «fondos.plata-monto»",
       "ComboResponsable «{responsable}»",
       "Boton «fondos.plata-confirmar»"
+    ],
+    "components/mi-plata/PorDefinir.tsx": [
+      "Boton «Definir»",
+      "CampoSelect «¿Qué es?»",
+      "CampoMonto «Se vende a»",
+      "ComboResponsable «{responsable}»",
+      "Boton «Cancelar»",
+      "Boton «Guardar»"
     ]
   }
 }
