@@ -452,7 +452,7 @@ select retail.guardar_campana_regla(null, :'sello', 'ZZ', 10, ${HOY}, ${HOY} + 1
 
   // ---------------------------------------------------------------- 8. Candados de la tabla
   console.log("\n— Lo que la tabla no deja —");
-  esperarError("la tabla rechaza un % de 80", correr(`${PREPARAR}insert into retail.campana_reglas (etiqueta_id, nombre, porcentaje, desde, hasta) values (:'camp', 'x', 80, ${HOY}, ${HOY});\nrollback;`), "campana_reglas_porcentaje");
+  esperarError("la tabla rechaza un % de 80", correr(`${PREPARAR}insert into retail.campana_reglas (etiqueta_id, nombre, porcentaje, desde, hasta) values (:'camp', 'x', 80, ${HOY}, ${HOY});\nrollback;`), 'violates check constraint "campana_reglas_'); // _porcentaje, o _forma desde 20261114003000
   esperarError("la tabla rechaza días repetidos", correr(`${PREPARAR}insert into retail.campana_reglas (etiqueta_id, nombre, porcentaje, desde, hasta, dias_semana) values (:'camp', 'x', 20, ${HOY}, ${HOY}, array[2,2]::smallint[]);\nrollback;`), "campana_reglas_dias");
   esperarError("la tabla rechaza una oferta activa sin quién y cuándo la activó", correr(`${PREPARAR}insert into retail.campana_reglas (etiqueta_id, nombre, porcentaje, desde, hasta, estado) values (:'camp', 'x', 20, ${HOY}, ${HOY}, 'activa');\nrollback;`), "campana_reglas_activa_firmada");
   esperarError("la tabla rechaza un fin anterior al inicio", correr(`${PREPARAR}insert into retail.campana_reglas (etiqueta_id, nombre, porcentaje, desde, hasta) values (:'camp', 'x', 20, ${HOY}, ${HOY} - 1);\nrollback;`), "campana_reglas_fechas");
