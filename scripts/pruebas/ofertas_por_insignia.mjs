@@ -88,6 +88,14 @@ const ANTES = [
   falta("select to_regclass('retail.campana_regla_insignias') is null;")
     ? [leer("20261114054000_choques_con_forma_una_sola_firma"), readFileSync(MIGRACION, "utf8"), readFileSync(HUELLA, "utf8")].join("\n")
     : "",
+  // Auditoría final (20261114071000): la portada de la tienda web cuenta las ofertas que eligen modelos o insignias.
+  falta("select position('campana_regla_insignias' in pg_get_functiondef('retail.fn_campana_portada()'::regprocedure)) = 0;")
+    ? leer("20261114071000_portada_con_ofertas_por_modelo_o_insignia")
+    : "",
+  // Auditoría final (20261114072000): volver a activar una campaña pasa por el candado de los choques.
+  falta("select count(*) = 0 from pg_trigger where tgname = 'etiquetas_campana_reactivada_sin_choques';")
+    ? leer("20261114072000_campana_reactivada_sin_choques")
+    : "",
 ].filter(Boolean).join("\n");
 
 const HOY = "retail.fn_hoy_lima()";
@@ -224,6 +232,54 @@ select retail.tienda_catalogo_version() <> :'h0';\n`),
   "t",
 );
 
+console.log("\n— Volver a activar una campaña —");
+// La campaña «ZZ» tiene «−20 % en la insignia» (a1) y se apaga; otra campaña activa su propio «−10 % en la insignia» sobre a1, que no choca
+// porque la primera está apagada. Volver a encender la primera dejaría a a1 con dos ofertas.
+const DOS_CAMPANAS = `${OFERTA()}set constraints all immediate;
+set constraints all deferred;
+update retail.etiquetas set activo = false where id = :'camp';
+insert into retail.etiquetas (nombre, estilo) values ('ZZ Otra campaña (prueba)', 'campana') returning id as camp3 \\gset
+select retail.actualizar_campana_etiqueta(:'camp3', null, ${HOY} - 1, ${HOY} + 10, '{}'::uuid[]);
+select retail.guardar_oferta_completa(null, :'camp3', 'ZZ otra', '{"tipo":"pct","porcentaje":10}'::jsonb || jsonb_build_object('insignias', jsonb_build_array(:'ins')),
+  ${HOY}, ${HOY} + 3, null, '{}'::uuid[], '{}'::uuid[], false, '{}'::uuid[], '{}'::uuid[], '{}'::uuid[], true) as r3 \\gset
+set constraints all immediate;
+set constraints all deferred;
+`;
+esperarError(
+  "volver a activar una campaña cuya oferta choca con otra activa se frena: la prenda tendría dos ofertas",
+  caso(`${DOS_CAMPANAS}update retail.etiquetas set activo = true where id = :'camp';
+set constraints all immediate;\n`),
+  "choca con",
+);
+esperarValor(
+  "sin choque, se vuelve a activar como siempre",
+  caso(`${DOS_CAMPANAS}update retail.campana_reglas set estado = 'desactivada' where id = :'r3';
+update retail.etiquetas set activo = true where id = :'camp';
+set constraints all immediate;
+select activo from retail.etiquetas where id = :'camp';\n`),
+  "t",
+);
+
+console.log("\n— La portada —");
+// Una campaña sin prendas propias (sin categorías ni marcadas) con «−20 % en la insignia» y las demás campañas apagadas en la transacción.
+const SOLO_INSIGNIA = `insert into retail.etiquetas (nombre, estilo) values ('ZZ Solo insignia (prueba)', 'campana') returning id as camp2 \\gset
+select retail.actualizar_campana_etiqueta(:'camp2', null, ${HOY} - 1, ${HOY} + 10, '{}'::uuid[]);
+update retail.etiquetas set activo = false where estilo = 'campana' and id <> :'camp2';
+select retail.guardar_oferta_completa(null, :'camp2', 'ZZ portada', '{"tipo":"pct","porcentaje":20}'::jsonb || jsonb_build_object('insignias', jsonb_build_array(:'ins')),
+  ${HOY}, ${HOY} + 2, null, '{}'::uuid[], '{}'::uuid[], false, '{}'::uuid[], '{}'::uuid[], '{}'::uuid[], true) as r2 \\gset
+`;
+esperarValor(
+  "una campaña sin prendas propias con «−20 % en una insignia» sale en la portada de la tienda web",
+  caso(`${SOLO_INSIGNIA}select concat_ws('|', (select id from retail.fn_campana_portada()) = :'camp2', (select pct::integer from retail.fn_campana_portada()));\n`),
+  "t|20",
+);
+esperarValor(
+  "sin la oferta, la misma campaña no tiene prendas y no sale",
+  caso(`${SOLO_INSIGNIA}update retail.campana_reglas set estado = 'desactivada' where id = :'r2';
+select count(*) from retail.fn_campana_portada() where id = :'camp2';\n`),
+  "0",
+);
+
 console.log("\n— Pegar —");
 esperarValor(
   "las dos migraciones se pegan dos veces, y cada función de la regla y de los choques queda con una sola firma",
@@ -234,6 +290,11 @@ select string_agg(proname || ':' || n, ',' order by proname) from (
                      'fn_oferta_alcanza_variante', 'fn_oferta_alcanza_variante_con_insignias', 'fn_variantes_de_oferta', 'fn_variantes_de_oferta_con_insignias')
   group by p.proname) x;\nrollback;`),
   "fn_choques_de_oferta:1,fn_choques_de_oferta_con_forma:1,fn_choques_de_oferta_con_forma_sin_llave:1,fn_choques_de_oferta_sin_llave:1,fn_oferta_alcanza_variante:1,fn_oferta_alcanza_variante_con_insignias:1,fn_variantes_de_oferta:1,fn_variantes_de_oferta_con_insignias:1",
+);
+
+esperar(
+  "las de la auditoría (la portada y volver a activar una campaña) se pegan dos veces",
+  correr(`begin;\n${ANTES}\n${["20261114071000_portada_con_ofertas_por_modelo_o_insignia", "20261114072000_campana_reactivada_sin_choques"].flatMap((m) => [leer(m), leer(m)]).join("\n")}\nrollback;`).ok,
 );
 
 console.log(`\n${total - fallos} de ${total} en verde.`);
