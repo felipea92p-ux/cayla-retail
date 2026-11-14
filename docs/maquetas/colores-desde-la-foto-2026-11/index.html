@@ -1,0 +1,855 @@
+<!doctype html>
+<html lang="es" data-tema="claro">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Colores desde la foto</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=EB+Garamond:wght@500;600&display=swap" rel="stylesheet">
+<style>
+/* ====================================================================
+   MAQUETA · «Los colores salen de la foto» (Felipe 2026-11-13)
+   Nuevo producto (paso 3) y Recibir ▸ Nueva prenda (paso 2): ya no se eligen colores en la carta. Se sube una foto por color
+   («+ Otra foto», y otra, y otra) y el color de cada una se lee de sus píxeles, en el navegador, sin IA y sin costo:
+     · un tono → ese color de la carta; 2 a 4 tonos → UNA mezcla (ADR-0643: base = el que más se ve, hasta 3 acompañantes);
+     · parece dibujo (rayas, flores) → pregunta el estampado (ADR-0634); más de 4 → pregunta si es «Multicolor»;
+     · otra foto del mismo color (la espalda) se junta en su tarjeta: no crea otro color.
+   La lectura es REAL: sube tus fotos y mira qué sale. La carta es la de la base local (86 sólidos, 2026-11-13). Las mezclas que
+   «ya existen» y los patrones son inventados (el repo es público). La IA de «Catálogo con IA» se simula con una espera.
+   Solo tokens (globals.css + estilos/tema.css). Movimiento: solo la señal de espera (el hilo), que se apaga con reduce.
+   ==================================================================== */
+:root{--rojo:#b8412d;--rojo-profundo:#8f2f20;--crema:#f5f0e8;--tinta:#1a1a18;--sand:#e8e0d0;--papel:#fbf8f2;--hueso:#eae1d2;--taupe:#805c4c;
+--verde:#48603f;--ambar:#74501a;--pizarra:#4c5d6e;--borde:#96786a;--sombra:#1a1a18;--vidrio:#ffffff;--lienzo:#ddd5c6}
+:root[data-tema="oscuro"]{--rojo:#e8806a;--rojo-profundo:#f0a08e;--crema:#1c1a17;--tinta:#f5f0e8;--sand:#403b34;--papel:#26241f;--hueso:#33302a;
+--taupe:#c4a898;--verde:#9ccb8d;--ambar:#e4b968;--pizarra:#a9bccf;--borde:#8d7a6e;--sombra:#000000;--vidrio:#2b2823;--lienzo:#141311}
+:root{--t80:color-mix(in srgb,var(--tinta) 80%,transparent);--t66:color-mix(in srgb,var(--tinta) 66%,transparent);
+--t12:color-mix(in srgb,var(--tinta) 12%,transparent);--t06:color-mix(in srgb,var(--tinta) 6%,transparent)}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'DM Sans',system-ui,sans-serif;color:var(--tinta);font-size:14px;line-height:1.5;-webkit-font-smoothing:antialiased;background:var(--lienzo);padding:28px 16px 72px}
+.serif{font-family:'EB Garamond',Georgia,serif;font-weight:500}
+svg.ic{width:16px;height:16px;flex:none;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
+.oculto{display:none!important}
+
+/* ---------- la lámina ---------- */
+.lamina{max-width:1320px;margin:0 auto}
+.cab h1{font-size:36px;line-height:1.1}
+.cab p{max-width:820px;margin-top:8px;font-size:15px;color:var(--t80)}
+.barra{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:20px 0 22px}
+.seg{display:inline-flex;padding:3px;border-radius:999px;background:color-mix(in srgb,var(--vidrio) 55%,transparent);border:1px solid var(--t12)}
+.seg button{padding:7px 14px;border-radius:999px;font-size:11px;letter-spacing:.1em;text-transform:uppercase;font-weight:600;color:var(--t66)}
+.seg button[aria-pressed="true"]{background:var(--tinta);color:var(--crema)}
+.pil{display:inline-flex;align-items:center;gap:6px;padding:7px 12px;border-radius:999px;border:1px solid var(--borde);font-size:13px;background:color-mix(in srgb,var(--vidrio) 50%,transparent)}
+.pil[aria-pressed="true"]{background:var(--tinta);color:var(--crema);border-color:var(--tinta)}
+.grilla{display:grid;grid-template-columns:minmax(0,1fr) 330px;gap:28px;align-items:start}
+@media (max-width:1080px){.grilla{grid-template-columns:1fr}}
+
+/* ---------- la escena (la pantalla, con su vidrio) ---------- */
+.escena{position:relative;border-radius:36px;padding:22px;
+  background:radial-gradient(55% 45% at 15% 10%,color-mix(in srgb,var(--rojo) 12%,transparent),transparent),
+             radial-gradient(50% 55% at 90% 80%,color-mix(in srgb,var(--verde) 14%,transparent),transparent),var(--crema)}
+.placa{border-radius:28px;padding:26px 26px 22px;background:color-mix(in srgb,var(--vidrio) 70%,transparent);
+  border:1px solid color-mix(in srgb,var(--vidrio) 80%,transparent);box-shadow:0 24px 50px -30px color-mix(in srgb,var(--sombra) 40%,transparent),inset 0 1px 0 color-mix(in srgb,var(--vidrio) 90%,transparent)}
+.sede{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--taupe);display:flex;gap:8px;align-items:center}
+.sede::before{content:"";width:22px;height:1px;background:var(--taupe)}
+.titulo-pag{font-family:'EB Garamond',serif;font-size:40px;line-height:1.05;margin:6px 0 18px;font-weight:500}
+.paso-cab{display:flex;align-items:baseline;gap:12px;margin-bottom:18px;flex-wrap:wrap}
+.paso-cab .n{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--taupe);font-weight:600}
+.paso-cab h2{font-family:'EB Garamond',serif;font-size:27px;font-weight:500;line-height:1.1}
+.puntos{display:flex;gap:6px;margin-left:auto}
+.puntos i{width:8px;height:8px;border-radius:999px;background:var(--sand)}.puntos i.ya{background:var(--tinta)}.puntos i.aqui{background:var(--tinta);width:22px}
+
+/* fila guiada (FilaAlta / CampoGuiado) */
+.fila{position:relative;padding:14px 0 16px 16px;border-top:1px solid var(--sand)}
+.fila:first-of-type{border-top:0}
+.fila.sigue::before{content:"";position:absolute;left:0;top:14px;bottom:16px;width:2px;border-radius:2px;background:var(--tinta)}
+.fila-cab{display:flex;flex-wrap:wrap;align-items:center;gap:6px 8px;margin-bottom:10px}
+.etq{white-space:nowrap;font-size:11px;letter-spacing:.1em;text-transform:uppercase;font-weight:600;color:var(--t80)}
+.marca{display:inline-grid;place-items:center;width:16px;height:16px;border-radius:999px;background:var(--verde);color:var(--crema)}
+.marca svg{width:11px;height:11px;stroke-width:3}
+.ahora{font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;font-weight:700;color:var(--tinta)}
+.ayuda{font-size:13px;color:var(--t66);margin-left:auto}
+.nuevo-tag{font-size:10px;letter-spacing:.12em;text-transform:uppercase;font-weight:700;color:var(--rojo);border:1px solid color-mix(in srgb,var(--rojo) 45%,transparent);border-radius:999px;padding:0 7px}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip-t{min-width:44px;padding:7px 12px;border-radius:12px;border:1px solid var(--borde);font-size:14px;font-weight:500;background:color-mix(in srgb,var(--vidrio) 40%,transparent)}
+.chip-t[aria-pressed="true"]{background:var(--tinta);color:var(--crema);border-color:var(--tinta)}
+
+/* ---------- LA PIEZA NUEVA: fotos y colores ---------- */
+.fotos{display:grid;grid-template-columns:repeat(auto-fill,minmax(212px,1fr));gap:14px}
+.vacio-foto{grid-column:1/-1;display:flex;flex-direction:column;align-items:center;text-align:center;gap:6px;padding:34px 20px;border-radius:22px;
+  border:1.5px dashed var(--borde);background:color-mix(in srgb,var(--hueso) 55%,transparent)}
+.vacio-foto.encima,.tile-mas.encima{border-color:var(--tinta);background:color-mix(in srgb,var(--hueso) 90%,transparent)}
+.vacio-foto .ico{width:52px;height:52px;border-radius:999px;display:grid;place-items:center;background:var(--papel);border:1px solid var(--sand);margin-bottom:6px}
+.vacio-foto .ico svg{width:22px;height:22px}
+.vacio-foto h3{font-family:'EB Garamond',serif;font-size:21px;font-weight:500}
+.vacio-foto p{font-size:14px;color:var(--t66);max-width:380px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:40px;padding:0 16px;border-radius:999px;font-size:13.5px;font-weight:500;white-space:nowrap}
+.btn-primario{background:var(--tinta);color:var(--crema)}
+@media (hover:hover){.btn-primario:hover{background:var(--rojo-profundo)}}
+.btn-secundario{border:1px solid var(--borde);background:color-mix(in srgb,var(--vidrio) 55%,transparent)}
+.btn-chico{height:32px;padding:0 12px;font-size:13px}
+.enlace{font-size:13.5px;text-decoration:underline;text-decoration-color:var(--t12);text-underline-offset:3px;color:var(--t80)}
+@media (hover:hover){.enlace:hover{color:var(--rojo-profundo);text-decoration-color:var(--rojo)}}
+.acciones-vacio{display:flex;gap:12px;align-items:center;margin-top:10px;flex-wrap:wrap;justify-content:center}
+
+.tarjeta{position:relative;display:flex;flex-direction:column;border-radius:22px;overflow:hidden;border:1px solid var(--sand);
+  background:color-mix(in srgb,var(--papel) 82%,transparent)}
+.foto-pri{position:relative;aspect-ratio:4/5;display:grid;place-items:center;background:var(--fondo,var(--hueso))}
+.foto-pri img{width:100%;height:100%;object-fit:contain}
+.mini{display:flex;gap:6px;padding:8px 10px 0;flex-wrap:wrap}
+.mini button{position:relative;width:40px;height:48px;border-radius:9px;overflow:hidden;border:1px solid var(--sand);background:var(--fondo,var(--hueso))}
+.mini button[aria-current="true"]{outline:2px solid var(--tinta);outline-offset:1px}
+.mini img{width:100%;height:100%;object-fit:contain}
+.quitar{position:absolute;top:10px;right:10px;width:28px;height:28px;border-radius:999px;display:grid;place-items:center;
+  background:color-mix(in srgb,var(--papel) 85%,transparent);border:1px solid var(--t12)}
+.cuantas{position:absolute;left:10px;top:10px;font-size:11px;font-weight:600;padding:2px 8px;border-radius:999px;background:color-mix(in srgb,var(--papel) 88%,transparent);border:1px solid var(--t12)}
+.leyendo{position:absolute;inset:auto 0 0 0;padding:10px 12px;font-size:13px;background:color-mix(in srgb,var(--papel) 88%,transparent);display:flex;gap:8px;align-items:center}
+.hilo{position:absolute;left:0;right:0;top:0;height:2px;overflow:hidden;background:var(--t06)}
+.hilo::after{content:"";position:absolute;top:0;bottom:0;width:35%;background:var(--tinta);animation:barrer 1.1s cubic-bezier(.4,0,.2,1) infinite}
+@keyframes barrer{from{left:-35%}to{left:100%}}
+@media (prefers-reduced-motion:reduce){.hilo::after{animation:none;left:0;width:100%;opacity:.4}}
+.cuerpo{padding:12px 14px 14px;display:flex;flex-direction:column;gap:10px}
+.color-res{display:flex;align-items:center;gap:10px}
+.punto{width:26px;height:26px;border-radius:999px;flex:none;border:1px solid color-mix(in srgb,var(--tinta) 18%,transparent)}
+.color-res .nom{font-size:15px;font-weight:600;line-height:1.25}
+.chip{display:inline-flex;align-items:center;gap:6px;font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;font-weight:600;padding:2px 8px;border-radius:999px;border:1px solid var(--sand);color:var(--t80)}
+.chip::before{content:"";width:6px;height:6px;border-radius:999px;background:currentColor}
+.chip.verde{color:var(--verde);border-color:color-mix(in srgb,var(--verde) 35%,transparent)}
+.chip.pizarra{color:var(--pizarra);border-color:color-mix(in srgb,var(--pizarra) 35%,transparent)}
+.chip.ambar{color:var(--ambar);border-color:color-mix(in srgb,var(--ambar) 40%,transparent)}
+.tubo{display:flex;height:8px;border-radius:999px;overflow:hidden;background:var(--sand);gap:2px}
+.tubo i{display:block;height:100%}
+.leyenda{display:flex;flex-wrap:wrap;gap:4px 12px;font-size:13px;color:var(--t80)}
+.leyenda span{display:inline-flex;align-items:center;gap:5px}
+.leyenda b{width:9px;height:9px;border-radius:3px;display:inline-block;border:1px solid var(--t12)}
+.leyenda .tenue{color:var(--t66)}
+.pie-tarjeta{display:flex;gap:14px;align-items:center}
+.porque{font-size:13.5px;color:var(--t80);background:color-mix(in srgb,var(--hueso) 60%,transparent);border-radius:14px;padding:10px 12px}
+.porque li{margin-left:16px}
+.pregunta{border-left:3px solid var(--ambar);padding:8px 10px;border-radius:4px 12px 12px 4px;background:color-mix(in srgb,var(--ambar) 9%,transparent)}
+.pregunta p{font-size:14px;font-weight:600;margin-bottom:6px}
+.pregunta .chips{gap:6px}
+.pregunta .chip-t{min-width:0;padding:5px 10px;font-size:13px;border-radius:999px}
+
+.tile-mas{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;min-height:240px;border-radius:22px;
+  border:1.5px dashed var(--borde);background:color-mix(in srgb,var(--hueso) 45%,transparent);font-size:14px;font-weight:500}
+.tile-mas .ico{width:44px;height:44px;border-radius:999px;display:grid;place-items:center;background:var(--papel);border:1px solid var(--sand)}
+.tile-mas small{font-size:13px;font-weight:400;color:var(--t66)}
+@media (hover:hover){.tile-mas:hover{border-color:var(--tinta)}}
+
+.carta{display:grid;grid-template-columns:repeat(auto-fill,minmax(26px,1fr));gap:6px}
+.carta button{width:26px;height:26px;border-radius:999px;border:1px solid color-mix(in srgb,var(--tinta) 18%,transparent)}
+.carta button[aria-pressed="true"]{outline:2px solid var(--tinta);outline-offset:2px}
+.elegidos{display:flex;flex-wrap:wrap;gap:6px;min-height:28px}
+.elegidos span{display:inline-flex;align-items:center;gap:6px;padding:3px 6px 3px 4px;border-radius:999px;border:1px solid var(--sand);font-size:13px;background:var(--papel)}
+.elegidos span i{width:16px;height:16px;border-radius:999px;border:1px solid var(--t12)}
+.senalado{font-size:13px;color:var(--t66);min-height:20px}
+
+.falta-color{display:flex;align-items:center;gap:10px;font-size:13.5px;line-height:1.4}
+.punto.grande{width:34px;height:34px}.punto.chico{width:14px;height:14px}
+.pregunta .botones{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+.velo{position:fixed;inset:0;background:color-mix(in srgb,var(--sombra) 28%,transparent);backdrop-filter:blur(6px);z-index:20}
+.hoja-mod{position:fixed;z-index:21;left:50%;top:6vh;transform:translateX(-50%);width:min(576px,calc(100vw - 32px));max-height:88vh;overflow:auto;
+  border-radius:32px;padding:28px 28px 22px;background:color-mix(in srgb,var(--papel) 92%,transparent);border:1px solid color-mix(in srgb,var(--vidrio) 70%,transparent);
+  box-shadow:0 30px 60px -28px color-mix(in srgb,var(--sombra) 50%,transparent)}
+.hoja-mod h2{font-size:27px;line-height:1.15}
+.hoja-mod .baj{font-size:14px;color:var(--taupe);margin:4px 0 18px}
+.h-tono{display:grid;grid-template-columns:240px 1fr;gap:18px;align-items:start;margin-bottom:16px}
+.h-paleta{display:flex;flex-direction:column;gap:12px}
+.pal-cuadro{position:relative;height:170px;border-radius:14px;cursor:crosshair;touch-action:none;border:1px solid var(--t12);
+  background:linear-gradient(to top,#000,transparent),linear-gradient(to right,#fff,var(--matiz))} /* tema-fijo: la paleta es el color mismo, no cambia con el tema */
+.pal-matiz{position:relative;height:14px;border-radius:999px;cursor:pointer;touch-action:none;border:1px solid var(--t12);
+  background:linear-gradient(to right,#f00,#ff0,#0f0,#0ff,#00f,#f0f,#f00)} /* tema-fijo: el arcoíris de la paleta */
+.pal-punto,.pal-perilla{position:absolute;width:20px;height:20px;border-radius:999px;transform:translate(-50%,-50%);
+  border:2px solid #fff;box-shadow:0 0 0 1px rgba(0,0,0,.45),0 2px 6px rgba(0,0,0,.3)} /* tema-fijo: el aro va sobre el color, claro en los dos temas */
+.pal-perilla{top:50%;width:22px;height:22px}
+.pal-punto:focus-visible,.pal-perilla:focus-visible{outline:2px solid var(--rojo);outline-offset:2px}
+.caja-hex{height:34px;width:112px;font-variant-numeric:tabular-nums;letter-spacing:.04em;font-weight:600}
+.h-foto-ref{display:flex;gap:10px;align-items:center;font-size:13px;color:var(--t66)}
+.h-foto-ref img{width:40px;height:50px;object-fit:contain;border-radius:8px;background:var(--hueso);border:1px solid var(--sand);flex:none}
+.h-lado{display:flex;flex-direction:column;gap:8px;align-items:flex-start}
+.h-muestra{display:flex;gap:12px;align-items:center;padding:10px;border-radius:16px;background:color-mix(in srgb,var(--hueso) 60%,transparent);width:100%}
+.h-muestra span{width:52px;height:52px;border-radius:14px;flex:none;border:1px solid var(--t12)}
+.h-lado .enlace{text-align:left}
+@media (max-width:640px){.h-tono{grid-template-columns:1fr}}
+.h-muestra small{display:block;font-size:13.5px;color:var(--t66);margin-top:4px}
+.h-campo{display:flex;flex-direction:column;gap:6px;margin-bottom:16px}
+.caja{height:40px;border-radius:12px;border:1px solid var(--borde);background:var(--hueso);padding:0 12px;font:inherit;color:var(--tinta)}
+.caja:focus{outline:none;background:var(--papel);border-color:var(--tinta)}
+.pie-campo{font-size:13px;color:var(--t66)}
+.existe{display:block;font-size:13.5px;padding:6px 10px;border-radius:10px;border-left:3px solid var(--ambar);background:color-mix(in srgb,var(--ambar) 9%,transparent)}
+.existe.frena{border-left-color:var(--rojo);background:color-mix(in srgb,var(--rojo) 8%,transparent)}
+.error{font-size:13.5px;color:var(--rojo);padding:8px 10px;border-left:3px solid var(--rojo);border-radius:4px;margin-bottom:10px}
+.pie-acciones{display:flex;justify-content:flex-end;gap:10px;margin-top:6px}
+@media (max-width:640px){.pie-acciones .btn{flex:1}.hoja-mod{top:auto;bottom:12px;padding:22px 18px}}
+
+/* la prenda: una fila por color (MatrizVariantes) */
+.matriz{margin-top:6px;border:1px solid var(--sand);border-radius:18px;overflow:hidden}
+.matriz table{width:100%;border-collapse:collapse;font-size:14px}
+.matriz th{font-size:11px;letter-spacing:.1em;text-transform:uppercase;font-weight:600;color:var(--t66);text-align:center;padding:9px 8px;background:color-mix(in srgb,var(--hueso) 55%,transparent)}
+.matriz th:first-child{text-align:left;padding-left:14px}
+.matriz td{border-top:1px solid var(--sand);padding:8px;text-align:center}
+.matriz td:first-child{text-align:left;padding-left:12px}
+.matriz .fc{display:flex;align-items:center;gap:10px}
+.matriz .fc img,.matriz .fc .sinf{width:34px;height:42px;border-radius:8px;object-fit:contain;background:var(--fondo,var(--hueso));border:1px solid var(--sand)}
+.celda{display:inline-grid;place-items:center;width:28px;height:28px;border-radius:8px;background:var(--tinta);color:var(--crema)}
+.celda svg{width:13px;height:13px;stroke-width:3}
+.resumen{font-size:13.5px;color:var(--t66);margin-top:8px}
+.pie{display:flex;align-items:center;gap:12px;margin-top:18px;padding-top:14px;border-top:1px solid var(--sand)}
+.pie .falta{font-size:13.5px;color:var(--t80);margin-right:auto}
+.pie .falta b{font-weight:600}
+.volver{width:40px;height:40px;border-radius:999px;display:grid;place-items:center;border:1px solid var(--borde)}
+.nota{font-size:13.5px;color:var(--t80);background:color-mix(in srgb,var(--hueso) 70%,transparent);border-radius:14px;padding:10px 14px;margin-top:14px}
+
+/* ---------- la columna de la lámina ---------- */
+.lado{display:flex;flex-direction:column;gap:16px}
+.caja-l{border-radius:22px;padding:18px;background:color-mix(in srgb,var(--papel) 75%,transparent);border:1px solid var(--sand)}
+.caja-l h3{font-family:'EB Garamond',serif;font-size:21px;font-weight:500;margin-bottom:6px}
+.caja-l p,.caja-l li{font-size:14px;color:var(--t80)}
+.caja-l ol,.caja-l ul{margin-left:18px;display:flex;flex-direction:column;gap:6px}
+.ejemplos{display:flex;flex-direction:column;gap:8px;margin-top:10px}
+.ejemplos button{display:flex;align-items:center;gap:10px;text-align:left;padding:8px 10px;border-radius:14px;border:1px solid var(--sand);background:var(--papel);font-size:14px}
+@media (hover:hover){.ejemplos button:hover{border-color:var(--borde)}}
+.ejemplos canvas{width:30px;height:38px;border-radius:6px;background:var(--hueso);flex:none}
+.ejemplos small{display:block;font-size:12.5px;color:var(--t66)}
+.ajuste{display:grid;grid-template-columns:1fr auto;gap:2px 10px;align-items:center;margin-top:10px;font-size:13.5px}
+.ajuste input{grid-column:1/-1;accent-color:var(--tinta)}
+.ajuste output{font-variant-numeric:tabular-nums;font-weight:600}
+@media (max-width:640px){.placa{padding:20px 16px}.escena{padding:10px;border-radius:28px}.titulo-pag{font-size:32px}.fotos{grid-template-columns:repeat(auto-fill,minmax(150px,1fr))}}
+</style>
+</head>
+<body>
+<div class="lamina">
+  <div class="cab">
+    <h1 class="serif">Los colores salen de la foto</h1>
+    <p>Ya no se elige el color en la carta: subes la foto de cada color y la pantalla lo lee sola, en menos de un segundo y sin costo. Si la prenda tiene un solo tono, queda ese color. Si tiene varios, queda <b>una mezcla</b> («Crudo con cobalto»), que sigue siendo un solo color. La misma pieza va en Nuevo producto y en Recibir. <b>La lectura funciona de verdad:</b> sube tus fotos.</p>
+  </div>
+
+  <div class="barra">
+    <div class="seg" role="group" aria-label="Pantalla">
+      <button type="button" data-vista="alta" aria-pressed="true">Catálogo ▸ Nuevo producto</button>
+      <button type="button" data-vista="recibir" aria-pressed="false">Recibir ▸ Nueva prenda</button>
+    </div>
+    <button type="button" class="pil" id="b-ia" aria-pressed="false" title="Simula la espera de «Catálogo con IA» (ADR-0659)">✦ Arreglar la foto con IA</button>
+    <button type="button" class="pil" id="b-tema" aria-pressed="false">Modo oscuro</button>
+  </div>
+
+  <div class="grilla">
+    <div class="escena">
+      <div class="placa" id="placa"></div>
+    </div>
+
+    <aside class="lado">
+      <div class="caja-l">
+        <h3>Pruébalo con un ejemplo</h3>
+        <p>Prendas dibujadas con luz y sombra, como una foto real. O sube las tuyas en la pantalla.</p>
+        <div class="ejemplos" id="ejemplos"></div>
+      </div>
+      <div class="caja-l">
+        <h3>Cómo decide</h3>
+        <ol>
+          <li>Mira solo la prenda: lo transparente del PNG o, si la foto tiene fondo, lo que se parece al borde queda fuera.</li>
+          <li>Junta las tonalidades del mismo color: la luz y los pliegues no vuelven una blusa vino «Vino con marsala».</li>
+          <li>Lo que ocupa poco (botones, etiqueta) no cuenta.</li>
+          <li>Cada tono va al color más parecido de tu carta (ΔE2000, la misma medida de «parecidos»). Si queda lejos, no lo pone: pregunta si usas el más parecido o creas el color.</li>
+          <li>Un tono → ese color. 2 a 4 → la mezcla. Si parece un dibujo o tiene más de 4, pregunta.</li>
+          <li>Otra foto con el mismo color se junta en su tarjeta: es la espalda, no otro color.</li>
+        </ol>
+      </div>
+      <div class="caja-l">
+        <h3>Afinar la lectura</h3>
+        <p>Solo para calibrar con fotos reales. En el ERP son fijos.</p>
+        <label class="ajuste">Un detalle es lo que ocupa menos de <output id="o-det">8 %</output><input type="range" id="r-det" min="2" max="20" step="1" value="8"></label>
+        <label class="ajuste">Dos tonos son el mismo color bajo <output id="o-tono">10</output><input type="range" id="r-tono" min="4" max="22" step="1" value="10"></label>
+        <label class="ajuste">Está en la carta si queda a menos de <output id="o-carta">8</output><input type="range" id="r-carta" min="3" max="16" step="1" value="8"></label>
+        <label class="ajuste">Parece dibujo si cambia de color más de <output id="o-dib">4 %</output><input type="range" id="r-dib" min="1" max="12" step="0.5" value="4"></label>
+      </div>
+    </aside>
+  </div>
+</div>
+
+<input type="file" id="archivo" accept="image/*" multiple hidden>
+<div id="hoja-raiz"></div>
+
+<script>
+"use strict";
+// La carta de la base local (retail.colores, activos y de un solo tono), 2026-11-13.
+const CARTA = [{"c":"VAI","n":"Vainilla","h":"#F2E6B1","t":"solido","f":"amarillo"},{"c":"AML","n":"Amarillo limón","h":"#EADA4F","t":"solido","f":"amarillo"},{"c":"AMA","n":"Amarillo","h":"#F0C05A","t":"solido","f":"amarillo"},{"c":"MOS","n":"Mostaza","h":"#C89721","t":"solido","f":"amarillo"},{"c":"GIR","n":"Girasol","h":"#FFB000","t":"solido","f":"amarillo"},{"c":"ACH","n":"Amarillo chartreuse","h":"#B8AF23","t":"solido","f":"amarillo"},{"c":"CEL","n":"Celeste","h":"#A9CADA","t":"solido","f":"azul"},{"c":"TUR","n":"Turquesa","h":"#33BECC","t":"solido","f":"azul"},{"c":"AZP","n":"Azul petróleo","h":"#2A5C6A","t":"solido","f":"azul"},{"c":"AZC","n":"Azul claro","h":"#80A0D4","t":"solido","f":"azul"},{"c":"AZD","n":"Azul denim","h":"#5979A2","t":"solido","f":"azul"},{"c":"AZE","n":"Azul eléctrico","h":"#2E5BF2","t":"solido","f":"azul"},{"c":"COB","n":"Cobalto","h":"#00539C","t":"solido","f":"azul"},{"c":"IND","n":"Índigo","h":"#49516D","t":"solido","f":"azul"},{"c":"AZM","n":"Azul marino","h":"#2A304E","t":"solido","f":"azul"},{"c":"AZF","n":"Azul zafiro","h":"#203C7F","t":"solido","f":"azul"},{"c":"AZU","n":"Azur","h":"#4D91C6","t":"solido","f":"azul"},{"c":"CHA","n":"Champán","h":"#E2D1A6","t":"solido","f":"metalico"},{"c":"PLA","n":"Plateado","h":"#B8BCC0","t":"solido","f":"metalico"},{"c":"ORR","n":"Oro rosa","h":"#D6A08C","t":"solido","f":"metalico"},{"c":"DOR","n":"Dorado","h":"#C8A951","t":"solido","f":"metalico"},{"c":"ORV","n":"Oro viejo","h":"#A68A45","t":"solido","f":"metalico"},{"c":"PLV","n":"Plata vieja","h":"#8C8D88","t":"solido","f":"metalico"},{"c":"COE","n":"Cobre","h":"#B46A3C","t":"solido","f":"metalico"},{"c":"BRO","n":"Bronce","h":"#8C6B3B","t":"solido","f":"metalico"},{"c":"LAV","n":"Lavanda","h":"#D2C4D6","t":"solido","f":"morado"},{"c":"LIL","n":"Lila","h":"#BCA4CB","t":"solido","f":"morado"},{"c":"VIO","n":"Violeta","h":"#7A3FB6","t":"solido","f":"morado"},{"c":"MOR","n":"Morado","h":"#563474","t":"solido","f":"morado"},{"c":"MAL","n":"Malva","h":"#B88AAC","t":"solido","f":"morado"},{"c":"ORQ","n":"Orquídea","h":"#AD5E99","t":"solido","f":"morado"},{"c":"MOA","n":"Mora","h":"#854C65","t":"solido","f":"morado"},{"c":"CIR","n":"Ciruela","h":"#692D5D","t":"solido","f":"morado"},{"c":"BER","n":"Berenjena","h":"#47253C","t":"solido","f":"morado"},{"c":"GLI","n":"Glicina","h":"#8B79B1","t":"solido","f":"morado"},{"c":"DUR","n":"Durazno","h":"#FFBE98","t":"solido","f":"naranja"},{"c":"SAL","n":"Salmón","h":"#FAA181","t":"solido","f":"naranja"},{"c":"MAN","n":"Mandarina","h":"#EE9626","t":"solido","f":"naranja"},{"c":"NAR","n":"Naranja","h":"#E8703A","t":"solido","f":"naranja"},{"c":"ALB","n":"Albaricoque","h":"#F7B26A","t":"solido","f":"naranja"},{"c":"AMB","n":"Ámbar","h":"#BB7A2C","t":"solido","f":"naranja"},{"c":"NQU","n":"Naranja quemado","h":"#C46316","t":"solido","f":"naranja"},{"c":"BLA","n":"Blanco","h":"#F4F9FF","t":"solido","f":"neutro"},{"c":"CRU","n":"Crudo","h":"#F3ECE0","t":"solido","f":"neutro"},{"c":"NUD","n":"Nude","h":"#F2D3BC","t":"solido","f":"neutro"},{"c":"GRP","n":"Gris perla","h":"#C5C5C5","t":"solido","f":"neutro"},{"c":"GPI","n":"Gris piedra","h":"#C3BDAB","t":"solido","f":"neutro"},{"c":"GRM","n":"Gris melange","h":"#A2A2A1","t":"textura","f":"neutro"},{"c":"GRI","n":"Gris","h":"#848587","t":"solido","f":"neutro"},{"c":"GRA","n":"Gris antracita","h":"#48464A","t":"solido","f":"neutro"},{"c":"NEG","n":"Negro","h":"#2D2C2F","t":"solido","f":"neutro"},{"c":"COR","n":"Coral","h":"#EA6759","t":"solido","f":"rojo"},{"c":"ROJ","n":"Rojo","h":"#BD332D","t":"solido","f":"rojo"},{"c":"FRA","n":"Frambuesa","h":"#A52350","t":"solido","f":"rojo"},{"c":"CER","n":"Cereza","h":"#9B1B30","t":"solido","f":"rojo"},{"c":"VIN","n":"Vino","h":"#6C2831","t":"solido","f":"rojo"},{"c":"RTO","n":"Rojo tomate","h":"#EB3C27","t":"solido","f":"rojo"},{"c":"MSA","n":"Marsala","h":"#964F4C","t":"solido","f":"rojo"},{"c":"ROS","n":"Rosado","h":"#F0A1BF","t":"solido","f":"rosado"},{"c":"PAL","n":"Palo rosa","h":"#D9A6A1","t":"solido","f":"rosado"},{"c":"FUC","n":"Fucsia","h":"#CF2D71","t":"solido","f":"rosado"},{"c":"RCH","n":"Rosa chicle","h":"#E96A97","t":"solido","f":"rosado"},{"c":"RSA","n":"Rosa sandía","h":"#CF6977","t":"solido","f":"rosado"},{"c":"RPA","n":"Rosa pálido","h":"#F7D1D1","t":"solido","f":"rosado"},{"c":"BEI","n":"Beige","h":"#D5BA98","t":"solido","f":"tierra"},{"c":"ARN","n":"Arena","h":"#CCA67F","t":"solido","f":"tierra"},{"c":"CAQ","n":"Caqui","h":"#A39264","t":"solido","f":"tierra"},{"c":"CAM","n":"Camel","h":"#B0885B","t":"solido","f":"tierra"},{"c":"MOK","n":"Moka","h":"#A47864","t":"solido","f":"tierra"},{"c":"TOS","n":"Tostado","h":"#A47045","t":"solido","f":"tierra"},{"c":"TOP","n":"Topo","h":"#82776B","t":"solido","f":"tierra"},{"c":"TER","n":"Terracota","h":"#B3573F","t":"solido","f":"tierra"},{"c":"MAR","n":"Marrón","h":"#694833","t":"solido","f":"tierra"},{"c":"CHO","n":"Chocolate","h":"#4B342F","t":"solido","f":"tierra"},{"c":"PIS","n":"Pistacho","h":"#BED38E","t":"solido","f":"verde"},{"c":"VEL","n":"Verde limón","h":"#9FC131","t":"solido","f":"verde"},{"c":"SAV","n":"Salvia","h":"#A1AD92","t":"solido","f":"verde"},{"c":"VOL","n":"Verde oliva","h":"#6A6F34","t":"solido","f":"verde"},{"c":"VEM","n":"Verde militar","h":"#4B5335","t":"solido","f":"verde"},{"c":"VEA","n":"Verde agua","h":"#A1D7C9","t":"solido","f":"verde"},{"c":"ESM","n":"Esmeralda","h":"#009B74","t":"solido","f":"verde"},{"c":"VER","n":"Verde","h":"#487D49","t":"solido","f":"verde"},{"c":"VEB","n":"Verde botella","h":"#264E36","t":"solido","f":"verde"},{"c":"VJA","n":"Verde jade","h":"#70A38D","t":"solido","f":"verde"},{"c":"MEN","n":"Menta","h":"#D2E8DF","t":"solido","f":"verde"},{"c":"VHO","n":"Verde hoja","h":"#75A14F","t":"solido","f":"verde"}];
+const SOLIDOS = CARTA.filter((c) => c.t === "solido" && c.h);
+const porCodigo = new Map(CARTA.map((c) => [c.c, c]));
+// Inventado para la maqueta: una mezcla que «ya existe» en la carta, para ver los dos estados.
+const MEZCLAS_EXISTENTES = [["CRU", "COB"]];
+const PATRONES = ["Rayas", "Cuadros", "Flores", "Puntos", "Animal print"];
+const U = { detalle: 0.08, tono: 10, dibujo: 0.04, carta: 8 };
+// Un tono que la carta no tiene, para el ejemplo «Un color que no está» (se elige lejos de todos los de la carta).
+const FUERA = "#288282";
+let creando = null; // la hoja «Nuevo color»: { t, i, nombre, familia, codigo, codigoTocado, otro, error }
+
+// ---------- color: sRGB → Lab y ΔE2000 (con kL: 2 pesa menos la luz, como la regla CMC 2:1 de los textiles) ----------
+function rgbALab(r, g, b) {
+  const f = (c) => { c /= 255; return c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4; };
+  const R = f(r), G = f(g), B = f(b);
+  const X = (R * 0.4124564 + G * 0.3575761 + B * 0.1804375) / 0.95047;
+  const Y = R * 0.2126729 + G * 0.7151522 + B * 0.072175;
+  const Z = (R * 0.0193339 + G * 0.119192 + B * 0.9503041) / 1.08883;
+  const t = (v) => (v > 0.008856 ? Math.cbrt(v) : 7.787 * v + 16 / 116);
+  const fx = t(X), fy = t(Y), fz = t(Z);
+  return [116 * fy - 16, 500 * (fx - fy), 200 * (fy - fz)];
+}
+function hexALab(h) { const n = parseInt(h.slice(1), 16); return rgbALab((n >> 16) & 255, (n >> 8) & 255, n & 255); }
+const rad = (d) => (d * Math.PI) / 180;
+function de2000([L1, a1, b1], [L2, a2, b2], kL = 1) {
+  const C1 = Math.hypot(a1, b1), C2 = Math.hypot(a2, b2), Cb = (C1 + C2) / 2;
+  const G = 0.5 * (1 - Math.sqrt(Cb ** 7 / (Cb ** 7 + 25 ** 7)));
+  const a1p = (1 + G) * a1, a2p = (1 + G) * a2;
+  const C1p = Math.hypot(a1p, b1), C2p = Math.hypot(a2p, b2);
+  const ang = (b, a) => { if (a === 0 && b === 0) return 0; const x = (Math.atan2(b, a) * 180) / Math.PI; return x < 0 ? x + 360 : x; };
+  const h1 = ang(b1, a1p), h2 = ang(b2, a2p);
+  const dL = L2 - L1, dC = C2p - C1p;
+  let dh = 0;
+  if (C1p * C2p !== 0) { dh = h2 - h1; if (dh > 180) dh -= 360; else if (dh < -180) dh += 360; }
+  const dH = 2 * Math.sqrt(C1p * C2p) * Math.sin(rad(dh / 2));
+  const Lb = (L1 + L2) / 2, Cbp = (C1p + C2p) / 2;
+  let hb = h1 + h2;
+  if (C1p * C2p !== 0) hb = Math.abs(h1 - h2) > 180 ? (h1 + h2 < 360 ? (h1 + h2 + 360) / 2 : (h1 + h2 - 360) / 2) : (h1 + h2) / 2;
+  const T = 1 - 0.17 * Math.cos(rad(hb - 30)) + 0.24 * Math.cos(rad(2 * hb)) + 0.32 * Math.cos(rad(3 * hb + 6)) - 0.2 * Math.cos(rad(4 * hb - 63));
+  const dT = 30 * Math.exp(-(((hb - 275) / 25) ** 2));
+  const Rc = 2 * Math.sqrt(Cbp ** 7 / (Cbp ** 7 + 25 ** 7));
+  const Sl = 1 + (0.015 * (Lb - 50) ** 2) / Math.sqrt(20 + (Lb - 50) ** 2), Sc = 1 + 0.045 * Cbp, Sh = 1 + 0.015 * Cbp * T;
+  const Rt = -Math.sin(rad(2 * dT)) * Rc;
+  return Math.sqrt((dL / (kL * Sl)) ** 2 + (dC / Sc) ** 2 + (dH / Sh) ** 2 + Rt * (dC / Sc) * (dH / Sh));
+}
+const LAB_CARTA = SOLIDOS.map((c) => ({ c, lab: hexALab(c.h) }));
+function masParecido(lab) {
+  let mejor = null, d = Infinity;
+  for (const x of LAB_CARTA) { const e = de2000(lab, x.lab); if (e < d) { d = e; mejor = x.c; } }
+  return { color: mejor, de: d };
+}
+const d76 = (a, b) => (a[0] - b[0]) ** 2 + (a[1] - b[1]) ** 2 + (a[2] - b[2]) ** 2;
+const hex2 = (n) => Math.round(n).toString(16).padStart(2, "0");
+
+// ---------- la lectura: de una foto a sus colores ----------
+async function leerFoto(blob) {
+  const bmp = await createImageBitmap(blob);
+  const esc = Math.min(1, 220 / Math.max(bmp.width, bmp.height));
+  const W = Math.max(1, Math.round(bmp.width * esc)), H = Math.max(1, Math.round(bmp.height * esc));
+  const cv = new OffscreenCanvas(W, H), cx = cv.getContext("2d", { willReadFrequently: true });
+  cx.drawImage(bmp, 0, 0, W, H);
+  const d = cx.getImageData(0, 0, W, H).data;
+  const N = W * H, lab = new Array(N), mascara = new Uint8Array(N);
+  // 1. Solo la prenda. ¿El borde es transparente? (el PNG de la IA). Si no, el fondo es lo que se parece al borde.
+  const borde = [];
+  for (let x = 0; x < W; x++) borde.push(x, (H - 1) * W + x);
+  for (let y = 0; y < H; y++) borde.push(y * W, y * W + W - 1);
+  const transparente = borde.filter((i) => d[i * 4 + 3] < 240).length > borde.length * 0.2;
+  let fondo = null;
+  if (!transparente) {
+    const labs = borde.map((i) => rgbALab(d[i * 4], d[i * 4 + 1], d[i * 4 + 2])).sort((a, b) => a[0] - b[0]);
+    fondo = labs[Math.floor(labs.length / 2)];
+  }
+  for (let i = 0; i < N; i++) {
+    if (d[i * 4 + 3] < 240) continue;
+    lab[i] = rgbALab(d[i * 4], d[i * 4 + 1], d[i * 4 + 2]);
+    mascara[i] = 1;
+  }
+  if (!transparente) {
+    // El fondo se recorre desde el borde hacia adentro y se frena en el contorno de la prenda: una blusa crema sobre fondo blanco
+    // no se borra entera (antes se descartaba TODO lo parecido al fondo, también el centro de la prenda).
+    const pila = borde.filter((i) => mascara[i] && d76(lab[i], fondo) < 12 * 12);
+    for (const i of pila) mascara[i] = 0;
+    while (pila.length) {
+      const i = pila.pop(), x = i % W, y = (i - x) / W;
+      for (const j of [x > 0 ? i - 1 : -1, x < W - 1 ? i + 1 : -1, y > 0 ? i - W : -1, y < H - 1 ? i + W : -1])
+        if (j >= 0 && mascara[j] && d76(lab[j], fondo) < 12 * 12) { mascara[j] = 0; pila.push(j); }
+    }
+  }
+  const idx = []; for (let i = 0; i < N; i++) if (mascara[i]) idx.push(i);
+  if (idx.length < 150) return { tipo: "sin-prenda", transparente };
+  // 2. k-medias en Lab (k = 8, arranque determinista: el punto más lejano; misma foto → mismo resultado).
+  const paso = Math.max(1, Math.floor(idx.length / 12000)), mues = idx.filter((_, j) => j % paso === 0);
+  const K = Math.min(8, mues.length);
+  const media = [0, 1, 2].map((k) => mues.reduce((s, i) => s + lab[i][k], 0) / mues.length);
+  const cand = mues.filter((_, j) => j % Math.max(1, Math.floor(mues.length / 1500)) === 0);
+  let cs = [lab[cand.reduce((m, i) => (d76(lab[i], media) < d76(lab[m], media) ? i : m), cand[0])].slice()];
+  while (cs.length < K) {
+    let lejos = cand[0], dmax = -1;
+    for (const i of cand) { const dm = Math.min(...cs.map((c) => d76(lab[i], c))); if (dm > dmax) { dmax = dm; lejos = i; } }
+    cs.push(lab[lejos].slice());
+  }
+  const asig = new Int16Array(N).fill(-1);
+  const masCerca = (l) => { let m = 0, dm = Infinity; cs.forEach((c, k) => { const e = d76(l, c); if (e < dm) { dm = e; m = k; } }); return m; };
+  for (let it = 0; it < 10; it++) {
+    const s = cs.map(() => [0, 0, 0, 0]);
+    for (const i of mues) { const k = masCerca(lab[i]); s[k][0] += lab[i][0]; s[k][1] += lab[i][1]; s[k][2] += lab[i][2]; s[k][3]++; }
+    cs = cs.map((c, k) => (s[k][3] ? [s[k][0] / s[k][3], s[k][1] / s[k][3], s[k][2] / s[k][3]] : c));
+  }
+  const peso = cs.map(() => 0), rgb = cs.map(() => [0, 0, 0]);
+  for (const i of idx) { const k = masCerca(lab[i]); asig[i] = k; peso[k]++; rgb[k][0] += d[i * 4]; rgb[k][1] += d[i * 4 + 1]; rgb[k][2] += d[i * 4 + 2]; }
+  const tonos = cs.map((c, k) => ({ lab: c, peso: peso[k], rgb: rgb[k] })).filter((t) => t.peso > 0);
+  // 3. Juntar las tonalidades del mismo color (la luz pesa la mitad: kL = 2).
+  const padre = tonos.map((_, i) => i), raiz = (i) => (padre[i] === i ? i : (padre[i] = raiz(padre[i])));
+  for (let i = 0; i < tonos.length; i++) for (let j = i + 1; j < tonos.length; j++) if (de2000(tonos[i].lab, tonos[j].lab, 2) < U.tono) padre[raiz(j)] = raiz(i);
+  let grupos = new Map();
+  tonos.forEach((t, i) => { const r = raiz(i); const g = grupos.get(r) ?? { peso: 0, L: 0, a: 0, b: 0, rgb: [0, 0, 0], tonos: 0, ks: [], mayor: null }; if (!g.mayor || t.peso > g.mayor.peso) g.mayor = t; g.peso += t.peso; g.L += t.lab[0] * t.peso; g.a += t.lab[1] * t.peso; g.b += t.lab[2] * t.peso; g.rgb = g.rgb.map((v, z) => v + t.rgb[z]); g.tonos++; g.ks.push(cs.indexOf(t.lab)); grupos.set(r, g); });
+  // 4. Cada grupo, al color más parecido de la carta (por su promedio); dos grupos que caen en el mismo color son uno.
+  //    Probado: comparar el tono que más se repite, en vez del promedio, arregla un negro con brillo pero oscurece un vino con sombra.
+  const porColor = new Map();
+  for (const g of grupos.values()) {
+    const l = [g.L / g.peso, g.a / g.peso, g.b / g.peso], { color, de } = masParecido(l);
+    const x = porColor.get(color.c) ?? { color, de, peso: 0, rgb: [0, 0, 0], tonos: 0, ks: [], S: [0, 0, 0] };
+    x.S = [x.S[0] + g.L, x.S[1] + g.a, x.S[2] + g.b];
+    x.peso += g.peso; x.rgb = x.rgb.map((v, z) => v + g.rgb[z]); x.tonos += g.tonos; x.ks.push(...g.ks); x.de = Math.min(x.de, de);
+    porColor.set(color.c, x);
+  }
+  const total = idx.length;
+  const todos = [...porColor.values()].map((x) => ({ ...x, parte: x.peso / total, visto: "#" + x.rgb.map((v) => hex2(v / x.peso)).join("") })).sort((a, b) => b.peso - a.peso);
+  const quedan = todos.filter((x) => x.parte >= U.detalle), detalles = todos.filter((x) => x.parte < U.detalle);
+  for (const x of quedan) {
+    const m = x.S.map((v) => v / x.peso);
+    let mejor = idx[0], dm = Infinity;
+    for (const i of idx) { const e = d76(lab[i], m); if (e < dm) { dm = e; mejor = i; } }
+    x.punto = { x: ((mejor % W) + 0.5) / W, y: (Math.floor(mejor / W) + 0.5) / H };
+  }
+  // 5. ¿Es un dibujo? Cuántas veces cambia de color entre dos píxeles vecinos de la prenda.
+  const grupoDe = new Int16Array(cs.length).fill(-1);
+  quedan.forEach((x, gi) => x.ks.forEach((k) => { grupoDe[k] = gi; }));
+  let pares = 0, cambia = 0;
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+    const i = y * W + x; if (!mascara[i]) continue; const gi = grupoDe[asig[i]]; if (gi < 0) continue;
+    for (const j of [x + 1 < W ? i + 1 : -1, y + 1 < H ? i + W : -1]) { if (j < 0 || !mascara[j]) continue; const gj = grupoDe[asig[j]]; if (gj < 0) continue; pares++; if (gi !== gj) cambia++; }
+  }
+  const dibujo = pares ? cambia / pares : 0;
+  const tipo = quedan.length > 4 ? "muchos" : quedan.length >= 2 && dibujo > U.dibujo ? "estampado" : quedan.length >= 2 ? "mezcla" : "liso";
+  // Con fondo, un color de la prenda igual al del fondo no se ve (una blusa crema sobre papel crema): se avisa, no se adivina.
+  const fondoComo = fondo ? masParecido(fondo) : null;
+  return { tipo, quedan, detalles, dibujo, tonosVistos: tonos.length, transparente, fondoComo: fondoComo && fondoComo.de < 10 ? fondoComo.color : null };
+}
+
+// ---------- el color que resulta ----------
+const minus = (s) => s.charAt(0).toLocaleLowerCase("es") + s.slice(1);
+function nombreDeMezcla(base, acomp) {
+  const n = [...acomp].sort((a, b) => (a.c < b.c ? -1 : 1)).map((c) => minus(c.n));
+  if (!n.length) return base.n;
+  return `${base.n} con ${n.length === 1 ? n[0] : n.slice(0, -1).join(", ") + " y " + n[n.length - 1]}`;
+}
+function colorDe(codigos) {
+  const cs = codigos.map((c) => porCodigo.get(c));
+  if (cs.length === 1) return { clave: cs[0].c, nombre: cs[0].n, tonos: [cs[0].h], estado: "carta" };
+  const comp = [cs[0].c, ...cs.slice(1).map((c) => c.c).sort()];
+  const existe = MEZCLAS_EXISTENTES.some((m) => m.join(",") === comp.join(","));
+  return { clave: comp.join(","), nombre: nombreDeMezcla(cs[0], cs.slice(1)), tonos: cs.map((c) => c.h), estado: existe ? "carta" : "mezcla-nueva" };
+}
+const fondoPunto = (t) => (t.length === 1 ? t[0] : `conic-gradient(from 180deg, ${t[0]} 0% 50%, ${t.slice(1).map((x, i, a) => `${x} ${50 + (50 / a.length) * i}% ${50 + (50 / a.length) * (i + 1)}%`).join(", ")})`);
+
+// ---------- el estado ----------
+// Una TARJETA es un color de la prenda: una o varias fotos, y su color (o la pregunta que falta contestar).
+let tarjetas = [], vista = "alta", conIA = false, abierta = null;
+let tallas = { S: true, M: true, L: true, XL: false };
+const uid = () => Math.random().toString(36).slice(2, 9);
+
+async function agregarArchivos(archivos) {
+  for (const archivo of archivos) {
+    if (!archivo.type.startsWith("image/")) continue;
+    const foto = { id: uid(), blob: archivo, url: URL.createObjectURL(archivo), nombre: archivo.name || "foto" };
+    const t = { id: uid(), fotos: [foto], actual: foto.id, etapa: conIA ? "ia" : "leyendo", lectura: null, codigos: null, estampado: null, porque: false };
+    tarjetas.push(t); pintar();
+    procesar(t);
+  }
+}
+async function procesar(t) {
+  if (t.etapa === "ia") { await new Promise((r) => setTimeout(r, 2200)); t.etapa = "leyendo"; pintar(); }
+  await new Promise((r) => setTimeout(r, 350));
+  const lectura = await leerFoto(t.fotos[0].blob);
+  t.lectura = lectura; t.etapa = "listo";
+  asignar(t); pintar();
+}
+// Cada parte de la prenda toma el color de la carta SOLO si está cerca (ΔE2000 ≤ 8, el «casi igual» de lib/color-parecido.ts). Si está
+// lejos, esa parte queda en blanco y la tarjeta pregunta: usar el más parecido o crear el color. Nunca se pone a escondidas.
+function asignar(t) {
+  if (!["liso", "mezcla"].includes(t.lectura.tipo)) return;
+  t.eleccion = t.lectura.quedan.slice(0, 4).map((x) => (x.de <= U.carta ? x.color.c : null));
+  completar(t);
+}
+function completar(t) {
+  if (t.eleccion && t.eleccion.every(Boolean)) { t.codigos = [...new Set(t.eleccion)]; juntar(t); }
+}
+// La espalda de la misma prenda no es otro color: si ya hay una tarjeta con ese mismo color, la foto se suma a ella.
+function juntar(t) {
+  if (!t.codigos && !t.estampado) return;
+  const clave = t.estampado ? "est:" + t.estampado + ":" + t.codigos[0] : colorDe(t.codigos).clave;
+  const otra = tarjetas.find((x) => x !== t && x.etapa === "listo" && (x.estampado ? "est:" + x.estampado + ":" + x.codigos[0] : x.codigos && colorDe(x.codigos).clave) === clave);
+  if (otra) { otra.fotos.push(...t.fotos); otra.juntada = t.fotos[0].id; tarjetas = tarjetas.filter((x) => x !== t); }
+}
+async function releer() {
+  for (const t of tarjetas) for (const f of t.fotos.slice(1)) tarjetas.push({ id: uid(), fotos: [f], actual: f.id, etapa: "leyendo", lectura: null, codigos: null, estampado: null });
+  for (const t of tarjetas) { t.fotos = t.fotos.slice(0, 1); t.actual = t.fotos[0].id; t.etapa = "leyendo"; t.codigos = null; t.eleccion = null; t.estampado = null; t.editando = null; }
+  pintar();
+  for (const t of [...tarjetas]) if (tarjetas.includes(t)) { t.lectura = await leerFoto(t.fotos[0].blob); t.etapa = "listo"; asignar(t); }
+  pintar();
+}
+
+// ---------- pintar ----------
+const IC = {
+  img: '<svg class="ic" viewBox="0 0 24 24"><path d="M16 5h6"/><path d="M19 2v6"/><path d="M21 11.5V19a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h7.5"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/><circle cx="9" cy="9" r="2"/></svg>',
+  x: '<svg class="ic" viewBox="0 0 24 24" style="width:14px;height:14px"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>',
+  ok: '<svg class="ic" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg>',
+  izq: '<svg class="ic" viewBox="0 0 24 24"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg>',
+  der: '<svg class="ic" viewBox="0 0 24 24"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>',
+};
+const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
+const pct = (x) => Math.round(x * 100) + " %";
+const pendientes = () => tarjetas.filter((t) => t.etapa !== "listo" || (!t.codigos && !t.estampado));
+
+function pintarTarjeta(t) {
+  const foto = t.fotos.find((f) => f.id === t.actual) ?? t.fotos[0];
+  const L = t.lectura, c = t.codigos ? colorDe(t.codigos) : null;
+  const fondo = c ? `color-mix(in srgb, ${c.tonos[0]} 16%, var(--papel))` : "var(--hueso)";
+  let cuerpo = "";
+  if (t.etapa === "ia") cuerpo = `<div class="leyendo"><span class="hilo"></span>✦ Arreglando la foto con IA… unos 25 s</div>`;
+  else if (t.etapa === "leyendo") cuerpo = `<div class="leyendo"><span class="hilo"></span>Leyendo los colores…</div>`;
+  let abajo = "";
+  if (t.etapa === "listo" && L) {
+    if (L.tipo === "sin-prenda") abajo = `<div class="pregunta"><p>No encontré la prenda en esta foto</p><span style="font-size:13.5px">Prueba con una foto de la prenda sola, o </span><button class="enlace" data-a="editar" data-t="${t.id}">elige el color a mano</button></div>`;
+    else if (t.editando) abajo = pintarEditor(t);
+    else if (!c && t.eleccion && t.eleccion.some((x) => !x)) abajo = pintarFalta(t);
+    else if (!c && !t.estampado && L.tipo === "estampado") abajo = `<div class="pregunta"><p>Parece un estampado. ¿Cuál es?</p><div class="chips">${PATRONES.map((p) => `<button class="chip-t" data-a="patron" data-p="${p}" data-t="${t.id}">${p}</button>`).join("")}</div><div style="margin-top:8px"><button class="enlace" data-a="no-dibujo" data-t="${t.id}">No, es una mezcla</button></div></div>`;
+    else if (!c && !t.estampado && L.tipo === "muchos") abajo = `<div class="pregunta"><p>Tiene ${L.quedan.length} colores. ¿Cómo la llamamos?</p><div class="chips"><button class="chip-t" data-a="multi" data-t="${t.id}">Multicolor</button>${PATRONES.slice(0, 3).map((p) => `<button class="chip-t" data-a="patron" data-p="${p}" data-t="${t.id}">${p}</button>`).join("")}</div></div>`;
+    else {
+      const nombre = t.estampado ? `${t.estampado} ${minus(porCodigo.get(t.codigos[0]).n)}` : c.nombre;
+      const tonos = t.estampado ? [porCodigo.get(t.codigos[0]).h, porCodigo.get(t.codigos[1] ?? t.codigos[0]).h] : c.tonos;
+      const chip = t.estampado ? `<span class="chip pizarra">Estampado nuevo</span>` : t.codigos.some((x) => porCodigo.get(x).nuevo) ? `<span class="chip pizarra">Color nuevo de la carta</span>` : t.multi ? `<span class="chip verde">De la carta</span>` : c.estado === "carta" ? `<span class="chip verde">${t.codigos.length > 1 ? "Mezcla de la carta" : "De la carta"}</span>` : `<span class="chip pizarra">Mezcla nueva</span>`;
+      abajo = `<div class="color-res"><span class="punto" style="background:${t.multi ? "conic-gradient(#BD332D,#F0C05A,#48603f,#00539C,#BD332D)" : fondoPunto(tonos)}"></span><div><div class="nom">${esc(nombre)}</div>${chip}</div></div>`;
+      if (L.quedan?.length) {
+        const de = (x, i) => (t.eleccion?.[i] ? porCodigo.get(t.eleccion[i]) : x.color);
+        abajo += `<div class="tubo" aria-hidden="true">${L.quedan.map((x, i) => `<i style="flex:${x.parte};background:${de(x, i).h}"></i>`).join("")}</div>`;
+        abajo += `<div class="leyenda">${L.quedan.map((x, i) => `<span><b style="background:${de(x, i).h}"></b>${esc(de(x, i).n)} ${pct(x.parte)}</span>`).join("")}${L.detalles.reduce((s, x) => s + x.parte, 0) >= 0.005 ? `<span class="tenue">· detalles ${pct(L.detalles.reduce((s, x) => s + x.parte, 0))}</span>` : ""}</div>`;
+      }
+      if (L.fondoComo) abajo += `<div class="pregunta" style="padding:6px 10px"><span style="font-size:13.5px">El fondo es casi <b>${esc(L.fondoComo.n)}</b>: si la prenda también lo tiene, no lo veo. Sin fondo sale exacto (✦ IA).</span></div>`;
+      if (t.porque) abajo += pintarPorque(t);
+      abajo += `<div class="pie-tarjeta"><button class="enlace" data-a="editar" data-t="${t.id}">Cambiar</button><button class="enlace" data-a="porque" data-t="${t.id}">${t.porque ? "Ocultar" : "¿Por qué?"}</button></div>`;
+    }
+  }
+  const minis = t.fotos.length > 1 ? `<div class="mini">${t.fotos.map((f, i) => `<button data-a="ver" data-t="${t.id}" data-f="${f.id}" aria-current="${f.id === foto.id}" aria-label="Foto ${i + 1}" style="--fondo:${fondo}"><img src="${f.url}" alt=""></button>`).join("")}</div>` : "";
+  return `<article class="tarjeta" data-tarjeta="${t.id}">
+    <div class="foto-pri" style="--fondo:${fondo}"><img src="${foto.url}" alt="Foto de la prenda">
+      ${t.fotos.length > 1 ? `<span class="cuantas">${t.fotos.length} fotos de este color</span>` : ""}
+      <button class="quitar" data-a="quitar" data-t="${t.id}" data-f="${foto.id}" aria-label="Quitar esta foto" title="Quitar esta foto">${IC.x}</button>${cuerpo}</div>
+    ${minis}<div class="cuerpo">${abajo}</div></article>`;
+}
+function pintarFalta(t) {
+  const q = t.lectura.quedan.slice(0, 4);
+  const nom = (i) => (t.eleccion[i] ? porCodigo.get(t.eleccion[i]).n : "¿?");
+  let h = "";
+  if (q.length > 1) {
+    const resto = q.slice(1).map((_, i) => minus(nom(i + 1)));
+    h += `<div class="color-res"><span class="punto" style="background:${fondoPunto(q.map((x, i) => (t.eleccion[i] ? porCodigo.get(t.eleccion[i]).h : x.visto)))}"></span><div><div class="nom">${esc(nom(0) === "¿?" ? "¿?" : nom(0))} con ${esc(resto.length === 1 ? resto[0] : resto.slice(0, -1).join(", ") + " y " + resto[resto.length - 1])}</div></div></div>`;
+  }
+  q.forEach((x, i) => {
+    if (t.eleccion[i]) return;
+    h += `<div class="pregunta"><p>${q.length > 1 ? "Uno de sus colores no está en la carta" : "Este color no está en la carta"}</p>
+      <div class="falta-color"><span class="punto grande" style="background:${x.visto}" title="El tono de la foto"></span><span>El más parecido es <b>${esc(x.color.n)}</b>, pero se ve distinto.</span></div>
+      <div class="botones"><button class="btn btn-primario btn-chico" data-a="crear" data-t="${t.id}" data-i="${i}">Crear este color</button><button class="btn btn-secundario btn-chico" data-a="usar" data-t="${t.id}" data-i="${i}"><span class="punto chico" style="background:${x.color.h}"></span>Usar ${esc(x.color.n)}</button></div></div>`;
+  });
+  return h;
+}
+function pintarPorque(t) {
+  const L = t.lectura, it = [];
+  it.push(L.transparente ? "La foto viene sin fondo: miré solo la prenda." : "La foto tiene fondo: dejé fuera lo que se parece al borde.");
+  it.push(`Vi ${L.tonosVistos} tonos y junté los que son el mismo color con otra luz: quedan ${L.quedan.length + L.detalles.length}.`);
+  L.quedan.forEach((x) => it.push(`${x.color.n}: ${pct(x.parte)} de la prenda, a ${x.de.toFixed(1).replace(".", ",")} del color de la carta${x.de > U.carta ? " (lejos: no está en la carta)" : ""}.`));
+  if (L.detalles.length) it.push(`No cuenta, por chico: ${L.detalles.map((x) => `${x.color.n} ${pct(x.parte)}`).join(", ")}.`);
+  if (L.fondoComo) it.push(`El fondo se parece a ${L.fondoComo.n} de la carta: lo de ese color en la prenda pudo quedar fuera.`);
+  if (L.quedan.length > 1) it.push(`Cambia de color en ${pct(L.dibujo)} de los vecinos: ${L.dibujo > U.dibujo ? "parece un dibujo" : "son zonas grandes, una mezcla"}.`);
+  return `<ul class="porque">${it.map((x) => `<li>${esc(x)}</li>`).join("")}</ul>`;
+}
+function pintarEditor(t) {
+  const sel = t.editando;
+  return `<div class="porque" style="display:flex;flex-direction:column;gap:8px"><b style="font-size:13.5px">Toca los colores de la prenda, el que más se ve primero</b>
+    <div class="elegidos">${sel.map((c) => `<span><i style="background:${porCodigo.get(c).h}"></i>${esc(porCodigo.get(c).n)}<button data-a="sacar" data-c="${c}" data-t="${t.id}" aria-label="Quitar ${esc(porCodigo.get(c).n)}">${IC.x}</button></span>`).join("") || '<span style="border-style:dashed">Ninguno todavía</span>'}</div>
+    <div class="carta">${SOLIDOS.map((c) => `<button data-a="tocar" data-c="${c.c}" data-t="${t.id}" aria-pressed="${sel.includes(c.c)}" title="${esc(c.n)}" style="background:${c.h}"></button>`).join("")}</div>
+    <div style="display:flex;gap:8px;justify-content:flex-end"><button class="btn btn-secundario btn-chico" data-a="cancelar-ed" data-t="${t.id}">Cancelar</button><button class="btn btn-primario btn-chico" data-a="listo-ed" data-t="${t.id}" ${sel.length ? "" : "disabled"}>Listo</button></div></div>`;
+}
+
+const sinTilde = (s) => s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
+// La regla de «Existe también» (ADR-0576), en corto: mismo nombre frena; plural, femenino o una letra de diferencia (desde 8) pregunta.
+function raiz(s) { return sinTilde(s).split(/\s+/).map((w) => w.replace(/(es|s)$/, "").replace(/[ao]$/, "")).join(" "); }
+function dist(a, b) { const m = a.length, n = b.length, d = Array.from({ length: m + 1 }, (_, i) => [i]); for (let j = 1; j <= n; j++) d[0][j] = j; for (let i = 1; i <= m; i++) for (let j = 1; j <= n; j++) d[i][j] = Math.min(d[i - 1][j] + 1, d[i][j - 1] + 1, d[i - 1][j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1)); return d[m][n]; }
+function existe(nombre) {
+  const n = sinTilde(nombre); if (!n) return null;
+  const igual = CARTA.find((c) => sinTilde(c.n) === n); if (igual) return { nivel: "frena", color: igual };
+  const casi = CARTA.find((c) => raiz(c.n) === raiz(n) || (n.length >= 8 && dist(sinTilde(c.n), n) <= 1)); if (casi) return { nivel: "pregunta", color: casi };
+  return null;
+}
+function sugerirCodigo(nombre) {
+  const s = sinTilde(nombre).toUpperCase().replace(/[^A-Z]/g, "");
+  if (s.length < 3) return s;
+  const cands = [s.slice(0, 3), (s[0] + s.slice(1).replace(/[AEIOU]/g, "")).slice(0, 3)];
+  for (let i = 2; i < s.length; i++) cands.push(s[0] + s[1] + s[i]);
+  return cands.find((c) => c.length === 3 && !porCodigo.has(c)) ?? s.slice(0, 3);
+}
+const FAMILIAS = [...new Set(CARTA.map((c) => c.f).filter(Boolean))];
+const nombreFamilia = (f) => ({ metalico: "Metálico" })[f] ?? (f ? f.charAt(0).toUpperCase() + f.slice(1) : "—");
+function pintarHoja() {
+  const raizHoja = document.getElementById("hoja-raiz");
+  if (!creando) { raizHoja.innerHTML = ""; return; }
+  const x = creando.t.lectura.quedan[creando.i];
+  raizHoja.innerHTML = `<div class="velo" data-a="h-cancelar"></div>
+  <div class="hoja-mod" role="dialog" aria-modal="true" aria-labelledby="h-tit">
+    <h2 id="h-tit" class="serif">Nuevo color</h2><p class="baj">Queda en la carta y en esta prenda. El tono sale de la foto.</p>
+    <div class="h-tono">
+      <div class="h-paleta">
+        <div class="pal-cuadro" id="pal-cuadro" style="--matiz:${hsvAHex(creando.hsv[0], 1, 1)}"><span class="pal-punto" id="pal-punto" tabindex="0" role="slider" aria-label="Tono: claridad e intensidad. Muévelo con las flechas"></span></div>
+        <div class="pal-matiz" id="pal-matiz"><span class="pal-perilla" id="pal-perilla" tabindex="0" role="slider" aria-label="Color. Muévelo con las flechas" aria-valuemin="0" aria-valuemax="360"></span></div>
+      </div>
+      <div class="h-lado">
+        <span class="etq">El tono</span>
+        <div class="h-muestra"><span id="h-swatch" style="background:${creando.hex}"></span><div><input id="h-hex" class="caja caja-hex" value="${creando.hex.toUpperCase()}" aria-label="El tono en #hex" maxlength="7"><small id="h-cerca"></small></div></div>
+        <div class="h-foto-ref"><img src="${creando.t.fotos[0].url}" alt=""><span>Arranca en el tono de la foto. Muévelo en la paleta si la luz lo cambió.</span></div>
+        <button class="enlace" data-a="h-promedio">Volver al tono de la foto</button>
+      </div>
+    </div>
+    <label class="h-campo"><span class="etq">Nombre *</span><input id="h-nombre" class="caja" autocomplete="off" placeholder="Cómo lo llaman en la tienda" value="${esc(creando.nombre)}"><span id="h-existe"></span></label>
+    <div class="h-campo"><span class="etq">Familia</span><div class="chips">${FAMILIAS.map((f) => `<button class="chip-t" data-a="h-familia" data-f="${f}" aria-pressed="${creando.familia === f}">${nombreFamilia(f)}</button>`).join("")}</div><small class="pie-campo">Sugerida por el tono; cámbiala si no calza</small></div>
+    <label class="h-campo" style="max-width:180px"><span class="etq">Código</span><input id="h-codigo" class="caja" maxlength="3" value="${esc(creando.codigo)}"><small class="pie-campo">3 letras, va en el código de cada prenda</small></label>
+    <div id="h-error"></div>
+    <div class="pie-acciones"><button class="btn btn-secundario" data-a="h-cancelar">Cancelar</button><button class="btn btn-primario" data-a="h-crear">Crear color</button></div>
+  </div>`;
+  actualizarHoja();
+  const inp = document.getElementById("h-nombre");
+  inp.addEventListener("input", () => { creando.nombre = inp.value; creando.otro = false; creando.error = null; if (!creando.codigoTocado) { creando.codigo = sugerirCodigo(inp.value); document.getElementById("h-codigo").value = creando.codigo; } actualizarHoja(); });
+  document.getElementById("h-codigo").addEventListener("input", (e) => { creando.codigoTocado = true; creando.codigo = e.target.value.toUpperCase(); e.target.value = creando.codigo; creando.error = null; actualizarHoja(); });
+  prepararPaleta();
+  inp.focus();
+}
+// La paleta de todos los colores (matiz, intensidad y claridad, como la de un programa de diseño). Arranca en el tono de la foto.
+function hexAHsv(h) {
+  const n = parseInt(h.slice(1), 16), r = ((n >> 16) & 255) / 255, g = ((n >> 8) & 255) / 255, b = (n & 255) / 255;
+  const M = Math.max(r, g, b), m = Math.min(r, g, b), d = M - m;
+  let H = 0; if (d) H = M === r ? ((g - b) / d) % 6 : M === g ? (b - r) / d + 2 : (r - g) / d + 4;
+  return [(H * 60 + 360) % 360, M ? d / M : 0, M];
+}
+function hsvAHex(H, S, V) {
+  const f = (k) => { const x = (k + H / 60) % 6; return V - V * S * Math.max(0, Math.min(x, 4 - x, 1)); };
+  return "#" + [f(5), f(3), f(1)].map((v) => hex2(v * 255)).join("");
+}
+function prepararPaleta() {
+  const yo = creando, cuadro = document.getElementById("pal-cuadro"), matiz = document.getElementById("pal-matiz");
+  const punto = document.getElementById("pal-punto"), perilla = document.getElementById("pal-perilla"), hx = document.getElementById("h-hex");
+  const poner = (hsv, desdeTexto = false) => {
+    yo.hsv = hsv; yo.hex = hsvAHex(...hsv); yo.tocoTono = true;
+    if (!yo.familiaTocada) yo.familia = masParecido(hexALab(yo.hex)).color.f;
+    if (!desdeTexto) hx.value = yo.hex.toUpperCase();
+    dibujar();
+  };
+  const dibujar = () => {
+    const [H, S, V] = yo.hsv;
+    cuadro.style.setProperty("--matiz", hsvAHex(H, 1, 1));
+    punto.style.left = S * 100 + "%"; punto.style.top = (1 - V) * 100 + "%"; punto.style.background = yo.hex;
+    perilla.style.left = (H / 360) * 100 + "%"; perilla.style.background = hsvAHex(H, 1, 1);
+    punto.setAttribute("aria-valuetext", yo.hex.toUpperCase()); perilla.setAttribute("aria-valuenow", String(Math.round(H)));
+    pintarCerca();
+  };
+  const arrastre = (zona, mover) => zona.addEventListener("pointerdown", (e) => {
+    e.preventDefault(); zona.setPointerCapture(e.pointerId);
+    const ir = (ev) => { const r = zona.getBoundingClientRect(); mover(Math.min(1, Math.max(0, (ev.clientX - r.left) / r.width)), Math.min(1, Math.max(0, (ev.clientY - r.top) / r.height))); };
+    ir(e); zona.addEventListener("pointermove", ir); zona.addEventListener("pointerup", () => zona.removeEventListener("pointermove", ir), { once: true });
+    (zona === cuadro ? punto : perilla).focus({ preventScroll: true });
+  });
+  arrastre(cuadro, (x, y) => poner([yo.hsv[0], x, 1 - y]));
+  arrastre(matiz, (x) => poner([Math.min(359.9, x * 360), yo.hsv[1], yo.hsv[2]]));
+  const flechas = (el, f) => el.addEventListener("keydown", (e) => { const d = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] }[e.key]; if (!d) return; e.preventDefault(); e.stopPropagation(); f(d, e.shiftKey ? 5 : 1); });
+  flechas(punto, ([dx, dy], k) => poner([yo.hsv[0], Math.min(1, Math.max(0, yo.hsv[1] + dx * 0.02 * k)), Math.min(1, Math.max(0, yo.hsv[2] - dy * 0.02 * k))]));
+  flechas(perilla, ([dx], k) => poner([(yo.hsv[0] + dx * 2 * k + 360) % 360, yo.hsv[1], yo.hsv[2]]));
+  hx.addEventListener("input", () => { const v = hx.value.trim(); const h = /^#?[0-9a-f]{6}$/i.test(v) ? (v[0] === "#" ? v : "#" + v) : null; if (h) poner(hexAHsv(h), true); });
+  hx.addEventListener("blur", () => { hx.value = yo.hex.toUpperCase(); });
+  yo.redibujar = dibujar;
+  dibujar();
+}
+// Lo que dice la muestra: su más parecido y, si el tono elegido YA está en la carta, lo ofrece (no se crea un casi repetido).
+function pintarCerca() {
+  if (!creando) return;
+  const sw = document.getElementById("h-swatch"), cerca = document.getElementById("h-cerca");
+  sw.style.background = creando.hex;
+  const m = masParecido(hexALab(creando.hex));
+  cerca.innerHTML = m.de <= U.carta ? `Este tono ya está: <b>${esc(m.color.n)}</b>. <button class="enlace" data-a="h-usar" data-c="${m.color.c}">Usar ese</button>`
+    : `El más parecido de la carta es ${esc(m.color.n)}.`;
+  document.querySelectorAll('[data-a="h-familia"]').forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.f === creando.familia)));
+}
+function actualizarHoja() {
+  const e = existe(creando.nombre), caja = document.getElementById("h-existe");
+  caja.innerHTML = !e || (e.nivel === "pregunta" && creando.otro) ? "" : e.nivel === "frena"
+    ? `<span class="existe frena">Ya existe <b>${esc(e.color.n)}</b>. <button class="enlace" data-a="h-usar" data-c="${e.color.c}">Usar ese</button></span>`
+    : `<span class="existe">¿Es <b>${esc(e.color.n)}</b>? <button class="enlace" data-a="h-usar" data-c="${e.color.c}">Sí, usar ese</button> · <button class="enlace" data-a="h-otro">No, es otro</button></span>`;
+  document.getElementById("h-error").innerHTML = creando.error ? `<p class="error">${esc(creando.error)}</p>` : "";
+}
+function crearColor() {
+  const e = existe(creando.nombre), cod = creando.codigo.trim();
+  creando.error = !creando.nombre.trim() ? "Falta el nombre: cómo lo llaman en la tienda." : e?.nivel === "frena" ? `Ya existe «${e.color.n}»: úsalo.` : e?.nivel === "pregunta" && !creando.otro ? `Contesta si es «${e.color.n}».`
+    : !/^[A-Z]{3}$/.test(cod) ? "El código son 3 letras." : porCodigo.has(cod) ? `El código ${cod} ya es de ${porCodigo.get(cod).n}.` : null;
+  if (creando.error) { actualizarHoja(); return; }
+  const x = creando.t.lectura.quedan[creando.i];
+  const nuevo = { c: cod, n: creando.nombre.trim().charAt(0).toUpperCase() + creando.nombre.trim().slice(1), h: creando.hex.toUpperCase(), t: "solido", f: creando.familia, nuevo: true };
+  CARTA.push(nuevo); SOLIDOS.push(nuevo); LAB_CARTA.push({ c: nuevo, lab: hexALab(nuevo.h) }); porCodigo.set(cod, nuevo);
+  usarEn(creando.t, creando.i, cod); creando = null;
+}
+function usarEn(t, i, codigo) { t.eleccion[i] = codigo; completar(t); }
+function pintarBloque() {
+  const vacias = !tarjetas.length;
+  const falta = pendientes();
+  const fila = `<div class="fila ${vacias || falta.length ? "sigue" : ""}" data-zona>
+    <div class="fila-cab">${!vacias && !falta.length ? `<span class="marca">${IC.ok}</span>` : ""}<span class="etq">Fotos y colores</span>${vacias ? '<span class="ahora">Sigue</span>' : ""}<span class="nuevo-tag">Nuevo</span>
+      <span class="ayuda">${vacias ? "Una foto por color" : `${tarjetas.length} ${tarjetas.length === 1 ? "color" : "colores"} · ${tarjetas.reduce((s, t) => s + t.fotos.length, 0)} fotos`}</span></div>
+    <div class="fotos">${vacias
+      ? `<div class="vacio-foto" data-soltar><span class="ico">${IC.img}</span><h3>Sube la foto de cada color</h3><p>El color sale solo de la foto. Puedes subir varias a la vez o arrastrarlas aquí.</p>
+          <div class="acciones-vacio"><button class="btn btn-primario" data-a="subir">${IC.img}Subir fotos</button><button class="enlace" data-a="sin-color">No tiene color</button></div></div>`
+      : tarjetas.map(pintarTarjeta).join("") + `<button class="tile-mas" data-a="subir" data-soltar><span class="ico">${IC.img}</span>Otra foto<small>Otro color, o la espalda de uno</small></button>`}</div></div>`;
+  return fila;
+}
+function pintarMatriz() {
+  const ts = Object.keys(tallas).filter((k) => tallas[k]);
+  const filas = tarjetas.filter((t) => t.codigos || t.estampado);
+  if (!filas.length) return `<p class="resumen">Cuando subas una foto, aquí aparece la prenda: una fila por color y una columna por talla.</p>`;
+  return `<div class="matriz"><table><thead><tr><th>Color</th>${ts.map((x) => `<th>${x}</th>`).join("")}</tr></thead><tbody>${filas.map((t) => {
+    const nombre = t.estampado ? `${t.estampado} ${minus(porCodigo.get(t.codigos[0]).n)}` : t.multi ? "Multicolor" : colorDe(t.codigos).nombre;
+    const fondo = `color-mix(in srgb, ${porCodigo.get(t.codigos[0]).h} 16%, var(--papel))`;
+    return `<tr><td><span class="fc"><img src="${t.fotos[0].url}" alt="" style="--fondo:${fondo}">${esc(nombre)}</span></td>${ts.map(() => `<td><span class="celda">${IC.ok}</span></td>`).join("")}</tr>`;
+  }).join("")}</tbody></table></div><p class="resumen">${filas.length} ${filas.length === 1 ? "color" : "colores"} × ${ts.length} tallas = ${filas.length * ts.length} combinaciones</p>`;
+}
+function pintarTallas() {
+  return `<div class="fila"><div class="fila-cab"><span class="marca">${IC.ok}</span><span class="etq">Tallas</span><span class="ayuda">${Object.values(tallas).filter(Boolean).length} elegidas</span></div>
+    <div class="chips">${Object.keys(tallas).map((k) => `<button class="chip-t" data-a="talla" data-k="${k}" aria-pressed="${tallas[k]}">${k}</button>`).join("")}</div></div>`;
+}
+function pintarPie(siguiente) {
+  const falta = pendientes();
+  const vacias = !tarjetas.length;
+  const texto = vacias ? "Sigue: <b>Fotos y colores</b>" : falta.length ? `Falta: <b>el color de ${falta.length === 1 ? "una foto" : falta.length + " fotos"}</b>` : "Listo: los colores salieron de las fotos";
+  return `<div class="pie"><button class="volver" aria-label="Volver al paso anterior">${IC.izq}</button><span class="falta">${texto}</span><button class="btn btn-primario">${siguiente}${IC.der}</button></div>`;
+}
+function pintar() {
+  const placa = document.getElementById("placa");
+  if (vista === "alta") {
+    placa.innerHTML = `<div class="sede">Taller · 13 nov</div><h1 class="titulo-pag">Nuevo producto</h1>
+      <div class="paso-cab"><span class="n">Paso 3 de 4</span><h2>¿En qué tallas y colores?</h2><span class="puntos"><i class="ya"></i><i class="ya"></i><i class="aqui"></i><i></i></span></div>
+      ${pintarTallas()}${pintarBloque()}<div class="fila"><div class="fila-cab"><span class="etq">La prenda</span><span class="ayuda">Una fila por color</span></div>${pintarMatriz()}</div>${pintarPie("Seguir")}`;
+  } else {
+    placa.innerHTML = `<div class="sede">Recibir · Trujillo · Envío de Textiles del Norte</div>
+      <div class="paso-cab" style="margin-top:10px"><h2 style="font-size:30px">Blusa nueva</h2><span class="puntos"><i class="ya"></i><i class="aqui"></i><i></i></span></div>
+      <p style="font-size:14px;color:var(--taupe);margin:-10px 0 16px">Paso 2 de 3 · ¿En qué tallas y colores?</p>
+      ${pintarTallas()}${pintarBloque()}
+      <p class="nota">Las fotos que subas aquí quedan en la prenda: ya no hay que ponerlas después en Productos.</p>${pintarPie("Siguiente")}`;
+  }
+  pintarHoja();
+  enganchar();
+}
+
+// ---------- tocar ----------
+function tarjetaPor(id) { return tarjetas.find((t) => t.id === id); }
+document.addEventListener("click", (e) => {
+  const b = e.target.closest("[data-a]"); if (!b) return;
+  const t = b.dataset.t ? tarjetaPor(b.dataset.t) : null, a = b.dataset.a;
+  if (a === "subir") document.getElementById("archivo").click();
+  else if (a === "sin-color") alert("En el ERP: la prenda queda sin color (un llavero, un cuaderno), como hoy con la carta vacía.");
+  else if (a === "talla") tallas[b.dataset.k] = !tallas[b.dataset.k];
+  else if (a === "ver") t.actual = b.dataset.f;
+  else if (a === "quitar") {
+    const f = t.fotos.find((x) => x.id === b.dataset.f); URL.revokeObjectURL(f.url);
+    t.fotos = t.fotos.filter((x) => x !== f);
+    if (!t.fotos.length) tarjetas = tarjetas.filter((x) => x !== t); else t.actual = t.fotos[0].id;
+  }
+  else if (a === "porque") t.porque = !t.porque;
+  else if (a === "usar") usarEn(t, Number(b.dataset.i), t.lectura.quedan[Number(b.dataset.i)].color.c);
+  else if (a === "crear") { const x = t.lectura.quedan[Number(b.dataset.i)]; creando = { t, i: Number(b.dataset.i), nombre: "", familia: x.color.f, codigo: "", codigoTocado: false, otro: false, error: null, hex: x.visto, hsv: hexAHsv(x.visto) }; }
+  else if (a === "h-cancelar") creando = null;
+  else if (a === "h-familia") { creando.familia = b.dataset.f; creando.familiaTocada = true; pintarCerca(); return; }
+  else if (a === "h-promedio") { const x = creando.t.lectura.quedan[creando.i]; creando.hex = x.visto; creando.hsv = hexAHsv(x.visto); document.getElementById("h-hex").value = x.visto.toUpperCase(); if (!creando.familiaTocada) creando.familia = x.color.f; creando.redibujar(); return; }
+  else if (a === "h-otro") { creando.otro = true; actualizarHoja(); return; }
+  else if (a === "h-usar") { usarEn(creando.t, creando.i, b.dataset.c); creando = null; }
+  else if (a === "h-crear") { crearColor(); if (creando) return; }
+  else if (a === "patron") { t.estampado = b.dataset.p; t.codigos = t.lectura.quedan.slice(0, 2).map((x) => x.color.c); juntar(t); }
+  else if (a === "no-dibujo") { t.codigos = t.lectura.quedan.slice(0, 4).map((x) => x.color.c); juntar(t); }
+  else if (a === "multi") { t.multi = true; t.codigos = [t.lectura.quedan[0].color.c]; }
+  else if (a === "editar") t.editando = [...(t.codigos ?? [])];
+  else if (a === "tocar") { const c = b.dataset.c; if (t.editando.includes(c)) t.editando = t.editando.filter((x) => x !== c); else if (t.editando.length < 4) t.editando.push(c); }
+  else if (a === "sacar") t.editando = t.editando.filter((x) => x !== b.dataset.c);
+  else if (a === "cancelar-ed") t.editando = null;
+  else if (a === "listo-ed") { t.codigos = t.editando; t.editando = null; t.estampado = null; t.multi = false; juntar(t); }
+  pintar();
+});
+document.addEventListener("keydown", (e) => { if (e.key === "Escape" && creando) { creando = null; pintar(); } });
+document.getElementById("archivo").addEventListener("change", (e) => { agregarArchivos([...e.target.files]); e.target.value = ""; });
+document.addEventListener("paste", (e) => { const fs = [...(e.clipboardData?.files ?? [])]; if (fs.length) agregarArchivos(fs); });
+function enganchar() {
+  document.querySelectorAll("[data-soltar]").forEach((z) => {
+    z.addEventListener("dragover", (e) => { e.preventDefault(); z.classList.add("encima"); });
+    z.addEventListener("dragleave", () => z.classList.remove("encima"));
+    z.addEventListener("drop", (e) => { e.preventDefault(); z.classList.remove("encima"); agregarArchivos([...e.dataTransfer.files]); });
+  });
+}
+document.querySelectorAll("[data-vista]").forEach((b) => b.addEventListener("click", () => {
+  vista = b.dataset.vista; document.querySelectorAll("[data-vista]").forEach((x) => x.setAttribute("aria-pressed", String(x === b))); pintar();
+}));
+document.getElementById("b-ia").addEventListener("click", (e) => { conIA = !conIA; e.currentTarget.setAttribute("aria-pressed", String(conIA)); });
+document.getElementById("b-tema").addEventListener("click", (e) => {
+  const osc = document.documentElement.dataset.tema !== "oscuro"; document.documentElement.dataset.tema = osc ? "oscuro" : "claro"; e.currentTarget.setAttribute("aria-pressed", String(osc));
+});
+for (const [id, clave, fmt, k] of [["carta", "carta", (v) => v, 1], ["det", "detalle", (v) => v + " %", 0.01], ["tono", "tono", (v) => v, 1], ["dib", "dibujo", (v) => String(v).replace(".", ",") + " %", 0.01]]) {
+  const r = document.getElementById("r-" + id), o = document.getElementById("o-" + id);
+  r.addEventListener("change", () => { U[clave] = Number(r.value) * k; o.textContent = fmt(r.value); releer(); });
+  r.addEventListener("input", () => { o.textContent = fmt(r.value); });
+}
+
+// ---------- los ejemplos: prendas dibujadas con luz y sombra, en PNG sin fondo (como las devuelve la IA) ----------
+const hexDe = (n, f) => (CARTA.find((c) => c.n === n)?.h ?? f);
+function silueta(g, w, h) {
+  g.beginPath();
+  g.moveTo(w * 0.34, h * 0.06); g.quadraticCurveTo(w * 0.5, h * 0.14, w * 0.66, h * 0.06);
+  g.lineTo(w * 0.9, h * 0.16); g.lineTo(w * 0.98, h * 0.5); g.lineTo(w * 0.84, h * 0.53); g.lineTo(w * 0.78, h * 0.3);
+  g.lineTo(w * 0.78, h * 0.95); g.lineTo(w * 0.22, h * 0.95); g.lineTo(w * 0.22, h * 0.3); g.lineTo(w * 0.16, h * 0.53);
+  g.lineTo(w * 0.02, h * 0.5); g.lineTo(w * 0.1, h * 0.16); g.closePath();
+}
+function luz(g, w, h, lado) {
+  const gr = g.createLinearGradient(0, 0, w, 0);
+  gr.addColorStop(0, "rgba(0,0,0,0.16)"); gr.addColorStop(lado, "rgba(255,255,255,0.08)"); gr.addColorStop(1, "rgba(0,0,0,0.18)"); // tema-fijo: luz y sombra de la prenda dibujada
+  g.fillStyle = gr; g.fill();
+  g.strokeStyle = "rgba(0,0,0,0.16)"; // tema-fijo: pliegues de la prenda dibujada g.lineWidth = w * 0.025; g.filter = "blur(3px)";
+  for (const x of [0.4, 0.55, 0.66]) { g.beginPath(); g.moveTo(w * x, h * 0.35); g.quadraticCurveTo(w * (x + 0.03), h * 0.65, w * (x - 0.02), h * 0.93); g.stroke(); }
+  g.filter = "none";
+}
+function dibujar(tipo, w = 400, h = 500) {
+  const cv = document.createElement("canvas"); cv.width = w; cv.height = h; const g = cv.getContext("2d");
+  const vino = hexDe("Vino", "#6C2831"), crudo = hexDe("Crudo", "#F3ECE0"), cobalto = hexDe("Cobalto", "#00539C"), negro = hexDe("Negro", "#2D2C2F"), marino = hexDe("Azul marino", "#2A304E");
+  g.save(); silueta(g, w, h); g.clip();
+  if (tipo === "rayas") { for (let y = 0; y < h; y += 28) { g.fillStyle = crudo; g.fillRect(0, y, w, 14); g.fillStyle = marino; g.fillRect(0, y + 14, w, 14); } }
+  else { g.fillStyle = tipo === "lisa" || tipo === "espalda" ? vino : tipo === "fuera" ? FUERA : crudo; g.fillRect(0, 0, w, h); }
+  if (tipo === "detalles" || tipo === "tres") {
+    g.fillStyle = cobalto;
+    g.fillRect(0, h * 0.06, w, h * 0.06); // el canesú
+    g.fillRect(0, h * 0.3, w * 0.22, h * 0.25); g.fillRect(w * 0.78, h * 0.3, w * 0.22, h * 0.25); // las mangas
+    g.fillRect(0, h * 0.12, w * 0.2, h * 0.2); g.fillRect(w * 0.8, h * 0.12, w * 0.2, h * 0.2);
+  }
+  if (tipo === "tres") { g.fillStyle = negro; g.fillRect(0, h * 0.78, w, h * 0.17); }
+  silueta(g, w, h); luz(g, w, h, tipo === "espalda" ? 0.62 : 0.4);
+  if (tipo === "lisa") { g.fillStyle = "#f2efe8"; for (let y = 0.22; y < 0.9; y += 0.12) { g.beginPath(); g.arc(w * 0.5, h * y, w * 0.018, 0, 7); g.fill(); } } // tema-fijo: botones de la prenda dibujada
+  g.restore();
+  return cv;
+}
+const EJEMPLOS = [
+  ["lisa", "Blusa lisa", "Un tono con luz, sombra y botones"],
+  ["espalda", "La espalda de la lisa", "Se junta en la misma tarjeta"],
+  ["detalles", "Con mangas de otro color", "Dos tonos: una mezcla que ya existe"],
+  ["tres", "Tres colores", "Una mezcla nueva"],
+  ["rayas", "A rayas", "Pregunta el estampado"],
+  ["fuera", "Un color que no está", "Pregunta si lo creas"],
+];
+const caja = document.getElementById("ejemplos");
+for (const [tipo, nombre, sub] of EJEMPLOS) {
+  const b = document.createElement("button"); b.type = "button";
+  const mini = dibujar(tipo, 60, 76); b.appendChild(mini);
+  b.insertAdjacentHTML("beforeend", `<span>${nombre}<small>${sub}</small></span>`);
+  b.addEventListener("click", () => dibujar(tipo).toBlob((blob) => agregarArchivos([new File([blob], tipo + ".png", { type: "image/png" })])));
+  caja.appendChild(b);
+}
+pintar();
+</script>
+</body>
+</html>

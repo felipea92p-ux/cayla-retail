@@ -102,7 +102,7 @@ function Tarjeta({ d }: { d: DatosFicha }) {
           // eslint-disable-next-line @next/next/no-img-element -- vista previa local (blob:)
           <img src={d.foto} alt="" className="absolute inset-0 h-full w-full object-cover" />
         ) : (
-          <span>La foto aparece aquí cuando la agregues en la fila de su color</span>
+          <span>La foto aparece aquí cuando la subas</span>
         )}
         {puntos.length > 0 && (
           <div className="absolute bottom-2.5 left-3 flex items-center gap-1">
