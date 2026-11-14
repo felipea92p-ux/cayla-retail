@@ -11,6 +11,9 @@
  *     Lo ya definido, lo ajeno (para la compradora) y lo que ya está en la tienda no se define desde aquí. Lo definido no vuelve atrás.
  *   · Recibir: una línea sin categoría no se cuenta ni se cierra; la tienda dice qué es (`corregir_linea_al_contar`) y la compra lo guarda;
  *     lo que faltó queda con su categoría.
+ *   · La marca es opcional al recibir (`20261114205000_marca_opcional_al_decir_que_es.sql`, Felipe 2026-11-14): «¿Qué es …?» se guarda
+ *     «Sin marca», sin anotar pareja con el proveedor, y la línea se cuenta y se cierra; con el envío cerrado, una línea del aviso pasa a
+ *     «Sin marca» y cambia de categoría sin marca en «¿Ya existe?» (`cambiar_linea_de_pendiente`). Una marca inactiva sigue sin pasar.
  *
  * CÓMO. Cada caso en su transacción con ROLLBACK, con la migración pegada dos veces (es re-ejecutable).
  *
@@ -32,11 +35,13 @@ const arg = (nombre, porDefecto) => {
 };
 const CONTENEDOR = arg("--contenedor", process.env.RETAIL_CONTENEDOR_PG || "supabase_db_cayla-retail");
 const VER_TODO = process.argv.includes("--ver");
+const leerMigracion = (archivo) =>
+  readFileSync(join(RAIZ, "supabase", "migrations", archivo), "utf8")
+    .replace(/^set lock_timeout.*$/gm, "")
+    .replace(/^reset (lock_timeout|search_path);$/gm, "");
 const MIGRACION = process.argv.includes("--sin-migracion")
   ? ""
-  : readFileSync(join(RAIZ, "supabase", "migrations", "20261113211000_mis_compras_por_definir.sql"), "utf8")
-      .replace(/^set lock_timeout.*$/gm, "")
-      .replace(/^reset lock_timeout;$/gm, "");
+  : leerMigracion("20261113211000_mis_compras_por_definir.sql") + "\n" + leerMigracion("20261114205000_marca_opcional_al_decir_que_es.sql");
 
 const FELIPE = "22222222-2222-4222-8222-000000000001"; // líder: compra, manda y ve «Revisar compras»
 const MICAELA = "22222222-2222-4222-8222-000000000003"; // integrante de Trujillo: recibe
@@ -105,6 +110,7 @@ ${atrapa("abre", "p_id uuid, p_version integer", "retail.abrir_despacho(p_id, p_
 ${atrapa("guarda", "p_d uuid, p_item uuid, p_cont integer, p_sep jsonb, p_ver integer, p_extra integer, p_prov uuid, p_cat uuid, p_marca uuid", "retail.guardar_conteo_envio(p_d, p_item, p_cont, p_sep, p_ver, p_extra, p_prov, p_cat, p_marca)")}
 ${atrapa("cierra", "p_d uuid, p_version integer, p_lineas jsonb, p_nota text, p_token uuid", "retail.cerrar_conteo_envio(p_d, p_version, p_lineas, p_nota, p_token)")}
 ${atrapa("dice_que_es", "p_d uuid, p_ids uuid[], p_cat uuid, p_marca uuid", "retail.corregir_linea_al_contar(p_d, p_ids, p_cat, p_marca)")}
+${atrapa("cambia_linea", "p_d uuid, p_pend uuid, p_cat uuid, p_marca uuid", "retail.cambiar_linea_de_pendiente(p_d, p_pend, p_cat, p_marca)")}
 ${atrapa("corrige", "p_papel uuid, p_lote uuid, p_cambios jsonb", "retail.corregir_compra_rapida(p_papel, p_lote, p_cambios, null)")}
 
 -- Como en producción: responsable obligatorio; Micaela marcó su entrada en Trujillo.
@@ -358,6 +364,63 @@ caso(
      (select concat_ws(':', i.categoria_id = :'cat', i.precio_venta_sugerido, i.precio_por_definir) from retail.orden_compra_items i
         join retail.ordenes_compra o on o.id = i.orden_compra_id where o.papel_id = 'aaaaaaaa-0660-4000-8000-0000000000c1'));`,
   "OK / 0 / t:129.90:f",
+);
+
+// Las versiones que «vio» quien cierra el envío de la compra, y el cierre: «Blusa bordada» con su causa si faltó, «Modelo Nela» en 0 («no vino»).
+// Vuelve como Micaela.
+const CIERRA_ENVIO = (causaBlusa) => `
+   reset role;
+   select version as v_envio from retail.despachos where id = :'envio' \\gset
+   select version as k1 from retail.despacho_conteos where despacho_id = :'envio' and despacho_item_id = :'di_blusa' \\gset
+   select version as k2 from retail.despacho_conteos where despacho_id = :'envio' and despacho_item_id = :'di_nela' \\gset
+   ${MICAELA_AQUI}
+   select pg_temp.h(pg_temp.cierra(:'envio', :v_envio, ${A(
+     J({ despacho_item_id: ":'di_blusa'", version: ":k1", costo_unitario: "null::numeric", confirma_costo: "false", faltante_causa: causaBlusa, sobrante_causa: "null::text", nota: "null::text" }),
+     J({ despacho_item_id: ":'di_nela'", version: ":k2", costo_unitario: "null::numeric", confirma_costo: "false", faltante_causa: "'no_vino'", sobrante_causa: "null::text", nota: "null::text" }),
+   )}, null::text, gen_random_uuid())) as cierre \\gset`;
+
+caso(
+  "P12 la marca es opcional al decir qué es: una marca inactiva no pasa; «Sin marca» se guarda sin pareja con el proveedor, queda en la Actividad, y se cuenta y se cierra",
+  `${COMPRA}
+   ${MANDA}
+   reset role;
+   insert into retail.marcas (nombre, activo) values ('Marca Apagada Por Definir', false) returning id as marca_off \\gset
+   ${ABRE}
+   select pg_temp.h(pg_temp.dice_que_es(:'envio', array[:'di_blusa', :'di_nela']::uuid[], :'cat', :'marca_off')) as inactiva \\gset
+   select pg_temp.h(pg_temp.dice_que_es(:'envio', array[:'di_blusa', :'di_nela']::uuid[], :'cat', null::uuid)) as dice \\gset
+   select pg_temp.h(pg_temp.guarda(:'envio', :'di_blusa', 0, ${SEP_NUEVA(0, "Blusa bordada")}, null::int, null::int, null::uuid, null::uuid, null::uuid)) as g1 \\gset
+   select pg_temp.h(pg_temp.guarda(:'envio', :'di_nela', 0, ${SEP_NUEVA(0, "Modelo Nela")}, null::int, null::int, null::uuid, null::uuid, null::uuid)) as g2 \\gset
+   ${CIERRA_ENVIO("'no_vino'")}
+   reset role;
+   select concat_ws(' / ', :'inactiva', :'dice', :'g1', :'g2', :'cierre',
+     (select count(*) from retail.despacho_items di where di.id in (:'di_blusa', :'di_nela') and di.categoria_id = :'cat' and di.marca_id is null),
+     (select count(*) from retail.marca_proveedores mp where mp.proveedor_id = :'prov'),
+     (select count(*) from retail.actividad a where a.accion = 'despacho_pendiente_categoria_cambiada' and a.registro_id = :'envio'
+         and a.descripcion like '%· Sin marca mientras contaba%'));`,
+  "recepcion_marca / OK / OK / OK / OK / 2 / 1 / 2",
+);
+
+caso(
+  "P13 con el envío cerrado, una línea del aviso pasa a «Sin marca» y cambia de categoría sin marca; repetirlo no anota un cambio que no hubo",
+  `${COMPRA}
+   ${MANDA}
+   ${ABRE}
+   select pg_temp.h(pg_temp.dice_que_es(:'envio', array[:'di_blusa', :'di_nela']::uuid[], :'cat', :'marca')) as dice \\gset
+   select pg_temp.h(pg_temp.guarda(:'envio', :'di_blusa', 12, ${SEP_NUEVA(12, "Blusa bordada")}, null::int, null::int, null::uuid, null::uuid, null::uuid)) as g1 \\gset
+   select pg_temp.h(pg_temp.guarda(:'envio', :'di_nela', 0, ${SEP_NUEVA(0, "Modelo Nela")}, null::int, null::int, null::uuid, null::uuid, null::uuid)) as g2 \\gset
+   ${CIERRA_ENVIO("null::text")}
+   reset role;
+   select id as pend from retail.despacho_pendientes where despacho_id = :'envio' and despacho_item_id = :'di_blusa' and tipo = 'crear' \\gset
+   insert into retail.categorias (nombre, familia) values ('Tops Por Definir', 'accesorios') returning id as cat2 \\gset
+   ${MICAELA_AQUI}
+   select pg_temp.h(pg_temp.cambia_linea(:'envio', :'pend', :'cat', null::uuid)) as sin_marca \\gset
+   select pg_temp.h(pg_temp.cambia_linea(:'envio', :'pend', :'cat2', null::uuid)) as otra_cat \\gset
+   select pg_temp.cambia_linea(:'envio', :'pend', :'cat2', null::uuid) ->> 'cambio' as igual \\gset
+   reset role;
+   select concat_ws(' / ', :'dice', :'g1', :'g2', :'cierre', :'sin_marca', :'otra_cat', :'igual',
+     (select concat_ws(':', di.categoria_id = :'cat2', di.marca_id is null) from retail.despacho_items di where di.id = :'di_blusa'),
+     (select count(*) from retail.marca_proveedores mp where mp.proveedor_id = :'prov'));`,
+  "OK / OK / OK / OK / OK / OK / false / t:t / 1",
 );
 
 console.log(`\n${casos - fallas}/${casos} casos en verde`);
