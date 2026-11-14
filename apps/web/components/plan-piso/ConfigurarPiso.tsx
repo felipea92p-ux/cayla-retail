@@ -150,7 +150,18 @@ function HojaConfigurarPiso({ datos, onClose }: { datos: DatosDelPiso; onClose: 
   const cambiar = (parte: Partial<BorradorDelPiso>) => setB((antes) => ({ ...antes, ...parte }));
 
   return (
-    <Modal variante="hoja" titulo="Configurar el piso" subtitulo={datos.sede} onClose={onClose} tamano="mediana" bloqueado={enviando}>
+    <Modal
+      variante="hoja"
+      titulo={
+        <>
+          Configurar el piso{" "}
+          <Ayuda titulo="Configurar el piso">Queda anotado quién lo cambió y cuánto era antes.</Ayuda>
+        </>
+      }
+      subtitulo={datos.sede} onClose={onClose}
+      tamano="mediana"
+      bloqueado={enviando}
+    >
       <form onSubmit={guardar} onKeyDown={enterNoGuarda} className="space-y-4" noValidate>
         <div className="grid gap-4 sm:grid-cols-2">
           <CampoGuiado id="m2" guia={guia}>
@@ -201,11 +212,14 @@ function HojaConfigurarPiso({ datos, onClose }: { datos: DatosDelPiso; onClose: 
                 )}
               </p>
               {frase && (
-                <p className="mt-2 text-sm text-tinta">
-                  {frase.antes}
-                  <b>{frase.destacado}</b>
-                  {frase.despues}
-                </p>
+                <>
+                  <p className="mt-3 text-sm text-taupe">Con lo que cuelga hoy:</p>
+                  <p className="text-sm text-tinta">
+                    {frase.antes}
+                    <b>{frase.destacado}</b>
+                    {frase.despues}
+                  </p>
+                </>
               )}
             </>
           ) : (
@@ -215,22 +229,25 @@ function HojaConfigurarPiso({ datos, onClose }: { datos: DatosDelPiso; onClose: 
 
         <div className="space-y-3">
           <CampoGuiado id="contadaEl" guia={guia}>
-            <CampoFecha
-              etiqueta={guia.etiqueta("contadaEl", "Contado el")}
-              ayuda={
-                <Ayuda titulo="El conteo">
-                  El día en que contaste cuántas prendas caben de verdad. Sin conteo, la capacidad queda como «provisional».
-                </Ayuda>
-              }
-              id="piso-contada-el"
-              valor={b.sinContar ? "" : b.contadaEl}
-              onValor={(iso) => cambiar({ contadaEl: iso })}
-              min={CONTEO_DESDE}
-              max={datos.hoy}
-              motivoMax="El conteo no puede ser de un día que no llegó."
-              motivoMin="Tiene que ser de 2026 en adelante."
-              disabled={b.sinContar || enviando || choque}
-            />
+            {/* Un toque en la caja de la fecha apaga «Aún no lo conté»: quien la toca quiere poner el día, y un campo gris que no responde no dice por qué. */}
+            <div onPointerDownCapture={(e) => b.sinContar && (e.target as HTMLElement).closest(".caja-campo") && cambiar({ sinContar: false })}>
+              <CampoFecha
+                etiqueta={guia.etiqueta("contadaEl", "Contado el")}
+                ayuda={
+                  <Ayuda titulo="El conteo">
+                    El día en que contaste cuántas prendas caben de verdad. Sin conteo, la capacidad queda como «provisional».
+                  </Ayuda>
+                }
+                id="piso-contada-el"
+                valor={b.sinContar ? "" : b.contadaEl}
+                onValor={(iso) => cambiar({ contadaEl: iso, sinContar: false })}
+                min={CONTEO_DESDE}
+                max={datos.hoy}
+                motivoMax="El conteo no puede ser de un día que no llegó."
+                motivoMin="Tiene que ser de 2026 en adelante."
+                disabled={enviando || choque}
+              />
+            </div>
           </CampoGuiado>
           <Interruptor activo={b.sinContar} onActivo={(v) => cambiar({ sinContar: v })} etiqueta="Aún no lo conté" disabled={enviando || choque} />
         </div>

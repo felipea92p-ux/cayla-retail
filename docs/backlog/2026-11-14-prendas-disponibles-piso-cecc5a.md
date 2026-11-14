@@ -8,7 +8,7 @@ Pedido de Felipe: un botón de configuración del piso para actualizarlo contra 
 - [x] 4. Escenarios de modo oscuro y recorrido de la guía a 1440 y 375 px (`74379b41d`).
 - [x] 5. `/chaos` (4 de 4 resisten), `/milimetro` (0 graves; correcciones en `00c9eb9d1`) y prueba ciega de `/formidable`.
 - [x] 6. ADR-0329 (actualización), `ARQUITECTURA.md`, bitácora y tableros.
-- [ ] Los 3 cambios de `/formidable` (`docs/formidable/plan-piso-configurar.md`), esperan el OK de Felipe: tocar la fecha bloqueada apaga «Aún no lo conté»; «Con lo que cuelga hoy:» antes de la frase; un «?» que diga que el valor anterior queda anotado.
+- [x] Los 3 cambios de `/formidable` (OK de Felipe el 2026-11-14): tocar la fecha bloqueada apaga «Aún no lo conté»; «Con lo que cuelga hoy:» antes de la frase; un «?» que dice que el valor anterior queda anotado. Falta repetir la prueba ciega con ellos.
 - [ ] Probar con una cuenta no líder en el navegador y en un celular real; abrir PR con `/abrir-pr` (la rama no se ha subido).
 - [ ] Decisión de Felipe: si quien mide cuenta metros de riel y no m², la hoja debería partir de ese dato.
 - [ ] Higiene local: la base Docker compartida quedó con Lima en versión 5 y 3 filas de Actividad de mis pruebas; `pnpm pruebas:capacidad-piso` falla 4 casos hasta rehacer la base.
