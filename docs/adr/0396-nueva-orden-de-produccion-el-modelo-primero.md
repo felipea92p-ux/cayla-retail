@@ -153,3 +153,11 @@ lugares, y los tres se corrigieron sin tocar ninguna regla:
 3. **«Hoy en el Taller» no llama «lotes» a las muestras** (Órdenes y Resumen de Producción). La cifra es de órdenes: «lotes» si todas
    son lotes, «muestras» si todas lo son, y «órdenes» si hay de las dos, con «1 muestra» en el detalle (`cifrasHoyEnElTaller`, que ahora
    devuelve `ordenes` y `unidad` en vez de `lotes`).
+
+## Actualización 2026-11-14 · El teclado de planilla, también en Nuevo producto y en Recibir (pedido de Felipe)
+
+El teclado de la tabla de cantidades (`teclado` de `MatrizCantidades`, regla `movimientoDeTecla` en `lib/tabla-alta-reglas.ts`), que hasta aquí
+solo encendía la orden de producción, también está encendido en **Catálogo ▸ Nuevo producto** (commits `319428a84` y `3abdc9d0e`: Enter no cambia
+cantidades ni pierde avisos) y en la hoja **«Tallas y colores» de Recibir ▸ Contar** (`1426e96e5`, con su propia tabla, la misma regla). En las tres:
+Enter y ↓ bajan por la talla, ↑ y Shift+Enter suben y al fondo Enter pasa a la talla siguiente. Lo único distinto es Recibir: Enter en la última
+casilla lleva el cursor al botón del pie de la hoja, y solo cuando lo repartido cuadra con lo contado (a medias, ese botón lleva una parte al stock).

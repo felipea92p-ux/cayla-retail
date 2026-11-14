@@ -9,3 +9,8 @@ Por qué así: desde el 12-nov (#1793) cada casilla es un `PasoCantidad` y ningu
 Qué se rompería sin esto: el cursor quedaba en la × de la hoja y había que tocar la primera casilla; la tarea 5 no se podía cumplir «solo con cifras y Enter».
 
 Demo de antes y después (capturas del sistema en local, producción contra la rama): https://claude.ai/artifact/HGJ138xAm6xiQ51EXkVfUs (privado).
+
+## 2026-11-14 (Recibir: los dos filtros de tallas, el número que se reabre y el Enter que espera a que cuadre)
+Qué hice: volvió el filtro «Tallas para después» tal como está en la tienda hoy, y «Faltan tallas» quedó como un filtro más, a su lado, que junta justo lo que lleva el aviso ámbar; el pie «Faltan tallas: …» respeta el filtro puesto. Tocar en la lista el modelo que ya está en el contador vuelve a abrir su número. Enter en la última casilla de tallas solo salta al botón de abajo cuando lo repartido cuadra.
+Por qué así: Felipe pidió no quitar ni un filtro, y entre los dos se reparten lo contado sin tallas sin pisarse (lo que se pidió repartir ahora, y lo que se dejó para después). El número se pedía con el nombre del modelo, y pedirlo dos veces no cambiaba nada; ahora cada pedido es nuevo. A medias, el botón de abajo lleva solo una parte al stock.
+Qué se rompería sin esto: quien filtraba lo dejado para después perdía su filtro; con «Por llevar al stock» el pie mandaba a un modelo escondido; lo tecleado tras volver a tocar el modelo se perdía sin aviso; y un Enter de más abría «llevar al stock» con una cantidad incompleta.
