@@ -1,5 +1,6 @@
 "use client";
 
+import type { PrendaAnterior } from "@/lib/recepcion-igual-que-anterior";
 import { useEffect, useLayoutEffect, useRef, useState, type ComponentProps, type Dispatch, type SetStateAction } from "react";
 import { PackageOpen } from "lucide-react";
 import { ComboResponsable } from "@/components/ComboResponsable";
@@ -325,6 +326,10 @@ export function ContarEnvio({
     { enModal: false },
   );
   const [hoja, setHoja] = useState<Hoja>(null);
+  // «Igual que la anterior» (tarea 7 de Recibir): lo último que se agregó y se creó en este envío, para ofrecerlo de un toque en el siguiente.
+  // Vive mientras la pantalla está abierta: es una ayuda para el que sigue, no un dato del envío.
+  const [marcaAnterior, setMarcaAnterior] = useState<{ id: string; nombre: string } | null>(null);
+  const [prendaAnterior, setPrendaAnterior] = useState<PrendaAnterior | null>(null);
   // En el celular la lista vive en una hoja que se abre desde la isla de abajo. Al abrirse otra hoja (agregar un modelo, quitar), esta se cierra.
   const [listaEnHoja, setListaEnHoja] = useState(false);
   const [hojaVista, setHojaVista] = useState<Hoja>(null);
@@ -595,6 +600,8 @@ export function ContarEnvio({
     }
     setFiltro(SIN_FILTRO);
     setErrorHoja(null);
+    const marca = m.marcaId ? catalogo?.marcas.find((x) => x.id === m.marcaId) : null;
+    if (marca) setMarcaAnterior({ id: marca.id, nombre: marca.nombre });
     return null;
   }
 
@@ -1070,6 +1077,7 @@ export function ContarEnvio({
           onMarcaNueva={onMarcaNueva}
           errorDelGuardado={errores["extra:0"] ?? null}
           onCrear={crearModelo}
+          marcaAnterior={marcaAnterior}
           onIrA={elegir}
           onCerrar={() => setHoja(null)}
         />
@@ -1160,6 +1168,8 @@ export function ContarEnvio({
           vocabulario={catalogo?.vocabulario ?? null}
           responsable={responsable}
           onListo={(prenda) => prendaDeLaNueva(grupoDeHoja, hoja.parada, hoja.nueva.descripcion, prenda)}
+          anterior={prendaAnterior}
+          onRecordar={setPrendaAnterior}
           onCostoEscrito={(productoId, costoTexto) => onCostoDePrenda?.(lineaDeHoja.clave, productoId, costoTexto)}
           onUsarExistente={async (productoId, nombre) => {
             if (!grupoDeHoja.principal.categoria) return false;

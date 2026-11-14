@@ -2,7 +2,7 @@
   "guia": "recibir.envio.id",
   "ruta": "/recibir/envio/[id]",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 297,
+  "total": 301,
   "controles": {
     "app/(app)/recibir/envio/[id]/page.tsx": [
       "Volver «/recibir»",
@@ -259,6 +259,7 @@
       "Boton «Sí, es esta»",
       "Boton «No, es otra»",
       "ComboBuscable «{idComboMarca}»",
+      "button «Usar esa marca»",
       "CampoTexto «{guia.etiqueta(\"modelo-nota\", \"La descripción (para no confundirlo con otro)\")}»",
       "Boton «No, es otra» #2",
       "Boton «Cancelar»",
@@ -391,6 +392,10 @@
       "BotonEnlace «Recibir sin aviso»",
       "ComboResponsable «{responsable}» #2",
       "Boton «{guia.frase ?? undefined}» #2"
+    ],
+    "components/recepcion-envio/FichaDeLaAnterior.tsx": [
+      "FiltroPuesto «{`No usar ${d.texto}»",
+      "Boton «Usar»"
     ],
     "components/recepcion-envio/FormularioRecepcion.tsx": [
       "CampoTexto «Nota de la recepción»",
