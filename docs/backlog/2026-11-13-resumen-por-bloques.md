@@ -1,4 +1,4 @@
-## 🧾 Finanzas ▸ Resumen por bloques y el ranking de sus sub-cuentas (2026-11-13, ADR-0661) — rama `claude/resumen-por-bloques`, migración `20261113235000` SIN pegar
+## 🧾 Finanzas ▸ Resumen por bloques y el ranking de sus sub-cuentas (2026-11-13, ADR-0661) — rama `claude/resumen-por-bloques` (PR #1843), migración `20261113235000` PEGADA en producción
 
 - [x] **Medido, en producción y en la copia de un año.** El ranking va abajo. Medidor reproducible: `node scripts/rendimiento/medir-resumen-finanzas.mjs`
       (contra `cayla_carga`, como el líder del seed, mediana de 3 con `explain (analyze, buffers)` por pieza, con los mismos argumentos que usan por dentro).
@@ -9,7 +9,9 @@
       a 1440 y 0 a 375, claro/oscuro/quieto/vivo. Respaldo probado: sin la función por partes, la página sale entera como hoy.
 - [x] **Logs nuevos:** `finanzas_resumen_bloque` (un registro por bloque, ms desde que empezó la página). `finanzas_resumen_ms` sigue con las 13 partes.
 - [x] `/milimetro auditar /finanzas/resumen`: 0 hallazgos en lo nuevo (`docs/milimetro/auditorias/2026-11-13-finanzas-resumen-por-bloques.md`).
-- [ ] **Pegar `20261113235000` en producción** (OK de Felipe; antes de fusionar; una parte). Verificar md5 `6f5cc4f3…` (envoltorio) y `cb1b94d1…` (por partes).
+- [x] **`20261113235000` pegada en producción** el 2026-11-13 (19:30 de Lima), con el OK de Felipe en la sesión: el archivo entero dentro de `begin … commit`
+      (conector de Supabase), respondió «QUEDÓ BIEN». Verificado por lectura: md5 `6f5cc4f3…` (envoltorio) y `cb1b94d1…` (por partes), dueño `postgres`,
+      `stable` + `security definer`, `authenticated` sí y `anon` no; sin errores en `postgres_logs`.
 - [ ] **A las 24 h de publicar:** `vercel logs --query finanzas_resumen_bloque` — ¿`cabecera`/`libre` bajo 1,5 s? ¿qué bloque llega último? Y `tiempo_de_pantalla`
       de `/finanzas/resumen` (el cronómetro del clic ahora mide hasta lo primero útil, no hasta todo).
 - [ ] **Sin probar con el panel visible:** con el panel del navegador oculto, React no revela los bloques (espera un cuadro de pintura); la verificación visual

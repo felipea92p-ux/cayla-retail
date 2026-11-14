@@ -1,7 +1,9 @@
 # ADR-0661 — Finanzas ▸ Resumen por bloques: la lectura partida en tres, cada bloque cuando llega lo suyo
 
 **Fecha:** 2026-11-13 · **Estado:** aprobado por Felipe (medir + «Resumen por bloques», en el mismo PR). Construido en la rama
-`claude/resumen-por-bloques`. Una migración, **sin pegar en producción**: `20261113235000_resumen_finanzas_por_partes.sql` (ver «Cómo se pega»).
+`claude/resumen-por-bloques` (PR #1843). Una migración, **pegada en producción el 2026-11-13** (19:30 de Lima) con el OK de Felipe en la sesión y
+verificada por md5 (envoltorio `6f5cc4f3…`, por partes `cb1b94d1…`, dueño `postgres`, `anon` sin permiso): `20261113235000_resumen_finanzas_por_partes.sql`
+(ver «Cómo se pega»).
 **Sigue a:** ADR-0195 F10 (el Resumen), ADR-0493 (El telar, la mesa común), ADR-0583 (lecturas a la vez), ADR-0622 (rendimiento medido con un año de
 datos y candado md5), ADR-0633 (la foto del diario), ADR-0654 (el cronómetro del clic), ADR-0149 (loader único), ADR-0185 (nada salta), ADR-0424
 (errores sin datos personales).
