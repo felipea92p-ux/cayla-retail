@@ -84,8 +84,10 @@ envío de mercadería». La hoja exigía la marca, y `corregir_linea_al_contar` 
 **La decisión.** Una sola regla en Recibir: la categoría es obligatoria, la marca no. `20261114205000_marca_opcional_al_decir_que_es.sql` (5 reemplazos anclados):
 `p_marca_id` nulo = «Sin marca» en las dos funciones; una marca que sí se manda sigue teniendo que estar activa; sin marca no se anota pareja en `marca_proveedores`;
 la Actividad dice «Sin marca»; y en la línea del aviso «sin cambio» compara con `is not distinct from`. En la web, «¿Qué es …?» y «Corregir …»
-(`CorregirCategoriaModelo`) ofrecen «Sin marca» arriba y la marca ya no es obligatoria para la guía de foco; «¿Ya existe?» ofrece «Sin marca» también en una
-línea del aviso (sale `admiteSinMarca`).
+(`CorregirCategoriaModelo`) usan el combo de marca de «Nuevo modelo»: vacío es «sin marca», «Sin marca» deshace una elegida, y la marca ya no es obligatoria
+para la guía de foco. Si la marca no está en el catálogo, **«+ Marca nueva»** abre la misma hoja de Recibir (`MarcaNuevaRecepcion`, ADR-0635, Felipe 2026-11-14:
+«debe permitir crear nueva marca desde allí»), unida al proveedor de la compra y sin agregar proveedores. «¿Ya existe?» ofrece «Sin marca» también en una línea
+del aviso (sale `admiteSinMarca`).
 
 **Descarté** una marca «Genérica» creada por la tienda (sería una marca falsa en el catálogo; «sin marca» ya es un valor legítimo desde ADR-0393) y soltarla solo
 al contar (la misma línea, ya cerrada, volvería a toparse con la marca obligatoria en «Para después»).

@@ -1,10 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useId, useState } from "react";
 import { Modal } from "@/components/ui/Modal";
 import { Aviso } from "@/components/ui/Aviso";
 import { avisar } from "@/components/ui/Avisos";
-import { Boton, CampoSelect } from "@/components/ui/campos";
+import { Boton, Campo, CampoSelect } from "@/components/ui/campos";
+import { ComboBuscable } from "@/components/ui/ComboBuscable";
 import { enterNoGuarda } from "@/components/ui/enterNoGuarda";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { CampoGuiado, PieGuia } from "@/components/guia-de-foco/CampoGuiado";
@@ -13,11 +14,17 @@ import type { ControlResponsable } from "@/lib/useResponsable";
 import { esCategoriaPorDefinir, type CatalogoParaRecibir } from "@/lib/recepcion-envio-reglas";
 import { mensajeAlGuardar } from "@/lib/recepcion-conteo-reglas";
 import { corregirLineaAlContar } from "@/lib/recepcion-conteo-acciones";
+import { MarcaNuevaRecepcion, type MarcaRegistrada } from "./MarcaNuevaRecepcion";
+import type { ProveedorDeLaLista } from "./ProveedorNuevoRecepcion";
+
+/** «Sin marca» en el combo: vacío es «sin elegir», así que deshacer una marca elegida necesita su propio valor (como en `NuevoModelo`). */
+const SIN_MARCA = "sin-marca";
 
 // Corregir la categoría y la marca de un modelo «por crear» mientras se cuenta (Felipe 2026-11-12): en «Mis compras» se anotó «Polo nousse» en Polos y era una
 // blusa. Pasa sus líneas de la compra a lo que de verdad llegó, con lo contado (`corregir_linea_al_contar`). La compra, la factura, el proveedor, el stock y el
 // costo no cambian; queda en la Actividad. Con el envío cerrado se corrige en «Para después» (`YaExisteLaPrenda`).
-// La marca es opcional (Felipe 2026-11-14, 20261114205000): quien recibe se la pone o la deja «Sin marca», como en «¿Ya existe?».
+// La marca es opcional (Felipe 2026-11-14, 20261114205000): quien recibe se la pone o la deja «Sin marca», como en «¿Ya existe?». Si no está en el
+// catálogo, la crea ahí mismo con «+ Marca nueva» (ADR-0635), unida al proveedor de la compra: el mismo combo y la misma hoja de «Nuevo modelo».
 
 export function CorregirCategoriaModelo({
   despachoId,
@@ -26,9 +33,11 @@ export function CorregirCategoriaModelo({
   categoria: categoriaActual,
   marca: marcaActual,
   proveedorId,
+  proveedores,
   catalogo,
   responsable,
   esperandoGuardar,
+  onMarcaNueva,
   onCorregido,
   onCerrar,
 }: {
@@ -39,12 +48,16 @@ export function CorregirCategoriaModelo({
   categoria: { id: string; nombre: string };
   /** `id` nulo: la compra no anotó marca. */
   marca: { id: string | null; nombre: string };
-  /** El de la compra: sus marcas salen primero. */
+  /** El de la compra: sus marcas salen primero, y una marca nueva queda unida a él. */
   proveedorId: string | null;
+  /** Los proveedores del envío: si la línea no trae el suyo, la marca nueva se une a uno de ellos. */
+  proveedores: readonly ProveedorDeLaLista[];
   catalogo: CatalogoParaRecibir | null;
   responsable: ControlResponsable;
   /** Lo último contado todavía viaja a la base: se espera, para no corregir sobre un número que no llegó. */
   esperandoGuardar: boolean;
+  /** Se creó una marca con «+ Marca nueva»: quien abre la hoja la suma a su catálogo. */
+  onMarcaNueva?: (r: MarcaRegistrada) => void;
   /** `marcaId` nulo = sin marca. */
   onCorregido: (cambio: { categoriaId: string; marcaId: string | null }) => void;
   onCerrar: () => void;
@@ -54,6 +67,9 @@ export function CorregirCategoriaModelo({
   const [marcaId, setMarcaId] = useState(marcaActual.id ?? "");
   const [guardando, setGuardando] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  /** «+ Marca nueva»: lo escrito en el combo de la marca, mientras su hoja está abierta (ADR-0635). */
+  const [creandoMarca, setCreandoMarca] = useState<string | null>(null);
+  const idComboMarca = useId();
 
   const categorias = catalogo?.categorias ?? [];
   const delProveedor = new Set((catalogo?.vinculos ?? []).filter((v) => proveedorId && v.proveedorId === proveedorId).map((v) => v.marcaId));
@@ -61,6 +77,8 @@ export function CorregirCategoriaModelo({
   const cambio = categoriaId !== categoriaActual.id || marcaId !== (marcaActual.id ?? "");
   const nuevaCategoria = categorias.find((c) => c.id === categoriaId)?.nombre ?? categoriaActual.nombre;
   const nuevaMarca = marcaId ? (marcas.find((m) => m.id === marcaId)?.nombre ?? marcaActual.nombre) : "Sin marca";
+  const delaLinea = proveedores.filter((p) => p.id === proveedorId);
+  const proveedoresDeLaMarca = delaLinea.length > 0 ? delaLinea : proveedores;
 
   const guia = useGuiaCampos([
     { id: "corregir-categoria", nombre: "La categoría", requerido: true, hecho: categoriaId !== "", pendiente: "Elige la categoría de lo que llegó." },
@@ -100,6 +118,7 @@ export function CorregirCategoriaModelo({
       onClose={onCerrar}
     >
       {(cerrar) => (
+        <>
         <form
           noValidate
           onKeyDown={enterNoGuarda}
@@ -124,20 +143,26 @@ export function CorregirCategoriaModelo({
               />
             </CampoGuiado>
             <CampoGuiado id="corregir-marca" guia={guia}>
-              <CampoSelect
-                etiqueta={guia.etiqueta("corregir-marca", "Marca")}
-                valor={marcaId}
-                onValor={(v) => {
-                  setMarcaId(v);
-                  setError(null);
-                }}
-                deshabilitado={guardando}
-                // «Sin marca» arriba y sin título de grupo: es lo que queda si nadie elige otra.
-                opciones={[
-                  { valor: "", texto: "Sin marca" },
-                  ...marcas.map((m) => ({ valor: m.id, texto: m.nombre, grupo: delProveedor.size > 0 ? (delProveedor.has(m.id) ? "Las de este proveedor" : "Otras marcas") : undefined })),
-                ]}
-              />
+              <Campo etiqueta={guia.etiqueta("corregir-marca", "Marca")} htmlFor={idComboMarca}>
+                <ComboBuscable
+                  id={idComboMarca}
+                  etiquetaAccesible="La marca: elige una o agrega una nueva"
+                  valor={marcaId}
+                  onValor={(v) => {
+                    setMarcaId(v === SIN_MARCA ? "" : v);
+                    setError(null);
+                  }}
+                  // Vacía = sin marca: «Sin marca» solo aparece para deshacer una ya elegida (como en «Nuevo modelo»).
+                  opciones={[
+                    ...(marcaId ? [{ valor: SIN_MARCA, texto: "Sin marca" }] : []),
+                    ...marcas.map((m) => ({ valor: m.id, texto: m.nombre, detalle: delProveedor.has(m.id) ? "La trae este proveedor" : undefined })),
+                  ]}
+                  marcador="Déjala vacía si no tiene"
+                  // «+ Marca nueva» (ADR-0635): arriba y fija, como en Nuevo producto y Nuevo modelo.
+                  crearArriba
+                  crear={{ etiqueta: (q) => (q ? `+ Marca nueva «${q}»` : "+ Marca nueva"), onCrear: (q) => setCreandoMarca(q) }}
+                />
+              </Campo>
             </CampoGuiado>
           </div>
           {cambio && (
@@ -175,6 +200,27 @@ export function CorregirCategoriaModelo({
             </Boton>
           </div>
         </form>
+        {creandoMarca !== null && (
+          <MarcaNuevaRecepcion
+            tipeado={creandoMarca}
+            marcas={catalogo?.marcas ?? []}
+            vinculos={catalogo?.vinculos ?? []}
+            proveedores={proveedoresDeLaMarca}
+            proveedorInicial={proveedoresDeLaMarca.length === 1 ? proveedoresDeLaMarca[0].id : ""}
+            // Una línea de la compra: la marca va con un proveedor del envío, no con uno nuevo.
+            puedeAgregarProveedor={false}
+            responsable={responsable}
+            onProveedorNuevo={() => {}}
+            onRegistrada={(r) => {
+              onMarcaNueva?.(r);
+              setMarcaId(r.marca.id);
+              setError(null);
+              setCreandoMarca(null);
+            }}
+            onCerrar={() => setCreandoMarca(null)}
+          />
+        )}
+        </>
       )}
     </Modal>
   );

@@ -168,7 +168,7 @@
     ],
     "components/recepcion-conteo/CorregirCategoriaModelo.tsx": [
       "CampoSelect «{guia.etiqueta(\"corregir-categoria\", \"Categoría\")}»",
-      "CampoSelect «{guia.etiqueta(\"corregir-marca\", \"Marca\")}»",
+      "ComboBuscable «{idComboMarca}»",
       "ComboResponsable «{responsable}»",
       "Boton «Cancelar»",
       "Boton «Guardar»"
