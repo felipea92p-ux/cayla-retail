@@ -674,7 +674,8 @@ export const contadorDeParada = (p: ParadaDelConteo): number => (p.modelo ? p.mo
  */
 export function destinoDelEnter(aLaVista: readonly ParadaDelConteo[], actual: string | null): ParadaDelConteo | null {
   const i = aLaVista.findIndex((p) => p.clave === actual);
-  const enCero = (p: ParadaDelConteo): boolean => p.clave !== actual && contadorDeParada(p) === 0;
+  // El modelo que se cuenta nunca es destino: los cortes de abajo lo dejan fuera, y si no está en la lista no hay nada que excluir.
+  const enCero = (p: ParadaDelConteo): boolean => contadorDeParada(p) === 0;
   // Si lo que se cuenta no se ve (el buscador lo dejó fuera), toda la lista está adelante.
   const adelante = i < 0 ? aLaVista : aLaVista.slice(i + 1);
   const antes = i < 0 ? [] : aLaVista.slice(0, i);

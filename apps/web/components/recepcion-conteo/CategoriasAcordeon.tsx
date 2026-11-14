@@ -21,6 +21,7 @@ import {
   categoriaAbierta,
   conMiles,
   conSigno,
+  contadorDeParada,
   hayFiltro,
   idCampoCategoria,
   idCampoParada,
@@ -42,7 +43,6 @@ import {
   type ParadaDelConteo,
   type YaEnStock,
 } from "@/lib/recepcion-modelos-reglas";
-import { sinIdentificarDelGrupo } from "@/lib/recepcion-grupos-reglas";
 import { FiltrosDelEnvio } from "./FiltrosDelEnvio";
 import { BaldosaCategoria } from "./piezas";
 import { useFilaActivaALaVista } from "./useFilaActivaALaVista";
@@ -100,7 +100,8 @@ function useFotosDeLaCategoria(c: CategoriaDelEnvio, enUso: boolean, onFotos: (f
 function FilaDeParada({ p, activa, conOrigen, foto, faltanTallas, sinAviso, onElegir, onQuitar, onLlegaron }: { p: ParadaDelConteo; activa: boolean; conOrigen: boolean; foto: string | null; faltanTallas: boolean; sinAviso: boolean; onElegir: (p: ParadaDelConteo) => void; onQuitar: (p: ParadaDelConteo) => void; onLlegaron: (p: ParadaDelConteo, n: number) => void }) {
   const m = p.modelo;
   const cat = p.grupo.principal.categoria;
-  const contadas = m ? m.contadas : sinIdentificarDelGrupo(p.grupo);
+  // El mismo número que el contador de la derecha y que mira Enter (`contadorDeParada`).
+  const contadas = contadorDeParada(p);
   const esperadas = m ? m.esperadas : null;
   const seQuita = !!m && modeloSeQuita(m);
   // El check de la fila (reunión del 13-nov, punto 2): lo anotado y todavía sin contar se confirma de un toque, sin ir al contador. Lo demás se cuenta en el contador.
