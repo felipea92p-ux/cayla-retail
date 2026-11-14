@@ -107,7 +107,7 @@ export async function getEtiquetasDePrecio(origen: OrigenEtiquetas, hoy: string)
       supabase
         .from("variantes")
         .select(
-          "id, producto_id, codigo, sku, precio, color_codigo, talla:tallas ( valor ), color:colores ( nombre, hex, familia_color, tipo ), producto:productos ( referencia, categoria_id, empresa_id, marca:marcas ( nombre ) ), variante_etiquetas ( etiqueta_id )",
+          "id, producto_id, codigo, sku, precio, color_codigo, talla:tallas ( valor ), color:colores ( nombre, hex, familia_color, tipo ), producto:productos ( referencia, categoria_id, empresa_id, marca:marcas ( nombre ), categoria:categorias ( nombre ) ), variante_etiquetas ( etiqueta_id )",
         )
         .in("id", tanda),
     ),
@@ -159,6 +159,8 @@ export async function getEtiquetasDePrecio(origen: OrigenEtiquetas, hoy: string)
         talla: v.talla?.valor ?? null,
         marca: v.producto?.marca?.nombre ?? null,
         empresa: (v.producto?.empresa_id ? empresas.get(v.producto.empresa_id) : null) ?? null,
+        // Solo para el orden del rollo: como las pilas de la mesa, por categoría (tarea 6 de Recibir).
+        categoria: v.producto?.categoria?.nombre ?? null,
       })),
       hermanas.map((h) => ({ productoId: h.producto_id, colorCodigo: h.color_codigo, talla: h.talla?.valor ?? null, activo: h.activo })),
       campanas,

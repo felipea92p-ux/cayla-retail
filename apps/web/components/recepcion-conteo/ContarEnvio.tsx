@@ -1122,7 +1122,16 @@ export function ContarEnvio({
         </HojaRepartir>
       )}
 
-      {hoja?.tipo === "salida-hecha" && <SalidaHecha resultado={hoja.resultado} nombre={hoja.nombre} envioId={detalle.id} veExistencias={veExistencias} onCerrar={() => setHoja(null)} />}
+      {hoja?.tipo === "salida-hecha" && (
+        <SalidaHecha
+          resultado={hoja.resultado}
+          nombre={hoja.nombre}
+          envioId={detalle.id}
+          veExistencias={veExistencias}
+          onCerrar={() => setHoja(null)}
+          onReabrir={() => setHoja({ tipo: "salida-hecha", resultado: hoja.resultado, nombre: hoja.nombre })}
+        />
+      )}
       {hoja?.tipo === "corregir-salida" && (
         <CorregirSalida
           salida={hoja.salida}

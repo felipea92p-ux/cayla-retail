@@ -406,3 +406,38 @@ con campaña (la segunda se recorta), como antes.
 precio de 4 cifras, tres etiquetas, nombre propio, campaña sin fecha). En las 36 el pie queda a 3 mm del borde, ninguna se sale y
 **las 23 que llevan dos etiquetas las muestran las dos** (las que no caben juntas van una debajo de la otra).
 **Falta (Felipe):** imprimir en la Brother una prenda con 2 etiquetas y otra con campaña y 2 etiquetas, y mirar el ícono de 3,4 mm.
+
+## Actualización 2026-11-14 — el rollo sale en el orden de las pilas, y la tanda de Recibir se imprime desde su hoja (tarea 6 de «Treinta tareas de Recibir»)
+
+**El problema (medido en producción, reunión del 2026-11-13):** registrar un modelo nuevo toma 14 min y una reposición 9. Trujillo lleva cada modelo al
+stock apenas lo reparte, así que imprimir sus etiquetas se repite por modelo. «Imprimir N etiquetas» de la hoja «ya están en el stock» llevaba a la
+pantalla de Etiquetas y había que volver con la flecha: 4 o 5 toques y dos cargas de pantalla cada vez. Y el rollo salía por nombre de modelo, no como
+las pilas de la mesa: en un envío con varias categorías, un «Abrigo» caía entre dos blusas.
+
+**Decidido con Felipe (2026-11-14):**
+
+1. **La tanda se imprime desde la misma hoja** (`SalidaHecha`, `components/recepcion-conteo/LlevarAlStock.tsx`). Al abrirse, la hoja pide las
+   etiquetas de esas unidades a `GET /api/etiquetas-de-precio/tanda?unidades=…`, que llama a la MISMA lectura de la pantalla de Etiquetas
+   (`getEtiquetasDePrecio`: precio de la sede y campaña de hoy). Un toque en «Imprimir N etiquetas» las manda a la Brother y la hoja se cierra: la
+   persona queda contando. La hoja de impresión (`#etiquetas-precio-print`) es ahora una pieza compartida (`components/impresion/HojaEtiquetasPrecio.tsx`).
+2. **Imprimir sigue siendo un clic de la persona.** Al abrirse la hoja las etiquetas solo se PREPARAN (un GET, sin loader); nada sale sin tocar el botón.
+3. **El orden es uno solo, en todas partes** (Felipe: «que aplique para todo para que tenga el mismo orden en donde se use»): categoría → modelo →
+   color → talla de la chica a la grande (`ordenDePilas`, dentro de `armarEtiquetas`). Vale para un envío, una producción, una campaña, un producto y lo
+   marcado en Existencias. Lo que no tiene categoría va al final. La lista de la hoja «Llevar al stock» (`ListaDeTallas`) pasó a ordenar sus colores por
+   nombre, para leerse igual que el rollo (antes iban en el orden en que se tecleaban).
+4. **Qué pasa después de imprimir.** Por el ayudante de la Mac se sabe si salieron: si sí, aviso y la hoja se cierra; si no, el aviso dice por qué y la
+   hoja queda para reintentar. Por el diálogo del navegador no se sabe (pudo cancelarse): la hoja se cierra igual y el aviso ofrece «Imprimir de nuevo»,
+   que vuelve a abrirla con la misma tanda (`useImpresionBrother().imprimirYSaber`, que espera `afterprint`).
+5. **Cambiar cantidades o sacar la campaña del papel** sigue siendo de la pantalla de Etiquetas: el enlace «Ajustar antes de imprimir» lleva a ella con
+   la tanda, y su flecha vuelve al envío.
+
+**Lo que NO se hizo, a propósito:** que el envío recuerde qué tandas faltan imprimir. Pide una decisión aparte de Felipe (guardar ese estado es un dato
+nuevo en la base).
+
+**Se degrada:** si la lectura falla, la hoja lo dice con «Reintentar» y el enlace a la pantalla de Etiquetas sigue ahí; una prenda sin código no lleva
+etiqueta y la hoja lo avisa. Sin migración: todo es lectura.
+
+**Verificado (local, 2026-11-14):** 4 tandas de 3 modelos del envío ENV-001660 llevadas al stock e impresas sin cambiar de pantalla; el documento que
+recibe el ayudante trae las etiquetas en el orden de la lista (Celeste L · Crudo M · Vino S). Probados el ayudante que responde bien, el que falla, el
+diálogo del navegador con «Imprimir de nuevo», y la lectura que falla y se reintenta. **No verificado:** el papel real en la Brother (el ayudante y el
+diálogo se simularon para no gastar etiquetas) y una Mac o un Windows de tienda.
