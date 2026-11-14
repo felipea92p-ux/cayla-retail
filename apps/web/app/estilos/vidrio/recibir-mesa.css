@@ -398,6 +398,26 @@ main:has(.rc-conteo) { padding-bottom: 16px; }
   .rc-opciones { grid-template-columns: minmax(0, 1fr); }
 }
 
+/* ---------- La galería de «Ya la tenemos» y «¿Esta prenda ya existe?» (tablero de Recibir, tarea 9, 2026-11-14) ----------
+   Sin caja con su propio scroll: corre la hoja entera, y se ven dos filas o más. La reposición se reconoce por la foto: una tarjeta por prenda, con la foto de 3:4 a unos 130 px, su nombre, su marca y sus colores. Muchas tarjetas
+   iguales que corren con el scroll: vidrio claro, sin desenfoque (ADR-0623). La elegida lleva el borde de tinta y su ✓; nada se mueve al elegir. */
+.rc-galeria { display: grid; grid-template-columns: repeat(auto-fill, minmax(124px, 1fr)); gap: 8px; padding: 2px; }
+.rc-galeria-tarjeta { display: flex; width: 100%; flex-direction: column; gap: 4px; padding: 6px 6px 8px; border: 1px solid var(--vidrio-claro-borde); border-radius: 14px; background: var(--vidrio-claro-fondo); box-shadow: var(--vidrio-claro-filo); text-align: left; transition: border-color 200ms var(--ease-cayla), box-shadow 200ms var(--ease-cayla); }
+.rc-galeria-tarjeta[aria-pressed="true"] { border-color: var(--color-tinta); box-shadow: var(--vidrio-claro-filo), inset 0 0 0 1px var(--color-tinta); }
+@media (hover: hover) {
+  .rc-galeria-tarjeta:not([aria-pressed="true"]):hover { border-color: var(--color-borde-control); }
+}
+.rc-galeria-tarjeta:focus-visible { outline: 2px solid var(--color-tinta); outline-offset: 2px; }
+.rc-galeria-foto { position: relative; display: block; margin-bottom: 2px; }
+.rc-galeria-visto { position: absolute; top: 6px; right: 6px; display: grid; width: 22px; height: 22px; place-items: center; border-radius: 999px; background: var(--color-tinta); color: var(--color-crema); }
+.rc-galeria-en-lista { display: flex; }
+/* El porqué de que esté arriba («Llegó el 2 nov · mismo costo y precio»): una línea, en verde suave porque es una buena pista, no un estado. */
+.rc-galeria-porque { color: var(--color-verde); font-size: 14px; line-height: 1.3; }
+.rc-galeria-nombre { display: -webkit-box; overflow: hidden; -webkit-box-orient: vertical; -webkit-line-clamp: 2; color: var(--color-tinta); font-size: 14px; font-weight: 600; line-height: 1.3; }
+.rc-galeria-dato { overflow: hidden; color: var(--color-taupe); font-size: 14px; line-height: 1.3; text-overflow: ellipsis; white-space: nowrap; }
+.rc-galeria-colores { display: flex; align-items: center; gap: 4px; color: var(--color-taupe); font-size: 14px; }
+.rc-galeria-punto { width: 12px; height: 12px; border-radius: 999px; background: var(--color-hueso); box-shadow: 0 0 0 1px color-mix(in srgb, var(--color-tinta) 30%, transparent); } /* contraste: gráfico sobre vidrio claro — el filo sigue al tema: un punto negro o blanco no desaparece en ninguno */
+
 /* Tallas y colores, en la misma pantalla. */
 .rc-matriz-caja { overflow-x: auto; border: 1px solid var(--hilo-cabeza); border-radius: 14px; }
 .rc-tabla-tallas { width: 100%; border-collapse: collapse; font-size: 14px; }
@@ -478,7 +498,7 @@ button.rc-celda-falta:focus-visible { outline: 2px solid var(--color-tinta); out
 
 @media (prefers-reduced-motion: reduce) {
   .rc-panel, .rc-cat, .rc-otra, .rc-talla, .rc-bloque, .rc-tarjeta { animation: none; }
-  .rc-cat-cuerpo, .rc-cat-flecha, .rc-modelo, .rc-opcion, .rc-celda, .rc-celda-falta, .rc-tray, .rc-tray-bola, .rc-suma button, .rc-atajo, .rc-cat-cabeza, .rc-radio, .rc-radio::after, .rc-talla-quitar, .rc-paso, .rc-tarjeta { transition: none; }
+  .rc-cat-cuerpo, .rc-cat-flecha, .rc-modelo, .rc-opcion, .rc-celda, .rc-celda-falta, .rc-tray, .rc-tray-bola, .rc-suma button, .rc-atajo, .rc-cat-cabeza, .rc-radio, .rc-radio::after, .rc-talla-quitar, .rc-paso, .rc-tarjeta, .rc-galeria-tarjeta { transition: none; }
 }
 
 /* ---------- Lo que ya entró al stock, dentro de su categoría (Felipe 2026-11-07, maqueta «A · Matriz») ----------

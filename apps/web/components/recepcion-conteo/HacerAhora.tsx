@@ -445,6 +445,8 @@ export function HacerAhora({
           nombre={esProvisional(linea, descripcionNueva) ? null : descripcionNueva}
           cantidad={item.cantidad}
           costo={costoDe ? costoInicialDePrenda(linea, "", descripcionNueva) : null}
+          precio={linea?.linea?.precioVentaSugerido ?? null}
+          proveedorIds={linea?.proveedor ? [linea.proveedor.id] : []}
           comoCorregirMarca={sePuedeCambiarCategoria(item, linea) ? "Si es de esa marca, elígela arriba." : "Si la marca anotada está mal, reabre el conteo y corrígela."}
           categorias={sePuedeCambiarCategoria(item, linea) ? (catalogo?.categorias ?? []) : []}
           marcas={sePuedeCambiarCategoria(item, linea) ? (catalogo?.marcas ?? []) : []}
