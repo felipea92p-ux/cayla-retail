@@ -219,13 +219,23 @@ export function leerPagosSunat(data: unknown): PagoDeMes[] {
   return [...porMes.values()];
 }
 
+/**
+ * Lo que se le paga a SUNAT va en soles enteros: se mira el primer decimal y, desde 5, sube (R.S. 025-2000/SUNAT, art. 2). El sistema calcula al céntimo (1 % de
+ * S/ 112,307.93 = S/ 1,123.08) y SUNAT cobra S/ 1,123: comparar lo pagado contra el céntimo dejaba el mes en «Te falta S/ 0.08» para siempre. Todo lo que diga cuánto
+ * se le paga a SUNAT o si un mes ya está pagado pasa por aquí; en la base, por `retail.fn_redondeo_sunat` (la misma regla). Los libros siguen al céntimo: la norma
+ * no aplica al registro contable. Primero se vuelve a céntimos, porque una suma del navegador puede traer 100.49999999999999 donde hay 100.50.
+ */
+export function redondeoSunat(monto: number): number {
+  return Math.round(Math.round(monto * 100) / 100);
+}
+
 /** El mes en curso todavía cambia; un mes cuyo IGV ya se cubrió con pagos dice «pagado»; el anterior es el que se declara ahora
  *  (se declara aunque quede a favor); los de antes dicen si dejaron algo a pagar o a favor. «Declarado» no se afirma: aquí se
  *  registra el pago, no la declaración. Si no se pudo leer lo pagado, un mes con IGV a pagar no dice ni «por declarar» ni «sin pago»: puede estar pagado. */
 export function estadoMes(m: Pick<MesIgv, "mes" | "aPagar" | "saldoAFavor" | "debito" | "credito">, mesActual: string, pago?: PagoDeMes, pagosFalla = false): EstadoMesIgv {
   if (m.mes >= mesActual) return "en_curso";
   if (pagosFalla && m.aPagar > 0) return "sin_leer";
-  if (m.aPagar > 0 && pago && pago.igv >= m.aPagar - 0.005) return "pagado";
+  if (m.aPagar > 0 && pago && pago.igv >= redondeoSunat(m.aPagar)) return "pagado";
   if (m.mes === sumarMeses(mesActual, -1)) return "por_declarar";
   if (m.aPagar > 0) return "sin_pago";
   if (m.saldoAFavor > 0) return "a_favor";
