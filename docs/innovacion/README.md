@@ -47,7 +47,7 @@ Las ideas que se descartaron en una corrida (ya existían, sin fuente, moda, no 
 | recibir-galeria#4 | Recibir | El código de la etiqueta del proveedor se aprende al recibir | Visión | 4 / L | propuesta | [informe](2026-11-14-recibir-galeria.md) | 2026-11-14 |
 | recibir-galeria#5 | Recibir | Una foto de la prenda en la mano ordena la galería por parecido | Visión | 4 / L | propuesta | [informe](2026-11-14-recibir-galeria.md) | 2026-11-14 |
 | recibir-galeria#6 | Recibir | La foto del papel de la compra propone los modelos y su prenda | Visión | 5 / XL | propuesta | [informe](2026-11-14-recibir-galeria.md) | 2026-11-14 |
-| recibir-margen#1 | Compras ▸ Recibir | Un solo margen en todo el ERP: Recibir y Nuevo producto con la cuenta de Compras (sin IGV) | Ahora | 4 / M | hecha (PR pendiente, rama `claude/recibir-margen-una-cuenta`) | [informe](2026-11-14-recibir-margen.md) | 2026-11-14 |
+| recibir-margen#1 | Compras ▸ Recibir | Un solo margen en todo el ERP: Recibir y Nuevo producto con la cuenta de Compras (sin IGV) | Ahora | 4 / M | hecha ([PR #1867](https://github.com/felipea92p-ux/cayla-retail/pull/1867)) | [informe](2026-11-14-recibir-margen.md) | 2026-11-14 |
 | recibir-margen#2 | Compras ▸ Recibir | «¿Y con la rebaja?»: lo que queda con 30 % de campaña, en el «?» de la línea | Ahora | 3 / S | propuesta | [informe](2026-11-14-recibir-margen.md) | 2026-11-14 |
 | recibir-margen#3 | Compras ▸ Recibir | El cierre dice cuánto deja el envío entero | Ahora | 3 / S | propuesta | [informe](2026-11-14-recibir-margen.md) | 2026-11-14 |
 | recibir-margen#4 | Compras ▸ Recibir | El costo llega solo desde el XML de la factura del proveedor | Visión | 4 / L | propuesta | [informe](2026-11-14-recibir-margen.md) | 2026-11-14 |
