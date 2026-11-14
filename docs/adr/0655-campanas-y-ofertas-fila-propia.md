@@ -132,6 +132,34 @@ cuatro insignias tenían descuento de siempre: «Para liquidar» (−15 %, 1.251
 
 Prueba: `pnpm pruebas:insignias-sin-descuento` (12 de 12); con el candado puesto en la base local, las 33 pruebas que tocan descuentos en verde.
 
+## Actividad 6 (2026-11-13): «Llevar varias y pagar menos», en cuatro partes
+
+Felipe aprobó partirla en cuatro, cada una con su PR: (1) la base, (2) la hoja, (3) la caja, (4) los apartados. Y decidió las reglas de dinero:
+
+- **Varios grupos:** se ordenan de la más cara a la más barata y se arman de a N; en cada grupo, lo de la forma (en el 3x2, la más barata
+  gratis; si cuestan lo mismo, cualquiera). Ejemplo: seis polos, tres de S/ 50 y tres de S/ 30 → gratis uno de 50 y uno de 30.
+- **El ahorro de un grupo se reparte entre sus prendas en proporción a su precio**, en céntimos exactos: cada prenda queda con lo que pagó, y
+  así va a SUNAT, a un cambio y a una devolución (decisión 7 de la maqueta).
+- **Un 3x2 se puede apartar**, y queda «así como está ese día» aunque la oferta termine antes de recoger (parte 4).
+- **Un descuento manual en una prenda del grupo se suma** a su parte del grupo: la prenda sigue contando (parte 3).
+
+### Parte 1: la base (`20261114003000_ofertas_de_grupo.sql`)
+
+- `campana_reglas` suma tres formas: `nxm` («lleva N, paga M»), `n_por_monto` («N por S/ X») y `nesima_pct` («la N.ª al X %»), con
+  `lleva`, `paga`, `monto` y `agrupa` (con cualquier prenda que alcanza la oferta, o solo del mismo modelo). El candado `campana_reglas_forma`
+  exige lo de cada una (un `CHECK` deja pasar lo que da NULL: va con `coalesce(…, false)`).
+- `fn_ofertas_de_grupo(hoy, sede, líneas, tolerancia)` es **la** regla: arma los grupos de un ticket y reparte el ahorro. Toma la oferta de
+  grupo de cada prenda con las mismas condiciones que la caja usa para el % (fechas, días, tiendas, alcance, cesiones). Va en céntimos
+  enteros: `sum()` de enteros es `numeric` en Postgres, y con `/` la base del reparto salía con decimales y sobraba un céntimo (tres de S/ 50
+  en 3x2 daban 16.67 × 3 = 50.01); se usa `div`/`mod`.
+- `guardar_oferta_completa` guarda cualquier forma encima de `guardar_oferta_y_ceder`, en la misma transacción, con la forma de antes en la
+  historia. `campana_reglas()` devuelve la forma.
+- Nadie cobra todavía una oferta de grupo: `fn_campanas_en_sede`, `registrar_venta`, la tienda web y los apartados leen solo `tipo = 'pct'`
+  (revisado en producción). La misma regla en TypeScript entra con la caja (parte 3): Knip no deja entrar una pieza que solo usa su prueba.
+
+Prueba: `pnpm pruebas:ofertas-de-grupo` (25 de 25), con 300 tickets al azar que comparan el ahorro con «la más barata de cada grupo»
+contada de otra forma; con el error de la división puesto a propósito, fallan 80 de los 300.
+
 ## Alternativas descartadas
 
 - **Dentro de Insignias, renombrado «Insignias y ofertas».** No mueve nada, pero sigue mezclando dos preguntas en una pantalla y el nombre
