@@ -1,37 +1,49 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-import { SearchX } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Check, SearchX } from "lucide-react";
 import { Buscador } from "@/components/ui/Buscador";
 import { Vacio } from "@/components/ui/Vacio";
 import { Aviso } from "@/components/ui/Aviso";
-import { MiniaturaPrenda } from "@/components/ui/PrendaCelda";
+import { FotoDePrenda } from "@/components/ui/FotoDePrenda";
 import { buscarParecidasParaRecibir, buscarPrendasParaRecibir } from "@/lib/recepcion-envio-acciones";
 import { MAX_PRENDAS_PARA_RECIBIR, type CategoriaDeLinea, type PrendaRecepcion } from "@/lib/recepcion-envio-reglas";
+import { MAX_COLORES_EN_TARJETA, coloresDeLaPrenda, galeriaDePrendas } from "@/lib/recepcion-galeria-reglas";
 
 // «Ya la tengo» (ADR-0362, fase 4): la prenda que llegó ya existe en el catálogo. Se busca entre las de ESA categoría y marca
-// (`fn_prendas_para_recibir`, hasta 30, las que coinciden primero) mientras se escribe —nunca esperando un Enter (ADR-0358, buscador)— y se
-// elige con un toque. Si no está, la salida es crearla como nueva.
+// (`fn_prendas_para_recibir`, hasta 30) o de todas las marcas (`fn_parecidas_para_recibir`, hasta 200) mientras se escribe —nunca esperando
+// un Enter (ADR-0358, buscador)—.
+//
+// Desde el 2026-11-14 (tablero de Recibir, tarea 9) es una GALERÍA: la reposición se reconoce por la foto, así que cada prenda es una tarjeta
+// con su foto en grande, su nombre, su marca y sus colores. Al escribir quedan solo las que coinciden (antes solo se ordenaban) y salen
+// primero las marcas que ya trae el envío (`galeriaDePrendas`, lógica pura con su prueba). Tocar una tarjeta la ELIGE ahí mismo, sin abrir su
+// ficha: descartar una candidata ya no cuesta abrir y volver. La ficha queda a un toque («Ver ficha») para cuando haya duda.
 
 export function ElegirPrendaExistente({
   categoria,
   marca,
   busquedaInicial = "",
-  textoElegir = "Elegir",
   todasLasMarcas = false,
+  marcasDelEnvio = [],
+  elegidaId = null,
   onElegir,
+  onVerFicha,
   onEsNueva,
 }: {
   categoria: CategoriaDeLinea;
   /** `id` vacío = sin marca (ADR-0393, 2026-10-14). */
   marca: { id: string | null; nombre: string };
-  /** Lo que ya se sabe de la prenda: las que coinciden salen primero, y las demás siguen en la lista. */
+  /** Lo que ya se sabe de la prenda: se escribe en el buscador al abrir. */
   busquedaInicial?: string;
-  /** Lo que dice cada fila a la derecha: qué pasa al tocarla. */
-  textoElegir?: string;
-  /** Busca en todas las marcas de la categoría (`fn_parecidas_para_recibir`), y cada fila dice la suya. `marca` queda solo como nombre del filtro. */
+  /** Busca en todas las marcas de la categoría (`fn_parecidas_para_recibir`), y cada tarjeta dice la suya. `marca` queda solo como nombre del filtro. */
   todasLasMarcas?: boolean;
+  /** Las marcas que ya trae este envío: sus prendas salen primero. */
+  marcasDelEnvio?: readonly (string | null)[];
+  /** La tarjeta elegida, marcada con su ✓. */
+  elegidaId?: string | null;
   onElegir: (prenda: PrendaRecepcion) => void;
+  /** Abre la ficha de la elegida. Sin él, no se ofrece. */
+  onVerFicha?: () => void;
   onEsNueva: () => void;
 }) {
   const [busqueda, setBusqueda] = useState(busquedaInicial);
@@ -64,18 +76,20 @@ export function ElegirPrendaExistente({
     return () => window.clearTimeout(t);
   }, [categoria.id, marca.id, busqueda, todasLasMarcas]);
 
+  const galeria = useMemo(() => (prendas ? galeriaDePrendas(prendas, { busqueda, marcasDelEnvio }) : null), [prendas, busqueda, marcasDelEnvio]);
+  const elegida = elegidaId ? galeria?.find((p) => p.productoId === elegidaId) ?? prendas?.find((p) => p.productoId === elegidaId) ?? null : null;
+
   // `fn_parecidas_para_recibir` trae hasta 200; `fn_prendas_para_recibir`, hasta MAX_PRENDAS_PARA_RECIBIR.
   const tope = todasLasMarcas ? 200 : MAX_PRENDAS_PARA_RECIBIR;
   const conteo =
-    prendas === null
+    galeria === null || galeria.length === 0
       ? ""
-      : prendas.length === 0
-        ? ""
-        : prendas.length >= tope
-          ? `Las primeras ${tope}: escribe para encontrar la tuya`
-          : `${prendas.length} ${prendas.length === 1 ? "prenda" : "prendas"} de ${categoria.nombre}${todasLasMarcas ? "" : ` · ${marca.nombre}`}`;
+      : !busqueda.trim() && (prendas?.length ?? 0) >= tope
+        ? `Las primeras ${tope}: escribe para encontrar la tuya`
+        : `${galeria.length} ${galeria.length === 1 ? "prenda" : "prendas"}`;
   // Cómo se nombra lo que se busca: «polos de Miramhe», «polos sin marca» o, en todas las marcas, solo «polos».
   const deQue = `${categoria.nombre.toLowerCase()}${todasLasMarcas ? "" : marca.id ? ` de ${marca.nombre}` : " sin marca"}`;
+  const hayEnLaCategoria = (prendas?.length ?? 0) > 0;
 
   return (
     <div data-guia="recepcion.ya-la-tengo" className="space-y-2.5">
@@ -84,7 +98,7 @@ export function ElegirPrendaExistente({
         onCambio={escribir}
         buscando={buscando}
         conteo={conteo}
-        placeholder="Busca por nombre o código"
+        placeholder="Nombre, código, marca o color" // sugerir-fijo: dice en qué se busca, no un ejemplo de prenda
         etiqueta={`Buscar la prenda entre ${todasLasMarcas ? categoria.nombre : `${categoria.nombre} · ${marca.nombre}`}`}
         autoFocus
       />
@@ -93,27 +107,63 @@ export function ElegirPrendaExistente({
           Vuelve a escribir en un momento; si sigue, crea la prenda como nueva.
         </Aviso>
       )}
-      {prendas !== null && prendas.length === 0 && !fallo && !buscando && (
-        <Vacio tamano="chico" icono={<SearchX />} accion={{ texto: "Crearla como nueva", onClick: onEsNueva }}>
-          {busqueda ? `No hay ${deQue} que digan «${busqueda}».` : `Todavía no hay ${deQue} en el catálogo.`}
+      {galeria !== null && galeria.length === 0 && !fallo && !buscando && (
+        <Vacio
+          tamano="chico"
+          icono={<SearchX />}
+          // Con algo escrito y prendas en la categoría, lo primero es ver todas: el nombre anotado al contar no siempre es el del catálogo.
+          accion={busqueda.trim() && hayEnLaCategoria ? { texto: "Ver todas", onClick: () => escribir("") } : { texto: "Crearla como nueva", onClick: onEsNueva }}
+        >
+          {busqueda.trim() ? `No hay ${deQue} que digan «${busqueda.trim()}».` : `Todavía no hay ${deQue} en el catálogo.`}
         </Vacio>
       )}
-      {prendas !== null && prendas.length > 0 && (
-        <ul data-resultados className="max-h-72 space-y-1 overflow-y-auto rounded-xl border border-sand bg-papel p-1">
-          {prendas.map((p) => {
-            const tallas = new Set(p.variantes.map((v) => v.talla ?? "Única")).size;
-            const colores = new Set(p.variantes.map((v) => v.color ?? "Sin color")).size;
+      {/* La línea está desde antes de elegir: si apareciera al tocar, empujaría la galería bajo el dedo (ADR-0185). */}
+      {onVerFicha && galeria !== null && galeria.length > 0 && (
+        <p className="flex items-baseline gap-1.5 text-sm text-taupe" aria-live="polite">
+          {elegida ? (
+            <>
+              {/* Un nombre largo se recorta; «Ver ficha» queda siempre a la vista, también a 375 px. */}
+              <span className="min-w-0 truncate">
+                Elegiste <b className="font-semibold text-tinta">{elegida.nombre}</b>
+              </span>
+              <button type="button" className="btn-enlace shrink-0" onClick={onVerFicha}>
+                Ver ficha
+              </button>
+            </>
+          ) : (
+            "Toca la que llegó."
+          )}
+        </p>
+      )}
+      {galeria !== null && galeria.length > 0 && (
+        <ul data-resultados className="rc-galeria" aria-label={`Prendas de ${categoria.nombre}`}>
+          {galeria.map((p) => {
+            const colores = coloresDeLaPrenda(p);
+            const marcaDe = todasLasMarcas ? (p.marca?.nombre ?? "Sin marca") : null;
+            const esta = p.productoId === elegidaId;
             return (
               <li key={p.productoId}>
-                <button type="button" onClick={() => onElegir(p)} className="flex w-full items-center gap-3 rounded-lg px-2.5 py-2 text-left transition-colors hover:bg-hueso focus-visible:bg-hueso">
-                  <MiniaturaPrenda fotoUrl={p.fotoUrl} prefijo={categoria.prefijo} familia={categoria.familia} categoria={categoria.nombre} />
-                  <span className="min-w-0 flex-1">
-                    <span className="block truncate text-sm text-tinta">{p.nombre}</span>
-                    <span className="block truncate text-sm text-taupe">
-                      {[p.codigo, todasLasMarcas ? (p.marca?.nombre ?? "Sin marca") : null, `${tallas} ${tallas === 1 ? "talla" : "tallas"} · ${colores} ${colores === 1 ? "color" : "colores"}`].filter(Boolean).join(" · ")}
-                    </span>
+                <button type="button" className="rc-galeria-tarjeta" aria-pressed={esta} onClick={() => onElegir(p)}>
+                  <span className="rc-galeria-foto">
+                    {/* `next/image` carga la foto recién cuando la tarjeta se acerca a la vista: 200 tarjetas no bajan 200 fotos al abrir. */}
+                    <FotoDePrenda fotoUrl={p.fotoUrl} colorHex={colores[0]?.hex ?? null} prefijo={categoria.prefijo} familia={categoria.familia} categoria={categoria.nombre} />
+                    {esta && (
+                      <span className="rc-galeria-visto" aria-hidden>
+                        <Check className="h-3.5 w-3.5" strokeWidth={3} /* unificar-fijo: la marca sobre un punto lleno lleva trazo 3 */ />
+                      </span>
+                    )}
                   </span>
-                  <span className="shrink-0 text-sm font-medium text-tinta/70">{textoElegir}</span>
+                  <span className="rc-galeria-nombre">{p.nombre}</span>
+                  {(marcaDe || p.codigo) && <span className="rc-galeria-dato">{[marcaDe, p.codigo].filter(Boolean).join(" · ")}</span>}
+                  {colores.length > 0 && (
+                    <span className="rc-galeria-colores" title={colores.map((c) => c.nombre).join(", ")}>
+                      <span className="sr-only">{colores.map((c) => c.nombre).join(", ")}</span>
+                      {colores.slice(0, MAX_COLORES_EN_TARJETA).map((c) => (
+                        <span key={c.nombre} aria-hidden data-color-dato className="rc-galeria-punto" style={c.hex ? { backgroundColor: c.hex } : undefined} />
+                      ))}
+                      {colores.length > MAX_COLORES_EN_TARJETA && <span aria-hidden>+{colores.length - MAX_COLORES_EN_TARJETA}</span>}
+                    </span>
+                  )}
                 </button>
               </li>
             );

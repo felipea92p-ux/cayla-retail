@@ -108,6 +108,10 @@ export function NuevoModelo({
     return [...todas].sort((a, b) => peso(b.id) - peso(a.id) || a.nombre.localeCompare(b.nombre, "es"));
   }, [catalogo, proveedorId, enLista]);
 
+  // «Ya la tenemos» (tarea 9, 2026-11-14): elegir una tarjeta de la galería ya basta para confirmar; su ficha se abre solo si se pide.
+  const [conFicha, setConFicha] = useState(false);
+  const marcasDelEnvio = useMemo(() => [...new Set(grupos.map((g) => g.principal.marca?.id ?? null))], [grupos]);
+
   // Las parecidas del catálogo, de esta categoría y marca. Si no responde, se sigue sin ellas.
   const [parecidas, setParecidas] = useState<readonly PrendaRecepcion[]>([]);
   const vuelta = useRef(0);
@@ -239,6 +243,7 @@ export function NuevoModelo({
                   onClick={() => {
                     setModo(valor);
                     setElegida(null);
+                    setConFicha(false);
                   }}
                 >
                   <span className="rc-radio" aria-hidden />
@@ -253,16 +258,20 @@ export function NuevoModelo({
           {existe && categoria && (
             <CampoGuiado id="modelo-prenda" guia={guia}>
               <div className="space-y-3">
-                {!elegida && (
+                {!(elegida && conFicha) && (
                   <CampoSelect
                     etiqueta="De qué marca"
                     valor={marcaGaleria}
-                    onValor={setMarcaGaleria}
+                    onValor={(v) => {
+                      setMarcaGaleria(v);
+                      setElegida(null);
+                      setConFicha(false);
+                    }}
                     opciones={[{ valor: TODAS, texto: "Todas las marcas" }, { valor: "", texto: "Sin marca" }, ...marcas.map((m) => ({ valor: m.id, texto: m.nombre }))]}
                     sinPie
                   />
                 )}
-                {elegida ? (
+                {elegida && conFicha ? (
                   <FichaDeLaPrenda
                     key={elegida.productoId}
                     prenda={elegida}
@@ -276,7 +285,10 @@ export function NuevoModelo({
                     categoria={categoria}
                     todasLasMarcas={marcaGaleria === TODAS}
                     marca={{ id: marcaGaleria === TODAS ? null : marcaGaleria || null, nombre: marcas.find((m) => m.id === marcaGaleria)?.nombre ?? "Sin marca" }}
-                    textoElegir="Ver ficha"
+                    // Primero las marcas que ya trae el envío (tarea 9, 2026-11-14): lo más probable es que llegue otra de esas.
+                    marcasDelEnvio={marcasDelEnvio}
+                    elegidaId={elegida?.productoId ?? null}
+                    onVerFicha={() => setConFicha(true)}
                     // `fn_prendas_para_recibir` no devuelve la marca: es la del filtro. La de todas las marcas sí la trae.
                     onElegir={(p) => {
                       const delFiltro = marcas.find((m) => m.id === marcaGaleria);
@@ -392,7 +404,15 @@ export function NuevoModelo({
           <PieGuia guia={guia} listo="Todo listo." />
           <div className="pie-acciones">
             {existe && elegida ? (
-              <Boton type="button" peso="fantasma" onClick={() => setElegida(null)} disabled={guardando}>
+              <Boton
+                type="button"
+                peso="fantasma"
+                onClick={() => {
+                  setElegida(null);
+                  setConFicha(false);
+                }}
+                disabled={guardando}
+              >
                 No, es otra
               </Boton>
             ) : (
