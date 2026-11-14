@@ -36,6 +36,8 @@ import { avisosDelNombre, floresLibres, otrosTipos, tiposDeCategoria } from "@/l
 import { sugerirDescripcion, sugerirNombre } from "@/lib/sugerencias-alta-producto";
 import type { ControlResponsable } from "@/lib/useResponsable";
 import { prepararPrendaAlRecibir } from "@/lib/recepcion-envio-acciones";
+import { fichaDeLaAnterior, loQueLlena, recordarPrenda, type DatoDeLaAnterior, type PrendaAnterior } from "@/lib/recepcion-igual-que-anterior";
+import { FichaDeLaAnterior } from "@/components/recepcion-envio/FichaDeLaAnterior";
 import {
   AVISO_DE_CORTE_PRENDA,
   argsPrepararPrenda,
@@ -123,6 +125,8 @@ export function HojaPrenda({
   onCostoEscrito,
   onUsarExistente,
   onCerrar,
+  anterior,
+  onRecordar,
 }: {
   destino: DestinoHoja;
   /** La categoría con sus tallas, tejidos y patrones; `null` si no se pudo leer el catálogo. */
@@ -138,6 +142,10 @@ export function HojaPrenda({
   /** «Ya existe esa prenda»: la pantalla la busca y la pone en la línea. */
   onUsarExistente: (productoId: string, nombre: string) => Promise<boolean>;
   onCerrar: () => void;
+  /** «Igual que la anterior» (tarea 7 de Recibir): la prenda recién creada en este envío, para ofrecer su tejido, patrón y tallas de un toque. */
+  anterior?: PrendaAnterior | null;
+  /** Al crear una prenda nueva: lo que se recuerda de ella para ofrecerlo en la siguiente. */
+  onRecordar?: (p: PrendaAnterior) => void;
 }) {
   const nueva = destino.modo === "nueva";
   const [coloresCreados, setColoresCreados] = useState<ColorAlta[]>([]);
@@ -366,6 +374,13 @@ export function HojaPrenda({
       });
       const costoEscrito = costo.trim().replace(",", ".");
       if (nueva && costoEscrito !== "" && costoEscrito !== costoDeLinea && Number(costoEscrito) > 0) onCostoEscrito?.(prenda.productoId, costoEscrito);
+      if (nueva)
+        onRecordar?.(
+          recordarPrenda(
+            { categoriaId: destino.categoriaId, nombre: prenda.nombre, tejidoId: borrador.tejidoId, patronId: borrador.patronId, tallaIds: borrador.tallaIds },
+            { tejidos: [...ctx.tejidos, ...(vocabulario?.tejidos ?? [])], patrones: [...ctx.patrones, ...(vocabulario?.patrones ?? [])], tallas: ctx.tallas },
+          ),
+        );
       onListo(prenda, marcas);
     } finally {
       enVuelo.current = false;
@@ -377,6 +392,25 @@ export function HojaPrenda({
     const nombre = parecida.mensaje.match(/«([^»]+)»|"([^"]+)"/)?.slice(1).find(Boolean) ?? borrador.nombre;
     const ok = await onUsarExistente(parecida.productoId, nombre);
     if (!ok) setError(`No la encontramos entre las prendas de ${[categoria?.nombre ?? "esta categoría", destino.marcaNombre].filter(Boolean).join(" · ")}. Ciérrala y búscala en «Ya la tengo».`);
+  }
+
+  // «Igual que la anterior»: una oferta que se toca, nunca un valor puesto (tallas y marca arrancan vacías, tejido y patrón son opcionales).
+  const [quitadosDeLaAnterior, setQuitadosDeLaAnterior] = useState<ReadonlySet<DatoDeLaAnterior>>(new Set());
+  const fichaAnterior = nueva
+    ? fichaDeLaAnterior(
+        anterior,
+        { categoriaId: destino.categoriaId, curva: ctx.tallas, pideTejido: pideTejido(ctx), pidePatron: pidePatron(ctx), elegido: borrador },
+        quitadosDeLaAnterior,
+      )
+    : null;
+  function usarLaAnterior() {
+    if (!anterior || !fichaAnterior) return;
+    const llena = loQueLlena(anterior, fichaAnterior, ctx.tallas);
+    // Un tejido o un patrón que la hoja anterior ofreció con «Ver todos» todavía no está en la lista de esta categoría: se ofrece igual.
+    if (llena.tejidoId && anterior.tejido && !ctx.tejidos.some((t) => t.id === anterior.tejido?.id)) ofrecer("tejidos")(anterior.tejido);
+    if (llena.patronId && anterior.patron && !ctx.patrones.some((t) => t.id === anterior.patron?.id)) ofrecer("patrones")(anterior.patron);
+    if (llena.tallaIds) setTocados((x) => ({ ...x, tallas: true }));
+    cambiar(llena);
   }
 
   const nombreCategoria = categoria?.nombre ?? "esta categoría";
@@ -525,6 +559,13 @@ export function HojaPrenda({
 
                   {paso === 1 && (
                     <>
+                      {fichaAnterior && (
+                        <FichaDeLaAnterior
+                          ficha={fichaAnterior}
+                          onUsar={usarLaAnterior}
+                          onQuitar={(clave) => setQuitadosDeLaAnterior((q) => new Set([...q, clave]))}
+                        />
+                      )}
                       {pideTejido(ctx) && categoria && (
                         <CampoGuiado id="prenda-tejido" guia={guia} titulo="Tejido" ayuda="Opcional · De qué tela es">
                           <ElegirMuestra

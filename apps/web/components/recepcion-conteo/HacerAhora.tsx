@@ -9,6 +9,7 @@ import { AvisoCostoAtipico } from "@/components/AvisoCostoAtipico";
 import { PieGuia } from "@/components/guia-de-foco/CampoGuiado";
 import { useGuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
 import { HojaPrenda } from "@/components/recepcion-envio/HojaPrenda";
+import type { PrendaAnterior } from "@/lib/recepcion-igual-que-anterior";
 import type { ControlResponsable } from "@/lib/useResponsable";
 import { buscarPrendasParaRecibir } from "@/lib/recepcion-envio-acciones";
 import { atipicosPorLinea, leerCostoAtipicoRecepcion, type CatalogoParaRecibir, type CostoAtipicoRecepcion, type DetalleEnvio, type PrendaRecepcion } from "@/lib/recepcion-envio-reglas";
@@ -90,6 +91,8 @@ export function HacerAhora({
   catalogo,
   responsable,
   prendas,
+  anteriorDe,
+  onRecordar,
   soloSede = false,
   sinAviso = false,
   veDinero = true,
@@ -106,6 +109,9 @@ export function HacerAhora({
   catalogo: CatalogoParaRecibir | null;
   responsable: ControlResponsable;
   prendas: ReadonlyMap<string, PrendaRecepcion>;
+  /** «Igual que la anterior» (innovar `recibir-crear-prenda#1`): la última prenda creada en este envío de una categoría, y cómo recordar la que se crea aquí. */
+  anteriorDe?: (categoriaId: string) => PrendaAnterior | null;
+  onRecordar?: (p: PrendaAnterior) => void;
   /** Una terminal (ADR-0531): el precio de venta vale solo en su sede; no se ofrece «Todas las sedes». */
   soloSede?: boolean;
   /** El envío llegó sin aviso: lo de fuera de la guía no trae costo de ninguna orden, y solo lo escribe quien ve el dinero de Compras (`veDinero`). */
@@ -520,6 +526,8 @@ export function HacerAhora({
           // ADR-0641 act. 2026-11-11: el costo escrito junto al precio en la hoja llega puesto al campo de costo de esta prenda.
           onCostoEscrito={editaCosto ? (productoId, costoTexto) => cambiarCosto(productoId, costoTexto) : undefined}
           onListo={(prenda) => void alExistir(prenda)}
+          anterior={anteriorDe?.(categoria.id) ?? null}
+          onRecordar={onRecordar}
           onUsarExistente={async (productoId, nombre) => {
             const { prendas: halladas } = await buscarPrendasParaRecibir(categoria.id, marca.id, nombre);
             const hallada = halladas.find((p) => p.productoId === productoId);

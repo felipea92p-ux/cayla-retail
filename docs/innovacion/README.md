@@ -47,3 +47,9 @@ Las ideas que se descartaron en una corrida (ya existían, sin fuente, moda, no 
 | recibir-galeria#4 | Recibir | El código de la etiqueta del proveedor se aprende al recibir | Visión | 4 / L | propuesta | [informe](2026-11-14-recibir-galeria.md) | 2026-11-14 |
 | recibir-galeria#5 | Recibir | Una foto de la prenda en la mano ordena la galería por parecido | Visión | 4 / L | propuesta | [informe](2026-11-14-recibir-galeria.md) | 2026-11-14 |
 | recibir-galeria#6 | Recibir | La foto del papel de la compra propone los modelos y su prenda | Visión | 5 / XL | propuesta | [informe](2026-11-14-recibir-galeria.md) | 2026-11-14 |
+| recibir-crear-prenda#1 | Inventario ▸ Recibir | «La anterior» sale de la base: sobrevive a recargar y llega a «Crear ahora» | Ahora | 3 / M | hecha (PR #1860: Contar y «Crear ahora» de Para después) | [informe](2026-11-14-recibir-crear-prenda.md) | 2026-11-14 |
+| recibir-crear-prenda#2 | Inventario ▸ Recibir | La etiqueta del proveedor reconoce la reposición | Ahora | 4 / M | propuesta | [informe](2026-11-14-recibir-crear-prenda.md) | 2026-11-14 |
+| recibir-crear-prenda#3 | Inventario ▸ Recibir | Crear los nuevos del envío en una planilla | Ahora | 5 / L | propuesta | [informe](2026-11-14-recibir-crear-prenda.md) | 2026-11-14 |
+| recibir-crear-prenda#4 | Inventario ▸ Recibir | La foto arma la ficha: tejido, patrón y tipo propuestos | Visión | 4 / L | propuesta | [informe](2026-11-14-recibir-crear-prenda.md) | 2026-11-14 |
+| recibir-crear-prenda#5 | Inventario ▸ Recibir | Lo de siempre del proveedor, con su porqué | Visión | 3 / L | propuesta | [informe](2026-11-14-recibir-crear-prenda.md) | 2026-11-14 |
+| recibir-crear-prenda#6 | Inventario ▸ Recibir | La factura del proveedor arma los modelos del envío sin aviso | Visión | 5 / XL | propuesta | [informe](2026-11-14-recibir-crear-prenda.md) | 2026-11-14 |
