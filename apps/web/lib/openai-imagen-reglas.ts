@@ -14,20 +14,39 @@ export const OPENAI_TOPE_MS = 120_000;
 export const MODELO_OPENAI_POR_DEFECTO = "gpt-image-2.6-sunburst";
 
 /**
- * Lo que se le pide: la prenda PUESTA en un maniquí invisible (ghost mannequin), con volumen, como la mostraría un catálogo; Felipe lo pidió el
- * 2026-11-13 al ver la primera versión, que la dejaba plana. Las reglas de fidelidad salen del prompt de «edición mínima» que el equipo probó en
- * ChatGPT (`docs/investigacion/2026-10-21-prompt-edicion-minima-fotos.md`): conservar tela, color, estampado, costuras y etiquetas cosidas. Sigue
- * siendo SOLO la prenda y transparente (nada de persona ni maniquí a la vista): es lo que necesita el armador de looks (ADR-0442).
- * Medido con un top gris y una blusa verde limón: color «igual a la prenda» en las dos, 0,051 USD por foto, ~25 s.
+ * Qué pone el maniquí y qué pone la prenda (Felipe 2026-11-14, «Nueva A», elegida mirando la lámina de 5 prendas): el maniquí pone la FORMA
+ * (de frente, hombros llenos, volumen), la prenda pone sus MEDIDAS (largo, corte, mangas, bordes y dibujo). Nació de dos errores medidos:
+ * - el pedido anterior rellenaba la prenda «como si la llevara una persona de talla estándar» y la estiraba: la blusa verde, +8 %;
+ * - pedir «igual a la foto» copiaba la forma del gancho: hombros caídos, plana, sin arreglar.
+ * Con esto la blusa queda puesta y con su largo (0 a −3 % de alto/ancho contra la foto, dos corridas), la manga murciélago ancha y el elástico
+ * fino. Un pantalón o un short sale más angosto que su foto en plano: puesto, la cintura se cierra (es física, no la IA). El estampado igual se
+ * redibuja con las mismas figuras, no en el mismo lugar exacto: para eso está «Usar mi foto». Tabla completa: ADR-0659, act. 2026-11-14.
+ */
+const MANIQUI_PONE_LA_FORMA =
+  "Lo que pone el MANIQUÍ: la postura de frente, los hombros a su altura, el pecho y la cintura con volumen, como la llevaría una persona.";
+const PRENDA_PONE_SUS_MEDIDAS = [
+  "Lo que pone la PRENDA, y no se cambia:",
+  "LARGO: el mismo largo respecto del ancho que tiene la prenda (de los hombros al ruedo, o de la cintura a la basta); no la alargues.",
+  "CORTE: si es suelta, queda suelta; si es ceñida, ceñida; no le agregues entalle.",
+  "MANGAS: el mismo largo, ancho y caída; si salen del cuerpo sin costura (murciélago), siguen unidas al cuerpo.",
+  "BORDES: el cuello, los puños, el elástico, la pretina o el ruedo con el mismo ancho y el mismo fruncido.",
+  "ESTAMPADO: las mismas figuras, del mismo tamaño y en el mismo lugar; no dibujes uno nuevo.",
+].join(" ");
+
+/**
+ * Lo que se le pide: la prenda PUESTA en un maniquí invisible (ghost mannequin), como la mostraría un catálogo, y que sea la MISMA prenda
+ * (arriba). Las reglas de tela, color y etiquetas salen del prompt de «edición mínima» que el equipo probó en ChatGPT
+ * (`docs/investigacion/2026-10-21-prompt-edicion-minima-fotos.md`). Sigue siendo SOLO la prenda y transparente (nada de persona ni maniquí a la
+ * vista): es lo que necesita el armador de looks (ADR-0442). ~0,05 USD por foto y ~25 s.
  */
 export const PROMPT_CATALOGO = [
   "Esta es la foto real de UNA prenda de mi tienda de ropa, colgada en un gancho dentro del almacén.",
-  "Conviértela en una foto de catálogo con efecto MANIQUÍ INVISIBLE (ghost mannequin): la prenda puesta, con volumen 3D, los hombros, el pecho",
-  "y la cintura rellenos como si la llevara una persona de talla estándar, cayendo de forma natural, de frente, derecha y centrada, con un margen",
-  "pequeño alrededor. Se ve el interior del cuello por detrás. No se ve ningún maniquí, persona, piel, gancho ni perchero.",
-  "Conserva exactamente la tela, el color y el tono, el estampado o las rayas (mismo tamaño, grosor y posición), las costuras, los botones,",
-  "el cuello, las etiquetas cosidas y el largo. No cambies el color.",
-  "Fondo transparente, sin sombra.",
+  "Conviértela en una foto de catálogo profesional con efecto MANIQUÍ INVISIBLE (ghost mannequin): la prenda PUESTA, con volumen 3D, de frente,",
+  "derecha y centrada, con un margen pequeño alrededor. Se ve el interior del cuello por detrás.",
+  MANIQUI_PONE_LA_FORMA,
+  PRENDA_PONE_SUS_MEDIDAS,
+  "Conserva la tela, el color y el tono, las costuras, los botones y las etiquetas cosidas. No cambies el color.",
+  "No se ve ningún maniquí, persona, piel, gancho ni perchero. Fondo transparente, sin sombra.",
 ].join(" ");
 
 /**
@@ -89,7 +108,7 @@ export function pedidoDeCatalogo(extras: { espalda?: boolean; detalle?: boolean;
   const deReales = reales.length === 1 ? reales[0] : `${reales.slice(0, -1).join(", ")} y ${reales[reales.length - 1]}`;
   const estructura = extras.molde
     ? `Del MOLDE (IMAGEN ${orden.indexOf("molde") + 1}) copia EXACTAMENTE la estructura: la silueta, el largo, las mangas, el cuello, el elástico, los pliegues, la pose, el tamaño y la posición en el cuadro, como si fuera la misma prenda puesta en el mismo maniquí invisible. De ${deReales} toma SOLO el color, el tono y el estampado o las rayas, tal como se ven en las fotos reales.`
-    : `Conviértela en una foto de catálogo con efecto MANIQUÍ INVISIBLE (ghost mannequin): la prenda puesta, con volumen 3D, los hombros, el pecho y la cintura rellenos como si la llevara una persona de talla estándar, cayendo de forma natural, de frente, derecha y centrada, con un margen pequeño alrededor. Se ve el interior del cuello por detrás. Usa ${deReales} para conservar exactamente la tela, el color y el tono, el estampado o las rayas (mismo tamaño, grosor y posición), las costuras, los botones, el cuello, las etiquetas cosidas y el largo.`;
+    : `Conviértela en una foto de catálogo profesional con efecto MANIQUÍ INVISIBLE (ghost mannequin): la prenda PUESTA, con volumen 3D, de frente, derecha y centrada, con un margen pequeño alrededor. Se ve el interior del cuello por detrás. ${MANIQUI_PONE_LA_FORMA} ${PRENDA_PONE_SUS_MEDIDAS} Usa ${deReales} para conservar la tela, el color y el tono, las costuras, los botones y las etiquetas cosidas.`;
   return {
     orden,
     prompt: [

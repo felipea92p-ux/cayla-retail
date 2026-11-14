@@ -88,3 +88,27 @@ sin molde, además, la etiqueta del cuello cambió de «L» a «M».
   guardarlas**: la regla es la de `producto_fotos` (`fn_puede_editar_catalogo`), que la hoja pregunta a `GET /api/fotos/catalogo` (`{ fotos, ia }`;
   `ia` además exige la llave y el módulo Productos, como el POST). Quien recibe sin editar el catálogo crea la prenda como antes. **Ningún permiso
   cambió.** Las fotos suben después de crear la prenda y esperando a la IA, como en Nuevo; una que falle no deshace la prenda y se avisa.
+
+## Actualización 2026-11-14 — Puesta, pero la misma prenda («Nueva A», rama `claude/ai-color-extraction-64487e`)
+
+Felipe, al ver la blusa verde limón: «me da la impresión que la alargó un poco… hay que tratar que sea lo más parecida posible». El pedido le
+decía a la IA que rellenara la prenda «como si la llevara una persona de talla estándar», y eso la reformaba.
+
+**Cómo se probó.** Cinco prendas pedidas a OpenAI como lo hace la pantalla (JPG de 1600 px, `1024×1280`, calidad media, transparente): la blusa
+colgada en el almacén (su caja medida a mano, ±3 %) y cuatro fotos de producción en plano sobre blanco (top, pantalón, jean y short). La cifra es
+la proporción alto/ancho de la prenda de la IA contra la de la foto. **Felipe eligió mirando una lámina** (`.flujo-de-negocio/laminas/`, local),
+no por la cifra: en el pantalón y el short la foto está en plano, y puesta una prenda se cierra en la cintura y se ve más angosta.
+
+| Pedido | Blusa | Top | Jean | Cómo se ve |
+|---|---|---|---|---|
+| El anterior («talla estándar») | +1 a +8 % | +1 % | +2 % | puesta, pero la alarga y le pone un elástico ancho |
+| «Igual a la foto» (proporción y contorno de la foto) | −7 a +2 % | −1 % | −1 % | **copia el gancho**: hombros caídos, plana, sin arreglar |
+| Calidad alta, o tamaño libre | −10 / −13 % | −2 / 0 % | −1 % | achata la blusa |
+| **«Nueva A» (la elegida)**: el maniquí pone la forma, la prenda sus medidas | **0 a −3 %** | −2 a −3 % | ±1 % | puesta, con la manga murciélago ancha y el elástico fino |
+
+`input_fidelity` (el ajuste de OpenAI para conservar detalles) no lo acepta `gpt-image-2.6-sunburst`. **Lo elegido** vive en
+`lib/openai-imagen-reglas.ts`: `MANIQUI_PONE_LA_FORMA` (de frente, hombros llenos, volumen) y `PRENDA_PONE_SUS_MEDIDAS` (largo respecto del
+ancho, corte, mangas, bordes y estampado), en el pedido de un solo frente (`PROMPT_CATALOGO`, el medido) y en el de varias fotos sin molde (sin
+medir: las mismas reglas). El pedido con molde no cambia: copia la estructura de la primera foto, que ahora sale con su largo. **Lo que el pedido
+no arregla:** el estampado se redibuja con las mismas figuras y colores, no en el mismo lugar exacto; para eso está «Usar mi foto». Cuesta lo
+mismo (~0,05 USD, ~25 s).

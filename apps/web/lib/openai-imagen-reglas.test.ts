@@ -36,6 +36,14 @@ describe("camposOpenAI", () => {
     // El prompt de octubre que pedía «quita arrugas» y «luz pareja» hacía que redibujara las rayas y borrara las etiquetas.
     expect(PROMPT_CATALOGO).not.toMatch(/arrugas|luz pareja/i);
   });
+
+  it("el maniquí pone la forma y la prenda sus medidas (Felipe 2026-11-14, «Nueva A»)", () => {
+    expect(PROMPT_CATALOGO).toMatch(/Lo que pone el MANIQUÍ/);
+    for (const regla of ["LARGO", "CORTE", "MANGAS", "BORDES", "ESTAMPADO"]) expect(PROMPT_CATALOGO).toContain(`${regla}:`);
+    expect(PROMPT_CATALOGO).toMatch(/no la alargues/);
+    // «Como si la llevara una persona de talla estándar» estiraba la prenda (la blusa verde, +8 %): no vuelve.
+    expect(PROMPT_CATALOGO).not.toMatch(/talla estándar/);
+  });
 });
 
 describe("con molde: la misma prenda en todos los colores", () => {
@@ -119,6 +127,8 @@ describe("pedidoDeCatalogo: qué fotos van y qué se le dice a la IA", () => {
     const sin = pedidoDeCatalogo({ espalda: true }).prompt;
     expect(sin).toMatch(/MANIQUÍ INVISIBLE/);
     expect(sin).toMatch(/Usa IMAGEN 1 y IMAGEN 2 para conservar/);
+    expect(sin).toMatch(/Lo que pone la PRENDA, y no se cambia/);
+    expect(sin).not.toMatch(/talla estándar/);
     for (const extras of [{ espalda: true }, { detalle: true, molde: true }]) {
       const p = pedidoDeCatalogo(extras).prompt;
       expect(p).toMatch(/No cambies el color/);
