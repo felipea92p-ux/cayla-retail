@@ -1,5 +1,7 @@
 "use client";
 
+import { usePrendasCreadas } from "@/components/recepcion-envio/usePrendasCreadas";
+import { productosDelEnvio } from "@/lib/recepcion-igual-que-anterior";
 import { LoQueEntro } from "./LoQueEntro";
 import { useState } from "react";
 import { Layers, List, ListChecks, Package, RotateCcw, Sparkles } from "lucide-react";
@@ -60,6 +62,8 @@ export function EnvioCerrado({
   onReabierto: () => void;
 }) {
   const [haciendo, setHaciendo] = useState<ParaDespues | null>(null);
+  // «Igual que la anterior» también en «Crear ahora» (innovar `recibir-crear-prenda#1`): las prendas del envío creadas al recibirlo.
+  const creadas = usePrendasCreadas(productosDelEnvio(lineas), detalle.abiertoEn);
   // Al pasar un modelo a su categoría cambia de línea: se relee el envío y, cuando la lista ya lo trae en la línea nueva, se sigue con él. `crear`: la persona pidió crearla.
   // En una línea del aviso el modelo no cambia de línea: cambia la línea misma, así que también se sigue cuando su categoría o su marca ya no son las de antes (`huellaAntes`).
   const [seguir, setSeguir] = useState<{ pendienteId: string; lineaAntes: string; huellaAntes: string; crear: boolean } | null>(null);
@@ -251,6 +255,8 @@ export function EnvioCerrado({
           catalogo={catalogo}
           responsable={responsable}
           prendas={prendas}
+          anteriorDe={creadas.anteriorDe}
+          onRecordar={creadas.recordar}
           soloSede={soloSede}
           sinAviso={sinAviso}
           veDinero={veDinero}

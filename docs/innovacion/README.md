@@ -41,6 +41,12 @@ Las ideas que se descartaron en una corrida (ya existían, sin fuente, moda, no 
 | cambiar-de-modulo#18 | Todo el ERP | Reabrir Cache Components con Partial Prefetching, ruta por ruta | Visión | 4 / XL | propuesta | [informe](2026-11-13-cambiar-de-modulo.md) | 2026-11-13 |
 | cambiar-de-modulo#19 | Vender | Vender abre con el catálogo ya en el equipo (IndexedDB) | Visión | 4 / XL | propuesta | [informe](2026-11-13-cambiar-de-modulo.md) | 2026-11-13 |
 | cambiar-de-modulo#20 | Marco (identidad) | La identidad viaja en el token (Custom Access Token Hook) | Visión | 4 / XL | propuesta | [informe](2026-11-13-cambiar-de-modulo.md) | 2026-11-13 |
+| recibir-crear-prenda#1 | Inventario ▸ Recibir | «La anterior» sale de la base: sobrevive a recargar y llega a «Crear ahora» | Ahora | 3 / M | hecha (PR #1860: Contar y «Crear ahora» de Para después) | [informe](2026-11-14-recibir-crear-prenda.md) | 2026-11-14 |
+| recibir-crear-prenda#2 | Inventario ▸ Recibir | La etiqueta del proveedor reconoce la reposición | Ahora | 4 / M | propuesta | [informe](2026-11-14-recibir-crear-prenda.md) | 2026-11-14 |
+| recibir-crear-prenda#3 | Inventario ▸ Recibir | Crear los nuevos del envío en una planilla | Ahora | 5 / L | propuesta | [informe](2026-11-14-recibir-crear-prenda.md) | 2026-11-14 |
+| recibir-crear-prenda#4 | Inventario ▸ Recibir | La foto arma la ficha: tejido, patrón y tipo propuestos | Visión | 4 / L | propuesta | [informe](2026-11-14-recibir-crear-prenda.md) | 2026-11-14 |
+| recibir-crear-prenda#5 | Inventario ▸ Recibir | Lo de siempre del proveedor, con su porqué | Visión | 3 / L | propuesta | [informe](2026-11-14-recibir-crear-prenda.md) | 2026-11-14 |
+| recibir-crear-prenda#6 | Inventario ▸ Recibir | La factura del proveedor arma los modelos del envío sin aviso | Visión | 5 / XL | propuesta | [informe](2026-11-14-recibir-crear-prenda.md) | 2026-11-14 |
 | tanda#1 | Inventario ▸ Recibir | «Llevar al stock e imprimir»: un solo toque, sin la hoja de en medio | Ahora | 3 / S | aceptada (Felipe, 2026-11-14) · hecha en PR #1864 | [informe](2026-11-14-recibir-imprimir-tanda.md) | 2026-11-14 |
 | tanda#2 | Inventario ▸ Recibir | Reimprimir una tanda desde «Ya en stock», en la lista del envío | Ahora | 2 / S | propuesta | [informe](2026-11-14-recibir-imprimir-tanda.md) | 2026-11-14 |
 | tanda#3 | Inventario ▸ Recibir | El envío sabe qué falta etiquetar y lo imprime de una vez | Ahora | 3 / M | propuesta | [informe](2026-11-14-recibir-imprimir-tanda.md) | 2026-11-14 |
