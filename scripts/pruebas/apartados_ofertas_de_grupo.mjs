@@ -89,7 +89,9 @@ select id as u from retail.ubicaciones where nombre = 'Tienda Lima' \\gset
 select v.id as a1, p.id as modelo, p.categoria_id as cat from retail.variantes v join retail.productos p on p.id = v.producto_id where v.sku = 'BLU-EMMA-NEG-M' \\gset
 select v.id as a2 from retail.variantes v where v.producto_id = :'modelo' and v.id <> :'a1' and v.activo order by v.id limit 1 \\gset
 select v.id as a3 from retail.variantes v where v.producto_id = :'modelo' and v.id not in (:'a1', :'a2') and v.activo order by v.id limit 1 \\gset
-select v.id as fuera from retail.variantes v join retail.productos p on p.id = v.producto_id where p.categoria_id <> :'cat' and v.activo and retail.fn_precio_en_sede(v.id, :'u') > 0 order by v.id limit 1 \\gset
+-- La prenda de otra categoría, fija del seed (el Vestido Sofía, S/ 149.90): elegirla «por id» tomaba la que otra prueba de la misma tanda
+-- hubiera dejado, y con una de S/ 179.90 el adelanto de S/ 100 ya no llegaba al 30 % (CI de #1856).
+select v.id as fuera from retail.variantes v join retail.productos p on p.id = v.producto_id where v.sku = 'VES-SOFI-NEG-M' and p.categoria_id <> :'cat' \\gset
 insert into retail.sububicaciones (ubicacion_id, nombre, tipo) select :'u', 'Piso de venta', 'piso_venta'
   where not exists (select 1 from retail.sububicaciones where ubicacion_id = :'u' and tipo = 'piso_venta');
 select (select count(*) from (select retail.cerrar_caja(id, 0) from retail.cajas where ubicacion_id = :'u' and estado = 'abierta') x) as _cerro \\gset
