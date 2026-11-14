@@ -345,7 +345,34 @@ ${REEMPLAZOS_DIA_VENTA.map(([viejo, nuevo]) => `    v_def := pg_get_functiondef(
 end $rehacer_dia_venta$;
 `;
 
+/** Decisión 2 de Felipe (20261114155000): una prenda que va con su oferta de grupo deja su rebaja (`venta_dos_ofertas`). Un solo reemplazo,
+ *  leído del archivo (el de `$rv$`/`$rn$`: los demás de esa migración son de otras funciones). Va PRIMERO al deshacer: es el más nuevo. */
+const DOS_OFERTAS = readFileSync("supabase/migrations/20261114155000_dos_ofertas_la_que_mas_ahorra.sql", "utf8");
+const REEMPLAZOS_DOS_OFERTAS = [...DOS_OFERTAS.matchAll(/\$rv\$([\s\S]*?)\$rv\$,\s*\$rn\$([\s\S]*?)\$rn\$,\s*1\);/g)].map((m) => [m[1], m[2]]);
+if (REEMPLAZOS_DOS_OFERTAS.length !== 1) throw new Error(`registrar-venta-antes-de-precio-sede: esperaba 1 reemplazo de las dos ofertas y hay ${REEMPLAZOS_DOS_OFERTAS.length}`);
+export const DESHACER_DOS_OFERTAS = `do $deshacer$
+declare
+  v_firma text := ${FIRMA};
+begin
+${REEMPLAZOS_DOS_OFERTAS.map(([viejo, nuevo]) => `  execute replace(pg_get_functiondef(v_firma::regprocedure), $q$${nuevo}$q$, $q$${viejo}$q$);`).join("\n")}
+end $deshacer$;
+`;
+/** Rehacerlo, solo donde la base tiene la migración (`fn_cuenta_de_grupos`) y si el texto nuevo no está. */
+export const REHACER_DOS_OFERTAS = `do $rehacer_dos_ofertas$
+declare
+  v_firma text := ${FIRMA};
+  v_def text;
+begin
+  if to_regprocedure('retail.fn_cuenta_de_grupos(jsonb)') is not null then
+${REEMPLAZOS_DOS_OFERTAS.map(([viejo, nuevo]) => `    v_def := pg_get_functiondef(v_firma::regprocedure);
+    if position($q$${nuevo}$q$ in v_def) = 0 then
+      execute replace(v_def, $q$${viejo}$q$, $q$${nuevo}$q$);
+    end if;`).join("\n")}
+  end if;
+end $rehacer_dos_ofertas$;
+`;
+
 /** Todos los parches posteriores al redondeo, deshechos del más nuevo al más viejo. */
-export const DESHACER_POSTERIORES = `${DESHACER_DIA_VENTA}\n${DESHACER_GRUPO}\n${DESHACER_MOTIVO_SIN_REGISTRAR}\n${DESHACER_CAMPANAS_SEDE}\n${DESHACER_CLUB_PUNTOS}\n${DESHACER_MAQUINA}\n${DESHACER_CUMPLE_SIN_CENTIMOS}\n${DESHACER_DESCUENTO_SIN_CENTIMOS}\n${DESHACER_TOKEN}\n${DESHACER_PRECIO_CERO}\n${DESHACER_ORIGEN_SUGERENCIA}\n${DESHACER_LIQUIDACION}\n${DESHACER_PRECIO_SEDE}`;
+export const DESHACER_POSTERIORES = `${DESHACER_DOS_OFERTAS}\n${DESHACER_DIA_VENTA}\n${DESHACER_GRUPO}\n${DESHACER_MOTIVO_SIN_REGISTRAR}\n${DESHACER_CAMPANAS_SEDE}\n${DESHACER_CLUB_PUNTOS}\n${DESHACER_MAQUINA}\n${DESHACER_CUMPLE_SIN_CENTIMOS}\n${DESHACER_DESCUENTO_SIN_CENTIMOS}\n${DESHACER_TOKEN}\n${DESHACER_PRECIO_CERO}\n${DESHACER_ORIGEN_SUGERENCIA}\n${DESHACER_LIQUIDACION}\n${DESHACER_PRECIO_SEDE}`;
 /** Y rehechos en su orden. */
-export const REHACER_POSTERIORES = `${REHACER_PRECIO_SEDE}\n${REHACER_LIQUIDACION}\n${REHACER_ORIGEN_SUGERENCIA}\n${REHACER_PRECIO_CERO}\n${REHACER_TOKEN}\n${REHACER_DESCUENTO_SIN_CENTIMOS}\n${REHACER_CUMPLE_SIN_CENTIMOS}\n${REHACER_MAQUINA}\n${REHACER_CLUB_PUNTOS}\n${REHACER_CAMPANAS_SEDE}\n${REHACER_MOTIVO_SIN_REGISTRAR}\n${REHACER_GRUPO}\n${REHACER_DIA_VENTA}`;
+export const REHACER_POSTERIORES = `${REHACER_PRECIO_SEDE}\n${REHACER_LIQUIDACION}\n${REHACER_ORIGEN_SUGERENCIA}\n${REHACER_PRECIO_CERO}\n${REHACER_TOKEN}\n${REHACER_DESCUENTO_SIN_CENTIMOS}\n${REHACER_CUMPLE_SIN_CENTIMOS}\n${REHACER_MAQUINA}\n${REHACER_CLUB_PUNTOS}\n${REHACER_CAMPANAS_SEDE}\n${REHACER_MOTIVO_SIN_REGISTRAR}\n${REHACER_GRUPO}\n${REHACER_DIA_VENTA}\n${REHACER_DOS_OFERTAS}`;

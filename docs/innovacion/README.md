@@ -47,3 +47,9 @@ Las ideas que se descartaron en una corrida (ya existían, sin fuente, moda, no 
 | recibir-margen#4 | Compras ▸ Recibir | El costo llega solo desde el XML de la factura del proveedor | Visión | 4 / L | propuesta | [informe](2026-11-14-recibir-margen.md) | 2026-11-14 |
 | recibir-margen#5 | Compras ▸ Recibir | La IA propone subir el precio de lo que rota rápido al reponerlo | Visión | 3 / M | propuesta | [informe](2026-11-14-recibir-margen.md) | 2026-11-14 |
 | recibir-margen#6 | Compras ▸ Recibir | Margen prometido contra margen logrado, por envío | Visión | 4 / L | propuesta | [informe](2026-11-14-recibir-margen.md) | 2026-11-14 |
+| recibir-crear-prenda#1 | Inventario ▸ Recibir | «La anterior» sale de la base: sobrevive a recargar y llega a «Crear ahora» | Ahora | 3 / M | hecha (PR #1860: Contar y «Crear ahora» de Para después) | [informe](2026-11-14-recibir-crear-prenda.md) | 2026-11-14 |
+| recibir-crear-prenda#2 | Inventario ▸ Recibir | La etiqueta del proveedor reconoce la reposición | Ahora | 4 / M | propuesta | [informe](2026-11-14-recibir-crear-prenda.md) | 2026-11-14 |
+| recibir-crear-prenda#3 | Inventario ▸ Recibir | Crear los nuevos del envío en una planilla | Ahora | 5 / L | propuesta | [informe](2026-11-14-recibir-crear-prenda.md) | 2026-11-14 |
+| recibir-crear-prenda#4 | Inventario ▸ Recibir | La foto arma la ficha: tejido, patrón y tipo propuestos | Visión | 4 / L | propuesta | [informe](2026-11-14-recibir-crear-prenda.md) | 2026-11-14 |
+| recibir-crear-prenda#5 | Inventario ▸ Recibir | Lo de siempre del proveedor, con su porqué | Visión | 3 / L | propuesta | [informe](2026-11-14-recibir-crear-prenda.md) | 2026-11-14 |
+| recibir-crear-prenda#6 | Inventario ▸ Recibir | La factura del proveedor arma los modelos del envío sin aviso | Visión | 5 / XL | propuesta | [informe](2026-11-14-recibir-crear-prenda.md) | 2026-11-14 |

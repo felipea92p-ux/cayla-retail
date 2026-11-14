@@ -14,6 +14,7 @@ import type { CatalogoParaRecibir, CategoriaDeLinea, PrendaRecepcion } from "@/l
 import { TOPES_CONTEO } from "@/lib/recepcion-conteo-reglas";
 import type { GrupoDeLineas } from "@/lib/recepcion-grupos-reglas";
 import { marcaSugeridaDelModelo, nombrePorDefecto, paradaDelNombre, parecidasDelNombre, type CategoriaDelEnvio, type ParadaDelConteo } from "@/lib/recepcion-modelos-reglas";
+import { marcaDelAnterior } from "@/lib/recepcion-igual-que-anterior";
 import { prendaDeLaCategoria, sugerirDescripcion, sugerirNombre } from "@/lib/sugerencias-alta-producto";
 import { enterNoGuarda } from "@/components/ui/enterNoGuarda";
 import { ElegirPrendaExistente } from "@/components/recepcion-envio/ElegirPrendaExistente";
@@ -49,6 +50,7 @@ export function NuevoModelo({
   onCrear,
   onIrA,
   onCerrar,
+  marcaAnterior = null,
 }: {
   /** La categoría del «+». Sin ella («Agregar lo que llegó»), la persona la elige. */
   categoriaFija: CategoriaDeLinea | null;
@@ -71,6 +73,8 @@ export function NuevoModelo({
   /** Ese modelo ya está en la lista: se va a contarlo. */
   onIrA: (p: ParadaDelConteo) => void;
   onCerrar: () => void;
+  /** «Igual que la anterior» (tarea 7 de Recibir): la marca del modelo agregado antes en este envío, que se ofrece de un toque (nunca viene puesta). */
+  marcaAnterior?: { id: string; nombre: string } | null;
 }) {
   // Sin aviso no se pregunta (Felipe 2026-11-07): cada modelo es del proveedor de su marca, y lo que no se puede saber se pone al cerrar.
   const eligeProveedor = !sinAviso && proveedores.length >= 2;
@@ -107,6 +111,7 @@ export function NuevoModelo({
     const peso = (id: string) => (enLaLista.has(id) ? 2 : suyas.has(id) ? 1 : 0);
     return [...todas].sort((a, b) => peso(b.id) - peso(a.id) || a.nombre.localeCompare(b.nombre, "es"));
   }, [catalogo, proveedorId, enLista]);
+  const ofrecidaAnterior = marcaDelAnterior(marcaAnterior, marcaId, marcas);
 
   // Las parecidas del catálogo, de esta categoría y marca. Si no responde, se sigue sin ellas.
   const [parecidas, setParecidas] = useState<readonly PrendaRecepcion[]>([]);
@@ -374,6 +379,14 @@ export function NuevoModelo({
                 crear={{ etiqueta: (q) => (q ? `+ Marca nueva «${q}»` : "+ Marca nueva"), onCrear: (q) => setCreandoMarca(q) }}
               />
             </Campo>
+            {ofrecidaAnterior && (
+              <p className="mt-2 text-sm text-taupe">
+                Como el anterior: {ofrecidaAnterior.nombre}.{" "}
+                <button type="button" onClick={() => setMarcaId(ofrecidaAnterior.id)} className="btn-cayla btn-enlace text-xs">
+                  Usar esa marca
+                </button>
+              </p>
+            )}
           </CampoGuiado>
           <CampoGuiado id="modelo-nota" guia={guia}>
             <CampoTexto
