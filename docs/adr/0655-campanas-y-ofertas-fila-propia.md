@@ -160,6 +160,18 @@ Felipe aprobó partirla en cuatro, cada una con su PR: (1) la base, (2) la hoja,
 Prueba: `pnpm pruebas:ofertas-de-grupo` (25 de 25), con 300 tickets al azar que comparan el ahorro con «la más barata de cada grupo»
 contada de otra forma; con el error de la división puesto a propósito, fallan 80 de los 300.
 
+### Parte 2: la hoja (sin migración)
+
+- «¿Qué le das al cliente?» habilita **«Llevar varias y pagar menos»** con las tres formas de la maqueta («3 x 2», «2 por S/ 59.90», «2.ª al
+  50 %») y sus números dichos como una frase («Lleva [3] y paga [2]»); la etiqueta de la derecha dice la forma en grande («3 x 2»).
+- «¿En qué prendas?» pregunta **«¿Se pueden mezclar?»** (cualquiera de estas · solo del mismo modelo) y muestra **«Así funciona en la caja»**:
+  un grupo de prendas de verdad, cobrado con la misma regla de la caja (`lib/ofertas-de-grupo.ts`, la versión TypeScript de
+  `fn_ofertas_de_grupo`, probada con los mismos ejemplos y con 2 000 tickets al azar).
+- La frase, el nombre automático, la lista de ofertas y el «antes: …» dicen la forma. La validación de la forma es la misma de la base
+  (`problemasDeForma`) y lo que falta lleva al paso 1.
+- **Una oferta de grupo se guarda como borrador y no se activa** (`CAJA_COBRA_GRUPOS = false`) hasta que la caja la cobre (parte 3): sin
+  «Activar» en la hoja ni en la lista, y un aviso que lo dice. La ruta la guarda por `guardar_oferta_completa`.
+
 ## Alternativas descartadas
 
 - **Dentro de Insignias, renombrado «Insignias y ofertas».** No mueve nada, pero sigue mezclando dos preguntas en una pantalla y el nombre
