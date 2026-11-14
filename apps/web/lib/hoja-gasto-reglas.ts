@@ -9,7 +9,7 @@
 // Lógica pura, probada en `hoja-gasto-reglas.test.ts`.
 import { soloDigitos, validarRuc } from "@cayla-retail/shared";
 import type { CampoDeGuia } from "./guia-campos";
-import { cuentaDeSalida, cuentasDeLaClase, usable, type CuentaElegible } from "./cuenta-sellada-reglas";
+import { cuentasDeLaClase, usable, type CuentaElegible } from "./cuenta-sellada-reglas";
 import { igvDeFactura, montoDentroDelTope, parsearMonto, partirSerieNumero, validarGasto, type BorradorGasto, type MedioGasto, type PayloadGasto, type ProveedorGasto, type TipoComprobante } from "./gastos-reglas";
 import { soles } from "./compras-reglas";
 import { leerMontoPlata } from "./monto-plata-reglas";
@@ -75,7 +75,7 @@ export const conComprobante = (h: Pick<HojaGasto, "comprobante">) => h.comproban
 /** A crédito solo con comprobante: sin papel no hay a quién deberle en Por pagar. */
 export const aCredito = (h: Pick<HojaGasto, "comprobante" | "pagado"> & { egresoId?: string }) => !h.egresoId && conComprobante(h) && h.pagado === "no";
 
-/** De dónde salió la plata, ya resuelto por la hoja con las cuentas de la tienda (`cuentaDeSalida`) o con el medio elegido. */
+/** De dónde salió la plata, ya resuelto por la hoja con la cuenta que eligió la persona (`salidaDeLaHoja`) o con el medio elegido. */
 export type SalidaDeLaHoja = { medio: MedioGasto | ""; cuentaId?: string; cajaId: string; referencia: string; /** Sale de un banco: solo entonces cuenta «¿Cuándo salió?». */ banco?: boolean };
 
 /** La hoja → el borrador de siempre. `proveedorId` es el del RUC (el que ya estaba o el recién sumado). */
@@ -143,7 +143,7 @@ export function validarHoja(
   if (conComprobante(h) && !serieNumeroLegible(h.serieNumero)) return { ok: false, campo: "serie", error: "Escribe la serie y el número, como F001-2231." };
   if (h.comprobante === "factura" && h.igvPapel.trim() !== "" && igvEscrito(h) === null) return { ok: false, campo: "igv", error: "Escribe el IGV como dice la factura, por ejemplo 18.00, o déjalo vacío." };
   if (aCredito(h) && (!h.vence || h.vence < h.fecha)) return { ok: false, error: "Di cuándo vence (no antes de la fecha)." };
-  if (!aCredito(h) && !h.egresoId && !salida.medio) return { ok: false, error: "Di de dónde salió la plata." };
+  if (!aCredito(h) && !h.egresoId && !salida.medio) return { ok: false, campo: "salida", error: salida.banco ? "Di cómo salió del banco: transferencia, Yape o Plin." : "Di de dónde salió la plata." };
   return validarGasto(borradorDeLaHoja(h, proveedorId, salida, gastoFijoId), hoy);
 }
 
@@ -265,27 +265,13 @@ export function hojaDePlantilla(p: PlantillaGasto, fecha: string): HojaGasto {
 }
 
 /**
- * De qué cuenta salió la plata, propuesta por la hoja (Felipe 2026-10-23, tras el /chaos: la hoja proponía «Interbank · transferencia»
- * para unas bolsas pagadas del cajón, y al cambiar de sede reemplazaba en silencio el cajón elegido por el banco):
- *   · lo que la persona eligió se queda mientras sirva;
- *   · después de cambiar de sede (`porElegir`), si lo de antes ya no sirve, queda POR ELEGIR (null): la guía lo pide, nadie lo cambia;
- *   · sin comprobante y con la caja de esa sede abierta, el cajón de esa sede (lo de todos los días sale de ahí);
- *   · si no, lo de siempre (`cuentaDeSalida`: la propuesta para una transferencia y, si no hay banco, la de efectivo).
+ * De qué cuenta salió la plata: la que eligió la persona, mientras sirva; si no eligió (o ya no sirve, al cambiar de sede), POR ELEGIR (null).
+ * La hoja no propone ninguna (Felipe 2026-11-13): proponía el cajón de la sede para lo que no tiene comprobante, y un pago hecho por Yape
+ * desde la cuenta de la empresa quedó guardado como efectivo del cajón sin que nadie lo notara. Antes (2026-10-23) proponía un banco para
+ * unas bolsas pagadas del cajón. En los dos casos la propuesta se guardaba sin que nadie la eligiera: de dónde salió lo dice quien pagó.
  */
-export function salidaDeLaHoja(
-  cuentas: readonly CuentaElegible[],
-  h: Pick<HojaGasto, "sede" | "comprobante">,
-  elegida: string,
-  porElegir: boolean,
-): string | null {
-  const sirven = cuentasDeLaClase(cuentas, "pago").filter(usable);
-  if (elegida && sirven.some((c) => c.id === elegida)) return elegida;
-  if (porElegir) return null;
-  if (!conComprobante(h) && h.sede && h.sede !== "empresa") {
-    const cajon = sirven.find((c) => c.tipo === "cajon" && c.ubicacionId === h.sede);
-    if (cajon) return cajon.id;
-  }
-  return cuentaDeSalida(cuentas, "pago", null);
+export function salidaDeLaHoja(cuentas: readonly CuentaElegible[], elegida: string): string | null {
+  return elegida && cuentasDeLaClase(cuentas, "pago").some((c) => c.id === elegida && usable(c)) ? elegida : null;
 }
 
 /** Por qué el monto escrito no sirve, para el pie de su caja (el /chaos del 2026-10-23 vio que 0, −0.01 o 12.505 no se aceptaban sin

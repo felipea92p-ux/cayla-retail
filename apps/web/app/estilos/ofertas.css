@@ -104,6 +104,12 @@
   .of-gp .pildora-cayla[aria-disabled="true"], .of-opciones .pildora-cayla[aria-disabled="true"] { opacity: 0.55; border-style: dashed; cursor: default; }
   .of-gp { display: flex; flex-wrap: wrap; gap: 0.375rem; margin-top: 0.625rem; }
   .of-sub { margin-top: 0.625rem; }
+  /* «Llevar varias y pagar menos» (ADR-0655, actividad 6): la forma dicha como una frase con sus números («Lleva [3] y paga [2]»), y el
+     ejemplo de la caja con prendas de verdad. */
+  .of-frase-campos { display: flex; flex-wrap: wrap; align-items: center; gap: 0.625rem; font-size: 0.9375rem; }
+  .of-frase-campos .of-monto { width: 10rem; }
+  .of-ejemplo { list-style: none; margin: 0.5rem 0 0; padding: 0; display: grid; gap: 0.375rem; }
+  .of-ejemplo li { display: flex; justify-content: space-between; gap: 0.75rem; font-size: 0.875rem; }
   .of-lbl { display: block; margin-bottom: 0.25rem; font-size: 0.6875rem; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; color: color-mix(in srgb, var(--color-tinta) 68%, transparent); }
   .of-opciones { display: flex; flex-wrap: wrap; gap: 0.5rem; }
   .of-ctl { display: grid; gap: 0.5rem; max-width: 22rem; }
