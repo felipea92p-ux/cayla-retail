@@ -22,7 +22,7 @@ Maqueta navegable de Compras ▸ Historial de compras (`/compras`, `app/(app)/co
   cuenta; como ya no se confirma después, es el único momento en que se dice de dónde salió la plata.
 
 **Después de la prueba ciega de `/formidable` (2026-11-13, `docs/formidable/compras-historial-maqueta.md`):** bajo 1380 px el resumen se pliega a
-una franja de una línea y la lista queda a la vista en un portátil; el buscador de Historial encuentra a la compradora («Ver su cuenta»), el viaje
+una franja de una línea y la lista queda a la vista en un portátil; el buscador de Historial encuentra a la compradora («Ver su plata»), el viaje
 se nombra por sus fechas y «Entregar plata» pasa a «Darle plata»; y «Pagar» abre una hoja de pago (cuánto, si llegó la mercadería, de qué cuenta
 sale, quién paga) con «Pagar juntos» pegada abajo.
 

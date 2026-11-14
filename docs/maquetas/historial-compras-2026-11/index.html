@@ -440,6 +440,9 @@
 .en-err{display:block;margin-top:6px;font-size:13px;font-weight:600;color:var(--rojo)}
 .en-res{margin-top:18px;padding:12px 16px;border-radius:14px;font-size:14.5px;color:var(--t80);background:color-mix(in srgb,var(--verde) 9%,transparent)}.en-res b{color:var(--tinta)}
 .en-pie{display:flex;justify-content:flex-end;gap:10px;margin-top:20px;padding-top:14px;border-top:1px solid color-mix(in srgb,var(--tinta) 8%,transparent)}
+/* El pie de la hoja se queda abajo mientras lo de arriba corre (la regla de las hojas largas, `pie-hoja-fijo`): la ciega no veía «Darle S/ 300.00» sin bajar. */
+.mdl-hoja .en-pie{position:sticky;bottom:-20px;z-index:2;margin:20px -24px -20px;padding:14px 24px 20px;background:color-mix(in srgb,var(--vidrio) 96%,transparent)}
+[data-tema="oscuro"] .mdl-hoja .en-pie{background:var(--vidrio)}
 .en-listo{display:grid;justify-items:start;gap:8px;margin-top:18px}
 .en-listo .c{display:grid;place-items:center;width:48px;height:48px;border-radius:50%;color:var(--verde);background:color-mix(in srgb,var(--verde) 14%,transparent)}.en-listo .c svg{width:22px;height:22px}
 .en-listo b{font-family:'EB Garamond',serif;font-weight:500;font-size:24px;line-height:1.15}.en-listo p{font-size:14.5px;color:var(--t80)}
@@ -713,7 +716,7 @@ a.fr-c{border-radius:10px;padding:4px 8px;margin:-4px -8px}
     <ul>
       <li><b>Historial se entendió al primer toque.</b> Revisar compras no se encontró: la ciega buscó a Maribel en Historial (0 resultados) y llegó en el paso 5. En Por pagar, «Pagar» abría el detalle. En un portátil de 1024 px la lista quedaba bajo el borde.</li>
       <li><b>1 · La lista a la vista en un portátil:</b> bajo 1380 px el resumen se pliega a una franja de una línea («Este mes · Por llegar · Por pagar», o «Debes · Ya vencido»), y lo demás se abre con «Ver todo».</li>
-      <li><b>2 · La plata de las compradoras se encuentra:</b> el buscador de Historial ofrece «Maribel · Tiene que devolver S/ 180.00 · Ver su cuenta»; cada nombre de «Quién tiene plata» dice «Ver su cuenta»; el viaje se nombra por sus fechas; «Entregar plata» pasa a «Darle plata».</li>
+      <li><b>2 · La plata de las compradoras se encuentra:</b> el buscador de Historial ofrece «Maribel · Tiene que devolver S/ 180.00 · Ver su plata»; cada nombre de «Quién tiene plata» dice «Ver su plata»; el viaje se nombra por sus fechas; «Entregar plata» pasa a «Darle plata».</li>
       <li><b>3 · «Pagar» paga:</b> abre una hoja con cuánto le debes, qué compraste y si llegó (con «Revisa antes de pagar» si falta mercadería), cuánto pagas, de qué cuenta sale y quién paga. «Pagar juntos» se queda pegada abajo. La regla para pagar una compra que no llegó sigue siendo tuya: la hoja solo avisa.</li>
     </ul>
   </section>
@@ -925,7 +928,7 @@ a.fr-c{border-radius:10px;padding:4px 8px;margin:-4px -8px}
     // Una compradora no es una compra, pero quien la busca aquí quiere su plata: se ofrece su cuenta encima de la lista.
     const qq = sinTildes(st.q.trim()), gente = qq.length >= 2 ? Object.values(RONDAS).filter((r) => sinTildes(r.quien).includes(qq)) : [];
     const deGente = gente.length ? `<div class="lb-gente"><h3>Compradoras</h3>${gente.map((r) => `<button class="lb-persona" data-hc="rq-persona" data-v="${r.quien}" aria-haspopup="dialog"><span class="ini" aria-hidden="true">${r.quien[0]}</span>
-      <span><b>${r.quien}</b><small>${r.cerrada ? `Tiene que devolver ${soles(r.entregado - r.gasto)}` : `Tiene ${soles(r.entregado - r.gasto)} y sigue comprando`}</small></span><span class="ver">Ver su cuenta ${ic(P.chev)}</span></button>`).join('')}</div>` : '';
+      <span><b>${r.quien}</b><small>${r.cerrada ? `Tiene que devolver ${soles(r.entregado - r.gasto)}` : `Tiene ${soles(r.entregado - r.gasto)} y sigue comprando`}</small></span><span class="ver">Ver su plata ${ic(P.chev)}</span></button>`).join('')}</div>` : '';
     if (!l.length && gente.length) { caja.innerHTML = deGente + `<div class="lb-pie"><span>No hay compras con «${st.q}»</span></div>`; return; }
     if (!l.length) {
       caja.innerHTML = `<div class="lb-vacio">${ic(P.lupax)}<h3>${st.q ? `No hay compras con «${st.q}»` : 'Nada en este filtro'}</h3><p>${st.q ? 'Prueba con la marca, el proveedor o el nombre de una prenda.' : 'Todo lo de este período llegó y está pagado.'}</p>
@@ -1204,7 +1207,7 @@ a.fr-c{border-radius:10px;padding:4px 8px;margin:-4px -8px}
   function ladoRevisar() {
     const personas = Object.entries(RONDAS).map(([k, r]) => ({ k, r, tiene: r.entregado - r.gasto }));
     $('#rq-quien').innerHTML = `<h3 class="rq-titulo"><span>Quién tiene plata</span><b class="num">${soles(personas.reduce((s, x) => s + x.tiene, 0))}</b></h3>
-      <div class="rq-quien">${personas.map(({ r, tiene }) => `<button class="rq-pb" data-hc="rq-persona" data-v="${r.quien}" aria-haspopup="dialog" title="Ver los movimientos de ${r.quien}"><span class="ini" aria-hidden="true">${r.quien[0]}</span><span class="tx"><b>${r.quien}</b><small>Ver su cuenta</small></span><b class="num">${soles(tiene)}</b>${ic(P.chev, 'ic chev')}</button>`).join('')}</div>`;
+      <div class="rq-quien">${personas.map(({ r, tiene }) => `<button class="rq-pb" data-hc="rq-persona" data-v="${r.quien}" aria-haspopup="dialog" title="Ver los movimientos de ${r.quien}"><span class="ini" aria-hidden="true">${r.quien[0]}</span><span class="tx"><b>${r.quien}</b><small>Ver su plata</small></span><b class="num">${soles(tiene)}</b>${ic(P.chev, 'ic chev')}</button>`).join('')}</div>`;
   }
   // ---------- La hoja «La plata de Rosa»: lo que le dieron y lo que hizo con eso ----------
   // La hoja se lee como una libreta: primero la respuesta («Tiene que devolver S/ 180»), después qué pasó con la plata, con lo que le

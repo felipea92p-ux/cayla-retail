@@ -12,7 +12,7 @@
 
 **Notas:** ley 1 de 7 a **8** (el tope sin colaboradora real) · **leyes 7,2** · oficio sin cambios (4).
 
-**Dos arreglos chicos que esta vuelta destapó (esperan el OK de Felipe):** «Ver su cuenta» → «Ver su plata» (no se confunde con una cuenta del banco), y el pie de «Darle plata» y de la hoja de pago pegado abajo (`pie-hoja-fijo`, la regla del repo para hojas largas) para que el botón se vea sin bajar.
+**Dos arreglos chicos que esta vuelta destapó, hechos con el OK de Felipe:** «Ver su cuenta» → «Ver su plata» (no se confunde con una cuenta del banco), y el pie de «Darle plata» y de la hoja de pago se pega al fondo de la hoja (`pie-hoja-fijo`, la regla del repo para hojas largas). [Medido] a 1440 × 900 el botón «Darle S/ 300.00» queda en 769–811 px, dentro de la ventana, con la hoja de 786 px de contenido en 742 de alto. Sin repetir la ciega.
 
 ## Segunda vuelta · 2026-11-13 — los 3 cambios, hechos con el OK de Felipe («Sí, los 3»), y la ciega repetida
 
