@@ -41,3 +41,9 @@ Las ideas que se descartaron en una corrida (ya existían, sin fuente, moda, no 
 | cambiar-de-modulo#18 | Todo el ERP | Reabrir Cache Components con Partial Prefetching, ruta por ruta | Visión | 4 / XL | propuesta | [informe](2026-11-13-cambiar-de-modulo.md) | 2026-11-13 |
 | cambiar-de-modulo#19 | Vender | Vender abre con el catálogo ya en el equipo (IndexedDB) | Visión | 4 / XL | propuesta | [informe](2026-11-13-cambiar-de-modulo.md) | 2026-11-13 |
 | cambiar-de-modulo#20 | Marco (identidad) | La identidad viaja en el token (Custom Access Token Hook) | Visión | 4 / XL | propuesta | [informe](2026-11-13-cambiar-de-modulo.md) | 2026-11-13 |
+| recibir-margen#1 | Compras ▸ Recibir | Un solo margen en todo el ERP: Recibir y Nuevo producto con la cuenta de Compras (sin IGV) | Ahora | 4 / M | aceptada (Felipe, 2026-11-14) | [informe](2026-11-14-recibir-margen.md) | 2026-11-14 |
+| recibir-margen#2 | Compras ▸ Recibir | «¿Y con la rebaja?»: lo que queda con 30 % de campaña, en el «?» de la línea | Ahora | 3 / S | propuesta | [informe](2026-11-14-recibir-margen.md) | 2026-11-14 |
+| recibir-margen#3 | Compras ▸ Recibir | El cierre dice cuánto deja el envío entero | Ahora | 3 / S | propuesta | [informe](2026-11-14-recibir-margen.md) | 2026-11-14 |
+| recibir-margen#4 | Compras ▸ Recibir | El costo llega solo desde el XML de la factura del proveedor | Visión | 4 / L | propuesta | [informe](2026-11-14-recibir-margen.md) | 2026-11-14 |
+| recibir-margen#5 | Compras ▸ Recibir | La IA propone subir el precio de lo que rota rápido al reponerlo | Visión | 3 / M | propuesta | [informe](2026-11-14-recibir-margen.md) | 2026-11-14 |
+| recibir-margen#6 | Compras ▸ Recibir | Margen prometido contra margen logrado, por envío | Visión | 4 / L | propuesta | [informe](2026-11-14-recibir-margen.md) | 2026-11-14 |
