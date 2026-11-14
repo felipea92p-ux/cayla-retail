@@ -74,7 +74,18 @@ export async function POST(request: Request) {
         p_regla_id: o.id,
         p_etiqueta_id: o.etiquetaId,
         p_nombre: o.nombre,
-        p_forma: { ...o.forma, porcentaje: o.forma.tipo === "pct" || o.forma.tipo === "nesima_pct" ? o.porcentaje : null },
+        // La forma con los nombres de la base; un monto (actividad 8) suma sus escalones, en qué ahorra, qué cuenta y si cede a las otras.
+        p_forma: {
+          tipo: o.forma.tipo,
+          lleva: o.forma.lleva,
+          paga: o.forma.paga,
+          monto: o.forma.monto,
+          agrupa: o.forma.agrupa,
+          porcentaje: o.forma.tipo === "pct" || o.forma.tipo === "nesima_pct" ? o.porcentaje : null,
+          ...(o.forma.tipo === "monto"
+            ? { escalones: o.forma.escalones ?? [], ahorro_en: o.forma.ahorroEn ?? "soles", cuenta: o.forma.cuenta ?? "compra", cede_a_otras: o.forma.cedeAOtras ?? false }
+            : {}),
+        },
         p_desde: o.desde,
         p_hasta: o.hasta,
         p_dias_semana: o.dias,

@@ -1,5 +1,5 @@
 import { descuentoUnitarioPorPorcentaje } from "./vender-reglas";
-import { titularDeEscalon, titularDeMonto, titularDeOferta } from "./campana-reglas";
+import { escalonesDeFila, titularDeEscalon, titularDeMonto, titularDeOferta } from "./campana-reglas";
 
 /**
  * «Llevar varias y pagar menos» (ADR-0655, actividad 6): el 3x2, «N por S/ X» y «la N.ª al X %».
@@ -149,22 +149,46 @@ export type EjemploDeGrupo = { lineas: { nombre: string; precio: number; paga: n
 /** Arma un grupo de ejemplo con las prendas que la oferta alcanza y lo cobra con `ofertasDeGrupo`. Con «cualquier prenda», las N más caras de
  *  modelos distintos (si no hay N modelos, repite); con «del mismo modelo», N del modelo más caro. `null` si la oferta no alcanza ninguna. */
 export function ejemploDeGrupo(prendas: readonly PrendaParaEjemplo[], oferta: OfertaDeGrupo): EjemploDeGrupo | null {
-  const validas = prendas.filter((p) => Number.isFinite(p.precio) && p.precio > 0);
-  if (validas.length === 0 || oferta.lleva < 1) return null;
-  // Un modelo una vez, con su precio más alto, de la más cara a la más barata (empate: por nombre, para que el ejemplo no cambie solo).
+  const modelos = modelosParaEjemplo(prendas);
+  if (modelos.length === 0 || oferta.lleva < 1) return null;
+  const elegidas = oferta.agrupa === "modelo" ? Array.from({ length: oferta.lleva }, () => modelos[0]) : Array.from({ length: oferta.lleva }, (_, i) => modelos[i % modelos.length]);
+  return cobrarEjemplo(elegidas, oferta);
+}
+
+/** Un modelo una vez, con su precio más alto, de la más cara a la más barata (empate: por nombre, para que el ejemplo no cambie solo). */
+function modelosParaEjemplo(prendas: readonly PrendaParaEjemplo[]): PrendaParaEjemplo[] {
   const porModelo = new Map<string, PrendaParaEjemplo>();
-  for (const p of validas) {
+  for (const p of prendas.filter((x) => Number.isFinite(x.precio) && x.precio > 0)) {
     const clave = p.productoId ?? p.nombre;
     const ya = porModelo.get(clave);
     if (!ya || p.precio > ya.precio) porModelo.set(clave, p);
   }
-  const modelos = [...porModelo.values()].sort((a, b) => b.precio - a.precio || a.nombre.localeCompare(b.nombre, "es"));
-  const elegidas = oferta.agrupa === "modelo" ? Array.from({ length: oferta.lleva }, () => modelos[0]) : Array.from({ length: oferta.lleva }, (_, i) => modelos[i % modelos.length]);
+  return [...porModelo.values()].sort((a, b) => b.precio - a.precio || a.nombre.localeCompare(b.nombre, "es"));
+}
+
+/** Las prendas elegidas cobradas con `ofertasDeGrupo`: lo que paga cada una y el total. */
+function cobrarEjemplo(elegidas: readonly PrendaParaEjemplo[], oferta: OfertaDeGrupo): EjemploDeGrupo {
   const grupos = ofertasDeGrupo(elegidas.map((p) => ({ precio: p.precio, cantidad: 1, oferta, modeloId: p.productoId ?? p.nombre })));
   const lineas = elegidas.map((p, i) => ({ nombre: p.nombre, precio: p.precio, paga: (Math.round(p.precio * 100) - Math.round((grupos[i]?.descuento ?? 0) * 100)) / 100 }));
   const totalC = elegidas.reduce((a, p) => a + Math.round(p.precio * 100), 0);
   const pagaC = lineas.reduce((a, l) => a + Math.round(l.paga * 100), 0);
   return { lineas, total: totalC / 100, paga: pagaC / 100, ahorro: (totalC - pagaC) / 100 };
+}
+
+/** El ejemplo de un monto (la hoja, actividad 8): las prendas más caras de modelos distintos hasta llegar al primer escalón (a lo más 6; si
+ *  no alcanzan, se repite la más cara), cobradas con la cuenta de la caja. `null` si la oferta no alcanza ninguna prenda. */
+export function ejemploDeMonto(prendas: readonly PrendaParaEjemplo[], oferta: OfertaDeGrupo): EjemploDeGrupo | null {
+  const modelos = modelosParaEjemplo(prendas);
+  if (modelos.length === 0) return null;
+  const umbralC = Math.round(([...(oferta.escalones ?? [])].sort((a, b) => a.desde - b.desde)[0]?.desde ?? 0) * 100);
+  const elegidas: PrendaParaEjemplo[] = [];
+  let sumaC = 0;
+  for (let i = 0; elegidas.length < 6 && (sumaC < umbralC || elegidas.length === 0); i++) {
+    const p = modelos[i] ?? modelos[0];
+    elegidas.push(p);
+    sumaC += Math.round(p.precio * 100);
+  }
+  return cobrarEjemplo(elegidas, oferta);
 }
 
 // ---- La caja: el carrito con sus grupos (ADR-0655, actividad 6, parte 3) --------------------------------------------------------------
@@ -346,16 +370,6 @@ export type FilaOfertaDeMonto = {
   variantes: string[] | null;
   excluidas: string[] | null;
 };
-
-/** Los escalones de la base, de menor a mayor, o `null` si no son los que exige `fn_escalones_validos` (de 1 a 3, cada uno desde más y
- *  ahorrando más que el anterior). */
-function escalonesDeFila(x: unknown): Escalon[] | null {
-  if (!Array.isArray(x) || x.length < 1 || x.length > 3) return null;
-  const e = x.map((y) => ({ desde: Number((y as Record<string, unknown>)?.desde), ahorra: Number((y as Record<string, unknown>)?.ahorra) }));
-  if (e.some((y) => !Number.isFinite(y.desde) || !Number.isFinite(y.ahorra) || y.desde <= 0 || y.ahorra <= 0)) return null;
-  if (e.some((y, i) => i > 0 && (y.desde <= e[i - 1].desde || y.ahorra <= e[i - 1].ahorra))) return null;
-  return e;
-}
 
 /** Las filas de la base como las usa la caja, en el orden de la base (el más antiguo gana). Una fila que esta web no sabe leer se ignora:
  *  no se cobra lo que no se sabe mostrar (la base la exigiría igual). */

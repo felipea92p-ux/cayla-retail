@@ -46,6 +46,9 @@ import {
   textoDeEscalon,
   titularDeEscalon,
   titularDeMonto,
+  FORMA_DE_FABRICA,
+  problemasDeForma,
+  problemasDeMonto,
 } from "./campana-reglas";
 
 // El viernes 23 de octubre de 2026 es hoy en la maqueta; el lunes 26, el martes 27, el jueves 29.
@@ -510,5 +513,58 @@ describe("lo que dice un monto (ADR-0655, actividad 8)", () => {
     expect(titularDeEscalon({ desde: 300, ahorra: 30 }, "soles")).toBe("S/\u00a030.00 menos desde S/\u00a0300.00");
     expect(titularDeMonto([{ desde: 300, ahorra: 10 }, { desde: 500, ahorra: 15 }], "pct")).toBe("10 % menos desde S/\u00a0300.00");
     expect(titularDeMonto([], "soles")).toBe("Por monto");
+  });
+});
+
+describe("la hoja con un monto (ADR-0655, actividad 8)", () => {
+  const nom = (id: string) => ({ c1: "Blusas" })[id] ?? "";
+  const monto = (o: Partial<ReturnType<typeof ofertaNueva>> = {}) => ({ ...ofertaNueva("2026-10-26", "2026-10-31"), ...FORMA_DE_FABRICA.monto, ...o });
+  it("lo que impide guardarlo: los mismos límites que la base (fn_escalones_validos)", () => {
+    expect(problemasDeMonto([{ desde: 300, ahorra: 30 }], "soles")).toEqual([]);
+    expect(problemasDeMonto([], "soles")[0]).toMatch(/de 1 a 3 escalones/);
+    expect(problemasDeMonto([{ desde: 300, ahorra: 0 }], "soles")[0]).toBe("Pon desde cuánto y cuánto ahorra.");
+    expect(problemasDeMonto([{ desde: 100, ahorra: 100 }], "soles")[0]).toBe("El ahorro tiene que ser menor que el monto.");
+    expect(problemasDeMonto([{ desde: 300, ahorra: 80 }], "pct")[0]).toBe(`El ahorro va de 1 a ${PORCENTAJE_MAX} %.`);
+    expect(problemasDeMonto([{ desde: 300, ahorra: 30 }, { desde: 300, ahorra: 40 }], "soles")[0]).toMatch(/desde más y ahorra más/);
+    expect(problemasDeMonto([{ desde: 300.005, ahorra: 30 }], "soles")[0]).toMatch(/céntimos/);
+    expect(problemasDeForma(monto())).toEqual([]);
+  });
+  it("cómo se dice: la frase, el nombre automático y el titular", () => {
+    const escalones = [{ desde: 300, ahorra: 30 }, { desde: 500, ahorra: 60 }];
+    expect(fraseDeOferta(monto({ escalones }), nom)).toBe(
+      "S/\u00a030.00 menos desde S/\u00a0300.00, S/\u00a060.00 menos desde S/\u00a0500.00 en toda la compra, del 26 oct al 31 oct.",
+    );
+    expect(fraseDeOferta(monto({ cuenta: "campana", categoriasSolo: ["c1"], cedeAOtras: true }), nom)).toBe(
+      "S/\u00a030.00 menos desde S/\u00a0300.00 comprando Blusas, sin contar las prendas que ya tienen otra oferta, del 26 oct al 31 oct.",
+    );
+    expect(nombreAutomatico(monto(), nom)).toBe("Toda la compra · S/\u00a030.00 menos desde S/\u00a0300.00");
+  });
+  it("de la base a la hoja y de la hoja a la ruta", () => {
+    const r = regla({ tipo: "monto", porcentaje: null, lleva: null, paga: null, escalones: [{ desde: "300", ahorra: "30" }], ahorro_en: "pct", cuenta: "campana", cede_a_otras: true });
+    expect(r).toMatchObject({ tipo: "monto", escalones: [{ desde: 300, ahorra: 30 }], ahorroEn: "pct", cuenta: "campana", cedeAOtras: true });
+    expect(ofertaDesdeRegla(r, true)).toMatchObject({ tipo: "monto", escalones: [{ desde: 300, ahorra: 30 }], cuenta: "campana", cedeAOtras: true });
+    const cuerpo = {
+      etiquetaId: "00000000-0000-4000-8000-000000000001", nombre: "Monto", porcentaje: 0, desde: "2026-10-26", hasta: "2026-10-31", dias: [1, 2, 3, 4, 5, 6, 7],
+      forma: { tipo: "monto", escalones: [{ desde: 300, ahorra: 30 }], ahorroEn: "soles", cuenta: "compra", cedeAOtras: true },
+    };
+    const ok = leerCuerpoOferta(cuerpo);
+    expect(ok.ok && ok.valor.forma).toMatchObject({ tipo: "monto", escalones: [{ desde: 300, ahorra: 30 }], ahorroEn: "soles", cuenta: "compra", cedeAOtras: true });
+    expect(leerCuerpoOferta({ ...cuerpo, forma: { ...cuerpo.forma, escalones: [{ desde: 100, ahorra: 100 }] } }).ok).toBe(false);
+  });
+  it("toda la compra alcanza a todo el catálogo, salvo Claurè si no la incluye", () => {
+    const catalogo = [{ id: "a", categoriaId: "c1" }, { id: "b", categoriaId: "c2" }, { id: "k", categoriaId: "c2", deClaure: true }];
+    expect(prendasQueAlcanza([], catalogo, { ...monto() }).map((p) => p.id)).toEqual(["a", "b"]);
+    expect(prendasQueAlcanza([], catalogo, { ...monto({ incluyeClaure: true }) }).map((p) => p.id)).toEqual(["a", "b", "k"]);
+  });
+  it("los choques: «que no cuenten» resuelve todo salvo otro monto, y avisa si la otra tiene todas las prendas", () => {
+    const fila = (f: Partial<FilaChoque>): FilaChoque => ({ otra_tipo: "oferta", otra_id: "o1", otra_nombre: "Top", campana_nombre: "Top", ubicacion_id: "t", ubicacion_nombre: "Tienda Lima", prendas: 4, cedida: false, otra_es_monto: false, mias: 10, ...f });
+    const c = choquesDeFilas([fila({}), fila({ otra_id: "o2", otra_nombre: "Otro monto", otra_es_monto: true }), fila({ otra_tipo: "descuento", otra_id: "d1", otra_nombre: "Siempre", prendas: 10 })], []);
+    const [rebaja, otroMonto, todo] = ["o1", "o2", "d1"].map((id) => c.find((x) => x.id === id)!);
+    expect([rebaja.esMonto, otroMonto.esMonto, todo.todaLaTienda, rebaja.todaLaTienda]).toEqual([false, true, true, false]);
+    expect(choqueResuelto(rebaja, [], true)).toBe(true);
+    expect(choqueResuelto(todo, [], true)).toBe(true);
+    expect(choqueResuelto(otroMonto, [], true)).toBe(false);
+    expect(choquesSinResolver([rebaja, otroMonto, todo], [], true).map((x) => x.id)).toEqual(["o2"]);
+    expect(choquesSinResolver([rebaja], [], false)).toHaveLength(1);
   });
 });

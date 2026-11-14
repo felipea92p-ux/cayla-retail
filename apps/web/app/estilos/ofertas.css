@@ -108,6 +108,8 @@
      ejemplo de la caja con prendas de verdad. */
   .of-frase-campos { display: flex; flex-wrap: wrap; align-items: center; gap: 0.625rem; font-size: 0.9375rem; }
   .of-frase-campos .of-monto { width: 10rem; }
+  /* Un escalón del monto (actividad 8): «Desde [S/ 300] ahorra [S/ 30] ×» en una fila; con cajas de 10rem, la × caía a la línea de abajo. */
+  .of-frase-campos .of-monto-escalon { width: 6.5rem; }
   .of-ejemplo { list-style: none; margin: 0.5rem 0 0; padding: 0; display: grid; gap: 0.375rem; }
   .of-ejemplo li { display: flex; justify-content: space-between; gap: 0.75rem; font-size: 0.875rem; }
   .of-lbl { display: block; margin-bottom: 0.25rem; font-size: 0.6875rem; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; color: color-mix(in srgb, var(--color-tinta) 68%, transparent); }
