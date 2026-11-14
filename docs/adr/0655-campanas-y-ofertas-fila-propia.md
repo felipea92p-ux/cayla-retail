@@ -370,8 +370,12 @@ Felipe decidió cinco el 2026-11-14:
    apartado guarda la rebaja del día (`separacion_items.rebaja_unitaria`) y se la devuelve si la prenda deja su grupo, y el pedido web nace
    con la parte sola. Un descuento a mano se sigue sumando (Felipe 2026-11-13). La misma cuenta, al céntimo, en `lib/ofertas-de-grupo.ts`
    (caja y Apartar) y en la bolsa de la tienda web (`deja_rebaja`). Descarté elegir prenda por prenda la mejor combinación (2^n cuentas que
-   nadie podría explicar en la caja) y «gana la rebaja» siempre (con tres polos el cliente no recibía el 3x2). **Falta la otra mitad que pidió
-   Felipe:** el aviso en Campañas, «N prendas tienen dos ofertas», con una hoja para elegir cuál queda; va en su propio PR.
+   nadie podría explicar en la caja) y «gana la rebaja» siempre (con tres polos el cliente no recibía el 3x2). La otra mitad que pidió Felipe, el
+   aviso, está en `20261114170000`: Campañas y ofertas dice «N prendas tienen dos ofertas» (`campanas_ofertas_que_chocan`) y su hoja deja
+   elegir cuál queda par por par (`elegir_oferta_que_queda`, una sola cesión, sin exigirle a la que gana sus otros choques como hacía
+   `ceder_ofertas`). Se elige **por par de ofertas y vale para todas las prendas que comparten** (Felipe: «Dale», 2026-11-14), como Shopify,
+   que lo decide por descuento y no por producto; para una sola prenda, se edita la oferta. Un descuento de siempre no cede: la hoja dice qué
+   cambiar.
 3. **Una oferta sobre una insignia desactivada deja de rebajar** (`20261114130000`). Lo mismo una sin aprobar; reactivada, vuelve. Una oferta
    que eligió solo insignias no pasa a rebajar las prendas de su campaña. Al desactivar una insignia, la confirmación nombra las ofertas que
    dejan de rebajar.

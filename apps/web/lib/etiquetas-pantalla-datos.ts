@@ -23,7 +23,7 @@ import { estiloConocido } from "@/lib/etiqueta-grupos";
 import { esDelModo, type ModoEtiquetas } from "@/lib/sellos-campanas";
 import { fotoDeVariante, type FotoCruda } from "@/lib/producto-fotos-reglas";
 import type { TallaVitrina } from "@/lib/sellos-pases";
-import { reglaDeFila, type FilaRegla, type InsigniaDeOferta } from "@/lib/campana-reglas";
+import { paresDeFilas, reglaDeFila, type FilaParQueChoca, type FilaRegla, type InsigniaDeOferta, type ParQueChoca } from "@/lib/campana-reglas";
 
 /** «Ninguna tienda con precio propio»: lo que se usa cuando no hace falta leerlos (la forma de `getPreciosDeLasTiendas`). */
 const sinPreciosDeTiendas = () => ({ nombres: new Map<string, string>(), porSede: {} as Record<string, Record<string, number>> });
@@ -73,6 +73,15 @@ export async function cargarEtiquetasPantalla({
     error: { message: string } | null;
   }>;
   const cargaTiendas = getUbicaciones().then((u) => u.filter((x) => x.tipo === "tienda").map((x) => ({ id: x.id, nombre: x.nombre })));
+  // El aviso de Campañas (ADR-0655, decisión 2 de Felipe): qué ofertas comparten prendas sin resolver. Solo en Campañas y para quien las
+  // edita; sin la función en esa base (o si falla) no hay aviso: la caja ya cobra la que más le ahorra al cliente.
+  const cargaChoques: PromiseLike<ParQueChoca[] | null> =
+    modo === "campanas" && puedeEditar
+      ? (supabase.rpc("campanas_ofertas_que_chocan" as never) as unknown as PromiseLike<{ data: FilaParQueChoca[] | null; error: unknown }>).then(
+          (r) => (r.error ? null : paresDeFilas(r.data)),
+          () => null,
+        )
+      : Promise.resolve(null);
 
   const [resEtiquetas, resCategorias, resEtiquetaCategorias, resFamilias, resPrendas, resManuales, preciosTiendas, resSedes, tiendas, resReglas, resEmpresas, resAnuncios] = await Promise.all([
     supabase.from("etiquetas").select("id, nombre, activo, notas, estado, estilo, icono, icono_imagen, icono_imagen_silueta, vigente_desde, vigente_hasta, descuento_pct").order("nombre"),
@@ -216,6 +225,7 @@ export async function cargarEtiquetasPantalla({
     reglasDisponibles,
     // El nombre de cada campaña (de todos los modos): Catálogo ▸ Insignias nombra la campaña de una oferta que usa la insignia que se
     // desactiva (ADR-0655).
+    choquesAbiertos: await cargaChoques,
     nombresDeCampanas: Object.fromEntries(todasLasEtiquetas.filter((e) => e.estilo === "campana").map((e) => [e.id, e.nombre])) as Record<string, string>,
   };
 }

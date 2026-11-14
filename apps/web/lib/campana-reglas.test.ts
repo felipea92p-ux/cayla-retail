@@ -2,6 +2,12 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, it, expect } from "vitest";
 import {
+  detalleDePar,
+  nombreEnPar,
+  paresDeFilas,
+  prendasConDosOfertas,
+  tituloDosOfertas,
+  type FilaParQueChoca,
   contarPorCategoria,
   contarPrendas,
   prendasQueAlcanza,
@@ -664,5 +670,31 @@ describe("desactivar una insignia que usan ofertas (ADR-0655, Felipe 2026-11-14)
   it("cuenta también la que va a regir", () => {
     const programada = regla({ desde: "2026-11-01", hasta: "2026-11-30", nombre: "Navidad", insignias: [ROTACION] });
     expect(bajadaDesactivarInsignia([programada], ROTACION, hoy, nombreCampana)).toBe("La oferta «Navidad» de Verano deja de rebajar sus prendas.");
+  });
+});
+
+describe("el aviso de Campañas: prendas con dos ofertas (decisión 2, parte 3)", () => {
+  const fila = (extra: Partial<FilaParQueChoca> = {}): FilaParQueChoca => ({
+    oferta_id: "r", oferta_nombre: "3 x 2", oferta_campana: "Verano", otra_tipo: "oferta", otra_id: "p", otra_nombre: "20 %", otra_campana: "Navidad",
+    tiendas: ["Lima", "Trujillo"], prendas: 9, modelos: [{ id: "m1", nombre: "Blusa Emma" }, { id: "m2", nombre: "Polo Básico" }], ...extra,
+  });
+  it("lee cada par; una fila rara se ignora; un descuento de siempre se reconoce", () => {
+    const pares = paresDeFilas([fila(), fila({ otra_tipo: "descuento", otra_id: "d" }), { ...fila(), oferta_id: "" }]);
+    expect(pares).toHaveLength(2);
+    expect(pares[1].otra.tipo).toBe("descuento");
+    expect(paresDeFilas(null)).toEqual([]);
+  });
+  it("cuenta las prendas sin repetir la que está en dos pares; un par sin modelos cuenta sus prendas", () => {
+    const pares = paresDeFilas([fila(), fila({ otra_id: "q", modelos: [{ id: "m2", nombre: "Polo Básico" }, { id: "m3", nombre: "Vestido" }] }), fila({ otra_id: "z", modelos: [], prendas: 4 })]);
+    expect(prendasConDosOfertas(pares)).toBe(3 + 4);
+    expect(tituloDosOfertas(1)).toBe("1 prenda tiene dos ofertas");
+    expect(tituloDosOfertas(7)).toBe("7 prendas tienen dos ofertas");
+  });
+  it("dice cada par en una línea, con sus prendas y sus tiendas", () => {
+    const [p] = paresDeFilas([fila()]);
+    expect(nombreEnPar(p.oferta)).toBe("«3 x 2» (de Verano)");
+    expect(detalleDePar(p)).toBe("Blusa Emma y Polo Básico · Lima y Trujillo");
+    expect(detalleDePar({ ...p, modelos: [...p.modelos, { id: "m3", nombre: "C" }, { id: "m4", nombre: "D" }] })).toBe("Blusa Emma, Polo Básico, C y 1 más · Lima y Trujillo");
+    expect(detalleDePar({ ...p, modelos: [], prendas: 1, tiendas: [] })).toBe("1 prenda");
   });
 });
