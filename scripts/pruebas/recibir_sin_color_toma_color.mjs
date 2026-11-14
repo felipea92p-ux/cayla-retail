@@ -229,8 +229,9 @@ caso(
      values (:'sc_s', :'tru', :'alm_t', 'entrada', 2, 'prueba sin color: colchón') returning id as m0 \\gset
    select retail.fn_aplicar_movimiento(:'m0') \\g /dev/null
    ${SUMA(["t_s", "c1"], ["t_m", "c1"])}
-   select concat_ws(' / ', pg_temp.e(:'r'::jsonb), ${LISTA});`,
-  "P0001|recepcion_sin_color_con_historia|«Pantalón Sin Color Prueba» ya tiene prendas «Sin color» (talla S) y no se sabe de qué color son. " +
+   -- El nombre se lee de la base: al guardarlo, la base lo normaliza («Sin» → «sin»).
+   select concat_ws(' / ', replace(pg_temp.e(:'r'::jsonb), (select referencia from retail.productos where id = :'prod'), 'LA PRENDA'), ${LISTA});`,
+  "P0001|recepcion_sin_color_con_historia|«LA PRENDA» ya tiene prendas «Sin color» (talla S) y no se sabe de qué color son. " +
     "Ponles color en Catálogo ▸ Productos ▸ Editar y vuelve a sumar. / M:sin:79.90:true,S:sin:79.90:true",
 );
 
