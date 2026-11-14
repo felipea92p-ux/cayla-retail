@@ -51,7 +51,7 @@ ${sqlDespues}
 }
 
 /**
- * Una venta con UNA línea en Tienda Lima del «body» (BLU-EMMA-NEG-M) y dos prendas para llevarse (VES-SOFI-NEG-M y BLU-EMMA-BEI-M). Los
+ * Una venta con UNA línea en Tienda Lima del «body» (BLU-EMMA-NEG-M) y dos prendas para llevarse (VES-SOFI-NEG-M y VES-SOFI-AZM-M, de otro modelo). Los
  * precios se ajustan dentro de la transacción (que nunca se commitea) para que la diferencia sea EXACTA sin importar el catálogo de hoy:
  * `registrar_venta` exige que el precio de la línea coincida con el vigente, así que el catálogo se ajusta primero.
  * Pagada con tarjeta, nunca en efectivo, para que su monto no entre al cajón y ensucie las aserciones de caja.
@@ -78,7 +78,9 @@ select retail.abrir_caja(:'ubic', 100.00, 'prueba automatizada') as caja_id \\gs
 
 select id as v_old from retail.variantes where sku = 'BLU-EMMA-NEG-M' \\gset
 select id as v_n1 from retail.variantes where sku = 'VES-SOFI-NEG-M' \\gset
-select id as v_n2 from retail.variantes where sku = 'BLU-EMMA-BEI-M' \\gset
+-- ADR-0655 (2026-11-14): la segunda prenda es de OTRO modelo que la devuelta. Antes era BLU-EMMA-BEI-M, otra talla del mismo modelo,
+-- que desde 20261114125000 conserva su descuento (lo prueba pruebas:cambio-mismo-modelo).
+select id as v_n2 from retail.variantes where sku = 'VES-SOFI-AZM-M' \\gset
 select retail.fn_sububicacion_por_defecto(:'ubic', 'venta') as sub_piso \\gset
 
 insert into retail.movimientos (variante_id, ubicacion_id, sububicacion_id, tipo, cantidad, motivo)
