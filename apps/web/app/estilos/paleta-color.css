@@ -1,0 +1,63 @@
+/* ---- La paleta con todos los colores (ADR-0663, `components/ui/PaletaDeColor.tsx`) ----
+   El cuadro (intensidad de izquierda a derecha, claridad de arriba abajo) sobre el matiz de la barra. Los degradados SON el color:
+   no cambian con el tema (`data-color-dato`) y llevan su `tema-fijo`. El aro del punto y de la perilla va claro en los dos temas,
+   porque se lee sobre el color y no sobre el fondo. Con el dedo, su área de 44 px vive en `tacto.css`. Sin movimiento propio. */
+
+.paleta-color {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.paleta-color[data-deshabilitada] {
+  opacity: 0.55;
+  pointer-events: none;
+}
+
+.paleta-cuadro {
+  position: relative;
+  height: 170px;
+  border-radius: 14px;
+  border: 1px solid var(--color-borde-control);
+  cursor: crosshair;
+  touch-action: none;
+  background: linear-gradient(to top, #000, transparent), linear-gradient(to right, #fff, var(--paleta-matiz)); /* tema-fijo: la paleta es el color mismo, no cambia con el tema */
+}
+
+.paleta-matiz {
+  position: relative;
+  height: 14px;
+  border-radius: 999px;
+  border: 1px solid var(--color-borde-control);
+  cursor: pointer;
+  touch-action: none;
+  background: linear-gradient(to right, #ff0000, #ffff00, #00ff00, #00ffff, #0000ff, #ff00ff, #ff0000); /* tema-fijo: el arcoíris de los matices, es el color mismo */
+}
+
+.paleta-punto,
+.paleta-perilla {
+  position: absolute;
+  width: 20px;
+  height: 20px;
+  border-radius: 999px;
+  transform: translate(-50%, -50%);
+  border: 2px solid #fff; /* tema-fijo: el aro se lee sobre el color de la paleta, claro en los dos temas */
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.45), 0 2px 6px rgba(0, 0, 0, 0.3); /* tema-fijo: el filo oscuro del aro, sobre el color y no sobre el tema */
+}
+.paleta-perilla {
+  top: 50%;
+  width: 22px;
+  height: 22px;
+}
+/* Sin tono todavía: el punto vacío, punteado (nunca un color de relleno). */
+.paleta-punto[data-vacio] {
+  background: transparent;
+  border-style: dashed;
+}
+/* El foco se dibuja sobre el color mismo, que puede ser casi negro o casi blanco: un anillo de un tono desaparecía (1,2:1 en la zona oscura
+   en claro, 1,14:1 en la blanca en oscuro). Dos tonos, fijos en los dos temas, se ven sobre cualquier color (WCAG 2.4.7 y 1.4.11). */
+.paleta-punto:focus-visible,
+.paleta-perilla:focus-visible {
+  outline: 2px solid #ffffff; /* tema-fijo: el anillo de foco va sobre el color, claro en los dos temas */
+  outline-offset: 1px;
+  box-shadow: 0 0 0 5px #1a1a18; /* tema-fijo: su filo oscuro, para que se vea también sobre lo claro */
+}

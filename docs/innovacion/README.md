@@ -53,3 +53,9 @@ Las ideas que se descartaron en una corrida (ya existían, sin fuente, moda, no 
 | recibir-crear-prenda#4 | Inventario ▸ Recibir | La foto arma la ficha: tejido, patrón y tipo propuestos | Visión | 4 / L | propuesta | [informe](2026-11-14-recibir-crear-prenda.md) | 2026-11-14 |
 | recibir-crear-prenda#5 | Inventario ▸ Recibir | Lo de siempre del proveedor, con su porqué | Visión | 3 / L | propuesta | [informe](2026-11-14-recibir-crear-prenda.md) | 2026-11-14 |
 | recibir-crear-prenda#6 | Inventario ▸ Recibir | La factura del proveedor arma los modelos del envío sin aviso | Visión | 5 / XL | propuesta | [informe](2026-11-14-recibir-crear-prenda.md) | 2026-11-14 |
+| tanda#1 | Inventario ▸ Recibir | «Llevar al stock e imprimir»: un solo toque, sin la hoja de en medio | Ahora | 3 / S | aceptada (Felipe, 2026-11-14) · hecha en PR #1864 | [informe](2026-11-14-recibir-imprimir-tanda.md) | 2026-11-14 |
+| tanda#2 | Inventario ▸ Recibir | Reimprimir una tanda desde «Ya en stock», en la lista del envío | Ahora | 2 / S | propuesta | [informe](2026-11-14-recibir-imprimir-tanda.md) | 2026-11-14 |
+| tanda#3 | Inventario ▸ Recibir | El envío sabe qué falta etiquetar y lo imprime de una vez | Ahora | 3 / M | propuesta | [informe](2026-11-14-recibir-imprimir-tanda.md) | 2026-11-14 |
+| tanda#4 | Inventario ▸ Recibir | La cola de impresión de la sede: imprimir desde el celular con que se cuenta | Visión | 3 / L | propuesta | [informe](2026-11-14-recibir-imprimir-tanda.md) | 2026-11-14 |
+| tanda#5 | Inventario ▸ Recibir | La etiqueta sale al contar: una por prenda, con la prenda en la mano | Visión | 4 / L | propuesta | [informe](2026-11-14-recibir-imprimir-tanda.md) | 2026-11-14 |
+| tanda#6 | Etiquetas de precio | El navegador le habla directo a la Brother, sin ayudante que instalar | Visión | 2 / L | propuesta | [informe](2026-11-14-recibir-imprimir-tanda.md) | 2026-11-14 |

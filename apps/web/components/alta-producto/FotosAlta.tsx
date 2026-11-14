@@ -2,8 +2,8 @@
 
 import { useRef, type ReactNode } from "react";
 import { X } from "lucide-react";
-import { avisar } from "@/components/ui/Avisos";
-import { objecionFotoProducto } from "@/lib/producto-fotos";
+import type { ColorAlta } from "@/lib/alta-producto";
+import type { Lectura } from "@/lib/colores-de-la-foto";
 
 // Las fotos del alta, POR COLOR, sin subir nada todavía (spike Nuevo producto, 2026-09-24).
 //
@@ -26,39 +26,14 @@ export type FotoPendiente = {
   /** URL local (blob:) solo para mostrarla; se libera al quitarla o al salir. */
   vista: string;
   colorCodigo: string | null;
+  /** Cómo se leyeron sus colores (ADR-0663), si el color salió de la foto: lo usa el «¿Por qué?» de su tarjeta. */
+  lectura?: Lectura<ColorAlta>;
   /**
    * «Catálogo con IA» (2026-11-13): la versión de catálogo de esta foto, ya preparada en el navegador. `usar` dice cuál queda: con la de IA,
    * `vista` es la suya y al crear el producto se sube el par (`subirParDeCatalogo`); con «Usar mi foto», `vista` vuelve a `vistaReal`.
    */
   ia?: { png: Blob; vistaIA: string; vistaReal: string; usar: boolean };
 };
-
-/** Agregar y quitar fotos pendientes, compartido por esta grilla y por la tabla de la prenda (`MatrizVariantes`, spike
- *  v2 2026-09-28: la foto va en la fila de su color). Cada archivo elegido se valida y queda pendiente tal cual (ADR-0442). */
-export function useFotosPendientes({ fotos, onFotos }: { fotos: FotoPendiente[]; onFotos: (f: FotoPendiente[]) => void }) {
-  function agregar(archivos: File[], colorCodigo: string | null) {
-    const buenas: File[] = [];
-    const malas: string[] = [];
-    for (const archivo of archivos) {
-      const objecion = objecionFotoProducto(archivo);
-      if (objecion) malas.push(`${archivo.name}: ${objecion}`);
-      else buenas.push(archivo);
-    }
-    if (malas.length) avisar.error(malas.length === 1 ? "Una foto no se puede usar" : `${malas.length} fotos no se pueden usar`, { detalle: malas.join(" · ") });
-    if (buenas.length) {
-      const nuevas: FotoPendiente[] = buenas.map((archivo) => ({ clave: crypto.randomUUID(), archivo, vista: URL.createObjectURL(archivo), colorCodigo }));
-      onFotos([...fotos, ...nuevas]);
-    }
-  }
-
-  function quitar(clave: string) {
-    const f = fotos.find((x) => x.clave === clave);
-    if (f) URL.revokeObjectURL(f.vista);
-    onFotos(fotos.filter((x) => x.clave !== clave));
-  }
-
-  return { agregar, quitar };
-}
 
 /** La × que va sobre la miniatura de una foto y dice, sin abrir nada, «aquí se quita». Antes «Quitar» solo vivía dentro de la
  *  hoja que abre el enlace «1 foto» (alta) o la tarjeta (ficha), y quien se equivocaba de foto no lo encontraba (Felipe,
