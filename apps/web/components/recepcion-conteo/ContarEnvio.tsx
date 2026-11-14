@@ -131,6 +131,9 @@ import { TarjetaDeTallas } from "./TarjetaDeTallas";
 
 const ID_CAMPO_QUIEN = "rc-quien-cuenta";
 
+/** Con mouse y teclado, un modelo sin contar llega con su número listo para escribir. Con el dedo no: abriría el teclado encima del contador antes de verlo. */
+const conMouse = (): boolean => typeof window !== "undefined" && window.matchMedia("(pointer: fine)").matches;
+
 type Hoja =
   // «Cambiar de prenda»: la hoja de tallas, donde se elige otra.
   | { tipo: "tallas"; grupo: string; original: PrendaSeparada; prenda: PrendaRecepcion; parada: string }
@@ -332,6 +335,17 @@ export function ContarEnvio({
     setHojaVista(hoja);
     if (hoja) setListaEnHoja(false);
   }
+  // Agregar un modelo (o ir a uno desde esa hoja) también deja su número listo para escribir (tarea 4 de las 30 de Recibir, 2026-11-14). Con la hoja abierta el cursor es suyo, y al
+  // cerrarse la hoja lo devuelve a donde estaba en un `setTimeout(0)`: el número se abre en otro, puesto después de ese. Abierto antes, perdería el cursor al instante y se cerraría solo.
+  const [escribirAlCerrar, setEscribirAlCerrar] = useState<string | null>(null);
+  useEffect(() => {
+    if (hoja || !escribirAlCerrar) return;
+    const t = window.setTimeout(() => {
+      setEscribirEn(escribirAlCerrar);
+      setEscribirAlCerrar(null);
+    }, 0);
+    return () => window.clearTimeout(t);
+  }, [hoja, escribirAlCerrar]);
   // Las observaciones de todo el envío (ADR-0507), leídas una vez; cada modelo muestra las suyas.
   const [observaciones, setObservaciones] = useState<readonly ObservacionDeEnvio[]>([]);
   useEffect(() => {
@@ -385,7 +399,9 @@ export function ContarEnvio({
 
   /** Elegir en la lista de la pantalla. Apiladas (una pantalla angosta), el contador queda bajo la lista: la vista baja hasta él, o el toque parecería no hacer nada. */
   function elegirEnLaLista(p: ParadaDelConteo, escribir = false) {
-    elegir(p, escribir);
+    // Lo que todavía no se contó llega con su número listo para escribir (tarea 4 de las 30 de Recibir, 2026-11-14): sin aviso todo se escribe a mano, y era un clic más por modelo.
+    // Lo ya contado no: se eligió para mirarlo o repartirlo.
+    elegir(p, escribir || (!paradaContada(p) && conMouse()));
     requestAnimationFrame(() => {
       const placa = mesa.current?.querySelector<HTMLElement>(".rc-placa");
       if (placa && placa.getBoundingClientRect().top > window.innerHeight / 2) placa.scrollIntoView({ block: "start", behavior: prefiereQuieto() ? "auto" : "smooth" });
@@ -587,11 +603,13 @@ export function ContarEnvio({
     if (destino.tipo === "dentro") {
       escribirSeparado(destino.grupo, conModelo(destino.grupo.separado));
       setFoco(claveDeParada(destino.grupo, llave));
+      if (conMouse()) setEscribirAlCerrar(claveDeParada(destino.grupo, llave));
     } else {
       const clave = await onAgregar({ proveedorId: m.proveedorId, categoriaId, marcaId: m.marcaId, separado: conModelo(SEPARADO_VACIO) });
       if (!clave) return "No se pudo agregar. Revisa la conexión y vuelve a intentar.";
       setAgregados((a) => new Set([...a, clave]));
       setFoco(`${clave}::${llave}`);
+      if (conMouse()) setEscribirAlCerrar(`${clave}::${llave}`);
     }
     setFiltro(SIN_FILTRO);
     setErrorHoja(null);
@@ -1070,7 +1088,10 @@ export function ContarEnvio({
           onMarcaNueva={onMarcaNueva}
           errorDelGuardado={errores["extra:0"] ?? null}
           onCrear={crearModelo}
-          onIrA={elegir}
+          onIrA={(p) => {
+            elegir(p);
+            if (!paradaContada(p) && conMouse()) setEscribirAlCerrar(p.clave);
+          }}
           onCerrar={() => setHoja(null)}
         />
       )}

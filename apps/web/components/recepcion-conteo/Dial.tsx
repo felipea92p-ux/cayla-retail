@@ -33,7 +33,7 @@ export function Dial({
   minimo: number;
   /** «faltas», en minúsculas: para lo que lee el lector de pantalla. */
   nombre: string;
-  /** Llega con el número abierto: viene de apretar Enter en lo anterior. */
+  /** Llega con el número abierto: viene de apretar Enter en lo anterior, o de elegir o agregar un modelo sin contar. Si pasa a `true` con el Dial ya montado, el número se abre ahí. */
   abrirAlEntrar?: boolean;
   /** El número que dejó la persona; `ContarEnvio` lo sube al mínimo y lo reparte entre las líneas. */
   onPoner: (n: number) => void;
@@ -58,8 +58,21 @@ export function Dial({
     });
   }
 
+  // `abrirAlEntrar` también puede llegar después de montado: al agregar un modelo desde su hoja, el número se abre cuando la hoja ya se cerró y devolvió el cursor
+  // (tarea 4 de las 30 de Recibir, 2026-11-14). Se mira durante el dibujo, como `previo`.
+  const [pedido, setPedido] = useState(abrirAlEntrar);
+  if (pedido !== abrirAlEntrar) {
+    setPedido(abrirAlEntrar);
+    if (abrirAlEntrar && editando === null) {
+      setRechazo(null);
+      setEditando(hayConteo ? String(contadas) : "");
+    }
+  }
+
   useEffect(() => {
     if (editando === null || !caja.current || document.activeElement === caja.current) return;
+    // Recién abierto, por el camino que sea: lo que se deje en esta visita cuenta de nuevo.
+    hecho.current = false;
     caja.current.focus();
     caja.current.select();
   }, [editando]);
