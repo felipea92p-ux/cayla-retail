@@ -298,9 +298,23 @@ begin
 ${[...REEMPLAZOS_GRUPO].reverse().map(([viejo, nuevo]) => `  execute replace(pg_get_functiondef(v_firma::regprocedure), $q$${nuevo}$q$, $q$${viejo}$q$);`).join("\n")}
 end $deshacer$;
 `;
-/** Rehacerlo es volver a pegar la migración entera: es re-ejecutable (columnas y candados con `if not exists`; cada reemplazo no hace nada si
- *  el texto nuevo ya está). Necesita `fn_ofertas_de_grupo` (20261114003000), que una base al día ya tiene. */
-export const REHACER_GRUPO = GRUPO;
+/** Rehacerlo son los mismos seis reemplazos, en su orden, y solo donde la base tiene la migración (sus columnas): en una base local que todavía
+ *  no la tiene, deshacer no cambió nada y rehacer tampoco (pegar la migración entera ahí se frena: le falta 20261114003000). Cada uno no hace
+ *  nada si el texto nuevo ya está. */
+export const REHACER_GRUPO = `do $rehacer_grupo$
+declare
+  v_firma text := ${FIRMA};
+  v_def text;
+begin
+  if exists (select 1 from information_schema.columns
+              where table_schema = 'retail' and table_name = 'venta_items' and column_name = 'descuento_grupo_unitario') then
+${REEMPLAZOS_GRUPO.map(([viejo, nuevo]) => `    v_def := pg_get_functiondef(v_firma::regprocedure);
+    if position($q$${nuevo}$q$ in v_def) = 0 then
+      execute replace(v_def, $q$${viejo}$q$, $q$${nuevo}$q$);
+    end if;`).join("\n")}
+  end if;
+end $rehacer_grupo$;
+`;
 
 /** Todos los parches posteriores al redondeo, deshechos del más nuevo al más viejo. */
 export const DESHACER_POSTERIORES = `${DESHACER_GRUPO}\n${DESHACER_MOTIVO_SIN_REGISTRAR}\n${DESHACER_CAMPANAS_SEDE}\n${DESHACER_CLUB_PUNTOS}\n${DESHACER_MAQUINA}\n${DESHACER_CUMPLE_SIN_CENTIMOS}\n${DESHACER_DESCUENTO_SIN_CENTIMOS}\n${DESHACER_TOKEN}\n${DESHACER_PRECIO_CERO}\n${DESHACER_ORIGEN_SUGERENCIA}\n${DESHACER_LIQUIDACION}\n${DESHACER_PRECIO_SEDE}`;
