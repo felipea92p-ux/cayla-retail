@@ -18,6 +18,14 @@ export type CapacidadPiso = {
   capacidad: number;
   /** La sede todavía no contó sus prendas: la densidad es prestada de TRU (30 por m²). */
   provisional: boolean;
+  /** Cuándo se contaron las prendas del piso de la sede (`AAAA-MM-DD`). Null = nunca: la densidad es prestada y la capacidad, provisional. */
+  contadaEl: string | null;
+  /**
+   * La versión que leíste (`capacidad_piso.version`; 0 no existe aquí: una sede sin fila no llega a esta lectura). Es lo que la hoja
+   * «Configurar el piso» le devuelve a `fijar_capacidad_piso` para que, si otra persona la cambió mientras la tenías abierta, la base lo
+   * diga en vez de pisarla. Null = la base no la mandó o vino rara: la capacidad se lee igual, pero la hoja no deja guardar.
+   */
+  version: number | null;
   /**
    * El último cuadre del piso de la sede (ADR-0328, decisión 4; lo guarda la actividad 3). Null = «por cuadrar»: el sistema puede
    * tener como guardadas prendas que ya cuelgan, así que el número de colgadas todavía no es confiable (TRU: 138 contra 600–750).
@@ -38,7 +46,9 @@ export function leerCapacidadPiso(datos: unknown): CapacidadPiso | null {
   // Lo que no es una fecha (falta la columna, llega vacía o rara) se lee como «por cuadrar»: del lado seguro, nunca un piso que
   // parece cuadrado sin estarlo (la misma regla que el motor del piso, PR #787).
   const cuadradoEn = typeof f.cuadrado_en === "string" && !Number.isNaN(Date.parse(f.cuadrado_en)) ? f.cuadrado_en : null;
-  return { m2Sala, densidad, capacidad, provisional: f.provisional, cuadradoEn };
+  const contadaEl = typeof f.contada_el === "string" && !Number.isNaN(Date.parse(f.contada_el)) ? f.contada_el : null;
+  const version = Number.isInteger(f.version) && Number(f.version) >= 1 ? Number(f.version) : null;
+  return { m2Sala, densidad, capacidad, provisional: f.provisional, contadaEl, version, cuadradoEn };
 }
 
 /**

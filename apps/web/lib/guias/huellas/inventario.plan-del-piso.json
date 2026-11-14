@@ -2,7 +2,7 @@
   "guia": "inventario.plan-del-piso",
   "ruta": "/gestion/plan-del-piso",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 21,
+  "total": 28,
   "controles": {
     "app/(app)/gestion/plan-del-piso/page.tsx": [
       "Link «Reintentar»",
@@ -14,6 +14,15 @@
     ],
     "components/plan-piso/ColorDeLaTienda.tsx": [
       "button «{p.nombre}»"
+    ],
+    "components/plan-piso/ConfigurarPiso.tsx": [
+      "Boton «plan-piso.configurar»",
+      "CampoTexto «{guia.etiqueta(\"m2\", \"Metros cuadrados\")}»",
+      "CampoTexto «{guia.etiqueta(\"densidad\", \"Prendas por m²\")}»",
+      "CampoFecha «{guia.etiqueta(\"contadaEl\", \"Contado el\")}»",
+      "ComboResponsable «{responsable}»",
+      "Boton «Cancelar»",
+      "Boton «{choque ? undefined : (responsable.motivo ?? guia.frase ?? undefined)}»"
     ],
     "components/plan-piso/DesgloseDeColor.tsx": [
       "button «{`Cerrar los colores de ${nombre}»"
