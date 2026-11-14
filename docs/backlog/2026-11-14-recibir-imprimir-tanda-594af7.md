@@ -24,4 +24,5 @@ imprimir se repetía por modelo: 4 o 5 toques y 2 cargas de pantalla cada vez.
 - [ ] **tanda#4 a #6** (visión): cola de impresión de la sede, la etiqueta sale al contar, el navegador directo a la Brother. Detalle en `docs/innovacion/2026-11-14-recibir-imprimir-tanda.md`.
 - [ ] Sin probar: el costo fuera de lo normal seguido de «Solo llevar» (la intención viaja en una ref; se probó solo «Llevar e imprimir» sin ese aviso y el aviso con el botón de antes).
 - [ ] Visto de paso: el dial de «¿Cuántas llegaron?» da un aviso de hidratación en desarrollo (los decimales de sus rayas difieren entre el servidor y el navegador). Ya estaba; no es de este cambio.
+- [ ] **`/chaos` sobre la hoja «Llevar N de X al stock»:** ganó un segundo botón («Solo llevar») que llama a la misma función con el mismo token. No se corrió: doble clic entre los dos botones, y cerrar la hoja con la impresión en camino.
 
