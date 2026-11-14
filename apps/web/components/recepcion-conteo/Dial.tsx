@@ -63,9 +63,11 @@ export function Dial({
 
   // `abrirAlEntrar` también puede llegar después de montado: al agregar un modelo desde su hoja, el número se abre cuando la hoja ya se cerró y devolvió el cursor; y al
   // volver a elegir en la lista el modelo que ya está aquí, aunque su número se haya cerrado con Escape o con un clic fuera (tarea 4 de las 30 de Recibir, 2026-11-14). Si estaba
-  // abierto con cifras, el clic en la fila ya lo dejó al salir de la caja (`onBlur`), como cualquier salida. Se mira durante el dibujo, como `previo`.
+  // abierto, el clic en la fila de ESTE modelo no se lleva el cursor (`conservaLaCifra`): la caja sigue con lo tecleado y el pedido no la vuelve a seleccionar; el
+  // clic en otra fila sí sale de la caja y la deja (`onBlur`), como cualquier salida. Se mira durante el dibujo, como `previo`.
   const [pedido, setPedido] = useState(abrirAlEntrar);
-  // Un pedido que llega con el número todavía abierto le devuelve el cursor a la caja: lo que se teclee después no se pierde fuera de ella.
+  // Un pedido que llega con el número todavía abierto le devuelve el cursor a la caja si lo había perdido: lo que se teclee después no se pierde fuera de ella. Si
+  // la caja todavía lo tiene (el clic en su propia fila), no se toca: volver a seleccionar la cifra haría que la próxima tecla la reemplace.
   const [enfocar, setEnfocar] = useState(0);
   if (pedido !== abrirAlEntrar) {
     setPedido(abrirAlEntrar);

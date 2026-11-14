@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { abreAlElegir, atajosDelDial, esPedidoNuevo, estadoDelDial, MAX_CORTES } from "./recepcion-dial-reglas";
+import { abreAlElegir, atajosDelDial, conservaLaCifra, esPedidoNuevo, estadoDelDial, MAX_CORTES } from "./recepcion-dial-reglas";
 
 describe("estadoDelDial", () => {
   it("sin contar todavía, dice lo que dijeron y el aro está vacío", () => {
@@ -76,5 +76,21 @@ describe("cuándo se abre el número del Dial (tarea 4 de las 30 de Recibir, 202
     expect(esPedidoNuevo(4, 0)).toBe(false);
     // Después de un «ninguno», un pedido vuelve a abrir.
     expect(esPedidoNuevo(0, 5)).toBe(true);
+  });
+});
+
+describe("conservaLaCifra: tocar la fila del modelo que estás contando no corta la cifra (Felipe 2026-11-14)", () => {
+  // Con «4» a medio escribir, el clic en su propia fila le quitaba el cursor a la caja: se guardaba 4 y el «7» que seguía no entraba en ningún lado.
+  it("la fila del modelo activo, con el botón principal y el número abierto, se queda con la caja", () => {
+    expect(conservaLaCifra({ filaActiva: true, numeroAbierto: true, botonPrincipal: true })).toBe(true);
+  });
+  it("la fila de otro modelo sí deja el número: salir de la caja lo guarda, como siempre", () => {
+    expect(conservaLaCifra({ filaActiva: false, numeroAbierto: true, botonPrincipal: true })).toBe(false);
+  });
+  it("con el número cerrado no hay cifra que cuidar: la fila se elige como siempre", () => {
+    expect(conservaLaCifra({ filaActiva: true, numeroAbierto: false, botonPrincipal: true })).toBe(false);
+  });
+  it("el botón del medio o el derecho no cambian nada", () => {
+    expect(conservaLaCifra({ filaActiva: true, numeroAbierto: true, botonPrincipal: false })).toBe(false);
   });
 });

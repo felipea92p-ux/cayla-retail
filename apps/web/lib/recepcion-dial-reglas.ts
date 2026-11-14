@@ -60,7 +60,15 @@ export const abreAlElegir = ({ pidio, contada, conMouse }: { pidio: boolean; con
 /**
  * El Dial recibe cada pedido de abrir su número con un número propio, siempre distinto del anterior (0 = ninguno). Un pedido es nuevo si no es el que ya vio: así elegir otra vez el
  * MISMO modelo, el que ya estaba en el contador, vuelve a abrir su número aunque se haya cerrado con Escape o con un clic fuera, siempre que siga sin contar y se use el mouse
- * (`abreAlElegir`): con una cifra ya tecleada, tocar la fila la guarda al salir de la caja, el modelo queda contado y su número no se reabre solo. Antes se pedía con la llave del
+ * (`abreAlElegir`): con una cifra a medio escribir, tocar su propia fila ya no saca el cursor de la caja (`conservaLaCifra`), y el pedido no la vuelve a seleccionar. Antes se pedía con la llave del
  * modelo, y pedir dos veces lo mismo no cambiaba nada: el cursor se quedaba en la fila y lo tecleado se perdía sin aviso.
  */
 export const esPedidoNuevo = (visto: number, pedido: number): boolean => pedido > 0 && pedido !== visto;
+
+/**
+ * ¿El toque en la fila de la lista se queda sin el cursor, para que la caja del número lo conserve? (Felipe 2026-11-14). Con «4» a medio escribir, tocar la fila del MISMO
+ * modelo le quitaba el cursor a la caja: se guardaba 4 y el «7» que seguía no entraba en ningún lado. Solo la fila del modelo que se cuenta (`filaActiva`), con el número
+ * abierto y el botón principal del mouse: la fila de otro modelo, el ✓, el basurero, el teclado y el lector de pantalla siguen igual, y salir de la caja guarda.
+ */
+export const conservaLaCifra = ({ filaActiva, numeroAbierto, botonPrincipal }: { filaActiva: boolean; numeroAbierto: boolean; botonPrincipal: boolean }): boolean =>
+  filaActiva && numeroAbierto && botonPrincipal;

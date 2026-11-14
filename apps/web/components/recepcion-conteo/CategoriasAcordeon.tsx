@@ -15,6 +15,7 @@ import type { ColorAlta } from "@/lib/alta-producto";
 import { colorDeAvance } from "@/lib/avance-color";
 import { buscarPrendasParaRecibir } from "@/lib/recepcion-envio-acciones";
 import { ID_CAMPO_AGREGAR, marcaDeLinea } from "@/lib/recepcion-conteo-reglas";
+import { conservaLaCifra } from "@/lib/recepcion-dial-reglas";
 import {
   avanceDeCategoria,
   categoriaAbierta,
@@ -107,7 +108,12 @@ function FilaDeParada({ p, activa, conOrigen, foto, faltanTallas, sinAviso, onEl
   const cifras = esperadas != null ? <><b>{conMiles(contadas)}</b> de {conMiles(esperadas)}</> : <><b>{conMiles(contadas)}</b> {contadas === 1 ? "contada" : "contadas"}</>;
   return (
     <li className="rc-modelo-fila">
-      <button type="button" className="rc-modelo" data-con-tacho={seQuita || llegaron != null ? "" : undefined} data-activa={activa ? "" : undefined} data-campo={idCampoParada(p)} aria-current={activa ? "true" : undefined} onClick={() => onElegir(p)}>
+      <button type="button" className="rc-modelo" data-con-tacho={seQuita || llegaron != null ? "" : undefined} data-activa={activa ? "" : undefined} data-campo={idCampoParada(p)} aria-current={activa ? "true" : undefined}
+        // Tocar la fila del modelo que se está contando no corta la cifra a medio escribir: la caja del número se queda con el cursor (`conservaLaCifra`).
+        onMouseDown={(e) => {
+          if (conservaLaCifra({ filaActiva: activa, numeroAbierto: !!document.activeElement?.classList.contains("rc-dial-caja"), botonPrincipal: e.button === 0 })) e.preventDefault();
+        }}
+        onClick={() => onElegir(p)}>
         {cat && <MiniaturaPrenda fotoUrl={foto} tamano="md" prefijo={cat.prefijo} familia={cat.familia} categoria={cat.nombre} />}
         <span className="rc-modelo-textos">
           <span className="rc-modelo-nombre">
