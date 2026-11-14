@@ -13,9 +13,9 @@
 --      y exige que cada línea traiga su parte, ni menos (la clienta la recibe: `venta_grupo_omitido`) ni más (`venta_grupo_no_coincide`).
 --      Una venta sin conexión llega días después: la parte puede ser la de hoy o la de hasta 3 días antes (la misma tolerancia que el
 --      % de campaña), así que se acepta entre lo que exige la regla hoy y lo que daba con esa tolerancia.
---   3. `registrar_venta` (4 reemplazos anclados): declara `v_grupo`; llama a la regla antes del bucle; resta la parte del grupo de lo que
+--   3. `registrar_venta` (6 reemplazos anclados): declara `v_grupo`; llama a la regla antes del bucle; resta la parte del grupo de lo que
 --      mira como descuento de campaña o a mano (Felipe 2026-11-13: un descuento a mano se SUMA a la parte del grupo, y sus topes —motivo,
---      costo, 15 y 35 %— miran solo lo suyo); y guarda las dos columnas nuevas. El total de la venta no cambia de cuenta: precio menos
+--      costo, 15 y 35 %— miran solo lo suyo); la resta también del total de la línea; y guarda las dos columnas nuevas. El total de la venta no cambia de cuenta: precio menos
 --      descuento total.
 --   4. `ofertas_de_grupo_vigentes(sede)`: para la caja, qué oferta de grupo rige hoy para cada prenda de esa tienda (con su forma), de una
 --      vez (por conjuntos, como `fn_choques_de_oferta`).
