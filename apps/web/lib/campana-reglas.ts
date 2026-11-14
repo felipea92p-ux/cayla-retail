@@ -16,11 +16,16 @@ export type Resultado<T> = { ok: true; valor: T } | { ok: false; error: string }
 
 export type EstadoRegla = "borrador" | "activa" | "desactivada";
 
-/** Las formas de una oferta (ADR-0655): «un % menos», y las de «Llevar varias y pagar menos» (actividad 6): el 3x2 («lleva N, paga M»),
- *  «N por S/ X» y «la N.ª al X %». */
-export type TipoOferta = "pct" | "nxm" | "n_por_monto" | "nesima_pct";
+/** Las formas de una oferta (ADR-0655): «un % menos», las de «Llevar varias y pagar menos» (actividad 6): el 3x2 («lleva N, paga M»),
+ *  «N por S/ X» y «la N.ª al X %»; y «Gastar un monto y ahorrar» (actividad 8), con hasta 3 escalones. */
+export type TipoOferta = "pct" | "nxm" | "n_por_monto" | "nesima_pct" | "monto";
 export const TIPOS_DE_GRUPO: readonly TipoOferta[] = ["nxm", "n_por_monto", "nesima_pct"];
-export const esDeGrupo = (tipo: TipoOferta) => tipo !== "pct";
+export const esDeGrupo = (tipo: TipoOferta) => TIPOS_DE_GRUPO.includes(tipo);
+
+/** Un escalón de un monto: desde cuánto suma la compra y cuánto ahorra (soles o %). */
+export type EscalonDeMonto = { desde: number; ahorra: number };
+/** Cuántos escalones puede tener un monto (la base exige lo mismo: `fn_escalones_validos`). */
+export const MAX_ESCALONES = 3;
 
 /** La forma de una oferta: el % (de «un % menos» o de la N.ª), cuántas lleva el grupo, cuántas paga, cuánto cuesta y con qué se arma. */
 export type FormaDeOferta = {
@@ -32,6 +37,12 @@ export type FormaDeOferta = {
   monto: number;
   /** El grupo se arma con cualquier prenda de la oferta o solo con prendas del mismo modelo. */
   agrupa: "campana" | "modelo";
+  /** En un monto (actividad 8): sus escalones, de menor a mayor; si ahorra en soles o en %; qué cuenta para llegar (toda la compra o solo
+   *  las prendas de la oferta); y si las prendas con otra oferta no cuentan («que no cuenten», la salida del choque de Felipe). */
+  escalones?: EscalonDeMonto[];
+  ahorroEn?: "soles" | "pct";
+  cuenta?: "campana" | "compra";
+  cedeAOtras?: boolean;
 };
 
 /** Una oferta tal como la ve la pantalla. */
@@ -85,6 +96,11 @@ export type FilaRegla = {
   paga?: number | null;
   monto?: number | string | null;
   agrupa?: string | null;
+  /** Desde 20261114044000 (el monto); sin esa migración la base no los manda. */
+  escalones?: unknown;
+  ahorro_en?: string | null;
+  cuenta?: string | null;
+  cede_a_otras?: boolean | null;
   creada_en: string;
   activada_en: string | null;
   cambios: number | null;
@@ -93,7 +109,17 @@ export type FilaRegla = {
 
 const ESTADOS: readonly EstadoRegla[] = ["borrador", "activa", "desactivada"];
 
-const TIPOS: readonly TipoOferta[] = ["pct", ...TIPOS_DE_GRUPO];
+const TIPOS: readonly TipoOferta[] = ["pct", ...TIPOS_DE_GRUPO, "monto"];
+
+/** Los escalones como los guarda la base, de menor a mayor, o `null` si no son los que exige `fn_escalones_validos` (de 1 a 3, cada uno desde
+ *  más y ahorrando más que el anterior). */
+export function escalonesDeFila(x: unknown): EscalonDeMonto[] | null {
+  if (!Array.isArray(x) || x.length < 1 || x.length > MAX_ESCALONES) return null;
+  const e = x.map((y) => ({ desde: Number((y as Record<string, unknown>)?.desde), ahorra: Number((y as Record<string, unknown>)?.ahorra) }));
+  if (e.some((y) => !Number.isFinite(y.desde) || !Number.isFinite(y.ahorra) || y.desde <= 0 || y.ahorra <= 0)) return null;
+  if (e.some((y, i) => i > 0 && (y.desde <= e[i - 1].desde || y.ahorra <= e[i - 1].ahorra))) return null;
+  return e;
+}
 
 export function reglaDeFila(f: FilaRegla): ReglaCampana {
   return {
@@ -106,6 +132,14 @@ export function reglaDeFila(f: FilaRegla): ReglaCampana {
     paga: Number(f.paga ?? 2),
     monto: Number(f.monto ?? 0),
     agrupa: f.agrupa === "modelo" ? "modelo" : "campana",
+    ...(f.tipo === "monto"
+      ? {
+          escalones: escalonesDeFila(f.escalones) ?? [],
+          ahorroEn: f.ahorro_en === "pct" ? ("pct" as const) : ("soles" as const),
+          cuenta: f.cuenta === "campana" ? ("campana" as const) : ("compra" as const),
+          cedeAOtras: f.cede_a_otras === true,
+        }
+      : {}),
     desde: f.desde,
     hasta: f.hasta,
     dias: [...(f.dias_semana ?? DIAS_SEMANA)].sort((a, b) => a - b),
@@ -258,6 +292,8 @@ export const FORMA_DE_FABRICA: Record<TipoOferta, Omit<FormaDeOferta, "agrupa">>
   nxm: { tipo: "nxm", porcentaje: 0, lleva: 3, paga: 2, monto: 0 },
   n_por_monto: { tipo: "n_por_monto", porcentaje: 0, lleva: 2, paga: 1, monto: 59.9 },
   nesima_pct: { tipo: "nesima_pct", porcentaje: 50, lleva: 2, paga: 1, monto: 0 },
+  // La de la maqueta (Felipe 2026-11-13): S/ 30 menos desde S/ 300, en toda la compra.
+  monto: { tipo: "monto", porcentaje: 0, lleva: 3, paga: 2, monto: 0, escalones: [{ desde: 300, ahorra: 30 }], ahorroEn: "soles", cuenta: "compra", cedeAOtras: false },
 };
 
 export const ofertaNueva = (desde: string, hasta: string): OfertaEnEdicion => ({
@@ -284,6 +320,7 @@ export const ofertaDesdeRegla = (r: ReglaCampana, nombreAutomatico: boolean): Of
   paga: r.paga,
   monto: r.monto,
   agrupa: r.agrupa,
+  ...(r.tipo === "monto" ? { escalones: (r.escalones ?? []).map((e) => ({ ...e })), ahorroEn: r.ahorroEn ?? "soles", cuenta: r.cuenta ?? "compra", cedeAOtras: r.cedeAOtras ?? false } : {}),
   desde: r.desde,
   hasta: r.hasta,
   dias: [...r.dias],
@@ -327,7 +364,6 @@ export function alcanceDicho(o: Pick<OfertaEnEdicion, "categoriasSolo"> & { prod
 
 const soles = (n: number) => `S/\u00a0${n.toFixed(2)}`;
 
-/** Lo que da la oferta, en grande y en pocas letras: «−20 %», «3 x 2», «3 por S/ 100.00», «La 2.ª al 50 %». */
 /** Lo que ahorra un escalón de «Gastar un monto y ahorrar» (ADR-0655, actividad 8): «S/ 30 menos» o «10 % menos». */
 export function textoDeEscalon(e: { ahorra: number }, ahorroEn: "soles" | "pct"): string {
   return ahorroEn === "pct" ? `${String(e.ahorra).replace(".", ",")} % menos` : `${soles(e.ahorra)} menos`;
@@ -341,8 +377,10 @@ export const titularDeEscalon = (e: { desde: number; ahorra: number }, ahorroEn:
 export const titularDeMonto = (escalones: readonly { desde: number; ahorra: number }[], ahorroEn: "soles" | "pct"): string =>
   escalones.length > 0 ? titularDeEscalon(escalones[0], ahorroEn) : "Por monto";
 
-export function titularDeOferta(f: Pick<FormaDeOferta, "tipo" | "porcentaje" | "lleva" | "paga" | "monto">): string {
+/** Lo que da la oferta, en grande y en pocas letras: «−20 %», «3 x 2», «3 por S/ 100.00», «La 2.ª al 50 %», «S/ 30 menos desde S/ 300». */
+export function titularDeOferta(f: Pick<FormaDeOferta, "tipo" | "porcentaje" | "lleva" | "paga" | "monto"> & Partial<Pick<FormaDeOferta, "escalones" | "ahorroEn">>): string {
   const pctTxt = String(f.porcentaje).replace(".", ",");
+  if (f.tipo === "monto") return titularDeMonto(f.escalones ?? [], f.ahorroEn ?? "soles");
   if (f.tipo === "nxm") return `${f.lleva} x ${f.paga}`;
   if (f.tipo === "n_por_monto") return `${f.lleva} por ${soles(f.monto)}`;
   if (f.tipo === "nesima_pct") return `La ${f.lleva}.ª al ${pctTxt} %`;
@@ -352,14 +390,14 @@ export function titularDeOferta(f: Pick<FormaDeOferta, "tipo" | "porcentaje" | "
 /** «Toda la campaña · −20 % · mar y jue» · «Blusas y Faldas · −20 % · Trujillo» · «Polos · 3 x 2». */
 export function nombreAutomatico(
   o: Pick<OfertaEnEdicion, "porcentaje" | "dias" | "categoriasSolo"> &
-    Partial<Pick<FormaDeOferta, "tipo" | "lleva" | "paga" | "monto">> & { sedeIds?: readonly string[]; productosSolo?: readonly string[] },
+    Partial<Pick<FormaDeOferta, "tipo" | "lleva" | "paga" | "monto" | "escalones" | "ahorroEn" | "cuenta">> & { sedeIds?: readonly string[]; productosSolo?: readonly string[] },
   nombreCategoria: (id: string) => string,
   nombreSede: (id: string) => string = () => "",
 ): string {
-  const donde = alcanceDicho(o, nombreCategoria) ?? "Toda la campaña";
+  const donde = o.tipo === "monto" && o.cuenta !== "campana" ? "Toda la compra" : (alcanceDicho(o, nombreCategoria) ?? "Toda la campaña");
   const dias = textoDiasCorto(o.dias);
   const tiendas = lista(nombresDeTiendas(o.sedeIds ?? [], nombreSede));
-  const titular = titularDeOferta({ tipo: o.tipo ?? "pct", porcentaje: o.porcentaje, lleva: o.lleva ?? 3, paga: o.paga ?? 2, monto: o.monto ?? 0 });
+  const titular = titularDeOferta({ tipo: o.tipo ?? "pct", porcentaje: o.porcentaje, lleva: o.lleva ?? 3, paga: o.paga ?? 2, monto: o.monto ?? 0, escalones: o.escalones, ahorroEn: o.ahorroEn });
   const t = `${donde} · ${titular}${dias ? ` · ${dias}` : ""}${tiendas ? ` · ${tiendas}` : ""}`;
   return t.length > MAX_NOMBRE ? `${t.slice(0, MAX_NOMBRE - 1)}…` : t;
 }
@@ -371,7 +409,7 @@ export const nombreDeOferta = (o: OfertaEnEdicion, nombreCategoria: (id: string)
 export const esNombreAutomatico = (r: ReglaCampana, nombreCategoria: (id: string) => string, nombreSede: (id: string) => string = () => ""): boolean =>
   r.nombre ===
   nombreAutomatico(
-    { tipo: r.tipo, porcentaje: r.porcentaje, lleva: r.lleva, paga: r.paga, monto: r.monto, dias: r.dias, categoriasSolo: r.categoriasSolo, productosSolo: r.productosSolo, sedeIds: r.sedeIds },
+    { tipo: r.tipo, porcentaje: r.porcentaje, lleva: r.lleva, paga: r.paga, monto: r.monto, escalones: r.escalones, ahorroEn: r.ahorroEn, cuenta: r.cuenta, dias: r.dias, categoriasSolo: r.categoriasSolo, productosSolo: r.productosSolo, sedeIds: r.sedeIds },
     nombreCategoria,
     nombreSede,
   );
@@ -389,6 +427,13 @@ export function fraseDeOferta(o: OfertaEnEdicion, nombreCategoria: (id: string) 
   const fuera = o.categoriasFuera.length ? ` (menos ${lista(nombresOrdenados(o.categoriasFuera, nombreCategoria).map((n) => n.toLowerCase()))})` : "";
   const dias = textoDias(o.dias);
   const tiendas = lista(nombresDeTiendas(o.sedeIds, nombreSede));
+  if (o.tipo === "monto") {
+    // «S/ 30 menos desde S/ 300, S/ 60 menos desde S/ 500 en toda la compra, sin contar las prendas que ya tienen otra oferta, …» (la maqueta).
+    const escalones = (o.escalones ?? []).map((e) => titularDeEscalon(e, o.ahorroEn ?? "soles")).join(", ");
+    const que = o.cuenta === "campana" ? `comprando ${alcance ? alcance : "prendas de la campaña"}${fuera}` : `en toda la compra${fuera}`;
+    const sinOtras = o.cedeAOtras ? ", sin contar las prendas que ya tienen otra oferta" : "";
+    return `${escalones} ${que}${sinOtras}${o.incluyeClaure ? ", con las prendas de Claurè" : ""}${tiendas ? `, solo en ${tiendas}` : ""}${dias ? `, ${dias}` : ""}, ${textoFechas(o.desde, o.hasta)}.`;
+  }
   if (esDeGrupo(o.tipo)) {
     // «Quien lleva 3 prendas de Polos (se pueden mezclar) paga 2: la más barata va gratis, …» (la frase de la maqueta).
     const de = `${alcance ? ` de ${alcance}` : " de la campaña"}${fuera}${o.agrupa === "modelo" ? " del mismo modelo" : " (se pueden mezclar)"}`;
@@ -442,8 +487,9 @@ export function problemasDeOferta(o: OfertaEnEdicion, c: ContextoOferta): string
 }
 
 /** Lo que impide guardar la forma de la oferta (los mismos límites que `guardar_oferta_completa` y el candado `campana_reglas_forma`). */
-export function problemasDeForma(f: Pick<FormaDeOferta, "tipo" | "porcentaje" | "lleva" | "paga" | "monto">): string[] {
+export function problemasDeForma(f: Pick<FormaDeOferta, "tipo" | "porcentaje" | "lleva" | "paga" | "monto"> & Partial<Pick<FormaDeOferta, "escalones" | "ahorroEn" | "cuenta">>): string[] {
   const entero = (n: number) => Number.isInteger(n);
+  if (f.tipo === "monto") return problemasDeMonto(f.escalones ?? [], f.ahorroEn ?? "soles");
   if (f.tipo === "pct") {
     return !Number.isFinite(f.porcentaje) || f.porcentaje <= 0 || f.porcentaje > PORCENTAJE_MAX ? [`El descuento tiene que ir de 1 a ${PORCENTAJE_MAX} %.`] : [];
   }
@@ -451,6 +497,20 @@ export function problemasDeForma(f: Pick<FormaDeOferta, "tipo" | "porcentaje" | 
   if (f.tipo === "nxm" && (!entero(f.paga) || f.paga < 1 || f.paga >= f.lleva)) return [`Si lleva ${f.lleva}, paga de 1 a ${f.lleva - 1}.`];
   if (f.tipo === "n_por_monto" && (!Number.isFinite(f.monto) || f.monto <= 0)) return ["Pon cuánto cuesta el grupo."];
   if (f.tipo === "nesima_pct" && (!Number.isFinite(f.porcentaje) || f.porcentaje <= 0 || f.porcentaje > 100)) return [`El descuento de la ${f.lleva}.ª va de 1 a 100 %.`];
+  return [];
+}
+
+/** Lo que impide guardar los escalones de un monto (lo mismo que `fn_escalones_validos`), en el orden en que se llenan. */
+export function problemasDeMonto(escalones: readonly EscalonDeMonto[], ahorroEn: "soles" | "pct"): string[] {
+  const centimos = (n: number) => Math.abs(Math.round(n * 100) - n * 100) < 1e-6;
+  if (escalones.length < 1 || escalones.length > MAX_ESCALONES) return [`Un monto lleva de 1 a ${MAX_ESCALONES} escalones.`];
+  for (const [i, e] of escalones.entries()) {
+    if (!Number.isFinite(e.desde) || e.desde <= 0 || !Number.isFinite(e.ahorra) || e.ahorra <= 0) return ["Pon desde cuánto y cuánto ahorra."];
+    if (!centimos(e.desde) || !centimos(e.ahorra)) return ["Los montos van hasta con céntimos, no más."];
+    if (ahorroEn === "soles" && e.ahorra >= e.desde) return ["El ahorro tiene que ser menor que el monto."];
+    if (ahorroEn === "pct" && e.ahorra > PORCENTAJE_MAX) return [`El ahorro va de 1 a ${PORCENTAJE_MAX} %.`];
+    if (i > 0 && (e.desde <= escalones[i - 1].desde || e.ahorra <= escalones[i - 1].ahorra)) return ["Cada escalón va desde más y ahorra más que el anterior."];
+  }
   return [];
 }
 
@@ -525,7 +585,21 @@ export function leerCuerpoOferta(cuerpo: unknown): Resultado<CuerpoGuardarOferta
   const f = (typeof c.forma === "object" && c.forma !== null ? c.forma : {}) as Record<string, unknown>;
   const tipo: TipoOferta = TIPOS.includes(f.tipo as TipoOferta) ? (f.tipo as TipoOferta) : "pct";
   const num = (v: unknown, de: number) => (typeof v === "number" && Number.isFinite(v) ? v : de);
-  const forma: Omit<FormaDeOferta, "porcentaje"> = { tipo, lleva: num(f.lleva, 3), paga: num(f.paga, 2), monto: num(f.monto, 0), agrupa: f.agrupa === "modelo" ? "modelo" : "campana" };
+  const forma: Omit<FormaDeOferta, "porcentaje"> = {
+    tipo,
+    lleva: num(f.lleva, 3),
+    paga: num(f.paga, 2),
+    monto: num(f.monto, 0),
+    agrupa: f.agrupa === "modelo" ? "modelo" : "campana",
+    ...(tipo === "monto"
+      ? {
+          escalones: Array.isArray(f.escalones) ? f.escalones.map((e) => ({ desde: num((e as Record<string, unknown>)?.desde, 0), ahorra: num((e as Record<string, unknown>)?.ahorra, 0) })) : [],
+          ahorroEn: f.ahorroEn === "pct" ? ("pct" as const) : ("soles" as const),
+          cuenta: f.cuenta === "campana" ? ("campana" as const) : ("compra" as const),
+          cedeAOtras: f.cedeAOtras === true,
+        }
+      : {}),
+  };
   const problemaForma = problemasDeForma({ ...forma, porcentaje: c.porcentaje })[0];
   if (problemaForma) return { ok: false, error: problemaForma };
   return {
@@ -598,6 +672,9 @@ export type FilaChoque = {
   prendas: number;
   /** Ya hay una cesión entre las dos (en cualquier sentido). */
   cedida: boolean;
+  /** Con la forma de un monto (la de 13 datos, 20261114044000): si la otra es otro monto y cuántas prendas alcanza esta oferta. */
+  otra_es_monto?: boolean | null;
+  mias?: number | null;
 };
 
 /** Un choque, juntando las tiendas: «choca con X en Lima y Trujillo, en N prendas». */
@@ -614,6 +691,10 @@ export type Choque = {
   estaCede: boolean;
   /** Ya había una cesión guardada a favor de esta. */
   cedidaGuardada: boolean;
+  /** La otra es otro monto: con un monto no se resuelve con «que no cuenten» (dos montos nunca se reparten una prenda). */
+  esMonto: boolean;
+  /** La otra tiene TODAS las prendas que alcanza esta, en alguna de sus tiendas: ahí un monto que cede no le llega a nadie. */
+  todaLaTienda: boolean;
 };
 
 /** Junta las filas por la otra oferta, con sus tiendas en orden. `cedenAntes`: quiénes le cedían a esta al abrirla (para saber en qué sentido
@@ -625,9 +706,11 @@ export function choquesDeFilas(filas: readonly FilaChoque[], cedenAntes: readonl
     const clave = `${tipo}|${f.otra_id}`;
     const ya = por.get(clave);
     const tienda = f.ubicacion_nombre.replace(/^Tienda\s+/i, "");
+    const toda = f.mias != null && Number(f.mias) > 0 && (Number(f.prendas) || 0) >= Number(f.mias);
     if (ya) {
       if (!ya.tiendas.includes(tienda)) ya.tiendas.push(tienda);
       ya.prendas = Math.max(ya.prendas, Number(f.prendas) || 0);
+      ya.todaLaTienda = ya.todaLaTienda || toda;
       continue;
     }
     const cedida = tipo === "oferta" && f.cedida === true;
@@ -640,6 +723,8 @@ export function choquesDeFilas(filas: readonly FilaChoque[], cedenAntes: readonl
       prendas: Number(f.prendas) || 0,
       estaCede: cedida && !cedenAntes.includes(f.otra_id),
       cedidaGuardada: cedida && cedenAntes.includes(f.otra_id),
+      esMonto: f.otra_es_monto === true,
+      todaLaTienda: toda,
     });
   }
   return [...por.values()]
@@ -648,11 +733,14 @@ export function choquesDeFilas(filas: readonly FilaChoque[], cedenAntes: readonl
 }
 
 /** ¿Este choque ya no impide activar? Si esta le cede a la otra (guardado), o si la persona eligió que la otra ceda. Un descuento de siempre no
- *  cede: se resuelve retirándolo o cambiando la oferta. */
-export const choqueResuelto = (c: Choque, cedeA: readonly string[]): boolean => c.tipo === "oferta" && (c.estaCede || cedeA.includes(c.id));
+ *  cede: se resuelve retirándolo o cambiando la oferta. Y un monto que eligió «que las prendas con otra oferta no cuenten» (`cedeAOtras`) ya no
+ *  choca con lo que no es otro monto (decisión 3 de Felipe). */
+export const choqueResuelto = (c: Choque, cedeA: readonly string[], cedeAOtras = false): boolean =>
+  (cedeAOtras && !c.esMonto) || (c.tipo === "oferta" && (c.estaCede || cedeA.includes(c.id)));
 
 /** Lo que todavía impide activar (o guardar una que ya rige). */
-export const choquesSinResolver = (choques: readonly Choque[], cedeA: readonly string[]): Choque[] => choques.filter((c) => !choqueResuelto(c, cedeA));
+export const choquesSinResolver = (choques: readonly Choque[], cedeA: readonly string[], cedeAOtras = false): Choque[] =>
+  choques.filter((c) => !choqueResuelto(c, cedeA, cedeAOtras));
 
 /** Al guardar solo viajan las cesiones que siguen haciendo falta: una que ya no choca se suelta sola. */
 export const cesionesQueQuedan = (choques: readonly Choque[], cedeA: readonly string[]): string[] =>
@@ -679,7 +767,10 @@ export function resumenAntes(antes: Record<string, unknown> | null): string {
   const dias = Array.isArray(antes.dias_semana) ? (antes.dias_semana as unknown[]).filter((d): d is number => typeof d === "number") : [];
   const partes = [
     tipo !== "pct"
-      ? titularDeOferta({ tipo, porcentaje: pct, lleva: Number(antes.lleva ?? 0), paga: Number(antes.paga ?? 0), monto: Number(antes.monto ?? 0) })
+      ? titularDeOferta({
+          tipo, porcentaje: pct, lleva: Number(antes.lleva ?? 0), paga: Number(antes.paga ?? 0), monto: Number(antes.monto ?? 0),
+          escalones: escalonesDeFila(antes.escalones) ?? [], ahorroEn: antes.ahorro_en === "pct" ? "pct" : "soles",
+        })
       : Number.isFinite(pct) ? `−${String(pct).replace(".", ",")} %` : "",
     desde && hasta ? `${fechaCorta(desde).replace(/\.$/, "")} – ${fechaCorta(hasta).replace(/\.$/, "")}` : "",
     dias.length && dias.length < 7 ? textoDiasCorto(dias) : "",
@@ -703,8 +794,10 @@ export function contarPrendas(prendas: readonly Pick<PrendaDeCampana, "id" | "mo
 export function prendasQueAlcanza<P extends PrendaDeCampana>(
   prendasDeLaCampana: readonly P[],
   prendasDelCatalogo: readonly P[],
-  o: Pick<OfertaEnEdicion, "categoriasSolo" | "categoriasFuera" | "incluyeClaure"> & { productosSolo?: readonly string[] },
+  o: Pick<OfertaEnEdicion, "categoriasSolo" | "categoriasFuera" | "incluyeClaure"> & { productosSolo?: readonly string[] } & Partial<Pick<FormaDeOferta, "tipo" | "cuenta">>,
 ): P[] {
+  // Un monto de toda la compra (actividad 8) cuenta todo el catálogo, salvo Claurè si no la incluye y lo que deja fuera.
+  if (o.tipo === "monto" && o.cuenta !== "campana") return prendasDelCatalogo.filter((p) => (o.incluyeClaure || !p.deClaure) && !(p.categoriaId && o.categoriasFuera.includes(p.categoriaId)));
   // Con categorías «solo» o modelos elegidos (ADR-0655), la oferta rige en ESAS categorías y ESOS modelos, estén o no en la campaña.
   const productos = o.productosSolo ?? [];
   const elegida = o.categoriasSolo.length > 0 || productos.length > 0;

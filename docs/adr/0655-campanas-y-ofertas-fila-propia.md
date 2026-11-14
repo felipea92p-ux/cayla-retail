@@ -298,6 +298,15 @@ la tienda web, y al final la hoja.
 Prueba: `pnpm pruebas:monto-con-escalones` (42 de 42; con sus controles: sin excluir lo que tiene un «% menos» fallan 2; con la cesión y el orden
 de antes, fallan 2). Las suites de ofertas de grupo, la caja, los apartados, la tienda web y las campañas siguen en verde con esta encima.
 
+### Parte 3: la hoja (sin migración)
+
+- La tarjeta **«Gastar un monto y ahorrar»** se habilita.
+  - **Paso 1:** «Cuánto ahorra» (soles menos o un % menos) y los escalones como una frase: «Desde [S/ 300] ahorra [S/ 30]». «Otro escalón» propone el doble del último, hasta 3, y cada uno se quita con su ×. Lo mal escrito se dice al salir de las cajas, no a la primera letra.
+  - **Paso 2:** «¿Qué cuenta para llegar al monto?»: toda la compra (sin elegir categorías; dice cuántas prendas del catálogo cuenta y deja incluir Claurè) o solo las prendas de la campaña, con las mismas categorías y prendas de siempre. Debajo, «Así funciona en la caja»: las prendas más caras hasta llegar al monto, cobradas con la cuenta de la caja.
+- **Los choques:** la hoja pregunta con la forma (`fn_choques_de_oferta_con_forma`). Un choque con una rebaja, un 3x2 o un descuento de siempre se resuelve con «Que las prendas con otra oferta no cuenten», o con «que la otra ceda». Si la otra tiene todas las prendas en una tienda, avisa que ahí el monto no le llegará a nadie (decisión 3).
+- **Lo que se guarda:** la ruta manda la forma con los nombres de la base. Una oferta que era un monto y vuelve a ser rebaja también va por `guardar_oferta_completa` (para borrarle los escalones).
+- **La guía** suma tres pasos: la tarjeta, los escalones y «qué cuenta». El paso de choques nombra «que no cuenten».
+
 ## Alternativas descartadas
 
 - **Dentro de Insignias, renombrado «Insignias y ofertas».** No mueve nada, pero sigue mezclando dos preguntas en una pantalla y el nombre

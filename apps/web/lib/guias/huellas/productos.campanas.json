@@ -2,7 +2,7 @@
   "guia": "productos.campanas",
   "ruta": "/productos/campanas",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 153,
+  "total": 162,
   "controles": {
     "components/ConfirmarConResponsable.tsx": [
       "ComboResponsable «{control}»",
@@ -91,6 +91,7 @@
       "button «Descartar el aviso de etiquetas pendientes»"
     ],
     "components/sellos/ChoquesDeOferta.tsx": [
+      "button «Que las prendas con otra oferta no cuenten»",
       "button «Que «»"
     ],
     "components/sellos/EditarEtiquetaModal.tsx": [
@@ -112,6 +113,7 @@
       "Casilla «Pintar con el color del sello»"
     ],
     "components/sellos/OfertasHoja.tsx": [
+      "CampoMonto «{etiqueta}»",
       "button «{g.icono}»",
       "button «{g.activo ? undefined : \"Llega pronto\"}»",
       "button «Un % menos»",
@@ -120,6 +122,10 @@
       "button «{v}»",
       "button «{f.texto}»",
       "CampoMonto «Precio del grupo»",
+      "button «Soles menos»",
+      "button «Un % menos» #2",
+      "button «{`Quitar el escalón ${i + 1}»",
+      "button «Otro escalón»",
       "button «{t.nombre}»",
       "button «Todos los días»",
       "button «Solo algunos días»",
@@ -131,11 +137,14 @@
       "CampoFecha «Hasta»",
       "button «Sí, cualquiera de estas»",
       "button «Solo del mismo modelo»",
+      "button «Toda la compra»",
+      "button «Solo prendas de la campaña»",
+      "button «Incluir las de Claurè»",
       "SegmentoDeslizante «Cómo eliges las prendas»",
       "Casilla «{m.nombre}»",
       "button «Elegir todas»",
       "button «Quitar todas»",
-      "button «Incluir las de Claurè»",
+      "button «Incluir las de Claurè» #2",
       "button «{masQ3 ? \"Menos opciones\" : \"Más opciones\"}»",
       "CampoTexto «Nombre»",
       "button «Usar el nombre automático»",
