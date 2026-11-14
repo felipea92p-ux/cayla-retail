@@ -2,6 +2,7 @@
 
 import { PropuestaDePrecio } from "@/components/alta-producto/PropuestaDePrecio";
 import { pideRevisarAlRecibir, precioUnicoAlCerrar, textoRevisarAlRecibir } from "@/lib/precio-propuesto-reglas";
+import { LineaMargen } from "@/components/ui/LineaMargen";
 import { useState, type KeyboardEvent } from "react";
 import { ChevronRight } from "lucide-react";
 import { Aviso } from "@/components/ui/Aviso";
@@ -126,9 +127,13 @@ export function PrendaConCombinaciones({
         onPrecio={onPrecio}
         guia={guia}
       />
+      {/* Tarea 8 de Recibir: con un solo costo y un solo precio en todas las tallas, el margen a la vista (con precios distintos no hay uno solo). */}
+      {abierta && puedeCosto && precioUnico !== null && costoUnico !== null && (
+        <LineaMargen costo={costoUnico} precio={precioUnico} className="px-1 pt-2" />
+      )}
       {abierta && revisar && productoId && precioUnico !== null && costoUnico !== null && (
-        <div className="px-1 pt-2" data-revisar-precio-panel={productoId}>
-          <p className="text-sm text-taupe">{textoRevisarAlRecibir(precioUnico, costoUnico, revisar)}</p>
+        <div className="px-1 pt-1" data-revisar-precio-panel={productoId}>
+          <p className="text-sm text-taupe">{textoRevisarAlRecibir(revisar)}</p>
           <PropuestaDePrecio
             origen="recepcion"
             productoId={productoId}

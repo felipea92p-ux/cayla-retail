@@ -1,4 +1,5 @@
 import { RPC_DETALLE_ENVIO } from "@/lib/ordenes-compra-reglas";
+import { leerPrendasCreadas, type PrendaCreada } from "@/lib/recepcion-igual-que-anterior";
 import { createClient } from "@/lib/supabase/client";
 import { firmar, type Firma } from "@/lib/responsable-reglas";
 import { conDueno } from "@/lib/dueno-reglas";
@@ -84,6 +85,19 @@ export async function leerFichaDePrenda(productoId: string): Promise<FichaParaRe
     .eq("id", productoId)
     .maybeSingle();
   return error ? null : leerFichaParaRecibir(data);
+}
+
+/**
+ * «Igual que la anterior» desde la base (innovar `recibir-crear-prenda#1`): las prendas del conteo creadas desde que se abrió el envío, con su
+ * tejido, patrón y tallas. Es lectura (GET, sin loader) y puede faltar: sin respuesta, la ficha usa solo lo creado en esta pantalla.
+ */
+export async function leerPrendasCreadasDelEnvio(productoIds: readonly string[], desde: string | null): Promise<PrendaCreada[]> {
+  if (productoIds.length === 0) return [];
+  const { data, error } = await createClient()
+    .from("productos")
+    .select("id, nombre:referencia, categoria_id, created_at, tejido:tejidos(id, nombre), patron:patrones(id, nombre), variantes(talla:tallas(id, valor))")
+    .in("id", [...productoIds]);
+  return error ? [] : leerPrendasCreadas(data, desde);
 }
 
 /** Lo que se parece en TODAS las marcas de la categoría, para no crear una prenda repetida al recibir. Si no responde, se sigue sin ellas. */
