@@ -3,6 +3,7 @@ import {
   apartadoConGrupos,
   carritoConGrupos,
   ejemploDeGrupo,
+  lineaSinSuRebaja,
   ejemploDeMonto,
   montoDeVariante,
   ofertasDeGrupo,
@@ -271,5 +272,74 @@ describe("el ejemplo de un monto en la hoja", () => {
     expect(e?.lineas).toHaveLength(6);
     expect(e?.ahorro).toBe(0);
     expect(ejemploDeMonto([], m)).toBeNull();
+  });
+});
+
+// Decisión 2 de Felipe (2026-11-14, 20261114155000): una prenda con rebaja y 3x2 lleva la que más le ahorra al cliente, nunca las dos. Los
+// mismos carritos que se probaron contra `retail.fn_repartir_grupos`: tienen que dar lo mismo al céntimo.
+describe("una rebaja y un 3x2 en la misma prenda: la que más ahorra (la misma de la base)", () => {
+  const r = (precio: number, rebaja: number | undefined, cantidad = 1): LineaDeGrupo => ({ precio, cantidad, oferta: TRES_POR_DOS, modeloId: null, rebaja });
+  it("con un polo, su rebaja: el 3x2 no le da parte", () => {
+    expect(dicho([r(50, 10)])).toBe("1:0.00:2");
+  });
+  it("con tres polos a −20 %, el 3x2 (regala uno de 50, más que tres −20 %)", () => {
+    expect(dicho([r(50, 10), r(50, 10), r(50, 10)])).toBe("1:16.67:0,2:16.67:0,3:16.66:0");
+  });
+  it("con cuatro, tres van en el 3x2 y la cuarta conserva su rebaja (parte 0)", () => {
+    expect(dicho([r(50, 10), r(50, 10), r(50, 10), r(50, 10)])).toBe("1:16.67:2,2:16.67:2,3:16.66:2,4:0.00:2");
+  });
+  it("con tres a −50 %, gana la rebaja aunque armen el grupo", () => {
+    expect(dicho([r(50, 25), r(50, 25), r(50, 25)])).toBe("1:0.00:0,2:0.00:0,3:0.00:0");
+  });
+  it("una de 100 a −50 % y tres de 50 sin rebaja: la de 100 queda con su rebaja y las otras arman el 3x2", () => {
+    expect(dicho([r(100, 50), r(50, undefined), r(50, undefined), r(50, undefined)])).toBe("1:0.00:2,2:16.67:2,3:16.67:2,4:16.66:2");
+  });
+  it("sin rebajas, la cuenta de siempre (18.79 · 11.73 · 9.38)", () => {
+    expect(dicho([r(79.9, undefined), r(49.9, 0), r(39.9, undefined)])).toBe("1:18.79:0,2:11.73:0,3:9.38:0");
+  });
+  it("si empatan, la rebaja: dos polos a −20 % no arman grupo y conservan su rebaja", () => {
+    expect(dicho([r(50, 10), r(50, 10)])).toBe("1:0.00:1,2:0.00:1");
+  });
+
+  const OFERTA = { ...TRES_POR_DOS, modeloId: null, nombre: "Verano 3x2", titular: "3 x 2" };
+  const CAMPANA = { etiquetaId: "c", nombre: "Navidad", pct: 20 };
+  const conRebaja = (clave: string, precio: number, cantidad = 1) => ({
+    claveLinea: clave,
+    varianteId: clave,
+    cantidad,
+    precioUnitario: precio,
+    descuentoUnitario: 10,
+    razonDescuento: "campana",
+    campana: CAMPANA,
+  });
+  it("la caja: la prenda que va con su grupo deja su rebaja (sin motivo de campaña) y el ticket lo dice", () => {
+    const { lineas, porLinea } = carritoConGrupos([conRebaja("a", 50, 3)], { a: OFERTA });
+    expect(lineas.map((l) => `${l.descuentoUnitario}:${l.descuentoGrupoUnitario}:${l.razonDescuento}`)).toEqual(["16.67:16.67:", "16.67:16.67:", "16.66:16.66:"]);
+    expect(porLinea.get("a")?.sinRebaja).toEqual({ pct: 20, unidades: 3, de: 3 });
+  });
+  it("la caja: con una sola, conserva su rebaja y no lleva parte del grupo", () => {
+    const { lineas, porLinea } = carritoConGrupos([conRebaja("a", 50)], { a: OFERTA });
+    expect(lineas.map((l) => `${l.descuentoUnitario}:${l.descuentoGrupoUnitario}:${l.razonDescuento}`)).toEqual(["10:0:campana"]);
+    expect(porLinea.get("a")?.sinRebaja).toBeUndefined();
+  });
+  it("la caja: de cuatro, la que no arma grupo conserva su rebaja y el ticket dice «en 3 de 4»", () => {
+    const { lineas, porLinea } = carritoConGrupos([conRebaja("a", 50, 4)], { a: OFERTA });
+    expect(lineas.map((l) => l.razonDescuento)).toEqual(["", "", "", "campana"]);
+    expect(porLinea.get("a")?.sinRebaja).toEqual({ pct: 20, unidades: 3, de: 4 });
+  });
+  it("el ticket dibuja la línea con lo que de verdad se cobra antes del grupo: sin rebaja, o solo la de las que la conservan", () => {
+    const linea = conRebaja("a", 49.9, 4);
+    const tres = carritoConGrupos([conRebaja("a", 49.9, 3)], { a: OFERTA }).porLinea.get("a");
+    const cuatro = carritoConGrupos([linea], { a: OFERTA }).porLinea.get("a");
+    expect(lineaSinSuRebaja({ ...linea, cantidad: 3 }, tres)).toMatchObject({ descuentoUnitario: 0, razonDescuento: "" });
+    const mixta = lineaSinSuRebaja(linea, cuatro);
+    expect([mixta.razonDescuento, Math.round(mixta.descuentoUnitario * mixta.cantidad * 100) / 100]).toEqual(["campana", 10]);
+    expect(lineaSinSuRebaja(linea, undefined)).toBe(linea);
+  });
+  it("Apartar: lo mismo, y dice cuánta rebaja deja cada prenda (vuelve al total)", () => {
+    const o = { ...OFERTA };
+    const { porVariante, ahorro } = apartadoConGrupos([{ varianteId: "a", cantidad: 3, precio: 50, rebaja: 10, rebajaPct: 20 }], { a: o });
+    expect(ahorro).toBe(50);
+    expect(porVariante.get("a")).toMatchObject({ ahorro: 50, dejaRebaja: 30, sinRebaja: { pct: 20, unidades: 3, de: 3 } });
   });
 });

@@ -77,6 +77,12 @@ const ANTES = [
   falta("select to_regprocedure('retail.fn_ofertas_de_grupo(date, uuid, jsonb, integer)') is null;") ? leer("20261114003000_ofertas_de_grupo") : "",
   falta("select to_regprocedure('retail.fn_exigir_ofertas_de_grupo(jsonb, uuid, date)') is null;") ? leer("20261114011000_caja_cobra_ofertas_de_grupo") : "",
   sinApartados ? readFileSync(MIGRACION, "utf8") : "",
+  // Felipe 2026-11-14 (20261114155000): una prenda con rebaja y 3x2 lleva la que más le ahorra al cliente, nunca las dos. Pide antes la
+  // tienda web (20261114041000), el monto (20261114044000) y la venta sin conexión (20261114132000), que la base local puede no tener.
+  falta("select to_regprocedure('retail.tienda_bolsa_grupos(jsonb, uuid)') is null;") ? leer("20261114041000_tienda_web_ofertas_de_grupo") : "",
+  falta("select to_regprocedure('retail.fn_escalones_validos(jsonb, text)') is null;") ? leer("20261114044000_monto_con_escalones") : "",
+  falta("select to_regprocedure('retail.fn_dia_de_la_venta()') is null;") ? leer("20261114132000_venta_sin_conexion_con_las_ofertas_de_su_hora") : "",
+  falta("select to_regprocedure('retail.fn_cuenta_de_grupos(jsonb)') is null;") ? leer("20261114155000_dos_ofertas_la_que_mas_ahorra") : "",
 ].filter(Boolean).join("\n");
 
 const HOY = "retail.fn_hoy_lima()";
@@ -240,6 +246,54 @@ esperarValor(
     (select min(i -> 'oferta_grupo' ->> 'nombre') || ':' || min(i -> 'oferta_grupo' ->> 'lleva')
       from retail.buscar_separaciones(:'u', 'Prueba Grupo') b, jsonb_array_elements(b.items) i where b.id = :'sep'));\nrollback;`),
   "t|ZZ 3x2:3",
+);
+
+console.log("\n— Una rebaja y un 3x2 en la misma prenda: la que más ahorra, nunca las dos (20261114155000) —");
+// La rebaja llega por fuera de la hoja: el descuento de siempre de otra campaña sobre la misma categoría (el candado es diferido).
+const REBAJA = (pct = 20) => `insert into retail.etiquetas (nombre, estilo) values ('ZZ Rebaja (prueba)', 'campana') returning id as reb \\gset
+select retail.actualizar_campana_etiqueta(:'reb', ${pct}, ${HOY} - 1, ${HOY} + 10, array[:'cat']::uuid[]);
+select retail.fn_descuento_campana(:'p1'::numeric, ${pct}) as c1, retail.fn_descuento_campana(:'p2'::numeric, ${pct}) as c2,
+       retail.fn_descuento_campana(:'p3'::numeric, ${pct}) as c3 \\gset
+with l as (
+  select row_number() over (order by t.p desc, t.v)::integer as linea, t.v, t.p
+  from (values (:'a1'::uuid, :'p1'::numeric), (:'a2'::uuid, :'p2'::numeric), (:'a3'::uuid, :'p3'::numeric)) t(v, p)
+),
+g as (select * from retail.fn_ofertas_de_grupo(${HOY}, :'u',
+        (select jsonb_agg(jsonb_build_object('variante_id', l.v, 'precio_unitario', l.p, 'cantidad', 1) order by l.linea) from l), 0))
+select coalesce(max(g.descuento) filter (where l.v = :'a1'::uuid), 0) as t1, coalesce(max(g.descuento) filter (where l.v = :'a2'::uuid), 0) as t2,
+       coalesce(max(g.descuento) filter (where l.v = :'a3'::uuid), 0) as t3
+  from l join g on g.linea = l.linea \\gset
+`;
+// Lo que manda la pantalla de Apartar: el descuento de su campaña y la parte de su oferta de grupo (la base saca la rebaja si va con su grupo).
+const conRebaja = (v, p, t, c) => prenda(v, p, `:'${t}'::numeric`, `, 'descuento_unitario', :'${c}'::numeric, 'motivo_descuento', 'campana'`);
+const TRES_REBAJA = [conRebaja("a1", "p1", "t1", "c1"), conRebaja("a2", "p2", "t2", "c2"), conRebaja("a3", "p3", "t3", "c3")].join(", ");
+const FILAS = `(select concat_ws(':', count(*), bool_and(si.descuento_unitario = si.descuento_grupo_unitario and si.descuento_etiqueta_id is null),
+     sum(si.precio_unitario - si.descuento_unitario) = :'p1'::numeric + :'p2'::numeric + :'p3'::numeric - :'minimo'::numeric,
+     bool_and(si.rebaja_unitaria > 0 and si.rebaja_etiqueta_id = :'reb'))
+   from retail.separacion_items si where si.separacion_id = :'sep')`;
+esperarValor(
+  "al apartar tres con −20 % y un 3x2, van con el 3x2: cada prenda sin su rebaja (guardada para después) y el total es el del 3x2",
+  correr(`${PARTIDA}${REBAJA()}${separar(TRES_REBAJA, 100)}select concat_ws('|', :'t1'::numeric = :'s1'::numeric and :'t2'::numeric = :'s2'::numeric,
+  ${FILAS}, ${VERIFICAR});\nrollback;`),
+  "t|3:t:t:t|0",
+);
+esperarValor(
+  "al quitar una, las dos que quedan recuperan su −20 % con su campaña (ya no son tres), y la vista previa dice lo mismo",
+  correr(`${PARTIDA}${REBAJA()}${separar(TRES_REBAJA, 100)}${fila("a1", "q")}${vistaPrevia("array[:'q']::uuid[]", "'[]'::jsonb")}${editar("array[:'q']::uuid[]", "'[]'::jsonb")}
+select concat_ws('|', (:'ed'::jsonb ->> 'total')::numeric = :'pt'::numeric,
+  (select count(*) || ':' || bool_and(si.descuento_grupo_unitario = 0 and si.descuento_unitario = si.rebaja_unitaria and si.descuento_etiqueta_id = :'reb')
+     from retail.separacion_items si where si.separacion_id = :'sep'),
+  (select sum(si.precio_unitario - si.descuento_unitario) from retail.separacion_items si where si.separacion_id = :'sep') = :'pt'::numeric,
+  ${VERIFICAR});\nrollback;`),
+  "t|2:true|t|0",
+);
+esperarValor(
+  "con −50 %, al apartar tres gana la rebaja: ninguna va con el 3x2 y cada una lleva su campaña",
+  correr(`${PARTIDA}${REBAJA(50)}${separar(TRES_REBAJA, 100)}select concat_ws('|', :'t1'::numeric + :'t2'::numeric + :'t3'::numeric,
+  (select count(*) || ':' || bool_and(si.descuento_grupo_unitario = 0 and si.descuento_etiqueta_id = :'reb' and si.descuento_unitario = si.rebaja_unitaria)
+     from retail.separacion_items si where si.separacion_id = :'sep'),
+  ${VERIFICAR});\nrollback;`),
+  "0|3:true|0",
 );
 
 console.log("\n— Las migraciones —");
