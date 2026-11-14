@@ -1014,8 +1014,8 @@ export function OfertasHoja({
               </Aviso>
             )}
             {grupo && (
-              <Aviso tono="info" chico titulo="La cobra la caja">
-                Al apartar y en la tienda web todavía se cobra el precio normal: llegan en las próximas entregas.
+              <Aviso tono="info" chico titulo="La cobran la caja y los apartados">
+                En la tienda web todavía se cobra el precio normal: llega en la próxima entrega.
               </Aviso>
             )}
             {o.incluyeClaure && (

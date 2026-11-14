@@ -11,6 +11,8 @@ import { ArrowRight, BadgePercent, Bookmark, Camera, Check, FileText, Receipt, S
 import { METODOS_PAGO, type MetodoPago } from "@cayla-retail/shared";
 import { money, type ItemCarrito, type VarianteBusqueda } from "@/components/PuntoDeVenta";
 import { LineaDelTicket } from "@/components/punto-de-venta/LineaDelTicket";
+import { PieDeGrupo } from "@/components/punto-de-venta/PieDeGrupo";
+import { apartadoConGrupos, type OfertaDeGrupoDeVariante } from "@/lib/ofertas-de-grupo";
 import { ICONO_METODO } from "@/components/PuntoDeVentaTicket";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { CanalDelApartado } from "@/components/apartados/CanalDelApartado";
@@ -99,7 +101,11 @@ const variante = (p: { color: string | null; talla: string | null }) => [p.color
 
 /** Una prenda del buscador de Apartados: la del Punto de venta más lo que esta tienda tiene en su ALMACÉN. Solo se
  *  aparta lo del piso (ADR-0141), pero si la prenda está atrás la colaboradora tiene que saberlo para traerla. */
-export type PrendaApartable = VarianteBusqueda & { almacenAqui?: number };
+export type PrendaApartable = VarianteBusqueda & {
+  almacenAqui?: number;
+  /** «Llevar varias y pagar menos» (ADR-0655, parte 4): la oferta de grupo que hoy rige para la prenda en esta tienda. */
+  ofertaGrupo?: OfertaDeGrupoDeVariante | null;
+};
 
 const CANTIDAD_DE_LINEA = reglaDeEntero();
 const OPCION = "rounded-lg transition-colors";
@@ -338,8 +344,17 @@ export function ApartarVista({
   const conDescuento = descuentosVigentes(descuentos, lineas.map((l) => l.varianteId));
   const lineasConDescuento = lineas.map((l) => lineaDescontada(porId.get(l.varianteId)!, l.cantidad, conDescuento[l.varianteId]));
   const descuentoDe = new Map(lineasConDescuento.map((l) => [l.varianteId, l]));
-  const total = totalDeLineas(lineasConDescuento);
-  const descontado = totalDescontado(lineasConDescuento);
+  // ADR-0655 (parte 4): las ofertas de grupo de lo que se aparta, con la cuenta y el orden de `separar_prendas`; la parte de cada prenda va en
+  // `descuento_grupo` y la base la vuelve a exigir. Lo apartado queda con el trato de hoy.
+  const grupos = apartadoConGrupos(
+    lineas.map((l) => ({ varianteId: l.varianteId, cantidad: l.cantidad, precio: porId.get(l.varianteId)!.precio })),
+    Object.fromEntries(lineas.flatMap((l) => {
+      const o = porId.get(l.varianteId)?.ofertaGrupo;
+      return o ? [[l.varianteId, o] as const] : [];
+    })),
+  );
+  const total = (Math.round(totalDeLineas(lineasConDescuento) * 100) - Math.round(grupos.ahorro * 100)) / 100;
+  const descontado = (Math.round(totalDescontado(lineasConDescuento) * 100) + Math.round(grupos.ahorro * 100)) / 100;
   /** Quita una prenda del apartado y, con ella, su descuento a mano (si vuelve, vuelve sin él). */
   const quitarPrenda = (varianteId: string) => {
     setLineas((ls) => ls.filter((x) => x.varianteId !== varianteId));
@@ -602,6 +617,8 @@ export function ApartarVista({
           precio_unitario: p.precio,
           // ADR-0584: la campaña sin motivo; el descuento a mano con su motivo y su argumento (la base los vuelve a exigir).
           ...descuentoParaGuardar(lineaDescontada(p, l.cantidad, conDescuento[l.varianteId])),
+          // ADR-0655: lo que ahorra toda la línea con su oferta de grupo (la base lo vuelve a calcular y lo exige).
+          descuento_grupo: grupos.porVariante.get(l.varianteId)?.ahorro ?? 0,
         };
       }),
       p_pagos: pagosParaRpcApartado(f.pagos),
@@ -920,9 +937,12 @@ export function ApartarVista({
                             onDueno={(varianteId, empresaId) => setDuenoDeLinea((x) => ({ ...x, [varianteId]: empresaId }))}
                             guiaDueno="apartar.dueno"
                             pie={
-                              pedido && l.varianteId === pedido.varianteId
-                                ? `Llegó de ${pedido.otraSede}: guardada en el almacén para ${pedido.nombres}`
-                                : `Quedan ${pr.stockAqui - l.cantidad} disponibles en sede tras apartar`
+                              <>
+                                {grupos.porVariante.get(l.varianteId) && <PieDeGrupo g={grupos.porVariante.get(l.varianteId)!} />}
+                                {pedido && l.varianteId === pedido.varianteId
+                                  ? `Llegó de ${pedido.otraSede}: guardada en el almacén para ${pedido.nombres}`
+                                  : `Quedan ${pr.stockAqui - l.cantidad} disponibles en sede tras apartar`}
+                              </>
                             }
                           />
                         </div>

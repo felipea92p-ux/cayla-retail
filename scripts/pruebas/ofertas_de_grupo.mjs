@@ -80,6 +80,9 @@ const ANTES = [
   sinCesiones ? leer("20261113223000_una_oferta_por_prenda_tienda_y_dia") : "",
   sinDeUnaVez ? leer("20261113230000_choques_de_oferta_de_una_vez") : "",
   sinGrupo ? readFileSync(MIGRACION, "utf8") : "",
+  // Parte 4 (20261114032000): la cuenta de los grupos pasó a `fn_repartir_grupos`; estos casos la prueban tal como queda.
+  falta("select to_regprocedure('retail.fn_exigir_ofertas_de_grupo(jsonb, uuid, date)') is null;") ? leer("20261114011000_caja_cobra_ofertas_de_grupo") : "",
+  falta("select to_regprocedure('retail.fn_repartir_grupos(jsonb)') is null;") ? leer("20261114032000_apartados_con_ofertas_de_grupo") : "",
 ].filter(Boolean).join("\n");
 
 const HOY = "retail.fn_hoy_lima()";

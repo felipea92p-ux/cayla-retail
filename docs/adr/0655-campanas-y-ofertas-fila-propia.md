@@ -186,9 +186,53 @@ contada de otra forma; con el error de la división puesto a propósito, fallan 
   (cantidad 1), porque una línea de varias unidades no cabe en un descuento por unidad cuando sus prendas quedan en partes distintas. El cupón
   del Club, el total y lo que viaja (también a la cola sin conexión) salen de ahí. El ticket muestra el carrito de siempre y, bajo cada prenda
   de un grupo, «3 x 2 · Verano: ahorra S/ 18.79» o «lleva 1 más y se arma el grupo»; la fila «Descuento» del total suma los grupos.
-- **La hoja ya deja activar** una oferta de grupo, y avisa que Apartar y la tienda web todavía cobran el precio normal (parte 4, actividad 7).
+- **La hoja ya deja activar** una oferta de grupo, y avisa que la tienda web todavía cobra el precio normal (actividad 7; Apartar la cobra desde la parte 4).
 
 Prueba: `pnpm pruebas:caja-ofertas-de-grupo` (11 de 11, ventas de verdad por `registrar_venta`).
+
+Arreglo de esta parte (2026-11-14): la prueba del redondeo pegaba `registrar_venta` con todo lo que deshace y rehace como argumento de
+`psql -c`, y Linux topa un argumento en 128 KB; con los seis reemplazos ya no cabía (`argument list too long`, tanda 4 del CI de #1848). Ahora
+el texto va por la entrada y `\gexec` lo manda como una sola consulta, igual que el SQL Editor; y `REHACER_GRUPO` rehace los seis reemplazos
+solo donde la base tiene sus columnas (pegar la migración entera se frena en una base sin 20261114003000).
+
+### Parte 4: los apartados (`20261114032000_apartados_con_ofertas_de_grupo.sql`)
+
+Felipe ya había decidido que un 3x2 se puede apartar y queda «así como está ese día». Para **editar** un apartado con un 3x2 (quitar o sumar
+una prenda) pidió «investiga y ve la mejor alternativa». Lo que hacen los sistemas de mostrador (NCR, Dynamics 365 Commerce): en una cuenta
+ABIERTA la promoción se vuelve a calcular con cada cambio, y Dynamics además congela el precio prometido de lo que ya estaba (*price lock*);
+en una DEVOLUCIÓN, ya vendido, se devuelve la parte de la prenda (lo que Felipe eligió para cambios y devoluciones). Un apartado es una venta
+que todavía no se cierra, así que:
+
+- **DECIDÍ: cada prenda entra con la oferta de SU día, y los grupos se arman con el trato que el apartado guardó.** Al apartar se guarda el
+  trato de cada oferta de grupo (`separacion_ofertas_grupo`: la forma y el nombre, como eran ese día) y cada prenda de la oferta va en su fila
+  (cantidad 1, con su apartado de stock) con `oferta_grupo_id` y su parte. **Al quitar**, los grupos de esa oferta se vuelven a armar con lo
+  que queda y el trato guardado: de tres polos de un 3x2 quedan dos y pagan completo; de cuatro quedan tres y el 3x2 sigue. **Al sumar**, la
+  prenda nueva toma la oferta que rige HOY para ella: si es la misma, se junta con el trato guardado y puede completar el grupo; si la oferta
+  ya terminó, entra a su precio de hoy, sin grupo.
+- **DESCARTÉ:** «una prenda del grupo no se quita sola» (obliga a liberar el apartado entero y devolver el adelanto por una prenda); «las que
+  quedan conservan su parte», como una devolución (deja un 3x2 de dos prendas: bastaría apartar tres y quitar una); «lo que se suma va en un
+  apartado nuevo» (choca con el tope de 3 apartados abiertos por cliente); «todo el apartado con la oferta de hoy» (rompe lo que Felipe
+  decidió); correr la edición en seco para la vista previa (`fn_actor_persona_id(true)` exige el responsable antes de que la hoja lo pida).
+- **SE ROMPE SI** `fn_ofertas_de_grupo` y la cuenta de los apartados dejan de ser la misma: por eso la cuenta de los grupos vive ahora sola, en
+  `fn_repartir_grupos(unidades)` (pura, sin leer tablas), y la usan la caja (con las ofertas de hoy) y los apartados (con su trato). Lo mismo
+  del lado de la pantalla: `apartadoConGrupos` (`lib/ofertas-de-grupo.ts`) llama al mismo motor que la caja, con el orden de la base —de la más
+  cara y, a igual precio, por prenda—, porque `separacion_items` no guarda el orden del ticket. A igual precio el orden cambia solo qué prenda se
+  lleva el céntimo que sobra, nunca el total.
+
+Lo que cambia en la base: `separar_prendas` exige la parte que mostró la pantalla (`separacion_grupo_no_coincide`) y guarda el trato y las
+filas de a una; `editar_separacion` (sin cambiar su firma: la nombra 20261013201000, que sus pruebas vuelven a pegar) toma la oferta de hoy
+para lo que se suma y vuelve a armar los grupos; `previsualizar_edicion_separacion` dice el total antes de confirmar y
+`editar_separacion_con_total` no guarda si cambió entre medio (`separacion_total_cambio`); `entregar_separacion` lleva a la venta la parte de
+cada prenda sin motivo y con su oferta (por su propio `insert`: el de siempre lo dejó 20261030220000 y sus pruebas lo vuelven a pegar); y
+`buscar_separaciones` devuelve la parte y el trato. Un descuento a mano se sigue SUMANDO a la parte del grupo, y si juntos dejaran la prenda en
+cero la base lo dice (`separacion_descuento_supera_precio`). La tienda web sigue sin grupos (actividad 7).
+
+Lo que cambia en la pantalla: Apartar muestra bajo cada prenda «3 x 2 · Verano: ahorra S/ 18.79» y el total sin la regalada; la hoja de editar
+pide el total a la base mientras se edita y lo exige al guardar; el detalle, Entregar y la constancia dicen la oferta en vez de «Campaña −N %».
+
+Prueba: `pnpm pruebas:apartados-ofertas-de-grupo` (15 de 15; con su control: sin volver a armar los grupos al editar, fallan quitar y sumar).
+Las suites de los apartados y del redondeo que vuelven a pegar migraciones viejas siguen en verde con esta encima (sus inversos están en
+`entregar-antes-de-apartados-sin-anticipo.mjs`).
 
 ## Alternativas descartadas
 

@@ -78,6 +78,8 @@ const ANTES = [
   sinDeUnaVez ? leer("20261113230000_choques_de_oferta_de_una_vez") : "",
   sinGrupo ? leer("20261114003000_ofertas_de_grupo") : "",
   sinCaja ? readFileSync(MIGRACION, "utf8") : "",
+  // Parte 4 (20261114032000): la cuenta de los grupos pasó a `fn_repartir_grupos`; la caja tiene que cobrar lo mismo con ella.
+  falta("select to_regprocedure('retail.fn_repartir_grupos(jsonb)') is null;") ? leer("20261114032000_apartados_con_ofertas_de_grupo") : "",
 ].filter(Boolean).join("\n");
 
 const HOY = "retail.fn_hoy_lima()";

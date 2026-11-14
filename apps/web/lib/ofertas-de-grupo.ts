@@ -191,6 +191,46 @@ export function carritoConGrupos<L extends LineaCobrable>(
   return { lineas: conGrupo, porLinea };
 }
 
+// ---- Los apartados: la misma cuenta, con el orden de la base (ADR-0655, actividad 6, parte 4) -----------------------------------------
+
+/** Una línea de Apartar: junta las unidades de una misma prenda (variante). */
+type LineaApartada = { varianteId: string; cantidad: number; precio: number };
+
+/** Lo que el apartado dice de una prenda con oferta de grupo: la del ticket, más la oferta y lo que ahorra TODA la línea (va en
+ *  `p_items.descuento_grupo`). */
+export type GrupoEnApartado = GrupoEnTicket & { ofertaGrupoId: string };
+
+/**
+ * Un apartado con sus grupos: la cuenta de `separar_prendas` (20261114032000). Cada prenda va de a una y en el orden de la base —de la más
+ * cara a la más barata y, a igual precio, por prenda—, no en el del ticket: `separacion_items` no guarda en qué orden se escanearon, y al
+ * editar el apartado la base vuelve a armar los grupos con ese orden. Si divergen, `separar_prendas` lo rechaza
+ * (`separacion_grupo_no_coincide`). `ahorro` es lo que ahorra todo el apartado.
+ */
+export function apartadoConGrupos(
+  lineas: readonly LineaApartada[],
+  ofertas: Readonly<Record<string, OfertaDeGrupoDeVariante>>,
+): { porVariante: Map<string, GrupoEnApartado>; ahorro: number } {
+  // Más de 10 de una prenda la base no la cuenta: el tope por prenda la rechaza antes (son 2).
+  const unidades = lineas.flatMap((l) => (ofertas[l.varianteId] ? Array.from({ length: Math.max(0, Math.min(Math.trunc(l.cantidad), 10)) }, () => l) : []));
+  // A igual precio, por prenda: el orden de un uuid en Postgres es el de su texto en minúsculas.
+  const orden = [...unidades].sort(
+    (a, b) => Math.round(b.precio * 100) - Math.round(a.precio * 100) || (a.varianteId < b.varianteId ? -1 : a.varianteId > b.varianteId ? 1 : 0),
+  );
+  const grupos = ofertasDeGrupo(orden.map((u) => ({ precio: u.precio, cantidad: 1, oferta: ofertas[u.varianteId], modeloId: ofertas[u.varianteId].modeloId })));
+  const porVariante = new Map<string, GrupoEnApartado>();
+  let ahorroC = 0;
+  orden.forEach((u, i) => {
+    const g = grupos[i];
+    const o = ofertas[u.varianteId];
+    if (!g) return;
+    const ya = porVariante.get(u.varianteId);
+    const parteC = Math.round(g.descuento * 100);
+    ahorroC += parteC;
+    porVariante.set(u.varianteId, { titular: o.titular, nombre: o.nombre, ahorro: (Math.round((ya?.ahorro ?? 0) * 100) + parteC) / 100, faltan: g.faltan, ofertaGrupoId: o.reglaId });
+  });
+  return { porVariante, ahorro: ahorroC / 100 };
+}
+
 /** Una fila de `ofertas_de_grupo_vigentes(sede)` (20261114011000). */
 export type FilaOfertaDeGrupo = {
   variante_id: string;

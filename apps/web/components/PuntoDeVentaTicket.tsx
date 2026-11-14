@@ -2,7 +2,7 @@
 
 import { duenosParaElegir, type UnidadesDeDueno } from "@/lib/dueno-reglas";
 import { useEffect, useLayoutEffect, useRef, useState, type ReactNode, type Ref, type RefObject } from "react";
-import { BadgePercent, Banknote, Check, CirclePause, CreditCard, Landmark, Layers, Percent, Play, QrCode, ShoppingBag, StickyNote, Star, Ticket, Trash2, Wallet, X } from "lucide-react";
+import { BadgePercent, Banknote, Check, CirclePause, CreditCard, Landmark, Percent, Play, QrCode, ShoppingBag, StickyNote, Star, Ticket, Trash2, Wallet, X } from "lucide-react";
 import type { MetodoPagoVenta } from "@cayla-retail/shared";
 import type { TipoComprobante } from "@/lib/comprobantes-reglas";
 import { desgloseIgv, pasoDelCobro, totalDeLineas, type MomentoTicket } from "@/lib/vender-reglas";
@@ -17,6 +17,7 @@ import type { ControlResponsable } from "@/lib/useResponsable";
 import { nombreDeEspera } from "@/lib/vender-hoy-reglas";
 import { money, type DescuentoForm, type ItemCarrito, type PagoAplicado, type TicketEnEspera } from "@/components/PuntoDeVenta";
 import { LineaDelTicket } from "@/components/punto-de-venta/LineaDelTicket";
+import { PieDeGrupo } from "@/components/punto-de-venta/PieDeGrupo";
 import type { GrupoEnTicket } from "@/lib/ofertas-de-grupo";
 import type { DetalleVariante } from "@/lib/ticket-linea-reglas";
 import { TEXTO_PIE_CUPON } from "@/lib/club-puntos-reglas";
@@ -825,23 +826,3 @@ export function PuntoDeVentaTicket({
   );
 }
 
-/** Bajo la fila de una prenda con oferta de grupo (ADR-0655): «3 x 2 · Verano: ahorra S/ 26.63», o cuántas faltan para armar el grupo. */
-function PieDeGrupo({ g }: { g: GrupoEnTicket }) {
-  const faltan = g.faltan === 1 ? "lleva 1 más" : `lleva ${g.faltan} más`;
-  return (
-    <span className="flex items-center gap-1.5">
-      <Layers aria-hidden className={ICONO_CHICO} />
-      <span>
-        <b className="font-semibold text-tinta">{g.titular}</b> · {g.nombre}:{" "}
-        {g.ahorro > 0 ? (
-          <>
-            ahorra <b className="font-semibold text-rojo-profundo tabular-nums">{money(g.ahorro)}</b>
-            {g.faltan > 0 ? ` · ${faltan} y arma otro grupo` : ""}
-          </>
-        ) : (
-          `${faltan} y se arma el grupo`
-        )}
-      </span>
-    </span>
-  );
-}
