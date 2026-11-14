@@ -16,7 +16,7 @@ import { ApartadosPanel } from "@/components/apartados/ApartadosPanel";
 import { TrabajoPorSede } from "@/components/ui/TrabajoPorSede";
 import type { PrendaApartable } from "@/components/apartados/ApartarVista";
 import { leerPrendasDeUrl } from "@/lib/apartar-desde-ticket";
-import { ofertasDeGrupoDeFilas, type FilaOfertaDeGrupo } from "@/lib/ofertas-de-grupo";
+import { ofertasDeGrupoDeFilas, type FilaOfertaDeGrupo, type FilaOfertaDeMonto } from "@/lib/ofertas-de-grupo";
 
 /**
  * Apartados (ADR-0166): la clienta aparta prendas con un adelanto, las recoge pagando el saldo, o vencen y se le
@@ -51,7 +51,12 @@ async function Apartados({ desdeTicket, abrir }: { desdeTicket: string | null; a
     data: FilaOfertaDeGrupo[] | null;
     error: { message: string } | null;
   }>;
-  const [datos, variantes, caja, stockAqui, resCampanas, resStockSedes, ubicaciones, resRedondeo, preciosSede, canales, resOfertasGrupo] = await Promise.all([
+  // «Gastar un monto y ahorrar» (actividad 8): los montos de hoy, con sus escalones. Igual de secundarios.
+  const cargaOfertasMonto = supabase.rpc("ofertas_de_monto_vigentes" as never, { p_ubicacion_id: persona.ubicacionId } as never) as unknown as PromiseLike<{
+    data: FilaOfertaDeMonto[] | null;
+    error: { message: string } | null;
+  }>;
+  const [datos, variantes, caja, stockAqui, resCampanas, resStockSedes, ubicaciones, resRedondeo, preciosSede, canales, resOfertasGrupo, resOfertasMonto] = await Promise.all([
     // El Historial abre en los últimos 30 días de lo cerrado (Felipe 2026-10-10); lo abierto sale siempre.
     getApartadosDeTienda(persona.ubicacionId, { desde: rangoDelPeriodo(PERIODO_DE_FABRICA, hoyLima()).desde ?? undefined, abrir }),
     // Lo que se ofrece AQUÍ (ADR-0505): sin las prendas de CLAURE fuera de Lima.
@@ -71,9 +76,11 @@ async function Apartados({ desdeTicket, abrir }: { desdeTicket: string | null; a
     // ADR-0607: los canales que opera esta cuenta; con solo la tienda, Apartar queda como siempre.
     getCanalesDeLaCuenta(),
     cargaOfertasGrupo,
+    cargaOfertasMonto,
   ]);
   const preciosAqui = preciosSede[persona.ubicacionId] ?? {};
   const ofertasGrupo = resOfertasGrupo.error ? {} : ofertasDeGrupoDeFilas(resOfertasGrupo.data);
+  const filasMonto = resOfertasMonto.error ? [] : (resOfertasMonto.data ?? []);
 
   if (!datos.instalado) {
     return (
@@ -129,6 +136,7 @@ async function Apartados({ desdeTicket, abrir }: { desdeTicket: string | null; a
         cajaAbierta={caja !== null}
         puedeGestionar={puede(persona, "gestionarCaja")}
         prendas={prendas}
+        filasMonto={filasMonto}
         apartados={datos.apartados}
         resumen={datos.resumen}
         liberadosAhora={datos.liberadosAhora}

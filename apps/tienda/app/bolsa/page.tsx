@@ -226,7 +226,21 @@ export default async function Bolsa({ searchParams }: { searchParams: Promise<Re
                         <small className="t-bolsa-grupo">
                           <b>{grupo.titular}</b>
                           {grupo.campana ? ` · ${grupo.campana}` : ""}:{" "}
-                          {grupo.ahorro > 0 ? <>ahorras <span className="num">{soles(grupo.ahorro)}</span></> : `lleva ${grupo.faltan} más`}
+                          {grupo.monto !== undefined ? (
+                            // Un monto (actividad 8): lo que ahorra, y cuánto le falta a la compra para el escalón que sigue.
+                            grupo.ahorro > 0 ? (
+                              <>
+                                ahorras <span className="num">{soles(grupo.ahorro)}</span>
+                                {grupo.monto ? <> · con <span className="num">{soles(grupo.monto.falta)}</span> más, {grupo.monto.siguiente}</> : null}
+                              </>
+                            ) : grupo.monto ? (
+                              <>te faltan <span className="num">{soles(grupo.monto.falta)}</span></>
+                            ) : null
+                          ) : grupo.ahorro > 0 ? (
+                            <>ahorras <span className="num">{soles(grupo.ahorro)}</span></>
+                          ) : (
+                            `lleva ${grupo.faltan} más`
+                          )}
                         </small>
                       )}
                       {texto &&
@@ -329,7 +343,7 @@ export default async function Bolsa({ searchParams }: { searchParams: Promise<Re
                 )}
                 {v.ahorroGrupo > 0 && (
                   <div>
-                    <span>Ahorras llevando varias</span>
+                    <span>Ahorras con las ofertas</span>
                     <span className="num t-ahorro">−{soles(v.ahorroGrupo)}</span>
                   </div>
                 )}

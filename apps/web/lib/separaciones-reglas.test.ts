@@ -494,6 +494,10 @@ describe("descuentoDePrenda — el apartado ya hecho dice su descuento (ADR-0584
     expect([p.descuentoGrupoUnitario, p.ofertaGrupo]).toEqual([26.63, { titular: "3 x 2", nombre: "Verano" }]);
     expect(prenda({ descuento_unitario: "0" }).ofertaGrupo).toBeNull();
   });
+  it("un monto (actividad 8) se dice «Por monto», con su campaña", () => {
+    const p = prenda({ descuento_unitario: "12.86", descuento_grupo_unitario: "12.86", oferta_grupo: { ...OFERTA_3X2, tipo: "monto", lleva: null, paga: null } });
+    expect(p.ofertaGrupo).toEqual({ titular: "Por monto", nombre: "Verano" });
+  });
 
   it("todo el descuento del grupo: dice la oferta y no inventa una campaña", () => {
     const d = descuentoDePrenda(prenda({ descuento_unitario: "26.63", descuento_grupo_unitario: "26.63", oferta_grupo: OFERTA_3X2 }));

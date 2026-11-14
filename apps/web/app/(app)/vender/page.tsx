@@ -31,7 +31,7 @@ import { getPedidosConCliente } from "@/lib/pedidos-entre-sedes";
 import { getEmpresasAqui } from "@/lib/empresas-de-sede";
 import { getStockPorDueno } from "@/lib/stock-por-dueno";
 import { tonosDeLasMezclas } from "@/lib/color-combinado";
-import { ofertasDeGrupoDeFilas, type FilaOfertaDeGrupo } from "@/lib/ofertas-de-grupo";
+import { ofertasDeGrupoDeFilas, type FilaOfertaDeGrupo, type FilaOfertaDeMonto } from "@/lib/ofertas-de-grupo";
 
 /**
  * Vender: la caja del día de la ubicación — abrir, vender, cerrar, y ver lo vendido hoy.
@@ -75,6 +75,11 @@ async function Caja({ proformaId, repetirVentaId }: { proformaId: string | null;
   // todavía no está), la caja vende igual sin grupos y `registrar_venta` exige lo que corresponda.
   const cargaOfertasGrupo = supabase.rpc("ofertas_de_grupo_vigentes" as never, { p_ubicacion_id: persona.ubicacionId } as never) as unknown as PromiseLike<{
     data: FilaOfertaDeGrupo[] | null;
+    error: { message: string } | null;
+  }>;
+  // «Gastar un monto y ahorrar» (actividad 8): los montos de hoy, con sus escalones. Igual de secundario: sin ellos, la caja vende igual.
+  const cargaOfertasMonto = supabase.rpc("ofertas_de_monto_vigentes" as never, { p_ubicacion_id: persona.ubicacionId } as never) as unknown as PromiseLike<{
+    data: FilaOfertaDeMonto[] | null;
     error: { message: string } | null;
   }>;
   const [variantes, caja, resStock, ubicaciones, stockAqui, resCampanas, listasLeidas, resVentasHoy, resTextosClub, resWhatsappTienda, resQr, resRedondeo, resOpcionesApartados, pedidosConCliente, resPreciosSede, resColores, resFamiliasApagadas, resSeries, resMaquinas, repartoDeStock, proformaLeida, resRepetir, ultimoCierre] = await Promise.all([
@@ -152,8 +157,10 @@ async function Caja({ proformaId, repetirVentaId }: { proformaId: string | null;
   const estampados = new Set(coloresActivos.filter(esEstampado).map((c) => c.codigo));
   const preciosDeEstaSede = leerPreciosEnSede(resPreciosSede.data);
   const campanasNoCargaron = resCampanas.error !== null && resCampanas.error.code !== "PGRST202";
-  const resOfertasGrupo = await cargaOfertasGrupo;
+  // Las dos lecturas de ofertas, a la vez (una consulta de Supabase sale recién al esperarla).
+  const [resOfertasGrupo, resOfertasMonto] = await Promise.all([cargaOfertasGrupo, cargaOfertasMonto]);
   const ofertasGrupo = resOfertasGrupo.error ? {} : ofertasDeGrupoDeFilas(resOfertasGrupo.data);
+  const filasMonto = resOfertasMonto.error ? [] : (resOfertasMonto.data ?? []);
   const campanaPorVariante = new Map<string, CampanaLinea>(
     (resCampanas.data ?? []).map((c) => [c.variante_id, { etiquetaId: c.etiqueta_id, nombre: c.etiqueta_nombre, pct: Number(c.descuento_pct) }]),
   );
@@ -291,6 +298,7 @@ async function Caja({ proformaId, repetirVentaId }: { proformaId: string | null;
         listasPrendaLibre={listasPrendaLibre}
         campanasNoCargaron={campanasNoCargaron}
         ofertasGrupo={ofertasGrupo}
+        filasMonto={filasMonto}
         ventasHoy={{ inicial: ventasHoy.datos ?? [], fallo: ventasHoy.fallo }}
         metaVentaDiaria={ubicaciones.find((u) => u.id === persona.ubicacionId)?.metaVentaDiaria ?? null}
         // Solo las puertas que su rol abre (ADR-0161): Caja, Apartados, Cambios… y las acciones del ticket que llevan allí.

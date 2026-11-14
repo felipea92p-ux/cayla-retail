@@ -43,6 +43,9 @@ import {
   vigenciaDeRegla,
   type FilaRegla,
   type ReglaCampana,
+  textoDeEscalon,
+  titularDeEscalon,
+  titularDeMonto,
 } from "./campana-reglas";
 
 // El viernes 23 de octubre de 2026 es hoy en la maqueta; el lunes 26, el martes 27, el jueves 29.
@@ -497,5 +500,15 @@ describe("cuántas prendas alcanza una oferta", () => {
     expect(contarPrendas([{ id: "a" }, { id: "b" }])).toBe(2);
     expect(Object.fromEntries(contarPorCategoria(tallas, false))).toEqual({ blusas: 2, faldas: 0 });
     expect(Object.fromEntries(contarPorCategoria(tallas, true))).toEqual({ blusas: 2, faldas: 1 });
+  });
+});
+
+describe("lo que dice un monto (ADR-0655, actividad 8)", () => {
+  it("«S/ 30 menos desde S/ 300» o «10 % menos desde S/ 300»; un monto, por su primer escalón", () => {
+    expect(textoDeEscalon({ ahorra: 30 }, "soles")).toBe("S/\u00a030.00 menos");
+    expect(textoDeEscalon({ ahorra: 12.5 }, "pct")).toBe("12,5 % menos");
+    expect(titularDeEscalon({ desde: 300, ahorra: 30 }, "soles")).toBe("S/\u00a030.00 menos desde S/\u00a0300.00");
+    expect(titularDeMonto([{ desde: 300, ahorra: 10 }, { desde: 500, ahorra: 15 }], "pct")).toBe("10 % menos desde S/\u00a0300.00");
+    expect(titularDeMonto([], "soles")).toBe("Por monto");
   });
 });

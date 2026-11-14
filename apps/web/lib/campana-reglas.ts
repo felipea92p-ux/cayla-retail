@@ -328,6 +328,19 @@ export function alcanceDicho(o: Pick<OfertaEnEdicion, "categoriasSolo"> & { prod
 const soles = (n: number) => `S/\u00a0${n.toFixed(2)}`;
 
 /** Lo que da la oferta, en grande y en pocas letras: «−20 %», «3 x 2», «3 por S/ 100.00», «La 2.ª al 50 %». */
+/** Lo que ahorra un escalón de «Gastar un monto y ahorrar» (ADR-0655, actividad 8): «S/ 30 menos» o «10 % menos». */
+export function textoDeEscalon(e: { ahorra: number }, ahorroEn: "soles" | "pct"): string {
+  return ahorroEn === "pct" ? `${String(e.ahorra).replace(".", ",")} % menos` : `${soles(e.ahorra)} menos`;
+}
+
+/** Un escalón entero: «S/ 30 menos desde S/ 300». */
+export const titularDeEscalon = (e: { desde: number; ahorra: number }, ahorroEn: "soles" | "pct"): string =>
+  `${textoDeEscalon(e, ahorroEn)} desde ${soles(e.desde)}`;
+
+/** Un monto por su primer escalón (el que abre la oferta): «S/ 30 menos desde S/ 300». */
+export const titularDeMonto = (escalones: readonly { desde: number; ahorra: number }[], ahorroEn: "soles" | "pct"): string =>
+  escalones.length > 0 ? titularDeEscalon(escalones[0], ahorroEn) : "Por monto";
+
 export function titularDeOferta(f: Pick<FormaDeOferta, "tipo" | "porcentaje" | "lleva" | "paga" | "monto">): string {
   const pctTxt = String(f.porcentaje).replace(".", ",");
   if (f.tipo === "nxm") return `${f.lleva} x ${f.paga}`;

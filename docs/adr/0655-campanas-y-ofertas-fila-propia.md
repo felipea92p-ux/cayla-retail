@@ -258,6 +258,46 @@ ADR-0408), y en la web la clienta no edita su pedido: la única que quita una pr
 Prueba: `pnpm pruebas:tienda-ofertas-de-grupo` (9 de 9; con su control: sin poner la parte en cada prenda, fallan 5). Las suites de la tienda y
 de los pedidos web (bolsa, cuenta simple, separadas, cobrar, anular, entregar, puntos, motor y ERP) siguen en verde.
 
+## Actividad 8 (2026-11-14): «Gastar un monto y ahorrar», con escalones
+
+La maqueta: «desde S/ X ahorra S/ Y o Y %, con hasta 3 escalones; cuenta solo prendas de la campaña o toda la compra». Y la decisión 3 de Felipe:
+el monto no se junta con otra oferta, las prendas con otra oferta no cuentan para llegar a él, y la hoja no deja activar un monto que choca
+hasta elegir «que esas prendas no cuenten» o que la otra campaña ceda. Va en partes, como la 6: la base, lo que muestran la caja, los apartados y
+la tienda web, y al final la hoja.
+
+### Parte 1: la base (`20261114044000_monto_con_escalones.sql`)
+
+- **La forma:** `tipo = 'monto'` con `escalones` [{desde, ahorra}] (de 1 a 3, cada uno desde más y ahorrando más que el anterior), `ahorro_en`
+  ('soles', menos que su monto; o 'pct', hasta 70 %, con el redondeo de la caja), `cuenta` ('campana' o 'compra') y `cede_a_otras` («que las
+  prendas con otra oferta no cuenten»). La tabla lo exige (`campana_reglas_forma`, `campana_reglas_solo_el_monto`, `fn_escalones_validos`).
+- **DECIDÍ:** el ahorro del monto se reparte DENTRO del descuento de cada prenda que cuenta, en proporción a su precio y al céntimo, igual que el 3x2
+  (`fn_repartir_grupos`: un monto es un solo grupo con todas sus prendas, y vale el escalón más alto al que llega su total). Así SUNAT recibe el
+  precio neto de cada línea, una devolución devuelve lo pagado por ESA prenda, y la caja, `registrar_venta`, los apartados y la tienda web lo
+  cobran sin tocar sus funciones: todas leen `fn_ofertas_de_grupo`.
+- **DESCARTÉ:** el ahorro en una línea aparte al pie del ticket (como lo dibujó la maqueta): no se puede declarar a SUNAT ni devolver por prenda.
+- **La regla de Felipe en la base:** en `fn_ofertas_de_grupo`, una prenda con un «% menos» hoy (oferta, campaña o descuento de siempre: lo que
+  diga `fn_campanas_en_sede`, ya sin las que cedieron) o con una oferta de grupo no cuenta para el monto. Las de grupo van antes que el monto.
+- **DECIDÍ:** «que esas prendas no cuenten» es una propiedad del monto (`cede_a_otras`), no un juego de cesiones: un monto de toda la compra tendría
+  que ceder a cada oferta que se cree después, y a un descuento de siempre no se le puede ceder. Con ella, el monto no choca con ninguna oferta;
+  dos montos sí chocan siempre (nunca se reparten una prenda). La lectura con la forma (13 datos) se llama `fn_choques_de_oferta_con_forma`; la de
+  10 sigue con su nombre. Primero fue una segunda firma de `fn_choques_de_oferta`, y el CI la frenó: el repo exige una sola firma por función
+  (`pruebas:una-sola-firma`), y con valores por defecto la llamada de 10 datos quedaba ambigua. `20261114054000` la pasó a su nombre, también en producción.
+- **Dos arreglos que el monto necesitaba** (ninguno cambia un cobro de hoy: en producción no hay ninguna regla guardada, consultado el 2026-11-14):
+  una oferta de grupo que cedió a un «% menos» se callaba solo ante otras de grupo, y con las dos activas la prenda llevaba las dos (la cesión
+  decía lo contrario): ahora la base y `ofertas_de_grupo_vigentes` miran todas las ofertas. Y con la tolerancia de una venta sin conexión, una
+  oferta que ya terminó podía ganarle a la de hoy, y la venta en línea quedaba fuera de lo que acepta `registrar_venta`: ahora gana la de hoy.
+- **El orden al guardar:** `guardar_oferta_completa` pone la forma ANTES de las cesiones (`guardar_oferta`, la forma, `ceder_ofertas`): la revisión
+  de choques que hace `ceder_ofertas` en el acto tiene que ver el monto como es, no como el «% menos» de paso.
+- **Los apartados** guardan el trato del monto (sus escalones) en `separacion_ofertas_grupo`: quitar una prenda puede dejarlo bajo el monto y la otra
+  vuelve a su precio; sumar puede subirlo de escalón.
+- **Lo que leen las pantallas:** `ofertas_de_monto_vigentes(sede)` da los montos de hoy con sus escalones y qué prendas alcanzan (o, de toda la
+  compra, cuáles NO: Claurè si no la incluye, lo que deja fuera y donde cedió; son pocas). La caja arma el ticket con eso sin preguntar en cada
+  prenda, porque vende sin conexión. La bolsa de la tienda web (`tienda_bolsa_grupos`) recibe en un monto sus escalones y lo que ya suman sus
+  prendas. Lo que le falta a un monto («te faltan S/ 20») lo dice cada pantalla con sus escalones: la base dice 0 prendas faltantes.
+
+Prueba: `pnpm pruebas:monto-con-escalones` (42 de 42; con sus controles: sin excluir lo que tiene un «% menos» fallan 2; con la cesión y el orden
+de antes, fallan 2). Las suites de ofertas de grupo, la caja, los apartados, la tienda web y las campañas siguen en verde con esta encima.
+
 ## Alternativas descartadas
 
 - **Dentro de Insignias, renombrado «Insignias y ofertas».** No mueve nada, pero sigue mezclando dos preguntas en una pantalla y el nombre
