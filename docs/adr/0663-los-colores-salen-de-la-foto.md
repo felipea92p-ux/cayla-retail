@@ -26,7 +26,7 @@ tonalidades, el script debe tomarlos todos […] o si solo existe un color enter
    componentes, o una nueva por el mismo camino que «+ acompañante». Nunca varios colores sueltos: serían varias variantes con el stock
    partido.
 4. **Lo dudoso se pregunta, nunca se pone a escondidas:** un tono a más de 8 (el «casi igual» de todo el ERP) del color más parecido →
-   «Usar X» o «Crear este color»; un dibujo que se repite → «Elegir el estampado» o «Es una mezcla»; más de 4 colores → «Multicolor» o la
+   «Usar X» o «Crear este color»; un dibujo que se repite → «Es una mezcla» (lo principal: el dibujo ya lo dice el patrón del paso 2) o «Elegir otro color» («Elegir el estampado» solo si la lista tiene algún color estampado; producción no tenía ninguno al 2026-11-14, Felipe); más de 4 colores → «Multicolor» o la
    carta; una foto sin prenda → la carta.
 5. **«Crear este color» abre la hoja «Nuevo color» con el tono de la foto** y una **paleta con todos los colores** (`components/ui/PaletaDeColor.tsx`,
    lógica en `lib/paleta-color.ts`) que mueve el mismo tono que el campo de #hex o RGB. «Existe también» (ADR-0576) sigue frenando el

@@ -17,7 +17,7 @@ import type { ColorAlta } from "@/lib/alta-producto";
 import { colorDeRespuesta } from "@/lib/color-alta-reglas";
 import { componentesDeMezcla, mezclaExistente, tonosDeMezcla } from "@/lib/color-combinado";
 import { leerColores, propuestaInicial, type Lectura } from "@/lib/colores-de-la-foto";
-import { codigosParaReintentar, motivoDeFalla, sumarFotoUnaVez } from "@/lib/fotos-y-colores-reglas";
+import { codigosParaReintentar, motivoDeFalla, segundaOpcionDelDibujo, sumarFotoUnaVez } from "@/lib/fotos-y-colores-reglas";
 import { objecionFotoProducto } from "@/lib/producto-fotos";
 
 // «Fotos y colores» (ADR-0663, Felipe 2026-11-13): los colores de la prenda salen de sus fotos. Se sube una foto por color («Otra foto»,
@@ -358,15 +358,13 @@ export function FotosYColores({
                       {p.motivo && <p className="text-sm text-tinta/80">{p.motivo}</p>}
                       {L?.tipo === "estampado" && !p.motivo ? (
                         <>
-                          <p className="text-[15px] font-medium">Parece un estampado</p>
+                          {/* Con dibujo, lo de casi siempre es la mezcla de sus tonos: el dibujo ya lo dice el patrón (Felipe 2026-11-14). */}
+                          <p className="text-[15px] font-medium">Tiene dibujo</p>
                           <Partes lectura={L} />
                           <div className="flex flex-wrap gap-2">
-                            <Boton type="button" peso="primario" className="btn-chico" disabled={disabled} onClick={() => setCarteando({ para: "pendiente", clave: p.clave })}>
-                              Elegir el estampado
-                            </Boton>
                             <Boton
                               type="button"
-                              peso="fantasma"
+                              peso="primario"
                               className="btn-chico"
                               disabled={disabled}
                               onClick={() => {
@@ -375,6 +373,9 @@ export function FotosYColores({
                               }}
                             >
                               Es una mezcla
+                            </Boton>
+                            <Boton type="button" peso="fantasma" className="btn-chico" disabled={disabled} onClick={() => setCarteando({ para: "pendiente", clave: p.clave })}>
+                              {segundaOpcionDelDibujo(carta)}
                             </Boton>
                           </div>
                         </>

@@ -51,8 +51,8 @@
     ],
     "components/alta-producto/FotosYColores.tsx": [
       "button «Elegir sin foto»",
-      "Boton «Elegir el estampado»",
       "Boton «Es una mezcla»",
+      "Boton «{segundaOpcionDelDibujo(carta)}»",
       "Boton «Multicolor»",
       "Boton «Elegir otro color»",
       "Boton «Usar»",

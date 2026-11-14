@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { codigosParaReintentar, motivoDeFalla, sumarFotoUnaVez } from "./fotos-y-colores-reglas";
+import { codigosParaReintentar, motivoDeFalla, segundaOpcionDelDibujo, sumarFotoUnaVez } from "./fotos-y-colores-reglas";
 
 // Los tres hallazgos de /chaos en «Fotos y colores» (2026-11-14, semilla 663), hechos prueba para que no vuelvan.
 
@@ -55,5 +55,16 @@ describe("motivoDeFalla — sin red se dice en palabras de tienda, nunca «Faile
   it("sin mensaje, el de respaldo", () => {
     expect(motivoDeFalla("raro", "No se pudo armar la mezcla.")).toBe("No se pudo armar la mezcla.");
     expect(motivoDeFalla(new Error(""), "No se pudo armar la mezcla.")).toBe("No se pudo armar la mezcla.");
+  });
+});
+
+describe("segundaOpcionDelDibujo — «Elegir el estampado» solo si hay estampados en la lista", () => {
+  it("sin estampados (como producción hoy) dice «Elegir otro color»", () => {
+    expect(segundaOpcionDelDibujo([{ tipo: "solido" }, { tipo: "textura" }, { tipo: null }, {}])).toBe("Elegir otro color");
+    expect(segundaOpcionDelDibujo([])).toBe("Elegir otro color");
+  });
+
+  it("con al menos un estampado, lo ofrece", () => {
+    expect(segundaOpcionDelDibujo([{ tipo: "solido" }, { tipo: "estampado" }])).toBe("Elegir el estampado");
   });
 });

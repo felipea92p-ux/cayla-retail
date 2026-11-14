@@ -24,3 +24,10 @@ export function motivoDeFalla(e: unknown, porDefecto: string): string {
   if (e instanceof TypeError) return SIN_RED;
   return e instanceof Error && e.message.trim() ? e.message : porDefecto;
 }
+
+/** La segunda opción de una foto con dibujo (Felipe 2026-11-14). Lo de casi siempre es «Es una mezcla»: el dibujo ya lo dice el patrón
+ *  del paso 2 (Floral, Rayas) y el color queda como la mezcla de sus tonos. «Elegir el estampado» solo tiene sentido si la lista tiene
+ *  algún color estampado (ADR-0634); sin ninguno (producción al 2026-11-14: 123 lisos y 1 textura), prometía algo que la lista no traía. */
+export function segundaOpcionDelDibujo(carta: readonly { tipo?: string | null }[]): "Elegir el estampado" | "Elegir otro color" {
+  return carta.some((c) => c.tipo === "estampado") ? "Elegir el estampado" : "Elegir otro color";
+}
