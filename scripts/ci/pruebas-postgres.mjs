@@ -451,6 +451,9 @@ export const PRUEBAS = [
   // «Llevar varias y pagar menos» (ADR-0655, actividad 6): la regla de los grupos (3x2, N por S/, la N.ª al X %), su reparto al céntimo
   // (con 300 tickets al azar) y guardar cada forma. ROLLBACK.
   "pruebas:ofertas-de-grupo",
+  // La caja cobra «Llevar varias» (ADR-0655, actividad 6, parte 3): ventas de verdad por registrar_venta con un 3x2 —su parte por prenda,
+  // omitida, de más, en una línea de varias, en borrador, con un descuento a mano sumado— y lo que lee la caja. ROLLBACK.
+  "pruebas:caja-ofertas-de-grupo",
   // Una campaña que solo tiene OFERTAS también sale en la Tienda web (ADR-0496, «Lo que NO cubre»): la lista, la portada y el diseño leen las
   // ofertas activas (la portada, solo las que rigen hoy, con el mayor %), un borrador no cuenta y, sin ofertas, todo queda idéntico. ROLLBACK.
   "pruebas:campana-con-ofertas",

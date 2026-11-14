@@ -172,6 +172,24 @@ contada de otra forma; con el error de la división puesto a propósito, fallan 
 - **Una oferta de grupo se guarda como borrador y no se activa** (`CAJA_COBRA_GRUPOS = false`) hasta que la caja la cobre (parte 3): sin
   «Activar» en la hoja ni en la lista, y un aviso que lo dice. La ruta la guarda por `guardar_oferta_completa`.
 
+### Parte 3: la caja (`20261114011000_caja_cobra_ofertas_de_grupo.sql`)
+
+- **La base:** `venta_items` guarda la parte del grupo de cada línea (`descuento_grupo_unitario`, dentro de `descuento_unitario` como la del
+  club, y `oferta_grupo_id`). `registrar_venta` (seis reemplazos anclados, registrados en `registrar-venta-antes-de-precio-sede.mjs` para
+  deshacerse y rehacerse) llama antes del bucle a `fn_exigir_ofertas_de_grupo`, que vuelve a armar los grupos con LA regla y exige la parte de
+  cada línea: ni menos (`venta_grupo_omitido`) ni más (`venta_grupo_no_coincide`); una venta sin conexión puede traer la de hasta 3 días antes.
+  Lo que mide como campaña o descuento a mano es lo demás: **un descuento a mano se suma a la parte del grupo** y sus topes miran solo lo suyo.
+  El candado del motivo (`venta_items_motivo_coherente_con_descuento`) deja fuera la parte del grupo, como la del club: una prenda cuyo único
+  descuento es su parte del 3x2 no lleva motivo. `ofertas_de_grupo_vigentes(sede)` le dice a la caja la oferta de cada prenda.
+- **SUNAT, cambios y devoluciones no cambian:** cada prenda va con lo que pagó (precio menos descuento), que ya trae su parte.
+- **La caja:** `carritoConGrupos` (`lib/ofertas-de-grupo.ts`) arma el carrito como se cobra: cada prenda de un grupo en su propia línea
+  (cantidad 1), porque una línea de varias unidades no cabe en un descuento por unidad cuando sus prendas quedan en partes distintas. El cupón
+  del Club, el total y lo que viaja (también a la cola sin conexión) salen de ahí. El ticket muestra el carrito de siempre y, bajo cada prenda
+  de un grupo, «3 x 2 · Verano: ahorra S/ 18.79» o «lleva 1 más y se arma el grupo»; la fila «Descuento» del total suma los grupos.
+- **La hoja ya deja activar** una oferta de grupo, y avisa que Apartar y la tienda web todavía cobran el precio normal (parte 4, actividad 7).
+
+Prueba: `pnpm pruebas:caja-ofertas-de-grupo` (11 de 11, ventas de verdad por `registrar_venta`).
+
 ## Alternativas descartadas
 
 - **Dentro de Insignias, renombrado «Insignias y ofertas».** No mueve nada, pero sigue mezclando dos preguntas en una pantalla y el nombre

@@ -1,4 +1,5 @@
 import { descuentoUnitarioPorPorcentaje } from "./vender-reglas";
+import { titularDeOferta } from "./campana-reglas";
 
 /**
  * «Llevar varias y pagar menos» (ADR-0655, actividad 6): el 3x2, «N por S/ X» y «la N.ª al X %».
@@ -132,4 +133,94 @@ export function ejemploDeGrupo(prendas: readonly PrendaParaEjemplo[], oferta: Of
   const totalC = elegidas.reduce((a, p) => a + Math.round(p.precio * 100), 0);
   const pagaC = lineas.reduce((a, l) => a + Math.round(l.paga * 100), 0);
   return { lineas, total: totalC / 100, paga: pagaC / 100, ahorro: (totalC - pagaC) / 100 };
+}
+
+// ---- La caja: el carrito con sus grupos (ADR-0655, actividad 6, parte 3) --------------------------------------------------------------
+
+/** La oferta de grupo que rige hoy para una prenda en la tienda (`ofertas_de_grupo_vigentes`), con su modelo y su nombre. */
+export type OfertaDeGrupoDeVariante = OfertaDeGrupo & { modeloId: string | null; nombre: string; titular: string };
+
+/** Lo que el ticket dice de una línea con oferta de grupo: la oferta, cuánto ahorra la línea y cuántas prendas faltan para otro grupo. */
+export type GrupoEnTicket = { titular: string; nombre: string; ahorro: number; faltan: number };
+
+type LineaCobrable = { claveLinea: string; varianteId: string; cantidad: number; precioUnitario: number; descuentoUnitario: number };
+
+/** Una línea que viaja a `registrar_venta`: su descuento ya trae la parte del grupo, que va también aparte con su oferta. */
+export type ConGrupo<L> = L & { descuentoGrupoUnitario: number; ofertaGrupoId: string | null };
+
+/**
+ * El carrito como se cobra: cada prenda de una oferta de grupo en su propia línea (cantidad 1), con su parte del ahorro sumada a su descuento
+ * —el de la caja o el puesto a mano: se SUMAN, Felipe 2026-11-13—. Una línea de varias unidades no cabe en un descuento por unidad cuando sus
+ * prendas quedan en partes distintas, y `registrar_venta` lo exige; las demás líneas viajan como siempre. Es el mismo orden que ve la base,
+ * así que la cuenta es la misma (`fn_ofertas_de_grupo`). `porLinea` es lo que el ticket dice de cada línea con oferta de grupo.
+ */
+export function carritoConGrupos<L extends LineaCobrable>(
+  carrito: readonly L[],
+  ofertas: Readonly<Record<string, OfertaDeGrupoDeVariante>>,
+): { lineas: ConGrupo<L>[]; porLinea: Map<string, GrupoEnTicket> } {
+  const lineas: ConGrupo<L>[] = [];
+  for (const l of carrito) {
+    const oferta = ofertas[l.varianteId];
+    if (!oferta) {
+      lineas.push({ ...l, descuentoGrupoUnitario: 0, ofertaGrupoId: null });
+      continue;
+    }
+    for (let u = 0; u < Math.max(0, Math.trunc(l.cantidad)); u++) lineas.push({ ...l, cantidad: 1, descuentoGrupoUnitario: 0, ofertaGrupoId: null });
+  }
+  const grupos = ofertasDeGrupo(
+    lineas.map((l) => {
+      const o = ofertas[l.varianteId];
+      return { precio: l.precioUnitario, cantidad: l.cantidad, oferta: o ?? null, modeloId: o?.modeloId ?? null };
+    }),
+  );
+  const porLinea = new Map<string, GrupoEnTicket>();
+  const conGrupo = lineas.map((l, i) => {
+    const g = grupos[i];
+    const o = ofertas[l.varianteId];
+    if (!g || !o) return l;
+    const ya = porLinea.get(l.claveLinea);
+    porLinea.set(l.claveLinea, { titular: o.titular, nombre: o.nombre, ahorro: (Math.round((ya?.ahorro ?? 0) * 100) + Math.round(g.descuento * 100)) / 100, faltan: g.faltan });
+    if (g.descuento <= 0) return l;
+    return {
+      ...l,
+      descuentoUnitario: (Math.round(l.descuentoUnitario * 100) + Math.round(g.descuento * 100)) / 100,
+      descuentoGrupoUnitario: g.descuento,
+      ofertaGrupoId: g.reglaId,
+    };
+  });
+  return { lineas: conGrupo, porLinea };
+}
+
+/** Una fila de `ofertas_de_grupo_vigentes(sede)` (20261114011000). */
+export type FilaOfertaDeGrupo = {
+  variante_id: string;
+  regla_id: string;
+  producto_id: string | null;
+  tipo: string;
+  lleva: number;
+  paga: number | null;
+  monto: number | string | null;
+  porcentaje: number | string | null;
+  agrupa: string;
+  oferta_nombre: string;
+  etiqueta_nombre: string;
+};
+
+/** Las filas de la base, por prenda, como las usa la caja. Una fila con una forma que esta web no conoce se ignora (la base la rechazaría
+ *  igual al cobrar, pero no se cobra lo que no se sabe mostrar). */
+export function ofertasDeGrupoDeFilas(filas: readonly FilaOfertaDeGrupo[] | null | undefined): Record<string, OfertaDeGrupoDeVariante> {
+  const por: Record<string, OfertaDeGrupoDeVariante> = {};
+  for (const f of filas ?? []) {
+    if (f.tipo !== "nxm" && f.tipo !== "n_por_monto" && f.tipo !== "nesima_pct") continue;
+    const forma = { tipo: f.tipo, lleva: Number(f.lleva), paga: f.paga === null ? null : Number(f.paga), monto: f.monto === null ? null : Number(f.monto), porcentaje: f.porcentaje === null ? null : Number(f.porcentaje) } as const;
+    por[f.variante_id] = {
+      reglaId: f.regla_id,
+      ...forma,
+      agrupa: f.agrupa === "modelo" ? "modelo" : "campana",
+      modeloId: f.producto_id,
+      nombre: f.etiqueta_nombre,
+      titular: titularDeOferta({ tipo: forma.tipo, lleva: forma.lleva, paga: forma.paga ?? 0, monto: forma.monto ?? 0, porcentaje: forma.porcentaje ?? 0 }),
+    };
+  }
+  return por;
 }
