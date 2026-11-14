@@ -42,7 +42,8 @@ import { textoRango, vigenciaDe } from "@/lib/etiqueta-vigencia";
 import { urlEtiquetasDePrecio } from "@/lib/etiqueta-precio-reglas";
 import { notaSinRegistrar, type LecturaRotacion } from "@/lib/etiqueta-rotacion";
 import { hoyLima } from "@/lib/fechas-lima";
-import { bajadaDesactivarInsignia, reglasDeCampana, reglasVivas, vigenciaDeRegla, type InsigniaDeOferta, type ReglaCampana } from "@/lib/campana-reglas";
+import { bajadaDesactivarInsignia, reglasDeCampana, reglasVivas, vigenciaDeRegla, type InsigniaDeOferta, type ParQueChoca, type ReglaCampana } from "@/lib/campana-reglas";
+import { AvisoDosOfertas } from "@/components/sellos/AvisoDosOfertas";
 import { tramoDeCampana, TEXTOS_MODO } from "@/lib/sellos-campanas";
 import {
   ESTILO_DE_VISTA,
@@ -111,9 +112,12 @@ export function SellosPantalla({
   reglasDisponibles,
   insignias = [],
   nombresDeCampanas = {},
+  choquesAbiertos = [],
 }: {
   /** Qué fila del menú dibuja (ADR-0655): «Campañas y ofertas» o «Insignias». */
   modo: "campanas" | "insignias";
+  /** Los pares de ofertas que comparten prendas sin resolver (ADR-0655, decisión 2): el aviso de Campañas. Vacío, no hay aviso. */
+  choquesAbiertos?: readonly ParQueChoca[];
   sede: string;
   etiquetasIniciales: Etiqueta[];
   categorias: CategoriaOpcion[];
@@ -909,6 +913,8 @@ export function SellosPantalla({
           }
         />
       </div>
+
+      {esCampanas && puedeEditarCampanas && <AvisoDosOfertas pares={choquesAbiertos} alElegir={() => router.refresh()} />}
 
       {vistas.length > 1 && (
         <Pestanas

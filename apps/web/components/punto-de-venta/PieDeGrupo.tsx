@@ -16,6 +16,7 @@ export function PieDeGrupo({ g }: { g: GrupoEnTicket }) {
         {g.ahorro > 0 ? (
           <>
             ahorra <b className="font-semibold text-rojo-profundo tabular-nums">{money(g.ahorro)}</b>
+            {g.sinRebaja ? ` ${enVezDeSuRebaja(g.sinRebaja)}` : ""}
             {g.faltan > 0 ? ` · ${faltan} y arma otro grupo` : ""}
           </>
         ) : (
@@ -24,6 +25,13 @@ export function PieDeGrupo({ g }: { g: GrupoEnTicket }) {
       </span>
     </span>
   );
+}
+
+/** Decisión 2 (Felipe 2026-11-14): el grupo le ahorra más que su rebaja y va en vez de ella, nunca las dos: «en vez de su −20 %», o «en 3 de
+ *  4, en vez de su −20 %» si una no arma grupo y conserva su rebaja. */
+function enVezDeSuRebaja(s: NonNullable<GrupoEnTicket["sinRebaja"]>): string {
+  const rebaja = s.pct > 0 ? `su −${s.pct} %` : "su rebaja";
+  return s.unidades < s.de ? `en ${s.unidades} de ${s.de}, en vez de ${rebaja}` : `en vez de ${rebaja}`;
 }
 
 /** «S/ 30 menos desde S/ 300 · Verano: ahorra S/ 12.86 · con S/ 150.00 más, S/ 60 menos», o «…: faltan S/ 20.00». */

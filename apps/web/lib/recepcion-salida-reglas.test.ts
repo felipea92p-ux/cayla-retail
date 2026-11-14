@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { argsLlevarAlStock, diasAMedias, leerEnviosAMedias, textoDeEnvioAMedias, textoYaEnStock, leerResultadoDeSalida, leerSalidas, loQueSale, ultimaSalidaDe, urlBajarDeLaTanda, urlEtiquetasDeLaTanda } from "./recepcion-salida-reglas";
+import { argsLlevarAlStock, diasAMedias, leerEnviosAMedias, textoDeEnvioAMedias, textoDeImprimirTanda, textoYaEnStock, leerResultadoDeSalida, leerSalidas, loQueSale, ultimaSalidaDe, urlApiEtiquetasDeLaTanda, urlBajarDeLaTanda, urlEtiquetasDeLaTanda } from "./recepcion-salida-reglas";
+import { unidadesDeParam } from "./etiqueta-precio-reglas";
 
 const sumas = { contado: 4, invalidas: 0, danadasInvalidas: 0, danadasDeMas: [] as string[] };
 
@@ -55,6 +56,23 @@ describe("después de salir", () => {
     expect(urlEtiquetasDeLaTanda(l, "e1")).toMatch(/[?&]envio=e1(&|$)/);
     expect(urlBajarDeLaTanda(l, "e1")).toMatch(/[?&]envio=e1(&|$)/);
     expect(urlBajarDeLaTanda([], "e1")).toBe("/inventario/bajar?envio=e1");
+  });
+  // Tarea 6 de Recibir (2026-11-14): la tanda se imprime desde su hoja, sin ir a la pantalla de Etiquetas.
+  it("pide las etiquetas de esa tanda y nada más, en la forma que la lectura entiende", () => {
+    const a = "11111111-1111-4111-8111-111111111111";
+    const b = "22222222-2222-4222-8222-222222222222";
+    const url = urlApiEtiquetasDeLaTanda([{ varianteId: a, cantidad: 3 }, { varianteId: b, cantidad: 1 }, { varianteId: b, cantidad: 0 }]);
+    expect(url.startsWith("/api/etiquetas-de-precio/tanda?unidades=")).toBe(true);
+    // Lo que el servidor lee de esa dirección son las mismas unidades que salieron.
+    expect(Object.fromEntries(unidadesDeParam(new URL(url, "http://x").searchParams.get("unidades") ?? undefined))).toEqual({ [a]: 3, [b]: 1 });
+  });
+  it("el botón dice cuántas etiquetas salen: las que entraron mientras se preparan, las que hay de verdad después", () => {
+    expect(textoDeImprimirTanda(12, null)).toBe("Imprimir 12 etiquetas");
+    expect(textoDeImprimirTanda(12, 10)).toBe("Imprimir 10 etiquetas");
+    expect(textoDeImprimirTanda(1, null)).toBe("Imprimir la etiqueta");
+    expect(textoDeImprimirTanda(1500, 1500)).toBe("Imprimir 1,500 etiquetas");
+    // Ninguna prenda tiene código que la pistola lea: no hay nada que mandar.
+    expect(textoDeImprimirTanda(3, 0)).toBe("Nada que imprimir");
   });
   it("corrige lo último de esa prenda, sin importar mayúsculas", () => {
     const s = (id: string, prenda: string) => ({ id, productoId: "p", prenda, unidades: 1, quien: null, creadoEn: "", lineas: [] });

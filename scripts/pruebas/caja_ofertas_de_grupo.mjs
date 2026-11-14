@@ -20,13 +20,14 @@
  *   pnpm pruebas:caja-ofertas-de-grupo
  */
 
-import { DESHACER_DIA_VENTA } from "./registrar-venta-antes-de-precio-sede.mjs";
+import { DESHACER_DIA_VENTA, DESHACER_DOS_OFERTAS } from "./registrar-venta-antes-de-precio-sede.mjs";
 import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 
 const CONTENEDOR = process.argv.includes("--contenedor") ? process.argv[process.argv.indexOf("--contenedor") + 1] : "supabase_db_cayla-retail";
 const MIGRACION = "supabase/migrations/20261114011000_caja_cobra_ofertas_de_grupo.sql";
 const FELIPE = "22222222-2222-4222-8222-000000000001";
+const DOS_OFERTAS = "20261114155000_dos_ofertas_la_que_mas_ahorra";
 
 function psql(sql) {
   return execFileSync("docker", ["exec", "-i", CONTENEDOR, "psql", "-q", "-U", "postgres", "-d", "postgres", "-v", "ON_ERROR_STOP=1", "-t", "-A", "-F", "|", "-f", "-"], {
@@ -91,6 +92,11 @@ const ANTES = [
   falta("select position('descuento_grupo_unitario' in pg_get_functiondef('retail.fn_frescura_decisiones(uuid, integer)'::regprocedure)) = 0;")
     ? leer("20261114131000_frescura_ofertas_y_club_como_campana")
     : "",
+  // Felipe 2026-11-14 (20261114155000): una prenda con rebaja y 3x2 lleva la que más le ahorra al cliente, nunca las dos. Pide antes la
+  // tienda web (20261114041000) y el monto (20261114044000), que la base local puede no tener.
+  falta("select to_regprocedure('retail.tienda_bolsa_grupos(jsonb, uuid)') is null;") ? leer("20261114041000_tienda_web_ofertas_de_grupo") : "",
+  falta("select to_regprocedure('retail.fn_escalones_validos(jsonb, text)') is null;") ? leer("20261114044000_monto_con_escalones") : "",
+  falta("select to_regprocedure('retail.fn_cuenta_de_grupos(jsonb)') is null;") ? leer(DOS_OFERTAS) : "",
 ].filter(Boolean).join("\n");
 
 const HOY = "retail.fn_hoy_lima()";
@@ -297,6 +303,99 @@ esperarValor(
 esperar(
   "la migración de Frescura se puede pegar dos veces",
   correr(`begin;\n${ANTES}\n${leer("20261114131000_frescura_ofertas_y_club_como_campana")}\n${leer("20261114131000_frescura_ofertas_y_club_como_campana")}\nrollback;`).ok,
+);
+
+console.log("\n— Una rebaja y un 3x2 en la misma prenda: la que más ahorra, nunca las dos (20261114155000) —");
+// La rebaja llega por fuera de la hoja de la oferta: el descuento de siempre de otra campaña sobre la misma categoría (como al sumarle una
+// categoría o reactivarla). El candado de los choques es diferido: dentro de la transacción no alcanza a mirar, como pasa en producción.
+const REBAJA = (pct = 20) => `insert into retail.etiquetas (nombre, estilo) values ('ZZ Rebaja (prueba)', 'campana') returning id as reb \\gset
+select retail.actualizar_campana_etiqueta(:'reb', ${pct}, ${HOY} - 1, ${HOY} + 10, array[:'cat']::uuid[]);
+select retail.fn_descuento_campana(:'p1'::numeric, ${pct}) as c1, retail.fn_descuento_campana(:'p2'::numeric, ${pct}) as c2,
+       retail.fn_descuento_campana(:'p3'::numeric, ${pct}) as c3 \\gset
+select coalesce(max(descuento) filter (where linea = 1), 0) as h1, coalesce(max(descuento) filter (where linea = 2), 0) as h2,
+       coalesce(max(descuento) filter (where linea = 3), 0) as h3
+  from retail.fn_ofertas_de_grupo(${HOY}, :'u', jsonb_build_array(
+    jsonb_build_object('variante_id', :'a1', 'precio_unitario', :'p1'::numeric, 'cantidad', 1),
+    jsonb_build_object('variante_id', :'a2', 'precio_unitario', :'p2'::numeric, 'cantidad', 1),
+    jsonb_build_object('variante_id', :'a3', 'precio_unitario', :'p3'::numeric, 'cantidad', 1)), 0) \\gset
+`;
+const conRebaja = (v, p, c) =>
+  `jsonb_build_object('variante_id', :'${v}', 'cantidad', 1, 'precio_unitario', :'${p}'::numeric, 'descuento_unitario', :'${c}'::numeric, 'motivo_descuento', 'campana', 'descuento_etiqueta_id', :'reb')`;
+const lasDos = (v, p, h, c) =>
+  `jsonb_build_object('variante_id', :'${v}', 'cantidad', 1, 'precio_unitario', :'${p}'::numeric, 'descuento_unitario', :'${h}'::numeric + :'${c}'::numeric, 'descuento_grupo_unitario', :'${h}'::numeric, 'oferta_grupo_id', :'r', 'motivo_descuento', 'campana', 'descuento_etiqueta_id', :'reb')`;
+const TRES_H = [linea("a1", "p1", ":'h1'::numeric"), linea("a2", "p2", ":'h2'::numeric"), linea("a3", "p3", ":'h3'::numeric")].join(", ");
+const COBRO_H = "(:'p1'::numeric + :'p2'::numeric + :'p3'::numeric - :'h1'::numeric - :'h2'::numeric - :'h3'::numeric)";
+const TRES_REBAJA = [conRebaja("a1", "p1", "c1"), conRebaja("a2", "p2", "c2"), conRebaja("a3", "p3", "c3")].join(", ");
+const COBRO_REBAJA = "(:'p1'::numeric + :'p2'::numeric + :'p3'::numeric - :'c1'::numeric - :'c2'::numeric - :'c3'::numeric)";
+const TRES_LAS_DOS = [lasDos("a1", "p1", "h1", "c1"), lasDos("a2", "p2", "h2", "c2"), lasDos("a3", "p3", "h3", "c3")].join(", ");
+const COBRO_LAS_DOS = `(${COBRO_H} - :'c1'::numeric - :'c2'::numeric - :'c3'::numeric)`;
+
+esperarValor(
+  "con una prenda, gana su rebaja: la regla no le da parte del 3x2 y la venta con su −20 % se guarda",
+  correr(`${PARTIDA()}${REBAJA()}select coalesce(sum(descuento), -1) as uno from retail.fn_ofertas_de_grupo(${HOY}, :'u',
+    jsonb_build_array(jsonb_build_object('variante_id', :'a1', 'precio_unitario', :'p1'::numeric, 'cantidad', 1)), 0) \\gset
+${venta(conRebaja("a1", "p1", "c1"), "(:'p1'::numeric - :'c1'::numeric)")}select concat_ws('|', :'uno'::numeric = 0,
+  (select vi.descuento_unitario = :'c1'::numeric and vi.descuento_grupo_unitario = 0 and vi.motivo_descuento = 'campana' from retail.venta_items vi where vi.venta_id = :'venta'));\nrollback;`),
+  "t|t",
+);
+esperarValor(
+  "con tres, gana el 3x2 (regala la más barata, más que tres −20 %): cada prenda va con su parte, sin su rebaja ni su campaña",
+  correr(`${PARTIDA()}${REBAJA()}${venta(TRES_H, COBRO_H)}select concat_ws('|', :'h1'::numeric = :'g1'::numeric and :'h2'::numeric = :'g2'::numeric and :'h3'::numeric = :'g3'::numeric,
+  count(*), sum(vi.descuento_grupo_unitario) = least(:'p1'::numeric, :'p2'::numeric, :'p3'::numeric),
+  bool_and(vi.descuento_unitario = vi.descuento_grupo_unitario and vi.motivo_descuento is null and vi.descuento_etiqueta_id is null))
+  from retail.venta_items vi where vi.venta_id = :'venta';\nrollback;`),
+  "t|3|t|t",
+);
+esperarError(
+  "… y la caja no puede mandar las dos: la parte del 3x2 más la rebaja se rechaza (venta_dos_ofertas)",
+  correr(`${PARTIDA()}${REBAJA()}${venta(TRES_LAS_DOS, COBRO_LAS_DOS)}rollback;`),
+  "venta_dos_ofertas",
+);
+esperarError(
+  "… ni solo las rebajas: el 3x2 le ahorra más al cliente y la caja tiene que darlo (venta_grupo_omitido)",
+  correr(`${PARTIDA()}${REBAJA()}${venta(TRES_REBAJA, COBRO_REBAJA)}rollback;`),
+  "venta_grupo_omitido",
+);
+esperarValor(
+  "con una rebaja mayor (−50 %), gana la rebaja aunque sean tres: la regla no da parte del 3x2 y la venta con sus rebajas se guarda",
+  correr(`${PARTIDA()}${REBAJA(50)}${venta(TRES_REBAJA, COBRO_REBAJA)}select concat_ws('|', :'h1'::numeric + :'h2'::numeric + :'h3'::numeric,
+  sum(vi.descuento_grupo_unitario), bool_and(vi.motivo_descuento = 'campana'))
+  from retail.venta_items vi where vi.venta_id = :'venta';\nrollback;`),
+  "0|0.00|t",
+);
+// Cuatro prendas: tres arman el 3x2 y la que no completa otro grupo conserva su rebaja (la caja la manda con su campaña).
+const CUATRO = `with l(n, v, p) as (values (1, :'a1'::uuid, :'p1'::numeric), (2, :'a2'::uuid, :'p2'::numeric), (3, :'a3'::uuid, :'p3'::numeric), (4, :'a1'::uuid, :'p1'::numeric)),
+g as (select * from retail.fn_ofertas_de_grupo(${HOY}, :'u', (select jsonb_agg(jsonb_build_object('variante_id', l.v, 'precio_unitario', l.p, 'cantidad', 1) order by l.n) from l), 0))
+select jsonb_agg(case when g.descuento > 0
+                      then jsonb_build_object('variante_id', l.v, 'cantidad', 1, 'precio_unitario', l.p, 'descuento_unitario', g.descuento,
+                                              'descuento_grupo_unitario', g.descuento, 'oferta_grupo_id', g.regla_id)
+                      else jsonb_build_object('variante_id', l.v, 'cantidad', 1, 'precio_unitario', l.p, 'descuento_unitario', retail.fn_descuento_campana(l.p, 20),
+                                              'motivo_descuento', 'campana', 'descuento_etiqueta_id', :'reb') end order by l.n) as items,
+       sum(l.p - case when g.descuento > 0 then g.descuento else retail.fn_descuento_campana(l.p, 20) end) as cobro,
+       count(*) filter (where g.descuento = 0) as sueltas
+  from l join g on g.linea = l.n \\gset
+select retail.registrar_venta(:'u', :'items'::jsonb, jsonb_build_array(jsonb_build_object('metodo', 'efectivo', 'monto', :'cobro'::numeric)), null, gen_random_uuid()) as venta \\gset
+`;
+esperarValor(
+  "de cuatro, tres van en el 3x2 y la cuarta conserva su −20 %: la venta se guarda con una línea de campaña y tres del grupo",
+  correr(`${PARTIDA()}${REBAJA()}${CUATRO}select concat_ws('|', :'sueltas',
+  (select count(*) from retail.venta_items vi where vi.venta_id = :'venta' and vi.motivo_descuento = 'campana' and vi.descuento_grupo_unitario = 0),
+  (select count(*) from retail.venta_items vi where vi.venta_id = :'venta' and vi.descuento_grupo_unitario > 0 and vi.motivo_descuento is null));\nrollback;`),
+  "1|1|3",
+);
+// Sin la migración: la cuenta de siempre y registrar_venta sin el candado. Las dos ofertas en la misma prenda pasaban.
+const SIN_DOS_OFERTAS = `${DESHACER_DOS_OFERTAS}
+create or replace function retail.fn_repartir_grupos(p_unidades jsonb)
+returns table (linea integer, regla_id uuid, descuento numeric, faltan integer) language sql stable
+as $f$ select * from retail.fn_cuenta_de_grupos(p_unidades) $f$;
+`;
+esperar(
+  "CONTROL: sin la migración, la parte del 3x2 más la rebaja pasaban (el regalo doble): la prueba ve la diferencia",
+  correr(`${PARTIDA()}${REBAJA()}${SIN_DOS_OFERTAS}${venta(TRES_LAS_DOS, COBRO_LAS_DOS)}rollback;`).ok,
+);
+esperar(
+  "la migración de las dos ofertas se puede pegar dos veces",
+  correr(`begin;\n${ANTES}\n${leer(DOS_OFERTAS)}\n${leer(DOS_OFERTAS)}\nrollback;`).ok,
 );
 
 console.log("\n— La migración —");

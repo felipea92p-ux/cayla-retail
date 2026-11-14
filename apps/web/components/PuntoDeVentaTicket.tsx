@@ -18,7 +18,7 @@ import { nombreDeEspera } from "@/lib/vender-hoy-reglas";
 import { money, type DescuentoForm, type ItemCarrito, type PagoAplicado, type TicketEnEspera } from "@/components/PuntoDeVenta";
 import { LineaDelTicket } from "@/components/punto-de-venta/LineaDelTicket";
 import { PieDeGrupo } from "@/components/punto-de-venta/PieDeGrupo";
-import type { GrupoEnTicket } from "@/lib/ofertas-de-grupo";
+import { lineaSinSuRebaja, type GrupoEnTicket } from "@/lib/ofertas-de-grupo";
 import type { DetalleVariante } from "@/lib/ticket-linea-reglas";
 import { TEXTO_PIE_CUPON } from "@/lib/club-puntos-reglas";
 import { Volver } from "@/components/ui/Volver";
@@ -549,7 +549,7 @@ export function PuntoDeVentaTicket({
                 {carrito.map((it) => (
                   <LineaDelTicket
                     key={it.claveLinea}
-                    linea={it}
+                    linea={lineaSinSuRebaja(it, grupos?.get(it.claveLinea))}
                     detalle={detalles?.get(it.varianteId)}
                     tambienEn={tambienEn?.get(it.claveLinea)}
                     duenos={duenosParaElegir(duenosPorVariante?.[it.varianteId])}

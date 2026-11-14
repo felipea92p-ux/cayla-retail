@@ -1,5 +1,6 @@
 "use client";
 
+import { usePrendasCreadas } from "@/components/recepcion-envio/usePrendasCreadas";
 import { useEffect, useLayoutEffect, useRef, useState, type ComponentProps, type Dispatch, type SetStateAction } from "react";
 import { PackageOpen } from "lucide-react";
 import { ComboResponsable } from "@/components/ComboResponsable";
@@ -78,6 +79,7 @@ import {
   faltaAparteDeContar,
   primeroPorContar,
   lineasDeLaParada,
+  costoDeLaParada,
   opcionesDelFiltro,
   paradaContada,
   paradaEnFoco,
@@ -144,7 +146,8 @@ type Hoja =
   // `enTabla`: lo que la tabla mostraba al abrirla; la hoja arranca con eso marcado y la tabla muestra después lo que quedó marcado.
   | { tipo: "prenda"; grupo: string; original: PrendaSeparada; modo: "nueva" | "agregar"; prenda: PrendaRecepcion | null; parada: string; tabla: boolean; pedidas?: DestinoHoja["pedidas"]; enTabla?: MarcasDeLaTabla }
   // «Crear ahora» de una nueva ya descrita: la hoja de la prenda, sin una prenda de partida (la descripción es el nombre que se ofrece).
-  | { tipo: "salida-hecha"; resultado: ResultadoDeSalida; nombre: string }
+  // `imprimir`: se llegó con «Llevar e imprimir»: la hoja manda las etiquetas apenas estén listas.
+  | { tipo: "salida-hecha"; resultado: ResultadoDeSalida; nombre: string; imprimir?: boolean }
   | { tipo: "corregir-salida"; salida: SalidaDelEnvio }
   | { tipo: "crear"; grupo: string; nueva: { cantidad: number; descripcion: string; porDefecto: boolean; nota: string | null }; parada: string }
   // Antes de crear: lo contado como nuevo puede ser una prenda que ya existe.
@@ -334,6 +337,11 @@ export function ContarEnvio({
     { enModal: false },
   );
   const [hoja, setHoja] = useState<Hoja>(null);
+  // «Igual que la anterior» (tarea 7 de Recibir): lo último que se agregó y se creó en este envío, para ofrecerlo de un toque en el siguiente.
+  // La marca vive mientras la pantalla está abierta. Las prendas creadas salen de la base (innovar `recibir-crear-prenda#1`): las del conteo
+  // creadas desde que se abrió el envío, así la ficha sobrevive a recargar; lo que se crea aquí se suma sin esperar a releer.
+  const [marcaAnterior, setMarcaAnterior] = useState<{ id: string; nombre: string } | null>(null);
+  const creadas = usePrendasCreadas([...new Set(grupos.flatMap((g) => g.separado.prendas.map((p) => p.productoId)))].sort(), detalle.abiertoEn);
   // En el celular la lista vive en una hoja que se abre desde la isla de abajo. Al abrirse otra hoja (agregar un modelo, quitar), esta se cierra.
   const [listaEnHoja, setListaEnHoja] = useState(false);
   const [hojaVista, setHojaVista] = useState<Hoja>(null);
@@ -620,6 +628,8 @@ export function ContarEnvio({
     }
     setFiltro(SIN_FILTRO);
     setErrorHoja(null);
+    const marca = m.marcaId ? catalogo?.marcas.find((x) => x.id === m.marcaId) : null;
+    if (marca) setMarcaAnterior({ id: marca.id, nombre: marca.nombre });
     return null;
   }
 
@@ -694,6 +704,14 @@ export function ContarEnvio({
   const paradaAQuitar = hoja?.tipo === "quitar" ? (paradasDelEnvio.find((p) => p.clave === hoja.parada) ?? null) : null;
   const categoriaAQuitar = hoja?.tipo === "quitar-categoria" ? (todas.find((c) => c.clave === hoja.categoria) ?? null) : null;
   const grupoDeHoja = hoja && "grupo" in hoja ? (grupos.find((g) => g.clave === hoja.grupo) ?? null) : null;
+  // «¿Esta prenda ya existe?»: lo que la galería necesita para poner arriba lo más parecido (Felipe 2026-11-14). El costo y el precio del modelo, si
+  // la compra los dijo; las prendas que ya están en la lista de su categoría.
+  const paradaExiste = hoja?.tipo === "existe" ? (paradasDelEnvio.find((p) => p.clave === hoja.parada) ?? null) : null;
+  const costoExiste = paradaExiste ? costoDeLaParada(paradaExiste) : null;
+  const precioExiste = paradaExiste ? (lineasDeLaParada(paradaExiste).find((l) => l.linea?.precioVentaSugerido != null)?.linea?.precioVentaSugerido ?? null) : null;
+  const enLaListaExiste = new Set(
+    (todas.find((c) => c.categoria?.id === grupoDeHoja?.principal.categoria?.id)?.paradas ?? []).flatMap((p) => (p.modelo?.productoId ? [p.modelo.productoId] : [])),
+  );
   // Vino en la guía sin decir qué modelos: lo que sigue es agregarlos.
   const sinModelos = todas.find((c) => c.paradas.length === 0 && !c.hayConteo) ?? null;
   // La prenda de la hoja se guarda en la línea de la compra que la anotó (de ahí salen su precio sugerido y su costo).
@@ -756,12 +774,12 @@ export function ContarEnvio({
         parcial={!todo}
         conFrase={donde === "hoja"}
         onConteoCambiado={onSalida}
-        onHecho={(r) => {
+        onHecho={(r, imprimir) => {
           setTablas((t) => {
             const { [clave]: _sale, ...resto } = t;
             return resto;
           });
-          setHoja({ tipo: "salida-hecha", resultado: r, nombre });
+          setHoja({ tipo: "salida-hecha", resultado: r, nombre, imprimir });
           void leerSalidasDelEnvio(detalle.id).then(setSalidas);
           onSalida();
         }}
@@ -1100,6 +1118,7 @@ export function ContarEnvio({
           onMarcaNueva={onMarcaNueva}
           errorDelGuardado={errores["extra:0"] ?? null}
           onCrear={crearModelo}
+          marcaAnterior={marcaAnterior}
           onIrA={(p) => {
             elegir(p);
             if (!paradaContada(p) && conMouse()) setEscribirAlCerrar(p.clave);
@@ -1155,7 +1174,17 @@ export function ContarEnvio({
         </HojaRepartir>
       )}
 
-      {hoja?.tipo === "salida-hecha" && <SalidaHecha resultado={hoja.resultado} nombre={hoja.nombre} envioId={detalle.id} veExistencias={veExistencias} onCerrar={() => setHoja(null)} />}
+      {hoja?.tipo === "salida-hecha" && (
+        <SalidaHecha
+          resultado={hoja.resultado}
+          nombre={hoja.nombre}
+          envioId={detalle.id}
+          veExistencias={veExistencias}
+          imprimirAlAbrir={hoja.imprimir === true}
+          onCerrar={() => setHoja(null)}
+          onReabrir={() => setHoja({ tipo: "salida-hecha", resultado: hoja.resultado, nombre: hoja.nombre })}
+        />
+      )}
       {hoja?.tipo === "corregir-salida" && (
         <CorregirSalida
           salida={hoja.salida}
@@ -1177,6 +1206,11 @@ export function ContarEnvio({
           nombre={hoja.nueva.porDefecto ? null : hoja.nueva.descripcion}
           cantidad={hoja.nueva.cantidad}
           costo={null}
+          // El costo no se muestra en la cabecera (queda `null`), pero ordena la galería: solo si es uno solo.
+          precio={precioExiste}
+          proveedorIds={grupoDeHoja.principal.proveedor ? [grupoDeHoja.principal.proveedor.id] : []}
+          enLaLista={enLaListaExiste}
+          costoParaOrdenar={costoExiste && costoExiste.desde === costoExiste.hasta ? costoExiste.desde : null}
           comoCorregirMarca="Si la marca anotada está mal, quita este modelo y agrégalo de nuevo con su marca."
           onUsar={(prenda) => prendaDeLaNueva(grupoDeHoja, hoja.parada, hoja.nueva.descripcion, prenda)}
           onCrear={() => setHoja({ ...hoja, tipo: "crear" })}
@@ -1193,6 +1227,8 @@ export function ContarEnvio({
           vocabulario={catalogo?.vocabulario ?? null}
           responsable={responsable}
           onListo={(prenda) => prendaDeLaNueva(grupoDeHoja, hoja.parada, hoja.nueva.descripcion, prenda)}
+          anterior={creadas.anteriorDe(grupoDeHoja.principal.categoria.id)}
+          onRecordar={creadas.recordar}
           onCostoEscrito={(productoId, costoTexto) => onCostoDePrenda?.(lineaDeHoja.clave, productoId, costoTexto)}
           onUsarExistente={async (productoId, nombre) => {
             if (!grupoDeHoja.principal.categoria) return false;

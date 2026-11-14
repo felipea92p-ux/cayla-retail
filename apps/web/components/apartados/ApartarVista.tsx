@@ -30,7 +30,7 @@ import { useIntento } from "@/lib/useIntento";
 import { argumentosDeCanal, canalInicialDe, esCanalOnline, ofreceCanal, type CanalVenta, type ModoEntrega } from "@/lib/canales-venta-reglas";
 import { huellaDe, type InstantaneaIntento } from "@/lib/intento-reglas";
 import { AvisoIntentoIncierto } from "@/components/ui/AvisoIntentoIncierto";
-import { descuentoDeCampana, totalDeLineas } from "@/lib/vender-reglas";
+import { descuentoDeCampana, RAZON_CAMPANA, totalDeLineas } from "@/lib/vender-reglas";
 import { conStockAjustado } from "@/lib/vender-stock-local";
 import { useStockEnVivo } from "@/lib/useStockEnVivo";
 import { buscarClienta } from "@/lib/clientas-acciones";
@@ -353,15 +353,24 @@ export function ApartarVista({
   // `descuento_grupo` y la base la vuelve a exigir. Lo apartado queda con el trato de hoy.
   // El monto (actividad 8): la prenda sin oferta de grupo ni «% menos» suma para él, con la misma cuenta que `separar_prendas`.
   const grupos = apartadoConGrupos(
-    lineas.map((l) => ({ varianteId: l.varianteId, cantidad: l.cantidad, precio: porId.get(l.varianteId)!.precio })),
+    // Decisión 2 (Felipe 2026-11-14): con la rebaja de su campaña, la cuenta elige la que más ahorra (nunca las dos).
+    lineas.map((l) => {
+      const p = porId.get(l.varianteId)!;
+      return { varianteId: l.varianteId, cantidad: l.cantidad, precio: p.precio, rebaja: descuentoCampana(p), rebajaPct: p.campana?.pct ?? 0 };
+    }),
     Object.fromEntries(lineas.flatMap((l) => {
       const p = porId.get(l.varianteId);
       const o = p?.ofertaGrupo ?? (p?.campana ? null : montoDeVariante(montos, l.varianteId));
       return o ? [[l.varianteId, o] as const] : [];
     })),
   );
-  const total = (Math.round(totalDeLineas(lineasConDescuento) * 100) - Math.round(grupos.ahorro * 100)) / 100;
-  const descontado = (Math.round(totalDescontado(lineasConDescuento) * 100) + Math.round(grupos.ahorro * 100)) / 100;
+  // La prenda que va con su grupo deja su rebaja: vuelve al total (`separar_prendas` hace lo mismo). Un descuento a mano no vuelve: se suma.
+  const dejaRebajaC = [...grupos.porVariante].reduce(
+    (a, [v, g]) => a + (descuentoDe.get(v)?.razonDescuento === RAZON_CAMPANA ? Math.round(g.dejaRebaja * 100) : 0),
+    0,
+  );
+  const total = (Math.round(totalDeLineas(lineasConDescuento) * 100) - Math.round(grupos.ahorro * 100) + dejaRebajaC) / 100;
+  const descontado = (Math.round(totalDescontado(lineasConDescuento) * 100) + Math.round(grupos.ahorro * 100) - dejaRebajaC) / 100;
   /** Quita una prenda del apartado y, con ella, su descuento a mano (si vuelve, vuelve sin él). */
   const quitarPrenda = (varianteId: string) => {
     setLineas((ls) => ls.filter((x) => x.varianteId !== varianteId));

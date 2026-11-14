@@ -18,6 +18,18 @@ import {
 
 const sinSuscripcion = () => () => {};
 
+/** Cómo terminó de mandarse la hoja. Por el ayudante de la Mac se sabe (`impreso` o `fallo`, y el hook ya lo avisó); por el diálogo del navegador
+ *  solo se sabe que se cerró (`dialogo`): la persona pudo imprimir o cancelar, y la página no se entera de cuál. */
+export type FinDeImpresion = "impreso" | "fallo" | "dialogo";
+
+/** El diálogo del navegador, y cuándo se cerró. `afterprint` y no el retorno de `print()`: en Chrome `print()` espera al diálogo, pero no en todos
+ *  los navegadores, y quien quite la hoja apenas vuelve `print()` la sacaría en blanco. */
+const imprimirPorDialogo = () =>
+  new Promise<FinDeImpresion>((listo) => {
+    window.addEventListener("afterprint", () => listo("dialogo"), { once: true });
+    window.print();
+  });
+
 /**
  * Mandar una hoja a la Brother (ADR-0180, ADR-0304): lo comparten las etiquetas de precio y los rótulos de anaquel (ADR-0366).
  *
@@ -59,9 +71,9 @@ export function useImpresionBrother({
   }, [esMac]);
   const porAyudante = esMac && ayudante === "listo";
 
-  const imprimirEnMac = async () => {
+  const imprimirEnMac = async (): Promise<FinDeImpresion> => {
     const nodo = document.getElementById(idHoja);
-    if (!nodo) return;
+    if (!nodo) return "fallo";
     const copia = nodo.cloneNode(true) as HTMLElement;
     prepararCopia?.(copia);
     const estilos = Array.from(document.head.querySelectorAll('link[rel="stylesheet"], style, link[rel="preload"][as="font"]'), (n) => n.outerHTML);
@@ -86,7 +98,9 @@ export function useImpresionBrother({
     const res = resultadoDeImpresion(status, cuerpo, total, pieza);
     if (res.ok) avisar.exito(res.texto);
     else avisar.error(res.texto, { detalle: res.detalle });
+    return res.ok ? "impreso" : "fallo";
   };
+  const mandar = () => (porAyudante ? imprimirEnMac() : imprimirPorDialogo());
 
   return {
     montado,
@@ -96,7 +110,12 @@ export function useImpresionBrother({
     avisoMac: esMac ? avisoDelAyudante(ayudante) : null,
     /** El aviso trae la línea de Terminal: falta instalarlo o hay que reinstalarlo para tener la versión nueva. */
     instalar: ayudante === "sin-ayudante",
-    imprimir: () => (porAyudante ? void imprimirEnMac() : window.print()),
+    /** Ya se sabe por dónde sale la hoja. En una Mac se averigua al montar (¿está el ayudante?): quien imprime apenas se abre su hoja espera esto,
+     *  o un toque muy rápido se iría por el diálogo de Chrome, que en la Mac saca la etiqueta larga. */
+    sabeComoImprimir: montado && (!esMac || ayudante !== "comprobando"),
+    imprimir: () => void mandar(),
+    /** Lo mismo, para quien sigue después de imprimir (la hoja de Recibir que vuelve al conteo): avisa cómo terminó. */
+    imprimirYSaber: mandar,
   };
 }
 

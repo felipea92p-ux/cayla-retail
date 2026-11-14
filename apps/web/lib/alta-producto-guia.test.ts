@@ -204,6 +204,7 @@ describe("la guía y `problemasAlta` dicen lo mismo de lo que bloquea crear", ()
     ["sin patrón", { patronId: "" }, {}],
     ["tejidos sin habilitar", { hayTejidosEnCategoria: false, tejidoId: "" }, {}],
     ["sin tallas", { tallasElegidas: 0 }, {}],
+    ["una foto que espera su color (ADR-0663)", { fotosSinColor: 1 }, {}],
     ["categoría sin tallas", { categoriaSinTallas: true, tallasElegidas: 0 }, {}],
     ["sin precio", { precioBase: "" }, {}],
     ["precio cero", { precioBase: "0" }, {}],
@@ -255,7 +256,7 @@ describe("faltanDelPaso y resumenFaltan — lo que falta por llenar, en palabras
     expect(resumenFaltan(faltanDelPaso(guia({ tejidoId: "" }), 2))).toBe("Falta: tejido");
     expect(resumenFaltan(faltanDelPaso(guia(), 2))).toBeNull();
     // Los colores no bloquean: no se dice «falta» de algo que no impide crear.
-    expect(resumenFaltan(faltanDelPaso(guia({}, { coloresElegidos: 0 }), 3))).toBe("Por revisar: colores");
+    expect(resumenFaltan(faltanDelPaso(guia({}, { coloresElegidos: 0 }), 3))).toBe("Por revisar: fotos y colores");
   });
 
   it("faltanHastaElPaso arrastra lo pendiente de pasos anteriores", () => {

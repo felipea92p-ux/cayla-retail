@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
-import { createPortal } from "react-dom";
 import { RotateCcw, Tags, Trash2 } from "lucide-react";
 import { Volver } from "@/components/ui/Volver";
 import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
@@ -15,6 +14,7 @@ import { avisar } from "@/components/ui/Avisos";
 import { EtiquetaPrecio } from "@/components/EtiquetaPrecio";
 import { BotonGuiaImpresion } from "@/components/GuiaImpresion";
 import { AvisoAyudanteMac, useImpresionBrother } from "@/components/impresion/useImpresionBrother";
+import { guardarModoDeEtiquetas, HojaEtiquetasPrecio, ID_HOJA_ETIQUETAS, modoDeEtiquetasGuardado, type ModoDeEtiquetas } from "@/components/impresion/HojaEtiquetasPrecio";
 import { soles } from "@/lib/compras-reglas";
 import { useContar } from "@/lib/useContar";
 import {
@@ -54,13 +54,6 @@ const CUANTAS_ETIQUETAS = reglaDeEntero();
 /** Lo que dura la fila en irse (`.etq-fila[data-saliendo]`, etiquetas-precio.css): después se quita de verdad. */
 const SALIDA_MS = 320;
 
-const modoGuardado = (): "girada" | "derecha" => {
-  try {
-    return localStorage.getItem("cayla.etiquetas.modo") === "derecha" ? "derecha" : "girada";
-  } catch {
-    return "girada";
-  }
-};
 const plural = (n: number, uno: string, varios: string) => `${n} ${n === 1 ? uno : varios}`;
 /** Lo que dice el interruptor de «sin el descuento»: qué rebaja hoy la caja (si algo) y qué insignia de campaña lleva el papel (rebaje
  *  o no aquí), para que se sepa QUÉ se está quitando. */
@@ -138,12 +131,10 @@ export function ImprimirEtiquetasPrecio({
 
   // Cómo se manda la hoja al driver (ver `globals.css`, #etiquetas-precio-print). Se recuerda por computadora: cada una
   // tiene su driver y gira distinto.
-  const [elegido, setElegido] = useState<"girada" | "derecha" | null>(null);
-  const elegirModo = (m: "girada" | "derecha") => {
+  const [elegido, setElegido] = useState<ModoDeEtiquetas | null>(null);
+  const elegirModo = (m: ModoDeEtiquetas) => {
     setElegido(m);
-    try {
-      localStorage.setItem("cayla.etiquetas.modo", m);
-    } catch {}
+    guardarModoDeEtiquetas(m);
   };
 
   const fuera = useMemo(() => new Set([...quitadas, ...saliendo]), [quitadas, saliendo]);
@@ -200,13 +191,13 @@ export function ImprimirEtiquetasPrecio({
   // El portal queda montado siempre, así Ctrl+P también imprime las etiquetas y no la pantalla. En la Mac con ayudante, la
   // hoja va con la forma A (girada): allí la página SÍ mide 62 × 40,1 y nadie la vuelve a girar.
   const { montado, porAyudante, enviando, avisoMac, instalar, imprimir: mandar } = useImpresionBrother({
-    idHoja: "etiquetas-precio-print",
+    idHoja: ID_HOJA_ETIQUETAS,
     total,
     pieza: "etiqueta",
     detalleEspera: "Preparando las etiquetas para la Brother…",
     prepararCopia: (copia) => copia.setAttribute("data-modo", "girada"),
   });
-  const modo = elegido ?? (montado ? modoGuardado() : "girada");
+  const modo = elegido ?? (montado ? modoDeEtiquetasGuardado() : "girada");
 
   // La guía va al lado del botón que imprime: quien se traba lo hace justo ahí, con el diálogo de impresión recién visto.
   // El número del botón cuenta hasta el nuevo cada vez que se sube, se baja o se quita algo.
@@ -406,18 +397,7 @@ export function ImprimirEtiquetasPrecio({
         {vistaPrevia && <div className="hidden xl:block">{vistaPrevia}</div>}
       </div>
 
-      {montado &&
-        createPortal(
-          <div id="etiquetas-precio-print" data-modo={modo} aria-hidden>
-            {hoja.map((e, i) => (
-              // Cada etiqueta en su hoja del tamaño del corte: `globals.css` (.etq-hoja) la gira o la deja derecha según el modo.
-              <div key={i} className="etq-hoja">
-                <EtiquetaPrecio etiqueta={e} impreso={impreso} />
-              </div>
-            ))}
-          </div>,
-          document.body,
-        )}
+      {montado && <HojaEtiquetasPrecio hoja={hoja} impreso={impreso} modo={modo} />}
     </div>
   );
 }

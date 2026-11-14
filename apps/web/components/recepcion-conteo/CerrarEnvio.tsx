@@ -865,11 +865,12 @@ export function CerrarEnvio({
                     {det?.provisional && <Chip tono="ambar">Nombre provisional</Chip>}
                     {!m && <span className="text-sm text-taupe">{todoEnStock ? "Ya está en el stock" : "Sin identificar todavía"}</span>}
                     {cambiaVenta && !abierta && i === 0 && <Chip tono="ambar">Precio de venta cambiado</Chip>}
-                    {revisarPrecio && precioQueda !== null && costoQueda !== null && (
+                    {/* Abierta, el margen lo dice la línea viva de la prenda (tarea 8): aquí no se repite. */}
+                    {revisarPrecio && !abiertaEsta && precioQueda !== null && costoQueda !== null && (
                       <button
                         type="button"
                         className="btn-cayla btn-enlace text-sm"
-                        title={textoRevisarAlRecibir(precioQueda, costoQueda, revisarPrecio)}
+                        title={textoRevisarAlRecibir(revisarPrecio)}
                         onClick={() => prendaFila && !abiertaEsta && alternarPrenda(prendaFila.productoId)}
                         data-revisar-precio={prendaFila?.productoId}
                       >

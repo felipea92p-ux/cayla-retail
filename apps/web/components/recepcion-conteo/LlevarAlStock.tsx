@@ -1,6 +1,7 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import Link from "next/link";
 import { PackageCheck } from "lucide-react";
 import { AvisoCostoAtipico } from "@/components/AvisoCostoAtipico";
 import { ComboResponsable } from "@/components/ComboResponsable";
@@ -8,6 +9,10 @@ import { CampoGuiado, PieGuia } from "@/components/guia-de-foco/CampoGuiado";
 import { useGuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
 import { enterNoGuarda } from "@/components/ui/enterNoGuarda";
 import { Aviso } from "@/components/ui/Aviso";
+import { avisar } from "@/components/ui/Avisos";
+import { BotonImprimir } from "@/components/ui/BotonImprimir";
+import { HojaEtiquetasPrecio, ID_HOJA_ETIQUETAS, modoDeEtiquetasGuardado } from "@/components/impresion/HojaEtiquetasPrecio";
+import { AvisoAyudanteMac, useImpresionBrother } from "@/components/impresion/useImpresionBrother";
 import { Boton, BotonEnlace, CampoTexto } from "@/components/ui/campos";
 import { Modal } from "@/components/ui/Modal";
 import { Punto } from "@/components/alta-producto/Punto";
@@ -22,7 +27,9 @@ import { esFalloDeRed } from "@/lib/error-escritura";
 import { cambiarPreciosEnRecepcion, corregirSalida, llevarAlStock } from "@/lib/recepcion-conteo-acciones";
 import { ALCANCE_DE_FABRICA, cambioDePrecioDeVenta, hoyDelPrecio, leerPrecioNuevo, mensajeAlGuardar, costoComoTexto, leerCostoCierre, type LineaParaContar } from "@/lib/recepcion-conteo-reglas";
 import { atipicosPorLinea, leerCostoAtipicoRecepcion, type CostoAtipicoRecepcion } from "@/lib/recepcion-envio-reglas";
-import { argsLlevarAlStock, urlBajarDeLaTanda, urlEtiquetasDeLaTanda, type ResultadoDeSalida, type SalidaDelEnvio } from "@/lib/recepcion-salida-reglas";
+import { argsLlevarAlStock, textoDeImprimirTanda, urlBajarDeLaTanda, urlEtiquetasDeLaTanda, type ResultadoDeSalida, type SalidaDelEnvio } from "@/lib/recepcion-salida-reglas";
+import { expandir } from "@/lib/etiqueta-precio-reglas";
+import { useEtiquetasDeLaTanda } from "@/lib/useEtiquetasDeLaTanda";
 import type { ControlResponsable } from "@/lib/useResponsable";
 
 // «Llevar al stock ahora» (ADR-0393, act. 2026-11-03; Felipe: «debe quedar absolutamente perfecto»): un modelo sale a la venta sin cerrar el envío. Sale lo repartido;
@@ -36,6 +43,9 @@ import type { ControlResponsable } from "@/lib/useResponsable";
 // dejan cambiarlo desde Recibir (`cambiar_precios_en_recepcion` solo acepta lo que sigue separado). Por eso se pone aquí, con la misma pieza y la misma regla del
 // cierre, y se guarda JUSTO ANTES de llevar: si la base lo rechaza (bajo el costo, por ejemplo), no entra nada y el motivo sale junto al campo. Si el precio se
 // guardó y lo que falla es llevar, el precio queda (rige hacia adelante) y deja de contarse como cambio: el reintento no lo manda de nuevo.
+//
+// «Llevar e imprimir» (tanda#1 de /innovar, Felipe 2026-11-14): el botón principal lleva la prenda y manda sus etiquetas de un solo toque; «Solo llevar»
+// queda al lado para quien las imprime después. La intención viaja con `onHecho`: la hoja «ya están en el stock» se abre imprimiendo y se cierra sola.
 
 export function LlevarAlStock({
   despachoId,
@@ -79,7 +89,8 @@ export function LlevarAlStock({
   esperandoGuardar: boolean;
   /** Lo último que se contó no llegó a la base (se cortó la red): hasta reintentar, llevar al stock movería otro número que el que se ve. */
   noSeGuardo?: boolean;
-  onHecho: (r: ResultadoDeSalida) => void;
+  /** `imprimir`: la persona tocó «Llevar e imprimir»: la hoja que sigue manda las etiquetas apenas estén listas. */
+  onHecho: (r: ResultadoDeSalida, imprimir: boolean) => void;
   onConteoCambiado: () => void;
   /** Oscuro donde es lo que toca hacer (todo repartido); claro donde acompaña a otro botón. */
   peso?: "primario" | "fantasma";
@@ -97,6 +108,8 @@ export function LlevarAlStock({
   const [error, setError] = useState<string | null>(null);
   const [atipicos, setAtipicos] = useState<CostoAtipicoRecepcion[] | null>(null);
   const enVuelo = useRef(false);
+  // Con qué botón se confirmó. Va en una ref porque el costo fuera de lo normal pide confirmar en otra hoja, y ese segundo «sí» lleva la misma intención.
+  const quiereImprimir = useRef(true);
   const precios = usePreciosDeVenta();
   const venta = precios.ventas[productoId];
   const alcance = soloSede ? "sede" : (venta?.alcance ?? ALCANCE_DE_FABRICA);
@@ -200,7 +213,7 @@ export function LlevarAlStock({
     setAtipicos(null);
     // La prenda puede seguir aquí con lo que falta repartir: la próxima tanda es otra.
     setToken(crypto.randomUUID());
-    if (resultado) onHecho(resultado);
+    if (resultado) onHecho(resultado, quiereImprimir.current);
   }
 
   return (
@@ -291,8 +304,32 @@ export function LlevarAlStock({
                 <Boton type="button" peso="fantasma" onClick={cerrar} disabled={guardando}>
                   Cancelar
                 </Boton>
-                <Boton type="submit" peso="primario" cargando={guardando} textoCargando="Llevando…" title={guia.frase ?? undefined} className={guia.claseConfirmar}>
-                  Llevar al stock
+                {/* Entra al stock y nada más: las etiquetas quedan para después, desde la hoja que sigue. */}
+                <Boton
+                  type="button"
+                  peso="fantasma"
+                  disabled={guardando}
+                  title={guia.frase ?? "Entra al stock sin imprimir las etiquetas"}
+                  onClick={() => {
+                    quiereImprimir.current = false;
+                    void llevar(false);
+                  }}
+                >
+                  Solo llevar
+                </Boton>
+                {/* El de siempre, y además manda las etiquetas: imprimir sigue siendo un clic de la persona, y el botón lo dice (ADR-0180). En el celular va en su fila. */}
+                <Boton
+                  type="submit"
+                  peso="primario"
+                  cargando={guardando}
+                  textoCargando="Llevando…"
+                  title={guia.frase ?? "Entra al stock y manda sus etiquetas a la impresora"}
+                  className={`pie-acciones-ancho ${guia.claseConfirmar}`}
+                  onClick={() => {
+                    quiereImprimir.current = true;
+                  }}
+                >
+                  Llevar e imprimir
                 </Boton>
               </div>
             </form>
@@ -307,10 +344,9 @@ export function LlevarAlStock({
 function ListaDeTallas({ lineas, colores = [] }: { lineas: readonly { cantidad: number; talla?: string | null; color?: string | null }[]; colores?: readonly ColorAlta[] }) {
   // El nombre de un color es único en el catálogo: con él se encuentra su muestra.
   const porNombre = new Map(colores.map((c) => [c.nombre.toLocaleLowerCase("es"), c]));
-  // Por color (en el orden en que aparecen) y, dentro de cada color, de la talla chica a la grande: «Blanco · S, M, L», no «L, L, M, M».
-  const primerColor = new Map<string, number>();
-  lineas.forEach((l, i) => primerColor.has(l.color ?? "") || primerColor.set(l.color ?? "", i));
-  const ordenadas = [...lineas].sort((a, b) => primerColor.get(a.color ?? "")! - primerColor.get(b.color ?? "")! || compararTallas(a.talla ?? "", b.talla ?? ""));
+  // Por color y, dentro de cada color, de la talla chica a la grande: «Blanco · S, M, L», no «L, L, M, M». Los colores van por nombre, que es el orden
+  // en que sale el rollo de etiquetas (`armarEtiquetas`): la lista y el rollo se leen igual (tarea 6, 2026-11-14). Antes iban en el orden en que se tecleaban.
+  const ordenadas = [...lineas].sort((a, b) => (a.color ?? "").localeCompare(b.color ?? "", "es") || compararTallas(a.talla ?? "", b.talla ?? ""));
   return (
     <ul className="nota-cayla sin-i space-y-1 text-sm" aria-label="Tallas y colores">
       {ordenadas.map((l, i) => {
@@ -329,24 +365,136 @@ function ListaDeTallas({ lineas, colores = [] }: { lineas: readonly { cantidad: 
   );
 }
 
-/** Lo que sigue después de salir: las etiquetas de esa tanda, bajarlas al piso o seguir contando. */
-export function SalidaHecha({ resultado, nombre, envioId, veExistencias, onCerrar }: { resultado: ResultadoDeSalida; nombre: string; envioId: string; veExistencias: boolean; onCerrar: () => void }) {
+/**
+ * Lo que sigue después de salir: las etiquetas de esa tanda, bajarlas al piso o seguir contando.
+ *
+ * Las etiquetas se imprimen AQUÍ (tarea 6 de Recibir, Felipe 2026-11-14): antes el botón llevaba a la pantalla de Etiquetas y había que volver, y Trujillo
+ * lleva cada modelo al stock apenas lo reparte, así que eran 4 o 5 toques y dos cargas de pantalla por modelo. Ahora la hoja pide las etiquetas al abrirse
+ * (la misma lectura de esa pantalla: precio de la sede y campaña de hoy), el botón las manda a la Brother y la hoja se cierra sola: quedas contando.
+ *
+ * Imprimir sigue siendo un clic de la persona (ADR-0180): al abrirse la hoja solo se PREPARAN, salvo que el clic haya sido «Llevar e imprimir»
+ * (`imprimirAlAbrir`), que ya las pidió. Por el ayudante de la Mac se sabe si salieron; por el diálogo del
+ * navegador no (pudo cancelarse), así que ahí el aviso ofrece «Imprimir de nuevo», que vuelve a esta hoja. Cambiar cantidades o sacar la campaña del papel sigue
+ * siendo de la pantalla de Etiquetas: «Ajustar antes de imprimir».
+ */
+export function SalidaHecha({
+  resultado,
+  nombre,
+  envioId,
+  veExistencias,
+  onCerrar,
+  onReabrir,
+  imprimirAlAbrir = false,
+}: {
+  resultado: ResultadoDeSalida;
+  nombre: string;
+  envioId: string;
+  veExistencias: boolean;
+  /** Se llegó con «Llevar e imprimir»: ese clic ya pidió las etiquetas, así que salen apenas estén listas y la hoja se cierra sola. */
+  imprimirAlAbrir?: boolean;
+  onCerrar: () => void;
+  /** Vuelve a abrir esta hoja con la misma tanda: lo ofrece el aviso cuando no se sabe si las etiquetas salieron. */
+  onReabrir: () => void;
+}) {
   const n = resultado.unidades.toLocaleString("es-PE");
+  const tanda = useEtiquetasDeLaTanda(resultado.lineas);
+  // Una etiqueta por unidad que entró, en el orden de las pilas (`armarEtiquetas`).
+  const hoja = useMemo(() => expandir(tanda.datos?.etiquetas ?? [], {}), [tanda.datos]);
+  const { montado, sabeComoImprimir, enviando, avisoMac, instalar, imprimirYSaber } = useImpresionBrother({
+    idHoja: ID_HOJA_ETIQUETAS,
+    total: hoja.length,
+    pieza: "etiqueta",
+    detalleEspera: "Preparando las etiquetas para la Brother…",
+    // En la Mac con ayudante la página SÍ mide 62 × 40,1 y nadie la vuelve a girar: va con la forma A, como en Etiquetas.
+    prepararCopia: (copia) => copia.setAttribute("data-modo", "girada"),
+  });
+  // La persona tocó «Imprimir». Si las etiquetas todavía se preparan, sale apenas estén: no hace falta tocar dos veces.
+  const [pedida, setPedida] = useState(imprimirAlAbrir);
+  const enVuelo = useRef(false);
+  // La hoja se puede cerrar con la impresión todavía en camino (el navegador que no avisa que su diálogo se cerró): lo que llegue después no toca nada,
+  // o cerraría la hoja que la persona abrió mientras tanto.
+  const abierta = useRef(true);
+  useEffect(() => {
+    abierta.current = true;
+    return () => {
+      abierta.current = false;
+    };
+  }, []);
+  const listas = tanda.estado === "listo" && sabeComoImprimir;
+  const hayQueImprimir = hoja.length > 0;
+  useEffect(() => {
+    if (!pedida || !listas || !hayQueImprimir || enVuelo.current) return;
+    enVuelo.current = true;
+    void imprimirYSaber().then((fin) => {
+      enVuelo.current = false;
+      if (!abierta.current) return;
+      setPedida(false);
+      // El ayudante dijo que no: el aviso ya dice por qué, y la hoja queda para reintentar.
+      if (fin === "fallo") return;
+      if (fin === "dialogo") {
+        avisar.exito(hoja.length === 1 ? `La etiqueta de ${nombre}` : `${hoja.length.toLocaleString("es-PE")} etiquetas de ${nombre}`, {
+          detalle: "Si no salieron, imprímelas de nuevo.",
+          accion: { texto: "Imprimir de nuevo", onClick: onReabrir },
+          duracion: 7000,
+        });
+      }
+      onCerrar();
+    });
+  }, [pedida, listas, hayQueImprimir, imprimirYSaber, hoja.length, nombre, onCerrar, onReabrir]);
+  const imprimiendo = pedida && tanda.estado !== "fallo" && !(tanda.estado === "listo" && !hayQueImprimir);
+  const sinCodigo = tanda.datos?.sinCodigo.length ?? 0;
+
   return (
-    <Modal titulo={`${n} de ${nombre} ya están en el stock`} subtitulo="Están en el almacén: se venden cuando las bajes al piso. El envío sigue abierto." tamano="angosta" onClose={onCerrar} conCerrar>
+    <Modal titulo={`${n} de ${nombre} ya están en el stock`} subtitulo="Están en el almacén: se venden cuando las bajes al piso. El envío sigue abierto." tamano="angosta" bloqueado={enviando} onClose={onCerrar} conCerrar>
       <div className="grid gap-2">
-        <BotonEnlace href={urlEtiquetasDeLaTanda(resultado.lineas, envioId)} peso="primario">
-          {resultado.unidades === 1 ? "Imprimir la etiqueta" : `Imprimir ${n} etiquetas`}
-        </BotonEnlace>
+        {avisoMac && <AvisoAyudanteMac {...avisoMac} instalar={instalar} mientras="Mientras tanto, «Imprimir» usa el diálogo de Chrome: la etiqueta sale, pero con papel de sobra." />}
+        {tanda.estado === "fallo" && (
+          <Aviso
+            tono="error"
+            chico
+            titulo="No pudimos preparar las etiquetas"
+            accion={
+              <button
+                type="button"
+                className="btn-cayla btn-enlace"
+                onClick={() => {
+                  setPedida(false);
+                  tanda.reintentar();
+                }}
+              >
+                Reintentar
+              </button>
+            }
+          />
+        )}
+        {sinCodigo > 0 && (
+          <Aviso tono="atencion" chico titulo={sinCodigo === 1 ? "Una prenda no tiene código" : `${sinCodigo} prendas no tienen código`}>
+            No llevan etiqueta
+          </Aviso>
+        )}
+        <BotonImprimir
+          peso="primario"
+          cargando={imprimiendo}
+          disabled={tanda.estado === "fallo" || (tanda.estado === "listo" && !hayQueImprimir)}
+          onClick={() => setPedida(true)}
+        >
+          {textoDeImprimirTanda(resultado.unidades, tanda.datos ? hoja.length : null)}
+        </BotonImprimir>
         {veExistencias && (
           <BotonEnlace href={urlBajarDeLaTanda(resultado.lineas, envioId)} peso="fantasma">
             Bajar al piso
           </BotonEnlace>
         )}
+        {/* Nunca se apaga: si el navegador no avisa que su diálogo de impresión se cerró, la persona igual sigue contando. */}
         <Boton type="button" peso="fantasma" onClick={onCerrar}>
           Seguir contando
         </Boton>
+        {/* Otra cantidad, o sin la campaña en el papel: eso es de la pantalla de Etiquetas, que vuelve a este envío con su flecha. */}
+        <Link href={urlEtiquetasDeLaTanda(resultado.lineas, envioId)} className="btn-cayla btn-enlace justify-self-center text-sm">
+          Ajustar antes de imprimir
+        </Link>
       </div>
+      {montado && tanda.datos && <HojaEtiquetasPrecio hoja={hoja} impreso={tanda.datos.impreso} modo={modoDeEtiquetasGuardado()} />}
     </Modal>
   );
 }

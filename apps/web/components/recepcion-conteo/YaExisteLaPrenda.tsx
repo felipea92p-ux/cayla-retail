@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Modal } from "@/components/ui/Modal";
 import { Aviso } from "@/components/ui/Aviso";
 import { Boton, CampoSelect } from "@/components/ui/campos";
@@ -8,6 +8,7 @@ import { ComboResponsable } from "@/components/ComboResponsable";
 import { ElegirPrendaExistente } from "@/components/recepcion-envio/ElegirPrendaExistente";
 import { buscarParecidasParaRecibir } from "@/lib/recepcion-envio-acciones";
 import type { CategoriaDeLinea, PrendaRecepcion } from "@/lib/recepcion-envio-reglas";
+import { referenciaDe } from "@/lib/recepcion-galeria-reglas";
 import { FichaDeLaPrenda } from "./FichaDeLaPrenda";
 import type { ControlResponsable } from "@/lib/useResponsable";
 
@@ -16,7 +17,7 @@ import type { ControlResponsable } from "@/lib/useResponsable";
 // Solo se elige dentro de la marca anotada, porque la base no deja mezclar marcas en una línea; una prenda con ese nombre en otra marca se avisa, para no crearla repetida.
 //
 // La categoría y la marca sí se corrigen aquí, con el envío cerrado (Felipe 2026-11-06 y 2026-11-07): se anotó «Polos» y era un top, o «Sin marca» y sí tenía; o el
-// aviso decía jeans y llegaron shorts (ahí se corrige la línea entera del aviso, que siempre lleva marca). Cambiar un combo solo busca, no guarda nada; el modelo pasa a su categoría y su marca al confirmar (`cambiar_linea_de_pendiente`). Tocar una sugerencia abre su ficha, para reconocerla antes de decir «es esta».
+// aviso decía jeans y llegaron shorts (ahí se corrige la línea entera del aviso, que siempre lleva marca). Cambiar un combo solo busca, no guarda nada; el modelo pasa a su categoría y su marca al confirmar (`cambiar_linea_de_pendiente`). Tocar una tarjeta de la galería la elige ahí mismo (2026-11-14, tarea 9); su ficha queda a un toque, «Ver ficha», para cuando haya duda.
 
 export function YaExisteLaPrenda({
   categoria: categoriaAnotada,
@@ -29,6 +30,10 @@ export function YaExisteLaPrenda({
   marcas = [],
   conSinMarca = true,
   responsable,
+  proveedorIds = [],
+  precio = null,
+  costoParaOrdenar = null,
+  enLaLista,
   onPasarALinea,
   onUsar,
   onCrear,
@@ -52,6 +57,14 @@ export function YaExisteLaPrenda({
   conSinMarca?: boolean;
   /** Quién firma el cambio. */
   responsable?: ControlResponsable;
+  /** Los proveedores del modelo: lo que ya mandaron sale primero en la galería. */
+  proveedorIds?: readonly string[];
+  /** El precio de venta sugerido del modelo: con el costo, sube lo de mismo costo y precio. */
+  precio?: number | null;
+  /** Las prendas que ya están en la lista del envío. */
+  enLaLista?: ReadonlySet<string>;
+  /** El costo con que ordenar la galería cuando no se muestra (`costo` en `null`): el de la compra. */
+  costoParaOrdenar?: number | null;
   /** Pasa el modelo a esa categoría y esa marca (`null` = sin marca). Devuelve el error en palabras, o `null` si quedó. */
   onPasarALinea?: (categoriaId: string, marcaId: string | null) => Promise<string | null>;
   /** `cambioCategoria`: el modelo acaba de pasar a otra categoría o a otra marca. */
@@ -62,6 +75,8 @@ export function YaExisteLaPrenda({
   const [categoria, setCategoria] = useState(categoriaAnotada);
   const [marca, setMarca] = useState(marcaAnotada);
   const [elegida, setElegida] = useState<PrendaRecepcion | null>(null);
+  /** La ficha de la elegida, abierta: solo si la persona la pide («Ver ficha»). Elegir en la galería ya basta para confirmar. */
+  const [conFicha, setConFicha] = useState(false);
   const [guardando, setGuardando] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [enOtraMarca, setEnOtraMarca] = useState<PrendaRecepcion[]>([]);
@@ -79,6 +94,7 @@ export function YaExisteLaPrenda({
   }, [categoria.id, marca.id, nombre]);
 
   const costoEscrito = costo?.trim() ? `S/ ${costo.trim()}` : null;
+  const referencia = useMemo(() => referenciaDe(costo ?? (costoParaOrdenar != null ? String(costoParaOrdenar) : null), precio), [costo, costoParaOrdenar, precio]);
   const prendas = `${cantidad} ${cantidad === 1 ? "prenda" : "prendas"}`;
 
   function elegirCategoria(id: string) {
@@ -86,6 +102,7 @@ export function YaExisteLaPrenda({
     if (!nueva) return;
     setCategoria(nueva);
     setElegida(null);
+    setConFicha(false);
     setError(null);
   }
 
@@ -94,6 +111,7 @@ export function YaExisteLaPrenda({
     if (!nueva) return;
     setMarca(nueva);
     setElegida(null);
+    setConFicha(false);
     setError(null);
   }
 
@@ -167,7 +185,7 @@ export function YaExisteLaPrenda({
           </div>
         )}
 
-        {elegida ? (
+        {elegida && conFicha ? (
           <FichaDeLaPrenda
             key={elegida.productoId}
             prenda={elegida}
@@ -176,7 +194,18 @@ export function YaExisteLaPrenda({
             nota={`Las ${prendas} quedan como esta prenda${costoEscrito ? `, con el costo de ${costoEscrito}` : ""}. Después pones sus tallas y colores.`}
           />
         ) : (
-          <ElegirPrendaExistente categoria={categoria} marca={marca} busquedaInicial={nombre ?? ""} textoElegir="Ver ficha" onElegir={setElegida} onEsNueva={() => void crear()} />
+          <ElegirPrendaExistente
+            categoria={categoria}
+            marca={marca}
+            busquedaInicial={nombre ?? ""}
+            elegidaId={elegida?.productoId ?? null}
+            proveedorIds={proveedorIds}
+            referencia={referencia}
+            enLaLista={enLaLista}
+            onElegir={setElegida}
+            onVerFicha={() => setConFicha(true)}
+            onEsNueva={() => void crear()}
+          />
         )}
 
         {error && <Aviso tono="error">{error}</Aviso>}
@@ -190,7 +219,15 @@ export function YaExisteLaPrenda({
         {/* `pie-hoja-fijo`: con la ficha abierta la hoja es larga, y «Sí, es esta» no se va bajo el pliegue. */}
         {elegida ? (
           <div className="pie-hoja-fijo pie-acciones pt-1">
-            <Boton type="button" peso="fantasma" disabled={guardando} onClick={() => setElegida(null)}>
+            <Boton
+              type="button"
+              peso="fantasma"
+              disabled={guardando}
+              onClick={() => {
+                setElegida(null);
+                setConFicha(false);
+              }}
+            >
               No, es otra
             </Boton>
             <Boton type="button" peso="primario" cargando={guardando} disabled={faltaQuienFirma} onClick={() => void usar(elegida)}>

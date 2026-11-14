@@ -5,6 +5,7 @@ import { CircleAlert } from "lucide-react";
 import { CampoTexto } from "@/components/ui/campos";
 import { PropuestaDePrecio } from "@/components/alta-producto/PropuestaDePrecio";
 import { pideRevisarAlRecibir, textoRevisarAlRecibir } from "@/lib/precio-propuesto-reglas";
+import { LineaMargen } from "@/components/ui/LineaMargen";
 import { ElegirOpcion } from "@/components/recepcion-envio/BloquePrenda";
 import { ALCANCE_DE_FABRICA, cambioDePrecioDeVenta, hoyDelPrecio, leerCostoCierre, leerPrecioNuevo, type PrecioEditado, type PrendaSeparada, type RangoDePrecio } from "@/lib/recepcion-conteo-reglas";
 import { leerPreciosDePrenda } from "@/lib/recepcion-conteo-acciones";
@@ -210,6 +211,8 @@ export function PrecioDePrenda({
             className="text-right font-semibold tabular-nums"
           />
         </div>
+        {/* Tarea 8 de Recibir: el margen a la vista, bajo costo y precio, solo donde se ve el costo. Cambia con cada número que se escribe. */}
+        {conCosto && <LineaMargen costo={costoQueQueda} precio={precioQueQueda} className={lado ? "col-span-2 -mt-1" : "basis-full"} />}
         <div className={lado ? "col-span-2" : undefined}>
           <span className="campo-etiqueta block">¿Dónde vale?</span>
           <div className={`mt-1.5 ${sinNombre ? "flex min-h-10 items-center" : conCosto ? "@min-[1000px]:flex @min-[1000px]:min-h-10 @min-[1000px]:items-center" : "@min-[820px]:flex @min-[820px]:min-h-10 @min-[820px]:items-center"}`}>
@@ -234,7 +237,7 @@ export function PrecioDePrenda({
       </div>
       {revisar && precioQueQueda !== null && costoQueQueda !== null && (
         <div className="col-span-full" data-revisar-precio={prenda.productoId}>
-          <p className="text-sm text-taupe">{textoRevisarAlRecibir(precioQueQueda, costoQueQueda, revisar)}</p>
+          <p className="text-sm text-taupe">{textoRevisarAlRecibir(revisar)}</p>
           <PropuestaDePrecio
             origen="recepcion"
             productoId={prenda.productoId}

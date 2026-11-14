@@ -192,6 +192,9 @@ export type GrupoDeLaBolsa = {
   campana: string;
   ahorro: number;
   faltan: number;
+  /** Decisión 2 (Felipe 2026-11-14): la rebaja de campaña que dejan las prendas de la línea que van con su grupo (nunca las dos). Ya está en
+   *  su `precio`: el total la devuelve. */
+  dejaRebaja: number;
   /** «Gastar un monto y ahorrar» (actividad 8): cuánto le falta a la compra para el escalón que sigue y lo que ese escalón ahorra
    *  («S/ 30 menos»), o null si ya llegó al último. Ausente en las ofertas de grupo. */
   monto?: { falta: number; siguiente: string } | null;
@@ -234,6 +237,7 @@ function grupoDeMonto(g: z.infer<typeof esquemaMonto>): GrupoDeLaBolsa {
     campana: g.campana ?? "",
     ahorro: redondear(g.ahorro),
     faltan: 0,
+    dejaRebaja: 0,
     monto: siguiente ? { falta: (Math.round(siguiente.desde * 100) - baseC) / 100, siguiente: ahorroDeEscalon(siguiente.ahorra, g.ahorro_en) } : null,
   };
 }
@@ -247,6 +251,7 @@ const esquemaGrupo = z.object({
   paga: z.coerce.number().nullable().catch(null),
   monto: z.coerce.number().nullable().catch(null),
   porcentaje: z.coerce.number().nullable().catch(null),
+  deja_rebaja: z.coerce.number().nonnegative().catch(0),
 });
 
 /** Lo que dice `retail.tienda_bolsa_grupos`; `null` si no tiene esa forma. Una línea rara se ignora (se ve sin su oferta). */
@@ -261,7 +266,14 @@ export function interpretarGruposDeLaBolsa(dato: unknown): GruposDeLaBolsa | nul
       continue;
     }
     const g = esquemaGrupo.safeParse(crudo);
-    if (g.success) porVariante[id] = { titular: titularDeGrupo(g.data), campana: g.data.campana ?? "", ahorro: redondear(g.data.ahorro), faltan: g.data.faltan };
+    if (g.success)
+      porVariante[id] = {
+        titular: titularDeGrupo(g.data),
+        campana: g.data.campana ?? "",
+        ahorro: redondear(g.data.ahorro),
+        faltan: g.data.faltan,
+        dejaRebaja: redondear(g.data.deja_rebaja),
+      };
   }
   return { ahorro: redondear(r.data.ahorro), porVariante };
 }
@@ -382,7 +394,7 @@ export type VistaBolsa = {
   faltaTienda: boolean;
   /** Lo que viaja con «Separar»: lo que el cliente VE (la base lo vuelve a calcular y lo compara), con lo que ahorra cada línea con su
    *  oferta de grupo si la base lo dijo. */
-  paraSeparar: { variante_id: string; cantidad: number; precio: number; ahorro_grupo?: number }[];
+  paraSeparar: { variante_id: string; cantidad: number; precio: number; ahorro_grupo?: number; deja_rebaja?: number }[];
 };
 
 export function vistaBolsa(b: BolsaEnBase): VistaBolsa {
@@ -402,8 +414,11 @@ export function vistaBolsa(b: BolsaEnBase): VistaBolsa {
     } else if (!linea.alcanzaEnTotal) {
       marca = Object.values(linea.enSedes).some((s) => s.hay) ? { tipo: "no_alcanza", sede: null } : { tipo: "agotada", sede: null };
     }
-    const antes = linea.precioLista > linea.precio ? redondear(linea.precioLista * linea.cantidad) : null;
-    return { linea, marca, importe: redondear(linea.precio * linea.cantidad), antes, grupo: b.grupos?.porVariante[linea.varianteId] ?? null };
+    const grupo = b.grupos?.porVariante[linea.varianteId] ?? null;
+    // Decisión 2: las prendas que van con su grupo dejan su rebaja (nunca las dos): la línea vale su precio de lista en esas.
+    const importe = redondear(linea.precio * linea.cantidad + (grupo?.dejaRebaja ?? 0));
+    const antes = redondear(linea.precioLista * linea.cantidad) > importe ? redondear(linea.precioLista * linea.cantidad) : null;
+    return { linea, marca, importe, antes, grupo };
   });
 
   // «Tiene todo lo que elegiste» o «Tiene 1 de 2» (maqueta, `cobertura`: cuenta filas). Cada tienda maneja lo suyo: lo que ahí no hay
@@ -422,8 +437,10 @@ export function vistaBolsa(b: BolsaEnBase): VistaBolsa {
   const subtotal = redondear(disponibles.reduce((n, l) => n + l.precioLista * l.cantidad, 0));
   // ADR-0655: lo que ahorra llevando varias, de las prendas que siguen en la bolsa (lo cobra `tienda_separar` con la misma cuenta).
   const ahorroGrupo = redondear(disponibles.reduce((n, l) => n + (b.grupos?.porVariante[l.varianteId]?.ahorro ?? 0), 0));
-  const total = redondear(disponibles.reduce((n, l) => n + l.precio * l.cantidad, 0) - ahorroGrupo);
-  const ahorro = redondear(disponibles.reduce((n, l) => n + (l.precioLista - l.precio) * l.cantidad, 0));
+  // Decisión 2: la rebaja que dejan las que van con su grupo vuelve al total y sale de «Ahorras con las campañas».
+  const dejaRebaja = redondear(disponibles.reduce((n, l) => n + (b.grupos?.porVariante[l.varianteId]?.dejaRebaja ?? 0), 0));
+  const total = redondear(disponibles.reduce((n, l) => n + l.precio * l.cantidad, 0) - ahorroGrupo + dejaRebaja);
+  const ahorro = redondear(disponibles.reduce((n, l) => n + (l.precioLista - l.precio) * l.cantidad, 0) - dejaRebaja);
   let nota: VistaBolsa["nota"];
   if (sedes.length === 0)
     nota = { antes: "", destacado: "Por ahora no recibimos pedidos de la web.", despues: " Vuelve a intentarlo en un rato." };
@@ -457,7 +474,9 @@ export function vistaBolsa(b: BolsaEnBase): VistaBolsa {
       variante_id: l.varianteId,
       cantidad: l.cantidad,
       precio: l.precio,
-      ...(b.grupos ? { ahorro_grupo: b.grupos.porVariante[l.varianteId]?.ahorro ?? 0 } : {}),
+      ...(b.grupos
+        ? { ahorro_grupo: b.grupos.porVariante[l.varianteId]?.ahorro ?? 0, deja_rebaja: b.grupos.porVariante[l.varianteId]?.dejaRebaja ?? 0 }
+        : {}),
     })),
   };
 }

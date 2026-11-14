@@ -42,4 +42,18 @@
     height: max(100%, 44px);
     transform: translate(-50%, -50%);
   }
+
+  /* La paleta con todos los colores (ADR-0663): el punto y la perilla conservan su dibujo y agrandan su área. Ya van en `absolute`. */
+  :is(.paleta-punto, .paleta-perilla)::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 44px;
+    height: 44px;
+    transform: translate(-50%, -50%);
+  }
+  .paleta-matiz {
+    height: 20px;
+  }
 }

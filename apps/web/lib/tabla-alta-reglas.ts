@@ -193,13 +193,6 @@ export function leyendaVariantes(incluidas: number, colores: readonly string[], 
   return { cuantas, deDonde: "sin tallas ni colores", ejemplo: null };
 }
 
-/** Lo que dice bajo el nombre del color en la tabla del paso 3. `hayGeneral` = ya hay una foto de «Todos los colores»,
- *  que es la que se verá en este color mientras no tenga la suya (`fotoDeVariante`). */
-export function textoFotosDeFila(n: number, hayGeneral: boolean): string {
-  if (n > 0) return `${n} foto${n === 1 ? "" : "s"}`;
-  return hayGeneral ? "usa la de todos" : "agrega su foto";
-}
-
 // ---------------------------------------------------------------------------------------------------------------------------------------------------------
 // El teclado de la tabla de cantidades (ADR-0396, A2): quien carga una curva de 3 colores × 4 tallas no debería buscar cada celda con el mouse. Enter y ↓ bajan por la
 // talla (la columna), ↑ y Shift+Enter suben; al llegar al fondo, Enter pasa a la talla siguiente (como una planilla) y ↓ se queda donde está. Lo que se mueve es solo el

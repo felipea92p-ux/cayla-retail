@@ -19,6 +19,7 @@
 @import "./estilos/telar.css";
 @import "./estilos/finanzas-bolsillos.css"; /* Resumen, camino «A · Bolsillos» (Felipe 2026-11-09). */
 @import "./estilos/alta-guia.css";
+@import "./estilos/paleta-color.css"; /* La paleta con todos los colores de «Nuevo color» (ADR-0663). */
 @import "./estilos/ayuda-cabecera.css"; /* El «?» de la cabecera y su globo (ronda 18 de /unificar) */
 @import "./estilos/campana-efectos.css";
 @import "./estilos/etiqueta-prendas.css";

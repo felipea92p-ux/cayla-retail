@@ -5,7 +5,8 @@ import { traducirError } from "@/lib/error-escritura";
 import { leerCuerpoOferta, reglaDeFila, type FilaRegla } from "@/lib/campana-reglas";
 
 // POST  /api/productos/campana-reglas → guarda una oferta de una campaña (nueva o editada). «Tres preguntas», Felipe 2026-10-23.
-// PATCH /api/productos/campana-reglas → { id, accion: "activar" | "retirar" } sobre una oferta que ya existe.
+// PATCH /api/productos/campana-reglas → { id, accion: "activar" | "retirar" } sobre una oferta que ya existe, o { id, accion: "queda", cede }:
+//   el aviso de Campañas elige qué oferta queda en un par que comparte prendas (`elegir_oferta_que_queda`, ADR-0655).
 //
 // PROMETE: devolver SIEMPRE la lista fresca de ofertas (`campana_reglas()`), para que la hoja se repinte sin otra consulta.
 // ASUME: quien llega es de la web y ve Insignias, Campañas o Campañas de la tienda web; lo demás (quién puede activar, que la campaña
@@ -116,9 +117,21 @@ export async function PATCH(request: Request) {
   const { respuesta } = await exigirPuerta();
   if (respuesta) return respuesta;
 
-  const cuerpo = (await request.json().catch(() => null)) as { id?: unknown; accion?: unknown } | null;
+  const cuerpo = (await request.json().catch(() => null)) as { id?: unknown; accion?: unknown; cede?: unknown } | null;
   const id = typeof cuerpo?.id === "string" ? cuerpo.id : "";
   if (!id) return Response.json({ error: "Falta la oferta." }, { status: 400 });
+
+  // El aviso de Campañas (ADR-0655, decisión 2 de Felipe): «que quede esta» en un par de ofertas que comparten prendas. Solo ese par.
+  if (cuerpo?.accion === "queda") {
+    const cede = typeof cuerpo.cede === "string" ? cuerpo.cede : "";
+    if (!cede) return Response.json({ error: "Falta la otra oferta." }, { status: 400 });
+    const supabaseQueda = await createClient({ firma: firmaDeEncabezados(request.headers) });
+    const { error: errorQueda } = await llamar(supabaseQueda, "elegir_oferta_que_queda", { p_gana_regla_id: id, p_cede_regla_id: cede });
+    if (errorQueda) return Response.json({ error: traducirError(errorQueda, "elegir la oferta que queda") }, { status: 400 });
+    const lista = await listaFresca(supabaseQueda);
+    return Response.json({ ok: true, reglas: lista.reglas, avisoLectura: lista.error });
+  }
+
   if (cuerpo?.accion !== "activar" && cuerpo?.accion !== "retirar") {
     return Response.json({ error: "Solo se puede activar o retirar una oferta." }, { status: 400 });
   }

@@ -207,7 +207,7 @@ describe("llevar varias y pagar menos en la bolsa (ADR-0655, actividad 7)", () =
   it("lee lo que ahorra cada prenda y dice la oferta como en la caja; una línea rara se ignora", () => {
     const g = grupos({ [A]: tresPorDos(46.6), [B]: tresPorDos(23.3), [M2]: { tipo: "otra" } }, 69.9);
     expect(g?.ahorro).toBe(69.9);
-    expect(g?.porVariante[A]).toEqual({ titular: "3 x 2", campana: "Verano", ahorro: 46.6, faltan: 0 });
+    expect(g?.porVariante[A]).toEqual({ titular: "3 x 2", campana: "Verano", ahorro: 46.6, faltan: 0, dejaRebaja: 0 });
     expect(g?.porVariante[M2]).toBeUndefined();
     expect(interpretarGruposDeLaBolsa(null)).toBeNull();
   });
@@ -216,7 +216,7 @@ describe("llevar varias y pagar menos en la bolsa (ADR-0655, actividad 7)", () =
     const monto = (ahorro: number, base: number) => ({ ahorro, faltan: 0, campana: "Verano", tipo: "monto", lleva: null, paga: null, monto: null, porcentaje: null,
       escalones: [{ desde: 300, ahorra: 30 }, { desde: 500, ahorra: 60 }], ahorro_en: "soles", cuenta: "compra", base });
     const g = grupos({ [A]: monto(17.14, 350), [B]: monto(0, 250) }, 17.14);
-    expect(g?.porVariante[A]).toEqual({ titular: "S/ 30.00 menos desde S/ 300.00", campana: "Verano", ahorro: 17.14, faltan: 0, monto: { falta: 150, siguiente: "S/ 60.00 menos" } });
+    expect(g?.porVariante[A]).toEqual({ titular: "S/ 30.00 menos desde S/ 300.00", campana: "Verano", ahorro: 17.14, faltan: 0, dejaRebaja: 0, monto: { falta: 150, siguiente: "S/ 60.00 menos" } });
     expect(g?.porVariante[B]).toMatchObject({ titular: "S/ 30.00 menos desde S/ 300.00", ahorro: 0, monto: { falta: 50 } });
     const ultimo = grupos({ [A]: { ...monto(60, 600), ahorro_en: "pct", escalones: [{ desde: 300, ahorra: 10 }] } }, 60);
     expect(ultimo?.porVariante[A]).toMatchObject({ titular: "10 % menos desde S/ 300.00", monto: null });
@@ -234,9 +234,23 @@ describe("llevar varias y pagar menos en la bolsa (ADR-0655, actividad 7)", () =
     expect([v.subtotal, v.ahorroGrupo, v.total]).toEqual([209.7, 69.9, 139.8]);
     expect(v.lineas[0].grupo).toMatchObject({ titular: "3 x 2", ahorro: 46.6 });
     expect(v.paraSeparar).toEqual([
-      { variante_id: A, cantidad: 2, precio: 69.9, ahorro_grupo: 46.6 },
-      { variante_id: B, cantidad: 1, precio: 69.9, ahorro_grupo: 23.3 },
+      { variante_id: A, cantidad: 2, precio: 69.9, ahorro_grupo: 46.6, deja_rebaja: 0 },
+      { variante_id: B, cantidad: 1, precio: 69.9, ahorro_grupo: 23.3, deja_rebaja: 0 },
     ]);
+  });
+
+  // Decisión 2 de Felipe (2026-11-14, 20261114155000): con una rebaja (−20 %: S/ 69.90 → S/ 55.90) y el 3x2, gana el 3x2 y las prendas dejan
+  // su rebaja: la bolsa la devuelve al total y la saca de «Ahorras con las campañas». Nunca las dos.
+  it("una prenda que va con su grupo deja su rebaja: el total es el del 3x2 y la línea vuelve a su precio de lista", () => {
+    const rebajada = { precio: 55.9, campana: { nombre: "Navidad", pct: 20, hasta: null } };
+    const b = {
+      ...enBase(TRU, [lineaBase(A, 2, { [TRU]: [true, true] }, rebajada), lineaBase(B, 1, { [TRU]: [true, true] }, rebajada)]),
+      grupos: grupos({ [A]: { ...tresPorDos(46.6), deja_rebaja: 28 }, [B]: { ...tresPorDos(23.3), deja_rebaja: 14 } }, 69.9),
+    };
+    const v = vistaBolsa(b);
+    expect([v.subtotal, v.ahorro, v.ahorroGrupo, v.total]).toEqual([209.7, 0, 69.9, 139.8]);
+    expect([v.lineas[0].importe, v.lineas[0].antes]).toEqual([139.8, null]);
+    expect(v.paraSeparar[0]).toEqual({ variante_id: A, cantidad: 2, precio: 55.9, ahorro_grupo: 46.6, deja_rebaja: 28 });
   });
 
   it("si la base no dijo los grupos, la bolsa se ve como siempre y «Separar» no manda lo que no mostró (la base los cobra igual)", () => {

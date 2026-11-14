@@ -154,6 +154,29 @@ describe("armarEtiquetas", () => {
     expect(etiquetas[0]).toMatchObject({ codigo: "BLU-0042-AZM-S", prenda: "Blusa Lino Manga Globo", color: "Azul marino", precio: 89.9, tallasDelModelo: ["S", "M", "L"] });
   });
 
+  it("el rollo sale como las pilas de la mesa: categoría, modelo, color y talla de la chica a la grande (tarea 6 de Recibir)", () => {
+    const prenda = (id: string, categoria: string | null, nombre: string, color: string, talla: string): VarianteEtiqueta =>
+      blusa(id, talla, { productoId: nombre, prenda: nombre, color, categoria, codigo: id });
+    const variantes = [
+      prenda("7", null, "Aro Dorado", "Dorado", "Única"),
+      prenda("5", "Casacas", "Casaca Ximena", "Negro", "M"),
+      prenda("4", "Blusas", "Blusa Emma", "Rojo", "S"),
+      prenda("3", "Blusas", "Blusa Emma", "Azul", "L"),
+      prenda("2", "Blusas", "Blusa Emma", "Azul", "S"),
+      prenda("6", "Casacas", "Abrigo Lana", "Negro", "M"),
+      prenda("1", "Blusas", "Blusa Aurora", "Verde", "M"),
+    ];
+    const { etiquetas } = armarEtiquetas(new Map(variantes.map((v) => [v.id, 1])), variantes, []);
+    // Antes iba por nombre de modelo: «Abrigo Lana» (una casaca) salía primero y «Aro Dorado» entre las blusas.
+    expect(etiquetas.map((e) => e.codigo)).toEqual(["1", "2", "3", "4", "6", "5", "7"]);
+  });
+
+  it("lo que no pudo imprimirse (sin código) también se lista en el orden de las pilas", () => {
+    const sin = (id: string, categoria: string, nombre: string): VarianteEtiqueta => blusa(id, "M", { prenda: nombre, categoria, codigo: null, sku: null, color: null });
+    const { sinCodigo } = armarEtiquetas(new Map([["a", 1], ["b", 1]]), [sin("a", "Casacas", "Abrigo Lana"), sin("b", "Blusas", "Blusa Emma")], []);
+    expect(sinCodigo).toEqual(["Blusa Emma · M", "Abrigo Lana · M"]);
+  });
+
   it("sin código corto usa el SKU viejo (la caja también lo resuelve); sin ninguno, avisa y no la imprime", () => {
     const entradas = new Map([
       ["viejo", 1],

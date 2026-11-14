@@ -75,6 +75,11 @@ const ANTES = [
   falta("select to_regprocedure('retail.fn_exigir_ofertas_de_grupo(jsonb, uuid, date)') is null;") ? leer("20261114011000_caja_cobra_ofertas_de_grupo") : "",
   falta("select to_regprocedure('retail.fn_repartir_grupos(jsonb)') is null;") ? leer("20261114032000_apartados_con_ofertas_de_grupo") : "",
   sinTienda ? readFileSync(MIGRACION, "utf8") : "",
+  // Felipe 2026-11-14 (20261114155000): una prenda con rebaja y 3x2 lleva la que más le ahorra al cliente, nunca las dos. Pide antes el monto
+  // (20261114044000) y la venta sin conexión (20261114132000), que la base local puede no tener.
+  falta("select to_regprocedure('retail.fn_escalones_validos(jsonb, text)') is null;") ? leer("20261114044000_monto_con_escalones") : "",
+  falta("select to_regprocedure('retail.fn_dia_de_la_venta()') is null;") ? leer("20261114132000_venta_sin_conexion_con_las_ofertas_de_su_hora") : "",
+  falta("select to_regprocedure('retail.fn_cuenta_de_grupos(jsonb)') is null;") ? leer("20261114155000_dos_ofertas_la_que_mas_ahorra") : "",
 ].filter(Boolean).join("\n");
 
 const HOY = "retail.fn_hoy_lima()";
@@ -213,6 +218,41 @@ select concat_ws('|', count(*), sum(vi.descuento_grupo_unitario) = :'minimo'::nu
     bool_and(vi.oferta_grupo_id = :'r'), sum((vi.precio_unitario - vi.descuento_unitario) * vi.cantidad) = ${TOTAL_3X2})
   from retail.venta_items vi where vi.venta_id = :'venta_id';\nrollback;`),
   "3|t|t|t|t",
+);
+
+console.log("\n— Una rebaja y un 3x2 en la misma prenda: la que más ahorra, nunca las dos (20261114155000) —");
+// La rebaja llega por fuera de la hoja: el descuento de siempre de otra campaña sobre las dos categorías (el candado es diferido). La bolsa
+// se vuelve a leer con la rebaja puesta.
+const REBAJA = (pct = 20) => `insert into retail.etiquetas (nombre, estilo) values ('ZZ Rebaja web (prueba)', 'campana') returning id as reb \\gset
+select retail.actualizar_campana_etiqueta(:'reb', ${pct}, ${HOY} - 1, ${HOY} + 10, array[:'cat_v', :'cat_v2']::uuid[]);
+select pr.descuento as d_v, pr.precio as f_v from retail.fn_tienda_precio_talla(array[:'v']::uuid[], :'tru') pr \\gset
+select pr.descuento as d_v2, pr.precio as f_v2 from retail.fn_tienda_precio_talla(array[:'v2']::uuid[], :'tru') pr \\gset
+select retail.tienda_bolsa_grupos(jsonb_build_array(jsonb_build_object('variante_id', :'v', 'cantidad', 2), jsonb_build_object('variante_id', :'v2', 'cantidad', 1)), :'tru') as bg \\gset
+select coalesce((:'bg'::jsonb -> 'lineas' -> :'v' ->> 'ahorro')::numeric, 0) as g_v, coalesce((:'bg'::jsonb -> 'lineas' -> :'v2' ->> 'ahorro')::numeric, 0) as g_v2 \\gset
+`;
+// La bolsa manda el precio que la clienta ve (con su rebaja) y lo que le mostró del 3x2.
+const lineaR = (v, n) => `jsonb_build_object('variante_id', :'${v}', 'cantidad', ${n}, 'precio', :'f_${v}'::numeric, 'ahorro_grupo', :'g_${v}'::numeric)`;
+const BOLSA_R = `jsonb_build_array(${lineaR("v", 2)}, ${lineaR("v2", 1)})`;
+esperarValor(
+  "con tres prendas a −20 %, gana el 3x2: la bolsa ahorra la más barata y dice qué rebaja deja cada prenda",
+  correr(`${PARTIDA()}${REBAJA()}select concat_ws('|', :'d_v'::numeric > 0, (:'bg'::jsonb ->> 'ahorro')::numeric = :'minimo'::numeric,
+    (:'bg'::jsonb ->> 'deja_rebaja')::numeric = 2 * :'d_v'::numeric + :'d_v2'::numeric,
+    (:'bg'::jsonb -> 'lineas' -> :'v' ->> 'deja_rebaja')::numeric = 2 * :'d_v'::numeric);\nrollback;`),
+  "t|t|t|t",
+);
+esperarValor(
+  "… y el pedido nace con la parte del 3x2 sola en cada prenda: sin su rebaja ni su campaña, con el total del 3x2",
+  correr(`${PARTIDA()}${REBAJA()}${separar(BOLSA_R)}select concat_ws('|', count(*), bool_and(l.descuento = l.descuento_grupo and l.descuento_grupo > 0),
+    bool_and(l.descuento_etiqueta_id is null), (select total from retail.pedidos_web where id = :'ped') = ${TOTAL_3X2})
+  from retail.pedido_web_lineas l where l.pedido_id = :'ped';\nrollback;`),
+  "3|t|t|t",
+);
+esperarValor(
+  "con −50 %, gana la rebaja: la bolsa no ahorra con el 3x2 y el pedido lleva la rebaja de cada prenda con su campaña",
+  correr(`${PARTIDA()}${REBAJA(50)}${separar(BOLSA_R)}select concat_ws('|', (:'bg'::jsonb ->> 'ahorro')::numeric, (:'bg'::jsonb ->> 'deja_rebaja')::numeric,
+    count(*), bool_and(l.descuento_grupo = 0 and l.descuento > 0 and l.descuento_etiqueta_id = :'reb'))
+  from retail.pedido_web_lineas l where l.pedido_id = :'ped';\nrollback;`),
+  "0|0|3|t",
 );
 
 console.log("\n— La migración —");

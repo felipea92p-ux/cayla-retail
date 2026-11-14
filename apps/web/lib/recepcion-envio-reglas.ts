@@ -563,6 +563,8 @@ export type VarianteRecepcion = {
   talla: string | null;
   colorCodigo: string | null;
   color: string | null;
+  /** El `#rrggbb` del color, para su punto en la galería. Solo lo traen las parecidas (`fn_parecidas_para_recibir`). */
+  colorHex?: string | null;
   codigo: string | null;
   costo: number | null;
   precio: number | null;
@@ -596,6 +598,7 @@ function leerVariante(f: unknown): VarianteRecepcion | null {
     talla: (t ? texto(t.valor) ?? texto(t.nombre) : null) ?? texto(r.talla),
     colorCodigo: (c ? texto(c.codigo) : null) ?? texto(r.color_codigo),
     color: (c ? texto(c.nombre) : null) ?? texto(r.color) ?? texto(r.color_nombre),
+    colorHex: (c ? texto(c.hex) : null) ?? texto(r.color_hex),
     codigo: texto(r.codigo) ?? texto(r.sku),
     costo: cifra(r.costo),
     precio: cifra(r.precio),

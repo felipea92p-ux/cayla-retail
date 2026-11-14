@@ -289,6 +289,9 @@ flowchart TB
   `recepcion-envio/HojaPrenda.tsx` con `enTabla`. En el celular, `ListaEnElCelular.tsx` (la isla y la hoja de la lista). Reglas en
   `lib/recepcion-modelos-reglas.ts` (`fraseDelAvance`, `siguientePendiente`, `porLlevarAlStock`) y `lib/recepcion-tallas-reglas.ts`
   (`modoDeTallas`, `estadoDeLaTarjeta`, `tablaConLoMarcado`). Sin RPC nuevas.
+  **Imprimir la tanda sin salir (2026-11-14, ADR-0180 act.):** la hoja `SalidaHecha` (`recepcion-conteo/LlevarAlStock.tsx`) pide las etiquetas de lo
+  que acaba de entrar con `lib/useEtiquetasDeLaTanda.ts` → `GET /api/etiquetas-de-precio/tanda?unidades=` (`getEtiquetasDePrecio`, la lectura de la
+  pantalla de Etiquetas) y las imprime ahí con `impresion/HojaEtiquetasPrecio.tsx` + `useImpresionBrother().imprimirYSaber`. Solo lectura.
 - `/inventario/recibir` → `lib/catalogo.ts` → `RecibirLoteForm.tsx` → RPC
   `recibir_lote` (la función más inestable del sistema, ver §6).
 - `/inventario/compras` → `ComprasManager.tsx` (escribe directo en

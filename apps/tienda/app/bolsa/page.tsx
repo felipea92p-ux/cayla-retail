@@ -237,7 +237,8 @@ export default async function Bolsa({ searchParams }: { searchParams: Promise<Re
                               <>te faltan <span className="num">{soles(grupo.monto.falta)}</span></>
                             ) : null
                           ) : grupo.ahorro > 0 ? (
-                            <>ahorras <span className="num">{soles(grupo.ahorro)}</span></>
+                            // Decisión 2: si el grupo le ahorra más que su rebaja, va en vez de ella (nunca las dos).
+                            <>ahorras <span className="num">{soles(grupo.ahorro)}</span>{grupo.dejaRebaja > 0 ? " en vez de su rebaja" : ""}</>
                           ) : (
                             `lleva ${grupo.faltan} más`
                           )}
