@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/client";
 import { avisar } from "@/components/ui/Avisos";
 import { objecionFotoProducto, subirFotoProducto, subirParDeCatalogo } from "@/lib/producto-fotos";
 import { pedirFotoDeCatalogo } from "@/lib/foto-catalogo-cliente";
+import type { DatosDePrenda } from "@/lib/ficha-foto-ia";
 import { avisoIANoRespondio, esFotoIA, moldeDeLaPrenda, originalDeLaFotoIA } from "@/lib/foto-catalogo-reglas";
 import type { FotoLocal } from "@/lib/fotos-por-color-reglas";
 import type { FotoSubida } from "./useSubirFotos";
@@ -88,8 +89,11 @@ export function useCatalogoIA({
   nombreColor,
   onLista,
   onFotos,
+  prenda,
 }: {
   disponible: boolean;
+  /** Lo ya elegido de la prenda (categoría, tejido, patrón): se manda a la IA para que no adivine qué es (`lib/ficha-foto-ia.ts`). */
+  prenda?: DatosDePrenda | null;
   /** Las fotos como se ven, para el molde y para «Usar mi foto». */
   fotos: readonly FotoLocal[];
   /** Los colores de la prenda en el orden de sus variantes: el primero con foto de IA es el molde. */
@@ -111,6 +115,11 @@ export function useCatalogoIA({
   useEffect(() => {
     fotosRef.current = fotos;
   }, [fotos]);
+  // La ficha se lee al MANDAR el pedido, no al tocar «Preparar foto»: un color que espera al molde (~25 s) va con el tejido de ese momento.
+  const prendaRef = useRef(prenda);
+  useEffect(() => {
+    prendaRef.current = prenda;
+  });
   // El molde que se está preparando (el primer color de la sesión), para que los demás lo esperen.
   const moldeEnCurso = useRef<{ color: string | null; promesa: Promise<Blob | null> } | null>(null);
   // Lo mismo, para dibujar: de qué color es el molde que se está preparando (`undefined` = ninguno). La hoja lo nombra.
@@ -143,7 +152,7 @@ export function useCatalogoIA({
         setColorMoldeEnCurso(p.color);
       }
 
-      const r = await pedirFotoDeCatalogo({ frente: p.frente, espalda: p.espalda, detalle: p.detalle, molde });
+      const r = await pedirFotoDeCatalogo({ frente: p.frente, espalda: p.espalda, detalle: p.detalle, molde }, prendaRef.current);
       const supabase = createClient();
       let subida: { url: string; conIA: boolean } | { error: string };
       if ("png" in r) {

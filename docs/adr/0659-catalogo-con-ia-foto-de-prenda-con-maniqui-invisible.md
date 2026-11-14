@@ -117,3 +117,39 @@ mismo (~0,05 USD, ~25 s).
 ahora todos los pedidos (`SIN_ETIQUETAS`: solo frente, con molde y con varias fotos) piden quitar la del cuello, la de talla, la de composición,
 la de la pretina y cualquier colgante o de precio, con la misma tela donde estaban. Probado con la blusa, un jean y un short, dos veces cada uno:
 salieron las seis, y el largo no se movió (blusa −3 y −4 %, jean −1 y 0 %).
+
+## Actualización 2026-11-14 (b) — La ficha de la prenda: lo ya elegido viaja a la IA
+
+**Nace de** un pantalón de lino beige, de pierna ancha y pretina elástica, sostenido a mano en el almacén (con la persona, su short beige y los
+estantes en el cuadro): la IA lo devolvió como un buzo. Felipe: «que tomes sugerencia los tejidos ya seleccionados, porque eso se selecciona antes».
+
+**Causa.** El pedido era el mismo para toda prenda y estaba escrito para blusas («interior del cuello», hombros, pecho, «puños, elástico»). Nada de lo
+que la persona ya había elegido (categoría, tejido, patrón) llegaba a OpenAI: la IA adivinaba la tela de cómo colgaba la prenda.
+
+**Decisiones** (`lib/ficha-foto-ia.ts`, `pedidoDeCatalogo(extras, ficha)`):
+
+1. **La ficha.** `fichaParaIA` arma, con lo ya elegido (prefijo de la categoría, el tipo si la categoría junta dos, tejido, patrón), un bloque
+   «DATOS DE LA PRENDA… mandan sobre lo que adivines de la foto». Va al FINAL de los tres pedidos: solo frente, con molde y con varias fotos. La tela
+   usa el `queEs` de `tejido-ayuda.ts`: una sola fuente, no una frase nueva.
+2. **Lo plano.** `TEJIDOS_PLANOS` (lino, oxford, gabardina, popelina, drill, denim, sastre, seda, gasa, organza, seersucker) suma «tejido PLANO, no de
+   punto…». Algodón, jersey, franela, rib, licra, polar, piqué y suplex no entran: un buzo real tiene que seguir saliendo buzo. La prueba lo vigila como control.
+3. **La zona.** `ZONA_POR_PREFIJO`: PAN, JEA, SHO y FAL cuelgan de la cintura. Su pedido habla de pretina y basta, «si es ancha y recta, sigue ancha y
+   recta» y «no agregues elástico, puños ni cordón donde la foto no los muestra». Lo que cuelga de los hombros y lo sin zona (CON, LEN, una categoría
+   que un Líder crea sin deploy) usa el pedido medido palabra por palabra: nunca la zona de otra (ADR-0290).
+4. **Lo que sobra en la foto.** Siempre: «si la sostiene una persona, o hay otra ropa, manos o estantes, ignóralos».
+5. **Lo que llega del navegador se limpia**, porque entra a un pedido que se paga: 40 caracteres, sin símbolos raros, prefijo `[A-Z0-9]{2,5}` y el tipo
+   solo si es de esa categoría.
+6. **Sin ningún dato**, el pedido es idéntico al medido.
+
+Sin migración, sin cambio de pantalla y el mismo costo (~0,05 USD; unos tokens de texto más). La llevan Nuevo producto, Editar producto y Recibir ▸
+«Crear la prenda que llegó» (`useCatalogoIA`, `useCatalogoIAAlta`).
+
+**No medido todavía.** Falta la lámina de prueba: este pantalón de lino sostenido y en plano, un palazzo, un jogger y un buzo reales como control y
+otra prenda de lino, con el pedido actual contra el nuevo, para que Felipe elija mirando como el 2026-11-14. Hasta entonces, el pedido de cintura es
+una hipótesis razonada.
+
+**Se rompe si** el equipo elige un tejido equivocado (la ficha manda: la IA lo dibujará así), o si se agrega una categoría de ropa a
+`TIPOS_POR_CATEGORIA` sin decidir su zona (la prueba de totalidad falla, a propósito).
+
+**La foto que la IA necesita** (para el equipo, sin código): la prenda sola en el cuadro, en plano o colgada de la pretina con pinzas; un fondo
+distinto de su color; entera y con margen; el celular paralelo a la prenda; luz pareja. Y el ángulo «Detalle de la tela».

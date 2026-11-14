@@ -619,6 +619,8 @@ export function NuevoProductoForm({
     setFotos,
     colores: coloresElegidos,
     nombreColor: (c) => (c === null ? "todos los colores" : (colorPorCodigo(c)?.nombre ?? c)),
+    // Categoría, tipo, tejido y patrón se eligen ANTES que las fotos (pasos 1 y 2): la IA recibe qué es la prenda y no lo adivina de cómo cuelga.
+    prenda: { prefijo: categoria?.prefijo, tipo: tipo === TIPO_LIBRE ? null : tipo, tejido: tejidoTexto, patron: patronTexto },
   });
   // Al crear se lee la lista de DESPUÉS de esperar a la IA, no la de cuando se tocó «Crear».
   const fotosRef = useRef(fotos);
