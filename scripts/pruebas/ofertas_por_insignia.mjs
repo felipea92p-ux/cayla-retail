@@ -23,6 +23,7 @@
  *   pnpm pruebas:ofertas-por-insignia -- --contenedor supabase_db_<mi-pila>
  */
 
+import { deshacerInsigniaViva, pegarInsigniaViva } from "./deshacer-insignia-viva.mjs";
 import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 
@@ -96,6 +97,8 @@ const ANTES = [
   falta("select count(*) = 0 from pg_trigger where tgname = 'etiquetas_campana_reactivada_sin_choques';")
     ? leer("20261114072000_campana_reactivada_sin_choques")
     : "",
+  // Felipe 2026-11-14 (20261114130000): una oferta no llega a las prendas de una insignia desactivada.
+  falta("select to_regprocedure('retail.fn_insignia_viva(uuid)') is null;") ? leer("20261114130000_oferta_no_llega_por_insignia_desactivada") : "",
 ].filter(Boolean).join("\n");
 
 const HOY = "retail.fn_hoy_lima()";
@@ -175,6 +178,45 @@ esperarValor(
      jsonb_build_object('variante_id', :'a3', 'precio_unitario', 50, 'cantidad', 1)))),
   (select count(*) from retail.ofertas_de_grupo_vigentes(:'u') o where o.regla_id = :'r'));\n`),
   "50.00|3",
+);
+
+console.log("\n— Una insignia desactivada (Felipe 2026-11-14, 20261114130000) —");
+const APAGAR = "update retail.etiquetas set activo = false where id = :'ins';\n";
+esperarValor(
+  "desactivada, la oferta deja de rebajar sus prendas, las marcadas a mano y las de su categoría",
+  caso(`${POR_CATEGORIA}${OFERTA()}${APAGAR}${CAJA()}`),
+  "a1:0|a2:0|fuera:0",
+);
+esperarValor(
+  "una oferta que eligió solo esa insignia no pasa a rebajar las prendas de su campaña (a2 sigue en 0)",
+  caso(`${OFERTA()}${APAGAR}${CAJA(["a1", "a2"])}`),
+  "a1:0|a2:0",
+);
+esperarValor(
+  "sin aprobar, tampoco rebaja",
+  caso(`${OFERTA()}update retail.etiquetas set estado = 'pendiente' where id = :'ins';\n${CAJA(["a1"])}`),
+  "a1:0",
+);
+esperarValor(
+  "reactivada, vuelve a rebajar",
+  caso(`${POR_CATEGORIA}${OFERTA()}${APAGAR}update retail.etiquetas set activo = true where id = :'ins';\n${CAJA()}`),
+  "a1:20|a2:0|fuera:20",
+);
+esperarValor(
+  "las otras reglas dicen lo mismo: una prenda, todas las de la oferta, el 3x2 y lo que lee la caja",
+  caso(`${TRES_A1}${OFERTA({ forma: { tipo: "nxm", lleva: 3, paga: 2 } })}${APAGAR}select concat_ws('|',
+  retail.fn_regla_alcanza_variante(:'r', :'a1'),
+  (select count(*) from retail.fn_variantes_de_oferta_con_insignias(:'camp', '{}'::uuid[], '{}'::uuid[], '{}'::uuid[], array[:'ins']::uuid[], false) x),
+  (select coalesce(sum(descuento), 0) from retail.fn_ofertas_de_grupo(${HOY}, :'u', jsonb_build_array(
+     jsonb_build_object('variante_id', :'a1', 'precio_unitario', 50, 'cantidad', 1), jsonb_build_object('variante_id', :'a2', 'precio_unitario', 50, 'cantidad', 1),
+     jsonb_build_object('variante_id', :'a3', 'precio_unitario', 50, 'cantidad', 1)))),
+  (select count(*) from retail.ofertas_de_grupo_vigentes(:'u') o where o.regla_id = :'r'));\n`),
+  "f|0|0|0",
+);
+esperarValor(
+  "y los choques no la cuentan: una rebaja en la categoría de la Blusa Emma ya no choca con la oferta de la insignia apagada",
+  caso(`${OFERTA()}${APAGAR}${OFERTA({ insignias: "'[]'::jsonb", solo: "array[:'cat']::uuid[]", nombre: "ZZ Blusas", v: "r2" })}select 'ok';\n`),
+  "ok",
 );
 
 console.log("\n— Los choques ven las insignias —");
@@ -281,9 +323,12 @@ select count(*) from retail.fn_campana_portada() where id = :'camp2';\n`),
 );
 
 console.log("\n— Pegar —");
+// 20261114130000 (la insignia viva) cambia líneas que 20261114060000 usa para saber si ya se pegó: para volver a pegar la de antes, primero
+// se deshace la de después dentro de la transacción (como DESHACER_POSTERIORES en las suites de la venta), y al final se vuelve a pegar dos veces.
 esperarValor(
   "las dos migraciones se pegan dos veces, y cada función de la regla y de los choques queda con una sola firma",
-  correr(`begin;\n${ANTES}\n${readFileSync(MIGRACION, "utf8")}\n${readFileSync(MIGRACION, "utf8")}\n${readFileSync(HUELLA, "utf8")}\n${readFileSync(HUELLA, "utf8")}
+  correr(`begin;\n${ANTES}\n${deshacerInsigniaViva()}\n${readFileSync(MIGRACION, "utf8")}\n${readFileSync(MIGRACION, "utf8")}\n${readFileSync(HUELLA, "utf8")}\n${readFileSync(HUELLA, "utf8")}
+${pegarInsigniaViva()}\n${pegarInsigniaViva()}
 select string_agg(proname || ':' || n, ',' order by proname) from (
   select p.proname, count(*) as n from pg_proc p where p.pronamespace = 'retail'::regnamespace
    and p.proname in ('fn_choques_de_oferta', 'fn_choques_de_oferta_sin_llave', 'fn_choques_de_oferta_con_forma', 'fn_choques_de_oferta_con_forma_sin_llave',

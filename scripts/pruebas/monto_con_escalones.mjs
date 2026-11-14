@@ -22,6 +22,7 @@
  *   pnpm pruebas:monto-con-escalones -- --contenedor supabase_db_<mi-pila>
  */
 
+import { deshacerInsigniaViva, pegarInsigniaViva } from "./deshacer-insignia-viva.mjs";
 import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 
@@ -408,7 +409,7 @@ esperarValor(
 
 esperarValor(
   "la de una sola firma también se pega dos veces (y después la de las insignias), y cada función de choques queda con una firma",
-  correr(`begin;\n${ANTES}\n${readFileSync(UNA_FIRMA, "utf8")}\n${readFileSync(UNA_FIRMA, "utf8")}\n${leer("20261114060000_ofertas_por_insignia")}\nselect string_agg(proname || ':' || n, ',' order by proname) from (
+  correr(`begin;\n${ANTES}\n${deshacerInsigniaViva()}\n${readFileSync(UNA_FIRMA, "utf8")}\n${readFileSync(UNA_FIRMA, "utf8")}\n${leer("20261114060000_ofertas_por_insignia")}\n${pegarInsigniaViva()}\nselect string_agg(proname || ':' || n, ',' order by proname) from (
   select p.proname, count(*) as n from pg_proc p where p.pronamespace = 'retail'::regnamespace
    and p.proname in ('fn_choques_de_oferta', 'fn_choques_de_oferta_sin_llave', 'fn_choques_de_oferta_con_forma', 'fn_choques_de_oferta_con_forma_sin_llave')
   group by p.proname) x;\nrollback;`),

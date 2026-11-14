@@ -597,7 +597,7 @@ export function CambiosFlujo({
               </dl>
               <ComparacionPrendas
                 devuelta={ficha(linea, r.pagadoUnitario, textoPagoConDescuento(linea))}
-                nueva={ficha(r.varianteNueva, r.precioNueva ?? r.varianteNueva.precio)}
+                nueva={ficha(r.varianteNueva, r.precioNueva ?? r.varianteNueva.precio, r.detalleNueva)}
                 cantidad={seleccion.cantidad}
                 diferencia={totales.diferencia}
                 otras={totales.salidas.slice(1).map((x) => ({ ...ficha(x.variante, x.precio), cantidad: x.cantidad }))}

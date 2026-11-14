@@ -46,6 +46,7 @@ export default async function SellosPage({ searchParams }: { searchParams: Promi
       disenoWeb={veModulo(persona, "campanas_web")}
       reglas={datos.reglas}
       reglasDisponibles={datos.reglasDisponibles}
+      nombresDeCampanas={datos.nombresDeCampanas}
     />
   );
 }

@@ -63,7 +63,9 @@ select retail.abrir_caja(:'ubic', ${apertura}, 'prueba automatizada') as caja \\
 update retail.series_comprobantes set serie = case tipo when 'boleta' then 'BT97' when 'factura' then 'FT97' when 'nota_credito' then 'BC97' else serie end, siguiente_numero = 1
  where ubicacion_id = :'ubic' and tipo in ('boleta', 'factura', 'nota_credito');
 select id as v, precio as precio from retail.variantes where sku = 'BLU-EMMA-NEG-M' \\gset
-select id as w from retail.variantes where sku = 'BLU-EMMA-NEG-L' \\gset
+-- La prenda del cambio es de OTRO modelo: desde 20261114125000 (ADR-0655) otra talla del mismo modelo conserva su descuento y nunca devuelve
+-- plata, así que no habría vuelto que medir.
+select id as w from retail.variantes where sku = 'VES-SOFI-NEG-M' \\gset
 select retail.fn_sububicacion_por_defecto(:'ubic', 'venta') as piso \\gset
 insert into retail.movimientos (variante_id, ubicacion_id, sububicacion_id, tipo, cantidad, motivo)
   values (:'v', :'ubic', :'piso', 'entrada', 50, 'colchón de prueba') returning id as m1 \\gset

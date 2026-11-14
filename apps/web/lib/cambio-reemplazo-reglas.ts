@@ -131,6 +131,25 @@ export function precioParaCambio(linea: Pick<LineaVentaReciente, "productoId" | 
 }
 
 /**
+ * ADR-0655 (Felipe 2026-11-14): otra talla o color del MISMO modelo conserva el descuento con que se compró (3x2, campaña, Club, a mano):
+ * vale lo que se pagó, más lo que la talla nueva cuesta de más hoy en la tienda de la compra (en 629 de 631 modelos, nada). Nunca devuelve:
+ * si la talla nueva cuesta menos, no hay diferencia. Otra prenda: `null` (va a su precio de cambio contra lo pagado, ADR-0380).
+ * La misma cuenta que `retail.fn_precio_mismo_modelo` en la base. `devuelta`: la variante que devuelve, tal como está hoy en el catálogo;
+ * si no está, se toma el mismo precio que la nueva (la base la encuentra siempre: casi todas las tallas cuestan igual).
+ */
+export function precioMismoModelo(
+  linea: Pick<LineaVentaReciente, "productoId" | "ubicacionVentaId" | "precioUnitario" | "descuentoUnitario">,
+  v: VarianteCatalogo,
+  devuelta: VarianteCatalogo | null,
+): number | null {
+  if (v.productoId !== linea.productoId) return null;
+  const nueva = precioParaCambio(linea, v);
+  if (!(nueva > 0)) return null;
+  const antes = devuelta ? precioParaCambio(linea, devuelta) : nueva;
+  return Math.round((valorPagado(linea, 1) + Math.max(0, nueva - antes)) * 100) / 100;
+}
+
+/**
  * Lo que la clienta pagó por UNA unidad de la prenda que devuelve: el precio menos su descuento (la campaña, el club, lo que fuera).
  * Es contra esto —no contra el precio de lista— que se mide la diferencia del cambio (`registrar_cambio`, ADR-0380): pagó S/ 80 por
  * una polera de S/ 100 con campaña y la cambia por otra de S/ 100 → S/ 20 a cobrar. La misma cuenta que el tope de reembolso de
@@ -168,6 +187,11 @@ export function derivarReemplazo(linea: LineaVentaReciente, porProducto: Map<str
   const otrasSedes = varianteNueva ? textoOtrasSedes(varianteNueva.stockOtrasSedes) : null;
   // «apartada para un cliente» si la prenda elegida no se entrega porque lo que queda en el piso es de otra; si no, null.
   const textoApartada = varianteNueva !== null && sinStockPorApartado(varianteNueva) ? textoSinStock(varianteNueva) : null;
+  // La variante que devuelve, como está hoy en el catálogo (su precio de hoy), y el precio con que se lleva la nueva: el mismo modelo
+  // conserva su descuento (`precioMismoModelo`); otra prenda, `precioParaCambio`.
+  const devuelta = (porProducto.get(linea.productoId) ?? []).find((v) => v.varianteId === linea.varianteId) ?? null;
+  const mismoModelo = varianteNueva ? precioMismoModelo(linea, varianteNueva, devuelta) : null;
+  const precioNueva = varianteNueva ? (mismoModelo ?? precioParaCambio(linea, varianteNueva)) : null;
   return {
     esLaMisma: s.productoId === linea.productoId,
     tallas,
@@ -205,13 +229,19 @@ export function derivarReemplazo(linea: LineaVentaReciente, porProducto: Map<str
         : textoApartada
           ? `${descripcionNueva} está ${textoApartada}: no se entrega desde aquí. ${otrasSedes ? `Hay ${otrasSedes}.` : "No hay en otra sede."}`
           : `No queda ${descripcionNueva} aquí${otrasSedes ? ` — hay ${otrasSedes}.` : ", ni en otra sede."}`,
-    /** El precio al que se lleva la prenda nueva (`precioParaCambio`): el que se muestra y el de la diferencia. */
-    precioNueva: varianteNueva ? precioParaCambio(linea, varianteNueva) : null,
+    /** El precio al que se lleva la prenda nueva: el que se muestra y el de la diferencia. El mismo modelo, lo que pagó por la devuelta
+     *  (`precioMismoModelo`); otra prenda, `precioParaCambio`. */
+    precioNueva,
+    /** «Misma prenda: conserva su descuento» bajo la prenda nueva, o null: dice por qué vale menos que su etiqueta. */
+    detalleNueva: mismoModelo !== null && linea.descuentoUnitario > 0 ? "Misma prenda: conserva su descuento" : null,
+    /** La variante que devuelve, como está hoy en el catálogo (o null): `totalesDelCambio` la usa con las prendas extra. */
+    devuelta,
     /** Lo que pagó por cada unidad que devuelve (precio − descuento): lo que se muestra como «precio» de la prenda devuelta. */
     pagadoUnitario: pagadoPorUnidad(linea),
     // Sin prenda nueva elegida no hay diferencia que cobrar (y la caja no se mira). Lo mismo que calcula `registrar_cambio`: la
-    // prenda nueva a su precio contra lo que la clienta PAGÓ por la devuelta (ADR-0380), redondeada al céntimo como la base.
-    diferencia: varianteNueva ? Math.round((precioParaCambio(linea, varianteNueva) * s.cantidad - valorPagado(linea, s.cantidad)) * 100) / 100 : 0,
+    // prenda nueva a su precio contra lo que la clienta PAGÓ por la devuelta (ADR-0380), redondeada al céntimo como la base. Con el
+    // mismo modelo, solo lo que la talla nueva cuesta de más (ADR-0655).
+    diferencia: precioNueva !== null ? Math.round((precioNueva * s.cantidad - valorPagado(linea, s.cantidad)) * 100) / 100 : 0,
     condicionFija,
     condicion: condicionFija ?? s.condicionElegida,
   };
@@ -252,13 +282,25 @@ const aCentimos = (n: number) => Math.round(n * 100) / 100;
 export function totalesDelCambio(linea: LineaVentaReciente, s: Seleccion, r: Reemplazo, extrasR: readonly Reemplazo[]) {
   const extras = extrasDe(s);
   const salidas: SalidaDelCambio[] = [];
-  if (r.varianteNueva) salidas.push({ variante: r.varianteNueva, cantidad: s.cantidad, precio: r.precioNueva ?? r.varianteNueva.precio });
+  // ADR-0655: hasta las unidades que devuelve, las del MISMO modelo conservan su descuento (`precioMismoModelo`); el resto, a su precio
+  // de cambio. En el orden en que se eligen, como `registrar_cambio_varias`.
+  let restante = s.cantidad;
+  let valor = 0;
+  const sumar = (variante: VarianteCatalogo, cantidad: number) => {
+    const mismo = restante > 0 ? precioMismoModelo(linea, variante, r.devuelta) : null;
+    const k = mismo === null ? 0 : Math.min(cantidad, restante);
+    restante -= k;
+    const lista = precioParaCambio(linea, variante);
+    valor += (mismo ?? 0) * k + lista * (cantidad - k);
+    salidas.push({ variante, cantidad, precio: mismo !== null && k === cantidad ? mismo : lista });
+  };
+  if (r.varianteNueva) sumar(r.varianteNueva, s.cantidad);
   let faltan = 0;
   extrasR.forEach((er, i) => {
-    if (er.varianteNueva) salidas.push({ variante: er.varianteNueva, cantidad: extras[i]!.cantidad, precio: er.precioNueva ?? er.varianteNueva.precio });
+    if (er.varianteNueva) sumar(er.varianteNueva, extras[i]!.cantidad);
     else faltan++;
   });
-  const valorNuevo = aCentimos(salidas.reduce((suma, x) => suma + x.precio * x.cantidad, 0));
+  const valorNuevo = aCentimos(valor);
   return {
     salidas,
     faltan,
