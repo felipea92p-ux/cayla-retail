@@ -205,6 +205,11 @@ export const PRUEBAS = [
   // tienda, el Taller y la empresa; cada aviso aparece cuando corresponde; el gasto fuera de lo normal; permisos. ROLLBACK.
   "pruebas:resumen-finanzas",
 
+  // Resumen por bloques (ADR-0661): las tres lecturas de la web (lo rápido, el mes, el anterior y el presupuesto) juntas son
+  // `fn_resumen_finanzas` al byte, en cada sede y para una integrante; cada parte sola es la misma; una parte que no existe es
+  // error; permisos iguales; `fn_resumen_finanzas` es el envoltorio. ROLLBACK.
+  "pruebas:resumen-por-partes",
+
   // Finanzas cuenta desde una fecha (ADR-0332): sin corte nada cambia; con corte el diario y el Estado de resultados no
   // miran lo anterior, el Flujo deja de listar esa planilla y la PROYECCIÓN de caja la sigue contando; las reglas de
   // guardar_inicio_finanzas (día 1, no futuro, sin meses cerrados, permiso) y pegar la migración dos veces. ROLLBACK.

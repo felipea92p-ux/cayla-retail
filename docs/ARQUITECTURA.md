@@ -2228,6 +2228,14 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
     Tablas `periodos`, `periodo_cierres`, `diario_cerrado` (con hash); disparadores de bloqueo por fecha en gastos, compras
     y sus pagos y notas, reembolsos, activos, movimientos de dinero, ventas de prueba y costo de lo vendido.
   - `/finanzas/resumen` → también «Cada sede, junta» (tarea 27 de «Las 36», 2026-11-06): `getEstadoResultados` + `getBalancePorTienda` → `lib/sedes-juntas-reglas.ts` → `components/finanzas/SedesJuntas.tsx`. Los sueldos estimados de un tramo se piden en un solo lugar (`hastaDeLaProvision`, `lib/planilla-provision-reglas.ts`).
+  - `/finanzas/resumen` → **desde 2026-11-13, por bloques (ADR-0661)**: el Resumen se lee en TRES lecturas a la vez de
+    `fn_resumen_finanzas_partes` (`lectorDelResumen`, `lib/resumen-finanzas.ts`; los grupos y cómo se juntan en `lib/resumen-finanzas-partes.ts`;
+    `fn_resumen_finanzas` es su envoltorio con todas las partes, migración `20261113235000`). La página espera solo la rápida (`rapido`) y le pasa
+    lo demás al panel como promesas (`LecturasDelResumen`); cada bloque de `components/finanzas/ResumenFinanzas.tsx` hace `use()` de lo suyo dentro
+    de su `Suspense`, con `EsperaBloque` (`components/finanzas/bolsillos/EsperaBloque.tsx`) en su lugar. Las cuentas que cada bloque arma con lo que
+    le llegó viven en `lib/resumen-bloques.ts` (`armarCaja`, `armarMes`). Una «puerta» deja correr primero la rápida y el mes. Los logs:
+    `finanzas_resumen_ms` (las 13 partes) y `finanzas_resumen_bloque` (cuándo pudo dibujarse cada bloque). Sin la función por partes, lee la entera
+    una vez y la reparte.
   - `/finanzas/resumen` → **desde 2026-11-09, camino «A · Bolsillos» (ADR-0493, actualización 2026-11-09)**: las fechas con `SelectorPeriodo`
     (`leerPeriodo`/`periodoAnterior`, `lib/estados-periodo.ts`); «Libre para usar» y sus bolsillos (`lib/bolsillos-reglas.ts` →
     `components/finanzas/bolsillos/SaldoLibre.tsx`); «Noviembre va así» (`lib/te-deja-mes-reglas.ts` + `equilibrioMes` → `TarjetaMes.tsx`);

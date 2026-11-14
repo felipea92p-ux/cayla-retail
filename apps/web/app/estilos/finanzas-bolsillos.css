@@ -762,6 +762,40 @@
   }
 }
 
+/* ---------- Resumen por bloques (ADR-0661): el lugar de un bloque mientras su lectura viaja ----------
+   La misma tarjeta de vidrio, su título y unas bandas, con el alto de lo que suele traer (`--alto-espera`, lo pone `EsperaBloque`): cuando el bloque llega,
+   toma su lugar sin empujar a los demás. En la grilla de dos columnas, la fila se estira al más alto de sus dos tarjetas, como siempre. */
+.resumen-espera {
+  display: flex;
+  min-height: var(--alto-espera, 160px);
+  flex-direction: column;
+  gap: 16px;
+}
+.resumen-espera-bandas {
+  display: grid;
+  gap: 12px;
+}
+.resumen-espera-preguntas {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.resumen-espera-preguntas > span {
+  display: block;
+  height: 40px;
+}
+.resumen-frase-espera {
+  display: grid;
+  min-height: calc(17px * 1.5 * 2);
+  align-content: space-around;
+}
+/* Sin tiendas que mostrar (nadie vendió en el período), los movimientos toman la fila entera: lo decide la llegada de «Tus tiendas», no la página. */
+@media (min-width: 1100px) {
+  .resumen-a:not(:has(> [data-area="tiendas"])) > [data-area="movs"] {
+    grid-column: 1 / -1;
+  }
+}
+
 /* El último par del Resumen (a dónde va la plata y lo que más se movió): mitad y mitad desde 1100 px, del mismo alto; si va solo, la fila entera. */
 .resumen-par {
   display: flex;

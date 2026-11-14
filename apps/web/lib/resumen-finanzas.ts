@@ -1,6 +1,7 @@
 import "server-only";
 import { createClient } from "@/lib/supabase/server";
 import { explicarFallaLectura, leerResumen, type ResumenFinanzas } from "@/lib/resumen-finanzas-reglas";
+import { GRUPOS_DEL_RESUMEN, juntarResumen, type GrupoDelResumen } from "@/lib/resumen-finanzas-partes";
 import { capturarError } from "@/lib/errores";
 import { contarPrendasPorRegistrar } from "@/lib/costo-estimado";
 import { calcularConfianza, leerHechosConfianza, type Confianza } from "@/lib/finanzas-confianza";
@@ -8,39 +9,64 @@ import { aplicarProvision, delMes, faltanSueldosPorFalla, resumenDeProvision } f
 import { getProvisionPlanilla } from "@/lib/planilla-provision";
 import { rangoMes } from "@/lib/gastos-reglas";
 import { conIgvDeLasVentasDe } from "@/lib/igv-ventas";
-import { mesAnterior } from "@/lib/resultados-reglas";
 import { hoyLima } from "@/lib/fechas-lima";
 import type { FilaProvision } from "@/lib/planilla-provision-reglas";
 
-// Finanzas ▸ Resumen (ADR-0195 F10; contrato en 20260925200000_finanzas_resumen.sql). Solo LEE, en una sola llamada:
-// `fn_resumen_finanzas` junta lo que ya calculan las fases y respeta el permiso de cada una. Si la lectura entera falla, la
-// pantalla lo dice (principio 9): nunca muestra ceros como si fueran datos.
+// Finanzas ▸ Resumen (ADR-0195 F10; contrato en 20260925200000_finanzas_resumen.sql). Solo LEE. Desde el Resumen por bloques (ADR-0661) en tres
+// lecturas A LA VEZ de `fn_resumen_finanzas_partes` (`GRUPOS_DEL_RESUMEN`: lo rápido, el mes, el anterior y el presupuesto), para que cada bloque
+// de la pantalla se dibuje cuando llega lo suyo; juntas son `fn_resumen_finanzas` al byte (`juntarResumen`). Si una lectura falla, la pantalla lo
+// dice (principio 9): nunca muestra ceros como si fueran datos.
 
 export type Lectura<T> = { datos: T; falla: string | null; sueldosSinLeer?: boolean };
 
-export async function getResumenFinanzas(pedido: { ubicacionId: string | null; soloEmpresa: boolean }): Promise<Lectura<ResumenFinanzas | null>> {
-  const supabase = await createClient();
-  // Los sueldos estimados se piden A LA VEZ que el resumen (ADR-0583): antes se esperaba a que el resumen terminara para saber su mes, y
-  // eso sumaba una espera entera. El mes es el de hoy en Lima, el mismo que usa la base; si justo a medianoche no coinciden, se piden otra vez.
-  const mes = hoyLima().slice(0, 7);
-  const inicio = Date.now();
-  const [{ data, error }, provision] = await Promise.all([
-    supabase.rpc("fn_resumen_finanzas" as never, { p_ubicacion_id: pedido.ubicacionId, p_solo_empresa: pedido.soloEmpresa } as never),
-    getProvisionPlanilla(rangoMes(mesAnterior(mes)).desde, rangoMes(mes).hasta, pedido.ubicacionId),
-  ]);
-  if (error) {
-    capturarError("finanzas.resumen", error);
-    return { datos: null, falla: explicarFallaLectura(error, "leer el resumen") };
+/** Lee un grupo del Resumen: `ResumenFinanzas` con sus partes (las de los otros grupos llegan como «la base no mandó esta parte»). */
+export type LectorDelResumen = (grupo: GrupoDelResumen) => Promise<Lectura<ResumenFinanzas | null>>;
+
+/** La base todavía no tiene la función por partes (la migración 20261113235000 no está pegada): se lee la entera. */
+const sinPorPartes = (error: { code?: string | null; message?: string | null }) =>
+  error.code === "PGRST202" || error.code === "42883" || /fn_resumen_finanzas_partes/.test(error.message ?? "");
+
+/**
+ * Las tres lecturas del Resumen, con su respaldo: si la base no tiene `fn_resumen_finanzas_partes`, se pide `fn_resumen_finanzas` UNA sola vez y
+ * se reparte entre los tres grupos (cada uno toma sus partes al juntarse). Así el orden en que se publican la web y la migración no importa.
+ * Cada grupo deja su `ms` en el log `finanzas_resumen_ms` cuando llegan los tres (`anotarTiempos`).
+ */
+export function lectorDelResumen(pedido: { ubicacionId: string | null; soloEmpresa: boolean }): LectorDelResumen {
+  const args = { p_ubicacion_id: pedido.ubicacionId, p_solo_empresa: pedido.soloEmpresa };
+  let entera: ReturnType<typeof leerEntera> | null = null;
+  async function leerEntera() {
+    const supabase = await createClient();
+    return supabase.rpc("fn_resumen_finanzas" as never, args as never);
   }
-  const resumen = leerResumen(data);
-  anotarTiempos(resumen, Date.now() - inicio);
-  const { datos, sinLeer } = await conSueldosEstimados(resumen, pedido.ubicacionId, { mes, ...provision });
-  return { datos, falla: null, sueldosSinLeer: sinLeer };
+  return async (grupo) => {
+    const supabase = await createClient();
+    let { data, error } = await supabase.rpc("fn_resumen_finanzas_partes" as never, { ...args, p_partes: GRUPOS_DEL_RESUMEN[grupo] } as never);
+    if (error && sinPorPartes(error)) ({ data, error } = await (entera ??= leerEntera()));
+    if (error) {
+      capturarError("finanzas.resumen", error, { grupo });
+      return { datos: null, falla: explicarFallaLectura(error, "leer el resumen") };
+    }
+    return { datos: leerResumen(data), falla: null };
+  };
+}
+
+/**
+ * Los tres grupos ya leídos → el `ResumenFinanzas` entero. Si cae solo el del mes o el de los avisos (cada uno tiene su tope de 8 s), lo demás sigue
+ * y sus partes dicen «no se pudo leer» (como una parte que falla dentro de la base), nunca un cero. Sin la lectura rápida no hay Resumen.
+ */
+export function resumenJunto(rapido: Lectura<ResumenFinanzas | null>, mes: Lectura<ResumenFinanzas | null>, avisos: Lectura<ResumenFinanzas | null>): ResumenFinanzas | null {
+  if (!rapido.datos) return null;
+  const caido = (l: Lectura<ResumenFinanzas | null>): ResumenFinanzas => {
+    if (l.datos) return l.datos;
+    const falla = { estado: "falla" as const, mensaje: l.falla ?? "No se pudo leer esta parte del Resumen." };
+    return { ...rapido.datos!, resultadosMes: falla, rangoMes: null, resultadosAnterior: falla, presupuesto: falla, ms: {} };
+  };
+  return juntarResumen(rapido.datos, caido(mes), caido(avisos));
 }
 
 /**
  * «Hoy te toca» dice cuánto necesitaba vender la tienda que perdió el mes pasado, y eso va con IGV (tarea 19). `fn_resumen_finanzas` no lo trae: se lee aparte y solo si alguna tienda
- * perdió. Si no se puede leer, las filas quedan como están y el aviso dice «sin IGV».
+ * perdió. Si no se puede leer, las filas quedan como están y el aviso dice «sin IGV». Va sobre el grupo de los avisos, que es el que trae el mes anterior.
  */
 export async function conIgvDelMesAnterior<L extends { datos: ResumenFinanzas | null }>(lectura: L): Promise<L> {
   const r = lectura.datos;
@@ -54,30 +80,57 @@ export async function conIgvDelMesAnterior<L extends { datos: ResumenFinanzas | 
  * Cuánto tardó cada pieza de `fn_resumen_finanzas` en la base (lo mide ella misma, `ms`), en UNA línea de los logs del servidor
  * (2026-11-09, el pico de memoria de Resumen): así se ve con tráfico real qué pieza pesa más, sin pedirle a producción permisos que no da
  * (`track_functions` está apagado). Solo cifras: ni la sede ni la persona. Se busca con `vercel logs --query finanzas_resumen_ms`.
+ * Desde ADR-0661 las piezas llegan en tres lecturas a la vez: `total_ms` es lo que tardó la última de las tres, y las piezas son las mismas 13.
  */
-function anotarTiempos(r: ResumenFinanzas, totalMs: number): void {
+export function anotarTiempos(r: ResumenFinanzas, totalMs: number): void {
   console.info(JSON.stringify({ evento: "finanzas_resumen_ms", total_ms: totalMs, todas: r.ver.todas, ...r.ms }));
 }
 
+/** Los ms desde que empezó la página (para `anotarTiempos` y `anotarBloques`): se crea al entrar y cada llamada dice cuánto va. */
+export function relojDelResumen(): () => number {
+  const inicio = Date.now();
+  return () => Date.now() - inicio;
+}
+
 /**
- * Suma los sueldos ESTIMADOS (ADR-0453) al Estado de resultados del mes y al del anterior: lo que corresponde pagar hasta hoy según las
- * boletas de Dynamic, de un período que todavía no pagó. Fuera del libro (la base sigue igual) y marcado en cada fila. Una sola lectura
- * cubre los dos meses (pedida a la vez que el resumen: `leida`); el período que TERMINA en un mes es la planilla de ese mes (D-35). Sin estimación (Dynamic no la ve esta cuenta,
- * no abrió el período, o la lectura falló), el Resumen queda como la base lo dijo.
+ * Cuándo pudo dibujarse cada bloque del Resumen (ADR-0661): una línea por bloque, con los ms desde que empezó la página hasta que llegó lo último
+ * que ese bloque necesita (`todo`: cuando llegó lo último de la página). Es lo que mide si «lo primero» sale en ~1,5 s y qué bloque llega al final. Solo cifras y el nombre del bloque (ADR-0424:
+ * ni la sede, ni la persona, ni un monto). Se busca con `vercel logs --query finanzas_resumen_bloque`. Una lectura que falla no anota su bloque:
+ * la falla ya va al aviso de errores.
  */
-async function conSueldosEstimados(r: ResumenFinanzas, ubicacionId: string | null, leida: { mes: string; filas: FilaProvision[]; sinLeer: boolean }): Promise<{ datos: ResumenFinanzas; sinLeer: boolean }> {
-  if (r.resultadosMes.estado !== "ok" && r.resultadosAnterior.estado !== "ok") return { datos: r, sinLeer: false };
+export function anotarBloques(reloj: () => number, todas: Promise<boolean>, bloques: Record<string, readonly Promise<unknown>[]>): void {
+  for (const [bloque, lecturas] of Object.entries(bloques)) {
+    Promise.all(lecturas).then(
+      async () => {
+        const ms = reloj();
+        console.info(JSON.stringify({ evento: "finanzas_resumen_bloque", bloque, ms, todas: await todas }));
+      },
+      () => undefined,
+    );
+  }
+}
+
+/**
+ * Suma los sueldos ESTIMADOS (ADR-0453) al Estado de resultados de UN grupo: el del mes (`resultadosMes`) o el del anterior (`resultadosAnterior`).
+ * Lo que corresponde pagar hasta hoy según las boletas de Dynamic, de un período que todavía no pagó. Fuera del libro (la base sigue igual) y marcado
+ * en cada fila. Una sola lectura cubre los dos meses (pedida a la vez que el resumen: `leida`); el período que TERMINA en un mes es la planilla de ese
+ * mes (D-35). Sin estimación (Dynamic no la ve esta cuenta, no abrió el período, o la lectura falló), el grupo queda como la base lo dijo. «Sin leer»
+ * solo lo dice el mes, como antes de partir la lectura (con el mes caído, tampoco: `faltanSueldosPorFalla` de nada es falso).
+ */
+export async function conSueldosEstimados(
+  lectura: Lectura<ResumenFinanzas | null>,
+  parte: "resultadosMes" | "resultadosAnterior",
+  ubicacionId: string | null,
+  leida: { mes: string; filas: FilaProvision[]; sinLeer: boolean },
+): Promise<Lectura<ResumenFinanzas | null>> {
+  const r = lectura.datos;
+  const er = r?.[parte];
+  if (!r || er?.estado !== "ok") return { ...lectura, sueldosSinLeer: false };
   const { filas: prov, sinLeer: caida } = leida.mes === r.mes ? leida : await getProvisionPlanilla(rangoMes(r.mesAnterior).desde, rangoMes(r.mes).hasta, ubicacionId);
-  const sinLeer = faltanSueldosPorFalla(caida, r.resultadosMes.estado === "ok" ? r.resultadosMes.datos : []);
-  if (!prov.length) return { datos: r, sinLeer };
-  return {
-    datos: {
-      ...r,
-      resultadosMes: r.resultadosMes.estado === "ok" ? { estado: "ok", datos: aplicarProvision(r.resultadosMes.datos, delMes(prov, r.mes)) } : r.resultadosMes,
-      resultadosAnterior: r.resultadosAnterior.estado === "ok" ? { estado: "ok", datos: aplicarProvision(r.resultadosAnterior.datos, delMes(prov, r.mesAnterior)) } : r.resultadosAnterior,
-    },
-    sinLeer,
-  };
+  const sueldosSinLeer = parte === "resultadosMes" && faltanSueldosPorFalla(caida, er.datos);
+  if (!prov.length) return { ...lectura, sueldosSinLeer };
+  const mes = parte === "resultadosMes" ? r.mes : r.mesAnterior;
+  return { datos: { ...r, [parte]: { estado: "ok", datos: aplicarProvision(er.datos, delMes(prov, mes)) } }, falla: null, sueldosSinLeer };
 }
 
 // El medidor de confianza (ADR-0417): los hechos salen de `fn_finanzas_confianza` (20261015235000) y la calificación la pone
