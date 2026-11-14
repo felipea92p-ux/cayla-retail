@@ -109,9 +109,6 @@ const FORMAS_DE_GRUPO: { k: TipoOferta; titulo: string; texto: string }[] = [
   { k: "nesima_pct", titulo: "2.ª al 50 %", texto: "La segunda prenda, con descuento." },
 ];
 
-/** La caja todavía no cobra una oferta de grupo (llega en la parte 3 de la actividad 6): hasta entonces se guarda como borrador y no se activa. */
-const CAJA_COBRA_GRUPOS = false;
-
 const CHIP_ESTADO: Record<VigenciaRegla, { texto: string; tono: TonoChip }> = {
   vigente: { texto: "Vigente", tono: "verde" },
   programada: { texto: "Programada", tono: "pizarra" },
@@ -1016,9 +1013,9 @@ export function OfertasHoja({
                 {bajoPorModelo.length > 2 ? "…" : ""}. No se bloquea, pero pierdes plata en cada una: avísale al contador.
               </Aviso>
             )}
-            {grupo && !CAJA_COBRA_GRUPOS && (
-              <Aviso tono="info" chico titulo="Por ahora queda como borrador">
-                La caja empieza a cobrar «Llevar varias» en la próxima entrega; ahí la activas.
+            {grupo && (
+              <Aviso tono="info" chico titulo="La cobra la caja">
+                Al apartar y en la tienda web todavía se cobra el precio normal: llegan en las próximas entregas.
               </Aviso>
             )}
             {o.incluyeClaure && (
@@ -1207,9 +1204,7 @@ export function OfertasHoja({
           <span className="of-falta">
             {edita && estadoEdita === "activa"
               ? "Vale desde ahora; lo que ya se vendió se queda como estaba."
-              : grupo && !CAJA_COBRA_GRUPOS
-                ? "Se guarda como borrador: la caja empieza a cobrar «Llevar varias» en la próxima entrega, y ahí la activas."
-                : `Todo listo: actívala (cambia el precio ${cuando}) o déjala como borrador.`}
+              : `Todo listo: actívala (cambia el precio ${cuando}) o déjala como borrador.`}
           </span>
         );
       }
@@ -1220,15 +1215,13 @@ export function OfertasHoja({
         </Boton>
       ) : (
         <>
-          <Boton peso={grupo && !CAJA_COBRA_GRUPOS ? "primario" : "fantasma"} confirma={confirmaPaso(ok)} disabled={guardandoAlgo} cargando={guardando === "borrador" || guardando === "cambios"} onClick={() => guardar(false)}>
+          <Boton peso="fantasma" confirma={confirmaPaso(ok)} disabled={guardandoAlgo} cargando={guardando === "borrador" || guardando === "cambios"} onClick={() => guardar(false)}>
             {edita ? "Guardar cambios" : "Guardar como borrador"}
           </Boton>
-          {grupo && !CAJA_COBRA_GRUPOS ? null : (
-            <Boton peso="primario" confirma={confirmaRegir(ok)} disabled={guardandoAlgo} cargando={guardando === "activar"} textoCargando="Activando…" onClick={() => guardar(true)} data-guia="sellos.oferta-activar">
-              <Check aria-hidden className="mr-1 inline h-4 w-4" />
-              Activar
-            </Boton>
-          )}
+          <Boton peso="primario" confirma={confirmaRegir(ok)} disabled={guardandoAlgo} cargando={guardando === "activar"} textoCargando="Activando…" onClick={() => guardar(true)} data-guia="sellos.oferta-activar">
+            <Check aria-hidden className="mr-1 inline h-4 w-4" />
+            Activar
+          </Boton>
         </>
       );
     }
@@ -1254,7 +1247,6 @@ export function OfertasHoja({
     const viva = r.estado !== "desactivada" && v !== "terminada";
     const antes = r.cambios > 0 ? resumenAntes(r.ultimoCambio) : "";
     const datos = [titularDeOferta(r), `${sinPunto(fechaCorta(r.desde))} – ${sinPunto(fechaCorta(r.hasta))}`, textoDiasCorto(r.dias)].filter(Boolean).join(" · ");
-    const esperaLaCaja = esDeGrupo(r.tipo) && !CAJA_COBRA_GRUPOS;
     const confirmando = retirando === r.id;
     return (
       <div key={r.id} className="of-rw">
@@ -1287,12 +1279,11 @@ export function OfertasHoja({
         </button>
         {viva && !confirmando && (
           <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-            {r.estado === "borrador" && !esperaLaCaja && (
+            {r.estado === "borrador" && (
               <Boton peso="fantasma" className="btn-chico" cargando={trabajando === r.id} textoCargando="Activando…" onClick={() => activarRegla(r)}>
                 Activar
               </Boton>
             )}
-            {r.estado === "borrador" && esperaLaCaja && <small className="of-pequeno">Se activa cuando la caja cobre «Llevar varias».</small>}
             <button type="button" className="btn-cayla btn-enlace text-xs" disabled={trabajando === r.id} onClick={() => setRetirando(r.id)}>
               Retirar
             </button>

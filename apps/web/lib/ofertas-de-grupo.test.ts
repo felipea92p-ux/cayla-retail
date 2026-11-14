@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { ejemploDeGrupo, ofertasDeGrupo, type LineaDeGrupo, type OfertaDeGrupo } from "./ofertas-de-grupo";
+import { carritoConGrupos, ejemploDeGrupo, ofertasDeGrupo, ofertasDeGrupoDeFilas, type LineaDeGrupo, type OfertaDeGrupo } from "./ofertas-de-grupo";
 
 // Los mismos ejemplos que `scripts/pruebas/ofertas_de_grupo.mjs` prueba contra `retail.fn_ofertas_de_grupo`: las dos tienen que coincidir.
 const TRES_POR_DOS: OfertaDeGrupo = { reglaId: "r", tipo: "nxm", lleva: 3, paga: 2, monto: null, porcentaje: null, agrupa: "campana" };
@@ -93,5 +93,40 @@ describe("el ejemplo de la hoja", () => {
   it("con menos modelos que el grupo, repite; sin prendas, no hay ejemplo", () => {
     expect(ejemploDeGrupo([{ nombre: "Polo Raya", precio: 39.9, productoId: "c" }], TRES_POR_DOS)?.lineas).toHaveLength(3);
     expect(ejemploDeGrupo([], TRES_POR_DOS)).toBeNull();
+  });
+});
+
+describe("el carrito de la caja con sus grupos", () => {
+  const OFERTA = { ...TRES_POR_DOS, modeloId: null, nombre: "Verano 3x2", titular: "3 x 2" };
+  const linea = (clave: string, precio: number, cantidad = 1, descuento = 0) => ({ claveLinea: clave, varianteId: clave, cantidad, precioUnitario: precio, descuentoUnitario: descuento });
+  it("cada prenda del grupo va en su línea, con su parte sumada al descuento; las demás, como siempre", () => {
+    const { lineas, porLinea } = carritoConGrupos([linea("a", 79.9), linea("b", 49.9, 2), linea("x", 20, 3)], { a: OFERTA, b: OFERTA });
+    expect(lineas.map((l) => `${l.claveLinea}:${l.cantidad}:${l.descuentoGrupoUnitario.toFixed(2)}`)).toEqual(["a:1:22.19", "b:1:13.86", "b:1:13.85", "x:3:0.00"]);
+    expect(lineas[0].ofertaGrupoId).toBe("r");
+    expect(lineas[3].ofertaGrupoId).toBeNull();
+    expect(porLinea.get("b")).toMatchObject({ titular: "3 x 2", ahorro: 27.71, faltan: 0 });
+  });
+  it("un descuento a mano se suma a la parte del grupo", () => {
+    const { lineas } = carritoConGrupos([linea("a", 50, 1, 2.5), linea("b", 50), linea("c", 50)], { a: OFERTA, b: OFERTA, c: OFERTA });
+    expect(lineas[0].descuentoUnitario).toBe(2.5 + lineas[0].descuentoGrupoUnitario);
+  });
+  it("sin grupo completo, nada se suma y el ticket dice cuántas faltan", () => {
+    const { lineas, porLinea } = carritoConGrupos([linea("a", 50), linea("b", 40)], { a: OFERTA, b: OFERTA });
+    expect(lineas.every((l) => l.descuentoGrupoUnitario === 0 && l.ofertaGrupoId === null)).toBe(true);
+    expect(porLinea.get("a")).toMatchObject({ ahorro: 0, faltan: 1 });
+  });
+});
+
+describe("las ofertas de grupo que lee la caja", () => {
+  it("por prenda, con su forma y lo que dice el ticket; una forma desconocida se ignora", () => {
+    const o = ofertasDeGrupoDeFilas([
+      { variante_id: "v1", regla_id: "r", producto_id: "p", tipo: "nxm", lleva: 3, paga: 2, monto: null, porcentaje: null, agrupa: "modelo", oferta_nombre: "ZZ 3x2", etiqueta_nombre: "Verano" },
+      { variante_id: "v2", regla_id: "s", producto_id: "p", tipo: "n_por_monto", lleva: 2, paga: null, monto: "59.90", porcentaje: null, agrupa: "campana", oferta_nombre: "2 por", etiqueta_nombre: "Verano" },
+      { variante_id: "v3", regla_id: "t", producto_id: "p", tipo: "otra", lleva: 2, paga: null, monto: null, porcentaje: null, agrupa: "campana", oferta_nombre: "x", etiqueta_nombre: "x" },
+    ]);
+    expect(o.v1).toMatchObject({ reglaId: "r", tipo: "nxm", lleva: 3, paga: 2, agrupa: "modelo", modeloId: "p", nombre: "Verano", titular: "3 x 2" });
+    expect(o.v2).toMatchObject({ monto: 59.9, titular: "2 por S/\u00a059.90" });
+    expect(o.v3).toBeUndefined();
+    expect(ofertasDeGrupoDeFilas(null)).toEqual({});
   });
 });
