@@ -103,6 +103,7 @@
     "pruebas:ingresos-por-modelo": "node scripts/pruebas/ingresos_por_modelo.mjs",
     "pruebas:resumen-finanzas": "node scripts/pruebas/resumen_finanzas.mjs",
     "pruebas:resumen-por-partes": "node scripts/pruebas/resumen_finanzas_por_partes.mjs",
+    "pruebas:flujo-real-dias": "node scripts/pruebas/flujo_real_dias.mjs",
     "pruebas:foto-diario": "node scripts/pruebas/foto_diario.mjs",
     "pruebas:finanzas-alcance": "node scripts/pruebas/finanzas_alcance_coherente.mjs",
     "pruebas:finanzas-apartados-por-pago": "node scripts/pruebas/finanzas_apartados_por_pago.mjs",

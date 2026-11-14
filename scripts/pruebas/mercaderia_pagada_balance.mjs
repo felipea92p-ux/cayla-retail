@@ -27,13 +27,15 @@ import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { PEGAR_DE_NUEVO_FLUJO } from "./_deshacer_20261114010000.mjs";
 
 const CONTENEDOR = process.env.RETAIL_CONTENEDOR_PG || "supabase_db_cayla-retail";
 const FELIPE = "22222222-2222-4222-8222-000000000001"; // líder
 const MICAELA = "22222222-2222-4222-8222-000000000003"; // la compradora de la prueba
 const RAIZ = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
 const leer = (f) => readFileSync(join(RAIZ, "supabase/migrations", f), "utf8");
-const MIGRACIONES = `${leer("20261107165000_fondo_de_compras_sale_al_gastarse.sql")}\n${leer("20261109231000_mercaderia_pagada_en_el_balance.sql")}`;
+// Con 20261114010000, `fn_flujo_caja_real` es un envoltorio: los pegados viejos van entre su «deshacer» y su «rehacer» (`_deshacer_20261114010000.mjs`).
+const MIGRACIONES = PEGAR_DE_NUEVO_FLUJO(`${leer("20261107165000_fondo_de_compras_sale_al_gastarse.sql")}\n${leer("20261109231000_mercaderia_pagada_en_el_balance.sql")}`);
 
 function psql(sql) {
   return execFileSync(

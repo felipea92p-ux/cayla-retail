@@ -157,7 +157,8 @@ create temp table lider_diario_cerrado as select * from retail.fn_diario('2025-0
 
 // Lo que pregunta una función, sin sus comentarios (un «fn_es_lider()» escrito en un comentario no cuenta ni como culpa ni como prueba).
 const SIN_COMENTARIOS = "regexp_replace(p.prosrc, '--[^\\n]*', '', 'g')";
-// Las lecturas del diario: todas deciden «ve todo» con la misma pregunta (ADR-0585).
+// Las lecturas del diario: todas deciden «ve todo» con la misma pregunta (ADR-0585). Desde ADR-0661 (act. 2026-11-14) la regla de
+// `fn_balance_por_tienda`, `fn_presupuesto_vs_real` y `fn_flujo_caja_real` vive en su `…_de` (la función de siempre la envuelve): se mira la que decide.
 const HERMANAS = ["fn_diario_ubicaciones", "fn_asientos", "fn_diario", "fn_estado_resultados", "fn_balance_por_tienda", "fn_balance_general",
   "fn_campanas_reporte", "fn_presupuesto_vs_real", "fn_periodos_mes", "fn_gastos_fuera_de_lo_normal", "fn_planilla_provision", "fn_claure_ventas_en", "fn_cuadre_ventas_finanzas", "fn_lo_que_falta_del_mes"];
 // Lo que es de CAYLA entera: lo abre el módulo (ADR-0585). Registrar los saldos de arranque sigue siendo del líder.
@@ -173,7 +174,7 @@ select 'A1 ninguna función que reparte el alcance por tienda pregunta fn_es_lid
       and ${SIN_COMENTARIOS} ~ 'fn_diario_ubicaciones' and ${SIN_COMENTARIOS} ~ 'fn_es_lider\\s*\\(');
 ${HERMANAS.map((f) => `select 'A2 ${f} pregunta fn_ve_diario_de_todo() y no fn_ve_finanzas_de_todo()',
   exists (select 1 from pg_proc p join pg_namespace n on n.oid = p.pronamespace
-           where n.nspname = 'retail' and p.proname = '${f}' and ${SIN_COMENTARIOS} ~ 'fn_ve_diario_de_todo\\s*\\('
+           where n.nspname = 'retail' and p.proname in ('${f}', '${f}_de') and ${SIN_COMENTARIOS} ~ 'fn_ve_diario_de_todo\\s*\\('
              and ${SIN_COMENTARIOS} !~ 'fn_ve_finanzas_de_todo\\s*\\(');`).join("\n")}
 select 'A3 ninguna OTRA función que reparte el alcance con fn_diario_ubicaciones() pregunta fn_ve_finanzas_de_todo() por su cuenta',
   (select count(*) = 0 from pg_proc p join pg_namespace n on n.oid = p.pronamespace
@@ -181,7 +182,7 @@ select 'A3 ninguna OTRA función que reparte el alcance con fn_diario_ubicacione
       and ${SIN_COMENTARIOS} ~ 'fn_diario_ubicaciones' and ${SIN_COMENTARIOS} ~ 'fn_ve_finanzas_de_todo\\s*\\(');
 ${DE_CAYLA_ENTERA.map((f) => `select 'A4 ${f} pide fn_exigir_estados_financieros_de_todo()',
   exists (select 1 from pg_proc p join pg_namespace n on n.oid = p.pronamespace
-           where n.nspname = 'retail' and p.proname = '${f}' and ${SIN_COMENTARIOS} ~ 'fn_exigir_estados_financieros_de_todo\\s*\\(');`).join("\n")}
+           where n.nspname = 'retail' and p.proname in ('${f}', '${f}_de') and ${SIN_COMENTARIOS} ~ 'fn_exigir_estados_financieros_de_todo\\s*\\(');`).join("\n")}
 select 'A5 registrar los saldos de arranque sigue siendo solo del líder (fn_exigir_lider_balance)',
   exists (select 1 from pg_proc p join pg_namespace n on n.oid = p.pronamespace
            where n.nspname = 'retail' and p.proname = 'registrar_saldo_inicial' and ${SIN_COMENTARIOS} ~ 'fn_exigir_lider_balance\\s*\\(');
