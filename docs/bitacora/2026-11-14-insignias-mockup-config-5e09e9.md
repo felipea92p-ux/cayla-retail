@@ -20,3 +20,19 @@ Por qué así: una sola cuenta, en la base, para cada forma de oferta:
 
 Felipe se lleva: una campaña puede rebajar, armar grupos o premiar un monto, sobre categorías, prendas sueltas o insignias. Cada prenda
 tiene una sola oferta por tienda y por día, y lo que se regaló se ve en Finanzas.
+
+## 2026-11-14 — Cinco de las seis decisiones pendientes (ADR-0655)
+
+Qué hice: investigué las seis decisiones que dejó la auditoría con datos de producción, Shopify, Square, Lightspeed, Oracle, Target y la Ley
+29571 (`docs/investigacion/2026-11-14-ofertas-decisiones-pendientes.md`). Construí las cinco que Felipe decidió:
+- el cambio de talla del mismo modelo no cobra el descuento otra vez;
+- una oferta no llega a las prendas de una insignia desactivada;
+- una venta sin conexión se mide con las ofertas de su hora;
+- Frescura cuenta el 3x2, el monto y el Club como campaña;
+- «Prenda sin registrar» sigue contando en un monto de toda la compra.
+
+Por qué así: cada regla vive en la base (una función con su nombre), y la pantalla hace la misma cuenta. Las pruebas de la base traen su
+control (sin la migración, falla) y su pegado doble.
+
+Felipe se lleva: lo que se cobra en un cambio, en una insignia apagada y en una venta sin red ya no sorprende al cliente ni deja una venta
+perdida. Queda una: qué hacer con una prenda que termina con dos ofertas.

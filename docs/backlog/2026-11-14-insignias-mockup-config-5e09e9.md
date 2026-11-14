@@ -21,13 +21,15 @@ de `prosrc`), antes y después.
   - textos: «antes: −0 %», «Ninguna todavía» y el precio tachado en el pedido web;
   - el pie de la hoja en el celular.
 - [x] **Diccionario de datos:** refrescado el volcado (77 grupos, 2236 huellas iguales). Las 7 tablas nuevas tienen su pájaro.
-- [ ] **Decisiones de Felipe** (ADR-0655, «Queda para Felipe»):
-  - el cambio de talla en un 3x2;
-  - marcar prendas con una insignia que usa una oferta;
-  - una oferta sobre una insignia desactivada;
-  - «Prenda sin registrar» en un monto de toda la compra;
-  - una venta sin conexión con una oferta que empezó después;
-  - Frescura cuenta el 3x2 como liquidación.
+- [x] **Decisiones de Felipe** (2026-11-14; investigación en `docs/investigacion/2026-11-14-ofertas-decisiones-pendientes.md`):
+  - cambio de talla en un 3x2: el mismo modelo no paga nada (`20261114125000`);
+  - una oferta sobre una insignia desactivada deja de rebajar (`20261114130000`);
+  - «Prenda sin registrar» en un monto de toda la compra: se queda como está;
+  - venta sin conexión: con las ofertas de su hora (`20261114132000`);
+  - Frescura: el 3x2, el monto y el Club cuentan como campaña (`20261114131000`).
+- [ ] **Una prenda con dos ofertas por una puerta de fuera** (marcar una insignia, sumarle una categoría, mover un modelo, crear uno o
+  reactivar una campaña). Felipe quiere que se le avise a quien configura para que elija. Falta decidir qué cobra la caja mientras tanto: hoy
+  rebaja + 3x2 suman. Shopify no avisa y aplica la mejor para el cliente; la app «Price Rules» avisa al publicar.
 - [ ] **El descuento de siempre** de una campaña que se reactiva no se compara con las ofertas de las otras: el disparador de `072000` solo
   mira las ofertas de la campaña.
 - [ ] **De paso, fuera de la obra:** al calcular lo vendido por proveedor se resta dos veces el cupón del Club. Se resta `descuento_club_unitario`

@@ -357,17 +357,24 @@ revisor que no había construido la obra, y cada hallazgo se comprobó en el có
   - el pedido web del ERP muestra el precio de lista tachado.
 - **El pie de la hoja de la oferta** en el celular: cambiar de paso suelta la reserva de `<PaginaEstable>` (ADR-0185).
 
-**Queda para Felipe (dinero o una regla nueva):**
-1. **Cambio de talla en un 3x2.** La decisión 7 de la maqueta dice «diferencia S/ 0» y también «no toca `registrar_cambio`». Hoy
-   `registrar_cambio` cobra el precio nuevo menos lo pagado: con un 3x2, hasta un tercio del precio.
-2. **Marcar prendas con una insignia** que usa una oferta puede dejar una prenda con dos ofertas. El candado no lo mira: es «alcance desde
-   fuera», como marcar prendas a mano. Hay dos caminos: vigilarlo al marcar, o que la caja nunca sume dos.
-3. **Una oferta sobre una insignia desactivada** sigue bajando el precio de las prendas marcadas.
-4. **«Prenda sin registrar» en un monto de toda la compra:** cuenta para llegar al monto y recibe su parte. Las campañas la dejan fuera a
-   propósito.
-5. **Una venta sin conexión** se rechaza si una oferta empezó entre la venta y la subida. La tolerancia cubre las que terminaron, no las que
-   empezaron.
-6. **Frescura** cuenta la parte del 3x2 y del monto como liquidación: su línea no tiene motivo.
+**Queda para Felipe (dinero o una regla nueva).** Lo investigado y sus fuentes: `docs/investigacion/2026-11-14-ofertas-decisiones-pendientes.md`.
+Felipe decidió cinco el 2026-11-14:
+1. **Cambio de talla en un 3x2: el mismo modelo no paga nada** (`20261114125000`). Solo paga lo que la talla nueva cuesta de más hoy en la
+   tienda de la compra, y nunca se le devuelve. Vale para todo descuento: 3x2, campaña, Club, a mano. Otro modelo sigue a lista contra lo
+   pagado (ADR-0380, actualización 2026-11-14). La pantalla dice «Misma prenda: conserva su descuento».
+2. **Una prenda con dos ofertas por marcar una insignia (u otra puerta de fuera): PENDIENTE.** Felipe pidió avisarle a quien configura qué
+   prendas tienen varias ofertas, para que elija con cuál se queda, y ver cómo lo hace Shopify. Shopify no avisa: aplica en la caja la mejor
+   para el cliente. La app «Price Rules» avisa al publicar y deja elegir prenda por prenda. Falta decidir qué cobra la caja mientras nadie
+   elige; hoy rebaja + 3x2 suman.
+3. **Una oferta sobre una insignia desactivada deja de rebajar** (`20261114130000`). Lo mismo una sin aprobar; reactivada, vuelve. Una oferta
+   que eligió solo insignias no pasa a rebajar las prendas de su campaña. Al desactivar una insignia, la confirmación nombra las ofertas que
+   dejan de rebajar.
+4. **«Prenda sin registrar» en un monto de toda la compra: se queda como está** (cuenta y recibe su parte). Es el 35 % de las líneas en 90
+   días: excluirla dejaría sin el ahorro a uno de cada tres clientes que la llevan.
+5. **Una venta sin conexión vale con las ofertas de su hora** (`20261114132000`). `registrar_venta` exige y acepta las del día de su
+   `x-momento`, con tope de 3 días. En línea, hoy.
+6. **Frescura: la parte del 3x2, del monto y del Club cuenta como campaña** (`20261114131000`). Era un error contra «una campaña no es
+   una liquidación», que Frescura ya tenía.
 
 ## Alternativas descartadas
 
