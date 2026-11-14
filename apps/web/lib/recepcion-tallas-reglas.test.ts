@@ -7,6 +7,7 @@ import {
   columnasDeLaTabla,
   coloresIniciales,
   cuadreDeTallas,
+  enterSaleDeLaTabla,
   marcasDeLaTabla,
   tablaConLoMarcado,
   mismasVariantes,
@@ -138,6 +139,21 @@ describe("quitar", () => {
 
   it("sin cantidades no hay nada que deshacer", () => {
     expect(quitarTalla(conteo(), COMPLETA, "xs").perdidas).toBe(0);
+  });
+});
+
+describe("Enter en la última casilla (tarea 5 de las 30 de Recibir, 2026-11-14)", () => {
+  it("sale al botón del pie solo cuando lo repartido cuadra con lo contado", () => {
+    expect(enterSaleDeLaTabla(cuadreDeTallas(conteo({ "s-neg": "360" }), COMPLETA, 360))).toBe(true);
+  });
+
+  it("a medias, pasado o sin repartir, el cursor se queda en la casilla", () => {
+    // A medias, el botón del pie es «Llevar 300 al stock ya»: un Enter de más lo abriría con una cantidad incompleta.
+    expect(enterSaleDeLaTabla(cuadreDeTallas(conteo({ "s-neg": "300" }), COMPLETA, 360))).toBe(false);
+    expect(enterSaleDeLaTabla(cuadreDeTallas(conteo({ "s-neg": "1400" }), COMPLETA, 360))).toBe(false);
+    expect(enterSaleDeLaTabla(cuadreDeTallas(conteo(), COMPLETA, 360))).toBe(false);
+    // Con las dañadas a medias tampoco cuadra: todavía no se guarda.
+    expect(enterSaleDeLaTabla(cuadreDeTallas(conteo({ "s-neg": "5" }, { conDanadas: true, danadas: { "s-neg": "2" } }), COMPLETA, 5))).toBe(false);
   });
 });
 

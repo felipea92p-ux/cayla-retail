@@ -15,7 +15,7 @@ import { leerCantidad, limpiarCantidad, type ColorAlta } from "@/lib/alta-produc
 import { PasoCantidad } from "@/components/ui/PasoCantidad";
 import { conMiles } from "@/lib/recepcion-modelos-reglas";
 import { matrizDe, nombreDeVariante, SOLUCIONES_DANADA, sumasDe, type Conteo, type MatrizRecepcion, type PrendaRecepcion, type SolucionDanada } from "@/lib/recepcion-envio-reglas";
-import { claveDeEje, columnasDeLaTabla, cuadreDeTallas, llenarTodasLasTallas, ordenarTallasVisibles, quitarColor, quitarTalla, type BorradorTallas } from "@/lib/recepcion-tallas-reglas";
+import { claveDeEje, columnasDeLaTabla, cuadreDeTallas, enterSaleDeLaTabla, llenarTodasLasTallas, ordenarTallasVisibles, quitarColor, quitarTalla, type BorradorTallas } from "@/lib/recepcion-tallas-reglas";
 import { celdaVecina, movimientoDeTecla } from "@/lib/tabla-alta-reglas";
 
 // La tabla de tallas y colores de un modelo. Vivió en la placa de Contar (Felipe 2026-11-02) y desde el 2026-11-11 se abre en su hoja (`HojaRepartir`, ADR-0645): en la placa
@@ -145,13 +145,15 @@ function Reparto({
   }, []);
 
   /**
-   * Enter en la última casilla: el cursor sale de la tabla hacia lo que sigue, el botón del pie de la hoja (llevar lo repartido al stock). Recién repartido, ese botón espera
-   * apagado a que lo escrito se guarde: se le da hasta 3 s para encenderse, mientras el cursor siga en la casilla. Si la hoja no tiene pie, va a «Agregar talla o color».
+   * Enter en la última casilla: si lo repartido cuadra con lo contado, el cursor sale de la tabla hacia lo que sigue, el botón del pie de la hoja (llevar lo repartido al stock).
+   * Recién repartido, ese botón espera apagado a que lo escrito se guarde: se le da hasta 3 s para encenderse, mientras el cursor siga en la casilla. Si la hoja no tiene pie, va a
+   * «Agregar talla o color». Con el reparto a medias el cursor se queda en la casilla (`enterSaleDeLaTabla`, tarea 5 de las 30 de Recibir, 2026-11-14): ahí el botón del pie
+   * lleva solo una parte al stock, y un Enter de más abría esa hoja con una cantidad incompleta.
    */
   function salirDeLaTabla() {
     const el = raiz.current;
     const casilla = document.activeElement;
-    if (!el) return;
+    if (!el || !enterSaleDeLaTabla(cuadre)) return;
     const pie = () => el.parentElement?.querySelector<HTMLElement>("[data-pie-repartir]") ?? null;
     const intentar = (quedan: number) => {
       // La persona ya llevó el cursor a otra parte (o la hoja se cerró): no se le quita.

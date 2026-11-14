@@ -158,6 +158,13 @@ export function cuadreDeTallas(conteo: Conteo, prenda: Pick<PrendaRecepcion, "va
   return { estado: "cuadra", texto: "Cuadra con lo contado" };
 }
 
+/**
+ * Enter en la última casilla de la tabla de tallas: ¿el cursor sale al botón del pie de la hoja? Solo si lo repartido cuadra con lo contado (tarea 5 de las 30 de Recibir,
+ * 2026-11-14). A medias, ese botón es «Llevar N al stock ya», una parte, y un Enter de más abría la hoja de llevar al stock con una cantidad incompleta: el cursor se queda en la
+ * casilla. Pasarse o tener dañadas por revisar tampoco es cuadrar.
+ */
+export const enterSaleDeLaTabla = (cuadre: Pick<CuadreDeTallas, "estado">): boolean => cuadre.estado === "cuadra";
+
 /** ¿Lo escrito ya es lo guardado? Sin importar el orden: si es lo mismo, no se vuelve a escribir en la base. */
 export function mismasVariantes(a: readonly VarianteSeparada[] | null, b: readonly VarianteSeparada[] | null): boolean {
   const huella = (vs: readonly VarianteSeparada[] | null) =>
