@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { costoDelGrupo as costoDelGrupoStock, filasDeCostoEnStock, leerConteosDelEnvio as leerConteosStock, textoCostoEnStock, unidadesSinIdentificar as sinIdentificarStock } from "./recepcion-conteo-reglas";
-import { admiteSinMarca, sePuedeCambiarCategoria, costoDeCatalogo, costosConCatalogo } from "./recepcion-conteo-reglas";
+import { sePuedeCambiarCategoria, costoDeCatalogo, costosConCatalogo } from "./recepcion-conteo-reglas";
 import {
   lineasSinModelosEnCero,
   modelosEnCeroDe,
@@ -1397,11 +1397,6 @@ describe("cambiar la categoría de lo contado (Felipe 2026-11-06)", () => {
     expect(sePuedeCambiarCategoria({ tipo: "detalle" }, { linea: null })).toBe(false);
     expect(sePuedeCambiarCategoria({ tipo: "separar" }, { linea: null })).toBe(false);
     expect(sePuedeCambiarCategoria({ tipo: "crear" }, null)).toBe(false);
-  });
-
-  it("una línea del aviso siempre lleva marca: ahí no se ofrece «Sin marca»", () => {
-    expect(admiteSinMarca({ linea: null })).toBe(true);
-    expect(admiteSinMarca({ linea: { id: "x" } })).toBe(false);
   });
 });
 

@@ -1767,14 +1767,6 @@ export function sePuedeCambiarCategoria(item: Pick<ParaDespues, "tipo">, linea: 
   return item.tipo === "crear" && !!linea;
 }
 
-/**
- * En una línea del aviso «Sin marca» no se elige: `cambiar_linea_de_pendiente` pide una marca. Una que llegó sin marca (una compra de «Algo nuevo»,
- * Felipe 2026-11-11) se queda así o se le pone una aquí.
- */
-export function admiteSinMarca(linea: { linea: unknown } | null): boolean {
-  return !linea?.linea;
-}
-
 export type ArgsLigarPrenda = { p_despacho_id: string; p_pendiente_id: string; p_producto_id: string };
 
 /**

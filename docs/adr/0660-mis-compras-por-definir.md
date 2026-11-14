@@ -73,3 +73,25 @@ No crea políticas (ADR-0195) y no usa `select … into` dentro de textos (ADR-0
 **antes** de publicar la web: con la web nueva y la base vieja, guardar «Por definir» da «La línea 1 necesita una categoría activa» y no queda nada a medias.
 
 **El camino de vuelta**, escrito y ensayado antes de pegar: `supabase/migrations/pegar-en-produccion-deshacer-mis-compras-por-definir-2026-11-13.sql`. Por defecto solo ensaya (termina en «ENSAYO_OK»), se detiene si queda alguna línea por definir y no usa `drop trigger`. En local, aplicado dos veces, dejó las 18 funciones con el mismo md5 que una base sin la migración, y la migración volvió a entrar después.
+
+## Actualización 2026-11-14 · La marca es opcional al decir qué es
+
+**El problema.** Felipe, desde la tienda, con «¿Qué es Urys bordado?» abierta: «La marca no debe ser obligatoria, estoy intentando registrar una prenda por
+envío de mercadería». La hoja exigía la marca, y `corregir_linea_al_contar` también («Elige la marca de la prenda»). Contradecía lo decidido el 2026-11-11
+(20261111192000): en «Algo nuevo» la marca es opcional y «quien recibe le pone la marca o la deja sin marca». Con el envío cerrado pasaba lo mismo:
+`cambiar_linea_de_pendiente` decía «Una línea del aviso siempre lleva marca», cierto solo mientras `despacho_items.marca_id` no aceptaba vacío.
+
+**La decisión.** Una sola regla en Recibir: la categoría es obligatoria, la marca no. `20261114205000_marca_opcional_al_decir_que_es.sql` (5 reemplazos anclados):
+`p_marca_id` nulo = «Sin marca» en las dos funciones; una marca que sí se manda sigue teniendo que estar activa; sin marca no se anota pareja en `marca_proveedores`;
+la Actividad dice «Sin marca»; y en la línea del aviso «sin cambio» compara con `is not distinct from`. En la web, «¿Qué es …?» y «Corregir …»
+(`CorregirCategoriaModelo`) usan el combo de marca de «Nuevo modelo»: vacío es «sin marca», «Sin marca» deshace una elegida, y la marca ya no es obligatoria
+para la guía de foco. Si la marca no está en el catálogo, **«+ Marca nueva»** abre la misma hoja de Recibir (`MarcaNuevaRecepcion`, ADR-0635, Felipe 2026-11-14:
+«debe permitir crear nueva marca desde allí»), unida al proveedor de la compra y sin agregar proveedores. «¿Ya existe?» ofrece «Sin marca» también en una línea
+del aviso (sale `admiteSinMarca`).
+
+**Descarté** una marca «Genérica» creada por la tienda (sería una marca falsa en el catálogo; «sin marca» ya es un valor legítimo desde ADR-0393) y soltarla solo
+al contar (la misma línea, ya cerrada, volvería a toparse con la marca obligatoria en «Para después»).
+
+**Producción.** Una parte, re-ejecutable, sin políticas. El 2026-11-14 una consulta de solo lectura confirmó que las 5 anclas están una vez en producción y ninguna
+aplicada. Se pega **antes** de publicar la web: con la web nueva y la base vieja, «Sin marca» da el error de siempre y no deja nada a medias.
+Pruebas: `pruebas:mis-compras-por-definir`, casos P12 y P13.
