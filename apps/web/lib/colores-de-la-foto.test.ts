@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { leerColores, llaveDelColor, propuestaInicial, UMBRALES, type ColorDeCarta, type PixelesRGBA } from "./colores-de-la-foto";
+import { leerColores, propuestaInicial, UMBRALES, type ColorDeCarta, type PixelesRGBA } from "./colores-de-la-foto";
 
 // Una carta chica con los tonos reales de la base (retail.colores, 2026-11-13).
 const CARTA: ColorDeCarta[] = [
@@ -208,16 +208,3 @@ describe("leerColores — los fallos que salieron con fotos reales (actividad 2,
   });
 });
 
-describe("llaveDelColor", () => {
-  it("un color es su código; una mezcla, la base y los acompañantes en orden de código", () => {
-    expect(llaveDelColor(["VIN"])).toBe("VIN");
-    expect(llaveDelColor(["CRU", "NEG", "COB"])).toBe("CRU,COB,NEG");
-    expect(llaveDelColor(["CRU", "COB", "NEG"])).toBe(llaveDelColor(["CRU", "NEG", "COB"]));
-  });
-  it("la base manda: «Crudo con cobalto» no es «Cobalto con crudo»", () => {
-    expect(llaveDelColor(["CRU", "COB"])).not.toBe(llaveDelColor(["COB", "CRU"]));
-  });
-  it("un código repetido no hace mezcla", () => {
-    expect(llaveDelColor(["VIN", "VIN"])).toBe("VIN");
-  });
-});

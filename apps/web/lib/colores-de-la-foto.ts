@@ -23,7 +23,7 @@
 // DESCARTÉ: pedirle los colores a la IA (25 s y costo por foto, y responde con nombres sueltos que igual habría que llevar a la carta);
 // mediana o «el tono que más se repite» como representante del grupo (ver paso 4).
 
-import { componentesDeMezcla, esCombinado } from "./color-combinado";
+import { esCombinado } from "./color-combinado";
 import { esEstampado } from "./color-estampado-reglas";
 import { deltaE2000, esHexValido, hexALab, UMBRAL_PARECIDO, type Lab } from "./color-parecido";
 
@@ -374,14 +374,4 @@ export function leerColores<C extends ColorDeCarta>(pix: PixelesRGBA, carta: rea
 export function propuestaInicial(lectura: Lectura, u: Umbrales = UMBRALES): (string | null)[] {
   if (lectura.tipo !== "liso" && lectura.tipo !== "mezcla") return [];
   return lectura.partes.slice(0, 4).map((p) => (p.distancia <= u.carta ? p.color.codigo : null));
-}
-
-/**
- * La llave de un color de la prenda, para juntar en una sola tarjeta las fotos del mismo color (la espalda no es otro color): un color
- * es su código; una mezcla, sus componentes como los guarda la base (la base primero y los acompañantes ordenados: `componentesDeMezcla`).
- */
-export function llaveDelColor(codigos: readonly string[]): string {
-  const unicos = codigos.filter((c, i) => codigos.indexOf(c) === i);
-  if (unicos.length <= 1) return unicos[0] ?? "";
-  return componentesDeMezcla(unicos[0], unicos.slice(1)).join(",");
 }
