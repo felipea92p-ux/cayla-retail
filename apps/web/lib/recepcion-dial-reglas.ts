@@ -49,3 +49,27 @@ export function estadoDelDial(contadas: number, dijeron: number | null, hayConte
   if (d === 0) return { ...base, tono: "cuadra", texto: `cuadra · ${miles(dijeron)}` };
   return d < 0 ? { ...base, tono: "neutro", texto: `faltan ${miles(-d)} de ${miles(dijeron)}` } : { ...base, tono: "sobra", texto: `sobran ${miles(d)}` };
 }
+
+/**
+ * ¿Elegir este modelo en la lista deja su número abierto para escribir? (tarea 4 de las 30 de Recibir, 2026-11-14). Lo que se pidió abrir a propósito (`pidio`: «empezar por el
+ * primero»), sí. Lo que todavía no se contó, sí, pero solo con mouse: con el dedo, abrir el número levanta el teclado del aparato y tapa la pantalla. Lo ya contado, no: se eligió
+ * para mirarlo o repartir sus tallas.
+ */
+export const abreAlElegir = ({ pidio, contada, conMouse }: { pidio: boolean; contada: boolean; conMouse: boolean }): boolean => pidio || (!contada && conMouse);
+
+/**
+ * El Dial recibe cada pedido de abrir su número con un número propio, siempre distinto del anterior (0 = ninguno). Un pedido es nuevo si no es el que ya vio: así elegir otra vez el
+ * MISMO modelo, el que ya estaba en el contador, vuelve a abrir su número aunque se haya cerrado con Escape o con un clic fuera, siempre que siga sin contar y se use el mouse
+ * (`abreAlElegir`): con una cifra a medio escribir, tocar su propia fila ya no saca el cursor de la caja (`conservaLaCifra`), y el pedido no la vuelve a seleccionar. Antes se pedía con la llave del
+ * modelo, y pedir dos veces lo mismo no cambiaba nada: el cursor se quedaba en la fila y lo tecleado se perdía sin aviso.
+ */
+export const esPedidoNuevo = (visto: number, pedido: number): boolean => pedido > 0 && pedido !== visto;
+
+/**
+ * ¿El toque en la fila de la lista se queda sin el cursor, para que la caja del número lo conserve? (Felipe 2026-11-14). Con «4» a medio escribir, tocar la fila del MISMO
+ * modelo le quitaba el cursor a la caja: se guardaba 4 y el «7» que seguía no entraba en ningún lado. Solo la fila del modelo que se cuenta (`filaActiva`), con el número
+ * abierto y el botón principal del mouse: la fila de otro modelo, el ✓ y el basurero siguen igual, y salir de la caja guarda. El teclado no pasa por `mousedown`; con el lector de
+ * pantalla no se probó.
+ */
+export const conservaLaCifra = ({ filaActiva, numeroAbierto, botonPrincipal }: { filaActiva: boolean; numeroAbierto: boolean; botonPrincipal: boolean }): boolean =>
+  filaActiva && numeroAbierto && botonPrincipal;

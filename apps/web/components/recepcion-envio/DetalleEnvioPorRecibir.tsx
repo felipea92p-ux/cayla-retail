@@ -15,6 +15,7 @@ import { useGuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
 import { VienenFardos } from "./VienenFardos";
 import { diaYHoraLima } from "@/lib/fechas-lima";
 import { esFalloDeRed, esVersionCambiada, traducirError } from "@/lib/error-escritura";
+import { recordarQuienRecibe } from "@/lib/responsable-conteo";
 import { useResponsable } from "@/lib/useResponsable";
 import { abrirDespacho, leerDetalleDelEnvio } from "@/lib/recepcion-envio-acciones";
 import {
@@ -96,6 +97,8 @@ function HojaDetalle({ envio, sede, onCerrar }: { envio: EnvioPorAbrir; sede: st
         else setError({ texto: mensajeDeLaRecepcion(falla) ?? traducirError(falla, "empezar a recibir el envío"), recargar: esVersionCambiada(falla) || sugiereRecargarRecepcion(falla.message) });
         return;
       }
+      // Quien abrió el envío es quien lo cuenta: se recuerda para Contar, que en una terminal lo volvía a pedir.
+      recordarQuienRecibe(detalle.id, responsable.elegidoId);
       avisar.exito(`${resultado?.numero ?? detalle.numero} abierto`, { detalle: "Cuenta lo que llegó." });
       // Abierto, el envío ya está en la etapa 2: contar por categoría.
       router.push(`/recibir/envio/${detalle.id}`);

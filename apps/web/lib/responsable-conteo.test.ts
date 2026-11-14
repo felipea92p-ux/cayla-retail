@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { claveResponsableConteo, claveResponsableRecepcion, recordarResponsableGuardar, recordarResponsableLeer, recordarResponsableOlvidar } from "./responsable-conteo";
+import { claveResponsableConteo, claveResponsableRecepcion, recordarQuienRecibe, recordarResponsableGuardar, recordarResponsableLeer, recordarResponsableOlvidar } from "./responsable-conteo";
 
 /** Un almacén en memoria, con la forma de `Storage` que usa el helper. */
 function almacen(inicial: Record<string, string> = {}) {
@@ -29,6 +29,17 @@ describe("responsable del conteo: se elige al abrir y se recuerda", () => {
     expect(recordarResponsableLeer(clave, a)).toBe("persona-angie");
     recordarResponsableOlvidar(clave, a);
     expect(recordarResponsableLeer(clave, a)).toBeNull();
+  });
+
+  it("quien abre un envío de Recibir queda recordado donde Contar lo busca, y sin nadie elegido no se guarda nada", () => {
+    const a = almacen();
+    recordarQuienRecibe("envio-358", "persona-micaela", a);
+    expect(recordarResponsableLeer(claveResponsableRecepcion("envio-358"), a)).toBe("persona-micaela");
+    // Otro envío no hereda a quien abrió este.
+    expect(recordarResponsableLeer(claveResponsableRecepcion("envio-359"), a)).toBeNull();
+    recordarQuienRecibe("envio-359", null, a);
+    expect(recordarResponsableLeer(claveResponsableRecepcion("envio-359"), a)).toBeNull();
+    expect(() => recordarQuienRecibe("envio-360", "persona-micaela", null)).not.toThrow();
   });
 
   it("un valor vacío no cuenta como responsable", () => {
