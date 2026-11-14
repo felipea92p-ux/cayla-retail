@@ -1,7 +1,6 @@
 "use client";
 
-import { anteriorDeLaCategoria, type PrendaCreada } from "@/lib/recepcion-igual-que-anterior";
-import { leerPrendasCreadasDelEnvio } from "@/lib/recepcion-envio-acciones";
+import { usePrendasCreadas } from "@/components/recepcion-envio/usePrendasCreadas";
 import { useEffect, useLayoutEffect, useRef, useState, type ComponentProps, type Dispatch, type SetStateAction } from "react";
 import { PackageOpen } from "lucide-react";
 import { ComboResponsable } from "@/components/ComboResponsable";
@@ -331,17 +330,7 @@ export function ContarEnvio({
   // La marca vive mientras la pantalla está abierta. Las prendas creadas salen de la base (innovar `recibir-crear-prenda#1`): las del conteo
   // creadas desde que se abrió el envío, así la ficha sobrevive a recargar; lo que se crea aquí se suma sin esperar a releer.
   const [marcaAnterior, setMarcaAnterior] = useState<{ id: string; nombre: string } | null>(null);
-  const [creadas, setCreadas] = useState<PrendaCreada[]>([]);
-  const idsDelConteo = [...new Set(grupos.flatMap((g) => g.separado.prendas.map((p) => p.productoId)))].sort().join(",");
-  useEffect(() => {
-    let vivo = true;
-    void leerPrendasCreadasDelEnvio(idsDelConteo ? idsDelConteo.split(",") : [], detalle.abiertoEn).then((leidas) => {
-      if (vivo) setCreadas((ya) => [...leidas, ...ya.filter((c) => !leidas.some((l) => l.nombre === c.nombre && l.categoriaId === c.categoriaId))]);
-    });
-    return () => {
-      vivo = false;
-    };
-  }, [idsDelConteo, detalle.abiertoEn]);
+  const creadas = usePrendasCreadas([...new Set(grupos.flatMap((g) => g.separado.prendas.map((p) => p.productoId)))].sort(), detalle.abiertoEn);
   // En el celular la lista vive en una hoja que se abre desde la isla de abajo. Al abrirse otra hoja (agregar un modelo, quitar), esta se cierra.
   const [listaEnHoja, setListaEnHoja] = useState(false);
   const [hojaVista, setHojaVista] = useState<Hoja>(null);
@@ -1180,8 +1169,8 @@ export function ContarEnvio({
           vocabulario={catalogo?.vocabulario ?? null}
           responsable={responsable}
           onListo={(prenda) => prendaDeLaNueva(grupoDeHoja, hoja.parada, hoja.nueva.descripcion, prenda)}
-          anterior={anteriorDeLaCategoria(creadas, grupoDeHoja.principal.categoria.id)}
-          onRecordar={(p) => setCreadas((ya) => [...ya, { ...p, creadaEn: new Date().toISOString() }])}
+          anterior={creadas.anteriorDe(grupoDeHoja.principal.categoria.id)}
+          onRecordar={creadas.recordar}
           onCostoEscrito={(productoId, costoTexto) => onCostoDePrenda?.(lineaDeHoja.clave, productoId, costoTexto)}
           onUsarExistente={async (productoId, nombre) => {
             if (!grupoDeHoja.principal.categoria) return false;

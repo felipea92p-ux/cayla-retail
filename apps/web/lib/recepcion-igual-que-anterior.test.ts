@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { anteriorDeLaCategoria, fichaDeLaAnterior, leerPrendasCreadas, loQueLlena, marcaDelAnterior, recordarPrenda, textoDeTallas, type PrendaAnterior } from "./recepcion-igual-que-anterior";
+import { anteriorDeLaCategoria, fichaDeLaAnterior, leerPrendasCreadas, loQueLlena, marcaDelAnterior, productosDelEnvio, recordarPrenda, textoDeTallas, type PrendaAnterior } from "./recepcion-igual-que-anterior";
 
 const curva = [
   { id: "l", valor: "L" },
@@ -136,5 +136,19 @@ describe("leerPrendasCreadas y anteriorDeLaCategoria (la anterior sale de la bas
     expect(anteriorDeLaCategoria(creadas, "casacas")?.nombre).toBe("Casaca");
     expect(anteriorDeLaCategoria(creadas, "faldas")).toBeNull();
     expect(anteriorDeLaCategoria(creadas, "blusas")).not.toHaveProperty("creadaEn");
+  });
+});
+
+describe("productosDelEnvio", () => {
+  it("junta lo separado y lo de los pendientes, sin repetir y en orden", () => {
+    const lineas = [
+      { conteo: { separado: { prendas: [{ productoId: "b" }, { productoId: "a" }] }, pendientes: [{ producto: { id: "c" } }, { producto: null }] } },
+      { conteo: { separado: { prendas: [{ productoId: "a" }] }, pendientes: [] } },
+      { conteo: null },
+    ];
+    expect(productosDelEnvio(lineas)).toEqual(["a", "b", "c"]);
+  });
+  it("sin conteos, nada que leer", () => {
+    expect(productosDelEnvio([])).toEqual([]);
   });
 });

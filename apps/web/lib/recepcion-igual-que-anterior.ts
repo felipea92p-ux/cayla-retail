@@ -162,6 +162,21 @@ export function anteriorDeLaCategoria(creadas: readonly PrendaCreada[], categori
   let ultima: PrendaCreada | null = null;
   for (const c of creadas) if (c.categoriaId === categoriaId && (!ultima || Date.parse(c.creadaEn) >= Date.parse(ultima.creadaEn))) ultima = c;
   if (!ultima) return null;
-  const { creadaEn: _, ...anterior } = ultima;
-  return anterior;
+  return { categoriaId: ultima.categoriaId, nombre: ultima.nombre, tejido: ultima.tejido, patron: ultima.patron, tallas: ultima.tallas };
+}
+
+/**
+ * Las prendas de un envío, para leer cuáles se crearon al recibirlo: las separadas en el conteo y las de sus pendientes (la que se creó con
+ * «Crear ahora» de «Para después» queda en su pendiente hasta que entra con sus tallas). Sin repetir y en orden, para que la lectura no se
+ * repita mientras la lista no cambie.
+ */
+export function productosDelEnvio(
+  lineas: readonly { conteo: { separado: { prendas: readonly { productoId: string }[] }; pendientes?: readonly { producto: { id: string } | null }[] } | null }[],
+): string[] {
+  const ids = new Set<string>();
+  for (const l of lineas) {
+    for (const p of l.conteo?.separado.prendas ?? []) ids.add(p.productoId);
+    for (const p of l.conteo?.pendientes ?? []) if (p.producto) ids.add(p.producto.id);
+  }
+  return [...ids].sort();
 }
