@@ -1284,7 +1284,7 @@ export const GUIA_CAMPANAS: Guia = {
       ancla: "sellos.oferta-rebaja",
       opcional: true,
       titulo: "Qué le das al cliente",
-      texto: "Hoy se puede dar un porcentaje menos. Las otras formas (llevar varias, gastar un monto, un regalo, algo para el Club) llegan pronto y se ven apagadas.",
+      texto: "Un porcentaje menos, o «Llevar varias y pagar menos» (3x2, un precio por el grupo, la 2.ª con descuento). Gastar un monto, un regalo y lo del Club llegan pronto y se ven apagadas.",
     },
     {
       id: "oferta-pct",
@@ -1293,6 +1293,21 @@ export const GUIA_CAMPANAS: Guia = {
       preparar: [{ tipo: "clic", ancla: "sellos.oferta-rebaja" }],
       titulo: "Cuánto menos",
       texto: "Sube o baja de 5 en 5, o toca uno de los de siempre. No pasa de 70 %. Si alguna prenda quedaría por debajo de su costo, sale un aviso en rojo debajo: no bloquea, pero te dice cuántas son. La etiqueta de la derecha cambia al instante.",
+    },
+    {
+      id: "oferta-varias",
+      ancla: "sellos.oferta-varias",
+      opcional: true,
+      titulo: "Llevar varias y pagar menos",
+      texto: "El cliente paga menos cuando lleva varias: 3x2, un precio por el grupo o la 2.ª con descuento. Por ahora se guarda como borrador: la caja la empieza a cobrar en la próxima entrega.",
+    },
+    {
+      id: "oferta-forma",
+      ancla: "sellos.oferta-forma",
+      opcional: true,
+      preparar: [{ tipo: "clic", ancla: "sellos.oferta-varias" }],
+      titulo: "De qué forma",
+      texto: "Elige 3 x 2, un precio por el grupo o la N.ª con descuento, y pon sus números con − y +. Siempre baja la más barata del grupo; si cuestan lo mismo, da igual cuál.",
     },
     {
       id: "oferta-etiqueta",
@@ -1315,6 +1330,22 @@ export const GUIA_CAMPANAS: Guia = {
       preparar: [{ tipo: "clic", ancla: "sellos.oferta-paso-2" }],
       titulo: "En qué prendas",
       texto: "Viene lo de la campaña. Marca categorías para que rija solo en ellas, aunque la campaña no las tenga: la grilla va por familia, con cuántas prendas trae cada una y un buscador. Toca el nombre de una familia para abrirla o plegarla; la casilla marca toda la familia. Lo que marques se ve al instante en la etiqueta.",
+    },
+    {
+      id: "oferta-mezclar",
+      ancla: "sellos.oferta-mezclar",
+      opcional: true,
+      preparar: [{ tipo: "clic", ancla: "sellos.oferta-paso-2" }],
+      titulo: "¿Se pueden mezclar?",
+      texto: "En una oferta de «Llevar varias»: el grupo se arma con cualquiera de las prendas elegidas, o solo con prendas del mismo modelo, en tallas o colores distintos.",
+    },
+    {
+      id: "oferta-ejemplo",
+      ancla: "sellos.oferta-ejemplo",
+      opcional: true,
+      preparar: [{ tipo: "clic", ancla: "sellos.oferta-paso-2" }],
+      titulo: "Así funciona en la caja",
+      texto: "Un grupo con prendas de verdad, cobrado con la misma cuenta de la caja: lo que paga cada una y cuánto ahorra el cliente. El ahorro se reparte entre las prendas según su precio.",
     },
     {
       id: "oferta-una-por-una",
