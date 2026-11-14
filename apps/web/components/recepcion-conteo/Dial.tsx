@@ -92,8 +92,11 @@ export function Dial({
     if (guardar && n !== null && (n !== contadas || !hayConteo)) onPoner(n);
   }
 
+  // El tamaño sigue a lo que está a la vista: lo escrito, o lo que quedaría si no se escribe nada. Seis o más es algo pegado por error.
+  const aLaVista = editando === null || editando === "" ? String(contadas) : editando;
+
   return (
-    <div className={`rc-dial rc-dial--${e.tono}`} data-cifras={String(contadas).length}>
+    <div className={`rc-dial rc-dial--${e.tono}`} data-cifras={Math.min(aLaVista.length, 6)}>
       <svg viewBox="0 0 290 290" aria-hidden className="rc-dial-aro">
         <circle className="rc-dial-pista" cx={CX} cy={CX} r={R} />
         <circle className="rc-dial-arco" cx={CX} cy={CX} r={R} pathLength={100} style={{ strokeDashoffset: 100 - e.lleno }} />
@@ -125,36 +128,43 @@ export function Dial({
 
       <div className="rc-dial-centro">
         {editando !== null ? (
-          <input // unificar-fijo: el número protagonista del Dial se escribe en su lugar, sin caja de campo (Felipe 2026-10-29)
-            ref={caja}
-            type="text"
-            inputMode="numeric"
-            autoComplete="off"
-            value={editando}
-            placeholder="0"
-            aria-label={`Cuántas ${nombre} llegaron`}
-            className="rc-dial-caja"
-            aria-invalid={rechazo !== null}
-            onChange={(ev) => {
-              setRechazo(null);
-              setEditando(leerContadas(ev.target.value).texto);
-            }}
-            onBlur={() => dejar(true)}
-            onKeyDown={(ev) => {
-              if (ev.key === "Enter") {
-                ev.preventDefault();
-                // No pasa al siguiente: la persona está mirando la caja, y ahí mismo lo corrige.
-                const { problema } = leerContadas(editando);
-                if (problema) return setRechazo(problema);
-                dejar(true);
-                onEnter?.();
-              } else if (ev.key === "Escape") {
-                ev.preventDefault();
-                ev.stopPropagation();
-                dejar(false);
-              }
-            }}
-          />
+          // Abierto, el número no cambia de letra ni de tamaño (Felipe eligió la demo «El número de siempre, vivo», 2026-11-14): sin nada escrito,
+          // lo que quedaría espera en taupe (`data-queda`) con el cursor a su derecha; lo escrito sale en tinta.
+          <span
+            className="rc-dial-vivo"
+            data-queda={editando === "" ? String(contadas) : undefined}
+            style={editando === "" ? ({ "--rc-n": String(contadas).length } as React.CSSProperties) : undefined}
+          >
+            <input // unificar-fijo: el número protagonista del Dial se escribe en su lugar, sin caja de campo (Felipe 2026-10-29)
+              ref={caja}
+              type="text"
+              inputMode="numeric"
+              autoComplete="off"
+              value={editando}
+              aria-label={`Cuántas ${nombre} llegaron`}
+              className="rc-dial-caja"
+              aria-invalid={rechazo !== null}
+              onChange={(ev) => {
+                setRechazo(null);
+                setEditando(leerContadas(ev.target.value).texto);
+              }}
+              onBlur={() => dejar(true)}
+              onKeyDown={(ev) => {
+                if (ev.key === "Enter") {
+                  ev.preventDefault();
+                  // No pasa al siguiente: la persona está mirando la caja, y ahí mismo lo corrige.
+                  const { problema } = leerContadas(editando);
+                  if (problema) return setRechazo(problema);
+                  dejar(true);
+                  onEnter?.();
+                } else if (ev.key === "Escape") {
+                  ev.preventDefault();
+                  ev.stopPropagation();
+                  dejar(false);
+                }
+              }}
+            />
+          </span>
         ) : (
           <button type="button" className="rc-dial-numero" onClick={abrir} aria-label={`Escribir cuántas ${nombre} llegaron (ahora ${contadas})`}>
             <Odometro valor={contadas} />

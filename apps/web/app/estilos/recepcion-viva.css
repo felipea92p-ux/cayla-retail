@@ -46,11 +46,40 @@
 .rc-dial--sobra .rc-dial-centro small { color: var(--color-ambar-profundo); }
 .rc-dial-centro small[data-rechazo] { color: var(--color-ambar-profundo); }
 .rc-dial-numero { padding: 0 12px; border-radius: 16px; color: var(--color-tinta); font-family: var(--font-serif); font-size: 78px; font-weight: 600; line-height: 1.15; cursor: text; transition: background-color 250ms var(--ease-cayla), box-shadow 250ms var(--ease-cayla); }
+/* Al pasar el mouse las cifras se sombrean como texto que se va a seleccionar: «esto se escribe», sin caja ni raya (Felipe 2026-11-14). */
 @media (hover: hover) {
-  .rc-dial-numero:hover { background: var(--color-hueso); box-shadow: inset 0 -3px 0 var(--color-borde-control); }
+  .rc-dial-numero:hover .rc-odo-cifras {
+    /* contraste: no aplica — es un fondo; las cifras siguen en tinta */
+    background: linear-gradient(color-mix(in srgb, var(--color-taupe) 14%, transparent), color-mix(in srgb, var(--color-taupe) 14%, transparent)) center / 100% 0.9em no-repeat;
+  }
 }
 .rc-dial-numero:focus-visible { outline: 2px solid var(--color-tinta); outline-offset: 2px; }
-.rc-dial-caja { width: 132px; max-width: 100%; padding: 0; border: 0; border-radius: 16px; background: var(--color-papel); box-shadow: inset 0 -3px 0 var(--color-rojo); color: var(--color-tinta); outline: 0; text-align: center; font-family: var(--font-serif); font-size: 72px; font-weight: 600; line-height: 1.15; font-variant-numeric: tabular-nums; animation: cayla-entrada 250ms var(--ease-cayla) both; }
+/* El número abierto es el mismo número (demo «El número de siempre, vivo», Felipe la eligió mirando el 2026-11-14): la misma letra y el mismo
+   tamaño que en reposo, sin caja, sin fondo y sin raya. «Aquí se escribe» lo dicen el cursor de texto, la selección y el color: lo que quedaría si no
+   se escribe nada espera en taupe y lo escrito sale en tinta. El lugar mide lo que el botón del número, así «por contar» no se mueve al abrirlo. */
+.rc-dial-vivo {
+  --rc-aire: calc(0.6em - 1ch); /* lo que le falta a una cifra (1ch) para llenar su celda de 0.6em, la del Odómetro */
+  position: relative; display: grid; align-items: center; width: 100%; height: 1.15em; height: round(nearest, 1.15em, 1px);
+  color: var(--color-tinta); font-family: var(--font-serif); font-size: 78px; font-weight: 600; line-height: 1.15; font-variant-numeric: tabular-nums; cursor: text;
+}
+/* Lo que se teclea ES el número; cada cifra cae en la misma celda que en el Odómetro. El cursor y la selección miden lo que la cifra (0.9em). */
+.rc-dial-caja {
+  display: block; box-sizing: border-box; width: 100%; height: 0.9em; margin: 0; padding: 0 0 0 var(--rc-aire); border: 0; border-radius: 0;
+  background: transparent; box-shadow: none; outline: 0; /* el foco se ve en el cursor o en la selección (WCAG 2.4.7) */
+  color: inherit; caret-color: var(--color-tinta); font: inherit; font-variant-numeric: tabular-nums; letter-spacing: var(--rc-aire); text-align: center;
+}
+/* Sin nada escrito: el número que quedaría (0 si no se contó) espera en taupe y el cursor va a su derecha, donde quedará tras la primera cifra. */
+.rc-dial-vivo[data-queda]::before {
+  content: attr(data-queda); content: attr(data-queda) / "";
+  position: absolute; inset: 0; display: grid; place-items: center; padding-left: var(--rc-aire);
+  color: var(--color-taupe); line-height: 1; letter-spacing: var(--rc-aire); pointer-events: none;
+}
+.rc-dial-vivo[data-queda] .rc-dial-caja { padding-left: calc(50% + var(--rc-n, 1) * 0.3em + var(--rc-aire) / 2); text-align: left; }
+/* Un número ya contado llega seleccionado (escribir lo reemplaza): la selección va en la paleta, no en el azul del sistema. */
+.rc-dial-caja::selection {
+  background: color-mix(in srgb, var(--color-taupe) 24%, transparent); /* contraste: no aplica — es un fondo; las cifras siguen en tinta */
+  color: var(--color-tinta);
+}
 
 .rc-dial-visto { position: absolute; top: 26px; right: 26px; display: grid; place-items: center; width: 40px; height: 40px; border-radius: 50%; background: var(--color-verde); color: var(--color-crema-fija); transform: scale(0) rotate(-30deg); transition: transform 450ms var(--ease-cayla); }
 .rc-dial--cuadra .rc-dial-visto { transform: none; }
@@ -73,7 +102,7 @@
   .rc-dial { width: 224px; height: 224px; }
   .rc-dial-centro { inset: 48px; }
   .rc-dial-numero { font-size: 64px; padding: 0 8px; }
-  .rc-dial-caja { width: 110px; font-size: 58px; }
+  .rc-dial-vivo { font-size: 64px; }
   .rc-dial-visto { top: 16px; right: 16px; width: 36px; height: 36px; }
   .rc-dial-boton { width: 52px; height: 52px; }
 }
@@ -82,14 +111,14 @@
   .rc-dial { width: 232px; height: 232px; }
   .rc-dial-centro { inset: 50px; }
   .rc-dial-numero { font-size: 64px; padding: 0 8px; }
-  .rc-dial-caja { width: 110px; font-size: 58px; }
+  .rc-dial-vivo { font-size: 64px; }
   .rc-dial-visto { top: 20px; right: 20px; width: 36px; height: 36px; }
   .rc-dial-boton { width: 52px; height: 52px; }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .rc-odo-tira, .rc-dial-arco, .rc-dial-exceso, .rc-dial-perilla, .rc-dial-perilla-borde, .rc-dial-perilla-punto, .rc-dial-visto, .rc-dial-visto svg path, .rc-dial-numero, .rc-dial-boton, .rc-dial-centro small { transition: none; }
-  .rc-dial-arco, .rc-dial-corte, .rc-dial-perilla, .rc-dial-caja { animation: none; }
+  .rc-dial-arco, .rc-dial-corte, .rc-dial-perilla { animation: none; }
   .rc-dial-brillo, .rc-dial-chispa, .rc-dial-halo { display: none; }
 }
 
@@ -100,10 +129,12 @@
 .rc-placa .rc-dial-numero { padding: 0 6px; font-size: 54px; }
 .rc-placa .rc-dial-visto { top: 12px; right: 12px; width: 30px; height: 30px; }
 /* Por miles el número se achica para no salirse del aro: 4 cifras con su coma, 5 cifras. */
-.rc-placa .rc-dial[data-cifras="3"] .rc-dial-numero { font-size: 46px; }
-.rc-placa .rc-dial[data-cifras="4"] .rc-dial-numero { font-size: 36px; }
-.rc-placa .rc-dial[data-cifras="5"] .rc-dial-numero { font-size: 30px; }
-.rc-placa .rc-dial-caja { width: 100px; font-size: 32px; }
+.rc-placa .rc-dial-vivo { font-size: 54px; }
+.rc-placa .rc-dial[data-cifras="3"] :is(.rc-dial-numero, .rc-dial-vivo) { font-size: 46px; }
+.rc-placa .rc-dial[data-cifras="4"] :is(.rc-dial-numero, .rc-dial-vivo) { font-size: 36px; }
+.rc-placa .rc-dial[data-cifras="5"] :is(.rc-dial-numero, .rc-dial-vivo) { font-size: 30px; }
+/* 6 o más: algo pegado por error; cabe para leerlo y corregirlo. */
+.rc-placa .rc-dial[data-cifras="6"] .rc-dial-vivo { font-size: 24px; }
 
 /* ── El Trayecto del envío: cinco paradas y la bola en la actual ── */
 .rc-tray { --tc: var(--color-pizarra); --bola: 48px; --parada: 18px; --via: 6px; min-width: 0; }

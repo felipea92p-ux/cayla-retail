@@ -340,8 +340,13 @@ export function PlacaDelModelo({
               </div>
             </div>
           </div>
-          {/* La pista bajo el dial: una sola línea, en su lugar reservado (si apareciera otra, lo de abajo se movería bajo el mouse al primer toque). */}
-          <p className="rc-pista">{diferencia != null && diferencia !== 0 && !sinAviso ? "Si no coincide, al cerrar dices por qué." : "Toca el número para escribirlo."}</p>
+          {/* La pista bajo el dial: una sola línea, en su lugar reservado (si apareciera otra, lo de abajo se movería bajo el mouse al primer toque).
+              Con el número abierto dice cómo dejarlo; cuál se ve lo decide el CSS (`.rc-paso-uno:has(.rc-dial-vivo)`), sin subir el estado del Dial. */}
+          <p className="rc-pista">
+            <span className="rc-pista-reposo">{diferencia != null && diferencia !== 0 && !sinAviso ? "Si no coincide, al cerrar dices por qué." : "Toca el número para escribirlo."}</span>
+            <span className="rc-pista-escribe">Escribe la cantidad y presiona Enter.</span>
+            <span className="rc-pista-escribe-dedo">Escribe la cantidad y toca fuera.</span>
+          </p>
           {enStock > 0 && <p className="rc-pista-stock">Ya entraron {textoPrendas(enStock)} al stock: lo contado no baja de ahí.</p>}
           {error && (
             <div className="rc-placa-error">

@@ -278,6 +278,14 @@ main:has(.rc-conteo) { padding-bottom: 16px; }
 .rc-pista, .rc-pista-stock { color: var(--color-taupe); font-size: 14px; line-height: 1.35; }
 /* Un renglón reservado: bajo el dial cabe en una línea, y si apareciera otra, lo de abajo se movería bajo el mouse. */
 .rc-pista { min-height: 1.35em; }
+/* Con el número abierto la pista dice cómo dejarlo: con teclado, Enter; con el dedo, tocar fuera. «Toca el número…» ya no corresponde. */
+.rc-pista-escribe, .rc-pista-escribe-dedo { display: none; }
+.rc-paso-uno:has(.rc-dial-vivo) .rc-pista-reposo { display: none; }
+.rc-paso-uno:has(.rc-dial-vivo) .rc-pista-escribe { display: inline; }
+@media (pointer: coarse) {
+  .rc-paso-uno:has(.rc-dial-vivo) .rc-pista-escribe { display: none; }
+  .rc-paso-uno:has(.rc-dial-vivo) .rc-pista-escribe-dedo { display: inline; }
+}
 /* Los botones del contador, apilados: «Llegaron» en verde y primero, porque es lo que más se toca y deja el modelo listo; sumar en su bandeja, y «No llegó» al final, más callado. Todos del mismo ancho. */
 .rc-atajos { display: flex; flex-direction: column; align-items: stretch; gap: 8px; }
 .rc-atajos .rc-suma { display: flex; }
