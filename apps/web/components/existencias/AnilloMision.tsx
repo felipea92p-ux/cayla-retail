@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useSyncExternalStore } from "react";
 import { Anillo } from "@/components/ui/Anillo";
+import { Calculando } from "@/components/Esqueleto";
 import { avanceDeMision, claveMision, leerFotoMision, objetivosDeHoy } from "@/lib/existencias-mision";
 import { hoyLima } from "@/lib/fechas-lima";
 import type { FilaExistencias } from "@/lib/inventario-v2";
@@ -22,6 +23,7 @@ export function AnilloMision({
   tiendas,
   pendientes,
   onAbrir,
+  calculando = false,
 }: {
   ubicacionId: string;
   filas: readonly FilaExistencias[];
@@ -30,6 +32,9 @@ export function AnilloMision({
   /** Cuántas tareas hay en «Pendientes», para decirlo al lector de pantalla. */
   pendientes: number;
   onAbrir: () => void;
+  /** El plan del piso todavía no llega (Existencias en dos tiempos, 2026-11-13): sin él no se sabe qué toca hoy. El anillo guarda su
+   *  lugar y NO guarda la foto del día: una foto sin plan diría que no había nada por colgar y el anillo mediría contra eso todo el día. */
+  calculando?: boolean;
 }) {
   const clave = claveMision(ubicacionId, hoyLima());
   // La foto guardada de hoy (en el servidor no hay: se dibuja con la de ahora y el navegador corrige al hidratar).
@@ -48,12 +53,13 @@ export function AnilloMision({
   const foto = leerFotoMision(guardada) ?? ahora;
   // La primera vez del día en este equipo, la foto se guarda: desde ahí el anillo mide contra la mañana.
   useEffect(() => {
+    if (calculando) return;
     try {
       if (!leerFotoMision(window.localStorage.getItem(clave))) window.localStorage.setItem(clave, JSON.stringify(ahora));
     } catch {
       // Sin almacenamiento (ventana privada): el anillo mide contra la foto de ahora.
     }
-  }, [clave, ahora]);
+  }, [clave, ahora, calculando]);
 
   const { hechas, total } = avanceDeMision(foto, filas, tiendas);
   const fraccion = total === 0 ? 1 : hechas / total;
@@ -71,7 +77,9 @@ export function AnilloMision({
       data-guia="existencias.pendientes"
       onClick={onAbrir}
       aria-label={
-        total === 0
+        calculando
+          ? "Calculando lo de hoy. Toca para ver los pendientes de la sede"
+          : total === 0
           ? pendientes > 0
             ? `Hoy no hay tallas por resolver, pero hay ${pendientes} ${pendientes === 1 ? "pendiente" : "pendientes"} de la sede. Toca para verlos`
             : "Hoy está todo al día"
@@ -81,11 +89,18 @@ export function AnilloMision({
       className="area-dedo inline-flex h-10 shrink-0 items-center gap-2 rounded-full border border-sand bg-crema text-left text-sm transition-colors hover:border-taupe lg:pr-3.5"
     >
       {/* El anillo chico del sistema (ronda 13). Lo que falta va en ámbar a propósito: es el recordatorio de lo de hoy (2026-10-06). */}
-      <Anillo pct={fraccion * 100} tamano="chico" tono={listo ? "verde" : "ambar"} decorativa>
-        <span className="text-tinta lg:hidden">{adentro}</span>
+      {/* Calculando: la pista sola y, donde va la cifra, su lugar (sin «Al día» ni un número que no se sabe). */}
+      <Anillo pct={calculando ? 0 : fraccion * 100} tamano="chico" tono={listo && !calculando ? "verde" : "ambar"} decorativa>
+        <span className="text-tinta lg:hidden">{calculando ? "" : adentro}</span>
       </Anillo>
       <span className="leading-tight max-lg:hidden">
-        <b className="block whitespace-nowrap text-[15px] font-semibold tabular-nums text-tinta">{texto}</b>
+        {calculando ? (
+          <span aria-hidden className="flex h-lh items-center text-[15px]">
+            <Calculando className="h-4 w-24 rounded" />
+          </span>
+        ) : (
+          <b className="block whitespace-nowrap text-[15px] font-semibold tabular-nums text-tinta">{texto}</b>
+        )}
         <small className="text-sm text-taupe">hoy</small>
       </span>
     </button>
