@@ -1915,7 +1915,7 @@ export const GUIA_RECIBIR_ENVIO: Guia = {
       requiere: ["recepcion.categorias"],
       preparar: [LISTA_DEL_CELULAR, { tipo: "clic", ancla: "recepcion.filtros", siEsta: true }],
       titulo: "Ordenar por cantidad",
-      texto: "Las categorías y sus modelos se ordenan por lo que anotó Compras: de menos a más o de más a menos. Si tocas otra vez la misma, vuelven al orden de la compra. Enter sigue este orden.",
+      texto: "Las categorías y sus modelos se ordenan por lo que anotó Compras: de menos a más o de más a menos. Si tocas otra vez la misma, vuelven al orden de la compra. Enter sigue este orden y se salta lo que ya tiene cantidad.",
     },
     {
       id: "por-definir",
@@ -1940,7 +1940,7 @@ export const GUIA_RECIBIR_ENVIO: Guia = {
       opcional: true,
       requiere: [CONTADOR_A_LA_VISTA],
       titulo: "Lo que falta y cerrar",
-      texto: "Abajo dice qué modelo falta contar y, con todo contado, a cuál le faltan tallas: tócalo y vas a él. Lo de «Tallas para después» no lo pide. A la derecha, «Revisar y cerrar». Con el número abierto, Enter guarda y abre el siguiente modelo en cero: lo que ya contaste no lo vuelve a abrir.",
+      texto: "Abajo dice qué modelo falta contar y, con todo contado, a cuál le faltan tallas: tócalo y vas a él. Lo de «Tallas para después» no lo pide. A la derecha, «Revisar y cerrar». Con el número abierto, Enter guarda y abre el siguiente modelo en cero: lo que ya tiene cantidad no lo vuelve a abrir.",
     },
     {
       id: "que-hacer",

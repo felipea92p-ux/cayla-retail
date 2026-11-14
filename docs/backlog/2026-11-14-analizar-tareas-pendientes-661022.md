@@ -41,7 +41,7 @@ Pendientes de esta rama (decisión de Felipe):
 Ya pasaba en producción (no es de esta rama):
 
 - [x] Enter pasaba al siguiente modelo de la lista aunque ya estuviera contado, y su número se abría con la cifra seleccionada: la próxima tecla la reemplazaba. Arreglado el 14-nov (`destinoDelEnter`).
-- [ ] En un envío con aviso, agregar con + otro modelo de la misma categoría y marca dentro del grupo de un modelo anotado (de una sola línea, en la primera línea del grupo) lo deja en «No llegó» sin que nadie lo toque: sale de «Por contar» y de «Falta contar», y al cerrar lo contado del agregado se suma a su línea. La causa: «contado» se deduce de que la línea tenga conteo (`recepcion-modelos-reglas.ts`, regla `contado` de los anotados en `modelosDelGrupo`), y el cero de un anotado no deja marca propia. No se arregla aquí: toca el cierre, el stock y lo que se le reclama al proveedor, y lo decide Felipe. La prueba «la falla de producción» de `destinoDelEnter` lo reproduce.
+- [ ] En un envío con aviso, agregar con + otro modelo de la misma categoría y marca dentro del grupo de un modelo anotado (de una sola línea, en la primera línea del grupo) lo deja en «No llegó» sin que nadie lo toque: sale de «Por contar» y de «Falta contar», y al cerrar lo contado del agregado se suma a su línea. La causa: «contado» se deduce de que la línea tenga conteo (`recepcion-modelos-reglas.ts`, regla `contado` de los anotados en `modelosDelGrupo`), y el cero de un anotado no deja marca propia. No se arregla aquí: toca el cierre, el stock y lo que se le reclama al proveedor, y lo decide Felipe. Es una falla del código publicado, reproducida con las funciones reales en la prueba «la falla del código publicado…» de `destinoDelEnter`, sin comprobar en los datos de producción.
 - [ ] Un filtro sin resultados sigue mostrando el modelo que se mira.
 - [ ] «Falta contar: X» del pie no respeta el filtro puesto.
 - [ ] «Dejar para después» no sobrevive a recargar la pantalla.
@@ -55,4 +55,29 @@ Sin verificar: un envío con aviso en pantalla, «quién recibe» con una cuenta
 - [x] **Tocar la fila del modelo que cuentas no corta la cifra** (`conservaLaCifra`, `lib/recepcion-dial-reglas.ts`; `onMouseDown` en la fila de `CategoriasAcordeon.tsx`).
 - [ ] **Recontar cuesta dos toques** (su fila y su número): Enter ya no encadena modelos contados. Es el precio aceptado.
 - [ ] **«Deshacer» al corregir un conteo ya guardado: no por ahora (Felipe, 14-nov).** Costaría unas 30 líneas reusando el de «Poner en cero» (`ponerDeUnToque`).
-- [ ] Sin probar en el navegador: las dos reglas están cubiertas por sus pruebas puras y leídas en el código (el clic en la propia fila con el número abierto no lo cierra ni vuelve a seleccionar la cifra, contado o no), pero no se recorrieron en pantalla.
+- [x] Probadas en pantalla el 14-nov, con un navegador sin ventana (ver abajo). Su cableado lo vigila `lib/recepcion-conteo-cableado.test.ts`, que falla si alguien reescribe esas líneas a mano.
+
+## Lo que dejó la verificación de las dos reglas (14-nov, sin ventana)
+
+Visto en pantalla y pasa:
+
+- [x] Enter se salta lo que tiene cantidad, también al dictar «6 Enter 5 Enter 3 Enter» sin mouse: los conteos anteriores no cambiaron en la base.
+- [x] Da la vuelta dentro del filtro «Por contar»; con un filtro de modelos ya contados no abre otro número y el cursor va al pie.
+- [x] Se detiene en un modelo agregado en 0.
+- [x] «4» + tocar la fila + «7» guarda 47, con mouse y con el dedo emulado; un modelo con cantidad abierto a propósito, «8» + fila + «1» guarda 81.
+- [x] La fila de otro modelo y Tab siguen guardando al salir.
+
+Sin ver en pantalla:
+
+- [ ] «No llegó» como destino: solo existe en un envío con aviso y la base local no tiene ninguno. Lo cubren las pruebas de reglas.
+- [ ] Un modelo con prendas ya en el stock, Safari (WebKit no está instalado) y un aparato táctil real.
+
+Lo decide Felipe (ninguno es de esta rama salvo donde se dice):
+
+- [ ] Si lo único en cero es el modelo que se mira, el cursor va a «Revisar y cerrar» y un Enter de más pasa a la vista de cierre, sin cerrar nada. Igual que antes de esta rama.
+- [ ] Enter puede caer en un modelo «por definir», cuyo contador no recibe el cursor (`inert` en `PlacaDelModelo`): lo que se teclea ahí no entra. Ya pasaba.
+- [ ] Bajo 639 px «Revisar y cerrar» está escondido y el cursor queda sin destino. Ya pasaba; Recibir es de escritorio.
+- [ ] Con un filtro puesto, «Falta contar: X» puede nombrar un modelo que el filtro esconde, y ahora Enter lleva el cursor a ese enlace: es la falla de arriba («Falta contar: X» del pie no respeta el filtro puesto).
+- [ ] El mismo riesgo de pisar con Enter existe, sin tocar, en Conteo de inventario (`components/conteo/ContarConteo.tsx`, `alEnterCampo`, con `CampoContaste.tsx`, que selecciona al enfocar) y en Existencias ▸ Ajustar stock (`components/existencias/AjusteDelModelo.tsx`, `onSiguiente`): Enter pasa al campo siguiente con su cifra seleccionada y la próxima tecla la reemplaza.
+
+En la base local falta `retail.fn_recibidas_del_proveedor` (migración de `main` `20261114165000`): la galería «Ya la tenemos» da un 404 en la red y sigue dejando elegir.

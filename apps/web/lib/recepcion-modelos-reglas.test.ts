@@ -992,7 +992,7 @@ describe("destinoDelEnter: Enter nunca abre un modelo que ya tiene cantidad (Fel
     expect(destinoDelEnter(reabierta, de(reabierta, "Vestido Lima").clave)).toBeNull();
   });
 
-  it("la falla de producción (no se arregla aquí): un anotado que quedó en «No llegó» sin que nadie lo tocara sigue siendo destino si está adelante", () => {
+  it("la falla del código publicado, sin comprobar en los datos de producción (no se arregla aquí): un anotado que quedó en «No llegó» sin que nadie lo tocara sigue siendo destino si está adelante", () => {
     // Envío con aviso: Sofía anotada, de una sola línea y en la línea principal de su grupo. Se agrega con + otro modelo dentro de su grupo: lo agregado se guarda en esa
     // línea, la línea pasa a tener conteo y Sofía se deduce «contada» en 0, o sea «No llegó». Si Enter se la saltara, la falla quedaría más escondida que hoy.
     const g = grupo(deLaGuia(sofia()));

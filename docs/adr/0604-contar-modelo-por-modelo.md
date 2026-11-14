@@ -189,7 +189,7 @@ DECIDÍ: Enter va al siguiente modelo de lo que la lista muestra cuyo contador e
 el primero en cero, sea «sin contar» o «No llegó»; si adelante no hay, da la vuelta solo hacia lo que falta contar, para que la vuelta termine; sin destino, el número se
 cierra y el cursor va al enlace del pie (`.rc-pie-sigue`) o, si no hay, a «Revisar y cerrar», nunca al número. Un modelo con cantidad, también la que ya entró al
 stock, nunca es destino. Y la fila del modelo activo hace `preventDefault` al presionar solo con el botón principal y el número abierto (`conservaLaCifra`,
-`lib/recepcion-dial-reglas.ts`): la caja conserva lo tecleado y el cursor. Otra fila, el ✓, el basurero, el teclado y el lector de pantalla siguen igual.
+`lib/recepcion-dial-reglas.ts`): la caja conserva lo tecleado y el cursor. Otra fila, el ✓ y el basurero siguen igual; el teclado no pasa por `mousedown`, y con el lector de pantalla (VoiceOver) no se probó.
 DESCARTÉ: saltarse también los «No llegó» porque un anotado puede quedar así sin que nadie lo toque (al agregar otro modelo en su grupo; anotado en el backlog de la
 rama), y Enter lo escondería más que hoy; abrir un cero no pisa el trabajo de nadie. Descarté también un «Deshacer» al corregir un conteo guardado (unas 30 líneas
 reusando el de «Poner en cero»): Felipe lo dejó en «no por ahora». Y descarté que la fila no se lleve nunca el cursor: con otra fila, salir de la caja es lo que guarda.

@@ -68,7 +68,8 @@ export const esPedidoNuevo = (visto: number, pedido: number): boolean => pedido 
 /**
  * ¿El toque en la fila de la lista se queda sin el cursor, para que la caja del número lo conserve? (Felipe 2026-11-14). Con «4» a medio escribir, tocar la fila del MISMO
  * modelo le quitaba el cursor a la caja: se guardaba 4 y el «7» que seguía no entraba en ningún lado. Solo la fila del modelo que se cuenta (`filaActiva`), con el número
- * abierto y el botón principal del mouse: la fila de otro modelo, el ✓, el basurero, el teclado y el lector de pantalla siguen igual, y salir de la caja guarda.
+ * abierto y el botón principal del mouse: la fila de otro modelo, el ✓ y el basurero siguen igual, y salir de la caja guarda. El teclado no pasa por `mousedown`; con el lector de
+ * pantalla no se probó.
  */
 export const conservaLaCifra = ({ filaActiva, numeroAbierto, botonPrincipal }: { filaActiva: boolean; numeroAbierto: boolean; botonPrincipal: boolean }): boolean =>
   filaActiva && numeroAbierto && botonPrincipal;
