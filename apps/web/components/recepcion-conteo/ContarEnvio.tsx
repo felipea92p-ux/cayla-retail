@@ -80,6 +80,7 @@ import {
   primeroPorContar,
   lineasDeLaParada,
   costoDeLaParada,
+  destinoDelEnter,
   opcionesDelFiltro,
   paradaContada,
   paradaEnFoco,
@@ -90,7 +91,6 @@ import {
   repartirModeloCon,
   repartirOtroCambio,
   SIN_FILTRO,
-  vecinosDeLaParada,
   type CategoriaDelEnvio,
   type FiltroDelConteo,
   type OrdenDelConteo,
@@ -323,9 +323,6 @@ export function ContarEnvio({
   const enAhora = new Set(paradasDelEnvio.filter((p) => p.modelo && modoDe(p) === "ahora").map((p) => p.clave));
   const categoriasDelConteo = categoriasEnOrden(categoriasDelFiltro(grupos, filtro, parada?.clave ?? null, enAhora), orden);
   const paradas = categoriasDelConteo.flatMap((c) => c.paradas);
-  const { siguiente } = vecinosDeLaParada(paradas, parada?.clave ?? null);
-  // En el último modelo, lo que sigue es lo que quedó sin contar en todo el envío: Enter no cierra, lleva a lo pendiente.
-  const pendiente = siguiente || !parada ? null : siguientePendiente(paradasDelEnvio, parada.clave);
   // El pie del contador dice siempre cuál es el próximo sin contar del envío (sin «Siguiente», es lo único que lleva a otro modelo desde ahí).
   const faltaContar = parada ? siguientePendiente(paradasDelEnvio, parada.clave) : null;
   const opciones = opcionesDelFiltro(grupos, filtro);
@@ -422,7 +419,7 @@ export function ContarEnvio({
     });
   }
 
-  /** «Anterior» o «Listo, siguiente». */
+  /** Los enlaces del pie del contador: «Falta contar: …» y «Faltan tallas: …». */
   function pasarA(p: ParadaDelConteo | null, ahora: number) {
     if (!p || esToqueRepetido(ultimoPaso.current, ahora)) return;
     ultimoPaso.current = ahora;
@@ -982,10 +979,14 @@ export function ContarEnvio({
               onPendiente={(e) => pasarA(faltaContar, e.timeStamp)}
               cierre={botonCerrar}
               onEnter={() => {
-                // Enter pasa al siguiente con su número listo para escribir; en el último, a lo que quedó sin contar; y con todo contado, el cursor va a «Revisar y cerrar».
-                const destino = siguiente ?? (hayFiltro(filtro) ? null : pendiente);
-                if (destino) elegir(destino, true);
-                else requestAnimationFrame(() => (mesa.current?.querySelector<HTMLButtonElement>('[data-guia="recepcion.pasar-a-cerrar"]') ?? filaSeguir.current?.querySelector<HTMLButtonElement>("button:not(:disabled)"))?.focus());
+                // Enter pasa al siguiente modelo EN CERO de lo que la lista muestra, con su número listo para escribir: nunca abre uno que ya tiene cantidad (Felipe
+                // 2026-11-14; quien dictaba hacia abajo sin mirar pisaba un conteo hecho). Sin destino el número se cierra y el cursor va a lo que sigue en el pie: su
+                // enlace («Falta contar», «Faltan tallas», «Ver todos») o, si no hay, «Revisar y cerrar». Nunca al número, o el próximo Enter lo volvería a abrir.
+                const destino = destinoDelEnter(paradas, parada.clave);
+                if (destino) return elegir(destino, true);
+                requestAnimationFrame(() =>
+                  (filaSeguir.current?.querySelector<HTMLElement>(".rc-pie-sigue button, .rc-pie-sigue a") ?? mesa.current?.querySelector<HTMLElement>('[data-guia="recepcion.pasar-a-cerrar"]'))?.focus(),
+                );
               }}
               observacion={
                 <AnotarObservacion

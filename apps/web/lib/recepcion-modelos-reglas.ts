@@ -660,14 +660,25 @@ export function primeroPorContar(paradas: readonly ParadaDelConteo[], clave: str
   return actual && !paradaContada(actual) ? actual : siguientePendiente(paradas, clave);
 }
 
-/** Un doble clic en «Listo, siguiente» saltaba un modelo sin que nadie lo notara (chaos DC-01, 2026-11-02): el segundo toque, tan seguido, no cuenta. */
+/** Un doble clic en un enlace del pie («Falta contar: …», «Faltan tallas: …») saltaba un modelo sin que nadie lo notara (chaos DC-01, 2026-11-02, cuando era «Listo, siguiente»): el segundo toque, tan seguido, no cuenta. */
 export const esToqueRepetido = (anterior: number, ahora: number): boolean => ahora - anterior < 350;
 
-/** Quién va antes y después en la lista que se ve. Si lo que se cuenta salió de la lista, lo que sigue es lo primero que queda. */
-export function vecinosDeLaParada(paradas: readonly ParadaDelConteo[], clave: string | null): { anterior: ParadaDelConteo | null; siguiente: ParadaDelConteo | null } {
-  const i = paradas.findIndex((p) => p.clave === clave);
-  if (i < 0) return { anterior: null, siguiente: paradas[0] ?? null };
-  return { anterior: paradas[i - 1] ?? null, siguiente: paradas[i + 1] ?? null };
+/** Lo que muestra el contador de una parada: lo contado del modelo, con lo que ya entró al stock; sin modelo, lo contado de antes que todavía no es de ninguno. */
+export const contadorDeParada = (p: ParadaDelConteo): number => (p.modelo ? p.modelo.contadas : sinIdentificarDelGrupo(p.grupo));
+
+/**
+ * Adónde lleva Enter después de guardar el número (Felipe 2026-11-14): al siguiente de lo que la lista muestra (`aLaVista`, ya filtrada y ordenada) cuyo contador está en
+ * CERO, nunca a uno que ya tiene cantidad. Quien dicta cantidades hacia abajo sin mirar pisaba un conteo hecho: el número se abría con su cifra seleccionada y la próxima
+ * tecla la reemplazaba. Hacia adelante vale cualquier cero, también un «No llegó» (un anotado puede quedar así sin que nadie lo toque, y saltárselo escondería esa falla);
+ * al dar la vuelta, solo lo que falta contar, para que la vuelta termine. `null` si no hay adónde ir: el número se cierra y el cursor va al pie del contador.
+ */
+export function destinoDelEnter(aLaVista: readonly ParadaDelConteo[], actual: string | null): ParadaDelConteo | null {
+  const i = aLaVista.findIndex((p) => p.clave === actual);
+  const enCero = (p: ParadaDelConteo): boolean => p.clave !== actual && contadorDeParada(p) === 0;
+  // Si lo que se cuenta no se ve (el buscador lo dejó fuera), toda la lista está adelante.
+  const adelante = i < 0 ? aLaVista : aLaVista.slice(i + 1);
+  const antes = i < 0 ? [] : aLaVista.slice(0, i);
+  return adelante.find(enCero) ?? antes.find((p) => enCero(p) && !paradaContada(p)) ?? null;
 }
 
 export type CifrasDelResumen = {

@@ -14,8 +14,8 @@ import { prefiereQuieto } from "@/lib/movimiento-cliente";
 import { atajosDelDial } from "@/lib/recepcion-dial-reglas";
 import { marcaDeLinea, textoPrendas } from "@/lib/recepcion-conteo-reglas";
 import { esCategoriaPorDefinir } from "@/lib/recepcion-envio-reglas";
-import { descripcionDelGrupo, sinIdentificarDelGrupo } from "@/lib/recepcion-grupos-reglas";
-import { conMiles, costoDeLaParada, lineasDeLaParada, nombreDeParada, textoDeCosto, tipoDeParada, type ParadaDelConteo } from "@/lib/recepcion-modelos-reglas";
+import { descripcionDelGrupo } from "@/lib/recepcion-grupos-reglas";
+import { conMiles, contadorDeParada, costoDeLaParada, lineasDeLaParada, nombreDeParada, textoDeCosto, tipoDeParada, type ParadaDelConteo } from "@/lib/recepcion-modelos-reglas";
 import { EstadoModelo } from "./CategoriasAcordeon";
 import { LoQueAnotoCompras } from "./LoQueAnotoCompras";
 import { Dial } from "./Dial";
@@ -75,7 +75,7 @@ export function PlacaDelModelo({
   hayFiltroPuesto: boolean;
   /** Ya no queda nada por contar: el botón principal de la pantalla pasa a ser «Revisar y cerrar», en la lista. */
   todoContado: boolean;
-  /** El pie del contador (Enter, con todo contado, lleva el cursor a su «Revisar y cerrar»). */
+  /** El pie del contador: Enter sin un modelo en cero adonde ir deja el cursor aquí (`destinoDelEnter`). */
   filaSeguir: Ref<HTMLDivElement>;
   /** La persona dejó este número: la pantalla lo guarda en la línea que le toca. */
   onPoner: (n: number) => void;
@@ -112,8 +112,8 @@ export function PlacaDelModelo({
   const p = grupo.principal;
   const porDefinir = !!p.categoria && esCategoriaPorDefinir(p.categoria);
   const hayConteo = modelo ? modelo.contado : true;
-  // Sin modelo, lo contado de antes que todavía no es de ninguno: nunca se compara con lo que dijeron.
-  const contadas = modelo ? modelo.contadas : sinIdentificarDelGrupo(grupo);
+  // Sin modelo, lo contado de antes que todavía no es de ninguno: nunca se compara con lo que dijeron. Es el mismo número que mira Enter (`destinoDelEnter`).
+  const contadas = contadorDeParada(parada);
   const dijeron = modelo ? modelo.esperadas : null;
   // Un modelo se puede bajar hasta 0 (no llegó) o hasta lo que ya entró al stock.
   const minimo = modelo ? modelo.enStock : 0;
@@ -394,7 +394,8 @@ export function PlacaDelModelo({
 
       {/* Sin «Anterior» ni «Siguiente» (Felipe 2026-11-12: «no sirven, ya que todas las colaboradoras usan la lista de categorías para moverse
           entre las prendas»). A la izquierda, a qué ir si falta algo; a la derecha, el ÚNICO «Revisar y cerrar» de la pantalla (ADR-0645), que
-          viene de `ContarEnvio` con su peso (negro solo cuando es lo que toca). Enter sigue pasando al siguiente modelo. */}
+          viene de `ContarEnvio` con su peso (negro solo cuando es lo que toca). Enter pasa al siguiente modelo en cero, nunca a uno con cantidad; sin
+          ninguno, el cursor viene aquí: al enlace de la izquierda o, si no hay, a «Revisar y cerrar» (`destinoDelEnter`). */}
       <div ref={filaSeguir} className="rc-placa-pie" data-guia="recepcion.siguiente">
         <p className="rc-pie-sigue">
           {pendiente ? (

@@ -8,7 +8,7 @@ const ALTO_CABEZA = 72;
 const ABRE_MS = 430;
 
 /**
- * Una lista con su propio scroll deja a la vista su fila activa (`data-activa`) cuando esta cambia: «Listo, siguiente» puede saltar a un modelo que quedó abajo, o abrir otra categoría.
+ * Una lista con su propio scroll deja a la vista su fila activa (`data-activa`) cuando esta cambia: Enter puede saltar a un modelo que quedó abajo, o abrir otra categoría.
  * Mueve solo el scroll de la lista, nunca el de la página (`scrollIntoView` podría llevarse la página entera).
  */
 export function useFilaActivaALaVista<T extends HTMLElement>(...claves: readonly (string | null)[]) {

@@ -9,7 +9,7 @@ import { Odometro } from "./Odometro";
 // El Dial de una categoría (rediseño «B» de Recibir, Felipe 2026-10-29): el aro se llena con lo contado contra lo que dijeron, con un corte
 // por prenda esperada y una perilla que marca hasta dónde se llegó. El aro solo muestra (Felipe pidió quitar el arrastre): el número se toca
 // y se escribe con el teclado —salir de la caja lo deja, Escape lo devuelve, vacío no cambia nada— y el − y el + suman de a una. Enter lo deja y
-// pasa a lo siguiente, que llega con su número listo para escribir (`abrirAlEntrar`): así se cuenta un envío entero sin soltar el teclado.
+// pasa al siguiente modelo en cero, que llega con su número listo para escribir (`abrirAlEntrar`); nunca a uno que ya tiene cantidad (`destinoDelEnter`).
 // Sumar hace saltar una chispa en la perilla; cuadrar recorre el aro con un brillo y dibuja el visto. Todo una vez, sin rebote (ADR-0136).
 
 const CX = 145;
