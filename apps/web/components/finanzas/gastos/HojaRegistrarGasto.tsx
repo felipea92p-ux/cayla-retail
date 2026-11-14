@@ -161,7 +161,8 @@ export function HojaRegistrarGasto({
   // De dónde salió la plata: la cuenta (el cajón, la caja fuerte, un banco, la tarjeta) y, con un banco, por qué camino. Las mismas
   // reglas que la hoja de antes: un gasto de una tienda solo sale del cajón de ESA tienda; los de la empresa, de cualquiera.
   const [cuentaId, setCuentaId] = useState("");
-  const [medioBanco, setMedioBanco] = useState<"transferencia" | "yape" | "plin" | "deposito">("transferencia");
+  // Con un banco, por qué camino salió: también lo elige la persona (Felipe 2026-11-13: un Yape quedaba como «Transferencia» si no se tocaba).
+  const [medioBanco, setMedioBanco] = useState<"transferencia" | "yape" | "plin" | "deposito" | "">("");
   const [medioSinCuentas, setMedioSinCuentas] = useState<MedioGasto | "">("");
   const [referencia, setReferencia] = useState("");
   const papel = conComprobante(h);
@@ -175,17 +176,17 @@ export function HojaRegistrarGasto({
     [cuentasPago.cuentas, h.sede],
   );
   const conCuentas = cuentasPago.listo && cuentasGasto.length > 0;
-  // Al cambiar de sede, lo que ya no sirve queda por elegir (no se reemplaza solo: `salidaDeLaHoja`).
-  const [porElegir, setPorElegir] = useState(false);
-  const cuentaSalida = salidaDeLaHoja(cuentasGasto, h, cuentaId, porElegir);
+  // La hoja no elige la cuenta por nadie (Felipe 2026-11-13): sin elegir, o si lo elegido ya no sirve en la sede nueva, queda por elegir.
+  const cuentaSalida = salidaDeLaHoja(cuentasGasto, cuentaId);
   const salida = cuentasGasto.find((c) => c.id === cuentaSalida) ?? null;
-  const bancoConMedio = salida?.tipo === "banco" ? (mediosDeBanco(papel).includes(medioBanco) ? medioBanco : "transferencia") : null;
-  const medioSalida: MedioGasto | "" = salida ? (medioDeCuenta(salida.tipo) ?? bancoConMedio ?? "transferencia") : "";
+  const deBanco = salida?.tipo === "banco";
+  const bancoConMedio = deBanco && medioBanco && mediosDeBanco(papel).includes(medioBanco) ? medioBanco : "";
+  const medioSalida: MedioGasto | "" = salida ? (medioDeCuenta(salida.tipo) ?? bancoConMedio) : "";
   const cajaDe = (ubicacionId: string | null | undefined) => cajasAbiertas.find((c) => c.ubicacionId === ubicacionId)?.id ?? "";
   const salidaHoja: SalidaDeLaHoja = conCuentas
-    ? { medio: medioSalida, cuentaId: cuentaSalida ?? undefined, cajaId: salida?.tipo === "cajon" ? cajaDe(salida.ubicacionId) : "", referencia, banco: salida?.tipo === "banco" }
+    ? { medio: medioSalida, cuentaId: cuentaSalida ?? undefined, cajaId: salida?.tipo === "cajon" ? cajaDe(salida.ubicacionId) : "", referencia, banco: deBanco }
     : { medio: medioSinCuentas, cajaId: medioSinCuentas === "efectivo" ? cajaDe(h.sede) : "", referencia };
-  const salidaLista = !h.sede ? false : conCuentas ? Boolean(cuentaSalida) : Boolean(medioSinCuentas) && (medioSinCuentas !== "efectivo" || Boolean(cajaDe(h.sede)));
+  const salidaLista = !h.sede ? false : conCuentas ? Boolean(cuentaSalida) && Boolean(medioSalida) : Boolean(medioSinCuentas) && (medioSinCuentas !== "efectivo" || Boolean(cajaDe(h.sede)));
 
   // El proveedor sale del RUC: el que ya está en el directorio, o la razón social que trajo el padrón (o se escribió) para sumarlo.
   const rucValido = validarRuc(h.ruc).valido;
@@ -227,11 +228,7 @@ export function HojaRegistrarGasto({
 
   function elegirSede(id: string) {
     if (id === h.sede) return;
-    // Lo que se veía en «Salió de» se recuerda: si sirve en la sede nueva (un banco) se queda; si no (el cajón de la otra), queda por elegir.
-    if (h.sede) {
-      setCuentaId(cuentaSalida ?? "");
-      setPorElegir(true);
-    }
+    // Lo elegido en «Salió de» se queda si sirve en la sede nueva (un banco); si no (el cajón de la otra), queda por elegir (`salidaDeLaHoja`).
     poner("sede", id);
   }
 
@@ -329,7 +326,6 @@ export function HojaRegistrarGasto({
     const nueva = hojaDePlantilla(p, h.fecha);
     setH(nueva);
     setCuentaId("");
-    setPorElegir(false);
     setFotoAlAbrir(fotoFormulario({ h: nueva, cuentaId, medioSinCuentas, referencia }));
   }
 
@@ -509,10 +505,17 @@ export function HojaRegistrarGasto({
               {conCuentas ? (
                 <div className="grid gap-x-3 sm:grid-cols-2">
                   <CampoCuentaFin id="hoja-gasto-cuenta" etiqueta="Salió de" cuentas={cuentasGasto} listo={cuentasPago.listo} clase="pago" medio={medioSalida || "transferencia"} sinMedio valor={cuentaSalida} onValor={(v) => setCuentaId(v)} />
-                  {bancoConMedio && (
-                    <CampoSelect etiqueta="Cómo" caja valor={bancoConMedio} onValor={(m) => setMedioBanco(m)} opciones={mediosDeBanco(papel).map((m) => ({ valor: m, texto: TEXTO_MEDIO[m] }))} />
+                  {deBanco && (
+                    <CampoSelect<"transferencia" | "yape" | "plin" | "deposito" | "">
+                      etiqueta="Cómo"
+                      caja
+                      valor={bancoConMedio}
+                      onValor={(m) => setMedioBanco(m)}
+                      marcador="Elige…"
+                      opciones={mediosDeBanco(papel).map((m) => ({ valor: m, texto: TEXTO_MEDIO[m] }))}
+                    />
                   )}
-                  {bancoConMedio && papel && !egreso && (
+                  {deBanco && papel && !egreso && (
                     <CampoFecha etiqueta="¿Cuándo salió del banco?" valor={h.fechaPago || h.fecha} onValor={(v) => poner("fechaPago", v)} min={h.fecha} max={hoy} />
                   )}
                 </div>

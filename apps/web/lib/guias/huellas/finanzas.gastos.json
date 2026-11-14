@@ -2,7 +2,7 @@
   "guia": "finanzas.gastos",
   "ruta": "/finanzas/gastos",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 143,
+  "total": 142,
   "controles": {
     "components/ConsultaDocumento.tsx": [
       "CampoTexto «{contador ? ( <> {}»",
@@ -154,7 +154,6 @@
       "CampoFecha «{papel ? \"Fecha del comprobante\" : \"Fecha\"}»",
       "button «{t}»",
       "CampoFecha «Cuándo vence»",
-      "CampoSelect «Cómo»",
       "CampoFecha «¿Cuándo salió del banco?»",
       "button «{`Quitar «${fijoElegido.descripcion}»",
       "ComboResponsable «{responsable}»",
