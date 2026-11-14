@@ -1375,8 +1375,8 @@ export const GUIA_CAMPANAS: Guia = {
       ancla: "sellos.oferta-una-por-una",
       opcional: true,
       preparar: [{ tipo: "clic", ancla: "sellos.oferta-paso-2" }],
-      titulo: "Por categoría o prenda por prenda",
-      texto: "Elige categorías enteras o, en «Prenda por prenda», busca y marca modelos sueltos: cada uno entra con todas sus tallas y colores. Se pueden sumar las dos cosas; al elegir prendas sueltas, la oferta rige solo en lo que marques.",
+      titulo: "Por categoría, prenda o insignia",
+      texto: "Elige categorías enteras, marca modelos sueltos en «Prenda por prenda» o, en «Por insignia», las prendas que llevan una insignia. Se pueden sumar; al elegir prendas o insignias, la oferta rige solo en lo que marques.",
     },
     {
       id: "oferta-dias",

@@ -83,8 +83,9 @@ const ANTES = [
   falta("select to_regprocedure('retail.tienda_bolsa_grupos(jsonb, uuid)') is null;") ? leer("20261114041000_tienda_web_ofertas_de_grupo") : "",
   falta("select to_regprocedure('retail.fn_escalones_validos(jsonb, text)') is null;") ? readFileSync(MIGRACION, "utf8") : "",
   // Los choques con la forma, con su propio nombre (una sola firma por función).
-  falta("select to_regprocedure('retail.fn_choques_de_oferta_con_forma(uuid, uuid, date, date, smallint[], uuid[], uuid[], uuid[], boolean, uuid[], text, text, boolean)') is null;")
-    ? readFileSync(UNA_FIRMA, "utf8")
+  // Y las ofertas por insignia (20261114060000), que le suman `p_insignias` a los choques con la forma.
+  falta("select to_regclass('retail.campana_regla_insignias') is null;")
+    ? [readFileSync(UNA_FIRMA, "utf8"), leer("20261114060000_ofertas_por_insignia")].join("\n")
     : "",
 ].filter(Boolean).join("\n");
 
@@ -243,14 +244,14 @@ esperarError(
 esperarValor(
   "fn_choques_de_oferta_con_forma: un monto de toda la compra ve la rebaja; si cede a las otras, no ve nada",
   caso(`${PCT}select concat_ws('|',
-  (select count(distinct c.otra_id) from retail.fn_choques_de_oferta_con_forma(null, :'camp', ${HOY}, ${HOY} + 3, array[1,2,3,4,5,6,7]::smallint[], '{}'::uuid[], '{}'::uuid[], '{}'::uuid[], false, '{}'::uuid[], 'monto', 'compra', false) c where c.otra_id = :'pct'),
-  (select count(*) from retail.fn_choques_de_oferta_con_forma(null, :'camp', ${HOY}, ${HOY} + 3, array[1,2,3,4,5,6,7]::smallint[], '{}'::uuid[], '{}'::uuid[], '{}'::uuid[], false, '{}'::uuid[], 'monto', 'compra', true) c));\n`),
+  (select count(distinct c.otra_id) from retail.fn_choques_de_oferta_con_forma(null, :'camp', ${HOY}, ${HOY} + 3, array[1,2,3,4,5,6,7]::smallint[], '{}'::uuid[], '{}'::uuid[], '{}'::uuid[], '{}'::uuid[], false, '{}'::uuid[], 'monto', 'compra', false) c where c.otra_id = :'pct'),
+  (select count(*) from retail.fn_choques_de_oferta_con_forma(null, :'camp', ${HOY}, ${HOY} + 3, array[1,2,3,4,5,6,7]::smallint[], '{}'::uuid[], '{}'::uuid[], '{}'::uuid[], '{}'::uuid[], false, '{}'::uuid[], 'monto', 'compra', true) c));\n`),
   "1|0",
 );
 esperarValor(
   "…y dice si la otra es un monto y cuántas prendas alcanza esta (la rebaja de la categoría no las tiene todas)",
   caso(`${PCT}select concat_ws('|', bool_and(not c.otra_es_monto), bool_and(c.mias > c.prendas))
-  from retail.fn_choques_de_oferta_con_forma(null, :'camp', ${HOY}, ${HOY} + 3, array[1,2,3,4,5,6,7]::smallint[], '{}'::uuid[], '{}'::uuid[], '{}'::uuid[], false, '{}'::uuid[], 'monto', 'compra', false) c
+  from retail.fn_choques_de_oferta_con_forma(null, :'camp', ${HOY}, ${HOY} + 3, array[1,2,3,4,5,6,7]::smallint[], '{}'::uuid[], '{}'::uuid[], '{}'::uuid[], '{}'::uuid[], false, '{}'::uuid[], 'monto', 'compra', false) c
   where c.otra_id = :'pct';\n`),
   "t|t",
 );
@@ -406,8 +407,8 @@ esperarValor(
 );
 
 esperarValor(
-  "la de una sola firma también se pega dos veces, y cada función de choques queda con una firma",
-  correr(`begin;\n${ANTES}\n${readFileSync(UNA_FIRMA, "utf8")}\n${readFileSync(UNA_FIRMA, "utf8")}\nselect string_agg(proname || ':' || n, ',' order by proname) from (
+  "la de una sola firma también se pega dos veces (y después la de las insignias), y cada función de choques queda con una firma",
+  correr(`begin;\n${ANTES}\n${readFileSync(UNA_FIRMA, "utf8")}\n${readFileSync(UNA_FIRMA, "utf8")}\n${leer("20261114060000_ofertas_por_insignia")}\nselect string_agg(proname || ':' || n, ',' order by proname) from (
   select p.proname, count(*) as n from pg_proc p where p.pronamespace = 'retail'::regnamespace
    and p.proname in ('fn_choques_de_oferta', 'fn_choques_de_oferta_sin_llave', 'fn_choques_de_oferta_con_forma', 'fn_choques_de_oferta_con_forma_sin_llave')
   group by p.proname) x;\nrollback;`),
