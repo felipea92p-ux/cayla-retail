@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { coloresDeLaPrenda, galeriaDePrendas } from "./recepcion-galeria-reglas";
+import { coloresDeLaPrenda, galeriaDePrendas, leerRecibidasDelProveedor, parecidoPorPlata, porQueArriba, referenciaComun, referenciaDe } from "./recepcion-galeria-reglas";
 import type { PrendaRecepcion, VarianteRecepcion } from "./recepcion-envio-reglas";
 
 const variante = (color: string | null, hex: string | null = null, codigo: string | null = null): VarianteRecepcion => ({
@@ -84,5 +84,94 @@ describe("coloresDeLaPrenda", () => {
       { nombre: "Rojo", hex: "#c00" },
       { nombre: "Azul", hex: "#00c" },
     ]);
+  });
+});
+
+// Una prenda con su costo y su precio en todas sus variantes.
+const conPlata = (nombre: string, marca: string | null, costo: number | null, precio: number | null): PrendaRecepcion => ({
+  ...prenda(nombre, marca, ["Azul", "Rojo"]),
+  variantes: ["Azul", "Rojo"].map((c) => ({ ...variante(c), costo, precio })),
+});
+
+describe("el orden de lo más parecido (Felipe 2026-11-14)", () => {
+  const recibidas = new Map([
+    ["Viejo", "2026-06-01T15:00:00Z"],
+    ["Reciente", "2026-11-02T15:00:00Z"],
+  ]);
+
+  it("primero lo que este proveedor ya mandó, lo más reciente arriba", () => {
+    const p = [conPlata("Alfa", "x", null, null), conPlata("Viejo", "x", null, null), conPlata("Reciente", "x", null, null)];
+    expect(galeriaDePrendas(p, { busqueda: "", recibidas }).map((x) => x.nombre)).toEqual(["Reciente", "Viejo", "Alfa"]);
+  });
+
+  it("después, mismo costo y precio; luego parecidos; luego el resto", () => {
+    const ref = { costo: 35, precio: 79 };
+    const p = [conPlata("Lejana", "x", 80, 150), conPlata("Parecida", "x", 38, 85), conPlata("Igual", "x", 35, 79), conPlata("SinDato", "x", null, null)];
+    expect(galeriaDePrendas(p, { busqueda: "", referencia: ref }).map((x) => x.nombre)).toEqual(["Igual", "Parecida", "Lejana", "SinDato"]);
+  });
+
+  it("el parecido por plata gana a la marca del envío; la marca, al nombre", () => {
+    const ref = { costo: 35, precio: 79 };
+    const p = [conPlata("A-envio", "claure", 90, 200), conPlata("B-otra", "otra", 35, 79), conPlata("C-envio", "claure", null, null), conPlata("D-otra", "otra", null, null)];
+    expect(galeriaDePrendas(p, { busqueda: "", referencia: ref, marcasDelEnvio: ["claure"] }).map((x) => x.nombre)).toEqual(["B-otra", "A-envio", "C-envio", "D-otra"]);
+  });
+
+  it("lo del proveedor va antes aunque cueste distinto", () => {
+    const ref = { costo: 35, precio: 79 };
+    const p = [conPlata("Igual", "x", 35, 79), conPlata("Reciente", "x", 60, 120)];
+    expect(galeriaDePrendas(p, { busqueda: "", referencia: ref, recibidas }).map((x) => x.nombre)).toEqual(["Reciente", "Igual"]);
+  });
+
+  it("el orden nunca esconde: con o sin contexto quedan las mismas", () => {
+    const p = [conPlata("Uno", "x", 35, 79), conPlata("Dos", "y", 10, 20), conPlata("Reciente", "z", null, null)];
+    expect(galeriaDePrendas(p, { busqueda: "", referencia: { costo: 35, precio: 79 }, recibidas })).toHaveLength(3);
+  });
+});
+
+describe("parecidoPorPlata", () => {
+  it("mismo, parecido o nada; sin referencia o sin dato, nada", () => {
+    expect(parecidoPorPlata(conPlata("a", null, 35, 79), { costo: 35, precio: 79 })).toBe("mismo");
+    expect(parecidoPorPlata(conPlata("a", null, 35.5, 79), { costo: 35, precio: 79 })).toBe("mismo");
+    expect(parecidoPorPlata(conPlata("a", null, 38, 85), { costo: 35, precio: 79 })).toBe("parecido");
+    expect(parecidoPorPlata(conPlata("a", null, 60, 140), { costo: 35, precio: 79 })).toBeNull();
+    expect(parecidoPorPlata(conPlata("a", null, 35, 79), null)).toBeNull();
+    expect(parecidoPorPlata(conPlata("a", null, null, null), { costo: 35, precio: 79 })).toBeNull();
+  });
+
+  it("compara solo lo que hay: sin el costo del modelo, solo el precio", () => {
+    expect(parecidoPorPlata(conPlata("a", null, 99, 79), { costo: null, precio: 79 })).toBe("mismo");
+  });
+});
+
+describe("porQueArriba", () => {
+  it("dice la fecha de Lima y lo que se comparó, en una línea", () => {
+    const recibidas = new Map([["Reciente", "2026-11-02T03:00:00Z"]]); // 1 nov a las 22:00 en Lima
+    expect(porQueArriba(conPlata("Reciente", null, 35, 79), { recibidas, referencia: { costo: 35, precio: 79 } })).toBe("Llegó el 1 nov · mismo costo y precio");
+    expect(porQueArriba(conPlata("Otra", null, 35, 79), { referencia: { costo: null, precio: 79 } })).toBe("Mismo precio");
+    expect(porQueArriba(conPlata("Otra", null, 38, 85), { referencia: { costo: 35, precio: 79 } })).toBe("Costo y precio parecidos");
+    expect(porQueArriba(conPlata("Otra", null, null, null), {})).toBeNull();
+  });
+});
+
+describe("leerRecibidasDelProveedor", () => {
+  it("lee la respuesta de la base e ignora lo roto", () => {
+    const m = leerRecibidasDelProveedor([{ producto_id: "p1", ultima_vez: "2026-11-02T15:00:00Z" }, { producto_id: 3 }, null, { producto_id: "p2", ultima_vez: "ayer" }]);
+    expect([...m.keys()]).toEqual(["p1"]);
+    expect(leerRecibidasDelProveedor(null).size).toBe(0);
+  });
+});
+
+describe("referenciaDe y referenciaComun", () => {
+  it("lee el costo escrito y el precio; nada, si no hay", () => {
+    expect(referenciaDe("35,50", 79)).toEqual({ costo: 35.5, precio: 79 });
+    expect(referenciaDe("", null)).toBeNull();
+    expect(referenciaDe("abc", 0)).toBeNull();
+    expect(referenciaDe(null, 79)).toEqual({ costo: null, precio: 79 });
+  });
+
+  it("solo lo que comparten todas las líneas", () => {
+    expect(referenciaComun([{ costo: 35, precio: 79 }, { costo: 35, precio: 89 }])).toEqual({ costo: 35, precio: null });
+    expect(referenciaComun([{ costo: 35, precio: 79 }, { costo: 40, precio: 89 }])).toBeNull();
+    expect(referenciaComun([])).toBeNull();
   });
 });

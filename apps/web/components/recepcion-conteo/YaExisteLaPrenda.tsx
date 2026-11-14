@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Modal } from "@/components/ui/Modal";
 import { Aviso } from "@/components/ui/Aviso";
 import { Boton, CampoSelect } from "@/components/ui/campos";
@@ -8,6 +8,7 @@ import { ComboResponsable } from "@/components/ComboResponsable";
 import { ElegirPrendaExistente } from "@/components/recepcion-envio/ElegirPrendaExistente";
 import { buscarParecidasParaRecibir } from "@/lib/recepcion-envio-acciones";
 import type { CategoriaDeLinea, PrendaRecepcion } from "@/lib/recepcion-envio-reglas";
+import { referenciaDe } from "@/lib/recepcion-galeria-reglas";
 import { FichaDeLaPrenda } from "./FichaDeLaPrenda";
 import type { ControlResponsable } from "@/lib/useResponsable";
 
@@ -29,6 +30,10 @@ export function YaExisteLaPrenda({
   marcas = [],
   conSinMarca = true,
   responsable,
+  proveedorIds = [],
+  precio = null,
+  costoParaOrdenar = null,
+  enLaLista,
   onPasarALinea,
   onUsar,
   onCrear,
@@ -52,6 +57,14 @@ export function YaExisteLaPrenda({
   conSinMarca?: boolean;
   /** Quién firma el cambio. */
   responsable?: ControlResponsable;
+  /** Los proveedores del modelo: lo que ya mandaron sale primero en la galería. */
+  proveedorIds?: readonly string[];
+  /** El precio de venta sugerido del modelo: con el costo, sube lo de mismo costo y precio. */
+  precio?: number | null;
+  /** Las prendas que ya están en la lista del envío. */
+  enLaLista?: ReadonlySet<string>;
+  /** El costo con que ordenar la galería cuando no se muestra (`costo` en `null`): el de la compra. */
+  costoParaOrdenar?: number | null;
   /** Pasa el modelo a esa categoría y esa marca (`null` = sin marca). Devuelve el error en palabras, o `null` si quedó. */
   onPasarALinea?: (categoriaId: string, marcaId: string | null) => Promise<string | null>;
   /** `cambioCategoria`: el modelo acaba de pasar a otra categoría o a otra marca. */
@@ -81,6 +94,7 @@ export function YaExisteLaPrenda({
   }, [categoria.id, marca.id, nombre]);
 
   const costoEscrito = costo?.trim() ? `S/ ${costo.trim()}` : null;
+  const referencia = useMemo(() => referenciaDe(costo ?? (costoParaOrdenar != null ? String(costoParaOrdenar) : null), precio), [costo, costoParaOrdenar, precio]);
   const prendas = `${cantidad} ${cantidad === 1 ? "prenda" : "prendas"}`;
 
   function elegirCategoria(id: string) {
@@ -185,6 +199,9 @@ export function YaExisteLaPrenda({
             marca={marca}
             busquedaInicial={nombre ?? ""}
             elegidaId={elegida?.productoId ?? null}
+            proveedorIds={proveedorIds}
+            referencia={referencia}
+            enLaLista={enLaLista}
             onElegir={setElegida}
             onVerFicha={() => setConFicha(true)}
             onEsNueva={() => void crear()}

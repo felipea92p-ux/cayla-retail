@@ -41,3 +41,9 @@ Las ideas que se descartaron en una corrida (ya existían, sin fuente, moda, no 
 | cambiar-de-modulo#18 | Todo el ERP | Reabrir Cache Components con Partial Prefetching, ruta por ruta | Visión | 4 / XL | propuesta | [informe](2026-11-13-cambiar-de-modulo.md) | 2026-11-13 |
 | cambiar-de-modulo#19 | Vender | Vender abre con el catálogo ya en el equipo (IndexedDB) | Visión | 4 / XL | propuesta | [informe](2026-11-13-cambiar-de-modulo.md) | 2026-11-13 |
 | cambiar-de-modulo#20 | Marco (identidad) | La identidad viaja en el token (Custom Access Token Hook) | Visión | 4 / XL | propuesta | [informe](2026-11-13-cambiar-de-modulo.md) | 2026-11-13 |
+| recibir-galeria#1 | Recibir | La tarjeta dice «Ya en tu lista» antes de tocarla | Ahora | 2 / S | hecha (aceptada 2026-11-14, PR #1862) | [informe](2026-11-14-recibir-galeria.md) | 2026-11-14 |
+| recibir-galeria#2 | Recibir | Elegir con el teclado: flechas entre las fotos, Enter elige | Ahora | 2 / S | propuesta | [informe](2026-11-14-recibir-galeria.md) | 2026-11-14 |
+| recibir-galeria#3 | Recibir | Primero lo que este proveedor ya te mandó, con su porqué (Felipe sumó: y lo de mismo costo y precio) | Ahora | 3 / M | hecha (aceptada 2026-11-14, PR #1862; migración 20261114165000 sin pegar en producción) | [informe](2026-11-14-recibir-galeria.md) | 2026-11-14 |
+| recibir-galeria#4 | Recibir | El código de la etiqueta del proveedor se aprende al recibir | Visión | 4 / L | propuesta | [informe](2026-11-14-recibir-galeria.md) | 2026-11-14 |
+| recibir-galeria#5 | Recibir | Una foto de la prenda en la mano ordena la galería por parecido | Visión | 4 / L | propuesta | [informe](2026-11-14-recibir-galeria.md) | 2026-11-14 |
+| recibir-galeria#6 | Recibir | La foto del papel de la compra propone los modelos y su prenda | Visión | 5 / XL | propuesta | [informe](2026-11-14-recibir-galeria.md) | 2026-11-14 |

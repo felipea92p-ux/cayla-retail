@@ -6,9 +6,10 @@ import { Buscador } from "@/components/ui/Buscador";
 import { Vacio } from "@/components/ui/Vacio";
 import { Aviso } from "@/components/ui/Aviso";
 import { FotoDePrenda } from "@/components/ui/FotoDePrenda";
-import { buscarParecidasParaRecibir, buscarPrendasParaRecibir } from "@/lib/recepcion-envio-acciones";
+import { Chip } from "@/components/ui/Chip";
+import { buscarParecidasParaRecibir, buscarPrendasParaRecibir, leerRecibidasDelProveedorEnLaBase } from "@/lib/recepcion-envio-acciones";
 import { MAX_PRENDAS_PARA_RECIBIR, type CategoriaDeLinea, type PrendaRecepcion } from "@/lib/recepcion-envio-reglas";
-import { MAX_COLORES_EN_TARJETA, coloresDeLaPrenda, galeriaDePrendas } from "@/lib/recepcion-galeria-reglas";
+import { MAX_COLORES_EN_TARJETA, coloresDeLaPrenda, galeriaDePrendas, porQueArriba, type ReferenciaDelModelo } from "@/lib/recepcion-galeria-reglas";
 
 // «Ya la tengo» (ADR-0362, fase 4): la prenda que llegó ya existe en el catálogo. Se busca entre las de ESA categoría y marca
 // (`fn_prendas_para_recibir`, hasta 30) o de todas las marcas (`fn_parecidas_para_recibir`, hasta 200) mientras se escribe —nunca esperando
@@ -18,6 +19,8 @@ import { MAX_COLORES_EN_TARJETA, coloresDeLaPrenda, galeriaDePrendas } from "@/l
 // con su foto en grande, su nombre, su marca y sus colores. Al escribir quedan solo las que coinciden (antes solo se ordenaban) y salen
 // primero las marcas que ya trae el envío (`galeriaDePrendas`, lógica pura con su prueba). Tocar una tarjeta la ELIGE ahí mismo, sin abrir su
 // ficha: descartar una candidata ya no cuesta abrir y volver. La ficha queda a un toque («Ver ficha») para cuando haya duda.
+// Arriba van las más parecidas (Felipe 2026-11-14): lo que este proveedor ya mandó, y lo de mismo costo y precio que el modelo que llegó; cada
+// tarjeta dice su porqué en una línea. Lo que ya está en la lista del envío lleva «En tu lista» sobre la foto.
 
 export function ElegirPrendaExistente({
   categoria,
@@ -26,6 +29,9 @@ export function ElegirPrendaExistente({
   todasLasMarcas = false,
   marcasDelEnvio = [],
   elegidaId = null,
+  proveedorIds = [],
+  referencia = null,
+  enLaLista,
   onElegir,
   onVerFicha,
   onEsNueva,
@@ -41,6 +47,12 @@ export function ElegirPrendaExistente({
   marcasDelEnvio?: readonly (string | null)[];
   /** La tarjeta elegida, marcada con su ✓. */
   elegidaId?: string | null;
+  /** Los proveedores del envío: lo que ya mandaron sale primero (`fn_recibidas_del_proveedor`). */
+  proveedorIds?: readonly string[];
+  /** El costo y el precio del modelo que llegó: lo de mismo costo y precio sale arriba. */
+  referencia?: ReferenciaDelModelo | null;
+  /** Las prendas que ya están en la lista del envío. */
+  enLaLista?: ReadonlySet<string>;
   onElegir: (prenda: PrendaRecepcion) => void;
   /** Abre la ficha de la elegida. Sin él, no se ofrece. */
   onVerFicha?: () => void;
@@ -53,6 +65,19 @@ export function ElegirPrendaExistente({
   const [fallo, setFallo] = useState(false);
   // La respuesta que llega tarde (de una búsqueda vieja) no pisa a la última.
   const vuelta = useRef(0);
+  // Lo que ya mandó el proveedor: se pide una vez por categoría. Si no responde, la galería ordena sin ello.
+  const [recibidas, setRecibidas] = useState<ReadonlyMap<string, string>>(new Map());
+  const claveProveedores = [...proveedorIds].sort().join(",");
+  useEffect(() => {
+    let vigente = true;
+    const ids = claveProveedores ? claveProveedores.split(",") : [];
+    void leerRecibidasDelProveedorEnLaBase(categoria.id, ids).then((m) => {
+      if (vigente) setRecibidas(m);
+    });
+    return () => {
+      vigente = false;
+    };
+  }, [categoria.id, claveProveedores]);
 
   function escribir(texto: string) {
     setBusqueda(texto);
@@ -76,7 +101,10 @@ export function ElegirPrendaExistente({
     return () => window.clearTimeout(t);
   }, [categoria.id, marca.id, busqueda, todasLasMarcas]);
 
-  const galeria = useMemo(() => (prendas ? galeriaDePrendas(prendas, { busqueda, marcasDelEnvio }) : null), [prendas, busqueda, marcasDelEnvio]);
+  const galeria = useMemo(
+    () => (prendas ? galeriaDePrendas(prendas, { busqueda, marcasDelEnvio, recibidas, referencia }) : null),
+    [prendas, busqueda, marcasDelEnvio, recibidas, referencia],
+  );
   const elegida = elegidaId ? galeria?.find((p) => p.productoId === elegidaId) ?? prendas?.find((p) => p.productoId === elegidaId) ?? null : null;
 
   // `fn_parecidas_para_recibir` trae hasta 200; `fn_prendas_para_recibir`, hasta MAX_PRENDAS_PARA_RECIBIR.
@@ -141,6 +169,7 @@ export function ElegirPrendaExistente({
             const colores = coloresDeLaPrenda(p);
             const marcaDe = todasLasMarcas ? (p.marca?.nombre ?? "Sin marca") : null;
             const esta = p.productoId === elegidaId;
+            const porQue = porQueArriba(p, { recibidas, referencia });
             return (
               <li key={p.productoId}>
                 <button type="button" className="rc-galeria-tarjeta" aria-pressed={esta} onClick={() => onElegir(p)}>
@@ -153,8 +182,15 @@ export function ElegirPrendaExistente({
                       </span>
                     )}
                   </span>
+                  {/* Junto al texto y no sobre la foto: sobre una foto rosa o estampada no se leía. */}
+                  {enLaLista?.has(p.productoId) && (
+                    <span className="rc-galeria-en-lista">
+                      <Chip tono="pizarra">En tu lista</Chip>
+                    </span>
+                  )}
                   <span className="rc-galeria-nombre">{p.nombre}</span>
                   {(marcaDe || p.codigo) && <span className="rc-galeria-dato">{[marcaDe, p.codigo].filter(Boolean).join(" · ")}</span>}
+                  {porQue && <span className="rc-galeria-porque">{porQue}</span>}
                   {colores.length > 0 && (
                     <span className="rc-galeria-colores" title={colores.map((c) => c.nombre).join(", ")}>
                       <span className="sr-only">{colores.map((c) => c.nombre).join(", ")}</span>

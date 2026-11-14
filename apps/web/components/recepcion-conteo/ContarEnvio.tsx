@@ -78,6 +78,7 @@ import {
   faltaAparteDeContar,
   primeroPorContar,
   lineasDeLaParada,
+  costoDeLaParada,
   opcionesDelFiltro,
   paradaContada,
   paradaEnFoco,
@@ -669,6 +670,14 @@ export function ContarEnvio({
   const paradaAQuitar = hoja?.tipo === "quitar" ? (paradasDelEnvio.find((p) => p.clave === hoja.parada) ?? null) : null;
   const categoriaAQuitar = hoja?.tipo === "quitar-categoria" ? (todas.find((c) => c.clave === hoja.categoria) ?? null) : null;
   const grupoDeHoja = hoja && "grupo" in hoja ? (grupos.find((g) => g.clave === hoja.grupo) ?? null) : null;
+  // «¿Esta prenda ya existe?»: lo que la galería necesita para poner arriba lo más parecido (Felipe 2026-11-14). El costo y el precio del modelo, si
+  // la compra los dijo; las prendas que ya están en la lista de su categoría.
+  const paradaExiste = hoja?.tipo === "existe" ? (paradasDelEnvio.find((p) => p.clave === hoja.parada) ?? null) : null;
+  const costoExiste = paradaExiste ? costoDeLaParada(paradaExiste) : null;
+  const precioExiste = paradaExiste ? (lineasDeLaParada(paradaExiste).find((l) => l.linea?.precioVentaSugerido != null)?.linea?.precioVentaSugerido ?? null) : null;
+  const enLaListaExiste = new Set(
+    (todas.find((c) => c.categoria?.id === grupoDeHoja?.principal.categoria?.id)?.paradas ?? []).flatMap((p) => (p.modelo?.productoId ? [p.modelo.productoId] : [])),
+  );
   // Vino en la guía sin decir qué modelos: lo que sigue es agregarlos.
   const sinModelos = todas.find((c) => c.paradas.length === 0 && !c.hayConteo) ?? null;
   // La prenda de la hoja se guarda en la línea de la compra que la anotó (de ahí salen su precio sugerido y su costo).
@@ -1144,6 +1153,11 @@ export function ContarEnvio({
           nombre={hoja.nueva.porDefecto ? null : hoja.nueva.descripcion}
           cantidad={hoja.nueva.cantidad}
           costo={null}
+          // El costo no se muestra en la cabecera (queda `null`), pero ordena la galería: solo si es uno solo.
+          precio={precioExiste}
+          proveedorIds={grupoDeHoja.principal.proveedor ? [grupoDeHoja.principal.proveedor.id] : []}
+          enLaLista={enLaListaExiste}
+          costoParaOrdenar={costoExiste && costoExiste.desde === costoExiste.hasta ? costoExiste.desde : null}
           comoCorregirMarca="Si la marca anotada está mal, quita este modelo y agrégalo de nuevo con su marca."
           onUsar={(prenda) => prendaDeLaNueva(grupoDeHoja, hoja.parada, hoja.nueva.descripcion, prenda)}
           onCrear={() => setHoja({ ...hoja, tipo: "crear" })}

@@ -17,6 +17,7 @@ import { marcaSugeridaDelModelo, nombrePorDefecto, paradaDelNombre, parecidasDel
 import { prendaDeLaCategoria, sugerirDescripcion, sugerirNombre } from "@/lib/sugerencias-alta-producto";
 import { enterNoGuarda } from "@/components/ui/enterNoGuarda";
 import { ElegirPrendaExistente } from "@/components/recepcion-envio/ElegirPrendaExistente";
+import { referenciaComun } from "@/lib/recepcion-galeria-reglas";
 import { FichaDeLaPrenda } from "./FichaDeLaPrenda";
 import { MarcaNuevaRecepcion, type MarcaRegistrada } from "./MarcaNuevaRecepcion";
 import type { ProveedorDeLaLista } from "./ProveedorNuevoRecepcion";
@@ -111,6 +112,13 @@ export function NuevoModelo({
   // «Ya la tenemos» (tarea 9, 2026-11-14): elegir una tarjeta de la galería ya basta para confirmar; su ficha se abre solo si se pide.
   const [conFicha, setConFicha] = useState(false);
   const marcasDelEnvio = useMemo(() => [...new Set(grupos.map((g) => g.principal.marca?.id ?? null))], [grupos]);
+  // Lo que ya mandaron los proveedores del envío sale primero, y lo de mismo costo y precio que la compra de esta categoría (Felipe 2026-11-14).
+  const proveedoresDeLaGaleria = useMemo(() => (eligeProveedor && proveedorId ? [proveedorId] : proveedores.map((p) => p.id)), [eligeProveedor, proveedorId, proveedores]);
+  const referenciaDeLaGaleria = useMemo(
+    () => referenciaComun((enLista?.grupos ?? []).flatMap((g) => g.lineas).flatMap((l) => (l.linea ? [{ costo: l.linea.costoUnitario, precio: l.linea.precioVentaSugerido }] : []))),
+    [enLista],
+  );
+  const enLaListaDeLaGaleria = useMemo(() => new Set((enLista?.paradas ?? []).flatMap((p) => (p.modelo?.productoId ? [p.modelo.productoId] : []))), [enLista]);
 
   // Las parecidas del catálogo, de esta categoría y marca. Si no responde, se sigue sin ellas.
   const [parecidas, setParecidas] = useState<readonly PrendaRecepcion[]>([]);
@@ -287,6 +295,9 @@ export function NuevoModelo({
                     marca={{ id: marcaGaleria === TODAS ? null : marcaGaleria || null, nombre: marcas.find((m) => m.id === marcaGaleria)?.nombre ?? "Sin marca" }}
                     // Primero las marcas que ya trae el envío (tarea 9, 2026-11-14): lo más probable es que llegue otra de esas.
                     marcasDelEnvio={marcasDelEnvio}
+                    proveedorIds={proveedoresDeLaGaleria}
+                    referencia={referenciaDeLaGaleria}
+                    enLaLista={enLaListaDeLaGaleria}
                     elegidaId={elegida?.productoId ?? null}
                     onVerFicha={() => setConFicha(true)}
                     // `fn_prendas_para_recibir` no devuelve la marca: es la del filtro. La de todas las marcas sí la trae.
