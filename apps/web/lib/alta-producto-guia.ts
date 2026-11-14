@@ -14,7 +14,7 @@
 // fondo de cada paso y en la columna de la derecha; los campos mismos no decían nada, y el paso 3 salía «Listo» sin haberlo
 // abierto y con cero colores. La persona no sabía por dónde ir ni qué seguía.
 
-import { claveReferencia, faltaDelPaso, faltaLugarCarga, faltaProveedorLlegada, pasoHecho, textoCeldaSinPrecio, textoFaltaStock, TEXTO_FALTA_LUGAR, TEXTO_FALTA_EMPRESA, TEXTO_FALTA_PROVEEDOR_LLEGADA, type EstadoAlta, type PasoAlta, type Problema } from "./alta-producto";
+import { claveReferencia, faltaDelPaso, faltaLugarCarga, faltaProveedorLlegada, pasoHecho, textoCeldaSinPrecio, textoFaltaStock, textoFotosSinColor, TEXTO_FALTA_LUGAR, TEXTO_FALTA_EMPRESA, TEXTO_FALTA_PROVEEDOR_LLEGADA, type EstadoAlta, type PasoAlta, type Problema } from "./alta-producto";
 
 /** Cada cosa que la persona llena o decide en el alta, en el orden en que la encuentra en pantalla. */
 export type CampoAlta = "empresa" | "categoria" | "marca" | "existe" | "tejido" | "patron" | "descripcion" | "nombre" | "tallas" | "colores" | "precio" | "stock" | "responsable";
@@ -123,7 +123,16 @@ export function camposDelAlta(e: EstadoAlta, x: ExtraGuia): CampoGuia[] {
       hecho: !e.categoriaSinTallas && e.tallasElegidas > 0,
       pendiente: e.categoriaSinTallas ? "Habilita las tallas de esta categoría." : "Elige al menos una talla.",
     },
-    { id: "colores", paso: 3, nombre: "Colores", requerido: false, sugerido: true, hecho: x.coloresElegidos > 0, pendiente: "Elige los colores, o sigue así si no lleva." },
+    // Los colores salen de las fotos (ADR-0663). Sugeridos, salvo que una foto espere su color: esa sí bloquea, o se perdería al crear.
+    {
+      id: "colores",
+      paso: 3,
+      nombre: "Fotos y colores",
+      requerido: !!e.fotosSinColor,
+      sugerido: !e.fotosSinColor,
+      hecho: x.coloresElegidos > 0 && !e.fotosSinColor,
+      pendiente: e.fotosSinColor ? textoFotosSinColor(e.fotosSinColor) : "Sube la foto de cada color, o sigue así si no lleva.",
+    },
     {
       id: "precio",
       paso: 4,

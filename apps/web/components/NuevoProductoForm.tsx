@@ -245,6 +245,8 @@ export function NuevoProductoForm({
   const [temporada, setTemporada] = useState(SIN_PROPIA);
   const [coloresElegidos, setColoresElegidos] = useState<string[]>([]);
   const [fotos, setFotos] = useState<FotoPendiente[]>([]);
+  // Fotos de «Fotos y colores» que todavía no tienen color (se leen o esperan una respuesta): bloquean crear, o se perderían (ADR-0663).
+  const [fotosSinColor, setFotosSinColor] = useState(0);
   const [precioBase, setPrecioBase] = useState("");
   const [costoBase, setCostoBase] = useState("");
   const [costoTocado, setCostoTocado] = useState(false);
@@ -506,6 +508,7 @@ export function NuevoProductoForm({
     precioBase,
     costoBase,
     celdaSinPrecio: nombreCeldaEnCero,
+    fotosSinColor,
     stockTotal: stock.total,
     stockInvalidas: stock.invalidas,
     sinStock,
@@ -1263,6 +1266,7 @@ export function NuevoProductoForm({
               disabled={cargando}
               guia="nuevo.fotos-colores"
               catalogo={catalogo}
+              onPendientes={setFotosSinColor}
             />
           </FilaAlta>
 

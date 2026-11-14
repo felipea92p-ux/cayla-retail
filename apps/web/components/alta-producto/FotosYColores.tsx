@@ -98,6 +98,7 @@ export function FotosYColores({
   disabled = false,
   guia,
   catalogo,
+  onPendientes,
 }: {
   /** Toda la carta, también las mezclas guardadas (de ahí se reconoce una mezcla que ya existe). */
   carta: ColorAlta[];
@@ -119,6 +120,8 @@ export function FotosYColores({
   guia?: string;
   /** «Catálogo con IA»: encendido, cada foto pasa primero por la IA y el color se lee de su PNG sin fondo (sale más exacto). */
   catalogo?: CatalogoIAAlta;
+  /** Cuántas fotos todavía no tienen color: la pantalla no deja crear mientras haya alguna (se perderían). */
+  onPendientes?: (n: number) => void;
 }) {
   const [pendientes, setPendientes] = useState<Pendiente[]>([]);
   const [porQue, setPorQue] = useState<string | null>(null);
@@ -142,6 +145,10 @@ export function FotosYColores({
     const abiertas = vistas.current;
     return () => abiertas.forEach((v) => URL.revokeObjectURL(v));
   }, []);
+
+  useEffect(() => {
+    onPendientes?.(pendientes.length);
+  }, [pendientes.length, onPendientes]);
 
   const porCodigo = useMemo(() => new Map(carta.map((c) => [c.codigo, c])), [carta]);
   const cambiar = (clave: string, cambio: Partial<Pendiente> | null) =>

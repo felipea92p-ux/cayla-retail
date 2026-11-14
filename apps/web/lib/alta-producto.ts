@@ -196,6 +196,9 @@ export type EstadoAlta = {
   /** La primera celda de la tabla con un precio propio en 0 (o que no es un número), como se lee en pantalla: «Negro en M».
    *  `null` o ausente = ninguna (`celdaSinPrecio`, lib/tabla-alta-reglas.ts; ADR-0384). */
   celdaSinPrecio?: string | null;
+  /** «Fotos y colores» (ADR-0663): fotos que todavía se leen o esperan una respuesta (un color que no está en la carta, un estampado).
+   *  No tienen color aún: si se creara así, se perderían. Ausente o 0 = ninguna. */
+  fotosSinColor?: number;
   /** Paso 4 (ADR-0212): unidades escritas en «Cuántas tienes hoy», en las celdas que siguen en la tabla. */
   stockTotal: number;
   /** Celdas con algo que no es un entero de 0 a 9999 (la pantalla no deja escribirlo; la regla no se fía). */
@@ -247,6 +250,11 @@ export function textoCeldaSinPrecio(celda: string): string {
   return `${celda} tiene el precio en 0 (tabla, pestaña Precios): pon un precio mayor que 0 o déjala vacía para que tome el de todas.`;
 }
 
+/** Lo que falta mientras una foto de «Fotos y colores» no tiene su color (ADR-0663). Una sola frase para `problemasAlta` y la guía. */
+export function textoFotosSinColor(n: number): string {
+  return n === 1 ? "Una foto espera su color: contesta su pregunta o quítala." : `${n} fotos esperan su color: contesta su pregunta o quítalas.`;
+}
+
 /** Lo que falta cuando todavía no se dijo a qué tienda pertenece el producto. Una sola frase para `problemasAlta` y la guía. */
 export const TEXTO_FALTA_EMPRESA = "Elige a qué tienda pertenece el producto.";
 
@@ -276,6 +284,7 @@ export function problemasAlta(e: EstadoAlta): Problema[] {
   if (e.categoriaSinTallas) p.push({ bloque: "tallas", texto: "Esta categoría no tiene tallas: elígelas para continuar." });
   else if (e.tallasElegidas === 0) p.push({ bloque: "tallas", texto: "Elige al menos una talla." });
   if (e.celdasIncluidas === 0) p.push({ bloque: "variantes", texto: "Deja al menos una variante en la tabla." });
+  if (e.fotosSinColor) p.push({ bloque: "variantes", texto: textoFotosSinColor(e.fotosSinColor) });
   const precio = Number(e.precioBase);
   if (e.precioBase.trim() === "" || !Number.isFinite(precio) || precio <= 0) p.push({ bloque: "precio", texto: "Pon el precio de venta." });
   if (e.celdaSinPrecio) p.push({ bloque: "precio", texto: textoCeldaSinPrecio(e.celdaSinPrecio) });
