@@ -300,7 +300,8 @@ function TablaDeTallas({
   const numero = (id: string) => leerCantidad(valores[id] ?? "") ?? 0;
   const conQuitar = !!onQuitar;
   // El teclado de planilla (tarea 5 de las 30 de Recibir, 2026-11-14): Enter y ↓ bajan por la talla, ↑ y Shift+Enter suben, y Enter al fondo pasa a la talla siguiente,
-  // con la misma regla de Nuevo producto y de la orden de producción (`movimientoDeTecla`, ADR-0396). Se suma al Tab, que sigue pasando de número en número
+  // con la misma regla (`movimientoDeTecla`, ADR-0396) que la tabla de Nuevo producto y la de la orden de producción; a diferencia de esas dos, aquí Enter en la última
+  // casilla sale de la tabla (`alSalir`), y allá no hace nada. Se suma al Tab, que sigue pasando de número en número
   // (Felipe 2026-11-12). Solo mueve el cursor: no escribe ni guarda. La casilla que la prenda no tiene («—») o que está apagada no cuenta.
   const porTalla = columnasDeLaTabla(tallas.map((t) => t.clave), colores.map((c) => c.clave), (talla, color) => {
     const v = matriz.celda(talla === "" ? null : talla, color === "" ? null : color);

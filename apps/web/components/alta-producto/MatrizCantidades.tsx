@@ -49,7 +49,10 @@ import {
 // las cinco cosas que cambian de una pantalla a otra como props opcionales cuyo valor de fábrica es lo de siempre: `preguntaCelda` (lo que oye el lector: «Cuántas prendas de
 // Negro en M»), `fantasma` (el número gris de cada celda: lo que sugiere la red), `tituloDe` (qué dice cada celda al pasar el mouse), `teclado` (Enter y ↓ bajan por la talla,
 // ↑ y Shift+Enter suben, Enter al fondo pasa a la talla siguiente; nada de esto envía el formulario) y `accionFila` (el «×» de quitar un color). Sin ninguna de ellas el HTML es,
-// letra por letra, el de Nuevo producto: lo fija `lib/matriz-cantidades.test.ts`.
+// letra por letra, el de Nuevo producto de antes: lo fija `lib/matriz-cantidades.test.ts`.
+// Desde el 2026-11-14 Nuevo producto también enciende `teclado` (Felipe: «no se puede dar Enter para pasar a otra talla o colores»), y ahí vale en sus tres modos: las casillas
+// de «Precios» y «Costos» son las mismas celdas en el mismo orden, así que Enter recorre la tabla igual en las tres. Mover el cursor no escribe nada: la plata se sigue escribiendo
+// como siempre (`limpiarPrecio`). Lo vigila `lib/matriz-cantidades.test.ts` («Nuevo producto enciende el teclado»).
 
 type Modo = "cantidades" | "precios" | "costos";
 
@@ -70,7 +73,8 @@ type Comunes = {
   fantasma?: (clave: string) => string;
   /** Lo que dice una celda al pasar el mouse (su código, por qué se sugiere tanto). De fábrica, nada. */
   tituloDe?: (clave: string) => string | undefined;
-  /** Enter y ↓ bajan a la celda de abajo, ↑ y Shift+Enter suben; al fondo, Enter pasa a la talla siguiente. Enter nunca envía el formulario desde una celda. De fábrica, apagado. */
+  /** Enter y ↓ bajan a la celda de abajo, ↑ y Shift+Enter suben; al fondo, Enter pasa a la talla siguiente. Enter nunca envía el formulario desde una celda. Con precios, vale también en
+   *  «Precios» y «Costos». De fábrica, apagado (lo encienden la orden de producción, sus hojas y Nuevo producto). */
   teclado?: boolean;
   /** Algo junto al nombre de un color (el «×» que lo quita). Solo en las filas con color. De fábrica, nada. */
   accionFila?: (color: { codigo: string; nombre: string }) => ReactNode;
@@ -137,6 +141,7 @@ export function MatrizCantidades(props: ConPrecios | SoloCantidades) {
   const baseCosto = Number(costoBase) > 0 ? Number(costoBase).toFixed(2) : "0.00";
   const enCostos = modo === "costos";
   const porTalla = teclado ? columnasEditables(filas, columnas, celdas, excluidas) : [];
+  const margenScroll = teclado ? " scroll-mt-14 scroll-mb-12 scroll-ml-32" : "";
   const rellenoInvalido = leerCantidad(relleno) === null;
   const problema = rellenoInvalido ? textoCantidadRechazada(relleno, false) : escrita.problema;
 
@@ -368,7 +373,8 @@ export function MatrizCantidades(props: ConPrecios | SoloCantidades) {
                                 etiqueta: `Sumar a ${etiqueta}`,
                               }}
                               // El «0» de una celda vacía es un fantasma a propósito (25 %): la tabla se lee por lo que SÍ se cargó.
-                              campo={{ ...numero, className: "placeholder:text-tinta/25" }}
+                              // Con el teclado, la celda a la que llega el cursor no queda bajo el encabezado, el «Total» ni la columna del color (los mismos márgenes de la orden).
+                              campo={{ ...numero, className: `placeholder:text-tinta/25${margenScroll}` }}
                             />
                           ) : enCantidades ? (
                             // La orden de producción no lleva − ni +: es una caja para escribir, no un paso de cantidad.
@@ -395,9 +401,11 @@ export function MatrizCantidades(props: ConPrecios | SoloCantidades) {
                               aria-invalid={!enCostos && precioPropioInvalido(propio) ? true : undefined}
                               placeholder={enCostos ? baseCosto : base}
                               value={propio}
+                              ref={numero.ref}
+                              onKeyDown={numero.onKeyDown}
                               onChange={(e) => (enCostos ? onCosto : onPrecio)?.(cel.clave, limpiarPrecio(e.target.value))}
                               onFocus={(e) => e.currentTarget.select()}
-                              className={`w-[58px] rounded-[7px] border border-borde-control bg-hueso px-0.5 py-1.5 text-center text-[13px] tabular-nums outline-none placeholder:text-tinta/30 focus:border-taupe focus:bg-papel sm:w-[66px] ${
+                              className={`w-[58px] rounded-[7px] border border-borde-control bg-hueso px-0.5 py-1.5 text-center text-[13px] tabular-nums outline-none placeholder:text-tinta/30 focus:border-taupe focus:bg-papel sm:w-[66px]${margenScroll} ${
                                 distinto ? "font-semibold text-ambar" : "text-tinta"
                               }`}
                             />

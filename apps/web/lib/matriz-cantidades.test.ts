@@ -82,6 +82,22 @@ describe("el modo de siempre no cambia (golden)", () => {
   });
 });
 
+describe("Nuevo producto con `teclado` (Felipe 2026-11-14: «no se puede dar Enter para pasar a otra talla o colores»)", () => {
+  const celdas = construirCeldas(["t-s", "t-m"], ["NEG", "CRU"]);
+  const conTeclado = () => html({ celdas, tallas: TALLAS.slice(0, 2), colores: COLORES.slice(0, 2), excluidas: new Set<string>(), cantidades: {}, teclado: true });
+
+  it("marca la raíz y deja la celda enfocada fuera del encabezado, el «Total» y la columna del color; el resto del molde es el de siempre", () => {
+    const h = conTeclado();
+    expect(h).toContain("data-matriz-mover");
+    for (const margen of ["scroll-mt-14", "scroll-mb-12", "scroll-ml-32"]) expect(h).toContain(margen);
+    // Lo que no es del teclado no cambia: el 25 % del cero, los − y +, el segmento, y «Llenar todas con» sigue siendo una caja que la guía puede buscar.
+    expect(h).toContain("placeholder:text-tinta/25");
+    expect(h).toContain("Restar a Negro en S");
+    expect(h).toContain("Qué escribes en la tabla");
+    expect(h).not.toContain("data-sin-cursor");
+  });
+});
+
 describe("el modo `soloCantidades` (Nueva orden): solo cuántas, sin precios ni costos", () => {
   const celdas = construirCeldas(["t-s", "t-m"], ["NEG", "CRU"]);
   const solo = (extra: Record<string, unknown> = {}) =>
@@ -228,6 +244,18 @@ describe("la tabla única, vista en el código", () => {
     expect(f.indexOf("<AgregarColor")).toBeLessThan(f.indexOf("<MatrizCantidades"));
     expect(f).toContain("quitarColor(color.codigo, conTeclado)");
     expect(leer("components/orden-produccion/AgregarColor.tsx")).toContain("e.detail === 0");
+  });
+
+  it("(c3) Nuevo producto enciende el teclado de planilla, y en «Precios» y «Costos» las casillas usan el mismo (la misma tabla responde igual a Enter en sus tres modos)", () => {
+    const f = leer("components/NuevoProductoForm.tsx");
+    const llamada = f.slice(f.indexOf("<MatrizCantidades"), f.indexOf("/>", f.indexOf("<MatrizCantidades")));
+    expect(llamada, "NuevoProductoForm dibuja <MatrizCantidades").not.toBe("");
+    expect(llamada).toMatch(/\bteclado\b(?!=\{false\})/);
+    const molde = leer("components/alta-producto/MatrizCantidades.tsx");
+    // La caja de precio o costo (la de `inputMode="decimal"`) lleva el ref y el onKeyDown de la celda: sin ellos, Enter en «Precios» lo tragaría el formulario.
+    const cajaPlata = molde.slice(molde.indexOf('inputMode="decimal"') - 200, molde.indexOf("limpiarPrecio(e.target.value)"));
+    expect(cajaPlata).toContain("ref={numero.ref}");
+    expect(cajaPlata).toContain("onKeyDown={numero.onKeyDown}");
   });
 
   it("(d) el rayado vive en `rayado.ts` y `MatrizVariantes` lo sigue exportando (Editar producto y Recibir lo importan de allí)", () => {
