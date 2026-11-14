@@ -63,17 +63,46 @@ export type DatosHojas = {
 
 export type DestinosHojas = Partial<Record<ClaveHoja, { href: string; texto: string }>>;
 
+/** Lo que mira cada hoja para saber si hay con qué abrirla (ni más ni menos). */
+type DatoDeHoja = {
+  plata: Pick<DatosHojas, "saldo">;
+  deja: Pick<DatosHojas, "fila">;
+  ventas: Pick<DatosHojas, "filas">;
+  gastos: Pick<DatosHojas, "fila">;
+  pagos: Pick<DatosHojas, "proximos">;
+  sunat: Pick<DatosHojas, "saldo">;
+  inventario: Pick<DatosHojas, "inventario">;
+};
+
+/**
+ * ¿La hoja `c` tiene con qué abrirse? Cada una mira SOLO su dato (Resumen por bloques, ADR-0661): así un bloque que llega antes («Lo que te deja», del mes)
+ * no espera a la caja ni a la inversión para saber si ofrece su hoja.
+ */
+export function hayHoja<C extends ClaveHoja>(c: C, d: DatoDeHoja[C]): boolean {
+  const x = d as Partial<DatosHojas>;
+  switch (c) {
+    case "plata":
+      return x.saldo!.tipo === "cayla";
+    case "deja":
+      return !!x.fila;
+    case "ventas":
+      return x.filas!.some((f) => f.unidad === "tienda" && f.ventas > 0);
+    case "gastos":
+      return !!x.fila && x.fila.detalleGastos.length > 0;
+    case "pagos":
+      return x.proximos!.tipo === "ok" && x.proximos!.pagos.length > 0;
+    case "sunat":
+      return x.saldo!.tipo === "cayla" && x.saldo!.bolsillos.some((b) => b.clave === "sunat");
+    default:
+      return !!x.inventario && x.inventario.length > 0;
+  }
+}
+
+const ORDEN_HOJAS: readonly ClaveHoja[] = ["plata", "deja", "ventas", "gastos", "pagos", "sunat", "inventario"];
+
 /** Qué hojas hay con los datos que llegaron (una hoja sin datos no se ofrece). */
 export function hojasQueHay(d: DatosHojas): ClaveHoja[] {
-  const hay: ClaveHoja[] = [];
-  if (d.saldo.tipo === "cayla") hay.push("plata");
-  if (d.fila) hay.push("deja");
-  if (d.filas.some((f) => f.unidad === "tienda" && f.ventas > 0)) hay.push("ventas");
-  if (d.fila && d.fila.detalleGastos.length) hay.push("gastos");
-  if (d.proximos.tipo === "ok" && d.proximos.pagos.length) hay.push("pagos");
-  if (d.saldo.tipo === "cayla" && d.saldo.bolsillos.some((b) => b.clave === "sunat")) hay.push("sunat");
-  if (d.inventario && d.inventario.length) hay.push("inventario");
-  return hay;
+  return ORDEN_HOJAS.filter((c) => hayHoja(c, d));
 }
 
 function Renglones({ filas }: { filas: readonly Renglon[] }) {

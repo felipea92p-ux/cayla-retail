@@ -86,6 +86,8 @@ describe("piezas", () => {
   });
   it("lectura por prefijo", () => {
     expect(esRpcDeLectura("fn_mi_perfil")).toBe(true);
+    // El Resumen por bloques (ADR-0661): la lectura por partes es de solo lectura; si algún día se pide desde el navegador, no tapa la pantalla.
+    expect(esRpcDeLectura("fn_resumen_finanzas_partes")).toBe(true);
     expect(esRpcDeLectura("registrar_compra")).toBe(false);
   });
 });
