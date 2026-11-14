@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { codigosParaReintentar, motivoDeFalla, segundaOpcionDelDibujo, sumarFotoUnaVez } from "./fotos-y-colores-reglas";
+import { codigosParaReintentar, lugarDeLasFotosNuevas, motivoDeFalla, segundaOpcionDelDibujo, sumarFotoUnaVez } from "./fotos-y-colores-reglas";
 
 // Los tres hallazgos de /chaos en «Fotos y colores» (2026-11-14, semilla 663), hechos prueba para que no vuelvan.
 
@@ -66,5 +66,24 @@ describe("segundaOpcionDelDibujo — «Elegir el estampado» solo si hay estampa
 
   it("con al menos un estampado, lo ofrece", () => {
     expect(segundaOpcionDelDibujo([{ tipo: "solido" }, { tipo: "estampado" }])).toBe("Elegir el estampado");
+  });
+});
+
+describe("lugarDeLasFotosNuevas — sumar fotos a una prenda que ya existe no le cambia la principal", () => {
+  it("una prenda sin fotos: desde 0 y la primera es la principal", () => {
+    expect(lugarDeLasFotosNuevas([])).toEqual({ desde: 0, primeraEsPrincipal: true });
+  });
+
+  it("una prenda con fotos: detrás de la última y la principal sigue siendo la suya", () => {
+    expect(
+      lugarDeLasFotosNuevas([
+        { orden: 0, es_principal: true },
+        { orden: 3, es_principal: false },
+      ]),
+    ).toEqual({ desde: 4, primeraEsPrincipal: false });
+  });
+
+  it("con fotos pero ninguna principal: la primera nueva lo es", () => {
+    expect(lugarDeLasFotosNuevas([{ orden: 1, es_principal: false }])).toEqual({ desde: 2, primeraEsPrincipal: true });
   });
 });

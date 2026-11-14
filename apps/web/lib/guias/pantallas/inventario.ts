@@ -2185,7 +2185,7 @@ export const GUIA_RECIBIR_ENVIO: Guia = {
       ancla: "recepcion.fotos-colores",
       opcional: true,
       titulo: "Fotos y colores",
-      texto: "Sube una foto por color y el color sale solo: uno liso, o una mezcla si la prenda trae varios. Si un color no está creado, te pregunta: usas el más parecido o lo creas. «Cambiar» lo corrige y «Elegir sin foto» abre la lista de colores. Con «Catálogo con IA», la foto sale de catálogo.",
+      texto: "Sube una foto por color y el color sale solo: uno liso, o una mezcla si trae varios. Sirve también para sumar un color a una prenda que ya existe. Si un color no está creado, te pregunta. «Cambiar» lo corrige. Con «Catálogo con IA», la foto sale de catálogo.",
     },
     {
       id: "agregar-extra",

@@ -143,6 +143,7 @@ export function FotosYColores({
   guia,
   catalogo,
   enCurso,
+  yaTiene,
 }: {
   /** Toda la carta, también las mezclas guardadas (de ahí se reconoce una mezcla que ya existe). */
   carta: ColorAlta[];
@@ -167,6 +168,9 @@ export function FotosYColores({
   /** Las fotos que todavía no tienen color, guardadas por la pantalla (`useFotosEnCurso`): no se pierden al cambiar de paso, y la pantalla
    *  no deja crear mientras haya alguna. */
   enCurso: FotosEnCurso;
+  /** Al sumar a una prenda que YA existe (Recibir): los colores que ya tiene. Su tarjeta lo dice y no pide foto; la × solo la quita de lo
+   *  que llegó (no le borra nada a la prenda). */
+  yaTiene?: ReadonlySet<string>;
 }) {
   const { pendientes, setPendientes, encolar, asentada, marcarAsentada, abrirVista, soltarVista } = enCurso;
   const [porQue, setPorQue] = useState<string | null>(null);
@@ -484,7 +488,11 @@ export function FotosYColores({
               const lectura = leida && leida.tipo !== "sin-prenda" && leida.partes.slice(0, 4).every((p) => deEste.has(p.color.codigo)) ? leida : undefined;
               const nombre = color?.nombre ?? codigo;
               return (
-                <li key={codigo} className="relative flex flex-col overflow-hidden rounded-2xl border border-[color:var(--vidrio-claro-borde)] [background:var(--vidrio-claro-fondo)]">
+                <li
+                  key={codigo}
+                  // Un color que la prenda ya tiene y no trae foto nueva es una tarjeta corta: no se estira al alto de las que tienen foto.
+                  className={`relative flex flex-col overflow-hidden rounded-2xl border border-[color:var(--vidrio-claro-borde)] [background:var(--vidrio-claro-fondo)] ${yaTiene?.has(codigo) && !suyas.length ? "self-start" : ""}`}
+                >
                   {suyas.length ? (
                     <div className="relative aspect-[4/5] bg-hueso/60">
                       {/* La foto que se sube tal cual (blob: local); next/image no aplica a una vista previa. */}
@@ -515,6 +523,11 @@ export function FotosYColores({
                     <div className="flex items-center gap-2.5">
                       <Punto hex={color?.hex ?? null} familia={color?.familiaColor} tipo={color?.tipo} tonos={color ? tonosDe(color) : null} grande />
                       <span className="min-w-0 flex-1 text-[15px] font-medium leading-tight">{nombre}</span>
+                      {yaTiene?.has(codigo) && !suyas.length && (
+                        <Chip tono="neutro" versalitas={false}>
+                          Ya la tiene
+                        </Chip>
+                      )}
                       {!suyas.length && <BotonQuitarFoto etiqueta={`Quitar ${nombre}`} disabled={disabled} onClick={() => onQuitarColor(codigo)} />}
                     </div>
                     {lectura && lectura.partes.length > 1 && <Partes lectura={lectura} />}

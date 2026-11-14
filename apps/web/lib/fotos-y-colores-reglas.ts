@@ -31,3 +31,12 @@ export function motivoDeFalla(e: unknown, porDefecto: string): string {
 export function segundaOpcionDelDibujo(carta: readonly { tipo?: string | null }[]): "Elegir el estampado" | "Elegir otro color" {
   return carta.some((c) => c.tipo === "estampado") ? "Elegir el estampado" : "Elegir otro color";
 }
+
+/** Dónde entran las fotos que se SUMAN a una prenda que ya existe (Recibir, Felipe 2026-11-14): detrás de las que ya tiene, y la primera solo
+ *  es la principal si la prenda no tiene ninguna. Una prenda nueva no tiene fotos: empieza en 0 y la primera es la principal. */
+export function lugarDeLasFotosNuevas(existentes: readonly { orden: number; es_principal: boolean }[]): { desde: number; primeraEsPrincipal: boolean } {
+  return {
+    desde: existentes.reduce((mayor, f) => Math.max(mayor, f.orden + 1), 0),
+    primeraEsPrincipal: !existentes.some((f) => f.es_principal),
+  };
+}

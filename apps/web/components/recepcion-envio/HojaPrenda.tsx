@@ -21,6 +21,8 @@ import { PropuestaDePrecio, adelantarPropuestaDePrecio } from "@/components/alta
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { InterruptorCatalogoIA } from "@/components/alta-producto/FotosDeColores";
 import { FotosYColores, useFotosEnCurso } from "@/components/alta-producto/FotosYColores";
+import { lugarDeLasFotosNuevas } from "@/lib/fotos-y-colores-reglas";
+import { esFotoIA } from "@/lib/foto-catalogo-reglas";
 import type { FotoPendiente } from "@/components/alta-producto/FotosAlta";
 import { useCatalogoIAAlta } from "@/components/alta-producto/useCatalogoIAAlta";
 import { createClient } from "@/lib/supabase/client";
@@ -178,16 +180,16 @@ export function HojaPrenda({
   // corrige aquí. No va a la base al crear (la prenda nace con el costo de la línea): lo escrito llega puesto al cierre, que es donde se fija.
   const costoDeLinea = destino.costoUnitario != null ? costoComoTexto(destino.costoUnitario) : "";
   const [costo, setCosto] = useState(costoDeLinea);
-  // Las fotos de la prenda (solo al crear una nueva): viven aquí hasta crearla.
+  // Las fotos de la prenda: viven aquí hasta crearla o hasta sumarle lo que llegó. Al sumar un color a una prenda que ya existe también se
+  // sube su foto (Felipe 2026-11-14): antes ese color se elegía de la lista y la foto quedaba para Productos.
   const [permisoFotos, setPermisoFotos] = useState<PermisoDeFotos>({ fotos: false, ia: false });
   useEffect(() => {
-    if (!nueva) return;
     let vigente = true;
     void leerPermisoDeFotos().then((p) => vigente && setPermisoFotos(p));
     return () => {
       vigente = false;
     };
-  }, [nueva]);
+  }, []);
   const [fotos, setFotos] = useState<FotoPendiente[]>([]);
   const fotosRef = useRef(fotos);
   useEffect(() => {
@@ -195,7 +197,10 @@ export function HojaPrenda({
   }, [fotos]);
   // La hoja va por pasos: un clic en el velo no puede llevarse lo que se llenó en los anteriores.
   const [borradorInicial] = useState(() => JSON.stringify(borrador));
-  const avisoSalida = useSalidaSinGuardar(nueva && (JSON.stringify(borrador) !== borradorInicial || fotos.length > 0), "Llenaste parte de esta prenda y todavía no se creó. Si cierras ahora, se pierde lo que llenaste.");
+  const avisoSalida = useSalidaSinGuardar(
+    (nueva && JSON.stringify(borrador) !== borradorInicial) || fotos.length > 0,
+    nueva ? "Llenaste parte de esta prenda y todavía no se creó. Si cierras ahora, se pierde lo que llenaste." : "Subiste fotos que todavía no se guardaron. Si cierras ahora, se pierden.",
+  );
   const cambiar = (cambios: Partial<BorradorPrenda>) => setBorrador((b) => ({ ...b, ...cambios }));
   const cambiarNombre = (nuevoTipo: string, nuevoPropio: string) => {
     setNombreCaja({ tipo: nuevoTipo, propio: nuevoPropio });
@@ -234,33 +239,59 @@ export function HojaPrenda({
   const campos = nueva ? [...camposDelPaso(camposPrenda, paso), ...(enUltimoPaso ? campoResponsable : [])] : [...camposPrenda, ...campoResponsable];
   const guia = useGuiaCampos(campos);
   const queSeCrea = textoDeLoQueSeCrea(borrador, ctx, (codigo) => colores.find((c) => c.codigo === codigo)?.nombre ?? codigo);
+  // Al sumar a una prenda que ya existe, su foto de catálogo (la principal, si es de IA) es el molde del color nuevo: sale con su misma forma.
+  const moldeDeLaPrenda = useRef<Promise<Blob | null> | null>(null);
+  function leerMoldeDeLaPrenda(): Promise<Blob | null> {
+    const productoId = destino.prenda?.productoId;
+    if (nueva || !productoId) return Promise.resolve(null);
+    moldeDeLaPrenda.current ??= (async () => {
+      try {
+        const { data } = await createClient().from("producto_fotos").select("url, es_principal, orden").eq("producto_id", productoId);
+        const deIA = (data ?? []).filter((f) => esFotoIA(f.url)).sort((a, b) => Number(b.es_principal) - Number(a.es_principal) || a.orden - b.orden)[0];
+        if (!deIA) return null;
+        const r = await fetch(deIA.url);
+        return r.ok ? await r.blob() : null;
+      } catch {
+        // Sin molde, la IA igual responde: el primer color de esta hoja hace de molde, como al crear.
+        return null;
+      }
+    })();
+    return moldeDeLaPrenda.current;
+  }
   const catalogo = useCatalogoIAAlta({
     disponible: permisoFotos.ia,
+    moldeDeLaPrenda: nueva ? undefined : leerMoldeDeLaPrenda,
     fotos,
     setFotos,
     colores: borrador.colorCodigos,
     nombreColor: (codigo) => (codigo === null ? "la prenda" : (colores.find((c) => c.codigo === codigo)?.nombre ?? codigo)),
   });
 
-  /** Sube las fotos de la prenda recién creada (las de los colores que quedaron elegidos), esperando a las que la IA prepara. Lo que falle se avisa. */
+  /** Sube las fotos de la prenda recién creada, o las que se SUMAN a una que ya existe (las de los colores que quedaron elegidos), esperando a
+   *  las que la IA prepara. Al sumar van detrás de las que ya tiene y no le cambian la principal (`lugarDeLasFotosNuevas`). Lo que falle se avisa. */
   async function subirFotos(productoId: string) {
     const elegidos = borrador.colorCodigos;
     const lista = (await catalogo.esperar(fotosRef.current)).filter((f) => f.colorCodigo === null || elegidos.includes(f.colorCodigo));
     if (lista.length === 0) return;
     const supabase = createClient();
+    const { data: yaTenia } = nueva ? { data: [] } : await supabase.from("producto_fotos").select("orden, es_principal").eq("producto_id", productoId);
+    const lugar = lugarDeLasFotosNuevas(yaTenia ?? []);
     const filas: { producto_id: string; url: string; orden: number; es_principal: boolean; color_codigo: string | null }[] = [];
     const fallidas: string[] = [];
     for (const f of ordenarFotosAlta(lista, elegidos)) {
       const r = f.ia?.usar ? await subirParDeCatalogo(supabase, f.archivo, f.ia.png) : await subirFotoProducto(supabase, f.archivo);
       if ("error" in r) fallidas.push(`${f.archivo.name}: ${r.error}`);
-      else filas.push({ producto_id: productoId, url: r.url, orden: filas.length, es_principal: filas.length === 0, color_codigo: f.colorCodigo });
+      else filas.push({ producto_id: productoId, url: r.url, orden: lugar.desde + filas.length, es_principal: lugar.primeraEsPrincipal && filas.length === 0, color_codigo: f.colorCodigo });
     }
     if (filas.length > 0) {
       const { error: errFotos } = await supabase.from("producto_fotos").insert(filas);
       if (errFotos) fallidas.push(traducirError(errFotos, "guardar las fotos"));
     }
     fotosRef.current.forEach((f) => URL.revokeObjectURL(f.vista));
-    if (fallidas.length > 0) avisar.aviso("La prenda se creó, pero no todas sus fotos subieron.", { detalle: `${fallidas.join(" · ")}. Agrégalas en Productos.` });
+    if (fallidas.length > 0)
+      avisar.aviso(nueva ? "La prenda se creó, pero no todas sus fotos subieron." : "Se sumó lo que llegó, pero no todas las fotos subieron.", {
+        detalle: `${fallidas.join(" · ")}. Agrégalas en Productos.`,
+      });
   }
 
   useEffect(() => {
@@ -326,6 +357,12 @@ export function HojaPrenda({
     }
     const marcas = destino.enTabla ? { tallaIds: borrador.tallaIds, colorCodigos: borrador.colorCodigos } : undefined;
     if (soloMostrar && destino.prenda) {
+      // Nada que crear, pero puede haber fotos nuevas de un color que ya tenía: se suben antes de cerrar (si no, se perdían).
+      if (permisoFotos.fotos && fotosRef.current.length > 0) {
+        setGuardando(true);
+        await subirFotos(destino.prenda.productoId);
+        setGuardando(false);
+      }
       onListo(destino.prenda, marcas);
       return;
     }
@@ -364,7 +401,7 @@ export function HojaPrenda({
       }
       // Las fotos, recién ahora que la prenda existe (como Nuevo producto). El botón sigue en «Creando…» mientras suben.
       // (Una foto que la IA prepara ya está en la lista con su real: `useCatalogoIAAlta` la agrega al elegirla.)
-      if (nueva && permisoFotos.fotos && fotosRef.current.length > 0) {
+      if (permisoFotos.fotos && fotosRef.current.length > 0) {
         setGuardando(true);
         await subirFotos(prenda.productoId);
         setGuardando(false);
@@ -468,6 +505,10 @@ export function HojaPrenda({
     setBorrador((b) => ({ ...b, colorCodigos: b.colorCodigos.filter((c) => c !== codigo) }));
   }
 
+  const coloresQueYaTiene = useMemo(
+    () => new Set((destino.prenda?.variantes ?? []).map((v) => v.colorCodigo).filter((c): c is string => !!c)),
+    [destino.prenda],
+  );
   // «Fotos y colores» (ADR-0663): el color sale de cada foto; la carta queda para «Cambiar» y «Elegir sin foto». Solo con permiso de fotos.
   const fotosYColores = (
     <CampoGuiado id="prenda-colores" guia={guia} retiene="fila" titulo="Fotos y colores" ayuda={borrador.colorCodigos.length > 0 ? `${borrador.colorCodigos.length} ${borrador.colorCodigos.length === 1 ? "color" : "colores"}` : "Una foto por color"}>
@@ -494,6 +535,7 @@ export function HojaPrenda({
         guia="recepcion.fotos-colores"
         catalogo={catalogo}
         enCurso={fotosEnCurso}
+        yaTiene={coloresQueYaTiene}
       />
     </CampoGuiado>
   );
@@ -708,7 +750,7 @@ export function HojaPrenda({
             ) : (
               <>
                 {elegirTallas}
-                {elegirColores}
+                {permisoFotos.fotos ? fotosYColores : elegirColores}
                 <CampoGuiado id="prenda-nuevas" guia={guia}>
                   <p className="text-sm text-tinta">{queSeCrea ?? "Elige una talla o un color que la prenda todavía no tenga."}</p>
                 </CampoGuiado>

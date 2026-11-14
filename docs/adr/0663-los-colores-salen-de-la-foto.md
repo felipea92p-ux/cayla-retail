@@ -38,7 +38,13 @@ tonalidades, el script debe tomarlos todos […] o si solo existe un color enter
    por fila ni la línea «Una foto para todos los colores»; «Catálogo con IA» se prende junto a «Fotos y colores». En las tarjetas, lo que
    espera una respuesta va primero y lleva un solo botón negro; ante un color que no está creado, **«Usar X» es el principal** y «Crear
    este color» el secundario. Una prenda sin color (una correa) recibe su foto en Editar producto.
-9. **Una foto que espera su color bloquea crear** (`problemasAlta` y la guía de foco, con la misma frase): si no, se perdería.
+9. **Sumar un color a una prenda que ya existe, con su foto** (Recibir, Felipe 2026-11-14): la hoja «Tallas y colores de <prenda>» también
+   usa «Fotos y colores» (con permiso de fotos). Los colores que la prenda ya tiene salen como tarjetas «Ya la tiene» (sin pedir foto; su ×
+   solo los quita de lo que llegó). Con «Catálogo con IA», el molde es la foto de catálogo que la prenda ya tiene (la principal, si es de IA),
+   y la foto se sube a la prenda detrás de las suyas sin cambiarle la principal (`lugarDeLasFotosNuevas`), también cuando no hay nada nuevo
+   que crear.
+10. **Una foto en proceso no se pierde al cambiar de paso:** la guarda la pantalla (`useFotosEnCurso`), no la pieza.
+11. **Una foto que espera su color bloquea crear** (`problemasAlta` y la guía de foco, con la misma frase): si no, se perdería.
 
 ## Lo medido con fotos reales (actividad 2, 2026-11-13)
 

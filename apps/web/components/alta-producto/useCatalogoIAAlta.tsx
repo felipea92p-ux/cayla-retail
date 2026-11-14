@@ -41,6 +41,7 @@ export function useCatalogoIAAlta({
   setFotos,
   colores,
   nombreColor,
+  moldeDeLaPrenda,
 }: {
   disponible: boolean;
   fotos: readonly FotoPendiente[];
@@ -48,6 +49,9 @@ export function useCatalogoIAAlta({
   /** Los colores elegidos, en orden: el primero con foto de IA es el molde. */
   colores: readonly string[];
   nombreColor: (codigo: string | null) => string;
+  /** Sumar un color a una prenda que YA existe (Recibir, Felipe 2026-11-14): su foto de catálogo es el molde, para que el color nuevo salga con
+   *  la misma forma que los que ya tiene. `null` si no tiene ninguna (entonces el primero de esta hoja hace de molde, como al crear). */
+  moldeDeLaPrenda?: () => Promise<Blob | null>;
 }): CatalogoIAAlta {
   const [encendido, cambiarEncendido] = useInterruptorIA();
   const [hoja, setHoja] = useState<PedidoCatalogo | null>(null);
@@ -118,8 +122,10 @@ export function useCatalogoIAAlta({
   async function prepararFoto(frente: File): Promise<Blob | null> {
     const esMolde: { soltar: ((b: Blob | null) => void) | null } = { soltar: null };
     let molde: Blob | null = null;
+    const deLaPrenda = moldeDeLaPrenda ? await moldeDeLaPrenda() : null;
     const listo = moldeHecho(fotosRef.current);
-    if (listo?.ia) molde = listo.ia.png;
+    if (deLaPrenda) molde = deLaPrenda;
+    else if (listo?.ia) molde = listo.ia.png;
     else if (moldeEnCurso.current) molde = await moldeEnCurso.current;
     else moldeEnCurso.current = new Promise<Blob | null>((resolver) => (esMolde.soltar = resolver));
     const r = await pedirFotoDeCatalogo({ frente, espalda: null, detalle: null, molde });
