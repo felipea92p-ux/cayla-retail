@@ -210,6 +210,10 @@ export const PRUEBAS = [
   // error; permisos iguales; `fn_resumen_finanzas` es el envoltorio. ROLLBACK.
   "pruebas:resumen-por-partes",
 
+  // Movimientos en una sola lectura (ADR-0661 act. 2026-11-14): cada día de `fn_flujo_caja_real_dias` es `fn_flujo_caja_real(d, d)` al byte (31
+  // días, sueltos y repetidos), con control; lo que no se puede es error; mismos permisos; la «…_de» no la llama nadie de afuera. ROLLBACK.
+  "pruebas:flujo-real-dias",
+
   // Finanzas cuenta desde una fecha (ADR-0332): sin corte nada cambia; con corte el diario y el Estado de resultados no
   // miran lo anterior, el Flujo deja de listar esa planilla y la PROYECCIÓN de caja la sigue contando; las reglas de
   // guardar_inicio_finanzas (día 1, no futuro, sin meses cerrados, permiso) y pegar la migración dos veces. ROLLBACK.
@@ -457,6 +461,18 @@ export const PRUEBAS = [
   // Los apartados con «Llevar varias» (ADR-0655, actividad 6, parte 4): apartar, quitar y sumar con un 3x2 (el trato guardado de ese día), la
   // vista previa y el total exigido, entregar, y que las migraciones viejas de los apartados se sigan pegando encima. ROLLBACK.
   "pruebas:apartados-ofertas-de-grupo",
+  // La tienda web con «Llevar varias» (ADR-0655, actividad 7): la bolsa, «Separar» con lo que mostró, la parte que no cambia, la prenda que la
+  // tienda quita al confirmar (las demás conservan su precio) y la venta al pagarse. ROLLBACK.
+  "pruebas:tienda-ofertas-de-grupo",
+  // «Gastar un monto y ahorrar» con escalones (ADR-0655, actividad 8, parte 1): el escalón alcanzado repartido al céntimo, toda la compra o
+  // la campaña, lo que ya tiene otra oferta no cuenta, los choques, los dos arreglos de las cesiones y la tolerancia, la caja y un apartado. ROLLBACK.
+  "pruebas:monto-con-escalones",
+  // Ofertas por insignia (ADR-0655): una oferta que alcanza las prendas de unas insignias (a mano o por categoría), sumadas a sus categorías y
+  // modelos; la caja, los grupos y el monto con ellas; los choques con la forma; guardarlas, su tope y su historia. ROLLBACK.
+  "pruebas:ofertas-por-insignia",
+  // Cambiar la talla o el color de una prenda comprada con descuento no cobra el descuento otra vez (ADR-0655, Felipe 2026-11-14): el mismo
+  // modelo, una talla más cara o más barata, otro modelo, una por varias y su mutante. ROLLBACK.
+  "pruebas:cambio-mismo-modelo",
   // Una campaña que solo tiene OFERTAS también sale en la Tienda web (ADR-0496, «Lo que NO cubre»): la lista, la portada y el diseño leen las
   // ofertas activas (la portada, solo las que rigen hoy, con el mayor %), un borrador no cuenta y, sin ofertas, todo queda idéntico. ROLLBACK.
   "pruebas:campana-con-ofertas",

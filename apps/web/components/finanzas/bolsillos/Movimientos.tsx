@@ -3,7 +3,7 @@ import { Armchair, ArrowLeftRight, ArrowUpRight, CreditCard, HandCoins, Landmark
 import { EnlaceVer } from "@/components/ui/EnlaceVer";
 import { TituloSeccion } from "@/components/ui/TituloSeccion";
 import { BarraAvance } from "@/components/ui/BarraAvance";
-import { getFlujoReal } from "@/lib/flujo-caja";
+import { getFlujoReal, getFlujoRealDias } from "@/lib/flujo-caja";
 import { soles } from "@/lib/flujo-caja-reglas";
 import { fechaCorta } from "@/lib/gastos-reglas";
 import type { Periodo } from "@/lib/estados-periodo";
@@ -11,7 +11,7 @@ import { diaDelFeed, diasDelFeed, pasosDelFeed, semanasDelFeed, type MovimientoF
 
 // Finanzas ▸ Resumen, camino «A · Bolsillos»: «Movimientos» (Felipe 2026-11-09). Lo que entró y salió de la plata de CAYLA, día por día, como la lista de
 // movimientos de la app del banco; un período largo o un mes cerrado, por semanas. Es un Server Component que la página manda dentro de su `Suspense`:
-// pide `fn_flujo_caja_real` (la lectura de Estados financieros ▸ Flujo de efectivo) un día a la vez, a la vez, sin hacer esperar al resto del Resumen.
+// pide `fn_flujo_caja_real` (la lectura de Estados financieros ▸ Flujo de efectivo) día por día, en UNA lectura (`fn_flujo_caja_real_dias`), sin hacer esperar al resto del Resumen.
 // La base pide el líder: el flujo es de CAYLA entera. Si una lectura se cae, se dice; nunca un día en cero que parezca un dato.
 
 /** El ícono de cada movimiento, por su categoría (como en la maqueta): la bolsa para lo cobrado, el recibo para un gasto, las personas para la planilla. */
@@ -94,7 +94,9 @@ export async function Movimientos({ periodo, hoy, hrefFlujo }: { periodo: Period
     );
   }
 
-  const lecturas = await Promise.all(dias.map((d) => getFlujoReal(d, d)));
+  // Los días del feed en UNA lectura (ADR-0661 act. 2026-11-14): los saldos se piden una vez por fecha, no tres veces por día.
+  const porDia = await getFlujoRealDias(dias);
+  const lecturas = dias.map((d) => porDia.get(d) ?? { datos: null, falla: "La base no mandó ese día." });
   const cayo = lecturas.some((l) => l.falla);
   const feed = dias.map((d, i) => (lecturas[i]!.datos ? diaDelFeed(d, hoy, lecturas[i]!.datos!) : null)).filter((x) => x !== null);
   return (

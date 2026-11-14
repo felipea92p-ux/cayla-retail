@@ -1299,7 +1299,22 @@ export const GUIA_CAMPANAS: Guia = {
       ancla: "sellos.oferta-varias",
       opcional: true,
       titulo: "Llevar varias y pagar menos",
-      texto: "El cliente paga menos cuando lleva varias: 3x2, un precio por el grupo o la 2.ª con descuento. La caja la cobra sola: arma los grupos en el ticket y reparte el ahorro entre las prendas.",
+      texto: "El cliente paga menos cuando lleva varias: 3x2, un precio por el grupo o la 2.ª con descuento. La caja, los apartados y la tienda web la cobran solos: arman los grupos y reparten el ahorro entre las prendas.",
+    },
+    {
+      id: "oferta-monto",
+      ancla: "sellos.oferta-monto",
+      opcional: true,
+      titulo: "Gastar un monto y ahorrar",
+      texto: "El cliente ahorra cuando su compra llega a un monto: S/\u00a030 menos desde S/\u00a0300, o un %. Hasta 3 escalones: el que gasta más ahorra más. Lo que ya tiene otra oferta no cuenta para llegar.",
+    },
+    {
+      id: "oferta-escalones",
+      ancla: "sellos.oferta-escalones",
+      opcional: true,
+      preparar: [{ tipo: "clic", ancla: "sellos.oferta-monto" }],
+      titulo: "Los escalones",
+      texto: "Desde cuánto y cuánto ahorra, en soles o en %. Con «Otro escalón» sumas uno más alto. El ahorro se reparte entre las prendas que cuentan, según su precio.",
     },
     {
       id: "oferta-forma",
@@ -1332,6 +1347,14 @@ export const GUIA_CAMPANAS: Guia = {
       texto: "Viene lo de la campaña. Marca categorías para que rija solo en ellas, aunque la campaña no las tenga: la grilla va por familia, con cuántas prendas trae cada una y un buscador. Toca el nombre de una familia para abrirla o plegarla; la casilla marca toda la familia. Lo que marques se ve al instante en la etiqueta.",
     },
     {
+      id: "oferta-cuenta",
+      ancla: "sellos.oferta-cuenta",
+      opcional: true,
+      preparar: [{ tipo: "clic", ancla: "sellos.oferta-paso-2" }],
+      titulo: "Qué cuenta para el monto",
+      texto: "Toda la compra, o solo las prendas de la campaña. Las prendas que no cuentan se cobran a su precio.",
+    },
+    {
       id: "oferta-mezclar",
       ancla: "sellos.oferta-mezclar",
       opcional: true,
@@ -1352,8 +1375,8 @@ export const GUIA_CAMPANAS: Guia = {
       ancla: "sellos.oferta-una-por-una",
       opcional: true,
       preparar: [{ tipo: "clic", ancla: "sellos.oferta-paso-2" }],
-      titulo: "Por categoría o prenda por prenda",
-      texto: "Elige categorías enteras o, en «Prenda por prenda», busca y marca modelos sueltos: cada uno entra con todas sus tallas y colores. Se pueden sumar las dos cosas; al elegir prendas sueltas, la oferta rige solo en lo que marques.",
+      titulo: "Por categoría, prenda o insignia",
+      texto: "Elige categorías enteras, marca modelos sueltos en «Prenda por prenda» o, en «Por insignia», las prendas que llevan una insignia. Se pueden sumar; al elegir prendas o insignias, la oferta rige solo en lo que marques.",
     },
     {
       id: "oferta-dias",
@@ -1377,7 +1400,7 @@ export const GUIA_CAMPANAS: Guia = {
       opcional: true,
       preparar: [{ tipo: "clic", ancla: "sellos.oferta-paso-3" }],
       titulo: "Una oferta por prenda",
-      texto: "Una prenda tiene una sola oferta por tienda y por día. Si esta pisa a otra, aquí sale con cuál, en qué tiendas y en cuántas prendas. Elige «que la otra ceda» o cambia tiendas, fechas o prendas: hasta resolverlo se puede guardar como borrador, pero no activar.",
+      texto: "Una prenda tiene una sola oferta por tienda y por día. Si esta pisa a otra, aquí sale con cuál, en qué tiendas y en cuántas prendas. Elige «que la otra ceda» (en un monto, también «que no cuenten») o cambia tiendas, fechas o prendas: hasta resolverlo queda en borrador.",
     },
     {
       id: "oferta-revision",

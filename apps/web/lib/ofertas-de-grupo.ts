@@ -1,5 +1,5 @@
 import { descuentoUnitarioPorPorcentaje } from "./vender-reglas";
-import { titularDeOferta } from "./campana-reglas";
+import { escalonesDeFila, titularDeEscalon, titularDeMonto, titularDeOferta } from "./campana-reglas";
 
 /**
  * «Llevar varias y pagar menos» (ADR-0655, actividad 6): el 3x2, «N por S/ X» y «la N.ª al X %».
@@ -16,7 +16,10 @@ import { titularDeOferta } from "./campana-reglas";
  * Va en céntimos enteros, nunca en coma flotante: 79.90 · 49.90 · 39.90 en 3x2 tiene que dar 18.79 · 11.73 · 9.38 aquí y en la base.
  */
 
-export type TipoDeGrupo = "nxm" | "n_por_monto" | "nesima_pct";
+export type TipoDeGrupo = "nxm" | "n_por_monto" | "nesima_pct" | "monto";
+
+/** Un escalón de «Gastar un monto y ahorrar» (ADR-0655, actividad 8): desde cuánto suma la compra y cuánto ahorra (soles o %). */
+export type Escalon = { desde: number; ahorra: number };
 
 /** Una oferta de grupo, como la devuelve la base. */
 export type OfertaDeGrupo = {
@@ -32,13 +35,20 @@ export type OfertaDeGrupo = {
   porcentaje: number | null;
   /** Con qué se arma el grupo: cualquier prenda de la oferta o solo del mismo modelo. */
   agrupa: "campana" | "modelo";
+  /** En un monto: sus escalones (de menor a mayor) y si ahorra en soles o en %. Todas sus prendas son un solo grupo. */
+  escalones?: readonly Escalon[];
+  ahorroEn?: "soles" | "pct";
 };
+
+/** Cómo va un monto en el ticket: el escalón alcanzado (o ninguno) y lo que falta para el siguiente. */
+export type EnMonto = { ahorroEn: "soles" | "pct"; alcanzado: Escalon | null; siguiente: { escalon: Escalon; falta: number } | null };
 
 /** Una línea del ticket: su precio por unidad, cuántas lleva, la oferta de grupo que rige para esa prenda (o ninguna) y su modelo. */
 export type LineaDeGrupo = { precio: number; cantidad: number; oferta: OfertaDeGrupo | null; modeloId?: string | null };
 
-/** Lo que la regla dice de una línea con oferta de grupo: cuánto ahorra (todas sus unidades) y cuántas le faltan al último grupo. */
-export type GrupoDeLinea = { reglaId: string; descuento: number; faltan: number };
+/** Lo que la regla dice de una línea con oferta de grupo: cuánto ahorra (todas sus unidades) y cuántas le faltan al último grupo (en un
+ *  monto, 0: lo que le falta va en soles, en `monto`). */
+export type GrupoDeLinea = { reglaId: string; descuento: number; faltan: number; monto?: EnMonto };
 
 type Unidad = { linea: number; u: number; cent: number; clave: string; oferta: OfertaDeGrupo };
 
@@ -55,6 +65,7 @@ export function ofertasDeGrupo(lineas: readonly LineaDeGrupo[]): (GrupoDeLinea |
 
   const parteDe = new Map<number, number>(); // línea → céntimos
   const faltanDe = new Map<string, number>(); // clave → cuántas le faltan al último grupo
+  const montoDe = new Map<string, EnMonto>(); // clave → cómo va el monto
   const cubos = new Map<string, Unidad[]>();
   for (const x of unidades) cubos.set(x.clave, [...(cubos.get(x.clave) ?? []), x]);
 
@@ -62,6 +73,26 @@ export function ofertasDeGrupo(lineas: readonly LineaDeGrupo[]): (GrupoDeLinea |
     const n = cubo[0].oferta.lleva;
     // De la más cara a la más barata; empate: el orden del ticket.
     const orden = [...cubo].sort((a, b) => b.cent - a.cent || a.linea - b.linea || a.u - b.u);
+    // Un monto (actividad 8): todas sus prendas son un grupo; vale el escalón más alto al que llega la suma, repartido como el 3x2.
+    if (cubo[0].oferta.tipo === "monto") {
+      const o = cubo[0].oferta;
+      const totalC = orden.reduce((a, x) => a + x.cent, 0);
+      const escalones = [...(o.escalones ?? [])].sort((a, b) => a.desde - b.desde);
+      const alcanzado = escalones.filter((e) => Math.round(e.desde * 100) <= totalC).at(-1) ?? null;
+      const siguiente = escalones.find((e) => Math.round(e.desde * 100) > totalC) ?? null;
+      const ahorroEn = o.ahorroEn === "pct" ? "pct" : "soles";
+      montoDe.set(clave, { ahorroEn, alcanzado, siguiente: siguiente ? { escalon: siguiente, falta: (Math.round(siguiente.desde * 100) - totalC) / 100 } : null });
+      faltanDe.set(clave, 0);
+      if (!alcanzado) continue;
+      const ahorro =
+        ahorroEn === "pct"
+          ? Math.round(descuentoUnitarioPorPorcentaje(totalC / 100, alcanzado.ahorra) * 100)
+          : Math.min(Math.round(alcanzado.ahorra * 100), totalC);
+      for (const [j, parte] of repartir(ahorro, orden.map((x) => x.cent)).entries()) {
+        parteDe.set(orden[j].linea, (parteDe.get(orden[j].linea) ?? 0) + parte);
+      }
+      continue;
+    }
     faltanDe.set(clave, orden.length % n === 0 ? 0 : n - (orden.length % n));
     const completos = Math.floor(orden.length / n);
     for (let g = 0; g < completos; g++) {
@@ -76,7 +107,8 @@ export function ofertasDeGrupo(lineas: readonly LineaDeGrupo[]): (GrupoDeLinea |
   return lineas.map((l, i) => {
     if (!l.oferta || Math.trunc(l.cantidad) <= 0) return null;
     const clave = `${l.oferta.reglaId}|${l.oferta.agrupa === "modelo" ? (l.modeloId ?? "") : ""}`;
-    return { reglaId: l.oferta.reglaId, descuento: (parteDe.get(i) ?? 0) / 100, faltan: faltanDe.get(clave) ?? 0 };
+    const monto = montoDe.get(clave);
+    return { reglaId: l.oferta.reglaId, descuento: (parteDe.get(i) ?? 0) / 100, faltan: faltanDe.get(clave) ?? 0, ...(monto ? { monto } : {}) };
   });
 }
 
@@ -117,17 +149,25 @@ export type EjemploDeGrupo = { lineas: { nombre: string; precio: number; paga: n
 /** Arma un grupo de ejemplo con las prendas que la oferta alcanza y lo cobra con `ofertasDeGrupo`. Con «cualquier prenda», las N más caras de
  *  modelos distintos (si no hay N modelos, repite); con «del mismo modelo», N del modelo más caro. `null` si la oferta no alcanza ninguna. */
 export function ejemploDeGrupo(prendas: readonly PrendaParaEjemplo[], oferta: OfertaDeGrupo): EjemploDeGrupo | null {
-  const validas = prendas.filter((p) => Number.isFinite(p.precio) && p.precio > 0);
-  if (validas.length === 0 || oferta.lleva < 1) return null;
-  // Un modelo una vez, con su precio más alto, de la más cara a la más barata (empate: por nombre, para que el ejemplo no cambie solo).
+  const modelos = modelosParaEjemplo(prendas);
+  if (modelos.length === 0 || oferta.lleva < 1) return null;
+  const elegidas = oferta.agrupa === "modelo" ? Array.from({ length: oferta.lleva }, () => modelos[0]) : Array.from({ length: oferta.lleva }, (_, i) => modelos[i % modelos.length]);
+  return cobrarEjemplo(elegidas, oferta);
+}
+
+/** Un modelo una vez, con su precio más alto, de la más cara a la más barata (empate: por nombre, para que el ejemplo no cambie solo). */
+function modelosParaEjemplo(prendas: readonly PrendaParaEjemplo[]): PrendaParaEjemplo[] {
   const porModelo = new Map<string, PrendaParaEjemplo>();
-  for (const p of validas) {
+  for (const p of prendas.filter((x) => Number.isFinite(x.precio) && x.precio > 0)) {
     const clave = p.productoId ?? p.nombre;
     const ya = porModelo.get(clave);
     if (!ya || p.precio > ya.precio) porModelo.set(clave, p);
   }
-  const modelos = [...porModelo.values()].sort((a, b) => b.precio - a.precio || a.nombre.localeCompare(b.nombre, "es"));
-  const elegidas = oferta.agrupa === "modelo" ? Array.from({ length: oferta.lleva }, () => modelos[0]) : Array.from({ length: oferta.lleva }, (_, i) => modelos[i % modelos.length]);
+  return [...porModelo.values()].sort((a, b) => b.precio - a.precio || a.nombre.localeCompare(b.nombre, "es"));
+}
+
+/** Las prendas elegidas cobradas con `ofertasDeGrupo`: lo que paga cada una y el total. */
+function cobrarEjemplo(elegidas: readonly PrendaParaEjemplo[], oferta: OfertaDeGrupo): EjemploDeGrupo {
   const grupos = ofertasDeGrupo(elegidas.map((p) => ({ precio: p.precio, cantidad: 1, oferta, modeloId: p.productoId ?? p.nombre })));
   const lineas = elegidas.map((p, i) => ({ nombre: p.nombre, precio: p.precio, paga: (Math.round(p.precio * 100) - Math.round((grupos[i]?.descuento ?? 0) * 100)) / 100 }));
   const totalC = elegidas.reduce((a, p) => a + Math.round(p.precio * 100), 0);
@@ -135,15 +175,52 @@ export function ejemploDeGrupo(prendas: readonly PrendaParaEjemplo[], oferta: Of
   return { lineas, total: totalC / 100, paga: pagaC / 100, ahorro: (totalC - pagaC) / 100 };
 }
 
+/** El ejemplo de un monto (la hoja, actividad 8): las prendas más caras de modelos distintos hasta llegar al primer escalón (a lo más 6; si
+ *  no alcanzan, se repite la más cara), cobradas con la cuenta de la caja. `null` si la oferta no alcanza ninguna prenda. */
+export function ejemploDeMonto(prendas: readonly PrendaParaEjemplo[], oferta: OfertaDeGrupo): EjemploDeGrupo | null {
+  const modelos = modelosParaEjemplo(prendas);
+  if (modelos.length === 0) return null;
+  const umbralC = Math.round(([...(oferta.escalones ?? [])].sort((a, b) => a.desde - b.desde)[0]?.desde ?? 0) * 100);
+  const elegidas: PrendaParaEjemplo[] = [];
+  let sumaC = 0;
+  for (let i = 0; elegidas.length < 6 && (sumaC < umbralC || elegidas.length === 0); i++) {
+    const p = modelos[i] ?? modelos[0];
+    elegidas.push(p);
+    sumaC += Math.round(p.precio * 100);
+  }
+  return cobrarEjemplo(elegidas, oferta);
+}
+
 // ---- La caja: el carrito con sus grupos (ADR-0655, actividad 6, parte 3) --------------------------------------------------------------
 
 /** La oferta de grupo que rige hoy para una prenda en la tienda (`ofertas_de_grupo_vigentes`), con su modelo y su nombre. */
 export type OfertaDeGrupoDeVariante = OfertaDeGrupo & { modeloId: string | null; nombre: string; titular: string };
 
-/** Lo que el ticket dice de una línea con oferta de grupo: la oferta, cuánto ahorra la línea y cuántas prendas faltan para otro grupo. */
-export type GrupoEnTicket = { titular: string; nombre: string; ahorro: number; faltan: number };
+/** Lo que el ticket dice de una línea con oferta de grupo: la oferta, cuánto ahorra la línea y cuántas prendas faltan para otro grupo (en un
+ *  monto, cómo va: el escalón alcanzado y lo que falta para el siguiente). */
+export type GrupoEnTicket = { titular: string; nombre: string; ahorro: number; faltan: number; monto?: EnMonto };
 
-type LineaCobrable = { claveLinea: string; varianteId: string; cantidad: number; precioUnitario: number; descuentoUnitario: number };
+/** Un «Gastar un monto y ahorrar» que rige hoy en la tienda (`ofertas_de_monto_vigentes`, actividad 8): uno de la campaña con las prendas que
+ *  alcanza; uno de toda la compra con las que NO. */
+export type OfertaDeMontoVigente = OfertaDeGrupoDeVariante & {
+  cuenta: "campana" | "compra";
+  variantes: ReadonlySet<string> | null;
+  excluidas: ReadonlySet<string>;
+};
+
+/** El monto que rige para una prenda (el más antiguo que la alcanza: el orden de la base), o `null`. Quien llama ya sabe que la prenda no
+ *  tiene un «% menos» ni una oferta de grupo: esas no cuentan para el monto (decisión 3 de Felipe). */
+export function montoDeVariante(montos: readonly OfertaDeMontoVigente[], varianteId: string): OfertaDeMontoVigente | null {
+  return montos.find((m) => (m.cuenta === "compra" ? !m.excluidas.has(varianteId) : (m.variantes?.has(varianteId) ?? false))) ?? null;
+}
+
+/** Lo que el ticket dice de una prenda de un monto: «S/ 30 menos desde S/ 300» (el escalón alcanzado o, si no llega, el primero). */
+function titularEnMonto(o: OfertaDeGrupoDeVariante, m: EnMonto | undefined): string {
+  if (!m?.alcanzado) return o.titular;
+  return titularDeEscalon(m.alcanzado, m.ahorroEn);
+}
+
+type LineaCobrable = { claveLinea: string; varianteId: string; cantidad: number; precioUnitario: number; descuentoUnitario: number; campana?: unknown };
 
 /** Una línea que viaja a `registrar_venta`: su descuento ya trae la parte del grupo, que va también aparte con su oferta. */
 export type ConGrupo<L> = L & { descuentoGrupoUnitario: number; ofertaGrupoId: string | null };
@@ -157,29 +234,39 @@ export type ConGrupo<L> = L & { descuentoGrupoUnitario: number; ofertaGrupoId: s
 export function carritoConGrupos<L extends LineaCobrable>(
   carrito: readonly L[],
   ofertas: Readonly<Record<string, OfertaDeGrupoDeVariante>>,
+  montos: readonly OfertaDeMontoVigente[] = [],
 ): { lineas: ConGrupo<L>[]; porLinea: Map<string, GrupoEnTicket> } {
+  // La oferta de cada prenda: la de grupo; si no tiene, un monto, salvo que tenga un «% menos» (no cuenta para el monto, decisión 3).
+  const ofertaDe = (l: L): OfertaDeGrupoDeVariante | null => ofertas[l.varianteId] ?? (l.campana ? null : montoDeVariante(montos, l.varianteId));
   const lineas: ConGrupo<L>[] = [];
   for (const l of carrito) {
-    const oferta = ofertas[l.varianteId];
+    const oferta = ofertaDe(l);
     if (!oferta) {
       lineas.push({ ...l, descuentoGrupoUnitario: 0, ofertaGrupoId: null });
       continue;
     }
     for (let u = 0; u < Math.max(0, Math.trunc(l.cantidad)); u++) lineas.push({ ...l, cantidad: 1, descuentoGrupoUnitario: 0, ofertaGrupoId: null });
   }
+  const ofertaDeLinea = lineas.map((l) => ofertaDe(l));
   const grupos = ofertasDeGrupo(
-    lineas.map((l) => {
-      const o = ofertas[l.varianteId];
+    lineas.map((l, i) => {
+      const o = ofertaDeLinea[i];
       return { precio: l.precioUnitario, cantidad: l.cantidad, oferta: o ?? null, modeloId: o?.modeloId ?? null };
     }),
   );
   const porLinea = new Map<string, GrupoEnTicket>();
   const conGrupo = lineas.map((l, i) => {
     const g = grupos[i];
-    const o = ofertas[l.varianteId];
+    const o = ofertaDeLinea[i];
     if (!g || !o) return l;
     const ya = porLinea.get(l.claveLinea);
-    porLinea.set(l.claveLinea, { titular: o.titular, nombre: o.nombre, ahorro: (Math.round((ya?.ahorro ?? 0) * 100) + Math.round(g.descuento * 100)) / 100, faltan: g.faltan });
+    porLinea.set(l.claveLinea, {
+      titular: titularEnMonto(o, g.monto),
+      nombre: o.nombre,
+      ahorro: (Math.round((ya?.ahorro ?? 0) * 100) + Math.round(g.descuento * 100)) / 100,
+      faltan: g.faltan,
+      ...(g.monto ? { monto: g.monto } : {}),
+    });
     if (g.descuento <= 0) return l;
     return {
       ...l,
@@ -226,7 +313,14 @@ export function apartadoConGrupos(
     const ya = porVariante.get(u.varianteId);
     const parteC = Math.round(g.descuento * 100);
     ahorroC += parteC;
-    porVariante.set(u.varianteId, { titular: o.titular, nombre: o.nombre, ahorro: (Math.round((ya?.ahorro ?? 0) * 100) + parteC) / 100, faltan: g.faltan, ofertaGrupoId: o.reglaId });
+    porVariante.set(u.varianteId, {
+      titular: titularEnMonto(o, g.monto),
+      nombre: o.nombre,
+      ahorro: (Math.round((ya?.ahorro ?? 0) * 100) + parteC) / 100,
+      faltan: g.faltan,
+      ofertaGrupoId: o.reglaId,
+      ...(g.monto ? { monto: g.monto } : {}),
+    });
   });
   return { porVariante, ahorro: ahorroC / 100 };
 }
@@ -263,4 +357,44 @@ export function ofertasDeGrupoDeFilas(filas: readonly FilaOfertaDeGrupo[] | null
     };
   }
   return por;
+}
+
+/** Una fila de `ofertas_de_monto_vigentes(sede)` (20261114044000). */
+export type FilaOfertaDeMonto = {
+  regla_id: string;
+  oferta_nombre: string;
+  etiqueta_nombre: string;
+  escalones: unknown;
+  ahorro_en: string;
+  cuenta: string;
+  variantes: string[] | null;
+  excluidas: string[] | null;
+};
+
+/** Las filas de la base como las usa la caja, en el orden de la base (el más antiguo gana). Una fila que esta web no sabe leer se ignora:
+ *  no se cobra lo que no se sabe mostrar (la base la exigiría igual). */
+export function ofertasDeMontoDeFilas(filas: readonly FilaOfertaDeMonto[] | null | undefined): OfertaDeMontoVigente[] {
+  const montos: OfertaDeMontoVigente[] = [];
+  for (const f of filas ?? []) {
+    const escalones = escalonesDeFila(f.escalones);
+    if (!escalones || (f.ahorro_en !== "soles" && f.ahorro_en !== "pct") || (f.cuenta !== "campana" && f.cuenta !== "compra")) continue;
+    montos.push({
+      reglaId: f.regla_id,
+      tipo: "monto",
+      lleva: 0,
+      paga: null,
+      monto: null,
+      porcentaje: null,
+      agrupa: "campana",
+      escalones,
+      ahorroEn: f.ahorro_en,
+      modeloId: null,
+      nombre: f.etiqueta_nombre,
+      titular: titularDeMonto(escalones, f.ahorro_en),
+      cuenta: f.cuenta,
+      variantes: f.cuenta === "compra" ? null : new Set(f.variantes ?? []),
+      excluidas: new Set(f.cuenta === "compra" ? (f.excluidas ?? []) : []),
+    });
+  }
+  return montos;
 }

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { armarFilasStock, detalleDesdeCatalogo, detallesDesdeCatalogo } from "./stock-de-sede-reglas";
+import { armarFilasStock, detalleDesdeCatalogo, detallesDesdeCatalogo, pisoDeCadaTalla } from "./stock-de-sede-reglas";
 import { fotoDeLaFila } from "./color-estampado-reglas";
 import { fotoDeVariante, type FotoCruda } from "./producto-fotos-reglas";
 import { fotoPrincipal } from "./inventario-reglas";
@@ -102,5 +102,31 @@ describe("armarFilasStock", () => {
     const filas = armarFilasStock([fila("v1", 4, null), fila("v2", 0, null)], detalles);
     expect(filas.map((f) => f.varianteId)).toEqual(["v1"]);
     expect(filas[0]).toMatchObject({ total: 4, piso: null, almacen: null });
+  });
+});
+
+describe("pisoDeCadaTalla: lo que el ritmo necesita, sin esperar a la lista", () => {
+  const sub = (tipo: string | null) => (tipo ? { tipo } : null);
+  const fila = (variante_id: string, cantidad: number, tipo: string | null, cantidad_apartada = 0) => ({ variante_id, cantidad, cantidad_apartada, sububicacion: sub(tipo) });
+
+  it("en una tienda da las mismas tallas y el mismo piso que las filas de la lista", () => {
+    const crudas = [
+      fila("v1", 2, "piso_venta", 1),
+      fila("v1", 3, "almacen_tienda"),
+      fila("v1", 1, "cuarentena"),
+      fila("v2", 0, "piso_venta"),
+      fila("v3", 4, "almacen_tienda"),
+    ];
+    const detalles = new Map(["v1", "v2", "v3"].map((id) => [id, detalleDesdeCatalogo(variante({ varianteId: id }), undefined)] as const));
+    const deLaLista = new Map(armarFilasStock(crudas, detalles).map((f) => [f.varianteId, f.piso ?? 0] as const));
+    const piso = pisoDeCadaTalla(crudas);
+    expect([...piso.keys()].sort()).toEqual([...deLaLista.keys()].sort());
+    for (const [id, n] of deLaLista) expect(piso.get(id), id).toBe(n);
+    expect(piso.get("v1")).toBe(2);
+    expect(piso.get("v3")).toBe(0);
+  });
+
+  it("sin filas, ninguna talla", () => {
+    expect(pisoDeCadaTalla([]).size).toBe(0);
   });
 });

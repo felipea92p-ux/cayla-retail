@@ -37,13 +37,23 @@ const CONTENEDOR_LOCAL = ARG_CONTENEDOR > 0 ? process.argv[ARG_CONTENEDOR + 1] :
 const MIGRACION = "supabase/migrations/20261113202000_tienda_catalogo_version.sql";
 // Las migraciones que vinieron después y tocan lo que la huella cubre (ADR-0655): las ofertas prenda por prenda, las cesiones y la huella
 // que las suma. «Cobertura» lee sus listas de la ÚLTIMA (HUELLA_ACTUAL) y, si la base local no las tiene, las aplica en su transacción.
-const HUELLA_ACTUAL = "supabase/migrations/20261113232000_huella_tienda_con_ofertas.sql";
+// La última que define la huella (20261114142000 suma fn_insignia_viva, de 20261114130000).
+const HUELLA_ACTUAL = "supabase/migrations/20261114142000_huella_tienda_con_insignia_viva.sql";
 const DESPUES = [
   ["retail.fusionar_productos(uuid, uuid[], jsonb, jsonb)", "procedure", ["20261112204000_fusionar_productos_base", "20261112205000_fusionar_productos_previsualizar",
     "20261112210000_fusionar_productos", "20261112211000_fusionar_productos_lecturas", "20261113175000_fusionar_productos_tallas_vacias"]],
   ["retail.campana_regla_productos", "class", ["20261113210000_oferta_prenda_por_prenda"]],
   ["retail.campana_regla_cesiones", "class", ["20261113223000_una_oferta_por_prenda_tienda_y_dia"]],
   ["retail.fn_variantes_de_oferta(uuid, uuid[], uuid[], uuid[], boolean)", "procedure", ["20261113230000_choques_de_oferta_de_una_vez"]],
+  // Las ofertas de grupo, el monto y las ofertas por insignia (ADR-0655): la caja lee `campana_regla_insignias` desde 20261114060000.
+  ["retail.fn_ofertas_de_grupo(date, uuid, jsonb, integer)", "procedure", ["20261114003000_ofertas_de_grupo"]],
+  ["retail.fn_exigir_ofertas_de_grupo(jsonb, uuid, date)", "procedure", ["20261114011000_caja_cobra_ofertas_de_grupo"]],
+  ["retail.fn_repartir_grupos(jsonb)", "procedure", ["20261114032000_apartados_con_ofertas_de_grupo"]],
+  ["retail.tienda_bolsa_grupos(jsonb, uuid)", "procedure", ["20261114041000_tienda_web_ofertas_de_grupo"]],
+  ["retail.fn_escalones_validos(jsonb, text)", "procedure", ["20261114044000_monto_con_escalones"]],
+  ["retail.campana_regla_insignias", "class", ["20261114054000_choques_con_forma_una_sola_firma", "20261114060000_ofertas_por_insignia"]],
+  // Una oferta no llega por una insignia desactivada (20261114130000): la regla pregunta fn_insignia_viva.
+  ["retail.fn_insignia_viva(uuid)", "procedure", ["20261114130000_oferta_no_llega_por_insignia_desactivada"]],
 ];
 const FELIPE = "22222222-2222-4222-8222-000000000001"; // líder (y Admin): publica en la Vitrina
 
@@ -95,7 +105,7 @@ const TEXTO_HUELLA = readFileSync(HUELLA_ACTUAL, "utf8");
 const FALTA_DESPUES = DESPUES.filter(([que, tipo]) => correr(`select to_reg${tipo}('${que}') is null;`).salida === "t")
   .flatMap(([, , archivos]) => archivos.map((a) => readFileSync(`supabase/migrations/${a}.sql`, "utf8")))
   .join("\n");
-const HUELLA_AL_DIA = correr("select position('campana_regla_cesiones' in coalesce(pg_get_functiondef(to_regprocedure('retail.tienda_catalogo_version()')), '')) > 0;").salida === "t";
+const HUELLA_AL_DIA = correr("select position('fn_insignia_viva' in coalesce(pg_get_functiondef(to_regprocedure('retail.tienda_catalogo_version()')), '')) > 0;").salida === "t";
 const PARA_COBERTURA = `${MIGRACION_EN_LA_TRANSACCION}\n${FALTA_DESPUES}\n${HUELLA_AL_DIA ? "" : TEXTO_HUELLA}`;
 
 /** La migración sin la línea de la huella que contiene `marca` (una de sus tablas): un mutante. */

@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import fixture from "./resumen-finanzas.fixture.json";
-import { GRUPOS_DEL_RESUMEN, juntarResumen, PARTES_DEL_RESUMEN, type GrupoDelResumen } from "./resumen-finanzas-partes";
+import { GRUPOS_DEL_RESUMEN, juntarResumen, PARTE_BALANCE, PARTES_DEL_RESUMEN, type GrupoDelResumen } from "./resumen-finanzas-partes";
 import { leerResumen } from "./resumen-finanzas-reglas";
 
 // Resumen por bloques (ADR-0661): las tres lecturas juntas tienen que ser la entera. Aquí, del lado de la web (lo que hace `leerResumen` con cada
@@ -30,11 +30,13 @@ describe("los grupos del Resumen", () => {
     expect(new Set(juntos)).toEqual(new Set(PARTES_DEL_RESUMEN));
   });
 
-  it("las 13 partes son las que valida la función por partes en la base, y los grupos son los de su prueba", () => {
+  it("las 13 partes (y la de `balance`, que no es de la entera) son las que valida la función por partes en la base, y los grupos son los de su prueba", () => {
     const raiz = join(__dirname, "..", "..", "..");
-    const sql = readFileSync(join(raiz, "supabase/migrations/20261113235000_resumen_finanzas_por_partes.sql"), "utf8");
+    // La definición viva de `fn_resumen_finanzas_partes` es la de la última migración que la reescribe (20261114005000).
+    const sql = readFileSync(join(raiz, "supabase/migrations/20261114005000_estado_de_resultados_una_vez.sql"), "utf8");
     const lista = /x <> all \(array\[([\s\S]*?)\]\)\)/.exec(sql)?.[1] ?? "";
-    expect(new Set(lista.match(/'([a-z_]+)'/g)?.map((s) => s.slice(1, -1)))).toEqual(new Set(PARTES_DEL_RESUMEN));
+    expect(new Set(lista.match(/'([a-z_]+)'/g)?.map((s) => s.slice(1, -1)))).toEqual(new Set([...PARTES_DEL_RESUMEN, PARTE_BALANCE]));
+    expect(PARTES_DEL_RESUMEN).not.toContain(PARTE_BALANCE);
     const prueba = readFileSync(join(raiz, "scripts/pruebas/resumen_finanzas_por_partes.mjs"), "utf8");
     for (const [grupo, partes] of Object.entries(GRUPOS_DEL_RESUMEN)) {
       const enLaPrueba = new RegExp(`${grupo}: \\[([^\\]]*)\\]`).exec(prueba)?.[1] ?? "";
@@ -70,8 +72,8 @@ describe("juntarResumen", () => {
     const entera = fixture.todas as Json;
     const sinPresupuesto = juntarResumen(
       leerResumen(respuestaDelGrupo(entera, "rapido")),
-      leerResumen(respuestaDelGrupo(entera, "mes")),
-      leerResumen({ ...respuestaDelGrupo(entera, "avisos"), presupuesto: undefined }),
+      leerResumen({ ...respuestaDelGrupo(entera, "mes"), presupuesto: undefined }),
+      leerResumen(respuestaDelGrupo(entera, "avisos")),
     );
     expect(sinMs(sinPresupuesto)).not.toEqual(sinMs(leerResumen(entera)));
   });

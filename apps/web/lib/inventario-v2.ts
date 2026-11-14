@@ -103,10 +103,11 @@ const COLUMNA_INEXISTENTE = "42703";
  * producción, lo más pesado de Existencias. Si alguna prenda con stock no está en la copia, se hace la lectura completa de antes: nunca
  * falta una fila (una prenda que no sale parece sin stock).
  */
-export async function getStockPorUbicacion(ubicacionId: string): Promise<FilaStock[]> {
+export async function getStockPorUbicacion(ubicacionId: string, cantidades?: Promise<CantidadesDeSede>): Promise<FilaStock[]> {
   const supabase = await createClient();
   const [filas, catalogo, precios] = await Promise.all([
-    leerCantidadesDeSede(supabase, ubicacionId),
+    // Existencias ya las pidió para arrancar el ritmo con ellas (`getCantidadesDeSede`): se usan esas, sin volver a leer.
+    cantidades ?? leerCantidadesDeSede(supabase, ubicacionId),
     getCatalogo(),
     // El precio de ESTA sede (precio propio, Felipe 2026-10-09). Si no se puede leer, el general: nunca se cae por esto.
     getPreciosPorSede([ubicacionId]),
@@ -234,6 +235,19 @@ export async function getDisponibleEnSede(ubicacionId: string): Promise<Map<stri
 
 /** Las filas de stock de una sede, solo con sus cantidades: lo que leen la caja (`getDisponibleEnSede`) y `getStockPorUbicacion`. Sin la
  *  variante centinela del «Monto manual» ni las variantes descontinuadas; por páginas, en el orden de la fila (variante, sububicación). */
+/** Las cantidades de la sede, delgadas y frescas: una fila por talla y lugar (piso, almacén, cuarentena), sin el detalle de la prenda. */
+export type CantidadesDeSede = Awaited<ReturnType<typeof leerCantidadesDeSede>>;
+
+/**
+ * Las cantidades de la sede, para pedirlas UNA vez y usarlas en dos lados (Existencias, 2026-11-14): el ritmo reciente arranca apenas
+ * llegan —solo necesita qué tallas hay y cuántas cuelgan (`pisoDeCadaTalla`)— y la lista las reutiliza (`getExistencias(…, { cantidades })`).
+ * Antes el ritmo esperaba a la lista entera (la red de las otras sedes, lo que viene en camino, el catálogo). Lanza si no se pueden leer,
+ * como la lista: sin cantidades no hay pantalla.
+ */
+export async function getCantidadesDeSede(ubicacionId: string): Promise<CantidadesDeSede> {
+  return leerCantidadesDeSede(await createClient(), ubicacionId);
+}
+
 async function leerCantidadesDeSede(supabase: Awaited<ReturnType<typeof createClient>>, ubicacionId: string) {
   return exigir(
     await leerTodas((desde, hasta) =>
@@ -324,11 +338,12 @@ export async function leerStockDeLasSedes(): Promise<{ data: FilaStockSede[] | n
 export async function getExistencias(
   ubicacionId: string,
   ubicaciones: { id: string; nombre: string }[],
-  opciones: { incluirPrueba?: boolean } = {}
+  // `cantidades`: las que la página ya pidió con `getCantidadesDeSede` (para el ritmo). Sin ellas, se leen aquí, como siempre.
+  opciones: { incluirPrueba?: boolean; cantidades?: Promise<CantidadesDeSede> } = {}
 ): Promise<FilaExistencias[]> {
   const supabase = await createClient();
   const [stock, redRes, transitoRes, pruebaRes] = await Promise.all([
-    getStockPorUbicacion(ubicacionId),
+    getStockPorUbicacion(ubicacionId, opciones.cantidades),
     leerStockDeLasSedes(),
     // Solo los traslados cuyo destino es ESTA ubicación: lo que sale de acá ya
     // se descontó del stock al enviarse y no es «en camino» para esta pantalla.
@@ -556,19 +571,23 @@ export async function getPrendasDanadasPendientes(ubicacionId: string): Promise<
           "las prendas dañadas pendientes"
         ).map((f) => ({ ...f, motivo_reporte: null as string | null, tipo_dano: null as string | null }))
       : exigir(conMotivo, "las prendas dañadas pendientes");
-  // Los precios propios de ESTA tienda, solo si hay algo que pintar (si la lectura falla, el precio de la prenda, como antes).
-  const propios = filas.length === 0 ? {} : ((await getPreciosPorSede([ubicacionId]))[ubicacionId] ?? {});
-  // «Devolver al proveedor» (ADR-0362, fase 5b, actividad 6a): cuáles llegaron dañadas en una recepción y a quién vuelven. Opcional: si la
-  // base no responde o todavía no tiene la función, la lista sale sin ese botón, como antes.
-  const devolvibles = filas.length === 0 ? new Map<string, DevolucionPosible>() : await leerDevolviblesDeSede(supabase, ubicacionId);
-  // Cuáles ya salieron a arreglarse (ADR-0564): una lectura aparte, opcional como la anterior. Sin las columnas (la web salió antes que
-  // `20261029032000`) o sin respuesta, ninguna sale marcada y la lista es la de antes.
-  const salidas = filas.length === 0 ? new Map<string, SalidaDeArreglo>() : await leerEnArregloDeSede(supabase, ubicacionId);
-  // Las fotos del daño (ADR-0564): opcionales, como la anterior. Sin la función (la web salió antes que `20261029034000`) o sin respuesta, la lista
-  // sale sin fotos, como antes.
-  const fotos = filas.length === 0 ? new Map<string, string[]>() : await leerFotosDeDanadas(supabase, filas.map((f) => f.id));
-  // De dónde salió y si se corrigió (ADR-0640): opcional como las anteriores. Sin respuesta, ninguna se ofrece para corregir.
-  const correcciones = filas.length === 0 ? new Map<string, CorreccionDeDanada>() : await leerCorreccionesDeSede(supabase, ubicacionId);
+  // Lo que acompaña a cada dañada sale de cinco lecturas que no dependen entre sí, así que van A LA VEZ (2026-11-14): una detrás de otra
+  // eran seis viajes a la base en fila y Existencias esperaba 0,5–0,8 s por esta lista (`existencias_tramos`), aunque la base tardaba
+  // ~50 ms en cada una. Solo si hay algo que pintar; cada una, opcional como antes:
+  //   · los precios propios de ESTA tienda (si la lectura falla, el precio de la prenda);
+  //   · «Devolver al proveedor» (ADR-0362, fase 5b, actividad 6a): cuáles llegaron dañadas en una recepción y a quién vuelven (sin la
+  //     función o sin respuesta, la lista sale sin ese botón);
+  //   · cuáles ya salieron a arreglarse (ADR-0564; sin las columnas de `20261029032000` o sin respuesta, ninguna sale marcada);
+  //   · las fotos del daño (ADR-0564; sin la función de `20261029034000` o sin respuesta, sin fotos);
+  //   · de dónde salió y si se corrigió (ADR-0640; sin respuesta, ninguna se ofrece para corregir).
+  const hay = filas.length > 0;
+  const [propios, devolvibles, salidas, fotos, correcciones] = await Promise.all([
+    hay ? getPreciosPorSede([ubicacionId]).then((p) => p[ubicacionId] ?? {}) : Promise.resolve({} as Record<string, number>),
+    hay ? leerDevolviblesDeSede(supabase, ubicacionId) : Promise.resolve(new Map<string, DevolucionPosible>()),
+    hay ? leerEnArregloDeSede(supabase, ubicacionId) : Promise.resolve(new Map<string, SalidaDeArreglo>()),
+    hay ? leerFotosDeDanadas(supabase, filas.map((f) => f.id)) : Promise.resolve(new Map<string, string[]>()),
+    hay ? leerCorreccionesDeSede(supabase, ubicacionId) : Promise.resolve(new Map<string, CorreccionDeDanada>()),
+  ]);
   return filas.map((f) => ({
     id: f.id,
     varianteId: f.variante?.id ?? "",

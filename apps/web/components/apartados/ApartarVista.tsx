@@ -12,7 +12,7 @@ import { METODOS_PAGO, type MetodoPago } from "@cayla-retail/shared";
 import { money, type ItemCarrito, type VarianteBusqueda } from "@/components/PuntoDeVenta";
 import { LineaDelTicket } from "@/components/punto-de-venta/LineaDelTicket";
 import { PieDeGrupo } from "@/components/punto-de-venta/PieDeGrupo";
-import { apartadoConGrupos, type OfertaDeGrupoDeVariante } from "@/lib/ofertas-de-grupo";
+import { apartadoConGrupos, montoDeVariante, ofertasDeMontoDeFilas, type FilaOfertaDeMonto, type OfertaDeGrupoDeVariante } from "@/lib/ofertas-de-grupo";
 import { ICONO_METODO } from "@/components/PuntoDeVentaTicket";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { CanalDelApartado } from "@/components/apartados/CanalDelApartado";
@@ -108,6 +108,7 @@ export type PrendaApartable = VarianteBusqueda & {
 };
 
 const CANTIDAD_DE_LINEA = reglaDeEntero();
+const SIN_MONTOS: readonly FilaOfertaDeMonto[] = [];
 const OPCION = "rounded-lg transition-colors";
 const OPCION_ACTIVA = "bg-papel text-tinta shadow-sm";
 const OPCION_INACTIVA = "text-tinta/60 hover:bg-papel/60";
@@ -168,6 +169,7 @@ export function ApartarVista({
   pedido = null,
   onPedidoHecho,
   canales = [],
+  filasMonto = SIN_MONTOS,
 }: {
   ubicacionId: string;
   ubicacionEtiqueta: string;
@@ -191,6 +193,8 @@ export function ApartarVista({
   onPedidoHecho?: () => void;
   /** ADR-0607: los canales de venta que opera la cuenta. Solo la tienda (o vacío) = el formulario de siempre. */
   canales?: readonly CanalVenta[];
+  /** «Gastar un monto y ahorrar» (ADR-0655, actividad 8): los montos de hoy en esta tienda, tal como llegan de la base. */
+  filasMonto?: readonly FilaOfertaDeMonto[];
 }) {
   const router = useRouter();
   // El apartado a medio armar es de SU sede (Felipe, 2026-10-11): el panel monta Apartar con la sede en la key, y lo armado en otra
@@ -215,6 +219,7 @@ export function ApartarVista({
     (releido) => setAjustesStock((prev) => new Map([...prev, ...releido])),
   );
   const porId = useMemo(() => new Map(prendas.map((p) => [p.varianteId, p])), [prendas]);
+  const montos = useMemo(() => ofertasDeMontoDeFilas(filasMonto), [filasMonto]);
   const [texto, setTexto] = useState("");
   // Desde el ticket del Punto de venta llegan ya elegidas; se topan por lo disponible AHORA en el piso y se dice qué
   // no entró (otra caja pudo venderla entre el ticket y esta pantalla), en vez de perderla en silencio.
@@ -346,10 +351,12 @@ export function ApartarVista({
   const descuentoDe = new Map(lineasConDescuento.map((l) => [l.varianteId, l]));
   // ADR-0655 (parte 4): las ofertas de grupo de lo que se aparta, con la cuenta y el orden de `separar_prendas`; la parte de cada prenda va en
   // `descuento_grupo` y la base la vuelve a exigir. Lo apartado queda con el trato de hoy.
+  // El monto (actividad 8): la prenda sin oferta de grupo ni «% menos» suma para él, con la misma cuenta que `separar_prendas`.
   const grupos = apartadoConGrupos(
     lineas.map((l) => ({ varianteId: l.varianteId, cantidad: l.cantidad, precio: porId.get(l.varianteId)!.precio })),
     Object.fromEntries(lineas.flatMap((l) => {
-      const o = porId.get(l.varianteId)?.ofertaGrupo;
+      const p = porId.get(l.varianteId);
+      const o = p?.ofertaGrupo ?? (p?.campana ? null : montoDeVariante(montos, l.varianteId));
       return o ? [[l.varianteId, o] as const] : [];
     })),
   );

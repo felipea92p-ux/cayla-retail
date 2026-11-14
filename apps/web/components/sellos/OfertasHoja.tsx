@@ -1,12 +1,14 @@
 "use client";
 
-import { useMemo, useRef, useState, type ReactNode } from "react";
+import { useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
-import { Check, ChevronDown, ChevronRight, Gift, Info, Layers, Star, Tag, Undo2, Wallet } from "lucide-react";
+import { Award, Check, ChevronDown, ChevronRight, Gift, Info, Layers, Plus, Star, Tag, Undo2, Wallet, X } from "lucide-react";
 import { avisar } from "@/components/ui/Avisos";
 import { Aviso } from "@/components/ui/Aviso";
 import { Boton, Campo, CampoMonto, CampoTexto } from "@/components/ui/campos";
 import { Buscador } from "@/components/ui/Buscador";
+import { Vacio } from "@/components/ui/Vacio";
+import { soltarPaginaEstable } from "@/components/ui/PaginaEstable";
 import { Casilla } from "@/components/ui/Casilla";
 import { SegmentoDeslizante } from "@/components/ui/SegmentoDeslizante";
 import { CampoFecha } from "@/components/ui/CampoFecha";
@@ -23,23 +25,25 @@ import { ChoquesDeOferta, useChoquesDeOferta } from "@/components/sellos/Choques
 import type { CategoriaOpcion, Etiqueta } from "@/components/EtiquetasLista";
 import { encabezadosOmitidos } from "@/lib/responsable-omitido";
 import type { CampoDeGuia } from "@/lib/guia-campos";
+import type { InsigniaDeOferta } from "@/lib/campana-reglas";
 import { alcanceCampana, avisoReimprimir, chipDeTarjeta, destinoReimprimir, nombreBajoCosto, prendasBajoCosto, prendasQueCambianDePrecioHoy, textoSedesDeCampana, type PrendaConCosto, type TiendaOpcion } from "@/lib/etiqueta-campana";
 import { ejemplosDeCaja, piezasDelMosaico } from "@/lib/campana-hoja";
 import { sumarDias } from "@/lib/fechas-lima";
-import { ejemploDeGrupo, type OfertaDeGrupo } from "@/lib/ofertas-de-grupo";
+import { ejemploDeGrupo, ejemploDeMonto, type OfertaDeGrupo } from "@/lib/ofertas-de-grupo";
 import { fechaCorta, repetirTemporada, textoRango, vigenciaDe } from "@/lib/etiqueta-vigencia";
 import {
   DIAS_SEMANA,
   FORMA_DE_FABRICA,
   LLEVA_MAX,
   LLEVA_MIN,
+  MAX_ESCALONES,
+  MAX_INSIGNIAS_SOLO,
   PORCENTAJES_RAPIDOS,
   PORCENTAJE_MAX,
   PORCENTAJE_MIN,
   PORCENTAJE_PASO,
   alcanceDicho,
   atajosDeFechas,
-  categoriasDichas,
   contarPorCategoria,
   contarPrendas,
   cuentaDias,
@@ -70,6 +74,7 @@ import {
   textoFechas,
   vigenciaDeRegla,
   type CuerpoGuardarOferta,
+  type EscalonDeMonto,
   type OfertaEnEdicion,
   type TipoOferta,
   type ReglaCampana,
@@ -84,8 +89,8 @@ import {
    prendas preguntar depende de la oferta) y, a la derecha, la etiqueta de la campaña que se arma con
    cada respuesta (la misma de la hoja de la campaña, ADR-0488, con el resumen de la oferta). El cuándo y las prendas ya vienen contestados
    con lo más común; las tiendas no (se marcan una por una); quien ya sabe usa el atajo de la pregunta 1.
-   ASUME: hoy solo existe «Un % menos» (los otros 14 tipos de la maqueta cambian dinero en la caja y llegan después: se ven apagados con
-   «Pronto»). Las tiendas y las prendas de una oferta son un subconjunto de las de su campaña. Quien abre esta hoja tiene la llave de
+   ASUME: hoy existen «Un % menos», «Llevar varias y pagar menos» y «Gastar un monto y ahorrar» (ADR-0655); los demás tipos de la maqueta se
+   ven apagados con «Pronto». Las tiendas y las prendas de una oferta son un subconjunto de las de su campaña. Quien abre esta hoja tiene la llave de
    campañas y activa, cambia y retira sin esperar a un líder (ADR-0534; la base vuelve a exigir la llave). Guardar y activar van por
    /api/productos/campana-reglas; la base valida todo otra vez.
    NO HACE: no cambia precios por su cuenta ni toca el descuento «de siempre» de la campaña (solo se retira desde «Ya registradas»).
@@ -93,11 +98,12 @@ import {
 
 type Paso = 1 | 2 | 3 | 4;
 type Guardando = "borrador" | "activar" | "cambios" | null;
+type VistaPrendas = "cat" | "una" | "ins";
 
 const GRUPOS: { k: string; titulo: string; corto: string; texto: string; icono: ReactNode; activo: boolean }[] = [
   { k: "rebaja", titulo: "Una rebaja", corto: "Una rebaja", texto: "Un porcentaje menos en las prendas", icono: <Tag aria-hidden />, activo: true },
   { k: "varias", titulo: "Llevar varias y pagar menos", corto: "Llevar varias", texto: "3x2, 2 polos por S/\u00a059.90, la 2.ª al 50 %…", icono: <Layers aria-hidden />, activo: true },
-  { k: "monto", titulo: "Gastar un monto y ahorrar", corto: "Gastar un monto", texto: "S/\u00a030 menos desde S/\u00a0300", icono: <Wallet aria-hidden />, activo: false },
+  { k: "monto", titulo: "Gastar un monto y ahorrar", corto: "Gastar un monto", texto: "S/\u00a030 menos desde S/\u00a0300", icono: <Wallet aria-hidden />, activo: true },
   { k: "regalo", titulo: "Un regalo", corto: "Un regalo", texto: "Un arreglo de basta gratis desde S/\u00a0200", icono: <Gift aria-hidden />, activo: false },
   { k: "club", titulo: "Algo para miembros del Club", corto: "Para el Club", texto: "10 % menos, puntos dobles, compra privada…", icono: <Star aria-hidden />, activo: false },
 ];
@@ -124,6 +130,60 @@ const pct = (n: number) => String(n).replace(".", ",");
 const sinTilde = (t: string) => t.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
 const plural = (n: number, uno: string, varios: string) => `${n} ${n === 1 ? uno : varios}`;
 
+/** El nombre de una opción del segmento: el corto bajo 640 px, donde las tres no caben con su nombre entero. */
+function NombreCorto({ largo, corto }: { largo: string; corto: string }) {
+  return (
+    <>
+      <span className="sm:hidden">{corto}</span>
+      <span className="max-sm:hidden">{largo}</span>
+    </>
+  );
+}
+/** Lo que pide cada tarjeta de «¿Qué le das?» al elegirla: la rebaja, el 3x2 o el monto (ADR-0655, actividad 8). */
+const tipoDeTarjeta = (k: string): TipoOferta => (k === "varias" ? "nxm" : k === "monto" ? "monto" : "pct");
+
+/** Un monto en soles de un escalón: se escribe como texto (la coma o el punto a medio escribir no se pierden) y avisa el número. */
+function MontoDeEscalon({
+  etiqueta,
+  valor,
+  onValor,
+  error,
+  onEscribe,
+}: {
+  etiqueta: string;
+  valor: number;
+  onValor: (n: number) => void;
+  error: boolean;
+  /** Entra o sale de la caja: lo mal escrito se dice al salir, no a la primera letra (ADR-0611, mejora 4). */
+  onEscribe: (escribe: boolean) => void;
+}) {
+  const [texto, setTexto] = useState(valor ? String(valor) : "");
+  // Si el número cambió desde afuera (se quitó un escalón, se eligió otra forma), el texto lo sigue.
+  const [visto, setVisto] = useState(valor);
+  if (valor !== visto) {
+    setVisto(valor);
+    if ((Number(texto.replace(",", ".")) || 0) !== valor) setTexto(valor ? String(valor) : "");
+  }
+  return (
+    <CampoMonto
+      etiqueta={etiqueta}
+      etiquetaOculta
+      sinPie
+      className="of-monto-escalon"
+      inputMode="decimal"
+      value={texto}
+      tono={error ? "error" : undefined}
+      onFocus={() => onEscribe(true)}
+      onBlur={() => onEscribe(false)}
+      onChange={(e) => {
+        const t = e.target.value.replace(/[^\d.,]/g, "");
+        setTexto(t);
+        onValor(Math.round((Number(t.replace(",", ".")) || 0) * 100) / 100);
+      }}
+    />
+  );
+}
+
 export function OfertasHoja({
   etiqueta,
   reglas,
@@ -132,6 +192,7 @@ export function OfertasHoja({
   sedeActualId,
   prendasConCosto,
   variantesManuales,
+  insignias = [],
   hoy,
   puedeDarDescuento,
   alGuardarCampana,
@@ -148,6 +209,8 @@ export function OfertasHoja({
   sedeActualId: string | null;
   prendasConCosto: PrendaConCosto[];
   variantesManuales: string[];
+  /** Las insignias que la oferta puede elegir (ADR-0655, por insignia); vacío = no se ofrece «Por insignia». */
+  insignias?: InsigniaDeOferta[];
   hoy: string;
   /** Quien configura la campaña puede ponerle su descuento de siempre (si no, el formulario no lo ofrece). */
   puedeDarDescuento: boolean;
@@ -171,10 +234,11 @@ export function OfertasHoja({
     const mapa = new Map(tiendas.map((t) => [t.id, t.nombre]));
     return (id: string) => mapa.get(id) ?? "";
   }, [tiendas]);
+  // Nombra las categorías y también las insignias de la oferta (sus ids no se repiten): el nombre y la frase las dicen igual (`alcanceDicho`).
   const nombreCategoria = useMemo(() => {
-    const mapa = new Map(categorias.map((c) => [c.id, c.nombre]));
+    const mapa = new Map([...categorias.map((c) => [c.id, c.nombre] as const), ...insignias.map((i) => [i.id, i.nombre] as const)]);
     return (id: string) => mapa.get(id) ?? "";
-  }, [categorias]);
+  }, [categorias, insignias]);
 
   // ---- Lo que la campaña tiene: sus prendas a la venta y las categorías con prendas ---------------------------------------------
   const manuales = useMemo(() => new Set(variantesManuales), [variantesManuales]);
@@ -194,12 +258,30 @@ export function OfertasHoja({
   const [elegido, setElegido] = useState(false);
   const [visitado, setVisitado] = useState<Record<Paso, boolean>>({ 1: false, 2: false, 3: false, 4: false });
   const [navego, setNavego] = useState(false);
+  // Cambiar de paso es otra vista, no un bloque que se encogió (ADR-0185): se suelta la reserva de <PaginaEstable> antes de pintar. Su aire
+  // al fondo subía el pie fijo a media hoja en el celular (385 px medidos en «Revisar» a 375). Si la pregunta nueva empieza arriba de lo
+  // que se ve, la hoja sube hasta ella.
+  const asistente = useRef<HTMLElement>(null);
+  const pasoPintado = useRef(paso);
+  useLayoutEffect(() => {
+    if (pasoPintado.current === paso) return;
+    pasoPintado.current = paso;
+    soltarPaginaEstable();
+    const hoja = asistente.current?.closest<HTMLElement>('[role="dialog"]');
+    if (!asistente.current || !hoja) return;
+    const arriba = asistente.current.getBoundingClientRect().top - hoja.getBoundingClientRect().top;
+    // 28 px de aire: en el celular el asa de la hoja tapa los primeros 24.
+    if (arriba < 0) hoja.scrollTop += arriba - 28;
+  }, [paso]);
   // La categoría recién marcada: su casilla vuela a su pieza en la etiqueta (`EtiquetaDeCampana`).
   const vuelo = useRef<string | null>(null);
   // La persona tocó la grilla de categorías (aunque la dejó vacía: vacío es «ninguna», no «las de la campaña»).
   const [tocoCats, setTocoCats] = useState(false);
+  // Cómo se eligen las prendas en el paso 2: por categoría, prenda por prenda o por insignia (ADR-0655).
+  const [vistaPrendas, setVistaPrendas] = useState<VistaPrendas>("cat");
   const [masQ3, setMasQ3] = useState(false);
   const [soloAlgunosDias, setSoloAlgunosDias] = useState(false);
+  const [escribeEscalon, setEscribeEscalon] = useState(false);
   const [guardando, setGuardando] = useState<Guardando>(null);
   const [recien, setRecien] = useState<string | null>(null);
   const [verTodas, setVerTodas] = useState(false);
@@ -251,6 +333,9 @@ export function OfertasHoja({
 
   const editada = o.id ? (reglas.find((r) => r.id === o.id) ?? null) : null;
   const grupo = esDeGrupo(o.tipo);
+  // «Gastar un monto y ahorrar» (actividad 8): de toda la compra no elige prendas; de la campaña, sí (como las demás).
+  const esMonto = o.tipo === "monto";
+  const deTodaLaCompra = esMonto && o.cuenta !== "campana";
   /** Elegir qué le das: la rebaja o una forma de grupo, con lo de fábrica de esa forma (sin tocar el resto de la oferta). */
   const elegirForma = (tipo: TipoOferta) => {
     setElegido(true);
@@ -269,6 +354,7 @@ export function OfertasHoja({
     setPaso(1);
     setVisitado({ 1: false, 2: false, 3: false, 4: false });
     setTocoCats(false);
+    setVistaPrendas("cat");
     setMasQ3(false);
     setSoloAlgunosDias(false);
   }
@@ -278,7 +364,9 @@ export function OfertasHoja({
     setPaso(1);
     setNavego(true);
     setVisitado({ 1: false, 2: false, 3: false, 4: false });
-    setTocoCats(false);
+    // Una oferta de solo modelos o insignias, sin categorías, no rige en las de la campaña: la grilla no las muestra marcadas.
+    setTocoCats(r.categoriasSolo.length === 0 && (r.productosSolo.length > 0 || r.insigniasSolo.length > 0));
+    setVistaPrendas(r.productosSolo.length > 0 ? "una" : r.insigniasSolo.length > 0 ? "ins" : "cat");
     setMasQ3(false);
     setSoloAlgunosDias(r.dias.length < 7);
     setRegsAb(false);
@@ -286,14 +374,15 @@ export function OfertasHoja({
 
   // ---- Lo que la oferta alcanzaría y lo que avisa ---------------------------------------------------------------------------------
   const alcanzadas = useMemo(() => prendasQueAlcanza(prendasCampana, prendasConCosto, o), [prendasCampana, prendasConCosto, o]);
-  // Bajo el costo, por prenda: solo con «un % menos» (en un grupo, la prenda gratis no es «bajo el costo»: el grupo se cobra entero).
-  const pctPorPrenda = esDeGrupo(o.tipo) ? 0 : o.porcentaje;
+  // Bajo el costo, por prenda: solo con «un % menos» (en un grupo, la prenda gratis no es «bajo el costo»: el grupo se cobra entero; un monto
+  // reparte su ahorro en la compra).
+  const pctPorPrenda = o.tipo === "pct" ? o.porcentaje : 0;
   const bajoCosto = useMemo(() => prendasBajoCosto(pctPorPrenda, alcanzadas, new Set<string>(), new Set(alcanzadas.map((p) => p.id))), [pctPorPrenda, alcanzadas]);
   const nAlcanza = contarPrendas(alcanzadas);
   // Por debajo del costo se cuenta como se cuentan las prendas (un modelo en su color) y se nombran dos, no dos tallas del mismo.
   const bajoPorModelo = useMemo(() => [...new Map(bajoCosto.map((p) => [p.modelo ?? p.id, p])).values()], [bajoCosto]);
   // La grilla de categorías: las marcadas son las de la oferta; sin ninguna elegida, las de la campaña (menos lo que una oferta vieja deja fuera).
-  const categoriasPendientes = tocoCats && o.categoriasSolo.length === 0 && o.productosSolo.length === 0;
+  const categoriasPendientes = !deTodaLaCompra && tocoCats && o.categoriasSolo.length === 0 && o.productosSolo.length === 0 && o.insigniasSolo.length === 0;
   const elegidasSolo = useMemo(
     () => (o.categoriasSolo.length > 0 ? new Set(o.categoriasSolo) : tocoCats ? new Set<string>() : new Set([...catsCampana].filter((id) => !o.categoriasFuera.includes(id)))),
     [o.categoriasSolo, o.categoriasFuera, tocoCats, catsCampana],
@@ -338,17 +427,21 @@ export function OfertasHoja({
     solo: o.categoriasSolo,
     fuera: o.categoriasFuera,
     productos: o.productosSolo,
+    insignias: deTodaLaCompra ? [] : o.insigniasSolo,
     claure: o.incluyeClaure,
     sedes: sedesQueSeDicen,
+    monto: esMonto ? { cuenta: o.cuenta ?? "compra" } : null,
     version: reglas,
   });
   const choques = choquesDeFilas(filasChoque ?? [], editada?.ceden ?? []);
-  const sinResolver = choquesSinResolver(choques, o.cedeA);
+  const sinResolver = choquesSinResolver(choques, o.cedeA, esMonto && (o.cedeAOtras ?? false));
   const faltaChoque: CampoDeGuia | null =
     sinResolver.length > 0
       ? { id: "choques", nombre: `Resolver el choque con «${sinResolver[0].nombre}»`, requerido: true, hecho: false, pendiente: tituloDeChoque(sinResolver[0]) }
       : null;
   const cederA = (id: string, cede: boolean) => cambiar({ cedeA: cede ? [...o.cedeA, id] : o.cedeA.filter((x) => x !== id) });
+  // La salida del choque de un monto (decisión 3 de Felipe): «que las prendas con otra oferta no cuenten».
+  const salidaDelMonto = esMonto ? { cede: o.cedeAOtras ?? false, onCeder: (cede: boolean) => cambiar({ cedeAOtras: cede }) } : null;
 
   // Lo que se ve como botón siempre contesta: «Falta: …» y los botones que avanzan o guardan LLEVAN a la pieza que falta (la dejan a la vista, la
   // destellan y, si es una lista de opciones, le dan el foco) en vez de quedarse apagados sin decir por qué (ADR-0284; `Boton confirma`, ADR-0611).
@@ -365,7 +458,7 @@ export function OfertasHoja({
     } else mover();
   }
   /** Lo que todavía no existe («Pronto») avisa en vez de callar: un botón apagado no dice por qué ni deja preguntar. */
-  const avisarPronto = (que: string) => avisar.aviso(`${que}: llega pronto`, { detalle: "Cambia el dinero en la caja y lo estamos probando. Por ahora puedes registrar una rebaja." });
+  const avisarPronto = (que: string) => avisar.aviso(`${que}: llega pronto`, { detalle: "Cambia el dinero en la caja y lo estamos probando. Por ahora puedes registrar una rebaja, un «llevar varias» o un monto." });
   const confirmaPaso = (puede: boolean) => ({ puedeConfirmar: puede, revisar: () => { llevarA(faltan[0]); return false; } });
   // Activar (o guardar una que ya rige) además pide que no quede un choque sin resolver.
   const confirmaRegir = (puede: boolean) => ({ puedeConfirmar: puede && !faltaChoque, revisar: () => { llevarA(faltan[0] ?? faltaChoque ?? undefined); return false; } });
@@ -400,8 +493,16 @@ export function OfertasHoja({
       etiquetaId: etiqueta.id,
       nombre,
       porcentaje: o.porcentaje,
-      forma: { tipo: o.tipo, lleva: o.lleva, paga: o.paga, monto: o.monto, agrupa: o.agrupa },
-      eraDeGrupo: editada ? esDeGrupo(editada.tipo) : false,
+      forma: {
+        tipo: o.tipo,
+        lleva: o.lleva,
+        paga: o.paga,
+        monto: o.monto,
+        agrupa: o.agrupa,
+        ...(esMonto ? { escalones: o.escalones ?? [], ahorroEn: o.ahorroEn ?? "soles", cuenta: o.cuenta ?? "compra", cedeAOtras: o.cedeAOtras ?? false } : {}),
+      },
+      // Una que tenía otra forma (de grupo o un monto) va por la función que guarda la forma, aunque vuelva a «un % menos».
+      eraDeGrupo: editada ? editada.tipo !== "pct" : false,
       desde: o.desde,
       hasta: o.hasta,
       dias: o.dias,
@@ -409,6 +510,9 @@ export function OfertasHoja({
       categoriasFuera: o.categoriasFuera,
       productosSolo: o.productosSolo,
       teniaModelos: (editada?.productosSolo.length ?? 0) > 0,
+      // Un monto de toda la compra no elige prendas: la base le quita las insignias igual.
+      insigniasSolo: deTodaLaCompra ? [] : o.insigniasSolo,
+      teniaInsignias: (editada?.insigniasSolo.length ?? 0) > 0,
       cedeA: cesionesQueQuedan(choques, o.cedeA),
       teniaCesiones: (editada?.ceden.length ?? 0) > 0,
       sedeIds: o.sedeIds,
@@ -452,7 +556,7 @@ export function OfertasHoja({
   // La selección de categorías de la hoja (la de producción). Si queda igual a las de la campaña es «las de la campaña» (sin lista: las que se
   // sumen después entran solas y las marcadas a mano también); si no, es una lista de la oferta. Sin ninguna es «ninguna», y no deja guardar.
   function fijarCategorias(siguiente: ReadonlySet<string>) {
-    const comoLaCampana = o.productosSolo.length === 0 && siguiente.size === catsCampana.size && [...siguiente].every((id) => catsCampana.has(id));
+    const comoLaCampana = o.productosSolo.length === 0 && o.insigniasSolo.length === 0 && siguiente.size === catsCampana.size && [...siguiente].every((id) => catsCampana.has(id));
     cambiar({ categoriasSolo: comoLaCampana ? [] : [...siguiente], categoriasFuera: [] });
     setTocoCats(!comoLaCampana);
   }
@@ -475,6 +579,16 @@ export function OfertasHoja({
       cambiar({ productosSolo, categoriasSolo: [...elegidasSolo], categoriasFuera: [] });
       setTocoCats(true);
     } else cambiar({ productosSolo });
+  };
+  // Por insignia (ADR-0655): la oferta rige en las prendas que llevan la insignia. La primera, si nadie tocó las categorías, deja la oferta
+  // solo en ella —no en «la insignia y todas las categorías de la campaña»—: lo que se ve marcado es lo que rige.
+  const alternarInsignia = (id: string) => {
+    const tiene = o.insigniasSolo.includes(id);
+    const insigniasSolo = tiene ? o.insigniasSolo.filter((x) => x !== id) : [...o.insigniasSolo, id];
+    if (!tiene && o.insigniasSolo.length === 0 && o.productosSolo.length === 0 && o.categoriasSolo.length === 0 && !tocoCats) {
+      cambiar({ insigniasSolo, categoriasSolo: [], categoriasFuera: [] });
+      setTocoCats(true);
+    } else cambiar({ insigniasSolo });
   };
 
   // La casilla de «toda la familia»: marca o quita sus categorías de un toque.
@@ -502,8 +616,8 @@ export function OfertasHoja({
                 className="of-fam"
                 aria-disabled={!g.activo || undefined}
                 title={g.activo ? undefined : "Llega pronto: cambia el dinero en la caja y lo estamos probando."}
-                onClick={() => (g.activo ? elegirForma(g.k === "varias" ? "nxm" : "pct") : avisarPronto(g.titulo))}
-                data-guia={g.k === "rebaja" ? "sellos.oferta-rebaja" : g.k === "varias" ? "sellos.oferta-varias" : undefined}
+                onClick={() => (g.activo ? elegirForma(tipoDeTarjeta(g.k)) : avisarPronto(g.titulo))}
+                data-guia={g.k === "rebaja" ? "sellos.oferta-rebaja" : g.k === "varias" ? "sellos.oferta-varias" : g.k === "monto" ? "sellos.oferta-monto" : undefined}
               >
                 <span className="of-ico">{g.icono}</span>
                 <b>{g.titulo}</b>
@@ -520,10 +634,10 @@ export function OfertasHoja({
                   key={g.k}
                   type="button"
                   className="pildora-cayla"
-                  aria-pressed={g.activo && (g.k === "varias") === grupo}
+                  aria-pressed={g.activo && (g.k === "varias" ? grupo : g.k === "monto" ? o.tipo === "monto" : o.tipo === "pct")}
                   aria-disabled={!g.activo || undefined}
                   title={g.activo ? undefined : "Llega pronto"}
-                  onClick={() => (g.activo ? elegirForma(g.k === "varias" ? (grupo ? o.tipo : "nxm") : "pct") : avisarPronto(g.titulo))}
+                  onClick={() => (g.activo ? elegirForma(g.k === "varias" && grupo ? o.tipo : tipoDeTarjeta(g.k)) : avisarPronto(g.titulo))}
                 >
                   {g.corto}
                   {!g.activo && <span className="font-normal"> · pronto</span>}
@@ -532,6 +646,8 @@ export function OfertasHoja({
             </div>
             {grupo ? (
               formaDeGrupo()
+            ) : o.tipo === "monto" ? (
+              formaDeMonto()
             ) : (
             <>
             <div className="of-sub">
@@ -667,6 +783,76 @@ export function OfertasHoja({
     );
   }
 
+  // ---- «Gastar un monto y ahorrar»: sus escalones (ADR-0655, actividad 8) -------------------------------------------------------------
+  function formaDeMonto() {
+    // Mientras se escribe en una caja no se dice el error (el «Falta:» del pie sí lo sabe y no deja seguir).
+    const problema = escribeEscalon ? undefined : problemasDeForma(o)[0];
+    const escalones = o.escalones ?? [];
+    const en = o.ahorroEn ?? "soles";
+    const fijar = (i: number, parche: Partial<EscalonDeMonto>) => cambiar({ escalones: escalones.map((e, j) => (j === i ? { ...e, ...parche } : e)) });
+    // El escalón que sigue propone el doble del último (S/ 300 → 30 lleva a S/ 600 → 60): siempre más y ahorrando más.
+    const otro = () => {
+      const u = escalones.at(-1) ?? { desde: 150, ahorra: 15 };
+      cambiar({ escalones: [...escalones, { desde: u.desde * 2, ahorra: en === "pct" ? Math.min(PORCENTAJE_MAX, u.ahorra + PORCENTAJE_PASO) : u.ahorra * 2 }] });
+    };
+    return (
+      <>
+        <div className="of-sub">
+          <span className="of-lbl">Cuánto ahorra</span>
+          <div className="of-opciones" role="group" aria-label="Cuánto ahorra">
+            <button type="button" className="pildora-cayla" aria-pressed={en === "soles"} onClick={() => cambiar({ ahorroEn: "soles" })}>
+              Soles menos
+            </button>
+            <button type="button" className="pildora-cayla" aria-pressed={en === "pct"} onClick={() => cambiar({ ahorroEn: "pct", escalones: escalones.map((e, i) => ({ ...e, ahorra: Math.min(PORCENTAJE_MAX, (i + 1) * 10) })) })}>
+              Un % menos
+            </button>
+          </div>
+        </div>
+        <div className="mt-3 grid gap-2.5" data-campo="oferta-que" data-guia="sellos.oferta-escalones">
+          {escalones.map((e, i) => (
+            <div key={i} className="of-frase-campos">
+              <span>Desde</span>
+              <MontoDeEscalon etiqueta={`Monto del escalón ${i + 1}`} valor={e.desde} onValor={(v) => fijar(i, { desde: v })} error={Boolean(problema)} onEscribe={setEscribeEscalon} />
+              <span>ahorra</span>
+              {en === "soles" ? (
+                <MontoDeEscalon etiqueta={`Ahorro del escalón ${i + 1}`} valor={e.ahorra} onValor={(v) => fijar(i, { ahorra: v })} error={Boolean(problema)} onEscribe={setEscribeEscalon} />
+              ) : (
+                <PasoCantidad
+                  tono={problema ? "error" : undefined}
+                  menos={{ onClick: () => fijar(i, { ahorra: Math.max(PORCENTAJE_PASO, e.ahorra - PORCENTAJE_PASO) }), deshabilitado: e.ahorra <= PORCENTAJE_PASO, etiqueta: "Bajar el descuento" }}
+                  mas={{ onClick: () => fijar(i, { ahorra: Math.min(PORCENTAJE_MAX, e.ahorra + PORCENTAJE_PASO) }), deshabilitado: e.ahorra >= PORCENTAJE_MAX, etiqueta: "Subir el descuento" }}
+                >
+                  <span className="whitespace-nowrap tabular-nums">{pct(e.ahorra)} %</span>
+                </PasoCantidad>
+              )}
+              {i > 0 && (
+                <button type="button" className="btn-cayla btn-sutil btn-chico area-dedo" aria-label={`Quitar el escalón ${i + 1}`} onClick={() => cambiar({ escalones: escalones.filter((_, j) => j !== i) })}>
+                  <X aria-hidden className="h-4 w-4" />
+                </button>
+              )}
+            </div>
+          ))}
+          {problema && (
+            <Aviso tono="error" chico>
+              {problema}
+            </Aviso>
+          )}
+          {escalones.length < MAX_ESCALONES && (
+            <span className="flex">
+              <button type="button" className="btn-cayla btn-sutil btn-chico" onClick={otro}>
+                <Plus aria-hidden className="h-4 w-4" /> Otro escalón
+              </button>
+            </span>
+          )}
+        </div>
+        <p className="of-ayuda">
+          <Info aria-hidden />
+          <span>El ahorro se reparte entre las prendas que cuentan. Después eliges qué cuenta.</span>
+        </p>
+      </>
+    );
+  }
+
   // ---- Dónde rige (se contesta en «¿Cuándo y dónde?») ------------------------------------------------------------------------------
   const dondeRige = textoSedesDeCampana(etiqueta.sedeIds, tiendas) ?? "En todas las tiendas";
   const dondeDeLaOferta = sinTiendas ? dondeRige : tiendasPendientes ? "Elige al menos una tienda" : seleccionCompleta ? "En todas las tiendas" : (textoSedesDeCampana(o.sedeIds, tiendas) ?? dondeRige);
@@ -792,7 +978,7 @@ export function OfertasHoja({
           </p>
         </div>
         <div data-campo="oferta-choques" data-guia="sellos.oferta-choques">
-          <ChoquesDeOferta choques={choques} leido={filasChoque !== null} cedeA={o.cedeA} onCeder={cederA} />
+          <ChoquesDeOferta choques={choques} leido={filasChoque !== null} cedeA={o.cedeA} onCeder={cederA} monto={salidaDelMonto} />
         </div>
       </>
     );
@@ -801,7 +987,7 @@ export function OfertasHoja({
   // ---- Pregunta 3 · ¿En qué prendas? ----------------------------------------------------------------------------------------------------
   // Lo que se dice de las prendas, en una línea (la etiqueta de la derecha y el nombre usan la misma).
   const prendasTexto = (() => {
-    const base = alcanceDicho(o, nombreCategoria) ?? "Todas las de la campaña";
+    const base = deTodaLaCompra ? "Toda la compra" : (alcanceDicho(o, nombreCategoria) ?? "Todas las de la campaña");
     const extras = [o.categoriasFuera.length > 0 ? `menos ${lista(nombresOrdenados(o.categoriasFuera, nombreCategoria).map((n) => n.toLowerCase()))}` : "", o.incluyeClaure ? "con Claurè" : ""].filter(Boolean);
     return extras.length > 0 ? `${base} · ${extras.join(" · ")}` : base;
   })();
@@ -809,21 +995,34 @@ export function OfertasHoja({
   const alcanceTexto = (() => {
     if (categoriasPendientes) return "Marca al menos una categoría.";
     const claure = claureFuera > 0 ? ` ${plural(claureFuera, "prenda", "prendas")} de Claurè ${claureFuera === 1 ? "queda" : "quedan"} fuera.` : "";
-    const comoLaCampana = o.categoriasSolo.length === 0 && o.productosSolo.length === 0;
+    const comoLaCampana = o.categoriasSolo.length === 0 && o.productosSolo.length === 0 && o.insigniasSolo.length === 0;
     if (comoLaCampana && prendasCampana.length === 0) return "La campaña todavía no tiene prendas: marca las categorías o las prendas de esta oferta.";
-    if (o.productosSolo.length > 0) {
-      const n = o.productosSolo.length;
-      return `Alcanza a ${plural(nAlcanza, "prenda", "prendas")} a la venta${o.categoriasSolo.length > 0 ? `: las de ${plural(o.categoriasSolo.length, "categoría", "categorías")} y ${plural(n, "modelo elegido", "modelos elegidos")}` : ` en ${plural(n, "modelo elegido", "modelos elegidos")}`}.${claure}`;
+    if (o.productosSolo.length > 0 || o.insigniasSolo.length > 0) {
+      const partes = [
+        o.categoriasSolo.length > 0 ? plural(o.categoriasSolo.length, "categoría", "categorías") : "",
+        o.productosSolo.length > 0 ? plural(o.productosSolo.length, "modelo elegido", "modelos elegidos") : "",
+        o.insigniasSolo.length > 0 ? plural(o.insigniasSolo.length, "insignia", "insignias") : "",
+      ].filter(Boolean);
+      return `Alcanza a ${plural(nAlcanza, "prenda", "prendas")} a la venta: las de ${lista(partes)}.${claure}`;
     }
     const delCatalogo = prendasConCosto.filter((p) => o.incluyeClaure || !p.deClaure);
     const a = alcanceCampana(delCatalogo, elegidasSolo, comoLaCampana ? manuales : new Set<string>());
     const partes = [a.porCategoria > 0 ? `${a.porCategoria} de ${plural(elegidasSolo.size, "categoría", "categorías")}` : "", a.aMano > 0 ? `${plural(a.aMano, "marcada", "marcadas")} a mano` : ""].filter(Boolean);
     return `Alcanza a ${plural(nAlcanza, "prenda", "prendas")} a la venta${partes.length > 0 ? `: ${partes.join(" y ")}` : ""}.${claure}`;
   })();
-  const distintaDeLaCampana = o.categoriasSolo.length > 0 || o.productosSolo.length > 0 || tocoCats;
+  const distintaDeLaCampana = o.categoriasSolo.length > 0 || o.productosSolo.length > 0 || o.insigniasSolo.length > 0 || tocoCats;
+  // Las insignias para elegir: las activas y aprobadas, más las ya elegidas que se desactivaron (para poder quitarlas). Cada una con cuántas
+  // prendas a la venta lleva (un modelo en su color, sin Claurè salvo que la oferta lo incluya).
+  const insigniasParaElegir = useMemo(
+    () =>
+      insignias
+        .filter((i) => i.activa || o.insigniasSolo.includes(i.id))
+        .map((i) => ({ ...i, prendas: contarPrendas(prendasConCosto.filter((p) => (o.incluyeClaure || !p.deClaure) && (p.insignias ?? []).includes(i.id))) }))
+        .sort((a, b) => a.nombre.localeCompare(b.nombre, "es")),
+    [insignias, prendasConCosto, o.insigniasSolo, o.incluyeClaure],
+  );
 
   // Los modelos que se pueden elegir uno por uno: cada producto con todas sus tallas y colores, de todo el catálogo a la venta (ADR-0655).
-  const [vistaPrendas, setVistaPrendas] = useState<"cat" | "una">(o.productosSolo.length > 0 ? "una" : "cat");
   const [buscaModelo, setBuscaModelo] = useState("");
   const modelos = useMemo(() => {
     const m = new Map<string, { id: string; nombre: string; categoriaId: string | null; precio: number; colores: Set<string>; deClaure: boolean }>();
@@ -844,13 +1043,17 @@ export function OfertasHoja({
   function preguntaPrendas() {
     return (
       <>
-        <h2>{grupo ? `¿Con qué prendas se arma el ${titularDeOferta(o).replace(/^La /, "grupo de la ")}?` : "¿En qué prendas?"}</h2>
+        <h2>{esMonto ? "¿Qué cuenta para llegar al monto?" : grupo ? `¿Con qué prendas se arma el ${titularDeOferta(o).replace(/^La /, "grupo de la ")}?` : "¿En qué prendas?"}</h2>
         <p className="of-baj">
-          {grupo
+          {esMonto
+            ? deTodaLaCompra
+              ? "Todo lo que lleve el cliente, salvo lo que ya tiene otra oferta."
+              : "Solo suman las prendas que elijas. Las demás se cobran a su precio."
+            : grupo
             ? "Solo las prendas que elijas cuentan para el grupo. Las demás se cobran a su precio."
             : distintaDeLaCampana
-              ? "Marca las categorías o las prendas donde rige esta oferta."
-              : "Ya viene lo de la campaña. Marca o quita categorías, o elige prendas una por una."}
+              ? "Marca las categorías, prendas o insignias donde rige."
+              : "Ya viene lo de la campaña. Cámbialo por categoría, prenda o insignia."}
         </p>
         {grupo && (
           <div className="of-sub" data-guia="sellos.oferta-mezclar">
@@ -865,21 +1068,85 @@ export function OfertasHoja({
             </div>
           </div>
         )}
+        {esMonto && (
+          <div className="of-sub" data-guia="sellos.oferta-cuenta">
+            <span className="of-lbl">Qué cuenta</span>
+            <div className="of-opciones" role="group" aria-label="Qué cuenta para llegar al monto">
+              <button type="button" className="pildora-cayla" aria-pressed={deTodaLaCompra} onClick={() => cambiar({ cuenta: "compra" })}>
+                Toda la compra
+              </button>
+              <button type="button" className="pildora-cayla" aria-pressed={!deTodaLaCompra} onClick={() => cambiar({ cuenta: "campana" })}>
+                Solo prendas de la campaña
+              </button>
+            </div>
+          </div>
+        )}
+        {deTodaLaCompra ? (
+          <div className="of-panel" data-campo="oferta-categorias">
+            <p className="of-pequeno" aria-live="polite">
+              Cuenta todo el catálogo: {plural(nAlcanza, "prenda", "prendas")} a la venta.
+              {claureFuera > 0 ? ` ${plural(claureFuera, "prenda", "prendas")} de Claurè ${claureFuera === 1 ? "queda" : "quedan"} fuera.` : ""}
+            </p>
+            {hayClaure && (
+              <div className="of-opciones mt-2">
+                <button type="button" className="pildora-cayla" aria-pressed={o.incluyeClaure} onClick={() => cambiar({ incluyeClaure: !o.incluyeClaure })}>
+                  Incluir las de Claurè
+                </button>
+              </div>
+            )}
+          </div>
+        ) : (
+        <>
         <div data-guia="sellos.oferta-una-por-una">
         <SegmentoDeslizante
           etiqueta="Cómo eliges las prendas"
           forma="modo"
           className="mt-3"
           valor={vistaPrendas}
-          onCambio={(v) => setVistaPrendas(v as "cat" | "una")}
+          onCambio={(v) => setVistaPrendas(v as VistaPrendas)}
           opciones={[
-            { clave: "cat", etiqueta: "Por categoría", conteo: o.categoriasSolo.length || undefined },
-            { clave: "una", etiqueta: "Prenda por prenda", conteo: o.productosSolo.length || undefined },
+            { clave: "cat", etiqueta: <NombreCorto largo="Por categoría" corto="Categoría" />, conteo: o.categoriasSolo.length || undefined },
+            { clave: "una", etiqueta: <NombreCorto largo="Prenda por prenda" corto="Prenda" />, conteo: o.productosSolo.length || undefined },
+            ...(insignias.length > 0 ? [{ clave: "ins", etiqueta: <NombreCorto largo="Por insignia" corto="Insignia" />, conteo: o.insigniasSolo.length || undefined }] : []),
           ]}
         />
         </div>
         <div className="of-panel" data-guia="sellos.oferta-prendas">
-          {vistaPrendas === "una" ? (
+          {vistaPrendas === "ins" ? (
+            <div data-campo="oferta-categorias">
+              <p className="of-pequeno" aria-live="polite">
+                {o.insigniasSolo.length > 0 ? alcanceTexto : "Entran sus prendas: a mano o por categoría."}
+              </p>
+              {insigniasParaElegir.length === 0 ? (
+                <Vacio tamano="chico" alinear="izquierda" className="mt-3 px-0" icono={<Award />}>
+                  Todavía no hay insignias activas.
+                </Vacio>
+              ) : (
+                <ul className="of-modelos" aria-label="Insignias para elegir">
+                  {insigniasParaElegir.map((i) => {
+                    const elegida = o.insigniasSolo.includes(i.id);
+                    return (
+                      <li key={i.id} className="of-modelo">
+                        <span className="of-modelo-nombre">
+                          <Casilla
+                            marcada={elegida}
+                            disabled={!elegida && o.insigniasSolo.length >= MAX_INSIGNIAS_SOLO}
+                            onCambio={() => alternarInsignia(i.id)}
+                            etiqueta={i.nombre}
+                          />
+                          <span aria-hidden>{i.nombre}</span>
+                        </span>
+                        <span className="of-pequeno">
+                          {plural(i.prendas, "prenda", "prendas")}
+                          {i.activa ? "" : " · desactivada"}
+                        </span>
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
+            </div>
+          ) : vistaPrendas === "una" ? (
             <div data-campo="oferta-categorias">
               <p className="of-pequeno" aria-live="polite">
                 {alcanceTexto}
@@ -947,16 +1214,23 @@ export function OfertasHoja({
             </div>
           )}
         </div>
-        {grupo && ejemploCaja()}
+        </>
+        )}
+        {(grupo || esMonto) && ejemploCaja()}
       </>
     );
   }
 
   // ---- «Así funciona en la caja»: un grupo de prendas de verdad, cobrado con la misma regla de la caja (lib/ofertas-de-grupo.ts) -------
   function ejemploCaja() {
-    const forma: OfertaDeGrupo = { reglaId: "ejemplo", tipo: o.tipo as OfertaDeGrupo["tipo"], lleva: o.lleva, paga: o.paga, monto: o.monto, porcentaje: o.porcentaje, agrupa: o.agrupa };
-    const e = problemasDeForma(o).length === 0 ? ejemploDeGrupo(alcanzadas.map((p) => ({ nombre: p.referencia ?? p.nombre, precio: p.precio, productoId: p.productoId })), forma) : null;
+    const forma: OfertaDeGrupo = {
+      reglaId: "ejemplo", tipo: o.tipo as OfertaDeGrupo["tipo"], lleva: o.lleva, paga: o.paga, monto: o.monto, porcentaje: o.porcentaje, agrupa: o.agrupa,
+      escalones: o.escalones, ahorroEn: o.ahorroEn,
+    };
+    const prendas = alcanzadas.map((p) => ({ nombre: p.referencia ?? p.nombre, precio: p.precio, productoId: p.productoId }));
+    const e = problemasDeForma(o).length === 0 ? (esMonto ? ejemploDeMonto(prendas, forma) : ejemploDeGrupo(prendas, forma)) : null;
     if (!e) return null;
+    const primero = (o.escalones ?? [])[0];
     const S = (n: number) => `S/\u00a0${n.toFixed(2)}`;
     return (
       <div className="of-panel mt-3" data-guia="sellos.oferta-ejemplo">
@@ -972,8 +1246,18 @@ export function OfertasHoja({
           ))}
         </ul>
         <p className="of-pequeno mt-1.5">
-          Lleva {o.lleva} → paga {S(e.paga)} en vez de {S(e.total)} (ahorra {S(e.ahorro)}). Con {o.lleva - 1}, no hay grupo: pagan su precio.
-          {o.agrupa === "modelo" ? " Tienen que ser del mismo modelo, en tallas o colores distintos." : ""}
+          {esMonto ? (
+            e.ahorro > 0 ? (
+              <>Suma {S(e.total)} → paga {S(e.paga)} (ahorra {S(e.ahorro)}). Con menos de {S(primero?.desde ?? 0)}, pagan su precio.</>
+            ) : (
+              <>Suma {S(e.total)}: todavía no llega a {S(primero?.desde ?? 0)}, así que paga su precio.</>
+            )
+          ) : (
+            <>
+              Lleva {o.lleva} → paga {S(e.paga)} en vez de {S(e.total)} (ahorra {S(e.ahorro)}). Con {o.lleva - 1}, no hay grupo: pagan su precio.
+              {o.agrupa === "modelo" ? " Tienen que ser del mismo modelo, en tallas o colores distintos." : ""}
+            </>
+          )}
         </p>
       </div>
     );
@@ -1013,11 +1297,6 @@ export function OfertasHoja({
                 {bajoPorModelo.length > 2 ? "…" : ""}. No se bloquea, pero pierdes plata en cada una: avísale al contador.
               </Aviso>
             )}
-            {grupo && (
-              <Aviso tono="info" chico titulo="La cobran la caja y los apartados">
-                En la tienda web todavía se cobra el precio normal: llega en la próxima entrega.
-              </Aviso>
-            )}
             {o.incluyeClaure && (
               <Aviso tono="atencion" chico titulo="Entran las prendas de Claurè">
                 Es otra empresa: confirma con su dueña que acepta el descuento.
@@ -1030,7 +1309,7 @@ export function OfertasHoja({
             )}
           </div>
           <div data-campo="oferta-choques">
-            <ChoquesDeOferta choques={choques} leido={filasChoque !== null} cedeA={o.cedeA} onCeder={cederA} />
+            <ChoquesDeOferta choques={choques} leido={filasChoque !== null} cedeA={o.cedeA} onCeder={cederA} monto={salidaDelMonto} />
           </div>
           <div className="of-fin">
             <span className="of-pequeno">Se llamará «{nombre}»</span>
@@ -1070,7 +1349,7 @@ export function OfertasHoja({
   const catsAlcanza = useMemo(() => new Set(cuentaAlcanza.keys()), [cuentaAlcanza]);
   const mosaico = piezasDelMosaico(categorias, catsAlcanza, cuentaAlcanza);
   // Mientras no elige qué le da al cliente, la caja cobra el precio de siempre: no se enseña un descuento que nadie puso.
-  const ejemplos = grupo ? [] : ejemplosDeCaja(alcanzadas, catsAlcanza, manuales, cuentaAlcanza, elegido ? o.porcentaje : null);
+  const ejemplos = o.tipo !== "pct" ? [] : ejemplosDeCaja(alcanzadas, catsAlcanza, manuales, cuentaAlcanza, elegido ? o.porcentaje : null);
 
   function etiquetaViva() {
     const fechasBien = o.desde !== "" && o.hasta !== "" && o.desde <= o.hasta;
@@ -1095,8 +1374,8 @@ export function OfertasHoja({
       <aside className="of-lado cph-hoja" aria-label={`La etiqueta «${etiqueta.nombre}»`} data-guia="sellos.oferta-etiqueta">
         <EtiquetaDeCampana
           nombre={etiqueta.nombre}
-          descuento={elegido && !grupo ? o.porcentaje : null}
-          titular={elegido && grupo ? titularDeOferta(o) : undefined}
+          descuento={elegido && o.tipo === "pct" ? o.porcentaje : null}
+          titular={elegido && o.tipo !== "pct" ? titularDeOferta(o) : undefined}
           textoSinDescuento="Elige qué le das al cliente"
           rango={fechasBien ? (textoRango(o.desde, o.hasta) ?? "") : "Revisa las fechas"}
           chip={fechasBien ? chipDeTarjeta(vigenciaDe(o.desde, o.hasta, hoy), nAlcanza, hoy) : null}
@@ -1156,7 +1435,11 @@ export function OfertasHoja({
     let derecha: ReactNode = null;
 
     if (faltan.length > 0) {
-      falta = <FaltanDelPaso faltan={faltan} ahora={faltan[0].id} onIr={llevarA} />;
+      falta = (
+        <div className="of-pie-pide">
+          <FaltanDelPaso faltan={faltan} ahora={faltan[0].id} onIr={llevarA} />
+        </div>
+      );
     }
     if (paso === 1) {
       if (faltan.length === 0) {
@@ -1169,7 +1452,7 @@ export function OfertasHoja({
       derecha = (
         <>
           {elegido && (
-            <Boton peso="fantasma" confirma={editada?.estado === "activa" ? confirmaRegir(puedeGuardar) : confirmaPaso(puedeGuardar)} disabled={guardandoAlgo} cargando={guardando === "borrador" || guardando === "cambios"} textoCargando="Guardando…" onClick={() => guardar(false)} data-guia="sellos.oferta-atajo">
+            <Boton peso="fantasma" className="of-atajo" confirma={editada?.estado === "activa" ? confirmaRegir(puedeGuardar) : confirmaPaso(puedeGuardar)} disabled={guardandoAlgo} cargando={guardando === "borrador" || guardando === "cambios"} textoCargando="Guardando…" onClick={() => guardar(false)} data-guia="sellos.oferta-atajo">
               {edita ? "Listo, guardar los cambios" : "Listo, guardar con lo demás de fábrica"}
             </Boton>
           )}
@@ -1198,7 +1481,11 @@ export function OfertasHoja({
     } else {
       const ok = puedeGuardar;
       if (ok && faltaChoque) {
-        falta = <FaltanDelPaso faltan={[faltaChoque]} ahora={faltaChoque.id} onIr={llevarA} rotulo={estadoEdita === "activa" ? "Para guardar" : "Para activarla"} />;
+        falta = (
+          <div className="of-pie-pide">
+            <FaltanDelPaso faltan={[faltaChoque]} ahora={faltaChoque.id} onIr={llevarA} rotulo={estadoEdita === "activa" ? "Para guardar" : "Para activarla"} />
+          </div>
+        );
       } else if (ok) {
         falta = (
           <span className="of-falta">
@@ -1245,7 +1532,7 @@ export function OfertasHoja({
     const v = vigenciaDeRegla(r, hoy);
     const chip = CHIP_ESTADO[v];
     const viva = r.estado !== "desactivada" && v !== "terminada";
-    const antes = r.cambios > 0 ? resumenAntes(r.ultimoCambio) : "";
+    const antes = r.cambios > 0 ? resumenAntes(r.ultimoCambio, r) : "";
     const datos = [titularDeOferta(r), `${sinPunto(fechaCorta(r.desde))} – ${sinPunto(fechaCorta(r.hasta))}`, textoDiasCorto(r.dias)].filter(Boolean).join(" · ");
     const confirmando = retirando === r.id;
     return (
@@ -1402,7 +1689,7 @@ export function OfertasHoja({
           <div className="of-hoja">
             {rail()}
             {!terminada && (
-              <section className="of-wz" aria-label={o.id ? "Editar oferta" : "Nueva oferta"}>
+              <section ref={asistente} className="of-wz" aria-label={o.id ? "Editar oferta" : "Nueva oferta"}>
                 <div className="of-top">
                   <b>{o.id ? "Editar oferta" : "Nueva oferta"}</b>
                   {pasos()}

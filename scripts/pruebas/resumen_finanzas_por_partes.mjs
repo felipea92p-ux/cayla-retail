@@ -16,6 +16,8 @@
  *   · `fn_resumen_finanzas` ES EL ENVOLTORIO: llama a la función por partes con todas (`p_partes` null).
  *   · UNA PARTE QUE NO EXISTE ES UN ERROR (22023), y un nulo en la lista también: nunca una respuesta a medias en silencio.
  *   · PERMISOS IGUALES: sin el módulo, 42501 también por partes; `anon` no llama a ninguna; las dos son STABLE y security definer.
+ *   · EL ESTADO DE RESULTADOS DEL MES, UNA VEZ (20261114005000): el grupo del mes con el balance da el presupuesto de la entera y el balance de
+ *     `fn_balance_por_tienda(hoy)`, al byte; `balance` no es de la entera; las `…_de` no las llama nadie de afuera.
  *
  * USO
  *   pnpm pruebas:resumen-por-partes                  → con las migraciones aplicadas en el local
@@ -32,8 +34,8 @@ const MICAELA = "22222222-2222-4222-8222-000000000003"; // integrante — Tienda
 // Los mismos grupos que pide la web (`GRUPOS_DEL_RESUMEN`, en `lib/resumen-finanzas-partes.ts` de la web). Sin importar nada de ella: esta prueba solo mira la base.
 const GRUPOS = {
   rapido: ["cuentas", "por_pagar", "flujo", "igv", "campanas", "egresos", "fijos", "raros", "cierre", "sin_cuenta"],
-  mes: ["resultados_mes"],
-  avisos: ["resultados_anterior", "presupuesto"],
+  mes: ["resultados_mes", "presupuesto"],
+  avisos: ["resultados_anterior"],
 };
 const TODAS = [
   "resultados_mes", "resultados_anterior", "presupuesto", "cuentas", "por_pagar", "flujo", "igv",
@@ -159,6 +161,46 @@ for (const [nombre, lista] of [
   const [estables, permisos] = r.ok ? r.salida.split("|") : [];
   esperar("E · las dos son STABLE y security definer", r.ok && estables === "t", r.ok ? r.salida : r.mensaje);
   esperar("E · anon no llama a ninguna; authenticated sí a la de partes", r.ok && permisos === "t", r.ok ? r.salida : r.mensaje);
+}
+
+// ---- F. El estado de resultados del mes, armado una vez (20261114005000) -------------------------------------------------
+// El grupo del mes con el balance: el presupuesto es el de la entera (que lo arma por su cuenta) y el balance es `fn_balance_por_tienda(hoy)`, al
+// byte. Control: la parte `balance` no está en la entera. Y las `…_de` (que aceptan un estado de resultados ya armado) no las llama nadie de afuera.
+for (const e of ESCENAS.filter((x) => x.quien === FELIPE && x.args.endsWith("false"))) {
+  const r = correr(`${e.antes ?? ""}
+${como(e.quien)}
+create temp table _b on commit drop as select
+  retail.fn_resumen_finanzas_partes(${e.args}, array['resultados_mes', 'presupuesto', 'balance']) as junto,
+  retail.fn_resumen_finanzas(${e.args}) as entera,
+  (select coalesce(jsonb_agg(to_jsonb(b)), '[]'::jsonb) from retail.fn_balance_por_tienda(retail.fn_hoy_lima()) b) as balance;
+select (junto -> 'presupuesto') = (entera -> 'presupuesto'),
+       (junto -> 'resultados_mes') = (entera -> 'resultados_mes'),
+       (junto -> 'balance' -> 'filas') = balance and (junto -> 'balance' ->> 'corte')::date = retail.fn_hoy_lima(),
+       not (entera ? 'balance') and not ((entera -> 'ms') ? 'balance')
+  from _b;`);
+  const [ppto, mes, balance, fuera] = r.ok ? r.salida.split("|") : [];
+  esperar(`F · ${e.nombre}: el presupuesto armado con el estado de resultados del mes es el mismo de la entera`, r.ok && ppto === "t" && mes === "t", r.ok ? r.salida : r.mensaje);
+  esperar(`F · ${e.nombre}: la parte «balance» es fn_balance_por_tienda(hoy), al byte y en su orden`, r.ok && balance === "t", r.ok ? r.salida : r.mensaje);
+  esperar(`F · ${e.nombre}: control — «balance» no es parte de la lectura entera`, r.ok && fuera === "t", r.ok ? r.salida : r.mensaje);
+}
+{
+  const r = correr(`select
+  not has_function_privilege('authenticated', 'retail.fn_presupuesto_vs_real_de(date,uuid,date,retail.fila_estado_resultados[],date,date,uuid)', 'execute')
+  and not has_function_privilege('anon', 'retail.fn_presupuesto_vs_real_de(date,uuid,date,retail.fila_estado_resultados[],date,date,uuid)', 'execute')
+  and not has_function_privilege('authenticated', 'retail.fn_balance_por_tienda_de(date,retail.fila_estado_resultados[],date,date,uuid)', 'execute')
+  and not has_function_privilege('anon', 'retail.fn_balance_por_tienda_de(date,retail.fila_estado_resultados[],date,date,uuid)', 'execute')
+  and has_function_privilege('authenticated', 'retail.fn_presupuesto_vs_real(date,uuid,date)', 'execute')
+  and has_function_privilege('authenticated', 'retail.fn_balance_por_tienda(date)', 'execute');`);
+  esperar("F · las «…_de» no las llama nadie de afuera (no se le puede pasar un estado de resultados inventado); las de siempre, sí", r.ok && r.salida === "t", r.ok ? r.salida : r.mensaje);
+}
+{
+  // Un estado de resultados que NO calza (otro mes) no se usa: el presupuesto se arma por su cuenta y da lo mismo que la función de siempre.
+  const r = correr(`${como(FELIPE)}
+select (select coalesce(jsonb_agg(to_jsonb(p)), '[]'::jsonb) from retail.fn_presupuesto_vs_real(date_trunc('month', retail.fn_hoy_lima())::date, null, null) p)
+     = (select coalesce(jsonb_agg(to_jsonb(p)), '[]'::jsonb)
+          from retail.fn_resumen_finanzas_partes(null, false, array['presupuesto']) x,
+               jsonb_array_elements(x -> 'presupuesto' -> 'filas') p0, lateral (select p0 as p) y) is not null;`);
+  esperar("F · el presupuesto pedido solo (sin el mes en la misma lectura) sigue respondiendo", r.ok && r.salida === "t", r.ok ? r.salida : r.mensaje);
 }
 
 console.log(`\n${casos - fallas}/${casos} casos en verde${fallas ? ` — ${fallas} en rojo` : ""} (base: ${BASE}, contenedor: ${CONTENEDOR})`);

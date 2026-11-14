@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import type { FilaOfertaDeMonto } from "@/lib/ofertas-de-grupo";
 import { Globito } from "@/components/ui/Globito";
 import { Bookmark, Clock, ShoppingBag, SlidersHorizontal } from "lucide-react";
 import type { PrendaApartable } from "@/components/apartados/ApartarVista";
@@ -26,6 +27,8 @@ type Props = {
   /** Extender, liberar y registrar la devolución (D5): líder o terminal de ventas. */
   puedeGestionar: boolean;
   prendas: PrendaApartable[];
+  /** «Gastar un monto y ahorrar» (ADR-0655, actividad 8): los montos de hoy en esta tienda (`ofertas_de_monto_vigentes`). */
+  filasMonto?: readonly FilaOfertaDeMonto[];
   apartados: Apartado[];
   resumen: ResumenApartados;
   liberadosAhora: number;
@@ -162,7 +165,7 @@ export function ApartadosPanel(props: Props) {
       {vista === "todos" && cabecera}
 
       {vista === "apartar" && (
-        <ApartarVista ubicacionId={props.ubicacionId} ubicacionEtiqueta={props.ubicacionEtiqueta} hoy={props.hoy} cajaAbierta={props.cajaAbierta} prendas={props.prendas}
+        <ApartarVista ubicacionId={props.ubicacionId} ubicacionEtiqueta={props.ubicacionEtiqueta} hoy={props.hoy} cajaAbierta={props.cajaAbierta} prendas={props.prendas} filasMonto={props.filasMonto}
           cabecera={cabecera}
           lineasIniciales={pedidoParaApartar ? undefined : props.lineasDesdeTicket}
           apagadas={apagadas}

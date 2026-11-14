@@ -234,6 +234,148 @@ Prueba: `pnpm pruebas:apartados-ofertas-de-grupo` (15 de 15; con su control: sin
 Las suites de los apartados y del redondeo que vuelven a pegar migraciones viejas siguen en verde con esta encima (sus inversos están en
 `entregar-antes-de-apartados-sin-anticipo.mjs`).
 
+### Actividad 7: la tienda web (`20261114041000_tienda_web_ofertas_de_grupo.sql`)
+
+Un pedido web nace con el precio de ESE día y no se rearma: «la prenda de un pedido web y su precio no se cambian» (`fn_pedido_web_linea_reglas`,
+ADR-0408), y en la web la clienta no edita su pedido: la única que quita una prenda es la tienda, al confirmar, cuando no la tiene.
+
+- **DECIDÍ:** la parte del grupo se congela al separar, DENTRO del `descuento` de cada línea del pedido (así el `precio` calculado, el total, el
+  cupón del Club y `fn_pedido_web_verificar` ya la cuentan sin tocarlos), con su oferta (`oferta_grupo_id`); un disparador nuevo hace que no
+  cambie después. Si la tienda quita una prenda al confirmar, **las demás conservan su precio**: la tienda no le cobra más a la clienta por lo
+  que la tienda no tuvo.
+- **DESCARTÉ:** rearmar el grupo al quitar (le cobraría más a la clienta por una falta de la tienda y rompería la regla de que el precio de una
+  línea no cambia); que la tienda calcule los grupos (el precio lo decide la base).
+- **La bolsa** pide `tienda_bolsa_grupos` en la misma conexión que `tienda_bolsa` (que no se toca): bajo cada prenda dice «3 x 2 · Verano:
+  ahorras S/ 23.30» o «lleva 1 más», y el resumen suma la fila «Ahorras llevando varias». Si esa lectura falla, la bolsa se ve como siempre y
+  la base cobra igual. **«Separar»** manda lo que la bolsa mostró (`ahorro_grupo` de cada línea): si la oferta cambió mientras miraba,
+  `tienda_separar` no separa («el precio de una prenda de tu bolsa cambió»). Una tienda vieja que no lo manda separa igual, con el 3x2.
+- **La venta** (`fn_pedido_web_vender`) lleva la parte sin motivo y con su oferta, como la caja; el cupón se sigue repartiendo con lo que
+  cuesta cada prenda, ya con el grupo.
+- Los reemplazos no parten el texto que dejaron 20261019224000 (el cupón del Club en la venta) ni la huella que exige 20261017175000
+  (`tienda_cuenta_simple.mjs` suma la nueva en memoria): el barrido de las migraciones viejas pegadas encima pasa con y sin esta.
+- La hoja de la oferta ya no avisa nada: la cobran la caja, los apartados y la tienda web.
+
+Prueba: `pnpm pruebas:tienda-ofertas-de-grupo` (9 de 9; con su control: sin poner la parte en cada prenda, fallan 5). Las suites de la tienda y
+de los pedidos web (bolsa, cuenta simple, separadas, cobrar, anular, entregar, puntos, motor y ERP) siguen en verde.
+
+## Actividad 8 (2026-11-14): «Gastar un monto y ahorrar», con escalones
+
+La maqueta: «desde S/ X ahorra S/ Y o Y %, con hasta 3 escalones; cuenta solo prendas de la campaña o toda la compra». Y la decisión 3 de Felipe:
+el monto no se junta con otra oferta, las prendas con otra oferta no cuentan para llegar a él, y la hoja no deja activar un monto que choca
+hasta elegir «que esas prendas no cuenten» o que la otra campaña ceda. Va en partes, como la 6: la base, lo que muestran la caja, los apartados y
+la tienda web, y al final la hoja.
+
+### Parte 1: la base (`20261114044000_monto_con_escalones.sql`)
+
+- **La forma:** `tipo = 'monto'` con `escalones` [{desde, ahorra}] (de 1 a 3, cada uno desde más y ahorrando más que el anterior), `ahorro_en`
+  ('soles', menos que su monto; o 'pct', hasta 70 %, con el redondeo de la caja), `cuenta` ('campana' o 'compra') y `cede_a_otras` («que las
+  prendas con otra oferta no cuenten»). La tabla lo exige (`campana_reglas_forma`, `campana_reglas_solo_el_monto`, `fn_escalones_validos`).
+- **DECIDÍ:** el ahorro del monto se reparte DENTRO del descuento de cada prenda que cuenta, en proporción a su precio y al céntimo, igual que el 3x2
+  (`fn_repartir_grupos`: un monto es un solo grupo con todas sus prendas, y vale el escalón más alto al que llega su total). Así SUNAT recibe el
+  precio neto de cada línea, una devolución devuelve lo pagado por ESA prenda, y la caja, `registrar_venta`, los apartados y la tienda web lo
+  cobran sin tocar sus funciones: todas leen `fn_ofertas_de_grupo`.
+- **DESCARTÉ:** el ahorro en una línea aparte al pie del ticket (como lo dibujó la maqueta): no se puede declarar a SUNAT ni devolver por prenda.
+- **La regla de Felipe en la base:** en `fn_ofertas_de_grupo`, una prenda con un «% menos» hoy (oferta, campaña o descuento de siempre: lo que
+  diga `fn_campanas_en_sede`, ya sin las que cedieron) o con una oferta de grupo no cuenta para el monto. Las de grupo van antes que el monto.
+- **DECIDÍ:** «que esas prendas no cuenten» es una propiedad del monto (`cede_a_otras`), no un juego de cesiones: un monto de toda la compra tendría
+  que ceder a cada oferta que se cree después, y a un descuento de siempre no se le puede ceder. Con ella, el monto no choca con ninguna oferta;
+  dos montos sí chocan siempre (nunca se reparten una prenda). La lectura con la forma (13 datos) se llama `fn_choques_de_oferta_con_forma`; la de
+  10 sigue con su nombre. Primero fue una segunda firma de `fn_choques_de_oferta`, y el CI la frenó: el repo exige una sola firma por función
+  (`pruebas:una-sola-firma`), y con valores por defecto la llamada de 10 datos quedaba ambigua. `20261114054000` la pasó a su nombre, también en producción.
+- **Dos arreglos que el monto necesitaba** (ninguno cambia un cobro de hoy: en producción no hay ninguna regla guardada, consultado el 2026-11-14):
+  una oferta de grupo que cedió a un «% menos» se callaba solo ante otras de grupo, y con las dos activas la prenda llevaba las dos (la cesión
+  decía lo contrario): ahora la base y `ofertas_de_grupo_vigentes` miran todas las ofertas. Y con la tolerancia de una venta sin conexión, una
+  oferta que ya terminó podía ganarle a la de hoy, y la venta en línea quedaba fuera de lo que acepta `registrar_venta`: ahora gana la de hoy.
+- **El orden al guardar:** `guardar_oferta_completa` pone la forma ANTES de las cesiones (`guardar_oferta`, la forma, `ceder_ofertas`): la revisión
+  de choques que hace `ceder_ofertas` en el acto tiene que ver el monto como es, no como el «% menos» de paso.
+- **Los apartados** guardan el trato del monto (sus escalones) en `separacion_ofertas_grupo`: quitar una prenda puede dejarlo bajo el monto y la otra
+  vuelve a su precio; sumar puede subirlo de escalón.
+- **Lo que leen las pantallas:** `ofertas_de_monto_vigentes(sede)` da los montos de hoy con sus escalones y qué prendas alcanzan (o, de toda la
+  compra, cuáles NO: Claurè si no la incluye, lo que deja fuera y donde cedió; son pocas). La caja arma el ticket con eso sin preguntar en cada
+  prenda, porque vende sin conexión. La bolsa de la tienda web (`tienda_bolsa_grupos`) recibe en un monto sus escalones y lo que ya suman sus
+  prendas. Lo que le falta a un monto («te faltan S/ 20») lo dice cada pantalla con sus escalones: la base dice 0 prendas faltantes.
+
+Prueba: `pnpm pruebas:monto-con-escalones` (42 de 42; con sus controles: sin excluir lo que tiene un «% menos» fallan 2; con la cesión y el orden
+de antes, fallan 2). Las suites de ofertas de grupo, la caja, los apartados, la tienda web y las campañas siguen en verde con esta encima.
+
+### Parte 3: la hoja (sin migración)
+
+- La tarjeta **«Gastar un monto y ahorrar»** se habilita.
+  - **Paso 1:** «Cuánto ahorra» (soles menos o un % menos) y los escalones como una frase: «Desde [S/ 300] ahorra [S/ 30]». «Otro escalón» propone el doble del último, hasta 3, y cada uno se quita con su ×. Lo mal escrito se dice al salir de las cajas, no a la primera letra.
+  - **Paso 2:** «¿Qué cuenta para llegar al monto?»: toda la compra (sin elegir categorías; dice cuántas prendas del catálogo cuenta y deja incluir Claurè) o solo las prendas de la campaña, con las mismas categorías y prendas de siempre. Debajo, «Así funciona en la caja»: las prendas más caras hasta llegar al monto, cobradas con la cuenta de la caja.
+- **Los choques:** la hoja pregunta con la forma (`fn_choques_de_oferta_con_forma`). Un choque con una rebaja, un 3x2 o un descuento de siempre se resuelve con «Que las prendas con otra oferta no cuenten», o con «que la otra ceda». Si la otra tiene todas las prendas en una tienda, avisa que ahí el monto no le llegará a nadie (decisión 3).
+- **Lo que se guarda:** la ruta manda la forma con los nombres de la base. Una oferta que era un monto y vuelve a ser rebaja también va por `guardar_oferta_completa` (para borrarle los escalones).
+- **La guía** suma tres pasos: la tarjeta, los escalones y «qué cuenta». El paso de choques nombra «que no cuenten».
+
+## Por insignia (2026-11-14, Felipe): una oferta también elige insignias
+
+Felipe pidió que una campaña pueda aplicarse «no solo a prendas específicas o categorías específicas, sino también a insignias específicas».
+
+- **La base** (`20261114060000_ofertas_por_insignia.sql`):
+  - Las insignias de una oferta viven en `campana_regla_insignias`.
+  - Una prenda lleva una insignia si está marcada a mano o si su categoría es de la insignia, igual que en el pase.
+  - Las insignias **se suman** a las categorías «solo» y a los modelos elegidos. Con insignias y sin categorías ni modelos, la oferta rige
+    solo en ellas, no en las de la campaña.
+  - La regla vive en una función (`fn_oferta_alcanza_variante_con_insignias`). La usan:
+    - la caja (`fn_campanas_en_sede`, con un reemplazo anclado);
+    - los grupos y el monto (`ofertas_de_grupo_vigentes`, `ofertas_de_monto_vigentes`);
+    - los choques y su candado.
+  - `guardar_oferta_completa` las guarda desde `p_forma.insignias`: su firma no cambia, y sin esa clave no las toca. Tope: 20.
+  - Una campaña no se elige como insignia, y un monto de toda la compra no lleva insignias.
+- **La huella de la tienda** (`20261114061000_huella_tienda_con_insignias.sql`): `tienda_catalogo_version()` mira también
+  `campana_regla_insignias`. Sin esto, la tienda web seguiría con el precio viejo al cambiar las insignias de una oferta.
+- **La hoja**:
+  - «¿En qué prendas?» suma una tercera forma, **«Por insignia»**: la lista de insignias activas con cuántas prendas lleva cada una.
+  - Una insignia elegida que se desactivó sigue a la vista para poder quitarla.
+  - Elegir la primera, si nadie tocó las categorías, deja la oferta solo en ella. Si sumara todas las de la campaña, lo marcado no sería
+    lo que rige.
+  - El nombre y la frase la dicen: «La insignia Rotación · −20 %», «20 % menos solo en la insignia Rotación».
+  - Bajo 640 px el segmento dice «Categoría · Prenda · Insignia»: con los nombres enteros no cabía.
+  - Al editar una oferta de solo modelos o insignias, la grilla ya no muestra marcadas las categorías de la campaña. Esas categorías no
+    rigen, y antes se veían marcadas.
+- **La caja no cambia de pantalla**: lo que cobra lo decide la base.
+
+## Auditoría final (2026-11-14)
+
+Una revisión de punta a punta: la caja, los apartados, la tienda web, el pedido web, los cambios y devoluciones, SUNAT y Finanzas. La hizo un
+revisor que no había construido la obra, y cada hallazgo se comprobó en el código antes de tocarlo.
+
+**Se arregló:**
+- **La caja relee los 3x2 y los montos** cada 10 s, junto con precios y campañas (`usePreciosEnVivo`).
+  - Antes los leía una vez al abrir la pantalla. Un 3x2 activado con la caja abierta se omitía, y la base rechazaba el cobro hasta recargar.
+  - La lectura va **por páginas** (`leerOfertasDeGrupoVigentes`): PostgREST corta en 1.000 filas sin error, como le pasó al Aniversario con
+    las campañas.
+- **«Quedaría en» del Descuento** y el total de cada **ticket en espera** cuentan el 3x2 y el monto.
+- **Finanzas ▸ Campañas** suma a su campaña lo que regalaron el 3x2 y el monto (`20261114064000`). Esas líneas no llevan
+  `descuento_etiqueta_id`.
+- **La portada de la tienda web** anuncia también la campaña cuya oferta elige modelos o insignias (`20261114071000`).
+- **Volver a activar una campaña** pasa sus ofertas por el candado de los choques (`20261114072000`). Es activar ofertas, así que es
+  configurar.
+- **Textos que guiaban mal:**
+  - el historial ya no dice «antes: −0 %»;
+  - una campaña cuyas ofertas eligen prendas dice «Las eligen sus ofertas», no «Ninguna todavía»;
+  - el pedido web del ERP muestra el precio de lista tachado.
+- **El pie de la hoja de la oferta** en el celular: cambiar de paso suelta la reserva de `<PaginaEstable>` (ADR-0185).
+
+**Queda para Felipe (dinero o una regla nueva).** Lo investigado y sus fuentes: `docs/investigacion/2026-11-14-ofertas-decisiones-pendientes.md`.
+Felipe decidió cinco el 2026-11-14:
+1. **Cambio de talla en un 3x2: el mismo modelo no paga nada** (`20261114125000`). Solo paga lo que la talla nueva cuesta de más hoy en la
+   tienda de la compra, y nunca se le devuelve. Vale para todo descuento: 3x2, campaña, Club, a mano. Otro modelo sigue a lista contra lo
+   pagado (ADR-0380, actualización 2026-11-14). La pantalla dice «Misma prenda: conserva su descuento».
+2. **Una prenda con dos ofertas por marcar una insignia (u otra puerta de fuera): PENDIENTE.** Felipe pidió avisarle a quien configura qué
+   prendas tienen varias ofertas, para que elija con cuál se queda, y ver cómo lo hace Shopify. Shopify no avisa: aplica en la caja la mejor
+   para el cliente. La app «Price Rules» avisa al publicar y deja elegir prenda por prenda. Falta decidir qué cobra la caja mientras nadie
+   elige; hoy rebaja + 3x2 suman.
+3. **Una oferta sobre una insignia desactivada deja de rebajar** (`20261114130000`). Lo mismo una sin aprobar; reactivada, vuelve. Una oferta
+   que eligió solo insignias no pasa a rebajar las prendas de su campaña. Al desactivar una insignia, la confirmación nombra las ofertas que
+   dejan de rebajar.
+4. **«Prenda sin registrar» en un monto de toda la compra: se queda como está** (cuenta y recibe su parte). Es el 35 % de las líneas en 90
+   días: excluirla dejaría sin el ahorro a uno de cada tres clientes que la llevan.
+5. **Una venta sin conexión vale con las ofertas de su hora** (`20261114132000`). `registrar_venta` exige y acepta las del día de su
+   `x-momento`, con tope de 3 días. En línea, hoy.
+6. **Frescura: la parte del 3x2, del monto y del Club cuenta como campaña** (`20261114131000`). Era un error contra «una campaña no es
+   una liquidación», que Frescura ya tenía.
+
 ## Alternativas descartadas
 
 - **Dentro de Insignias, renombrado «Insignias y ofertas».** No mueve nada, pero sigue mezclando dos preguntas en una pantalla y el nombre

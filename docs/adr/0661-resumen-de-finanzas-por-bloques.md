@@ -106,3 +106,55 @@ Felipe pidió medir y proponer, no bajar todavía. Las tres propuestas, en el ba
   Chromium sin pantalla. En un navegador normal no pasa.
 - **La guía interactiva** (`finanzas.resumen`) no cambió de anclas ni de controles (su huella sigue igual), pero si alguien la abre antes de que lleguen
   todos los bloques, un paso cuya pieza todavía no llegó la espera ~0,9 s como cualquier pieza que aparece.
+
+## Actualización 2026-11-14 — bajar el trabajo total (rama `claude/resumen-trabajo-una-vez`)
+
+**Pidió:** Felipe aprobó el plan «Medir y bajar trabajo» (relayado por la sesión de rendimiento): hacer las dos propuestas que no cambian reglas.
+**Medido en producción** desde las 00:07 UTC del 2026-11-14, con todo publicado: `fn_resumen_finanzas` 3,8 s por carga, `fn_balance_por_tienda` 1,8 s y
+`fn_flujo_caja_real` 6 llamadas × 0,63 s: ~9–10 s de CPU por carga en una base de 2 núcleos compartidos, que es lo que da los ~6,8 s de pared.
+
+**(b) El estado de resultados del mes, UNA vez por carga** (`20261114005000_estado_de_resultados_una_vez.sql`). Se armaba tres veces: `resultados_mes`,
+dentro de `fn_presupuesto_vs_real` y dentro de `fn_balance_por_tienda`. Ahora las dos últimas envuelven a `fn_presupuesto_vs_real_de` y
+`fn_balance_por_tienda_de`: su mismo cuerpo vivo (generado del texto de producción, con candado md5), con un solo cambio: aceptan un estado de resultados
+ya armado (`retail.fila_estado_resultados[]`, un tipo con las columnas de `fn_estado_resultados`) y lo usan **solo si calza** (las mismas fechas y la
+misma sede que iban a armar); si no viene o no calza, lo arman como siempre. Las `…_de` no las puede llamar nadie de afuera: nadie les pasa un estado de
+resultados inventado. `fn_resumen_finanzas_partes` arma el del mes una vez, se lo pasa al presupuesto y, con la parte nueva `balance` (opt-in: no entra
+en la lectura entera), al balance de cada sede a hoy. La web pone el presupuesto en el grupo del mes y, mirando CAYLA entera del 1 a hoy, toma el balance
+de esa lectura (`getBalancePorTiendaDeFilas`); si no, lo pide aparte como antes. Sin la migración, una base vieja responde 22023 a `balance` y la web
+pide el grupo sin ella.
+
+**(a) «Movimientos» en una sola lectura** (`20261114010000_movimientos_en_una_lectura.sql`). Cada día leía los saldos de todas las cuentas tres veces
+(`fn_cuentas_dinero_saldos`: el disponible de la víspera, el del día y lo que vuelve a los fondos): 18 lecturas para 7 fechas. Ahora
+`fn_flujo_caja_real` envuelve a `fn_flujo_caja_real_de` (su mismo cuerpo, que acepta esos tres saldos ya leídos) y `fn_flujo_caja_real_dias(p_dias)`
+los lee una vez por fecha. **Las líneas no se juntan:** `fn_flujo_lineas` arma las suyas con `fn_dinero_libro(hasta)` y `fn_fondo_por_completar(hasta)`,
+que dependen del corte; pedir un tramo no garantiza lo mismo que día por día, así que siguen día por día (61 ms cada una en producción). La regla del
+disponible y de lo que vuelve a los fondos queda escrita en dos lugares (`fn_flujo_disponible`/`fn_flujo_por_volver` y la lectura de días):
+`pnpm pruebas:flujo-real-dias` falla si dejan de coincidir.
+
+**Ni una cifra cambia.** md5 de la salida antes y después: `fn_presupuesto_vs_real` (cuatro meses, cada sede, con fecha fija), `fn_balance_por_tienda`
+(cuatro cortes), `fn_resumen_finanzas` (cada sede, la empresa, una integrante) y `fn_flujo_caja_real` (41 días y 4 tramos): 170 casos en dos bases.
+En la página, las mismas 198 / 86 / 84 / 177 / 167 cifras que con el código de #1843 sobre la misma copia. Y en la misma lectura, el presupuesto y el
+mes son los de la entera y el balance es `fn_balance_por_tienda(hoy)` (`pruebas:resumen-por-partes`, ahora 40 y 64 casos).
+
+**Medido en la copia de un año** (`scripts/rendimiento/medir-resumen-finanzas.mjs`, SOLO=pagina; mediana de 3, ms / bloques):
+
+| Lectura | Antes | Después |
+|---|---:|---:|
+| Movimientos, 6 días | 2.630 / 309.678 | 1.476 / 172.366 |
+| El mes, el presupuesto y el balance | 1.068 / 350.991 | 607 / 148.600 |
+| ↳ el presupuesto (aislado, con el estado de resultados ya armado) | 489 | 130 |
+| ↳ el balance (aislado) | 472 | ~235 |
+
+En la página (copia, servidor de desarrollo): «Hoy te toca» de ~5,1 a ~3,1 s, el mes de ~5,2 a ~3,7 s, todo de ~5,4 a ~4,4 s; lo primero igual (~2,2 s);
+CLS 0,002 a 1440 px y 0 a 375.
+
+**Las pruebas que vuelven a pegar migraciones viejas** ancladas en `fn_flujo_caja_real` (`finanzas_arranque`, `fondo_sale_al_gastarse`,
+`mercaderia_pagada_balance`) lo hacen entre `DESHACER_20261114010000` y `REHACER_20261114010000` (`scripts/pruebas/_deshacer_20261114010000.mjs`,
+como `_deshacer_0622.mjs`). `finanzas_alcance_coherente` mira la regla de alcance en la función o en su `…_de`.
+
+**Cómo se pega:** las dos son de una sola parte, sin políticas, sin `alter table` y sin `drop`, con candado md5 y se pueden pegar dos veces; el orden entre
+ellas no importa, y la web funciona antes y después. Pegarlas antes de fusionar. Las huellas esperadas están en la descripción del PR.
+
+**Sigue (no hecho):** la tercera propuesta, la foto del diario por día del mes en curso (cambia el punto 1 de ADR-0633): queda en el backlog de la rama
+con la cifra de producción que salga después de pegar (a) y (b), para que Felipe decida si hace falta. Y lo que la página todavía pide de a uno:
+`fn_rendimiento_serie` por tienda y `fn_costo_estimado_resumen` por sede.

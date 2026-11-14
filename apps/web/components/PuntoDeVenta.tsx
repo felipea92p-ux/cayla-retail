@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useLayoutEffect, useMemo, useRef, useState, type RefObject } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type RefObject } from "react";
 import { Globito } from "@/components/ui/Globito";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
@@ -106,7 +106,7 @@ import {
 } from "@/lib/bajada-desde-vender";
 import { leerStockDeSede, useStockEnVivo, type StockReleido } from "@/lib/useStockEnVivo";
 import { usePreciosEnVivo, type PreciosReleidos } from "@/lib/usePreciosEnVivo";
-import { conPreciosAlDia, ticketConPreciosAlDia } from "@/lib/precios-en-vivo-reglas";
+import { conPreciosAlDia, firmaDeOfertas, ticketConPreciosAlDia } from "@/lib/precios-en-vivo-reglas";
 import { avisoFaltanDeProforma } from "@/lib/proforma-al-carrito";
 import { avisoFaltanDeRepeticion, type RepeticionDeVenta } from "@/lib/repetir-venta";
 import { accionDelEnter, buscarVendiblePrimero } from "@/lib/vender-buscador-reglas";
@@ -136,7 +136,7 @@ import { CodigoDeCuponModal, UsarPuntosModal } from "@/components/punto-de-venta
 import { useReportarTicket } from "@/components/punto-de-venta/TicketPorSede";
 import { CLUB_APAGADO, type ClubDeLaCaja } from "@/lib/club-caja-reglas";
 import { descuentosParaRegistrar, ticketConVale } from "@/lib/club-cupon-reparto-reglas";
-import { carritoConGrupos, type OfertaDeGrupoDeVariante } from "@/lib/ofertas-de-grupo";
+import { carritoConGrupos, ofertasDeMontoDeFilas, type FilaOfertaDeMonto, type OfertaDeGrupoDeVariante } from "@/lib/ofertas-de-grupo";
 import {
   avisoCuponApagado,
   ayudaPieCupon,
@@ -190,6 +190,7 @@ export { ID_CARGO_ESPECIAL };
 /** Sin fichas de color: una sola referencia vacía, para que el `useMemo` de la ficha no se rearme en cada render. */
 const SIN_MAQUINAS: readonly MaquinaDeCobro[] = [];
 const SIN_OFERTAS_DE_GRUPO: Readonly<Record<string, OfertaDeGrupoDeVariante>> = {};
+const SIN_MONTOS: readonly FilaOfertaDeMonto[] = [];
 
 export type VarianteBusqueda = PrendaBuscableV2 & {
   /** De qué modelo es (`productos.id`): «Combina bien con» no sugiere la misma prenda ni una que ya está en el ticket. Ausente = se
@@ -374,6 +375,9 @@ type Props = {
   /** «Llevar varias y pagar menos» (ADR-0655): la oferta de grupo que rige hoy para cada prenda de esta tienda (`ofertas_de_grupo_vigentes`).
    *  Sin la lectura (una base vieja), ninguna: el ticket se arma como siempre. */
   ofertasGrupo?: Readonly<Record<string, OfertaDeGrupoDeVariante>>;
+  /** «Gastar un monto y ahorrar» (ADR-0655, actividad 8): los montos de hoy en esta tienda (`ofertas_de_monto_vigentes`), tal como llegan.
+   *  Sin la lectura, ninguno. */
+  filasMonto?: readonly FilaOfertaDeMonto[];
   /** Las ventas de hoy de esta sede, leídas por el servidor: la píldora «Hoy» y su lista (spike 2026-09-26). */
   ventasHoy: { inicial: VentaDeHoy[]; fallo: string | null };
   /** `ubicaciones.meta_venta_diaria` de esta sede, o null sin meta. */
@@ -437,7 +441,7 @@ export type ProformaEnCobro = {
   confirmacion: { titulo: string; detalle: string; casilla: string } | null;
 };
 
-export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, cajaId, fondoUltimoCierre = null, cierreAnterior = null, variantes, duenosPorVariante = null, listasPrendaLibre, campanasNoCargaron = false, ofertasGrupo = SIN_OFERTAS_DE_GRUPO, ventasHoy, metaVentaDiaria, accesos, puedeApartar, puedeBuscarClienta, verMesaRegularizar = false, club = CLUB_APAGADO, proforma = null, avisoProforma = null, repeticion = null, qrDisponible = false, maquinasCobro = SIN_MAQUINAS, tiposComprobante, redondeoEfectivoDisponible = false, pedirAOtraSede = null, pedidosConCliente = [], ahoraIso = "" }: Props) {
+export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, cajaId, fondoUltimoCierre = null, cierreAnterior = null, variantes, duenosPorVariante = null, listasPrendaLibre, campanasNoCargaron = false, ofertasGrupo = SIN_OFERTAS_DE_GRUPO, filasMonto = SIN_MONTOS, ventasHoy, metaVentaDiaria, accesos, puedeApartar, puedeBuscarClienta, verMesaRegularizar = false, club = CLUB_APAGADO, proforma = null, avisoProforma = null, repeticion = null, qrDisponible = false, maquinasCobro = SIN_MAQUINAS, tiposComprobante, redondeoEfectivoDisponible = false, pedirAOtraSede = null, pedidosConCliente = [], ahoraIso = "" }: Props) {
   const bloqueado = cajaId === null;
   const router = useRouter();
   // De quién sale cada prenda del ticket cuando hay unidades de las dos empresas (ADR-0542), por prenda. Sin respuesta de fábrica.
@@ -940,6 +944,11 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
     useMemo(() => variantes.filter((v) => v.varianteId !== ID_CARGO_ESPECIAL).map((v) => v.varianteId), [variantes]),
     !bloqueado,
     (releido) => {
+      // Un 3x2 o un monto que se activó, cambió o se retiró mientras la caja estaba abierta: el ticket lo toma solo (ADR-0655).
+      const firmaAntes = preciosAlDia?.ofertas?.firma ?? firmaDeOfertas(ofertasGrupo, filasMonto);
+      if (releido.ofertas && releido.ofertas.firma !== firmaAntes && carrito.length > 0) {
+        avisar.aviso("Cambiaron las ofertas de hoy", { detalle: "El ticket ya las tiene. Revisa el total antes de cobrar." });
+      }
       setPreciosAlDia(releido);
       const { cambiaron, porRevisar } = ticketConPreciosAlDia(carrito, releido);
       setCarrito((actual) => ticketConPreciosAlDia(actual, releido).carrito);
@@ -1566,7 +1575,14 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
   // «Llevar varias y pagar menos» (ADR-0655): el carrito como se cobra, con cada prenda de un grupo en su línea y su parte sumada al descuento
   // (`carritoConGrupos`, la misma cuenta que `fn_ofertas_de_grupo`). El cupón, el total y lo que viaja salen de aquí; el ticket sigue
   // mostrando el carrito, con lo que dice cada grupo (`grupos.porLinea`).
-  const grupos = useMemo(() => carritoConGrupos(carrito, ofertasGrupo), [carrito, ofertasGrupo]);
+  // Y el monto (actividad 8): las prendas sin otra oferta suman para él; su ahorro también va repartido en cada una.
+  // Las de HOY releídas cada 10 s (`usePreciosEnVivo`); hasta la primera vuelta, o tras volver a cargar la pantalla, las del servidor.
+  const ofertasGrupoAlDia = preciosAlDia?.ofertas?.grupo ?? ofertasGrupo;
+  const filasMontoAlDia = preciosAlDia?.ofertas?.monto ?? filasMonto;
+  const montos = useMemo(() => ofertasDeMontoDeFilas(filasMontoAlDia), [filasMontoAlDia]);
+  const grupos = useMemo(() => carritoConGrupos(carrito, ofertasGrupoAlDia, montos), [carrito, ofertasGrupoAlDia, montos]);
+  // La misma cuenta para lo que no es el ticket de ahora: «Quedaría en» del Descuento y el total de cada ticket en espera.
+  const conOfertas = useCallback((lineas: ItemCarrito[]) => carritoConGrupos(lineas, ofertasGrupoAlDia, montos).lineas, [ofertasGrupoAlDia, montos]);
   const conVale = useMemo(() => ticketConVale(grupos.lineas, cuponPuesto ? cuponPuesto.valor : null), [grupos, cuponPuesto]);
   const valeDelTicket =
     cuponPuesto && conVale.totalVale > 0
@@ -2201,6 +2217,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
   const ticketNodo = (enHoja: boolean) => (
       <PuntoDeVentaTicket
         grupos={grupos.porLinea}
+        conOfertas={conOfertas}
             id="ticket-pos"
             bloqueado={bloqueado}
             carrito={carritoConPiso}
@@ -2473,6 +2490,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
                   onDescuento={(cambio) => setDescuento((actual) => ({ ...actual, ...cambio }))}
                   carrito={carritoConPiso}
                   vale={valeDelTicket}
+                  conOfertas={conOfertas}
                   bloqueado={bloqueado}
                   onAplicar={aplicarDescuentoAlTicket}
                   onQuitar={quitarDescuentoDelTicket}

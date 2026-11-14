@@ -53,7 +53,25 @@ const MIGRACION_HOY = readFileSync(join(RAIZ, "supabase", "migrations", "2026102
 const MIGRACION_COSTO = readFileSync(join(RAIZ, "supabase", "migrations", "20261022164000_planilla_costo_real_con_cargas.sql"), "utf8");
 // Y la de ADR-0585 (quien tiene Estados financieros ve todo), que reescribe con un reemplazo anclado la pregunta de alcance de
 // `fn_planilla_provision`: pegar la de lo de hoy la deja con la pregunta vieja, así que se vuelve a pegar encima, como en la base real.
-const MIGRACION_EEFF = readFileSync(join(RAIZ, "supabase", "migrations", "20261030235000_estados_financieros_ve_todo_quien_tiene_el_modulo.sql"), "utf8");
+// ADR-0661 (2026-11-14) pasó el cuerpo de tres de sus funciones a una hermana `_de` y dejó la original como una llamada: el texto ancla
+// ya no vive en ellas, así que volver a pegar la 0585 entera falla en esas tres. Esta escena solo necesita el ancla de
+// `fn_planilla_provision`: se pega sin esas tres entradas, y si alguna ya no está escrita así, la prueba lo dice en vez de pasar en verde.
+const sinEntrada = (sql, entrada) => {
+  const veces = sql.split(entrada).length - 1;
+  if (veces !== 1) throw new Error(`planilla_provision: la 0585 cambió, «${entrada.trim()}» aparece ${veces} veces (se esperaba 1)`);
+  return sql.replace(entrada, "");
+};
+const MIGRACION_EEFF = [
+  "\n  'retail.fn_balance_por_tienda(date)',",
+  "\n  'retail.fn_presupuesto_vs_real(date, uuid, date)',",
+].reduce(
+  sinEntrada,
+  readFileSync(join(RAIZ, "supabase", "migrations", "20261030235000_estados_financieros_ve_todo_quien_tiene_el_modulo.sql"), "utf8")
+).replace(
+  "unnest(array['retail.fn_flujo_caja_real(date, date)', 'retail.fn_flujo_caja_proyeccion(integer)'])",
+  "unnest(array['retail.fn_flujo_caja_proyeccion(integer)'])"
+);
+if (MIGRACION_EEFF.includes("'retail.fn_flujo_caja_real(date, date)'")) throw new Error("planilla_provision: la 0585 cambió en el ancla del flujo");
 // Y la que quita el piso de 3 personas (ADR-0453, act. 2026-11-06): toda sede cuenta. Las escenas de arriba siguen probando la versión con
 // piso (la que pegan); las de «Toda sede cuenta», al final, pegan esta encima, como en la base real.
 const MIGRACION_TODA_SEDE = readFileSync(join(RAIZ, "supabase", "migrations", "20261106235000_planilla_cuenta_toda_sede.sql"), "utf8");

@@ -3,7 +3,6 @@ import { join } from "node:path";
 import { describe, it, expect } from "vitest";
 import {
   contarPorCategoria,
-  categoriasDichas,
   contarPrendas,
   prendasQueAlcanza,
   nombresDeTiendas,
@@ -26,6 +25,8 @@ import {
   leerCuerpoOferta,
   alcanceDicho,
   MAX_PRODUCTOS_SOLO,
+  MAX_INSIGNIAS_SOLO,
+  insigniasDichas,
   nombreAutomatico,
   nombreDeOferta,
   ofertaDesdeRegla,
@@ -43,6 +44,13 @@ import {
   vigenciaDeRegla,
   type FilaRegla,
   type ReglaCampana,
+  textoDeEscalon,
+  titularDeEscalon,
+  titularDeMonto,
+  FORMA_DE_FABRICA,
+  problemasDeForma,
+  problemasDeMonto,
+  bajadaDesactivarInsignia,
 } from "./campana-reglas";
 
 // El viernes 23 de octubre de 2026 es hoy en la maqueta; el lunes 26, el martes 27, el jueves 29.
@@ -175,9 +183,9 @@ describe("el nombre y la frase", () => {
   it("con muchas categorías dice cuántas son, no las nombra todas", () => {
     const ids = ["a", "b", "c", "d"];
     const nom = (id: string) => ({ a: "Blusas", b: "Faldas", c: "Polos", d: "Tops" })[id] ?? "";
-    expect(categoriasDichas(["b", "a"], nom)).toBe("Blusas y Faldas");
-    expect(categoriasDichas(["a", "b", "c"], nom)).toBe("Blusas, Faldas y Polos");
-    expect(categoriasDichas(ids, nom)).toBe("4 categorías");
+    expect(alcanceDicho({ categoriasSolo: ["b", "a"] }, nom)).toBe("Blusas y Faldas");
+    expect(alcanceDicho({ categoriasSolo: ["a", "b", "c"] }, nom)).toBe("Blusas, Faldas y Polos");
+    expect(alcanceDicho({ categoriasSolo: ids }, nom)).toBe("4 categorías");
     expect(nombreAutomatico({ porcentaje: 20, dias: [1, 2, 3, 4, 5, 6, 7], categoriasSolo: ids }, nom)).toBe("4 categorías · −20 %");
     expect(fraseDeOferta({ ...ofertaNueva("2026-10-26", "2026-10-31"), categoriasSolo: ids }, nom)).toContain("solo en 4 categorías");
   });
@@ -395,6 +403,13 @@ describe("antes: …", () => {
     expect(resumenAntes(null)).toBe("");
     expect(resumenAntes({})).toBe("");
   });
+  it("una oferta que no es «% menos» no dice «−0 %» (ADR-0655)", () => {
+    const fila = { porcentaje: null, desde: "2026-10-24", hasta: "2026-10-31", dias_semana: [1, 2, 3, 4, 5, 6, 7] };
+    expect(resumenAntes(fila, { tipo: "nxm", lleva: 3 })).toBe("24 oct – 31 oct");
+    expect(resumenAntes(fila, { tipo: "monto", lleva: 3 })).toBe("24 oct – 31 oct");
+    expect(resumenAntes({ ...fila, porcentaje: 50 }, { tipo: "nesima_pct", lleva: 2 })).toBe("La 2.ª al 50 % · 24 oct – 31 oct");
+    expect(resumenAntes({ ...fila, porcentaje: 20 })).toBe("−20 % · 24 oct – 31 oct");
+  });
 });
 
 describe("el orden en que se eligen las categorías no cambia el nombre", () => {
@@ -497,5 +512,157 @@ describe("cuántas prendas alcanza una oferta", () => {
     expect(contarPrendas([{ id: "a" }, { id: "b" }])).toBe(2);
     expect(Object.fromEntries(contarPorCategoria(tallas, false))).toEqual({ blusas: 2, faldas: 0 });
     expect(Object.fromEntries(contarPorCategoria(tallas, true))).toEqual({ blusas: 2, faldas: 1 });
+  });
+});
+
+describe("lo que dice un monto (ADR-0655, actividad 8)", () => {
+  it("«S/ 30 menos desde S/ 300» o «10 % menos desde S/ 300»; un monto, por su primer escalón", () => {
+    expect(textoDeEscalon({ ahorra: 30 }, "soles")).toBe("S/\u00a030.00 menos");
+    expect(textoDeEscalon({ ahorra: 12.5 }, "pct")).toBe("12,5 % menos");
+    expect(titularDeEscalon({ desde: 300, ahorra: 30 }, "soles")).toBe("S/\u00a030.00 menos desde S/\u00a0300.00");
+    expect(titularDeMonto([{ desde: 300, ahorra: 10 }, { desde: 500, ahorra: 15 }], "pct")).toBe("10 % menos desde S/\u00a0300.00");
+    expect(titularDeMonto([], "soles")).toBe("Por monto");
+  });
+});
+
+describe("la hoja con un monto (ADR-0655, actividad 8)", () => {
+  const nom = (id: string) => ({ c1: "Blusas" })[id] ?? "";
+  const monto = (o: Partial<ReturnType<typeof ofertaNueva>> = {}) => ({ ...ofertaNueva("2026-10-26", "2026-10-31"), ...FORMA_DE_FABRICA.monto, ...o });
+  it("lo que impide guardarlo: los mismos límites que la base (fn_escalones_validos)", () => {
+    expect(problemasDeMonto([{ desde: 300, ahorra: 30 }], "soles")).toEqual([]);
+    expect(problemasDeMonto([], "soles")[0]).toMatch(/de 1 a 3 escalones/);
+    expect(problemasDeMonto([{ desde: 300, ahorra: 0 }], "soles")[0]).toBe("Pon desde cuánto y cuánto ahorra.");
+    expect(problemasDeMonto([{ desde: 100, ahorra: 100 }], "soles")[0]).toBe("El ahorro tiene que ser menor que el monto.");
+    expect(problemasDeMonto([{ desde: 300, ahorra: 80 }], "pct")[0]).toBe(`El ahorro va de 1 a ${PORCENTAJE_MAX} %.`);
+    expect(problemasDeMonto([{ desde: 300, ahorra: 30 }, { desde: 300, ahorra: 40 }], "soles")[0]).toMatch(/desde más y ahorra más/);
+    expect(problemasDeMonto([{ desde: 300.005, ahorra: 30 }], "soles")[0]).toMatch(/céntimos/);
+    expect(problemasDeForma(monto())).toEqual([]);
+  });
+  it("cómo se dice: la frase, el nombre automático y el titular", () => {
+    const escalones = [{ desde: 300, ahorra: 30 }, { desde: 500, ahorra: 60 }];
+    expect(fraseDeOferta(monto({ escalones }), nom)).toBe(
+      "S/\u00a030.00 menos desde S/\u00a0300.00, S/\u00a060.00 menos desde S/\u00a0500.00 en toda la compra, del 26 oct al 31 oct.",
+    );
+    expect(fraseDeOferta(monto({ cuenta: "campana", categoriasSolo: ["c1"], cedeAOtras: true }), nom)).toBe(
+      "S/\u00a030.00 menos desde S/\u00a0300.00 comprando Blusas, sin contar las prendas que ya tienen otra oferta, del 26 oct al 31 oct.",
+    );
+    expect(nombreAutomatico(monto(), nom)).toBe("Toda la compra · S/\u00a030.00 menos desde S/\u00a0300.00");
+  });
+  it("de la base a la hoja y de la hoja a la ruta", () => {
+    const r = regla({ tipo: "monto", porcentaje: null, lleva: null, paga: null, escalones: [{ desde: "300", ahorra: "30" }], ahorro_en: "pct", cuenta: "campana", cede_a_otras: true });
+    expect(r).toMatchObject({ tipo: "monto", escalones: [{ desde: 300, ahorra: 30 }], ahorroEn: "pct", cuenta: "campana", cedeAOtras: true });
+    expect(ofertaDesdeRegla(r, true)).toMatchObject({ tipo: "monto", escalones: [{ desde: 300, ahorra: 30 }], cuenta: "campana", cedeAOtras: true });
+    const cuerpo = {
+      etiquetaId: "00000000-0000-4000-8000-000000000001", nombre: "Monto", porcentaje: 0, desde: "2026-10-26", hasta: "2026-10-31", dias: [1, 2, 3, 4, 5, 6, 7],
+      forma: { tipo: "monto", escalones: [{ desde: 300, ahorra: 30 }], ahorroEn: "soles", cuenta: "compra", cedeAOtras: true },
+    };
+    const ok = leerCuerpoOferta(cuerpo);
+    expect(ok.ok && ok.valor.forma).toMatchObject({ tipo: "monto", escalones: [{ desde: 300, ahorra: 30 }], ahorroEn: "soles", cuenta: "compra", cedeAOtras: true });
+    expect(leerCuerpoOferta({ ...cuerpo, forma: { ...cuerpo.forma, escalones: [{ desde: 100, ahorra: 100 }] } }).ok).toBe(false);
+  });
+  it("toda la compra alcanza a todo el catálogo, salvo Claurè si no la incluye", () => {
+    const catalogo = [{ id: "a", categoriaId: "c1" }, { id: "b", categoriaId: "c2" }, { id: "k", categoriaId: "c2", deClaure: true }];
+    expect(prendasQueAlcanza([], catalogo, { ...monto() }).map((p) => p.id)).toEqual(["a", "b"]);
+    expect(prendasQueAlcanza([], catalogo, { ...monto({ incluyeClaure: true }) }).map((p) => p.id)).toEqual(["a", "b", "k"]);
+  });
+  it("los choques: «que no cuenten» resuelve todo salvo otro monto, y avisa si la otra tiene todas las prendas", () => {
+    const fila = (f: Partial<FilaChoque>): FilaChoque => ({ otra_tipo: "oferta", otra_id: "o1", otra_nombre: "Top", campana_nombre: "Top", ubicacion_id: "t", ubicacion_nombre: "Tienda Lima", prendas: 4, cedida: false, otra_es_monto: false, mias: 10, ...f });
+    const c = choquesDeFilas([fila({}), fila({ otra_id: "o2", otra_nombre: "Otro monto", otra_es_monto: true }), fila({ otra_tipo: "descuento", otra_id: "d1", otra_nombre: "Siempre", prendas: 10 })], []);
+    const [rebaja, otroMonto, todo] = ["o1", "o2", "d1"].map((id) => c.find((x) => x.id === id)!);
+    expect([rebaja.esMonto, otroMonto.esMonto, todo.todaLaTienda, rebaja.todaLaTienda]).toEqual([false, true, true, false]);
+    expect(choqueResuelto(rebaja, [], true)).toBe(true);
+    expect(choqueResuelto(todo, [], true)).toBe(true);
+    expect(choqueResuelto(otroMonto, [], true)).toBe(false);
+    expect(choquesSinResolver([rebaja, otroMonto, todo], [], true).map((x) => x.id)).toEqual(["o2"]);
+    expect(choquesSinResolver([rebaja], [], false)).toHaveLength(1);
+  });
+});
+
+describe("por insignia (ADR-0655)", () => {
+  const ROTACION = "55555555-5555-4555-8555-555555555555";
+  const ARTESANAL = "66666666-6666-4666-8666-666666666666";
+  const nom = (id: string) => ({ [BLUSAS]: "Blusas", [FALDAS]: "Faldas", [ROTACION]: "Rotación", [ARTESANAL]: "Artesanal" })[id] ?? "";
+  it("de la base a la hoja, y sin la migración ninguna", () => {
+    const r = regla({ insignias: [ROTACION] });
+    expect(r.insigniasSolo).toEqual([ROTACION]);
+    expect(ofertaDesdeRegla(r, true).insigniasSolo).toEqual([ROTACION]);
+    expect(regla().insigniasSolo).toEqual([]);
+    expect(ofertaNueva("2026-10-26", "2026-10-31").insigniasSolo).toEqual([]);
+  });
+  it("se dicen con su nombre: una, varias o cuántas", () => {
+    expect(insigniasDichas([ROTACION], nom)).toBe("la insignia Rotación");
+    expect(insigniasDichas([ROTACION, ARTESANAL], nom)).toBe("las insignias Artesanal y Rotación");
+    expect(insigniasDichas([ROTACION, ARTESANAL, BLUSAS, FALDAS], nom)).toBe("4 insignias");
+    expect(insigniasDichas([], nom)).toBeNull();
+    expect(alcanceDicho({ categoriasSolo: [BLUSAS], insigniasSolo: [ROTACION] }, nom)).toBe("Blusas y la insignia Rotación");
+  });
+  it("el nombre empieza en mayúscula y la frase dice dónde rige", () => {
+    const o = { ...ofertaNueva("2026-10-26", "2026-10-31"), insigniasSolo: [ROTACION] };
+    expect(nombreAutomatico(o, nom)).toBe("La insignia Rotación · −20 %");
+    expect(fraseDeOferta(o, nom)).toBe("20 % menos solo en la insignia Rotación, del 26 oct al 31 oct.");
+    expect(esNombreAutomatico(regla({ nombre: "La insignia Rotación · −20 %", insignias: [ROTACION] }), nom)).toBe(true);
+  });
+  it("alcanza las prendas que la llevan (a mano o por su categoría), sumadas a categorías y modelos, sin lo que deja fuera", () => {
+    const catalogo = [
+      { id: "a", categoriaId: BLUSAS, insignias: [ROTACION] },
+      { id: "b", categoriaId: FALDAS },
+      { id: "c", categoriaId: FALDAS, insignias: [ARTESANAL] },
+      { id: "k", categoriaId: BLUSAS, insignias: [ROTACION], deClaure: true },
+      { id: "p", categoriaId: null, productoId: "prod" },
+    ];
+    const campana = [catalogo[1]];
+    const o = { categoriasSolo: [] as string[], categoriasFuera: [] as string[], incluyeClaure: false, insigniasSolo: [ROTACION] };
+    // Con una insignia y nada más, rige solo en ella: no en las de la campaña.
+    expect(prendasQueAlcanza(campana, catalogo, o).map((p) => p.id)).toEqual(["a"]);
+    expect(prendasQueAlcanza(campana, catalogo, { ...o, incluyeClaure: true }).map((p) => p.id)).toEqual(["a", "k"]);
+    expect(prendasQueAlcanza(campana, catalogo, { ...o, insigniasSolo: [ROTACION, ARTESANAL] }).map((p) => p.id)).toEqual(["a", "c"]);
+    expect(prendasQueAlcanza(campana, catalogo, { ...o, productosSolo: ["prod"] }).map((p) => p.id)).toEqual(["a", "p"]);
+    expect(prendasQueAlcanza(campana, catalogo, { ...o, categoriasFuera: [BLUSAS] }).map((p) => p.id)).toEqual([]);
+    // Sin insignias, lo de siempre: las de la campaña.
+    expect(prendasQueAlcanza(campana, catalogo, { ...o, insigniasSolo: [] }).map((p) => p.id)).toEqual(["b"]);
+    // Un monto de toda la compra no mira las insignias.
+    expect(prendasQueAlcanza(campana, catalogo, { ...o, tipo: "monto", cuenta: "compra" }).map((p) => p.id)).toEqual(["a", "b", "c", "p"]);
+  });
+  it("viajan a la ruta sin repetir, con su tope y si las tenía", () => {
+    const cuerpo = { etiquetaId: CAMPANA, nombre: "Rotación", porcentaje: 20, desde: "2026-10-26", hasta: "2026-10-31", dias: [1, 2, 3, 4, 5, 6, 7] };
+    const r = leerCuerpoOferta({ ...cuerpo, insigniasSolo: [ROTACION, ROTACION], teniaInsignias: true });
+    expect(r.ok && r.valor).toMatchObject({ insigniasSolo: [ROTACION], teniaInsignias: true });
+    expect(leerCuerpoOferta(cuerpo).ok && (leerCuerpoOferta(cuerpo) as { valor: { insigniasSolo: string[]; teniaInsignias: boolean } }).valor).toMatchObject({ insigniasSolo: [], teniaInsignias: false });
+    expect(leerCuerpoOferta({ ...cuerpo, insigniasSolo: ["rotacion"] }).ok).toBe(false);
+    const muchas = Array.from({ length: MAX_INSIGNIAS_SOLO + 1 }, (_, i) => `00000000-0000-4000-8000-${String(i).padStart(12, "0")}`);
+    expect(leerCuerpoOferta({ ...cuerpo, insigniasSolo: muchas }).ok).toBe(false);
+  });
+  it("el tope es el de la base", () => {
+    const migracion = readFileSync(join(__dirname, "../../../supabase/migrations/20261114060000_ofertas_por_insignia.sql"), "utf8");
+    expect(migracion).toContain(`cardinality(v_insignias) > ${MAX_INSIGNIAS_SOLO}`);
+    expect(migracion).toContain(`hasta ${MAX_INSIGNIAS_SOLO} insignias`);
+  });
+});
+
+describe("desactivar una insignia que usan ofertas (ADR-0655, Felipe 2026-11-14)", () => {
+  const ROTACION = "55555555-5555-4555-8555-555555555555";
+  const nombreCampana = (id: string) => (id === CAMPANA ? "Verano" : "Otra");
+  const hoy = "2026-10-25";
+  it("nombra la oferta que la usa y su campaña", () => {
+    const r = regla({ nombre: "3x2 polos", insignias: [ROTACION] });
+    expect(bajadaDesactivarInsignia([r], ROTACION, hoy, nombreCampana)).toBe("La oferta «3x2 polos» de Verano deja de rebajar sus prendas.");
+  });
+  it("con dos ofertas, las dos; con más de tres, cuántas", () => {
+    const a = regla({ id: "a", nombre: "3x2 polos", insignias: [ROTACION] });
+    const b = regla({ id: "b", nombre: "−20 %", insignias: [ROTACION] });
+    expect(bajadaDesactivarInsignia([a, b], ROTACION, hoy, nombreCampana)).toBe("Las ofertas «3x2 polos» de Verano y «−20 %» de Verano dejan de rebajar sus prendas.");
+    const cuatro = ["a", "b", "c", "d"].map((id) => regla({ id, nombre: id, insignias: [ROTACION] }));
+    expect(bajadaDesactivarInsignia(cuatro, ROTACION, hoy, nombreCampana)).toBe("4 ofertas dejan de rebajar sus prendas.");
+  });
+  it("calla si ninguna oferta que rige o va a regir la usa (un borrador, una terminada, una retirada u otra insignia)", () => {
+    const borrador = regla({ estado: "borrador", insignias: [ROTACION] });
+    const terminada = regla({ hasta: "2026-10-01", insignias: [ROTACION] });
+    const retirada = regla({ estado: "desactivada", insignias: [ROTACION] });
+    const otra = regla({ insignias: [] });
+    expect(bajadaDesactivarInsignia([borrador, terminada, retirada, otra], ROTACION, hoy, nombreCampana)).toBeNull();
+  });
+  it("cuenta también la que va a regir", () => {
+    const programada = regla({ desde: "2026-11-01", hasta: "2026-11-30", nombre: "Navidad", insignias: [ROTACION] });
+    expect(bajadaDesactivarInsignia([programada], ROTACION, hoy, nombreCampana)).toBe("La oferta «Navidad» de Verano deja de rebajar sus prendas.");
   });
 });

@@ -1,5 +1,17 @@
 import { describe, expect, it } from "vitest";
-import { apartadoConGrupos, carritoConGrupos, ejemploDeGrupo, ofertasDeGrupo, ofertasDeGrupoDeFilas, type LineaDeGrupo, type OfertaDeGrupo } from "./ofertas-de-grupo";
+import {
+  apartadoConGrupos,
+  carritoConGrupos,
+  ejemploDeGrupo,
+  ejemploDeMonto,
+  montoDeVariante,
+  ofertasDeGrupo,
+  ofertasDeGrupoDeFilas,
+  ofertasDeMontoDeFilas,
+  type FilaOfertaDeMonto,
+  type LineaDeGrupo,
+  type OfertaDeGrupo,
+} from "./ofertas-de-grupo";
 
 // Los mismos ejemplos que `scripts/pruebas/ofertas_de_grupo.mjs` prueba contra `retail.fn_ofertas_de_grupo`: las dos tienen que coincidir.
 const TRES_POR_DOS: OfertaDeGrupo = { reglaId: "r", tipo: "nxm", lleva: 3, paga: 2, monto: null, porcentaje: null, agrupa: "campana" };
@@ -157,5 +169,107 @@ describe("las ofertas de grupo que lee la caja", () => {
     expect(o.v2).toMatchObject({ monto: 59.9, titular: "2 por S/\u00a059.90" });
     expect(o.v3).toBeUndefined();
     expect(ofertasDeGrupoDeFilas(null)).toEqual({});
+  });
+});
+
+// ---- «Gastar un monto y ahorrar» (ADR-0655, actividad 8): los mismos ejemplos que `scripts/pruebas/monto_con_escalones.mjs` ----------
+
+const monto = (escalones: [number, number][], ahorroEn: "soles" | "pct" = "soles"): OfertaDeGrupo => ({
+  reglaId: "m", tipo: "monto", lleva: 0, paga: null, monto: null, porcentaje: null, agrupa: "campana",
+  escalones: escalones.map(([desde, ahorra]) => ({ desde, ahorra })), ahorroEn,
+});
+
+describe("la cuenta del monto (la misma de la base)", () => {
+  const M = monto([[300, 30]]);
+  it("S/ 30 desde S/ 300: 200 + 150 → 17.14 · 12.86; bajo el monto, nada", () => {
+    expect(dicho([l(200, 1, M), l(150, 1, M)])).toBe("1:17.14:0,2:12.86:0");
+    expect(dicho([l(200, 1, M), l(50, 1, M)])).toBe("1:0.00:0,2:0.00:0");
+  });
+  it("tres escalones: con 550 vale el de 500 (32.73 · 27.27); con 800 justo, el de 800 (75 · 45)", () => {
+    const tres = monto([[300, 30], [500, 60], [800, 120]]);
+    expect(dicho([l(300, 1, tres), l(250, 1, tres)])).toBe("1:32.73:0,2:27.27:0");
+    expect(dicho([l(500, 1, tres), l(300, 1, tres)])).toBe("1:75.00:0,2:45.00:0");
+  });
+  it("en %, con el redondeo de la caja: 10 % sobre 350 → 35 (20 · 15)", () => {
+    expect(dicho([l(200, 1, monto([[300, 10]], "pct")), l(150, 1, monto([[300, 10]], "pct"))])).toBe("1:20.00:0,2:15.00:0");
+  });
+  it("una línea con varias unidades cuenta cada una (2 × 160 → 30)", () => {
+    expect(dicho([l(160, 2, M)])).toBe("1:30.00:0");
+  });
+  it("dice el escalón alcanzado y cuánto falta para el siguiente", () => {
+    const tres = monto([[300, 30], [500, 60]]);
+    expect(ofertasDeGrupo([l(200, 1, tres), l(150, 1, tres)])[0]?.monto).toEqual({
+      ahorroEn: "soles", alcanzado: { desde: 300, ahorra: 30 }, siguiente: { escalon: { desde: 500, ahorra: 60 }, falta: 150 },
+    });
+    expect(ofertasDeGrupo([l(250, 1, tres)])[0]?.monto).toMatchObject({ alcanzado: null, siguiente: { falta: 50 } });
+  });
+  it("500 tickets al azar: el ahorro es siempre el del escalón alcanzado, y ninguna prenda ahorra más de lo que cuesta", () => {
+    const tres = monto([[150, 15], [400, 50], [700, 100]]);
+    let semilla = 31;
+    const azar = () => ((semilla = (semilla * 16807) % 2147483647) - 1) / 2147483646;
+    for (let t = 0; t < 500; t++) {
+      const lineas = Array.from({ length: 1 + Math.floor(azar() * 6) }, () => l(10 + Math.floor(azar() * 2500) / 10, 1, tres));
+      const sumaC = lineas.reduce((a, x) => a + Math.round(x.precio * 100), 0);
+      const esperado = sumaC >= 70000 ? 10000 : sumaC >= 40000 ? 5000 : sumaC >= 15000 ? 1500 : 0;
+      const g = ofertasDeGrupo(lineas);
+      expect(g.reduce((a, x) => a + Math.round((x?.descuento ?? 0) * 100), 0)).toBe(esperado);
+      expect(g.every((x, i) => (x?.descuento ?? 0) <= lineas[i].precio)).toBe(true);
+    }
+  });
+});
+
+describe("el monto en la caja y en Apartar", () => {
+  const FILA = (o: Partial<FilaOfertaDeMonto> = {}): FilaOfertaDeMonto => ({
+    regla_id: "m", oferta_nombre: "ZZ Monto", etiqueta_nombre: "Verano", escalones: [{ desde: 300, ahorra: 30 }], ahorro_en: "soles", cuenta: "compra",
+    variantes: null, excluidas: ["claure"], ...o,
+  });
+  const linea = (clave: string, precio: number, campana: unknown = null) => ({ claveLinea: clave, varianteId: clave, cantidad: 1, precioUnitario: precio, descuentoUnitario: 0, campana });
+  it("toda la compra: cuenta todo salvo lo excluido; de la campaña: solo lo que alcanza", () => {
+    const [compra] = ofertasDeMontoDeFilas([FILA()]);
+    expect(montoDeVariante([compra], "a")?.reglaId).toBe("m");
+    expect(montoDeVariante([compra], "claure")).toBeNull();
+    const [deLaCampana] = ofertasDeMontoDeFilas([FILA({ cuenta: "campana", variantes: ["a"], excluidas: null })]);
+    expect(montoDeVariante([deLaCampana], "a")?.reglaId).toBe("m");
+    expect(montoDeVariante([deLaCampana], "b")).toBeNull();
+  });
+  it("la caja reparte el monto en cada prenda; una con «% menos» no cuenta ni ahorra (decisión 3)", () => {
+    const montos = ofertasDeMontoDeFilas([FILA()]);
+    const { lineas, porLinea } = carritoConGrupos([linea("a", 200), linea("b", 150), linea("c", 400, { etiquetaId: "e", nombre: "Top", pct: 20 })], {}, montos);
+    expect(lineas.map((x) => `${x.claveLinea}:${x.descuentoGrupoUnitario.toFixed(2)}:${x.ofertaGrupoId ?? "-"}`)).toEqual(["a:17.14:m", "b:12.86:m", "c:0.00:-"]);
+    expect(porLinea.get("a")).toMatchObject({ titular: "S/\u00a030.00 menos desde S/\u00a0300.00", nombre: "Verano", ahorro: 17.14 });
+    expect(porLinea.has("c")).toBe(false);
+  });
+  it("una prenda con oferta de grupo va con su grupo, no con el monto", () => {
+    const OFERTA = { ...TRES_POR_DOS, modeloId: null, nombre: "Verano 3x2", titular: "3 x 2" };
+    const montos = ofertasDeMontoDeFilas([FILA()]);
+    const { lineas } = carritoConGrupos([linea("g", 100), linea("a", 200), linea("b", 150)], { g: OFERTA }, montos);
+    expect(lineas.map((x) => x.ofertaGrupoId ?? "-")).toEqual(["-", "m", "m"]);
+  });
+  it("Apartar da lo mismo que la caja y la base", () => {
+    const [m] = ofertasDeMontoDeFilas([FILA()]);
+    const { porVariante, ahorro } = apartadoConGrupos([{ varianteId: "b", cantidad: 1, precio: 150 }, { varianteId: "a", cantidad: 1, precio: 200 }], { a: m, b: m });
+    expect([porVariante.get("a")?.ahorro, porVariante.get("b")?.ahorro, ahorro]).toEqual([17.14, 12.86, 30]);
+    expect(porVariante.get("a")?.monto?.alcanzado).toEqual({ desde: 300, ahorra: 30 });
+  });
+  it("una fila que no se sabe leer se ignora", () => {
+    expect(ofertasDeMontoDeFilas([FILA({ escalones: [{ desde: 300, ahorra: 30 }, { desde: 200, ahorra: 40 }] }), FILA({ ahorro_en: "x" }), FILA({ cuenta: "x" })])).toEqual([]);
+    expect(ofertasDeMontoDeFilas([FILA({ escalones: [{ desde: "300", ahorra: "30" }] })])[0]?.escalones).toEqual([{ desde: 300, ahorra: 30 }]);
+    expect(ofertasDeMontoDeFilas([FILA({ escalones: [] })])).toEqual([]);
+    expect(ofertasDeMontoDeFilas(null)).toEqual([]);
+  });
+});
+
+describe("el ejemplo de un monto en la hoja", () => {
+  const m = { reglaId: "e", tipo: "monto" as const, lleva: 0, paga: null, monto: null, porcentaje: null, agrupa: "campana" as const, escalones: [{ desde: 300, ahorra: 30 }], ahorroEn: "soles" as const };
+  it("las más caras de modelos distintos hasta llegar al monto, cobradas como en la caja", () => {
+    const e = ejemploDeMonto([{ nombre: "Casaca", precio: 189.9, productoId: "c" }, { nombre: "Pantalón", precio: 119.9, productoId: "p" }, { nombre: "Polo", precio: 49.9, productoId: "o" }], m);
+    expect(e?.lineas.map((l) => l.nombre)).toEqual(["Casaca", "Pantalón"]);
+    expect([e?.total, e?.ahorro, e?.paga]).toEqual([309.8, 30, 279.8]);
+  });
+  it("si no alcanza con las que hay, repite la más cara (hasta 6); sin prendas, nada", () => {
+    const e = ejemploDeMonto([{ nombre: "Polo", precio: 40, productoId: "o" }], m);
+    expect(e?.lineas).toHaveLength(6);
+    expect(e?.ahorro).toBe(0);
+    expect(ejemploDeMonto([], m)).toBeNull();
   });
 });

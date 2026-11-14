@@ -4,7 +4,8 @@
 // PROMETE: las filas de la pantalla (las de su modo, por `esDelModo`, o todas), las categorías para elegir dónde rige, las prendas
 //   con su precio más bajo entre tiendas y su costo (para el aviso «quedaría bajo su costo»), las prendas puestas a mano, la lectura
 //   de Rotación si se pide y, con `conVitrina`, de qué modelo, color y categoría es cada prenda y su foto (la vitrina de cada pase).
-//   las ofertas de cada campaña (`reglas`; sin la función o sin la llave, vacías y `reglasDisponibles: false`).
+//   las ofertas de cada campaña (`reglas`; sin la función o sin la llave, vacías y `reglasDisponibles: false`), y las insignias que una
+//   oferta puede elegir (`insignias`, de todos los modos) con las que lleva cada prenda (`prendasConCosto[].insignias`).
 //   Lanza si una lectura de la base falla (`exigir`), como lo hacía la página; las fotos, no: sin ellas la vitrina dibuja la prenda
 //   sin foto (su categoría sobre su color).
 // ASUME: que quien llama ya pasó la puerta del módulo; `puedeEditar` decide si se leen las prendas y el costo.
@@ -22,7 +23,7 @@ import { estiloConocido } from "@/lib/etiqueta-grupos";
 import { esDelModo, type ModoEtiquetas } from "@/lib/sellos-campanas";
 import { fotoDeVariante, type FotoCruda } from "@/lib/producto-fotos-reglas";
 import type { TallaVitrina } from "@/lib/sellos-pases";
-import { reglaDeFila, type FilaRegla } from "@/lib/campana-reglas";
+import { reglaDeFila, type FilaRegla, type InsigniaDeOferta } from "@/lib/campana-reglas";
 
 /** «Ninguna tienda con precio propio»: lo que se usa cuando no hace falta leerlos (la forma de `getPreciosDeLasTiendas`). */
 const sinPreciosDeTiendas = () => ({ nombres: new Map<string, string>(), porSede: {} as Record<string, Record<string, number>> });
@@ -117,8 +118,7 @@ export async function cargarEtiquetasPantalla({
   for (const f of exigir(resEtiquetaCategorias, "las categorías de cada etiqueta")) {
     etiquetaCategorias.set(f.etiqueta_id, [...(etiquetaCategorias.get(f.etiqueta_id) ?? []), f.categoria_id]);
   }
-  const etiquetas = exigir(resEtiquetas, "las etiquetas del vocabulario")
-    .map((e) => ({
+  const todasLasEtiquetas = exigir(resEtiquetas, "las etiquetas del vocabulario").map((e) => ({
       id: e.id,
       nombre: e.nombre,
       activo: e.activo,
@@ -134,9 +134,25 @@ export async function cargarEtiquetasPantalla({
       categoriaIds: (etiquetaCategorias.get(e.id) ?? []) as string[],
       sedeIds: sedesDeCampana.get(e.id) ?? [],
       anunciarEnPortada: !sinAnuncio.has(e.id),
-    }))
-    .filter((e) => modo === "todas" || esDelModo(e.estilo, modo));
+    }));
+  const etiquetas = todasLasEtiquetas.filter((e) => modo === "todas" || esDelModo(e.estilo, modo));
+  // Las insignias que una oferta puede elegir (ADR-0655, por insignia): todas las que no son campaña, con sus categorías. `activa` dice si se
+  // ofrece para elegir; una ya elegida que se desactivó sigue a la vista para poder quitarla.
+  const insignias: InsigniaDeOferta[] = todasLasEtiquetas
+    .filter((e) => e.estilo !== "campana")
+    .map((e) => ({ id: e.id, nombre: e.nombre, activa: e.activo && e.estado === "aprobado", categoriaIds: e.categoriaIds }));
   const costos = await cargaCostos;
+  // Qué insignias lleva cada prenda: marcada a mano o por una categoría de la insignia (la regla de la base,
+  // `fn_oferta_alcanza_variante_con_insignias`). Lo cuenta la hoja de la oferta al elegir insignias. Solo las vivas (activas y aprobadas):
+  // una oferta no llega a las prendas de una insignia desactivada (ADR-0655, Felipe 2026-11-14), y la hoja cuenta lo mismo que la caja.
+  const manualesPorPrenda = new Map<string, string[]>();
+  const vivas = insignias.filter((i) => i.activa);
+  const idsInsignias = new Set(vivas.map((i) => i.id));
+  for (const f of exigir(resManuales, "las prendas puestas a mano")) {
+    if (idsInsignias.has(f.etiqueta_id)) manualesPorPrenda.set(f.variante_id, [...(manualesPorPrenda.get(f.variante_id) ?? []), f.etiqueta_id]);
+  }
+  const insigniasPorCategoria = new Map<string, string[]>();
+  for (const i of vivas) for (const c of i.categoriaIds) insigniasPorCategoria.set(c, [...(insigniasPorCategoria.get(c) ?? []), i.id]);
   const prendasConCosto = exigir(resPrendas, "las prendas para el aviso de costo").map((v) => {
     // El precio más bajo al que se cobra en cualquier tienda (el de la prenda o el propio de una), y cuál tienda lo fija.
     const bajo = precioMasBajoEnTiendas(Number(v.precio), v.id, preciosTiendas.porSede, preciosTiendas.nombres);
@@ -153,6 +169,7 @@ export async function cargarEtiquetasPantalla({
       productoId: v.producto?.id ?? undefined,
       referencia: v.producto?.referencia ?? undefined,
       deClaure: idClaure !== null && v.producto?.empresa_id === idClaure,
+      insignias: [...new Set([...(manualesPorPrenda.get(v.id) ?? []), ...(v.producto?.categoria_id ? (insigniasPorCategoria.get(v.producto.categoria_id) ?? []) : [])])],
     };
   });
   const variantesManuales: Record<string, string[]> = {};
@@ -186,7 +203,21 @@ export async function cargarEtiquetasPantalla({
         };
       })
     : null;
-  return { etiquetas, categorias, prendasConCosto, variantesManuales, rotacion: await cargaRotacion, prendasVitrina, tiendas: sedesDisponibles ? tiendas : [], reglas, reglasDisponibles };
+  return {
+    etiquetas,
+    insignias,
+    categorias,
+    prendasConCosto,
+    variantesManuales,
+    rotacion: await cargaRotacion,
+    prendasVitrina,
+    tiendas: sedesDisponibles ? tiendas : [],
+    reglas,
+    reglasDisponibles,
+    // El nombre de cada campaña (de todos los modos): Catálogo ▸ Insignias nombra la campaña de una oferta que usa la insignia que se
+    // desactiva (ADR-0655).
+    nombresDeCampanas: Object.fromEntries(todasLasEtiquetas.filter((e) => e.estilo === "campana").map((e) => [e.id, e.nombre])) as Record<string, string>,
+  };
 }
 
 type Supabase = Awaited<ReturnType<typeof createClient>>;

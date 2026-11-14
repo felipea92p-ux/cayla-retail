@@ -2652,6 +2652,44 @@
    "table_schema": "retail"
   }
  ],
+ "campana_regla_cesiones": [
+  {
+   "column_default": null,
+   "column_name": "cede_regla_id",
+   "data_type": "uuid",
+   "is_nullable": "NO",
+   "ordinal_position": 1,
+   "table_name": "campana_regla_cesiones",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "gana_regla_id",
+   "data_type": "uuid",
+   "is_nullable": "NO",
+   "ordinal_position": 2,
+   "table_name": "campana_regla_cesiones",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "creada_por",
+   "data_type": "uuid",
+   "is_nullable": "YES",
+   "ordinal_position": 3,
+   "table_name": "campana_regla_cesiones",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": "now()",
+   "column_name": "creada_en",
+   "data_type": "timestamp with time zone",
+   "is_nullable": "NO",
+   "ordinal_position": 4,
+   "table_name": "campana_regla_cesiones",
+   "table_schema": "retail"
+  }
+ ],
  "campana_regla_historial": [
   {
    "column_default": "gen_random_uuid()",
@@ -2696,6 +2734,46 @@
    "is_nullable": "NO",
    "ordinal_position": 5,
    "table_name": "campana_regla_historial",
+   "table_schema": "retail"
+  }
+ ],
+ "campana_regla_insignias": [
+  {
+   "column_default": null,
+   "column_name": "regla_id",
+   "data_type": "uuid",
+   "is_nullable": "NO",
+   "ordinal_position": 1,
+   "table_name": "campana_regla_insignias",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "etiqueta_id",
+   "data_type": "uuid",
+   "is_nullable": "NO",
+   "ordinal_position": 2,
+   "table_name": "campana_regla_insignias",
+   "table_schema": "retail"
+  }
+ ],
+ "campana_regla_productos": [
+  {
+   "column_default": null,
+   "column_name": "regla_id",
+   "data_type": "uuid",
+   "is_nullable": "NO",
+   "ordinal_position": 1,
+   "table_name": "campana_regla_productos",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "producto_id",
+   "data_type": "uuid",
+   "is_nullable": "NO",
+   "ordinal_position": 2,
+   "table_name": "campana_regla_productos",
    "table_schema": "retail"
   }
  ],
@@ -2760,7 +2838,7 @@
    "column_default": null,
    "column_name": "porcentaje",
    "data_type": "numeric",
-   "is_nullable": "NO",
+   "is_nullable": "YES",
    "ordinal_position": 5,
    "table_name": "campana_reglas",
    "table_schema": "retail"
@@ -2852,6 +2930,78 @@
    "data_type": "timestamp with time zone",
    "is_nullable": "NO",
    "ordinal_position": 15,
+   "table_name": "campana_reglas",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "lleva",
+   "data_type": "smallint",
+   "is_nullable": "YES",
+   "ordinal_position": 16,
+   "table_name": "campana_reglas",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "paga",
+   "data_type": "smallint",
+   "is_nullable": "YES",
+   "ordinal_position": 17,
+   "table_name": "campana_reglas",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "monto",
+   "data_type": "numeric",
+   "is_nullable": "YES",
+   "ordinal_position": 18,
+   "table_name": "campana_reglas",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": "'campana'::text",
+   "column_name": "agrupa",
+   "data_type": "text",
+   "is_nullable": "NO",
+   "ordinal_position": 19,
+   "table_name": "campana_reglas",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "escalones",
+   "data_type": "jsonb",
+   "is_nullable": "YES",
+   "ordinal_position": 20,
+   "table_name": "campana_reglas",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "ahorro_en",
+   "data_type": "text",
+   "is_nullable": "YES",
+   "ordinal_position": 21,
+   "table_name": "campana_reglas",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "cuenta",
+   "data_type": "text",
+   "is_nullable": "YES",
+   "ordinal_position": 22,
+   "table_name": "campana_reglas",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": "false",
+   "column_name": "cede_a_otras",
+   "data_type": "boolean",
+   "is_nullable": "NO",
+   "ordinal_position": 23,
    "table_name": "campana_reglas",
    "table_schema": "retail"
   }
@@ -9312,6 +9462,15 @@
    "ordinal_position": 11,
    "table_name": "conciliaciones",
    "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "movido_del_dia",
+   "data_type": "numeric",
+   "is_nullable": "YES",
+   "ordinal_position": 12,
+   "table_name": "conciliaciones",
+   "table_schema": "retail"
   }
  ],
  "configuracion_empresa": [
@@ -11579,7 +11738,7 @@
    "column_default": null,
    "column_name": "categoria_id",
    "data_type": "uuid",
-   "is_nullable": "NO",
+   "is_nullable": "YES",
    "ordinal_position": 6,
    "table_name": "despacho_items",
    "table_schema": "retail"
@@ -13775,6 +13934,15 @@
    "data_type": "boolean",
    "is_nullable": "NO",
    "ordinal_position": 17,
+   "table_name": "etiquetas",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": "true",
+   "column_name": "anunciar_en_portada",
+   "data_type": "boolean",
+   "is_nullable": "NO",
+   "ordinal_position": 18,
    "table_name": "etiquetas",
    "table_schema": "retail"
   }
@@ -17825,7 +17993,7 @@
    "column_default": null,
    "column_name": "categoria_id",
    "data_type": "uuid",
-   "is_nullable": "NO",
+   "is_nullable": "YES",
    "ordinal_position": 4,
    "table_name": "orden_compra_items",
    "table_schema": "retail"
@@ -17917,6 +18085,15 @@
    "data_type": "uuid",
    "is_nullable": "YES",
    "ordinal_position": 14,
+   "table_name": "orden_compra_items",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": "false",
+   "column_name": "precio_por_definir",
+   "data_type": "boolean",
+   "is_nullable": "NO",
+   "ordinal_position": 15,
    "table_name": "orden_compra_items",
    "table_schema": "retail"
   }
@@ -19169,6 +19346,24 @@
    "data_type": "text",
    "is_nullable": "YES",
    "ordinal_position": 20,
+   "table_name": "pedido_web_lineas",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": "0",
+   "column_name": "descuento_grupo",
+   "data_type": "numeric",
+   "is_nullable": "NO",
+   "ordinal_position": 21,
+   "table_name": "pedido_web_lineas",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "oferta_grupo_id",
+   "data_type": "uuid",
+   "is_nullable": "YES",
+   "ordinal_position": 22,
    "table_name": "pedido_web_lineas",
    "table_schema": "retail"
   }
@@ -26966,6 +27161,291 @@
    "table_schema": "retail"
   }
  ],
+ "rendimiento_corridas": [
+  {
+   "column_default": null,
+   "column_name": "id",
+   "data_type": "bigint",
+   "is_nullable": "NO",
+   "ordinal_position": 1,
+   "table_name": "rendimiento_corridas",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "hecha_en",
+   "data_type": "timestamp with time zone",
+   "is_nullable": "NO",
+   "ordinal_position": 2,
+   "table_name": "rendimiento_corridas",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "desde",
+   "data_type": "timestamp with time zone",
+   "is_nullable": "NO",
+   "ordinal_position": 3,
+   "table_name": "rendimiento_corridas",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "reinicio",
+   "data_type": "timestamp with time zone",
+   "is_nullable": "YES",
+   "ordinal_position": 4,
+   "table_name": "rendimiento_corridas",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "arranco_de_cero",
+   "data_type": "boolean",
+   "is_nullable": "NO",
+   "ordinal_position": 5,
+   "table_name": "rendimiento_corridas",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "consultas",
+   "data_type": "integer",
+   "is_nullable": "NO",
+   "ordinal_position": 6,
+   "table_name": "rendimiento_corridas",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "descartadas",
+   "data_type": "bigint",
+   "is_nullable": "YES",
+   "ordinal_position": 7,
+   "table_name": "rendimiento_corridas",
+   "table_schema": "retail"
+  }
+ ],
+ "rendimiento_estado": [
+  {
+   "column_default": null,
+   "column_name": "entrada",
+   "data_type": "text",
+   "is_nullable": "NO",
+   "ordinal_position": 1,
+   "table_name": "rendimiento_estado",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "nombre",
+   "data_type": "text",
+   "is_nullable": "NO",
+   "ordinal_position": 2,
+   "table_name": "rendimiento_estado",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "tipo",
+   "data_type": "text",
+   "is_nullable": "NO",
+   "ordinal_position": 3,
+   "table_name": "rendimiento_estado",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "rol",
+   "data_type": "text",
+   "is_nullable": "NO",
+   "ordinal_position": 4,
+   "table_name": "rendimiento_estado",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "llamadas",
+   "data_type": "bigint",
+   "is_nullable": "NO",
+   "ordinal_position": 5,
+   "table_name": "rendimiento_estado",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "ms_total",
+   "data_type": "double precision",
+   "is_nullable": "NO",
+   "ordinal_position": 6,
+   "table_name": "rendimiento_estado",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "ms_max",
+   "data_type": "double precision",
+   "is_nullable": "NO",
+   "ordinal_position": 7,
+   "table_name": "rendimiento_estado",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "filas",
+   "data_type": "bigint",
+   "is_nullable": "NO",
+   "ordinal_position": 8,
+   "table_name": "rendimiento_estado",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "bloques_compartidos",
+   "data_type": "bigint",
+   "is_nullable": "NO",
+   "ordinal_position": 9,
+   "table_name": "rendimiento_estado",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "bloques_disco",
+   "data_type": "bigint",
+   "is_nullable": "NO",
+   "ordinal_position": 10,
+   "table_name": "rendimiento_estado",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "cuenta_desde",
+   "data_type": "timestamp with time zone",
+   "is_nullable": "YES",
+   "ordinal_position": 11,
+   "table_name": "rendimiento_estado",
+   "table_schema": "retail"
+  }
+ ],
+ "rendimiento_fotos": [
+  {
+   "column_default": null,
+   "column_name": "corrida_id",
+   "data_type": "bigint",
+   "is_nullable": "NO",
+   "ordinal_position": 1,
+   "table_name": "rendimiento_fotos",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "desde",
+   "data_type": "timestamp with time zone",
+   "is_nullable": "NO",
+   "ordinal_position": 2,
+   "table_name": "rendimiento_fotos",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "hasta",
+   "data_type": "timestamp with time zone",
+   "is_nullable": "NO",
+   "ordinal_position": 3,
+   "table_name": "rendimiento_fotos",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "nombre",
+   "data_type": "text",
+   "is_nullable": "NO",
+   "ordinal_position": 4,
+   "table_name": "rendimiento_fotos",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "tipo",
+   "data_type": "text",
+   "is_nullable": "NO",
+   "ordinal_position": 5,
+   "table_name": "rendimiento_fotos",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "rol",
+   "data_type": "text",
+   "is_nullable": "NO",
+   "ordinal_position": 6,
+   "table_name": "rendimiento_fotos",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "llamadas",
+   "data_type": "bigint",
+   "is_nullable": "NO",
+   "ordinal_position": 7,
+   "table_name": "rendimiento_fotos",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "ms_total",
+   "data_type": "numeric",
+   "is_nullable": "NO",
+   "ordinal_position": 8,
+   "table_name": "rendimiento_fotos",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "ms_media",
+   "data_type": "numeric",
+   "is_nullable": "NO",
+   "ordinal_position": 9,
+   "table_name": "rendimiento_fotos",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "ms_max",
+   "data_type": "numeric",
+   "is_nullable": "YES",
+   "ordinal_position": 10,
+   "table_name": "rendimiento_fotos",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "filas",
+   "data_type": "bigint",
+   "is_nullable": "NO",
+   "ordinal_position": 11,
+   "table_name": "rendimiento_fotos",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "bloques_compartidos",
+   "data_type": "bigint",
+   "is_nullable": "NO",
+   "ordinal_position": 12,
+   "table_name": "rendimiento_fotos",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "bloques_disco",
+   "data_type": "bigint",
+   "is_nullable": "NO",
+   "ordinal_position": 13,
+   "table_name": "rendimiento_fotos",
+   "table_schema": "retail"
+  }
+ ],
  "respaldo_b001_f001_renumeradas_20261007": [
   {
    "column_default": null,
@@ -27989,6 +28469,24 @@
    "ordinal_position": 11,
    "table_name": "separacion_items",
    "table_schema": "retail"
+  },
+  {
+   "column_default": "0",
+   "column_name": "descuento_grupo_unitario",
+   "data_type": "numeric",
+   "is_nullable": "NO",
+   "ordinal_position": 12,
+   "table_name": "separacion_items",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "oferta_grupo_id",
+   "data_type": "uuid",
+   "is_nullable": "YES",
+   "ordinal_position": 13,
+   "table_name": "separacion_items",
+   "table_schema": "retail"
   }
  ],
  "separacion_items_retirados": [
@@ -28116,6 +28614,161 @@
    "is_nullable": "YES",
    "ordinal_position": 14,
    "table_name": "separacion_items_retirados",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": "0",
+   "column_name": "descuento_grupo_unitario",
+   "data_type": "numeric",
+   "is_nullable": "NO",
+   "ordinal_position": 15,
+   "table_name": "separacion_items_retirados",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "oferta_grupo_id",
+   "data_type": "uuid",
+   "is_nullable": "YES",
+   "ordinal_position": 16,
+   "table_name": "separacion_items_retirados",
+   "table_schema": "retail"
+  }
+ ],
+ "separacion_ofertas_grupo": [
+  {
+   "column_default": null,
+   "column_name": "separacion_id",
+   "data_type": "uuid",
+   "is_nullable": "NO",
+   "ordinal_position": 1,
+   "table_name": "separacion_ofertas_grupo",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "regla_id",
+   "data_type": "uuid",
+   "is_nullable": "NO",
+   "ordinal_position": 2,
+   "table_name": "separacion_ofertas_grupo",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "etiqueta_id",
+   "data_type": "uuid",
+   "is_nullable": "NO",
+   "ordinal_position": 3,
+   "table_name": "separacion_ofertas_grupo",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "nombre",
+   "data_type": "text",
+   "is_nullable": "NO",
+   "ordinal_position": 4,
+   "table_name": "separacion_ofertas_grupo",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "etiqueta_nombre",
+   "data_type": "text",
+   "is_nullable": "NO",
+   "ordinal_position": 5,
+   "table_name": "separacion_ofertas_grupo",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "tipo",
+   "data_type": "text",
+   "is_nullable": "NO",
+   "ordinal_position": 6,
+   "table_name": "separacion_ofertas_grupo",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "lleva",
+   "data_type": "smallint",
+   "is_nullable": "YES",
+   "ordinal_position": 7,
+   "table_name": "separacion_ofertas_grupo",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "paga",
+   "data_type": "smallint",
+   "is_nullable": "YES",
+   "ordinal_position": 8,
+   "table_name": "separacion_ofertas_grupo",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "monto",
+   "data_type": "numeric",
+   "is_nullable": "YES",
+   "ordinal_position": 9,
+   "table_name": "separacion_ofertas_grupo",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "porcentaje",
+   "data_type": "numeric",
+   "is_nullable": "YES",
+   "ordinal_position": 10,
+   "table_name": "separacion_ofertas_grupo",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "agrupa",
+   "data_type": "text",
+   "is_nullable": "NO",
+   "ordinal_position": 11,
+   "table_name": "separacion_ofertas_grupo",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": "now()",
+   "column_name": "guardada_en",
+   "data_type": "timestamp with time zone",
+   "is_nullable": "NO",
+   "ordinal_position": 12,
+   "table_name": "separacion_ofertas_grupo",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "escalones",
+   "data_type": "jsonb",
+   "is_nullable": "YES",
+   "ordinal_position": 13,
+   "table_name": "separacion_ofertas_grupo",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "ahorro_en",
+   "data_type": "text",
+   "is_nullable": "YES",
+   "ordinal_position": 14,
+   "table_name": "separacion_ofertas_grupo",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "cuenta",
+   "data_type": "text",
+   "is_nullable": "YES",
+   "ordinal_position": 15,
+   "table_name": "separacion_ofertas_grupo",
    "table_schema": "retail"
   }
  ],
@@ -31737,6 +32390,24 @@
    "data_type": "boolean",
    "is_nullable": "NO",
    "ordinal_position": 15,
+   "table_name": "venta_items",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": "0",
+   "column_name": "descuento_grupo_unitario",
+   "data_type": "numeric",
+   "is_nullable": "NO",
+   "ordinal_position": 16,
+   "table_name": "venta_items",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "oferta_grupo_id",
+   "data_type": "uuid",
+   "is_nullable": "YES",
+   "ordinal_position": 17,
    "table_name": "venta_items",
    "table_schema": "retail"
   }
