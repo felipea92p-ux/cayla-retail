@@ -1922,7 +1922,7 @@ export const GUIA_RECIBIR_ENVIO: Guia = {
       ancla: "recepcion.por-definir",
       opcional: true,
       titulo: "Llegó por definir",
-      texto: "Compras la anotó sin saber qué es. Antes de contarla, toca «Decir qué es» y elige su categoría y su marca: la compra se queda con eso.",
+      texto: "Compras la anotó sin saber qué es. Antes de contarla, toca «Decir qué es» y elige su categoría; la marca, solo si la tiene. La compra se queda con eso.",
     },
     {
       id: "numero",

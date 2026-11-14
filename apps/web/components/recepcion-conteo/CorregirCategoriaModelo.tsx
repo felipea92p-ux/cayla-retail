@@ -17,6 +17,7 @@ import { corregirLineaAlContar } from "@/lib/recepcion-conteo-acciones";
 // Corregir la categoría y la marca de un modelo «por crear» mientras se cuenta (Felipe 2026-11-12): en «Mis compras» se anotó «Polo nousse» en Polos y era una
 // blusa. Pasa sus líneas de la compra a lo que de verdad llegó, con lo contado (`corregir_linea_al_contar`). La compra, la factura, el proveedor, el stock y el
 // costo no cambian; queda en la Actividad. Con el envío cerrado se corrige en «Para después» (`YaExisteLaPrenda`).
+// La marca es opcional (Felipe 2026-11-14, 20261114205000): quien recibe se la pone o la deja «Sin marca», como en «¿Ya existe?».
 
 export function CorregirCategoriaModelo({
   despachoId,
@@ -44,7 +45,8 @@ export function CorregirCategoriaModelo({
   responsable: ControlResponsable;
   /** Lo último contado todavía viaja a la base: se espera, para no corregir sobre un número que no llegó. */
   esperandoGuardar: boolean;
-  onCorregido: (cambio: { categoriaId: string; marcaId: string }) => void;
+  /** `marcaId` nulo = sin marca. */
+  onCorregido: (cambio: { categoriaId: string; marcaId: string | null }) => void;
   onCerrar: () => void;
 }) {
   const porDefinir = esCategoriaPorDefinir(categoriaActual);
@@ -58,11 +60,11 @@ export function CorregirCategoriaModelo({
   const marcas = [...(catalogo?.marcas ?? [])].sort((a, b) => Number(delProveedor.has(b.id)) - Number(delProveedor.has(a.id)));
   const cambio = categoriaId !== categoriaActual.id || marcaId !== (marcaActual.id ?? "");
   const nuevaCategoria = categorias.find((c) => c.id === categoriaId)?.nombre ?? categoriaActual.nombre;
-  const nuevaMarca = marcas.find((m) => m.id === marcaId)?.nombre ?? marcaActual.nombre;
+  const nuevaMarca = marcaId ? (marcas.find((m) => m.id === marcaId)?.nombre ?? marcaActual.nombre) : "Sin marca";
 
   const guia = useGuiaCampos([
     { id: "corregir-categoria", nombre: "La categoría", requerido: true, hecho: categoriaId !== "", pendiente: "Elige la categoría de lo que llegó." },
-    { id: "corregir-marca", nombre: "La marca", requerido: true, hecho: marcaId !== "", pendiente: "Elige la marca de lo que llegó." },
+    { id: "corregir-marca", nombre: "La marca", requerido: false, hecho: marcaId !== "", pendiente: "" },
     { id: "corregir-quien", nombre: "Quién lo corrige", requerido: true, hecho: !cambio || responsable.listo, pendiente: "Elige quién lo corrige." },
   ]);
 
@@ -75,7 +77,7 @@ export function CorregirCategoriaModelo({
     setGuardando(true);
     setError(null);
     const { error: e } = await corregirLineaAlContar(
-      { p_despacho_id: despachoId, p_despacho_item_ids: [...lineaIds], p_categoria_id: categoriaId, p_marca_id: marcaId },
+      { p_despacho_id: despachoId, p_despacho_item_ids: [...lineaIds], p_categoria_id: categoriaId, p_marca_id: marcaId || null },
       responsable.firma(),
     );
     responsable.despues(e);
@@ -85,14 +87,14 @@ export function CorregirCategoriaModelo({
       return;
     }
     avisar.exito("Categoría y marca corregidas", { detalle: `${nombre} ahora es ${nuevaCategoria} · ${nuevaMarca}.` });
-    onCorregido({ categoriaId, marcaId });
+    onCorregido({ categoriaId, marcaId: marcaId || null });
   }
 
   return (
     <Modal
       // ADR-0660: una prenda que llegó «por definir» no se corrige: se dice qué es por primera vez.
       titulo={porDefinir ? `¿Qué es ${nombre}?` : `Corregir ${nombre}`}
-      subtitulo={porDefinir ? "Llegó por definir: elige su categoría y su marca. Lo contado no cambia." : "Lo que se anotó en la compra no es lo que llegó. Lo contado no cambia."}
+      subtitulo={porDefinir ? "Llegó por definir: elige su categoría. Lo contado no cambia." : "Lo que se anotó en la compra no es lo que llegó. Lo contado no cambia."}
       tamano="mediana"
       bloqueado={guardando}
       onClose={onCerrar}
@@ -130,8 +132,11 @@ export function CorregirCategoriaModelo({
                   setError(null);
                 }}
                 deshabilitado={guardando}
-                opciones={marcas.map((m) => ({ valor: m.id, texto: m.nombre, grupo: delProveedor.size > 0 ? (delProveedor.has(m.id) ? "Las de este proveedor" : "Otras marcas") : undefined }))}
-                marcador="Elige la marca"
+                // «Sin marca» arriba y sin título de grupo: es lo que queda si nadie elige otra.
+                opciones={[
+                  { valor: "", texto: "Sin marca" },
+                  ...marcas.map((m) => ({ valor: m.id, texto: m.nombre, grupo: delProveedor.size > 0 ? (delProveedor.has(m.id) ? "Las de este proveedor" : "Otras marcas") : undefined })),
+                ]}
               />
             </CampoGuiado>
           </div>
