@@ -2,7 +2,7 @@
   "guia": "recibir.envio.id",
   "ruta": "/recibir/envio/[id]",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 310,
+  "total": 304,
   "controles": {
     "app/(app)/recibir/envio/[id]/page.tsx": [
       "Volver «/recibir»",
@@ -49,26 +49,18 @@
       "input «(sin nombre)»",
       "button «{etiqueta}» #2"
     ],
-    "components/alta-producto/FotosDeColores.tsx": [
-      "button «{ultima.ia.usar ? \"Usar mi foto\" : \"Usar la de IA\"}»",
-      "button «{`Ver o quitar las fotos de ${nombre}»",
-      "button «{f.ia.usar ? \"Usar mi foto\" : \"Usar la de IA\"}»",
-      "button «Quitar»",
-      "button «Listo»",
-      "button «{`Ver en grande la foto de ${nombre}»"
-    ],
     "components/alta-producto/FotosYColores.tsx": [
       "button «Elegir sin foto»",
-      "button «Cambiar»",
-      "button «{porQue === codigo ? \"Ocultar\" : \"¿Por qué?\"}»",
       "Boton «Elegir el estampado»",
       "Boton «Es una mezcla»",
       "Boton «Multicolor»",
-      "Boton «Elegir en la carta»",
-      "Boton «Crear este color»",
+      "Boton «Elegir otro color»",
       "Boton «Usar»",
+      "Boton «Crear este color»",
       "Boton «Volver a intentar»",
-      "Boton «Elegir en la carta» #2",
+      "Boton «Elegir el color»",
+      "button «Cambiar»",
+      "button «{porQue === codigo ? \"Ocultar\" : \"¿Por qué?\"}»",
       "button «Elegir sin foto» #2"
     ],
     "components/alta-producto/GrillaMuestras.tsx": [

@@ -65,12 +65,12 @@ function nombreParcial(nombres: string[]): string {
   return chicos.length ? `${base} con ${chicos.length === 1 ? chicos[0] : `${chicos.slice(0, -1).join(", ")} y ${chicos[chicos.length - 1]}`}` : base;
 }
 
-/** «¿Por qué?»: qué vio, qué juntó, qué dejó fuera y qué tan cerca quedó de la carta. */
 /** La distancia al color de la carta, en palabras de tienda (la cifra ΔE no le dice nada a quien sube la foto). */
 function cercania(distancia: number): string {
   return distancia < 3 ? "igual al de la lista de colores" : distancia <= 8 ? "muy parecido al de la lista de colores" : "distinto a todos los de la lista";
 }
 
+/** «¿Por qué?»: qué vio, qué juntó, qué dejó fuera y qué tan cerca quedó de la carta. */
 function PorQue({ lectura, id }: { lectura: Lectura<ColorAlta>; id: string }) {
   if (lectura.tipo === "sin-prenda") return null;
   const pct = (x: number) => `${Math.round(x * 100)} %`;
@@ -314,71 +314,7 @@ export function FotosYColores({
       ) : (
         <>
           <ul className="grid grid-cols-[repeat(auto-fill,minmax(176px,1fr))] gap-3">
-            {elegidos.map((codigo) => {
-              const color = porCodigo.get(codigo);
-              const suyas = fotos.filter((f) => f.colorCodigo === codigo);
-              // Lo leído se muestra solo si sigue siendo este color: después de «Cambiar», la foto decía otra cosa.
-              const leida = suyas.find((f) => f.lectura)?.lectura;
-              const deEste = new Set(color?.componentes?.length ? color.componentes : [codigo]);
-              const lectura = leida && leida.tipo !== "sin-prenda" && leida.partes.slice(0, 4).every((p) => deEste.has(p.color.codigo)) ? leida : undefined;
-              const nombre = color?.nombre ?? codigo;
-              return (
-                <li key={codigo} className="relative flex flex-col overflow-hidden rounded-2xl border border-[color:var(--vidrio-claro-borde)] [background:var(--vidrio-claro-fondo)]">
-                  {suyas.length ? (
-                    <div className="relative aspect-[4/5] bg-hueso/60">
-                      {/* La foto que se sube tal cual (blob: local); next/image no aplica a una vista previa. */}
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={suyas[0].vista} alt={`Foto de ${nombre}`} className="h-full w-full object-contain" />
-                      {suyas.length > 1 && (
-                        <span className="absolute left-2 top-2">
-                          <Chip tono="neutro" versalitas={false}>
-                            {suyas.length} fotos
-                          </Chip>
-                        </span>
-                      )}
-                      <BotonQuitarFoto grande etiqueta={`Quitar la foto de ${nombre}`} disabled={disabled} onClick={() => quitarFoto(suyas[0])} className="absolute right-2 top-2" />
-                    </div>
-                  ) : null}
-                  {suyas.length > 1 && (
-                    <div className="flex flex-wrap gap-1.5 px-3 pt-2">
-                      {suyas.slice(1).map((f, i) => (
-                        <span key={f.clave} className="relative h-12 w-10">
-                          {/* eslint-disable-next-line @next/next/no-img-element */}
-                          <img src={f.vista} alt={`Foto ${i + 2} de ${nombre}`} className="h-full w-full overflow-hidden rounded-lg border border-sand bg-hueso/60 object-contain" />
-                          <BotonQuitarFoto etiqueta={`Quitar la foto ${i + 2} de ${nombre}`} disabled={disabled} onClick={() => quitarFoto(f)} className="absolute -right-1 -top-1" />
-                        </span>
-                      ))}
-                    </div>
-                  )}
-                  <div className="flex flex-1 flex-col gap-2 p-3">
-                    <div className="flex items-center gap-2.5">
-                      <Punto hex={color?.hex ?? null} familia={color?.familiaColor} tipo={color?.tipo} tonos={color ? tonosDe(color) : null} grande />
-                      <span className="min-w-0 flex-1 text-[15px] font-medium leading-tight">{nombre}</span>
-                      {!suyas.length && <BotonQuitarFoto etiqueta={`Quitar ${nombre}`} disabled={disabled} onClick={() => onQuitarColor(codigo)} />}
-                    </div>
-                    {lectura && lectura.partes.length > 1 && <Partes lectura={lectura} />}
-                    {lectura && porQue === codigo && <PorQue lectura={lectura} id={`por-que-${codigo}`} />}
-                    <div className="mt-auto flex gap-4">
-                      <button type="button" className="btn-cayla btn-enlace" disabled={disabled} onClick={() => setCarteando({ para: "cambiar", de: codigo })}>
-                        Cambiar
-                      </button>
-                      {lectura && (
-                        <button
-                          type="button"
-                          className="btn-cayla btn-enlace"
-                          aria-expanded={porQue === codigo}
-                          aria-controls={`por-que-${codigo}`}
-                          onClick={() => setPorQue((x) => (x === codigo ? null : codigo))}
-                        >
-                          {porQue === codigo ? "Ocultar" : "¿Por qué?"}
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                </li>
-              );
-            })}
-
+            {/* Lo que espera una respuesta va primero: es lo que toca hacer (/formidable 2026-11-14). */}
             {pendientes.map((p) => {
               const L = p.lectura;
               const partes = L && L.tipo !== "sin-prenda" ? L.partes.slice(0, 4) : [];
@@ -444,7 +380,7 @@ export function FotosYColores({
                               </Boton>
                             )}
                             <Boton type="button" peso="fantasma" className="btn-chico" disabled={disabled} onClick={() => setCarteando({ para: "pendiente", clave: p.clave })}>
-                              Elegir en la carta
+                              Elegir otro color
                             </Boton>
                           </div>
                         </>
@@ -458,18 +394,26 @@ export function FotosYColores({
                           {partes.map((x, i) =>
                             p.eleccion?.[i] ? null : (
                               <div key={x.color.codigo} className="space-y-2">
-                                <p className="text-[15px] font-medium">{partes.length > 1 ? "Un color no está en la carta" : "Este color no está en la carta"}</p>
+                                <p className="text-[15px] font-medium">{partes.length > 1 ? "Un color no está creado" : "Este color no está creado"}</p>
                                 <div className="flex items-center gap-2.5 text-sm text-tinta/80">
                                   {/* El tono medido es dato de la prenda, no del tema. */}
                                   <span data-color-dato aria-hidden className="h-9 w-9 shrink-0 rounded-xl border border-tinta/20" style={{ background: x.visto }} />
                                   <span>Se parece a {x.color.nombre}.</span>
                                 </div>
+                                {/* Lo seguro primero (Felipe 2026-11-14): usar el que ya existe; crear uno es la excepción. Un solo botón
+                                    negro por tarjeta: el de la primera parte que falta. */}
                                 <div className="flex flex-wrap gap-2">
-                                  <Boton type="button" peso="primario" className="btn-chico" disabled={disabled} onClick={() => setCreando({ clave: p.clave, parte: i })}>
-                                    Crear este color
-                                  </Boton>
-                                  <Boton type="button" peso="fantasma" className="btn-chico" disabled={disabled} onClick={() => contestar(p, i, x.color.codigo)}>
+                                  <Boton
+                                    type="button"
+                                    peso={i === p.eleccion!.indexOf(null) ? "primario" : "fantasma"}
+                                    className="btn-chico"
+                                    disabled={disabled}
+                                    onClick={() => contestar(p, i, x.color.codigo)}
+                                  >
                                     Usar {x.color.nombre}
+                                  </Boton>
+                                  <Boton type="button" peso="fantasma" className="btn-chico" disabled={disabled} onClick={() => setCreando({ clave: p.clave, parte: i })}>
+                                    Crear este color
                                   </Boton>
                                 </div>
                               </div>
@@ -482,14 +426,79 @@ export function FotosYColores({
                         </Boton>
                       ) : (
                         <>
-                          {!p.motivo && <p className="text-[15px] font-medium">No encontré la prenda en la foto</p>}
-                          <Boton type="button" peso="fantasma" className="btn-chico" disabled={disabled} onClick={() => setCarteando({ para: "pendiente", clave: p.clave })}>
-                            Elegir en la carta
+                          {!p.motivo && <p className="text-[15px] font-medium">No se ve la prenda en la foto</p>}
+                          <Boton type="button" peso="primario" className="btn-chico w-fit" disabled={disabled} onClick={() => setCarteando({ para: "pendiente", clave: p.clave })}>
+                            Elegir el color
                           </Boton>
                         </>
                       )}
                     </div>
                   )}
+                </li>
+              );
+            })}
+
+            {elegidos.map((codigo) => {
+              const color = porCodigo.get(codigo);
+              const suyas = fotos.filter((f) => f.colorCodigo === codigo);
+              // Lo leído se muestra solo si sigue siendo este color: después de «Cambiar», la foto decía otra cosa.
+              const leida = suyas.find((f) => f.lectura)?.lectura;
+              const deEste = new Set(color?.componentes?.length ? color.componentes : [codigo]);
+              const lectura = leida && leida.tipo !== "sin-prenda" && leida.partes.slice(0, 4).every((p) => deEste.has(p.color.codigo)) ? leida : undefined;
+              const nombre = color?.nombre ?? codigo;
+              return (
+                <li key={codigo} className="relative flex flex-col overflow-hidden rounded-2xl border border-[color:var(--vidrio-claro-borde)] [background:var(--vidrio-claro-fondo)]">
+                  {suyas.length ? (
+                    <div className="relative aspect-[4/5] bg-hueso/60">
+                      {/* La foto que se sube tal cual (blob: local); next/image no aplica a una vista previa. */}
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={suyas[0].vista} alt={`Foto de ${nombre}`} className="h-full w-full object-contain" />
+                      {suyas.length > 1 && (
+                        <span className="absolute left-2 top-2">
+                          <Chip tono="neutro" versalitas={false}>
+                            {suyas.length} fotos
+                          </Chip>
+                        </span>
+                      )}
+                      <BotonQuitarFoto grande etiqueta={`Quitar la foto de ${nombre}`} disabled={disabled} onClick={() => quitarFoto(suyas[0])} className="absolute right-2 top-2" />
+                    </div>
+                  ) : null}
+                  {suyas.length > 1 && (
+                    <div className="flex flex-wrap gap-1.5 px-3 pt-2">
+                      {suyas.slice(1).map((f, i) => (
+                        <span key={f.clave} className="relative h-12 w-10">
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img src={f.vista} alt={`Foto ${i + 2} de ${nombre}`} className="h-full w-full overflow-hidden rounded-lg border border-sand bg-hueso/60 object-contain" />
+                          <BotonQuitarFoto etiqueta={`Quitar la foto ${i + 2} de ${nombre}`} disabled={disabled} onClick={() => quitarFoto(f)} className="absolute -right-1 -top-1" />
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                  <div className="flex flex-1 flex-col gap-2 p-3">
+                    <div className="flex items-center gap-2.5">
+                      <Punto hex={color?.hex ?? null} familia={color?.familiaColor} tipo={color?.tipo} tonos={color ? tonosDe(color) : null} grande />
+                      <span className="min-w-0 flex-1 text-[15px] font-medium leading-tight">{nombre}</span>
+                      {!suyas.length && <BotonQuitarFoto etiqueta={`Quitar ${nombre}`} disabled={disabled} onClick={() => onQuitarColor(codigo)} />}
+                    </div>
+                    {lectura && lectura.partes.length > 1 && <Partes lectura={lectura} />}
+                    {lectura && porQue === codigo && <PorQue lectura={lectura} id={`por-que-${codigo}`} />}
+                    <div className="mt-auto flex gap-4">
+                      <button type="button" className="btn-cayla btn-enlace" disabled={disabled} onClick={() => setCarteando({ para: "cambiar", de: codigo })}>
+                        Cambiar
+                      </button>
+                      {lectura && (
+                        <button
+                          type="button"
+                          className="btn-cayla btn-enlace"
+                          aria-expanded={porQue === codigo}
+                          aria-controls={`por-que-${codigo}`}
+                          onClick={() => setPorQue((x) => (x === codigo ? null : codigo))}
+                        >
+                          {porQue === codigo ? "Ocultar" : "¿Por qué?"}
+                        </button>
+                      )}
+                    </div>
+                  </div>
                 </li>
               );
             })}

@@ -34,7 +34,11 @@ tonalidades, el script debe tomarlos todos […] o si solo existe un color enter
 6. **La espalda no es otro color:** una foto cuyo color ya tiene tarjeta se suma a esa tarjeta.
 7. **Con «Catálogo con IA» encendido**, cada foto pasa primero por la IA (con el mismo molde) y el color se lee de su PNG sin fondo, que es
    más exacto. Si la IA no responde, se avisa, queda la foto real y se lee esa.
-8. **Una foto que espera su color bloquea crear** (`problemasAlta` y la guía de foco, con la misma frase): si no, se perdería.
+8. **Las fotos tienen un solo lugar** (/formidable, Felipe 2026-11-14): la tabla de variantes de Nuevo producto ya no lleva la miniatura
+   por fila ni la línea «Una foto para todos los colores»; «Catálogo con IA» se prende junto a «Fotos y colores». En las tarjetas, lo que
+   espera una respuesta va primero y lleva un solo botón negro; ante un color que no está creado, **«Usar X» es el principal** y «Crear
+   este color» el secundario. Una prenda sin color (una correa) recibe su foto en Editar producto.
+9. **Una foto que espera su color bloquea crear** (`problemasAlta` y la guía de foco, con la misma frase): si no, se perdería.
 
 ## Lo medido con fotos reales (actividad 2, 2026-11-13)
 

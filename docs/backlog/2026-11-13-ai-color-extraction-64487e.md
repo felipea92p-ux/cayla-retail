@@ -14,3 +14,7 @@
 - [ ] Unificar la paleta con el selector de Catálogo ▸ Atributos (`SelectorColor`): hoy la paleta solo está en «Nuevo color».
 - [ ] Video para el equipo: subir la foto, quitarle el fondo con IA y cómo salen los colores (necesita `ffmpeg`).
 - [ ] Avisar en CAYLA Dynamic: `components/ui/PaletaDeColor.tsx` es nuevo («se mira»: queda como tarea allá).
+- [ ] Una prenda SIN color (correa, gorro de un solo tono que no se quiere nombrar) ya no puede llevar foto en Nuevo producto: desde el
+  2026-11-14 las fotos viven solo en «Fotos y colores», y cada foto pone un color. Hoy la foto se agrega en Editar producto. Si molesta,
+  decidir con Felipe una casilla «Foto de la prenda» para ese caso.
+

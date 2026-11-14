@@ -364,8 +364,8 @@ export function textoDestinoStock(etiquetaSede: string, lugar: LugarCarga | null
 //
 // Solo una pregunta está abierta a la vez, y la contestada se pliega en una línea:
 //   1 ¿A qué categoría pertenece? · 2 ¿Cómo es? (nombre, descripción, marca y proveedor, tejido, patrón; temporada y
-//   etiquetas plegadas) · 3 ¿En qué tallas y colores? (tallas, colores y la tabla talla × color con la foto en la fila de
-//   su color) · 4 ¿Cuánto cuesta y cuántas hay? (precio, costo, la MISMA tabla con cantidades —la carga inicial,
+//   etiquetas plegadas) · 3 ¿En qué tallas y colores? (tallas, «Fotos y colores» y la tabla talla × color)
+//   · 4 ¿Cuánto cuesta y cuántas hay? (precio, costo, la MISMA tabla con cantidades —la carga inicial,
 //   ADR-0212— y quién lo registra).
 // Cada problema de `problemasAlta` cae en un paso, así el paso dice qué le falta sin repetir las reglas.
 //

@@ -21,6 +21,7 @@ import { ProductoCreado, type ResumenCreado } from "@/components/alta-producto/P
 import { ChipOpcion, FilaAlta, PasoAlta, PlegableAlta } from "@/components/alta-producto/piezas";
 import { PropuestaDePrecio } from "@/components/alta-producto/PropuestaDePrecio";
 import { FotosYColores } from "@/components/alta-producto/FotosYColores";
+import { InterruptorCatalogoIA } from "@/components/alta-producto/FotosDeColores";
 import type { FotoPendiente } from "@/components/alta-producto/FotosAlta";
 import { MatrizVariantes } from "@/components/alta-producto/MatrizVariantes";
 import { MatrizCantidades } from "@/components/alta-producto/MatrizCantidades";
@@ -109,8 +110,8 @@ import { prefiereQuieto } from "@/lib/movimiento-cliente";
 // "Nuevo producto" en 4 PREGUNTAS (spike v2 2026-09-28, docs/maquetas/producto-nuevo-v2-2026-09; antes 5 pasos, spike
 // 2026-09-24, y antes 7 bloques, ADR-0109):
 //   1 ¿A qué categoría pertenece? (familia → categoría) · 2 ¿Cómo es? (nombre, descripción, marca y proveedor, tejido,
-//   patrón; temporada y etiquetas plegadas) · 3 ¿En qué tallas y colores? (tallas, colores y la tabla talla × color, con
-//   la foto en la fila de su color) · 4 ¿Cuánto cuesta y cuántas hay? (precio, costo, la MISMA tabla con cantidades
+//   patrón; temporada y etiquetas plegadas) · 3 ¿En qué tallas y colores? (tallas, «Fotos y colores» —los colores salen
+//   de la foto, ADR-0663— y la tabla talla × color) · 4 ¿Cuánto cuesta y cuántas hay? (precio, costo, la MISMA tabla con cantidades
 //   —ADR-0212: la carga inicial de lo que ya está en tienda, en la misma transacción que el producto— y quién lo registra).
 // Por qué así (README del spike v2): el paso «Cómo se hace» había crecido a 7 campos; cada color aparecía 4 veces (chips,
 // casillas de fotos, tabla de variantes, tabla de stock); había tres marcadores de avance a la vez (barra de 5 segmentos,
@@ -135,8 +136,8 @@ import { prefiereQuieto } from "@/lib/movimiento-cliente";
 //     («Opcional · …») y el rojo queda para los errores.
 //
 // El alta es UNA transacción (`crear_producto_con_stock_inicial`, que envuelve a `crear_producto_con_variantes`): producto,
-// variantes, etiquetas y el stock de hoy entran juntos o no entra nada. Las FOTOS se eligen en la tabla del paso 3 (en la
-// fila de su color) pero se guardan en el navegador y se suben DESPUÉS de que la base creó el producto (ver `FotosAlta`):
+// variantes, etiquetas y el stock de hoy entran juntos o no entra nada. Las FOTOS se suben en «Fotos y colores» del paso 3
+// (una por color) pero se guardan en el navegador y se suben DESPUÉS de que la base creó el producto (ver `FotosAlta`):
 // cancelar no deja archivos huérfanos, y si una foto no sube, el producto ya existe y la pantalla de éxito dice cuál
 // falta. Las filas de `producto_fotos` se escriben directo: su política `producto_fotos_write_lider`
 // (fn_puede_editar_catalogo) es la misma que exige esta pantalla.
@@ -1250,7 +1251,12 @@ export function NuevoProductoForm({
             retiene="fila"
             ayuda={coloresElegidos.length ? plural(coloresElegidos.length, "color", "colores") : "Una foto por color"}
           >
-            {/* Los colores salen de las fotos (ADR-0663): la carta queda para «Cambiar» y «Elegir sin foto». */}
+            {/* Los colores salen de las fotos (ADR-0663): la carta queda para «Cambiar» y «Elegir sin foto». Es el único lugar de las fotos. */}
+            {catalogo.disponible && (
+              <div className="mb-2 flex justify-end" data-guia="nuevo.catalogo-ia">
+                <InterruptorCatalogoIA catalogo={catalogo} />
+              </div>
+            )}
             <FotosYColores
               carta={colores}
               grupos={grupos}
@@ -1270,7 +1276,7 @@ export function NuevoProductoForm({
             />
           </FilaAlta>
 
-          {/* La prenda: una fila por color (con su foto) y una columna por talla. En el paso 4 es la MISMA tabla, con números. */}
+          {/* La prenda: una fila por color y una columna por talla. En el paso 4 es la MISMA tabla, con números. */}
           <div className="border-t border-sand pt-3.5">
             {tallasCategoria.length > 0 && tallasElegidas.length === 0 ? (
               <Aviso tono="info">Elige al menos una talla y aquí aparece la prenda: una fila por color, una columna por talla.</Aviso>
@@ -1281,10 +1287,7 @@ export function NuevoProductoForm({
                 colores={coloresDatos}
                 excluidas={excluidas}
                 onExcluidas={setExcluidas}
-                fotos={fotos}
-                onFotos={setFotos}
                 disabled={cargando}
-                catalogo={catalogo}
               />
             )}
             {catalogo.hoja}

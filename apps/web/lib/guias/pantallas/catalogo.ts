@@ -1733,15 +1733,15 @@ export const GUIA_NUEVO_PRODUCTO: Guia = {
       // Solo está en el paso 3, con una categoría elegida.
       opcional: true,
       titulo: "Fotos y colores",
-      texto: "Sube la foto de cada color y el color sale solo: uno liso, o una mezcla si la prenda trae varios (hueso con azul). La espalda se junta con su color. Si un color no está en la carta, te pregunta. «Cambiar» lo corrige.",
+      texto: "Sube la foto de cada color y el color sale solo: uno liso, o una mezcla si la prenda trae varios (hueso con azul). La espalda se junta con su color. Si un color no está creado, te pregunta: usas el más parecido o lo creas. «Cambiar» lo corrige.",
     },
     {
       id: "catalogo-ia",
       ancla: "nuevo.catalogo-ia",
-      // Solo está con una categoría elegida (la tabla de la prenda) y si el servidor tiene la llave de la IA.
+      // Solo está en el paso 3, junto a «Fotos y colores», y si el servidor tiene la llave de la IA.
       opcional: true,
       titulo: "Catálogo con IA",
-      texto: "Encendido, la foto de cada color sale como foto de catálogo: la prenda en un maniquí invisible, de frente y sin fondo. El primer color hace de molde y los demás salen con su misma forma. Toca su miniatura para verla en grande; «Usar mi foto» vuelve a la tuya.",
+      texto: "Encendido, cada foto que subes sale como foto de catálogo: la prenda en un maniquí invisible, de frente y sin fondo, y el color se lee de esa foto. El primer color hace de molde y los demás salen con su misma forma.",
     },
     {
       id: "punto-4",
