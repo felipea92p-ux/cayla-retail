@@ -9,7 +9,7 @@ vale la fecha de consulta. Lo marcado «sin fuente» no se pudo confirmar.
 | # | Qué | Decisión (Felipe, 2026-11-14) | Migración |
 |---|---|---|---|
 | 1 | Cambio de talla de una prenda con descuento | El mismo modelo no paga nada; solo lo que la talla nueva cuesta de más | `20261114125000` |
-| 2 | Una prenda con dos ofertas | Avisar a quien configura para que elija; mientras tanto, la que más ahorra (como Shopify) | `20261114155000`; falta el aviso |
+| 2 | Una prenda con dos ofertas | Avisar a quien configura para que elija; mientras tanto, la que más ahorra (como Shopify) | `20261114155000` y el aviso, `20261114170000` |
 | 3 | Oferta sobre una insignia desactivada | Deja de rebajar | `20261114130000` |
 | 4 | «Prenda sin registrar» en un monto de toda la compra | Se queda como está: cuenta | — |
 | 5 | Venta sin conexión que sube después de que empezó una oferta | Vale la hora de la venta | `20261114132000` |
@@ -71,7 +71,16 @@ El único cruce que suma las dos es **rebaja + 3x2**.
 
 **Decisión de Felipe:** avisarle a quien configura qué prendas tienen varias ofertas, para que elija con cuál se queda. Mientras nadie
 elige, «Como Shopify: la mejor»: la caja cobra la que más le ahorra al cliente en esa compra, nunca las dos. Construido en `20261114155000`
-(la base) y en la caja, Apartar y la bolsa web; el aviso en Campañas va aparte.
+(la base) y en la caja, Apartar y la bolsa web.
+
+**¿Se elige prenda por prenda o por par de ofertas?** (tercera vuelta a Shopify, 2026-11-14):
+- La combinación se decide por descuento, en su sección «Combinations», y vale para todo lo que el descuento cubre. No hay un ajuste por
+  producto ni por variante.
+- No hay forma de elegir, para un producto, cuál de dos descuentos le toca. Lo que la página da a entender es separar las colecciones: «Ensure
+  that your Buy X get Y discount and other product discounts apply to different products or collections».
+- En el administrador no avisa nada: solo un filtro «Combines with» en la lista de descuentos.
+
+Felipe eligió por par de ofertas («Dale»). Se construyó en `20261114170000`: el aviso y la hoja de Campañas.
 
 ## 3. Una oferta sobre una insignia desactivada
 
