@@ -228,3 +228,18 @@ export function llenarTodasLasTallas(cantidades: Readonly<Record<string, string>
   }
   return r;
 }
+
+/**
+ * Las casillas por las que pasa el teclado en la tabla de tallas de Recibir (tarea 5 de las 30 de Recibir, 2026-11-14): una lista por talla (la columna) con las
+ * variantes que se pueden escribir, de arriba abajo en el orden de los colores. Es la forma que espera `celdaVecina` (`tabla-alta-reglas`, el teclado de planilla de
+ * ADR-0396): Enter y ↓ bajan por la talla y, al fondo, Enter pasa a la talla siguiente. Una casilla que la prenda no tiene («—») o que está apagada da `null` en
+ * `variante` y no cuenta: no hay a dónde saltar. Una talla sin ninguna casilla se omite, para que «la talla siguiente» sea siempre una que se puede escribir.
+ */
+export function columnasDeLaTabla(tallas: readonly string[], colores: readonly string[], variante: (talla: string, color: string) => string | null): string[][] {
+  const listas: string[][] = [];
+  for (const talla of tallas) {
+    const ids = colores.map((color) => variante(talla, color)).filter((id): id is string => id !== null);
+    if (ids.length > 0) listas.push(ids);
+  }
+  return listas;
+}

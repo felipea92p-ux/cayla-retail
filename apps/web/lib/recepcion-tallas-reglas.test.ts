@@ -1,8 +1,10 @@
 import { describe, expect, it } from "vitest";
 import type { VarianteSeparada } from "./recepcion-conteo-reglas";
 import { matrizDe, type Conteo, type PrendaRecepcion, type TallaDeLaCategoria, type VarianteRecepcion } from "./recepcion-envio-reglas";
+import { celdaVecina, movimientoDeTecla } from "./tabla-alta-reglas";
 import {
   llenarTodasLasTallas,
+  columnasDeLaTabla,
   coloresIniciales,
   cuadreDeTallas,
   marcasDeLaTabla,
@@ -367,5 +369,59 @@ describe("«Llenar todas con» en la tabla de tallas (Felipe 2026-11-12)", () =>
   });
   it("limpia lo escrito como una casilla", () => {
     expect(llenarTodasLasTallas({}, ["a"], " 04", {})).toEqual({ a: "4" });
+  });
+});
+
+describe("columnasDeLaTabla: por dónde pasa el teclado en la tabla de tallas", () => {
+  // Blusa en 3 colores × 4 tallas, como una curva real: 12 casillas. El id de cada variante es «color-talla».
+  const TALLAS = ["s", "m", "l", "xl"];
+  const COLORES = ["neg", "bla", "roj"];
+  const todas = (t: string, c: string) => `${c}-${t}`;
+  const tecla = (key: string, shiftKey = false) => movimientoDeTecla({ key, shiftKey, altKey: false, ctrlKey: false, metaKey: false })!;
+
+  it("una lista por talla, de arriba abajo en el orden de los colores", () => {
+    expect(columnasDeLaTabla(TALLAS, COLORES, todas)).toEqual([
+      ["neg-s", "bla-s", "roj-s"],
+      ["neg-m", "bla-m", "roj-m"],
+      ["neg-l", "bla-l", "roj-l"],
+      ["neg-xl", "bla-xl", "roj-xl"],
+    ]);
+  });
+
+  it("con solo Enter se recorren las 12 casillas, cada una una vez, y en la última ya no hay a dónde ir", () => {
+    const columnas = columnasDeLaTabla(TALLAS, COLORES, todas);
+    const vistas = ["neg-s"];
+    for (;;) {
+      const sigue = celdaVecina(columnas, vistas.at(-1)!, tecla("Enter"));
+      if (sigue === null) break;
+      vistas.push(sigue);
+    }
+    expect(vistas).toHaveLength(12);
+    expect(new Set(vistas).size).toBe(12);
+    expect(vistas.at(-1)).toBe("roj-xl");
+  });
+
+  it("la casilla que la prenda no tiene o que está apagada no cuenta: Enter la salta", () => {
+    // El rojo no viene en M, y la L entera está apagada (en «dañadas», de esa talla no llegó nada).
+    const columnas = columnasDeLaTabla(TALLAS, COLORES, (t, c) => (t === "l" || (t === "m" && c === "roj") ? null : `${c}-${t}`));
+    expect(columnas).toEqual([
+      ["neg-s", "bla-s", "roj-s"],
+      ["neg-m", "bla-m"],
+      ["neg-xl", "bla-xl", "roj-xl"],
+    ]);
+    expect(celdaVecina(columnas, "bla-m", tecla("Enter"))).toBe("neg-xl");
+    expect(celdaVecina(columnas, "neg-xl", tecla("Enter", true))).toBe("bla-m");
+  });
+
+  it("la flecha no cambia de talla: en el borde se queda donde está", () => {
+    const columnas = columnasDeLaTabla(TALLAS, COLORES, todas);
+    expect(celdaVecina(columnas, "neg-s", tecla("ArrowDown"))).toBe("bla-s");
+    expect(celdaVecina(columnas, "roj-s", tecla("ArrowDown"))).toBeNull();
+    expect(celdaVecina(columnas, "neg-m", tecla("ArrowUp"))).toBeNull();
+  });
+
+  it("sin tallas o sin colores no hay columnas", () => {
+    expect(columnasDeLaTabla([], COLORES, todas)).toEqual([]);
+    expect(columnasDeLaTabla(TALLAS, [], todas)).toEqual([]);
   });
 });
