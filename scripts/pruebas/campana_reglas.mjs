@@ -607,8 +607,8 @@ insert into retail.variante_etiquetas (variante_id, etiqueta_id) values (:'v1', 
     esperarValor("un borrador que chocaría se guarda (no rige)", correr(`${C}${OFERTA()}${OTRA({ activar: "false" })}${YA}select 'bien';\nrollback;`), "bien");
     esperarError("…pero no se activa", correr(`${C}${OFERTA()}${OTRA({ activar: "false" })}select retail.activar_campana_regla(:'r2');\n${YA}rollback;`), "choca con");
     esperarError(
-      "una oferta sobre una prenda con el descuento de siempre de una insignia: no se deja, y dice que se retire ese descuento",
-      correr(`${C}insert into retail.etiquetas (nombre, estilo, descuento_pct) values ('ZZ Insignia con descuento', 'neutral', 15) returning id as ins \\gset
+      "una oferta sobre una prenda con el descuento de siempre de otra campaña: no se deja, y dice que se retire ese descuento",
+      correr(`${C}insert into retail.etiquetas (nombre, estilo, descuento_pct) values ('ZZ Campaña con descuento de siempre', 'campana', 15) returning id as ins \\gset
 insert into retail.variante_etiquetas (variante_id, etiqueta_id) values (:'v1', :'ins');
 ${OFERTA()}${YA}rollback;`),
       "retira ese descuento",

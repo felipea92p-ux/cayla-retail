@@ -285,6 +285,7 @@
       "button «Ver lo que anotó Compras»",
       "LapizEditar «{`el nombre de ${modelo.nombre}»",
       "LapizEditar «{`la categoría y la marca de ${modelo?.nombre ?? \"este modelo\"}»",
+      "Boton «Decir qué es»",
       "button «Llegaron las»",
       "button «+»",
       "button «+» #2",

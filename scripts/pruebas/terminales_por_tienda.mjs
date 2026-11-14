@@ -472,7 +472,7 @@ select codigo as c1 from retail.colores where activo order by codigo limit 1 \\g
 `;
 verificar(
   "descuentos (ADR-0293): la terminal administrativa crea una prenda con una etiqueta CON descuento (antes: «Solo un líder puede asignar una etiqueta con descuento»)",
-  correr(escena(`${cambiaA(FELIPE)}insert into retail.etiquetas (nombre, descuento_pct) values ('ZZ Liquidar ADR-0293', 20) returning id as e_desc \\gset
+  correr(escena(`${cambiaA(FELIPE)}insert into retail.etiquetas (nombre, estilo, descuento_pct) values ('ZZ Liquidar ADR-0293', 'campana', 20) returning id as e_desc \\gset
 ${FIXTURA_ALTA}${cambiaA(T_ADMIN)}select pg_temp.intento(format($q$select retail.crear_producto_con_variantes(%L, %L::uuid, %L::jsonb, null, gen_random_uuid(), null, null, false, array[%L]::uuid[], %L::uuid, %L::uuid)$q$,
   'Prenda ZZ ADR-0293', :'cat', jsonb_build_array(jsonb_build_object('talla_id', :'t1', 'color_codigo', :'c1', 'precio', 59, 'costo', 20))::text, :'e_desc', :'marca', :'prov'));
 ${cambiaA(FELIPE)}select count(*) from retail.variante_etiquetas ve where ve.etiqueta_id = :'e_desc';`)),

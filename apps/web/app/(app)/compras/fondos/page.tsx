@@ -3,6 +3,8 @@ import { exigirModulo } from "@/lib/persona-actual";
 import { getDatosFondos } from "@/lib/fondos";
 import { getPlataPorConfirmar } from "@/lib/mi-plata";
 import { getRevisarCompras } from "@/lib/revisar-compras";
+import { getPorDefinir } from "@/lib/por-definir";
+import { PorDefinir } from "@/components/mi-plata/PorDefinir";
 import { porRecibirDe } from "@/lib/revisar-compras-reglas";
 import { BandejaRevisar } from "@/components/mi-plata/BandejaRevisar";
 import {
@@ -95,10 +97,11 @@ const montoEnFrase = (n: number) => <span className="whitespace-nowrap">{soles(n
 
 export default async function FondosPage() {
   const persona = await exigirModulo("fondos");
-  const [{ fondos, movimientos, opciones, rendiciones, rendicionesFalla, deudas: filasDeuda, deudasFalla, falla }, plataAnotada, revisar] = await Promise.all([
+  const [{ fondos, movimientos, opciones, rendiciones, rendicionesFalla, deudas: filasDeuda, deudasFalla, falla }, plataAnotada, revisar, porDefinir] = await Promise.all([
     getDatosFondos(),
     getPlataPorConfirmar(),
     getRevisarCompras(),
+    getPorDefinir(),
   ]);
   const porAprobar = rendiciones.filter((r) => r.estado === "por_aprobar");
   const estado = estadoPorFondo(rendiciones);
@@ -362,6 +365,14 @@ export default async function FondosPage() {
         <p className="nota-cayla text-sm">
           Aquí queda lo que no entró solo a los libros.
         </p>
+      )}
+      {/* ADR-0660: las prendas que se anotaron sin saber qué son o a cuánto se venden («3 prendas a la espera de definir categoría»). */}
+      {porDefinir === null ? (
+        <Aviso tono="atencion" titulo="No se pudo leer lo que espera definirse" chico>
+          Lo demás de esta pantalla sí está al día. Vuelve a intentarlo en un momento.
+        </Aviso>
+      ) : (
+        <PorDefinir modelos={porDefinir.modelos} categorias={porDefinir.categorias} guia="fondos.por-definir" />
       )}
       {!falla && (
         <BandejaRevisar

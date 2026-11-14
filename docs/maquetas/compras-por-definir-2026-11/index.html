@@ -1,0 +1,173 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Por definir en Mis compras</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=EB+Garamond:wght@500;600&display=swap" rel="stylesheet">
+<style>
+  /* Maqueta para decidir (Felipe, 2026-11-13): «Por definir» y «A la espera de precio sugerido» en «Algo nuevo» de Mis compras,
+     el aviso en Revisar compras y en «Te toca», y la prenda que espera en «Para mandar». Los colores son los tokens del ERP. */
+  :root {
+    --crema: #f5f0e8; --papel: #fbf8f2; --tinta: #1a1a18; --sand: #e8e0d0; --taupe: #805c4c; --hueso: #eae1d2;
+    --verde: #48603f; --ambar: #74501a; --pizarra: #4c5d6e; --borde-control: #96786a; --rojo: #b8412d;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--crema); color: var(--tinta); font: 15px/1.45 "DM Sans", system-ui, sans-serif; }
+  main { max-width: 1240px; margin: 0 auto; padding: 24px 16px 48px; }
+  h1 { font: 600 34px/1.1 "EB Garamond", Georgia, serif; margin: 0 0 4px; }
+  .bajada { color: var(--taupe); margin: 0 0 24px; }
+  .mesa { display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 20px; align-items: start; }
+  .rotulo { font: 600 11px/1 "DM Sans"; letter-spacing: .14em; text-transform: uppercase; color: var(--taupe); margin: 0 0 8px; }
+  .hoja { background: color-mix(in srgb, var(--papel) 88%, transparent); border: 1px solid var(--sand); border-radius: 28px; padding: 22px 20px; box-shadow: 0 18px 40px -24px color-mix(in srgb, #000 35%, transparent); }
+  .hoja h2 { font: 600 27px/1.1 "EB Garamond", Georgia, serif; margin: 0; }
+  .hoja .sub { color: var(--taupe); margin: 2px 0 16px; font-size: 14px; }
+  .campo { padding: 12px 0; border-top: 1px solid var(--sand); }
+  .campo:first-of-type { border-top: 0; }
+  .titulo-campo { font-weight: 600; font-size: 14px; display: flex; align-items: center; gap: 6px; margin-bottom: 8px; }
+  .ok { color: var(--verde); }
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; }
+  .pildora { border: 1px solid var(--borde-control); border-radius: 999px; padding: 7px 14px; font-size: 14px; background: transparent; }
+  .pildora.on { background: var(--tinta); color: var(--crema); border-color: var(--tinta); }
+  .pildora.espera { border-style: dashed; }
+  .pildora.espera.on { background: color-mix(in srgb, var(--ambar) 14%, var(--papel)); color: var(--ambar); border: 1px solid var(--ambar); }
+  .caja { background: var(--hueso); border: 1px solid var(--borde-control); border-radius: 12px; height: 42px; display: flex; align-items: center; padding: 0 12px; color: color-mix(in srgb, var(--tinta) 60%, transparent); }
+  .caja.llena { color: var(--tinta); }
+  .caja.apagada { opacity: .5; text-decoration: line-through; }
+  .dos { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .atajo { display: inline-flex; gap: 6px; align-items: center; margin-top: 6px; font-size: 13px; border-radius: 999px; padding: 4px 10px; border: 1px dashed var(--borde-control); }
+  .atajo.on { border: 1px solid var(--ambar); color: var(--ambar); background: color-mix(in srgb, var(--ambar) 10%, var(--papel)); }
+  .nota { margin-top: 10px; font-size: 14px; border-left: 3px solid var(--ambar); background: color-mix(in srgb, var(--ambar) 8%, var(--papel)); padding: 8px 12px; border-radius: 0 12px 12px 0; }
+  .pie { display: flex; justify-content: flex-end; gap: 10px; margin-top: 16px; }
+  .btn { border-radius: 999px; padding: 10px 18px; font: 500 14px "DM Sans"; border: 1px solid var(--borde-control); background: transparent; }
+  .btn.primario { background: var(--tinta); color: var(--crema); border-color: var(--tinta); }
+  .btn.chico { padding: 6px 12px; font-size: 13px; }
+  .tarjeta { background: var(--papel); border: 1px solid var(--sand); border-radius: 22px; padding: 18px; }
+  .tarjeta h3 { font: 600 21px/1.15 "EB Garamond", Georgia, serif; margin: 0 0 4px; display: flex; gap: 8px; align-items: center; }
+  .globito { font: 600 12px "DM Sans"; background: color-mix(in srgb, var(--ambar) 18%, var(--papel)); color: var(--ambar); border-radius: 999px; padding: 1px 8px; }
+  .aviso { display: flex; gap: 10px; border-left: 3px solid var(--ambar); background: color-mix(in srgb, var(--ambar) 8%, var(--papel)); border-radius: 0 14px 14px 0; padding: 10px 12px; margin: 10px 0 12px; font-size: 14px; }
+  .fila { display: grid; grid-template-columns: 44px 1fr auto; gap: 12px; align-items: center; padding: 10px 0; border-top: 1px solid var(--sand); }
+  .mini { width: 44px; height: 44px; border-radius: 10px; background: var(--hueso); display: grid; place-items: center; color: var(--taupe); font-size: 20px; }
+  .fila b { display: block; font-weight: 600; }
+  .fila small { color: var(--taupe); font-size: 14px; }
+  .chip { display: inline-flex; align-items: center; gap: 5px; font: 600 11px "DM Sans"; letter-spacing: .08em; text-transform: uppercase; border-radius: 999px; padding: 3px 8px; }
+  .chip::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+  .chip.ambar { color: var(--ambar); background: color-mix(in srgb, var(--ambar) 12%, var(--papel)); }
+  .chip.pizarra { color: var(--pizarra); background: color-mix(in srgb, var(--pizarra) 12%, var(--papel)); }
+  .tetoca { display: flex; gap: 12px; align-items: flex-start; padding: 12px 0; border-top: 1px solid var(--sand); }
+  .punto { width: 9px; height: 9px; border-radius: 50%; background: var(--ambar); margin-top: 7px; flex: none; }
+  .bloqueada { opacity: .6; }
+  .apilado { display: grid; gap: 20px; }
+</style>
+</head>
+<body>
+<main>
+  <h1>«Por definir» en Mis compras</h1>
+  <p class="bajada">Maqueta para decidir · la compra se guarda con su papel y su pago; la prenda espera a que alguien diga qué es y a cuánto se vende.</p>
+
+  <div class="mesa">
+    <section>
+      <p class="rotulo">1 · La hoja «Algo nuevo»</p>
+      <div class="hoja">
+        <h2>Algo nuevo</h2>
+        <p class="sub">De Proveedor de ejemplo · solo una referencia</p>
+
+        <div class="campo">
+          <div class="titulo-campo"><span class="ok">✓</span> ¿Qué es?</div>
+          <div class="chips">
+            <span class="pildora">Blusas</span>
+            <span class="pildora">Vestidos</span>
+            <span class="pildora">Otra…</span>
+            <span class="pildora espera on">Por definir</span>
+          </div>
+          <div class="nota">Queda <b>por definir</b>: la compra se guarda igual. La prenda no sale a la tienda hasta que alguien diga qué es.</div>
+        </div>
+
+        <div class="campo">
+          <div class="titulo-campo">¿De qué marca? <span style="color:var(--taupe);font-weight:400">· opcional</span></div>
+          <div class="caja">Elige una marca</div>
+        </div>
+
+        <div class="campo">
+          <div class="titulo-campo"><span class="ok">✓</span> ¿Cómo se llama?</div>
+          <div class="caja llena">Modelo Nela</div>
+        </div>
+
+        <div class="campo">
+          <div class="titulo-campo"><span class="ok">✓</span> ¿Cuántas unidades? <span style="margin-left:auto" class="caja llena">− &nbsp; 12 &nbsp; +</span></div>
+        </div>
+
+        <div class="campo dos">
+          <div>
+            <div class="titulo-campo"><span class="ok">✓</span> Costo c/u</div>
+            <div class="caja llena">S/ 26.25</div>
+          </div>
+          <div>
+            <div class="titulo-campo"><span class="ok">✓</span> Se vende a</div>
+            <div class="caja apagada">S/ —</div>
+            <span class="atajo on">⏳ A la espera de precio sugerido</span>
+          </div>
+        </div>
+
+        <div class="campo">
+          <div class="titulo-campo"><span class="ok">✓</span> ¿A qué tienda va?</div>
+          <div class="chips"><span class="pildora">TRU</span><span class="pildora">AQP</span><span class="pildora on">✓ LIM</span></div>
+        </div>
+
+        <div class="pie">
+          <span class="btn">Cancelar</span>
+          <span class="btn primario">Agregar 12 · S/ 315.00</span>
+        </div>
+      </div>
+    </section>
+
+    <div class="apilado">
+      <section>
+        <p class="rotulo">2 · Revisar compras (Compras)</p>
+        <div class="tarjeta">
+          <h3>Por definir <span class="globito">2</span></h3>
+          <div class="aviso"><span>⏳</span><span><b>2 prendas a la espera de definir categoría</b> · 1 a la espera de precio sugerido. No salen a la tienda hasta definirse.</span></div>
+          <div class="fila">
+            <div class="mini">?</div>
+            <div><b>Blusa bordada · 12 unid.</b><small>Proveedor de ejemplo · RC-000001 · va a LIM</small><br><span class="chip ambar">Sin categoría</span></div>
+            <span class="btn chico">Definir</span>
+          </div>
+          <div class="fila">
+            <div class="mini">?</div>
+            <div><b>Modelo Nela · 12 unid.</b><small>Proveedor de ejemplo · RC-000001 · va a LIM</small><br><span class="chip ambar">Sin categoría</span> <span class="chip ambar">Sin precio</span></div>
+            <span class="btn chico">Definir</span>
+          </div>
+        </div>
+      </section>
+
+      <section>
+        <p class="rotulo">3 · «Te toca» del Inicio</p>
+        <div class="tarjeta">
+          <div class="tetoca" style="border-top:0">
+            <span class="punto"></span>
+            <div><b>2 prendas a la espera de definir categoría</b><br><small style="color:var(--taupe)">1 también espera su precio · no salen a la tienda hasta definirse</small></div>
+          </div>
+        </div>
+      </section>
+
+      <section>
+        <p class="rotulo">4 · Para mandar (la compradora)</p>
+        <div class="tarjeta">
+          <div class="fila" style="border-top:0">
+            <div class="mini">👕</div>
+            <div><b>Pantaloneta · 24 unid.</b><small>Lista para mandar a LIM</small></div>
+            <span class="chip pizarra">Va</span>
+          </div>
+          <div class="fila bloqueada">
+            <div class="mini">?</div>
+            <div><b>Modelo Nela · 12 unid.</b><small>Espera: qué es y a cuánto se vende</small></div>
+            <span class="chip ambar">Por definir</span>
+          </div>
+        </div>
+      </section>
+    </div>
+  </div>
+</main>
+</body>
+</html>
