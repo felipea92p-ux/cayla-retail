@@ -893,3 +893,75 @@ export function contarPorCategoria(prendasDeLaCampana: readonly PrendaDeCampana[
   }
   return new Map([...modelos].map(([id, set]) => [id, set.size]));
 }
+
+// ---- El aviso de Campañas: prendas con dos ofertas (ADR-0655, decisión 2 de Felipe, parte 3) ------------------------------------------
+// La base dice qué pares de ofertas comparten prendas sin resolver (`campanas_ofertas_que_chocan`, 20261114170000). Como en Shopify, se elige
+// por par y vale para todas las prendas que comparten; mientras nadie elige, la caja cobra la que más le ahorra al cliente (20261114155000).
+
+/** Una fila cruda de `campanas_ofertas_que_chocan()`. */
+export type FilaParQueChoca = {
+  oferta_id: string;
+  oferta_nombre: string;
+  oferta_campana: string;
+  otra_tipo: string;
+  otra_id: string;
+  otra_nombre: string;
+  otra_campana: string;
+  tiendas: string[] | null;
+  prendas: number;
+  modelos: unknown;
+};
+
+/** Un par de ofertas que comparten prendas: la otra puede ser un descuento de siempre, que no cede. */
+export type ParQueChoca = {
+  oferta: { id: string; nombre: string; campana: string };
+  otra: { tipo: "oferta" | "descuento"; id: string; nombre: string; campana: string };
+  tiendas: string[];
+  prendas: number;
+  modelos: { id: string; nombre: string }[];
+};
+
+/** Las filas como las usa el aviso; una fila que no se sabe leer se ignora. */
+export function paresDeFilas(filas: readonly FilaParQueChoca[] | null | undefined): ParQueChoca[] {
+  const pares: ParQueChoca[] = [];
+  for (const f of filas ?? []) {
+    if (!f?.oferta_id || !f.otra_id) continue;
+    const modelos = (Array.isArray(f.modelos) ? f.modelos : [])
+      .map((m) => (m && typeof m === "object" ? { id: String((m as { id?: unknown }).id ?? ""), nombre: String((m as { nombre?: unknown }).nombre ?? "") } : null))
+      .filter((m): m is { id: string; nombre: string } => m !== null && m.id !== "");
+    pares.push({
+      oferta: { id: f.oferta_id, nombre: f.oferta_nombre, campana: f.oferta_campana },
+      otra: { tipo: f.otra_tipo === "descuento" ? "descuento" : "oferta", id: f.otra_id, nombre: f.otra_nombre, campana: f.otra_campana },
+      tiendas: [...(f.tiendas ?? [])],
+      prendas: Math.max(0, Number(f.prendas) || 0),
+      modelos,
+    });
+  }
+  return pares;
+}
+
+/** Cuántas prendas (modelos) tienen dos ofertas, sin contar dos veces la que está en dos pares. Un par sin modelos (un monto de toda la
+ *  compra) cuenta sus prendas. */
+export function prendasConDosOfertas(pares: readonly ParQueChoca[]): number {
+  const ids = new Set<string>();
+  let sinModelos = 0;
+  for (const p of pares) {
+    if (p.modelos.length === 0) sinModelos += p.prendas;
+    for (const m of p.modelos) ids.add(m.id);
+  }
+  return ids.size + sinModelos;
+}
+
+/** El título del aviso: «3 prendas tienen dos ofertas». */
+export const tituloDosOfertas = (n: number): string => (n === 1 ? "1 prenda tiene dos ofertas" : `${n} prendas tienen dos ofertas`);
+
+/** El nombre de una oferta en el aviso: «20 %» (de Navidad). */
+export const nombreEnPar = (o: { nombre: string; campana: string }): string => (o.campana && o.campana !== o.nombre ? `«${o.nombre}» (de ${o.campana})` : `«${o.nombre}»`);
+
+/** Las prendas de un par, en una línea: «Blusa Emma, Polo Básico y 2 más», con sus tiendas. */
+export function detalleDePar(p: ParQueChoca, cuantas = 3): string {
+  const nombres = p.modelos.slice(0, cuantas).map((m) => m.nombre);
+  const resto = p.modelos.length > cuantas ? p.modelos.length - cuantas : 0;
+  const prendas = nombres.length === 0 ? `${p.prendas} ${p.prendas === 1 ? "prenda" : "prendas"}` : resto > 0 ? `${nombres.join(", ")} y ${resto} más` : lista(nombres);
+  return p.tiendas.length > 0 ? `${prendas} · ${lista(p.tiendas)}` : prendas;
+}

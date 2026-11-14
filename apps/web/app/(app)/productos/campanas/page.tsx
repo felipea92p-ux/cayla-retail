@@ -40,6 +40,7 @@ export default async function CampanasPage() {
       reglas={datos.reglas}
       reglasDisponibles={datos.reglasDisponibles}
       insignias={datos.insignias}
+      choquesAbiertos={datos.choquesAbiertos ?? []}
     />
   );
 }
