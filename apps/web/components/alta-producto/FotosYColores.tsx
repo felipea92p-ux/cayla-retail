@@ -17,6 +17,7 @@ import type { ColorAlta } from "@/lib/alta-producto";
 import { colorDeRespuesta } from "@/lib/color-alta-reglas";
 import { componentesDeMezcla, mezclaExistente, tonosDeMezcla } from "@/lib/color-combinado";
 import { leerColores, propuestaInicial, type Lectura } from "@/lib/colores-de-la-foto";
+import { codigosParaReintentar, motivoDeFalla, sumarFotoUnaVez } from "@/lib/fotos-y-colores-reglas";
 import { objecionFotoProducto } from "@/lib/producto-fotos";
 
 // «Fotos y colores» (ADR-0663, Felipe 2026-11-13): los colores de la prenda salen de sus fotos. Se sube una foto por color («Otra foto»,
@@ -159,10 +160,16 @@ export function FotosYColores({
   const cambiar = (clave: string, cambio: Partial<Pendiente> | null) =>
     setPendientes((ps) => (cambio === null ? ps.filter((p) => p.clave !== clave) : ps.map((p) => (p.clave === clave ? { ...p, ...cambio } : p))));
 
+  // Las fotos que ya quedaron en su color. Un clic repetido («Usar X», «Volver a intentar») pone en la cola la misma foto dos o
+  // tres veces antes de que la tarjeta se vaya: la segunda vuelta ya no hace nada (ni pide otra mezcla). /chaos 2026-11-14.
+  const asentadas = useRef(new Set<string>());
+
   /** La foto queda en su color: entra al formulario y sale de las pendientes. */
   function asentar(p: Pendiente, codigo: string) {
+    if (asentadas.current.has(p.clave)) return;
+    asentadas.current.add(p.clave);
     onAgregarColor(codigo);
-    onFotos((fs) => [...fs, { clave: p.clave, archivo: p.archivo, vista: p.ia?.vistaIA ?? p.vista, colorCodigo: codigo, lectura: p.lectura, ia: p.ia }]);
+    onFotos((fs) => sumarFotoUnaVez(fs, { clave: p.clave, archivo: p.archivo, vista: p.ia?.vistaIA ?? p.vista, colorCodigo: codigo, lectura: p.lectura, ia: p.ia }));
     vistas.current.delete(p.vista);
     if (p.ia) vistas.current.delete(p.ia.vistaIA);
     cambiar(p.clave, null);
@@ -176,6 +183,7 @@ export function FotosYColores({
 
   /** De los colores de cada parte al color de la prenda: uno, o la mezcla (la que ya existe o una nueva). */
   async function resolver(p: Pendiente, codigos: string[]) {
+    if (asentadas.current.has(p.clave)) return;
     const unicos = codigos.filter((c, i) => codigos.indexOf(c) === i);
     if (unicos.length === 1) return asentar(p, unicos[0]);
     const componentes = componentesDeMezcla(unicos[0], unicos.slice(1, 4));
@@ -198,7 +206,7 @@ export function FotosYColores({
       sumarALaCarta(leido.color);
       asentar(p, leido.color.codigo);
     } catch (e) {
-      cambiar(p.clave, { estado: "pregunta", eleccion: codigos, motivo: e instanceof Error ? e.message : "No se pudo armar la mezcla." });
+      cambiar(p.clave, { estado: "pregunta", eleccion: codigos, motivo: motivoDeFalla(e, "No se pudo armar la mezcla.") });
     }
   }
 
@@ -220,8 +228,8 @@ export function FotosYColores({
       const conTodo = { ...conIA, lectura, eleccion };
       if (eleccion.length && eleccion.every((c): c is string => c !== null)) cola.current = cola.current.then(() => resolver(conTodo, eleccion));
       else cambiar(p.clave, { estado: "pregunta", lectura, eleccion, ia: conIA.ia });
-    } catch {
-      cambiar(p.clave, { estado: "pregunta", motivo: "No se pudo leer esta foto." });
+    } catch (e) {
+      cambiar(p.clave, { estado: "pregunta", motivo: motivoDeFalla(e, "No se pudo leer esta foto.") });
     }
   }
 
@@ -421,7 +429,12 @@ export function FotosYColores({
                           )}
                         </>
                       ) : p.eleccion?.length && p.motivo ? (
-                        <Boton type="button" peso="primario" className="btn-chico" disabled={disabled} onClick={() => contestar(p, null, p.eleccion![0]!)}>
+                        <Boton type="button" peso="primario" className="btn-chico" disabled={disabled} onClick={() => {
+                            // Con TODOS los colores elegidos: reintentar con el primero dejaba una mezcla en un color liso (/chaos 2026-11-14).
+                            const codigos = codigosParaReintentar(p.eleccion);
+                            if (codigos) cola.current = cola.current.then(() => resolver(p, codigos));
+                          }}
+                        >
                           Volver a intentar
                         </Boton>
                       ) : (
