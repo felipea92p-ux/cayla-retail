@@ -43,6 +43,9 @@ import type { ControlResponsable } from "@/lib/useResponsable";
 // dejan cambiarlo desde Recibir (`cambiar_precios_en_recepcion` solo acepta lo que sigue separado). Por eso se pone aquí, con la misma pieza y la misma regla del
 // cierre, y se guarda JUSTO ANTES de llevar: si la base lo rechaza (bajo el costo, por ejemplo), no entra nada y el motivo sale junto al campo. Si el precio se
 // guardó y lo que falla es llevar, el precio queda (rige hacia adelante) y deja de contarse como cambio: el reintento no lo manda de nuevo.
+//
+// «Llevar e imprimir» (tanda#1 de /innovar, Felipe 2026-11-14): el botón principal lleva la prenda y manda sus etiquetas de un solo toque; «Solo llevar»
+// queda al lado para quien las imprime después. La intención viaja con `onHecho`: la hoja «ya están en el stock» se abre imprimiendo y se cierra sola.
 
 export function LlevarAlStock({
   despachoId,
@@ -86,7 +89,8 @@ export function LlevarAlStock({
   esperandoGuardar: boolean;
   /** Lo último que se contó no llegó a la base (se cortó la red): hasta reintentar, llevar al stock movería otro número que el que se ve. */
   noSeGuardo?: boolean;
-  onHecho: (r: ResultadoDeSalida) => void;
+  /** `imprimir`: la persona tocó «Llevar e imprimir»: la hoja que sigue manda las etiquetas apenas estén listas. */
+  onHecho: (r: ResultadoDeSalida, imprimir: boolean) => void;
   onConteoCambiado: () => void;
   /** Oscuro donde es lo que toca hacer (todo repartido); claro donde acompaña a otro botón. */
   peso?: "primario" | "fantasma";
@@ -104,6 +108,8 @@ export function LlevarAlStock({
   const [error, setError] = useState<string | null>(null);
   const [atipicos, setAtipicos] = useState<CostoAtipicoRecepcion[] | null>(null);
   const enVuelo = useRef(false);
+  // Con qué botón se confirmó. Va en una ref porque el costo fuera de lo normal pide confirmar en otra hoja, y ese segundo «sí» lleva la misma intención.
+  const quiereImprimir = useRef(true);
   const precios = usePreciosDeVenta();
   const venta = precios.ventas[productoId];
   const alcance = soloSede ? "sede" : (venta?.alcance ?? ALCANCE_DE_FABRICA);
@@ -207,7 +213,7 @@ export function LlevarAlStock({
     setAtipicos(null);
     // La prenda puede seguir aquí con lo que falta repartir: la próxima tanda es otra.
     setToken(crypto.randomUUID());
-    if (resultado) onHecho(resultado);
+    if (resultado) onHecho(resultado, quiereImprimir.current);
   }
 
   return (
@@ -298,8 +304,32 @@ export function LlevarAlStock({
                 <Boton type="button" peso="fantasma" onClick={cerrar} disabled={guardando}>
                   Cancelar
                 </Boton>
-                <Boton type="submit" peso="primario" cargando={guardando} textoCargando="Llevando…" title={guia.frase ?? undefined} className={guia.claseConfirmar}>
-                  Llevar al stock
+                {/* Entra al stock y nada más: las etiquetas quedan para después, desde la hoja que sigue. */}
+                <Boton
+                  type="button"
+                  peso="fantasma"
+                  disabled={guardando}
+                  title={guia.frase ?? "Entra al stock sin imprimir las etiquetas"}
+                  onClick={() => {
+                    quiereImprimir.current = false;
+                    void llevar(false);
+                  }}
+                >
+                  Solo llevar
+                </Boton>
+                {/* El de siempre, y además manda las etiquetas: imprimir sigue siendo un clic de la persona, y el botón lo dice (ADR-0180). En el celular va en su fila. */}
+                <Boton
+                  type="submit"
+                  peso="primario"
+                  cargando={guardando}
+                  textoCargando="Llevando…"
+                  title={guia.frase ?? "Entra al stock y manda sus etiquetas a la impresora"}
+                  className={`pie-acciones-ancho ${guia.claseConfirmar}`}
+                  onClick={() => {
+                    quiereImprimir.current = true;
+                  }}
+                >
+                  Llevar e imprimir
                 </Boton>
               </div>
             </form>
@@ -342,7 +372,8 @@ function ListaDeTallas({ lineas, colores = [] }: { lineas: readonly { cantidad: 
  * lleva cada modelo al stock apenas lo reparte, así que eran 4 o 5 toques y dos cargas de pantalla por modelo. Ahora la hoja pide las etiquetas al abrirse
  * (la misma lectura de esa pantalla: precio de la sede y campaña de hoy), el botón las manda a la Brother y la hoja se cierra sola: quedas contando.
  *
- * Imprimir sigue siendo un clic de la persona (ADR-0180): al abrirse la hoja solo se PREPARAN. Por el ayudante de la Mac se sabe si salieron; por el diálogo del
+ * Imprimir sigue siendo un clic de la persona (ADR-0180): al abrirse la hoja solo se PREPARAN, salvo que el clic haya sido «Llevar e imprimir»
+ * (`imprimirAlAbrir`), que ya las pidió. Por el ayudante de la Mac se sabe si salieron; por el diálogo del
  * navegador no (pudo cancelarse), así que ahí el aviso ofrece «Imprimir de nuevo», que vuelve a esta hoja. Cambiar cantidades o sacar la campaña del papel sigue
  * siendo de la pantalla de Etiquetas: «Ajustar antes de imprimir».
  */
@@ -353,11 +384,14 @@ export function SalidaHecha({
   veExistencias,
   onCerrar,
   onReabrir,
+  imprimirAlAbrir = false,
 }: {
   resultado: ResultadoDeSalida;
   nombre: string;
   envioId: string;
   veExistencias: boolean;
+  /** Se llegó con «Llevar e imprimir»: ese clic ya pidió las etiquetas, así que salen apenas estén listas y la hoja se cierra sola. */
+  imprimirAlAbrir?: boolean;
   onCerrar: () => void;
   /** Vuelve a abrir esta hoja con la misma tanda: lo ofrece el aviso cuando no se sabe si las etiquetas salieron. */
   onReabrir: () => void;
@@ -375,7 +409,7 @@ export function SalidaHecha({
     prepararCopia: (copia) => copia.setAttribute("data-modo", "girada"),
   });
   // La persona tocó «Imprimir». Si las etiquetas todavía se preparan, sale apenas estén: no hace falta tocar dos veces.
-  const [pedida, setPedida] = useState(false);
+  const [pedida, setPedida] = useState(imprimirAlAbrir);
   const enVuelo = useRef(false);
   // La hoja se puede cerrar con la impresión todavía en camino (el navegador que no avisa que su diálogo se cerró): lo que llegue después no toca nada,
   // o cerraría la hoja que la persona abrió mientras tanto.

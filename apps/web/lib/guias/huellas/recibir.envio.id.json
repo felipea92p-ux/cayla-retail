@@ -2,7 +2,7 @@
   "guia": "recibir.envio.id",
   "ruta": "/recibir/envio/[id]",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 302,
+  "total": 303,
   "controles": {
     "app/(app)/recibir/envio/[id]/page.tsx": [
       "Volver «/recibir»",
@@ -232,7 +232,8 @@
       "Boton «{parcial ? `Llevar ${unidades.toLocaleString(\"es-PE\")}»",
       "ComboResponsable «{responsable}»",
       "Boton «Cancelar»",
-      "Boton «{guia.frase ?? undefined}»",
+      "Boton «{guia.frase ?? \"Entra al stock sin imprimir las etiquetas\"}»",
+      "Boton «{guia.frase ?? \"Entra al stock y manda sus etiquetas a la impresora\"}»",
       "button «Reintentar»",
       "BotonImprimir «→() => setPedida(true)»",
       "BotonEnlace «Bajar al piso»",
@@ -242,7 +243,7 @@
       "ComboResponsable «{responsable}» #2",
       "BotonEnlace «Ir a Ajustar stock»",
       "Boton «Cancelar» #2",
-      "Boton «{guia.frase ?? undefined}» #2"
+      "Boton «{guia.frase ?? undefined}»"
     ],
     "components/recepcion-conteo/LoQueEntro.tsx": [
       "Casilla «{`Etiquetas de ${p.nombre}»",

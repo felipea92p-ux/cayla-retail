@@ -1974,7 +1974,7 @@ export const GUIA_RECIBIR_ENVIO: Guia = {
       ancla: "recepcion.llevar-al-stock",
       requiere: ["recepcion.llevar-al-stock"],
       titulo: "Sale ya, sin cerrar el envío",
-      texto: "Con las tallas repartidas, este botón lleva la prenda al stock sin cerrar el envío: así se vende hoy. También está en la tarjeta del modelo. Puedes llevar una parte y seguir con el resto. Al llevarla, imprimes sus etiquetas ahí mismo, de un toque, y sigues contando. En la demo no lo tocamos.",
+      texto: "Con las tallas repartidas, este botón lleva la prenda al stock sin cerrar el envío: así se vende hoy. También está en la tarjeta del modelo. Puedes llevar una parte y seguir con el resto. En su hoja, «Llevar e imprimir» saca también sus etiquetas; «Solo llevar» las deja para después. En la demo no lo tocamos.",
     },
     {
       id: "separar",

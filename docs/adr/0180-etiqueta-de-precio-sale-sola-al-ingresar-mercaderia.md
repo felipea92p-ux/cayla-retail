@@ -441,3 +441,20 @@ etiqueta y la hoja lo avisa. Sin migración: todo es lectura.
 recibe el ayudante trae las etiquetas en el orden de la lista (Celeste L · Crudo M · Vino S). Probados el ayudante que responde bien, el que falla, el
 diálogo del navegador con «Imprimir de nuevo», y la lectura que falla y se reintenta. **No verificado:** el papel real en la Brother (el ayudante y el
 diálogo se simularon para no gastar etiquetas) y una Mac o un Windows de tienda.
+
+### Mismo día (b) — «Llevar e imprimir», un solo toque (tanda#1 de `/innovar`, elegida por Felipe)
+
+Con la hoja ya imprimiendo sola quedaban 2 toques por modelo: «Llevar al stock» y después «Imprimir N etiquetas». La hoja de en medio casi siempre
+tenía la misma respuesta. Desde este cambio, la hoja «Llevar N de X al stock» tiene dos botones: **«Llevar e imprimir»** (el principal) y **«Solo
+llevar»**. El primero lleva la prenda y, cuando la base responde, abre la hoja «ya están en el stock» **ya imprimiendo** (`imprimirAlAbrir`); si las
+etiquetas salen, la hoja se cierra sola. Si la impresora falla, la lectura falla o ninguna prenda tiene código, la hoja queda abierta como siempre.
+
+- **Imprimir sigue siendo un clic de la persona:** el botón dice «imprimir». Nada sale por abrir una hoja.
+- **Las etiquetas se piden después de que la base confirma**, nunca antes: salen con el precio que se haya puesto en esa misma hoja y solo de lo que entró.
+- **El costo fuera de lo normal** pide confirmar en otra hoja: ese segundo «sí» lleva la misma intención (imprimir o no) con que se empezó.
+- En el celular, «Cancelar» y «Solo llevar» comparten una fila y «Llevar e imprimir» va en la suya, a todo el ancho.
+
+**Verificado (local):** «Llevar e imprimir» llevó 2 de Blusa Valeria y mandó sus 2 etiquetas en orden con un toque; «Solo llevar» llevó 1 y abrió la hoja
+sin imprimir; pie medido a 1440 px (40 px de alto) y a 375 px (44 px, sin desborde). **No verificado:** el papel real (impresión simulada), y el camino
+del costo fuera de lo normal con «Solo llevar» (se probó solo con el botón de antes).
+

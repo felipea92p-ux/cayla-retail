@@ -31,3 +31,19 @@ Resumen: **0 graves · 0 medias · 0 leves** en lo que cambió este PR · 2 «re
 ## Sin medir
 - Gráficos: no hay. El papel impreso no se midió (la hoja de impresión es la misma de Etiquetas, sin cambios de dibujo).
 - La captura en oscuro: el tema se aplicó para el medidor, pero la captura del panel no lo reflejó; el contraste sí se midió con los tokens oscuros.
+
+## Segunda pasada (mismo día): el pie de la hoja «Llevar N de X al stock», con «Solo llevar» y «Llevar e imprimir»
+
+Medido: 1440×900 claro · 375×812 (medidas del pie) · quieto. Raíz: la hoja de confirmar.
+
+- **Árbol:** sin piezas nuevas. Tres `<Boton>` en `pie-acciones pie-hoja-fijo`: «Cancelar» y «Solo llevar» en `fantasma`, «Llevar e imprimir» en
+  `primario` con `cargando` + `textoCargando` (pieza decidida «Mientras guarda») y `pie-acciones-ancho` para el celular.
+- **Espacio:** 1440 — 95×40, 102×40 y 144×40 px, en una fila; 0 blancos bajo 24 px. 375 — «Cancelar» 159×44 y «Solo llevar» 159×44 en una fila,
+  «Llevar e imprimir» 325×44 en la suya; `scrollWidth` 375, sin desborde.
+- **Color:** 14 textos medidos, 0 fallan. El texto del botón negro, «no concluyente» para el medidor (vidrio): lo cubre `lib/vidrio-contraste.test.ts`.
+- **Estados:** `loading` «Llevando…» con ancho fijo; mientras guarda, «Cancelar» y «Solo llevar» se apagan (no se arregla llenando un campo); el botón
+  que confirma no se apaga por lo que falta (lleva a lo que falta, como antes). 0 errores sin ícono.
+- **Revisar descartado:** `esperaEscritaAMano` en «Llevar e imprimir / Llevando…»: es `<Boton textoCargando>`.
+
+Resultado de la segunda pasada: **0 graves · 0 medias · 0 leves**.
+

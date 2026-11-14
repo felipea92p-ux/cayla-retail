@@ -41,3 +41,9 @@ Las ideas que se descartaron en una corrida (ya existían, sin fuente, moda, no 
 | cambiar-de-modulo#18 | Todo el ERP | Reabrir Cache Components con Partial Prefetching, ruta por ruta | Visión | 4 / XL | propuesta | [informe](2026-11-13-cambiar-de-modulo.md) | 2026-11-13 |
 | cambiar-de-modulo#19 | Vender | Vender abre con el catálogo ya en el equipo (IndexedDB) | Visión | 4 / XL | propuesta | [informe](2026-11-13-cambiar-de-modulo.md) | 2026-11-13 |
 | cambiar-de-modulo#20 | Marco (identidad) | La identidad viaja en el token (Custom Access Token Hook) | Visión | 4 / XL | propuesta | [informe](2026-11-13-cambiar-de-modulo.md) | 2026-11-13 |
+| tanda#1 | Inventario ▸ Recibir | «Llevar al stock e imprimir»: un solo toque, sin la hoja de en medio | Ahora | 3 / S | aceptada (Felipe, 2026-11-14) · hecha en PR #1864 | [informe](2026-11-14-recibir-imprimir-tanda.md) | 2026-11-14 |
+| tanda#2 | Inventario ▸ Recibir | Reimprimir una tanda desde «Ya en stock», en la lista del envío | Ahora | 2 / S | propuesta | [informe](2026-11-14-recibir-imprimir-tanda.md) | 2026-11-14 |
+| tanda#3 | Inventario ▸ Recibir | El envío sabe qué falta etiquetar y lo imprime de una vez | Ahora | 3 / M | propuesta | [informe](2026-11-14-recibir-imprimir-tanda.md) | 2026-11-14 |
+| tanda#4 | Inventario ▸ Recibir | La cola de impresión de la sede: imprimir desde el celular con que se cuenta | Visión | 3 / L | propuesta | [informe](2026-11-14-recibir-imprimir-tanda.md) | 2026-11-14 |
+| tanda#5 | Inventario ▸ Recibir | La etiqueta sale al contar: una por prenda, con la prenda en la mano | Visión | 4 / L | propuesta | [informe](2026-11-14-recibir-imprimir-tanda.md) | 2026-11-14 |
+| tanda#6 | Etiquetas de precio | El navegador le habla directo a la Brother, sin ayudante que instalar | Visión | 2 / L | propuesta | [informe](2026-11-14-recibir-imprimir-tanda.md) | 2026-11-14 |
