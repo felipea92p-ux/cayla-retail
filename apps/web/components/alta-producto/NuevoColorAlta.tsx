@@ -4,6 +4,8 @@ import { useEffect, useId, useState } from "react";
 import { avisar } from "@/components/ui/Avisos";
 import { Campo, CampoTexto, Desplegable, Boton } from "@/components/ui/campos";
 import { SelectorColor } from "@/components/SelectorColor";
+import { PaletaDeColor } from "@/components/ui/PaletaDeColor";
+import { parsearColor } from "@/lib/color-entrada";
 import type { ColorAlta } from "@/lib/alta-producto";
 import { colorDeRespuesta, coloresQueYaExisten, faltaParaCrear, familiaSugerida, nombreDeColor } from "@/lib/color-alta-reglas";
 import { normalizarCodigo, sugerirCodigoColor } from "@/lib/color-codigo";
@@ -46,6 +48,11 @@ import { Aviso } from "@/components/ui/Aviso";
 // Crear un color es un guardado aparte del producto; en el alta (y en Recibir) lo firma quien la inició (`useFirmaDeMitad`). Como hoja encima de esa pantalla,
 // su combo quedaba detrás del velo y «Crear y elegir» se apagaba sin salida: desde el 2026-11-07 la hoja trae el mismo combo «Responsable» (es el mismo
 // control: elegir aquí lo deja elegido allá). Fuera del alta (la ficha de un producto) sigue soltado del combo, con su clave.
+//
+// La paleta con todos los colores (ADR-0663): junto al campo de #hex o RGB va `PaletaDeColor`, y los dos mueven el mismo tono.
+// Quien abre la hoja desde una foto le pasa el tono que se leyó (`tonoInicial`) y la foto (`fotoDeReferencia`): la hoja arranca
+// en ese tono, la familia lo sigue como con cualquier tono (`familiaSugerida`) y «Usar el tono de la foto» lo repone si la
+// persona lo movió. Un estampado no tiene tono propio (es el de su color dominante): ahí no hay paleta.
 
 export function NuevoColorAlta({
   colores,
@@ -55,6 +62,8 @@ export function NuevoColorAlta({
   onElegir,
   onCerrar,
   enModal = false,
+  tonoInicial,
+  fotoDeReferencia,
 }: {
   /** Va dentro de una hoja (ya es la tarjeta): sin marco propio y con el nombre en su propia línea. */
   enModal?: boolean;
@@ -67,6 +76,10 @@ export function NuevoColorAlta({
   /** Elegir uno que ya existe (el nombre repetido o el parecido) en vez de crearlo. */
   onElegir: (codigo: string) => void;
   onCerrar: () => void;
+  /** El tono con que abre la hoja (#hex o R, G, B), p. ej. el que se leyó de la foto. Sin él, la hoja abre sin tono. */
+  tonoInicial?: string;
+  /** La foto de donde salió `tonoInicial` (url): se muestra chiquita junto a la paleta. */
+  fotoDeReferencia?: string;
 }) {
   const [nombrePropio, setNombre] = useState(() => nombreDeColor(nombreInicial));
   // Un estampado (ADR-0634) arma su nombre con el patrón y el color que más se ve, hasta que la persona lo escribe a su manera.
@@ -75,7 +88,9 @@ export function NuevoColorAlta({
   const [patrones, setPatrones] = useState<{ id: string; nombre: string }[]>([]);
   const [patronId, setPatronId] = useState("");
   const [dominanteCodigo, setDominanteCodigo] = useState("");
-  const [hexElegido, setHex] = useState<string | null>(null);
+  // El tono de la foto, normalizado como lo guarda la base; uno que no se entiende se ignora y la hoja abre sin tono.
+  const [tonoDeFoto] = useState(() => (tonoInicial ? parsearColor(tonoInicial) : null));
+  const [hexElegido, setHex] = useState<string | null>(tonoDeFoto);
   // `null` = sin tocar: se muestra la sugerencia, que sigue al tono o al nombre.
   const [familiaElegida, setFamiliaElegida] = useState<string | null>(null);
   const [codigoEscrito, setCodigoEscrito] = useState<string | null>(null);
@@ -243,10 +258,10 @@ export function NuevoColorAlta({
 
       <div
         className={`grid grid-cols-[minmax(0,1fr)_auto] gap-3 sm:items-start ${
-          esForma ? "" : enModal ? "sm:grid-cols-[minmax(0,1fr)_minmax(0,11rem)_auto]" : "sm:grid-cols-[minmax(0,1fr)_minmax(0,15rem)_minmax(0,11rem)_auto]"
+          esForma ? "" : "sm:grid-cols-[minmax(0,1fr)_auto]"
         }`}
       >
-        <CampoGuiado id="nombre" guia={guia} className={esForma ? "" : enModal ? "col-span-2 sm:col-span-3" : "col-span-2 sm:col-span-1"}>
+        <CampoGuiado id="nombre" guia={guia} className={esForma ? "" : "col-span-2"}>
           <CampoTexto
             etiqueta={guia.etiqueta("nombre", esForma ? "Nombre del estampado" : "Nombre del color")}
             sinPie
@@ -268,11 +283,36 @@ export function NuevoColorAlta({
           <>
             {/* El tono, igual que en Atributos (`SelectorColor`): la muestra abre el selector del navegador y al lado se escribe
                 el #hex o el R, G, B que trae la ficha del proveedor. Sin tono, la muestra es punteada: nunca un beige de relleno. */}
-            <CampoGuiado id="tono" guia={guia} className="col-span-2 sm:col-span-1">
-              <SelectorColor hex={hexElegido} onHex={setHex} etiqueta="Color · #hex o RGB" caja deshabilitado={guardando} />
+            <CampoGuiado id="tono" guia={guia} className="col-span-2">
+              <div className="grid gap-4 sm:grid-cols-[minmax(0,15rem)_minmax(0,1fr)] sm:items-start">
+                <PaletaDeColor hex={hexElegido} onHex={setHex} deshabilitado={guardando} />
+                <div className="space-y-3">
+                  <SelectorColor hex={hexElegido} onHex={setHex} etiqueta="Color · #hex o RGB" caja deshabilitado={guardando} />
+                  {fotoDeReferencia && (
+                    <div className="flex items-center gap-2.5">
+                      {/* eslint-disable-next-line @next/next/no-img-element -- miniatura de referencia (url de la foto o blob:), next/image no aporta a 40 px */}
+                      <img src={fotoDeReferencia} alt="La foto de la prenda" className="h-12 w-10 shrink-0 rounded-lg border border-sand bg-hueso object-contain" />
+                      <div className="min-w-0 space-y-0.5">
+                        {tonoDeFoto && <p className="text-sm text-taupe">Arranca en el tono de la foto.</p>}
+                        {/* Solo se ve si la persona movió el tono: con el de la foto puesto no hay nada que reponer. */}
+                        {tonoDeFoto && (
+                          <button
+                            type="button"
+                            className={`btn-enlace text-sm ${hexElegido === tonoDeFoto ? "invisible" : ""}`}
+                            onClick={() => setHex(tonoDeFoto)}
+                            disabled={guardando}
+                          >
+                            Usar el tono de la foto
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
             </CampoGuiado>
 
-            <div>
+            <div className="sm:max-w-xs">
               <Campo etiqueta="Familia" idEtiqueta={`${id}-familia`} sinPie>
                 <Desplegable
                   forma="campo"

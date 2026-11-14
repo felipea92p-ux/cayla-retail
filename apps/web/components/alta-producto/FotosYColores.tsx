@@ -241,6 +241,9 @@ export function FotosYColores({
   }
 
   const pendienteCreando = creando ? (pendientes.find((x) => x.clave === creando.clave) ?? null) : null;
+  // El tono que se vio en la foto para la parte que no está en la carta: la hoja «Nuevo color» arranca ahí (su paleta lo ajusta).
+  const lecturaCreando = pendienteCreando?.lectura;
+  const tonoACrear = creando && lecturaCreando && lecturaCreando.tipo !== "sin-prenda" ? lecturaCreando.partes[creando.parte]?.visto : undefined;
   const multicolor = carta.find((c) => c.nombre.trim().toLocaleLowerCase("es") === "multicolor");
   const nombreDe = (codigo: string) => {
     const c = porCodigo.get(codigo);
@@ -519,6 +522,8 @@ export function FotosYColores({
               enModal
               colores={carta}
               elegidos={elegidos}
+              tonoInicial={tonoACrear}
+              fotoDeReferencia={pendienteCreando.vista}
               onCerrar={cerrar}
               onElegir={(codigo) => {
                 setCreando(null);
