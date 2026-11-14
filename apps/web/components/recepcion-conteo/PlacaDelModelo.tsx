@@ -68,8 +68,8 @@ export function PlacaDelModelo({
   onReintentar: () => void;
   /** Cómo va el paso 2: espera (sin número o nada que hacer ahora), toca o ya está. */
   pasoTallas: "falta" | "toca" | "hecha";
-  /** Llega con el número listo para escribir: viene de apretar Enter en lo anterior. */
-  abrirNumero: boolean;
+  /** El pedido de abrir el número para escribir (0 = ninguno): viene de apretar Enter en lo anterior o de elegir algo sin contar. Cada pedido trae un número distinto. */
+  abrirNumero: number;
   /** El próximo modelo sin contar del envío (dando la vuelta): el pie lleva a él. `null` con todo contado. */
   pendiente: ParadaDelConteo | null;
   hayFiltroPuesto: boolean;

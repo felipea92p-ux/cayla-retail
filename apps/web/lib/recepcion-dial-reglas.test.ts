@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { atajosDelDial, estadoDelDial, MAX_CORTES } from "./recepcion-dial-reglas";
+import { abreAlElegir, atajosDelDial, esPedidoNuevo, estadoDelDial, MAX_CORTES } from "./recepcion-dial-reglas";
 
 describe("estadoDelDial", () => {
   it("sin contar todavía, dice lo que dijeron y el aro está vacío", () => {
@@ -51,5 +51,30 @@ describe("los atajos del Dial", () => {
     expect(estadoDelDial(9000, 12000, true).texto).toBe("faltan 3,000 de 12,000");
     expect(estadoDelDial(12000, 12000, true).texto).toBe("cuadra · 12,000");
     expect(estadoDelDial(14000, 12000, true).texto).toBe("sobran 2,000");
+  });
+});
+
+describe("cuándo se abre el número del Dial (tarea 4 de las 30 de Recibir, 2026-11-14)", () => {
+  it("elegir en la lista algo sin contar lo abre con mouse; lo contado no, y con el dedo no se abre solo", () => {
+    expect(abreAlElegir({ pidio: false, contada: false, conMouse: true })).toBe(true);
+    expect(abreAlElegir({ pidio: false, contada: true, conMouse: true })).toBe(false);
+    expect(abreAlElegir({ pidio: false, contada: false, conMouse: false })).toBe(false);
+    expect(abreAlElegir({ pidio: false, contada: true, conMouse: false })).toBe(false);
+  });
+
+  it("lo que se pidió abrir a propósito se abre siempre", () => {
+    expect(abreAlElegir({ pidio: true, contada: true, conMouse: false })).toBe(true);
+    expect(abreAlElegir({ pidio: true, contada: false, conMouse: true })).toBe(true);
+  });
+
+  it("cada pedido nuevo abre, también el segundo para el mismo modelo; el que ya se vio y el «ninguno» no", () => {
+    // El número llegó abierto (pedido 3), se cerró con Escape y la persona vuelve a tocar la fila: llega el pedido 4.
+    expect(esPedidoNuevo(3, 4)).toBe(true);
+    // Volver a dibujar sin pedido nuevo no lo reabre.
+    expect(esPedidoNuevo(4, 4)).toBe(false);
+    // Elegir algo contado manda «ninguno»: no abre.
+    expect(esPedidoNuevo(4, 0)).toBe(false);
+    // Después de un «ninguno», un pedido vuelve a abrir.
+    expect(esPedidoNuevo(0, 5)).toBe(true);
   });
 });

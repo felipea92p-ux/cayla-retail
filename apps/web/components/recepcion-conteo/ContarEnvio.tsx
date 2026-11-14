@@ -99,6 +99,7 @@ import {
   lineasParaCorregir,
   claveTrasCorregir,
 } from "@/lib/recepcion-modelos-reglas";
+import { abreAlElegir } from "@/lib/recepcion-dial-reglas";
 import { borradorDeTallas, botonPrincipal, estadoDeLaTarjeta, marcasDeLaTabla, mismasVariantes, modoDeTallas, modosAlCambiar, tablaConLoMarcado, tablaParaElNumero, tallasListas, tocaRepartir, type BorradorTallas, type MarcasDeLaTabla, type ModoDeTallas } from "@/lib/recepcion-tallas-reglas";
 import { EditarModelo } from "./EditarModelo";
 import { CorregirCategoriaModelo } from "./CorregirCategoriaModelo";
@@ -281,8 +282,11 @@ export function ContarEnvio({
   const [orden, setOrden] = useState<OrdenDelConteo>(null);
   // Las categorías que la persona abrió o plegó a mano, que no cambian lo que se cuenta. Al pasar a contar otra cosa, la de antes y la de ahora vuelven a lo suyo; al filtrar, todas.
   const [alternadas, setAlternadas] = useState<ReadonlySet<string>>(new Set());
-  // Lo que llega con su número listo para escribir: viene de apretar Enter en lo anterior.
-  const [escribirEn, setEscribirEn] = useState<string | null>(null);
+  // Lo que llega con su número listo para escribir: viene de apretar Enter en lo anterior, de elegir en la lista algo sin contar o de agregarlo desde su hoja. Cada pedido lleva su
+  // propio número (`vez`): pedir otra vez el mismo modelo es un pedido nuevo, y el Dial lo vuelve a abrir aunque se haya cerrado (`esPedidoNuevo`).
+  const [escribirEn, setEscribirEn] = useState<{ clave: string; vez: number } | null>(null);
+  const pedidosDeAbrir = useRef(0);
+  const pedirAbrir = (clave: string) => ({ clave, vez: ++pedidosDeAbrir.current });
   const [fotos, setFotos] = useState<ReadonlyMap<string, string | null>>(() => new Map());
   const filaSeguir = useRef<HTMLDivElement>(null);
   const ultimoPaso = useRef(Number.NEGATIVE_INFINITY);
@@ -343,7 +347,7 @@ export function ContarEnvio({
   useEffect(() => {
     if (hoja || !escribirAlCerrar) return;
     const t = window.setTimeout(() => {
-      setEscribirEn(escribirAlCerrar);
+      setEscribirEn(pedirAbrir(escribirAlCerrar));
       setEscribirAlCerrar(null);
     }, 0);
     return () => window.clearTimeout(t);
@@ -395,15 +399,15 @@ export function ContarEnvio({
     const suya = claveDeCategoria(p.grupo);
     setAlternadas((a) => new Set([...a].filter((k) => k !== suya)));
     setErrorHoja(null);
-    setEscribirEn(escribir ? p.clave : null);
+    setEscribirEn(escribir ? pedirAbrir(p.clave) : null);
     setFoco(p.clave);
   }
 
   /** Elegir en la lista de la pantalla. Apiladas (una pantalla angosta), el contador queda bajo la lista: la vista baja hasta él, o el toque parecería no hacer nada. */
   function elegirEnLaLista(p: ParadaDelConteo, escribir = false) {
     // Lo que todavía no se contó llega con su número listo para escribir (tarea 4 de las 30 de Recibir, 2026-11-14): sin aviso todo se escribe a mano, y era un clic más por modelo.
-    // Lo ya contado no: se eligió para mirarlo o repartirlo.
-    elegir(p, escribir || (!paradaContada(p) && conMouse()));
+    // Lo ya contado no: se eligió para mirarlo o repartirlo. Vale también para el que ya está en el contador: su número se vuelve a abrir.
+    elegir(p, abreAlElegir({ pidio: escribir, contada: paradaContada(p), conMouse: conMouse() }));
     requestAnimationFrame(() => {
       const placa = mesa.current?.querySelector<HTMLElement>(".rc-placa");
       if (placa && placa.getBoundingClientRect().top > window.innerHeight / 2) placa.scrollIntoView({ block: "start", behavior: prefiereQuieto() ? "auto" : "smooth" });
@@ -949,7 +953,7 @@ export function ContarEnvio({
               onQuitarFiltro={() => cambiarFiltro(SIN_FILTRO)}
               onDeUnToque={(n) => ponerDeUnToque(parada, n)}
               pasoTallas={!tarjeta || tarjeta === "espera" ? "falta" : tarjeta === "lista" || tarjeta === "en-stock" ? "hecha" : tocaRepartir(tarjeta) ? "toca" : "falta"}
-              abrirNumero={escribirEn === parada.clave}
+              abrirNumero={escribirEn?.clave === parada.clave ? escribirEn.vez : 0}
               pendiente={faltaContar}
               sinTallasEn={faltanTallasEn}
               onSinTallas={(e) => pasarA(faltanTallasEn, e.timeStamp)}

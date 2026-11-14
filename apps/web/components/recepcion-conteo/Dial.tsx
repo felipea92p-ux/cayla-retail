@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Check, Minus, Plus } from "lucide-react";
 import { leerContadas } from "@/lib/recepcion-conteo-reglas";
-import { estadoDelDial } from "@/lib/recepcion-dial-reglas";
+import { esPedidoNuevo, estadoDelDial } from "@/lib/recepcion-dial-reglas";
 import { Odometro } from "./Odometro";
 
 // El Dial de una categoría (rediseño «B» de Recibir, Felipe 2026-10-29): el aro se llena con lo contado contra lo que dijeron, con un corte
@@ -22,7 +22,7 @@ export function Dial({
   hayConteo,
   minimo,
   nombre,
-  abrirAlEntrar = false,
+  abrirAlEntrar = 0,
   onPoner,
   onEnter,
 }: {
@@ -33,15 +33,18 @@ export function Dial({
   minimo: number;
   /** «faltas», en minúsculas: para lo que lee el lector de pantalla. */
   nombre: string;
-  /** Llega con el número abierto: viene de apretar Enter en lo anterior, o de elegir o agregar un modelo sin contar. Si pasa a `true` con el Dial ya montado, el número se abre ahí. */
-  abrirAlEntrar?: boolean;
+  /**
+   * El pedido de abrir el número (0 = ninguno): viene de apretar Enter en lo anterior, o de elegir o agregar un modelo sin contar. Cada pedido trae un número distinto: uno que llega
+   * con el Dial ya montado lo abre ahí, también si es el mismo modelo y su número se cerró antes (`esPedidoNuevo`).
+   */
+  abrirAlEntrar?: number;
   /** El número que dejó la persona; `ContarEnvio` lo sube al mínimo y lo reparte entre las líneas. */
   onPoner: (n: number) => void;
   /** Apretó Enter al escribir: ya se dejó el número y toca pasar a lo siguiente. */
   onEnter?: () => void;
 }) {
   const e = estadoDelDial(contadas, dijeron, hayConteo);
-  const [editando, setEditando] = useState<string | null>(abrirAlEntrar ? (hayConteo ? String(contadas) : "") : null);
+  const [editando, setEditando] = useState<string | null>(abrirAlEntrar > 0 ? (hayConteo ? String(contadas) : "") : null);
   // «1.5» o «-5»: no se guarda y se queda lo que había. Se dice bajo el número hasta que la persona toque otra cosa.
   const [rechazo, setRechazo] = useState<string | null>(null);
   const caja = useRef<HTMLInputElement>(null);
@@ -58,14 +61,19 @@ export function Dial({
     });
   }
 
-  // `abrirAlEntrar` también puede llegar después de montado: al agregar un modelo desde su hoja, el número se abre cuando la hoja ya se cerró y devolvió el cursor
-  // (tarea 4 de las 30 de Recibir, 2026-11-14). Se mira durante el dibujo, como `previo`.
+  // `abrirAlEntrar` también puede llegar después de montado: al agregar un modelo desde su hoja, el número se abre cuando la hoja ya se cerró y devolvió el cursor; y al
+  // volver a elegir en la lista el modelo que ya está aquí, aunque su número se haya cerrado con Escape o con un clic fuera (tarea 4 de las 30 de Recibir, 2026-11-14). Si estaba
+  // abierto con cifras, el clic en la fila ya lo dejó al salir de la caja (`onBlur`), como cualquier salida. Se mira durante el dibujo, como `previo`.
   const [pedido, setPedido] = useState(abrirAlEntrar);
+  // Un pedido que llega con el número todavía abierto le devuelve el cursor a la caja: lo que se teclee después no se pierde fuera de ella.
+  const [enfocar, setEnfocar] = useState(0);
   if (pedido !== abrirAlEntrar) {
     setPedido(abrirAlEntrar);
-    if (abrirAlEntrar && editando === null) {
-      setRechazo(null);
-      setEditando(hayConteo ? String(contadas) : "");
+    if (esPedidoNuevo(pedido, abrirAlEntrar)) {
+      if (editando === null) {
+        setRechazo(null);
+        setEditando(hayConteo ? String(contadas) : "");
+      } else setEnfocar((n) => n + 1);
     }
   }
 
@@ -75,7 +83,7 @@ export function Dial({
     hecho.current = false;
     caja.current.focus();
     caja.current.select();
-  }, [editando]);
+  }, [editando, enfocar]);
 
   function abrir() {
     hecho.current = false;
