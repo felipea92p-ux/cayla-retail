@@ -1,0 +1,4 @@
+## 2026-11-14 (Recibir: el margen a la vista, en soles y en %)
+Qué hice: tarea 8 de «Treinta tareas de Recibir». Una línea viva «Ganas S/ 34 · 48 %» (`<LineaMargen>`, cuenta pura en `lib/margen-a-la-vista.ts`) junto a costo y precio en la prenda nueva de Recibir, en «Llevar al stock» y en el cierre (solo con un costo y un precio únicos, y solo para quien ve el costo); verde, ámbar bajo 30 % y rojo bajo el costo, con ícono cuando no es verde. Nuevo producto pasa a Costo → Precio → Margen, con los soles bajo el %. «Revisar precio» ya no repite la cifra.
+Por qué: la reunión del 2026-11-13 pidió el costo primero, el precio al final y el margen bien distinguido; antes el margen solo salía bajo 30 % o con el costo cambiado.
+Cómo se verifica: al escribir un precio la línea cambia en vivo (probado en el navegador en claro y en oscuro, con los tres tonos); `lib/margen-a-la-vista.test.ts`. No cambia qué se guarda.

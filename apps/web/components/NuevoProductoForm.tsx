@@ -1,5 +1,6 @@
 "use client";
 
+import { LineaMargen } from "@/components/ui/LineaMargen";
 import { enterNoGuarda } from "@/components/ui/enterNoGuarda";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -1298,13 +1299,12 @@ export function NuevoProductoForm({
         </div>
       );
     }
-    // Paso 4: tres filas guiadas (ADR-0284) —precio y costo, las unidades de hoy, quién lo registra—. Antes eran tres bloques
+    // Paso 4: tres filas guiadas (ADR-0284) —costo y precio (en ese orden y con el margen al final, tarea 8 de Recibir), las unidades de hoy, quién lo registra—. Antes eran tres bloques
     // sueltos y nada decía que «cuántas hay hoy» (o «todavía no tengo») era una decisión obligatoria.
     return (
       <div>
-        <FilaAlta etiqueta="Precio y costo" ayuda="El costo es opcional" campo="precio" estado={est.precio}>
+        <FilaAlta etiqueta="Costo y precio" ayuda="El costo es opcional" campo="precio" estado={est.precio}>
           <div className="grid gap-4 sm:grid-cols-3">
-            <CampoMonto etiqueta="Precio de venta" pie="Para todas las tallas y colores" inputMode="decimal" placeholder="0.00" value={precioBase} onChange={(e) => setPrecioBase(limpiarPrecio(e.target.value))} />
             <CampoMonto
               etiqueta="Costo"
               pie={sugerido && !costoTocado ? `Sugerido: el último en ${categoria?.nombre} (${sugerido.referencia})` : "Opcional"}
@@ -1317,6 +1317,7 @@ export function NuevoProductoForm({
                 setCostoBase(limpiarPrecio(e.target.value));
               }}
             />
+            <CampoMonto etiqueta="Precio de venta" pie="Para todas las tallas y colores" inputMode="decimal" placeholder="0.00" value={precioBase} onChange={(e) => setPrecioBase(limpiarPrecio(e.target.value))} />
             <div>
               <p className="label-cayla text-[11px] text-tinta/65">Margen</p>
               <p
@@ -1326,6 +1327,8 @@ export function NuevoProductoForm({
               >
                 {margen === null ? "—" : `${margen.toFixed(0)} %`}
               </p>
+              {/* Tarea 8 de Recibir: el margen también en soles, con la misma cuenta y los mismos colores que la línea de Recibir. */}
+              {margen !== null && <LineaMargen costo={costoBase} precio={precioBase} soloSoles className="mt-1" />}
               <p className="mt-1 text-sm text-taupe">{margen === null ? "Con el costo, se calcula" : nivel ? etiquetaNivel[nivel] : ""}</p>
             </div>
           </div>

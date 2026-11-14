@@ -2077,7 +2077,7 @@ export const GUIA_RECIBIR_ENVIO: Guia = {
       opcional: true,
       requiere: ["recepcion.tabla-cierre"],
       titulo: "La etiqueta de cada prenda",
-      texto: "Cada prenda tiene su etiqueta: el precio que escribas ahí, o el costo, vale para todas sus tallas y colores, y debajo eliges si vale solo en tu tienda o en todas. «Distinto por talla o color» abre la matriz para cambiar una casilla, un color o una talla. En la demo no escribimos.",
+      texto: "Cada prenda tiene su etiqueta: el costo o el precio que escribas vale para todas sus tallas y colores, y eliges si vale solo en tu tienda o en todas. «Ganas S/\u00a0… · %» dice cuánto ganas por prenda. «Distinto por talla o color» abre la matriz. En la demo no escribimos.",
     },
     {
       // Solo en un envío sin aviso: el proveedor va en la cabecera de cada tarjeta, por marca (Felipe 2026-11-07).

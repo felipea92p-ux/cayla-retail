@@ -138,7 +138,7 @@
       "button «Cambiar»",
       "ComboBuscable «{id}»",
       "input «{`Costo de ${nombre}»",
-      "button «{textoRevisarAlRecibir(precioQueda, costoQueda, revisarPrecio)}»",
+      "button «{textoRevisarAlRecibir(revisarPrecio)}»",
       "button «{verDet ? \"Ocultar detalle\" : \"Ver detalle\"}»",
       "button «{`${abiertaEsta ? \"Esconder\" : \"Cambiar\"}»",
       "Boton «Contarla»",
