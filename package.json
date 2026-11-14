@@ -214,6 +214,7 @@
     "pruebas:monto-con-escalones": "node scripts/pruebas/monto_con_escalones.mjs",
     "pruebas:ofertas-por-insignia": "node scripts/pruebas/ofertas_por_insignia.mjs",
     "pruebas:cambio-mismo-modelo": "node scripts/pruebas/cambio_mismo_modelo.mjs",
+    "pruebas:aviso-dos-ofertas": "node scripts/pruebas/aviso_dos_ofertas.mjs",
     "pruebas:campana-con-ofertas": "node scripts/pruebas/campana_con_ofertas.mjs",
     "pruebas:tienda-ficha": "node scripts/pruebas/tienda_ficha.mjs",
     "pruebas:tienda-filtros": "node scripts/pruebas/tienda_filtros.mjs",

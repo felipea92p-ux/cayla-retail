@@ -1210,6 +1210,13 @@ export const GUIA_CAMPANAS: Guia = {
       texto: "Abre una ventana para crearla con su nombre y, si quieres, su dibujo y sus fechas. Después respondes sus tres preguntas. Antes mira si ya existe: una campaña que ya pasó se repite, no se crea de nuevo. En la demo no lo tocamos.",
     },
     {
+      id: "dos-ofertas",
+      ancla: "sellos.dos-ofertas",
+      opcional: true,
+      titulo: "Prendas con dos ofertas",
+      texto: "Sale cuando una prenda quedó con dos ofertas, por ejemplo al marcarla con una insignia. Mientras no elijas, la caja cobra la que más le ahorra al cliente. «Elegir cuál queda» abre los pares: lo que elijas vale para todas sus prendas.",
+    },
+    {
       id: "pila",
       ancla: "sellos.pila",
       titulo: "Una pila de pases",
