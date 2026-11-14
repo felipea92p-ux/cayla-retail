@@ -628,7 +628,7 @@ describe("Re stock, Producto nuevo y los estados del resumen", () => {
     const nombresDelFiltro = (ls: ReturnType<typeof lineas>, estado: "faltan-tallas" | "despues", enAhora: ReadonlySet<string>) =>
       categoriasDelFiltro(agruparLineas(ls), { ...SIN_FILTRO, estado }, null, enAhora).flatMap((c) => c.paradas).map(nombreDeParada);
 
-    it("«Faltan tallas» junta lo que lleva el aviso ámbar: contado, sin tallas y pedido para ahora", () => {
+    it("«Faltan tallas» junta lo contado, sin tallas y pedido para ahora", () => {
       const ps = paradasDe(lineas());
       const enAhora = enAhoraDe(ps, "Vestido Antonella");
       expect(ps.filter((p) => faltanTallas(p, enAhora)).map(nombreDeParada)).toEqual(["Vestido Antonella"]);
@@ -639,6 +639,29 @@ describe("Re stock, Producto nuevo y los estados del resumen", () => {
       expect(cifras.estados.despues).toBe(1);
       // Sin saber qué se pidió para ahora, nada lleva el aviso: todo lo contado sin tallas es «para después», como en producción.
       expect(ps.some((p) => faltanTallas(p))).toBe(false);
+    });
+
+    it("un modelo de un envío con aviso entra en «Faltan tallas» aunque su fila diga «Faltan N» o «Sobran N»", () => {
+      const conTallas = [{ variante_id: "v1", cantidad: 4, danadas: 0, danada_solucion: null, talla: "S", color: "Negro", codigo: null }];
+      // La fila lleva UN solo aviso, el más urgente: «Faltan 6» (a medias) o «Sobran 2» van antes que el ámbar «Faltan tallas» (`EstadoModelo`). La regla, en cambio, es de lo contado sin
+      // tallas que se pidió repartir ahora: ese modelo está igual en el filtro, en el número de la píldora y en el pie, y no en «Tallas para después». Si el filtro se limitara a las filas
+      // con el aviso ámbar, quedaría fuera de los dos filtros de tallas.
+      for (const [contadas, estado] of [[4, "a-medias"], [12, "sobran"]] as const) {
+        // Sofía vino anotada por 10, sin tallas y pedida para ahora; Lima ya tiene sus tallas y es desde donde se mira.
+        const ls = [
+          deLaGuia(sofia({ enviado: 10 }), { contadas, separado: { prendas: [prendaSep("p-sofia", "Vestido Sofía", contadas)], nuevas: [] } }),
+          deLaGuia(lima(), { contadas: 4, separado: { prendas: [prendaSep("p-lima", "Vestido Lima", 4, conTallas)], nuevas: [] } }),
+        ];
+        const ps = paradasDe(ls);
+        expect(ps.find((p) => nombreDeParada(p) === "Vestido Sofía")?.modelo).toMatchObject({ esperadas: 10, contadas, estado, conTallas: false });
+        const enAhora = enAhoraDe(ps, "Vestido Sofía");
+        expect(nombresDelFiltro(ls, "faltan-tallas", enAhora)).toEqual(["Vestido Sofía"]);
+        expect(nombresDelFiltro(ls, "despues", enAhora)).toEqual([]);
+        const cifras = cifrasDelResumen(categoriasDelEnvio(agruparLineas(ls)), enAhora);
+        expect(cifras.estados["faltan-tallas"]).toBe(1);
+        expect(cifras.estados.despues).toBe(0);
+        expect(nombreDeParada(siguienteFaltanTallas(ps, claveDe(ps, "Vestido Lima"), enAhora)!)).toBe("Vestido Sofía");
+      }
     });
 
     it("ningún modelo está en los dos, con cualquier reparto de «ahora» y «después»", () => {
@@ -658,7 +681,7 @@ describe("Re stock, Producto nuevo y los estados del resumen", () => {
       }
     });
 
-    it("el pie lleva al siguiente con el aviso, da la vuelta y no nombra el que se mira", () => {
+    it("el pie lleva al siguiente de «Faltan tallas», da la vuelta y no nombra el que se mira", () => {
       const conTallas = [{ variante_id: "v1", cantidad: 4, danadas: 0, danada_solucion: null, talla: "S", color: "Negro", codigo: null }];
       const ls = [...lineas().slice(0, 2), deLaGuia(lima(), { contadas: 4, separado: { prendas: [prendaSep("p-lima", "Vestido Lima", 4, conTallas)], nuevas: [] } })];
       const ps = paradasDe(ls);

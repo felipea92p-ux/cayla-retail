@@ -440,7 +440,7 @@ export function ContarEnvio({
     for (const c of r.cambios) onEscribir(c.linea, { contadas: c.contadas, separado: c.separado });
   }
 
-  // El aviso ámbar de la fila y del contador: la misma regla que el filtro «Faltan tallas» y el pie, para que los tres digan lo mismo.
+  // El aviso ámbar de la fila y del contador usa la misma regla que el filtro «Faltan tallas» y el pie. Una fila lleva UN solo aviso (`EstadoModelo`): si le toca otro, el modelo está igual en el filtro y en el pie.
   const conFaltanTallas = (p: ParadaDelConteo): boolean => faltanTallas(p, enAhora);
   const coloresOrden = (catalogo?.colores ?? []).map((c) => c.codigo);
   const tallasDeLaCategoria = (g: GrupoDeLineas) => catalogo?.categorias.find((c) => c.id === g.principal.categoria?.id)?.tallas ?? [];
@@ -705,7 +705,7 @@ export function ContarEnvio({
 
   // «Revisar y cerrar» pasa a ser el botón principal recién cuando ya no queda nada por contar: hasta ahí lo principal es «Listo, siguiente».
   const todoContado = cifras.estados["por-contar"] === 0 && puedeCerrar;
-  // La segunda pasada (tarea 10 de las 30 de Recibir, 2026-11-14): con todo contado, el pie del contador lleva al siguiente modelo con el aviso «Faltan tallas». Con un filtro o una
+  // La segunda pasada (tarea 10 de las 30 de Recibir, 2026-11-14): con todo contado, el pie del contador lleva al siguiente modelo del filtro «Faltan tallas». Con un filtro o una
   // búsqueda puestos, solo entre lo que la lista muestra. Es una sugerencia: no frena el cierre.
   const faltanTallasEn = todoContado && parada ? siguienteFaltanTallas(paradasDelEnvio, parada.clave, enAhora, hayFiltro(filtro) ? paradas : null) : null;
   const faltaFotoDeFactura = papeles.some((p) => !p.fotoRuta);

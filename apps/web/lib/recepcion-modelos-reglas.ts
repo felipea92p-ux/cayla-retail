@@ -549,9 +549,11 @@ const contadoSinTallas = (p: ParadaDelConteo): boolean => !!p.modelo && p.modelo
 export const tallasParaDespues = (p: ParadaDelConteo, enAhora?: ReadonlySet<string>): boolean => contadoSinTallas(p) && !enAhora?.has(p.clave);
 
 /**
- * El aviso ámbar «Faltan tallas» de la fila y del contador, el filtro del mismo nombre y el pie «Faltan tallas: <modelo>» (tarea 10 de las 30 de Recibir, 2026-11-14): lo contado sin
- * tallas que la persona pidió repartir ahora (`enAhora`). Es una sola regla para los tres, así el filtro junta justo las filas que llevan el aviso. Con «Tallas para después» se
- * reparten lo contado sin tallas: ningún modelo está en los dos. Las tallas no frenan el cierre: esto ordena, no obliga.
+ * Lo contado sin tallas que la persona pidió repartir ahora (`enAhora`): la regla del filtro «Faltan tallas», de su número en la píldora y del pie «Faltan tallas: <modelo>» (tarea 10 de las
+ * 30 de Recibir, 2026-11-14), y también la del aviso ámbar de la fila y del contador. Pero la fila muestra UN solo aviso, el más urgente (`EstadoModelo`): antes del ámbar van «Falta su
+ * nombre» y, en un envío con aviso, «Sobran N» y «Faltan N». Un modelo con uno de esos avisos está igual en el filtro, en la píldora y en el pie: si el filtro se limitara a las filas con el
+ * ámbar, un modelo contado y sin tallas no entraría en ninguno de los dos filtros de tallas. Con «Tallas para después» se reparten lo contado sin tallas: ningún modelo está en los dos.
+ * Las tallas no frenan el cierre: esto ordena, no obliga.
  */
 export const faltanTallas = (p: ParadaDelConteo, enAhora?: ReadonlySet<string>): boolean => contadoSinTallas(p) && !!enAhora?.has(p.clave);
 
@@ -633,8 +635,8 @@ export function siguientePendiente(paradas: readonly ParadaDelConteo[], clave: s
 }
 
 /**
- * Con todo contado, a qué modelo lleva «Faltan tallas» en el pie del contador (tarea 10 de las 30 de Recibir, 2026-11-14): el siguiente con el aviso ámbar (`faltanTallas`) desde lo
- * que se mira, dando la vuelta, igual que `siguientePendiente`. Lo que se está mirando no cuenta: su aviso ya lo dice. Con un filtro o una búsqueda puestos se busca solo en lo que la
+ * Con todo contado, a qué modelo lleva «Faltan tallas» en el pie del contador (tarea 10 de las 30 de Recibir, 2026-11-14): el siguiente del filtro del mismo nombre (`faltanTallas`) desde lo
+ * que se mira, dando la vuelta, igual que `siguientePendiente`. Lo que se está mirando no cuenta: ya está en el contador. Con un filtro o una búsqueda puestos se busca solo en lo que la
  * lista muestra (`aLaVista`): el pie no lleva a algo que el filtro esconde, y sin nada ahí dice «Es el último de lo que filtraste». `null` si no queda ninguno.
  */
 export function siguienteFaltanTallas(

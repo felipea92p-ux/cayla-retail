@@ -1940,7 +1940,7 @@ export const GUIA_RECIBIR_ENVIO: Guia = {
       opcional: true,
       requiere: [CONTADOR_A_LA_VISTA],
       titulo: "Lo que falta y cerrar",
-      texto: "Abajo dice qué modelo falta contar y, con todo contado, cuál está en «Faltan tallas»: tócalo y vas a él. Lo de «Tallas para después» no lo pide. A la derecha, «Revisar y cerrar». Con el número abierto, Enter pasa al siguiente modelo y lo deja listo para escribir: cuentas todo sin soltar el teclado.",
+      texto: "Abajo dice qué modelo falta contar y, con todo contado, a cuál le faltan tallas: tócalo y vas a él. Lo de «Tallas para después» no lo pide. A la derecha, «Revisar y cerrar». Con el número abierto, Enter pasa al siguiente modelo y lo deja listo para escribir: cuentas todo sin soltar el teclado.",
     },
     {
       id: "que-hacer",

@@ -4,15 +4,15 @@ Hecho y probado en el navegador contra el código de `main`, con un envío de pr
 
 - [x] **Tarea 4.** El número llega listo al elegir o agregar un modelo sin contar (solo con mouse), y «quién recibe» se recuerda en las tres puertas (`recordarQuienRecibe`).
 - [x] **Tarea 5.** Enter y ↓ bajan por la talla, ↑ y Shift+Enter suben, Enter al fondo pasa a la talla siguiente (`columnasDeLaTabla` + `celdaVecina`), y en la última el cursor va a «Llevar al stock ahora».
-- [x] **Tarea 10.** «Tallas para después» sigue como en producción, y «Faltan tallas» se suma como filtro aparte (`faltanTallas`: lo que lleva el aviso ámbar). Con todo contado el pie dice «Faltan tallas: <modelo>» (`siguienteFaltanTallas`), solo entre lo que la lista muestra si hay un filtro puesto. La primera versión había reemplazado un filtro por el otro; se corrigió a pedido de Felipe («no quites funcionalidades ni filtros»).
-- [x] Tarea 4, corrección: tocar en la lista el modelo que ya está en el contador (sin contar) vuelve a abrir su número, también tras cerrarlo con Escape o un clic fuera (`esPedidoNuevo`, `abreAlElegir`).
+- [x] **Tarea 10.** «Tallas para después» sigue como en producción, y «Faltan tallas» se suma como filtro aparte (`faltanTallas`: lo contado sin tallas que se pidió repartir ahora; su fila puede mostrar otro aviso, el más urgente). Con todo contado el pie dice «Faltan tallas: <modelo>» (`siguienteFaltanTallas`), solo entre lo que la lista muestra si hay un filtro puesto. La primera versión había reemplazado un filtro por el otro; se corrigió a pedido de Felipe («no quites funcionalidades ni filtros»).
+- [x] Tarea 4, corrección: tocar en la lista el modelo que ya está en el contador (sin contar) vuelve a abrir su número, también tras cerrarlo con Escape o un clic fuera, solo si sigue sin contar y se usa el mouse (`esPedidoNuevo`, `abreAlElegir`); con una cifra a medio escribir no: ver «Pendientes de esta rama», abajo.
 - [x] Tarea 5, corrección: Enter en la última casilla solo salta al botón del pie cuando el reparto cuadra (`enterSaleDeLaTabla`); a medias, el cursor se queda.
 - [x] El cursor vuelve a la primera casilla al abrir la hoja de tallas (roto desde el #1793).
 
 Pendiente:
 
 - [ ] Abrir el PR con `/abrir-pr`. Los commits están solo en la rama local.
-- [ ] Probar a mano, sin navegador automático (Felipe pidió no abrir más ventanas): los dos filtros de tallas con un modelo pedido «ahora» y otro «para después»; el pie con «Por llevar al stock» puesto; volver a tocar el modelo del contador tras Escape; Enter en la última casilla con el reparto a medias y completo. Lo cubren pruebas de reglas, no el navegador.
+- [x] Probar los dos filtros de tallas con un modelo pedido «ahora» y otro «para después»; el pie con un filtro puesto; volver a tocar el modelo del contador tras Escape; Enter en la última casilla con el reparto a medias y completo. Hecho el 14-nov en pantalla, con un navegador sin ventana (ver abajo). Las pruebas cubren las reglas; el texto del pie no tiene prueba de pantalla.
 - [ ] «Quién recibe» sin probar en el navegador con una cuenta de terminal y asistencia marcada (lo cubre `lib/responsable-conteo.test.ts`).
 - [ ] El aviso «Toca el número para escribirlo» (`PlacaDelModelo.tsx`) quedó viejo cuando el número ya llega abierto. Es un texto de la pantalla: decidir qué dice.
 - [ ] `/chaos` sobre Contar con estos cambios (doble Enter, dos pestañas, red caída al teclear). No se corrió: la base local es compartida y otra sesión tiene un caso a medias.
@@ -20,3 +20,30 @@ Pendiente:
 - [ ] El anillo de foco del enlace «Faltan tallas: …» quedó sin medir (el medidor pide teclado real). Es la pieza `btn-enlace`, igual que «Falta contar: …».
 - [ ] Medir el efecto contra la mediana por reposición (9 min), no contra la de modelo nuevo: desde el 13-nov la foto se puede subir dentro de la hoja de crear. Es la tarea 1.
 - [ ] Toca `apps/web/components/recepcion-conteo/` y `lib/`: nada de `components/ui/` ni de `app/estilos/vidrio/`. No cambia el diseño de Dynamic.
+
+## Verificado en pantalla el 14-nov (navegador sin ventana, envío de prueba ya anulado)
+
+Verificado y pasa:
+
+- [x] El número llega abierto al elegir un modelo sin contar y se reabre al volver a elegirlo, con el número vacío (con mouse; con el dedo no se abre solo): 3 de 3 veces tras Escape y 3 de 3 tras un clic fuera.
+- [x] Enter recorre la tabla de tallas, se queda en la última casilla si faltan o sobran y sale al botón del pie solo cuando cuadra. Lo repartido queda guardado tras recargar.
+- [x] Los filtros salen «Por contar · Faltan tallas · Tallas para después · Por llevar al stock» y no comparten modelos. «Tallas para después» y «Por llevar al stock» dan lo mismo que el servidor con el código publicado.
+- [x] El pie «Faltan tallas: X» nunca nombra el modelo que se mira ni uno que la lista no muestra.
+- [x] En Nuevo producto, Enter pasa de casilla y no envía el formulario.
+- [x] Movimientos de stock: 295 antes y 295 después.
+
+Pendientes de esta rama (decisión de Felipe):
+
+- [ ] Con una cifra a medio escribir, tocar la fila guarda lo tecleado y el número no se reabre: lo que se teclea después no entra en ningún lado. En producción pasaba lo mismo (volver a elegir no reabría nada), así que no es una regresión.
+- [ ] Mirando el único modelo al que le faltan tallas, el pie dice «Todo contado: revisa y cierra.»
+- [ ] Una fila puede decir «Falta su nombre» o, en un envío con aviso, «Faltan N» o «Sobran N», y estar en el filtro «Faltan tallas»: la fila lleva un solo aviso, el más urgente.
+
+Ya pasaba en producción (no es de esta rama):
+
+- [ ] Enter pasa al siguiente modelo de la lista aunque ya esté contado, y su número se abre con la cifra seleccionada: la próxima tecla la reemplaza.
+- [ ] Un filtro sin resultados sigue mostrando el modelo que se mira.
+- [ ] «Falta contar: X» del pie no respeta el filtro puesto.
+- [ ] «Dejar para después» no sobrevive a recargar la pantalla.
+- [ ] Al recargar, la tabla de tallas muestra solo los colores con cifra.
+
+Sin verificar: un envío con aviso en pantalla, «quién recibe» con una cuenta de terminal, un teléfono real, `/chaos` y `/formidable`.

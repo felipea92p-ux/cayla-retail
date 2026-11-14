@@ -59,7 +59,8 @@ export const abreAlElegir = ({ pidio, contada, conMouse }: { pidio: boolean; con
 
 /**
  * El Dial recibe cada pedido de abrir su número con un número propio, siempre distinto del anterior (0 = ninguno). Un pedido es nuevo si no es el que ya vio: así elegir otra vez el
- * MISMO modelo, el que ya estaba en el contador, vuelve a abrir su número aunque se haya cerrado con Escape o con un clic fuera. Antes se pedía con la llave del modelo, y pedir dos
- * veces lo mismo no cambiaba nada: el cursor se quedaba en la fila y lo tecleado se perdía sin aviso.
+ * MISMO modelo, el que ya estaba en el contador, vuelve a abrir su número aunque se haya cerrado con Escape o con un clic fuera, siempre que siga sin contar y se use el mouse
+ * (`abreAlElegir`): con una cifra ya tecleada, tocar la fila la guarda al salir de la caja, el modelo queda contado y su número no se reabre solo. Antes se pedía con la llave del
+ * modelo, y pedir dos veces lo mismo no cambiaba nada: el cursor se quedaba en la fila y lo tecleado se perdía sin aviso.
  */
 export const esPedidoNuevo = (visto: number, pedido: number): boolean => pedido > 0 && pedido !== visto;
