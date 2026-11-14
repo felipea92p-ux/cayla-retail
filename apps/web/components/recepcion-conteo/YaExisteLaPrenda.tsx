@@ -17,7 +17,7 @@ import type { ControlResponsable } from "@/lib/useResponsable";
 // Solo se elige dentro de la marca anotada, porque la base no deja mezclar marcas en una línea; una prenda con ese nombre en otra marca se avisa, para no crearla repetida.
 //
 // La categoría y la marca sí se corrigen aquí, con el envío cerrado (Felipe 2026-11-06 y 2026-11-07): se anotó «Polos» y era un top, o «Sin marca» y sí tenía; o el
-// aviso decía jeans y llegaron shorts (ahí se corrige la línea entera del aviso, que siempre lleva marca). Cambiar un combo solo busca, no guarda nada; el modelo pasa a su categoría y su marca al confirmar (`cambiar_linea_de_pendiente`). Tocar una tarjeta de la galería la elige ahí mismo (2026-11-14, tarea 9); su ficha queda a un toque, «Ver ficha», para cuando haya duda.
+// aviso decía jeans y llegaron shorts (ahí se corrige la línea entera del aviso). «Sin marca» se elige siempre, también en una línea del aviso (Felipe 2026-11-14, 20261114205000). Cambiar un combo solo busca, no guarda nada; el modelo pasa a su categoría y su marca al confirmar (`cambiar_linea_de_pendiente`). Tocar una tarjeta de la galería la elige ahí mismo (2026-11-14, tarea 9); su ficha queda a un toque, «Ver ficha», para cuando haya duda.
 
 export function YaExisteLaPrenda({
   categoria: categoriaAnotada,
@@ -28,7 +28,6 @@ export function YaExisteLaPrenda({
   comoCorregirMarca,
   categorias = [],
   marcas = [],
-  conSinMarca = true,
   responsable,
   proveedorIds = [],
   precio = null,
@@ -53,8 +52,6 @@ export function YaExisteLaPrenda({
   categorias?: readonly CategoriaDeLinea[];
   /** Las marcas a las que se puede pasar (con «Sin marca» siempre). Vacío: la marca no se cambia aquí. */
   marcas?: readonly { id: string; nombre: string }[];
-  /** `false` en una línea del aviso: siempre lleva marca. */
-  conSinMarca?: boolean;
   /** Quién firma el cambio. */
   responsable?: ControlResponsable;
   /** Los proveedores del modelo: lo que ya mandaron sale primero en la galería. */
@@ -170,7 +167,7 @@ export function YaExisteLaPrenda({
                   valor={marca.id ?? ""}
                   onValor={elegirMarca}
                   deshabilitado={guardando}
-                  opciones={[...(conSinMarca ? [{ valor: "", texto: "Sin marca" }] : []), ...marcas.map((m) => ({ valor: m.id, texto: m.nombre }))]}
+                  opciones={[{ valor: "", texto: "Sin marca" }, ...marcas.map((m) => ({ valor: m.id, texto: m.nombre }))]}
                   sinPie
                 />
               )}

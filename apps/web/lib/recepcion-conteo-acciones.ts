@@ -213,10 +213,11 @@ export async function cambiarLineaDePendiente(
 
 /**
  * Mientras se cuenta: pasa las líneas de la compra de un modelo «por crear» a su categoría y su marca de verdad, con lo contado (Felipe 2026-11-12,
- * 20261112162000). Con el envío cerrado es `cambiarLineaDePendiente`. No toca la orden, la factura, el proveedor, el stock ni los costos.
+ * 20261112162000). `p_marca_id` nulo = sin marca (Felipe 2026-11-14, 20261114205000). Con el envío cerrado es `cambiarLineaDePendiente`. No toca la orden,
+ * la factura, el proveedor, el stock ni los costos.
  */
 export async function corregirLineaAlContar(
-  args: { p_despacho_id: string; p_despacho_item_ids: string[]; p_categoria_id: string; p_marca_id: string },
+  args: { p_despacho_id: string; p_despacho_item_ids: string[]; p_categoria_id: string; p_marca_id: string | null },
   firma: Firma | null,
 ): Promise<{ error: ErrorDeBase }> {
   const { error } = (await firmar(createClient().rpc(RPC_CORREGIR_LINEA_AL_CONTAR as never, args as never), firma)) as Respuesta;

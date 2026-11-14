@@ -1061,9 +1061,11 @@ export function ContarEnvio({
           categoria={paradaACorregir.grupo.principal.categoria}
           marca={marcaDeLinea(paradaACorregir.grupo.principal)}
           proveedorId={paradaACorregir.grupo.principal.proveedor?.id ?? null}
+          proveedores={proveedores}
           catalogo={catalogo}
           responsable={responsable}
           esperandoGuardar={esperandoGuardar}
+          onMarcaNueva={onMarcaNueva}
           onCorregido={({ categoriaId, marcaId }) => {
             // El modelo pasa a otro grupo («proveedor|categoría|marca»): se le sigue el rastro para no perderlo de la vista al releer.
             setFoco(claveTrasCorregir(paradaACorregir, categoriaId, marcaId));
