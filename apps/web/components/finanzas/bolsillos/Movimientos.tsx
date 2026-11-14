@@ -131,9 +131,10 @@ export async function Movimientos({ periodo, hoy, hrefFlujo }: { periodo: Period
 }
 
 /** Lo que se ve mientras llegan los movimientos: el esqueleto de la sección, nunca el loader de pantalla completa (ADR-0149). */
-export function MovimientosEsperando() {
+export function MovimientosEsperando({ alto }: { alto?: number }) {
+  // `alto`: lo que la sección suele medir (Resumen por bloques, ADR-0661), para que al llegar no empuje lo de abajo.
   return (
-    <section className="fin-superficie fin-pad movs" aria-busy="true" aria-label="Movimientos, cargando">
+    <section className="fin-superficie fin-pad movs" aria-busy="true" aria-label="Movimientos, cargando" style={alto ? { minHeight: alto } : undefined}>
       <TituloSeccion>Movimientos</TituloSeccion>
       <div className="parecidas-esqueleto mt-3">
         <i />
