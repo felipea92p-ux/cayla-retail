@@ -416,3 +416,19 @@ describe("envíos a medias", () => {
     expect(avisosInicio({ enviosAMedias: null }).some((x) => x.clave === "enviosAMedias")).toBe(false);
   });
 });
+
+// ADR-0660 (Felipe 2026-11-13): «un aviso en pantalla. Ejemplo: 3 productos a la espera de definir categoría».
+describe("Te toca: prendas por definir", () => {
+  const sinCat = { categoriaPorDefinir: true, precioPorDefinir: false };
+  it("cuenta cada modelo, dice lo que espera y lleva a la lista de Revisar compras", () => {
+    const [a] = avisosInicio({ porDefinir: [sinCat, sinCat, { categoriaPorDefinir: true, precioPorDefinir: true }] });
+    expect(a).toMatchObject({ clave: "porDefinir", grupo: "Compras", titulo: "Prendas por definir", cantidad: 3, nivel: "toca", href: "/compras/fondos#por-definir", ocultable: true });
+    expect(a!.detalle).toBe("3 prendas a la espera de definir categoría · 1 también espera su precio");
+    expect(a!.ahora).toBe("Define 3 prendas de Mis compras");
+  });
+  it("sin nada, al día; sin leer, lo dice; sin la función o sin el módulo, no existe", () => {
+    expect(avisosInicio({ porDefinir: [] })[0]).toMatchObject({ nivel: "aldia", ahora: "" });
+    expect(avisosInicio({ porDefinir: null })[0]).toMatchObject({ nivel: "sinleer", cantidad: null });
+    expect(avisosInicio({}).some((x) => x.clave === "porDefinir")).toBe(false);
+  });
+});

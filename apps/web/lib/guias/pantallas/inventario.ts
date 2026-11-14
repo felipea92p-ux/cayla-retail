@@ -1918,6 +1918,13 @@ export const GUIA_RECIBIR_ENVIO: Guia = {
       texto: "Las categorías y sus modelos se ordenan por lo que anotó Compras: de menos a más o de más a menos. Si tocas otra vez la misma, vuelven al orden de la compra. «Listo, siguiente» sigue este orden.",
     },
     {
+      id: "por-definir",
+      ancla: "recepcion.por-definir",
+      opcional: true,
+      titulo: "Llegó por definir",
+      texto: "Compras la anotó sin saber qué es. Antes de contarla, toca «Decir qué es» y elige su categoría y su marca: la compra se queda con eso.",
+    },
+    {
       id: "numero",
       ancla: "recepcion.numero",
       opcional: true,

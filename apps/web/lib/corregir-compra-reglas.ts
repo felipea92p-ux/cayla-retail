@@ -1,4 +1,4 @@
-import { faltaEnPaso, leerCantidad, leerPrecio, leerPrecioVenta, type MedioPagoCompra } from "./compra-rapida-reglas";
+import { TEXTO_POR_DEFINIR, faltaEnPaso, leerCantidad, leerPrecio, leerPrecioVenta, type MedioPagoCompra } from "./compra-rapida-reglas";
 import { leerMontoPlata } from "./monto-plata-reglas";
 import { soles } from "./compras-reglas";
 
@@ -83,7 +83,8 @@ export function leerCompraParaCorregir(data: unknown): CompraParaCorregir | null
       id: lid,
       nombre: texto(l.descripcion) ?? texto(l.categoria) ?? "Prenda",
       categoriaId: texto(l.categoria_id) ?? "",
-      categoria: texto(l.categoria) ?? "",
+      // Sin categoría: se anotó «por definir» (ADR-0660), y así se dice.
+      categoria: texto(l.categoria) ?? (texto(l.categoria_id) ? "" : TEXTO_POR_DEFINIR),
       marcaId: texto(l.marca_id) ?? "",
       marca: texto(l.marca) ?? "",
       destinoId: texto(l.destino_id),
@@ -187,8 +188,10 @@ export function problemasDePrenda(
   const nombre = b.nombre.trim();
   return {
     nombre: p.esCatalogo ? null : nombre === "" ? "Escribe el nombre de la prenda" : nombre.length > NOMBRE_MAXIMO ? `El nombre llega hasta ${NOMBRE_MAXIMO} letras` : null,
-    categoria: p.esCatalogo || b.categoriaId !== "" ? null : "Elige la categoría",
-    marca: p.esCatalogo || b.marcaId !== "" ? null : "Elige la marca",
+    // Lo que ya venía sin categoría («por definir», ADR-0660) o sin marca (opcional desde el 2026-11-11) puede seguir así: corregir otra cosa
+    // no obliga a definirlo. Lo que sí tenía no se vacía.
+    categoria: p.esCatalogo || b.categoriaId !== "" || p.categoriaId === "" ? null : "Elige la categoría",
+    marca: p.esCatalogo || b.marcaId !== "" || p.marcaId === "" ? null : "Elige la marca",
     tienda: !puedeCambiarDeTienda(p) || b.destinoId !== "" ? null : "Elige a qué tienda va",
     cantidad:
       cantidad == null

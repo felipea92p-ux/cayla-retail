@@ -22,6 +22,10 @@ export const CARPETA_PAPELES = "papeles/";
 /** Cuántos habituales se ven antes de «Ver todos los suyos» (la maqueta aprobada). */
 export const HABITUALES_A_LA_VISTA = 6;
 
+/** Lo que se dice de una prenda que todavía no sabe qué es, y de una que espera su precio de venta (ADR-0660, Felipe 2026-11-13). */
+export const TEXTO_POR_DEFINIR = "Por definir";
+export const TEXTO_PRECIO_EN_ESPERA = "A la espera de precio sugerido";
+
 /** Cuántos proveedores se dibujan de entrada, y cuántos más cada vez que se llega al final de la lista (Felipe 2026-10-23). */
 export const PROVEEDORES_POR_TANDA = 10;
 
@@ -261,7 +265,8 @@ export type Habitual = {
   clave: string;
   productoId: string | null;
   nombre: string;
-  categoriaId: string;
+  /** Vacía solo en una prenda de «Algo nuevo» anotada «por definir» (ADR-0660): las de la base siempre traen la suya. */
+  categoriaId: string | null;
   categoria: string;
   marcaId: string | null;
   marca: string | null;
@@ -319,6 +324,7 @@ export function leerHabituales(data: unknown): Habitual[] {
 export function categoriasDeHabituales(lista: readonly Habitual[]): { id: string; nombre: string; cuantos: number }[] {
   const porId = new Map<string, { id: string; nombre: string; cuantos: number }>();
   for (const h of lista) {
+    if (h.categoriaId === null) continue;
     const c = porId.get(h.categoriaId) ?? { id: h.categoriaId, nombre: h.categoria, cuantos: 0 };
     c.cuantos += 1;
     porId.set(h.categoriaId, c);
@@ -336,7 +342,7 @@ export function piezasDeFila(h: Habitual | null, suyas: readonly LineaCompra[]):
   if (primera) {
     return [
       { etiqueta: "Te costó", valor: soles(primera.costo) },
-      ...(primera.venta != null ? [{ etiqueta: "vendes", valor: soles(primera.venta) }] : []),
+      ...(primera.venta != null ? [{ etiqueta: "vendes", valor: soles(primera.venta) }] : primera.precioPorDefinir ? [{ etiqueta: "vendes", valor: "a la espera" }] : []),
     ];
   }
   if (!h) return [];
@@ -407,7 +413,8 @@ export type LineaCompra = {
   /** La clave del habitual del que salió (para decir «Ya va» en su tarjeta). */
   clave: string;
   productoId: string | null;
-  categoriaId: string;
+  /** Vacía = «por definir» (ADR-0660): la define quien compró, Compras o la tienda al recibirla. */
+  categoriaId: string | null;
   marcaId: string | null;
   nombre: string;
   categoria: string;
@@ -415,6 +422,8 @@ export type LineaCompra = {
   cantidad: number;
   costo: number;
   venta: number | null;
+  /** Sin precio de venta a propósito: «a la espera de precio sugerido» (ADR-0660). */
+  precioPorDefinir: boolean;
   destinoId: string;
 };
 
@@ -476,6 +485,8 @@ export type BorradorPrenda = {
   cantidad: string;
   costo: string;
   venta: string;
+  /** «A la espera de precio sugerido» (ADR-0660): se anota sin precio de venta, a propósito. Solo en una prenda que no es del catálogo. */
+  ventaPorDefinir?: boolean;
   destinos: string[];
   reparto: Record<string, string>;
   repartoPropio?: boolean;
@@ -517,7 +528,13 @@ export function camposPrenda(b: BorradorPrenda, admitePrecioCero = true): CampoD
   return [
     { id: "cantidad", nombre: "Cuántas unidades", requerido: true, hecho: faltaEnPaso("cantidad", b.cantidad) === null, pendiente: "Escribe cuántas unidades compraste." },
     { id: "costo", nombre: "Costo", requerido: true, hecho: faltaEnPaso("costo", b.costo) === null, pendiente: "Escribe cuánto te costó cada una." },
-    { id: "venta", nombre: "Venta", requerido: true, hecho: faltaEnPaso("venta", b.venta, admitePrecioCero) === null, pendiente: faltaEnPaso("venta", b.venta, admitePrecioCero) ?? "Escribe a cuánto se vende." },
+    {
+      id: "venta",
+      nombre: "Venta",
+      requerido: true,
+      hecho: b.ventaPorDefinir === true || faltaEnPaso("venta", b.venta, admitePrecioCero) === null,
+      pendiente: faltaEnPaso("venta", b.venta, admitePrecioCero) ?? "Escribe a cuánto se vende, o déjala a la espera de precio.",
+    },
     { id: "tienda", nombre: "Tienda", requerido: true, hecho: b.destinos.length > 0, pendiente: "Elige a qué tienda va." },
     ...(b.destinos.length >= 2
       ? [{ id: "reparto", nombre: "Reparto", requerido: true, hecho: problemaReparto(b) === null, pendiente: problemaReparto(b) ?? "" }]
@@ -526,7 +543,8 @@ export function camposPrenda(b: BorradorPrenda, admitePrecioCero = true): CampoD
 }
 
 /** «Por cada una ganas S/ 22.40»: la venta menos el costo, si los dos se leen. */
-export function gananciaPorPrenda(b: Pick<BorradorPrenda, "costo" | "venta">, admitePrecioCero = true): number | null {
+export function gananciaPorPrenda(b: Pick<BorradorPrenda, "costo" | "venta" | "ventaPorDefinir">, admitePrecioCero = true): number | null {
+  if (b.ventaPorDefinir) return null;
   const costo = leerPrecio(b.costo);
   const venta = leerPrecioVenta(b.venta, admitePrecioCero);
   return costo == null || venta == null ? null : Math.round((venta - costo) * 100) / 100;
@@ -547,21 +565,37 @@ export function textoAgregarPrenda(b: Pick<BorradorPrenda, "cantidad" | "costo">
 export function lineasDeBorrador(h: Pick<Habitual, "clave" | "productoId" | "categoriaId" | "marcaId" | "nombre" | "categoria" | "marca">, b: BorradorPrenda, admitePrecioCero = true): LineaCompra[] {
   const cantidad = leerCantidad(b.cantidad);
   const costo = leerPrecio(b.costo);
-  const venta = leerPrecioVenta(b.venta, admitePrecioCero);
-  if (cantidad == null || costo == null || venta == null || b.destinos.length === 0 || problemaReparto(b) !== null) return [];
-  const comun = { clave: h.clave, productoId: h.productoId, categoriaId: h.categoriaId, marcaId: h.marcaId, nombre: h.nombre, categoria: h.categoria, marca: h.marca, costo, venta };
+  // «A la espera de precio» solo en una prenda que no es del catálogo (ADR-0660; la base lo exige igual).
+  const espera = b.ventaPorDefinir === true && h.productoId === null;
+  const venta = espera ? null : leerPrecioVenta(b.venta, admitePrecioCero);
+  if (cantidad == null || costo == null || (venta == null && !espera) || b.destinos.length === 0 || problemaReparto(b) !== null) return [];
+  const comun = {
+    clave: h.clave,
+    productoId: h.productoId,
+    categoriaId: h.categoriaId,
+    marcaId: h.marcaId,
+    nombre: h.nombre,
+    categoria: h.categoria,
+    marca: h.marca,
+    costo,
+    venta,
+    precioPorDefinir: espera,
+  };
   if (b.destinos.length === 1) return [{ ...comun, cantidad, destinoId: b.destinos[0] }];
   return b.destinos.map((d) => ({ ...comun, cantidad: leerCantidad(b.reparto[d] ?? "") ?? 0, destinoId: d }));
 }
 
 /** Corregir una prenda que ya va: junta sus líneas (una por tienda) de vuelta en un borrador. */
-export function borradorDeLineas(lineas: readonly LineaCompra[]): Pick<BorradorPrenda, "cantidad" | "costo" | "venta" | "destinos" | "reparto" | "repartoPropio"> {
+export function borradorDeLineas(
+  lineas: readonly LineaCompra[],
+): Pick<BorradorPrenda, "cantidad" | "costo" | "venta" | "ventaPorDefinir" | "destinos" | "reparto" | "repartoPropio"> {
   const primera = lineas[0];
   const destinos = [...new Set(lineas.map((l) => l.destinoId))];
   return {
     cantidad: String(prendasDeLineas(lineas)),
     costo: primera ? primera.costo.toFixed(2) : "",
     venta: primera?.venta != null ? primera.venta.toFixed(2) : "",
+    ventaPorDefinir: primera?.precioPorDefinir === true,
     destinos,
     reparto: destinos.length > 1 ? Object.fromEntries(lineas.map((l) => [l.destinoId, String(l.cantidad)])) : {},
     repartoPropio: destinos.length > 1,
@@ -593,7 +627,7 @@ export type PrendaDeLaCompra = {
   productoId: string | null;
   nombre: string;
   categoria: string;
-  categoriaId: string;
+  categoriaId: string | null;
   cantidad: number;
   /** Lo que costó cada una (en una prenda, todas cuestan lo mismo). */
   costo: number;
@@ -652,13 +686,19 @@ export function resumenCarrito(lineas: readonly Pick<LineaCompra, "cantidad" | "
   };
 }
 
-/** «Si se vende todo, ganas S/ X» (y cuánto se vende): con el precio de venta de cada prenda. Sin precios de venta, null. */
-export function gananciaDeCompra(lineas: readonly Pick<LineaCompra, "cantidad" | "costo" | "venta">[]): { vendes: number; ganas: number } | null {
+/**
+ * «Si se vende todo, ganas S/ X» (y cuánto se vende): con el precio de venta de cada prenda. Sin precios de venta, null. `completa` = todas
+ * tienen su precio: si alguna lo espera (ADR-0660), la cuenta es solo de las que lo tienen y la pantalla lo dice («lo que tiene precio»).
+ */
+export function gananciaDeCompra(lineas: readonly Pick<LineaCompra, "cantidad" | "costo" | "venta">[]): { vendes: number; ganas: number; completa: boolean } | null {
   const conVenta = lineas.filter((l) => l.venta != null);
   if (conVenta.length === 0) return null;
   const vendes = Math.round(conVenta.reduce((s, l) => s + l.cantidad * (l.venta ?? 0), 0) * 100) / 100;
-  return { vendes, ganas: Math.round((vendes - totalDeLineas(conVenta)) * 100) / 100 };
+  return { vendes, ganas: Math.round((vendes - totalDeLineas(conVenta)) * 100) / 100, completa: conVenta.length === lineas.length };
 }
+
+/** La frase de la ganancia: «Si se vende todo, ganas», o, si alguna prenda espera su precio, solo de lo que lo tiene. */
+export const fraseGanancia = (g: { completa: boolean }): string => (g.completa ? "Si se vende todo, ganas" : "Si se vende lo que tiene precio, ganas");
 
 /**
  * Lo que dice bajo «¿Cuánto dice el papel?»: si cuadra con lo anotado, en verde; si no, en ámbar, que deje el del papel (Felipe
@@ -785,7 +825,10 @@ export function textoLoQueFalta(monto: number | null, pagado: number | null): st
   return pagado <= 0 ? `Compras le paga al proveedor los ${soles(monto)}.` : `Compras le paga al proveedor lo que falta: ${soles(Math.round((monto - pagado) * 100) / 100)}.`;
 }
 
-/** Las prendas como las recibe `registrar_compra_rapida`. */
+/**
+ * Las prendas como las recibe `registrar_compra_rapida`. Lo «por definir» va dicho, nunca solo vacío (ADR-0660): sin categoría,
+ * `categoria_por_definir`; sin precio a propósito, `precio_por_definir`. La base rechaza una prenda nueva sin categoría que no lo diga.
+ */
 export function lineasParaBase(lineas: readonly LineaCompra[]) {
   return lineas.map((l) => ({
     producto_id: l.productoId,
@@ -796,6 +839,8 @@ export function lineasParaBase(lineas: readonly LineaCompra[]) {
     costo: l.costo,
     precio_venta: l.venta,
     destino_id: l.destinoId,
+    ...(l.categoriaId === null && l.productoId === null ? { categoria_por_definir: true } : {}),
+    ...(l.precioPorDefinir && l.productoId === null ? { precio_por_definir: true } : {}),
   }));
 }
 
@@ -881,11 +926,26 @@ export function opcionesMarcaNueva(marcas: readonly { id: string; nombre: string
  * Lo que se va contestando de la prenda nueva en su hoja. `descartadas`: los habituales parecidos que ya contestó con «No, es otra».
  * `marcaNueva`: lo escrito en «+ marca nueva» (Felipe 2026-10-24); `null` mientras elige de la lista.
  */
-export type BorradorNuevo = { categoriaId: string | null; marcaId: string | null; marcaNueva: string | null; nombre: string; descartadas: ReadonlySet<string> };
+export type BorradorNuevo = {
+  categoriaId: string | null;
+  /** «Por definir» (ADR-0660): todavía no se sabe qué es. Excluye a `categoriaId`: elegir una categoría lo apaga. */
+  porDefinir: boolean;
+  marcaId: string | null;
+  marcaNueva: string | null;
+  nombre: string;
+  descartadas: ReadonlySet<string>;
+};
 
 /** Cómo llega la hoja: si el proveedor trae una sola marca, ya puesta (antes se saltaba la pregunta; ahora se ve y se cambia). */
 export function nuevoVacio(marcasDelProveedor: readonly { id: string }[]): BorradorNuevo {
-  return { categoriaId: null, marcaId: marcasDelProveedor.length === 1 ? marcasDelProveedor[0].id : null, marcaNueva: null, nombre: "", descartadas: new Set() };
+  return {
+    categoriaId: null,
+    porDefinir: false,
+    marcaId: marcasDelProveedor.length === 1 ? marcasDelProveedor[0].id : null,
+    marcaNueva: null,
+    nombre: "",
+    descartadas: new Set(),
+  };
 }
 
 /** Lo más corto y lo más largo que se acepta como nombre de una prenda nueva (lo que la tienda reconoce al recibir). */
@@ -928,7 +988,7 @@ export function marcasDeHabituales(habituales: readonly Habitual[]): { id: strin
  * el catálogo ni en compras de antes: lo único que la hoja sabe es lo que se acaba de anotar. Va primero lo último anotado.
  */
 export function categoriasDeLasLineas(lineas: readonly Pick<LineaCompra, "categoriaId">[]): string[] {
-  return [...new Set([...lineas].reverse().map((l) => l.categoriaId))];
+  return [...new Set([...lineas].reverse().flatMap((l) => (l.categoriaId === null ? [] : [l.categoriaId])))];
 }
 
 /** Las marcas de las prendas de esta compra (también las escritas con «+», con su id provisional), la última anotada primero. */
@@ -957,14 +1017,15 @@ export function marcasConProvisionales(
 /** La prenda nueva, con la forma de un habitual (sin compras ni precios de antes): así sigue por los mismos pasos que las de siempre. */
 function habitualNuevo(
   clave: string,
-  v: { nombre: string; categoria: CategoriaParaComprar; marca: { id: string; nombre: string } | null | undefined },
+  v: { nombre: string; categoria: CategoriaParaComprar | null; marca: { id: string; nombre: string } | null | undefined },
 ): Habitual {
   return {
     clave,
     productoId: null,
     nombre: v.nombre.trim().replace(/\s+/g, " "),
-    categoriaId: v.categoria.id,
-    categoria: v.categoria.nombre,
+    // Sin categoría: «por definir» (ADR-0660).
+    categoriaId: v.categoria?.id ?? null,
+    categoria: v.categoria?.nombre ?? TEXTO_POR_DEFINIR,
     marcaId: v.marca?.id ?? null,
     marca: v.marca?.nombre ?? null,
     veces: 0,
@@ -979,7 +1040,8 @@ function habitualNuevo(
 export function camposPrendaNueva(n: BorradorNuevo, hayParecido: boolean, b: BorradorPrenda, admitePrecioCero = true): CampoDeGuia[] {
   const nombre = faltaNombreNuevo(n.nombre);
   return [
-    { id: "categoria", nombre: "Qué es", requerido: true, hecho: n.categoriaId !== null, pendiente: "Elige qué es." },
+    // «Por definir» cuenta como respuesta (ADR-0660): la compra se guarda y lo define alguien después.
+    { id: "categoria", nombre: "Qué es", requerido: true, hecho: n.categoriaId !== null || n.porDefinir, pendiente: "Elige qué es, o déjalo por definir." },
     // La marca es opcional (Felipe 2026-11-11): quien recibe la pone si falta. Solo frena una marca empezada a escribir que no se entiende.
     n.marcaNueva !== null && n.marcaNueva.trim() !== ""
       ? { id: "marca", nombre: "Marca", requerido: true, hecho: faltaMarcaNueva(n.marcaNueva) === null, pendiente: "Escribe la marca, como dice su etiqueta." }
@@ -989,19 +1051,22 @@ export function camposPrendaNueva(n: BorradorNuevo, hayParecido: boolean, b: Bor
   ];
 }
 
-/** La prenda nueva ya descrita, con la forma de un habitual; `null` si falta qué es o el nombre, o si la marca escrita no se entiende. Sin marca, va sin marca. */
+/**
+ * La prenda nueva ya descrita, con la forma de un habitual; `null` si falta qué es (o decir que está por definir) o el nombre, o si la marca
+ * escrita no se entiende. Sin marca, va sin marca; por definir, sin categoría (ADR-0660).
+ */
 export function habitualDeNuevo(
   clave: string,
   n: BorradorNuevo,
   categorias: readonly CategoriaParaComprar[],
   marcas: readonly { id: string; nombre: string }[],
 ): Habitual | null {
-  const categoria = categorias.find((c) => c.id === n.categoriaId);
+  const categoria = n.porDefinir ? null : categorias.find((c) => c.id === n.categoriaId);
   const escribe = n.marcaNueva !== null && n.marcaNueva.trim() !== "";
   const eligio = n.marcaNueva === null && n.marcaId !== null;
   const marca = escribe ? marcaEscrita(n.marcaNueva ?? "", marcas) : eligio ? marcas.find((m) => m.id === n.marcaId) : null;
   // Una marca escrita que no se entiende, o una elegida que ya no está en la lista, no se vuelve «sin marca» en silencio.
-  if (!categoria || ((escribe || eligio) && !marca) || faltaNombreNuevo(n.nombre)) return null;
+  if (categoria === undefined || ((escribe || eligio) && !marca) || faltaNombreNuevo(n.nombre)) return null;
   return habitualNuevo(clave, { nombre: n.nombre, categoria, marca });
 }
 
