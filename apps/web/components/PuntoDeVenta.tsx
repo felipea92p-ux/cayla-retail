@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useLayoutEffect, useMemo, useRef, useState, type RefObject } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type RefObject } from "react";
 import { Globito } from "@/components/ui/Globito";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
@@ -106,7 +106,7 @@ import {
 } from "@/lib/bajada-desde-vender";
 import { leerStockDeSede, useStockEnVivo, type StockReleido } from "@/lib/useStockEnVivo";
 import { usePreciosEnVivo, type PreciosReleidos } from "@/lib/usePreciosEnVivo";
-import { conPreciosAlDia, ticketConPreciosAlDia } from "@/lib/precios-en-vivo-reglas";
+import { conPreciosAlDia, firmaDeOfertas, ticketConPreciosAlDia } from "@/lib/precios-en-vivo-reglas";
 import { avisoFaltanDeProforma } from "@/lib/proforma-al-carrito";
 import { avisoFaltanDeRepeticion, type RepeticionDeVenta } from "@/lib/repetir-venta";
 import { accionDelEnter, buscarVendiblePrimero } from "@/lib/vender-buscador-reglas";
@@ -944,6 +944,11 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
     useMemo(() => variantes.filter((v) => v.varianteId !== ID_CARGO_ESPECIAL).map((v) => v.varianteId), [variantes]),
     !bloqueado,
     (releido) => {
+      // Un 3x2 o un monto que se activó, cambió o se retiró mientras la caja estaba abierta: el ticket lo toma solo (ADR-0655).
+      const firmaAntes = preciosAlDia?.ofertas?.firma ?? firmaDeOfertas(ofertasGrupo, filasMonto);
+      if (releido.ofertas && releido.ofertas.firma !== firmaAntes && carrito.length > 0) {
+        avisar.aviso("Cambiaron las ofertas de hoy", { detalle: "El ticket ya las tiene. Revisa el total antes de cobrar." });
+      }
       setPreciosAlDia(releido);
       const { cambiaron, porRevisar } = ticketConPreciosAlDia(carrito, releido);
       setCarrito((actual) => ticketConPreciosAlDia(actual, releido).carrito);
@@ -1571,8 +1576,13 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
   // (`carritoConGrupos`, la misma cuenta que `fn_ofertas_de_grupo`). El cupón, el total y lo que viaja salen de aquí; el ticket sigue
   // mostrando el carrito, con lo que dice cada grupo (`grupos.porLinea`).
   // Y el monto (actividad 8): las prendas sin otra oferta suman para él; su ahorro también va repartido en cada una.
-  const montos = useMemo(() => ofertasDeMontoDeFilas(filasMonto), [filasMonto]);
-  const grupos = useMemo(() => carritoConGrupos(carrito, ofertasGrupo, montos), [carrito, ofertasGrupo, montos]);
+  // Las de HOY releídas cada 10 s (`usePreciosEnVivo`); hasta la primera vuelta, o tras volver a cargar la pantalla, las del servidor.
+  const ofertasGrupoAlDia = preciosAlDia?.ofertas?.grupo ?? ofertasGrupo;
+  const filasMontoAlDia = preciosAlDia?.ofertas?.monto ?? filasMonto;
+  const montos = useMemo(() => ofertasDeMontoDeFilas(filasMontoAlDia), [filasMontoAlDia]);
+  const grupos = useMemo(() => carritoConGrupos(carrito, ofertasGrupoAlDia, montos), [carrito, ofertasGrupoAlDia, montos]);
+  // La misma cuenta para lo que no es el ticket de ahora: «Quedaría en» del Descuento y el total de cada ticket en espera.
+  const conOfertas = useCallback((lineas: ItemCarrito[]) => carritoConGrupos(lineas, ofertasGrupoAlDia, montos).lineas, [ofertasGrupoAlDia, montos]);
   const conVale = useMemo(() => ticketConVale(grupos.lineas, cuponPuesto ? cuponPuesto.valor : null), [grupos, cuponPuesto]);
   const valeDelTicket =
     cuponPuesto && conVale.totalVale > 0
@@ -2207,6 +2217,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
   const ticketNodo = (enHoja: boolean) => (
       <PuntoDeVentaTicket
         grupos={grupos.porLinea}
+        conOfertas={conOfertas}
             id="ticket-pos"
             bloqueado={bloqueado}
             carrito={carritoConPiso}
@@ -2479,6 +2490,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
                   onDescuento={(cambio) => setDescuento((actual) => ({ ...actual, ...cambio }))}
                   carrito={carritoConPiso}
                   vale={valeDelTicket}
+                  conOfertas={conOfertas}
                   bloqueado={bloqueado}
                   onAplicar={aplicarDescuentoAlTicket}
                   onQuitar={quitarDescuentoDelTicket}
