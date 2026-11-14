@@ -495,10 +495,16 @@ export function FotosYColores({
                     </div>
                     {lectura && lectura.partes.length > 1 && <Partes lectura={lectura} />}
                     {lectura && porQue === codigo && <PorQue lectura={lectura} id={`por-que-${codigo}`} />}
-                    <div className="mt-auto flex gap-4">
+                    <div className="mt-auto flex flex-wrap gap-x-4 gap-y-1">
                       <button type="button" className="btn-cayla btn-enlace" disabled={disabled} onClick={() => setCarteando({ para: "cambiar", de: codigo })}>
                         Cambiar
                       </button>
+                      {/* La foto de «Catálogo con IA» y la real quedan las dos: si la de IA no gusta, se vuelve a la tuya (y al revés). */}
+                      {suyas[0]?.ia && catalogo && (
+                        <button type="button" className="btn-cayla btn-enlace" disabled={disabled} onClick={() => catalogo.alternar(suyas[0].clave)}>
+                          {suyas[0].ia.usar ? "Usar mi foto" : "Usar la de IA"}
+                        </button>
+                      )}
                       {lectura && (
                         <button
                           type="button"

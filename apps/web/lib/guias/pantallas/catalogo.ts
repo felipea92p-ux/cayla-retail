@@ -1795,7 +1795,7 @@ export const GUIA_NUEVO_PRODUCTO: Guia = {
       // Solo está en el paso 3, junto a «Fotos y colores», y si el servidor tiene la llave de la IA.
       opcional: true,
       titulo: "Catálogo con IA",
-      texto: "Encendido, cada foto que subes sale como foto de catálogo: la prenda en un maniquí invisible, de frente y sin fondo, y el color se lee de esa foto. El primer color hace de molde y los demás salen con su misma forma.",
+      texto: "Encendido, cada foto que subes sale como foto de catálogo: la prenda en un maniquí invisible, de frente y sin fondo, y el color se lee de esa foto. El primer color hace de molde y los demás salen con su misma forma. «Usar mi foto» vuelve a la tuya.",
     },
     {
       id: "punto-4",

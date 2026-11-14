@@ -2,7 +2,7 @@
   "guia": "recibir.envio.id",
   "ruta": "/recibir/envio/[id]",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 304,
+  "total": 306,
   "controles": {
     "app/(app)/recibir/envio/[id]/page.tsx": [
       "Volver «/recibir»",
@@ -60,6 +60,7 @@
       "Boton «Volver a intentar»",
       "Boton «Elegir el color»",
       "button «Cambiar»",
+      "button «{suyas[0].ia.usar ? \"Usar mi foto\" : \"Usar la de IA\"}»",
       "button «{porQue === codigo ? \"Ocultar\" : \"¿Por qué?\"}»",
       "button «Elegir sin foto» #2"
     ],
