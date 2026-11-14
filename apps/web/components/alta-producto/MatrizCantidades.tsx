@@ -52,7 +52,8 @@ import {
 // letra por letra, el de Nuevo producto de antes: lo fija `lib/matriz-cantidades.test.ts`.
 // Desde el 2026-11-14 Nuevo producto también enciende `teclado` (Felipe: «no se puede dar Enter para pasar a otra talla o colores»), y ahí vale en sus tres modos: las casillas
 // de «Precios» y «Costos» son las mismas celdas en el mismo orden, así que Enter recorre la tabla igual en las tres. Mover el cursor no escribe nada: la plata se sigue escribiendo
-// como siempre (`limpiarPrecio`). Lo vigila `lib/matriz-cantidades.test.ts` («Nuevo producto enciende el teclado»).
+// como siempre (`limpiarPrecio`). Lo vigila `lib/matriz-cantidades.test.ts` («Nuevo producto enciende el teclado»). Las mismas teclas valen con el cursor en un − o un + (un clic lo deja ahí), y la celda a la que
+// llega el cursor no queda bajo la barra de abajo del celular: `lib/matriz-cantidades.test.ts` y, para el aviso de lo que no se guardó al pasar con Enter, `lib/cantidad-escrita-ciclo.test.ts`.
 
 type Modo = "cantidades" | "precios" | "costos";
 
@@ -141,7 +142,9 @@ export function MatrizCantidades(props: ConPrecios | SoloCantidades) {
   const baseCosto = Number(costoBase) > 0 ? Number(costoBase).toFixed(2) : "0.00";
   const enCostos = modo === "costos";
   const porTalla = teclado ? columnasEditables(filas, columnas, celdas, excluidas) : [];
-  const margenScroll = teclado ? " scroll-mt-14 scroll-mb-12 scroll-ml-32" : "";
+  // Abajo, además del «Total» pegado (3 rem), la barra de abajo del celular (`FichaPrevia` publica su alto en `--alto-barra-ficha`; en escritorio ancho vale ~12 px y manda el 3 rem): sin ella, Enter
+  // dejaba el cursor en una casilla tapada por la barra y la página no se movía.
+  const margenScroll = teclado ? " scroll-mt-14 scroll-mb-[max(3rem,var(--alto-barra-ficha,0px))] scroll-ml-32" : "";
   const rellenoInvalido = leerCantidad(relleno) === null;
   const problema = rellenoInvalido ? textoCantidadRechazada(relleno, false) : escrita.problema;
 
@@ -156,7 +159,8 @@ export function MatrizCantidades(props: ConPrecios | SoloCantidades) {
 
   // El cursor se mueve con Enter y las flechas (ver `movimientoDeTecla`). Enter NUNCA envía el formulario desde una celda, aunque no haya a dónde ir (la última): quien sigue
   // escribiendo en los costos de abajo lo hace con Tab. Una flecha en el borde no hace nada y deja al campo con su propio comportamiento.
-  function alTeclear(e: KeyboardEvent<HTMLInputElement>, clave: string) {
+  // También con el cursor en un − o un + (un clic lo deja ahí): ver el `onKeyDown` de `PasoCantidad`, más abajo.
+  function alTeclear(e: KeyboardEvent<HTMLElement>, clave: string) {
     if (e.nativeEvent.isComposing) return;
     const mov = movimientoDeTecla(e);
     if (!mov) return;
@@ -357,6 +361,15 @@ export function MatrizCantidades(props: ConPrecios | SoloCantidades) {
                               tamano="celda"
                               sinTab
                               tono={invalida ? "error" : undefined}
+                              // Un clic en − o + deja el cursor en el botón, y ahí Enter lo volvería a presionar: la cantidad cambiaría sin que nadie lo pida. Desde el botón, las mismas teclas que en el número
+                              // (siguen a la otra celda). Lo que nace en el número ya lo atiende `numero.onKeyDown`: aquí solo se ven las teclas de un botón (Espacio sigue presionándolo).
+                              onKeyDown={
+                                teclado
+                                  ? (e) => {
+                                      if ((e.target as HTMLElement).tagName === "BUTTON") alTeclear(e, cel.clave);
+                                    }
+                                  : undefined
+                              }
                               menos={{
                                 onClick: () => {
                                   escrita.olvidar();

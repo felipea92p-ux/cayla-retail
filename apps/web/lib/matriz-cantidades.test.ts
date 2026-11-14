@@ -1,9 +1,10 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { createElement } from "react";
-import { renderToStaticMarkup } from "react-dom/server";
-import { describe, expect, it } from "vitest";
+import { createElement, isValidElement } from "react";
+import { renderToStaticMarkup, renderToString } from "react-dom/server";
+import { describe, expect, it, vi } from "vitest";
 import { MatrizCantidades } from "../components/alta-producto/MatrizCantidades";
+import { PasoCantidad } from "../components/ui/PasoCantidad";
 import { claveCelda, construirCeldas } from "./alta-producto";
 
 // La tabla única de cantidades (ADR-0396, A2 «La tabla única»). `MatrizCantidades` es el molde de Nuevo producto (paso 4) y, desde A2, también el de «Nueva orden de producción»:
@@ -86,15 +87,127 @@ describe("Nuevo producto con `teclado` (Felipe 2026-11-14: «no se puede dar Ent
   const celdas = construirCeldas(["t-s", "t-m"], ["NEG", "CRU"]);
   const conTeclado = () => html({ celdas, tallas: TALLAS.slice(0, 2), colores: COLORES.slice(0, 2), excluidas: new Set<string>(), cantidades: {}, teclado: true });
 
-  it("marca la raíz y deja la celda enfocada fuera del encabezado, el «Total» y la columna del color; el resto del molde es el de siempre", () => {
+  it("marca la raíz y deja la celda enfocada fuera del encabezado, el «Total», la columna del color y la barra de abajo del celular; el resto del molde es el de siempre", () => {
     const h = conTeclado();
     expect(h).toContain("data-matriz-mover");
-    for (const margen of ["scroll-mt-14", "scroll-mb-12", "scroll-ml-32"]) expect(h).toContain(margen);
+    // Abajo manda lo mayor entre el «Total» pegado (3 rem) y la barra de abajo (`--alto-barra-ficha`, que publica `FichaPrevia`: ~12 px en escritorio ancho, donde la barra no se ve).
+    for (const margen of ["scroll-mt-14", "scroll-mb-[max(3rem,var(--alto-barra-ficha,0px))]", "scroll-ml-32"]) expect(h).toContain(margen);
     // Lo que no es del teclado no cambia: el 25 % del cero, los − y +, el segmento, y «Llenar todas con» sigue siendo una caja que la guía puede buscar.
     expect(h).toContain("placeholder:text-tinta/25");
     expect(h).toContain("Restar a Negro en S");
     expect(h).toContain("Qué escribes en la tabla");
     expect(h).not.toContain("data-sin-cursor");
+  });
+});
+
+// Las teclas vistas desde un − o un +: un clic deja el cursor en el botón (Chrome y Firefox), y ahí Enter lo volvía a presionar: la cantidad cambiaba sin que nadie lo pidiera y el cursor no bajaba. El HTML
+// estático no trae los manejadores, así que la tabla se dibuja DENTRO de un componente sonda (sus ganchos corren de verdad, como en `useParecidasAlta.test.ts`) y se toma el árbol que devuelve: de ahí salen el
+// `onKeyDown` del envoltorio de cada celda (los botones) y las props de su número. Las cajas se sustituyen por dobles con un `focus` que se cuenta.
+describe("Nuevo producto con `teclado`: con el cursor en un − o un +, las teclas siguen a la otra celda", () => {
+  type PropsPaso = { onKeyDown?: (e: unknown) => void; campo: { ref?: (caja: unknown) => void; onKeyDown?: (e: unknown) => void; "aria-label": string } };
+  const celdas = construirCeldas(["t-s", "t-m"], ["NEG", "CRU"]);
+
+  /** Dibuja la tabla (Negro y Crudo × S y M) y da, por celda («Negro en S»), sus props de `PasoCantidad` y el doble de su caja. */
+  function dibujar(extra: Record<string, unknown> = {}) {
+    let arbol: unknown;
+    const props = { ...base, celdas, tallas: TALLAS.slice(0, 2), colores: COLORES.slice(0, 2), excluidas: new Set<string>(), cantidades: {}, teclado: true, ...extra };
+    function Sonda() {
+      arbol = (MatrizCantidades as unknown as (p: unknown) => unknown)(props);
+      return null;
+    }
+    renderToString(createElement(Sonda));
+    const pasos: PropsPaso[] = [];
+    const recorrer = (nodo: unknown): void => {
+      if (Array.isArray(nodo)) return nodo.forEach(recorrer);
+      if (!isValidElement(nodo)) return;
+      if (nodo.type === PasoCantidad) pasos.push(nodo.props as PropsPaso);
+      recorrer((nodo.props as { children?: unknown }).children);
+    };
+    recorrer(arbol);
+    const porCelda = new Map<string, { paso: PropsPaso; foco: ReturnType<typeof vi.fn> }>();
+    for (const paso of pasos) {
+      const foco = vi.fn();
+      paso.campo.ref?.({ focus: foco });
+      porCelda.set(paso.campo["aria-label"].replace("Cuántas tienes de ", ""), { paso, foco });
+    }
+    return porCelda;
+  }
+  /** Una tecla de teclado, nacida en un botón (`BUTTON`) o en el número (`INPUT`). */
+  const tecla = (key: string, desde: "BUTTON" | "INPUT", extra: Record<string, unknown> = {}) => ({
+    key,
+    shiftKey: false,
+    altKey: false,
+    ctrlKey: false,
+    metaKey: false,
+    nativeEvent: { isComposing: false },
+    target: { tagName: desde },
+    preventDefault: vi.fn(),
+    ...extra,
+  });
+  /** Las celdas cuya caja recibió el cursor. */
+  const conFoco = (t: ReturnType<typeof dibujar>) => [...t].filter(([, c]) => c.foco.mock.calls.length > 0).map(([nombre]) => nombre);
+
+  it("Enter desde un botón baja a la celda de abajo de la misma talla, y no lo vuelve a presionar (`preventDefault`)", () => {
+    const t = dibujar();
+    expect([...t.keys()]).toEqual(["Negro en S", "Negro en M", "Crudo en S", "Crudo en M"]);
+    const e = tecla("Enter", "BUTTON");
+    t.get("Negro en S")!.paso.onKeyDown!(e);
+    expect(e.preventDefault).toHaveBeenCalledTimes(1);
+    expect(conFoco(t)).toEqual(["Crudo en S"]);
+  });
+
+  it("al fondo de la talla, Enter pasa a la talla siguiente (primer color); Shift+Enter hace el camino de vuelta", () => {
+    const t = dibujar();
+    t.get("Crudo en S")!.paso.onKeyDown!(tecla("Enter", "BUTTON"));
+    expect(conFoco(t)).toEqual(["Negro en M"]);
+    const arriba = dibujar();
+    arriba.get("Negro en M")!.paso.onKeyDown!(tecla("Enter", "BUTTON", { shiftKey: true }));
+    expect(conFoco(arriba)).toEqual(["Crudo en S"]);
+  });
+
+  it("en la última celda Enter no hace nada, pero tampoco vuelve a presionar el botón", () => {
+    const t = dibujar();
+    const e = tecla("Enter", "BUTTON");
+    t.get("Crudo en M")!.paso.onKeyDown!(e);
+    expect(e.preventDefault).toHaveBeenCalledTimes(1);
+    expect(conFoco(t)).toEqual([]);
+  });
+
+  it("las flechas también, y una flecha sin a dónde ir (el fondo) y el Espacio no se tocan: son del navegador", () => {
+    const t = dibujar();
+    const abajo = tecla("ArrowDown", "BUTTON");
+    t.get("Negro en S")!.paso.onKeyDown!(abajo);
+    expect(abajo.preventDefault).toHaveBeenCalledTimes(1);
+    expect(conFoco(t)).toEqual(["Crudo en S"]);
+    for (const [key, desde] of [["ArrowDown", "Crudo en S"], ["ArrowUp", "Negro en S"], [" ", "Negro en S"]] as const) {
+      const e = tecla(key, "BUTTON");
+      t.get(desde)!.paso.onKeyDown!(e);
+      expect(e.preventDefault, `${key} desde ${desde}`).not.toHaveBeenCalled();
+    }
+    expect(conFoco(t)).toEqual(["Crudo en S"]);
+  });
+
+  it("lo que nace en el número lo atiende el número (una sola vez): el envoltorio solo mira las teclas de un botón", () => {
+    const t = dibujar();
+    const { paso } = t.get("Negro en S")!;
+    const desdeElNumero = tecla("Enter", "INPUT");
+    paso.onKeyDown!(desdeElNumero);
+    expect(desdeElNumero.preventDefault).not.toHaveBeenCalled();
+    expect(conFoco(t)).toEqual([]);
+    const propia = tecla("Enter", "INPUT");
+    paso.campo.onKeyDown!(propia);
+    expect(propia.preventDefault).toHaveBeenCalledTimes(1);
+    expect(conFoco(t)).toEqual(["Crudo en S"]);
+  });
+
+  it("sin `teclado` ni el envoltorio ni el número escuchan teclas, y las cajas no se registran: el modo de siempre", () => {
+    const t = dibujar({ teclado: false });
+    expect(t.size).toBe(4);
+    for (const [nombre, { paso }] of t) {
+      expect(paso.onKeyDown, nombre).toBeUndefined();
+      expect(paso.campo.onKeyDown, nombre).toBeUndefined();
+      expect(paso.campo.ref, nombre).toBeUndefined();
+    }
   });
 });
 
