@@ -1,5 +1,9 @@
 import { cookies } from "next/headers";
+import { after } from "next/server";
+import type { ComponentProps } from "react";
 import { exigirModulo, puede, veModulo } from "@/lib/persona-actual";
+import { crearMedidor, lineaDeTramos, tamanoJson } from "@/lib/medir-tramos";
+import { planDelPanel } from "@/lib/existencias-plan-panel";
 import { getUbicaciones } from "@/lib/ubicaciones";
 import { destinosParaEnviar } from "@/lib/para-enviar-reglas";
 import { sedesParaPedir } from "@/lib/pedidos-entre-sedes-reglas";
@@ -9,7 +13,6 @@ import { getTrasladosEnCurso } from "@/lib/traslados";
 import { getFilasSemanaDeSede } from "@/lib/resumen-inventario";
 import { getRitmoRecientePorVariante } from "@/lib/existencias-ritmo-servidor";
 import { deltaDisponibleSede } from "@/lib/existencias-categorias";
-import type { PisoDeTalla } from "@/lib/piso-plan";
 import { leerPlanDelPiso } from "@/lib/piso-plan-servidor";
 import { politicaDe } from "@/lib/politica-operativa-inventario";
 import { getApartadosAbiertos } from "@/lib/apartados";
@@ -55,13 +58,17 @@ export default async function InventarioPage({
 }: {
   searchParams: Promise<{ ubicacion?: string; danados?: string; danada?: string; variante?: string; ajustar?: string; de?: string; desde?: string }>;
 }) {
-  const persona = await exigirModulo("existencias"); // ADR-0161: URL directa sin el módulo en su rol → «Sin acceso»
+  // Cada lectura se mide (2026-11-13, `lib/medir-tramos.ts`): al terminar la respuesta, UNA línea `existencias_tramos` en el registro del
+  // servidor dice cuánto tardó cada una, cuándo estuvo la lista y cuánto pesa lo que viaja. Se busca con `vercel logs --query existencias_tramos`.
+  // `medir` devuelve la misma lectura: no cambia qué responde ni si falla.
+  const { medir, marcar, todas, foto } = crearMedidor();
+  const persona = await medir("persona", exigirModulo("existencias")); // ADR-0161: URL directa sin el módulo en su rol → «Sin acceso»
   // `danados=1`: llegar desde el aviso de cuarentena de Devoluciones abre la cola de dañadas (ADR-0232).
   // `variante=<id>`: llegar desde un movimiento («Ver en Existencias», ADR-0241) abre el detalle de ESA prenda en esa talla.
   // `ajustar=1&de=<producto>`: llegar desde el candado de Editar producto (ADR-0494, actividad 3) abre la planilla de «Ajustar stock» en esa talla y
   // ofrece «Volver a Editar producto» (`lib/existencias-ajustar-desde-editar.ts`).
   const { ubicacion: ubicacionQuery, danados, danada, variante, ajustar, de, desde } = await searchParams;
-  const ubicaciones = await getUbicaciones();
+  const ubicaciones = await medir("ubicaciones", getUbicaciones());
 
   const ubicacionActivaId =
     persona.rol === "lider" && ubicacionQuery && ubicaciones.some((u) => u.id === ubicacionQuery)
@@ -73,37 +80,50 @@ export default async function InventarioPage({
   const vende = ubicacionActiva?.tipo === "tienda";
   // Cuántas prendas caben colgadas en el piso (ADR-0329, m² × prendas por m²): la nota «de 600» de «Colgadas en el piso». Solo una
   // tienda tiene piso de venta. Corre en paralelo con lo de abajo y nunca lanza: si no responde, la cifra sale sin nota.
-  const capacidadPiso = vende ? getCapacidadPiso(ubicacionActivaId) : Promise.resolve(null);
+  const capacidadPiso = vende ? medir("capacidad", getCapacidadPiso(ubicacionActivaId)) : Promise.resolve(null);
   // Ventas sin registrar (ADR-0330: viven en Existencias, en /inventario/por-regularizar, bajo este mismo módulo): «Para hoy» cuenta
   // las de ESTA sede y su botón abre la lista de esa misma sede, así la cifra y la lista dicen lo mismo. Solo en una tienda: nacen en
   // Vender.
   // D-54 (ADR-0159): sin el toggle «Con datos de prueba» que sí tienen Caja/Ventas, Existencias
   // pide siempre el default de la función (apagado) — los productos archivados como dato de
   // prueba, nunca borrados, quedan afuera.
-  const existencias = getExistencias(ubicacionActivaId, ubicaciones);
+  const existencias = medir("existencias", getExistencias(ubicacionActivaId, ubicaciones));
   // Qué empresas operan aquí (ADR-0505): «en el catálogo, sin stock aquí» no ofrece en Trujillo una prenda de CLAURE. Sin respuesta, todas.
-  const empresasDeAqui = getEmpresasAqui(ubicacionActivaId).catch(() => null);
+  const empresasDeAqui = medir("empresas", getEmpresasAqui(ubicacionActivaId)).catch(() => null);
   // Lo que depende de otra lectura arranca apenas esa responde, no cuando terminan TODAS (2026-11-13, `docs/innovacion/2026-11-13-cambiar-de-modulo.md`):
   // el ritmo reciente solo necesita las prendas de la sede y antes esperaba también al plan del piso (~0,9 s en producción). Las tres
   // nunca lanzan: si no responden, su dato queda vacío y la pantalla lo dice, como antes.
   // Ritmo reciente / Cobertura piso (2026-09-25): sobre el ledger único (`fn_ledger_puntos`), no sobre `fn_resumen_variantes`.
   const ritmoPendiente = vende
     ? existencias.then((filas) =>
-        getRitmoRecientePorVariante(ubicacionActivaId, filas.map((f) => f.varianteId), new Map(filas.map((f) => [f.varianteId, f.piso ?? 0])))
+        medir("ritmo", getRitmoRecientePorVariante(ubicacionActivaId, filas.map((f) => f.varianteId), new Map(filas.map((f) => [f.varianteId, f.piso ?? 0]))))
       )
     : Promise.resolve({ datos: null, fallo: null });
   // De quién son las unidades de cada talla (ADR-0542): solo donde conviven dos empresas (Lima). Dato secundario: si la base no responde,
   // las tallas quedan sin la línea «De quién es» y nada más cambia.
-  const repartoPendiente = empresasDeAqui.then((empresas) => getStockPorDueno(ubicacionActivaId, empresas));
-  const etapasPendientes = getEtapasOcultas().catch(() => null);
-  const [stockBase, sububicaciones, traslados, danadosPendientes, apartados, semana, catalogo, colores, colaSinRegistrar, plan, empresasAqui, lugarDanadas, ritmoReciente, repartoDeStock, etapasOcultas] = await Promise.all([
+  const repartoPendiente = empresasDeAqui.then((empresas) => medir("reparto", getStockPorDueno(ubicacionActivaId, empresas)));
+  const etapasPendientes = medir("etapas", getEtapasOcultas()).catch(() => null);
+  // «Hoy» de cada talla: el motor del piso (ADR-0328 act. 7) sobre UNA lectura (`fn_piso_plan_lectura`): lo libre en piso y almacén, lo
+  // vendido ayer y en 14 días (escaneado y anotado a mano) y las tallas centrales. Solo donde se vende. Si no responde, `null`: «Hoy» dice
+  // N/D y la pantalla lo avisa; el resto sigue en pie.
+  // Existencias en dos tiempos (2026-11-13, `lib/existencias-plan-panel.ts`): es la lectura más lenta (0,77 s de media en producción) y ya
+  // NO se espera para dibujar. La página le pasa al panel la PROMESA del plan, recortado a las tallas de la sede; la lista se dibuja con lo
+  // demás y lo que depende del plan dice «calculando» hasta que llega.
+  const planDelPiso = vende ? medir("plan", leerPlanDelPiso(ubicacionActivaId)) : null;
+  // Si las prendas fallan, la pantalla entera cae (como antes) y esta promesa no la lee nadie: el `catch` evita un rechazo suelto.
+  const planParaPanel = planDelPiso ? Promise.all([planDelPiso, existencias]).then(([plan, filas]) => planDelPanel(plan, filas)).catch(() => null) : null;
+  // «Ver el valor a costo» (ADR-0557): solo se pregunta si la cuenta puede pasar la puerta (líder, o quien ve el dinero de Compras); la
+  // base la repite y sin permiso devuelve cero filas. Dato secundario: si falla, sin el enlace. Arranca con las demás: hasta el 2026-11-13
+  // empezaba recién cuando todas habían respondido y era el último tramo de la página, en fila (lo mostró `existencias_tramos`).
+  const valorPendiente = persona.rol === "lider" || puede(persona, "verDineroCompras") ? medir("valor", getValorInventario()) : Promise.resolve(null);
+  const [stockBase, sububicaciones, traslados, danadosPendientes, apartados, semana, catalogo, colores, colaSinRegistrar, empresasAqui, lugarDanadas, ritmoReciente, repartoDeStock, etapasOcultas] = await Promise.all([
     existencias,
-    getSububicaciones(ubicacionActivaId),
-    getTrasladosEnCurso(ubicacionActivaId),
-    getPrendasDanadasPendientes(ubicacionActivaId),
+    medir("sububicaciones", getSububicaciones(ubicacionActivaId)),
+    medir("traslados", getTrasladosEnCurso(ubicacionActivaId)),
+    medir("danadas", getPrendasDanadasPendientes(ubicacionActivaId)),
     // Reservas para clientas (ADR-0141): solo donde se vende. Taller no aparta.
     // Una terminal libera cualquier apartado (Felipe, 2026-09-22, ADR-0162): `persona.terminal` lo dice.
-    vende ? getApartadosAbiertos(ubicacionActivaId, { esTerminal: persona.terminal }) : Promise.resolve([]),
+    vende ? medir("apartados", getApartadosAbiertos(ubicacionActivaId, { esTerminal: persona.terminal })) : Promise.resolve([]),
     // Rediseño 2026-09-22: costo/precio/categoría y el delta de 7 días para «Disponible total» y el
     // overlay de categorías — sin cambios (2026-09-25): sigue siendo un dato de 7 días aparte del
     // Ritmo reciente, que ahora vive en `existencias-ritmo.ts`.
@@ -111,7 +131,7 @@ export default async function InventarioPage({
     // total». Si su función no responde, Existencias sigue en pie y la tarjeta lo dice; antes se caía la pantalla entera.
     // Rediseño 2026-10-04: la cifra de 7 días solo se pinta donde no se separa piso y almacén (la cabecera del Taller); en una
     // tienda se pedía y no se mostraba en ningún lado.
-    (vende ? Promise.resolve([] as Awaited<ReturnType<typeof getFilasSemanaDeSede>>) : getFilasSemanaDeSede(ubicacionActivaId)).then(
+    (vende ? Promise.resolve([] as Awaited<ReturnType<typeof getFilasSemanaDeSede>>) : medir("semana", getFilasSemanaDeSede(ubicacionActivaId))).then(
       (filas) => ({ filas, fallo: false }),
       (error: unknown) => {
         console.error("Existencias: no se pudo leer la comparación de 7 días", error);
@@ -122,36 +142,27 @@ export default async function InventarioPage({
     // propia lectura (abajo). Esa función sigue viva para Producción («Nueva orden», ADR-0133 F5).
     // La marca de cada prenda y qué productos del catálogo esta sede no tiene (2026-09-26): para buscar y filtrar por marca y
     // para decir «existe, pero aquí no lo han recibido» en vez de callar. Dato secundario: si falla, sin marca y con aviso.
-    getCatalogoParaExistencias(),
+    medir("catalogo", getCatalogoParaExistencias()),
     // La familia de cada color, para el filtro «Color» agrupado por familia (2026-10-03). Secundario: si falla, lista plana.
-    getColoresParaExistencias(),
+    medir("colores", getColoresParaExistencias()),
     // Secundario: `null` si la cola no respondió. «Para hoy» lo dice («no se pudo leer») en vez de callar o dibujar un 0.
-    vende ? contarPorRegularizar(ubicacionActivaId).catch(() => null) : Promise.resolve(null),
-    // «Hoy» de cada talla: el motor del piso (ADR-0328 act. 7) sobre UNA lectura (`fn_piso_plan_lectura`): lo libre en piso y
-    // almacén, lo vendido ayer y en 14 días (escaneado y anotado a mano) y las tallas centrales. Solo donde se vende. Si no
-    // responde, `null`: «Hoy» dice N/D y la pantalla lo avisa; el resto sigue en pie.
-    vende ? leerPlanDelPiso(ubicacionActivaId) : Promise.resolve(null),
+    vende ? medir("por_regularizar", contarPorRegularizar(ubicacionActivaId)).catch(() => null) : Promise.resolve(null),
     empresasDeAqui,
     // Dónde deja esta tienda las prendas dañadas (ADR-0564). Nunca lanza: sin dato, la pantalla sigue como antes.
-    getLugarDeDanadas(ubicacionActivaId),
+    medir("lugar_danadas", getLugarDeDanadas(ubicacionActivaId)),
     ritmoPendiente,
     repartoPendiente,
     etapasPendientes,
   ]);
   const sinRegistrar = vende ? (colaSinRegistrar ?? "fallo") : null;
-  // «Ver el valor a costo» (ADR-0557): solo se pregunta si la cuenta puede pasar la puerta (líder, o quien ve el dinero de Compras); la
-  // base la repite y sin permiso devuelve cero filas. Corre en paralelo con el ritmo de abajo; dato secundario: si falla, sin el enlace.
-  const valorPendiente = persona.rol === "lider" || puede(persona, "verDineroCompras") ? getValorInventario() : Promise.resolve(null);
 
   // Política operativa de Inventario (Felipe, 2026-09-25): las jornadas mínimas del Ritmo reciente. Lo que el piso pide hoy ya
   // no sale de aquí: lo decide el motor del piso (`plan`).
   const politica = politicaDe(ubicacionActivaId);
 
-
-  // La decisión de cada talla (por colgar · sin stock atrás · mantener) es la del motor del piso: la misma que lee el
-  // Inicio. Sin plan (la lectura no respondió), ninguna fila trae decisión y «Hoy» dice N/D: nunca un «Mantener» que no sabe.
-  const planPiso: ReadonlyMap<string, PisoDeTalla> = plan?.porTalla ?? new Map();
-  const planFallo = vende && plan === null ? "«Hoy» no se pudo calcular ahora: la columna dice N/D. Lo demás de esta pantalla sí está al día." : null;
+  // La decisión de cada talla (por colgar · sin stock atrás · mantener) es la del motor del piso: la misma que lee el Inicio. Desde el
+  // 2026-11-13 la pone el panel cuando el plan llega (`aplicarPlan`): aquí las filas salen sin decisión. Sin plan (no respondió), ninguna
+  // fila la trae y «Hoy» dice N/D: nunca un «Mantener» que no sabe.
 
   // Ritmo reciente/Cobertura piso son dato SECUNDARIO de sus propias columnas — ya no alimentan
   // Acción hoy: si su cálculo falla, esas dos columnas quedan en «N/D» y se avisa, pero la
@@ -168,7 +179,6 @@ export default async function InventarioPage({
               ...f,
               ritmoReciente: ritmoReciente.datos?.ritmo.get(f.varianteId) ?? null,
               coberturaPiso: ritmoReciente.datos?.cobertura.get(f.varianteId) ?? null,
-              planPiso: planPiso.get(f.varianteId) ?? null,
             })),
             catalogo.productos
           ),
@@ -184,7 +194,7 @@ export default async function InventarioPage({
   // la lista y no abría nada. Se arma su fila en cero para abrir «Ajustar stock» directo en ella. Solo en SU sede y con «Ajustar stock».
   const filaSinStock =
     pideAjustar(ajustar) && variante && ubicacionActivaId === persona.ubicacionId && puede(persona, "ajustarStock") && !stockBase.some((f) => f.varianteId === variante)
-      ? await getFilaSinStockDeVariante(variante, vende).catch(() => null)
+      ? await medir("fila_sin_stock", getFilaSinStockDeVariante(variante, vende)).catch(() => null)
       : null;
   // Lo que todavía es una orden no aparece como «sin stock aquí»: aún no es una prenda (ADR-0614, actividad 14). Lo terminado sí.
   const sinStock = productosSinStockEnSede(sinLasEnProduccion(soloLasDeAqui(catalogo.productos, empresasAqui), etapasOcultas), stockBase);
@@ -249,10 +259,73 @@ export default async function InventarioPage({
   // Desde el 2026-10-12 (ADR-0391) «Colgadas» y «Guardadas» FILTRAN la lista de un toque (`CifrasExistencias`, un componente de
   // cliente: `ResumenSede` solo filtra desde uno); reemplazan al selector «Piso · Almacén · Ambos» de las tarjetas.
   const colgadas = separa ? cifraColgadasEnElPiso({ filas: stock, productos: catalogo.productos, catalogoFallo: catalogo.fallo !== null, capacidad }) : null;
-  // El piso nunca cuadrado: el plan lo trae (`enPausa`, ADR-0328 d.5). Sin plan (la lectura falló) no se afirma nada: `planFallo` ya lo dice.
-  const pisoSinCuadrar = vende && separa && plan?.enPausa === true;
+  // El piso nunca cuadrado (ADR-0328 d.5): lo dice el plan (`enPausa`), que desde el 2026-11-13 llega después que la lista. Para que el
+  // aviso no aparezca de golpe sobre las prendas ya dibujadas (ADR-0185), lo adelanta la capacidad, que llega con la lista y lee la MISMA
+  // fecha del último cuadre (`cuadrado_en`, ADR-0329). Cuando el plan llega, manda el plan (`InventarioPanel`). Una tienda sin m² no
+  // tiene capacidad: ahí el aviso espera al plan, como antes.
+  const pisoSinCuadrarAntes = vende && separa && capacidad !== null && capacidad.cuadradoEn === null;
 
   const vistaValor = armarVistaValor(await valorPendiente, ubicacionActivaId);
+
+  // Las props del panel en un objeto: además de pasarlas, se mide cuánto pesan (lo que viaja al navegador), en la línea del registro.
+  const propsPanel = {
+    ubicacionId: ubicacionActivaId,
+    stock,
+    resumen,
+    enCamino,
+    sububicaciones,
+    sububicacionPiso,
+    sububicacionAlmacen,
+    danadosPendientes,
+    lugarDanadas,
+    // Las que llevan 7 días o más separadas sin que nadie las saque a arreglar ni decida: «Para hoy» sube la fila a rojo (ADR-0564).
+    danadasViejas: contarDanadasViejas(danadosPendientes),
+    abrirDanados: danados === "1",
+    // `?danada=1`: el botón «Separé una dañada» de las cuentas de caja y de almacén (ADR-0564) abre el buscador de la prenda dañada.
+    abrirSepararDanada: pideSepararDanada(danada),
+    abrirVariante: variante ?? null,
+    abrirAjustar: pideAjustar(ajustar),
+    abrirSinFila: filaSinStock,
+    volverAEditar: vueltaAEditar(de, desdeDeParams(desde)),
+    apartados,
+    editaCatalogo: puede(persona, "editarCatalogo"),
+    puedeAjustar: puede(persona, "ajustarStock"),
+    coberturaFallo: ritmoReciente.fallo,
+    sedeNombre: ubicacionActiva?.nombre ?? "esta sede",
+    sinStock,
+    marcaFallo: catalogo.fallo,
+    verProductos: veModulo(persona, "productos"),
+    politica,
+    veTraslados,
+    puedeBajarAlPiso,
+    veApartados: veModulo(persona, "apartados"),
+    esTienda: vende,
+    panelFiltros,
+    coloresCatalogo: colores,
+    sinRegistrar,
+    pisoSinCuadrarAntes,
+    // ADR-0328 act. 17: «Subir prenda» puede dejarla «para enviar» a otra sede; solo quien ve Traslados arma ese envío.
+    destinosParaEnviar: veTraslados ? destinosParaEnviar(ubicaciones, ubicacionActivaId) : [],
+    // «Pedir a otra sede» del panel de la talla: las OTRAS tiendas activas (la base rechaza pedirle al Taller).
+    sedesParaPedir: sedesParaPedir(ubicaciones, ubicacionActivaId),
+  } satisfies Omit<ComponentProps<typeof InventarioPanel>, "plan">;
+
+  // La lista ya puede dibujarse: lo que falta (el plan) llega por su promesa. Al terminar la respuesta —con el plan ya enviado—, la
+  // línea del registro. `after` no suma nada a lo que espera la persona; si algo falla aquí, solo se pierde la línea.
+  marcar("lista");
+  after(async () => {
+    try {
+      await todas();
+      const plan = planParaPanel ? await planParaPanel : null;
+      console.info(
+        JSON.stringify(
+          lineaDeTramos("existencias_tramos", { sedeId: ubicacionActivaId, ...foto(), bytes: { panel: tamanoJson(propsPanel), plan: planParaPanel ? tamanoJson(plan) : null } })
+        )
+      );
+    } catch {
+      // Medir nunca rompe la pantalla.
+    }
+  });
 
   return (
     <div className="space-y-5">
@@ -289,53 +362,9 @@ export default async function InventarioPage({
 
       {/* `key` por sede: cambiar de sede (selector de arriba o `?ubicacion=`) es un `router.refresh`, no una
           pantalla nueva, y sin la llave el panel conservaba sus filtros. Un filtro de TRU («Por colgar»,
-          «Dañado», una talla) aplicado al Taller dejaba la tabla vacía, sin control visible que lo explicara. */}
-      <InventarioPanel
-        key={ubicacionActivaId}
-        ubicacionId={ubicacionActivaId}
-        stock={stock}
-        resumen={resumen}
-        enCamino={enCamino}
-        sububicaciones={sububicaciones}
-        sububicacionPiso={sububicacionPiso}
-        sububicacionAlmacen={sububicacionAlmacen}
-        danadosPendientes={danadosPendientes}
-        lugarDanadas={lugarDanadas}
-        // Las que llevan 7 días o más separadas sin que nadie las saque a arreglar ni decida: «Para hoy» sube la fila a rojo (ADR-0564).
-        danadasViejas={contarDanadasViejas(danadosPendientes)}
-        abrirDanados={danados === "1"}
-        // `?danada=1`: el botón «Separé una dañada» de las cuentas de caja y de almacén (ADR-0564) abre el buscador de la prenda dañada.
-        abrirSepararDanada={pideSepararDanada(danada)}
-        abrirVariante={variante ?? null}
-        abrirAjustar={pideAjustar(ajustar)}
-        abrirSinFila={filaSinStock}
-        volverAEditar={vueltaAEditar(de, desdeDeParams(desde))}
-        apartados={apartados}
-        editaCatalogo={puede(persona, "editarCatalogo")}
-        puedeAjustar={puede(persona, "ajustarStock")}
-        coberturaFallo={ritmoReciente.fallo}
-        planFallo={planFallo}
-        // La lista del día del motor (lo vendido ayer primero): la tarjeta «Reponer a piso hoy» y el orden sin búsqueda la siguen,
-        // igual que el Inicio de almacén. Sin plan, o con el piso en pausa, está vacía.
-        listaDelDia={plan?.listaDelDia}
-        sedeNombre={ubicacionActiva?.nombre ?? "esta sede"}
-        sinStock={sinStock}
-        marcaFallo={catalogo.fallo}
-        verProductos={veModulo(persona, "productos")}
-        politica={politica}
-        veTraslados={veTraslados}
-        puedeBajarAlPiso={puedeBajarAlPiso}
-        veApartados={veModulo(persona, "apartados")}
-        esTienda={vende}
-        panelFiltros={panelFiltros}
-        coloresCatalogo={colores}
-        sinRegistrar={sinRegistrar}
-        pisoSinCuadrar={pisoSinCuadrar}
-        // ADR-0328 act. 17: «Subir prenda» puede dejarla «para enviar» a otra sede; solo quien ve Traslados arma ese envío.
-        destinosParaEnviar={veTraslados ? destinosParaEnviar(ubicaciones, ubicacionActivaId) : []}
-        // «Pedir a otra sede» del panel de la talla: las OTRAS tiendas activas (la base rechaza pedirle al Taller).
-        sedesParaPedir={sedesParaPedir(ubicaciones, ubicacionActivaId)}
-      />
+          «Dañado», una talla) aplicado al Taller dejaba la tabla vacía, sin control visible que lo explicara.
+          `plan`: la promesa del plan del piso (Existencias en dos tiempos); `null` donde no se pide (el Taller). */}
+      <InventarioPanel key={ubicacionActivaId} {...propsPanel} plan={planParaPanel} />
     </div>
   );
 }

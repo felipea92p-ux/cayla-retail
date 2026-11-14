@@ -29,6 +29,7 @@ export type TipoTareaHoy =
   | "por_colgar"
   | "piso_en_pausa"
   | "piso_sin_calcular"
+  | "piso_calculando"
   | "sin_registrar"
   | "danadas"
   | "apartados_vencidos"
@@ -54,8 +55,9 @@ export type EntradaParaHoy = {
   /** La sede separa piso y almacén (una tienda). En el Taller no hay «por colgar». */
   separa: boolean;
   porColgar: { tallas: number; unidades: number; prendas: readonly string[] };
-  /** El motor del piso: cuántas tallas esperan el cuadre del piso («En pausa») y si su lectura no respondió (`fallo`). */
-  piso: { enPausa: number; fallo: boolean };
+  /** El motor del piso: cuántas tallas esperan el cuadre del piso («En pausa»), si su lectura no respondió (`fallo`) y si todavía viene
+   *  en camino (`calculando`: Existencias dibuja la lista antes que el plan, 2026-11-13). */
+  piso: { enPausa: number; fallo: boolean; calculando?: boolean };
   /** Tallas «sin stock atrás» que tampoco vienen en camino (lo que viene en camino no se pide de nuevo). */
   sinStockAtras: { tallas: number };
   /** `null`: la sede no es una tienda (las ventas sin registrar nacen en Vender) y no se dibuja. `"fallo"`: la cola no respondió y se dice. */
@@ -151,7 +153,10 @@ export function tareasParaHoy(e: EntradaParaHoy): TareaHoy[] {
   }
 
   // En el lugar de «por colgar», porque es lo que lo reemplaza: sin plan no se sabe qué colgar, y en pausa no se manda a colgar.
-  if (e.separa && e.piso.fallo) {
+  // Mientras el plan llega (Existencias en dos tiempos), se dice que viene: ni «no se pudo» ni un «Todo al día» que no se sabe.
+  if (e.separa && e.piso.calculando) {
+    tareas.push({ tipo: "piso_calculando", cifra: null, texto: "Calculando qué colgar hoy", detalle: "Llega en un momento.", tono: "pizarra" });
+  } else if (e.separa && e.piso.fallo) {
     tareas.push({
       tipo: "piso_sin_calcular",
       cifra: null,
