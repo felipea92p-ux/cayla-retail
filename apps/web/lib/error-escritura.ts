@@ -222,6 +222,12 @@ const HUELLAS: Huella[] = [
     frase: (prenda) => `La oferta de grupo de ${prenda} ya no da lo que dice el ticket: vuelve a abrir el cobro para ver el precio de ahora.`,
   },
   {
+    // 20261114155000 (ADR-0655, decisión 2 de Felipe) — la caja mandó la parte de un 3x2 y la rebaja de la misma prenda: nunca las dos. Pasa
+    // con una pantalla vieja (antes de la regla). El detalle es «referencia (sku)».
+    marca: "venta_dos_ofertas",
+    frase: (prenda) => `${prenda} va con su oferta de grupo en vez de su rebaja: vuelve a abrir el cobro para ver el precio de ahora.`,
+  },
+  {
     marca: "separacion_grupo_no_coincide",
     frase: (prenda) => `La oferta de grupo de ${prenda} cambió mientras apartabas: recarga la pantalla para ver el precio de ahora.`,
   },
