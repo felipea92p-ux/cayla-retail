@@ -358,7 +358,11 @@ export function NuevoColorAlta({
 
       {conCombo ? <ResponsableEnHoja deshabilitado={guardando} /> : <AvisoSinIdentidad firma={firma} enHoja={enModal} />}
       <PieGuia guia={guia} listo={esForma ? "Todo listo para crear el estampado." : "Todo listo para crear el color."} />
-      <div className="flex flex-wrap items-center gap-2.5">
+      {aviso && <Aviso tono="error">{aviso}</Aviso>}
+      <div className="pie-acciones pie-hoja-fijo">
+        <Boton type="button" peso="fantasma" onClick={onCerrar} disabled={guardando}>
+          Cancelar
+        </Boton>
         <Boton peso="primario" cargando={guardando} textoCargando="Creando…"
           type="button"
           confirma={guia}
@@ -369,15 +373,7 @@ export function NuevoColorAlta({
         >
           Crear y elegir
         </Boton>
-        <button type="button" onClick={onCerrar} disabled={guardando} className="btn-cayla btn-secundario">
-          Cancelar
-        </button>
       </div>
-
-      {aviso && (
-        <Aviso tono="error">{aviso}</Aviso>
-
-      )}
     </div>
   );
 }

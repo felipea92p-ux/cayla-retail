@@ -53,8 +53,11 @@
   background: transparent;
   border-style: dashed;
 }
+/* El foco se dibuja sobre el color mismo, que puede ser casi negro o casi blanco: un anillo de un tono desaparecía (1,2:1 en la zona oscura
+   en claro, 1,14:1 en la blanca en oscuro). Dos tonos, fijos en los dos temas, se ven sobre cualquier color (WCAG 2.4.7 y 1.4.11). */
 .paleta-punto:focus-visible,
 .paleta-perilla:focus-visible {
-  outline: 2px solid var(--color-tinta);
-  outline-offset: 2px;
+  outline: 2px solid #ffffff; /* tema-fijo: el anillo de foco va sobre el color, claro en los dos temas */
+  outline-offset: 1px;
+  box-shadow: 0 0 0 5px #1a1a18; /* tema-fijo: su filo oscuro, para que se vea también sobre lo claro */
 }

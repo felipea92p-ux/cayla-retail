@@ -66,18 +66,23 @@ function nombreParcial(nombres: string[]): string {
 }
 
 /** «¿Por qué?»: qué vio, qué juntó, qué dejó fuera y qué tan cerca quedó de la carta. */
-function PorQue({ lectura }: { lectura: Lectura<ColorAlta> }) {
+/** La distancia al color de la carta, en palabras de tienda (la cifra ΔE no le dice nada a quien sube la foto). */
+function cercania(distancia: number): string {
+  return distancia < 3 ? "igual al de la lista de colores" : distancia <= 8 ? "muy parecido al de la lista de colores" : "distinto a todos los de la lista";
+}
+
+function PorQue({ lectura, id }: { lectura: Lectura<ColorAlta>; id: string }) {
   if (lectura.tipo === "sin-prenda") return null;
   const pct = (x: number) => `${Math.round(x * 100)} %`;
   const lineas = [
     lectura.transparente ? "La foto viene sin fondo: miré solo la prenda." : "La foto tiene fondo: dejé fuera lo que se parece al borde.",
     `Vi ${lectura.tonosVistos} tonos y junté los del mismo color con otra luz.`,
-    ...lectura.partes.map((p) => `${p.color.nombre}: ${pct(p.parte)} de la prenda, a ${p.distancia.toFixed(1).replace(".", ",")} del de la carta.`),
+    ...lectura.partes.map((p) => `${p.color.nombre}: ${pct(p.parte)} de la prenda, ${cercania(p.distancia)}.`),
     ...(lectura.detalles.some((d) => d.parte >= 0.005) ? [`No cuenta, por chico: ${lectura.detalles.filter((d) => d.parte >= 0.005).map((d) => `${d.color.nombre} ${pct(d.parte)}`).join(", ")}.`] : []),
     ...(lectura.fondoComo ? [`El fondo se parece a ${lectura.fondoComo.nombre}: si la prenda lo tiene, pudo quedar fuera.`] : []),
   ];
   return (
-    <ul className="space-y-1 rounded-xl bg-hueso/60 px-3 py-2 text-sm text-tinta/80">
+    <ul id={id} className="nota-cayla sin-i space-y-1 text-sm">
       {lineas.map((l) => (
         <li key={l}>{l}</li>
       ))}
@@ -318,7 +323,7 @@ export function FotosYColores({
               const lectura = leida && leida.tipo !== "sin-prenda" && leida.partes.slice(0, 4).every((p) => deEste.has(p.color.codigo)) ? leida : undefined;
               const nombre = color?.nombre ?? codigo;
               return (
-                <li key={codigo} className="relative flex flex-col overflow-hidden rounded-2xl border border-[color:var(--vidrio-claro-borde)] bg-[var(--vidrio-claro-fondo)]">
+                <li key={codigo} className="relative flex flex-col overflow-hidden rounded-2xl border border-[color:var(--vidrio-claro-borde)] [background:var(--vidrio-claro-fondo)]">
                   {suyas.length ? (
                     <div className="relative aspect-[4/5] bg-hueso/60">
                       {/* La foto que se sube tal cual (blob: local); next/image no aplica a una vista previa. */}
@@ -337,9 +342,9 @@ export function FotosYColores({
                   {suyas.length > 1 && (
                     <div className="flex flex-wrap gap-1.5 px-3 pt-2">
                       {suyas.slice(1).map((f, i) => (
-                        <span key={f.clave} className="relative h-12 w-10 overflow-hidden rounded-lg border border-sand bg-hueso/60">
+                        <span key={f.clave} className="relative h-12 w-10">
                           {/* eslint-disable-next-line @next/next/no-img-element */}
-                          <img src={f.vista} alt={`Foto ${i + 2} de ${nombre}`} className="h-full w-full object-contain" />
+                          <img src={f.vista} alt={`Foto ${i + 2} de ${nombre}`} className="h-full w-full overflow-hidden rounded-lg border border-sand bg-hueso/60 object-contain" />
                           <BotonQuitarFoto etiqueta={`Quitar la foto ${i + 2} de ${nombre}`} disabled={disabled} onClick={() => quitarFoto(f)} className="absolute -right-1 -top-1" />
                         </span>
                       ))}
@@ -351,14 +356,20 @@ export function FotosYColores({
                       <span className="min-w-0 flex-1 text-[15px] font-medium leading-tight">{nombre}</span>
                       {!suyas.length && <BotonQuitarFoto etiqueta={`Quitar ${nombre}`} disabled={disabled} onClick={() => onQuitarColor(codigo)} />}
                     </div>
-                    {lectura && <Partes lectura={lectura} />}
-                    {lectura && porQue === codigo && <PorQue lectura={lectura} />}
+                    {lectura && lectura.partes.length > 1 && <Partes lectura={lectura} />}
+                    {lectura && porQue === codigo && <PorQue lectura={lectura} id={`por-que-${codigo}`} />}
                     <div className="mt-auto flex gap-4">
                       <button type="button" className="btn-cayla btn-enlace" disabled={disabled} onClick={() => setCarteando({ para: "cambiar", de: codigo })}>
                         Cambiar
                       </button>
                       {lectura && (
-                        <button type="button" className="btn-cayla btn-enlace" onClick={() => setPorQue((x) => (x === codigo ? null : codigo))}>
+                        <button
+                          type="button"
+                          className="btn-cayla btn-enlace"
+                          aria-expanded={porQue === codigo}
+                          aria-controls={`por-que-${codigo}`}
+                          onClick={() => setPorQue((x) => (x === codigo ? null : codigo))}
+                        >
                           {porQue === codigo ? "Ocultar" : "¿Por qué?"}
                         </button>
                       )}
@@ -372,7 +383,7 @@ export function FotosYColores({
               const L = p.lectura;
               const partes = L && L.tipo !== "sin-prenda" ? L.partes.slice(0, 4) : [];
               return (
-                <li key={p.clave} className="relative flex flex-col overflow-hidden rounded-2xl border border-[color:var(--vidrio-claro-borde)] bg-[var(--vidrio-claro-fondo)]">
+                <li key={p.clave} className="relative flex flex-col overflow-hidden rounded-2xl border border-[color:var(--vidrio-claro-borde)] [background:var(--vidrio-claro-fondo)]">
                   <div className="relative aspect-[4/5] bg-hueso/60">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img src={p.ia?.vistaIA ?? p.vista} alt="Foto de la prenda" className="h-full w-full object-contain" />

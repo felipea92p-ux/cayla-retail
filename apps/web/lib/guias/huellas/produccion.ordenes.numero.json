@@ -54,8 +54,8 @@
       "button «Usar el tono de la foto»",
       "Desplegable «{familia}»",
       "CampoTexto «Código»",
-      "Boton «{(!enLinea || existe.bloquea ? bloqueo : firma.motivo) ?? undefined}»",
-      "button «Cancelar»"
+      "Boton «Cancelar»",
+      "Boton «{(!enLinea || existe.bloquea ? bloqueo : firma.motivo) ?? undefined}»"
     ],
     "components/alta-producto/piezas.tsx": [
       "button «→onClick»",
