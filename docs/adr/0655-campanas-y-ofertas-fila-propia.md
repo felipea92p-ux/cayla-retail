@@ -335,6 +335,40 @@ Felipe pidió que una campaña pueda aplicarse «no solo a prendas específicas 
     rigen, y antes se veían marcadas.
 - **La caja no cambia de pantalla**: lo que cobra lo decide la base.
 
+## Auditoría final (2026-11-14)
+
+Una revisión de punta a punta: la caja, los apartados, la tienda web, el pedido web, los cambios y devoluciones, SUNAT y Finanzas. La hizo un
+revisor que no había construido la obra, y cada hallazgo se comprobó en el código antes de tocarlo.
+
+**Se arregló:**
+- **La caja relee los 3x2 y los montos** cada 10 s, junto con precios y campañas (`usePreciosEnVivo`).
+  - Antes los leía una vez al abrir la pantalla. Un 3x2 activado con la caja abierta se omitía, y la base rechazaba el cobro hasta recargar.
+  - La lectura va **por páginas** (`leerOfertasDeGrupoVigentes`): PostgREST corta en 1.000 filas sin error, como le pasó al Aniversario con
+    las campañas.
+- **«Quedaría en» del Descuento** y el total de cada **ticket en espera** cuentan el 3x2 y el monto.
+- **Finanzas ▸ Campañas** suma a su campaña lo que regalaron el 3x2 y el monto (`20261114064000`). Esas líneas no llevan
+  `descuento_etiqueta_id`.
+- **La portada de la tienda web** anuncia también la campaña cuya oferta elige modelos o insignias (`20261114071000`).
+- **Volver a activar una campaña** pasa sus ofertas por el candado de los choques (`20261114072000`). Es activar ofertas, así que es
+  configurar.
+- **Textos que guiaban mal:**
+  - el historial ya no dice «antes: −0 %»;
+  - una campaña cuyas ofertas eligen prendas dice «Las eligen sus ofertas», no «Ninguna todavía»;
+  - el pedido web del ERP muestra el precio de lista tachado.
+- **El pie de la hoja de la oferta** en el celular: cambiar de paso suelta la reserva de `<PaginaEstable>` (ADR-0185).
+
+**Queda para Felipe (dinero o una regla nueva):**
+1. **Cambio de talla en un 3x2.** La decisión 7 de la maqueta dice «diferencia S/ 0» y también «no toca `registrar_cambio`». Hoy
+   `registrar_cambio` cobra el precio nuevo menos lo pagado: con un 3x2, hasta un tercio del precio.
+2. **Marcar prendas con una insignia** que usa una oferta puede dejar una prenda con dos ofertas. El candado no lo mira: es «alcance desde
+   fuera», como marcar prendas a mano. Hay dos caminos: vigilarlo al marcar, o que la caja nunca sume dos.
+3. **Una oferta sobre una insignia desactivada** sigue bajando el precio de las prendas marcadas.
+4. **«Prenda sin registrar» en un monto de toda la compra:** cuenta para llegar al monto y recibe su parte. Las campañas la dejan fuera a
+   propósito.
+5. **Una venta sin conexión** se rechaza si una oferta empezó entre la venta y la subida. La tolerancia cubre las que terminaron, no las que
+   empezaron.
+6. **Frescura** cuenta la parte del 3x2 y del monto como liquidación: su línea no tiene motivo.
+
 ## Alternativas descartadas
 
 - **Dentro de Insignias, renombrado «Insignias y ofertas».** No mueve nada, pero sigue mezclando dos preguntas en una pantalla y el nombre

@@ -791,15 +791,21 @@ export function fraseDeChoque(c: Choque): string {
 }
 
 /** Cómo estaba una oferta antes de su último cambio, en una frase corta: «−15 % · 24 oct – 31 oct · mar y jue». Vacío si no se sabe. */
-export function resumenAntes(antes: Record<string, unknown> | null): string {
+export function resumenAntes(antes: Record<string, unknown> | null, actual?: Pick<FormaDeOferta, "tipo" | "lleva">): string {
   if (!antes) return "";
-  const pct = Number(antes.porcentaje);
-  const tipo = typeof antes.tipo === "string" && TIPOS.includes(antes.tipo as TipoOferta) ? (antes.tipo as TipoOferta) : "pct";
+  // `null` es «sin %» (un 3x2, N por S/ o un monto), no «0 %»: `Number(null)` daba «antes: −0 %».
+  const pct = antes.porcentaje == null ? NaN : Number(antes.porcentaje);
+  // La fila que guarda `guardar_campana_regla` no dice su forma: es la de la oferta. Con «la N.ª al X %», ese % es el de la N.ª, no un «% menos».
+  const tipo = typeof antes.tipo === "string" && TIPOS.includes(antes.tipo as TipoOferta) ? (antes.tipo as TipoOferta) : (actual?.tipo ?? "pct");
   const desde = typeof antes.desde === "string" ? antes.desde : "";
   const hasta = typeof antes.hasta === "string" ? antes.hasta : "";
   const dias = Array.isArray(antes.dias_semana) ? (antes.dias_semana as unknown[]).filter((d): d is number => typeof d === "number") : [];
   const partes = [
-    tipo !== "pct"
+    tipo !== "pct" && antes.tipo === undefined
+      ? tipo === "nesima_pct" && Number.isFinite(pct)
+        ? titularDeOferta({ tipo, porcentaje: pct, lleva: actual?.lleva ?? 2, paga: 1, monto: 0 })
+        : ""
+      : tipo !== "pct"
       ? titularDeOferta({
           tipo, porcentaje: pct, lleva: Number(antes.lleva ?? 0), paga: Number(antes.paga ?? 0), monto: Number(antes.monto ?? 0),
           escalones: escalonesDeFila(antes.escalones) ?? [], ahorroEn: antes.ahorro_en === "pct" ? "pct" : "soles",

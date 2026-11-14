@@ -936,7 +936,7 @@ function LineaPorConfirmar({
           </span>
           <span className="block text-sm text-taupe">{textoDisponible(l, tienda)}</span>
         </span>
-        <b className="whitespace-nowrap tabular-nums text-tinta">{soles(l.precio)}</b>
+        <PrecioDeLinea l={l} />
       </div>
 
       {quitada ? (
@@ -1074,7 +1074,7 @@ function LineasDelPedido({
                   </span>
                 )}
               </span>
-              <b className="whitespace-nowrap tabular-nums text-tinta">{soles(l.precio)}</b>
+              <PrecioDeLinea l={l} />
             </li>
           );
         })}
@@ -1172,5 +1172,24 @@ function BloqueDinero({
         <p className="text-sm text-taupe">Espera una prenda: llega para el {fechaCorta(p.lineas.find((l) => l.estado === "por_conseguir")?.fechaCompromiso ?? null)}.</p>
       )}
     </div>
+  );
+}
+
+/** El precio de una prenda del pedido: con descuento (una campaña, un 3x2 o un monto, ADR-0655), el de lista tachado y lo que paga, como en
+ *  la caja. Sin esto, la prenda que el 3x2 dejó gratis decía solo «S/ 0.00». */
+function PrecioDeLinea({ l }: { l: Pick<LineaDetalle, "precio" | "precioLista" | "descuento"> }) {
+  const conDescuento = l.descuento > 0 && l.precioLista > l.precio;
+  return (
+    <span className="inline-flex items-baseline gap-x-1.5 whitespace-nowrap tabular-nums">
+      {conDescuento && (
+        <>
+          <span className="sr-only">{`Antes ${soles(l.precioLista)}, ahora`}</span>
+          <s aria-hidden className="text-[0.8em] font-normal text-tinta/55">
+            {soles(l.precioLista)}
+          </s>
+        </>
+      )}
+      <b className="text-tinta">{soles(l.precio)}</b>
+    </span>
   );
 }

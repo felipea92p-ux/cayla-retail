@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useRef, useState, type ReactNode } from "react";
+import { useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { Award, Check, ChevronDown, ChevronRight, Gift, Info, Layers, Plus, Star, Tag, Undo2, Wallet, X } from "lucide-react";
 import { avisar } from "@/components/ui/Avisos";
@@ -8,6 +8,7 @@ import { Aviso } from "@/components/ui/Aviso";
 import { Boton, Campo, CampoMonto, CampoTexto } from "@/components/ui/campos";
 import { Buscador } from "@/components/ui/Buscador";
 import { Vacio } from "@/components/ui/Vacio";
+import { soltarPaginaEstable } from "@/components/ui/PaginaEstable";
 import { Casilla } from "@/components/ui/Casilla";
 import { SegmentoDeslizante } from "@/components/ui/SegmentoDeslizante";
 import { CampoFecha } from "@/components/ui/CampoFecha";
@@ -257,6 +258,21 @@ export function OfertasHoja({
   const [elegido, setElegido] = useState(false);
   const [visitado, setVisitado] = useState<Record<Paso, boolean>>({ 1: false, 2: false, 3: false, 4: false });
   const [navego, setNavego] = useState(false);
+  // Cambiar de paso es otra vista, no un bloque que se encogió (ADR-0185): se suelta la reserva de <PaginaEstable> antes de pintar. Su aire
+  // al fondo subía el pie fijo a media hoja en el celular (385 px medidos en «Revisar» a 375). Si la pregunta nueva empieza arriba de lo
+  // que se ve, la hoja sube hasta ella.
+  const asistente = useRef<HTMLElement>(null);
+  const pasoPintado = useRef(paso);
+  useLayoutEffect(() => {
+    if (pasoPintado.current === paso) return;
+    pasoPintado.current = paso;
+    soltarPaginaEstable();
+    const hoja = asistente.current?.closest<HTMLElement>('[role="dialog"]');
+    if (!asistente.current || !hoja) return;
+    const arriba = asistente.current.getBoundingClientRect().top - hoja.getBoundingClientRect().top;
+    // 28 px de aire: en el celular el asa de la hoja tapa los primeros 24.
+    if (arriba < 0) hoja.scrollTop += arriba - 28;
+  }, [paso]);
   // La categoría recién marcada: su casilla vuela a su pieza en la etiqueta (`EtiquetaDeCampana`).
   const vuelo = useRef<string | null>(null);
   // La persona tocó la grilla de categorías (aunque la dejó vacía: vacío es «ninguna», no «las de la campaña»).
@@ -1419,7 +1435,11 @@ export function OfertasHoja({
     let derecha: ReactNode = null;
 
     if (faltan.length > 0) {
-      falta = <FaltanDelPaso faltan={faltan} ahora={faltan[0].id} onIr={llevarA} />;
+      falta = (
+        <div className="of-pie-pide">
+          <FaltanDelPaso faltan={faltan} ahora={faltan[0].id} onIr={llevarA} />
+        </div>
+      );
     }
     if (paso === 1) {
       if (faltan.length === 0) {
@@ -1432,7 +1452,7 @@ export function OfertasHoja({
       derecha = (
         <>
           {elegido && (
-            <Boton peso="fantasma" confirma={editada?.estado === "activa" ? confirmaRegir(puedeGuardar) : confirmaPaso(puedeGuardar)} disabled={guardandoAlgo} cargando={guardando === "borrador" || guardando === "cambios"} textoCargando="Guardando…" onClick={() => guardar(false)} data-guia="sellos.oferta-atajo">
+            <Boton peso="fantasma" className="of-atajo" confirma={editada?.estado === "activa" ? confirmaRegir(puedeGuardar) : confirmaPaso(puedeGuardar)} disabled={guardandoAlgo} cargando={guardando === "borrador" || guardando === "cambios"} textoCargando="Guardando…" onClick={() => guardar(false)} data-guia="sellos.oferta-atajo">
               {edita ? "Listo, guardar los cambios" : "Listo, guardar con lo demás de fábrica"}
             </Boton>
           )}
@@ -1461,7 +1481,11 @@ export function OfertasHoja({
     } else {
       const ok = puedeGuardar;
       if (ok && faltaChoque) {
-        falta = <FaltanDelPaso faltan={[faltaChoque]} ahora={faltaChoque.id} onIr={llevarA} rotulo={estadoEdita === "activa" ? "Para guardar" : "Para activarla"} />;
+        falta = (
+          <div className="of-pie-pide">
+            <FaltanDelPaso faltan={[faltaChoque]} ahora={faltaChoque.id} onIr={llevarA} rotulo={estadoEdita === "activa" ? "Para guardar" : "Para activarla"} />
+          </div>
+        );
       } else if (ok) {
         falta = (
           <span className="of-falta">
@@ -1508,7 +1532,7 @@ export function OfertasHoja({
     const v = vigenciaDeRegla(r, hoy);
     const chip = CHIP_ESTADO[v];
     const viva = r.estado !== "desactivada" && v !== "terminada";
-    const antes = r.cambios > 0 ? resumenAntes(r.ultimoCambio) : "";
+    const antes = r.cambios > 0 ? resumenAntes(r.ultimoCambio, r) : "";
     const datos = [titularDeOferta(r), `${sinPunto(fechaCorta(r.desde))} – ${sinPunto(fechaCorta(r.hasta))}`, textoDiasCorto(r.dias)].filter(Boolean).join(" · ");
     const confirmando = retirando === r.id;
     return (
@@ -1665,7 +1689,7 @@ export function OfertasHoja({
           <div className="of-hoja">
             {rail()}
             {!terminada && (
-              <section className="of-wz" aria-label={o.id ? "Editar oferta" : "Nueva oferta"}>
+              <section ref={asistente} className="of-wz" aria-label={o.id ? "Editar oferta" : "Nueva oferta"}>
                 <div className="of-top">
                   <b>{o.id ? "Editar oferta" : "Nueva oferta"}</b>
                   {pasos()}

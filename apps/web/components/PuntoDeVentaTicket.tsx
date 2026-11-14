@@ -122,6 +122,9 @@ type Props = {
   /** «Llevar varias y pagar menos» (ADR-0655), por `claveLinea`: la oferta de grupo de la línea, cuánto ahorra y cuántas faltan. El
    *  importe de la línea es sin el grupo; el ahorro va bajo la fila y en la fila «Descuento» del total. */
   grupos?: ReadonlyMap<string, GrupoEnTicket>;
+  /** El carrito con sus ofertas de grupo y su monto, como se cobra (ADR-0655, `carritoConGrupos`): «Quedaría en» del Descuento y el total de
+   *  cada ticket en espera lo cuentan. Ausente = sin ofertas. */
+  conOfertas?: (lineas: ItemCarrito[]) => ItemCarrito[];
   /** Color y talla de cada variante (por `varianteId`), para la fila de cada prenda. La línea del carrito no los
    *  guarda; sin ellos la fila muestra el código de la etiqueta, como antes. */
   detalles?: ReadonlyMap<string, DetalleVariante>;
@@ -221,6 +224,7 @@ export function PuntoDeVentaTicket({
   bloqueado,
   carrito,
   grupos,
+  conOfertas,
   detalles,
   tambienEn,
   duenosPorVariante,
@@ -322,7 +326,8 @@ export function PuntoDeVentaTicket({
   const resumenEspera = (t: TicketEnEspera) => ({
     hora: new Date(t.creadoEn).toLocaleTimeString("es-PE", { hour: "2-digit", minute: "2-digit", hour12: false, timeZone: "America/Lima" }),
     prendas: t.carrito.reduce((acc, it) => acc + it.cantidad, 0),
-    total: totalDeLineas(t.carrito),
+    // Con sus ofertas de hoy, como quedará al retomarlo: sin ellas, un 3x2 en espera decía el total sin la prenda regalada.
+    total: totalDeLineas(conOfertas ? conOfertas(t.carrito) : t.carrito),
   });
   const etiquetaPrendas = `${prendas} ${prendas === 1 ? "prenda" : "prendas"}`;
   const desglose = desgloseIgv(total, TASA_IGV);
@@ -339,7 +344,7 @@ export function PuntoDeVentaTicket({
 
   // ---- Apartado de descuento: todo derivado de props, sin estado propio — la cuenta es UNA sola y la comparte la hoja lateral
   // de escritorio (`HojaDeDescuento`, ADR-0584 / 2026-11-02) con este ticket (la hoja del celular): `lib/descuento-cuenta-reglas.ts`.
-  const cuenta = cuentaDelDescuento(descuento, carrito, vale);
+  const cuenta = cuentaDelDescuento(descuento, carrito, vale, conOfertas);
   const { porMonto, pct, monto, valorValido, todasLasPrendas, elegidasCuenta, hayDescuentoEnAlcance, motivoDescuento, pasoDescuento } = cuenta;
   const luzListo = descontando && pasoDescuento === "listo";
 

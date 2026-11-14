@@ -697,7 +697,9 @@ export function SellosPantalla({
     const p = prendasDe(e);
     const vivas = reglasDisponibles ? reglasVivas(reglasDeCampana(reglas, e.id), hoy) : [];
     const borradores = vivas.filter((r) => vigenciaDeRegla(r, hoy) === "borrador").length;
-    return preguntasDeCampana(e, p.modelos.length, categoriasDe(e), hoy, p.aMano, { activas: vivas.length - borradores, borradores }, textoSedesDeCampana(e.sedeIds, tiendas));
+    // Una oferta que elige sus propias prendas (categorías, modelos, insignias o toda la compra) responde «En qué prendas» (ADR-0655).
+    const eligen = vivas.some((r) => r.categoriasSolo.length > 0 || r.productosSolo.length > 0 || r.insigniasSolo.length > 0 || (r.tipo === "monto" && r.cuenta !== "campana"));
+    return preguntasDeCampana(e, p.modelos.length, categoriasDe(e), hoy, p.aMano, { activas: vivas.length - borradores, borradores }, textoSedesDeCampana(e.sedeIds, tiendas), eligen);
   }
   function responder(e: Etiqueta, clave: "oferta" | "prendas" | "cuando") {
     if (clave === "oferta") return reglasDisponibles ? setOfertandoId(e.id) : setConfigurando(e);

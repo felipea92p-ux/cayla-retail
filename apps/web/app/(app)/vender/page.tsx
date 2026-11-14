@@ -10,7 +10,7 @@ import { agruparStockPorSede } from "@/lib/stock-por-sede";
 import { getDisponibleEnSede, leerStockDeLasSedes } from "@/lib/inventario-v2";
 import { createClient } from "@/lib/supabase/server";
 import { exigir, tolerar } from "@/lib/resultado";
-import { leerCampanasVigentes } from "@/lib/campanas-vigentes";
+import { leerCampanasVigentes, leerOfertasDeGrupoVigentes, leerOfertasDeMontoVigentes } from "@/lib/campanas-vigentes";
 import { leerPreciosPropiosDeSede } from "@/lib/precios-propios-de-sede";
 import { PuntoDeVenta, type ProformaEnCobro } from "@/components/PuntoDeVenta";
 import { TicketPorSede } from "@/components/punto-de-venta/TicketPorSede";
@@ -31,7 +31,7 @@ import { getPedidosConCliente } from "@/lib/pedidos-entre-sedes";
 import { getEmpresasAqui } from "@/lib/empresas-de-sede";
 import { getStockPorDueno } from "@/lib/stock-por-dueno";
 import { tonosDeLasMezclas } from "@/lib/color-combinado";
-import { ofertasDeGrupoDeFilas, type FilaOfertaDeGrupo, type FilaOfertaDeMonto } from "@/lib/ofertas-de-grupo";
+import { ofertasDeGrupoDeFilas } from "@/lib/ofertas-de-grupo";
 
 /**
  * Vender: la caja del día de la ubicación — abrir, vender, cerrar, y ver lo vendido hoy.
@@ -73,15 +73,9 @@ async function Caja({ proformaId, repetirVentaId }: { proformaId: string | null;
   const ahora = new Date();
   // «Llevar varias y pagar menos» (ADR-0655): la oferta de grupo de hoy por prenda. Secundario como las campañas: si no carga (o la función
   // todavía no está), la caja vende igual sin grupos y `registrar_venta` exige lo que corresponda.
-  const cargaOfertasGrupo = supabase.rpc("ofertas_de_grupo_vigentes" as never, { p_ubicacion_id: persona.ubicacionId } as never) as unknown as PromiseLike<{
-    data: FilaOfertaDeGrupo[] | null;
-    error: { message: string } | null;
-  }>;
+  const cargaOfertasGrupo = leerOfertasDeGrupoVigentes(supabase, persona.ubicacionId);
   // «Gastar un monto y ahorrar» (actividad 8): los montos de hoy, con sus escalones. Igual de secundario: sin ellos, la caja vende igual.
-  const cargaOfertasMonto = supabase.rpc("ofertas_de_monto_vigentes" as never, { p_ubicacion_id: persona.ubicacionId } as never) as unknown as PromiseLike<{
-    data: FilaOfertaDeMonto[] | null;
-    error: { message: string } | null;
-  }>;
+  const cargaOfertasMonto = leerOfertasDeMontoVigentes(supabase, persona.ubicacionId);
   const [variantes, caja, resStock, ubicaciones, stockAqui, resCampanas, listasLeidas, resVentasHoy, resTextosClub, resWhatsappTienda, resQr, resRedondeo, resOpcionesApartados, pedidosConCliente, resPreciosSede, resColores, resFamiliasApagadas, resSeries, resMaquinas, repartoDeStock, proformaLeida, resRepetir, ultimoCierre] = await Promise.all([
     // Lo que se puede vender AQUÍ (ADR-0505): sin las prendas de CLAURE fuera de Lima, y en Lima con su insignia.
     getCatalogoParaOfrecer(persona.ubicacionId),
