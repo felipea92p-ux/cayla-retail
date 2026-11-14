@@ -20,7 +20,7 @@ import { ConfigurarCategoria } from "@/components/alta-producto/ConfigurarCatego
 import { ProductoCreado, type ResumenCreado } from "@/components/alta-producto/ProductoCreado";
 import { ChipOpcion, FilaAlta, PasoAlta, PlegableAlta } from "@/components/alta-producto/piezas";
 import { PropuestaDePrecio } from "@/components/alta-producto/PropuestaDePrecio";
-import { FotosYColores } from "@/components/alta-producto/FotosYColores";
+import { FotosYColores, useFotosEnCurso } from "@/components/alta-producto/FotosYColores";
 import { InterruptorCatalogoIA } from "@/components/alta-producto/FotosDeColores";
 import type { FotoPendiente } from "@/components/alta-producto/FotosAlta";
 import { MatrizVariantes } from "@/components/alta-producto/MatrizVariantes";
@@ -247,7 +247,10 @@ export function NuevoProductoForm({
   const [coloresElegidos, setColoresElegidos] = useState<string[]>([]);
   const [fotos, setFotos] = useState<FotoPendiente[]>([]);
   // Fotos de «Fotos y colores» que todavía no tienen color (se leen o esperan una respuesta): bloquean crear, o se perderían (ADR-0663).
-  const [fotosSinColor, setFotosSinColor] = useState(0);
+  // Las fotos que «Fotos y colores» todavía lee o pregunta: las guarda la pantalla, no el paso, para que no se pierdan al cambiar de paso
+  // mientras la IA las prepara (Felipe 2026-11-14). Mientras haya alguna, no se crea: se perdería.
+  const fotosEnCurso = useFotosEnCurso();
+  const fotosSinColor = fotosEnCurso.pendientes.length;
   const [precioBase, setPrecioBase] = useState("");
   const [costoBase, setCostoBase] = useState("");
   const [costoTocado, setCostoTocado] = useState(false);
@@ -1272,7 +1275,7 @@ export function NuevoProductoForm({
               disabled={cargando}
               guia="nuevo.fotos-colores"
               catalogo={catalogo}
-              onPendientes={setFotosSinColor}
+              enCurso={fotosEnCurso}
             />
           </FilaAlta>
 

@@ -20,7 +20,7 @@ import { PuntosAvance } from "@/components/alta-producto/PuntosAvance";
 import { PropuestaDePrecio, adelantarPropuestaDePrecio } from "@/components/alta-producto/PropuestaDePrecio";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { InterruptorCatalogoIA } from "@/components/alta-producto/FotosDeColores";
-import { FotosYColores } from "@/components/alta-producto/FotosYColores";
+import { FotosYColores, useFotosEnCurso } from "@/components/alta-producto/FotosYColores";
 import type { FotoPendiente } from "@/components/alta-producto/FotosAlta";
 import { useCatalogoIAAlta } from "@/components/alta-producto/useCatalogoIAAlta";
 import { createClient } from "@/lib/supabase/client";
@@ -219,7 +219,10 @@ export function HojaPrenda({
   const avisoError = useRef<HTMLDivElement>(null);
 
   // Fotos de «Fotos y colores» que todavía no tienen color: frenan crear la prenda, o se perderían (ADR-0663, como en Nuevo producto).
-  const [fotosSinColor, setFotosSinColor] = useState(0);
+  // Las fotos que «Fotos y colores» todavía lee o pregunta: las guarda la pantalla, no el paso, para que no se pierdan al cambiar de paso
+  // mientras la IA las prepara (Felipe 2026-11-14). Mientras haya alguna, no se crea: se perdería.
+  const fotosEnCurso = useFotosEnCurso();
+  const fotosSinColor = fotosEnCurso.pendientes.length;
   const camposPrenda = camposDePrenda(borrador, ctx, tocados).map((c) =>
     c.id === "prenda-colores" && fotosSinColor ? { ...c, requerido: true, hecho: false, pendiente: textoFotosSinColor(fotosSinColor) } : c,
   );
@@ -490,7 +493,7 @@ export function HojaPrenda({
         disabled={guardando}
         guia="recepcion.fotos-colores"
         catalogo={catalogo}
-        onPendientes={setFotosSinColor}
+        enCurso={fotosEnCurso}
       />
     </CampoGuiado>
   );

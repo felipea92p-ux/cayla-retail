@@ -26,8 +26,10 @@ import { objecionFotoProducto } from "@/lib/producto-fotos";
 // pregunta, nunca se pone a escondidas: un tono lejos de la carta («Usar X» o «Crear este color»), un dibujo (el estampado), más de 4
 // colores o una foto sin prenda. Una foto del mismo color que otra tarjeta (la espalda) se suma a esa tarjeta: no es otro color.
 //
-// La fuente de verdad sigue siendo la del formulario: los colores elegidos (en orden) y las fotos con su `colorCodigo`. Aquí solo viven las
-// fotos que todavía se leen o esperan una respuesta. La usan Nuevo producto (paso 3) y Recibir ▸ Nueva prenda (paso 2).
+// La fuente de verdad sigue siendo la del formulario: los colores elegidos (en orden) y las fotos con su `colorCodigo`. Las fotos que todavía
+// se leen o esperan una respuesta las guarda la PANTALLA (`useFotosEnCurso`), no esta pieza: así una foto que la IA está preparando no se pierde
+// si la persona cambia de paso mientras tanto (antes se perdía, ya pagada; Felipe 2026-11-14). La usan Nuevo producto (paso 3) y Recibir ▸
+// Nueva prenda (paso 2).
 
 type Grupos = { familia: string; texto: string; colores: ColorAlta[] }[];
 
@@ -43,6 +45,42 @@ type Pendiente = {
   eleccion?: (string | null)[];
   motivo?: string;
 };
+
+/**
+ * Las fotos que todavía se leen o esperan una respuesta, con su cola y lo ya asentado. Va en la PANTALLA, fuera del paso: «Fotos y colores»
+ * se desmonta al ir a otro paso, y si esto viviera ahí, la respuesta de la IA llegaría a una pieza que ya no está y la foto se perdería.
+ */
+export function useFotosEnCurso() {
+  const [pendientes, setPendientes] = useState<Pendiente[]>([]);
+  // Una foto a la vez: dos fotos con la misma mezcla nueva no la piden dos veces a la base.
+  const cola = useRef<Promise<void>>(Promise.resolve());
+  // Las fotos que ya quedaron en su color: un clic repetido («Usar X», «Volver a intentar») no las asienta dos veces (/chaos 2026-11-14).
+  const asentadas = useRef(new Set<string>());
+  // Las vistas previas (blob:) abiertas: se liberan al salir de la PANTALLA, no del paso (si no, la tarjeta volvería sin foto).
+  const vistas = useRef(new Set<string>());
+  useEffect(() => {
+    const abiertas = vistas.current;
+    return () => abiertas.forEach((v) => URL.revokeObjectURL(v));
+  }, []);
+  return useMemo(
+    () => ({
+      pendientes,
+      setPendientes,
+      /** Pone un trabajo al final de la cola: las fotos se asientan de a una. */
+      encolar: (trabajo: () => Promise<void> | void) => {
+        cola.current = cola.current.then(trabajo);
+      },
+      /** ¿Esta foto ya quedó en su color? */
+      asentada: (clave: string) => asentadas.current.has(clave),
+      marcarAsentada: (clave: string) => void asentadas.current.add(clave),
+      /** Una vista previa (blob:) que hay que liberar al salir de la pantalla, o que ya no (pasó al formulario o se liberó). */
+      abrirVista: (url: string) => void vistas.current.add(url),
+      soltarVista: (url: string) => void vistas.current.delete(url),
+    }),
+    [pendientes],
+  );
+}
+export type FotosEnCurso = ReturnType<typeof useFotosEnCurso>;
 
 /** Lo que la tarjeta muestra de cómo se leyó: el color de cada parte y cuánto ocupa. */
 function Partes({ lectura }: { lectura: Lectura<ColorAlta> }) {
@@ -104,7 +142,7 @@ export function FotosYColores({
   disabled = false,
   guia,
   catalogo,
-  onPendientes,
+  enCurso,
 }: {
   /** Toda la carta, también las mezclas guardadas (de ahí se reconoce una mezcla que ya existe). */
   carta: ColorAlta[];
@@ -126,10 +164,11 @@ export function FotosYColores({
   guia?: string;
   /** «Catálogo con IA»: encendido, cada foto pasa primero por la IA y el color se lee de su PNG sin fondo (sale más exacto). */
   catalogo?: CatalogoIAAlta;
-  /** Cuántas fotos todavía no tienen color: la pantalla no deja crear mientras haya alguna (se perderían). */
-  onPendientes?: (n: number) => void;
+  /** Las fotos que todavía no tienen color, guardadas por la pantalla (`useFotosEnCurso`): no se pierden al cambiar de paso, y la pantalla
+   *  no deja crear mientras haya alguna. */
+  enCurso: FotosEnCurso;
 }) {
-  const [pendientes, setPendientes] = useState<Pendiente[]>([]);
+  const { pendientes, setPendientes, encolar, asentada, marcarAsentada, abrirVista, soltarVista } = enCurso;
   const [porQue, setPorQue] = useState<string | null>(null);
   const [encima, setEncima] = useState(false);
   // La carta para elegir a mano: para cambiar el color de una tarjeta, para contestar una pregunta o «Elegir sin foto».
@@ -144,34 +183,18 @@ export function FotosYColores({
     cartaRef.current = carta;
     elegidosRef.current = elegidos;
   }, [carta, elegidos]);
-  // Una foto a la vez: dos fotos con la misma mezcla nueva no la piden dos veces a la base.
-  const cola = useRef<Promise<void>>(Promise.resolve());
-  const vistas = useRef(new Set<string>());
-  useEffect(() => {
-    const abiertas = vistas.current;
-    return () => abiertas.forEach((v) => URL.revokeObjectURL(v));
-  }, []);
-
-  useEffect(() => {
-    onPendientes?.(pendientes.length);
-  }, [pendientes.length, onPendientes]);
-
   const porCodigo = useMemo(() => new Map(carta.map((c) => [c.codigo, c])), [carta]);
   const cambiar = (clave: string, cambio: Partial<Pendiente> | null) =>
     setPendientes((ps) => (cambio === null ? ps.filter((p) => p.clave !== clave) : ps.map((p) => (p.clave === clave ? { ...p, ...cambio } : p))));
 
-  // Las fotos que ya quedaron en su color. Un clic repetido («Usar X», «Volver a intentar») pone en la cola la misma foto dos o
-  // tres veces antes de que la tarjeta se vaya: la segunda vuelta ya no hace nada (ni pide otra mezcla). /chaos 2026-11-14.
-  const asentadas = useRef(new Set<string>());
-
   /** La foto queda en su color: entra al formulario y sale de las pendientes. */
   function asentar(p: Pendiente, codigo: string) {
-    if (asentadas.current.has(p.clave)) return;
-    asentadas.current.add(p.clave);
+    if (asentada(p.clave)) return;
+    marcarAsentada(p.clave);
     onAgregarColor(codigo);
     onFotos((fs) => sumarFotoUnaVez(fs, { clave: p.clave, archivo: p.archivo, vista: p.ia?.vistaIA ?? p.vista, colorCodigo: codigo, lectura: p.lectura, ia: p.ia }));
-    vistas.current.delete(p.vista);
-    if (p.ia) vistas.current.delete(p.ia.vistaIA);
+    soltarVista(p.vista);
+    if (p.ia) soltarVista(p.ia.vistaIA);
     cambiar(p.clave, null);
   }
 
@@ -183,7 +206,7 @@ export function FotosYColores({
 
   /** De los colores de cada parte al color de la prenda: uno, o la mezcla (la que ya existe o una nueva). */
   async function resolver(p: Pendiente, codigos: string[]) {
-    if (asentadas.current.has(p.clave)) return;
+    if (asentada(p.clave)) return;
     const unicos = codigos.filter((c, i) => codigos.indexOf(c) === i);
     if (unicos.length === 1) return asentar(p, unicos[0]);
     const componentes = componentesDeMezcla(unicos[0], unicos.slice(1, 4));
@@ -218,7 +241,7 @@ export function FotosYColores({
         const png = await catalogo.prepararFoto(p.archivo);
         if (png) {
           const vistaIA = URL.createObjectURL(png);
-          vistas.current.add(vistaIA);
+          abrirVista(vistaIA);
           conIA = { ...p, ia: { png, vistaIA, vistaReal: p.vista, usar: true } };
         }
         cambiar(p.clave, { estado: "leyendo", ia: conIA.ia });
@@ -226,7 +249,7 @@ export function FotosYColores({
       const lectura = leerColores(await pixelesDeLaFoto(conIA.ia?.png ?? p.archivo), cartaRef.current);
       const eleccion = propuestaInicial(lectura);
       const conTodo = { ...conIA, lectura, eleccion };
-      if (eleccion.length && eleccion.every((c): c is string => c !== null)) cola.current = cola.current.then(() => resolver(conTodo, eleccion));
+      if (eleccion.length && eleccion.every((c): c is string => c !== null)) encolar(() => resolver(conTodo, eleccion));
       else cambiar(p.clave, { estado: "pregunta", lectura, eleccion, ia: conIA.ia });
     } catch (e) {
       cambiar(p.clave, { estado: "pregunta", motivo: motivoDeFalla(e, "No se pudo leer esta foto.") });
@@ -242,7 +265,7 @@ export function FotosYColores({
       if (objecion) malas.push(`${archivo.name}: ${objecion}`);
       else {
         const vista = URL.createObjectURL(archivo);
-        vistas.current.add(vista);
+        abrirVista(vista);
         nuevas.push({ clave: crypto.randomUUID(), archivo, vista, estado: catalogo?.encendido ? "ia" : "leyendo" });
       }
     }
@@ -269,12 +292,12 @@ export function FotosYColores({
   /** Contestar la parte que no estaba en la carta (o elegir el color entero, desde la carta). */
   function contestar(p: Pendiente, parte: number | null, codigo: string) {
     if (parte === null) {
-      cola.current = cola.current.then(() => resolver(p, [codigo]));
+      encolar(() => resolver(p, [codigo]));
       return;
     }
     const eleccion = [...(p.eleccion ?? [])];
     eleccion[parte] = codigo;
-    if (eleccion.every((c): c is string => c !== null)) cola.current = cola.current.then(() => resolver({ ...p, eleccion }, eleccion));
+    if (eleccion.every((c): c is string => c !== null)) encolar(() => resolver({ ...p, eleccion }, eleccion));
     else cambiar(p.clave, { eleccion });
   }
 
@@ -337,10 +360,10 @@ export function FotosYColores({
                       disabled={disabled || p.estado === "armando" || p.estado === "ia"}
                       onClick={() => {
                         URL.revokeObjectURL(p.vista);
-                        vistas.current.delete(p.vista);
+                        soltarVista(p.vista);
                         if (p.ia) {
                           URL.revokeObjectURL(p.ia.vistaIA);
-                          vistas.current.delete(p.ia.vistaIA);
+                          soltarVista(p.ia.vistaIA);
                         }
                         cambiar(p.clave, null);
                       }}
@@ -369,7 +392,7 @@ export function FotosYColores({
                               disabled={disabled}
                               onClick={() => {
                                 const eleccion = partes.map((x) => x.color.codigo);
-                                cola.current = cola.current.then(() => resolver({ ...p, eleccion }, eleccion));
+                                encolar(() => resolver({ ...p, eleccion }, eleccion));
                               }}
                             >
                               Es una mezcla
@@ -433,7 +456,7 @@ export function FotosYColores({
                         <Boton type="button" peso="primario" className="btn-chico" disabled={disabled} onClick={() => {
                             // Con TODOS los colores elegidos: reintentar con el primero dejaba una mezcla en un color liso (/chaos 2026-11-14).
                             const codigos = codigosParaReintentar(p.eleccion);
-                            if (codigos) cola.current = cola.current.then(() => resolver(p, codigos));
+                            if (codigos) encolar(() => resolver(p, codigos));
                           }}
                         >
                           Volver a intentar
