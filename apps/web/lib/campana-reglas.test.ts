@@ -50,6 +50,7 @@ import {
   FORMA_DE_FABRICA,
   problemasDeForma,
   problemasDeMonto,
+  bajadaDesactivarInsignia,
 } from "./campana-reglas";
 
 // El viernes 23 de octubre de 2026 es hoy en la maqueta; el lunes 26, el martes 27, el jueves 29.
@@ -635,5 +636,33 @@ describe("por insignia (ADR-0655)", () => {
     const migracion = readFileSync(join(__dirname, "../../../supabase/migrations/20261114060000_ofertas_por_insignia.sql"), "utf8");
     expect(migracion).toContain(`cardinality(v_insignias) > ${MAX_INSIGNIAS_SOLO}`);
     expect(migracion).toContain(`hasta ${MAX_INSIGNIAS_SOLO} insignias`);
+  });
+});
+
+describe("desactivar una insignia que usan ofertas (ADR-0655, Felipe 2026-11-14)", () => {
+  const ROTACION = "55555555-5555-4555-8555-555555555555";
+  const nombreCampana = (id: string) => (id === CAMPANA ? "Verano" : "Otra");
+  const hoy = "2026-10-25";
+  it("nombra la oferta que la usa y su campaña", () => {
+    const r = regla({ nombre: "3x2 polos", insignias: [ROTACION] });
+    expect(bajadaDesactivarInsignia([r], ROTACION, hoy, nombreCampana)).toBe("La oferta «3x2 polos» de Verano deja de rebajar sus prendas.");
+  });
+  it("con dos ofertas, las dos; con más de tres, cuántas", () => {
+    const a = regla({ id: "a", nombre: "3x2 polos", insignias: [ROTACION] });
+    const b = regla({ id: "b", nombre: "−20 %", insignias: [ROTACION] });
+    expect(bajadaDesactivarInsignia([a, b], ROTACION, hoy, nombreCampana)).toBe("Las ofertas «3x2 polos» de Verano y «−20 %» de Verano dejan de rebajar sus prendas.");
+    const cuatro = ["a", "b", "c", "d"].map((id) => regla({ id, nombre: id, insignias: [ROTACION] }));
+    expect(bajadaDesactivarInsignia(cuatro, ROTACION, hoy, nombreCampana)).toBe("4 ofertas dejan de rebajar sus prendas.");
+  });
+  it("calla si ninguna oferta que rige o va a regir la usa (un borrador, una terminada, una retirada u otra insignia)", () => {
+    const borrador = regla({ estado: "borrador", insignias: [ROTACION] });
+    const terminada = regla({ hasta: "2026-10-01", insignias: [ROTACION] });
+    const retirada = regla({ estado: "desactivada", insignias: [ROTACION] });
+    const otra = regla({ insignias: [] });
+    expect(bajadaDesactivarInsignia([borrador, terminada, retirada, otra], ROTACION, hoy, nombreCampana)).toBeNull();
+  });
+  it("cuenta también la que va a regir", () => {
+    const programada = regla({ desde: "2026-11-01", hasta: "2026-11-30", nombre: "Navidad", insignias: [ROTACION] });
+    expect(bajadaDesactivarInsignia([programada], ROTACION, hoy, nombreCampana)).toBe("La oferta «Navidad» de Verano deja de rebajar sus prendas.");
   });
 });

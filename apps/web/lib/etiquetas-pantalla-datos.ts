@@ -143,14 +143,16 @@ export async function cargarEtiquetasPantalla({
     .map((e) => ({ id: e.id, nombre: e.nombre, activa: e.activo && e.estado === "aprobado", categoriaIds: e.categoriaIds }));
   const costos = await cargaCostos;
   // Qué insignias lleva cada prenda: marcada a mano o por una categoría de la insignia (la regla de la base,
-  // `fn_oferta_alcanza_variante_con_insignias`). Lo cuenta la hoja de la oferta al elegir insignias.
+  // `fn_oferta_alcanza_variante_con_insignias`). Lo cuenta la hoja de la oferta al elegir insignias. Solo las vivas (activas y aprobadas):
+  // una oferta no llega a las prendas de una insignia desactivada (ADR-0655, Felipe 2026-11-14), y la hoja cuenta lo mismo que la caja.
   const manualesPorPrenda = new Map<string, string[]>();
-  const idsInsignias = new Set(insignias.map((i) => i.id));
+  const vivas = insignias.filter((i) => i.activa);
+  const idsInsignias = new Set(vivas.map((i) => i.id));
   for (const f of exigir(resManuales, "las prendas puestas a mano")) {
     if (idsInsignias.has(f.etiqueta_id)) manualesPorPrenda.set(f.variante_id, [...(manualesPorPrenda.get(f.variante_id) ?? []), f.etiqueta_id]);
   }
   const insigniasPorCategoria = new Map<string, string[]>();
-  for (const i of insignias) for (const c of i.categoriaIds) insigniasPorCategoria.set(c, [...(insigniasPorCategoria.get(c) ?? []), i.id]);
+  for (const i of vivas) for (const c of i.categoriaIds) insigniasPorCategoria.set(c, [...(insigniasPorCategoria.get(c) ?? []), i.id]);
   const prendasConCosto = exigir(resPrendas, "las prendas para el aviso de costo").map((v) => {
     // El precio más bajo al que se cobra en cualquier tienda (el de la prenda o el propio de una), y cuál tienda lo fija.
     const bajo = precioMasBajoEnTiendas(Number(v.precio), v.id, preciosTiendas.porSede, preciosTiendas.nombres);
@@ -212,6 +214,9 @@ export async function cargarEtiquetasPantalla({
     tiendas: sedesDisponibles ? tiendas : [],
     reglas,
     reglasDisponibles,
+    // El nombre de cada campaña (de todos los modos): Catálogo ▸ Insignias nombra la campaña de una oferta que usa la insignia que se
+    // desactiva (ADR-0655).
+    nombresDeCampanas: Object.fromEntries(todasLasEtiquetas.filter((e) => e.estilo === "campana").map((e) => [e.id, e.nombre])) as Record<string, string>,
   };
 }
 

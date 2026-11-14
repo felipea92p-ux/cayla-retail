@@ -264,6 +264,23 @@ export const reglasVivas = (reglas: readonly ReglaCampana[], hoy: string) => reg
 
 export const reglasDeCampana = (reglas: readonly ReglaCampana[], etiquetaId: string) => reglas.filter((r) => r.etiquetaId === etiquetaId);
 
+/**
+ * ADR-0655 (Felipe 2026-11-14): una oferta no llega a las prendas de una insignia desactivada. Al desactivar una que usan ofertas que rigen
+ * o van a regir, la confirmación lo dice: «La oferta «3x2 polos» de Verano deja de rebajar sus prendas.». Null si ninguna la usa.
+ */
+export function bajadaDesactivarInsignia(
+  reglas: readonly ReglaCampana[],
+  insigniaId: string,
+  hoy: string,
+  nombreCampana: (etiquetaId: string) => string,
+): string | null {
+  const usan = reglas.filter((r) => r.insigniasSolo.includes(insigniaId) && ["vigente", "programada"].includes(vigenciaDeRegla(r, hoy)));
+  if (usan.length === 0) return null;
+  if (usan.length > MAX_CATEGORIAS_NOMBRADAS) return `${usan.length} ofertas dejan de rebajar sus prendas.`;
+  const nombres = usan.map((r) => `«${r.nombre}» de ${nombreCampana(r.etiquetaId)}`);
+  return `${usan.length === 1 ? "La oferta" : "Las ofertas"} ${lista(nombres)} ${usan.length === 1 ? "deja" : "dejan"} de rebajar sus prendas.`;
+}
+
 /** Primero lo que rige o va a regir, después los borradores, y al final lo que ya pasó. */
 export function ordenarReglas(reglas: readonly ReglaCampana[], hoy: string): ReglaCampana[] {
   const rango: Record<VigenciaRegla, number> = { vigente: 0, programada: 1, borrador: 2, terminada: 3, retirada: 4 };

@@ -42,7 +42,7 @@ import { textoRango, vigenciaDe } from "@/lib/etiqueta-vigencia";
 import { urlEtiquetasDePrecio } from "@/lib/etiqueta-precio-reglas";
 import { notaSinRegistrar, type LecturaRotacion } from "@/lib/etiqueta-rotacion";
 import { hoyLima } from "@/lib/fechas-lima";
-import { reglasDeCampana, reglasVivas, vigenciaDeRegla, type InsigniaDeOferta, type ReglaCampana } from "@/lib/campana-reglas";
+import { bajadaDesactivarInsignia, reglasDeCampana, reglasVivas, vigenciaDeRegla, type InsigniaDeOferta, type ReglaCampana } from "@/lib/campana-reglas";
 import { tramoDeCampana, TEXTOS_MODO } from "@/lib/sellos-campanas";
 import {
   ESTILO_DE_VISTA,
@@ -110,6 +110,7 @@ export function SellosPantalla({
   reglas: reglasIniciales,
   reglasDisponibles,
   insignias = [],
+  nombresDeCampanas = {},
 }: {
   /** Qué fila del menú dibuja (ADR-0655): «Campañas y ofertas» o «Insignias». */
   modo: "campanas" | "insignias";
@@ -141,6 +142,8 @@ export function SellosPantalla({
   reglasDisponibles: boolean;
   /** Las insignias que una oferta puede elegir (ADR-0655, por insignia); vacío en Catálogo ▸ Insignias, que no edita ofertas. */
   insignias?: InsigniaDeOferta[];
+  /** El nombre de cada campaña: al desactivar una insignia, la confirmación nombra las ofertas que la usan con su campaña (ADR-0655). */
+  nombresDeCampanas?: Record<string, string>;
 }) {
   const hoy = hoyLima();
   const router = useRouter();
@@ -681,7 +684,17 @@ export function SellosPantalla({
         <button
           type="button"
           disabled={cambiandoId === e.id}
-          onClick={() => setConfirmando(confirmacionCatalogo("desactivar", e.nombre, () => cambiarActivo(e, false)))}
+          onClick={() =>
+            setConfirmando(
+              confirmacionCatalogo(
+                "desactivar",
+                e.nombre,
+                () => cambiarActivo(e, false),
+                // ADR-0655: las ofertas que eligen esta insignia dejan de llegar a sus prendas; la confirmación las nombra.
+                bajadaDesactivarInsignia(reglas, e.id, hoy, (id) => nombresDeCampanas[id] ?? "su campaña") ?? undefined,
+              ),
+            )
+          }
           className="btn-cayla btn-peligro btn-chico ml-auto"
         >
           {cambiandoId === e.id ? "Desactivando…" : "Desactivar"}
