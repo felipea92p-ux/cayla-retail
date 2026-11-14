@@ -132,10 +132,12 @@
 .rc-placa .rc-dial { width: 192px; height: 192px; }
 .rc-placa .rc-dial-centro { inset: 40px; }
 .rc-placa .rc-dial-centro small { font-size: 13px; line-height: 1.2; }
-.rc-placa .rc-dial-numero { padding: 0 6px; font-size: 54px; }
 .rc-placa .rc-dial-visto { top: 12px; right: 12px; width: 30px; height: 30px; }
+/* La línea del número mide siempre lo que mide con 1 y 2 cifras (54 px × 1.15 = 62 px), cerrado y abierto, y la cifra va centrada adentro: al achicarse la
+   letra con 3 o más cifras (abajo), ni «por contar / contadas» ni nada de la placa se mueve, tampoco mientras se teclea (auditoría al milímetro, M1, 2026-11-14). */
+.rc-placa :is(.rc-dial-numero, .rc-dial-vivo) { height: calc(54px * 1.15); height: round(nearest, calc(54px * 1.15), 1px); font-size: 54px; }
+.rc-placa .rc-dial-numero { padding: 0 6px; }
 /* Por miles el número se achica para no salirse del aro: 4 cifras con su coma, 5 cifras. */
-.rc-placa .rc-dial-vivo { font-size: 54px; }
 .rc-placa .rc-dial[data-cifras="3"] :is(.rc-dial-numero, .rc-dial-vivo) { font-size: 46px; }
 .rc-placa .rc-dial[data-cifras="4"] :is(.rc-dial-numero, .rc-dial-vivo) { font-size: 36px; }
 .rc-placa .rc-dial[data-cifras="5"] :is(.rc-dial-numero, .rc-dial-vivo) { font-size: 30px; }

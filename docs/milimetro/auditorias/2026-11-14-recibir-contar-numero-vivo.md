@@ -11,7 +11,10 @@ la pantalla; `retail.movimientos` = 295 al empezar y al terminar. Anchos 1440 ×
 con el número abierto y cerrado. Las posiciones del número se midieron en la captura (caja de los píxeles de su color, ± 52 px alrededor del centro del aro, para
 no tomar el aro), y los contrastes, contra el color real de la captura (el vidrio ya compuesto), no contra el token.
 
-**Resultado:** 0 graves · 3 medias · 5 leves. 0 textos que fallen 1.4.3 (97 medidos en claro, 95 en oscuro, 90 a 1280).
+**Resultado:** 0 graves · 3 medias · 5 leves. 0 textos que fallen 1.4.3 (97 medidos en claro, 95 en oscuro, 90 a 1280). **M1 y M3 arreglados el mismo día**
+(medida de después en cada hallazgo); M2 sigue como propuesta. Con el arreglo, el auditor de tema sobre ENV-000375 dio 0 hallazgos solo en oscuro, y el recorredor de la
+guía `recibir.envio.id` pasó en escritorio (21 pasos) sin escribir en la base. A 375 px marca un paso, «La hoja de tallas y colores» (el recorte queda sin alto),
+y lo marca igual con el CSS de antes de este arreglo: es de antes y queda anotado, sin tocar.
 
 ## Lo medido, regla por regla
 
@@ -21,7 +24,7 @@ no tomar el aro), y los contrastes, contra el color real de la captura (el vidri
 |---|---|---|---|---|
 | Abierto, la cifra mide lo mismo que cerrada | 1 y 2 cifras: 54 px / 600 cerrado y abierto; 3: 46 px; 4: 36 px. Caja de las cifras en la captura: Δ 0 px en x, y, ancho y alto para 7, 42 y 345, en claro, oscuro, vivo y quieto | `.rc-placa .rc-dial-vivo` = `.rc-dial-numero`, `data-cifras` | regla del repo (demo elegida por Felipe, 2026-11-14) | Sí (1–3 cifras) · ver M1 y L1 |
 | Al abrir no salta nada | «contadas» −0,1 a −0,2 px (redondeo: 62 px contra 62,1); − y + y la pista: 0 px | `height: round(nearest, 1.15em, 1px)` | regla del repo (ADR-0185, la misma idea) | Sí |
-| Al teclear no salta nada | − y +: 0 px; la pista: 0 px; «contadas»: +4,5 px al pasar de 2 a 3 cifras, +6 de 3 a 4, y −10,5 px cuando la primera tecla reemplaza un número de 4 cifras | el tamaño sigue a `data-cifras` (lo tecleado) | regla del repo (comentario de `.rc-dial-vivo`) | No: M1 |
+| Al teclear no salta nada | − y +: 0 px; la pista: 0 px; «contadas»: +4,5 px al pasar de 2 a 3 cifras, +6 de 3 a 4, y −10,5 px cuando la primera tecla reemplaza un número de 4 cifras | el tamaño sigue a `data-cifras` (lo tecleado) | regla del repo (comentario de `.rc-dial-vivo`) | No: M1 · arreglado (Δ 0 px) |
 | Contraste del número | tinta 16,3:1 (claro) · 12,77:1 (oscuro) sobre el fondo real del aro | `--color-tinta` | `[Norma]` 1.4.3 | Sí |
 | El 0 que espera (sin contar) | taupe 5,53:1 (claro) · 6,49:1 (oscuro), 54 px / 600, centrado (Δx 0 respecto del centro del aro) | `--color-taupe` en `::before` | `[Norma]` 1.4.3 (texto grande pide 3:1) | Sí |
 | «por contar / contadas» | 13 px / 600, taupe 5,16:1 (claro) · 5,88:1 (oscuro) | `--color-taupe` | `[Norma]` 1.4.3 | Sí (contraste) · L5 (13 px) |
@@ -37,8 +40,8 @@ no tomar el aro), y los contrastes, contra el color real de la captura (el vidri
 | Regla | Medido | Pieza o token | Nivel | ¿Pasa? |
 |---|---|---|---|---|
 | Contraste | «Falta contar:» y «Faltan tallas:» 5,76:1 (claro) · 6,11:1 (oscuro); el nombre 16,99:1 · 12,04:1 | `--color-taupe`, `btn-enlace` | `[Norma]` 1.4.3 | Sí |
-| Espacio entre el texto y el enlace | 3,7 px (el espacio de la frase), igual a 1280 y 1440 | `{" "}` | `[Práctica]` el anillo pide su separación libre | No: M3 |
-| El anillo del enlace | 2 px tinta, separación 2 px, 16,98:1 (claro) · 12,04:1 (oscuro); **el lado de abajo queda cortado** (4,3 px fuera del `<p>`, que tiene `overflow: hidden` y 24 px de alto) y **el izquierdo pisa los dos puntos** (−0,3 px «Falta contar:», −0,2 px «Faltan tallas:») | `--foco-*` (ADR-0351) | `[Norma]` 2.4.7 AA (se ve: 3 lados) · 2.4.13 AAA (área) | No: M3 |
+| Espacio entre el texto y el enlace | 3,7 px (el espacio de la frase), igual a 1280 y 1440 | `{" "}` | `[Práctica]` el anillo pide su separación libre | No: M3 · arreglado (3,73 px libres) |
+| El anillo del enlace | 2 px tinta, separación 2 px, 16,98:1 (claro) · 12,04:1 (oscuro); **el lado de abajo queda cortado** (4,3 px fuera del `<p>`, que tiene `overflow: hidden` y 24 px de alto) y **el izquierdo pisa los dos puntos** (−0,3 px «Falta contar:», −0,2 px «Faltan tallas:») | `--foco-*` (ADR-0351) | `[Norma]` 2.4.7 AA (se ve: 3 lados) · 2.4.13 AAA (área) | No: M3 · arreglado (los 4 lados) |
 | Tamaño del blanco | 74 × 20,3 px («Cartera Mía»), 97,9 × 20,3 («Casaca Ximena») | `btn-cayla btn-enlace` | `[Norma]` 2.5.8 AA | Sí, por la excepción de separación (el medidor lo da «bajo 24 pero separado») · L4 |
 | Letra | el nombre en 13,5 px / 500 dentro de una frase de 14 px | `btn-cayla` | regla del repo («la letra de lectura no baja de 14 px») | L3 |
 
@@ -79,6 +82,14 @@ Medido en `main` (3070) y en la rama (3110) con el mismo alta (Camisas y Blusas,
   − y + no se mueven. Al abrir no salta (lo que el cambio prometía), pero el alto de la línea sigue al tamaño de la letra. Dónde: `recepcion-viva.css:61` (`height: 1.15em`)
   con `:139–140` (el tamaño por cifras), que ahora también alcanzan al número abierto. Arreglo probable: un alto fijo para la línea del número en la placa (el de 54 px, 62 px)
   y la cifra centrada adentro. Nivel: regla del repo (el comentario de `.rc-dial-vivo` y ADR-0185, sin prueba). A quién va: `/espacio` · `/movimiento`.
+  **Arreglado (2026-11-14, mismo día).** En la placa, la línea del número mide siempre `round(54px × 1.15)` = 62 px, cerrado (`button.rc-dial-numero`) y abierto
+  (`.rc-dial-vivo`), con la cifra centrada adentro; los tamaños por cifras (54 · 46 · 36 · 30 · 24 px) no cambiaron (`recepcion-viva.css`, la regla
+  `.rc-placa :is(.rc-dial-numero, .rc-dial-vivo)`). Medido después, sin ventana, a 1440 en claro y en oscuro, con un envío de prueba («Sin aviso», `PR-AJUSTES`,
+  ENV-000375, 4 modelos): con 5, 47, 123 y 1234, cerrado y abierto; tecleando 5 → 54 → 543 → 5432 y de vuelta con Backspace; la primera tecla que reemplaza 1234; y con
+  +5 (95 → 100), − (→ 99), + (→ 100) y +10 (→ 110). La etiqueta, − y +, la pista y el borde de abajo de la placa: **Δ 0 px en los 24 estados** (antes: −4,55 px con 3
+  cifras y −10,55 con 4, respecto de 1 y 2). El número mide 62 px en todos (antes 62 · 53 · 41) y su centro no se mueve (Δ 0, antes tampoco). La cifra contra el centro
+  del aro, en la captura: −5,5 px (5), −6,5 (47), −7,0 (123), −4,5 (1234, cerrado): **idéntica antes y después**, porque la cifra nunca se movió (lo que saltaba era la
+  etiqueta, que ahora se queda donde está con 1 y 2 cifras).
 - **M2 · El número abierto no lleva anillo de foco para quien no pidió más contraste.** Su foco es el cursor (16,3:1) y, si la cifra ya estaba contada, la selección
   (1,39:1 en claro y 1,61:1 en oscuro: medido y coincide con el comentario de `recepcion-viva.css:84`). Con la cifra seleccionada Chrome no dibuja el cursor: lo único que
   marca el foco es ese sombreado. El medidor de color lo marca como control sin borde (1.4.11) y sin anillo (2.4.13 AAA no pasa). Existe un indicador, así que no rompe 2.4.7 AA.
@@ -88,6 +99,15 @@ Medido en `main` (3070) y en la rama (3110) con el mismo alta (Camisas y Blusas,
   anillo baja 4,3 px más. Igual en claro, oscuro, 1280 y 1440. Es el lugar donde Enter deja el cursor tras el último modelo, así que se ve justo cuando más se usa el teclado.
   Arreglo probable: `overflow: clip` con `overflow-clip-margin` de 4 px (la elipsis sigue) o relleno vertical en la línea, y 6 px a la izquierda del enlace
   (`PlacaDelModelo.tsx:403` y `:410`). Nivel: `[Norma]` 2.4.13 (AAA) y la regla del anillo (ADR-0351). A quién va: `/color` · `/espacio`.
+  **Arreglado (2026-11-14, mismo día), solo en el lugar** (`recibir-mesa.css`, `.rc-pie-sigue`; `btn-enlace` y el JSX no se tocaron): 6 px de relleno arriba y abajo
+  con 6 px de margen negativo (el anillo cabe dentro del recorte y el pie mide lo mismo por fuera) y 4 px más a la izquierda del enlace. Se descartó
+  `overflow: clip` + `overflow-clip-margin`: Safari no lo tiene y ahí el anillo seguiría cortado. Medido después, sin ventana, en claro y oscuro a 1280 × 800 y
+  1440 × 900, llegando con Enter desde el último modelo y con Mayús+Tab desde «Revisar y cerrar»: **0 lados recortados** (antes: el de abajo, 4,3 px fuera; el de arriba,
+  justo en el borde); del texto al anillo **3,73 px** con «Faltan tallas:» y 3,72 con «Falta contar:» (antes −0,27 y −0,28: lo pisaba). El pie por fuera: 24 px en
+  y 795 (1440) y 695 (1280), igual que antes; la fila del pie, 101 px; «Revisar y cerrar», en el mismo rectángulo (871, 829, 160,88 × 40 a 1440). **Sorpresa que se
+  arregló de paso:** antes, al recibir el foco, el `<p>` se desplazaba 1 px hacia arriba por dentro (`scrollTop` 1: el navegador trataba de mostrar el enlace entero)
+  y la frase entera subía 1 px; ahora `scrollTop` 0 y no se mueve. Un nombre muy largo sigue en una línea con «…», igual que antes: como el enlace es un
+  `inline-flex`, el corte se lleva el nombre entero («Falta contar: …»), no lo corta a la mitad (de antes; no se cambió).
 
 **Leves**
 
