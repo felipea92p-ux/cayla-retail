@@ -8,6 +8,7 @@
 // enteraba al cobrar, con el cliente delante, y tenía que recargar.
 
 import { conCampanas, esDescuentoDeCampana, type CampanaLinea } from "./vender-reglas";
+import type { FilaOfertaDeMonto, OfertaDeGrupoDeVariante } from "./ofertas-de-grupo";
 
 /** Lo releído de la base: el precio de etiqueta de cada prenda y la campaña que rige hoy por prenda. `campanas` es
  *  `null` si esa lectura falló: la pantalla se queda con las campañas que ya mostraba (nunca las borra por un error). */
@@ -17,7 +18,31 @@ export type PreciosReleidos = {
   /** Las prendas cuyo precio de `precios` es el de ESTA tienda (precio propio, Felipe 2026-10-09). Ausente: no se sabe y cada
    *  prenda conserva su marca. */
   propios?: Set<string> | null;
+  /** Las ofertas de grupo y los montos de hoy (ADR-0655). Ausente o `null`: no se leyeron y la caja se queda con las que tenía. */
+  ofertas?: OfertasReleidas | null;
 };
+
+/** Las ofertas de grupo (por prenda) y los montos de hoy en la tienda, con una firma que cambia si cambia cualquiera de los dos. */
+export type OfertasReleidas = {
+  grupo: Readonly<Record<string, OfertaDeGrupoDeVariante>>;
+  monto: readonly FilaOfertaDeMonto[];
+  firma: string;
+};
+
+/** La firma de unas ofertas: igual para las mismas ofertas, leídas en cualquier orden. Con ella la caja sabe si un 3x2 o un monto se activó,
+ *  cambió o se retiró desde que abrió la pantalla (antes solo se enteraba al cobrar, con `venta_grupo_omitido`). */
+export function firmaDeOfertas(grupo: Readonly<Record<string, OfertaDeGrupoDeVariante>>, monto: readonly FilaOfertaDeMonto[]): string {
+  const g = Object.keys(grupo)
+    .sort()
+    .map((v) => {
+      const o = grupo[v];
+      return [v, o.reglaId, o.tipo, o.lleva, o.paga, o.monto, o.porcentaje, o.agrupa, o.modeloId].join(":");
+    });
+  const m = [...monto]
+    .map((f) => JSON.stringify([f.regla_id, f.escalones, f.ahorro_en, f.cuenta, [...(f.variantes ?? [])].sort(), [...(f.excluidas ?? [])].sort()]))
+    .sort();
+  return JSON.stringify([g, m]);
+}
 
 function mismaCampana(a: CampanaLinea | null | undefined, b: CampanaLinea | null | undefined): boolean {
   if (!a || !b) return !a && !b;
@@ -28,6 +53,7 @@ function mismaCampana(a: CampanaLinea | null | undefined, b: CampanaLinea | null
 export function mismosPrecios(a: PreciosReleidos, b: PreciosReleidos): boolean {
   if (a.precios.size !== b.precios.size) return false;
   for (const [k, v] of a.precios) if (b.precios.get(k) !== v) return false;
+  if ((a.ofertas?.firma ?? null) !== (b.ofertas?.firma ?? null)) return false;
   if (a.campanas === null || b.campanas === null) return a.campanas === b.campanas;
   if (a.campanas.size !== b.campanas.size) return false;
   for (const [k, v] of a.campanas) if (!mismaCampana(v, b.campanas.get(k))) return false;

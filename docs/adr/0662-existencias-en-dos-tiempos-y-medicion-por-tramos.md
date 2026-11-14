@@ -122,3 +122,8 @@ como «sin dato». Si no responde, «N/D» y el mismo aviso de antes (`TEXTO_RIT
 llega y después sus cifras. El bloque «calculando» de «¿Cómo se vende?» mide 60 px y es lo último del panel: al llegar crece hacia abajo (a
 113 px en una ventana de 688 px, donde el texto ocupa dos líneas), sin mover nada de arriba. **En producción, lo que diga `existencias_tramos`:**
 se espera la lista cerca de cuando terminan las prendas (~0,7–1,1 s en vez de 1,5–2,4 s).
+
+**Junto con el 2026-11-14 (`claude/existencias-ritmo-y-plan`, en main antes de este PR):** ese cambio encontró la causa del ritmo lento (`hoyLima`
+armaba un formateador en cada llamada: ~1 s de CPU por carga) y lo hizo arrancar con las cantidades delgadas de la sede en vez de la lista
+entera. Los dos se suman: el ritmo arranca temprano y es rápido, y además la lista no lo espera. Al juntarlos, el ritmo sigue arrancando con
+`pisoDeCadaTalla` (solo sus tallas) y midiendo `ritmo_rpc` / `ritmo_calculo`, pero ya no recibe el piso: la cobertura sigue en el panel.

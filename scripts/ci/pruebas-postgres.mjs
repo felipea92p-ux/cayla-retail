@@ -205,6 +205,15 @@ export const PRUEBAS = [
   // tienda, el Taller y la empresa; cada aviso aparece cuando corresponde; el gasto fuera de lo normal; permisos. ROLLBACK.
   "pruebas:resumen-finanzas",
 
+  // Resumen por bloques (ADR-0661): las tres lecturas de la web (lo rápido, el mes, el anterior y el presupuesto) juntas son
+  // `fn_resumen_finanzas` al byte, en cada sede y para una integrante; cada parte sola es la misma; una parte que no existe es
+  // error; permisos iguales; `fn_resumen_finanzas` es el envoltorio. ROLLBACK.
+  "pruebas:resumen-por-partes",
+
+  // Movimientos en una sola lectura (ADR-0661 act. 2026-11-14): cada día de `fn_flujo_caja_real_dias` es `fn_flujo_caja_real(d, d)` al byte (31
+  // días, sueltos y repetidos), con control; lo que no se puede es error; mismos permisos; la «…_de» no la llama nadie de afuera. ROLLBACK.
+  "pruebas:flujo-real-dias",
+
   // Finanzas cuenta desde una fecha (ADR-0332): sin corte nada cambia; con corte el diario y el Estado de resultados no
   // miran lo anterior, el Flujo deja de listar esa planilla y la PROYECCIÓN de caja la sigue contando; las reglas de
   // guardar_inicio_finanzas (día 1, no futuro, sin meses cerrados, permiso) y pegar la migración dos veces. ROLLBACK.
@@ -443,6 +452,24 @@ export const PRUEBAS = [
   // Una insignia nunca baja el precio (ADR-0655, actividad 5): las que lo bajaban pasan a campañas con todo igual y el candado
   // `etiquetas_descuento_solo_campana` rechaza un descuento en una insignia por cualquier camino. ROLLBACK.
   "pruebas:insignias-sin-descuento",
+  // «Llevar varias y pagar menos» (ADR-0655, actividad 6): la regla de los grupos (3x2, N por S/, la N.ª al X %), su reparto al céntimo
+  // (con 300 tickets al azar) y guardar cada forma. ROLLBACK.
+  "pruebas:ofertas-de-grupo",
+  // La caja cobra «Llevar varias» (ADR-0655, actividad 6, parte 3): ventas de verdad por registrar_venta con un 3x2 —su parte por prenda,
+  // omitida, de más, en una línea de varias, en borrador, con un descuento a mano sumado— y lo que lee la caja. ROLLBACK.
+  "pruebas:caja-ofertas-de-grupo",
+  // Los apartados con «Llevar varias» (ADR-0655, actividad 6, parte 4): apartar, quitar y sumar con un 3x2 (el trato guardado de ese día), la
+  // vista previa y el total exigido, entregar, y que las migraciones viejas de los apartados se sigan pegando encima. ROLLBACK.
+  "pruebas:apartados-ofertas-de-grupo",
+  // La tienda web con «Llevar varias» (ADR-0655, actividad 7): la bolsa, «Separar» con lo que mostró, la parte que no cambia, la prenda que la
+  // tienda quita al confirmar (las demás conservan su precio) y la venta al pagarse. ROLLBACK.
+  "pruebas:tienda-ofertas-de-grupo",
+  // «Gastar un monto y ahorrar» con escalones (ADR-0655, actividad 8, parte 1): el escalón alcanzado repartido al céntimo, toda la compra o
+  // la campaña, lo que ya tiene otra oferta no cuenta, los choques, los dos arreglos de las cesiones y la tolerancia, la caja y un apartado. ROLLBACK.
+  "pruebas:monto-con-escalones",
+  // Ofertas por insignia (ADR-0655): una oferta que alcanza las prendas de unas insignias (a mano o por categoría), sumadas a sus categorías y
+  // modelos; la caja, los grupos y el monto con ellas; los choques con la forma; guardarlas, su tope y su historia. ROLLBACK.
+  "pruebas:ofertas-por-insignia",
   // Una campaña que solo tiene OFERTAS también sale en la Tienda web (ADR-0496, «Lo que NO cubre»): la lista, la portada y el diseño leen las
   // ofertas activas (la portada, solo las que rigen hoy, con el mayor %), un borrador no cuenta y, sin ofertas, todo queda idéntico. ROLLBACK.
   "pruebas:campana-con-ofertas",
@@ -2286,6 +2313,11 @@ export const PRUEBAS = [
   // «Por completar ▸ Sin costo» de Productos (20261112155000): una variante sin costo (0 o vacío) trae su prenda; el conteo dice lo mismo
   // que la lista; quien no ve el dinero de Compras no encuentra nada; las faltas de antes no cambian. Con control. ROLLBACK.
   "pruebas:productos-sin-costo",
+
+  // Los conteos de Productos leen las ventas de 30 días UNA vez (20261113225000, ADR-0656 act. d): sobre el volumen del presupuesto y con
+  // poco stock, lo que devuelve fn_productos_facetas es idéntico al de antes (siete combinaciones de filtros, líder e integrante); con la
+  // demanda rota a propósito, cambia (control); se pega dos veces; con otra «demanda», no toca nada. ROLLBACK.
+  "pruebas:productos-facetas-demanda",
 
   // Una talla con prendas no se retira (20260929030000, ADR-0270 decisión 13): con prendas en cualquier sede (Cuarentena
   // incluida) o en camino, pasar `variantes.activo` a false se rechaza diciendo dónde están; en 0 se retira; reactivar

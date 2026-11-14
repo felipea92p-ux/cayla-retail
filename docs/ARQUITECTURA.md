@@ -676,9 +676,12 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
   `TilePrenda` (`MosaicoPrenda` con el ícono de la categoría, ADR-0333).
   · **Existencias** (`/inventario`) tiene su propio ritmo y cobertura: `getRitmoRecientePorVariante`
   (`lib/existencias-ritmo-servidor.ts`, RPC `fn_ritmo_reciente_json`), dato secundario que degrada a «N/D» (nunca tumba la
-  pantalla). Desde el 2026-11-13 (ADR-0662, act. b) llega DESPUÉS que la lista, como el plan: la página le pasa al panel su promesa
-  (`lib/existencias-ritmo-panel.ts:ritmoDelPanel`) y el panel lo pone en cada fila al llegar (`components/existencias/useRitmoReciente.ts`
-  → `aplicarRitmo`, que calcula ahí la cobertura con el piso de la fila); mientras tanto, sus dos columnas y «¿Cómo se vende?» dicen «calculando». El `getCoberturaPorVariante` de `resumen-inventario.ts` ya no lo llamaba nadie y se borró el 2026-10-06.
+  pantalla). Desde el 2026-11-14 arranca con las cantidades delgadas de la sede (`getCantidadesDeSede` + `pisoDeCadaTalla`,
+  `lib/stock-de-sede-reglas.ts`), que la lista reutiliza (`getExistencias(…, { cantidades })`): ya no espera a la lista entera. Y la lista
+  tampoco lo espera a él (ADR-0662, act. b): la página le pasa al panel su promesa (`lib/existencias-ritmo-panel.ts:ritmoDelPanel`) y el
+  panel lo pone en cada fila al llegar (`components/existencias/useRitmoReciente.ts` → `aplicarRitmo`, que calcula ahí la cobertura con el
+  piso de la fila); mientras tanto, sus dos columnas y «¿Cómo se vende?» dicen «calculando».
+  El `getCoberturaPorVariante` de `resumen-inventario.ts` ya no lo llamaba nadie y se borró el 2026-10-06.
 - `/inventario/recibir` (sin factura) **ya no existe como pantalla** (ADR-0330, 2026-10-04): se fundió en la puerta «Llegó
   mercadería» de `/recibir` y la ruta es un redirect de `next.config.ts`.
 - **«Agregar proveedor» desde `/recibir`** (2026-10-10): `LlegoMercaderia.tsx` abre el mismo `ProveedorModal` de Compras ▸
@@ -2230,6 +2233,18 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
     Tablas `periodos`, `periodo_cierres`, `diario_cerrado` (con hash); disparadores de bloqueo por fecha en gastos, compras
     y sus pagos y notas, reembolsos, activos, movimientos de dinero, ventas de prueba y costo de lo vendido.
   - `/finanzas/resumen` → también «Cada sede, junta» (tarea 27 de «Las 36», 2026-11-06): `getEstadoResultados` + `getBalancePorTienda` → `lib/sedes-juntas-reglas.ts` → `components/finanzas/SedesJuntas.tsx`. Los sueldos estimados de un tramo se piden en un solo lugar (`hastaDeLaProvision`, `lib/planilla-provision-reglas.ts`).
+  - `/finanzas/resumen` → **desde 2026-11-13, por bloques (ADR-0661)**: el Resumen se lee en TRES lecturas a la vez de
+    `fn_resumen_finanzas_partes` (`lectorDelResumen`, `lib/resumen-finanzas.ts`; los grupos y cómo se juntan en `lib/resumen-finanzas-partes.ts`;
+    `fn_resumen_finanzas` es su envoltorio con todas las partes, migración `20261113235000`). La página espera solo la rápida (`rapido`) y le pasa
+    lo demás al panel como promesas (`LecturasDelResumen`); cada bloque de `components/finanzas/ResumenFinanzas.tsx` hace `use()` de lo suyo dentro
+    de su `Suspense`, con `EsperaBloque` (`components/finanzas/bolsillos/EsperaBloque.tsx`) en su lugar. Las cuentas que cada bloque arma con lo que
+    le llegó viven en `lib/resumen-bloques.ts` (`armarCaja`, `armarMes`). Una «puerta» deja correr primero la rápida y el mes. Los logs:
+    `finanzas_resumen_ms` (las 13 partes) y `finanzas_resumen_bloque` (cuándo pudo dibujarse cada bloque). Sin la función por partes, lee la entera
+    una vez y la reparte.
+    **Desde 2026-11-14 (ADR-0661, actualización):** el grupo del mes trae el presupuesto y, mirando CAYLA entera del 1 a hoy, la parte `balance`, los
+    tres con UN estado de resultados (`fn_presupuesto_vs_real_de` / `fn_balance_por_tienda_de` lo aceptan ya armado; migración `20261114005000`;
+    `getBalancePorTiendaDeFilas`, `lib/balance.ts`). «Movimientos» pide sus días con `fn_flujo_caja_real_dias` (`getFlujoRealDias`,
+    `lib/flujo-caja.ts`; migración `20261114010000`), que lee los saldos una vez por fecha; sin ella, día por día como antes.
   - `/finanzas/resumen` → **desde 2026-11-09, camino «A · Bolsillos» (ADR-0493, actualización 2026-11-09)**: las fechas con `SelectorPeriodo`
     (`leerPeriodo`/`periodoAnterior`, `lib/estados-periodo.ts`); «Libre para usar» y sus bolsillos (`lib/bolsillos-reglas.ts` →
     `components/finanzas/bolsillos/SaldoLibre.tsx`); «Noviembre va así» (`lib/te-deja-mes-reglas.ts` + `equilibrioMes` → `TarjetaMes.tsx`);

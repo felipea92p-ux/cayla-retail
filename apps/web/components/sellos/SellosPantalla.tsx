@@ -42,7 +42,7 @@ import { textoRango, vigenciaDe } from "@/lib/etiqueta-vigencia";
 import { urlEtiquetasDePrecio } from "@/lib/etiqueta-precio-reglas";
 import { notaSinRegistrar, type LecturaRotacion } from "@/lib/etiqueta-rotacion";
 import { hoyLima } from "@/lib/fechas-lima";
-import { reglasDeCampana, reglasVivas, vigenciaDeRegla, type ReglaCampana } from "@/lib/campana-reglas";
+import { reglasDeCampana, reglasVivas, vigenciaDeRegla, type InsigniaDeOferta, type ReglaCampana } from "@/lib/campana-reglas";
 import { tramoDeCampana, TEXTOS_MODO } from "@/lib/sellos-campanas";
 import {
   ESTILO_DE_VISTA,
@@ -109,6 +109,7 @@ export function SellosPantalla({
   disenoWeb,
   reglas: reglasIniciales,
   reglasDisponibles,
+  insignias = [],
 }: {
   /** Qué fila del menú dibuja (ADR-0655): «Campañas y ofertas» o «Insignias». */
   modo: "campanas" | "insignias";
@@ -138,6 +139,8 @@ export function SellosPantalla({
   reglas: ReglaCampana[];
   /** La base responde por las ofertas: si no, «Configurar» abre la hoja de siempre. */
   reglasDisponibles: boolean;
+  /** Las insignias que una oferta puede elegir (ADR-0655, por insignia); vacío en Catálogo ▸ Insignias, que no edita ofertas. */
+  insignias?: InsigniaDeOferta[];
 }) {
   const hoy = hoyLima();
   const router = useRouter();
@@ -694,7 +697,9 @@ export function SellosPantalla({
     const p = prendasDe(e);
     const vivas = reglasDisponibles ? reglasVivas(reglasDeCampana(reglas, e.id), hoy) : [];
     const borradores = vivas.filter((r) => vigenciaDeRegla(r, hoy) === "borrador").length;
-    return preguntasDeCampana(e, p.modelos.length, categoriasDe(e), hoy, p.aMano, { activas: vivas.length - borradores, borradores }, textoSedesDeCampana(e.sedeIds, tiendas));
+    // Una oferta que elige sus propias prendas (categorías, modelos, insignias o toda la compra) responde «En qué prendas» (ADR-0655).
+    const eligen = vivas.some((r) => r.categoriasSolo.length > 0 || r.productosSolo.length > 0 || r.insigniasSolo.length > 0 || (r.tipo === "monto" && r.cuenta !== "campana"));
+    return preguntasDeCampana(e, p.modelos.length, categoriasDe(e), hoy, p.aMano, { activas: vivas.length - borradores, borradores }, textoSedesDeCampana(e.sedeIds, tiendas), eligen);
   }
   function responder(e: Etiqueta, clave: "oferta" | "prendas" | "cuando") {
     if (clave === "oferta") return reglasDisponibles ? setOfertandoId(e.id) : setConfigurando(e);
@@ -1036,6 +1041,7 @@ export function SellosPantalla({
           sedeActualId={sedeActualId}
           prendasConCosto={prendasConCosto}
           variantesManuales={manuales[ofertando.id] ?? []}
+          insignias={insignias}
           hoy={hoy}
           puedeDarDescuento={puedeEditar(ofertando)}
           alGuardarCampana={(cambios) => setEtiquetas((actual) => ordenarEtiquetas(actual.map((x) => (x.id === ofertando.id ? { ...x, ...cambios } : x))))}

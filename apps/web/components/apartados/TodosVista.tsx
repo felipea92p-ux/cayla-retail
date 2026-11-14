@@ -524,7 +524,7 @@ export function TodosVista({
                     <div className={`flex min-w-0 items-center gap-2 max-md:hidden ${ver.prendas ? "" : "invisible"}`}>
                       <span className="flex">
                         {a.prendas.slice(0, 3).map((pr, j) => (
-                          <FotoPrenda key={pr.varianteId} fotoUrl={porVariante.get(pr.varianteId)?.fotoUrl} referencia={pr.referencia} colorHex={porVariante.get(pr.varianteId)?.colorHex} categoria={porVariante.get(pr.varianteId)?.categoria} categoriaPrefijo={porVariante.get(pr.varianteId)?.categoriaPrefijo} categoriaFamilia={porVariante.get(pr.varianteId)?.categoriaFamilia} ancho={32} className={`w-8 border border-papel ${j ? "-ml-3.5" : ""}`} />
+                          <FotoPrenda key={pr.itemId || `${pr.varianteId}-${j}`} fotoUrl={porVariante.get(pr.varianteId)?.fotoUrl} referencia={pr.referencia} colorHex={porVariante.get(pr.varianteId)?.colorHex} categoria={porVariante.get(pr.varianteId)?.categoria} categoriaPrefijo={porVariante.get(pr.varianteId)?.categoriaPrefijo} categoriaFamilia={porVariante.get(pr.varianteId)?.categoriaFamilia} ancho={32} className={`w-8 border border-papel ${j ? "-ml-3.5" : ""}`} />
                         ))}
                       </span>
                       <span className="truncate text-sm text-tinta/60">{a.prendas.map((pr) => pr.referencia.split(" ")[0]).join(", ")}</span>

@@ -7,6 +7,7 @@ import {
   DIAS_DE_LA_BOLSA,
   escribirBolsa,
   interpretarBolsaEnBase,
+  interpretarGruposDeLaBolsa,
   leerBolsa,
   unidades,
   type Bolsa,
@@ -56,7 +57,17 @@ export const leerBolsaEnBase = (lineas: readonly LineaBolsa[], sedeId: string | 
       // El JSON viaja como TEXTO y lo convierte la base: con `::jsonb` solo, el driver lo vuelve a codificar (llega un texto, no una lista).
       const entrada = JSON.stringify(lineas.map((l) => ({ variante_id: l.varianteId, cantidad: l.cantidad })));
       const [fila] = await db`select retail.tienda_bolsa(${entrada}::text::jsonb, ${sedeId}::uuid) as b`;
-      return interpretarBolsaEnBase(fila?.b);
+      const bolsa = interpretarBolsaEnBase(fila?.b);
+      if (!bolsa) return null;
+      // ADR-0655 (actividad 7): lo que ahorra llevando varias. Secundario: si no responde (o la base todavía no lo tiene), la bolsa se ve
+      // sin las ofertas de grupo y «Separar» no manda lo que mostró; la base las cobra igual.
+      try {
+        const [g] = await db`select retail.tienda_bolsa_grupos(${entrada}::text::jsonb, ${sedeId}::uuid) as g`;
+        return { ...bolsa, grupos: interpretarGruposDeLaBolsa(g?.g) };
+      } catch (error) {
+        console.error(JSON.stringify({ evento: "tienda_bolsa_grupos_fallo", codigo: (error as { code?: unknown }).code ?? null }));
+        return { ...bolsa, grupos: null };
+      }
     },
     null,
   );
@@ -74,7 +85,7 @@ export type ResultadoSeparar =
 export async function separarEnBase(
   usuarioWebId: string,
   sedeId: string,
-  lineas: readonly { variante_id: string; cantidad: number; precio: number }[],
+  lineas: readonly { variante_id: string; cantidad: number; precio: number; ahorro_grupo?: number }[],
   marca: string,
   cupon: string | null = null,
 ): Promise<ResultadoSeparar> {

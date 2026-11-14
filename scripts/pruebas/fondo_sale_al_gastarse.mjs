@@ -28,6 +28,7 @@ import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { PEGAR_DE_NUEVO_FLUJO } from "./_deshacer_20261114010000.mjs";
 
 const CONTENEDOR = process.env.RETAIL_CONTENEDOR_PG || "supabase_db_cayla-retail";
 const FELIPE = "22222222-2222-4222-8222-000000000001"; // líder
@@ -56,7 +57,7 @@ const cambiaA = (id) => `set local request.jwt.claim.sub = '${id}';\n`;
  *  `:fondo`, `:prov` y las cifras de antes de todo gasto: `:d0` (disponible hoy), `:v0` (por volver hoy). */
 const ESCENA = `
 begin;
-${MIGRACION}
+${PEGAR_DE_NUEVO_FLUJO(MIGRACION)}
 create function pg_temp.cuadra(j jsonb) returns boolean language sql as $f$
   select round((j->>'saldo_inicial')::numeric + (j->>'entro')::numeric - (j->>'salio')::numeric + (j->>'ajustes')::numeric, 2)
            = round((j->>'saldo_final')::numeric, 2)
@@ -208,7 +209,7 @@ select pg_temp.cuadra(retail.fn_flujo_caja_real(:'hoy'::date - 6, :'hoy'::date))
 // 4. Las piezas internas: nadie las llama desde afuera y no guardan nada.
 {
   const r = correr(`begin;
-${MIGRACION}
+${PEGAR_DE_NUEVO_FLUJO(MIGRACION)}
 select has_function_privilege('authenticated', 'retail.fn_fondo_por_completar(date)', 'execute');
 select has_function_privilege('authenticated', 'retail.fn_flujo_por_volver(date)', 'execute');
 select string_agg(p.proname || ':' || p.provolatile::text, ',' order by p.proname) from pg_proc p join pg_namespace n on n.oid = p.pronamespace

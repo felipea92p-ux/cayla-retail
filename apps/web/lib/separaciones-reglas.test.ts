@@ -482,7 +482,31 @@ describe("descuentoDePrenda — el apartado ya hecho dice su descuento (ADR-0584
       pct: 10,
       argumento: null,
       precioAcordado: 71.9,
+      grupo: null,
+      resto: 8,
     });
+  });
+
+  // ADR-0655 (parte 4): la parte de una oferta de grupo viene con su trato (20261114032000) y no se dice como «Campaña −N %».
+  const OFERTA_3X2 = { regla_id: "r", nombre: "ZZ 3x2", etiqueta: "Verano", tipo: "nxm", lleva: 3, paga: 2, monto: null, porcentaje: null };
+  it("apartadoDeFila lee la parte de la oferta de grupo y su trato, dicho como en la caja", () => {
+    const p = prenda({ descuento_unitario: "26.63", descuento_grupo_unitario: "26.63", oferta_grupo: OFERTA_3X2 });
+    expect([p.descuentoGrupoUnitario, p.ofertaGrupo]).toEqual([26.63, { titular: "3 x 2", nombre: "Verano" }]);
+    expect(prenda({ descuento_unitario: "0" }).ofertaGrupo).toBeNull();
+  });
+  it("un monto (actividad 8) se dice «Por monto», con su campaña", () => {
+    const p = prenda({ descuento_unitario: "12.86", descuento_grupo_unitario: "12.86", oferta_grupo: { ...OFERTA_3X2, tipo: "monto", lleva: null, paga: null } });
+    expect(p.ofertaGrupo).toEqual({ titular: "Por monto", nombre: "Verano" });
+  });
+
+  it("todo el descuento del grupo: dice la oferta y no inventa una campaña", () => {
+    const d = descuentoDePrenda(prenda({ descuento_unitario: "26.63", descuento_grupo_unitario: "26.63", oferta_grupo: OFERTA_3X2 }));
+    expect(d).toMatchObject({ grupo: { titular: "3 x 2", nombre: "Verano", ahorro: 26.63 }, resto: 0, precioAcordado: 53.27 });
+  });
+
+  it("un descuento a mano sumado al grupo: el motivo habla solo de lo suyo", () => {
+    const d = descuentoDePrenda(prenda({ descuento_unitario: "34.63", descuento_grupo_unitario: "26.63", motivo_descuento: "cerrar_venta", oferta_grupo: OFERTA_3X2 }));
+    expect(d).toMatchObject({ campana: false, motivo: "Cerrar la venta", pct: 10, resto: 8, grupo: { ahorro: 26.63 } });
   });
 
   it("«Otro» dice su detalle, y el argumento viaja solo en un descuento a mano", () => {

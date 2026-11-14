@@ -3,11 +3,13 @@ import { after } from "next/server";
 import type { ComponentProps } from "react";
 import { exigirModulo, puede, veModulo } from "@/lib/persona-actual";
 import { crearMedidor, lineaDeTramos, tamanoJson } from "@/lib/medir-tramos";
+import { vigilarBucle } from "@/lib/bucle-de-eventos-servidor";
+import { pisoDeCadaTalla } from "@/lib/stock-de-sede-reglas";
 import { planDelPanel } from "@/lib/existencias-plan-panel";
 import { getUbicaciones } from "@/lib/ubicaciones";
 import { destinosParaEnviar } from "@/lib/para-enviar-reglas";
 import { sedesParaPedir } from "@/lib/pedidos-entre-sedes-reglas";
-import { getExistencias, getFilaSinStockDeVariante, resumirExistencias, getPrendasDanadasPendientes, getLugarDeDanadas } from "@/lib/inventario-v2";
+import { getCantidadesDeSede, getExistencias, getFilaSinStockDeVariante, resumirExistencias, getPrendasDanadasPendientes, getLugarDeDanadas } from "@/lib/inventario-v2";
 import { getSububicaciones, encontrarPorTipo } from "@/lib/sububicaciones";
 import { getTrasladosEnCurso } from "@/lib/traslados";
 import { getFilasSemanaDeSede } from "@/lib/resumen-inventario";
@@ -61,8 +63,31 @@ export default async function InventarioPage({
 }) {
   // Cada lectura se mide (2026-11-13, `lib/medir-tramos.ts`): al terminar la respuesta, UNA línea `existencias_tramos` en el registro del
   // servidor dice cuánto tardó cada una, cuándo estuvo la lista y cuánto pesa lo que viaja. Se busca con `vercel logs --query existencias_tramos`.
-  // `medir` devuelve la misma lectura: no cambia qué responde ni si falla.
-  const { medir, marcar, todas, foto } = crearMedidor();
+  // `medir` devuelve la misma lectura: no cambia qué responde ni si falla. Desde el 2026-11-14 la línea dice también los pedazos del plan
+  // y del ritmo (`plan_rpc`, `plan_lectura`, `plan_motor`, `ritmo_rpc`, `ritmo_calculo`), el peso de sus respuestas y cuánto se trabó el
+  // servidor (`bucle`): el plan tardaba 0,6 s en la base y 1,7–2,7 s en la página, y no se sabía dónde iba la diferencia.
+  const medidor = crearMedidor();
+  const { medir, marcar } = medidor;
+  // El reloj del servidor trabado se apaga SIEMPRE en el `after`, que corre también si la pantalla redirige o falla; la línea solo sale si
+  // la pantalla llegó a dibujarse (`paraLaLinea`). Al terminar la respuesta, con el plan ya enviado: `after` no suma nada a la espera, y si
+  // algo falla aquí solo se pierde la línea.
+  const bucle = vigilarBucle();
+  let paraLaLinea: { sedeId: string; propsPanel: unknown; plan: Promise<unknown> | null; ritmo: Promise<unknown> | null } | null = null;
+  after(async () => {
+    const trabado = bucle.cerrar();
+    if (!paraLaLinea) return;
+    try {
+      const { sedeId, propsPanel, plan: promesaPlan, ritmo: promesaRitmo } = paraLaLinea;
+      await medidor.todas();
+      const plan = promesaPlan ? await promesaPlan : null;
+      const ritmo = promesaRitmo ? await promesaRitmo : null;
+      const respuestas = Object.fromEntries(Object.entries(medidor.pesados()).map(([nombre, valor]) => [nombre, tamanoJson(valor)]));
+      const bytes = { panel: tamanoJson(propsPanel), plan: promesaPlan ? tamanoJson(plan) : null, ritmo: promesaRitmo ? tamanoJson(ritmo) : null, ...respuestas };
+      console.info(JSON.stringify(lineaDeTramos("existencias_tramos", { sedeId, ...medidor.foto(), bytes, bucle: trabado })));
+    } catch {
+      // Medir nunca rompe la pantalla.
+    }
+  });
   const persona = await medir("persona", exigirModulo("existencias")); // ADR-0161: URL directa sin el módulo en su rol → «Sin acceso»
   // `danados=1`: llegar desde el aviso de cuarentena de Devoluciones abre la cola de dañadas (ADR-0232).
   // `variante=<id>`: llegar desde un movimiento («Ver en Existencias», ADR-0241) abre el detalle de ESA prenda en esa talla.
@@ -88,19 +113,23 @@ export default async function InventarioPage({
   // D-54 (ADR-0159): sin el toggle «Con datos de prueba» que sí tienen Caja/Ventas, Existencias
   // pide siempre el default de la función (apagado) — los productos archivados como dato de
   // prueba, nunca borrados, quedan afuera.
-  const existencias = medir("existencias", getExistencias(ubicacionActivaId, ubicaciones));
+  // Las cantidades delgadas de la sede, UNA vez (2026-11-14): el ritmo arranca apenas llegan (~0,1 s) y la lista las reutiliza. Antes el
+  // ritmo esperaba la lista entera —la red de las otras sedes, lo que viene en camino y el catálogo: 0,5–0,7 s en producción— y la lista,
+  // a su vez, esperaba al ritmo.
+  const cantidades = medir("cantidades", getCantidadesDeSede(ubicacionActivaId));
+  const existencias = medir("existencias", getExistencias(ubicacionActivaId, ubicaciones, { cantidades }));
   // Qué empresas operan aquí (ADR-0505): «en el catálogo, sin stock aquí» no ofrece en Trujillo una prenda de CLAURE. Sin respuesta, todas.
   const empresasDeAqui = medir("empresas", getEmpresasAqui(ubicacionActivaId)).catch(() => null);
   // Lo que depende de otra lectura arranca apenas esa responde, no cuando terminan TODAS (2026-11-13, `docs/innovacion/2026-11-13-cambiar-de-modulo.md`).
   // Las dos de abajo nunca lanzan: si no responden, su dato queda vacío y la pantalla lo dice, como antes.
-  // Ritmo reciente / Cobertura piso (2026-09-25): sobre el ledger único (`fn_ledger_puntos`), no sobre `fn_resumen_variantes`. Desde el
-  // 2026-11-13 (`lib/existencias-ritmo-panel.ts`) la lista NO lo espera: arranca cuando llegan las prendas y en producción tardaba 0,9–1,5 s
-  // más (`existencias_tramos`, TRU), todo en el camino de la lista. Viaja como promesa al panel, igual que el plan; mientras llega, sus dos
-  // columnas y «¿Cómo se vende?» dicen «calculando». Si las prendas fallan, la pantalla cae entera y nadie lee esta promesa: el `catch`
-  // evita un rechazo suelto.
+  // Ritmo reciente / Cobertura piso (2026-09-25): sobre el ledger único (`fn_ledger_puntos`), no sobre `fn_resumen_variantes`.
+  // Solo necesita qué tallas hay (`pisoDeCadaTalla`, la misma suma de la lista): arranca con las cantidades, no con la lista (2026-11-14).
+  // Y la lista NO lo espera (2026-11-13, `lib/existencias-ritmo-panel.ts`): viaja como promesa al panel, igual que el plan; mientras llega,
+  // sus dos columnas y «¿Cómo se vende?» dicen «calculando», y la cobertura se calcula en el panel con el piso de cada fila. Si las
+  // cantidades fallan, la pantalla cae entera y nadie lee esta promesa: el `catch` evita un rechazo suelto.
   const ritmoParaPanel = vende
-    ? existencias
-        .then((filas) => medir("ritmo", getRitmoRecientePorVariante(ubicacionActivaId, filas.map((f) => f.varianteId))))
+    ? cantidades
+        .then((filas) => medir("ritmo", getRitmoRecientePorVariante(ubicacionActivaId, [...pisoDeCadaTalla(filas).keys()], new Date(), medidor)))
         .then((r) => ritmoDelPanel(r.datos))
         .catch(() => null)
     : null;
@@ -114,7 +143,7 @@ export default async function InventarioPage({
   // Existencias en dos tiempos (2026-11-13, `lib/existencias-plan-panel.ts`): es la lectura más lenta (0,77 s de media en producción) y ya
   // NO se espera para dibujar. La página le pasa al panel la PROMESA del plan, recortado a las tallas de la sede; la lista se dibuja con lo
   // demás y lo que depende del plan dice «calculando» hasta que llega.
-  const planDelPiso = vende ? medir("plan", leerPlanDelPiso(ubicacionActivaId)) : null;
+  const planDelPiso = vende ? medir("plan", leerPlanDelPiso(ubicacionActivaId, {}, medidor)) : null;
   // Si las prendas fallan, la pantalla entera cae (como antes) y esta promesa no la lee nadie: el `catch` evita un rechazo suelto.
   const planParaPanel = planDelPiso ? Promise.all([planDelPiso, existencias]).then(([plan, filas]) => planDelPanel(plan, filas)).catch(() => null) : null;
   // «Ver el valor a costo» (ADR-0557): solo se pregunta si la cuenta puede pasar la puerta (líder, o quien ve el dinero de Compras); la
@@ -308,27 +337,9 @@ export default async function InventarioPage({
     sedesParaPedir: sedesParaPedir(ubicaciones, ubicacionActivaId),
   } satisfies Omit<ComponentProps<typeof InventarioPanel>, "plan" | "ritmo">;
 
-  // La lista ya puede dibujarse: lo que falta (el plan y el ritmo) llega por su promesa. Al terminar la respuesta —con el plan ya enviado—, la
-  // línea del registro. `after` no suma nada a lo que espera la persona; si algo falla aquí, solo se pierde la línea.
+  // La lista ya puede dibujarse: lo que falta (el plan y el ritmo) llega por su promesa. La línea del registro la escribe el `after` de arriba.
   marcar("lista");
-  after(async () => {
-    try {
-      await todas();
-      const plan = planParaPanel ? await planParaPanel : null;
-      const ritmo = ritmoParaPanel ? await ritmoParaPanel : null;
-      console.info(
-        JSON.stringify(
-          lineaDeTramos("existencias_tramos", {
-            sedeId: ubicacionActivaId,
-            ...foto(),
-            bytes: { panel: tamanoJson(propsPanel), plan: planParaPanel ? tamanoJson(plan) : null, ritmo: ritmoParaPanel ? tamanoJson(ritmo) : null },
-          })
-        )
-      );
-    } catch {
-      // Medir nunca rompe la pantalla.
-    }
-  });
+  paraLaLinea = { sedeId: ubicacionActivaId, propsPanel, plan: planParaPanel, ritmo: ritmoParaPanel };
 
   return (
     <div className="space-y-5">

@@ -235,9 +235,24 @@
   "tablename": "campana_regla_categorias"
  },
  {
+  "indexdef": "CREATE UNIQUE INDEX campana_regla_cesiones_pkey ON retail.campana_regla_cesiones USING btree (cede_regla_id, gana_regla_id)",
+  "indexname": "campana_regla_cesiones_pkey",
+  "tablename": "campana_regla_cesiones"
+ },
+ {
   "indexdef": "CREATE UNIQUE INDEX campana_regla_historial_pkey ON retail.campana_regla_historial USING btree (id)",
   "indexname": "campana_regla_historial_pkey",
   "tablename": "campana_regla_historial"
+ },
+ {
+  "indexdef": "CREATE UNIQUE INDEX campana_regla_insignias_pkey ON retail.campana_regla_insignias USING btree (regla_id, etiqueta_id)",
+  "indexname": "campana_regla_insignias_pkey",
+  "tablename": "campana_regla_insignias"
+ },
+ {
+  "indexdef": "CREATE UNIQUE INDEX campana_regla_productos_pkey ON retail.campana_regla_productos USING btree (regla_id, producto_id)",
+  "indexname": "campana_regla_productos_pkey",
+  "tablename": "campana_regla_productos"
  },
  {
   "indexdef": "CREATE UNIQUE INDEX campana_regla_sedes_pkey ON retail.campana_regla_sedes USING btree (regla_id, ubicacion_id)",
@@ -2610,6 +2625,21 @@
   "tablename": "rendiciones_fondo"
  },
  {
+  "indexdef": "CREATE UNIQUE INDEX rendimiento_corridas_pkey ON retail.rendimiento_corridas USING btree (id)",
+  "indexname": "rendimiento_corridas_pkey",
+  "tablename": "rendimiento_corridas"
+ },
+ {
+  "indexdef": "CREATE UNIQUE INDEX rendimiento_estado_pkey ON retail.rendimiento_estado USING btree (entrada)",
+  "indexname": "rendimiento_estado_pkey",
+  "tablename": "rendimiento_estado"
+ },
+ {
+  "indexdef": "CREATE UNIQUE INDEX rendimiento_fotos_pkey ON retail.rendimiento_fotos USING btree (corrida_id, nombre, tipo, rol)",
+  "indexname": "rendimiento_fotos_pkey",
+  "tablename": "rendimiento_fotos"
+ },
+ {
   "indexdef": "CREATE UNIQUE INDEX respaldo_b001_f001_renumeradas_20261007_pkey ON retail.respaldo_b001_f001_renumeradas_20261007 USING btree (comprobante_id)",
   "indexname": "respaldo_b001_f001_renumeradas_20261007_pkey",
   "tablename": "respaldo_b001_f001_renumeradas_20261007"
@@ -2708,6 +2738,11 @@
   "indexdef": "CREATE UNIQUE INDEX separacion_items_retirados_pkey ON retail.separacion_items_retirados USING btree (id)",
   "indexname": "separacion_items_retirados_pkey",
   "tablename": "separacion_items_retirados"
+ },
+ {
+  "indexdef": "CREATE UNIQUE INDEX separacion_ofertas_grupo_pkey ON retail.separacion_ofertas_grupo USING btree (separacion_id, regla_id)",
+  "indexname": "separacion_ofertas_grupo_pkey",
+  "tablename": "separacion_ofertas_grupo"
  },
  {
   "indexdef": "CREATE UNIQUE INDEX separacion_pagos_pkey ON retail.separacion_pagos USING btree (id)",
