@@ -12,6 +12,7 @@ import { getSububicaciones, encontrarPorTipo } from "@/lib/sububicaciones";
 import { getTrasladosEnCurso } from "@/lib/traslados";
 import { getFilasSemanaDeSede } from "@/lib/resumen-inventario";
 import { getRitmoRecientePorVariante } from "@/lib/existencias-ritmo-servidor";
+import { ritmoDelPanel } from "@/lib/existencias-ritmo-panel";
 import { deltaDisponibleSede } from "@/lib/existencias-categorias";
 import { leerPlanDelPiso } from "@/lib/piso-plan-servidor";
 import { politicaDe } from "@/lib/politica-operativa-inventario";
@@ -90,15 +91,19 @@ export default async function InventarioPage({
   const existencias = medir("existencias", getExistencias(ubicacionActivaId, ubicaciones));
   // Qué empresas operan aquí (ADR-0505): «en el catálogo, sin stock aquí» no ofrece en Trujillo una prenda de CLAURE. Sin respuesta, todas.
   const empresasDeAqui = medir("empresas", getEmpresasAqui(ubicacionActivaId)).catch(() => null);
-  // Lo que depende de otra lectura arranca apenas esa responde, no cuando terminan TODAS (2026-11-13, `docs/innovacion/2026-11-13-cambiar-de-modulo.md`):
-  // el ritmo reciente solo necesita las prendas de la sede y antes esperaba también al plan del piso (~0,9 s en producción). Las tres
-  // nunca lanzan: si no responden, su dato queda vacío y la pantalla lo dice, como antes.
-  // Ritmo reciente / Cobertura piso (2026-09-25): sobre el ledger único (`fn_ledger_puntos`), no sobre `fn_resumen_variantes`.
-  const ritmoPendiente = vende
-    ? existencias.then((filas) =>
-        medir("ritmo", getRitmoRecientePorVariante(ubicacionActivaId, filas.map((f) => f.varianteId), new Map(filas.map((f) => [f.varianteId, f.piso ?? 0]))))
-      )
-    : Promise.resolve({ datos: null, fallo: null });
+  // Lo que depende de otra lectura arranca apenas esa responde, no cuando terminan TODAS (2026-11-13, `docs/innovacion/2026-11-13-cambiar-de-modulo.md`).
+  // Las dos de abajo nunca lanzan: si no responden, su dato queda vacío y la pantalla lo dice, como antes.
+  // Ritmo reciente / Cobertura piso (2026-09-25): sobre el ledger único (`fn_ledger_puntos`), no sobre `fn_resumen_variantes`. Desde el
+  // 2026-11-13 (`lib/existencias-ritmo-panel.ts`) la lista NO lo espera: arranca cuando llegan las prendas y en producción tardaba 0,9–1,5 s
+  // más (`existencias_tramos`, TRU), todo en el camino de la lista. Viaja como promesa al panel, igual que el plan; mientras llega, sus dos
+  // columnas y «¿Cómo se vende?» dicen «calculando». Si las prendas fallan, la pantalla cae entera y nadie lee esta promesa: el `catch`
+  // evita un rechazo suelto.
+  const ritmoParaPanel = vende
+    ? existencias
+        .then((filas) => medir("ritmo", getRitmoRecientePorVariante(ubicacionActivaId, filas.map((f) => f.varianteId))))
+        .then((r) => ritmoDelPanel(r.datos))
+        .catch(() => null)
+    : null;
   // De quién son las unidades de cada talla (ADR-0542): solo donde conviven dos empresas (Lima). Dato secundario: si la base no responde,
   // las tallas quedan sin la línea «De quién es» y nada más cambia.
   const repartoPendiente = empresasDeAqui.then((empresas) => medir("reparto", getStockPorDueno(ubicacionActivaId, empresas)));
@@ -116,7 +121,7 @@ export default async function InventarioPage({
   // base la repite y sin permiso devuelve cero filas. Dato secundario: si falla, sin el enlace. Arranca con las demás: hasta el 2026-11-13
   // empezaba recién cuando todas habían respondido y era el último tramo de la página, en fila (lo mostró `existencias_tramos`).
   const valorPendiente = persona.rol === "lider" || puede(persona, "verDineroCompras") ? medir("valor", getValorInventario()) : Promise.resolve(null);
-  const [stockBase, sububicaciones, traslados, danadosPendientes, apartados, semana, catalogo, colores, colaSinRegistrar, empresasAqui, lugarDanadas, ritmoReciente, repartoDeStock, etapasOcultas] = await Promise.all([
+  const [stockBase, sububicaciones, traslados, danadosPendientes, apartados, semana, catalogo, colores, colaSinRegistrar, empresasAqui, lugarDanadas, repartoDeStock, etapasOcultas] = await Promise.all([
     existencias,
     medir("sububicaciones", getSububicaciones(ubicacionActivaId)),
     medir("traslados", getTrasladosEnCurso(ubicacionActivaId)),
@@ -150,7 +155,6 @@ export default async function InventarioPage({
     empresasDeAqui,
     // Dónde deja esta tienda las prendas dañadas (ADR-0564). Nunca lanza: sin dato, la pantalla sigue como antes.
     medir("lugar_danadas", getLugarDeDanadas(ubicacionActivaId)),
-    ritmoPendiente,
     repartoPendiente,
     etapasPendientes,
   ]);
@@ -164,9 +168,8 @@ export default async function InventarioPage({
   // 2026-11-13 la pone el panel cuando el plan llega (`aplicarPlan`): aquí las filas salen sin decisión. Sin plan (no respondió), ninguna
   // fila la trae y «Hoy» dice N/D: nunca un «Mantener» que no sabe.
 
-  // Ritmo reciente/Cobertura piso son dato SECUNDARIO de sus propias columnas — ya no alimentan
-  // Acción hoy: si su cálculo falla, esas dos columnas quedan en «N/D» y se avisa, pero la
-  // decisión de reponer (que no depende de la RPC) sigue firme. La marca (2026-09-26) se suma
+  // Ritmo reciente/Cobertura piso son dato SECUNDARIO de sus propias columnas y ya no viajan aquí: llegan
+  // después por su promesa (`ritmoParaPanel`) y el panel los pone en cada fila. La marca (2026-09-26) se suma
   // encima: si el catálogo no respondió, cada fila queda sin marca y el panel lo avisa.
   // La familia de cada color (2026-10-03) va igual: sin ella, el filtro de color queda como lista plana.
   // La descripción (2026-10-06) sale de la misma lectura: sin ella, el panel de la talla no dibuja nada bajo el nombre.
@@ -175,11 +178,7 @@ export default async function InventarioPage({
       conDescripcion(
         conEstadoProducto(
           conMarca(
-            stockBase.map((f) => ({
-              ...f,
-              ritmoReciente: ritmoReciente.datos?.ritmo.get(f.varianteId) ?? null,
-              coberturaPiso: ritmoReciente.datos?.cobertura.get(f.varianteId) ?? null,
-            })),
+            stockBase,
             catalogo.productos
           ),
           catalogo.productos
@@ -290,7 +289,6 @@ export default async function InventarioPage({
     apartados,
     editaCatalogo: puede(persona, "editarCatalogo"),
     puedeAjustar: puede(persona, "ajustarStock"),
-    coberturaFallo: ritmoReciente.fallo,
     sedeNombre: ubicacionActiva?.nombre ?? "esta sede",
     sinStock,
     marcaFallo: catalogo.fallo,
@@ -308,18 +306,23 @@ export default async function InventarioPage({
     destinosParaEnviar: veTraslados ? destinosParaEnviar(ubicaciones, ubicacionActivaId) : [],
     // «Pedir a otra sede» del panel de la talla: las OTRAS tiendas activas (la base rechaza pedirle al Taller).
     sedesParaPedir: sedesParaPedir(ubicaciones, ubicacionActivaId),
-  } satisfies Omit<ComponentProps<typeof InventarioPanel>, "plan">;
+  } satisfies Omit<ComponentProps<typeof InventarioPanel>, "plan" | "ritmo">;
 
-  // La lista ya puede dibujarse: lo que falta (el plan) llega por su promesa. Al terminar la respuesta —con el plan ya enviado—, la
+  // La lista ya puede dibujarse: lo que falta (el plan y el ritmo) llega por su promesa. Al terminar la respuesta —con el plan ya enviado—, la
   // línea del registro. `after` no suma nada a lo que espera la persona; si algo falla aquí, solo se pierde la línea.
   marcar("lista");
   after(async () => {
     try {
       await todas();
       const plan = planParaPanel ? await planParaPanel : null;
+      const ritmo = ritmoParaPanel ? await ritmoParaPanel : null;
       console.info(
         JSON.stringify(
-          lineaDeTramos("existencias_tramos", { sedeId: ubicacionActivaId, ...foto(), bytes: { panel: tamanoJson(propsPanel), plan: planParaPanel ? tamanoJson(plan) : null } })
+          lineaDeTramos("existencias_tramos", {
+            sedeId: ubicacionActivaId,
+            ...foto(),
+            bytes: { panel: tamanoJson(propsPanel), plan: planParaPanel ? tamanoJson(plan) : null, ritmo: ritmoParaPanel ? tamanoJson(ritmo) : null },
+          })
         )
       );
     } catch {
@@ -363,8 +366,8 @@ export default async function InventarioPage({
       {/* `key` por sede: cambiar de sede (selector de arriba o `?ubicacion=`) es un `router.refresh`, no una
           pantalla nueva, y sin la llave el panel conservaba sus filtros. Un filtro de TRU («Por colgar»,
           «Dañado», una talla) aplicado al Taller dejaba la tabla vacía, sin control visible que lo explicara.
-          `plan`: la promesa del plan del piso (Existencias en dos tiempos); `null` donde no se pide (el Taller). */}
-      <InventarioPanel key={ubicacionActivaId} {...propsPanel} plan={planParaPanel} />
+          `plan` y `ritmo`: las promesas del plan del piso y del Ritmo reciente (Existencias en dos tiempos); `null` donde no se piden (el Taller). */}
+      <InventarioPanel key={ubicacionActivaId} {...propsPanel} plan={planParaPanel} ritmo={ritmoParaPanel} />
     </div>
   );
 }

@@ -94,3 +94,31 @@ con las demás (su resultado se sigue esperando donde se usa). Las cifras de pro
 - Leer 24 h de `existencias_tramos` en producción y decidir el siguiente paso con números de verdad.
 - `persona` y `ubicaciones` van en fila antes de todo: `getUbicaciones()` podría arrancar a la vez que la identidad.
 - Si el ritmo reciente resulta estar en el camino largo, partirlo como el plan (ya espera a las prendas).
+
+## Actualización 2026-11-13 (b): el Ritmo reciente también llega después
+
+**Lo que mostró la línea en producción** (8 cargas de TRU, versión `86f6926f3`): la lista estaba a los 1,5–2,4 s y la pantalla a los 3,3–4,8 s
+(`tiempo_de_pantalla`). Las prendas terminaban a los 0,6–1,1 s; lo que seguía en el camino de la lista era el **ritmo** (`fn_ritmo_reciente_json`
+con las 1.953 tallas de la sede), que arranca cuando llegan las prendas y tardaba **0,9–1,5 s más**. El plan ya no frenaba (llega a los 1,9–3,1 s,
+aparte). El ritmo solo alimenta dos columnas de la tabla («Cobertura piso» y «Ritmo reciente»), la línea «¿Cómo se vende?» del panel de la talla, el
+aro de la talla «principal» cuando hay un filtro puesto y la descarga: era el caso que este ADR dejó anotado («si el ritmo resulta estar en el
+camino largo, partirlo como el plan»).
+
+**Decisión.** Igual que el plan: la página le pasa al panel la **promesa** del ritmo (`lib/existencias-ritmo-panel.ts:ritmoDelPanel`, un objeto que
+viaja) y el panel la espera sin suspender (`components/existencias/useRitmoReciente.ts` → `aplicarRitmo`, pura y con su prueba). Mientras llega,
+las dos columnas y «¿Cómo se vende?» dicen «calculando» (`<Calculando>`); la descarga escribe «Calculando» en esas celdas, no un «—» que se leería
+como «sin dato». Si no responde, «N/D» y el mismo aviso de antes (`TEXTO_RITMO_FALLO`).
+
+- **La cobertura se calcula en el panel**, con el piso que la fila tiene ahora (`calcularCoberturaPiso`), y no en el servidor: tras un refresco
+  (colgar, una venta en otra caja) llega el piso nuevo y la cobertura lo sigue sin esperar otro ritmo. `getRitmoRecientePorVariante` ya no recibe
+  el piso ni devuelve la cobertura.
+- **Tras un refresco, el ritmo anterior sigue valiendo** hasta que llega el nuevo (son 7 días: una venta casi no lo mueve). A diferencia del plan,
+  no se compara el stock: solo una talla que el ritmo anterior no traía dice «calculando».
+- **La línea `existencias_tramos` suma `bytes.ritmo`**: el ritmo ya no viaja dentro de las props del panel (cada talla trae sus 7 días), así que
+  `bytes.panel` baja y su peso se ve aparte.
+
+**Lo que se midió en local** (servidor de desarrollo, base del seed, el ritmo demorado a propósito solo en la copia local): con el ritmo demorado
+8 s, la lista se ve a los ~0,65 s y el panel responde al clic a los ~0,7 s, igual que sin demora; las dos columnas muestran la banda hasta que
+llega y después sus cifras. El bloque «calculando» de «¿Cómo se vende?» mide 60 px y es lo último del panel: al llegar crece hacia abajo (a
+113 px en una ventana de 688 px, donde el texto ocupa dos líneas), sin mover nada de arriba. **En producción, lo que diga `existencias_tramos`:**
+se espera la lista cerca de cuando terminan las prendas (~0,7–1,1 s en vez de 1,5–2,4 s).

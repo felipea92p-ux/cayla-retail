@@ -74,7 +74,9 @@ import { BarraDeAbajo } from "@/components/ui/BarraDeAbajo";
 import { prefiereQuieto } from "@/lib/movimiento-cliente";
 import { Calculando, EsqueletoTabla } from "@/components/Esqueleto";
 import { listaQueOrdena, TEXTO_PLAN_FALLO, type PlanDelPanel } from "@/lib/existencias-plan-panel";
+import { TEXTO_RITMO_FALLO, type RitmoDelPanel } from "@/lib/existencias-ritmo-panel";
 import { usePlanDelPiso } from "@/components/existencias/usePlanDelPiso";
+import { useRitmoReciente } from "@/components/existencias/useRitmoReciente";
 
 const TODAS = "__todas__";
 
@@ -168,7 +170,9 @@ function textoMostrando(p: { desde: number; hasta: number; totalPaginas: number 
  *  Diseño aprobado (2026-09-28): la cifra va en una etiqueta suave. Rojo cuando ya no queda piso («0 d»), ámbar mientras
  *  «Acción hoy» pide reponer; sin acción, texto llano. El color sigue a «Acción hoy» (única fuente de verdad) y a la
  *  cobertura solo para el «0 d»: la cobertura nunca decide nada, solo informa. */
-function CeldaCoberturaPiso({ f }: { f: FilaExistencias }) {
+function CeldaCoberturaPiso({ f, calculando }: { f: FilaExistencias; calculando: boolean }) {
+  // El Ritmo reciente viene en camino (llega después que la lista): el lugar de la cifra. «N/D» queda para cuando no respondió.
+  if (calculando) return <Calculando className="h-6 w-12 rounded-lg" />;
   const c = f.coberturaPiso;
   if (!c) {
     return (
@@ -235,7 +239,7 @@ export function InventarioPanel({
   apartados,
   editaCatalogo = false,
   puedeAjustar,
-  coberturaFallo = null,
+  ritmo = null,
   plan = null,
   sedeNombre,
   sinStock,
@@ -287,8 +291,10 @@ export function InventarioPanel({
   editaCatalogo?: boolean;
   /** ¿Puede ajustar stock fuera de una venta? Un líder o la terminal administrativa (ADR-0160). */
   puedeAjustar: boolean;
-  /** Si la cobertura no se pudo calcular: el aviso (las filas quedan en «N/D»); null = todo bien. */
-  coberturaFallo?: string | null;
+  /** El Ritmo reciente (`fn_ritmo_reciente_json`), que llega DESPUÉS que la lista (2026-11-13, `lib/existencias-ritmo-panel.ts`): la
+   *  promesa que pasa la página. Responde `null` si no se pudo calcular: «Cobertura piso» y «Ritmo reciente» dicen N/D y la pantalla lo
+   *  avisa. `null` en vez de promesa donde no se pide (el Taller). Mientras llega, esas dos columnas y «¿Cómo se vende?» dicen «calculando». */
+  ritmo?: PromiseLike<RitmoDelPanel | null> | null;
   /** El plan del piso (`fn_piso_plan_lectura`), que llega DESPUÉS que la lista (Existencias en dos tiempos, 2026-11-13): la promesa que
    *  pasa la página, recortada a las tallas de la sede (`planDelPanel`). Responde `null` si el motor no respondió: «Hoy» queda en N/D y la
    *  pantalla lo dice. `null` en vez de promesa donde no se pide (el Taller). Mientras llega, lo que depende de él dice «calculando». */
@@ -332,7 +338,11 @@ export function InventarioPanel({
   // Existencias en dos tiempos (2026-11-13, `lib/existencias-plan-panel.ts`): la lista llega con la página y el plan del piso un momento
   // después. `stock` es la lista con la decisión de «Hoy» de cada talla ya puesta (`aplicarPlan`): todo lo de abajo la lee igual que antes.
   // Mientras el plan llega (`planCalculando`), lo que depende de él dice «calculando»; si no respondió, «Hoy» dice N/D (`planFallo`).
-  const planDelPiso = usePlanDelPiso(plan, stockSinPlan);
+  // El Ritmo reciente llega igual, aparte (`useRitmoReciente`): se pone primero en cada fila, y el plan encima.
+  const ritmoReciente = useRitmoReciente(ritmo, stockSinPlan);
+  const ritmoCalculando = ritmoReciente.calculando;
+  const coberturaFallo = ritmoReciente.estado === "fallo" ? TEXTO_RITMO_FALLO : null;
+  const planDelPiso = usePlanDelPiso(plan, ritmoReciente.filas);
   const stock = planDelPiso.filas;
   const planCalculando = planDelPiso.estado === "calculando";
   const planFallo = esTienda && planDelPiso.estado === "fallo" ? TEXTO_PLAN_FALLO : null;
@@ -820,8 +830,9 @@ export function InventarioPanel({
         fila.push(
           f.piso ?? "—",
           f.almacen ?? "—",
-          f.coberturaPiso ? textoCoberturaPiso(f.coberturaPiso) : "—",
-          f.ritmoReciente ? textoRitmoReciente(f.ritmoReciente) : "—",
+          // Si se descarga antes de que llegue el ritmo, la celda lo dice: un «—» se leería como «no hay dato».
+          ritmoCalculando.has(f.varianteId) ? "Calculando" : f.coberturaPiso ? textoCoberturaPiso(f.coberturaPiso) : "—",
+          ritmoCalculando.has(f.varianteId) ? "Calculando" : f.ritmoReciente ? textoRitmoReciente(f.ritmoReciente) : "—",
           ((h) => (h ? TEXTO_HOY[h] : "—"))(estadoHoyDeTalla(f))
         );
       }
@@ -1382,7 +1393,7 @@ export function InventarioPanel({
                   {separa && (
                     <span className={celda("centro", "rounded-lg bg-hueso/60 px-2 py-1.5 sm:rounded-none sm:bg-transparent sm:px-0 sm:py-0")}>
                       <span className="label-cayla mb-0.5 block text-[10px] text-tinta/45 sm:hidden">Cobertura piso</span>
-                      <CeldaCoberturaPiso f={f} />
+                      <CeldaCoberturaPiso f={f} calculando={ritmoCalculando.has(f.varianteId)} />
                     </span>
                   )}
                   {separa && (
@@ -1392,7 +1403,11 @@ export function InventarioPanel({
                       className={celda("centro", "rounded-lg bg-hueso/60 px-2 py-1.5 sm:rounded-none sm:bg-transparent sm:px-0 sm:py-0 overflow-visible")}
                     >
                       <span className="label-cayla mb-0.5 block text-[10px] text-tinta/45 sm:hidden">Ritmo reciente</span>
-                      <RitmoRecientePopover ritmo={f.ritmoReciente ?? null} referencia={f.referencia} sku={f.sku} minDiasExposicionRitmo={politica.minDiasExposicionRitmo} />
+                      {ritmoCalculando.has(f.varianteId) ? (
+                        <Calculando className="h-6 w-14 rounded-lg" />
+                      ) : (
+                        <RitmoRecientePopover ritmo={f.ritmoReciente ?? null} referencia={f.referencia} sku={f.sku} minDiasExposicionRitmo={politica.minDiasExposicionRitmo} />
+                      )}
                     </span>
                   )}
                   <span className={celda("centro", "rounded-lg bg-hueso/60 px-2 py-1.5 sm:rounded-none sm:bg-transparent sm:px-0 sm:py-0 text-sm tabular-nums text-tinta")}>
@@ -1586,6 +1601,7 @@ export function InventarioPanel({
           enSedeActiva={permisos.etiquetasEHistorial}
           puedeReportarDanada={permisos.reportarDanada}
           lugarDanadas={lugarDanadas}
+          ritmoCalculando={ritmoCalculando}
           onAjustarCompleto={(f) => {
             setAbierta(null);
             setAjustando(f);
