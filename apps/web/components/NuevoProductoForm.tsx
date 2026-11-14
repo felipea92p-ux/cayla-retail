@@ -20,7 +20,7 @@ import { ConfigurarCategoria } from "@/components/alta-producto/ConfigurarCatego
 import { ProductoCreado, type ResumenCreado } from "@/components/alta-producto/ProductoCreado";
 import { ChipOpcion, FilaAlta, PasoAlta, PlegableAlta } from "@/components/alta-producto/piezas";
 import { PropuestaDePrecio } from "@/components/alta-producto/PropuestaDePrecio";
-import { ElegirColores } from "@/components/alta-producto/ElegirColores";
+import { FotosYColores } from "@/components/alta-producto/FotosYColores";
 import type { FotoPendiente } from "@/components/alta-producto/FotosAlta";
 import { MatrizVariantes } from "@/components/alta-producto/MatrizVariantes";
 import { MatrizCantidades } from "@/components/alta-producto/MatrizCantidades";
@@ -432,12 +432,13 @@ export function NuevoProductoForm({
     }
   }
 
-  // «+ Nuevo color» desde el alta (spike v2): antes había que ir a Catálogo → Atributos en otra pestaña y volver a
-  // «actualizar los colores». El color creado entra a la lista y queda elegido.
-  function colorCreado(color: ColorAlta) {
-    setColoresNuevos((prev) => (prev.some((c) => c.codigo === color.codigo) ? prev : [...prev, color]));
-    setColoresElegidos((prev) => (prev.includes(color.codigo) ? prev : [...prev, color.codigo]));
+  // «Cambiar» en una tarjeta de «Fotos y colores» (ADR-0663): el color cambia en su lugar y sus fotos lo siguen. Si el nuevo ya estaba
+  // elegido, las dos tarjetas se juntan (es la misma prenda vista dos veces).
+  function cambiarColor(de: string, a: string) {
+    setColoresElegidos((prev) => (prev.includes(a) ? prev.filter((x) => x !== de) : prev.map((x) => (x === de ? a : x))));
+    setFotos((prev) => prev.map((f) => (f.colorCodigo === de ? { ...f, colorCodigo: a } : f)));
   }
+
 
   // ---------- al configurar una categoría o proponer un valor sin salir del alta ----------
   // Es el `onOfrecido` de ElegirTallas y ElegirMuestra: el valor ya quedó ofrecido en la categoría (desde su hoja «Ver
@@ -1240,13 +1241,28 @@ export function NuevoProductoForm({
           </FilaAlta>
 
           <FilaAlta
-            etiqueta="Colores"
+            etiqueta="Fotos y colores"
             campo="colores"
             estado={est.colores}
             retiene="fila"
-            ayuda={coloresElegidos.length ? plural(coloresElegidos.length, "elegido", "elegidos") : "Si no tiene color (un llavero, un cuaderno), déjalo vacío"}
+            ayuda={coloresElegidos.length ? plural(coloresElegidos.length, "color", "colores") : "Una foto por color"}
           >
-            <ElegirColores colores={colores} grupos={grupos} elegidos={coloresElegidos} onAlternar={alternarColor} onCreado={colorCreado} conMezclas />
+            {/* Los colores salen de las fotos (ADR-0663): la carta queda para «Cambiar» y «Elegir sin foto». */}
+            <FotosYColores
+              carta={colores}
+              grupos={grupos}
+              elegidos={coloresElegidos}
+              fotos={fotos}
+              onFotos={setFotos}
+              onColorNuevo={(color) => setColoresNuevos((prev) => (prev.some((c) => c.codigo === color.codigo) ? prev : [...prev, color]))}
+              onAgregarColor={(codigo) => setColoresElegidos((prev) => (prev.includes(codigo) ? prev : [...prev, codigo]))}
+              onQuitarColor={(codigo) => {
+                if (coloresElegidos.includes(codigo)) alternarColor(codigo);
+              }}
+              onCambiarColor={cambiarColor}
+              disabled={cargando}
+              guia="nuevo.fotos-colores"
+            />
           </FilaAlta>
 
           {/* La prenda: una fila por color (con su foto) y una columna por talla. En el paso 4 es la MISMA tabla, con números. */}

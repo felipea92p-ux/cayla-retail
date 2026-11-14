@@ -4,6 +4,8 @@ import { useRef, type ReactNode } from "react";
 import { X } from "lucide-react";
 import { avisar } from "@/components/ui/Avisos";
 import { objecionFotoProducto } from "@/lib/producto-fotos";
+import type { ColorAlta } from "@/lib/alta-producto";
+import type { Lectura } from "@/lib/colores-de-la-foto";
 
 // Las fotos del alta, POR COLOR, sin subir nada todavía (spike Nuevo producto, 2026-09-24).
 //
@@ -26,6 +28,8 @@ export type FotoPendiente = {
   /** URL local (blob:) solo para mostrarla; se libera al quitarla o al salir. */
   vista: string;
   colorCodigo: string | null;
+  /** Cómo se leyeron sus colores (ADR-0663), si el color salió de la foto: lo usa el «¿Por qué?» de su tarjeta. */
+  lectura?: Lectura<ColorAlta>;
   /**
    * «Catálogo con IA» (2026-11-13): la versión de catálogo de esta foto, ya preparada en el navegador. `usar` dice cuál queda: con la de IA,
    * `vista` es la suya y al crear el producto se sube el par (`subirParDeCatalogo`); con «Usar mi foto», `vista` vuelve a `vistaReal`.

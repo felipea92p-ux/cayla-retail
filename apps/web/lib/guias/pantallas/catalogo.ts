@@ -1725,7 +1725,15 @@ export const GUIA_NUEVO_PRODUCTO: Guia = {
       id: "punto-3",
       ancla: "nuevo.punto-3",
       titulo: "3 · Tallas y colores",
-      texto: "Las tallas vienen con la curva de siempre de la categoría; eliges los colores que llegaron. Si la prenda trae dos colores (hueso con azul), toca «+ Color combinado»: eliges la base y lo que la acompaña, y queda como un solo color. Abajo, la tabla de variantes que van a nacer: toca una celda para quitar la que no llegó.",
+      texto: "Las tallas vienen con la curva de siempre de la categoría. Los colores salen de las fotos: subes una por color y abajo, la tabla de variantes que van a nacer; toca una celda para quitar la que no llegó.",
+    },
+    {
+      id: "fotos-colores",
+      ancla: "nuevo.fotos-colores",
+      // Solo está en el paso 3, con una categoría elegida.
+      opcional: true,
+      titulo: "Fotos y colores",
+      texto: "Sube la foto de cada color y el color sale solo: uno liso, o una mezcla si la prenda trae varios (hueso con azul). La espalda se junta con su color. Si un color no está en la carta, te pregunta. «Cambiar» lo corrige.",
     },
     {
       id: "catalogo-ia",

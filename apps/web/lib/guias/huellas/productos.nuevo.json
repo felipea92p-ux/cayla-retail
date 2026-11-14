@@ -2,7 +2,7 @@
   "guia": "productos.nuevo",
   "ruta": "/productos/nuevo",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 137,
+  "total": 149,
   "controles": {
     "app/(app)/productos/nuevo/page.tsx": [
       "Volver «{RUTA_ORDENES}»",
@@ -109,6 +109,20 @@
       "button «Quitar»",
       "button «Listo»",
       "button «{`Ver en grande la foto de ${nombre}»"
+    ],
+    "components/alta-producto/FotosYColores.tsx": [
+      "button «Elegir sin foto»",
+      "button «Cambiar»",
+      "button «{porQue === codigo ? \"Ocultar\" : \"¿Por qué?\"}»",
+      "Boton «Elegir el estampado»",
+      "Boton «Es una mezcla»",
+      "Boton «Multicolor»",
+      "Boton «Elegir en la carta»",
+      "Boton «Crear este color»",
+      "Boton «Usar»",
+      "Boton «Volver a intentar»",
+      "Boton «Elegir en la carta» #2",
+      "button «Elegir sin foto» #2"
     ],
     "components/alta-producto/GrillaMuestras.tsx": [
       "button «{title}»",
