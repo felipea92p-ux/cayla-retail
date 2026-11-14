@@ -84,6 +84,10 @@ const ANTES = [
   falta("select position('oferta_grupo_id' in pg_get_functiondef('retail.fn_campanas_reporte(uuid)'::regprocedure)) = 0;")
     ? leer("20261114064000_finanzas_campanas_con_ofertas_de_grupo")
     : "",
+  // Felipe 2026-11-14 (20261114131000): Frescura cuenta la parte del 3x2, del monto y del Club como campaña, no como liquidación.
+  falta("select position('descuento_grupo_unitario' in pg_get_functiondef('retail.fn_frescura_decisiones(uuid, integer)'::regprocedure)) = 0;")
+    ? leer("20261114131000_frescura_ofertas_y_club_como_campana")
+    : "",
 ].filter(Boolean).join("\n");
 
 const HOY = "retail.fn_hoy_lima()";
@@ -209,6 +213,42 @@ esperarValor(
 esperar(
   "la migración del informe se puede pegar dos veces",
   correr(`begin;\n${ANTES}\n${leer("20261114064000_finanzas_campanas_con_ofertas_de_grupo")}\n${leer("20261114064000_finanzas_campanas_con_ofertas_de_grupo")}\nrollback;`).ok,
+);
+
+console.log("\n— Frescura (20261114131000) —");
+// Una «La rebajé» de ayer sobre el modelo y el color de a1; hoy se vende a1 en el 3x2 (su parte del grupo, sin motivo) y otra a1 con solo
+// la parte del Club. Lo que Frescura dice de cada venta: «campana» en las dos, nunca «otro» (que la web cuenta como liquidación).
+const FRESCURA = `select id as pers from public.personas where auth_user_id = '${FELIPE}' \\gset
+select color_codigo as col from retail.variantes where id = :'a1' \\gset
+insert into retail.frescura_decisiones (ubicacion_id, producto_id, color_codigo, accion, plazo_dias, persona_id, token_cliente, creado_en)
+  values (:'u', :'modelo', :'col', 'rebaje', 15, :'pers', gen_random_uuid(), now() - interval '1 day');
+insert into retail.ventas (ubicacion_id, estado, created_at) values (:'u', 'completada', now()) returning id as vclub \\gset
+insert into retail.venta_items (venta_id, variante_id, cantidad, precio_unitario, costo_unitario, descuento_unitario, descuento_club_unitario)
+  values (:'vclub', :'a1', 1, 100, 40, 5, 5);
+select count(*) || ':' || string_agg(distinct coalesce(v ->> 2, 'sin_descuento'), ',')
+  from jsonb_array_elements(retail.fn_frescura_decisiones(:'u', 30) -> 'decisiones') e, jsonb_array_elements(e -> 'ventas') v
+ where e ->> 'producto_id' = :'modelo';
+`;
+esperarValor(
+  "«La rebajé» cuenta la parte del 3x2 y la del Club como campaña, no como liquidación",
+  correr(`${PARTIDA()}${venta(TRES, COBRO)}${FRESCURA}rollback;`),
+  // a1 y las otras tallas de su color en el 3x2, más la del Club: todas «campana».
+  "3:campana",
+);
+const DESHACER_FRESCURA = (() => {
+  const m = leer("20261114131000_frescura_ofertas_y_club_como_campana").match(/\$v\$([\s\S]*?)\$v\$,\s*\$n\$([\s\S]*?)\$n\$/);
+  if (!m) throw new Error("No se pudo leer el reemplazo de 20261114131000.");
+  return `do $d$ declare d text := pg_get_functiondef('retail.fn_frescura_decisiones(uuid, integer)'::regprocedure); begin
+  execute replace(d, $n$${m[2]}$n$, $v$${m[1]}$v$); end $d$;\n`;
+})();
+esperarValor(
+  "CONTROL: sin la migración, las mismas ventas salen como «otro» (liquidación): la prueba ve la diferencia",
+  correr(`${PARTIDA()}${DESHACER_FRESCURA}${venta(TRES, COBRO)}${FRESCURA}rollback;`),
+  "3:otro",
+);
+esperar(
+  "la migración de Frescura se puede pegar dos veces",
+  correr(`begin;\n${ANTES}\n${leer("20261114131000_frescura_ofertas_y_club_como_campana")}\n${leer("20261114131000_frescura_ofertas_y_club_como_campana")}\nrollback;`).ok,
 );
 
 console.log("\n— La migración —");
