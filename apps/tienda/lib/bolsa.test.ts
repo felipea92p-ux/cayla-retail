@@ -10,6 +10,7 @@ import {
   elegirSede,
   escribirBolsa,
   interpretarBolsaEnBase,
+  interpretarGruposDeLaBolsa,
   leerBolsa,
   ofreceOtra,
   pasaElTopePorPrenda,
@@ -21,6 +22,7 @@ import {
   SEPARAR_SIN_RESPUESTA,
   sinPrendas,
   textoDeLaMarca,
+  titularDeGrupo,
   TOPE_POR_PRENDA,
   TOPE_PRENDAS,
   unidades,
@@ -197,6 +199,43 @@ const lineaBase = (id: string, cantidad: number, en: Record<string, [boolean, bo
   ...extra,
 });
 const enBase = (sede: string | null, lineas: unknown[]): BolsaEnBase => interpretarBolsaEnBase({ sede, sedes: sedesBase, lineas })!;
+
+describe("llevar varias y pagar menos en la bolsa (ADR-0655, actividad 7)", () => {
+  const grupos = (porVariante: Record<string, unknown>, ahorro: number) => interpretarGruposDeLaBolsa({ ahorro, lineas: porVariante });
+  const tresPorDos = (ahorro: number, faltan = 0) => ({ ahorro, faltan, campana: "Verano", tipo: "nxm", lleva: 3, paga: 2, monto: null, porcentaje: null });
+
+  it("lee lo que ahorra cada prenda y dice la oferta como en la caja; una línea rara se ignora", () => {
+    const g = grupos({ [A]: tresPorDos(46.6), [B]: tresPorDos(23.3), [M2]: { tipo: "otra" } }, 69.9);
+    expect(g?.ahorro).toBe(69.9);
+    expect(g?.porVariante[A]).toEqual({ titular: "3 x 2", campana: "Verano", ahorro: 46.6, faltan: 0 });
+    expect(g?.porVariante[M2]).toBeUndefined();
+    expect(interpretarGruposDeLaBolsa(null)).toBeNull();
+  });
+
+  it("las tres formas se dicen como en la caja", () => {
+    expect(titularDeGrupo({ tipo: "nxm", lleva: 3, paga: 2, monto: null, porcentaje: null })).toBe("3 x 2");
+    expect(titularDeGrupo({ tipo: "n_por_monto", lleva: 2, paga: null, monto: 59.9, porcentaje: null })).toBe("2 por S/ 59.90");
+    expect(titularDeGrupo({ tipo: "nesima_pct", lleva: 2, paga: null, monto: null, porcentaje: 50 })).toBe("La 2.ª al 50 %");
+  });
+
+  it("el total del pedido ya trae lo que ahorra llevando varias, cada prenda dice su oferta y «Separar» manda lo que mostró", () => {
+    const b = { ...enBase(TRU, [lineaBase(A, 2, { [TRU]: [true, true] }), lineaBase(B, 1, { [TRU]: [true, true] })]), grupos: grupos({ [A]: tresPorDos(46.6), [B]: tresPorDos(23.3) }, 69.9) };
+    const v = vistaBolsa(b);
+    expect([v.subtotal, v.ahorroGrupo, v.total]).toEqual([209.7, 69.9, 139.8]);
+    expect(v.lineas[0].grupo).toMatchObject({ titular: "3 x 2", ahorro: 46.6 });
+    expect(v.paraSeparar).toEqual([
+      { variante_id: A, cantidad: 2, precio: 69.9, ahorro_grupo: 46.6 },
+      { variante_id: B, cantidad: 1, precio: 69.9, ahorro_grupo: 23.3 },
+    ]);
+  });
+
+  it("si la base no dijo los grupos, la bolsa se ve como siempre y «Separar» no manda lo que no mostró (la base los cobra igual)", () => {
+    const v = vistaBolsa(enBase(TRU, [lineaBase(A, 2, { [TRU]: [true, true] })]));
+    expect([v.ahorroGrupo, v.total]).toEqual([0, 139.8]);
+    expect(v.paraSeparar[0]).not.toHaveProperty("ahorro_grupo");
+    expect(v.lineas[0].grupo).toBeNull();
+  });
+});
 
 describe("lo que dice la base", () => {
   it("la empresa de cada prenda (ADR-0465): la lee; sin ella —Trujillo, o una base que aún no la manda— o con una rara, la prenda se ve igual y sin empresa", () => {

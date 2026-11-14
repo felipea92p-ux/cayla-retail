@@ -167,7 +167,7 @@ export default async function Bolsa({ searchParams }: { searchParams: Promise<Re
         <div className="t-bolsa">
           <div className="t-bolsa-principal">
             <div className="t-bolsa-items">
-              {v.lineas.map(({ linea, marca, importe: monto, antes }, orden) => {
+              {v.lineas.map(({ linea, marca, importe: monto, antes, grupo }, orden) => {
                 const texto = textoDeLaMarca(marca);
                 // «Quitar» saca la prenda entera (la cantidad se baja con «−»), y dice cuál para quien usa lector de pantalla. Si la
                 // prenda ya no se puede separar (agotada o fuera de la tienda online), quitarla es lo que toca: va como botón, no enlace.
@@ -220,6 +220,14 @@ export default async function Bolsa({ searchParams }: { searchParams: Promise<Re
                         <span className="t-bolsa-campana" style={{ background: diseno.sello.fondo, color: diseno.sello.texto }}>
                           {linea.campana.nombre} −{pctTexto(linea.campana.pct)} %
                         </span>
+                      )}
+                      {/* «Llevar varias y pagar menos» (ADR-0655): la oferta de la prenda y lo que ahorra, o cuántas le faltan al grupo. */}
+                      {grupo && (
+                        <small className="t-bolsa-grupo">
+                          <b>{grupo.titular}</b>
+                          {grupo.campana ? ` · ${grupo.campana}` : ""}:{" "}
+                          {grupo.ahorro > 0 ? <>ahorras <span className="num">{soles(grupo.ahorro)}</span></> : `lleva ${grupo.faltan} más`}
+                        </small>
                       )}
                       {texto &&
                         (marca.tipo === "hay" ? (
@@ -317,6 +325,12 @@ export default async function Bolsa({ searchParams }: { searchParams: Promise<Re
                   <div>
                     <span>Ahorras con las campañas</span>
                     <span className="num t-ahorro">−{soles(v.ahorro)}</span>
+                  </div>
+                )}
+                {v.ahorroGrupo > 0 && (
+                  <div>
+                    <span>Ahorras llevando varias</span>
+                    <span className="num t-ahorro">−{soles(v.ahorroGrupo)}</span>
                   </div>
                 )}
                 <div className="tot">

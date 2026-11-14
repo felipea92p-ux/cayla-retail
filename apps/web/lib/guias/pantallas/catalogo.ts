@@ -1299,7 +1299,7 @@ export const GUIA_CAMPANAS: Guia = {
       ancla: "sellos.oferta-varias",
       opcional: true,
       titulo: "Llevar varias y pagar menos",
-      texto: "El cliente paga menos cuando lleva varias: 3x2, un precio por el grupo o la 2.ª con descuento. La caja la cobra sola: arma los grupos en el ticket y reparte el ahorro entre las prendas.",
+      texto: "El cliente paga menos cuando lleva varias: 3x2, un precio por el grupo o la 2.ª con descuento. La caja, los apartados y la tienda web la cobran solos: arman los grupos y reparten el ahorro entre las prendas.",
     },
     {
       id: "oferta-forma",
