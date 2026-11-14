@@ -71,6 +71,21 @@ describe("lo que está mal lo dice EN su campo, con las reglas de la base", () =
     expect(problemas({ densidad: "30 25" }).densidad).toBeDefined();
   });
 
+  it("entradas hostiles (/chaos): ninguna se lee como número ni rompe la lectura", () => {
+    const hostiles = [
+      "9".repeat(5000), // 5000 cifras: Number() lo vuelve Infinity y cae en el tope, nunca pasa
+      "٣٠", // dígitos arábigos
+      "３０", // dígitos de ancho completo
+      "1e3", "0x10", "Infinity", "NaN", "--5", "+5", "5-", "1,2,3", "1.2.3", "1 000 000", "12\n8", "12\t8", "🧵🧵", "<b>30</b>", "30'; drop table x;--", "\u200b30", "30\u200b",
+    ];
+    for (const h of hostiles) {
+      for (const campo of ["m2", "densidad"] as const) {
+        const p = problemas({ [campo]: h });
+        expect(p[campo], `${campo}: ${h.slice(0, 20)}`).toBeDefined();
+      }
+    }
+  });
+
   it("rangos: 0 no, el tope sí, un poco más no", () => {
     expect(problemas({ m2: "0" }).m2).toBeDefined();
     expect(ok({ m2: String(M2_MAXIMO) }).m2).toBe(M2_MAXIMO);

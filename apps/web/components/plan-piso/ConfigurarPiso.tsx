@@ -8,9 +8,11 @@ import { traducirError } from "@/lib/error-escritura";
 import { avisar } from "@/components/ui/Avisos";
 import { Boton, CampoTexto, Interruptor } from "@/components/ui/campos";
 import { CampoFecha } from "@/components/ui/CampoFecha";
+import { Aviso } from "@/components/ui/Aviso";
 import { Chip } from "@/components/ui/Chip";
 import { enterNoGuarda } from "@/components/ui/enterNoGuarda";
 import { Modal } from "@/components/ui/Modal";
+import { PieAcciones } from "@/components/ui/PieAcciones";
 import { useValidarAlSalir } from "@/components/ui/useValidarAlSalir";
 import { Ayuda } from "@/components/Ayuda";
 import { ComboResponsable } from "@/components/ComboResponsable";
@@ -233,31 +235,28 @@ function HojaConfigurarPiso({ datos, onClose }: { datos: DatosDelPiso; onClose: 
           <Interruptor activo={b.sinContar} onActivo={(v) => cambiar({ sinContar: v })} etiqueta="Aún no lo conté" disabled={enviando || choque} />
         </div>
 
-        <div className="min-h-[1rem] text-sm text-rojo-profundo" role="alert">
-          {error}
-        </div>
+        {error && <Aviso tono="error">{error}</Aviso>}
 
         <CampoGuiado id="responsable" guia={guia}>
           <ComboResponsable control={responsable} deshabilitado={enviando || choque} />
         </CampoGuiado>
-        <PieGuia guia={guia} listo="Todo listo para guardar." />
+        <PieGuia guia={guia} listo={loMismo ? "Todavía no cambiaste nada." : "Todo listo para guardar."} />
 
-        <div className="fin-botones pie-hoja-fijo">
-          <button type="button" className="btn-cayla btn-secundario" onClick={onClose} disabled={enviando}>
+        <PieAcciones className="pie-hoja-fijo">
+          <Boton type="button" peso="fantasma" onClick={onClose} disabled={enviando}>
             Cancelar
-          </button>
+          </Boton>
           <Boton
             peso="primario"
             type="submit"
             cargando={enviando}
             className={choque ? "" : guia.claseConfirmar}
             confirma={choque ? undefined : guia}
-            disabled={enviando || (!choque && loMismo)}
-            title={choque ? undefined : loMismo ? "Todavía no cambiaste nada." : (responsable.motivo ?? guia.frase ?? undefined)}
+            title={choque ? undefined : (responsable.motivo ?? guia.frase ?? undefined)}
           >
             {choque ? "Actualizar y revisar" : "Guardar"}
           </Boton>
-        </div>
+        </PieAcciones>
       </form>
     </Modal>
   );

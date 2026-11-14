@@ -21,8 +21,8 @@
       "CampoTexto «{guia.etiqueta(\"densidad\", \"Prendas por m²\")}»",
       "CampoFecha «{guia.etiqueta(\"contadaEl\", \"Contado el\")}»",
       "ComboResponsable «{responsable}»",
-      "button «Cancelar»",
-      "Boton «{choque ? \"Actualizar y revisar\" : \"Guardar\"}»"
+      "Boton «Cancelar»",
+      "Boton «{choque ? undefined : (responsable.motivo ?? guia.frase ?? undefined)}»"
     ],
     "components/plan-piso/DesgloseDeColor.tsx": [
       "button «{`Cerrar los colores de ${nombre}»"
