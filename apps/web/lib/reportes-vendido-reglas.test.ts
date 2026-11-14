@@ -17,7 +17,7 @@ describe("rótulos de «Vendido»", () => {
 
   it("las pantallas usan los rótulos (control: sin el arreglo, la tarjeta y la tabla decían solo «Vendido»)", () => {
     const cifras = leer("components/reportes-ventas/CifrasReporteMes.tsx");
-    expect(cifras).toContain("pie={pieVendido(tramoEnPalabras(r))}");
+    expect(cifras).toContain("pie={pieVendido(tramoEnPalabras(r), empresa)}");
     expect(cifras).toContain("lineaClaure(");
     const tabla = leer("components/reportes-ventas/TablaCortes.tsx");
     expect(tabla).not.toContain('{ titulo: "Vendido" }');
@@ -27,7 +27,8 @@ describe("rótulos de «Vendido»", () => {
 
   it("el enlace al cuadro solo se arma para quien ve Estados financieros", () => {
     const pagina = leer("app/(app)/vender/reportes/page.tsx");
-    expect(pagina).toMatch(/veModulo\(persona, "reportes_financieros"\) \? hrefCuadreFinanzas\(mes, tienda\) : null/);
+    // Y no con una empresa elegida (ADR-0665): Finanzas cuenta la caja entera, no una empresa.
+    expect(pagina).toMatch(/veModulo\(persona, "reportes_financieros"\) && !empresa \? hrefCuadreFinanzas\(mes, tienda\) : null/);
   });
 });
 

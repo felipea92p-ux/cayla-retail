@@ -1,0 +1,6 @@
+## Reportes de ventas: el filtro «Empresa» en Lima (2026-11-14, ADR-0665)
+- **Por pegar en producción (Felipe):** `supabase/migrations/20261114215000_reportes_ventas_por_empresa.sql`, una sola parte, ANTES de fusionar la web. Depende de lo que ya está en producción (`fn_dueno_de_la_linea`, `fn_stock_por_dueno`, `fn_empresas_de_sede`). Si el candado aborta, alguien parchó una de las cuatro lecturas en vivo. Verificación de solo lectura: las cuatro `fn_reporte_ventas%` con `p_empresa`.
+- **Confirmar con Felipe (decisiones mías):** la venta mixta cuenta en las dos empresas; la devolución mixta se parte por valor; la etiqueta es «Empresa»; con «Todas las tiendas» el filtro no se ofrece.
+- **Sin medir:** el tiempo de las lecturas con empresa sobre un mes de Lima en producción (la regla se pregunta por línea, con el índice parcial de `movimientos`; sin empresa nada cambia).
+- **Fuera de alcance, a propósito:** las ventas de la tienda web no están en `retail.ventas` (ADR-0606); «cómo se pagó» no se parte (ADR-0532).
+- **Chequeos de las reglas del repo:** `/chaos` no aplica (solo lectura, no guarda); la guía de foco es `no-aplica` (reportes sin formulario); `/milimetro`: se reutilizó `DesplegablePildora` y `Vacio` sin medidas, colores ni movimiento nuevos (la casilla del PR lo dice).

@@ -9,14 +9,21 @@ import { leerRanking, ordenarTallas, POR_PAGINA, type FiltrosRanking, type Perio
 // lo dice (principio 9): nunca un ranking a medias. Nada de costo ni de margen.
 
 /** `sinAcceso`: la cuenta no tiene el módulo `reportes_ventas` (`42501`). La puerta de la pantalla ya lo frena; esto cubre lo que llegue por otro camino. */
-export async function getRanking(f: FiltrosRanking, p: PeriodoRanking, porPagina: number = POR_PAGINA): Promise<Lectura<Ranking | null> & { sinAcceso: boolean }> {
+export async function getRanking(
+  f: FiltrosRanking,
+  p: PeriodoRanking,
+  porPagina: number = POR_PAGINA,
+  // La tienda y la empresa que se le mandan a la base (ADR-0665): `alcanceDeReportes` las resuelve. Con empresa, la tienda es siempre una; sin ella, la de `f`.
+  // `p_empresa` solo viaja si hay empresa elegida: sin ella la llamada es la de siempre (vale también antes de que la migración llegue a producción).
+  alcance: { ubicacion: string | null; empresaId: string | null } = { ubicacion: f.tienda, empresaId: null },
+): Promise<Lectura<Ranking | null> & { sinAcceso: boolean }> {
   const supabase = await createClient();
   const { data, error } = await supabase.rpc(
     "fn_reporte_ventas_ranking" as never,
     {
       p_desde: p.desde,
       p_hasta: p.hasta,
-      p_ubicacion: f.tienda,
+      p_ubicacion: alcance.ubicacion,
       p_categoria: f.categoria,
       p_marca: f.marca,
       p_talla: f.talla,
@@ -26,6 +33,7 @@ export async function getRanking(f: FiltrosRanking, p: PeriodoRanking, porPagina
       p_orden: f.orden,
       p_pagina: f.pagina,
       p_por_pagina: porPagina,
+      ...(alcance.empresaId ? { p_empresa: alcance.empresaId } : {}),
     } as never,
   );
   if (error) return { datos: null, falla: `No se pudo leer el ranking: ${error.message}`, sinAcceso: (error as { code?: string }).code === "42501" };
@@ -87,14 +95,18 @@ export const TOPE_DE_DESCARGA = 1000;
  * El ranking COMPLETO con los filtros puestos (todas las páginas), para descargarlo. Un archivo cortado que parece completo es peor que ninguno
  * (ADR-0230): si hay más de `TOPE_DE_DESCARGA` filas no se arma, y `truncado` lo dice para pedir un filtro. Si una vuelta falla a la mitad, falla todo.
  */
-export async function getRankingCompleto(f: FiltrosRanking, p: PeriodoRanking): Promise<Lectura<Ranking | null> & { sinAcceso: boolean; truncado: boolean }> {
-  const primera = await getRanking({ ...f, pagina: 0 }, p, POR_PAGINA_DE_DESCARGA);
+export async function getRankingCompleto(
+  f: FiltrosRanking,
+  p: PeriodoRanking,
+  alcance?: { ubicacion: string | null; empresaId: string | null },
+): Promise<Lectura<Ranking | null> & { sinAcceso: boolean; truncado: boolean }> {
+  const primera = await getRanking({ ...f, pagina: 0 }, p, POR_PAGINA_DE_DESCARGA, alcance);
   if (!primera.datos) return { ...primera, truncado: false };
   const total = primera.datos.cuantos;
   if (total > TOPE_DE_DESCARGA) return { ...primera, truncado: true };
   const filas = [...primera.datos.filas];
   for (let pagina = 1; filas.length < total; pagina++) {
-    const siguiente = await getRanking({ ...f, pagina }, p, POR_PAGINA_DE_DESCARGA);
+    const siguiente = await getRanking({ ...f, pagina }, p, POR_PAGINA_DE_DESCARGA, alcance);
     if (!siguiente.datos || siguiente.datos.filas.length === 0) return { ...siguiente, datos: null, falla: siguiente.falla ?? "El ranking se cortó a la mitad.", truncado: false };
     filas.push(...siguiente.datos.filas);
   }

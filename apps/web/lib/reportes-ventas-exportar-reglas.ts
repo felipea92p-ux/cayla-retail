@@ -59,9 +59,9 @@ export type RankingCompleto = Pick<Ranking, "filas" | "totalPeriodo" | "primeraV
  * El Ranking de prendas completo con los filtros puestos. Por modelo no lleva color ni talla; por color y talla sí. El cambio es de lo que se ordena
  * (prendas o soles), como en pantalla, y va vacío si no se puede comparar.
  */
-export function csvDeRanking(r: RankingCompleto, nivel: NivelRanking, orden: OrdenRanking): string {
+export function csvDeRanking(r: RankingCompleto, nivel: NivelRanking, orden: OrdenRanking, empresa: string | null = null): string {
   const variante = nivel === "variante";
-  const cabecera = ["Posición", "Modelo", "Código", "Categoría", "Marca", ...(variante ? ["Color", "Talla"] : []), "Prendas", "Vendido (S/)", "% del total", "Prendas del período anterior", "Vendido del período anterior (S/)", "Cambio vs período anterior (%)", "Quedan en tiendas"];
+  const cabecera = ["Posición", "Modelo", "Código", "Categoría", "Marca", ...(variante ? ["Color", "Talla"] : []), "Prendas", "Vendido (S/)", "% del total", "Prendas del período anterior", "Vendido del período anterior (S/)", "Cambio vs período anterior (%)", empresa ? `Quedan de ${empresa}` : "Quedan en tiendas"];
   const comparable = sePuedeComparar(r);
   const lineas = r.filas.map((f) => [
     String(f.pos),

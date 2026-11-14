@@ -128,6 +128,15 @@ export function tiendaDeUrl(v: string | string[] | undefined | null): string | n
   return typeof t === "string" && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(t) ? t.toLowerCase() : null;
 }
 
+/**
+ * El enlace de «Ventas del mes» con lo que se está mirando: el mes (con la forma de la URL, «2026-10»), la tienda, la empresa (su clave) y el corte de la tabla.
+ * Lo único que arma esta URL: el selector del mes, la tienda, la empresa, las barras de «mes a mes», la tabla y la descarga salen de aquí, así que ningún
+ * enlace olvida un filtro. Lo que vale lo de siempre no se escribe (una URL corta se puede compartir).
+ */
+export function hrefVentasDelMes(p: { mes: string; tienda?: string | null; empresa?: string | null; corte?: string | null }, ruta = "/vender/reportes"): string {
+  return `${ruta}?m=${p.mes}${p.tienda ? `&tienda=${p.tienda}` : ""}${p.empresa ? `&emp=${p.empresa}` : ""}${p.corte ? `&corte=${p.corte}` : ""}`;
+}
+
 /** El primer día del mes que pide la base: «2026-10-01». */
 export const primerDiaDelMes = ({ anio, mes }: { anio: number; mes: number }): string => `${anio}-${String(mes).padStart(2, "0")}-01`;
 

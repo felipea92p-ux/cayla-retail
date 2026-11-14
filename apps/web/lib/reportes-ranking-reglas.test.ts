@@ -25,7 +25,13 @@ const F = (cambios: Partial<FiltrosRanking> = {}): FiltrosRanking => ({ ...filtr
 
 describe("filtrosDeUrl: la URL nunca pide algo que la base rechazaría", () => {
   it("sin nada en la URL: 30 días, por modelo, por unidades, primera página", () => {
-    expect(filtrosDeUrl({})).toEqual({ rango: "30", mes: null, desde: null, hasta: null, tienda: null, categoria: null, marca: null, talla: null, color: null, q: "", nivel: "modelo", orden: "unidades", pagina: 0 });
+    expect(filtrosDeUrl({})).toEqual({ rango: "30", mes: null, desde: null, hasta: null, tienda: null, empresa: null, categoria: null, marca: null, talla: null, color: null, q: "", nivel: "modelo", orden: "unidades", pagina: 0 });
+  });
+
+  it("la empresa es una clave corta o nada (la página la valida contra las que se ofrecen)", () => {
+    expect(filtrosDeUrl({ emp: "claure" }).empresa).toBe("claure");
+    expect(filtrosDeUrl({ emp: "CLAURE" }).empresa).toBe("claure");
+    for (const mala of ["", "a b", "x".repeat(40), "1;drop table", undefined]) expect(filtrosDeUrl({ emp: mala }).empresa).toBeNull();
   });
 
   it("lee lo que sí vale", () => {
@@ -58,7 +64,7 @@ describe("filtrosDeUrl: la URL nunca pide algo que la base rechazaría", () => {
   it("hay filtros si hay tienda, categoría, marca, talla, color o búsqueda (el período y la forma no lo son)", () => {
     expect(hayFiltros(F())).toBe(false);
     expect(hayFiltros(F({ nivel: "variante", orden: "soles", rango: "90" }))).toBe(false);
-    for (const c of [{ tienda: ID }, { categoria: ID }, { marca: ID }, { talla: ID }, { color: "x" }, { q: "a" }]) expect(hayFiltros(F(c))).toBe(true);
+    for (const c of [{ tienda: ID }, { empresa: "claure" }, { categoria: ID }, { marca: ID }, { talla: ID }, { color: "x" }, { q: "a" }]) expect(hayFiltros(F(c))).toBe(true);
   });
 });
 
@@ -94,6 +100,12 @@ describe("hrefRanking", () => {
   it("sin nada es la ruta limpia; solo escribe lo que no vale lo de siempre", () => {
     expect(hrefRanking(F())).toBe("/vender/reportes/ranking");
     expect(hrefRanking(F({ rango: "90", nivel: "variante", orden: "soles", pagina: 2 }))).toBe("/vender/reportes/ranking?rango=90&nivel=variante&orden=soles&pag=2");
+  });
+
+  it("la empresa viaja en la URL como su clave y no deja rastro si no hay", () => {
+    expect(hrefRanking(F({ empresa: "claure" }))).toBe("/vender/reportes/ranking?emp=claure");
+    expect(hrefRanking(F({ empresa: "claure" }), { empresa: null })).toBe("/vender/reportes/ranking");
+    expect(hrefRanking(F({ tienda: ID, empresa: "cayla", orden: "soles" }))).toBe(`/vender/reportes/ranking?tienda=${ID}&emp=cayla&orden=soles`);
   });
 
   it("el mes y las fechas solo viajan con su rango", () => {
