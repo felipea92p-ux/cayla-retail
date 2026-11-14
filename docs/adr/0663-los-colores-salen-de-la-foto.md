@@ -36,6 +36,22 @@ tonalidades, el script debe tomarlos todos […] o si solo existe un color enter
    más exacto. Si la IA no responde, se avisa, queda la foto real y se lee esa.
 8. **Una foto que espera su color bloquea crear** (`problemasAlta` y la guía de foco, con la misma frase): si no, se perdería.
 
+## Lo medido con fotos reales (actividad 2, 2026-11-13)
+
+90 fotos de 90 productos de producción (solo lectura; 56 PNG, 34 JPG; ninguna todavía de «Catálogo con IA»), contra el color puesto a mano
+y contra una revisión visual foto por foto (en 12 de 69 prendas lisas, el color de la carta asignado no describe la foto). Errores callados
+(propone un color o una mezcla equivocados, o liso para algo con dibujo):
+
+| Lector | Lisas: acierta / pregunta / falla | Con dibujo: pregunta / propone | Errores callados |
+|---|---|---|---|
+| Primero (tonos unidos en cadena, tono 10, dibujo 0,04) | 53 / 5 / 11 | 4 / 8 | 19 |
+| **El de hoy (de a dos grupos sin cadenas, fondo encerrado fuera, tono 12, dibujo 0,05)** | **53 / 10 / 6** | **10 / 2** | **8** |
+
+Los dos cambios se hicieron porque los umbrales solos no alcanzaban (bajar «tono» a 4 partía las lisas). `/formidable` encontró el mismo
+error en el navegador: unas rayas de 400×500 achicadas salían «Gris 100 %». Quedan como pruebas de regresión en `colores-de-la-foto.test.ts`.
+Lo que falla todavía: sombras fuertes (azul marino que sale negro), dibujos muy finos que el achicado borra, accesorios metálicos. Hay que
+volver a medir cuando haya fotos de «Catálogo con IA», y revisar los hex de la carta que el equipo usa distinto (FFF, MOK, AMM).
+
 ## Lo que se descartó
 
 - **Pedirle los colores a la IA:** 25 s y costo por foto, y responde nombres sueltos que igual hay que llevar a la carta. El lector local es

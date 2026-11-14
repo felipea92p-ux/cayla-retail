@@ -13,8 +13,8 @@
 //   1. Solo la prenda: lo opaco del PNG sin fondo (la foto de la IA); si la foto tiene fondo, se recorre desde el borde hacia adentro con
 //      lo que se parece al borde, y se frena en el contorno de la prenda (una blusa crema sobre papel blanco no se borra entera).
 //   2. k-medias en Lab con k = 8 y arranque determinista (el punto más lejano): los tonos que hay.
-//   3. Los tonos del mismo color se juntan: ΔE2000 con la luz a la mitad (kL = 2, la regla CMC 2:1 de los textiles) bajo `tono`. La luz y
-//      los pliegues no vuelven una blusa vino «Vino con marsala».
+//   3. Los tonos del mismo color se juntan: ΔE2000 con la luz a la mitad (kL = 2, la regla CMC 2:1 de los textiles) bajo `tono`, de a dos
+//      grupos y sin cadenas. La luz y los pliegues no vuelven una blusa vino «Vino con marsala», y un floral no se vuelve un solo color.
 //   4. Cada grupo va al color más parecido de la carta (por su promedio), y dos grupos que caen en el mismo color son uno. Probado en la
 //      maqueta: comparar el tono que más se repite en vez del promedio arregla un negro con brillo y oscurece un vino con sombra.
 //   5. Lo que ocupa menos de `detalle` (botones, etiqueta) no cuenta. Si más de `dibujo` de los píxeles vecinos cambia de color, parece
@@ -50,8 +50,12 @@ export type Umbrales = {
   carta: number;
 };
 
-/** Calibrados con la maqueta (docs/maquetas/colores-desde-la-foto-2026-11/). La actividad 2 de ADR-0663 los mide con fotos reales. */
-export const UMBRALES: Umbrales = { detalle: 0.08, tono: 10, dibujo: 0.04, carta: UMBRAL_PARECIDO };
+/**
+ * Medidos con 90 fotos reales de producción (ADR-0663, actividad 2, 2026-11-13): con «tono 12 / dibujo 0.05» y los pasos 1b y 3 de abajo,
+ * las propuestas equivocadas bajan de 19 a 8 y los estampados que preguntan, de 4 a 10 de 12. «Carta» en 10 acierta 2 lisas más pero suma un
+ * error callado: se queda en 8, el «casi igual» de todo el ERP.
+ */
+export const UMBRALES: Umbrales = { detalle: 0.08, tono: 12, dibujo: 0.05, carta: UMBRAL_PARECIDO };
 
 export type ParteLeida<C extends ColorDeCarta = ColorDeCarta> = {
   /** El color más parecido de la carta. */
@@ -114,6 +118,10 @@ const OPACO = 240;
 const FONDO = 12;
 /** Si al quitar el fondo queda menos que esto de la foto, la foto no tenía fondo (la tela llena el cuadro). */
 const QUEDA_PRENDA = 0.05;
+/** El fondo que queda ENCERRADO en la prenda (cuello halter, entre tirantes, agujeros del encaje): lo casi idéntico al fondo (ΔE76). */
+const ENCERRADO = 4;
+/** …salvo que eso se lleve más que esto de la prenda: entonces la prenda misma es de ese color (una blusa blanca sobre blanco). */
+const TOPE_ENCERRADO = 0.3;
 const K = 8;
 const VUELTAS = 10;
 const MUESTRA = 12000;
@@ -170,6 +178,18 @@ export function leerColores<C extends ColorDeCarta>(pix: PixelesRGBA, carta: rea
           }
         }
       }
+      // 1b. El fondo encerrado: el relleno desde el borde no llega al hueco del cuello o del encaje, y sin esto salía «Cereza con blanco».
+      const sinEncerrar = mascara.slice();
+      let enPrenda = 0;
+      let encerrados = 0;
+      for (let i = 0; i < N; i++) enPrenda += mascara[i];
+      for (let i = 0; i < N; i++) {
+        if (mascara[i] && d76(lab[i]!, fondo) < ENCERRADO * ENCERRADO) {
+          mascara[i] = 0;
+          encerrados++;
+        }
+      }
+      if (encerrados > enPrenda * TOPE_ENCERRADO) mascara.set(sinEncerrar);
       // Si «el fondo» se llevó casi toda la foto, no había fondo: es una foto de cerca y la tela llena el cuadro.
       let quedan = 0;
       for (let i = 0; i < N; i++) quedan += mascara[i];
@@ -242,12 +262,32 @@ export function leerColores<C extends ColorDeCarta>(pix: PixelesRGBA, carta: rea
   }
   const vivos = tonos.map((t, k) => ({ ...t, k, lab: [t.L / t.peso, t.a / t.peso, t.b / t.peso] as Lab })).filter((t) => t.peso > 0);
 
-  // 3. Los tonos del mismo color, juntos.
-  const padre = vivos.map((_, i) => i);
-  const raiz = (i: number): number => (padre[i] === i ? i : (padre[i] = raiz(padre[i])));
-  for (let i = 0; i < vivos.length; i++) {
-    for (let j = i + 1; j < vivos.length; j++) if (deltaE2000(vivos[i].lab, vivos[j].lab, 2) < u.tono) padre[raiz(j)] = raiz(i);
+  // 3. Los tonos del mismo color, juntos: de a dos grupos, los más cercanos primero, comparando el tono que MÁS pesa de cada uno. Sin
+  //    cadenas: antes un tono intermedio juntaba rojo → rosa → blanco y un floral salía de un solo color inventado (medido con fotos reales).
+  const distancia = vivos.map((a) => vivos.map((b) => deltaE2000(a.lab, b.lab, 2)));
+  const masPesado = (c: number[]) => c.reduce((m, x) => (vivos[x].peso > vivos[m].peso ? x : m));
+  const juntos: number[][] = vivos.map((_, i) => [i]);
+  for (;;) {
+    let mejor = Infinity;
+    let a = -1;
+    let b = -1;
+    for (let i = 0; i < juntos.length; i++) {
+      for (let j = i + 1; j < juntos.length; j++) {
+        const dd = distancia[masPesado(juntos[i])][masPesado(juntos[j])];
+        if (dd < mejor) {
+          mejor = dd;
+          a = i;
+          b = j;
+        }
+      }
+    }
+    if (a < 0 || mejor >= u.tono) break;
+    juntos[a] = juntos[a].concat(juntos[b]);
+    juntos.splice(b, 1);
   }
+  const padre = vivos.map((_, i) => i);
+  for (const c of juntos) for (const x of c) padre[x] = c[0];
+  const raiz = (i: number) => padre[i];
   const grupos = new Map<number, Grupo>();
   vivos.forEach((t, i) => {
     const r = raiz(i);
