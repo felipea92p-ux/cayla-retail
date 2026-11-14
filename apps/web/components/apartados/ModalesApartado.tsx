@@ -23,6 +23,12 @@ import { Modal, botonCancelar, campoEtiqueta, campoTexto } from "@/components/ui
 import { avisar } from "@/components/ui/Avisos";
 import { money, type ItemCarrito } from "@/components/PuntoDeVenta";
 import { LineaDelTicket } from "@/components/punto-de-venta/LineaDelTicket";
+import { PieDeGrupo } from "@/components/punto-de-venta/PieDeGrupo";
+import type { GrupoEnTicket } from "@/lib/ofertas-de-grupo";
+
+/** Una fila de `previsualizar_edicion_separacion` (20261114032000): lo de antes por su id y lo que se suma como «nueva-…», con su parte del
+ *  grupo y cuántas le faltan. */
+type VistaDeLinea = { ref: string; variante_id: string; cantidad: number | string; descuento_grupo_unitario: number | string; faltan: number | string | null };
 import { ICONO_METODO } from "@/components/PuntoDeVentaTicket";
 import { createClient } from "@/lib/supabase/client";
 import { traducirError } from "@/lib/error-escritura";
@@ -807,10 +813,51 @@ export function EditarApartadoModal({
   const nuevaDe = new Map(lineasNuevas.map((l) => [l.varianteId, l]));
   const descontadoNuevo = totalDescontado(lineasNuevas);
   const totalQuedan = quedan.reduce((t, p) => t + (p.precioUnitario - p.descuentoUnitario) * p.cantidad, 0);
-  const totalNuevo = totalQuedan + totalDeLineas(lineasNuevas);
+  // ADR-0655 (parte 4): con una oferta de grupo en juego (lo apartado o lo que se suma), los grupos se vuelven a armar con el trato que el
+  // apartado guardó, y el total lo da la base (`previsualizar_edicion_separacion`): la hoja no lo adivina. Sin grupos, como siempre.
+  const cambio = quitar.size > 0 || sumar.length > 0;
+  const conGrupos = apartado.prendas.some((p) => p.ofertaGrupo) || sumar.some((l) => porId.get(l.varianteId)?.ofertaGrupo);
+  const paraLaBase = {
+    p_separacion_id: apartado.id,
+    p_quitar: [...quitar],
+    p_agregar: lineasNuevas.map((l) => ({
+      variante_id: l.varianteId,
+      cantidad: l.cantidad,
+      precio_unitario: l.precioUnitario,
+      ...descuentoParaGuardar(l),
+    })),
+  };
+  const claveVista = cambio && conGrupos ? JSON.stringify(paraLaBase) : null;
+  const [vista, setVista] = useState<{ clave: string; total: number; lineas: VistaDeLinea[] } | { clave: string; error: string } | null>(null);
+  useEffect(() => {
+    if (!claveVista) return;
+    let vigente = true;
+    const espera = window.setTimeout(async () => {
+      const { data, error } = await createClient().rpc("previsualizar_edicion_separacion" as never, JSON.parse(claveVista) as never);
+      if (!vigente) return;
+      if (error || !data) return setVista({ clave: claveVista, error: traducirError(error, "calcular el total con la oferta", { lectura: true }) });
+      const d = data as { total: number | string; lineas?: VistaDeLinea[] };
+      setVista({ clave: claveVista, total: Number(d.total), lineas: d.lineas ?? [] });
+    }, 300);
+    return () => {
+      vigente = false;
+      window.clearTimeout(espera);
+    };
+  }, [claveVista]);
+  const vistaAlDia = vista && claveVista && vista.clave === claveVista ? vista : null;
+  const totalVista = vistaAlDia && "total" in vistaAlDia ? vistaAlDia.total : null;
+  const calculando = claveVista !== null && !vistaAlDia;
+  const totalNuevo = claveVista ? (totalVista ?? totalQuedan + totalDeLineas(lineasNuevas)) : totalQuedan + totalDeLineas(lineasNuevas);
+  /** Lo que la vista previa dice de cada fila (por su id; lo nuevo, por prenda), como lo dice el ticket. */
+  const grupoDeFila = (ref: string | null, varianteId: string, oferta: { titular: string; nombre: string } | null | undefined): GrupoEnTicket | null => {
+    if (!oferta) return null;
+    const filas = (vistaAlDia && "lineas" in vistaAlDia ? vistaAlDia.lineas : []).filter((x) => (ref ? x.ref === ref : x.ref.startsWith("nueva-") && x.variante_id === varianteId));
+    if (filas.length === 0) return null;
+    const ahorro = filas.reduce((a, x) => a + Math.round(Number(x.descuento_grupo_unitario) * Number(x.cantidad) * 100), 0) / 100;
+    return { titular: oferta.titular, nombre: oferta.nombre, ahorro, faltan: Math.max(...filas.map((x) => Number(x.faltan ?? 0))) };
+  };
   const debajo = totalNuevo < apartado.adelanto;
   const sinPrendas = quedan.length + sumar.length === 0;
-  const cambio = quitar.size > 0 || sumar.length > 0;
   const sinId = apartado.prendas.some((p) => !p.itemId);
 
   const disponibleParaSumar = (id: string) => (porId.get(id)?.stockAqui ?? 0) - (sumar.find((l) => l.varianteId === id)?.cantidad ?? 0);
@@ -840,19 +887,17 @@ export function EditarApartadoModal({
   async function guardar(cerrar: () => void) {
     // Lo escrito en una cantidad no valió: antes de guardar lo que quedó, se lee por qué (`useCantidadEscrita`).
     if (escrita.frenar()) return;
-    if (!cambio || debajo || sinPrendas || !responsable.listo) return;
-    const params = {
-      p_separacion_id: apartado.id,
-      p_quitar: [...quitar],
-      p_agregar: lineasNuevas.map((l) => ({
-        variante_id: l.varianteId,
-        cantidad: l.cantidad,
-        precio_unitario: l.precioUnitario,
-        ...descuentoParaGuardar(l),
-      })),
-    };
+    if (!cambio || debajo || sinPrendas || !responsable.listo || calculando || (claveVista && totalVista === null)) return;
+    const params = paraLaBase;
+    // ADR-0655: con grupos, se guarda solo si el total es el que se vio (`editar_separacion_con_total`); la marca es la de `editar_separacion`,
+    // que es quien la anota.
     const res = await envio.enviar(huellaDe(params), (token, senal) =>
-      firmar(createClient().rpc("editar_separacion", { ...params, p_token: token }), responsable.firma()).abortSignal(senal),
+      firmar(
+        claveVista
+          ? createClient().rpc("editar_separacion_con_total" as never, { ...params, p_token: token, p_total_esperado: totalVista } as never)
+          : createClient().rpc("editar_separacion", { ...params, p_token: token }),
+        responsable.firma(),
+      ).abortSignal(senal),
     );
     if (res.tipo === "ocupado") return;
     if (res.tipo === "congelado") return avisarCongelado(avisar);
@@ -896,6 +941,11 @@ export function EditarApartadoModal({
               const v = porId.get(pr.varianteId);
               const fuera = quitar.has(pr.itemId);
               const hermanas = v ? prendas.filter((h) => h.referencia === v.referencia && h.color === v.color) : [];
+              // ADR-0655: su grupo como queda con la edición (la vista previa) o, sin cambios, como se apartó.
+              const grupo = fuera
+                ? null
+                : (grupoDeFila(pr.itemId, pr.varianteId, pr.ofertaGrupo) ??
+                  (pr.descuentoGrupoUnitario > 0 && pr.ofertaGrupo ? { ...pr.ofertaGrupo, ahorro: Math.round(pr.descuentoGrupoUnitario * pr.cantidad * 100) / 100, faltan: 0 } : null));
               const linea: ItemCarrito = {
                 claveLinea: pr.itemId || pr.varianteId,
                 varianteId: pr.varianteId,
@@ -904,9 +954,10 @@ export function EditarApartadoModal({
                 codigo: v?.codigo ?? null,
                 cantidad: pr.cantidad,
                 precioUnitario: pr.precioUnitario,
-                descuentoUnitario: pr.descuentoUnitario,
+                // ADR-0655: la fila dice su propio descuento; la parte de la oferta de grupo va debajo, con el grupo armado de nuevo.
+                descuentoUnitario: pr.descuentoUnitario - pr.descuentoGrupoUnitario,
                 stockAqui: v?.stockAqui ?? 0,
-                razonDescuento: pr.motivoDescuento ?? (pr.descuentoUnitario > 0 ? RAZON_CAMPANA : ""),
+                razonDescuento: pr.motivoDescuento ?? (pr.descuentoUnitario - pr.descuentoGrupoUnitario > 0 ? RAZON_CAMPANA : ""),
                 razonDescuentoOtro: pr.motivoDescuentoDetalle ?? "",
                 argumentoDescuento: pr.argumentoDescuento ?? "",
                 campana: null,
@@ -927,7 +978,9 @@ export function EditarApartadoModal({
                     escrita={escrita}
                     onDescuento={() => {}}
                     pie={
-                      !fuera && hermanas.length > 1 ? (
+                      <>
+                      {grupo && <PieDeGrupo g={grupo} />}
+                      {!fuera && hermanas.length > 1 ? (
                         <div className="flex flex-wrap items-center gap-1.5" role="group" aria-label="Cambiar la talla">
                           <span>Cambiar talla</span>
                           {hermanas.map((h) => (
@@ -942,7 +995,8 @@ export function EditarApartadoModal({
                             </button>
                           ))}
                         </div>
-                      ) : undefined
+                      ) : null}
+                      </>
                     }
                   />
                 </li>
@@ -982,7 +1036,12 @@ export function EditarApartadoModal({
                     }}
                     escrita={escrita}
                     onDescuento={(clave) => setHojaDescuento([clave])}
-                    pie={<span className="text-verde-profundo">Se suma al apartado</span>}
+                    pie={
+                      <>
+                        {grupoDeFila(null, l.varianteId, p.ofertaGrupo) && <PieDeGrupo g={grupoDeFila(null, l.varianteId, p.ofertaGrupo)!} />}
+                        <span className="text-verde-profundo">Se suma al apartado</span>
+                      </>
+                    }
                   />
                 </li>
               );
@@ -1019,10 +1078,13 @@ export function EditarApartadoModal({
           </div>
           <div className="card-cayla space-y-1 p-4 text-sm tabular-nums">
             <p className="flex justify-between"><span className="text-tinta/60">Total antes</span><span>{money(apartado.total)}</span></p>
-            <p className="flex justify-between"><span className="text-tinta/60">Total ahora</span><b>{money(totalNuevo)}</b></p>
+            <p className="flex justify-between"><span className="text-tinta/60">Total ahora</span><b>{calculando ? "Calculando…" : money(totalNuevo)}</b></p>
             <p className="flex justify-between"><span className="text-tinta/60">Ya pagó</span><span>−{money(apartado.adelanto)}</span></p>
-            <p className="flex justify-between border-t border-sand pt-2 text-base"><span>Saldo al recoger</span><b>{money(Math.max(0, totalNuevo - apartado.adelanto))}</b></p>
+            <p className="flex justify-between border-t border-sand pt-2 text-base"><span>Saldo al recoger</span><b>{calculando ? "…" : money(Math.max(0, totalNuevo - apartado.adelanto))}</b></p>
           </div>
+          {vistaAlDia && "error" in vistaAlDia && <Aviso tono="error" chico>{vistaAlDia.error}</Aviso>}
+          {/* ADR-0655: por qué el total puede subir al quitar una prenda de un 3x2. */}
+          {conGrupos && cambio && <p className="text-sm text-tinta/65">Con una oferta de grupo, el grupo se vuelve a armar con el trato del día en que se apartó.</p>}
           {debajo && !sinPrendas && <Aviso tono="error" chico>El nuevo total queda por debajo de lo que ya pagó ({money(apartado.adelanto)}): suma otra prenda o libera el apartado.</Aviso>}
           {sinPrendas && <Aviso tono="error" chico>El apartado no puede quedarse sin prendas: si ya no quiere nada, libéralo.</Aviso>}
           <p className="rounded-xl bg-hueso px-3.5 py-2.5 text-sm text-tinta/75">Se guarda todo junto o nada: lo que sale vuelve a la tienda, lo nuevo se aparta con el precio de hoy (y su descuento, si le pones uno); lo que ya estaba conserva el suyo. El adelanto ya recibido sigue valiendo.</p>
@@ -1033,7 +1095,7 @@ export function EditarApartadoModal({
             <button type="button" onClick={cerrar} disabled={envio.incierto} className="btn-cayla btn-secundario">Mejor no</button>
             <Boton peso="primario" cargando={enviando}
               type="button"
-              disabled={!cambio || debajo || sinPrendas || enviando || revisando || !responsable.listo || sinId}
+              disabled={!cambio || debajo || sinPrendas || enviando || revisando || !responsable.listo || sinId || calculando || (claveVista !== null && totalVista === null)}
               title={responsable.motivo ?? undefined}
               onClick={() => guardar(cerrar)}
             >

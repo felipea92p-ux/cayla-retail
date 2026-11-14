@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { carritoConGrupos, ejemploDeGrupo, ofertasDeGrupo, ofertasDeGrupoDeFilas, type LineaDeGrupo, type OfertaDeGrupo } from "./ofertas-de-grupo";
+import { apartadoConGrupos, carritoConGrupos, ejemploDeGrupo, ofertasDeGrupo, ofertasDeGrupoDeFilas, type LineaDeGrupo, type OfertaDeGrupo } from "./ofertas-de-grupo";
 
 // Los mismos ejemplos que `scripts/pruebas/ofertas_de_grupo.mjs` prueba contra `retail.fn_ofertas_de_grupo`: las dos tienen que coincidir.
 const TRES_POR_DOS: OfertaDeGrupo = { reglaId: "r", tipo: "nxm", lleva: 3, paga: 2, monto: null, porcentaje: null, agrupa: "campana" };
@@ -114,6 +114,35 @@ describe("el carrito de la caja con sus grupos", () => {
     const { lineas, porLinea } = carritoConGrupos([linea("a", 50), linea("b", 40)], { a: OFERTA, b: OFERTA });
     expect(lineas.every((l) => l.descuentoGrupoUnitario === 0 && l.ofertaGrupoId === null)).toBe(true);
     expect(porLinea.get("a")).toMatchObject({ ahorro: 0, faltan: 1 });
+  });
+});
+
+describe("el apartado con sus grupos (la cuenta de separar_prendas, ADR-0655 parte 4)", () => {
+  const OFERTA = { ...TRES_POR_DOS, modeloId: null, nombre: "Verano", titular: "3 x 2" };
+  const linea = (varianteId: string, precio: number, cantidad = 1) => ({ varianteId, cantidad, precio });
+  it("el ejemplo de siempre da lo mismo que la caja y la base: 18.79 · 11.73 · 9.38", () => {
+    const { porVariante, ahorro } = apartadoConGrupos([linea("c", 39.9), linea("a", 79.9), linea("b", 49.9)], { a: OFERTA, b: OFERTA, c: OFERTA });
+    expect(["a", "b", "c"].map((v) => porVariante.get(v)?.ahorro)).toEqual([18.79, 11.73, 9.38]);
+    expect(ahorro).toBe(39.9);
+    expect(porVariante.get("a")).toMatchObject({ ofertaGrupoId: "r", titular: "3 x 2", nombre: "Verano", faltan: 0 });
+  });
+  it("a igual precio el orden es por prenda, no por cómo se escaneó: la base no guarda ese orden", () => {
+    const ofertas = { a: OFERTA, b: OFERTA, c: OFERTA };
+    const uno = apartadoConGrupos([linea("a", 50), linea("b", 50), linea("c", 50)], ofertas);
+    const otro = apartadoConGrupos([linea("c", 50), linea("b", 50), linea("a", 50)], ofertas);
+    expect(["a", "b", "c"].map((v) => otro.porVariante.get(v)?.ahorro)).toEqual(["a", "b", "c"].map((v) => uno.porVariante.get(v)?.ahorro));
+    expect(uno.ahorro).toBe(50);
+  });
+  it("dos prendas iguales en una línea: su ahorro es el de las dos", () => {
+    const { porVariante, ahorro } = apartadoConGrupos([linea("a", 50, 2), linea("b", 40)], { a: OFERTA, b: OFERTA });
+    expect(ahorro).toBe(40);
+    expect(Math.round(((porVariante.get("a")?.ahorro ?? 0) + (porVariante.get("b")?.ahorro ?? 0)) * 100) / 100).toBe(40);
+  });
+  it("sin grupo completo no ahorra y dice cuántas faltan; una prenda sin oferta no cuenta", () => {
+    const { porVariante, ahorro } = apartadoConGrupos([linea("a", 50), linea("b", 40), linea("x", 30)], { a: OFERTA, b: OFERTA });
+    expect(ahorro).toBe(0);
+    expect(porVariante.get("a")).toMatchObject({ ahorro: 0, faltan: 1 });
+    expect(porVariante.has("x")).toBe(false);
   });
 });
 

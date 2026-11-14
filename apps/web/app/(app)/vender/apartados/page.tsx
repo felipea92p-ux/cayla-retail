@@ -16,6 +16,7 @@ import { ApartadosPanel } from "@/components/apartados/ApartadosPanel";
 import { TrabajoPorSede } from "@/components/ui/TrabajoPorSede";
 import type { PrendaApartable } from "@/components/apartados/ApartarVista";
 import { leerPrendasDeUrl } from "@/lib/apartar-desde-ticket";
+import { ofertasDeGrupoDeFilas, type FilaOfertaDeGrupo } from "@/lib/ofertas-de-grupo";
 
 /**
  * Apartados (ADR-0166): la clienta aparta prendas con un adelanto, las recoge pagando el saldo, o vencen y se le
@@ -44,7 +45,13 @@ async function Apartados({ desdeTicket, abrir }: { desdeTicket: string | null; a
   }
 
   const supabase = await createClient();
-  const [datos, variantes, caja, stockAqui, resCampanas, resStockSedes, ubicaciones, resRedondeo, preciosSede, canales] = await Promise.all([
+  // «Llevar varias y pagar menos» (ADR-0655, parte 4): la oferta de grupo de hoy por prenda, como en la caja. Secundaria como las campañas:
+  // si no carga (o la función todavía no está), se aparta sin grupos y `separar_prendas` exige lo que corresponda.
+  const cargaOfertasGrupo = supabase.rpc("ofertas_de_grupo_vigentes" as never, { p_ubicacion_id: persona.ubicacionId } as never) as unknown as PromiseLike<{
+    data: FilaOfertaDeGrupo[] | null;
+    error: { message: string } | null;
+  }>;
+  const [datos, variantes, caja, stockAqui, resCampanas, resStockSedes, ubicaciones, resRedondeo, preciosSede, canales, resOfertasGrupo] = await Promise.all([
     // El Historial abre en los últimos 30 días de lo cerrado (Felipe 2026-10-10); lo abierto sale siempre.
     getApartadosDeTienda(persona.ubicacionId, { desde: rangoDelPeriodo(PERIODO_DE_FABRICA, hoyLima()).desde ?? undefined, abrir }),
     // Lo que se ofrece AQUÍ (ADR-0505): sin las prendas de CLAURE fuera de Lima.
@@ -63,8 +70,10 @@ async function Apartados({ desdeTicket, abrir }: { desdeTicket: string | null; a
     getPreciosPorSede([persona.ubicacionId]),
     // ADR-0607: los canales que opera esta cuenta; con solo la tienda, Apartar queda como siempre.
     getCanalesDeLaCuenta(),
+    cargaOfertasGrupo,
   ]);
   const preciosAqui = preciosSede[persona.ubicacionId] ?? {};
+  const ofertasGrupo = resOfertasGrupo.error ? {} : ofertasDeGrupoDeFilas(resOfertasGrupo.data);
 
   if (!datos.instalado) {
     return (
@@ -99,6 +108,7 @@ async function Apartados({ desdeTicket, abrir }: { desdeTicket: string | null; a
       marca: v.marca,
       precio: preciosAqui[v.varianteId] ?? v.precio,
       campana: campana.get(v.varianteId) ?? null,
+      ofertaGrupo: ofertasGrupo[v.varianteId] ?? null,
       fotoUrl: v.fotoUrl,
       codigosBarras: v.codigosBarras,
       stockAqui: piso.get(v.varianteId) ?? 0,
