@@ -16,14 +16,29 @@ export type Resultado<T> = { ok: true; valor: T } | { ok: false; error: string }
 
 export type EstadoRegla = "borrador" | "activa" | "desactivada";
 
+/** Las formas de una oferta (ADR-0655): «un % menos», y las de «Llevar varias y pagar menos» (actividad 6): el 3x2 («lleva N, paga M»),
+ *  «N por S/ X» y «la N.ª al X %». */
+export type TipoOferta = "pct" | "nxm" | "n_por_monto" | "nesima_pct";
+export const TIPOS_DE_GRUPO: readonly TipoOferta[] = ["nxm", "n_por_monto", "nesima_pct"];
+export const esDeGrupo = (tipo: TipoOferta) => tipo !== "pct";
+
+/** La forma de una oferta: el % (de «un % menos» o de la N.ª), cuántas lleva el grupo, cuántas paga, cuánto cuesta y con qué se arma. */
+export type FormaDeOferta = {
+  tipo: TipoOferta;
+  /** De «un % menos» o de «la N.ª al X %»; 0 en las demás. */
+  porcentaje: number;
+  lleva: number;
+  paga: number;
+  monto: number;
+  /** El grupo se arma con cualquier prenda de la oferta o solo con prendas del mismo modelo. */
+  agrupa: "campana" | "modelo";
+};
+
 /** Una oferta tal como la ve la pantalla. */
-export type ReglaCampana = {
+export type ReglaCampana = FormaDeOferta & {
   id: string;
   etiquetaId: string;
   nombre: string;
-  /** Hoy solo «un % menos». */
-  tipo: "pct";
-  porcentaje: number;
   desde: string;
   hasta: string;
   /** Días de la semana en que rige, ordenados: 1 = lunes … 7 = domingo. */
@@ -33,6 +48,8 @@ export type ReglaCampana = {
   /** «Solo estas categorías» (vacío = todas las de la campaña) y «dejar fuera». */
   categoriasSolo: string[];
   categoriasFuera: string[];
+  /** Los modelos (productos) elegidos uno por uno (ADR-0655): se suman a «solo estas categorías». Vacío = ninguno. */
+  productosSolo: string[];
   /** Las tiendas donde rige, dentro de las de su campaña. Vacío = en todas las de la campaña. */
   sedeIds: string[];
   creadaEn: string;
@@ -40,6 +57,8 @@ export type ReglaCampana = {
   /** Cuántas veces cambió y cómo estaba antes del último cambio (para decir «antes: …»). */
   cambios: number;
   ultimoCambio: Record<string, unknown> | null;
+  /** Las ofertas que le CEDEN a esta (ADR-0655): donde las dos valdrían —misma prenda, tienda y día— vale esta. */
+  ceden: string[];
 };
 
 /** La fila cruda de `campana_reglas()`. */
@@ -48,7 +67,7 @@ export type FilaRegla = {
   etiqueta_id: string;
   nombre: string;
   tipo: string;
-  porcentaje: number | string;
+  porcentaje: number | string | null;
   desde: string;
   hasta: string;
   dias_semana: number[];
@@ -57,6 +76,15 @@ export type FilaRegla = {
   categorias_solo: string[] | null;
   categorias_fuera: string[] | null;
   sedes?: string[] | null;
+  /** Desde 20261113210000; sin esa migración la base no lo manda. */
+  productos_solo?: string[] | null;
+  /** Desde 20261113223000; sin esa migración la base no lo manda. */
+  ceden?: string[] | null;
+  /** Desde 20261114003000 (la forma de una oferta de grupo); sin esa migración la base no los manda. */
+  lleva?: number | null;
+  paga?: number | null;
+  monto?: number | string | null;
+  agrupa?: string | null;
   creada_en: string;
   activada_en: string | null;
   cambios: number | null;
@@ -65,13 +93,19 @@ export type FilaRegla = {
 
 const ESTADOS: readonly EstadoRegla[] = ["borrador", "activa", "desactivada"];
 
+const TIPOS: readonly TipoOferta[] = ["pct", ...TIPOS_DE_GRUPO];
+
 export function reglaDeFila(f: FilaRegla): ReglaCampana {
   return {
     id: f.id,
     etiquetaId: f.etiqueta_id,
     nombre: f.nombre,
-    tipo: "pct",
-    porcentaje: Number(f.porcentaje),
+    tipo: TIPOS.includes(f.tipo as TipoOferta) ? (f.tipo as TipoOferta) : "pct",
+    porcentaje: Number(f.porcentaje ?? 0),
+    lleva: Number(f.lleva ?? 3),
+    paga: Number(f.paga ?? 2),
+    monto: Number(f.monto ?? 0),
+    agrupa: f.agrupa === "modelo" ? "modelo" : "campana",
     desde: f.desde,
     hasta: f.hasta,
     dias: [...(f.dias_semana ?? DIAS_SEMANA)].sort((a, b) => a - b),
@@ -79,11 +113,13 @@ export function reglaDeFila(f: FilaRegla): ReglaCampana {
     estado: ESTADOS.includes(f.estado as EstadoRegla) ? (f.estado as EstadoRegla) : "borrador",
     categoriasSolo: f.categorias_solo ?? [],
     categoriasFuera: f.categorias_fuera ?? [],
+    productosSolo: f.productos_solo ?? [],
     sedeIds: f.sedes ?? [],
     creadaEn: f.creada_en,
     activadaEn: f.activada_en,
     cambios: f.cambios ?? 0,
     ultimoCambio: f.ultimo_cambio,
+    ceden: f.ceden ?? [],
   };
 }
 
@@ -197,46 +233,67 @@ export function ordenarReglas(reglas: readonly ReglaCampana[], hoy: string): Reg
 // ---- Lo que escribe la persona --------------------------------------------------------------------------------------------
 
 /** Lo que la hoja arma mientras se contestan las tres preguntas. */
-export type OfertaEnEdicion = {
+export type OfertaEnEdicion = FormaDeOferta & {
   /** `null` mientras es nueva. */
   id: string | null;
-  porcentaje: number;
   desde: string;
   hasta: string;
   dias: number[];
   categoriasSolo: string[];
   categoriasFuera: string[];
+  /** Modelos elegidos uno por uno (ADR-0655); se suman a `categoriasSolo`. Con alguno de los dos, la oferta deja de ser «toda la campaña». */
+  productosSolo: string[];
   /** Tiendas donde rige, dentro de las de su campaña; vacío = todas las de la campaña. */
   sedeIds: string[];
   incluyeClaure: boolean;
   /** El nombre que la persona escribió; vacío = el automático. */
   nombre: string;
+  /** Las ofertas que la persona eligió que le cedan a esta («que la otra ceda», ADR-0655). */
+  cedeA: string[];
+};
+
+/** La forma de fábrica de cada tipo: lo que la hoja propone al elegirlo, lo mismo que dice su botón (3 x 2, «2 por S/ 59.90», «la 2.ª al 50 %»). */
+export const FORMA_DE_FABRICA: Record<TipoOferta, Omit<FormaDeOferta, "agrupa">> = {
+  pct: { tipo: "pct", porcentaje: PORCENTAJE_DE_FABRICA, lleva: 3, paga: 2, monto: 0 },
+  nxm: { tipo: "nxm", porcentaje: 0, lleva: 3, paga: 2, monto: 0 },
+  n_por_monto: { tipo: "n_por_monto", porcentaje: 0, lleva: 2, paga: 1, monto: 59.9 },
+  nesima_pct: { tipo: "nesima_pct", porcentaje: 50, lleva: 2, paga: 1, monto: 0 },
 };
 
 export const ofertaNueva = (desde: string, hasta: string): OfertaEnEdicion => ({
   id: null,
-  porcentaje: PORCENTAJE_DE_FABRICA,
+  ...FORMA_DE_FABRICA.pct,
+  agrupa: "campana",
   desde,
   hasta,
   dias: [...DIAS_SEMANA],
   categoriasSolo: [],
   categoriasFuera: [],
+  productosSolo: [],
   sedeIds: [],
   incluyeClaure: false,
   nombre: "",
+  cedeA: [],
 });
 
 export const ofertaDesdeRegla = (r: ReglaCampana, nombreAutomatico: boolean): OfertaEnEdicion => ({
   id: r.id,
+  tipo: r.tipo,
   porcentaje: r.porcentaje,
+  lleva: r.lleva,
+  paga: r.paga,
+  monto: r.monto,
+  agrupa: r.agrupa,
   desde: r.desde,
   hasta: r.hasta,
   dias: [...r.dias],
   categoriasSolo: [...r.categoriasSolo],
   categoriasFuera: [...r.categoriasFuera],
+  productosSolo: [...r.productosSolo],
   sedeIds: [...r.sedeIds],
   incluyeClaure: r.incluyeClaure,
   nombre: nombreAutomatico ? "" : r.nombre,
+  cedeA: [...r.ceden],
 });
 
 const MAX_NOMBRE = 80;
@@ -258,16 +315,39 @@ export function categoriasDichas(ids: readonly string[], nombreCategoria: (id: s
   return nombres.length > MAX_CATEGORIAS_NOMBRADAS ? `${nombres.length} categorías` : lista(nombres);
 }
 
-/** «Toda la campaña · −20 % · mar y jue» · «Blusas y Faldas · −20 % · Trujillo». */
+/** Dónde rige una oferta, en pocas palabras: «Blusas y Faldas», «3 prendas elegidas», «Polos y 2 prendas elegidas» o `null` (toda la campaña). */
+export function alcanceDicho(o: Pick<OfertaEnEdicion, "categoriasSolo"> & { productosSolo?: readonly string[] }, nombreCategoria: (id: string) => string): string | null {
+  const n = o.productosSolo?.length ?? 0;
+  const nombres = nombresOrdenados(o.categoriasSolo, nombreCategoria);
+  // Una sola lista: «Blusas, Polos y 1 prenda elegida» (no «Blusas y Polos y 1 prenda elegida»).
+  const cats = nombres.length > MAX_CATEGORIAS_NOMBRADAS ? [`${nombres.length} categorías`] : nombres;
+  const partes = [...cats, ...(n ? [`${n} ${n === 1 ? "prenda elegida" : "prendas elegidas"}`] : [])];
+  return partes.length ? lista(partes) : null;
+}
+
+const soles = (n: number) => `S/\u00a0${n.toFixed(2)}`;
+
+/** Lo que da la oferta, en grande y en pocas letras: «−20 %», «3 x 2», «3 por S/ 100.00», «La 2.ª al 50 %». */
+export function titularDeOferta(f: Pick<FormaDeOferta, "tipo" | "porcentaje" | "lleva" | "paga" | "monto">): string {
+  const pctTxt = String(f.porcentaje).replace(".", ",");
+  if (f.tipo === "nxm") return `${f.lleva} x ${f.paga}`;
+  if (f.tipo === "n_por_monto") return `${f.lleva} por ${soles(f.monto)}`;
+  if (f.tipo === "nesima_pct") return `La ${f.lleva}.ª al ${pctTxt} %`;
+  return `−${pctTxt} %`;
+}
+
+/** «Toda la campaña · −20 % · mar y jue» · «Blusas y Faldas · −20 % · Trujillo» · «Polos · 3 x 2». */
 export function nombreAutomatico(
-  o: Pick<OfertaEnEdicion, "porcentaje" | "dias" | "categoriasSolo"> & { sedeIds?: readonly string[] },
+  o: Pick<OfertaEnEdicion, "porcentaje" | "dias" | "categoriasSolo"> &
+    Partial<Pick<FormaDeOferta, "tipo" | "lleva" | "paga" | "monto">> & { sedeIds?: readonly string[]; productosSolo?: readonly string[] },
   nombreCategoria: (id: string) => string,
   nombreSede: (id: string) => string = () => "",
 ): string {
-  const donde = o.categoriasSolo.length ? categoriasDichas(o.categoriasSolo, nombreCategoria) : "Toda la campaña";
+  const donde = alcanceDicho(o, nombreCategoria) ?? "Toda la campaña";
   const dias = textoDiasCorto(o.dias);
   const tiendas = lista(nombresDeTiendas(o.sedeIds ?? [], nombreSede));
-  const t = `${donde} · −${String(o.porcentaje).replace(".", ",")} %${dias ? ` · ${dias}` : ""}${tiendas ? ` · ${tiendas}` : ""}`;
+  const titular = titularDeOferta({ tipo: o.tipo ?? "pct", porcentaje: o.porcentaje, lleva: o.lleva ?? 3, paga: o.paga ?? 2, monto: o.monto ?? 0 });
+  const t = `${donde} · ${titular}${dias ? ` · ${dias}` : ""}${tiendas ? ` · ${tiendas}` : ""}`;
   return t.length > MAX_NOMBRE ? `${t.slice(0, MAX_NOMBRE - 1)}…` : t;
 }
 
@@ -276,7 +356,12 @@ export const nombreDeOferta = (o: OfertaEnEdicion, nombreCategoria: (id: string)
 
 /** Si el nombre guardado es el que habría salido solo (para no tratar de «a mano» uno automático). */
 export const esNombreAutomatico = (r: ReglaCampana, nombreCategoria: (id: string) => string, nombreSede: (id: string) => string = () => ""): boolean =>
-  r.nombre === nombreAutomatico({ porcentaje: r.porcentaje, dias: r.dias, categoriasSolo: r.categoriasSolo, sedeIds: r.sedeIds }, nombreCategoria, nombreSede);
+  r.nombre ===
+  nombreAutomatico(
+    { tipo: r.tipo, porcentaje: r.porcentaje, lleva: r.lleva, paga: r.paga, monto: r.monto, dias: r.dias, categoriasSolo: r.categoriasSolo, productosSolo: r.productosSolo, sedeIds: r.sedeIds },
+    nombreCategoria,
+    nombreSede,
+  );
 
 /** «del 26 oct al 31 oct» · «el 26 oct». */
 export const textoFechas = (desde: string, hasta: string): string => {
@@ -286,10 +371,22 @@ export const textoFechas = (desde: string, hasta: string): string => {
 
 /** «20 % menos en todas las prendas de la campaña, los martes y jueves, del 26 oct al 31 oct.» */
 export function fraseDeOferta(o: OfertaEnEdicion, nombreCategoria: (id: string) => string, nombreSede: (id: string) => string = () => ""): string {
-  const donde = o.categoriasSolo.length ? `solo en ${categoriasDichas(o.categoriasSolo, nombreCategoria)}` : "en todas las prendas de la campaña";
+  const alcance = alcanceDicho(o, nombreCategoria);
+  const donde = alcance ? `solo en ${alcance}` : "en todas las prendas de la campaña";
   const fuera = o.categoriasFuera.length ? ` (menos ${lista(nombresOrdenados(o.categoriasFuera, nombreCategoria).map((n) => n.toLowerCase()))})` : "";
   const dias = textoDias(o.dias);
   const tiendas = lista(nombresDeTiendas(o.sedeIds, nombreSede));
+  if (esDeGrupo(o.tipo)) {
+    // «Quien lleva 3 prendas de Polos (se pueden mezclar) paga 2: la más barata va gratis, …» (la frase de la maqueta).
+    const de = `${alcance ? ` de ${alcance}` : " de la campaña"}${fuera}${o.agrupa === "modelo" ? " del mismo modelo" : " (se pueden mezclar)"}`;
+    const que =
+      o.tipo === "nxm"
+        ? `Quien lleva ${o.lleva} prendas${de} paga ${o.paga}: ${o.lleva - o.paga === 1 ? "la más barata va" : `las ${o.lleva - o.paga} más baratas van`} gratis`
+        : o.tipo === "n_por_monto"
+          ? `${o.lleva} prendas${de} cuestan ${soles(o.monto)}`
+          : `Cada ${o.lleva} prendas${de}, la más barata tiene ${String(o.porcentaje).replace(".", ",")} % menos`;
+    return `${que}${o.incluyeClaure ? ", con las prendas de Claurè" : ""}${tiendas ? `, solo en ${tiendas}` : ""}${dias ? `, ${dias}` : ""}, ${textoFechas(o.desde, o.hasta)}.`;
+  }
   return `${String(o.porcentaje).replace(".", ",")} % menos ${donde}${fuera}${o.incluyeClaure ? ", con las prendas de Claurè" : ""}${tiendas ? `, solo en ${tiendas}` : ""}${dias ? `, ${dias}` : ""}, ${textoFechas(o.desde, o.hasta)}.`;
 }
 
@@ -307,7 +404,7 @@ export type ContextoOferta = {
 /** Lo que impide guardar, dicho en una frase cada cosa. Vacío = se puede guardar. */
 export function problemasDeOferta(o: OfertaEnEdicion, c: ContextoOferta): string[] {
   const p: string[] = [];
-  if (!Number.isFinite(o.porcentaje) || o.porcentaje <= 0 || o.porcentaje > PORCENTAJE_MAX) p.push(`El descuento tiene que ir de 1 a ${PORCENTAJE_MAX} %.`);
+  p.push(...problemasDeForma(o));
   if (!o.desde || !o.hasta) {
     p.push("Pon cuándo empieza y cuándo termina.");
     return p;
@@ -331,6 +428,23 @@ export function problemasDeOferta(o: OfertaEnEdicion, c: ContextoOferta): string
   return p;
 }
 
+/** Lo que impide guardar la forma de la oferta (los mismos límites que `guardar_oferta_completa` y el candado `campana_reglas_forma`). */
+export function problemasDeForma(f: Pick<FormaDeOferta, "tipo" | "porcentaje" | "lleva" | "paga" | "monto">): string[] {
+  const entero = (n: number) => Number.isInteger(n);
+  if (f.tipo === "pct") {
+    return !Number.isFinite(f.porcentaje) || f.porcentaje <= 0 || f.porcentaje > PORCENTAJE_MAX ? [`El descuento tiene que ir de 1 a ${PORCENTAJE_MAX} %.`] : [];
+  }
+  if (!entero(f.lleva) || f.lleva < LLEVA_MIN || f.lleva > LLEVA_MAX) return [`Un grupo se arma con ${LLEVA_MIN} a ${LLEVA_MAX} prendas.`];
+  if (f.tipo === "nxm" && (!entero(f.paga) || f.paga < 1 || f.paga >= f.lleva)) return [`Si lleva ${f.lleva}, paga de 1 a ${f.lleva - 1}.`];
+  if (f.tipo === "n_por_monto" && (!Number.isFinite(f.monto) || f.monto <= 0)) return ["Pon cuánto cuesta el grupo."];
+  if (f.tipo === "nesima_pct" && (!Number.isFinite(f.porcentaje) || f.porcentaje <= 0 || f.porcentaje > 100)) return [`El descuento de la ${f.lleva}.ª va de 1 a 100 %.`];
+  return [];
+}
+
+/** Cuántas prendas puede tener un grupo (la base exige lo mismo). */
+export const LLEVA_MIN = 2;
+export const LLEVA_MAX = 10;
+
 function diasEntreFechas(desde: string, hasta: string): number {
   return Math.round((Date.parse(`${hasta}T00:00:00Z`) - Date.parse(`${desde}T00:00:00Z`)) / 86_400_000);
 }
@@ -343,16 +457,30 @@ export type CuerpoGuardarOferta = {
   etiquetaId: string;
   nombre: string;
   porcentaje: number;
+  /** La forma (ADR-0655, actividad 6). Sin ella, «un % menos». Con una de grupo, la ruta llama a `guardar_oferta_completa`. */
+  forma: Omit<FormaDeOferta, "porcentaje">;
+  /** La oferta que se edita era de grupo: aunque vuelva a «un % menos», va por `guardar_oferta_completa` para guardar su forma nueva. */
+  eraDeGrupo: boolean;
   desde: string;
   hasta: string;
   dias: number[];
   categoriasSolo: string[];
   categoriasFuera: string[];
+  /** Modelos elegidos uno por uno (ADR-0655). Con alguno, la ruta llama a `guardar_oferta`; sin ninguno, a `guardar_campana_regla` de siempre. */
+  productosSolo: string[];
+  /** La oferta que se edita tenía modelos: aunque ahora no lleve ninguno, se guarda por `guardar_oferta` para quitárselos. */
+  teniaModelos: boolean;
+  /** Las ofertas que le ceden («que la otra ceda», ADR-0655). Con alguna —o si le cedían antes— la ruta llama a `guardar_oferta_y_ceder`. */
+  cedeA: string[];
+  teniaCesiones: boolean;
   sedeIds: string[];
   incluyeClaure: boolean;
   /** Activarla ya (rige desde su fecha) o dejarla como borrador; lo hace quien tiene la llave de campañas (ADR-0534). */
   activar: boolean;
 };
+
+/** El tope de modelos sueltos de una oferta: el mismo que exige `guardar_oferta` (20261113210000). */
+export const MAX_PRODUCTOS_SOLO = 500;
 
 const FECHA = /^\d{4}-\d{2}-\d{2}$/;
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -375,6 +503,18 @@ export function leerCuerpoOferta(cuerpo: unknown): Resultado<CuerpoGuardarOferta
   if (![...solo, ...fuera].every(esTextoUuid)) return { ok: false, error: "Una de las categorías no es válida." };
   const sedes = lista(c.sedeIds);
   if (!sedes.every(esTextoUuid)) return { ok: false, error: "Una de las tiendas no es válida." };
+  const productos = lista(c.productosSolo);
+  if (!productos.every(esTextoUuid)) return { ok: false, error: "Una de las prendas elegidas no es válida." };
+  if (productos.length > MAX_PRODUCTOS_SOLO) return { ok: false, error: `Una oferta puede elegir hasta ${MAX_PRODUCTOS_SOLO} modelos sueltos. Para más, elige sus categorías.` };
+  const cede = lista(c.cedeA);
+  if (!cede.every(esTextoUuid)) return { ok: false, error: "Una de las ofertas que cede no es válida." };
+  if (c.id != null && cede.includes(c.id)) return { ok: false, error: "Una oferta no puede cederse a sí misma." };
+  const f = (typeof c.forma === "object" && c.forma !== null ? c.forma : {}) as Record<string, unknown>;
+  const tipo: TipoOferta = TIPOS.includes(f.tipo as TipoOferta) ? (f.tipo as TipoOferta) : "pct";
+  const num = (v: unknown, de: number) => (typeof v === "number" && Number.isFinite(v) ? v : de);
+  const forma: Omit<FormaDeOferta, "porcentaje"> = { tipo, lleva: num(f.lleva, 3), paga: num(f.paga, 2), monto: num(f.monto, 0), agrupa: f.agrupa === "modelo" ? "modelo" : "campana" };
+  const problemaForma = problemasDeForma({ ...forma, porcentaje: c.porcentaje })[0];
+  if (problemaForma) return { ok: false, error: problemaForma };
   return {
     ok: true,
     valor: {
@@ -382,11 +522,17 @@ export function leerCuerpoOferta(cuerpo: unknown): Resultado<CuerpoGuardarOferta
       etiquetaId: c.etiquetaId,
       nombre: c.nombre.trim(),
       porcentaje: c.porcentaje,
+      forma,
+      eraDeGrupo: c.eraDeGrupo === true,
       desde: c.desde,
       hasta: c.hasta,
       dias: ordenados(c.dias as number[]),
       categoriasSolo: solo as string[],
       categoriasFuera: fuera as string[],
+      productosSolo: [...new Set(productos as string[])],
+      teniaModelos: c.teniaModelos === true,
+      cedeA: [...new Set(cede as string[])],
+      teniaCesiones: c.teniaCesiones === true,
       sedeIds: sedes as string[],
       incluyeClaure: c.incluyeClaure === true,
       activar: c.activar === true,
@@ -394,7 +540,7 @@ export function leerCuerpoOferta(cuerpo: unknown): Resultado<CuerpoGuardarOferta
   };
 }
 
-// ---- Ayudas de la hoja: atajos de fechas, cruces y «antes: …» -------------------------------------------------------------------
+// ---- Ayudas de la hoja: atajos de fechas y «antes: …» -------------------------------------------------------------------
 
 export type AtajoFechas = { texto: string; desde: string; hasta: string };
 
@@ -424,30 +570,104 @@ export function atajosDeFechas(inicio: string, hastaCampana: string | null, hoy:
   });
 }
 
-/** Las ofertas de la misma campaña con las que esta se cruza: ni retiradas ni terminadas, con fechas que se pisan, algún día de la
- *  semana en común y prendas en común («toda la campaña» se cruza con todo). En cada prenda gana la de mayor descuento; no se suman. */
-export function reglasQueSeCruzan(o: Pick<OfertaEnEdicion, "id" | "desde" | "hasta" | "dias" | "categoriasSolo" | "sedeIds">, otras: readonly ReglaCampana[], hoy: string): ReglaCampana[] {
-  return otras.filter((r) => {
-    if (r.id === o.id) return false;
-    if (["retirada", "terminada"].includes(vigenciaDeRegla(r, hoy))) return false;
-    if (r.desde > o.hasta || o.desde > r.hasta) return false;
-    if (!r.dias.some((d) => o.dias.includes(d))) return false;
-    // Dos ofertas de tiendas distintas no se cruzan (una oferta sin tiendas rige en todas las de la campaña).
-    if (r.sedeIds.length > 0 && o.sedeIds.length > 0 && !r.sedeIds.some((x) => o.sedeIds.includes(x))) return false;
-    if (r.categoriasSolo.length === 0 || o.categoriasSolo.length === 0) return true;
-    return r.categoriasSolo.some((c) => o.categoriasSolo.includes(c));
-  });
+// ---- Una prenda, una oferta por tienda y por día (ADR-0655) -------------------------------------------------------------------------
+// Con qué choca la oferta de la hoja lo dice la base (`fn_choques_de_oferta`, 20261113223000): alcanzar prendas, tiendas y días es la misma regla
+// de la caja y no se repite aquí. Lo de abajo solo decide qué falta resolver y cómo decirlo.
+
+/** Una fila cruda de `fn_choques_de_oferta`: la otra oferta (o un descuento de siempre) y una tienda donde las dos regirían algún mismo día. */
+export type FilaChoque = {
+  otra_tipo: string;
+  otra_id: string;
+  otra_nombre: string;
+  campana_nombre: string;
+  ubicacion_id: string;
+  ubicacion_nombre: string;
+  prendas: number;
+  /** Ya hay una cesión entre las dos (en cualquier sentido). */
+  cedida: boolean;
+};
+
+/** Un choque, juntando las tiendas: «choca con X en Lima y Trujillo, en N prendas». */
+export type Choque = {
+  tipo: "oferta" | "descuento";
+  id: string;
+  nombre: string;
+  /** El nombre de su campaña o insignia, si no es el mismo de la oferta. */
+  deCampana: string | null;
+  tiendas: string[];
+  /** Las prendas en común: el mayor de sus tiendas (las mismas en todas, salvo la tienda). */
+  prendas: number;
+  /** Ya resuelto en la base porque ESTA le cede a la otra (la otra gana). */
+  estaCede: boolean;
+  /** Ya había una cesión guardada a favor de esta. */
+  cedidaGuardada: boolean;
+};
+
+/** Junta las filas por la otra oferta, con sus tiendas en orden. `cedenAntes`: quiénes le cedían a esta al abrirla (para saber en qué sentido
+ *  va una cesión que la base ya tiene). */
+export function choquesDeFilas(filas: readonly FilaChoque[], cedenAntes: readonly string[]): Choque[] {
+  const por = new Map<string, Choque>();
+  for (const f of filas) {
+    const tipo = f.otra_tipo === "descuento" ? "descuento" : "oferta";
+    const clave = `${tipo}|${f.otra_id}`;
+    const ya = por.get(clave);
+    const tienda = f.ubicacion_nombre.replace(/^Tienda\s+/i, "");
+    if (ya) {
+      if (!ya.tiendas.includes(tienda)) ya.tiendas.push(tienda);
+      ya.prendas = Math.max(ya.prendas, Number(f.prendas) || 0);
+      continue;
+    }
+    const cedida = tipo === "oferta" && f.cedida === true;
+    por.set(clave, {
+      tipo,
+      id: f.otra_id,
+      nombre: f.otra_nombre,
+      deCampana: tipo === "oferta" && f.campana_nombre && f.campana_nombre !== f.otra_nombre ? f.campana_nombre : null,
+      tiendas: [tienda],
+      prendas: Number(f.prendas) || 0,
+      estaCede: cedida && !cedenAntes.includes(f.otra_id),
+      cedidaGuardada: cedida && cedenAntes.includes(f.otra_id),
+    });
+  }
+  return [...por.values()]
+    .map((c) => ({ ...c, tiendas: [...c.tiendas].sort((a, b) => a.localeCompare(b, "es")) }))
+    .sort((a, b) => (a.tipo === b.tipo ? a.nombre.localeCompare(b.nombre, "es") : a.tipo === "descuento" ? -1 : 1));
+}
+
+/** ¿Este choque ya no impide activar? Si esta le cede a la otra (guardado), o si la persona eligió que la otra ceda. Un descuento de siempre no
+ *  cede: se resuelve retirándolo o cambiando la oferta. */
+export const choqueResuelto = (c: Choque, cedeA: readonly string[]): boolean => c.tipo === "oferta" && (c.estaCede || cedeA.includes(c.id));
+
+/** Lo que todavía impide activar (o guardar una que ya rige). */
+export const choquesSinResolver = (choques: readonly Choque[], cedeA: readonly string[]): Choque[] => choques.filter((c) => !choqueResuelto(c, cedeA));
+
+/** Al guardar solo viajan las cesiones que siguen haciendo falta: una que ya no choca se suelta sola. */
+export const cesionesQueQuedan = (choques: readonly Choque[], cedeA: readonly string[]): string[] =>
+  cedeA.filter((id) => choques.some((c) => c.tipo === "oferta" && c.id === id && !c.estaCede));
+
+/** El título de un choque, en una línea: «Choca con «Polos 3x2» en Lima y Trujillo». */
+export const tituloDeChoque = (c: Choque): string => `Choca con «${c.nombre}»${c.deCampana ? ` (de ${c.deCampana})` : ""} en ${lista(c.tiendas)}`;
+
+/** Lo que pasa y lo que se puede hacer, en una frase. */
+export function fraseDeChoque(c: Choque): string {
+  const prendas = `${c.prendas} ${c.prendas === 1 ? "prenda tendría" : "prendas tendrían"} dos ofertas el mismo día`;
+  if (c.tipo === "descuento") return `${prendas}: es el descuento de siempre de «${c.nombre}». Retíralo, o cambia las tiendas, las fechas o las prendas.`;
+  if (c.estaCede) return `${prendas}, pero esta oferta le cede: donde las dos valdrían, vale «${c.nombre}».`;
+  return `${prendas}. Una prenda tiene una sola oferta por tienda y por día.`;
 }
 
 /** Cómo estaba una oferta antes de su último cambio, en una frase corta: «−15 % · 24 oct – 31 oct · mar y jue». Vacío si no se sabe. */
 export function resumenAntes(antes: Record<string, unknown> | null): string {
   if (!antes) return "";
   const pct = Number(antes.porcentaje);
+  const tipo = typeof antes.tipo === "string" && TIPOS.includes(antes.tipo as TipoOferta) ? (antes.tipo as TipoOferta) : "pct";
   const desde = typeof antes.desde === "string" ? antes.desde : "";
   const hasta = typeof antes.hasta === "string" ? antes.hasta : "";
   const dias = Array.isArray(antes.dias_semana) ? (antes.dias_semana as unknown[]).filter((d): d is number => typeof d === "number") : [];
   const partes = [
-    Number.isFinite(pct) ? `−${String(pct).replace(".", ",")} %` : "",
+    tipo !== "pct"
+      ? titularDeOferta({ tipo, porcentaje: pct, lleva: Number(antes.lleva ?? 0), paga: Number(antes.paga ?? 0), monto: Number(antes.monto ?? 0) })
+      : Number.isFinite(pct) ? `−${String(pct).replace(".", ",")} %` : "",
     desde && hasta ? `${fechaCorta(desde).replace(/\.$/, "")} – ${fechaCorta(hasta).replace(/\.$/, "")}` : "",
     dias.length && dias.length < 7 ? textoDiasCorto(dias) : "",
   ];
@@ -456,7 +676,7 @@ export function resumenAntes(antes: Record<string, unknown> | null): string {
 
 // ---- Cuántas prendas alcanza una oferta (lo que dicen los conteos de la hoja) -------------------------------------------------------
 
-export type PrendaDeCampana = { id: string; categoriaId: string | null; deClaure?: boolean; modelo?: string };
+export type PrendaDeCampana = { id: string; categoriaId: string | null; deClaure?: boolean; modelo?: string; productoId?: string };
 
 /** Cuántas prendas son estas. Una prenda es un modelo en su color: sus tallas cuentan una vez, como en el pase de Insignias y en la etiqueta
  *  de la campaña (ADR-0488). Sin `modelo`, cada fila cuenta como una. */
@@ -470,12 +690,15 @@ export function contarPrendas(prendas: readonly Pick<PrendaDeCampana, "id" | "mo
 export function prendasQueAlcanza<P extends PrendaDeCampana>(
   prendasDeLaCampana: readonly P[],
   prendasDelCatalogo: readonly P[],
-  o: Pick<OfertaEnEdicion, "categoriasSolo" | "categoriasFuera" | "incluyeClaure">,
+  o: Pick<OfertaEnEdicion, "categoriasSolo" | "categoriasFuera" | "incluyeClaure"> & { productosSolo?: readonly string[] },
 ): P[] {
-  return (o.categoriasSolo.length > 0 ? prendasDelCatalogo : prendasDeLaCampana).filter((p) => {
+  // Con categorías «solo» o modelos elegidos (ADR-0655), la oferta rige en ESAS categorías y ESOS modelos, estén o no en la campaña.
+  const productos = o.productosSolo ?? [];
+  const elegida = o.categoriasSolo.length > 0 || productos.length > 0;
+  return (elegida ? prendasDelCatalogo : prendasDeLaCampana).filter((p) => {
     if (!o.incluyeClaure && p.deClaure) return false;
     const c = p.categoriaId;
-    if (o.categoriasSolo.length > 0 && !(c && o.categoriasSolo.includes(c))) return false;
+    if (elegida && !((c && o.categoriasSolo.includes(c)) || (p.productoId && productos.includes(p.productoId)))) return false;
     return !(c && o.categoriasFuera.includes(c));
   });
 }

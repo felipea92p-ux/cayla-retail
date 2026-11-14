@@ -2,7 +2,7 @@
   "guia": "productos.sellos",
   "ruta": "/productos/insignias",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 143,
+  "total": 153,
   "controles": {
     "components/ConfirmarConResponsable.tsx": [
       "ComboResponsable «{control}»",
@@ -90,6 +90,9 @@
       "BotonImprimir «Imprimir etiquetas»",
       "button «Descartar el aviso de etiquetas pendientes»"
     ],
+    "components/sellos/ChoquesDeOferta.tsx": [
+      "button «Que «»"
+    ],
     "components/sellos/EditarEtiquetaModal.tsx": [
       "CampoTexto «{`Nombre ${delUno}»",
       "button «{`Repetir en ${repeticion.anio}»",
@@ -109,12 +112,14 @@
       "Casilla «Pintar con el color del sello»"
     ],
     "components/sellos/OfertasHoja.tsx": [
-      "button «{g.activo ? \"sellos.oferta-rebaja\" : undefined}»",
+      "button «{g.icono}»",
       "button «{g.activo ? undefined : \"Llega pronto\"}»",
       "button «Un % menos»",
       "button «Llega pronto»",
       "button «Llega pronto» #2",
       "button «{v}»",
+      "button «{f.texto}»",
+      "CampoMonto «Precio del grupo»",
       "button «{t.nombre}»",
       "button «Todos los días»",
       "button «Solo algunos días»",
@@ -124,16 +129,21 @@
       "button «{a.texto}»",
       "CampoFecha «Desde»",
       "CampoFecha «Hasta»",
+      "button «Sí, cualquiera de estas»",
+      "button «Solo del mismo modelo»",
+      "SegmentoDeslizante «Cómo eliges las prendas»",
+      "Casilla «{m.nombre}»",
       "button «Elegir todas»",
       "button «Quitar todas»",
       "button «Incluir las de Claurè»",
       "button «{masQ3 ? \"Menos opciones\" : \"Más opciones\"}»",
       "CampoTexto «Nombre»",
       "button «Usar el nombre automático»",
-      "button «{n === 3 ? \"sellos.oferta-paso-3\" : n === 2 ? \"sellos.oferta-paso-2\" : undefined}»",
+      "button «{hecho ? <Check aria-hidden strokeWidth={3}»",
       "Boton «sellos.oferta-atajo»",
       "Boton «Siguiente»",
       "Boton «Siguiente» #2",
+      "Boton «Siguiente» #3",
       "Boton «Guardar cambios»",
       "Boton «{edita ? \"Guardar cambios\" : \"Guardar como borrador\"}»",
       "Boton «sellos.oferta-activar»",
@@ -154,14 +164,15 @@
     ],
     "components/sellos/SellosPantalla.tsx": [
       "button «→(ev) => abrir(e.id, ev.currentTarget)»",
-      "BotonEditar «→() => setEditandoId(e.id)»",
+      "BotonEditar «Corregir el nombre o cambiar el ícono de la insignia»",
       "button «{conGuia ? \"sellos.prendas\" : undefined}»",
       "button «{conGuia ? \"sellos.configurar\" : undefined}»",
       "BotonImprimir «(sin nombre)»",
-      "BotonVer «Diseño web»",
       "button «{cambiandoId === e.id ? \"Desactivando…\" : \"Desactivar\"}»",
+      "Boton «{conGuia ? \"sellos.preparar\" : undefined}»",
       "button «→() => setEtiquetando(e)»",
       "Boton «+ Elegir prendas»",
+      "button «sellos.mapa»",
       "BotonVer «Cómo se ven en la web»",
       "Boton «sellos.nuevo»",
       "Pestanas «→cambiarVista»",
@@ -171,7 +182,8 @@
       "Boton «→() => aprobar(aprobandoEtiqueta)»",
       "CampoTexto «Motivo (opcional)»",
       "Boton «Cancelar» #2",
-      "Boton «Confirmar rechazo»"
+      "Boton «Confirmar rechazo»",
+      "button «{x.clave === \"oferta\" ? \"sellos.pregunta-oferta\" : undefined}»"
     ]
   }
 }

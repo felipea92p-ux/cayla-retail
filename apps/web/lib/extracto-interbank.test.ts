@@ -182,6 +182,51 @@ const PASARON = [...FIRMES, ...PROVISIONALES];
 // Como lo baja el banco: lo provisional arriba, de lo más nuevo a lo más viejo; debajo lo firme, con el sábado y el domingo mezclados.
 const COMO_BAJA = [12, 11, 10, 9, 8, 7, 6, 5, 4, 2, 3, 0, 1];
 
+describe("leerExtracto — el lote del lunes trae el sábado de antes del archivo (el borde por fecha de proceso)", () => {
+  // El banco filtra el archivo por fecha de OPERACIÓN (aquí, desde el domingo 1-nov) pero procesa por lotes: el lunes 2-nov procesó,
+  // intercalados, el sábado 31-oct (que el archivo no trae), el domingo y el propio lunes. Los saltos quedan dentro de ese lote aunque
+  // sus líneas digan 2-nov: son el borde, no un hueco del período. Montos inventados: el repo es público.
+  const lunes = (o: { abono?: string; cargo?: string; saldo: string; fecha: string; correlativo: string; descripcion?: string }) =>
+    renglonTxt({ descripcion: o.descripcion ?? ". Abono QR IBK", abono: o.abono, cargo: o.cargo, saldo: o.saldo, fecha: o.fecha, proceso: "20261102", correlativo: o.correlativo });
+  // Arranca en 1000.00. Del lote del lunes no vienen el 002 (+50.00), el 004 (−0.30) ni el 007 (−0.30): son del sábado 31-oct.
+  const filas = [
+    renglonTxt({ descripcion: ". Abono QR IBK", abono: "1.00", saldo: "1154.40", fecha: "20261105", proceso: "20261105", correlativo: "00263090001" }),
+    renglonTxt({ descripcion: ". Abono QR IBK", abono: "5.00", saldo: "1153.40", fecha: "20261104", proceso: "20261104", correlativo: "00263080001" }),
+    renglonTxt({ descripcion: ". Abono QR IBK", abono: "12.00", saldo: "1148.40", fecha: "20261103", proceso: "20261103", correlativo: "00263070002" }),
+    renglonTxt({ descripcion: ". Abono QR IBK", abono: "40.00", saldo: "1136.40", fecha: "20261103", proceso: "20261103", correlativo: "00263070001" }),
+    lunes({ abono: "7.00", saldo: "1096.70", fecha: "20261102", correlativo: "00263060006" }),
+    lunes({ cargo: "10.00", saldo: "1090.00", fecha: "20261102", correlativo: "00263060005", descripcion: "CARGO TRANSFERENCIA PROPIA" }),
+    lunes({ abono: "30.00", saldo: "1100.00", fecha: "20261101", correlativo: "00263060003" }),
+    lunes({ abono: "20.00", saldo: "1020.00", fecha: "20261101", correlativo: "00263060001" }),
+  ];
+  const TXT_LUNES = filas.join("\n");
+
+  it("los tres saltos que deja el sábado son del borde, también los que caen entre líneas del lunes", () => {
+    const e = leerExtracto(TXT_LUNES);
+    expect(e.desde).toBe("2026-11-01");
+    expect(e.hasta).toBe("2026-11-05");
+    expect(e.huecos.map((h) => [h.despuesDe.fecha, h.antesDe.fecha, h.faltan])).toEqual([
+      ["2026-11-01", "2026-11-01", 5000],
+      ["2026-11-02", "2026-11-02", -30],
+      ["2026-11-02", "2026-11-03", -30],
+    ]);
+    expect(e.huecos.every((h) => h.enElBorde)).toBe(true);
+  });
+
+  it("CONTROL: con la regla de antes (solo fechas de operación) el salto entre dos líneas del lunes se daba por un hueco del período", () => {
+    const e = leerExtracto(TXT_LUNES);
+    const soloPorFecha = e.huecos.filter((h) => !(h.antesDe.fecha === e.hasta || h.despuesDe.fecha === e.desde));
+    expect(soloPorFecha.map((h) => h.despuesDe.fecha)).toEqual(["2026-11-02", "2026-11-02"]);
+  });
+
+  it("una línea que de verdad falta a mitad del período se sigue diciendo como hueco", () => {
+    const sinUna = filas.filter((_, i) => i !== 2).join("\n"); // se quita el QR de 12.00 del 3-nov
+    const adentro = leerExtracto(sinUna).huecos.filter((h) => !h.enElBorde);
+    expect(adentro).toHaveLength(1);
+    expect(adentro[0].faltan).toBe(1200);
+  });
+});
+
 describe("leerExtracto — lo que el banco todavía no procesó (correlativo provisional)", () => {
   const { texto, enArchivo } = archivoDe(50000, PASARON, COMO_BAJA);
   const e = leerExtracto(texto);

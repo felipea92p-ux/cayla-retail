@@ -118,7 +118,7 @@ export type ClaveIcono =
   | "inicio" | "vender" | "apartados" | "caja" | "historial" | "productos" | "inventario" | "existencias" | "movimientos" | "traslados" | "conteo" | "resumen"
   | "facturacion" | "compras" | "colaboradores" | "insumos" | "produccion" | "ordenes" | "cambios" | "posventa" | "devoluciones" | "venta"
   | "catalogo" | "categorias" | "marcas" | "atributos" | "proveedores" | "facturas" | "recibir" | "porPagar" | "gastos"
-  | "finanzas" | "dinero" | "reportes" | "impuestos" | "cierre" | "analisis" | "panorama" | "clientas" | "club" | "avisos" | "frescura" | "pulso" | "liquidacion"
+  | "finanzas" | "dinero" | "reportes" | "impuestos" | "cierre" | "analisis" | "panorama" | "clientas" | "club" | "avisos" | "frescura" | "pulso"
   | "gestion" | "planPiso" | "rendimiento" | "campana" | "recibirInsumos" | "ordenesInsumos" | "fondos" | "revisarCompras" | "vitrina" | "pedidosWeb"
   | "recomendaciones" | "tiendaWeb" | "resumenWeb" | "ajustesWeb" | "puntos" | "paleta" | "calendarioCampana" | "insignias" | "preguntas" | "trafico" | "reportesVentas";
 
@@ -425,11 +425,10 @@ export const ARBOL: readonly Nodo[] = [
       { id: "catalogo.categorias", modulo: "atributos", etiqueta: "Categorías", estado: "viva", ruta: "/productos/categorias", icono: "categorias", pajaro: "02 Loro" },
       { id: "catalogo.marcas", modulo: "atributos", etiqueta: "Marcas", estado: "viva", ruta: "/productos/marcas", icono: "marcas", pajaro: "02 Loro" },
       { id: "catalogo.atributos", modulo: "atributos", etiqueta: "Atributos", estado: "viva", ruta: "/productos/atributos", icono: "atributos", pajaro: "02 Loro" },
-      { id: "catalogo.insignias", modulo: "etiquetas", modulosAlternos: ["campanas"], etiqueta: "Insignias", estado: "viva", ruta: "/productos/insignias", icono: "insignias", pajaro: "02 Loro" },
-      // ADR-0379 (Felipe 2026-10-10): las prendas sueltas que se liquidan con su etiqueta, SIN pasar a Productos. Vive en
-      // Catálogo porque es la otra cara de «qué se vende y a cuánto» (y el grupo Inventario ya está en su tope). La
-      // visibilidad la da su módulo, que nace solo para el líder.
-      { id: "catalogo.liquidacion", modulo: "liquidacion", etiqueta: "Liquidación", estado: "viva", ruta: "/productos/liquidacion", icono: "liquidacion", pajaro: "02 Loro" },
+      // Campañas y ofertas (ADR-0655, Felipe 2026-11-13): las campañas y lo que el cliente paga de menos en ellas salen de Insignias, donde
+      // Felipe no encontraba los descuentos. Abre con Campañas o con Insignias (los dos que las abrían ahí): nadie gana ni pierde acceso.
+      { id: "catalogo.campanas", modulo: "campanas", modulosAlternos: ["etiquetas"], etiqueta: "Campañas y ofertas", estado: "viva", ruta: "/productos/campanas", icono: "calendarioCampana", pajaro: "02 Loro" },
+      { id: "catalogo.insignias", modulo: "etiquetas", etiqueta: "Insignias", estado: "viva", ruta: "/productos/insignias", icono: "insignias", pajaro: "02 Loro" },
     ],
   },
 

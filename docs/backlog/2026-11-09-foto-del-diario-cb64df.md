@@ -8,7 +8,7 @@
       `movimientos`, `cajas`). Entró a la primera, sin `lock timeout`.
 - [ ] **Publicar** (fusionar el PR): las dos rutas de Vercel Cron (`/api/finanzas/foto-diario`, cada 5 min; `/api/finanzas/foto-diario/todas`,
       4:00 de Lima). Todo el SQL ya está en producción, así que las rutas encuentran su función al publicar.
-- [ ] **Encender el interruptor** (`update retail.parametros_finanzas set usar_foto_diario = true`) solo después de: la primera reconstrucción
+- [x] **Interruptor ENCENDIDO el 2026-11-13** (Felipe, `cambiar-de-modulo#1` de `docs/innovacion/2026-11-13-cambiar-de-modulo.md`). Antes se comprobó en producción, solo lectura: la foto de octubre rehecha ese día (15:10 UTC), INV-29 `limpia` en las corridas del 10 al 13 de noviembre, `gasto_papeles_tardios` con su `diario_vence` y el disparador de `parametros_finanzas` que no vence nada al cambiar el interruptor; después, la foto de octubre seguía valiendo (`fn_foto_diario_vale` = true). `fn_resumen_finanzas` medía 4.490 ms de media antes. Falta medir el después con `finanzas_resumen_ms`. Condición original: la primera reconstrucción
       (`vercel logs --query finanzas_foto_diario`, `rehechas > 0`) y una corrida del vigía con INV-29 limpia. Medir antes y después con
       `finanzas_resumen_ms` y el gráfico de memoria. **Volver atrás = apagarlo**, sin migración.
 - [ ] **La rama `claude/finanzas-36-tanda-7`** crea `retail.gasto_papeles_tardios` y la suma al diario: al fusionarse con esto en `main`, el candado

@@ -2,7 +2,7 @@
   "guia": "productos.id.editar",
   "ruta": "/productos/[id]/editar",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 162,
+  "total": 168,
   "controles": {
     "app/(app)/productos/[id]/editar/page.tsx": [
       "Volver «{volverA}»"
@@ -57,6 +57,8 @@
       "ComboBuscable «(sin nombre)»",
       "button «{carta ? \"Ocultar la carta\" : `Ver los ${ofrecibles.length}»",
       "Boton «{enLinea ? undefined : \"Crear un color necesita internet\"}»",
+      "Boton «Para una prenda de dos o más colores: hueso con azul»",
+      "Boton «Cancelar»",
       "button «{c.nombre}»"
     ],
     "components/alta-producto/ElegirMarcaProveedor.tsx": [
@@ -124,6 +126,7 @@
       "Desplegable «{opcionesPasar(f.colorCodigo)}»",
       "button «Quitar»",
       "button «{`Ver o cambiar las fotos de ${titulo}»",
+      "button «{alternativa.texto}»",
       "button «Principal»",
       "button «Quitar» #2",
       "button «Ponerla primera»",
@@ -154,6 +157,7 @@
       "Boton «Guardar»"
     ],
     "components/ficha-producto/PanelDelTaller.tsx": [
+      "button «{alternativa.texto}»",
       "button «{propia ? \"Cambiar foto\" : \"+ Agregar foto\"}»",
       "input «(sin nombre)»",
       "button «{n.color(c)}»",
@@ -206,6 +210,8 @@
     ],
     "components/ficha-producto/piezas.tsx": [
       "ComboBuscable «{id}»",
+      "button «{`Agregar un color que acompaña al ${deLaBase}»",
+      "ComboBuscable «→tocarAcompanante»",
       "input «0.00»",
       "input «0.00» #2",
       "button «Cancelar»",

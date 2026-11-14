@@ -25,6 +25,7 @@ export function BarraDeCambios({
   sinLeerVariantes = false,
   yaSeGuardoLoDemas = false,
   bloqueada,
+  preparandoFoto = false,
   onDescartar,
   onRecargar,
 }: {
@@ -38,6 +39,9 @@ export function BarraDeCambios({
   yaSeGuardoLoDemas?: boolean;
   /** Se está guardando: nada se toca. */
   bloqueada: boolean;
+  /** «Catálogo con IA» prepara una foto (~25 s): guardar y descartar esperan a que llegue, o la foto entraría después como un cambio
+   *  suelto, o volvería tras descartar (formidable, 2026-11-13). */
+  preparandoFoto?: boolean;
   onDescartar: () => void;
   onRecargar: () => void;
 }) {
@@ -48,7 +52,7 @@ export function BarraDeCambios({
   const hayQueRecargar = versionCambiada || sinLeerVariantes;
   return (
     <BarraFija
-      visible={cantidad > 0}
+      visible={cantidad > 0 || preparandoFoto}
       // En una tablet con el lateral abierto la barra mide ~550 px: con este piso el mensaje no se aplasta y los botones bajan a su línea.
       resumenMinimo="min-w-[17rem]"
       aviso={
@@ -66,10 +70,18 @@ export function BarraDeCambios({
         <div role="status" className="flex items-start gap-3">
           <span aria-hidden className="mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full bg-ambar" />
           <div className="min-w-0">
-            <p className="text-sm font-semibold text-tinta">Tienes {cifra === 1 ? "1 cambio" : `${cifra} cambios`} sin guardar</p>
+            <p className="text-sm font-semibold text-tinta">
+              {cantidad === 0 && preparandoFoto ? "Preparando la foto de catálogo" : `Tienes ${cifra === 1 ? "1 cambio" : `${cifra} cambios`} sin guardar`}
+            </p>
             <p className="text-sm text-tinta/65">
-              {yaSeGuardoLoDemas ? "Lo demás ya quedó guardado; falta esto." : "Aún no se guardó nada."}
-              <span className="hidden sm:inline">{yaSeGuardoLoDemas ? " Pulsa «Revisar y guardar»." : " Cuando termines, pulsa «Revisar y guardar»."}</span>
+              {preparandoFoto ? (
+                "Guardar espera a que llegue la foto."
+              ) : (
+                <>
+                  {yaSeGuardoLoDemas ? "Lo demás ya quedó guardado; falta esto." : "Aún no se guardó nada."}
+                  <span className="hidden sm:inline">{yaSeGuardoLoDemas ? " Pulsa «Revisar y guardar»." : " Cuando termines, pulsa «Revisar y guardar»."}</span>
+                </>
+              )}
             </p>
           </div>
         </div>
@@ -77,7 +89,7 @@ export function BarraDeCambios({
       acciones={
         <>
           {/* En el celular «Descartar» ocupa lo justo y el botón que guarda el resto: así «Revisar y guardar» cabe en una línea. */}
-          <Boton type="button" peso="discreto" className="max-sm:shrink-0" disabled={bloqueada} onClick={onDescartar}>
+          <Boton type="button" peso="discreto" className="max-sm:shrink-0" disabled={bloqueada || preparandoFoto} onClick={onDescartar}>
             Descartar
           </Boton>
           {hayQueRecargar ? (
@@ -85,7 +97,10 @@ export function BarraDeCambios({
               Recargar la prenda
             </Boton>
           ) : (
-            <Boton key="guardar" type="submit" peso="primario" className="max-sm:flex-1" cargando={bloqueada} data-guia="editar.barra-guardar">
+            <Boton key="guardar" type="submit" peso="primario" className="max-sm:flex-1" cargando={bloqueada || preparandoFoto}
+              textoCargando={preparandoFoto && !bloqueada ? "Preparando foto…" : undefined}
+              data-guia="editar.barra-guardar"
+            >
               Revisar y guardar
             </Boton>
           )}

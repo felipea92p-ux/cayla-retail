@@ -15,6 +15,7 @@
    ==================================================================== */
 
 import { fondoDeMuestra } from "../../lib/colores-familias";
+import { fondoDeMezclaEnFranja } from "../../lib/color-combinado";
 
 /** Para los colores sin hex: varios tonos del propio catálogo, en rueda. */
 export const VARIOS_COLORES = "conic-gradient(from 20deg, #C0272D, #F2C14E, #3E7A4E, #1B2A4A, #5B3A78, #C0272D)";
@@ -40,7 +41,8 @@ export function CapsulaColor({ fondo, compacta = false, className = "" }: { fond
   );
 }
 
-export function MuestraColor({ nombre, hex, compacta = false }: { nombre: string | null; hex: string | null; compacta?: boolean }) {
+/** `tonos`: si el color es una mezcla («Hueso con azul», ADR-0643), la cápsula se parte, con la base a la izquierda. */
+export function MuestraColor({ nombre, hex, compacta = false, tonos }: { nombre: string | null; hex: string | null; compacta?: boolean; tonos?: readonly string[] | null }) {
   if (!nombre) return <span className="text-tinta/45">—</span>;
 
   return (
@@ -52,7 +54,7 @@ export function MuestraColor({ nombre, hex, compacta = false }: { nombre: string
       aria-label={`Color ${nombre}`}
     >
       <CapsulaColor
-        fondo={hex}
+        fondo={tonos && tonos.length >= 2 ? fondoDeMezclaEnFranja(tonos) : hex}
         compacta={compacta}
         className="transition-transform duration-300 ease-cayla group-hover:scale-110 group-focus-visible:scale-110 group-focus-visible:ring-2 group-focus-visible:ring-rojo/50 motion-reduce:transition-none"
       />

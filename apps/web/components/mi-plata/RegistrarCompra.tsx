@@ -54,6 +54,7 @@ import {
   categoriasDeHabituales,
   cuadraElPapel,
   gananciaDeCompra,
+  fraseGanancia,
   detalleProveedor,
   detalleMarca,
   filtrarMarcas,
@@ -168,7 +169,7 @@ const EN_BLANCO: Habitual = {
 
 /** Lo que se escribió en una hoja de prenda: si cambia desde que se abrió, cerrarla pregunta. */
 function firmaHoja(e: EnCurso): string {
-  return JSON.stringify({ c: e.cantidad, k: e.costo, v: e.venta, d: e.destinos, r: e.reparto, n: e.nueva ? { ...e.nueva, descartadas: [...e.nueva.descartadas] } : null });
+  return JSON.stringify({ c: e.cantidad, k: e.costo, v: e.venta, e: e.ventaPorDefinir === true, d: e.destinos, r: e.reparto, n: e.nueva ? { ...e.nueva, descartadas: [...e.nueva.descartadas] } : null });
 }
 
 /** La fila punteada que ofrece algo que no está en la lista («Es un proveedor nuevo», «Algo nuevo», «Otra prenda de …»): una sola raya, la de lo que se toca. */
@@ -327,6 +328,10 @@ export function RegistrarCompra({ datos }: { datos: Datos }) {
       (c) => c.id !== "pagado" || verParte,
     ),
   );
+  // «Tu compra» dice lo mismo que la guía del papel: decía «Sigue: guardar la compra» mientras la guía pedía «Con qué pagaste» (auditoría
+  // 2026-11-12; con el medio sin elegir de fábrica, se veía en cada compra).
+  const campoQueSigue = guia.ahora ? guia.campos.find((c) => c.id === guia.ahora) : undefined;
+  const siguePapel = campoQueSigue ? `Sigue: ${campoQueSigue.nombre.charAt(0).toLowerCase()}${campoQueSigue.nombre.slice(1)}` : "Sigue: guardar la compra";
   const montoLeido = leerMontoPlata(monto);
   const pagadoLeido = pago.forma === "despues" ? 0 : leerMontoPlata(pagoAhora.pagado);
   const cuadra = cuadraElPapel(montoLeido, totalDeLineas(lineas));
@@ -452,7 +457,7 @@ export function RegistrarCompra({ datos }: { datos: Datos }) {
   function agregarPrenda() {
     if (!enCurso || hojaHecha.current === enCurso) return;
     const h = enCurso.nueva ? habitualDeNuevo(`nuevo:${crypto.randomUUID()}`, enCurso.nueva, datos.categorias, marcasDeLaHoja) : enCurso.habitual;
-    const nuevas: LineaCompra[] = h ? lineasDeBorrador(h, enCurso, deCategoria.get(h.categoriaId)?.admitePrecioCero === true) : [];
+    const nuevas: LineaCompra[] = h ? lineasDeBorrador(h, enCurso, deCategoria.get(h.categoriaId ?? "")?.admitePrecioCero === true) : [];
     if (nuevas.length === 0) return;
     hojaHecha.current = enCurso;
     const clave = enCurso.edita;
@@ -478,7 +483,7 @@ export function RegistrarCompra({ datos }: { datos: Datos }) {
     if (ya >= 0) return corregir(ya);
     const b = borradorDeAtajo(h, tiendaAnterior(lineas));
     if (!b) return elegirHabitual(h);
-    const nuevas = lineasDeBorrador(h, b, deCategoria.get(h.categoriaId)?.admitePrecioCero === true);
+    const nuevas = lineasDeBorrador(h, b, deCategoria.get(h.categoriaId ?? "")?.admitePrecioCero === true);
     if (nuevas.length === 0) {
       abrirHoja({ habitual: h, ...b, edita: null });
       return;
@@ -851,7 +856,7 @@ export function RegistrarCompra({ datos }: { datos: Datos }) {
             // Una tarjeta por prenda (no una fila por tienda): su foto, cuántas y a cuánto, y a qué tiendas va; el total a la derecha.
             <ul className="flex flex-col gap-2.5" data-guia="compra.lineas">
               {prendasDeLaCompra(lineas).map((pr) => {
-                const c = deCategoria.get(pr.categoriaId);
+                const c = deCategoria.get(pr.categoriaId ?? "");
                 return (
                   <li key={pr.clave}>
                     <button
@@ -919,7 +924,7 @@ export function RegistrarCompra({ datos }: { datos: Datos }) {
                   /* unificar-fijo: el dato de lo que se gana si se vende todo (la maqueta), no un aviso */ className="flex items-center justify-between gap-3 rounded-[12px] bg-verde/10 px-3 py-2.5 text-sm"
                 >
                   <span className="text-tinta">
-                    Si se vende todo, ganas
+                    {fraseGanancia(ganancia)}
                     <span className="block text-sm text-taupe">Vendes {soles(ganancia.vendes)}</span>
                   </span>
                   <b className="text-[17px] tabular-nums text-verde">{soles(ganancia.ganas)}</b>
@@ -972,7 +977,8 @@ export function RegistrarCompra({ datos }: { datos: Datos }) {
                     {TIPOS_PAPEL[k].nombre}
                     {tipo === k && <Check className="h-4 w-4" aria-hidden />}
                   </span>
-                  <span className="text-sm text-taupe">{TIPOS_PAPEL[k].ayuda}</span>
+                  {/* Sobre la tarjeta elegida (hundida) el taupe daba 4,18:1 (/milimetro 2026-11-13, WCAG 1.4.3): elegida, la ayuda va en tinta. */}
+                  <span className={`text-sm ${tipo === k ? "text-tinta/75" : "text-taupe"}`}>{TIPOS_PAPEL[k].ayuda}</span>
                 </button>
               ))}
             </div>
@@ -1092,7 +1098,7 @@ export function RegistrarCompra({ datos }: { datos: Datos }) {
                     {o.nombre}
                     {pago.forma === o.forma && <Check className="h-4 w-4" aria-hidden />}
                   </span>
-                  <span className="text-sm text-taupe">{o.ayuda}</span>
+                  <span className={`text-sm ${pago.forma === o.forma ? "text-tinta/75" : "text-taupe"}`}>{o.ayuda}</span>
                 </button>
               ))}
             </div>
@@ -1205,7 +1211,7 @@ export function RegistrarCompra({ datos }: { datos: Datos }) {
                 ? lineas.length > 0
                   ? "Sigue: revisar las prendas"
                   : "Sigue: elegir qué le compraste"
-                : "Sigue: guardar la compra"
+                : siguePapel
           }
         />
       )}
@@ -1219,7 +1225,7 @@ export function RegistrarCompra({ datos }: { datos: Datos }) {
           tiendas={datos.tiendas}
           tiendaAnterior={tiendaAnterior(lineas)}
           corrige={enCurso.edita != null}
-          admitePrecioCero={deCategoria.get(enCurso.habitual.categoriaId)?.admitePrecioCero === true}
+          admitePrecioCero={deCategoria.get(enCurso.habitual.categoriaId ?? "")?.admitePrecioCero === true}
           tocada={hojaTocada}
           onAgregar={agregarPrenda}
           onQuitar={quitarPrenda}
@@ -1231,7 +1237,7 @@ export function RegistrarCompra({ datos }: { datos: Datos }) {
                   cambiar: (cambio) => setEnCurso((e) => (e?.nueva ? { ...e, nueva: { ...e.nueva, ...cambio } } : e)),
                   proveedor: nombreCorto,
                   categorias: datos.categorias,
-                  suyas: new Set([...categoriasDeLasLineas(lineas), ...habitualesLeidos.map((x) => x.categoriaId)]),
+                  suyas: new Set([...categoriasDeLasLineas(lineas), ...habitualesLeidos.flatMap((x) => (x.categoriaId ? [x.categoriaId] : []))]),
                   marcas: marcasDeLaHoja,
                   marcasDelProveedor,
                   habituales: habitualesLeidos,
@@ -1723,8 +1729,8 @@ function ListaHabituales({
   const nuevas = lineas.map((l, i) => ({ l, i })).filter(({ l, i }) => !claves.has(l.clave) && lineas.findIndex((x) => x.clave === l.clave) === i);
   // La guía interactiva ancla al primer atajo (nunca a clases ni a textos).
   const primerAtajo = ver.find((h) => !lineas.some((l) => l.clave === h.clave) && cantidadDeAtajo(h) != null)?.clave;
-  const fila = (clave: string, productoId: string | null, nombre: string, categoriaId: string, categoria: string, h: Habitual | null, onClick: () => void) => {
-    const c = deCategoria.get(categoriaId);
+  const fila = (clave: string, productoId: string | null, nombre: string, categoriaId: string | null, categoria: string, h: Habitual | null, onClick: () => void) => {
+    const c = deCategoria.get(categoriaId ?? "");
     // Repartida entre tiendas, una prenda son varias líneas: la fila suma todas.
     const suyas = lineas.filter((l) => l.clave === clave);
     const enCompra = suyas.length > 0;

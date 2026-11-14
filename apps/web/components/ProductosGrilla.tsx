@@ -21,8 +21,6 @@ import { lugaresDeStock, stockDeTarjeta, MENSAJE_SIN_RESULTADOS, SIN_EXISTENCIAS
 import { unidadesEnSede } from "@/lib/stock-en-sede-reglas";
 import { useStockEnSede, type LugaresDeModelo, type StockDeModelo } from "@/components/useStockEnSede";
 import { VistaRapidaProducto } from "@/components/vista-rapida/VistaRapidaProducto";
-import type { ColorConFicha } from "@/lib/ficha-del-color";
-import type { TarjetaLook } from "@/lib/combinar-reglas";
 import { useTamanoGrilla } from "@/components/SelectorTamanoGrilla";
 import { CLASES_GRILLA, TAMANO_GRILLA_POR_DEFECTO, type TamanoGrilla } from "@/lib/tamano-grilla";
 import { FunnelX } from "lucide-react";
@@ -63,17 +61,11 @@ export function ProductosGrilla({
   preciosTienda = {},
   preciosAqui,
   campanasHoy,
-  colores,
-  tarjetasLook,
 }: {
   productos: ProductoListado[];
   /** La campaña que cobra la caja hoy por variante (`campanasQueCobra`, ADR-0472): la tarjeta tacha el precio de lista y dice el de
    *  la caja. Ausente = no se pudo leer: el precio de siempre. */
   campanasHoy?: Record<string, CampanaDeVariante>;
-  /** La ficha de cada color activo (ADR-0316): la vista rápida dice con qué se combina el color de la foto. Ausente = no dice nada. */
-  colores?: ColorConFicha[];
-  /** El catálogo de la sede como tarjetas prenda×color con piso: la frase «Combina bien con un jean…» de la vista rápida. */
-  tarjetasLook?: TarjetaLook[];
   /** Por prenda, las tiendas que la venden a otro precio: la insignia «2 precios» (Felipe 2026-10-09). */
   preciosTienda?: Record<string, PrecioDeTienda[]>;
   /** Precio propio de esta sede por variante: la vista rápida muestra el que cobra su caja (ADR-0370). */
@@ -137,8 +129,6 @@ export function ProductosGrilla({
           otrosPrecios={preciosTienda[p.productoId]}
           preciosAqui={preciosAqui}
           campanasHoy={campanasHoy}
-          fichasColor={colores}
-          tarjetasLook={tarjetasLook}
         />
       ))}
     </div>
@@ -159,16 +149,11 @@ function TarjetaProducto({
   otrosPrecios,
   preciosAqui,
   campanasHoy,
-  fichasColor,
-  tarjetasLook,
 }: {
   producto: ProductoListado;
   otrosPrecios?: PrecioDeTienda[];
   preciosAqui?: Record<string, number>;
   campanasHoy?: Record<string, CampanaDeVariante>;
-  /** Las fichas de color del vocabulario (ADR-0316), para la vista rápida. `colores`, abajo, son los de ESTA prenda. */
-  fichasColor?: ColorConFicha[];
-  tarjetasLook?: TarjetaLook[];
   existencias: ExistenciasProducto | null;
   veExistencias: boolean;
   veMovimientos: boolean;
@@ -325,8 +310,6 @@ function TarjetaProducto({
           onClose={() => setVistaRapida(false)}
           preciosAqui={preciosAqui}
           campanasHoy={campanasHoy}
-          colores={fichasColor}
-          tarjetasLook={tarjetasLook}
           veExistencias={veExistencias}
           veMovimientos={veMovimientos}
           puedeEditar={puedeEditar}

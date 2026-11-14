@@ -153,7 +153,7 @@ describe("con faltas de ortografía", () => {
     ["registrar un prodcto nuebo", "productos.nuevo"],
     ["conteo de imbentario", "inventario.conteo"],
     ["yego mercaderia del probedor", "recibir"],
-    ["poner una prenda en liquidasion", "productos.liquidacion"],
+    ["poner una prenda en liquidasion", "productos.sellos"],
   ])("«%s» → %s", (pregunta, id) => {
     const top = preseleccionar({ pregunta, guias: GUIAS, rutasDelMenu: menu, rutaActual: "/", cuantas: 5 }).map((s) => s.guia.id);
     expect(top).toContain(id);

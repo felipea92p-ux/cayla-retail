@@ -46,7 +46,7 @@ export async function POST(request: Request) {
   const o = leido.valor;
 
   const supabase = await createClient({ firma: firmaDeEncabezados(request.headers) });
-  const { data, error } = await llamar(supabase, "guardar_campana_regla", {
+  const comun = {
     p_regla_id: o.id,
     p_etiqueta_id: o.etiquetaId,
     p_nombre: o.nombre,
@@ -59,7 +59,38 @@ export async function POST(request: Request) {
     p_incluye_claure: o.incluyeClaure,
     p_sede_ids: o.sedeIds,
     p_activar: o.activar,
-  });
+  };
+  // Con modelos elegidos uno por uno (ADR-0655), `guardar_oferta` guarda la oferta y sus modelos en una transacción (20261113210000). Sin ellos
+  // —y para una oferta que los tenía y ya no— la función de siempre basta si la oferta nunca tuvo modelos; si los tuvo, `guardar_oferta` los quita.
+  // Con ofertas que le ceden («que la otra ceda», ADR-0655), `guardar_oferta_y_ceder` guarda la oferta y sus cesiones en una transacción
+  // (20261113223000): el candado de «una prenda, una oferta por tienda y por día» las mira juntas al cerrar.
+  const conModelos = o.productosSolo.length > 0 || o.teniaModelos;
+  const conCesiones = o.cedeA.length > 0 || o.teniaCesiones;
+  // Una oferta de grupo (3x2, N por S/, la N.ª al X %; ADR-0655, actividad 6) —o una que lo era y vuelve a «un % menos»— va por
+  // `guardar_oferta_completa` (20261114003000), que guarda la forma con lo demás en una transacción.
+  const conForma = o.forma.tipo !== "pct" || o.eraDeGrupo;
+  const { data, error } = conForma
+    ? await llamar(supabase, "guardar_oferta_completa", {
+        p_regla_id: o.id,
+        p_etiqueta_id: o.etiquetaId,
+        p_nombre: o.nombre,
+        p_forma: { ...o.forma, porcentaje: o.forma.tipo === "pct" || o.forma.tipo === "nesima_pct" ? o.porcentaje : null },
+        p_desde: o.desde,
+        p_hasta: o.hasta,
+        p_dias_semana: o.dias,
+        p_categorias_solo: o.categoriasSolo,
+        p_categorias_fuera: o.categoriasFuera,
+        p_incluye_claure: o.incluyeClaure,
+        p_sede_ids: o.sedeIds,
+        p_producto_ids: o.productosSolo,
+        p_cede_regla_ids: o.cedeA,
+        p_activar: o.activar,
+      })
+    : conCesiones
+    ? await llamar(supabase, "guardar_oferta_y_ceder", { ...comun, p_producto_ids: o.productosSolo, p_cede_regla_ids: o.cedeA })
+    : conModelos
+      ? await llamar(supabase, "guardar_oferta", { ...comun, p_producto_ids: o.productosSolo })
+      : await llamar(supabase, "guardar_campana_regla", comun);
   if (error) return Response.json({ error: traducirError(error, "guardar la oferta") }, { status: 400 });
 
   const lista = await listaFresca(supabase);

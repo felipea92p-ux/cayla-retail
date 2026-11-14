@@ -20,7 +20,7 @@
     { "cuenta": "admin", "ruta": "/", "pregunta": "¿Dónde veo cuánto vendió cada vendedora este mes?", "acepta": ["guia:rendimiento"] },
     { "cuenta": "admin", "ruta": "/", "pregunta": "¿Cómo imprimo los rótulos de precio del anaquel?", "acepta": ["guia:rotulos", "guia:productos", "guia:inventario"] },
     { "cuenta": "admin", "ruta": "/", "pregunta": "¿Qué prendas llevan mucho tiempo colgadas sin venderse?", "acepta": ["guia:inventario.frescura"] },
-    { "cuenta": "admin", "ruta": "/", "pregunta": "¿Cómo pongo una prenda en liquidación?", "acepta": ["guia:productos.liquidacion"] },
+    { "cuenta": "admin", "ruta": "/", "pregunta": "¿Cómo pongo una prenda en liquidación?", "acepta": ["guia:productos.sellos"] },
     { "cuenta": "admin", "ruta": "/", "pregunta": "¿Dónde veo los pedidos que llegan por la tienda web?", "acepta": ["guia:tienda-web.pedidos"] },
     { "cuenta": "admin", "ruta": "/", "pregunta": "Una boleta no llegó a SUNAT, ¿cómo la reenvío?", "acepta": ["guia:vender.comprobantes.por-reintentar", "guia:vender.comprobantes", "regla:sunat-caido"] },
     { "cuenta": "admin", "ruta": "/", "pregunta": "El cliente no quiere boleta, ¿qué hago?", "acepta": ["regla:sin-comprobante"] },
@@ -50,6 +50,6 @@
     { "cuenta": "admin", "ruta": "/", "pregunta": "¿Como registro un prodcto nuebo?", "acepta": ["guia:productos.nuevo", "guia:productos"] },
     { "cuenta": "admin", "ruta": "/", "pregunta": "¿Como ago un conteo de imbentario?", "acepta": ["guia:inventario.conteo"] },
     { "cuenta": "admin", "ruta": "/", "pregunta": "Yego mercaderia del probedor, ¿donde la ingreso?", "acepta": ["guia:recibir"] },
-    { "cuenta": "admin", "ruta": "/", "pregunta": "¿Como pongo una prenda en liquidasion?", "acepta": ["guia:productos.liquidacion"] }
+    { "cuenta": "admin", "ruta": "/", "pregunta": "¿Como pongo una prenda en liquidasion?", "acepta": ["guia:productos.sellos"] }
   ]
 }

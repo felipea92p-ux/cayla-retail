@@ -2,7 +2,7 @@
   "guia": "compras.mi-plata.envios",
   "ruta": "/compras/mi-plata/envios",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 12,
+  "total": 18,
   "controles": {
     "app/(app)/compras/mi-plata/envios/page.tsx": [
       "Volver «/compras/mi-plata»"
@@ -13,6 +13,9 @@
     ],
     "components/mi-plata/FilaEnvio.tsx": [
       "button «{abierta && <HojaEnvio e={e}»"
+    ],
+    "components/mi-plata/HojaEnvio.tsx": [
+      "Boton «Anular envío»"
     ],
     "components/mi-plata/MandarATienda.tsx": [
       "button «{guia}»",
@@ -27,6 +30,13 @@
     ],
     "components/mi-plata/TablaEnvios.tsx": [
       "button «{e.numero}»"
+    ],
+    "components/ordenes-compra/AnularEnvioModal.tsx": [
+      "CampoTexto «Por qué se anula»",
+      "ComboResponsable «{responsable}»",
+      "Boton «Recargar»",
+      "Boton «Cancelar»",
+      "Boton «{guia.frase ?? undefined}»"
     ]
   }
 }

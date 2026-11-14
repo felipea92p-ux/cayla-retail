@@ -2,7 +2,7 @@
   "guia": "compras.mi-plata.compra",
   "ruta": "/compras/mi-plata/compra",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 65,
+  "total": 66,
   "controles": {
     "app/(app)/compras/mi-plata/compra/page.tsx": [
       "Volver «/compras/mi-plata»"
@@ -28,6 +28,7 @@
       "Boton «Cancelar»",
       "Boton «compra.agregar»",
       "button «{guia}»",
+      "button «compra.por-definir»",
       "CampoTexto «Marca nueva»",
       "Boton «compra.marca-mas»",
       "CampoTexto «compra.nombre-nuevo»"

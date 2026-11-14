@@ -12,7 +12,6 @@ import { createClient } from "@/lib/supabase/server";
 import { exigir, tolerar } from "@/lib/resultado";
 import { leerCampanasVigentes } from "@/lib/campanas-vigentes";
 import { leerPreciosPropiosDeSede } from "@/lib/precios-propios-de-sede";
-import type { ColorConFicha } from "@/lib/ficha-del-color";
 import { PuntoDeVenta, type ProformaEnCobro } from "@/components/PuntoDeVenta";
 import { TicketPorSede } from "@/components/punto-de-venta/TicketPorSede";
 import { claveDelPuntoDeVenta } from "@/lib/vender-cambio-de-sede";
@@ -31,6 +30,8 @@ import { sedesParaPedir } from "@/lib/pedidos-entre-sedes-reglas";
 import { getPedidosConCliente } from "@/lib/pedidos-entre-sedes";
 import { getEmpresasAqui } from "@/lib/empresas-de-sede";
 import { getStockPorDueno } from "@/lib/stock-por-dueno";
+import { tonosDeLasMezclas } from "@/lib/color-combinado";
+import { ofertasDeGrupoDeFilas, type FilaOfertaDeGrupo } from "@/lib/ofertas-de-grupo";
 
 /**
  * Vender: la caja del día de la ubicación — abrir, vender, cerrar, y ver lo vendido hoy.
@@ -70,6 +71,12 @@ async function Caja({ proformaId, repetirVentaId }: { proformaId: string | null;
   // de quién es el stock aquí (empresas → reparto), la proforma o la venta que se quiere cobrar otra vez, y el último cierre
   // cuando no hay caja (`getCajaAbierta` tiene `cache()`: es la misma lectura de la caja, no otra). Mismos datos, mismas reglas.
   const ahora = new Date();
+  // «Llevar varias y pagar menos» (ADR-0655): la oferta de grupo de hoy por prenda. Secundario como las campañas: si no carga (o la función
+  // todavía no está), la caja vende igual sin grupos y `registrar_venta` exige lo que corresponda.
+  const cargaOfertasGrupo = supabase.rpc("ofertas_de_grupo_vigentes" as never, { p_ubicacion_id: persona.ubicacionId } as never) as unknown as PromiseLike<{
+    data: FilaOfertaDeGrupo[] | null;
+    error: { message: string } | null;
+  }>;
   const [variantes, caja, resStock, ubicaciones, stockAqui, resCampanas, listasLeidas, resVentasHoy, resTextosClub, resWhatsappTienda, resQr, resRedondeo, resOpcionesApartados, pedidosConCliente, resPreciosSede, resColores, resFamiliasApagadas, resSeries, resMaquinas, repartoDeStock, proformaLeida, resRepetir, ultimoCierre] = await Promise.all([
     // Lo que se puede vender AQUÍ (ADR-0505): sin las prendas de CLAURE fuera de Lima, y en Lima con su insignia.
     getCatalogoParaOfrecer(persona.ubicacionId),
@@ -107,9 +114,10 @@ async function Caja({ proformaId, repetirVentaId }: { proformaId: string | null;
     // Precio propio de esta tienda (Felipe 2026-10-09): las prendas que aquí se venden a otro precio. Si la lectura falla, se
     // muestra el general y `registrar_venta` rechaza el cobro («el precio cambió») antes de cobrar mal: nunca un cobro equivocado.
     leerPreciosPropiosDeSede(supabase, persona.ubicacionId),
-    // La ficha de cada color (ADR-0316; Felipe 2026-10-10): qué transmite y con qué se combina, para «Todo de la prenda». Secundario y
-    // chico (~90 filas): si falla, la hoja no dice nada del color y se vende igual. La lee cualquier sesión (`colores_select`).
-    supabase.from("colores").select("codigo, nombre, hex, familia_color, tipo, descripcion, combina_con").eq("activo", true),
+    // Los colores, para saber cuáles son estampados (la tarjeta lo dibuja con su foto) y cuáles son mezclas («Hueso con azul», ADR-0643:
+    // su punto se parte). Toda la carta, también lo desactivado: un color apagado sigue siendo el acompañante de una mezcla. Secundario
+    // y chico (~100 filas): si falla, ningún color se marca y se vende igual. La lee cualquier sesión (`colores_select`).
+    supabase.from("colores").select("codigo, nombre, tipo, hex, componentes, activo"),
     // Las familias fuera de los motores: de ahí salen las bolsas de «Agregar bolsa» (Bolsas de despacho, 2026-10-10). Pocas filas.
     supabase.from("familias").select("codigo").eq("entra_a_motores", false),
     // Las series activas de esta sede: la hoja de cobro solo ofrece los comprobantes que la sede puede emitir (/chaos 2026-10-13,
@@ -138,18 +146,14 @@ async function Caja({ proformaId, repetirVentaId }: { proformaId: string | null;
     // Sin caja (ADR-0186): lo que dejó el último cierre, para que el modal «Abrir caja» pida contar el cajón.
     getCajaAbierta(persona.ubicacionId).then((c) => (c ? null : getUltimoCierre(persona.ubicacionId))),
   ]);
-  const coloresConFicha: ColorConFicha[] = (tolerar(resColores, "las fichas de color").datos ?? []).map((c) => ({
-    codigo: c.codigo,
-    nombre: c.nombre,
-    hex: c.hex,
-    familiaColor: c.familia_color ?? "",
-    tipo: c.tipo,
-    descripcion: c.descripcion ?? null,
-    combinaCon: c.combina_con ?? [],
-  }));
-  const estampados = new Set(coloresConFicha.filter(esEstampado).map((c) => c.codigo));
+  const coloresLeidos = tolerar(resColores, "los colores").datos ?? [];
+  const coloresActivos = coloresLeidos.filter((c) => c.activo).map((c) => ({ codigo: c.codigo, tipo: c.tipo }));
+  const tonosPorCodigo = tonosDeLasMezclas(coloresLeidos, "codigo");
+  const estampados = new Set(coloresActivos.filter(esEstampado).map((c) => c.codigo));
   const preciosDeEstaSede = leerPreciosEnSede(resPreciosSede.data);
   const campanasNoCargaron = resCampanas.error !== null && resCampanas.error.code !== "PGRST202";
+  const resOfertasGrupo = await cargaOfertasGrupo;
+  const ofertasGrupo = resOfertasGrupo.error ? {} : ofertasDeGrupoDeFilas(resOfertasGrupo.data);
   const campanaPorVariante = new Map<string, CampanaLinea>(
     (resCampanas.data ?? []).map((c) => [c.variante_id, { etiquetaId: c.etiqueta_id, nombre: c.etiqueta_nombre, pct: Number(c.descuento_pct) }]),
   );
@@ -178,6 +182,7 @@ async function Caja({ proformaId, repetirVentaId }: { proformaId: string | null;
       colorHex: v.colorHex ?? null,
       colorEstampado: v.colorCodigo ? estampados.has(v.colorCodigo) : false,
       colorCodigo: v.colorCodigo ?? null,
+      ...(v.colorCodigo && tonosPorCodigo[v.colorCodigo] ? { colorTonos: tonosPorCodigo[v.colorCodigo] } : {}),
       // Con el color, la llave de «¿Es alguna de estas?» en Prenda sin registrar (`prendasPosibles`).
       tallaId: v.tallaId ?? null,
       categoriaId: v.categoriaId ?? null,
@@ -283,9 +288,9 @@ async function Caja({ proformaId, repetirVentaId }: { proformaId: string | null;
         cierreAnterior={ultimoCierre ? { cerradaEn: ultimoCierre.cerradaEn, cerradaPorNombre: ultimoCierre.cerradaPorNombre, montoFondo: ultimoCierre.montoFondo } : null}
         variantes={variantesParaVenta}
         duenosPorVariante={duenosPorVariante}
-        colores={coloresConFicha}
         listasPrendaLibre={listasPrendaLibre}
         campanasNoCargaron={campanasNoCargaron}
+        ofertasGrupo={ofertasGrupo}
         ventasHoy={{ inicial: ventasHoy.datos ?? [], fallo: ventasHoy.fallo }}
         metaVentaDiaria={ubicaciones.find((u) => u.id === persona.ubicacionId)?.metaVentaDiaria ?? null}
         // Solo las puertas que su rol abre (ADR-0161): Caja, Apartados, Cambios… y las acciones del ticket que llevan allí.

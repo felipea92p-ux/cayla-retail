@@ -65,9 +65,15 @@ export async function cargarEtiquetasPantalla({
   // Sin la función (una base vieja) nadie es de Claurè: el conteo es el de antes.
   const cargaEmpresas = puedeEditar ? supabase.rpc("fn_empresas") : Promise.resolve({ data: null, error: null });
   const cargaReglas = supabase.rpc("campana_reglas" as never) as unknown as PromiseLike<{ data: FilaRegla[] | null; error: { message: string } | null }>;
+  // «Anunciar en la portada» de cada campaña (ADR-0655, 20261113234000), en su propia lectura: sin la columna en esa base todas se anuncian,
+  // como antes, y la pantalla no se cae por una columna que todavía no está.
+  const cargaAnuncios = supabase.from("etiquetas").select("id, anunciar_en_portada" as never) as unknown as PromiseLike<{
+    data: { id: string; anunciar_en_portada: boolean }[] | null;
+    error: { message: string } | null;
+  }>;
   const cargaTiendas = getUbicaciones().then((u) => u.filter((x) => x.tipo === "tienda").map((x) => ({ id: x.id, nombre: x.nombre })));
 
-  const [resEtiquetas, resCategorias, resEtiquetaCategorias, resFamilias, resPrendas, resManuales, preciosTiendas, resSedes, tiendas, resReglas, resEmpresas] = await Promise.all([
+  const [resEtiquetas, resCategorias, resEtiquetaCategorias, resFamilias, resPrendas, resManuales, preciosTiendas, resSedes, tiendas, resReglas, resEmpresas, resAnuncios] = await Promise.all([
     supabase.from("etiquetas").select("id, nombre, activo, notas, estado, estilo, icono, icono_imagen, icono_imagen_silueta, vigente_desde, vigente_hasta, descuento_pct").order("nombre"),
     supabase.from("categorias").select("id, nombre, prefijo, familia").eq("activo", true).order("nombre"),
     supabase.from("etiqueta_categorias").select("etiqueta_id, categoria_id"),
@@ -93,7 +99,9 @@ export async function cargarEtiquetasPantalla({
     cargaTiendas,
     cargaReglas,
     cargaEmpresas,
+    cargaAnuncios,
   ]);
+  const sinAnuncio = new Set((resAnuncios.error ? [] : (resAnuncios.data ?? [])).filter((f) => f.anunciar_en_portada === false).map((f) => f.id));
   const idClaure = (resEmpresas.data ?? []).find((e) => e.clave === "claure")?.id ?? null;
 
   const sedesDeCampana = new Map<string, string[]>();
@@ -125,6 +133,7 @@ export async function cargarEtiquetasPantalla({
       descuentoPct: e.descuento_pct,
       categoriaIds: (etiquetaCategorias.get(e.id) ?? []) as string[],
       sedeIds: sedesDeCampana.get(e.id) ?? [],
+      anunciarEnPortada: !sinAnuncio.has(e.id),
     }))
     .filter((e) => modo === "todas" || esDelModo(e.estilo, modo));
   const costos = await cargaCostos;
@@ -140,6 +149,9 @@ export async function cargarEtiquetasPantalla({
       nombre: `${v.producto?.referencia ?? "Prenda"} (${v.sku})`,
       // Una prenda es un modelo en un color, con la misma clave que el pase de Insignias (`prendasDelSello`): la hoja y el pase cuentan igual.
       modelo: `${v.producto?.id ?? v.id}·${v.color_codigo ?? ""}`,
+      // El modelo elegible uno por uno en una oferta (ADR-0655): el producto, con todas sus tallas y colores, y su nombre.
+      productoId: v.producto?.id ?? undefined,
+      referencia: v.producto?.referencia ?? undefined,
       deClaure: idClaure !== null && v.producto?.empresa_id === idClaure,
     };
   });

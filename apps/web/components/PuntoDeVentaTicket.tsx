@@ -17,6 +17,8 @@ import type { ControlResponsable } from "@/lib/useResponsable";
 import { nombreDeEspera } from "@/lib/vender-hoy-reglas";
 import { money, type DescuentoForm, type ItemCarrito, type PagoAplicado, type TicketEnEspera } from "@/components/PuntoDeVenta";
 import { LineaDelTicket } from "@/components/punto-de-venta/LineaDelTicket";
+import { PieDeGrupo } from "@/components/punto-de-venta/PieDeGrupo";
+import type { GrupoEnTicket } from "@/lib/ofertas-de-grupo";
 import type { DetalleVariante } from "@/lib/ticket-linea-reglas";
 import { TEXTO_PIE_CUPON } from "@/lib/club-puntos-reglas";
 import { Volver } from "@/components/ui/Volver";
@@ -117,6 +119,9 @@ type Props = {
   bloqueado: boolean;
   // Ticket
   carrito: ItemCarrito[];
+  /** «Llevar varias y pagar menos» (ADR-0655), por `claveLinea`: la oferta de grupo de la línea, cuánto ahorra y cuántas faltan. El
+   *  importe de la línea es sin el grupo; el ahorro va bajo la fila y en la fila «Descuento» del total. */
+  grupos?: ReadonlyMap<string, GrupoEnTicket>;
   /** Color y talla de cada variante (por `varianteId`), para la fila de cada prenda. La línea del carrito no los
    *  guarda; sin ellos la fila muestra el código de la etiqueta, como antes. */
   detalles?: ReadonlyMap<string, DetalleVariante>;
@@ -215,6 +220,7 @@ export function PuntoDeVentaTicket({
   id,
   bloqueado,
   carrito,
+  grupos,
   detalles,
   tambienEn,
   duenosPorVariante,
@@ -326,7 +332,10 @@ export function PuntoDeVentaTicket({
   const listoParaConfirmar = cobrando && paso === "comprobante" && !apagado;
 
   // Lo que ya se descontó (suma de todas las líneas), para la fila sobre el total.
-  const totalDescuento = carrito.reduce((acc, it) => acc + it.cantidad * it.descuentoUnitario, 0);
+  const totalDescuento =
+    (Math.round(carrito.reduce((acc, it) => acc + it.cantidad * it.descuentoUnitario, 0) * 100) +
+      [...(grupos?.values() ?? [])].reduce((acc, g) => acc + Math.round(g.ahorro * 100), 0)) /
+    100;
 
   // ---- Apartado de descuento: todo derivado de props, sin estado propio — la cuenta es UNA sola y la comparte la hoja lateral
   // de escritorio (`HojaDeDescuento`, ADR-0584 / 2026-11-02) con este ticket (la hoja del celular): `lib/descuento-cuenta-reglas.ts`.
@@ -546,6 +555,7 @@ export function PuntoDeVentaTicket({
                     onCantidad={onCantidad}
                     escrita={escrita}
                     onDescuento={(clave) => onAbrirDescuento([clave])}
+                    pie={grupos?.get(it.claveLinea) ? <PieDeGrupo g={grupos.get(it.claveLinea) as GrupoEnTicket} /> : undefined}
                   />
                 ))}
               </div>
@@ -815,3 +825,4 @@ export function PuntoDeVentaTicket({
     </aside>
   );
 }
+

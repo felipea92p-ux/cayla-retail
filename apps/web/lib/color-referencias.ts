@@ -52,6 +52,7 @@ export function normalizarSinonimos(entrada: string | readonly string[] | null |
 //   la API rechacen antes que la base.
 // ASUME: nada de la base. Que un código EXISTA lo comprueba el disparador `colores_valida_combina_con`; aquí solo la forma.
 export const MAX_DESCRIPCION = 300;
+/** @internal La prueba lo cruza con el candado `colores_combina_con_maximo`; la pantalla ya no edita «combina con» (2026-11-13). */
 export const MAX_COMBINA_CON = 8;
 
 /** La descripción sin espacios de más; `null` si viene vacía; `"invalido"` si pasa de 300 caracteres. */
@@ -77,11 +78,5 @@ export function normalizarCombinaCon(entrada: unknown, propio = ""): string[] | 
     salida.push(codigo);
   }
   return salida.length > MAX_COMBINA_CON ? "invalido" : salida;
-}
-
-/** Sumar o quitar un color de la lista. Con la lista llena, sumar no hace nada (la pantalla lo avisa): nunca pasa del tope. */
-export function alternarCombinaCon(actual: readonly string[], codigo: string): string[] {
-  if (actual.includes(codigo)) return actual.filter((c) => c !== codigo);
-  return actual.length >= MAX_COMBINA_CON ? [...actual] : [...actual, codigo];
 }
 

@@ -137,7 +137,6 @@ export const PANTALLAS: Record<string, PantallaGuia> = {
   // la nota es opcional). Lo que cuenta como «falta» es lo mismo que apaga «Anotar»; la guía no agrega ninguna regla de negocio.
   "/gestion/frescura": { estado: "aplicada", evidencia: ["components/frescura/FrescuraDecidir.tsx"] },
   // ADR-0379: la pantalla tiene un solo control propio (el buscador); lo que se llena vive en sus dos hojas, que traen su guía.
-  "/productos/liquidacion": { estado: "aplicada", evidencia: ["components/liquidacion/EtiquetarPiezaModal.tsx", "components/liquidacion/PiezaLiquidacionModal.tsx"] },
   // Plan del piso (ADR-0329, actividad 12): la lista de categorías dice cuáles están confirmadas, por revisar o sin grupo, y «Siguiente por
   // revisar» lleva a la fila; la hoja de guardado dice que lo único que falta es quién lo hace.
   "/gestion/plan-del-piso": { estado: "aplicada", evidencia: ["components/plan-piso/GruposDelMix.tsx"] },
@@ -201,7 +200,8 @@ export const PANTALLAS: Record<string, PantallaGuia> = {
   "/productos/atributos": { estado: "no-aplica", motivo: "Tablero de tarjetas, búsqueda y filtros por pestaña; todo lo que se llena vive en ventanas propias (colores, tejidos, patrones, tallas, temporadas), cada una con su guía en el registro de modales." },
   "/productos/categorias": PENDIENTE,
   "/productos/familias": { estado: "no-aplica", motivo: "Muestra las familias como tarjetas de solo lectura; lo que se llena vive en la ventana «Nueva familia», que lleva su propia guía (registro de modales)." },
-  "/productos/insignias": { estado: "no-aplica", motivo: "Billetera de pases (campañas e insignias): se elige uno y se mira; todo lo que se llena (nueva insignia o campaña, configurar, prendas, aprobar con su comentario, rechazar) vive en ventanas propias, cada una en el registro de modales." },
+  "/productos/insignias": { estado: "no-aplica", motivo: "Billetera de pases de las insignias (Rotación, Artesanal, General): se elige uno y se mira; todo lo que se llena (nueva insignia, configurar, prendas, aprobar con su comentario, rechazar) vive en ventanas propias, cada una en el registro de modales." },
+  "/productos/campanas": { estado: "no-aplica", motivo: "Billetera de pases de las campañas (ADR-0655): se elige una y se mira; sus tres preguntas solo abren las ventanas que las responden (ofertas, prendas, fechas), cada una en el registro de modales. La pantalla no tiene campos." },
   "/productos/marcas": { estado: "aplicada", evidencia: ["components/alta-producto/NuevaMarcaForm.tsx"] },
   "/productos/nuevo": { estado: "aplicada", evidencia: ["components/NuevoProductoForm.tsx", "components/alta-producto/piezas.tsx"] },
   "/productos/por-revisar": { estado: "no-aplica", motivo: "Cola de solo lectura de las prendas que alguien propuso (ADR-0371): cada fila trae sus datos y dos botones, Aprobar y Rechazar; no hay campos que llenar ni pasos que seguir. Lo único que se elige —quién firma— vive en la hoja de cada decisión (components/RevisarProductoHoja.tsx)." },
@@ -363,8 +363,6 @@ export const MODALES: Record<string, PantallaGuia> = {
   "components/pedidos-web/AnularPagoHoja.tsx": { estado: "aplicada", evidencia: ["components/pedidos-web/AnularPagoHoja.tsx"] },
   "components/pedidos-web/AnularPedidoPagadoHoja.tsx": { estado: "aplicada", evidencia: ["components/pedidos-web/AnularPedidoPagadoHoja.tsx"] },
   "components/pedidos-web/EditarMensajePredeterminadoHoja.tsx": { estado: "no-aplica", motivo: "Un solo campo de texto (el mensaje) con su vista previa; los botones no dependen de otros campos." },
-  "components/liquidacion/EtiquetarPiezaModal.tsx": { estado: "aplicada", evidencia: ["components/liquidacion/EtiquetarPiezaModal.tsx"] },
-  "components/liquidacion/PiezaLiquidacionModal.tsx": { estado: "aplicada", evidencia: ["components/liquidacion/PiezaLiquidacionModal.tsx"] },
   // Precio por tienda (Felipe 2026-10-09): «Precio distinto en una sede» (tienda, precio, por qué, quién) y «Quitar» (quién).
   "components/ficha-producto/PrecioSedeModal.tsx": { estado: "aplicada", evidencia: ["components/ficha-producto/PrecioSedeModal.tsx"] },
   // «Agregar color» y «Agregar talla» (ADR-0494, actividad 3): dos pasos, con su guía de foco y las unidades de partida de lo que nace.
@@ -504,6 +502,7 @@ export const MODALES: Record<string, PantallaGuia> = {
   // que falta hasta estar bien escrita, y quién lo hace. «Falta» = lo que `responder_recomendacion` rechazaría (`lib/recomendaciones-guia.ts`).
   "components/recomendaciones/RecomendacionHoja.tsx": { estado: "aplicada", evidencia: ["components/recomendaciones/RecomendacionHoja.tsx"] },
   "components/alta-producto/ElegirColores.tsx": { estado: "no-aplica", motivo: "Elegir colores sirve a la fila «Colores» de Nuevo producto, que ya lleva su guía (FilaAlta). Su hoja «Nuevo color» lleva su guía en `NuevoColorAlta` (`camposDeNuevoColor`, ADR-0634): nombre y tono, o patrón, color y nombre si es estampado. «+ acompañante» (`ArmarMezcla`, ADR-0643) ya no es una hoja (Felipe 2026-11-12): es un panel sobre la carta con un solo control —los colores que acompañan a la base, que se tocan en la misma carta—, y muestra la mezcla en grande, su nombre armado y qué falta sobre sus botones." },
+  "components/alta-producto/FotosDeColores.tsx": { estado: "no-aplica", motivo: "Las fotos por color de una prenda nueva (Nuevo producto y Recibir ▸ «Crear la prenda que llegó», 2026-11-13): su hoja «Fotos de un color» solo muestra, quita o cambia a «Usar mi foto», sin campos; la guía va en el paso que la contiene." },
   "components/alta-producto/ProponerValor.tsx": { estado: "no-aplica", motivo: "Modal «Nuevo tejido / patrón / talla» (2026-10-02): un solo campo, el nombre; «Agregar» se apaga mientras está vacío o mientras queda sin contestar «¿no será uno que ya existe?» (ADR-0576)." },
   "components/alta-producto/ElegirEtiquetas.tsx": { estado: "no-aplica", motivo: "Hoja de elegir etiquetas que sirve a la fila «Etiquetas» de Nuevo producto, que ya lleva su guía (FilaAlta); elegir es opcional y «Listo» aplica lo marcado." },
   "components/alta-producto/ElegirMuestra.tsx": { estado: "no-aplica", motivo: "Hoja de elegir tejido o patrón que sirve a esas filas de Nuevo producto, que ya llevan su guía (FilaAlta); no tiene campo obligatorio propio: tocar una muestra la elige." },
@@ -554,6 +553,9 @@ export const MODALES: Record<string, PantallaGuia> = {
   "components/mi-plata/HojaCorregirGasto.tsx": { estado: "aplicada", evidencia: ["components/mi-plata/HojaCorregirGasto.tsx", "components/mi-plata/CamposDelGasto.tsx"] },
   // La hoja de la prenda de «Compré ropa» (rediseño 2026-10-23): cuántas, costo, venta y tienda; falta lo que antes frenaba cada paso.
   "components/mi-plata/HojaPrenda.tsx": { estado: "aplicada", evidencia: ["components/mi-plata/HojaPrenda.tsx"] },
+  // ADR-0660: la hoja «Definir» de una prenda por definir. «Falta» es lo mismo que rechaza `definir_prenda_de_compra`: con la categoría y el precio por definir,
+  // basta uno de los dos (un campo de grupo); un precio mal escrito; y, desde una terminal, quién define.
+  "components/mi-plata/PorDefinir.tsx": { estado: "aplicada", evidencia: ["components/mi-plata/PorDefinir.tsx"] },
   "components/mi-plata/RegistrarCompra.tsx": {
     estado: "no-aplica",
     motivo: "Su único modal es «¿Quién te trajo esta marca?» (ADR-0644): una lista de proveedores donde un toque elige y sigue, sin nada que llenar. Los campos de la compra viven en la pantalla, que ya tiene su guía.",
@@ -569,7 +571,7 @@ export const MODALES: Record<string, PantallaGuia> = {
   "components/ordenes-compra/AccionesOrden.tsx": { estado: "aplicada", evidencia: ["components/ordenes-compra/AccionesOrden.tsx"] },
   "components/ordenes-compra/ComprobantesDeOrden.tsx": { estado: "aplicada", evidencia: ["components/ordenes-compra/ComprobantesDeOrden.tsx"] },
   // ADR-0362 (fase 3): «Anular envío». Falta lo que `anular_envio` rechazaría: el motivo y, desde una terminal, quién lo anula.
-  "components/ordenes-compra/EnviosDeOrden.tsx": { estado: "aplicada", evidencia: ["components/ordenes-compra/EnviosDeOrden.tsx"] },
+  "components/ordenes-compra/AnularEnvioModal.tsx": { estado: "aplicada", evidencia: ["components/ordenes-compra/AnularEnvioModal.tsx"] },
   "components/ordenes-compra/GastoDelViaje.tsx": { estado: "aplicada", evidencia: ["components/ordenes-compra/GastoDelViaje.tsx"] },
   // ADR-0362 (fase 7): «Anular orden» de una orden de insumos. Falta lo que `anular_orden_insumo` rechazaría: el motivo (hasta 300 letras)
   // y, desde una terminal, quién la anula.

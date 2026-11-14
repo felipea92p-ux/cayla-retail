@@ -24,16 +24,31 @@ function Banda({ ancho }: { ancho: number }) {
  * mostrar — no a lo máximo posible: un esqueleto más largo que el contenido real hace
  * que la página se encoja al cargar, que es justo el salto que se quería evitar.
  */
-export function EsqueletoTabla({ filas = 6 }: { filas?: number }) {
+export function EsqueletoTabla({ filas = 6, className = "card-cayla" }: { filas?: number; className?: string }) {
   // Anchos fijos, no aleatorios: en un Server Component `Math.random()` daría un valor
   // distinto en servidor y cliente y React lo marcaría como desajuste de hidratación.
   const anchos = [92, 74, 88, 61, 83, 70, 95, 66];
+  // `className`: la superficie. Por omisión su propia tarjeta; dentro de una tarjeta que ya existe (la tabla de Existencias), una raya.
   return (
-    <div aria-hidden className="card-cayla space-y-3 p-5">
+    <div aria-hidden className={`${className} space-y-3 p-5`}>
       {Array.from({ length: filas }, (_, i) => (
         <Banda key={i} ancho={anchos[i % anchos.length]} />
       ))}
     </div>
+  );
+}
+
+/**
+ * Un dato que todavía se calcula dentro de una pantalla que ya se dibujó (Existencias en dos tiempos, 2026-11-13: la lista llega antes
+ * que «Hoy»). Una banda del tamaño de lo que viene, sin texto a la vista: cuando el dato llega ocupa ese lugar y nada se mueve. Para el
+ * lector, «Calculando». NO es «N/D»: eso dice que no se pudo; esto, que viene en camino. `className` le da la forma (alto, ancho, radio).
+ */
+export function Calculando({ className = "h-6 w-24 rounded-full" }: { className?: string }) {
+  return (
+    <span data-calculando className="inline-flex max-w-full align-middle">
+      <span aria-hidden className={`inline-block max-w-full animate-pulse bg-tinta/10 ${className}`} />
+      <span className="sr-only">Calculando</span>
+    </span>
   );
 }
 

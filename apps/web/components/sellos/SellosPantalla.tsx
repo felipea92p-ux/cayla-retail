@@ -3,7 +3,7 @@
 import { Fragment, useMemo, useState, type CSSProperties, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { soltarPaginaEstable } from "@/components/ui/PaginaEstable";
-import { Award, CalendarHeart, HandHeart, RefreshCw, Shirt } from "lucide-react";
+import { Award, CalendarHeart, ChevronRight, HandHeart, RefreshCw, Shirt } from "lucide-react";
 import { NOMBRE_DEL_DIBUJO, dibujoElegido } from "@cayla-retail/shared/insignias-visual";
 import { esRutaDeImagenDeInsignia } from "@cayla-retail/shared/insignia-imagen";
 import { avisar } from "@/components/ui/Avisos";
@@ -17,6 +17,7 @@ import { CifraQueCuenta } from "@/components/ui/CifraQueCuenta";
 import { BotonImprimir } from "@/components/ui/BotonImprimir";
 import { BotonVer } from "@/components/ui/BotonDescargar";
 import { BotonEditar } from "@/components/ui/BotonEditar";
+import { MenuAcciones, type ItemMenu } from "@/components/ui/MenuAcciones";
 import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 import { FotoDePrenda } from "@/components/ui/FotoDePrenda";
 import { Vacio } from "@/components/ui/Vacio";
@@ -27,6 +28,7 @@ import { CampanaModal, NuevaEtiquetaModal, botonCampana, ordenarEtiquetas, type 
 import { EditarEtiquetaModal, type CambiosDeEtiqueta } from "@/components/sellos/EditarEtiquetaModal";
 import { SelloTinta } from "@/components/sellos/SelloTinta";
 import { OfertasHoja } from "@/components/sellos/OfertasHoja";
+import { MapaCampanas } from "@/components/sellos/MapaCampanas";
 import { useColumnasDeLaBilletera, useCupoDelLookbook } from "@/components/sellos/useMedidasDeSellos";
 import { confirmacionCatalogo, type Confirmacion } from "@/lib/confirmar-catalogo";
 import { encabezadosOmitidos } from "@/lib/responsable-omitido";
@@ -54,9 +56,11 @@ import {
   lookbookVisible,
   marcaDelPase,
   paseInicial,
+  preguntasDeCampana,
   pilasDeLaVista,
   prendasDelSello,
   vistaDeEstilo,
+  type PreguntaCampana,
   type PrendasDelSello,
   type TallaVitrina,
   type TonoPase,
@@ -73,6 +77,10 @@ import { prefiereQuieto } from "@/lib/movimiento-cliente";
    abre uno a la vez, y al lado se ve en grande con sus prendas reales (su foto o, sin foto, su categoría sobre su color).
    Lo que guarda es lo mismo de siempre y por las mismas puertas (`/api/productos/etiquetas` y las hojas de `EtiquetasLista.tsx`):
    crear (desde cada vista nace con su grupo), aprobar, rechazar, configurar o repetir, poner prendas, desactivar y reactivar.
+
+   Desde el 2026-11-13 (ADR-0655) la misma pieza dibuja dos filas del menú: `modo="campanas"` es Catálogo ▸ Campañas y ofertas (solo la vista
+   Campañas, con las tres preguntas —qué le das, en qué prendas, cuándo y dónde— en vez de «Lo que ya tiene» y de los cuatro botones del pase) y
+   `modo="insignias"` es Catálogo ▸ Insignias (Rotación, Artesanal y General). Felipe no encontraba los descuentos dentro de «Insignias».
    ==================================================================== */
 
 const ICONO_VISTA: Record<VistaSellos, ReactNode> = {
@@ -84,6 +92,7 @@ const ICONO_VISTA: Record<VistaSellos, ReactNode> = {
 
 
 export function SellosPantalla({
+  modo,
   sede,
   etiquetasIniciales,
   categorias,
@@ -101,6 +110,8 @@ export function SellosPantalla({
   reglas: reglasIniciales,
   reglasDisponibles,
 }: {
+  /** Qué fila del menú dibuja (ADR-0655): «Campañas y ofertas» o «Insignias». */
+  modo: "campanas" | "insignias";
   sede: string;
   etiquetasIniciales: Etiqueta[];
   categorias: CategoriaOpcion[];
@@ -114,7 +125,7 @@ export function SellosPantalla({
   prendasVitrina: TallaVitrina[] | null;
   /** Unidades y ventas de 30 días por talla: solo quien puede analizar; `null`, sin esas cifras. */
   rotacion: LecturaRotacion | null;
-  /** Las vistas que la cuenta ve (Campañas con Insignias o Campañas; las otras tres, con Insignias). */
+  /** Las vistas de esta fila: solo Campañas en «Campañas y ofertas»; Rotación, Artesanal y General en «Insignias». */
   vistas: VistaSellos[];
   vistaInicial: VistaSellos;
   /** Crear, configurar y poner prendas a una insignia (líder o un rol con Insignias; la base lo vuelve a exigir). */
@@ -158,6 +169,7 @@ export function SellosPantalla({
   const [ofertandoId, setOfertandoId] = useState<string | null>(null);
   const [etiquetando, setEtiquetando] = useState<Etiqueta | null>(null);
   const [confirmando, setConfirmando] = useState<Confirmacion | null>(null);
+  const [viendoMapa, setViendoMapa] = useState(false);
   // La billetera tiene dos columnas (la pila y el pase en grande) o una, según su ancho (una consulta de contenedor en sellos.css). Con
   // una, el pase en grande va justo debajo del pase abierto: en el celular no queda al final de toda la pila, lejos de lo que tocaste.
   const [refBilletera, columnasBilletera] = useColumnasDeLaBilletera();
@@ -183,7 +195,7 @@ export function SellosPantalla({
     const nueva = v as VistaSellos;
     setVista(nueva);
     const url = new URL(window.location.href);
-    if (nueva === "campanas") url.searchParams.delete("vista");
+    if (nueva === vistas[0]) url.searchParams.delete("vista");
     else url.searchParams.set("vista", nueva);
     window.history.replaceState(window.history.state, "", url);
   }
@@ -423,6 +435,22 @@ export function SellosPantalla({
         setEtiquetas((actual) => actual.map((x) => (x.id === e.id ? { ...x, vigenteDesde: desde, vigenteHasta: hasta } : x)));
         detalleFechas = textoRango(desde, hasta) ? `Ahora rige ${textoRango(desde, hasta)}.` : "Ahora rige sin fechas.";
       }
+      // «Anunciar en la portada» (ADR-0655): su propia puerta, después de lo demás.
+      let detalleAnuncio: string | undefined;
+      if (cambios.anunciar !== null) {
+        const res = await fetch("/api/productos/etiquetas", {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json", ...responsable.encabezados() },
+          body: JSON.stringify({ id: e.id, anunciarEnPortada: cambios.anunciar }),
+        });
+        const datos = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          avisar.error(datos.error ?? "No se pudo cambiar si la campaña se anuncia en la portada.");
+          return;
+        }
+        setEtiquetas((actual) => actual.map((x) => (x.id === e.id ? { ...x, anunciarEnPortada: cambios.anunciar as boolean } : x)));
+        detalleAnuncio = cambios.anunciar ? "La portada de la tienda online puede anunciarla." : "Ya no sale en la portada de la tienda online.";
+      }
       responsable.despues(null);
       const detalleDibujo =
         nuevo?.tipo === "dibujo" ? `Ahora lleva: ${NOMBRE_DEL_DIBUJO[nuevo.clave]}.` : nuevo?.tipo === "imagen" && nuevo.silueta ? "Ahora lleva tu imagen, pintada del color del sello." : nuevo?.tipo === "imagen" ? "Ahora lleva tu imagen." : undefined;
@@ -431,8 +459,10 @@ export function SellosPantalla({
           ? `${que === "la campaña" ? "Campaña" : "Insignia"} ahora se llama ${nombreFinal}`
           : nuevo === null && cambios.fechas !== null
             ? `Fechas de ${nombreFinal} guardadas`
-            : `Ícono de ${nombreFinal} cambiado`;
-      const detalle = [detalleDibujo, detalleFechas, reimprimir?.detalle].filter(Boolean).join(" ");
+            : nuevo === null && cambios.anunciar !== null
+              ? `${nombreFinal}: ${cambios.anunciar ? "se anuncia en la portada" : "no se anuncia en la portada"}`
+              : `Ícono de ${nombreFinal} cambiado`;
+      const detalle = [detalleDibujo, detalleFechas, detalleAnuncio, reimprimir?.detalle].filter(Boolean).join(" ");
       avisar.exito(titulo, {
         ...(detalle ? { detalle } : {}),
         ...(destino && reimprimir?.boton ? { accion: { texto: reimprimir.boton, onClick: () => router.push(destino as string) } } : {}),
@@ -517,23 +547,28 @@ export function SellosPantalla({
           <div>
             <div className="sl-perfo" />
             <div className="sl-dentro">
-              {(chip || e.estado !== "aprobado" || porActivar > 0 || puedeEditarEste) && (
+              {(chip || e.estado !== "aprobado" || porActivar > 0 || (puedeEditarEste && e.estilo !== "campana") || (e.estilo === "campana" && e.anunciarEnPortada === false)) && (
                 <div className="flex flex-wrap items-center gap-1.5" style={{ "--i": 0 } as CSSProperties}>
                   {e.estado === "pendiente" && <Chip tono="ambar">Por aprobar</Chip>}
                   {e.estado === "rechazado" && <Chip tono="apagado" tachado={false}>Rechazado</Chip>}
                   {chip && <Chip tono={chip.tono} title={chip.title}>{chip.texto}</Chip>}
                   {chip?.alerta && <Chip tono="ambar" title={chip.title}>{chip.alerta}</Chip>}
+                  {e.estilo === "campana" && e.anunciarEnPortada === false && (
+                    <Chip tono="pizarra" versalitas={false} title="La portada de la tienda online no la anuncia. Se cambia en «Más ▸ Cambiar nombre, ícono o fechas».">
+                      No sale en la portada
+                    </Chip>
+                  )}
                   {porActivar > 0 && (
                     <Chip tono="ambar" title="Hay ofertas guardadas como borrador: falta activarlas para que bajen el precio.">
                       {porActivar === 1 ? "1 oferta por activar" : `${porActivar} ofertas por activar`}
                     </Chip>
                   )}
-                  {puedeEditarEste && (
+                  {puedeEditarEste && e.estilo !== "campana" && (
                     <BotonEditar
                       chico
                       onClick={() => setEditandoId(e.id)}
                       guia={esAbierto ? "sellos.editar" : undefined}
-                      title={e.estilo === "campana" ? "Corregir su nombre, cambiar su ícono o sus fechas" : "Corregir el nombre o cambiar el ícono de la insignia"}
+                      title="Corregir el nombre o cambiar el ícono de la insignia"
                       className="ml-auto"
                     />
                   )}
@@ -569,11 +604,11 @@ export function SellosPantalla({
                     <strong>{ofertasVivas.length}</strong>
                     {ofertasVivas.length === 1 ? "oferta o promoción" : "ofertas y promociones"}
                   </div>
-                ) : (
+                ) : e.estilo === "campana" ? (
                   <div>
                     <strong>{e.descuentoPct !== null ? `${e.descuentoPct.toLocaleString("es-PE", { maximumFractionDigits: 2 })} %` : "—"}</strong>descuento
                   </div>
-                )}
+                ) : null /* Una insignia nunca baja el precio (ADR-0655): no hay descuento que contar. */}
               </div>
               {dondeRige && (
                 <div style={{ "--i": 3 } as CSSProperties}>
@@ -618,9 +653,9 @@ export function SellosPantalla({
     }
     const vigencia = vigenciaDe(e.vigenteDesde, e.vigenteHasta, hoy);
     const imprimir = e.descuentoPct !== null && vigencia?.estado !== "proxima";
+    if (e.estilo === "campana") return accionesDeCampana(e, conGuia, imprimir);
+    // Una insignia se configura con la hoja de siempre (`CampanaModal`); las campañas, con sus tres preguntas (arriba, ADR-0655).
     const boton = botonCampana(e, hoy);
-    // Una campaña se configura con sus ofertas («Tres preguntas», ADR-0496); la hoja de siempre (`CampanaModal`) solo queda si la base aún no las tiene.
-    const conOfertas = e.estilo === "campana" && reglasDisponibles;
     return (
       <>
         <button type="button" onClick={() => setEtiquetando(e)} data-guia={conGuia ? "sellos.prendas" : undefined} className="btn-cayla btn-sutil btn-chico">
@@ -628,22 +663,17 @@ export function SellosPantalla({
         </button>
         <button
           type="button"
-          onClick={() => (conOfertas ? setOfertandoId(e.id) : setConfigurando(e))}
-          title={conOfertas ? "Sus ofertas: cuánto baja, en qué prendas y cuándo" : boton.title}
+          onClick={() => setConfigurando(e)}
+          title={boton.title}
           data-guia={conGuia ? "sellos.configurar" : undefined}
           className="btn-cayla btn-sutil btn-chico"
         >
-          {conOfertas ? "Configurar" : boton.texto}
+          {boton.texto}
         </button>
         {imprimir && (
           <BotonImprimir href={urlEtiquetasDePrecio({ campana: e.id })} chico>
             {vigencia?.estado === "terminada" ? "Precio normal" : "Etiquetas de precio"}
           </BotonImprimir>
-        )}
-        {e.estilo === "campana" && disenoWeb && e.descuentoPct !== null && (
-          <BotonVer href={`/tienda-web/campanas/${e.id}`} chico>
-            Diseño web
-          </BotonVer>
         )}
         <button
           type="button"
@@ -653,6 +683,43 @@ export function SellosPantalla({
         >
           {cambiandoId === e.id ? "Desactivando…" : "Desactivar"}
         </button>
+      </>
+    );
+  }
+
+  // ---- Las tres preguntas de una campaña (ADR-0655) ------------------------------------------------------------------------
+  // Cada pregunta abre la hoja que ya la responde: las ofertas (o la hoja de siempre si la base aún no las tiene), las prendas y las fechas.
+
+  function preguntasDe(e: Etiqueta) {
+    const p = prendasDe(e);
+    const vivas = reglasDisponibles ? reglasVivas(reglasDeCampana(reglas, e.id), hoy) : [];
+    const borradores = vivas.filter((r) => vigenciaDeRegla(r, hoy) === "borrador").length;
+    return preguntasDeCampana(e, p.modelos.length, categoriasDe(e), hoy, p.aMano, { activas: vivas.length - borradores, borradores }, textoSedesDeCampana(e.sedeIds, tiendas));
+  }
+  function responder(e: Etiqueta, clave: "oferta" | "prendas" | "cuando") {
+    if (clave === "oferta") return reglasDisponibles ? setOfertandoId(e.id) : setConfigurando(e);
+    if (clave === "prendas") return setEtiquetando(e);
+    setEditandoId(e.id);
+  }
+
+  function accionesDeCampana(e: Etiqueta, conGuia: boolean, imprimir: boolean) {
+    const sigue = preguntasDe(e).find((x) => !x.hecho);
+    const yaPaso = tramoDeCampana(e.vigenteDesde, e.vigenteHasta, hoy) === "pasaron";
+    const items: ItemMenu[] = [
+      { clave: "editar", etiqueta: yaPaso ? "Repetir el próximo año" : "Cambiar nombre, ícono o fechas", onSelect: () => setEditandoId(e.id) },
+      { clave: "prendas", etiqueta: "Marcar prendas sueltas", onSelect: () => setEtiquetando(e) },
+      ...(imprimir ? [{ clave: "imprimir", etiqueta: vigenciaDe(e.vigenteDesde, e.vigenteHasta, hoy)?.estado === "terminada" ? "Imprimir el precio normal" : "Imprimir etiquetas de precio", onSelect: () => router.push(urlEtiquetasDePrecio({ campana: e.id })) }] : []),
+      ...(disenoWeb && e.descuentoPct !== null ? [{ clave: "web", etiqueta: "Ver su diseño en la tienda web", onSelect: () => router.push(`/tienda-web/campanas/${e.id}`) }] : []),
+      { clave: "desactivar", etiqueta: cambiandoId === e.id ? "Desactivando…" : "Desactivar", peligro: true, onSelect: () => setConfirmando(confirmacionCatalogo("desactivar", e.nombre, () => cambiarActivo(e, false))) },
+    ];
+    return (
+      <>
+        <Boton peso={sigue ? "primario" : "fantasma"} className="btn-chico" onClick={() => responder(e, sigue?.clave ?? "oferta")} data-guia={conGuia ? "sellos.preparar" : undefined}>
+          {sigue ? "Preparar la campaña" : "Ver sus ofertas"}
+        </Boton>
+        <span className="ml-auto">
+          <MenuAcciones texto="Más" etiqueta={`Más acciones de ${e.nombre}`} items={items} guia={conGuia ? "sellos.mas" : undefined} />
+        </span>
       </>
     );
   }
@@ -758,7 +825,10 @@ export function SellosPantalla({
               </Vacio>
             </div>
           ) : null)}
-        {e.estilo === "campana" && tramo !== "pasaron" && (
+        {e.estilo === "campana" && e.activo && e.estado === "aprobado" && tramo !== "pasaron" && (
+          <TresPreguntas preguntas={preguntasDe(e)} editable={editable} onResponder={(clave) => responder(e, clave)} />
+        )}
+        {e.estilo === "campana" && !(e.activo && e.estado === "aprobado") && tramo !== "pasaron" && (
           <div className="sl-listo mt-6" data-guia="sellos.listo" style={{ "--i": 3 } as CSSProperties}>
             <p className="label-cayla pb-1.5 pt-3.5 text-[10px] text-tinta/65">Lo que ya tiene</p>
             {loQueTiene(e, p.modelos.length, cats, hoy, p.aMano, e.estilo === "campana" && reglasDisponibles ? ofertasDe(e) : undefined).map((x, i) => (
@@ -793,8 +863,18 @@ export function SellosPantalla({
       <div data-guia="sellos.cabecera">
         <EncabezadoPagina
           sede={sede}
-          titulo="Insignias"
-          subtitulo="Lo que se le marca a una prenda. Primero las campañas; con las pestañas, las demás insignias."
+          guiaAyuda="sellos.ayuda"
+          titulo={modo === "campanas" ? "Campañas y ofertas" : "Insignias"}
+          subtitulo={
+            modo === "campanas"
+              ? "Las fechas especiales de la tienda y lo que el cliente paga de menos en ellas: una rebaja, «lleva varias y paga menos» o un descuento por gastar un monto."
+              : "Lo que dice cada prenda sobre sí misma: «Nuevo», «Hecho a mano», «Últimas unidades». Se ve sobre la foto en la web, en la etiqueta de papel y en la ficha."
+          }
+          ayuda={
+            <button type="button" className="btn-enlace" onClick={() => setViendoMapa(true)} data-guia="sellos.mapa">
+              ¿Insignia, campaña u oferta? Ver el mapa
+            </button>
+          }
           acciones={
             <>
               {esCampanas && disenoWeb && (
@@ -826,7 +906,6 @@ export function SellosPantalla({
             conteo: etiquetas.filter((e) => e.activo && vistaDeEstilo(e.estilo) === v).length,
             pide: "activos",
             tono: "neutro" as const,
-            guia: `sellos.pestana-${v}`,
           }))}
         />
       )}
@@ -906,6 +985,7 @@ export function SellosPantalla({
           esDelNombre={!editando.icono && !esRutaDeImagenDeInsignia(editando.imagen)}
           esCampana={editando.estilo === "campana"}
           fechas={editando.estilo === "campana" ? { desde: editando.vigenteDesde, hasta: editando.vigenteHasta } : undefined}
+          anunciar={editando.estilo === "campana" ? editando.anunciarEnPortada !== false : undefined}
           hoy={hoy}
           responsable={responsable}
           guardando={guardandoEdicion}
@@ -1001,6 +1081,68 @@ export function SellosPantalla({
       )}
 
       {confirmando && <ConfirmarConResponsable confirmacion={confirmando} onClose={() => setConfirmando(null)} />}
+      {viendoMapa && <MapaCampanas aqui={modo} onClose={() => setViendoMapa(false)} />}
+    </div>
+  );
+}
+
+/** Las tres preguntas de una campaña (ADR-0655): la fila de «Lo que ya tiene», pero tocable, con el hilo de la guía de foco en la que sigue
+ *  (`hilo-fila`, ADR-0284) y sin rojo. Cada fila abre la hoja que la responde; quien no puede editar solo la lee. */
+function TresPreguntas({
+  preguntas,
+  editable,
+  onResponder,
+}: {
+  preguntas: PreguntaCampana[];
+  editable: boolean;
+  onResponder: (clave: "oferta" | "prendas" | "cuando") => void;
+}) {
+  const sigue = preguntas.find((x) => !x.hecho)?.clave;
+  return (
+    <div className="sl-listo mt-6" data-guia="sellos.preguntas" style={{ "--i": 3 } as CSSProperties}>
+      <p className="label-cayla pb-1.5 pt-3.5 text-[11px] text-tinta/65">
+        {sigue ? "Para que la caja haga algo" : "Lista: la caja y la tienda web la cobran solas"}
+      </p>
+      {preguntas.map((x, i) => {
+        const contenido = (
+          <>
+            <span className="sl-listo-marca" aria-hidden>
+              <svg viewBox="0 0 24 24" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round">
+                <path d={x.hecho ? "M6 12.5l4 4L18 8.5" : "M12 7v6M12 16.5v.1"} strokeWidth="2.2" />
+              </svg>
+            </span>
+            <span className="font-medium">
+              {x.nombre}
+              <span className="sr-only">{x.hecho ? ": respondida" : ": falta"}</span>
+            </span>
+            <span className="sl-listo-detalle">{x.detalle}</span>
+            {editable && (
+              <span className="sl-pregunta-ir" aria-hidden>
+                {x.clave === sigue ? <span className="hilo-etiqueta">Sigue</span> : null}
+                <ChevronRight className="h-4 w-4" />
+              </span>
+            )}
+          </>
+        );
+        return editable ? (
+          <button
+            key={x.clave}
+            type="button"
+            data-guia={x.clave === "oferta" ? "sellos.pregunta-oferta" : undefined}
+            className={`sl-listo-fila sl-pregunta ${x.clave === sigue ? "sl-pregunta-sigue" : ""}`}
+            data-estado={x.hecho ? "hecho" : "falta"}
+            style={{ "--i": i } as CSSProperties}
+            onClick={() => onResponder(x.clave)}
+          >
+            {contenido}
+          </button>
+        ) : (
+          <div key={x.clave} className="sl-listo-fila" data-estado={x.hecho ? "hecho" : "falta"} style={{ "--i": i } as CSSProperties}>
+            {contenido}
+          </div>
+        );
+      })}
+      {sigue === "oferta" && <p className="mt-3 text-sm text-tinta/65">Una campaña sin oferta solo pone su insignia en las prendas y en la web: no cambia ningún precio.</p>}
     </div>
   );
 }

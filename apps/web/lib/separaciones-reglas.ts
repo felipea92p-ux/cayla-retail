@@ -11,6 +11,7 @@ import { direccionDeEnvioValida } from "./canales-venta-reglas";
 import { diaLima, diaMes } from "./fechas-lima";
 import { motivoDeLaLinea } from "./ticket-linea-reglas";
 import { porcentajeDeLinea, RAZON_CAMPANA } from "./vender-reglas";
+import { titularDeOferta } from "./campana-reglas";
 
 /** D3 (Felipe, 2026-09-22): 7 días para recoger, aviso cuando faltan 2, 2 días para decidir tras vencer. */
 export const PLAZO_DIAS = 7;
@@ -41,6 +42,11 @@ export type PrendaApartada = {
   motivoDescuentoDetalle: string | null;
   /** El argumento escrito de un descuento a mano pasado el 15 %: es de la tienda, no se imprime. */
   argumentoDescuento: string | null;
+  /** ADR-0655 (parte 4): la parte de su oferta de grupo (3x2, N por S/, la N.ª al X %) que le toca a la prenda, por unidad. Está DENTRO de
+   *  `descuentoUnitario`; 0 sin oferta de grupo o con una base anterior a 20261114032000. */
+  descuentoGrupoUnitario: number;
+  /** La oferta de grupo con la que entró al apartado, con el trato de ese día («3 x 2» y el nombre de su campaña). */
+  ofertaGrupo: { titular: string; nombre: string } | null;
 };
 
 /** Un pago del apartado: el adelanto (abono = false) o un abono a cuenta (20260927100000). */
@@ -427,26 +433,51 @@ export type DescuentoDePrenda = {
   argumento: string | null;
   /** Lo que se cobra por unidad: el precio de etiqueta menos el descuento. */
   precioAcordado: number;
+  /** ADR-0655: la parte de una oferta de grupo («3 x 2 · Verano») y lo que ahorra la línea con ella; null sin oferta de grupo. Lo de arriba
+   *  (`campana`, `motivo`, `pct`, `argumento`) habla del RESTO del descuento (campaña o a mano), que es `resto` por unidad. */
+  grupo: { titular: string; nombre: string; ahorro: number } | null;
+  /** El descuento por unidad que no es de la oferta de grupo: 0 si todo el descuento es del grupo. */
+  resto: number;
 };
 
 /** De dónde viene el descuento de una prenda apartada y en palabras de la tienda; null si no tiene. Un descuento sin motivo es de
- *  campaña: la base no deja guardar uno sin etiqueta de campaña ni motivo (`separacion_items_descuento_con_origen`). El nombre del
- *  motivo es el de la fila del ticket de Vender (`motivoDeLaLinea`): la misma regla, no otra. */
-export function descuentoDePrenda(p: Pick<PrendaApartada, "precioUnitario" | "descuentoUnitario" | "motivoDescuento" | "motivoDescuentoDetalle" | "argumentoDescuento">): DescuentoDePrenda | null {
+ *  campaña: la base no deja guardar uno sin etiqueta de campaña ni motivo (`separacion_items_descuento_con_origen`), salvo la parte de
+ *  una oferta de grupo, que viene de su oferta. El nombre del motivo es el de la fila del ticket de Vender (`motivoDeLaLinea`): la misma
+ *  regla, no otra. */
+export function descuentoDePrenda(
+  p: Pick<PrendaApartada, "precioUnitario" | "descuentoUnitario" | "motivoDescuento" | "motivoDescuentoDetalle" | "argumentoDescuento"> &
+    Partial<Pick<PrendaApartada, "cantidad" | "descuentoGrupoUnitario" | "ofertaGrupo">>,
+): DescuentoDePrenda | null {
   if (p.descuentoUnitario <= 0) return null;
+  const grupoUnitario = p.descuentoGrupoUnitario ?? 0;
+  const resto = Math.round((p.descuentoUnitario - grupoUnitario) * 100) / 100;
   const campana = !p.motivoDescuento;
   return {
     campana,
     motivo: motivoDeLaLinea({
-      descuentoUnitario: p.descuentoUnitario,
+      descuentoUnitario: resto,
       razonDescuento: p.motivoDescuento ?? RAZON_CAMPANA,
       razonDescuentoOtro: p.motivoDescuentoDetalle ?? "",
       campana: null,
     }),
-    pct: porcentajeDeLinea(p),
+    pct: porcentajeDeLinea({ precioUnitario: p.precioUnitario, descuentoUnitario: resto }),
     argumento: campana ? null : p.argumentoDescuento,
     precioAcordado: Math.round((p.precioUnitario - p.descuentoUnitario) * 100) / 100,
+    grupo:
+      grupoUnitario > 0 && p.ofertaGrupo
+        ? { titular: p.ofertaGrupo.titular, nombre: p.ofertaGrupo.nombre, ahorro: Math.round(grupoUnitario * (p.cantidad ?? 1) * 100) / 100 }
+        : null,
+    resto,
   };
+}
+
+/** La oferta de grupo que `buscar_separaciones` devuelve en cada prenda (20261114032000): el trato de ese día, dicho como en la caja. */
+function ofertaGrupoDeFila(o: unknown): PrendaApartada["ofertaGrupo"] {
+  if (!o || typeof o !== "object") return null;
+  const x = o as Record<string, unknown>;
+  if (x.tipo !== "nxm" && x.tipo !== "n_por_monto" && x.tipo !== "nesima_pct") return null;
+  const titular = titularDeOferta({ tipo: x.tipo, lleva: Number(x.lleva ?? 0), paga: Number(x.paga ?? 0), monto: Number(x.monto ?? 0), porcentaje: Number(x.porcentaje ?? 0) });
+  return { titular, nombre: String(x.etiqueta ?? x.nombre ?? "") };
 }
 
 /** Normaliza una fila cruda de `buscar_separaciones` (numeric llega como texto desde PostgREST). */
@@ -487,6 +518,8 @@ export function apartadoDeFila(f: Record<string, unknown>): Apartado {
       motivoDescuento: textoONulo(i.motivo_descuento),
       motivoDescuentoDetalle: textoONulo(i.motivo_descuento_detalle),
       argumentoDescuento: textoONulo(i.argumento_descuento),
+      descuentoGrupoUnitario: n(i.descuento_grupo_unitario),
+      ofertaGrupo: ofertaGrupoDeFila(i.oferta_grupo),
     })),
     pagos: pagos.map((p) => ({ metodo: p.metodo as MetodoPago, monto: n(p.monto), fecha: (p.fecha as string | null) ?? null, abono: Boolean(p.abono) })),
     estante: (f.estante as string | null) ?? null,

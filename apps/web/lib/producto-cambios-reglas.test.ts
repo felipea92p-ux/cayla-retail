@@ -406,6 +406,10 @@ describe("textoDeSalidaDeFicha — lo que dice «¿Salir sin guardar?»", () => 
   it("dice «1 cambio» en singular", () => {
     expect(textoDeSalidaDeFicha(1, "Blusa")).toBe("Tienes 1 cambio sin guardar en «Blusa». Si sales ahora, se pierden.");
   });
+  it("cuenta la foto de catálogo que se está preparando (se pierde al salir)", () => {
+    expect(textoDeSalidaDeFicha(0, "Blusa", true)).toBe("Se está preparando una foto de catálogo de «Blusa». Si sales ahora, se pierde.");
+    expect(textoDeSalidaDeFicha(2, "Blusa", true)).toBe("Tienes 2 cambios sin guardar y una foto que se está preparando en «Blusa». Si sales ahora, se pierden.");
+  });
 });
 
 describe("formatoPrecio y formatoCosto", () => {

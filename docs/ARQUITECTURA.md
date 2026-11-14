@@ -202,7 +202,10 @@ flowchart TB
   pregunta por permiso (`puede`/`exigirPermiso` en `lib/persona-actual.ts`, `permisosDe(rol, terminal)` y `terminales` por nodo
   en `lib/menu.ts`); `persona.terminal` distinto de null = la sesión es un APARATO (pie del lateral con el aparato, sin «Mi perfil»).
   La sesión de una terminal entra por el mismo `requirePersonaActualV2` (su fila viene de `fn_persona_actual_resumen`,
-  que ahora tiene rama de terminal); una terminal desactivada ve su propio aviso en `/login`. `desactivar_terminal` corta
+  que ahora tiene rama de terminal); una terminal desactivada ve su propio aviso en `/login`. **Desde ADR-0657 (20261113200000)
+  `requirePersonaActualV2` pide las seis respuestas de identidad en UN viaje** (`fn_mi_sesion()` ↔ `lib/mi-sesion-reglas.ts`, que las
+  traduce a las seis de siempre) y vuelve a las seis RPC si la base aún no la tiene (PGRST202); `fn_mis_modulos` y `fn_mi_sesion`
+  comparten la regla `fn_modulos_de` (capa 2 «regla por fila», sin `security definer`, vigilada por `pnpm pruebas:reglas-por-fila`). `desactivar_terminal` corta
   la sesión en el acto (`fn_terminal_actual` deja de devolverla). Alta y clave: `pnpm terminales:crear` (lo corre Felipe con
   la llave de servicio; muestra la clave una sola vez; partes puras probadas con `pnpm terminales:probar`).
   **D-70 (ADR-0157): el alta de un colaborador (persona) no queda operativa sola.** `colaboradores.estado`
@@ -397,7 +400,10 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
   ADR-0328 decisión 5—; solo para quien opera esa sede; vía `lib/piso-plan-servidor.ts`, que se la pasa al motor puro
   `lib/piso-plan.ts`: «Hoy» de cada talla —por colgar · sin stock atrás · mantener, más «En pausa»—, la lista del
   día y «se vendió rápido y falta»; la
-  decisión viaja en `FilaExistencias.planPiso` y la leen la tabla, el filtro, la tarjeta, el cajón y «Subir prenda»; ningún
+  decisión viaja en `FilaExistencias.planPiso` —desde el 2026-11-13 (ADR-0662) en dos tiempos: la página no espera al plan, le pasa al
+  panel su PROMESA recortada a las tallas de la sede (`lib/existencias-plan-panel.ts:planDelPanel`) y el panel la pone en cada fila al
+  llegar (`components/existencias/usePlanDelPiso.ts` → `aplicarPlan`); mientras tanto, «calculando»— y la leen la tabla, el filtro, la
+  tarjeta, el cajón y «Subir prenda»; cada carga deja la línea `existencias_tramos` en el registro (`lib/medir-tramos.ts`); ningún
   umbral de piso vive fuera de ese archivo, `lib/piso-plan-umbral.test.ts`; cuántas tallas hay «por colgar» o «en pausa» lo
   cuenta solo `porColgarDeLaSede`, `lib/existencias-para-hoy.ts`, con el orden de la lista del día) →
   `InventarioPanel.tsx` (tres tarjetas, filtros en memoria —el buscador es el Filtro de búsqueda especial,
@@ -891,7 +897,8 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
   `retail.color_combinado` (busca o crea la mezcla; nombre y código los arma la base). La pantalla la arma con `ArmarMezcla`
   («+ acompañante» de `ElegirColores`, prop `conMezclas`: Nuevo producto y `recepcion-envio/HojaPrenda`); la lógica pura vive en
   `lib/color-combinado.ts` (nombre, componentes, punto partido). La carta y Atributos agrupan las mezclas en «Combinados» con `familiaEnCarta`.
-- `/productos/insignias` (Catálogo ▸ Insignias —se llamó «Sellos» hasta el 2026-10-23—, ADR-0481; lo abren los módulos `etiquetas` o `campanas`; en el código sigue llamándose `sellos`) → `page.tsx` lee con
+- `/productos/campanas` (Catálogo ▸ Campañas y ofertas, ADR-0655; lo abren los módulos `campanas` o `etiquetas`) → la misma `SellosPantalla` con `modo="campanas"` y la misma lectura de abajo (`cargarEtiquetasPantalla({ modo: "campanas" })`); cada campaña dice sus tres preguntas (`preguntasDeCampana`) y el «?» abre `MapaCampanas`.
+- `/productos/insignias` (Catálogo ▸ Insignias —se llamó «Sellos» hasta el 2026-10-23—, ADR-0481; desde ADR-0655 solo Rotación, Artesanal y General y solo con el módulo `etiquetas`; `?vista=campanas` y quien solo tiene `campanas` van a `/productos/campanas`; en el código sigue llamándose `sellos`) → `page.tsx` lee con
   `lib/etiquetas-pantalla-datos.ts` (`cargarEtiquetasPantalla({ modo: "todas", conVitrina: true })`: todas las filas de `etiquetas`, las
   prendas a la venta con su modelo, color, categoría y foto —`colores`, `categorias`, `producto_fotos`— y, para quien puede analizar, la
   lectura de Rotación de `lib/etiqueta-rotacion-datos.ts`: `fn_analisis_sede` por tienda, unidades y vendidas en 30 días por talla) →
@@ -900,16 +907,12 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
   `prendasDelSello`, `loQueTiene`), el sello de tinta en `components/sellos/SelloTinta.tsx` y el movimiento en
   `app/estilos/sellos.css`. Guarda por las mismas puertas de antes: crear (`POST /api/productos/etiquetas` con el estilo de la vista),
   aprobar, rechazar, desactivar y reactivar (`PATCH`), configurar o repetir (`CampanaModal` → `actualizar_campana_etiqueta`) y
-  prendas (`PrendasDeEtiquetaModal`); **desde el 2026-10-23 «Configurar» de una campaña abre `components/sellos/OfertasHoja.tsx` («Tres preguntas», ADR-0496): las ofertas de la campaña (`campana_reglas()` leídas en `cargarEtiquetasPantalla`; guardar, activar y retirar por `/api/productos/campana-reglas` → `guardar_campana_regla`, `activar_campana_regla`, `retirar_campana_regla`; lógica en `lib/campana-reglas.ts`, estilos `app/estilos/ofertas.css`; las etapas son ¿Qué le das? → ¿Cuándo y dónde? (fechas, días y tiendas) → ¿En qué prendas? (la selección de categorías de producción), con la etiqueta de la hoja de la campaña a la derecha, `components/campana-hoja/EtiquetaDeCampana.tsx`, y su grilla de categorías, `CategoriasDeCampana.tsx`) y, en la misma hoja y sin otra ventana, la franja de la campaña cambia o repite sus fechas, retira su descuento de siempre y quita un límite de tiendas (todo por `PATCH /api/productos/etiquetas`); cada oferta puede limitarse a algunas tiendas de su campaña (`campana_regla_sedes`); la caja las lee por `fn_campanas_en_sede`; `CampanaModal` solo se abre si la base no tiene las ofertas y desde la ficha de Tienda web**; imprime sus etiquetas de precio y enlaza al diseño (`/tienda-web/campanas/[id]`, para quien ve
+  prendas (`PrendasDeEtiquetaModal`); **desde el 2026-10-23 «Configurar» de una campaña abre `components/sellos/OfertasHoja.tsx` («Tres preguntas», ADR-0496): las ofertas de la campaña (`campana_reglas()` leídas en `cargarEtiquetasPantalla`; guardar, activar y retirar por `/api/productos/campana-reglas` → `guardar_campana_regla` (o `guardar_oferta` si la oferta elige modelos sueltos, `campana_regla_productos`, ADR-0655; o `guardar_oferta_y_ceder` si otra oferta le cede, `campana_regla_cesiones`), con los choques de «una prenda, una oferta por tienda y por día» leídos en la hoja por `fn_choques_de_oferta` (`components/sellos/ChoquesDeOferta.tsx`) y frenados en la base por el disparador diferido `campana_reglas_sin_choques`, `activar_campana_regla`, `retirar_campana_regla`; lógica en `lib/campana-reglas.ts`, estilos `app/estilos/ofertas.css`; las etapas son, desde ADR-0655, ¿Qué le das? → ¿En qué prendas? (por categoría o prenda por prenda) → ¿Cuándo y dónde? (fechas, días y tiendas) → Revisa y activa, con la etiqueta de la hoja de la campaña a la derecha, `components/campana-hoja/EtiquetaDeCampana.tsx`, y su grilla de categorías, `CategoriasDeCampana.tsx`) y, en la misma hoja y sin otra ventana, la franja de la campaña cambia o repite sus fechas, retira su descuento de siempre y quita un límite de tiendas (todo por `PATCH /api/productos/etiquetas`); cada oferta puede limitarse a algunas tiendas de su campaña (`campana_regla_sedes`); la caja las lee por `fn_campanas_en_sede`; `CampanaModal` solo se abre si la base no tiene las ofertas y desde la ficha de Tienda web**; imprime sus etiquetas de precio y enlaza al diseño (`/tienda-web/campanas/[id]`, para quien ve
   `campanas_web`). `/productos/campanas`, `/productos/etiquetas` y `/productos/atributos?tipo=etiquetas` redirigen aquí
   (`next.config.ts`). La tarjeta de UNA campaña (`TarjetaDeCampana`, en `components/EtiquetasLista.tsx`) sigue en la pestaña «Datos y
   prendas» de `/tienda-web/campanas/[id]`. Una campaña es una fila de `retail.etiquetas` con estilo `campana`; un sello, todo lo demás.
-- `/productos/liquidacion` (Catálogo ▸ Liquidación, módulo `liquidacion`, ADR-0379) → `page.tsx` lee `fn_piezas_liquidacion` y
-  `categorias` → `LiquidacionPantalla.tsx` (cifras, buscador que lee una etiqueta LQ con `fn_pieza_liquidacion`, lista) +
-  `EtiquetarPiezaModal.tsx` (`crear_pieza_liquidacion`) + `PiezaLiquidacionModal.tsx` (`cambiar_precio_pieza_liquidacion`,
-  `retirar_pieza_liquidacion`) + `PrecioMinimoLiquidacion.tsx` (`guardar_precio_minimo_liquidacion`); la etiqueta de papel es
-  `EtiquetaLiquidacion.tsx` y se imprime con `useImprimirLiquidacion` (la misma hoja de la Brother). Vender
-  (`PuntoDeVenta.tsx:agregarPiezaLiquidacion`) manda la línea con `pieza_liquidacion_codigo` a `registrar_venta`.
+- ~~`/productos/liquidacion` (Catálogo ▸ Liquidación, ADR-0379)~~ — **retirada el 2026-11-13 (ADR-0653)**: sin pantalla ni módulo,
+  y Vender ya no lee una etiqueta `LQ`. Las tablas y funciones quedan en la base, sin permiso para la web.
 - **Tienda web** (ADR-0430, Felipe 2026-10-16): el grupo del lateral que junta lo de la tienda online. `/tienda-web/layout.tsx` deja
   entrar a quien ve alguno de sus módulos (`pedidos_web`, `vitrina_web`, `recomendaciones`, `configuracion`) y cada pantalla repite la
   puerta del suyo. Las direcciones de antes (`/vender/pedidos-web`, `/productos/vitrina…`, `/clientas/recomendaciones`,
@@ -1597,6 +1600,11 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
   `components/mi-plata/HojaCorregirGasto.tsx` (los campos de «Gasté en otra cosa», que son la pieza `CamposDelGasto.tsx`, con lo anotado puesto) →
   `lib/corregir-gasto-acciones.ts` (`fn_gasto_para_corregir`, `corregir_gasto_rapido`, firma `gasto_corregir`) + `lib/corregir-gasto-reglas.ts` (puro). Solo con el gasto `por_completar`
   y su ronda abierta (una cerrada se reabre antes, ADR-0569). El rastro (`compra_gasto_correcciones`, `fn_gasto_correcciones`) se ve con `CorreccionesDeCompra gastoId`.
+  «Por definir» (ADR-0660, migración `20261113211000`): «Algo nuevo» (`HojaPrenda.tsx`) anota la categoría «Por definir» y el precio «A la espera de precio
+  sugerido» (`lineasParaBase` manda `categoria_por_definir` / `precio_por_definir` a `registrar_compra_rapida`). La sección y la hoja «Definir»
+  (`components/mi-plata/PorDefinir.tsx`, en `/compras/fondos` y `/compras/mi-plata`) leen `fn_compras_por_definir` (`lib/por-definir.ts`) y guardan con
+  `definir_prenda_de_compra` (firma `compra_definir`); reglas puras en `lib/por-definir-reglas.ts`. «Te toca» suma `porDefinir` (`lib/inicio.ts` →
+  `lib/inicio-avisos.ts`). En Recibir la línea llega con `CATEGORIA_POR_DEFINIR` (`lib/recepcion-envio-reglas.ts`) y se define con `corregir_linea_al_contar`.
 - ~~**Notas de crédito**~~ (retirada el 2026-10-22, ADR-0480: la pantalla, sus modales y `lib/notas-credito*.ts` se borraron;
   `/compras/notas-credito` redirige a `/compras`; las tablas y RPC de abajo siguen en la base). Lo que era (2026-09-19, ADR-0142): `/compras/notas-credito` (quien tiene Notas de crédito: ADR-0161 y ADR-0387; nació solo del líder) → `lib/notas-credito.ts`
   (lectura) + `lib/notas-credito-reglas.ts` (puro: urgencia a 14 días, FIFO para deducir «Aplicada», las tres
@@ -2113,6 +2121,9 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
     (`fn_piso_plan_lectura`, `fn_demanda_sede`, `fn_motor_demanda_preparacion`, `fn_frescura_decisiones`), `fn_rentabilidad`, `fn_calidad`, `fn_costo_estimado_resumen` (el costo que estima el Resumen de Finanzas: la actividad 5 lo había dejado
     pasar) y lo más vendido de la tienda web (`fn_vitrina_probador`, `fn_vitrina_recortes`). NO cambian los que miran el libro de movimientos o el stock por dueño (Frescura del piso, `fn_resumen_*`, Pérdidas, calidad de dañadas,
     reparto por proveedor, capacidad del Plan del piso): quedan como pendiente de Felipe. Prueba: `pnpm pruebas:claure-analisis-y-motores`.
+    **De una pasada (ADR-0658, 20261113201000):** `fn_piso_plan_lectura` y las seis lecturas de `fn_plan_compra` ya no preguntan línea por línea: hacen
+    `vi.id not in (select … retail.fn_lineas_de_claure(<ventana>[, sede]))`. El ayudante junta las líneas de las sedes de CLAURE desde su arranque y solo a esas
+    les pide el dueño (`fn_dueno_de_la_linea`). Prueba de que marca lo mismo que `fn_item_es_de_claure`: `pnpm pruebas:lineas-de-claure`.
     **Apartados y pedidos web con prendas de CLAURE (actividad 7, 20261029043000):** al entregar un apartado (`entregar_separacion`) o despachar un pedido web (`fn_pedido_web_vender`), el adelanto queda en la venta como un
     pago de medio `anticipo` SIN cuenta, así que `fn_claure_filas` (A1) no lo veía. Ahora suma también, por la parte de CLAURE de la venta, los abonos de `separacion_pagos` (no efectivo) y los pagos `aprobado` y no anulados de
     `pedido_web_pagos`, en la cuenta donde cayó cada uno y fechados el día de la venta: se le debe a Claudia desde que la prenda sale, no desde el abono. Mientras no hay venta no se debe nada. Lo leen la pantalla CLAURE,
@@ -2217,6 +2228,14 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
     Tablas `periodos`, `periodo_cierres`, `diario_cerrado` (con hash); disparadores de bloqueo por fecha en gastos, compras
     y sus pagos y notas, reembolsos, activos, movimientos de dinero, ventas de prueba y costo de lo vendido.
   - `/finanzas/resumen` → también «Cada sede, junta» (tarea 27 de «Las 36», 2026-11-06): `getEstadoResultados` + `getBalancePorTienda` → `lib/sedes-juntas-reglas.ts` → `components/finanzas/SedesJuntas.tsx`. Los sueldos estimados de un tramo se piden en un solo lugar (`hastaDeLaProvision`, `lib/planilla-provision-reglas.ts`).
+  - `/finanzas/resumen` → **desde 2026-11-13, por bloques (ADR-0661)**: el Resumen se lee en TRES lecturas a la vez de
+    `fn_resumen_finanzas_partes` (`lectorDelResumen`, `lib/resumen-finanzas.ts`; los grupos y cómo se juntan en `lib/resumen-finanzas-partes.ts`;
+    `fn_resumen_finanzas` es su envoltorio con todas las partes, migración `20261113235000`). La página espera solo la rápida (`rapido`) y le pasa
+    lo demás al panel como promesas (`LecturasDelResumen`); cada bloque de `components/finanzas/ResumenFinanzas.tsx` hace `use()` de lo suyo dentro
+    de su `Suspense`, con `EsperaBloque` (`components/finanzas/bolsillos/EsperaBloque.tsx`) en su lugar. Las cuentas que cada bloque arma con lo que
+    le llegó viven en `lib/resumen-bloques.ts` (`armarCaja`, `armarMes`). Una «puerta» deja correr primero la rápida y el mes. Los logs:
+    `finanzas_resumen_ms` (las 13 partes) y `finanzas_resumen_bloque` (cuándo pudo dibujarse cada bloque). Sin la función por partes, lee la entera
+    una vez y la reparte.
   - `/finanzas/resumen` → **desde 2026-11-09, camino «A · Bolsillos» (ADR-0493, actualización 2026-11-09)**: las fechas con `SelectorPeriodo`
     (`leerPeriodo`/`periodoAnterior`, `lib/estados-periodo.ts`); «Libre para usar» y sus bolsillos (`lib/bolsillos-reglas.ts` →
     `components/finanzas/bolsillos/SaldoLibre.tsx`); «Noviembre va así» (`lib/te-deja-mes-reglas.ts` + `equilibrioMes` → `TarjetaMes.tsx`);
@@ -2432,6 +2451,15 @@ cuando hace falta hablar con algo que no es Postgres, o devolver un archivo.
   archivo, no el esquema. Si Lucode no responde, el comprobante se queda en su
   estado real (`pendiente`/`rechazado`) y el botón sigue a la vista: nunca se
   le inventa un estado ni se reintenta solo. ADR-0009.
+- `/api/fotos/catalogo` → `POST` multipart (`frente`, y opcionales `espalda`, `detalle`, `molde`): la foto de catálogo con IA de una prenda
+  (ADR-0659). Pide sesión y el módulo Productos, 12 por persona por minuto; llama a OpenAI (`lib/openai-imagen-reglas.ts`, llave en
+  `lib/foto-catalogo.ts`, solo servidor) y devuelve el PNG transparente 1024×1280 con `x-costo-usd`. Sin llave, 503. No guarda nada: la
+  pantalla sube el par (`subirParDeCatalogo`, `lib/producto-fotos.ts`: la real en `fotos/<id>.<ext>`, la de IA en `….ia.png`). La llaman
+  `components/ficha-producto/useCatalogoIA.tsx` (Editar) y `components/alta-producto/useCatalogoIAAlta.tsx` (Nuevo) vía
+  `lib/foto-catalogo-cliente.ts`, que achica las fotos a 1.600 px. `/api/fotos/laboratorio` es su banco de pruebas, solo fuera de producción.
+  **`GET`** (2026-11-13) responde `{ fotos, ia }`: si la cuenta puede guardar fotos de una prenda (`fn_puede_editar_catalogo`, la regla de
+  `producto_fotos`) y pedir la de IA; lo pregunta Recibir ▸ «Crear la prenda que llegó» (`recepcion-envio/HojaPrenda.tsx`, vía
+  `leerPermisoDeFotos`) para mostrar sus fotos por color (`alta-producto/FotosDeColores.tsx`, la misma pieza de la tabla de Nuevo producto).
 - `/api/conteo/prendas` → `GET`, solo lectura: las prendas con stock en la sede de quien pregunta (la sede sale de la
   sesión) para el buscador «Por prenda» de «Abrir un conteo». Una fila por variante con nombre, códigos, foto y *dónde*
   hay stock (piso/almacén/ubicación), **sin cantidades**. Se llama al tocar la opción, no al abrir el inicio. Si la base
@@ -2490,6 +2518,10 @@ cuando hace falta hablar con algo que no es Postgres, o devolver un archivo.
   `retail.fn_salud()` (`select true`, migración 20261017225000) por la llave pública con tope de 4 s y la respuesta guardada 10 s por instancia
   (`lib/salud-reglas.ts`); el motivo es de una lista fija, nunca un mensaje de la base. La repite `/sin-base` y el vigía de GitHub. La tienda tiene la suya
   (`apps/tienda/app/api/salud`, `select 1` por `base()`). ADR-0450.
+- `/api/salud/rendimiento` → `GET`, solo el cron (`CRON_SECRET`, `lib/rutas-cron.ts`), cada hora a los 7 minutos: llama a `retail.fn_foto_rendimiento()` con la llave
+  de servicio, que guarda en `retail.rendimiento_fotos` lo que costó cada función o tabla de retail en esa hora (diferencias contra la foto anterior de
+  `pg_stat_statements`; nunca la reinicia). La respuesta la lee `lib/vigia-rendimiento-reglas.ts`; si la base falla, 500 y Sentry. El antes y el después de
+  un pegado: `retail.fn_rendimiento_antes_despues(desde, nombre, ventana)`, desde el SQL Editor. ADR-0656.
 - `/sin-base?desde=<ruta>` → pantalla pública (`app/sin-base/page.tsx`, `components/SinBase.tsx`): «No logramos conectar con el sistema. Tu sesión sigue abierta».
   A ella va, en vez de al login, quien tiene la sesión abierta cuando la base no responde: `requirePersonaActualV2` (`esFalloDeLaBase`, `lib/base-caida-reglas.ts`) y
   `proxy.ts` (`noSePudoComprobar`: Auth sin responder al renovar la sesión; una API recibe 503, una acción de servidor sigue de largo). El proxy anota la pantalla
@@ -2499,6 +2531,12 @@ cuando hace falta hablar con algo que no es Postgres, o devolver un archivo.
   montado una vez en `app/(app)/layout.tsx`, reglas en `lib/version-nueva-reglas.ts`) cada 5 min con la pestaña a la vista: si la de producción es
   otra que la de la pestaña, sale «Hay una versión nueva de CAYLA» con «Actualizar» / «Más tarde». No es pública y su `fetch` no lleva `?dpl=` (la
   protección de versiones de Vercel, 12 h, lo atendería en la versión vieja). `Cache-Control: no-store`. ADR-0422.
+- `/api/tiempos` → `POST`, con sesión, 204 siempre: el cronómetro del clic (ADR-0654). `onRouterTransitionStart` (`instrumentation-client.ts`,
+  con `experimental.instrumentationClientRouterTransitionEvents`) arranca la medición en `lib/tiempos-de-pantalla-cliente.ts`; termina en el
+  primer cuadro sin `[data-esqueleto-pantalla]` con la ruta nueva ya anotada por `<CronometroDelClic sedeId>` (`components/CronometroDelClic.tsx`,
+  montado una vez en `app/(app)/layout.tsx`: ruta, `useParams()`, envío cada 30 s y al ocultar la pestaña por `sendBeacon`). La ruta valida el
+  lote (`leerLote`, `lib/tiempos-de-pantalla-reglas.ts`) y escribe una línea `tiempo_de_pantalla` por medición (patrón de ruta, ms, sede,
+  `sin_esqueleto`, versión). Sin base. Se lee con `vercel logs --query tiempo_de_pantalla` (p75 por módulo y sede: el ADR).
 
 - `/api/clientas/acceso-web` → `POST` desde la ficha de un cliente, «Restablecer acceso» a la tienda online (2026-10-15,
   `20261015132000`): `restablecer_acceso_tienda_web` (con la firma del Responsable) deja pedido el cambio del correo de entrada y

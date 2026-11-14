@@ -1,0 +1,4 @@
+## 2026-11-13 (Recibir: el precio de la IA se pide al abrir la hoja, y sus textos son de una línea)
+Qué hice: la propuesta de precio de «Crear la prenda que llegó» se pide apenas se abre la hoja (y otra vez solo si cambia el tejido), no al dejar «Cómo es»; a la IA se le pide una razón de una frase de 12 palabras o menos, y se acortaron los textos del paso Precio y los avisos sin propuesta.
+Por qué así: con #1830 en producción seguía apareciendo «Calculando…»: la IA tarda 4 a 7 s (medido en `retail.precio_propuestas`) y el paso de tallas se pasa en menos. Desde que se abre la hoja hay tiempo de sobra. El tejido es lo único de «Cómo es» que cambia la respuesta, así que solo él la vuelve a pedir.
+Felipe se lleva: al llegar al precio la propuesta ya está; elegir tejido gasta una consulta más (~US$0,04) en vez de hacerte esperar. Falta verlo en producción con la IA real.

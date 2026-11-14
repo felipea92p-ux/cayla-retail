@@ -92,6 +92,7 @@ import {
   type TemporadaElegida,
 } from "@/lib/variantes-ficha-reglas";
 import { PanelDelTaller } from "@/components/ficha-producto/PanelDelTaller";
+import { useCatalogoIA } from "@/components/ficha-producto/useCatalogoIA";
 import type { PuertaDeLaFicha } from "@/lib/ficha-consumo-datos";
 import type { CostoEnLaFicha } from "@/lib/costo-tallas-reglas";
 import { SeccionFicha } from "@/components/ficha-producto/SeccionFicha";
@@ -316,7 +317,10 @@ export function ProductoForm({
   volverA = "/productos",
   nombreProveedor,
   costoEnLaFicha,
+  catalogoIADisponible = false,
 }: {
+  /** El servidor tiene la llave de OpenAI: se ofrece «Catálogo con IA» en las fotos (`fotoCatalogoDisponible`). */
+  catalogoIADisponible?: boolean;
   categorias: Categoria[];
   /** Vocabulario de colores activo, con familia y sinónimos (lo mismo que ve el alta). */
   colores: ColorAlta[];
@@ -434,6 +438,10 @@ export function ProductoForm({
   const temporadaUbicada = useMemo(() => ubicarTemporadas(temporadaEditada, mudanzas, porColorBase), [temporadaEditada, mudanzas, porColorBase]);
   const temporadaColor = useMemo(() => ({ ...porColorGuardado, ...temporadaUbicada }), [porColorGuardado, temporadaUbicada]);
   const fotosVista = useMemo(() => fotosComoSeVen(fotos, mudanzas), [fotos, mudanzas]);
+  const fotosVistaRef = useRef(fotosVista);
+  useEffect(() => {
+    fotosVistaRef.current = fotosVista;
+  }, [fotosVista]);
   // La subida de una foto termina después de un `await`: se ancla con las filas de ESE momento, no con las de cuando empezó.
   const filasRef = useRef(filas);
   const frenoCantidades = useRef<() => boolean>(null);
@@ -517,6 +525,15 @@ export function ProductoForm({
   // ofrece el desplegable (diría «Igual que su prenda» sin saberlo) ni se manda nada por él; se avisa.
   const coloresInciertos = coloresSinTemporadaConocida(producto?.variantes ?? [], coloresFicha);
   const coloresConTemporada = coloresFicha.filter((c) => !coloresInciertos.includes(c));
+  // «Catálogo con IA» (2026-11-13): el interruptor de las fotos, la hoja de ángulos y lo que se prepara. La foto lista entra como la de «Cambiar foto».
+  const catalogo = useCatalogoIA({
+    disponible: catalogoIADisponible,
+    fotos: fotosVista,
+    colores: coloresFicha,
+    nombreColor: nombres.color,
+    onLista: fotosDesdePanel,
+    onFotos: cambiarFotos,
+  });
   // Sin saber qué excepciones hay guardadas (`porColor` null) no se ofrece: mostraría «Igual que su prenda» sobre una
   // excepción que sí existe. Con un solo color, se ofrece igual si ese color ya tiene la suya (o no se sabe).
   const ofreceTemporadaPorColor = !!temporadas?.porColor && ofrecerTemporadaPorColor(coloresFicha, porColorGuardado, coloresInciertos);
@@ -804,10 +821,14 @@ export function ProductoForm({
           puedeTocar: (id) => preciosSede.tiendas.some((t) => t.id === id),
         })
       : null;
-  const hayCambios = !guardado && totalCambios > 0;
+  // Una foto de catálogo que la IA está preparando cuenta como cambio: salir a mitad la perdería, y ya se pagó (formidable, 2026-11-13).
+  const hayCambios = (!guardado && totalCambios > 0) || catalogo.preparandoAlgo;
   // «¿Salir sin guardar?» (Felipe, 2026-09-28: «preguntar antes de perder»): el aviso de Compras y Recibir, con esta frase.
   // Cubre enlaces, Atrás y cerrar la pestaña; ver `useSalidaSinGuardar`.
-  const salida = useSalidaSinGuardar(hayCambios, textoDeSalidaDeFicha(totalCambios, producto?.referencia ?? referencia));
+  const salida = useSalidaSinGuardar(
+    hayCambios,
+    textoDeSalidaDeFicha(guardado ? 0 : totalCambios, producto?.referencia ?? referencia, catalogo.preparandoAlgo),
+  );
 
   function recargar() {
     // Recargar es justamente descartar lo escrito (otra persona guardó antes): sin el aviso nativo encima.
@@ -827,6 +848,8 @@ export function ProductoForm({
     if (frenoCantidades.current?.()) return;
     if (!producto) return void avisar.error("Esta pantalla solo edita productos. Para crear uno usa Nuevo producto.");
     if (!hayCambios) return;
+    // Una foto de catálogo en camino: guardar espera a que llegue (Enter en un campo no pasa por el botón apagado).
+    if (catalogo.preparandoAlgo) return;
     if (versionCambiada) {
       return void avisar.error("Otra persona cambió esta prenda: recárgala para poder guardar.", { accion: { texto: "Recargar", onClick: recargar } });
     }
@@ -1421,12 +1444,14 @@ export function ProductoForm({
     );
   }
 
-  /** «Cambiar foto» del panel: la foto subida entra en su color y pasa a ser la que se ve en él (la principal, si la de antes lo era). */
+  /** «Cambiar foto» del panel: la foto subida entra en su color y pasa a ser la que se ve en él (la principal, si la de antes lo era). También la
+   *  usa «Catálogo con IA» cuando su foto está lista, ~25 s después: por eso lee las fotos de AHORA (`fotosVistaRef`), no las de cuando se pidió. */
   function fotosDesdePanel(nuevas: FotoSubida[]) {
     if (nuevas.length === 0) return;
+    const actuales = fotosVistaRef.current;
     const conClave = nuevas.map((n) => ({ clientKey: crypto.randomUUID(), id: null, url: n.url, esPrincipal: false, colorCodigo: n.colorCodigo }));
-    let siguientes: FotoLocal[] = conFotosNuevas(fotosVista, conClave);
-    const portadaAntes = fotosDelColor(fotosVista, conClave[0].colorCodigo)[0];
+    let siguientes: FotoLocal[] = conFotosNuevas(actuales, conClave);
+    const portadaAntes = fotosDelColor(actuales, conClave[0].colorCodigo)[0];
     siguientes = portadaAntes?.esPrincipal ? comoPrincipal(siguientes, conClave[0].clientKey) : primeraEnSuColor(siguientes, conClave[0].clientKey);
     cambiarFotos(siguientes);
   }
@@ -1848,6 +1873,7 @@ export function ProductoForm({
                 colores={coloresFicha}
                 vocabulario={colores}
                 nombreColor={nombres.color}
+                catalogo={catalogo}
                 disabled={loading}
               />
             </div>
@@ -2069,9 +2095,11 @@ export function ProductoForm({
           campana={fraseCampana}
           fichaConsumo={producto && fichaConsumo ? { ...fichaConsumo, productoId: producto.id, referencia: producto.referencia } : null}
           deshabilitado={loading}
+          catalogo={catalogo}
         />
       </div>
       </div>
+      {catalogo.hoja}
 
       {agregandoColor && (
         <AgregarColoresModal
@@ -2125,6 +2153,7 @@ export function ProductoForm({
           tallas={tallasCategoria}
           onConfirmar={(destino) => setFilas(corregir(filas, corrigiendo.claves, destino))}
           onClose={() => setCorrigiendo(null)}
+          onColorCreado={(color) => setColoresCreados((a) => (a.some((c) => c.codigo === color.codigo) ? a : [...a, color]))}
         />
       )}
       {puerta && producto && (
@@ -2164,7 +2193,8 @@ export function ProductoForm({
 
       {/* Lo pendiente, siempre a la vista: la única forma de guardar (ADR-0257). Va dentro del formulario para que «Revisar y guardar» lo envíe. */}
       <BarraDeCambios
-        cantidad={hayCambios ? totalCambios : 0}
+        cantidad={!guardado && totalCambios > 0 ? totalCambios : 0}
+        preparandoFoto={catalogo.preparandoAlgo}
         versionCambiada={versionCambiada}
         sinLeerVariantes={hayQueRecargar}
         yaSeGuardoLoDemas={seGuardoParte}

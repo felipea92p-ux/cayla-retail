@@ -29,7 +29,7 @@ export async function getClasesDeAvio(): Promise<{ clases: ClaseDeAvio[]; leyo: 
 // si no se lee, la hoja lo dice y no ofrece una carta vacía como si no hubiera colores.
 export async function getColoresDeLaCarta(): Promise<{ colores: ColorAlta[]; leyo: boolean }> {
   const supabase = await createClient();
-  const { data, error } = await supabase.from("colores").select("codigo, nombre, hex, familia_color, tipo, sinonimos, pantone_tcx, descripcion, combina_con").eq("activo", true).order("orden");
+  const { data, error } = await supabase.from("colores").select("codigo, nombre, hex, familia_color, tipo, sinonimos, pantone_tcx, descripcion").eq("activo", true).order("orden");
   if (error || !data) {
     console.error(`carta de colores: ${error?.message ?? "sin datos"}`);
     return { colores: [], leyo: false };
@@ -44,7 +44,6 @@ export async function getColoresDeLaCarta(): Promise<{ colores: ColorAlta[]; ley
       sinonimos: c.sinonimos ?? [],
       pantoneTcx: c.pantone_tcx ?? null,
       descripcion: c.descripcion ?? null,
-      combinaCon: c.combina_con ?? [],
     })),
     leyo: true,
   };

@@ -40,6 +40,7 @@ export function EtiquetaDeCampana({
   sello,
   resumen,
   textoSinDescuento,
+  titular,
 }: {
   nombre: string;
   /** El descuento como quedaría: un %, `null` (la campaña solo marca prendas) o `"mal"` (lo escrito no es un descuento). */
@@ -66,6 +67,8 @@ export function EtiquetaDeCampana({
   resumen?: ReactNode;
   /** Lo que dice la etiqueta cuando `descuento` es `null`. De fábrica, el de una campaña que solo marca prendas. */
   textoSinDescuento?: string;
+  /** Una oferta de grupo (ADR-0655, actividad 6): lo que da, en grande («3 x 2», «3 por S/ 100.00»), en lugar del %. */
+  titular?: string;
 }) {
   const tarjeta = useRef<HTMLDivElement>(null);
   const mosaico = useRef<HTMLDivElement>(null);
@@ -104,7 +107,11 @@ export function EtiquetaDeCampana({
         <span aria-hidden className="eqp-ojal" />
         <span className="eqp-solo-ancho eqp-alto label-cayla block text-center text-[10.5px] text-taupe">Etiqueta de campaña</span>
         <h3 className="eqp-nombre mt-1">{nombre}</h3>
-        {typeof descuento === "number" ? (
+        {titular ? (
+          <p key={titular} className="eqp-pct cph-rueda">
+            {titular}
+          </p>
+        ) : typeof descuento === "number" ? (
           // La llave cambia con el descuento: cada número nuevo entra subiendo (`cph-rueda`, una vez).
           <p key={textoPct(descuento)} className="eqp-pct cph-rueda">
             −{textoPct(descuento)} %

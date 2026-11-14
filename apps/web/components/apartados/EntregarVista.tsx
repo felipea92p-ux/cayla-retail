@@ -225,7 +225,7 @@ export function EntregarVista({
             <LineaDeTiempo creadaEl={diaLima(a.creadaEn)} hoy={hoy} venceEl={a.venceEl} />
             <ul className="divide-y divide-sand border-t border-sand">
               {a.prendas.map((pr) => (
-                <li key={pr.varianteId} className="flex flex-wrap items-center gap-x-3 py-2.5">
+                <li key={pr.itemId || pr.varianteId} className="flex flex-wrap items-center gap-x-3 py-2.5">
                   <FotoPrenda fotoUrl={porVariante.get(pr.varianteId)?.fotoUrl} referencia={pr.referencia} colorHex={porVariante.get(pr.varianteId)?.colorHex} categoria={porVariante.get(pr.varianteId)?.categoria} categoriaPrefijo={porVariante.get(pr.varianteId)?.categoriaPrefijo} categoriaFamilia={porVariante.get(pr.varianteId)?.categoriaFamilia} ancho={44} className="w-11" />
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-sm font-semibold text-tinta">{pr.referencia}</p>

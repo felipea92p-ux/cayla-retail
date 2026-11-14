@@ -205,6 +205,11 @@ export const PRUEBAS = [
   // tienda, el Taller y la empresa; cada aviso aparece cuando corresponde; el gasto fuera de lo normal; permisos. ROLLBACK.
   "pruebas:resumen-finanzas",
 
+  // Resumen por bloques (ADR-0661): las tres lecturas de la web (lo rápido, el mes, el anterior y el presupuesto) juntas son
+  // `fn_resumen_finanzas` al byte, en cada sede y para una integrante; cada parte sola es la misma; una parte que no existe es
+  // error; permisos iguales; `fn_resumen_finanzas` es el envoltorio. ROLLBACK.
+  "pruebas:resumen-por-partes",
+
   // Finanzas cuenta desde una fecha (ADR-0332): sin corte nada cambia; con corte el diario y el Estado de resultados no
   // miran lo anterior, el Flujo deja de listar esa planilla y la PROYECCIÓN de caja la sigue contando; las reglas de
   // guardar_inicio_finanzas (día 1, no futuro, sin meses cerrados, permiso) y pegar la migración dos veces. ROLLBACK.
@@ -379,6 +384,16 @@ export const PRUEBAS = [
   // «error» u «omitida», nunca «limpia»; solo la llave de servicio o el SQL Editor lo corren. ROLLBACK.
   "pruebas:vigia-invariantes",
 
+  // El vigía de rendimiento (ADR-0656): las restas contra la foto anterior de pg_stat_statements son exactas; tras un reinicio, o con
+  // una consulta que se tiró y volvió, cuenta entero y nunca resta; `ms_max` es un récord; solo nombres y números (ni el texto de
+  // una consulta); lo de postgres y lo de adentro de un `do` no cuenta; solo la llave de servicio o el SQL Editor la toman. ROLLBACK.
+  "pruebas:vigia-rendimiento",
+
+  // El presupuesto de rendimiento (ADR-0656): sobre un volumen fijo (3 tiendas, 12.000 variantes, ~3.000 ventas) cargado en una
+  // transacción que se deshace, cuántos bloques lee cada función de entrada de módulo (las seis del marco, Productos, el plan del
+  // piso, el ritmo de venta, el stock por sede, el resumen de Finanzas). Frena si una lee más del 25 % sobre `presupuesto.json`.
+  "pruebas:presupuesto-rendimiento",
+
   // Descuento de campaña EXACTO, al céntimo (ADR-0302; reemplaza el .90 de ADR-0182): la base da lo mismo que la caja,
   // registrar_venta y separar_prendas aceptan el descuento exacto y rechazan el del .90, y la migración se puede pegar
   // dos veces. ROLLBACK.
@@ -430,6 +445,18 @@ export const PRUEBAS = [
   // sin sede nunca aparece una campaña limitada; el guardián falla si una de las cinco funciones deja de preguntar por la sede. ROLLBACK.
   "pruebas:campanas-por-sede",
   "pruebas:campana-reglas",
+  // Una insignia nunca baja el precio (ADR-0655, actividad 5): las que lo bajaban pasan a campañas con todo igual y el candado
+  // `etiquetas_descuento_solo_campana` rechaza un descuento en una insignia por cualquier camino. ROLLBACK.
+  "pruebas:insignias-sin-descuento",
+  // «Llevar varias y pagar menos» (ADR-0655, actividad 6): la regla de los grupos (3x2, N por S/, la N.ª al X %), su reparto al céntimo
+  // (con 300 tickets al azar) y guardar cada forma. ROLLBACK.
+  "pruebas:ofertas-de-grupo",
+  // La caja cobra «Llevar varias» (ADR-0655, actividad 6, parte 3): ventas de verdad por registrar_venta con un 3x2 —su parte por prenda,
+  // omitida, de más, en una línea de varias, en borrador, con un descuento a mano sumado— y lo que lee la caja. ROLLBACK.
+  "pruebas:caja-ofertas-de-grupo",
+  // Los apartados con «Llevar varias» (ADR-0655, actividad 6, parte 4): apartar, quitar y sumar con un 3x2 (el trato guardado de ese día), la
+  // vista previa y el total exigido, entregar, y que las migraciones viejas de los apartados se sigan pegando encima. ROLLBACK.
+  "pruebas:apartados-ofertas-de-grupo",
   // Una campaña que solo tiene OFERTAS también sale en la Tienda web (ADR-0496, «Lo que NO cubre»): la lista, la portada y el diseño leen las
   // ofertas activas (la portada, solo las que rigen hoy, con el mayor %), un borrador no cuenta y, sin ofertas, todo queda idéntico. ROLLBACK.
   "pruebas:campana-con-ofertas",
@@ -446,6 +473,11 @@ export const PRUEBAS = [
   // ofrece (fn_tienda_precios); coincide con el catálogo, baja al vender o apartar, no cuenta lo retirado, lo de S/ 0, lo no publicado,
   // el Taller ni lo escondido, NUNCA deja salir una cifra y es solo de tienda_web; con 10 mutantes. ROLLBACK.
   "pruebas:tienda-filtros",
+  // La huella del catálogo web (cambiar-de-modulo#11): `tienda_catalogo_version` cambia con una venta, un precio, una campaña que empieza mañana
+  // (sin escribir nada), una foto, la Vitrina, una insignia, una familia, «quedan pocas», una sede, un recorte, el Taller y una función que se
+  // reemplaza; no con una caja ni un cliente; recorre las funciones de las tres lecturas y falla si leen una tabla que la huella no mira; con 2
+  // mutantes. ROLLBACK.
+  "pruebas:tienda-catalogo-version",
   // Las insignias en la ficha de la tienda (ADR-0489): la ficha trae las de Catálogo ▸ Insignias que alcanzan al modelo (a mano en una variante
   // que se ofrece o por su categoría), activas, aprobadas, vigentes hoy y de su tienda, por grupo y nombre; una insignia CON descuento no sale
   // aparte (su descuento es el chip de la campaña: con varias, la de mayor %); la función de adentro es interna y `tienda_web` solo llama a la
@@ -928,6 +960,11 @@ export const PRUEBAS = [
   // El motor de demanda con CIFRA (ADR-0560, deuda de la actividad 6d): fn_motor_demanda_preparacion no cuenta lo vendido de CLAURE (una venta solo de CLAURE deja el resultado igual que sin venta; la misma con una prenda de CAYLA
   // sí aparece; un ticket mixto cuenta solo la línea de CAYLA; sin el parche de 6d sí contaba). Cada caso: ROLLBACK.
   "pruebas:claure-motores-con-cifra",
+
+  // CLAURE de una pasada (ADR-0658): fn_lineas_de_claure marca las mismas líneas que fn_item_es_de_claure (seis ventanas, por sede, el borde del arranque;
+  // dueño por producto y por la salida del libro; devolución, cambio, anotada y regularizada, venta anulada), y el plan del piso y el plan de compra
+  // salen con el mismo md5 con el cambio y sin él (control: sin CLAURE ligada, la salida cambia). La web no la llama; la migración se repega. Cada caso: ROLLBACK.
+  "pruebas:lineas-de-claure",
 
   // Los cambios con prendas de CLAURE (ADR-0560, actividad 13): la plata sigue a la prenda que se lleva la clienta (CLAURE→CAYLA baja lo que se le debe, CAYLA→CLAURE sube con la diferencia, CLAURE→CLAURE solo la diferencia; el
   // efectivo y CAYLA con CAYLA no mueven nada); la pestaña, la proyección y el aviso del cierre dicen lo mismo; el Diario lo mueve entre 7011 y 479, cuadrado por cambio; la migración se repega y aborta con un texto distinto. Cada caso: ROLLBACK.
@@ -1473,11 +1510,10 @@ export const PRUEBAS = [
   // termina en ROLLBACK.
   "pruebas:prendas-por-regularizar",
 
-  // Piezas de liquidación (ADR-0379): una prenda suelta se etiqueta con categoría y precio, se rebaja con una etiqueta nueva (la
-  // vieja deja de valer) y la caja la vende escaneando el código, sin mover stock ni dejar tarea a almacén. Cubre el mínimo de
-  // precio, la etiqueta vieja, la otra sede, la misma pieza dos veces, la venta final y que anular la devuelva. Cada caso
+  // Liquidación retirada (ADR-0653, reemplaza a ADR-0379): el módulo no está en el catálogo ni en un rol, la web no puede llamar a
+  // sus seis funciones, las tablas siguen ahí, un código LQ mandado a mano se rechaza y una venta normal sigue entrando. Cada caso
   // termina en ROLLBACK.
-  "pruebas:piezas-liquidacion",
+  "pruebas:liquidacion-retirada",
 
   // Cierre de la cola de arranque (ADR-0334): un líder da por hechas, en bloque y dentro de su plazo, las ventas sin registrar que
   // ya no se pueden identificar. Cubre que sea todo-o-nada y solo del líder, que cerrar no mueva stock, que una prenda cerrada no
@@ -1850,6 +1886,9 @@ export const PRUEBAS = [
   // Compras simple (ADR-0480, actividad 3): «Compré ropa» es un papel por completar y una orden por tienda, sin mover plata en los libros;
   // los habituales del proveedor (lo comprado aquí y su catálogo) y el reintento que no duplica.
   "pruebas:compras-simple-compra",
+  // ADR-0660: «Por definir» en Mis compras: la prenda se anota sin categoría o sin precio, lo vacío se dice, el aviso, definir (y su reintento), lo
+  // definido no vuelve, y Recibir no cuenta ni cierra una línea sin categoría.
+  "pruebas:mis-compras-por-definir",
   // Compras simple (ADR-0480, actividad 5): «Gasté en otra cosa» por completar y sin mover plata; «Mandar a la tienda» arma el envío de
   // todo lo que va a esa tienda, con sus fardos y sin repetirse; «Terminé de comprar hoy» guarda lo que tenía y qué hace con eso.
   "pruebas:compras-simple-dia",
@@ -1871,6 +1910,8 @@ export const PRUEBAS = [
   "pruebas:compras-simple-cuenta-devolucion",
   // «Compras solo ve historial» (ADR-0574): la serie y el número que la compradora escribe al comprar (con las reglas de completar), sin duplicados, y los gastos que pasan solos al cerrar la ronda.
   "pruebas:compras-simple-historial",
+  // La plata que Compras manda antes de abrir la ronda es de la ronda que se abre (Felipe 2026-11-13): la adopta al abrirla, nada más. ROLLBACK.
+  "pruebas:compras-simple-ronda-adopta",
 
   // La orden con sus fases, quién hace cada una y su tela (ADR-0400, actividad 1): la espina obligatoria, el servicio con
   // proveedor y tarifa congelados, la tela por color con su plan, el estado derivado, cambiar quién solo antes de empezar,
@@ -2042,6 +2083,16 @@ export const PRUEBAS = [
   // Admin). Vigila además que ninguna de las 36 funciones reescritas vuelva a preguntar fn_es_lider(): una migración
   // que las recree desde un archivo viejo del repo les devolvería el candado sin que nada más avise. ROLLBACK siempre.
   "pruebas:roles-lider-editable",
+
+  // ADR-0657: «quién eres» en un viaje. `fn_mi_sesion()` da, cuenta por cuenta, lo mismo que las seis preguntas del marco (admin,
+  // integrante, terminales, rol propio y once casos raros: líder sin admin, terminal desactivada, cuenta sin fila, sin sesión…), y
+  // `fn_mis_modulos()` lo mismo que su regla de antes escrita como consulta. ROLLBACK siempre.
+  "pruebas:mi-sesion",
+
+  // ADR-0657: el vigía de las reglas por fila. Toda función de `retail` marcada «[regla por fila]» sigue sin security definer ni set
+  // search_path (sql, no volatile, no strict, sin leer personas, con nombres calificados), y las marcadas a la fecha siguen marcadas.
+  // Con controles que muerden (reglas falsas con cada ajuste prohibido). ROLLBACK siempre.
+  "pruebas:reglas-por-fila",
 
   // ADR-0275: CAYLA Global (la vista de toda la empresa) nace SOLO para el Admin. Vigila el «módulo del Admin» (el Admin
   // lo conserva aunque se le quite al Líder de equipo; con Caja, en cambio, lo pierde como decidió el ADR-0253), que un
@@ -2249,6 +2300,11 @@ export const PRUEBAS = [
   // «Por completar ▸ Sin costo» de Productos (20261112155000): una variante sin costo (0 o vacío) trae su prenda; el conteo dice lo mismo
   // que la lista; quien no ve el dinero de Compras no encuentra nada; las faltas de antes no cambian. Con control. ROLLBACK.
   "pruebas:productos-sin-costo",
+
+  // Los conteos de Productos leen las ventas de 30 días UNA vez (20261113225000, ADR-0656 act. d): sobre el volumen del presupuesto y con
+  // poco stock, lo que devuelve fn_productos_facetas es idéntico al de antes (siete combinaciones de filtros, líder e integrante); con la
+  // demanda rota a propósito, cambia (control); se pega dos veces; con otra «demanda», no toca nada. ROLLBACK.
+  "pruebas:productos-facetas-demanda",
 
   // Una talla con prendas no se retira (20260929030000, ADR-0270 decisión 13): con prendas en cualquier sede (Cuarentena
   // incluida) o en camino, pasar `variantes.activo` a false se rechaza diciendo dónde están; en 0 se retira; reactivar

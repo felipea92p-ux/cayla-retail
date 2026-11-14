@@ -840,7 +840,6 @@ export const DECISIONES = {
       "components/impresion/useImpresionBrother.tsx",
       "components/motor-demanda/PreparacionMotor.tsx",
       "components/orden-produccion/FichaDeConsumoHoja.tsx",
-      "components/punto-de-venta/OpcionesDePrendaModal.tsx",
       "components/ui/AvisoDestacado.tsx",
       "components/ui/AvisoRepetida.tsx",
       "components/ui/Espera.tsx",

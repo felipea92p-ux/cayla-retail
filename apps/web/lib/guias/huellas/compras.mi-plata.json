@@ -2,7 +2,7 @@
   "guia": "compras.mi-plata",
   "ruta": "/compras/mi-plata",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 63,
+  "total": 75,
   "controles": {
     "app/(app)/compras/mi-plata/page.tsx": [
       "BotonVer «Mis envíos»"
@@ -76,6 +76,9 @@
       "Boton «Cancelar»",
       "Boton «{guia.frase ?? undefined}»"
     ],
+    "components/mi-plata/HojaEnvio.tsx": [
+      "Boton «Anular envío»"
+    ],
     "components/mi-plata/ListaDelDia.tsx": [
       "button «{cara}»",
       "button «{e.titulo}»",
@@ -92,6 +95,14 @@
     ],
     "components/mi-plata/ParaMandar.tsx": [
       "Boton «mi-plata.mandar»"
+    ],
+    "components/mi-plata/PorDefinir.tsx": [
+      "Boton «Definir»",
+      "CampoSelect «¿Qué es?»",
+      "CampoMonto «Se vende a»",
+      "ComboResponsable «{responsable}»",
+      "Boton «Cancelar»",
+      "Boton «Guardar»"
     ],
     "components/mi-plata/ReabrirRonda.tsx": [
       "Boton «Reabrir»"
@@ -110,6 +121,13 @@
     ],
     "components/mi-plata/UltimaRonda.tsx": [
       "BotonVer «Ver lo que anoté»"
+    ],
+    "components/ordenes-compra/AnularEnvioModal.tsx": [
+      "CampoTexto «Por qué se anula»",
+      "ComboResponsable «{responsable}»",
+      "Boton «Recargar»",
+      "Boton «Cancelar»",
+      "Boton «{guia.frase ?? undefined}»"
     ]
   }
 }

@@ -28,7 +28,9 @@ import {
 } from "@/lib/existencias-filtros";
 import { atajoElegido } from "@/lib/existencias-rapidos";
 import { Buscador } from "@/components/ui/Buscador";
+import { Calculando } from "@/components/Esqueleto";
 import { BotonLimpiar, FiltroPuesto } from "@/components/ui/FiltrosPuestos";
+import { fondoDelPunto } from "@/lib/color-combinado";
 
 /* ====================================================================
    La barra de filtros de Existencias (2026-10-03): la MISMA estructura que la de Productos (ADR-0308) —buscador con «/»,
@@ -46,7 +48,7 @@ const MEDIA_ESCRITORIO = "(min-width: 768px)";
 
 /** Un color de la sede, con lo que la lista necesita para agruparlo por familia y pintar su muestra. `id` es su nombre (único
  *  en la base): es lo que va en la URL. */
-export type ColorBarra = { id: string; nombre: string; hex: string | null; familia: string | null; tipo: string | null };
+export type ColorBarra = { id: string; nombre: string; hex: string | null; familia: string | null; tipo: string | null; /** Una mezcla (ADR-0643): su punto se parte. */ tonos?: readonly string[] | null };
 
 /** Cómo se ve la lista: tarjetas (de entrada), la tabla por prenda o la tabla con una fila por talla. */
 export type VistaLista = "tarjetas" | "tabla" | "talla";
@@ -91,6 +93,7 @@ export function FiltrosExistencias({
   alLadoDeFiltros,
   enPausa = 0,
   avisoPausa = null,
+  calculando = false,
 }: {
   busqueda: string;
   onTeclear: (texto: string) => void;
@@ -135,6 +138,9 @@ export function FiltrosExistencias({
   /** Tallas que esperan el cuadre del piso: el atajo «Por colgar» va en pausa y lleva la explicación (`FiltrosRapidos`). */
   enPausa?: number;
   avisoPausa?: string | null;
+  /** «Hoy» viene en camino (Existencias en dos tiempos, 2026-11-13): los atajos «Por colgar» y «Sin stock atrás» y, con un caso de «Hoy»
+   *  puesto, la cifra de la lista dicen «calculando» en vez de un 0 que no se sabe. */
+  calculando?: boolean;
 }) {
   const [panelAbierto, setPanelAbierto] = useState(panelInicial === "abierto");
   const [hojaAbierta, setHojaAbierta] = useState(false);
@@ -217,7 +223,7 @@ export function FiltrosExistencias({
                       <span
                         aria-hidden
                         className="inline-block h-3.5 w-3.5 shrink-0 rounded-full border border-tinta/15 bg-hueso align-middle"
-                        style={{ background: fondoDeColor(o.color.hex, o.color.familia, o.color.tipo), borderColor: bordeDeMuestra(o.color.hex) }}
+                        style={{ background: o.color.tonos ? fondoDelPunto(o.color.hex, o.color.tonos) : fondoDeColor(o.color.hex, o.color.familia, o.color.tipo), borderColor: bordeDeMuestra(o.color.hex) }}
                       />
                     ),
                   }
@@ -401,16 +407,23 @@ export function FiltrosExistencias({
         {/* La cifra: cuántas tarjetas trae la lista (y, con «Hoy», cuántas tallas). Sin frase de ayuda: ocupaba una línea entera. */}
         <p className="order-3 min-w-0 flex-1 text-sm text-tinta/70 xl:order-2 xl:flex-none">
           <span aria-live="polite">
-            <strong className="font-semibold text-tinta">{conteo.total.toLocaleString("es-PE")}</strong>{" "}
-            {conteo.total === 1 ? conteo.unidad.uno : conteo.unidad.varios}
-            {/* Con «Hoy», la cifra que trajo a la persona («15 tallas por colgar» del Inicio), tan visible como la de arriba: es la que
-                suman las pastillas de las tarjetas. */}
-            {conteo.tallas && (
-              <span>
-                {" · "}
-                <strong className="font-semibold text-tinta">{conteo.tallas.cifra.toLocaleString("es-PE")}</strong> {conteo.tallas.texto}
-                {conteo.aclaracion && <span className="text-tinta/55"> ({conteo.aclaracion})</span>}
-              </span>
+            {calculando && elegidos.hoy ? (
+              // Con un caso de «Hoy» puesto la cifra es del plan: mientras llega, su lugar, no un «0 prendas».
+              <Calculando className="h-4 w-64 max-w-full rounded" />
+            ) : (
+              <>
+                <strong className="font-semibold text-tinta">{conteo.total.toLocaleString("es-PE")}</strong>{" "}
+                {conteo.total === 1 ? conteo.unidad.uno : conteo.unidad.varios}
+                {/* Con «Hoy», la cifra que trajo a la persona («15 tallas por colgar» del Inicio), tan visible como la de arriba: es la que
+                    suman las pastillas de las tarjetas. */}
+                {conteo.tallas && (
+                  <span>
+                    {" · "}
+                    <strong className="font-semibold text-tinta">{conteo.tallas.cifra.toLocaleString("es-PE")}</strong> {conteo.tallas.texto}
+                    {conteo.aclaracion && <span className="text-tinta/55"> ({conteo.aclaracion})</span>}
+                  </span>
+                )}
+              </>
             )}
           </span>
           {/* Con el panel abierto los chips no se ven: «Limpiar filtros» queda aquí, a la vista. */}
@@ -444,7 +457,7 @@ export function FiltrosExistencias({
         {/* Atajos de lo que más se pregunta en el piso (`lib/existencias-rapidos.ts`), siempre con su nombre. Su propia fila. */}
         {separa && (
           <div className="order-2 min-w-0 basis-full xl:order-4">
-            <FiltrosRapidos elegidos={elegidos} conteos={conteos} onCambiar={onCambiar} enPausa={enPausa} avisoPausa={avisoPausa} />
+            <FiltrosRapidos elegidos={elegidos} conteos={conteos} onCambiar={onCambiar} enPausa={enPausa} avisoPausa={avisoPausa} calculando={calculando} />
           </div>
         )}
       </div>

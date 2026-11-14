@@ -2,7 +2,7 @@
   "guia": "rotulos",
   "ruta": "/rotulos",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 17,
+  "total": 21,
   "controles": {
     "components/GuiaImpresion.tsx": [
       "button «Ir al paso»",
@@ -20,7 +20,11 @@
     "components/ImprimirRotulos.tsx": [
       "BotonImprimir «→mandar»",
       "Volver «(sin nombre)»",
+      "SegmentoDeslizante «Qué rótulos imprimes»",
       "button «Quitar todas»",
+      "button «{`Quitar ${m.nombre}»",
+      "ComboBuscable «{opcionesMarca}»",
+      "button «Quitar todas» #2",
       "button «{`Quitar ${m.referencia}»",
       "ComboBuscable «{opciones}»",
       "SegmentoDeslizante «Cómo salen los rótulos»"

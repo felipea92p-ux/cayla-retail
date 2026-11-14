@@ -1,0 +1,4 @@
+## 2026-11-13 (El ERP ya cuenta cuánto tarda en llegar cada módulo, en cada sede)
+Qué hice: el cronómetro del clic (`cambiar-de-modulo#6`, paso 1, ADR-0654): desde que Next empieza la navegación hasta que la pantalla nueva está a la vista sin esqueleto, mandado en lote cada 30 s a `POST /api/tiempos`, que escribe una línea `tiempo_de_pantalla` por entrada (patrón de ruta, ms, sede, si hubo esqueleto, versión). Probado en local entrando a 6 pantallas.
+Por qué así: el gancho de Next más la marca del esqueleto de ADR-0628 dicen «llegó» sin tocar cada pantalla, y el registro de Vercel no pide migración; `useParams()` da el patrón sin otra lista que mantener (y se vio que mezcla el «atrapa todo» de `@modal`: por eso ese no se traduce).
+Felipe se lleva: una vez al día, las dos líneas de «Cómo se lee» del ADR-0654 dan el p75 por módulo y sede (el registro guarda 24 h). Con una semana en la mano se decide el paso 2 (tabla por hora y lente en el Observatorio).

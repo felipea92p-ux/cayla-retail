@@ -1,0 +1,672 @@
+/* =====================================================================================================================
+   «Fusionar productos repetidos», dirección B · «La ficha que se arma» (Felipe 2026-11-13; ADR-0650, rediseño).
+   Maqueta: docs/maquetas/fusionar-productos-2026-11/ · ficha al milímetro: docs/milimetro/fusionar-productos.md.
+   Las fichas a la izquierda, en vidrio claro; la que queda, en gota con su ✓ (nada se reordena al elegir). A la derecha,
+   «Así va a quedar», en placa, pegada mientras la hoja corre. Solo recetas de vidrio/recetas.css y tokens: el color de una
+   prenda es dato. Lo que se desplaza no se desenfoca (ADR-0623). El movimiento es la excepción «Fusionar productos
+   repetidos» de ADR-0136 (una vez, sin rebote ni bucle; vigilado por lib/fusionar-movimiento.test.ts) y se apaga solo con
+   «Animaciones» apagado (movimiento.css) o con prefers-reduced-motion.
+   ===================================================================================================================== */
+
+/* La hoja se ensancha al sumar la segunda ficha (de 576 a 1080 px) y vuelve a angostarse en «Fusionado»: de a poco, no de golpe. */
+.hoja-serena:has(> * .fus-cuerpo, > .fus-cuerpo) {
+  transition: max-width var(--t-hoja) var(--ease-cayla);
+}
+
+/* ---------- el cuerpo: dos columnas, una sola bajo 880 px de ancho de la hoja ---------- */
+.fus-cuerpo {
+  container-type: inline-size;
+}
+.fus-dos {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 24px;
+  align-items: start;
+}
+@container (min-width: 880px) {
+  .fus-dos {
+    grid-template-columns: minmax(0, 1fr) 340px;
+  }
+  .fus-final-pegada {
+    position: sticky;
+    top: 0;
+  }
+}
+
+/* ---------- la opción en tarjeta: vidrio claro sin elegir, gota elegida (la columna y la opción de una fila) ---------- */
+.fus-opcion {
+  /* Al llegar con Tab, que el pie pegado de la hoja no tape la opción (WCAG 2.4.11, auditoría 2026-11-13). */
+  scroll-margin-bottom: 120px;
+  position: relative;
+  border: 1px solid var(--color-borde-control);
+  background: var(--vidrio-claro-fondo);
+  box-shadow: var(--vidrio-claro-filo);
+  color: var(--color-tinta);
+  text-align: left;
+  transition:
+    border-color var(--t-cambio) var(--ease-cayla),
+    background var(--t-cambio) var(--ease-cayla),
+    box-shadow var(--t-cambio) var(--ease-cayla),
+    scale var(--t-resp) var(--ease-cayla);
+}
+@media (hover: hover) {
+  .fus-opcion:not([aria-checked="true"]):not(:disabled):hover {
+    border-color: color-mix(in srgb, var(--color-tinta) 40%, var(--color-borde-control));
+  }
+}
+.fus-opcion:not(:disabled):active {
+  scale: 0.985;
+}
+/* Lo elegido: la gota teñida de verde, con su borde y su ✓ en verde (Felipe 2026-11-13: «que se resalte en un color, tal vez un verde»).
+   Un tinte sobre el vidrio, nunca un relleno sólido (lo primero que pidió fue que lo elegido no desentonara con el vidrio). */
+.fus-opcion[aria-checked="true"] {
+  border-color: var(--color-verde);
+  background:
+    linear-gradient(color-mix(in srgb, var(--color-verde) 12%, transparent), color-mix(in srgb, var(--color-verde) 12%, transparent)),
+    var(--gota-marca);
+  box-shadow: var(--gota-luz), 0 0 0 1px var(--color-verde);
+}
+.fus-opcion[aria-checked="true"] .fus-visto {
+  background: var(--color-verde);
+  color: var(--color-crema-fija);
+}
+.fus-opcion:disabled {
+  cursor: default;
+}
+
+/* El visto: círculo de tinta con su ✓ en crema (lo elegido dice su forma, no solo su color, WCAG 1.4.1). */
+.fus-visto {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 999px;
+  background: var(--color-tinta);
+  color: var(--color-crema);
+  box-shadow: 0 0 0 2px var(--color-crema); /* contraste: no aplica — el aro separa el visto de una foto oscura, no es texto */
+  animation: fus-asienta var(--t-hoja) var(--ease-cayla) both;
+  pointer-events: none;
+}
+.fus-visto svg {
+  width: 14px;
+  height: 14px;
+  stroke-dasharray: 24;
+  animation: fus-traza var(--t-hoja) 120ms var(--ease-cayla) both;
+}
+.fus-opcion-fila .fus-visto {
+  top: 50%;
+  translate: 0 -50%;
+}
+@keyframes fus-asienta {
+  from {
+    opacity: 0;
+    transform: scale(0.6);
+  }
+}
+@keyframes fus-traza {
+  from {
+    stroke-dashoffset: 24;
+  }
+}
+
+/* ---------- la mesa de columnas ---------- */
+.fus-mesa {
+  display: grid;
+  grid-template-columns: repeat(var(--fus-n, 2), minmax(180px, 1fr));
+  gap: 12px;
+  padding: 4px; /* que el anillo de foco no lo recorte el desplazamiento */
+  margin: -4px;
+}
+.fus-columna-caja {
+  position: relative;
+  min-width: 0;
+  container-type: inline-size;
+  animation: fus-enfoca var(--t-momento) var(--ease-cayla) both;
+  animation-delay: calc(80ms + var(--fus-i, 0) * 70ms);
+}
+.fus-columna {
+  display: flex;
+  width: 100%;
+  height: 100%;
+  flex-direction: column;
+  border-radius: var(--radius-tarjeta, 22px);
+  padding: 12px;
+}
+.fus-columna-nombre {
+  margin-top: 10px;
+  padding-right: 4px;
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.25;
+}
+.fus-cifras {
+  container-type: inline-size;
+  margin-top: 10px;
+}
+.fus-cifras dl {
+  display: grid;
+  gap: 4px;
+}
+@container (min-width: 200px) {
+  .fus-cifras dl {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+  }
+  .fus-cifras dl > div {
+    padding: 8px;
+    border-radius: 12px;
+    background: color-mix(in srgb, var(--color-tinta) 4%, transparent);
+  }
+}
+.fus-cifras dd {
+  font-size: 15px;
+  font-weight: 600;
+}
+.fus-cifras dt {
+  order: 2;
+}
+.fus-cifras dl > div {
+  display: flex;
+  flex-direction: column;
+}
+
+/* Sobre la foto: «Ver ficha» y la ×. Son hermanos del radio (nunca adentro: un botón dentro de otro), puestos encima. */
+.fus-sobre-foto {
+  position: absolute;
+  z-index: 3;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 32px;
+  border-radius: 999px;
+  color: var(--color-tinta);
+  font-size: 13px;
+  font-weight: 600;
+  background: var(--gota-marca);
+  box-shadow: var(--gota-luz);
+  transition: scale var(--t-resp) var(--ease-cayla);
+}
+.fus-sobre-foto:active {
+  scale: 0.97;
+}
+@media screen {
+  :root[data-tema="oscuro"] .fus-sobre-foto {
+    background: color-mix(in srgb, var(--color-papel) 88%, transparent);
+    box-shadow: inset 0 1px 0 color-mix(in srgb, var(--color-tinta) 14%, transparent), 0 4px 10px -5px var(--color-sombra); /* contraste: no aplica — es un fondo, un borde o una luz, no un texto */
+  }
+}
+/* La foto empieza a 12 px del borde y es 4:3 del ancho de la columna menos sus 24 px de relleno. */
+.fus-ver-ficha {
+  right: 20px;
+  top: calc(12px + (100cqw - 24px) * 0.75 - 40px);
+  padding: 0 12px;
+}
+.fus-quitar {
+  left: 20px;
+  top: 20px;
+  width: 32px;
+  justify-content: center;
+}
+
+/* Con el dedo, 44 px de área (ADR-0611, mejora 5) sin el `area-dedo` de tacto.css, que los volvería `position: relative` y los sacaría de
+   encima de la foto: el botón ya es `absolute`, así que su `::after` se mide desde él. */
+@media (pointer: coarse) {
+  .fus-sobre-foto::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: max(100%, 44px);
+    height: max(100%, 44px);
+    transform: translate(-50%, -50%);
+  }
+}
+
+/* El pie de la hoja: los botones al medio de la barra, 16 px arriba y 16 abajo (Felipe 2026-11-13; el pie del sistema deja 24 abajo y
+   nada arriba). El margen negativo sigue llevándolo hasta el borde de la hoja. */
+.fus-cuerpo > .pie-hoja-fijo {
+  padding-top: 16px;
+  padding-bottom: calc(1rem + var(--borde-abajo, 0px));
+}
+
+/* Con una sola ficha, antes de tener con qué compararla: una fila corta, no una tarjeta alta y vacía. */
+.fus-ficha-sola {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 12px;
+  border-radius: var(--radius-campo, 14px);
+  padding: 12px 16px;
+}
+/* La lista de lo que se encuentra: cuatro filas de 56 px y asoma la quinta; el resto corre adentro. */
+.fus-lista-buscar {
+  max-height: 260px;
+}
+
+/* «Tallas sin prendas»: una fila por color × talla vacío. La que sale de la venta se apaga y lo dice («Sale de la venta»). */
+.fus-vacia {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 48px;
+  border: 1px solid var(--color-borde-control);
+  border-radius: var(--radius-campo, 14px);
+  padding: 8px 12px;
+  background: var(--vidrio-claro-fondo);
+  transition: opacity var(--t-cambio) var(--ease-cayla);
+}
+.fus-vacia[data-sale] {
+  border-style: dashed;
+  opacity: 0.7;
+}
+
+/* La foto de la ficha en 4:3 (la de la prenda es 3:4: en una columna de 328 px mediría 437 px solo de foto). */
+.fus-foto {
+  position: relative;
+  overflow: hidden;
+  border-radius: 12px;
+  aspect-ratio: 4 / 3;
+  background: color-mix(in srgb, var(--color-sand) 50%, transparent);
+}
+
+/* ---------- «Lo que es distinto»: una fila por dato, cada celda bajo su columna ---------- */
+.fus-fila {
+  display: grid;
+  grid-template-columns: repeat(var(--fus-n, 2), minmax(0, 1fr));
+  /* El rótulo, más cerca de sus opciones (8) que de la fila de arriba (16, el `space-y-4` de afuera): proximidad. */
+  gap: 8px 12px;
+  animation: fus-sube var(--t-hoja) var(--ease-cayla) both;
+  animation-delay: calc(200ms + var(--fus-k, 0) * 18ms);
+}
+.fus-fila > .campo-etiqueta {
+  grid-column: 1 / -1;
+}
+.fus-opcion-fila {
+  min-height: 48px;
+  border-radius: var(--radius-campo, 14px);
+  padding: 12px 44px 12px 16px;
+  font-size: 15px;
+  line-height: 1.4;
+}
+/* De qué ficha es la opción: en escritorio la dice su columna (solo el lector lo oye); en el celular, donde las filas se apilan y la
+   columna puede no estar a la vista, se lee debajo del valor. */
+.fus-de {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+.fus-celda-vacia {
+  display: grid;
+  min-height: 48px;
+  place-items: center;
+  border-radius: var(--radius-campo, 14px);
+  border: 1px dashed var(--color-sand);
+  color: var(--color-taupe);
+  font-size: 14px;
+}
+
+/* ---------- «Así va a quedar»: la placa ---------- */
+.fus-final {
+  border: 1px solid var(--placa-borde);
+  border-radius: var(--radius-tarjeta, 22px);
+  padding: 16px;
+  background: var(--placa-fondo);
+  box-shadow: var(--placa-luz);
+  animation: fus-enfoca var(--t-momento) 140ms var(--ease-cayla) both;
+  transition: opacity var(--t-cambio) var(--ease-cayla);
+}
+.fus-final[aria-busy="true"] {
+  opacity: 0.6;
+}
+.fus-final-nombre {
+  margin-top: 12px;
+  font-family: var(--font-serif);
+  font-size: 24px;
+  font-weight: 600;
+  line-height: 1.1;
+}
+.fus-final dl {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 8px 12px;
+  margin-top: 12px;
+  perspective: 400px;
+}
+.fus-final dd {
+  text-align: right;
+  font-size: 15px;
+  font-weight: 600;
+}
+.fus-voltea {
+  display: inline-block;
+  animation: fus-voltea var(--t-momento) var(--ease-cayla) both;
+}
+@keyframes fus-voltea {
+  from {
+    opacity: 0;
+    transform: rotateX(90deg);
+  }
+}
+
+/* ---------- la matriz color × talla ---------- */
+/* Sin la lámina que la hoja Serena pone detrás de toda tabla (casi papel, sólida: desentonaba). Las celdas llevan su propio tinte y
+   el texto se lee igual sobre la placa (Felipe 2026-11-13). Más específica que `.hoja-serena :is(table)` para ganarle. */
+.hoja-serena .fus-matriz {
+  background: transparent;
+}
+.fus-matriz-caja {
+  overflow-x: auto;
+  padding: 4px;
+  margin: -4px;
+}
+.fus-matriz {
+  /* La columna del color y, por talla, 36 px como mínimo (56 en la grande): con más tallas que eso, corre de lado. */
+  width: max(100%, calc(80px + var(--fus-t, 4) * 36px));
+  border-collapse: separate;
+  border-spacing: 4px;
+  margin: -4px;
+  table-layout: fixed;
+}
+.fus-matriz th {
+  font-weight: 600;
+}
+.fus-matriz thead th {
+  padding-bottom: 2px;
+  text-align: center;
+}
+/* Una talla larga («Estándar», «Única») no se sale de su columna: sin el espaciado de las versalitas y, si igual no cabe, con «…» y el
+   nombre entero al pasar el mouse (Felipe 2026-11-13). */
+.fus-matriz thead th.fus-talla {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  letter-spacing: 0.02em;
+}
+.fus-matriz tbody th,
+.fus-matriz thead th:first-child {
+  width: 80px;
+  text-align: left;
+  font-size: 14px;
+  font-weight: 500;
+}
+.fus-celda {
+  height: 36px;
+  border-radius: 8px;
+  text-align: center;
+  vertical-align: middle;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+  transition:
+    background var(--t-cambio) var(--ease-cayla),
+    box-shadow var(--t-cambio) var(--ease-cayla),
+    opacity var(--t-cambio) var(--ease-cayla);
+}
+.fus-matriz-grande .fus-celda {
+  height: 48px;
+  border-radius: 12px;
+  font-size: 15px;
+}
+.fus-matriz-grande {
+  width: max(100%, calc(112px + var(--fus-t, 4) * 56px));
+  border-spacing: 8px;
+  margin: -8px;
+}
+.fus-matriz-grande tbody th,
+.fus-matriz-grande thead th:first-child {
+  width: 112px;
+}
+.fus-celda small {
+  display: block;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+}
+.fus-celda[data-estado] > span {
+  display: inline-block;
+  animation: fus-sube var(--t-hoja) var(--ease-cayla) both;
+  animation-delay: calc(300ms + var(--fus-k, 0) * 35ms);
+}
+.fus-celda[data-estado="ya"] {
+  background: color-mix(in srgb, var(--color-tinta) 4%, transparent);
+}
+.fus-celda[data-estado="pasa"] {
+  background: color-mix(in srgb, var(--color-pizarra) 12%, transparent);
+  outline: 1px dashed var(--color-pizarra); /* pleno: al 55 % medía 2,69:1 en claro (WCAG 1.4.11 pide 3) */
+  outline-offset: -1px;
+}
+.fus-celda[data-estado="pasa"] small {
+  color: var(--color-pizarra);
+}
+.fus-celda[data-estado="junta"] {
+  background: color-mix(in srgb, var(--color-verde) 12%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-verde) 45%, transparent);
+}
+.fus-celda[data-estado="junta"] small {
+  color: var(--color-verde);
+}
+.fus-celda-nada {
+  color: color-mix(in srgb, var(--color-tinta) 45%, transparent); /* contraste: no aplica — la raya de una celda vacía es decorativa, no un dato */
+  font-weight: 400;
+}
+.fus-matriz[aria-busy="true"] .fus-celda {
+  opacity: 0.6;
+}
+.fus-leyenda-muestra {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border-radius: 4px;
+}
+
+/* ---------- revisar y listo ---------- */
+.fus-revisar {
+  display: grid;
+  gap: 24px;
+  align-items: start;
+}
+@container (min-width: 760px) {
+  .fus-revisar {
+    grid-template-columns: 300px minmax(0, 1fr);
+  }
+}
+.fus-lista-revisar > li {
+  animation: fus-sube var(--t-hoja) var(--ease-cayla) both;
+  animation-delay: calc(40ms + var(--fus-k, 0) * 18ms);
+}
+.fus-listo {
+  display: grid;
+  place-items: center;
+  padding: 32px 0;
+  text-align: center;
+}
+.fus-sello {
+  display: grid;
+  place-items: center;
+  width: 120px;
+  height: 120px;
+  border: 3px solid var(--color-verde);
+  border-radius: 999px;
+  color: var(--color-verde);
+  font-family: var(--font-serif);
+  font-size: 22px;
+  rotate: -8deg;
+  animation: fus-estampa var(--t-momento) var(--ease-cayla) both;
+}
+@keyframes fus-estampa {
+  from {
+    opacity: 0;
+    transform: scale(1.5);
+  }
+}
+.fus-listo-texto {
+  animation: fus-sube var(--t-hoja) var(--ease-cayla) both;
+  animation-delay: calc(200ms + var(--fus-k, 0) * 40ms);
+}
+
+/* ---------- la hoja para comparar ---------- */
+.fus-comparar {
+  display: grid;
+  grid-template-columns: repeat(var(--fus-n, 2), minmax(0, 1fr));
+  gap: 12px 16px;
+}
+/* Cada ficha ocupa las seis filas del grid (cabecera, fotos, ventas, stock, tallas, precio): el mismo bloque queda a la misma
+   altura en todas las columnas, aunque una tenga más fotos o la insignia «Queda». */
+.fus-comparar > * {
+  display: grid;
+  grid-row: span 6;
+  grid-template-rows: subgrid;
+  gap: 12px;
+  align-content: start;
+  min-width: 0;
+  animation: fus-enfoca var(--t-momento) var(--ease-cayla) both;
+  animation-delay: calc(80ms + var(--fus-i, 0) * 70ms);
+}
+.fus-galeria-grande {
+  position: relative;
+  overflow: hidden;
+  width: 100%;
+  max-height: 256px;
+  aspect-ratio: 4 / 3;
+  border-radius: 16px;
+  background: color-mix(in srgb, var(--color-sand) 50%, transparent);
+}
+.fus-galeria-grande img {
+  animation: fus-funde var(--t-cambio) var(--ease-cayla) both;
+}
+@keyframes fus-funde {
+  from {
+    opacity: 0;
+  }
+}
+.fus-miniatura {
+  position: relative;
+  overflow: hidden;
+  width: 48px;
+  height: 64px;
+  flex: none;
+  border-radius: 10px;
+  border: 1px solid var(--color-borde-control);
+  transition: scale var(--t-resp) var(--ease-cayla);
+}
+@media (hover: hover) {
+  .fus-miniatura:not([aria-pressed="true"]):hover {
+    border-color: color-mix(in srgb, var(--color-tinta) 40%, var(--color-borde-control));
+  }
+}
+.fus-miniatura:active {
+  scale: 0.97;
+}
+/* En Comparar, la ficha cuyo «Ver ficha» se tocó: no solo `aria-current`, también se ve (WCAG 1.4.1). */
+.fus-comparar > [aria-current="true"] .fus-galeria-grande {
+  box-shadow: 0 0 0 2px var(--color-tinta);
+}
+.fus-miniatura[aria-pressed="true"] {
+  border-color: var(--color-tinta);
+  box-shadow: 0 0 0 1px var(--color-tinta);
+}
+.fus-bloque {
+  border: 1px solid var(--placa-borde);
+  border-radius: 12px;
+  padding: 12px;
+  background: var(--placa-fondo);
+}
+.fus-bloque dl {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 4px 12px;
+  font-size: 14px;
+}
+.fus-bloque dd {
+  text-align: right;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---------- celular: las columnas deslizan; se asoma la siguiente ---------- */
+@container (max-width: 560px) {
+  .fus-mesa,
+  .fus-comparar {
+    grid-template-columns: none;
+    grid-auto-flow: column;
+    grid-auto-columns: 80%;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    padding-bottom: 8px;
+  }
+  .fus-mesa > *,
+  .fus-comparar > * {
+    scroll-snap-align: start;
+  }
+  /* Con una sola ficha no hay nada que deslizar: ocupa toda la fila. */
+  .fus-mesa:not(:has(> :nth-child(2))) {
+    grid-auto-columns: 100%;
+    overflow-x: visible;
+  }
+  .fus-fila {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 8px;
+  }
+  .fus-fila > .fus-celda-vacia {
+    display: none;
+  }
+  .fus-de {
+    position: static;
+    display: block;
+    width: auto;
+    height: auto;
+    overflow: visible;
+    clip-path: none;
+    white-space: normal;
+    color: var(--color-taupe);
+    font-size: 14px;
+  }
+}
+
+/* ---------- las entradas compartidas ---------- */
+@keyframes fus-enfoca {
+  from {
+    opacity: 0;
+    filter: blur(8px);
+    transform: translateY(6px);
+  }
+}
+@keyframes fus-sube {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .fus-visto,
+  .fus-visto svg,
+  .fus-columna-caja,
+  .fus-fila,
+  .fus-final,
+  .fus-voltea,
+  .fus-celda > span,
+  .fus-lista-revisar > li,
+  .fus-sello,
+  .fus-listo-texto,
+  .fus-comparar > *,
+  .fus-galeria-grande img {
+    animation: none !important;
+  }
+  .hoja-serena:has(> * .fus-cuerpo, > .fus-cuerpo),
+  .fus-vacia,
+  .fus-opcion,
+  .fus-celda,
+  .fus-final,
+  .fus-sobre-foto,
+  .fus-miniatura {
+    transition: none !important;
+  }
+}

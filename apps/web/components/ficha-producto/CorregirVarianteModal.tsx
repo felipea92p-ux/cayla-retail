@@ -18,6 +18,7 @@ import {
   type Destino,
   type FilaFicha,
 } from "@/lib/variantes-ficha-reglas";
+import type { ColorAlta } from "@/lib/alta-producto";
 import { ElegirUnColor, PieModal, SIN_COLOR, VistaPreviaCodigos, type ContextoFicha } from "./piezas";
 
 // «Esta prenda se registró mal» (D-136): corrige el color, la talla o los dos de una o varias variantes que ya existen.
@@ -42,6 +43,7 @@ export function CorregirVarianteModal({
   tallas,
   onConfirmar,
   onClose,
+  onColorCreado,
 }: {
   ctx: ContextoFicha;
   /** Todas las filas de la prenda (para ver choques y códigos ocupados). */
@@ -53,6 +55,8 @@ export function CorregirVarianteModal({
   tallas: ValorVocabulario[];
   onConfirmar: (destino: Destino) => void;
   onClose: () => void;
+  /** Una mezcla armada aquí («+ acompañante», ADR-0643): la ficha la suma a su vocabulario, como un color creado en «Agregar color». */
+  onColorCreado: (color: ColorAlta) => void;
 }) {
   const n = ctx.nombres;
   const afectadas = filas.filter((f) => claves.includes(f.clave));
@@ -158,6 +162,15 @@ export function CorregirVarianteModal({
                 colores={coloresOfrecidos}
                 ofrecerSinColor={ofrecerSinColor}
                 etiqueta="Color correcto"
+                // «Hueso» que en verdad es «Hueso con azul»: la mezcla se arma con el color que ya tiene (o el elegido) como base.
+                mezcla={{
+                  todos: ctx.colores,
+                  baseSiNada: colorActual,
+                  onCreado: (c) => {
+                    onColorCreado(c);
+                    setTocado(true);
+                  },
+                }}
               />
             </div>
           )}

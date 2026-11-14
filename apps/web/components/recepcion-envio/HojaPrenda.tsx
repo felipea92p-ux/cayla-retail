@@ -17,11 +17,17 @@ import { ElegirTallas } from "@/components/alta-producto/ElegirTallas";
 import { ID_QUIEN_REGISTRA, IdentidadAltaProveedor } from "@/components/alta-producto/IdentidadAlta";
 import { NombreDePrenda } from "@/components/alta-producto/NombreDePrenda";
 import { PuntosAvance } from "@/components/alta-producto/PuntosAvance";
-import { PropuestaDePrecio } from "@/components/alta-producto/PropuestaDePrecio";
+import { PropuestaDePrecio, adelantarPropuestaDePrecio } from "@/components/alta-producto/PropuestaDePrecio";
 import { ComboResponsable } from "@/components/ComboResponsable";
+import { FotosDeLaPrenda } from "@/components/alta-producto/FotosDeColores";
+import type { FotoPendiente } from "@/components/alta-producto/FotosAlta";
+import { useCatalogoIAAlta } from "@/components/alta-producto/useCatalogoIAAlta";
+import { createClient } from "@/lib/supabase/client";
+import { subirFotoProducto, subirParDeCatalogo } from "@/lib/producto-fotos";
+import { leerPermisoDeFotos, type PermisoDeFotos } from "@/lib/foto-catalogo-cliente";
 import { CampoGuiado, PieGuia } from "@/components/guia-de-foco/CampoGuiado";
 import { useGuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
-import { claveCelda, leerErrorAlta, type ColorAlta } from "@/lib/alta-producto";
+import { claveCelda, leerErrorAlta, ordenarFotosAlta, type ColorAlta } from "@/lib/alta-producto";
 import type { ValorVocabulario } from "@/lib/catalogo-v2";
 import { agruparPorFamilia } from "@/lib/colores-familias";
 import { familiaEnCarta } from "@/lib/color-estampado-reglas";
@@ -63,8 +69,14 @@ import {
 // y sus mensajes llegan tal cual. La categoría y la marca son las de la línea: no se eligen aquí.
 //
 // Crear la prenda va como Nuevo producto (Felipe 2026-11-03: las colaboradoras ya saben usarlo): los mismos pasos y las mismas piezas, sin lo
-// que aquí sobra. La categoría ya viene de la línea; fotos, temporada e insignias se ponen después en Productos. Solo el precio y lo que hace falta
+// que aquí sobra. La categoría ya viene de la línea; temporada e insignias se ponen después en Productos. Solo el precio y lo que hace falta
 // para contarla son obligatorios: tejido y patrón no (20261104003000). Lo creado aquí no sale solo en la tienda web.
+//
+// FOTOS (Felipe 2026-11-13: «que crear producto desde recibir mercadería también pida fotos y allí también esté lo de la IA»): en «Tallas y
+// colores», una fila por color elegido con su foto y «Catálogo con IA», las mismas piezas de Nuevo producto (`FotosDeLaPrenda`). Son opcionales
+// y solo se ofrecen a quien puede guardarlas (`fn_puede_editar_catalogo`, la regla de `producto_fotos`; se pregunta a `GET /api/fotos/catalogo`):
+// quien recibe sin editar el catálogo crea la prenda como antes y las fotos se ponen después en Productos. Se suben al crear, después de la
+// prenda y esperando a la IA, como en Nuevo producto; una que falle no deshace la prenda.
 //
 // Los ejemplos de la caja siguen a la categoría (ADR-0290). La guía de foco enciende lo que sigue dentro del paso (ADR-0284). Un token por hoja:
 // un doble clic o un reintento no crea dos prendas.
@@ -164,9 +176,24 @@ export function HojaPrenda({
   // corrige aquí. No va a la base al crear (la prenda nace con el costo de la línea): lo escrito llega puesto al cierre, que es donde se fija.
   const costoDeLinea = destino.costoUnitario != null ? costoComoTexto(destino.costoUnitario) : "";
   const [costo, setCosto] = useState(costoDeLinea);
+  // Las fotos de la prenda (solo al crear una nueva): viven aquí hasta crearla.
+  const [permisoFotos, setPermisoFotos] = useState<PermisoDeFotos>({ fotos: false, ia: false });
+  useEffect(() => {
+    if (!nueva) return;
+    let vigente = true;
+    void leerPermisoDeFotos().then((p) => vigente && setPermisoFotos(p));
+    return () => {
+      vigente = false;
+    };
+  }, [nueva]);
+  const [fotos, setFotos] = useState<FotoPendiente[]>([]);
+  const fotosRef = useRef(fotos);
+  useEffect(() => {
+    fotosRef.current = fotos;
+  }, [fotos]);
   // La hoja va por pasos: un clic en el velo no puede llevarse lo que se llenó en los anteriores.
   const [borradorInicial] = useState(() => JSON.stringify(borrador));
-  const avisoSalida = useSalidaSinGuardar(nueva && JSON.stringify(borrador) !== borradorInicial, "Llenaste parte de esta prenda y todavía no se creó. Si cierras ahora, se pierde lo que llenaste.");
+  const avisoSalida = useSalidaSinGuardar(nueva && (JSON.stringify(borrador) !== borradorInicial || fotos.length > 0), "Llenaste parte de esta prenda y todavía no se creó. Si cierras ahora, se pierde lo que llenaste.");
   const cambiar = (cambios: Partial<BorradorPrenda>) => setBorrador((b) => ({ ...b, ...cambios }));
   const cambiarNombre = (nuevoTipo: string, nuevoPropio: string) => {
     setNombreCaja({ tipo: nuevoTipo, propio: nuevoPropio });
@@ -198,6 +225,34 @@ export function HojaPrenda({
   const campos = nueva ? [...camposDelPaso(camposPrenda, paso), ...(enUltimoPaso ? campoResponsable : [])] : [...camposPrenda, ...campoResponsable];
   const guia = useGuiaCampos(campos);
   const queSeCrea = textoDeLoQueSeCrea(borrador, ctx, (codigo) => colores.find((c) => c.codigo === codigo)?.nombre ?? codigo);
+  const catalogo = useCatalogoIAAlta({
+    disponible: permisoFotos.ia,
+    fotos,
+    setFotos,
+    colores: borrador.colorCodigos,
+    nombreColor: (codigo) => (codigo === null ? "la prenda" : (colores.find((c) => c.codigo === codigo)?.nombre ?? codigo)),
+  });
+
+  /** Sube las fotos de la prenda recién creada (las de los colores que quedaron elegidos), esperando a las que la IA prepara. Lo que falle se avisa. */
+  async function subirFotos(productoId: string) {
+    const elegidos = borrador.colorCodigos;
+    const lista = (await catalogo.esperar(fotosRef.current)).filter((f) => f.colorCodigo === null || elegidos.includes(f.colorCodigo));
+    if (lista.length === 0) return;
+    const supabase = createClient();
+    const filas: { producto_id: string; url: string; orden: number; es_principal: boolean; color_codigo: string | null }[] = [];
+    const fallidas: string[] = [];
+    for (const f of ordenarFotosAlta(lista, elegidos)) {
+      const r = f.ia?.usar ? await subirParDeCatalogo(supabase, f.archivo, f.ia.png) : await subirFotoProducto(supabase, f.archivo);
+      if ("error" in r) fallidas.push(`${f.archivo.name}: ${r.error}`);
+      else filas.push({ producto_id: productoId, url: r.url, orden: filas.length, es_principal: filas.length === 0, color_codigo: f.colorCodigo });
+    }
+    if (filas.length > 0) {
+      const { error: errFotos } = await supabase.from("producto_fotos").insert(filas);
+      if (errFotos) fallidas.push(traducirError(errFotos, "guardar las fotos"));
+    }
+    fotosRef.current.forEach((f) => URL.revokeObjectURL(f.vista));
+    if (fallidas.length > 0) avisar.aviso("La prenda se creó, pero no todas sus fotos subieron.", { detalle: `${fallidas.join(" · ")}. Agrégalas en Productos.` });
+  }
 
   useEffect(() => {
     if (error) avisoError.current?.focus();
@@ -207,6 +262,28 @@ export function HojaPrenda({
     setPaso(numero);
     setVisitados((v) => new Set([...v, numero]));
   }
+
+  // La propuesta de precio se pide apenas se abre la hoja (Felipe 2026-11-13: «lo pudo haber hecho desde que empecé a crear el producto»):
+  // la categoría y el costo vienen de la línea, y el nombre casi siempre de lo contado. La IA tarda 4 a 7 s (medido en producción), así que
+  // al llegar al precio ya está. Si se elige otro tejido, se vuelve a pedir con él (es lo único de «Cómo es» que cambia la respuesta); la
+  // espera corta junta varios clics seguidos en una sola consulta. Lo de igual clave no se repite: ni lo respondido ni lo que va en camino.
+  useEffect(() => {
+    if (!nueva || paso > 2) return;
+    const espera = window.setTimeout(
+      () =>
+        adelantarPropuestaDePrecio({
+          origen: "recepcion",
+          categoriaId: destino.categoriaId,
+          tejidoId: borrador.tejidoId,
+          referencia: borrador.nombre,
+          descripcion: borrador.descripcion,
+          costoBase: costo.trim().replace(",", "."),
+        }),
+      400,
+    );
+    return () => window.clearTimeout(espera);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- al abrir y al cambiar el tejido; no con cada letra del nombre o del detalle
+  }, [paso, borrador.tejidoId]);
 
   // Cada paso abre desde arriba. Es otra vista y no un bloque que se acortó: sin soltar la reserva de la página, un paso más corto aparece corrido y con aire debajo (ADR-0185).
   const pasoPintado = useRef(paso);
@@ -275,6 +352,13 @@ export function HojaPrenda({
       if (!prenda || prenda.variantes.length === 0) {
         setError("La base respondió, pero no pudimos leer la prenda. Cierra esta hoja y búscala en «Ya la tengo».");
         return;
+      }
+      // Las fotos, recién ahora que la prenda existe (como Nuevo producto). El botón sigue en «Creando…» mientras suben.
+      // (Una foto que la IA prepara ya está en la lista con su real: `useCatalogoIAAlta` la agrega al elegirla.)
+      if (nueva && permisoFotos.fotos && fotosRef.current.length > 0) {
+        setGuardando(true);
+        await subirFotos(prenda.productoId);
+        setGuardando(false);
       }
       avisar.exito(nueva ? `${prenda.nombre} creada` : `${prenda.nombre}: tallas o colores sumados`, {
         // Creada por quien no edita el catálogo, nace pendiente (ADR-0371): se recibe igual y un líder la revisa después.
@@ -523,6 +607,20 @@ export function HojaPrenda({
                       {elegirColores}
                       {/* Reserva su línea: lo que se crea aparece con la primera talla y no empuja el pie. */}
                       <p className="nota-cayla sin-i min-h-11">{queSeCrea ?? "Marca las tallas que llegaron y aquí se ve lo que se va a crear."}</p>
+                      {permisoFotos.fotos && (
+                        <FotosDeLaPrenda
+                          titulo={
+                            <span className="campo-etiqueta">
+                              Fotos<span className="font-normal normal-case tracking-normal text-taupe"> · opcional</span>
+                            </span>
+                          }
+                          colores={borrador.colorCodigos.flatMap((codigo) => colores.filter((c) => c.codigo === codigo))}
+                          fotos={fotos}
+                          onFotos={setFotos}
+                          catalogo={catalogo}
+                          disabled={guardando}
+                        />
+                      )}
                     </>
                   )}
 
@@ -531,7 +629,7 @@ export function HojaPrenda({
                       <div className="grid gap-4 sm:grid-cols-2">
                         <CampoMonto
                           etiqueta="Costo"
-                          pie={destino.costoUnitario != null ? "El de esta compra. Corrígelo si hace falta." : "Opcional. Con él, la propuesta usa el costo real."}
+                          pie={destino.costoUnitario != null ? "El de esta compra." : "Opcional. Afina la propuesta."}
                           inputMode="decimal"
                           placeholder="0.00"
                           value={costo}
@@ -540,7 +638,7 @@ export function HojaPrenda({
                         <CampoGuiado id="prenda-precio" guia={guia}>
                           <CampoMonto
                             etiqueta={guia.etiqueta("prenda-precio", "Precio de venta")}
-                            pie={destino.precioSugerido != null && destino.precioSugerido > 0 ? "Lo sugirió quien hizo la compra. Corrígelo si hace falta." : "El precio al que se va a vender en la tienda."}
+                            pie={destino.precioSugerido != null && destino.precioSugerido > 0 ? "Lo sugirió quien compró." : "Al que se vende en tienda."}
                             inputMode="decimal"
                             placeholder="0.00"
                             value={borrador.precio}
@@ -568,7 +666,9 @@ export function HojaPrenda({
                         }}
                         onDejar={() => setTocados((x) => ({ ...x, precio: true }))}
                       />
-                      <p className="nota-cayla">Lo que falte, como las fotos, se completa después en Productos. No sale en la tienda web hasta que alguien la publique.</p>
+                      <p className="nota-cayla">
+                        {permisoFotos.fotos ? "No sale en la web hasta publicarla." : "Las fotos y lo demás, después en Productos. No sale en la web hasta publicarla."}
+                      </p>
                     </>
                   )}
                 </div>
@@ -610,6 +710,8 @@ export function HojaPrenda({
             </div>
             {avisoSalida.aviso}
           </form>
+          {/* La hoja de ángulos de la IA, fuera del formulario: sus teclas no le llegan (ADR-0128). */}
+          {catalogo.hoja}
         </IdentidadAltaProveedor>
       )}
     </Modal>

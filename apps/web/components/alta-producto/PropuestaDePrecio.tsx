@@ -7,6 +7,10 @@
 // Dos lugares: Nuevo producto (con el botón, Felipe 2026-11-10) y la hoja de la prenda nueva de Recibir mercadería, donde sale SOLA al llegar
 // al paso del precio y se elige entre lo que sugirió quien compró y lo que propone la IA (Felipe 2026-11-11, «sola, al llegar al paso»). Una
 // respuesta ya pedida con los mismos datos se recuerda mientras la pantalla está abierta: ir y volver de paso no vuelve a gastar.
+//
+// En Recibir se pide ANTES de llegar (Felipe 2026-11-13: «lo pudo haber hecho desde que empecé a crear el producto»): la hoja la adelanta al
+// abrirse con `adelantarPropuestaDePrecio`, y otra vez solo si cambia el tejido. Al llegar al precio, la pieza toma esa misma consulta
+// (lista o a medio camino) en vez de pedir otra.
 
 import { Sparkles } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
@@ -19,8 +23,65 @@ import { soles } from "@/lib/compras-reglas";
 type Estado = { tipo: "nada" } | { tipo: "pidiendo" } | { tipo: "error"; texto: string } | RespuestaEnPantalla;
 type RespuestaEnPantalla = { tipo: "listo"; respuesta: RespuestaProponer };
 
+type Final = Exclude<Estado, { tipo: "nada" } | { tipo: "pidiendo" }>;
+
+/** Con qué datos se pide una propuesta. */
+type DatosPropuesta = {
+  origen: "alta" | "recepcion";
+  productoId?: string;
+  categoriaId: string;
+  tejidoId: string;
+  referencia: string;
+  descripcion: string;
+  costoBase: string;
+};
+
 /** Lo ya respondido en esta pantalla, por los datos con que se pidió. */
 const YA_RESPONDIDO = new Map<string, RespuestaProponer>();
+/** Lo pedido por adelantado y todavía no mostrado (lista o a medio camino), por los datos con que se pidió. */
+const ADELANTADAS = new Map<string, Promise<Final>>();
+
+// Una propuesta se calculó con un costo y una categoría: si cambian, ya no vale (podría quedar bajo el piso del costo nuevo).
+function claveDe(d: DatosPropuesta): string {
+  return `${d.origen}|${d.productoId ?? ""}|${d.categoriaId}|${d.tejidoId}|${d.costoBase}`;
+}
+
+async function pedirAlServidor(d: DatosPropuesta): Promise<Final> {
+  const costo = Number(d.costoBase);
+  try {
+    const r = await fetch("/api/precio/proponer", {
+      method: "POST",
+      // Sin el loader de pantalla completa: la persona sigue viendo el formulario y el botón dice «Calculando…».
+      headers: { "content-type": "application/json", "x-espera": "no" },
+      body: JSON.stringify({
+        origen: d.origen,
+        categoriaId: d.categoriaId || null,
+        productoId: d.productoId ?? null,
+        tejidoId: d.tejidoId || null,
+        referencia: d.referencia.trim() || null,
+        descripcion: d.descripcion.trim() || null,
+        costo: d.costoBase.trim() !== "" && Number.isFinite(costo) && costo > 0 ? costo : null,
+      }),
+    });
+    const datos = (await r.json().catch(() => null)) as (RespuestaProponer & { error?: string }) | null;
+    if (!r.ok || !datos || datos.error) return { tipo: "error", texto: datos?.error ?? "No respondió. Prueba de nuevo o ponlo tú." };
+    if ("propuesta" in datos) YA_RESPONDIDO.set(claveDe(d), datos);
+    return { tipo: "listo", respuesta: datos };
+  } catch {
+    return { tipo: "error", texto: "Sin conexión. Prueba de nuevo." };
+  }
+}
+
+/**
+ * Pide la propuesta antes de que la pieza aparezca, para que al llegar al precio ya esté (o esté más cerca). Con los mismos datos no
+ * vuelve a pedir: ni si ya se respondió ni si va en camino. Si falla, la pieza la pide de nuevo al aparecer.
+ */
+export function adelantarPropuestaDePrecio(d: DatosPropuesta): void {
+  if (!d.categoriaId && !d.productoId) return;
+  const clave = claveDe(d);
+  if (YA_RESPONDIDO.has(clave) || ADELANTADAS.has(clave)) return;
+  ADELANTADAS.set(clave, pedirAlServidor(d));
+}
 
 export function PropuestaDePrecio({
   categoriaId,
@@ -53,43 +114,23 @@ export function PropuestaDePrecio({
   /** Una prenda que ya existe (el cierre de Recibir): la IA mira su precio de hoy y cómo se vende. La categoría puede venir vacía. */
   productoId?: string;
 }) {
-  // Una propuesta se calculó con un costo y una categoría: si cambian, ya no vale (podría quedar bajo el piso del costo nuevo). Cada
-  // estado guarda con qué datos nació, y uno de otros datos se lee como «nada» (o como lo ya respondido con esos datos).
-  const clave = `${origen}|${productoId ?? ""}|${categoriaId}|${tejidoId}|${costoBase}`;
+  // Cada estado guarda con qué datos nació, y uno de otros datos se lee como «nada» (o como lo ya respondido con esos datos).
+  const datosDePropuesta: DatosPropuesta = { origen, productoId, categoriaId, tejidoId, referencia, descripcion, costoBase };
+  const clave = claveDe(datosDePropuesta);
   const [guardado, setGuardado] = useState<{ clave: string; estado: Estado }>(() => ({ clave, estado: { tipo: "nada" } }));
   const recordada = YA_RESPONDIDO.get(clave);
   const estado: Estado = guardado.clave === clave ? guardado.estado : recordada ? { tipo: "listo", respuesta: recordada } : { tipo: "nada" };
   const [dejado, setDejado] = useState<string | null>(null);
 
-  const costo = Number(costoBase);
-  const proponer = async () => {
+  /** `usarAdelantada`: tomar la consulta que la hoja ya pidió con estos datos; si falló, se pide otra. El botón siempre pide una nueva. */
+  const proponer = async (usarAdelantada = false) => {
     const pedidaCon = clave;
     setGuardado({ clave: pedidaCon, estado: { tipo: "pidiendo" } });
-    try {
-      const r = await fetch("/api/precio/proponer", {
-        method: "POST",
-        // Sin el loader de pantalla completa: la persona sigue viendo el formulario y el botón dice «Calculando…».
-        headers: { "content-type": "application/json", "x-espera": "no" },
-        body: JSON.stringify({
-          origen,
-          categoriaId: categoriaId || null,
-          productoId: productoId ?? null,
-          tejidoId: tejidoId || null,
-          referencia: referencia.trim() || null,
-          descripcion: descripcion.trim() || null,
-          costo: costoBase.trim() !== "" && Number.isFinite(costo) && costo > 0 ? costo : null,
-        }),
-      });
-      const datos = (await r.json().catch(() => null)) as (RespuestaProponer & { error?: string }) | null;
-      if (!r.ok || !datos || datos.error) {
-        setGuardado({ clave: pedidaCon, estado: { tipo: "error", texto: datos?.error ?? "No se pudo calcular ahora. Prueba de nuevo en un momento." } });
-        return;
-      }
-      if ("propuesta" in datos) YA_RESPONDIDO.set(pedidaCon, datos);
-      setGuardado({ clave: pedidaCon, estado: { tipo: "listo", respuesta: datos } });
-    } catch {
-      setGuardado({ clave: pedidaCon, estado: { tipo: "error", texto: "Sin conexión: no se pudo calcular. Prueba de nuevo." } });
-    }
+    const adelantada = usarAdelantada ? ADELANTADAS.get(pedidaCon) : undefined;
+    if (adelantada) ADELANTADAS.delete(pedidaCon);
+    let final = adelantada ? await adelantada : null;
+    if (!final || final.tipo === "error") final = await pedirAlServidor(datosDePropuesta);
+    setGuardado({ clave: pedidaCon, estado: final });
   };
 
   // Recibir: sola UNA vez, al aparecer (lo ya respondido no se vuelve a pedir). Si después se escribe el costo, se pide con el botón: pedirla
@@ -98,7 +139,7 @@ export function PropuestaDePrecio({
   useEffect(() => {
     if (!automatica || (!categoriaId && !productoId) || disabled || pedidaSola.current || YA_RESPONDIDO.has(clave)) return;
     pedidaSola.current = true;
-    void proponer();
+    void proponer(true);
     // eslint-disable-next-line react-hooks/exhaustive-deps -- se pide al aparecer, una sola vez; no en cada cambio de los datos
   }, []);
 
@@ -112,13 +153,13 @@ export function PropuestaDePrecio({
     <div className="mt-4 space-y-3">
       {!propuesta && (
         <div className="flex flex-wrap items-center gap-3">
-          <Boton type="button" peso="fantasma" onClick={proponer} cargando={estado.tipo === "pidiendo"} textoCargando="Calculando…" disabled={disabled || (!categoriaId && !productoId)}>
+          <Boton type="button" peso="fantasma" onClick={() => proponer()} cargando={estado.tipo === "pidiendo"} textoCargando="Calculando…" disabled={disabled || (!categoriaId && !productoId)}>
             <span className="inline-flex items-center gap-2">
               <Sparkles aria-hidden className="h-4 w-4" />
               {estado.tipo === "error" || (estado.tipo === "listo" && "sinPropuesta" in estado.respuesta) ? "Proponer de nuevo" : "Proponer precio"}
             </span>
           </Boton>
-          <p className="text-sm text-taupe">Mira el costo y las prendas parecidas. Nunca deja menos de 30 % de margen.</p>
+          <p className="text-sm text-taupe">Nunca baja de 30 % de margen.</p>
         </div>
       )}
 
@@ -150,7 +191,7 @@ export function PropuestaDePrecio({
           </div>
           <p className="text-sm">{propuesta.razon}</p>
           {propuesta.subidoAlPiso && (
-            <p className="text-sm text-taupe">Lo subí a {soles(propuesta.piso)}: es lo mínimo para no ganar menos de 30 % con este costo.</p>
+            <p className="text-sm text-taupe">Es el mínimo para ganar 30 % con este costo.</p>
           )}
           {propuesta.parecidas.length > 0 && (
             <p className="text-sm text-taupe">
@@ -174,7 +215,7 @@ export function PropuestaDePrecio({
                 {seQuedo ? `Se queda ${soles(precioPuesto)}` : `Dejar ${soles(precioPuesto)}`}
               </Boton>
             )}
-            <button type="button" className="btn-cayla btn-enlace" onClick={proponer} disabled={disabled}>
+            <button type="button" className="btn-cayla btn-enlace" onClick={() => proponer()} disabled={disabled}>
               Proponer otro
             </button>
           </div>

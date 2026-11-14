@@ -212,6 +212,20 @@ const HUELLAS: Huella[] = [
     frase: (prenda) => `El precio de ${prenda} cambió: quítala del ticket y vuelve a agregarla.`,
   },
   {
+    // 20261114011000 y 20261114032000 (ADR-0655) — la caja o Apartar mandaron otra parte de una oferta de grupo (3x2, N por S/, la N.ª al
+    // X %) que la de la regla: la oferta cambió o terminó mientras la pantalla estaba abierta. El detalle es «referencia (sku)».
+    marca: "venta_grupo_omitido",
+    frase: (prenda) => `La oferta de grupo de ${prenda} cambió mientras cobrabas: vuelve a abrir el cobro para ver el precio de ahora.`,
+  },
+  {
+    marca: "venta_grupo_no_coincide",
+    frase: (prenda) => `La oferta de grupo de ${prenda} ya no da lo que dice el ticket: vuelve a abrir el cobro para ver el precio de ahora.`,
+  },
+  {
+    marca: "separacion_grupo_no_coincide",
+    frase: (prenda) => `La oferta de grupo de ${prenda} cambió mientras apartabas: recarga la pantalla para ver el precio de ahora.`,
+  },
+  {
     // 20261012190000_precio_cero_solo_empaque.sql (ADR-0384) — una prenda de mercadería con precio 0 en el catálogo no se vende
     // (solo la bolsa de obsequio, de Empaque, va en S/ 0). La caja ya no la deja entrar al ticket; esto es la red si llega igual
     // (una venta sin conexión, una pantalla vieja). El detalle es «referencia (sku)».
@@ -458,6 +472,11 @@ const HUELLAS: Huella[] = [
     marca: "colores_clave_unica",
     frase:
       "Ya existe un color muy parecido en el vocabulario (mayúsculas, tildes o espacios de más no cuentan como distinto). Revisa la lista antes de crear uno nuevo.",
+  },
+  {
+    // 20261113234000_insignias_sin_descuento.sql (ADR-0655, Felipe 2026-11-13): una insignia describe la prenda y nunca baja su precio.
+    marca: "etiquetas_descuento_solo_campana",
+    frase: "Una insignia no baja el precio. Para un descuento, arma una campaña en Catálogo ▸ Campañas y ofertas.",
   },
   {
     // 20260917100200_etiquetas_catalogo.sql — «Nueva colección» y «nueva coleccion» son la misma etiqueta para

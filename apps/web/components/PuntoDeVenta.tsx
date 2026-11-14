@@ -13,8 +13,7 @@ import { useEnviosEnCurso } from "@/lib/useEnviosEnCurso";
 import { CobroEnDuda } from "@/components/punto-de-venta/CobroEnDuda";
 import { avisar } from "@/components/ui/Avisos";
 import { resolverCodigoV2, type PrendaBuscableV2 } from "@/lib/buscar-prenda-v2";
-import { agruparCatalogo, agruparPorPrenda, filtrarConStock, type GrupoCatalogo } from "@/lib/catalogo-grupos";
-import { categoriasQueCombinan, claveAnotada, fraseCombina, indiceDeColores, sugerirCombina, type AnclaLook, type TarjetaLook } from "@/lib/combinar-reglas";
+import { agruparPorPrenda, filtrarConStock } from "@/lib/catalogo-grupos";
 import { ETIQUETA_TIPO, tipoDocumentoDeCliente, type EstadoComprobante, type TipoComprobante } from "@/lib/comprobantes-reglas";
 import {
   aplicarDescuento,
@@ -57,7 +56,6 @@ import { AbrirCajaFormV2 } from "@/components/AbrirCajaFormV2";
 import { CerrarCajaModalV2 } from "@/components/CerrarCajaModalV2";
 import { PuntoDeVentaCatalogo } from "@/components/PuntoDeVentaCatalogo";
 import { OpcionesDePrendaModal } from "@/components/punto-de-venta/OpcionesDePrendaModal";
-import { fichaDelColor, unidadesPorColor, type ColorConFicha } from "@/lib/ficha-del-color";
 import { PuntoDeVentaTicket } from "@/components/PuntoDeVentaTicket";
 import { HojaDeCobro } from "@/components/punto-de-venta/HojaDeCobro";
 import { HojaDeDescuento } from "@/components/punto-de-venta/HojaDeDescuento";
@@ -138,6 +136,7 @@ import { CodigoDeCuponModal, UsarPuntosModal } from "@/components/punto-de-venta
 import { useReportarTicket } from "@/components/punto-de-venta/TicketPorSede";
 import { CLUB_APAGADO, type ClubDeLaCaja } from "@/lib/club-caja-reglas";
 import { descuentosParaRegistrar, ticketConVale } from "@/lib/club-cupon-reparto-reglas";
+import { carritoConGrupos, type OfertaDeGrupoDeVariante } from "@/lib/ofertas-de-grupo";
 import {
   avisoCuponApagado,
   ayudaPieCupon,
@@ -175,7 +174,6 @@ import { ChevronUp, ShoppingBag } from "lucide-react";
 import { soltarPaginaEstable } from "@/components/ui/PaginaEstable";
 import { conDuenoPorLineas, duenoDeLasLineas, duenosParaElegir, variantesSinDueno, type UnidadesDeDueno } from "@/lib/dueno-reglas";
 import { esDeClaure, numeroQueDar, repartoDelTicket } from "@/lib/cobro-por-dueno-reglas";
-import { codigoDeLiquidacion, errorDeLiquidacion, nombreEnVenta, piezaLeidaDeJson, soles as solesLiquidacion } from "@/lib/liquidacion-reglas";
 import { Casilla } from "@/components/ui/Casilla";
 import { numeroDeMonto } from "@/lib/monto-plata-reglas";
 
@@ -190,8 +188,8 @@ import { numeroDeMonto } from "@/lib/monto-plata-reglas";
 export { ID_CARGO_ESPECIAL };
 
 /** Sin fichas de color: una sola referencia vacía, para que el `useMemo` de la ficha no se rearme en cada render. */
-const SIN_COLORES: ColorConFicha[] = [];
 const SIN_MAQUINAS: readonly MaquinaDeCobro[] = [];
+const SIN_OFERTAS_DE_GRUPO: Readonly<Record<string, OfertaDeGrupoDeVariante>> = {};
 
 export type VarianteBusqueda = PrendaBuscableV2 & {
   /** De qué modelo es (`productos.id`): «Combina bien con» no sugiere la misma prenda ni una que ya está en el ticket. Ausente = se
@@ -213,6 +211,9 @@ export type VarianteBusqueda = PrendaBuscableV2 & {
   empresa?: string | null;
   /** `#rrggbb` del color de la variante (`colores.hex`): el fondo del ícono en la grilla y en el buscador. Ausente = el tono de su familia. */
   colorHex?: string | null;
+  /** Si el color es una mezcla («Hueso con azul», ADR-0643): sus tonos, la base primero. El punto de la tarjeta y del buscador se parte;
+   *  el ícono de la prenda sin foto se sigue tiñendo con `colorHex` (el de la base). Ausente = un color de un tono. */
+  colorTonos?: readonly string[] | null;
   /** El color es un estampado (ADR-0634): se reconoce por su foto, no por un punto. Ausente = se dibuja como cualquier color. */
   colorEstampado?: boolean;
   /** `variantes.color_codigo`: cruza con la ficha del color (ADR-0316) en «Todo de la prenda». Ausente = sin ficha. */
@@ -274,14 +275,7 @@ export type ItemCarrito = {
   campana?: CampanaLinea | null;
   /** Solo en una «Prenda sin registrar» (ADR-0179): lo que anotó caja para que almacén la reconozca. */
   prendaLibre?: Omit<DatosPrendaSinRegistrar, "precio">;
-  /** Solo en una pieza de liquidación (ADR-0379): el código de su etiqueta. Precio final, sin descuentos, venta final. */
-  liquidacion?: { codigo: string };
-  /** De dónde salió la línea si no la buscó la colaboradora: la tocó en «Combina bien con» de «Todo de la prenda» (Felipe 2026-10-10).
-   *  Viaja a `registrar_venta` como `origen_sugerencia` (migración 20261010220000); hasta que esté pegada, la base lo ignora. */
-  origen?: OrigenDeLinea;
 };
-
-export type OrigenDeLinea = "combina_bien_con";
 
 /** Lo que la colaboradora está decidiendo en el apartado «Descuento»: el modo (% de cada prenda o S/ del total de lo elegido,
  *  repartido entre las prendas; el S/ volvió el 2026-10-14 y es del total desde el 2026-10-24, Felipe), el valor tal cual lo escribe en cada uno, a qué líneas alcanza (`null` es todo el ticket;
@@ -373,13 +367,13 @@ type Props = {
   variantes: VarianteBusqueda[];
   /** ADR-0542: de quién son las unidades de cada prenda en esta sede, solo las que tienen de alguien que no es la casa (Lima). La cajera elige de cuál sale cuando hay de las dos. */
   duenosPorVariante?: Record<string, UnidadesDeDueno[]> | null;
-  /** La ficha de cada color activo (ADR-0316; Felipe 2026-10-10): «Todo de la prenda» dice con qué se combina el color que se mira,
-   *  con lo que cuelga en esta sede primero. Vacío (o ausente) = la hoja no dice nada del color, y se vende igual. */
-  colores?: ColorConFicha[];
   listasPrendaLibre: ListasPrendaLibre;
   /** Las campañas de hoy no se pudieron leer: se vende igual, pero una prenda en campaña
    *  se rechazaría al cobrar — hay que avisarlo antes, no descubrirlo con la clienta. */
   campanasNoCargaron?: boolean;
+  /** «Llevar varias y pagar menos» (ADR-0655): la oferta de grupo que rige hoy para cada prenda de esta tienda (`ofertas_de_grupo_vigentes`).
+   *  Sin la lectura (una base vieja), ninguna: el ticket se arma como siempre. */
+  ofertasGrupo?: Readonly<Record<string, OfertaDeGrupoDeVariante>>;
   /** Las ventas de hoy de esta sede, leídas por el servidor: la píldora «Hoy» y su lista (spike 2026-09-26). */
   ventasHoy: { inicial: VentaDeHoy[]; fallo: string | null };
   /** `ubicaciones.meta_venta_diaria` de esta sede, o null sin meta. */
@@ -443,7 +437,7 @@ export type ProformaEnCobro = {
   confirmacion: { titulo: string; detalle: string; casilla: string } | null;
 };
 
-export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, cajaId, fondoUltimoCierre = null, cierreAnterior = null, variantes, duenosPorVariante = null, colores = SIN_COLORES, listasPrendaLibre, campanasNoCargaron = false, ventasHoy, metaVentaDiaria, accesos, puedeApartar, puedeBuscarClienta, verMesaRegularizar = false, club = CLUB_APAGADO, proforma = null, avisoProforma = null, repeticion = null, qrDisponible = false, maquinasCobro = SIN_MAQUINAS, tiposComprobante, redondeoEfectivoDisponible = false, pedirAOtraSede = null, pedidosConCliente = [], ahoraIso = "" }: Props) {
+export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, cajaId, fondoUltimoCierre = null, cierreAnterior = null, variantes, duenosPorVariante = null, listasPrendaLibre, campanasNoCargaron = false, ofertasGrupo = SIN_OFERTAS_DE_GRUPO, ventasHoy, metaVentaDiaria, accesos, puedeApartar, puedeBuscarClienta, verMesaRegularizar = false, club = CLUB_APAGADO, proforma = null, avisoProforma = null, repeticion = null, qrDisponible = false, maquinasCobro = SIN_MAQUINAS, tiposComprobante, redondeoEfectivoDisponible = false, pedirAOtraSede = null, pedidosConCliente = [], ahoraIso = "" }: Props) {
   const bloqueado = cajaId === null;
   const router = useRouter();
   // De quién sale cada prenda del ticket cuando hay unidades de las dos empresas (ADR-0542), por prenda. Sin respuesta de fábrica.
@@ -470,7 +464,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
   // marca vieja devolvía la venta anterior, y la pantalla anunciaba la nueva.
   const envio = useIntento("registrar_venta");
   const [revisandoCobro, setRevisandoCobro] = useState(false);
-  /** Si el cobro en duda fue un corte de red: por qué no se guardó para subir solo (el canje del club, una pieza de liquidación…). */
+  /** Si el cobro en duda fue un corte de red: por qué no se guardó para subir solo (el canje del club…). */
   const [sinColaMotivo, setSinColaMotivo] = useState<string | null>(null);
   /** Mutex de la subida de la cola offline: mientras haya una pasada en curso, un
    *  segundo disparo (mount/online/latido solapados, o React Strict Mode invocando el
@@ -673,50 +667,6 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
   const variantesVisibles = useMemo(() => variantesConOverlay.filter((v) => v.varianteId !== ID_CARGO_ESPECIAL), [variantesConOverlay]);
   // Las bolsas de esta tienda (una familia fuera de los motores), de la más barata a la más cara. Sin ninguna, la fila no se dibuja.
   const bolsas = useMemo(() => bolsasDeLaCaja(variantesVisibles), [variantesVisibles]);
-  // La ficha del color que se mira en «Todo de la prenda» (ADR-0316; Felipe 2026-10-10): sus compañeros, con lo que cuelga AQUÍ primero.
-  // Sobre `variantesVisibles` (con el stock en vivo), nunca sobre el catálogo crudo: un color que se acabó hace un minuto ya no se sugiere.
-  const fichaDelColorDe = useMemo(() => {
-    if (colores.length === 0) return () => null;
-    const porCodigo = new Map(colores.map((c) => [c.codigo, c]));
-    const unidadesAqui = unidadesPorColor(variantesVisibles);
-    return (codigo: string | null | undefined) => fichaDelColor(codigo, porCodigo, { unidadesAqui });
-  }, [colores, variantesVisibles]);
-  // «Combina bien con» (Felipe 2026-10-10; `lib/combinar-reglas.ts`): la frase («…un jean o una cartera») y hasta 3 prendas que combinan
-  // con la que se mira, de lo que CUELGA AQUÍ. Una tarjeta por prenda×color sobre las variantes visibles (stock en vivo); el índice de
-  // las fichas se arma una vez por sesión. Es una función del módulo vender (ADR-0306): no toca el ticket ni Cobrar.
-  const indiceColores = useMemo(() => indiceDeColores(colores), [colores]);
-  const tarjetasLook = useMemo<TarjetaLook<GrupoCatalogo<VarianteBusqueda>>[]>(
-    () =>
-      agruparCatalogo(variantesVisibles).map((g) => {
-        const v = g.tallas[0]?.variante;
-        return {
-          productoId: v?.productoId ?? g.referencia,
-          referencia: g.referencia,
-          categoriaPrefijo: v?.categoriaPrefijo ?? null,
-          colorCodigo: v?.colorCodigo ?? null,
-          colorNombre: g.color,
-          colorHex: v?.colorHex ?? null,
-          fotoUrl: g.fotoUrl,
-          tallas: g.tallas.map((t) => ({ varianteId: t.variante.varianteId, talla: t.talla, stockAqui: t.stockAqui })),
-          origen: g,
-        };
-      }),
-    [variantesVisibles]
-  );
-  const combinaDe = useMemo(() => {
-    if (colores.length === 0) return () => ({ frase: null as string | null, sugerencias: [] as ReturnType<typeof sugerirCombina<GrupoCatalogo<VarianteBusqueda>>> });
-    const nombres = new Map(colores.map((c) => [c.codigo, c.nombre]));
-    const productoDe = new Map(variantes.map((v) => [v.varianteId, v.productoId ?? v.referencia]));
-    const prefijoDe = new Map(listasPrendaLibre.categorias.map((c) => [c.id, c.prefijo ?? null]));
-    // Lo que ya está en el ticket no se vuelve a sugerir: por prenda, y por categoría+color en lo anotado como «Prenda sin registrar».
-    const enTicket = new Set(carrito.filter((it) => !it.prendaLibre).map((it) => productoDe.get(it.varianteId) ?? it.referencia));
-    const anotados = new Set(carrito.filter((it) => it.prendaLibre).map((it) => claveAnotada(prefijoDe.get(it.prendaLibre!.categoriaId), it.prendaLibre!.colorCodigo)));
-    const opciones = { enTicket, anotadosEnTicket: anotados, nombreDeColor: (c: string) => nombres.get(c) ?? c, sede: ubicacionEtiqueta };
-    return (ancla: AnclaLook) => ({
-      frase: fraseCombina(categoriasQueCombinan(ancla, tarjetasLook, indiceColores, opciones)),
-      sugerencias: sugerirCombina(ancla, tarjetasLook, indiceColores, opciones),
-    });
-  }, [colores, variantes, listasPrendaLibre.categorias, carrito, tarjetasLook, indiceColores, ubicacionEtiqueta]);
   // El ticket topa con el piso de AHORA (`conPisoAlDia`): cada línea guarda el piso de cuando se agregó, y sin esto
   // seguía topada ahí aunque ya hubieran bajado más del almacén — el + apagado y el aviso pidiendo bajar lo que ya se
   // bajó. Lo usan el ticket (el +, el máximo) y `cambiarCantidad`; el mismo piso con el que `agregar()` decide el tope.
@@ -817,12 +767,6 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
       setActivo(0);
       const v = resolverCodigoV2(codigo, variantesVisibles);
       if (!v) {
-        // ADR-0379: una etiqueta de liquidación no es de ninguna prenda del catálogo; se busca su pieza en la base.
-        const liquidacion = codigoDeLiquidacion(codigo);
-        if (liquidacion) {
-          void agregarPiezaLiquidacion(liquidacion);
-          return;
-        }
         setAviso(`No encontramos «${codigo}» en ${ubicacionEtiqueta}.`);
         return;
       }
@@ -1094,7 +1038,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
 
   function agregar(
     v: VarianteBusqueda,
-    { silencioso = false, confirmar = false, origen }: { silencioso?: boolean; confirmar?: boolean; origen?: OrigenDeLinea } = {}
+    { silencioso = false, confirmar = false }: { silencioso?: boolean; confirmar?: boolean } = {}
   ): "agregada" | "agotada" | "en_almacen" | "apartada" | "tope" | "sin_precio" | null {
     if (bloqueado) return null;
     // ADR-0384: una prenda de mercadería en S/ 0 no entra al ticket (la base no la cobraría; sin conexión, recién lo diría al subir,
@@ -1162,8 +1106,6 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
               razonDescuentoOtro: "",
               argumentoDescuento: "",
               campana: v.campana ?? null,
-              // La marca solo nace con la fila: subir la cantidad de una línea que ya estaba no la convierte en «sugerida».
-              ...(origen ? { origen } : {}),
             }),
           ];
         }
@@ -1302,12 +1244,6 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
   function alEscanear(codigo: string): ResultadoEscaneo {
     const v = resolverCodigoV2(codigo, variantesVisibles);
     if (!v) {
-      // ADR-0379: la pieza de liquidación se busca en la base; el aviso de cómo fue sale aparte, al responder.
-      const liquidacion = codigoDeLiquidacion(codigo);
-      if (liquidacion) {
-        void agregarPiezaLiquidacion(liquidacion);
-        return { estado: "agregada", codigo, nombre: "Pieza de liquidación" };
-      }
       return { estado: "no-encontrada", codigo };
     }
     const nombre = [v.referencia, v.talla].filter(Boolean).join(" · ");
@@ -1335,70 +1271,6 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
         duracion: 15_000,
       });
     }
-  }
-
-  /**
-   * Una pieza de liquidación (ADR-0379): la prenda suelta que no está en el catálogo, con su etiqueta LQ. Se lee en la base (su
-   * precio vigente, si sigue a la venta y si es de esta tienda) y entra como una línea de la variante centinela, sin mover stock.
-   * La base vuelve a comprobarlo todo al cobrar; aquí se adelanta para decirlo en el mostrador y no en el cobro.
-   */
-  async function agregarPiezaLiquidacion(codigo: string) {
-    if (bloqueado) return;
-    if (carrito.some((it) => it.liquidacion?.codigo === codigo)) {
-      avisar.aviso("Esa prenda ya está en el ticket", { detalle: "Cada prenda de liquidación es una sola unidad." });
-      return;
-    }
-    const { data, error } = await createClient().rpc("fn_pieza_liquidacion", { p_codigo: codigo });
-    const leida = error ? null : piezaLeidaDeJson(data);
-    if (error) {
-      avisar.error("No se pudo leer la etiqueta", { detalle: "Revisa la conexión y vuelve a escanearla." });
-      return;
-    }
-    if (!leida) {
-      setAviso(`No encontramos la etiqueta «${codigo}».`);
-      return;
-    }
-    if (leida.tipo === "otra_sede" || leida.pieza.ubicacionId !== ubicacionId) {
-      avisar.error("Esa prenda es de otra tienda", { detalle: "Las prendas de liquidación se venden en la tienda que las etiquetó." });
-      return;
-    }
-    const pieza = leida.pieza;
-    if (pieza.estado !== "disponible") {
-      avisar.error(pieza.estado === "vendida" ? "Esa prenda ya se vendió" : "Esa prenda ya no está a la venta");
-      return;
-    }
-    if (!leida.vigente) {
-      avisar.error("Esa etiqueta ya no vale", {
-        detalle: `La prenda cuesta ahora S/\u00a0${solesLiquidacion(pieza.precio)} (etiqueta ${pieza.codigo ?? "nueva"}). Pídele a quien la etiquetó que le pegue la nueva.`,
-      });
-      return;
-    }
-    capturarFlip();
-    setCarrito((actual) =>
-      actual.some((it) => it.liquidacion?.codigo === codigo)
-        ? actual
-        : [
-            ...actual,
-            {
-              claveLinea: `liq-${codigo}`,
-              varianteId: ID_CARGO_ESPECIAL,
-              // «Liquidación · Blusas»: el nombre de la línea en el ticket y en la boleta.
-              referencia: nombreEnVenta(pieza.categoria, pieza.descripcion),
-              sku: "LIQUIDACION",
-              codigo,
-              cantidad: 1,
-              precioUnitario: pieza.precio,
-              descuentoUnitario: 0,
-              stockAqui: 1,
-              razonDescuento: "",
-              razonDescuentoOtro: "",
-              argumentoDescuento: "",
-              campana: null,
-              liquidacion: { codigo },
-            },
-          ],
-    );
-    setAviso(null);
   }
 
   function agregarPrendaSinRegistrar(d: DatosPrendaSinRegistrar) {
@@ -1481,7 +1353,6 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
         `${cedieron.map((it) => `${it.referencia} (${it.campana?.nombre})`).join(", ")} ya tiene${cedieron.length > 1 ? "n" : ""} una campaña con igual o más descuento: se mantiene la campaña.`,
       );
     }
-    // ADR-0379: una pieza de liquidación tiene precio final; el descuento del ticket no la toca (`entraAlDescuento`).
     setCarrito((actual) =>
       descuento.modo === "monto"
         ? aplicarDescuentoMonto(actual, numeroDeMonto(descuento.monto), claves, detalle)
@@ -1663,12 +1534,6 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
       setQ("");
       setActivo(0);
       if (accion.tipo === "no-encontrada") {
-        // ADR-0379: el código de una etiqueta de liquidación tecleado a mano (la pistola no la leyó) se busca en la base.
-        const liquidacion = codigoDeLiquidacion(accion.texto);
-        if (liquidacion) {
-          void agregarPiezaLiquidacion(liquidacion);
-          return;
-        }
         setAviso(`No encontramos «${accion.texto}» en ${ubicacionEtiqueta}.`);
         return;
       }
@@ -1698,7 +1563,11 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
   // en `p_codigo_descuento`. El carrito no cambia: cada línea sigue con su descuento SIN el club, y la parte del cupón se suma solo al
   // cobrar y en el total. Un cupón que no descuenta nada no se manda (la base lo rechazaría: `cupon_sin_monto`).
   const cuponPuesto = cuponClub.cupon;
-  const conVale = useMemo(() => ticketConVale(carrito, cuponPuesto ? cuponPuesto.valor : null), [carrito, cuponPuesto]);
+  // «Llevar varias y pagar menos» (ADR-0655): el carrito como se cobra, con cada prenda de un grupo en su línea y su parte sumada al descuento
+  // (`carritoConGrupos`, la misma cuenta que `fn_ofertas_de_grupo`). El cupón, el total y lo que viaja salen de aquí; el ticket sigue
+  // mostrando el carrito, con lo que dice cada grupo (`grupos.porLinea`).
+  const grupos = useMemo(() => carritoConGrupos(carrito, ofertasGrupo), [carrito, ofertasGrupo]);
+  const conVale = useMemo(() => ticketConVale(grupos.lineas, cuponPuesto ? cuponPuesto.valor : null), [grupos, cuponPuesto]);
   const valeDelTicket =
     cuponPuesto && conVale.totalVale > 0
       ? {
@@ -1711,7 +1580,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
   // Las líneas con la parte del cupón (sin cupón, en 0): las que viajan y se imprimen.
   const lineasConClub = conVale.lineas;
   const conVentajaDelClub = valeDelTicket !== null;
-  const total = valeDelTicket ? conVale.total : totalDeLineas(carrito);
+  const total = valeDelTicket ? conVale.total : totalDeLineas(grupos.lineas);
   const prendas = carrito.reduce((acc, it) => acc + it.cantidad, 0);
   // Lo que gana la miembro con esta compra (programa de puntos): lo que PAGA (ya con el cupón) por los puntos por sol de hoy, más el
   // regalo de cumpleaños si le toca. Solo se dice; quien suma es la base al cobrar (`fn_club_puntos_por_venta`).
@@ -1758,11 +1627,6 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
     : null;
   // Lo que se le avisa a quien cobra bajo el campo del celular: si también se guarda en la ficha, o que es solo de esta boleta.
   const notaCelularBoleta = notaDelCelularDeLaBoleta({ clienta, celularBoleta, tipoComprobante, puedeGuardarEnFicha: puedeBuscarClienta });
-  // ADR-0379: el cupón del Club no se usa con piezas de liquidación (precio final): la base rechazaría la venta entera.
-  const liquidacionConClub =
-    conVentajaDelClub && carrito.some((it) => it.liquidacion)
-      ? "Las prendas de liquidación tienen precio final: el regalo del club se usa en otra venta. Quita el cupón o el canje, o cóbralas aparte."
-      : null;
   // Lo elegido vale para ESTA venta: lo de una prenda que ya no está en el ticket no cuenta (y se limpia al cobrar).
   const enTicket = new Set(carrito.map((it) => it.varianteId));
   const duenoVigente = Object.fromEntries(Object.entries(duenoDeLinea).filter(([v]) => enTicket.has(v)));
@@ -1776,7 +1640,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
         )
       : null;
   const motivoDueno = faltaDuenoEn.length > 0 ? `Marca de quién sale ${faltaDuenoEn.length === 1 ? "la prenda que tiene" : "las prendas que tienen"} unidades de CAYLA y de CLAURE.` : null;
-  const motivoBloqueo = motivoDueno ?? liquidacionConClub ?? cuponNoAlcanza ?? motivoBloqueoCobro({
+  const motivoBloqueo = motivoDueno ?? cuponNoAlcanza ?? motivoBloqueoCobro({
     cajaAbierta: !bloqueado,
     prendas,
     momento,
@@ -1924,7 +1788,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
   // propia): se dice, en vez de perderla en silencio.
   function lineasParaLlevar(accion: string) {
     const sinRegistrar = carrito.filter((it) => it.varianteId === ID_CARGO_ESPECIAL).length;
-    if (sinRegistrar > 0) avisar.aviso(`La prenda sin registrar o de liquidación no se puede ${accion}: sigue en el ticket.`);
+    if (sinRegistrar > 0) avisar.aviso(`La prenda sin registrar no se puede ${accion}: sigue en el ticket.`);
     return carrito.filter((it) => it.varianteId !== ID_CARGO_ESPECIAL).map((it) => ({ varianteId: it.varianteId, cantidad: it.cantidad }));
   }
   function apartarDesdeTicket() {
@@ -1981,18 +1845,17 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
         argumento_descuento: it.argumentoDescuento || undefined,
         // Solo el descuento de campaña dice de qué etiqueta vino; la base lo verifica.
         descuento_etiqueta_id: it.razonDescuento === RAZON_CAMPANA ? it.campana?.etiquetaId : undefined,
+        // La parte de una oferta de grupo (ADR-0655): ya está dentro de `descuento_unitario`; la base la vuelve a calcular.
+        descuento_grupo_unitario: it.descuentoGrupoUnitario > 0 ? it.descuentoGrupoUnitario : undefined,
+        oferta_grupo_id: it.descuentoGrupoUnitario > 0 ? (it.ofertaGrupoId ?? undefined) : undefined,
         // «Prenda sin registrar» (ADR-0179): la base exige estos cuatro para dejarla por regularizar.
-        descripcion_libre: it.prendaLibre?.descripcion ?? (it.liquidacion ? it.referencia : undefined),
-        // ADR-0379: la pieza de liquidación viaja con su código; la base la cobra al precio de su etiqueta vigente.
-        pieza_liquidacion_codigo: it.liquidacion?.codigo,
+        descripcion_libre: it.prendaLibre?.descripcion,
         categoria_id: it.prendaLibre?.categoriaId,
         talla_id: it.prendaLibre?.tallaId,
         color_codigo: it.prendaLibre?.colorCodigo,
         // Por qué se anotó a mano (20261106233000): sin motivo las claves ni aparecen y la base la deja «sin motivo».
         ...motivoParaRegistrar(it.prendaLibre?.motivo, it.prendaLibre?.motivoDetalle),
-        // De dónde salió la línea (Felipe 2026-10-10): `registrar_venta` la guarda en `venta_items.origen_sugerencia` cuando la
-        // migración 20261010220100 esté pegada; antes, la ignora. Sin origen la clave ni aparece.
-        origen_sugerencia: it.origen,
+        // `origen_sugerencia` ya no viaja: «Combina bien con» salió del ERP (Felipe 2026-11-13); la columna guarda lo de antes.
       })),
       // Solo montos > 0 (`venta_pagos` lo exige; una fila bajada a cero mientras se combinaba no
       // viaja). El `recibido` del efectivo va aparte de `monto`, y solo si lo cubre.
@@ -2076,13 +1939,6 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
         responsable.despues(error);
         return;
       }
-      // ADR-0379: la pieza de liquidación se vendió, se rebajó o se retiró mientras estaba en el ticket.
-      const rechazoLiquidacion = carrito.some((it) => it.liquidacion) ? errorDeLiquidacion(`${error.message} ${error.hint ?? ""}`) : null;
-      if (rechazoLiquidacion) {
-        avisar.error(rechazoLiquidacion.titulo, rechazoLiquidacion.detalle ? { detalle: `${rechazoLiquidacion.detalle} Sácala del ticket y vuelve a escanearla.` } : undefined);
-        responsable.despues(error);
-        return;
-      }
       // El error de stock de la base no trae el nombre de la prenda; la pantalla sí lo
       // puede deducir comparando el ticket con lo que sabe del stock (un ticket retomado
       // pudo quedarse sin unidades mientras esperaba). Si no lo encuentra, va el genérico.
@@ -2128,16 +1984,13 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
 
   /**
    * Por qué un cobro sin conexión NO se puede guardar para subir solo; `null` si se puede. Con el canje del club (D-5) otra tienda
-   * podría canjearlo a la vez; una pieza de liquidación (ADR-0379) es UNA prenda que otra caja podría vender; y una venta que deja una
+   * podría canjearlo a la vez; y una venta que deja una
    * prenda en 0 necesita que el servidor lo confirme (ADR-0013). Ese cobro queda en duda (`CobroEnDuda`) hasta saber qué pasó.
    */
   function motivoParaNoEncolar(params: ParamsRegistrarVenta): string | null {
     if (conVentajaDelClub && llevaCanje(params)) {
       const { titulo, detalle } = cuponSinConexion();
       return `${titulo}. ${detalle ?? ""}`.trim();
-    }
-    if (carrito.some((it) => it.liquidacion)) {
-      return "Una prenda de liquidación no se cobra sin conexión: es una sola prenda y la base tiene que confirmar que sigue a la venta.";
     }
     const stockOverlay = new Map(variantesConOverlay.map((v) => [v.varianteId, v.stockAqui]));
     const items = carrito.map((it) => ({ varianteId: it.varianteId, cantidad: it.cantidad }));
@@ -2347,6 +2200,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
   // El ticket, una sola vez: en su columna (escritorio) o dentro de la hoja del celular. Mismas props en los dos lados.
   const ticketNodo = (enHoja: boolean) => (
       <PuntoDeVentaTicket
+        grupos={grupos.porLinea}
             id="ticket-pos"
             bloqueado={bloqueado}
             carrito={carritoConPiso}
@@ -2701,8 +2555,6 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
           onQuitar={quitar}
           onClose={() => setTarjetaElegida(null)}
           alCerrarEnfocar={buscador}
-          fichaDelColorDe={fichaDelColorDe}
-          combinaDe={combinaDe}
           pie={(color) => {
             // ADR-0328 act. 17: la talla que aquí no hay y otra tienda tiene se puede pedir y apartar para el cliente.
             const candidatos = pedirAOtraSede

@@ -473,8 +473,6 @@ type LineaDescontable = {
   razonDescuentoOtro: string;
   argumentoDescuento: string;
   campana?: CampanaLinea | null;
-  /** Una pieza de liquidación tiene precio final: ningún descuento del ticket la toca (ADR-0379). */
-  liquidacion?: { codigo: string } | null;
 };
 
 /** ¿El descuento que lleva esta línea es el de su campaña (no uno puesto a mano)? */
@@ -532,10 +530,9 @@ export function conCampanas<L extends LineaDescontable & { varianteId: string }>
   });
 }
 
-/** ¿El descuento del apartado alcanza a esta línea? Las de `claves` (o todas, si viene vacío: «todo el ticket»), menos las
- *  piezas de liquidación (ADR-0379). */
-export function entraAlDescuento(l: { claveLinea: string; liquidacion?: { codigo: string } | null }, claves: readonly string[] | null): boolean {
-  return !l.liquidacion && (claves === null || claves.length === 0 || claves.includes(l.claveLinea));
+/** ¿El descuento del apartado alcanza a esta línea? Las de `claves` (o todas, si viene vacío: «todo el ticket»). */
+export function entraAlDescuento(l: { claveLinea: string }, claves: readonly string[] | null): boolean {
+  return claves === null || claves.length === 0 || claves.includes(l.claveLinea);
 }
 
 function aplicarConMonto<L extends LineaDescontable>(
