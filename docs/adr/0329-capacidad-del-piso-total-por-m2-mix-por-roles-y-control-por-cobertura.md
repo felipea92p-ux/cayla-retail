@@ -103,3 +103,13 @@ DESCARTÉ: derivar el primer mix de las ventas propias (4 días, ±9 puntos de e
 bailaría por azar).
 SE ROMPE SI: TRU hace una campaña de 3 días que duplica Polos y a las dos semanas la venta ya pesa 33 %: la sugerencia sube por una campaña. Lo frena el tope de ±3 puntos al
 mes; si se repite, los días de campaña salen de la cuenta.
+
+## Actualización 2026-11-14 — «Configurar piso»: la capacidad se actualiza desde la pantalla
+
+**Qué cambia.** La función `fijar_capacidad_piso` existía desde 2026-10-05 pero ninguna pantalla la llamaba: corregir un m² mal medido pasaba por Felipe con SQL. Ahora Gestión ▸ Plan del piso trae el botón **«Configurar piso»** en su cabecera, solo para el **líder** y solo en una **tienda** (la función ya exigía las dos cosas). Abre una hoja con m² de sala, prendas por m² y el día del conteo («Aún no lo conté» deja la capacidad provisional), muestra cuántas prendas caben con esos números, el cambio contra lo guardado y cómo queda lo que el sistema cree que cuelga hoy. Sin migración. Código: `components/plan-piso/ConfigurarPiso.tsx`, reglas en `lib/capacidad-piso-config.ts`; `leerCapacidadPiso` ahora trae `version` y `contadaEl`.
+
+**Reglas que cumple.** Firma el responsable (`fn_actor_persona_id(true)`, combo Responsable); un guardado simultáneo de otra persona no se pisa (PT409 → la hoja dice cómo quedó, no guarda nada y pide actualizar); reenviar lo mismo devuelve «ya estaba así» sin escribir; si la base no responde, la hoja conserva lo escrito y el botón de la cabecera sale apagado con su motivo; el antes y el después quedan en `configuracion_historial` y en la Actividad. Los topes de la web (m² ≤ 2000, prendas por m² ≤ 150, al menos 1 prenda, conteo desde 2026-01-01 y no futuro) los cruza una prueba contra la migración.
+
+DECIDÍ: pedir m² y prendas por m² (lo que la base guarda) y mostrar la capacidad resultante en vivo, con el día del conteo obligatorio salvo «Aún no lo conté».
+DESCARTÉ: pedir directamente «cuántas prendas caben»: obligaría a inventar una densidad con decimales y, como la base redondea hacia abajo, la capacidad podría quedar 1 prenda por debajo de lo tecleado.
+SE ROMPE SI: alguien sube los m² hasta que «no sobre ninguna prenda» sin haber contado el piso: el aviso «cuelgan N prendas más de las que caben» desaparece sin que nada haya mejorado. Lo frenan el día del conteo, que se pide y queda anotado, y el historial antes/después; no lo impide, porque cuadrar el piso es contar lo que cuelga (`cuadres_piso`) y esta hoja no lo hace. Y si quien mide cuenta metros de riel y no m² de sala, la hoja debería partir de ese dato: queda para cuando Felipe lo decida.
