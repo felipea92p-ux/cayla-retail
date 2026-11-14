@@ -216,8 +216,8 @@ ${VISTAS()}\nrollback;`),
 
   // ---- 4. Con descuento no se dibuja aparte: la ficha trae UNA campaña, la que más le conviene al cliente ----
   esperarLinea(
-    "una insignia con descuento no sale como insignia aparte",
-    correr(`${PARTIR()}${insignia("a", "ZZ Con descuento", { pct: 15, desde: -1, hasta: 5 })}${insignia("b", "ZZ Sin descuento")}${VISTAS()}\nrollback;`),
+    "una campaña con descuento no sale como insignia aparte",
+    correr(`${PARTIR()}${insignia("a", "ZZ Con descuento", { estilo: "campana", pct: 15, desde: -1, hasta: 5 })}${insignia("b", "ZZ Sin descuento")}${VISTAS()}\nrollback;`),
     "ZZ Sin descuento",
   );
   {
@@ -388,7 +388,7 @@ rollback;`),
   // El guardián de que la regla no se separe: en 2 prendas × 3 tiendas, con vigencia, tiendas, categoría, descuento y desactivadas, la tarjeta (el
   // catálogo) dice lo mismo que la ficha (menos lo que la ficha trae de más).
   {
-    const r = correr(`${PARTIR()}${CON_CARLA}${SIN_EXTRAS}${insignia("a", "ZZ A mano en Emma")}${insignia("b", "ZZ De la categoría", { estilo: "campana", asignar: "categoria" })}${insignia("c", "ZZ Vencida", { hasta: -1 })}${insignia("d", "ZZ Solo tienda 1", { estilo: "urgencia", sedes: ["s1"] })}${insignia("e", "ZZ Con descuento", { pct: 15, desde: -1, hasta: 5 })}${insignia("f", "ZZ Apagada", { activo: false })}${insignia("g", "ZZ En una tienda fuera", { sedes: ["fuera"] })}${insignia("h", "ZZ De Carla", { estilo: "positivo", asignar: "ninguna" })}${insignia("i", "ZZ Mañana", { desde: 1 })}
+    const r = correr(`${PARTIR()}${CON_CARLA}${SIN_EXTRAS}${insignia("a", "ZZ A mano en Emma")}${insignia("b", "ZZ De la categoría", { estilo: "campana", asignar: "categoria" })}${insignia("c", "ZZ Vencida", { hasta: -1 })}${insignia("d", "ZZ Solo tienda 1", { estilo: "urgencia", sedes: ["s1"] })}${insignia("e", "ZZ Con descuento", { estilo: "campana", pct: 15, desde: -1, hasta: 5 })}${insignia("f", "ZZ Apagada", { activo: false })}${insignia("g", "ZZ En una tienda fuera", { sedes: ["fuera"] })}${insignia("h", "ZZ De Carla", { estilo: "positivo", asignar: "ninguna" })}${insignia("i", "ZZ Mañana", { desde: 1 })}
 insert into retail.variante_etiquetas (variante_id, etiqueta_id) values (:'v_carla', :'e_h');
 select concat_ws('|',
   (select bool_and(
@@ -441,7 +441,7 @@ rollback;`),
 $f$;
 `;
     const r = correr(`${PARTIR()}${CON_CARLA}${ANTES}
-${insignia("a", "ZZ A mano en Emma")}${insignia("b", "ZZ De la categoría", { estilo: "campana", asignar: "categoria" })}${insignia("c", "ZZ Vencida", { hasta: -1 })}${insignia("d", "ZZ Solo tienda 1", { estilo: "urgencia", sedes: ["s1"] })}${insignia("e", "ZZ Con descuento", { pct: 15, desde: -1, hasta: 5 })}${insignia("f", "ZZ Apagada", { activo: false })}${insignia("g", "ZZ En una tienda fuera", { sedes: ["fuera"] })}${insignia("h", "ZZ De Carla", { estilo: "positivo", asignar: "ninguna" })}${insignia("i", "ZZ Mañana", { desde: 1 })}
+${insignia("a", "ZZ A mano en Emma")}${insignia("b", "ZZ De la categoría", { estilo: "campana", asignar: "categoria" })}${insignia("c", "ZZ Vencida", { hasta: -1 })}${insignia("d", "ZZ Solo tienda 1", { estilo: "urgencia", sedes: ["s1"] })}${insignia("e", "ZZ Con descuento", { estilo: "campana", pct: 15, desde: -1, hasta: 5 })}${insignia("f", "ZZ Apagada", { activo: false })}${insignia("g", "ZZ En una tienda fuera", { sedes: ["fuera"] })}${insignia("h", "ZZ De Carla", { estilo: "positivo", asignar: "ninguna" })}${insignia("i", "ZZ Mañana", { desde: 1 })}
 insert into retail.variante_etiquetas (variante_id, etiqueta_id) values (:'v_carla', :'e_h');
 select concat_ws('|',
   (select bool_and(pg_temp.insignias_antes(x.p, x.s) = (select coalesce((select d.insignias from retail.fn_tienda_insignias_de(array[x.p], x.s) d), '[]'::jsonb)))
