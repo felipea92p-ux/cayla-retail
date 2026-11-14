@@ -40,7 +40,7 @@ import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const RAIZ = join(fileURLToPath(new URL(".", import.meta.url)), "..", "..");
-const MIGRACIONES = ["20261103224000_reportes_ventas_modulo.sql", "20261103230000_reporte_ventas_mes.sql", "20261103232000_reporte_ventas_series.sql", "20261103233000_reporte_ventas_cortes.sql"].map((m) =>
+const MIGRACIONES = ["20261103224000_reportes_ventas_modulo.sql", "20261103230000_reporte_ventas_mes.sql", "20261103232000_reporte_ventas_series.sql", "20261103233000_reporte_ventas_cortes.sql", "20261114215000_reportes_ventas_por_empresa.sql"].map((m) =>
   readFileSync(join(RAIZ, "supabase", "migrations", m), "utf8"),
 );
 const CONTENEDOR_LOCAL = "supabase_db_cayla-retail";
@@ -324,11 +324,11 @@ reset role;
 
 -- Atributos
 select 'D1 es INVOKER (lee con las reglas de fila), estable y sin search_path propio' || '|' ||
-  (select (not p.prosecdef and p.provolatile = 's' and p.proconfig is null) from pg_proc p where p.oid = 'retail.fn_reporte_ventas_mes(date, uuid)'::regprocedure)::text;
+  (select (not p.prosecdef and p.provolatile = 's' and p.proconfig is null) from pg_proc p where p.oid = 'retail.fn_reporte_ventas_mes(date, uuid, uuid)'::regprocedure)::text;
 select 'G12 la función de cortes también es INVOKER, estable y sin search_path propio' || '|' ||
-  (select (not p.prosecdef and p.provolatile = 's' and p.proconfig is null) from pg_proc p where p.oid = 'retail.fn_reporte_ventas_cortes(date, uuid)'::regprocedure)::text;
+  (select (not p.prosecdef and p.provolatile = 's' and p.proconfig is null) from pg_proc p where p.oid = 'retail.fn_reporte_ventas_cortes(date, uuid, uuid)'::regprocedure)::text;
 select 'F13 la función de series también es INVOKER, estable y sin search_path propio' || '|' ||
-  (select (not p.prosecdef and p.provolatile = 's' and p.proconfig is null) from pg_proc p where p.oid = 'retail.fn_reporte_ventas_series(date, uuid)'::regprocedure)::text;
+  (select (not p.prosecdef and p.provolatile = 's' and p.proconfig is null) from pg_proc p where p.oid = 'retail.fn_reporte_ventas_series(date, uuid, uuid)'::regprocedure)::text;
 select 'D2 el módulo nace sin rol y delegable' || '|' ||
   (exists (select 1 from retail.modulos where clave = 'reportes_ventas' and not solo_lider and delegable)
    and not exists (select 1 from retail.rol_modulos where modulo = 'reportes_ventas' and rol_id not in ('${ROL_CON}')))::text;

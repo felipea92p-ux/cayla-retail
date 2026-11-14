@@ -26,6 +26,7 @@ import {
   sentidoDe,
   textoCambio,
   tiendaDeUrl,
+  hrefVentasDelMes,
   ticketPromedio,
   tramoEnPalabras,
   type ReporteMes,
@@ -158,6 +159,21 @@ describe("el tramo y la comparación", () => {
     expect(comparacionDe(reporte({ anterior: vacioAntes, primeraVenta: "2026-10-04" }))).toEqual({ hay: false, motivo: "Es el primer mes con ventas: no hay con qué compararlo." });
     expect(comparacionDe(reporte({ anterior: vacioAntes, primeraVenta: "2026-07-10" }))).toEqual({ hay: false, motivo: "No hubo ventas en septiembre para compararlo." });
     expect(comparacionDe(reporte({ anterior: vacioAntes, primeraVenta: null }))).toEqual({ hay: false, motivo: "Todavía no hay ventas." });
+  });
+});
+
+describe("hrefVentasDelMes: el único armador del enlace", () => {
+  const id = "22222222-2222-4222-8222-000000000001";
+  it("lleva el mes y solo lo que se eligió: tienda, empresa y corte", () => {
+    expect(hrefVentasDelMes({ mes: "2026-10" })).toBe("/vender/reportes?m=2026-10");
+    expect(hrefVentasDelMes({ mes: "2026-10", tienda: id, empresa: "claure", corte: "categoria" })).toBe(`/vender/reportes?m=2026-10&tienda=${id}&emp=claure&corte=categoria`);
+  });
+  it("sin empresa no deja rastro (una URL corta se puede compartir); con null o vacío tampoco", () => {
+    expect(hrefVentasDelMes({ mes: "2026-10", tienda: id, empresa: null })).toBe(`/vender/reportes?m=2026-10&tienda=${id}`);
+    expect(hrefVentasDelMes({ mes: "2026-10", empresa: undefined, corte: null })).toBe("/vender/reportes?m=2026-10");
+  });
+  it("la descarga usa la misma URL con otra ruta", () => {
+    expect(hrefVentasDelMes({ mes: "2026-10", empresa: "cayla", corte: "tienda" }, "/vender/reportes/descargar")).toBe("/vender/reportes/descargar?m=2026-10&emp=cayla&corte=tienda");
   });
 });
 

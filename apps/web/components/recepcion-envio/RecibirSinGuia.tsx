@@ -10,6 +10,7 @@ import { ComboResponsable } from "@/components/ComboResponsable";
 import { CampoGuiado, PieGuia } from "@/components/guia-de-foco/CampoGuiado";
 import { useGuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
 import { esFalloDeRed, traducirError } from "@/lib/error-escritura";
+import { recordarQuienRecibe } from "@/lib/responsable-conteo";
 import { useResponsable } from "@/lib/useResponsable";
 import { recibirOrdenSinEnvio } from "@/lib/recepcion-envio-acciones";
 import { mensajeDeLaRecepcion, type OrdenDirecta } from "@/lib/recepcion-envio-reglas";
@@ -71,6 +72,8 @@ function HojaRecibirSinGuia({ orden, sede, onCerrar }: { orden: OrdenDirecta; se
         );
         return;
       }
+      // Quien armó el envío es quien lo cuenta: se recuerda para Contar, que en una terminal lo volvía a pedir.
+      recordarQuienRecibe(resultado.despachoId, responsable.elegidoId);
       avisar.exito(`${resultado.numero ?? "Envío"} abierto`, { detalle: `${orden.numero}: cuenta lo que llegó y recíbelo.` });
       router.push(`/recibir/envio/${resultado.despachoId}`);
     } finally {

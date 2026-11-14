@@ -15,11 +15,13 @@ import type { ColorAlta } from "@/lib/alta-producto";
 import { colorDeAvance } from "@/lib/avance-color";
 import { buscarPrendasParaRecibir } from "@/lib/recepcion-envio-acciones";
 import { ID_CAMPO_AGREGAR, marcaDeLinea } from "@/lib/recepcion-conteo-reglas";
+import { conservaLaCifra } from "@/lib/recepcion-dial-reglas";
 import {
   avanceDeCategoria,
   categoriaAbierta,
   conMiles,
   conSigno,
+  contadorDeParada,
   hayFiltro,
   idCampoCategoria,
   idCampoParada,
@@ -41,7 +43,6 @@ import {
   type ParadaDelConteo,
   type YaEnStock,
 } from "@/lib/recepcion-modelos-reglas";
-import { sinIdentificarDelGrupo } from "@/lib/recepcion-grupos-reglas";
 import { FiltrosDelEnvio } from "./FiltrosDelEnvio";
 import { BaldosaCategoria } from "./piezas";
 import { useFilaActivaALaVista } from "./useFilaActivaALaVista";
@@ -99,7 +100,8 @@ function useFotosDeLaCategoria(c: CategoriaDelEnvio, enUso: boolean, onFotos: (f
 function FilaDeParada({ p, activa, conOrigen, foto, faltanTallas, sinAviso, onElegir, onQuitar, onLlegaron }: { p: ParadaDelConteo; activa: boolean; conOrigen: boolean; foto: string | null; faltanTallas: boolean; sinAviso: boolean; onElegir: (p: ParadaDelConteo) => void; onQuitar: (p: ParadaDelConteo) => void; onLlegaron: (p: ParadaDelConteo, n: number) => void }) {
   const m = p.modelo;
   const cat = p.grupo.principal.categoria;
-  const contadas = m ? m.contadas : sinIdentificarDelGrupo(p.grupo);
+  // El mismo número que el contador de la derecha y que mira Enter (`contadorDeParada`).
+  const contadas = contadorDeParada(p);
   const esperadas = m ? m.esperadas : null;
   const seQuita = !!m && modeloSeQuita(m);
   // El check de la fila (reunión del 13-nov, punto 2): lo anotado y todavía sin contar se confirma de un toque, sin ir al contador. Lo demás se cuenta en el contador.
@@ -107,7 +109,12 @@ function FilaDeParada({ p, activa, conOrigen, foto, faltanTallas, sinAviso, onEl
   const cifras = esperadas != null ? <><b>{conMiles(contadas)}</b> de {conMiles(esperadas)}</> : <><b>{conMiles(contadas)}</b> {contadas === 1 ? "contada" : "contadas"}</>;
   return (
     <li className="rc-modelo-fila">
-      <button type="button" className="rc-modelo" data-con-tacho={seQuita || llegaron != null ? "" : undefined} data-activa={activa ? "" : undefined} data-campo={idCampoParada(p)} aria-current={activa ? "true" : undefined} onClick={() => onElegir(p)}>
+      <button type="button" className="rc-modelo" data-con-tacho={seQuita || llegaron != null ? "" : undefined} data-activa={activa ? "" : undefined} data-campo={idCampoParada(p)} aria-current={activa ? "true" : undefined}
+        // Tocar la fila del modelo que se está contando no corta la cifra a medio escribir: la caja del número se queda con el cursor (`conservaLaCifra`).
+        onMouseDown={(e) => {
+          if (conservaLaCifra({ filaActiva: activa, numeroAbierto: !!document.activeElement?.classList.contains("rc-dial-caja"), botonPrincipal: e.button === 0 })) e.preventDefault();
+        }}
+        onClick={() => onElegir(p)}>
         {cat && <MiniaturaPrenda fotoUrl={foto} tamano="md" prefijo={cat.prefijo} familia={cat.familia} categoria={cat.nombre} />}
         <span className="rc-modelo-textos">
           <span className="rc-modelo-nombre">

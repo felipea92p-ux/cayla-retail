@@ -1385,6 +1385,7 @@ export function NuevoProductoForm({
               destinoEtiqueta={destino.etiqueta}
               llegada={cargaCerrada}
               freno={frenoCantidades}
+              teclado
             />
 
             {cargaCerrada && stock.total > 0 ? (

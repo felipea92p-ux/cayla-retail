@@ -80,6 +80,8 @@ describe("nombres de archivo", () => {
     expect(nombreArchivoVentasDelMes("2026-10-01", "categoria", "Tienda Trujillo")).toBe("ventas-2026-10-por-categoria-trujillo.csv");
     expect(nombreArchivoVentasDelMes("2026-10-01", "tienda", "Todas las tiendas")).toBe("ventas-2026-10-por-tienda-todas-las-tiendas.csv");
     expect(nombreArchivoVentasDelMes("2026-10-01", "tienda", "")).toBe("ventas-2026-10-por-tienda-todas.csv");
+    // Con una empresa elegida (ADR-0665) el nombre la dice: dos archivos del mismo mes de Lima no se confunden.
+    expect(nombreArchivoVentasDelMes("2026-10-01", "categoria", "Tienda Lima · CLAURE")).toBe("ventas-2026-10-por-categoria-lima-claure.csv");
     expect(nombreArchivoRanking({ desde: "2026-10-01", hasta: "2026-11-01" }, { nivel: "modelo" }, "Arequipa")).toBe("ranking-prendas-2026-10-01-a-2026-10-31-arequipa.csv");
     expect(nombreArchivoRanking({ desde: "2026-10-01", hasta: "2026-11-01" }, { nivel: "variante" }, "")).toBe("ranking-prendas-por-color-y-talla-2026-10-01-a-2026-10-31-todas.csv");
   });
@@ -104,6 +106,12 @@ describe("csvDeRanking", () => {
     expect(l[1]).toBe("1,Falda Inti,COD-1,Faldas,Aluna,5,250.00,5.0,2,100.00,150.0,7");
     expect(l[2]).toBe('2,"Blusa, Emma",COD-2,Faldas,Aluna,4,180.00,4.0,0,0.00,,7'); // sin ventas antes: el cambio va vacío
     expect(l[3]).toBe("3,'+Top,COD-3,Faldas,Aluna,1,300.00,1.0,1,300.00,0.0,7");
+  });
+
+  it("con una empresa elegida la última columna dice de quién es lo que queda", () => {
+    const l = lineas(csvDeRanking(RANKING, "modelo", "unidades", "CLAURE"));
+    expect(l[0]!.endsWith(",Quedan de CLAURE")).toBe(true);
+    expect(lineas(csvDeRanking(RANKING, "modelo", "unidades"))[0]!.endsWith(",Quedan en tiendas")).toBe(true);
   });
 
   it("ordenado por soles, la parte y el cambio son de los soles", () => {

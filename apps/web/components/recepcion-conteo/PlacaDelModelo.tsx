@@ -14,8 +14,8 @@ import { prefiereQuieto } from "@/lib/movimiento-cliente";
 import { atajosDelDial } from "@/lib/recepcion-dial-reglas";
 import { marcaDeLinea, textoPrendas } from "@/lib/recepcion-conteo-reglas";
 import { esCategoriaPorDefinir } from "@/lib/recepcion-envio-reglas";
-import { descripcionDelGrupo, sinIdentificarDelGrupo } from "@/lib/recepcion-grupos-reglas";
-import { conMiles, costoDeLaParada, lineasDeLaParada, nombreDeParada, textoDeCosto, tipoDeParada, type ParadaDelConteo } from "@/lib/recepcion-modelos-reglas";
+import { descripcionDelGrupo } from "@/lib/recepcion-grupos-reglas";
+import { conMiles, contadorDeParada, costoDeLaParada, lineasDeLaParada, nombreDeParada, textoDeCosto, tipoDeParada, type ParadaDelConteo } from "@/lib/recepcion-modelos-reglas";
 import { EstadoModelo } from "./CategoriasAcordeon";
 import { LoQueAnotoCompras } from "./LoQueAnotoCompras";
 import { Dial } from "./Dial";
@@ -37,12 +37,14 @@ export function PlacaDelModelo({
   pasoTallas,
   abrirNumero,
   pendiente,
+  sinTallasEn,
   hayFiltroPuesto,
   todoContado,
   filaSeguir,
   onPoner,
   onDeUnToque,
   onPendiente,
+  onSinTallas,
   cierre,
   onQuitarFiltro,
   onEnter,
@@ -66,20 +68,23 @@ export function PlacaDelModelo({
   onReintentar: () => void;
   /** Cómo va el paso 2: espera (sin número o nada que hacer ahora), toca o ya está. */
   pasoTallas: "falta" | "toca" | "hecha";
-  /** Llega con el número listo para escribir: viene de apretar Enter en lo anterior. */
-  abrirNumero: boolean;
+  /** El pedido de abrir el número para escribir (0 = ninguno): viene de apretar Enter en lo anterior o de elegir algo sin contar. Cada pedido trae un número distinto. */
+  abrirNumero: number;
   /** El próximo modelo sin contar del envío (dando la vuelta): el pie lleva a él. `null` con todo contado. */
   pendiente: ParadaDelConteo | null;
   hayFiltroPuesto: boolean;
   /** Ya no queda nada por contar: el botón principal de la pantalla pasa a ser «Revisar y cerrar», en la lista. */
   todoContado: boolean;
-  /** El pie del contador (Enter, con todo contado, lleva el cursor a su «Revisar y cerrar»). */
+  /** El pie del contador: Enter sin un modelo en cero adonde ir deja el cursor aquí (`destinoDelEnter`). */
   filaSeguir: Ref<HTMLDivElement>;
   /** La persona dejó este número: la pantalla lo guarda en la línea que le toca. */
   onPoner: (n: number) => void;
   /** «Llegaron las N» o «Poner en cero»: pisan lo contado de un toque, y se pueden deshacer. */
   onDeUnToque: (n: number) => void;
   onPendiente: (e: MouseEvent) => void;
+  /** Con todo contado: el siguiente modelo que quedó sin tallas (la segunda pasada). Es una sugerencia, no frena el cierre. */
+  sinTallasEn: ParadaDelConteo | null;
+  onSinTallas: (e: MouseEvent) => void;
   /** «Revisar y cerrar» (`BotonCerrarConteo`), a la derecha del pie del contador: el único de la pantalla en escritorio. */
   cierre?: ReactNode;
   onQuitarFiltro: () => void;
@@ -107,8 +112,8 @@ export function PlacaDelModelo({
   const p = grupo.principal;
   const porDefinir = !!p.categoria && esCategoriaPorDefinir(p.categoria);
   const hayConteo = modelo ? modelo.contado : true;
-  // Sin modelo, lo contado de antes que todavía no es de ninguno: nunca se compara con lo que dijeron.
-  const contadas = modelo ? modelo.contadas : sinIdentificarDelGrupo(grupo);
+  // Sin modelo, lo contado de antes que todavía no es de ninguno: nunca se compara con lo que dijeron. Es el mismo número que mira Enter (`destinoDelEnter`).
+  const contadas = contadorDeParada(parada);
   const dijeron = modelo ? modelo.esperadas : null;
   // Un modelo se puede bajar hasta 0 (no llegó) o hasta lo que ya entró al stock.
   const minimo = modelo ? modelo.enStock : 0;
@@ -335,8 +340,13 @@ export function PlacaDelModelo({
               </div>
             </div>
           </div>
-          {/* La pista bajo el dial: una sola línea, en su lugar reservado (si apareciera otra, lo de abajo se movería bajo el mouse al primer toque). */}
-          <p className="rc-pista">{diferencia != null && diferencia !== 0 && !sinAviso ? "Si no coincide, al cerrar dices por qué." : "Toca el número para escribirlo."}</p>
+          {/* La pista bajo el dial: una sola línea, en su lugar reservado (si apareciera otra, lo de abajo se movería bajo el mouse al primer toque).
+              Con el número abierto dice cómo dejarlo; cuál se ve lo decide el CSS (`.rc-paso-uno:has(.rc-dial-vivo)`), sin subir el estado del Dial. */}
+          <p className="rc-pista">
+            <span className="rc-pista-reposo">{diferencia != null && diferencia !== 0 && !sinAviso ? "Si no coincide, al cerrar dices por qué." : "Toca el número para escribirlo."}</span>
+            <span className="rc-pista-escribe">Escribe la cantidad y presiona Enter.</span>
+            <span className="rc-pista-escribe-dedo">Escribe la cantidad y toca fuera.</span>
+          </p>
           {enStock > 0 && <p className="rc-pista-stock">Ya entraron {textoPrendas(enStock)} al stock: lo contado no baja de ahí.</p>}
           {error && (
             <div className="rc-placa-error">
@@ -384,7 +394,8 @@ export function PlacaDelModelo({
 
       {/* Sin «Anterior» ni «Siguiente» (Felipe 2026-11-12: «no sirven, ya que todas las colaboradoras usan la lista de categorías para moverse
           entre las prendas»). A la izquierda, a qué ir si falta algo; a la derecha, el ÚNICO «Revisar y cerrar» de la pantalla (ADR-0645), que
-          viene de `ContarEnvio` con su peso (negro solo cuando es lo que toca). Enter sigue pasando al siguiente modelo. */}
+          viene de `ContarEnvio` con su peso (negro solo cuando es lo que toca). Enter pasa al siguiente modelo en cero, nunca a uno con cantidad; sin
+          ninguno, el cursor viene aquí: al enlace de la izquierda o, si no hay, a «Revisar y cerrar» (`destinoDelEnter`). */}
       <div ref={filaSeguir} className="rc-placa-pie" data-guia="recepcion.siguiente">
         <p className="rc-pie-sigue">
           {pendiente ? (
@@ -392,6 +403,13 @@ export function PlacaDelModelo({
               Falta contar:{" "}
               <button type="button" className="btn-cayla btn-enlace" title={`Ir a ${nombreDeParada(pendiente)}`} onClick={onPendiente}>
                 {nombreDeParada(pendiente)}
+              </button>
+            </>
+          ) : sinTallasEn ? (
+            <>
+              Faltan tallas:{" "}
+              <button type="button" className="btn-cayla btn-enlace" title={`Ir a ${nombreDeParada(sinTallasEn)}`} onClick={onSinTallas}>
+                {nombreDeParada(sinTallasEn)}
               </button>
             </>
           ) : hayFiltroPuesto ? (

@@ -54,6 +54,12 @@ export const PRUEBAS = [
   // (anulada, prueba, bolsa, prenda sin registrar, que se cuenta aparte), los filtros, «Quedan» (solo tiendas) y que el ranking suma lo que dicen las cifras. ROLLBACK.
   "pruebas:reporte-ventas-ranking",
 
+  // Ventas ▸ Reportes: el filtro «Empresa» (CAYLA / CLAURE) donde conviven dos (ADR-0665): CAYLA + CLAURE suma el vendido, las prendas y el devuelto sin filtro (la
+  // venta mixta cuenta en las dos y la devolución mixta se reparte por valor); cada lectura (cifras, gráficos, cortes, ranking y lo que queda) lo cumple; coincide
+  // con fn_vendido_por_empresa de Caja e Historial; «cómo se pagó» no se parte; la empresa solo se elige dentro de una tienda donde operan dos (22023); una cuenta
+  // de Lima que no es líder lee lo mismo; el control (sin el movimiento CLAURE saldría otra cifra); pegarla dos veces es inocuo. ROLLBACK.
+  "pruebas:reportes-por-empresa",
+
   // Meta del día y fondo de caja unidos a las campañas (ADR-0195 F1): si dos campañas se cruzan gana la mayor, la
   // meta del mes es la suma de los días, solo el líder guarda y el cierre anota el fondo que regía. ROLLBACK.
   "pruebas:configuracion-caja",

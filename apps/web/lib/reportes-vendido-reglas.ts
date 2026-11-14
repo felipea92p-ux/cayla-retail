@@ -15,8 +15,8 @@ import type { VendidoEmpresa } from "./vendido-por-empresa-reglas";
 /** La clave de CLAURE en `retail.empresas` (ADR-0463). */
 const CLAVE_CLAURE = "claure";
 
-/** El pie de la tarjeta «Vendido»: el tramo y que va con IGV. */
-export const pieVendido = (tramo: string): string => `${tramo} · con IGV`;
+/** El pie de la tarjeta «Vendido»: el tramo, que va con IGV y, si se mira una sola empresa, cuál (ADR-0665). */
+export const pieVendido = (tramo: string, empresa?: string | null): string => `${tramo} · con IGV${empresa ? ` · ${empresa}` : ""}`;
 
 /** El título de la columna «Vendido» de la tabla por tienda y por categoría. */
 export const TITULO_COLUMNA_VENDIDO = "Vendido con IGV";

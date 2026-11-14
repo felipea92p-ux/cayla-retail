@@ -27,8 +27,11 @@ export function useCantidadEscrita(regla?: ReglaCantidad, freno?: Ref<() => bool
     invalida: (clave: string): boolean => estado.escribiendo?.clave === clave && escritoInvalido(estado, regla),
     /** Qué decir bajo la tabla, o `null`. */
     problema: problemaEscrito(estado, regla),
+    // `empezar` y `terminar` parten del estado MÁS RECIENTE, no del de este dibujo: con Enter el cursor pasa de una celda a otra con `focus()` desde la tecla, y salir de la una y entrar
+    // a la otra ocurren en el mismo ciclo, sin dibujar entre las dos. Calculadas ambas sobre el estado de antes, la segunda pisaba a la primera y el aviso de lo que no se guardó se perdía
+    // (con Tab, que sí dibuja entre las dos, el aviso salía). Así Enter y Tab dejan lo mismo.
     empezar(clave: string, valor: string) {
-      setEstado(alEntrar(estado, clave, valor));
+      setEstado((e) => alEntrar(e, clave, valor));
     },
     /** `fijar` recibe la cantidad que vale: la nueva, o lo que había si lo escrito no es una cantidad. */
     escribir(clave: string, crudo: string, valor: string, fijar: (valor: string) => void) {
@@ -37,7 +40,7 @@ export function useCantidadEscrita(regla?: ReglaCantidad, freno?: Ref<() => bool
       fijar(r.paraLaPantalla);
     },
     terminar(clave: string) {
-      setEstado(alSalir(estado, clave, regla));
+      setEstado((e) => alSalir(e, clave, regla));
     },
     /** Otra cosa cambió el número (− y +, «+1 a todas»): la celda vuelve a mostrarlo, aunque el cursor siga en ella (en el iPhone, un botón no se lo lleva), y se calla el aviso. */
     olvidar() {
