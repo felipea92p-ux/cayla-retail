@@ -1,5 +1,6 @@
 "use client";
 
+import { LineaMargen } from "@/components/ui/LineaMargen";
 import { enterNoGuarda } from "@/components/ui/enterNoGuarda";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { ArrowRight } from "lucide-react";
@@ -690,6 +691,8 @@ export function HojaPrenda({
                           />
                         </CampoGuiado>
                       </div>
+                      {/* Tarea 8 de Recibir: el margen a la vista, vivo con cada número que se escribe (sin costo, no se dibuja). */}
+                      <LineaMargen costo={costo} precio={borrador.precio} className="-mt-2" />
                       {/* ADR-0641 act. 2026-11-11 (Felipe: «sola, al llegar al paso»): la IA propone con el costo de arriba y las parecidas. */}
                       <PropuestaDePrecio
                         origen="recepcion"

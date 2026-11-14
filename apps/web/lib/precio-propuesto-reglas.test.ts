@@ -123,8 +123,9 @@ describe("al recibir una prenda que ya existe: ¿conviene mirar su precio?", () 
     expect(pideRevisarAlRecibir({ precio: 59.9, costo: null, costoAntes: null })).toBeNull();
     expect(pideRevisarAlRecibir({ precio: 59.9, costo: 0, costoAntes: null })).toBeNull();
   });
-  it("la línea lo dice con montos que no se parten", () => {
-    expect(textoRevisarAlRecibir(59.9, 45, { margen: 24.9, motivo: "margen_bajo" })).toBe("Con S/ 45.00 de costo, a S/ 59.90 ganas 25 %: menos de 30 %.");
+  it("la línea dice el motivo, sin repetir el margen (lo dice la línea viva)", () => {
+    expect(textoRevisarAlRecibir({ margen: 24.9, motivo: "margen_bajo" })).toBe("Menos de 30 %: revisa el precio.");
+    expect(textoRevisarAlRecibir({ margen: 40, motivo: "costo_cambio" })).toBe("Cambió el costo: revisa el precio.");
   });
 });
 
