@@ -87,6 +87,18 @@ export function argsLlevarAlStock(p: {
 export const urlEtiquetasDeLaTanda = (lineas: readonly LineaDeSalida[], envioId: string): string =>
   `/etiquetas-de-precio?unidades=${lineasEnUrl([...lineas])}&envio=${encodeURIComponent(envioId)}`;
 
+/** De dónde la hoja «ya están en el stock» trae las etiquetas de su tanda para imprimirlas ahí mismo (tarea 6 de Recibir, 2026-11-14): la MISMA
+ *  lectura de la pantalla de Etiquetas, pedida por GET (no abre el loader). */
+export const urlApiEtiquetasDeLaTanda = (lineas: readonly LineaDeSalida[]): string => `/api/etiquetas-de-precio/tanda?unidades=${lineasEnUrl([...lineas])}`;
+
+/** Lo que dice el botón que imprime la tanda. `listas`: cuántas etiquetas hay de verdad (una prenda sin código no lleva); mientras se preparan
+ *  (`null`), las unidades que entraron. Con cero, lo dice: no hay nada que mandar a la impresora. */
+export function textoDeImprimirTanda(unidades: number, listas: number | null): string {
+  const n = listas ?? unidades;
+  if (n <= 0) return "Nada que imprimir";
+  return n === 1 ? "Imprimir la etiqueta" : `Imprimir ${n.toLocaleString("es-PE")} etiquetas`;
+}
+
 /** Bajar al piso lo de esa tanda; con `envioId`, su flecha vuelve al envío (como Etiquetas). */
 export const urlBajarDeLaTanda = (lineas: readonly LineaDeSalida[], envioId: string): string => {
   const parametros = [lineas.length > 0 && lineas.length <= MAX_VARIANTES_EN_URL ? `lineas=${lineasEnUrl([...lineas])}` : null, `envio=${encodeURIComponent(envioId)}`];

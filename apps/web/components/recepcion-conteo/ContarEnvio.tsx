@@ -140,7 +140,8 @@ type Hoja =
   // `enTabla`: lo que la tabla mostraba al abrirla; la hoja arranca con eso marcado y la tabla muestra después lo que quedó marcado.
   | { tipo: "prenda"; grupo: string; original: PrendaSeparada; modo: "nueva" | "agregar"; prenda: PrendaRecepcion | null; parada: string; tabla: boolean; pedidas?: DestinoHoja["pedidas"]; enTabla?: MarcasDeLaTabla }
   // «Crear ahora» de una nueva ya descrita: la hoja de la prenda, sin una prenda de partida (la descripción es el nombre que se ofrece).
-  | { tipo: "salida-hecha"; resultado: ResultadoDeSalida; nombre: string }
+  // `imprimir`: se llegó con «Llevar e imprimir»: la hoja manda las etiquetas apenas estén listas.
+  | { tipo: "salida-hecha"; resultado: ResultadoDeSalida; nombre: string; imprimir?: boolean }
   | { tipo: "corregir-salida"; salida: SalidaDelEnvio }
   | { tipo: "crear"; grupo: string; nueva: { cantidad: number; descripcion: string; porDefecto: boolean; nota: string | null }; parada: string }
   // Antes de crear: lo contado como nuevo puede ser una prenda que ya existe.
@@ -745,12 +746,12 @@ export function ContarEnvio({
         parcial={!todo}
         conFrase={donde === "hoja"}
         onConteoCambiado={onSalida}
-        onHecho={(r) => {
+        onHecho={(r, imprimir) => {
           setTablas((t) => {
             const { [clave]: _sale, ...resto } = t;
             return resto;
           });
-          setHoja({ tipo: "salida-hecha", resultado: r, nombre });
+          setHoja({ tipo: "salida-hecha", resultado: r, nombre, imprimir });
           void leerSalidasDelEnvio(detalle.id).then(setSalidas);
           onSalida();
         }}
@@ -1140,7 +1141,17 @@ export function ContarEnvio({
         </HojaRepartir>
       )}
 
-      {hoja?.tipo === "salida-hecha" && <SalidaHecha resultado={hoja.resultado} nombre={hoja.nombre} envioId={detalle.id} veExistencias={veExistencias} onCerrar={() => setHoja(null)} />}
+      {hoja?.tipo === "salida-hecha" && (
+        <SalidaHecha
+          resultado={hoja.resultado}
+          nombre={hoja.nombre}
+          envioId={detalle.id}
+          veExistencias={veExistencias}
+          imprimirAlAbrir={hoja.imprimir === true}
+          onCerrar={() => setHoja(null)}
+          onReabrir={() => setHoja({ tipo: "salida-hecha", resultado: hoja.resultado, nombre: hoja.nombre })}
+        />
+      )}
       {hoja?.tipo === "corregir-salida" && (
         <CorregirSalida
           salida={hoja.salida}
