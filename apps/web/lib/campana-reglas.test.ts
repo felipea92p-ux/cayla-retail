@@ -3,7 +3,6 @@ import { join } from "node:path";
 import { describe, it, expect } from "vitest";
 import {
   contarPorCategoria,
-  categoriasDichas,
   contarPrendas,
   prendasQueAlcanza,
   nombresDeTiendas,
@@ -26,6 +25,8 @@ import {
   leerCuerpoOferta,
   alcanceDicho,
   MAX_PRODUCTOS_SOLO,
+  MAX_INSIGNIAS_SOLO,
+  insigniasDichas,
   nombreAutomatico,
   nombreDeOferta,
   ofertaDesdeRegla,
@@ -181,9 +182,9 @@ describe("el nombre y la frase", () => {
   it("con muchas categorías dice cuántas son, no las nombra todas", () => {
     const ids = ["a", "b", "c", "d"];
     const nom = (id: string) => ({ a: "Blusas", b: "Faldas", c: "Polos", d: "Tops" })[id] ?? "";
-    expect(categoriasDichas(["b", "a"], nom)).toBe("Blusas y Faldas");
-    expect(categoriasDichas(["a", "b", "c"], nom)).toBe("Blusas, Faldas y Polos");
-    expect(categoriasDichas(ids, nom)).toBe("4 categorías");
+    expect(alcanceDicho({ categoriasSolo: ["b", "a"] }, nom)).toBe("Blusas y Faldas");
+    expect(alcanceDicho({ categoriasSolo: ["a", "b", "c"] }, nom)).toBe("Blusas, Faldas y Polos");
+    expect(alcanceDicho({ categoriasSolo: ids }, nom)).toBe("4 categorías");
     expect(nombreAutomatico({ porcentaje: 20, dias: [1, 2, 3, 4, 5, 6, 7], categoriasSolo: ids }, nom)).toBe("4 categorías · −20 %");
     expect(fraseDeOferta({ ...ofertaNueva("2026-10-26", "2026-10-31"), categoriasSolo: ids }, nom)).toContain("solo en 4 categorías");
   });
@@ -566,5 +567,66 @@ describe("la hoja con un monto (ADR-0655, actividad 8)", () => {
     expect(choqueResuelto(otroMonto, [], true)).toBe(false);
     expect(choquesSinResolver([rebaja, otroMonto, todo], [], true).map((x) => x.id)).toEqual(["o2"]);
     expect(choquesSinResolver([rebaja], [], false)).toHaveLength(1);
+  });
+});
+
+describe("por insignia (ADR-0655)", () => {
+  const ROTACION = "55555555-5555-4555-8555-555555555555";
+  const ARTESANAL = "66666666-6666-4666-8666-666666666666";
+  const nom = (id: string) => ({ [BLUSAS]: "Blusas", [FALDAS]: "Faldas", [ROTACION]: "Rotación", [ARTESANAL]: "Artesanal" })[id] ?? "";
+  it("de la base a la hoja, y sin la migración ninguna", () => {
+    const r = regla({ insignias: [ROTACION] });
+    expect(r.insigniasSolo).toEqual([ROTACION]);
+    expect(ofertaDesdeRegla(r, true).insigniasSolo).toEqual([ROTACION]);
+    expect(regla().insigniasSolo).toEqual([]);
+    expect(ofertaNueva("2026-10-26", "2026-10-31").insigniasSolo).toEqual([]);
+  });
+  it("se dicen con su nombre: una, varias o cuántas", () => {
+    expect(insigniasDichas([ROTACION], nom)).toBe("la insignia Rotación");
+    expect(insigniasDichas([ROTACION, ARTESANAL], nom)).toBe("las insignias Artesanal y Rotación");
+    expect(insigniasDichas([ROTACION, ARTESANAL, BLUSAS, FALDAS], nom)).toBe("4 insignias");
+    expect(insigniasDichas([], nom)).toBeNull();
+    expect(alcanceDicho({ categoriasSolo: [BLUSAS], insigniasSolo: [ROTACION] }, nom)).toBe("Blusas y la insignia Rotación");
+  });
+  it("el nombre empieza en mayúscula y la frase dice dónde rige", () => {
+    const o = { ...ofertaNueva("2026-10-26", "2026-10-31"), insigniasSolo: [ROTACION] };
+    expect(nombreAutomatico(o, nom)).toBe("La insignia Rotación · −20 %");
+    expect(fraseDeOferta(o, nom)).toBe("20 % menos solo en la insignia Rotación, del 26 oct al 31 oct.");
+    expect(esNombreAutomatico(regla({ nombre: "La insignia Rotación · −20 %", insignias: [ROTACION] }), nom)).toBe(true);
+  });
+  it("alcanza las prendas que la llevan (a mano o por su categoría), sumadas a categorías y modelos, sin lo que deja fuera", () => {
+    const catalogo = [
+      { id: "a", categoriaId: BLUSAS, insignias: [ROTACION] },
+      { id: "b", categoriaId: FALDAS },
+      { id: "c", categoriaId: FALDAS, insignias: [ARTESANAL] },
+      { id: "k", categoriaId: BLUSAS, insignias: [ROTACION], deClaure: true },
+      { id: "p", categoriaId: null, productoId: "prod" },
+    ];
+    const campana = [catalogo[1]];
+    const o = { categoriasSolo: [] as string[], categoriasFuera: [] as string[], incluyeClaure: false, insigniasSolo: [ROTACION] };
+    // Con una insignia y nada más, rige solo en ella: no en las de la campaña.
+    expect(prendasQueAlcanza(campana, catalogo, o).map((p) => p.id)).toEqual(["a"]);
+    expect(prendasQueAlcanza(campana, catalogo, { ...o, incluyeClaure: true }).map((p) => p.id)).toEqual(["a", "k"]);
+    expect(prendasQueAlcanza(campana, catalogo, { ...o, insigniasSolo: [ROTACION, ARTESANAL] }).map((p) => p.id)).toEqual(["a", "c"]);
+    expect(prendasQueAlcanza(campana, catalogo, { ...o, productosSolo: ["prod"] }).map((p) => p.id)).toEqual(["a", "p"]);
+    expect(prendasQueAlcanza(campana, catalogo, { ...o, categoriasFuera: [BLUSAS] }).map((p) => p.id)).toEqual([]);
+    // Sin insignias, lo de siempre: las de la campaña.
+    expect(prendasQueAlcanza(campana, catalogo, { ...o, insigniasSolo: [] }).map((p) => p.id)).toEqual(["b"]);
+    // Un monto de toda la compra no mira las insignias.
+    expect(prendasQueAlcanza(campana, catalogo, { ...o, tipo: "monto", cuenta: "compra" }).map((p) => p.id)).toEqual(["a", "b", "c", "p"]);
+  });
+  it("viajan a la ruta sin repetir, con su tope y si las tenía", () => {
+    const cuerpo = { etiquetaId: CAMPANA, nombre: "Rotación", porcentaje: 20, desde: "2026-10-26", hasta: "2026-10-31", dias: [1, 2, 3, 4, 5, 6, 7] };
+    const r = leerCuerpoOferta({ ...cuerpo, insigniasSolo: [ROTACION, ROTACION], teniaInsignias: true });
+    expect(r.ok && r.valor).toMatchObject({ insigniasSolo: [ROTACION], teniaInsignias: true });
+    expect(leerCuerpoOferta(cuerpo).ok && (leerCuerpoOferta(cuerpo) as { valor: { insigniasSolo: string[]; teniaInsignias: boolean } }).valor).toMatchObject({ insigniasSolo: [], teniaInsignias: false });
+    expect(leerCuerpoOferta({ ...cuerpo, insigniasSolo: ["rotacion"] }).ok).toBe(false);
+    const muchas = Array.from({ length: MAX_INSIGNIAS_SOLO + 1 }, (_, i) => `00000000-0000-4000-8000-${String(i).padStart(12, "0")}`);
+    expect(leerCuerpoOferta({ ...cuerpo, insigniasSolo: muchas }).ok).toBe(false);
+  });
+  it("el tope es el de la base", () => {
+    const migracion = readFileSync(join(__dirname, "../../../supabase/migrations/20261114060000_ofertas_por_insignia.sql"), "utf8");
+    expect(migracion).toContain(`cardinality(v_insignias) > ${MAX_INSIGNIAS_SOLO}`);
+    expect(migracion).toContain(`hasta ${MAX_INSIGNIAS_SOLO} insignias`);
   });
 });

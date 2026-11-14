@@ -307,6 +307,34 @@ de antes, fallan 2). Las suites de ofertas de grupo, la caja, los apartados, la 
 - **Lo que se guarda:** la ruta manda la forma con los nombres de la base. Una oferta que era un monto y vuelve a ser rebaja también va por `guardar_oferta_completa` (para borrarle los escalones).
 - **La guía** suma tres pasos: la tarjeta, los escalones y «qué cuenta». El paso de choques nombra «que no cuenten».
 
+## Por insignia (2026-11-14, Felipe): una oferta también elige insignias
+
+Felipe pidió que una campaña pueda aplicarse «no solo a prendas específicas o categorías específicas, sino también a insignias específicas».
+
+- **La base** (`20261114060000_ofertas_por_insignia.sql`):
+  - Las insignias de una oferta viven en `campana_regla_insignias`.
+  - Una prenda lleva una insignia si está marcada a mano o si su categoría es de la insignia, igual que en el pase.
+  - Las insignias **se suman** a las categorías «solo» y a los modelos elegidos. Con insignias y sin categorías ni modelos, la oferta rige
+    solo en ellas, no en las de la campaña.
+  - La regla vive en una función (`fn_oferta_alcanza_variante_con_insignias`). La usan:
+    - la caja (`fn_campanas_en_sede`, con un reemplazo anclado);
+    - los grupos y el monto (`ofertas_de_grupo_vigentes`, `ofertas_de_monto_vigentes`);
+    - los choques y su candado.
+  - `guardar_oferta_completa` las guarda desde `p_forma.insignias`: su firma no cambia, y sin esa clave no las toca. Tope: 20.
+  - Una campaña no se elige como insignia, y un monto de toda la compra no lleva insignias.
+- **La huella de la tienda** (`20261114061000_huella_tienda_con_insignias.sql`): `tienda_catalogo_version()` mira también
+  `campana_regla_insignias`. Sin esto, la tienda web seguiría con el precio viejo al cambiar las insignias de una oferta.
+- **La hoja**:
+  - «¿En qué prendas?» suma una tercera forma, **«Por insignia»**: la lista de insignias activas con cuántas prendas lleva cada una.
+  - Una insignia elegida que se desactivó sigue a la vista para poder quitarla.
+  - Elegir la primera, si nadie tocó las categorías, deja la oferta solo en ella. Si sumara todas las de la campaña, lo marcado no sería
+    lo que rige.
+  - El nombre y la frase la dicen: «La insignia Rotación · −20 %», «20 % menos solo en la insignia Rotación».
+  - Bajo 640 px el segmento dice «Categoría · Prenda · Insignia»: con los nombres enteros no cabía.
+  - Al editar una oferta de solo modelos o insignias, la grilla ya no muestra marcadas las categorías de la campaña. Esas categorías no
+    rigen, y antes se veían marcadas.
+- **La caja no cambia de pantalla**: lo que cobra lo decide la base.
+
 ## Alternativas descartadas
 
 - **Dentro de Insignias, renombrado «Insignias y ofertas».** No mueve nada, pero sigue mezclando dos preguntas en una pantalla y el nombre

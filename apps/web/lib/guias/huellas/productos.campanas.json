@@ -2,7 +2,7 @@
   "guia": "productos.campanas",
   "ruta": "/productos/campanas",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 162,
+  "total": 163,
   "controles": {
     "components/ConfirmarConResponsable.tsx": [
       "ComboResponsable «{control}»",
@@ -141,6 +141,7 @@
       "button «Solo prendas de la campaña»",
       "button «Incluir las de Claurè»",
       "SegmentoDeslizante «Cómo eliges las prendas»",
+      "Casilla «{i.nombre}»",
       "Casilla «{m.nombre}»",
       "button «Elegir todas»",
       "button «Quitar todas»",

@@ -20,6 +20,8 @@ export type PreguntaChoques = {
   solo: string[];
   fuera: string[];
   productos: string[];
+  /** Las insignias elegidas (ADR-0655, por insignia). Con alguna, se pregunta con la forma: la de siempre no las conoce. */
+  insignias: string[];
   claure: boolean;
   /** Vacío = todas las tiendas de la campaña. */
   sedes: string[];
@@ -32,7 +34,7 @@ export type PreguntaChoques = {
 
 /** Con qué choca la oferta de la hoja. `null` mientras no se sabe (o si la base no respondió: la base frena igual al guardar). */
 export function useChoquesDeOferta(p: PreguntaChoques): FilaChoque[] | null {
-  const clave = JSON.stringify([p.activo, p.reglaId, p.etiquetaId, p.desde, p.hasta, p.dias, p.solo, p.fuera, p.productos, p.claure, p.sedes, p.monto?.cuenta ?? null]);
+  const clave = JSON.stringify([p.activo, p.reglaId, p.etiquetaId, p.desde, p.hasta, p.dias, p.solo, p.fuera, p.productos, p.insignias, p.claure, p.sedes, p.monto?.cuenta ?? null]);
   // La respuesta vale solo para la pregunta que la pidió: si la oferta cambió mientras tanto, se descarta sola.
   const [respuesta, setRespuesta] = useState<{ clave: string; version: unknown; filas: FilaChoque[] | null } | null>(null);
   useEffect(() => {
@@ -40,8 +42,10 @@ export function useChoquesDeOferta(p: PreguntaChoques): FilaChoque[] | null {
     let vigente = true;
     // La misma pausa que un buscador (350 ms): mientras se tocan días o tiendas no se pregunta en cada toque.
     const t = window.setTimeout(async () => {
-      // Un monto pregunta con su forma (`fn_choques_de_oferta_con_forma`, 20261114054000); lo demás, a la de siempre.
-      const { data, error } = (await createClient().rpc((p.monto ? "fn_choques_de_oferta_con_forma" : "fn_choques_de_oferta") as never, {
+      // Un monto o una oferta con insignias pregunta con su forma (`fn_choques_de_oferta_con_forma`, con las insignias desde 20261114060000);
+      // lo demás, a la de siempre.
+      const conForma = p.monto != null || p.insignias.length > 0;
+      const { data, error } = (await createClient().rpc((conForma ? "fn_choques_de_oferta_con_forma" : "fn_choques_de_oferta") as never, {
         p_regla_id: p.reglaId,
         p_etiqueta_id: p.etiquetaId,
         p_desde: p.desde,
@@ -52,7 +56,10 @@ export function useChoquesDeOferta(p: PreguntaChoques): FilaChoque[] | null {
         p_productos: p.productos,
         p_claure: p.claure,
         p_sede_ids: p.sedes,
-        ...(p.monto ? { p_tipo: "monto", p_cuenta: p.monto.cuenta, p_cede_a_otras: false } : {}),
+        // La de la forma, con las insignias y la forma: un monto con lo que cuenta; las demás, como una oferta cualquiera (`p_tipo` nulo).
+        ...(conForma
+          ? { p_insignias: p.insignias, p_tipo: p.monto ? "monto" : null, p_cuenta: p.monto ? p.monto.cuenta : null, p_cede_a_otras: false }
+          : {}),
       } as never)) as unknown as { data: FilaChoque[] | null; error: { message: string } | null };
       if (vigente) setRespuesta({ clave, version: p.version, filas: error ? null : (data ?? []) });
     }, 350);

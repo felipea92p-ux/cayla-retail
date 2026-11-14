@@ -2,11 +2,12 @@
 
 import { useMemo, useRef, useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
-import { Check, ChevronDown, ChevronRight, Gift, Info, Layers, Plus, Star, Tag, Undo2, Wallet, X } from "lucide-react";
+import { Award, Check, ChevronDown, ChevronRight, Gift, Info, Layers, Plus, Star, Tag, Undo2, Wallet, X } from "lucide-react";
 import { avisar } from "@/components/ui/Avisos";
 import { Aviso } from "@/components/ui/Aviso";
 import { Boton, Campo, CampoMonto, CampoTexto } from "@/components/ui/campos";
 import { Buscador } from "@/components/ui/Buscador";
+import { Vacio } from "@/components/ui/Vacio";
 import { Casilla } from "@/components/ui/Casilla";
 import { SegmentoDeslizante } from "@/components/ui/SegmentoDeslizante";
 import { CampoFecha } from "@/components/ui/CampoFecha";
@@ -23,6 +24,7 @@ import { ChoquesDeOferta, useChoquesDeOferta } from "@/components/sellos/Choques
 import type { CategoriaOpcion, Etiqueta } from "@/components/EtiquetasLista";
 import { encabezadosOmitidos } from "@/lib/responsable-omitido";
 import type { CampoDeGuia } from "@/lib/guia-campos";
+import type { InsigniaDeOferta } from "@/lib/campana-reglas";
 import { alcanceCampana, avisoReimprimir, chipDeTarjeta, destinoReimprimir, nombreBajoCosto, prendasBajoCosto, prendasQueCambianDePrecioHoy, textoSedesDeCampana, type PrendaConCosto, type TiendaOpcion } from "@/lib/etiqueta-campana";
 import { ejemplosDeCaja, piezasDelMosaico } from "@/lib/campana-hoja";
 import { sumarDias } from "@/lib/fechas-lima";
@@ -34,13 +36,13 @@ import {
   LLEVA_MAX,
   LLEVA_MIN,
   MAX_ESCALONES,
+  MAX_INSIGNIAS_SOLO,
   PORCENTAJES_RAPIDOS,
   PORCENTAJE_MAX,
   PORCENTAJE_MIN,
   PORCENTAJE_PASO,
   alcanceDicho,
   atajosDeFechas,
-  categoriasDichas,
   contarPorCategoria,
   contarPrendas,
   cuentaDias,
@@ -95,6 +97,7 @@ import {
 
 type Paso = 1 | 2 | 3 | 4;
 type Guardando = "borrador" | "activar" | "cambios" | null;
+type VistaPrendas = "cat" | "una" | "ins";
 
 const GRUPOS: { k: string; titulo: string; corto: string; texto: string; icono: ReactNode; activo: boolean }[] = [
   { k: "rebaja", titulo: "Una rebaja", corto: "Una rebaja", texto: "Un porcentaje menos en las prendas", icono: <Tag aria-hidden />, activo: true },
@@ -125,6 +128,16 @@ const pct = (n: number) => String(n).replace(".", ",");
 /** Para buscar sin tildes ni mayúsculas, como los combos (ADR-0209). */
 const sinTilde = (t: string) => t.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
 const plural = (n: number, uno: string, varios: string) => `${n} ${n === 1 ? uno : varios}`;
+
+/** El nombre de una opción del segmento: el corto bajo 640 px, donde las tres no caben con su nombre entero. */
+function NombreCorto({ largo, corto }: { largo: string; corto: string }) {
+  return (
+    <>
+      <span className="sm:hidden">{corto}</span>
+      <span className="max-sm:hidden">{largo}</span>
+    </>
+  );
+}
 /** Lo que pide cada tarjeta de «¿Qué le das?» al elegirla: la rebaja, el 3x2 o el monto (ADR-0655, actividad 8). */
 const tipoDeTarjeta = (k: string): TipoOferta => (k === "varias" ? "nxm" : k === "monto" ? "monto" : "pct");
 
@@ -178,6 +191,7 @@ export function OfertasHoja({
   sedeActualId,
   prendasConCosto,
   variantesManuales,
+  insignias = [],
   hoy,
   puedeDarDescuento,
   alGuardarCampana,
@@ -194,6 +208,8 @@ export function OfertasHoja({
   sedeActualId: string | null;
   prendasConCosto: PrendaConCosto[];
   variantesManuales: string[];
+  /** Las insignias que la oferta puede elegir (ADR-0655, por insignia); vacío = no se ofrece «Por insignia». */
+  insignias?: InsigniaDeOferta[];
   hoy: string;
   /** Quien configura la campaña puede ponerle su descuento de siempre (si no, el formulario no lo ofrece). */
   puedeDarDescuento: boolean;
@@ -217,10 +233,11 @@ export function OfertasHoja({
     const mapa = new Map(tiendas.map((t) => [t.id, t.nombre]));
     return (id: string) => mapa.get(id) ?? "";
   }, [tiendas]);
+  // Nombra las categorías y también las insignias de la oferta (sus ids no se repiten): el nombre y la frase las dicen igual (`alcanceDicho`).
   const nombreCategoria = useMemo(() => {
-    const mapa = new Map(categorias.map((c) => [c.id, c.nombre]));
+    const mapa = new Map([...categorias.map((c) => [c.id, c.nombre] as const), ...insignias.map((i) => [i.id, i.nombre] as const)]);
     return (id: string) => mapa.get(id) ?? "";
-  }, [categorias]);
+  }, [categorias, insignias]);
 
   // ---- Lo que la campaña tiene: sus prendas a la venta y las categorías con prendas ---------------------------------------------
   const manuales = useMemo(() => new Set(variantesManuales), [variantesManuales]);
@@ -244,6 +261,8 @@ export function OfertasHoja({
   const vuelo = useRef<string | null>(null);
   // La persona tocó la grilla de categorías (aunque la dejó vacía: vacío es «ninguna», no «las de la campaña»).
   const [tocoCats, setTocoCats] = useState(false);
+  // Cómo se eligen las prendas en el paso 2: por categoría, prenda por prenda o por insignia (ADR-0655).
+  const [vistaPrendas, setVistaPrendas] = useState<VistaPrendas>("cat");
   const [masQ3, setMasQ3] = useState(false);
   const [soloAlgunosDias, setSoloAlgunosDias] = useState(false);
   const [escribeEscalon, setEscribeEscalon] = useState(false);
@@ -319,6 +338,7 @@ export function OfertasHoja({
     setPaso(1);
     setVisitado({ 1: false, 2: false, 3: false, 4: false });
     setTocoCats(false);
+    setVistaPrendas("cat");
     setMasQ3(false);
     setSoloAlgunosDias(false);
   }
@@ -328,7 +348,9 @@ export function OfertasHoja({
     setPaso(1);
     setNavego(true);
     setVisitado({ 1: false, 2: false, 3: false, 4: false });
-    setTocoCats(false);
+    // Una oferta de solo modelos o insignias, sin categorías, no rige en las de la campaña: la grilla no las muestra marcadas.
+    setTocoCats(r.categoriasSolo.length === 0 && (r.productosSolo.length > 0 || r.insigniasSolo.length > 0));
+    setVistaPrendas(r.productosSolo.length > 0 ? "una" : r.insigniasSolo.length > 0 ? "ins" : "cat");
     setMasQ3(false);
     setSoloAlgunosDias(r.dias.length < 7);
     setRegsAb(false);
@@ -344,7 +366,7 @@ export function OfertasHoja({
   // Por debajo del costo se cuenta como se cuentan las prendas (un modelo en su color) y se nombran dos, no dos tallas del mismo.
   const bajoPorModelo = useMemo(() => [...new Map(bajoCosto.map((p) => [p.modelo ?? p.id, p])).values()], [bajoCosto]);
   // La grilla de categorías: las marcadas son las de la oferta; sin ninguna elegida, las de la campaña (menos lo que una oferta vieja deja fuera).
-  const categoriasPendientes = !deTodaLaCompra && tocoCats && o.categoriasSolo.length === 0 && o.productosSolo.length === 0;
+  const categoriasPendientes = !deTodaLaCompra && tocoCats && o.categoriasSolo.length === 0 && o.productosSolo.length === 0 && o.insigniasSolo.length === 0;
   const elegidasSolo = useMemo(
     () => (o.categoriasSolo.length > 0 ? new Set(o.categoriasSolo) : tocoCats ? new Set<string>() : new Set([...catsCampana].filter((id) => !o.categoriasFuera.includes(id)))),
     [o.categoriasSolo, o.categoriasFuera, tocoCats, catsCampana],
@@ -389,6 +411,7 @@ export function OfertasHoja({
     solo: o.categoriasSolo,
     fuera: o.categoriasFuera,
     productos: o.productosSolo,
+    insignias: deTodaLaCompra ? [] : o.insigniasSolo,
     claure: o.incluyeClaure,
     sedes: sedesQueSeDicen,
     monto: esMonto ? { cuenta: o.cuenta ?? "compra" } : null,
@@ -471,6 +494,9 @@ export function OfertasHoja({
       categoriasFuera: o.categoriasFuera,
       productosSolo: o.productosSolo,
       teniaModelos: (editada?.productosSolo.length ?? 0) > 0,
+      // Un monto de toda la compra no elige prendas: la base le quita las insignias igual.
+      insigniasSolo: deTodaLaCompra ? [] : o.insigniasSolo,
+      teniaInsignias: (editada?.insigniasSolo.length ?? 0) > 0,
       cedeA: cesionesQueQuedan(choques, o.cedeA),
       teniaCesiones: (editada?.ceden.length ?? 0) > 0,
       sedeIds: o.sedeIds,
@@ -514,7 +540,7 @@ export function OfertasHoja({
   // La selección de categorías de la hoja (la de producción). Si queda igual a las de la campaña es «las de la campaña» (sin lista: las que se
   // sumen después entran solas y las marcadas a mano también); si no, es una lista de la oferta. Sin ninguna es «ninguna», y no deja guardar.
   function fijarCategorias(siguiente: ReadonlySet<string>) {
-    const comoLaCampana = o.productosSolo.length === 0 && siguiente.size === catsCampana.size && [...siguiente].every((id) => catsCampana.has(id));
+    const comoLaCampana = o.productosSolo.length === 0 && o.insigniasSolo.length === 0 && siguiente.size === catsCampana.size && [...siguiente].every((id) => catsCampana.has(id));
     cambiar({ categoriasSolo: comoLaCampana ? [] : [...siguiente], categoriasFuera: [] });
     setTocoCats(!comoLaCampana);
   }
@@ -537,6 +563,16 @@ export function OfertasHoja({
       cambiar({ productosSolo, categoriasSolo: [...elegidasSolo], categoriasFuera: [] });
       setTocoCats(true);
     } else cambiar({ productosSolo });
+  };
+  // Por insignia (ADR-0655): la oferta rige en las prendas que llevan la insignia. La primera, si nadie tocó las categorías, deja la oferta
+  // solo en ella —no en «la insignia y todas las categorías de la campaña»—: lo que se ve marcado es lo que rige.
+  const alternarInsignia = (id: string) => {
+    const tiene = o.insigniasSolo.includes(id);
+    const insigniasSolo = tiene ? o.insigniasSolo.filter((x) => x !== id) : [...o.insigniasSolo, id];
+    if (!tiene && o.insigniasSolo.length === 0 && o.productosSolo.length === 0 && o.categoriasSolo.length === 0 && !tocoCats) {
+      cambiar({ insigniasSolo, categoriasSolo: [], categoriasFuera: [] });
+      setTocoCats(true);
+    } else cambiar({ insigniasSolo });
   };
 
   // La casilla de «toda la familia»: marca o quita sus categorías de un toque.
@@ -943,21 +979,34 @@ export function OfertasHoja({
   const alcanceTexto = (() => {
     if (categoriasPendientes) return "Marca al menos una categoría.";
     const claure = claureFuera > 0 ? ` ${plural(claureFuera, "prenda", "prendas")} de Claurè ${claureFuera === 1 ? "queda" : "quedan"} fuera.` : "";
-    const comoLaCampana = o.categoriasSolo.length === 0 && o.productosSolo.length === 0;
+    const comoLaCampana = o.categoriasSolo.length === 0 && o.productosSolo.length === 0 && o.insigniasSolo.length === 0;
     if (comoLaCampana && prendasCampana.length === 0) return "La campaña todavía no tiene prendas: marca las categorías o las prendas de esta oferta.";
-    if (o.productosSolo.length > 0) {
-      const n = o.productosSolo.length;
-      return `Alcanza a ${plural(nAlcanza, "prenda", "prendas")} a la venta${o.categoriasSolo.length > 0 ? `: las de ${plural(o.categoriasSolo.length, "categoría", "categorías")} y ${plural(n, "modelo elegido", "modelos elegidos")}` : ` en ${plural(n, "modelo elegido", "modelos elegidos")}`}.${claure}`;
+    if (o.productosSolo.length > 0 || o.insigniasSolo.length > 0) {
+      const partes = [
+        o.categoriasSolo.length > 0 ? plural(o.categoriasSolo.length, "categoría", "categorías") : "",
+        o.productosSolo.length > 0 ? plural(o.productosSolo.length, "modelo elegido", "modelos elegidos") : "",
+        o.insigniasSolo.length > 0 ? plural(o.insigniasSolo.length, "insignia", "insignias") : "",
+      ].filter(Boolean);
+      return `Alcanza a ${plural(nAlcanza, "prenda", "prendas")} a la venta: las de ${lista(partes)}.${claure}`;
     }
     const delCatalogo = prendasConCosto.filter((p) => o.incluyeClaure || !p.deClaure);
     const a = alcanceCampana(delCatalogo, elegidasSolo, comoLaCampana ? manuales : new Set<string>());
     const partes = [a.porCategoria > 0 ? `${a.porCategoria} de ${plural(elegidasSolo.size, "categoría", "categorías")}` : "", a.aMano > 0 ? `${plural(a.aMano, "marcada", "marcadas")} a mano` : ""].filter(Boolean);
     return `Alcanza a ${plural(nAlcanza, "prenda", "prendas")} a la venta${partes.length > 0 ? `: ${partes.join(" y ")}` : ""}.${claure}`;
   })();
-  const distintaDeLaCampana = o.categoriasSolo.length > 0 || o.productosSolo.length > 0 || tocoCats;
+  const distintaDeLaCampana = o.categoriasSolo.length > 0 || o.productosSolo.length > 0 || o.insigniasSolo.length > 0 || tocoCats;
+  // Las insignias para elegir: las activas y aprobadas, más las ya elegidas que se desactivaron (para poder quitarlas). Cada una con cuántas
+  // prendas a la venta lleva (un modelo en su color, sin Claurè salvo que la oferta lo incluya).
+  const insigniasParaElegir = useMemo(
+    () =>
+      insignias
+        .filter((i) => i.activa || o.insigniasSolo.includes(i.id))
+        .map((i) => ({ ...i, prendas: contarPrendas(prendasConCosto.filter((p) => (o.incluyeClaure || !p.deClaure) && (p.insignias ?? []).includes(i.id))) }))
+        .sort((a, b) => a.nombre.localeCompare(b.nombre, "es")),
+    [insignias, prendasConCosto, o.insigniasSolo, o.incluyeClaure],
+  );
 
   // Los modelos que se pueden elegir uno por uno: cada producto con todas sus tallas y colores, de todo el catálogo a la venta (ADR-0655).
-  const [vistaPrendas, setVistaPrendas] = useState<"cat" | "una">(o.productosSolo.length > 0 ? "una" : "cat");
   const [buscaModelo, setBuscaModelo] = useState("");
   const modelos = useMemo(() => {
     const m = new Map<string, { id: string; nombre: string; categoriaId: string | null; precio: number; colores: Set<string>; deClaure: boolean }>();
@@ -987,8 +1036,8 @@ export function OfertasHoja({
             : grupo
             ? "Solo las prendas que elijas cuentan para el grupo. Las demás se cobran a su precio."
             : distintaDeLaCampana
-              ? "Marca las categorías o las prendas donde rige esta oferta."
-              : "Ya viene lo de la campaña. Marca o quita categorías, o elige prendas una por una."}
+              ? "Marca las categorías, prendas o insignias donde rige."
+              : "Ya viene lo de la campaña. Cámbialo por categoría, prenda o insignia."}
         </p>
         {grupo && (
           <div className="of-sub" data-guia="sellos.oferta-mezclar">
@@ -1038,15 +1087,50 @@ export function OfertasHoja({
           forma="modo"
           className="mt-3"
           valor={vistaPrendas}
-          onCambio={(v) => setVistaPrendas(v as "cat" | "una")}
+          onCambio={(v) => setVistaPrendas(v as VistaPrendas)}
           opciones={[
-            { clave: "cat", etiqueta: "Por categoría", conteo: o.categoriasSolo.length || undefined },
-            { clave: "una", etiqueta: "Prenda por prenda", conteo: o.productosSolo.length || undefined },
+            { clave: "cat", etiqueta: <NombreCorto largo="Por categoría" corto="Categoría" />, conteo: o.categoriasSolo.length || undefined },
+            { clave: "una", etiqueta: <NombreCorto largo="Prenda por prenda" corto="Prenda" />, conteo: o.productosSolo.length || undefined },
+            ...(insignias.length > 0 ? [{ clave: "ins", etiqueta: <NombreCorto largo="Por insignia" corto="Insignia" />, conteo: o.insigniasSolo.length || undefined }] : []),
           ]}
         />
         </div>
         <div className="of-panel" data-guia="sellos.oferta-prendas">
-          {vistaPrendas === "una" ? (
+          {vistaPrendas === "ins" ? (
+            <div data-campo="oferta-categorias">
+              <p className="of-pequeno" aria-live="polite">
+                {o.insigniasSolo.length > 0 ? alcanceTexto : "Entran sus prendas: a mano o por categoría."}
+              </p>
+              {insigniasParaElegir.length === 0 ? (
+                <Vacio tamano="chico" alinear="izquierda" className="mt-3 px-0" icono={<Award />}>
+                  Todavía no hay insignias activas.
+                </Vacio>
+              ) : (
+                <ul className="of-modelos" aria-label="Insignias para elegir">
+                  {insigniasParaElegir.map((i) => {
+                    const elegida = o.insigniasSolo.includes(i.id);
+                    return (
+                      <li key={i.id} className="of-modelo">
+                        <span className="of-modelo-nombre">
+                          <Casilla
+                            marcada={elegida}
+                            disabled={!elegida && o.insigniasSolo.length >= MAX_INSIGNIAS_SOLO}
+                            onCambio={() => alternarInsignia(i.id)}
+                            etiqueta={i.nombre}
+                          />
+                          <span aria-hidden>{i.nombre}</span>
+                        </span>
+                        <span className="of-pequeno">
+                          {plural(i.prendas, "prenda", "prendas")}
+                          {i.activa ? "" : " · desactivada"}
+                        </span>
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
+            </div>
+          ) : vistaPrendas === "una" ? (
             <div data-campo="oferta-categorias">
               <p className="of-pequeno" aria-live="polite">
                 {alcanceTexto}

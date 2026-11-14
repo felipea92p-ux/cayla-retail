@@ -61,6 +61,9 @@ export type ReglaCampana = FormaDeOferta & {
   categoriasFuera: string[];
   /** Los modelos (productos) elegidos uno por uno (ADR-0655): se suman a «solo estas categorías». Vacío = ninguno. */
   productosSolo: string[];
+  /** Las insignias elegidas (ADR-0655, por insignia): alcanza las prendas que llevan una, marcadas a mano o por una categoría de la insignia.
+   *  Se suman a las categorías y a los modelos. Vacío = ninguna. */
+  insigniasSolo: string[];
   /** Las tiendas donde rige, dentro de las de su campaña. Vacío = en todas las de la campaña. */
   sedeIds: string[];
   creadaEn: string;
@@ -101,6 +104,8 @@ export type FilaRegla = {
   ahorro_en?: string | null;
   cuenta?: string | null;
   cede_a_otras?: boolean | null;
+  /** Desde 20261114060000 (por insignia); sin esa migración la base no lo manda. */
+  insignias?: string[] | null;
   creada_en: string;
   activada_en: string | null;
   cambios: number | null;
@@ -148,6 +153,7 @@ export function reglaDeFila(f: FilaRegla): ReglaCampana {
     categoriasSolo: f.categorias_solo ?? [],
     categoriasFuera: f.categorias_fuera ?? [],
     productosSolo: f.productos_solo ?? [],
+    insigniasSolo: f.insignias ?? [],
     sedeIds: f.sedes ?? [],
     creadaEn: f.creada_en,
     activadaEn: f.activada_en,
@@ -277,6 +283,8 @@ export type OfertaEnEdicion = FormaDeOferta & {
   categoriasFuera: string[];
   /** Modelos elegidos uno por uno (ADR-0655); se suman a `categoriasSolo`. Con alguno de los dos, la oferta deja de ser «toda la campaña». */
   productosSolo: string[];
+  /** Insignias elegidas (ADR-0655, por insignia); se suman a las categorías y a los modelos, igual que ellos. */
+  insigniasSolo: string[];
   /** Tiendas donde rige, dentro de las de su campaña; vacío = todas las de la campaña. */
   sedeIds: string[];
   incluyeClaure: boolean;
@@ -306,6 +314,7 @@ export const ofertaNueva = (desde: string, hasta: string): OfertaEnEdicion => ({
   categoriasSolo: [],
   categoriasFuera: [],
   productosSolo: [],
+  insigniasSolo: [],
   sedeIds: [],
   incluyeClaure: false,
   nombre: "",
@@ -327,6 +336,7 @@ export const ofertaDesdeRegla = (r: ReglaCampana, nombreAutomatico: boolean): Of
   categoriasSolo: [...r.categoriasSolo],
   categoriasFuera: [...r.categoriasFuera],
   productosSolo: [...r.productosSolo],
+  insigniasSolo: [...r.insigniasSolo],
   sedeIds: [...r.sedeIds],
   incluyeClaure: r.incluyeClaure,
   nombre: nombreAutomatico ? "" : r.nombre,
@@ -346,19 +356,26 @@ export const nombresDeTiendas = (ids: readonly string[], nombreSede: (id: string
 /** Hasta cuántas categorías se nombran en una frase o en el nombre de una oferta; con más, se dice cuántas son («12 categorías»). */
 export const MAX_CATEGORIAS_NOMBRADAS = 3;
 
-/** Las categorías de una oferta dichas en una frase: «Blusas y Faldas» o, si son muchas, «12 categorías». */
-export function categoriasDichas(ids: readonly string[], nombreCategoria: (id: string) => string): string {
-  const nombres = nombresOrdenados(ids, nombreCategoria);
-  return nombres.length > MAX_CATEGORIAS_NOMBRADAS ? `${nombres.length} categorías` : lista(nombres);
+/** Las insignias de una oferta en una frase: «la insignia Rotación», «las insignias Artesanal y Rotación» o «4 insignias». */
+export function insigniasDichas(ids: readonly string[], nombreInsignia: (id: string) => string): string | null {
+  const nombres = nombresOrdenados(ids, nombreInsignia);
+  if (nombres.length === 0) return null;
+  if (nombres.length > MAX_CATEGORIAS_NOMBRADAS) return `${nombres.length} insignias`;
+  return `${nombres.length === 1 ? "la insignia" : "las insignias"} ${lista(nombres)}`;
 }
 
-/** Dónde rige una oferta, en pocas palabras: «Blusas y Faldas», «3 prendas elegidas», «Polos y 2 prendas elegidas» o `null` (toda la campaña). */
-export function alcanceDicho(o: Pick<OfertaEnEdicion, "categoriasSolo"> & { productosSolo?: readonly string[] }, nombreCategoria: (id: string) => string): string | null {
+/** Dónde rige una oferta, en pocas palabras: «Blusas y Faldas», «3 prendas elegidas», «Polos y 2 prendas elegidas», «la insignia Rotación» o
+ *  `null` (toda la campaña). `nombreCategoria` nombra también las insignias de `insigniasSolo` (sus ids no se repiten con los de una categoría). */
+export function alcanceDicho(
+  o: Pick<OfertaEnEdicion, "categoriasSolo"> & { productosSolo?: readonly string[]; insigniasSolo?: readonly string[] },
+  nombreCategoria: (id: string) => string,
+): string | null {
   const n = o.productosSolo?.length ?? 0;
   const nombres = nombresOrdenados(o.categoriasSolo, nombreCategoria);
   // Una sola lista: «Blusas, Polos y 1 prenda elegida» (no «Blusas y Polos y 1 prenda elegida»).
   const cats = nombres.length > MAX_CATEGORIAS_NOMBRADAS ? [`${nombres.length} categorías`] : nombres;
-  const partes = [...cats, ...(n ? [`${n} ${n === 1 ? "prenda elegida" : "prendas elegidas"}`] : [])];
+  const insignias = insigniasDichas(o.insigniasSolo ?? [], nombreCategoria);
+  const partes = [...cats, ...(n ? [`${n} ${n === 1 ? "prenda elegida" : "prendas elegidas"}`] : []), ...(insignias ? [insignias] : [])];
   return partes.length ? lista(partes) : null;
 }
 
@@ -390,11 +407,17 @@ export function titularDeOferta(f: Pick<FormaDeOferta, "tipo" | "porcentaje" | "
 /** «Toda la campaña · −20 % · mar y jue» · «Blusas y Faldas · −20 % · Trujillo» · «Polos · 3 x 2». */
 export function nombreAutomatico(
   o: Pick<OfertaEnEdicion, "porcentaje" | "dias" | "categoriasSolo"> &
-    Partial<Pick<FormaDeOferta, "tipo" | "lleva" | "paga" | "monto" | "escalones" | "ahorroEn" | "cuenta">> & { sedeIds?: readonly string[]; productosSolo?: readonly string[] },
+    Partial<Pick<FormaDeOferta, "tipo" | "lleva" | "paga" | "monto" | "escalones" | "ahorroEn" | "cuenta">> & {
+      sedeIds?: readonly string[];
+      productosSolo?: readonly string[];
+      insigniasSolo?: readonly string[];
+    },
   nombreCategoria: (id: string) => string,
   nombreSede: (id: string) => string = () => "",
 ): string {
-  const donde = o.tipo === "monto" && o.cuenta !== "campana" ? "Toda la compra" : (alcanceDicho(o, nombreCategoria) ?? "Toda la campaña");
+  const alcance = alcanceDicho(o, nombreCategoria);
+  // «La insignia Rotación · −20 %»: el nombre empieza en mayúscula aunque el alcance empiece por «la insignia».
+  const donde = o.tipo === "monto" && o.cuenta !== "campana" ? "Toda la compra" : alcance ? alcance.charAt(0).toUpperCase() + alcance.slice(1) : "Toda la campaña";
   const dias = textoDiasCorto(o.dias);
   const tiendas = lista(nombresDeTiendas(o.sedeIds ?? [], nombreSede));
   const titular = titularDeOferta({ tipo: o.tipo ?? "pct", porcentaje: o.porcentaje, lleva: o.lleva ?? 3, paga: o.paga ?? 2, monto: o.monto ?? 0, escalones: o.escalones, ahorroEn: o.ahorroEn });
@@ -409,7 +432,7 @@ export const nombreDeOferta = (o: OfertaEnEdicion, nombreCategoria: (id: string)
 export const esNombreAutomatico = (r: ReglaCampana, nombreCategoria: (id: string) => string, nombreSede: (id: string) => string = () => ""): boolean =>
   r.nombre ===
   nombreAutomatico(
-    { tipo: r.tipo, porcentaje: r.porcentaje, lleva: r.lleva, paga: r.paga, monto: r.monto, escalones: r.escalones, ahorroEn: r.ahorroEn, cuenta: r.cuenta, dias: r.dias, categoriasSolo: r.categoriasSolo, productosSolo: r.productosSolo, sedeIds: r.sedeIds },
+    { tipo: r.tipo, porcentaje: r.porcentaje, lleva: r.lleva, paga: r.paga, monto: r.monto, escalones: r.escalones, ahorroEn: r.ahorroEn, cuenta: r.cuenta, dias: r.dias, categoriasSolo: r.categoriasSolo, productosSolo: r.productosSolo, insigniasSolo: r.insigniasSolo, sedeIds: r.sedeIds },
     nombreCategoria,
     nombreSede,
   );
@@ -543,6 +566,9 @@ export type CuerpoGuardarOferta = {
   productosSolo: string[];
   /** La oferta que se edita tenía modelos: aunque ahora no lleve ninguno, se guarda por `guardar_oferta` para quitárselos. */
   teniaModelos: boolean;
+  /** Insignias elegidas (ADR-0655, por insignia). Con alguna —o si las tenía— la ruta llama a `guardar_oferta_completa`, que las guarda. */
+  insigniasSolo: string[];
+  teniaInsignias: boolean;
   /** Las ofertas que le ceden («que la otra ceda», ADR-0655). Con alguna —o si le cedían antes— la ruta llama a `guardar_oferta_y_ceder`. */
   cedeA: string[];
   teniaCesiones: boolean;
@@ -554,6 +580,8 @@ export type CuerpoGuardarOferta = {
 
 /** El tope de modelos sueltos de una oferta: el mismo que exige `guardar_oferta` (20261113210000). */
 export const MAX_PRODUCTOS_SOLO = 500;
+/** El tope de insignias de una oferta: el mismo que exige `guardar_oferta_completa` (20261114060000). */
+export const MAX_INSIGNIAS_SOLO = 20;
 
 const FECHA = /^\d{4}-\d{2}-\d{2}$/;
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -579,6 +607,9 @@ export function leerCuerpoOferta(cuerpo: unknown): Resultado<CuerpoGuardarOferta
   const productos = lista(c.productosSolo);
   if (!productos.every(esTextoUuid)) return { ok: false, error: "Una de las prendas elegidas no es válida." };
   if (productos.length > MAX_PRODUCTOS_SOLO) return { ok: false, error: `Una oferta puede elegir hasta ${MAX_PRODUCTOS_SOLO} modelos sueltos. Para más, elige sus categorías.` };
+  const insignias = lista(c.insigniasSolo);
+  if (!insignias.every(esTextoUuid)) return { ok: false, error: "Una de las insignias elegidas no es válida." };
+  if (new Set(insignias).size > MAX_INSIGNIAS_SOLO) return { ok: false, error: `Una oferta puede elegir hasta ${MAX_INSIGNIAS_SOLO} insignias.` };
   const cede = lista(c.cedeA);
   if (!cede.every(esTextoUuid)) return { ok: false, error: "Una de las ofertas que cede no es válida." };
   if (c.id != null && cede.includes(c.id)) return { ok: false, error: "Una oferta no puede cederse a sí misma." };
@@ -618,6 +649,8 @@ export function leerCuerpoOferta(cuerpo: unknown): Resultado<CuerpoGuardarOferta
       categoriasFuera: fuera as string[],
       productosSolo: [...new Set(productos as string[])],
       teniaModelos: c.teniaModelos === true,
+      insigniasSolo: [...new Set(insignias as string[])],
+      teniaInsignias: c.teniaInsignias === true,
       cedeA: [...new Set(cede as string[])],
       teniaCesiones: c.teniaCesiones === true,
       sedeIds: sedes as string[],
@@ -780,7 +813,18 @@ export function resumenAntes(antes: Record<string, unknown> | null): string {
 
 // ---- Cuántas prendas alcanza una oferta (lo que dicen los conteos de la hoja) -------------------------------------------------------
 
-export type PrendaDeCampana = { id: string; categoriaId: string | null; deClaure?: boolean; modelo?: string; productoId?: string };
+/** Una insignia que una oferta puede elegir (ADR-0655, por insignia). `activa` = activa y aprobada: solo esas se ofrecen. */
+export type InsigniaDeOferta = { id: string; nombre: string; activa: boolean; categoriaIds: string[] };
+
+export type PrendaDeCampana = {
+  id: string;
+  categoriaId: string | null;
+  deClaure?: boolean;
+  modelo?: string;
+  productoId?: string;
+  /** Las insignias que lleva (marcada a mano o por una categoría de la insignia): las que una oferta «por insignia» alcanza. */
+  insignias?: readonly string[];
+};
 
 /** Cuántas prendas son estas. Una prenda es un modelo en su color: sus tallas cuentan una vez, como en el pase de Insignias y en la etiqueta
  *  de la campaña (ADR-0488). Sin `modelo`, cada fila cuenta como una. */
@@ -794,17 +838,22 @@ export function contarPrendas(prendas: readonly Pick<PrendaDeCampana, "id" | "mo
 export function prendasQueAlcanza<P extends PrendaDeCampana>(
   prendasDeLaCampana: readonly P[],
   prendasDelCatalogo: readonly P[],
-  o: Pick<OfertaEnEdicion, "categoriasSolo" | "categoriasFuera" | "incluyeClaure"> & { productosSolo?: readonly string[] } & Partial<Pick<FormaDeOferta, "tipo" | "cuenta">>,
+  o: Pick<OfertaEnEdicion, "categoriasSolo" | "categoriasFuera" | "incluyeClaure"> & { productosSolo?: readonly string[]; insigniasSolo?: readonly string[] } & Partial<
+      Pick<FormaDeOferta, "tipo" | "cuenta">
+    >,
 ): P[] {
   // Un monto de toda la compra (actividad 8) cuenta todo el catálogo, salvo Claurè si no la incluye y lo que deja fuera.
   if (o.tipo === "monto" && o.cuenta !== "campana") return prendasDelCatalogo.filter((p) => (o.incluyeClaure || !p.deClaure) && !(p.categoriaId && o.categoriasFuera.includes(p.categoriaId)));
-  // Con categorías «solo» o modelos elegidos (ADR-0655), la oferta rige en ESAS categorías y ESOS modelos, estén o no en la campaña.
+  // Con categorías «solo», modelos o insignias elegidos (ADR-0655), la oferta rige en ESAS categorías, ESOS modelos y las prendas de ESAS
+  // insignias, estén o no en la campaña (`fn_oferta_alcanza_variante_con_insignias`).
   const productos = o.productosSolo ?? [];
-  const elegida = o.categoriasSolo.length > 0 || productos.length > 0;
+  const insignias = o.insigniasSolo ?? [];
+  const elegida = o.categoriasSolo.length > 0 || productos.length > 0 || insignias.length > 0;
   return (elegida ? prendasDelCatalogo : prendasDeLaCampana).filter((p) => {
     if (!o.incluyeClaure && p.deClaure) return false;
     const c = p.categoriaId;
-    if (elegida && !((c && o.categoriasSolo.includes(c)) || (p.productoId && productos.includes(p.productoId)))) return false;
+    const porInsignia = insignias.length > 0 && (p.insignias ?? []).some((i) => insignias.includes(i));
+    if (elegida && !((c && o.categoriasSolo.includes(c)) || (p.productoId && productos.includes(p.productoId)) || porInsignia)) return false;
     return !(c && o.categoriasFuera.includes(c));
   });
 }
