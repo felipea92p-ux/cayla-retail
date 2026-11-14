@@ -473,6 +473,7 @@ export const PRUEBAS = [
   // Cambiar la talla o el color de una prenda comprada con descuento no cobra el descuento otra vez (ADR-0655, Felipe 2026-11-14): el mismo
   // modelo, una talla más cara o más barata, otro modelo, una por varias y su mutante. ROLLBACK.
   "pruebas:cambio-mismo-modelo",
+  "pruebas:aviso-dos-ofertas",
   // Una campaña que solo tiene OFERTAS también sale en la Tienda web (ADR-0496, «Lo que NO cubre»): la lista, la portada y el diseño leen las
   // ofertas activas (la portada, solo las que rigen hoy, con el mayor %), un borrador no cuenta y, sin ofertas, todo queda idéntico. ROLLBACK.
   "pruebas:campana-con-ofertas",
