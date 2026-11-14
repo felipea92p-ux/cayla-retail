@@ -96,3 +96,18 @@ describe("cuentaDelDescuento — lo que el apartado «Descuento» dice de lo que
     expect(AYUDA_MODO_DESCUENTO.monto).toMatch(/se reparte/);
   });
 });
+
+describe("«Quedaría en» con las ofertas del ticket (ADR-0655)", () => {
+  it("3 polos de S/ 50 en un 3x2 con 10 % a todo: el total que se cobrará, no el de sin grupo", async () => {
+    const { carritoConGrupos } = await import("./ofertas-de-grupo");
+    const polos = [linea("p1", 50, { varianteId: "v1" }), linea("p2", 50, { varianteId: "v2" }), linea("p3", 50, { varianteId: "v3" })];
+    const oferta = { reglaId: "r", tipo: "nxm" as const, lleva: 3, paga: 2, monto: null, porcentaje: null, agrupa: "campana" as const, modeloId: null, nombre: "Verano", titular: "3 x 2" };
+    const ofertas = { v1: oferta, v2: oferta, v3: oferta };
+    const conOfertas = (l: ItemCarrito[]) => carritoConGrupos(l, ofertas).lineas;
+    const pedido = { ...vacio, pct: "10", razon: "cerrar_venta" };
+    // Sin las ofertas decía 135; con ellas, lo que quedará en el ticket: el 3x2 regala una de S/ 50 sobre el precio de lista y el 10 % a mano se
+    // SUMA (Felipe 2026-11-13): 150 − 15 − 50 = 85.
+    expect(cuentaDelDescuento(pedido, polos, null).totalConDescuento).toBe(135);
+    expect(cuentaDelDescuento(pedido, polos, null, conOfertas).totalConDescuento).toBe(85);
+  });
+});

@@ -67,14 +67,29 @@ export async function POST(request: Request) {
   const conModelos = o.productosSolo.length > 0 || o.teniaModelos;
   const conCesiones = o.cedeA.length > 0 || o.teniaCesiones;
   // Una oferta de grupo (3x2, N por S/, la N.ª al X %; ADR-0655, actividad 6) —o una que lo era y vuelve a «un % menos»— va por
-  // `guardar_oferta_completa` (20261114003000), que guarda la forma con lo demás en una transacción.
-  const conForma = o.forma.tipo !== "pct" || o.eraDeGrupo;
+  // `guardar_oferta_completa` (20261114003000), que guarda la forma con lo demás en una transacción. También una con insignias elegidas
+  // (ADR-0655, por insignia; 20261114060000) o que las tenía: las insignias viajan en la forma, y solo esa función las guarda o las quita.
+  const conInsignias = o.insigniasSolo.length > 0 || o.teniaInsignias;
+  const conForma = o.forma.tipo !== "pct" || o.eraDeGrupo || conInsignias;
   const { data, error } = conForma
     ? await llamar(supabase, "guardar_oferta_completa", {
         p_regla_id: o.id,
         p_etiqueta_id: o.etiquetaId,
         p_nombre: o.nombre,
-        p_forma: { ...o.forma, porcentaje: o.forma.tipo === "pct" || o.forma.tipo === "nesima_pct" ? o.porcentaje : null },
+        // La forma con los nombres de la base; un monto (actividad 8) suma sus escalones, en qué ahorra, qué cuenta y si cede a las otras.
+        p_forma: {
+          tipo: o.forma.tipo,
+          lleva: o.forma.lleva,
+          paga: o.forma.paga,
+          monto: o.forma.monto,
+          agrupa: o.forma.agrupa,
+          porcentaje: o.forma.tipo === "pct" || o.forma.tipo === "nesima_pct" ? o.porcentaje : null,
+          ...(o.forma.tipo === "monto"
+            ? { escalones: o.forma.escalones ?? [], ahorro_en: o.forma.ahorroEn ?? "soles", cuenta: o.forma.cuenta ?? "compra", cede_a_otras: o.forma.cedeAOtras ?? false }
+            : {}),
+          // Sin la clave, la base no toca las insignias de la oferta: se manda solo cuando hay o había alguna.
+          ...(conInsignias ? { insignias: o.insigniasSolo } : {}),
+        },
         p_desde: o.desde,
         p_hasta: o.hasta,
         p_dias_semana: o.dias,

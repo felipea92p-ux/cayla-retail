@@ -676,7 +676,9 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
   `TilePrenda` (`MosaicoPrenda` con el ícono de la categoría, ADR-0333).
   · **Existencias** (`/inventario`) tiene su propio ritmo y cobertura: `getRitmoRecientePorVariante`
   (`lib/existencias-ritmo-servidor.ts`, RPC `fn_ritmo_reciente_json`), dato secundario que degrada a «N/D» (nunca tumba la
-  pantalla). El `getCoberturaPorVariante` de `resumen-inventario.ts` ya no lo llamaba nadie y se borró el 2026-10-06.
+  pantalla). Desde el 2026-11-14 arranca con las cantidades delgadas de la sede (`getCantidadesDeSede` + `pisoDeCadaTalla`,
+  `lib/stock-de-sede-reglas.ts`), que la lista reutiliza (`getExistencias(…, { cantidades })`): ya no espera a la lista entera.
+  El `getCoberturaPorVariante` de `resumen-inventario.ts` ya no lo llamaba nadie y se borró el 2026-10-06.
 - `/inventario/recibir` (sin factura) **ya no existe como pantalla** (ADR-0330, 2026-10-04): se fundió en la puerta «Llegó
   mercadería» de `/recibir` y la ruta es un redirect de `next.config.ts`.
 - **«Agregar proveedor» desde `/recibir`** (2026-10-10): `LlegoMercaderia.tsx` abre el mismo `ProveedorModal` de Compras ▸

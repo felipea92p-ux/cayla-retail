@@ -302,8 +302,12 @@ export function preguntasDeCampana(
   aMano: number,
   ofertas: { activas: number; borradores: number },
   dondeRige: string | null,
+  /** Alguna de sus ofertas elige sus propias prendas (categorías, modelos, insignias o toda la compra; ADR-0655): la campaña llega a
+   *  prendas aunque no tenga ninguna propia. Sin esto decía «Ninguna todavía» y llevaba a marcar prendas sueltas. */
+  ofertasEligen = false,
 ): PreguntaCampana[] {
-  const llega = prendas > 0 || categorias.length > 0;
+  const propias = prendas > 0 || categorias.length > 0;
+  const llega = propias || ofertasEligen;
   const pct = f.descuentoPct !== null ? f.descuentoPct.toLocaleString("es-PE", { maximumFractionDigits: 2 }) : null;
   const porActivar = ofertas.borradores > 0 ? ` · ${plural(ofertas.borradores, "por activar", "por activar")}` : "";
   const oferta =
@@ -317,7 +321,12 @@ export function preguntasDeCampana(
   const cuando = rangoCorto(f.vigenteDesde, f.vigenteHasta, hoy) ?? "Sin fechas: rige siempre";
   return [
     { clave: "oferta", nombre: "Qué le das", hecho: ofertas.activas > 0 || pct !== null, detalle: oferta },
-    { clave: "prendas", nombre: "En qué prendas", hecho: llega, detalle: llega ? prendasYDeDonde(prendas, aMano, categorias) : "Ninguna todavía" },
+    {
+      clave: "prendas",
+      nombre: "En qué prendas",
+      hecho: llega,
+      detalle: propias ? prendasYDeDonde(prendas, aMano, categorias) : ofertasEligen ? "Las eligen sus ofertas" : "Ninguna todavía",
+    },
     { clave: "cuando", nombre: "Cuándo y dónde", hecho: true, detalle: `${cuando} · ${dondeRige ?? "en todas las tiendas"}` },
   ];
 }

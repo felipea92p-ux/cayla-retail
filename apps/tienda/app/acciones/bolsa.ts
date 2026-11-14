@@ -164,7 +164,8 @@ export async function elegirTiendaDeRecojo(datos: FormData): Promise<void> {
 export type EstadoSeparar = { mensaje: string; marca: string | null; enlace?: { texto: string; href: string } | null } | null;
 
 const esquemaVistas = z
-  .array(z.object({ variante_id: z.string(), cantidad: z.number().int().min(1), precio: z.number().nonnegative() }))
+  // ADR-0655: `ahorro_grupo`, lo que la bolsa le mostró que ahorra esa línea llevando varias (la base lo vuelve a calcular y lo compara).
+  .array(z.object({ variante_id: z.string(), cantidad: z.number().int().min(1), precio: z.number().nonnegative(), ahorro_grupo: z.number().nonnegative().optional() }))
   .min(1)
   .max(TOPE_PRENDAS);
 
@@ -209,7 +210,8 @@ export async function separar(_previo: EstadoSeparar, datos: FormData): Promise<
   if (escrito) {
     if (!codigoCompleto(escrito)) return { mensaje: "Ese código de cupón está incompleto. Revísalo o bórralo para separar.", marca };
     cupon = normalizarCodigo(escrito);
-    const total = vistas.reduce((n, v) => n + v.precio * v.cantidad, 0);
+    // El total del pedido que nacerá: con lo que ahorra llevando varias (la compra mínima del cupón se mide contra eso).
+    const total = vistas.reduce((n, v) => n + v.precio * v.cantidad - (v.ahorro_grupo ?? 0), 0);
     const v = await validarCuponEnBase(sesion.usuarioId, cupon, Math.round(total * 100) / 100);
     if (!v) return { mensaje: CUPON_SIN_RESPUESTA, marca };
     if (!v.ok) return { mensaje: mensajeDeCupon(v), marca };
