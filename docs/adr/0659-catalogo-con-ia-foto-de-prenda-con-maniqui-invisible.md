@@ -112,3 +112,8 @@ ancho, corte, mangas, bordes y estampado), en el pedido de un solo frente (`PROM
 medir: las mismas reglas). El pedido con molde no cambia: copia la estructura de la primera foto, que ahora sale con su largo. **Lo que el pedido
 no arregla:** el estampado se redibuja con las mismas figuras y colores, no en el mismo lugar exacto; para eso está «Usar mi foto». Cuesta lo
 mismo (~0,05 USD, ~25 s).
+
+**Sin etiquetas (Felipe, el mismo día: «hay que quitar las etiquetas de la prenda»).** Hasta aquí se pedía conservar las etiquetas cosidas;
+ahora todos los pedidos (`SIN_ETIQUETAS`: solo frente, con molde y con varias fotos) piden quitar la del cuello, la de talla, la de composición,
+la de la pretina y cualquier colgante o de precio, con la misma tela donde estaban. Probado con la blusa, un jean y un short, dos veces cada uno:
+salieron las seis, y el largo no se movió (blusa −3 y −4 %, jean −1 y 0 %).

@@ -44,6 +44,14 @@ describe("camposOpenAI", () => {
     // «Como si la llevara una persona de talla estándar» estiraba la prenda (la blusa verde, +8 %): no vuelve.
     expect(PROMPT_CATALOGO).not.toMatch(/talla estándar/);
   });
+
+  it("sin etiquetas: ni la del cuello ni colgantes, en todos los pedidos (Felipe 2026-11-14)", () => {
+    const pedidos = [PROMPT_CATALOGO, PROMPT_CON_MOLDE, pedidoDeCatalogo({ espalda: true }).prompt, pedidoDeCatalogo({ detalle: true, molde: true }).prompt];
+    for (const p of pedidos) {
+      expect(p).toMatch(/QUITA todas las etiquetas/);
+      expect(p).not.toMatch(/etiquetas cosidas/);
+    }
+  });
 });
 
 describe("con molde: la misma prenda en todos los colores", () => {

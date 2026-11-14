@@ -24,6 +24,9 @@ export const MODELO_OPENAI_POR_DEFECTO = "gpt-image-2.6-sunburst";
  */
 const MANIQUI_PONE_LA_FORMA =
   "Lo que pone el MANIQUÍ: la postura de frente, los hombros a su altura, el pecho y la cintura con volumen, como la llevaría una persona.";
+/** Sin etiquetas (Felipe 2026-11-14: «hay que quitar las etiquetas de la prenda»): ni la del cuello ni ninguna otra; antes se pedía conservarlas. */
+const SIN_ETIQUETAS =
+  "QUITA todas las etiquetas: la del cuello, la de talla, la de composición, la de la pretina y cualquier etiqueta colgante o de precio; donde estaban, sigue la misma tela.";
 const PRENDA_PONE_SUS_MEDIDAS = [
   "Lo que pone la PRENDA, y no se cambia:",
   "LARGO: el mismo largo respecto del ancho que tiene la prenda (de los hombros al ruedo, o de la cintura a la basta); no la alargues.",
@@ -35,7 +38,7 @@ const PRENDA_PONE_SUS_MEDIDAS = [
 
 /**
  * Lo que se le pide: la prenda PUESTA en un maniquí invisible (ghost mannequin), como la mostraría un catálogo, y que sea la MISMA prenda
- * (arriba). Las reglas de tela, color y etiquetas salen del prompt de «edición mínima» que el equipo probó en ChatGPT
+ * (arriba), sin etiquetas (`SIN_ETIQUETAS`). Las reglas de tela y color salen del prompt de «edición mínima» que el equipo probó en ChatGPT
  * (`docs/investigacion/2026-10-21-prompt-edicion-minima-fotos.md`). Sigue siendo SOLO la prenda y transparente (nada de persona ni maniquí a la
  * vista): es lo que necesita el armador de looks (ADR-0442). ~0,05 USD por foto y ~25 s.
  */
@@ -45,7 +48,8 @@ export const PROMPT_CATALOGO = [
   "derecha y centrada, con un margen pequeño alrededor. Se ve el interior del cuello por detrás.",
   MANIQUI_PONE_LA_FORMA,
   PRENDA_PONE_SUS_MEDIDAS,
-  "Conserva la tela, el color y el tono, las costuras, los botones y las etiquetas cosidas. No cambies el color.",
+  "Conserva la tela, el color y el tono, las costuras y los botones. No cambies el color.",
+  SIN_ETIQUETAS,
   "No se ve ningún maniquí, persona, piel, gancho ni perchero. Fondo transparente, sin sombra.",
 ].join(" ");
 
@@ -61,6 +65,7 @@ export const PROMPT_CON_MOLDE = [
   "Del MOLDE copia EXACTAMENTE la estructura: la silueta, el largo, las mangas, el cuello, el elástico, los pliegues, la pose, el tamaño",
   "y la posición en el cuadro, como si fuera la misma prenda puesta en el mismo maniquí invisible.",
   "De la IMAGEN 1 toma SOLO el color, el tono y el estampado o las rayas, tal como se ven en la foto real. No cambies nada más.",
+  SIN_ETIQUETAS,
   "No se ve ningún maniquí, persona, piel, gancho ni perchero. Fondo transparente, sin sombra.",
 ].join(" ");
 
@@ -108,7 +113,7 @@ export function pedidoDeCatalogo(extras: { espalda?: boolean; detalle?: boolean;
   const deReales = reales.length === 1 ? reales[0] : `${reales.slice(0, -1).join(", ")} y ${reales[reales.length - 1]}`;
   const estructura = extras.molde
     ? `Del MOLDE (IMAGEN ${orden.indexOf("molde") + 1}) copia EXACTAMENTE la estructura: la silueta, el largo, las mangas, el cuello, el elástico, los pliegues, la pose, el tamaño y la posición en el cuadro, como si fuera la misma prenda puesta en el mismo maniquí invisible. De ${deReales} toma SOLO el color, el tono y el estampado o las rayas, tal como se ven en las fotos reales.`
-    : `Conviértela en una foto de catálogo profesional con efecto MANIQUÍ INVISIBLE (ghost mannequin): la prenda PUESTA, con volumen 3D, de frente, derecha y centrada, con un margen pequeño alrededor. Se ve el interior del cuello por detrás. ${MANIQUI_PONE_LA_FORMA} ${PRENDA_PONE_SUS_MEDIDAS} Usa ${deReales} para conservar la tela, el color y el tono, las costuras, los botones y las etiquetas cosidas.`;
+    : `Conviértela en una foto de catálogo profesional con efecto MANIQUÍ INVISIBLE (ghost mannequin): la prenda PUESTA, con volumen 3D, de frente, derecha y centrada, con un margen pequeño alrededor. Se ve el interior del cuello por detrás. ${MANIQUI_PONE_LA_FORMA} ${PRENDA_PONE_SUS_MEDIDAS} Usa ${deReales} para conservar la tela, el color y el tono, las costuras y los botones.`;
   return {
     orden,
     prompt: [
@@ -116,6 +121,7 @@ export function pedidoDeCatalogo(extras: { espalda?: boolean; detalle?: boolean;
       lista,
       "Crea UNA foto de catálogo de la prenda, vista de frente.",
       estructura,
+      SIN_ETIQUETAS,
       "No cambies el color. No se ve ningún maniquí, persona, piel, gancho ni perchero. Fondo transparente, sin sombra.",
     ].join(" "),
   };
