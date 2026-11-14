@@ -23,6 +23,7 @@ import { leerPagosSunat,
   periodoPle,
   porcentaje,
   proyectarUmbral,
+  redondeoSunat,
   sumarMeses,
   tipoDocProveedor,
   tonoAvance,
@@ -79,6 +80,29 @@ describe("lo pagado a SUNAT", () => {
     expect(estadoMes(mesIgv("2026-08", 500), "2026-09", { mes: "2026-08", igv: 499, renta: 0 })).toBe("por_declarar");
     expect(estadoMes(mesIgv("2026-08", 500), "2026-09", { mes: "2026-08", igv: 0, renta: 500 })).toBe("por_declarar");
     expect(estadoMes(mesIgv("2026-09", 500), "2026-09", { mes: "2026-09", igv: 500, renta: 0 })).toBe("en_curso");
+  });
+  it("SUNAT cobra en soles enteros: el mes queda pagado con lo que SUNAT cobró, no con los céntimos del sistema", () => {
+    // El IGV del sistema dice 9,230.49; SUNAT cobra 9,230. Con 9,230.50 cobra 9,231 y pagar 9,230 no alcanza.
+    expect(estadoMes(mesIgv("2026-08", 9230.49), "2026-09", { mes: "2026-08", igv: 9230, renta: 0 })).toBe("pagado");
+    expect(estadoMes(mesIgv("2026-08", 9230.5), "2026-09", { mes: "2026-08", igv: 9230, renta: 0 })).toBe("por_declarar");
+    expect(estadoMes(mesIgv("2026-08", 9230.5), "2026-09", { mes: "2026-08", igv: 9231, renta: 0 })).toBe("pagado");
+  });
+});
+
+describe("el redondeo de SUNAT (R.S. 025-2000/SUNAT, art. 2)", () => {
+  it("mira el primer decimal: con menos de 5 se queda, desde 5 sube", () => {
+    expect(redondeoSunat(1123.08)).toBe(1123); // el pago a cuenta de octubre de 2026: 1 % de S/ 112,307.93
+    expect(redondeoSunat(446.87)).toBe(447); // el de septiembre: 1 % de S/ 44,687
+    expect(redondeoSunat(9230.49)).toBe(9230);
+    expect(redondeoSunat(9230.5)).toBe(9231);
+    expect(redondeoSunat(0.49)).toBe(0);
+    expect(redondeoSunat(0)).toBe(0);
+  });
+  it("un monto que ya está en soles enteros no cambia, y la suma de céntimos del navegador no lo engaña", () => {
+    expect(redondeoSunat(1123)).toBe(1123);
+    expect(redondeoSunat(redondeoSunat(1123.08))).toBe(1123);
+    expect(redondeoSunat(0.1 + 0.2 + 0.2)).toBe(1); // 0.5000000000000001 en el navegador: es 0.50 y sube
+    expect(redondeoSunat(1.005 * 100)).toBe(101); // 100.49999999999999 en el navegador: es 100.50 y sube
   });
 });
 
