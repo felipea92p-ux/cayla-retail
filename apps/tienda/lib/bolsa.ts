@@ -187,7 +187,15 @@ export type PrendaQueYaNoEsta = { varianteId: string; cantidad: number; noEsta: 
 export type LineaEnBase = PrendaEnLaBolsa | PrendaQueYaNoEsta;
 /** «Llevar varias y pagar menos» (ADR-0655, actividad 7): lo que ahorra una prenda de la bolsa con su oferta de grupo en la tienda elegida
  *  (`retail.tienda_bolsa_grupos`): la oferta dicha como en la caja («3 x 2»), su campaña, lo que ahorra la línea y cuántas le faltan al grupo. */
-export type GrupoDeLaBolsa = { titular: string; campana: string; ahorro: number; faltan: number };
+export type GrupoDeLaBolsa = {
+  titular: string;
+  campana: string;
+  ahorro: number;
+  faltan: number;
+  /** «Gastar un monto y ahorrar» (actividad 8): cuánto le falta a la compra para el escalón que sigue y lo que ese escalón ahorra
+   *  («S/ 30 menos»), o null si ya llegó al último. Ausente en las ofertas de grupo. */
+  monto?: { falta: number; siguiente: string } | null;
+};
 export type GruposDeLaBolsa = { ahorro: number; porVariante: Record<string, GrupoDeLaBolsa> };
 /** `grupos`: lo que ahorra la bolsa con las ofertas de grupo; `null` (o ausente) si la base no lo dijo: la bolsa se ve sin ellas y «Separar»
  *  no manda lo que mostró (la base las cobra igual). */
@@ -198,6 +206,36 @@ export function titularDeGrupo(f: { tipo: "nxm" | "n_por_monto" | "nesima_pct"; 
   if (f.tipo === "nxm") return `${f.lleva} x ${f.paga ?? 0}`;
   if (f.tipo === "n_por_monto") return `${f.lleva} por S/ ${(f.monto ?? 0).toFixed(2)}`;
   return `La ${f.lleva}.ª al ${String(f.porcentaje ?? 0).replace(".", ",")} %`;
+}
+
+/** «S/ 30 menos» o «10 % menos»: lo que ahorra un escalón de un monto, dicho como en la caja. */
+const ahorroDeEscalon = (ahorra: number, en: "soles" | "pct") => (en === "pct" ? `${String(ahorra).replace(".", ",")} % menos` : `S/ ${ahorra.toFixed(2)} menos`);
+
+/** «S/ 30 menos desde S/ 300»: un escalón de un monto, dicho como en la caja. */
+const titularDeEscalon = (e: { desde: number; ahorra: number }, en: "soles" | "pct"): string => `${ahorroDeEscalon(e.ahorra, en)} desde S/ ${e.desde.toFixed(2)}`;
+
+const esquemaMonto = z.object({
+  ahorro: z.coerce.number().nonnegative(),
+  campana: z.string().nullable().catch(null),
+  tipo: z.literal("monto"),
+  ahorro_en: z.enum(["soles", "pct"]),
+  escalones: z.array(z.object({ desde: z.coerce.number().positive(), ahorra: z.coerce.number().positive() })).min(1).max(3),
+  base: z.coerce.number().nonnegative(),
+});
+
+/** Un monto en la bolsa: el escalón alcanzado (o, si no llega, el primero) y cuánto le falta para el que sigue. */
+function grupoDeMonto(g: z.infer<typeof esquemaMonto>): GrupoDeLaBolsa {
+  const escalones = [...g.escalones].sort((a, b) => a.desde - b.desde);
+  const baseC = Math.round(g.base * 100);
+  const alcanzado = escalones.filter((e) => Math.round(e.desde * 100) <= baseC).at(-1) ?? null;
+  const siguiente = escalones.find((e) => Math.round(e.desde * 100) > baseC) ?? null;
+  return {
+    titular: titularDeEscalon(alcanzado ?? escalones[0], g.ahorro_en),
+    campana: g.campana ?? "",
+    ahorro: redondear(g.ahorro),
+    faltan: 0,
+    monto: siguiente ? { falta: (Math.round(siguiente.desde * 100) - baseC) / 100, siguiente: ahorroDeEscalon(siguiente.ahorra, g.ahorro_en) } : null,
+  };
 }
 
 const esquemaGrupo = z.object({
@@ -217,6 +255,11 @@ export function interpretarGruposDeLaBolsa(dato: unknown): GruposDeLaBolsa | nul
   if (!r.success) return null;
   const porVariante: Record<string, GrupoDeLaBolsa> = {};
   for (const [id, crudo] of Object.entries(r.data.lineas)) {
+    const m = esquemaMonto.safeParse(crudo);
+    if (m.success) {
+      porVariante[id] = grupoDeMonto(m.data);
+      continue;
+    }
     const g = esquemaGrupo.safeParse(crudo);
     if (g.success) porVariante[id] = { titular: titularDeGrupo(g.data), campana: g.data.campana ?? "", ahorro: redondear(g.data.ahorro), faltan: g.data.faltan };
   }

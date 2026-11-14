@@ -136,7 +136,7 @@ import { CodigoDeCuponModal, UsarPuntosModal } from "@/components/punto-de-venta
 import { useReportarTicket } from "@/components/punto-de-venta/TicketPorSede";
 import { CLUB_APAGADO, type ClubDeLaCaja } from "@/lib/club-caja-reglas";
 import { descuentosParaRegistrar, ticketConVale } from "@/lib/club-cupon-reparto-reglas";
-import { carritoConGrupos, type OfertaDeGrupoDeVariante } from "@/lib/ofertas-de-grupo";
+import { carritoConGrupos, ofertasDeMontoDeFilas, type FilaOfertaDeMonto, type OfertaDeGrupoDeVariante } from "@/lib/ofertas-de-grupo";
 import {
   avisoCuponApagado,
   ayudaPieCupon,
@@ -190,6 +190,7 @@ export { ID_CARGO_ESPECIAL };
 /** Sin fichas de color: una sola referencia vacía, para que el `useMemo` de la ficha no se rearme en cada render. */
 const SIN_MAQUINAS: readonly MaquinaDeCobro[] = [];
 const SIN_OFERTAS_DE_GRUPO: Readonly<Record<string, OfertaDeGrupoDeVariante>> = {};
+const SIN_MONTOS: readonly FilaOfertaDeMonto[] = [];
 
 export type VarianteBusqueda = PrendaBuscableV2 & {
   /** De qué modelo es (`productos.id`): «Combina bien con» no sugiere la misma prenda ni una que ya está en el ticket. Ausente = se
@@ -374,6 +375,9 @@ type Props = {
   /** «Llevar varias y pagar menos» (ADR-0655): la oferta de grupo que rige hoy para cada prenda de esta tienda (`ofertas_de_grupo_vigentes`).
    *  Sin la lectura (una base vieja), ninguna: el ticket se arma como siempre. */
   ofertasGrupo?: Readonly<Record<string, OfertaDeGrupoDeVariante>>;
+  /** «Gastar un monto y ahorrar» (ADR-0655, actividad 8): los montos de hoy en esta tienda (`ofertas_de_monto_vigentes`), tal como llegan.
+   *  Sin la lectura, ninguno. */
+  filasMonto?: readonly FilaOfertaDeMonto[];
   /** Las ventas de hoy de esta sede, leídas por el servidor: la píldora «Hoy» y su lista (spike 2026-09-26). */
   ventasHoy: { inicial: VentaDeHoy[]; fallo: string | null };
   /** `ubicaciones.meta_venta_diaria` de esta sede, o null sin meta. */
@@ -437,7 +441,7 @@ export type ProformaEnCobro = {
   confirmacion: { titulo: string; detalle: string; casilla: string } | null;
 };
 
-export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, cajaId, fondoUltimoCierre = null, cierreAnterior = null, variantes, duenosPorVariante = null, listasPrendaLibre, campanasNoCargaron = false, ofertasGrupo = SIN_OFERTAS_DE_GRUPO, ventasHoy, metaVentaDiaria, accesos, puedeApartar, puedeBuscarClienta, verMesaRegularizar = false, club = CLUB_APAGADO, proforma = null, avisoProforma = null, repeticion = null, qrDisponible = false, maquinasCobro = SIN_MAQUINAS, tiposComprobante, redondeoEfectivoDisponible = false, pedirAOtraSede = null, pedidosConCliente = [], ahoraIso = "" }: Props) {
+export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, cajaId, fondoUltimoCierre = null, cierreAnterior = null, variantes, duenosPorVariante = null, listasPrendaLibre, campanasNoCargaron = false, ofertasGrupo = SIN_OFERTAS_DE_GRUPO, filasMonto = SIN_MONTOS, ventasHoy, metaVentaDiaria, accesos, puedeApartar, puedeBuscarClienta, verMesaRegularizar = false, club = CLUB_APAGADO, proforma = null, avisoProforma = null, repeticion = null, qrDisponible = false, maquinasCobro = SIN_MAQUINAS, tiposComprobante, redondeoEfectivoDisponible = false, pedirAOtraSede = null, pedidosConCliente = [], ahoraIso = "" }: Props) {
   const bloqueado = cajaId === null;
   const router = useRouter();
   // De quién sale cada prenda del ticket cuando hay unidades de las dos empresas (ADR-0542), por prenda. Sin respuesta de fábrica.
@@ -1566,7 +1570,9 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
   // «Llevar varias y pagar menos» (ADR-0655): el carrito como se cobra, con cada prenda de un grupo en su línea y su parte sumada al descuento
   // (`carritoConGrupos`, la misma cuenta que `fn_ofertas_de_grupo`). El cupón, el total y lo que viaja salen de aquí; el ticket sigue
   // mostrando el carrito, con lo que dice cada grupo (`grupos.porLinea`).
-  const grupos = useMemo(() => carritoConGrupos(carrito, ofertasGrupo), [carrito, ofertasGrupo]);
+  // Y el monto (actividad 8): las prendas sin otra oferta suman para él; su ahorro también va repartido en cada una.
+  const montos = useMemo(() => ofertasDeMontoDeFilas(filasMonto), [filasMonto]);
+  const grupos = useMemo(() => carritoConGrupos(carrito, ofertasGrupo, montos), [carrito, ofertasGrupo, montos]);
   const conVale = useMemo(() => ticketConVale(grupos.lineas, cuponPuesto ? cuponPuesto.valor : null), [grupos, cuponPuesto]);
   const valeDelTicket =
     cuponPuesto && conVale.totalVale > 0

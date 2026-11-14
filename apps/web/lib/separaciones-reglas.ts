@@ -475,6 +475,8 @@ export function descuentoDePrenda(
 function ofertaGrupoDeFila(o: unknown): PrendaApartada["ofertaGrupo"] {
   if (!o || typeof o !== "object") return null;
   const x = o as Record<string, unknown>;
+  // Un monto (actividad 8): el apartado no trae sus escalones, solo que es de monto; su parte ya va en la prenda.
+  if (x.tipo === "monto") return { titular: "Por monto", nombre: String(x.etiqueta ?? x.nombre ?? "") };
   if (x.tipo !== "nxm" && x.tipo !== "n_por_monto" && x.tipo !== "nesima_pct") return null;
   const titular = titularDeOferta({ tipo: x.tipo, lleva: Number(x.lleva ?? 0), paga: Number(x.paga ?? 0), monto: Number(x.monto ?? 0), porcentaje: Number(x.porcentaje ?? 0) });
   return { titular, nombre: String(x.etiqueta ?? x.nombre ?? "") };

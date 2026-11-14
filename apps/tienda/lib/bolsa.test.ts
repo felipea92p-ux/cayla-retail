@@ -212,6 +212,16 @@ describe("llevar varias y pagar menos en la bolsa (ADR-0655, actividad 7)", () =
     expect(interpretarGruposDeLaBolsa(null)).toBeNull();
   });
 
+  it("un monto (actividad 8): dice el escalón alcanzado y cuánto le falta a la compra para el que sigue", () => {
+    const monto = (ahorro: number, base: number) => ({ ahorro, faltan: 0, campana: "Verano", tipo: "monto", lleva: null, paga: null, monto: null, porcentaje: null,
+      escalones: [{ desde: 300, ahorra: 30 }, { desde: 500, ahorra: 60 }], ahorro_en: "soles", cuenta: "compra", base });
+    const g = grupos({ [A]: monto(17.14, 350), [B]: monto(0, 250) }, 17.14);
+    expect(g?.porVariante[A]).toEqual({ titular: "S/ 30.00 menos desde S/ 300.00", campana: "Verano", ahorro: 17.14, faltan: 0, monto: { falta: 150, siguiente: "S/ 60.00 menos" } });
+    expect(g?.porVariante[B]).toMatchObject({ titular: "S/ 30.00 menos desde S/ 300.00", ahorro: 0, monto: { falta: 50 } });
+    const ultimo = grupos({ [A]: { ...monto(60, 600), ahorro_en: "pct", escalones: [{ desde: 300, ahorra: 10 }] } }, 60);
+    expect(ultimo?.porVariante[A]).toMatchObject({ titular: "10 % menos desde S/ 300.00", monto: null });
+  });
+
   it("las tres formas se dicen como en la caja", () => {
     expect(titularDeGrupo({ tipo: "nxm", lleva: 3, paga: 2, monto: null, porcentaje: null })).toBe("3 x 2");
     expect(titularDeGrupo({ tipo: "n_por_monto", lleva: 2, paga: null, monto: 59.9, porcentaje: null })).toBe("2 por S/ 59.90");
