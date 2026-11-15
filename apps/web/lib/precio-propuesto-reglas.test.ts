@@ -1,3 +1,4 @@
+import { margenALaVista } from "./margen-a-la-vista";
 import { describe, expect, it } from "vitest";
 import {
   elegirCosto,
@@ -67,13 +68,19 @@ describe("elegirCosto: el de la prenda, o el de su categoría marcado como estim
 
 describe("revisarPrecioDeLaIA: la IA propone, la regla manda", () => {
   it("lleva la propuesta a .90", () => {
-    expect(revisarPrecioDeLaIA(79, 30)).toEqual({ precio: 79.9, piso: 68.9, subidoAlPiso: false, margen: expect.closeTo(62.45, 1) });
+    expect(revisarPrecioDeLaIA(79, 30)).toEqual({ precio: 79.9, piso: 68.9, subidoAlPiso: false, margen: 55.7 });
   });
   it("si la IA propone bajo el piso, sube al piso de la cuenta única y lo dice (ADR-0668)", () => {
     const r = revisarPrecioDeLaIA(39.9, 35);
     expect(r?.precio).toBe(79.9);
     expect(r?.subidoAlPiso).toBe(true);
     expect(r?.margen).toBeGreaterThanOrEqual(30);
+  });
+  it("el % de la propuesta es el mismo que dice la línea de al lado", () => {
+    for (const costo of [12.5, 25, 36, 44]) {
+      const r = revisarPrecioDeLaIA(1, costo);
+      expect(r?.margen).toBe(margenALaVista(costo, r?.precio)?.pct);
+    }
   });
   it("lo que propone nunca deja la línea de al lado en ámbar (aguanta la rebaja de 35 %)", () => {
     for (const costo of [12.5, 25, 36, 44, 80, 150]) {
@@ -136,7 +143,7 @@ describe("al recibir una prenda que ya existe: ¿conviene mirar su precio?", () 
     expect(pideRevisarAlRecibir({ precio: 59.9, costo: 0, costoAntes: null })).toBeNull();
   });
   it("la línea dice el motivo, sin repetir el margen (lo dice la línea viva)", () => {
-    expect(textoRevisarAlRecibir({ margen: 24.9, motivo: "margen_bajo" })).toBe("Aguanta poca rebaja: revisa el precio.");
+    expect(textoRevisarAlRecibir({ margen: 24.9, motivo: "margen_bajo" })).toBe("Revisa el precio.");
     expect(textoRevisarAlRecibir({ margen: 40, motivo: "costo_cambio" })).toBe("Cambió el costo: revisa el precio.");
   });
 });

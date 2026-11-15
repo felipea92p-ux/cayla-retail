@@ -34,6 +34,9 @@ describe("margenALaVista: lo que queda por prenda, con la cuenta única (ADR-066
   it("no sabe de facturas: la misma prenda dice lo mismo venga como venga", () => {
     expect(margenALaVista.length).toBe(2);
   });
+  it("si ningún precio hasta el tope aguanta la rebaja con ese costo, ámbar (nunca verde)", () => {
+    expect(margenALaVista(2300, 4999.9)).toMatchObject({ tono: "bajo", piso: null });
+  });
   it("sin costo o sin precio, no hay línea", () => {
     expect(margenALaVista("", "59.90")).toBeNull();
     expect(margenALaVista("30", "")).toBeNull();

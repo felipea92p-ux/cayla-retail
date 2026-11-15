@@ -44,7 +44,8 @@ export function margenALaVista(costo: string | number | null | undefined, precio
   const piso = pisoDelPrecio(c);
   const ganancia = cuenta.teQuedan;
   const pct = cuenta.margenPorMil / 10;
-  const tono: TonoMargen = ganancia < 0 ? "pierdes" : piso !== null && p < piso ? "bajo" : "normal";
+  // Sin piso (ningún precio hasta el tope aguanta la rebaja con ese costo) también es ámbar.
+  const tono: TonoMargen = ganancia < 0 ? "pierdes" : piso === null || p < piso ? "bajo" : "normal";
   // El signo menos de verdad (−), no el guion: «Pierdes S/ 2.10 · −6 %».
   const r = Math.round(pct);
   const pctTexto = `${r < 0 ? "−" : ""}${Math.abs(r)} %`;

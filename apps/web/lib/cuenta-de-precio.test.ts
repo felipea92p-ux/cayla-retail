@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { aguantaCts, conRebajaCts, cuentaDelPrecio, GANANCIA_TRAS_REBAJA_POR_MIL, pisoDelPrecio } from "./cuenta-de-precio";
+import { conRebajaCts, cuentaDelPrecio, IGV, pisoDelPrecio } from "./cuenta-de-precio";
+
+/** ¿Este precio, rebajado 35 %, deja de verdad 20 % de lo tuyo? (la definición, sin redondear) */
+const aguanta = (precioCts: number, costoCts: number) => {
+  const pd = conRebajaCts(precioCts, 35);
+  return pd > 0 && (pd / IGV - costoCts) / (pd / IGV) >= 0.2 - 1e-12;
+};
 
 // La cuenta única (ADR-0668, Felipe 2026-11-15). El ejemplo de siempre: pagaste S/ 36 (con IGV, el total del papel) y la etiqueta dice S/ 70.
 
@@ -23,6 +29,10 @@ describe("pisoDelPrecio: «No bajes de», el precio que aguanta una rebaja de 35
     expect(pisoDelPrecio(44)).toBe(99.9);
     expect(pisoDelPrecio(18.5)).toBe(42.9);
   });
+  it("20 % es 20 %: un precio que deja 19.95 % no pasa (se compara sin redondear)", () => {
+    expect(pisoDelPrecio(5.63)).toBe(13.9);
+    expect(pisoDelPrecio(96.06)).toBe(218.9);
+  });
   it("es un margen de 20 % sobre el precio rebajado sin IGV (≈ ×2.27), no un recargo de 20 % sobre el costo (≈ ×2.18)", () => {
     // Que nadie lo «arregle»: con un recargo, S/ 100 de costo daría un piso cerca de S/ 218.
     expect(pisoDelPrecio(100)).toBe(227.9);
@@ -34,8 +44,8 @@ describe("pisoDelPrecio: «No bajes de», el precio que aguanta una rebaja de 35
       expect(piso).not.toBeNull();
       const pisoCts = Math.round((piso as number) * 100);
       expect(pisoCts % 100).toBe(90);
-      expect(aguantaCts(pisoCts, c, GANANCIA_TRAS_REBAJA_POR_MIL)).toBe(true);
-      expect(aguantaCts(pisoCts - 100, c, GANANCIA_TRAS_REBAJA_POR_MIL)).toBe(false);
+      expect(aguanta(pisoCts, c)).toBe(true);
+      expect(aguanta(pisoCts - 100, c)).toBe(false);
     }
   });
   it("la rebaja se redondea hacia abajo al S/ 0.10, como en caja", () => {

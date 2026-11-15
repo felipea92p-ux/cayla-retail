@@ -39,6 +39,17 @@ export function aguantaCts(precioCts: number, costoCts: number, dejando: number)
   return m !== null && m >= dejando;
 }
 
+/**
+ * Lo mismo que `aguantaCts`, pero sin redondear: (pd ÷ 1.18 − costo) ÷ (pd ÷ 1.18) ≥ dejando ÷ 1000, en enteros. Con el margen redondeado a
+ * una décima, un precio que deja 19.95 % pasaba por 20 %. Lo usa el piso de la cuenta única; la ayuda de Compras (sin pantalla todavía)
+ * sigue con `aguantaCts` hasta que se unifique (ADR-0668, A15).
+ */
+function aguantaExactoCts(precioCts: number, costoCts: number, dejando: number): boolean {
+  const pd = conRebajaCts(precioCts, REBAJA_FUERTE_PCT);
+  if (pd <= 0) return false;
+  return 1000 * (100 * pd - 118 * costoCts) >= 100 * dejando * pd;
+}
+
 /* ───────────────────────── La cuenta única de una prenda (ADR-0668, A2) ───────────────────────── */
 //
 // TODAS LAS PRENDAS IGUAL (Felipe 2026-11-15): vengan con factura o sin ella, el costo es lo del papel y a la venta se le quita la parte
@@ -81,7 +92,7 @@ export function pisoDelPrecio(costo: number): number | null {
   // El piso está cerca de 2.27 × costo: se arranca desde el doble y se sube de a S/ 1 por los .90.
   for (let n = Math.floor((cCts * 2) / 100); n * 100 + 90 <= TOPE_CTS; n++) {
     const p = n * 100 + 90;
-    if (aguantaCts(p, cCts, GANANCIA_TRAS_REBAJA_POR_MIL)) return p / 100;
+    if (aguantaExactoCts(p, cCts, GANANCIA_TRAS_REBAJA_POR_MIL)) return p / 100;
   }
   return null;
 }

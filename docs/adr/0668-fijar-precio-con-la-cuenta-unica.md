@@ -49,6 +49,12 @@ escrito con IGV: la reposición parece 18 % más cara y el piso de una prenda vi
   piso de 30 % que exige la base, `precio_propuestas`): la propuesta ya no deja la línea en ámbar. La instrucción a la IA dice «más o menos el costo × 2,3».
 - Nuevo producto: la cifra grande, su línea y su nivel («Aguanta poca rebaja» / «Buen precio») con la misma cuenta.
 - No cambia qué se guarda ni toca la base.
+- Revisión independiente (3 miradas + un verificador por hallazgo, 2026-11-15): se arreglaron el % de la propuesta de la IA (decía «ganas 56 %» al
+  lado de un «48 %»: ahora usa la misma cuenta), los textos que aún hablaban del «30 %» (propuesta, Revisar precios, guías), el ámbar cuando ningún
+  precio hasta el tope aguanta la rebaja (antes salía verde) y el piso, que ahora compara sin redondear (un 19.95 % pasaba por 20 %).
+- **Queda abierto:** la ayuda de precio de Compras (`orden-compra-precio-ayuda.ts`, sin pantalla) sigue midiendo «aguanta» con el margen
+  redondeado, y Editar producto ▸ Costos, Revisar precios (base) y Proveedores siguen con su vara vieja: van en A13–A15. Con un costo sobre
+  ~S/ 2,200 la IA se llama y no devuelve propuesta (gasta la consulta): se corta antes en A6.
 
 ## Lo que falta decidir
 

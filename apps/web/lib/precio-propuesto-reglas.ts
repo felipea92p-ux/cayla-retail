@@ -9,7 +9,6 @@
 // ASUME: montos en soles; la IA devuelve un número cualquiera (puede ser basura). NO HACE: no decide el precio: lo propone.
 // DECIDÍ: todo en céntimos enteros. Con decimales, 70 × 0,7 da 48,99999… y el piso podría quedar un céntimo debajo de lo que la base exige.
 
-import { margenPorcentaje } from "./alta-producto";
 import { MAX_PRECIO_PRENDA } from "./catalogo-topes";
 import { cuentaDelPrecio, pisoDelPrecio } from "./cuenta-de-precio";
 
@@ -81,7 +80,8 @@ export function revisarPrecioDeLaIA(propuesto: unknown, costo: number): PrecioRe
   const subidoAlPiso = redondeado < piso;
   const precio = subidoAlPiso ? piso : redondeado;
   if (precio > MAX_PRECIO_PRENDA) return null;
-  return { precio, piso, subidoAlPiso, margen: margenPorcentaje(precio, costo) ?? 0 };
+  // El mismo % que la línea de al lado (`cuentaDelPrecio`): una prenda, una cifra (ADR-0668).
+  return { precio, piso, subidoAlPiso, margen: (cuentaDelPrecio(costo, precio)?.margenPorMil ?? 0) / 10 };
 }
 
 /** ¿Ya se gastó el tope del mes? Si la base no dijo cuánto va (`null`), no se corta: un fallo al leer no deja a nadie sin propuesta. */
@@ -122,7 +122,8 @@ export function pideRevisarAlRecibir(p: { precio: number | null; costo: number |
   if (precio === null || costo === null || !Number.isFinite(precio) || !Number.isFinite(costo) || precio <= 0 || costo <= 0) return null;
   const margen = (cuentaDelPrecio(costo, precio)?.margenPorMil ?? 0) / 10;
   const piso = pisoDelPrecio(costo);
-  if (piso !== null && precio < piso) return { margen, motivo: "margen_bajo" };
+  // Sin piso (ningún precio hasta el tope aguanta la rebaja con ese costo) también es bajo: la línea lo pinta ámbar igual.
+  if (piso === null || precio < piso) return { margen, motivo: "margen_bajo" };
   if (costoAntes !== null && Number.isFinite(costoAntes) && costoAntes > 0 && Math.abs(costo - costoAntes) >= 0.01) return { margen, motivo: "costo_cambio" };
   return null;
 }
@@ -132,7 +133,8 @@ export function pideRevisarAlRecibir(p: { precio: number | null; costo: number |
  * (`<LineaMargen>`, tarea 8 de Recibir), y repetirlo aquí lo decía dos veces en la misma hoja.
  */
 export function textoRevisarAlRecibir(r: RevisionAlRecibir): string {
-  return r.motivo === "margen_bajo" ? "Aguanta poca rebaja: revisa el precio." : "Cambió el costo: revisa el precio.";
+  // En «margen_bajo» la línea de al lado ya dice por qué en su color (ámbar o rojo): aquí no se repite.
+  return r.motivo === "margen_bajo" ? "Revisa el precio." : "Cambió el costo: revisa el precio.";
 }
 
 /** El precio que va a quedar en todas las tallas de una prenda al cerrar (lo escrito o el de hoy en la sede), si es uno solo; `null` si no. */

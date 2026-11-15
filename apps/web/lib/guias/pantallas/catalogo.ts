@@ -1808,7 +1808,7 @@ export const GUIA_NUEVO_PRODUCTO: Guia = {
       id: "punto-4",
       ancla: "nuevo.punto-4",
       titulo: "4 · Precio y cantidad",
-      texto: "El costo y el precio («Proponer precio» te sugiere uno con el costo y las prendas parecidas, nunca con menos de 30 % de margen), las insignias y cuántas llegaron de cada variante, a nombre del proveedor. Ahí está «Crear producto». Para verlo hay que elegir una categoría, y la demo no empieza ninguna prenda.",
+      texto: "El costo y el precio («Proponer precio» te sugiere uno con el costo y las prendas parecidas, nunca por debajo de lo que aguanta una rebaja), las insignias y cuántas llegaron de cada variante, a nombre del proveedor. Ahí está «Crear producto». Para verlo hay que elegir una categoría, y la demo no empieza ninguna prenda.",
     },
     {
       id: "quien",
@@ -1932,7 +1932,7 @@ export const GUIA_REVISAR_PRECIOS: Guia = {
       ancla: "revisar-precios.proponer",
       opcional: true,
       titulo: "Proponer un precio",
-      texto: "«Proponer» le pide a la IA un precio para esa prenda, mirando su costo y sus parecidas. Nunca baja de 30 % de margen. Si te convence, «Cambiar a S/\u00a0…» abre una hoja donde eliges quién lo hace y confirmas. La demo no lo pide.",
+      texto: "«Proponer» le pide a la IA un precio para esa prenda, mirando su costo y sus parecidas. Nunca baja de lo que aguanta una rebaja de 35 %. Si te convence, «Cambiar a S/\u00a0…» abre una hoja donde eliges quién lo hace y confirmas. La demo no lo pide.",
     },
     {
       id: "paginas",
