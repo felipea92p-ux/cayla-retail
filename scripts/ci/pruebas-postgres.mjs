@@ -372,6 +372,7 @@ export const PRUEBAS = [
   // su línea; lo pendiente se detalla después con el costo de su prenda; se valida como el de la línea; un costo fuera de lo normal pide
   // confirmar; sin costos propios todo sigue igual. ROLLBACK.
   "pruebas:costo-por-prenda",
+  "pruebas:costo-quien-fija-precio",
 
   // Una terminal no cambia el precio de la prenda (Felipe 2026-10-26): vale en todas las tiendas; pone el de SU tienda. El mismo
   // precio, otra columna y una talla nueva sí pasan; el líder, una integrante y sin sesión, igual que antes. ROLLBACK.

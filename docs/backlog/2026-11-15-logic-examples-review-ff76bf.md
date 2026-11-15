@@ -34,7 +34,7 @@ la maqueta `docs/maquetas/precio-sugerido-2026-11/index.html`. Detalle técnico 
 | A0 | ADR, mediciones en producción, nota al contador y preguntas abiertas — **ADR-0668 escrito; faltan las mediciones y la nota al contador** | S | no | sí, del ADR |
 | A1 | ~~La cuenta en un solo archivo (`lib/cuenta-de-precio.ts`), sin cambiar ninguna cifra~~ **hecho** | S | no | no |
 | A2 | ~~**Una sola cuenta en Recibir y Nuevo producto; fuera «RUC ⇒ factura».**~~ **hecho** (la propuesta de la IA también sube al piso nuevo) | M | no | no |
-| A3 | Quien fija precio ve el costo; el cliente nunca (con la prueba que lo vigila) | M | sí | sí |
+| A3 | ~~Quien fija precio ve el costo; el cliente nunca (con la prueba que lo vigila)~~ **construido** (rama `claude/precio-a3-costo-a-la-vista`): en la hoja que cambia el precio, no en la tabla de Productos; **SQL pegado en producción el 2026-11-15**. `fn_precio_referencia` pasa a A4 | M | sí | sí |
 | A4 | Candados de costo: anterior, sin impuesto y fuera de la categoría; se confirma el **monto** | M/L | sí | sí |
 | A5 | «Pierdes» pide confirmar en vez de prohibir; dos personas a la vez no se pisan el precio | M | sí | sí |
 | A6 | La pieza única `<CuentaDelPrecio>` (barra, veredicto, piso, IA) en la hoja de Recibir | L | no | sí, la eliges mirando |
