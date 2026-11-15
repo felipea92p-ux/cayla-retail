@@ -1,5 +1,8 @@
 # ADR-0665 — Reportes de ventas: el filtro «Empresa» (CAYLA / CLAURE) donde conviven dos
 
+> **Actualización 2026-11-15 — «Cómo se pagó» también con la empresa elegida.** Reemplaza la fila «Cómo se pagó · No se parte» de la tabla de abajo. Ver
+> «Actualización 2026-11-15» al final.
+
 - **Fecha:** 2026-11-14 · **Estado:** construido y probado en local (27 casos de Postgres nuevos, las pruebas del reporte de siempre —46 y 28— en verde, el recorrido en el navegador en escritorio y a 375 px). La migración `20261114215000` **está pegada en producción desde el 2026-11-14** (la pegó Felipe; la consulta de verificación dio las 4 funciones con `p_empresa`, INVOKER y los md5 esperados).
 - **Pidió:** Felipe, 2026-11-14: «en el reporte de ventas, cuando sea Lima, debe existir un filtro adicional de CAYLA y Claure».
 - **Sigue a:** ADR-0606 (los reportes), ADR-0542 (de quién es cada línea en Lima), ADR-0532 (cómo se reparte el dinero entre las dos empresas), ADR-0505 (CLAURE solo existe en Lima).
@@ -60,3 +63,43 @@ La web manda `p_empresa` **solo** cuando hay una empresa elegida: sin ella la ll
 ## Lo que cambia en Dynamic
 
 Nada: no se tocó `components/ui/` ni `app/estilos/vidrio/`. La píldora es la `DesplegablePildora` de siempre.
+
+## Actualización 2026-11-15 — «Cómo se pagó» también con la empresa elegida
+
+- **Pidió:** el equipo, en la cuenta compartida: «¿no se puede ver los medios de pago cuando selecciono CLAURE y CAYLA?». Se le mostraron los datos y las tres
+  opciones, y eligió «exacto + reparto». Revierte lo que Felipe descartó el 2026-10-26 (ADR-0532: «sería una estimación en una boleta mixta»): por eso se pidió
+  la aprobación de Felipe antes de tocar producción, y se dio el mismo 2026-11-15 («Sí, aplica todo», en la cuenta compartida).
+- **El dato que cambió la decisión** (producción, Tienda LIM, del 23-oct al 14-nov, solo lectura): 71 ventas; 66 de una sola empresa y 4 mixtas pagadas con un
+  solo medio, y en las 71 lo pagado es igual a lo cobrado de las líneas. En esas 70 (S/ 4,862 de S/ 4,960) el reparto por empresa es **exacto**, no una
+  estimación. Solo 1 venta (S/ 98) tiene prendas de las dos y dos medios.
+
+| Pieza | Qué decide | Dónde |
+|---|---|---|
+| La regla | Lo pagado con un medio en una venta se reparte entre las empresas de sus líneas por lo cobrado de cada una. Venta de una empresa o mixta de un solo medio: exacto. Mixta con dos medios o más: reparto. | `fn_pago_de_la_empresa` |
+| Al céntimo | Una empresa que no es la casa redondea sobre lo acumulado de los medios (en orden de nombre); la casa se queda con el resto de cada medio. Así CAYLA + CLAURE = cada medio, y lo pagado de una empresa = lo que vendió (S/ 10 + 10 + 10 con 2/3 de CLAURE: 6.67, 6.66, 6.67 = 20.00). | `fn_pago_de_la_empresa` |
+| La lectura | Nueva, al lado de la serie: `fn_reporte_ventas_pagos(p_mes, p_ubicacion, p_empresa)`, INVOKER, mismo tramo y mismos candados (42501, 22023). Devuelve `pagos` y `repartido` (ventas mixtas con dos medios que tocan a esa empresa y cuánto de lo suyo sale de ellas). Sin empresa devuelve lo mismo que la serie. | `20261115013000` |
+| La pantalla | Con una empresa elegida, «Cómo se pagó» dibuja la misma barra con lo de esa empresa y su total. Si hay reparto, una línea: «Incluye S/ 40 repartidos de 1 venta mixta» con su «?». Si la lectura no llega, un aviso chico; lo demás sigue. | `GraficosReporteMes`, `lib/reportes-empresa-reglas.ts` |
+
+DECIDÍ una lectura nueva y no reescribir `fn_reporte_ventas_series`: las cuatro lecturas vivas tienen un candado por md5 que también corre en las pruebas que
+las vuelven a pegar; tocarla obligaba a deshacer y rehacer su cuerpo en cada una. La pieza nueva no toca nada que ya está en producción.
+
+DESCARTÉ:
+- **Dejar la venta mixta con dos medios fuera** (la opción «solo lo exacto»): lo de una empresa en «Cómo se pagó» no sumaría lo que vendió, y la línea de
+  «sin asignar» confundiría más que un reparto que se dice.
+- **Redondear medio por medio:** con tres medios, CLAURE sumaba S/ 20.01 contra S/ 20.00 vendidos.
+- **Partir los pagos en la web:** la lista de pagos por venta no llega a la pantalla; la base ya tiene las líneas y su dueño.
+
+SE ROMPE SI: `fn_empresa_de_la_linea` cambia y la regla de los pagos no se revisa (la usa por línea) · se registra un pago que no suma lo cobrado de la venta
+(hoy no pasa en Lima: lo exacto supone que sí) · aparece una tercera empresa en Lima (la regla ya reparte entre N; la línea habla de «venta mixta»).
+
+**Verificación (2026-11-15):** `pnpm pruebas:reportes-por-empresa`, 36/36 en local (Postgres 17 de Supabase): sin empresa es la serie; exacto en la venta de
+una empresa y en la mixta de un medio; la mixta de dos medios se reparte y se avisa; al céntimo con tres medios; la venta sin valor va a la casa; 22023, 42501;
+la cuenta de Lima que no es líder lee lo mismo; permisos; pegar dos veces. La regla, corrida de solo lectura sobre producción: octubre CAYLA S/ 1,194 + CLAURE
+S/ 558 = S/ 1,752 y noviembre S/ 1,812.14 + S/ 1,395.86 = S/ 3,208, y lo pagado de cada empresa es igual a lo que vendió.
+
+**En producción desde el 2026-11-15** (`20261115013000`, aplicada en una transacción): las dos funciones con los md5 del repo (`fn_pago_de_la_empresa`
+`3f461afe4ce4c5d64fa5ec573a55e25d`, `fn_reporte_ventas_pagos` `c492828ca26046e77f46c2ae73ebcae7`), INVOKER, `anon` sin permiso. La fila de redondeo del efectivo
+(ADR-0311) es un medio más, pero no cuenta como un segundo medio al decir si una venta mixta se «repartió»: lo pidió la vigilancia de
+`pruebas:redondeo-efectivo` en el CI y se volvió a aplicar el mismo día (Lima no tenía aún filas de redondeo: ninguna cifra cambió). Leída con la sesión de un líder
+(en una transacción deshecha), Lima en noviembre: CAYLA S/ 1,812.14 y CLAURE S/ 1,395.86 en pagos, cada una igual a su «vendido»; por medio suman lo de la serie
+(Yape 1,477, tarjeta 940, efectivo 636, QR 155); una venta repartida (S/ 28 de CAYLA y S/ 70 de CLAURE).

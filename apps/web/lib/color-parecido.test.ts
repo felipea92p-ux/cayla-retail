@@ -84,3 +84,29 @@ describe("coloresParecidos", () => {
     expect(coloresParecidos("#1D5561", "azul", vocabulario)).toEqual([]);
   });
 });
+
+describe("coloresParecidos en los neutros de los extremos (ADR-0576, act. 2026-11-15)", () => {
+  // Hex de producción al 2026-11-15.
+  const negros = [
+    { codigo: "NEG", nombre: "Negro", hex: "#2D2C2F", familiaColor: "neutro" },
+    { codigo: "GRA", nombre: "Gris antracita", hex: "#48464A", familiaColor: "neutro" },
+    { codigo: "GRI", nombre: "Gris", hex: "#848587", familiaColor: "neutro" },
+    { codigo: "GRM", nombre: "Gris melange", hex: "#A2A2A1", familiaColor: "neutro" },
+  ];
+
+  it("el caso «NER»: un casi negro (#100f0f) se parece a Negro, aunque con la luz entera quede a ΔE 9,0", () => {
+    expect(deltaE2000(hexALab("#100f0f"), hexALab("#2D2C2F"))).toBeGreaterThan(8);
+    const r = coloresParecidos("#100f0f", "neutro", negros);
+    expect(r.map((p) => p.color.codigo)).toEqual(["NEG"]);
+    expect(r[0].distancia).toBeLessThan(5);
+  });
+
+  it("fuera de los extremos la luz cuenta entera: Negro no se parece a Gris antracita, ni Gris a Gris melange", () => {
+    expect(coloresParecidos("#2D2C2F", "neutro", negros, { excluir: "NEG" })).toEqual([]);
+    expect(coloresParecidos("#848587", "neutro", negros, { excluir: "GRI" })).toEqual([]);
+  });
+
+  it("un oscuro con color no es un neutro: Azul marino no se acerca a Negro por la luz", () => {
+    expect(coloresParecidos("#2A304E", "azul", negros)).toEqual([]);
+  });
+});

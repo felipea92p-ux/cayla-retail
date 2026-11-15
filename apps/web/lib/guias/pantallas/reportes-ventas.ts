@@ -47,7 +47,7 @@ export const GUIA_REPORTES_MES: Guia = {
       ancla: "reportes.empresa",
       opcional: true,
       titulo: "CAYLA o CLAURE",
-      texto: "En Lima se vende de las dos empresas en la misma caja. Aquí miras solo una: las cifras, los gráficos y la tabla cuentan lo cobrado de sus prendas. Los pagos no se parten, porque la caja y la boleta son una sola.",
+      texto: "En Lima se vende de las dos empresas en la misma caja. Aquí miras solo una: las cifras, los gráficos y la tabla cuentan lo cobrado de sus prendas, y «Cómo se pagó», lo suyo de cada pago.",
     },
     {
       id: "cifras",
@@ -80,7 +80,7 @@ export const GUIA_REPORTES_MES: Guia = {
       ancla: "reportes.pagos",
       opcional: true,
       titulo: "Cómo pagaron",
-      texto: "Lo cobrado por cada medio de pago: efectivo, tarjeta, Yape… y qué parte del total es cada uno. Sirve para saber cuánta plata entra por dónde.",
+      texto: "Lo cobrado por cada medio de pago: efectivo, tarjeta, Yape… y qué parte del total es cada uno. Sirve para saber cuánta plata entra por dónde. Con CAYLA o CLAURE elegida, es lo de esa empresa en cada pago.",
     },
     {
       id: "tabla",

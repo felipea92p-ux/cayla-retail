@@ -5,6 +5,7 @@ import type { Lectura } from "@/lib/cuentas-dinero";
 import { leerCortesMes, leerReporteMes, leerSeriesMes, primerDiaDelMes, type CortesMes, type ReporteMes, type SeriesMes } from "@/lib/reportes-ventas-reglas";
 import { claureDelVendido, instanteLima } from "@/lib/reportes-vendido-reglas";
 import { vendidoDeLaBase } from "@/lib/vendido-por-empresa-reglas";
+import { leerPagosDeEmpresa, type PagosDeEmpresa } from "@/lib/reportes-empresa-reglas";
 
 // Ventas ▸ Reportes ▸ Ventas del mes: la lectura (`fn_reporte_ventas_mes`, 20261103230000). Una sola llamada trae las cifras del mes y las del
 // tramo equivalente del anterior. Lo que ve la cuenta lo decide la base: el líder, todas las tiendas; quien tiene el módulo en su rol, la suya.
@@ -34,6 +35,19 @@ export async function getSeriesMes(mes: Mes, ubicacionId: string | null, empresa
   if (error) return { datos: null, falla: `No se pudieron leer los gráficos: ${error.message}` };
   const s = leerSeriesMes(data);
   return s ? { datos: s, falla: null } : { datos: null, falla: "Los gráficos llegaron en una forma que no se entiende." };
+}
+
+/**
+ * «Cómo se pagó» de UNA empresa (`fn_reporte_ventas_pagos`, 20261115013000, ADR-0665 act. 2026-11-15): la serie no parte los pagos, así que con una empresa
+ * elegida la pantalla le pregunta a esta lectura. Solo se llama con empresa. Si falla (o la migración todavía no está en la base), el cuadro dice que no se
+ * pudo leer y lo demás sigue (principio 9).
+ */
+export async function getPagosDeEmpresa(mes: Mes, ubicacionId: string, empresaId: string): Promise<Lectura<PagosDeEmpresa | null>> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("fn_reporte_ventas_pagos" as never, { p_mes: primerDiaDelMes(mes), p_ubicacion: ubicacionId, p_empresa: empresaId } as never);
+  if (error) return { datos: null, falla: `No se pudo leer cómo se pagó: ${error.message}` };
+  const p = leerPagosDeEmpresa(data);
+  return p ? { datos: p, falla: null } : { datos: null, falla: "Cómo se pagó llegó en una forma que no se entiende." };
 }
 
 /**
