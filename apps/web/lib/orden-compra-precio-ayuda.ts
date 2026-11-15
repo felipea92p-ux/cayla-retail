@@ -27,16 +27,10 @@
 // (`fn_costo_fuera_de_banda`: sube > 2×, baja < 2/3), para que la orden avise ANTES de que lo haga la recepción.
 
 import { soles } from "./compras-reglas";
+import { aguantaCts, conRebajaCts, cts, GANANCIA_TRAS_REBAJA_POR_MIL, IGV, margenPorMilCts, REBAJA_FUERTE_PCT } from "./cuenta-de-precio";
 
-/** La tasa del IGV. */
-export const IGV = 1.18;
-
-/** La rebaja fuerte con la que se prueba el piso: el tope de un líder a mano en caja (ADR-0054). */
-export const REBAJA_FUERTE_PCT = 35;
 /** La rebaja que se muestra al lado: desde ahí caja pide un argumento escrito (2026-09-25). */
 export const REBAJA_MEDIA_PCT = 15;
-/** Lo que debe quedar del precio ya rebajado, en milésimas (20 %). */
-export const GANANCIA_TRAS_REBAJA_POR_MIL = 200;
 /** La ganancia en lista a partir de la cual se pide confirmar costo y precio, en milésimas (85 %). */
 export const GANANCIA_SOSPECHOSA_POR_MIL = 850;
 /** Menos prendas que esto en la categoría y no hay con qué comparar. */
@@ -188,28 +182,7 @@ export type AyudaDePrecio = {
 
 /* ───────────────────────── La cuenta, en céntimos enteros ───────────────────────── */
 
-const cts = (n: number): number => Math.round(n * 100);
 const soles2 = (c: number): number => c / 100;
-
-/** Hacia abajo al S/ 0.10 (ADR-0403), en céntimos. */
-function conRebajaCts(precioCts: number, pct: number): number {
-  return Math.floor((precioCts * (100 - pct)) / 1000) * 10;
-}
-
-/** La ganancia sobre el precio sin IGV, en milésimas redondeadas a un decimal de %. `null` si el precio no es positivo. */
-function margenPorMilCts(precioCts: number, costoRealCts: number): number | null {
-  if (precioCts <= 0) return null;
-  const ps = precioCts / IGV;
-  return Math.round(((ps - costoRealCts) / ps) * 1000);
-}
-
-/** ¿Este precio, ya rebajado `REBAJA_FUERTE_PCT` %, deja al menos `dejando` milésimas? */
-function aguantaCts(precioCts: number, costoRealCts: number, dejando: number): boolean {
-  const pd = conRebajaCts(precioCts, REBAJA_FUERTE_PCT);
-  if (pd <= 0) return false;
-  const m = margenPorMilCts(pd, costoRealCts);
-  return m !== null && m >= dejando;
-}
 
 /** El menor precio (de a S/ 0.10) que aguanta la rebaja fuerte dejando `dejando` milésimas del precio rebajado. */
 function precioMinimoCts(costoRealCts: number, dejando: number): number | null {
