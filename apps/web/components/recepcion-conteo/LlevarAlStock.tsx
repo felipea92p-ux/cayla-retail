@@ -22,6 +22,8 @@ import { hayQueElegirDueno } from "@/lib/dueno-reglas";
 import { useEmpresasDeSede } from "@/lib/useEmpresasDeSede";
 import { DuenoDeLoQueEntra } from "./DuenoDeLoQueEntra";
 import { PrecioDePrenda } from "./PrecioDePrenda";
+import { useReferenciasDeCosto } from "./useReferenciasDeCosto";
+import { dudaDeCosto } from "@/lib/referencia-de-costo";
 import { usePreciosDeVenta } from "./usePreciosDeVenta";
 import { esFalloDeRed } from "@/lib/error-escritura";
 import { cambiarPreciosEnRecepcion, corregirSalida, llevarAlStock } from "@/lib/recepcion-conteo-acciones";
@@ -122,7 +124,19 @@ export function LlevarAlStock({
   const faltaCosto = !sinAviso && !linea.linea && costo.trim() === "";
   // Costo y precio van lado a lado, del mismo tamaño (Felipe 2026-11-12: «que estén alineados el costo y el precio y que ambos tengan el mismo
   // tamaño»): son un solo bloque y un solo campo de la guía. El costo frena si falta (con guía) o está mal escrito; el precio, solo si está mal.
-  const problemaCosto = editaCosto ? (lectura.problema ?? (faltaCosto ? "Escribe el costo." : null)) : null;
+  // ADR-0668 (A4): un costo dudoso (440 por 44, lo de la orden sin IGV, fuera de lo que suele costar) se confirma por su monto antes de llevar.
+  const { refs, falla: sinReferencia } = useReferenciasDeCosto(
+    { variantes: variantes.map((v) => v.varianteId), categorias: linea.categoria?.id ? [linea.categoria.id] : [], lineasDelEnvio: linea.linea ? [linea.linea.id] : [] },
+    abierta && editaCosto,
+  );
+  const [costoConfirmado, setCostoConfirmado] = useState<number | null>(null);
+  const costoQueQueda = editaCosto ? leerCostoCierre(costo.trim() ? costo : textoInicial) : null;
+  const valorQueQueda = costoQueQueda && costoQueQueda.problema === null ? costoQueQueda.valor : null;
+  const duda = editaCosto
+    ? dudaDeCosto(valorQueQueda, refs, { varianteIds: variantes.map((v) => v.varianteId), categoriaId: linea.categoria?.id ?? null, lineaId: linea.linea?.id ?? null })
+    : null;
+  const dudaSinConfirmar = duda && costoConfirmado !== valorQueQueda ? duda : null;
+  const problemaCosto = editaCosto ? (lectura.problema ?? (faltaCosto ? "Escribe el costo." : dudaSinConfirmar ? "Confirma lo que pagaste." : null)) : null;
   const campos = [
     {
       id: "salida-precio",
@@ -181,7 +195,8 @@ export function LlevarAlStock({
         productoId,
         variantes,
         costo: cambio ? lectura.valor : null,
-        confirma,
+        // El «Sí, pagué» de la hoja confirma ESTE costo: la base lo compara con el que entra (ADR-0668).
+        confirma: confirma || (duda !== null && costoConfirmado !== null && costoConfirmado === valorQueQueda),
         token,
       }),
       responsable.firma(),
@@ -271,7 +286,11 @@ export function LlevarAlStock({
                   soloSede={soloSede}
                   sedeId={sedeId}
                   editado={venta}
-                  costo={editaCosto ? { valor: costo, deLaLinea: textoInicial, antes: textoInicial, problema: lectura.problema } : undefined}
+                  costo={
+                    editaCosto
+                      ? { valor: costo, deLaLinea: textoInicial, antes: textoInicial, problema: lectura.problema, duda: dudaSinConfirmar, onConfirmar: setCostoConfirmado, sinReferencia }
+                      : undefined
+                  }
                   onCosto={editaCosto ? setCosto : undefined}
                   sinNombre
                   onActual={(general, enSede) => precios.ponerActual(productoId, general, enSede)}

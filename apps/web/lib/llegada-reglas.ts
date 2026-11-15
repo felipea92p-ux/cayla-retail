@@ -160,8 +160,9 @@ export function pedidoRecibirLote(p: {
       variante_id: l.varianteId,
       cantidad: l.cantidad,
       ...(l.costo !== "" ? { costo_unitario: numeroDeMonto(l.costo) } : {}),
-      // Solo en el reintento tras `costo_atipico` y solo en las líneas que vio el líder (20260930122000).
-      ...(p.confirmadas?.includes(n + 1) ? { confirma_costo: true } : {}),
+      // Solo en el reintento tras `costo_atipico` y solo en las líneas que vio quien confirma (20260930122000). ADR-0668 (A4): con su monto,
+      // que es el que la base vuelve a comparar (un «sí» suelto ya no alcanza para un costo fuera de lo que suele costar).
+      ...(p.confirmadas?.includes(n + 1) ? { confirma_costo: true, ...(l.costo !== "" ? { confirma_montos: [numeroDeMonto(l.costo)] } : {}) } : {}),
     })),
     p_numero_guia: p.numeroGuia.trim() || undefined,
     p_token: p.token,

@@ -1,4 +1,5 @@
 import { soles } from "./compras-reglas";
+import type { MotivoDeCosto } from "./cuenta-de-precio";
 
 // El «costo atípico» (Felipe, 2026-09-30). La REGLA vive en la base (`retail.fn_costo_fuera_de_banda`, migración
 // 20260930120000): la web NO la repite. Cuando un cierre de Producción, una factura o una recepción trae un costo por
@@ -20,7 +21,8 @@ export function problemaDelMotivoDeCosto(texto: string): string | null {
   return null;
 }
 
-export const MOTIVOS_COSTO_ATIPICO = ["sin_costo", "mayor_que_precio", "sube", "baja"] as const;
+// «sin_igv» y «fuera_de_banda» los suma ADR-0668 (A4, 20261115205000) en Recibir: la base los manda por las mismas puertas.
+export const MOTIVOS_COSTO_ATIPICO = ["sin_costo", "mayor_que_precio", "sube", "baja", "sin_igv", "fuera_de_banda"] as const;
 export type MotivoCostoAtipico = (typeof MOTIVOS_COSTO_ATIPICO)[number];
 
 export type CostoAtipico = {
@@ -69,7 +71,8 @@ function leerLinea(d: unknown): CostoAtipico | null {
   return {
     motivo,
     costoUnitario,
-    costoVigente: numeroONulo(o.costo_vigente),
+    // ADR-0668 (A4): en Recibir la base juzga contra el anterior EN PAPEL y lo manda como `anterior`; si viene, la frase dice ese número.
+    costoVigente: numeroONulo(o.anterior) ?? numeroONulo(o.costo_vigente),
     precio: numeroONulo(o.precio),
     sku: typeof o.sku === "string" && o.sku ? o.sku : null,
     varianteId: typeof o.variante_id === "string" && o.variante_id ? o.variante_id : null,
@@ -127,6 +130,54 @@ export function fraseCostoAtipico(d: CostoAtipico): { titulo: string; detalle: s
         detalle: vigente
           ? `Cada prenda${prenda} saldría a ${cuesta}: ${Math.round((d.costoUnitario / vigente) * 100)} % de su costo actual (${soles(vigente)}).`
           : `Cada prenda${prenda} saldría a ${cuesta}, menos de dos tercios de su costo actual.`,
+      };
+    case "sin_igv":
+      return { titulo: AVISO_DE_DUDA.sin_igv.titulo, detalle: `Cada prenda${prenda} saldría a ${cuesta}: es lo de la orden sin el impuesto.` };
+    case "fuera_de_banda":
+      return { titulo: AVISO_DE_DUDA.fuera_de_banda.titulo, detalle: `Cada prenda${prenda} saldría a ${cuesta}, lejos de lo que suele costar.` };
+  }
+}
+
+/* ───────────── El aviso ANTES de guardar (ADR-0668, A4): la misma duda que la base, con sus cifras ───────────── */
+//
+// Mientras el costo de una prenda tenga una duda sin confirmar, la hoja no sugiere precio (ni la línea «Te quedan» ni la IA) y no deja
+// cerrar: un 440 escrito por 44 no debe proponer S/ 998.90. Las palabras son las de la maqueta aprobada
+// (`docs/maquetas/precio-sugerido-2026-11/`), recortadas a una línea de 8 palabras o menos (CLAUDE.md «Poco texto»).
+
+/** Los títulos que comparten el aviso de antes y el rechazo de la base. */
+const AVISO_DE_DUDA = {
+  sin_igv: { titulo: "¿Escribiste el monto sin impuesto?" },
+  fuera_de_banda: { titulo: "Fuera de lo que suele costar" },
+} as const;
+
+export type AvisoDeCostoDudoso = {
+  titulo: string;
+  linea: string;
+  /** «Usar S/ …»: el monto que la pantalla propone poner en su lugar (lo de la orden, con todo). `null`: no hay uno mejor. */
+  usar: number | null;
+};
+
+/** El aviso para una duda, con las cifras con las que la base la juzgó. */
+export function avisoDeCostoDudoso(
+  motivo: MotivoDeCosto,
+  ref: { anterior: number | null; deLaOrden: number | null; banda: { lo: number; hi: number } | null },
+): AvisoDeCostoDudoso {
+  switch (motivo) {
+    case "sube":
+    case "baja":
+      return {
+        titulo: ref.anterior !== null ? `Antes pagabas ${soles(ref.anterior)}` : "Es muy distinto a lo de antes",
+        // Un costo que sube de golpe suele ser el de la docena; uno que baja, un cero que falta.
+        linea: motivo === "sube" ? "¿Es de una prenda, no de la docena?" : "¿Falta un cero? Revisa el monto.",
+        usar: null,
+      };
+    case "sin_igv":
+      return { titulo: AVISO_DE_DUDA.sin_igv.titulo, linea: ref.deLaOrden !== null ? `La orden dice ${soles(ref.deLaOrden)} con todo.` : "Pon el total del papel.", usar: ref.deLaOrden };
+    case "fuera_de_banda":
+      return {
+        titulo: AVISO_DE_DUDA.fuera_de_banda.titulo,
+        linea: ref.banda ? `Suele ir de ${soles(ref.banda.lo)} a ${soles(ref.banda.hi)}.` : "¿Es de una prenda? Revisa los ceros.",
+        usar: null,
       };
   }
 }
