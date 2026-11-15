@@ -7,10 +7,12 @@ import { compararTallas } from "@/lib/tallas";
 import { leerComprasPagadas, type CompraPagada } from "@/lib/compras-pagadas-reglas";
 import { leerEnviosAMedias, RPC_ENVIOS_A_MEDIAS, type EnvioAMedias } from "@/lib/recepcion-salida-reglas";
 import { BUCKET_FOTOS_GASTO_VIAJE } from "@/lib/rendicion-reglas";
+import { facturaDelEnvio } from "@/lib/margen-a-la-vista";
 import {
   leerDetalleEnvio,
   leerEnviosPorAbrir,
   leerOrdenesDirectas,
+  proveedoresDelEnvio,
   RPC_ENVIOS_POR_ABRIR,
   RPC_ENVIOS_POR_RECIBIR,
   RPC_ORDENES_DIRECTAS,
@@ -210,6 +212,8 @@ export type DatosRecepcionEnvio = {
   /** Los papeles de las compras anotadas desde el celular (ADR-0480), con el enlace a su foto (10 minutos, firmado con la sesión de quien
    *  mira: Recibir puede leer la carpeta `papeles/`). Sin foto o sin permiso, `fotoUrl` es `null` y la pantalla lo dice. */
   papeles: (PapelDelEnvio & { fotoUrl: string | null })[];
+  /** ¿La compra trae factura? Para la línea del margen (`recibir-margen#1`, la cuenta de Compras sin IGV): `facturaDelEnvio`. */
+  conFactura: boolean;
 };
 
 async function papelesConFoto(papeles: readonly PapelDelEnvio[]): Promise<DatosRecepcionEnvio["papeles"]> {
@@ -237,9 +241,29 @@ async function lotesDelEnvio(despachoId: string): Promise<string[]> {
   }
 }
 
+/**
+ * ¿La compra del envío trae factura? Con papeles, lo dicen ellos; sin papeles, el RUC de sus proveedores (como Compras al armar la orden). Un
+ * adorno de la línea del margen: si la lectura falla, `false` («sin factura»), que nunca infla el margen.
+ */
+async function facturaDeLaCompra(detalle: DetalleEnvio): Promise<boolean> {
+  if (detalle.papeles.length > 0) return facturaDelEnvio(detalle.papeles, []);
+  const ids = proveedoresDelEnvio(detalle).map((p) => p.id);
+  if (ids.length === 0) return false;
+  try {
+    const supabase = await createClient();
+    const { data, error } = await supabase.from("proveedores").select("id, ruc").in("id", ids);
+    if (error || !data) return false;
+    const ruc = new Map(data.map((p) => [p.id, p.ruc]));
+    return facturaDelEnvio([], ids.map((id) => ruc.get(id) ?? null));
+  } catch (e) {
+    unstable_rethrow(e);
+    return false;
+  }
+}
+
 /** Todo lo que necesita `/recibir/envio/[id]`. Lo secundario (quién hizo la orden, el vocabulario, los lotes) no tumba la pantalla. */
 export async function getDatosRecepcionEnvio(id: string): Promise<DatosRecepcionEnvio> {
-  const vacio = { creadoPorMi: false, catalogo: null, lotes: [], papeles: [] };
+  const vacio = { creadoPorMi: false, catalogo: null, lotes: [], papeles: [], conFactura: false };
   if (!/^[0-9a-f-]{36}$/i.test(id)) return { detalle: null, falla: null, ...vacio };
   const res = await rpc(RPC_DETALLE_ENVIO, { p_despacho_id: id }).catch((e: unknown) => ({ data: null, error: { message: String(e) } }));
   if (res.error) {
@@ -250,7 +274,7 @@ export async function getDatosRecepcionEnvio(id: string): Promise<DatosRecepcion
   if (!detalle) return { detalle: null, falla: null, ...vacio };
 
   const porRecibir = detalle.estado === "en_camino" || detalle.estado === "abierto";
-  const [creadoPorMi, catalogo, lotes, papeles] = await Promise.all([
+  const [creadoPorMi, catalogo, lotes, papeles, conFactura] = await Promise.all([
     // Decisión 17: el detalle lo trae (`creado_por_mi`); si la base todavía no lo dice ahí, se mira en la lista de la sede.
     detalle.creadoPorMi !== null || !porRecibir || !detalle.sede
       ? Promise.resolve(detalle.creadoPorMi ?? false)
@@ -261,6 +285,7 @@ export async function getDatosRecepcionEnvio(id: string): Promise<DatosRecepcion
     porRecibir ? getCatalogoParaRecibir() : Promise.resolve(null),
     detalle.estado === "cerrado" && detalle.lotes.length === 0 ? lotesDelEnvio(detalle.id) : Promise.resolve(detalle.lotes),
     papelesConFoto(detalle.papeles),
+    facturaDeLaCompra(detalle),
   ]);
-  return { detalle, falla: null, creadoPorMi, catalogo, lotes, papeles };
+  return { detalle, falla: null, creadoPorMi, catalogo, lotes, papeles, conFactura };
 }
