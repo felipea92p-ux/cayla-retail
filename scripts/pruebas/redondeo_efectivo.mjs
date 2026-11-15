@@ -720,6 +720,8 @@ rollback;`);
       "Ventas ▸ Reportes ▸ Ventas del mes (ADR-0606, 20261103232000): el bloque «Cómo se pagó» suma venta_pagos por medio y deja la fila de redondeo como un medio más, a propósito, igual que fn_totales_historial_ventas y fn_comparativa_caja: así lo cobrado suma el total vendido. La web la nombra «Redondeo de efectivo» y no dibuja lo que pesa menos de una milésima del total. No se parchó.",
     fn_pago_de_la_empresa:
       "Ventas ▸ Reportes, «Cómo se pagó» por empresa (ADR-0665 act. 2026-11-15, 20261115013000): reparte cada medio de una venta, la fila de redondeo incluida, por lo cobrado de cada empresa; como la suma de filas es el total, lo de cada empresa suma lo que vendió. El redondeo es un medio más, igual que en fn_reporte_ventas_series.",
+    fn_reporte_ventas_por_empresa:
+      "Ventas ▸ Reportes ▸ «CAYLA y CLAURE» (ADR-0667, 20261115042000): entrega cada pago de la venta por medio, la fila de redondeo incluida, con la parte de cada empresa (fn_pago_de_la_empresa), así lo de cada empresa suma lo que vendió. En «¿Dónde está la plata?» el redondeo sale como su propia fila, sin cuenta (no entró a ninguna); no cuenta como «cobrado en cuentas de CAYLA» ni lleva comisión.",
     fn_reporte_ventas_pagos:
       "Ventas ▸ Reportes, «Cómo se pagó» por empresa (ADR-0665 act. 2026-11-15, 20261115013000): sin empresa devuelve lo mismo que fn_reporte_ventas_series (el redondeo como un medio más); con empresa, la parte de cada medio. Al decir si una venta mixta se «repartió» (dos medios o más) NO cuenta el redondeo: es parte del efectivo (lo prueba pruebas:reportes-por-empresa, L9).",
     fn_resumen_caja: "PARCHADA (20261003111000): el redondeo sale de por_metodo, de otros y de ventas_otros, y viaja aparte.",
