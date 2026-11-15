@@ -245,11 +245,11 @@ caso(
   "cerrar_conteo_envio:0:2,fn_recepcion_entrar:1:1,llevar_al_stock_ahora:0:1,recibir_despacho:0:4,recibir_lote:1:1,resolver_pendiente_envio:0:2",
 );
 caso(
-  "S2 las reglas internas no las ejecuta una cuenta con sesión; la lectura y la regla pura, sí; anon nada",
+  "S2 las reglas internas no las ejecuta una cuenta con sesión; la lectura y la confirmación, sí; anon nada",
   `select string_agg(p.proname || ':' || has_function_privilege('authenticated', p.oid, 'execute') || ':' || has_function_privilege('anon', p.oid, 'execute'), ',' order by p.proname)
      from pg_proc p where p.pronamespace = 'retail'::regnamespace and p.proname in
        ('fn_costo_anterior_en_papel', 'fn_banda_de_costo', 'fn_motivo_de_costo', 'fn_motivo_de_costo_con', 'fn_costo_confirmado', 'fn_precio_referencia');`,
-  "fn_banda_de_costo:false:false,fn_costo_anterior_en_papel:false:false,fn_costo_confirmado:true:false,fn_motivo_de_costo:false:false,fn_motivo_de_costo_con:true:false,fn_precio_referencia:true:false",
+  "fn_banda_de_costo:false:false,fn_costo_anterior_en_papel:false:false,fn_costo_confirmado:true:false,fn_motivo_de_costo:false:false,fn_motivo_de_costo_con:false:false,fn_precio_referencia:true:false",
 );
 
 console.log(`\n${casos - fallas}/${casos} casos bien${fallas ? ` — ${fallas} en rojo` : ""} (contenedor: ${CONTENEDOR})`);

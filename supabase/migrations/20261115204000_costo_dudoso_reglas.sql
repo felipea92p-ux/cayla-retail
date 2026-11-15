@@ -217,8 +217,9 @@ comment on function retail.fn_precio_referencia(uuid[], uuid[], uuid[]) is
 revoke all on function retail.fn_costo_anterior_en_papel(uuid) from public, anon, authenticated;
 revoke all on function retail.fn_banda_de_costo(uuid) from public, anon, authenticated;
 revoke all on function retail.fn_motivo_de_costo(numeric, uuid, uuid, text) from public, anon, authenticated;
-revoke all on function retail.fn_motivo_de_costo_con(numeric, numeric, numeric, numeric, numeric, numeric) from public, anon;
-grant execute on function retail.fn_motivo_de_costo_con(numeric, numeric, numeric, numeric, numeric, numeric) to authenticated, service_role;
+-- La regla pura es de la base (la llama fn_motivo_de_costo); la web tiene su espejo y no la necesita.
+revoke all on function retail.fn_motivo_de_costo_con(numeric, numeric, numeric, numeric, numeric, numeric) from public, anon, authenticated;
+grant execute on function retail.fn_motivo_de_costo_con(numeric, numeric, numeric, numeric, numeric, numeric) to service_role;
 revoke all on function retail.fn_costo_confirmado(numeric, text, boolean, jsonb) from public, anon;
 grant execute on function retail.fn_costo_confirmado(numeric, text, boolean, jsonb) to authenticated, service_role;
 grant execute on function retail.fn_costo_anterior_en_papel(uuid) to service_role;
