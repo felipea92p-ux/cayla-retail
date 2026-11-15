@@ -11,6 +11,7 @@
 // El vocabulario (ADR-0393): ENVÍO es lo que se cuenta y se cierra; PENDIENTE es lo contado que todavía no está en el stock —sin separar
 // (no se sabe qué prendas son), detalle (se sabe la prenda, faltan tallas y colores) o crear (es nueva)—.
 
+import { montosConfirmados } from "./referencia-de-costo";
 import { leerCantidad } from "./alta-producto";
 import { diaLima, diasEntreFechas, hoyLima } from "./fechas-lima";
 import { sinBlancosDeMiles } from "./numero-escrito";
@@ -1190,6 +1191,8 @@ export type LineaParaCerrar = {
   nota: string | null;
   /** ADR-0519: el costo propio de las prendas (o, desde 2026-10-28, de las combinaciones) separadas de esta línea que cuestan distinto de la línea ({producto | variante: costo}). Sin nada propio, no va. */
   costos_prendas?: Record<string, number>;
+  /** ADR-0668 (A4): los montos que la persona confirmó con «Sí, pagué» (en la hoja o en el aviso de la base). Sin ninguno, no va. */
+  confirma_montos?: number[];
 };
 
 /** El costo propio de cada prenda de una línea, como se escribe: `{ clave: "55.50" }`. Solo lo que quien cierra tocó. La clave es el producto de la
@@ -1300,6 +1303,8 @@ export function lineasParaCerrar(
   costosPrendas: Readonly<Record<string, CostosDePrendas>> = {},
   /** El costo propio de combinaciones (color y talla), por línea: `{ clave de línea: { variante_id | producto_id: costo } }` (`costosParaLinea`). */
   costosCombinaciones: Readonly<Record<string, Readonly<Record<string, number>>>> = {},
+  /** ADR-0668 (A4): por línea, los montos que la persona confirmó en la hoja antes de cerrar. */
+  confirmadosEnLaHoja: Readonly<Record<string, readonly number[]>> = {},
 ): LineaParaCerrar[] {
   return lineas
     .filter((l) => l.conteo !== null)
@@ -1324,8 +1329,25 @@ export function lineasParaCerrar(
         // La nota de la línea solo es «lo que pasó» de un «Otro»: con otra causa no hay dónde escribirla y lo que quedó escrito antes no viaja.
         nota: sobrante === VALOR_OTRO && d.nota.trim() ? d.nota.trim().slice(0, TOPES_CONTEO.nota) : null,
         ...(Object.keys(propios).length > 0 ? { costos_prendas: propios } : {}),
+        ...confirmaMontosDeLinea(regalo, d.confirmaCosto, costo, propios, confirmadosEnLaHoja[l.clave] ?? []),
       };
     });
+}
+
+/**
+ * Los montos confirmados de una línea (ADR-0668, A4). El «sí» del aviso de la base se da y se manda en el mismo instante: confirma los montos
+ * que la línea tiene en ese momento (los que la persona acaba de ver). Lo confirmado en la hoja se suma tal cual.
+ */
+function confirmaMontosDeLinea(
+  regalo: boolean,
+  confirma: boolean,
+  costo: number | null,
+  propios: Readonly<Record<string, number>>,
+  enLaHoja: readonly number[],
+): { confirma_montos?: number[] } {
+  if (regalo) return {};
+  const montos = montosConfirmados([...(confirma ? [costo ?? 0, ...Object.values(propios)] : []), ...enLaHoja]);
+  return montos.length > 0 ? { confirma_montos: montos } : {};
 }
 
 /** Las causas que se ofrecen para una línea: faltante o sobrante (lo de fuera de la guía siempre es sobrante). «Es la reposición de lo que
@@ -1632,7 +1654,7 @@ export type ArgsResolverPendiente = {
   p_extra_posicion: number | null;
   p_pendiente_id: string | null;
   /** Lo separado y, si quien termina lo pendiente cambió el costo de alguna prenda (ADR-0519), `costos`: `{ producto: costo }` de esas prendas. */
-  p_separado: ReturnType<typeof separadoParaBase> & { costos?: Record<string, number> };
+  p_separado: ReturnType<typeof separadoParaBase> & { costos?: Record<string, number>; confirma_montos?: number[] };
   p_confirma_costo: boolean;
   p_token: string;
 };
@@ -1645,6 +1667,8 @@ export function argsResolverPendiente(p: {
   /** El costo propio de las prendas que se identifican ahora (`costosDeHacerAhora`); sin nada, no va y la base hace lo de siempre. */
   costos?: Readonly<Record<string, number>>;
   confirmaCosto?: boolean;
+  /** ADR-0668 (A4): los montos que la persona confirmó con «Sí, pagué»; la base acepta un costo dudoso solo si es uno de ellos. */
+  confirmaMontos?: readonly number[];
   token: string;
 }): ArgsResolverPendiente {
   return {
@@ -1652,7 +1676,11 @@ export function argsResolverPendiente(p: {
     p_despacho_item_id: p.linea.linea?.id ?? null,
     p_extra_posicion: p.linea.linea ? null : (p.linea.conteo?.extraPosicion ?? null),
     p_pendiente_id: p.pendienteId,
-    p_separado: { ...separadoParaBase(p.separado), ...(p.costos && Object.keys(p.costos).length > 0 ? { costos: { ...p.costos } } : {}) },
+    p_separado: {
+      ...separadoParaBase(p.separado),
+      ...(p.costos && Object.keys(p.costos).length > 0 ? { costos: { ...p.costos } } : {}),
+      ...(p.confirmaMontos && p.confirmaMontos.length > 0 ? { confirma_montos: [...p.confirmaMontos] } : {}),
+    },
     p_confirma_costo: p.confirmaCosto ?? false,
     p_token: p.token,
   };

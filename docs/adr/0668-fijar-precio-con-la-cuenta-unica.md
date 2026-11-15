@@ -1,7 +1,8 @@
 # ADR-0668 — Fijar precio con la cuenta única: todas las prendas igual, costo y precio con IGV a la vista, piso que aguanta la rebaja
 
 - **Fecha:** 2026-11-15 · **Estado:** decidido. Construido: A1 (la cuenta en `lib/cuenta-de-precio.ts`), A2 (una sola cuenta en Recibir y Nuevo producto, fuera
-  «RUC ⇒ factura») y A3 (quien fija el precio ve el costo en esa hoja; SQL en producción desde el 2026-11-15). Lo demás, en el plan
+  «RUC ⇒ factura») A3 (quien fija el precio ve el costo en esa hoja; SQL en producción desde el 2026-11-15) y A4 (los candados del costo
+  dudoso; su SQL espera el OK de Felipe). Lo demás, en el plan
   (`docs/backlog/2026-11-15-logic-examples-review-ff76bf.md`).
 - **Pidió:** Felipe, 2026-11-15, al revisar el PR #1867: «el IGV no me lo mezcles aquí… al recibir el costo debe tener el IGV y el precio también, porque un
   integrante no entiende eso; cuando coloca el precio sugerido, ayudarle a entender lo del IGV para que fije un buen precio». Respondió 30 preguntas y revisó la
@@ -83,11 +84,44 @@ Productos: pone el costo en la pantalla del mostrador sin que nadie lo pida.
 SE ROMPE SI: una pantalla de cara al cliente llama a una de esas seis para «mostrar el ahorro»; la base no distingue pantallas, la prueba de la
 web sí.
 
+## Qué se construyó en A4: el costo dudoso se confirma por su monto
+
+- **Lo que dicen los datos (producción, 2026-11-15, 60 días):** los tres candados nuevos habrían saltado **0 veces**. La pantalla precarga el
+  costo de la orden con IGV (escrito = orden en 104 de 104 líneas), así que «sin IGV» no ocurrió por tecleo; lo que hoy divide entre 1.18 es la
+  base misma (48 variantes, A11). A4 es el seguro contra el error de tecleo (440 por 44) y, sobre todo, contra lo que llega **sin orden** (311 de
+  440 entradas de envíos), donde la banda de la categoría es la única red. «Llegó mercadería» (`recibir_lote`) se usa más que el envío nuevo
+  (27 lotes contra 31 en 14 días): A4 cubre los dos.
+- **Una regla, en la base** (20261115204000, PARTE 1): `fn_motivo_de_costo_con` (pura, solo números) y `fn_motivo_de_costo` (la que lee la
+  base). Primero los motivos de siempre que no dependen del anterior (sin costo; mayor que el precio, que pasa a A5); después «sube» / «baja»
+  con la MISMA banda 2× / ⅔ de `fn_costo_fuera_de_banda` (se llama, no se copia) contra el **anterior en papel** (`fn_costo_anterior_en_papel`:
+  × 1.18 si la última entrada pasó por una factura); después «sin_igv» (lo de la orden ÷ 1.18, ±2 %); y «fuera_de_banda» (`fn_banda_de_costo`:
+  de la mitad del p10 al doble del p90 de los MODELOS de la categoría, con 5 o más; si no, su familia; nunca la de toda CAYLA; una familia
+  fuera de los motores no tiene banda). La web la espeja (`motivoDeCosto`, `lib/cuenta-de-precio.ts`) y las dos corren los mismos casos
+  (`apps/web/lib/costo-dudoso-casos.json`).
+- **Se confirma un MONTO** (`fn_costo_confirmado`): `confirma_montos` viaja dentro del JSON de cada línea, de `p_separado` o de `p_items`, sin
+  cambiar ninguna firma (20261115205000, PARTE 2, sobre `fn_recepcion_entrar`, `recibir_lote`, `cerrar_conteo_envio`, `resolver_pendiente_envio`,
+  `recibir_despacho` y `llevar_al_stock_ahora`). El «sí» suelto sigue valiendo para los cuatro motivos de antes (la web publicada, la cola sin
+  conexión); los dos nuevos solo con el monto. Quién confirma no cambia (`fn_ve_costos_al_recibir`).
+- **La hoja avisa antes de guardar** (`fn_precio_referencia` → `AvisoCostoDudoso`): en el cierre, en «Llevar al stock» y en «Hacer ahora», la
+  duda sale bajo el costo con «Sí, pagué S/ X» y, si es lo de la orden sin IGV, «Usar S/ …». Mientras dure no hay «Te quedan», ni «revisar
+  precio», ni propuesta de la IA, y no se cierra (el cursor va a ese costo). Si la lectura no responde, la hoja no inventa una duda y lo dice;
+  la base sigue revisando al cerrar. «Llegó mercadería» no sugiere precio: confirma desde el aviso de la base, ahora con el monto.
+
+DECIDÍ: la regla en la base y su espejo en la web, cruzados por una tabla de casos; el monto confirmado viaja en el JSON.
+DESCARTÉ: (a) bajar la banda a 1.5× / 0.75× (11 de 300 entradas legítimas en 60 días pedirían confirmar: alarma que se confirma por reflejo);
+(b) la banda p10–p90 cruda (27 % de las entradas); (c) la de toda CAYLA (marcaría a todos los accesorios baratos); (d) cambiar el tipo de
+`confirma_costo` o una firma (PGRST203 y la cola sin conexión rechazada al subir).
+SE ROMPE SI: un descuento real que la orden no anota deja el costo 15 % abajo (se toma por «sin IGV»; hoy 0 de 142 líneas tienen descuento);
+la PARTE 2 se pega antes que la web (la web vieja manda el «sí» suelto para un «fuera_de_banda» y la base vuelve a pedirlo); lo que «Hacer
+ahora» toma del catálogo ya venía dividido (se compara contra sí mismo: A11).
+**Fuera de A4, escrito:** «Recibir contra factura» (`recibir_envio`, 0 usos en 90 días) sigue con su banda; la matriz «Cambiar por talla» del
+cierre no repite el aviso (la fila de arriba ya lo muestra); quitar el «sí» suelto cuando la web nueva lleve días publicada.
+
 ## Lo que falta decidir
 
 1. Las prendas del Taller entran con costo **sin** IGV (`20261015040000_orden_insumo_recepcion_funciones.sql:69,290`): ¿se llevan a con IGV?
 2. El contador: con el costo con IGV, cómo queda el libro (costo de ventas e inventario) antes de A11.
-3. «Precio ≤ costo» se muestra como aviso rojo que sí deja ver el sugerido (la maqueta lo hace así).
+3. ~~«Precio ≤ costo» se muestra como aviso rojo que sí deja ver el sugerido~~ resuelto en A4 como la maqueta: no es una duda del costo (no apaga el sugerido); su confirmación es la de «Pierdes» (A5).
 4. ¿Nuevo producto deja crear una prenda sin costo?
 5. Antes de corregir ×1.18: las prendas en campaña activa que quedarían bajo el costo nuevo.
 

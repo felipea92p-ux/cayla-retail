@@ -1,4 +1,5 @@
 import { conDueno } from "@/lib/dueno-reglas";
+import { leerReferencias, RPC_PRECIO_REFERENCIA, type ReferenciasDeCosto } from "@/lib/referencia-de-costo";
 import { createClient } from "@/lib/supabase/client";
 import { firmar, type Firma } from "@/lib/responsable-reglas";
 import type { ErrorDeBase } from "@/lib/recepcion-envio-acciones";
@@ -147,6 +148,17 @@ export async function validarPreciosEnRecepcion(
  * con todas queda como el precio de la prenda). Sin el costo: esa columna es de otro permiso. Si no se pudo leer, `null` y la pantalla sigue sin precios de hoy.
  */
 /** Lo que cuesta hoy cada combinación, para quien ve el dinero de Compras. Si la base no responde, vacío: la hoja dice «sin costo» y el cierre sigue igual. */
+/** Lo que la hoja de Recibir necesita para avisar de un costo dudoso antes de guardar (ADR-0668, A4). `null` si la base no respondió o la
+ *  cuenta no ve el costo: la hoja no inventa una duda y la base sigue revisando al cerrar. */
+export async function leerReferenciasDeCosto(pide: { variantes: readonly string[]; categorias: readonly string[]; lineasDelEnvio: readonly string[] }): Promise<ReferenciasDeCosto | null> {
+  const { data, error } = (await createClient().rpc(RPC_PRECIO_REFERENCIA as never, {
+    p_variantes: [...new Set(pide.variantes)],
+    p_categorias: [...new Set(pide.categorias)],
+    p_despacho_items: [...new Set(pide.lineasDelEnvio)],
+  } as never)) as unknown as { data: unknown; error: unknown };
+  return error ? null : leerReferencias(data);
+}
+
 export async function leerCostosDeHoy(varianteIds: readonly string[]): Promise<Record<string, number>> {
   if (varianteIds.length === 0) return {};
   const { data, error } = (await createClient().rpc(RPC_COSTOS_DE_HOY as never, { p_variantes: [...varianteIds] } as never)) as unknown as Respuesta;

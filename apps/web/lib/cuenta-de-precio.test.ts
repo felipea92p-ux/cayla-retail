@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { conRebajaCts, cuentaDelPrecio, IGV, pisoDelPrecio } from "./cuenta-de-precio";
+import { conRebajaCts, cuentaDelPrecio, IGV, motivoDeCosto, pisoDelPrecio, type BandaDeCosto } from "./cuenta-de-precio";
+import CASOS from "./costo-dudoso-casos.json";
 
 /** ¿Este precio, rebajado 35 %, deja de verdad 20 % de lo tuyo? (la definición, sin redondear) */
 const aguanta = (precioCts: number, costoCts: number) => {
@@ -54,5 +55,21 @@ describe("pisoDelPrecio: «No bajes de», el precio que aguanta una rebaja de 35
   it("sin costo, o si ningún precio hasta el tope de S/ 5 000 lo logra, no hay piso", () => {
     expect(pisoDelPrecio(0)).toBeNull();
     expect(pisoDelPrecio(2300)).toBeNull();
+  });
+});
+
+describe("motivoDeCosto: el costo dudoso, el mismo de la base (ADR-0668, A4)", () => {
+  // La misma tabla que corre `scripts/pruebas/costo_dudoso.mjs` contra `retail.fn_motivo_de_costo_con`.
+  for (const c of CASOS.casos) {
+    it(`${c.nombre}: ${c.motivo ?? "nada que confirmar"}`, () => {
+      expect(motivoDeCosto(c.costo, { anterior: c.anterior, deLaOrden: c.deLaOrden, banda: c.banda as BandaDeCosto | null })).toBe(c.motivo);
+    });
+  }
+  it("sin lectura de referencia (la base no respondió), no inventa una duda", () => {
+    expect(motivoDeCosto(440, null)).toBeNull();
+  });
+  it("usa el IGV que trae la lectura: con otra tasa, lo «sin IGV» es otro monto", () => {
+    expect(motivoDeCosto(19.85, { anterior: null, deLaOrden: 21.83, banda: null }, 0.1)).toBe("sin_igv");
+    expect(motivoDeCosto(19.85, { anterior: null, deLaOrden: 21.83, banda: null })).toBeNull();
   });
 });

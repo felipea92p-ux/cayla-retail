@@ -58,6 +58,8 @@ import { hayQueElegirDueno, type EmpresaElegible } from "@/lib/dueno-reglas";
 import { useEmpresasDeSede } from "@/lib/useEmpresasDeSede";
 import { enfocarCosto, enfocarPrecio, type CostoDePrenda } from "./PrecioDePrenda";
 import { PreciosDeVenta } from "./PreciosDeVenta";
+import { useReferenciasDeCosto } from "./useReferenciasDeCosto";
+import { dudaDeCosto, montosConfirmados } from "@/lib/referencia-de-costo";
 import { usePreciosDeVenta } from "./usePreciosDeVenta";
 import { SepararPrendas } from "./SepararPrendas";
 import { YaExisteLaPrenda } from "./YaExisteLaPrenda";
@@ -165,11 +167,33 @@ export function HacerAhora({
   const deCatalogo = (productoId: string) => costoDeCatalogo(prendas.get(productoId));
   /** Lo que dice el campo sin tocarlo: contra esto se mide si la persona cambió el costo (y se le pide confirmar). */
   const costoDeFabrica = (productoId: string) => costoInicial(productoId) || costoComoTexto(deCatalogo(productoId));
+  // ADR-0668 (A4): un costo dudoso se confirma por su monto antes de guardar; mientras tanto, no hay precio sugerido.
+  const varianteIdsDe = (productoId: string) => prendas.get(productoId)?.variantes.map((v) => v.id) ?? [];
+  const { refs, falla: sinReferencia } = useReferenciasDeCosto(
+    { variantes: [...prendas.values()].flatMap((p) => p.variantes.map((v) => v.id)), categorias: linea?.categoria?.id ? [linea.categoria.id] : [], lineasDelEnvio: linea?.linea ? [linea.linea.id] : [] },
+    editaCosto,
+  );
+  const [confirmados, setConfirmados] = useState<Record<string, number>>({});
+  /** La duda que el costo de esta prenda todavía tiene (la que la persona ya confirmó por su monto no cuenta). */
+  const dudaSinConfirmar = (productoId: string, valor: string) => {
+    const l = leerCostoCierre(valor);
+    const monto = l.problema === null ? l.valor : null;
+    const duda = dudaDeCosto(monto, refs, { varianteIds: varianteIdsDe(productoId), categoriaId: linea?.categoria?.id ?? null, lineaId: linea?.linea?.id ?? null });
+    return duda && confirmados[productoId] !== monto ? duda : null;
+  };
   const costoDe = editaCosto
     ? (productoId: string): CostoDePrenda => {
         const deFabrica = costoDeFabrica(productoId);
         const valor = Object.hasOwn(costosEscritos, productoId) ? (costosEscritos[productoId] ?? "") : deFabrica;
-        return { valor, deLaLinea: deFabrica, antes: deFabrica, problema: valor.trim() ? leerCostoCierre(valor).problema : null };
+        return {
+          valor,
+          deLaLinea: deFabrica,
+          antes: deFabrica,
+          problema: valor.trim() ? leerCostoCierre(valor).problema : null,
+          duda: dudaSinConfirmar(productoId, valor.trim() ? valor : deFabrica),
+          onConfirmar: (monto) => setConfirmados((c) => ({ ...c, [productoId]: monto })),
+          sinReferencia,
+        };
       }
     : undefined;
   const cambiarCosto = (productoId: string, valor: string) => setCostosEscritos((c) => ({ ...c, [productoId]: valor }));
@@ -294,6 +318,13 @@ export function HacerAhora({
 
   async function guardar(s: Separado, confirmaCosto = false) {
     if (!linea) return;
+    // ADR-0668 (A4): con un costo dudoso sin confirmar no se guarda; el cursor va a ese costo.
+    const enDuda = costoDe ? s.prendas.find((p) => costoDe(p.productoId).duda) : undefined;
+    if (enDuda) {
+      setError(`Confirma lo que pagaste por ${enDuda.nombre ?? enDuda.codigo ?? "la prenda"}, o corrígelo.`);
+      enfocarCosto(enDuda.productoId);
+      return;
+    }
     setGuardando(true);
     setError(null);
     const firma = responsable.firma();
@@ -316,7 +347,7 @@ export function HacerAhora({
     const { cambios: cambiosCosto } = costosDeHacerAhora(s.prendas, costosEscritos, costoDeFabrica);
     const { costos } = costosDeHacerAhora(s.prendas, editaCosto ? costosConCatalogo(s.prendas, costosEscritos, costoInicial, deCatalogo) : costosEscritos, costoInicial);
     const { resuelto, error: e } = await resolverPendiente(
-      argsResolverPendiente({ despachoId: detalle.id, linea, pendienteId, separado: s, costos, confirmaCosto, token }),
+      argsResolverPendiente({ despachoId: detalle.id, linea, pendienteId, separado: s, costos, confirmaCosto, confirmaMontos: montosConfirmados(Object.values(confirmados)), token }),
       firma,
       preguntaDueno ? duenoId : null,
     );

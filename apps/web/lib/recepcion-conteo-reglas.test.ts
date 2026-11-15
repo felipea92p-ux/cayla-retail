@@ -337,6 +337,20 @@ describe("cerrar", () => {
     ]);
   });
 
+  it("ADR-0668 (A4): los montos confirmados viajan con su línea — el «sí» del aviso de la base confirma los que la línea tiene en ese momento", () => {
+    const [conSi, conHoja, nada] = lineasParaCerrar(
+      [contada("i1", 10, 10), contada("i2", 4, 4), contada("i3", 4, 4)],
+      { "item:i1": dec({ costo: "440", confirmaCosto: true }), "item:i2": dec({ costo: "18.5" }), "item:i3": dec({ costo: "30" }) },
+      false,
+      {},
+      {},
+      { "item:i2": [18.5, 18.5] },
+    );
+    expect(conSi).toMatchObject({ costo_unitario: 440, confirma_costo: true, confirma_montos: [440] });
+    expect(conHoja).toMatchObject({ costo_unitario: 18.5, confirma_costo: false, confirma_montos: [18.5] });
+    expect(nada).not.toHaveProperty("confirma_montos");
+  });
+
   it("p_lineas lleva TODO conteo, también lo de fuera de la guía que quedó en 0: la base lo exige y lo salta sola (si falta, el cierre falla siempre con «se contó mientras cerrabas»)", () => {
     const ls = lineasParaCerrar([contada("i1", 4, 4), extra(2, 0)], {}, false);
     expect(ls.map((x) => x.extra_posicion ?? x.despacho_item_id)).toEqual(["i1", 2]);
@@ -1287,6 +1301,9 @@ describe("ADR-0519 sobre ADR-0393: el costo de cada prenda en «Hacer ahora»", 
     const base = { despachoId: "d1", linea: { linea: linea("i1", 10), conteo: null }, pendienteId: "pe1", separado: SEPARADO_VACIO, token: "t" };
     expect(argsResolverPendiente(base).p_separado).not.toHaveProperty("costos");
     expect(argsResolverPendiente({ ...base, costos: {} }).p_separado).not.toHaveProperty("costos");
+    // ADR-0668 (A4): los montos confirmados van dentro de lo separado, solo si hay alguno.
+    expect(argsResolverPendiente({ ...base, confirmaMontos: [] }).p_separado).not.toHaveProperty("confirma_montos");
+    expect(argsResolverPendiente({ ...base, confirmaMontos: [440] }).p_separado).toMatchObject({ confirma_montos: [440] });
     const con = argsResolverPendiente({ ...base, costos: { "p-sofia": 52 } });
     expect(con.p_separado).toMatchObject({ prendas: [], nuevas: [], costos: { "p-sofia": 52 } });
     expect(con).toMatchObject({ p_despacho_item_id: "i1", p_pendiente_id: "pe1", p_confirma_costo: false, p_token: "t" });

@@ -39,6 +39,9 @@ import { hayQueElegirDueno } from "@/lib/dueno-reglas";
 import { soles } from "@/lib/compras-reglas";
 import { useEmpresasDeSede } from "@/lib/useEmpresasDeSede";
 import { DuenoDeLoQueEntra } from "./DuenoDeLoQueEntra";
+import { AvisoCostoDudoso } from "./AvisoCostoDudoso";
+import { useReferenciasDeCosto } from "./useReferenciasDeCosto";
+import { dudaDeCosto } from "@/lib/referencia-de-costo";
 import { agruparLineasDelCierre, camposDelCierrePorGrupo, nombreDelGrupoDelCierre, causasDelGrupo, filasDelCierre, lineaDeLaPrenda, lineaDelGrupo, textoDeLasPlegadas, textoDeLoQueFalta, type GrupoDeLineas } from "@/lib/recepcion-grupos-reglas";
 import { pideRevisarAlRecibir, precioUnicoAlCerrar, textoRevisarAlRecibir } from "@/lib/precio-propuesto-reglas";
 import { borrarBorradorDelCierre, conCostosDecididos, conLoDecidido, costosCambiados, costosDeCombinacionCambiados, decisionCambiada, type FotoDelCierre, guardarBorradorDelCierre, leerBorradorDelCierre } from "@/lib/recepcion-cierre-borrador";
@@ -192,6 +195,17 @@ export function CerrarEnvio({
     // `idsDeVariantes` se arma en cada dibujo.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [idsDeVariantes.join(","), veDinero]);
+  // ADR-0668 (A4): un costo dudoso (440 por 44, lo de la orden sin IGV, fuera de lo que suele costar) se confirma por su monto en la fila;
+  // mientras tanto no se ofrece revisar el precio y el envío no cierra. La base lo vuelve a revisar al cerrar.
+  const { refs: refsCosto } = useReferenciasDeCosto({
+    variantes: idsDeVariantes,
+    categorias: [...new Set(visibles.map((l) => l.categoria?.id).filter((x): x is string => !!x))],
+    lineasDelEnvio: visibles.map((l) => l.linea?.id).filter((x): x is string => !!x),
+  });
+  /** Por línea y fila (`línea|modelo`), el monto que la persona confirmó con «Sí, pagué». Cambiar el costo lo deja sin confirmar. */
+  const [costosConfirmados, setCostosConfirmados] = useState<Record<string, Record<string, number>>>({});
+  /** Las filas que se dibujaron con una duda abierta en ESTE dibujo: `cerrar`, que es de este mismo dibujo, las ve al tocarse. */
+  const dudasAbiertas: { claveFila: string; nombre: string }[] = [];
   // Lo que cambia (de compra y de venta), para confirmarlo antes de guardar: `null` = no se está confirmando.
   const [porConfirmar, setPorConfirmar] = useState<CambioDePrecio[] | null>(null);
   // Las filas con el costo y el precio de venta de sus prendas a la vista. Una categoría de fuera de la guía arranca abierta (su costo se pide y no
@@ -481,6 +495,13 @@ export function CerrarEnvio({
   }
   /** Un costo propio mal escrito frena el cierre antes de ir a la base (que lo rechaza con las mismas reglas). */
   function hayCostoDePrendaMalo(): boolean {
+    // ADR-0668 (A4): un costo dudoso sin confirmar frena igual que uno mal escrito; el cursor va a su caja.
+    const enDuda = dudasAbiertas[0];
+    if (enDuda) {
+      setError({ texto: `Confirma lo que pagaste por ${enDuda.nombre}, o corrígelo.`, recargar: false });
+      requestAnimationFrame(() => document.querySelector<HTMLInputElement>(`[data-costo-fila="${CSS.escape(enDuda.claveFila)}"] input`)?.focus());
+      return true;
+    }
     const malos = costosDePrendaConProblema(visibles, costosPrenda);
     if (malos.length === 0) return false;
     setError({ texto: `Corrige el costo de ${malos[0].nombre}: ${malos[0].problema}.`, recargar: false });
@@ -565,7 +586,14 @@ export function CerrarEnvio({
         p_despacho_id: detalle.id,
         p_version: versionParaCerrar,
         // Todos los conteos, también lo de fuera de la guía que quedó en 0 y no se ve: la base exige uno por conteo y lo salta sola.
-        p_lineas: lineasParaCerrar(lineas, conConfirmados, sinAviso, costosPrenda, costosCombinacionesPorLinea()),
+        p_lineas: lineasParaCerrar(
+          lineas,
+          conConfirmados,
+          sinAviso,
+          costosPrenda,
+          costosCombinacionesPorLinea(),
+          Object.fromEntries(Object.entries(costosConfirmados).map(([linea, filas]) => [linea, Object.values(filas)])),
+        ),
         p_nota: nota.trim() ? nota.trim().slice(0, TOPES_CONTEO.notaEnvio) : null,
         p_token: token,
       },
@@ -824,15 +852,23 @@ export function CerrarEnvio({
           // la propuesta de la IA vive en «Cambiar por talla», que es donde se cambia su precio. Cuenta gratis, sin IA.
           const precioQueda = prendaFila ? precioUnicoAlCerrar(combinaciones, cambiosPrecio) : null;
           const costoQueda = !variosPorTalla ? (lectura.problema === null ? (lectura.valor ?? heredado) : null) : null;
-          const revisarPrecio = prendaFila && editaCosto ? pideRevisarAlRecibir({ precio: precioQueda, costo: costoQueda, costoAntes: antes ? leerCostoCierre(antes).valor : null }) : null;
+          const claveFila = `${v}|${m?.clave ?? ""}`;
+          const dudaFila =
+            editaCosto && !variosPorTalla && costoQueda !== null
+              ? dudaDeCosto(costoQueda, refsCosto, { varianteIds: combinaciones.map((x) => x.varianteId), categoriaId: p.categoria?.id ?? null, lineaId: p.linea?.id ?? null })
+              : null;
+          const dudaAbierta = dudaFila && costosConfirmados[v]?.[claveFila] !== costoQueda ? dudaFila : null;
+          const revisarPrecio =
+            prendaFila && editaCosto && !dudaAbierta ? pideRevisarAlRecibir({ precio: precioQueda, costo: costoQueda, costoAntes: antes ? leerCostoCierre(antes).valor : null }) : null;
           const abiertaEsta = abierta && !!prendaFila && prendasALaVista.includes(prendaFila);
           const nombre = m?.nombre ?? nombreGrupo.split(" · ")[0];
           const det = m ? detalleDelModelo(g.lineas, m) : null;
           const claveDet = `${g.clave}|${m?.clave ?? ""}`;
           const verDet = !!m && detalles.has(claveDet);
           const idDet = `detalle-${idFila}-${i}`;
+          if (dudaAbierta) dudasAbiertas.push({ claveFila, nombre: m?.nombre ?? nombreGrupo.split(" · ")[0] });
           const caja = (
-            <div>
+            <div data-costo-fila={claveFila}>
               <span className="flex max-w-44 items-center gap-1.5">
               <span className="text-sm text-taupe" aria-hidden>S/</span>
               <input // unificar-fijo: la caja del sistema dentro de una celda de la tabla, donde el título lo pone la columna
@@ -939,6 +975,17 @@ export function CerrarEnvio({
                 )}
               </div>
             </div>
+            {dudaAbierta && costoQueda !== null && (
+              <div className="px-5 pb-3">
+                <AvisoCostoDudoso
+                  duda={dudaAbierta}
+                  costo={costoQueda}
+                  nombre={nombre}
+                  onConfirmar={(monto) => setCostosConfirmados((c) => ({ ...c, [v]: { ...(c[v] ?? {}), [claveFila]: monto } }))}
+                  onUsar={(monto) => (m ? cambiarCostoPrenda(v, m.clave, monto.toFixed(2)) : cambiar(p.clave, { costo: monto.toFixed(2), confirmaCosto: false }))}
+                />
+              </div>
+            )}
             {m && verDet && det && (
               <DetalleDelModelo
                 id={idDet}

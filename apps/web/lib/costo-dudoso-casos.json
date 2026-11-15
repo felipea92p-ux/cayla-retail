@@ -1,0 +1,24 @@
+{
+  "_que_es": "ADR-0668 (A4): los casos del costo dudoso. Los corren las dos mitades de la misma regla: la web (lib/cuenta-de-precio.test.ts, motivoDeCosto) y la base (scripts/pruebas/costo_dudoso.mjs, retail.fn_motivo_de_costo). Si una cambia y la otra no, una de las dos pruebas falla.",
+  "casos": [
+    { "nombre": "reposición normal", "costo": 44, "anterior": 36, "deLaOrden": null, "banda": null, "motivo": null },
+    { "nombre": "440 escrito por 44", "costo": 440, "anterior": 44, "deLaOrden": null, "banda": null, "motivo": "sube" },
+    { "nombre": "justo el doble pasa", "costo": 72, "anterior": 36, "deLaOrden": null, "banda": null, "motivo": null },
+    { "nombre": "un céntimo más del doble", "costo": 72.01, "anterior": 36, "deLaOrden": null, "banda": null, "motivo": "sube" },
+    { "nombre": "4.40 escrito por 44", "costo": 4.4, "anterior": 44, "deLaOrden": null, "banda": null, "motivo": "baja" },
+    { "nombre": "justo dos tercios pasa", "costo": 24, "anterior": 36, "deLaOrden": null, "banda": null, "motivo": null },
+    { "nombre": "el monto sin IGV de la orden (caso 4 de la maqueta)", "costo": 18.5, "anterior": null, "deLaOrden": 21.83, "banda": null, "motivo": "sin_igv" },
+    { "nombre": "lo de la orden, tal cual", "costo": 21.83, "anterior": null, "deLaOrden": 21.83, "banda": null, "motivo": null },
+    { "nombre": "dos por ciento debajo de lo sin IGV, todavía duda", "costo": 18.13, "anterior": null, "deLaOrden": 21.83, "banda": null, "motivo": "sin_igv" },
+    { "nombre": "un poco más lejos de lo sin IGV, ya no", "costo": 18.1, "anterior": null, "deLaOrden": 21.83, "banda": null, "motivo": null },
+    { "nombre": "una prenda nueva muy cara para su categoría", "costo": 440, "anterior": null, "deLaOrden": null, "banda": { "lo": 10.92, "hi": 80, "de": "categoria" }, "motivo": "fuera_de_banda" },
+    { "nombre": "una prenda nueva muy barata para su categoría", "costo": 7.53, "anterior": null, "deLaOrden": null, "banda": { "lo": 10.92, "hi": 80, "de": "categoria" }, "motivo": "fuera_de_banda" },
+    { "nombre": "dentro de lo que suele costar", "costo": 35, "anterior": null, "deLaOrden": null, "banda": { "lo": 10.92, "hi": 80, "de": "categoria" }, "motivo": null },
+    { "nombre": "en el borde de la banda pasa", "costo": 80, "anterior": null, "deLaOrden": null, "banda": { "lo": 10.92, "hi": 80, "de": "categoria" }, "motivo": null },
+    { "nombre": "el anterior manda sobre la banda", "costo": 100, "anterior": 40, "deLaOrden": null, "banda": { "lo": 10.92, "hi": 80, "de": "categoria" }, "motivo": "sube" },
+    { "nombre": "sin IGV manda sobre la banda", "costo": 18.5, "anterior": null, "deLaOrden": 21.83, "banda": { "lo": 20, "hi": 80, "de": "categoria" }, "motivo": "sin_igv" },
+    { "nombre": "con anterior normal, la banda igual mira", "costo": 9, "anterior": 8, "deLaOrden": null, "banda": { "lo": 10.92, "hi": 80, "de": "familia" }, "motivo": "fuera_de_banda" },
+    { "nombre": "sin nada con qué comparar, nada pide", "costo": 999, "anterior": null, "deLaOrden": null, "banda": null, "motivo": null },
+    { "nombre": "un costo cero lo dice el campo, no la duda", "costo": 0, "anterior": 36, "deLaOrden": 21.83, "banda": { "lo": 10.92, "hi": 80, "de": "categoria" }, "motivo": null }
+  ]
+}

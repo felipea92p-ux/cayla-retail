@@ -88,3 +88,52 @@ export function pisoDelPrecio(costo: number): number | null {
   }
   return null;
 }
+
+/* ───────────────────────── El costo dudoso (ADR-0668, A4) ───────────────────────── */
+//
+// Decisión 9 de Felipe (2026-11-15): «un costo raro no sugiere precio ni deja guardar hasta que la persona confirma «Sí, pagué S/ X»».
+// La REGLA vive en la base (`retail.fn_motivo_de_costo`, 20261115204000) y es la que frena el cierre; esta es su espejo, para avisar
+// ANTES de guardar con los mismos números (`fn_precio_referencia`). `lib/cuenta-de-precio.test.ts` y
+// `scripts/pruebas/costo_dudoso.mjs` corren los mismos casos contra las dos.
+// No incluye «sin costo» ni «mayor que el precio»: el primero lo dice el campo, y el segundo es un aviso rojo que no apaga el sugerido.
+
+export type MotivoDeCosto = "sube" | "baja" | "sin_igv" | "fuera_de_banda";
+
+/** Lo que suele costar una prenda de su categoría (o de su familia, si la categoría tiene pocos modelos). */
+export type BandaDeCosto = { lo: number; hi: number; de: "categoria" | "familia" };
+
+export type ReferenciaDeCosto = {
+  /** El costo de hoy de la prenda en la base del papel (con IGV si su última entrada fue con factura), o `null` si es nueva. */
+  anterior: number | null;
+  /** Lo que la orden dice que cuesta cada prenda, con todo; `null` si llegó sin orden. */
+  deLaOrden: number | null;
+  banda: BandaDeCosto | null;
+};
+
+/** El mismo IGV que la base usa hoy (`fn_tasa_igv`): la lectura de referencia lo trae; sin ella, el de siempre. */
+const TASA_IGV = IGV - 1;
+
+/**
+ * Por qué este costo pide confirmar, o `null`. En el orden de la base, el primero que salte:
+ *   1. «sube» / «baja»: más del doble o menos de dos tercios del anterior (la banda de `fn_costo_fuera_de_banda`).
+ *   2. «sin_igv»: es lo de la orden ÷ 1.18, ±2 % (entre los dos montos hay 15 %: nunca toca al correcto).
+ *   3. «fuera_de_banda»: fuera de lo que suele costar su categoría, solo si nada de lo anterior saltó.
+ */
+export function motivoDeCosto(costo: number | null, ref: ReferenciaDeCosto | null, tasaIgv = TASA_IGV): MotivoDeCosto | null {
+  if (costo === null || !Number.isFinite(costo) || costo <= 0 || !ref) return null;
+  const c = cts(costo);
+  if (ref.anterior !== null && ref.anterior > 0) {
+    const a = cts(ref.anterior);
+    if (c > a * 2) return "sube";
+    if (c * 3 < a * 2) return "baja";
+  }
+  if (ref.deLaOrden !== null && ref.deLaOrden > 0) {
+    const o = cts(ref.deLaOrden);
+    if (c !== o) {
+      const sinIgv = Math.round(o / (1 + tasaIgv));
+      if (Math.abs(c - sinIgv) * 50 <= sinIgv) return "sin_igv";
+    }
+  }
+  if (ref.banda && (c < cts(ref.banda.lo) || c > cts(ref.banda.hi))) return "fuera_de_banda";
+  return null;
+}

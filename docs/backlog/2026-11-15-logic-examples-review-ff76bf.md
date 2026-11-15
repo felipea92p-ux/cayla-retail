@@ -35,7 +35,7 @@ la maqueta `docs/maquetas/precio-sugerido-2026-11/index.html`. Detalle técnico 
 | A1 | ~~La cuenta en un solo archivo (`lib/cuenta-de-precio.ts`), sin cambiar ninguna cifra~~ **hecho** | S | no | no |
 | A2 | ~~**Una sola cuenta en Recibir y Nuevo producto; fuera «RUC ⇒ factura».**~~ **hecho** (la propuesta de la IA también sube al piso nuevo) | M | no | no |
 | A3 | ~~Quien fija precio ve el costo; el cliente nunca (con la prueba que lo vigila)~~ **construido** (rama `claude/precio-a3-costo-a-la-vista`): en la hoja que cambia el precio, no en la tabla de Productos; **SQL pegado en producción el 2026-11-15**. `fn_precio_referencia` pasa a A4 | M | sí | sí |
-| A4 | Candados de costo: anterior, sin impuesto y fuera de la categoría; se confirma el **monto** | M/L | sí | sí |
+| A4 | ~~Candados de costo: anterior, sin impuesto y fuera de la categoría; se confirma el **monto**~~ **construido** (rama `claude/precio-a4-candados-de-costo`): dos partes de SQL que **esperan tu OK**, pegadas en orden PARTE 1 → web → PARTE 2 | M/L | sí | sí |
 | A5 | «Pierdes» pide confirmar en vez de prohibir; dos personas a la vez no se pisan el precio | M | sí | sí |
 | A6 | La pieza única `<CuentaDelPrecio>` (barra, veredicto, piso, IA) en la hoja de Recibir | L | no | sí, la eliges mirando |
 | A7 | Recibir: la tabla del cierre y la Vitrina dicen lo mismo que la hoja | M | no | no |
@@ -65,7 +65,7 @@ Por qué este orden:
    iguales», ¿su costo se lleva a con IGV o se queda? Si se queda, su piso sale 18 % bajo para siempre.
 2. **Al contador:** con el costo con IGV, ¿cómo queda el libro? (i) el inventario por el total y el IGV recuperado contra el costo de
    ventas del mes, o (ii) el libro sigue sin IGV y solo la cifra de gestión usa el costo del papel.
-3. **«Precio ≤ costo»:** la maqueta lo muestra como aviso rojo que **sí** deja ver el sugerido (porque el sugerido es el arreglo). Confirmar.
+3. ~~**«Precio ≤ costo»:**~~ resuelto en A4 como la maqueta: aviso rojo que no apaga el sugerido; se confirma en «Pierdes» (A5).
 4. (c) En Nuevo producto, ¿se puede crear una prenda sin costo?
 5. Antes de corregir ×1.18: qué prendas en campaña activa quedarían bajo el costo nuevo (la caja las rechazaría a mitad de campaña).
 
@@ -74,3 +74,11 @@ Por qué este orden:
 - La caja (`registrar_venta`, `venta_descuento_bajo_costo`) sigue comparando como hoy; se revisa aparte.
 - Finanzas y los Estados financieros no cambian salvo lo que decida el contador en A11.
 - Choques: #1874 (recepción y costo) y #1880 (precio por sede) están abiertos; A0 espera a #1874 y A5 a #1880.
+
+## Después de A4 (anotado al construirlo)
+
+- Quitar el «sí» suelto (`confirma_costo: true` sin monto) para los motivos de antes cuando la web nueva lleve unos días publicada y la cola
+  sin conexión de «Llegó mercadería» esté vacía: es la segunda mitad de la corrección 15.
+- La matriz «Cambiar por talla» del cierre (`PrendaConCombinaciones`) no repite el aviso del costo dudoso: la fila de arriba ya lo muestra.
+- El detalle del rechazo de la base (`costo_vigente`) sigue diciendo lo guardado, no lo de papel: el texto «N veces su costo actual» puede
+  quedar 18 % corrido en una prenda con factura hasta A11.
