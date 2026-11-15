@@ -140,6 +140,39 @@ describe("leerColores", () => {
     const l = leerColores(prenda(() => "#F3ECE0"), CARTA);
     expect(nombres(l)).toEqual(["CRU"]);
   });
+
+  // Auditoría 2026-11-15: un vestido gris liso quedaba «Plata vieja» sin preguntar (ΔE 1,7 contra 2,9 del Gris), una blusa beige «Champán» y
+  // un pantalón marrón «Bronce». El brillo de un metálico no se ve en el promedio de unos píxeles: su muestra es un gris o un ocre más.
+  describe("no asienta un metálico por su tono: el brillo no se ve en un píxel", () => {
+    // Los tonos reales de la carta (retail.colores, 2026-11-15).
+    const CON_METALICOS: ColorDeCarta[] = [
+      ...CARTA,
+      { codigo: "GRI", nombre: "Gris", hex: "#848587", familiaColor: "neutro", tipo: "solido" },
+      { codigo: "BEI", nombre: "Beige", hex: "#D5BA98", familiaColor: "tierra", tipo: "solido" },
+      { codigo: "CAM", nombre: "Camel", hex: "#B0885B", familiaColor: "tierra", tipo: "solido" },
+      { codigo: "PLV", nombre: "Plata vieja", hex: "#8C8D88", familiaColor: "metalico", tipo: "solido" },
+      { codigo: "CHA", nombre: "Champán", hex: "#E2D1A6", familiaColor: "metalico", tipo: "solido" },
+      { codigo: "BRO", nombre: "Bronce", hex: "#8C6B3B", familiaColor: "metalico", tipo: "solido" },
+    ];
+
+    it("un gris liso es «Gris», no «Plata vieja»", () => {
+      const l = leerColores(prenda(() => "#908E89"), CON_METALICOS);
+      expect(nombres(l)).toEqual(["GRI"]);
+      expect(propuestaInicial(l)).toEqual(["GRI"]);
+    });
+
+    it("ni un tono idéntico a la muestra del metálico lo propone: cae en el color liso más cercano o pregunta", () => {
+      for (const hex of ["#8C8D88", "#E2D1A6", "#8C6B3B"]) {
+        const l = leerColores(prenda(() => hex), CON_METALICOS);
+        expect(nombres(l).some((c) => ["PLV", "CHA", "BRO"].includes(c))).toBe(false);
+      }
+    });
+
+    it("control: quitar los metálicos no cambia lo que se lee de una prenda que no se les parece", () => {
+      const l = leerColores(prenda(() => "#6C2831"), CON_METALICOS);
+      expect(nombres(l)).toEqual(["VIN"]);
+    });
+  });
 });
 
 describe("leerColores — los fallos que salieron con fotos reales (actividad 2, 90 fotos de producción)", () => {

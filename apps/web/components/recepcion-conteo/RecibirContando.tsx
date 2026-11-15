@@ -164,7 +164,9 @@ export function RecibirContando({
 
   const estadoBase = base?.estado ?? detalle.estado;
   const estado = detalle.estado === "en_camino" && apertura ? "abierto" : estadoBase;
-  const version = apertura?.version ?? detalle.version;
+  // La versión más alta que se conoce. `apertura` se queda con la del momento de abrir y cada cierre o reapertura la sube en la base: con «apertura primero»,
+  // abrir → cerrar → reabrir → cerrar en la misma visita mandaba la versión vieja y la base respondía «Alguien cambió este envío» hasta recargar (auditoría 2026-11-15).
+  const version = Math.max(apertura?.version ?? 0, detalle.version);
   const porRecibir = estado === "en_camino" || estado === "abierto";
   const otraSede = porRecibir && detalle.sede !== null && detalle.sede.id !== sedeActual.id;
   const noLoRecibe = porRecibir && !otraSede && creadoPorMi;

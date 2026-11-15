@@ -728,6 +728,21 @@ export type LineaParaContar = {
   dijeron: number | null;
 };
 
+/**
+ * El proveedor que la hoja de la prenda le manda a la base (`preparar_prenda_al_recibir`). Lo de fuera de la guía lleva el de SU línea cuando el envío trae dos o
+ * más, o llegó sin aviso (cada línea es de su proveedor, Felipe 2026-11-07); con uno solo y en una línea de la guía, la base ya sabe cuál es. Es una sola regla
+ * para Contar y para «Crear ahora» de Para después: la segunda mandaba siempre `null` y, con varios proveedores, la base respondía «elige de cuál es esta prenda»
+ * en una hoja que no tiene dónde elegirlo; sin aviso, la prenda nacía sin proveedor aunque su línea ya lo decía (auditoría 2026-11-15).
+ */
+export function proveedorDeLaHoja(l: Pick<LineaParaContar, "linea" | "proveedor">, nProveedores: number, sinAviso: boolean): string | null {
+  return !l.linea && (nProveedores >= 2 || sinAviso) ? (l.proveedor?.id ?? null) : null;
+}
+
+/** Cuántos proveedores distintos traen las líneas de un envío (para `proveedorDeLaHoja`, donde no llega la lista de proveedores). */
+export function proveedoresDeLasLineas(lineas: readonly Pick<LineaParaContar, "proveedor">[]): number {
+  return new Set(lineas.map((l) => l.proveedor?.id).filter((id): id is string => !!id)).size;
+}
+
 /** Las líneas en el orden del envío (las de la guía primero) y después lo de fuera de la guía, por su posición. */
 export function lineasParaContar(d: Pick<DetalleEnvio, "lineas"> & Partial<Pick<DetalleEnvio, "recibidos">>, c: Pick<ConteosDelEnvio, "conteos"> | null): LineaParaContar[] {
   // Qué prendas entraron por cada línea: el conteo solo trae cuántas.

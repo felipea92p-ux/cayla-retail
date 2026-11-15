@@ -109,10 +109,19 @@ export async function leerPrendasCreadasDelEnvio(productoIds: readonly string[],
   return error ? [] : leerPrendasCreadas(data, desde);
 }
 
-/** Lo que se parece en TODAS las marcas de la categoría, para no crear una prenda repetida al recibir. Si no responde, se sigue sin ellas. */
-export async function buscarParecidasParaRecibir(categoriaId: string, busqueda: string): Promise<PrendaRecepcion[]> {
+/**
+ * Lo que se parece en TODAS las marcas de la categoría, CON su error: para la galería «¿Esta prenda ya existe?», donde «no respondió» y «no hay ninguna» no
+ * son lo mismo. Sin el error, un corte se dibujaba como «Todavía no hay blusas en el catálogo» con el botón «Crearla como nueva» al lado: la puerta a una
+ * prenda repetida (auditoría 2026-11-15).
+ */
+export async function buscarParecidasEnTodasLasMarcas(categoriaId: string, busqueda: string): Promise<{ prendas: PrendaRecepcion[]; error: ErrorDeBase }> {
   const { data, error } = (await createClient().rpc(RPC_PARECIDAS_PARA_RECIBIR as never, { p_categoria_id: categoriaId, p_busqueda: busqueda.trim() } as never)) as unknown as Respuesta;
-  return error ? [] : leerParecidasParaRecibir(data);
+  return { prendas: error ? [] : leerParecidasParaRecibir(data), error: error ?? null };
+}
+
+/** Lo mismo como PISTA mientras se escribe el nombre de un modelo nuevo: si no responde, se sigue sin ellas. */
+export async function buscarParecidasParaRecibir(categoriaId: string, busqueda: string): Promise<PrendaRecepcion[]> {
+  return (await buscarParecidasEnTodasLasMarcas(categoriaId, busqueda)).prendas;
 }
 
 /** El detalle de un envío (`fn_envio_detalle`) leído desde el navegador: lo que trae, para la hoja «Detalle» de la lista de Recibir. Solo lee. */

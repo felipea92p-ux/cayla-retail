@@ -1,6 +1,6 @@
 "use client";
 
-import type { ReactNode } from "react";
+import { useRef, type ReactNode } from "react";
 import { AlertTriangle, Check, Plus, X } from "lucide-react";
 import { Modal } from "@/components/ui/Modal";
 import { Boton, CampoMonto, CampoTexto } from "@/components/ui/campos";
@@ -115,6 +115,15 @@ export function HojaPrenda({
   // «A la espera de precio sugerido» solo en una prenda que no es del catálogo: la del catálogo ya tiene su precio (la base lo exige igual).
   const puedeEsperarPrecio = h.productoId === null;
   const esperaPrecio = puedeEsperarPrecio && b.ventaPorDefinir === true;
+  // Prender «a la espera» vacía el precio (una prenda en espera no lleva precio). Si se prendió sin querer, apagarlo lo devuelve: antes el precio ya
+  // escrito se perdía con dos toques (auditoría 2026-11-15).
+  // Se recuerda junto a SU prenda: la hoja puede pasar de una prenda a otra sin desmontarse, y el precio de una no vuelve en otra.
+  const ventaAntesDeEsperar = useRef<{ de: unknown; venta: string } | null>(null);
+  const alternarEspera = () => {
+    if (esperaPrecio) return cambiar({ ventaPorDefinir: false, venta: ventaAntesDeEsperar.current?.de === h ? ventaAntesDeEsperar.current.venta : "" });
+    ventaAntesDeEsperar.current = { de: h, venta: b.venta };
+    cambiar({ ventaPorDefinir: true, venta: "" });
+  };
   // Cambiar cuántas rehace el reparto parejo entre las tiendas, salvo que se haya repartido a mano.
   const ponerCantidad = (v: string) => cambiar(conCantidad(b, v));
   const repartidas = b.destinos.length >= 2;
@@ -222,7 +231,7 @@ export function HojaPrenda({
             <div className="-mt-2 flex justify-end">
               <Atajo
                 elegido={esperaPrecio}
-                onClick={() => cambiar(esperaPrecio ? { ventaPorDefinir: false } : { ventaPorDefinir: true, venta: "" })}
+                onClick={alternarEspera}
                 guia="compra.venta-espera"
               >
                 {TEXTO_PRECIO_EN_ESPERA}

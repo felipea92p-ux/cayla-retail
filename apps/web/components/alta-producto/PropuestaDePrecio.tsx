@@ -117,7 +117,13 @@ export function PropuestaDePrecio({
   // Cada estado guarda con qué datos nació, y uno de otros datos se lee como «nada» (o como lo ya respondido con esos datos).
   const datosDePropuesta: DatosPropuesta = { origen, productoId, categoriaId, tejidoId, referencia, descripcion, costoBase };
   const clave = claveDe(datosDePropuesta);
-  const [guardado, setGuardado] = useState<{ clave: string; estado: Estado }>(() => ({ clave, estado: { tipo: "nada" } }));
+  // Nace con lo ya respondido para estos datos, si lo hay: la hoja de Recibir adelanta la consulta al abrirse y, si la respuesta llegaba ANTES de llegar a este
+  // paso, la pieza aparecía vacía (su clave coincide, así que no leía `recordada`) y el efecto de abajo no la pedía porque ya estaba respondida. Quedaba solo el
+  // botón, que hace otra consulta: otra espera y otro cobro (auditoría 2026-11-15).
+  const [guardado, setGuardado] = useState<{ clave: string; estado: Estado }>(() => {
+    const yaRespondida = YA_RESPONDIDO.get(clave);
+    return { clave, estado: yaRespondida ? { tipo: "listo", respuesta: yaRespondida } : { tipo: "nada" } };
+  });
   const recordada = YA_RESPONDIDO.get(clave);
   const estado: Estado = guardado.clave === clave ? guardado.estado : recordada ? { tipo: "listo", respuesta: recordada } : { tipo: "nada" };
   const [dejado, setDejado] = useState<string | null>(null);
