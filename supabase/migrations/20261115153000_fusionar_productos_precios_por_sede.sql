@@ -153,10 +153,6 @@ begin
   if not coalesce((v_plan ->> 'ok')::boolean, false) then
     return v_plan;
   end if;
-  -- Una terminal no cambia el precio de la prenda (20261026224000): puede fusionar, pero cada talla conserva el suyo. La pantalla lo dice.
-  if retail.fn_es_terminal() then
-    v_plan := v_plan || jsonb_build_object('terminal_sin_unificar_precio', true);
-  end if;
   v_sedes := retail.fn_fusion_precios_sede_resumen(p_queda, p_duplicados);
   if jsonb_array_length(v_sedes) = 0 then
     return v_plan;
@@ -295,11 +291,9 @@ select pg_temp.reemplazar(
   if coalesce(nullif(v_el ->> 'precio_modo', ''), 'por_sede') not in ('por_sede', 'uno') then
     raise exception 'El modo de precio de la fusión no es válido.' using errcode = 'P0001', hint = 'precio_modo';
   end if;
-  -- «Un solo precio» cambia el precio de otras tiendas: no es de una terminal (20261026224000).
-  if retail.fn_es_terminal() and v_el ->> 'precio_modo' = 'uno' then
-    raise exception 'Desde una terminal no se puede juntar el precio de todas las sedes en uno: cada sede conserva el suyo.'
-      using errcode = '42501', hint = 'terminal_precio_de_la_prenda';
-  end if;
+  -- Una fusión elige los precios también desde una terminal (Felipe 2026-11-15): el candado de 20261026224000 se aparta solo
+  -- mientras corre esta transacción (ver el parche del disparador, abajo).
+  perform set_config('retail.fusion_precio_en_curso', 'on', true);
   perform retail.fn_fusion_precios_sede_capturar(p_queda, v_dups, v_plan);
 
   -- ---------- 5. Los duplicados quedan fusionados (sueltan su nombre) ----------$a$,
@@ -316,16 +310,14 @@ select pg_temp.reemplazar(
   -- El costo: el de un producto de la fusión, en las prendas cuyo costo todavía no sale de sus compras.$a$,
   1);
 
--- (c) Una terminal no cambia `variantes.precio`: el paso del precio general no se hace; cada talla conserva el suyo (el disparador
--- `variantes_terminal_no_cambia_precio` frenaba toda la fusión).
+-- (c) El candado «una terminal no cambia `variantes.precio`» (20261026224000) frenaba toda la fusión desde una terminal. La fusión
+-- elige los precios con la misma regla para toda cuenta (Felipe 2026-11-15): el disparador se aparta solo mientras corre
+-- `fusionar_productos`, que marca su transacción con `retail.fusion_precio_en_curso` (`set_config(…, true)` = solo esa transacción).
+-- Fuera de la fusión el candado sigue igual.
 select pg_temp.reemplazar(
-  'retail.fusionar_productos(uuid, uuid[], jsonb, jsonb)',
-  $a$  v_precio := nullif(v_el ->> 'precio', '')::numeric;$a$,
-  $a$  v_precio := nullif(v_el ->> 'precio', '')::numeric;
-  -- Una terminal no cambia variantes.precio (20261026224000, 20261115153000): cada talla conserva el suyo.
-  if retail.fn_es_terminal() then
-    v_precio := null;
-  end if;$a$,
+  'retail.fn_terminal_no_cambia_precio_de_la_prenda()',
+  $a$  if retail.fn_es_terminal() then$a$,
+  $a$  if retail.fn_es_terminal() and coalesce(current_setting('retail.fusion_precio_en_curso', true), '') <> 'on' then$a$,
   1);
 
 -- ---------- 7. Verificación: si algo no quedó, la migración falla ----------
