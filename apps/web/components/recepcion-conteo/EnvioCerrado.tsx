@@ -11,7 +11,7 @@ import { Chip } from "@/components/ui/Chip";
 import { diaYHoraLima } from "@/lib/fechas-lima";
 import type { ControlResponsable } from "@/lib/useResponsable";
 import { buenasDeRecibidos, CAUSAS_FALTANTE, CAUSAS_SOBRANTE, despuesDeRecibirEnvio, textoCausa, type CatalogoParaRecibir, type DetalleEnvio, type PrendaRecepcion } from "@/lib/recepcion-envio-reglas";
-import { BOTON_DE_PENDIENTE, cifrasDelEnvio, loQueEntroPorPrenda, paraDespues, textoNoSeReabre, veredictoDelCerrado, type ConteosDelEnvio, type LineaParaContar, type ParaDespues } from "@/lib/recepcion-conteo-reglas";
+import { BOTON_DE_PENDIENTE, cifrasDelEnvio, loQueEntroPorPrenda, paraDespues, proveedoresDeLasLineas, textoNoSeReabre, veredictoDelCerrado, type ConteosDelEnvio, type LineaParaContar, type ParaDespues } from "@/lib/recepcion-conteo-reglas";
 import { HacerAhora } from "./HacerAhora";
 import { Lacre } from "./Lacre";
 import { Odometro } from "./Odometro";
@@ -259,6 +259,7 @@ export function EnvioCerrado({
           onRecordar={creadas.recordar}
           soloSede={soloSede}
           sinAviso={sinAviso}
+          nProveedores={proveedoresDeLasLineas(lineas)}
           veDinero={veDinero}
           onPrendaVista={onPrendaVista}
           onCategoriaCambiada={(crear) => {

@@ -31,6 +31,7 @@ import {
   sumarPrenda,
   textoResumenDelCierre,
   variantesDeConteo,
+  proveedorDeLaHoja,
   type ClaveLinea,
   type ConteosDelEnvio,
   type LineaParaContar,
@@ -1303,6 +1304,6 @@ function destinoDe(detalle: DetalleEnvio, l: LineaParaContar, modo: "nueva" | "a
     costoUnitario: l.conteo?.costoUnitario ?? l.linea?.costoUnitario ?? null,
     prenda,
     // Lo de fuera de la guía lleva el proveedor de su línea: con dos o más en el envío, o sin aviso, donde cada línea es de su proveedor (Felipe 2026-11-07).
-    proveedorId: !l.linea && (nProveedores >= 2 || sinAviso) ? (l.proveedor?.id ?? null) : null,
+    proveedorId: proveedorDeLaHoja(l, nProveedores, sinAviso),
   };
 }

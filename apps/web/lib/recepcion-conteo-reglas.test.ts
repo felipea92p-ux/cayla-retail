@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { costoDelGrupo as costoDelGrupoStock, filasDeCostoEnStock, leerConteosDelEnvio as leerConteosStock, textoCostoEnStock, unidadesSinIdentificar as sinIdentificarStock } from "./recepcion-conteo-reglas";
 import { sePuedeCambiarCategoria, costoDeCatalogo, costosConCatalogo } from "./recepcion-conteo-reglas";
+import { proveedorDeLaHoja as proveedorDeLaHojaRegla, proveedoresDeLasLineas as proveedoresDeLasLineasRegla } from "./recepcion-conteo-reglas";
 import {
   lineasSinModelosEnCero,
   modelosEnCeroDe,
@@ -1531,5 +1532,33 @@ describe("lo que ya entró al stock en «Revisa y cierra»", () => {
     const c = envio(15, undefined);
     expect(c.costoEnStock).toBeNull();
     expect(costoDelGrupoStock(filasDeCostoEnStock(15, c.costoEnStock))).toEqual({ total: 0, conCosto: 0, sinCosto: 15 });
+  });
+});
+
+// Auditoría 2026-11-15: «Crear ahora» de Para después mandaba siempre `null` y la base no tenía de dónde sacar el proveedor.
+describe("el proveedor que la hoja de la prenda le manda a la base", () => {
+  const A = { id: "prov-a", nombre: "A" };
+  const B = { id: "prov-b", nombre: "B" };
+  const deLaGuia = { linea: { id: "item-1" } as unknown as LineaEnvio, proveedor: A };
+  const fueraDeGuia = { linea: null, proveedor: B };
+
+  it("lo de fuera de la guía lleva el de su línea cuando el envío trae dos o más", () => {
+    expect(proveedorDeLaHojaRegla(fueraDeGuia, 2, false)).toBe("prov-b");
+  });
+  it("sin aviso lo lleva aunque sea el único: cada línea es de su proveedor", () => {
+    expect(proveedorDeLaHojaRegla(fueraDeGuia, 1, true)).toBe("prov-b");
+  });
+  it("con un solo proveedor y con guía no se manda: la base ya sabe cuál es", () => {
+    expect(proveedorDeLaHojaRegla(fueraDeGuia, 1, false)).toBeNull();
+  });
+  it("una línea de la guía nunca lo manda: el proveedor sale de su orden", () => {
+    expect(proveedorDeLaHojaRegla(deLaGuia, 3, true)).toBeNull();
+  });
+  it("una línea sin proveedor no inventa uno", () => {
+    expect(proveedorDeLaHojaRegla({ linea: null, proveedor: null }, 2, true)).toBeNull();
+  });
+  it("cuenta los proveedores distintos de las líneas, sin los vacíos", () => {
+    expect(proveedoresDeLasLineasRegla([{ proveedor: A }, { proveedor: A }, { proveedor: B }, { proveedor: null }])).toBe(2);
+    expect(proveedoresDeLasLineasRegla([])).toBe(0);
   });
 });

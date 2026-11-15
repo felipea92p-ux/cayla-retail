@@ -256,6 +256,10 @@ export function CerrarEnvio({
   const [guiaEscrita, setGuiaEscrita] = useState(borrador?.guia ?? detalle.numeroGuia ?? "");
   const [guiaGuardada, setGuiaGuardada] = useState(detalle.numeroGuia ?? "");
   const [versionTrasGuia, setVersionTrasGuia] = useState<number | null>(null);
+  // El cierre lee lo contado DE LA BASE, no de la pantalla: con una línea cuyo guardado falló (un corte de wifi), la pantalla muestra el número nuevo y la base
+  // tiene el viejo. Desde el 2026-11-12 `esperandoGuardar` ya no cuenta esas líneas (para que «Llevar al stock» no quedara en «Guardando…» para siempre) y el
+  // botón cerraba con el número viejo mientras el aviso decía «hasta guardarlas no se puede cerrar» (auditoría 2026-11-15). Las dos cosas frenan el cierre.
+  const noSePuedeCerrarTodavia = esperandoGuardar || sinGuardar > 0;
   const avisoError = useRef<HTMLDivElement>(null);
   // Ya se cerró: lo que quede por pintar no vuelve a guardar lo que se acaba de borrar.
   const yaCerrado = useRef(false);
@@ -490,7 +494,7 @@ export function CerrarEnvio({
    * podría guardar y por qué no, junto a su campo (la fila de su línea se abre), y recién entonces (3) se muestra qué cambia y se pide confirmar.
    */
   async function pedirCerrar() {
-    if (!guia.puedeConfirmar || esperandoGuardar) return;
+    if (!guia.puedeConfirmar || noSePuedeCerrarTodavia) return;
     if (hayCostoDePrendaMalo()) return;
     const llamadas = llamadasDePrecio(prendasConCombinaciones(), cambiosPrecio);
     if (llamadas.length > 0) {
@@ -519,7 +523,7 @@ export function CerrarEnvio({
   }
 
   async function cerrar(confirmados: ReadonlySet<string> = new Set()) {
-    if (!guia.puedeConfirmar || esperandoGuardar) return;
+    if (!guia.puedeConfirmar || noSePuedeCerrarTodavia) return;
     if (hayCostoDePrendaMalo()) return;
     setGuardando(true);
     setError(null);
@@ -1357,7 +1361,7 @@ export function CerrarEnvio({
                   peso={guia.puedeConfirmar ? "primario" : "fantasma"}
                   cargando={guardando}
                   textoCargando="Cerrando…"
-                  disabled={esperandoGuardar} confirma={guia}
+                  disabled={noSePuedeCerrarTodavia} confirma={guia}
                   title={sinGuardar > 0 ? "Hay líneas que no se pudieron guardar" : esperandoGuardar ? "Espera: lo último que contaste se está guardando" : (guia.frase ?? undefined)}
                   className={`ml-auto ${guia.claseConfirmar}`}
                   data-guia="recepcion.cerrar-boton"

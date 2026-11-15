@@ -204,10 +204,17 @@ export function HojaPrenda({
   useEffect(() => {
     fotosRef.current = fotos;
   }, [fotos]);
-  // La hoja va por pasos: un clic en el velo no puede llevarse lo que se llenó en los anteriores.
+  // Fotos de «Fotos y colores» que todavía no tienen color: frenan crear la prenda, o se perderían (ADR-0663, como en Nuevo producto).
+  // Las fotos que «Fotos y colores» todavía lee o pregunta: las guarda la pantalla, no el paso, para que no se pierdan al cambiar de paso
+  // mientras la IA las prepara (Felipe 2026-11-14). Mientras haya alguna, no se crea: se perdería.
+  const fotosEnCurso = useFotosEnCurso();
+  const fotosSinColor = fotosEnCurso.pendientes.length;
+  // La hoja va por pasos: un clic en el velo no puede llevarse lo que se llenó en los anteriores. Una foto que la IA todavía prepara (o que espera su
+  // color) también cuenta: todavía no está en `fotos`, y al sumar un color a una prenda que ya existe cerrar la hoja se la llevaba sin preguntar, ya
+  // pagada (auditoría 2026-11-15).
   const [borradorInicial] = useState(() => JSON.stringify(borrador));
   const avisoSalida = useSalidaSinGuardar(
-    (nueva && JSON.stringify(borrador) !== borradorInicial) || fotos.length > 0,
+    (nueva && JSON.stringify(borrador) !== borradorInicial) || fotos.length > 0 || fotosSinColor > 0,
     nueva ? "Llenaste parte de esta prenda y todavía no se creó. Si cierras ahora, se pierde lo que llenaste." : "Subiste fotos que todavía no se guardaron. Si cierras ahora, se pierden.",
   );
   const cambiar = (cambios: Partial<BorradorPrenda>) => setBorrador((b) => ({ ...b, ...cambios }));
@@ -232,11 +239,6 @@ export function HojaPrenda({
   const enVuelo = useRef(false);
   const avisoError = useRef<HTMLDivElement>(null);
 
-  // Fotos de «Fotos y colores» que todavía no tienen color: frenan crear la prenda, o se perderían (ADR-0663, como en Nuevo producto).
-  // Las fotos que «Fotos y colores» todavía lee o pregunta: las guarda la pantalla, no el paso, para que no se pierdan al cambiar de paso
-  // mientras la IA las prepara (Felipe 2026-11-14). Mientras haya alguna, no se crea: se perdería.
-  const fotosEnCurso = useFotosEnCurso();
-  const fotosSinColor = fotosEnCurso.pendientes.length;
   const camposPrenda = camposDePrenda(borrador, ctx, tocados).map((c) =>
     c.id === "prenda-colores" && fotosSinColor ? { ...c, requerido: true, hecho: false, pendiente: textoFotosSinColor(fotosSinColor) } : c,
   );

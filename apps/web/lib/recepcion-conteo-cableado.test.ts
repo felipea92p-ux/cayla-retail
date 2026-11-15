@@ -103,3 +103,35 @@ describe("una sola regla para el número del contador", () => {
     for (const ts of [placa, fila]) expect(ts).not.toMatch(/\.contadas\s*:\s*sinIdentificarDelGrupo/);
   });
 });
+
+// Auditoría 2026-11-15: tres cableados que dejaban cerrar o contar lo que la base no tenía.
+describe("lo que la base no tiene guardado no se cierra ni se cuenta de un toque", () => {
+  it("(f) el cierre se frena con una línea cuyo guardado falló, no solo con una que está viajando", () => {
+    const cerrar = fuente("CerrarEnvio.tsx");
+    expect(cerrar).toMatch(/const noSePuedeCerrarTodavia = esperandoGuardar \|\| sinGuardar > 0;/);
+    // Los dos caminos que cierran (pedir el cierre y cerrar) y el botón preguntan lo mismo.
+    expect(cerrar.match(/if \(!guia\.puedeConfirmar \|\| noSePuedeCerrarTodavia\) return;/g) ?? []).toHaveLength(2);
+    expect(cerrar).toMatch(/disabled=\{noSePuedeCerrarTodavia\}/);
+    expect(cerrar).not.toMatch(/\|\| esperandoGuardar\) return;|disabled=\{esperandoGuardar\}/);
+  });
+
+  it("(g) la versión del envío es la más alta que se conoce: reabrir y volver a cerrar en la misma visita no manda la vieja", () => {
+    const pantalla = fuente("RecibirContando.tsx");
+    expect(pantalla).toMatch(/const version = Math\.max\(apertura\?\.version \?\? 0, detalle\.version\);/);
+    expect(pantalla).not.toMatch(/apertura\?\.version \?\? detalle\.version/);
+  });
+
+  it("(h) la fila no ofrece «Llegaron las N» en una prenda por definir: la base rechaza ese conteo", () => {
+    const fila = funcion(fuente("CategoriasAcordeon.tsx"), "FilaDeParada");
+    expect(fila).toMatch(/const porDefinir = !!cat && esCategoriaPorDefinir\(cat\);/);
+    expect(fila).toMatch(/const llegaron = !porDefinir && /);
+  });
+});
+
+describe("la galería «¿Esta prenda ya existe?» no toma un corte por «no hay ninguna»", () => {
+  it("(i) en todas las marcas pide la búsqueda CON su error, para decir «No se pudo buscar» y no ofrecer «Crearla como nueva»", () => {
+    const galeria = sinComentarios(readFileSync(join(raiz, "..", "recepcion-envio", "ElegirPrendaExistente.tsx"), "utf8"));
+    expect(galeria).toMatch(/await buscarParecidasEnTodasLasMarcas\(categoria\.id, busqueda\)/);
+    expect(galeria).not.toMatch(/error:\s*null\s*\}\)\)/);
+  });
+});
