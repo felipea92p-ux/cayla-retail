@@ -1815,6 +1815,10 @@ export const PRUEBAS = [
   // papel hasta su cupo; faltante y sobrante con causa; quien hizo la orden no la recibe; token y costo atípico. ROLLBACK siempre.
   "pruebas:recepcion-de-envio",
 
+  // Recibir ▸ «Sumar tallas o colores» a una prenda «Sin color» (ADR-0393 act. 2026-11-14): sin historia, cada «Sin color» toma el color que
+  // llegó en su talla y la que no toma ninguno se desactiva; con stock se frena sin escribir; llegar «Sin color» o mezclado, igual que antes. ROLLBACK.
+  "pruebas:recibir-sin-color-toma-color",
+
   // El conteo guardado de un envío (ADR-0393): lo contado queda en la base línea por línea; gana el último con aviso de lo que pisó;
   // lo separado no pasa de lo contado ni trae prendas ajenas; lo de fuera de la guía; el formulario de la fase 4 deja su conteo; un
   // envío cerrado no se cuenta. ROLLBACK siempre.
