@@ -117,6 +117,10 @@ update retail.etiquetas set activo = false where activo and descuento_pct is not
 insert into retail.configuracion_tienda_web (id) values (true) on conflict (id) do nothing;
 ${elegirPrenda("v")}
 ${elegirPrenda("v2", "and v.producto_id <> :'prod_v'")}
+-- Precios fijos (2026-11-15): la siembra da ids al azar y la prenda elegida cambiaba de corrida en corrida. Con dos precios muy distintos (100 y 30),
+-- el −20 % de la sección «rebaja y 3x2» ahorra más que el 3x2 y esa prueba fallaba sin que nada estuviera mal (2 de 3 corridas del CI en el PR #1876).
+-- Con 100 y 80, el 3x2 (regala 80) le gana al −20 % (56) y el −50 % (140) le gana al 3x2: lo que cada caso afirma pasa siempre.
+update retail.variantes set precio = case when id = :'v' then 100 else 80 end where id in (:'v', :'v2');
 update retail.vitrina_productos set publicado = false where publicado;
 insert into retail.vitrina_productos (producto_id, publicado, publicado_en)
 values (:'prod_v', true, now()), (:'prod_v2', true, now())

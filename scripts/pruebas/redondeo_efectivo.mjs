@@ -718,6 +718,10 @@ rollback;`);
     fn_sello_caja: "Solo cuenta filas de venta_pagos_correcciones (ADR-0365) para el tablero en vivo: no suma pagos.",
     fn_reporte_ventas_series:
       "Ventas ▸ Reportes ▸ Ventas del mes (ADR-0606, 20261103232000): el bloque «Cómo se pagó» suma venta_pagos por medio y deja la fila de redondeo como un medio más, a propósito, igual que fn_totales_historial_ventas y fn_comparativa_caja: así lo cobrado suma el total vendido. La web la nombra «Redondeo de efectivo» y no dibuja lo que pesa menos de una milésima del total. No se parchó.",
+    fn_pago_de_la_empresa:
+      "Ventas ▸ Reportes, «Cómo se pagó» por empresa (ADR-0665 act. 2026-11-15, 20261115013000): reparte cada medio de una venta, la fila de redondeo incluida, por lo cobrado de cada empresa; como la suma de filas es el total, lo de cada empresa suma lo que vendió. El redondeo es un medio más, igual que en fn_reporte_ventas_series.",
+    fn_reporte_ventas_pagos:
+      "Ventas ▸ Reportes, «Cómo se pagó» por empresa (ADR-0665 act. 2026-11-15, 20261115013000): sin empresa devuelve lo mismo que fn_reporte_ventas_series (el redondeo como un medio más); con empresa, la parte de cada medio. Al decir si una venta mixta se «repartió» (dos medios o más) NO cuenta el redondeo: es parte del efectivo (lo prueba pruebas:reportes-por-empresa, L9).",
     fn_resumen_caja: "PARCHADA (20261003111000): el redondeo sale de por_metodo, de otros y de ventas_otros, y viaja aparte.",
     fn_totales_historial_ventas: "Deja el redondeo como una fila más de «cómo se pagó» a propósito: la lista sigue sumando el total vendido.",
     fn_vendido_por_empresa: "De quién es lo vendido (ADR-0532): suma las LÍNEAS de la venta (venta_items), nunca los pagos; venta_pagos solo se lee para el filtro «pagadas con X» del Historial, igual que fn_totales_historial_ventas. El redondeo no cambia nada.",

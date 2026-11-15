@@ -1,7 +1,7 @@
 import { BarChart3 } from "lucide-react";
 import { requirePersonaActualV2, veModulo } from "@/lib/persona-actual";
 import { alcanceDeReportes } from "@/lib/reportes-ventas-alcance";
-import { getClaureDelTramo, getCortesMes, getReporteMes, getSeriesMes } from "@/lib/reportes-ventas";
+import { getClaureDelTramo, getCortesMes, getPagosDeEmpresa, getReporteMes, getSeriesMes } from "@/lib/reportes-ventas";
 import { hrefCuadreFinanzas } from "@/lib/reportes-vendido-reglas";
 import { hoyLima } from "@/lib/fechas-lima";
 import { mesDeParametro, type Mes } from "@/lib/facturacion-reglas";
@@ -20,7 +20,8 @@ import { Vacio } from "@/components/ui/Vacio";
 // Ventas ▸ Reportes ▸ Ventas del mes (maqueta docs/maquetas/reportes-ventas-2026-11/). Actividad 2: el mes, la tienda y las cuatro cifras contra el
 // mismo tramo del mes anterior (actividad 2) y los tres gráficos (actividad 3: ventas por día, mes a mes, cómo se pagó) y la tabla por tienda y categoría (actividad 4). Lee en el servidor con `fn_reporte_ventas_mes`: el líder ve
 // todas las tiendas y elige una; quien tiene el módulo en su rol ve solo la suya (lo decide la base, no esta pantalla). Donde conviven dos empresas (Lima) se
-// suma el filtro «Empresa» (`?emp=`, ADR-0665): las cifras, los gráficos y la tabla cuentan solo las líneas de esa empresa.
+// suma el filtro «Empresa» (`?emp=`, ADR-0665): las cifras, los gráficos y la tabla cuentan solo las líneas de esa empresa, y «Cómo se pagó», la parte de sus
+// pagos (`fn_reporte_ventas_pagos`, act. 2026-11-15).
 export default async function ReportesVentasPage({ searchParams }: { searchParams: Promise<{ m?: string; tienda?: string; emp?: string; corte?: string }> }) {
   const persona = await requirePersonaActualV2();
   const sp = await searchParams;
@@ -36,11 +37,13 @@ export default async function ReportesVentasPage({ searchParams }: { searchParam
   // Lo de CLAURE se lee con el tramo que devuelve el reporte (tarea 77): es apoyo, si falla la línea no sale y las cifras siguen. Con una empresa elegida no
   // hace falta: la cifra ya es de esa empresa.
   const reporte = getReporteMes(mes, ubicacion, empresaId);
-  const [lectura, series, cortes, claure] = await Promise.all([
+  // Con una empresa, «Cómo se pagó» sale de su propia lectura (la serie no parte los pagos); con empresa la tienda siempre está (`alcanceDeReportes`).
+  const [lectura, series, cortes, claure, pagosDeEmpresa] = await Promise.all([
     reporte,
     getSeriesMes(mes, ubicacion, empresaId),
     getCortesMes(mes, ubicacion, empresaId),
     reporte.then((l) => (l.datos && !empresa ? getClaureDelTramo(l.datos.actual, tienda) : null)),
+    empresaId && ubicacion ? getPagosDeEmpresa(mes, ubicacion, empresaId).then((l) => l.datos) : Promise.resolve(null),
   ]);
   const r = lectura.datos;
   // El cuadro «De Ventas a Finanzas» explica por qué Finanzas da otra cifra: el enlace, solo a quien puede abrir esa pantalla. Con una empresa elegida no se
@@ -71,7 +74,7 @@ export default async function ReportesVentasPage({ searchParams }: { searchParam
         <>
           <CifrasReporteMes r={r} claure={claure} hrefCuadre={hrefCuadre} empresa={empresa?.nombre ?? null} />
           {series.datos ? (
-            <GraficosReporteMes r={r} s={series.datos} tiendaId={tienda} empresaClave={empresa?.clave ?? null} corte={sp.corte ?? null} />
+            <GraficosReporteMes r={r} s={series.datos} tiendaId={tienda} empresa={empresa} pagosDeEmpresa={pagosDeEmpresa} corte={sp.corte ?? null} />
           ) : (
             <Aviso tono="atencion" titulo="No se pudieron leer los gráficos">
               Las cifras de arriba están bien. Vuelve a intentarlo en un momento.
