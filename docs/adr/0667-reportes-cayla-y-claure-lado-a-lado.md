@@ -1,8 +1,8 @@
 # ADR-0667 — Reportes de ventas: «CAYLA y CLAURE», las dos empresas de una tienda lado a lado, con la cuenta donde entró cada cobro
 
 - **Fecha:** 2026-11-15 · **Estado:** construido y probado en local (base privada con ventas inventadas de Lima; pruebas puras en verde). La migración
-  `20261115042000` **no está en producción**: la pega Felipe antes de fusionar. Su lógica se midió en producción con consultas de solo lectura (ver «Cómo se
-  verificó»).
+  `20261115042000` **está en producción desde el 2026-11-15** (la pegó Felipe; md5 igual al del repo; leída con la sesión de una líder da las mismas cifras al
+  céntimo, ver «Cómo se verificó»).
 - **Pidió:** Felipe, 2026-11-15, tras analizar el Excel «Ventas-Claure-2026-10-24-al-2026-11-14»: una vista «en ventas historia» para ver las ventas de
   Tienda LIM separando lo de CLAURE y lo de CAYLA, por mes y por período, por medio de pago, con la cuenta donde entró cada cobro, cuántas ventas, prendas y
   mixtas, boleta frente a nota de venta, y bajar del total a la venta y a la prenda.
