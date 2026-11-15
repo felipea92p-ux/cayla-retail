@@ -235,8 +235,8 @@ flowchart TB
   (`getCapacidadPiso`, RPC `fn_capacidad_piso`, tabla `capacidad_piso`, ADR-0329: la nota «de 600» de «Colgadas en el piso», con
   «por cuadrar» mientras la sede no tenga cuadre —`cuadrado_en`, leído de `cuadres_piso` si existe—; esa tarjeta cuenta solo la ropa
   del riel, por `categorias.familia`, y dice aparte «+ N accesorios» (`cifraColgadasEnElPiso`), reglas en
-  `lib/capacidad-piso.ts`; la escritura `fijar_capacidad_piso` todavía no tiene pantalla: será el Plan del piso, actividad 12 de
-  ADR-0328) y la cabecera con `existencias/CifrasExistencias.tsx` (ADR-0391: las cifras «Colgadas en el piso» y «Guardadas en el
+  `lib/capacidad-piso.ts`; la escritura `fijar_capacidad_piso` vive desde el 2026-11-14 en la hoja «Configurar piso» del Plan del piso, solo del líder:
+  `components/plan-piso/ConfigurarPiso.tsx`, reglas puras en `lib/capacidad-piso-config.ts`; ADR-0329, «Actualización 2026-11-14») y la cabecera con `existencias/CifrasExistencias.tsx` (ADR-0391: las cifras «Colgadas en el piso» y «Guardadas en el
   almacén» FILTRAN la lista por la URL —`condicion=colgadas|guardadas`, `lib/existencias-filtros.ts`— sobre `ui/ResumenSede`; reemplazó
   al selector «Piso · Almacén · Ambos» de las tarjetas, que se guardaba por computadora) → `InventarioPanel.tsx` (con el aviso «El piso de
   esta tienda nunca se ha cuadrado» cuando `plan.enPausa`) →
@@ -538,6 +538,7 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
   Las perchas, las unidades (5 a 100 prendas por percha) y todas las frases salen de `lib/plan-piso-percha.ts` y la silueta de cada grupo de `lib/plan-piso-siluetas.ts` (puros, con sus pruebas); el color de cada grupo vive en `app/estilos/plan-piso.css` (`--grupo-0..5`), la lectura en palabras `lecturaDeGrupo` y «Para empezar» de «Fuera del riel» —`referenciaFueraDelRiel`, con sus semanas en `lib/mix-piso-partida.ts`— en `lib/mix-piso.ts`; ADR-0352 act. 2026-10-11 (b)), **Grupos** (`GruposDelMix.tsx`, cliente: el líder prepara cambios en las filas y los guarda juntos con «Revisar y guardar» →
   RPC `fijar_grupos_de_categorias`, todo o nada, con el combo Responsable y PT409; un cambio preparado caduca si otra persona cambió la categoría) e
   **Historia** (`HistoriaDelEspacio.tsx`, servidor). Se degrada por pestaña: sin la lectura del piso o de las fotos se apaga solo esa pestaña.
+   **«Configurar piso»** (ADR-0329, act. 2026-11-14): el botón de la cabecera (`acciones` de `<EncabezadoPagina>`), solo para el líder de una tienda; `page.tsx` lee la capacidad con su versión (`getCapacidadPisoConEstado`) y `components/plan-piso/ConfigurarPiso.tsx` la guarda con `fijar_capacidad_piso` (combo Responsable, choque de versión PT409, `router.refresh()`); reglas puras en `lib/capacidad-piso-config.ts`. Sin migración; si la base no responde, el botón sale apagado y dice por qué.
 - `/gestion/frescura` (**Frescura del piso**, ADR-0208 paso 4, 2026-09-28; módulo `frescura`, que nace sin rol y
   `layout.tsx` con `exigirModulo("frescura")`; segunda fila del grupo «Gestión» en `lib/menu.ts` desde ADR-0392, 2026-10-13; antes sexta de Inventario) → `page.tsx` →
   `lib/frescura.ts:getFrescuraPantalla` (el líder: `armarFrescuraLider` = RPC `fn_frescura_sede` por cada tienda en

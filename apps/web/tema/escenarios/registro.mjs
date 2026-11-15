@@ -2393,4 +2393,32 @@ ESCENARIOS.push(
       await esperar(pagina, 1100);
     },
   },
+  // ---------- Gestión ▸ Plan del piso ▸ «Configurar piso» (ADR-0329, 2026-11-14): la hoja abierta y con lo mal escrito dicho en su campo ----------
+  {
+    id: "gestion.plan-piso-configurar",
+    ruta: "/gestion/plan-del-piso",
+    cuentas: ["admin"],
+    abre: "[role=dialog]",
+    nombre: "Plan del piso · la hoja «Configurar el piso»",
+    async preparar(pagina) {
+      await pagina.locator('[data-guia="plan-piso.configurar"]').first().click({ timeout: 8000 });
+      await esperar(pagina, 1100);
+    },
+  },
+  {
+    id: "gestion.plan-piso-configurar-error",
+    ruta: "/gestion/plan-del-piso",
+    cuentas: ["admin"],
+    abre: "[role=dialog]",
+    nombre: "Plan del piso · «Configurar el piso» con un dato mal escrito y el error dicho en su campo",
+    async preparar(pagina) {
+      await pagina.locator('[data-guia="plan-piso.configurar"]').first().click({ timeout: 8000 });
+      await esperar(pagina, 1100);
+      // Letras en los m²: no guarda nada (la guía lo frena) y cada campo pendiente dice su error.
+      await pagina.locator("#piso-m2").fill("abc");
+      await pagina.keyboard.press("Tab");
+      await pagina.locator("[role=dialog] button[type=submit]").click({ timeout: 8000 });
+      await esperar(pagina, 700);
+    },
+  },
 );

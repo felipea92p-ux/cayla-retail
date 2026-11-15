@@ -254,7 +254,8 @@ export const GUIA_FRESCURA: Guia = {
   alSalir: [{ tipo: "escape" }, { tipo: "vaciar", ancla: "frescura.buscador" }],
 };
 
-// Plan del piso (ADR-0329 + ADR-0328): solo lectura salvo «Grupos», donde quien ve el módulo prepara cambios que se guardan con «Revisar y guardar».
+// Plan del piso (ADR-0329 + ADR-0328): solo lectura salvo «Grupos», donde quien ve el módulo prepara cambios que se guardan con «Revisar y guardar», y
+// «Configurar piso», que solo ve el líder.
 // La demo recorre las tres pestañas (son estado de la pantalla, no rutas), pero nunca confirma ni cambia el grupo de una categoría.
 export const GUIA_PLAN_DEL_PISO: Guia = {
   id: "inventario.plan-del-piso",
@@ -273,6 +274,13 @@ export const GUIA_PLAN_DEL_PISO: Guia = {
       ancla: "plan-piso.pestanas",
       titulo: "Tres vistas",
       texto: "«Propuesta» es el reparto del riel; «Grupos», a qué grupo pertenece cada categoría (el número dice cuántas faltan revisar); «Historia», las fotos semanales de lo que colgaba. Te las mostramos una por una.",
+    },
+    {
+      id: "configurar",
+      ancla: "plan-piso.configurar",
+      opcional: true,
+      titulo: "Configurar el piso",
+      texto: "Solo lo ve el líder. Aquí corriges cuánto cabe en el riel de tu tienda contra lo que mides en la realidad: los m² de la sala y cuántas prendas caben por m². Al guardar, todo el plan se rehace con la capacidad nueva. La demo no abre esta hoja.",
     },
     {
       id: "estado",
