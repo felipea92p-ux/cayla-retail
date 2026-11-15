@@ -7,6 +7,7 @@ import { traducirError, type ErrorEscritura } from "@/lib/error-escritura";
 import { normalizarCombinaCon, normalizarDescripcion, normalizarPantone, normalizarSinonimos } from "@/lib/color-referencias";
 import { ERROR_COMPONENTES, normalizarComponentes } from "@/lib/color-combinado";
 import { esFamiliaDeColor } from "@/lib/colores-familias";
+import { ERROR_NOMBRE_CODIGO, nombrePareceCodigo } from "@/lib/color-alta-reglas";
 
 // Un código Pantone no puede estar en dos colores (índice único `colores_pantone_tcx_unico`, 20260926180000).
 function mensajeDeError(error: ErrorEscritura, accion: string) {
@@ -80,6 +81,11 @@ export async function POST(request: Request) {
   }
   if (!nombre) {
     return Response.json({ error: "Falta el nombre del color." }, { status: 400 });
+  }
+  // «NER» (2026-10-26) entró con su código como nombre y nadie lo reconoció como Negro (ADR-0576, act. 2026-11-15). El candado va
+  // aquí además de en la pantalla, para cualquier otro cliente.
+  if (nombrePareceCodigo(nombre)) {
+    return Response.json({ error: ERROR_NOMBRE_CODIGO }, { status: 400 });
   }
   if (!/^[A-Z]{3}$/.test(codigo)) {
     return Response.json({ error: "El código tiene que ser exactamente 3 letras (ej. VEB)." }, { status: 400 });
@@ -170,6 +176,9 @@ export async function PATCH(request: Request) {
     const nombre = typeof cuerpoObj.nombre === "string" ? cuerpoObj.nombre.trim() : "";
     if (!nombre) {
       return Response.json({ error: "El nombre no puede quedar vacío." }, { status: 400 });
+    }
+    if (nombrePareceCodigo(nombre)) {
+      return Response.json({ error: ERROR_NOMBRE_CODIGO }, { status: 400 });
     }
     patch.nombre = nombre;
   }
