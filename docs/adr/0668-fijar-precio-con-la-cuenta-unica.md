@@ -1,7 +1,7 @@
 # ADR-0668 — Fijar precio con la cuenta única: todas las prendas igual, costo y precio con IGV a la vista, piso que aguanta la rebaja
 
 - **Fecha:** 2026-11-15 · **Estado:** decidido. Construido: A1 (la cuenta en `lib/cuenta-de-precio.ts`), A2 (una sola cuenta en Recibir y Nuevo producto, fuera
-  «RUC ⇒ factura») y A3 (quien fija el precio ve el costo en esa hoja; su SQL espera el OK de Felipe). Lo demás, en el plan
+  «RUC ⇒ factura») y A3 (quien fija el precio ve el costo en esa hoja; SQL en producción desde el 2026-11-15). Lo demás, en el plan
   (`docs/backlog/2026-11-15-logic-examples-review-ff76bf.md`).
 - **Pidió:** Felipe, 2026-11-15, al revisar el PR #1867: «el IGV no me lo mezcles aquí… al recibir el costo debe tener el IGV y el precio también, porque un
   integrante no entiende eso; cuando coloca el precio sugerido, ayudarle a entender lo del IGV para que fije un buen precio». Respondió 30 preguntas y revisó la
