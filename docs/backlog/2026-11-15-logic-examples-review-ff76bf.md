@@ -89,3 +89,9 @@ Por qué este orden:
   que ofrecer «Recibir de nuevo» con sus líneas cargadas.
 - **Guía de foco:** en el cierre y en «Hacer ahora» la duda frena con el aviso general y lleva el cursor, pero no entra como «falta» de la
   guía del campo (en «Llevar al stock» sí). Pasarla a `campos` con una función pura.
+
+## POR PEGAR (2026-11-15)
+
+- **A4 · PARTE 2 — `supabase/migrations/20261115205000_costo_dudoso_candados.sql`.** Se pega DESPUÉS de fusionar el PR #1883 (la web
+  nueva manda los montos confirmados; con la web vieja, una duda nueva no se podría confirmar). La PARTE 1 (`20261115204000`) ya está en
+  producción desde el 2026-11-15. La comprobación y la vuelta atrás están en el PR.
