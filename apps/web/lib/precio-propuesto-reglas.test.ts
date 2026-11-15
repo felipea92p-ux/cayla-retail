@@ -110,7 +110,12 @@ describe("textoSinPropuesta", () => {
 
 describe("al recibir una prenda que ya existe: ¿conviene mirar su precio?", () => {
   it("margen bajo 30 % con el costo de esta compra", () => {
-    expect(pideRevisarAlRecibir({ precio: 59.9, costo: 45, costoAntes: 45 })).toEqual({ margen: expect.closeTo(24.87, 1), motivo: "margen_bajo" });
+    expect(pideRevisarAlRecibir({ precio: 59.9, costo: 45, costoAntes: 45 })).toEqual({ margen: 11.4, motivo: "margen_bajo" });
+  });
+  it("con la cuenta de Compras (sin IGV): el umbral cae donde la línea se pone ámbar, y la factura cuenta", () => {
+    // 45 / 65: 40.4 % con el IGV dentro (antes no avisaba); sin IGV, 18.3 % sin factura y 30.8 % con factura.
+    expect(pideRevisarAlRecibir({ precio: 65, costo: 45, costoAntes: 45 })?.motivo).toBe("margen_bajo");
+    expect(pideRevisarAlRecibir({ precio: 65, costo: 45, costoAntes: 45, conFactura: true })).toBeNull();
   });
   it("el costo cambió aunque el margen siga bien", () => {
     expect(pideRevisarAlRecibir({ precio: 79.9, costo: 30, costoAntes: 25 })?.motivo).toBe("costo_cambio");

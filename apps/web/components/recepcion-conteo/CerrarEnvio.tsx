@@ -40,6 +40,7 @@ import { soles } from "@/lib/compras-reglas";
 import { useEmpresasDeSede } from "@/lib/useEmpresasDeSede";
 import { DuenoDeLoQueEntra } from "./DuenoDeLoQueEntra";
 import { agruparLineasDelCierre, camposDelCierrePorGrupo, nombreDelGrupoDelCierre, causasDelGrupo, filasDelCierre, lineaDeLaPrenda, lineaDelGrupo, textoDeLasPlegadas, textoDeLoQueFalta, type GrupoDeLineas } from "@/lib/recepcion-grupos-reglas";
+import { useFacturaDelMargen } from "@/components/ui/LineaMargen";
 import { pideRevisarAlRecibir, precioUnicoAlCerrar, textoRevisarAlRecibir } from "@/lib/precio-propuesto-reglas";
 import { borrarBorradorDelCierre, conCostosDecididos, conLoDecidido, costosCambiados, costosDeCombinacionCambiados, decisionCambiada, type FotoDelCierre, guardarBorradorDelCierre, leerBorradorDelCierre } from "@/lib/recepcion-cierre-borrador";
 import { type PrendaConCosto, lineasSinModelosEnCero, modelosEnCeroDe, textoModelosEnCero, avisoDePrecioRechazado, type CambioDePrecio, cambioDePrecioDeCompra, camposDelCierre, conCostoDeHoy, contadasDe, costoComoTexto, costoDePrendaTexto, esRegaloFuera, filasDeCostoEnStock, textoCostoEnStock, costosDePrendaConProblema, type CostosDePrendas, costoDelGrupo, detalleDelModelo, deQuienLlego, type FilaDeQuien, idCampoProveedor, type DecisionCierre, decisionInicial, detalladas, detalleParaDespues, diferenciaDe, HINT_CONTEO_CAMBIADO, idCampoCierre, leerCostoCierre, type ClaveLinea, type LineaParaContar, lineasParaCerrar, lineaVisible, marcaDeLinea, mensajeAlGuardar, nombreDeLinea, prendasConCosto, resumenDelCierre, textoBotonCerrar, textoResumenDelCierre, textoDelEnvioCerrado, TOPES_CONTEO, unidadesSinIdentificar } from "@/lib/recepcion-conteo-reglas";
@@ -125,6 +126,8 @@ export function CerrarEnvio({
   onConteoCambiado: () => void;
   onCerrado: () => void;
 }) {
+  // La misma cuenta del margen que la línea viva (sin IGV, con o sin factura): la propuesta se ofrece cuando la línea se pone ámbar.
+  const conFactura = useFacturaDelMargen();
   // Lo agregado que quedó en 0 no se guarda (la base hace lo mismo): Cerrar ya no lo ve, y solo avisa cuál fue.
   const lineas = lineasSinModelosEnCero(lineasConCeros);
   const modelosEnCero = modelosEnCeroDe(lineasConCeros);
@@ -819,7 +822,7 @@ export function CerrarEnvio({
           // la propuesta de la IA vive en «Cambiar por talla», que es donde se cambia su precio. Cuenta gratis, sin IA.
           const precioQueda = prendaFila ? precioUnicoAlCerrar(combinaciones, cambiosPrecio) : null;
           const costoQueda = !variosPorTalla ? (lectura.problema === null ? (lectura.valor ?? heredado) : null) : null;
-          const revisarPrecio = prendaFila && editaCosto ? pideRevisarAlRecibir({ precio: precioQueda, costo: costoQueda, costoAntes: antes ? leerCostoCierre(antes).valor : null }) : null;
+          const revisarPrecio = prendaFila && editaCosto ? pideRevisarAlRecibir({ conFactura, precio: precioQueda, costo: costoQueda, costoAntes: antes ? leerCostoCierre(antes).valor : null }) : null;
           const abiertaEsta = abierta && !!prendaFila && prendasALaVista.includes(prendaFila);
           const nombre = m?.nombre ?? nombreGrupo.split(" · ")[0];
           const det = m ? detalleDelModelo(g.lineas, m) : null;

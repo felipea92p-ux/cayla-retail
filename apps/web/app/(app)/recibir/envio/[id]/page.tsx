@@ -10,6 +10,7 @@ import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 import { Volver } from "@/components/ui/Volver";
 import { Aviso } from "@/components/ui/Aviso";
 import { Vacio } from "@/components/ui/Vacio";
+import { FacturaDelMargen } from "@/components/ui/LineaMargen";
 import { BotonEnlace } from "@/components/ui/campos";
 import { RecibirEnvio } from "@/components/recepcion-envio/RecibirEnvio";
 import { RecibirContando } from "@/components/recepcion-conteo/RecibirContando";
@@ -82,35 +83,40 @@ export default async function RecibirEnvioPage({ params }: { params: Promise<{ i
     // para no registrar dos veces al mismo). A quién se le RECIBE mercadería: sin quien es solo de gastos (ADR-0452).
     const paraElegir = conteos.conteos?.proveedorPorConfirmar || conteos.conteos?.origen === "sin_aviso";
     const proveedoresParaElegir = paraElegir ? proveedoresParaPedir(await getProveedoresActivos(), "").map((p) => ({ id: p.id, nombre: p.nombre, ruc: p.ruc })) : [];
+    // La línea del margen cuenta como Compras: sin IGV y, si la compra trae factura, el costo también sin IGV (`recibir-margen#1`).
     return (
-      <RecibirContando
-        key={datos.detalle.id}
-        detalle={datos.detalle}
-        conteos={conteos.conteos}
-        carga={idDeCarga()}
-        sedeActual={{ id: persona.ubicacionId, etiqueta: persona.ubicacionEtiqueta }}
-        creadoPorMi={datos.creadoPorMi}
-        catalogo={catalogo}
-        lotes={datos.lotes}
-        veExistencias={veModulo(persona, "existencias")}
-        veDinero={puede(persona, "verDineroCompras")}
-        // Una terminal cambia el precio de venta solo en su sede (Felipe 2026-10-26; la base lo exige: 20261026224000).
-        soloSede={persona.terminal}
-        proveedoresParaElegir={proveedoresParaElegir}
-        papeles={datos.papeles}
-      />
+      <FacturaDelMargen conFactura={datos.conFactura}>
+        <RecibirContando
+          key={datos.detalle.id}
+          detalle={datos.detalle}
+          conteos={conteos.conteos}
+          carga={idDeCarga()}
+          sedeActual={{ id: persona.ubicacionId, etiqueta: persona.ubicacionEtiqueta }}
+          creadoPorMi={datos.creadoPorMi}
+          catalogo={catalogo}
+          lotes={datos.lotes}
+          veExistencias={veModulo(persona, "existencias")}
+          veDinero={puede(persona, "verDineroCompras")}
+          // Una terminal cambia el precio de venta solo en su sede (Felipe 2026-10-26; la base lo exige: 20261026224000).
+          soloSede={persona.terminal}
+          proveedoresParaElegir={proveedoresParaElegir}
+          papeles={datos.papeles}
+        />
+      </FacturaDelMargen>
     );
   }
 
   return (
-    <RecibirEnvio
-      key={datos.detalle.id}
-      detalle={datos.detalle}
-      sedeActual={{ id: persona.ubicacionId, etiqueta: persona.ubicacionEtiqueta }}
-      creadoPorMi={datos.creadoPorMi}
-      catalogo={datos.catalogo}
-      lotes={datos.lotes}
-      veExistencias={veModulo(persona, "existencias")}
-    />
+    <FacturaDelMargen conFactura={datos.conFactura}>
+      <RecibirEnvio
+        key={datos.detalle.id}
+        detalle={datos.detalle}
+        sedeActual={{ id: persona.ubicacionId, etiqueta: persona.ubicacionEtiqueta }}
+        creadoPorMi={datos.creadoPorMi}
+        catalogo={datos.catalogo}
+        lotes={datos.lotes}
+        veExistencias={veModulo(persona, "existencias")}
+      />
+    </FacturaDelMargen>
   );
 }
