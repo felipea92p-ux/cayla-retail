@@ -18,8 +18,8 @@
 --   NO HACE: no registra las facturas de CLAURE (cuando lleguen, su IGV baja la 1673 y sube el crédito fiscal: es otra obra); no cambia `fn_claure_filas`
 --            (cada fila sigue diciendo su IGV), los gastos repartidos ni el contraasiento del Yape de Claudia (`claure_fuera`, que ya va con IGV).
 --
--- CÓMO SE PEGA EN PRODUCCIÓN — UNA SOLA EJECUCIÓN, en cualquier momento (no depende de la web: la web vieja seguiría restando el IGV en la pestaña
--- CLAURE hasta publicar la nueva; por eso conviene pegarla justo después de publicar). Sin políticas ni `alter table`: un alta en `retail.cuentas` y
+-- CÓMO SE PEGA EN PRODUCCIÓN — UNA SOLA EJECUCIÓN, ANTES DE FUSIONAR (no rompe la web de hoy: no pide funciones ni columnas nuevas; hasta publicar,
+-- la pestaña CLAURE de la web vieja sigue restando el IGV y el aviso del cierre ya no). Sin políticas ni `alter table`: un alta en `retail.cuentas` y
 -- reemplazos anclados sobre tres funciones. ABORTAN SIN CAMBIAR NADA si el texto no es el esperado (dicen cuál). Idempotente: si el texto nuevo ya
 -- está, no hace nada. Las huellas de producción del 2026-11-15, antes de pegar: fn_asientos_claure 34ed6a7a…, fn_claure_cierre 452be3b1…,
 -- fn_claure_saldo_a 82055bff… (las mismas que deja `main` en una base nueva).
