@@ -67,8 +67,8 @@ Nada: no se tocó `components/ui/` ni `app/estilos/vidrio/`. La píldora es la `
 ## Actualización 2026-11-15 — «Cómo se pagó» también con la empresa elegida
 
 - **Pidió:** el equipo, en la cuenta compartida: «¿no se puede ver los medios de pago cuando selecciono CLAURE y CAYLA?». Se le mostraron los datos y las tres
-  opciones, y eligió «exacto + reparto». Revierte lo que Felipe descartó el 2026-10-26 (ADR-0532: «sería una estimación en una boleta mixta»): **falta su OK**
-  antes de pegar la migración, porque cambia el dinero que muestra el reporte.
+  opciones, y eligió «exacto + reparto». Revierte lo que Felipe descartó el 2026-10-26 (ADR-0532: «sería una estimación en una boleta mixta»): por eso se pidió
+  la aprobación de Felipe antes de tocar producción, y se dio el mismo 2026-11-15 («Sí, aplica todo», en la cuenta compartida).
 - **El dato que cambió la decisión** (producción, Tienda LIM, del 23-oct al 14-nov, solo lectura): 71 ventas; 66 de una sola empresa y 4 mixtas pagadas con un
   solo medio, y en las 71 lo pagado es igual a lo cobrado de las líneas. En esas 70 (S/ 4,862 de S/ 4,960) el reparto por empresa es **exacto**, no una
   estimación. Solo 1 venta (S/ 98) tiene prendas de las dos y dos medios.
@@ -95,4 +95,9 @@ SE ROMPE SI: `fn_empresa_de_la_linea` cambia y la regla de los pagos no se revis
 **Verificación (2026-11-15):** `pnpm pruebas:reportes-por-empresa`, 36/36 en local (Postgres 17 de Supabase): sin empresa es la serie; exacto en la venta de
 una empresa y en la mixta de un medio; la mixta de dos medios se reparte y se avisa; al céntimo con tres medios; la venta sin valor va a la casa; 22023, 42501;
 la cuenta de Lima que no es líder lee lo mismo; permisos; pegar dos veces. La regla, corrida de solo lectura sobre producción: octubre CAYLA S/ 1,194 + CLAURE
-S/ 558 = S/ 1,752 y noviembre S/ 1,812.14 + S/ 1,395.86 = S/ 3,208, y lo pagado de cada empresa es igual a lo que vendió. **Sin pegar en producción.**
+S/ 558 = S/ 1,752 y noviembre S/ 1,812.14 + S/ 1,395.86 = S/ 3,208, y lo pagado de cada empresa es igual a lo que vendió.
+
+**En producción desde el 2026-11-15** (`20261115013000`, aplicada en una transacción): las dos funciones con los md5 del repo (`fn_pago_de_la_empresa`
+`3f461afe4ce4c5d64fa5ec573a55e25d`, `fn_reporte_ventas_pagos` `8037f8aa5da2c4a81ad45099eea67ef0`), INVOKER, `anon` sin permiso. Leída con la sesión de un líder
+(en una transacción deshecha), Lima en noviembre: CAYLA S/ 1,812.14 y CLAURE S/ 1,395.86 en pagos, cada una igual a su «vendido»; por medio suman lo de la serie
+(Yape 1,477, tarjeta 940, efectivo 636, QR 155); una venta repartida (S/ 28 de CAYLA y S/ 70 de CLAURE).
