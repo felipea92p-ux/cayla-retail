@@ -24,7 +24,8 @@
  *   K. El control: con la regla por ficha (sin el movimiento) CLAURE saldría distinto, así que la prueba SÍ discrimina.
  *   L. «Cómo se pagó» por empresa (`fn_reporte_ventas_pagos`, `fn_pago_de_la_empresa`): sin empresa es lo de la serie; la venta de una empresa y la
  *      mixta de un solo medio van exactas; la mixta con dos medios se reparte por lo cobrado y se avisa en `repartido`; con tres medios cuadra al
- *      céntimo de las dos maneras (CAYLA + CLAURE = cada medio, y lo de una empresa = lo que vendió); la venta sin valor va a la casa; 22023 y 42501
+ *      céntimo de las dos maneras (CAYLA + CLAURE = cada medio, y lo de una empresa = lo que vendió); la venta sin valor va a la casa; el redondeo
+ *      del efectivo no cuenta como un segundo medio; 22023 y 42501
  *      como las demás; una cuenta de Lima que no es líder lee lo mismo; permisos.
  *
  * CÓMO. Cada caso es UNA transacción con ROLLBACK (nunca se commitea nada en el Postgres local compartido): se pega la migración, se arma la escena de
@@ -454,6 +455,11 @@ select pg_temp.linea('V10a', 'V10', :'var_a', 1, 10);
 select pg_temp.linea('V10b', 'V10', :'var_b', 1, 20);
 insert into retail.venta_pagos (id, venta_id, metodo, monto) values (md5('re-p10a')::uuid, md5('re-V10')::uuid, 'efectivo', 10),
   (md5('re-p10b')::uuid, md5('re-V10')::uuid, 'tarjeta', 10), (md5('re-p10c')::uuid, md5('re-V10')::uuid, 'yape', 10);`;
+// V12: mixta pagada SOLO en efectivo, con su redondeo (A×1 a 50 de CAYLA + B×1 a 9.98 de CLAURE = 59.98; efectivo 59.90 + redondeo 0.08, ADR-0311).
+const MIXTA_EFECTIVO_CON_REDONDEO = `select pg_temp.venta('V12', ${LIMA}, ${LIM("2019-03-21 12:00")}, 'completada', false);
+select pg_temp.linea('V12a', 'V12', :'var_a', 1, 50);
+select pg_temp.linea('V12b', 'V12', :'var_b', 1, 9.98);
+insert into retail.venta_pagos (id, venta_id, metodo, monto) values (md5('re-p12a')::uuid, md5('re-V12')::uuid, 'efectivo', 59.90), (md5('re-p12b')::uuid, md5('re-V12')::uuid, 'redondeo', 0.08);`;
 const SIN_VALOR = `select pg_temp.venta('V11', ${LIMA}, ${LIM("2019-03-20 12:00")}, 'completada', false);
 select pg_temp.linea('V11b', 'V11', :'var_b', 1, 0);
 insert into retail.venta_pagos (id, venta_id, metodo, monto) values (md5('re-p11')::uuid, md5('re-V11')::uuid, 'efectivo', 5);`;
@@ -508,6 +514,14 @@ caso("L7. la empresa solo se elige dentro de una tienda donde operan dos (22023 
       "|" +
       dentro(`select split_part(pg_temp.codigo($q$select ${PAGOS(CLAURE)}$q$), ' ', 1);`, { como: SIN_PERSONA }),
     "22023|22023|42501",
+  ));
+caso("L9. el redondeo del efectivo no es un segundo medio: la mixta pagada en efectivo con redondeo (V12) no se cuenta como repartida, y lo de cada empresa suma lo suyo (CLAURE 9.97 + 0.01, CAYLA 49.93 + 0.07)", () =>
+  igual(
+    dentro(`select ${repartido(PAGOS(CLAURE))} || ' / ' || ${repartido(PAGOS(CAYLA))} || ' / ' ||
+                   (select string_agg(trim_scale(retail.fn_pago_de_la_empresa(md5('re-V12')::uuid, m, ${CLAURE}))::text, '+' order by m) from unnest(array['efectivo', 'redondeo']) m) || ' / ' ||
+                   (select string_agg(trim_scale(retail.fn_pago_de_la_empresa(md5('re-V12')::uuid, m, ${CAYLA}))::text, '+' order by m) from unnest(array['efectivo', 'redondeo']) m);`,
+      { antes: MIXTA_EFECTIVO_CON_REDONDEO }),
+    "0|0 / 0|0 / 9.97+0.01 / 49.93+0.07",
   ));
 caso("L8. una cuenta de Lima con el módulo (no es líder) lee lo mismo que el líder: la RLS de los pagos no esconde nada (las lecturas son INVOKER)", () => {
   const consulta = `select ${medios(PAGOS(CLAURE))} || ' (' || ${repartido(PAGOS(CLAURE))} || ')';`;

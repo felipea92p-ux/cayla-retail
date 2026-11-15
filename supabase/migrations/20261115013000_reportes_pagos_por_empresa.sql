@@ -15,6 +15,9 @@
 --     y no medio por medio, así lo de esa empresa en todos los medios suma justo su parte de la venta (S/ 10 + 10 + 10 con 2/3 de CLAURE da 6.67, 6.66 y
 --     6.67 = 20.00, no 20.01); la casa (CAYLA) se queda con el resto de cada medio, así CAYLA + CLAURE es SIEMPRE lo pagado con ese medio. Si la venta no
 --     tiene líneas con valor, todo es de la casa (como el reembolso de `fn_reembolso_de_la_empresa`).
+--   · El redondeo del efectivo (la fila `metodo = 'redondeo'`, ADR-0311: lo que no se cobró al redondear, < S/ 0.10) es un medio más, como en
+--     `fn_reporte_ventas_series`: así lo de cada empresa suma lo que vendió. Pero NO cuenta como un segundo medio para decir si una venta se repartió:
+--     es parte del efectivo. Una venta mixta pagada en efectivo con redondeo no es «repartida».
 --
 -- POR QUÉ UNA LECTURA NUEVA Y NO UN PARCHE A `fn_reporte_ventas_series`. Esa lectura y sus tres hermanas están en producción con un candado por su
 -- cuerpo (md5) que también corre en las pruebas que vuelven a pegarlas; reescribirla obligaba a deshacer y rehacer su cuerpo en cada prueba. Una pieza
@@ -128,10 +131,10 @@ begin
            case when p_empresa is null then pv.monto else retail.fn_pago_de_la_empresa(pv.venta_id, pv.metodo, p_empresa) end as monto
     from pv
   ),
-  mixtas as (    -- las ventas donde la parte es un reparto: líneas con valor de dos empresas o más, y dos medios o más
+  mixtas as (    -- las ventas donde la parte es un reparto: líneas con valor de dos empresas o más, y dos medios o más (el redondeo es parte del efectivo)
     select v.venta_id
     from (select distinct pv.venta_id from pv) v
-    where (select count(distinct pv2.metodo) from pv pv2 where pv2.venta_id = v.venta_id and pv2.monto <> 0) > 1
+    where (select count(distinct pv2.metodo) from pv pv2 where pv2.venta_id = v.venta_id and pv2.monto <> 0 and pv2.metodo <> 'redondeo') > 1
       and (select count(distinct retail.fn_empresa_de_la_linea(i.id)) from retail.venta_items i where i.venta_id = v.venta_id and i.subtotal <> 0) > 1
   )
   select

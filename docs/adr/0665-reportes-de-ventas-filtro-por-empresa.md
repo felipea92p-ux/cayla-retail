@@ -98,6 +98,8 @@ la cuenta de Lima que no es líder lee lo mismo; permisos; pegar dos veces. La r
 S/ 558 = S/ 1,752 y noviembre S/ 1,812.14 + S/ 1,395.86 = S/ 3,208, y lo pagado de cada empresa es igual a lo que vendió.
 
 **En producción desde el 2026-11-15** (`20261115013000`, aplicada en una transacción): las dos funciones con los md5 del repo (`fn_pago_de_la_empresa`
-`3f461afe4ce4c5d64fa5ec573a55e25d`, `fn_reporte_ventas_pagos` `8037f8aa5da2c4a81ad45099eea67ef0`), INVOKER, `anon` sin permiso. Leída con la sesión de un líder
+`3f461afe4ce4c5d64fa5ec573a55e25d`, `fn_reporte_ventas_pagos` `c492828ca26046e77f46c2ae73ebcae7`), INVOKER, `anon` sin permiso. La fila de redondeo del efectivo
+(ADR-0311) es un medio más, pero no cuenta como un segundo medio al decir si una venta mixta se «repartió»: lo pidió la vigilancia de
+`pruebas:redondeo-efectivo` en el CI y se volvió a aplicar el mismo día (Lima no tenía aún filas de redondeo: ninguna cifra cambió). Leída con la sesión de un líder
 (en una transacción deshecha), Lima en noviembre: CAYLA S/ 1,812.14 y CLAURE S/ 1,395.86 en pagos, cada una igual a su «vendido»; por medio suman lo de la serie
 (Yape 1,477, tarjeta 940, efectivo 636, QR 155); una venta repartida (S/ 28 de CAYLA y S/ 70 de CLAURE).
