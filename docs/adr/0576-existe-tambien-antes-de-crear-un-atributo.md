@@ -89,3 +89,36 @@ casos; los 16 son índices sueltos, ninguno respalda una constraint.
 **Lo que sigue sin cubrir** (además de lo de arriba): el «casi igual» sigue sin candado en la base, a propósito —
 Blanco y Crudo son dos colores—, y esto **no corrige lo que ya existe**. Si hoy hubiera dos filas que solo se
 diferencian por un invisible, la migración se niega y lo dice: cuál de las dos se queda es una decisión del negocio.
+
+## Actualización 2026-11-15 — «NER»: un Negro que ninguna de las dos reglas vio
+
+**Qué pasó.** El 2026-10-26 se creó a mano el color «NER» (nombre y código «NER», #100f0f, familia «tierra»): era Negro
+con otro nombre. Pasó 19 días sin uso, hasta que el lector de colores de la foto (ADR-0663, 13-nov) empezó a
+proponerlo: va al color más cercano de la carta, y una prenda negra fotografiada (#0a0a0a–#1f1f1f) queda más cerca de
+#100f0f que del Negro oficial (#2D2C2F). El 14-nov salieron en «NER» tres prendas (POL-0083, PAN-0039, PAN-0041), una de
+ellas ya publicada en la tienda web, cuando del 9 al 12-nov las 32 prendas negras se habían registrado en Negro.
+
+**Por qué este ADR no lo frenó, ni hoy lo frenaría.** Por nombre, «NER» no se parece a «Negro» (no es plural, ni
+femenino, ni un error de una letra). Por tono, ΔE2000 = 9,0 con la luz entera, y el aviso salta bajo 8.
+
+**Decidido (Felipe, 2026-11-15: «hay que hacer una fusión y que quede por defecto el negro»).**
+1. **La fusión** (`20261115010000`, solo datos, ya corrida en producción): cada variante «NER» pasa a Negro con la regla
+   de ADR-0263 D-137 (mismo id, stock e historia; código nuevo y el viejo en `codigos_barras`, así las etiquetas pegadas
+   siguen sonando); las fotos siguen al color; «NER» queda archivado, no borrado, y su nombre sigue tomado.
+   POL-0083 ya lo había corregido el equipo a mano desde su ficha; la migración tomó lo que quedaba (5 variantes).
+2. **Un nombre no puede ser un código de 3 letras** (`nombrePareceCodigo`, `lib/color-alta-reglas.ts`): la hoja de
+   «Nuevo color», Atributos y la API (`POST` y `PATCH /api/productos/colores`) lo frenan con «Escribe el nombre del color
+   en palabras, no su código de 3 letras». «Ner», «Oro» o «AZUL» pasan.
+3. **Los neutros de los extremos se comparan con la luz a la mitad** (`coloresParecidos`, `lib/color-parecido.ts`): casi
+   negro y casi blanco (croma < 6 y L* < 25 o > 92) usan kL = 2, la regla CMC 2:1 de los textiles; ahí casi toda la
+   diferencia es de luz, y la luz la pone la cámara. «NER» frente a Negro baja a 4,9 y avisa por tono.
+
+**Lo que se midió y se descartó.** Comparar todo con kL = 2 llevaba los pares de la carta de producción bajo 8 de 26 a
+81, y avisaba de colores distintos de verdad (Gris y Gris melange, Negro y Gris antracita, Amarillo y Mostaza): un aviso
+que salta sobre lo correcto se aprende a ignorar. Solo en los neutros de los extremos, los pares pasan de 26 a 27 y el
+único que se suma es Negro con «NER».
+
+**Lo que sigue sin cubrir.** Un «Negro intenso» bien escrito y a ΔE ≥ 8 de todos seguiría robándole fotos a Negro: el
+lector toma el más cercano y no sabe qué color es el «de siempre». Y en la carta de producción hay tres colores cuyo
+nombre es el sinónimo de otro (Guinda y Vino, Crema y Crudo, Cafe y Marrón): cuál se queda lo decide Felipe (backlog de
+la rama `ccr-04db1aff-33k8lo`).

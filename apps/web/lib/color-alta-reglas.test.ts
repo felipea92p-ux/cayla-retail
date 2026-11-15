@@ -41,6 +41,13 @@ describe("faltaParaCrear", () => {
   it("con todo, se puede crear", () => {
     expect(faltaParaCrear(listo)).toBeNull();
   });
+  it("un nombre que es un código de 3 letras no pasa: el caso «NER» (ADR-0576, act. 2026-11-15)", () => {
+    expect(faltaParaCrear({ ...listo, nombre: "NER", codigo: "NER" })).toMatch(/en palabras/);
+    expect(faltaParaCrear({ ...listo, nombre: " NEG " })).toMatch(/en palabras/);
+    expect(faltaParaCrear({ ...listo, nombre: "Ner" })).toBeNull();
+    expect(faltaParaCrear({ ...listo, nombre: "Oro" })).toBeNull();
+    expect(faltaParaCrear({ ...listo, nombre: "AZUL" })).toBeNull();
+  });
   it("dice lo primero que falta, en orden", () => {
     expect(faltaParaCrear({ ...listo, nombre: " " })).toMatch(/nombre/);
     expect(faltaParaCrear({ ...listo, hex: null })).toMatch(/muestra/);
@@ -102,6 +109,11 @@ describe("coloresQueYaExisten: nombre y tono en una sola lista (ADR-0576)", () =
   });
   it("un color nuevo de verdad no avisa de nada", () => {
     expect(lista("Verde pacay", "#B0C4DE", "azul")).toEqual([]);
+  });
+  it("el caso «NER» (2026-11-15): ni el nombre ni la familia lo delatan, el tono sí", () => {
+    const conNegroReal = [{ codigo: "NEG", nombre: "Negro", hex: "#2D2C2F", familiaColor: "neutro" }, ...vocabulario.filter((c) => c.codigo !== "NEG")];
+    const hallados = coloresQueYaExisten("NER", "#100f0f", "tierra", conNegroReal).map((c) => `${c.item.codigo}:${c.por}`);
+    expect(hallados).toEqual(["NEG:tono"]);
   });
 });
 

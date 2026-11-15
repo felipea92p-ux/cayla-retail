@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { faltaParaCrear } from "./color-alta-reglas";
 import { agruparPorFamilia, FAMILIAS_COLOR } from "./colores-familias";
 import { camposDeNuevoColor, grupoDeFamilia, inicialDeEstampado, coloresDominantes, ejemploDeEstampado, esEstampado, familiaEnCarta, fotoQueDistingue, faltaParaEstampado, fotoDeLaFila, nombreDeEstampado, patronesDeEstampado } from "./color-estampado-reglas";
 
@@ -100,6 +101,11 @@ describe("camposDeNuevoColor", () => {
   it("liso: nombre y tono", () => {
     expect(faltan({ ...base, estampado: false })).toEqual(["nombre", "tono"]);
     expect(faltan({ ...base, estampado: false, nombre: "Coral", hexListo: true })).toEqual([]);
+  });
+  it("un nombre que es un código sigue pendiente, con la misma frase que impide crearlo (el caso «NER»)", () => {
+    const campos = camposDeNuevoColor({ ...base, estampado: false, nombre: "NER", hexListo: true });
+    expect(campos.filter((x) => !x.hecho).map((x) => x.id)).toEqual(["nombre"]);
+    expect(campos.find((x) => x.id === "nombre")?.pendiente).toBe(faltaParaCrear({ nombre: "NER", hex: "#100f0f", familia: "neutro", codigo: "NER" }));
   });
   it("estampado: el color y el nombre; el patrón es opcional y no se lista", () => {
     expect(faltan({ ...base, estampado: true })).toEqual(["dominante", "nombre"]);
