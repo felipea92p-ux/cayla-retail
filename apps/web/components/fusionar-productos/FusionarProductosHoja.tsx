@@ -24,6 +24,7 @@ import {
   leerPlan,
   mensajeAlNoFusionar,
   opcionesDeCampo,
+  preciosSedeParaLaBase,
   quedaSugerido,
   yaFusionadas,
   type CampoFusion,
@@ -54,6 +55,7 @@ import { Casilla } from "@/components/ui/Casilla";
 import { Chip } from "@/components/ui/Chip";
 import { Aviso, AvisoNoSeDeshace } from "@/components/ui/Aviso";
 import { TituloGrupo } from "@/components/ui/TituloSeccion";
+import { PreciosPorSede } from "./PreciosPorSede";
 import { Vacio } from "@/components/ui/Vacio";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { CampoGuiado, PieGuia } from "@/components/guia-de-foco/CampoGuiado";
@@ -304,12 +306,15 @@ export function FusionarProductosHoja({
       createClient().rpc("fusionar_productos", {
         p_queda: quedaEfectiva,
         p_duplicados: duplicados,
-        p_elecciones: eleccionesParaLaBase(
-          elecciones,
-          plan.productos,
-          plan.diferencias,
-          quedaEfectiva,
-        ) as never,
+        p_elecciones: {
+          ...eleccionesParaLaBase(
+            elecciones,
+            plan.productos,
+            plan.diferencias,
+            quedaEfectiva,
+          ),
+          ...preciosSedeParaLaBase(elecciones, plan.preciosSede),
+        } as never,
         p_versiones: versiones,
       }),
       responsable.firma(),
@@ -628,6 +633,26 @@ export function FusionarProductosHoja({
                         )}
                       </div>
                     </CampoGuiado>
+                  )}
+
+                  {/* ---------- Precios por sede: cada sede conserva el suyo, o uno solo (Felipe 2026-11-15; 20261115153000) ---------- */}
+                  {plan && plan.preciosSede.length > 0 && (
+                    <PreciosPorSede
+                      sedes={plan.preciosSede}
+                      fichas={productos.map((p) => ({ id: p.id, referencia: p.referencia }))}
+                      unSoloPrecio={elecciones.unSoloPrecio}
+                      elegidas={elecciones.precioSedeDe}
+                      deshabilitado={guardando}
+                      onUnSoloPrecio={(v) =>
+                        setElecciones((e) => ({ ...e, unSoloPrecio: v }))
+                      }
+                      onElegir={(ubicacionId, productoId) =>
+                        setElecciones((e) => ({
+                          ...e,
+                          precioSedeDe: { ...e.precioSedeDe, [ubicacionId]: productoId },
+                        }))
+                      }
+                    />
                   )}
 
                   {/* ---------- Tallas sin prendas: se pueden sacar de la venta (Felipe 2026-11-13; 20261113175000) ---------- */}

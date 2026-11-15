@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
+  fichaDelPrecioDeSede,
+  preciosSedeParaLaBase,
+  ELECCIONES_VACIAS as VACIAS_PRECIOS,
   ELECCIONES_VACIAS,
   camposAElegir,
   camposDeLaGuia,
@@ -112,7 +115,7 @@ describe("lo que se manda a la base", () => {
     expect(eleccionesParaLaBase(ELECCIONES_VACIAS, plan.productos, plan.diferencias, "A")).toEqual({ campos: {}, precio: 79.9 });
   });
   it("lo elegido: nombre y categoría del duplicado, su precio, y las fotos en orden", () => {
-    const e = { campos: { referencia: "B", categoria: "B" }, precioDe: "B", costoDe: null, fotos: ["f3", "f1", "zz"], retirar: [] };
+    const e = { ...ELECCIONES_VACIAS, campos: { referencia: "B", categoria: "B" }, precioDe: "B", fotos: ["f3", "f1", "zz"] };
     expect(eleccionesParaLaBase(e, plan.productos, plan.diferencias, "A")).toEqual({
       campos: { referencia: "B", categoria: "B" },
       precio: 89,
@@ -217,5 +220,64 @@ describe("tallas vacías", () => {
     expect(fraseTallasQueSalen([v("Negro", "XS", true), v("Blanco", "XL", true), v("Rojo", "S", true)])).toBe(
       "Salen de la venta 3 tallas sin prendas: Negro XS, Blanco XL y Rojo S. Sus ventas no se pierden.",
     );
+  });
+});
+
+
+describe("precios por sede (20261115153000)", () => {
+  const sede = (conflicto: boolean, porDefecto: string | null = "Q") => ({
+    ubicacionId: "LIM",
+    nombre: "Tienda LIM",
+    conflicto,
+    porDefecto,
+    productos: [
+      { id: "Q", queda: true, precio: 199, propio: true },
+      { id: "D", queda: false, precio: 179, propio: true },
+    ],
+  });
+
+  it("la base de antes (sin precios_sede) no cambia lo que se manda", () => {
+    expect(leerPlan({ ok: true }).preciosSede).toEqual([]);
+    expect(preciosSedeParaLaBase(VACIAS_PRECIOS, [])).toEqual({});
+  });
+
+  it("lee las sedes que trae la previsualización", () => {
+    const plan = leerPlan({
+      ok: true,
+      precios_sede: [
+        {
+          ubicacion_id: "LIM",
+          nombre: "Tienda LIM",
+          conflicto: true,
+          por_defecto: "Q",
+          productos: [{ id: "Q", queda: true, precio: "199.00", propio: true }],
+        },
+      ],
+    });
+    expect(plan.preciosSede[0]).toMatchObject({ ubicacionId: "LIM", conflicto: true, porDefecto: "Q" });
+    expect(plan.preciosSede[0].productos[0].precio).toBe(199);
+  });
+
+  it("por defecto cada sede conserva su precio y, con conflicto, gana la que queda", () => {
+    expect(preciosSedeParaLaBase(VACIAS_PRECIOS, [sede(true)])).toEqual({
+      precio_modo: "por_sede",
+      precios_sede: { LIM: "Q" },
+    });
+  });
+
+  it("sin conflicto solo viaja el modo: el precio propio ya viaja solo", () => {
+    expect(preciosSedeParaLaBase(VACIAS_PRECIOS, [sede(false, "D")])).toEqual({ precio_modo: "por_sede" });
+  });
+
+  it("lo elegido gana; una ficha que ya no tiene precio propio en esa sede se suelta", () => {
+    expect(preciosSedeParaLaBase({ ...VACIAS_PRECIOS, precioSedeDe: { LIM: "D" } }, [sede(true)])).toEqual({
+      precio_modo: "por_sede",
+      precios_sede: { LIM: "D" },
+    });
+    expect(fichaDelPrecioDeSede(sede(true), "X")).toBe("Q");
+  });
+
+  it("«un solo precio» manda solo el modo", () => {
+    expect(preciosSedeParaLaBase({ ...VACIAS_PRECIOS, unSoloPrecio: true }, [sede(true)])).toEqual({ precio_modo: "uno" });
   });
 });

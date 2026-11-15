@@ -324,6 +324,14 @@ export const GUIA_PRODUCTOS: Guia = {
       texto: "Solo aparece lo que no coincide: el nombre, la categoría, el precio… Cada dato va bajo su ficha y tocas el que se queda. Lo que no aparece es igual en las fichas.",
     },
     {
+      id: "fusionar-precios-sede",
+      ancla: "fusionar.precios-sede",
+      opcional: true,
+      preparar: [{ tipo: "escape" }],
+      titulo: "Precios por sede",
+      texto: "Si una tienda cobraba un precio propio, esa tienda lo conserva. Donde las dos fichas tenían precios distintos, tocas el que se queda. El interruptor junta todo en un solo precio.",
+    },
+    {
       id: "fusionar-vacias",
       ancla: "fusionar.vacias",
       opcional: true,

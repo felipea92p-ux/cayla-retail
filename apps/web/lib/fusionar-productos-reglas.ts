@@ -68,6 +68,17 @@ export type VaciaPlan = {
   retirada: boolean;
 };
 
+/** Una sede donde una ficha repetida cobra un precio propio distinto del de la que queda (20261115153000). `conflicto`: hay dos
+ *  precios propios distintos y se puede elegir; si no, el precio propio simplemente viaja. `porDefecto`: la ficha cuyo precio queda. */
+export type PrecioSedePlan = {
+  ubicacionId: string;
+  nombre: string;
+  conflicto: boolean;
+  porDefecto: string | null;
+  /** El precio de cada ficha en esa sede; `propio`: lo cobra por una excepción de la sede, no por el precio general. */
+  productos: { id: string; queda: boolean; precio: number | null; propio: boolean }[];
+};
+
 export type PlanFusion = {
   ok: boolean;
   productos: ProductoPlan[];
@@ -79,6 +90,8 @@ export type PlanFusion = {
   avisos: AvisoPlan[];
   /** Vacío con la base de antes de 20261113175000: la hoja no ofrece sacar tallas. */
   vacias: VaciaPlan[];
+  /** Vacío con la base de antes de 20261115153000, o si ninguna sede cobra un precio propio distinto: la hoja no pregunta. */
+  preciosSede: PrecioSedePlan[];
 };
 
 type Json = Record<string, unknown>;
@@ -167,6 +180,19 @@ export function leerPlan(json: unknown): PlanFusion {
         talla: texto(v.talla),
         nuncaTuvo: v.nunca_tuvo === true,
         retirada: v.retirada === true,
+      };
+    }),
+    preciosSede: (Array.isArray(o.precios_sede) ? o.precios_sede : []).map((x) => {
+      const s = x as Json;
+      return {
+        ubicacionId: String(s.ubicacion_id),
+        nombre: String(s.nombre ?? ""),
+        conflicto: s.conflicto === true,
+        porDefecto: texto(s.por_defecto),
+        productos: (Array.isArray(s.productos) ? s.productos : []).map((y) => {
+          const p = y as Json;
+          return { id: String(p.id), queda: p.queda === true, precio: numero(p.precio), propio: p.propio === true };
+        }),
       };
     }),
   };
@@ -262,9 +288,26 @@ export type Elecciones = {
   fotos: string[] | null;
   /** Los colores × talla vacíos que salen de la venta (la variante que absorbe cada uno; 20261113175000). */
   retirar: string[];
+  /** `true`: un solo precio para todas las sedes. Por defecto cada sede conserva el suyo (20261115153000). */
+  unSoloPrecio: boolean;
+  /** Por sede con dos precios propios distintos: de qué ficha sale el precio. Sin entrada, el de la que queda. */
+  precioSedeDe: Record<string, string>;
 };
 
-export const ELECCIONES_VACIAS: Elecciones = { campos: {}, precioDe: null, costoDe: null, fotos: null, retirar: [] };
+export const ELECCIONES_VACIAS: Elecciones = {
+  campos: {},
+  precioDe: null,
+  costoDe: null,
+  fotos: null,
+  retirar: [],
+  unSoloPrecio: false,
+  precioSedeDe: {},
+};
+
+/** De qué ficha sale el precio de una sede: lo elegido si sigue en la fusión, o el que propone la base (el de la que queda). */
+export function fichaDelPrecioDeSede(sede: PrecioSedePlan, elegida: string | undefined): string | null {
+  return elegida && sede.productos.some((p) => p.id === elegida && p.propio) ? elegida : sede.porDefecto;
+}
 
 /** De qué producto sale el precio o el costo: lo elegido, o —si difieren y nadie tocó— el del que queda (decisiones 6 y 7:
  *  por defecto, el del que queda). Si no difieren, nada: cada talla conserva el suyo. */
@@ -293,6 +336,20 @@ export function eleccionesParaLaBase(
   // Solo si hay: con la base de antes de 20261113175000 la clave sobra, y la base valida que cada una siga vacía.
   if (e.retirar.length > 0) salida.retirar = e.retirar;
   return salida;
+}
+
+/** Lo de los precios por sede que se le suma a `p_elecciones`: nada si ninguna sede cobra un precio propio distinto (la base de antes
+ *  de 20261115153000 tampoco lo conoce). Con «un solo precio» viaja solo el modo; si no, la ficha elegida por cada sede con conflicto. */
+export function preciosSedeParaLaBase(e: Elecciones, sedes: PrecioSedePlan[]): Record<string, unknown> {
+  if (sedes.length === 0) return {};
+  if (e.unSoloPrecio) return { precio_modo: "uno" };
+  const elegidas = Object.fromEntries(
+    sedes
+      .filter((s) => s.conflicto)
+      .map((s) => [s.ubicacionId, fichaDelPrecioDeSede(s, e.precioSedeDe[s.ubicacionId])] as const)
+      .filter(([, id]) => id !== null),
+  );
+  return Object.keys(elegidas).length > 0 ? { precio_modo: "por_sede", precios_sede: elegidas } : { precio_modo: "por_sede" };
 }
 
 /** Todas las fotos de la fusión, en el orden de la hoja: primero las del que queda (su principal adelante), después las de

@@ -132,6 +132,28 @@ después a mano en la ficha (Felipe quería hacerlo en la misma fusión).
 
 Pruebas: `pnpm pruebas:fusionar-productos`, casos 25 a 28 (28/28 en una base limpia).
 
+## Actualización 2026-11-15: cada sede conserva su precio
+
+Felipe: «si en Lima hay un precio y en Trujillo otro, cada sede debe quedar con el suyo; que se pueda elegir juntarlos; y también desde una terminal».
+
+DECIDÍ:
+
+1. **Modo de fábrica `por_sede`.** El precio propio de una talla en una sede (el de la prenda en esa tienda, `precios_sede_prenda`, o el de la talla,
+   `precios_sede_variante`) viaja a la que queda como excepción de la talla. Donde dos fichas tenían precios propios distintos en la misma sede gana la
+   que queda, o la que la persona elija sede por sede (`p_elecciones.precios_sede`). Solo se escribe donde el precio de hoy ya no sería el de antes.
+2. **`precio_modo = 'uno'`:** los precios de sede de la ficha que queda se archivan (nunca se borran) y todas las sedes cobran el general.
+3. **Una terminal elige igual.** El candado de 20261026224000 (una terminal no cambia `variantes.precio`) se aparta solo mientras corre
+   `fusionar_productos` (`set_config('retail.fusion_precio_en_curso', 'on', true)`: solo esa transacción). Fuera de la fusión sigue igual. Consecuencia
+   que Felipe aceptó: desde una terminal, elegir otro precio general o «un solo precio» alcanza a las otras tiendas.
+4. **Previsualización:** `precios_sede` (las sedes donde una repetida cobra distinto de la que queda, con su `conflicto` y su `por_defecto`); la hoja
+   solo pregunta si hay alguna.
+
+DESCARTÉ: escribir `precios_sede_prenda` en la que queda (su disparador archivaría las excepciones por talla que ya tenía) y bloquear la fusión
+por un conflicto de precio (se resuelve mirando).
+
+Migración `20261115153000` (funciones `fn_fusion_precios_*`, `previsualizar_fusion_productos` y tres reemplazos anclados). El número no se pudo reservar
+(`pnpm reservar`: 403 desde el entorno en la nube). Ensayo en producción con `begin … rollback`, pendiente al escribir esto.
+
 ## Pendiente
 
 - «Esta no es repetida»: hoy un par sugerido que no es la misma prenda sigue en la lista. Si molesta, una tabla de pares descartados.
