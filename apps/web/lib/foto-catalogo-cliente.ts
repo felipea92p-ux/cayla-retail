@@ -1,6 +1,7 @@
 "use client";
 
 import { medidasParaIA, LADO_MAXIMO_IA } from "@/lib/foto-catalogo-reglas";
+import type { DatosDePrenda } from "@/lib/ficha-foto-ia";
 
 // Pedir la foto de catálogo de UN color desde el navegador (Editar y Nuevo producto, «Catálogo con IA»). El servidor (`/api/fotos/catalogo`) es el
 // que habla con OpenAI; aquí solo se achican las fotos y se manda el pedido.
@@ -34,9 +35,11 @@ async function achicar(fuente: Blob, tipo: "image/jpeg" | "image/webp"): Promise
  * Manda las fotos de un color al servidor y devuelve el PNG transparente de la foto de catálogo, o el motivo en palabras de tienda. Nunca lanza.
  * Las fotos reales van en JPEG; el molde, en WebP para conservar su transparencia.
  */
-export async function pedirFotoDeCatalogo(fotos: FotosDeCatalogo): Promise<ResultadoCatalogo> {
+export async function pedirFotoDeCatalogo(fotos: FotosDeCatalogo, prenda?: DatosDePrenda | null): Promise<ResultadoCatalogo> {
   try {
     const cuerpo = new FormData();
+    // Lo ya elegido de la prenda (categoría, tejido, patrón): el servidor arma con eso la ficha del pedido (`lib/ficha-foto-ia.ts`).
+    if (prenda) for (const campo of ["prefijo", "tipo", "tejido", "patron"] as const) if (prenda[campo]) cuerpo.set(campo, prenda[campo]);
     cuerpo.set("frente", await achicar(fotos.frente, "image/jpeg"), "frente.jpg");
     if (fotos.espalda) cuerpo.set("espalda", await achicar(fotos.espalda, "image/jpeg"), "espalda.jpg");
     if (fotos.detalle) cuerpo.set("detalle", await achicar(fotos.detalle, "image/jpeg"), "detalle.jpg");

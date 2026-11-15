@@ -6,7 +6,7 @@
 // NO HACE: el patrón no se guarda en el color: solo ayuda a nombrarlo. El tono y la familia del estampado son los de su color
 //   dominante, y por eso los filtros de color, la demanda y el plan del piso lo cuentan en esa familia sin saber que es un estampado.
 
-import { nombreDeColor } from "./color-alta-reglas";
+import { ERROR_NOMBRE_CODIGO, nombreDeColor, nombrePareceCodigo } from "./color-alta-reglas";
 import { esCombinado, GRUPO_COMBINADOS } from "./color-combinado";
 import { esHexValido } from "./color-parecido";
 import { FAMILIAS_COLOR } from "./colores-familias";
@@ -112,10 +112,11 @@ export function faltaParaEstampado({ nombre, colorDominante }: { nombre: string;
  * El patrón no entra: es opcional y solo ayuda a armar el nombre.
  */
 export function camposDeNuevoColor(c: { estampado: boolean; nombre: string; hexListo: boolean; dominante: boolean }): CampoDeGuia[] {
-  const nombreHecho = nombreDeColor(c.nombre) !== "";
+  const esCodigo = nombrePareceCodigo(c.nombre);
+  const nombreHecho = nombreDeColor(c.nombre) !== "" && !esCodigo;
   if (!c.estampado) {
     return [
-      { id: "nombre", nombre: "Nombre", requerido: true, hecho: nombreHecho, pendiente: "Escribe el nombre del color." },
+      { id: "nombre", nombre: "Nombre", requerido: true, hecho: nombreHecho, pendiente: esCodigo ? ERROR_NOMBRE_CODIGO : "Escribe el nombre del color." },
       { id: "tono", nombre: "Tono", requerido: true, hecho: c.hexListo, pendiente: "Toca la muestra y elige el tono." },
     ];
   }

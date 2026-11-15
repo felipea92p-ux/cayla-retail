@@ -68,7 +68,8 @@ marca nace CLAURE y, por ADR-0505, no sale de Lima. Solo si la base no dice cuá
 - **Parchar `fn_totales_historial_ventas` y `fn_resumen_caja`** para el reparto: funciones con varios parches encima (ADR-0311); una lectura
   nueva al lado es independiente y la prueba compara las dos sumas. (Movimientos sí se parcha: su lista va paginada en la base y un
   filtro fuera de ella haría mentir a la página).
-- **Partir el efectivo y los pagos por empresa:** descartado por Felipe (sería una estimación en una boleta mixta).
+- **Partir el efectivo y los pagos por empresa:** descartado por Felipe (sería una estimación en una boleta mixta). *Revisado el 2026-11-15 solo para Ventas ▸
+  Reportes (ADR-0665, act. 2026-11-15): medido, el reparto es exacto en 70 de 71 ventas de Lima y la única estimación se dice en pantalla. Caja e Historial no cambian.*
 
 ## Consecuencias de negocio (para que Felipe las tenga a la vista)
 

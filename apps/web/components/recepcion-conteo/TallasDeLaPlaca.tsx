@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, type KeyboardEvent } from "react";
 import { ChevronDown, Plus, X } from "lucide-react";
 import { EtiquetaAhora } from "@/components/alta-producto/guia";
 import { Punto } from "@/components/alta-producto/ElegirColores";
@@ -15,7 +15,8 @@ import { leerCantidad, limpiarCantidad, type ColorAlta } from "@/lib/alta-produc
 import { PasoCantidad } from "@/components/ui/PasoCantidad";
 import { conMiles } from "@/lib/recepcion-modelos-reglas";
 import { matrizDe, nombreDeVariante, SOLUCIONES_DANADA, sumasDe, type Conteo, type MatrizRecepcion, type PrendaRecepcion, type SolucionDanada } from "@/lib/recepcion-envio-reglas";
-import { claveDeEje, cuadreDeTallas, llenarTodasLasTallas, ordenarTallasVisibles, quitarColor, quitarTalla, type BorradorTallas } from "@/lib/recepcion-tallas-reglas";
+import { claveDeEje, columnasDeLaTabla, cuadreDeTallas, enterSaleDeLaTabla, llenarTodasLasTallas, ordenarTallasVisibles, quitarColor, quitarTalla, type BorradorTallas } from "@/lib/recepcion-tallas-reglas";
+import { celdaVecina, movimientoDeTecla } from "@/lib/tabla-alta-reglas";
 
 // La tabla de tallas y colores de un modelo. Vivió en la placa de Contar (Felipe 2026-11-02) y desde el 2026-11-11 se abre en su hoja (`HojaRepartir`, ADR-0645): en la placa
 // no cabía. La tabla arranca con las tallas de siempre de la categoría y a cada talla y
@@ -137,10 +138,33 @@ function Reparto({
       requestAnimationFrame(() => el.querySelector('[data-guia="recepcion.danadas-contar"]')?.scrollIntoView({ block: "nearest" }));
       return;
     }
-    if (window.matchMedia("(pointer: fine)").matches) el.querySelector<HTMLInputElement>("input.rc-celda:not(:disabled)")?.focus({ preventScroll: true });
+    // Por su `data-variante`, no por una clase: desde que cada casilla es un `PasoCantidad` (2026-11-12) ya ninguna lleva `rc-celda`, y el cursor se quedaba en la × de la hoja.
+    if (window.matchMedia("(pointer: fine)").matches) el.querySelector<HTMLInputElement>("input[data-variante]:not(:disabled)")?.focus({ preventScroll: true });
     // Una sola vez, al llegar la tabla.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  /**
+   * Enter en la última casilla: si lo repartido cuadra con lo contado, el cursor sale de la tabla hacia lo que sigue, el botón del pie de la hoja (llevar lo repartido al stock).
+   * Recién repartido, ese botón espera apagado a que lo escrito se guarde: se le da hasta 3 s para encenderse, mientras el cursor siga en la casilla. Si la hoja no tiene pie, va a
+   * «Agregar talla o color». Con el reparto a medias el cursor se queda en la casilla (`enterSaleDeLaTabla`, tarea 5 de las 30 de Recibir, 2026-11-14): ahí el botón del pie
+   * lleva solo una parte al stock, y un Enter de más abría esa hoja con una cantidad incompleta.
+   */
+  function salirDeLaTabla() {
+    const el = raiz.current;
+    const casilla = document.activeElement;
+    if (!el || !enterSaleDeLaTabla(cuadre)) return;
+    const pie = () => el.parentElement?.querySelector<HTMLElement>("[data-pie-repartir]") ?? null;
+    const intentar = (quedan: number) => {
+      // La persona ya llevó el cursor a otra parte (o la hoja se cerró): no se le quita.
+      if (document.activeElement !== casilla) return;
+      const boton = pie()?.querySelector<HTMLElement>("button:not(:disabled)");
+      if (boton) return boton.focus();
+      if (!pie()?.querySelector("button")) return void el.querySelector<HTMLElement>("[data-pie-tabla] button")?.focus();
+      if (quedan > 0) window.setTimeout(() => intentar(quedan - 1), 150);
+    };
+    intentar(20);
+  }
 
   function quitar(tipo: "talla" | "color", eje: Eje) {
     const r = tipo === "talla" ? quitarTalla(conteo, prenda, eje.clave) : quitarColor(conteo, prenda, eje.clave);
@@ -204,9 +228,10 @@ function Reparto({
         onValor={(id, texto) => onCambiar({ ...borrador, conteo: { ...conteo, cantidades: { ...conteo.cantidades, [id]: texto } } })}
         onQuitar={quitar}
         onCrear={onCrear}
+        alSalir={salirDeLaTabla}
       />
 
-      <div className="rc-matriz-pie">
+      <div className="rc-matriz-pie" data-pie-tabla>
         {/* Un botón, no dos combos: abre la hoja con todas las tallas y todos los colores a la vista. */}
         <Boton type="button" peso="fantasma" onClick={() => onCrear({})}>
           <span className="inline-flex items-center gap-2">
@@ -243,6 +268,7 @@ function TablaDeTallas({
   onValor,
   onQuitar,
   onCrear,
+  alSalir,
 }: {
   matriz: MatrizRecepcion;
   /** La prenda, para leer la foto de sus estampados. Sin ella, cada color lleva su punto. */
@@ -257,6 +283,8 @@ function TablaDeTallas({
   onValor: (varianteId: string, texto: string) => void;
   onQuitar?: (tipo: "talla" | "color", eje: Eje) => void;
   onCrear?: (pedida: { tallaId?: string; colorCodigo?: string }) => void;
+  /** Enter en la última casilla de la tabla: a dónde va el cursor. Sin esto, se queda en ella. */
+  alSalir?: () => void;
 }) {
   const caja = useRef<HTMLDivElement>(null);
   const porCodigo = new Map(catalogo.map((c) => [c.codigo, c]));
@@ -273,6 +301,25 @@ function TablaDeTallas({
   }, [tallas.length, colores.length]);
   const numero = (id: string) => leerCantidad(valores[id] ?? "") ?? 0;
   const conQuitar = !!onQuitar;
+  // El teclado de planilla (tarea 5 de las 30 de Recibir, 2026-11-14): Enter y ↓ bajan por la talla, ↑ y Shift+Enter suben, y Enter al fondo pasa a la talla siguiente,
+  // con la misma regla (`movimientoDeTecla`, ADR-0396) que la tabla de Nuevo producto y la de la orden de producción; a diferencia de esas dos, aquí Enter en la última
+  // casilla sale de la tabla (`alSalir`), y allá no hace nada. Se suma al Tab, que sigue pasando de número en número
+  // (Felipe 2026-11-12). Solo mueve el cursor: no escribe ni guarda. La casilla que la prenda no tiene («—») o que está apagada no cuenta.
+  const porTalla = columnasDeLaTabla(tallas.map((t) => t.clave), colores.map((c) => c.clave), (talla, color) => {
+    const v = matriz.celda(talla === "" ? null : talla, color === "" ? null : color);
+    return v && !(topes !== undefined && (topes[v.id] ?? 0) === 0) ? v.id : null;
+  });
+  function alTeclear(e: KeyboardEvent<HTMLInputElement>, id: string) {
+    if (e.nativeEvent.isComposing) return;
+    const mov = movimientoDeTecla(e);
+    if (!mov) return;
+    const vecina = celdaVecina(porTalla, id, mov);
+    // Una flecha en el borde es del navegador (lleva el cursor al inicio o al final del número). Enter nunca: en la última casilla sale de la tabla.
+    if (vecina === null && e.key !== "Enter") return;
+    e.preventDefault();
+    if (vecina !== null) Array.from(caja.current?.querySelectorAll<HTMLInputElement>("input[data-variante]") ?? []).find((i) => i.dataset.variante === vecina)?.focus();
+    else if (mov.sentido === 1) alSalir?.();
+  }
   return (
     <div ref={caja} className="rc-matriz-caja scroll-cayla">
       <table // unificar-fijo: la matriz talla por color de un modelo, no una lista de registros
@@ -374,7 +421,8 @@ function TablaDeTallas({
                           value: valores[v.id] ?? "",
                           onChange: (e) => onValor(v.id, limpiarCantidad(e.target.value)),
                           onFocus: (e) => e.currentTarget.select(),
-                          ...({ "data-talla": t.clave, "data-color": c.clave } as Record<string, string>),
+                          onKeyDown: (e) => alTeclear(e, v.id),
+                          ...({ "data-talla": t.clave, "data-color": c.clave, "data-variante": v.id } as Record<string, string>),
                         }}
                       />
                     </td>

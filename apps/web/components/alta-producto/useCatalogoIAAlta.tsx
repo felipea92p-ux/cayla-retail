@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState, type Dispatch, type ReactNode, type SetStateAction } from "react";
 import { avisar } from "@/components/ui/Avisos";
 import { pedirFotoDeCatalogo } from "@/lib/foto-catalogo-cliente";
+import type { DatosDePrenda } from "@/lib/ficha-foto-ia";
 import { avisoIANoRespondio } from "@/lib/foto-catalogo-reglas";
 import { HojaCatalogoIA, type PedidoCatalogo } from "@/components/ficha-producto/HojaCatalogoIA";
 import { frenteValido, useInterruptorIA } from "@/components/ficha-producto/useCatalogoIA";
@@ -42,8 +43,11 @@ export function useCatalogoIAAlta({
   colores,
   nombreColor,
   moldeDeLaPrenda,
+  prenda,
 }: {
   disponible: boolean;
+  /** Lo ya elegido de la prenda (categoría, tipo, tejido, patrón): se manda a la IA para que no adivine qué es (`lib/ficha-foto-ia.ts`). */
+  prenda?: DatosDePrenda | null;
   fotos: readonly FotoPendiente[];
   setFotos: Dispatch<SetStateAction<FotoPendiente[]>>;
   /** Los colores elegidos, en orden: el primero con foto de IA es el molde. */
@@ -67,6 +71,11 @@ export function useCatalogoIAAlta({
   useEffect(() => {
     fotosRef.current = fotos;
   }, [fotos]);
+  // La ficha se lee al MANDAR el pedido, no al tocar «Preparar foto»: un color que espera al molde (~25 s) va con el tejido de ese momento.
+  const prendaRef = useRef(prenda);
+  useEffect(() => {
+    prendaRef.current = prenda;
+  });
 
   const claveDe = (color: string | null) => color ?? "";
   /** El molde ya hecho: la de IA del primer color (en el orden elegido) que la tiene, y que se está usando. */
@@ -98,7 +107,7 @@ export function useCatalogoIAAlta({
       setColorMoldeEnCurso(p.color);
     }
 
-    const r = await pedirFotoDeCatalogo({ frente: p.frente, espalda: p.espalda, detalle: p.detalle, molde });
+    const r = await pedirFotoDeCatalogo({ frente: p.frente, espalda: p.espalda, detalle: p.detalle, molde }, prendaRef.current);
     if ("png" in r) {
       esMolde.soltar?.(r.png);
       const vistaIA = URL.createObjectURL(r.png);
@@ -128,7 +137,7 @@ export function useCatalogoIAAlta({
     else if (listo?.ia) molde = listo.ia.png;
     else if (moldeEnCurso.current) molde = await moldeEnCurso.current;
     else moldeEnCurso.current = new Promise<Blob | null>((resolver) => (esMolde.soltar = resolver));
-    const r = await pedirFotoDeCatalogo({ frente, espalda: null, detalle: null, molde });
+    const r = await pedirFotoDeCatalogo({ frente, espalda: null, detalle: null, molde }, prendaRef.current);
     const png = "png" in r ? r.png : null;
     if (esMolde.soltar) {
       esMolde.soltar(png);

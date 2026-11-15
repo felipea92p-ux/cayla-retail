@@ -1913,7 +1913,12 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
   (cargadores de servidor, `rpc("fn_reporte_ventas_*")`) con sus reglas puras en `lib/reportes-ventas-reglas.ts` y `lib/reportes-ranking-reglas.ts` →
   `components/reportes-ventas/*`. Cuatro funciones INVOKER de la base: `fn_reporte_ventas_mes` (las cinco cifras contra los mismos días del mes anterior),
   `fn_reporte_ventas_series` (por día, mes a mes, cómo se pagó), `fn_reporte_ventas_cortes` (por tienda y por categoría) y `fn_reporte_ventas_ranking`
-  (con filtros, página y panel de tallas y colores); todas preguntan `fn_ve_modulo('reportes_ventas')`. Todo vive en la URL. La descarga son dos
+  (con filtros, página y panel de tallas y colores); todas preguntan `fn_ve_modulo('reportes_ventas')`. Todo vive en la URL.
+  **Empresa (ADR-0665, 2026-11-14):** donde la tienda tiene dos empresas (Lima) las cuatro funciones aceptan `p_empresa` (último parámetro; la web lo manda solo
+  si hay una elegida) y cuentan solo las líneas de esa empresa, con `fn_empresa_de_la_linea` (la regla de `fn_dueno_de_la_linea`, INVOKER) y
+  `fn_reembolso_de_la_empresa`; la píldora «Empresa» sale de `lib/reportes-empresa-reglas.ts` + `alcanceDeReportes` y vive en `?emp=`. «Cómo se pagó» con
+  empresa (act. 2026-11-15) sale de una quinta lectura, `fn_reporte_ventas_pagos` (`getPagosDeEmpresa`), que reparte cada pago con `fn_pago_de_la_empresa`
+  y dice cuánto es reparto (`repartido`); la serie sigue sin partir los pagos. La descarga son dos
   `route.ts` (`/vender/reportes/descargar`, `/vender/reportes/ranking/descargar`) que repiten el permiso y comparten `lib/reportes-ventas-alcance.ts`
   (qué tienda puede mirar la cuenta) con las pantallas; el CSV lo arma `lib/reportes-ventas-exportar-reglas.ts`.
 

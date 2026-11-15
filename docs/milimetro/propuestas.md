@@ -40,6 +40,11 @@ hacen los mejores del mundo, hagámoslo». Cada propuesta dice qué se gana, de 
   dos «clienta» visibles y ~25 funciones de la base que aún dicen «clienta» o «socia».
 - **`/milimetro`:** `aria-disabled` con su motivo en vez de `disabled` al 50 % para lo apagado por permiso; una cara común para el solo lectura; medir si la cabecera fija tapa el foco
   (WCAG 2.4.11).
+- **`/milimetro` (auditoría de Recibir ▸ Contar, 2026-11-14):** el número abierto del contador no lleva anillo de foco; su foco es el cursor y, con la cifra ya contada,
+  una selección de 1,39:1 (claro) y 1,61:1 (oscuro) que esconde el cursor. Hoy el anillo común (ADR-0351) solo sale con «más contraste» o colores forzados
+  (`recepcion-viva.css:86`, `lib/recepcion-dial-foco.test.ts`), por la demo que Felipe eligió mirando. Propuesta: el anillo para todos solo con el teclado
+  (`:focus-visible` tras una tecla), o una selección de al menos 3:1, conservando el aspecto sin caja al tocar el número. `[Norma]` 2.4.7 AA ya pasa; 2.4.13 AAA y
+  1.4.11 no. Riesgo: cambia lo que Felipe aprobó. Se mide con `color/referencia/medir.js` (foco) y el contraste de la selección contra el fondo del aro.
 
 ## Lo que decidió Felipe
 

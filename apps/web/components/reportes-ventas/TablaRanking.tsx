@@ -53,7 +53,8 @@ function Cambio({ c }: { c: number | null }) {
 
 const Rotulo = ({ children }: { children: string }) => <span className="mr-1 text-taupe sm:hidden">{children}</span>;
 
-export function TablaRanking({ r, f, periodo, fotos }: { r: Ranking; f: FiltrosRanking; periodo: PeriodoRanking; fotos: Map<string, string> }) {
+/** `empresa`: el nombre de la empresa elegida (ADR-0665); si hay una, «lo que queda» es el de esa empresa y la columna lo dice. */
+export function TablaRanking({ r, f, periodo, fotos, empresa = null }: { r: Ranking; f: FiltrosRanking; periodo: PeriodoRanking; fotos: Map<string, string>; empresa?: string | null }) {
   const paginas = totalDePaginas(r.cuantos, POR_PAGINA);
   const desde = f.pagina * POR_PAGINA + 1;
   const compara = sePuedeComparar(r);
@@ -70,7 +71,7 @@ export function TablaRanking({ r, f, periodo, fotos }: { r: Ranking; f: FiltrosR
         </p>
       </div>
       <Tabla>
-        <Encabezado columnas={COLUMNAS} plantilla={PLANTILLA} />
+        <Encabezado columnas={empresa ? COLUMNAS.map((c) => (c.titulo === "Stock en tiendas" ? { ...c, titulo: `Stock de ${empresa}` } : c)) : COLUMNAS} plantilla={PLANTILLA} />
         {r.filas.map((x) => {
           const cambio = cambioDeFila(x, f.orden, r);
           const parte = parteDeFila(x, f.orden, r);
@@ -115,7 +116,7 @@ export function TablaRanking({ r, f, periodo, fotos }: { r: Ranking; f: FiltrosR
                 ) : (
                   <>
                     <span className="tabular-nums">
-                      Quedan <b className="font-semibold">{ENTERO.format(x.stock)}</b> en tiendas
+                      Quedan <b className="font-semibold">{ENTERO.format(x.stock)}</b> {empresa ? `de ${empresa}` : "en tiendas"}
                     </span>
                     {stock.tipo === "poco" && stock.dias !== null && (
                       <Chip tono="ambar" versalitas={false}>

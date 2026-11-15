@@ -1,5 +1,6 @@
 import { NOMBRES_MES, mesDeParametro, type Mes } from "./facturacion-reglas";
 import { cambio } from "./reportes-ventas-reglas";
+import { claveDeEmpresaEnUrl } from "./reportes-empresa-reglas";
 
 // Ventas ▸ Reportes ▸ Ranking de prendas: las reglas, sin React ni base (maqueta docs/maquetas/reportes-ventas-2026-11/). Lo que dice la base
 // (`fn_reporte_ventas_ranking`, 20261103235000) se lee aquí una sola vez, y de aquí salen el período que pide la URL, los filtros que se aceptan,
@@ -23,6 +24,8 @@ export type FiltrosRanking = {
   desde: string | null;
   hasta: string | null;
   tienda: string | null;
+  /** La clave de la empresa elegida («claure»), solo donde conviven dos (Lima, ADR-0665). La página la valida contra las que se ofrecen; aquí solo su forma. */
+  empresa: string | null;
   categoria: string | null;
   marca: string | null;
   talla: string | null;
@@ -71,6 +74,7 @@ export function filtrosDeUrl(sp: Record<string, string | string[] | undefined>):
     desde: desde && esFechaReal(desde) ? desde : null,
     hasta: hasta && esFechaReal(hasta) ? hasta : null,
     tienda: uuid(sp.tienda),
+    empresa: claveDeEmpresaEnUrl(sp.emp),
     categoria: uuid(sp.cat),
     marca: uuid(sp.marca),
     talla: uuid(sp.talla),
@@ -126,8 +130,8 @@ export function periodoDe(f: Pick<FiltrosRanking, "rango" | "mes" | "desde" | "h
   return ultimosDias(30);
 }
 
-/** ¿Hay algún filtro de prenda o de tienda puesto? (el período y la forma de ver no son filtros). */
-export const hayFiltros = (f: FiltrosRanking): boolean => !!(f.tienda || f.categoria || f.marca || f.talla || f.color || f.q);
+/** ¿Hay algún filtro de prenda, de tienda o de empresa puesto? (el período y la forma de ver no son filtros). */
+export const hayFiltros = (f: FiltrosRanking): boolean => !!(f.tienda || f.empresa || f.categoria || f.marca || f.talla || f.color || f.q);
 
 /** El `?…` de la pantalla para estos filtros, sin lo que vale lo de siempre (una URL corta se puede compartir). */
 export function hrefRanking(f: FiltrosRanking, cambios: Partial<FiltrosRanking> = {}): string {
@@ -140,6 +144,7 @@ export function hrefRanking(f: FiltrosRanking, cambios: Partial<FiltrosRanking> 
     if (x.hasta) p.set("hasta", x.hasta);
   }
   if (x.tienda) p.set("tienda", x.tienda);
+  if (x.empresa) p.set("emp", x.empresa);
   if (x.categoria) p.set("cat", x.categoria);
   if (x.marca) p.set("marca", x.marca);
   if (x.talla) p.set("talla", x.talla);

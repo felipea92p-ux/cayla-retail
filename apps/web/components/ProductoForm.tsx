@@ -2,7 +2,7 @@
 
 import { enterNoGuarda } from "@/components/ui/enterNoGuarda";
 import { NombreDelProveedor } from "@/components/ficha-producto/NombreDelProveedor";
-import { avisosDeReferencia, otrosTipos, tiposDeCategoria } from "@/lib/nombre-de-prenda";
+import { avisosDeReferencia, otrosTipos, separarNombre, tiposDeCategoria } from "@/lib/nombre-de-prenda";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { BotonDeshacer } from "@/components/ui/BotonDeshacer";
 import { useRouter } from "next/navigation";
@@ -533,6 +533,19 @@ export function ProductoForm({
     nombreColor: nombres.color,
     onLista: fotosDesdePanel,
     onFotos: cambiarFotos,
+    // Lo que la ficha ya dice de la prenda (categoría, tipo, tejido, patrón): la IA no adivina qué es de cómo cuelga (`lib/ficha-foto-ia.ts`).
+    // El tejido y el patrón se buscan en TODAS las categorías y, si no están (desactivado, desvinculado), se usa el guardado: lo mismo que
+    // `nombresCambios`. El tipo sale del nombre («Camisa Dalia» → Camisa).
+    prenda: {
+      prefijo: categoriaActual?.prefijo,
+      tipo: separarNombre(referencia, tiposDeCategoria({ prefijo: categoriaActual?.prefijo, familia: categoriaActual?.familia })).tipo,
+      tejido: tejidoId
+        ? (Object.values(ejes.tejidos).flat().find((t) => t.id === tejidoId)?.texto ?? (tejidoId === producto?.tejidoId ? producto.tejido : null))
+        : null,
+      patron: patronId
+        ? (Object.values(ejes.patrones).flat().find((t) => t.id === patronId)?.texto ?? (patronId === producto?.patronId ? producto.patron : null))
+        : null,
+    },
   });
   // Sin saber qué excepciones hay guardadas (`porColor` null) no se ofrece: mostraría «Igual que su prenda» sobre una
   // excepción que sí existe. Con un solo color, se ofrece igual si ese color ya tiene la suya (o no se sabe).
