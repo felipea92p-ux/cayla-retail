@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 import { conRebajaCts, cuentaDelPrecio, IGV, motivoDeCosto, pisoDelPrecio, type BandaDeCosto } from "./cuenta-de-precio";
-import CASOS from "./costo-dudoso-casos.json";
+import { readFileSync } from "node:fs";
+// La tabla vive junto a la prueba de la base (`scripts/pruebas/`): las dos la leen, y la de la base no queda «leyendo la web».
+const CASOS = JSON.parse(readFileSync(new URL("../../../scripts/pruebas/costo-dudoso-casos.json", import.meta.url), "utf8")) as {
+  casos: { nombre: string; costo: number; anterior: number | null; deLaOrden: number | null; banda: unknown; motivo: string | null }[];
+};
 
 /** ¿Este precio, rebajado 35 %, deja de verdad 20 % de lo tuyo? (la definición, sin redondear) */
 const aguanta = (precioCts: number, costoCts: number) => {

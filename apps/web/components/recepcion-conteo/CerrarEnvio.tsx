@@ -205,7 +205,7 @@ export function CerrarEnvio({
   /** Por línea y fila (`línea|modelo`), el monto que la persona confirmó con «Sí, pagué». Cambiar el costo lo deja sin confirmar. */
   const [costosConfirmados, setCostosConfirmados] = useState<Record<string, Record<string, number>>>({});
   /** Las filas que se dibujaron con una duda abierta en ESTE dibujo: `cerrar`, que es de este mismo dibujo, las ve al tocarse. */
-  const dudasAbiertas: { claveFila: string; nombre: string }[] = [];
+  const dudasAbiertas: { claveFila: string; nombre: string; grupo: GrupoDeLineas }[] = [];
   // Lo que cambia (de compra y de venta), para confirmarlo antes de guardar: `null` = no se está confirmando.
   const [porConfirmar, setPorConfirmar] = useState<CambioDePrecio[] | null>(null);
   // Las filas con el costo y el precio de venta de sus prendas a la vista. Una categoría de fuera de la guía arranca abierta (su costo se pide y no
@@ -499,7 +499,15 @@ export function CerrarEnvio({
     const enDuda = dudasAbiertas[0];
     if (enDuda) {
       setError({ texto: `Confirma lo que pagaste por ${enDuda.nombre}, o corrígelo.`, recargar: false });
-      requestAnimationFrame(() => document.querySelector<HTMLInputElement>(`[data-costo-fila="${CSS.escape(enDuda.claveFila)}"] input`)?.focus());
+      // Su tarjeta se abre y, si estaba en «Lo que cuadra» plegado, primero baja lo plegado (400 ms): si no, el cursor no tendría adónde ir.
+      setAbiertas((a) => new Set([...a, enDuda.grupo.clave]));
+      const plegada = plegar && !verCuadran && cuadran.includes(enDuda.grupo);
+      if (plegada) setVerCuadran(true);
+      window.setTimeout(() => {
+        const caja = document.querySelector<HTMLInputElement>(`[data-costo-fila="${CSS.escape(enDuda.claveFila)}"] input`);
+        caja?.scrollIntoView({ block: "center", behavior: "smooth" });
+        caja?.focus({ preventScroll: true });
+      }, plegada ? 450 : 0);
       return true;
     }
     const malos = costosDePrendaConProblema(visibles, costosPrenda);
@@ -856,9 +864,16 @@ export function CerrarEnvio({
           const precioQueda = prendaFila ? precioUnicoAlCerrar(combinaciones, cambiosPrecio) : null;
           const costoQueda = !variosPorTalla ? (lectura.problema === null ? (lectura.valor ?? heredado) : null) : null;
           const claveFila = `${v}|${m?.clave ?? ""}`;
+          // Como la base al cerrar: solo lo que entra ahora al stock (una prenda ya identificada con tallas contadas), contra la orden de la
+          // línea donde vive ese modelo. Lo «por crear» o sin identificar se revisa cuando entra, en «Hacer ahora».
+          const lineaDelModelo = g.lineas.find((x) => x.clave === v) ?? p;
           const dudaFila =
-            editaCosto && !variosPorTalla && costoQueda !== null
-              ? dudaDeCosto(costoQueda, refsCosto, { varianteIds: combinaciones.map((x) => x.varianteId), categoriaId: p.categoria?.id ?? null, lineaId: p.linea?.id ?? null })
+            editaCosto && !variosPorTalla && costoQueda !== null && prendaFila && combinaciones.length > 0
+              ? dudaDeCosto(costoQueda, refsCosto, {
+                  varianteIds: combinaciones.map((x) => x.varianteId),
+                  categoriaId: lineaDelModelo.categoria?.id ?? null,
+                  lineaId: lineaDelModelo.linea?.id ?? null,
+                })
               : null;
           const dudaAbierta = dudaFila && costosConfirmados[v]?.[claveFila] !== costoQueda ? dudaFila : null;
           const revisarPrecio =
@@ -869,7 +884,7 @@ export function CerrarEnvio({
           const claveDet = `${g.clave}|${m?.clave ?? ""}`;
           const verDet = !!m && detalles.has(claveDet);
           const idDet = `detalle-${idFila}-${i}`;
-          if (dudaAbierta) dudasAbiertas.push({ claveFila, nombre: m?.nombre ?? nombreGrupo.split(" · ")[0] });
+          if (dudaAbierta) dudasAbiertas.push({ claveFila, nombre: m?.nombre ?? nombreGrupo.split(" · ")[0], grupo: g });
           const caja = (
             <div data-costo-fila={claveFila}>
               <span className="flex max-w-44 items-center gap-1.5">

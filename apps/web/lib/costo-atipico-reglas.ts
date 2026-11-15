@@ -71,7 +71,8 @@ function leerLinea(d: unknown): CostoAtipico | null {
   return {
     motivo,
     costoUnitario,
-    costoVigente: numeroONulo(o.costo_vigente),
+    // ADR-0668 (A4): en Recibir la base juzga contra el anterior EN PAPEL y lo manda como `anterior`; si viene, la frase dice ese número.
+    costoVigente: numeroONulo(o.anterior) ?? numeroONulo(o.costo_vigente),
     precio: numeroONulo(o.precio),
     sku: typeof o.sku === "string" && o.sku ? o.sku : null,
     varianteId: typeof o.variante_id === "string" && o.variante_id ? o.variante_id : null,
@@ -166,7 +167,8 @@ export function avisoDeCostoDudoso(
     case "baja":
       return {
         titulo: ref.anterior !== null ? `Antes pagabas ${soles(ref.anterior)}` : "Es muy distinto a lo de antes",
-        linea: "¿Es de una prenda, no de la docena?",
+        // Un costo que sube de golpe suele ser el de la docena; uno que baja, un cero que falta.
+        linea: motivo === "sube" ? "¿Es de una prenda, no de la docena?" : "¿Falta un cero? Revisa el monto.",
         usar: null,
       };
     case "sin_igv":

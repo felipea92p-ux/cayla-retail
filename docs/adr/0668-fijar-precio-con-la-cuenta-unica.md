@@ -97,7 +97,7 @@ web sí.
   × 1.18 si la última entrada pasó por una factura); después «sin_igv» (lo de la orden ÷ 1.18, ±2 %); y «fuera_de_banda» (`fn_banda_de_costo`:
   de la mitad del p10 al doble del p90 de los MODELOS de la categoría, con 5 o más; si no, su familia; nunca la de toda CAYLA; una familia
   fuera de los motores no tiene banda). La web la espeja (`motivoDeCosto`, `lib/cuenta-de-precio.ts`) y las dos corren los mismos casos
-  (`apps/web/lib/costo-dudoso-casos.json`).
+  (`scripts/pruebas/costo-dudoso-casos.json`).
 - **Se confirma un MONTO** (`fn_costo_confirmado`): `confirma_montos` viaja dentro del JSON de cada línea, de `p_separado` o de `p_items`, sin
   cambiar ninguna firma (20261115205000, PARTE 2, sobre `fn_recepcion_entrar`, `recibir_lote`, `cerrar_conteo_envio`, `resolver_pendiente_envio`,
   `recibir_despacho` y `llevar_al_stock_ahora`). El «sí» suelto sigue valiendo para los cuatro motivos de antes (la web publicada, la cola sin
@@ -114,6 +114,12 @@ DESCARTÉ: (a) bajar la banda a 1.5× / 0.75× (11 de 300 entradas legítimas en
 SE ROMPE SI: un descuento real que la orden no anota deja el costo 15 % abajo (se toma por «sin IGV»; hoy 0 de 142 líneas tienen descuento);
 la PARTE 2 se pega antes que la web (la web vieja manda el «sí» suelto para un «fuera_de_banda» y la base vuelve a pedirlo); lo que «Hacer
 ahora» toma del catálogo ya venía dividido (se compara contra sí mismo: A11).
+**Revisión independiente** (3 miradas y un verificador por hallazgo, 2026-11-15: 27 hallazgos, 15 confirmados). Se arregló, antes de pegar
+la PARTE 2: «Hacer ahora» confirmaba el aviso de la base con el «sí» suelto y, con las dudas nuevas, quedaba en un ciclo sin salida (ahora manda
+los montos que mostró la base); el cierre comparaba con la orden de la línea principal y no con la del modelo; una duda en «Lo que cuadra»
+plegado frenaba sin llevar el cursor (ahora la tarjeta se abre); se pedía confirmar costos que no entran al stock en ese cierre; «Hacer ahora»
+comparaba con todas las tallas y revisaba la duda después de abrir la confirmación; «Llevar al stock» no confirmaba el costo propio de una talla
+o color; el rechazo mostraba lo guardado como «costo actual» (ahora trae `anterior`, en papel); y la regla pura tenía un permiso que no servía.
 **Fuera de A4, escrito:** «Recibir contra factura» (`recibir_envio`, 0 usos en 90 días) sigue con su banda; la matriz «Cambiar por talla» del
 cierre no repite el aviso (la fila de arriba ya lo muestra); quitar el «sí» suelto cuando la web nueva lleve días publicada.
 

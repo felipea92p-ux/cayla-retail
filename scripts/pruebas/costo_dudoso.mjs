@@ -8,7 +8,7 @@
  * publicada y la cola sin conexión); que «antes» se compare en la base del papel; y que la regla de la base y la de la web digan lo mismo.
  *
  * QUÉ PRUEBA (cada caso en su transacción con ROLLBACK; las dos partes se cargan DOS veces dentro de cada caso: se pueden pegar dos veces).
- *   R  LA REGLA: los casos de `apps/web/lib/costo-dudoso-casos.json` (los mismos que corre la web) contra `fn_motivo_de_costo_con`.
+ *   R  LA REGLA: los casos de `scripts/pruebas/costo-dudoso-casos.json` (los mismos que corre la web) contra `fn_motivo_de_costo_con`.
  *   C  LA CONFIRMACIÓN: por monto, al céntimo; el «sí» suelto solo para los motivos de antes.
  *   A  EL ANTERIOR EN PAPEL: × 1.18 si la última entrada pasó por una factura; si no, el guardado.
  *   B  LA BANDA: por modelos de la categoría, con 5 o más; si no, la familia; una familia fuera de los motores, ninguna.
@@ -40,7 +40,7 @@ const leer = (archivo) =>
     .replace(/^set lock_timeout.*$/m, "")
     .replace(/^reset lock_timeout;$/m, "");
 const MIGRACIONES = SIN_MIGRACION ? "" : `${leer("20261115204000_costo_dudoso_reglas.sql")}\n${leer("20261115205000_costo_dudoso_candados.sql")}`;
-const CASOS = JSON.parse(readFileSync(join(RAIZ, "apps", "web", "lib", "costo-dudoso-casos.json"), "utf8")).casos;
+const CASOS = JSON.parse(readFileSync(join(RAIZ, "scripts", "pruebas", "costo-dudoso-casos.json"), "utf8")).casos;
 
 const FELIPE = "22222222-2222-4222-8222-000000000001"; // líder (semilla)
 const MICAELA = "22222222-2222-4222-8222-000000000003"; // integrante (semilla), de Tienda Trujillo
@@ -202,6 +202,17 @@ caso("L2 el «sí» suelto no alcanza para una duda nueva", LOTE({ costo_unitari
 caso("L3 con el monto confirmado, entra", LOTE({ costo_unitario: 400, confirma_costo: true, confirma_montos: [400] }), "OK");
 caso("L4 confirmar OTRO monto no vale", LOTE({ costo_unitario: 400, confirma_montos: [40] }), (o) => o.startsWith("P0001|costo_atipico|"));
 caso("L5 un costo normal para su categoría entra sin preguntar", LOTE({ costo_unitario: 30 }), "OK");
+caso(
+  "L6 el rechazo trae el «antes» con el que se juzgó (en papel), para que la frase diga ese número",
+  LOTE({ costo_unitario: 400 }),
+  (o) => {
+    try {
+      return Object.hasOwn(JSON.parse(o.split("|")[2]).items[0], "anterior");
+    } catch {
+      return false;
+    }
+  },
+);
 
 // P. LA LECTURA DE REFERENCIA ------------------------------------------------------------------------------------------------
 const MICAELA_CON = (...modulos) => `

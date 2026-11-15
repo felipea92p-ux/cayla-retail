@@ -94,7 +94,7 @@ export function pisoDelPrecio(costo: number): number | null {
 // Decisión 9 de Felipe (2026-11-15): «un costo raro no sugiere precio ni deja guardar hasta que la persona confirma «Sí, pagué S/ X»».
 // La REGLA vive en la base (`retail.fn_motivo_de_costo`, 20261115204000) y es la que frena el cierre; esta es su espejo, para avisar
 // ANTES de guardar con los mismos números (`fn_precio_referencia`). `lib/cuenta-de-precio.test.ts` y
-// `scripts/pruebas/costo_dudoso.mjs` corren los mismos casos contra las dos.
+// `scripts/pruebas/costo_dudoso.mjs` corren los mismos casos (`scripts/pruebas/costo-dudoso-casos.json`) contra las dos.
 // No incluye «sin costo» ni «mayor que el precio»: el primero lo dice el campo, y el segundo es un aviso rojo que no apaga el sugerido.
 
 export type MotivoDeCosto = "sube" | "baja" | "sin_igv" | "fuera_de_banda";

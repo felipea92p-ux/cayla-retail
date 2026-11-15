@@ -1,5 +1,5 @@
 {
-  "_que_es": "ADR-0668 (A4): los casos del costo dudoso. Los corren las dos mitades de la misma regla: la web (lib/cuenta-de-precio.test.ts, motivoDeCosto) y la base (scripts/pruebas/costo_dudoso.mjs, retail.fn_motivo_de_costo). Si una cambia y la otra no, una de las dos pruebas falla.",
+  "_que_es": "ADR-0668 (A4): los casos del costo dudoso. Los corren las dos mitades de la misma regla: la web (apps/web/lib/cuenta-de-precio.test.ts, motivoDeCosto) y la base (scripts/pruebas/costo_dudoso.mjs, retail.fn_motivo_de_costo). Si una cambia y la otra no, una de las dos pruebas falla.",
   "casos": [
     { "nombre": "reposición normal", "costo": 44, "anterior": 36, "deLaOrden": null, "banda": null, "motivo": null },
     { "nombre": "440 escrito por 44", "costo": 440, "anterior": 44, "deLaOrden": null, "banda": null, "motivo": "sube" },

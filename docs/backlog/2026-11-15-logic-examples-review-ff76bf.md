@@ -82,3 +82,10 @@ Por qué este orden:
 - La matriz «Cambiar por talla» del cierre (`PrendaConCombinaciones`) no repite el aviso del costo dudoso: la fila de arriba ya lo muestra.
 - El detalle del rechazo de la base (`costo_vigente`) sigue diciendo lo guardado, no lo de papel: el texto «N veces su costo actual» puede
   quedar 18 % corrido en una prenda con factura hasta A11.
+- **(A11) `fn_costo_anterior_en_papel` pregunta si la orden tiene factura HOY**, no si la tenía al entrar: si la factura se registra después
+  de recibir, el anterior sale 18 % arriba (y si la última entrada fueron solo dañadas, no se reconoce). A11 lo resuelve de raíz al guardar
+  el costo del papel; no se parchó en A4 porque la PARTE 1 ya está en producción.
+- **«Llegó mercadería» sin conexión:** una llegada de la cola rechazada por «fuera_de_banda» no tiene cómo confirmarse desde la cola; hay
+  que ofrecer «Recibir de nuevo» con sus líneas cargadas.
+- **Guía de foco:** en el cierre y en «Hacer ahora» la duda frena con el aviso general y lleva el cursor, pero no entra como «falta» de la
+  guía del campo (en «Llevar al stock» sí). Pasarla a `campos` con una función pura.

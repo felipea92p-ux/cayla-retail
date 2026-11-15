@@ -11,6 +11,7 @@
 --     (`confirma_montos`, dentro de la decisión de cada línea o de `p_separado`). `llevar_al_stock_ahora` confirma el costo que trae
 --     la misma llamada: el «sí» y el monto viajan juntos. Ninguna firma cambia (ADR-0298 §4, PGRST203).
 --   · Quién confirma no cambia: quien ve los costos al recibir (`fn_ve_costos_al_recibir`, ADR-0387).
+--   · El rechazo trae además `anterior`: el «antes» EN PAPEL con el que se juzgó, para que la frase diga ese número y no lo guardado.
 --
 -- LO QUE NO CAMBIA: `fn_costo_fuera_de_banda` (la usan Compras, Producción y corregir costo), lo que se guarda (A11), el precio contra
 -- el que se compara «mayor que el precio» (A5) y «Recibir contra factura» (`recibir_envio`: 0 usos en 90 días, sigue con su banda).
@@ -72,7 +73,7 @@ select pg_temp.reemplazar(
 select pg_temp.reemplazar(
   'retail.fn_recepcion_entrar(uuid,uuid,text,text,uuid,jsonb,uuid[],text)',
   $v$'variante_id', vr.id, 'motivo', x.motivo,$v$,
-  $v$'variante_id', vr.id, 'motivo', y.motivo,$v$,
+  $v$'variante_id', vr.id, 'motivo', y.motivo, 'anterior', retail.fn_costo_anterior_en_papel(vr.id),$v$,
   1);
 select pg_temp.reemplazar(
   'retail.fn_recepcion_entrar(uuid,uuid,text,text,uuid,jsonb,uuid[],text)',
@@ -102,7 +103,7 @@ select pg_temp.reemplazar(
 select pg_temp.reemplazar(
   'retail.recibir_lote(uuid,uuid,jsonb,text,text,uuid)',
   $v$'linea', e.pos, 'variante_id', vr.id, 'sku', vr.sku, 'motivo', x.motivo,$v$,
-  $v$'linea', e.pos, 'variante_id', vr.id, 'sku', vr.sku, 'motivo', y.motivo,$v$,
+  $v$'linea', e.pos, 'variante_id', vr.id, 'sku', vr.sku, 'motivo', y.motivo, 'anterior', retail.fn_costo_anterior_en_papel(vr.id),$v$,
   1);
 select pg_temp.reemplazar(
   'retail.recibir_lote(uuid,uuid,jsonb,text,text,uuid)',
@@ -132,15 +133,21 @@ $v$,
   $v$      'confirma', coalesce(lower(v_e ->> 'confirma_costo') = 'true', false), 'confirma_montos', v_e -> 'confirma_montos',
 $v$,
   2);
--- «Llevar al stock»: el costo y el «sí» vienen en la misma llamada, así que el sí confirma ESE costo: el escrito, el que la prenda ya
--- tenía guardado en el conteo o, si no, el de la línea.
+-- «Llevar al stock»: el costo y el «sí» vienen en la misma llamada, así que el sí confirma LOS costos que entran en ella: el escrito,
+-- el que la prenda o cada talla o color ya tenía en el conteo y, si no, el de la línea.
 select pg_temp.reemplazar(
   'retail.llevar_al_stock_ahora(uuid,uuid,integer,integer,uuid,jsonb,numeric,boolean,uuid)',
   $v$'costo', v_costo, 'confirma', coalesce(p_confirma, false),$v$,
   $v$'costo', v_costo, 'confirma', coalesce(p_confirma, false),
       'confirma_montos', case when coalesce(p_confirma, false)
-                              then jsonb_build_array(coalesce(p_costo, (v_cp ->> lower(p_producto_id::text))::numeric, v_costo)) end,$v$,
+                              then jsonb_build_array(coalesce(p_costo, (v_cp ->> lower(p_producto_id::text))::numeric, v_costo))
+                                   || coalesce((select jsonb_agg(coalesce((w ->> 'costo')::numeric, v_costo))
+                                                  from jsonb_array_elements(retail.fn_recepcion_costos_a_variantes(v_vars, v_cp)) w), '[]'::jsonb) end,$v$,
   1);
+
+-- La tabla de casos que cruza la regla pura con la web se mudó a scripts/pruebas/ (la PARTE 1 ya estaba pegada con la ruta vieja).
+comment on function retail.fn_motivo_de_costo_con(numeric, numeric, numeric, numeric, numeric, numeric) is
+  'ADR-0668 (A4): la regla pura del costo dudoso, solo con números: sube / baja (fn_costo_fuera_de_banda contra el anterior), sin_igv (lo de la orden ÷ (1 + IGV), ±2 %) y fuera_de_banda. La web la espeja en motivoDeCosto (apps/web/lib/cuenta-de-precio.ts) y las dos corren los casos de scripts/pruebas/costo-dudoso-casos.json.';
 
 reset search_path;
 reset lock_timeout;

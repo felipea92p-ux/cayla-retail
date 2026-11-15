@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { avisoDeCostoDudoso, fraseCostoAtipico, leerCostosAtipicos } from "./costo-atipico-reglas";
+import { leerCostoAtipicoRecepcion } from "./recepcion-envio-reglas";
 import { dudaDeCosto, leerReferencias, montosConfirmados } from "./referencia-de-costo";
 
 // ADR-0668 (A4): la hoja de Recibir avisa de un costo dudoso con los números de la base (`fn_precio_referencia`).
@@ -59,6 +60,24 @@ describe("el rechazo de la base dice lo mismo que el aviso de antes", () => {
     expect(leidos?.map((c) => c.motivo)).toEqual(["sin_igv", "fuera_de_banda"]);
     expect(fraseCostoAtipico(leidos![0]!).titulo).toBe("¿Escribiste el monto sin impuesto?");
     expect(fraseCostoAtipico(leidos![1]!).titulo).toBe("Fuera de lo que suele costar");
+  });
+});
+
+describe("el «antes» del rechazo es el que juzgó la base (en papel), no lo guardado", () => {
+  it("«Llegó mercadería»: con `anterior`, la frase dice 44 y no 37.29", () => {
+    const [c] = leerCostosAtipicos({ message: "costo_atipico", details: JSON.stringify({ items: [{ motivo: "baja", costo_unitario: 28, costo_vigente: 37.29, anterior: 44 }] }) })!;
+    expect(c!.costoVigente).toBe(44);
+    expect(fraseCostoAtipico(c!).detalle).toContain("64 % de su costo actual (S/\u00a044.00)");
+  });
+  it("el cierre del envío, lo mismo; sin `anterior` (otras pantallas), lo de siempre", () => {
+    const err = (d: object) => ({ hint: "recepcion_costo_atipico", details: JSON.stringify([d]) });
+    expect(leerCostoAtipicoRecepcion(err({ motivo: "sube", costo: 90, vigente: 37.29, anterior: 44 }))?.[0]?.costoVigente).toBe(44);
+    expect(leerCostoAtipicoRecepcion(err({ motivo: "sube", costo: 90, vigente: 37.29 }))?.[0]?.costoVigente).toBe(37.29);
+  });
+  it("«bajó» pregunta por un cero que falta; «subió», por la docena", () => {
+    const ref = { anterior: 44, deLaOrden: null, banda: null };
+    expect(avisoDeCostoDudoso("baja", ref).linea).toBe("¿Falta un cero? Revisa el monto.");
+    expect(avisoDeCostoDudoso("sube", ref).linea).toBe("¿Es de una prenda, no de la docena?");
   });
 });
 
