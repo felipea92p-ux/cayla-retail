@@ -153,6 +153,14 @@ begin
   if not coalesce((v_plan ->> 'ok')::boolean, false) then
     return v_plan;
   end if;
+  -- Una terminal no cambia el precio de la prenda (20261026224000): si los precios difieren, la fusión lo tendría que unificar y el
+  -- candado la frenaría al confirmar. Se dice aquí, antes de confirmar, con lo que sí puede hacer.
+  if retail.fn_es_terminal() and coalesce(v_plan -> 'diferencias', '[]'::jsonb) ? 'precio' then
+    return jsonb_set(jsonb_set(v_plan, '{ok}', 'false'::jsonb), '{bloqueos}',
+      coalesce(v_plan -> 'bloqueos', '[]'::jsonb) || jsonb_build_array(jsonb_build_object(
+        'codigo', 'terminal_precio',
+        'mensaje', 'Desde una terminal no se pueden juntar productos con precios distintos: el precio de la prenda vale en todas las tiendas. Hazlo desde tu cuenta de persona.')));
+  end if;
   v_sedes := retail.fn_fusion_precios_sede_resumen(p_queda, p_duplicados);
   if jsonb_array_length(v_sedes) = 0 then
     return v_plan;
@@ -290,6 +298,10 @@ select pg_temp.reemplazar(
   $a$  -- ---------- 4b. Los precios propios de cada sede, antes de mover nada (20261115153000) ----------
   if coalesce(nullif(v_el ->> 'precio_modo', ''), 'por_sede') not in ('por_sede', 'uno') then
     raise exception 'El modo de precio de la fusión no es válido.' using errcode = 'P0001', hint = 'precio_modo';
+  end if;
+  if retail.fn_es_terminal() and coalesce(v_plan -> 'diferencias', '[]'::jsonb) ? 'precio' then
+    raise exception 'Desde una terminal no se pueden juntar productos con precios distintos: el precio de la prenda vale en todas las tiendas. Hazlo desde tu cuenta de persona.'
+      using errcode = '42501', hint = 'terminal_precio_de_la_prenda';
   end if;
   perform retail.fn_fusion_precios_sede_capturar(p_queda, v_dups, v_plan);
 
