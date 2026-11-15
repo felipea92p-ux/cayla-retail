@@ -15,6 +15,7 @@ import {
   type ClaveModulo,
   type ModuloDeCuenta,
   type TipoTerminalLegado,
+  veCostoDePrenda,
   veEstadosFinancierosDeTodo,
   veFinanzasDeTodo,
 } from "@/lib/modulos";
@@ -277,6 +278,12 @@ export async function exigirPermiso(permiso: Permiso): Promise<PersonaActualV2> 
 /** ¿Esta cuenta ve el módulo? (su rol lo incluye; el líder ve todos). Visibilidad: el candado real sigue en la base. */
 export function veModulo(persona: Pick<PersonaActualV2, "modulos">, clave: ClaveModulo): boolean {
   return persona.modulos.some((m) => m.clave === clave);
+}
+
+/** ¿Ve el costo de una prenda? Quien fija su precio (Productos, Recibir o Campañas) o ve el dinero de Compras (ADR-0668, A3).
+ *  La base dice lo mismo (`fn_ve_costo_de_prenda`): la pantalla solo decide si dibuja las columnas. */
+export function veCostoDePrendaDe(persona: Pick<PersonaActualV2, "modulos" | "permisos">): boolean {
+  return veCostoDePrenda(persona.modulos, puede(persona, "verDineroCompras"));
 }
 
 /** Qué puede hacer esta cuenta con un comprobante de compra, módulo por módulo (ADR-0161 P1): facturas, pagos, notas. */

@@ -340,6 +340,18 @@ export function usaModulo(rol: "lider" | "integrante", modulos: readonly ModuloD
 }
 
 /**
+ * Las hojas donde se fija o se rebaja un precio (ADR-0668, A3). Quien ve una de ellas ve el costo de la prenda, para no fijar a ciegas
+ * (Felipe 2026-11-15: «quien fija precio ve el costo; el cliente nunca»). ESPEJA `retail.fn_ve_costo_de_prenda()`
+ * (20261115200000): `lib/modulos.test.ts` la cruza con la migración.
+ */
+export const MODULOS_QUE_FIJAN_PRECIO = ["productos", "recibir", "campanas"] as const satisfies readonly ClaveModulo[];
+
+/** ¿Ve el costo de una prenda? Quien ve el dinero de Compras o una hoja donde se fija precio. El resto del dinero de Compras no cambia. */
+export function veCostoDePrenda(modulos: readonly ModuloDeCuenta[], veDineroDeCompras: boolean): boolean {
+  return veDineroDeCompras || modulos.some((m) => (MODULOS_QUE_FIJAN_PRECIO as readonly ClaveModulo[]).includes(m.clave));
+}
+
+/**
  * Los módulos que, además del líder, abren «todas las tiendas y la empresa» en Finanzas (ADR-0253: Configuración y Cierre de mes,
  * «todo, como el líder»; ADR-0275: CAYLA Global). ESPEJA `retail.fn_ve_finanzas_de_todo()`: `lib/modulos.test.ts` la cruza con la
  * migración que la define, así la pantalla y el candado no pueden decir cosas distintas (auditoría de Finanzas 2026-10-16, G16).

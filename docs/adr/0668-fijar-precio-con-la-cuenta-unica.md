@@ -1,7 +1,8 @@
 # ADR-0668 — Fijar precio con la cuenta única: todas las prendas igual, costo y precio con IGV a la vista, piso que aguanta la rebaja
 
-- **Fecha:** 2026-11-15 · **Estado:** decidido. Construido: A1 (la cuenta en `lib/cuenta-de-precio.ts`) y A2 (una sola cuenta en Recibir y Nuevo producto, fuera
-  «RUC ⇒ factura»). Lo demás, en el plan (`docs/backlog/2026-11-15-logic-examples-review-ff76bf.md`).
+- **Fecha:** 2026-11-15 · **Estado:** decidido. Construido: A1 (la cuenta en `lib/cuenta-de-precio.ts`), A2 (una sola cuenta en Recibir y Nuevo producto, fuera
+  «RUC ⇒ factura») y A3 (quien fija el precio ve el costo en esa hoja; su SQL espera el OK de Felipe). Lo demás, en el plan
+  (`docs/backlog/2026-11-15-logic-examples-review-ff76bf.md`).
 - **Pidió:** Felipe, 2026-11-15, al revisar el PR #1867: «el IGV no me lo mezcles aquí… al recibir el costo debe tener el IGV y el precio también, porque un
   integrante no entiende eso; cuando coloca el precio sugerido, ayudarle a entender lo del IGV para que fije un buen precio». Respondió 30 preguntas y revisó la
   maqueta `docs/maquetas/precio-sugerido-2026-11/index.html`.
@@ -55,6 +56,32 @@ escrito con IGV: la reposición parece 18 % más cara y el piso de una prenda vi
 - **Queda abierto:** la ayuda de precio de Compras (`orden-compra-precio-ayuda.ts`, sin pantalla) sigue midiendo «aguanta» con el margen
   redondeado, y Editar producto ▸ Costos, Revisar precios (base) y Proveedores siguen con su vara vieja: van en A13–A15. Con un costo sobre
   ~S/ 2,200 la IA se llama y no devuelve propuesta (gasta la consulta): se corta antes en A6.
+
+## Qué se construyó en A3: quien fija el precio ve el costo, en esa hoja
+
+- **Lo que ya estaba:** en Recibir, la terminal que recibe ya veía y escribía el costo desde el 2026-11-07 (`fn_puede_poner_costo_al_recibir`,
+  20261107194000) y ya podía confirmar un costo atípico (`fn_ve_costos_al_recibir` incluye Recibir). Proponer un precio con la IA ya estaba abierto
+  a Productos y Recibir. Lo que faltaba era Catálogo: quien tiene Productos cambia el precio en Editar producto sin ver el costo, y «Revisar
+  precios» y «Aplicar» le decían que su rol no ve los costos.
+- **`retail.fn_ve_costo_de_prenda()`** (20261115200000) = el dinero de Compras, o Productos, Recibir o Campañas. Reemplaza al dinero de Compras en
+  las seis funciones de la hoja donde se fija un precio: `fn_costos_variantes_json`, `fn_costo_de_la_prenda`, `fn_costo_de_las_tallas`,
+  `catalogo_actualizar_producto` (el costo a mano de una talla sin costo de compra, como ya hacía crear una prenda), `fn_precios_a_revisar` y
+  `aplicar_precio_propuesto`. La web la espeja en `veCostoDePrenda` (`lib/modulos.ts`), y `lib/modulos.test.ts` la cruza con la migración.
+- **La tabla de Productos no cambia.** Medido en producción: el único rol que gana el costo es «Terminal de ventas» (las 3 terminales del
+  mostrador). Con la tabla abierta, sus columnas Costo y Margen quedarían en la pantalla que la clienta tiene delante. La decisión 5 dice «en esa
+  hoja»: el costo sale al abrir la hoja que cambia el precio, no en la lista que se mira de pasada. `fn_productos_listado`, `_facetas` y `_filtro`
+  siguen con el dinero de Compras.
+- **El cliente nunca:** `lib/costo-no-llega-al-cliente.test.ts` sigue el árbol de dibujo de Vender, Cambios, Devoluciones, los comprobantes, las
+  etiquetas de precio, los rótulos, la Vitrina y toda la tienda web (y su primer salto a `lib/`), y falla si alcanza la cuenta del precio, la
+  línea «Te quedan» o una lectura del costo. Se probó metiéndole a propósito `LineaMargen` y una lectura al ticket: dijo por dónde llegaban.
+- **Pasado de A3 a A4:** el plan ponía aquí `fn_precio_referencia` (costo anterior, subtotal sin IGV, banda de la categoría). Nadie la usaría
+  hasta los candados de costo de A4: nace allá, con la pantalla que la lee.
+
+DECIDÍ: una puerta, «puede fijar precio en alguna hoja», solo en las funciones de esa hoja.
+DESCARTÉ: (a) abrir `fn_puede_ver_dinero_de_compras()`, que también cuida facturas y deudas con proveedores; (b) abrir también la tabla de
+Productos: pone el costo en la pantalla del mostrador sin que nadie lo pida.
+SE ROMPE SI: una pantalla de cara al cliente llama a una de esas seis para «mostrar el ahorro»; la base no distingue pantallas, la prueba de la
+web sí.
 
 ## Lo que falta decidir
 
