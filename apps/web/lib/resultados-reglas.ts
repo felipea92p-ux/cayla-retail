@@ -438,7 +438,7 @@ export const TEXTO_REGLA: Record<string, string> = {
   merma_conteo: "Faltantes de conteo",
   merma_traslado: "Faltó en un traslado (en la sede que lo envió)",
   // ADR-0560: lo cobrado de prendas de CLAURE no es ingreso de CAYLA: se reclasifica a lo que se le debe a Claudia (cuenta 479). Manda sobre el ADR-0558.
-  claure_venta: "Ventas de CLAURE (se le debe a Claudia lo cobrado, sin IGV)",
+  claure_venta: "Ventas de CLAURE (se le debe a Claudia lo cobrado, con IGV; el IGV lo pone CAYLA)",
   claure_anulacion: "Ventas anuladas de CLAURE",
   claure_devolucion: "Devoluciones de CLAURE",
   claure_cambio: "Cambios con prendas de CLAURE (la plata sigue a la prenda que se lleva el cliente)",

@@ -4,6 +4,9 @@
  * aviso del cierre de caja. La boleta sale con el RUC de CAYLA, así que CAYLA declara y paga ese IGV: lo que se le debe es lo cobrado SIN IGV.
  * Solo lee (`fn_claure_cierre`).
  *
+ * HISTORIA: esta regla la reemplazó `20261115122000_claure_el_igv_lo_pone_cayla.sql` (ADR-0638, regla 5: el IGV lo pone CAYLA). Esta suite rehace la
+ * cadena de octubre dentro de su transacción y prueba esa migración aislada; la regla VIGENTE la prueba `claure_igv_lo_pone_cayla.mjs`.
+ *
  * Lo que importa: (1) el saldo del día y el de antes bajan por el IGV, y `hoy.igv` lo dice; (2) una devolución resta su IGV (el IGV es neto de
  * ventas y devoluciones); (3) el saldo del cierre es EXACTAMENTE cobrado − IGV − comisión − pagado de las mismas filas que lee la pantalla CLAURE;
  * (4) una caja de otra sede sigue diciendo que no hay; (5) la migración se puede volver a pegar y, si la función de producción no tiene el texto esperado,

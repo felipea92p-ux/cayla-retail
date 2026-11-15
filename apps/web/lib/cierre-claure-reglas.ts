@@ -63,7 +63,6 @@ export function lineaDeHoy(c: CierreClaure): string {
   const medios = c.porMedio.filter((m) => m.monto > 0).map((m) => `${textoMedioClaure(m.medio)} ${soles(m.monto)}`);
   const partes = [`Hoy se cobró ${soles(c.hoy.cobrado)} de CLAURE en tus cuentas${medios.length ? ` (${medios.join(" · ")})` : ""}`];
   if (c.hoy.devuelto > 0) partes.push(`se devolvió ${soles(c.hoy.devuelto)}`);
-  if (c.hoy.igv > 0) partes.push(`${soles(c.hoy.igv)} es IGV, que paga CAYLA`);
   if (c.hoy.comision > 0) partes.push(`la comisión del POS es ${soles(c.hoy.comision)}`);
   if (c.hoy.efectivoClaudia > 0) partes.push(`se restan ${soles(c.hoy.efectivoClaudia)} de efectivo de CAYLA que se quedó con ella`);
   if (c.hoy.gastos > 0) partes.push(`se restan ${soles(c.hoy.gastos)} de gastos suyos que pagó CAYLA`);
@@ -81,7 +80,6 @@ export function mensajeParaClaudia(c: CierreClaure): string {
   const medios = c.porMedio.filter((m) => m.monto > 0).map((m) => `${textoMedioClaure(m.medio)} ${soles(m.monto)}`);
   lineas.push(`• Cobrado de CLAURE en cuentas de CAYLA: ${soles(c.hoy.cobrado)}${medios.length ? ` (${medios.join(", ")})` : ""}`);
   if (c.hoy.devuelto > 0) lineas.push(`• Devuelto: ${soles(c.hoy.devuelto)}`);
-  if (c.hoy.igv > 0) lineas.push(`• IGV de esas ventas (lo declara y paga CAYLA, se descuenta): ${soles(c.hoy.igv)}`);
   if (c.hoy.comision > 0) lineas.push(`• Comisión del POS: ${soles(c.hoy.comision)}`);
   if (c.hoy.pagado > 0) lineas.push(`• Ya se te pagó hoy: ${soles(c.hoy.pagado)}`);
   if (c.hoy.efectivoClaudia > 0) lineas.push(`• Efectivo de CAYLA que te quedaste hoy (se resta): ${soles(c.hoy.efectivoClaudia)}`);

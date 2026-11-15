@@ -959,6 +959,7 @@ export const PRUEBAS = [
   // El IGV de lo vendido de CLAURE se le descuenta a Claudia (ADR-0560, actividad 10): la boleta sale con el RUC de CAYLA y CAYLA paga ese IGV; el saldo del aviso del cierre de caja es cobrado − devuelto − IGV −
   // comisión − pagado − gastos suyos, con el IGV neto de devoluciones; la caja de otra sede sigue sin aviso; la migración se repega y, con un texto distinto en la función, aborta sin cambiar nada. Cada caso: ROLLBACK.
   "pruebas:claure-igv",
+  "pruebas:claure-igv-lo-pone-cayla",
 
   // «Se queda con Claudia» al cerrar la caja (ADR-0560, actividad 11): el efectivo de CAYLA que ella guarda sale del cajón (traslado `claudia`, solo donde opera CLAURE), no llega a ninguna cuenta,
   // baja lo que se le debe (aviso del cierre y pantalla CLAURE), se asienta 479 al debe / 101 al haber, el libro no lo trata como depósito y el flujo lo cuenta como pago a CLAURE; los demás
