@@ -27,7 +27,7 @@
 // (`fn_costo_fuera_de_banda`: sube > 2×, baja < 2/3), para que la orden avise ANTES de que lo haga la recepción.
 
 import { soles } from "./compras-reglas";
-import { aguantaCts, conRebajaCts, cts, GANANCIA_TRAS_REBAJA_POR_MIL, IGV, margenPorMilCts, REBAJA_FUERTE_PCT } from "./cuenta-de-precio";
+import { conRebajaCts, cts, GANANCIA_TRAS_REBAJA_POR_MIL, IGV, margenPorMilCts, REBAJA_FUERTE_PCT } from "./cuenta-de-precio";
 
 /** La rebaja que se muestra al lado: desde ahí caja pide un argumento escrito (2026-09-25). */
 export const REBAJA_MEDIA_PCT = 15;
@@ -183,6 +183,15 @@ export type AyudaDePrecio = {
 /* ───────────────────────── La cuenta, en céntimos enteros ───────────────────────── */
 
 const soles2 = (c: number): number => c / 100;
+
+/** ¿Este precio, ya rebajado `REBAJA_FUERTE_PCT` %, deja al menos `dejando` milésimas? Con el margen redondeado a una décima, como lo muestra
+ *  esta ayuda; el piso de la cuenta única compara sin redondear (`pisoDelPrecio`, ADR-0668). */
+function aguantaCts(precioCts: number, costoRealCts: number, dejando: number): boolean {
+  const pd = conRebajaCts(precioCts, REBAJA_FUERTE_PCT);
+  if (pd <= 0) return false;
+  const m = margenPorMilCts(pd, costoRealCts);
+  return m !== null && m >= dejando;
+}
 
 /** El menor precio (de a S/ 0.10) que aguanta la rebaja fuerte dejando `dejando` milésimas del precio rebajado. */
 function precioMinimoCts(costoRealCts: number, dejando: number): number | null {

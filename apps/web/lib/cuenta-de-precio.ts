@@ -31,18 +31,10 @@ export function margenPorMilCts(precioCts: number, costoCts: number): number | n
   return Math.round(((ps - costoCts) / ps) * 1000);
 }
 
-/** ¿Este precio, ya rebajado `REBAJA_FUERTE_PCT` %, deja al menos `dejando` milésimas? */
-export function aguantaCts(precioCts: number, costoCts: number, dejando: number): boolean {
-  const pd = conRebajaCts(precioCts, REBAJA_FUERTE_PCT);
-  if (pd <= 0) return false;
-  const m = margenPorMilCts(pd, costoCts);
-  return m !== null && m >= dejando;
-}
-
 /**
- * Lo mismo que `aguantaCts`, pero sin redondear: (pd ÷ 1.18 − costo) ÷ (pd ÷ 1.18) ≥ dejando ÷ 1000, en enteros. Con el margen redondeado a
- * una décima, un precio que deja 19.95 % pasaba por 20 %. Lo usa el piso de la cuenta única; la ayuda de Compras (sin pantalla todavía)
- * sigue con `aguantaCts` hasta que se unifique (ADR-0668, A15).
+ * ¿Este precio, ya rebajado `REBAJA_FUERTE_PCT` %, deja al menos `dejando` milésimas? Sin redondear, en enteros:
+ * (pd ÷ 1.18 − costo) ÷ (pd ÷ 1.18) ≥ dejando ÷ 1000. Con el margen redondeado a una décima, un precio que deja 19.95 % pasaba por 20 %.
+ * La ayuda de Compras (sin pantalla todavía) sigue con su versión redondeada hasta que se unifique (ADR-0668, A15).
  */
 function aguantaExactoCts(precioCts: number, costoCts: number, dejando: number): boolean {
   const pd = conRebajaCts(precioCts, REBAJA_FUERTE_PCT);
