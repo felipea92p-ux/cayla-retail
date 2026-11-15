@@ -842,9 +842,29 @@ export const DECISION_VACIA: DecisionCierre = { costo: "", confirmaCosto: false,
 /** El costo como se escribe: 25 → «25.00». */
 export const costoComoTexto = (n: number | null): string => (n == null ? "" : aTexto(Math.round(n * 100), 2));
 
-/** La decisión inicial de una línea: el costo del envío (o el que ya quedó en el conteo), sin causas. */
-export function decisionInicial(l: LineaParaContar): DecisionCierre {
-  return { ...DECISION_VACIA, costo: costoComoTexto(l.conteo?.costoUnitario ?? l.linea?.costoUnitario ?? null) };
+/**
+ * El costo de una línea de fuera de la guía que YA entró entera al stock, y toda con costo: el costo con que entró (2026-11-15, ENV-000023).
+ * «Revisa y cierra» no dibuja la caja del costo de una línea que no tiene nada por entrar (2026-11-08), pero `cerrar_conteo_envio` sigue
+ * pidiendo el costo de lo de fuera de la guía: «Falta: costo» sin dónde escribirlo, y el envío no cerraba. Ese costo ya está en el stock
+ * (`despacho_recibidos`, «llevar al stock ahora»): con un solo costo es ese; con varios, el promedio por prenda (lo que entró ÷ cuántas),
+ * que es lo que vale cada una al medir lo que no venía. `null` si queda algo por entrar (la caja lo pide), si algo entró sin costo o con la
+ * base de antes (sin `en_stock_costo`): ahí no se inventa nada.
+ */
+export function costoDeLoQueYaEntro(l: LineaParaContar): number | null {
+  const c = l.conteo;
+  if (l.linea || !c || c.contadas <= 0 || c.enStock < c.contadas) return null;
+  const s = c.costoEnStock;
+  if (!s || s.conCosto !== c.enStock || s.minimo == null || s.maximo == null) return null;
+  return s.minimo === s.maximo ? s.minimo : Math.round((s.monto / s.conCosto) * 100) / 100;
+}
+
+/**
+ * La decisión inicial de una línea: el costo del envío (o el que ya quedó en el conteo), sin causas. Lo de fuera de la guía que ya entró
+ * entero al stock arranca con el costo con que entró (`costoDeLoQueYaEntro`), salvo sin aviso: ahí el costo es opcional y solo lo pone quien
+ * ve el dinero de Compras (la base rechaza uno mandado por quien no lo ve).
+ */
+export function decisionInicial(l: LineaParaContar, sinAviso = false): DecisionCierre {
+  return { ...DECISION_VACIA, costo: costoComoTexto(l.conteo?.costoUnitario ?? l.linea?.costoUnitario ?? (sinAviso ? null : costoDeLoQueYaEntro(l))) };
 }
 
 /** Lee el costo escrito: vacío es «sin costo» (null); algo que no es un monto, un problema. */
@@ -1096,7 +1116,11 @@ export function camposDelCierre(
       const f = falta.find((x) => x.clave === "causa" && x.linea === l.clave);
       campos.push({ id: idCampoCierre("causa", l.clave), nombre: `Qué pasó · ${nombre}`, requerido: true, hecho: !f, pendiente: f ? `${f.texto}.` : "" });
     }
-    if (!l.linea && contadasDe(l) > 0 && !esRegaloFuera(l, p.decisiones[l.clave] ?? DECISION_VACIA)) {
+    // Sin aviso, lo que ya entró entero al stock no tiene caja de costo («Revisa y cierra» solo la dibuja por lo que falta entrar) y su costo
+    // es opcional: la guía no lo sugiere, porque no habría adónde llevar a la persona.
+    // (Uno mal escrito que quedó de antes sí se lista: frena el cierre.)
+    const sinCaja = p.sinAviso && (l.conteo?.enStock ?? 0) >= contadasDe(l) && !leerCostoCierre((p.decisiones[l.clave] ?? DECISION_VACIA).costo).problema;
+    if (!l.linea && contadasDe(l) > 0 && !esRegaloFuera(l, p.decisiones[l.clave] ?? DECISION_VACIA) && !sinCaja) {
       const f = falta.find((x) => x.clave === "costo" && x.linea === l.clave);
       campos.push({
         id: idCampoCierre("costo", l.clave),

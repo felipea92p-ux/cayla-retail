@@ -131,7 +131,7 @@ export function CerrarEnvio({
   const visibles = lineas.filter(lineaVisible);
   // Lo que se decidió antes de recargar. Esta pantalla siempre se monta en el navegador: leerlo al iniciar el estado no rompe la hidratación.
   const [borrador] = useState(() => leerBorradorDelCierre(detalle.id, generacion));
-  const [decisiones, setDecisiones] = useState<Record<string, DecisionCierre>>(() => Object.fromEntries(visibles.map((l) => [l.clave, decisionesPrevias?.[l.clave] ?? conLoDecidido(decisionInicial(l), borrador?.decisiones[l.clave])])));
+  const [decisiones, setDecisiones] = useState<Record<string, DecisionCierre>>(() => Object.fromEntries(visibles.map((l) => [l.clave, decisionesPrevias?.[l.clave] ?? conLoDecidido(decisionInicial(l, sinAviso), borrador?.decisiones[l.clave])])));
   // «Lo que habías decidido sigue aquí»: solo al llegar de una recarga o de otra visita, no al ir y volver de Contar.
   const [verRecuperado, setVerRecuperado] = useState(!!borrador && !decisionesPrevias);
   // En una sede con CAYLA y CLAURE, lo que entra al stock al cerrar lleva su dueño (ADR-0542): la base lo exige. Solo se pregunta si algo entra: lo que queda para después lo pregunta «Hacer ahora».
@@ -139,7 +139,7 @@ export function CerrarEnvio({
   const preguntaDueno = hayQueElegirDueno(empresasDeLaSede) && visibles.some((l) => l.conteo !== null && detalladas(l.conteo.separado) > 0);
   const [duenoId, setDuenoId] = useState(borrador?.duenoId ?? "");
   // Lo que traía cada línea al abrir el cierre: la tarjeta «Costos y precios» marca lo que quien cierra cambió y dice cuánto era.
-  const [costoInicial] = useState<Record<string, string>>(() => Object.fromEntries(visibles.map((l) => [l.clave, decisionInicial(l).costo])));
+  const [costoInicial] = useState<Record<string, string>>(() => Object.fromEntries(visibles.map((l) => [l.clave, decisionInicial(l, sinAviso).costo])));
   // El costo de compra propio de cada prenda ya identificada (ADR-0519): por línea y por producto, solo lo que quien cierra tocó (lo demás sigue el
   // costo de su línea). Arranca con lo que quedó en el conteo; `costoPrendaInicial` es lo que traía al abrir, para decir «Antes S/ …».
   const [costoPrendaInicial] = useState<Record<string, CostosDePrendas>>(() =>
@@ -259,7 +259,7 @@ export function CerrarEnvio({
 
   /** Lo decidido hasta ahora: solo lo que cambió. */
   const fotoDelCierre = (): FotoDelCierre => ({
-    decisiones: Object.fromEntries(visibles.map((l) => [l.clave, decisionCambiada(decisionInicial(l), decisiones[l.clave] ?? decisionInicial(l))] as const).filter(([, d]) => Object.keys(d).length > 0)),
+    decisiones: Object.fromEntries(visibles.map((l) => [l.clave, decisionCambiada(decisionInicial(l, sinAviso), decisiones[l.clave] ?? decisionInicial(l, sinAviso))] as const).filter(([, d]) => Object.keys(d).length > 0)),
     costosPrenda: costosCambiados(costoPrendaInicial, costosPrenda),
     cambiosCosto: costosDeCombinacionCambiados(cambiosCostoInicial, cambiosCosto),
     cambiosPrecio,
@@ -288,12 +288,12 @@ export function CerrarEnvio({
       setGuiaEscrita(f.guiaEscrita);
       setDuenoId(f.duenoId);
     };
-    poner({ decisiones: Object.fromEntries(visibles.map((l) => [l.clave, decisionInicial(l)])), costosPrenda: costoPrendaInicial, cambiosCosto: cambiosCostoInicial, cambiosPrecio: {}, nota: "", guiaEscrita: detalle.numeroGuia ?? "", duenoId: "" });
+    poner({ decisiones: Object.fromEntries(visibles.map((l) => [l.clave, decisionInicial(l, sinAviso)])), costosPrenda: costoPrendaInicial, cambiosCosto: cambiosCostoInicial, cambiosPrecio: {}, nota: "", guiaEscrita: detalle.numeroGuia ?? "", duenoId: "" });
     setVerRecuperado(false);
     avisar.exito("Empezaste de cero", { detalle: "Quitamos lo que habías decidido en este cierre.", accion: { texto: "Deshacer", onClick: () => poner(antes) } });
   }
 
-  const decisionDe = (clave: string): DecisionCierre => decisiones[clave] ?? decisionInicial(visibles.find((l) => l.clave === clave) ?? visibles[0]);
+  const decisionDe = (clave: string): DecisionCierre => decisiones[clave] ?? decisionInicial(visibles.find((l) => l.clave === clave) ?? visibles[0], sinAviso);
   const cambiar = (clave: string, cambio: Partial<DecisionCierre>) => {
     setAtipicos(null);
     setDecisiones((d) => ({ ...d, [clave]: { ...decisionDe(clave), ...cambio } }));
@@ -731,8 +731,11 @@ export function CerrarEnvio({
     // de la guía es la excepción: su costo es obligatorio y no viene de ninguna orden, así que lleva su campo y se ve abierta.
     const conNombre = prendasConCosto(l);
     const sinIdentificar = unidadesSinIdentificar(l);
-    // Lo ya entrado al stock tiene su costo: la caja de la línea solo se pide por lo que todavía no entró (2026-11-08).
-    const costoDeLaLineaObligatorio = editaCosto && !p.linea && g.contadas - g.enStock > 0;
+    // Lo ya entrado al stock tiene su costo: la caja de la línea solo se pide por lo que todavía no entró (2026-11-08), y ese costo llega solo
+    // (`decisionInicial`). Si no se pudo saber (algo entró sin costo) o el que quedó está mal escrito, la caja vuelve: «Falta: costo» sin
+    // dónde escribirlo dejó ENV-000023 sin poder cerrar (2026-11-15).
+    const costoDeLaLineaObligatorio =
+      editaCosto && !p.linea && (g.contadas - g.enStock > 0 || (!sinAviso && !(costoInicial[p.clave] ?? "").trim()) || costo.problema !== null);
     const todoEnStock = g.enStock > 0 && g.contadas - g.enStock <= 0;
     const costoDelStock = textoCostoEnStock(l.conteo?.costoEnStock);
     // UN solo aviso para lo que no tiene nombre (Felipe 2026-10-26): cuántas son y a qué costo entran (el de la orden, si la línea venía en
