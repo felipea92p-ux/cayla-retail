@@ -69,8 +69,21 @@ export function familiaSugerida(hex: string | null, colores: readonly ColorAlta[
 export type BorradorColor = { nombre: string; hex: string | null; familia: string; codigo: string };
 
 /** Lo primero que falta para poder crear el color, en palabras de la pantalla; `null` si ya se puede. */
+/**
+ * ¿Lo que se escribió como nombre es un código? «NER» (2026-10-26) entró con nombre y código «NER»: tres mayúsculas que ni la persona
+ * que elige ni la regla de nombres parecidos (ADR-0576) reconocen como Negro, y el lector de la foto lo propuso para toda prenda negra.
+ * Un color se nombra en palabras; su código de 3 letras va en su propio campo. Lo usan esta hoja, Atributos y la API (ADR-0576, act.
+ * 2026-11-15).
+ */
+export function nombrePareceCodigo(texto: string): boolean {
+  return /^[A-ZÑ]{3}$/.test(texto.trim());
+}
+
+export const ERROR_NOMBRE_CODIGO = "Escribe el nombre del color en palabras, no su código de 3 letras.";
+
 export function faltaParaCrear(b: BorradorColor): string | null {
   if (!nombreDeColor(b.nombre)) return "Escribe el nombre del color.";
+  if (nombrePareceCodigo(b.nombre)) return ERROR_NOMBRE_CODIGO;
   if (!esHexValido(b.hex)) return "Toca la muestra y elige el tono.";
   if (!FAMILIAS_COLOR.some((f) => f.valor === b.familia)) return "Elige la familia del color.";
   if (!/^[A-Z]{3}$/.test(b.codigo)) return "El código son 3 letras (ej. PAR).";

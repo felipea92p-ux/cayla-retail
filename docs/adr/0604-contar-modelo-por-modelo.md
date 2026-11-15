@@ -178,3 +178,21 @@ Felipe contestó si quien recibe ve el costo («sí, debe poder ver el costo de 
 
 **«Deshacer» escribe sobre la línea de ahora.** Quitar lo único de una línea en 0 la oculta y la saca de los grupos; comparada contra su foto vieja parecía igual y no se guardaba nada, y el modelo se perdía. `lineasVivas` guarda todas las líneas, también las que no se ven.
 
+
+## Actualización 2026-11-14 · Enter nunca abre un modelo que ya tiene cantidad, y la fila del modelo que cuentas no corta la cifra (Felipe)
+
+**El problema.** Enter en el número guardaba y pasaba al SIGUIENTE MODELO DE LA LISTA con su número abierto, aunque ya estuviera contado: se abría con su cifra
+seleccionada y la próxima tecla la reemplazaba. Quien dicta cantidades hacia abajo sin mirar pisaba un conteo hecho. Y con una cifra a medio escribir («4»), tocar la
+fila del MISMO modelo le quitaba el cursor a la caja: se guardaba 4 y el «7» que seguía se perdía.
+
+DECIDÍ: Enter va al siguiente modelo de lo que la lista muestra cuyo contador está en CERO (`destinoDelEnter`, `lib/recepcion-modelos-reglas.ts`): hacia adelante,
+el primero en cero, sea «sin contar» o «No llegó»; si adelante no hay, da la vuelta solo hacia lo que falta contar, para que la vuelta termine; sin destino, el número se
+cierra y el cursor va al enlace del pie (`.rc-pie-sigue`) o, si no hay, a «Revisar y cerrar», nunca al número. Un modelo con cantidad, también la que ya entró al
+stock, nunca es destino. Y la fila del modelo activo hace `preventDefault` al presionar solo con el botón principal y el número abierto (`conservaLaCifra`,
+`lib/recepcion-dial-reglas.ts`): la caja conserva lo tecleado y el cursor. Otra fila, el ✓ y el basurero siguen igual; el teclado no pasa por `mousedown`, y con el lector de pantalla (VoiceOver) no se probó.
+DESCARTÉ: saltarse también los «No llegó» porque un anotado puede quedar así sin que nadie lo toque (al agregar otro modelo en su grupo; anotado en el backlog de la
+rama), y Enter lo escondería más que hoy; abrir un cero no pisa el trabajo de nadie. Descarté también un «Deshacer» al corregir un conteo guardado (unas 30 líneas
+reusando el de «Poner en cero»): Felipe lo dejó en «no por ahora». Y descarté que la fila no se lleve nunca el cursor: con otra fila, salir de la caja es lo que guarda.
+SE ROMPE SI: alguien recuenta de corrido lo ya contado con Enter (ahora cuesta dos toques por modelo: su fila y su número, el precio aceptado); o si el número que muestra el
+contador deja de incluir lo que ya entró al stock (`contadorDeParada`, el mismo que dibuja `PlacaDelModelo`): un modelo de un envío reabierto volvería a ser destino
+y la cifra dictada para el siguiente caería en él.

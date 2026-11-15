@@ -19,7 +19,8 @@ export function HojaRepartir({ nombre, contadas, children, pie, onCerrar }: { no
     >
       <div className="rc-repartir">
         {children}
-        {pie && <div className="pie-hoja-fijo rc-repartir-pie">{pie}</div>}
+        {/* `data-pie-repartir`: con Enter en la última casilla de la tabla, el cursor viene a su primer botón (`TallasDeLaPlaca`). */}
+        {pie && <div className="pie-hoja-fijo rc-repartir-pie" data-pie-repartir>{pie}</div>}
       </div>
     </Modal>
   );

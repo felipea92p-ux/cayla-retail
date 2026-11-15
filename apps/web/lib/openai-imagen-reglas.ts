@@ -2,6 +2,8 @@
 // familia de lo que hace ChatGPT, que a Felipe le gustó). Lógica pura: la usa `app/api/fotos/laboratorio/route.ts` y se prueba sin red.
 // Por qué este modelo y qué se sabe de su precio: `docs/investigacion/2026-11-13-fotos-de-prenda-con-ia-opciones.md`.
 
+import type { FichaParaIA, ZonaDeLaPrenda } from "./ficha-foto-ia";
+
 export const OPENAI_URL_EDITAR = "https://api.openai.com/v1/images/edits";
 /** Una edición de calidad media tarda de 20 a 60 s; a los 120 s se da por caída (principio 9: la pantalla no se cuelga). */
 export const OPENAI_TOPE_MS = 120_000;
@@ -37,21 +39,60 @@ const PRENDA_PONE_SUS_MEDIDAS = [
 ].join(" ");
 
 /**
+ * Lo mismo para una prenda que CUELGA DE LA CINTURA (pantalón, jean, short, falda; ficha de la prenda, 2026-11-14). El pedido de arriba habla de
+ * cuello, hombros, pecho y «puños, elástico»: un pantalón de lino colgado de una mano salió como un buzo. Aquí el maniquí pone la cintura y las
+ * caderas, y la prenda pone su largo, su pierna (ancha sigue ancha: no se afina), la pretina y la basta, y NO se le agrega elástico, puño ni cordón
+ * donde la foto no los muestra. Sin medir todavía con una lámina de pantalones: ver ADR-0659, act. 2026-11-14 (b).
+ */
+const MANIQUI_PONE_LA_FORMA_DE_CINTURA =
+  "Lo que pone el MANIQUÍ: la postura de frente, la cintura y las caderas con volumen, como las llevaría una persona.";
+const PRENDA_PONE_SUS_MEDIDAS_DE_CINTURA = [
+  "Lo que pone la PRENDA, y no se cambia:",
+  "LARGO: el mismo largo respecto del ancho que tiene la prenda (de la cintura a la basta); no la alargues.",
+  "CORTE: la misma pierna o el mismo vuelo: si es ancha y recta, sigue ancha y recta hasta la basta; si es ceñida, ceñida; no la afines ni le agregues entalle.",
+  "BORDES: la pretina y la basta con el mismo ancho y el mismo fruncido; no agregues elástico, puños ni cordón donde la foto no los muestra.",
+  "BOLSILLOS Y COSTURAS: los mismos, en el mismo lugar.",
+  "ESTAMPADO: las mismas figuras, del mismo tamaño y en el mismo lugar; no dibujes uno nuevo.",
+].join(" ");
+
+/** Las partes del pedido que cambian según de dónde cuelga la prenda. Sin zona (o de los hombros) es el pedido medido, palabra por palabra. */
+function partesDeLaZona(zona: ZonaDeLaPrenda | null) {
+  return zona === "cintura"
+    ? {
+        origen: "colgada o sostenida dentro del almacén",
+        interior: "Se ve el interior de la pretina por detrás.",
+        forma: MANIQUI_PONE_LA_FORMA_DE_CINTURA,
+        medidas: PRENDA_PONE_SUS_MEDIDAS_DE_CINTURA,
+      }
+    : {
+        origen: "colgada en un gancho dentro del almacén",
+        interior: "Se ve el interior del cuello por detrás.",
+        forma: MANIQUI_PONE_LA_FORMA,
+        medidas: PRENDA_PONE_SUS_MEDIDAS,
+      };
+}
+
+function armarPromptDeUnaFoto(zona: ZonaDeLaPrenda | null): string {
+  const z = partesDeLaZona(zona);
+  return [
+    `Esta es la foto real de UNA prenda de mi tienda de ropa, ${z.origen}.`,
+    "Conviértela en una foto de catálogo profesional con efecto MANIQUÍ INVISIBLE (ghost mannequin): la prenda PUESTA, con volumen 3D, de frente,",
+    `derecha y centrada, con un margen pequeño alrededor. ${z.interior}`,
+    z.forma,
+    z.medidas,
+    "Conserva la tela, el color y el tono, las costuras y los botones. No cambies el color.",
+    SIN_ETIQUETAS,
+    "No se ve ningún maniquí, persona, piel, gancho ni perchero. Fondo transparente, sin sombra.",
+  ].join(" ");
+}
+
+/**
  * Lo que se le pide: la prenda PUESTA en un maniquí invisible (ghost mannequin), como la mostraría un catálogo, y que sea la MISMA prenda
  * (arriba), sin etiquetas (`SIN_ETIQUETAS`). Las reglas de tela y color salen del prompt de «edición mínima» que el equipo probó en ChatGPT
  * (`docs/investigacion/2026-10-21-prompt-edicion-minima-fotos.md`). Sigue siendo SOLO la prenda y transparente (nada de persona ni maniquí a la
  * vista): es lo que necesita el armador de looks (ADR-0442). ~0,05 USD por foto y ~25 s.
  */
-export const PROMPT_CATALOGO = [
-  "Esta es la foto real de UNA prenda de mi tienda de ropa, colgada en un gancho dentro del almacén.",
-  "Conviértela en una foto de catálogo profesional con efecto MANIQUÍ INVISIBLE (ghost mannequin): la prenda PUESTA, con volumen 3D, de frente,",
-  "derecha y centrada, con un margen pequeño alrededor. Se ve el interior del cuello por detrás.",
-  MANIQUI_PONE_LA_FORMA,
-  PRENDA_PONE_SUS_MEDIDAS,
-  "Conserva la tela, el color y el tono, las costuras y los botones. No cambies el color.",
-  SIN_ETIQUETAS,
-  "No se ve ningún maniquí, persona, piel, gancho ni perchero. Fondo transparente, sin sombra.",
-].join(" ");
+export const PROMPT_CATALOGO = armarPromptDeUnaFoto(null);
 
 /**
  * Lo que se le pide para el segundo color en adelante: la prenda es la MISMA en todos los colores (Felipe 2026-11-13: «la estructura tiene que
@@ -95,35 +136,54 @@ const QUE_ES: Record<AnguloDeFoto, string> = {
   molde: "el MOLDE: la foto de catálogo ya hecha de la MISMA prenda en otro color",
 };
 
+/** Lo mismo para lo que cuelga de la cintura: un pantalón no tiene escote, y casi nunca se fotografía en un gancho (revisión del 2026-11-14). */
+const QUE_ES_DE_CINTURA: Record<AnguloDeFoto, string> = {
+  ...QUE_ES,
+  frente: "la foto real de la prenda de frente, colgada o sostenida dentro del almacén",
+  espalda: "la misma prenda de espalda, para la pretina, los bolsillos y la caída de atrás",
+};
+
 /**
  * El pedido a la IA para la foto de catálogo de UN color (Editar y Nuevo producto, «Catálogo con IA»): qué fotos van, en qué orden, y qué se le
  * dice. Con solo el frente es exactamente `PROMPT_CATALOGO`, y con frente y molde, `PROMPT_CON_MOLDE` (los dos medidos el 2026-11-13). La espalda y
  * el detalle le muestran lo que el gancho tapa: así inventa menos (Felipe: «más ángulos, más parecida a la real»).
+ *
+ * `ficha` (2026-11-14, `lib/ficha-foto-ia.ts`): lo que la persona ya eligió de la prenda —tipo, tejido, patrón—. Se suma al FINAL de cualquiera de
+ * los tres pedidos, y si trae la zona «cintura» el pedido habla de pretina y basta en vez de cuello y hombros. Sin ficha, el pedido es el medido.
  */
-export function pedidoDeCatalogo(extras: { espalda?: boolean; detalle?: boolean; molde?: boolean }): { orden: AnguloDeFoto[]; prompt: string } {
+export function pedidoDeCatalogo(
+  extras: { espalda?: boolean; detalle?: boolean; molde?: boolean },
+  ficha?: FichaParaIA | null,
+): { orden: AnguloDeFoto[]; prompt: string } {
   const orden: AnguloDeFoto[] = ["frente"];
   if (extras.espalda) orden.push("espalda");
   if (extras.detalle) orden.push("detalle");
   if (extras.molde) orden.push("molde");
-  if (orden.length === 1) return { orden, prompt: PROMPT_CATALOGO };
-  if (orden.length === 2 && extras.molde) return { orden, prompt: PROMPT_CON_MOLDE };
+  const conFicha = (prompt: string) => (ficha ? `${prompt} ${ficha.texto}` : prompt);
+  const zona = ficha?.zona ?? null;
+  if (orden.length === 1) return { orden, prompt: conFicha(zona === "cintura" ? armarPromptDeUnaFoto(zona) : PROMPT_CATALOGO) };
+  if (orden.length === 2 && extras.molde) return { orden, prompt: conFicha(PROMPT_CON_MOLDE) };
 
-  const lista = orden.map((a, i) => `IMAGEN ${i + 1}: ${QUE_ES[a]}.`).join(" ");
+  const queEs = zona === "cintura" ? QUE_ES_DE_CINTURA : QUE_ES;
+  const lista = orden.map((a, i) => `IMAGEN ${i + 1}: ${queEs[a]}.`).join(" ");
   const reales = orden.filter((a) => a !== "molde").map((a) => `IMAGEN ${orden.indexOf(a) + 1}`);
   const deReales = reales.length === 1 ? reales[0] : `${reales.slice(0, -1).join(", ")} y ${reales[reales.length - 1]}`;
+  const z = partesDeLaZona(zona);
   const estructura = extras.molde
     ? `Del MOLDE (IMAGEN ${orden.indexOf("molde") + 1}) copia EXACTAMENTE la estructura: la silueta, el largo, las mangas, el cuello, el elástico, los pliegues, la pose, el tamaño y la posición en el cuadro, como si fuera la misma prenda puesta en el mismo maniquí invisible. De ${deReales} toma SOLO el color, el tono y el estampado o las rayas, tal como se ven en las fotos reales.`
-    : `Conviértela en una foto de catálogo profesional con efecto MANIQUÍ INVISIBLE (ghost mannequin): la prenda PUESTA, con volumen 3D, de frente, derecha y centrada, con un margen pequeño alrededor. Se ve el interior del cuello por detrás. ${MANIQUI_PONE_LA_FORMA} ${PRENDA_PONE_SUS_MEDIDAS} Usa ${deReales} para conservar la tela, el color y el tono, las costuras y los botones.`;
+    : `Conviértela en una foto de catálogo profesional con efecto MANIQUÍ INVISIBLE (ghost mannequin): la prenda PUESTA, con volumen 3D, de frente, derecha y centrada, con un margen pequeño alrededor. ${z.interior} ${z.forma} ${z.medidas} Usa ${deReales} para conservar la tela, el color y el tono, las costuras y los botones.`;
   return {
     orden,
-    prompt: [
-      "Te doy varias fotos de UNA prenda de mi tienda de ropa.",
-      lista,
-      "Crea UNA foto de catálogo de la prenda, vista de frente.",
-      estructura,
-      SIN_ETIQUETAS,
-      "No cambies el color. No se ve ningún maniquí, persona, piel, gancho ni perchero. Fondo transparente, sin sombra.",
-    ].join(" "),
+    prompt: conFicha(
+      [
+        "Te doy varias fotos de UNA prenda de mi tienda de ropa.",
+        lista,
+        "Crea UNA foto de catálogo de la prenda, vista de frente.",
+        estructura,
+        SIN_ETIQUETAS,
+        "No cambies el color. No se ve ningún maniquí, persona, piel, gancho ni perchero. Fondo transparente, sin sombra.",
+      ].join(" "),
+    ),
   };
 }
 

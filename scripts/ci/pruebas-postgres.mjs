@@ -54,6 +54,13 @@ export const PRUEBAS = [
   // (anulada, prueba, bolsa, prenda sin registrar, que se cuenta aparte), los filtros, «Quedan» (solo tiendas) y que el ranking suma lo que dicen las cifras. ROLLBACK.
   "pruebas:reporte-ventas-ranking",
 
+  // Ventas ▸ Reportes: el filtro «Empresa» (CAYLA / CLAURE) donde conviven dos (ADR-0665): CAYLA + CLAURE suma el vendido, las prendas y el devuelto sin filtro (la
+  // venta mixta cuenta en las dos y la devolución mixta se reparte por valor); cada lectura (cifras, gráficos, cortes, ranking y lo que queda) lo cumple; coincide
+  // con fn_vendido_por_empresa de Caja e Historial; «cómo se pagó» se parte por lo cobrado de cada empresa, exacto salvo la venta mixta con dos medios, que se
+  // reparte, se avisa y cuadra al céntimo (20261115013000); la empresa solo se elige dentro de una tienda donde operan dos (22023); una cuenta
+  // de Lima que no es líder lee lo mismo; el control (sin el movimiento CLAURE saldría otra cifra); pegarla dos veces es inocuo. ROLLBACK.
+  "pruebas:reportes-por-empresa",
+
   // Meta del día y fondo de caja unidos a las campañas (ADR-0195 F1): si dos campañas se cruzan gana la mayor, la
   // meta del mes es la suma de los días, solo el líder guarda y el cierre anota el fondo que regía. ROLLBACK.
   "pruebas:configuracion-caja",
@@ -1808,6 +1815,10 @@ export const PRUEBAS = [
   // cuenta talla por talla (buenas al almacén, dañadas a la cuarentena), con el costo corregido promediado, un lote por proveedor y el
   // papel hasta su cupo; faltante y sobrante con causa; quien hizo la orden no la recibe; token y costo atípico. ROLLBACK siempre.
   "pruebas:recepcion-de-envio",
+
+  // Recibir ▸ «Sumar tallas o colores» a una prenda «Sin color» (ADR-0393 act. 2026-11-14): sin historia, cada «Sin color» toma el color que
+  // llegó en su talla y la que no toma ninguno se desactiva; con stock se frena sin escribir; llegar «Sin color» o mezclado, igual que antes. ROLLBACK.
+  "pruebas:recibir-sin-color-toma-color",
 
   // El conteo guardado de un envío (ADR-0393): lo contado queda en la base línea por línea; gana el último con aviso de lo que pisó;
   // lo separado no pasa de lo contado ni trae prendas ajenas; lo de fuera de la guía; el formulario de la fase 4 deja su conteo; un

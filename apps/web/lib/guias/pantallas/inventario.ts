@@ -1895,7 +1895,7 @@ export const GUIA_RECIBIR_ENVIO: Guia = {
       requiere: ["recepcion.categorias"],
       preparar: [LISTA_DEL_CELULAR, { tipo: "clic", ancla: "recepcion.filtros", siEsta: true }],
       titulo: "Lo que falta, de un toque",
-      texto: "Toca «Por contar», «Con diferencia», «Tallas para después» o «Por llevar al stock» y la lista deja solo esos; el número dice cuántos son. Otro toque y vuelve a todo.",
+      texto: "Toca «Por contar», «Con diferencia», «Faltan tallas» (lo que pediste repartir ahora), «Tallas para después» o «Por llevar al stock» y la lista deja solo esos; el número dice cuántos son. Otro toque y vuelve a todo.",
     },
     {
       // Solo si la compra anotó modelos: en un envío sin aviso no se sabe todavía.
@@ -1915,14 +1915,14 @@ export const GUIA_RECIBIR_ENVIO: Guia = {
       requiere: ["recepcion.categorias"],
       preparar: [LISTA_DEL_CELULAR, { tipo: "clic", ancla: "recepcion.filtros", siEsta: true }],
       titulo: "Ordenar por cantidad",
-      texto: "Las categorías y sus modelos se ordenan por lo que anotó Compras: de menos a más o de más a menos. Si tocas otra vez la misma, vuelven al orden de la compra. «Listo, siguiente» sigue este orden.",
+      texto: "Las categorías y sus modelos se ordenan por lo que anotó Compras: de menos a más o de más a menos. Si tocas otra vez la misma, vuelven al orden de la compra. Enter sigue este orden y se salta lo que ya tiene cantidad.",
     },
     {
       id: "por-definir",
       ancla: "recepcion.por-definir",
       opcional: true,
       titulo: "Llegó por definir",
-      texto: "Compras la anotó sin saber qué es. Antes de contarla, toca «Decir qué es» y elige su categoría y su marca: la compra se queda con eso.",
+      texto: "Compras la anotó sin saber qué es. Antes de contarla, toca «Decir qué es» y elige su categoría; la marca, solo si la tiene, y si no está en la lista, «+ Marca nueva». La compra se queda con eso.",
     },
     {
       id: "numero",
@@ -1940,7 +1940,7 @@ export const GUIA_RECIBIR_ENVIO: Guia = {
       opcional: true,
       requiere: [CONTADOR_A_LA_VISTA],
       titulo: "Lo que falta y cerrar",
-      texto: "Abajo dice qué modelo falta contar: tócalo y vas a él (o elige otro en la lista de la izquierda). A la derecha, «Revisar y cerrar». Con el número abierto, Enter pasa al siguiente modelo y lo deja listo para escribir: cuentas todo sin soltar el teclado.",
+      texto: "Abajo dice qué modelo falta contar y, con todo contado, a cuál le faltan tallas: tócalo y vas a él. Lo de «Tallas para después» no lo pide. A la derecha, «Revisar y cerrar». Con el número abierto, Enter guarda y abre el siguiente modelo en cero: lo que ya tiene cantidad no lo vuelve a abrir.",
     },
     {
       id: "que-hacer",

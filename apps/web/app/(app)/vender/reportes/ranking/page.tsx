@@ -18,7 +18,8 @@ import { Vacio } from "@/components/ui/Vacio";
 // Ventas ▸ Reportes ▸ Ranking de prendas (maqueta docs/maquetas/reportes-ventas-2026-11/, cara A · Tabla). Actividad 5: las fechas, la tienda, la categoría,
 // la marca, la talla, el color y la búsqueda; por modelo o por color y talla; por prendas o por soles; con su comparación contra el período anterior del
 // mismo largo y lo que queda en las tiendas. Lee en el servidor con `fn_reporte_ventas_ranking`: el líder ve todas las tiendas y elige una; quien tiene el
-// módulo en su rol ve solo la suya (lo decide la base, no esta pantalla). Todo vive en la URL (ver `hrefRanking`).
+// módulo en su rol ve solo la suya (lo decide la base, no esta pantalla). Donde conviven dos empresas (Lima) se suma el filtro «Empresa» (ADR-0665): el ranking, sus
+// totales, las tallas y colores y lo que queda son solo de esa empresa. Todo vive en la URL (ver `hrefRanking`).
 export default async function RankingPrendasPage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
   const persona = await requirePersonaActualV2();
   const sp = await searchParams;
@@ -26,11 +27,12 @@ export default async function RankingPrendasPage({ searchParams }: { searchParam
   const pedidos = filtrosDeUrl(sp);
 
   // Una tienda que la cuenta no puede elegir (o que no existe) no se obedece: la URL no amplía lo que se ve.
-  const { tiendas, tienda, sede } = await alcanceDeReportes(persona, pedidos.tienda);
-  const f = { ...pedidos, tienda };
+  const { tiendas, tienda, sede, empresas, empresa, ubicacion } = await alcanceDeReportes(persona, pedidos.tienda, pedidos.empresa);
+  // La empresa que vale es la que se ofrece en esta tienda: `?emp=claure` con «todas las tiendas» o en Trujillo se ignora (y sale de los enlaces).
+  const f = { ...pedidos, tienda, empresa: empresa?.clave ?? null };
   const periodo = periodoDe(f, hoy);
 
-  const [lectura, opciones] = await Promise.all([getRanking(f, periodo), getOpcionesRanking()]);
+  const [lectura, opciones] = await Promise.all([getRanking(f, periodo, undefined, { ubicacion, empresaId: empresa?.id ?? null }), getOpcionesRanking()]);
   const r = lectura.datos;
   // Una página que ya no existe (se cambió un filtro y quedan menos filas) vuelve a la primera.
   if (r && r.filas.length === 0 && r.cuantos > 0 && f.pagina > 0) redirect(hrefRanking(f, { pagina: 0 }));
@@ -44,7 +46,7 @@ export default async function RankingPrendasPage({ searchParams }: { searchParam
         activa="ranking"
         acciones={r && r.cuantos > 0 ? <BotonDescargar guia="reportes.descargar" title="Baja todas las filas del ranking con tus filtros, no solo las de esta página" href={hrefRanking(f, { pagina: 0 }).replace("/vender/reportes/ranking", "/vender/reportes/ranking/descargar")}>Descargar el ranking en Excel</BotonDescargar> : undefined}
       />
-      <FiltrosRanking f={f} periodo={periodo} hoy={hoy} opciones={opciones.datos} tiendas={tiendas} />
+      <FiltrosRanking f={f} periodo={periodo} hoy={hoy} opciones={opciones.datos} tiendas={tiendas} empresas={empresas} />
       {opciones.falla && (
         <Aviso tono="atencion" chico titulo="Faltan algunos filtros">
           {opciones.falla} El ranking sigue bien.
@@ -69,7 +71,7 @@ export default async function RankingPrendasPage({ searchParams }: { searchParam
             </Vacio>
           ) : (
             <div className="grid gap-4 2xl:grid-cols-[minmax(0,1fr)_20rem] 2xl:items-start">
-              <TablaRanking r={r} f={f} periodo={periodo} fotos={fotos} />
+              <TablaRanking r={r} f={f} periodo={periodo} fotos={fotos} empresa={empresa?.nombre ?? null} />
               <PanelTallasColores r={r} />
             </div>
           )}

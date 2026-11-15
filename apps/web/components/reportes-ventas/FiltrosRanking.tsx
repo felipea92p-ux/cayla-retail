@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { CalendarDays, LayoutGrid, Palette, Ruler, Store, Tag } from "lucide-react";
+import { Building2, CalendarDays, LayoutGrid, Palette, Ruler, Store, Tag } from "lucide-react";
 import { DesplegablePildora, TODOS } from "@/components/ui/FiltrosPildora";
 import { BotonLimpiar, FiltroPuesto } from "@/components/ui/FiltrosPuestos";
 import { CampoFecha } from "@/components/ui/CampoFecha";
@@ -10,6 +10,7 @@ import { SelectorMes } from "@/components/ui/SelectorMes";
 import { BuscadorRanking } from "@/components/reportes-ventas/BuscadorRanking";
 import type { OpcionesRanking } from "@/lib/reportes-ranking";
 import { paramDeMes, type Mes } from "@/lib/facturacion-reglas";
+import type { EmpresaDeReporte } from "@/lib/reportes-empresa-reglas";
 import { hayFiltros, hrefRanking, type FiltrosRanking, type PeriodoRanking, type RangoRanking } from "@/lib/reportes-ranking-reglas";
 
 // Los filtros del Ranking de prendas (maqueta docs/maquetas/reportes-ventas-2026-11/): buscar un modelo, las fechas, la tienda, la categoría, la
@@ -34,6 +35,7 @@ export function FiltrosRanking({
   hoy,
   opciones,
   tiendas,
+  empresas,
 }: {
   f: FiltrosRanking;
   periodo: PeriodoRanking;
@@ -41,6 +43,8 @@ export function FiltrosRanking({
   opciones: OpcionesRanking;
   /** Las tiendas que se pueden elegir; `null` si la cuenta ve una sola (la suya). */
   tiendas: { id: string; nombre: string }[] | null;
+  /** CAYLA y CLAURE, solo si en la tienda que se mira operan las dos (Lima, ADR-0665); `null` y el filtro no se dibuja. */
+  empresas: EmpresaDeReporte[] | null;
 }) {
   const router = useRouter();
   const ir = (cambios: Partial<FiltrosRanking>) => router.push(hrefRanking(f, { pagina: 0, ...cambios }));
@@ -49,7 +53,8 @@ export function FiltrosRanking({
 
   const nombreDe = <T extends { id: string }>(lista: T[], id: string | null, campo: keyof T): string | null => (id ? String((lista.find((x) => x.id === id) as T | undefined)?.[campo] ?? "") || null : null);
   const puestos: { clave: string; texto: string; quitar: Partial<FiltrosRanking> }[] = [];
-  if (f.tienda) puestos.push({ clave: "tienda", texto: tiendas?.find((t) => t.id === f.tienda)?.nombre ?? "Una tienda", quitar: { tienda: null } });
+  if (f.tienda) puestos.push({ clave: "tienda", texto: tiendas?.find((t) => t.id === f.tienda)?.nombre ?? "Una tienda", quitar: { tienda: null, empresa: null } });
+  if (f.empresa) puestos.push({ clave: "empresa", texto: empresas?.find((e) => e.clave === f.empresa)?.nombre ?? "Una empresa", quitar: { empresa: null } });
   if (f.categoria) puestos.push({ clave: "categoria", texto: nombreDe(opciones.categorias, f.categoria, "nombre") ?? "Una categoría", quitar: { categoria: null } });
   if (f.marca) puestos.push({ clave: "marca", texto: nombreDe(opciones.marcas, f.marca, "nombre") ?? "Una marca", quitar: { marca: null } });
   if (f.talla) puestos.push({ clave: "talla", texto: `Talla ${nombreDe(opciones.tallas, f.talla, "valor") ?? ""}`.trim(), quitar: { talla: null } });
@@ -58,7 +63,8 @@ export function FiltrosRanking({
 
   const combo = (icono: typeof Tag, etiqueta: string, todas: string, valor: string | null, lista: { valor: string; texto: string }[], campo: keyof FiltrosRanking) =>
     lista.length === 0 ? null : (
-      <DesplegablePildora icono={icono} etiqueta={etiqueta} valor={valor ?? TODOS} onValor={(v) => ir({ [campo]: v === TODOS ? null : v } as Partial<FiltrosRanking>)} opciones={[{ valor: TODOS, texto: todas }, ...lista]} />
+      // Al cambiar de tienda la empresa se quita: la nueva tienda puede no tener dos y elegirla de nuevo es un toque.
+      <DesplegablePildora icono={icono} etiqueta={etiqueta} valor={valor ?? TODOS} onValor={(v) => ir({ [campo]: v === TODOS ? null : v, ...(campo === "tienda" ? { empresa: null } : {}) } as Partial<FiltrosRanking>)} opciones={[{ valor: TODOS, texto: todas }, ...lista]} />
     );
 
   return (
@@ -87,6 +93,7 @@ export function FiltrosRanking({
         )}
         </div>
         {tiendas && tiendas.length > 1 && <div data-guia="ranking.tienda">{combo(Store, "Tienda", "Todas las tiendas", f.tienda, tiendas.map((t) => ({ valor: t.id, texto: t.nombre })), "tienda")}</div>}
+        {empresas && <div data-guia="ranking.empresa">{combo(Building2, "Empresa", "Todas", f.empresa, empresas.map((e) => ({ valor: e.clave, texto: e.nombre })), "empresa")}</div>}
         <span className="flex-1" />
         <div data-guia="ranking.nivel">
           <SegmentoEnlaces
@@ -127,7 +134,7 @@ export function FiltrosRanking({
               {p.texto}
             </FiltroPuesto>
           ))}
-          {hayFiltros(f) && <BotonLimpiar href={hrefRanking(f, { tienda: null, categoria: null, marca: null, talla: null, color: null, q: "", pagina: 0 })}>Limpiar todo</BotonLimpiar>}
+          {hayFiltros(f) && <BotonLimpiar href={hrefRanking(f, { tienda: null, empresa: null, categoria: null, marca: null, talla: null, color: null, q: "", pagina: 0 })}>Limpiar todo</BotonLimpiar>}
         </div>
       )}
     </div>

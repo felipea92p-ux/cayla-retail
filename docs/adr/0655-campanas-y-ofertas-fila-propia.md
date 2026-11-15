@@ -405,3 +405,10 @@ Felipe decidió cinco el 2026-11-14:
 
 - Un enlace guardado apunta a `/productos/insignias` esperando las campañas: llega a Rotación. El de `?vista=campanas` sí redirige.
 - Alguien agrega una séptima fila a Catálogo: el tope de hijas es 6 (`menu.test.ts`).
+
+## Actualización 2026-11-14 — el alias viejo tapaba la página
+
+`next.config.ts` aún tenía `/productos/campanas` → `/productos/insignias` (de ADR-0473/0481, 2026-10-22). Los alias de `redirects()` corren
+antes que cualquier página, así que desde el 2026-11-13 la fila «Campañas y ofertas» abría Insignias, y quien solo tenía el módulo
+Campañas caía en un bucle de redirecciones. Se quitó el alias, y `lib/redirects-rutas-vivas.test.ts` falla si un alias fijo de la config
+tiene como origen una ruta con `page.tsx`. Al mover una pantalla a una ruta que ya tuvo un alias, el alias se borra en el mismo cambio.

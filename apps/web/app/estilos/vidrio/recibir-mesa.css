@@ -278,6 +278,14 @@ main:has(.rc-conteo) { padding-bottom: 16px; }
 .rc-pista, .rc-pista-stock { color: var(--color-taupe); font-size: 14px; line-height: 1.35; }
 /* Un renglón reservado: bajo el dial cabe en una línea, y si apareciera otra, lo de abajo se movería bajo el mouse. */
 .rc-pista { min-height: 1.35em; }
+/* Con el número abierto la pista dice cómo dejarlo: con teclado, Enter; con el dedo, tocar fuera. «Toca el número…» ya no corresponde. */
+.rc-pista-escribe, .rc-pista-escribe-dedo { display: none; }
+.rc-paso-uno:has(.rc-dial-vivo) .rc-pista-reposo { display: none; }
+.rc-paso-uno:has(.rc-dial-vivo) .rc-pista-escribe { display: inline; }
+@media (pointer: coarse) {
+  .rc-paso-uno:has(.rc-dial-vivo) .rc-pista-escribe { display: none; }
+  .rc-paso-uno:has(.rc-dial-vivo) .rc-pista-escribe-dedo { display: inline; }
+}
 /* Los botones del contador, apilados: «Llegaron» en verde y primero, porque es lo que más se toca y deja el modelo listo; sumar en su bandeja, y «No llegó» al final, más callado. Todos del mismo ancho. */
 .rc-atajos { display: flex; flex-direction: column; align-items: stretch; gap: 8px; }
 .rc-atajos .rc-suma { display: flex; }
@@ -313,7 +321,11 @@ main:has(.rc-conteo) { padding-bottom: 16px; }
 /* El pie del contador: a la izquierda lo que sigue; a la derecha «Anterior» y «Listo, siguiente». El mismo pie que el de la lista. */
 .rc-placa-pie { flex: none; display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; min-height: 64px; padding: 12px 16px; border-top: 1px solid var(--hilo-cabeza); background: var(--vidrio-pie-fondo); }
 /* La línea mide lo mismo que la del pie de la lista: los dos pies quedan a la misma altura. */
-.rc-pie-sigue { flex: 1 1 0; min-width: 0; overflow: hidden; color: var(--color-taupe); font-size: 14px; line-height: 24px; text-overflow: ellipsis; white-space: nowrap; }
+/* El anillo del enlace (2 px a 2 px del botón) sobresale 4 px de la línea de 24: 6 px de relleno arriba y abajo le hacen lugar dentro del recorte, y el
+   margen negativo devuelve esos 6 px, así el pie no cambia de alto ni nada se mueve. El enlace se aparta 4 px más del texto para que el anillo no pise los
+   dos puntos (auditoría al milímetro, M3, 2026-11-14). */
+.rc-pie-sigue { flex: 1 1 0; min-width: 0; margin-block: -6px; padding-block: 6px; overflow: hidden; color: var(--color-taupe); font-size: 14px; line-height: 24px; text-overflow: ellipsis; white-space: nowrap; }
+.rc-pie-sigue > .btn-cayla { margin-inline-start: 4px; }
 .rc-pie-sigue b { color: var(--color-tinta); font-weight: 600; }
 .rc-pie-pasos { flex: none; display: flex; align-items: center; gap: 8px; min-width: 0; max-width: 100%; min-height: 44px; }
 .rc-pie-pasos .btn-cayla { flex: none; white-space: nowrap; }

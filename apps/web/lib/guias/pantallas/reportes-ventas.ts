@@ -43,6 +43,13 @@ export const GUIA_REPORTES_MES: Guia = {
       texto: "Si te toca ver todas las tiendas, aquí eliges una para mirar solo lo suyo. Quien ve una sola tienda no tiene este filtro: ya mira la suya.",
     },
     {
+      id: "empresa",
+      ancla: "reportes.empresa",
+      opcional: true,
+      titulo: "CAYLA o CLAURE",
+      texto: "En Lima se vende de las dos empresas en la misma caja. Aquí miras solo una: las cifras, los gráficos y la tabla cuentan lo cobrado de sus prendas, y «Cómo se pagó», lo suyo de cada pago.",
+    },
+    {
       id: "cifras",
       ancla: "reportes.cifras",
       titulo: "Las cuatro cifras",
@@ -73,7 +80,7 @@ export const GUIA_REPORTES_MES: Guia = {
       ancla: "reportes.pagos",
       opcional: true,
       titulo: "Cómo pagaron",
-      texto: "Lo cobrado por cada medio de pago: efectivo, tarjeta, Yape… y qué parte del total es cada uno. Sirve para saber cuánta plata entra por dónde.",
+      texto: "Lo cobrado por cada medio de pago: efectivo, tarjeta, Yape… y qué parte del total es cada uno. Sirve para saber cuánta plata entra por dónde. Con CAYLA o CLAURE elegida, es lo de esa empresa en cada pago.",
     },
     {
       id: "tabla",
@@ -129,6 +136,13 @@ export const GUIA_REPORTES_RANKING: Guia = {
       opcional: true,
       titulo: "Una tienda o todas",
       texto: "Si ves todas las tiendas, aquí eliges una para ver qué se vende en esa. Quien ve una sola tienda ya mira la suya y no tiene este filtro.",
+    },
+    {
+      id: "empresa",
+      ancla: "ranking.empresa",
+      opcional: true,
+      titulo: "CAYLA o CLAURE",
+      texto: "En Lima, mira solo las prendas de una empresa: el ranking, las tallas y colores y lo que queda son de esa empresa.",
     },
     {
       id: "nivel",

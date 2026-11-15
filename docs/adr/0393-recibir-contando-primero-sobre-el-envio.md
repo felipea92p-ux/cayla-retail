@@ -933,3 +933,19 @@ En «Mis compras» se anotó un polo que era una blusa, y en el almacén no hab�
 del aviso no guarda categoría ni marca: se va con ella). Mismos límites que al cerrar (20261107185000): no toca la orden, la factura, el stock ni los
 costos, y se niega si algo de la línea ya entró al stock, ya tiene su prenda o se contó junto con otra cosa. El lápiz vive en la tarjeta del modelo
 (`CorregirCategoriaModelo.tsx`). El proveedor queda fuera: cambiarlo cambia a quién se le debe la compra, y eso lo decide Felipe.
+
+## Actualización 2026-11-14 — a una prenda «Sin color» le llegan colores
+
+«Pantalón Cayla Lino» (PAN-0041) se creó al recibir con S, M y L sin marcar colores, y nació «Sin color». Al sumarle en «Sumar tallas o colores» los
+cinco colores que llegaron, la hoja dijo «Todo listo» y la base rechazó las 15 combinaciones cinco veces: el candado de mezcla (ADR-0263 T5) no deja
+«Sin color» junto a colores, y `preparar_prenda_al_recibir` solo sumaba. Quien recibe no edita el catálogo: no tenía salida, y las fotos de la hoja se
+perdían al cerrarla.
+
+**Decisión** (`20261114234000_recibir_sin_color_toma_color.sql`): cuando a una prenda que ya existe le llegan colores (y ninguna combinación «Sin color»),
+cada variante «Sin color» **sin historia** toma el primer color que llegó en su talla —la misma variante, con su código viejo sonando en
+`codigos_barras`, como la corrección de la ficha— y la que no toma ninguno se desactiva. **Con historia** (stock, movimientos, ventas, separaciones,
+apartados, traslados, conteos, lo recibido o contado con detalle en un envío, un cambio, un pedido web o producción) no se adivina de qué color eran:
+se frena antes de escribir nada con `recepcion_sin_color_con_historia`, que la pantalla muestra tal cual y dice ir a Editar producto. El candado de
+mezcla se difiere solo durante la llamada y vuelve a inmediato antes de responder. Lo demás no cambia: llegar «Sin color», o mezclar en lo que llegó,
+frena como antes. Se eligió el primer color que llegó (y no preguntar) porque la variante «Sin color» sin historia es una cáscara vacía: no hay
+prendas que se pinten mal. **Pruebas:** `scripts/pruebas/recibir_sin_color_toma_color.mjs` (S0–S6).
