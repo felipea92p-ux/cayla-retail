@@ -75,25 +75,24 @@ describe("leerFilaClaure", () => {
 });
 
 describe("resumenClaure", () => {
-  it("cobrado − devuelto − IGV − comisión = lo que se le debe; el cambio no entra", () => {
+  it("cobrado − devuelto − comisión = lo que se le debe (el IGV lo pone CAYLA, ADR-0638 regla 5); el cambio no entra", () => {
     const r = resumenClaure(FILAS);
     expect(r.cobrado).toBe(267);
     expect(r.devuelto).toBe(168);
     expect(r.comision).toBe(1.4);
-    // 267 − 168 − 15.10 (el IGV neto: lo declara y paga CAYLA) − 1.40 = 82.50
-    expect(r.saldo).toBe(82.5);
+    // 267 − 168 − 1.40 = 97.60 (el IGV neto, 15.10, lo pone CAYLA: no se resta)
+    expect(r.saldo).toBe(97.6);
     expect(r.cambios).toEqual({ n: 1, monto: 20 });
   });
-  it("el IGV va incluido en lo cobrado menos lo devuelto, y se le descuenta", () => {
+  it("el IGV va incluido en lo cobrado menos lo devuelto, se informa y ya no se le descuenta", () => {
     expect(resumenClaure(FILAS).igv).toBe(15.1);
     const sinIgv = FILAS.map((f) => ({ ...f, igv: f.contado ? 0 : f.igv }));
-    expect(resumenClaure(sinIgv).saldo).toBe(97.6);
-    expect(resumenClaure(sinIgv).saldo - resumenClaure(FILAS).saldo).toBeCloseTo(15.1, 2);
+    expect(resumenClaure(sinIgv).saldo).toBe(resumenClaure(FILAS).saldo);
   });
-  it("una devolución resta su IGV: el IGV neto puede ser menor que el de las ventas", () => {
+  it("una devolución resta lo devuelto con su IGV, y el IGV informado es el neto", () => {
     const r = resumenClaure([fila({ monto: 118, igv: 18 }), fila({ origen: "devolucion", monto: -59, igv: -9 })]);
     expect(r.igv).toBe(9);
-    expect(r.saldo).toBe(50);
+    expect(r.saldo).toBe(59);
   });
   it("un cambio cuenta como cobrado si sube lo que se le debe y como devuelto si baja (la plata sigue a la prenda), con su IGV", () => {
     const filas = [
@@ -105,7 +104,7 @@ describe("resumenClaure", () => {
     expect(r.cobrado).toBe(220);
     expect(r.devuelto).toBe(100);
     expect(r.igv).toBe(18.31);
-    expect(r.saldo).toBe(101.69); // 220 cobrado − 100 devuelto − 18.31 de IGV neto (15.25 + 18.31 − 15.25) − 0 de comisión
+    expect(r.saldo).toBe(120); // 220 cobrado − 100 devuelto − 0 de comisión; el IGV neto (18.31) lo pone CAYLA
     expect(r.cambios).toEqual({ n: 0, monto: 0 });
     expect(textoOrigenClaure("cambio")).toBe("Cambio");
   });
@@ -118,11 +117,11 @@ describe("resumenClaure", () => {
   it("lo ya pagado baja el saldo (varios pagos, también parciales)", () => {
     const r = resumenClaure(FILAS, [pago(50), pago(20.5)]);
     expect(r.pagado).toBe(70.5);
-    expect(r.saldo).toBe(12); // 82.50 − 70.50
+    expect(r.saldo).toBe(27.1); // 97.60 − 70.50
     expect(r.cobrado).toBe(267); // lo cobrado no se toca: el pago no es una devolución
   });
   it("pagar de más deja el saldo negativo: queda a favor de CAYLA", () => {
-    expect(resumenClaure(FILAS, [pago(100)]).saldo).toBe(-17.5);
+    expect(resumenClaure(FILAS, [pago(100)]).saldo).toBe(-2.4);
   });
   it("los centavos no se arrastran como ruido de coma flotante", () => {
     const r = resumenClaure([fila({ monto: 0.1 }), fila({ monto: 0.2 })]);
@@ -151,10 +150,10 @@ describe("filas", () => {
     expect(filasContadas(FILAS)).toHaveLength(4);
     expect(cambiosPorRevisar(FILAS)).toHaveLength(1);
   });
-  it("lo que se le debe de una fila resta su IGV y su comisión; sin tarifa resta cero de comisión; una devolución devuelve su IGV", () => {
-    expect(seLeDebeDeFila(FILAS[3])).toBe(40.97);
-    expect(seLeDebeDeFila(FILAS[2])).toBe(33.9);
-    expect(seLeDebeDeFila(FILAS[1])).toBe(-142.37);
+  it("lo que se le debe de una fila resta su comisión, no su IGV; sin tarifa resta cero; una devolución resta lo devuelto entero", () => {
+    expect(seLeDebeDeFila(FILAS[3])).toBe(48.6);
+    expect(seLeDebeDeFila(FILAS[2])).toBe(40);
+    expect(seLeDebeDeFila(FILAS[1])).toBe(-168);
   });
 });
 
@@ -166,7 +165,7 @@ describe("textos", () => {
   });
   it("las chips dicen de dónde sale la cifra y lo que pide atención", () => {
     const textos = chipsClaure(resumenClaure(FILAS), true).map((c) => c.texto);
-    expect(textos).toEqual(["Cobrado S/ 267.00", "Devuelto S/ 168.00", "IGV S/ 15.10 (lo paga CAYLA)", "Comisión del POS S/ 1.40", "1 cobro sin tarifa", "1 cambio por revisar"]);
+    expect(textos).toEqual(["Cobrado S/ 267.00", "Devuelto S/ 168.00", "Comisión del POS S/ 1.40", "1 cobro sin tarifa", "1 cambio por revisar"]);
   });
   it("lo pagado sale en verde, y pagar de más avisa en ámbar", () => {
     const aldia = chipsClaure(resumenClaure(FILAS, [pago(50)]), true);
@@ -190,7 +189,7 @@ describe("textos", () => {
   it("la frase dice desde cuándo se cuenta y que el efectivo no entra", () => {
     expect(fraseClaure("2026-10-23")).toContain("23/10/2026");
     expect(fraseClaure("2026-10-23")).toContain("El efectivo no entra");
-    expect(fraseClaure("2026-10-23")).toContain("se le descuenta");
+    expect(fraseClaure("2026-10-23")).toContain("lo pone CAYLA: no se le descuenta");
     expect(fraseClaure(null)).not.toContain("Se cuenta desde");
   });
 });
@@ -228,9 +227,10 @@ describe("lo vendido de CLAURE en un período (ADR-0560, actividad 5)", () => {
     expect(lineaImpuestosClaure({ ventas: -118, igv: -18, base: -100, costo: -10 })).toBeNull();
   });
 
-  it("toda nota sobre su IGV dice lo mismo: lo cobrado en cuentas de CAYLA ya se le descontó y solo el efectivo queda por recuperar", () => {
-    expect(IGV_DE_CLAURE).toContain("ya se le descuenta");
-    expect(IGV_DE_CLAURE).toContain("en efectivo");
+  it("toda nota sobre su IGV dice lo mismo: lo pone CAYLA, no se le descuenta y vuelve con las facturas de CLAURE (ADR-0638, regla 5)", () => {
+    expect(IGV_DE_CLAURE).toContain("lo pone CAYLA");
+    expect(IGV_DE_CLAURE).toContain("no se le descuenta");
+    expect(IGV_DE_CLAURE).toContain("facturas de compra");
     for (const nota of [NOTA_CLAURE_VENTAS, NOTA_CLAURE_JUNTAS]) {
       expect(nota).toContain(IGV_DE_CLAURE);
       // «Lo que se le debe» es de la Cuenta CLAURE: de lo vendido en efectivo no se le debe nada, porque lo tiene Claudia.
