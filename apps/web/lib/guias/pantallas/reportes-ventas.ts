@@ -1,4 +1,4 @@
-// Guías de Ventas ▸ Reportes (ADR-0389; Felipe 2026-11-03): «Ventas del mes» y «Ranking de prendas». Mismas reglas que `vender.ts`: cada paso se
+// Guías de Ventas ▸ Reportes (ADR-0389; Felipe 2026-11-03): «Ventas del mes», «Ranking de prendas» y, donde venden dos empresas, «CAYLA y CLAURE» (ADR-0667). Mismas reglas que `vender.ts`: cada paso se
 // ancla a un `data-guia` del código, el texto le habla a quien mira («tú») y explica PARA QUÉ sirve cada cosa. Las dos pantallas solo MIRAN (lo único
 // que «hace» algo es bajar un archivo), así que el piloto no toca nada: la guía explica con la pieza encendida y la persona prueba después.
 
@@ -8,8 +8,8 @@ import type { Guia, PasoGuia } from "../tipos";
 const PESTANAS: PasoGuia = {
   id: "pestanas",
   ancla: "reportes.pestanas",
-  titulo: "Dos reportes, dos preguntas",
-  texto: "«Ventas del mes» te dice cuánto se vendió y cómo va contra el mes pasado. «Ranking de prendas» te dice cuáles salen más. Tocas una y cambias de reporte.",
+  titulo: "Un reporte por pregunta",
+  texto: "«Ventas del mes» te dice cuánto se vendió y cómo va contra el mes pasado. «Ranking de prendas» te dice cuáles salen más. Donde venden dos empresas, una tercera pestaña separa lo de cada una. Tocas una y cambias de reporte.",
 };
 
 /** El botón de la cabecera: baja lo que se ve. Solo aparece si hay algo que bajar. Cada pantalla baja una cosa distinta, y el paso lo dice. */
@@ -193,6 +193,87 @@ export const GUIA_REPORTES_RANKING: Guia = {
       ancla: null,
       titulo: "¡Listo!",
       texto: "Ya sabes qué prendas se llevan más y cómo afinarlo. Para repasarlo: Mi perfil ▸ Demo ▸ Ranking de prendas.",
+    },
+  ],
+};
+
+export const GUIA_REPORTES_EMPRESAS: Guia = {
+  id: "vender.reportes.empresas",
+  ruta: "/vender/reportes/empresas",
+  titulo: "Reportes: CAYLA y CLAURE",
+  resumen: "Lo vendido de cada empresa en la tienda, dónde entró cada cobro y venta por venta.",
+  pasos: [
+    {
+      id: "bienvenida",
+      ancla: null,
+      titulo: "Dos empresas, una caja",
+      texto: "En Lima se venden prendas de CAYLA y de CLAURE en la misma caja. Aquí ves cuánto vendió cada una, en qué cuenta entró cada cobro y, si bajas, cada venta con sus prendas. Solo mira: no cambia nada.",
+    },
+    PESTANAS,
+    {
+      id: "periodo",
+      ancla: "empresas.periodo",
+      titulo: "Qué días miras",
+      texto: "Un mes, todo desde que llegó CLAURE, o las fechas que tú elijas. Todo lo de abajo cambia con lo que elijas.",
+    },
+    { id: "mes", ancla: "empresas.mes", opcional: true, titulo: "El mes", texto: "Con las flechas pasas al mes de al lado; si tocas el nombre, eliges cualquier mes." },
+    { id: "fechas", ancla: "empresas.fechas", opcional: true, titulo: "Tus fechas", texto: "El primer y el último día, los dos incluidos. Hasta seis meses de una vez." },
+    {
+      id: "tienda",
+      ancla: "empresas.tienda",
+      opcional: true,
+      titulo: "La tienda",
+      texto: "Solo salen las tiendas donde venden dos empresas.",
+    },
+    {
+      id: "cifras",
+      ancla: "empresas.cifras",
+      titulo: "Las cuatro cifras",
+      texto: "Lo vendido en la tienda, lo de cada empresa (con su parte del total) y las ventas mixtas: las que llevan prendas de las dos. Una venta mixta cuenta en las dos empresas.",
+    },
+    {
+      id: "plata",
+      ancla: "empresas.plata",
+      titulo: "¿Dónde está la plata?",
+      texto: "Cada cobro en la cuenta donde entró: el efectivo en el cajón, el Yape en el BCP y la tarjeta y el QR en Izipay, que deposita en Interbank. Debajo, cuánto de CLAURE entró a cuentas de CAYLA. Toca una fila para ver sus ventas.",
+    },
+    {
+      id: "lados",
+      ancla: "empresas.lados",
+      titulo: "Cada empresa por su lado",
+      texto: "Cómo le pagaron a cada una y, mes a mes, cuántas ventas y prendas, y cuántas salieron con boleta o con nota de venta.",
+    },
+    {
+      id: "ventas",
+      ancla: "empresas.ventas",
+      titulo: "Venta por venta",
+      texto: "Cada venta con su comprobante, cómo se pagó y cuánto es de cada empresa. La última fila suma lo que ves.",
+    },
+    {
+      id: "filtros",
+      ancla: "empresas.filtros",
+      titulo: "Busca lo que te importa",
+      texto: "Filtra por empresa, medio, cuenta, comprobante o solo las mixtas. «Limpiar filtros» vuelve a todas.",
+    },
+    {
+      id: "prendas",
+      ancla: "empresas.prendas",
+      opcional: true,
+      titulo: "Las prendas de una venta",
+      texto: "Al tocar una venta se abre: cada prenda con su talla, su color y de qué empresa es, y cómo se pagó.",
+    },
+    {
+      id: "historial",
+      ancla: "empresas.historial",
+      opcional: true,
+      titulo: "La venta en Historial",
+      texto: "Te lleva a esa venta en Historial, donde puedes ver su comprobante o corregirla.",
+    },
+    {
+      id: "fin",
+      ancla: null,
+      titulo: "¡Listo!",
+      texto: "Ya sabes dónde está la plata de cada empresa. Para repasarlo: Mi perfil ▸ Demo ▸ Reportes de ventas.",
     },
   ],
 };

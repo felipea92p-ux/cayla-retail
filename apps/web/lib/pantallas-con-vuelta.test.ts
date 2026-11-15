@@ -46,6 +46,7 @@ const EXCEPCIONES: Record<string, string> = {
   "/vender/comprobantes/proformas": "pestaña de Comprobantes",
   "/vender/comprobantes/series": "pestaña de Comprobantes",
   "/vender/reportes/ranking": "pestaña de Reportes de ventas (la fila «Ventas del mes · Ranking de prendas» siempre está a la vista)",
+  "/vender/reportes/empresas": "pestaña de Reportes de ventas «CAYLA y CLAURE» (ADR-0667): la fila de pestañas siempre está a la vista",
   "/produccion/eficiencia": "pestaña del Resumen de Producción",
   "/compras/fondos": "pestaña de Historial de compras (ADR-0504)",
   "/compras/por-pagar": "pestaña de Historial de compras (ADR-0504)",
