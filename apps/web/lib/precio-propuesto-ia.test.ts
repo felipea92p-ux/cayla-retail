@@ -28,7 +28,8 @@ describe("leerRespuestaPrecio: la IA propone, la regla manda", () => {
   const costo = { costo: 30, estimado: false };
   it("lleva el precio a .90 y nunca bajo el piso", () => {
     const r = leerRespuestaPrecio({ precio: 39, razon: "Como el Polo Bianca, que se vende bien.", parecidas: [] }, costo, contexto);
-    expect(r?.precio).toBe(42.9);
+    // El piso de la cuenta única (ADR-0668): con S/ 30 de costo, S/ 68.90 aguanta una rebaja de 35 %.
+    expect(r?.precio).toBe(68.9);
     expect(r?.subidoAlPiso).toBe(true);
   });
   it("solo deja las parecidas que estaban en la lista (no inventa prendas)", () => {

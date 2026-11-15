@@ -20,7 +20,7 @@ import { createClient } from "@/lib/supabase/server";
 // POST /api/precio/proponer  →  { propuesta } | { sinPropuesta: { motivo, texto } }
 //
 // Precio propuesto con IA (ADR-0641, Felipe 2026-11-10): Claude propone el precio de etiqueta de una prenda, mirando su costo y sus
-// parecidas; la regla fija (`precio-propuesto-reglas.ts`) lo lleva a .90 y nunca lo deja bajo costo + 30 % de margen.
+// parecidas; la regla fija (`precio-propuesto-reglas.ts`) lo lleva a .90 y nunca lo deja bajo el piso que aguanta una rebaja de 35 % (ADR-0668).
 //
 // CONTRATO
 //   PROMETE: responder 200 con algo que mostrar. Sin clave, con el tope del mes gastado (US$ 20), sin costo, sin respuesta en 45 s,

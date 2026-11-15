@@ -164,7 +164,7 @@ export function RevisarPreciosTabla({ prendas }: { prendas: PrendaARevisar[] }) 
                         )}
                       </div>
                       <p className="text-sm">{propuesta.razon}</p>
-                      {propuesta.subidoAlPiso && <p className="text-sm text-taupe">Lo subí a {soles(propuesta.piso)}: es lo mínimo para no ganar menos de 30 % con este costo.</p>}
+                      {propuesta.subidoAlPiso && <p className="text-sm text-taupe">Lo subí a {soles(propuesta.piso)}: es lo mínimo que aguanta una rebaja de 35 %.</p>}
                       {propuesta.parecidas.length > 0 && (
                         <p className="text-sm text-taupe">Parecidas: {propuesta.parecidas.map((x) => `${x.referencia} (${soles(x.precio)})`).join(" · ")}</p>
                       )}

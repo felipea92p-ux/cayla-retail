@@ -1,67 +1,67 @@
+import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { cuentaDeLinea } from "./orden-compra-precio-ayuda";
-import { facturaDelEnvio, margenALaVista, montoEscrito } from "./margen-a-la-vista";
+import { cuentaDelPrecio } from "./cuenta-de-precio";
+import { margenALaVista, montoEscrito } from "./margen-a-la-vista";
 
-describe("margenALaVista: cuánto se gana por prenda, con la cuenta de Compras (sin IGV)", () => {
-  it("costo S/ 36 y precio S/ 70: 39 % sin factura y 49 % con factura (el caso que decía dos márgenes)", () => {
-    expect(margenALaVista("36", "70")).toMatchObject({ ganancia: 23.32, tono: "normal", texto: "Ganas S/ 23.32 · 39 %" });
-    expect(margenALaVista("36", "70", true)).toMatchObject({ ganancia: 28.81, tono: "normal", texto: "Ganas S/ 28.81 · 49 %" });
+describe("margenALaVista: lo que queda por prenda, con la cuenta única (ADR-0668)", () => {
+  it("pagaste S/ 36 y la etiqueta dice S/ 70: te quedan S/ 23.32, y como no aguanta la rebaja, ámbar con su piso", () => {
+    expect(margenALaVista("36", "70")).toEqual({
+      ganancia: 23.32,
+      pct: 39.3,
+      tono: "bajo",
+      piso: 81.9,
+      enSoles: "Te quedan S/\u00a023.32",
+      texto: "Te quedan S/\u00a023.32 · 39 %",
+    });
   });
-  it("dice lo mismo que Compras, con factura y sin ella", () => {
-    for (const conFactura of [false, true])
-      for (const [c, p] of [[36, 70], [45, 59.9], [12.5, 39.9], [80, 79.9]] as const) {
-        const compras = cuentaDeLinea(c, 0, conFactura, p);
-        const linea = margenALaVista(c, p, conFactura);
-        expect(linea?.pct).toBe((compras.margenPorMil ?? 0) / 10);
-        expect(linea?.ganancia).toBeCloseTo(compras.ganancia ?? 0, 2);
-      }
+  it("desde el piso, verde", () => {
+    expect(margenALaVista(36, 81.9)).toMatchObject({ tono: "normal", texto: "Te quedan S/\u00a033.41 · 48 %" });
+    expect(margenALaVista(36, 80.9)?.tono).toBe("bajo");
   });
-  it("sin el dato de la factura se cuenta «sin factura», que nunca infla", () => {
-    expect(margenALaVista(36, 70)?.pct).toBeLessThan(margenALaVista(36, 70, true)?.pct ?? 0);
+  it("si el precio no cubre lo pagado más SUNAT, rojo con el signo menos de verdad", () => {
+    expect(margenALaVista(36, 40)).toMatchObject({ tono: "pierdes", texto: "Pierdes S/\u00a02.10 · −6 %" });
+    // Precio igual al costo: con la parte de SUNAT, se pierde.
+    expect(margenALaVista(50, 50)).toMatchObject({ tono: "pierdes", texto: "Pierdes S/\u00a07.63 · −18 %" });
   });
-  it("el 30 % se mide sin IGV: 45 / 59.90 es bajo, y con factura también", () => {
-    expect(margenALaVista(45, 59.9)).toMatchObject({ tono: "bajo", texto: "Ganas S/ 5.76 · 11 %" });
-    expect(margenALaVista(45, 59.9, true)?.tono).toBe("bajo");
+  it("dice lo mismo que la cuenta única, en soles y en %", () => {
+    for (const [c, p] of [[25, 59.9], [36, 70], [45, 99.9], [12.5, 29.9]] as const) {
+      const cuenta = cuentaDelPrecio(c, p);
+      const linea = margenALaVista(c, p);
+      expect(linea?.ganancia).toBe(cuenta?.teQuedan);
+      expect(linea?.pct).toBe((cuenta?.margenPorMil ?? 0) / 10);
+    }
   });
-  it("justo en 30 % es normal; el mismo costo y precio sin factura ya pierde (el IGV de la venta se va)", () => {
-    expect(margenALaVista(70, 100, true)?.tono).toBe("normal");
-    expect(margenALaVista(50, 50, true)).toMatchObject({ tono: "bajo", texto: "Ganas S/ 0 · 0 %" });
-    expect(margenALaVista(50, 50)).toMatchObject({ tono: "pierdes", texto: "Pierdes S/ 7.63 · −18 %" });
+  it("no sabe de facturas: la misma prenda dice lo mismo venga como venga", () => {
+    expect(margenALaVista.length).toBe(2);
   });
-  it("sin costo, sin precio, o con un costo de regalo, no hay línea", () => {
+  it("si ningún precio hasta el tope aguanta la rebaja con ese costo, ámbar (nunca verde)", () => {
+    expect(margenALaVista(2300, 4999.9)).toMatchObject({ tono: "bajo", piso: null });
+  });
+  it("sin costo o sin precio, no hay línea", () => {
     expect(margenALaVista("", "59.90")).toBeNull();
     expect(margenALaVista("30", "")).toBeNull();
     expect(margenALaVista(0, 59.9)).toBeNull();
     expect(margenALaVista("abc", "59.90")).toBeNull();
     expect(margenALaVista(null, undefined)).toBeNull();
   });
-  it("cambia en vivo con cada precio que se escribe", () => {
-    const tonos = ["5", "59", "59.9", "99"].map((p) => margenALaVista("45", p)?.tono);
-    expect(tonos).toEqual(["pierdes", "bajo", "bajo", "normal"]);
+  it("lee montos escritos con coma o con «S/»", () => {
+    expect(montoEscrito("S/ 59,90")).toBe(59.9);
+    expect(montoEscrito("59.")).toBeNull();
   });
 });
 
-describe("facturaDelEnvio", () => {
-  it("con papeles, solo si todos son factura", () => {
-    expect(facturaDelEnvio([{ tipo: "factura" }], [])).toBe(true);
-    expect(facturaDelEnvio([{ tipo: "factura" }, { tipo: "boleta" }], ["20123456789"])).toBe(false);
-    expect(facturaDelEnvio([{ tipo: "sin_comprobante" }], ["20123456789"])).toBe(false);
-    expect(facturaDelEnvio([{ tipo: null }], ["20123456789"])).toBe(false);
-  });
-  it("sin papeles, como Compras: factura si todos los proveedores tienen RUC", () => {
-    expect(facturaDelEnvio([], ["20123456789"])).toBe(true);
-    expect(facturaDelEnvio([], ["20123456789", null])).toBe(false);
-    expect(facturaDelEnvio([], [" "])).toBe(false);
-    expect(facturaDelEnvio([], [])).toBe(false);
-  });
-});
-
-describe("montoEscrito", () => {
-  it("lee lo que se escribe o se pega", () => {
-    expect(montoEscrito("59,90")).toBe(59.9);
-    expect(montoEscrito("S/ 59")).toBe(59);
-    expect(montoEscrito(" 12.5 ")).toBe(12.5);
-    expect(montoEscrito("12.")).toBeNull();
-    expect(montoEscrito("")).toBeNull();
+describe("nadie vuelve a suponer factura por el RUC", () => {
+  it("la línea, Recibir y Nuevo producto ya no reciben si la compra trae factura", () => {
+    // Suponerla por el RUC fallaba en 64 % de los papeles de producción (2026-11-15). La factura se suma aparte en Compras.
+    for (const archivo of [
+      "lib/margen-a-la-vista.ts",
+      "components/ui/LineaMargen.tsx",
+      "lib/recepcion-envio.ts",
+      "components/NuevoProductoForm.tsx",
+      "app/(app)/recibir/envio/[id]/page.tsx",
+    ]) {
+      const fuente = readFileSync(new URL(`../${archivo}`, import.meta.url), "utf8");
+      expect(fuente, archivo).not.toMatch(/facturaDelEnvio|FacturaDelMargen|conFacturaAlta/);
+    }
   });
 });
