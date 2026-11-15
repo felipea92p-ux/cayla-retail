@@ -7,6 +7,7 @@ import { hoyLima } from "@/lib/fechas-lima";
 import { filtrosDeUrl, hayFiltros, hrefRanking, periodoDe, sePuedeComparar } from "@/lib/reportes-ranking-reglas";
 import { soles } from "@/lib/flujo-caja-reglas";
 import { CabeceraReportes } from "@/components/reportes-ventas/CabeceraReportes";
+import { pestanaPorEmpresa } from "@/lib/reportes-por-empresa";
 import { FiltrosRanking } from "@/components/reportes-ventas/FiltrosRanking";
 import { CifrasRanking } from "@/components/reportes-ventas/CifrasRanking";
 import { TablaRanking } from "@/components/reportes-ventas/TablaRanking";
@@ -32,7 +33,11 @@ export default async function RankingPrendasPage({ searchParams }: { searchParam
   const f = { ...pedidos, tienda, empresa: empresa?.clave ?? null };
   const periodo = periodoDe(f, hoy);
 
-  const [lectura, opciones] = await Promise.all([getRanking(f, periodo, undefined, { ubicacion, empresaId: empresa?.id ?? null }), getOpcionesRanking()]);
+  const [lectura, opciones, porEmpresa] = await Promise.all([
+    getRanking(f, periodo, undefined, { ubicacion, empresaId: empresa?.id ?? null }),
+    getOpcionesRanking(),
+    pestanaPorEmpresa(persona),
+  ]);
   const r = lectura.datos;
   // Una página que ya no existe (se cambió un filtro y quedan menos filas) vuelve a la primera.
   if (r && r.filas.length === 0 && r.cuantos > 0 && f.pagina > 0) redirect(hrefRanking(f, { pagina: 0 }));
@@ -44,6 +49,7 @@ export default async function RankingPrendasPage({ searchParams }: { searchParam
       <CabeceraReportes
         sede={sede}
         activa="ranking"
+        porEmpresa={porEmpresa}
         acciones={r && r.cuantos > 0 ? <BotonDescargar guia="reportes.descargar" title="Baja todas las filas del ranking con tus filtros, no solo las de esta página" href={hrefRanking(f, { pagina: 0 }).replace("/vender/reportes/ranking", "/vender/reportes/ranking/descargar")}>Descargar el ranking en Excel</BotonDescargar> : undefined}
       />
       <FiltrosRanking f={f} periodo={periodo} hoy={hoy} opciones={opciones.datos} tiendas={tiendas} empresas={empresas} />

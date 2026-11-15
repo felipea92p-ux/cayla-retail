@@ -9,6 +9,7 @@ import { nombreDelMes } from "@/lib/historial-cierres-reglas";
 import { corteDeUrl, cortesOfrecidos, hrefVentasDelMes, tiendaDeUrl } from "@/lib/reportes-ventas-reglas";
 import { paramDeMes } from "@/lib/facturacion-reglas";
 import { CabeceraReportes } from "@/components/reportes-ventas/CabeceraReportes";
+import { pestanaPorEmpresa } from "@/lib/reportes-por-empresa";
 import { FiltrosReporteMes } from "@/components/reportes-ventas/FiltrosReporteMes";
 import { CifrasReporteMes } from "@/components/reportes-ventas/CifrasReporteMes";
 import { GraficosReporteMes } from "@/components/reportes-ventas/GraficosReporteMes";
@@ -38,12 +39,13 @@ export default async function ReportesVentasPage({ searchParams }: { searchParam
   // hace falta: la cifra ya es de esa empresa.
   const reporte = getReporteMes(mes, ubicacion, empresaId);
   // Con una empresa, «Cómo se pagó» sale de su propia lectura (la serie no parte los pagos); con empresa la tienda siempre está (`alcanceDeReportes`).
-  const [lectura, series, cortes, claure, pagosDeEmpresa] = await Promise.all([
+  const [lectura, series, cortes, claure, pagosDeEmpresa, porEmpresa] = await Promise.all([
     reporte,
     getSeriesMes(mes, ubicacion, empresaId),
     getCortesMes(mes, ubicacion, empresaId),
     reporte.then((l) => (l.datos && !empresa ? getClaureDelTramo(l.datos.actual, tienda) : null)),
     empresaId && ubicacion ? getPagosDeEmpresa(mes, ubicacion, empresaId).then((l) => l.datos) : Promise.resolve(null),
+    pestanaPorEmpresa(persona),
   ]);
   const r = lectura.datos;
   // El cuadro «De Ventas a Finanzas» explica por qué Finanzas da otra cifra: el enlace, solo a quien puede abrir esa pantalla. Con una empresa elegida no se
@@ -55,6 +57,7 @@ export default async function ReportesVentasPage({ searchParams }: { searchParam
       <CabeceraReportes
         sede={sede}
         activa="mes"
+        porEmpresa={porEmpresa}
         acciones={
           r && r.actual.tickets > 0 && cortes.datos ? (
             <BotonDescargar guia="reportes.descargar" title="Baja la tabla del mes que miras (por tienda o por categoría), con su total" href={hrefVentasDelMes({ mes: paramDeMes(mes), tienda, empresa: empresa?.clave, corte: corteDeUrl(sp.corte, cortesOfrecidos(cortes.datos)) }, "/vender/reportes/descargar")}>Descargar el mes en Excel</BotonDescargar>

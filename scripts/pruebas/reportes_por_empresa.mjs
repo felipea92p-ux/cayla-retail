@@ -27,6 +27,10 @@
  *      céntimo de las dos maneras (CAYLA + CLAURE = cada medio, y lo de una empresa = lo que vendió); la venta sin valor va a la casa; el redondeo
  *      del efectivo no cuenta como un segundo medio; 22023 y 42501
  *      como las demás; una cuenta de Lima que no es líder lee lo mismo; permisos.
+ *   M. «CAYLA y CLAURE» (`fn_reporte_ventas_por_empresa`, 20261115042000, ADR-0667): la lectura fila por fila cuadra con las cifras de cada empresa
+ *      (`fn_reporte_ventas_mes`), cada pago se parte en partes que suman lo pagado y lo de cada empresa es lo que vendió; sin fechas usa el día en que
+ *      llegó la otra empresa; 22023 (una sola empresa, más de seis meses, fechas al revés) y 42501 (sin el módulo); una cuenta de Lima que no es
+ *      líder lee lo mismo; permisos.
  *
  * CÓMO. Cada caso es UNA transacción con ROLLBACK (nunca se commitea nada en el Postgres local compartido): se pega la migración, se arma la escena de
  * Lima (CLAURE opera allí), se siembra con los disparadores apagados (aquí se prueba la lectura, no la venta) y se entra con la sesión simulada
@@ -45,6 +49,7 @@ const CONTENEDOR_LOCAL = "supabase_db_cayla-retail";
 const RAIZ = join(fileURLToPath(new URL(".", import.meta.url)), "..", "..");
 const MIGRACION = readFileSync(join(RAIZ, "supabase/migrations/20261114215000_reportes_ventas_por_empresa.sql"), "utf8");
 const MIGRACION_PAGOS = readFileSync(join(RAIZ, "supabase/migrations/20261115013000_reportes_pagos_por_empresa.sql"), "utf8");
+const MIGRACION_LADO_A_LADO = readFileSync(join(RAIZ, "supabase/migrations/20261115042000_reportes_ventas_por_empresa.sql"), "utf8");
 const FELIPE = "22222222-2222-4222-8222-000000000001"; // líder (seed)
 const CAYLA = "'ca71a000-0000-4000-8000-000000000001'::uuid";
 const CLAURE = "'c1a07e00-0000-4000-8000-000000000002'::uuid";
@@ -194,6 +199,7 @@ const dentro = (consulta, { como = FELIPE, antes = "" } = {}) =>
 \\o /dev/null
 ${MIGRACION}
 ${MIGRACION_PAGOS}
+${MIGRACION_LADO_A_LADO}
 ${ESCENA}
 ${SEMBRADO}
 create function pg_temp.codigo(p_sql text) returns text language plpgsql as $f$
@@ -529,6 +535,64 @@ caso("L8. una cuenta de Lima con el módulo (no es líder) lee lo mismo que el l
   if (lider !== "efectivo 43.33, tarjeta 40, yape 71.67 (1|25)") return `el líder leyó «${lider}»`;
   return igual(dentro(consulta, { como: CUENTA_LIMA, antes: MIXTA_DOS_MEDIOS }), lider);
 });
+
+// ======================= M. «CAYLA y CLAURE»: las ventas fila por fila =======================
+const LADO = (desde = "'2019-03-01'", hasta = "'2019-03-31'", ub = LIMA) => `retail.fn_reporte_ventas_por_empresa(${desde}, ${hasta}, ${ub})`;
+/** Lo cobrado de las prendas de una empresa, sumado de las filas de la lectura. */
+const deLaEmpresa = (r, emp) => `(select coalesce(sum((i->>'subtotal')::numeric), 0) from jsonb_array_elements(${r}->'ventas') v, jsonb_array_elements(v->'items') i where (i->>'empresa_id')::uuid = ${emp})`;
+/** Lo de una empresa en los pagos, sumado de las partes. */
+const partesDe = (r, emp) => `(select coalesce(sum((p->'partes'->>(${emp})::text)::numeric), 0) from jsonb_array_elements(${r}->'ventas') v, jsonb_array_elements(v->'pagos') p)`;
+
+caso("M1. Lima, marzo: 4 ventas; lo de cada empresa sumado de las filas es su vendido de «Ventas del mes» (CLAURE 130, CAYLA 125)", () =>
+  igual(
+    dentro(`select jsonb_array_length(${LADO()}->'ventas') || '|' || trim_scale(${deLaEmpresa(LADO(), CLAURE)})::text || '=' || ${n(`${MES(CLAURE)}->'actual'->>'vendido'`)} || '|' ||
+                   trim_scale(${deLaEmpresa(LADO(), CAYLA)})::text || '=' || ${n(`${MES(CAYLA)}->'actual'->>'vendido'`)};`),
+    "4|130=130|125=125",
+  ));
+caso("M2. cada pago se parte en partes que suman lo pagado, y lo de cada empresa en los pagos es lo que vendió (también con la mixta de dos medios)", () =>
+  igual(
+    dentro(`select bool_and((select sum(x.value::numeric) from jsonb_each_text(p->'partes') x) = (p->>'monto')::numeric)::text || '|' ||
+                   trim_scale(${partesDe(LADO(), CLAURE)})::text || '|' || trim_scale(${partesDe(LADO(), CAYLA)})::text
+              from jsonb_array_elements(${LADO()}->'ventas') v, jsonb_array_elements(v->'pagos') p;`, { antes: MIXTA_DOS_MEDIOS }),
+    "true|155|175",
+  ));
+caso("M3. la línea de CAYLA por ficha cuyo movimiento es de CLAURE (V3) sale como de CLAURE; la mixta V1 trae sus dos empresas", () =>
+  igual(
+    dentro(`select ((select string_agg(distinct i->>'empresa_id', ',') from jsonb_array_elements(${LADO()}->'ventas') v, jsonb_array_elements(v->'items') i
+                     where v->>'id' = md5('re-V3')::uuid::text) = ${CLAURE}::text)::text || '|' ||
+                   (select count(distinct i->>'empresa_id') from jsonb_array_elements(${LADO()}->'ventas') v, jsonb_array_elements(v->'items') i
+                     where v->>'id' = md5('re-V1')::uuid::text);`),
+    "true|2",
+  ));
+caso("M4. sin fechas, el período empieza el día en que llegó CLAURE (10 de marzo: V2, V3 y V4) y la respuesta dice ese día", () =>
+  igual(
+    dentro(`select (r->>'desde') || '|' || (r->>'inicio') || '|' || jsonb_array_length(r->'ventas') from (select ${LADO("null", "'2019-03-31'")} r) x;`, {
+      antes: `update retail.empresas set cuenta_corriente_desde = '2019-03-10' where id = ${CLAURE};`,
+    }),
+    "2019-03-10|2019-03-10|3",
+  ));
+caso("M5. 22023 en una tienda de una sola empresa, con más de seis meses y con las fechas al revés; 42501 sin el módulo", () =>
+  igual(
+    dentro(`select split_part(pg_temp.codigo($q$select ${LADO("'2019-03-01'", "'2019-03-31'", TRUJILLO)}$q$), ' ', 1) || '|' ||
+                   split_part(pg_temp.codigo($q$select ${LADO("'2019-01-01'", "'2019-12-31'")}$q$), ' ', 1) || '|' ||
+                   split_part(pg_temp.codigo($q$select ${LADO("'2019-03-31'", "'2019-03-01'")}$q$), ' ', 1);`) +
+      "|" +
+      dentro(`select split_part(pg_temp.codigo($q$select ${LADO()}$q$), ' ', 1);`, { como: SIN_PERSONA }),
+    "22023|22023|22023|42501",
+  ));
+caso("M6. una cuenta de Lima con el módulo (no es líder) lee lo mismo que el líder", () => {
+  const consulta = `select jsonb_array_length(${LADO()}->'ventas') || '|' || trim_scale(${deLaEmpresa(LADO(), CLAURE)})::text || '|' || trim_scale(${partesDe(LADO(), CAYLA)})::text;`;
+  const lider = dentro(consulta);
+  if (lider !== "4|130|125") return `el líder leyó «${lider}»`;
+  return igual(dentro(consulta, { como: CUENTA_LIMA }), lider);
+});
+caso("M7. permisos: la ejecuta `authenticated`, no `anon` ni `public`; es security definer con su search_path", () =>
+  igual(
+    dentro(`select has_function_privilege('authenticated', 'retail.fn_reporte_ventas_por_empresa(date,date,uuid)', 'execute')::text || '|' ||
+                   has_function_privilege('anon', 'retail.fn_reporte_ventas_por_empresa(date,date,uuid)', 'execute')::text || '|' ||
+                   (select prosecdef::text || '|' || (proconfig is not null)::text from pg_proc where oid = 'retail.fn_reporte_ventas_por_empresa(date,date,uuid)'::regprocedure);`, { como: null }),
+    "true|false|true|true",
+  ));
 
 console.log(`\n${total - fallas}/${total} casos en verde`);
 process.exit(fallas ? 1 : 0);

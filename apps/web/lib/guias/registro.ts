@@ -9,7 +9,7 @@
 //              no aplica. Al terminar una, se pasa a «aplicada» y se baja `PENDIENTES_HOY` (la cuenta es exacta: solo baja).
 
 import { GUIA_APARTADOS, GUIA_COMPROBANTES, GUIA_HISTORIAL, GUIA_PUNTO_DE_VENTA } from "./pantallas/vender";
-import { GUIA_REPORTES_MES, GUIA_REPORTES_RANKING } from "./pantallas/reportes-ventas";
+import { GUIA_REPORTES_EMPRESAS, GUIA_REPORTES_MES, GUIA_REPORTES_RANKING } from "./pantallas/reportes-ventas";
 import {
   GUIA_CAJA,
   GUIA_CAMBIOS,
@@ -149,6 +149,7 @@ export const GUIAS: readonly Guia[] = [
   GUIA_HISTORIAL,
   GUIA_REPORTES_MES,
   GUIA_REPORTES_RANKING,
+  GUIA_REPORTES_EMPRESAS,
   GUIA_COMPROBANTES,
   GUIA_COMPROBANTES_MES,
   GUIA_POR_ENVIAR,
@@ -444,4 +445,5 @@ export const PANTALLAS: Record<string, PantallaConGuia> = {
   // Reportes de ventas (2026-11-03, Felipe): dos pantallas que solo miran; su guía explica cada pieza sin tocar nada.
   "/vender/reportes": { estado: "aplicada", guia: GUIA_REPORTES_MES.id },
   "/vender/reportes/ranking": { estado: "aplicada", guia: GUIA_REPORTES_RANKING.id },
+  "/vender/reportes/empresas": { estado: "aplicada", guia: GUIA_REPORTES_EMPRESAS.id },
 };

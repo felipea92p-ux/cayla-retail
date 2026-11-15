@@ -55,7 +55,8 @@ export type ClaveMotivo = "alto" | "bajo" | "perdida" | "cero" | "confirmar" | "
 
 export type Motivos = { pregunta: string; opciones: readonly string[] };
 
-/** Las listas cortas que la franja ofrece cuando un aviso abre una pregunta. */
+/** Las listas cortas que la franja ofrece cuando un aviso abre una pregunta.
+ *  @internal La ayuda de precio de «Nueva orden de compra» espera su pantalla (`knip.ts`, `ignoreFiles` de producción); desde `recibir-margen#1` el archivo ya lo importa la línea del margen, que solo usa `cuentaDeLinea`. */
 export const MOTIVOS: Readonly<Record<ClaveMotivo, Motivos>> = {
   alto: {
     pregunta: "¿Qué ve el cliente que justifique pagar más? (puedes marcar varias)",
@@ -611,6 +612,7 @@ function avisosConPrecio(d: Datos): AvisoDePrecio[] {
 /**
  * La ayuda de una línea: la cuenta, la rebaja y los avisos. Pura y total: cualquier combinación de campos vacíos o raros devuelve algo
  * coherente (sin `NaN` en los textos) y nunca lanza.
+ * @internal La ayuda de precio de «Nueva orden de compra» espera su pantalla (`knip.ts`, `ignoreFiles` de producción); desde `recibir-margen#1` el archivo ya lo importa la línea del margen, que solo usa `cuentaDeLinea`.
  */
 export function ayudaDePrecio(e: EntradaAyudaPrecio): AyudaDePrecio {
   const vacia: AyudaDePrecio = { cuenta: null, rebaja15: null, rebaja35: null, precioMinimo: null, precioHabitual: null, avisos: [] };
