@@ -1,0 +1,340 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Fijar precio · maqueta</title>
+<!--
+  Maqueta tocable (2026-11-15) de «Fijar precio» al recibir mercadería, con las 30 decisiones de Felipe:
+  costo y precio siempre CON IGV a la vista; una sola cuenta para todas las prendas (se quita la parte de SUNAT de la venta,
+  el costo es lo del papel, venga o no con factura); sugerido = piso + techo; el piso aguanta una rebaja de 35 % dejando 20 %;
+  el techo sale de las prendas parecidas (misma categoría, costo cercano) que se venden rápido en la sede (vara de Frescura).
+  Los números son de ejemplo. Colores: los tokens de apps/web/app/globals.css (claro) y estilos/tema.css (oscuro).
+-->
+<style>
+:root{
+  --color-crema:#f5f0e8;--color-papel:#fbf8f2;--color-hueso:#eae1d2;--color-sand:#e8e0d0;--color-tinta:#1a1a18;
+  --color-taupe:#805c4c;--color-rojo:#b8412d;--color-rojo-profundo:#8b2a1f;--color-verde:#48603f;--color-ambar:#74501a;
+  --color-pizarra:#4c5d6e;--color-borde-control:#96786a;--color-sombra:#1a1a18;
+  --serif:"EB Garamond",ui-serif,Georgia,serif;--sans:"DM Sans",ui-sans-serif,system-ui,sans-serif;
+  --ease:cubic-bezier(.2,.8,.2,1);
+}
+:root[data-tema="oscuro"]{
+  --color-crema:#1c1a17;--color-papel:#26241f;--color-hueso:#33302a;--color-sand:#403b34;--color-tinta:#f5f0e8;
+  --color-taupe:#c4a898;--color-rojo:#e8806a;--color-verde:#9ccb8d;--color-ambar:#e4b968;--color-pizarra:#a2b8cd;
+  --color-borde-control:#8d7a6e;--color-sombra:#000;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--color-crema);color:var(--color-tinta);font:15px/1.45 var(--sans)}
+.marco{max-width:1280px;margin:0 auto;padding:24px 16px 64px}
+header{display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end;justify-content:space-between;margin-bottom:20px}
+.sede{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--color-taupe)}
+h1{font:500 40px/1.05 var(--serif);margin:4px 0 0}
+.nota{font-size:13px;color:var(--color-taupe)}
+.casos{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 20px}
+.pild{border:1px solid var(--color-borde-control);background:transparent;color:var(--color-tinta);border-radius:999px;padding:8px 14px;font:14px var(--sans);cursor:pointer;min-height:40px}
+.pild[aria-pressed="true"]{background:var(--color-tinta);color:var(--color-crema);border-color:var(--color-tinta)}
+.rejilla{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,420px);gap:20px;align-items:start}
+@media (max-width:900px){.rejilla{grid-template-columns:1fr}}
+.hoja{background:color-mix(in srgb,var(--color-papel) 92%,transparent);border:1px solid var(--color-sand);border-radius:28px;padding:24px}
+.hoja h2{font:500 27px/1.15 var(--serif);margin:0}
+.bajada{color:var(--color-taupe);margin:4px 0 20px;font-size:15px}
+.campos{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media (max-width:520px){.campos{grid-template-columns:1fr}}
+.campo label{display:block;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--color-taupe);margin-bottom:6px}
+.caja{display:flex;align-items:center;gap:6px;background:var(--color-hueso);border:1px solid var(--color-borde-control);border-radius:12px;height:48px;padding:0 14px}
+.caja:focus-within{background:var(--color-papel);border-color:var(--color-tinta)}
+.caja span{color:var(--color-taupe)}
+.caja input{border:0;background:transparent;font:500 20px var(--sans);color:var(--color-tinta);width:100%;outline:0}
+.pie-campo{font-size:13px;color:var(--color-taupe);margin-top:6px;min-height:19px}
+.aviso{display:flex;gap:10px;border-left:3px solid var(--color-ambar);background:color-mix(in srgb,var(--color-ambar) 10%,transparent);padding:10px 12px;border-radius:8px;margin-top:12px;font-size:14px}
+.aviso.rojo{border-color:var(--color-rojo);background:color-mix(in srgb,var(--color-rojo) 10%,transparent)}
+.aviso b{display:block}
+.aviso button{margin-top:6px}
+.veredicto{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin:20px 0 8px}
+.chip{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:4px 10px;font-size:11px;letter-spacing:.08em;text-transform:uppercase;font-weight:600;border:1px solid currentColor}
+.chip::before{content:"";width:7px;height:7px;border-radius:50%;background:currentColor}
+.t-verde{color:var(--color-verde)}.t-ambar{color:var(--color-ambar)}.t-rojo{color:var(--color-rojo)}.t-pizarra{color:var(--color-pizarra)}
+.queda{font:500 30px/1.1 var(--serif)}
+.queda small{font:14px var(--sans);color:var(--color-taupe)}
+.barra{display:flex;height:28px;border-radius:999px;overflow:hidden;background:var(--color-sand);margin:12px 0 6px}
+.barra div{height:100%;transition:width .35s var(--ease)}
+.b-prenda{background:var(--color-taupe)}
+.b-sunat{background:repeating-linear-gradient(135deg,var(--color-borde-control) 0 6px,var(--color-sand) 6px 12px)}
+.b-ti{background:var(--color-verde)}
+.b-falta{background:var(--color-rojo)}
+.leyenda{display:flex;flex-wrap:wrap;gap:14px;font-size:13px;color:var(--color-taupe)}
+.leyenda i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px;vertical-align:-1px}
+.rebaja{font-size:14px;color:var(--color-taupe);margin-top:8px}
+.sugeridos{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:20px}
+@media (max-width:520px){.sugeridos{grid-template-columns:1fr}}
+.sug{border:1px solid var(--color-sand);border-radius:16px;padding:14px;background:color-mix(in srgb,var(--color-crema) 60%,transparent)}
+.sug .et{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--color-taupe)}
+.sug .monto{font:500 26px var(--serif);margin:2px 0}
+.sug p{margin:0 0 10px;font-size:14px;color:var(--color-taupe)}
+.btn{border-radius:999px;padding:0 16px;height:40px;font:500 14px var(--sans);cursor:pointer;border:1px solid var(--color-borde-control);background:transparent;color:var(--color-tinta)}
+.btn.primario{background:var(--color-tinta);color:var(--color-crema);border-color:var(--color-tinta)}
+@media (hover:hover){.btn.primario:hover{background:var(--color-rojo-profundo);border-color:var(--color-rojo-profundo)}}
+.btn:focus-visible,.pild:focus-visible,.ayuda:focus-visible{outline:2px solid var(--color-tinta);outline-offset:2px}
+.pie{display:flex;justify-content:flex-end;gap:10px;margin-top:24px;flex-wrap:wrap}
+.ayuda{border:1px solid var(--color-borde-control);background:transparent;color:var(--color-tinta);width:24px;height:24px;border-radius:50%;cursor:pointer;font:600 13px var(--sans)}
+.globo{display:none;background:var(--color-tinta);color:var(--color-crema);border-radius:12px;padding:10px 12px;font-size:14px;margin-top:8px;max-width:440px}
+.globo.abierto{display:block}
+.lado{background:color-mix(in srgb,var(--color-papel) 70%,transparent);border:1px solid var(--color-sand);border-radius:20px;padding:20px;font-size:14px}
+.lado h3{font:500 21px var(--serif);margin:0 0 8px}
+.lado h4{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--color-taupe);margin:16px 0 6px}
+.lado table{width:100%;border-collapse:collapse}
+.lado td{padding:5px 0;border-bottom:1px solid var(--color-sand)}
+.lado td:last-child{text-align:right;font-variant-numeric:tabular-nums}
+.lado ul{margin:0;padding-left:18px}
+.lado li{margin:3px 0}
+.velo{position:fixed;inset:0;background:color-mix(in srgb,var(--color-sombra) 35%,transparent);display:none;align-items:center;justify-content:center;padding:16px}
+.velo.abierto{display:flex}
+.velo .hoja{max-width:440px;width:100%}
+.tostada{position:fixed;top:16px;right:16px;background:var(--color-verde);color:var(--color-crema);padding:10px 14px;border-radius:12px;display:none}
+:root[data-tema="oscuro"] .tostada{color:var(--color-crema)}
+@media (prefers-reduced-motion:reduce){.barra div{transition:none}}
+</style>
+</head>
+<body>
+<div class="marco">
+  <header>
+    <div>
+      <div class="sede">TRU · Recibir mercadería · maqueta con números de ejemplo</div>
+      <h1>Fijar precio</h1>
+    </div>
+    <button class="btn" id="tema" type="button">Modo oscuro</button>
+  </header>
+
+  <div class="casos" role="group" aria-label="Casos de prueba" id="casos"></div>
+
+  <div class="rejilla">
+    <section class="hoja" aria-labelledby="titulo-prenda">
+      <h2 id="titulo-prenda"></h2>
+      <p class="bajada" id="bajada"></p>
+
+      <div class="campos">
+        <div class="campo">
+          <label for="costo">Pagaste por prenda</label>
+          <div class="caja"><span>S/</span><input id="costo" inputmode="decimal" autocomplete="off"></div>
+          <div class="pie-campo">El total del papel, con todo. Sin flete.</div>
+        </div>
+        <div class="campo">
+          <label for="precio">Precio de etiqueta</label>
+          <div class="caja"><span>S/</span><input id="precio" inputmode="decimal" autocomplete="off"></div>
+          <div class="pie-campo" id="pie-precio"></div>
+        </div>
+      </div>
+
+      <div id="avisos"></div>
+
+      <div id="resultado">
+        <div class="veredicto">
+          <span class="chip" id="chip"></span>
+          <span id="frase"></span>
+        </div>
+        <div class="queda" id="queda"></div>
+        <div class="barra" id="barra" aria-hidden="true"><div class="b-prenda" id="b1"></div><div class="b-sunat" id="b2"></div><div class="b-ti" id="b3"></div></div>
+        <div class="leyenda" id="leyenda"></div>
+        <div class="rebaja" id="rebaja"></div>
+        <div style="margin-top:8px"><button class="ayuda" id="btn-ayuda" type="button" aria-expanded="false" aria-controls="globo">?</button>
+          <div class="globo" id="globo">De cada venta, 18 de cada 118 soles son de SUNAT. Del resto sale lo que pagaste por la prenda, y lo que sobra es para CAYLA. Por eso «te quedan» es menos que la resta de los dos precios.</div>
+        </div>
+      </div>
+
+      <div class="sugeridos" id="sugeridos"></div>
+
+      <div class="pie">
+        <button class="btn" type="button" id="cancelar">Cancelar</button>
+        <button class="btn primario" type="button" id="guardar">Guardar precio</button>
+      </div>
+    </section>
+
+    <aside class="lado" aria-label="Cómo se calcula">
+      <h3>Cómo se calcula</h3>
+      <p style="margin:0;color:var(--color-taupe)">Lo que ve Felipe al pie, no la integrante. Todas las prendas igual, vengan con factura o sin ella.</p>
+      <h4>La cuenta de esta prenda</h4>
+      <table id="cuenta"></table>
+      <h4>El techo: parecidas que se venden rápido</h4>
+      <div id="techo-detalle"></div>
+      <h4>Reglas</h4>
+      <ul>
+        <li><b>Te quedan</b> = precio ÷ 1.18 − lo que pagaste.</li>
+        <li><b>No bajes de</b> = el menor precio en .90 que, con 35 % de rebaja, todavía deja 20 % (≈ lo que pagaste × 2.27).</li>
+        <li><b>Sugerido</b> = precio de las parecidas (misma categoría, costo ±25 %) que se venden más rápido que la mitad de su categoría en la sede. Si la categoría rota rápido, su precio alto; si rota lento, el del medio. Nunca menos que «No bajes de».</li>
+        <li>Pierdes si el precio ÷ 1.18 no cubre lo que pagaste: se pide confirmar, no se prohíbe.</li>
+        <li>El costo se ve donde se fija el precio. Nunca en Vender, el ticket, la etiqueta ni la tienda web.</li>
+      </ul>
+    </aside>
+  </div>
+</div>
+
+<div class="velo" id="velo" role="dialog" aria-modal="true" aria-labelledby="conf-t">
+  <div class="hoja">
+    <h2 id="conf-t">¿Lo dejas así?</h2>
+    <p class="bajada" id="conf-b"></p>
+    <div class="pie">
+      <button class="btn" type="button" id="conf-no">Cambiar el precio</button>
+      <button class="btn primario" type="button" id="conf-si">Sí, dejarlo</button>
+    </div>
+  </div>
+</div>
+<div class="tostada" id="tostada" role="status"></div>
+
+<script>
+const IGV = 1.18, REBAJA = 35, DEJA = 0.20, ROTA_RAPIDO = 0.8; // rota rápido: su mitad se vende en menos del 80 % de los días de la tienda
+
+// Lo que suele costar una prenda (de ejemplo; en el ERP sale de los costos de la categoría en la base).
+const BANDA_CAYLA = [8, 150];
+const CASOS = [
+  { id:"nueva", boton:"1 · Prenda nueva", nombre:"Blusa Emma", cat:"Blusas", costo:36, precio:null, banda:[20,60],
+    sede:{ diasCat:25, diasTienda:45, parecidas:[79.9,89.9,89.9,99.9,99.9,109.9], fuente:"TRU" } },
+  { id:"repone", boton:"2 · Reposición, costo subió", nombre:"Pantalón Lino", cat:"Pantalones", gen:"o", banda:[25,70], costo:44, precio:82.9, costoAntes:36,
+    sede:{ diasCat:52, diasTienda:45, parecidas:[89.9,99.9,104.9,109.9,119.9], fuente:"TRU" } },
+  { id:"sin-techo", boton:"3 · Categoría nueva", nombre:"Kimono Sora", cat:"Kimonos", gen:"o", costo:52, precio:null, sede:null },
+  { id:"sin-igv", boton:"4 · Costo sin impuesto por error", nombre:"Polo Básico", cat:"Polos", gen:"o", costo:18.5, precio:null, costoOrden:21.83, banda:[12,30],
+    sede:{ diasCat:30, diasTienda:45, parecidas:[39.9,44.9,44.9,49.9], fuente:"TRU" } },
+  { id:"pierde", boton:"5 · Precio que pierde", nombre:"Blusa Emma", cat:"Blusas", costo:36, precio:40, banda:[20,60],
+    sede:{ diasCat:25, diasTienda:45, parecidas:[79.9,89.9,89.9,99.9,99.9,109.9], fuente:"TRU" } },
+];
+
+const $ = (id) => document.getElementById(id);
+const s = (n) => "S/ " + (Math.round(n*100)/100).toFixed(2);
+const leer = (t) => { const v = String(t).replace(/s\/\s*/i,"").replace(",",".").trim(); return /^\d+(\.\d+)?$/.test(v) ? Number(v) : null; };
+const a90 = (v) => Math.ceil(Math.round((v - 0.9)*100)/100) + 0.9; // hacia arriba, terminado en .90
+
+function rebajado(p){ return Math.floor(Math.round(p*100)*(100-REBAJA)/1000)*10/100; } // hacia abajo al S/ 0.10 (ADR-0403)
+function margen(p, c){ const ps = p/IGV; return (ps - c)/ps; }
+function piso(c){ for (let n = Math.floor(c*2); n < 100000; n++){ const p = n + 0.9; if (margen(rebajado(p), c) >= DEJA) return p; } return null; }
+function percentil(xs, q){ const o = [...xs].sort((a,b)=>a-b); const i = (o.length-1)*q; const b = Math.floor(i); return o[b] + (o[Math.min(b+1,o.length-1)] - o[b])*(i-b); }
+function techo(caso){
+  const d = caso.sede; if (!d || d.parecidas.length < 3) return null;
+  const rapido = d.diasCat < d.diasTienda*ROTA_RAPIDO;
+  return { valor:a90(percentil(d.parecidas, rapido ? 0.75 : 0.5)), rapido, ...d };
+}
+
+let caso = CASOS[0];
+let costoConfirmado = null; // el costo raro que la persona dijo que sí pagó
+
+function pintarCasos(){
+  $("casos").innerHTML = CASOS.map(c => `<button class="pild" type="button" data-id="${c.id}" aria-pressed="${c===caso}">${c.boton}</button>`).join("");
+  $("casos").querySelectorAll("button").forEach(b => b.onclick = () => { caso = CASOS.find(c => c.id === b.dataset.id); cargar(); });
+}
+
+function cargar(){
+  pintarCasos();
+  costoConfirmado = null;
+  $("titulo-prenda").textContent = caso.nombre;
+  $("bajada").textContent = `${caso.cat} · llegó a TRU`;
+  $("costo").value = caso.costo;
+  $("precio").value = caso.precio ?? "";
+  pintar();
+}
+
+function avisosDeCosto(c){
+  const out = [];
+  if (caso.costoAntes && (c > caso.costoAntes*2 || c < caso.costoAntes*2/3))
+    out.push({ rojo:false, t:`Antes pagabas ${s(caso.costoAntes)}`, d:"Es muy distinto. ¿Es el precio de una prenda, no de la docena o el paquete?" });
+  if (caso.costoOrden && Math.abs(c - caso.costoOrden/IGV) <= caso.costoOrden/IGV*0.02)
+    out.push({ rojo:false, t:"¿Escribiste el monto sin impuesto?", d:`En la orden figura ${s(caso.costoOrden)} con todo. Pon el total del papel.`, usar:caso.costoOrden });
+  // Prenda nueva o repuesta: se compara con lo que suele costar su categoría; sin categoría con historia, con todo CAYLA.
+  const banda = caso.banda ?? BANDA_CAYLA, deQue = caso.banda ? (caso.gen === "o" ? "los " : "las ") + caso.cat.toLowerCase() : "las prendas de CAYLA";
+  if (!out.length && (c < banda[0]/2 || c > banda[1]*2))
+    out.push({ rojo:false, t:`${deQue[0].toUpperCase() + deQue.slice(1)} te cuestan entre ${s(banda[0])} y ${s(banda[1])}`, d:"¿Es el precio de una prenda, no de la docena? Revisa si sobra o falta un cero." });
+  return out;
+}
+
+function pintar(){
+  const c = leer($("costo").value), p = leer($("precio").value);
+  const t = c ? techo(caso) : null, pi = c ? piso(c) : null;
+  const sugerido = t && pi ? Math.max(t.valor, pi) : pi;
+
+  // Avisos de costo (antes de cualquier cuenta). Un costo dudoso no sugiere nada hasta que la persona lo confirma:
+  // un 440 escrito por 44 no debe proponer un precio de S/ 998.90.
+  const dudas = c && c !== costoConfirmado ? avisosDeCosto(c) : [];
+  if (dudas.length){
+    $("avisos").innerHTML = dudas.map(a => `<div class="aviso"><div><b>${a.t}</b>${a.d}<br>${a.usar?`<button class="btn" type="button" data-usar="${a.usar}">Usar ${s(a.usar)}</button> `:""}<button class="btn" type="button" data-confirma="${c}">Sí, pagué ${s(c)}</button></div></div>`).join("");
+    $("avisos").querySelectorAll("[data-usar]").forEach(b => b.onclick = () => { $("costo").value = b.dataset.usar; pintar(); });
+    $("avisos").querySelectorAll("[data-confirma]").forEach(b => b.onclick = () => { costoConfirmado = Number(b.dataset.confirma); pintar(); });
+    $("sugeridos").innerHTML = ""; $("resultado").style.display = "none"; pintarCuenta(null,null,null,null,null);
+    return;
+  }
+  let av = [];
+  if (c && p && p <= c) av.push({ rojo:true, t:"El precio no cubre lo que pagaste", d:`Pagaste ${s(c)} y la etiqueta dice ${s(p)}.` });
+  $("avisos").innerHTML = av.map(a => `<div class="aviso ${a.rojo?"rojo":""}"><div><b>${a.t}</b>${a.d}</div></div>`).join("");
+
+  // Pie del precio en reposición
+  $("pie-precio").textContent = caso.costoAntes && caso.precio && p === caso.precio ? `Es el precio de hoy. Antes pagabas ${s(caso.costoAntes)}.` : "Con todo, lo que paga el cliente.";
+
+  // Sugeridos
+  const sug = [];
+  const parecid = caso.gen === "o" ? "parecidos" : "parecidas";
+  if (sugerido) sug.push(`<div class="sug"><div class="et">Sugerido</div><div class="monto">${s(sugerido)}</div><p>${t ? `Lo que pagan en ${t.fuente} por ${caso.cat.toLowerCase()} ${parecid} que se venden ${t.rapido?"rápido":"bien"}.` : `Así aguanta una rebaja de ${REBAJA} %. Aún no hay ventas de ${caso.cat.toLowerCase()} para sugerir más.`}</p><button class="btn primario" type="button" data-p="${sugerido}">Usar ${s(sugerido)}</button></div>`);
+  if (pi && t && t.valor > pi) sug.push(`<div class="sug"><div class="et">No bajes de</div><div class="monto">${s(pi)}</div><p>Así aguanta una rebaja de ${REBAJA} %.</p><button class="btn" type="button" data-p="${pi}">Usar ${s(pi)}</button></div>`);
+  if (c && !t) sug.push(`<div class="sug"><div class="et">Segunda opinión</div><p>La IA mira la foto y prendas de otras tiendas. Siempre propone desde ${pi?s(pi):"el piso"}.</p><button class="btn" type="button" id="ia">Preguntar a la IA</button></div>`);
+  $("sugeridos").innerHTML = sug.join("");
+  $("sugeridos").querySelectorAll("[data-p]").forEach(b => b.onclick = () => { $("precio").value = Number(b.dataset.p).toFixed(2); pintar(); });
+  if ($("ia")) $("ia").onclick = () => { const v = a90(Math.max(pi, c*2.6)); $("precio").value = v.toFixed(2); pintar(); tostar(`La IA propone ${s(v)} (maqueta)`); };
+
+  // Reposición: el precio de hoy quedó bajo el nuevo piso
+  if (caso.costoAntes && p && pi && p < pi && p === caso.precio)
+    $("avisos").insertAdjacentHTML("afterbegin", `<div class="aviso"><div><b>Pagaste ${s(c - caso.costoAntes)} más que antes</b>Tu precio de hoy, ${s(p)}, ya no aguanta una rebaja. Sugerido: ${s(sugerido)}.</div></div>`);
+
+  // Resultado
+  const r = $("resultado");
+  if (!c || !p){ r.style.display = "none"; pintarCuenta(c,p,pi,t,sugerido); return; }
+  r.style.display = "";
+  const ps = p/IGV, sunat = p - ps, queda = ps - c;
+  let tono, chip, frase;
+  if (queda < 0){ tono="t-rojo"; chip="Pierdes"; frase=`Te faltan ${s(-queda)} por prenda.`; }
+  else if (pi && p < pi){ tono="t-ambar"; chip="Aguanta poca rebaja"; frase=`Sube a ${s(pi)} o más.`; }
+  else if (t && p > t.valor*1.10){ tono="t-pizarra"; chip="Más caro que las parecidas"; frase="Puede tardar en venderse."; }
+  else { tono="t-verde"; chip="Buen precio"; frase=""; }
+  $("chip").className = "chip " + tono; $("chip").textContent = chip; $("frase").textContent = frase;
+  $("queda").innerHTML = queda >= 0 ? `Te quedan ${s(queda)} <small>por prenda</small>` : `Pierdes ${s(-queda)} <small>por prenda</small>`;
+  const total = Math.max(p, c + sunat);
+  $("b1").style.width = (Math.min(c, ps)/total*100) + "%";
+  $("b2").style.width = (sunat/total*100) + "%";
+  $("b3").style.width = (Math.max(queda,0)/total*100) + "%";
+  $("b3").className = "b-ti";
+  if (queda < 0){ $("b3").className = "b-falta"; $("b3").style.width = (-queda/total*100) + "%"; }
+  $("leyenda").innerHTML = `<span><i style="background:var(--color-taupe)"></i>Prenda ${s(c)}</span><span><i class="b-sunat"></i>SUNAT ${s(sunat)}</span>` +
+    (queda >= 0 ? `<span><i style="background:var(--color-verde)"></i>Para ti ${s(queda)}</span>` : `<span><i style="background:var(--color-rojo)"></i>Te faltan ${s(-queda)}</span>`);
+  const pr = rebajado(p), qr = pr/IGV - c;
+  $("rebaja").textContent = qr >= 0 ? `Con ${REBAJA} % de rebaja (${s(pr)}) te quedan ${s(qr)}.` : `Con ${REBAJA} % de rebaja (${s(pr)}) pierdes ${s(-qr)}.`;
+  pintarCuenta(c,p,pi,t,sugerido);
+}
+
+function pintarCuenta(c,p,pi,t,sug){
+  const fila = (a,b) => `<tr><td>${a}</td><td>${b}</td></tr>`;
+  let h = "";
+  if (c) h += fila("Pagaste (con todo)", s(c));
+  if (p){ h += fila("Precio de etiqueta", s(p)) + fila("Parte de SUNAT (p − p ÷ 1.18)", s(p - p/IGV)) + fila("Te quedan (p ÷ 1.18 − pagaste)", s(p/IGV - (c||0))) + fila("Margen sobre lo tuyo", c ? Math.round(margen(p,c)*1000)/10 + " %" : "—"); }
+  if (pi) h += fila("No bajes de", s(pi));
+  if (sug) h += fila("Sugerido", s(sug));
+  $("cuenta").innerHTML = h || fila("Escribe lo que pagaste", "—");
+  $("techo-detalle").innerHTML = !t ? `<p style="margin:0;color:var(--color-taupe)">${caso.sede ? "Pocas parecidas: se usa el piso." : `Sin ventas de ${caso.cat.toLowerCase()} en TRU ni en CAYLA: se usa el piso y la IA queda como opción.`}</p>`
+    : `<p style="margin:0 0 6px">${caso.cat} en ${t.fuente}: la mitad se vende en <b>${t.diasCat} días</b> (la tienda, ${t.diasTienda}). Rota <b>${t.rapido?"rápido → su precio alto":"lento → su precio del medio"}</b>.</p><p style="margin:0;color:var(--color-taupe)">Precios de las parecidas rápidas: ${t.parecidas.map(x=>x.toFixed(2)).join(" · ")}</p>`;
+}
+
+function tostar(t){ const e = $("tostada"); e.textContent = t; e.style.display = "block"; setTimeout(() => e.style.display = "none", 2600); }
+
+$("costo").oninput = pintar; $("precio").oninput = pintar;
+$("btn-ayuda").onclick = (e) => { const g = $("globo"); const a = g.classList.toggle("abierto"); e.currentTarget.setAttribute("aria-expanded", a); };
+$("cancelar").onclick = cargar;
+$("guardar").onclick = () => {
+  const c = leer($("costo").value), p = leer($("precio").value);
+  if (!c || !p){ tostar("Falta lo que pagaste o el precio"); return; }
+  if (c !== costoConfirmado && avisosDeCosto(c).length){ tostar("Primero revisa lo que pagaste"); $("costo").focus(); return; }
+  const q = p/IGV - c;
+  if (q < 0){ $("conf-b").textContent = `Con ${s(p)} pierdes ${s(-q)} por prenda. Si es un remate a propósito, déjalo; si no, cámbialo.`; $("velo").classList.add("abierto"); $("conf-no").focus(); return; }
+  tostar("Precio guardado (maqueta: no se guarda nada)");
+};
+$("conf-no").onclick = () => { $("velo").classList.remove("abierto"); $("precio").focus(); };
+$("conf-si").onclick = () => { $("velo").classList.remove("abierto"); tostar("Guardado con tu confirmación (maqueta)"); };
+document.addEventListener("keydown", e => { if (e.key === "Escape") $("velo").classList.remove("abierto"); });
+$("tema").onclick = () => { const o = document.documentElement.dataset.tema === "oscuro"; document.documentElement.dataset.tema = o ? "" : "oscuro"; $("tema").textContent = o ? "Modo oscuro" : "Modo claro"; };
+cargar();
+</script>
+</body>
+</html>
