@@ -11,8 +11,9 @@
 --   · `p_elecciones.precio_modo = 'por_sede'` (DE FÁBRICA, también si no viene): cada sede conserva el precio propio que tenía.
 --       - Una talla y color que se MUDA o se JUNTA conserva, en cada sede, el precio propio que tenía (el de la que queda, si lo tenía;
 --         si no, el de la repetida).
---       - Si dos fichas tenían precios propios DISTINTOS en la misma sede, gana la que queda, salvo que la persona haya elegido otra
---         para esa sede: `p_elecciones.precios_sede = {"<sede>": "<producto>"}`.
+--       - Si dos fichas tenían precios propios DISTINTOS en la misma sede, la prenda ENTERA cobra en esa sede lo de una sola ficha:
+--         la que queda, salvo que la persona haya elegido otra para esa sede (`p_elecciones.precios_sede = {"<sede>": "<producto>"}`).
+--         Nunca dos precios para la misma prenda en la misma tienda.
 --       - Se escribe como excepción de la talla en esa sede (`precios_sede_variante`), solo donde el precio de hoy ya no sería el de antes.
 --   · `p_elecciones.precio_modo = 'uno'`: un solo precio para todas las sedes. Los precios propios de sede de la ficha que queda se
 --     ARCHIVAN (nunca se borran) y todas cobran el precio general del producto final.
@@ -185,6 +186,18 @@ begin
            p.ubicacion_id, p.precio,
            array_position(array_prepend(p_queda, p_duplicados), p.producto_id)
       from retail.fn_fusion_precios_propios(array_prepend(p_queda, p_duplicados)) p;
+
+  -- Las sedes con CONFLICTO (dos fichas con precios propios distintos), tal como las vio la persona en la hoja: de cada una, el
+  -- precio de cada ficha y la que gana por defecto. Sale del mismo resumen que la previsualización, así lo que se aplica es lo que se vio.
+  create temp table if not exists fusion_precios_sede_conflicto (
+    ubicacion_id uuid, por_defecto uuid, producto_id uuid, precio numeric
+  ) on commit drop;
+  truncate pg_temp.fusion_precios_sede_conflicto;
+  insert into pg_temp.fusion_precios_sede_conflicto
+    select (s ->> 'ubicacion_id')::uuid, (s ->> 'por_defecto')::uuid, (p ->> 'id')::uuid, (p ->> 'precio')::numeric
+      from jsonb_array_elements(retail.fn_fusion_precios_sede_resumen(p_queda, p_duplicados)) s
+      cross join lateral jsonb_array_elements(s -> 'productos') p
+     where (s ->> 'conflicto')::boolean and (p ->> 'propio')::boolean;
 end;
 $$;
 
@@ -228,13 +241,43 @@ begin
     return jsonb_build_object('modo', 'uno', 'archivados', v_archivados, 'fijados', 0);
   end if;
 
-  -- Cada sede conserva su precio: por talla y sede, el de la sede elegida; si no, el de la que queda; si no, el de la primera repetida.
+  -- Cada sede conserva su precio.
+  --   · Sede SIN conflicto: cada talla conserva el precio propio que tenía (el de la que queda, si lo tenía; si no, el de la repetida).
+  --   · Sede CON conflicto: la prenda entera cobra lo de UNA ficha, la elegida (o la de por defecto si no se eligió o se eligió una
+  --     ficha sin precio propio ahí). Cada talla que tenía precio propio pasa al de esa ficha: el suyo en esa ficha si lo tenía; si no,
+  --     el que esa ficha cobraba en la sede. Sin esto la sede quedaba con dos precios para la misma prenda (ensayo 2026-11-15:
+  --     la que queda a S/ 150 y la repetida a S/ 169 dejaban la talla mudada en 169 y las demás en 150).
   for r in
-    select distinct on (a.destino_id, a.ubicacion_id) a.destino_id, a.ubicacion_id, a.precio
-      from pg_temp.fusion_precios_sede_antes a
-     order by a.destino_id, a.ubicacion_id,
-              (a.producto_id::text = nullif(p_elecciones #>> array['precios_sede', a.ubicacion_id::text], '')) desc,
-              a.orden
+    with ganador as (
+      select distinct c.ubicacion_id,
+             coalesce((select c2.producto_id from pg_temp.fusion_precios_sede_conflicto c2
+                        where c2.ubicacion_id = c.ubicacion_id
+                          and c2.producto_id::text = nullif(p_elecciones #>> array['precios_sede', c.ubicacion_id::text], '')),
+                      c.por_defecto) as producto_id
+        from pg_temp.fusion_precios_sede_conflicto c
+    ), ganador_precio as (
+      select g.ubicacion_id, g.producto_id, c.precio
+        from ganador g
+        join pg_temp.fusion_precios_sede_conflicto c on c.ubicacion_id = g.ubicacion_id and c.producto_id = g.producto_id
+    ), candidatos as (
+      -- Sede con conflicto: lo de la ficha ganadora para esa talla; si no lo tiene, el precio de la ficha ganadora en la sede.
+      select a.destino_id, a.ubicacion_id,
+             coalesce((select a2.precio from pg_temp.fusion_precios_sede_antes a2
+                        where a2.destino_id = a.destino_id and a2.ubicacion_id = a.ubicacion_id and a2.producto_id = gp.producto_id
+                        order by a2.precio limit 1),
+                      gp.precio) as precio,
+             0 as prioridad
+        from pg_temp.fusion_precios_sede_antes a
+        join ganador_precio gp on gp.ubicacion_id = a.ubicacion_id
+      union all
+      -- Sede sin conflicto: el de la que queda; si no, el de la primera repetida.
+      select a.destino_id, a.ubicacion_id, a.precio, a.orden
+        from pg_temp.fusion_precios_sede_antes a
+       where not exists (select 1 from ganador_precio gp where gp.ubicacion_id = a.ubicacion_id)
+    )
+    select distinct on (c.destino_id, c.ubicacion_id) c.destino_id, c.ubicacion_id, c.precio
+      from candidatos c
+     order by c.destino_id, c.ubicacion_id, c.prioridad
   loop
     v_hoy := retail.fn_precio_en_sede(r.destino_id, r.ubicacion_id);
     if v_hoy is distinct from r.precio then

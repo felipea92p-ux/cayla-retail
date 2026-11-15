@@ -1,6 +1,8 @@
 # Fusionar: cada sede conserva su precio
 
-- [ ] Ensayar `20261115153000` con `begin … rollback` (7 escenarios: por_sede, elige, uno, sin sedes, modo inválido, terminal, terminal + uno) y pegarla en producción.
+- [x] Ensayar `20261115153000` (2026-11-15, Postgres local con las 1208 migraciones: se aplica y se repega sin efecto). El ensayo encontró que una sede
+  con conflicto quedaba con dos precios para la misma prenda; corregido en la misma migración.
+- [ ] **POR PEGAR** `20261115153000` en producción (una sola parte; producción revisada en solo lectura el 2026-11-15: las tres anclas están una vez).
 - [ ] Mirar la hoja «Fusionar» en el navegador (escritorio, 375 px, claro y oscuro) y `/chaos` (guarda).
-- [ ] Prueba `pruebas:fusionar-productos`: casos de precios por sede (hoy cubiertos solo por el ensayo).
+- [x] Prueba `pruebas:fusionar-productos`: casos 29-35 de precios por sede (35/35 en verde).
 - [ ] Reservar el número de migración (`pnpm reservar migracion` dio 403 desde la nube).
