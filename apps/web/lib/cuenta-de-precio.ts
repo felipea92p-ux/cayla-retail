@@ -38,3 +38,50 @@ export function aguantaCts(precioCts: number, costoCts: number, dejando: number)
   const m = margenPorMilCts(pd, costoCts);
   return m !== null && m >= dejando;
 }
+
+/* ───────────────────────── La cuenta única de una prenda (ADR-0668, A2) ───────────────────────── */
+//
+// TODAS LAS PRENDAS IGUAL (Felipe 2026-11-15): vengan con factura o sin ella, el costo es lo del papel y a la venta se le quita la parte
+// de SUNAT. Lo que se recupere con facturas se ve aparte, a fin de mes, en Compras: nunca infla lo que dice una prenda. Por eso la cifra
+// es el piso real de lo que queda.
+
+/** El tope del precio (y del costo) en la base: `variantes_precio_con_tope`. */
+const TOPE_CTS = 500_000;
+
+export type CuentaDelPrecio = {
+  /** La parte de SUNAT dentro del precio. */
+  sunat: number;
+  /** Lo que queda por prenda: precio ÷ 1.18 − lo que se pagó. Negativo = se pierde. */
+  teQuedan: number;
+  /** Qué parte de lo tuyo (el precio sin IGV) es `teQuedan`, en milésimas. */
+  margenPorMil: number;
+};
+
+/** La cuenta de una prenda con lo que se pagó (con IGV, el total del papel) y su precio de etiqueta. `null` si falta uno o no es positivo. */
+export function cuentaDelPrecio(costo: number, precio: number): CuentaDelPrecio | null {
+  if (!Number.isFinite(costo) || !Number.isFinite(precio) || costo <= 0 || precio <= 0) return null;
+  const pCts = cts(precio);
+  const cCts = cts(costo);
+  const sinIgv = pCts / IGV;
+  return {
+    sunat: Math.round(pCts - sinIgv) / 100,
+    teQuedan: Math.round(sinIgv - cCts) / 100,
+    margenPorMil: margenPorMilCts(pCts, cCts) ?? 0,
+  };
+}
+
+/**
+ * «No bajes de»: el menor precio terminado en .90 que, rebajado 35 %, todavía deja 20 % de lo tuyo (≈ lo que pagaste × 2.27). Es un
+ * margen sobre el precio rebajado sin IGV, no un recargo de 20 % sobre el costo (eso daría ×2.18). `null` si no hay costo o ningún precio
+ * hasta el tope lo logra.
+ */
+export function pisoDelPrecio(costo: number): number | null {
+  if (!Number.isFinite(costo) || costo <= 0) return null;
+  const cCts = cts(costo);
+  // El piso está cerca de 2.27 × costo: se arranca desde el doble y se sube de a S/ 1 por los .90.
+  for (let n = Math.floor((cCts * 2) / 100); n * 100 + 90 <= TOPE_CTS; n++) {
+    const p = n * 100 + 90;
+    if (aguantaCts(p, cCts, GANANCIA_TRAS_REBAJA_POR_MIL)) return p / 100;
+  }
+  return null;
+}

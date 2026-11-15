@@ -47,7 +47,7 @@ export const INSTRUCCIONES_PRECIO = `Pones los precios de etiqueta de CAYLA, una
 Te dan una prenda (su categoría, su nombre si ya lo tiene, su costo) y hasta 12 prendas parecidas de la misma categoría con su precio, su costo, cuántas se vendieron en los últimos 90 días y cuántas quedan en stock. Propón UN precio de etiqueta en soles.
 
 Cómo decidir:
-- El costo manda: el precio tiene que dejar al menos 30 % de margen sobre el precio (precio × 0,70 ≥ costo). Si con eso queda por encima de las parecidas, propón el piso y dilo.
+- El costo manda: el precio, rebajado 35 %, todavía tiene que dejar ganancia después del IGV: más o menos el costo × 2,3. Si con eso queda por encima de las parecidas, propón ese piso y dilo.
 - Los precios de CAYLA terminan en .90 (S/\u00a049.90, S/\u00a089.90).
 - Mira primero las parecidas del mismo tejido. Una parecida que se vende bien a un precio es buena referencia; una con mucho stock y pocas ventas probablemente está cara.
 - Si el costo es "estimado" (es el promedio de la categoría, no el de esta prenda), propón igual pero dilo en la razón.
