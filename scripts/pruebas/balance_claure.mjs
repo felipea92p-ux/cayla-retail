@@ -13,8 +13,9 @@
  *
  * QUÉ CUBRE
  *   · Entrada de CLAURE: no mueve la mercadería de CAYLA ni las causas de la 201.
- *   · Venta, anulación, devolución y merma de CLAURE: la 201 del diario y la mercadería del Balance se mueven igual; lo debido (lo COBRADO sin IGV,
- *     ADR-0560) queda en la 479 y la 4699 del ADR-0558 (a costo) queda en cero: Felipe decidió el 2026-10-29 que manda lo cobrado.
+ *   · Venta, anulación, devolución y merma de CLAURE: la 201 del diario y la mercadería del Balance se mueven igual; lo debido (lo COBRADO con IGV,
+ *     ADR-0560 y ADR-0638 regla 5) queda en la 479, el IGV que pone CAYLA en la 1673, y la 4699 del ADR-0558 (a costo) queda en cero: Felipe decidió
+ *     el 2026-10-29 que manda lo cobrado y el 2026-11-09 que el IGV lo pone CAYLA.
  *   · Un corte en el pasado (antes de la escena) devuelve lo que había, también para lo ajeno.
  *   · Una venta de CAYLA en Trujillo no genera reclasificaciones; cada asiento de reclasificación cuadra solo.
  *   · AUTOPRUEBA: si se deshace una mitad del arreglo, la propiedad se rompe (la prueba no está ciega).
@@ -112,9 +113,12 @@ const D201 = (ids) => `coalesce((select sum(a.debe - a.haber) from retail.fn_asi
    where a.cuenta = '201' and a.origen_id in (${ids})), 0)`;
 const D4699 = (ids) => `coalesce((select sum(a.haber - a.debe) from retail.fn_asientos(retail.fn_hoy_lima(), retail.fn_hoy_lima(), null) a
    where a.cuenta = '4699' and a.origen_id in (${ids})), 0)`;
-/** Lo que se le debe a CLAURE (ADR-0560): lo cobrado de sus prendas sin IGV, en la 479. */
+/** Lo que se le debe a CLAURE (ADR-0560; con IGV desde ADR-0638, regla 5): lo cobrado de sus prendas, en la 479. */
 const D479 = (ids) => `coalesce((select sum(a.haber - a.debe) from retail.fn_asientos(retail.fn_hoy_lima(), retail.fn_hoy_lima(), null) a
    where a.cuenta = '479' and a.origen_id in (${ids})), 0)`;
+/** El IGV de esas ventas, que pone CAYLA y recupera con las facturas de CLAURE (ADR-0638, regla 5): la 1673. */
+const D1673 = (ids) => `coalesce((select sum(a.debe - a.haber) from retail.fn_asientos(retail.fn_hoy_lima(), retail.fn_hoy_lima(), null) a
+   where a.cuenta = '1673' and a.origen_id in (${ids})), 0)`;
 
 const COMPRADAS = `${CREAR("c", "Prueba Balance CAYLA", "cayla", "lim", 3, 26)}`;
 /** Una prenda de CLAURE con su stock inicial de CLAURE: el dueño llega por el encabezado `x-dueno`, como lo manda la web (ADR-0542). */
@@ -186,11 +190,13 @@ caso("venta + anulación + devolución + merma de CLAURE: la mercadería del Bal
 caso("la mercadería del Balance solo se movió por lo de CAYLA (una blusa de costo 26 vendida)", () =>
   igual(num(dentro(`${CICLO}\nselect :'s_f'::numeric - :'s_b'::numeric;`)), -26, "Δ mercadería:"));
 
-// Precio 59 con IGV = 50 sin IGV por unidad: 2 vendidas de CLAURE (100) − 1 devuelta (50) = 50; la vendida y anulada, la pérdida y su costo no mueven la deuda.
-caso("lo debido a CLAURE es lo COBRADO sin IGV y vive en la 479: 2×50 − 50 (devuelta) = 50; la 4699 (a costo, ADR-0558) queda en cero", () => {
+// Precio 59 con IGV (50 + 9 de IGV) por unidad: 2 vendidas de CLAURE (118) − 1 devuelta (59) = 59 en la 479 y 9 de IGV en la 1673; la vendida y
+// anulada, la pérdida y su costo no mueven la deuda.
+caso("lo debido a CLAURE es lo COBRADO con IGV y vive en la 479: 2×59 − 59 (devuelta) = 59; el IGV (9) en la 1673; la 4699 (a costo, ADR-0558) queda en cero", () => {
   const debida = num(dentro(`${CICLO}\nselect ${D479(IDS)};`));
+  const igv = num(dentro(`${CICLO}\nselect ${D1673(IDS)};`));
   const aCosto = num(dentro(`${CICLO}\nselect ${D4699(IDS)};`));
-  return igual(debida, 50, "479:") ?? igual(aCosto, 0, "4699:");
+  return igual(debida, 59, "479:") ?? igual(igv, 9, "1673:") ?? igual(aCosto, 0, "4699:");
 });
 
 caso("cada asiento de reclasificación cuadra solo (debe = haber)", () => {

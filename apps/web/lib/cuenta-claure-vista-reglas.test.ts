@@ -116,7 +116,8 @@ describe("por dónde entra", () => {
     const r = repartoPorMedio(FILAS);
     expect(r.map((m) => m.medio)).toEqual(["tarjeta", "yape", "qr"]);
     expect(r.reduce((a, m) => a + m.pct, 0)).toBeCloseTo(100);
-    expect(r[0].paraClaudia).toBe(Math.round((590 - 17.7 - 90) * 100) / 100);
+    // Para Claudia es lo cobrado menos la comisión: el IGV (90) lo pone CAYLA (ADR-0638, regla 5).
+    expect(r[0].paraClaudia).toBe(Math.round((590 - 17.7) * 100) / 100);
     expect(r[0].color).toBe("var(--color-metodo-tarjeta)");
   });
   it("un medio sin color propio cae al taupe, no se rompe", () => {
@@ -168,11 +169,10 @@ describe("terminosClaure", () => {
     expect(t.map((x) => [x.clave, x.filtro])).toEqual([
       ["cobrado", "cobro"],
       ["devuelto", "dev"],
-      ["igv", "cobro"],
       ["comision", "cobro"],
       ["gastos", "gasto"],
       ["pagado", "pago"],
     ]);
-    expect(t[4].detalle).toBe("1 gasto");
+    expect(t[3].detalle).toBe("1 gasto");
   });
 });

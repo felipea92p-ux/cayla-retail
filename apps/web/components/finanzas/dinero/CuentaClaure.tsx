@@ -200,7 +200,7 @@ export function CuentaClaure({ filas, pagos, gastos, cuentasAjenas, esLider, hoy
                     </div>
                   ))}
                 </Tabla>
-                <span className="cl-tenue">Para Claudia = cobrado − IGV − comisión, antes de devoluciones, gastos y pagos.</span>
+                <span className="cl-tenue">Para Claudia = cobrado − comisión, antes de devoluciones, gastos y pagos.</span>
               </div>
             </>
           )}
@@ -250,10 +250,6 @@ export function CuentaClaure({ filas, pagos, gastos, cuentasAjenas, esLider, hoy
                   <dd>−{soles(r.devuelto)}</dd>
                 </div>
               )}
-              <div>
-                <dt>IGV (lo paga CAYLA)</dt>
-                <dd>−{soles(r.igv)}</dd>
-              </div>
               {r.comision > 0 && (
                 <div>
                   <dt>Comisión del POS</dt>
@@ -313,7 +309,7 @@ export function CuentaClaure({ filas, pagos, gastos, cuentasAjenas, esLider, hoy
               </div>
               <span className="cl-tenue">
                 {aFavor ? "Se le pagó de más:" : "Hoy se le deben"} <b className="cl-num text-tinta">{soles(Math.abs(r.saldo))}</b>
-                {aFavor ? " a favor de CAYLA" : ""}: lo cobrado menos devuelto, IGV, comisión, gastos suyos y lo ya pagado.
+                {aFavor ? " a favor de CAYLA" : ""}: lo cobrado menos devuelto, comisión, gastos suyos y lo ya pagado.
               </span>
             </>
           )}

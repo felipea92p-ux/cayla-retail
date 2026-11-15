@@ -32,6 +32,9 @@ const PREVIAS = [
   leer("20261029144000_claure_efectivo_se_queda_con_claudia.sql"),
 ].join("\n");
 const MIGRACION = leer("20261029162000_claure_cambios_la_plata_sigue_a_la_prenda.sql");
+// La regla vigente encima (ADR-0638, regla 5): el IGV ya no se le descuenta a Claudia y en el Diario va a la 1673. En la base del CI ya está; volver a
+// pegarla aquí deja las funciones como en producción después de rehacer la cadena de arriba (que las devuelve a su estado de octubre).
+const DESPUES = leer("20261115122000_claure_el_igv_lo_pone_cayla.sql");
 const FELIPE = "22222222-2222-4222-8222-000000000001"; // líder (seed)
 const CAYLA = "'ca71a000-0000-4000-8000-000000000001'";
 const CLAURE = "'c1a07e00-0000-4000-8000-000000000002'";
@@ -95,7 +98,7 @@ set local session_replication_role = origin;
 `;
 
 const medir = (consulta, { sinMigracion = false, previas = PREVIAS } = {}) =>
-  psql(`begin;\n\\o /dev/null\n${previas}\n${sinMigracion ? "" : MIGRACION}\n${ESCENA_EMPRESAS}\n${ESCENA}\n\\o\n${consulta}\nrollback;`).split("\n").pop();
+  psql(`begin;\n\\o /dev/null\n${previas}\n${sinMigracion ? "" : `${MIGRACION}\n${DESPUES}`}\n${ESCENA_EMPRESAS}\n${ESCENA}\n\\o\n${consulta}\nrollback;`).split("\n").pop();
 const igual = (obtenido, esperado) => (obtenido === String(esperado) ? null : `se esperaba\n${esperado}\ny salió\n${obtenido}`);
 
 let fallas = 0;
@@ -128,11 +131,11 @@ select coalesce(sum(n_pagos), 0) || '|' || coalesce(sum(monto), 0) || '|' || coa
   ),
 );
 
-caso("lo que se le debe a hoy sube lo mismo que la suma de sus bases: −84.75 + 101.69 + 16.95 = 33.89", () =>
+caso("lo que se le debe a hoy sube lo mismo que lo cobrado de cada cambio (con IGV: lo pone CAYLA): −100 + 120 + 20 = 40", () =>
   igual(
     medir(`reset role;
-select round(retail.fn_claure_saldo_a(${HOY}) - (select coalesce(sum(f.monto - coalesce(f.igv, 0) - coalesce(f.comision, 0)), 0) from retail.fn_claure_filas(array[${LIMA}::uuid]) f where f.contado and f.origen <> 'cambio'), 2);`),
-    "33.89",
+select round(retail.fn_claure_saldo_a(${HOY}) - (select coalesce(sum(f.monto - coalesce(f.comision, 0)), 0) from retail.fn_claure_filas(array[${LIMA}::uuid]) f where f.contado and f.origen <> 'cambio'), 2);`),
+    "40.00",
   ),
 );
 
@@ -146,13 +149,13 @@ select (retail.fn_claure_cierre(${ID("e1")})->>'saldo')::numeric = :s::numeric;`
   ),
 );
 
-caso("el Diario mueve la parte sin IGV entre las ventas de CAYLA (7011) y lo que se le debe (479), cuadrado por cambio", () =>
+caso("el Diario mueve la parte sin IGV entre las ventas de CAYLA (7011) y lo que se le debe (479, con IGV), y el IGV a la 1673, cuadrado por cambio", () =>
   igual(
     medir(`${sesion(FELIPE)}
 select (select count(*) from (select asiento from retail.fn_asientos(${HOY}, ${HOY}, null) where regla = 'claure_cambio' group by asiento having round(sum(debe), 2) <> round(sum(haber), 2)) x) || '|' ||
        (select string_agg(right(origen_id::text, 2) || ':' || cuenta || ':' || debe::numeric(12,2) || ':' || haber::numeric(12,2), ' ' order by origen_id, cuenta)
           from retail.fn_asientos(${HOY}, ${HOY}, null) where regla = 'claure_cambio');`),
-    "0|c1:479:84.75:0.00 c1:7011:0.00:84.75 c2:479:0.00:101.69 c2:7011:101.69:0.00 c3:479:0.00:16.95 c3:7011:16.95:0.00",
+    "0|c1:1673:0.00:15.25 c1:479:100.00:0.00 c1:7011:0.00:84.75 c2:1673:18.31:0.00 c2:479:0.00:120.00 c2:7011:101.69:0.00 c3:1673:3.05:0.00 c3:479:0.00:20.00 c3:7011:16.95:0.00",
   ),
 );
 

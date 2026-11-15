@@ -383,6 +383,7 @@ const NOMBRE_LINEA: Record<string, string> = {
   "451": "Tarjeta de crédito",
   "47": "Préstamo del dueño (por devolver)",
   "479": "Por pagar a Claudia (lo cobrado de sus ventas)",
+  "1673": "IGV que puso CAYLA por CLAURE (vuelve con sus facturas)",
   "4699": "Por liquidar a CLAURE (lo vendido de su mercadería)",
   "122": "Adelantos de clientes",
   "50": "Capital",
