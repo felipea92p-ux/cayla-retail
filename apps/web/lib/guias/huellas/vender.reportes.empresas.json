@@ -1,0 +1,32 @@
+{
+  "guia": "vender.reportes.empresas",
+  "ruta": "/vender/reportes/empresas",
+  "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
+  "total": 16,
+  "controles": {
+    "components/reportes-ventas/CabeceraReportes.tsx": [
+      "Pestanas «(sin nombre)»"
+    ],
+    "components/reportes-ventas/DetallePorEmpresa.tsx": [
+      "DesplegablePildora «Empresa»",
+      "DesplegablePildora «Medio»",
+      "DesplegablePildora «Cuenta»",
+      "DesplegablePildora «Comprobante»",
+      "button «Solo mixtas»",
+      "BotonLimpiar «Limpiar filtros»",
+      "button «{cuando(v.creada)}»",
+      "BotonVerMas «{`Ver las ${ventas.length}»"
+    ],
+    "components/reportes-ventas/FiltrosPorEmpresa.tsx": [
+      "button «Un mes»",
+      "button «{otra ? `Desde que llegó ${otra}»",
+      "button «Elegir fechas»",
+      "CampoFecha «Desde»",
+      "CampoFecha «Hasta»",
+      "DesplegablePildora «Tienda»"
+    ],
+    "components/reportes-ventas/PlataPorCuenta.tsx": [
+      "button «{`Ver las ventas cobradas con ${nombreDeMetodo(f.metodo)}»"
+    ]
+  }
+}

@@ -1909,7 +1909,7 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
   /vender/historial/exportar` (route handler, solo líder) → `lib/historial-exportar-reglas.ts` (CSV). «Volver a vender»:
   `/vender?repetir=<id>` → `lib/repetir-venta.ts` → prop `repeticion` de `PuntoDeVenta`.
 
-- `/vender/reportes` y `/vender/reportes/ranking` (módulo `reportes_ventas`, ADR-0606, solo lectura) → `lib/reportes-ventas.ts` y `lib/reportes-ranking.ts`
+- `/vender/reportes`, `/vender/reportes/ranking` y `/vender/reportes/empresas` (módulo `reportes_ventas`, ADR-0606, solo lectura) → `lib/reportes-ventas.ts` y `lib/reportes-ranking.ts`
   (cargadores de servidor, `rpc("fn_reporte_ventas_*")`) con sus reglas puras en `lib/reportes-ventas-reglas.ts` y `lib/reportes-ranking-reglas.ts` →
   `components/reportes-ventas/*`. Cuatro funciones INVOKER de la base: `fn_reporte_ventas_mes` (las cinco cifras contra los mismos días del mes anterior),
   `fn_reporte_ventas_series` (por día, mes a mes, cómo se pagó), `fn_reporte_ventas_cortes` (por tienda y por categoría) y `fn_reporte_ventas_ranking`
@@ -1918,7 +1918,12 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
   si hay una elegida) y cuentan solo las líneas de esa empresa, con `fn_empresa_de_la_linea` (la regla de `fn_dueno_de_la_linea`, INVOKER) y
   `fn_reembolso_de_la_empresa`; la píldora «Empresa» sale de `lib/reportes-empresa-reglas.ts` + `alcanceDeReportes` y vive en `?emp=`. «Cómo se pagó» con
   empresa (act. 2026-11-15) sale de una quinta lectura, `fn_reporte_ventas_pagos` (`getPagosDeEmpresa`), que reparte cada pago con `fn_pago_de_la_empresa`
-  y dice cuánto es reparto (`repartido`); la serie sigue sin partir los pagos. La descarga son dos
+  y dice cuánto es reparto (`repartido`); la serie sigue sin partir los pagos. **«CAYLA y CLAURE» (ADR-0667, 2026-11-15):** `/vender/reportes/empresas`, tercera
+  pestaña que solo sale donde la cuenta ve una tienda con dos empresas (`tiendasConDosEmpresas`, `lib/reportes-por-empresa.ts`); UNA lectura
+  `security definer`, `fn_reporte_ventas_por_empresa(desde, hasta, tienda)`, trae las ventas fila por fila (comprobante, prendas con su empresa, pagos con
+  su cuenta, el banco al que abona su máquina y la parte de cada empresa) y la comisión estimada del POS de la empresa que no es la casa; las cifras, «¿Dónde
+  está la plata?», lado a lado y venta por venta se suman en `lib/reportes-por-empresa-reglas.ts` → `components/reportes-ventas/{FiltrosPorEmpresa,
+  CifrasPorEmpresa,PlataPorCuenta,LadoALado,DetallePorEmpresa}.tsx`. El período vive en la URL (`?m=`, `?desde-inicio=1`, `?desde=&hasta=`). La descarga son dos
   `route.ts` (`/vender/reportes/descargar`, `/vender/reportes/ranking/descargar`) que repiten el permiso y comparten `lib/reportes-ventas-alcance.ts`
   (qué tienda puede mirar la cuenta) con las pantallas; el CSV lo arma `lib/reportes-ventas-exportar-reglas.ts`.
 
