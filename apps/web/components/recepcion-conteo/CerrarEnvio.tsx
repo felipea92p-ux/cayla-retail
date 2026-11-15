@@ -40,7 +40,6 @@ import { soles } from "@/lib/compras-reglas";
 import { useEmpresasDeSede } from "@/lib/useEmpresasDeSede";
 import { DuenoDeLoQueEntra } from "./DuenoDeLoQueEntra";
 import { agruparLineasDelCierre, camposDelCierrePorGrupo, nombreDelGrupoDelCierre, causasDelGrupo, filasDelCierre, lineaDeLaPrenda, lineaDelGrupo, textoDeLasPlegadas, textoDeLoQueFalta, type GrupoDeLineas } from "@/lib/recepcion-grupos-reglas";
-import { useFacturaDelMargen } from "@/components/ui/LineaMargen";
 import { pideRevisarAlRecibir, precioUnicoAlCerrar, textoRevisarAlRecibir } from "@/lib/precio-propuesto-reglas";
 import { borrarBorradorDelCierre, conCostosDecididos, conLoDecidido, costosCambiados, costosDeCombinacionCambiados, decisionCambiada, type FotoDelCierre, guardarBorradorDelCierre, leerBorradorDelCierre } from "@/lib/recepcion-cierre-borrador";
 import { type PrendaConCosto, lineasSinModelosEnCero, modelosEnCeroDe, textoModelosEnCero, avisoDePrecioRechazado, type CambioDePrecio, cambioDePrecioDeCompra, camposDelCierre, conCostoDeHoy, contadasDe, costoComoTexto, costoDePrendaTexto, esRegaloFuera, filasDeCostoEnStock, textoCostoEnStock, costosDePrendaConProblema, type CostosDePrendas, costoDelGrupo, detalleDelModelo, deQuienLlego, type FilaDeQuien, idCampoProveedor, type DecisionCierre, decisionInicial, detalladas, detalleParaDespues, diferenciaDe, HINT_CONTEO_CAMBIADO, idCampoCierre, leerCostoCierre, type ClaveLinea, type LineaParaContar, lineasParaCerrar, lineaVisible, marcaDeLinea, mensajeAlGuardar, nombreDeLinea, prendasConCosto, resumenDelCierre, textoBotonCerrar, textoResumenDelCierre, textoDelEnvioCerrado, TOPES_CONTEO, unidadesSinIdentificar } from "@/lib/recepcion-conteo-reglas";
@@ -127,7 +126,6 @@ export function CerrarEnvio({
   onCerrado: () => void;
 }) {
   // La misma cuenta del margen que la línea viva (sin IGV, con o sin factura): la propuesta se ofrece cuando la línea se pone ámbar.
-  const conFactura = useFacturaDelMargen();
   // Lo agregado que quedó en 0 no se guarda (la base hace lo mismo): Cerrar ya no lo ve, y solo avisa cuál fue.
   const lineas = lineasSinModelosEnCero(lineasConCeros);
   const modelosEnCero = modelosEnCeroDe(lineasConCeros);
@@ -256,6 +254,10 @@ export function CerrarEnvio({
   const [guiaEscrita, setGuiaEscrita] = useState(borrador?.guia ?? detalle.numeroGuia ?? "");
   const [guiaGuardada, setGuiaGuardada] = useState(detalle.numeroGuia ?? "");
   const [versionTrasGuia, setVersionTrasGuia] = useState<number | null>(null);
+  // El cierre lee lo contado DE LA BASE, no de la pantalla: con una línea cuyo guardado falló (un corte de wifi), la pantalla muestra el número nuevo y la base
+  // tiene el viejo. Desde el 2026-11-12 `esperandoGuardar` ya no cuenta esas líneas (para que «Llevar al stock» no quedara en «Guardando…» para siempre) y el
+  // botón cerraba con el número viejo mientras el aviso decía «hasta guardarlas no se puede cerrar» (auditoría 2026-11-15). Las dos cosas frenan el cierre.
+  const noSePuedeCerrarTodavia = esperandoGuardar || sinGuardar > 0;
   const avisoError = useRef<HTMLDivElement>(null);
   // Ya se cerró: lo que quede por pintar no vuelve a guardar lo que se acaba de borrar.
   const yaCerrado = useRef(false);
@@ -490,7 +492,7 @@ export function CerrarEnvio({
    * podría guardar y por qué no, junto a su campo (la fila de su línea se abre), y recién entonces (3) se muestra qué cambia y se pide confirmar.
    */
   async function pedirCerrar() {
-    if (!guia.puedeConfirmar || esperandoGuardar) return;
+    if (!guia.puedeConfirmar || noSePuedeCerrarTodavia) return;
     if (hayCostoDePrendaMalo()) return;
     const llamadas = llamadasDePrecio(prendasConCombinaciones(), cambiosPrecio);
     if (llamadas.length > 0) {
@@ -519,7 +521,7 @@ export function CerrarEnvio({
   }
 
   async function cerrar(confirmados: ReadonlySet<string> = new Set()) {
-    if (!guia.puedeConfirmar || esperandoGuardar) return;
+    if (!guia.puedeConfirmar || noSePuedeCerrarTodavia) return;
     if (hayCostoDePrendaMalo()) return;
     setGuardando(true);
     setError(null);
@@ -825,7 +827,7 @@ export function CerrarEnvio({
           // la propuesta de la IA vive en «Cambiar por talla», que es donde se cambia su precio. Cuenta gratis, sin IA.
           const precioQueda = prendaFila ? precioUnicoAlCerrar(combinaciones, cambiosPrecio) : null;
           const costoQueda = !variosPorTalla ? (lectura.problema === null ? (lectura.valor ?? heredado) : null) : null;
-          const revisarPrecio = prendaFila && editaCosto ? pideRevisarAlRecibir({ conFactura, precio: precioQueda, costo: costoQueda, costoAntes: antes ? leerCostoCierre(antes).valor : null }) : null;
+          const revisarPrecio = prendaFila && editaCosto ? pideRevisarAlRecibir({ precio: precioQueda, costo: costoQueda, costoAntes: antes ? leerCostoCierre(antes).valor : null }) : null;
           const abiertaEsta = abierta && !!prendaFila && prendasALaVista.includes(prendaFila);
           const nombre = m?.nombre ?? nombreGrupo.split(" · ")[0];
           const det = m ? detalleDelModelo(g.lineas, m) : null;
@@ -1360,7 +1362,7 @@ export function CerrarEnvio({
                   peso={guia.puedeConfirmar ? "primario" : "fantasma"}
                   cargando={guardando}
                   textoCargando="Cerrando…"
-                  disabled={esperandoGuardar} confirma={guia}
+                  disabled={noSePuedeCerrarTodavia} confirma={guia}
                   title={sinGuardar > 0 ? "Hay líneas que no se pudieron guardar" : esperandoGuardar ? "Espera: lo último que contaste se está guardando" : (guia.frase ?? undefined)}
                   className={`ml-auto ${guia.claseConfirmar}`}
                   data-guia="recepcion.cerrar-boton"

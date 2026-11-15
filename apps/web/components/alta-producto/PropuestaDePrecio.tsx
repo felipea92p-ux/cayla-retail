@@ -1,7 +1,7 @@
 "use client";
 
 // «Proponer precio» (ADR-0641): Claude mira el costo y las prendas parecidas y propone el precio de etiqueta; la regla fija lo lleva a .90 y
-// nunca lo deja bajo costo + 30 % de margen. La propuesta no se guarda sola: «Usar S/ …» llena el campo y la persona confirma al crear la
+// nunca lo deja bajo el piso que aguanta una rebaja de 35 % (`pisoDelPrecio`, ADR-0668). La propuesta no se guarda sola: «Usar S/ …» llena el campo y la persona confirma al crear la
 // prenda, como siempre.
 //
 // Dos lugares: Nuevo producto (con el botón, Felipe 2026-11-10) y la hoja de la prenda nueva de Recibir mercadería, donde sale SOLA al llegar
@@ -117,7 +117,13 @@ export function PropuestaDePrecio({
   // Cada estado guarda con qué datos nació, y uno de otros datos se lee como «nada» (o como lo ya respondido con esos datos).
   const datosDePropuesta: DatosPropuesta = { origen, productoId, categoriaId, tejidoId, referencia, descripcion, costoBase };
   const clave = claveDe(datosDePropuesta);
-  const [guardado, setGuardado] = useState<{ clave: string; estado: Estado }>(() => ({ clave, estado: { tipo: "nada" } }));
+  // Nace con lo ya respondido para estos datos, si lo hay: la hoja de Recibir adelanta la consulta al abrirse y, si la respuesta llegaba ANTES de llegar a este
+  // paso, la pieza aparecía vacía (su clave coincide, así que no leía `recordada`) y el efecto de abajo no la pedía porque ya estaba respondida. Quedaba solo el
+  // botón, que hace otra consulta: otra espera y otro cobro (auditoría 2026-11-15).
+  const [guardado, setGuardado] = useState<{ clave: string; estado: Estado }>(() => {
+    const yaRespondida = YA_RESPONDIDO.get(clave);
+    return { clave, estado: yaRespondida ? { tipo: "listo", respuesta: yaRespondida } : { tipo: "nada" } };
+  });
   const recordada = YA_RESPONDIDO.get(clave);
   const estado: Estado = guardado.clave === clave ? guardado.estado : recordada ? { tipo: "listo", respuesta: recordada } : { tipo: "nada" };
   const [dejado, setDejado] = useState<string | null>(null);
@@ -159,7 +165,7 @@ export function PropuestaDePrecio({
               {estado.tipo === "error" || (estado.tipo === "listo" && "sinPropuesta" in estado.respuesta) ? "Proponer de nuevo" : "Proponer precio"}
             </span>
           </Boton>
-          <p className="text-sm text-taupe">Nunca baja de 30 % de margen.</p>
+          <p className="text-sm text-taupe">Nunca baja de lo que aguanta la rebaja.</p>
         </div>
       )}
 
@@ -191,7 +197,7 @@ export function PropuestaDePrecio({
           </div>
           <p className="text-sm">{propuesta.razon}</p>
           {propuesta.subidoAlPiso && (
-            <p className="text-sm text-taupe">Es el mínimo para ganar 30 % con este costo.</p>
+            <p className="text-sm text-taupe">Es el mínimo que aguanta una rebaja de 35 %.</p>
           )}
           {propuesta.parecidas.length > 0 && (
             <p className="text-sm text-taupe">

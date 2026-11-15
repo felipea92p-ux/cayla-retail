@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { BadgeCheck } from "lucide-react";
-import { puede, requirePersonaActualV2 } from "@/lib/persona-actual";
+import { puede, requirePersonaActualV2, veCostoDePrendaDe } from "@/lib/persona-actual";
 import { getPreciosARevisar } from "@/lib/revisar-precios-datos";
 import { filtroDeUrl, POR_PAGINA_PRECIOS } from "@/lib/revisar-precios-reglas";
 import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
@@ -16,8 +16,8 @@ import { RevisarPreciosCifras, RevisarPreciosTabla } from "@/components/RevisarP
 // no un módulo aparte (ADR-0306): quien ve Productos y edita el catálogo la ve. La propuesta de la IA y aplicar un precio van en cada fila.
 export default async function RevisarPreciosPage({ searchParams }: { searchParams: Promise<{ motivo?: string; pagina?: string }> }) {
   const persona = await requirePersonaActualV2();
-  // Quien no edita el catálogo no puede cambiar un precio, y quien no ve el dinero de Compras no ve costos: vuelve a la lista.
-  if (!puede(persona, "editarCatalogo") || !puede(persona, "verDineroCompras")) redirect("/productos");
+  // Quien no edita el catálogo no puede cambiar un precio, y quien no ve el costo de la prenda (ADR-0668) no puede revisar su precio: vuelve a la lista.
+  if (!puede(persona, "editarCatalogo") || !veCostoDePrendaDe(persona)) redirect("/productos");
 
   const { motivo, pagina: paginaTexto } = await searchParams;
   const filtro = filtroDeUrl(motivo);

@@ -1,6 +1,6 @@
 "use client";
 
-import { medidasParaIA, LADO_MAXIMO_IA } from "@/lib/foto-catalogo-reglas";
+import { ESPERA_DEL_NAVEGADOR_MS, MAX_BYTES_POR_FOTO_IA, ladosParaAchicar, medidasParaIA } from "@/lib/foto-catalogo-reglas";
 import type { DatosDePrenda } from "@/lib/ficha-foto-ia";
 
 // Pedir la foto de catálogo de UN color desde el navegador (Editar y Nuevo producto, «Catálogo con IA»). El servidor (`/api/fotos/catalogo`) es el
@@ -18,14 +18,28 @@ export type ResultadoCatalogo = { png: Blob } | { error: string };
 async function achicar(fuente: Blob, tipo: "image/jpeg" | "image/webp"): Promise<Blob> {
   const img = await createImageBitmap(fuente);
   try {
-    const { ancho, alto } = medidasParaIA(img.width, img.height, LADO_MAXIMO_IA);
-    const c = document.createElement("canvas");
-    c.width = ancho;
-    c.height = alto;
-    const g = c.getContext("2d")!;
-    g.imageSmoothingQuality = "high";
-    g.drawImage(img, 0, 0, ancho, alto);
-    return await new Promise((resolve, reject) => c.toBlob((b) => (b ? resolve(b) : reject(new Error("El navegador no pudo preparar la foto."))), tipo, 0.9));
+    let ultimo: Blob | null = null;
+    const ladoMayor = Math.max(img.width, img.height);
+    // Del lado más grande al más chico, hasta que entre bajo el tope del servidor (`ladosParaAchicar`): casi siempre alcanza con el primero.
+    for (const lado of ladosParaAchicar()) {
+      // Un lado que no achica la foto (nunca se agranda) daría el mismo archivo que el intento anterior: se salta.
+      if (ultimo && lado >= ladoMayor) continue;
+      const { ancho, alto } = medidasParaIA(img.width, img.height, lado);
+      const c = document.createElement("canvas");
+      c.width = ancho;
+      c.height = alto;
+      const g = c.getContext("2d")!;
+      // El JPEG no tiene transparencia: sin pintar el fondo, lo transparente de un PNG sale NEGRO y una prenda oscura pierde su contorno.
+      if (tipo === "image/jpeg") {
+        g.fillStyle = "#ffffff"; // tema-fijo: el fondo de la foto que va a la IA es blanco de papel, no un color del ERP
+        g.fillRect(0, 0, ancho, alto);
+      }
+      g.imageSmoothingQuality = "high";
+      g.drawImage(img, 0, 0, ancho, alto);
+      ultimo = await new Promise<Blob>((resolve, reject) => c.toBlob((b) => (b ? resolve(b) : reject(new Error("El navegador no pudo preparar la foto."))), tipo, 0.9));
+      if (ultimo.size <= MAX_BYTES_POR_FOTO_IA) return ultimo;
+    }
+    return ultimo!;
   } finally {
     img.close();
   }
@@ -36,22 +50,34 @@ async function achicar(fuente: Blob, tipo: "image/jpeg" | "image/webp"): Promise
  * Las fotos reales van en JPEG; el molde, en WebP para conservar su transparencia.
  */
 export async function pedirFotoDeCatalogo(fotos: FotosDeCatalogo, prenda?: DatosDePrenda | null): Promise<ResultadoCatalogo> {
+  const cuerpo = new FormData();
   try {
-    const cuerpo = new FormData();
     // Lo ya elegido de la prenda (categoría, tejido, patrón): el servidor arma con eso la ficha del pedido (`lib/ficha-foto-ia.ts`).
     if (prenda) for (const campo of ["prefijo", "tipo", "tejido", "patron"] as const) if (prenda[campo]) cuerpo.set(campo, prenda[campo]);
     cuerpo.set("frente", await achicar(fotos.frente, "image/jpeg"), "frente.jpg");
     if (fotos.espalda) cuerpo.set("espalda", await achicar(fotos.espalda, "image/jpeg"), "espalda.jpg");
     if (fotos.detalle) cuerpo.set("detalle", await achicar(fotos.detalle, "image/jpeg"), "detalle.jpg");
     if (fotos.molde) cuerpo.set("molde", await achicar(fotos.molde, "image/webp"), "molde.webp");
+  } catch {
+    // La foto no se pudo leer ni achicar (un archivo dañado, un formato que el navegador no abre): no es el internet, y reintentar da lo mismo.
+    return { error: "No se pudo preparar esa foto. Prueba con otra." };
+  }
+  try {
     // `x-espera: no`: la foto se prepara en su cuadro mientras la persona sigue; el loader de pantalla completa (ADR-0149) la bloquearía.
-    const r = await fetch("/api/fotos/catalogo", { method: "POST", body: cuerpo, headers: { "x-espera": "no" } });
+    const r = await fetch("/api/fotos/catalogo", {
+      method: "POST",
+      body: cuerpo,
+      headers: { "x-espera": "no" },
+      // Sin tope, una red muda dejaba la tarjeta esperando para siempre (`ESPERA_DEL_NAVEGADOR_MS`). Un navegador viejo sin `AbortSignal.timeout` sigue como antes.
+      signal: typeof AbortSignal.timeout === "function" ? AbortSignal.timeout(ESPERA_DEL_NAVEGADOR_MS) : undefined,
+    });
     if (!r.ok) {
       const j = (await r.json().catch(() => null)) as { error?: string } | null;
       return { error: j?.error ?? "La IA no responde ahora. Prueba en un rato." };
     }
     return { png: await r.blob() };
-  } catch {
+  } catch (e) {
+    if (e instanceof Error && e.name === "TimeoutError") return { error: "La IA no responde ahora. Prueba en un rato." };
     return { error: "No se pudo conectar. Revisa el internet y prueba de nuevo." };
   }
 }

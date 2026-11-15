@@ -36,6 +36,7 @@ import {
   textoPrendas,
   textoResuelto,
   totalSeparado,
+  proveedorDeLaHoja,
   type LineaParaContar,
   type ParaDespues,
   type PrendaSeparada,
@@ -94,6 +95,7 @@ export function HacerAhora({
   onRecordar,
   soloSede = false,
   sinAviso = false,
+  nProveedores = 1,
   veDinero = true,
   onPrendaVista,
   onCategoriaCambiada,
@@ -115,6 +117,8 @@ export function HacerAhora({
   soloSede?: boolean;
   /** El envío llegó sin aviso: lo de fuera de la guía no trae costo de ninguna orden, y solo lo escribe quien ve el dinero de Compras (`veDinero`). */
   sinAviso?: boolean;
+  /** Cuántos proveedores trae el envío: con dos o más, lo de fuera de la guía dice de cuál es (`proveedorDeLaHoja`). */
+  nProveedores?: number;
   veDinero?: boolean;
   /** Recuerda una prenda ya leída (con sus tallas y colores), para no volver a buscarla. */
   onPrendaVista: (p: PrendaRecepcion) => void;
@@ -479,7 +483,7 @@ export function HacerAhora({
             precioSugerido: null,
             costoUnitario: null,
             prenda: vista.prenda,
-            proveedorId: null,
+            proveedorId: proveedorDeLaHoja(linea, nProveedores, sinAviso),
           }}
           categoria={catalogo?.categorias.find((c) => c.id === categoria.id) ?? null}
           colores={catalogo?.colores ?? []}
@@ -515,7 +519,7 @@ export function HacerAhora({
             precioSugerido: linea.linea?.precioVentaSugerido ?? null,
             costoUnitario: linea.conteo?.costoUnitario ?? linea.linea?.costoUnitario ?? null,
             prenda: null,
-            proveedorId: null,
+            proveedorId: proveedorDeLaHoja(linea, nProveedores, sinAviso),
           }}
           categoria={catalogo?.categorias.find((c) => c.id === categoria.id) ?? null}
           colores={catalogo?.colores ?? []}

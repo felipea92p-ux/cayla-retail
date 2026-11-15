@@ -214,7 +214,7 @@ export type RepartoMedio = {
   cobrado: number;
   comision: number;
   igv: number;
-  /** Cobrado − IGV − comisión, antes de devoluciones, gastos y pagos. */
+  /** Cobrado − comisión, antes de devoluciones, gastos y pagos (el IGV lo pone CAYLA: no se resta). */
   paraClaudia: number;
   /** Qué parte de lo cobrado es de este medio (0–100). */
   pct: number;
@@ -248,7 +248,7 @@ export function repartoPorMedio(filas: readonly FilaClaure[]): RepartoMedio[] {
       cobrado: redondear(a.cobrado),
       comision: redondear(a.comision),
       igv: redondear(a.igv),
-      paraClaudia: redondear(a.cobrado - a.comision - a.igv),
+      paraClaudia: redondear(a.cobrado - a.comision),
       pct: total > 0 ? (a.cobrado / total) * 100 : 0,
     }))
     .sort((a, b) => b.cobrado - a.cobrado || a.texto.localeCompare(b.texto, "es"));
@@ -378,13 +378,12 @@ export function fechaDiaMes(iso: string): string {
 
 // ---- Las fichas: cada término de la cuenta abre el historial ya filtrado ------------------------------------------------------
 
-export type TerminoCuenta = { clave: "cobrado" | "devuelto" | "igv" | "comision" | "gastos" | "pagado"; titulo: string; valor: number; detalle: string; filtro: FiltroLibro; punto: "verde" | "ambar" | "neutro" };
+export type TerminoCuenta = { clave: "cobrado" | "devuelto" | "comision" | "gastos" | "pagado"; titulo: string; valor: number; detalle: string; filtro: FiltroLibro; punto: "verde" | "ambar" | "neutro" };
 
 export function terminosClaure(r: ResumenClaure, nCobros: number, nGastos: number, nPagos: number): TerminoCuenta[] {
   return [
     { clave: "cobrado", titulo: "Cobrado en tus cuentas", valor: r.cobrado, detalle: `${plural(nCobros, "pago", "pagos")} de prendas de CLAURE`, filtro: "cobro", punto: "verde" },
     { clave: "devuelto", titulo: "Devuelto", valor: r.devuelto, detalle: "reembolsado desde una cuenta de CAYLA", filtro: "dev", punto: "ambar" },
-    { clave: "igv", titulo: "IGV (lo paga CAYLA)", valor: r.igv, detalle: "de lo cobrado menos lo devuelto", filtro: "cobro", punto: "neutro" },
     { clave: "comision", titulo: "Comisión del POS", valor: r.comision, detalle: "estimada con la tarifa; la asume CLAURE", filtro: "cobro", punto: "neutro" },
     { clave: "gastos", titulo: "Gastos suyos que pagó CAYLA", valor: r.gastos, detalle: plural(nGastos, "gasto", "gastos"), filtro: "gasto", punto: "neutro" },
     { clave: "pagado", titulo: "Ya pagado", valor: r.pagado, detalle: plural(nPagos, "pago", "pagos") + " a CLAURE", filtro: "pago", punto: "neutro" },

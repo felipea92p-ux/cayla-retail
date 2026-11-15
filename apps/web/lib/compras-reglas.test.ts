@@ -266,3 +266,24 @@ describe("número de envío en la nota del lote", () => {
     expect(notaSinEnvio("caja mojada")).toBe("caja mojada");
   });
 });
+
+import { ofreceAnularCompra } from "./compras-reglas";
+// Auditoría 2026-11-15: el detalle ofrecía «Anular comprobante» en una compra de «Mis compras» ya recibida.
+describe("¿se ofrece «Anular comprobante»?", () => {
+  const compra = { estado: "vigente", pagado: 0, recibidoCantidad: 0, naturaleza: "mercaderia" } as const;
+  const permisos = { tieneRecepciones: false, permiteFacturas: true };
+  it("vigente, sin pagos y sin nada recibido: sí", () => {
+    expect(ofreceAnularCompra(compra, permisos)).toBe(true);
+    expect(ofreceAnularCompra({ ...compra, naturaleza: undefined }, permisos)).toBe(true);
+  });
+  it("con mercadería que entró antes del comprobante (no deja movimientos en sus líneas): no", () => {
+    expect(ofreceAnularCompra({ ...compra, recibidoCantidad: 12 }, permisos)).toBe(false);
+  });
+  it("con recepciones contra la factura, con pagos, anulada, de gasto o sin permiso: no", () => {
+    expect(ofreceAnularCompra(compra, { ...permisos, tieneRecepciones: true })).toBe(false);
+    expect(ofreceAnularCompra({ ...compra, pagado: 10 }, permisos)).toBe(false);
+    expect(ofreceAnularCompra({ ...compra, estado: "anulada" }, permisos)).toBe(false);
+    expect(ofreceAnularCompra({ ...compra, naturaleza: "gasto" }, permisos)).toBe(false);
+    expect(ofreceAnularCompra(compra, { ...permisos, permiteFacturas: false })).toBe(false);
+  });
+});

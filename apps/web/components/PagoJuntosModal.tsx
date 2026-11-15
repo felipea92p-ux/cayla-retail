@@ -15,6 +15,7 @@ import { CampoFecha } from "@/components/ui/CampoFecha";
 import { ETIQUETA_METODO, soles, type CompraResumen } from "@/lib/compras-reglas";
 import { hoyLima } from "@/lib/fechas-lima";
 import { etiquetaVence, parseMonto, repartirPago, tramoDe } from "@/lib/por-pagar-reglas";
+import { numeroDeMonto } from "@/lib/monto-plata-reglas";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { useResponsable } from "@/lib/useResponsable";
 import { firmar } from "@/lib/responsable-reglas";
@@ -126,9 +127,10 @@ export function PagoJuntosModal({
   const aTransferir = Math.round((total - credito) * 100) / 100;
   const todoConFavor = credito > 0 && aTransferir <= 0;
   const variosMedios = lineas.length > 1;
-  // Lo que se manda: con un medio, todo lo que sale; con varios, lo que escribió cada línea (y deben sumar `aTransferir`).
+  // Lo que se manda: con un medio, todo lo que sale; con varios, lo que escribió cada línea (y deben sumar `aTransferir`). Cada monto se lee con
+  // `numeroDeMonto`, como la suma y como lo que viaja a la base: con `Number`, «500,50» era NaN y el botón quedaba apagado diciendo «cubren el pago».
   const medios = todoConFavor ? [] : variosMedios ? lineas : [{ ...lineas[0], monto: aTransferir.toFixed(2) }];
-  const mediosSuman = todoConFavor || !variosMedios || (medios.every((m) => Number(m.monto) > 0) && Math.abs(sumaLineasPago(medios) - aTransferir) < 0.005);
+  const mediosSuman = todoConFavor || !variosMedios || (medios.every((m) => numeroDeMonto(m.monto) > 0) && Math.abs(sumaLineasPago(medios) - aTransferir) < 0.005);
 
   function repartir(nuevoTotal: number) {
     const r = repartirPago(nuevoTotal, ordenados);

@@ -5,7 +5,7 @@ import { getPendientesDeLaSede } from "@/lib/recepcion-conteo";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { BadgePercent, LayoutGrid, Rows3, SignpostBig } from "lucide-react";
-import { exigirModulo, puede, veModulo } from "@/lib/persona-actual";
+import { exigirModulo, puede, veCostoDePrendaDe, veModulo } from "@/lib/persona-actual";
 import { createClient } from "@/lib/supabase/server";
 import { exigir } from "@/lib/resultado";
 import {
@@ -261,7 +261,7 @@ async function ListaDeProductos({ searchParams }: { searchParams: Promise<Params
               <span className="max-sm:sr-only">Rótulos</span>
             </BotonEnlace>
             {/* ADR-0641: las prendas cuyo precio conviene mirar, con su costo y sus parecidas; la IA propone, la persona aplica. */}
-            {editaCatalogo && puede(persona, "verDineroCompras") && (
+            {editaCatalogo && veCostoDePrendaDe(persona) && (
               <BotonEnlace href="/productos/revisar-precios" peso="fantasma" title="Revisar precios" className="max-sm:!px-3" data-guia="productos.revisar-precios">
                 <BadgePercent aria-hidden className="h-4 w-4" />
                 <span className="max-sm:sr-only">Revisar precios</span>

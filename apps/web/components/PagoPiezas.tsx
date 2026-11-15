@@ -9,6 +9,7 @@ import { CampoFecha } from "@/components/ui/CampoFecha";
 import { CifraQueCuenta } from "@/components/ui/CifraQueCuenta";
 import { ETIQUETA_METODO, ETIQUETA_METODO_PAGO, METODO_SALDO_A_FAVOR, soles } from "@/lib/compras-reglas";
 import { sumaLineasPago, type LineaPago } from "@/components/LineasPago";
+import { numeroDeMonto } from "@/lib/monto-plata-reglas";
 import { CampoSaleDe } from "@/components/finanzas/CampoCuenta";
 import { cuentaEfectiva, usadoDelFondo, type CuentaElegible } from "@/lib/cuenta-sellada-reglas";
 import { Aviso } from "@/components/ui/Aviso";
@@ -355,7 +356,8 @@ export function MediosDePago({
     // Exacto con dos medios: lo que sube en uno baja en el otro, así siempre suman el pago.
     if (exacto && cambio.monto !== undefined && nuevas.length === 2) {
       const otro = 1 - i;
-      const n = Number(cambio.monto);
+      // Con `numeroDeMonto` (no `Number`): «500,50» también reparte el resto en el otro medio.
+      const n = numeroDeMonto(cambio.monto);
       if (cambio.monto.trim() !== "" && Number.isFinite(n)) nuevas[otro] = { ...nuevas[otro], monto: Math.max(0, Math.round((objetivo - n) * 100) / 100).toFixed(2) };
     }
     onLineas(nuevas);

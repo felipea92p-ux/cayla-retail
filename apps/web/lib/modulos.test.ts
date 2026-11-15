@@ -12,7 +12,7 @@ import {
   type PerfilDelMenu,
   type TipoUbicacion,
 } from "./menu";
-import { CLAVES_MODULO, MODULOS, MODULOS_DE_HOY, MODULOS_QUE_VEN_TODO_FINANZAS, NACEN_QUITADOS_AL_LIDER, accionesDeCompra, esDelegable, leerModulos, modulosDeHoy, permisosDeModulos, usaModulo, veEstadosFinancierosDeTodo, veFinanzasDeTodo, type ClaveModulo } from "./modulos";
+import { CLAVES_MODULO, MODULOS, MODULOS_DE_HOY, MODULOS_QUE_FIJAN_PRECIO, MODULOS_QUE_VEN_TODO_FINANZAS, NACEN_QUITADOS_AL_LIDER, accionesDeCompra, esDelegable, leerModulos, modulosDeHoy, permisosDeModulos, usaModulo, veCostoDePrenda, veEstadosFinancierosDeTodo, veFinanzasDeTodo, type ClaveModulo } from "./modulos";
 
 // Roles por módulo (ADR-0161 B, migración 20260923030000_roles_por_modulo.sql). Lo que estas pruebas cuidan:
 //  1. El catálogo de la web y el de la base son el mismo (claves, orden, «solo líder», «solo líder por ahora»), y lo que
@@ -320,6 +320,27 @@ describe("los permisos que salen de los módulos son los fijos de antes", () => 
     expect(definiciones.length).toBeGreaterThan(0);
     const ultima = definiciones[definiciones.length - 1]!;
     expect([...ultima.claves].sort(), `última definición: ${ultima.archivo}`).toEqual([...MODULOS_QUE_VEN_TODO_FINANZAS].sort());
+  });
+
+  // ADR-0668 (A3, Felipe 2026-11-15): «quien fija precio ve el costo; el cliente nunca». Una sola respuesta en la base
+  // (`fn_ve_costo_de_prenda()`) y en la web (`veCostoDePrenda`).
+  it("A3: veCostoDePrenda — quien ve el dinero de Compras o una hoja donde se fija precio; el mostrador, no", () => {
+    const vistos = (...cs: ClaveModulo[]) => cs.map((clave) => ({ clave, completo: false }));
+    expect(veCostoDePrenda([], true)).toBe(true);
+    for (const clave of MODULOS_QUE_FIJAN_PRECIO) expect(veCostoDePrenda(vistos(clave), false), clave).toBe(true); // basta verlo, como fn_ve_modulo
+    expect(veCostoDePrenda(vistos("vender", "caja", "cambios", "devoluciones", "existencias", "historial", "facturacion"), false)).toBe(false);
+  });
+
+  it("A3: las hojas que ven el costo son exactamente las de la última migración que define fn_ve_costo_de_prenda()", () => {
+    const definiciones = TODAS.flatMap((m) => {
+      const hallazgo = /create or replace function retail\.fn_ve_costo_de_prenda\(\)[\s\S]*?\$\$([\s\S]*?)\$\$/i.exec(m.sql);
+      return hallazgo ? [{ archivo: m.archivo, cuerpo: hallazgo[1]! }] : [];
+    });
+    expect(definiciones.length).toBeGreaterThan(0);
+    const ultima = definiciones[definiciones.length - 1]!;
+    const claves = [...ultima.cuerpo.matchAll(/fn_ve_modulo\('([a-z_]+)'\)/g)].map((x) => x[1]!);
+    expect([...claves].sort(), `última definición: ${ultima.archivo}`).toEqual([...MODULOS_QUE_FIJAN_PRECIO].sort());
+    expect(ultima.cuerpo, "el dinero de Compras también la abre").toMatch(/fn_puede_ver_dinero_de_compras\(\)/);
   });
 
   it("limitado como hoy: ve Caja, Existencias y Productos pero no gana sus poderes de escritura", () => {
