@@ -990,7 +990,7 @@ export const GUIA_FIN_CLAURE: Guia = {
       ancla: "fin-claure.cifras",
       opcional: true,
       titulo: "¿Cuánto le debes?",
-      texto: "La ficha oscura es lo que se le debe a Claudia. Al lado, de dónde sale: lo cobrado de prendas de CLAURE en tus cuentas, lo devuelto, el IGV (lo declara y paga CAYLA, así que se descuenta), la comisión del POS (la asume CLAURE), sus gastos que pagó CAYLA y lo ya pagado. Toca una ficha y se abre el historial de eso.",
+      texto: "La ficha oscura es lo que se le debe a Claudia. Al lado, de dónde sale: lo cobrado de prendas de CLAURE en tus cuentas, lo devuelto, la comisión del POS (la asume CLAURE), sus gastos que pagó CAYLA y lo ya pagado. Toca una ficha y se abre el historial de eso.",
     },
     {
       id: "su-yape",
@@ -1004,7 +1004,7 @@ export const GUIA_FIN_CLAURE: Guia = {
       ancla: "fin-claure.entra",
       opcional: true,
       titulo: "Por dónde entra la plata",
-      texto: "La barra reparte lo cobrado por medio de pago (tarjeta, QR, Yape, Plin, transferencia). Abajo, a qué cuenta de CAYLA llegó y cuánto deja cada medio para Claudia, ya sin IGV ni comisión. «Falta asignar» es plata que entró a un medio sin cuenta en Configuración.",
+      texto: "La barra reparte lo cobrado por medio de pago (tarjeta, QR, Yape, Plin, transferencia). Abajo, a qué cuenta de CAYLA llegó y cuánto deja cada medio para Claudia, ya sin la comisión. «Falta asignar» es plata que entró a un medio sin cuenta en Configuración.",
     },
     {
       id: "atencion",

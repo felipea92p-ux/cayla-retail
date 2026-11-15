@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { costoDelGrupo as costoDelGrupoStock, filasDeCostoEnStock, leerConteosDelEnvio as leerConteosStock, textoCostoEnStock, unidadesSinIdentificar as sinIdentificarStock } from "./recepcion-conteo-reglas";
-import { sePuedeCambiarCategoria, costoDeCatalogo, costosConCatalogo } from "./recepcion-conteo-reglas";
+import { costoDelGrupo as costoDelGrupoStock, costoDeLoQueYaEntro, filasDeCostoEnStock, leerConteosDelEnvio as leerConteosStock, textoCostoEnStock, unidadesSinIdentificar as sinIdentificarStock } from "./recepcion-conteo-reglas";
+import { sePuedeCambiarCategoria, costoDeCatalogo, costosConCatalogo, DECISION_VACIA } from "./recepcion-conteo-reglas";
 import {
   lineasSinModelosEnCero,
   modelosEnCeroDe,
@@ -335,6 +335,20 @@ describe("cerrar", () => {
       { despacho_item_id: "i2", version: 1, costo_unitario: 30, confirma_costo: false, faltante_causa: null, sobrante_causa: null, nota: null },
       { extra_posicion: 1, version: 1, costo_unitario: null, confirma_costo: false, faltante_causa: null, sobrante_causa: null, nota: null },
     ]);
+  });
+
+  it("ADR-0668 (A4): los montos confirmados viajan con su línea — el «sí» del aviso de la base confirma los que la línea tiene en ese momento", () => {
+    const [conSi, conHoja, nada] = lineasParaCerrar(
+      [contada("i1", 10, 10), contada("i2", 4, 4), contada("i3", 4, 4)],
+      { "item:i1": dec({ costo: "440", confirmaCosto: true }), "item:i2": dec({ costo: "18.5" }), "item:i3": dec({ costo: "30" }) },
+      false,
+      {},
+      {},
+      { "item:i2": [18.5, 18.5] },
+    );
+    expect(conSi).toMatchObject({ costo_unitario: 440, confirma_costo: true, confirma_montos: [440] });
+    expect(conHoja).toMatchObject({ costo_unitario: 18.5, confirma_costo: false, confirma_montos: [18.5] });
+    expect(nada).not.toHaveProperty("confirma_montos");
   });
 
   it("p_lineas lleva TODO conteo, también lo de fuera de la guía que quedó en 0: la base lo exige y lo salta sola (si falta, el cierre falla siempre con «se contó mientras cerrabas»)", () => {
@@ -1287,6 +1301,9 @@ describe("ADR-0519 sobre ADR-0393: el costo de cada prenda en «Hacer ahora»", 
     const base = { despachoId: "d1", linea: { linea: linea("i1", 10), conteo: null }, pendienteId: "pe1", separado: SEPARADO_VACIO, token: "t" };
     expect(argsResolverPendiente(base).p_separado).not.toHaveProperty("costos");
     expect(argsResolverPendiente({ ...base, costos: {} }).p_separado).not.toHaveProperty("costos");
+    // ADR-0668 (A4): los montos confirmados van dentro de lo separado, solo si hay alguno.
+    expect(argsResolverPendiente({ ...base, confirmaMontos: [] }).p_separado).not.toHaveProperty("confirma_montos");
+    expect(argsResolverPendiente({ ...base, confirmaMontos: [440] }).p_separado).toMatchObject({ confirma_montos: [440] });
     const con = argsResolverPendiente({ ...base, costos: { "p-sofia": 52 } });
     expect(con.p_separado).toMatchObject({ prendas: [], nuevas: [], costos: { "p-sofia": 52 } });
     expect(con).toMatchObject({ p_despacho_item_id: "i1", p_pendiente_id: "pe1", p_confirma_costo: false, p_token: "t" });
@@ -1531,5 +1548,54 @@ describe("lo que ya entró al stock en «Revisa y cierra»", () => {
     const c = envio(15, undefined);
     expect(c.costoEnStock).toBeNull();
     expect(costoDelGrupoStock(filasDeCostoEnStock(15, c.costoEnStock))).toEqual({ total: 0, conCosto: 0, sinCosto: 15 });
+  });
+});
+
+// 2026-11-15, ENV-000023 (Tienda TRU): 7 vestidos de fuera de la guía ya estaban en el stock a S/ 48, pero «Revisa y cierra» decía «Falta: costo»
+// sin caja donde escribirlo (desde el 2026-11-08 la caja solo pide lo que falta entrar) y `cerrar_conteo_envio` exige el costo de la línea.
+
+describe("lo de fuera de la guía que ya entró entero al stock: su costo llega solo", () => {
+  const fuera = (o: { contadas: number; enStock: number; enStockCosto?: unknown; costo?: number | null }): LineaParaContar => ({
+    clave: "extra:1",
+    linea: null,
+    conteo:
+      leerConteosDelEnvio({
+        despacho_id: "d",
+        conteos: [conteoCrudo({ extra_posicion: 1, contadas: o.contadas, en_stock: o.enStock, en_stock_costo: o.enStockCosto, costo_unitario: o.costo ?? null, proveedor: PROV, categoria: CAT, marca: MARCA })],
+      })?.conteos[0] ?? null,
+    categoria: CAT,
+    marca: MARCA,
+    proveedor: PROV,
+    dijeron: null,
+  });
+  const vestidos = fuera({ contadas: 7, enStock: 7, enStockCosto: { con_costo: 7, sin_costo: 0, monto: 336, minimo: 48, maximo: 48 } });
+
+  it("arranca con el costo con que entró, y con varios costos, el promedio por prenda", () => {
+    expect(costoDeLoQueYaEntro(vestidos)).toBe(48);
+    expect(decisionInicial(vestidos).costo).toBe("48.00");
+    const mezcla = fuera({ contadas: 3, enStock: 3, enStockCosto: { con_costo: 3, sin_costo: 0, monto: 100, minimo: 30, maximo: 40 } });
+    expect(decisionInicial(mezcla).costo).toBe("33.33");
+  });
+
+  it("ya no pide el costo y lo manda a la base, con las mismas reglas que cerrar_conteo_envio", () => {
+    const d = { ...decisionInicial(vestidos), sobranteCausa: "otro" as const, nota: "envio de taller" };
+    expect(faltaParaCerrar({ lineas: [vestidos], decisiones: { "extra:1": d }, sinAviso: false, responsable: true })).toEqual([]);
+    expect(camposDelCierre({ lineas: [vestidos], decisiones: { "extra:1": d }, sinAviso: false, responsable: true }).find((c) => c.id === "costo-extra-1")).toMatchObject({ hecho: true });
+    expect(lineasParaCerrar([vestidos], { "extra:1": d }, false)[0]).toMatchObject({ extra_posicion: 1, costo_unitario: 48, sobrante_causa: "otro" });
+  });
+
+  it("no inventa un costo: queda algo por entrar, algo entró sin costo, la base de antes, una línea de la guía o uno ya guardado", () => {
+    expect(decisionInicial(fuera({ contadas: 7, enStock: 5, enStockCosto: { con_costo: 5, sin_costo: 0, monto: 240, minimo: 48, maximo: 48 } })).costo).toBe("");
+    expect(decisionInicial(fuera({ contadas: 7, enStock: 7, enStockCosto: { con_costo: 5, sin_costo: 2, monto: 240, minimo: 48, maximo: 48 } })).costo).toBe("");
+    expect(decisionInicial(fuera({ contadas: 7, enStock: 7 })).costo).toBe("");
+    expect(decisionInicial(fuera({ contadas: 7, enStock: 7, enStockCosto: { con_costo: 7, sin_costo: 0, monto: 336, minimo: 48, maximo: 48 }, costo: 50 })).costo).toBe("50.00");
+    expect(costoDeLoQueYaEntro({ ...vestidos, clave: "item:i1", linea: linea("i1", 7) })).toBeNull();
+  });
+
+  it("sin aviso no lo pone (solo quien ve el dinero de Compras pone un costo) y la guía no sugiere una caja que no existe", () => {
+    expect(decisionInicial(vestidos, true).costo).toBe("");
+    const campos = camposDelCierre({ lineas: [vestidos], decisiones: { "extra:1": DECISION_VACIA }, sinAviso: true, responsable: true });
+    expect(campos.some((c) => c.id === "costo-extra-1")).toBe(false);
+    expect(faltaParaCerrar({ lineas: [vestidos], decisiones: { "extra:1": DECISION_VACIA }, sinAviso: true, responsable: true })).toEqual([]);
   });
 });

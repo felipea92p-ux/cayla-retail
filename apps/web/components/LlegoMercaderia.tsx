@@ -346,7 +346,7 @@ export function LlegoMercaderia({
         return;
       }
       if (error.message === "costo_atipico_sin_lider") {
-        avisar.error("Un costo que escribiste está fuera de lo normal y solo un líder puede confirmarlo. Bórralo (el costo es opcional) o pídele a un líder que lo confirme.");
+        avisar.error("Un costo que escribiste está fuera de lo normal y tu rol no puede confirmarlo. Bórralo (el costo es opcional) o pídeselo a quien ve los costos de Compras.");
         return;
       }
       avisar.error(traducirError(error, "recibir la mercadería"));

@@ -371,27 +371,24 @@
   .cl-marco {
     container-type: inline-size;
   }
+  /* Seis piezas: lo que se le debe y sus cinco términos (cobrado, devuelto, comisión, gastos, pagado; el IGV salió con ADR-0638, regla 5).
+     Tres por fila, seis en una sola fila si cabe; en el celular la deuda va sola arriba y el último término toma la fila, sin hueco. */
   .cl-fichas {
     display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 12px;
-  }
-  .cl-debe {
-    grid-column: span 2;
   }
   @container (min-width: 1150px) {
     .cl-fichas {
-      grid-template-columns: repeat(7, minmax(0, 1fr));
-    }
-    .cl-debe {
-      grid-column: span 1;
+      grid-template-columns: repeat(6, minmax(0, 1fr));
     }
   }
   @container (max-width: 600px) {
     .cl-fichas {
       grid-template-columns: repeat(2, minmax(0, 1fr));
     }
-    .cl-debe {
+    .cl-debe,
+    .cl-fichas > :last-child:nth-child(even) {
       grid-column: 1 / -1;
     }
   }

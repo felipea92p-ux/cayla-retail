@@ -62,7 +62,7 @@ describe("lo que dice el bloque", () => {
     expect(titularDelCierre(cierre({ saldo: 0 }))).toEqual({ frase: "Se le debe a Claudia", monto: 0 });
   });
   it("la línea de hoy dice cuánto y con qué medios; sin cobros lo dice", () => {
-    expect(lineaDeHoy(cierre())).toBe("Hoy se cobró S/ 168.00 de CLAURE en tus cuentas (Tarjeta S/ 50.00 · Yape S/ 118.00), S/ 25.63 es IGV, que paga CAYLA, la comisión del POS es S/ 1.40.");
+    expect(lineaDeHoy(cierre())).toBe("Hoy se cobró S/ 168.00 de CLAURE en tus cuentas (Tarjeta S/ 50.00 · Yape S/ 118.00), la comisión del POS es S/ 1.40.");
     expect(lineaDeHoy(cierre({ hoy: { cobrado: 0, devuelto: 0, igv: 0, comision: 0, pagado: 0, efectivoClaudia: 0, gastos: 0 }, porMedio: [] }))).toBe("Hoy no se cobró nada de CLAURE en tus cuentas.");
     expect(lineaDeHoy(cierre({ hoy: { cobrado: 100, devuelto: 30, igv: 0, comision: 0, pagado: 0, efectivoClaudia: 0, gastos: 0 } }))).toContain("se devolvió S/ 30.00");
   });
@@ -78,7 +78,6 @@ describe("mensajeParaClaudia", () => {
         "Hola Claudia, el resumen del cierre de caja de Tienda LIM (28/10/2026):",
         "",
         "• Cobrado de CLAURE en cuentas de CAYLA: S/ 168.00 (Tarjeta S/ 50.00, Yape S/ 118.00)",
-        "• IGV de esas ventas (lo declara y paga CAYLA, se descuenta): S/ 25.63",
         "• Comisión del POS: S/ 1.40",
         "• Ya se te pagó hoy: S/ 40.00",
         "• Efectivo de CLAURE de hoy (lo tienes tú): S/ 150.00",

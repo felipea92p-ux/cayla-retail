@@ -86,9 +86,15 @@ export type Lectura<C extends ColorDeCarta = ColorDeCarta> =
       fondoComo: C | null;
     };
 
-/** Con qué colores de la carta se compara: los de un solo tono, con su muestra. Una mezcla o un estampado no se ven en un píxel. */
+/**
+ * Con qué colores de la carta se compara: los de un solo tono, con su muestra. Una mezcla o un estampado no se ven en un píxel, y el brillo
+ * de un metálico tampoco: su muestra es un gris o un ocre más. Con ellos en la comparación, un vestido gris liso quedaba «Plata vieja» sin
+ * preguntar (ΔE 1,7 contra 2,9 del Gris), un beige «Champán» y un marrón «Bronce» (auditoría 2026-11-15, visto en Recibir con la foto de la
+ * IA). Es la misma separación de `coloresParecidos`: un metálico solo se compara con metálicos. Quien recibe una prenda metálica de verdad la
+ * pone con «Cambiar»; lo que la foto no puede saber no se asienta solo.
+ */
 export function cartaComparable<C extends ColorDeCarta>(carta: readonly C[]): C[] {
-  return carta.filter((c) => c.activo !== false && esHexValido(c.hex) && !esCombinado(c) && !esEstampado(c));
+  return carta.filter((c) => c.activo !== false && esHexValido(c.hex) && !esCombinado(c) && !esEstampado(c) && c.familiaColor !== "metalico");
 }
 
 // sRGB (D65) → CIELAB, con las mismas constantes que `hexALab` (un píxel no pasa por texto: son ~48 000 por foto).

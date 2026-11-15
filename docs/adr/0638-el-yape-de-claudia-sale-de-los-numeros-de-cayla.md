@@ -47,7 +47,7 @@ Lo que cambia de cifras por las reglas 4 a 8 llega en las actividades siguientes
 | ADR-0560 | Queda |
 |---|---|
 | Punto 1: «la cuenta destino manda: el Yape de Lima cae en BCP Empresa» | La cuenta destino sigue mandando, pero lo de CLAURE por Yape o Plin cae en la cuenta de Claudia, que no es de CAYLA |
-| Punto 2 y línea del IGV de la segunda ronda: el IGV se le descuenta | Ya no se le descuenta (regla 5). Se aplica en la actividad siguiente que toca la fórmula; hasta entonces sigue la regla vieja |
+| Punto 2 y línea del IGV de la segunda ronda: el IGV se le descuenta | Ya no se le descuenta (regla 5). Construido el 2026-11-15 (`20261115122000`): ver «Actualización 2026-11-15» |
 | Punto 4: «El efectivo no cuenta» en un cambio | Cambia con la cuenta única con Claudia (actividad 4 de la obra) |
 
 ## SE ROMPE SI
@@ -59,3 +59,19 @@ Lo que cambia de cifras por las reglas 4 a 8 llega en las actividades siguientes
 ## Cómo se verifica
 
 `pnpm pruebas:fuera-de-cayla` (con la cuenta vacía todo da idéntico; un Yape puesto ahí sale de BCP, de los saldos, del Flujo y del Balance y el Diario cuadra; nadie paga nada con ella; no aparece en ninguna lista; un cobro Yape o Plin en su sede sí se puede), con sus controles (sin cada parche, se rompe) y el censo de las columnas con llave a `cuentas_dinero`. En producción, las cinco huellas del encabezado de `20261110001000`, antes y después, tienen que salir iguales.
+
+## Actualización 2026-11-15: la regla 5 construida (el IGV lo pone CAYLA y queda por recuperar)
+
+**El problema.** La regla 5 estaba decidida desde el 9-nov pero la base seguía con la de octubre (`20261029142000`): a Claudia se le restaba el IGV de lo que sus ventas cobraron en cuentas de CAYLA. Pagarle lo que decía la pantalla dejaba sin pagar ese IGV (cerca de un 15 % de lo cobrado), y la diferencia crecía con cada venta.
+
+**Lo que se construyó** (migración `20261115122000_claure_el_igv_lo_pone_cayla.sql`, suite `pnpm pruebas:claure-igv-lo-pone-cayla`):
+- Lo que se le debe es **cobrado − devuelto − comisión − pagado − gastos suyos**, sin restar el IGV, en las tres partes que lo calculan: la pestaña CLAURE (`resumenClaure`, `seLeDebeDeFila`, «Por dónde entra»), el aviso del cierre de caja (`fn_claure_cierre`) y la proyección (`fn_claure_saldo_a`). El IGV de cada fila se sigue leyendo, pero ya no es un término de la cuenta: desaparece la ficha «IGV (lo paga CAYLA)» y su línea en el cierre y en el mensaje a Claudia.
+- **En el Diario** (`fn_asientos_claure`), cada venta, anulación, devolución y cambio de CLAURE lleva a la **479 lo cobrado con IGV** y el IGV a la **1673 «IGV por acreditar»**, que es la línea acumulada de la regla 5. El IGV de SUNAT (4011) no se toca. Cada asiento cuadra solo: 7011 (base) + 1673 (IGV) = 479.
+
+**DECIDÍ** que el IGV quede por recuperar en un activo, la 1673 (Felipe, 2026-11-15, «Por recuperar»), provisional hasta el contador como la 479. **DESCARTÉ** llevarlo a gasto de CAYLA: es lo más prudente, pero baja la ganancia de CAYLA por todo ese IGV, obliga a revertirlo a mano cuando lleguen las facturas y no deja la línea acumulada en el libro. **DESCARTÉ** tocar solo la pantalla: la 479 diría menos de lo que se le paga (todo ese IGV), y al pagar el Balance diría que Claudia le debe a CAYLA.
+
+**Retroactivo desde el arranque (23-oct).** Ningún mes con asientos de CLAURE está cerrado (`diario_cerrado`: 0 filas `claure%` al 15-nov) y todavía no hay ningún pago a Claudia, así que no se reescribe nada congelado ni nada ya pagado con la regla vieja. Al pegarla, la 1673 abre con el IGV de todo lo vendido de CLAURE desde el arranque (efectivo incluido) y lo que se le debe sube por el IGV de lo cobrado en cuentas de CAYLA. Las cifras se miran en producción, no se escriben aquí: el repositorio es público.
+
+**SE ROMPE SI:** (a) se cierra un mes con asientos de CLAURE antes de pegar la migración: ese mes quedaría congelado con la 479 sin IGV y la pantalla con IGV; (b) llegan las facturas de CLAURE y se registran como una compra normal: subirían stock y costo de una mercadería que es consignación, y la 1673 nunca bajaría (registrarlas es otra obra); (c) alguien vuelve a pegar `20261029142000` o `20261029160000` encima: vuelven a restar el IGV, y la suite nueva lo detecta.
+
+**No hace:** no registra las facturas de compra de CLAURE (cuando lleguen, su IGV baja la 1673 y sube el crédito fiscal), no cambia `fn_impuestos_igv_meses` y no toca el contraasiento del Yape de Claudia (`claure_fuera`, que ya iba con IGV).

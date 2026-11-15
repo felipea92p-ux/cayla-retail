@@ -11,6 +11,25 @@ export const MAX_BYTES_POR_FOTO_IA = 1024 * 1024;
  */
 export const TOPE_POR_MINUTO = 12;
 
+/**
+ * Cuánto espera el NAVEGADOR la respuesta de `/api/fotos/catalogo`. El servidor corta a OpenAI a los 120 s y Vercel corta la función a los 150 (`maxDuration`):
+ * pasado eso ya no va a llegar nada. Sin tope, una red que se queda muda dejaba la tarjeta en «Arreglando la foto con IA…» para siempre, sin poder crear la
+ * prenda ni quitar la foto (auditoría 2026-11-15). Va por encima de los 150 para no cortar una respuesta que sí viene en camino.
+ */
+export const ESPERA_DEL_NAVEGADOR_MS = 160_000;
+
+/**
+ * Los lados (el mayor) con los que se intenta achicar una foto para la IA hasta que entre bajo `MAX_BYTES_POR_FOTO_IA`: primero `maximo` y después de a 20 %
+ * menos, nunca bajo 480 px (la IA entrega 1024×1280: menos que eso ya no sirve de molde). El molde viaja en WebP para conservar su transparencia; un navegador
+ * que no escribe WebP devuelve PNG sin avisar, que con 1.600 px pesa más de 1 MB: el servidor lo rechazaba con «pesa demasiado» en cada color después del
+ * primero, y reintentar daba lo mismo (auditoría 2026-11-15).
+ */
+export function ladosParaAchicar(maximo: number = LADO_MAXIMO_IA, minimo = 480): number[] {
+  const lados: number[] = [];
+  for (let lado = maximo; lado >= minimo; lado = Math.floor(lado * 0.8)) lados.push(lado);
+  return lados.length > 0 ? lados : [maximo];
+}
+
 /** El tamaño al que se achica una foto para la IA: el lado mayor a `maximo` como mucho, sin agrandar nunca y sin deformarla. */
 export function medidasParaIA(ancho: number, alto: number, maximo: number): { ancho: number; alto: number } {
   const escala = Math.min(1, maximo / Math.max(ancho, alto));

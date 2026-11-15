@@ -5,10 +5,12 @@ import { CircleAlert } from "lucide-react";
 import { CampoTexto } from "@/components/ui/campos";
 import { PropuestaDePrecio } from "@/components/alta-producto/PropuestaDePrecio";
 import { pideRevisarAlRecibir, textoRevisarAlRecibir } from "@/lib/precio-propuesto-reglas";
-import { LineaMargen, useFacturaDelMargen } from "@/components/ui/LineaMargen";
+import { LineaMargen } from "@/components/ui/LineaMargen";
 import { ElegirOpcion } from "@/components/recepcion-envio/BloquePrenda";
 import { ALCANCE_DE_FABRICA, cambioDePrecioDeVenta, hoyDelPrecio, leerCostoCierre, leerPrecioNuevo, type PrecioEditado, type PrendaSeparada, type RangoDePrecio } from "@/lib/recepcion-conteo-reglas";
 import { leerPreciosDePrenda } from "@/lib/recepcion-conteo-acciones";
+import type { DudaDeCosto } from "@/lib/referencia-de-costo";
+import { AvisoCostoDudoso } from "@/components/recepcion-conteo/AvisoCostoDudoso";
 
 // El precio de venta de una prenda que ya se identificó en este envío (Felipe 2026-10-24). El campo viene con el precio de hoy; quien recibe lo
 // cambia y elige si vale solo para la sede donde recibe (la primera opción y la que viene elegida, Felipe 2026-10-26) o para todas (una terminal, solo la suya: 2026-10-26). NO guarda aquí: el cambio se aplica al cerrar el envío, después de una
@@ -58,7 +60,19 @@ export function enfocarCosto(productoId: string) {
 
 /** El costo de compra de una prenda (ADR-0519, Felipe 2026-10-26): lo que dice el campo, qué cuesta su línea (lo que se usa si lo deja vacío), qué
  *  decía al abrir y si lo escrito está mal. Sin esto, el campo no se dibuja (quien no ve el costo de una línea de fuera de la guía). */
-export type CostoDePrenda = { valor: string; deLaLinea: string; antes: string; problema: string | null };
+export type CostoDePrenda = {
+  valor: string;
+  deLaLinea: string;
+  antes: string;
+  problema: string | null;
+  /** ADR-0668 (A4): el costo tiene una duda que la persona todavía no confirmó (`null`: ninguna, o ya dijo «Sí, pagué»). Mientras dure, no
+   *  hay línea «Te quedan» ni propuesta de precio. */
+  duda?: DudaDeCosto | null;
+  /** «Sí, pagué S/ X»: la pantalla guarda ESE monto como confirmado. */
+  onConfirmar?: (monto: number) => void;
+  /** Sin la lectura de referencia (la base no respondió): la hoja deja guardar y lo dice en una línea. */
+  sinReferencia?: boolean;
+};
 
 export function PrecioDePrenda({
   prenda,
@@ -93,7 +107,6 @@ export function PrecioDePrenda({
   sinNombre?: boolean;
 }) {
   // La misma cuenta del margen que la línea viva (sin IGV, con o sin factura): la propuesta se ofrece cuando la línea se pone ámbar.
-  const conFactura = useFacturaDelMargen();
   const nombre = prenda.nombre ?? prenda.codigo ?? "la prenda";
   const alcance = editado?.alcance ?? ALCANCE_DE_FABRICA;
   const lectura = leerPrecioNuevo(editado?.valor ?? "");
@@ -131,7 +144,9 @@ export function PrecioDePrenda({
   const precioHoy = hoyDelPrecio({ actual: editado?.actual, actualSede: editado?.actualSede, alcance });
   const precioQueQueda = lectura.valor ?? (precioHoy && precioHoy.desde === precioHoy.hasta ? precioHoy.desde : null);
   const costoQueQueda = conCosto ? (nuevoCosto?.problema === null ? nuevoCosto.valor : null) : null;
-  const revisar = conCosto ? pideRevisarAlRecibir({ conFactura, precio: precioQueQueda, costo: costoQueQueda, costoAntes: leerCostoCierre(costo.antes).valor }) : null;
+  // ADR-0668 (A4): con el costo en duda, nada se sugiere hasta que la persona lo confirme o lo corrija.
+  const duda = conCosto && costoQueQueda !== null ? (costo.duda ?? null) : null;
+  const revisar = conCosto && !duda ? pideRevisarAlRecibir({ precio: precioQueQueda, costo: costoQueQueda, costoAntes: leerCostoCierre(costo.antes).valor }) : null;
   return (
     <div
       className={
@@ -214,7 +229,18 @@ export function PrecioDePrenda({
           />
         </div>
         {/* Tarea 8 de Recibir: el margen a la vista, bajo costo y precio, solo donde se ve el costo. Cambia con cada número que se escribe. */}
-        {conCosto && <LineaMargen costo={costoQueQueda} precio={precioQueQueda} className={lado ? "col-span-2 -mt-1" : "basis-full"} />}
+        {conCosto && duda && costoQueQueda !== null && costo.onConfirmar && (
+          <AvisoCostoDudoso
+            duda={duda}
+            costo={costoQueQueda}
+            nombre={nombre}
+            onConfirmar={costo.onConfirmar}
+            onUsar={(m) => onCosto(m.toFixed(2))}
+            className={lado ? "col-span-2" : "basis-full"}
+          />
+        )}
+        {conCosto && !duda && <LineaMargen costo={costoQueQueda} precio={precioQueQueda} className={lado ? "col-span-2 -mt-1" : "basis-full"} />}
+        {conCosto && costo.sinReferencia && <p className={`text-sm text-taupe ${lado ? "col-span-2" : "basis-full"}`}>No pude comparar con lo de antes.</p>}
         <div className={lado ? "col-span-2" : undefined}>
           <span className="campo-etiqueta block">¿Dónde vale?</span>
           <div className={`mt-1.5 ${sinNombre ? "flex min-h-10 items-center" : conCosto ? "@min-[1000px]:flex @min-[1000px]:min-h-10 @min-[1000px]:items-center" : "@min-[820px]:flex @min-[820px]:min-h-10 @min-[820px]:items-center"}`}>

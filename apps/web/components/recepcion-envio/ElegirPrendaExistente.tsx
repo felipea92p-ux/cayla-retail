@@ -7,7 +7,7 @@ import { Vacio } from "@/components/ui/Vacio";
 import { Aviso } from "@/components/ui/Aviso";
 import { FotoDePrenda } from "@/components/ui/FotoDePrenda";
 import { Chip } from "@/components/ui/Chip";
-import { buscarParecidasParaRecibir, buscarPrendasParaRecibir, leerRecibidasDelProveedorEnLaBase } from "@/lib/recepcion-envio-acciones";
+import { buscarParecidasEnTodasLasMarcas, buscarPrendasParaRecibir, leerRecibidasDelProveedorEnLaBase } from "@/lib/recepcion-envio-acciones";
 import { MAX_PRENDAS_PARA_RECIBIR, type CategoriaDeLinea, type PrendaRecepcion } from "@/lib/recepcion-envio-reglas";
 import { MAX_COLORES_EN_TARJETA, coloresDeLaPrenda, galeriaDePrendas, porQueArriba, type ReferenciaDelModelo } from "@/lib/recepcion-galeria-reglas";
 
@@ -89,7 +89,7 @@ export function ElegirPrendaExistente({
     const t = window.setTimeout(
       async () => {
         const { prendas: halladas, error } = todasLasMarcas
-          ? await buscarParecidasParaRecibir(categoria.id, busqueda).then((prendas) => ({ prendas, error: null }))
+          ? await buscarParecidasEnTodasLasMarcas(categoria.id, busqueda)
           : await buscarPrendasParaRecibir(categoria.id, marca.id, busqueda);
         if (mia !== vuelta.current) return;
         setBuscando(false);

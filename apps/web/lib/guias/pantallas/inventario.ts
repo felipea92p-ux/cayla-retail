@@ -2077,7 +2077,16 @@ export const GUIA_RECIBIR_ENVIO: Guia = {
       opcional: true,
       requiere: ["recepcion.tabla-cierre"],
       titulo: "La etiqueta de cada prenda",
-      texto: "Cada prenda tiene su etiqueta: el costo o el precio que escribas vale para todas sus tallas y colores, y eliges si vale solo en tu tienda o en todas. «Ganas S/\u00a0… · %» dice cuánto ganas por prenda. «Distinto por talla o color» abre la matriz. En la demo no escribimos.",
+      texto: "Cada prenda tiene su etiqueta: el costo o el precio que escribas vale para todas sus tallas y colores, y eliges si vale solo en tu tienda o en todas. «Te quedan S/\u00a0… · %» dice cuánto te queda por prenda; en ámbar, a cuánto subir. «Distinto por talla o color» abre la matriz. En la demo no escribimos.",
+    },
+    {
+      // ADR-0668 (A4): solo aparece cuando un costo es raro (440 por 44, lo de la orden sin IGV, fuera de lo que suele costar).
+      id: "costo-dudoso",
+      ancla: "recibir.costo-dudoso",
+      opcional: true,
+      requiere: ["recepcion.tabla-cierre"],
+      titulo: "Un costo raro",
+      texto: "Si un costo es muy distinto al de antes, es lo de la orden sin impuesto o se aleja de lo que suele costar, sale este aviso y no se sugiere precio. Corrígelo, toca «Usar» para poner lo de la orden, o «Sí, pagué» si es correcto. En la demo no se toca.",
     },
     {
       // Solo en un envío sin aviso: el proveedor va en la cabecera de cada tarjeta, por marca (Felipe 2026-11-07).

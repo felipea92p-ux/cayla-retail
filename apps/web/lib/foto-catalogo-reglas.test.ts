@@ -2,6 +2,8 @@ import { describe, expect, it } from "vitest";
 import {
   contarPedido,
   esFotoIA,
+  ESPERA_DEL_NAVEGADOR_MS,
+  ladosParaAchicar,
   LADO_MAXIMO_IA,
   MAX_BYTES_POR_FOTO_IA,
   medidasParaIA,
@@ -108,5 +110,35 @@ describe("avisoIANoRespondio — /chaos 2026-11-13: el aviso dice de qué color 
   it("nombra el color, o la foto para todos los colores", () => {
     expect(avisoIANoRespondio("de Verde agua")).toBe("La IA no respondió: quedó tu foto de Verde agua.");
     expect(avisoIANoRespondio("para todos los colores")).toBe("La IA no respondió: quedó tu foto para todos los colores.");
+  });
+});
+
+// Auditoría 2026-11-15.
+describe("ladosParaAchicar: la foto para la IA siempre termina entrando bajo el tope del servidor", () => {
+  it("empieza en el lado máximo y baja de a 20 %, sin pasar del mínimo que todavía sirve de molde", () => {
+    const lados = ladosParaAchicar();
+    expect(lados[0]).toBe(LADO_MAXIMO_IA);
+    expect(lados).toEqual([...lados].sort((a, b) => b - a));
+    expect(new Set(lados).size).toBe(lados.length);
+    expect(Math.min(...lados)).toBeGreaterThanOrEqual(480);
+    expect(lados.length).toBeGreaterThanOrEqual(4);
+    for (let i = 1; i < lados.length; i++) expect(lados[i]).toBe(Math.floor(lados[i - 1] * 0.8));
+  });
+
+  it("un PNG (el navegador no escribió WebP) baja de 1 MB antes de agotar los lados: a 524 px pesa la décima parte que a 1.600", () => {
+    // El peso de una imagen sin comprimir crece con su área: del primer lado al último, el área baja más de 9 veces.
+    const lados = ladosParaAchicar();
+    expect((lados[0] / lados[lados.length - 1]) ** 2).toBeGreaterThan(9);
+  });
+
+  it("con un mínimo mayor que el máximo devuelve igual un lado: nunca deja a la foto sin intento", () => {
+    expect(ladosParaAchicar(400, 480)).toEqual([400]);
+  });
+});
+
+describe("la espera del navegador", () => {
+  it("va por encima de lo que el servidor puede tardar (120 s de OpenAI, 150 s de la función): no corta una respuesta que viene", () => {
+    expect(ESPERA_DEL_NAVEGADOR_MS).toBeGreaterThan(150_000);
+    expect(ESPERA_DEL_NAVEGADOR_MS).toBeLessThanOrEqual(180_000);
   });
 });

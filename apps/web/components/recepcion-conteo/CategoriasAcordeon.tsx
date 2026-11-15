@@ -16,6 +16,7 @@ import { colorDeAvance } from "@/lib/avance-color";
 import { buscarPrendasParaRecibir } from "@/lib/recepcion-envio-acciones";
 import { ID_CAMPO_AGREGAR, marcaDeLinea } from "@/lib/recepcion-conteo-reglas";
 import { conservaLaCifra } from "@/lib/recepcion-dial-reglas";
+import { esCategoriaPorDefinir } from "@/lib/recepcion-envio-reglas";
 import {
   avanceDeCategoria,
   categoriaAbierta,
@@ -104,8 +105,11 @@ function FilaDeParada({ p, activa, conOrigen, foto, faltanTallas, sinAviso, onEl
   const contadas = contadorDeParada(p);
   const esperadas = m ? m.esperadas : null;
   const seQuita = !!m && modeloSeQuita(m);
+  // Una prenda que llegó «por definir» (ADR-0660) no se cuenta hasta decir qué es: la base rechaza el conteo. El contador ya se apaga (`PlacaDelModelo`); el check
+  // de la fila se seguía ofreciendo, y tocarlo dejaba «4 de 4 · Cuadra» en la pantalla con nada guardado y un «Reintentar» que fallaba siempre (auditoría 2026-11-15).
+  const porDefinir = !!cat && esCategoriaPorDefinir(cat);
   // El check de la fila (reunión del 13-nov, punto 2): lo anotado y todavía sin contar se confirma de un toque, sin ir al contador. Lo demás se cuenta en el contador.
-  const llegaron = !seQuita && m && m.estado === "por-contar" && m.esperadas != null && m.esperadas > 0 ? m.esperadas : null;
+  const llegaron = !porDefinir && !seQuita && m && m.estado === "por-contar" && m.esperadas != null && m.esperadas > 0 ? m.esperadas : null;
   const cifras = esperadas != null ? <><b>{conMiles(contadas)}</b> de {conMiles(esperadas)}</> : <><b>{conMiles(contadas)}</b> {contadas === 1 ? "contada" : "contadas"}</>;
   return (
     <li className="rc-modelo-fila">

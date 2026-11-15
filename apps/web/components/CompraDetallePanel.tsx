@@ -13,7 +13,7 @@ import { Confirmacion, DatosDelProveedor, MediosDePago, PILDORA, Tilde, type Dat
 import { Boton, CampoTexto } from "@/components/ui/campos";
 import { lineaPagoVacia, lineasPagoParaRpc, sumaLineasPago, type LineaPago } from "@/components/LineasPago";
 import { useCuentasParaElegir } from "@/components/finanzas/CampoCuenta";
-import { ETIQUETA_METODO, METODO_SALDO_A_FAVOR, soles, type CompraResumen } from "@/lib/compras-reglas";
+import { ETIQUETA_METODO, METODO_SALDO_A_FAVOR, ofreceAnularCompra, soles, type CompraResumen } from "@/lib/compras-reglas";
 import { hoyLima } from "@/lib/fechas-lima";
 import { etiquetaVence, tramoDe } from "@/lib/por-pagar-reglas";
 import type { AccionesDeCompra } from "@/lib/modulos";
@@ -63,7 +63,8 @@ export function CompraAcciones({
   const puedeRecibir = vigente && compra.estadoRecepcion !== "recibida" && hayQueRecibir;
   const puedePagar = vigente && compra.saldo > 0 && permite.pagar;
   // ADR-0195 F2: la factura de un gasto o de un activo se anula desde Finanzas ▸ Gastos (con lo que detalla); la base tampoco la deja sola.
-  const puedeAnular = vigente && compra.pagado === 0 && !tieneRecepciones && permite.facturas && (compra.naturaleza ?? "mercaderia") === "mercaderia";
+  // Tampoco con mercadería que entró ANTES del comprobante (una compra de «Mis compras»): `ofreceAnularCompra`.
+  const puedeAnular = ofreceAnularCompra(compra, { tieneRecepciones, permiteFacturas: permite.facturas });
 
   // Un comprobante anulado ya no tiene acciones. El modal de pago se sigue dibujando aunque el pago recién saldó el
   // comprobante: si no, el refresco lo desmontaría en plena confirmación y se cortaría su animación de cierre.

@@ -1,7 +1,7 @@
 "use client";
 
 import { LineaMargen } from "@/components/ui/LineaMargen";
-import { facturaDelEnvio, margenALaVista } from "@/lib/margen-a-la-vista";
+import { margenALaVista } from "@/lib/margen-a-la-vista";
 import { enterNoGuarda } from "@/components/ui/enterNoGuarda";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -580,10 +580,9 @@ export function NuevoProductoForm({
 
   const precioNum = Number(precioBase);
   const costoNum = Number(costoBase);
-  // El margen con la cuenta de Compras (sin IGV; `recibir-margen#1`, Felipe 2026-11-14): la cifra grande, su línea en soles y la ficha dicen lo
-  // mismo que Compras y Recibir. Con un proveedor con RUC se supone factura, como Compras al armar la orden; sin proveedor, «sin factura».
-  const conFacturaAlta = facturaDelEnvio([], [listasMarca.proveedores.find((p) => p.id === proveedorId)?.ruc]);
-  const margenVivo = costoBase.trim() === "" ? null : margenALaVista(costoBase, precioBase, conFacturaAlta);
+  // La cuenta única (ADR-0668, Felipe 2026-11-15): la cifra grande, su línea en soles y la ficha dicen lo mismo que Recibir. Todas las
+  // prendas igual, con o sin factura: a la venta se le quita la parte de SUNAT; ámbar si el precio no aguanta una rebaja de 35 %.
+  const margenVivo = costoBase.trim() === "" ? null : margenALaVista(costoBase, precioBase);
   const margen = margenVivo?.pct ?? null;
   const nivel = margenVivo ? (margenVivo.tono === "pierdes" ? "negativo" : margenVivo.tono) : null;
   const sugerido = categoriaId ? contexto.costoSugerido[categoriaId] : undefined;
@@ -890,7 +889,7 @@ export function NuevoProductoForm({
     setTimeout(() => document.getElementById("nombre-producto")?.focus(), 50);
   }
 
-  const etiquetaNivel = { negativo: "Pierdes dinero en cada venta", bajo: "Margen bajo", normal: "Buen margen" } as const;
+  const etiquetaNivel = { negativo: "Pierdes dinero en cada venta", bajo: "Aguanta poca rebaja", normal: "Buen precio" } as const;
 
   if (creado) {
     // Un alta guardada sin conexión se sigue en la cola: la pantalla cambia sola cuando sube (o si la base la rechaza).
@@ -1333,7 +1332,7 @@ export function NuevoProductoForm({
                 {margen === null ? "—" : `${margen.toFixed(0)} %`}
               </p>
               {/* Tarea 8 de Recibir: el margen también en soles, con la misma cuenta y los mismos colores que la línea de Recibir. */}
-              {margen !== null && <LineaMargen costo={costoBase} precio={precioBase} conFactura={conFacturaAlta} soloSoles className="mt-1" />}
+              {margen !== null && <LineaMargen costo={costoBase} precio={precioBase} soloSoles className="mt-1" />}
               <p className="mt-1 text-sm text-taupe">{margen === null ? "Con el costo, se calcula" : nivel ? etiquetaNivel[nivel] : ""}</p>
             </div>
           </div>

@@ -11,6 +11,7 @@
 // El vocabulario (ADR-0393): ENVÍO es lo que se cuenta y se cierra; PENDIENTE es lo contado que todavía no está en el stock —sin separar
 // (no se sabe qué prendas son), detalle (se sabe la prenda, faltan tallas y colores) o crear (es nueva)—.
 
+import { montosConfirmados } from "./referencia-de-costo";
 import { leerCantidad } from "./alta-producto";
 import { diaLima, diasEntreFechas, hoyLima } from "./fechas-lima";
 import { sinBlancosDeMiles } from "./numero-escrito";
@@ -728,6 +729,21 @@ export type LineaParaContar = {
   dijeron: number | null;
 };
 
+/**
+ * El proveedor que la hoja de la prenda le manda a la base (`preparar_prenda_al_recibir`). Lo de fuera de la guía lleva el de SU línea cuando el envío trae dos o
+ * más, o llegó sin aviso (cada línea es de su proveedor, Felipe 2026-11-07); con uno solo y en una línea de la guía, la base ya sabe cuál es. Es una sola regla
+ * para Contar y para «Crear ahora» de Para después: la segunda mandaba siempre `null` y, con varios proveedores, la base respondía «elige de cuál es esta prenda»
+ * en una hoja que no tiene dónde elegirlo; sin aviso, la prenda nacía sin proveedor aunque su línea ya lo decía (auditoría 2026-11-15).
+ */
+export function proveedorDeLaHoja(l: Pick<LineaParaContar, "linea" | "proveedor">, nProveedores: number, sinAviso: boolean): string | null {
+  return !l.linea && (nProveedores >= 2 || sinAviso) ? (l.proveedor?.id ?? null) : null;
+}
+
+/** Cuántos proveedores distintos traen las líneas de un envío (para `proveedorDeLaHoja`, donde no llega la lista de proveedores). */
+export function proveedoresDeLasLineas(lineas: readonly Pick<LineaParaContar, "proveedor">[]): number {
+  return new Set(lineas.map((l) => l.proveedor?.id).filter((id): id is string => !!id)).size;
+}
+
 /** Las líneas en el orden del envío (las de la guía primero) y después lo de fuera de la guía, por su posición. */
 export function lineasParaContar(d: Pick<DetalleEnvio, "lineas"> & Partial<Pick<DetalleEnvio, "recibidos">>, c: Pick<ConteosDelEnvio, "conteos"> | null): LineaParaContar[] {
   // Qué prendas entraron por cada línea: el conteo solo trae cuántas.
@@ -842,9 +858,29 @@ export const DECISION_VACIA: DecisionCierre = { costo: "", confirmaCosto: false,
 /** El costo como se escribe: 25 → «25.00». */
 export const costoComoTexto = (n: number | null): string => (n == null ? "" : aTexto(Math.round(n * 100), 2));
 
-/** La decisión inicial de una línea: el costo del envío (o el que ya quedó en el conteo), sin causas. */
-export function decisionInicial(l: LineaParaContar): DecisionCierre {
-  return { ...DECISION_VACIA, costo: costoComoTexto(l.conteo?.costoUnitario ?? l.linea?.costoUnitario ?? null) };
+/**
+ * El costo de una línea de fuera de la guía que YA entró entera al stock, y toda con costo: el costo con que entró (2026-11-15, ENV-000023).
+ * «Revisa y cierra» no dibuja la caja del costo de una línea que no tiene nada por entrar (2026-11-08), pero `cerrar_conteo_envio` sigue
+ * pidiendo el costo de lo de fuera de la guía: «Falta: costo» sin dónde escribirlo, y el envío no cerraba. Ese costo ya está en el stock
+ * (`despacho_recibidos`, «llevar al stock ahora»): con un solo costo es ese; con varios, el promedio por prenda (lo que entró ÷ cuántas),
+ * que es lo que vale cada una al medir lo que no venía. `null` si queda algo por entrar (la caja lo pide), si algo entró sin costo o con la
+ * base de antes (sin `en_stock_costo`): ahí no se inventa nada.
+ */
+export function costoDeLoQueYaEntro(l: LineaParaContar): number | null {
+  const c = l.conteo;
+  if (l.linea || !c || c.contadas <= 0 || c.enStock < c.contadas) return null;
+  const s = c.costoEnStock;
+  if (!s || s.conCosto !== c.enStock || s.minimo == null || s.maximo == null) return null;
+  return s.minimo === s.maximo ? s.minimo : Math.round((s.monto / s.conCosto) * 100) / 100;
+}
+
+/**
+ * La decisión inicial de una línea: el costo del envío (o el que ya quedó en el conteo), sin causas. Lo de fuera de la guía que ya entró
+ * entero al stock arranca con el costo con que entró (`costoDeLoQueYaEntro`), salvo sin aviso: ahí el costo es opcional y solo lo pone quien
+ * ve el dinero de Compras (la base rechaza uno mandado por quien no lo ve).
+ */
+export function decisionInicial(l: LineaParaContar, sinAviso = false): DecisionCierre {
+  return { ...DECISION_VACIA, costo: costoComoTexto(l.conteo?.costoUnitario ?? l.linea?.costoUnitario ?? (sinAviso ? null : costoDeLoQueYaEntro(l))) };
 }
 
 /** Lee el costo escrito: vacío es «sin costo» (null); algo que no es un monto, un problema. */
@@ -1096,7 +1132,11 @@ export function camposDelCierre(
       const f = falta.find((x) => x.clave === "causa" && x.linea === l.clave);
       campos.push({ id: idCampoCierre("causa", l.clave), nombre: `Qué pasó · ${nombre}`, requerido: true, hecho: !f, pendiente: f ? `${f.texto}.` : "" });
     }
-    if (!l.linea && contadasDe(l) > 0 && !esRegaloFuera(l, p.decisiones[l.clave] ?? DECISION_VACIA)) {
+    // Sin aviso, lo que ya entró entero al stock no tiene caja de costo («Revisa y cierra» solo la dibuja por lo que falta entrar) y su costo
+    // es opcional: la guía no lo sugiere, porque no habría adónde llevar a la persona.
+    // (Uno mal escrito que quedó de antes sí se lista: frena el cierre.)
+    const sinCaja = p.sinAviso && (l.conteo?.enStock ?? 0) >= contadasDe(l) && !leerCostoCierre((p.decisiones[l.clave] ?? DECISION_VACIA).costo).problema;
+    if (!l.linea && contadasDe(l) > 0 && !esRegaloFuera(l, p.decisiones[l.clave] ?? DECISION_VACIA) && !sinCaja) {
       const f = falta.find((x) => x.clave === "costo" && x.linea === l.clave);
       campos.push({
         id: idCampoCierre("costo", l.clave),
@@ -1175,6 +1215,8 @@ export type LineaParaCerrar = {
   nota: string | null;
   /** ADR-0519: el costo propio de las prendas (o, desde 2026-10-28, de las combinaciones) separadas de esta línea que cuestan distinto de la línea ({producto | variante: costo}). Sin nada propio, no va. */
   costos_prendas?: Record<string, number>;
+  /** ADR-0668 (A4): los montos que la persona confirmó con «Sí, pagué» (en la hoja o en el aviso de la base). Sin ninguno, no va. */
+  confirma_montos?: number[];
 };
 
 /** El costo propio de cada prenda de una línea, como se escribe: `{ clave: "55.50" }`. Solo lo que quien cierra tocó. La clave es el producto de la
@@ -1285,6 +1327,8 @@ export function lineasParaCerrar(
   costosPrendas: Readonly<Record<string, CostosDePrendas>> = {},
   /** El costo propio de combinaciones (color y talla), por línea: `{ clave de línea: { variante_id | producto_id: costo } }` (`costosParaLinea`). */
   costosCombinaciones: Readonly<Record<string, Readonly<Record<string, number>>>> = {},
+  /** ADR-0668 (A4): por línea, los montos que la persona confirmó en la hoja antes de cerrar. */
+  confirmadosEnLaHoja: Readonly<Record<string, readonly number[]>> = {},
 ): LineaParaCerrar[] {
   return lineas
     .filter((l) => l.conteo !== null)
@@ -1309,8 +1353,25 @@ export function lineasParaCerrar(
         // La nota de la línea solo es «lo que pasó» de un «Otro»: con otra causa no hay dónde escribirla y lo que quedó escrito antes no viaja.
         nota: sobrante === VALOR_OTRO && d.nota.trim() ? d.nota.trim().slice(0, TOPES_CONTEO.nota) : null,
         ...(Object.keys(propios).length > 0 ? { costos_prendas: propios } : {}),
+        ...confirmaMontosDeLinea(regalo, d.confirmaCosto, costo, propios, confirmadosEnLaHoja[l.clave] ?? []),
       };
     });
+}
+
+/**
+ * Los montos confirmados de una línea (ADR-0668, A4). El «sí» del aviso de la base se da y se manda en el mismo instante: confirma los montos
+ * que la línea tiene en ese momento (los que la persona acaba de ver). Lo confirmado en la hoja se suma tal cual.
+ */
+function confirmaMontosDeLinea(
+  regalo: boolean,
+  confirma: boolean,
+  costo: number | null,
+  propios: Readonly<Record<string, number>>,
+  enLaHoja: readonly number[],
+): { confirma_montos?: number[] } {
+  if (regalo) return {};
+  const montos = montosConfirmados([...(confirma ? [costo ?? 0, ...Object.values(propios)] : []), ...enLaHoja]);
+  return montos.length > 0 ? { confirma_montos: montos } : {};
 }
 
 /** Las causas que se ofrecen para una línea: faltante o sobrante (lo de fuera de la guía siempre es sobrante). «Es la reposición de lo que
@@ -1617,7 +1678,7 @@ export type ArgsResolverPendiente = {
   p_extra_posicion: number | null;
   p_pendiente_id: string | null;
   /** Lo separado y, si quien termina lo pendiente cambió el costo de alguna prenda (ADR-0519), `costos`: `{ producto: costo }` de esas prendas. */
-  p_separado: ReturnType<typeof separadoParaBase> & { costos?: Record<string, number> };
+  p_separado: ReturnType<typeof separadoParaBase> & { costos?: Record<string, number>; confirma_montos?: number[] };
   p_confirma_costo: boolean;
   p_token: string;
 };
@@ -1630,6 +1691,8 @@ export function argsResolverPendiente(p: {
   /** El costo propio de las prendas que se identifican ahora (`costosDeHacerAhora`); sin nada, no va y la base hace lo de siempre. */
   costos?: Readonly<Record<string, number>>;
   confirmaCosto?: boolean;
+  /** ADR-0668 (A4): los montos que la persona confirmó con «Sí, pagué»; la base acepta un costo dudoso solo si es uno de ellos. */
+  confirmaMontos?: readonly number[];
   token: string;
 }): ArgsResolverPendiente {
   return {
@@ -1637,7 +1700,11 @@ export function argsResolverPendiente(p: {
     p_despacho_item_id: p.linea.linea?.id ?? null,
     p_extra_posicion: p.linea.linea ? null : (p.linea.conteo?.extraPosicion ?? null),
     p_pendiente_id: p.pendienteId,
-    p_separado: { ...separadoParaBase(p.separado), ...(p.costos && Object.keys(p.costos).length > 0 ? { costos: { ...p.costos } } : {}) },
+    p_separado: {
+      ...separadoParaBase(p.separado),
+      ...(p.costos && Object.keys(p.costos).length > 0 ? { costos: { ...p.costos } } : {}),
+      ...(p.confirmaMontos && p.confirmaMontos.length > 0 ? { confirma_montos: [...p.confirmaMontos] } : {}),
+    },
     p_confirma_costo: p.confirmaCosto ?? false,
     p_token: p.token,
   };

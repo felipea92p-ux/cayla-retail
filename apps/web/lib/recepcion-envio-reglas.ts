@@ -1402,7 +1402,8 @@ function leerItemAtipico(f: unknown, nombrar: (despachoItemId: string | null, va
   return {
     motivo,
     costoUnitario: costo,
-    costoVigente: cifra(r.vigente) ?? cifra(r.costo_vigente),
+    // ADR-0668 (A4): el «antes» con el que la base juzgó (en papel), si lo manda.
+    costoVigente: cifra(r.anterior) ?? cifra(r.vigente) ?? cifra(r.costo_vigente),
     precio: cifra(r.precio),
     sku: nombrar(despachoItemId, varianteId) ?? texto(r.sku) ?? texto(r.codigo),
     varianteId,
