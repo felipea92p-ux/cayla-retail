@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 /**
  * Prueba de `20261114215000_reportes_ventas_por_empresa.sql` (ADR-0665): el filtro «Empresa» (CAYLA / CLAURE) de Ventas ▸ Reportes, donde conviven
- * dos empresas (hoy, Tienda Lima). Las cuatro lecturas (`fn_reporte_ventas_mes`, `_series`, `_cortes` y `_ranking`) ganan `p_empresa`.
+ * dos empresas (hoy, Tienda Lima). Las cuatro lecturas (`fn_reporte_ventas_mes`, `_series`, `_cortes` y `_ranking`) ganan `p_empresa`. Y de
+ * `20261115013000_reportes_pagos_por_empresa.sql` (ADR-0665, act. 2026-11-15): «Cómo se pagó» con la empresa elegida (`fn_reporte_ventas_pagos`).
  *
  * EL PROBLEMA. Un reporte que se parte por empresa y no suma lo mismo que el total es peor que ninguno: el dueño ve CAYLA S/ 125 + CLAURE S/ 130 y el
  * total dice S/ 260. Y la regla de «de quién es esta línea» ya existe en otro lugar (Caja, Historial, Movimientos: `fn_dueno_de_la_linea`); si el reporte
@@ -13,7 +14,7 @@
  *   B. Ventas del mes, Lima: CAYLA + CLAURE = el vendido, las prendas y el devuelto sin filtro; las ventas (tickets) cuentan una venta mixta en las dos;
  *      el mes anterior se filtra igual; la primera venta es la de esa empresa.
  *   C. La devolución mixta se reparte por valor y la de una sola empresa va entera; la suma de las empresas es el reembolso.
- *   D. Los gráficos: por día y mes a mes suman lo mismo que las cifras; «cómo se pagó» NO se parte (vacío con la empresa, lleno sin ella).
+ *   D. Los gráficos: por día y mes a mes suman lo mismo que las cifras; la serie sigue sin partir «cómo se pagó» (vacío con la empresa, lleno sin ella).
  *   E. Los cortes: por tienda y por categoría suman lo mismo que las cifras.
  *   F. El ranking: las filas, los totales y lo que queda en tiendas (CLAURE = `stock_dueno`; CAYLA = el resto: las dos suman el «queda» sin filtro).
  *   G. Coincide con `fn_vendido_por_empresa` (Caja e Historial) con los mismos filtros.
@@ -21,6 +22,10 @@
  *   I. Una cuenta de Lima con el módulo en su rol (no líder) lee lo mismo que el líder: las lecturas son INVOKER y la RLS no esconde lo que necesitan.
  *   J. Los permisos, una sola firma de cada lectura, y pegar la migración dos veces no falla.
  *   K. El control: con la regla por ficha (sin el movimiento) CLAURE saldría distinto, así que la prueba SÍ discrimina.
+ *   L. «Cómo se pagó» por empresa (`fn_reporte_ventas_pagos`, `fn_pago_de_la_empresa`): sin empresa es lo de la serie; la venta de una empresa y la
+ *      mixta de un solo medio van exactas; la mixta con dos medios se reparte por lo cobrado y se avisa en `repartido`; con tres medios cuadra al
+ *      céntimo de las dos maneras (CAYLA + CLAURE = cada medio, y lo de una empresa = lo que vendió); la venta sin valor va a la casa; 22023 y 42501
+ *      como las demás; una cuenta de Lima que no es líder lee lo mismo; permisos.
  *
  * CÓMO. Cada caso es UNA transacción con ROLLBACK (nunca se commitea nada en el Postgres local compartido): se pega la migración, se arma la escena de
  * Lima (CLAURE opera allí), se siembra con los disparadores apagados (aquí se prueba la lectura, no la venta) y se entra con la sesión simulada
@@ -38,6 +43,7 @@ import { fileURLToPath } from "node:url";
 const CONTENEDOR_LOCAL = "supabase_db_cayla-retail";
 const RAIZ = join(fileURLToPath(new URL(".", import.meta.url)), "..", "..");
 const MIGRACION = readFileSync(join(RAIZ, "supabase/migrations/20261114215000_reportes_ventas_por_empresa.sql"), "utf8");
+const MIGRACION_PAGOS = readFileSync(join(RAIZ, "supabase/migrations/20261115013000_reportes_pagos_por_empresa.sql"), "utf8");
 const FELIPE = "22222222-2222-4222-8222-000000000001"; // líder (seed)
 const CAYLA = "'ca71a000-0000-4000-8000-000000000001'::uuid";
 const CLAURE = "'c1a07e00-0000-4000-8000-000000000002'::uuid";
@@ -88,9 +94,9 @@ const LIM = (ts) => `(timestamp '${ts}' at time zone 'America/Lima')`;
 const SEMBRADO = `
 set local session_replication_role = replica;
 select va.id as var_a, va.producto_id as prod_a from retail.variantes va join retail.productos p on p.id = va.producto_id
-  where retail.fn_categoria_entra_a_motores(p.categoria_id) order by va.id limit 1 \\gset
+  where p.categoria_id is not null and retail.fn_categoria_entra_a_motores(p.categoria_id) order by va.id limit 1 \\gset
 select va.id as var_b, va.producto_id as prod_b from retail.variantes va join retail.productos p on p.id = va.producto_id
-  where retail.fn_categoria_entra_a_motores(p.categoria_id) and va.producto_id <> :'prod_a' order by va.id limit 1 \\gset
+  where p.categoria_id is not null and retail.fn_categoria_entra_a_motores(p.categoria_id) and va.producto_id <> :'prod_a' order by va.id limit 1 \\gset
 select p.categoria_id as cat_a from retail.productos p where p.id = :'prod_a' \\gset
 select c.id as cat_b from retail.categorias c where c.id <> :'cat_a' and retail.fn_categoria_entra_a_motores(c.id) order by c.id limit 1 \\gset
 update retail.productos set empresa_id = ${CAYLA}, categoria_id = :'cat_a' where id = :'prod_a';
@@ -180,11 +186,13 @@ set local session_replication_role = origin;
 
 const sesion = (sub) => `set local request.jwt.claim.sub = '${sub}';\nset local request.jwt.claims = '{"sub":"${sub}","role":"authenticated"}';\nset local role authenticated;`;
 
-// `como`: la cuenta con la que se lee (`null` = postgres, para mirar lo que la web no puede ejecutar).
-const dentro = (consulta, { como = FELIPE } = {}) =>
+// `como`: la cuenta con la que se lee (`null` = postgres, para mirar lo que la web no puede ejecutar). `antes`: lo que se siembra de más en ese caso,
+// como postgres y con los disparadores apagados, antes de entrar con la cuenta.
+const dentro = (consulta, { como = FELIPE, antes = "" } = {}) =>
   psql(`begin;
 \\o /dev/null
 ${MIGRACION}
+${MIGRACION_PAGOS}
 ${ESCENA}
 ${SEMBRADO}
 create function pg_temp.codigo(p_sql text) returns text language plpgsql as $f$
@@ -198,6 +206,7 @@ exception when others then
   return v_cod || ' ' || v_msg;
 end $f$;
 grant execute on function pg_temp.codigo(text) to authenticated, anon;
+${antes ? `set local session_replication_role = replica;\n${antes}\nset local session_replication_role = origin;` : ""}
 \\o
 ${como ? sesion(como) : ""}
 ${consulta}
@@ -287,7 +296,7 @@ caso("D1. por día: CLAURE suma 130 en 3 ventas, CAYLA 125 en 2, sin filtro 255 
 const delMes = (emp, mes) => `(select ${n("m->>'vendido'")} from jsonb_array_elements(${SERIES(emp, LIMA, "2019-02-15")}->'meses') m where m->>'mes' = '${mes}')`;
 caso("D2. mes a mes (la ventana que empieza en febrero): CLAURE febrero 80 y marzo 130; CAYLA febrero 10 y marzo 125", () =>
   igual(dentro(`select ${delMes(CLAURE, "2019-02-01")} || '/' || ${delMes(CLAURE, "2019-03-01")} || ' ' || ${delMes(CAYLA, "2019-02-01")} || '/' || ${delMes(CAYLA, "2019-03-01")};`), "80/130 10/125"));
-caso("D3. cómo se pagó NO se parte: con la empresa sale vacío; sin ella, lo cobrado de Lima (255)", () =>
+caso("D3. la serie sigue sin partir cómo se pagó: con la empresa sale vacío (lo lee fn_reporte_ventas_pagos, caso L); sin ella, lo cobrado de Lima (255)", () =>
   igual(
     dentro(`select jsonb_array_length(${SERIES(CLAURE)}->'pagos')::text || '|' || jsonb_array_length(${SERIES(CAYLA)}->'pagos')::text || '|' ||
                    ${n(`(select sum((p->>'monto')::numeric) from jsonb_array_elements(${SERIES(sinEmp)}->'pagos') p)`)};`),
@@ -401,10 +410,20 @@ caso("J2. una sola firma de cada lectura (con dos, la llamada sin la empresa ser
     ),
     "4|true|true",
   ));
-caso("J3. pegar la migración dos veces no falla", () => {
-  psql(`begin;\n\\o /dev/null\n${MIGRACION}\n${MIGRACION}\n\\o\nrollback;`);
+caso("J3. pegar las migraciones dos veces no falla", () => {
+  psql(`begin;\n\\o /dev/null\n${MIGRACION}\n${MIGRACION_PAGOS}\n${MIGRACION}\n${MIGRACION_PAGOS}\n\\o\nrollback;`);
   return null;
 });
+caso("J4. «cómo se pagó» por empresa: anon no ejecuta; authenticated sí; las dos funciones son INVOKER y estables, con una sola firma", () =>
+  igual(
+    dentro(
+      `select string_agg(p.proname || '=' || has_function_privilege('anon', p.oid, 'execute')::text || '/' || has_function_privilege('authenticated', p.oid, 'execute')::text
+                         || '/' || (not p.prosecdef)::text || '/' || (p.provolatile = 's')::text, ',' order by p.proname)
+         from pg_proc p where p.pronamespace = 'retail'::regnamespace and p.proname in ('fn_pago_de_la_empresa', 'fn_reporte_ventas_pagos');`,
+      { como: null },
+    ),
+    "fn_pago_de_la_empresa=false/true/true/true,fn_reporte_ventas_pagos=false/true/true/true",
+  ));
 
 // ======================= K. El control =======================
 caso("K. el control: con la regla por ficha (sin el movimiento) CLAURE saldría 90 y no 130; el movimiento SÍ cuenta", () =>
@@ -416,6 +435,86 @@ caso("K. el control: con la regla por ficha (sin el movimiento) CLAURE saldría 
                        and v.created_at >= ${LIM("2019-03-01")} and v.created_at < ${LIM("2019-04-01")});`),
     "130|90",
   ));
+
+// ======================= L. Cómo se pagó, por empresa (20261115013000) =======================
+const PAGOS = (emp, ub = LIMA) => `retail.fn_reporte_ventas_pagos('2019-03-15', ${ub}, ${emp})`;
+/** «efectivo 30, tarjeta 40, yape 60»: los medios de una lectura, en orden de nombre. */
+const medios = (r) => `coalesce((select string_agg((p->>'metodo') || ' ' || trim_scale((p->>'monto')::numeric)::text, ', ' order by p->>'metodo') from jsonb_array_elements(${r}->'pagos') p), '—')`;
+/** «ventas|monto» de lo repartido; «null» sin empresa. */
+const repartido = (r) => `coalesce((${r}->'repartido'->>'ventas') || '|' || trim_scale((${r}->'repartido'->>'monto')::numeric)::text, 'null')`;
+const sumaPagos = (r) => `(select coalesce(sum((p->>'monto')::numeric), 0) from jsonb_array_elements(${r}->'pagos') p)`;
+// V9: mixta con dos medios (A×1 a 50 de CAYLA + B×1 a 25 de CLAURE = 75; efectivo 40 + yape 35). V10: mixta con tres medios (A×1 a 10 + B×1 a 20 = 30;
+// efectivo, tarjeta y yape, 10 cada uno). V11: una venta cuya única línea no tiene valor (B a 0) y que, aun así, tiene un pago de 5.
+const MIXTA_DOS_MEDIOS = `select pg_temp.venta('V9', ${LIMA}, ${LIM("2019-03-18 12:00")}, 'completada', false);
+select pg_temp.linea('V9a', 'V9', :'var_a', 1, 50);
+select pg_temp.linea('V9b', 'V9', :'var_b', 1, 25);
+insert into retail.venta_pagos (id, venta_id, metodo, monto) values (md5('re-p9a')::uuid, md5('re-V9')::uuid, 'efectivo', 40), (md5('re-p9b')::uuid, md5('re-V9')::uuid, 'yape', 35);`;
+const MIXTA_TRES_MEDIOS = `select pg_temp.venta('V10', ${LIMA}, ${LIM("2019-03-19 12:00")}, 'completada', false);
+select pg_temp.linea('V10a', 'V10', :'var_a', 1, 10);
+select pg_temp.linea('V10b', 'V10', :'var_b', 1, 20);
+insert into retail.venta_pagos (id, venta_id, metodo, monto) values (md5('re-p10a')::uuid, md5('re-V10')::uuid, 'efectivo', 10),
+  (md5('re-p10b')::uuid, md5('re-V10')::uuid, 'tarjeta', 10), (md5('re-p10c')::uuid, md5('re-V10')::uuid, 'yape', 10);`;
+const SIN_VALOR = `select pg_temp.venta('V11', ${LIMA}, ${LIM("2019-03-20 12:00")}, 'completada', false);
+select pg_temp.linea('V11b', 'V11', :'var_b', 1, 0);
+insert into retail.venta_pagos (id, venta_id, metodo, monto) values (md5('re-p11')::uuid, md5('re-V11')::uuid, 'efectivo', 5);`;
+
+caso("L1. sin empresa, la lectura nueva es la de la serie (Lima, Trujillo y todas las tiendas) y no trae «repartido»", () =>
+  igual(
+    dentro(`select ((${PAGOS(sinEmp)}->'pagos') = (${SERIES(sinEmp)}->'pagos'))::text || '|' ||
+                   ((${PAGOS(sinEmp, TRUJILLO)}->'pagos') = (${SERIES(sinEmp, TRUJILLO)}->'pagos'))::text || '|' ||
+                   ((${PAGOS(sinEmp, "null")}->'pagos') = (${SERIES(sinEmp, "null")}->'pagos'))::text || '|' || ${repartido(PAGOS(sinEmp))};`),
+    "true|true|true|null",
+  ));
+caso("L2. exacto: la venta de una empresa y la mixta de un solo medio (V1, efectivo 130 = 100 de CAYLA + 30 de CLAURE); nada repartido", () =>
+  igual(
+    dentro(`select ${medios(PAGOS(CLAURE))} || ' (' || ${repartido(PAGOS(CLAURE))} || ') / ' || ${medios(PAGOS(CAYLA))} || ' (' || ${repartido(PAGOS(CAYLA))} || ')';`),
+    "efectivo 30, tarjeta 40, yape 60 (0|0) / efectivo 125 (0|0)",
+  ));
+caso("L3. la mixta con dos medios se reparte por lo cobrado (V9: 25 de 75 son de CLAURE) y se avisa: CLAURE 1 venta y 25, CAYLA 1 venta y 50", () =>
+  igual(
+    dentro(`select ${medios(PAGOS(CLAURE))} || ' (' || ${repartido(PAGOS(CLAURE))} || ') / ' || ${medios(PAGOS(CAYLA))} || ' (' || ${repartido(PAGOS(CAYLA))} || ')';`,
+      { antes: MIXTA_DOS_MEDIOS }),
+    "efectivo 43.33, tarjeta 40, yape 71.67 (1|25) / efectivo 151.67, yape 23.33 (1|50)",
+  ));
+caso("L4. al céntimo con tres medios (V10, 2/3 de CLAURE): CLAURE 6.67 + 6.66 + 6.67 = 20 y CAYLA 3.33 + 3.34 + 3.33 = 10, no 20.01 y 9.99", () =>
+  igual(
+    dentro(`select string_agg(trim_scale(retail.fn_pago_de_la_empresa(md5('re-V10')::uuid, m, ${CLAURE}))::text, '+' order by m) || '|' ||
+                   string_agg(trim_scale(retail.fn_pago_de_la_empresa(md5('re-V10')::uuid, m, ${CAYLA}))::text, '+' order by m)
+              from unnest(array['efectivo', 'tarjeta', 'yape']) m;`, { antes: MIXTA_TRES_MEDIOS }),
+    "6.67+6.66+6.67|3.33+3.34+3.33",
+  ));
+caso("L5. cuadra de las dos maneras (con V9, V10 y V11): CAYLA + CLAURE = sin filtro en cada medio; CLAURE pagó lo que vendió (175) y CAYLA lo suyo (185) más los 5 sin valor", () =>
+  igual(
+    dentro(`select bool_and(coalesce(ca.monto, 0) + coalesce(cl.monto, 0) = s.monto)::text || '|' ||
+                   trim_scale(${sumaPagos(PAGOS(CLAURE))})::text || '=' || ${n(`${MES(CLAURE)}->'actual'->>'vendido'`)} || '|' ||
+                   trim_scale(${sumaPagos(PAGOS(CAYLA))})::text || '=' || ${n(`${MES(CAYLA)}->'actual'->>'vendido'`)} || '+5|' ||
+                   (${sumaPagos(PAGOS(CAYLA))} + ${sumaPagos(PAGOS(CLAURE))} = ${sumaPagos(PAGOS(sinEmp))})::text
+              from (select p->>'metodo' as metodo, (p->>'monto')::numeric as monto from jsonb_array_elements(${PAGOS(sinEmp)}->'pagos') p) s
+              left join (select p->>'metodo' as metodo, (p->>'monto')::numeric as monto from jsonb_array_elements(${PAGOS(CAYLA)}->'pagos') p) ca using (metodo)
+              left join (select p->>'metodo' as metodo, (p->>'monto')::numeric as monto from jsonb_array_elements(${PAGOS(CLAURE)}->'pagos') p) cl using (metodo);`,
+      { antes: `${MIXTA_DOS_MEDIOS}\n${MIXTA_TRES_MEDIOS}\n${SIN_VALOR}` }),
+    "true|175=175|190=185+5|true",
+  ));
+caso("L6. una venta sin líneas con valor (V11: B a 0, pagada con 5): el pago es de la casa, CAYLA 5 y CLAURE 0", () =>
+  igual(
+    dentro(`select trim_scale(retail.fn_pago_de_la_empresa(md5('re-V11')::uuid, 'efectivo', ${CAYLA}))::text || '|' ||
+                   trim_scale(retail.fn_pago_de_la_empresa(md5('re-V11')::uuid, 'efectivo', ${CLAURE}))::text;`, { antes: SIN_VALOR }),
+    "5|0",
+  ));
+caso("L7. la empresa solo se elige dentro de una tienda donde operan dos (22023 sin tienda y en Trujillo) y sin el módulo, 42501", () =>
+  igual(
+    dentro(`select split_part(pg_temp.codigo($q$select ${PAGOS(CLAURE, "null")}$q$), ' ', 1) || '|' ||
+                   split_part(pg_temp.codigo($q$select ${PAGOS(CLAURE, TRUJILLO)}$q$), ' ', 1);`) +
+      "|" +
+      dentro(`select split_part(pg_temp.codigo($q$select ${PAGOS(CLAURE)}$q$), ' ', 1);`, { como: SIN_PERSONA }),
+    "22023|22023|42501",
+  ));
+caso("L8. una cuenta de Lima con el módulo (no es líder) lee lo mismo que el líder: la RLS de los pagos no esconde nada (las lecturas son INVOKER)", () => {
+  const consulta = `select ${medios(PAGOS(CLAURE))} || ' (' || ${repartido(PAGOS(CLAURE))} || ')';`;
+  const lider = dentro(consulta, { antes: MIXTA_DOS_MEDIOS });
+  if (lider !== "efectivo 43.33, tarjeta 40, yape 71.67 (1|25)") return `el líder leyó «${lider}»`;
+  return igual(dentro(consulta, { como: CUENTA_LIMA, antes: MIXTA_DOS_MEDIOS }), lider);
+});
 
 console.log(`\n${total - fallas}/${total} casos en verde`);
 process.exit(fallas ? 1 : 0);

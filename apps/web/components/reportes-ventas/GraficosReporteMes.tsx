@@ -3,6 +3,8 @@ import { BarraApilada } from "@/components/ui/BarraApilada";
 import { BarrasTiempo } from "@/components/ui/BarrasTiempo";
 import { TituloSeccion } from "@/components/ui/TituloSeccion";
 import { Vacio } from "@/components/ui/Vacio";
+import { Aviso } from "@/components/ui/Aviso";
+import { Ayuda } from "@/components/Ayuda";
 import { Wallet } from "lucide-react";
 import { soles } from "@/lib/flujo-caja-reglas";
 import {
@@ -19,7 +21,7 @@ import {
   type SeriesMes,
 } from "@/lib/reportes-ventas-reglas";
 import { nombreDelMes } from "@/lib/historial-cierres-reglas";
-import { NOTA_PAGOS_SIN_PARTIR } from "@/lib/reportes-empresa-reglas";
+import { AYUDA_DEL_REPARTO, NOTA_PAGOS_SIN_LEER, lineaDelReparto, type EmpresaDeReporte, type PagosDeEmpresa } from "@/lib/reportes-empresa-reglas";
 import { MesAMes } from "@/components/reportes-ventas/MesAMes";
 
 // Los tres gráficos de «Ventas del mes» (maqueta docs/maquetas/reportes-ventas-2026-11/): ventas por día contra el promedio diario del mes que se mira,
@@ -28,9 +30,25 @@ import { MesAMes } from "@/components/reportes-ventas/MesAMes";
 const PORCENTAJE = new Intl.NumberFormat("es-PE", { maximumFractionDigits: 0 });
 const bloque = "anim-sube rounded-tarjeta bg-papel p-5 ring-1 ring-tinta/[0.07]";
 
-// Con una empresa elegida (`empresaClave`, ADR-0665) los dos primeros gráficos cuentan solo sus líneas, pero «cómo se pagó» NO se parte: una caja y una boleta son
-// una sola (decisión de ADR-0532); en su lugar dice por qué.
-export function GraficosReporteMes({ r, s, tiendaId, empresaClave, corte }: { r: ReporteMes; s: SeriesMes; tiendaId: string | null; empresaClave: string | null; corte: string | null }) {
+// Con una empresa elegida (`empresa`, ADR-0665) los tres gráficos cuentan solo lo suyo. «Cómo se pagó» sale de su propia lectura (`pagosDeEmpresa`,
+// `fn_reporte_ventas_pagos`, act. 2026-11-15): la parte de cada pago que es de esa empresa. Si parte de eso salió de ventas mixtas pagadas con dos medios, una
+// línea lo dice y su «?» explica el reparto; si la lectura no llegó, el cuadro lo dice y lo demás sigue.
+export function GraficosReporteMes({
+  r,
+  s,
+  tiendaId,
+  empresa,
+  pagosDeEmpresa,
+  corte,
+}: {
+  r: ReporteMes;
+  s: SeriesMes;
+  tiendaId: string | null;
+  empresa: EmpresaDeReporte | null;
+  pagosDeEmpresa: PagosDeEmpresa | null;
+  corte: string | null;
+}) {
+  const empresaClave = empresa?.clave ?? null;
   const mes = { anio: Number(s.mes.slice(0, 4)), mes: Number(s.mes.slice(5, 7)) };
   const nombre = nombreDelMes(mes);
   const mejor = mejorDia(s);
@@ -42,7 +60,9 @@ export function GraficosReporteMes({ r, s, tiendaId, empresaClave, corte }: { r:
   const textoRaya = promedio === null ? null : `${tramo === null ? `Promedio de ${mesEnPalabra}` : `Promedio ${tramo}`}: ${soles(promedio)} al día`;
   const dias = barrasPorDia(s);
   const meses = barrasPorMes(s);
-  const { total, tramos } = tramosDePago(s);
+  const sinLeer = empresa !== null && pagosDeEmpresa === null;
+  const { total, tramos } = tramosDePago(empresa ? { pagos: pagosDeEmpresa?.pagos ?? [] } : s);
+  const reparto = pagosDeEmpresa ? lineaDelReparto(pagosDeEmpresa.repartido) : null;
   const maxMes = Math.max(0, ...meses.map((m) => m.valor));
 
   return (
@@ -110,10 +130,10 @@ export function GraficosReporteMes({ r, s, tiendaId, empresaClave, corte }: { r:
         </section>
 
         <section aria-label="Cómo se pagó" data-guia="reportes.pagos" className={bloque} style={{ "--i": 7 } as CSSProperties}>
-          <TituloSeccion dato={total > 0 && !empresaClave ? <b className="font-semibold text-tinta">{soles(total)}</b> : undefined}>Cómo se pagó</TituloSeccion>
-          {!empresaClave && <p className="mt-0.5 text-sm text-tinta/60">{nombre} · lo cobrado, por medio de pago</p>}
-          {empresaClave ? (
-            <Vacio tamano="chico" icono={<Wallet />}>{NOTA_PAGOS_SIN_PARTIR}</Vacio>
+          <TituloSeccion dato={total > 0 ? <b className="font-semibold text-tinta">{soles(total)}</b> : undefined}>Cómo se pagó</TituloSeccion>
+          <p className="mt-0.5 text-sm text-tinta/60">{nombre} · lo cobrado{empresa ? ` de ${empresa.nombre}` : ""}, por medio de pago</p>
+          {sinLeer ? (
+            <Aviso className="mt-4" tono="atencion" chico>{NOTA_PAGOS_SIN_LEER}</Aviso>
           ) : tramos.length === 0 ? (
             <Vacio tamano="chico" icono={<Wallet />}>No hay cobros en este tramo.</Vacio>
           ) : (
@@ -135,6 +155,11 @@ export function GraficosReporteMes({ r, s, tiendaId, empresaClave, corte }: { r:
                   </li>
                 ))}
               </ul>
+              {reparto && (
+                <p className="mt-3 text-sm text-tinta/60">
+                  {reparto} <Ayuda titulo="Venta mixta">{AYUDA_DEL_REPARTO}</Ayuda>
+                </p>
+              )}
             </>
           )}
         </section>

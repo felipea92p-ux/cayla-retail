@@ -56,7 +56,8 @@ export const PRUEBAS = [
 
   // Ventas ▸ Reportes: el filtro «Empresa» (CAYLA / CLAURE) donde conviven dos (ADR-0665): CAYLA + CLAURE suma el vendido, las prendas y el devuelto sin filtro (la
   // venta mixta cuenta en las dos y la devolución mixta se reparte por valor); cada lectura (cifras, gráficos, cortes, ranking y lo que queda) lo cumple; coincide
-  // con fn_vendido_por_empresa de Caja e Historial; «cómo se pagó» no se parte; la empresa solo se elige dentro de una tienda donde operan dos (22023); una cuenta
+  // con fn_vendido_por_empresa de Caja e Historial; «cómo se pagó» se parte por lo cobrado de cada empresa, exacto salvo la venta mixta con dos medios, que se
+  // reparte, se avisa y cuadra al céntimo (20261115013000); la empresa solo se elige dentro de una tienda donde operan dos (22023); una cuenta
   // de Lima que no es líder lee lo mismo; el control (sin el movimiento CLAURE saldría otra cifra); pegarla dos veces es inocuo. ROLLBACK.
   "pruebas:reportes-por-empresa",
 
