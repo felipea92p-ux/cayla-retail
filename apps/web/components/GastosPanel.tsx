@@ -420,8 +420,8 @@ export function GastosPanel({
         </TarjetaCifra>
       </section>
 
-      {/* `scroll-mt-44`: la cabecera fija del ERP y la mesa de mando del telar (sticky) tapan lo que queda justo bajo ellas al llevar la vista aquí. */}
-      <div id="fin-gastos-secciones" className="anim-entra scroll-mt-44" style={entra(5).style}>
+      {/* La cabecera fija y la mesa de mando pegada las descuenta la página (`scroll-padding-top`, decisión 1A); `scroll-mt-14` es el aire que deja. */}
+      <div id="fin-gastos-secciones" className="anim-entra scroll-mt-14" style={entra(5).style}>
         <PestanasFin
           etiqueta="Secciones de Gastos"
           guia="fin-gastos.pestanas"

@@ -140,9 +140,17 @@ function Insignia({ children }: { children: ReactNode }) {
 }
 
 /** La parte de arriba de la tarjeta que abre un detalle (Tejidos y Patrones: su foto y sus prendas). Las acciones del pie
- *  quedan fuera del botón: un clic en «Aprobar» nunca abre el detalle. */
-const BOTON_ARRIBA =
-  "group/muestra flex flex-1 flex-col gap-2 rounded-md text-left outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rojo/60";
+ *  quedan fuera del botón: un clic en «Aprobar» nunca abre el detalle. Su foco lo dibuja la placa (`FOCO_EN_LA_PLACA`), no
+ *  el botón: la muestra va posicionada y tapaba el anillo del botón por arriba. */
+const BOTON_ARRIBA = "group/muestra flex flex-1 flex-col gap-2 rounded-md text-left focus-visible:outline-none";
+
+/** Con Tab en el botón de arriba, la placa entera lleva el anillo del sistema (ADR-0351, el mismo de `mi-plata/TarjetaFoto`).
+ *  Antes el botón tenía `outline-none` y un anillo rojo al 60 % en el foco, y como `outline-none` deja `--tw-outline-style: none`,
+ *  el anillo rojo tampoco se pintaba: con Tab no se veía nada (auditoría /milimetro 2026-11-16, WCAG 2.4.7).
+ *  Solo el PRIMER hijo: «Reactivar» de una tarjeta desactivada también es un `<button>` hijo directo de la placa, y con
+ *  `>button` a secas su foco encendía la placa entera además de su propio anillo (dos anillos). */
+const FOCO_EN_LA_PLACA =
+  "has-[>button:first-child:focus-visible]:[outline:var(--foco-ancho)_solid_var(--foco-color)] has-[>button:first-child:focus-visible]:[outline-offset:var(--foco-separacion)]";
 
 /**
  * La tarjeta de un valor del vocabulario. Sin sombra (superficie pegada al fondo, ADR-0169): al pasar el mouse sube 2 px y
@@ -192,7 +200,7 @@ export function TarjetaAtributo({
   return (
     <div
       data-guia="vocabulario.tarjeta"
-      className={`tarjeta-valor group/etq card-cayla flex flex-col gap-2 p-4 transition-[transform,border-color] duration-260 ease-cayla hover:-translate-y-0.5 hover:border-tinta/25 ${
+      className={`tarjeta-valor group/etq card-cayla flex flex-col gap-2 p-4 transition-[transform,border-color] duration-260 ease-cayla hover:-translate-y-0.5 hover:border-tinta/25 ${FOCO_EN_LA_PLACA} ${
         apagada ? "opacity-60" : ""
       }`}
     >

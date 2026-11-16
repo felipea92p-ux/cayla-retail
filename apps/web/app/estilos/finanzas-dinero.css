@@ -932,7 +932,10 @@
     height: 34px;
     border-radius: 50%;
     background: var(--c);
-    color: var(--color-crema-fija);
+    /* El fondo es el token de la etapa (verde, pizarra, rojo profundo, taupe), que en oscuro se aclara: la letra se invierte con él, como
+       `bg-tinta text-crema`. Con `crema-fija` quedaba crema sobre verde claro en oscuro (1,6 a 2:1); así pasa en los dos temas (claro 5,2 a
+       7,6:1; oscuro 7,8 a 9,4:1). No es un color de dato: el de la etapa ya cambia con el tema. */
+    color: var(--color-crema);
     font-size: 11px;
     font-weight: 700;
   }

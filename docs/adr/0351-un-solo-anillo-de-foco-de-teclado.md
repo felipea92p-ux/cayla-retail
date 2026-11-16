@@ -110,3 +110,20 @@ foco (método de `/formidable`; `medir-oficio.js` convierte el color con un canv
 Felipe pidió que lo que se ilumina sea «más difuminado y sutil». Solo para las cajas de campo y de combo (`.caja-campo`, `.caja-campo-input`): el anillo de 2 px con separación se cambia por un **borde de tinta plena**, el **hilo de tinta** de abajo y un **halo difuminado** (`--pozo-foco-halo`). Todo lo demás conserva el anillo común.
 
 No repite el error que esta decisión corrigió: lo que aquí se midió como débil (2,10:1) era el borde **translúcido o de arena**. La tinta plena da los mismos 13,4 a 16,4:1 de la tabla, en 1 px. La pierde la lectura de `2.4.13` (2 px alrededor), que es de nivel AAA. **Quien pidió más contraste y el modo de colores forzados conservan el anillo de 2 px.** No se recorrió con teclado todo el ERP, y esos dos modos no se probaron en un navegador.
+
+## Actualización 2026-11-16 — el foco no queda bajo la cabecera, y Finanzas enfoca como el resto
+
+Felipe eligió mirando las capturas de la página «Siete decisiones de accesibilidad» (graves heredados de `/milimetro`, rama
+`claude/graves-heredados-milimetro`), con «todo lo recomendado»:
+
+- **La página deja el alto de la cabecera** (WCAG 2.4.11, AA). `html { scroll-padding-top: var(--alto-cabecera) }` (`app/globals.css`):
+  al enfocar con el teclado, al seguir un ancla o con `scrollIntoView`, el control queda bajo la cabecera fija y no debajo de ella.
+  Medido en Finanzas ▸ Gastos con Shift+Tab (120 pasos): de 14 controles tapados a 2, y esos 2 son botones del propio marco. En
+  Finanzas, desde 640 px, la mesa de mando también se descuenta (`--alto-mesa-telar`, lo publica `MesaDeMando`). Las compensaciones
+  que cada pantalla sumaba a mano (`scroll-mt-24`, `scroll-mt-28`, `scroll-mt-[11.5rem]`, `scroll-margin-top: 140px`…) bajaron en el alto
+  de la cabecera y quedaron en el aire que agregaban: si no, ese destino quedaba 64 px más abajo de lo afinado. Lo que vive dentro de una
+  hoja o de una lista que se desplaza sola (su propio contenedor) no cambió: el `scroll-padding` de `<html>` no la alcanza.
+- **El kit de Finanzas enfoca como el resto del ERP.** `.fin-control` (campo y combo del spike, ADR-0195) deja su borde de 1 px que solo
+  se oscurecía y toma el foco de la caja que se enciende: borde de tinta y el halo (`--pozo-foco-halo`), también en su cara de vidrio.
+  Quien pidió más contraste y el modo de colores forzados reciben el anillo común de 2 px (antes no tenían ninguno: `finanzas.css`
+  le quitaba el `outline`). Esto cierra el punto «Finanzas» de «Qué NO se tocó».

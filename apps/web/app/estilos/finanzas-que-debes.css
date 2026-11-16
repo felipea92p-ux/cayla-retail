@@ -356,9 +356,8 @@
   .qd-punto[role="link"] {
     cursor: pointer;
   }
-  .qd-punto[role="link"]:focus-visible {
-    outline: none;
-  }
+  /* Con Tab, el punto lleva el anillo del sistema (ADR-0351) alrededor de su caja, además del filo de tinta. Solo el filo no
+     alcanzaba en una vencida: de rojo profundo a tinta es 2:1 (auditoría /milimetro 2026-11-16, WCAG 2.4.7). */
   .qd-punto[role="link"]:focus-visible circle {
     stroke: var(--color-tinta);
     stroke-width: 3;

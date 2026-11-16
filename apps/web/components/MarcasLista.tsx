@@ -293,7 +293,7 @@ export function MarcasLista({
       {/* UNA tarjeta: buscador, filtros y lista (CLAUDE.md «Paleta y orden de pantalla»). */}
       {/* `@container`: el acomodo depende del ancho de ESTA tarjeta, no de la ventana. Con el menú lateral abierto en una ventana angosta
           (o en un celular) la tarjeta mide 300–400 px aunque la ventana mida más (Felipe 2026-10-10). */}
-      <section ref={cajaRef} className="card-cayla @container scroll-mt-20 space-y-4 p-4 sm:p-5" aria-label="Lista de marcas">
+      <section ref={cajaRef} className="card-cayla @container scroll-mt-4 space-y-4 p-4 sm:p-5" aria-label="Lista de marcas">
         <div className="flex flex-wrap items-center gap-x-4 gap-y-3">
           <Buscador guia="marcas.buscador"
             valor={busqueda}

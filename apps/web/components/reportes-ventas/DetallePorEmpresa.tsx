@@ -110,7 +110,7 @@ export function DetallePorEmpresa({ r, plata, cobradoPorLaCasa, children }: { r:
 
       {children}
 
-      <section ref={lista} aria-label="Venta por venta" data-guia="empresas.ventas" className="scroll-mt-24 space-y-3">
+      <section ref={lista} aria-label="Venta por venta" data-guia="empresas.ventas" className="scroll-mt-8 space-y-3">
         <TituloSeccion cuenta={ventas.length} dato={solesCentimos(cobrado ?? suma.total)}>
           Venta por venta
         </TituloSeccion>

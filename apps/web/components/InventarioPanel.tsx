@@ -940,12 +940,12 @@ export function InventarioPanel({
 
       {/* Guía oficial (2026-09-22, ADR-0169): los filtros y la tabla viven en UNA tarjeta — lo que se filtra
           y lo filtrado se leen como una sola cosa. Los filtros son cajas hundidas en hueso, sin etiqueta visible.
-          `scroll-mt-24` compensa la cabecera fija: con menos, al llegar aquí (paginar, «Reponer a piso hoy») el
-          buscador quedaba debajo de ella.
+          La cabecera fija la descuenta la página (`scroll-padding-top` de `<html>`, decisión 1A de Felipe, 2026-11-16) y `scroll-mt-8` deja
+          su aire: al llegar aquí (paginar, «Reponer a piso hoy») el buscador ya no queda debajo de ella.
 
           Con «Ver detalle» (la tabla) sigue siendo UNA tarjeta. Con las tarjetas de prenda (la lista de entrada) los filtros
           son la tarjeta y las prendas van debajo, cada una en la suya. */}
-      <div ref={tarjetaTablaRef} className={`scroll-mt-24 ${verDetalle ? "card-cayla overflow-hidden" : ""}`}>
+      <div ref={tarjetaTablaRef} className={`scroll-mt-8 ${verDetalle ? "card-cayla overflow-hidden" : ""}`}>
       {stock.length > 0 && (
         // La barra de filtros con la estructura de Productos (2026-10-03, `FiltrosExistencias`): buscador, «Filtros · N», panel de
         // píldoras en dos filas, chips de lo puesto, y en la fila del conteo «Copiar enlace», la vista y «Ordenar por».

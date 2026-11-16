@@ -255,9 +255,9 @@
   margin-bottom: -6px;
 }
 
-/* Desde la frase se llega a la fila: que no quede bajo la cabecera de la tabla. */
+/* Desde la frase se llega a la fila: que no quede bajo la cabecera de la tabla (la del ERP ya la descuenta la página, decisión 1A). */
 .mesa-marco [data-fila] {
-  scroll-margin-top: 132px;
+  scroll-margin-top: 68px;
 }
 
 /* ---------- La frase ---------- */

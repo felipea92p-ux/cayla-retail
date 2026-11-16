@@ -21,6 +21,17 @@
 
 /* La barra fija de escritorio: se pega al borde de abajo mientras se recorre la pantalla. */
 .cc-barra-pie { position: sticky; bottom: 0; z-index: 20; padding: 10px 0 14px; background: linear-gradient(to top, var(--color-crema) 60%, transparent); }
+/* El control al que llega el Tab (un filtro, un movimiento del cajón) no se queda debajo de la barra (WCAG 2.4.11, auditoría /milimetro
+   2026-11-16): el navegador lo sube hasta dejar este alto libre. La barra mide 86 px a 1440 y 126 a 640, cuando su frase se parte;
+   9 rem cubre las dos. Solo desde 640 px: más abajo no se dibuja (`hidden sm:block`) y el cierre lo hace la barra del celular.
+   En cada control y no en la página (`scroll-padding` de <html>), y «Cerrar caja» queda fuera: la barra es `sticky`, y con
+   `scroll-padding` enfocar su botón llevaba la página de golpe hasta el final (medido: de 511 a 988 px). Igual que el pie pegado de
+   una página (globals.css, «PIE FIJO DE UNA HOJA»). */
+@media (min-width: 640px) {
+  main:has(.cc-barra-pie) :is(a[href], button, input, select, textarea, summary, [tabindex]):not(.cc-barra-pie *) {
+    scroll-margin-bottom: 9rem;
+  }
+}
 .cc-barra {
   display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap;
   background: var(--color-papel); color: var(--color-tinta);

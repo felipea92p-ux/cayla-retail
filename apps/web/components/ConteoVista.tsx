@@ -80,7 +80,7 @@ export function ConteoVista({
       )}
 
       {/* `#contar`: `/inventario/conteo#contar` sigue llegando aquí (enlaces de Movimientos, Existencias y el menú). */}
-      <div id="contar" className="scroll-mt-24">
+      <div id="contar" className="scroll-mt-8">
         {abierto ? (
           <section data-guia="conteo.en-curso" className="card-cayla space-y-4 p-5 sm:p-6" aria-labelledby="conteo-en-curso">
             <div className="space-y-1">

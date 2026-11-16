@@ -244,7 +244,7 @@ export function ProbadorPantalla({
           </TarjetaCifra>
         </div>
 
-        <section className="scroll-mt-24 space-y-3" ref={prendasRef}>
+        <section className="scroll-mt-8 space-y-3" ref={prendasRef}>
           <TituloSeccion cuenta={cifras.prendas}>Prendas</TituloSeccion>
           <Tabla guia="probador.prendas">
             <div className="flex flex-wrap items-center gap-3 px-5 py-4">
@@ -298,7 +298,7 @@ export function ProbadorPantalla({
           </Tabla>
         </section>
 
-        <section className="scroll-mt-24 space-y-3" ref={recortesRef}>
+        <section className="scroll-mt-8 space-y-3" ref={recortesRef}>
           <TituloSeccion cuenta={cifrasFotos.fotos}>Fotos de la web</TituloSeccion>
           <div className="card-cayla space-y-0">
             <div className="flex flex-wrap items-center gap-3 border-b border-sand px-5 py-4">
