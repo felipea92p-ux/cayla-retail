@@ -349,7 +349,7 @@ export function DevolucionesPanel({
             <>
               {/* Filtros de la pestaña con la píldora de filtro del sistema, no con la forma de las pestañas:
                   dos filas iguales no decían cuál manda. */}
-              <div role="group" aria-label="Filtrar las compras" data-guia="devoluciones.filtros" className="pildoras-desliza gap-2 sm:flex-wrap">
+              <div role="group" aria-label="Filtrar las compras" data-guia="devoluciones.filtros" className="pildoras-desliza gap-2 sm:flex-wrap" suppressHydrationWarning>
                 {FILTROS.map((f) => (
                   <button key={f.valor} type="button" aria-pressed={filtro === f.valor} onClick={() => setFiltro(f.valor)} className="pildora-cayla shrink-0">
                     {f.texto} <span className="pildora-cayla__n">{ventasDelFiltro(lineas, f.valor).size}</span>

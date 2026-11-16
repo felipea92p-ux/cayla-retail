@@ -385,7 +385,7 @@ export function FiltrosExistencias({
               data-guia="existencias.escanear"
               aria-label="Escanear etiqueta"
               title="Escanear etiqueta"
-              className="hidden h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-sand bg-papel text-tinta/70 transition-colors hover:border-taupe hover:text-tinta sm:inline-flex"
+              className="area-dedo hidden h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-sand bg-papel text-tinta/70 transition-colors hover:border-taupe hover:text-tinta sm:inline-flex"
             >
               <ScanLine aria-hidden className="h-4 w-4" />
             </button>

@@ -2308,7 +2308,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
     // «A · Catálogo al aire, ticket en placa» (vender-vidrio-2026-11, Felipe 2026-11-02): sin la tarjeta grande de crema; el catálogo
     // vive sobre la Aurora y el ticket es la placa Serena de su columna (vidrio/vender.css). Sin tarjeta tampoco hay `overflow-hidden`:
     // la lista de resultados del buscador ya no se corta a media prenda en el celular (el arreglo de main del 2026-11-02 queda cubierto).
-    <div className="pv-mesa flex flex-col text-tinta lg:h-[calc(100dvh-9rem)]">
+    <div className="pv-mesa flex flex-col text-tinta max-lg:pb-24 lg:h-[calc(100dvh-9rem)]">
       {/* Sin la franja de arriba (spike «el ticket a lo alto», Felipe 2026-09-26): le quitaba alto al ticket. La columna
           izquierda arranca con la sede, «Apartados» (que se lleva el ticket), «Más» (todo lo demás, con «Hoy» arriba y
           «Cerrar caja» al pie) y la cifra de hoy en chico; el ticket ocupa la columna derecha de arriba abajo.
@@ -2404,7 +2404,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
               <button
                 type="button"
                 onClick={soltarProforma}
-                className="label-cayla rounded-md px-2 py-1 text-[11px] text-tinta/65 transition-colors hover:bg-sand/40 hover:text-tinta"
+                className="label-cayla area-dedo rounded-md px-2 py-1 text-[11px] text-tinta/65 transition-colors hover:bg-sand/40 hover:text-tinta"
               >
                 Soltar
               </button>
@@ -2516,7 +2516,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
           aria-haspopup="dialog"
           // La isla oscura de lo que llevas elegido (ADR-0479, actividad 12, `barra-abajo`).
           data-tono="tinta"
-          className="barra-abajo z-20 flex-nowrap gap-3 py-2.5 pl-3 pr-2.5 text-left sm:left-[calc(var(--ancho-lateral,0px)+0.75rem)] lg:hidden"
+          className="barra-abajo z-20 flex-nowrap gap-3 py-2.5 pl-3 pr-2.5 text-left sm:left-[calc(var(--spacing-lateral)+0.75rem)] lg:hidden"
         >
           <span className="relative grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-crema/10">
             <ShoppingBag className="h-5 w-5" aria-hidden />

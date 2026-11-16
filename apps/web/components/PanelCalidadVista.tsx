@@ -37,7 +37,7 @@ export function PanelCalidadVista({ panel }: { panel: PanelCalidad }) {
 
   return (
     <div className="space-y-8">
-      <p className="max-w-3xl text-xs leading-relaxed text-tinta/65" data-guia="calidad.periodo">
+      <p className="max-w-3xl text-sm leading-relaxed text-tinta/65" data-guia="calidad.periodo">
         Ventas del <strong>{fechaCorta(panel.cohorteDesde)}</strong> al <strong>{fechaCorta(panel.cohorteHasta)}</strong>. No se
         cuentan las ventas de las últimas {panel.plazoDias}{" "}días: todavía no cumplieron su plazo de cambio y contarlas como
         &quot;vendidas y no devueltas&quot; haría parecer que todo va mejor de lo que va.
@@ -110,7 +110,7 @@ export function PanelCalidadVista({ panel }: { panel: PanelCalidad }) {
       <section aria-labelledby="titulo-danadas" className="space-y-3" data-guia="calidad.danadas">
         <div>
           <TituloSeccion id="titulo-danadas">Prendas dañadas por tienda y mes</TituloSeccion>
-          <p className="mt-1 max-w-3xl text-xs text-tinta/60">
+          <p className="mt-1 max-w-3xl text-sm text-tinta/60">
             Prendas que volvieron dañadas (a reparar o a donar) por una devolución o una venta anulada, el mes en que se
             registró. Lo que se devolvió al proveedor va aparte.
           </p>
@@ -124,7 +124,7 @@ export function PanelCalidadVista({ panel }: { panel: PanelCalidad }) {
           </Tabla>
         ) : (
           <Tabla style={{ "--cols": `minmax(7rem,1.4fr) repeat(${panel.meses.length}, minmax(5.5rem,1fr)) minmax(6.5rem,1fr)` } as CSSProperties}>
-            <div role="table" aria-label="Prendas dañadas por tienda y por mes" className="min-w-[30rem] divide-y divide-sand text-xs tabular-nums">
+            <div role="table" aria-label="Prendas dañadas por tienda y por mes" className="min-w-[30rem] divide-y divide-sand text-sm tabular-nums">
               <Encabezado
                 siempre
                 plantilla={COLS_VARIABLES}
@@ -156,7 +156,7 @@ export function PanelCalidadVista({ panel }: { panel: PanelCalidad }) {
         )}
       </section>
 
-      <details className="card-cayla p-4 text-xs text-tinta/75" data-guia="calidad.como-se-calcula">
+      <details className="card-cayla p-4 text-sm text-tinta/75" data-guia="calidad.como-se-calcula">
         <summary className="cursor-pointer font-semibold text-tinta" data-guia="calidad.como-abrir">Cómo se calcula todo esto</summary>
         <ul className="mt-3 list-disc space-y-1.5 pl-5 leading-relaxed">
           <li>
@@ -218,10 +218,10 @@ function TablaCalidad({
     <section aria-labelledby={`titulo-${id}`} className="space-y-3" data-guia={`calidad.tabla-${id}`}>
       <div>
         <TituloSeccion id={`titulo-${id}`}>{titulo}</TituloSeccion>
-        <p className="mt-1 max-w-3xl text-xs text-tinta/60">{pregunta}</p>
+        <p className="mt-1 max-w-3xl text-sm text-tinta/60">{pregunta}</p>
       </div>
       <Tabla>
-        <div role="table" aria-label={titulo} className="divide-y divide-sand text-xs tabular-nums">
+        <div role="table" aria-label={titulo} className="divide-y divide-sand text-sm tabular-nums">
           <Encabezado
             siempre
             plantilla={`${PLANTILLA_CALIDAD} @max-[820px]:hidden!`}

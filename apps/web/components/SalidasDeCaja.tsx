@@ -142,7 +142,7 @@ export function SalidasDeCaja({ salidas, indice = 0 }: { salidas: SalidaCaja[]; 
             }}
             etiqueta="Salidas de caja de los próximos 30 días, por semana"
           />
-          <p className="mt-2 min-h-5 text-xs text-tinta/70" aria-live="polite">
+          <p className="mt-2 min-h-10 text-sm text-tinta/70" aria-live="polite">
             {veredicto}
           </p>
         </>

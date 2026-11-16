@@ -301,14 +301,14 @@ export function FrescuraDetalle({
                   </button>
                 )}
                 {bloque.estado === "vigente" && decision.vigenteId && decision.lecturaOk && (
-                  <button type="button" className="btn-cayla btn-enlace text-[13px]" onClick={() => setModo("quitar")}>
+                  <button type="button" className="btn-cayla btn-enlace text-sm" onClick={() => setModo("quitar")}>
                     Quitar lo anotado
                   </button>
                 )}
                 {!decision.lecturaOk && (
                   <span className="text-sm text-taupe">
                     No se pudo leer lo ya decidido: por ahora no se puede anotar.{" "}
-                    <button type="button" className="btn-cayla btn-enlace text-[12.5px]" onClick={() => router.refresh()}>
+                    <button type="button" className="btn-cayla btn-enlace text-sm" onClick={() => router.refresh()}>
                       Volver a intentar
                     </button>
                   </span>

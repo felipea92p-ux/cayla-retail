@@ -662,7 +662,7 @@ function FilaCajon({ h, i, esActivo, onCerrar, refFila }: { h: Item; i: number; 
 // o un formulario corto se topan por su cuenta (`max-w-prose`, `max-w-2xl`…), no con la pantalla entera.
 // El Inicio («/», exacto) también lleva el tope: es de todas las cuentas y no fue pensado a lo ancho; el de almacén, el Observatorio y la
 // pantalla de Aventurero lo piden con `data-ancho-completo`.
-const CON_TOPE_DE_ANCHO = ["/actividad", "/buscar", "/comercial", "/global", "/movimientos", "/pedidos-no-atendidos", "/sin-acceso"];
+const CON_TOPE_DE_ANCHO = ["/actividad", "/buscar", "/comercial", "/global", "/pedidos-no-atendidos", "/sin-acceso"];
 
 /** ¿Esta ruta lleva todavía el tope de 64 rem? El Inicio exacto y lo que cuelga de `CON_TOPE_DE_ANCHO`; todo lo demás, ancho completo. */
 function conTopeDeAncho(pathname: string): boolean {
@@ -1237,9 +1237,11 @@ export function AppShell({ persona, ubicaciones, trasladosPorAtender, pedidosWeb
 
       {/* ==================== Contenido ==================== */}
       {/* Toda pantalla va a lo ancho (ADR-0462); solo las de `CON_TOPE_DE_ANCHO` y el Inicio siguen centradas en 64 rem. */}
+      {/* El relleno derecho es 20 px en una tablet (640 a 1023 px, con el lateral abierto quedan 436 px útiles a 768) y 40 desde 1024: vive
+          en `--relleno-der-pantalla` para que lo que llega de borde a borde (la cabecera pegada de Registrar compra) use el mismo número. */}
       <main
         data-fondo-hoja
-        className="px-4 pb-[calc(2.5rem+env(safe-area-inset-bottom))] pt-[calc(5rem+env(safe-area-inset-top))] sm:ml-lateral sm:pl-5 sm:pr-[max(2.5rem,env(safe-area-inset-right))] sm:pb-[calc(3rem+env(safe-area-inset-bottom))] sm:pt-[calc(6rem+env(safe-area-inset-top))]"
+        className="px-4 pb-[calc(2.5rem+env(safe-area-inset-bottom))] pt-[calc(5rem+env(safe-area-inset-top))] [--relleno-der-pantalla:max(1.25rem,env(safe-area-inset-right))] sm:ml-lateral sm:pl-5 sm:pr-[var(--relleno-der-pantalla)] sm:pb-[calc(3rem+env(safe-area-inset-bottom))] sm:pt-[calc(6rem+env(safe-area-inset-top))] lg:[--relleno-der-pantalla:max(2.5rem,env(safe-area-inset-right))]"
       >
         {/* `has-[[data-ancho-completo]]`: una pantalla con tope que necesita todo el ancho lo pide con ese atributo (el Inicio de almacén,
             Felipe 2026-09-30) sin quitarle el tope a todas las cuentas de «/». */}

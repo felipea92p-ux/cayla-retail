@@ -349,9 +349,9 @@ export function PorPagarLista({
               id={agrupar === "urgencia" ? `tramo-${b.clave}` : undefined}
               ref={refDe(`b:${b.clave}`)}
               role="row"
-              className={`group scroll-mt-24 flex items-center justify-between gap-4 px-5 py-2 ${ESTILO_BANDA[b.tono]}`}
+              className={`group scroll-mt-24 flex flex-wrap items-center justify-between gap-x-4 gap-y-1 px-5 py-2 ${ESTILO_BANDA[b.tono]}`}
             >
-              <p className="label-cayla flex flex-wrap items-center gap-x-2.5 text-[11px]">
+              <p className="label-cayla flex min-w-0 flex-wrap items-center gap-x-2.5 text-[11px]">
                 {b.proveedorId && (
                   <span aria-hidden className="font-display grid h-[26px] w-[26px] place-items-center rounded-full bg-sand text-[13px] normal-case tracking-normal text-tinta">
                     {b.titulo.trim().split(/\s+/).filter((w) => w.length > 2).slice(0, 2).map((w) => w[0]).join("").toUpperCase()}
@@ -360,12 +360,12 @@ export function PorPagarLista({
                 <span>{b.titulo}</span>
                 <span>· {contar(b.cantidad)}</span>
               </p>
-              <p className="flex shrink-0 items-center gap-3.5 text-sm tabular-nums">
+              <p className="ml-auto flex flex-wrap items-center justify-end gap-3.5 text-sm tabular-nums">
                 {b.proveedorId && (
                   <button
                     type="button"
                     onClick={() => setSeleccion(b.filas.map((f) => f.id))}
-                    className="label-cayla text-[11px] text-tinta opacity-0 transition-[opacity,color] duration-200 hover:text-rojo focus-visible:opacity-100 group-hover:opacity-100 max-sm:opacity-100"
+                    className="label-cayla area-dedo text-[11px] text-tinta opacity-0 transition-[opacity,color] duration-200 hover:text-rojo focus-visible:opacity-100 group-hover:opacity-100 max-sm:opacity-100 pointer-coarse:opacity-100"
                   >
                     Marcar todo
                   </button>
@@ -509,7 +509,7 @@ function SugerenciasDelProveedor({ proveedorId, compras, seleccion, ahora, onAgr
           type="button"
           onClick={() => onAgregar(o.id)}
           title={o.fechaVencimiento ? etiquetaVence(o.fechaVencimiento, ahora) : "Sin fecha de vencimiento"}
-          className="anim-revelar shrink-0 whitespace-nowrap rounded-full border border-dashed border-tinta/25 px-2.5 py-[3px] text-sm tabular-nums text-tinta/75 transition-colors duration-200 hover:border-solid hover:border-rojo hover:text-rojo"
+          className="anim-revelar shrink-0 whitespace-nowrap rounded-full border border-dashed border-tinta/25 px-2.5 py-[3px] text-sm tabular-nums text-tinta/75 transition-colors duration-200 hover:border-solid hover:border-rojo hover:text-rojo pointer-coarse:min-h-11 pointer-coarse:px-3"
           style={{ animationDelay: `${i * 50}ms` }}
         >
           ＋ {o.documento} · {soles(o.saldo)}

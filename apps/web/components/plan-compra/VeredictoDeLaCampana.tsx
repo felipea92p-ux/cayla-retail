@@ -91,7 +91,7 @@ export function VeredictoDeLaCampana({ h, nombre, conCalendario }: { h: Historia
   return (
     <section data-guia="plan-resultados.veredicto" className="card-cayla space-y-4 p-5">
       {titulo}
-      <div className="grid gap-x-8 gap-y-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,28rem)] lg:items-center">
+      <div className="grid gap-x-8 gap-y-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:items-center xl:grid-cols-[minmax(0,1fr)_minmax(0,28rem)]">
         <div className="space-y-2">
           <p className="flex flex-wrap items-center gap-2 text-base font-semibold text-tinta">
             <Chip tono={v.veredicto.tono} versalitas={false}>{v.veredicto.texto}</Chip>

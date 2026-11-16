@@ -53,10 +53,10 @@ a.t-pieza:hover { transform: rotate(0deg) scale(1.05); z-index: 4; }
 .cp-looks-carril > * { scroll-snap-align: start; min-width: 0; }
 
 /* ---- La hoja de tallas (un <dialog>): abajo en el celular, al centro en la computadora ---- */
-.t-look-hoja { position: fixed; inset: auto 0 0 0; margin: 0; width: 100%; max-width: none; max-height: 88vh; padding: 0; border: 0; border-radius: 0; background: var(--papel); color: var(--tinta); box-shadow: 0 -24px 60px -24px var(--sombra); }
+.t-look-hoja { position: fixed; inset: auto 0 0 0; margin: 0; width: 100%; max-width: none; max-height: 88vh; max-height: 88dvh; padding: 0; border: 0; border-radius: 0; background: var(--papel); color: var(--tinta); box-shadow: 0 -24px 60px -24px var(--sombra); }
 .t-look-hoja[open] { animation: t-look-hoja-sube .35s var(--ease) both; }
 .t-look-hoja::backdrop { background: var(--velo); backdrop-filter: blur(3px); -webkit-backdrop-filter: blur(3px); }
-.t-look-hoja-in { max-height: 88vh; overflow-y: auto; padding: 18px 18px calc(22px + env(safe-area-inset-bottom)); display: flex; flex-direction: column; gap: 12px; }
+.t-look-hoja-in { max-height: 88vh; max-height: 88dvh; overflow-y: auto; padding: 18px 18px calc(22px + env(safe-area-inset-bottom)); display: flex; flex-direction: column; gap: 12px; }
 .t-look-hoja-cab { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
 .t-look-hoja-cab h2 { margin: 4px 0 0; font-family: var(--display); text-transform: none; letter-spacing: -.01em; font-size: 23px; font-weight: 400; line-height: 1.12; }
 .t-look-cerrar { flex: none; width: 40px; height: 40px; border-radius: 50%; border: 1px solid var(--sand); background: var(--papel); color: var(--tinta); display: grid; place-items: center; cursor: pointer; transition: border-color .15s; }
@@ -92,6 +92,11 @@ a.t-pieza:hover { transform: rotate(0deg) scale(1.05); z-index: 4; }
 @container tienda (min-width: 700px) {
   .t-looks { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .cp-looks-carril { grid-auto-columns: calc((100% - 32px) / 2.2); }
+}
+/* En la tableta vertical el look abierto sigue en una columna: la lámina a todo el ancho (≈706×762 a 768) dejaba el nombre, las prendas y
+   «Agregar» bajo el pliegue. Se topa y se centra; las piezas van en %, así que siguen en su lugar. Con `>` no toca el carril «Otros looks». */
+@container tienda (min-width: 700px) and (max-width: 959.98px) {
+  .t-look-abierto > .t-lamina { width: 100%; max-width: 520px; justify-self: center; }
 }
 @container tienda (min-width: 960px) {
   .t-look { grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); gap: 56px; align-items: center; }

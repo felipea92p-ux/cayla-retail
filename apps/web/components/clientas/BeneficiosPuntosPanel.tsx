@@ -64,7 +64,9 @@ const miles = (n: number) => n.toLocaleString("es-PE");
 
 export function BeneficiosPuntosPanel({ sede, resumen, falla, hoy }: { sede: string; resumen: ResumenDeBeneficios | null; falla: string | null; hoy: string }) {
   return (
-    <div className="space-y-8">
+    // `@container`: el formulario y su ejemplo se ponen lado a lado por el ancho de la pantalla útil, no por el de la ventana (con el lateral fijo,
+    // a 1024 px de ventana quedan ~692 y el título de cada número se quedaba en 40 px).
+    <div className="@container space-y-8">
       <EncabezadoPagina sede={sede} titulo="Beneficios del club" subtitulo="Lo que el club le da a tus clientes y lo que te cuesta. Vale para las 3 tiendas." />
       {resumen ? (
         <Contenido resumen={resumen} hoy={hoy} />
@@ -192,12 +194,12 @@ function Formulario({ base, hoy }: { base: ResumenDeBeneficios["vigente"]; hoy: 
   }
 
   return (
-    <form onSubmit={guardar} className="anim-sube grid items-start gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(300px,380px)] min-[1760px]:grid-cols-[minmax(0,1fr)_420px]" style={{ "--i": 3 } as CSSProperties}>
+    <form onSubmit={guardar} className="anim-sube grid items-start gap-5 @min-[52rem]:grid-cols-[minmax(0,1fr)_minmax(300px,380px)] @min-[88rem]:grid-cols-[minmax(0,1fr)_420px]" style={{ "--i": 3 } as CSSProperties}>
       <div className="space-y-6 rounded-xl border border-sand bg-papel p-5" data-guia="beneficios.formulario">
         <section className="space-y-3">
           <TituloGrupo>Lo que gana</TituloGrupo>
           {/* En una pantalla muy ancha (Clientes va a ancho completo desde el 2026-10-20), los campos van de a dos. */}
-          <div className="grid gap-3 min-[1760px]:grid-cols-2">
+          <div className="grid gap-3 @min-[88rem]:grid-cols-2">
             <Fila campo="puntosPorSol" titulo={"Puntos por cada S/\u00a01 que paga"} fin="puntos" decimal {...fila}>
               Una compra de {soles(150)} le da <b className="font-medium text-tinta">{puntos(ejemploDelPrograma(actual, 150).puntosDeLaCompra)}</b>.
             </Fila>
@@ -215,7 +217,7 @@ function Formulario({ base, hoy }: { base: ResumenDeBeneficios["vigente"]; hoy: 
 
         <section className="space-y-3">
           <TituloGrupo>Cuánto valen y cuándo se canjean</TituloGrupo>
-          <div className="grid gap-3 min-[1760px]:grid-cols-2">
+          <div className="grid gap-3 @min-[88rem]:grid-cols-2">
             <Fila campo="solesPor100" titulo="100 puntos valen" inicio="S/" decimal aviso={conAviso("solesPor100")} {...fila}>
               Es el descuento que recibe al canjear. Si lo cambias, rige en {DIAS_DE_AVISO} días para avisarlo a los clientes.
             </Fila>
@@ -320,7 +322,7 @@ function Ejemplo({
   onCompra: (n: number) => void;
 }) {
   return (
-    <aside className="rounded-xl border border-sand bg-papel p-5 lg:sticky lg:top-24" data-guia="beneficios.ejemplo">
+    <aside className="rounded-xl border border-sand bg-papel p-5 @min-[52rem]:sticky @min-[52rem]:top-24" data-guia="beneficios.ejemplo">
       <TituloGrupo>Así lo vive un cliente</TituloGrupo>
       <p className="mt-1 text-sm text-taupe">Con los números de la izquierda. Mueve la compra para probar.</p>
       <ol className="mt-3 divide-y divide-sand">

@@ -100,10 +100,10 @@ export function PuertaDeTienda({
           </span>
           {/* El celular no arrastra: dos botones mueven la tienda un lugar. Solo se ven con el dedo (pointer: coarse). */}
           <span className="twc-mover">
-            <button type="button" aria-label={`Mover ${nombre} antes`} onClick={() => onMover(-1)}>
+            <button type="button" className="area-dedo" aria-label={`Mover ${nombre} antes`} onClick={() => onMover(-1)}>
               <ChevronLeft aria-hidden />
             </button>
-            <button type="button" aria-label={`Mover ${nombre} después`} onClick={() => onMover(1)}>
+            <button type="button" className="area-dedo" aria-label={`Mover ${nombre} después`} onClick={() => onMover(1)}>
               <ChevronRight aria-hidden />
             </button>
           </span>

@@ -63,8 +63,10 @@ export function YaExiste({
 
   const aLaVista = lista.slice(0, MAX_A_LA_VISTA);
   return (
-    <div className="space-y-3">
-      <ul className="grid grid-cols-3 gap-2 sm:grid-cols-6">
+    // Seis por fila solo si el BLOQUE tiene 512 px (6 × 78 de la miniatura con su relleno, más los huecos); si no, tres. Lo decide su
+    // ancho y no el de la ventana: a 1024 la columna del paso mide menos que un celular y las miniaturas se encimaban.
+    <div className="@container space-y-3">
+      <ul className="grid grid-cols-3 gap-2 @lg:grid-cols-6">
         {aLaVista.map((c) => (
           <li key={c.id}>
             <button

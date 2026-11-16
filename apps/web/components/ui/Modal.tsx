@@ -317,8 +317,10 @@ export function Modal({ titulo, subtitulo, onClose, children, tamano = "angosta"
               por el contenido la barra se queda a la vista (Felipe 2026-11-02). Fuera de la cascada, como el botón de cerrar. */}
           {conAsa && variante !== "ticket" && <div aria-hidden data-asa-hoja data-sin-cascada className="asa-hoja asa-hoja-fija" />}
           {arriba}
+          {/* Con `acciones` (arriba a la derecha): en escritorio el título les deja su costado; en el celular baja a su propia franja bajo
+              ellas, con todo el ancho (a 375 px el costado le dejaba ~150 px y el título se partía en tres o cuatro renglones). */}
           <Dialog.Title asChild>
-            <h2 className={`font-display text-tinta ${deCara && !vidrio ? "text-2xl leading-tight" : "sr-only"} ${variante === "papel" || conCerrar ? "pr-8" : ""} ${deCara && acciones ? "pr-44 sm:pr-48" : ""}`}>{titulo}</h2>
+            <h2 className={`font-display text-tinta ${deCara && !vidrio ? "text-2xl leading-tight" : "sr-only"} ${variante === "papel" || conCerrar ? "pr-8" : ""} ${deCara && acciones ? "max-sm:pt-12 sm:pr-48" : ""}`}>{titulo}</h2>
           </Dialog.Title>
           {subtitulo ? (
             <Dialog.Description asChild>

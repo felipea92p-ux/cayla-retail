@@ -149,7 +149,7 @@ export function CamposCumpleanos({
       )}
 
       {mostrarOmitir && (
-        <p className="mt-1.5 text-xs text-tinta/60">
+        <p className="mt-1.5 text-sm text-tinta/60">
           <button
             type="button"
             onClick={() => {
@@ -157,14 +157,14 @@ export function CamposCumpleanos({
               onOmitir?.();
             }}
             disabled={deshabilitado}
-            className="font-semibold text-tinta underline underline-offset-2 hover:text-rojo"
+            className="btn-enlace font-semibold"
           >
             Omitir por ahora
           </button>{" "}
           · {despues}
         </p>
       )}
-      {omitido && vacio && <p className="mt-1.5 text-xs text-tinta/60">Omitido: {despues}</p>}
+      {omitido && vacio && <p className="mt-1.5 text-sm text-tinta/60">Omitido: {despues}</p>}
     </div>
   );
 }

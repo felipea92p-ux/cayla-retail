@@ -176,8 +176,9 @@ export default async function HistorialVentasPage({ searchParams }: { searchPara
           Más angosto, el pulso pasa DEBAJO de la lista, no encima: nada se interpone entre la persona y las ventas. */}
       <div className="grid gap-7 xl:grid-cols-[minmax(0,1fr)_19rem] xl:items-start">
         <div className="min-w-0 space-y-5">
-          {/* En el celular el buscador queda fijo bajo la cabecera del AppShell (61 px) mientras se recorre la lista. */}
-          <div data-guia="historial.buscador" className="sticky top-[61px] z-20 -mx-4 bg-crema/90 px-4 py-2 backdrop-blur-md sm:static sm:mx-0 sm:bg-transparent sm:p-0 sm:backdrop-blur-none">
+          {/* En el celular el buscador queda fijo bajo la cabecera del AppShell (61 px más la zona segura de arriba, como la
+              cabecera) mientras se recorre la lista, con el vidrio de lo que flota (`.historial-buscador`, vidrio/historial.css). */}
+          <div data-guia="historial.buscador" className="historial-buscador sticky top-[calc(61px+env(safe-area-inset-top,0px))] z-20 -mx-4 px-4 py-2 sm:static sm:mx-0 sm:p-0">
             <BuscadorHistorial valor={filtros.busqueda ?? ""} />
           </div>
 
@@ -261,7 +262,9 @@ export default async function HistorialVentasPage({ searchParams }: { searchPara
           </p>
         </div>
 
-        <aside aria-label="Pulso del período" data-guia="historial.pulso" className="xl:sticky xl:top-24">
+        {/* Pegado solo si cabe entero bajo el tope de 96 px (mide ~780-890 px): en un portátil de 800 o 900 px de alto el final
+            (los pagos y los enlaces) no se veía hasta llegar al fin de la lista. Más bajo, corre con la página. */}
+        <aside aria-label="Pulso del período" data-guia="historial.pulso" className="xl:top-24 xl:[@media(min-height:62rem)]:sticky">
           <HistorialVentasPulso totales={totales} periodo={periodoEnPalabras} enlaces={enlaces} />
         </aside>
       </div>

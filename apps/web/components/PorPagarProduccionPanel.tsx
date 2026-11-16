@@ -65,7 +65,7 @@ export function PorPagarProduccionPanel({
         subtitulo="Lo que el Taller le debe a sus proveedores, del más urgente al menos."
       />
 
-      <div data-guia="prod-por-pagar.cifras" className="grid gap-3 sm:grid-cols-3">
+      <div data-guia="prod-por-pagar.cifras" className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         <TarjetaCifra
           punto={totalPorPagar > 0 ? "ambar" : "verde"}
           etiqueta="Por pagar"
@@ -152,12 +152,12 @@ export function PorPagarProduccionPanel({
               >
                 {t.etiqueta}
               </TituloSeccion>
-              <ul className="card-cayla overflow-hidden">
+              <ul className="card-cayla @container overflow-hidden">
                 {t.comprobantes.map((c) => {
                   const d = c.fechaVencimiento ? diasHasta(c.fechaVencimiento, hoy) : null;
                   const faltante = avisoDeFaltante(faltantes[c.id], c);
                   return (
-                    <li key={c.id} className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-4 gap-y-1 border-b border-tinta/10 px-4 py-3 last:border-b-0 sm:grid-cols-[minmax(0,1.5fr)_9rem_7rem_auto]">
+                    <li key={c.id} className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-4 gap-y-1 border-b border-tinta/10 px-4 py-3 last:border-b-0 @min-[40rem]:grid-cols-[minmax(0,1.5fr)_9rem_7rem_auto]">
                       <span className="min-w-0">
                         <span className="block truncate text-[14px] text-tinta">{c.proveedor}</span>
                         <span className="block text-sm text-tinta/65">
@@ -177,7 +177,7 @@ export function PorPagarProduccionPanel({
                           </span>
                         )}
                       </span>
-                      <span className="hidden sm:block">
+                      <span className="hidden @min-[40rem]:block">
                         {c.fechaVencimiento && d !== null && (
                           <Chip tono={t.clave === "vencido" || t.clave === "semana" ? "ambar" : "neutro"}>
                             {d < 0 ? `Venció ${diaMes(c.fechaVencimiento)} · ${Math.abs(d)} d` : d === 0 ? "Vence hoy" : `Vence ${diaMes(c.fechaVencimiento)} · ${d} d`}
@@ -185,7 +185,7 @@ export function PorPagarProduccionPanel({
                         )}
                       </span>
                       <span className="text-right text-[14px] font-semibold tabular-nums text-tinta">{soles(c.saldo)}</span>
-                      <Boton peso="fantasma" data-guia="prod-por-pagar.pagar" onClick={() => setPagando(c)} className="col-span-2 sm:col-span-1">
+                      <Boton peso="fantasma" data-guia="prod-por-pagar.pagar" onClick={() => setPagando(c)} className="col-span-2 @min-[40rem]:col-span-1">
                         Pagar
                       </Boton>
                     </li>

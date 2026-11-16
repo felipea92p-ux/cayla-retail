@@ -44,7 +44,7 @@ export function AjustarInicio({
         type="button"
         aria-haspopup="dialog"
         onClick={() => setAbierto(true)}
-        className="flex items-center gap-1.5 rounded-lg px-2 py-1 text-sm text-taupe transition-colors hover:bg-tinta/5"
+        className="area-dedo flex items-center gap-1.5 rounded-lg px-2 py-1 text-sm text-taupe transition-colors hover:bg-tinta/5"
       >
         <svg viewBox="0 0 24 24" className="size-4" fill="none" stroke="currentColor" strokeWidth={1.6} strokeLinecap="round" aria-hidden>
           <path d="M4 7h10M18 7h2M4 17h4M12 17h8" />

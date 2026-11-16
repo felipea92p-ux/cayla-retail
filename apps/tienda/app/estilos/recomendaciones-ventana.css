@@ -16,6 +16,8 @@
 .rv-x .ic { width: 18px; height: 18px; }
 @media (hover: hover) { .rv-x:hover { background: var(--hueso); } }
 .rv-x:focus-visible { outline: 2px solid var(--rojo); outline-offset: 2px; }
+/* Con el dedo, la ✕ (la única salida dibujada) se toca en 44 px; el margen negativo deja el ícono donde estaba. */
+@media (pointer: coarse) { .rv-x { width: 44px; height: 44px; margin: -6px -6px 0 auto; } }
 .rv-pestanas { display: flex; gap: 0; margin: 0 16px 8px; border: 1px solid var(--sand); }
 .rv-pestanas button { flex: 1; min-height: 38px; border: 0; background: none; color: var(--taupe); font-size: 11.5px; font-weight: 600; letter-spacing: .12em; text-transform: uppercase; cursor: pointer; }
 .rv-pestanas button[aria-selected="true"] { background: var(--tinta); color: var(--crema); }

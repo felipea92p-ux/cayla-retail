@@ -180,8 +180,8 @@ export default async function FondosPage() {
                 >
                   <AvatarPersona personaId={f.personaId} nombre={f.persona} tamano={40} />
                   <div className="min-w-0 space-y-1.5">
-                    <p className="flex items-baseline justify-between gap-3">
-                      <span className="truncate font-medium text-tinta" title={f.sede ?? undefined}>
+                    <p className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-0.5">
+                      <span className="min-w-0 max-w-full truncate font-medium text-tinta" title={f.sede ?? undefined}>
                         {f.persona}
                       </span>
                       <span className="shrink-0 whitespace-nowrap text-sm text-taupe">de {soles(f.entregado)}</span>

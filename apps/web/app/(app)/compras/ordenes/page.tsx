@@ -196,7 +196,8 @@ export default async function OrdenesCompraPage({ searchParams }: { searchParams
               <BuscadorOrdenes filtros={filtros} />
               {/* A dónde llega y el estado dejan menos órdenes en la MISMA lista: la píldora de filtro del sistema (ADR-0358). Cambiar
                   uno conserva el otro y la búsqueda, y vuelve a la primera página (`hrefLista`). */}
-              <nav aria-label="Filtrar las órdenes" data-guia="ordenes.filtros" className="pildoras-desliza items-center gap-2 sm:flex-wrap">
+              {/* `suppressHydrationWarning`: `FilasQueSeDeslizan` (app/layout.tsx) le pone `data-mas-izq`/`data-mas-der` desde afuera de React (como en <Pestanas>). */}
+              <nav aria-label="Filtrar las órdenes" data-guia="ordenes.filtros" className="pildoras-desliza items-center gap-2 sm:flex-wrap" suppressHydrationWarning>
                 {pildoras.map((p) => (
                   <Link
                     key={p.valor}

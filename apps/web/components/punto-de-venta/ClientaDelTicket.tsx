@@ -191,7 +191,7 @@ export function ClientaDelTicket({
                 aria-expanded={abiertaLaCaja}
                 aria-label={abiertaLaCaja ? "Ocultar lo del club" : "Ver lo del club"}
                 title={abiertaLaCaja ? "Ocultar lo del club" : "Ver lo del club"}
-                className="grid h-8 w-8 shrink-0 place-items-center rounded-md text-tinta/55 transition-colors hover:bg-sand/50 hover:text-tinta"
+                className="area-dedo grid h-8 w-8 shrink-0 place-items-center rounded-md text-tinta/55 transition-colors hover:bg-sand/50 hover:text-tinta"
               >
                 {abiertaLaCaja ? <ChevronUp className="h-4 w-4" aria-hidden /> : <ChevronDown className="h-4 w-4" aria-hidden />}
               </button>
@@ -201,7 +201,8 @@ export function ClientaDelTicket({
               onClick={onQuitar}
               disabled={bloqueado}
               aria-label="Quitar al cliente de esta venta"
-              className="grid h-8 w-8 shrink-0 place-items-center rounded-md text-tinta/55 transition-colors hover:bg-sand/50 hover:text-tinta"
+              // Con el dedo, 6 px de aire con la flecha de al lado: así el área de 44 px de cada uno no entra en el dibujo del otro.
+              className="area-dedo grid h-8 w-8 shrink-0 place-items-center rounded-md text-tinta/55 transition-colors hover:bg-sand/50 hover:text-tinta pointer-coarse:ml-1.5"
             >
               <X className="h-4 w-4" aria-hidden />
             </button>

@@ -129,7 +129,7 @@ export function CampanasPanel({
         <div {...entra(2)} data-guia="fin-campanas.pasadas">
           <Superficie>
             <div className="fin-tabla-wrap">
-              <table className="fin-tabla" style={{ minWidth: 520 }}>
+              <table className="fin-tabla fin-tabla-campanas">
                 <thead>
                   <tr>
                     <th>Campaña</th>
@@ -195,7 +195,7 @@ export function CampanasPanel({
             </span>
           </Herramientas>
           <div className="fin-tabla-wrap">
-            <table className="fin-tabla fin-tabla-envuelve fin-tabla-apretada" style={{ minWidth: 820 }}>
+            <table className="fin-tabla fin-tabla-envuelve fin-tabla-apretada">
               <thead>
                 <tr>
                   <th className="fin-col-nombre">Campaña</th>
