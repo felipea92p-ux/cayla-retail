@@ -280,7 +280,8 @@ export function HojaCorregirCompra({ papelId, onClose, volverA }: { papelId: str
                     <span className="block text-sm font-medium text-tinta">Papel y pago</span>
                     <span className="block text-sm tabular-nums text-taupe">
                       {TIPOS_PAPEL[compra.tipo as TipoPapel]?.nombre ?? "Papel"} · {soles(cuenta.monto)}
-                      {cuenta.monto !== compra.monto && <span className="ml-1 line-through opacity-70">{soles(compra.monto)}</span>}
+                      {/* El monto de antes, tachado y en el taupe de la línea (sin `opacity`: al 70 % bajaba a 2,8:1 en oscuro, /milimetro 2026-11-16). */}
+                      {cuenta.monto !== compra.monto && <span className="ml-1 line-through">{soles(compra.monto)}</span>}
                     </span>
                     <span className="block text-sm tabular-nums text-taupe">
                       {cuenta.pagado > 0 ? `Pagaste ${soles(cuenta.pagado)}` : "Lo paga Compras"}
