@@ -323,6 +323,8 @@ export function FusionarProductosHoja({
             quedaEfectiva,
           ),
           ...preciosSedeParaLaBase(elecciones, plan.preciosSede),
+          // La lista que vio la persona: si al confirmar ya no es la de ahora, la base frena en vez de cobrar otra cosa (20261116203000).
+          precios_sede_vistos: plan.preciosSedeVistos,
         } as never,
         p_versiones: versiones,
       }),
@@ -352,6 +354,8 @@ export function FusionarProductosHoja({
           terminar(!incierta);
           return;
         }
+        // Cambió algo mientras se miraba (una ficha o un precio de tienda): se vuelve a leer, así la hoja muestra lo de ahora.
+        if (esVersionCambiada(error)) setIntento((n) => n + 1);
       }
       setErrorGuardar(
         mensajeAlNoFusionar(
@@ -953,7 +957,10 @@ export function FusionarProductosHoja({
               <div className="pie-hoja-fijo mt-4 space-y-3">
                 {errorGuardar && (
                   <Aviso tono="error" titulo="No se pudo fusionar">
-                    {errorGuardar} Las fichas siguen como estaban.
+                    {/* Sin agregarle nada: `mensajeAlNoFusionar` ya dice «Las fichas siguen como estaban.» cuando la base dijo que no, y
+                        a propósito NO lo dice cuando la respuesta no llegó (no se sabe). Antes se agregaba aquí también: salía dos veces y,
+                        con la red cortada, afirmaba lo que no se sabía (auditoría 2026-11-16). */}
+                    {errorGuardar}
                   </Aviso>
                 )}
                 <AvisoNoSeDeshace />

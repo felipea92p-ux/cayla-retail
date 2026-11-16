@@ -75,8 +75,9 @@ export type PrecioSedePlan = {
   nombre: string;
   conflicto: boolean;
   porDefecto: string | null;
-  /** El precio de cada ficha en esa sede; `propio`: lo cobra por una excepción de la sede, no por el precio general. */
-  productos: { id: string; queda: boolean; precio: number | null; propio: boolean }[];
+  /** El precio de cada ficha en esa sede; `propio`: lo cobra por una excepción de la sede, no por el precio general; `bajoCosto`: ese
+   *  precio propio quedaría bajo el costo de alguna talla (aviso de la vista previa, 20261116203000; quien frena es la fusión). */
+  productos: { id: string; queda: boolean; precio: number | null; propio: boolean; bajoCosto: boolean }[];
 };
 
 export type PlanFusion = {
@@ -92,6 +93,9 @@ export type PlanFusion = {
   vacias: VaciaPlan[];
   /** Vacío con la base de antes de 20261115153000, o si ninguna sede cobra un precio propio distinto: la hoja no pregunta. */
   preciosSede: PrecioSedePlan[];
+  /** La lista tal como la mandó la base, para devolverla al fusionar (`precios_sede_vistos`, 20261116203000): si al confirmar ya no es
+   *  la de ahora (alguien cambió un precio de tienda mientras se miraba), la fusión frena en vez de cobrar otra cosa que la que se vio. */
+  preciosSedeVistos: unknown[];
 };
 
 type Json = Record<string, unknown>;
@@ -182,6 +186,7 @@ export function leerPlan(json: unknown): PlanFusion {
         retirada: v.retirada === true,
       };
     }),
+    preciosSedeVistos: Array.isArray(o.precios_sede) ? o.precios_sede : [],
     preciosSede: (Array.isArray(o.precios_sede) ? o.precios_sede : []).map((x) => {
       const s = x as Json;
       return {
@@ -191,7 +196,13 @@ export function leerPlan(json: unknown): PlanFusion {
         porDefecto: texto(s.por_defecto),
         productos: (Array.isArray(s.productos) ? s.productos : []).map((y) => {
           const p = y as Json;
-          return { id: String(p.id), queda: p.queda === true, precio: numero(p.precio), propio: p.propio === true };
+          return {
+            id: String(p.id),
+            queda: p.queda === true,
+            precio: numero(p.precio),
+            propio: p.propio === true,
+            bajoCosto: p.bajo_costo === true,
+          };
         }),
       };
     }),
@@ -321,11 +332,26 @@ export function precioQueQuedaEnSede(
   return { precio, de, antes: queda !== null && precio !== null && queda !== precio ? queda : null };
 }
 
-/** Lo que dice cada sede, en una línea: «Tienda Trujillo: toda la prenda a S/ 74.90 (antes S/ 79.90).» */
+/** Lo que dice cada sede, en una línea: «Tienda Trujillo: la prenda a S/ 74.90 (antes S/ 79.90).» */
 export function fraseDePrecioEnSede(sede: PrecioSedePlan, elegida: string | undefined): string {
   const { precio, antes } = precioQueQuedaEnSede(sede, elegida);
   if (precio === null) return `${sede.nombre} conserva su precio.`;
-  return `${sede.nombre}: toda la prenda a ${soles(precio)}${antes !== null ? ` (antes ${soles(antes)})` : ""}.`;
+  // «La prenda», no «toda la prenda»: una talla con precio propio en esa tienda lo conserva (20261116020000).
+  return `${sede.nombre}: la prenda a ${soles(precio)}${antes !== null ? ` (antes ${soles(antes)})` : ""}.`;
+}
+
+/** Las sedes donde el precio que quedaría (el elegido o el de por defecto) está bajo el costo de alguna talla: la hoja lo avisa antes de
+ *  confirmar, porque la fusión frenaría (20261116203000). Con «un solo precio» no hay precios de tienda que mirar. */
+export function sedesBajoCosto(
+  sedes: PrecioSedePlan[],
+  e: Pick<Elecciones, "unSoloPrecio" | "precioSedeDe">,
+): { nombre: string; precio: number | null }[] {
+  if (e.unSoloPrecio) return [];
+  return sedes.flatMap((s) => {
+    const de = fichaDelPrecioDeSede(s, e.precioSedeDe[s.ubicacionId]);
+    const ficha = s.productos.find((p) => p.id === de);
+    return ficha?.bajoCosto ? [{ nombre: s.nombre, precio: ficha.precio }] : [];
+  });
 }
 
 /** Las líneas de «Qué va a pasar» sobre lo que cobrará cada tienda (20261115153000): una por sede o, con «un solo precio», una sola.
