@@ -153,3 +153,39 @@ una hipótesis razonada.
 
 **La foto que la IA necesita** (para el equipo, sin código): la prenda sola en el cuadro, en plano o colgada de la pretina con pinzas; un fondo
 distinto de su color; entera y con margen; el celular paralelo a la prenda; luz pareja. Y el ángulo «Detalle de la tela».
+
+## Actualización 2026-11-16 (c) — El pedido de cintura, en positivo (fase 2 del «pantalón que sale buzo»)
+
+**Nace de** el mismo pantalón de lino del 14-nov (Felipe 2026-11-16: «el de lino del 14-nov»). La ficha de esa fecha nunca se probó contra su propio
+caso: el laboratorio de fotos sigue mandando el pedido de blusa (`app/api/fotos/laboratorio/route.ts` llama `camposOpenAI(modelo, { conMolde })`, sin
+ficha ni zona), así que ninguna lámina midió un pantalón con el pedido de cintura.
+
+**Diagnóstico (leído del código, sin llamar a OpenAI).** El pedido de cintura pedía «la pretina y la basta con el mismo ancho y el mismo **fruncido**»
+(una basta fruncida es el puño de un jogger), «con **volumen 3D**» y «la cintura y las caderas **con volumen**» (inflan la pierna), y nombraba
+«elástico, puños ni cordón». El pedido **con molde** no miraba la zona: copiaba «las mangas, el cuello, el elástico» y tomaba de la foto real «SOLO el
+color», así que la textura salía del molde. La ficha decía «sin pelusa ni textura de felpa, de algodón de buzo o de ropa deportiva»: las guías de Google
+(Gemini), Ideogram y BFL piden describir lo que se quiere, no lo que se evita, porque el modelo se engancha a la palabra que sigue a «no».
+
+**Decisiones de Felipe (2026-11-16):** cambiar el texto **sin medir** con una lámina (se le advirtió: es la misma apuesta del 14-nov), y en
+**Pantalones y Jeans CAYLA vende solo pantalones de tela** (no joggers).
+
+**Lo que cambió** (`lib/openai-imagen-reglas.ts`, `lib/ficha-foto-ia.ts`):
+1. **El pedido de hombros no cambió ni una letra.** Es lo único medido (99 % de la silueta). Una prueba congela sus siete huellas sha256
+   (`openai-imagen-reglas.test.ts`, «el pedido de HOMBROS … no cambió ni una letra»).
+2. **Cada prenda de cintura dice qué es** (`FORMA_DE_CINTURA`): PAN y JEA, pantalón de tela; SHO, short; FAL, falda.
+3. **El pedido de cintura, en positivo:** la prenda PUESTA sin «volumen 3D»; el maniquí pone la cintura y las caderas a su altura y «las piernas caen
+   rectas, con el peso de la tela»; la PRETINA va sola, con su cierre (botón y bragueta, o elástica) y «donde una mano la sostiene, la arruga es de la
+   mano»; la PIERNA del mismo ancho de la cadera a la basta; la BASTA de un pantalón de tela, «abierta y recta… terminada en un dobladillo plano»; la de
+   un short, «como en la foto»; la falda, VUELO y RUEDO. Ninguno nombra puño, cordón, felpa, jogger ni buzo (lo vigila una prueba).
+4. **Con molde, una prenda de cintura copia su FORMA** (silueta, largo, pretina, ancho de la pierna, basta, pliegues, pose) **y toma de la foto real la
+   TEXTURA de la tela**, además del color: si el molde salió con cara de felpa, el color nuevo no la hereda.
+5. **La ficha**: PAN y JEA dicen «Es un pantalón de tela tejida, de vestir o casual, con la caída de una tela plana» aunque el tejido sea Algodón,
+   Poliéster o falte (el tejido es opcional en Nuevo producto); la frase de tejido plano pasa a «Es un tejido PLANO, hecho en telar: se ve su trama y cae
+   con el peso de la tela»; y las frases de la ayuda escritas para personas («confirma la composición con el proveedor») no van al pedido.
+
+**Se rompe si** un jean ceñido o acampanado se dibuja recto («las piernas caen rectas»: ver la revisión de este cambio), o si un día CAYLA vende
+joggers en Pantalones (la basta abierta es fija para PAN y JEA: habría que pasar esa categoría a «short», que deja la basta como en la foto).
+
+**Sigue sin medir.** Lo que lo mediría sin costo: que el laboratorio use `pedidoDeCatalogo` con la ficha (hoy manda el de blusa) y una medida pura del
+canal alfa (ancho de la basta ÷ ancho de la rodilla; un puño se ve como un ensanche justo antes de la basta). Una lámina de 6 prendas × 3 variantes
+cuesta ~0,90 USD.
