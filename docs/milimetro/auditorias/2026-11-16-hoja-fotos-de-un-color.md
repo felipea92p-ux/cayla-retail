@@ -68,8 +68,9 @@ combo × «Ponerla primera»); después, 0 en los cuatro casos.
   del ERP ya tenían nombre (dentro de su `<label>`, con `htmlFor` o `aria-label`) o estaban fuera del árbol (`hidden`, `aria-hidden`).
   **El medidor también se corrigió:** `milimetro/referencia/medir.js` contaba como campo sin etiqueta, y enfocaba, lo que está bajo `aria-hidden`;
   probado con una página de control (el escondido ya no sale; un campo de texto sin nombre sí).
-  **Queda aparte:** `finanzas/SubirPropuestaSireModal.tsx` tiene el mismo input, pero dentro de un `CampoGuiado`, y la guía de foco
-  (`irAlIdCampo`, `cursor: true`) pone el cursor en el primer `input` del campo sin excluir los de archivo: ahí el arreglo es de la guía, no del input.
+  **También arreglado:** `finanzas/SubirPropuestaSireModal.tsx` tenía el mismo input dentro de un `CampoGuiado`, y la guía de foco
+  (`irAlIdCampo`, `cursor: true`) dejaba el cursor en él. Ahora la guía lleva el cursor al botón que abre un archivo escondido y le une el error
+  (ADR-0284 act. 2026-11-16 k); el input de la hoja salió de Tab y del lector.
 - **El vacío es una frase gris suelta** («Ya no quedan fotos aquí…», `FotosPorColor.tsx:424`), no `<Vacio tamano="chico">` (ADR-0358, familia `vacio`).
 
 ## Sin medir

@@ -18,3 +18,10 @@ Qué hice: el `<input type="file">` escondido de `BotonFoto` lleva `aria-hidden`
 Por qué así: lo encontró la auditoría de la hoja (WCAG 4.1.2), y Tab se detenía en un campo invisible en los otros tres. Es el arreglo que ya tenía
 `ElegirDibujoDeInsignia`. Felipe se lleva: queda aparte la hoja de SUNAT (`SubirPropuestaSireModal`): la guía de foco pone el cursor en su input de
 archivo escondido, y el arreglo es de la guía (`irAlIdCampo`).
+
+## 2026-11-16 (La guía de foco no lleva el cursor a un archivo escondido)
+Qué hice: `irAlIdCampo` ya no pone el cursor en un input de archivo escondido (fuera de Tab): lo pone en el botón que lo abre, y `CampoGuiado` le une
+el error a ese botón. La hoja del SIRE: su input sale de Tab y del lector, como los de las fotos. ADR-0284 act. 2026-11-16 (k).
+Por qué así: al pedir lo que falta en «Subir la propuesta del SIRE», el cursor caía en un cuadrito invisible y sin nombre. Un input de archivo dentro
+de su `<label>` (Existencias) sí es el control, y sigue recibiendo el cursor. Felipe se lleva: medido en el navegador con la guía real y con la hoja
+del SIRE; las pruebas no tienen DOM, así que no hay prueba automática de a dónde va el foco.
