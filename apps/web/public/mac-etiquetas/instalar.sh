@@ -90,9 +90,18 @@ ESTADO=$(curl -fsS --max-time 5 "http://127.0.0.1:$PUERTO/estado" 2>/dev/null ||
 case "$ESTADO" in
   *'"ok":true'*)
     echo "Listo. El ayudante responde en esta Mac."
-    case "$ESTADO" in *'"chrome":false'*) echo "AVISO: no encuentro Google Chrome en Aplicaciones; sin él no se pueden preparar las etiquetas." ;; esac
-    case "$ESTADO" in *'"impresora":false'*) echo "AVISO: la Mac no tiene la Brother agregada (Ajustes del Sistema ▸ Impresoras y escáneres)." ;; esac
-    echo "Ahora, en «Etiquetas de precio», el botón Imprimir manda las etiquetas directo a la Brother, sin diálogo."
+    case "$ESTADO" in *'"chrome":false'*) echo "AVISO: no encuentro Google Chrome en Aplicaciones; sin él no se pueden preparar las etiquetas ni las boletas." ;; esac
+    # Cada Mac tiene UNA impresora (Felipe, 2026-11-16): se avisa solo si no está ni la Brother ni la ticketera.
+    case "$ESTADO" in
+      *'"impresora":true'*) echo "La Brother está: las etiquetas salen directo, sin cuadro." ;;
+    esac
+    case "$ESTADO" in
+      *'"ticketera":true'*) echo "La ticketera está: las boletas salen directo, sin cuadro, desde el Chrome de siempre." ;;
+    esac
+    case "$ESTADO" in
+      *'"impresora":true'* | *'"ticketera":true'*) ;;
+      *) echo "AVISO: la Mac no tiene agregada la Brother ni la ticketera (Ajustes del Sistema ▸ Impresoras y escáneres)." ;;
+    esac
     echo "Si Chrome pregunta por acceso a la red local, elige Permitir."
     ;;
   *)
