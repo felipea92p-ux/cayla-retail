@@ -1,4 +1,4 @@
-import { descuentoDeCampana, descuentoUnitarioPorPorcentaje, RAZON_CAMPANA } from "./vender-reglas";
+import { comoDescuento, descuentoDeCampana, descuentoUnitarioPorPorcentaje, RAZON_CAMPANA, type DescuentoTrasCampana } from "./vender-reglas";
 import { escalonesDeFila, titularDeEscalon, titularDeMonto, titularDeOferta } from "./campana-reglas";
 
 /**
@@ -45,7 +45,16 @@ export type EnMonto = { ahorroEn: "soles" | "pct"; alcanzado: Escalon | null; si
 
 /** Una línea del ticket: su precio por unidad, cuántas lleva, la oferta de grupo que rige para esa prenda (o ninguna) y su modelo. `rebaja`:
  *  lo que le ahorra por unidad su rebaja de campaña (el «% menos»), si la tiene; con ella la cuenta elige la que más ahorra (decisión 2). */
-export type LineaDeGrupo = { precio: number; cantidad: number; oferta: OfertaDeGrupo | null; modeloId?: string | null; rebaja?: number };
+export type LineaDeGrupo = {
+  precio: number;
+  cantidad: number;
+  oferta: OfertaDeGrupo | null;
+  modeloId?: string | null;
+  rebaja?: number;
+  /** El descuento a mano por unidad (Felipe 2026-11-16): un monto cuenta y reparte sobre precio − este descuento, como
+   *  `fn_ofertas_de_grupo` con `descuento_manual` (20261116173000). Las demás formas lo ignoran. */
+  manual?: number;
+};
 
 /** Lo que la regla dice de una línea con oferta de grupo: cuánto ahorra (todas sus unidades) y cuántas le faltan al último grupo (en un
  *  monto, 0: lo que le falta va en soles, en `monto`). Con `descuento` > 0 la línea va con su grupo y deja su rebaja: nunca las dos. */
@@ -98,7 +107,10 @@ function cuentaDeGrupos(lineas: readonly LineaDeGrupo[]): (GrupoDeLinea | null)[
     if (!l.oferta) return;
     const clave = `${l.oferta.reglaId}|${l.oferta.agrupa === "modelo" ? (l.modeloId ?? "") : ""}`;
     for (let u = 1; u <= Math.max(0, Math.trunc(l.cantidad)); u++) {
-      unidades.push({ linea: i, u, cent: Math.round(l.precio * 100), clave, oferta: l.oferta });
+      const cent = Math.round(l.precio * 100);
+      // Un monto, sobre lo que la prenda paga: precio − descuento a mano (entre 0 y el precio), como la base.
+      const manual = l.oferta.tipo === "monto" ? Math.min(Math.max(Math.round((l.manual ?? 0) * 100), 0), cent) : 0;
+      unidades.push({ linea: i, u, cent: cent - manual, clave, oferta: l.oferta });
     }
   });
 
@@ -275,6 +287,7 @@ type LineaCobrable = {
   descuentoUnitario: number;
   campana?: unknown;
   razonDescuento?: string;
+  manualTrasCampana?: DescuentoTrasCampana | null;
 };
 
 /** El % de la campaña de una línea, si lo trae (`CampanaLinea`). */
@@ -314,7 +327,16 @@ export function carritoConGrupos<L extends LineaCobrable>(
       const o = ofertaDeLinea[i];
       // Decisión 2: la rebaja de su campaña (la que la caja le pone), para que la cuenta elija la que más ahorra.
       const pct = pctDeCampana(l.campana);
-      return { precio: l.precioUnitario, cantidad: l.cantidad, oferta: o ?? null, modeloId: o?.modeloId ?? null, rebaja: pct > 0 ? descuentoDeCampana(l.precioUnitario, pct) : 0 };
+      // Felipe 2026-11-16: el monto se mide sobre lo que paga la prenda (su descuento a mano; una prenda con campaña no cuenta para él).
+      const manual = l.razonDescuento !== RAZON_CAMPANA ? l.descuentoUnitario : 0;
+      return {
+        precio: l.precioUnitario,
+        cantidad: l.cantidad,
+        oferta: o ?? null,
+        modeloId: o?.modeloId ?? null,
+        rebaja: pct > 0 ? descuentoDeCampana(l.precioUnitario, pct) : 0,
+        manual,
+      };
     }),
   );
   const porLinea = new Map<string, GrupoEnTicket>();
@@ -336,10 +358,12 @@ export function carritoConGrupos<L extends LineaCobrable>(
       ...(sinRebaja && sinRebaja.unidades > 0 ? { sinRebaja } : {}),
     });
     if (g.descuento <= 0) return l;
-    const base = dejaRebaja ? 0 : l.descuentoUnitario;
+    // Al dejar su rebaja vuelve el descuento a mano que había quedado detrás de la campaña (casuística 2026-11-16: se perdía sin aviso).
+    const tras = dejaRebaja && l.manualTrasCampana && l.manualTrasCampana.monto > 0 ? l.manualTrasCampana : null;
+    const base = dejaRebaja ? (tras?.monto ?? 0) : l.descuentoUnitario;
     return {
       ...l,
-      ...(dejaRebaja ? { razonDescuento: "", razonDescuentoOtro: "", argumentoDescuento: "" } : {}),
+      ...(dejaRebaja ? (tras ? { ...comoDescuento(tras), manualTrasCampana: null } : { razonDescuento: "", razonDescuentoOtro: "", argumentoDescuento: "" }) : {}),
       descuentoUnitario: (Math.round(base * 100) + Math.round(g.descuento * 100)) / 100,
       descuentoGrupoUnitario: g.descuento,
       ofertaGrupoId: g.reglaId,
@@ -351,10 +375,14 @@ export function carritoConGrupos<L extends LineaCobrable>(
 /** Cómo se dibuja una línea del ticket (decisión 2): las prendas que van con su grupo en vez de su rebaja, sin la rebaja (lo que ahorra el
  *  grupo lo dice su pie). Si todas van, la línea va sin rebaja; si alguna la conserva («en 3 de 4»), la línea lleva solo la de esas: su
  *  importe es lo que de verdad se cobra antes del grupo, y el total del ticket cuadra a la vista. */
-export function lineaSinSuRebaja<L extends { cantidad: number; descuentoUnitario: number; razonDescuento: string }>(l: L, g: GrupoEnTicket | undefined): L {
+export function lineaSinSuRebaja<L extends { cantidad: number; descuentoUnitario: number; razonDescuento: string; manualTrasCampana?: DescuentoTrasCampana | null }>(
+  l: L,
+  g: GrupoEnTicket | undefined,
+): L {
   if (!g?.sinRebaja || l.razonDescuento !== RAZON_CAMPANA || l.cantidad <= 0) return l;
   const conRebaja = Math.max(0, l.cantidad - g.sinRebaja.unidades);
-  if (conRebaja === 0) return { ...l, descuentoUnitario: 0, razonDescuento: "" };
+  // Sin su rebaja, la línea muestra el descuento a mano que había quedado detrás de la campaña (si lo había): es el que se cobra.
+  if (conRebaja === 0) return l.manualTrasCampana && l.manualTrasCampana.monto > 0 ? { ...l, ...comoDescuento(l.manualTrasCampana) } : { ...l, descuentoUnitario: 0, razonDescuento: "" };
   return { ...l, descuentoUnitario: (l.descuentoUnitario * conRebaja) / l.cantidad };
 }
 

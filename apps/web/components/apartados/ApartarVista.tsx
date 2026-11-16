@@ -21,6 +21,8 @@ import { EntradaMonto } from "@/components/ui/CampoMonto";
 import { avisar } from "@/components/ui/Avisos";
 import { createClient } from "@/lib/supabase/client";
 import { traducirError } from "@/lib/error-escritura";
+import { firmaDeApartar } from "@/lib/apartar-ofertas-al-dia";
+import { useOfertasAlDia } from "@/lib/useOfertasAlDia";
 import { resolverCodigoV2 } from "@/lib/buscar-prenda-v2";
 import { codigoPrenda } from "@/lib/prenda-reglas";
 import { textoOtrasSedes } from "@/lib/stock-por-sede";
@@ -246,6 +248,18 @@ export function ApartarVista({
   // La prenda de un pedido que llegó está reservada en el almacén: entra sin el tope de «disponible en el piso».
   const escrita = useCantidadEscrita(CANTIDAD_DE_LINEA);
   const [lineas, setLineas] = useState<Linea[]>(() => (pedido ? [{ varianteId: pedido.varianteId, cantidad: pedido.cantidad }] : (guardado?.lineas ?? desdeTicket.lineas)));
+  // Las campañas y ofertas de hoy, releídas cada 10 s como en la caja (ADR-0655, casuística 2026-11-16): si para estas prendas cambió un 3x2,
+  // un monto o una campaña, la pantalla se rehace con las de ahora en vez de esperar a que `separar_prendas` rechace el apartado.
+  useOfertasAlDia(
+    ubicacionId,
+    cajaAbierta,
+    useMemo(() => prendasProp.map((p) => p.varianteId), [prendasProp]),
+    useMemo(() => firmaDeApartar(prendasProp, filasMonto), [prendasProp, filasMonto]),
+    () => {
+      router.refresh();
+      if (lineas.length > 0) avisar.aviso("Cambiaron las ofertas de hoy", { detalle: "El apartado ya las tiene. Revisa el total antes de confirmar." });
+    },
+  );
   // ADR-0542: de quién es lo que se aparta cuando hay unidades de las dos empresas (Lima). Sin respuesta de fábrica.
   const duenosPorVariante = useStockPorDueno(ubicacionId);
   const [duenoDeLinea, setDuenoDeLinea] = useState<Record<string, string>>({});
@@ -674,6 +688,8 @@ export function ApartarVista({
     if (r.tipo === "incierto") return;
     if (r.tipo === "error") {
       avisar.error(traducirError(r.error, "registrar el apartado"));
+      // La oferta o la campaña cambió mientras se apartaba: se traen las de ahora, sin perder lo armado (ADR-0655, casuística 2026-11-16).
+      if (/separacion_grupo_no_coincide|campana/.test(`${r.error?.message ?? ""} ${(r.error as { hint?: string } | null)?.hint ?? ""}`)) router.refresh();
       return;
     }
     const id = r.tipo === "ok" ? r.data : typeof r.datos.id === "string" ? r.datos.id : null;

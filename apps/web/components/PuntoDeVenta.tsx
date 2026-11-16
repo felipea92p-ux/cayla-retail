@@ -40,6 +40,7 @@ import {
   vueltoDe,
   conDescuentoDeCampana,
   type CampanaLinea,
+  type DescuentoTrasCampana,
   type DetalleDescuento,
   type MaquinaDeCobro,
   type ModoDescuento,
@@ -274,6 +275,9 @@ export type ItemCarrito = {
   /** La campaña que rige hoy para esta prenda, o null/ausente. Un ticket en espera
    *  guardado antes de las campañas no lo trae — `retomar()` lo completa. */
   campana?: CampanaLinea | null;
+  /** El descuento a mano que quedó detrás de la campaña porque daba menos (ADR-0655, casuística 2026-11-16): vuelve si la prenda se va con
+   *  su oferta de grupo o si la campaña termina. */
+  manualTrasCampana?: DescuentoTrasCampana | null;
   /** Solo en una «Prenda sin registrar» (ADR-0179): lo que anotó caja para que almacén la reconozca. */
   prendaLibre?: Omit<DatosPrendaSinRegistrar, "precio">;
 };

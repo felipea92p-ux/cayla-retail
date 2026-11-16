@@ -36,7 +36,7 @@ async function leerPrecios(conocidos: Set<string>): Promise<Map<string, number> 
   return new Map(data.filter((v) => conocidos.has(v.id)).map((v) => [v.id, Number(v.precio)]));
 }
 
-async function leerCampanas(ubicacionId: string): Promise<Map<string, CampanaLinea> | null> {
+export async function leerCampanas(ubicacionId: string): Promise<Map<string, CampanaLinea> | null> {
   // Las campañas de ESTA tienda (una campaña puede regir solo en algunas, ADR-0486), por páginas: pasan de las 1.000 filas.
   const { data, error } = await leerCampanasVigentes(createClient(), ubicacionId);
   // Igual que al cargar la pantalla: si la función no existe en esa base (PGRST202) no hay campañas que aplicar.
@@ -47,7 +47,7 @@ async function leerCampanas(ubicacionId: string): Promise<Map<string, CampanaLin
 // Las ofertas de grupo (3x2, N por S/, la N.ª al X %) y los montos de hoy (ADR-0655), en cada vuelta como las campañas: activar o retirar
 // una no toca `variantes`. Sin releerlas, una caja abierta antes de activar un 3x2 lo omitía y la base rechazaba el cobro
 // (`venta_grupo_omitido`) hasta recargar la página. Sin la función (PGRST202) no hay ofertas; si una lectura falla, `null`: se conservan.
-async function leerOfertas(ubicacionId: string): Promise<OfertasReleidas | null> {
+export async function leerOfertas(ubicacionId: string): Promise<OfertasReleidas | null> {
   const supabase = createClient();
   const [g, m] = await Promise.all([leerOfertasDeGrupoVigentes(supabase, ubicacionId), leerOfertasDeMontoVigentes(supabase, ubicacionId)]);
   const falta = (e: { code?: string } | null) => e !== null && e.code !== "PGRST202";
