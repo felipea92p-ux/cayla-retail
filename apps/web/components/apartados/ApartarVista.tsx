@@ -1140,7 +1140,7 @@ export function ApartarVista({
                           </span>
                           <div role="group" aria-label="Comprobante al entregar" className="ml-auto grid w-44 shrink-0 grid-cols-2 gap-1 rounded-xl bg-sand/50 p-1">
                             {(["boleta", "factura"] as const).map((k) => (
-                              <button key={k} type="button" aria-pressed={f.comprobante === k} onClick={() => cambiar("comprobante", k)} className={`${OPCION} label-cayla h-8 text-[10.5px] ${f.comprobante === k ? OPCION_ACTIVA : OPCION_INACTIVA}`}>
+                              <button key={k} type="button" aria-pressed={f.comprobante === k} onClick={() => cambiar("comprobante", k)} className={`${OPCION} label-cayla h-8 text-[11px] ${f.comprobante === k ? OPCION_ACTIVA : OPCION_INACTIVA}`}>
                                 {k}
                               </button>
                             ))}
@@ -1171,7 +1171,7 @@ export function ApartarVista({
                     pista={pasoQueSigue === 1 ? "Sigue" : null}
                     estado={f.pagos.length ? { ok: pagoOk, texto: total - adelanto > 0 ? `Resta ${money(total - adelanto)}` : "Pagado todo" } : null}
                   />
-                  <div role="group" aria-label="Cómo pagó el adelanto" className="grid grid-cols-5 gap-1.5">
+                  <div role="group" aria-label="Cómo pagó el adelanto" className="ap-medios grid grid-cols-3 gap-1.5 sm:grid-cols-5">
                     {METODOS_PAGO.map((m) => {
                       const puesto = f.pagos.some((x) => x.metodo === m);
                       return (
@@ -1270,12 +1270,12 @@ export function ApartarVista({
                   <div className="flex flex-wrap items-start gap-2">
                     <div role="group" aria-label="Le devolvemos por" className="grid shrink-0 grid-cols-3 gap-1 rounded-xl bg-sand/50 p-1">
                       {(["yape", "plin", "transferencia"] as const).map((k) => (
-                        <button key={k} type="button" aria-pressed={f.devolucionMedio === k} onClick={() => cambiar("devolucionMedio", k)} className={`${OPCION} label-cayla h-8 px-2 text-[10.5px] ${f.devolucionMedio === k ? OPCION_ACTIVA : OPCION_INACTIVA}`}>
+                        <button key={k} type="button" aria-pressed={f.devolucionMedio === k} onClick={() => cambiar("devolucionMedio", k)} className={`${OPCION} label-cayla h-8 px-2 text-[11px] ${f.devolucionMedio === k ? OPCION_ACTIVA : OPCION_INACTIVA}`}>
                           {NOMBRE_MEDIO_CORTO[k]}
                         </button>
                       ))}
                     </div>
-                    <label className="block min-w-36 flex-1" onBlur={tocar("devolucion")}>
+                    <label className="block min-w-32 flex-1" onBlur={tocar("devolucion")}>
                       {f.devolucionMedio === "transferencia" ? (
                         <input aria-label="CCI del cliente" value={f.devolucionCci} onChange={(e) => cambiar("devolucionCci", e.target.value)} inputMode="numeric" placeholder="20 dígitos" className="caja-campo-input font-mono" />
                       ) : (
