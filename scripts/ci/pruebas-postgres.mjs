@@ -482,6 +482,10 @@ export const PRUEBAS = [
   // Cambiar la talla o el color de una prenda comprada con descuento no cobra el descuento otra vez (ADR-0655, Felipe 2026-11-14): el mismo
   // modelo, una talla más cara o más barata, otro modelo, una por varias y su mutante. ROLLBACK.
   "pruebas:cambio-mismo-modelo",
+  // Un cambio de prenda emite su nota de crédito y su boleta nueva (ADR-0672): color o talla, más cara, más barata, con descuento, parcial,
+  // boleta sin aceptar, nota de venta, factura, doble clic y en otra tienda; boleta − nota = diferencia, la caja solo ve la diferencia y la
+  // venta original no se anula; con su mutante. ROLLBACK.
+  "pruebas:cambio-comprobantes",
   "pruebas:aviso-dos-ofertas",
   // Tres candados de las ofertas (ADR-0655, casuística 2026-11-16): cesiones sin ciclo, la campaña que se achica bajo sus ofertas (fechas y
   // tiendas) y la revisión de choques de a una; con su control (sin el candado, el ciclo apaga las tres ofertas). ROLLBACK.
