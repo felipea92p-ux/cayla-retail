@@ -77,6 +77,7 @@ import { reglaDeEntero } from "@/lib/cantidad-escrita-reglas";
 import { Buscador } from "@/components/ui/Buscador";
 import { Casilla } from "@/components/ui/Casilla";
 import { BotonImprimir } from "@/components/ui/BotonImprimir";
+import { imprimirBoleta } from "@/components/impresion/imprimirBoleta";
 
 const CANTIDAD_DE_LINEA = reglaDeEntero();
 
@@ -85,17 +86,9 @@ export type UbicacionApartado = { ubicacionId: string; etiqueta: string };
 
 /** Imprime y cierra cuando el navegador avisa que terminó (mismo criterio que «Venta registrada»). */
 function imprimirYSeguir(cerrar: () => void) {
-  let hecho = false;
-  const terminar = () => {
-    if (hecho) return;
-    hecho = true;
-    window.removeEventListener("afterprint", terminar);
-    clearTimeout(respaldo);
-    cerrar();
-  };
-  window.addEventListener("afterprint", terminar);
-  const respaldo = setTimeout(terminar, 4000);
-  window.print();
+  void imprimirBoleta().then((fin) => {
+    if (fin !== "frenada") cerrar();
+  });
 }
 
 /** Los botones van en un pie pegado al fondo de la hoja: con la pantalla baja (captura de Felipe, 2026-09-26) quedaban
@@ -107,7 +100,7 @@ function Botones({ cerrar, principal }: { cerrar: () => void; principal: string 
         {principal}
       </BotonImprimir>
       <div className="grid grid-cols-2 gap-2">
-        <button type="button" onClick={() => window.print()} className={botonCancelar}>
+        <button type="button" onClick={() => void imprimirBoleta()} className={botonCancelar}>
           Solo imprimir
         </button>
         <button type="button" onClick={cerrar} className={botonCancelar}>
@@ -298,7 +291,7 @@ export function ReimprimirApartadoModal({ apartado, sede, onClose }: { apartado:
             </p>
             <p className="text-sm text-tinta/60">Apartado el {fechaCorta(diaLima(a.creadaEn))} · sale marcado como COPIA.</p>
           </div>
-          <BotonImprimir peso="primario" autoFocus onClick={() => window.print()} className="w-full">
+          <BotonImprimir peso="primario" autoFocus onClick={() => void imprimirBoleta()} className="w-full">
             Imprimir la copia
           </BotonImprimir>
           {cual === "final" && reciboFinal ? <TicketDeEntrega recibo={reciboFinal} codigo={a.codigo} /> : <ReciboApartado key={cual} apartado={a} tipo={cual} sede={sede} copia />}

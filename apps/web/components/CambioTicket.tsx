@@ -12,6 +12,7 @@ import { textoTicketCambio } from "@/lib/cambios-atajos-reglas";
 import { useTituloDeImpresion } from "@/lib/useTituloDeImpresion";
 import { soles } from "@/lib/compras-reglas";
 import { BotonImprimir } from "@/components/ui/BotonImprimir";
+import { imprimirBoleta } from "@/components/impresion/imprimirBoleta";
 
 /* ====================================================================
    CambioTicket · lo que la clienta se lleva al terminar un cambio (spike 2026-09-26, opción A)
@@ -108,7 +109,7 @@ export function CambioTicketHoja({ ticket, onNuevo, onCerrar }: { ticket: Ticket
               <MessageCircle aria-hidden className="h-4 w-4" />
               {ticket.clienta ? `WhatsApp a ${ticket.clienta.split(" · ")[0]!.split(" ")[0]}` : "Enviar por WhatsApp"}
             </a>
-            <BotonImprimir onClick={() => window.print()} className="h-12 rounded-xl">
+            <BotonImprimir onClick={() => void imprimirBoleta()} className="h-12 rounded-xl">
               Imprimir ticket
             </BotonImprimir>
             <Link href="/vender" className={`${boton} border border-sand bg-papel text-tinta hover:border-taupe`}>

@@ -6,6 +6,7 @@ import { AvisoDestacado } from "@/components/ui/AvisoDestacado";
 import { EsperaGlobal } from "@/components/ui/Espera";
 import { PaginaEstable } from "@/components/ui/PaginaEstable";
 import { OndaBotones } from "@/components/ui/OndaBotones";
+import { MarcaDeVentana } from "@/components/impresion/MarcaDeVentana";
 import { FilasQueSeDeslizan } from "@/components/ui/FilasQueSeDeslizan";
 import { SesionEntrePestanas } from "@/components/ui/SesionEntrePestanas";
 import { EntradaColibri } from "@/components/login/EntradaColibri";
@@ -57,6 +58,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <PaginaEstable />
         {/* La onda de un clic en un botón (ADR-0358, ronda 4): una vez, acá, para todos los botones del ERP. */}
         <OndaBotones />
+        {/* La marca de los íconos «CAYLA Caja» / «CAYLA Etiquetas» (`?ventana=`): una vez, acá, para que también valga si el ícono cae en el login. */}
+        <MarcaDeVentana />
         {/* Las filas de pestañas o de píldoras que se deslizan avisan que hay más con un degradado en el borde (Felipe 2026-10-23, ADR-0358): una vez, acá, para todas. */}
         <FilasQueSeDeslizan />
         {/* Una cuenta por navegador (ADR-0309): si otra pestaña cambia de cuenta, esta se va sola al login o al inicio. */}

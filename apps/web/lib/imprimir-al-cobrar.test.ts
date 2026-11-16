@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { imprimirAlCobrar, queHacerAlRegistrar } from "./imprimir-al-cobrar";
+import { imprimirAlCobrar, imprimirEnLaCaja, queHacerAlRegistrar } from "./imprimir-al-cobrar";
 
 const base = { encendido: true, hayComprobante: true, sinConexion: false, vuelto: 0 };
 
@@ -22,6 +22,29 @@ describe("queHacerAlRegistrar", () => {
     expect(queHacerAlRegistrar({ ...base, hayComprobante: false })).toBe("esperar");
     expect(queHacerAlRegistrar({ ...base, sinConexion: true })).toBe("esperar");
     expect(queHacerAlRegistrar({ ...base, sinConexion: true, vuelto: 10 })).toBe("esperar");
+  });
+});
+
+describe("queHacerAlRegistrar con «Imprimir en la caja»", () => {
+  it("manda la boleta a la caja, aunque también esté encendido «Imprimir solo al cobrar»", () => {
+    expect(queHacerAlRegistrar({ ...base, enLaCaja: true, ventaId: "v1" })).toBe("mandar-a-la-caja");
+    expect(queHacerAlRegistrar({ ...base, encendido: false, enLaCaja: true, ventaId: "v1", vuelto: 20 })).toBe("mandar-a-la-caja");
+  });
+
+  it("sin venta guardada en el servidor no hay qué pedir: sigue como siempre", () => {
+    expect(queHacerAlRegistrar({ ...base, enLaCaja: true, ventaId: null })).toBe("imprimir-y-seguir");
+    expect(queHacerAlRegistrar({ ...base, encendido: false, enLaCaja: true })).toBe("esperar");
+  });
+
+  it("sin comprobante o sin conexión, tampoco se manda nada a la caja", () => {
+    expect(queHacerAlRegistrar({ ...base, enLaCaja: true, ventaId: "v1", hayComprobante: false })).toBe("esperar");
+    expect(queHacerAlRegistrar({ ...base, enLaCaja: true, ventaId: "v1", sinConexion: true })).toBe("esperar");
+  });
+});
+
+describe("imprimirEnLaCaja", () => {
+  it("arranca apagado: un equipo que no lo encendió imprime donde cobra", () => {
+    expect(imprimirEnLaCaja.leerEnServidor()).toBe("no");
   });
 });
 

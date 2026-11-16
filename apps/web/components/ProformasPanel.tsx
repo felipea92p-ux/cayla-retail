@@ -24,6 +24,7 @@ import { Modal } from "@/components/ui/Modal";
 import { Vacio } from "@/components/ui/Vacio";
 import { TituloSeccion } from "@/components/ui/TituloSeccion";
 import { BotonImprimir } from "@/components/ui/BotonImprimir";
+import { sePuedeImprimirAqui } from "@/components/impresion/imprimirEnEstaVentana";
 
 // Las columnas de la lista, según el ancho DE LA TARJETA (container queries) y no el de la ventana,
 // igual que en Comprobantes y en «Actividad de hoy»: con el menú lateral desplegado, una ventana de
@@ -294,7 +295,7 @@ export function ProformasPanel({
               <p className="text-sm text-tinta/60">Para enviarla por WhatsApp, elige «Guardar como PDF» en el cuadro de impresión y adjunta el archivo.</p>
               <div className="pie-hoja-fijo flex gap-2">
                 {/* Que también sirve para guardarla en PDF lo dice la frase de arriba, no el botón (ADR-0358, ronda 11). */}
-                <BotonImprimir peso="primario" className="flex-1" onClick={() => setImprimiendo(true)} cargando={imprimiendo}>
+                <BotonImprimir peso="primario" className="flex-1" onClick={() => sePuedeImprimirAqui("hoja") && setImprimiendo(true)} cargando={imprimiendo}>
                   Imprimir la proforma
                 </BotonImprimir>
               </div>

@@ -12,6 +12,7 @@ import { RefrescoTrasCorte } from "@/components/RefrescoTrasCorte";
 import { ContextoDeErrores } from "@/components/ContextoDeErrores";
 import { SinConexion } from "@/components/SinConexion";
 import { VersionNueva } from "@/components/VersionNueva";
+import { EstacionDeImpresion } from "@/components/impresion/EstacionDeImpresion";
 import { CronometroDelClic } from "@/components/CronometroDelClic";
 import { RecordatorioCierreCaja } from "@/components/RecordatorioCierreCaja";
 import { EsperaAlVelo } from "@/components/login/EntradaColibri";
@@ -99,6 +100,8 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         <PreciosEnVivo ubicacionId={persona.ubicacionId} />
         {/* Un guardado que se quedó sin respuesta (ADR-0410): la pantalla se vuelve a leer sola cuando la base responda (ADR-0411). */}
         <RefrescoTrasCorte />
+        {/* La estación de la caja: en «CAYLA Caja», imprime las boletas que se venden en el piso (migración 20261116204000). */}
+        <EstacionDeImpresion />
         {/* «Es hora de cerrar caja» (ADR-0305): desde la hora de cierre de la tienda hasta que la caja se cierra, en toda pantalla. */}
         {recibeRecordatorio && <RecordatorioCierreCaja inicial={recordatorioCierre} />}
       </SedeActivaProveedor>

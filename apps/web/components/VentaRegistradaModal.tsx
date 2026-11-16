@@ -16,7 +16,12 @@ import { textoCuponCobrado } from "@/lib/club-puntos-reglas";
 import { Aviso } from "@/components/ui/Aviso";
 import { BotonImprimir } from "@/components/ui/BotonImprimir";
 import { Interruptor } from "@/components/ui/campos";
-import { imprimirAlCobrar, queHacerAlRegistrar, type AlRegistrar } from "@/lib/imprimir-al-cobrar";
+import { Chip } from "@/components/ui/Chip";
+import { usePedidaALaCaja, type EstadoPedida } from "@/components/impresion/usePedidaALaCaja";
+import { imprimirAlCobrar, imprimirEnLaCaja, queHacerAlRegistrar, type AlRegistrar } from "@/lib/imprimir-al-cobrar";
+import { estacionDeLaCaja, vozDeLaEstacion } from "@/lib/estacion-de-impresion";
+import { ventanaDelEquipo } from "@/lib/ventana-de-impresion";
+import { boletasPorAyudante, imprimirBoleta } from "@/components/impresion/imprimirBoleta";
 
 type Props = {
   ok: VentaOk;
@@ -49,36 +54,37 @@ type Props = {
 export function VentaRegistradaModal({ ok, ubicacionEtiqueta, onClose, alCerrarEnfocar, emisor = EMISOR }: Props) {
   const r = ok.recibo;
   const imprimeSolo = useSyncExternalStore(imprimirAlCobrar.suscribir, imprimirAlCobrar.leer, imprimirAlCobrar.leerEnServidor) === "si";
+  const mandaALaCaja = useSyncExternalStore(imprimirEnLaCaja.suscribir, imprimirEnLaCaja.leer, imprimirEnLaCaja.leerEnServidor) === "si";
+  // En la ventana «CAYLA Caja» la hoja ofrece la estación (imprimir lo del piso) en vez de mandar a la caja: la caja no se manda a sí misma.
+  // En la Mac del piso con la ticketera en su ayudante, la caja es esta Mac (la boleta sale sin cuadro desde el Chrome de siempre).
+  const esVentanaCaja = useSyncExternalStore(ventanaDelEquipo.suscribir, ventanaDelEquipo.leer, ventanaDelEquipo.leerEnServidor) === "caja";
+  const esCaja = useSyncExternalStore(boletasPorAyudante.suscribir, boletasPorAyudante.leer, boletasPorAyudante.leerEnServidor) || esVentanaCaja;
+  const esEstacion = useSyncExternalStore(estacionDeLaCaja.suscribir, estacionDeLaCaja.leer, estacionDeLaCaja.leerEnServidor) === "si";
+  const conVoz = useSyncExternalStore(vozDeLaEstacion.suscribir, vozDeLaEstacion.leer, vozDeLaEstacion.leerEnServidor) === "si";
   // Se decide UNA vez, al abrir: prender el interruptor en esta hoja vale desde la próxima venta, no imprime esta de golpe.
   const [alRegistrar] = useState<AlRegistrar>(() =>
     queHacerAlRegistrar({
+      enLaCaja: imprimirEnLaCaja.leer() === "si" && ventanaDelEquipo.leer() !== "caja" && !boletasPorAyudante.leer(),
+      ventaId: ok.ventaId ?? null,
       encendido: imprimirAlCobrar.leer() === "si",
       hayComprobante: r !== null,
       sinConexion: ok.offline,
       vuelto: r?.vueltoTotal ?? 0,
     }),
   );
+  const enLaCaja = alRegistrar === "mandar-a-la-caja";
+  const pedida = usePedidaALaCaja(ok.ventaId ?? null, enLaCaja);
   // El PDF sale con el número del comprobante como nombre («B004-000004.pdf»), no «Retail - CAYLA.pdf».
   useTituloDeImpresion(r ? textoNumeroRecibo(r) : null);
   const fh = r ? fechaHoraLima(r.emitidoEn) : null;
   const sinDatosFiscales = r !== null && !emisorCompleto(emisor);
 
-  /** Imprime y, cuando el navegador avisa que terminó (`afterprint`: con el diálogo, al cerrarlo;
-   *  en modo `--kiosk-printing`, apenas manda el trabajo a la impresora), cierra el modal. Cerrar
-   *  ANTES desmontaría el recibo del `<body>` y no habría nada que imprimir. El temporizador es el
-   *  respaldo por si el navegador no emite `afterprint`: sin él la caja quedaría trabada. */
+  /** Imprime y, cuando la boleta ya se mandó (por el ayudante de la Mac, o `afterprint` del cuadro), cierra el modal. Cerrar ANTES
+   *  desmontaría el recibo del `<body>` y no habría nada que imprimir (`imprimirBoleta`). Si la ventana no imprime tickets, no cierra. */
   function imprimirYSeguir(cerrar: () => void) {
-    let hecho = false;
-    const terminar = () => {
-      if (hecho) return;
-      hecho = true;
-      window.removeEventListener("afterprint", terminar);
-      clearTimeout(respaldo);
-      cerrar();
-    };
-    window.addEventListener("afterprint", terminar);
-    const respaldo = setTimeout(terminar, 4000);
-    window.print();
+    void imprimirBoleta().then((fin) => {
+      if (fin !== "frenada") cerrar();
+    });
   }
 
   return (
@@ -212,14 +218,26 @@ export function VentaRegistradaModal({ ok, ubicacionEtiqueta, onClose, alCerrarE
             <p className="text-center text-sm text-tinta/65">Ya está descontada del stock de {ubicacionEtiqueta} y aparece abajo, en «Ventas de hoy».</p>
           )}
 
-          {r && alRegistrar !== "esperar" ? (
+          {r && enLaCaja ? (
+            <div className="space-y-2">
+              {/* El piso no imprime: la boleta va a la cola de la caja y aquí se ve cómo va. Si no se pudo pedir (sin red, la
+                  base no respondió), se reintenta o se imprime aquí si este equipo tiene impresora. */}
+              <EstadoEnLaCaja estado={pedida.estado} reintentar={pedida.reintentar} />
+              <button type="button" autoFocus onClick={cerrar} className={`${botonPrimario} w-full`}>
+                Nueva venta
+              </button>
+              <BotonImprimir onClick={() => void imprimirBoleta()} className="w-full whitespace-nowrap">
+                Imprimir aquí
+              </BotonImprimir>
+            </div>
+          ) : r && alRegistrar !== "esperar" ? (
             <div className="space-y-2">
               {/* Ya se imprimió sola al abrir: lo que queda es pasar a la siguiente clienta (Enter)
                   o reintentar el papel si se atascó o se acabó el rollo. */}
               <button type="button" autoFocus onClick={cerrar} className={`${botonPrimario} w-full`}>
                 Nueva venta
               </button>
-              <BotonImprimir onClick={() => window.print()} className="w-full whitespace-nowrap">
+              <BotonImprimir onClick={() => void imprimirBoleta()} className="w-full whitespace-nowrap">
                 Imprimir otra vez
               </BotonImprimir>
               <p className="text-center text-sm text-tinta/55">Ya se imprimió · Enter abre una venta nueva</p>
@@ -234,7 +252,7 @@ export function VentaRegistradaModal({ ok, ubicacionEtiqueta, onClose, alCerrarE
               {/* Las dos salidas menos comunes, más discretas: reintentar el papel sin salir
                   (se atascó, se acabó el rollo) o seguir sin imprimir (la clienta no lo quiere). */}
               <div className="grid grid-cols-2 gap-2">
-                <button type="button" onClick={() => window.print()} className={botonCancelar}>
+                <button type="button" onClick={() => void imprimirBoleta()} className={botonCancelar}>
                   Solo imprimir
                 </button>
                 <button type="button" onClick={cerrar} className={botonCancelar}>
@@ -252,21 +270,64 @@ export function VentaRegistradaModal({ ok, ubicacionEtiqueta, onClose, alCerrarE
           {/* Es del equipo, no de la venta: se enciende una vez en la Mac de caja que imprime sin diálogo. */}
           {r && (
             <div className="border-t border-sand pt-3">
-              <Interruptor
-                activo={imprimeSolo}
-                onActivo={(v) => imprimirAlCobrar.fijar(v ? "si" : "no")}
-                etiqueta="Imprimir solo al cobrar"
-              />
+              <div className="space-y-3">
+                {esCaja ? (
+                  <>
+                    <Interruptor
+                      activo={esEstacion}
+                      onActivo={(v) => estacionDeLaCaja.fijar(v ? "si" : "no")}
+                      etiqueta="Imprimir lo que se vende en el piso"
+                    />
+                    {esEstacion && (
+                      <Interruptor activo={conVoz} onActivo={(v) => vozDeLaEstacion.fijar(v ? "si" : "no")} etiqueta="Avisar con voz" />
+                    )}
+                  </>
+                ) : (
+                  <Interruptor
+                    activo={mandaALaCaja}
+                    onActivo={(v) => imprimirEnLaCaja.fijar(v ? "si" : "no")}
+                    etiqueta="Imprimir en la caja"
+                  />
+                )}
+                {/* Mandar a la caja gana: con él encendido, «Imprimir solo al cobrar» no tiene qué hacer aquí. */}
+                {(esCaja || !mandaALaCaja) && (
+                  <Interruptor
+                    activo={imprimeSolo}
+                    onActivo={(v) => imprimirAlCobrar.fijar(v ? "si" : "no")}
+                    etiqueta="Imprimir solo al cobrar"
+                  />
+                )}
+              </div>
             </div>
           )}
 
           {r && createPortal(<ReciboTermico recibo={r} emisor={emisor} />, document.body)}
-          {r && alRegistrar !== "esperar" && (
+          {r && alRegistrar !== "esperar" && !enLaCaja && (
             <ImprimirAlAbrir seguir={alRegistrar === "imprimir-y-seguir"} imprimirYSeguir={() => imprimirYSeguir(cerrar)} />
           )}
         </div>
       )}
     </Modal>
+  );
+}
+
+/** Cómo va la boleta mandada a la caja: una línea con su estado y, si falló, el reintento. */
+function EstadoEnLaCaja({ estado, reintentar }: { estado: EstadoPedida; reintentar: () => void }) {
+  if (estado.fase === "error") {
+    return (
+      <Aviso tono="error" titulo="No se pudo mandar a la caja" accion={<button type="button" className="btn-cayla btn-enlace" onClick={reintentar}>Reintentar</button>}>
+        Revisa la conexión.
+      </Aviso>
+    );
+  }
+  return (
+    <p className="flex items-center justify-center gap-2 text-sm" role="status">
+      {estado.fase === "impresa" ? (
+        <Chip tono="verde">Impresa en la caja</Chip>
+      ) : (
+        <Chip tono="pizarra">{estado.fase === "pidiendo" ? "Mandando a la caja" : "En la cola de la caja"}</Chip>
+      )}
+    </p>
   );
 }
 
@@ -278,7 +339,7 @@ function ImprimirAlAbrir({ seguir, imprimirYSeguir }: { seguir: boolean; imprimi
     if (hecho.current) return;
     hecho.current = true;
     if (seguir) imprimirYSeguir();
-    else window.print();
+    else void imprimirBoleta();
   }, [seguir, imprimirYSeguir]);
   return null;
 }

@@ -3,6 +3,7 @@
 import { useEffect, useId, useRef, type ReactNode } from "react";
 import { CircleAlert } from "lucide-react";
 import { FaltanDelPaso } from "@/components/alta-producto/guia";
+import { botonDelArchivo } from "@/components/alta-producto/useGuiaAlta";
 import { useRetenerLuz, type ModoRetencion } from "./useRetenerLuz";
 import { resumenDelPie, separarFaltan } from "@/lib/guia-campos";
 import type { GuiaCampos } from "./useGuiaCampos";
@@ -53,13 +54,16 @@ export function CampoGuiado({
     caja.current?.querySelectorAll<HTMLElement>("[id$='-pie']").forEach((pie) => {
       pie.hidden = Boolean(error) && pie.textContent?.trim() === error;
     });
-    const control = caja.current?.querySelector<HTMLElement>(CONTROL_DEL_CAMPO);
+    const delCampo = caja.current?.querySelector<HTMLElement>(CONTROL_DEL_CAMPO) ?? null;
+    // Un campo de archivo escondido (la hoja del SIRE): el error se une al botón que lo abre, que es donde la guía deja el cursor.
+    const control = delCampo ?? (caja.current ? botonDelArchivo(caja.current) : null);
     if (!control) return;
     const previo = (control.getAttribute("aria-describedby") ?? "").split(" ").filter((x) => x && x !== idError);
     const unidos = error ? [...previo, idError] : previo;
     if (unidos.length) control.setAttribute("aria-describedby", unidos.join(" "));
     else control.removeAttribute("aria-describedby");
-    if (error) control.setAttribute("aria-invalid", "true");
+    // `aria-invalid` es de lo que recibe un dato; un botón no lo admite (ARIA 1.2): a él le basta con que se lea el error.
+    if (error && delCampo) control.setAttribute("aria-invalid", "true");
     else control.removeAttribute("aria-invalid");
   }, [error, idError]);
 
