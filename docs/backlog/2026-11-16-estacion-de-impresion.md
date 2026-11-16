@@ -2,11 +2,11 @@
 
 Rama `claude/estacion-de-impresion`.
 
-## POR PEGAR en producción (Felipe)
+## En producción
 
-- [ ] `supabase/migrations/20261116204000_cola_de_impresion.sql`, una sola parte (tabla y funciones nuevas, sin políticas). Se puede pegar
+- [x] **Pegada el 2026-11-16** (con el OK de Felipe, por el conector, en una transacción; comprobada en vivo). `supabase/migrations/20261116204000_cola_de_impresion.sql`, una sola parte (tabla y funciones nuevas, sin políticas). Se puede pegar
   antes o después de publicar la web: los interruptores nacen apagados. Comprobar: `select count(*) from retail.impresiones;` responde 0.
-  Después, `pnpm datos:generar:produccion` para el diccionario.
+  Falta: refrescar el volcado y `pnpm datos:generar:produccion` para el diccionario (`docs/datos/generado/COMO-REFRESCAR.md`).
 
 ## Probar en una tienda
 

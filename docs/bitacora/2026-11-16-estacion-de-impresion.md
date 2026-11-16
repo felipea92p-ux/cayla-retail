@@ -11,4 +11,5 @@
   `tsc`, lint y Knip en verde. Base local restaurada tras cada prueba.
 - **No verificado:** con papel y Chrome `--kiosk-printing` reales, en Windows, ni el aviso de tiempo real de `ventas` (en local el
   WebSocket no conecta; lo cubrió el sondeo de 10 s). **Riesgo:** la migración no está en producción; con los interruptores apagados (de
-  fábrica) nada cambia hasta pegarla.
+  fábrica) nada cambia hasta pegarla. **Pegada el 2026-11-16** con el OK de Felipe y comprobada en vivo (tabla, RLS sin políticas,
+  índices, permisos y las 4 funciones rechazando sin el módulo).
