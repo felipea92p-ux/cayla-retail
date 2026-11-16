@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { armarRecibo, desglosaIgv, fechaHoraLima, LEY_REDONDEO_TICKET, montoEnLetras, textoNumeroRecibo, textoQrSunat, TITULO_DOCUMENTO } from "./recibo-reglas";
+import { armarRecibo, armarReciboDeCambio, desglosaIgv, fechaHoraLima, LEY_REDONDEO_TICKET, medioEnFrase, montoEnLetras, textoNumeroRecibo, textoQrSunat, TITULO_DOCUMENTO } from "./recibo-reglas";
 
 // El comprobante impreso es lo que la clienta se lleva y lo que SUNAT puede cotejar: si un
 // número acá se descuadra por un centavo, el papel y la base dicen cosas distintas.
@@ -256,5 +256,53 @@ describe("armarRecibo — nota de venta (ADR-0164)", () => {
     expect(TITULO_DOCUMENTO.nota_venta).toBe("NOTA DE VENTA");
     expect(desglosaIgv("nota_venta")).toBe(false);
     expect(desglosaIgv("boleta")).toBe(true);
+  });
+});
+
+describe("armarReciboDeCambio — el comprobante nuevo de un cambio (ADR-0671)", () => {
+  const base = {
+    comprobante: { tipo: "boleta" as const, serie: "B005", numero: 301, created_at: "2026-11-16T19:00:00Z", subtotal: 84.75, igv: 15.25, total: 100 },
+    sede: "Tienda Lima",
+    cliente: { tipoDoc: "sin_documento" as const, numDoc: null, nombre: null },
+    lineas: [{ cantidad: 1, referencia: "Blusa Emma", codigo: "BLU-0001-NEG-M", precioUnitario: 100, descuentoUnitario: 0, detalle: "Negro · Talla M" }],
+    credito: "Nota de crédito BC05-000012",
+    metodo: "efectivo" as const,
+  };
+
+  it("cobró la diferencia: lo devuelto más lo cobrado es el total, y las cifras son las del comprobante", () => {
+    const r = armarReciboDeCambio({ ...base, diferencia: 20 });
+    expect([r.subtotal, r.igv, r.total]).toEqual([84.75, 15.25, 100]);
+    expect(r.pagos).toEqual([]);
+    expect(r.cambio).toEqual({ credito: { texto: "Nota de crédito BC05-000012", monto: 80 }, cobrado: { metodo: "efectivo", monto: 20 }, devuelto: null });
+    expect(r.cambio!.credito.monto + (r.cambio!.cobrado?.monto ?? 0) - (r.cambio!.devuelto?.monto ?? 0)).toBe(r.total);
+  });
+
+  it("devolvió plata: el papel lo dice, y la cuenta sigue cerrando", () => {
+    const r = armarReciboDeCambio({ ...base, comprobante: { ...base.comprobante, subtotal: 59.32, igv: 10.68, total: 70 }, diferencia: -10, metodo: "yape" });
+    expect(r.cambio).toEqual({ credito: { texto: "Nota de crédito BC05-000012", monto: 80 }, cobrado: null, devuelto: { metodo: "yape", monto: 10 } });
+    expect(r.cambio!.credito.monto - r.cambio!.devuelto!.monto).toBe(r.total);
+  });
+
+  it("una nota de venta no desglosa IGV", () => {
+    const r = armarReciboDeCambio({ ...base, comprobante: { ...base.comprobante, tipo: "nota_venta", subtotal: 100, igv: 0 }, diferencia: 20 });
+    expect([r.subtotal, r.igv, r.total]).toEqual([100, 0, 100]);
+  });
+
+  it("las líneas salen de los ítems del comprobante, con su importe", () => {
+    const r = armarReciboDeCambio({ ...base, lineas: [{ ...base.lineas[0]!, cantidad: 2, precioUnitario: 60, descuentoUnitario: 10 }], diferencia: 20 });
+    expect(r.lineas[0]).toMatchObject({ cantidad: 2, descripcion: "Blusa Emma", importe: 100, detalle: "Negro · Talla M" });
+  });
+
+  it("el medio en la frase del papel: minúscula, salvo las marcas («Se devolvió en Yape», no «en yape»)", () => {
+    expect(medioEnFrase("efectivo")).toBe("efectivo");
+    expect(medioEnFrase("tarjeta")).toBe("tarjeta");
+    expect(medioEnFrase("transferencia")).toBe("transferencia");
+    expect(medioEnFrase("yape")).toBe("Yape");
+    expect(medioEnFrase("plin")).toBe("Plin");
+    expect(medioEnFrase("qr")).toBe("QR");
+  });
+
+  it("una venta de siempre no lleva el modo cambio", () => {
+    expect(armarRecibo({ comprobante, sede: "Tienda Lima", cliente: base.cliente, lineas: [], pagos: [], tasaIgv: 0.18 }).cambio).toBeUndefined();
   });
 });

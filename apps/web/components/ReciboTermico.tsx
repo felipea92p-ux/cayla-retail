@@ -8,6 +8,7 @@ import {
   fechaHoraLima,
   montoEnLetras,
   LEY_REDONDEO_TICKET,
+  medioEnFrase,
   NOMBRE_METODO,
   TEXTO_REDONDEO,
   textoNumeroRecibo,
@@ -37,6 +38,9 @@ const s = (n: number) => `S/\u00a0${n.toFixed(2)}`;
  *  · Ancho útil 72 mm (papel de 80 con los márgenes del cabezal).
  *  · Sin QR del club: el papel lleva solo el QR de SUNAT (Felipe 2026-10-01, ADR-0288 act. j). La clienta se une con el
  *    QR del cartel del mostrador.
+ *  · El comprobante nuevo de un cambio (ADR-0671, `recibo.cambio`, de `armarReciboDeCambio`): la forma de pago es la nota de crédito
+ *    más la diferencia cobrada (o menos la devuelta), y no promete «Cambios dentro de 15 días»: lo recibido en un cambio todavía no se
+ *    vuelve a cambiar.
  */
 export function ReciboTermico({ recibo, emisor = EMISOR, apartado }: {
   recibo: ReciboVenta;
@@ -145,6 +149,27 @@ export function ReciboTermico({ recibo, emisor = EMISOR, apartado }: {
       ) : (
         <p className="rt-subtitulo">Forma de pago</p>
       )}
+      {/* El comprobante nuevo de un cambio (ADR-0671): lo devuelto (su nota de crédito) y la diferencia, cobrada o devuelta. */}
+      {recibo.cambio && (
+        <>
+          <div className="rt-fila">
+            <span>{recibo.cambio.credito.texto}</span>
+            <span>{s(recibo.cambio.credito.monto)}</span>
+          </div>
+          {recibo.cambio.cobrado && (
+            <div className="rt-fila">
+              <span>{NOMBRE_METODO[recibo.cambio.cobrado.metodo]} (diferencia)</span>
+              <span>{s(recibo.cambio.cobrado.monto)}</span>
+            </div>
+          )}
+          {recibo.cambio.devuelto && (
+            <div className="rt-fila">
+              <span>Se devolvió en {medioEnFrase(recibo.cambio.devuelto.metodo)}</span>
+              <span>-{s(recibo.cambio.devuelto.monto)}</span>
+            </div>
+          )}
+        </>
+      )}
       {recibo.pagos.map((p) => (
         <div key={p.metodo}>
           <div className="rt-fila">
@@ -190,10 +215,15 @@ export function ReciboTermico({ recibo, emisor = EMISOR, apartado }: {
         ) : (
           <p>Documento sin valor tributario. No es un comprobante de pago.</p>
         )}
-        <p>
-          Cambios dentro de {DIAS_PLAZO_CAMBIO} días con este {fiscal ? "comprobante" : "documento"}.
-          {emisor.web && ` Más en ${emisor.web}`}
-        </p>
+        {/* Lo recibido en un cambio todavía no se vuelve a cambiar (ADR-0671, decisión 10): su papel no lo promete. */}
+        {recibo.cambio ? (
+          emisor.web && <p>Más en {emisor.web}</p>
+        ) : (
+          <p>
+            Cambios dentro de {DIAS_PLAZO_CAMBIO} días con este {fiscal ? "comprobante" : "documento"}.
+            {emisor.web && ` Más en ${emisor.web}`}
+          </p>
+        )}
         <p className="rt-lema">{emisor.lema}</p>
         <p className="rt-negrita">¡Gracias por tu compra!</p>
         {apartado && <p>Prendas apartadas · ref. {apartado.codigo}</p>}

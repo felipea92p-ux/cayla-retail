@@ -60,6 +60,19 @@ export type ReciboVenta = {
   /** El cupón del Club que usó la venta (programa de puntos): el descuento de cada prenda ya lo trae (es el TOTAL de `venta_items`), y
    *  el papel dice cuánto de eso es del cupón. Ausente/`null` sin cupón o en una reimpresión (el historial no lo lee todavía). */
   cupon?: { monto: number } | null;
+  /** El comprobante nuevo de un cambio con diferencia (ADR-0671): no se pagó solo con plata. Su forma de pago es la prenda devuelta (la
+   *  nota de crédito sobre la compra) más lo cobrado de diferencia, o menos lo que se le devolvió. `pagos` va vacío. Ausente en una venta. */
+  cambio?: PagoDelCambio | null;
+};
+
+/** Cómo se pagó el comprobante nuevo de un cambio: `credito.monto + cobrado − devuelto = total`, al céntimo (`armarReciboDeCambio`). */
+export type PagoDelCambio = {
+  /** «Nota de crédito BC05-000012» (o la compra, si la nota todavía espera a SUNAT) y lo que vale lo devuelto. */
+  credito: { texto: string; monto: number };
+  /** La diferencia que se cobró, con su medio. */
+  cobrado: { metodo: MetodoPagoVenta; monto: number } | null;
+  /** Lo que se le devolvió al cliente porque lo nuevo vale menos, con su medio. */
+  devuelto: { metodo: MetodoPagoVenta; monto: number } | null;
 };
 
 const redondear2 = (n: number) => Math.round(n * 100) / 100;
@@ -73,6 +86,12 @@ export const NOMBRE_METODO: Record<MetodoPagoVenta, string> = {
   plin: "Plin",
   transferencia: "Transferencia",
 };
+
+/** Un medio dentro de una frase del papel («Se devolvió en efectivo»): en minúscula, salvo las marcas, que no se achican («en Yape»,
+ *  «en QR»). La misma regla que `impactoCambio` (cambios-reglas.ts) usa en pantalla. */
+export function medioEnFrase(m: MetodoPagoVenta): string {
+  return m === "yape" || m === "plin" || m === "qr" ? NOMBRE_METODO[m] : NOMBRE_METODO[m].toLowerCase();
+}
 
 /** El nombre de un medio en una ficha muy angosta: «Transferencia» no cabe entera a un tamaño legible. La hoja de cobro de Vender lleva
  *  los dos nombres y su CSS (`.hoja-cobro-nombre-corto`) muestra el corto bajo 6 rem de ficha (una tablet a 1024 px); la grilla de cinco
@@ -143,6 +162,59 @@ export function armarRecibo(entrada: {
     vueltoTotal: redondear2(pagos.reduce((acc, p) => acc + p.vuelto, 0)),
     atendio: entrada.atendio ?? null,
     cupon: entrada.cupon && entrada.cupon.monto > 0 ? entrada.cupon : null,
+  };
+}
+
+/**
+ * El papel del comprobante nuevo de un cambio con diferencia (ADR-0671). Las cifras son las del comprobante que emitió la base (subtotal,
+ * IGV y total: no se recalculan), y las líneas, sus ítems. La forma de pago se arma para que sume el total: lo devuelto vale
+ * `total − diferencia` (lo que pagó por la prenda que trajo), y la diferencia se cobró (o se devolvió) con su medio.
+ */
+export function armarReciboDeCambio(entrada: {
+  comprobante: { tipo: TipoReciboFiscal; serie: string; numero: number; created_at: string; subtotal: number; igv: number; total: number };
+  sede: string;
+  cliente: ReciboVenta["cliente"];
+  lineas: { cantidad: number; referencia: string; codigo: string | null; precioUnitario: number; descuentoUnitario: number; detalle?: string }[];
+  /** Qué respalda lo devuelto: «Nota de crédito BC05-000012». */
+  credito: string;
+  /** Lo que se cobró (positiva) o se devolvió (negativa) por la diferencia. */
+  diferencia: number;
+  metodo: MetodoPagoVenta;
+  atendio?: string | null;
+}): ReciboVenta {
+  const lineas: LineaRecibo[] = entrada.lineas.map((l) => ({
+    cantidad: l.cantidad,
+    descripcion: l.referencia,
+    codigo: l.codigo,
+    ...(l.detalle ? { detalle: l.detalle } : {}),
+    precioUnitario: l.precioUnitario,
+    descuentoUnitario: l.descuentoUnitario,
+    importe: redondear2(l.cantidad * (l.precioUnitario - l.descuentoUnitario)),
+  }));
+  const total = redondear2(entrada.comprobante.total);
+  const diferencia = redondear2(entrada.diferencia);
+  const fiscal = desglosaIgv(entrada.comprobante.tipo);
+  return {
+    tipo: entrada.comprobante.tipo,
+    serie: entrada.comprobante.serie,
+    numero: entrada.comprobante.numero,
+    emitidoEn: entrada.comprobante.created_at,
+    sede: entrada.sede,
+    cliente: entrada.cliente,
+    lineas,
+    subtotal: fiscal ? redondear2(entrada.comprobante.subtotal) : total,
+    igv: fiscal ? redondear2(entrada.comprobante.igv) : 0,
+    total,
+    pagos: [],
+    redondeo: 0,
+    vueltoTotal: 0,
+    atendio: entrada.atendio ?? null,
+    cupon: null,
+    cambio: {
+      credito: { texto: entrada.credito, monto: redondear2(total - diferencia) },
+      cobrado: diferencia > 0 ? { metodo: entrada.metodo, monto: diferencia } : null,
+      devuelto: diferencia < 0 ? { metodo: entrada.metodo, monto: -diferencia } : null,
+    },
   };
 }
 
