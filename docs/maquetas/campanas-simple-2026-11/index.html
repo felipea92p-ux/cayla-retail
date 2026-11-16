@@ -312,6 +312,8 @@ svg.ic{width:16px;height:16px}
 .prev .tot b{font-family:'EB Garamond',serif;font-weight:600;font-size:32px;font-variant-numeric:lining-nums tabular-nums}
 .prev .aho{margin-top:2px;text-align:right;font-size:14px;font-weight:600;color:var(--verde)}
 .prev .aho.cero{color:var(--t65);font-weight:500}
+.prev-vacio{padding:28px 0;text-align:center;font-size:14px;color:var(--t65)}
+.err-campo{display:flex;align-items:center;gap:8px;margin-top:12px;font-size:14px;font-weight:500;color:var(--rojo-p)}
 /* nuevo descuento: solo el % */
 .gran{display:grid;justify-items:center;gap:16px;margin-top:22px}
 .gran .paso{height:72px}
@@ -524,6 +526,7 @@ svg.ic{width:16px;height:16px}
       <tr><td>Textos bajo 4,5:1 (claro y oscuro)</td><td>—</td><td>0 de 83</td></tr>
       <tr><td>Foco con anillo, sin tapar</td><td>—</td><td>27 de 27</td></tr>
       <tr><td>A 375 px, lo que se toca</td><td>—</td><td>44 px</td></tr>
+      <tr><td>Prueba ciega (un agente sin contexto)</td><td>—</td><td>3 de 3 tareas, sin perderse; lo que falló, ya arreglado</td></tr>
     </table>
   </section>
   <section>
@@ -833,11 +836,12 @@ function agregarLeida(alcance, l, d) {
 // ====================================================================
 const NO = { tipo: null, pct: 20, n: 3, m: 2, pk: 2, pkp: 60, seg: 50, desde: 300, ahorra: 30, en: 'cats', cats: new Set(['Polos']), cuando: 'Toda la campaña · 16 – 30 nov', donde: 'Todas las tiendas' };
 const TIPOS = [
-  { k: 'pct', gl: () => pctTxt(NO.pct), cap: 'Descuento' },
-  { k: 'nxm', gl: () => `${NO.n}x${NO.m}`, cap: `Lleva ${NO.n}, paga ${NO.m}` },
-  { k: 'pack', gl: () => `${NO.pk} por S/ ${NO.pkp}`, cap: 'Precio por varias' },
-  { k: 'seg', gl: () => `2.ª ${pctTxt(NO.seg)}`, cap: 'La segunda' },
-  { k: 'monto', gl: () => `${MENOS}S/ ${NO.ahorra}`, cap: `Desde S/ ${NO.desde}` },
+  { k: 'pct', gl: () => pctTxt(NO.pct), cap: () => 'Descuento' },
+  // sin elegir, la de grupos muestra sus dos ejemplos de tienda (la prueba ciega buscaba «2x1» y no lo veía)
+  { k: 'nxm', gl: () => (NO.tipo === 'nxm' ? `${NO.n}x${NO.m}` : '3x2 · 2x1'), cap: () => (NO.tipo === 'nxm' ? `Lleva ${NO.n}, paga ${NO.m}` : 'Lleva más, paga menos') },
+  { k: 'pack', gl: () => `${NO.pk} por S/ ${NO.pkp}`, cap: () => 'Precio por varias' },
+  { k: 'seg', gl: () => `2.ª ${pctTxt(NO.seg)}`, cap: () => 'La segunda' },
+  { k: 'monto', gl: () => `${MENOS}S/ ${NO.ahorra}`, cap: () => `Desde S/ ${NO.desde}` },
 ];
 const pasoHTML = (k, valor, et) => `<span class="paso" role="group" aria-label="${et}"><button data-paso="${k}" data-d="-1" aria-label="Menos">${ic('x').replace(I.x, 'M5 12h14')}</button><span class="num">${valor}</span><button data-paso="${k}" data-d="1" aria-label="Más">${ic('mas')}</button></span>`;
 function editorHTML() {
@@ -854,15 +858,19 @@ function editorHTML() {
 }
 const CATS_CAMP = [['Polos', 7], ['Jeans', 4], ['Blusas', 6], ['Vestidos', 3], ['Tops', 8], ['Faldas', 2]];
 function prendasEjemplo() {
-  if (NO.tipo === 'monto') return [['JEA-03', 'Azul'], ['VES-04', 'Oliva'], ['TOP-06', 'Blanco']];
-  const cat = NO.en === 'cats' ? [...NO.cats][0] : 'Polos';
-  const deCat = { Polos: [['POL-02', 'Crema'], ['POL-08', 'Blanco'], ['POL-02', 'Negro']], Jeans: [['JEA-03', 'Azul'], ['JEA-11', 'Celeste'], ['JEA-03', 'Negro']],
+  const deCat ={ Polos: [['POL-02', 'Crema'], ['POL-08', 'Blanco'], ['POL-02', 'Negro']], Jeans: [['JEA-03', 'Azul'], ['JEA-11', 'Celeste'], ['JEA-03', 'Negro']],
     Blusas: [['BLU-01', 'Vino'], ['BLU-09', 'Terracota'], ['BLU-01', 'Beige']], Vestidos: [['VES-04', 'Oliva'], ['VES-10', 'Vino'], ['VES-04', 'Negro']],
     Tops: [['TOP-06', 'Blanco'], ['TOP-12', 'Mostaza'], ['TOP-06', 'Negro']], Faldas: [['FAL-05', 'Terracota'], ['FAL-05', 'Negro'], ['FAL-05', 'Terracota']] };
-  return NO.en === 'todo' ? [['POL-02', 'Crema'], ['JEA-03', 'Azul'], ['BLU-01', 'Vino']] : (deCat[cat] || deCat.Polos);
+  const base = NO.tipo === 'monto' ? [['JEA-03', 'Azul'], ['VES-04', 'Oliva'], ['TOP-06', 'Blanco']]
+    : NO.en === 'cats' ? (NO.cats.size ? deCat[[...NO.cats][0]] || [] : [])
+    : [['POL-02', 'Crema'], ['JEA-03', 'Azul'], ['BLU-01', 'Vino']];
+  // tantas prendas como pide la oferta: un 2x1 se ve con 2, un 3x2 con 3 (la prueba ciega vio 3 prendas en un 2x1)
+  const n = NO.tipo === 'nxm' ? NO.n : NO.tipo === 'pack' ? NO.pk : NO.tipo === 'seg' ? 2 : 3;
+  return base.length ? Array.from({ length: n }, (_, k) => base[k % base.length]) : [];
 }
 function previaHTML() {
   const lineas = prendasEjemplo().map(([mi, c]) => ({ m: MOD[mi], c, p: MOD[mi].p, paga: MOD[mi].p, gratis: false }));
+  if (!lineas.length) return `<aside class="prev" aria-label="Así se cobra"><div class="vs-t" style="margin-bottom:6px">En caja</div><p class="prev-vacio">Elige en qué prendas</p></aside>`;
   const orden = [...lineas].sort((a, b) => a.p - b.p);
   if (NO.tipo === 'pct') lineas.forEach((l) => { l.paga = conPct(l.p, NO.pct); });
   if (NO.tipo === 'nxm' && lineas.length >= NO.n) orden.slice(0, NO.n - NO.m).forEach((l) => { l.paga = 0; l.gratis = true; });
@@ -880,23 +888,27 @@ function previaHTML() {
 }
 function hojaOfertaHTML() {
   const sigueQue = !NO.tipo;
+  const sigueEn = !sigueQue && NO.en === 'cats' && !NO.cats.size;
   return `<div class="hoja2 ancha" role="dialog" aria-modal="true" aria-labelledby="t-oferta">
     <h2 id="t-oferta">Nueva oferta</h2><p class="sub2">Black Friday</p>
     <div class="cuerpo2"><div class="no"><div>
       <div class="bloque${sigueQue ? ' hilo' : ''}"><div class="cab-b"><span class="vs-t">Qué le das</span>${sigueQue ? '<span class="sigue-p">Sigue</span>' : ''}</div>
-        <div class="tipos" role="group" aria-label="Qué le das">${TIPOS.map((t) => `<button class="tipo" data-tipo="${t.k}" aria-pressed="${NO.tipo === t.k}"><span class="gl">${t.gl()}</span><span class="cap">${t.cap}</span></button>`).join('')}</div>
+        <div class="tipos" role="group" aria-label="Qué le das">${TIPOS.map((t) => `<button class="tipo" data-tipo="${t.k}" aria-pressed="${NO.tipo === t.k}"><span class="gl">${t.gl()}</span><span class="cap">${t.cap()}</span></button>`).join('')}</div>
+        ${NO.errTipo && sigueQue ? `<p class="err-campo">${ic('alerta')}Elige qué le das.</p>` : ''}
         ${editorHTML()}</div>
-      <div class="bloque"><div class="cab-b"><span class="vs-t">En qué prendas</span></div>
-        <div class="seg" role="group" aria-label="En qué prendas">${[['todo', 'Toda la campaña'], ['cats', 'Categorías'], ['algunas', 'Prendas'], ['ins', 'Insignias']].map(([k, t]) => `<button data-en="${k}" aria-pressed="${NO.en === k}">${t}</button>`).join('')}</div>
+      <div class="bloque${sigueEn ? ' hilo' : ''}"><div class="cab-b"><span class="vs-t">En qué prendas</span>${sigueEn ? '<span class="sigue-p">Sigue</span>' : ''}</div>
+        <div class="seg" role="group" aria-label="En qué prendas">${[['todo', 'Toda la campaña'], ['cats', 'Categorías'], ['algunas', 'Prendas']].map(([k, t]) => `<button data-en="${k}" aria-pressed="${NO.en === k}">${t}</button>`).join('')}</div>
         ${NO.en === 'cats' ? `<div class="cats">${CATS_CAMP.map(([c, n]) => `<button class="pc" data-cat="${c}" aria-pressed="${NO.cats.has(c)}">${c}<span class="n">${n}</span></button>`).join('')}</div>` : ''}
-        ${NO.en === 'ins' ? `<div class="cats">${[['Nuevo', 24], ['Últimas unidades', 9], ['Hecho a mano', 6]].map(([c, n]) => `<button class="pc" aria-pressed="${c === 'Nuevo'}">${c}<span class="n">${n}</span></button>`).join('')}</div>` : ''}
-        ${NO.en === 'algunas' ? `<div class="agregar" style="margin-top:12px"><label class="bus">${ic('lupa')}<input type="search" placeholder="Nombre o código" aria-label="Buscar una prenda"><button class="camara" aria-label="Escanear con la cámara">${ic('escanear')}</button></label></div>` : ''}
+        ${NO.errCats && sigueEn ? `<p class="err-campo">${ic('alerta')}Elige al menos una categoría.</p>` : ''}
+        ${NO.en === 'algunas' ? `<div class="agregar" style="margin-top:12px"><label class="bus">${ic('lupa')}<input type="search" placeholder="Nombre o código" aria-label="Buscar una prenda"><button class="camara" aria-label="Escanear con la cámara">${ic('escanear')}</button></label></div>
+        <div class="tg" style="margin:16px 4px 8px"><span class="vs-t">O por insignia</span></div>
+        <div class="cats" style="margin-top:0">${[['Nuevo', 24], ['Últimas unidades', 9], ['Hecho a mano', 6]].map(([c, n]) => `<button class="pc" aria-pressed="false">${c}<span class="n">${n}</span></button>`).join('')}</div>` : ''}
         ${NO.tipo && NO.en === 'cats' && NO.cats.has('Polos') ? `<div class="choque">${ic('alerta')}<span>2 polos ya tienen ${pctTxt(15)} en Tienda TRU.</span><button>Elegir cuál queda</button></div>` : ''}</div>
       <div class="bloque"><div class="cab-b"><span class="vs-t">Cuándo y dónde</span></div>
         <div class="filas-d"><div class="fila-d"><span class="k">Cuándo</span><button class="v" data-menu="cuando">${ic('cal')}${NO.cuando}${ic('abajo')}</button></div>
           <div class="fila-d"><span class="k">Dónde</span><button class="v" data-menu="donde">${ic('tienda')}${NO.donde}${ic('abajo')}</button></div></div></div>
     </div>${previaHTML()}</div></div>
-    <div class="pie2">${sigueQue ? '<span class="sigue">Sigue: <b>Qué le das</b></span>' : ''}<button class="btn sec" data-a="cerrar-hoja">Cancelar</button><button class="btn sec" data-a="guardar-oferta" data-v="borrador">Guardar borrador</button><button class="btn pri" data-a="guardar-oferta">Activar</button></div></div>`;
+    <div class="pie2">${sigueQue ? '<span class="sigue">Sigue: <b>Qué le das</b></span>' : sigueEn ? '<span class="sigue">Sigue: <b>En qué prendas</b></span>' : ''}<button class="btn sec" data-a="cerrar-hoja">Cancelar</button><button class="btn sec" data-a="guardar-oferta" data-v="borrador">Guardar borrador</button><button class="btn pri" data-a="guardar-oferta">Activar</button></div></div>`;
 }
 const NC = { nombre: '', ins: 'estrella', sinFin: false, tiendas: new Set(['Todas']) };
 function hojaCampanaHTML() {
@@ -978,7 +990,7 @@ document.addEventListener('click', (e) => {
   const mn = t.closest('[data-menu]');
   if (mn) { abrirMenu(mn); return; }
   // la hoja de la oferta
-  const tp = t.closest('[data-tipo]'); if (tp) { NO.tipo = tp.dataset.tipo; pintarHoja(); return; }
+  const tp = t.closest('[data-tipo]'); if (tp) { NO.tipo = tp.dataset.tipo; NO.errTipo = false; pintarHoja(); return; }
   const ps = t.closest('[data-paso]');
   if (ps) {
     const k = ps.dataset.paso, s = +ps.dataset.d;
@@ -989,7 +1001,7 @@ document.addEventListener('click', (e) => {
   }
   const st = t.closest('[data-set]'); if (st) { if (st.dataset.set === 'nd') ND.pct = +st.dataset.v; else NO[st.dataset.set] = +st.dataset.v; pintarHoja(); return; }
   const en = t.closest('[data-en]'); if (en) { NO.en = en.dataset.en; pintarHoja(); return; }
-  const ct = t.closest('[data-cat]'); if (ct) { const k = ct.dataset.cat; if (NO.cats.has(k)) NO.cats.delete(k); else NO.cats.add(k); if (!NO.cats.size) NO.cats.add(k); pintarHoja(); return; }
+  const ct = t.closest('[data-cat]'); if (ct) { const k = ct.dataset.cat; if (NO.cats.has(k)) NO.cats.delete(k); else { NO.cats.add(k); NO.errCats = false; } pintarHoja(); return; }
   const ins = t.closest('[data-ins]'); if (ins) { NC.ins = ins.dataset.ins; pintarHoja(); return; }
   const ti = t.closest('[data-tienda]'); if (ti) { const k = ti.dataset.tienda; if (k === 'Todas') NC.tiendas = new Set(['Todas']); else { NC.tiendas.delete('Todas'); if (NC.tiendas.has(k)) NC.tiendas.delete(k); else NC.tiendas.add(k); if (!NC.tiendas.size) NC.tiendas.add('Todas'); } pintarHoja(); return; }
   const a = t.closest('[data-a]');
@@ -1005,9 +1017,11 @@ document.addEventListener('click', (e) => {
     case 'cerrar-hoja': hoja = null; pintarHoja(); break;
     case 'sin-fin': NC.sinFin = !NC.sinFin; pintarHoja(); break;
     case 'guardar-oferta': {
-      if (!NO.tipo) { const b = $('.bloque'); b?.animate?.([{ transform: 'translateX(0)' }, { transform: 'translateX(0)' }], 1); avisar('Elige qué le das'); break; }
+      // lo que falta se dice bajo su campo, nunca en un aviso de esquina (guía de foco, ADR-0611 mejora 4)
+      if (!NO.tipo) { NO.errTipo = true; pintarHoja(); $('.hoja2 .bloque')?.scrollIntoView({ block: 'nearest' }); break; }
+      if (NO.en === 'cats' && !NO.cats.size) { NO.errCats = true; pintarHoja(); $$('.hoja2 .bloque')[1]?.scrollIntoView({ block: 'nearest' }); break; }
       const camp = CAMP.find((x) => x.id === 'bf'); const tipo = TIPOS.find((x) => x.k === NO.tipo);
-      camp.ofertas.push({ gl: tipo.gl(), borrador: a.dataset.v === 'borrador', en: NO.en === 'todo' ? 'Toda la campaña' : NO.en === 'cats' ? [...NO.cats].join(', ') : NO.en === 'ins' ? 'Insignia «Nuevo»' : 'Algunas prendas' });
+      camp.ofertas.push({ gl: tipo.gl(), borrador: a.dataset.v === 'borrador', en: NO.en === 'todo' ? 'Toda la campaña' : NO.en === 'cats' ? [...NO.cats].join(', ') : 'Algunas prendas' });
       hoja = null; pintarHoja(); sel = { k: 'camp', id: 'bf' }; vista = 'detalle'; pintarModulo('panel'); avisar(a.dataset.v === 'borrador' ? `<b>${tipo.gl()}</b> guardada como borrador` : `<b>${tipo.gl()}</b> activa en caja y en la web`); break;
     }
     case 'crear-campana': {
