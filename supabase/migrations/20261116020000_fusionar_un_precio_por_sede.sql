@@ -10,25 +10,28 @@
 -- La causa: solo se alineaban las tallas que ya tenían precio propio; la que cobraba el general no se tocaba. Y la lista de sedes
 -- comparaba contra el precio general de ANTES, no contra el elegido.
 --
--- LA REGLA (Felipe 2026-11-16: «arréglalo», con «un solo precio por sede»)
---   · En cada sede que la hoja muestra, TODA talla a la venta del producto final cobra el precio de la ficha ganadora: la elegida
---     para esa sede o, si no se eligió, la de por defecto (la que queda, si tenía precio propio ahí; si no, la primera repetida que lo
---     tenía). Es el precio que la hoja le mostró a la persona.
---   · Única excepción: una talla de la ficha ganadora que tenía su propia excepción en esa sede (`precios_sede_variante`) la conserva.
---     Es una decisión que alguien ya tomó para esa talla; la fusión no la borra.
---   · Sedes que la hoja no muestra: igual que antes (cada talla conserva el precio propio que tenía; nada nuevo si no había).
---   · La lista de sedes compara contra el precio general que la persona eligió (`p_elecciones.precio`), no contra el de antes.
---   · «Un solo precio» (`precio_modo = 'uno'`) no cambia.
+-- LA REGLA (Felipe 2026-11-16: «arréglalo», con «un solo precio por sede»). Dos capas, las mismas de `fn_precios_en_sedes`:
+--   · El PRECIO DE LA PRENDA en cada tienda es uno. En cada sede que la hoja muestra, toda talla a la venta del producto final cobra el
+--     precio de prenda de la ficha ganadora: la elegida para esa sede o, si no se eligió, la de por defecto (la que queda, si tenía precio
+--     de prenda ahí; si no, la primera repetida que lo tenía). Es el precio que la hoja le mostró a la persona.
+--   · Una EXCEPCIÓN DE TALLA (`precios_sede_variante`, «la XL cuesta más en Trujillo») es una decisión de alguien sobre esa talla: viaja
+--     con su talla y se conserva, también si es igual al precio general. Si dos chocan al juntarse dos tallas, gana la de la ficha ganadora
+--     en esa sede; si no, la de la que queda. La de una talla apagada es vieja y no revive cuando la fusión la vuelve a poner a la venta.
+--   · Sedes que la hoja no muestra: el precio de prenda de la que queda (o el general) y las excepciones como arriba.
+--   · La lista de sedes compara precios de PRENDA, y contra el precio general que la persona eligió (`p_elecciones.precio`).
+--   · La talla de obsequio no se toca. «Un solo precio» (`precio_modo = 'uno'`) no cambia.
+-- Revisión adversarial 2026-11-16 (dos rondas, cada hallazgo reproducido en local): la primera versión tomaba como «precio de la ficha» el
+-- más repetido entre sus tallas con precio propio, y una excepción de una talla se volvía el precio de toda la prenda.
 --
 -- DESCARTÉ
---   · «Talla por talla» (cada una conserva lo que cobraba): deja la misma prenda con dos precios en la tienda, que en caja se ve como un
---     error, y la hoja prometía uno. Felipe eligió un precio por sede.
---   · Escribir el precio en la capa de la prenda en la sede (`precios_sede_prenda`): su disparador archivaría las excepciones por talla de
---     la ficha que queda, también las de la ganadora que esta regla conserva. Se sigue escribiendo por talla, solo donde cambia.
---   · Tocar también las sedes que la hoja no muestra: ahí ninguna repetida cobra otra cosa; tocarlas solo congelaría la grilla.
+--   · «Talla por talla» sin unificar la prenda: deja la misma prenda con dos precios en la tienda sin que nadie lo decidiera, y la hoja
+--     prometía uno. Felipe eligió un precio por sede.
+--   · Borrar las excepciones de talla de la ficha perdedora: es borrar una decisión que la persona no vio en la hoja.
+--   · Escribir el precio en la capa de la prenda (`precios_sede_prenda`): su disparador archivaría las excepciones por talla. Se escribe
+--     por talla, solo donde lo de hoy no es lo que corresponde.
 --
--- SE ROMPE SI: la ficha ganadora tiene en una sede precios propios distintos por talla SIN excepción de talla (imposible hoy: un precio
--- de prenda en la sede es uno solo) — ahí se usa el precio más repetido, el mismo que muestra la hoja.
+-- SE ROMPE SI: alguien usa excepciones de talla para TODAS las tallas en vez del precio de prenda de la tienda. Ahí cada talla conserva
+-- la suya y la hoja, que solo mira precios de prenda, no muestra esa sede.
 --
 -- CÓMO SE PEGA EN PRODUCCIÓN: UNA parte (tres funciones reescritas, una nueva de 4 argumentos, dos `drop function` de las firmas viejas y
 -- un reemplazo anclado en `fusionar_productos`); sin `alter table`, sin políticas, sin `drop trigger` (ADR-0195). Idempotente. Sin

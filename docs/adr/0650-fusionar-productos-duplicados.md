@@ -161,15 +161,18 @@ tallas al precio general y la repetida con precio propio en Trujillo (S a 79.90,
 repetida cuando la que queda tenía precio propio en una sola talla; y, al elegir otro precio general, la lista de sedes ni mostraba la sede. Solo se
 alineaban las tallas que ya tenían precio propio, y la lista comparaba contra el precio general de antes. Felipe: «arréglalo», con un precio por sede.
 
-DECIDÍ: en cada sede que la hoja muestra, toda talla a la venta del producto final cobra el precio de la ficha ganadora (la elegida o la de por
-defecto), el que vio la persona; una talla de la ganadora con su propia excepción en esa sede la conserva. Las sedes que la hoja no muestra siguen
-igual. La lista de sedes se calcula contra el precio general elegido (`p_elecciones.precio`, que la hoja ahora manda también al previsualizar).
-DESCARTÉ: «talla por talla» (la tienda seguiría con dos precios para la misma prenda, y la hoja prometía uno); escribir `precios_sede_prenda` (su
-disparador archivaría las excepciones de talla que esta regla conserva). SE ROMPE SI la ficha ganadora tiene en una sede precios propios distintos por
-talla sin excepción de talla (hoy imposible: el precio de una prenda en una sede es uno); ahí se usa el más repetido, el mismo que muestra la hoja.
-Consecuencia que Felipe aceptó: una talla de la que queda que cobraba el general en esa tienda pasa a cobrar el precio de la sede.
+DECIDÍ, en dos capas (las mismas de `fn_precios_en_sedes`): el **precio de la prenda** en cada tienda es uno, el de la ficha ganadora (la
+elegida o la de por defecto) en cada sede que la hoja muestra; una **excepción de talla** («la XL cuesta más en Trujillo») viaja con su talla y se
+conserva, también si es igual al general; si dos chocan al juntarse, la de la ganadora. La de una talla apagada no revive. La lista de sedes compara
+precios de prenda y contra el precio general elegido (`p_elecciones.precio`, que la hoja ahora manda también al previsualizar).
+DESCARTÉ: «talla por talla» sin unificar la prenda (la tienda seguiría con dos precios que nadie decidió); borrar las excepciones de talla de la
+ficha perdedora (una decisión que la persona no vio en la hoja); escribir `precios_sede_prenda` (su disparador archivaría las excepciones de talla).
+SE ROMPE SI alguien usa excepciones de talla para todas las tallas en vez del precio de la prenda en la tienda: ahí cada talla conserva la suya y la
+hoja no muestra esa sede. Consecuencia que Felipe aceptó: una talla de la que queda que cobraba el general en esa tienda pasa al precio de la sede.
+Revisión adversarial en dos rondas: la primera versión tomaba como precio de la ficha el más repetido entre sus tallas con precio propio, y una
+excepción de una sola talla se volvía el precio de toda la prenda.
 
-Migración `20261116020000` (reservada). `pruebas:fusionar-productos` 39/39; con las funciones de antes fallan 29, 36 y 37, y sin el parche del candado
+Migración `20261116020000` (reservada). `pruebas:fusionar-productos` 41/41; con las funciones de antes fallan 29, 36, 37 y 41, y sin el parche del candado
 de la terminal falla 35 (que ahora sí cambia el precio general).
 
 ## Pendiente
