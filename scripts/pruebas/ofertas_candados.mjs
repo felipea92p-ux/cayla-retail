@@ -24,6 +24,10 @@ const arg = (n, d) => (process.argv.indexOf(n) > 0 ? process.argv[process.argv.i
 const CONTENEDOR = arg("--contenedor", "supabase_db_cayla-retail");
 const BASE = arg("--base", "postgres");
 const MIGRACION = "supabase/migrations/20261116172000_ofertas_candados_ciclo_y_campana.sql";
+const CONJUNTO = [
+  "supabase/migrations/20261116173000_ofertas_tope_bolsas_y_monto_pagado.sql",
+  "supabase/migrations/20261116175000_campanas_en_sede_cesiones_de_una_vez.sql",
+];
 const FELIPE = "22222222-2222-4222-8222-000000000001"; // líder del seed
 
 function correr(sql) {
@@ -61,7 +65,11 @@ if (correr("select to_regclass('retail.campana_regla_cesiones') is null;").salid
   process.exit(2);
 }
 const MIG = readFileSync(MIGRACION, "utf8");
-const CON_MIGRACION = correr("select to_regprocedure('retail.fn_cesion_hace_ciclo(uuid, uuid)') is null;").salida === "t" ? MIG : "";
+const CON_MIGRACION = [
+  correr("select to_regprocedure('retail.fn_cesion_hace_ciclo(uuid, uuid)') is null;").salida === "t" ? MIG : "",
+  correr("select not exists (select 1 from pg_constraint where conname = 'campana_reglas_tope_70');").salida === "t" ? readFileSync(CONJUNTO[0], "utf8") : "",
+  correr("select to_regprocedure('retail.fn_variantes_de_regla(uuid)') is null;").salida === "t" ? readFileSync(CONJUNTO[1], "utf8") : "",
+].join("\n");
 
 const HOY = "retail.fn_hoy_lima()";
 const PARTIDA = `begin;
@@ -166,6 +174,35 @@ esperarValor(
 select retail.actualizar_campana_etiqueta_con_sedes(:'camp', null, ${HOY} - 1, ${HOY} + 30, array[:'cat']::uuid[], array[:'u']::uuid[]);
 set constraints all immediate; select 'ok';`),
   "ok",
+);
+
+console.log("\n— Las campañas de la caja con cesiones (20261116175000) —");
+// Tres rebajas sobre la categoría de la Blusa Emma, cediéndose en orden (A y B ceden a C, A cede a B): antes, prenda por prenda, 11 s.
+const ORDEN = `${TRES}select retail.elegir_oferta_que_queda(:'rb', :'ra'); select retail.elegir_oferta_que_queda(:'rc', :'rb'); select retail.elegir_oferta_que_queda(:'rc', :'ra');
+select retail.activar_campana_regla(:'ra'); select retail.activar_campana_regla(:'rb'); select retail.activar_campana_regla(:'rc');
+set constraints all immediate;
+`;
+esperarValor(
+  "con tres cesiones, cada prenda de la categoría cobra solo la que gana (−30 %)",
+  caso(`${ORDEN}select string_agg(distinct c.descuento_pct::text, ',') from retail.fn_campanas_en_sede(${HOY}, 0,
+  (select array_agg(v.id) from retail.variantes v join retail.productos p on p.id = v.producto_id where p.categoria_id = :'cat' and v.activo), :'u') c
+  where c.etiqueta_id = :'camp';\n`),
+  "30.00",
+);
+esperarValor(
+  "…y la lectura de toda la tienda tarda menos de 2 s (antes, prenda por prenda, 11 s)",
+  caso(`${ORDEN}select clock_timestamp() as t0 \\gset
+select count(*) from retail.fn_campanas_en_sede(${HOY}, 0, null, :'u') \\gset
+select (extract(epoch from clock_timestamp() - :'t0'::timestamptz) < 2)::text;\n`),
+  "true",
+);
+esperarValor(
+  "las prendas de cada oferta de la base, de una vez, son las mismas que prenda por prenda (las prendas a la venta)",
+  caso(`${ORDEN}select retail.guardar_oferta_completa(null, :'camp', 'ZZ monto', '{"tipo":"monto","ahorro_en":"soles","cuenta":"compra","cede_a_otras":true,"escalones":[{"desde":300,"ahorra":30}]}'::jsonb,
+  ${HOY}, ${HOY} + 3, null, '{}'::uuid[], '{}'::uuid[], false, '{}'::uuid[], '{}'::uuid[], '{}'::uuid[], false) as m \\gset
+select count(*) from retail.campana_reglas r cross join retail.variantes v
+ where v.activo and (v.id in (select x.variante_id from retail.fn_variantes_de_regla(r.id) x)) <> retail.fn_regla_alcanza_variante(r.id, v.id);\n`),
+  "0",
 );
 
 console.log("\n— Dos activaciones a la vez —");
