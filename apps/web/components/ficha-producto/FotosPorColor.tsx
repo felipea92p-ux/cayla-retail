@@ -415,7 +415,10 @@ function HojaDeFotos({
       : "Se ven en los colores que no tienen la suya. ¿Es de un solo color? Pásala a ese color."
     : "Con una foto alcanza. La principal es la que representa a toda la prenda en Productos.";
   return (
-    <Modal titulo={`Fotos de ${general ? titulo.toLowerCase() : titulo}`} subtitulo={subtitulo} onClose={onClose} tamano="mediana">
+    // Ancha (768): tres fotos por fila con sus acciones a la vista, y la foto lo bastante grande para juzgarla (las arrugas, la tela). En «mediana»
+    // cada columna medía ~160 px y «Principal» y «Quitar», forzados a ir lado a lado, se montaban y empujaban el combo a la foto vecina (Felipe
+    // 2026-11-16: «hay como una colisión de las opciones»). El foco va a la hoja: el primer control era «Principal», y su anillo parecía «elegida».
+    <Modal titulo={`Fotos de ${general ? titulo.toLowerCase() : titulo}`} subtitulo={subtitulo} onClose={onClose} tamano="ancha" focoEnLaHoja>
       {(cerrar) => (
         <div className="space-y-4">
           {fotos.length === 0 && <p className="text-sm text-taupe">Ya no quedan fotos aquí. Agrega otra con el rectángulo de abajo.</p>}
@@ -423,42 +426,43 @@ function HojaDeFotos({
             {fotos.map((f) => {
               const pendiente = pendienteDeFoto(f, guardadasPorClave);
               return (
-                <div key={f.clientKey} className="space-y-2">
+                <div key={f.clientKey} className="flex min-w-0 flex-col gap-2">
                   <div className={`relative aspect-[4/5] overflow-hidden rounded-xl border bg-papel ${pendiente ? "border-ambar ring-1 ring-ambar" : "border-sand"}`}>
-                    <ImagenDePrenda src={f.url} alt={`Foto de ${titulo}`} fill sizes="200px" className="object-cover" fallback={null} />
+                    <ImagenDePrenda src={f.url} alt={`Foto de ${titulo}`} fill sizes="240px" className="object-cover" fallback={null} />
                     {f.esPrincipal && <span className={INSIGNIA_PRINCIPAL}>Principal</span>}
                     {pendiente && <span className={INSIGNIA_NUEVA}>{pendiente === "nueva" ? "Nueva" : "Movida"}</span>}
                   </div>
-                  <div className="grid gap-1.5">
-                    <div className="grid grid-cols-2 gap-1.5">
-                      {f.esPrincipal ? (
-                        <p className="self-center text-center text-sm text-taupe">Es la principal</p>
-                      ) : (
-                        <button type="button" disabled={bloqueado} onClick={() => onFotos(comoPrincipal(todas, f.clientKey))} className="btn-cayla btn-sutil btn-chico">
-                          Principal
-                        </button>
-                      )}
-                      <button type="button" disabled={bloqueado} onClick={() => onFotos(sinLaFoto(todas, f.clientKey))} className="btn-cayla btn-peligro btn-chico">
-                        Quitar
-                      </button>
-                    </div>
-                    {sePuedePonerPrimera(todas, f.clientKey) && (
-                      <button type="button" disabled={bloqueado} onClick={() => onFotos(primeraEnSuColor(todas, f.clientKey))} className="btn-cayla btn-enlace justify-self-start text-[12.5px]">
-                        Ponerla primera
+                  {/* Cada botón a su ancho: si los dos no caben en la fila, el segundo baja a la de abajo en vez de montarse sobre el primero. */}
+                  <div className="flex flex-wrap gap-1.5">
+                    {f.esPrincipal ? (
+                      <p className="flex-auto self-center text-center text-sm text-taupe">Es la principal</p>
+                    ) : (
+                      <button type="button" disabled={bloqueado} onClick={() => onFotos(comoPrincipal(todas, f.clientKey))} className="btn-cayla btn-sutil btn-chico flex-auto">
+                        Hacer principal
                       </button>
                     )}
-                    {opcionesPasar.length > 0 && (
-                      <Desplegable
-                        forma="campo"
-                        valor=""
-                        onValor={(v) => v && onPasar(f.clientKey, v)}
-                        opciones={opcionesPasar}
-                        marcador="Pasar a otro color…"
-                        etiquetaAccesible={`Pasar esta foto de ${titulo} a otro color`}
-                        deshabilitado={bloqueado}
-                      />
-                    )}
+                    <button type="button" disabled={bloqueado} onClick={() => onFotos(sinLaFoto(todas, f.clientKey))} className="btn-cayla btn-peligro btn-chico flex-auto">
+                      Quitar
+                    </button>
                   </div>
+                  {opcionesPasar.length > 0 && (
+                    <Desplegable
+                      forma="campo"
+                      className="w-full min-w-0"
+                      valor=""
+                      onValor={(v) => v && onPasar(f.clientKey, v)}
+                      opciones={opcionesPasar}
+                      marcador="Pasar a otro color…"
+                      etiquetaAccesible={`Pasar esta foto de ${titulo} a otro color`}
+                      deshabilitado={bloqueado}
+                    />
+                  )}
+                  {/* Al final: así los combos de las fotos quedan a la misma altura, la tenga o no. */}
+                  {sePuedePonerPrimera(todas, f.clientKey) && (
+                    <button type="button" disabled={bloqueado} onClick={() => onFotos(primeraEnSuColor(todas, f.clientKey))} className="btn-cayla btn-enlace self-start text-[12.5px]">
+                      Ponerla primera
+                    </button>
+                  )}
                 </div>
               );
             })}
