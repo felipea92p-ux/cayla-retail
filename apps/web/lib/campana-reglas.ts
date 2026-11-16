@@ -535,6 +535,10 @@ export function problemasDeForma(f: Pick<FormaDeOferta, "tipo" | "porcentaje" | 
   }
   if (!entero(f.lleva) || f.lleva < LLEVA_MIN || f.lleva > LLEVA_MAX) return [`Un grupo se arma con ${LLEVA_MIN} a ${LLEVA_MAX} prendas.`];
   if (f.tipo === "nxm" && (!entero(f.paga) || f.paga < 1 || f.paga >= f.lleva)) return [`Si lleva ${f.lleva}, paga de 1 a ${f.lleva - 1}.`];
+  // Felipe 2026-11-16 (20261116173000, `campana_reglas_tope_70`): una oferta regala hasta el 70 %, como la rebaja.
+  if (f.tipo === "nxm" && f.paga * 10 < f.lleva * 3) {
+    return [`Si lleva ${f.lleva}, paga al menos ${Math.ceil(f.lleva * 0.3)}: una oferta regala hasta el ${PORCENTAJE_MAX} %.`];
+  }
   if (f.tipo === "n_por_monto" && (!Number.isFinite(f.monto) || f.monto <= 0)) return ["Pon cuánto cuesta el grupo."];
   if (f.tipo === "nesima_pct" && (!Number.isFinite(f.porcentaje) || f.porcentaje <= 0 || f.porcentaje > 100)) return [`El descuento de la ${f.lleva}.ª va de 1 a 100 %.`];
   return [];
@@ -547,11 +551,43 @@ export function problemasDeMonto(escalones: readonly EscalonDeMonto[], ahorroEn:
   for (const [i, e] of escalones.entries()) {
     if (!Number.isFinite(e.desde) || e.desde <= 0 || !Number.isFinite(e.ahorra) || e.ahorra <= 0) return ["Pon desde cuánto y cuánto ahorra."];
     if (!centimos(e.desde) || !centimos(e.ahorra)) return ["Los montos van hasta con céntimos, no más."];
-    if (ahorroEn === "soles" && e.ahorra >= e.desde) return ["El ahorro tiene que ser menor que el monto."];
+    // Felipe 2026-11-16 (20261116173000): hasta el 70 % de su monto, como la rebaja.
+    if (ahorroEn === "soles" && Math.round(e.ahorra * 100) > Math.round(e.desde * 70)) return [`Cada ahorro va hasta el ${PORCENTAJE_MAX} % de su monto.`];
     if (ahorroEn === "pct" && e.ahorra > PORCENTAJE_MAX) return [`El ahorro va de 1 a ${PORCENTAJE_MAX} %.`];
     if (i > 0 && (e.desde <= escalones[i - 1].desde || e.ahorra <= escalones[i - 1].ahorra)) return ["Cada escalón va desde más y ahorra más que el anterior."];
   }
   return [];
+}
+
+/**
+ * Lo más que una oferta le quita a UNA prenda de `precio`, en %, si su grupo se arma con prendas como ella (casuística 2026-11-16). Sirve para
+ * avisar «por debajo del costo» en toda forma, no solo en la rebaja: un «3 x 2» le quita un tercio a cada prenda del grupo, «la 2.ª al 50 %»
+ * un 25 %, un «2 por S/ X» depende del precio, y un monto lo más que da su escalón más generoso. Es un aviso: no cambia lo que se cobra.
+ */
+export function pctEquivalente(f: Pick<FormaDeOferta, "tipo" | "porcentaje" | "lleva" | "paga" | "monto" | "escalones" | "ahorroEn">, precio: number): number {
+  if (f.tipo === "pct") return f.porcentaje;
+  if (f.tipo === "nxm") return f.lleva > 0 ? ((f.lleva - f.paga) * 100) / f.lleva : 0;
+  if (f.tipo === "nesima_pct") return f.lleva > 0 ? f.porcentaje / f.lleva : 0;
+  if (f.tipo === "n_por_monto") return precio > 0 && f.lleva > 0 ? Math.max(0, 100 - (f.monto * 100) / (f.lleva * precio)) : 0;
+  const escalones = f.escalones ?? [];
+  if (f.ahorroEn === "pct") return Math.max(0, ...escalones.map((e) => e.ahorra));
+  return Math.max(0, ...escalones.map((e) => (e.desde > 0 ? (e.ahorra * 100) / e.desde : 0)));
+}
+
+/** Un «N por S/ X» depende de los precios del día (Felipe 2026-11-16: «avisa si pasa el 70 % con los precios de hoy»). De las prendas que
+ *  alcanza: en cuántas no ahorra nada (el grupo costaría más que las prendas) y en cuántas regalaría más del 70 %. */
+export function avisoDePorMonto(f: Pick<FormaDeOferta, "tipo" | "lleva" | "monto">, precios: readonly number[]): { noAhorra: number; pasaTope: number } {
+  if (f.tipo !== "n_por_monto" || f.lleva <= 0 || f.monto <= 0) return { noAhorra: 0, pasaTope: 0 };
+  let noAhorra = 0;
+  let pasaTope = 0;
+  for (const precio of precios) {
+    // En céntimos: en coma flotante 100 × 0.3 da 30.000000000000004 y un «2 por S/ 30» de S/ 50 (70 % justo) avisaba.
+    const grupoC = Math.round(precio * 100) * f.lleva;
+    const montoC = Math.round(f.monto * 100);
+    if (grupoC <= montoC) noAhorra++;
+    else if (montoC * 100 < grupoC * (100 - PORCENTAJE_MAX)) pasaTope++;
+  }
+  return { noAhorra, pasaTope };
 }
 
 /** Cuántas prendas puede tener un grupo (la base exige lo mismo). */

@@ -1222,7 +1222,7 @@ export const GUIA_CAMPANAS: Guia = {
       ancla: "sellos.dos-ofertas",
       opcional: true,
       titulo: "Prendas con dos ofertas",
-      texto: "Sale cuando una prenda quedó con dos ofertas, por ejemplo al marcarla con una insignia. Mientras no elijas, la caja cobra la que más le ahorra al cliente. «Elegir cuál queda» abre los pares: lo que elijas vale para todas sus prendas.",
+      texto: "Sale cuando una prenda quedó con dos ofertas, por ejemplo al marcarla con una insignia. Mientras no elijas, la caja cobra solo una de las dos. «Elegir cuál queda» abre los pares: lo que elijas vale para todas sus prendas.",
     },
     {
       id: "pila",

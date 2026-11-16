@@ -55,6 +55,8 @@ import {
   titularDeMonto,
   FORMA_DE_FABRICA,
   problemasDeForma,
+  pctEquivalente,
+  avisoDePorMonto,
   problemasDeMonto,
   bajadaDesactivarInsignia,
 } from "./campana-reglas";
@@ -538,11 +540,21 @@ describe("la hoja con un monto (ADR-0655, actividad 8)", () => {
     expect(problemasDeMonto([{ desde: 300, ahorra: 30 }], "soles")).toEqual([]);
     expect(problemasDeMonto([], "soles")[0]).toMatch(/de 1 a 3 escalones/);
     expect(problemasDeMonto([{ desde: 300, ahorra: 0 }], "soles")[0]).toBe("Pon desde cuánto y cuánto ahorra.");
-    expect(problemasDeMonto([{ desde: 100, ahorra: 100 }], "soles")[0]).toBe("El ahorro tiene que ser menor que el monto.");
+    expect(problemasDeMonto([{ desde: 100, ahorra: 100 }], "soles")[0]).toBe(`Cada ahorro va hasta el ${PORCENTAJE_MAX} % de su monto.`);
+    // Felipe 2026-11-16: hasta el 70 % de su monto, como la base (fn_escalones_validos).
+    expect(problemasDeMonto([{ desde: 300, ahorra: 210 }], "soles")).toEqual([]);
+    expect(problemasDeMonto([{ desde: 300, ahorra: 210.01 }], "soles")[0]).toBe(`Cada ahorro va hasta el ${PORCENTAJE_MAX} % de su monto.`);
     expect(problemasDeMonto([{ desde: 300, ahorra: 80 }], "pct")[0]).toBe(`El ahorro va de 1 a ${PORCENTAJE_MAX} %.`);
     expect(problemasDeMonto([{ desde: 300, ahorra: 30 }, { desde: 300, ahorra: 40 }], "soles")[0]).toMatch(/desde más y ahorra más/);
     expect(problemasDeMonto([{ desde: 300.005, ahorra: 30 }], "soles")[0]).toMatch(/céntimos/);
     expect(problemasDeForma(monto())).toEqual([]);
+  });
+  it("«lleva N, paga M» regala hasta el 70 %, como la base (campana_reglas_tope_70, Felipe 2026-11-16)", () => {
+    const nxm = (lleva: number, paga: number) => problemasDeForma({ tipo: "nxm", porcentaje: 0, lleva, paga, monto: 0 });
+    expect(nxm(3, 1)).toEqual([]);
+    expect(nxm(10, 3)).toEqual([]);
+    expect(nxm(4, 1)[0]).toBe(`Si lleva 4, paga al menos 2: una oferta regala hasta el ${PORCENTAJE_MAX} %.`);
+    expect(nxm(10, 2)[0]).toBe(`Si lleva 10, paga al menos 3: una oferta regala hasta el ${PORCENTAJE_MAX} %.`);
   });
   it("cómo se dice: la frase, el nombre automático y el titular", () => {
     const escalones = [{ desde: 300, ahorra: 30 }, { desde: 500, ahorra: 60 }];
@@ -696,5 +708,23 @@ describe("el aviso de Campañas: prendas con dos ofertas (decisión 2, parte 3)"
     expect(detalleDePar(p)).toBe("Blusa Emma y Polo Básico · Lima y Trujillo");
     expect(detalleDePar({ ...p, modelos: [...p.modelos, { id: "m3", nombre: "C" }, { id: "m4", nombre: "D" }] })).toBe("Blusa Emma, Polo Básico, C y 1 más · Lima y Trujillo");
     expect(detalleDePar({ ...p, modelos: [], prendas: 1, tiendas: [] })).toBe("1 prenda");
+  });
+});
+
+// Casuística del 2026-11-16 (ADR-0655): «por debajo del costo» en toda forma, y el «N por S/» que no ahorra o pasa el 70 %.
+describe("lo más que una oferta le quita a una prenda", () => {
+  const base = { porcentaje: 0, lleva: 0, paga: 0, monto: 0 };
+  it("en cada forma", () => {
+    expect(pctEquivalente({ ...base, tipo: "pct", porcentaje: 20 }, 50)).toBe(20);
+    expect(pctEquivalente({ ...base, tipo: "nxm", lleva: 3, paga: 2 }, 50)).toBeCloseTo(33.33, 2);
+    expect(pctEquivalente({ ...base, tipo: "nesima_pct", lleva: 2, porcentaje: 50 }, 50)).toBe(25);
+    expect(pctEquivalente({ ...base, tipo: "n_por_monto", lleva: 2, monto: 60 }, 50)).toBe(40);
+    expect(pctEquivalente({ ...base, tipo: "n_por_monto", lleva: 2, monto: 120 }, 50)).toBe(0);
+    expect(pctEquivalente({ ...base, tipo: "monto", ahorroEn: "soles", escalones: [{ desde: 300, ahorra: 30 }, { desde: 500, ahorra: 75 }] }, 50)).toBe(15);
+    expect(pctEquivalente({ ...base, tipo: "monto", ahorroEn: "pct", escalones: [{ desde: 300, ahorra: 10 }] }, 50)).toBe(10);
+  });
+  it("«2 por S/ 30» con precios de 10, 50 y 200: en una no ahorra y en otra regala más del 70 %", () => {
+    expect(avisoDePorMonto({ tipo: "n_por_monto", lleva: 2, monto: 30 }, [10, 50, 200])).toEqual({ noAhorra: 1, pasaTope: 1 });
+    expect(avisoDePorMonto({ tipo: "nxm", lleva: 3, monto: 0 }, [10])).toEqual({ noAhorra: 0, pasaTope: 0 });
   });
 });

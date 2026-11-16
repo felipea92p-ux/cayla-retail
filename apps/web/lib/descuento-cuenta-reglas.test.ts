@@ -111,3 +111,21 @@ describe("«Quedaría en» con las ofertas del ticket (ADR-0655)", () => {
     expect(cuentaDelDescuento(pedido, polos, null, conOfertas).totalConDescuento).toBe(85);
   });
 });
+
+// Casuística del 2026-11-16 (ADR-0655): «Quedaría en» arma cada línea como «Aplicar» y avisa si una prenda quedaría bajo S/ 0 con su oferta.
+describe("cuentaDelDescuento con ofertas de grupo", () => {
+  const campana = { etiquetaId: "c", nombre: "Navidad", pct: 10 };
+  it("un 5 % bajo una campaña de 10 %: la línea que se pasa a la cuenta de ofertas lleva la campaña con el 5 % detrás", () => {
+    let visto: ItemCarrito[] = [];
+    cuentaDelDescuento({ ...vacio, pct: "5", razon: "cerrar_venta" }, [linea("a", 100, { campana, descuentoUnitario: 10, razonDescuento: "campana" })], null, (ls) => {
+      visto = ls;
+      return ls;
+    });
+    expect(visto[0]).toMatchObject({ descuentoUnitario: 10, razonDescuento: "campana", manualTrasCampana: { monto: 5, razon: "cerrar_venta" } });
+  });
+  it("si con su oferta una prenda quedaría bajo S/ 0, no deja aplicar y dice cuál", () => {
+    const conGrupo = (ls: ItemCarrito[]) => ls.map((l) => ({ ...l, descuentoUnitario: l.descuentoUnitario + 40 }));
+    const c = cuentaDelDescuento({ ...vacio, pct: "70", razon: "cerrar_venta", argumento: "cliente frecuente" }, [linea("a", 100)], null, conGrupo);
+    expect(c.motivoDescuento?.replace(/\u00a0/g, " ")).toBe("Con su oferta, Prenda a quedaría bajo S/ 0: baja el descuento.");
+  });
+});

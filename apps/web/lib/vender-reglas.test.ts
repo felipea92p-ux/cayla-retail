@@ -1227,3 +1227,31 @@ describe("la máquina que cobró la tarjeta o el QR (ADR-0429)", () => {
     expect(yape).toEqual({ metodo: "yape", monto: 100, referencia: "123" });
   });
 });
+
+// Casuística del 2026-11-16 (ADR-0655): un descuento a mano menor que la campaña ya no se pierde: queda detrás de ella y vuelve cuando la
+// campaña termina o la prenda se va con su oferta de grupo (ver lib/ofertas-de-grupo.test.ts).
+describe("el descuento a mano detrás de la campaña", () => {
+  const cumple: DetalleDescuento = { razon: "cumpleanos_clienta_top", razonOtro: "", argumento: "" };
+  const rige = new Map<string, CampanaLinea>([["a", blackFriday]]);
+  it("un 10 % manual bajo una campaña de 20 % deja la campaña y guarda el 10 % detrás, con su motivo", () => {
+    const [l] = aplicarDescuento([lineaCampana("a", 100, blackFriday)], 10, [], cumple);
+    expect(l).toMatchObject({ descuentoUnitario: 20, razonDescuento: "campana", manualTrasCampana: { monto: 10, razon: "cumpleanos_clienta_top" } });
+  });
+  it("«Quitar descuento» borra lo de detrás", () => {
+    const [l] = aplicarDescuento(aplicarDescuento([lineaCampana("a", 100, blackFriday)], 10, [], cumple), 0, [], SIN_DETALLE_DESCUENTO);
+    expect(l).toMatchObject({ manualTrasCampana: null });
+  });
+  it("si la campaña termina, vuelve el descuento a mano", () => {
+    const con = aplicarDescuento([lineaCampana("a", 100, blackFriday)], 10, [], cumple);
+    expect(conCampanas(con, new Map())[0]).toMatchObject({ descuentoUnitario: 10, razonDescuento: "cumpleanos_clienta_top", campana: null, manualTrasCampana: null });
+  });
+  it("un manual menor que la campaña que se pone al día queda detrás (antes se perdía)", () => {
+    const manual = { ...lineaCampana("a", 100), descuentoUnitario: 10, razonDescuento: "cerrar_venta" };
+    expect(conCampanas([manual], rige)[0]).toMatchObject({ descuentoUnitario: 20, razonDescuento: "campana", manualTrasCampana: { monto: 10, razon: "cerrar_venta" } });
+  });
+  it("si la campaña nueva da menos que lo de detrás, lo de detrás pasa adelante", () => {
+    const con = aplicarDescuento([lineaCampana("a", 100, blackFriday)], 15, [], cumple);
+    const menor = new Map<string, CampanaLinea>([["a", { ...blackFriday, pct: 10 }]]);
+    expect(conCampanas(con, menor)[0]).toMatchObject({ descuentoUnitario: 15, razonDescuento: "cumpleanos_clienta_top", manualTrasCampana: null });
+  });
+});
