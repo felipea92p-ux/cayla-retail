@@ -139,9 +139,20 @@
     color: var(--color-tinta);
     transition: border-color 150ms;
   }
+  /* El foco del kit es el de la caja que se enciende (Felipe 2026-11-16, decisión 6A; ADR-0351 act.): borde de tinta y el halo difuminado.
+     Quien pidió más contraste o usa colores forzados recibe el anillo común de 2 px (antes no tenía ninguno). */
   .fin-control:focus {
     outline: none;
     border-color: var(--color-tinta); /* más fuerte que el reposo: un taupe aguado apagaría el campo justo al entrar */
+  }
+  .fin-control:focus-visible {
+    box-shadow: var(--pozo-foco-halo);
+  }
+  @media (forced-colors: active), (prefers-contrast: more) {
+    .fin-control:focus-visible {
+      outline: var(--foco-ancho) solid var(--foco-color);
+      outline-offset: var(--foco-separacion);
+    }
   }
   .fin-control:disabled,
   .fin-control[readonly] {

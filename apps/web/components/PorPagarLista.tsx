@@ -344,12 +344,12 @@ export function PorPagarLista({
         )}
         {bloques.map((b) => (
           <Fragment key={b.clave}>
-            {/* El id es el destino de la tarjeta «Vence esta semana»; `scroll-mt-24` compensa la cabecera fija. */}
+            {/* El id es el destino de la tarjeta «Vence esta semana»; la página descuenta la cabecera fija y `scroll-mt-8` deja su aire. */}
             <div
               id={agrupar === "urgencia" ? `tramo-${b.clave}` : undefined}
               ref={refDe(`b:${b.clave}`)}
               role="row"
-              className={`group scroll-mt-24 flex flex-wrap items-center justify-between gap-x-4 gap-y-1 px-5 py-2 ${ESTILO_BANDA[b.tono]}`}
+              className={`group scroll-mt-8 flex flex-wrap items-center justify-between gap-x-4 gap-y-1 px-5 py-2 ${ESTILO_BANDA[b.tono]}`}
             >
               <p className="label-cayla flex min-w-0 flex-wrap items-center gap-x-2.5 text-[11px]">
                 {b.proveedorId && (

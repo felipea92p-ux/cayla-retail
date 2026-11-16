@@ -37,6 +37,13 @@
     top: auto;
   }
 }
+/* Pegada (desde 640 px), la página deja también su alto: lo que alcanza el Tab o un ancla queda bajo la mesa, no debajo (decisión 1A de
+   Felipe, 2026-11-16; la cabecera sola está en globals.css). `MesaDeMando` publica su alto en `--alto-mesa-telar`; su `top` es 3,75 rem. */
+@media (min-width: 640px) {
+  html:has(.marco-cabecera):has(.mesa-telar) {
+    scroll-padding-top: calc(3.75rem + env(safe-area-inset-top) + var(--alto-mesa-telar, 0px));
+  }
+}
 .mesa-telar-fila {
   display: flex;
   align-items: center;

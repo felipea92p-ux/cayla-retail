@@ -1999,6 +1999,14 @@ html[data-buscando] [data-resultados] {
       scroll-margin-bottom: 15rem;
     }
   }
+  /* La cabecera del ERP es `fixed`: la página deja su alto arriba (Felipe 2026-11-16, decisión 1A; ADR-0351 act.). Al enfocar con el
+     teclado, seguir un ancla o `scrollIntoView`, el control queda BAJO la cabecera y no debajo de ella (WCAG 2.4.11): con Shift+Tab en
+     Finanzas ▸ Gastos eran 14 de 120 los tapados. Un `scroll-mt-*` de una pantalla ya no suma la cabecera, solo el aire que quiera.
+     En Finanzas, desde 640 px, la mesa de mando pegada se suma (telar.css). Lo que se desplaza en su propia caja (una hoja, una lista)
+     no lo hereda. */
+  html:has(.marco-cabecera) {
+    scroll-padding-top: var(--alto-cabecera);
+  }
 }
 
 /* ---- EL MOUSE ENCIMA, SOLO CON MOUSE (ADR-0479, actividad 7) ----

@@ -119,6 +119,10 @@
   .barra-t[data-tono="verde"] .barra-t-relleno { background: var(--color-verde); }
   /* La arena un tono más oscura (el fin de semana de «Ventas por día», maqueta de Reportes). */
   .barra-t[data-tono="arena-fuerte"] .barra-t-relleno { background: color-mix(in srgb, var(--color-tinta) 22%, var(--color-grafico-neutro)); /* contraste: gráfico sobre papel */ }
+  /* La barra que no escribe su cifra pasa 3:1 contra el fondo (WCAG 1.4.11; Felipe 2026-11-16, decisión 5B): en arena daba 1,56:1 y solo se
+     leía al pasar el mouse. Gris con 36 % de tinta; el fin de semana, más oscuro, sigue un tono arriba. La destacada sigue en tinta. */
+  .barra-t[data-sin-cifra]:not([data-tono]) .barra-t-relleno { background: color-mix(in srgb, var(--color-tinta) 36%, var(--color-grafico-neutro)); }
+  .barra-t[data-sin-cifra][data-tono="arena-fuerte"] .barra-t-relleno { background: color-mix(in srgb, var(--color-tinta) 56%, var(--color-grafico-neutro)); }
   .barra-t-relleno[data-rayada] {
     background-image: repeating-linear-gradient(135deg, transparent 0 3px, color-mix(in srgb, var(--color-papel) 55%, transparent) 3px 6px);
   }

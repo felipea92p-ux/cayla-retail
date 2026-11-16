@@ -1110,7 +1110,7 @@ export function RecepcionEnvio({
         </aside>
 
         {/* ================= derecha: el envío ================= */}
-        <div ref={panel} className="@container min-w-0 space-y-4 scroll-mt-24">
+        <div ref={panel} className="@container min-w-0 space-y-4 scroll-mt-8">
           {!hayEnvio ? (
             <>
               <div className="card-cayla flex min-h-[10rem] flex-col items-center justify-center gap-2 p-8 text-center">
