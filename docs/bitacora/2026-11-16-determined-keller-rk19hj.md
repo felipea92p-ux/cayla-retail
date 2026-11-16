@@ -25,3 +25,10 @@ el error a ese botón. La hoja del SIRE: su input sale de Tab y del lector, como
 Por qué así: al pedir lo que falta en «Subir la propuesta del SIRE», el cursor caía en un cuadrito invisible y sin nombre. Un input de archivo dentro
 de su `<label>` (Existencias) sí es el control, y sigue recibiendo el cursor. Felipe se lleva: medido en el navegador con la guía real y con la hoja
 del SIRE; las pruebas no tienen DOM, así que no hay prueba automática de a dónde va el foco.
+
+## 2026-11-16 (Planchada, pero el lino sigue siendo lino)
+Qué hice: el pedido de la foto con IA ya no pide la tela «tersa y bien estirada» ni «al vapor»: pide quitar solo los dobleces y marcas de guardarla,
+pone la TELA de la foto real primero («sin alisarla de más»), hace mandar la foto de cerca de la tela si se subió, y al lino le dice cómo se ve
+planchado (`SE_VE_PLANCHADA`: hilos con nudos, mate, ondas suaves). ADR-0659 act. 2026-11-16 (e).
+Por qué así: la primera versión alisó el lino Crudo hasta volverlo otra tela (Felipe: «es más liso pero pierde la tela»).
+Felipe se lleva: sin medir con OpenAI desde aquí; se prueba rehaciendo Crudo, idealmente con la foto «Detalle de la tela».
