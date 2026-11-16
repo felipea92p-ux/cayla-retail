@@ -12,6 +12,7 @@ import { diaLima, diaMes } from "./fechas-lima";
 import { motivoDeLaLinea } from "./ticket-linea-reglas";
 import { porcentajeDeLinea, RAZON_CAMPANA } from "./vender-reglas";
 import { titularDeOferta } from "./campana-reglas";
+import { soles as solesErp } from "./compras-reglas";
 
 /** D3 (Felipe, 2026-09-22): 7 días para recoger, aviso cuando faltan 2, 2 días para decidir tras vencer. */
 export const PLAZO_DIAS = 7;
@@ -409,7 +410,8 @@ export function mensajeLiberacion(
     a.devolucionMedio === "transferencia"
       ? `por transferencia${a.devolucionCciFinal ? ` a tu cuenta (CCI …${a.devolucionCciFinal})` : ""}`
       : `por ${a.devolucionMedio === "yape" ? "Yape" : "Plin"}${numero ? ` al ${numero}` : ""}`;
-  return `Hola ${a.nombres}, ${que} Te devolvemos tu adelanto de S/${a.adelanto.toFixed(2)} ${por}.`;
+  // El monto con el formato del ERP («S/ 90.00», espacio que no se parte: /textos, ADR-0413), no el «S/90.00» de `mensajeWhatsapp`.
+  return `Hola ${a.nombres}, ${que} Te devolvemos tu adelanto de ${solesErp(a.adelanto)} ${por}.`;
 }
 
 /** Lo que la base sabe de los avisos de un apartado (`fn_avisos_separaciones`, 20260926233000). */

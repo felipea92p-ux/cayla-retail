@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 import {
   fichaDelPrecioDeSede,
+  fraseDePrecioEnSede,
+  frasesPreciosSede,
+  precioQueQuedaEnSede,
   preciosSedeParaLaBase,
   precioGeneralElegido,
   ELECCIONES_VACIAS as VACIAS_PRECIOS,
@@ -293,5 +296,51 @@ describe("el precio general que ve la lista de sedes (20261116020000)", () => {
   });
   it("si el precio no difiere, nada: cada talla conserva el suyo", () => {
     expect(precioGeneralElegido({ ...ELECCIONES_VACIAS, precioDe: "B" }, plan.productos, [], "A")).toBeNull();
+  });
+});
+
+
+describe("lo que cobra cada tienda, dicho antes de confirmar (auditoría 2026-11-16)", () => {
+  const trujillo = {
+    ubicacionId: "TRU",
+    nombre: "Tienda Trujillo",
+    conflicto: false,
+    porDefecto: "D",
+    productos: [
+      { id: "Q", queda: true, precio: 79.9, propio: false },
+      { id: "D", queda: false, precio: 74.9, propio: true },
+    ],
+  };
+  const lima = {
+    ubicacionId: "LIM",
+    nombre: "Tienda Lima",
+    conflicto: true,
+    porDefecto: "Q",
+    productos: [
+      { id: "Q", queda: true, precio: 89.9, propio: true },
+      { id: "D", queda: false, precio: 84.9, propio: true },
+    ],
+  };
+
+  it("sin conflicto, el precio que viaja y lo que cobraba la que queda", () => {
+    expect(precioQueQuedaEnSede(trujillo, undefined)).toEqual({ precio: 74.9, antes: 79.9, de: "D" });
+    expect(fraseDePrecioEnSede(trujillo, undefined)).toMatch(/^Tienda Trujillo: toda la prenda a S\/\s?74\.90 \(antes S\/\s?79\.90\)\.$/);
+  });
+
+  it("con conflicto y sin elegir, gana la que queda: no hay «antes» porque no cambia", () => {
+    expect(precioQueQuedaEnSede(lima, undefined)).toEqual({ precio: 89.9, antes: null, de: "Q" });
+    expect(fraseDePrecioEnSede(lima, undefined)).not.toContain("antes");
+  });
+
+  it("eligiendo la repetida, dice el precio nuevo y el de antes", () => {
+    expect(precioQueQuedaEnSede(lima, "D")).toEqual({ precio: 84.9, antes: 89.9, de: "D" });
+  });
+
+  it("las líneas del resumen: una por sede, o una sola con «un solo precio»", () => {
+    expect(frasesPreciosSede([lima, trujillo], VACIAS_PRECIOS, 79.9)).toHaveLength(2);
+    const uno = frasesPreciosSede([lima, trujillo], { ...VACIAS_PRECIOS, unSoloPrecio: true }, 79.9);
+    expect(uno).toHaveLength(1);
+    expect(uno[0]).toMatch(/^Todas las sedes cobran S\/\s?79\.90\.$/);
+    expect(frasesPreciosSede([], VACIAS_PRECIOS, 79.9)).toEqual([]);
   });
 });
