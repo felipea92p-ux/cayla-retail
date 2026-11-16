@@ -29,7 +29,7 @@ export function FilaMovimientoCaja({ e, nuevo, onAbrir }: { e: EventoCaja; nuevo
       type="button"
       onClick={() => onAbrir(e)}
       aria-label={`Ver el detalle de ${e.titulo}, ${money(Math.abs(e.monto))}, ${e.horaTexto}`}
-      className="anim-revelar relative isolate flex w-full cursor-pointer items-center gap-3 py-2.5 text-left transition-colors hover:bg-sand/30 focus-visible:bg-sand/30 focus-visible:outline-none @[640px]:break-inside-avoid"
+      className="anim-revelar relative isolate flex w-full cursor-pointer items-center gap-3 py-2.5 text-left transition-colors hover:bg-sand/30 focus-visible:bg-sand/30 @[640px]:break-inside-avoid"
     >
       {/* `isolate` + el velo en `-z-10`: el resaltado de una fila nueva queda DETRÁS de su texto. */}
       {nuevo && <span aria-hidden className="anim-vivo-fila pointer-events-none absolute -inset-x-2 inset-y-0.5 -z-10 rounded-lg bg-verde/15" />}

@@ -136,8 +136,25 @@ export function MesaDeMando({
     return () => mide.disconnect();
   }, []);
 
+  // La página deja el alto de la mesa pegada además del de la cabecera, para que el Tab no deje un control debajo de ella (decisión 1A de
+  // Felipe, 2026-11-16; telar.css). La mesa cambia de alto al partirse en dos renglones: se mide y se publica en `--alto-mesa-telar`.
+  const mesa = useRef<HTMLElement>(null);
+  useEffect(() => {
+    const el = mesa.current;
+    if (!el) return;
+    const raiz = document.documentElement;
+    const medir = () => raiz.style.setProperty("--alto-mesa-telar", `${Math.round(el.getBoundingClientRect().height)}px`);
+    medir();
+    const obs = new ResizeObserver(medir);
+    obs.observe(el);
+    return () => {
+      obs.disconnect();
+      raiz.style.removeProperty("--alto-mesa-telar");
+    };
+  }, []);
+
   return (
-    <header className="mesa-telar">
+    <header ref={mesa} className="mesa-telar">
       <div className="mesa-telar-fila">
         <div ref={filaSedes} className="sedes-telar pildoras-desliza" role="group" aria-label="Qué sedes mirar" data-guia="telar.sedes" data-dice={rotulo.dice || undefined} suppressHydrationWarning>
           <span className="sedes-telar-titulo" title={rotulo.dice ? dicho : undefined}>{rotulo.texto}</span>

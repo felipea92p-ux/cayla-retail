@@ -49,7 +49,7 @@ describe("un flujo guiado cambia de vista sin dejar la pantalla en aire", () => 
     for (const f of flujos) {
       const codigo = leer(f);
       expect(codigo, `${f} dibuja pasos sin useVistaDelPaso(paso, raiz, titulo)`).toMatch(/\buseVistaDelPaso\(paso, raiz, titulo\);/);
-      expect(codigo, `${f}: la raíz del flujo lleva scroll-mt-24 para quedar bajo la cabecera fija`).toMatch(/<div ref=\{raiz\} className="scroll-mt-24 space-y-6">/);
+      expect(codigo, `${f}: la raíz del flujo lleva scroll-mt-8: la cabecera fija la descuenta la página (scroll-padding-top de <html>, decisión 1A)`).toMatch(/<div ref=\{raiz\} className="scroll-mt-8 space-y-6">/);
     }
   });
 

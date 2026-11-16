@@ -303,7 +303,7 @@ export function CuandoSePaga({ derivado, lectura, pagado, flujo }: { derivado: P
                     Descartar cambios
                   </Boton>
                 )}
-                <Boton type="button" peso="primario" cargando={guardando} disabled={!puedeGuardar || sinNadaPorComprar} title={!valido ? "Los pagos tienen que sumar 100 %" : guardado && !cambio ? "No cambiaste nada" : undefined} onClick={() => void guardar()}>
+                <Boton type="button" peso="primario" cargando={guardando} disabled={!puedeGuardar || sinNadaPorComprar} title={sinNadaPorComprar ? "No hay nada por pedir" : !valido ? "Los pagos tienen que sumar 100 %" : guardado && !cambio ? "No cambiaste nada" : undefined} onClick={() => void guardar()}>
                   Guardar cómo se paga
                 </Boton>
               </div>

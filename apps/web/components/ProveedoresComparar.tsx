@@ -63,7 +63,7 @@ export function ProveedoresComparar({
   );
 
   return (
-    <aside id="proveedores-comparacion" aria-label="Comparar proveedores" className={`${CLASE_LADO} anim-entra scroll-mt-20`}>
+    <aside id="proveedores-comparacion" aria-label="Comparar proveedores" className={`${CLASE_LADO} anim-entra scroll-mt-4`}>
       <TituloSeccion
         cuenta={n}
         accion={

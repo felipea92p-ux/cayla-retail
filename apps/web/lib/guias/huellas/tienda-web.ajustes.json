@@ -8,8 +8,8 @@
       "ComboResponsable «{responsable}»",
       "input «{`tw-${s.id}»",
       "button «Quitar foto»",
-      "Boton «Guardar»",
-      "Boton «Guardar» #2"
+      "Boton «{sucio ? undefined : \"No cambiaste nada\"}»",
+      "Boton «{sucio ? undefined : \"No cambiaste nada\"}» #2"
     ],
     "components/tienda-web-conf/CierresDeTienda.tsx": [
       "button «{`Quitar el cierre del ${hoy ? etiquetaDeCierre(fecha, hoy) : fecha}»",

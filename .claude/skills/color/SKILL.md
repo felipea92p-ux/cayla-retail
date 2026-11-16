@@ -128,9 +128,15 @@ un fondo `rojo` con letra crema como botón (plano da 4.83, sobre vidrio no lleg
 | Foco rojo escrito a mano | `grep -rn "outline-rojo\|ring-rojo" apps/web/components apps/web/app` | al tocar un archivo de esa lista |
 
 `tema:auditar` es el barrido en lote (Playwright, cuentas del seed, claro contra oscuro); `medir.js` es el instrumento de mano para una pantalla y
-un estado, y mide lo que el barrido no mide (bordes, foco, rojo, enlaces). Ninguno mide degradados: eso es `vidrio-contraste.test.ts`.
-Lee `medir.js` así: `texto` reprueba; `apcaSegundaMirada` solo informa; `noConcluyente` está sobre un degradado; `controles.fallan` reprueba 1.4.11;
-`rojosEnVista > 2` rompe el presupuesto. Cada hallazgo trae su `[data-guia]` si lo tiene, para ubicarlo.
+un estado, y mide lo que el barrido no mide (bordes, foco, rojo, enlaces). El vidrio con desenfoque es de `vidrio-contraste.test.ts`; un degradado
+que cubre la caja (la gota) `medir.js` lo lee por sus paradas y da el peor y el mejor caso (`ratio`–`hasta`).
+Lee `medir.js` así: `texto` reprueba (ni el mejor punto llega); `apcaSegundaMirada` solo informa; `noConcluyente` llega en una parte del degradado
+y en otra no, o está sobre una imagen (o es un degradado que pinta la letra, `background-clip: text`); `controles.fallan` reprueba 1.4.11;
+`controles.estados` informa (no reprueba) la opción o pestaña elegida cuya gota no llega a 3:1 contra el pozo, con `otraMarca` (peso, subrayado)
+para decidir mirando; `rojosEnVista > 2` rompe el presupuesto. No mide (y lo cuenta aparte): el texto escondido para el lector (`sr-only`, un
+`clip-path` que deja el área en cero: `escondidosParaElLector`; un recorte parcial sí se mide), el BORDE de la opción que se nombra con su propio
+texto (`opcionesPorSuTexto`: 1.4.11 no le pide borde a un botón o pestaña de texto; su estado sí, en `controles.estados`) y el deslizador nativo
+sin `accent-color` (`controles.aOjo`); con `accent-color`, se mide su pulgar. Cada hallazgo trae su `[data-guia]`.
 
 ## Tu sección de la ficha
 

@@ -226,7 +226,7 @@ export function RevisarConteo({
         <>
           <Aviso tono="atencion">{textoFaltanPorContar(resumen.pendientes)}</Aviso>
 
-          <section ref={tarjetaPend} data-guia="revisar.pendientes" className="card-cayla @container scroll-mt-24 overflow-hidden">
+          <section ref={tarjetaPend} data-guia="revisar.pendientes" className="card-cayla @container scroll-mt-8 overflow-hidden">
             <div className="space-y-1 border-b border-sand px-4 py-4 @[36rem]:px-5">
               <TituloSeccion>Pendientes de contar</TituloSeccion>
               <p className="text-sm text-taupe">Estas variantes todavía no fueron verificadas.</p>
@@ -279,7 +279,7 @@ export function RevisarConteo({
       )}
 
       {diferencias.length > 0 ? (
-        <section ref={tarjetaDif} data-guia="revisar.diferencias" className="card-cayla @container scroll-mt-24 overflow-hidden">
+        <section ref={tarjetaDif} data-guia="revisar.diferencias" className="card-cayla @container scroll-mt-8 overflow-hidden">
           <div className="space-y-1 border-b border-sand px-4 py-4 @[36rem]:px-5">
             {/* Aquí vuelve el foco cuando la fila tocada se va (ver `actuar`): el id y el tabIndex van en la caja del título. */}
             <div id="revisar-diferencias" tabIndex={-1} className="outline-none">

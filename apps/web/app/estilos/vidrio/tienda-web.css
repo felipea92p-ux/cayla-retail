@@ -28,6 +28,12 @@
   border-bottom-color: var(--hilo-fila);
   background: var(--placa-fondo);
 }
+/* En oscuro la barra baja de tono (Felipe 2026-11-16, decisión 4A): sobre la placa translúcida «Abrir la tienda», en rojo, quedaba a 3,44:1. */
+@media screen {
+  :root[data-tema="oscuro"] .tw-marco-barra {
+    background: color-mix(in srgb, var(--color-crema) 82%, var(--color-sombra));
+  }
+}
 .tw-marco-direccion {
   border-color: transparent;
   background: var(--pozo-fondo);

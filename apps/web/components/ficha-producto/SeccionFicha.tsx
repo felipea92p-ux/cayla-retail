@@ -35,7 +35,7 @@ export function SeccionFicha({
   guia?: string;
 }) {
   return (
-    <section id={id} data-guia={guia} className="taller-sec anim-revelar scroll-mt-24" data-hecho={hecho} data-abierta={abierta} style={{ animationDelay: `${retraso}ms` }}>
+    <section id={id} data-guia={guia} className="taller-sec anim-revelar scroll-mt-8" data-hecho={hecho} data-abierta={abierta} style={{ animationDelay: `${retraso}ms` }}>
       <button type="button" className="taller-sec-cab" aria-expanded={abierta} aria-controls={`${id}-cuerpo`} onClick={() => onAbierta(!abierta)}>
         <span className="taller-num" aria-label={hecho ? "Completa" : `Paso ${numero}`}>
           {hecho ? "✓" : numero}

@@ -109,7 +109,7 @@ export function EncabezadoFlujo({
         </p>
       </div>
       <Pasos pasos={pasos} actual={actual} onIr={onIrAPaso} />
-      <h2 ref={refTitulo} tabIndex={-1} className="font-display scroll-mt-28 text-2xl text-tinta outline-none">{/* unificar-fijo: el título del paso, que recibe el foco al avanzar */}
+      <h2 ref={refTitulo} tabIndex={-1} className="font-display scroll-mt-12 text-2xl text-tinta outline-none">{/* unificar-fijo: el título del paso, que recibe el foco al avanzar */}
         {titulo}
       </h2>
     </>

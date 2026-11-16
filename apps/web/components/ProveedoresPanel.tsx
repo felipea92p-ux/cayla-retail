@@ -821,7 +821,7 @@ function FilaLider({ p, indice, busqueda, marcas, serie, maxSaldo, cambiando, re
       {/* El destello vive en su propia capa: `animation` es una sola propiedad, y si se pusiera en la fila
           pisaría a la entrada `anim-entra` (y al quitarlo, la entrada se repetiría). */}
       {reciente && <span aria-hidden className="anim-destello-fila pointer-events-none absolute inset-0" />}
-      <button type="button" onClick={onAbrir} data-guia="proveedores.nombre" aria-label={`${p.nombre}: abrir vista rápida`} className="min-w-0 text-left outline-none after:absolute after:inset-0 after:content-[''] focus-visible:after:outline focus-visible:after:outline-2 focus-visible:after:-outline-offset-2 focus-visible:after:outline-rojo/60">
+      <button type="button" onClick={onAbrir} data-guia="proveedores.nombre" aria-label={`${p.nombre}: abrir vista rápida`} className="min-w-0 text-left outline-none after:absolute after:inset-0 after:content-[''] focus-visible:after:[outline:var(--foco-ancho)_solid_var(--foco-color)] focus-visible:after:[outline-offset:calc(var(--foco-ancho)*-1)]">
         <NombreCelda p={p} busqueda={busqueda} marcas={marcas} marcarSinPago />
       </button>
       <span className="hidden truncate font-mono text-xs tabular-nums text-tinta/75 @7xl:block">{p.ruc ? <Resaltado texto={p.ruc} busqueda={busqueda} /> : "Sin RUC"}</span>

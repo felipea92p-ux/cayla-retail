@@ -95,7 +95,9 @@ export function SwatchesColor({
               onMas();
             }}
             title="Ver todos los colores"
-            className="text-sm tabular-nums text-tinta/55 underline-offset-2 hover:text-tinta hover:underline"
+            // 24 px de alto y de ancho para el mouse (WCAG 2.5.8; medía 17 × 23): el relleno de la derecha agranda lo que se toca hacia el
+            // aire que lo separa del stock, y el margen negativo del mismo tamaño deja la fila donde estaba. El «+N» no se mueve.
+            className="inline-flex min-h-6 items-center -mr-2 pr-2 text-sm tabular-nums text-tinta/55 underline-offset-2 hover:text-tinta hover:underline"
           >
             +{resto}
           </button>

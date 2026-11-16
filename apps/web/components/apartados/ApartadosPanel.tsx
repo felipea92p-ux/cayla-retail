@@ -161,7 +161,7 @@ export function ApartadosPanel(props: Props) {
     // «A · Al aire» (apartados-vidrio-2026-11, Felipe 2026-11-02): sin la hoja de papel; como la mesa de Vender, la cabecera es una fila
     // plana sobre el fondo y lo de adentro son placas (`ap-mesa`, vidrio/vender.css).
     <CanalesDeApartados canales={props.canales ?? []}>
-    <section id="hoja-apartados" className="ap-mesa anim-sube flex min-h-[calc(100svh-9rem)] scroll-mt-20 flex-col max-lg:mb-40">
+    <section id="hoja-apartados" className="ap-mesa anim-sube flex min-h-[calc(100svh-9rem)] scroll-mt-4 flex-col max-lg:mb-40">
       {vista === "todos" && cabecera}
 
       {vista === "apartar" && (
