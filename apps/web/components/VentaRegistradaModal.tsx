@@ -19,6 +19,8 @@ import { Interruptor } from "@/components/ui/campos";
 import { Chip } from "@/components/ui/Chip";
 import { usePedidaALaCaja, type EstadoPedida } from "@/components/impresion/usePedidaALaCaja";
 import { imprimirAlCobrar, imprimirEnLaCaja, queHacerAlRegistrar, type AlRegistrar } from "@/lib/imprimir-al-cobrar";
+import { estacionDeLaCaja, vozDeLaEstacion } from "@/lib/estacion-de-impresion";
+import { ventanaDelEquipo } from "@/lib/ventana-de-impresion";
 import { imprimirAqui, sePuedeImprimirAqui } from "@/components/impresion/imprimirEnEstaVentana";
 
 type Props = {
@@ -53,10 +55,14 @@ export function VentaRegistradaModal({ ok, ubicacionEtiqueta, onClose, alCerrarE
   const r = ok.recibo;
   const imprimeSolo = useSyncExternalStore(imprimirAlCobrar.suscribir, imprimirAlCobrar.leer, imprimirAlCobrar.leerEnServidor) === "si";
   const mandaALaCaja = useSyncExternalStore(imprimirEnLaCaja.suscribir, imprimirEnLaCaja.leer, imprimirEnLaCaja.leerEnServidor) === "si";
+  // En la ventana «CAYLA Caja» la hoja ofrece la estación (imprimir lo del piso) en vez de mandar a la caja: la caja no se manda a sí misma.
+  const esCaja = useSyncExternalStore(ventanaDelEquipo.suscribir, ventanaDelEquipo.leer, ventanaDelEquipo.leerEnServidor) === "caja";
+  const esEstacion = useSyncExternalStore(estacionDeLaCaja.suscribir, estacionDeLaCaja.leer, estacionDeLaCaja.leerEnServidor) === "si";
+  const conVoz = useSyncExternalStore(vozDeLaEstacion.suscribir, vozDeLaEstacion.leer, vozDeLaEstacion.leerEnServidor) === "si";
   // Se decide UNA vez, al abrir: prender el interruptor en esta hoja vale desde la próxima venta, no imprime esta de golpe.
   const [alRegistrar] = useState<AlRegistrar>(() =>
     queHacerAlRegistrar({
-      enLaCaja: imprimirEnLaCaja.leer() === "si",
+      enLaCaja: imprimirEnLaCaja.leer() === "si" && ventanaDelEquipo.leer() !== "caja",
       ventaId: ok.ventaId ?? null,
       encendido: imprimirAlCobrar.leer() === "si",
       hayComprobante: r !== null,
@@ -274,13 +280,26 @@ export function VentaRegistradaModal({ ok, ubicacionEtiqueta, onClose, alCerrarE
           {r && (
             <div className="border-t border-sand pt-3">
               <div className="space-y-3">
-                <Interruptor
-                  activo={mandaALaCaja}
-                  onActivo={(v) => imprimirEnLaCaja.fijar(v ? "si" : "no")}
-                  etiqueta="Imprimir en la caja"
-                />
+                {esCaja ? (
+                  <>
+                    <Interruptor
+                      activo={esEstacion}
+                      onActivo={(v) => estacionDeLaCaja.fijar(v ? "si" : "no")}
+                      etiqueta="Imprimir lo que se vende en el piso"
+                    />
+                    {esEstacion && (
+                      <Interruptor activo={conVoz} onActivo={(v) => vozDeLaEstacion.fijar(v ? "si" : "no")} etiqueta="Avisar con voz" />
+                    )}
+                  </>
+                ) : (
+                  <Interruptor
+                    activo={mandaALaCaja}
+                    onActivo={(v) => imprimirEnLaCaja.fijar(v ? "si" : "no")}
+                    etiqueta="Imprimir en la caja"
+                  />
+                )}
                 {/* Mandar a la caja gana: con él encendido, «Imprimir solo al cobrar» no tiene qué hacer aquí. */}
-                {!mandaALaCaja && (
+                {(esCaja || !mandaALaCaja) && (
                   <Interruptor
                     activo={imprimeSolo}
                     onActivo={(v) => imprimirAlCobrar.fijar(v ? "si" : "no")}
