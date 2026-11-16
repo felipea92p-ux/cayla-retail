@@ -1,0 +1,4 @@
+## 2026-11-16 (Se puede avisar a cualquier cliente de un apartado cancelado, también al que se liberó solo)
+Qué hice: la fila de un apartado liberado (Apartados ▸ Historial) trae el ícono del mensaje, que abre la misma hoja «Avisarle a …» con «Avisar por WhatsApp». Cubre el que «se liberó solo» al vencer su gracia (mensaje «venció y lo cancelamos») y el que se liberó con «Ahora no» (la fila no trae el motivo: el mensaje solo dice que se canceló). La hoja se sacó a `AvisoDeCancelacion`, compartida con «Liberar».
+Por qué así: sin migración; el motivo de un liberado a mano y el registro de quién avisó necesitarían cambiar `buscar_separaciones` y una tabla, y eso lo decide Felipe.
+Felipe se lleva: se prueba en Historial con un apartado liberado; abrir WhatsApp sigue sin dejar constancia en la base.

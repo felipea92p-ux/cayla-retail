@@ -3122,6 +3122,28 @@ input[role="combobox"]::-webkit-contacts-auto-fill-button {
     white-space: nowrap;
   }
   .hoja-cobro-billete.es-maquina.metodo-qr { --c: var(--color-metodo-qr); --cd: var(--color-metodo-qr); }
+  /* El billete del adelanto de un apartado (ApartarVista, Felipe 2026-11-16): toma el color del medio elegido de quien lo envuelve
+     (`.metodo-<medio>`), más bajo, con su nombre («30 %», «Mitad») arriba de la cifra. */
+  .hoja-cobro-billete.es-de-medio {
+    --c: inherit;
+    --cd: inherit;
+    height: 3.25rem;
+    flex-direction: column;
+    gap: 0.25rem;
+    font-size: 1.125rem;
+  }
+  /* Las fichas del adelanto de un apartado van 5 por fila (3 en el celular): el nombre se fija en 11 px, el piso de una versalita,
+     en vez del que sale del ancho de la ficha (9 px a 5 por fila; /milimetro 2026-11-16). */
+  .ap-medios .hoja-cobro-nombre { font-size: 11px; letter-spacing: 0.04em; }
+  /* El nombre va del color pleno del billete: atenuado no llegaba a 4,5:1 (/milimetro 2026-11-16). */
+  .hoja-cobro-billete-nombre {
+    font-family: var(--font-sans);
+    font-size: 11px;
+    font-weight: 700;
+    line-height: 1;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
 
   /* Comprobante: punteado mientras no se elige; elegido, en tinta; los otros se apagan. */
   .hoja-cobro-comprobante {

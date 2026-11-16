@@ -372,7 +372,7 @@ describe("mensajeLiberacion: avisar que el apartado se canceló", () => {
   it("dice por qué, según el motivo elegido, y cómo vuelve el adelanto", () => {
     const a = apartado();
     expect(mensajeLiberacion(a, "Tienda TRU", "vencio")).toBe(
-      "Hola Ana, tu apartado APT-TRU-0007 en CAYLA Tienda TRU venció y lo cancelamos. Te devolvemos tu adelanto de S/90.00 por Yape al 987 111 222.",
+      "Hola Ana, tu apartado APT-TRU-0007 en CAYLA Tienda TRU venció y lo cancelamos. Te devolvemos tu adelanto de S/\u00a090.00 por Yape al 987 111 222.",
     );
     expect(mensajeLiberacion(a, "Tienda TRU", "clienta_desistio")).toMatch(/^Hola Ana, como nos pediste, cancelamos tu apartado APT-TRU-0007/);
     expect(mensajeLiberacion(a, "Tienda TRU", "error_de_carga")).toMatch(/se registró por error\. Te devolvemos/);
@@ -383,6 +383,12 @@ describe("mensajeLiberacion: avisar que el apartado se canceló", () => {
     );
     expect(mensajeLiberacion(apartado({ devolucionMedio: "plin", devolucionNumero: null }), "Tienda TRU", "vencio")).toMatch(/por Plin\.$/);
     expect(mensajeLiberacion(apartado({ adelanto: 0 }), "Tienda TRU", "vencio")).not.toMatch(/devolvemos/);
+    // Sin motivo (desde la fila de la lista): solo dice que se canceló, sin inventar por qué.
+    expect(mensajeLiberacion(apartado(), "Tienda TRU", null)).toBe(
+      "Hola Ana, cancelamos tu apartado APT-TRU-0007 en CAYLA Tienda TRU. Te devolvemos tu adelanto de S/\u00a090.00 por Yape al 987 111 222.",
+    );
+    // El monto con el formato del ERP: coma de miles y espacio que no se parte tras «S/».
+    expect(mensajeLiberacion(apartado({ adelanto: 1250, total: 2000 }), "Tienda TRU", "vencio")).toContain("adelanto de S/\u00a01,250.00 por Yape");
   });
 });
 

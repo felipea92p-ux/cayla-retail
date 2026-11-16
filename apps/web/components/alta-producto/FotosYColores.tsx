@@ -17,8 +17,9 @@ import type { ColorAlta } from "@/lib/alta-producto";
 import { colorDeRespuesta } from "@/lib/color-alta-reglas";
 import { componentesDeMezcla, mezclaExistente, tonosDeMezcla } from "@/lib/color-combinado";
 import { leerColores, propuestaInicial, type Lectura } from "@/lib/colores-de-la-foto";
-import { codigosParaReintentar, motivoDeFalla, segundaOpcionDelDibujo, sumarFotoUnaVez } from "@/lib/fotos-y-colores-reglas";
-import { objecionFotoProducto } from "@/lib/producto-fotos";
+import { codigosParaReintentar, motivoDeFalla, pendientesParaLaIAAlEncender, segundaOpcionDelDibujo, sumarFotoUnaVez } from "@/lib/fotos-y-colores-reglas";
+import { abrirFotoElegida } from "@/lib/foto-elegida-cliente";
+import { avisoDeFotosMalas } from "@/lib/foto-elegida-reglas";
 
 // «Fotos y colores» (ADR-0663, Felipe 2026-11-13): los colores de la prenda salen de sus fotos. Se sube una foto por color («Otra foto»,
 // y otra, y otra) y cada una se lee en el navegador (`leerColores`, < 1 s, sin IA): un tono es ese color de la carta; 2 a 4 en zonas
@@ -37,7 +38,9 @@ type Pendiente = {
   clave: string;
   archivo: File;
   vista: string;
-  estado: "ia" | "leyendo" | "pregunta" | "armando";
+  /** «abriendo»: la foto se está leyendo del disco (`abrirFotoElegida`); todavía no tiene vista. Ya cuenta como pendiente: «Listo» y «Crear
+   *  producto» la esperan, y no se puede soltar sin querer. */
+  estado: "abriendo" | "ia" | "leyendo" | "pregunta" | "armando";
   /** La versión de catálogo, si «Catálogo con IA» está encendido y respondió: la foto que se ve, se lee y se sube (con la real). */
   ia?: NonNullable<FotoPendiente["ia"]>;
   lectura?: Lectura<ColorAlta>;
@@ -58,6 +61,14 @@ export function useFotosEnCurso() {
   const asentadas = useRef(new Set<string>());
   // Las vistas previas (blob:) abiertas: se liberan al salir de la PANTALLA, no del paso (si no, la tarjeta volvería sin foto).
   const vistas = useRef(new Set<string>());
+  // Lo que hace «Fotos y colores» cuando se enciende la IA (el interruptor vive fuera de esta pieza, en la pantalla): vuelve a pasar por la IA
+  // las fotos que esperan su color. Sin «Fotos y colores» montado no hay nada que hacer.
+  const alEncenderIA = useRef<(() => Promise<number>) | null>(null);
+  // Las tarjetas de AHORA, para quien termina tarde (una lectura que vuelve a empezar no debe revivir una foto que se quitó).
+  const pendientesRef = useRef(pendientes);
+  useEffect(() => {
+    pendientesRef.current = pendientes;
+  }, [pendientes]);
   useEffect(() => {
     const abiertas = vistas.current;
     return () => abiertas.forEach((v) => URL.revokeObjectURL(v));
@@ -76,6 +87,12 @@ export function useFotosEnCurso() {
       /** Una vista previa (blob:) que hay que liberar al salir de la pantalla, o que ya no (pasó al formulario o se liberó). */
       abrirVista: (url: string) => void vistas.current.add(url),
       soltarVista: (url: string) => void vistas.current.delete(url),
+      /** «Fotos y colores» dice qué hacer cuando se enciende la IA (`null` al desmontarse). */
+      registrarAlEncenderIA: (fn: (() => Promise<number>) | null) => void (alEncenderIA.current = fn),
+      /** Se encendió la IA: las fotos que esperan su color vuelven a pasar por ella (`pendientesParaLaIAAlEncender`). Dice en cuántas falló. */
+      encendioLaIA: (): Promise<number> => alEncenderIA.current?.() ?? Promise.resolve(0),
+      /** ¿Esta foto sigue esperando su color? (no se quitó ni se asentó). */
+      sigue: (clave: string) => pendientesRef.current.some((p) => p.clave === clave),
     }),
     [pendientes],
   );
@@ -196,7 +213,7 @@ export function FotosYColores({
     if (asentada(p.clave)) return;
     marcarAsentada(p.clave);
     onAgregarColor(codigo);
-    onFotos((fs) => sumarFotoUnaVez(fs, { clave: p.clave, archivo: p.archivo, vista: p.ia?.vistaIA ?? p.vista, colorCodigo: codigo, lectura: p.lectura, ia: p.ia }));
+    onFotos((fs) => sumarFotoUnaVez(fs, { clave: p.clave, archivo: p.archivo, vista: p.ia?.usar ? p.ia.vistaIA : p.vista, colorCodigo: codigo, lectura: p.lectura, ia: p.ia }));
     soltarVista(p.vista);
     if (p.ia) soltarVista(p.ia.vistaIA);
     cambiar(p.clave, null);
@@ -210,7 +227,8 @@ export function FotosYColores({
 
   /** De los colores de cada parte al color de la prenda: uno, o la mezcla (la que ya existe o una nueva). */
   async function resolver(p: Pendiente, codigos: string[]) {
-    if (asentada(p.clave)) return;
+    // Una foto que se quitó mientras esperaba en la cola no vuelve al formulario (ni arma una mezcla en la base para nada).
+    if (asentada(p.clave) || !enCurso.sigue(p.clave)) return;
     const unicos = codigos.filter((c, i) => codigos.indexOf(c) === i);
     if (unicos.length === 1) return asentar(p, unicos[0]);
     const componentes = componentesDeMezcla(unicos[0], unicos.slice(1, 4));
@@ -238,45 +256,103 @@ export function FotosYColores({
   }
 
   // Las fotos se preparan y se leen en paralelo; solo se ASIENTAN de a una (`cola`), para no pedir dos veces la misma mezcla nueva.
-  async function leer(p: Pendiente) {
+  /**
+   * Prepara (si la IA está encendida) y lee los colores de UNA foto que espera su color. `callar`: la falla de la IA no avisa sola (la junta
+   * quien la pidió, al encender la IA). Devuelve si la IA llegó (`null` si no se le pidió).
+   */
+  async function leer(p: Pendiente, { callar = false }: { callar?: boolean } = {}): Promise<boolean | null> {
+    let llego: boolean | null = null;
     try {
       let conIA = p;
-      if (catalogo?.encendido) {
-        const png = await catalogo.prepararFoto(p.archivo);
+      // El interruptor de AHORA, no el del render que soltó la foto (que pudo ser de otro paso, ya desmontado).
+      const conLaIA = Boolean(catalogo?.encendidoAhora());
+      if (catalogo && conLaIA) {
+        const png = await catalogo.prepararFoto(p.archivo, { callar });
+        llego = Boolean(png);
         if (png) {
           const vistaIA = URL.createObjectURL(png);
           abrirVista(vistaIA);
-          conIA = { ...p, ia: { png, vistaIA, vistaReal: p.vista, usar: true } };
+          // Si se apagó la IA mientras tanto, la de IA queda guardada pero se sigue viendo (y leyendo) la tuya, con «Usar la de IA» a mano.
+          conIA = { ...p, ia: { png, vistaIA, vistaReal: p.vista, usar: catalogo.encendidoAhora() } };
         }
-        cambiar(p.clave, { estado: "leyendo", ia: conIA.ia });
+        cambiar(p.clave, { estado: "leyendo", ...(conIA.ia ? { ia: conIA.ia } : {}) });
       }
-      const lectura = leerColores(await pixelesDeLaFoto(conIA.ia?.png ?? p.archivo), cartaRef.current);
+      // Se quitó mientras la IA trabajaba: no se lee ni se encola nada.
+      if (!enCurso.sigue(p.clave)) return llego;
+      const lectura = leerColores(await pixelesDeLaFoto(conIA.ia?.usar ? conIA.ia.png : p.archivo), cartaRef.current);
+      // Se encendió la IA mientras se leía sin ella: otra vez, con la IA (si no, esta foto quedaría sin ella y habría que subirla de nuevo).
+      // Solo si la foto sigue ahí: una que se quitó mientras se leía no se paga.
+      if (!conLaIA && catalogo?.encendidoAhora() && enCurso.sigue(p.clave)) {
+        cambiar(p.clave, { estado: "ia" });
+        return leer({ ...p, estado: "ia" }, { callar });
+      }
+      if (!enCurso.sigue(p.clave)) return llego;
       const eleccion = propuestaInicial(lectura);
       const conTodo = { ...conIA, lectura, eleccion };
       if (eleccion.length && eleccion.every((c): c is string => c !== null)) encolar(() => resolver(conTodo, eleccion));
-      else cambiar(p.clave, { estado: "pregunta", lectura, eleccion, ia: conIA.ia });
+      // Sin `ia: undefined`: si la IA se encendió mientras se leía, su versión pudo llegar a esta tarjeta y no se borra. Sin el motivo de antes:
+      // una falla de la foto vieja no queda escrita sobre la lectura nueva.
+      else cambiar(p.clave, { estado: "pregunta", lectura, eleccion, motivo: undefined, ...(conIA.ia ? { ia: conIA.ia } : {}) });
     } catch (e) {
       cambiar(p.clave, { estado: "pregunta", motivo: motivoDeFalla(e, "No se pudo leer esta foto.") });
     }
+    return llego;
   }
 
+  /** Contestar una tarjeta: queda «armando» en el mismo clic (así, si en ese instante se enciende la IA, no se paga una que ya se resolvió). */
+  function responder(p: Pendiente, codigos: string[]) {
+    cambiar(p.clave, { estado: "armando", motivo: undefined });
+    encolar(() => resolver(p, codigos));
+  }
+
+  // Al encender la IA, las fotos que esperan su color vuelven a pasar por ella y se les leen de nuevo los colores, sobre la foto limpia
+  // (Felipe 2026-11-16: antes había que quitarlas y subirlas otra vez).
+  useEffect(() => {
+    enCurso.registrarAlEncenderIA(async () => {
+      // La que se está contestando en una hoja (la carta o «Nuevo color») no se reinicia bajo la mano de quien la contesta.
+      const abierta = carteando?.para === "pendiente" ? carteando.clave : (creando?.clave ?? null);
+      const vuelven = pendientesParaLaIAAlEncender(pendientes).filter((p) => !asentada(p.clave) && p.clave !== abierta);
+      const llegaron = await Promise.all(
+        vuelven.map((p) => {
+          cambiar(p.clave, { estado: "ia", lectura: undefined, eleccion: undefined, motivo: undefined });
+          return leer({ ...p, estado: "ia", lectura: undefined, eleccion: undefined, motivo: undefined }, { callar: true });
+        }),
+      );
+      return llegaron.filter((x) => x === false).length;
+    });
+    return () => enCurso.registrarAlEncenderIA(null);
+  });
+
   function agregar(archivos: File[]) {
-    if (disabled) return;
-    const malas: string[] = [];
-    const nuevas: Pendiente[] = [];
-    for (const archivo of archivos) {
-      const objecion = objecionFotoProducto(archivo);
-      if (objecion) malas.push(`${archivo.name}: ${objecion}`);
-      else {
-        const vista = URL.createObjectURL(archivo);
-        abrirVista(vista);
-        nuevas.push({ clave: crypto.randomUUID(), archivo, vista, estado: catalogo?.encendido ? "ia" : "leyendo" });
-      }
-    }
-    if (malas.length) avisar.error(malas.length === 1 ? "Una foto no se puede usar" : `${malas.length} fotos no se pueden usar`, { detalle: malas.join(" · ") });
-    if (!nuevas.length) return;
+    if (disabled || !archivos.length) return;
+    // La tarjeta nace en el MISMO clic, «abriendo», y ya cuenta como pendiente: «Listo» y «Crear producto» la esperan (/chaos de la revisión,
+    // 2026-11-16: sin ella, apretar «Listo» mientras la foto se abría cerraba la hoja y la foto se perdía sin aviso).
+    const nuevas: Pendiente[] = archivos.map((archivo) => ({ clave: crypto.randomUUID(), archivo, vista: "", estado: "abriendo" }));
     setPendientes((ps) => [...ps, ...nuevas]);
-    for (const p of nuevas) void leer(p);
+    void abrirTodas(nuevas);
+  }
+
+  // Cada foto se lee y se abre por su lado (`abrirFotoElegida`): la que abre sigue al instante, sin esperar a una lenta de iCloud, y queda
+  // copiada en memoria («Crear producto» la sube aunque el archivo de origen ya no exista). La que no abre se va, sin tarjeta rota ni error en
+  // inglés, y todas las que no abrieron se dicen en UN aviso.
+  async function abrirTodas(nuevas: Pendiente[]) {
+    const malas = await Promise.all(
+      nuevas.map(async (p) => {
+        const r = await abrirFotoElegida(p.archivo);
+        if ("falla" in r) {
+          cambiar(p.clave, null);
+          return [{ nombre: p.archivo.name, texto: r.texto }];
+        }
+        const vista = URL.createObjectURL(r.archivo);
+        abrirVista(vista);
+        const abierta: Pendiente = { ...p, archivo: r.archivo, vista, estado: catalogo?.encendidoAhora() ? "ia" : "leyendo" };
+        cambiar(p.clave, { archivo: abierta.archivo, vista, estado: abierta.estado });
+        void leer(abierta);
+        return [];
+      }),
+    );
+    const aviso = avisoDeFotosMalas(malas.flat());
+    if (aviso) avisar.error(aviso.titulo, { detalle: aviso.detalle });
   }
 
   function soltar(e: DragEvent) {
@@ -296,12 +372,12 @@ export function FotosYColores({
   /** Contestar la parte que no estaba en la carta (o elegir el color entero, desde la carta). */
   function contestar(p: Pendiente, parte: number | null, codigo: string) {
     if (parte === null) {
-      encolar(() => resolver(p, [codigo]));
+      responder(p, [codigo]);
       return;
     }
     const eleccion = [...(p.eleccion ?? [])];
     eleccion[parte] = codigo;
-    if (eleccion.every((c): c is string => c !== null)) encolar(() => resolver({ ...p, eleccion }, eleccion));
+    if (eleccion.every((c): c is string => c !== null)) responder({ ...p, eleccion }, eleccion);
     else cambiar(p.clave, { eleccion });
   }
 
@@ -356,12 +432,14 @@ export function FotosYColores({
               return (
                 <li key={p.clave} className="relative flex flex-col overflow-hidden rounded-2xl border border-[color:var(--vidrio-claro-borde)] [background:var(--vidrio-claro-fondo)]">
                   <div className="relative aspect-[4/5] bg-hueso/60">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={p.ia?.vistaIA ?? p.vista} alt="Foto de la prenda" className="h-full w-full object-contain" />
+                    {(p.ia?.usar ? p.ia.vistaIA : p.vista) && (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={p.ia?.usar ? p.ia.vistaIA : p.vista} alt="Foto de la prenda" className="h-full w-full object-contain" />
+                    )}
                     <BotonQuitarFoto
                       grande
                       etiqueta="Quitar esta foto"
-                      disabled={disabled || p.estado === "armando" || p.estado === "ia"}
+                      disabled={disabled || p.estado === "abriendo" || p.estado === "armando" || p.estado === "ia"}
                       onClick={() => {
                         URL.revokeObjectURL(p.vista);
                         soltarVista(p.vista);
@@ -375,7 +453,15 @@ export function FotosYColores({
                     />
                     {p.estado !== "pregunta" && (
                       <span className="absolute inset-x-0 bottom-0 bg-papel/90 px-3 py-2 text-sm" role="status">
-                        {p.estado === "ia" ? "Arreglando la foto con IA…" : p.estado === "leyendo" ? "Leyendo los colores…" : "Armando la mezcla…"}
+                        {p.estado === "abriendo"
+                          ? "Abriendo la foto…"
+                          : p.estado === "ia"
+                            ? catalogo?.encendido
+                              ? "Arreglando la foto con IA…"
+                              : "Terminando la foto de IA…"
+                            : p.estado === "leyendo"
+                              ? "Leyendo los colores…"
+                              : "Armando la mezcla…"}
                         <HiloEnEspera />
                       </span>
                     )}
@@ -396,7 +482,7 @@ export function FotosYColores({
                               disabled={disabled}
                               onClick={() => {
                                 const eleccion = partes.map((x) => x.color.codigo);
-                                encolar(() => resolver({ ...p, eleccion }, eleccion));
+                                responder({ ...p, eleccion }, eleccion);
                               }}
                             >
                               Es una mezcla
@@ -460,7 +546,7 @@ export function FotosYColores({
                         <Boton type="button" peso="primario" className="btn-chico" disabled={disabled} onClick={() => {
                             // Con TODOS los colores elegidos: reintentar con el primero dejaba una mezcla en un color liso (/chaos 2026-11-14).
                             const codigos = codigosParaReintentar(p.eleccion);
-                            if (codigos) encolar(() => resolver(p, codigos));
+                            if (codigos) responder(p, codigos);
                           }}
                         >
                           Volver a intentar
@@ -505,7 +591,22 @@ export function FotosYColores({
                           </Chip>
                         </span>
                       )}
-                      <BotonQuitarFoto grande etiqueta={`Quitar la foto de ${nombre}`} disabled={disabled} onClick={() => quitarFoto(suyas[0])} className="absolute right-2 top-2" />
+                      {/* Mientras la IA la prepara no se quita: el pedido ya se pagó y su resultado sería el molde de las demás. */}
+                      <BotonQuitarFoto
+                        grande
+                        etiqueta={`Quitar la foto de ${nombre}`}
+                        disabled={disabled || Boolean(catalogo?.preparandoFoto(suyas[0].clave))}
+                        onClick={() => quitarFoto(suyas[0])}
+                        className="absolute right-2 top-2"
+                      />
+                      {/* La foto ya estaba cuando se encendió la IA: se prepara en su lugar, sin quitarla ni subirla de nuevo. */}
+                      {catalogo?.preparandoFoto(suyas[0].clave) && (
+                        <span className="absolute inset-x-0 bottom-0 bg-papel/90 px-3 py-2 text-sm" role="status">
+                          {/* Apagada a mitad: el pedido ya va (y ya se pagó); al llegar, se sigue viendo tu foto. */}
+                          {catalogo.encendido ? "Arreglando la foto con IA…" : "Terminando la foto de IA…"}
+                          <HiloEnEspera />
+                        </span>
+                      )}
                     </div>
                   ) : null}
                   {suyas.length > 1 && (
@@ -514,7 +615,12 @@ export function FotosYColores({
                         <span key={f.clave} className="relative h-12 w-10">
                           {/* eslint-disable-next-line @next/next/no-img-element */}
                           <img src={f.vista} alt={`Foto ${i + 2} de ${nombre}`} className="h-full w-full overflow-hidden rounded-lg border border-sand bg-hueso/60 object-contain" />
-                          <BotonQuitarFoto etiqueta={`Quitar la foto ${i + 2} de ${nombre}`} disabled={disabled} onClick={() => quitarFoto(f)} className="absolute -right-1 -top-1" />
+                          <BotonQuitarFoto
+                            etiqueta={`Quitar la foto ${i + 2} de ${nombre}`}
+                            disabled={disabled || Boolean(catalogo?.preparandoFoto(f.clave))}
+                            onClick={() => quitarFoto(f)}
+                            className="absolute -right-1 -top-1"
+                          />
                         </span>
                       ))}
                     </div>
@@ -594,8 +700,13 @@ export function FotosYColores({
             conMezclas
             onAlternar={(codigo) => {
               if (carteando.para === "sin-foto") {
-                if (elegidosRef.current.includes(codigo)) onQuitarColor(codigo);
-                else onAgregarColor(codigo);
+                if (!elegidosRef.current.includes(codigo)) return onAgregarColor(codigo);
+                // Igual que la ×: un color cuya foto la IA está preparando no se quita (el pedido ya se pagó y puede ser el molde de las demás).
+                if (fotos.some((f) => f.colorCodigo === codigo && catalogo?.preparandoFoto(f.clave))) {
+                  avisar.aviso(`La foto de ${nombreDe(codigo)} se está arreglando con IA.`, { detalle: "Quítalo cuando termine." });
+                  return;
+                }
+                onQuitarColor(codigo);
                 return;
               }
               if (carteando.para === "cambiar") {
