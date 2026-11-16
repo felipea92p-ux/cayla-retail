@@ -17,8 +17,11 @@ export LC_ALL=C
 
 # 2 (2026-10-09): acepta `?medida=` para los rótulos de anaquel (62 × 100 mm). Una pantalla que la necesita pide la 2.
 # 3 (2026-11-16): también imprime la BOLETA en la ticketera (`?tipo=ticket&largo=<mm>`), sin el cuadro de Chrome, desde el Chrome
-#   de siempre (ADR-0670). El largo lo mide la pantalla; el ancho es el del rollo de 80 mm. Una pantalla que lo necesita pide la 3.
-VERSION=4
+#   de siempre (ADR-0670). El largo lo mide la pantalla. Una pantalla que lo necesita pide la 3.
+# 4 (2026-11-16): `GET /calentar` despierta a Chrome antes de imprimir.
+# 5 (2026-11-16): la boleta va en papel de 72 mm de ancho, el del cabezal (en el driver de la Epson, «80 mm» = 204,3 pt). Con 80 mm el
+#   driver le mandaba líneas de 640 puntos a un cabezal de 576 y el papel salía más lento que con el cuadro de Chrome.
+VERSION=5
 DIR="${CAYLA_ETIQUETAS_DIR:-$HOME/Library/Application Support/CAYLA/etiquetas}"
 LP="${CAYLA_LP:-lp}"
 MAX_BYTES=2097152
@@ -208,7 +211,7 @@ case "$METODO $RUTA" in
         responder "400 Bad Request" '{"ok":false,"error":"el largo del ticket no es valido"}'
         exit 0
       fi
-      MEDIA="Custom.80x${LARGO_TICKET}mm"
+      MEDIA="Custom.72x${LARGO_TICKET}mm"
     fi
     if [ "$LARGO" -le 0 ] || [ "$LARGO" -gt "$MAX_BYTES" ]; then
       responder "413 Payload Too Large" '{"ok":false,"error":"las etiquetas no llegaron completas"}'
