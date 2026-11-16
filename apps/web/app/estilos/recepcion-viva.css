@@ -242,21 +242,22 @@
    título y su línea van centrados, como un recibo. */
 .rc-lacre-sello--hoja { position: static; display: block; width: 88px; height: 88px; margin: 0 auto 4px; }
 .hoja-serena:has(.rc-aviso-recibido) h2 { text-align: center; }
+/* Lo recibido, liviano (Felipe 2026-11-16): cómo llegó en UNA línea —número serif y su palabra— en vez de cuatro cajas, y lo que no cuadró o queda para
+   después en una fila cada uno. Las cifras cuentan al llegar (el odómetro de siempre). */
+.rc-cerrado-cifras { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 22px; margin: 4px 0 2px; color: var(--color-taupe); font-size: 15px; }
+.rc-cerrado-cifras b { margin-right: 6px; color: var(--color-tinta); font-family: var(--font-serif); font-size: 28px; font-weight: 600; line-height: 1; font-variant-numeric: tabular-nums; }
+.rc-cerrado-cifras b[data-tono="ambar"], .rc-cerrado-cifra[data-tono="ambar"] { color: var(--color-ambar-profundo); }
+.rc-cerrado-fila { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 14px; padding: 10px 14px; border: 1px solid var(--color-sand); border-radius: 16px; }
+.rc-cerrado-fila[data-tipo="crear"] { border-style: dashed; border-color: color-mix(in srgb, var(--color-pizarra) 45%, transparent); }
+.rc-cerrado-cifra { min-width: 52px; font-family: var(--font-serif); font-size: 22px; font-weight: 600; line-height: 1; font-variant-numeric: tabular-nums; }
 .rc-lacre-cera { fill: var(--color-rojo); }
 .rc-lacre-aro { fill: none; stroke: color-mix(in srgb, var(--color-crema-fija) 40%, transparent); stroke-width: 2; }
 .rc-lacre-letra { fill: var(--color-crema-fija); font-family: var(--font-serif); font-size: 34px; font-weight: 600; }
 :root[data-tema="oscuro"] .rc-lacre-letra { fill: var(--color-tinta-fija); }
 :root[data-tema="oscuro"] .rc-lacre-aro { stroke: color-mix(in srgb, var(--color-tinta-fija) 35%, transparent); }
-.rc-lacre-cifras { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin: 8px 0 4px; }
-.rc-lacre-cifras > div { display: grid; gap: 2px; padding: 12px 14px; border-radius: 14px; background: var(--color-hueso); animation: cayla-entrada 420ms var(--ease-cayla) backwards; animation-delay: calc(200ms + var(--i) * 70ms); }
-.rc-lacre-cifras dt { color: var(--color-taupe); font-size: 13px; font-weight: 600; }
-.rc-lacre-cifras dd { color: var(--color-tinta); font-family: var(--font-serif); font-size: 34px; font-weight: 600; line-height: 1.15; }
-.rc-lacre-cifras [data-tono="verde"] dd { color: var(--color-verde-profundo); }
-.rc-lacre-cifras [data-tono="ambar"] dd { color: var(--color-ambar-profundo); }
-@container (min-width: 600px) { .rc-lacre-cifras { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
-@media (max-width: 639px) { .rc-lacre { padding: 20px 16px; } .rc-lacre-sello { width: 72px; height: 72px; right: 10px; } .rc-lacre-cifras dd { font-size: 28px; } }
+@media (max-width: 639px) { .rc-lacre { padding: 20px 16px; } .rc-lacre-sello { width: 72px; height: 72px; right: 10px; } .rc-cerrado-cifras b { font-size: 24px; } }
 @media (prefers-reduced-motion: reduce) {
-  .rc-lacre, .rc-lacre-sello, .rc-lacre-cifras > div, .rc-odo--entra .rc-odo-tira { animation: none; }
+  .rc-lacre, .rc-lacre-sello, .rc-odo--entra .rc-odo-tira { animation: none; }
 }
 
 /* «Revisa y cierra» B (Felipe 2026-11-07): cada categoría y marca es una tarjeta (la de <Tabla>), con su cabecera —nombre, cuántas y su proveedor—,
