@@ -260,10 +260,12 @@ esperarError(
   correr(`${PARTIDA()}${CAMPANA_DE_HOY}${SIN_RABAJA}rollback;`),
   "venta_campana_omitida",
 );
-esperarError(
-  "CONTROL: sin la migración, la venta de ayer sin red se rechaza: la prueba ve la diferencia",
-  correr(`${PARTIDA()}${DESHACER_DIA_VENTA}\n${HORA("1 day")}${venta(SIN_3X2, COBRO_SIN)}rollback;`),
-  "venta_grupo_omitido",
+// Desde 20261116174000 (Felipe 2026-11-16) una venta sin conexión que no cuadra ya no se rechaza: entra y queda marcada. El control mira
+// la marca: sin 20261114132000 se mide con hoy y le falta el 3x2 («omitido»); con ella, entra sin marca.
+esperarValor(
+  "CONTROL: sin la migración, la venta de ayer sin red se mide con hoy y queda marcada: la prueba ve la diferencia",
+  correr(`${PARTIDA()}${DESHACER_DIA_VENTA}\n${HORA("1 day")}${venta(SIN_3X2, COBRO_SIN)}select coalesce(oferta_cambiada -> 0 ->> 'motivo', 'sin marca') from retail.ventas where id = :'venta';\nrollback;`),
+  "omitido",
 );
 esperar(
   "la migración de la venta sin conexión se puede pegar dos veces",

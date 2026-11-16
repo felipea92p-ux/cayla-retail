@@ -308,7 +308,9 @@ for (const [nombre, escalones, en, error] of [
   ["cuatro escalones", [[100, 10], [200, 20], [300, 30], [400, 40]], "soles", "De 1 a 3 escalones"],
   ["un escalón que no sube", [[300, 30], [300, 40]], "soles", "De 1 a 3 escalones"],
   ["un escalón que ahorra menos que el anterior", [[300, 30], [500, 20]], "soles", "De 1 a 3 escalones"],
-  ["en soles, un ahorro igual al monto", [[100, 100]], "soles", "el ahorro menor que su monto"],
+  ["en soles, un ahorro igual al monto", [[100, 100]], "soles", "hasta el 70 % de su monto"],
+  // Felipe 2026-11-16 (20261116173000): el mismo tope de 70 % que la rebaja.
+  ["en soles, más del 70 % de su monto", [[300, 211]], "soles", "hasta el 70 % de su monto"],
   ["en %, más de 70 %", [[300, 80]], "pct", "hasta 70 %"],
   ["céntimos de más", [[300.005, 30]], "soles", "De 1 a 3 escalones"],
 ]) {
