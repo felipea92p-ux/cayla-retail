@@ -114,6 +114,8 @@ const frena = (confirma) => `${sesion(confirma)}select concat_ws(',', retail.fn_
 caso("E1 sin encabezado (la web de antes): la regla de siempre, solo bajo el costo frena", frena(null), "f,t,f");
 caso("E2 con «no»: frena lo que pierde (40 con costo 36 pierde el impuesto)", frena("no"), "t,t,f");
 caso("E3 con «si» (la persona dijo «Sí, dejarlo»): nada frena", frena("si"), "f,f,f");
+caso("E4 «sí» con tilde vale como «si»", frena("sí"), "f,f,f");
+caso("E5 un valor raro cuenta como «no»: la base pregunta en vez de volver en silencio a la regla de antes", frena("quizas"), "t,t,f");
 
 // T. EL PRECIO DE UNA TIENDA, de punta a punta -----------------------------------------------------------------------------------
 const tienda = (confirma, precio) => `${sesion(confirma)}select pg_temp.intento(format('select retail.poner_precio_sede(%L, %L, ${precio}, %L)', :'p1', :'tru', 'Prueba A5'));`;

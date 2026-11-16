@@ -134,7 +134,7 @@ cierre no repite el aviso (la fila de arriba ya lo muestra); quitar el «sí» s
 - **`fn_pierde_con`** (20261116040000): lo que queda, redondeado al céntimo como «Te quedan», es negativo: 200·p < 236·c − 118 en céntimos.
   La web la espeja en `pierdeConElPrecio` y las dos corren `scripts/pruebas/pierde-casos.json`.
 - **La confirmación viaja en el encabezado `x-confirma-perdida`**, como el responsable: sin él, la regla de siempre (la web publicada no
-  cambia); `no`, frena si pierde (`precio_pierde`, «Con S/ 40 pierdes S/ 2.10 por prenda.», la cifra solo a quien ve el costo); `si`, pasa.
+  cambia); `no`, frena si pierde (`precio_pierde`, «Con S/ 40.00 pierdes S/ 2.10 por prenda.», la cifra solo a quien ve el costo); `si`, pasa.
   Ninguna firma cambia, y llega sola a las llamadas internas (Recibir → precio de tienda). La pregunta previa del navegador en producción
   acepta el encabezado (comprobado el 2026-11-16).
 - **La fusión pide confirmar, como el resto** (Felipe, 2026-11-16, al preguntarle: «Pide confirmar, como el resto»).

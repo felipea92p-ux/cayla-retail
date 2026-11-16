@@ -20,7 +20,7 @@
 --       · `no` (la web nueva, primer intento): frena si pierde, para que la pantalla pregunte «¿Lo dejas así?».
 --       · `si` (la persona dijo «Sí, dejarlo»): pasa.
 --   · `fn_exigir_precio_sin_perdida(precio, costo, hint de antes)`: el rechazo. Sin encabezado, el de siempre (mismo texto y hint); con
---     encabezado, `precio_pierde` y «Con S/ 40 pierdes S/ 2.10 por prenda.», con las cifras en el detalle. La cifra revela el costo: solo
+--     encabezado, `precio_pierde` y «Con S/ 40.00 pierdes S/ 2.10 por prenda.», con las cifras en el detalle. La cifra revela el costo: solo
 --     se dice a quien lo ve (`fn_ve_costo_de_prenda`); a los demás, sin cifra.
 --   · Los cinco candados que hoy prohíben pasan a esa regla, por reemplazo anclado sobre la definición viva: `poner_precio_sede`,
 --     `poner_precio_sede_variantes`, `cambiar_precio_en_recepcion`, `cambiar_precios_en_recepcion` y `fn_fusion_precios_sede_costo`.
@@ -69,11 +69,13 @@ language sql
 stable
 set search_path = retail, public, extensions
 as $$
+  -- Sin el encabezado (o vacío): null. «si» o «sí»: si. Cualquier otro valor presente cuenta como «no»: ante un valor raro, la base
+  -- pregunta en vez de volver en silencio a la regla de antes.
   select case lower(btrim(coalesce((nullif(current_setting('request.headers', true), '')::json) ->> 'x-confirma-perdida', '')))
-           when 'si' then 'si' when 'no' then 'no' end;
+           when '' then null when 'si' then 'si' when 'sí' then 'si' else 'no' end;
 $$;
 comment on function retail.fn_confirma_perdida() is
-  'ADR-0668 (A5): el encabezado x-confirma-perdida de la llamada: si (la persona dijo «Sí, dejarlo»), no (que pregunte si pierde) o null (la web de antes: rige la regla de siempre, nunca bajo el costo).';
+  'ADR-0668 (A5): el encabezado x-confirma-perdida de la llamada: si (o sí: la persona dijo «Sí, dejarlo»), no (cualquier otro valor presente: que pregunte si pierde) o null (sin encabezado, la web de antes: rige la regla de siempre, nunca bajo el costo).';
 
 -- 3. ¿Este precio se frena AHORA? Sin encabezado, la regla de siempre; con «no», si pierde; con «si», nunca.
 create or replace function retail.fn_precio_frena(p_precio numeric, p_costo numeric)
