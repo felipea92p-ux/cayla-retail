@@ -7,7 +7,7 @@ import { PieAcciones } from "@/components/ui/PieAcciones";
 import { Boton } from "@/components/ui/campos";
 import { BotonFoto } from "@/components/alta-producto/FotosAlta";
 import { avisar } from "@/components/ui/Avisos";
-import { objecionFotoProducto } from "@/lib/producto-fotos";
+import { abrirFotosElegidas } from "@/lib/foto-elegida-cliente";
 
 // La hoja de ángulos de «Catálogo con IA» (ficha: docs/milimetro/catalogo-con-ia.md). La foto de frente ya viene elegida; la espalda y un detalle
 // de la tela son opcionales y le muestran a la IA lo que el gancho tapa. Si la prenda ya tiene molde (otro color con foto de IA), lo dice:
@@ -57,15 +57,24 @@ export function HojaCatalogoIA({
     return () => Object.values(nuevas).forEach((u) => u && URL.revokeObjectURL(u));
   }, [pedido]);
 
-  function poner(angulo: Angulo, archivos: File[]) {
-    const f = archivos[0];
-    if (!f) return;
-    const objecion = objecionFotoProducto(f);
-    if (objecion) {
-      avisar.error("Esa foto no se puede usar", { detalle: objecion });
-      return;
-    }
-    setPedido((p) => ({ ...p, [angulo]: f }));
+  // Los ángulos cuya foto se está abriendo: «Preparar foto» los espera (si no, la IA, que se paga, saldría sin esa foto o con la anterior).
+  const [abriendo, setAbriendo] = useState<ReadonlySet<Angulo>>(new Set());
+  // El último pedido de cada ángulo: si se eligen dos fotos seguidas para la espalda, gana la última aunque la primera termine de abrir después.
+  const turnos = useRef<Record<Angulo, number>>({ frente: 0, espalda: 0, detalle: 0 });
+
+  async function poner(angulo: Angulo, archivos: File[]) {
+    if (!archivos[0]) return;
+    const turno = ++turnos.current[angulo];
+    setAbriendo((a) => new Set(a).add(angulo));
+    // Se abre antes de ponerla (`abrirFotosElegidas`): una foto que no abre no llega a la IA, que se paga por llamada.
+    const [f] = (await abrirFotosElegidas(archivos.slice(0, 1), (titulo, detalle) => avisar.error(titulo, { detalle }))).buenas;
+    if (turno !== turnos.current[angulo]) return;
+    setAbriendo((a) => {
+      const sigue = new Set(a);
+      sigue.delete(angulo);
+      return sigue;
+    });
+    if (f) setPedido((p) => ({ ...p, [angulo]: f }));
   }
 
   // Lo medido el 2026-11-13: 0,051 USD solo el frente; con molde o más fotos, ~0,06.
@@ -102,7 +111,7 @@ export function HojaCatalogoIA({
                     {c.opcional && <span className="font-normal normal-case tracking-normal text-taupe"> · opcional</span>}
                   </span>
                   <BotonFoto
-                    onArchivos={(a) => poner(c.angulo, a)}
+                    onArchivos={(a) => void poner(c.angulo, a)}
                     disabled={false}
                     etiqueta={vista ? `Cambiar la foto: ${c.titulo.toLowerCase()}` : `Agregar la foto: ${c.titulo.toLowerCase()}`}
                     className={`relative grid aspect-[4/5] w-full place-content-center justify-items-center gap-2 overflow-hidden rounded-xl text-center text-sm text-taupe transition-colors ${
@@ -133,8 +142,10 @@ export function HojaCatalogoIA({
             <Boton
               type="button"
               peso="primario"
+              cargando={abriendo.size > 0}
+              textoCargando="Abriendo la foto…"
               onClick={() => {
-                if (enviado.current) return;
+                if (enviado.current || abriendo.size > 0) return;
                 enviado.current = true;
                 onPreparar(pedido);
               }}

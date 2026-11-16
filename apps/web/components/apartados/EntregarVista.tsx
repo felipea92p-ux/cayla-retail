@@ -90,7 +90,8 @@ export function EntregarVista({
   const [revisando, setRevisando] = useState(false);
   const [abonar, setAbonar] = useState(false);
   const [editar, setEditar] = useState(false);
-  const [liberar, setLiberar] = useState(false);
+  // El apartado se guarda al abrir: al liberarse sale de `abiertos` y la hoja tiene que seguir para ofrecer el WhatsApp.
+  const [liberar, setLiberar] = useState<Apartado | null>(null);
   const conAbonos = encendida(apagadas, "abonos");
   const conEditar = encendida(apagadas, "editar");
   const conEstante = encendida(apagadas, "estante");
@@ -247,7 +248,7 @@ export function EntregarVista({
             {/* ADR-0599: liberar no espera al vencimiento ni a una líder: quien ve Apartados lo hace (un apartado hecho por error, o que el
                 cliente desistió). Las prendas vuelven a venderse y el adelanto queda por devolver. */}
             <div className="flex flex-wrap items-center gap-2">
-              <Boton peso="peligro" className="btn-chico" onClick={() => setLiberar(true)}>
+              <Boton peso="peligro" className="btn-chico" onClick={() => setLiberar(a)}>
                 Liberar apartado
               </Boton>
               <span className="text-sm text-tinta/55">Si se apartó por error o el cliente desistió: las prendas vuelven a estar disponibles.</span>
@@ -478,7 +479,7 @@ export function EntregarVista({
 
       {abonar && a && <AbonarModal apartado={a} ubicacion={ubicacion} cajaAbierta={cajaAbierta} onClose={() => setAbonar(false)} />}
       {editar && a && <EditarApartadoModal apartado={a} prendas={prendas} ubicacion={ubicacion} onClose={() => setEditar(false)} />}
-      {liberar && a && <LiberarModal apartado={a} ubicacion={ubicacion} onClose={() => setLiberar(false)} />}
+      {liberar && <LiberarModal apartado={liberar} ubicacion={ubicacion} onClose={() => setLiberar(null)} />}
 
       {entregado && <ApartadoEntregadoModal apartado={entregado.apartado} pagadoHoy={entregado.pagadoHoy} vuelto={entregado.vuelto} redondeo={entregado.redondeo} sede={ubicacionEtiqueta} onClose={() => setEntregado(null)} />}
       </fieldset>

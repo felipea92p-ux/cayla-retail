@@ -20,6 +20,7 @@ import {
   fotosEnOrden,
   fraseTallasQueSalen,
   frasesDelResumen,
+  frasesPreciosSede,
   fuenteDe,
   leerPlan,
   mensajeAlNoFusionar,
@@ -322,6 +323,8 @@ export function FusionarProductosHoja({
             quedaEfectiva,
           ),
           ...preciosSedeParaLaBase(elecciones, plan.preciosSede),
+          // La lista que vio la persona: si al confirmar ya no es la de ahora, la base frena en vez de cobrar otra cosa (20261116203000).
+          precios_sede_vistos: plan.preciosSedeVistos,
         } as never,
         p_versiones: versiones,
       }),
@@ -351,6 +354,8 @@ export function FusionarProductosHoja({
           terminar(!incierta);
           return;
         }
+        // Cambió algo mientras se miraba (una ficha o un precio de tienda): se vuelve a leer, así la hoja muestra lo de ahora.
+        if (esVersionCambiada(error)) setIntento((n) => n + 1);
       }
       setErrorGuardar(
         mensajeAlNoFusionar(
@@ -647,7 +652,7 @@ export function FusionarProductosHoja({
                   {plan && plan.preciosSede.length > 0 && (
                     <PreciosPorSede
                       sedes={plan.preciosSede}
-                      fichas={productos.map((p) => ({ id: p.id, referencia: p.referencia }))}
+                      productos={productos}
                       unSoloPrecio={elecciones.unSoloPrecio}
                       elegidas={elecciones.precioSedeDe}
                       deshabilitado={guardando}
@@ -800,6 +805,16 @@ export function FusionarProductosHoja({
                     <ul className="fus-lista-revisar max-w-prose space-y-2 text-[15px] leading-relaxed text-tinta">
                       {[
                         ...frasesDelResumen(plan, fotosQueQuedan.length),
+                        // Lo que cobrará cada tienda: cambia dinero y no se deshace, así que se dice aquí (auditoría 2026-11-16).
+                        ...frasesPreciosSede(
+                          plan.preciosSede,
+                          elecciones,
+                          (eleccionesParaLaBase(elecciones, plan.productos, plan.diferencias, quedaEfectiva).precio as
+                            | number
+                            | undefined) ??
+                            plan.productos.find((p) => p.queda)?.precio ??
+                            null,
+                        ),
                         fraseTallasQueSalen(plan.vacias),
                         "La ficha repetida queda archivada con su historia; nunca se borra.",
                       ]
@@ -942,7 +957,10 @@ export function FusionarProductosHoja({
               <div className="pie-hoja-fijo mt-4 space-y-3">
                 {errorGuardar && (
                   <Aviso tono="error" titulo="No se pudo fusionar">
-                    {errorGuardar} Las fichas siguen como estaban.
+                    {/* Sin agregarle nada: `mensajeAlNoFusionar` ya dice «Las fichas siguen como estaban.» cuando la base dijo que no, y
+                        a propósito NO lo dice cuando la respuesta no llegó (no se sabe). Antes se agregaba aquí también: salía dos veces y,
+                        con la red cortada, afirmaba lo que no se sabía (auditoría 2026-11-16). */}
+                    {errorGuardar}
                   </Aviso>
                 )}
                 <AvisoNoSeDeshace />

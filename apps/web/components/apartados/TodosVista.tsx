@@ -27,7 +27,7 @@ import { diaLima } from "@/lib/fechas-lima";
 import { BarraPlazo, EstadoChip, FotoPrenda, fechaCorta } from "@/components/apartados/piezas";
 import { CanalChip, useCanalesDeApartados } from "@/components/apartados/CanalChip";
 import { DesplegablePildora, TODOS } from "@/components/ui/FiltrosPildora";
-import { CancelarPedidoModal, DevolverModal, EnviarPedidoModal, LiberarModal, RecordarModal, ReimprimirApartadoModal } from "@/components/apartados/ModalesApartado";
+import { AvisoCancelacionModal, CancelarPedidoModal, DevolverModal, EnviarPedidoModal, LiberarModal, RecordarModal, ReimprimirApartadoModal } from "@/components/apartados/ModalesApartado";
 import { DetalleApartadoModal, type ModoDetalle } from "@/components/apartados/DetalleApartado";
 import type { PrendaApartable } from "@/components/apartados/ApartarVista";
 import { SubirPedidoAlAlmacenModal } from "@/components/PedidoClienteModales";
@@ -172,6 +172,7 @@ export function TodosVista({
     setPeriodo(p);
   };
   const [liberar, setLiberar] = useState<Apartado | null>(null);
+  const [avisarCancelado, setAvisarCancelado] = useState<Apartado | null>(null);
   const [devolver, setDevolver] = useState<Apartado | null>(null);
   // El detalle de un apartado (ADR-0414): se abre al tocar la fila, o directo en «Aplazar» desde su botón. Se guarda el id, no la fila:
   // al abonar o aplazar la página se refresca y el detalle lee el apartado ya cambiado.
@@ -587,6 +588,18 @@ export function TodosVista({
                       {a.estado === "abierta" && (
                         <button type="button" onClick={() => irAEntregar(a.id)} className={BOTON_CHICO_NEGRO}>Entregar</button>
                       )}
+                      {/* Liberado (a mano o solo, al vencer su gracia): avisarle que se canceló. Sin celular no hay a quién (ADR-0367). */}
+                      {e.clave === "devolver" && a.celular !== "" && (
+                        <button
+                          type="button"
+                          onClick={() => setAvisarCancelado(a)}
+                          aria-label={`Avisarle a ${a.nombres} por WhatsApp que se canceló`}
+                          title="Avisarle que se canceló"
+                          className={`${BOTON_CHICO} inline-flex items-center`}
+                        >
+                          <MessageCircle className="h-3.5 w-3.5" aria-hidden />
+                        </button>
+                      )}
                       {e.clave === "devolver" &&
                         (puedeGestionar ? (
                           <button type="button" onClick={() => setDevolver(a)} className={BOTON_CHICO_NEGRO}>Devolver {money(a.adelanto)}</button>
@@ -643,6 +656,7 @@ export function TodosVista({
         );
       })()}
       {liberar && <LiberarModal apartado={liberar} ubicacion={ubicacion} onClose={() => setLiberar(null)} />}
+      {avisarCancelado && <AvisoCancelacionModal apartado={avisarCancelado} ubicacion={ubicacion} onClose={() => setAvisarCancelado(null)} />}
       {devolver && <DevolverModal apartado={devolver} ubicacion={ubicacion} cajaAbierta={cajaAbierta} onClose={() => setDevolver(null)} />}
     </div>
   );

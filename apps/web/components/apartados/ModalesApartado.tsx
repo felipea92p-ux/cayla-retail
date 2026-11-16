@@ -47,8 +47,10 @@ import {
   esConstancia,
   estadoVisible,
   formatoCelular,
+  mensajeLiberacion,
   mensajeWhatsapp,
   paraQuienPedido,
+  type MotivoLiberacion,
   soloDigitos,
   sumarDiasIso,
   textoDevolucion,
@@ -306,10 +308,16 @@ export function ReimprimirApartadoModal({ apartado, sede, onClose }: { apartado:
   );
 }
 
+/**
+ * Liberar = cancelar el apartado. Al quedar liberado, la hoja no se cierra: ofrece avisarle al cliente por WhatsApp
+ * (Felipe 2026-11-16), con un mensaje según el motivo. El chat se abre en el toque de «Avisar por WhatsApp» (el navegador
+ * no deja abrir una ventana después de esperar a la base) y lo envía la persona; no se anota nada más en la base.
+ */
 export function LiberarModal({ apartado, ubicacion, onClose }: { apartado: Apartado; ubicacion: UbicacionApartado; onClose: () => void }) {
   const router = useRouter();
   const [enviando, setEnviando] = useState(false);
-  const [motivo, setMotivo] = useState<"vencio" | "clienta_desistio" | "error_de_carga" | null>(null);
+  const [motivo, setMotivo] = useState<MotivoLiberacion | null>(null);
+  const [liberado, setLiberado] = useState(false);
   // Liberar guarda en la tienda (las prendas vuelven a venderse): pide Responsable (ADR-0161), vacío al abrir.
   const responsable = useResponsable(ubicacion, { modo: "atencion" }); // módulo Punto de venta: «¿Quién está atendiendo?», vacío al abrir
   async function liberar(cerrar: () => void) {
@@ -324,41 +332,96 @@ export function LiberarModal({ apartado, ubicacion, onClose }: { apartado: Apart
     if (error) return avisar.error(traducirError(error, "liberar el apartado"));
     avisar.exito("Prendas liberadas", { detalle: `Falta devolver ${money(apartado.adelanto)} a ${apartado.nombres}.` });
     router.refresh();
-    cerrar();
+    // Sin celular (ADR-0367) no hay a quién escribirle: se cierra como siempre.
+    if (!apartado.celular) return cerrar();
+    setLiberado(true);
   }
+  const mensaje = motivo ? mensajeLiberacion(apartado, ubicacion.etiqueta, motivo) : "";
   const opciones: { id: NonNullable<typeof motivo>; texto: string }[] = [
     { id: "vencio", texto: "Venció y no vino" },
     { id: "clienta_desistio", texto: "El cliente desistió" },
     { id: "error_de_carga", texto: "Fue un error al apartar" },
   ];
   return (
-    <Modal titulo="¿Liberar el apartado?" subtitulo={`${apartado.nombres} ${apartado.apellidos} · ${apartado.codigo}`} onClose={onClose}>
-      {(cerrar) => (
-        <div className="space-y-4">
-          <p className="text-sm text-tinta/80">
-            Las prendas vuelven a estar disponibles para vender. El adelanto de <b>{money(apartado.adelanto)}</b> queda por devolver, por {textoDevolucion(apartado)}.
-          </p>
-          <div role="radiogroup" aria-label="Por qué se libera" className="grid gap-1.5">
-            {opciones.map((o) => (
-              <button key={o.id} type="button" role="radio" aria-checked={motivo === o.id} onClick={() => setMotivo(o.id)} className={`rounded-lg border px-3 py-2.5 text-left text-sm transition-colors ${motivo === o.id ? "border-tinta bg-tinta text-papel" : "border-sand hover:border-tinta/40"}`}>
-                {o.texto}
-              </button>
-            ))}
+    <Modal
+      titulo={liberado ? `Avisarle a ${apartado.nombres}` : "¿Liberar el apartado?"}
+      subtitulo={liberado ? `${apartado.codigo} · ${formatoCelular(apartado.celular)}` : `${apartado.nombres} ${apartado.apellidos} · ${apartado.codigo}`}
+      onClose={onClose}
+    >
+      {(cerrar) =>
+        liberado ? (
+          <AvisoDeCancelacion apartado={apartado} mensaje={mensaje} cerrar={cerrar} />
+        ) : (
+          <div className="space-y-4">
+            <p className="text-sm text-tinta/80">
+              Las prendas vuelven a estar disponibles para vender. El adelanto de <b>{money(apartado.adelanto)}</b> queda por devolver, por {textoDevolucion(apartado)}.
+            </p>
+            <div role="radiogroup" aria-label="Por qué se libera" className="grid gap-1.5">
+              {opciones.map((o) => (
+                <button key={o.id} type="button" role="radio" aria-checked={motivo === o.id} onClick={() => setMotivo(o.id)} className={`rounded-lg border px-3 py-2.5 text-left text-sm transition-colors ${motivo === o.id ? "border-tinta bg-tinta text-papel" : "border-sand hover:border-tinta/40"}`}>
+                  {o.texto}
+                </button>
+              ))}
+            </div>
+            <ComboResponsable control={responsable} deshabilitado={enviando} />
+            <div className="pie-acciones">
+              <button type="button" onClick={cerrar} className="btn-cayla btn-secundario">Mejor no</button>
+              <Boton peso="primario" cargando={enviando} textoCargando="Liberando…"
+                type="button"
+                disabled={!motivo || enviando || !responsable.listo}
+                title={!motivo ? "Elige por qué se libera." : (responsable.motivo ?? undefined)}
+                onClick={() => liberar(cerrar)}
+              >
+                Liberar prendas
+              </Boton>
+            </div>
           </div>
-          <ComboResponsable control={responsable} deshabilitado={enviando} />
-          <div className="pie-acciones">
-            <button type="button" onClick={cerrar} className="btn-cayla btn-secundario">Mejor no</button>
-            <Boton peso="primario" cargando={enviando} textoCargando="Liberando…"
-              type="button"
-              disabled={!motivo || enviando || !responsable.listo}
-              title={!motivo ? "Elige por qué se libera." : (responsable.motivo ?? undefined)}
-              onClick={() => liberar(cerrar)}
-            >
-              Liberar prendas
-            </Boton>
-          </div>
-        </div>
-      )}
+        )
+      }
+    </Modal>
+  );
+}
+
+/** El mensaje de «apartado cancelado» y su botón: lo comparten la hoja de liberar (al terminar) y la fila de un apartado liberado.
+ *  El chat se abre en el mismo toque (el navegador no deja abrir una ventana después de esperar) y lo envía la persona. */
+function AvisoDeCancelacion({ apartado, mensaje, cerrar }: { apartado: Apartado; mensaje: string; cerrar: () => void }) {
+  return (
+    <div className="space-y-4">
+      <div className="card-cayla space-y-2 p-4">
+        <p className="label-cayla text-[11px] text-tinta/60">Mensaje para {apartado.nombres}</p>
+        <p className="rounded-xl rounded-bl-sm bg-hueso px-3.5 py-3 text-[15px] text-tinta">{mensaje}</p>
+      </div>
+      <div className="pie-acciones">
+        <button type="button" onClick={cerrar} className="btn-cayla btn-secundario">Ahora no</button>
+        <Boton
+          type="button"
+          peso="primario"
+          autoFocus
+          onClick={() => {
+            window.open(enlaceWhatsapp(apartado.celular, mensaje), "_blank", "noopener,noreferrer");
+            cerrar();
+          }}
+        >
+          <span className="flex items-center justify-center gap-2">
+            <MessageCircle className="-my-1 h-4 w-4" aria-hidden />
+            Avisar por WhatsApp
+          </span>
+        </Boton>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Avisar desde la fila de un apartado liberado (Felipe 2026-11-16): para el que «se liberó solo» al vencer su gracia, que nunca pasó
+ * por la hoja de liberar, y para el que se liberó con «Ahora no». La fila no trae el motivo: el que se liberó solo venció; del otro,
+ * el mensaje solo dice que se canceló. No anota nada en la base.
+ */
+export function AvisoCancelacionModal({ apartado, ubicacion, onClose }: { apartado: Apartado; ubicacion: UbicacionApartado; onClose: () => void }) {
+  const mensaje = mensajeLiberacion(apartado, ubicacion.etiqueta, apartado.liberadaSola ? "vencio" : null);
+  return (
+    <Modal titulo={`Avisarle a ${apartado.nombres}`} subtitulo={`${apartado.codigo} · ${formatoCelular(apartado.celular)}`} onClose={onClose}>
+      {(cerrar) => <AvisoDeCancelacion apartado={apartado} mensaje={mensaje} cerrar={cerrar} />}
     </Modal>
   );
 }
